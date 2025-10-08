@@ -23,24 +23,6 @@ func newVirtualAccountRecord(initialNonce core.OptionalUint64, initialBalance *b
 	}, nil
 }
 
-// updateVirtualRecord updates the virtualBalance of a virtualAccountRecord and handles the nonces.
-// The updateVirtualRecord is used only once, when the virtual record is created from a global account breadcrumb.
-func (virtualRecord *virtualAccountRecord) updateVirtualRecord(globalBreadcrumb *globalAccountBreadcrumb) {
-	virtualRecord.accumulateConsumedBalance(globalBreadcrumb.consumedBalance)
-
-	if !globalBreadcrumb.lastNonce.HasValue {
-		// We can have global breadcrumbs for accounts that are only used as relayers and never as senders.
-		// The global breadcrumbs of those accounts don't have a set nonce, here we treat those cases.
-		return
-	}
-
-	initialNonce := globalBreadcrumb.lastNonce.Value + 1
-	virtualRecord.initialNonce = core.OptionalUint64{
-		Value:    initialNonce,
-		HasValue: true,
-	}
-}
-
 func (virtualRecord *virtualAccountRecord) getInitialNonce() (uint64, error) {
 	if !virtualRecord.initialNonce.HasValue {
 		log.Debug("virtualAccountRecord.getInitialNonce",

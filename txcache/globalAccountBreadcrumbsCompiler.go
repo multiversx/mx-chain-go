@@ -7,6 +7,7 @@ import (
 // globalAccountBreadcrumbsCompiler represents the global account breadcrumbs compiler used in the Selection Tracker.
 // A globalAccountBreadcrumbsCompiler holds a globalAccountBreadcrumb for each account.
 type globalAccountBreadcrumbsCompiler struct {
+	// TODO analyze if this mutex is needed
 	mutCompiler              sync.RWMutex
 	globalAccountBreadcrumbs map[string]*globalAccountBreadcrumb
 }
@@ -19,8 +20,8 @@ func newGlobalAccountBreadcrumbsCompiler() *globalAccountBreadcrumbsCompiler {
 	}
 }
 
-// updateGlobalBreadcrumbsOnAddedBlockOnProposed updates the global state of the account when a block is added on the OnProposedBlock flow
-func (gabc *globalAccountBreadcrumbsCompiler) updateGlobalBreadcrumbsOnAddedBlockOnProposed(tb *trackedBlock) {
+// updateOnAddedBlock updates the global state of the account when a block is added on the OnProposedBlock flow
+func (gabc *globalAccountBreadcrumbsCompiler) updateOnAddedBlock(tb *trackedBlock) {
 	gabc.mutCompiler.Lock()
 	defer gabc.mutCompiler.Unlock()
 
@@ -32,12 +33,12 @@ func (gabc *globalAccountBreadcrumbsCompiler) updateGlobalBreadcrumbsOnAddedBloc
 			gabc.globalAccountBreadcrumbs[account] = globalBreadcrumb
 		}
 
-		globalBreadcrumb.updateOnAddedAccountBreadcrumb(breadcrumb)
+		globalBreadcrumb.updateOnAddedBreadcrumb(breadcrumb)
 	}
 }
 
-// updateGlobalBreadcrumbsOnRemovedBlockOnProposed updates the global state of the account when a block is removed on the OnProposedBlock flow
-func (gabc *globalAccountBreadcrumbsCompiler) updateGlobalBreadcrumbsOnRemovedBlockOnProposed(tb *trackedBlock) error {
+// updateAfterRemovedBlockWithSameNonceOrAbove updates the global state of the account when a block is removed on the OnProposedBlock flow
+func (gabc *globalAccountBreadcrumbsCompiler) updateAfterRemovedBlockWithSameNonceOrAbove(tb *trackedBlock) error {
 	gabc.mutCompiler.Lock()
 	defer gabc.mutCompiler.Unlock()
 
@@ -48,7 +49,7 @@ func (gabc *globalAccountBreadcrumbsCompiler) updateGlobalBreadcrumbsOnRemovedBl
 			return errGlobalBreadcrumbDoesNotExist
 		}
 
-		shouldBeDeleted, err := globalBreadcrumb.updateOnRemoveAccountBreadcrumbOnProposedBlock(breadcrumb)
+		shouldBeDeleted, err := globalBreadcrumb.updateOnRemoveBreadcrumbWithSameNonceOrAbove(breadcrumb)
 		if err != nil {
 			return err
 		}
@@ -61,8 +62,8 @@ func (gabc *globalAccountBreadcrumbsCompiler) updateGlobalBreadcrumbsOnRemovedBl
 	return nil
 }
 
-// updateGlobalBreadcrumbsOnRemovedBlockOnExecuted updates the global state of the account when a block is removed on the OnExecutedBlock flow
-func (gabc *globalAccountBreadcrumbsCompiler) updateGlobalBreadcrumbsOnRemovedBlockOnExecuted(tb *trackedBlock) error {
+// updateAfterRemovedBlockWithSameNonceOrBelow updates the global state of the account when a block is removed on the OnExecutedBlock flow
+func (gabc *globalAccountBreadcrumbsCompiler) updateAfterRemovedBlockWithSameNonceOrBelow(tb *trackedBlock) error {
 	gabc.mutCompiler.Lock()
 	defer gabc.mutCompiler.Unlock()
 
@@ -73,7 +74,7 @@ func (gabc *globalAccountBreadcrumbsCompiler) updateGlobalBreadcrumbsOnRemovedBl
 			return errGlobalBreadcrumbDoesNotExist
 		}
 
-		shouldBeDeleted, err := globalBreadcrumb.updateOnRemoveAccountBreadcrumbOnExecutedBlock(breadcrumb)
+		shouldBeDeleted, err := globalBreadcrumb.updateOnRemovedBreadcrumbWithSameNonceOrBelow(breadcrumb)
 		if err != nil {
 			return err
 		}

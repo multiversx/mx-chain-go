@@ -37,9 +37,9 @@ func (gab *globalAccountBreadcrumb) resetNonces() {
 	}
 }
 
-// updateOnAddedAccountBreadcrumb updates a global breadcrumb when a tracked block is added,
+// updateOnAddedBreadcrumb updates a global breadcrumb when a tracked block is added,
 // but should be used only after the validation of the proposed block passed.
-func (gab *globalAccountBreadcrumb) updateOnAddedAccountBreadcrumb(receivedBreadcrumb *accountBreadcrumb) {
+func (gab *globalAccountBreadcrumb) updateOnAddedBreadcrumb(receivedBreadcrumb *accountBreadcrumb) {
 	gab.extendConsumedBalance(receivedBreadcrumb)
 
 	// when a tracked block is added, we should only extend the nonce range of the global account breadcrumb
@@ -62,8 +62,8 @@ func (gab *globalAccountBreadcrumb) extendRightNonceRange(receivedBreadcrumb *ac
 	gab.lastNonce.HasValue = true
 }
 
-// updateOnRemoveAccountBreadcrumbOnExecutedBlock updates the global account breadcrumb when a block is removed on the OnExecutedBlock notification
-func (gab *globalAccountBreadcrumb) updateOnRemoveAccountBreadcrumbOnExecutedBlock(receivedBreadcrumb *accountBreadcrumb) (bool, error) {
+// updateOnRemovedBreadcrumbWithSameNonceOrBelow updates the global account breadcrumb when a block is removed on the OnExecutedBlock notification
+func (gab *globalAccountBreadcrumb) updateOnRemovedBreadcrumbWithSameNonceOrBelow(receivedBreadcrumb *accountBreadcrumb) (bool, error) {
 	err := gab.reduceConsumedBalance(receivedBreadcrumb)
 	if err != nil {
 		return false, err
@@ -94,9 +94,9 @@ func (gab *globalAccountBreadcrumb) reduceLeftNonceRange(receivedBreadcrumb *acc
 	gab.firstNonce.HasValue = true
 }
 
-// updateOnRemoveAccountBreadcrumbOnProposedBlock updates the global account breadcrumb when a block is removed on the OnProposedBlock notification,
+// updateOnRemoveBreadcrumbWithSameNonceOrAbove updates the global account breadcrumb when a block is removed on the OnProposedBlock notification,
 // but should be used only after the validation of the proposed block passed.
-func (gab *globalAccountBreadcrumb) updateOnRemoveAccountBreadcrumbOnProposedBlock(receivedBreadcrumb *accountBreadcrumb) (bool, error) {
+func (gab *globalAccountBreadcrumb) updateOnRemoveBreadcrumbWithSameNonceOrAbove(receivedBreadcrumb *accountBreadcrumb) (bool, error) {
 	err := gab.reduceConsumedBalance(receivedBreadcrumb)
 	if err != nil {
 		return false, err
@@ -132,8 +132,6 @@ func (gab *globalAccountBreadcrumb) reduceConsumedBalance(receivedBreadcrumb *ac
 	_ = gab.consumedBalance.Sub(gab.consumedBalance, receivedBreadcrumb.consumedBalance)
 	if gab.consumedBalance.Sign() == -1 {
 		return errNegativeBalanceForBreadcrumb
-	} else if gab.consumedBalance.Sign() == 0 {
-		gab.consumedBalance = big.NewInt(0)
 	}
 
 	return nil
@@ -162,16 +160,21 @@ func (gab *globalAccountBreadcrumb) canBeDeleted() bool {
 
 // continuousWithSessionNonce verifies if a global account breadcrumb is continuous with a given session nonce
 func (gab *globalAccountBreadcrumb) continuousWithSessionNonce(sessionNonce uint64) bool {
-	return gab.firstNonce.HasValue && gab.firstNonce.Value == sessionNonce
+	if !gab.isUser() {
+		// a global account breadcrumb of a relayer it is continuous with the session nonce
+		return true
+	}
+
+	return gab.firstNonce.Value == sessionNonce
 }
 
-// continuousWithSessionNonce creates a deep copy of a global account breadcrumb
+// createCopy creates a deep copy of a global account breadcrumb
 func (gab *globalAccountBreadcrumb) createCopy() *globalAccountBreadcrumb {
 	gabCopy := newGlobalAccountBreadcrumb()
 
 	gabCopy.firstNonce = gab.firstNonce
 	gabCopy.lastNonce = gab.lastNonce
-	gabCopy.consumedBalance = big.NewInt(int64(gab.consumedBalance.Uint64()))
+	gabCopy.consumedBalance = big.NewInt(0).Set(gab.consumedBalance)
 
 	return gabCopy
 }

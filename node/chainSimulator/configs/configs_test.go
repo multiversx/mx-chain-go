@@ -17,7 +17,6 @@ func TestNewProcessorRunnerChainArguments(t *testing.T) {
 		NumOfShards:                 3,
 		OriginalConfigsPath:         "../../../cmd/node/config",
 		RoundDurationInMillis:       6000,
-		GenesisTimeStamp:            0,
 		TempDir:                     t.TempDir(),
 		MetaChainMinNodes:           1,
 		MinNodesPerShard:            1,

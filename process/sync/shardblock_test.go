@@ -9,6 +9,7 @@ import (
 	"reflect"
 	"strings"
 	goSync "sync"
+	"sync/atomic"
 	"testing"
 	"time"
 
@@ -32,6 +33,7 @@ import (
 	"github.com/multiversx/mx-chain-go/storage/storageunit"
 	"github.com/multiversx/mx-chain-go/testscommon"
 	"github.com/multiversx/mx-chain-go/testscommon/cache"
+	"github.com/multiversx/mx-chain-go/testscommon/chainParameters"
 	dataRetrieverMock "github.com/multiversx/mx-chain-go/testscommon/dataRetriever"
 	"github.com/multiversx/mx-chain-go/testscommon/dblookupext"
 	"github.com/multiversx/mx-chain-go/testscommon/enableEpochsHandlerMock"
@@ -42,8 +44,6 @@ import (
 	storageStubs "github.com/multiversx/mx-chain-go/testscommon/storage"
 )
 
-// waitTime defines the time in milliseconds until node waits the requested info from the network
-const waitTime = 100 * time.Millisecond
 const testProcessWaitTime = time.Second
 
 type removedFlags struct {
@@ -185,13 +185,9 @@ func initNetworkWatcher() process.NetworkConnectionWatcher {
 }
 
 func initRoundHandler() consensus.RoundHandler {
-	rnd, _ := round.NewRound(
-		time.Now(),
-		time.Now(),
-		100*time.Millisecond,
-		&mock.SyncTimerMock{},
-		0,
-	)
+	roundArgs := createDefaultRoundArgs()
+	roundArgs.CurrentTimeStamp = time.Now()
+	rnd, _ := round.NewRound(roundArgs)
 
 	return rnd
 }
@@ -203,7 +199,6 @@ func CreateShardBootstrapMockArguments() sync.ArgShardBootstrapper {
 		ChainHandler:                 initBlockchain(),
 		RoundHandler:                 &mock.RoundHandlerMock{},
 		BlockProcessor:               &testscommon.BlockProcessorStub{},
-		WaitTime:                     waitTime,
 		Hasher:                       &hashingMocks.HasherMock{},
 		Marshalizer:                  &mock.MarshalizerMock{},
 		ForkDetector:                 &mock.ForkDetectorMock{},
@@ -226,6 +221,8 @@ func CreateShardBootstrapMockArguments() sync.ArgShardBootstrapper {
 		ProcessWaitTime:              testProcessWaitTime,
 		RepopulateTokensSupplies:     false,
 		EnableEpochsHandler:          &enableEpochsHandlerMock.EnableEpochsHandlerStub{},
+		EnableRoundsHandler:          &testscommon.EnableRoundsHandlerStub{},
+		ProcessConfigsHandler:        testscommon.GetDefaultProcessConfigsHandler(),
 	}
 
 	argsShardBootstrapper := sync.ArgShardBootstrapper{
@@ -601,13 +598,7 @@ func TestBootstrap_ShouldReturnTimeIsOutWhenMissingHeader(t *testing.T) {
 		return nil
 	}
 	args.ForkDetector = forkDetector
-	args.RoundHandler, _ = round.NewRound(
-		time.Now(),
-		time.Now().Add(2*100*time.Millisecond),
-		100*time.Millisecond,
-		&mock.SyncTimerMock{},
-		0,
-	)
+	args.RoundHandler, _ = round.NewRound(createDefaultRoundArgs())
 	args.BlockProcessor = createBlockProcessor(args.ChainHandler)
 
 	bs, _ := sync.NewShardBootstrap(args)
@@ -662,13 +653,7 @@ func TestBootstrap_ShouldReturnTimeIsOutWhenMissingBody(t *testing.T) {
 		return nil
 	}
 	args.ForkDetector = forkDetector
-	args.RoundHandler, _ = round.NewRound(
-		time.Now(),
-		time.Now().Add(2*100*time.Millisecond),
-		100*time.Millisecond,
-		&mock.SyncTimerMock{},
-		0,
-	)
+	args.RoundHandler, _ = round.NewRound(createDefaultRoundArgs())
 
 	bs, _ := sync.NewShardBootstrap(args)
 	bs.RequestHeaderWithNonce(2)
@@ -802,13 +787,7 @@ func TestBootstrap_SyncShouldSyncOneBlock(t *testing.T) {
 		return nil, nil
 	}
 	args.Accounts = account
-	args.RoundHandler, _ = round.NewRound(
-		time.Now(),
-		time.Now().Add(200*time.Millisecond),
-		100*time.Millisecond,
-		&mock.SyncTimerMock{},
-		0,
-	)
+	args.RoundHandler, _ = round.NewRound(createDefaultRoundArgs())
 
 	bs, _ := sync.NewShardBootstrap(args)
 	_ = bs.StartSyncingBlocks()
@@ -891,13 +870,7 @@ func TestBootstrap_ShouldReturnNilErr(t *testing.T) {
 		return nil
 	}
 	args.ForkDetector = forkDetector
-	args.RoundHandler, _ = round.NewRound(
-		time.Now(),
-		time.Now().Add(2*100*time.Millisecond),
-		100*time.Millisecond,
-		&mock.SyncTimerMock{},
-		0,
-	)
+	args.RoundHandler, _ = round.NewRound(createDefaultRoundArgs())
 
 	bs, _ := sync.NewShardBootstrap(args)
 	r := bs.SyncBlock(context.Background())
@@ -983,13 +956,7 @@ func TestBootstrap_SyncBlockShouldReturnErrorWhenProcessBlockFailed(t *testing.T
 		return nil
 	}
 	args.ForkDetector = forkDetector
-	args.RoundHandler, _ = round.NewRound(
-		time.Now(),
-		time.Now().Add(2*100*time.Millisecond),
-		100*time.Millisecond,
-		&mock.SyncTimerMock{},
-		0,
-	)
+	args.RoundHandler, _ = round.NewRound(createDefaultRoundArgs())
 
 	bs, _ := sync.NewShardBootstrap(args)
 
@@ -1032,13 +999,10 @@ func TestBootstrap_GetNodeStateShouldReturnNotSynchronizedWhenCurrentBlockIsNilA
 		return 1
 	}
 	args.ForkDetector = forkDetector
-	args.RoundHandler, _ = round.NewRound(
-		time.Now(),
-		time.Now().Add(100*time.Millisecond),
-		100*time.Millisecond,
-		&mock.SyncTimerMock{},
-		0,
-	)
+
+	roundArgs := createDefaultRoundArgs()
+	roundArgs.CurrentTimeStamp = time.Now().Add(100 * time.Millisecond)
+	args.RoundHandler, _ = round.NewRound(roundArgs)
 
 	bs, _ := sync.NewShardBootstrap(args)
 	bs.ComputeNodeState()
@@ -1102,13 +1066,10 @@ func TestBootstrap_GetNodeStateShouldReturnNotSynchronizedWhenNodeIsNotSynced(t 
 		return 1
 	}
 	args.ForkDetector = forkDetector
-	args.RoundHandler, _ = round.NewRound(
-		time.Now(),
-		time.Now().Add(100*time.Millisecond),
-		100*time.Millisecond,
-		&mock.SyncTimerMock{},
-		0,
-	)
+
+	roundArgs := createDefaultRoundArgs()
+	roundArgs.CurrentTimeStamp = time.Now().Add(100 * time.Millisecond)
+	args.RoundHandler, _ = round.NewRound(roundArgs)
 
 	bs, _ := sync.NewShardBootstrap(args)
 	bs.ComputeNodeState()
@@ -1168,8 +1129,12 @@ func TestBootstrap_GetNodeStateShouldReturnNotSynchronizedWhenForkIsDetectedAndI
 		&testscommon.TimeCacheStub{},
 		&mock.BlockTrackerMock{},
 		0,
+		0,
 		&enableEpochsHandlerMock.EnableEpochsHandlerStub{},
+		&testscommon.EnableRoundsHandlerStub{},
 		&dataRetrieverMock.ProofsPoolMock{},
+		&chainParameters.ChainParametersHandlerStub{},
+		testscommon.GetDefaultProcessConfigsHandler(),
 	)
 
 	bs, _ := sync.NewShardBootstrap(args)
@@ -1245,8 +1210,12 @@ func TestBootstrap_GetNodeStateShouldReturnSynchronizedWhenForkIsDetectedAndItRe
 		&testscommon.TimeCacheStub{},
 		&mock.BlockTrackerMock{},
 		0,
+		0,
 		&enableEpochsHandlerMock.EnableEpochsHandlerStub{},
+		&testscommon.EnableRoundsHandlerStub{},
 		&dataRetrieverMock.ProofsPoolMock{},
+		&chainParameters.ChainParametersHandlerStub{},
+		testscommon.GetDefaultProcessConfigsHandler(),
 	)
 
 	bs, _ := sync.NewShardBootstrap(args)
@@ -2201,13 +2170,7 @@ func TestShardBootstrap_SyncBlockGetNodeDBErrorShouldSync(t *testing.T) {
 		return nil
 	}
 	args.ForkDetector = forkDetector
-	args.RoundHandler, _ = round.NewRound(
-		time.Now(),
-		time.Now().Add(2*100*time.Millisecond),
-		100*time.Millisecond,
-		&mock.SyncTimerMock{},
-		0,
-	)
+	args.RoundHandler, _ = round.NewRound(createDefaultRoundArgs())
 
 	syncCalled := false
 	args.AccountsDBSyncer = &mock.AccountsDBSyncerStub{
@@ -2263,12 +2226,7 @@ func TestShardBootstrap_SyncBlock_WithEquivalentProofs(t *testing.T) {
 			return nil
 		}
 		args.ForkDetector = forkDetector
-		args.RoundHandler, _ = round.NewRound(time.Now(),
-			time.Now().Add(2*100*time.Millisecond),
-			100*time.Millisecond,
-			&mock.SyncTimerMock{},
-			0,
-		)
+		args.RoundHandler, _ = round.NewRound(createDefaultRoundArgs())
 		args.BlockProcessor = createBlockProcessor(args.ChainHandler)
 
 		pools := createMockPools()
@@ -2321,12 +2279,7 @@ func TestShardBootstrap_SyncBlock_WithEquivalentProofs(t *testing.T) {
 			return nil
 		}
 		args.ForkDetector = forkDetector
-		args.RoundHandler, _ = round.NewRound(time.Now(),
-			time.Now().Add(2*100*time.Millisecond),
-			100*time.Millisecond,
-			&mock.SyncTimerMock{},
-			0,
-		)
+		args.RoundHandler, _ = round.NewRound(createDefaultRoundArgs())
 		args.BlockProcessor = createBlockProcessor(args.ChainHandler)
 
 		pools := createMockPools()
@@ -2341,12 +2294,12 @@ func TestShardBootstrap_SyncBlock_WithEquivalentProofs(t *testing.T) {
 			}
 		}
 
-		numHeaderCalls := 0
+		var numHeaderCalls atomic.Uint64
 		pools.HeadersCalled = func() dataRetriever.HeadersPool {
 			sds := &mock.HeadersCacherStub{}
 			sds.GetHeaderByNonceAndShardIdCalled = func(hdrNonce uint64, shardId uint32) (handlers []data.HeaderHandler, i [][]byte, e error) {
-				if numHeaderCalls == 0 {
-					numHeaderCalls++
+				if numHeaderCalls.Load() == 0 {
+					numHeaderCalls.Add(1)
 					return nil, nil, errors.New("err")
 				}
 
@@ -2423,12 +2376,7 @@ func TestShardBootstrap_SyncBlock_WithEquivalentProofs(t *testing.T) {
 			return hash
 		}
 		args.ForkDetector = forkDetector
-		args.RoundHandler, _ = round.NewRound(time.Now(),
-			time.Now().Add(2*100*time.Millisecond),
-			100*time.Millisecond,
-			&mock.SyncTimerMock{},
-			0,
-		)
+		args.RoundHandler, _ = round.NewRound(createDefaultRoundArgs())
 		args.BlockProcessor = createBlockProcessor(args.ChainHandler)
 
 		pools := createMockPools()

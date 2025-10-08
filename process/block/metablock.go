@@ -125,6 +125,7 @@ func NewMetaProcessor(arguments ArgMetaProcessor) (*metaProcessor, error) {
 		roundNotifier:                 arguments.CoreComponents.RoundNotifier(),
 		enableRoundsHandler:           arguments.CoreComponents.EnableRoundsHandler(),
 		epochChangeGracePeriodHandler: arguments.CoreComponents.EpochChangeGracePeriodHandler(),
+		processConfigsHandler:         arguments.CoreComponents.ProcessConfigsHandler(),
 		vmContainerFactory:            arguments.VMContainersFactory,
 		vmContainer:                   arguments.VmContainer,
 		processDataTriesOnCommitEpoch: arguments.Config.Debug.EpochStart.ProcessDataTrieOnCommitEpoch,
@@ -1214,7 +1215,8 @@ func (mp *metaProcessor) requestShardHeadersIfNeeded(
 			"num", hdrsAddedForShard[shardID],
 			"highest nonce", lastShardHdr[shardID].GetNonce())
 
-		roundTooOld := mp.roundHandler.Index() > int64(lastShardHdr[shardID].GetRound()+process.MaxRoundsWithoutNewBlockReceived)
+		lastShardHdrRound := lastShardHdr[shardID].GetRound()
+		roundTooOld := mp.roundHandler.Index() > int64(lastShardHdrRound+mp.getMaxRoundsWithoutBlockReceived(lastShardHdrRound))
 		shouldRequestCrossHeaders := hdrsAddedForShard[shardID] == 0 && roundTooOld
 		if shouldRequestCrossHeaders {
 			fromNonce := lastShardHdr[shardID].GetNonce() + 1

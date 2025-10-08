@@ -13,39 +13,83 @@ import (
 func Test_fromBreadcrumbToVirtualRecord(t *testing.T) {
 	t.Parallel()
 
-	address := "bob"
-	accountBalance := big.NewInt(2)
+	t.Run("virtual record of sender breadcrumb", func(t *testing.T) {
+		t.Parallel()
 
-	breadcrumbBob := globalAccountBreadcrumb{
-		firstNonce: core.OptionalUint64{
-			Value:    1,
-			HasValue: true,
-		},
-		lastNonce: core.OptionalUint64{
-			Value:    2,
-			HasValue: true,
-		},
-		consumedBalance: big.NewInt(3),
-	}
+		address := "bob"
+		sessionNonce := uint64(1)
+		accountBalance := big.NewInt(2)
 
-	expectedVirtualRecord := &virtualAccountRecord{
-		initialNonce: core.OptionalUint64{
-			Value:    3,
-			HasValue: true,
-		},
-		virtualBalance: &virtualAccountBalance{
-			initialBalance:  big.NewInt(2),
+		breadcrumbBob := globalAccountBreadcrumb{
+			firstNonce: core.OptionalUint64{
+				Value:    1,
+				HasValue: true,
+			},
+			lastNonce: core.OptionalUint64{
+				Value:    2,
+				HasValue: true,
+			},
 			consumedBalance: big.NewInt(3),
-		},
-	}
+		}
 
-	computer := newVirtualSessionComputer(nil)
-	err := computer.fromGlobalBreadcrumbToVirtualRecord(address, accountBalance, &breadcrumbBob)
-	require.Nil(t, err)
+		expectedVirtualRecord := &virtualAccountRecord{
+			initialNonce: core.OptionalUint64{
+				Value:    3,
+				HasValue: true,
+			},
+			virtualBalance: &virtualAccountBalance{
+				initialBalance:  big.NewInt(2),
+				consumedBalance: big.NewInt(3),
+			},
+		}
 
-	actualVirtualRecord, ok := computer.virtualAccountsByAddress[address]
-	require.True(t, ok)
-	require.Equal(t, expectedVirtualRecord, actualVirtualRecord)
+		computer := newVirtualSessionComputer(nil)
+		err := computer.fromGlobalBreadcrumbToVirtualRecord(address, sessionNonce, accountBalance, &breadcrumbBob)
+		require.Nil(t, err)
+
+		actualVirtualRecord, ok := computer.virtualAccountsByAddress[address]
+		require.True(t, ok)
+		require.Equal(t, expectedVirtualRecord, actualVirtualRecord)
+	})
+
+	t.Run("virtual record of bob relayer", func(t *testing.T) {
+		t.Parallel()
+
+		address := "bob"
+		sessionNonce := uint64(1)
+		accountBalance := big.NewInt(2)
+
+		breadcrumbBob := globalAccountBreadcrumb{
+			firstNonce: core.OptionalUint64{
+				Value:    0,
+				HasValue: false,
+			},
+			lastNonce: core.OptionalUint64{
+				Value:    0,
+				HasValue: false,
+			},
+			consumedBalance: big.NewInt(5),
+		}
+
+		expectedVirtualRecord := &virtualAccountRecord{
+			initialNonce: core.OptionalUint64{
+				Value:    1,
+				HasValue: true,
+			},
+			virtualBalance: &virtualAccountBalance{
+				initialBalance:  big.NewInt(2),
+				consumedBalance: big.NewInt(5),
+			},
+		}
+
+		computer := newVirtualSessionComputer(nil)
+		err := computer.fromGlobalBreadcrumbToVirtualRecord(address, sessionNonce, accountBalance, &breadcrumbBob)
+		require.Nil(t, err)
+
+		actualVirtualRecord, ok := computer.virtualAccountsByAddress[address]
+		require.True(t, ok)
+		require.Equal(t, expectedVirtualRecord, actualVirtualRecord)
+	})
 }
 
 func Test_createVirtualSelectionSession(t *testing.T) {
@@ -143,8 +187,8 @@ func Test_createVirtualSelectionSession(t *testing.T) {
 			},
 		}
 
-		gabc.updateGlobalBreadcrumbsOnAddedBlockOnProposed(trackedBlocks[0])
-		gabc.updateGlobalBreadcrumbsOnAddedBlockOnProposed(trackedBlocks[1])
+		gabc.updateOnAddedBlock(trackedBlocks[0])
+		gabc.updateOnAddedBlock(trackedBlocks[1])
 
 		computer := newVirtualSessionComputer(&sessionMock)
 		_, err := computer.createVirtualSelectionSession(gabc.getGlobalBreadcrumbs())
@@ -222,8 +266,8 @@ func Test_createVirtualSelectionSession(t *testing.T) {
 			},
 		}
 
-		gabc.updateGlobalBreadcrumbsOnAddedBlockOnProposed(trackedBlocks[0])
-		gabc.updateGlobalBreadcrumbsOnAddedBlockOnProposed(trackedBlocks[1])
+		gabc.updateOnAddedBlock(trackedBlocks[0])
+		gabc.updateOnAddedBlock(trackedBlocks[1])
 
 		computer := newVirtualSessionComputer(&sessionMock)
 		_, err := computer.createVirtualSelectionSession(gabc.getGlobalBreadcrumbs())

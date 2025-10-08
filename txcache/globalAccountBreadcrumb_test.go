@@ -67,7 +67,7 @@ func Test_updateOnAddedAccountBreadcrumb(t *testing.T) {
 
 		gab := newGlobalAccountBreadcrumb()
 		for _, breadcrumb := range accountBreadcrumbsForAlice {
-			gab.updateOnAddedAccountBreadcrumb(breadcrumb)
+			gab.updateOnAddedBreadcrumb(breadcrumb)
 		}
 
 		require.Equal(t, big.NewInt(20), gab.consumedBalance)
@@ -131,7 +131,7 @@ func Test_updateOnAddedAccountBreadcrumb(t *testing.T) {
 
 		gab := newGlobalAccountBreadcrumb()
 		for _, breadcrumb := range accountBreadcrumbsForAlice {
-			gab.updateOnAddedAccountBreadcrumb(breadcrumb)
+			gab.updateOnAddedBreadcrumb(breadcrumb)
 		}
 
 		require.Equal(t, big.NewInt(30), gab.consumedBalance)
@@ -192,7 +192,7 @@ func Test_updateOnRemoveAccountBreadcrumbOnExecutedBlock(t *testing.T) {
 
 		gab := newGlobalAccountBreadcrumb()
 		for _, breadcrumb := range accountBreadcrumbsForAlice {
-			gab.updateOnAddedAccountBreadcrumb(breadcrumb)
+			gab.updateOnAddedBreadcrumb(breadcrumb)
 		}
 
 		require.Equal(t, big.NewInt(20), gab.consumedBalance)
@@ -203,7 +203,7 @@ func Test_updateOnRemoveAccountBreadcrumbOnExecutedBlock(t *testing.T) {
 		require.True(t, gab.lastNonce.HasValue)
 		require.Equal(t, uint64(31), gab.lastNonce.Value)
 
-		shouldBeDeleted, err := gab.updateOnRemoveAccountBreadcrumbOnExecutedBlock(breadcrumb1)
+		shouldBeDeleted, err := gab.updateOnRemovedBreadcrumbWithSameNonceOrBelow(breadcrumb1)
 		require.NoError(t, err)
 		require.False(t, shouldBeDeleted)
 
@@ -211,7 +211,7 @@ func Test_updateOnRemoveAccountBreadcrumbOnExecutedBlock(t *testing.T) {
 		require.True(t, gab.firstNonce.HasValue)
 		require.Equal(t, uint64(17), gab.firstNonce.Value)
 
-		shouldBeDeleted, err = gab.updateOnRemoveAccountBreadcrumbOnExecutedBlock(breadcrumb3)
+		shouldBeDeleted, err = gab.updateOnRemovedBreadcrumbWithSameNonceOrBelow(breadcrumb3)
 		require.NoError(t, err)
 		require.False(t, shouldBeDeleted)
 
@@ -220,7 +220,7 @@ func Test_updateOnRemoveAccountBreadcrumbOnExecutedBlock(t *testing.T) {
 		require.Equal(t, uint64(math.MaxUint64), gab.firstNonce.Value)
 		require.Equal(t, uint64(0), gab.lastNonce.Value)
 
-		shouldBeDeleted, err = gab.updateOnRemoveAccountBreadcrumbOnExecutedBlock(breadcrumb2)
+		shouldBeDeleted, err = gab.updateOnRemovedBreadcrumbWithSameNonceOrBelow(breadcrumb2)
 		require.NoError(t, err)
 		require.True(t, shouldBeDeleted)
 		require.Equal(t, uint64(math.MaxUint64), gab.firstNonce.Value)
@@ -280,7 +280,7 @@ func Test_updateOnRemoveAccountBreadcrumbOnExecutedBlock(t *testing.T) {
 
 		gab := newGlobalAccountBreadcrumb()
 		for _, breadcrumb := range accountBreadcrumbsForAlice {
-			gab.updateOnAddedAccountBreadcrumb(breadcrumb)
+			gab.updateOnAddedBreadcrumb(breadcrumb)
 		}
 
 		require.Equal(t, big.NewInt(40), gab.consumedBalance)
@@ -291,7 +291,7 @@ func Test_updateOnRemoveAccountBreadcrumbOnExecutedBlock(t *testing.T) {
 		require.True(t, gab.lastNonce.HasValue)
 		require.Equal(t, uint64(31), gab.lastNonce.Value)
 
-		shouldBeDeleted, err := gab.updateOnRemoveAccountBreadcrumbOnExecutedBlock(breadcrumb0)
+		shouldBeDeleted, err := gab.updateOnRemovedBreadcrumbWithSameNonceOrBelow(breadcrumb0)
 		require.NoError(t, err)
 		require.False(t, shouldBeDeleted)
 
@@ -300,7 +300,7 @@ func Test_updateOnRemoveAccountBreadcrumbOnExecutedBlock(t *testing.T) {
 		require.Equal(t, uint64(10), gab.firstNonce.Value)
 		require.Equal(t, uint64(31), gab.lastNonce.Value)
 
-		shouldBeDeleted, err = gab.updateOnRemoveAccountBreadcrumbOnExecutedBlock(breadcrumb1)
+		shouldBeDeleted, err = gab.updateOnRemovedBreadcrumbWithSameNonceOrBelow(breadcrumb1)
 		require.NoError(t, err)
 		require.False(t, shouldBeDeleted)
 
@@ -308,7 +308,7 @@ func Test_updateOnRemoveAccountBreadcrumbOnExecutedBlock(t *testing.T) {
 		require.True(t, gab.firstNonce.HasValue)
 		require.Equal(t, uint64(17), gab.firstNonce.Value)
 
-		shouldBeDeleted, err = gab.updateOnRemoveAccountBreadcrumbOnExecutedBlock(breadcrumb4)
+		shouldBeDeleted, err = gab.updateOnRemovedBreadcrumbWithSameNonceOrBelow(breadcrumb4)
 		require.NoError(t, err)
 		require.False(t, shouldBeDeleted)
 
@@ -317,16 +317,36 @@ func Test_updateOnRemoveAccountBreadcrumbOnExecutedBlock(t *testing.T) {
 		require.Equal(t, uint64(math.MaxUint64), gab.firstNonce.Value)
 		require.Equal(t, uint64(0), gab.lastNonce.Value)
 
-		shouldBeDeleted, err = gab.updateOnRemoveAccountBreadcrumbOnExecutedBlock(breadcrumb2)
+		shouldBeDeleted, err = gab.updateOnRemovedBreadcrumbWithSameNonceOrBelow(breadcrumb2)
 		require.NoError(t, err)
 		require.False(t, shouldBeDeleted)
 
 		require.Equal(t, uint64(math.MaxUint64), gab.firstNonce.Value)
 		require.Equal(t, uint64(0), gab.lastNonce.Value)
 
-		shouldBeDeleted, err = gab.updateOnRemoveAccountBreadcrumbOnExecutedBlock(breadcrumb3)
+		shouldBeDeleted, err = gab.updateOnRemovedBreadcrumbWithSameNonceOrBelow(breadcrumb3)
 		require.NoError(t, err)
 		require.True(t, shouldBeDeleted)
+	})
+
+	t.Run("should error", func(t *testing.T) {
+		t.Parallel()
+
+		gabc := newGlobalAccountBreadcrumb()
+		breadcrumb := &accountBreadcrumb{
+			firstNonce: core.OptionalUint64{
+				Value:    10,
+				HasValue: true,
+			},
+			lastNonce: core.OptionalUint64{
+				Value:    16,
+				HasValue: true,
+			},
+			consumedBalance: big.NewInt(10),
+		}
+
+		_, err := gabc.updateOnRemovedBreadcrumbWithSameNonceOrBelow(breadcrumb)
+		require.Equal(t, errNegativeBalanceForBreadcrumb, err)
 	})
 }
 
@@ -401,7 +421,7 @@ func Test_updateOnRemoveAccountBreadcrumbOnProposedBlock(t *testing.T) {
 
 		gab := newGlobalAccountBreadcrumb()
 		for _, breadcrumb := range accountBreadcrumbsForAlice {
-			gab.updateOnAddedAccountBreadcrumb(breadcrumb)
+			gab.updateOnAddedBreadcrumb(breadcrumb)
 		}
 
 		require.Equal(t, big.NewInt(50), gab.consumedBalance)
@@ -409,7 +429,7 @@ func Test_updateOnRemoveAccountBreadcrumbOnProposedBlock(t *testing.T) {
 		require.Equal(t, uint64(40), gab.lastNonce.Value)
 
 		// now, remove breadcrumb corresponding to the block with nonce 4
-		shouldDelete, err := gab.updateOnRemoveAccountBreadcrumbOnProposedBlock(breadcrumb4)
+		shouldDelete, err := gab.updateOnRemoveBreadcrumbWithSameNonceOrAbove(breadcrumb4)
 		require.NoError(t, err)
 		require.False(t, shouldDelete)
 
@@ -420,7 +440,7 @@ func Test_updateOnRemoveAccountBreadcrumbOnProposedBlock(t *testing.T) {
 		require.Equal(t, uint64(23), gab.lastNonce.Value)
 
 		// now, remove the ones with greater nonce
-		shouldDelete, err = gab.updateOnRemoveAccountBreadcrumbOnProposedBlock(breadcrumb5)
+		shouldDelete, err = gab.updateOnRemoveBreadcrumbWithSameNonceOrAbove(breadcrumb5)
 		require.NoError(t, err)
 		require.False(t, shouldDelete)
 
@@ -442,7 +462,7 @@ func Test_updateOnRemoveAccountBreadcrumbOnProposedBlock(t *testing.T) {
 			},
 			consumedBalance: big.NewInt(5),
 		}
-		gab.updateOnAddedAccountBreadcrumb(breadcrumbToReplaceNonce4)
+		gab.updateOnAddedBreadcrumb(breadcrumbToReplaceNonce4)
 		require.Equal(t, big.NewInt(40), gab.consumedBalance)
 		require.True(t, gab.firstNonce.HasValue)
 		require.Equal(t, uint64(10), gab.firstNonce.Value)
@@ -515,7 +535,7 @@ func Test_updateOnRemoveAccountBreadcrumbOnProposedBlock(t *testing.T) {
 
 		gab := newGlobalAccountBreadcrumb()
 		for _, breadcrumb := range accountBreadcrumbsForAlice {
-			gab.updateOnAddedAccountBreadcrumb(breadcrumb)
+			gab.updateOnAddedBreadcrumb(breadcrumb)
 		}
 
 		require.Equal(t, big.NewInt(50), gab.consumedBalance)
@@ -525,7 +545,7 @@ func Test_updateOnRemoveAccountBreadcrumbOnProposedBlock(t *testing.T) {
 		// in this scenario, we want to replace breadcrumb1
 
 		// remove breadcrumb with greater nonce
-		shouldDelete, err := gab.updateOnRemoveAccountBreadcrumbOnProposedBlock(breadcrumb4)
+		shouldDelete, err := gab.updateOnRemoveBreadcrumbWithSameNonceOrAbove(breadcrumb4)
 		require.NoError(t, err)
 		require.False(t, shouldDelete)
 
@@ -536,7 +556,7 @@ func Test_updateOnRemoveAccountBreadcrumbOnProposedBlock(t *testing.T) {
 		require.Equal(t, uint64(23), gab.lastNonce.Value)
 
 		// remove breadcrumb with greater nonce
-		shouldDelete, err = gab.updateOnRemoveAccountBreadcrumbOnProposedBlock(breadcrumb5)
+		shouldDelete, err = gab.updateOnRemoveBreadcrumbWithSameNonceOrAbove(breadcrumb5)
 		require.NoError(t, err)
 		require.False(t, shouldDelete)
 
@@ -547,7 +567,7 @@ func Test_updateOnRemoveAccountBreadcrumbOnProposedBlock(t *testing.T) {
 		require.Equal(t, uint64(23), gab.lastNonce.Value)
 
 		// now, remove the breadcrumb with nonce 1
-		shouldDelete, err = gab.updateOnRemoveAccountBreadcrumbOnProposedBlock(breadcrumb1)
+		shouldDelete, err = gab.updateOnRemoveBreadcrumbWithSameNonceOrAbove(breadcrumb1)
 		require.NoError(t, err)
 		require.False(t, shouldDelete)
 
@@ -555,7 +575,7 @@ func Test_updateOnRemoveAccountBreadcrumbOnProposedBlock(t *testing.T) {
 		require.False(t, gab.firstNonce.HasValue)
 		require.False(t, gab.lastNonce.HasValue)
 
-		shouldDelete, err = gab.updateOnRemoveAccountBreadcrumbOnProposedBlock(breadcrumb2)
+		shouldDelete, err = gab.updateOnRemoveBreadcrumbWithSameNonceOrAbove(breadcrumb2)
 		require.NoError(t, err)
 		require.False(t, shouldDelete)
 
@@ -563,7 +583,7 @@ func Test_updateOnRemoveAccountBreadcrumbOnProposedBlock(t *testing.T) {
 		require.False(t, gab.firstNonce.HasValue)
 		require.False(t, gab.lastNonce.HasValue)
 
-		shouldDelete, err = gab.updateOnRemoveAccountBreadcrumbOnProposedBlock(breadcrumb3)
+		shouldDelete, err = gab.updateOnRemoveBreadcrumbWithSameNonceOrAbove(breadcrumb3)
 		require.NoError(t, err)
 		require.False(t, shouldDelete)
 
@@ -572,9 +592,60 @@ func Test_updateOnRemoveAccountBreadcrumbOnProposedBlock(t *testing.T) {
 		require.False(t, gab.lastNonce.HasValue)
 
 		// now, if we would delete the breadcrumb 0, we should receive that the account can be deleted from the global map
-		shouldDelete, err = gab.updateOnRemoveAccountBreadcrumbOnProposedBlock(breadcrumb0)
+		shouldDelete, err = gab.updateOnRemoveBreadcrumbWithSameNonceOrAbove(breadcrumb0)
 		require.NoError(t, err)
 		require.True(t, shouldDelete)
+	})
+
+	t.Run("should not update with unknown nonces", func(t *testing.T) {
+		t.Parallel()
+
+		gabc := newGlobalAccountBreadcrumb()
+		gabc.firstNonce = core.OptionalUint64{
+			Value:    10,
+			HasValue: true,
+		}
+		gabc.lastNonce = core.OptionalUint64{
+			Value:    12,
+			HasValue: true,
+		}
+		gabc.consumedBalance = big.NewInt(12)
+
+		breadcrumb := &accountBreadcrumb{
+			firstNonce: core.OptionalUint64{
+				Value:    0,
+				HasValue: false,
+			},
+			lastNonce: core.OptionalUint64{
+				Value:    0,
+				HasValue: false,
+			},
+			consumedBalance: big.NewInt(10),
+		}
+
+		shouldDelete, err := gabc.updateOnRemoveBreadcrumbWithSameNonceOrAbove(breadcrumb)
+		require.NoError(t, err)
+		require.False(t, shouldDelete)
+	})
+
+	t.Run("should error", func(t *testing.T) {
+		t.Parallel()
+
+		gabc := newGlobalAccountBreadcrumb()
+		breadcrumb := &accountBreadcrumb{
+			firstNonce: core.OptionalUint64{
+				Value:    10,
+				HasValue: true,
+			},
+			lastNonce: core.OptionalUint64{
+				Value:    16,
+				HasValue: true,
+			},
+			consumedBalance: big.NewInt(10),
+		}
+
+		_, err := gabc.updateOnRemoveBreadcrumbWithSameNonceOrAbove(breadcrumb)
+		require.Equal(t, errNegativeBalanceForBreadcrumb, err)
 	})
 }
 
@@ -607,7 +678,7 @@ func Test_reduceConsumedBalance(t *testing.T) {
 
 		err = gab.reduceConsumedBalance(&breadcrumb)
 		require.Nil(t, err)
-		require.Equal(t, big.NewInt(0), gab.consumedBalance)
+		require.Equal(t, 0, gab.consumedBalance.Sign())
 
 		gab.extendConsumedBalance(&breadcrumb)
 		require.Equal(t, big.NewInt(5), gab.consumedBalance)
