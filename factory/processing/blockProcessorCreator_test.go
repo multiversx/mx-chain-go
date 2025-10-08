@@ -207,13 +207,14 @@ func createAccountAdapter(
 	}
 
 	args := state.ArgsAccountsDB{
-		Trie:                  tr,
-		Hasher:                hasher,
-		Marshaller:            marshaller,
-		AccountFactory:        accountFactory,
-		StoragePruningManager: disabled.NewDisabledStoragePruningManager(),
-		AddressConverter:      &testscommon.PubkeyConverterMock{},
-		SnapshotsManager:      disabledState.NewDisabledSnapshotsManager(),
+		Trie:                     tr,
+		Hasher:                   hasher,
+		Marshaller:               marshaller,
+		AccountFactory:           accountFactory,
+		StoragePruningManager:    disabled.NewDisabledStoragePruningManager(),
+		AddressConverter:         &testscommon.PubkeyConverterMock{},
+		SnapshotsManager:         disabledState.NewDisabledSnapshotsManager(),
+		MaxDataTriesSizeInMemory: tenMbSize,
 	}
 	adb, err := state.NewAccountsDB(args)
 	if err != nil {

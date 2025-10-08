@@ -1075,13 +1075,14 @@ func createAccounts(
 		StateStatsHandler:    statistics.NewStateStatistics(),
 	})
 	argsAccountsDB := state.ArgsAccountsDB{
-		Trie:                  tr,
-		Hasher:                integrationTests.TestHasher,
-		Marshaller:            integrationTests.TestMarshalizer,
-		AccountFactory:        accCreator,
-		StoragePruningManager: spm,
-		AddressConverter:      &testscommon.PubkeyConverterMock{},
-		SnapshotsManager:      snapshotsManager,
+		Trie:                     tr,
+		Hasher:                   integrationTests.TestHasher,
+		Marshaller:               integrationTests.TestMarshalizer,
+		AccountFactory:           accCreator,
+		StoragePruningManager:    spm,
+		AddressConverter:         &testscommon.PubkeyConverterMock{},
+		SnapshotsManager:         snapshotsManager,
+		MaxDataTriesSizeInMemory: integrationTests.TenMbSize,
 	}
 	adb, _ := state.NewAccountsDB(argsAccountsDB)
 
@@ -2749,13 +2750,14 @@ func createAccountsDBTestSetup() *state.AccountsDB {
 	})
 
 	argsAccountsDB := state.ArgsAccountsDB{
-		Trie:                  tr,
-		Hasher:                integrationTests.TestHasher,
-		Marshaller:            integrationTests.TestMarshalizer,
-		AccountFactory:        accCreator,
-		StoragePruningManager: spm,
-		AddressConverter:      &testscommon.PubkeyConverterMock{},
-		SnapshotsManager:      snapshotsManager,
+		Trie:                     tr,
+		Hasher:                   integrationTests.TestHasher,
+		Marshaller:               integrationTests.TestMarshalizer,
+		AccountFactory:           accCreator,
+		StoragePruningManager:    spm,
+		AddressConverter:         &testscommon.PubkeyConverterMock{},
+		SnapshotsManager:         snapshotsManager,
+		MaxDataTriesSizeInMemory: integrationTests.TenMbSize,
 	}
 	adb, _ := state.NewAccountsDB(argsAccountsDB)
 

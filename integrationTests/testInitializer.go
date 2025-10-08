@@ -490,13 +490,14 @@ func CreateAccountsDBWithEnableEpochsHandler(
 	_ = snapshotsManager.SetSyncer(&mock.AccountsDBSyncerStub{})
 
 	args := state.ArgsAccountsDB{
-		Trie:                  tr,
-		Hasher:                sha256.NewSha256(),
-		Marshaller:            TestMarshalizer,
-		AccountFactory:        accountFactory,
-		StoragePruningManager: spm,
-		AddressConverter:      &testscommon.PubkeyConverterMock{},
-		SnapshotsManager:      snapshotsManager,
+		Trie:                     tr,
+		Hasher:                   sha256.NewSha256(),
+		Marshaller:               TestMarshalizer,
+		AccountFactory:           accountFactory,
+		StoragePruningManager:    spm,
+		AddressConverter:         &testscommon.PubkeyConverterMock{},
+		SnapshotsManager:         snapshotsManager,
+		MaxDataTriesSizeInMemory: TenMbSize,
 	}
 	adb, _ := state.NewAccountsDB(args)
 

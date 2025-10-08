@@ -96,13 +96,14 @@ var log = logger.GetOrCreate("state")
 
 // ArgsAccountsDB is the arguments DTO for the AccountsDB instance
 type ArgsAccountsDB struct {
-	Trie                  common.Trie
-	Hasher                hashing.Hasher
-	Marshaller            marshal.Marshalizer
-	AccountFactory        AccountFactory
-	StoragePruningManager StoragePruningManager
-	AddressConverter      core.PubkeyConverter
-	SnapshotsManager      SnapshotsManager
+	Trie                     common.Trie
+	Hasher                   hashing.Hasher
+	Marshaller               marshal.Marshalizer
+	AccountFactory           AccountFactory
+	StoragePruningManager    StoragePruningManager
+	AddressConverter         core.PubkeyConverter
+	SnapshotsManager         SnapshotsManager
+	MaxDataTriesSizeInMemory uint64
 }
 
 // NewAccountsDB creates a new account manager
@@ -112,11 +113,15 @@ func NewAccountsDB(args ArgsAccountsDB) (*AccountsDB, error) {
 		return nil, err
 	}
 
-	return createAccountsDb(args), nil
+	return createAccountsDb(args)
 }
 
-func createAccountsDb(args ArgsAccountsDB) *AccountsDB {
-	dth, _ := triesHolder.NewDataTriesHolder(10000000) // TODO make this configurable and check for error
+func createAccountsDb(args ArgsAccountsDB) (*AccountsDB, error) {
+	dth, err := triesHolder.NewDataTriesHolder(args.MaxDataTriesSizeInMemory)
+	if err != nil {
+		return nil, fmt.Errorf("cannot create data tries holder: %w", err)
+	}
+
 	return &AccountsDB{
 		mainTrie:               args.Trie,
 		hasher:                 args.Hasher,
@@ -132,7 +137,7 @@ func createAccountsDb(args ArgsAccountsDB) *AccountsDB {
 		},
 		addressConverter: args.AddressConverter,
 		snapshotsManger:  args.SnapshotsManager,
-	}
+	}, nil
 }
 
 func checkArgsAccountsDB(args ArgsAccountsDB) error {

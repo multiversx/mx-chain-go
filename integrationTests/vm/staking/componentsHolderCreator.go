@@ -212,13 +212,14 @@ func createAccountsDB(
 	ewl, _ := evictionWaitingList.NewMemoryEvictionWaitingList(argsEvictionWaitingList)
 	spm, _ := storagePruningManager.NewStoragePruningManager(ewl, 10)
 	argsAccountsDb := state.ArgsAccountsDB{
-		Trie:                  tr,
-		Hasher:                coreComponents.Hasher(),
-		Marshaller:            coreComponents.InternalMarshalizer(),
-		AccountFactory:        accountFactory,
-		StoragePruningManager: spm,
-		AddressConverter:      coreComponents.AddressPubKeyConverter(),
-		SnapshotsManager:      &stateTests.SnapshotsManagerStub{},
+		Trie:                     tr,
+		Hasher:                   coreComponents.Hasher(),
+		Marshaller:               coreComponents.InternalMarshalizer(),
+		AccountFactory:           accountFactory,
+		StoragePruningManager:    spm,
+		AddressConverter:         coreComponents.AddressPubKeyConverter(),
+		SnapshotsManager:         &stateTests.SnapshotsManagerStub{},
+		MaxDataTriesSizeInMemory: integrationTests.TenMbSize,
 	}
 	adb, _ := state.NewAccountsDB(argsAccountsDb)
 	return adb

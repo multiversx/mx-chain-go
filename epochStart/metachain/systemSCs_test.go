@@ -758,13 +758,14 @@ func createAccountsDB(
 	spm, _ := storagePruningManager.NewStoragePruningManager(ewl, 10)
 
 	args := state.ArgsAccountsDB{
-		Trie:                  tr,
-		Hasher:                hasher,
-		Marshaller:            marshaller,
-		AccountFactory:        accountFactory,
-		StoragePruningManager: spm,
-		AddressConverter:      &testscommon.PubkeyConverterMock{},
-		SnapshotsManager:      disabledState.NewDisabledSnapshotsManager(),
+		Trie:                     tr,
+		Hasher:                   hasher,
+		Marshaller:               marshaller,
+		AccountFactory:           accountFactory,
+		StoragePruningManager:    spm,
+		AddressConverter:         &testscommon.PubkeyConverterMock{},
+		SnapshotsManager:         disabledState.NewDisabledSnapshotsManager(),
+		MaxDataTriesSizeInMemory: tenMbSize,
 	}
 	adb, _ := state.NewAccountsDB(args)
 	return adb

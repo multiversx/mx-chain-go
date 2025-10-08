@@ -77,12 +77,13 @@ func createMockAccountsDBArgs() state.ArgsAccountsDB {
 				return &storageManager.StorageManagerStub{}
 			},
 		},
-		Hasher:                &hashingMocks.HasherMock{},
-		Marshaller:            &marshallerMock.MarshalizerMock{},
-		AccountFactory:        accCreator,
-		StoragePruningManager: disabled.NewDisabledStoragePruningManager(),
-		AddressConverter:      &testscommon.PubkeyConverterMock{},
-		SnapshotsManager:      snapshotsManager,
+		Hasher:                   &hashingMocks.HasherMock{},
+		Marshaller:               &marshallerMock.MarshalizerMock{},
+		AccountFactory:           accCreator,
+		StoragePruningManager:    disabled.NewDisabledStoragePruningManager(),
+		AddressConverter:         &testscommon.PubkeyConverterMock{},
+		SnapshotsManager:         snapshotsManager,
+		MaxDataTriesSizeInMemory: tenMbSize,
 	}
 }
 
@@ -164,13 +165,14 @@ func getDefaultStateComponents(
 	})
 
 	argsAccountsDB := state.ArgsAccountsDB{
-		Trie:                  tr,
-		Hasher:                hasher,
-		Marshaller:            marshaller,
-		AccountFactory:        accCreator,
-		StoragePruningManager: spm,
-		AddressConverter:      &testscommon.PubkeyConverterMock{},
-		SnapshotsManager:      snapshotsManager,
+		Trie:                     tr,
+		Hasher:                   hasher,
+		Marshaller:               marshaller,
+		AccountFactory:           accCreator,
+		StoragePruningManager:    spm,
+		AddressConverter:         &testscommon.PubkeyConverterMock{},
+		SnapshotsManager:         snapshotsManager,
+		MaxDataTriesSizeInMemory: tenMbSize,
 	}
 	adb, _ := state.NewAccountsDB(argsAccountsDB)
 

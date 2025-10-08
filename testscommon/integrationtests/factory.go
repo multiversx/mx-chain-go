@@ -121,13 +121,14 @@ func CreateAccountsDB(db storage.Storer, enableEpochs common.EnableEpochsHandler
 	})
 
 	argsAccountsDB := state.ArgsAccountsDB{
-		Trie:                  tr,
-		Hasher:                TestHasher,
-		Marshaller:            TestMarshalizer,
-		AccountFactory:        accCreator,
-		StoragePruningManager: spm,
-		AddressConverter:      &testscommon.PubkeyConverterMock{},
-		SnapshotsManager:      snapshotsManager,
+		Trie:                     tr,
+		Hasher:                   TestHasher,
+		Marshaller:               TestMarshalizer,
+		AccountFactory:           accCreator,
+		StoragePruningManager:    spm,
+		AddressConverter:         &testscommon.PubkeyConverterMock{},
+		SnapshotsManager:         snapshotsManager,
+		MaxDataTriesSizeInMemory: tenMBSize,
 	}
 	adb, _ := state.NewAccountsDB(argsAccountsDB)
 

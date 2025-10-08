@@ -596,13 +596,14 @@ func createNewAccountsAdapterApi(args scQueryElementArgs, chainHandler data.Chai
 	}
 
 	argsAPIAccountsDB := state.ArgsAccountsDB{
-		Trie:                  merkleTrie,
-		Hasher:                args.coreComponents.Hasher(),
-		Marshaller:            args.coreComponents.InternalMarshalizer(),
-		AccountFactory:        accountFactory,
-		StoragePruningManager: storagePruning,
-		AddressConverter:      args.coreComponents.AddressPubKeyConverter(),
-		SnapshotsManager:      disabledState.NewDisabledSnapshotsManager(),
+		Trie:                     merkleTrie,
+		Hasher:                   args.coreComponents.Hasher(),
+		Marshaller:               args.coreComponents.InternalMarshalizer(),
+		AccountFactory:           accountFactory,
+		StoragePruningManager:    storagePruning,
+		AddressConverter:         args.coreComponents.AddressPubKeyConverter(),
+		SnapshotsManager:         disabledState.NewDisabledSnapshotsManager(),
+		MaxDataTriesSizeInMemory: args.generalConfig.StateTriesConfig.DataTriesSizeInMemory,
 	}
 
 	provider, err := blockInfoProviders.NewCurrentBlockInfo(chainHandler)

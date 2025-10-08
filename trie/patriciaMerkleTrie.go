@@ -88,7 +88,8 @@ func NewTrie(
 		chanClose:               make(chan struct{}),
 		enableEpochsHandler:     enableEpochsHandler,
 		trieNodeVersionVerifier: tnvv,
-		maxSizeInMem:            maxSizeInMemory,
+		// TODO collapse trie leaves if maxSizeInMemory is reached
+		maxSizeInMem: maxSizeInMemory,
 	}, nil
 }
 

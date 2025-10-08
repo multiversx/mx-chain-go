@@ -41,6 +41,7 @@ func NewDataTriesHolder(maxTriesSize uint64) (*dataTriesHolder, error) {
 	if maxTriesSize < maxTrieSizeMinValue {
 		return nil, fmt.Errorf("%w, provided %d, minimum %d", ErrInvalidMaxTrieSizeValue, maxTriesSize, maxTrieSizeMinValue)
 	}
+	log.Trace("creating new data tries holder", "maxTriesSize", maxTriesSize)
 
 	return &dataTriesHolder{
 		tries:          make(map[string]*trieEntry),
@@ -63,8 +64,6 @@ func (dth *dataTriesHolder) Put(key []byte, tr common.Trie) {
 		dth.mutex.Unlock()
 	}()
 
-	log.Trace("put trie in data tries holder", "key", key)
-
 	if len(dth.tries) == 0 {
 		// If the tries map is empty, we create a new entry
 		entry := &trieEntry{
@@ -79,6 +78,8 @@ func (dth *dataTriesHolder) Put(key []byte, tr common.Trie) {
 		dth.oldestUsed = entry
 		dth.newestUsed = entry
 		dth.totalTriesSize += uint64(entry.trieSize)
+		log.Trace("added first trie to data tries holder", "key", key, "trieSize", entry.trieSize, "totalTriesSize", dth.totalTriesSize)
+
 		return
 	}
 
@@ -98,6 +99,7 @@ func (dth *dataTriesHolder) Put(key []byte, tr common.Trie) {
 		dth.tries[string(key)] = entry
 		dth.dirtyTries[string(key)] = struct{}{}
 		dth.totalTriesSize += uint64(entry.trieSize)
+		log.Trace("added new trie to data tries holder", "key", key, "trieSize", entry.trieSize, "totalTriesSize", dth.totalTriesSize)
 
 		return
 	}
@@ -128,12 +130,12 @@ func (dth *dataTriesHolder) evictIfNeeded() {
 			continue
 		}
 
-		log.Trace("evicting trie from data tries holder", "key", entryForEviction.key)
-
 		// Remove entry from the map and update the links between the entries
 		delete(dth.tries, string(entryForEviction.key))
 		delete(dth.touchedTries, string(entryForEviction.key))
 		dth.totalTriesSize -= uint64(entryForEviction.trieSize)
+
+		log.Trace("evicting trie from data tries holder", "key", entryForEviction.key, "trieSize", entryForEviction.trieSize, "totalTriesSize", dth.totalTriesSize)
 
 		if bytes.Equal(entryForEviction.key, dth.oldestUsed.key) {
 			if bytes.Equal(entryForEviction.key, dth.newestUsed.key) {
