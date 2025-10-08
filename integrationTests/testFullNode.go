@@ -855,7 +855,7 @@ func (tpn *TestFullNode) initBlockProcessor(
 		BlockProcessingCutoffHandler: &testscommon.BlockProcessingCutoffStub{},
 		ManagedPeersHolder:           &testscommon.ManagedPeersHolderStub{},
 		SentSignaturesTracker:        &testscommon.SentSignatureTrackerStub{},
-		StateAccessesCollector:       disabled.NewDisabledStateAccessesCollector()
+		StateAccessesCollector:       disabled.NewDisabledStateAccessesCollector(),
 	}
 
 	if check.IfNil(tpn.EpochStartNotifier) {
