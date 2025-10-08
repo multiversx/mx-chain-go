@@ -1533,6 +1533,8 @@ func TestShardProcessor_ProcessBlockProposal(t *testing.T) {
 	arguments := CreateMockArguments(createComponentHolderMocks())
 
 	t.Run("nil header should error", func(t *testing.T) {
+		t.Parallel()
+
 		sp, _ := blproc.NewShardProcessor(arguments)
 		body := &block.Body{}
 		_, err := sp.ProcessBlockProposal(nil, body)
@@ -1540,6 +1542,8 @@ func TestShardProcessor_ProcessBlockProposal(t *testing.T) {
 		require.Equal(t, process.ErrNilBlockHeader, err)
 	})
 	t.Run("nil body should error", func(t *testing.T) {
+		t.Parallel()
+
 		sp, _ := blproc.NewShardProcessor(arguments)
 		header := &block.HeaderV3{}
 		_, err := sp.ProcessBlockProposal(header, nil)
@@ -1547,6 +1551,8 @@ func TestShardProcessor_ProcessBlockProposal(t *testing.T) {
 		require.Equal(t, process.ErrNilBlockBody, err)
 	})
 	t.Run("not headerV3 should error", func(t *testing.T) {
+		t.Parallel()
+
 		sp, _ := blproc.NewShardProcessor(arguments)
 
 		header := &block.Header{} // wrong type
@@ -1556,6 +1562,8 @@ func TestShardProcessor_ProcessBlockProposal(t *testing.T) {
 		require.Equal(t, process.ErrInvalidHeader, err)
 	})
 	t.Run("wrong header type (meta) should error", func(t *testing.T) {
+		t.Parallel()
+
 		sp, _ := blproc.NewShardProcessor(arguments)
 
 		header := &block.MetaBlockV3{} // wrong type
@@ -1565,6 +1573,8 @@ func TestShardProcessor_ProcessBlockProposal(t *testing.T) {
 		require.Equal(t, process.ErrWrongTypeAssertion, err)
 	})
 	t.Run("wrong body type should error", func(t *testing.T) {
+		t.Parallel()
+
 		sp, _ := blproc.NewShardProcessor(arguments)
 
 		header := &block.HeaderV3{}
@@ -1572,5 +1582,16 @@ func TestShardProcessor_ProcessBlockProposal(t *testing.T) {
 		_, err := sp.ProcessBlockProposal(header, body)
 
 		require.Equal(t, process.ErrWrongTypeAssertion, err)
+	})
+	t.Run("should work, no transactions", func(t *testing.T) {
+		t.Parallel()
+
+		sp, _ := blproc.NewShardProcessor(arguments)
+
+		header := &block.HeaderV3{}
+		body := &block.Body{}
+		_, err := sp.ProcessBlockProposal(header, body)
+
+		require.Nil(t, err)
 	})
 }
