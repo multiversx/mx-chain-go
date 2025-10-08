@@ -5751,3 +5751,183 @@ func TestShardProcessor_AddCrossShardMiniBlocksDstMeToMap(t *testing.T) {
 		require.Equal(t, []byte("h1"), miniblocks["h2"])
 	})
 }
+
+func TestShardProcessor_checkEpochStartInfoAvailableIfNeeded(t *testing.T) {
+	t.Parallel()
+	t.Run("no epoch start block, should return nil", func(t *testing.T) {
+		t.Parallel()
+
+		arguments := CreateMockArguments(createComponentHolderMocks())
+		sp, _ := blproc.NewShardProcessor(arguments)
+
+		header := &block.Header{
+			Epoch:              10,
+			EpochStartMetaHash: nil,
+		}
+		err := sp.CheckEpochStartInfoAvailableIfNeeded(header)
+		require.Nil(t, err)
+	})
+	t.Run("meta header has the same epoch as shard header, should return nil", func(t *testing.T) {
+		t.Parallel()
+
+		arguments := CreateMockArguments(createComponentHolderMocks())
+		arguments.EpochStartTrigger = &mock.EpochStartTriggerStub{
+			MetaEpochCalled: func() uint32 {
+				return 10 // same epoch as for the header, no trigger
+			},
+		}
+		sp, _ := blproc.NewShardProcessor(arguments)
+
+		header := &block.Header{
+			Epoch:              10,
+			EpochStartMetaHash: []byte("hash"),
+		}
+		err := sp.CheckEpochStartInfoAvailableIfNeeded(header)
+		require.Nil(t, err)
+	})
+	t.Run("epoch start trigger, epoch start already in progress", func(t *testing.T) {
+		t.Parallel()
+
+		arguments := CreateMockArguments(createComponentHolderMocks())
+		arguments.EpochStartTrigger = &mock.EpochStartTriggerStub{
+			MetaEpochCalled: func() uint32 {
+				return 9
+			},
+			IsEpochStartCalled: func() bool {
+				return true
+			},
+		}
+		sp, _ := blproc.NewShardProcessor(arguments)
+
+		header := &block.Header{
+			Epoch:              10,
+			EpochStartMetaHash: []byte("hash"),
+		}
+		err := sp.CheckEpochStartInfoAvailableIfNeeded(header)
+		require.Nil(t, err)
+	})
+	t.Run("epoch start trigger, epoch start not in progress, epoch start header not available, should return error", func(t *testing.T) {
+		t.Parallel()
+
+		arguments := CreateMockArguments(createComponentHolderMocks())
+		arguments.EpochStartTrigger = &mock.EpochStartTriggerStub{
+			MetaEpochCalled: func() uint32 {
+				return 9
+			},
+			IsEpochStartCalled: func() bool {
+				return false
+			},
+		}
+		sp, _ := blproc.NewShardProcessor(arguments)
+		startOfEpochHeaderHash := []byte("start of epoch hash")
+		sp.ProofsPool().AddProof(&block.HeaderProof{
+			HeaderHash:    startOfEpochHeaderHash,
+			HeaderShardId: core.MetachainShardId,
+		})
+
+		header := &block.Header{
+			Epoch:              10,
+			EpochStartMetaHash: startOfEpochHeaderHash,
+		}
+		err := sp.CheckEpochStartInfoAvailableIfNeeded(header)
+		require.ErrorIs(t, err, process.ErrEpochStartInfoNotAvailable)
+	})
+	t.Run("epoch start trigger, epoch start not in progress, epoch start proof not available, should return nil", func(t *testing.T) {
+		t.Parallel()
+
+		arguments := CreateMockArguments(createComponentHolderMocks())
+		startOfEpochHeaderHash := []byte("start of epoch hash")
+		arguments.EpochStartTrigger = &mock.EpochStartTriggerStub{
+			MetaEpochCalled: func() uint32 {
+				return 9
+			},
+			IsEpochStartCalled: func() bool {
+				return false
+			},
+		}
+		sp, _ := blproc.NewShardProcessor(arguments)
+		sp.HeadersPool().AddHeader(startOfEpochHeaderHash, &block.MetaBlock{})
+		header := &block.Header{
+			Epoch:              10,
+			EpochStartMetaHash: startOfEpochHeaderHash,
+		}
+		err := sp.CheckEpochStartInfoAvailableIfNeeded(header)
+		require.ErrorIs(t, err, process.ErrEpochStartInfoNotAvailable)
+	})
+	t.Run("epoch start trigger, epoch start not in progress, epoch start header and proof available, should return nil", func(t *testing.T) {
+		t.Parallel()
+
+		arguments := CreateMockArguments(createComponentHolderMocks())
+		startOfEpochHeaderHash := []byte("start of epoch hash")
+		arguments.EpochStartTrigger = &mock.EpochStartTriggerStub{
+			MetaEpochCalled: func() uint32 {
+				return 9
+			},
+			IsEpochStartCalled: func() bool {
+				return false
+			},
+		}
+		sp, _ := blproc.NewShardProcessor(arguments)
+		sp.HeadersPool().AddHeader(startOfEpochHeaderHash, &block.MetaBlock{})
+		sp.ProofsPool().AddProof(&block.HeaderProof{
+			HeaderHash:    startOfEpochHeaderHash,
+			HeaderShardId: core.MetachainShardId,
+		})
+
+		header := &block.HeaderV3{
+			Epoch:              10,
+			EpochStartMetaHash: startOfEpochHeaderHash,
+		}
+		err := sp.CheckEpochStartInfoAvailableIfNeeded(header)
+		require.Nil(t, err)
+	})
+}
+
+func Test_ShouldDisableOutgoingTxs(t *testing.T) {
+	t.Parallel()
+
+	t.Run("both flag not set, should return false", func(t *testing.T) {
+		enableEpochsHandler := &enableEpochsHandlerMock.EnableEpochsHandlerStub{}
+		enableRoundsHandler := &testscommon.EnableRoundsHandlerStub{}
+		require.False(t, blproc.ShouldDisableOutgoingTxs(enableEpochsHandler, enableRoundsHandler))
+	})
+	t.Run("epoch flag enabled, round flag disabled, should return true", func(t *testing.T) {
+		enableEpochsHandler := &enableEpochsHandlerMock.EnableEpochsHandlerStub{
+			IsFlagEnabledCalled: func(flag core.EnableEpochFlag) bool {
+				return true
+			},
+		}
+		enableRoundsHandler := &testscommon.EnableRoundsHandlerStub{
+			IsFlagEnabledCalled: func(flag common.EnableRoundFlag) bool {
+				return false
+			},
+		}
+		require.True(t, blproc.ShouldDisableOutgoingTxs(enableEpochsHandler, enableRoundsHandler))
+	})
+	t.Run("epoch flag disabled, round flag enabled, should return false", func(t *testing.T) {
+		enableEpochsHandler := &enableEpochsHandlerMock.EnableEpochsHandlerStub{
+			IsFlagEnabledCalled: func(flag core.EnableEpochFlag) bool {
+				return false
+			},
+		}
+		enableRoundsHandler := &testscommon.EnableRoundsHandlerStub{
+			IsFlagEnabledCalled: func(flag common.EnableRoundFlag) bool {
+				return true
+			},
+		}
+		require.False(t, blproc.ShouldDisableOutgoingTxs(enableEpochsHandler, enableRoundsHandler))
+	})
+	t.Run("both flag enabled, should return false", func(t *testing.T) {
+		enableEpochsHandler := &enableEpochsHandlerMock.EnableEpochsHandlerStub{
+			IsFlagEnabledCalled: func(flag core.EnableEpochFlag) bool {
+				return true
+			},
+		}
+		enableRoundsHandler := &testscommon.EnableRoundsHandlerStub{
+			IsFlagEnabledCalled: func(flag common.EnableRoundFlag) bool {
+				return true
+			},
+		}
+		require.False(t, blproc.ShouldDisableOutgoingTxs(enableEpochsHandler, enableRoundsHandler))
+	})
+}

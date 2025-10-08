@@ -12,6 +12,8 @@ import (
 	"github.com/multiversx/mx-chain-core-go/display"
 	"github.com/multiversx/mx-chain-core-go/hashing"
 	"github.com/multiversx/mx-chain-core-go/marshal"
+
+	"github.com/multiversx/mx-chain-go/common"
 	"github.com/multiversx/mx-chain-go/process/asyncExecution/executionTrack"
 	"github.com/multiversx/mx-chain-go/process/estimator"
 	"github.com/multiversx/mx-chain-go/process/missingData"
@@ -740,4 +742,24 @@ func (sp *shardProcessor) CheckInclusionEstimationForExecutionResults(header dat
 // CheckMetaHeadersValidityAndFinalityProposal -
 func (sp *shardProcessor) CheckMetaHeadersValidityAndFinalityProposal(header data.ShardHeaderHandler) error {
 	return sp.checkMetaHeadersValidityAndFinalityProposal(header)
+}
+
+// CheckEpochStartInfoAvailableIfNeeded -
+func (sp *shardProcessor) CheckEpochStartInfoAvailableIfNeeded(header data.ShardHeaderHandler) error {
+	return sp.checkEpochStartInfoAvailableIfNeeded(header)
+}
+
+// HeadersPool -
+func (sp *shardProcessor) HeadersPool() dataRetriever.HeadersPool {
+	return sp.dataPool.Headers()
+}
+
+// ProofsPool -
+func (sp *shardProcessor) ProofsPool() dataRetriever.ProofsPool {
+	return sp.dataPool.Proofs()
+}
+
+// ShouldDisableOutgoingTxs -
+func ShouldDisableOutgoingTxs(enableEpochsHandler common.EnableEpochsHandler, enableRoundsHandler common.EnableRoundsHandler) bool {
+	return shouldDisableOutgoingTxs(enableEpochsHandler, enableRoundsHandler)
 }

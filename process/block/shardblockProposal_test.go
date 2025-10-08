@@ -11,8 +11,6 @@ import (
 	"github.com/multiversx/mx-chain-core-go/data/block"
 	"github.com/stretchr/testify/require"
 
-	"github.com/multiversx/mx-chain-go/testscommon/pool"
-
 	retriever "github.com/multiversx/mx-chain-go/dataRetriever"
 	"github.com/multiversx/mx-chain-go/dataRetriever/blockchain"
 	"github.com/multiversx/mx-chain-go/process"
@@ -25,6 +23,7 @@ import (
 	"github.com/multiversx/mx-chain-go/testscommon/dataRetriever"
 	testscommonExecutionTrack "github.com/multiversx/mx-chain-go/testscommon/executionTrack"
 	"github.com/multiversx/mx-chain-go/testscommon/mbSelection"
+	"github.com/multiversx/mx-chain-go/testscommon/pool"
 	"github.com/multiversx/mx-chain-go/testscommon/processMocks"
 	statusHandlerMock "github.com/multiversx/mx-chain-go/testscommon/statusHandler"
 )
@@ -1526,4 +1525,52 @@ func TestShardBlockProposal_CreateAndVerifyProposal_WithTransactions(t *testing.
 
 	err = shardProcessor.VerifyBlockProposal(headerProposed, bodyProposed, func() time.Duration { return time.Second })
 	require.Nil(t, err)
+}
+
+func TestShardProcessor_ProcessBlockProposal(t *testing.T) {
+	t.Parallel()
+
+	arguments := CreateMockArguments(createComponentHolderMocks())
+
+	t.Run("nil header should error", func(t *testing.T) {
+		sp, _ := blproc.NewShardProcessor(arguments)
+		body := &block.Body{}
+		_, err := sp.ProcessBlockProposal(nil, body)
+
+		require.Equal(t, process.ErrNilBlockHeader, err)
+	})
+	t.Run("nil body should error", func(t *testing.T) {
+		sp, _ := blproc.NewShardProcessor(arguments)
+		header := &block.HeaderV3{}
+		_, err := sp.ProcessBlockProposal(header, nil)
+
+		require.Equal(t, process.ErrNilBlockBody, err)
+	})
+	t.Run("not headerV3 should error", func(t *testing.T) {
+		sp, _ := blproc.NewShardProcessor(arguments)
+
+		header := &block.Header{} // wrong type
+		body := &block.Body{}
+		_, err := sp.ProcessBlockProposal(header, body)
+
+		require.Equal(t, process.ErrInvalidHeader, err)
+	})
+	t.Run("wrong header type (meta) should error", func(t *testing.T) {
+		sp, _ := blproc.NewShardProcessor(arguments)
+
+		header := &block.MetaBlockV3{} // wrong type
+		body := &block.Body{}
+		_, err := sp.ProcessBlockProposal(header, body)
+
+		require.Equal(t, process.ErrWrongTypeAssertion, err)
+	})
+	t.Run("wrong body type should error", func(t *testing.T) {
+		sp, _ := blproc.NewShardProcessor(arguments)
+
+		header := &block.HeaderV3{}
+		body := &wrongBody{} // wrong type
+		_, err := sp.ProcessBlockProposal(header, body)
+
+		require.Equal(t, process.ErrWrongTypeAssertion, err)
+	})
 }

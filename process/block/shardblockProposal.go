@@ -212,10 +212,6 @@ func (sp *shardProcessor) VerifyBlockProposal(
 	// 	return nil, nil, err
 	// }
 
-	// TODO: the verification needs a cutoff handler as well - e.g stop after the block including the execution results for
-	// the configured cutoff round/nonce/epoch
-	// errCutoff := sp.blockProcessingCutoffHandler.HandleProcessErrorCutoff(header)
-
 	return nil
 }
 
