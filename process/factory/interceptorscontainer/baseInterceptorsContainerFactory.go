@@ -969,6 +969,11 @@ func (bicf *baseInterceptorsContainerFactory) generateValidatorInfoInterceptor()
 		return err
 	}
 
+	err = bicf.setUniqueChunksProcessor(mdInterceptor)
+	if err != nil {
+		return err
+	}
+
 	interceptor, err := bicf.createTopicAndAssignHandler(identifier, mdInterceptor, true)
 	if err != nil {
 		return err
