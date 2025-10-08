@@ -317,9 +317,11 @@ func (tdt *trackableDataTrie) updateTrie(dtr state.DataTrie) ([]*stateChange.Dat
 		}
 
 		dataTrieOperation := uint32(stateChange.NotSpecified)
+		version := dataEntry.newVersion
 		val := dataEntry.value
 		if len(val) == 0 {
 			dataTrieOperation = uint32(stateChange.Delete)
+			version = oldVal.Version
 			val, err = tdt.getValueWithoutMetadata([]byte(key), oldVal)
 			if err != nil {
 				return nil, nil, err
@@ -330,7 +332,7 @@ func (tdt *trackableDataTrie) updateTrie(dtr state.DataTrie) ([]*stateChange.Dat
 			Type:      stateChange.Write,
 			Key:       []byte(key),
 			Val:       val,
-			Version:   uint32(dataEntry.newVersion),
+			Version:   uint32(version),
 			Operation: dataTrieOperation,
 		}
 	}

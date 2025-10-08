@@ -7,6 +7,7 @@ import (
 	"strconv"
 	"testing"
 
+	"github.com/multiversx/mx-chain-core-go/core"
 	data "github.com/multiversx/mx-chain-core-go/data/stateChange"
 
 	"github.com/multiversx/mx-chain-go/state"
@@ -655,8 +656,12 @@ func TestStateAccessesCollector_GetCollectedAccesses(t *testing.T) {
 		stateChangesForTx := c.GetCollectedAccesses()
 		require.Len(t, stateChangesForTx, 1)
 		require.Len(t, stateChangesForTx["hash"].StateAccess, 1)
-		require.Len(t, stateChangesForTx["hash"].StateAccess[0].DataTrieChanges, 1)
+		require.Len(t, stateChangesForTx["hash"].StateAccess[0].DataTrieChanges, 2)
 		dataTrieChange := stateChangesForTx["hash"].StateAccess[0].DataTrieChanges[0]
+		require.Equal(t, []byte("dataTrieKey1"), dataTrieChange.Key)
+		require.Equal(t, []byte("dataTrieVal1"), dataTrieChange.Val)
+		require.Equal(t, uint32(data.NotSpecified), dataTrieChange.Operation)
+		dataTrieChange = stateChangesForTx["hash"].StateAccess[0].DataTrieChanges[1]
 		require.Equal(t, []byte("dataTrieKey1"), dataTrieChange.Key)
 		require.Equal(t, []byte("dataTrieVal1"), dataTrieChange.Val)
 		require.Equal(t, uint32(data.Delete), dataTrieChange.Operation)
@@ -675,11 +680,15 @@ func TestStateAccessesCollector_GetCollectedAccesses(t *testing.T) {
 		stateChangesForTx = c.GetCollectedAccesses()
 		require.Len(t, stateChangesForTx, 1)
 		require.Len(t, stateChangesForTx["hash"].StateAccess, 1)
-		require.Len(t, stateChangesForTx["hash"].StateAccess[0].DataTrieChanges, 1)
+		require.Len(t, stateChangesForTx["hash"].StateAccess[0].DataTrieChanges, 2)
 		dataTrieChange = stateChangesForTx["hash"].StateAccess[0].DataTrieChanges[0]
 		require.Equal(t, []byte("dataTrieKey1"), dataTrieChange.Key)
 		require.Equal(t, []byte("dataTrieVal1"), dataTrieChange.Val)
 		require.Equal(t, uint32(data.NotSpecified), dataTrieChange.Operation)
+		dataTrieChange = stateChangesForTx["hash"].StateAccess[0].DataTrieChanges[1]
+		require.Equal(t, []byte("dataTrieKey1"), dataTrieChange.Key)
+		require.Equal(t, []byte("dataTrieVal1"), dataTrieChange.Val)
+		require.Equal(t, uint32(data.Delete), dataTrieChange.Operation)
 	})
 	t.Run("merge should work", func(t *testing.T) {
 		t.Parallel()
@@ -866,4 +875,42 @@ func TestCollector_Store(t *testing.T) {
 		err := c.Store()
 		require.Nil(t, err)
 	})
+}
+
+func TestStateAccessToString(t *testing.T) {
+	t.Parallel()
+
+	stateAccess := &data.StateAccess{
+		Type:        data.Write,
+		MainTrieKey: []byte("mainTrieKey"),
+		MainTrieVal: []byte("mainTrieVal"),
+		DataTrieChanges: []*data.DataTrieChange{
+			{Key: []byte("dataTrieKey1"), Val: []byte("dataTrieVal1"), Type: data.Write, Operation: uint32(data.NotSpecified), Version: uint32(core.AutoBalanceEnabled)},
+			{Key: []byte("dataTrieKey2"), Val: []byte("dataTrieVal2"), Type: data.Write, Operation: uint32(data.Delete), Version: uint32(core.NotSpecified)},
+		},
+		AccountChanges: data.BalanceChanged | data.NonceChanged,
+		Index:          5,
+		TxHash:         []byte("txHash"),
+		Operation:      data.SaveAccount,
+	}
+
+	strStateAccess := stateAccessToString(stateAccess)
+	expectedStr := "type: Write," +
+		" operation: 2," +
+		" mainTrieKey: 6d61696e547269654b6579," +
+		" mainTrieVal: 6d61696e5472696556616c," +
+		" index: 5," +
+		" dataTrieChanges:" +
+		" key: 64617461547269654b657931," +
+		" val: 646174615472696556616c31," +
+		" type: Write," +
+		" operation: 0," +
+		" version: 1," +
+		" key: 64617461547269654b657932," +
+		" val: 646174615472696556616c32," +
+		" type: Write," +
+		" operation: 1," +
+		" version: 0," +
+		" accountChanges: 3"
+	assert.Equal(t, expectedStr, strStateAccess)
 }
