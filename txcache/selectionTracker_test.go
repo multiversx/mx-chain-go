@@ -1206,13 +1206,13 @@ func Test_getDimensionOfTrackedBlocks(t *testing.T) {
 		txCache.tracker = tracker
 
 		tracker.blocks = map[string]*trackedBlock{}
-		require.Equal(t, uint64(0), tracker.getDimensionOfTrackedBlocks())
+		require.Equal(t, uint64(0), tracker.getNumTrackedBlocks())
 
 		tracker.blocks = map[string]*trackedBlock{
 			"hash1": {},
 			"hash2": {},
 			"hash3": {},
 		}
-		require.Equal(t, uint64(3), tracker.getDimensionOfTrackedBlocks())
+		require.Equal(t, uint64(3), tracker.getNumTrackedBlocks())
 	})
 }

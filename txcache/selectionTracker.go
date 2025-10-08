@@ -448,11 +448,11 @@ func (st *selectionTracker) getVirtualNonceOfAccountWithRootHash(
 	return breadcrumb.lastNonce.Value + 1, latestCommittedBlock.rootHash, nil
 }
 
-// getDimensionOfTrackedBlocks returns the dimension of tracked blocks
+// getNumTrackedBlocks returns the dimension of tracked blocks
 // TODO the number of tracked accounts could also be returned when the globalAccountsBreadcrumbs is integrated
-func (st *selectionTracker) getDimensionOfTrackedBlocks() uint64 {
-	st.mutTracker.Lock()
-	defer st.mutTracker.Unlock()
+func (st *selectionTracker) getNumTrackedBlocks() uint64 {
+	st.mutTracker.RLock()
+	defer st.mutTracker.RUnlock()
 
 	return uint64(len(st.blocks))
 }

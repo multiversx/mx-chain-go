@@ -132,8 +132,8 @@ func (cache *CrossTxCache) OnExecutedBlock(data.HeaderHandler) error {
 	return nil
 }
 
-// GetDimensionOfTrackedBlocks returns 0 (only to satisfy the interface)
-func (cache *CrossTxCache) GetDimensionOfTrackedBlocks() uint64 {
+// GetNumTrackedBlocks returns 0 (only to satisfy the interface)
+func (cache *CrossTxCache) GetNumTrackedBlocks() uint64 {
 	return 0
 }
 
