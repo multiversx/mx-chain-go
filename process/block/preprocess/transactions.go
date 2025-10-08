@@ -882,6 +882,9 @@ func (txs *transactions) processAndRemoveBadTransaction(
 	txs.txExecutionOrderHandler.Add(txHash)
 	_, err := txs.txProcessor.ProcessTransaction(tx)
 	isNotExecutable := errors.Is(err, process.ErrLowerNonceInTransaction) || errors.Is(err, process.ErrInsufficientFee) || errors.Is(err, process.ErrTransactionNotExecutable)
+	if txs.enableRoundsHandler.IsFlagEnabled(common.SupernovaRoundFlag) {
+		isNotExecutable = process.IsNotExecutableTransactionError(err)
+	}
 	if isNotExecutable {
 		txs.txExecutionOrderHandler.Remove(txHash)
 		strCache := process.ShardCacherIdentifier(sndShardId, dstShardId)

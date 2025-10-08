@@ -14,6 +14,7 @@ import (
 	vmcommon "github.com/multiversx/mx-chain-vm-common-go"
 	"github.com/stretchr/testify/assert"
 
+	"github.com/multiversx/mx-chain-go/testscommon/preprocMocks"
 	"github.com/multiversx/mx-chain-go/txcache"
 
 	"github.com/multiversx/mx-chain-go/process"
@@ -890,18 +891,25 @@ func TestTransactions_GetUnExecutableTransactions(t *testing.T) {
 	assert.Equal(t, txs, resultingTxs)
 }
 
-func TestTransactions_processTxsFromMe(t *testing.T) {
-	// t.Parallel()
-	//
-	// preprocessor := createTransactionPreprocessor()
-	// preprocessor.txsForCurrBlock = &txsForBlock{
-	// 	txHashAndInfo: make(map[string]*TxInfo),
-	// }
-	//
-	// tx1 := &transaction.Transaction{Nonce: 1, RcvAddr: []byte("smart contract address")}
-	// tx2 := &transaction.Transaction{Nonce: 2, RcvAddr: []byte("smart contract address")}
-	// tx3 := &transaction.Transaction{Nonce: 3}
-	// tx4 := &transaction.Transaction{Nonce: 4, RcvAddr: []byte("smart contract address")}
-	//
-	// preprocessor.txsForCurrBlock.(*txsForBlock).txHashAndInfo["txHash1"] = &TxInfo{Tx: tx1, ReceiverShardID: 1}
+func TestTransactions_CreateBlockStarted(t *testing.T) {
+	t.Parallel()
+
+	preprocessor := createTransactionPreprocessor()
+	preprocessor.createdMiniBlocks = make(block.MiniBlockSlice, 10)
+	preprocessor.unExecutableTransactions = map[string]struct{}{"txHash": {}}
+	preprocessor.orderedTxs = map[string][]data.TransactionHandler{"txHash": {}}
+	preprocessor.orderedTxHashes = map[string][][]byte{"shard0": {[]byte("txHash")}}
+	called := false
+	preprocessor.txsForCurrBlock = &preprocMocks.TxsForBlockStub{
+		ResetCalled: func() {
+			called = true
+		},
+	}
+
+	preprocessor.CreateBlockStarted()
+	assert.Empty(t, preprocessor.createdMiniBlocks)
+	assert.Empty(t, preprocessor.unExecutableTransactions)
+	assert.Empty(t, preprocessor.orderedTxs)
+	assert.Empty(t, preprocessor.orderedTxHashes)
+	assert.True(t, called)
 }

@@ -6,6 +6,8 @@ import (
 
 	"github.com/multiversx/mx-chain-core-go/data"
 	"github.com/multiversx/mx-chain-core-go/data/block"
+
+	"github.com/multiversx/mx-chain-go/process"
 	"github.com/multiversx/mx-chain-go/txcache"
 
 	"github.com/multiversx/mx-chain-go/common"
@@ -65,7 +67,7 @@ type TxsForBlockHandler interface {
 		receiverShardID uint32,
 	)
 	WaitForRequestedData(waitTime time.Duration) error
-	GetTxInfoByHash(hash []byte) (*TxInfo, bool)
+	GetTxInfoByHash(hash []byte) (*process.TxInfo, bool)
 	GetAllCurrentUsedTxs() map[string]data.TransactionHandler
 	GetMissingTxsCount() int
 	ReceivedTransaction(txHash []byte, tx data.TransactionHandler)

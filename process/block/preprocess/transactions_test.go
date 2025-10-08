@@ -1821,12 +1821,12 @@ func TestTransactionsPreprocessor_SplitMiniBlocksIfNeededShouldWork(t *testing.T
 	tx5 := transaction.Transaction{Nonce: 4, GasLimit: txGasLimit}
 	tx6 := transaction.Transaction{Nonce: 5, GasLimit: txGasLimit}
 	tfb := preprocessor.txsForCurrBlock.(*txsForBlock)
-	tfb.txHashAndInfo["hash1"] = &TxInfo{Tx: &tx1}
-	tfb.txHashAndInfo["hash2"] = &TxInfo{Tx: &tx2}
-	tfb.txHashAndInfo["hash3"] = &TxInfo{Tx: &tx3}
-	tfb.txHashAndInfo["hash4"] = &TxInfo{Tx: &tx4}
-	tfb.txHashAndInfo["hash5"] = &TxInfo{Tx: &tx5}
-	tfb.txHashAndInfo["hash6"] = &TxInfo{Tx: &tx6}
+	tfb.txHashAndInfo["hash1"] = &process.TxInfo{Tx: &tx1}
+	tfb.txHashAndInfo["hash2"] = &process.TxInfo{Tx: &tx2}
+	tfb.txHashAndInfo["hash3"] = &process.TxInfo{Tx: &tx3}
+	tfb.txHashAndInfo["hash4"] = &process.TxInfo{Tx: &tx4}
+	tfb.txHashAndInfo["hash5"] = &process.TxInfo{Tx: &tx5}
+	tfb.txHashAndInfo["hash6"] = &process.TxInfo{Tx: &tx6}
 
 	miniBlocks := make([]*block.MiniBlock, 0)
 

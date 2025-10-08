@@ -677,7 +677,7 @@ func TestScrsPreprocessor_SaveTxsToStorageShouldSaveCorrectly(t *testing.T) {
 
 	scrForBlock.mutTxsForBlock.Lock()
 	for _, hash := range txHashes {
-		scrForBlock.txHashAndInfo[string(hash)] = &TxInfo{
+		scrForBlock.txHashAndInfo[string(hash)] = &process.TxInfo{
 			Tx: &smartContractResult.SmartContractResult{
 				Data: hash,
 			},

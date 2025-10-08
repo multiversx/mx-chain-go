@@ -7,6 +7,8 @@ import (
 	"github.com/multiversx/mx-chain-core-go/core"
 	"github.com/multiversx/mx-chain-core-go/data"
 	"github.com/multiversx/mx-chain-core-go/data/block"
+
+	"github.com/multiversx/mx-chain-go/process"
 )
 
 func (txs *transactions) ReceivedTransaction(txHash []byte, value interface{}) {
@@ -19,9 +21,9 @@ func (txs *transactions) AddTxHashToRequestedList(txHash []byte) {
 	defer txsForCurrentBlock.mutTxsForBlock.Unlock()
 
 	if txsForCurrentBlock.txHashAndInfo == nil {
-		txsForCurrentBlock.txHashAndInfo = make(map[string]*TxInfo)
+		txsForCurrentBlock.txHashAndInfo = make(map[string]*process.TxInfo)
 	}
-	txsForCurrentBlock.txHashAndInfo[string(txHash)] = &TxInfo{TxShardInfo: &TxShardInfo{}}
+	txsForCurrentBlock.txHashAndInfo[string(txHash)] = &process.TxInfo{TxShardInfo: &process.TxShardInfo{}}
 }
 
 func (txs *transactions) IsTxHashRequested(txHash []byte) bool {
@@ -52,9 +54,9 @@ func (scr *smartContractResults) AddScrHashToRequestedList(txHash []byte) {
 	defer scrForBlock.mutTxsForBlock.Unlock()
 
 	if scrForBlock.txHashAndInfo == nil {
-		scrForBlock.txHashAndInfo = make(map[string]*TxInfo)
+		scrForBlock.txHashAndInfo = make(map[string]*process.TxInfo)
 	}
-	scrForBlock.txHashAndInfo[string(txHash)] = &TxInfo{TxShardInfo: &TxShardInfo{}}
+	scrForBlock.txHashAndInfo[string(txHash)] = &process.TxInfo{TxShardInfo: &process.TxShardInfo{}}
 }
 
 func (scr *smartContractResults) IsScrHashRequested(txHash []byte) bool {

@@ -39,6 +39,18 @@ import (
 	"github.com/multiversx/mx-chain-go/storage"
 )
 
+// TxShardInfo contains information about the sender and receiver shard IDs of a transaction.
+type TxShardInfo struct {
+	SenderShardID   uint32
+	ReceiverShardID uint32
+}
+
+// TxInfo contains a transaction handler and its associated shard information.
+type TxInfo struct {
+	Tx data.TransactionHandler
+	*TxShardInfo
+}
+
 // TransactionProcessor is the main interface for transaction execution engine
 type TransactionProcessor interface {
 	ProcessTransaction(transaction *transaction.Transaction) (vmcommon.ReturnCode, error)
