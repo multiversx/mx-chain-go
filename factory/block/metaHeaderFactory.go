@@ -33,8 +33,9 @@ func (mhv *metaHeaderVersionHandler) Create(epoch uint32, round uint64) data.Hea
 	switch version {
 	case "3":
 		return &block.MetaBlockV3{
-			Epoch: epoch,
-			Round: round,
+			Epoch:           epoch,
+			Round:           round,
+			SoftwareVersion: []byte(version),
 		}
 	default:
 		return &block.MetaBlock{

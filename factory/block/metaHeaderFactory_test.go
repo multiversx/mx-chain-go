@@ -61,4 +61,5 @@ func TestNewMetaHeaderFactory_CreateOK(t *testing.T) {
 	require.NotNil(t, header)
 	require.IsType(t, &block.MetaBlockV3{}, header)
 	require.Equal(t, epoch, header.GetEpoch())
+	require.Equal(t, []byte("3"), header.GetSoftwareVersion())
 }

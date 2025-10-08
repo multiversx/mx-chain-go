@@ -3193,6 +3193,11 @@ func TestCreateNewHeaderV3(t *testing.T) {
 	epoch := uint32(5)
 
 	coreComponents, dataComponents, _, statusComponents := createMockComponentHolders()
+	coreComponents.EnableRoundsHandlerField = &testscommon.EnableRoundsHandlerStub{
+		IsFlagEnabledCalled: func(flag common.EnableRoundFlag) bool {
+			return true
+		},
+	}
 
 	boostrapComponents := &mock.BootstrapComponentsMock{
 		Coordinator:          mock.NewOneShardCoordinatorMock(),
@@ -3213,12 +3218,17 @@ func TestCreateNewHeaderV3(t *testing.T) {
 			return rootHash, nil
 		},
 	}
+
+	udpateRoundCalled := false
 	arguments.EpochStartTrigger = &mock.EpochStartTriggerStub{
 		EpochCalled: func() uint32 {
 			return epoch
 		},
 		ShouldProposeEpochChangeCalled: func(round uint64, nonce uint64) bool {
 			return true
+		},
+		UpdateRoundCalled: func(round uint64) {
+			udpateRoundCalled = true
 		},
 	}
 
@@ -3229,6 +3239,7 @@ func TestCreateNewHeaderV3(t *testing.T) {
 	require.Nil(t, err)
 	require.IsType(t, &block.MetaBlockV3{}, newHeader)
 	require.Equal(t, epoch, newHeader.GetEpoch())
+	require.True(t, udpateRoundCalled)
 }
 
 func TestMetaProcessor_ProcessEpochStartMetaBlock(t *testing.T) {

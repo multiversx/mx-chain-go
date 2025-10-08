@@ -2208,7 +2208,9 @@ func (mp *metaProcessor) CreateNewHeader(round uint64, nonce uint64) (data.Heade
 		return nil, process.ErrWrongTypeAssertion
 	}
 
-	metaHeader.SetEpochChangeProposed(epochChangeProposed)
+	if metaHeader.IsHeaderV3() {
+		metaHeader.SetEpochChangeProposed(epochChangeProposed)
+	}
 
 	err := metaHeader.SetRound(round)
 	if err != nil {

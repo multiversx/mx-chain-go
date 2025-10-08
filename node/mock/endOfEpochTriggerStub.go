@@ -28,7 +28,6 @@ func (e *EpochStartTriggerStub) UpdateRound(round uint64) {
 	if e.UpdateRoundCalled != nil {
 		e.UpdateRoundCalled(round)
 	}
-
 }
 
 // SetEpochChange -
@@ -36,7 +35,6 @@ func (e *EpochStartTriggerStub) SetEpochChange() {
 	if e.SetEpochChangeCalled != nil {
 		e.SetEpochChangeCalled()
 	}
-
 }
 
 // ShouldProposeEpochChange -
