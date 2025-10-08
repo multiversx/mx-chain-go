@@ -25,6 +25,7 @@ import (
 	disabledSig "github.com/multiversx/mx-chain-crypto-go/signing/disabled/singlesig"
 	"github.com/multiversx/mx-chain-go/common"
 	"github.com/multiversx/mx-chain-go/common/errChan"
+	"github.com/multiversx/mx-chain-go/common/holders"
 	"github.com/multiversx/mx-chain-go/dataRetriever"
 	"github.com/multiversx/mx-chain-go/debug"
 	"github.com/multiversx/mx-chain-go/facade"
@@ -38,6 +39,7 @@ import (
 	"github.com/multiversx/mx-chain-go/process/smartContract"
 	procTx "github.com/multiversx/mx-chain-go/process/transaction"
 	"github.com/multiversx/mx-chain-go/state"
+	"github.com/multiversx/mx-chain-go/state/parsers"
 	"github.com/multiversx/mx-chain-go/trie"
 	"github.com/multiversx/mx-chain-go/vm"
 	"github.com/multiversx/mx-chain-go/vm/systemSmartContracts"
@@ -48,6 +50,8 @@ import (
 const (
 	// esdtTickerNumChars represents the number of hex-encoded characters of a ticker
 	esdtTickerNumChars = 6
+
+	iterateKeysMainTrie = "maintrie"
 )
 
 var log = logger.GetOrCreate("node")
@@ -319,8 +323,59 @@ type userAccountWithLeavesParser interface {
 	GetLeavesParser() common.TrieLeafParser
 }
 
+func (n *Node) getLeaves(rootHash []byte, numKeys uint, iteratorState [][]byte, leavesParser common.TrieLeafParser, ctx context.Context) (map[string]string, [][]byte, error) {
+	if len(iteratorState) == 0 {
+		iteratorState = append(iteratorState, rootHash)
+	}
+
+	return n.stateComponents.TrieLeavesRetriever().GetLeaves(int(numKeys), iteratorState, leavesParser, ctx)
+}
+
+func (n *Node) getBlockInfo(options api.AccountQueryOptions) (api.BlockInfo, error) {
+	if len(options.BlockRootHash) > 0 {
+		options, err := n.addBlockCoordinatesToAccountQueryOptions(options)
+		if err != nil {
+			return api.BlockInfo{}, err
+		}
+		blockInfo := holders.NewBlockInfo([]byte{}, 0, options.BlockRootHash)
+		completeBlockInfo := mergeAccountQueryOptionsIntoBlockInfo(options, blockInfo)
+		apiBlockInfo := accountBlockInfoToApiResource(completeBlockInfo)
+		return apiBlockInfo, nil
+	}
+
+	blockHeader := n.dataComponents.Blockchain().GetCurrentBlockHeader()
+	if check.IfNil(blockHeader) {
+		return api.BlockInfo{}, errors.New("current block header is nil")
+	}
+
+	blockInfo := holders.NewBlockInfo(
+		n.dataComponents.Blockchain().GetCurrentBlockHeaderHash(),
+		blockHeader.GetNonce(), blockHeader.GetRootHash(),
+	)
+	return accountBlockInfoToApiResource(blockInfo), nil
+}
+
 // IterateKeys starts from the given iteratorState and returns the next key-value pairs and the new iteratorState
 func (n *Node) IterateKeys(address string, numKeys uint, iteratorState [][]byte, options api.AccountQueryOptions, ctx context.Context) (map[string]string, [][]byte, api.BlockInfo, error) {
+	if address == iterateKeysMainTrie {
+		blockInfo, err := n.getBlockInfo(options)
+		if err != nil {
+			return nil, nil, api.BlockInfo{}, err
+		}
+
+		rootHashBytes, err := hex.DecodeString(blockInfo.RootHash)
+		if err != nil {
+			return nil, nil, api.BlockInfo{}, err
+		}
+
+		mapToReturn, newIteratorState, err := n.getLeaves(rootHashBytes, numKeys, iteratorState, parsers.NewMainTrieLeafParser(), ctx)
+		if err != nil {
+			return nil, nil, api.BlockInfo{}, err
+		}
+
+		return mapToReturn, newIteratorState, blockInfo, nil
+	}
+
 	userAccount, blockInfo, err := n.loadUserAccountHandlerByAddress(address, options)
 	if err != nil {
 		adaptedBlockInfo, isEmptyAccount := extractBlockInfoIfNewAccount(err)
@@ -340,11 +395,7 @@ func (n *Node) IterateKeys(address string, numKeys uint, iteratorState [][]byte,
 		return nil, nil, api.BlockInfo{}, fmt.Errorf("cannot cast user account to userAccountWithLeavesParser")
 	}
 
-	if len(iteratorState) == 0 {
-		iteratorState = append(iteratorState, userAccount.GetRootHash())
-	}
-
-	mapToReturn, newIteratorState, err := n.stateComponents.TrieLeavesRetriever().GetLeaves(int(numKeys), iteratorState, account.GetLeavesParser(), ctx)
+	mapToReturn, newIteratorState, err := n.getLeaves(userAccount.GetRootHash(), numKeys, iteratorState, account.GetLeavesParser(), ctx)
 	if err != nil {
 		return nil, nil, api.BlockInfo{}, err
 	}
