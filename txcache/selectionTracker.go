@@ -348,7 +348,7 @@ func (st *selectionTracker) ResetTracker() {
 	st.mutTracker.Lock()
 	defer st.mutTracker.Unlock()
 
-	log.Debug("selectionTracker.Clean removing all tracked blocks",
+	log.Debug("selectionTracker.ResetTracker removing all tracked blocks",
 		"len(trackedBlocks)", len(st.blocks),
 	)
 
