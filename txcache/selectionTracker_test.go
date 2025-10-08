@@ -1372,16 +1372,16 @@ func TestSelectionTracker_ResetTracker(t *testing.T) {
 		"hash2": {},
 	}
 
-	tracker.gabc.globalAccountBreadcrumbs = map[string]*globalAccountBreadcrumb{
+	tracker.globalBreadcrumbsCompiler.globalAccountBreadcrumbs = map[string]*globalAccountBreadcrumb{
 		"alice": {},
 		"bob":   {},
 		"carol": {},
 	}
 
 	require.Equal(t, 2, len(tracker.blocks))
-	require.Equal(t, 3, len(tracker.gabc.globalAccountBreadcrumbs))
+	require.Equal(t, 3, len(tracker.globalBreadcrumbsCompiler.globalAccountBreadcrumbs))
 
 	tracker.ResetTracker()
 	require.Equal(t, 0, len(tracker.blocks))
-	require.Equal(t, 0, len(tracker.gabc.globalAccountBreadcrumbs))
+	require.Equal(t, 0, len(tracker.globalBreadcrumbsCompiler.globalAccountBreadcrumbs))
 }

@@ -353,7 +353,7 @@ func (st *selectionTracker) ResetTracker() {
 	)
 
 	st.blocks = make(map[string]*trackedBlock)
-	st.gabc.cleanGlobalBreadcrumbs()
+	st.globalBreadcrumbsCompiler.cleanGlobalBreadcrumbs()
 }
 
 // deriveVirtualSelectionSession creates a virtual selection session by transforming the global accounts breadcrumbs into virtual records
