@@ -33,7 +33,7 @@ func Test_updateRangeWithBreadcrumb(t *testing.T) {
 			Value:    10,
 			HasValue: true,
 		})
-		err := senderBreadcrumb.updateLastNonce(core.OptionalUint64{Value: 12, HasValue: true})
+		err := senderBreadcrumb.updateNonceRange(core.OptionalUint64{Value: 12, HasValue: true})
 		require.NoError(t, err)
 
 		txTracker.updateRangeWithBreadcrumb(rangeOfSender, senderBreadcrumb)

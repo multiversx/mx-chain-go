@@ -5,6 +5,10 @@ import (
 	"sync"
 	"time"
 
+	"github.com/multiversx/mx-chain-core-go/core/check"
+	"github.com/multiversx/mx-chain-go/common"
+	"github.com/multiversx/mx-chain-go/errors"
+	"github.com/multiversx/mx-chain-go/process"
 	logger "github.com/multiversx/mx-chain-logger-go"
 )
 
@@ -19,9 +23,9 @@ var log = logger.GetOrCreate("resolvers/epochproviders")
 
 // ArgArithmeticEpochProvider is the argument structure for the arithmetic epoch provider
 type ArgArithmeticEpochProvider struct {
-	RoundsPerEpoch          uint32
-	RoundTimeInMilliseconds uint64
-	StartTime               int64
+	ChainParametersHandler process.ChainParametersHandler
+	StartTime              int64
+	EnableEpochsHandler    common.EnableEpochsHandler
 }
 
 type arithmeticEpochProvider struct {
@@ -29,32 +33,37 @@ type arithmeticEpochProvider struct {
 	currentComputedEpoch       uint32
 	headerEpoch                uint32
 	headerTimestampForNewEpoch uint64
-	roundsPerEpoch             uint32
-	roundTimeInMilliseconds    uint64
 	startTime                  int64
 	getUnixHandler             func() int64
+	enableEpochsHandler        common.EnableEpochsHandler
+	chainParamsHandler         process.ChainParametersHandler
 }
 
 // NewArithmeticEpochProvider returns a new arithmetic epoch provider able to mathematically compute the current network epoch
 // based on the last block saved, considering the block's timestamp and epoch in respect with the current time
 func NewArithmeticEpochProvider(arg ArgArithmeticEpochProvider) (*arithmeticEpochProvider, error) {
-	if arg.RoundsPerEpoch == 0 {
-		return nil, fmt.Errorf("%w in NewArithmeticEpochProvider", ErrInvalidRoundsPerEpoch)
-	}
-	if arg.RoundTimeInMilliseconds == 0 {
-		return nil, fmt.Errorf("%w in NewArithmeticEpochProvider", ErrInvalidRoundTimeInMilliseconds)
-	}
 	if arg.StartTime < 0 {
 		return nil, fmt.Errorf("%w in NewArithmeticEpochProvider", ErrInvalidStartTime)
 	}
+	if check.IfNil(arg.EnableEpochsHandler) {
+		return nil, errors.ErrNilEnableEpochsHandler
+	}
+	if check.IfNil(arg.ChainParametersHandler) {
+		return nil, process.ErrNilChainParametersHandler
+	}
+
 	aep := &arithmeticEpochProvider{
 		headerEpoch:                0,
 		headerTimestampForNewEpoch: uint64(arg.StartTime),
-		roundsPerEpoch:             arg.RoundsPerEpoch,
-		roundTimeInMilliseconds:    arg.RoundTimeInMilliseconds,
 		startTime:                  arg.StartTime,
+		enableEpochsHandler:        arg.EnableEpochsHandler,
+		chainParamsHandler:         arg.ChainParametersHandler,
 	}
 	aep.getUnixHandler = func() int64 {
+		if aep.enableEpochsHandler.IsFlagEnabledInEpoch(common.SupernovaFlag, aep.headerEpoch) {
+			return time.Now().UnixMilli()
+		}
+
 		return time.Now().Unix()
 	}
 	aep.computeCurrentEpoch() //based on the genesis provided data
@@ -98,10 +107,12 @@ func (aep *arithmeticEpochProvider) computeCurrentEpoch() {
 		return
 	}
 
+	currentChainParameters := aep.chainParamsHandler.CurrentChainParameters()
+
 	diffTimeStampInSeconds := currentTimeStamp - aep.headerTimestampForNewEpoch
 	diffTimeStampInMilliseconds := diffTimeStampInSeconds * millisecondsInOneSecond
-	diffRounds := diffTimeStampInMilliseconds / aep.roundTimeInMilliseconds
-	diffEpochs := diffRounds / uint64(aep.roundsPerEpoch+1)
+	diffRounds := diffTimeStampInMilliseconds / currentChainParameters.RoundDuration
+	diffEpochs := diffRounds / uint64(currentChainParameters.RoundsPerEpoch+1)
 
 	aep.currentComputedEpoch = aep.headerEpoch + uint32(diffEpochs)
 

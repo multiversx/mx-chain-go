@@ -190,6 +190,7 @@ func TestCreateAPIBlockProcessorNilArgs(t *testing.T) {
 		_, err := CreateAPIBlockProcessor(arguments)
 		assert.Equal(t, errNilEnableEpochsHandler, err)
 	})
+
 	t.Run("NilProofsPool", func(t *testing.T) {
 		t.Parallel()
 
