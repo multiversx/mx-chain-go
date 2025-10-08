@@ -1317,7 +1317,6 @@ func (bp *baseProcessor) getFinalMiniBlocksFromExecutionResults(
 			var miniBlock *block.MiniBlock
 			err := bp.marshalizer.Unmarshal(&miniBlock, cachedMiniBlockBytes)
 			if err != nil {
-				log.Error("cache", "cachedMiniBlockBytes", cachedMiniBlockBytes)
 				return nil, err
 			}
 
