@@ -20,7 +20,7 @@ func newGlobalAccountBreadcrumbsCompiler() *globalAccountBreadcrumbsCompiler {
 	}
 }
 
-// updateGlobalBreadcrumbsOnAddedBlockOnProposed updates the global state of the account when a block is added on the OnProposedBlock flow
+// updateOnAddedBlock updates the global state of the account when a block is added on the OnProposedBlock flow
 func (gabc *globalAccountBreadcrumbsCompiler) updateOnAddedBlock(tb *trackedBlock) {
 	gabc.mutCompiler.Lock()
 	defer gabc.mutCompiler.Unlock()
@@ -37,7 +37,7 @@ func (gabc *globalAccountBreadcrumbsCompiler) updateOnAddedBlock(tb *trackedBloc
 	}
 }
 
-// updateGlobalBreadcrumbsOnRemovedBlockOnProposed updates the global state of the account when a block is removed on the OnProposedBlock flow
+// updateAfterRemovedBlockWithSameNonceOrAbove updates the global state of the account when a block is removed on the OnProposedBlock flow
 func (gabc *globalAccountBreadcrumbsCompiler) updateAfterRemovedBlockWithSameNonceOrAbove(tb *trackedBlock) error {
 	gabc.mutCompiler.Lock()
 	defer gabc.mutCompiler.Unlock()
@@ -62,7 +62,7 @@ func (gabc *globalAccountBreadcrumbsCompiler) updateAfterRemovedBlockWithSameNon
 	return nil
 }
 
-// updateGlobalBreadcrumbsOnRemovedBlockOnExecuted updates the global state of the account when a block is removed on the OnExecutedBlock flow
+// updateAfterRemovedBlockWithSameNonceOrBelow updates the global state of the account when a block is removed on the OnExecutedBlock flow
 func (gabc *globalAccountBreadcrumbsCompiler) updateAfterRemovedBlockWithSameNonceOrBelow(tb *trackedBlock) error {
 	gabc.mutCompiler.Lock()
 	defer gabc.mutCompiler.Unlock()

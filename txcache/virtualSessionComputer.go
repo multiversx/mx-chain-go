@@ -42,7 +42,7 @@ func (computer *virtualSessionComputer) handleGlobalAccountBreadcrumbs(
 	for address, globalBreadcrumb := range globalAccountBreadcrumbs {
 		accountNonce, accountBalance, _, err := computer.session.GetAccountNonceAndBalance([]byte(address))
 		if err != nil {
-			log.Debug("virtualSessionComputer.handleTrackedBlock",
+			log.Debug("virtualSessionComputer.handleGlobalAccountBreadcrumbs",
 				"err", err,
 				"address", address)
 			return err
