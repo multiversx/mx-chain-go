@@ -209,6 +209,7 @@ func (gc *gasConsumption) checkPendingIncomingMiniBlocks() ([]data.MiniBlockHead
 
 	bandwidthForIncomingMiniBlocks := gc.getGasLimitForOneDirection(incoming, gc.shardCoordinator.SelfId())
 	bandwidthForIncomingMiniBlocks += gc.getGasLeftFromTransactions()
+	lastIndexAdded := 0
 	for i := 0; i < len(gc.pendingMiniBlocks); i++ {
 		mb := gc.pendingMiniBlocks[i]
 		_, err := gc.checkIncomingMiniBlock(mb, gc.transactionsForPendingMiniBlocks, bandwidthForIncomingMiniBlocks)
@@ -217,7 +218,10 @@ func (gc *gasConsumption) checkPendingIncomingMiniBlocks() ([]data.MiniBlockHead
 		}
 
 		addedMiniBlocks = append(addedMiniBlocks, mb)
+		lastIndexAdded = i
 	}
+
+	gc.pendingMiniBlocks = gc.pendingMiniBlocks[lastIndexAdded+1:]
 
 	return addedMiniBlocks, nil
 }
@@ -442,6 +446,17 @@ func (gc *gasConsumption) Reset() {
 	gc.gasConsumedByMiniBlock = make(map[string]uint64)
 	gc.pendingMiniBlocks = make([]data.MiniBlockHeaderHandler, 0)
 	gc.transactionsForPendingMiniBlocks = make(map[string][]data.TransactionHandler, 0)
+}
+
+// GetPendingMiniBlocks returns the pending mini blocks
+func (gc *gasConsumption) GetPendingMiniBlocks() []data.MiniBlockHeaderHandler {
+	gc.mut.RLock()
+	defer gc.mut.RUnlock()
+
+	pendingMbs := make([]data.MiniBlockHeaderHandler, len(gc.pendingMiniBlocks))
+	copy(pendingMbs, gc.pendingMiniBlocks)
+
+	return pendingMbs
 }
 
 func (gc *gasConsumption) getGasLimitForOneDirection(gasType gasType, shardID uint32) uint64 {

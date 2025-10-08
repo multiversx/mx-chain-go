@@ -1653,26 +1653,6 @@ func TestShardProcessor_VerifyGasLimit(t *testing.T) {
 		err = sp.VerifyGasLimit(createHeaderFromMBs(outgoingMbh, incomingMbh))
 		require.Equal(t, expectedError, err)
 	})
-	t.Run("CheckIncomingMiniBlocks results in limit exceeded", func(t *testing.T) {
-		t.Parallel()
-
-		outgoingMbh, outgoingMb, incomingMbh, incomingMb := createMiniBlocks()
-		coreComponents, dataComponents, bootstrapComponents, statusComponents := createComponentHolderMocks()
-		dataPool := adaptDataPoolForVerifyGas(t, dataComponents.DataPool, outgoingMb, incomingMb)
-		dataComponents.DataPool = dataPool
-		arguments := CreateMockArguments(coreComponents, dataComponents, bootstrapComponents, statusComponents)
-		arguments.GasComputation = &testscommon.GasComputationMock{
-			CheckIncomingMiniBlocksCalled: func(miniBlocks []data.MiniBlockHeaderHandler, transactions map[string][]data.TransactionHandler) (int, int, error) {
-				return len(miniBlocks) - 1, 1, nil // one mini block over the limit
-			},
-		}
-		sp, err := blproc.NewShardProcessor(arguments)
-		require.NoError(t, err)
-
-		err = sp.VerifyGasLimit(createHeaderFromMBs(outgoingMbh, incomingMbh))
-		require.ErrorIs(t, err, process.ErrInvalidMaxGasLimitPerMiniBlock)
-		require.Contains(t, err.Error(), "incoming mini blocks exceeded")
-	})
 	t.Run("CheckOutgoingTransactions error", func(t *testing.T) {
 		t.Parallel()
 
@@ -1739,7 +1719,7 @@ func TestShardProcessor_VerifyGasLimit(t *testing.T) {
 
 		err = sp.VerifyGasLimit(createHeaderFromMBs(outgoingMbh, incomingMbh))
 		require.ErrorIs(t, err, process.ErrInvalidMaxGasLimitPerMiniBlock)
-		require.Contains(t, err.Error(), "should have not added any pending mini block")
+		require.Contains(t, err.Error(), "incoming mini blocks exceeded the limit")
 	})
 	t.Run("should work", func(t *testing.T) {
 		t.Parallel()
