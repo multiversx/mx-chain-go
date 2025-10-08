@@ -105,7 +105,7 @@ func TestCrossTxCache_NotImplemented(t *testing.T) {
 	err = cache.OnExecutedBlock(nil)
 	require.Nil(t, err)
 
-	res := cache.GetDimensionOfTrackedBlocks()
+	res := cache.GetNumTrackedBlocks()
 	require.Equal(t, uint64(0), res)
 }
 
