@@ -13,7 +13,7 @@ import (
 func Test_fromBreadcrumbToVirtualRecord(t *testing.T) {
 	t.Parallel()
 
-	t.Run("bob is already sender", func(t *testing.T) {
+	t.Run("virtual record of sender breadcrumb", func(t *testing.T) {
 		t.Parallel()
 
 		address := "bob"
@@ -52,14 +52,14 @@ func Test_fromBreadcrumbToVirtualRecord(t *testing.T) {
 		require.Equal(t, expectedVirtualRecord, actualVirtualRecord)
 	})
 
-	t.Run("bob was only a relayer", func(t *testing.T) {
+	t.Run("virtual record of bob relayer", func(t *testing.T) {
 		t.Parallel()
 
 		address := "bob"
 		sessionNonce := uint64(1)
 		accountBalance := big.NewInt(2)
 
-		breadcrumbBob := accountBreadcrumb{
+		breadcrumbBob := globalAccountBreadcrumb{
 			firstNonce: core.OptionalUint64{
 				Value:    0,
 				HasValue: false,
@@ -83,148 +83,10 @@ func Test_fromBreadcrumbToVirtualRecord(t *testing.T) {
 		}
 
 		computer := newVirtualSessionComputer(nil)
-		err := computer.fromBreadcrumbToVirtualRecord(address, sessionNonce, accountBalance, &breadcrumbBob)
+		err := computer.fromGlobalBreadcrumbToVirtualRecord(address, sessionNonce, accountBalance, &breadcrumbBob)
 		require.Nil(t, err)
 
 		actualVirtualRecord, ok := computer.virtualAccountsByAddress[address]
-		require.True(t, ok)
-		require.Equal(t, expectedVirtualRecord, actualVirtualRecord)
-	})
-
-	t.Run("the first breadcrumb of bob is a relayer breadcrumb, the second is sender", func(t *testing.T) {
-		t.Parallel()
-
-		address := "bob"
-		sessionNonce := uint64(1)
-		accountBalance := big.NewInt(2)
-
-		breadcrumbBobRelayer := accountBreadcrumb{
-			firstNonce: core.OptionalUint64{
-				Value:    0,
-				HasValue: false,
-			},
-			lastNonce: core.OptionalUint64{
-				Value:    0,
-				HasValue: false,
-			},
-			consumedBalance: big.NewInt(5),
-		}
-
-		expectedVirtualRecord := &virtualAccountRecord{
-			initialNonce: core.OptionalUint64{
-				Value:    1,
-				HasValue: true,
-			},
-			virtualBalance: &virtualAccountBalance{
-				initialBalance:  big.NewInt(2),
-				consumedBalance: big.NewInt(5),
-			},
-		}
-
-		computer := newVirtualSessionComputer(nil)
-		err := computer.fromBreadcrumbToVirtualRecord(address, sessionNonce, accountBalance, &breadcrumbBobRelayer)
-		require.Nil(t, err)
-
-		actualVirtualRecord, ok := computer.virtualAccountsByAddress[address]
-		require.True(t, ok)
-		require.Equal(t, expectedVirtualRecord, actualVirtualRecord)
-
-		breadcrumbBobSender := accountBreadcrumb{
-			firstNonce: core.OptionalUint64{
-				Value:    1,
-				HasValue: true,
-			},
-			lastNonce: core.OptionalUint64{
-				Value:    7,
-				HasValue: true,
-			},
-			consumedBalance: big.NewInt(5),
-		}
-
-		expectedVirtualRecord = &virtualAccountRecord{
-			initialNonce: core.OptionalUint64{
-				Value:    8,
-				HasValue: true,
-			},
-			virtualBalance: &virtualAccountBalance{
-				initialBalance:  big.NewInt(2),
-				consumedBalance: big.NewInt(10),
-			},
-		}
-
-		err = computer.fromBreadcrumbToVirtualRecord(address, sessionNonce, accountBalance, &breadcrumbBobSender)
-		require.Nil(t, err)
-
-		actualVirtualRecord, ok = computer.virtualAccountsByAddress[address]
-		require.True(t, ok)
-		require.Equal(t, expectedVirtualRecord, actualVirtualRecord)
-	})
-
-	t.Run("the first breadcrumb of bob is a sender breadcrumb, the second is relayer", func(t *testing.T) {
-		t.Parallel()
-
-		address := "bob"
-		sessionNonce := uint64(1)
-		accountBalance := big.NewInt(2)
-
-		breadcrumbBobSender := accountBreadcrumb{
-			firstNonce: core.OptionalUint64{
-				Value:    1,
-				HasValue: true,
-			},
-			lastNonce: core.OptionalUint64{
-				Value:    7,
-				HasValue: true,
-			},
-			consumedBalance: big.NewInt(5),
-		}
-
-		expectedVirtualRecord := &virtualAccountRecord{
-			initialNonce: core.OptionalUint64{
-				Value:    8,
-				HasValue: true,
-			},
-			virtualBalance: &virtualAccountBalance{
-				initialBalance:  big.NewInt(2),
-				consumedBalance: big.NewInt(5),
-			},
-		}
-
-		computer := newVirtualSessionComputer(nil)
-		err := computer.fromBreadcrumbToVirtualRecord(address, sessionNonce, accountBalance, &breadcrumbBobSender)
-		require.Nil(t, err)
-
-		actualVirtualRecord, ok := computer.virtualAccountsByAddress[address]
-		require.True(t, ok)
-		require.Equal(t, expectedVirtualRecord, actualVirtualRecord)
-
-		breadcrumbBobRelayer := accountBreadcrumb{
-			firstNonce: core.OptionalUint64{
-				Value:    0,
-				HasValue: false,
-			},
-			lastNonce: core.OptionalUint64{
-				Value:    0,
-				HasValue: false,
-			},
-			consumedBalance: big.NewInt(5),
-		}
-
-		expectedVirtualRecord = &virtualAccountRecord{
-			initialNonce: core.OptionalUint64{
-				Value:    8,
-				HasValue: true,
-			},
-			virtualBalance: &virtualAccountBalance{
-				initialBalance:  big.NewInt(2),
-				consumedBalance: big.NewInt(10),
-			},
-		}
-
-		err = computer.fromBreadcrumbToVirtualRecord(address, sessionNonce, accountBalance, &breadcrumbBobRelayer)
-		require.Nil(t, err)
-
-		actualVirtualRecord, ok = computer.virtualAccountsByAddress[address]
 		require.True(t, ok)
 		require.Equal(t, expectedVirtualRecord, actualVirtualRecord)
 	})
