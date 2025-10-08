@@ -249,6 +249,7 @@ func (ppcm *preProcessorsContainerFactory) createTxPreProcessor() (process.PrePr
 			TxExecutionOrderHandler:    ppcm.txExecutionOrderHandler,
 			EconomicsFee:               ppcm.economicsFee,
 			EnableEpochsHandler:        ppcm.enableEpochsHandler,
+			EnableRoundsHandler:        ppcm.enableRoundsHandler,
 		},
 		TxProcessor:                  ppcm.txProcessor,
 		BlockTracker:                 ppcm.blockTracker,
@@ -280,6 +281,7 @@ func (ppcm *preProcessorsContainerFactory) createSmartContractResultPreProcessor
 			TxExecutionOrderHandler:    ppcm.txExecutionOrderHandler,
 			EconomicsFee:               ppcm.economicsFee,
 			EnableEpochsHandler:        ppcm.enableEpochsHandler,
+			EnableRoundsHandler:        ppcm.enableRoundsHandler,
 		},
 		ScrProcessor: ppcm.scResultProcessor,
 	}
@@ -306,6 +308,7 @@ func (ppcm *preProcessorsContainerFactory) createRewardsTransactionPreProcessor(
 			TxExecutionOrderHandler:    ppcm.txExecutionOrderHandler,
 			EconomicsFee:               ppcm.economicsFee,
 			EnableEpochsHandler:        ppcm.enableEpochsHandler,
+			EnableRoundsHandler:        ppcm.enableRoundsHandler,
 		},
 		RewardProcessor: ppcm.rewardsTxProcessor,
 	}
@@ -333,6 +336,7 @@ func (ppcm *preProcessorsContainerFactory) createValidatorInfoPreProcessor() (pr
 			TxExecutionOrderHandler:    ppcm.txExecutionOrderHandler,
 			EconomicsFee:               ppcm.economicsFee,
 			EnableEpochsHandler:        ppcm.enableEpochsHandler,
+			EnableRoundsHandler:        ppcm.enableRoundsHandler,
 		},
 	}
 

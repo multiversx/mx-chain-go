@@ -515,6 +515,7 @@ func createDefaultValidatorInfoPreProcessorArgs(tdp dataRetriever.PoolsHolder) V
 			TxExecutionOrderHandler:    &common.TxExecutionOrderHandlerStub{},
 			EconomicsFee:               feeHandlerMock(),
 			EnableEpochsHandler:        enableEpochsHandlerMock.NewEnableEpochsHandlerStub(),
+			EnableRoundsHandler:        &testscommon.EnableRoundsHandlerStub{},
 		},
 	}
 }

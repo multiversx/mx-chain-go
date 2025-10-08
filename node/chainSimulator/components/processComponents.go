@@ -8,6 +8,8 @@ import (
 	"time"
 
 	"github.com/multiversx/mx-chain-core-go/core/partitioning"
+	vmcommon "github.com/multiversx/mx-chain-vm-common-go"
+
 	"github.com/multiversx/mx-chain-go/common"
 	"github.com/multiversx/mx-chain-go/common/forking"
 	"github.com/multiversx/mx-chain-go/common/ordering"
@@ -28,7 +30,6 @@ import (
 	"github.com/multiversx/mx-chain-go/storage/cache"
 	"github.com/multiversx/mx-chain-go/update"
 	"github.com/multiversx/mx-chain-go/update/trigger"
-	vmcommon "github.com/multiversx/mx-chain-vm-common-go"
 )
 
 // ArgsProcessComponentsHolder will hold the components needed for process components

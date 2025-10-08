@@ -239,6 +239,7 @@ func createDefaultTransactionsProcessorArgs() ArgsTransactionPreProcessor {
 			TxExecutionOrderHandler:    &commonMocks.TxExecutionOrderHandlerStub{},
 			EconomicsFee:               feeHandlerMock(),
 			EnableEpochsHandler:        enableEpochsHandlerMock.NewEnableEpochsHandlerStub(),
+			EnableRoundsHandler:        &testscommon.EnableRoundsHandlerStub{},
 		},
 		TxProcessor:                  &testscommon.TxProcessorMock{},
 		BlockTracker:                 &mock.BlockTrackerMock{},

@@ -1093,6 +1093,7 @@ func createDefaultSmartContractProcessorArgs(tdp dataRetriever.PoolsHolder) Smar
 			TxExecutionOrderHandler:    &commonTests.TxExecutionOrderHandlerStub{},
 			EconomicsFee:               feeHandlerMock(),
 			EnableEpochsHandler:        enableEpochsHandlerMock.NewEnableEpochsHandlerStub(),
+			EnableRoundsHandler:        &testscommon.EnableRoundsHandlerStub{},
 		},
 		ScrProcessor: &testscommon.TxProcessorMock{},
 	}

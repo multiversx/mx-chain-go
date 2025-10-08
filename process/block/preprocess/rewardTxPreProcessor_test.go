@@ -637,6 +637,7 @@ func createDefaultRewardsProcessorArgs(tdp dataRetriever.PoolsHolder) RewardsPre
 			TxExecutionOrderHandler:    &common.TxExecutionOrderHandlerStub{},
 			EconomicsFee:               feeHandlerMock(),
 			EnableEpochsHandler:        enableEpochsHandlerMock.NewEnableEpochsHandlerStub(),
+			EnableRoundsHandler:        &testscommon.EnableRoundsHandlerStub{},
 		},
 		RewardProcessor: &testscommon.RewardTxProcessorMock{},
 	}

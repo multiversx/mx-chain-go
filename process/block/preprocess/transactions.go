@@ -639,8 +639,8 @@ func (txs *transactions) processTxsFromMe(
 	if err != nil {
 		return err
 	}
-	// TODO: replace the check to use the round activation for async execution
-	if txs.enableEpochsHandler.IsFlagEnabled(common.SupernovaFlag) {
+
+	if txs.enableEpochsHandler.IsFlagEnabled(common.SupernovaFlag) && txs.enableRoundsHandler.IsFlagEnabled(common.SupernovaRoundFlag) {
 		// save the calculatedMiniBlocks for later comparison
 		txs.mutCreatedMiniBlocks.Lock()
 		txs.createdMiniBlocks = calculatedMiniBlocks

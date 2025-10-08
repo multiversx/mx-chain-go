@@ -367,6 +367,7 @@ func (pcf *processComponentsFactory) newShardBlockProcessor(
 		BlockSizeComputation:         blockSizeComputationHandler,
 		BalanceComputation:           balanceComputationHandler,
 		EnableEpochsHandler:          pcf.coreData.EnableEpochsHandler(),
+		EnableRoundsHandler:          pcf.coreData.EnableRoundsHandler(),
 		TxTypeHandler:                txTypeHandler,
 		ScheduledTxsExecutionHandler: scheduledTxsExecutionHandler,
 		ProcessedMiniBlocksTracker:   processedMiniBlocksTracker,
