@@ -473,6 +473,7 @@ func TestResolver_RequestMissingMetaHeadersBlocking(t *testing.T) {
 		t.Parallel()
 
 		requestedMetaHeaders := make([][]byte, 0)
+		mutRequestedData := sync.Mutex{}
 		headersPool := &pool.HeadersPoolStub{
 			GetHeaderByHashCalled: func(hash []byte) (data.HeaderHandler, error) {
 				return nil, headerNotFoundErr
@@ -483,7 +484,9 @@ func TestResolver_RequestMissingMetaHeadersBlocking(t *testing.T) {
 			ProofsPool:  proofsPool,
 			RequestHandler: &testscommon.RequestHandlerStub{
 				RequestMetaHeaderCalled: func(hash []byte) {
+					mutRequestedData.Lock()
 					requestedMetaHeaders = append(requestedMetaHeaders, hash)
+					mutRequestedData.Unlock()
 				},
 			},
 			BlockDataRequester: blockDataRequester,

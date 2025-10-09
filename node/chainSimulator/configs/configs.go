@@ -142,6 +142,8 @@ func CreateChainSimulatorConfigs(args ArgsChainSimulatorConfigs) (*ArgsConfigsSi
 		configs.GeneralConfig.GeneralSettings.ChainParametersByEpoch[1].EnableEpoch = configs.EpochConfig.EnableEpochs.AndromedaEnableEpoch
 	}
 
+	configs.EpochConfig.EnableEpochs.SupernovaEnableEpoch = 100
+
 	return &ArgsConfigsSimulator{
 		Configs:               *configs,
 		ValidatorsPrivateKeys: privateKeys,
@@ -207,6 +209,8 @@ func SetStakingV4ActivationEpochs(cfg *config.Configs, initialEpoch uint32) {
 	// Set the MaxNodesChange enable epoch for index 2
 	cfg.EpochConfig.EnableEpochs.MaxNodesChangeEnableEpoch[2].EpochEnable = initialEpoch + 2
 	cfg.SystemSCConfig.StakingSystemSCConfig.NodeLimitPercentage = 1
+
+	cfg.EpochConfig.EnableEpochs.SupernovaEnableEpoch = initialEpoch + 10
 }
 
 func generateGenesisFile(args ArgsChainSimulatorConfigs, configs *config.Configs) (*dtos.InitialWalletKeys, error) {

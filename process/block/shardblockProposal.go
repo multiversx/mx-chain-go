@@ -275,7 +275,8 @@ func (sp *shardProcessor) ProcessBlockProposal(
 
 	// although we can have a long time for processing, it being decoupled from consensus,
 	// we still give some reasonable timeout
-	haveTime := getHaveTimeForProposal(time.Now(), maxBlockProcessingTime)
+	proposalStartTime := time.Now()
+	haveTime := getHaveTimeForProposal(proposalStartTime, maxBlockProcessingTime)
 
 	err = sp.txCoordinator.IsDataPreparedForProcessing(haveTime)
 	if err != nil {
