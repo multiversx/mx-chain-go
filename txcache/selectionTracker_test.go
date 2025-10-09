@@ -1357,3 +1357,115 @@ func TestSelectionTracker_GetBulkOfUntrackedTransactions(t *testing.T) {
 	bulk := tracker.GetBulkOfUntrackedTransactions(txs)
 	require.Len(t, bulk, 4)
 }
+
+func TestSelectionTracker_addNewTrackedBlockNoLock(t *testing.T) {
+	t.Parallel()
+
+	txCache := newCacheToTest(maxNumBytesPerSenderUpperBoundTest, 6)
+	tracker, err := NewSelectionTracker(txCache, maxTrackedBlocks)
+	require.Nil(t, err)
+
+	txCache.tracker = tracker
+
+	tracker.blocks = map[string]*trackedBlock{
+		"hash1": {
+			nonce:    1,
+			hash:     []byte("hash1"),
+			rootHash: []byte("rootHash"),
+		},
+		"hash2": {
+			nonce:    2,
+			hash:     []byte("hash2"),
+			rootHash: []byte("rootHash"),
+		},
+		"hash3": {
+			nonce:    3,
+			hash:     []byte("hash3"),
+			rootHash: []byte("rootHash"),
+		},
+	}
+
+	require.Equal(t, 3, len(txCache.tracker.blocks))
+	err = tracker.addNewTrackedBlockNoLock([]byte("hashX"), &trackedBlock{
+		nonce:    1,
+		hash:     []byte("hashX"),
+		rootHash: []byte("rootHash"),
+	})
+	require.Nil(t, err)
+
+	require.Equal(t, 1, len(txCache.tracker.blocks))
+	_, ok := txCache.tracker.blocks["hashX"]
+	require.True(t, ok)
+}
+
+func TestSelectionTracker_removeBlockAboveOrEqualToNoLock(t *testing.T) {
+	t.Parallel()
+
+	txCache := newCacheToTest(maxNumBytesPerSenderUpperBoundTest, 6)
+	tracker, err := NewSelectionTracker(txCache, maxTrackedBlocks)
+	require.Nil(t, err)
+
+	txCache.tracker = tracker
+
+	tracker.blocks = map[string]*trackedBlock{
+		"hash1": {
+			nonce:    1,
+			hash:     []byte("hash1"),
+			rootHash: []byte("rootHash"),
+		},
+		"hash2": {
+			nonce:    2,
+			hash:     []byte("hash2"),
+			rootHash: []byte("rootHash"),
+		},
+		"hash3": {
+			nonce:    3,
+			hash:     []byte("hash3"),
+			rootHash: []byte("rootHash"),
+		},
+	}
+
+	require.Equal(t, 3, len(txCache.tracker.blocks))
+	err = tracker.removeBlockAboveOrEqualToNoLock([]byte("hash1"), &trackedBlock{
+		nonce:    1,
+		hash:     []byte("hash3"),
+		rootHash: []byte("rootHash"),
+	})
+	require.Nil(t, err)
+
+	require.Equal(t, 0, len(txCache.tracker.blocks))
+}
+
+func TestSelectionTracker_removeBlocksAboveNonce(t *testing.T) {
+	t.Parallel()
+
+	txCache := newCacheToTest(maxNumBytesPerSenderUpperBoundTest, 6)
+	tracker, err := NewSelectionTracker(txCache, maxTrackedBlocks)
+	require.Nil(t, err)
+
+	txCache.tracker = tracker
+
+	tracker.blocks = map[string]*trackedBlock{
+		"hash1": {
+			nonce:    1,
+			hash:     []byte("hash1"),
+			rootHash: []byte("rootHash"),
+		},
+		"hash2": {
+			nonce:    2,
+			hash:     []byte("hash2"),
+			rootHash: []byte("rootHash"),
+		},
+		"hash3": {
+			nonce:    3,
+			hash:     []byte("hash3"),
+			rootHash: []byte("rootHash"),
+		},
+	}
+
+	require.Equal(t, 3, len(txCache.tracker.blocks))
+	err = tracker.removeBlocksAboveNonce(1)
+	require.Nil(t, err)
+
+	require.Equal(t, 1, len(txCache.tracker.blocks))
+}

@@ -247,6 +247,22 @@ func (st *selectionTracker) validateBreadcrumbsOfTrackedBlocks(
 // addNewTrackedBlockNoLock adds a new tracked block into the map of tracked blocks,
 // replaces an existing block which has the same nonce with the one received.
 func (st *selectionTracker) addNewTrackedBlockNoLock(blockToBeAddedHash []byte, blockToBeAdded *trackedBlock) error {
+	// remove all the blocks with nonce equal or above the given nonce
+	err := st.removeBlockAboveOrEqualToNoLock(blockToBeAddedHash, blockToBeAdded)
+	if err != nil {
+		return err
+	}
+
+	// add the new block
+	st.blocks[string(blockToBeAddedHash)] = blockToBeAdded
+	st.globalBreadcrumbsCompiler.updateOnAddedBlock(blockToBeAdded)
+
+	return nil
+}
+
+// removeBlockAboveOrEqualToNoLock removes blocks higher or equal to the nonce of the given block.
+// The removeBlockAboveOrEqualToNoLock is used on the OnProposedBlock flow.
+func (st *selectionTracker) removeBlockAboveOrEqualToNoLock(blockToBeAddedHash []byte, blockToBeAdded *trackedBlock) error {
 	// search if in the tracked blocks we already have one with same nonce or greater
 	for bHash, b := range st.blocks {
 		if b.hasSameNonceOrHigher(blockToBeAdded) {
@@ -265,14 +281,11 @@ func (st *selectionTracker) addNewTrackedBlockNoLock(blockToBeAddedHash []byte, 
 		}
 	}
 
-	// add the new block
-	st.blocks[string(blockToBeAddedHash)] = blockToBeAdded
-	st.globalBreadcrumbsCompiler.updateOnAddedBlock(blockToBeAdded)
-
 	return nil
 }
 
 // OnExecutedBlock notifies when a block is executed and updates the state of the selectionTracker
+// by removing each tracked block with nonce equal or lower than the one received in the blockHeader.
 func (st *selectionTracker) OnExecutedBlock(blockHeader data.HeaderHandler) error {
 	if check.IfNil(blockHeader) {
 		return errNilBlockHeader
@@ -302,10 +315,12 @@ func (st *selectionTracker) OnExecutedBlock(blockHeader data.HeaderHandler) erro
 	return nil
 }
 
+// removeUpToBlockNoLock removes all the tracked blocks with nonce equal or lower than the given nonce.
+// The removeUpToBlockNoLock is called on the OnExecutedBlock flow.
 func (st *selectionTracker) removeUpToBlockNoLock(searchedBlock *trackedBlock) error {
 	removedBlocks := 0
 	for blockHash, b := range st.blocks {
-		if b.sameNonceOrBelow(searchedBlock) {
+		if b.hasSameNonceOrLower(searchedBlock) {
 			err := st.globalBreadcrumbsCompiler.updateAfterRemovedBlockWithSameNonceOrBelow(b)
 			if err != nil {
 				return err
@@ -350,7 +365,11 @@ func (st *selectionTracker) deriveVirtualSelectionSession(
 	session SelectionSession,
 	blockchainInfo common.BlockchainInfo,
 ) (*virtualSelectionSession, error) {
-	// TODO should remove all blocks greater than the received nonce from blockchainInfo
+	err := st.removeBlocksAboveNonce(blockchainInfo.GetCurrentNonce())
+	if err != nil {
+		return nil, err
+	}
+
 	rootHash, err := session.GetRootHash()
 	if err != nil {
 		log.Debug("selectionTracker.deriveVirtualSelectionSession",
@@ -379,6 +398,32 @@ func (st *selectionTracker) deriveVirtualSelectionSession(
 
 	globalAccountsBreadcrumbs := st.getGlobalAccountsBreadcrumbs()
 	return computer.createVirtualSelectionSession(globalAccountsBreadcrumbs)
+}
+
+// removeBlocksAboveNonce removes blocks higher than the nonce of the given block.
+// The removeBlocksAboveNonce is used on the deriveVirtualSelectionSession flow.
+func (st *selectionTracker) removeBlocksAboveNonce(nonce uint64) error {
+	st.mutTracker.Lock()
+	defer st.mutTracker.Unlock()
+
+	for blockHash, tb := range st.blocks {
+		if tb.hasHigherNonce(nonce) {
+			err := st.globalBreadcrumbsCompiler.updateAfterRemovedBlockWithSameNonceOrAbove(tb)
+			if err != nil {
+				return err
+			}
+
+			delete(st.blocks, blockHash)
+
+			log.Debug("selectionTracker.removeBlocksAboveNonce",
+				"nonce", nonce,
+				"nonce of deleted block", tb.nonce,
+				"hash of deleted block", blockHash,
+			)
+		}
+	}
+
+	return nil
 }
 
 // getChainOfTrackedPendingBlocks finds the chain of tracked blocks, iterating from tail to head,
