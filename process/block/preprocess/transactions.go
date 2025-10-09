@@ -882,7 +882,7 @@ func (txs *transactions) processAndRemoveBadTransaction(
 	txs.txExecutionOrderHandler.Add(txHash)
 	_, err := txs.txProcessor.ProcessTransaction(tx)
 	isNotExecutable := errors.Is(err, process.ErrLowerNonceInTransaction) || errors.Is(err, process.ErrInsufficientFee) || errors.Is(err, process.ErrTransactionNotExecutable)
-	if txs.enableRoundsHandler.IsFlagEnabled(common.SupernovaRoundFlag) {
+	if err != nil && common.IsAsyncExecutionEnabled(txs.enableEpochsHandler, txs.enableRoundsHandler) {
 		isNotExecutable = process.IsNotExecutableTransactionError(err)
 	}
 	if isNotExecutable {

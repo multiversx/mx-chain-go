@@ -193,7 +193,7 @@ func (txs *transactions) processTransaction(
 		mbInfo.mapGasConsumedByMiniBlockInReceiverShard[receiverShardID] = oldGasConsumedByMiniBlockInReceiverShard
 		mbInfo.gasInfo.totalGasConsumedInSelfShard = oldTotalGasConsumedInSelfShard
 
-		if txs.enableEpochsHandler.IsFlagEnabled(common.SupernovaFlag) && txs.enableRoundsHandler.IsFlagEnabled(common.SupernovaRoundFlag) {
+		if common.IsAsyncExecutionEnabled(txs.enableEpochsHandler, txs.enableRoundsHandler) {
 			txs.mutUnExecutableTxs.Lock()
 			txs.unExecutableTransactions[string(txHash)] = struct{}{}
 			txs.mutUnExecutableTxs.Unlock()
