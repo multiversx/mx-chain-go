@@ -33,6 +33,11 @@ func (cache *TxCache) Diagnose(_ bool) {
 	cache.diagnoseTransactions()
 }
 
+// GetNumTrackedBlocks returns the dimension of the tracked blocks
+func (cache *TxCache) GetNumTrackedBlocks() uint64 {
+	return cache.tracker.getNumTrackedBlocks()
+}
+
 func (cache *TxCache) diagnoseTransactions() {
 	if logDiagnoseTransactions.GetLevel() > logger.LogTrace {
 		return
