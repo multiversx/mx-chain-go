@@ -348,7 +348,7 @@ func (st *selectionTracker) updateLatestRootHashNoLock(receivedNonce uint64, rec
 // The deriveVirtualSelectionSession methods needs a SelectionSession and the nonce of the block on which the selection is built.
 func (st *selectionTracker) deriveVirtualSelectionSession(
 	session SelectionSession,
-	blockchainInfo common.BlockchainInfo,
+	nonce uint64,
 ) (*virtualSelectionSession, error) {
 	// TODO should remove all blocks greater than the received nonce from blockchainInfo
 	rootHash, err := session.GetRootHash()
@@ -358,18 +358,12 @@ func (st *selectionTracker) deriveVirtualSelectionSession(
 		return nil, err
 	}
 
-	latestExecutedBlockHash := blockchainInfo.GetLatestExecutedBlockHash()
-	latestCommittedBlockHash := blockchainInfo.GetLatestCommittedBlockHash()
-	currentNonce := blockchainInfo.GetCurrentNonce()
-
 	log.Debug("selectionTracker.deriveVirtualSelectionSession",
 		"rootHash", rootHash,
-		"latestExecutedBlockHash", latestExecutedBlockHash,
-		"latestCommitedBlockHash", latestCommittedBlockHash,
-		"currentNonce", currentNonce,
+		"nonce", nonce,
 	)
 
-	trackedBlocks := st.getTrackedBlocksAsSlice()
+	trackedBlocks := st.getSnapshotOfTrackedBlocks()
 	log.Debug("selectionTracker.deriveVirtualSelectionSession",
 		"len(trackedBlocks)", len(trackedBlocks))
 
@@ -495,17 +489,19 @@ func (st *selectionTracker) isTransactionTracked(transaction *WrappedTransaction
 	maxNonce := senderGlobalBreadcrumb.lastNonce
 
 	if !minNonce.HasValue || !maxNonce.HasValue {
+		// we consider the transaction as not tracked because the account is tracked only as a relayer
 		return false
 	}
 
 	if txNonce < minNonce.Value || txNonce > maxNonce.Value {
+		// we consider the transaction as not tracked because it's outside the tracked range
 		return false
 	}
 
 	return true
 }
 
-func (st *selectionTracker) getTrackedBlocksAsSlice() []*trackedBlock {
+func (st *selectionTracker) getSnapshotOfTrackedBlocks() []*trackedBlock {
 	st.mutTracker.RLock()
 	defer st.mutTracker.RUnlock()
 

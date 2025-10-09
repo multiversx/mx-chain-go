@@ -551,8 +551,7 @@ func Test_CompleteFlowShouldWork(t *testing.T) {
 		},
 	}
 
-	blockchainInfo := holders.NewBlockchainInfo([]byte("hash0"), []byte("hash2"), 2)
-	virtualSession, err := cache.tracker.deriveVirtualSelectionSession(selectionSession, blockchainInfo)
+	virtualSession, err := cache.tracker.deriveVirtualSelectionSession(selectionSession, 2)
 
 	require.Nil(t, err)
 	require.NotNil(t, virtualSession)
@@ -594,8 +593,7 @@ func Test_CompleteFlowShouldWork(t *testing.T) {
 		},
 	}
 
-	blockchainInfo = holders.NewBlockchainInfo([]byte("hash1"), []byte("hash2"), 2)
-	virtualSession, err = cache.tracker.deriveVirtualSelectionSession(selectionSession, blockchainInfo)
+	virtualSession, err = cache.tracker.deriveVirtualSelectionSession(selectionSession, 2)
 	require.Nil(t, err)
 
 	expectedVirtualRecords = map[string]*virtualAccountRecord{
@@ -614,11 +612,10 @@ func Test_CompleteFlowShouldWork(t *testing.T) {
 		10,
 	)
 
-	blockchainInfo = holders.NewBlockchainInfo([]byte("hash1"), []byte("hash2"), 2)
 	selectedTxs, _, err := cache.SelectTransactions(
 		selectionSession,
 		options,
-		blockchainInfo,
+		2,
 	)
 	require.Nil(t, err)
 	require.Len(t, selectedTxs, 1)
@@ -911,7 +908,7 @@ func TestSelectionTracker_deriveVirtualSelectionSessionShouldErr(t *testing.T) {
 	session.GetRootHashCalled = func() ([]byte, error) {
 		return nil, expectedErr
 	}
-	virtualSession, actualErr := tracker.deriveVirtualSelectionSession(&session, defaultBlockchainInfo)
+	virtualSession, actualErr := tracker.deriveVirtualSelectionSession(&session, 0)
 	require.Nil(t, virtualSession)
 	require.Equal(t, expectedErr, actualErr)
 }
