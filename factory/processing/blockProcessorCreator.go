@@ -347,32 +347,34 @@ func (pcf *processComponentsFactory) newShardBlockProcessor(
 		return nil, err
 	}
 
-	preProcFactory, err := shard.NewPreProcessorsContainerFactory(
-		pcf.bootstrapComponents.ShardCoordinator(),
-		pcf.data.StorageService(),
-		pcf.coreData.InternalMarshalizer(),
-		pcf.coreData.Hasher(),
-		pcf.data.Datapool(),
-		pcf.coreData.AddressPubKeyConverter(),
-		pcf.state.AccountsAdapter(),
-		pcf.state.AccountsAdapterProposal(),
-		requestHandler,
-		transactionProcessor,
-		scProcessorProxy,
-		scProcessorProxy,
-		rewardsTxProcessor,
-		pcf.coreData.EconomicsData(),
-		gasHandler,
-		blockTracker,
-		blockSizeComputationHandler,
-		balanceComputationHandler,
-		pcf.coreData.EnableEpochsHandler(),
-		txTypeHandler,
-		scheduledTxsExecutionHandler,
-		processedMiniBlocksTracker,
-		pcf.txExecutionOrderHandler,
-		pcf.config.TxCacheSelection,
-	)
+	argsPreProcFactory := shard.ArgsPreProcessorsContainerFactory{
+		ShardCoordinator:             pcf.bootstrapComponents.ShardCoordinator(),
+		Store:                        pcf.data.StorageService(),
+		Marshalizer:                  pcf.coreData.InternalMarshalizer(),
+		Hasher:                       pcf.coreData.Hasher(),
+		DataPool:                     pcf.data.Datapool(),
+		PubkeyConverter:              pcf.coreData.AddressPubKeyConverter(),
+		Accounts:                     pcf.state.AccountsAdapter(),
+		AccountsProposal:             pcf.state.AccountsAdapterProposal(),
+		RequestHandler:               requestHandler,
+		TxProcessor:                  transactionProcessor,
+		ScProcessor:                  scProcessorProxy,
+		ScResultProcessor:            scProcessorProxy,
+		RewardsTxProcessor:           rewardsTxProcessor,
+		EconomicsFee:                 pcf.coreData.EconomicsData(),
+		GasHandler:                   gasHandler,
+		BlockTracker:                 blockTracker,
+		BlockSizeComputation:         blockSizeComputationHandler,
+		BalanceComputation:           balanceComputationHandler,
+		EnableEpochsHandler:          pcf.coreData.EnableEpochsHandler(),
+		EnableRoundsHandler:          pcf.coreData.EnableRoundsHandler(),
+		TxTypeHandler:                txTypeHandler,
+		ScheduledTxsExecutionHandler: scheduledTxsExecutionHandler,
+		ProcessedMiniBlocksTracker:   processedMiniBlocksTracker,
+		TxExecutionOrderHandler:      pcf.txExecutionOrderHandler,
+		TxCacheSelectionConfig:       pcf.config.TxCacheSelection,
+	}
+	preProcFactory, err := shard.NewPreProcessorsContainerFactory(argsPreProcFactory)
 	if err != nil {
 		return nil, err
 	}
@@ -765,30 +767,33 @@ func (pcf *processComponentsFactory) newMetaBlockProcessor(
 		return nil, err
 	}
 
-	preProcFactory, err := metachain.NewPreProcessorsContainerFactory(
-		pcf.bootstrapComponents.ShardCoordinator(),
-		pcf.data.StorageService(),
-		pcf.coreData.InternalMarshalizer(),
-		pcf.coreData.Hasher(),
-		pcf.data.Datapool(),
-		pcf.state.AccountsAdapter(),
-		pcf.state.AccountsAdapterProposal(),
-		requestHandler,
-		transactionProcessor,
-		scProcessorProxy,
-		pcf.coreData.EconomicsData(),
-		gasHandler,
-		blockTracker,
-		pcf.coreData.AddressPubKeyConverter(),
-		blockSizeComputationHandler,
-		balanceComputationHandler,
-		pcf.coreData.EnableEpochsHandler(),
-		txTypeHandler,
-		scheduledTxsExecutionHandler,
-		processedMiniBlocksTracker,
-		pcf.txExecutionOrderHandler,
-		pcf.config.TxCacheSelection,
-	)
+	argsPreprocContainerFactory := metachain.ArgsPreProcessorsContainerFactory{
+		ShardCoordinator:             pcf.bootstrapComponents.ShardCoordinator(),
+		Store:                        pcf.data.StorageService(),
+		Marshalizer:                  pcf.coreData.InternalMarshalizer(),
+		Hasher:                       pcf.coreData.Hasher(),
+		DataPool:                     pcf.data.Datapool(),
+		Accounts:                     pcf.state.AccountsAdapter(),
+		AccountsProposal:             pcf.state.AccountsAdapterProposal(),
+		RequestHandler:               requestHandler,
+		TxProcessor:                  transactionProcessor,
+		ScResultProcessor:            scProcessorProxy,
+		EconomicsFee:                 pcf.coreData.EconomicsData(),
+		GasHandler:                   gasHandler,
+		BlockTracker:                 blockTracker,
+		PubkeyConverter:              pcf.coreData.AddressPubKeyConverter(),
+		BlockSizeComputation:         blockSizeComputationHandler,
+		BalanceComputation:           balanceComputationHandler,
+		EnableEpochsHandler:          pcf.coreData.EnableEpochsHandler(),
+		EnableRoundsHandler:          pcf.coreData.EnableRoundsHandler(),
+		TxTypeHandler:                txTypeHandler,
+		ScheduledTxsExecutionHandler: scheduledTxsExecutionHandler,
+		ProcessedMiniBlocksTracker:   processedMiniBlocksTracker,
+		TxExecutionOrderHandler:      pcf.txExecutionOrderHandler,
+		TxCacheSelectionConfig:       pcf.config.TxCacheSelection,
+	}
+
+	preProcFactory, err := metachain.NewPreProcessorsContainerFactory(argsPreprocContainerFactory)
 	if err != nil {
 		return nil, err
 	}

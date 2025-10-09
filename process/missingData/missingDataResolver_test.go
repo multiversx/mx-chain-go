@@ -469,6 +469,47 @@ func TestResolver_RequestMissingMetaHeadersBlocking(t *testing.T) {
 		require.False(t, mdr.allHeadersReceived())
 		require.False(t, mdr.allProofsReceived())
 	})
+	t.Run("requesting missing meta headers for start of epoch block", func(t *testing.T) {
+		t.Parallel()
+
+		requestedMetaHeaders := make([][]byte, 0)
+		headersPool := &pool.HeadersPoolStub{
+			GetHeaderByHashCalled: func(hash []byte) (data.HeaderHandler, error) {
+				return nil, headerNotFoundErr
+			},
+		}
+		args := ResolverArgs{
+			HeadersPool: headersPool,
+			ProofsPool:  proofsPool,
+			RequestHandler: &testscommon.RequestHandlerStub{
+				RequestMetaHeaderCalled: func(hash []byte) {
+					requestedMetaHeaders = append(requestedMetaHeaders, hash)
+				},
+			},
+			BlockDataRequester: blockDataRequester,
+		}
+		mdr, _ := NewMissingDataResolver(args)
+
+		metaHash1 := []byte("metaHash1")
+		metaHash2 := []byte("metaHash2")
+		startOfEpochMetaHash := []byte("startOfEpochMetaHash")
+		startOfEpochHeader := &block.HeaderV2{
+			Header: &block.Header{
+				MetaBlockHashes:    [][]byte{metaHash1, metaHash2},
+				EpochStartMetaHash: startOfEpochMetaHash,
+			},
+		}
+
+		expectedMetaHeadersRequested := [][]byte{metaHash1, metaHash2, startOfEpochMetaHash}
+		err := mdr.RequestMissingMetaHeadersBlocking(startOfEpochHeader, 50*time.Millisecond)
+		require.Equal(t, process.ErrTimeIsOut, err)
+		require.False(t, mdr.allHeadersReceived())
+		require.False(t, mdr.allProofsReceived())
+		require.Equal(t, len(expectedMetaHeadersRequested), len(requestedMetaHeaders))
+		for i := 0; i < len(expectedMetaHeadersRequested); i++ {
+			require.Contains(t, requestedMetaHeaders, expectedMetaHeadersRequested[i])
+		}
+	})
 	t.Run("request missing meta headers and proofs, all received", func(t *testing.T) {
 		t.Parallel()
 

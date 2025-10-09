@@ -268,19 +268,12 @@ func (sp *shardProcessor) ProcessBlockProposal(
 		return nil, process.ErrInvalidHeader
 	}
 
-	sp.processStatusHandler.SetBusy("shardProcessor.ProcessBlock")
+	sp.processStatusHandler.SetBusy("shardProcessor.ProcessBlockProposal")
 	defer sp.processStatusHandler.SetIdle()
 
 	sp.roundNotifier.CheckRound(headerHandler)
 	sp.epochNotifier.CheckEpoch(headerHandler)
 	sp.requestHandler.SetEpoch(headerHandler.GetEpoch())
-
-	log.Debug("started processing block",
-		"epoch", headerHandler.GetEpoch(),
-		"shard", headerHandler.GetShardID(),
-		"round", headerHandler.GetRound(),
-		"nonce", headerHandler.GetNonce(),
-	)
 
 	header, ok := headerHandler.(data.ShardHeaderHandler)
 	if !ok {
@@ -291,6 +284,13 @@ func (sp *shardProcessor) ProcessBlockProposal(
 	if !ok {
 		return nil, process.ErrWrongTypeAssertion
 	}
+
+	log.Debug("started processing block",
+		"epoch", headerHandler.GetEpoch(),
+		"shard", headerHandler.GetShardID(),
+		"round", headerHandler.GetRound(),
+		"nonce", headerHandler.GetNonce(),
+	)
 
 	// this is used now to reset the context for processing not creation of blocks
 	err := sp.createBlockStarted()
@@ -324,7 +324,7 @@ func (sp *shardProcessor) ProcessBlockProposal(
 	}
 
 	if sp.accountsDB[state.UserAccountsState].JournalLen() != 0 {
-		log.Error("shardProcessor.ProcessBlock first entry", "stack", string(sp.accountsDB[state.UserAccountsState].GetStackDebugFirstEntry()))
+		log.Error("shardProcessor.ProcessBlockProposal first entry", "stack", string(sp.accountsDB[state.UserAccountsState].GetStackDebugFirstEntry()))
 		return nil, process.ErrAccountStateDirty
 	}
 
@@ -360,7 +360,7 @@ func (sp *shardProcessor) ProcessBlockProposal(
 		return nil, err
 	}
 
-	executionResult, err := sp.CollectExecutionResults(headerHash, header, body)
+	executionResult, err := sp.collectExecutionResults(headerHash, header, body)
 	if err != nil {
 		return nil, err
 	}
@@ -689,7 +689,8 @@ func (sp *shardProcessor) checkMetaHeadersValidityAndFinalityProposal(header dat
 	return nil
 }
 
-func (sp *shardProcessor) CollectExecutionResults(headerHash []byte, header data.HeaderHandler, body *block.Body) (data.BaseExecutionResultHandler, error) {
+// collectExecutionResults collects the execution results after processing the block
+func (sp *shardProcessor) collectExecutionResults(headerHash []byte, header data.HeaderHandler, body *block.Body) (data.BaseExecutionResultHandler, error) {
 	crossShardIncomingMiniBlocks := sp.getCrossShardIncomingMiniBlocksFromBody(body)
 	// TODO: make sure the miniBlocks are saved in the DB somewhere, otherwise they cannot be synchronized by other nodes
 	// this is for the miniBlocksFromSelf and postProcessMiniBlocks
@@ -723,6 +724,9 @@ func (sp *shardProcessor) CollectExecutionResults(headerHash []byte, header data
 	processedMiniBlockInfo := make(map[string]*processedMb.ProcessedMiniBlockInfo)
 
 	totalTxCount, miniBlockHeaderHandlers, err := sp.createMiniBlockHeaderHandlers(sanitizedBodyAfterExecution, processedMiniBlockInfo)
+	if err != nil {
+		return nil, err
+	}
 
 	executionResult := &block.ExecutionResult{
 		BaseExecutionResult: &block.BaseExecutionResult{

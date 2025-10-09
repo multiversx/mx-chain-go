@@ -14,6 +14,7 @@ import (
 	vmcommon "github.com/multiversx/mx-chain-vm-common-go"
 	"github.com/stretchr/testify/assert"
 
+	"github.com/multiversx/mx-chain-go/testscommon/preprocMocks"
 	"github.com/multiversx/mx-chain-go/txcache"
 
 	"github.com/multiversx/mx-chain-go/process"
@@ -843,4 +844,72 @@ func TestTransactions_ProcessTransactionShouldWork(t *testing.T) {
 	processTransactionErr = nil
 	_, err = preprocessor.processTransaction(tx, txHash, senderShardID, receiverShardID, mbInfo)
 	assert.Nil(t, err)
+}
+
+func TestTransactions_GetCreatedMiniBlocksFromMe(t *testing.T) {
+	t.Parallel()
+
+	preprocessor := createTransactionPreprocessor()
+	txHashes := [][]byte{[]byte("txHash1"), []byte("txHash2"), []byte("txHash3"), []byte("txHash4")}
+
+	mb1 := &block.MiniBlock{
+		TxHashes:        [][]byte{txHashes[0]},
+		ReceiverShardID: 0}
+	mb2 := &block.MiniBlock{
+		TxHashes:        [][]byte{txHashes[0], txHashes[1]},
+		ReceiverShardID: 1}
+	mb3 := &block.MiniBlock{
+		TxHashes:        [][]byte{txHashes[0], txHashes[1], txHashes[2]},
+		ReceiverShardID: 2}
+	mb4 := &block.MiniBlock{
+		TxHashes:        [][]byte{txHashes[0], txHashes[1], txHashes[2], txHashes[3]},
+		ReceiverShardID: core.MetachainShardId}
+
+	mbs := block.MiniBlockSlice{mb1, mb2, mb3, mb4}
+	preprocessor.createdMiniBlocks = mbs
+
+	resultingMbs := preprocessor.GetCreatedMiniBlocksFromMe()
+	assert.Equal(t, 4, len(resultingMbs))
+	assert.Equal(t, mbs, resultingMbs)
+}
+
+func TestTransactions_GetUnExecutableTransactions(t *testing.T) {
+	t.Parallel()
+
+	preprocessor := createTransactionPreprocessor()
+
+	txs := make(map[string]struct{})
+	txs["txHash1"] = struct{}{}
+	txs["txHash2"] = struct{}{}
+	txs["txHash3"] = struct{}{}
+	txs["txHash4"] = struct{}{}
+
+	preprocessor.unExecutableTransactions = txs
+
+	resultingTxs := preprocessor.GetUnExecutableTransactions()
+	assert.Len(t, resultingTxs, len(txs))
+	assert.Equal(t, txs, resultingTxs)
+}
+
+func TestTransactions_CreateBlockStarted(t *testing.T) {
+	t.Parallel()
+
+	preprocessor := createTransactionPreprocessor()
+	preprocessor.createdMiniBlocks = make(block.MiniBlockSlice, 10)
+	preprocessor.unExecutableTransactions = map[string]struct{}{"txHash": {}}
+	preprocessor.orderedTxs = map[string][]data.TransactionHandler{"txHash": {}}
+	preprocessor.orderedTxHashes = map[string][][]byte{"shard0": {[]byte("txHash")}}
+	called := false
+	preprocessor.txsForCurrBlock = &preprocMocks.TxsForBlockStub{
+		ResetCalled: func() {
+			called = true
+		},
+	}
+
+	preprocessor.CreateBlockStarted()
+	assert.Empty(t, preprocessor.createdMiniBlocks)
+	assert.Empty(t, preprocessor.unExecutableTransactions)
+	assert.Empty(t, preprocessor.orderedTxs)
+	assert.Empty(t, preprocessor.orderedTxHashes)
+	assert.True(t, called)
 }

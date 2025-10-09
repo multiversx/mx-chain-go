@@ -30,7 +30,6 @@ type validatorInfoPreprocessor struct {
 	validatorsInfoForBlock      TxsForBlockHandler
 	validatorsInfoPool          dataRetriever.ShardedDataCacherNotifier
 	storage                     dataRetriever.StorageService
-	enableEpochsHandler         common.EnableEpochsHandler
 	shardCoordinator            sharding.Coordinator
 }
 
@@ -54,14 +53,15 @@ func NewValidatorInfoPreprocessor(
 		hasher:               args.Hasher,
 		marshalizer:          args.Marshalizer,
 		blockSizeComputation: args.BlockSizeComputation,
+		enableEpochsHandler:  args.EnableEpochsHandler,
+		enableRoundsHandler:  args.EnableRoundsHandler,
 	}
 
 	vip := &validatorInfoPreprocessor{
-		basePreProcess:      bpp,
-		storage:             args.Store,
-		validatorsInfoPool:  args.DataPool,
-		enableEpochsHandler: args.EnableEpochsHandler,
-		shardCoordinator:    args.ShardCoordinator,
+		basePreProcess:     bpp,
+		storage:            args.Store,
+		validatorsInfoPool: args.DataPool,
+		shardCoordinator:   args.ShardCoordinator,
 	}
 
 	vip.chReceivedAllValidatorsInfo = make(chan bool)

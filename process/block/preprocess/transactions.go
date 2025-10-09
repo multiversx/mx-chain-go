@@ -135,6 +135,7 @@ func NewTransactionPreprocessor(
 		enableEpochsHandler:        args.EnableEpochsHandler,
 		processedMiniBlocksTracker: args.ProcessedMiniBlocksTracker,
 		txExecutionOrderHandler:    args.TxExecutionOrderHandler,
+		enableRoundsHandler:        args.EnableRoundsHandler,
 	}
 
 	txs := &transactions{
@@ -638,8 +639,8 @@ func (txs *transactions) processTxsFromMe(
 	if err != nil {
 		return err
 	}
-	// TODO: replace the check to use the round activation for async execution
-	if txs.enableEpochsHandler.IsFlagEnabled(common.SupernovaFlag) {
+
+	if txs.enableEpochsHandler.IsFlagEnabled(common.SupernovaFlag) && txs.enableRoundsHandler.IsFlagEnabled(common.SupernovaRoundFlag) {
 		// save the calculatedMiniBlocks for later comparison
 		txs.mutCreatedMiniBlocks.Lock()
 		txs.createdMiniBlocks = calculatedMiniBlocks
@@ -881,6 +882,9 @@ func (txs *transactions) processAndRemoveBadTransaction(
 	txs.txExecutionOrderHandler.Add(txHash)
 	_, err := txs.txProcessor.ProcessTransaction(tx)
 	isNotExecutable := errors.Is(err, process.ErrLowerNonceInTransaction) || errors.Is(err, process.ErrInsufficientFee) || errors.Is(err, process.ErrTransactionNotExecutable)
+	if txs.enableRoundsHandler.IsFlagEnabled(common.SupernovaRoundFlag) {
+		isNotExecutable = process.IsNotExecutableTransactionError(err)
+	}
 	if isNotExecutable {
 		txs.txExecutionOrderHandler.Remove(txHash)
 		strCache := process.ShardCacherIdentifier(sndShardId, dstShardId)

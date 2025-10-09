@@ -15,10 +15,11 @@ import (
 	"github.com/multiversx/mx-chain-core-go/data/block"
 	"github.com/multiversx/mx-chain-core-go/data/transaction"
 	"github.com/multiversx/mx-chain-core-go/marshal"
-	processBlock "github.com/multiversx/mx-chain-go/process/block"
 	vmcommon "github.com/multiversx/mx-chain-vm-common-go"
 	vmcommonBuiltInFunctions "github.com/multiversx/mx-chain-vm-common-go/builtInFunctions"
 	"github.com/multiversx/mx-chain-vm-common-go/parsers"
+
+	processBlock "github.com/multiversx/mx-chain-go/process/block"
 
 	"github.com/multiversx/mx-chain-go/common"
 	disabledCommon "github.com/multiversx/mx-chain-go/common/disabled"
@@ -508,30 +509,33 @@ func createProcessorsForMetaGenesisBlock(arg ArgsGenesisBlockCreator, enableEpoc
 		return nil, err
 	}
 
-	preProcFactory, err := metachain.NewPreProcessorsContainerFactory(
-		arg.ShardCoordinator,
-		arg.Data.StorageService(),
-		arg.Core.InternalMarshalizer(),
-		arg.Core.Hasher(),
-		arg.Data.Datapool(),
-		arg.Accounts,
-		arg.AccountsProposal,
-		disabledRequestHandler,
-		txProcessor,
-		scProcessorProxy,
-		arg.Economics,
-		gasHandler,
-		disabledBlockTracker,
-		arg.Core.AddressPubKeyConverter(),
-		disabledBlockSizeComputationHandler,
-		disabledBalanceComputationHandler,
-		enableEpochsHandler,
-		txTypeHandler,
-		disabledScheduledTxsExecutionHandler,
-		disabledProcessedMiniBlocksTracker,
-		arg.TxExecutionOrderHandler,
-		arg.TxCacheSelectionConfig,
-	)
+	argsPreProcessorsContainerFactory := metachain.ArgsPreProcessorsContainerFactory{
+		ShardCoordinator:             arg.ShardCoordinator,
+		Store:                        arg.Data.StorageService(),
+		Marshalizer:                  arg.Core.InternalMarshalizer(),
+		Hasher:                       arg.Core.Hasher(),
+		DataPool:                     arg.Data.Datapool(),
+		Accounts:                     arg.Accounts,
+		AccountsProposal:             arg.AccountsProposal,
+		RequestHandler:               disabledRequestHandler,
+		TxProcessor:                  txProcessor,
+		ScResultProcessor:            scProcessorProxy,
+		EconomicsFee:                 arg.Economics,
+		GasHandler:                   gasHandler,
+		BlockTracker:                 disabledBlockTracker,
+		PubkeyConverter:              arg.Core.AddressPubKeyConverter(),
+		BlockSizeComputation:         disabledBlockSizeComputationHandler,
+		BalanceComputation:           disabledBalanceComputationHandler,
+		EnableEpochsHandler:          enableEpochsHandler,
+		EnableRoundsHandler:          enableRoundsHandler,
+		TxTypeHandler:                txTypeHandler,
+		ScheduledTxsExecutionHandler: disabledScheduledTxsExecutionHandler,
+		ProcessedMiniBlocksTracker:   disabledProcessedMiniBlocksTracker,
+		TxExecutionOrderHandler:      arg.TxExecutionOrderHandler,
+		TxCacheSelectionConfig:       arg.TxCacheSelectionConfig,
+	}
+
+	preProcFactory, err := metachain.NewPreProcessorsContainerFactory(argsPreProcessorsContainerFactory)
 	if err != nil {
 		return nil, err
 	}

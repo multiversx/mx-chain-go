@@ -97,6 +97,18 @@ func TestNewValidatorInfoPreprocessor_NilEnableEpochHandlerShouldErr(t *testing.
 	assert.Equal(t, process.ErrNilEnableEpochsHandler, err)
 }
 
+func TestNewValidatorInfoPreprocessor_NilEnableRoundsHandlerShouldErr(t *testing.T) {
+	t.Parallel()
+
+	tdp := initDataPool()
+	args := createDefaultValidatorInfoPreProcessorArgs(tdp)
+	args.EnableRoundsHandler = nil
+	rtp, err := NewValidatorInfoPreprocessor(args)
+
+	assert.Nil(t, rtp)
+	assert.Equal(t, process.ErrNilEnableRoundsHandler, err)
+}
+
 func TestNewValidatorInfoPreprocessor_NilShardsCoordinatorMock(t *testing.T) {
 	t.Parallel()
 
@@ -503,6 +515,7 @@ func createDefaultValidatorInfoPreProcessorArgs(tdp dataRetriever.PoolsHolder) V
 			TxExecutionOrderHandler:    &common.TxExecutionOrderHandlerStub{},
 			EconomicsFee:               feeHandlerMock(),
 			EnableEpochsHandler:        enableEpochsHandlerMock.NewEnableEpochsHandlerStub(),
+			EnableRoundsHandler:        &testscommon.EnableRoundsHandlerStub{},
 		},
 	}
 }

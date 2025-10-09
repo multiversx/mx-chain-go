@@ -36,7 +36,7 @@ func TestTxsForBlock_Reset(t *testing.T) {
 	tfb, _ := NewTxsForBlock(shardCoordinator)
 
 	tfb.numMissingTxs = 5
-	tfb.txHashAndInfo["hash1"] = &TxInfo{}
+	tfb.txHashAndInfo["hash1"] = &process.TxInfo{}
 	tfb.Reset()
 
 	require.Equal(t, 0, tfb.numMissingTxs)
@@ -50,7 +50,7 @@ func TestTxsForBlock_GetTxInfoByHash(t *testing.T) {
 	tfb, _ := NewTxsForBlock(shardCoordinator)
 
 	txHash := []byte("hash1")
-	tInfo := &TxInfo{}
+	tInfo := &process.TxInfo{}
 	tfb.txHashAndInfo[string(txHash)] = tInfo
 
 	result, ok := tfb.GetTxInfoByHash(txHash)
@@ -72,7 +72,7 @@ func TestTxsForBlock_ReceivedTransaction(t *testing.T) {
 
 		tfb, _ := NewTxsForBlock(shardCoordinator)
 		txHash := []byte("hash1")
-		tInfo := &TxInfo{TxShardInfo: &TxShardInfo{}}
+		tInfo := &process.TxInfo{TxShardInfo: &process.TxShardInfo{}}
 		tfb.txHashAndInfo[string(txHash)] = tInfo
 		tfb.numMissingTxs = 1
 
@@ -89,7 +89,7 @@ func TestTxsForBlock_ReceivedTransaction(t *testing.T) {
 
 		tfb, _ := NewTxsForBlock(shardCoordinator)
 		txHash := []byte("hash1")
-		tInfo := &TxInfo{TxShardInfo: &TxShardInfo{}}
+		tInfo := &process.TxInfo{TxShardInfo: &process.TxShardInfo{}}
 		tfb.txHashAndInfo[string(txHash)] = tInfo
 		tfb.numMissingTxs = 0
 
@@ -107,8 +107,8 @@ func TestTxsForBlock_ReceivedTransaction(t *testing.T) {
 		tfb, _ := NewTxsForBlock(shardCoordinator)
 		txHash1 := []byte("hash1")
 		txHash2 := []byte("hash2")
-		tInfo1 := &TxInfo{TxShardInfo: &TxShardInfo{}}
-		tInfo2 := &TxInfo{TxShardInfo: &TxShardInfo{}}
+		tInfo1 := &process.TxInfo{TxShardInfo: &process.TxShardInfo{}}
+		tInfo2 := &process.TxInfo{TxShardInfo: &process.TxShardInfo{}}
 		tfb.txHashAndInfo[string(txHash1)] = tInfo1
 		tfb.txHashAndInfo[string(txHash2)] = tInfo2
 		tfb.numMissingTxs = 2
@@ -318,8 +318,8 @@ func TestTxsForBlock_GetAllCurrentUsedTxs(t *testing.T) {
 
 	txHash1 := []byte("hash1")
 	txHash2 := []byte("hash2")
-	tfb.txHashAndInfo[string(txHash1)] = &TxInfo{Tx: &transaction.Transaction{Nonce: 1}}
-	tfb.txHashAndInfo[string(txHash2)] = &TxInfo{Tx: &transaction.Transaction{Nonce: 2}}
+	tfb.txHashAndInfo[string(txHash1)] = &process.TxInfo{Tx: &transaction.Transaction{Nonce: 1}}
+	tfb.txHashAndInfo[string(txHash2)] = &process.TxInfo{Tx: &transaction.Transaction{Nonce: 2}}
 
 	allTxs := tfb.GetAllCurrentUsedTxs()
 	require.Len(t, allTxs, 2)
