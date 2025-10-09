@@ -1694,7 +1694,7 @@ func (pcf *processComponentsFactory) newShardInterceptorContainerFactory(
 	shardInterceptorsContainerFactoryArgs := interceptorscontainer.CommonInterceptorsContainerFactoryArgs{
 		CoreComponents:                 pcf.coreData,
 		CryptoComponents:               pcf.crypto,
-		Accounts:                       pcf.state.AccountsAdapter(),
+		Accounts:                       pcf.state.AccountsAdapterAPI(),
 		ShardCoordinator:               pcf.bootstrapComponents.ShardCoordinator(),
 		NodesCoordinator:               pcf.nodesCoordinator,
 		MainMessenger:                  pcf.network.NetworkMessenger(),
@@ -1754,7 +1754,7 @@ func (pcf *processComponentsFactory) newMetaInterceptorContainerFactory(
 		FullArchiveMessenger:           pcf.network.FullArchiveNetworkMessenger(),
 		Store:                          pcf.data.StorageService(),
 		DataPool:                       pcf.data.Datapool(),
-		Accounts:                       pcf.state.AccountsAdapter(),
+		Accounts:                       pcf.state.AccountsAdapterAPI(),
 		MaxTxNonceDeltaAllowed:         common.MaxTxNonceDeltaAllowed,
 		TxFeeHandler:                   pcf.coreData.EconomicsData(),
 		BlockBlackList:                 headerBlackList,
