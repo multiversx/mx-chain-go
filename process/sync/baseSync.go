@@ -929,7 +929,7 @@ func (boot *baseBootstrap) syncBlockV3() error {
 		return err
 	}
 
-	err = boot.prepareTxPoolToSyncBlock()
+	err = boot.prepareTxPoolToSyncBlock(header.GetNonce())
 	if err != nil {
 		return err
 	}
@@ -982,7 +982,7 @@ func (boot *baseBootstrap) syncBlockV3() error {
 	return nil
 }
 
-func (boot *baseBootstrap) prepareTxPoolToSyncBlock() error {
+func (boot *baseBootstrap) prepareTxPoolToSyncBlock(syncingNonce uint64) error {
 	currentHeader := boot.getCurrentBlock()
 	lastExecResultsHandler, err := common.GetLastBaseExecutionResultHandler(currentHeader)
 	if err != nil {
@@ -1000,6 +1000,36 @@ func (boot *baseBootstrap) prepareTxPoolToSyncBlock() error {
 	if err != nil {
 		// TODO: reset the txPool context in case of error, once this will be implemented
 		return err
+	}
+
+	lastExecutedNonce := lastExecutedHeader.GetNonce()
+	if syncingNonce == lastExecutedNonce+2 {
+		// nothing left to do, the ideal case:
+		// the previous block was already processed, its nonce should have been syncingNonce-1,
+		// and it notarized its previous block, which should have had nonce equal to syncingNonce-2
+		return nil
+	}
+
+	// if there are multiple headers in between the syncing header and the last one executed,
+	// add them into the queue
+	for i := lastExecutedNonce; i < syncingNonce; i++ {
+		hdr, _, errGetHdr := boot.getHeaderFromPoolWithNonce(i)
+		if errGetHdr != nil {
+			return errGetHdr
+		}
+
+		body, errGetBody := boot.blockBootstrapper.getBlockBody(hdr)
+		if errGetBody != nil {
+			return errGetBody
+		}
+
+		errAdd := boot.blocksQueue.AddOrReplace(queue.HeaderBodyPair{
+			Header: hdr,
+			Body:   body,
+		})
+		if errAdd != nil {
+			return errAdd
+		}
 	}
 
 	return nil

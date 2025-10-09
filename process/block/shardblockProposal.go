@@ -226,6 +226,8 @@ func (sp *shardProcessor) VerifyBlockProposal(
 }
 
 func (sp *shardProcessor) onProposedBlock(body *block.Body, header data.HeaderHandler) error {
+	// TODO: proper accounts db should be used and its roothash must be updated first through a new method
+	//  SetRootHashIfNeeded which should recreate the trie if needed
 	accountsProvider, err := state.NewAccountsEphemeralProvider(sp.accountsDB[state.UserAccountsState])
 	if err != nil {
 		return err
