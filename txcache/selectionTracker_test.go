@@ -42,12 +42,13 @@ func executeBlocksConcurrently(t *testing.T, numOfBlocks int, selectionTracker *
 		go func(index int) {
 			defer wg.Done()
 
+			rootHash := []byte("rootHash0")
+
 			blockHeader := &block.Header{
 				Nonce:    uint64(index),
 				PrevHash: []byte(fmt.Sprintf("prevHash%d", index-1)),
-				RootHash: []byte("rootHash0"),
 			}
-			err := selectionTracker.OnExecutedBlock(blockHeader)
+			err := selectionTracker.OnExecutedBlock(blockHeader, rootHash)
 			require.Nil(t, err)
 		}(i)
 	}
@@ -426,7 +427,7 @@ func TestSelectionTracker_OnExecutedBlockShouldError(t *testing.T) {
 	tracker, err := NewSelectionTracker(txCache, maxTrackedBlocks)
 	require.Nil(t, err)
 
-	err = tracker.OnExecutedBlock(nil)
+	err = tracker.OnExecutedBlock(nil, []byte{})
 	require.Equal(t, errNilBlockHeader, err)
 }
 
@@ -512,16 +513,14 @@ func TestSelectionTracker_OnExecutedBlockShouldDeleteAllBlocksBelowSpecificNonce
 	err = tracker.OnExecutedBlock(&block.Header{
 		Nonce:    2,
 		PrevHash: []byte(fmt.Sprintf("blockHash%d", 1)),
-		RootHash: []byte(fmt.Sprintf("rootHash%d", 0)),
-	})
+	}, []byte(fmt.Sprintf("rootHash%d", 0)))
 	require.Nil(t, err)
 	require.Equal(t, 1, len(tracker.blocks))
 
 	err = tracker.OnExecutedBlock(&block.Header{
 		Nonce:    3,
 		PrevHash: []byte(fmt.Sprintf("blockHash%d", 2)),
-		RootHash: []byte(fmt.Sprintf("rootHash%d", 0)),
-	})
+	}, []byte(fmt.Sprintf("rootHash%d", 0)))
 	require.Nil(t, err)
 	require.Equal(t, 0, len(tracker.blocks))
 }

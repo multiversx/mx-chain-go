@@ -260,13 +260,12 @@ func (st *selectionTracker) addNewTrackedBlockNoLock(blockToBeAddedHash []byte, 
 }
 
 // OnExecutedBlock notifies when a block is executed and updates the state of the selectionTracker
-func (st *selectionTracker) OnExecutedBlock(blockHeader data.HeaderHandler) error {
+func (st *selectionTracker) OnExecutedBlock(blockHeader data.HeaderHandler, rootHash []byte) error {
 	if check.IfNil(blockHeader) {
 		return errNilBlockHeader
 	}
 
 	nonce := blockHeader.GetNonce()
-	rootHash := blockHeader.GetRootHash()
 	prevHash := blockHeader.GetPrevHash()
 
 	log.Debug("selectionTracker.OnExecutedBlock",
