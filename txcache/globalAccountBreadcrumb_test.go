@@ -684,3 +684,26 @@ func Test_reduceConsumedBalance(t *testing.T) {
 		require.Equal(t, big.NewInt(5), gab.consumedBalance)
 	})
 }
+
+func Test_createCopy(t *testing.T) {
+	t.Parallel()
+
+	t.Run("should fail", func(t *testing.T) {
+		t.Parallel()
+
+		globalBreadcrumb := &globalAccountBreadcrumb{
+			firstNonce: core.OptionalUint64{
+				Value:    10,
+				HasValue: true,
+			},
+			lastNonce: core.OptionalUint64{
+				Value:    12,
+				HasValue: true,
+			},
+			consumedBalance: big.NewInt(10),
+		}
+
+		copyOfBreadcrumb := globalBreadcrumb.getSnapshotOfGlobalBreadcrumb()
+		require.Equal(t, globalBreadcrumb, copyOfBreadcrumb)
+	})
+}

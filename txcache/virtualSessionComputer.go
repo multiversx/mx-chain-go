@@ -21,7 +21,7 @@ func newVirtualSessionComputer(session SelectionSession) *virtualSessionComputer
 // createVirtualSelectionSession iterates over the global breadcrumbs of the selection tracker.
 // If the global breadcrumb of an account is continuous with the session nonce,
 // the virtual record of that account is created or updated.
-// NOTE: The createVirtualSelectionSession method should receive a deep copy of the globalAccountBreadcrumbs.
+// NOTE: The createVirtualSelectionSession method should receive a deep copy of the globalAccountBreadcrumbs because it mutates them.
 func (computer *virtualSessionComputer) createVirtualSelectionSession(
 	globalAccountBreadcrumbs map[string]*globalAccountBreadcrumb,
 ) (*virtualSelectionSession, error) {
@@ -31,6 +31,10 @@ func (computer *virtualSessionComputer) createVirtualSelectionSession(
 	}
 
 	virtualSession := newVirtualSelectionSession(computer.session, computer.virtualAccountsByAddress)
+	log.Debug("virtualSessionComputer.createVirtualSelectionSession",
+		"num of global accounts breadcrumbs", len(globalAccountBreadcrumbs),
+		"num of actual virtual records", len(virtualSession.virtualAccountsByAddress),
+	)
 	return virtualSession, nil
 }
 
@@ -48,7 +52,7 @@ func (computer *virtualSessionComputer) handleGlobalAccountBreadcrumbs(
 			return err
 		}
 
-		if !globalBreadcrumb.continuousWithSessionNonce(accountNonce) {
+		if !globalBreadcrumb.isContinuousWithSessionNonce(accountNonce) {
 			log.Debug("virtualSessionComputer.handleGlobalAccountBreadcrumbs global breadcrumb not continuous with session nonce",
 				"address", address,
 				"accountNonce", accountNonce,
@@ -69,6 +73,7 @@ func (computer *virtualSessionComputer) handleGlobalAccountBreadcrumbs(
 // fromGlobalBreadcrumbToVirtualRecord transforms a global account breadcrumb simply by:
 // initializing the initialNonce of the virtual record with the latestNonce + 1
 // copying the consumed balance in the initialBalance of the virtual record.
+// It also saves the created virtual record into the map of the virtualSessionComputer.
 func (computer *virtualSessionComputer) fromGlobalBreadcrumbToVirtualRecord(
 	address string,
 	accountNonce uint64,

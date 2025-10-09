@@ -119,16 +119,11 @@ func (cache *TxCache) GetByTxHash(txHash []byte) (*WrappedTransaction, bool) {
 func (cache *TxCache) SelectTransactions(
 	session SelectionSession,
 	options common.TxSelectionOptions,
-	blockchainInfo common.BlockchainInfo,
+	nonce uint64,
 ) ([]*WrappedTransaction, uint64, error) {
 	if check.IfNil(session) {
 		log.Error("TxCache.SelectTransactions", "err", errNilSelectionSession)
 		return nil, 0, errNilSelectionSession
-	}
-
-	if check.IfNil(blockchainInfo) {
-		log.Error("TxCache.SelectTransactions", "err", errNilBlockchainInfo)
-		return nil, 0, errNilBlockchainInfo
 	}
 
 	stopWatch := core.NewStopWatch()
@@ -141,7 +136,7 @@ func (cache *TxCache) SelectTransactions(
 		"num bytes", cache.NumBytes(),
 	)
 
-	virtualSession, err := cache.tracker.deriveVirtualSelectionSession(session, blockchainInfo)
+	virtualSession, err := cache.tracker.deriveVirtualSelectionSession(session, nonce)
 	if err != nil {
 		log.Error("TxCache.SelectTransactions: could not derive virtual selection session", "err", err)
 		return nil, 0, err

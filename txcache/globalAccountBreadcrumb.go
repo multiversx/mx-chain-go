@@ -158,8 +158,8 @@ func (gab *globalAccountBreadcrumb) canBeDeleted() bool {
 	return false
 }
 
-// continuousWithSessionNonce verifies if a global account breadcrumb is continuous with a given session nonce
-func (gab *globalAccountBreadcrumb) continuousWithSessionNonce(sessionNonce uint64) bool {
+// isContinuousWithSessionNonce verifies if a global account breadcrumb is continuous with a given session nonce
+func (gab *globalAccountBreadcrumb) isContinuousWithSessionNonce(sessionNonce uint64) bool {
 	if !gab.isUser() {
 		// a global account breadcrumb of a relayer it is continuous with the session nonce
 		return true
@@ -168,8 +168,8 @@ func (gab *globalAccountBreadcrumb) continuousWithSessionNonce(sessionNonce uint
 	return gab.firstNonce.Value == sessionNonce
 }
 
-// createCopy creates a deep copy of a global account breadcrumb
-func (gab *globalAccountBreadcrumb) createCopy() *globalAccountBreadcrumb {
+// getSnapshotOfGlobalBreadcrumb creates a deep copy of a global account breadcrumb
+func (gab *globalAccountBreadcrumb) getSnapshotOfGlobalBreadcrumb() *globalAccountBreadcrumb {
 	gabCopy := newGlobalAccountBreadcrumb()
 
 	gabCopy.firstNonce = gab.firstNonce
