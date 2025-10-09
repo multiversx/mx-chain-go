@@ -100,7 +100,7 @@ func (gc *gasConsumption) CheckIncomingMiniBlocks(
 	gc.mut.Lock()
 	defer gc.mut.Unlock()
 
-	if gc.incomingLimitFactor == 0 {
+	if gc.incomingLimitFactor == zeroLimitsFactor {
 		return initialLastIndex, 0, fmt.Errorf("%w for incoming mini blocks", process.ErrZeroLimit)
 	}
 
@@ -214,7 +214,7 @@ func (gc *gasConsumption) checkPendingIncomingMiniBlocks() ([]data.MiniBlockHead
 
 	// won't return error, but don't add them further
 	// most probably will never happen
-	if gc.incomingLimitFactor == 0 {
+	if gc.incomingLimitFactor == zeroLimitsFactor {
 		return addedMiniBlocks, nil
 	}
 
@@ -443,7 +443,7 @@ func (gc *gasConsumption) ZeroIncomingLimit() {
 
 	log.Debug("setting incoming limit to zero...")
 
-	gc.incomingLimitFactor = 0
+	gc.incomingLimitFactor = zeroLimitsFactor
 }
 
 // ZeroOutgoingLimit sets the outgoing limit factor to 0, effectively disabling outgoing transactions
