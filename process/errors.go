@@ -1388,3 +1388,6 @@ var ErrWrongMiniBlockProcessingType = errors.New("wrong mini block processing ty
 
 // ErrInvalidNumberOfExecutionResultsInHeader signals that the number of execution results in header is invalid
 var ErrInvalidNumberOfExecutionResultsInHeader = errors.New("invalid number of execution results in header")
+
+// ErrZeroLimit signals that the limit is zero
+var ErrZeroLimit = errors.New("zero limit")

@@ -982,3 +982,8 @@ func (bbt *baseBlockTrack) isHeaderOutOfRange(headerHandler data.HeaderHandler) 
 func (bbt *baseBlockTrack) ComputeOwnShardStuck(lastExecutionResultsInfo data.BaseExecutionResultHandler, currentNonce uint64) {
 	bbt.ownShardTracker.ComputeOwnShardStuck(lastExecutionResultsInfo, currentNonce)
 }
+
+// IsOwnShardStuck returns true if the own shard is stuck, false otherwise
+func (bbt *baseBlockTrack) IsOwnShardStuck() bool {
+	return bbt.ownShardTracker.IsOwnShardStuck()
+}
