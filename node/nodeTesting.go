@@ -11,7 +11,7 @@ import (
 	"github.com/multiversx/mx-chain-core-go/core/partitioning"
 	"github.com/multiversx/mx-chain-core-go/data/batch"
 	"github.com/multiversx/mx-chain-core-go/data/transaction"
-	"github.com/multiversx/mx-chain-crypto-go"
+	crypto "github.com/multiversx/mx-chain-crypto-go"
 	"github.com/multiversx/mx-chain-go/common"
 	"github.com/multiversx/mx-chain-go/process/factory"
 	"github.com/multiversx/mx-chain-go/process/txsSender"
@@ -131,6 +131,118 @@ func (n *Node) GenerateAndSendBulkTransactions(
 			identifier,
 			buff,
 		)
+
+		atomic.AddInt32(&currentSendingGoRoutines, -1)
+	}
+
+	return nil
+}
+
+func (n *Node) GenerateAndSendDuplicatedBulkTransactions(
+	num_duplications int,
+	receiverHex string,
+	value *big.Int,
+	numOfTxs uint64,
+	sk crypto.PrivateKey,
+	whiteList func([]*transaction.Transaction),
+	chainID []byte,
+	minTxVersion uint32,
+) error {
+	if sk == nil {
+		return ErrNilPrivateKey
+	}
+
+	if atomic.LoadInt32(&currentSendingGoRoutines) >= maxGoRoutinesSendMessage {
+		return ErrSystemBusyGeneratingTransactions
+	}
+
+	err := n.generateBulkTransactionsChecks(numOfTxs)
+	if err != nil {
+		return err
+	}
+
+	newNonce, senderAddressBytes, recvAddressBytes, senderShardId, err := n.generateBulkTransactionsPrepareParams(receiverHex, sk)
+	if err != nil {
+		return err
+	}
+
+	wg := sync.WaitGroup{}
+	wg.Add(int(numOfTxs))
+
+	mutTransactions := sync.RWMutex{}
+	txsBuff := make([][]byte, 0)
+
+	mutErrFound := sync.Mutex{}
+	var errFound error
+
+	dataPacker, err := partitioning.NewSimpleDataPacker(n.coreComponents.InternalMarshalizer())
+	if err != nil {
+		return err
+	}
+
+	txs := make([]*transaction.Transaction, 0)
+	for nonce := newNonce; nonce < newNonce+numOfTxs; nonce++ {
+		go func(crtNonce uint64) {
+			tx, txBuff, errGenTx := n.generateAndSignSingleTx(
+				crtNonce,
+				value,
+				recvAddressBytes,
+				senderAddressBytes,
+				"",
+				sk,
+				chainID,
+				minTxVersion,
+			)
+
+			if errGenTx != nil {
+				mutErrFound.Lock()
+				errFound = fmt.Errorf("failure generating transaction %d: %s", crtNonce, errGenTx.Error())
+				mutErrFound.Unlock()
+
+				wg.Done()
+				return
+			}
+
+			mutTransactions.Lock()
+			txsBuff = append(txsBuff, txBuff)
+			txs = append(txs, tx)
+			mutTransactions.Unlock()
+			wg.Done()
+		}(nonce)
+	}
+
+	// TODO: might think of a way to stop waiting at a signal
+	wg.Wait()
+
+	if errFound != nil {
+		return errFound
+	}
+
+	if len(txsBuff) != int(numOfTxs) {
+		return fmt.Errorf("generated only %d from required %d transactions", len(txsBuff), numOfTxs)
+	}
+
+	if whiteList != nil {
+		whiteList(txs)
+	}
+
+	//the topic identifier is made of the current shard id and sender's shard id
+	identifier := factory.TransactionTopic + n.processComponents.ShardCoordinator().CommunicationIdentifier(senderShardId)
+
+	packets, err := dataPacker.PackDataInChunks(txsBuff, common.MaxBulkTransactionSize)
+	if err != nil {
+		return err
+	}
+
+	atomic.AddInt32(&currentSendingGoRoutines, int32(len(packets)))
+	for _, buff := range packets {
+		for i := 0; i < num_duplications; i++ {
+			n.networkComponents.NetworkMessenger().BroadcastOnChannel(
+				txsSender.SendTransactionsPipe,
+				identifier,
+				buff,
+			)
+		}
 
 		atomic.AddInt32(&currentSendingGoRoutines, -1)
 	}
