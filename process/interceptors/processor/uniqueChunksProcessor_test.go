@@ -7,6 +7,7 @@ import (
 	"github.com/multiversx/mx-chain-core-go/core"
 	"github.com/multiversx/mx-chain-core-go/core/check"
 	"github.com/multiversx/mx-chain-core-go/data/batch"
+	"github.com/multiversx/mx-chain-go/p2p"
 	"github.com/multiversx/mx-chain-go/process"
 	"github.com/multiversx/mx-chain-go/process/interceptors/processor"
 	"github.com/multiversx/mx-chain-go/process/mock"
@@ -68,7 +69,7 @@ func TestUniqueChunksProcessor_CheckBatch(t *testing.T) {
 		t.Parallel()
 
 		ucp, _ := processor.NewUniqueChunksProcessor(&cache.CacherStub{}, &mock.MarshalizerMock{}, &mock.HasherStub{})
-		result, err := ucp.CheckBatch(nil, nil)
+		result, err := ucp.CheckBatch(nil, nil, p2p.Broadcast)
 		require.Equal(t, process.CheckedChunkResult{}, result)
 		require.NoError(t, err)
 	})
@@ -83,7 +84,7 @@ func TestUniqueChunksProcessor_CheckBatch(t *testing.T) {
 		}
 
 		ucp, _ := processor.NewUniqueChunksProcessor(&cache.CacherStub{}, marshaller, &mock.HasherStub{})
-		result, err := ucp.CheckBatch(&batch.Batch{Data: [][]byte{{1, 2, 3}}}, nil)
+		result, err := ucp.CheckBatch(&batch.Batch{Data: [][]byte{{1, 2, 3}}}, nil, p2p.Broadcast)
 		require.Equal(t, process.CheckedChunkResult{}, result)
 		require.Equal(t, expectedErr, err)
 	})
@@ -99,18 +100,18 @@ func TestUniqueChunksProcessor_CheckBatch(t *testing.T) {
 		ucp, _ := processor.NewUniqueChunksProcessor(cacheMock, marshaller, hasher)
 
 		// First check should succeed
-		result, err := ucp.CheckBatch(b, nil)
+		result, err := ucp.CheckBatch(b, nil, p2p.Broadcast)
 		require.Equal(t, process.CheckedChunkResult{}, result)
 		require.NoError(t, err)
 
-		ucp.MarkVerified(b)
+		ucp.MarkVerified(b, p2p.Broadcast)
 
 		// Verify it was added to cache
 		_, ok := cacheMock.Get(batchHash)
 		require.True(t, ok)
 
 		// Second check with same batch should fail
-		result, err = ucp.CheckBatch(b, nil)
+		result, err = ucp.CheckBatch(b, nil, p2p.Broadcast)
 		require.Equal(t, process.CheckedChunkResult{}, result)
 		require.Equal(t, process.ErrDuplicatedInterceptedDataNotAllowed, err)
 	})
@@ -130,8 +131,11 @@ func TestUniqueChunksProcessor_MarkVerified(t *testing.T) {
 	ucp, _ := processor.NewUniqueChunksProcessor(cacheMock, marshaller, hasher)
 
 	// nil batch, early exit
-	ucp.MarkVerified(nil)
+	ucp.MarkVerified(nil, p2p.Broadcast)
+
+	// Direct send, early exit
+	ucp.MarkVerified(b, p2p.Direct)
 
 	// marshal error, early exit
-	ucp.MarkVerified(b)
+	ucp.MarkVerified(b, p2p.Broadcast)
 }

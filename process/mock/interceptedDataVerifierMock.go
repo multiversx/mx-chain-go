@@ -8,7 +8,7 @@ import (
 // InterceptedDataVerifierMock -
 type InterceptedDataVerifierMock struct {
 	VerifyCalled       func(interceptedData process.InterceptedData, topic string, broadcastMethod p2p.BroadcastMethod) error
-	MarkVerifiedCalled func(interceptedData process.InterceptedData)
+	MarkVerifiedCalled func(interceptedData process.InterceptedData, broadcastMethod p2p.BroadcastMethod)
 }
 
 // Verify -
@@ -21,9 +21,9 @@ func (idv *InterceptedDataVerifierMock) Verify(interceptedData process.Intercept
 }
 
 // MarkVerified -
-func (idv *InterceptedDataVerifierMock) MarkVerified(interceptedData process.InterceptedData) {
+func (idv *InterceptedDataVerifierMock) MarkVerified(interceptedData process.InterceptedData, broadcastMethod p2p.BroadcastMethod) {
 	if idv.MarkVerifiedCalled != nil {
-		idv.MarkVerifiedCalled(interceptedData)
+		idv.MarkVerifiedCalled(interceptedData, broadcastMethod)
 	}
 }
 

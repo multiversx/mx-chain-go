@@ -174,11 +174,12 @@ func TestInterceptedDataVerifier_CheckValidityShouldWork(t *testing.T) {
 	err := verifier.Verify(interceptedData, "topic", p2p.Broadcast)
 	require.NoError(t, err)
 
-	verifier.MarkVerified(interceptedData) // intra shard, for coverage only
+	verifier.MarkVerified(interceptedData, p2p.Broadcast) // intra shard, for coverage only
+	verifier.MarkVerified(interceptedData, p2p.Direct)    // Direct send, for coverage only
 
-	verifier.MarkVerified(interceptedDataWithNoHash) // no hash, for coverage only
+	verifier.MarkVerified(interceptedDataWithNoHash, p2p.Broadcast) // no hash, for coverage only
 
-	verifier.MarkVerified(interceptedData)
+	verifier.MarkVerified(interceptedData, p2p.Broadcast)
 
 	errCount := atomic.Counter{}
 	wg := sync.WaitGroup{}
@@ -284,7 +285,7 @@ func TestInterceptedDataVerifier_CheckExpiryTime(t *testing.T) {
 		require.NoError(t, err)
 		require.Equal(t, int64(1), checkValidityCounter.Get())
 
-		verifier.MarkVerified(interceptedData)
+		verifier.MarkVerified(interceptedData, p2p.Broadcast)
 
 		// Second retrieval should be from the cache.
 		err = verifier.Verify(interceptedData, "topic", p2p.Broadcast)

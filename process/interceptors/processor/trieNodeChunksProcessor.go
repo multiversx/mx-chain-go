@@ -8,6 +8,7 @@ import (
 	"github.com/multiversx/mx-chain-core-go/core/check"
 	"github.com/multiversx/mx-chain-core-go/data/batch"
 	"github.com/multiversx/mx-chain-core-go/hashing"
+	"github.com/multiversx/mx-chain-go/p2p"
 	"github.com/multiversx/mx-chain-go/process"
 	"github.com/multiversx/mx-chain-go/process/interceptors/processor/chunk"
 	"github.com/multiversx/mx-chain-go/storage"
@@ -102,7 +103,7 @@ func (proc *trieNodeChunksProcessor) processLoop(ctx context.Context) {
 }
 
 // CheckBatch will check the batch returning a checked chunk result containing result processing
-func (proc *trieNodeChunksProcessor) CheckBatch(b *batch.Batch, whiteListHandler process.WhiteListHandler) (process.CheckedChunkResult, error) {
+func (proc *trieNodeChunksProcessor) CheckBatch(b *batch.Batch, whiteListHandler process.WhiteListHandler, _ p2p.BroadcastMethod) (process.CheckedChunkResult, error) {
 	batchValid, err := proc.batchIsValid(b, whiteListHandler)
 	if !batchValid {
 		return process.CheckedChunkResult{
@@ -133,7 +134,7 @@ func (proc *trieNodeChunksProcessor) CheckBatch(b *batch.Batch, whiteListHandler
 }
 
 // MarkVerified does nothing
-func (proc *trieNodeChunksProcessor) MarkVerified(_ *batch.Batch) {
+func (proc *trieNodeChunksProcessor) MarkVerified(_ *batch.Batch, _ p2p.BroadcastMethod) {
 }
 
 func (proc *trieNodeChunksProcessor) processCheckRequest(cr checkRequest) {

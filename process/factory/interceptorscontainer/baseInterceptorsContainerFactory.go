@@ -22,6 +22,7 @@ import (
 	"github.com/multiversx/mx-chain-go/state"
 	"github.com/multiversx/mx-chain-go/storage"
 	"github.com/multiversx/mx-chain-go/storage/cache"
+	"github.com/multiversx/mx-chain-go/storage/disabled"
 )
 
 const (
@@ -598,10 +599,8 @@ func (bicf *baseInterceptorsContainerFactory) createOneMiniBlocksInterceptor(top
 
 func (bicf *baseInterceptorsContainerFactory) setUniqueChunksProcessor(interceptor *interceptors.MultiDataInterceptor) error {
 	internalMarshaller := bicf.argInterceptorFactory.CoreComponents.InternalMarshalizer()
-	chunksCache, err := cache.NewTimeCacher(cache.ArgTimeCacher{
-		DefaultSpan: time.Duration(bicf.config.InterceptedDataVerifier.CacheSpanInSec) * time.Second,
-		CacheExpiry: time.Duration(bicf.config.InterceptedDataVerifier.CacheExpiryInSec) * time.Second,
-	})
+
+	chunksCache, err := bicf.createCache()
 	if err != nil {
 		return err
 	}
@@ -612,6 +611,17 @@ func (bicf *baseInterceptorsContainerFactory) setUniqueChunksProcessor(intercept
 	}
 
 	return interceptor.SetChunkProcessor(chunkProcessor)
+}
+
+func (bicf *baseInterceptorsContainerFactory) createCache() (storage.Cacher, error) {
+	if !bicf.config.InterceptedDataVerifier.EnableCaching {
+		return disabled.NewCache(), nil
+	}
+
+	return cache.NewTimeCacher(cache.ArgTimeCacher{
+		DefaultSpan: time.Duration(bicf.config.InterceptedDataVerifier.CacheSpanInSec) * time.Second,
+		CacheExpiry: time.Duration(bicf.config.InterceptedDataVerifier.CacheExpiryInSec) * time.Second,
+	})
 }
 
 // ------- MetachainHeader interceptors

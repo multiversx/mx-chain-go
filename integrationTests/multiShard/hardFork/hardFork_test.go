@@ -619,8 +619,9 @@ func createHardForkExporter(
 		networkComponents.OutputAntiFlood = &mock.NilAntifloodHandler{}
 
 		interceptorDataVerifierFactoryArgs := interceptorFactory.InterceptedDataVerifierFactoryArgs{
-			CacheSpan:   time.Second * 5,
-			CacheExpiry: time.Second * 10,
+			InterceptedDataVerifierConfig: config.InterceptedDataVerifierConfig{
+				EnableCaching: false,
+			},
 		}
 		argsExportHandler := factory.ArgsExporter{
 			CoreComponents:       coreComponents,

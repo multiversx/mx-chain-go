@@ -64,8 +64,11 @@ func (idv *interceptedDataVerifier) Verify(interceptedData process.InterceptedDa
 }
 
 // MarkVerified marks the intercepted data as verified
-func (idv *interceptedDataVerifier) MarkVerified(interceptedData process.InterceptedData) {
+func (idv *interceptedDataVerifier) MarkVerified(interceptedData process.InterceptedData, broadcastMethod p2p.BroadcastMethod) {
 	if len(interceptedData.Hash()) == 0 {
+		return
+	}
+	if isDirectSend(broadcastMethod) {
 		return
 	}
 
@@ -104,9 +107,12 @@ func (idv *interceptedDataVerifier) checkCachedData(
 	return ok, nil
 }
 
+func isDirectSend(broadcastMethod p2p.BroadcastMethod) bool {
+	return broadcastMethod == p2p.Direct
+}
+
 func shouldCheckForDuplicates(topic string, broadcastMethod p2p.BroadcastMethod) bool {
-	isDirectSend := broadcastMethod == p2p.Direct
-	if isDirectSend {
+	if isDirectSend(broadcastMethod) {
 		return false // skip deduplication on direct messages
 	}
 

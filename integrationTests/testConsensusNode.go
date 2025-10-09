@@ -473,8 +473,9 @@ func (tcn *TestConsensusNode) initInterceptors(
 	epochStartTrigger TestEpochStartTrigger,
 ) {
 	interceptorDataVerifierArgs := interceptorsFactory.InterceptedDataVerifierFactoryArgs{
-		CacheSpan:   time.Second * 10,
-		CacheExpiry: time.Second * 10,
+		InterceptedDataVerifierConfig: config.InterceptedDataVerifierConfig{
+			EnableCaching: false,
+		},
 	}
 
 	accountsAdapter := epochStartDisabled.NewAccountsAdapter()
