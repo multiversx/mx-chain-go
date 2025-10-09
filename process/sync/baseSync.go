@@ -1004,10 +1004,19 @@ func (boot *baseBootstrap) prepareTxPoolToSyncBlock(syncingNonce uint64) error {
 
 	lastExecutedNonce := lastExecutedHeader.GetNonce()
 	if syncingNonce == lastExecutedNonce+2 {
-		// nothing left to do, the ideal case:
+		// the ideal/most common case:
 		// the previous block was already processed, its nonce should have been syncingNonce-1,
 		// and it notarized its previous block, which should have had nonce equal to syncingNonce-2
-		return nil
+		// only add the current header in the queue
+		currentBody, errGetBody := boot.blockBootstrapper.getBlockBody(currentHeader)
+		if errGetBody != nil {
+			return errGetBody
+		}
+
+		return boot.blocksQueue.AddOrReplace(queue.HeaderBodyPair{
+			Header: currentHeader,
+			Body:   currentBody,
+		})
 	}
 
 	// if there are multiple headers in between the syncing header and the last one executed,
