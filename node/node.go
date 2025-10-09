@@ -332,11 +332,11 @@ func (n *Node) getLeaves(rootHash []byte, numKeys uint, iteratorState [][]byte, 
 }
 
 func (n *Node) getBlockInfo(options api.AccountQueryOptions) (api.BlockInfo, error) {
+	options, err := n.addBlockCoordinatesToAccountQueryOptions(options)
+	if err != nil {
+		return api.BlockInfo{}, err
+	}
 	if len(options.BlockRootHash) > 0 {
-		options, err := n.addBlockCoordinatesToAccountQueryOptions(options)
-		if err != nil {
-			return api.BlockInfo{}, err
-		}
 		blockInfo := holders.NewBlockInfo([]byte{}, 0, options.BlockRootHash)
 		completeBlockInfo := mergeAccountQueryOptionsIntoBlockInfo(options, blockInfo)
 		apiBlockInfo := accountBlockInfoToApiResource(completeBlockInfo)
@@ -350,7 +350,8 @@ func (n *Node) getBlockInfo(options api.AccountQueryOptions) (api.BlockInfo, err
 
 	blockInfo := holders.NewBlockInfo(
 		n.dataComponents.Blockchain().GetCurrentBlockHeaderHash(),
-		blockHeader.GetNonce(), blockHeader.GetRootHash(),
+		blockHeader.GetNonce(),
+		blockHeader.GetRootHash(),
 	)
 	return accountBlockInfoToApiResource(blockInfo), nil
 }

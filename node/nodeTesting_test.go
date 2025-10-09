@@ -417,6 +417,7 @@ func getDefaultStateComponents() *factoryMocks.StateComponentsMock {
 		AccountsRepo:    &stateMock.AccountsRepositoryStub{},
 		Tries:           &trieMock.TriesHolderStub{},
 		StorageManagers: map[string]common.StorageManager{"0": &storageManager.StorageManagerStub{}},
+		LeavesRetriever: &trieMock.LeavesRetrieverStub{},
 	}
 }
 
