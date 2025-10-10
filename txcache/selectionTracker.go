@@ -364,10 +364,13 @@ func (st *selectionTracker) updateLatestRootHashNoLock(receivedNonce uint64, rec
 func (st *selectionTracker) deriveVirtualSelectionSession(
 	session SelectionSession,
 	nonce uint64,
+	isSimulation bool,
 ) (*virtualSelectionSession, error) {
-	err := st.removeBlocksAboveNonce(nonce)
-	if err != nil {
-		return nil, err
+	if !isSimulation {
+		err := st.removeBlocksAboveNonce(nonce)
+		if err != nil {
+			return nil, err
+		}
 	}
 
 	rootHash, err := session.GetRootHash()

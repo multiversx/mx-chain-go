@@ -116,11 +116,29 @@ func (cache *TxCache) GetByTxHash(txHash []byte) (*WrappedTransaction, bool) {
 // The selection takes into consideration the proposed blocks which were not yet executed.
 // The SelectTransactions should receive the nonce of the block on which the selection is built.
 // The blocks with a nonce greater that the given one will be removed.
-// TODO For the selection-simulation API endpoint, another method which does not affect the tracked blocks should be called
 func (cache *TxCache) SelectTransactions(
 	session SelectionSession,
 	options common.TxSelectionOptions,
 	nonce uint64,
+) ([]*WrappedTransaction, uint64, error) {
+	return cache.selectTransactions(session, options, nonce, false)
+}
+
+// SimulateSelectTransactions simulates a selection of transaction and does not affect the internal state of the tracker
+func (cache *TxCache) SimulateSelectTransactions(
+	session SelectionSession,
+	options common.TxSelectionOptions,
+	nonce uint64,
+) ([]*WrappedTransaction, uint64, error) {
+	return cache.selectTransactions(session, options, nonce, true)
+}
+
+// selectTransactions executes a real / simulated selection
+func (cache *TxCache) selectTransactions(
+	session SelectionSession,
+	options common.TxSelectionOptions,
+	nonce uint64,
+	isSimulation bool,
 ) ([]*WrappedTransaction, uint64, error) {
 	if check.IfNil(session) {
 		log.Error("TxCache.SelectTransactions", "err", errNilSelectionSession)
@@ -137,7 +155,7 @@ func (cache *TxCache) SelectTransactions(
 		"num bytes", cache.NumBytes(),
 	)
 
-	virtualSession, err := cache.tracker.deriveVirtualSelectionSession(session, nonce)
+	virtualSession, err := cache.tracker.deriveVirtualSelectionSession(session, nonce, isSimulation)
 	if err != nil {
 		log.Error("TxCache.SelectTransactions: could not derive virtual selection session", "err", err)
 		return nil, 0, err
