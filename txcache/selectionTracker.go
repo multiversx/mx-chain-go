@@ -8,9 +8,11 @@ import (
 	"github.com/multiversx/mx-chain-core-go/data"
 	"github.com/multiversx/mx-chain-core-go/data/block"
 	"github.com/multiversx/mx-chain-go/common"
+	logger "github.com/multiversx/mx-chain-logger-go"
 	"golang.org/x/exp/slices"
 )
 
+// TODO should add a reset method which cleans the tracked blocks and the global account breadcrumbs
 // TODO rename this to proposedBlocksTracker
 type selectionTracker struct {
 	mutTracker                sync.RWMutex
@@ -80,7 +82,7 @@ func (st *selectionTracker) OnProposedBlock(
 		return err
 	}
 
-	err = st.validateTrackedBlocksAndCompileBreadcrumbs(blockBody, tBlock, accountsProvider, blockchainInfo)
+	err = st.validateTrackedBlocksAndCompileBreadcrumbsNoLock(blockBody, tBlock, accountsProvider, blockchainInfo)
 	if err != nil {
 		log.Debug("selectionTracker.OnProposedBlock: error validating the tracked blocks", "err", err)
 		return err
@@ -144,11 +146,11 @@ func (st *selectionTracker) checkReceivedBlockNoLock(blockBody *block.Body, bloc
 	return nil
 }
 
-// validateTrackedBlocksAndCompileBreadcrumbs is used when a new block is proposed.
+// validateTrackedBlocksAndCompileBreadcrumbsNoLock is used when a new block is proposed.
 // Firstly, the method finds the chain of tracked blocks.
 // Secondly, the method extracts the transaction of the new block, compiles its breadcrumbs and adds the new block to the previous returned chain.
 // Then, it validates the entire chain (by nonce and balance of each breadcrumb).
-func (st *selectionTracker) validateTrackedBlocksAndCompileBreadcrumbs(
+func (st *selectionTracker) validateTrackedBlocksAndCompileBreadcrumbsNoLock(
 	blockBody *block.Body,
 	blockToTrack *trackedBlock,
 	accountsProvider common.AccountNonceAndBalanceProvider,
@@ -160,20 +162,20 @@ func (st *selectionTracker) validateTrackedBlocksAndCompileBreadcrumbs(
 		blockToTrack.nonce,
 	)
 	if err != nil {
-		log.Debug("selectionTracker.validateTrackedBlocksAndCompileBreadcrumbs: error creating chain of tracked blocks", "err", err)
+		log.Debug("selectionTracker.validateTrackedBlocksAndCompileBreadcrumbsNoLock: error creating chain of tracked blocks", "err", err)
 		return err
 	}
 
 	// if we pass the first validation, only then we extract the txs to compile the breadcrumbs
 	txs, err := getTransactionsInBlock(blockBody, st.txCache)
 	if err != nil {
-		log.Debug("selectionTracker.validateTrackedBlocksAndCompileBreadcrumbs: error getting transactions from block", "err", err)
+		log.Debug("selectionTracker.validateTrackedBlocksAndCompileBreadcrumbsNoLock: error getting transactions from block", "err", err)
 		return err
 	}
 
 	err = blockToTrack.compileBreadcrumbs(txs)
 	if err != nil {
-		log.Debug("selectionTracker.validateTrackedBlocksAndCompileBreadcrumbs: error compiling breadcrumbs",
+		log.Debug("selectionTracker.validateTrackedBlocksAndCompileBreadcrumbsNoLock: error compiling breadcrumbs",
 			"error", err)
 		return err
 	}
@@ -185,7 +187,7 @@ func (st *selectionTracker) validateTrackedBlocksAndCompileBreadcrumbs(
 	// i.e. continuous with the other proposed blocks and no balance issues
 	err = st.validateBreadcrumbsOfTrackedBlocks(blocksToBeValidated, accountsProvider)
 	if err != nil {
-		log.Debug("selectionTracker.validateTrackedBlocksAndCompileBreadcrumbs: error validating tracked blocks", "err", err)
+		log.Debug("selectionTracker.validateTrackedBlocksAndCompileBreadcrumbsNoLock: error validating tracked blocks", "err", err)
 		return err
 	}
 
@@ -343,10 +345,13 @@ func (st *selectionTracker) updateLatestRootHashNoLock(receivedNonce uint64, rec
 	}
 }
 
+// deriveVirtualSelectionSession creates a virtual selection session by transforming the global accounts breadcrumbs into virtual records
+// The deriveVirtualSelectionSession methods needs a SelectionSession and the nonce of the block on which the selection is built.
 func (st *selectionTracker) deriveVirtualSelectionSession(
 	session SelectionSession,
-	blockchainInfo common.BlockchainInfo,
+	nonce uint64,
 ) (*virtualSelectionSession, error) {
+	// TODO should remove all blocks greater than the received nonce
 	rootHash, err := session.GetRootHash()
 	if err != nil {
 		log.Debug("selectionTracker.deriveVirtualSelectionSession",
@@ -354,37 +359,17 @@ func (st *selectionTracker) deriveVirtualSelectionSession(
 		return nil, err
 	}
 
-	latestExecutedBlockHash := blockchainInfo.GetLatestExecutedBlockHash()
-	latestCommittedBlockHash := blockchainInfo.GetLatestCommittedBlockHash()
-	currentNonce := blockchainInfo.GetCurrentNonce()
-
 	log.Debug("selectionTracker.deriveVirtualSelectionSession",
 		"rootHash", rootHash,
-		"latestExecutedBlockHash", latestExecutedBlockHash,
-		"latestCommitedBlockHash", latestCommittedBlockHash,
-		"currentNonce", currentNonce,
+		"nonce", nonce,
 	)
 
-	// TODO should not re-create the chain anymore, but instead: transform each global account record into a virtual record.
-
-	trackedBlocks, err := st.getChainOfTrackedPendingBlocks(
-		latestExecutedBlockHash,
-		latestCommittedBlockHash,
-		currentNonce,
-	)
-	if err != nil {
-		log.Debug("selectionTracker.deriveVirtualSelectionSession",
-			"err", err)
-		return nil, err
-	}
-
-	log.Debug("selectionTracker.deriveVirtualSelectionSession",
-		"len(trackedBlocks)", len(trackedBlocks))
-
-	displayTrackedBlocks(log, "trackedBlocks", trackedBlocks)
+	st.displayTrackedBlocks(log, "trackedBlocks")
 
 	computer := newVirtualSessionComputer(session)
-	return computer.createVirtualSelectionSession(trackedBlocks)
+
+	globalAccountsBreadcrumbs := st.getGlobalAccountsBreadcrumbs()
+	return computer.createVirtualSelectionSession(globalAccountsBreadcrumbs)
 }
 
 // getChainOfTrackedPendingBlocks finds the chain of tracked blocks, iterating from tail to head,
@@ -446,40 +431,88 @@ func (st *selectionTracker) getChainOfTrackedPendingBlocks(
 	return chain, nil
 }
 
+func (st *selectionTracker) getGlobalAccountsBreadcrumbs() map[string]*globalAccountBreadcrumb {
+	return st.globalBreadcrumbsCompiler.getGlobalBreadcrumbs()
+}
+
+// getVirtualNonceOfAccountWithRootHash searches the global breadcrumb of the given address and return its nonce
 func (st *selectionTracker) getVirtualNonceOfAccountWithRootHash(
 	address []byte,
-	blockchainInfo common.BlockchainInfo,
 ) (uint64, []byte, error) {
-	latestCommittedBlockHash := blockchainInfo.GetLatestCommittedBlockHash()
-	if latestCommittedBlockHash == nil {
-		return 0, nil, errNilLatestCommittedBlockHash
-	}
-
-	latestCommittedBlock, ok := st.blocks[string(latestCommittedBlockHash)]
-	if !ok {
-		return 0, nil, errBlockNotFound
-	}
-
-	breadcrumb, ok := latestCommittedBlock.breadcrumbsByAddress[string(address)]
-	if !ok {
-		return 0, nil, errBreadcrumbNotFound
+	breadcrumb, err := st.globalBreadcrumbsCompiler.getGlobalBreadcrumbByAddress(string(address))
+	if err != nil {
+		return 0, nil, errGlobalBreadcrumbDoesNotExist
 	}
 
 	if !breadcrumb.lastNonce.HasValue {
 		return 0, nil, errLastNonceNotFound
 	}
 
-	return breadcrumb.lastNonce.Value + 1, latestCommittedBlock.rootHash, nil
+	return breadcrumb.lastNonce.Value + 1, st.latestRootHash, nil
 }
 
-func (st *selectionTracker) getTrackedBlocks() map[string]*trackedBlock {
+// GetBulkOfUntrackedTransactions returns the hashes of the untracked transactions
+func (st *selectionTracker) GetBulkOfUntrackedTransactions(transactions []*WrappedTransaction) [][]byte {
+	untrackedTransactions := make([][]byte, 0)
+	for _, tx := range transactions {
+		if tx == nil || tx.Tx == nil {
+			continue
+		}
+
+		if !st.isTransactionTracked(tx) {
+			untrackedTransactions = append(untrackedTransactions, tx.TxHash)
+		}
+	}
+
+	return untrackedTransactions
+}
+
+// isTransactionTracked checks if a transaction is still in the tracked blocks of the SelectionTracker
+// TODO analyze if the forks are still an issue here
+func (st *selectionTracker) isTransactionTracked(transaction *WrappedTransaction) bool {
+	if transaction == nil || transaction.Tx == nil {
+		return false
+	}
+
+	sender := transaction.Tx.GetSndAddr()
+	txNonce := transaction.Tx.GetNonce()
+
+	senderGlobalBreadcrumb, err := st.globalBreadcrumbsCompiler.getGlobalBreadcrumbByAddress(string(sender))
+	if err != nil {
+		return false
+	}
+
+	minNonce := senderGlobalBreadcrumb.firstNonce
+	maxNonce := senderGlobalBreadcrumb.lastNonce
+
+	if !minNonce.HasValue || !maxNonce.HasValue {
+		// we consider the transaction as not tracked because the account is tracked only as a relayer
+		return false
+	}
+
+	if txNonce < minNonce.Value || txNonce > maxNonce.Value {
+		// we consider the transaction as not tracked because it's outside the tracked range
+		return false
+	}
+
+	return true
+}
+
+func (st *selectionTracker) displayTrackedBlocks(contextualLogger logger.Logger, linePrefix string) {
+	if contextualLogger.GetLevel() > logger.LogTrace {
+		return
+	}
+
 	st.mutTracker.RLock()
 	defer st.mutTracker.RUnlock()
 
-	copyOfTrackedBlocks := make(map[string]*trackedBlock, len(st.blocks))
-	for key, value := range st.blocks {
-		copyOfTrackedBlocks[key] = value
-	}
+	log.Debug("selectionTracker.deriveVirtualSelectionSession",
+		"len(trackedBlocks)", len(st.blocks))
 
-	return copyOfTrackedBlocks
+	if len(st.blocks) > 0 {
+		contextualLogger.Trace("displayTrackedBlocks - trackedBlocks (as newline-separated JSON):")
+		contextualLogger.Trace(marshalTrackedBlockToNewlineDelimitedJSON(st.blocks, linePrefix))
+	} else {
+		contextualLogger.Trace("displayTrackedBlocks - trackedBlocks: none")
+	}
 }

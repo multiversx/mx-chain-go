@@ -511,9 +511,8 @@ func (atp *apiTransactionProcessor) selectTransactions(accountsAdapter state.Acc
 		return nil, err
 	}
 
-	// TODO use the right information for blockchainInfo
-	blockchainInfo := holders.NewBlockchainInfo(nil, nil, 0)
-	selectedTxs, _, err := txCache.SelectTransactions(selectionSession, selectionOptions, blockchainInfo)
+	// TODO use the right information for nonce
+	selectedTxs, _, err := txCache.SelectTransactions(selectionSession, selectionOptions, 0)
 	if err != nil {
 		log.Warn("apiTransactionProcessor.selectTransactions could not SelectTransactions")
 		return nil, err
@@ -547,14 +546,13 @@ func (atp *apiTransactionProcessor) getVirtualNonceWithBlockInfo(
 
 	// the SelectionSession is used in this flow for fallbacks (e.g. the account does not exist in the proposed blocks, unexpected errors etc.)
 
-	// TODO use the right information for blockchainInfo
-	// these blockchainInfo should contain the hash of the last committed block and the actual nonce
+	// TODO use the right information below
 	// these variables will also be used for the response
 	// NOTE: should not remain like this
 	var latestCommittedBlockHash []byte
 	var currentNonce uint64
-	blockchainInfo := holders.NewBlockchainInfo(nil, latestCommittedBlockHash, currentNonce)
-	virtualNonce, rootHash, err := txCache.GetVirtualNonceAndRootHash(address, blockchainInfo)
+
+	virtualNonce, rootHash, err := txCache.GetVirtualNonceAndRootHash(address)
 	if err != nil {
 		log.Warn("apiTransactionProcessor.getVirtualNonceWithBlockInfo could not get virtual nonce")
 		return 0, nil, err

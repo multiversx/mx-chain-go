@@ -551,8 +551,7 @@ func Test_CompleteFlowShouldWork(t *testing.T) {
 		},
 	}
 
-	blockchainInfo := holders.NewBlockchainInfo([]byte("hash0"), []byte("hash2"), 2)
-	virtualSession, err := cache.tracker.deriveVirtualSelectionSession(selectionSession, blockchainInfo)
+	virtualSession, err := cache.tracker.deriveVirtualSelectionSession(selectionSession, 2)
 
 	require.Nil(t, err)
 	require.NotNil(t, virtualSession)
@@ -594,8 +593,7 @@ func Test_CompleteFlowShouldWork(t *testing.T) {
 		},
 	}
 
-	blockchainInfo = holders.NewBlockchainInfo([]byte("hash1"), []byte("hash2"), 2)
-	virtualSession, err = cache.tracker.deriveVirtualSelectionSession(selectionSession, blockchainInfo)
+	virtualSession, err = cache.tracker.deriveVirtualSelectionSession(selectionSession, 2)
 	require.Nil(t, err)
 
 	expectedVirtualRecords = map[string]*virtualAccountRecord{
@@ -614,11 +612,10 @@ func Test_CompleteFlowShouldWork(t *testing.T) {
 		10,
 	)
 
-	blockchainInfo = holders.NewBlockchainInfo([]byte("hash1"), []byte("hash2"), 2)
 	selectedTxs, _, err := cache.SelectTransactions(
 		selectionSession,
 		options,
-		blockchainInfo,
+		2,
 	)
 	require.Nil(t, err)
 	require.Len(t, selectedTxs, 1)
@@ -911,7 +908,7 @@ func TestSelectionTracker_deriveVirtualSelectionSessionShouldErr(t *testing.T) {
 	session.GetRootHashCalled = func() ([]byte, error) {
 		return nil, expectedErr
 	}
-	virtualSession, actualErr := tracker.deriveVirtualSelectionSession(&session, defaultBlockchainInfo)
+	virtualSession, actualErr := tracker.deriveVirtualSelectionSession(&session, 0)
 	require.Nil(t, virtualSession)
 	require.Equal(t, expectedErr, actualErr)
 }
@@ -1119,30 +1116,7 @@ func TestSelectionTracker_addNewBlockNoLock(t *testing.T) {
 func Test_getVirtualNonceOfAccount(t *testing.T) {
 	t.Parallel()
 
-	t.Run("should return errNilLatestCommittedBlockHash error", func(t *testing.T) {
-		t.Parallel()
-
-		txCache := newCacheToTest(maxNumBytesPerSenderUpperBoundTest, 3)
-		tracker, err := NewSelectionTracker(txCache, maxTrackedBlocks)
-		require.Nil(t, err)
-
-		_, _, err = tracker.getVirtualNonceOfAccountWithRootHash([]byte("alice"), defaultBlockchainInfo)
-		require.Equal(t, errNilLatestCommittedBlockHash, err)
-	})
-
-	t.Run("should return errBlockNotFound error", func(t *testing.T) {
-		t.Parallel()
-
-		txCache := newCacheToTest(maxNumBytesPerSenderUpperBoundTest, 3)
-		tracker, err := NewSelectionTracker(txCache, maxTrackedBlocks)
-		require.Nil(t, err)
-
-		blockchainInfo := holders.NewBlockchainInfo(nil, []byte("hash2"), 0)
-		_, _, err = tracker.getVirtualNonceOfAccountWithRootHash([]byte("alice"), blockchainInfo)
-		require.Equal(t, errBlockNotFound, err)
-	})
-
-	t.Run("should return errBreadcrumbNotFound error", func(t *testing.T) {
+	t.Run("should return errGlobalBreadcrumbDoesNotExist error", func(t *testing.T) {
 		t.Parallel()
 
 		txCache := newCacheToTest(maxNumBytesPerSenderUpperBoundTest, 3)
@@ -1151,28 +1125,8 @@ func Test_getVirtualNonceOfAccount(t *testing.T) {
 
 		tracker.blocks["hash2"] = newTrackedBlock(0, []byte("hash2"), []byte("rootHash0"), []byte("hash1"))
 
-		blockchainInfo := holders.NewBlockchainInfo(nil, []byte("hash2"), 0)
-		_, _, err = tracker.getVirtualNonceOfAccountWithRootHash([]byte("alice"), blockchainInfo)
-		require.Equal(t, errBreadcrumbNotFound, err)
-	})
-
-	t.Run("should return errLastNonceNotFound error", func(t *testing.T) {
-		t.Parallel()
-
-		txCache := newCacheToTest(maxNumBytesPerSenderUpperBoundTest, 3)
-		tracker, err := NewSelectionTracker(txCache, maxTrackedBlocks)
-		require.Nil(t, err)
-
-		tb := newTrackedBlock(0, []byte("hash2"), []byte("rootHash0"), []byte("hash1"))
-		tb.breadcrumbsByAddress["alice"] = newAccountBreadcrumb(core.OptionalUint64{
-			HasValue: true,
-			Value:    10,
-		})
-		tracker.blocks["hash2"] = tb
-
-		blockchainInfo := holders.NewBlockchainInfo(nil, []byte("hash2"), 0)
-		_, _, err = tracker.getVirtualNonceOfAccountWithRootHash([]byte("alice"), blockchainInfo)
-		require.Equal(t, errLastNonceNotFound, err)
+		_, _, err = tracker.getVirtualNonceOfAccountWithRootHash([]byte("alice"))
+		require.Equal(t, errGlobalBreadcrumbDoesNotExist, err)
 	})
 
 	t.Run("should work", func(t *testing.T) {
@@ -1192,12 +1146,211 @@ func Test_getVirtualNonceOfAccount(t *testing.T) {
 		tb := newTrackedBlock(0, []byte("hash2"), []byte("rootHash0"), []byte("hash1"))
 		tb.breadcrumbsByAddress["alice"] = breadcrumb
 
-		tracker.blocks["hash2"] = tb
+		tracker.globalBreadcrumbsCompiler.updateOnAddedBlock(tb)
 
-		blockchainInfo := holders.NewBlockchainInfo(nil, []byte("hash2"), 0)
-		nonce, rootHash, err := tracker.getVirtualNonceOfAccountWithRootHash([]byte("alice"), blockchainInfo)
+		nonce, _, err := tracker.getVirtualNonceOfAccountWithRootHash([]byte("alice"))
 		require.Nil(t, err)
 		require.Equal(t, uint64(21), nonce)
-		require.Equal(t, []byte("rootHash0"), rootHash)
 	})
+}
+
+func Test_isTransactionTracked(t *testing.T) {
+	t.Parallel()
+
+	txCache := newCacheToTest(maxNumBytesPerSenderUpperBoundTest, 6)
+	tracker, err := NewSelectionTracker(txCache, maxTrackedBlocks)
+	require.Nil(t, err)
+
+	txCache.tracker = tracker
+
+	accountsProvider := &txcachemocks.AccountNonceAndBalanceProviderMock{
+		GetAccountNonceAndBalanceCalled: func(address []byte) (uint64, *big.Int, bool, error) {
+			return 11, big.NewInt(6 * 100000 * oneBillion), true, nil
+		},
+	}
+
+	txs := []*WrappedTransaction{
+		createTx([]byte("txHash1"), "alice", 11).withRelayer([]byte("bob")).withGasLimit(100_000),
+		createTx([]byte("txHash2"), "alice", 12),
+		createTx([]byte("txHash3"), "alice", 13),
+		createTx([]byte("txHash4"), "alice", 14),
+		createTx([]byte("txHash5"), "alice", 15).withRelayer([]byte("bob")).withGasLimit(100_000),
+		createTx([]byte("txHash6"), "eve", 11).withRelayer([]byte("alice")).withGasLimit(100_000),
+		// This one is not proposed. However, will be detected as "tracked" because it has the same nonce with as a tracked one.
+		// This is not critical. It is ok that a sender has a specific nonce "protected".
+		createTx([]byte("txHash7"), "eve", 11).withRelayer([]byte("alice")).withGasLimit(100_000),
+	}
+
+	for _, tx := range txs {
+		txCache.AddTx(tx)
+	}
+
+	err = txCache.OnProposedBlock(
+		[]byte("hash1"),
+		&block.Body{
+			MiniBlocks: []*block.MiniBlock{
+				{
+					TxHashes: [][]byte{
+						[]byte("txHash1"),
+						[]byte("txHash2"),
+						[]byte("txHash3"),
+					},
+				},
+			},
+		},
+		&block.Header{
+			Nonce:    uint64(0),
+			PrevHash: []byte("hash0"),
+			RootHash: []byte("rootHash0"),
+		},
+		accountsProvider,
+		holders.NewBlockchainInfo([]byte("hash0"), []byte("hash0"), 0),
+	)
+	require.Nil(t, err)
+
+	err = txCache.OnProposedBlock(
+		[]byte("hash2"),
+		&block.Body{
+			MiniBlocks: []*block.MiniBlock{
+				{
+					TxHashes: [][]byte{
+						[]byte("txHash4"),
+						[]byte("txHash5"),
+					},
+				},
+			},
+		},
+		&block.Header{
+			Nonce:    uint64(1),
+			PrevHash: []byte("hash1"),
+			RootHash: []byte("rootHash0"),
+		},
+		accountsProvider,
+		holders.NewBlockchainInfo([]byte("hash0"), []byte("hash0"), 1),
+	)
+	require.Nil(t, err)
+
+	err = txCache.OnProposedBlock(
+		[]byte("hash3"),
+		&block.Body{
+			MiniBlocks: []*block.MiniBlock{
+				{
+					TxHashes: [][]byte{
+						[]byte("txHash6"),
+					},
+				},
+			},
+		},
+		&block.Header{
+			Nonce:    uint64(2),
+			PrevHash: []byte("hash2"),
+			RootHash: []byte("rootHash0"),
+		},
+		accountsProvider,
+		holders.NewBlockchainInfo([]byte("hash0"), []byte("hash0"), 2),
+	)
+	require.Nil(t, err)
+
+	t.Run("should return true", func(t *testing.T) {
+		t.Parallel()
+
+		tx1 := createTx([]byte("txHash1"), "alice", 11)
+		tx2 := createTx([]byte("txHash6"), "eve", 11)
+
+		require.True(t, txCache.tracker.isTransactionTracked(tx1))
+		require.True(t, txCache.tracker.isTransactionTracked(tx2))
+	})
+
+	t.Run("should return false because out of range", func(t *testing.T) {
+		t.Parallel()
+
+		tx1 := createTx([]byte("txHashX"), "alice", 16)
+		tx2 := createTx([]byte("txHashX"), "eve", 12)
+
+		require.False(t, txCache.tracker.isTransactionTracked(tx1))
+		require.False(t, txCache.tracker.isTransactionTracked(tx2))
+
+	})
+
+	t.Run("should return false because account is only relayer", func(t *testing.T) {
+		t.Parallel()
+
+		tx1 := createTx([]byte("txHashX"), "alice", 16)
+
+		require.False(t, txCache.tracker.isTransactionTracked(tx1))
+	})
+
+	t.Run("should return false because account is not tracked at all", func(t *testing.T) {
+		t.Parallel()
+
+		tx1 := createTx([]byte("txHash2"), "carol", 12)
+
+		require.False(t, txCache.tracker.isTransactionTracked(tx1))
+	})
+
+	t.Run("should return true for any transaction of sender with a tracked nonce", func(t *testing.T) {
+		t.Parallel()
+
+		tx1 := createTx([]byte("txHash7"), "eve", 12)
+
+		require.False(t, txCache.tracker.isTransactionTracked(tx1))
+	})
+}
+
+func TestSelectionTracker_GetBulkOfUntrackedTransactions(t *testing.T) {
+	t.Parallel()
+
+	txCache := newCacheToTest(maxNumBytesPerSenderUpperBoundTest, 6)
+	tracker, err := NewSelectionTracker(txCache, maxTrackedBlocks)
+	require.Nil(t, err)
+
+	txCache.tracker = tracker
+
+	accountsProvider := &txcachemocks.AccountNonceAndBalanceProviderMock{
+		GetAccountNonceAndBalanceCalled: func(address []byte) (uint64, *big.Int, bool, error) {
+			return 11, big.NewInt(6 * 100000 * oneBillion), true, nil
+		},
+	}
+
+	txs := []*WrappedTransaction{
+		createTx([]byte("txHash1"), "alice", 11).withRelayer([]byte("bob")).withGasLimit(100_000),
+		createTx([]byte("txHash2"), "alice", 12),
+		createTx([]byte("txHash3"), "alice", 13),
+		createTx([]byte("txHash4"), "alice", 14),
+		createTx([]byte("txHash5"), "alice", 15).withRelayer([]byte("bob")).withGasLimit(100_000),
+		createTx([]byte("txHash6"), "eve", 11).withRelayer([]byte("alice")).withGasLimit(100_000),
+		// This one is not proposed. However, will be detected as "tracked" because it has the same nonce with as a tracked one.
+		// This is not critical. It is ok that a sender has a specific nonce "protected".
+		createTx([]byte("txHash7"), "eve", 11).withRelayer([]byte("alice")).withGasLimit(100_000),
+	}
+
+	for _, tx := range txs {
+		txCache.AddTx(tx)
+	}
+
+	err = txCache.OnProposedBlock(
+		[]byte("hash1"),
+		&block.Body{
+			MiniBlocks: []*block.MiniBlock{
+				{
+					TxHashes: [][]byte{
+						[]byte("txHash1"),
+						[]byte("txHash2"),
+						[]byte("txHash3"),
+					},
+				},
+			},
+		},
+		&block.Header{
+			Nonce:    uint64(0),
+			PrevHash: []byte("hash0"),
+			RootHash: []byte("rootHash0"),
+		},
+		accountsProvider,
+		holders.NewBlockchainInfo([]byte("hash0"), []byte("hash0"), 0),
+	)
+	require.Nil(t, err)
+
+	bulk := tracker.GetBulkOfUntrackedTransactions(txs)
+	require.Len(t, bulk, 4)
 }

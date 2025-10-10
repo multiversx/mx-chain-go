@@ -189,15 +189,6 @@ func createTx(hash []byte, sender string, nonce uint64) *WrappedTransaction {
 	}
 }
 
-func createSliceMockWrappedTxsWithSameSender(txHashes [][]byte, sender string) []*WrappedTransaction {
-	wrappedTxs := make([]*WrappedTransaction, len(txHashes))
-	for i, txHash := range txHashes {
-		wrappedTxs[i] = createTx(txHash, sender, uint64(i))
-	}
-
-	return wrappedTxs
-}
-
 func createSliceMockWrappedTxs(txHashes [][]byte) []*WrappedTransaction {
 	wrappedTxs := make([]*WrappedTransaction, len(txHashes))
 	for i, txHash := range txHashes {

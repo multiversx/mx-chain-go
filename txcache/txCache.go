@@ -93,9 +93,8 @@ func (cache *TxCache) AddTx(tx *WrappedTransaction) (ok bool, added bool) {
 	if len(evicted) > 0 {
 		logRemove.Trace("TxCache.AddTx with eviction", "sender", tx.Tx.GetSndAddr(), "num evicted txs", len(evicted))
 		txs := cache.txByHash.GetTxsBulk(evicted)
-		txTracker := newTransactionsTracker(cache.tracker, txs)
 
-		untrackedEvicted := txTracker.GetBulkOfUntrackedTransactions(txs)
+		untrackedEvicted := cache.tracker.GetBulkOfUntrackedTransactions(txs)
 		_ = cache.txByHash.RemoveTxsBulk(untrackedEvicted)
 
 		logRemove.Trace("TxCache.AddTx with eviction and tracking check", "sender", tx.Tx.GetSndAddr(), "num evicted txs with tracking check", len(untrackedEvicted))
@@ -115,19 +114,15 @@ func (cache *TxCache) GetByTxHash(txHash []byte) (*WrappedTransaction, bool) {
 // SelectTransactions selects the best transactions to be included in the next miniblock.
 // It returns up to "options.maxNumTxs" transactions, with total gas <= "options.gasRequested".
 // The selection takes into consideration the proposed blocks which were not yet executed.
+// The SelectTransactions should receive the nonce of the block on which the selection is built.
 func (cache *TxCache) SelectTransactions(
 	session SelectionSession,
 	options common.TxSelectionOptions,
-	blockchainInfo common.BlockchainInfo,
+	currentBlockNonce uint64,
 ) ([]*WrappedTransaction, uint64, error) {
 	if check.IfNil(session) {
 		log.Error("TxCache.SelectTransactions", "err", errNilSelectionSession)
 		return nil, 0, errNilSelectionSession
-	}
-
-	if check.IfNil(blockchainInfo) {
-		log.Error("TxCache.SelectTransactions", "err", errNilBlockchainInfo)
-		return nil, 0, errNilBlockchainInfo
 	}
 
 	stopWatch := core.NewStopWatch()
@@ -140,7 +135,7 @@ func (cache *TxCache) SelectTransactions(
 		"num bytes", cache.NumBytes(),
 	)
 
-	virtualSession, err := cache.tracker.deriveVirtualSelectionSession(session, blockchainInfo)
+	virtualSession, err := cache.tracker.deriveVirtualSelectionSession(session, currentBlockNonce)
 	if err != nil {
 		log.Error("TxCache.SelectTransactions: could not derive virtual selection session", "err", err)
 		return nil, 0, err
@@ -165,14 +160,8 @@ func (cache *TxCache) SelectTransactions(
 // For this method, the blockchainInfo should contain the hash of the last committed block.
 func (cache *TxCache) GetVirtualNonceAndRootHash(
 	address []byte,
-	blockchainInfo common.BlockchainInfo,
 ) (uint64, []byte, error) {
-	if check.IfNil(blockchainInfo) {
-		log.Error("TxCache.GetVirtualNonce", "err", errNilBlockchainInfo)
-		return 0, nil, errNilBlockchainInfo
-	}
-
-	virtualNonce, rootHash, err := cache.tracker.getVirtualNonceOfAccountWithRootHash(address, blockchainInfo)
+	virtualNonce, rootHash, err := cache.tracker.getVirtualNonceOfAccountWithRootHash(address)
 	if err != nil {
 		return 0, nil, err
 	}
