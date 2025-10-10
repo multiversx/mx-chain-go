@@ -191,7 +191,7 @@ func (cache *TxCache) OnExecutedBlock(blockHeader data.HeaderHandler) error {
 
 // ResetTracker resets the SelectionTracker
 func (cache *TxCache) ResetTracker() {
-	cache.tracker.ResetTracker()
+	cache.tracker.ResetTrackedBlocks()
 }
 
 func (cache *TxCache) getSenders() []*txListForSender {

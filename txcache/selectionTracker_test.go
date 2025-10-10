@@ -1381,7 +1381,7 @@ func TestSelectionTracker_ResetTracker(t *testing.T) {
 	require.Equal(t, 2, len(tracker.blocks))
 	require.Equal(t, 3, len(tracker.globalBreadcrumbsCompiler.globalAccountBreadcrumbs))
 
-	tracker.ResetTracker()
+	tracker.ResetTrackedBlocks()
 	require.Equal(t, 0, len(tracker.blocks))
 	require.Equal(t, 0, len(tracker.globalBreadcrumbsCompiler.globalAccountBreadcrumbs))
 }
