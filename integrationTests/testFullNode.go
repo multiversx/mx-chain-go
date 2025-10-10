@@ -3,6 +3,7 @@ package integrationTests
 import (
 	"encoding/hex"
 	"fmt"
+	"strconv"
 	"time"
 
 	"github.com/multiversx/mx-chain-core-go/core"
@@ -93,7 +94,6 @@ func CreateNodesWithTestFullNode(
 	numKeysOnEachNode int,
 	enableEpochsConfig config.EnableEpochs,
 	roundsConfig config.RoundConfig,
-	withSync bool,
 	roundsPerEpoch int64,
 ) map[uint32][]*TestFullNode {
 	nodes := make(map[uint32][]*TestFullNode, nodesPerShard)
@@ -198,7 +198,6 @@ func NewTestFullNode(args ArgsTestFullNode) *TestFullNode {
 }
 
 func (tfn *TestFullNode) initNodesCoordinator(
-	consensusSize int,
 	hasher hashing.Hasher,
 	epochStartRegistrationHandler notifier.EpochStartNotifier,
 	eligibleMap map[uint32][]nodesCoordinator.Validator,
@@ -267,10 +266,12 @@ func (tpn *TestFullNode) initTestNodeWithArgs(args ArgTestProcessorNode, fullArg
 	} else {
 		tpn.GenesisTimeField = time.Unix(fullArgs.StartTime, 0)
 	}
+	supernovaRound := args.RoundsConfig.RoundActivations[string(common.SupernovaRoundFlag)]
+	intRound, _ := strconv.Atoi(supernovaRound.Round)
 
 	roundArgs := round.ArgsRound{
 		GenesisTimeStamp:          tpn.GenesisTimeField,
-		SupernovaGenesisTimeStamp: tpn.GenesisTimeField,
+		SupernovaGenesisTimeStamp: tpn.GenesisTimeField.Add(time.Duration(intRound) * roundDuration),
 		CurrentTimeStamp:          syncer.CurrentTime(),
 		RoundTimeDuration:         roundDuration,
 		SupernovaTimeDuration:     roundDuration,
@@ -329,7 +330,6 @@ func (tpn *TestFullNode) initTestNodeWithArgs(args ArgTestProcessorNode, fullArg
 	pkBytes, _ := tpn.NodeKeys.MainKey.Pk.ToByteArray()
 	consensusCache, _ := cache.NewLRUCache(10000)
 	tpn.initNodesCoordinator(
-		fullArgs.ConsensusSize,
 		createHasher(fullArgs.ConsensusType),
 		tpn.EpochStartNotifier,
 		fullArgs.EligibleMap,

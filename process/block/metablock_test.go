@@ -14,12 +14,13 @@ import (
 	"github.com/multiversx/mx-chain-core-go/core/check"
 	"github.com/multiversx/mx-chain-core-go/data"
 	"github.com/multiversx/mx-chain-core-go/data/block"
+	"github.com/stretchr/testify/assert"
+	"github.com/stretchr/testify/require"
+
 	"github.com/multiversx/mx-chain-go/process/asyncExecution/executionTrack"
 	"github.com/multiversx/mx-chain-go/process/estimator"
 	"github.com/multiversx/mx-chain-go/process/missingData"
 	"github.com/multiversx/mx-chain-go/testscommon/economicsmocks"
-	"github.com/stretchr/testify/assert"
-	"github.com/stretchr/testify/require"
 
 	"github.com/multiversx/mx-chain-go/process/block/headerForBlock"
 	"github.com/multiversx/mx-chain-go/process/coordinator"
@@ -3198,6 +3199,12 @@ func TestCreateNewHeaderV3(t *testing.T) {
 			return true
 		},
 	}
+	// supernova epoch flag enabled
+	coreComponents.EnableEpochsHandlerField = &enableEpochsHandlerMock.EnableEpochsHandlerStub{
+		IsFlagEnabledCalled: func(flag core.EnableEpochFlag) bool {
+			return true
+		},
+	}
 
 	boostrapComponents := &mock.BootstrapComponentsMock{
 		Coordinator:          mock.NewOneShardCoordinatorMock(),
@@ -3219,7 +3226,7 @@ func TestCreateNewHeaderV3(t *testing.T) {
 		},
 	}
 
-	udpateRoundCalled := false
+	updateRoundCalled := false
 	arguments.EpochStartTrigger = &mock.EpochStartTriggerStub{
 		EpochCalled: func() uint32 {
 			return epoch
@@ -3228,7 +3235,7 @@ func TestCreateNewHeaderV3(t *testing.T) {
 			return true
 		},
 		UpdateRoundCalled: func(round uint64) {
-			udpateRoundCalled = true
+			updateRoundCalled = true
 		},
 	}
 
@@ -3239,7 +3246,7 @@ func TestCreateNewHeaderV3(t *testing.T) {
 	require.Nil(t, err)
 	require.IsType(t, &block.MetaBlockV3{}, newHeader)
 	require.Equal(t, epoch, newHeader.GetEpoch())
-	require.True(t, udpateRoundCalled)
+	require.True(t, updateRoundCalled)
 }
 
 func TestMetaProcessor_ProcessEpochStartMetaBlock(t *testing.T) {
