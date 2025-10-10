@@ -3824,7 +3824,7 @@ func getDefaultBootstrapComponents(shardCoordinator sharding.Coordinator, handle
 	var versionedHeaderFactory nodeFactory.VersionedHeaderFactory
 
 	headerVersionHandler := &testscommon.HeaderVersionHandlerStub{
-		GetVersionCalled: func(epoch uint32) string {
+		GetVersionCalled: func(epoch uint32, _ uint64) string {
 			if handler.IsFlagEnabledInEpoch(common.AndromedaFlag, epoch) {
 				return "2"
 			}
