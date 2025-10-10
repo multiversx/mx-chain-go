@@ -345,7 +345,7 @@ func (st *selectionTracker) updateLatestRootHashNoLock(receivedNonce uint64, rec
 }
 
 // ResetTrackedBlocks resets the tracked blocks and the global account breadcrumbs
-// TODO clean the state save on the OnExecutedBlock
+// TODO clean the state saved on the OnExecutedBlock
 func (st *selectionTracker) ResetTrackedBlocks() {
 	st.mutTracker.Lock()
 	defer st.mutTracker.Unlock()
