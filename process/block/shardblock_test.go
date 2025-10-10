@@ -5848,7 +5848,7 @@ func TestShardProcessor_checkEpochStartInfoAvailableIfNeeded(t *testing.T) {
 		err := sp.CheckEpochStartInfoAvailableIfNeeded(header)
 		require.ErrorIs(t, err, process.ErrEpochStartInfoNotAvailable)
 	})
-	t.Run("epoch start trigger, epoch start not in progress, epoch start proof not available, should return nil", func(t *testing.T) {
+	t.Run("epoch start trigger, epoch start not in progress, epoch start proof not available, should return error", func(t *testing.T) {
 		t.Parallel()
 
 		arguments := CreateMockArguments(createComponentHolderMocks())
