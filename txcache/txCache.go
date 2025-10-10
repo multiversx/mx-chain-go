@@ -119,7 +119,7 @@ func (cache *TxCache) GetByTxHash(txHash []byte) (*WrappedTransaction, bool) {
 func (cache *TxCache) SelectTransactions(
 	session SelectionSession,
 	options common.TxSelectionOptions,
-	nonce uint64,
+	currentBlockNonce uint64,
 ) ([]*WrappedTransaction, uint64, error) {
 	return cache.selectTransactions(session, options, nonce, false)
 }

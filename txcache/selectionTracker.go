@@ -8,6 +8,7 @@ import (
 	"github.com/multiversx/mx-chain-core-go/data"
 	"github.com/multiversx/mx-chain-core-go/data/block"
 	"github.com/multiversx/mx-chain-go/common"
+	logger "github.com/multiversx/mx-chain-logger-go"
 	"golang.org/x/exp/slices"
 )
 
@@ -385,11 +386,7 @@ func (st *selectionTracker) deriveVirtualSelectionSession(
 		"nonce", nonce,
 	)
 
-	trackedBlocks := st.getSnapshotOfTrackedBlocks()
-	log.Debug("selectionTracker.deriveVirtualSelectionSession",
-		"len(trackedBlocks)", len(trackedBlocks))
-
-	displayTrackedBlocks(log, "trackedBlocks", trackedBlocks)
+	st.displayTrackedBlocks(log, "trackedBlocks")
 
 	computer := newVirtualSessionComputer(session)
 
@@ -549,14 +546,21 @@ func (st *selectionTracker) isTransactionTracked(transaction *WrappedTransaction
 	return true
 }
 
-func (st *selectionTracker) getSnapshotOfTrackedBlocks() []*trackedBlock {
+func (st *selectionTracker) displayTrackedBlocks(contextualLogger logger.Logger, linePrefix string) {
+	if contextualLogger.GetLevel() > logger.LogTrace {
+		return
+	}
+
 	st.mutTracker.RLock()
 	defer st.mutTracker.RUnlock()
 
-	copyOfTrackedBlocks := make([]*trackedBlock, 0, len(st.blocks))
-	for _, value := range st.blocks {
-		copyOfTrackedBlocks = append(copyOfTrackedBlocks, value)
-	}
+	log.Debug("selectionTracker.deriveVirtualSelectionSession",
+		"len(trackedBlocks)", len(st.blocks))
 
-	return copyOfTrackedBlocks
+	if len(st.blocks) > 0 {
+		contextualLogger.Trace("displayTrackedBlocks - trackedBlocks (as newline-separated JSON):")
+		contextualLogger.Trace(marshalTrackedBlockToNewlineDelimitedJSON(st.blocks, linePrefix))
+	} else {
+		contextualLogger.Trace("displayTrackedBlocks - trackedBlocks: none")
+	}
 }

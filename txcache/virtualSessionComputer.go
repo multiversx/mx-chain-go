@@ -74,6 +74,8 @@ func (computer *virtualSessionComputer) handleGlobalAccountBreadcrumbs(
 // initializing the initialNonce of the virtual record with the latestNonce + 1
 // copying the consumed balance in the initialBalance of the virtual record.
 // It also saves the created virtual record into the map of the virtualSessionComputer.
+// Each sender has a unique global breadcrumb which contains the necessary information to create a virtual record.
+// If an account already exists in the map of virtual records, its virtual record doesn't need to be updated.
 func (computer *virtualSessionComputer) fromGlobalBreadcrumbToVirtualRecord(
 	address string,
 	accountNonce uint64,
