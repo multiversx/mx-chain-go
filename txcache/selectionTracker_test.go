@@ -1375,10 +1375,19 @@ func TestSelectionTracker_ResetTracker(t *testing.T) {
 		"carol": {},
 	}
 
+	tracker.latestNonce = 10
+	tracker.latestRootHash = []byte("rootHash0")
+
+	require.Equal(t, []byte("rootHash0"), tracker.latestRootHash)
+	require.Equal(t, uint64(10), tracker.latestNonce)
+
 	require.Equal(t, 2, len(tracker.blocks))
 	require.Equal(t, 3, len(tracker.globalBreadcrumbsCompiler.globalAccountBreadcrumbs))
 
 	tracker.ResetTrackedBlocks()
 	require.Equal(t, 0, len(tracker.blocks))
 	require.Equal(t, 0, len(tracker.globalBreadcrumbsCompiler.globalAccountBreadcrumbs))
+
+	require.Nil(t, tracker.latestRootHash)
+	require.Equal(t, uint64(0), tracker.latestNonce)
 }
