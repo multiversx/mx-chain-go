@@ -116,6 +116,7 @@ func (cache *TxCache) GetByTxHash(txHash []byte) (*WrappedTransaction, bool) {
 // The selection takes into consideration the proposed blocks which were not yet executed.
 // The SelectTransactions should receive the nonce of the block on which the selection is built.
 // The blocks with a nonce greater that the given one will be removed.
+// TODO For the selection-simulation API endpoint, another method which does not affect the tracked blocks should be called
 func (cache *TxCache) SelectTransactions(
 	session SelectionSession,
 	options common.TxSelectionOptions,
