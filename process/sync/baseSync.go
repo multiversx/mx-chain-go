@@ -746,6 +746,7 @@ func (boot *baseBootstrap) incrementSyncedWithErrorsForNonce(nonce uint64) uint3
 }
 
 func (boot *baseBootstrap) syncBlock() error {
+	// TODO: we need to check the header first and then determine if there is header v3 or not
 	// TODO[Sorin]: this should check the round, not the epoch, once the PRs are merged
 	if boot.enableEpochsHandler.IsFlagEnabled(common.SupernovaFlag) {
 		return boot.syncBlockV3()
@@ -814,6 +815,8 @@ func (boot *baseBootstrap) syncBlockLegacy() error {
 	if err != nil {
 		return err
 	}
+
+	// TODO: check if we might need to add OnExecutedBlock on txPool on the legacy flow
 
 	go boot.requestHeadersFromNonceIfMissing(header.GetNonce() + 1)
 
