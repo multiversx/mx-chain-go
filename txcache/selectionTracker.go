@@ -499,15 +499,15 @@ func (st *selectionTracker) isTransactionTracked(transaction *WrappedTransaction
 }
 
 func (st *selectionTracker) displayTrackedBlocks(contextualLogger logger.Logger, linePrefix string) {
+	if contextualLogger.GetLevel() > logger.LogTrace {
+		return
+	}
+
 	st.mutTracker.RLock()
 	defer st.mutTracker.RUnlock()
 
 	log.Debug("selectionTracker.deriveVirtualSelectionSession",
 		"len(trackedBlocks)", len(st.blocks))
-
-	if contextualLogger.GetLevel() > logger.LogTrace {
-		return
-	}
 
 	if len(st.blocks) > 0 {
 		contextualLogger.Trace("displayTrackedBlocks - trackedBlocks (as newline-separated JSON):")
