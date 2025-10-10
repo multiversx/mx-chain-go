@@ -168,6 +168,17 @@ func TestPresenterStatusHandler_GetAvgProofReceived(t *testing.T) {
 	assert.Equal(t, proofMs, result)
 }
 
+func TestPresenterStatusHandler_GetNumTrackedBlocks(t *testing.T) {
+	t.Parallel()
+
+	numTrackedBlocks := uint64(100)
+	presenterStatusHandler := NewPresenterStatusHandler()
+	presenterStatusHandler.SetUInt64Value(common.MetricNumTrackedBlocks, numTrackedBlocks)
+	result := presenterStatusHandler.GetNumTrackedBlocks()
+
+	assert.Equal(t, numTrackedBlocks, result)
+}
+
 func TestPresenterStatusHandler_GetHighestFinalBlock(t *testing.T) {
 	t.Parallel()
 

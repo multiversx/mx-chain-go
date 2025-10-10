@@ -417,6 +417,11 @@ func (txPool *shardedTxPool) CleanupSelfShardTxCache(accountsProvider common.Acc
 	)
 }
 
+func (txPool *shardedTxPool) GetNumTrackedBlocks() uint64 {
+	cache := txPool.getSelfShardTxCache()
+	return cache.GetNumTrackedBlocks()
+}
+
 // OnProposedBlock notifies the underlying TxCache
 func (txPool *shardedTxPool) OnProposedBlock(blockHash []byte, blockBody *block.Body, blockHeader data.HeaderHandler, accountsProvider common.AccountNonceAndBalanceProvider, blockchainInfo common.BlockchainInfo) error {
 	cache := txPool.getSelfShardTxCache()

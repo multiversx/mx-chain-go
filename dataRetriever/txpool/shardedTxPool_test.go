@@ -543,6 +543,36 @@ func TestShardedTxPool_getSelfShardTxCache(t *testing.T) {
 	require.Equal(t, pool.getTxCache("2"), pool.getSelfShardTxCache())
 }
 
+func TestShardedTxPool_GetNumTrackedBlocks(t *testing.T) {
+	t.Parallel()
+
+	poolAsInterface, _ := newTxPoolToTest()
+	pool := poolAsInterface.(*shardedTxPool)
+
+	txCache := pool.getSelfShardTxCache()
+
+	numOfBlocks := 10
+	accountsProvider := txcachemocks.NewAccountNonceAndBalanceProviderMock()
+	blockchainInfo := holders.NewBlockchainInfo([]byte("hash0"), nil, 20)
+
+	for i := 1; i < numOfBlocks+1; i++ {
+		err := txCache.OnProposedBlock(
+			[]byte(fmt.Sprintf("hash%d", i)),
+			&block.Body{},
+			&block.Header{
+				Nonce:    uint64(i),
+				PrevHash: []byte(fmt.Sprintf("hash%d", i-1)),
+				RootHash: []byte("rootHash0"),
+			},
+			accountsProvider,
+			blockchainInfo,
+		)
+		require.Nil(t, err)
+	}
+
+	require.Equal(t, uint64(numOfBlocks), pool.GetNumTrackedBlocks())
+}
+
 func TestShardedTxPool_OnProposedBlock_And_OnExecutedBlock(t *testing.T) {
 	t.Parallel()
 

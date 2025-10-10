@@ -300,7 +300,7 @@ func computeRedundancyStr(redundancyLevel int64, redundancyIsMainActive string) 
 
 func (wr *WidgetsRender) prepareBlockInfo() {
 	// 8 rows and one column
-	numRows := 9
+	numRows := 10
 	rows := make([][]string, numRows)
 
 	currentBlockHeight := wr.presenter.GetNonce()
@@ -350,7 +350,7 @@ func (wr *WidgetsRender) prepareBlockInfo() {
 	durationSentOrReceivedBlockToReceivedSignatures := float64(wr.presenter.GetDurationProofReceivedFromProposedBlockReceivedOrSent()) / conversionFactorToSeconds
 
 	rows[6] = []string{
-		fmt.Sprintf("Received proposed block: %.6f sec | Received signatures: %.6f sec",
+		fmt.Sprintf("Received proposed block: %.6f sec | Received proof: %.6f sec",
 			durationStartRoundToSentOrReceivedBlock,
 			durationSentOrReceivedBlockToReceivedSignatures),
 	}
@@ -359,10 +359,12 @@ func (wr *WidgetsRender) prepareBlockInfo() {
 	durationSentOrReceivedBlockToReceivedSignatures = float64(wr.presenter.GetAvgDurationProofReceivedFromProposedBlockReceivedOrSent()) / conversionFactorToSeconds
 
 	rows[7] = []string{
-		fmt.Sprintf("Avg Received proposed block: %.6f sec | Avg Received signatures: %.6f sec",
+		fmt.Sprintf("Avg Received proposed block: %.6f sec | Avg Received proof: %.6f sec",
 			durationStartRoundToSentOrReceivedBlock,
 			durationSentOrReceivedBlockToReceivedSignatures),
 	}
+
+	rows[9] = []string{fmt.Sprintf("Num tracked blocks: %d", wr.presenter.GetNumTrackedBlocks())}
 
 	wr.blockInfo.Title = "Block info:"
 	wr.blockInfo.RowSeparator = false

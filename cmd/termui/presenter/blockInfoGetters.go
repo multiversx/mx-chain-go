@@ -76,3 +76,7 @@ func (psh *PresenterStatusHandler) GetAvgDurationProposedBlockReceivedOrSentFrom
 func (psh *PresenterStatusHandler) GetAvgDurationProofReceivedFromProposedBlockReceivedOrSent() uint64 {
 	return psh.getFromCacheAsUint64(common.MetricAvgReceivedProof)
 }
+
+func (psh *PresenterStatusHandler) GetNumTrackedBlocks() uint64 {
+	return psh.getFromCacheAsUint64(common.MetricNumTrackedBlocks)
+}
