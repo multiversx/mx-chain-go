@@ -498,18 +498,6 @@ func (st *selectionTracker) isTransactionTracked(transaction *WrappedTransaction
 	return true
 }
 
-func (st *selectionTracker) getSnapshotOfTrackedBlocks() []*trackedBlock {
-	st.mutTracker.RLock()
-	defer st.mutTracker.RUnlock()
-
-	copyOfTrackedBlocks := make([]*trackedBlock, 0, len(st.blocks))
-	for _, value := range st.blocks {
-		copyOfTrackedBlocks = append(copyOfTrackedBlocks, value)
-	}
-
-	return copyOfTrackedBlocks
-}
-
 func (st *selectionTracker) displayTrackedBlocks(contextualLogger logger.Logger, linePrefix string) {
 	st.mutTracker.RLock()
 	defer st.mutTracker.RUnlock()
