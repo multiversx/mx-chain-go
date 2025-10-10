@@ -115,7 +115,7 @@ func (cache *TxCache) GetByTxHash(txHash []byte) (*WrappedTransaction, bool) {
 // It returns up to "options.maxNumTxs" transactions, with total gas <= "options.gasRequested".
 // The selection takes into consideration the proposed blocks which were not yet executed.
 // The SelectTransactions should receive the nonce of the block on which the selection is built.
-// The blocks with a nonce greater that the given one will be removed.
+// The blocks with a nonce greater than the given one will be removed.
 func (cache *TxCache) SelectTransactions(
 	session SelectionSession,
 	options common.TxSelectionOptions,

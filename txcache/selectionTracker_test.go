@@ -1481,7 +1481,7 @@ func TestSelectionTracker_removeBlockAboveOrEqualToNoLock(t *testing.T) {
 	}
 
 	require.Equal(t, 3, len(txCache.tracker.blocks))
-	err = tracker.removeBlockAboveOrEqualToNoLock([]byte("hash1"), &trackedBlock{
+	err = tracker.removeBlockEqualOrAboveNoLock([]byte("hash1"), &trackedBlock{
 		nonce:    1,
 		hash:     []byte("hash3"),
 		rootHash: []byte("rootHash"),
