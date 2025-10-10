@@ -97,7 +97,7 @@ func (gabc *globalAccountBreadcrumbsCompiler) getGlobalBreadcrumbByAddress(addre
 		return nil, errGlobalBreadcrumbDoesNotExist
 	}
 
-	return gabc.globalAccountBreadcrumbs[address].createCopy(), nil
+	return gabc.globalAccountBreadcrumbs[address].getSnapshotOfGlobalBreadcrumb(), nil
 }
 
 // getGlobalBreadcrumbs returns a deep copy of the map of global accounts breadcrumbs
@@ -107,7 +107,7 @@ func (gabc *globalAccountBreadcrumbsCompiler) getGlobalBreadcrumbs() map[string]
 
 	globalBreadcrumbsCopy := make(map[string]*globalAccountBreadcrumb)
 	for account, globalBreadcrumb := range gabc.globalAccountBreadcrumbs {
-		globalBreadcrumbsCopy[account] = globalBreadcrumb.createCopy()
+		globalBreadcrumbsCopy[account] = globalBreadcrumb.getSnapshotOfGlobalBreadcrumb()
 	}
 
 	return globalBreadcrumbsCopy
