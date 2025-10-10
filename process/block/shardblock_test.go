@@ -2160,7 +2160,7 @@ func TestShardProcessor_CommitBlockOkValsShouldWork(t *testing.T) {
 
 	txPoolOnExecutedBlockCalled := false
 	dataComponents.DataPool = initDataPool()
-	dataComponents.DataPool.Transactions().(*testscommon.ShardedDataCacheNotifierMock).OnExecutedBlockCalled = func(blockHeader data.HeaderHandler) error {
+	dataComponents.DataPool.Transactions().(*testscommon.ShardedDataCacheNotifierMock).OnExecutedBlockCalled = func(blockHeader data.HeaderHandler, rootHash []byte) error {
 		txPoolOnExecutedBlockCalled = true
 		return nil
 	}
@@ -2262,7 +2262,7 @@ func TestShardProcessor_CommitBlockFailsWhenOnExecutedBlockFails(t *testing.T) {
 
 	txPoolOnExecutedBlockCalled := false
 	dataComponents.DataPool = initDataPool()
-	dataComponents.DataPool.Transactions().(*testscommon.ShardedDataCacheNotifierMock).OnExecutedBlockCalled = func(blockHeader data.HeaderHandler) error {
+	dataComponents.DataPool.Transactions().(*testscommon.ShardedDataCacheNotifierMock).OnExecutedBlockCalled = func(blockHeader data.HeaderHandler, rootHash []byte) error {
 		txPoolOnExecutedBlockCalled = true
 		return expectedErr
 	}

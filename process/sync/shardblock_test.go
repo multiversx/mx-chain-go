@@ -2517,7 +2517,7 @@ func TestShardBootstrap_SyncBlockV3(t *testing.T) {
 		}
 		pools.TransactionsCalled = func() dataRetriever.ShardedDataCacherNotifier {
 			return &testscommon.ShardedDataStub{
-				OnExecutedBlockCalled: func(header data.HeaderHandler) error {
+				OnExecutedBlockCalled: func(header data.HeaderHandler, rootHash []byte) error {
 					return nil
 				},
 			}
@@ -2795,7 +2795,7 @@ func TestShardBootstrap_SyncBlockV3(t *testing.T) {
 		}
 		pools.TransactionsCalled = func() dataRetriever.ShardedDataCacherNotifier {
 			return &testscommon.ShardedDataStub{
-				OnExecutedBlockCalled: func(header data.HeaderHandler) error {
+				OnExecutedBlockCalled: func(header data.HeaderHandler, rootHash []byte) error {
 					return nil
 				},
 			}

@@ -1061,7 +1061,7 @@ func (sp *shardProcessor) CommitBlock(
 		return err
 	}
 
-	rootHash := sp.getTxPoolOnExecutedRootHash(header, committedRootHash)
+	rootHash := sp.getLastExecutionResultsRootHash(header, committedRootHash)
 	lastExecutionResultHeader, err := sp.getLastExecutionResultHeader(header)
 	if err != nil {
 		return err
@@ -1144,7 +1144,7 @@ func (sp *shardProcessor) CommitBlock(
 	return nil
 }
 
-func (sp *shardProcessor) getTxPoolOnExecutedRootHash(
+func (sp *shardProcessor) getLastExecutionResultsRootHash(
 	header data.HeaderHandler,
 	committedRootHash []byte,
 ) []byte {

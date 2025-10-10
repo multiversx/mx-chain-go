@@ -2356,3 +2356,8 @@ func (bp *baseProcessor) computeOwnShardStuckIfNeeded(header data.HeaderHandler)
 	bp.blockTracker.ComputeOwnShardStuck(lastExecResultsHandler, header.GetNonce())
 	return nil
 }
+
+func (bp *baseProcessor) getMaxRoundsWithoutBlockReceived(round uint64) uint64 {
+	maxRoundsWithoutNewBlockReceived := bp.processConfigsHandler.GetMaxRoundsWithoutNewBlockReceivedByRound(round)
+	return uint64(maxRoundsWithoutNewBlockReceived)
+}
