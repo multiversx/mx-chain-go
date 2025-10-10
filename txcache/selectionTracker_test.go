@@ -578,6 +578,9 @@ func Test_CompleteFlowShouldWork(t *testing.T) {
 
 	// update the session nonce
 	selectionSession = &txcachemocks.SelectionSessionMock{
+		GetRootHashCalled: func() ([]byte, error) {
+			return []byte("rootHash0"), nil
+		},
 		GetAccountNonceAndBalanceCalled: func(address []byte) (uint64, *big.Int, bool, error) {
 			if string(address) == "alice" {
 				return 14, big.NewInt(8 * 100000 * oneBillion), true, nil
