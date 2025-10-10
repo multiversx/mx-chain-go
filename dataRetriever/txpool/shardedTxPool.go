@@ -417,6 +417,7 @@ func (txPool *shardedTxPool) CleanupSelfShardTxCache(accountsProvider common.Acc
 	)
 }
 
+// GetNumTrackedBlocks returns the number of blocks being tracked by the underlying TxCache
 func (txPool *shardedTxPool) GetNumTrackedBlocks() uint64 {
 	cache := txPool.getSelfShardTxCache()
 	return cache.GetNumTrackedBlocks()

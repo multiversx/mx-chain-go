@@ -343,9 +343,6 @@ func (wr *WidgetsRender) prepareBlockInfo() {
 		}
 	}
 
-	currentRoundTimestamp := wr.presenter.GetCurrentRoundTimestamp()
-	rows[8] = []string{fmt.Sprintf("Current round timestamp: %d", currentRoundTimestamp)}
-
 	durationStartRoundToSentOrReceivedBlock := float64(wr.presenter.GetDurationProposedBlockReceivedOrSentFromRoundStart()) / conversionFactorToSeconds
 	durationSentOrReceivedBlockToReceivedSignatures := float64(wr.presenter.GetDurationProofReceivedFromProposedBlockReceivedOrSent()) / conversionFactorToSeconds
 
@@ -363,6 +360,9 @@ func (wr *WidgetsRender) prepareBlockInfo() {
 			durationStartRoundToSentOrReceivedBlock,
 			durationSentOrReceivedBlockToReceivedSignatures),
 	}
+
+	currentRoundTimestamp := wr.presenter.GetCurrentRoundTimestamp()
+	rows[8] = []string{fmt.Sprintf("Current round timestamp: %d", currentRoundTimestamp)}
 
 	rows[9] = []string{fmt.Sprintf("Num tracked blocks: %d", wr.presenter.GetNumTrackedBlocks())}
 
