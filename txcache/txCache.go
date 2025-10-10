@@ -121,16 +121,15 @@ func (cache *TxCache) SelectTransactions(
 	options common.TxSelectionOptions,
 	currentBlockNonce uint64,
 ) ([]*WrappedTransaction, uint64, error) {
-	return cache.selectTransactions(session, options, nonce, false)
+	return cache.selectTransactions(session, options, currentBlockNonce, false)
 }
 
 // SimulateSelectTransactions simulates a selection of transaction and does not affect the internal state of the tracker
 func (cache *TxCache) SimulateSelectTransactions(
 	session SelectionSession,
 	options common.TxSelectionOptions,
-	nonce uint64,
 ) ([]*WrappedTransaction, uint64, error) {
-	return cache.selectTransactions(session, options, nonce, true)
+	return cache.selectTransactions(session, options, 0, true)
 }
 
 // selectTransactions executes a real / simulated selection

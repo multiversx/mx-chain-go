@@ -1619,7 +1619,7 @@ func Test_SimulateSelection_ShouldNotRemoveProposedBlocks(t *testing.T) {
 	require.Equal(t, txpool.CountTx(), uint64(numTxs))
 
 	// do the first selection
-	selectedTransactions, _, err := txpool.SimulateSelectTransactions(selectionSession, options, 0)
+	selectedTransactions, _, err := txpool.SimulateSelectTransactions(selectionSession, options)
 	require.Nil(t, err)
 	require.Equal(t, numTxsPerSender, len(selectedTransactions))
 
@@ -1636,7 +1636,7 @@ func Test_SimulateSelection_ShouldNotRemoveProposedBlocks(t *testing.T) {
 	require.Nil(t, err)
 
 	// do the second selection
-	selectedTransactions, _, err = txpool.SimulateSelectTransactions(selectionSession, options, 2)
+	selectedTransactions, _, err = txpool.SimulateSelectTransactions(selectionSession, options)
 	require.Nil(t, err)
 	require.Equal(t, numTxsPerSender, len(selectedTransactions))
 
@@ -1652,11 +1652,8 @@ func Test_SimulateSelection_ShouldNotRemoveProposedBlocks(t *testing.T) {
 	)
 	require.Nil(t, err)
 
-	// now, suppose we want to re-select again for the block with nonce 2
-	// this means we do not want to use the second proposed block
-	// to do this, we have to call the SelectTransactions with other nonce - 1.
-	// but because it is only a simulation, we should have only one more non-empty selection.
-	selectedTransactions, _, err = txpool.SimulateSelectTransactions(selectionSession, options, 1)
+	// because it is only a simulation, we should have only one more non-empty selection.
+	selectedTransactions, _, err = txpool.SimulateSelectTransactions(selectionSession, options)
 	require.Nil(t, err)
 	require.Equal(t, numTxsPerSender, len(selectedTransactions))
 
@@ -1674,7 +1671,7 @@ func Test_SimulateSelection_ShouldNotRemoveProposedBlocks(t *testing.T) {
 
 	// now, do the last selection and expect an empty one
 	// used a lower nonce to highlight that the proposed blocks will not be removed
-	selectedTransactions, _, err = txpool.SimulateSelectTransactions(selectionSession, options, 0)
+	selectedTransactions, _, err = txpool.SimulateSelectTransactions(selectionSession, options)
 	require.Nil(t, err)
 	require.Equal(t, 0, len(selectedTransactions))
 }
