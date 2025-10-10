@@ -84,9 +84,7 @@ func TestMempoolWithChainSimulator_Selection_WhenUsersHaveZeroBalance_WithRelaye
 
 	shard := 0
 
-	simulator := startChainSimulator(t, func(cfg *config.Configs) {
-		cfg.EpochConfig.EnableEpochs.SupernovaEnableEpoch = 100
-	})
+	simulator := startChainSimulator(t, func(cfg *config.Configs) {})
 	defer simulator.Close()
 
 	err := simulator.GenerateBlocksUntilEpochIsReached(2)

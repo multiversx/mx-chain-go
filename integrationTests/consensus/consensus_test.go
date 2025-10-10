@@ -241,7 +241,7 @@ func testConsensusBLSWithFullProcessing(
 		blsConsensusType,
 		numKeysOnEachNode,
 		enableEpochsConfig,
-		integrationTests.GetSupernovaRoundsConfig(),
+		integrationTests.GetSupernovaRoundsConfigDeactivated(),
 		true,
 		roundsPerEpoch,
 	)
@@ -563,7 +563,6 @@ func runFullConsensusTest(
 	numNodes := uint32(4)
 	consensusSize := uint32(3 * numKeysOnEachNode)
 	numInvalid := uint32(0)
-	roundTime := uint64(1000)
 	numCommBlock := uint64(8)
 
 	log.Info("runFullConsensusTest",
@@ -573,9 +572,8 @@ func runFullConsensusTest(
 	)
 
 	enableEpochsConfig := integrationTests.CreateEnableEpochsConfig()
-
-	equivalentProofsActivationEpoch := integrationTests.UnreachableEpoch
-	enableEpochsConfig.AndromedaEnableEpoch = equivalentProofsActivationEpoch
+	enableEpochsConfig.AndromedaEnableEpoch = integrationTests.UnreachableEpoch
+	enableEpochsConfig.SupernovaEnableEpoch = integrationTests.UnreachableEpoch
 
 	nodes := initNodesAndTest(
 		numMetaNodes,

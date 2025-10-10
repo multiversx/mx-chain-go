@@ -1,11 +1,12 @@
 package integrationTests
 
 import (
+	vmcommon "github.com/multiversx/mx-chain-vm-common-go"
+
 	"github.com/multiversx/mx-chain-go/config"
 	"github.com/multiversx/mx-chain-go/process"
 	"github.com/multiversx/mx-chain-go/state"
 	"github.com/multiversx/mx-chain-go/testscommon/stakingcommon"
-	vmcommon "github.com/multiversx/mx-chain-vm-common-go"
 )
 
 // ProcessSCOutputAccounts will save account changes in accounts db from vmOutput
@@ -47,6 +48,19 @@ func GetSupernovaRoundsConfig() config.RoundConfig {
 			},
 			"SupernovaEnableRound": {
 				Round: "0",
+			},
+		},
+	}
+}
+
+func GetSupernovaRoundsConfigDeactivated() config.RoundConfig {
+	return config.RoundConfig{
+		RoundActivations: map[string]config.ActivationRoundByName{
+			"DisableAsyncCallV1": {
+				Round: "9999999",
+			},
+			"SupernovaEnableRound": {
+				Round: "9999999",
 			},
 		},
 	}

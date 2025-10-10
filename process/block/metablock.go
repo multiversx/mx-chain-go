@@ -320,8 +320,9 @@ func (mp *metaProcessor) ProcessBlock(
 	return nil
 }
 
+// TODO: move this to the ProcessBlockProposal for meta chain
 func (mp *metaProcessor) updateEpochStartTrigger(round, nonce uint64) {
-	if mp.enableRoundsHandler.IsFlagEnabled(common.SupernovaRoundFlag) {
+	if common.IsAsyncExecutionEnabled(mp.enableEpochsHandler, mp.enableRoundsHandler) {
 		mp.epochStartTrigger.UpdateRound(round)
 	} else {
 		mp.epochStartTrigger.Update(round, nonce)

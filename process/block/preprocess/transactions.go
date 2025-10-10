@@ -640,7 +640,7 @@ func (txs *transactions) processTxsFromMe(
 		return err
 	}
 
-	if txs.enableEpochsHandler.IsFlagEnabled(common.SupernovaFlag) && txs.enableRoundsHandler.IsFlagEnabled(common.SupernovaRoundFlag) {
+	if common.IsAsyncExecutionEnabled(txs.enableEpochsHandler, txs.enableRoundsHandler) {
 		// save the calculatedMiniBlocks for later comparison
 		txs.mutCreatedMiniBlocks.Lock()
 		txs.createdMiniBlocks = calculatedMiniBlocks
@@ -881,6 +881,7 @@ func (txs *transactions) processAndRemoveBadTransaction(
 ) error {
 	txs.txExecutionOrderHandler.Add(txHash)
 	_, err := txs.txProcessor.ProcessTransaction(tx)
+
 	isNotExecutable := errors.Is(err, process.ErrLowerNonceInTransaction) || errors.Is(err, process.ErrInsufficientFee) || errors.Is(err, process.ErrTransactionNotExecutable)
 	if err != nil && common.IsAsyncExecutionEnabled(txs.enableEpochsHandler, txs.enableRoundsHandler) {
 		isNotExecutable = process.IsNotExecutableTransactionError(err)

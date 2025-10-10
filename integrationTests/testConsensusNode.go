@@ -219,6 +219,7 @@ func (tcn *TestConsensusNode) initNode(args ArgsTestConsensusNode) {
 				MetachainConsensusGroupSize: uint32(args.ConsensusSize),
 				RoundsPerEpoch:              1000,
 				MinRoundsBetweenEpochs:      1,
+				RoundDuration:               uint64(roundTime.Milliseconds()),
 			}, nil
 		},
 	}
