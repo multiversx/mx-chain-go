@@ -995,8 +995,10 @@ func (boot *baseBootstrap) prepareTxPoolToSyncBlock() error {
 		return err
 	}
 
+	rootHash := lastExecResultsHandler.GetRootHash()
+
 	txPool := boot.poolsHolder.Transactions()
-	err = txPool.OnExecutedBlock(lastExecutedHeader)
+	err = txPool.OnExecutedBlock(lastExecutedHeader, rootHash)
 	if err != nil {
 		// TODO: reset the txPool context in case of error, once this will be implemented
 		return err
