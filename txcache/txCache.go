@@ -118,7 +118,7 @@ func (cache *TxCache) GetByTxHash(txHash []byte) (*WrappedTransaction, bool) {
 func (cache *TxCache) SelectTransactions(
 	session SelectionSession,
 	options common.TxSelectionOptions,
-	nonce uint64,
+	currentBlockNonce uint64,
 ) ([]*WrappedTransaction, uint64, error) {
 	if check.IfNil(session) {
 		log.Error("TxCache.SelectTransactions", "err", errNilSelectionSession)
@@ -135,7 +135,7 @@ func (cache *TxCache) SelectTransactions(
 		"num bytes", cache.NumBytes(),
 	)
 
-	virtualSession, err := cache.tracker.deriveVirtualSelectionSession(session, nonce)
+	virtualSession, err := cache.tracker.deriveVirtualSelectionSession(session, currentBlockNonce)
 	if err != nil {
 		log.Error("TxCache.SelectTransactions: could not derive virtual selection session", "err", err)
 		return nil, 0, err

@@ -8,6 +8,7 @@ import (
 	"github.com/multiversx/mx-chain-core-go/data"
 	"github.com/multiversx/mx-chain-core-go/data/block"
 	"github.com/multiversx/mx-chain-go/common"
+	logger "github.com/multiversx/mx-chain-logger-go"
 	"golang.org/x/exp/slices"
 )
 
@@ -350,7 +351,7 @@ func (st *selectionTracker) deriveVirtualSelectionSession(
 	session SelectionSession,
 	nonce uint64,
 ) (*virtualSelectionSession, error) {
-	// TODO should remove all blocks greater than the received nonce from blockchainInfo
+	// TODO should remove all blocks greater than the received nonce
 	rootHash, err := session.GetRootHash()
 	if err != nil {
 		log.Debug("selectionTracker.deriveVirtualSelectionSession",
@@ -363,11 +364,7 @@ func (st *selectionTracker) deriveVirtualSelectionSession(
 		"nonce", nonce,
 	)
 
-	trackedBlocks := st.getSnapshotOfTrackedBlocks()
-	log.Debug("selectionTracker.deriveVirtualSelectionSession",
-		"len(trackedBlocks)", len(trackedBlocks))
-
-	displayTrackedBlocks(log, "trackedBlocks", trackedBlocks)
+	st.displayTrackedBlocks(log, "trackedBlocks")
 
 	computer := newVirtualSessionComputer(session)
 
@@ -511,4 +508,23 @@ func (st *selectionTracker) getSnapshotOfTrackedBlocks() []*trackedBlock {
 	}
 
 	return copyOfTrackedBlocks
+}
+
+func (st *selectionTracker) displayTrackedBlocks(contextualLogger logger.Logger, linePrefix string) {
+	st.mutTracker.RLock()
+	defer st.mutTracker.RUnlock()
+
+	log.Debug("selectionTracker.deriveVirtualSelectionSession",
+		"len(trackedBlocks)", len(st.blocks))
+
+	if contextualLogger.GetLevel() > logger.LogTrace {
+		return
+	}
+
+	if len(st.blocks) > 0 {
+		contextualLogger.Trace("displayTrackedBlocks - trackedBlocks (as newline-separated JSON):")
+		contextualLogger.Trace(marshalTrackedBlockToNewlineDelimitedJSON(st.blocks, linePrefix))
+	} else {
+		contextualLogger.Trace("displayTrackedBlocks - trackedBlocks: none")
+	}
 }
