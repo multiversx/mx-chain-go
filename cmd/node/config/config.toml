@@ -517,13 +517,13 @@
 
 [ExecutedMiniBlocksCache]
     Name = "ExecutedMiniBlocksCache"
-    Capacity = 1000
+    Capacity = 500
     Type = "SizeLRU"
     SizeInBytes = 52428800 # 50MB
 
 [PostProcessTransactionsCache]
     Name = "PostProcessTransactionsCache"
-    Capacity = 500000
+    Capacity = 250000
     Type = "SizeLRU"
     SizeInBytes = 104857600 # 100MB
 
