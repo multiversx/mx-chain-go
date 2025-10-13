@@ -93,7 +93,6 @@ func CreateNodesWithTestFullNode(
 	numKeysOnEachNode int,
 	enableEpochsConfig config.EnableEpochs,
 	roundsConfig config.RoundConfig,
-	withSync bool,
 	roundsPerEpoch int64,
 ) map[uint32][]*TestFullNode {
 	nodes := make(map[uint32][]*TestFullNode, nodesPerShard)
@@ -175,9 +174,10 @@ type ArgsTestFullNode struct {
 type TestFullNode struct {
 	*TestProcessorNode
 
-	ShardCoordinator sharding.Coordinator
-	MultiSigner      *cryptoMocks.MultisignerMock
-	GenesisTimeField time.Time
+	ShardCoordinator          sharding.Coordinator
+	MultiSigner               *cryptoMocks.MultisignerMock
+	GenesisTimeField          time.Time
+	SupernovaGenesisTimeField time.Time
 }
 
 // NewTestFullNode will create a new instance of full testing node
@@ -198,7 +198,6 @@ func NewTestFullNode(args ArgsTestFullNode) *TestFullNode {
 }
 
 func (tfn *TestFullNode) initNodesCoordinator(
-	consensusSize int,
 	hasher hashing.Hasher,
 	epochStartRegistrationHandler notifier.EpochStartNotifier,
 	eligibleMap map[uint32][]nodesCoordinator.Validator,
@@ -267,16 +266,18 @@ func (tpn *TestFullNode) initTestNodeWithArgs(args ArgTestProcessorNode, fullArg
 	} else {
 		tpn.GenesisTimeField = time.Unix(fullArgs.StartTime, 0)
 	}
+	supernovaRound := tpn.EnableRoundsHandler.GetActivationRound(common.SupernovaRoundFlag)
+	tpn.SupernovaGenesisTimeField = tpn.GenesisTimeField.Add(time.Duration(supernovaRound) * roundDuration)
 
 	roundArgs := round.ArgsRound{
 		GenesisTimeStamp:          tpn.GenesisTimeField,
-		SupernovaGenesisTimeStamp: tpn.GenesisTimeField,
+		SupernovaGenesisTimeStamp: tpn.SupernovaGenesisTimeField,
 		CurrentTimeStamp:          syncer.CurrentTime(),
 		RoundTimeDuration:         roundDuration,
 		SupernovaTimeDuration:     roundDuration,
 		SyncTimer:                 syncer,
 		StartRound:                0,
-		SupernovaStartRound:       0,
+		SupernovaStartRound:       int64(supernovaRound),
 		EnableRoundsHandler:       tpn.EnableRoundsHandler,
 	}
 	roundHandler, _ := round.NewRound(roundArgs)
@@ -329,7 +330,6 @@ func (tpn *TestFullNode) initTestNodeWithArgs(args ArgTestProcessorNode, fullArg
 	pkBytes, _ := tpn.NodeKeys.MainKey.Pk.ToByteArray()
 	consensusCache, _ := cache.NewLRUCache(10000)
 	tpn.initNodesCoordinator(
-		fullArgs.ConsensusSize,
 		createHasher(fullArgs.ConsensusType),
 		tpn.EpochStartNotifier,
 		fullArgs.EligibleMap,
@@ -476,6 +476,7 @@ func (tpn *TestFullNode) initNode(
 	}
 
 	coreComponents.GenesisTimeField = tpn.GenesisTimeField
+	coreComponents.SupernovaGenesisTimeField = tpn.SupernovaGenesisTimeField
 	coreComponents.GenesisNodesSetupField = &genesisMocks.NodesSetupStub{
 		GetShardConsensusGroupSizeCalled: func() uint32 {
 			return uint32(args.ConsensusSize)
@@ -668,7 +669,7 @@ func (tfn *TestFullNode) createForkDetector(
 			tfn.BlockBlackListHandler,
 			tfn.BlockTracker,
 			tfn.GenesisTimeField.Unix(),
-			tfn.GenesisTimeField.UnixMilli(),
+			tfn.SupernovaGenesisTimeField.UnixMilli(),
 			tfn.EnableEpochsHandler,
 			tfn.EnableRoundsHandler,
 			tfn.DataPool.Proofs(),
@@ -681,7 +682,7 @@ func (tfn *TestFullNode) createForkDetector(
 			tfn.BlockBlackListHandler,
 			tfn.BlockTracker,
 			tfn.GenesisTimeField.Unix(),
-			tfn.GenesisTimeField.UnixMilli(),
+			tfn.SupernovaGenesisTimeField.UnixMilli(),
 			tfn.EnableEpochsHandler,
 			tfn.EnableRoundsHandler,
 			tfn.DataPool.Proofs(),
@@ -700,8 +701,10 @@ func (tfn *TestFullNode) createForkDetector(
 func (tfn *TestFullNode) createEpochStartTrigger() TestEpochStartTrigger {
 	var epochTrigger TestEpochStartTrigger
 	if tfn.ShardCoordinator.SelfId() == core.MetachainShardId {
+		genesisTime := common.GetGenesisStartTimeFromUnixTimestamp(tfn.GenesisTimeField.Unix(), tfn.EnableEpochsHandler)
+
 		argsNewMetaEpochStart := &metachain.ArgsNewMetaEpochStartTrigger{
-			GenesisTime:            tfn.GenesisTimeField,
+			GenesisTime:            genesisTime,
 			EpochStartNotifier:     tfn.EpochStartNotifier,
 			Settings:               &config.EpochStartConfig{},
 			Epoch:                  0,

@@ -1394,3 +1394,6 @@ var ErrTransactionsMismatch = errors.New("transactions mismatch")
 
 // ErrGasUsedExceedsGasProvided signals that gas used exceeds gas provided
 var ErrGasUsedExceedsGasProvided = errors.New("gas used exceeds gas provided")
+
+// ErrZeroLimit signals that the limit is zero
+var ErrZeroLimit = errors.New("zero limit")

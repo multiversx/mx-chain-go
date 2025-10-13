@@ -18,6 +18,8 @@ type GasComputationMock struct {
 	TotalGasConsumedCalled            func() uint64
 	DecreaseIncomingLimitCalled       func()
 	DecreaseOutgoingLimitCalled       func()
+	ZeroIncomingLimitCalled           func()
+	ZeroOutgoingLimitCalled           func()
 	ResetIncomingLimitCalled          func()
 	ResetOutgoingLimitCalled          func()
 	ResetCalled                       func()
@@ -72,6 +74,20 @@ func (mock *GasComputationMock) DecreaseIncomingLimit() {
 func (mock *GasComputationMock) DecreaseOutgoingLimit() {
 	if mock.DecreaseOutgoingLimitCalled != nil {
 		mock.DecreaseOutgoingLimitCalled()
+	}
+}
+
+// ZeroIncomingLimit -
+func (mock *GasComputationMock) ZeroIncomingLimit() {
+	if mock.ZeroIncomingLimitCalled != nil {
+		mock.ZeroIncomingLimitCalled()
+	}
+}
+
+// ZeroOutgoingLimit -
+func (mock *GasComputationMock) ZeroOutgoingLimit() {
+	if mock.ZeroOutgoingLimitCalled != nil {
+		mock.ZeroOutgoingLimitCalled()
 	}
 }
 
