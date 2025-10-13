@@ -266,6 +266,12 @@ var ErrValidatorInfoNotFound = errors.New("validator info not found")
 // ErrNilProofsPool signals that a nil proofs pool has been provided
 var ErrNilProofsPool = errors.New("nil proofs pool")
 
+// ErrNilExecutedMiniBlocksCache signals that a nil executed mini blocks cache has been provided
+var ErrNilExecutedMiniBlocksCache = errors.New("nil executed mini blocks cache")
+
+// ErrNilPostProcessTransactionsCache signals that a nil post-process transactions cache has been provided
+var ErrNilPostProcessTransactionsCache = errors.New("nil post process transactions cache")
+
 // ErrEquivalentProofsNotFound signals that no equivalent proof found
 var ErrEquivalentProofsNotFound = errors.New("equivalent proof not found")
 
