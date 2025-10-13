@@ -32,12 +32,15 @@ func TestNewShardHeaderFactory_CreateOK(t *testing.T) {
 
 	v1Version := "*"
 	v2Version := "2"
+	v3Version := "3"
 
 	hvh := &testscommon.HeaderVersionHandlerStub{
-		GetVersionCalled: func(epoch uint32) string {
+		GetVersionCalled: func(epoch uint32, _ uint64) string {
 			switch epoch {
 			case 1:
 				return v2Version
+			case 2:
+				return v3Version
 			}
 			return v1Version
 		},
@@ -46,14 +49,14 @@ func TestNewShardHeaderFactory_CreateOK(t *testing.T) {
 	shf, _ := NewShardHeaderFactory(hvh)
 
 	epoch := uint32(0)
-	header := shf.Create(epoch)
+	header := shf.Create(epoch, 0)
 	require.NotNil(t, header)
 	require.IsType(t, &block.Header{}, header)
 	require.Equal(t, epoch, header.GetEpoch())
 	require.Equal(t, []byte(v1Version), header.GetSoftwareVersion())
 
 	epoch = uint32(1)
-	header = shf.Create(epoch)
+	header = shf.Create(epoch, 0)
 	require.NotNil(t, header)
 
 	require.IsType(t, &block.HeaderV2{}, header)
@@ -62,4 +65,12 @@ func TestNewShardHeaderFactory_CreateOK(t *testing.T) {
 
 	require.Equal(t, epoch, header.GetEpoch())
 	require.Equal(t, []byte(v2Version), header.GetSoftwareVersion())
+
+	epoch = uint32(2)
+	header = shf.Create(epoch, 0)
+	require.NotNil(t, header)
+
+	require.IsType(t, &block.HeaderV3{}, header)
+	require.Equal(t, epoch, header.GetEpoch())
+	require.Equal(t, []byte(v3Version), header.GetSoftwareVersion())
 }

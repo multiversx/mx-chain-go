@@ -495,6 +495,30 @@ func TestValidatorInfoPreprocessor_SaveTxsToStorageShouldWork(t *testing.T) {
 	assert.Equal(t, txHash3, putHashes[0])
 }
 
+func TestValidatorInfoPreprocessor_GetCreatedMiniBlocksFromMe(t *testing.T) {
+	t.Parallel()
+
+	tdp := initDataPool()
+	args := createDefaultValidatorInfoPreProcessorArgs(tdp)
+	vip, _ := NewValidatorInfoPreprocessor(args)
+
+	// always returns empty
+	createdMbs := vip.GetCreatedMiniBlocksFromMe()
+	assert.Len(t, createdMbs, 0)
+}
+
+func TestValidatorInfoPreprocessor_GetUnExecutableTransactions(t *testing.T) {
+	t.Parallel()
+
+	tdp := initDataPool()
+	args := createDefaultValidatorInfoPreProcessorArgs(tdp)
+	vip, _ := NewValidatorInfoPreprocessor(args)
+
+	// always returns empty
+	unexecTxs := vip.GetUnExecutableTransactions()
+	assert.Len(t, unexecTxs, 0)
+}
+
 func createDefaultValidatorInfoPreProcessorArgs(tdp dataRetriever.PoolsHolder) ValidatorInfoPreProcessorArgs {
 	requestTransaction := func(shardID uint32, txHashes [][]byte) {}
 	return ValidatorInfoPreProcessorArgs{

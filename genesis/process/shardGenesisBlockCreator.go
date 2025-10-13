@@ -163,7 +163,7 @@ func CreateShardGenesisBlock(
 	)
 
 	round, nonce, epoch := getGenesisBlocksRoundNonceEpoch(arg)
-	headerHandler := arg.versionedHeaderFactory.Create(epoch)
+	headerHandler := arg.versionedHeaderFactory.Create(epoch, round)
 	err = setInitialDataInHeader(headerHandler, arg, epoch, nonce, round, rootHash)
 	if err != nil {
 		return nil, nil, nil, err

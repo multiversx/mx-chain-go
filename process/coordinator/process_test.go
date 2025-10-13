@@ -265,8 +265,8 @@ func createMockTransactionCoordinatorArguments() ArgTransactionCoordinator {
 		BlockDataRequester:           &preprocMocks.BlockDataRequesterStub{},
 		BlockDataRequesterProposal:   &preprocMocks.BlockDataRequesterStub{},
 		GasComputation: &testscommon.GasComputationMock{
-			CheckOutgoingTransactionsCalled: func(txHashes [][]byte, transactions []data.TransactionHandler) ([][]byte, error) {
-				return txHashes, nil
+			CheckOutgoingTransactionsCalled: func(txHashes [][]byte, transactions []data.TransactionHandler) ([][]byte, []data.MiniBlockHeaderHandler, error) {
+				return txHashes, nil, nil
 			},
 			CheckIncomingMiniBlocksCalled: func(miniBlocks []data.MiniBlockHeaderHandler, transactions map[string][]data.TransactionHandler) (int, int, error) {
 				return len(miniBlocks), 0, nil
@@ -4071,6 +4071,118 @@ func TestTransactionCoordinator_getIndexesOfLastTxProcessed(t *testing.T) {
 		assert.Equal(t, int32(-1), pi.indexOfLastTxProcessed)
 		assert.Equal(t, mbh.GetIndexOfLastTxProcessed(), pi.indexOfLastTxProcessedByProposer)
 	})
+}
+
+func TestTransactionCoordinator_GetCreatedMiniBlocksFromMe(t *testing.T) {
+	t.Parallel()
+
+	txCoordinatorArgs := createDefaultTxCoordinatorArgs()
+	tc, err := NewTransactionCoordinator(txCoordinatorArgs)
+	assert.Nil(t, err)
+	assert.NotNil(t, tc)
+
+	mb1 := &block.MiniBlock{
+		Type:            block.TxBlock,
+		TxHashes:        [][]byte{[]byte("tx1"), []byte("tx2")},
+		ReceiverShardID: 0,
+		SenderShardID:   1,
+	}
+
+	mb2 := &block.MiniBlock{
+		Type:            block.SmartContractResultBlock,
+		TxHashes:        [][]byte{[]byte("tx3"), []byte("tx4")},
+		ReceiverShardID: 1,
+		SenderShardID:   0,
+	}
+
+	mb3 := &block.MiniBlock{
+		Type:            block.RewardsBlock,
+		TxHashes:        [][]byte{[]byte("tx5"), []byte("tx6")},
+		ReceiverShardID: 1,
+		SenderShardID:   0,
+	}
+
+	mb4 := &block.MiniBlock{
+		Type:            block.PeerBlock,
+		TxHashes:        [][]byte{[]byte("tx7"), []byte("tx8")},
+		ReceiverShardID: 1,
+		SenderShardID:   0,
+	}
+
+	miniBlocks := block.MiniBlockSlice{mb1, mb2, mb3, mb4}
+	tc.preProcExecution.txPreProcessors[block.TxBlock] = &preprocMocks.PreProcessorMock{
+		GetCreatedMiniBlocksFromMeCalled: func() block.MiniBlockSlice {
+			return block.MiniBlockSlice{mb1}
+		},
+	}
+	tc.preProcExecution.txPreProcessors[block.SmartContractResultBlock] = &preprocMocks.PreProcessorMock{
+		GetCreatedMiniBlocksFromMeCalled: func() block.MiniBlockSlice {
+			return block.MiniBlockSlice{mb2}
+		},
+	}
+	tc.preProcExecution.txPreProcessors[block.RewardsBlock] = &preprocMocks.PreProcessorMock{
+		GetCreatedMiniBlocksFromMeCalled: func() block.MiniBlockSlice {
+			return block.MiniBlockSlice{mb3}
+		},
+	}
+
+	tc.preProcExecution.txPreProcessors[block.PeerBlock] = &preprocMocks.PreProcessorMock{
+		GetCreatedMiniBlocksFromMeCalled: func() block.MiniBlockSlice {
+			return block.MiniBlockSlice{mb4}
+		},
+	}
+
+	createdMBs := tc.GetCreatedMiniBlocksFromMe()
+	require.Equal(t, 4, len(createdMBs))
+	for _, mb := range miniBlocks {
+		require.Contains(t, createdMBs, mb)
+	}
+}
+
+func TestTransactionCoordinator_getUnExecutableTransactions(t *testing.T) {
+	t.Parallel()
+
+	txCoordinatorArgs := createDefaultTxCoordinatorArgs()
+	tc, err := NewTransactionCoordinator(txCoordinatorArgs)
+	assert.Nil(t, err)
+	assert.NotNil(t, tc)
+
+	txHashes := []string{"tx1", "tx2", "tx3", "tx4"}
+
+	tc.preProcExecution.txPreProcessors[block.TxBlock] = &preprocMocks.PreProcessorMock{
+		GetUnExecutableTransactionsCalled: func() map[string]struct{} {
+			return map[string]struct{}{
+				txHashes[0]: {},
+			}
+		},
+	}
+	tc.preProcExecution.txPreProcessors[block.SmartContractResultBlock] = &preprocMocks.PreProcessorMock{
+		GetUnExecutableTransactionsCalled: func() map[string]struct{} {
+			return map[string]struct{}{
+				txHashes[1]: {},
+			}
+		},
+	}
+	tc.preProcExecution.txPreProcessors[block.RewardsBlock] = &preprocMocks.PreProcessorMock{
+		GetUnExecutableTransactionsCalled: func() map[string]struct{} {
+			return map[string]struct{}{
+				txHashes[2]: {},
+			}
+		},
+	}
+	tc.preProcExecution.txPreProcessors[block.PeerBlock] = &preprocMocks.PreProcessorMock{
+		GetUnExecutableTransactionsCalled: func() map[string]struct{} {
+			return map[string]struct{}{
+				txHashes[3]: {},
+			}
+		},
+	}
+
+	unExecutableTxs := tc.getUnExecutableTransactions()
+	require.Equal(t, 4, len(unExecutableTxs))
+	for _, th := range txHashes {
+		require.Contains(t, unExecutableTxs, th)
+	}
 }
 
 func createDefaultTxCoordinatorArgs() ArgTransactionCoordinator {

@@ -5030,7 +5030,7 @@ func TestShardProcessor_CreateNewHeaderErrWrongTypeAssertion(t *testing.T) {
 		Coordinator:          mock.NewOneShardCoordinatorMock(),
 		HdrIntegrityVerifier: &mock.HeaderIntegrityVerifierStub{},
 		VersionedHdrFactory: &testscommon.VersionedHeaderFactoryStub{
-			CreateCalled: func(epoch uint32) data.HeaderHandler {
+			CreateCalled: func(epoch uint32, _ uint64) data.HeaderHandler {
 				return &block.MetaBlock{}
 			},
 		},
@@ -5059,14 +5059,14 @@ func TestShardProcessor_CreateNewHeaderValsOK(t *testing.T) {
 		Coordinator:          mock.NewOneShardCoordinatorMock(),
 		HdrIntegrityVerifier: &mock.HeaderIntegrityVerifierStub{},
 		VersionedHdrFactory: &testscommon.VersionedHeaderFactoryStub{
-			CreateCalled: func(epoch uint32) data.HeaderHandler {
+			CreateCalled: func(epoch uint32, _ uint64) data.HeaderHandler {
 				return &block.HeaderV2{}
 			},
 		},
 	}
 
 	boostrapComponents.VersionedHdrFactory = &testscommon.VersionedHeaderFactoryStub{
-		CreateCalled: func(epoch uint32) data.HeaderHandler {
+		CreateCalled: func(epoch uint32, _ uint64) data.HeaderHandler {
 			return &block.HeaderV2{
 				Header: &block.Header{},
 			}
@@ -5818,6 +5818,22 @@ func TestShardProcessor_checkEpochStartInfoAvailableIfNeeded(t *testing.T) {
 				return false
 			},
 		}
+
+		dataPool := initDataPool()
+		dataPool.HeadersCalled = func() dataRetriever.HeadersPool {
+			return &pool.HeadersPoolStub{
+				GetHeaderByHashCalled: func(hash []byte) (data.HeaderHandler, error) {
+					return nil, expectedError
+				},
+			}
+		}
+
+		arguments.DataComponents = &mock.DataComponentsMock{
+			Storage:    initStore(),
+			DataPool:   dataPool,
+			BlockChain: arguments.DataComponents.Blockchain(),
+		}
+
 		sp, _ := blproc.NewShardProcessor(arguments)
 		startOfEpochHeaderHash := []byte("start of epoch hash")
 		sp.ProofsPool().AddProof(&block.HeaderProof{
@@ -5832,7 +5848,7 @@ func TestShardProcessor_checkEpochStartInfoAvailableIfNeeded(t *testing.T) {
 		err := sp.CheckEpochStartInfoAvailableIfNeeded(header)
 		require.ErrorIs(t, err, process.ErrEpochStartInfoNotAvailable)
 	})
-	t.Run("epoch start trigger, epoch start not in progress, epoch start proof not available, should return nil", func(t *testing.T) {
+	t.Run("epoch start trigger, epoch start not in progress, epoch start proof not available, should return error", func(t *testing.T) {
 		t.Parallel()
 
 		arguments := CreateMockArguments(createComponentHolderMocks())

@@ -131,15 +131,12 @@ func createArgBaseProcessor(
 	var mbSelectionSession blproc.MiniBlocksSelectionSession
 	var execResultsVerifier blproc.ExecutionResultsVerifier
 	var missingDataResolver blproc.MissingDataResolver
-	var gasComputation process.GasComputation
 	if check.IfNil(dataComponents) || check.IfNil(dataComponents.Datapool()) || check.IfNil(coreComponents) || check.IfNil(bootstrapComponents) {
 		blockDataRequester = &preprocMocks.BlockDataRequesterStub{}
 		inclusionEstimator = &processMocks.InclusionEstimatorMock{}
 		mbSelectionSession = &mbSelection.MiniBlockSelectionSessionStub{}
 		execResultsVerifier = &processMocks.ExecutionResultsVerifierMock{}
 		missingDataResolver = &processMocks.MissingDataResolverMock{}
-		gasComputation = &testscommon.GasComputationMock{}
-
 	} else {
 		preprocContainer := containers.NewPreProcessorsContainer()
 		blockDataRequesterArgs := coordinator.BlockDataRequestArgs{
@@ -175,15 +172,6 @@ func createArgBaseProcessor(
 			BlockDataRequester: blockDataRequester,
 		}
 		missingDataResolver, _ = missingData.NewMissingDataResolver(missingDataArgs)
-
-		argsGasConsumption := blproc.ArgsGasConsumption{
-			EconomicsFee:                      &economicsmocks.EconomicsHandlerMock{},
-			ShardCoordinator:                  bootstrapComponents.ShardCoordinator(),
-			GasHandler:                        &mock.GasHandlerMock{},
-			BlockCapacityOverestimationFactor: 200,
-			PercentDecreaseLimitsStep:         10,
-		}
-		gasComputation, _ = blproc.NewGasConsumption(argsGasConsumption)
 	}
 
 	return blproc.ArgBaseProcessor{
@@ -226,7 +214,14 @@ func createArgBaseProcessor(
 		MissingDataResolver:                missingDataResolver,
 		ExecutionResultsInclusionEstimator: inclusionEstimator,
 		ExecutionResultsTracker:            executionResultsTracker,
-		GasComputation:                     gasComputation,
+		GasComputation: &testscommon.GasComputationMock{
+			CheckIncomingMiniBlocksCalled: func(miniBlocks []data.MiniBlockHeaderHandler, transactions map[string][]data.TransactionHandler) (int, int, error) {
+				return len(miniBlocks), 0, nil
+			},
+			CheckOutgoingTransactionsCalled: func(txHashes [][]byte, transactions []data.TransactionHandler) ([][]byte, []data.MiniBlockHeaderHandler, error) {
+				return txHashes, nil, nil
+			},
+		},
 	}
 }
 
@@ -400,7 +395,7 @@ func createComponentHolderMocks() (
 		Coordinator:          mock.NewOneShardCoordinatorMock(),
 		HdrIntegrityVerifier: &mock.HeaderIntegrityVerifierStub{},
 		VersionedHdrFactory: &testscommon.VersionedHeaderFactoryStub{
-			CreateCalled: func(epoch uint32) data.HeaderHandler {
+			CreateCalled: func(epoch uint32, _ uint64) data.HeaderHandler {
 				return &block.Header{}
 			},
 		},
@@ -480,7 +475,14 @@ func createMockTransactionCoordinatorArguments(
 		TxExecutionOrderHandler:      &commonMocks.TxExecutionOrderHandlerStub{},
 		BlockDataRequester:           blockDataRequester,
 		BlockDataRequesterProposal:   blockDataRequesterProposal,
-		GasComputation:               &testscommon.GasComputationMock{},
+		GasComputation: &testscommon.GasComputationMock{
+			CheckIncomingMiniBlocksCalled: func(miniBlocks []data.MiniBlockHeaderHandler, transactions map[string][]data.TransactionHandler) (int, int, error) {
+				return len(miniBlocks), 0, nil
+			},
+			CheckOutgoingTransactionsCalled: func(txHashes [][]byte, transactions []data.TransactionHandler) ([][]byte, []data.MiniBlockHeaderHandler, error) {
+				return txHashes, nil, nil
+			},
+		},
 	}
 
 	return argsTransactionCoordinator

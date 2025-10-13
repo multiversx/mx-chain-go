@@ -1446,7 +1446,7 @@ func (sp *shardProcessor) saveLastNotarizedHeader(shardId uint32, processedHdrs 
 // CreateNewHeader creates a new header
 func (sp *shardProcessor) CreateNewHeader(round uint64, nonce uint64) (data.HeaderHandler, error) {
 	epoch := sp.epochStartTrigger.MetaEpoch()
-	header := sp.versionedHeaderFactory.Create(epoch)
+	header := sp.versionedHeaderFactory.Create(epoch, round)
 
 	shardHeader, ok := header.(data.ShardHeaderHandler)
 	if !ok {
@@ -1466,12 +1466,7 @@ func (sp *shardProcessor) CreateNewHeader(round uint64, nonce uint64) (data.Head
 		return nil, err
 	}
 
-	err = shardHeader.SetAccumulatedFees(big.NewInt(0))
-	if err != nil {
-		return nil, err
-	}
-
-	err = shardHeader.SetDeveloperFees(big.NewInt(0))
+	err = initializeFeesDataShardHeaderIfNeeded(shardHeader)
 	if err != nil {
 		return nil, err
 	}
@@ -1484,9 +1479,30 @@ func (sp *shardProcessor) CreateNewHeader(round uint64, nonce uint64) (data.Head
 	return header, nil
 }
 
+func initializeFeesDataShardHeaderIfNeeded(shardHeader data.ShardHeaderHandler) error {
+	if shardHeader.IsHeaderV3() {
+		return nil
+	}
+
+	err := shardHeader.SetAccumulatedFees(big.NewInt(0))
+	if err != nil {
+		return err
+	}
+
+	err = shardHeader.SetDeveloperFees(big.NewInt(0))
+	if err != nil {
+		return err
+	}
+
+	return nil
+}
+
 func (sp *shardProcessor) setHeaderVersionData(shardHeader data.ShardHeaderHandler) error {
 	if check.IfNil(shardHeader) {
 		return process.ErrNilHeaderHandler
+	}
+	if shardHeader.IsHeaderV3() {
+		return nil
 	}
 
 	rootHash, err := sp.accountsDB[state.UserAccountsState].RootHash()

@@ -91,7 +91,7 @@ func NewGasConsumption(args ArgsGasConsumption) (*gasConsumption, error) {
 func (gc *gasConsumption) CheckIncomingMiniBlocks(
 	miniBlocks []data.MiniBlockHeaderHandler,
 	transactions map[string][]data.TransactionHandler,
-) (int, int, error) {
+) (lastMiniBlockIndex int, pendingMiniBlocks int, err error) {
 	gc.mut.Lock()
 	defer gc.mut.Unlock()
 
@@ -101,9 +101,10 @@ func (gc *gasConsumption) CheckIncomingMiniBlocks(
 
 	bandwidthForIncomingMiniBlocks := gc.getGasLimitForOneDirection(incoming, gc.shardCoordinator.SelfId())
 
-	lastMiniBlockIndex := initialLastIndex
+	lastMiniBlockIndex = initialLastIndex
+	shouldSavePending := false
 	for i := 0; i < len(miniBlocks); i++ {
-		shouldSavePending, err := gc.checkIncomingMiniBlock(miniBlocks[i], transactions, bandwidthForIncomingMiniBlocks)
+		shouldSavePending, err = gc.checkIncomingMiniBlock(miniBlocks[i], transactions, bandwidthForIncomingMiniBlocks)
 		if shouldSavePending {
 			gc.pendingMiniBlocks = append(gc.pendingMiniBlocks, miniBlocks[i:]...)
 			gc.transactionsForPendingMiniBlocks = transactions
@@ -198,39 +199,50 @@ func (gc *gasConsumption) checkGasConsumedByMiniBlock(mb data.MiniBlockHeaderHan
 	return gasConsumedByMB, nil
 }
 
-func (gc *gasConsumption) checkPendingIncomingMiniBlocks() error {
+func (gc *gasConsumption) checkPendingIncomingMiniBlocks() ([]data.MiniBlockHeaderHandler, error) {
+	addedMiniBlocks := make([]data.MiniBlockHeaderHandler, 0)
 	// checking if any pending mini blocks are left to fill the block
 	hasPendingMiniBlocks := len(gc.pendingMiniBlocks) > 0
 	if !hasPendingMiniBlocks {
-		return nil
+		return addedMiniBlocks, nil
 	}
 
 	bandwidthForIncomingMiniBlocks := gc.getGasLimitForOneDirection(incoming, gc.shardCoordinator.SelfId())
 	bandwidthForIncomingMiniBlocks += gc.getGasLeftFromTransactions()
+	lastIndexAdded := 0
 	for i := 0; i < len(gc.pendingMiniBlocks); i++ {
 		mb := gc.pendingMiniBlocks[i]
 		_, err := gc.checkIncomingMiniBlock(mb, gc.transactionsForPendingMiniBlocks, bandwidthForIncomingMiniBlocks)
 		if err != nil {
-			return err
+			return nil, err
 		}
+
+		addedMiniBlocks = append(addedMiniBlocks, mb)
+		lastIndexAdded = i
 	}
 
-	return nil
+	gc.pendingMiniBlocks = gc.pendingMiniBlocks[lastIndexAdded+1:]
+
+	return addedMiniBlocks, nil
 }
 
-// CheckOutgoingTransactions verifies the outgoing transactions and returns the index of the last valid transaction
+// CheckOutgoingTransactions verifies the outgoing transactions and returns:
+//   - the index of the last valid transaction
+//   - the pending mini blocks added if any
+//   - error if so
+//
 // only returns error if a transaction is invalid, with too much gas
 // This method assumes that incoming mini blocks were already handled, trying to add any remaining pending ones at the end
 func (gc *gasConsumption) CheckOutgoingTransactions(
 	txHashes [][]byte,
 	transactions []data.TransactionHandler,
-) ([][]byte, error) {
+) (addedTxHashes [][]byte, pendingMiniBlocksAdded []data.MiniBlockHeaderHandler, err error) {
 	if len(transactions) == 0 || len(txHashes) == 0 {
-		return nil, nil
+		return nil, nil, nil
 	}
 
 	if len(transactions) != len(txHashes) {
-		return nil, process.ErrInvalidValue
+		return nil, nil, process.ErrInvalidValue
 	}
 
 	gc.mut.Lock()
@@ -254,8 +266,8 @@ func (gc *gasConsumption) CheckOutgoingTransactions(
 	}
 
 	// reaching this point means that transactions were added and the limit for outgoing was not reached
-	err := gc.checkPendingIncomingMiniBlocks()
-	return addedHashes, err
+	pendingMiniBlocksAdded, err = gc.checkPendingIncomingMiniBlocks()
+	return addedHashes, pendingMiniBlocksAdded, err
 }
 
 // must be called under mutex protection
@@ -434,6 +446,17 @@ func (gc *gasConsumption) Reset() {
 	gc.gasConsumedByMiniBlock = make(map[string]uint64)
 	gc.pendingMiniBlocks = make([]data.MiniBlockHeaderHandler, 0)
 	gc.transactionsForPendingMiniBlocks = make(map[string][]data.TransactionHandler, 0)
+}
+
+// GetPendingMiniBlocks returns the pending mini blocks
+func (gc *gasConsumption) GetPendingMiniBlocks() []data.MiniBlockHeaderHandler {
+	gc.mut.RLock()
+	defer gc.mut.RUnlock()
+
+	pendingMbs := make([]data.MiniBlockHeaderHandler, len(gc.pendingMiniBlocks))
+	copy(pendingMbs, gc.pendingMiniBlocks)
+
+	return pendingMbs
 }
 
 func (gc *gasConsumption) getGasLimitForOneDirection(gasType gasType, shardID uint32) uint64 {

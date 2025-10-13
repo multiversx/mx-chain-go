@@ -678,7 +678,7 @@ func (sp *shardProcessor) SelectIncomingMiniBlocks(
 	orderedMetaBlocks []data.HeaderHandler,
 	orderedMetaBlocksHashes [][]byte,
 	haveTime func() bool,
-) error {
+) ([]block.MiniblockAndHash, error) {
 	return sp.selectIncomingMiniBlocks(lastCrossNotarizedMetaHdr, orderedMetaBlocks, orderedMetaBlocksHashes, haveTime)
 }
 
@@ -736,6 +736,11 @@ func (sp *shardProcessor) CheckInclusionEstimationForExecutionResults(header dat
 // CheckMetaHeadersValidityAndFinalityProposal -
 func (sp *shardProcessor) CheckMetaHeadersValidityAndFinalityProposal(header data.ShardHeaderHandler) error {
 	return sp.checkMetaHeadersValidityAndFinalityProposal(header)
+}
+
+// VerifyGasLimit -
+func (sp *shardProcessor) VerifyGasLimit(header data.ShardHeaderHandler) error {
+	return sp.verifyGasLimit(header)
 }
 
 // CheckEpochStartInfoAvailableIfNeeded -
