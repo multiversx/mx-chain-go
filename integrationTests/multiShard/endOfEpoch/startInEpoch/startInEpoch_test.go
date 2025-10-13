@@ -251,8 +251,9 @@ func testNodeStartsInEpoch(t *testing.T, shardID uint32, expectedHighestRound ui
 		444,
 	)
 	interceptorDataVerifierArgs := interceptorsFactory.InterceptedDataVerifierFactoryArgs{
-		CacheSpan:   time.Second * 5,
-		CacheExpiry: time.Second * 10,
+		InterceptedDataVerifierConfig: config.InterceptedDataVerifierConfig{
+			EnableCaching: false,
+		},
 	}
 	argsBootstrapHandler := bootstrap.ArgsEpochStartBootstrap{
 		NodesCoordinatorRegistryFactory: nodesCoordinatorRegistryFactory,
