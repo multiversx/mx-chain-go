@@ -61,11 +61,6 @@ func (sp *shardProcessor) CreateBlockProposal(
 		return nil, nil, err
 	}
 
-	err = sp.verifyGasLimit(shardHdr)
-	if err != nil {
-		return nil, nil, err
-	}
-
 	totalTxCount := computeTxTotalTxCount(miniBlockHeaderHandlers)
 	err = shardHdr.SetTxCount(totalTxCount)
 	if err != nil {
@@ -86,6 +81,11 @@ func (sp *shardProcessor) CreateBlockProposal(
 	// TODO: sanity check use the verify execution results method
 
 	body := &block.Body{MiniBlocks: miniBlocks}
+
+	err = sp.verifyGasLimit(body, shardHdr)
+	if err != nil {
+		return nil, nil, err
+	}
 
 	sp.appStatusHandler.SetUInt64Value(common.MetricNumTxInBlock, uint64(totalTxCount))
 	sp.appStatusHandler.SetUInt64Value(common.MetricNumMiniBlocks, uint64(len(body.MiniBlocks)))
@@ -211,10 +211,10 @@ func (sp *shardProcessor) VerifyBlockProposal(
 		return err
 	}
 
-	return sp.verifyGasLimit(header)
+	return sp.verifyGasLimit(body, header)
 }
 
-func (sp *shardProcessor) verifyGasLimit(header data.ShardHeaderHandler) error {
+func (sp *shardProcessor) verifyGasLimit(body *block.Body, header data.ShardHeaderHandler) error {
 	incomingMiniBlocks, incomingTransactions, outgoingTransactionHashes, outgoingTransactions, err := sp.splitTransactionsForHeader(header)
 	if err != nil {
 		return err

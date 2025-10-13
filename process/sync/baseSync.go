@@ -759,13 +759,28 @@ func (boot *baseBootstrap) syncBlock() error {
 	}()
 
 	if boot.forkInfo.IsDetected {
-		// should be no forks after Andromeda
-		log.Error("fork detected",
+		boot.statusHandler.Increment(common.MetricNumTimesInForkChoice)
+
+		if boot.isForcedRollBackOneBlock() {
+			log.Debug("roll back one block has been forced")
+			boot.rollBackOneBlockForced()
+			return nil
+		}
+
+		if boot.isForcedRollBackToNonce() {
+			log.Debug("roll back to nonce has been forced", "nonce", boot.forkInfo.Nonce)
+			boot.rollBackToNonceForced()
+			return nil
+		}
+
+		log.Debug("fork detected",
 			"nonce", boot.forkInfo.Nonce,
 			"hash", boot.forkInfo.Hash,
 		)
-
-		return ErrForkDetected
+		err := boot.rollBack(true)
+		if err != nil {
+			return err
+		}
 	}
 
 	var body data.BodyHandler

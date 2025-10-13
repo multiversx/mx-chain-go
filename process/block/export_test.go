@@ -740,7 +740,7 @@ func (sp *shardProcessor) CheckMetaHeadersValidityAndFinalityProposal(header dat
 
 // VerifyGasLimit -
 func (sp *shardProcessor) VerifyGasLimit(header data.ShardHeaderHandler) error {
-	return sp.verifyGasLimit(header)
+	return sp.verifyGasLimit(&block.Body{}, header)
 }
 
 // CheckEpochStartInfoAvailableIfNeeded -

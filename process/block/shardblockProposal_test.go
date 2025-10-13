@@ -469,13 +469,15 @@ func TestShardProcessor_CreateBlockProposal(t *testing.T) {
 			TxHashes: [][]byte{[]byte("tx_hash")},
 		}
 		arguments.TxCoordinator = &testscommon.TransactionCoordinatorMock{
-			CreateMbsCrossShardDstMeCalled: func(header data.HeaderHandler, processedMiniBlocksInfo map[string]*processedMb.ProcessedMiniBlockInfo) ([]block.MiniblockAndHash, uint32, bool, error) {
+			CreateMbsCrossShardDstMeCalled: func(header data.HeaderHandler, processedMiniBlocksInfo map[string]*processedMb.ProcessedMiniBlockInfo) ([]block.MiniblockAndHash, []block.MiniblockAndHash, uint32, bool, error) {
 				return []block.MiniblockAndHash{
-					{
-						Miniblock: providedMb,
-						Hash:      []byte("providedMB"),
+						{
+							Miniblock: providedMb,
+							Hash:      []byte("providedMB"),
+						},
 					},
-				}, 0, true, nil
+					[]block.MiniblockAndHash{},
+					0, true, nil
 			},
 		}
 		sp, err := blproc.NewShardProcessor(arguments)
@@ -1826,7 +1828,13 @@ func TestShardProcessor_VerifyGasLimit(t *testing.T) {
 		sp, err := blproc.NewShardProcessor(arguments)
 		require.NoError(t, err)
 
-		err = sp.VerifyGasLimit(createHeaderFromMBs(outgoingMbh, incomingMbh))
+		header := createHeaderFromMBs(outgoingMbh, incomingMbh)
+		headerV3, ok := header.(*block.HeaderV3)
+		require.True(t, ok)
+		headerV3.LastExecutionResult = &block.ExecutionResultInfo{
+			ExecutionResult: &block.BaseExecutionResult{},
+		}
+		err = sp.VerifyGasLimit(headerV3)
 		require.NoError(t, err)
 	})
 }
