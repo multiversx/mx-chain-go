@@ -381,7 +381,7 @@ func TestBaseProcessor_saveExecutedData(t *testing.T) {
 			err := bp.saveExecutedData(header, headerHash)
 			require.Equal(t, process.ErrMissingMiniBlock, err)
 		})
-		t.Run("putMiniBlocksIntoStorage fails tu add into storer", func(t *testing.T) {
+		t.Run("putMiniBlocksIntoStorage fails to add into storer", func(t *testing.T) {
 			t.Parallel()
 
 			bp := &baseProcessor{
@@ -459,7 +459,7 @@ func TestBaseProcessor_saveExecutedData(t *testing.T) {
 			}
 
 			err := bp.saveExecutedData(header, headerHash)
-			require.Equal(t, process.ErrMissingHeader, err)
+			require.True(t, errors.Is(err, process.ErrMissingHeader))
 		})
 		t.Run("unmarshall error", func(t *testing.T) {
 			t.Parallel()

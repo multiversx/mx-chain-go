@@ -2523,7 +2523,7 @@ func (bp *baseProcessor) saveIntermediateTxs(headerHash []byte) error {
 	cachedIntermediateTxs, ok := postProcessTxsCache.Get(headerHash)
 	if !ok {
 		log.Warn("saveIntermediateTxs: intermediateTxs not found in dataPool", "hash", headerHash)
-		return process.ErrMissingHeader
+		return fmt.Errorf("%w for header %s", process.ErrMissingHeader, hex.EncodeToString(headerHash))
 	}
 
 	cachedIntermediateTxsBuff := cachedIntermediateTxs.([]byte)

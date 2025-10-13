@@ -972,11 +972,6 @@ func (sp *shardProcessor) CommitBlock(
 
 	sp.saveBody(body, header, headerHash)
 
-	err = sp.saveExecutedData(header, headerHash)
-	if err != nil {
-		return err
-	}
-
 	processedMetaHdrs, err := sp.getOrderedProcessedMetaBlocksFromHeader(header)
 	if err != nil {
 		return err
@@ -1141,6 +1136,11 @@ func (sp *shardProcessor) CommitBlock(
 	}
 
 	sp.cleanupPools(headerHandler)
+
+	err = sp.saveExecutedData(header, headerHash)
+	if err != nil {
+		return err
+	}
 
 	sp.blockProcessingCutoffHandler.HandlePauseCutoff(header)
 
