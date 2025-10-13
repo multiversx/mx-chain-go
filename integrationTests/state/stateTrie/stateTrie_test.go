@@ -2491,6 +2491,7 @@ func startNodesAndIssueToken(
 		StakingV4Step2EnableEpoch:                   integrationTests.UnreachableEpoch,
 		StakingV4Step3EnableEpoch:                   integrationTests.UnreachableEpoch,
 		AndromedaEnableEpoch:                        integrationTests.UnreachableEpoch,
+		SupernovaEnableEpoch:                        integrationTests.UnreachableEpoch,
 		AutoBalanceDataTriesEnableEpoch:             1,
 	}
 	nodes = integrationTests.CreateNodesWithEnableEpochs(

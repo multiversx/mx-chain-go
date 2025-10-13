@@ -21,6 +21,9 @@ type TriggerHandler interface {
 	Epoch() uint32
 	MetaEpoch() uint32
 	Update(round uint64, nonce uint64)
+	UpdateRound(round uint64)
+	SetEpochChange()
+	ShouldProposeEpochChange(round uint64, nonce uint64) bool
 	EpochStartRound() uint64
 	EpochStartMetaHdrHash() []byte
 	LastCommitedEpochStartHdr() (data.HeaderHandler, error)

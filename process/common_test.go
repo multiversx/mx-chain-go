@@ -3,6 +3,7 @@ package process_test
 import (
 	"bytes"
 	"errors"
+	"fmt"
 	"math/big"
 	"strings"
 	"testing"
@@ -12,9 +13,10 @@ import (
 	"github.com/multiversx/mx-chain-core-go/data/block"
 	"github.com/multiversx/mx-chain-core-go/data/transaction"
 	"github.com/multiversx/mx-chain-core-go/data/typeConverters"
-	"github.com/multiversx/mx-chain-go/process/estimator"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
+
+	"github.com/multiversx/mx-chain-go/process/estimator"
 
 	"github.com/multiversx/mx-chain-go/dataRetriever"
 	"github.com/multiversx/mx-chain-go/process"
@@ -2920,6 +2922,36 @@ func Test_CreateDataForInclusionEstimation(t *testing.T) {
 		lastExecResForInclusion, err := process.CreateDataForInclusionEstimation(executionResult)
 		require.Equal(t, process.ErrWrongTypeAssertion, err)
 		require.Nil(t, lastExecResForInclusion)
+	})
+}
+
+func Test_IsNotExecutableTransactionError(t *testing.T) {
+	t.Parallel()
+
+	t.Run("nil error", func(t *testing.T) {
+		t.Parallel()
+		require.False(t, process.IsNotExecutableTransactionError(nil))
+	})
+	t.Run("lower nonce", func(t *testing.T) {
+		t.Parallel()
+		require.True(t, process.IsNotExecutableTransactionError(process.ErrLowerNonceInTransaction))
+	})
+	t.Run("higher nonce", func(t *testing.T) {
+		t.Parallel()
+		wrappedErr := fmt.Errorf("wrapping: %w", process.ErrHigherNonceInTransaction)
+		require.True(t, process.IsNotExecutableTransactionError(wrappedErr))
+	})
+	t.Run("insufficient fee", func(t *testing.T) {
+		t.Parallel()
+		require.True(t, process.IsNotExecutableTransactionError(process.ErrInsufficientFee))
+	})
+	t.Run("transaction is not executable", func(t *testing.T) {
+		t.Parallel()
+		require.True(t, process.IsNotExecutableTransactionError(process.ErrTransactionNotExecutable))
+	})
+	t.Run("different error", func(t *testing.T) {
+		t.Parallel()
+		require.False(t, process.IsNotExecutableTransactionError(errors.New("some other error")))
 	})
 }
 

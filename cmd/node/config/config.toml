@@ -86,14 +86,13 @@
 [Versions]
     DefaultVersion = "default"
     VersionsByEpochs = [
-        { StartEpoch = 0, Version = "*" },
+        { StartEpoch = 0, StartRound = 0, Version = "*"},
         # The value of StartEpoch parameter for version 2 should be the same with the ScheduledMiniBlocksEnableEpoch flag from enableEpoch.toml file
-        { StartEpoch = 1, Version = "2" },
+        { StartEpoch = 1, StartRound = 0, Version = "2" },
+
+        # TODO The value of StartEpoch parameter for version 3 should be the same with the SupernovaEnableEpoch flag from enableEpoch.toml file and StartRound the same with the SupernovaEnableRound flag from enableRounds.toml
+        { StartEpoch = 999999, StartRound = 999999, Version = "3" },
     ]
-    [Versions.Cache]
-        Name = "VersionsCache"
-        Capacity = 100
-        Type = "LRU"
 
 [StoragePruning]
     # If the Enabled flag is set to false, then the storers won't divide epochs into separate dbs

@@ -37,32 +37,9 @@ func createMockTxCacheSelectionConfig() config.TxCacheSelectionConfig {
 func TestNewPreProcessorsContainerFactory_NilShardCoordinator(t *testing.T) {
 	t.Parallel()
 
-	ppcm, err := NewPreProcessorsContainerFactory(
-		nil,
-		&storageStubs.ChainStorerStub{},
-		&mock.MarshalizerMock{},
-		&hashingMocks.HasherMock{},
-		dataRetrieverMock.NewPoolsHolderMock(),
-		createMockPubkeyConverter(),
-		&stateMock.AccountsStub{},
-		&stateMock.AccountsStub{},
-		&testscommon.RequestHandlerStub{},
-		&testscommon.TxProcessorMock{},
-		&testscommon.SCProcessorMock{},
-		&testscommon.SmartContractResultsProcessorMock{},
-		&testscommon.RewardTxProcessorMock{},
-		&economicsmocks.EconomicsHandlerMock{},
-		&testscommon.GasHandlerStub{},
-		&mock.BlockTrackerMock{},
-		&testscommon.BlockSizeComputationStub{},
-		&testscommon.BalanceComputationStub{},
-		&enableEpochsHandlerMock.EnableEpochsHandlerStub{},
-		&testscommon.TxTypeHandlerMock{},
-		&testscommon.ScheduledTxsExecutionStub{},
-		&testscommon.ProcessedMiniBlocksTrackerStub{},
-		&commonMock.TxExecutionOrderHandlerStub{},
-		createMockTxCacheSelectionConfig(),
-	)
+	args := createPreProcessorsContainerFactoryArgs()
+	args.ShardCoordinator = nil
+	ppcm, err := NewPreProcessorsContainerFactory(args)
 
 	assert.Equal(t, process.ErrNilShardCoordinator, err)
 	assert.Nil(t, ppcm)
@@ -71,32 +48,9 @@ func TestNewPreProcessorsContainerFactory_NilShardCoordinator(t *testing.T) {
 func TestNewPreProcessorsContainerFactory_NilStore(t *testing.T) {
 	t.Parallel()
 
-	ppcm, err := NewPreProcessorsContainerFactory(
-		mock.NewMultiShardsCoordinatorMock(3),
-		nil,
-		&mock.MarshalizerMock{},
-		&hashingMocks.HasherMock{},
-		dataRetrieverMock.NewPoolsHolderMock(),
-		createMockPubkeyConverter(),
-		&stateMock.AccountsStub{},
-		&stateMock.AccountsStub{},
-		&testscommon.RequestHandlerStub{},
-		&testscommon.TxProcessorMock{},
-		&testscommon.SCProcessorMock{},
-		&testscommon.SmartContractResultsProcessorMock{},
-		&testscommon.RewardTxProcessorMock{},
-		&economicsmocks.EconomicsHandlerMock{},
-		&testscommon.GasHandlerStub{},
-		&mock.BlockTrackerMock{},
-		&testscommon.BlockSizeComputationStub{},
-		&testscommon.BalanceComputationStub{},
-		&enableEpochsHandlerMock.EnableEpochsHandlerStub{},
-		&testscommon.TxTypeHandlerMock{},
-		&testscommon.ScheduledTxsExecutionStub{},
-		&testscommon.ProcessedMiniBlocksTrackerStub{},
-		&commonMock.TxExecutionOrderHandlerStub{},
-		createMockTxCacheSelectionConfig(),
-	)
+	args := createPreProcessorsContainerFactoryArgs()
+	args.Store = nil
+	ppcm, err := NewPreProcessorsContainerFactory(args)
 
 	assert.Equal(t, process.ErrNilStore, err)
 	assert.Nil(t, ppcm)
@@ -105,32 +59,9 @@ func TestNewPreProcessorsContainerFactory_NilStore(t *testing.T) {
 func TestNewPreProcessorsContainerFactory_NilMarshalizer(t *testing.T) {
 	t.Parallel()
 
-	ppcm, err := NewPreProcessorsContainerFactory(
-		mock.NewMultiShardsCoordinatorMock(3),
-		&storageStubs.ChainStorerStub{},
-		nil,
-		&hashingMocks.HasherMock{},
-		dataRetrieverMock.NewPoolsHolderMock(),
-		createMockPubkeyConverter(),
-		&stateMock.AccountsStub{},
-		&stateMock.AccountsStub{},
-		&testscommon.RequestHandlerStub{},
-		&testscommon.TxProcessorMock{},
-		&testscommon.SCProcessorMock{},
-		&testscommon.SmartContractResultsProcessorMock{},
-		&testscommon.RewardTxProcessorMock{},
-		&economicsmocks.EconomicsHandlerMock{},
-		&testscommon.GasHandlerStub{},
-		&mock.BlockTrackerMock{},
-		&testscommon.BlockSizeComputationStub{},
-		&testscommon.BalanceComputationStub{},
-		&enableEpochsHandlerMock.EnableEpochsHandlerStub{},
-		&testscommon.TxTypeHandlerMock{},
-		&testscommon.ScheduledTxsExecutionStub{},
-		&testscommon.ProcessedMiniBlocksTrackerStub{},
-		&commonMock.TxExecutionOrderHandlerStub{},
-		createMockTxCacheSelectionConfig(),
-	)
+	args := createPreProcessorsContainerFactoryArgs()
+	args.Marshalizer = nil
+	ppcm, err := NewPreProcessorsContainerFactory(args)
 
 	assert.Equal(t, process.ErrNilMarshalizer, err)
 	assert.Nil(t, ppcm)
@@ -139,32 +70,9 @@ func TestNewPreProcessorsContainerFactory_NilMarshalizer(t *testing.T) {
 func TestNewPreProcessorsContainerFactory_NilHasher(t *testing.T) {
 	t.Parallel()
 
-	ppcm, err := NewPreProcessorsContainerFactory(
-		mock.NewMultiShardsCoordinatorMock(3),
-		&storageStubs.ChainStorerStub{},
-		&mock.MarshalizerMock{},
-		nil,
-		dataRetrieverMock.NewPoolsHolderMock(),
-		createMockPubkeyConverter(),
-		&stateMock.AccountsStub{},
-		&stateMock.AccountsStub{},
-		&testscommon.RequestHandlerStub{},
-		&testscommon.TxProcessorMock{},
-		&testscommon.SCProcessorMock{},
-		&testscommon.SmartContractResultsProcessorMock{},
-		&testscommon.RewardTxProcessorMock{},
-		&economicsmocks.EconomicsHandlerMock{},
-		&testscommon.GasHandlerStub{},
-		&mock.BlockTrackerMock{},
-		&testscommon.BlockSizeComputationStub{},
-		&testscommon.BalanceComputationStub{},
-		&enableEpochsHandlerMock.EnableEpochsHandlerStub{},
-		&testscommon.TxTypeHandlerMock{},
-		&testscommon.ScheduledTxsExecutionStub{},
-		&testscommon.ProcessedMiniBlocksTrackerStub{},
-		&commonMock.TxExecutionOrderHandlerStub{},
-		createMockTxCacheSelectionConfig(),
-	)
+	args := createPreProcessorsContainerFactoryArgs()
+	args.Hasher = nil
+	ppcm, err := NewPreProcessorsContainerFactory(args)
 
 	assert.Equal(t, process.ErrNilHasher, err)
 	assert.Nil(t, ppcm)
@@ -173,32 +81,9 @@ func TestNewPreProcessorsContainerFactory_NilHasher(t *testing.T) {
 func TestNewPreProcessorsContainerFactory_NilDataPool(t *testing.T) {
 	t.Parallel()
 
-	ppcm, err := NewPreProcessorsContainerFactory(
-		mock.NewMultiShardsCoordinatorMock(3),
-		&storageStubs.ChainStorerStub{},
-		&mock.MarshalizerMock{},
-		&hashingMocks.HasherMock{},
-		nil,
-		createMockPubkeyConverter(),
-		&stateMock.AccountsStub{},
-		&stateMock.AccountsStub{},
-		&testscommon.RequestHandlerStub{},
-		&testscommon.TxProcessorMock{},
-		&testscommon.SCProcessorMock{},
-		&testscommon.SmartContractResultsProcessorMock{},
-		&testscommon.RewardTxProcessorMock{},
-		&economicsmocks.EconomicsHandlerMock{},
-		&testscommon.GasHandlerStub{},
-		&mock.BlockTrackerMock{},
-		&testscommon.BlockSizeComputationStub{},
-		&testscommon.BalanceComputationStub{},
-		&enableEpochsHandlerMock.EnableEpochsHandlerStub{},
-		&testscommon.TxTypeHandlerMock{},
-		&testscommon.ScheduledTxsExecutionStub{},
-		&testscommon.ProcessedMiniBlocksTrackerStub{},
-		&commonMock.TxExecutionOrderHandlerStub{},
-		createMockTxCacheSelectionConfig(),
-	)
+	args := createPreProcessorsContainerFactoryArgs()
+	args.DataPool = nil
+	ppcm, err := NewPreProcessorsContainerFactory(args)
 
 	assert.Equal(t, process.ErrNilDataPoolHolder, err)
 	assert.Nil(t, ppcm)
@@ -207,32 +92,9 @@ func TestNewPreProcessorsContainerFactory_NilDataPool(t *testing.T) {
 func TestNewPreProcessorsContainerFactory_NilAddrConv(t *testing.T) {
 	t.Parallel()
 
-	ppcm, err := NewPreProcessorsContainerFactory(
-		mock.NewMultiShardsCoordinatorMock(3),
-		&storageStubs.ChainStorerStub{},
-		&mock.MarshalizerMock{},
-		&hashingMocks.HasherMock{},
-		dataRetrieverMock.NewPoolsHolderMock(),
-		nil,
-		&stateMock.AccountsStub{},
-		&stateMock.AccountsStub{},
-		&testscommon.RequestHandlerStub{},
-		&testscommon.TxProcessorMock{},
-		&testscommon.SCProcessorMock{},
-		&testscommon.SmartContractResultsProcessorMock{},
-		&testscommon.RewardTxProcessorMock{},
-		&economicsmocks.EconomicsHandlerMock{},
-		&testscommon.GasHandlerStub{},
-		&mock.BlockTrackerMock{},
-		&testscommon.BlockSizeComputationStub{},
-		&testscommon.BalanceComputationStub{},
-		&enableEpochsHandlerMock.EnableEpochsHandlerStub{},
-		&testscommon.TxTypeHandlerMock{},
-		&testscommon.ScheduledTxsExecutionStub{},
-		&testscommon.ProcessedMiniBlocksTrackerStub{},
-		&commonMock.TxExecutionOrderHandlerStub{},
-		createMockTxCacheSelectionConfig(),
-	)
+	args := createPreProcessorsContainerFactoryArgs()
+	args.PubkeyConverter = nil
+	ppcm, err := NewPreProcessorsContainerFactory(args)
 
 	assert.Equal(t, process.ErrNilPubkeyConverter, err)
 	assert.Nil(t, ppcm)
@@ -241,32 +103,9 @@ func TestNewPreProcessorsContainerFactory_NilAddrConv(t *testing.T) {
 func TestNewPreProcessorsContainerFactory_NilAccounts(t *testing.T) {
 	t.Parallel()
 
-	ppcm, err := NewPreProcessorsContainerFactory(
-		mock.NewMultiShardsCoordinatorMock(3),
-		&storageStubs.ChainStorerStub{},
-		&mock.MarshalizerMock{},
-		&hashingMocks.HasherMock{},
-		dataRetrieverMock.NewPoolsHolderMock(),
-		createMockPubkeyConverter(),
-		nil,
-		&stateMock.AccountsStub{},
-		&testscommon.RequestHandlerStub{},
-		&testscommon.TxProcessorMock{},
-		&testscommon.SCProcessorMock{},
-		&testscommon.SmartContractResultsProcessorMock{},
-		&testscommon.RewardTxProcessorMock{},
-		&economicsmocks.EconomicsHandlerMock{},
-		&testscommon.GasHandlerStub{},
-		&mock.BlockTrackerMock{},
-		&testscommon.BlockSizeComputationStub{},
-		&testscommon.BalanceComputationStub{},
-		&enableEpochsHandlerMock.EnableEpochsHandlerStub{},
-		&testscommon.TxTypeHandlerMock{},
-		&testscommon.ScheduledTxsExecutionStub{},
-		&testscommon.ProcessedMiniBlocksTrackerStub{},
-		&commonMock.TxExecutionOrderHandlerStub{},
-		createMockTxCacheSelectionConfig(),
-	)
+	args := createPreProcessorsContainerFactoryArgs()
+	args.Accounts = nil
+	ppcm, err := NewPreProcessorsContainerFactory(args)
 
 	assert.Equal(t, process.ErrNilAccountsAdapter, err)
 	assert.Nil(t, ppcm)
@@ -275,32 +114,9 @@ func TestNewPreProcessorsContainerFactory_NilAccounts(t *testing.T) {
 func TestNewPreProcessorsContainerFactory_NilAccountsProposal(t *testing.T) {
 	t.Parallel()
 
-	ppcm, err := NewPreProcessorsContainerFactory(
-		mock.NewMultiShardsCoordinatorMock(3),
-		&storageStubs.ChainStorerStub{},
-		&mock.MarshalizerMock{},
-		&hashingMocks.HasherMock{},
-		dataRetrieverMock.NewPoolsHolderMock(),
-		createMockPubkeyConverter(),
-		&stateMock.AccountsStub{},
-		nil,
-		&testscommon.RequestHandlerStub{},
-		&testscommon.TxProcessorMock{},
-		&testscommon.SCProcessorMock{},
-		&testscommon.SmartContractResultsProcessorMock{},
-		&testscommon.RewardTxProcessorMock{},
-		&economicsmocks.EconomicsHandlerMock{},
-		&testscommon.GasHandlerStub{},
-		&mock.BlockTrackerMock{},
-		&testscommon.BlockSizeComputationStub{},
-		&testscommon.BalanceComputationStub{},
-		&enableEpochsHandlerMock.EnableEpochsHandlerStub{},
-		&testscommon.TxTypeHandlerMock{},
-		&testscommon.ScheduledTxsExecutionStub{},
-		&testscommon.ProcessedMiniBlocksTrackerStub{},
-		&commonMock.TxExecutionOrderHandlerStub{},
-		createMockTxCacheSelectionConfig(),
-	)
+	args := createPreProcessorsContainerFactoryArgs()
+	args.AccountsProposal = nil
+	ppcm, err := NewPreProcessorsContainerFactory(args)
 
 	assert.ErrorIs(t, err, process.ErrNilAccountsAdapter)
 	assert.Nil(t, ppcm)
@@ -309,32 +125,9 @@ func TestNewPreProcessorsContainerFactory_NilAccountsProposal(t *testing.T) {
 func TestNewPreProcessorsContainerFactory_NilTxProcessor(t *testing.T) {
 	t.Parallel()
 
-	ppcm, err := NewPreProcessorsContainerFactory(
-		mock.NewMultiShardsCoordinatorMock(3),
-		&storageStubs.ChainStorerStub{},
-		&mock.MarshalizerMock{},
-		&hashingMocks.HasherMock{},
-		dataRetrieverMock.NewPoolsHolderMock(),
-		createMockPubkeyConverter(),
-		&stateMock.AccountsStub{},
-		&stateMock.AccountsStub{},
-		&testscommon.RequestHandlerStub{},
-		nil,
-		&testscommon.SCProcessorMock{},
-		&testscommon.SmartContractResultsProcessorMock{},
-		&testscommon.RewardTxProcessorMock{},
-		&economicsmocks.EconomicsHandlerMock{},
-		&testscommon.GasHandlerStub{},
-		&mock.BlockTrackerMock{},
-		&testscommon.BlockSizeComputationStub{},
-		&testscommon.BalanceComputationStub{},
-		&enableEpochsHandlerMock.EnableEpochsHandlerStub{},
-		&testscommon.TxTypeHandlerMock{},
-		&testscommon.ScheduledTxsExecutionStub{},
-		&testscommon.ProcessedMiniBlocksTrackerStub{},
-		&commonMock.TxExecutionOrderHandlerStub{},
-		createMockTxCacheSelectionConfig(),
-	)
+	args := createPreProcessorsContainerFactoryArgs()
+	args.TxProcessor = nil
+	ppcm, err := NewPreProcessorsContainerFactory(args)
 
 	assert.Equal(t, process.ErrNilTxProcessor, err)
 	assert.Nil(t, ppcm)
@@ -343,32 +136,9 @@ func TestNewPreProcessorsContainerFactory_NilTxProcessor(t *testing.T) {
 func TestNewPreProcessorsContainerFactory_NilSCProcessor(t *testing.T) {
 	t.Parallel()
 
-	ppcm, err := NewPreProcessorsContainerFactory(
-		mock.NewMultiShardsCoordinatorMock(3),
-		&storageStubs.ChainStorerStub{},
-		&mock.MarshalizerMock{},
-		&hashingMocks.HasherMock{},
-		dataRetrieverMock.NewPoolsHolderMock(),
-		createMockPubkeyConverter(),
-		&stateMock.AccountsStub{},
-		&stateMock.AccountsStub{},
-		&testscommon.RequestHandlerStub{},
-		&testscommon.TxProcessorMock{},
-		nil,
-		&testscommon.SmartContractResultsProcessorMock{},
-		&testscommon.RewardTxProcessorMock{},
-		&economicsmocks.EconomicsHandlerMock{},
-		&testscommon.GasHandlerStub{},
-		&mock.BlockTrackerMock{},
-		&testscommon.BlockSizeComputationStub{},
-		&testscommon.BalanceComputationStub{},
-		&enableEpochsHandlerMock.EnableEpochsHandlerStub{},
-		&testscommon.TxTypeHandlerMock{},
-		&testscommon.ScheduledTxsExecutionStub{},
-		&testscommon.ProcessedMiniBlocksTrackerStub{},
-		&commonMock.TxExecutionOrderHandlerStub{},
-		createMockTxCacheSelectionConfig(),
-	)
+	args := createPreProcessorsContainerFactoryArgs()
+	args.ScProcessor = nil
+	ppcm, err := NewPreProcessorsContainerFactory(args)
 
 	assert.Equal(t, process.ErrNilSmartContractProcessor, err)
 	assert.Nil(t, ppcm)
@@ -377,32 +147,9 @@ func TestNewPreProcessorsContainerFactory_NilSCProcessor(t *testing.T) {
 func TestNewPreProcessorsContainerFactory_NilSCR(t *testing.T) {
 	t.Parallel()
 
-	ppcm, err := NewPreProcessorsContainerFactory(
-		mock.NewMultiShardsCoordinatorMock(3),
-		&storageStubs.ChainStorerStub{},
-		&mock.MarshalizerMock{},
-		&hashingMocks.HasherMock{},
-		dataRetrieverMock.NewPoolsHolderMock(),
-		createMockPubkeyConverter(),
-		&stateMock.AccountsStub{},
-		&stateMock.AccountsStub{},
-		&testscommon.RequestHandlerStub{},
-		&testscommon.TxProcessorMock{},
-		&testscommon.SCProcessorMock{},
-		nil,
-		&testscommon.RewardTxProcessorMock{},
-		&economicsmocks.EconomicsHandlerMock{},
-		&testscommon.GasHandlerStub{},
-		&mock.BlockTrackerMock{},
-		&testscommon.BlockSizeComputationStub{},
-		&testscommon.BalanceComputationStub{},
-		&enableEpochsHandlerMock.EnableEpochsHandlerStub{},
-		&testscommon.TxTypeHandlerMock{},
-		&testscommon.ScheduledTxsExecutionStub{},
-		&testscommon.ProcessedMiniBlocksTrackerStub{},
-		&commonMock.TxExecutionOrderHandlerStub{},
-		createMockTxCacheSelectionConfig(),
-	)
+	args := createPreProcessorsContainerFactoryArgs()
+	args.ScResultProcessor = nil
+	ppcm, err := NewPreProcessorsContainerFactory(args)
 
 	assert.Equal(t, process.ErrNilSmartContractResultProcessor, err)
 	assert.Nil(t, ppcm)
@@ -411,32 +158,9 @@ func TestNewPreProcessorsContainerFactory_NilSCR(t *testing.T) {
 func TestNewPreProcessorsContainerFactory_NilRewardTxProcessor(t *testing.T) {
 	t.Parallel()
 
-	ppcm, err := NewPreProcessorsContainerFactory(
-		mock.NewMultiShardsCoordinatorMock(3),
-		&storageStubs.ChainStorerStub{},
-		&mock.MarshalizerMock{},
-		&hashingMocks.HasherMock{},
-		dataRetrieverMock.NewPoolsHolderMock(),
-		createMockPubkeyConverter(),
-		&stateMock.AccountsStub{},
-		&stateMock.AccountsStub{},
-		&testscommon.RequestHandlerStub{},
-		&testscommon.TxProcessorMock{},
-		&testscommon.SCProcessorMock{},
-		&testscommon.SmartContractResultsProcessorMock{},
-		nil,
-		&economicsmocks.EconomicsHandlerMock{},
-		&testscommon.GasHandlerStub{},
-		&mock.BlockTrackerMock{},
-		&testscommon.BlockSizeComputationStub{},
-		&testscommon.BalanceComputationStub{},
-		&enableEpochsHandlerMock.EnableEpochsHandlerStub{},
-		&testscommon.TxTypeHandlerMock{},
-		&testscommon.ScheduledTxsExecutionStub{},
-		&testscommon.ProcessedMiniBlocksTrackerStub{},
-		&commonMock.TxExecutionOrderHandlerStub{},
-		createMockTxCacheSelectionConfig(),
-	)
+	args := createPreProcessorsContainerFactoryArgs()
+	args.RewardsTxProcessor = nil
+	ppcm, err := NewPreProcessorsContainerFactory(args)
 
 	assert.Equal(t, process.ErrNilRewardsTxProcessor, err)
 	assert.Nil(t, ppcm)
@@ -445,32 +169,9 @@ func TestNewPreProcessorsContainerFactory_NilRewardTxProcessor(t *testing.T) {
 func TestNewPreProcessorsContainerFactory_NilRequestHandler(t *testing.T) {
 	t.Parallel()
 
-	ppcm, err := NewPreProcessorsContainerFactory(
-		mock.NewMultiShardsCoordinatorMock(3),
-		&storageStubs.ChainStorerStub{},
-		&mock.MarshalizerMock{},
-		&hashingMocks.HasherMock{},
-		dataRetrieverMock.NewPoolsHolderMock(),
-		createMockPubkeyConverter(),
-		&stateMock.AccountsStub{},
-		&stateMock.AccountsStub{},
-		nil,
-		&testscommon.TxProcessorMock{},
-		&testscommon.SCProcessorMock{},
-		&testscommon.SmartContractResultsProcessorMock{},
-		&testscommon.RewardTxProcessorMock{},
-		&economicsmocks.EconomicsHandlerMock{},
-		&testscommon.GasHandlerStub{},
-		&mock.BlockTrackerMock{},
-		&testscommon.BlockSizeComputationStub{},
-		&testscommon.BalanceComputationStub{},
-		&enableEpochsHandlerMock.EnableEpochsHandlerStub{},
-		&testscommon.TxTypeHandlerMock{},
-		&testscommon.ScheduledTxsExecutionStub{},
-		&testscommon.ProcessedMiniBlocksTrackerStub{},
-		&commonMock.TxExecutionOrderHandlerStub{},
-		createMockTxCacheSelectionConfig(),
-	)
+	args := createPreProcessorsContainerFactoryArgs()
+	args.RequestHandler = nil
+	ppcm, err := NewPreProcessorsContainerFactory(args)
 
 	assert.Equal(t, process.ErrNilRequestHandler, err)
 	assert.Nil(t, ppcm)
@@ -479,32 +180,9 @@ func TestNewPreProcessorsContainerFactory_NilRequestHandler(t *testing.T) {
 func TestNewPreProcessorsContainerFactory_NilFeeHandler(t *testing.T) {
 	t.Parallel()
 
-	ppcm, err := NewPreProcessorsContainerFactory(
-		mock.NewMultiShardsCoordinatorMock(3),
-		&storageStubs.ChainStorerStub{},
-		&mock.MarshalizerMock{},
-		&hashingMocks.HasherMock{},
-		dataRetrieverMock.NewPoolsHolderMock(),
-		createMockPubkeyConverter(),
-		&stateMock.AccountsStub{},
-		&stateMock.AccountsStub{},
-		&testscommon.RequestHandlerStub{},
-		&testscommon.TxProcessorMock{},
-		&testscommon.SCProcessorMock{},
-		&testscommon.SmartContractResultsProcessorMock{},
-		&testscommon.RewardTxProcessorMock{},
-		nil,
-		&testscommon.GasHandlerStub{},
-		&mock.BlockTrackerMock{},
-		&testscommon.BlockSizeComputationStub{},
-		&testscommon.BalanceComputationStub{},
-		&enableEpochsHandlerMock.EnableEpochsHandlerStub{},
-		&testscommon.TxTypeHandlerMock{},
-		&testscommon.ScheduledTxsExecutionStub{},
-		&testscommon.ProcessedMiniBlocksTrackerStub{},
-		&commonMock.TxExecutionOrderHandlerStub{},
-		createMockTxCacheSelectionConfig(),
-	)
+	args := createPreProcessorsContainerFactoryArgs()
+	args.EconomicsFee = nil
+	ppcm, err := NewPreProcessorsContainerFactory(args)
 
 	assert.Equal(t, process.ErrNilEconomicsFeeHandler, err)
 	assert.Nil(t, ppcm)
@@ -513,32 +191,9 @@ func TestNewPreProcessorsContainerFactory_NilFeeHandler(t *testing.T) {
 func TestNewPreProcessorsContainerFactory_NilGasHandler(t *testing.T) {
 	t.Parallel()
 
-	ppcm, err := NewPreProcessorsContainerFactory(
-		mock.NewMultiShardsCoordinatorMock(3),
-		&storageStubs.ChainStorerStub{},
-		&mock.MarshalizerMock{},
-		&hashingMocks.HasherMock{},
-		dataRetrieverMock.NewPoolsHolderMock(),
-		createMockPubkeyConverter(),
-		&stateMock.AccountsStub{},
-		&stateMock.AccountsStub{},
-		&testscommon.RequestHandlerStub{},
-		&testscommon.TxProcessorMock{},
-		&testscommon.SCProcessorMock{},
-		&testscommon.SmartContractResultsProcessorMock{},
-		&testscommon.RewardTxProcessorMock{},
-		&economicsmocks.EconomicsHandlerMock{},
-		nil,
-		&mock.BlockTrackerMock{},
-		&testscommon.BlockSizeComputationStub{},
-		&testscommon.BalanceComputationStub{},
-		&enableEpochsHandlerMock.EnableEpochsHandlerStub{},
-		&testscommon.TxTypeHandlerMock{},
-		&testscommon.ScheduledTxsExecutionStub{},
-		&testscommon.ProcessedMiniBlocksTrackerStub{},
-		&commonMock.TxExecutionOrderHandlerStub{},
-		createMockTxCacheSelectionConfig(),
-	)
+	args := createPreProcessorsContainerFactoryArgs()
+	args.GasHandler = nil
+	ppcm, err := NewPreProcessorsContainerFactory(args)
 
 	assert.Equal(t, process.ErrNilGasHandler, err)
 	assert.Nil(t, ppcm)
@@ -547,32 +202,9 @@ func TestNewPreProcessorsContainerFactory_NilGasHandler(t *testing.T) {
 func TestNewPreProcessorsContainerFactory_NilBlockTracker(t *testing.T) {
 	t.Parallel()
 
-	ppcm, err := NewPreProcessorsContainerFactory(
-		mock.NewMultiShardsCoordinatorMock(3),
-		&storageStubs.ChainStorerStub{},
-		&mock.MarshalizerMock{},
-		&hashingMocks.HasherMock{},
-		dataRetrieverMock.NewPoolsHolderMock(),
-		createMockPubkeyConverter(),
-		&stateMock.AccountsStub{},
-		&stateMock.AccountsStub{},
-		&testscommon.RequestHandlerStub{},
-		&testscommon.TxProcessorMock{},
-		&testscommon.SCProcessorMock{},
-		&testscommon.SmartContractResultsProcessorMock{},
-		&testscommon.RewardTxProcessorMock{},
-		&economicsmocks.EconomicsHandlerMock{},
-		&testscommon.GasHandlerStub{},
-		nil,
-		&testscommon.BlockSizeComputationStub{},
-		&testscommon.BalanceComputationStub{},
-		&enableEpochsHandlerMock.EnableEpochsHandlerStub{},
-		&testscommon.TxTypeHandlerMock{},
-		&testscommon.ScheduledTxsExecutionStub{},
-		&testscommon.ProcessedMiniBlocksTrackerStub{},
-		&commonMock.TxExecutionOrderHandlerStub{},
-		createMockTxCacheSelectionConfig(),
-	)
+	args := createPreProcessorsContainerFactoryArgs()
+	args.BlockTracker = nil
+	ppcm, err := NewPreProcessorsContainerFactory(args)
 
 	assert.Equal(t, process.ErrNilBlockTracker, err)
 	assert.Nil(t, ppcm)
@@ -581,32 +213,9 @@ func TestNewPreProcessorsContainerFactory_NilBlockTracker(t *testing.T) {
 func TestNewPreProcessorsContainerFactory_NilBlockSizeComputationHandler(t *testing.T) {
 	t.Parallel()
 
-	ppcm, err := NewPreProcessorsContainerFactory(
-		mock.NewMultiShardsCoordinatorMock(3),
-		&storageStubs.ChainStorerStub{},
-		&mock.MarshalizerMock{},
-		&hashingMocks.HasherMock{},
-		dataRetrieverMock.NewPoolsHolderMock(),
-		createMockPubkeyConverter(),
-		&stateMock.AccountsStub{},
-		&stateMock.AccountsStub{},
-		&testscommon.RequestHandlerStub{},
-		&testscommon.TxProcessorMock{},
-		&testscommon.SCProcessorMock{},
-		&testscommon.SmartContractResultsProcessorMock{},
-		&testscommon.RewardTxProcessorMock{},
-		&economicsmocks.EconomicsHandlerMock{},
-		&testscommon.GasHandlerStub{},
-		&mock.BlockTrackerMock{},
-		nil,
-		&testscommon.BalanceComputationStub{},
-		&enableEpochsHandlerMock.EnableEpochsHandlerStub{},
-		&testscommon.TxTypeHandlerMock{},
-		&testscommon.ScheduledTxsExecutionStub{},
-		&testscommon.ProcessedMiniBlocksTrackerStub{},
-		&commonMock.TxExecutionOrderHandlerStub{},
-		createMockTxCacheSelectionConfig(),
-	)
+	args := createPreProcessorsContainerFactoryArgs()
+	args.BlockSizeComputation = nil
+	ppcm, err := NewPreProcessorsContainerFactory(args)
 
 	assert.Equal(t, process.ErrNilBlockSizeComputationHandler, err)
 	assert.Nil(t, ppcm)
@@ -615,32 +224,9 @@ func TestNewPreProcessorsContainerFactory_NilBlockSizeComputationHandler(t *test
 func TestNewPreProcessorsContainerFactory_NilBalanceComputationHandler(t *testing.T) {
 	t.Parallel()
 
-	ppcm, err := NewPreProcessorsContainerFactory(
-		mock.NewMultiShardsCoordinatorMock(3),
-		&storageStubs.ChainStorerStub{},
-		&mock.MarshalizerMock{},
-		&hashingMocks.HasherMock{},
-		dataRetrieverMock.NewPoolsHolderMock(),
-		createMockPubkeyConverter(),
-		&stateMock.AccountsStub{},
-		&stateMock.AccountsStub{},
-		&testscommon.RequestHandlerStub{},
-		&testscommon.TxProcessorMock{},
-		&testscommon.SCProcessorMock{},
-		&testscommon.SmartContractResultsProcessorMock{},
-		&testscommon.RewardTxProcessorMock{},
-		&economicsmocks.EconomicsHandlerMock{},
-		&testscommon.GasHandlerStub{},
-		&mock.BlockTrackerMock{},
-		&testscommon.BlockSizeComputationStub{},
-		nil,
-		&enableEpochsHandlerMock.EnableEpochsHandlerStub{},
-		&testscommon.TxTypeHandlerMock{},
-		&testscommon.ScheduledTxsExecutionStub{},
-		&testscommon.ProcessedMiniBlocksTrackerStub{},
-		&commonMock.TxExecutionOrderHandlerStub{},
-		createMockTxCacheSelectionConfig(),
-	)
+	args := createPreProcessorsContainerFactoryArgs()
+	args.BalanceComputation = nil
+	ppcm, err := NewPreProcessorsContainerFactory(args)
 
 	assert.Equal(t, process.ErrNilBalanceComputationHandler, err)
 	assert.Nil(t, ppcm)
@@ -649,66 +235,31 @@ func TestNewPreProcessorsContainerFactory_NilBalanceComputationHandler(t *testin
 func TestNewPreProcessorsContainerFactory_NilEnableEpochsHandler(t *testing.T) {
 	t.Parallel()
 
-	ppcm, err := NewPreProcessorsContainerFactory(
-		mock.NewMultiShardsCoordinatorMock(3),
-		&storageStubs.ChainStorerStub{},
-		&mock.MarshalizerMock{},
-		&hashingMocks.HasherMock{},
-		dataRetrieverMock.NewPoolsHolderMock(),
-		createMockPubkeyConverter(),
-		&stateMock.AccountsStub{},
-		&stateMock.AccountsStub{},
-		&testscommon.RequestHandlerStub{},
-		&testscommon.TxProcessorMock{},
-		&testscommon.SCProcessorMock{},
-		&testscommon.SmartContractResultsProcessorMock{},
-		&testscommon.RewardTxProcessorMock{},
-		&economicsmocks.EconomicsHandlerMock{},
-		&testscommon.GasHandlerStub{},
-		&mock.BlockTrackerMock{},
-		&testscommon.BlockSizeComputationStub{},
-		&testscommon.BalanceComputationStub{},
-		nil,
-		&testscommon.TxTypeHandlerMock{},
-		&testscommon.ScheduledTxsExecutionStub{},
-		&testscommon.ProcessedMiniBlocksTrackerStub{},
-		&commonMock.TxExecutionOrderHandlerStub{},
-		createMockTxCacheSelectionConfig(),
-	)
+	args := createPreProcessorsContainerFactoryArgs()
+	args.EnableEpochsHandler = nil
+	ppcm, err := NewPreProcessorsContainerFactory(args)
 
 	assert.Equal(t, process.ErrNilEnableEpochsHandler, err)
+	assert.Nil(t, ppcm)
+}
+
+func TestNewPreProcessorsContainerFactory_NilEnableRoundsHandler(t *testing.T) {
+	t.Parallel()
+
+	args := createPreProcessorsContainerFactoryArgs()
+	args.EnableRoundsHandler = nil
+	ppcm, err := NewPreProcessorsContainerFactory(args)
+
+	assert.Equal(t, process.ErrNilEnableRoundsHandler, err)
 	assert.Nil(t, ppcm)
 }
 
 func TestNewPreProcessorsContainerFactory_NilTxTypeHandler(t *testing.T) {
 	t.Parallel()
 
-	ppcm, err := NewPreProcessorsContainerFactory(
-		mock.NewMultiShardsCoordinatorMock(3),
-		&storageStubs.ChainStorerStub{},
-		&mock.MarshalizerMock{},
-		&hashingMocks.HasherMock{},
-		dataRetrieverMock.NewPoolsHolderMock(),
-		createMockPubkeyConverter(),
-		&stateMock.AccountsStub{},
-		&stateMock.AccountsStub{},
-		&testscommon.RequestHandlerStub{},
-		&testscommon.TxProcessorMock{},
-		&testscommon.SCProcessorMock{},
-		&testscommon.SmartContractResultsProcessorMock{},
-		&testscommon.RewardTxProcessorMock{},
-		&economicsmocks.EconomicsHandlerMock{},
-		&testscommon.GasHandlerStub{},
-		&mock.BlockTrackerMock{},
-		&testscommon.BlockSizeComputationStub{},
-		&testscommon.BalanceComputationStub{},
-		&enableEpochsHandlerMock.EnableEpochsHandlerStub{},
-		nil,
-		&testscommon.ScheduledTxsExecutionStub{},
-		&testscommon.ProcessedMiniBlocksTrackerStub{},
-		&commonMock.TxExecutionOrderHandlerStub{},
-		createMockTxCacheSelectionConfig(),
-	)
+	args := createPreProcessorsContainerFactoryArgs()
+	args.TxTypeHandler = nil
+	ppcm, err := NewPreProcessorsContainerFactory(args)
 
 	assert.Equal(t, process.ErrNilTxTypeHandler, err)
 	assert.Nil(t, ppcm)
@@ -717,32 +268,9 @@ func TestNewPreProcessorsContainerFactory_NilTxTypeHandler(t *testing.T) {
 func TestNewPreProcessorsContainerFactory_NilScheduledTxsExecutionHandler(t *testing.T) {
 	t.Parallel()
 
-	ppcm, err := NewPreProcessorsContainerFactory(
-		mock.NewMultiShardsCoordinatorMock(3),
-		&storageStubs.ChainStorerStub{},
-		&mock.MarshalizerMock{},
-		&hashingMocks.HasherMock{},
-		dataRetrieverMock.NewPoolsHolderMock(),
-		createMockPubkeyConverter(),
-		&stateMock.AccountsStub{},
-		&stateMock.AccountsStub{},
-		&testscommon.RequestHandlerStub{},
-		&testscommon.TxProcessorMock{},
-		&testscommon.SCProcessorMock{},
-		&testscommon.SmartContractResultsProcessorMock{},
-		&testscommon.RewardTxProcessorMock{},
-		&economicsmocks.EconomicsHandlerMock{},
-		&testscommon.GasHandlerStub{},
-		&mock.BlockTrackerMock{},
-		&testscommon.BlockSizeComputationStub{},
-		&testscommon.BalanceComputationStub{},
-		&enableEpochsHandlerMock.EnableEpochsHandlerStub{},
-		&testscommon.TxTypeHandlerMock{},
-		nil,
-		&testscommon.ProcessedMiniBlocksTrackerStub{},
-		&commonMock.TxExecutionOrderHandlerStub{},
-		createMockTxCacheSelectionConfig(),
-	)
+	args := createPreProcessorsContainerFactoryArgs()
+	args.ScheduledTxsExecutionHandler = nil
+	ppcm, err := NewPreProcessorsContainerFactory(args)
 
 	assert.Equal(t, process.ErrNilScheduledTxsExecutionHandler, err)
 	assert.Nil(t, ppcm)
@@ -751,32 +279,9 @@ func TestNewPreProcessorsContainerFactory_NilScheduledTxsExecutionHandler(t *tes
 func TestNewPreProcessorsContainerFactory_NilProcessedMiniBlocksTracker(t *testing.T) {
 	t.Parallel()
 
-	ppcm, err := NewPreProcessorsContainerFactory(
-		mock.NewMultiShardsCoordinatorMock(3),
-		&storageStubs.ChainStorerStub{},
-		&mock.MarshalizerMock{},
-		&hashingMocks.HasherMock{},
-		dataRetrieverMock.NewPoolsHolderMock(),
-		createMockPubkeyConverter(),
-		&stateMock.AccountsStub{},
-		&stateMock.AccountsStub{},
-		&testscommon.RequestHandlerStub{},
-		&testscommon.TxProcessorMock{},
-		&testscommon.SCProcessorMock{},
-		&testscommon.SmartContractResultsProcessorMock{},
-		&testscommon.RewardTxProcessorMock{},
-		&economicsmocks.EconomicsHandlerMock{},
-		&testscommon.GasHandlerStub{},
-		&mock.BlockTrackerMock{},
-		&testscommon.BlockSizeComputationStub{},
-		&testscommon.BalanceComputationStub{},
-		&enableEpochsHandlerMock.EnableEpochsHandlerStub{},
-		&testscommon.TxTypeHandlerMock{},
-		&testscommon.ScheduledTxsExecutionStub{},
-		nil,
-		&commonMock.TxExecutionOrderHandlerStub{},
-		createMockTxCacheSelectionConfig(),
-	)
+	args := createPreProcessorsContainerFactoryArgs()
+	args.ProcessedMiniBlocksTracker = nil
+	ppcm, err := NewPreProcessorsContainerFactory(args)
 
 	assert.Equal(t, process.ErrNilProcessedMiniBlocksTracker, err)
 	assert.Nil(t, ppcm)
@@ -785,32 +290,9 @@ func TestNewPreProcessorsContainerFactory_NilProcessedMiniBlocksTracker(t *testi
 func TestNewPreProcessorsContainerFactory_NilTxExecutionOrderHandler(t *testing.T) {
 	t.Parallel()
 
-	ppcm, err := NewPreProcessorsContainerFactory(
-		mock.NewMultiShardsCoordinatorMock(3),
-		&storageStubs.ChainStorerStub{},
-		&mock.MarshalizerMock{},
-		&hashingMocks.HasherMock{},
-		dataRetrieverMock.NewPoolsHolderMock(),
-		createMockPubkeyConverter(),
-		&stateMock.AccountsStub{},
-		&stateMock.AccountsStub{},
-		&testscommon.RequestHandlerStub{},
-		&testscommon.TxProcessorMock{},
-		&testscommon.SCProcessorMock{},
-		&testscommon.SmartContractResultsProcessorMock{},
-		&testscommon.RewardTxProcessorMock{},
-		&economicsmocks.EconomicsHandlerMock{},
-		&testscommon.GasHandlerStub{},
-		&mock.BlockTrackerMock{},
-		&testscommon.BlockSizeComputationStub{},
-		&testscommon.BalanceComputationStub{},
-		&enableEpochsHandlerMock.EnableEpochsHandlerStub{},
-		&testscommon.TxTypeHandlerMock{},
-		&testscommon.ScheduledTxsExecutionStub{},
-		&testscommon.ProcessedMiniBlocksTrackerStub{},
-		nil,
-		createMockTxCacheSelectionConfig(),
-	)
+	args := createPreProcessorsContainerFactoryArgs()
+	args.TxExecutionOrderHandler = nil
+	ppcm, err := NewPreProcessorsContainerFactory(args)
 
 	assert.Equal(t, process.ErrNilTxExecutionOrderHandler, err)
 	assert.Nil(t, ppcm)
@@ -819,32 +301,8 @@ func TestNewPreProcessorsContainerFactory_NilTxExecutionOrderHandler(t *testing.
 func TestNewPreProcessorsContainerFactory(t *testing.T) {
 	t.Parallel()
 
-	ppcm, err := NewPreProcessorsContainerFactory(
-		mock.NewMultiShardsCoordinatorMock(3),
-		&storageStubs.ChainStorerStub{},
-		&mock.MarshalizerMock{},
-		&hashingMocks.HasherMock{},
-		dataRetrieverMock.NewPoolsHolderMock(),
-		createMockPubkeyConverter(),
-		&stateMock.AccountsStub{},
-		&stateMock.AccountsStub{},
-		&testscommon.RequestHandlerStub{},
-		&testscommon.TxProcessorMock{},
-		&testscommon.SCProcessorMock{},
-		&testscommon.SmartContractResultsProcessorMock{},
-		&testscommon.RewardTxProcessorMock{},
-		&economicsmocks.EconomicsHandlerMock{},
-		&testscommon.GasHandlerStub{},
-		&mock.BlockTrackerMock{},
-		&testscommon.BlockSizeComputationStub{},
-		&testscommon.BalanceComputationStub{},
-		&enableEpochsHandlerMock.EnableEpochsHandlerStub{},
-		&testscommon.TxTypeHandlerMock{},
-		&testscommon.ScheduledTxsExecutionStub{},
-		&testscommon.ProcessedMiniBlocksTrackerStub{},
-		&commonMock.TxExecutionOrderHandlerStub{},
-		createMockTxCacheSelectionConfig(),
-	)
+	args := createPreProcessorsContainerFactoryArgs()
+	ppcm, err := NewPreProcessorsContainerFactory(args)
 
 	assert.Nil(t, err)
 	assert.NotNil(t, ppcm)
@@ -858,32 +316,9 @@ func TestPreProcessorsContainerFactory_CreateErrTxPreproc(t *testing.T) {
 		return nil
 	}
 
-	ppcm, err := NewPreProcessorsContainerFactory(
-		mock.NewMultiShardsCoordinatorMock(3),
-		&storageStubs.ChainStorerStub{},
-		&mock.MarshalizerMock{},
-		&hashingMocks.HasherMock{},
-		dataPool,
-		createMockPubkeyConverter(),
-		&stateMock.AccountsStub{},
-		&stateMock.AccountsStub{},
-		&testscommon.RequestHandlerStub{},
-		&testscommon.TxProcessorMock{},
-		&testscommon.SCProcessorMock{},
-		&testscommon.SmartContractResultsProcessorMock{},
-		&testscommon.RewardTxProcessorMock{},
-		&economicsmocks.EconomicsHandlerMock{},
-		&testscommon.GasHandlerStub{},
-		&mock.BlockTrackerMock{},
-		&testscommon.BlockSizeComputationStub{},
-		&testscommon.BalanceComputationStub{},
-		&enableEpochsHandlerMock.EnableEpochsHandlerStub{},
-		&testscommon.TxTypeHandlerMock{},
-		&testscommon.ScheduledTxsExecutionStub{},
-		&testscommon.ProcessedMiniBlocksTrackerStub{},
-		&commonMock.TxExecutionOrderHandlerStub{},
-		createMockTxCacheSelectionConfig(),
-	)
+	args := createPreProcessorsContainerFactoryArgs()
+	args.DataPool = dataPool
+	ppcm, err := NewPreProcessorsContainerFactory(args)
 
 	assert.Nil(t, err)
 	assert.NotNil(t, ppcm)
@@ -902,33 +337,9 @@ func TestPreProcessorsContainerFactory_CreateErrScrPreproc(t *testing.T) {
 	dataPool.UnsignedTransactionsCalled = func() dataRetriever.ShardedDataCacherNotifier {
 		return nil
 	}
-
-	ppcm, err := NewPreProcessorsContainerFactory(
-		mock.NewMultiShardsCoordinatorMock(3),
-		&storageStubs.ChainStorerStub{},
-		&mock.MarshalizerMock{},
-		&hashingMocks.HasherMock{},
-		dataPool,
-		createMockPubkeyConverter(),
-		&stateMock.AccountsStub{},
-		&stateMock.AccountsStub{},
-		&testscommon.RequestHandlerStub{},
-		&testscommon.TxProcessorMock{},
-		&testscommon.SCProcessorMock{},
-		&testscommon.SmartContractResultsProcessorMock{},
-		&testscommon.RewardTxProcessorMock{},
-		&economicsmocks.EconomicsHandlerMock{},
-		&testscommon.GasHandlerStub{},
-		&mock.BlockTrackerMock{},
-		&testscommon.BlockSizeComputationStub{},
-		&testscommon.BalanceComputationStub{},
-		&enableEpochsHandlerMock.EnableEpochsHandlerStub{},
-		&testscommon.TxTypeHandlerMock{},
-		&testscommon.ScheduledTxsExecutionStub{},
-		&testscommon.ProcessedMiniBlocksTrackerStub{},
-		&commonMock.TxExecutionOrderHandlerStub{},
-		createMockTxCacheSelectionConfig(),
-	)
+	args := createPreProcessorsContainerFactoryArgs()
+	args.DataPool = dataPool
+	ppcm, err := NewPreProcessorsContainerFactory(args)
 
 	assert.Nil(t, err)
 	assert.NotNil(t, ppcm)
@@ -951,32 +362,9 @@ func TestPreProcessorsContainerFactory_Create(t *testing.T) {
 		return &testscommon.ShardedDataStub{}
 	}
 
-	ppcm, err := NewPreProcessorsContainerFactory(
-		mock.NewMultiShardsCoordinatorMock(3),
-		&storageStubs.ChainStorerStub{},
-		&mock.MarshalizerMock{},
-		&hashingMocks.HasherMock{},
-		dataPool,
-		createMockPubkeyConverter(),
-		&stateMock.AccountsStub{},
-		&stateMock.AccountsStub{},
-		&testscommon.RequestHandlerStub{},
-		&testscommon.TxProcessorMock{},
-		&testscommon.SCProcessorMock{},
-		&testscommon.SmartContractResultsProcessorMock{},
-		&testscommon.RewardTxProcessorMock{},
-		&economicsmocks.EconomicsHandlerMock{},
-		&testscommon.GasHandlerStub{},
-		&mock.BlockTrackerMock{},
-		&testscommon.BlockSizeComputationStub{},
-		&testscommon.BalanceComputationStub{},
-		&enableEpochsHandlerMock.EnableEpochsHandlerStub{},
-		&testscommon.TxTypeHandlerMock{},
-		&testscommon.ScheduledTxsExecutionStub{},
-		&testscommon.ProcessedMiniBlocksTrackerStub{},
-		&commonMock.TxExecutionOrderHandlerStub{},
-		createMockTxCacheSelectionConfig(),
-	)
+	args := createPreProcessorsContainerFactoryArgs()
+	args.DataPool = dataPool
+	ppcm, err := NewPreProcessorsContainerFactory(args)
 
 	assert.Nil(t, err)
 	assert.NotNil(t, ppcm)
@@ -984,4 +372,34 @@ func TestPreProcessorsContainerFactory_Create(t *testing.T) {
 	container, err := ppcm.Create()
 	assert.Nil(t, err)
 	assert.Equal(t, 4, container.Len())
+}
+
+func createPreProcessorsContainerFactoryArgs() ArgsPreProcessorsContainerFactory {
+	return ArgsPreProcessorsContainerFactory{
+		ShardCoordinator:             mock.NewMultiShardsCoordinatorMock(3),
+		Store:                        &storageStubs.ChainStorerStub{},
+		Marshalizer:                  &mock.MarshalizerMock{},
+		Hasher:                       &hashingMocks.HasherMock{},
+		DataPool:                     dataRetrieverMock.NewPoolsHolderMock(),
+		PubkeyConverter:              createMockPubkeyConverter(),
+		Accounts:                     &stateMock.AccountsStub{},
+		AccountsProposal:             &stateMock.AccountsStub{},
+		RequestHandler:               &testscommon.RequestHandlerStub{},
+		TxProcessor:                  &testscommon.TxProcessorMock{},
+		ScProcessor:                  &testscommon.SCProcessorMock{},
+		ScResultProcessor:            &testscommon.SmartContractResultsProcessorMock{},
+		RewardsTxProcessor:           &testscommon.RewardTxProcessorMock{},
+		EconomicsFee:                 &economicsmocks.EconomicsHandlerMock{},
+		GasHandler:                   &testscommon.GasHandlerStub{},
+		BlockTracker:                 &mock.BlockTrackerMock{},
+		BlockSizeComputation:         &testscommon.BlockSizeComputationStub{},
+		BalanceComputation:           &testscommon.BalanceComputationStub{},
+		EnableEpochsHandler:          &enableEpochsHandlerMock.EnableEpochsHandlerStub{},
+		EnableRoundsHandler:          &testscommon.EnableRoundsHandlerStub{},
+		TxTypeHandler:                &testscommon.TxTypeHandlerMock{},
+		ScheduledTxsExecutionHandler: &testscommon.ScheduledTxsExecutionStub{},
+		ProcessedMiniBlocksTracker:   &testscommon.ProcessedMiniBlocksTrackerStub{},
+		TxExecutionOrderHandler:      &commonMock.TxExecutionOrderHandlerStub{},
+		TxCacheSelectionConfig:       createMockTxCacheSelectionConfig(),
+	}
 }
