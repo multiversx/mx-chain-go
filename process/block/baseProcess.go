@@ -2357,6 +2357,19 @@ func (bp *baseProcessor) computeOwnShardStuckIfNeeded(header data.HeaderHandler)
 	return nil
 }
 
+func (bp *baseProcessor) updateGasConsumptionLimitsIfNeeded() {
+	if !bp.blockTracker.IsOwnShardStuck() {
+		bp.gasComputation.ResetIncomingLimit()
+		bp.gasComputation.ResetOutgoingLimit()
+
+		return
+	}
+
+	// shard is stuck, zeroing the limits
+	bp.gasComputation.ZeroIncomingLimit()
+	bp.gasComputation.ZeroOutgoingLimit()
+}
+
 func getLastBaseExecutionResultHandler(header data.HeaderHandler) (data.BaseExecutionResultHandler, error) {
 	if check.IfNil(header) {
 		return nil, process.ErrNilHeaderHandler

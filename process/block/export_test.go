@@ -702,6 +702,16 @@ func CreateBaseProcessorWithMockedTracker(tracker process.BlockTracker) *basePro
 	}
 }
 
+// SetGasComputation
+func (bp *baseProcessor) SetGasComputation(instance process.GasComputation) {
+	bp.gasComputation = instance
+}
+
+// UpdateGasConsumptionLimitsIfNeeded -
+func (bp *baseProcessor) UpdateGasConsumptionLimitsIfNeeded() {
+	bp.updateGasConsumptionLimitsIfNeeded()
+}
+
 // ComputeOwnShardStuckIfNeeded -
 func (bp *baseProcessor) ComputeOwnShardStuckIfNeeded(header data.HeaderHandler) error {
 	return bp.computeOwnShardStuckIfNeeded(header)

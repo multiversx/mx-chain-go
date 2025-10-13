@@ -19,6 +19,7 @@ const (
 )
 
 const (
+	zeroLimitsFactor       = uint64(0)
 	minPercentLimitsFactor = uint64(10)  // 10%
 	maxPercentLimitsFactor = uint64(500) // 500%
 	percentSplitBlock      = uint64(50)  // 50%
@@ -92,11 +93,15 @@ func (gc *gasConsumption) CheckIncomingMiniBlocks(
 	miniBlocks []data.MiniBlockHeaderHandler,
 	transactions map[string][]data.TransactionHandler,
 ) (lastMiniBlockIndex int, pendingMiniBlocks int, err error) {
+	if len(miniBlocks) == 0 || len(transactions) == 0 {
+		return initialLastIndex, 0, nil
+	}
+
 	gc.mut.Lock()
 	defer gc.mut.Unlock()
 
-	if len(miniBlocks) == 0 || len(transactions) == 0 {
-		return initialLastIndex, 0, nil
+	if gc.incomingLimitFactor == zeroLimitsFactor {
+		return initialLastIndex, 0, fmt.Errorf("%w for incoming mini blocks", process.ErrZeroLimit)
 	}
 
 	bandwidthForIncomingMiniBlocks := gc.getGasLimitForOneDirection(incoming, gc.shardCoordinator.SelfId())
@@ -207,6 +212,12 @@ func (gc *gasConsumption) checkPendingIncomingMiniBlocks() ([]data.MiniBlockHead
 		return addedMiniBlocks, nil
 	}
 
+	// won't return error, but don't add them further
+	// most probably will never happen
+	if gc.incomingLimitFactor == zeroLimitsFactor {
+		return addedMiniBlocks, nil
+	}
+
 	bandwidthForIncomingMiniBlocks := gc.getGasLimitForOneDirection(incoming, gc.shardCoordinator.SelfId())
 	bandwidthForIncomingMiniBlocks += gc.getGasLeftFromTransactions()
 	lastIndexAdded := 0
@@ -247,6 +258,10 @@ func (gc *gasConsumption) CheckOutgoingTransactions(
 
 	gc.mut.Lock()
 	defer gc.mut.Unlock()
+
+	if gc.outgoingLimitFactor == 0 {
+		return nil, nil, fmt.Errorf("%w for outgoing transactions", process.ErrZeroLimit)
+	}
 
 	skippedSenders := make(map[string]struct{})
 	addedHashes := make([][]byte, 0)
@@ -390,13 +405,13 @@ func (gc *gasConsumption) DecreaseIncomingLimit() {
 	gc.mut.Lock()
 	defer gc.mut.Unlock()
 
-	if gc.incomingLimitFactor == minPercentLimitsFactor {
+	if gc.incomingLimitFactor == zeroLimitsFactor {
 		return
 	}
 
-	if gc.incomingLimitFactor <= minPercentLimitsFactor ||
+	if gc.incomingLimitFactor <= zeroLimitsFactor ||
 		gc.incomingLimitFactor <= gc.decreaseStep {
-		gc.incomingLimitFactor = minPercentLimitsFactor
+		gc.incomingLimitFactor = zeroLimitsFactor
 		return
 	}
 
@@ -408,17 +423,37 @@ func (gc *gasConsumption) DecreaseOutgoingLimit() {
 	gc.mut.Lock()
 	defer gc.mut.Unlock()
 
-	if gc.outgoingLimitFactor == minPercentLimitsFactor {
+	if gc.outgoingLimitFactor == zeroLimitsFactor {
 		return
 	}
 
-	if gc.outgoingLimitFactor <= minPercentLimitsFactor ||
+	if gc.outgoingLimitFactor <= zeroLimitsFactor ||
 		gc.outgoingLimitFactor <= gc.decreaseStep {
-		gc.outgoingLimitFactor = minPercentLimitsFactor
+		gc.outgoingLimitFactor = zeroLimitsFactor
 		return
 	}
 
 	gc.outgoingLimitFactor = gc.outgoingLimitFactor - gc.decreaseStep
+}
+
+// ZeroIncomingLimit sets the incoming limit factor to 0, effectively disabling incoming mini blocks
+func (gc *gasConsumption) ZeroIncomingLimit() {
+	gc.mut.Lock()
+	defer gc.mut.Unlock()
+
+	log.Debug("setting incoming limit to zero...")
+
+	gc.incomingLimitFactor = zeroLimitsFactor
+}
+
+// ZeroOutgoingLimit sets the outgoing limit factor to 0, effectively disabling outgoing transactions
+func (gc *gasConsumption) ZeroOutgoingLimit() {
+	gc.mut.Lock()
+	defer gc.mut.Unlock()
+
+	log.Debug("setting outgoing limit to zero...")
+
+	gc.outgoingLimitFactor = 0
 }
 
 // ResetIncomingLimit resets the gas limit for incoming mini blocks to its initial value
