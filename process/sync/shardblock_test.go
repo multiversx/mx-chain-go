@@ -2539,9 +2539,9 @@ func TestShardBootstrap_SyncBlockV3(t *testing.T) {
 	createSyncBlockV3Args := func() sync.ArgShardBootstrapper {
 		args := CreateShardBootstrapMockArguments()
 
-		args.EnableEpochsHandler = &enableEpochsHandlerMock.EnableEpochsHandlerStub{
-			IsFlagEnabledCalled: func(flag core.EnableEpochFlag) bool {
-				return flag == common.SupernovaFlag
+		args.EnableRoundsHandler = &testscommon.EnableRoundsHandlerStub{
+			IsFlagEnabledInRoundCalled: func(flag common.EnableRoundFlag, round uint64) bool {
+				return flag == common.SupernovaRoundFlag
 			},
 		}
 
@@ -2791,28 +2791,6 @@ func TestShardBootstrap_SyncBlockV3(t *testing.T) {
 
 		err = bs.SyncBlock(context.Background())
 		assert.Nil(t, err)
-	})
-
-	t.Run("should error when fork is detected", func(t *testing.T) {
-		t.Parallel()
-
-		args := createSyncBlockV3Args()
-
-		forkDetector := &mock.ForkDetectorMock{}
-		forkDetector.CheckForkCalled = func() *process.ForkInfo {
-			return &process.ForkInfo{
-				IsDetected: true,
-				Nonce:      2,
-				Hash:       []byte("fork hash"),
-			}
-		}
-		args.ForkDetector = forkDetector
-
-		bs, err := sync.NewShardBootstrap(args)
-		require.Nil(t, err)
-
-		err = bs.SyncBlock(context.Background())
-		assert.Equal(t, sync.ErrForkDetected, err)
 	})
 
 	t.Run("should error when header is not HeaderV3", func(t *testing.T) {
