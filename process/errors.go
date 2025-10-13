@@ -1392,8 +1392,14 @@ var ErrEpochStartInfoNotAvailable = errors.New("epoch start info not available")
 // ErrDuplicatedTransaction signals that a duplicated transaction was found
 var ErrDuplicatedTransaction = errors.New("duplicated transaction")
 
-// ErrTransactionsMissmatch signals that transactions do not match
-var ErrTransactionsMissmatch = errors.New("transactions missmatch")
+// ErrTransactionsMismatch signals that transactions do not match
+var ErrTransactionsMismatch = errors.New("transactions mismatch")
 
 // ErrGasUsedExceedsGasProvided signals that gas used exceeds gas provided
 var ErrGasUsedExceedsGasProvided = errors.New("gas used exceeds gas provided")
+
+// ErrZeroLimit signals that the limit is zero
+var ErrZeroLimit = errors.New("zero limit")
+
+// ErrInvalidBlockType signals that an invalid block type has been provided
+var ErrInvalidBlockType = errors.New("invalid block type")

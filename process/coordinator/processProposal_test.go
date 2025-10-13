@@ -9,9 +9,10 @@ import (
 	"github.com/multiversx/mx-chain-core-go/data"
 	"github.com/multiversx/mx-chain-core-go/data/block"
 	"github.com/multiversx/mx-chain-core-go/data/transaction"
-	"github.com/multiversx/mx-chain-go/state"
 	vmcommon "github.com/multiversx/mx-chain-vm-common-go"
 	"github.com/stretchr/testify/require"
+
+	"github.com/multiversx/mx-chain-go/state"
 
 	"github.com/multiversx/mx-chain-go/dataRetriever"
 	"github.com/multiversx/mx-chain-go/process"
@@ -47,10 +48,11 @@ func TestTransactionCoordinator_CreateMbsCrossShardDstMe_NilHeader(t *testing.T)
 	require.Nil(t, err)
 	require.NotNil(t, tc)
 
-	miniBlocks, numTxs, allAdded, err := tc.CreateMbsCrossShardDstMe(nil, nil)
+	miniBlocks, pendingMiniBlocks, numTxs, allAdded, err := tc.CreateMbsCrossShardDstMe(nil, nil)
 
 	require.Equal(t, process.ErrNilHeaderHandler, err)
 	require.Equal(t, 0, len(miniBlocks))
+	require.Equal(t, 0, len(pendingMiniBlocks))
 	require.Equal(t, uint32(0), numTxs)
 	require.False(t, allAdded)
 }
@@ -99,7 +101,7 @@ func TestTransactionCoordinator_CreateMbsCrossShardDstMe_UsesProposalContext(t *
 	cacheId = process.ShardCacherIdentifier(td.mb2Info.Miniblock.SenderShardID, td.mb2Info.Miniblock.ReceiverShardID)
 	ph.Transactions().AddData(td.tx3Hash, &transaction.Transaction{}, 100, cacheId)
 
-	miniBlocks, numTxs, allAdded, err := tc.CreateMbsCrossShardDstMe(td.hdr, nil)
+	miniBlocks, _, numTxs, allAdded, err := tc.CreateMbsCrossShardDstMe(td.hdr, nil)
 
 	require.Nil(t, err)
 	require.Equal(t, expectedMiniBlocks, miniBlocks)
@@ -135,7 +137,7 @@ func TestTransactionCoordinator_CreateMbsCrossShardDstMe_MaxBlockSizeReached(t *
 		},
 	}
 
-	miniBlocks, numTxs, allAdded, err := tc.CreateMbsCrossShardDstMe(td.hdr, nil)
+	miniBlocks, _, numTxs, allAdded, err := tc.CreateMbsCrossShardDstMe(td.hdr, nil)
 
 	require.Nil(t, err)
 	require.Equal(t, 0, len(miniBlocks))
@@ -189,7 +191,7 @@ func TestTransactionCoordinator_CreateMbsCrossShardDstMe_MiniBlockProcessing(t *
 		},
 	}
 
-	miniBlocks, numTxs, allAdded, err := tc.CreateMbsCrossShardDstMe(td.hdr, nil)
+	miniBlocks, _, numTxs, allAdded, err := tc.CreateMbsCrossShardDstMe(td.hdr, nil)
 
 	require.Nil(t, err)
 	require.Equal(t, 1, len(miniBlocks))
@@ -239,7 +241,7 @@ func TestTransactionCoordinator_CreateMbsCrossShardDstMe_SkipShardOnMissingMiniB
 		},
 	}
 
-	miniBlocks, numTxs, allAdded, err := tc.CreateMbsCrossShardDstMe(td.hdr, nil)
+	miniBlocks, _, numTxs, allAdded, err := tc.CreateMbsCrossShardDstMe(td.hdr, nil)
 
 	require.Nil(t, err)
 	require.Equal(t, 0, len(miniBlocks))
@@ -271,7 +273,7 @@ func TestTransactionCoordinator_CreateMbsCrossShardDstMe_SkipShardOnMissingTrans
 	cacheId := process.ShardCacherIdentifier(td.mb2Info.Miniblock.SenderShardID, td.mb2Info.Miniblock.ReceiverShardID)
 	ph.Transactions().AddData(td.tx3Hash, &transaction.Transaction{}, 100, cacheId)
 
-	miniBlocks, numTxs, allAdded, err := tc.CreateMbsCrossShardDstMe(td.hdr, nil)
+	miniBlocks, _, numTxs, allAdded, err := tc.CreateMbsCrossShardDstMe(td.hdr, nil)
 
 	require.Nil(t, err)
 	require.Equal(t, 1, len(miniBlocks))
@@ -322,7 +324,7 @@ func TestTransactionCoordinator_CreateMbsCrossShardDstMe_ErrorOnUnknownBlockType
 		},
 	}
 
-	miniBlocks, numTxs, allAdded, err := tc.CreateMbsCrossShardDstMe(hdr, nil)
+	miniBlocks, _, numTxs, allAdded, err := tc.CreateMbsCrossShardDstMe(hdr, nil)
 
 	require.NotNil(t, err)
 	require.Contains(t, err.Error(), "unknown block type")
@@ -357,7 +359,7 @@ func TestTransactionCoordinator_SelectOutgoingTransactions_EmptyResult(t *testin
 		},
 	}
 
-	txHashes := tc.SelectOutgoingTransactions()
+	txHashes, _ := tc.SelectOutgoingTransactions()
 
 	require.Equal(t, 0, len(txHashes))
 
@@ -395,7 +397,7 @@ func TestTransactionCoordinator_SelectOutgoingTransactions_ReturnsTransactions(t
 		},
 	}
 
-	txHashes := tc.SelectOutgoingTransactions()
+	txHashes, _ := tc.SelectOutgoingTransactions()
 
 	require.Equal(t, len(expectedTxHashes), len(txHashes))
 	for i, expectedHash := range expectedTxHashes {
@@ -430,7 +432,7 @@ func TestTransactionCoordinator_SelectOutgoingTransactions_MultipleBlockTypes(t 
 	// Add both block types to the keys
 	tc.preProcProposal.keysTxPreProcs = []block.Type{block.TxBlock, block.SmartContractResultBlock}
 
-	txHashes := tc.SelectOutgoingTransactions()
+	txHashes, _ := tc.SelectOutgoingTransactions()
 
 	// Should contain hashes from TxBlock type, for SmartContractsResultsBlock type the selection returns empty
 	expectedTotal := len(txHashesType1)
@@ -464,7 +466,7 @@ func TestTransactionCoordinator_SelectOutgoingTransactions_HandlesErrors(t *test
 		},
 	}
 
-	txHashes := tc.SelectOutgoingTransactions()
+	txHashes, _ := tc.SelectOutgoingTransactions()
 
 	// Function should continue and return empty slice despite error
 	require.Equal(t, 0, len(txHashes))
@@ -481,7 +483,7 @@ func TestTransactionCoordinator_SelectOutgoingTransactions_HandlesNilPreprocesso
 	// Set proposal preprocessor to nil
 	tc.preProcProposal.txPreProcessors[block.TxBlock] = nil
 
-	txHashes := tc.SelectOutgoingTransactions()
+	txHashes, _ := tc.SelectOutgoingTransactions()
 
 	// Function should handle nil preprocessor gracefully
 	require.Equal(t, 0, len(txHashes))
@@ -519,7 +521,7 @@ func TestTransactionCoordinator_CreateMbsCrossShardDstMe_ProcessedMiniBlocksInfo
 		},
 	}
 
-	miniBlocks, numTxs, allAdded, err := tc.CreateMbsCrossShardDstMe(hdr, processedMiniBlocksInfo)
+	miniBlocks, _, numTxs, allAdded, err := tc.CreateMbsCrossShardDstMe(hdr, processedMiniBlocksInfo)
 
 	require.Nil(t, err)
 	require.Equal(t, 0, len(miniBlocks)) // Should skip already processed mini block
@@ -561,7 +563,7 @@ func TestTransactionCoordinator_CreateMbsCrossShardDstMe_TypeAssertion(t *testin
 		},
 	}
 
-	miniBlocks, numTxs, allAdded, err := tc.CreateMbsCrossShardDstMe(hdr, nil)
+	miniBlocks, _, numTxs, allAdded, err := tc.CreateMbsCrossShardDstMe(hdr, nil)
 
 	require.Nil(t, err)
 	require.Equal(t, 0, len(miniBlocks)) // Should skip due to type assertion failure
@@ -570,15 +572,15 @@ func TestTransactionCoordinator_CreateMbsCrossShardDstMe_TypeAssertion(t *testin
 }
 
 func createPreProcessorContainerWithPoolsHolder(poolsHolder dataRetriever.PoolsHolder) process.PreProcessorsContainer {
-	preFactory, _ := shard.NewPreProcessorsContainerFactory(
-		mock.NewMultiShardsCoordinatorMock(5),
-		initStore(),
-		&mock.MarshalizerMock{},
-		&hashingMocks.HasherMock{},
-		poolsHolder,
-		createMockPubkeyConverter(),
-		&stateMock.AccountsStub{},
-		&stateMock.AccountsStub{
+	preProcessorsFactoryArgs := shard.ArgsPreProcessorsContainerFactory{
+		ShardCoordinator: mock.NewMultiShardsCoordinatorMock(5),
+		Store:            initStore(),
+		Marshalizer:      &mock.MarshalizerMock{},
+		Hasher:           &hashingMocks.HasherMock{},
+		DataPool:         poolsHolder,
+		PubkeyConverter:  createMockPubkeyConverter(),
+		Accounts:         &stateMock.AccountsStub{},
+		AccountsProposal: &stateMock.AccountsStub{
 			RootHashCalled: func() ([]byte, error) {
 				return []byte("root_hash"), nil
 			},
@@ -586,23 +588,26 @@ func createPreProcessorContainerWithPoolsHolder(poolsHolder dataRetriever.PoolsH
 				return nil, state.ErrAccNotFound // only new accounts
 			},
 		},
-		&testscommon.RequestHandlerStub{},
-		&testscommon.TxProcessorMock{},
-		&testscommon.SCProcessorMock{},
-		&testscommon.SmartContractResultsProcessorMock{},
-		&testscommon.RewardTxProcessorMock{},
-		FeeHandlerMock(),
-		&testscommon.GasHandlerStub{},
-		&mock.BlockTrackerMock{},
-		&testscommon.BlockSizeComputationStub{},
-		&testscommon.BalanceComputationStub{},
-		enableEpochsHandlerMock.NewEnableEpochsHandlerStub(),
-		&testscommon.TxTypeHandlerMock{},
-		&testscommon.ScheduledTxsExecutionStub{},
-		&testscommon.ProcessedMiniBlocksTrackerStub{},
-		&commonMock.TxExecutionOrderHandlerStub{},
-		createMockTxCacheSelectionConfig(),
-	)
+		RequestHandler:               &testscommon.RequestHandlerStub{},
+		TxProcessor:                  &testscommon.TxProcessorMock{},
+		ScProcessor:                  &testscommon.SCProcessorMock{},
+		ScResultProcessor:            &testscommon.SmartContractResultsProcessorMock{},
+		RewardsTxProcessor:           &testscommon.RewardTxProcessorMock{},
+		EconomicsFee:                 FeeHandlerMock(),
+		GasHandler:                   &testscommon.GasHandlerStub{},
+		BlockTracker:                 &mock.BlockTrackerMock{},
+		BlockSizeComputation:         &testscommon.BlockSizeComputationStub{},
+		BalanceComputation:           &testscommon.BalanceComputationStub{},
+		EnableEpochsHandler:          enableEpochsHandlerMock.NewEnableEpochsHandlerStub(),
+		EnableRoundsHandler:          &testscommon.EnableRoundsHandlerStub{},
+		TxTypeHandler:                &testscommon.TxTypeHandlerMock{},
+		ScheduledTxsExecutionHandler: &testscommon.ScheduledTxsExecutionStub{},
+		ProcessedMiniBlocksTracker:   &testscommon.ProcessedMiniBlocksTrackerStub{},
+		TxExecutionOrderHandler:      &commonMock.TxExecutionOrderHandlerStub{},
+		TxCacheSelectionConfig:       createMockTxCacheSelectionConfig(),
+	}
+
+	preFactory, _ := shard.NewPreProcessorsContainerFactory(preProcessorsFactoryArgs)
 	container, _ := preFactory.Create()
 
 	return container

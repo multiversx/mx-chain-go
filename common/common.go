@@ -13,9 +13,10 @@ import (
 	"github.com/multiversx/mx-chain-core-go/core"
 	"github.com/multiversx/mx-chain-core-go/core/check"
 	"github.com/multiversx/mx-chain-core-go/data"
+	logger "github.com/multiversx/mx-chain-logger-go"
+
 	"github.com/multiversx/mx-chain-go/config"
 	"github.com/multiversx/mx-chain-go/errors"
-	logger "github.com/multiversx/mx-chain-logger-go"
 )
 
 const (
@@ -53,6 +54,12 @@ func IsRelayedTxV3(tx data.TransactionHandler) bool {
 	hasRelayer := len(relayedTx.GetRelayerAddr()) > 0
 	hasRelayerSignature := len(relayedTx.GetRelayerSignature()) > 0
 	return hasRelayer || hasRelayerSignature
+}
+
+// IsAsyncExecutionEnabled returns true if both Supernova epochs and Supernova rounds are enabled
+func IsAsyncExecutionEnabled(enableEpochsHandler EnableEpochsHandler, enableRoundsHandler EnableRoundsHandler) bool {
+	return enableEpochsHandler.IsFlagEnabled(SupernovaFlag) &&
+		enableRoundsHandler.IsFlagEnabled(SupernovaRoundFlag)
 }
 
 // IsEpochChangeBlockForFlagActivation returns true if the provided header is the first one after the specified flag's activation

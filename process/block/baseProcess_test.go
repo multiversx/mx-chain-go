@@ -131,15 +131,12 @@ func createArgBaseProcessor(
 	var mbSelectionSession blproc.MiniBlocksSelectionSession
 	var execResultsVerifier blproc.ExecutionResultsVerifier
 	var missingDataResolver blproc.MissingDataResolver
-	var gasComputation process.GasComputation
 	if check.IfNil(dataComponents) || check.IfNil(dataComponents.Datapool()) || check.IfNil(coreComponents) || check.IfNil(bootstrapComponents) {
 		blockDataRequester = &preprocMocks.BlockDataRequesterStub{}
 		inclusionEstimator = &processMocks.InclusionEstimatorMock{}
 		mbSelectionSession = &mbSelection.MiniBlockSelectionSessionStub{}
 		execResultsVerifier = &processMocks.ExecutionResultsVerifierMock{}
 		missingDataResolver = &processMocks.MissingDataResolverMock{}
-		gasComputation = &testscommon.GasComputationMock{}
-
 	} else {
 		preprocContainer := containers.NewPreProcessorsContainer()
 		blockDataRequesterArgs := coordinator.BlockDataRequestArgs{
@@ -175,15 +172,6 @@ func createArgBaseProcessor(
 			BlockDataRequester: blockDataRequester,
 		}
 		missingDataResolver, _ = missingData.NewMissingDataResolver(missingDataArgs)
-
-		argsGasConsumption := blproc.ArgsGasConsumption{
-			EconomicsFee:                      &economicsmocks.EconomicsHandlerMock{},
-			ShardCoordinator:                  bootstrapComponents.ShardCoordinator(),
-			GasHandler:                        &mock.GasHandlerMock{},
-			BlockCapacityOverestimationFactor: 200,
-			PercentDecreaseLimitsStep:         10,
-		}
-		gasComputation, _ = blproc.NewGasConsumption(argsGasConsumption)
 	}
 
 	return blproc.ArgBaseProcessor{
@@ -226,7 +214,14 @@ func createArgBaseProcessor(
 		MissingDataResolver:                missingDataResolver,
 		ExecutionResultsInclusionEstimator: inclusionEstimator,
 		ExecutionResultsTracker:            executionResultsTracker,
-		GasComputation:                     gasComputation,
+		GasComputation: &testscommon.GasComputationMock{
+			CheckIncomingMiniBlocksCalled: func(miniBlocks []data.MiniBlockHeaderHandler, transactions map[string][]data.TransactionHandler) (int, int, error) {
+				return len(miniBlocks), 0, nil
+			},
+			CheckOutgoingTransactionsCalled: func(txHashes [][]byte, transactions []data.TransactionHandler) ([][]byte, []data.MiniBlockHeaderHandler, error) {
+				return txHashes, nil, nil
+			},
+		},
 	}
 }
 
@@ -261,6 +256,8 @@ func initDataPool() *dataRetrieverMock.PoolsHolderStub {
 	miniblocksPool := cache.NewCacherStub()
 	headersPool := &mock.HeadersCacherStub{}
 	proofsPool := proofscache.NewProofsPool(3, 100)
+	executedMBs := cache.NewCacherStub()
+	postProcessTxs := cache.NewCacherStub()
 
 	sdp := &dataRetrieverMock.PoolsHolderStub{
 		TransactionsCalled:         func() dataRetriever.ShardedDataCacherNotifier { return transactionsPool },
@@ -277,6 +274,12 @@ func initDataPool() *dataRetrieverMock.PoolsHolderStub {
 		},
 		ProofsCalled: func() dataRetriever.ProofsPool {
 			return proofsPool
+		},
+		ExecutedMiniBlocksCalled: func() storage.Cacher {
+			return executedMBs
+		},
+		PostProcessTransactionsCalled: func() storage.Cacher {
+			return postProcessTxs
 		},
 	}
 
@@ -400,7 +403,7 @@ func createComponentHolderMocks() (
 		Coordinator:          mock.NewOneShardCoordinatorMock(),
 		HdrIntegrityVerifier: &mock.HeaderIntegrityVerifierStub{},
 		VersionedHdrFactory: &testscommon.VersionedHeaderFactoryStub{
-			CreateCalled: func(epoch uint32) data.HeaderHandler {
+			CreateCalled: func(epoch uint32, _ uint64) data.HeaderHandler {
 				return &block.Header{}
 			},
 		},
@@ -480,7 +483,14 @@ func createMockTransactionCoordinatorArguments(
 		TxExecutionOrderHandler:      &commonMocks.TxExecutionOrderHandlerStub{},
 		BlockDataRequester:           blockDataRequester,
 		BlockDataRequesterProposal:   blockDataRequesterProposal,
-		GasComputation:               &testscommon.GasComputationMock{},
+		GasComputation: &testscommon.GasComputationMock{
+			CheckIncomingMiniBlocksCalled: func(miniBlocks []data.MiniBlockHeaderHandler, transactions map[string][]data.TransactionHandler) (int, int, error) {
+				return len(miniBlocks), 0, nil
+			},
+			CheckOutgoingTransactionsCalled: func(txHashes [][]byte, transactions []data.TransactionHandler) ([][]byte, []data.MiniBlockHeaderHandler, error) {
+				return txHashes, nil, nil
+			},
+		},
 	}
 
 	return argsTransactionCoordinator
@@ -3414,6 +3424,59 @@ func TestBaseProcessor_computeOwnShardStuckIfNeeded(t *testing.T) {
 		assert.Nil(t, err)
 		require.True(t, called)
 	})
+}
+
+func TestBaseProcessor_updateGasConsumptionLimitsIfNeeded(t *testing.T) {
+	t.Parallel()
+
+	isOwnShardStuck := false
+	bp := blproc.CreateBaseProcessorWithMockedTracker(&mock.BlockTrackerMock{
+		IsOwnShardStuckCalled: func() bool {
+			return isOwnShardStuck
+		},
+	})
+	wasResetIncomingLimitCalled := false
+	wasResetOutgoingLimitCalled := false
+	wasZeroIncomingLimitCalled := false
+	wasZeroOutgoingLimitCalled := false
+	bp.SetGasComputation(&testscommon.GasComputationMock{
+		ResetIncomingLimitCalled: func() {
+			wasResetIncomingLimitCalled = true
+		},
+		ResetOutgoingLimitCalled: func() {
+			wasResetOutgoingLimitCalled = true
+		},
+		ZeroIncomingLimitCalled: func() {
+			wasZeroIncomingLimitCalled = true
+		},
+		ZeroOutgoingLimitCalled: func() {
+			wasZeroOutgoingLimitCalled = true
+		},
+	})
+
+	require.False(t, wasResetIncomingLimitCalled)
+	require.False(t, wasResetOutgoingLimitCalled)
+	require.False(t, wasZeroIncomingLimitCalled)
+	require.False(t, wasZeroOutgoingLimitCalled)
+
+	bp.UpdateGasConsumptionLimitsIfNeeded()
+	require.True(t, wasResetIncomingLimitCalled)
+	require.True(t, wasResetOutgoingLimitCalled)
+	require.False(t, wasZeroIncomingLimitCalled)
+	require.False(t, wasZeroOutgoingLimitCalled)
+
+	// set the Reset.* variables to false again
+	wasResetIncomingLimitCalled = false
+	wasResetOutgoingLimitCalled = false
+
+	// set the shard is stuck to true
+	isOwnShardStuck = true
+
+	bp.UpdateGasConsumptionLimitsIfNeeded()
+	require.False(t, wasResetIncomingLimitCalled)
+	require.False(t, wasResetOutgoingLimitCalled)
+	require.True(t, wasZeroIncomingLimitCalled)
+	require.True(t, wasZeroOutgoingLimitCalled)
 }
 
 func TestCheckHeaderBodyCorrelationProposal(t *testing.T) {

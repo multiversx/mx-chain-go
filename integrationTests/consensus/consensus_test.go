@@ -45,6 +45,16 @@ type generatedTxsParams struct {
 	numMoveBalanceTxs int
 }
 
+type fullConsensusTestParams struct {
+	enableEpochsConfig config.EnableEpochs
+	roundsConfig       config.RoundConfig
+	numKeysOnEachNode  int
+	roundsPerEpoch     int64
+	roundTime          uint64
+	targetEpoch        uint32
+	txs                *generatedTxsParams
+}
+
 func TestConsensusBLSFullTestSingleKeys(t *testing.T) {
 	if testing.Short() {
 		t.Skip("this is not a short test")
@@ -83,7 +93,17 @@ func TestConsensusBLSWithFullProcessing_BeforeEquivalentProofs(t *testing.T) {
 		numScTxs:          100,
 		numMoveBalanceTxs: 5000,
 	}
-	testConsensusBLSWithFullProcessing(t, enableEpochsConfig, numKeysOnEachNode, roundsPerEpoch, roundTime, targetEpoch, txs)
+
+	testParams := fullConsensusTestParams{
+		enableEpochsConfig: enableEpochsConfig,
+		roundsConfig:       integrationTests.GetDefaultRoundsConfig(),
+		numKeysOnEachNode:  numKeysOnEachNode,
+		roundsPerEpoch:     roundsPerEpoch,
+		roundTime:          roundTime,
+		targetEpoch:        targetEpoch,
+		txs:                txs,
+	}
+	testConsensusBLSWithFullProcessing(t, testParams)
 }
 
 func TestConsensusBLSWithFullProcessing_WithEquivalentProofs(t *testing.T) {
@@ -101,7 +121,17 @@ func TestConsensusBLSWithFullProcessing_WithEquivalentProofs(t *testing.T) {
 		numMoveBalanceTxs: 5000,
 	}
 
-	testConsensusBLSWithFullProcessing(t, enableEpochsConfig, numKeysOnEachNode, roundsPerEpoch, roundTime, targetEpoch, txs)
+	testParams := fullConsensusTestParams{
+		enableEpochsConfig: enableEpochsConfig,
+		roundsConfig:       integrationTests.GetDefaultRoundsConfig(),
+		numKeysOnEachNode:  numKeysOnEachNode,
+		roundsPerEpoch:     roundsPerEpoch,
+		roundTime:          roundTime,
+		targetEpoch:        targetEpoch,
+		txs:                txs,
+	}
+
+	testConsensusBLSWithFullProcessing(t, testParams)
 }
 
 func TestConsensusBLSWithFullProcessing_TransitionWithEquivalentProofs(t *testing.T) {
@@ -119,7 +149,17 @@ func TestConsensusBLSWithFullProcessing_TransitionWithEquivalentProofs(t *testin
 		numMoveBalanceTxs: 5000,
 	}
 
-	testConsensusBLSWithFullProcessing(t, enableEpochsConfig, numKeysOnEachNode, roundsPerEpoch, roundTime, targetEpoch, txs)
+	testParams := fullConsensusTestParams{
+		enableEpochsConfig: enableEpochsConfig,
+		roundsConfig:       integrationTests.GetSupernovaRoundsConfigDeactivated(),
+		numKeysOnEachNode:  numKeysOnEachNode,
+		roundsPerEpoch:     roundsPerEpoch,
+		roundTime:          roundTime,
+		targetEpoch:        targetEpoch,
+		txs:                txs,
+	}
+
+	testConsensusBLSWithFullProcessing(t, testParams)
 }
 
 func TestConsensusBLSWithFullProcessing_WithEquivalentProofs_MultiKeys(t *testing.T) {
@@ -137,7 +177,17 @@ func TestConsensusBLSWithFullProcessing_WithEquivalentProofs_MultiKeys(t *testin
 		numMoveBalanceTxs: 5000,
 	}
 
-	testConsensusBLSWithFullProcessing(t, enableEpochsConfig, numKeysOnEachNode, roundsPerEpoch, roundTime, targetEpoch, txs)
+	testParams := fullConsensusTestParams{
+		enableEpochsConfig: enableEpochsConfig,
+		roundsConfig:       integrationTests.GetSupernovaRoundsConfigDeactivated(),
+		numKeysOnEachNode:  numKeysOnEachNode,
+		roundsPerEpoch:     roundsPerEpoch,
+		roundTime:          roundTime,
+		targetEpoch:        targetEpoch,
+		txs:                txs,
+	}
+
+	testConsensusBLSWithFullProcessing(t, testParams)
 }
 
 func TestConsensusBLSWithFullProcessing_TransitionToSupernova(t *testing.T) {
@@ -155,7 +205,16 @@ func TestConsensusBLSWithFullProcessing_TransitionToSupernova(t *testing.T) {
 		numMoveBalanceTxs: 0,
 	}
 
-	testConsensusBLSWithFullProcessing(t, enableEpochsConfig, numKeysOnEachNode, roundsPerEpoch, roundTime, targetEpoch, txs)
+	testParams := fullConsensusTestParams{
+		enableEpochsConfig: enableEpochsConfig,
+		roundsConfig:       integrationTests.GetSupernovaRoundConfigActivatedAt(int64(enableEpochsConfig.SupernovaEnableEpoch*uint32(roundsPerEpoch)) + int64(roundsPerEpoch/2)),
+		numKeysOnEachNode:  numKeysOnEachNode,
+		roundsPerEpoch:     roundsPerEpoch,
+		roundTime:          roundTime,
+		targetEpoch:        targetEpoch,
+		txs:                txs,
+	}
+	testConsensusBLSWithFullProcessing(t, testParams)
 }
 
 func TestConsensusBLSWithFullProcessing_AfterSupernova(t *testing.T) {
@@ -173,7 +232,16 @@ func TestConsensusBLSWithFullProcessing_AfterSupernova(t *testing.T) {
 		numMoveBalanceTxs: 0,
 	}
 
-	testConsensusBLSWithFullProcessing(t, enableEpochsConfig, numKeysOnEachNode, roundsPerEpoch, roundTime, targetEpoch, txs)
+	testParams := fullConsensusTestParams{
+		enableEpochsConfig: enableEpochsConfig,
+		roundsConfig:       integrationTests.GetDefaultRoundsConfig(),
+		numKeysOnEachNode:  numKeysOnEachNode,
+		roundsPerEpoch:     roundsPerEpoch,
+		roundTime:          roundTime,
+		targetEpoch:        targetEpoch,
+		txs:                txs,
+	}
+	testConsensusBLSWithFullProcessing(t, testParams)
 }
 
 func TestConsensusBLSWithFullProcessing_TransitionToSupernova_HighLoad(t *testing.T) {
@@ -191,7 +259,17 @@ func TestConsensusBLSWithFullProcessing_TransitionToSupernova_HighLoad(t *testin
 		numMoveBalanceTxs: 10000,
 	}
 
-	testConsensusBLSWithFullProcessing(t, enableEpochsConfig, numKeysOnEachNode, roundsPerEpoch, roundTime, targetEpoch, txs)
+	testParams := fullConsensusTestParams{
+		enableEpochsConfig: enableEpochsConfig,
+		roundsConfig:       integrationTests.GetSupernovaRoundConfigActivatedAt(int64(enableEpochsConfig.SupernovaEnableEpoch*uint32(roundsPerEpoch)) + int64(roundsPerEpoch/2)),
+		numKeysOnEachNode:  numKeysOnEachNode,
+		roundsPerEpoch:     roundsPerEpoch,
+		roundTime:          roundTime,
+		targetEpoch:        targetEpoch,
+		txs:                txs,
+	}
+
+	testConsensusBLSWithFullProcessing(t, testParams)
 }
 
 func TestConsensusBLSWithFullProcessing_AfterSupernova_HighLoad(t *testing.T) {
@@ -209,18 +287,31 @@ func TestConsensusBLSWithFullProcessing_AfterSupernova_HighLoad(t *testing.T) {
 		numMoveBalanceTxs: 10000,
 	}
 
-	testConsensusBLSWithFullProcessing(t, enableEpochsConfig, numKeysOnEachNode, roundsPerEpoch, roundTime, targetEpoch, txs)
+	testParams := fullConsensusTestParams{
+		enableEpochsConfig: enableEpochsConfig,
+		roundsConfig:       integrationTests.GetSupernovaRoundConfigActivatedAt(0),
+		numKeysOnEachNode:  numKeysOnEachNode,
+		roundsPerEpoch:     roundsPerEpoch,
+		roundTime:          roundTime,
+		targetEpoch:        targetEpoch,
+		txs:                txs,
+	}
+
+	testConsensusBLSWithFullProcessing(t, testParams)
 }
 
 func testConsensusBLSWithFullProcessing(
 	t *testing.T,
-	enableEpochsConfig config.EnableEpochs,
-	numKeysOnEachNode int,
-	roundsPerEpoch int64,
-	roundTime uint64,
-	targetEpoch uint32,
-	txs *generatedTxsParams,
+	testParams fullConsensusTestParams,
 ) {
+	numKeysOnEachNode := testParams.numKeysOnEachNode
+	enableEpochsConfig := testParams.enableEpochsConfig
+	roundsConfig := testParams.roundsConfig
+	targetEpoch := testParams.targetEpoch
+	txs := testParams.txs
+	roundsPerEpoch := testParams.roundsPerEpoch
+	roundTime := testParams.roundTime
+
 	numMetaNodes := uint32(2)
 	numNodes := uint32(2)
 	consensusSize := uint32(2 * numKeysOnEachNode)
@@ -241,8 +332,7 @@ func testConsensusBLSWithFullProcessing(
 		blsConsensusType,
 		numKeysOnEachNode,
 		enableEpochsConfig,
-		integrationTests.GetSupernovaRoundsConfig(),
-		true,
+		roundsConfig,
 		roundsPerEpoch,
 	)
 	shard0Node := nodes[0][0]
@@ -563,7 +653,6 @@ func runFullConsensusTest(
 	numNodes := uint32(4)
 	consensusSize := uint32(3 * numKeysOnEachNode)
 	numInvalid := uint32(0)
-	roundTime := uint64(1000)
 	numCommBlock := uint64(8)
 
 	log.Info("runFullConsensusTest",
@@ -573,9 +662,8 @@ func runFullConsensusTest(
 	)
 
 	enableEpochsConfig := integrationTests.CreateEnableEpochsConfig()
-
-	equivalentProofsActivationEpoch := integrationTests.UnreachableEpoch
-	enableEpochsConfig.AndromedaEnableEpoch = equivalentProofsActivationEpoch
+	enableEpochsConfig.AndromedaEnableEpoch = integrationTests.UnreachableEpoch
+	enableEpochsConfig.SupernovaEnableEpoch = integrationTests.UnreachableEpoch
 
 	nodes := initNodesAndTest(
 		numMetaNodes,

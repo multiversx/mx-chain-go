@@ -70,6 +70,7 @@ func NewSmartContractResultPreprocessor(args SmartContractResultsArgs) (*smartCo
 		accountsProposal:           args.AccountsProposal,
 		pubkeyConverter:            args.PubkeyConverter,
 		enableEpochsHandler:        args.EnableEpochsHandler,
+		enableRoundsHandler:        args.EnableRoundsHandler,
 		processedMiniBlocksTracker: args.ProcessedMiniBlocksTracker,
 		txExecutionOrderHandler:    args.TxExecutionOrderHandler,
 	}
