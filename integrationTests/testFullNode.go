@@ -3,7 +3,6 @@ package integrationTests
 import (
 	"encoding/hex"
 	"fmt"
-	"strconv"
 	"time"
 
 	"github.com/multiversx/mx-chain-core-go/core"
@@ -176,9 +175,10 @@ type ArgsTestFullNode struct {
 type TestFullNode struct {
 	*TestProcessorNode
 
-	ShardCoordinator sharding.Coordinator
-	MultiSigner      *cryptoMocks.MultisignerMock
-	GenesisTimeField time.Time
+	ShardCoordinator          sharding.Coordinator
+	MultiSigner               *cryptoMocks.MultisignerMock
+	GenesisTimeField          time.Time
+	SupernovaGenesisTimeField time.Time
 }
 
 // NewTestFullNode will create a new instance of full testing node
@@ -267,18 +267,18 @@ func (tpn *TestFullNode) initTestNodeWithArgs(args ArgTestProcessorNode, fullArg
 	} else {
 		tpn.GenesisTimeField = time.Unix(fullArgs.StartTime, 0)
 	}
-	supernovaRound := args.RoundsConfig.RoundActivations[string(common.SupernovaRoundFlag)]
-	intRound, _ := strconv.Atoi(supernovaRound.Round)
+	supernovaRound := tpn.EnableRoundsHandler.GetActivationRound(common.SupernovaRoundFlag)
+	tpn.SupernovaGenesisTimeField = tpn.GenesisTimeField.Add(time.Duration(supernovaRound) * roundDuration)
 
 	roundArgs := round.ArgsRound{
 		GenesisTimeStamp:          tpn.GenesisTimeField,
-		SupernovaGenesisTimeStamp: tpn.GenesisTimeField.Add(time.Duration(intRound) * roundDuration),
+		SupernovaGenesisTimeStamp: tpn.SupernovaGenesisTimeField,
 		CurrentTimeStamp:          syncer.CurrentTime(),
 		RoundTimeDuration:         roundDuration,
 		SupernovaTimeDuration:     roundDuration,
 		SyncTimer:                 syncer,
 		StartRound:                0,
-		SupernovaStartRound:       0,
+		SupernovaStartRound:       int64(supernovaRound),
 		EnableRoundsHandler:       tpn.EnableRoundsHandler,
 	}
 	roundHandler, _ := round.NewRound(roundArgs)
@@ -477,6 +477,7 @@ func (tpn *TestFullNode) initNode(
 	}
 
 	coreComponents.GenesisTimeField = tpn.GenesisTimeField
+	coreComponents.SupernovaGenesisTimeField = tpn.SupernovaGenesisTimeField
 	coreComponents.GenesisNodesSetupField = &genesisMocks.NodesSetupStub{
 		GetShardConsensusGroupSizeCalled: func() uint32 {
 			return uint32(args.ConsensusSize)
@@ -669,7 +670,7 @@ func (tfn *TestFullNode) createForkDetector(
 			tfn.BlockBlackListHandler,
 			tfn.BlockTracker,
 			tfn.GenesisTimeField.Unix(),
-			tfn.GenesisTimeField.UnixMilli(),
+			tfn.SupernovaGenesisTimeField.UnixMilli(),
 			tfn.EnableEpochsHandler,
 			tfn.EnableRoundsHandler,
 			tfn.DataPool.Proofs(),
@@ -682,7 +683,7 @@ func (tfn *TestFullNode) createForkDetector(
 			tfn.BlockBlackListHandler,
 			tfn.BlockTracker,
 			tfn.GenesisTimeField.Unix(),
-			tfn.GenesisTimeField.UnixMilli(),
+			tfn.SupernovaGenesisTimeField.UnixMilli(),
 			tfn.EnableEpochsHandler,
 			tfn.EnableRoundsHandler,
 			tfn.DataPool.Proofs(),
@@ -701,8 +702,10 @@ func (tfn *TestFullNode) createForkDetector(
 func (tfn *TestFullNode) createEpochStartTrigger() TestEpochStartTrigger {
 	var epochTrigger TestEpochStartTrigger
 	if tfn.ShardCoordinator.SelfId() == core.MetachainShardId {
+		genesisTime := common.GetGenesisStartTimeFromUnixTimestamp(tfn.GenesisTimeField.Unix(), tfn.EnableEpochsHandler)
+
 		argsNewMetaEpochStart := &metachain.ArgsNewMetaEpochStartTrigger{
-			GenesisTime:            tfn.GenesisTimeField,
+			GenesisTime:            genesisTime,
 			EpochStartNotifier:     tfn.EpochStartNotifier,
 			Settings:               &config.EpochStartConfig{},
 			Epoch:                  0,
