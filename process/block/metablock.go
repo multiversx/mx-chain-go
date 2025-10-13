@@ -1208,6 +1208,8 @@ func (mp *metaProcessor) CommitBlock(
 		return err
 	}
 
+	mp.updateGasConsumptionLimitsIfNeeded()
+
 	errNotCritical := mp.checkSentSignaturesAtCommitTime(headerHandler)
 	if errNotCritical != nil {
 		log.Debug("checkSentSignaturesBeforeCommitting", "error", errNotCritical.Error())

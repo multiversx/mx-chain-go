@@ -3509,6 +3509,59 @@ func TestBaseProcessor_computeOwnShardStuckIfNeeded(t *testing.T) {
 	})
 }
 
+func TestBaseProcessor_updateGasConsumptionLimitsIfNeeded(t *testing.T) {
+	t.Parallel()
+
+	isOwnShardStuck := false
+	bp := blproc.CreateBaseProcessorWithMockedTracker(&mock.BlockTrackerMock{
+		IsOwnShardStuckCalled: func() bool {
+			return isOwnShardStuck
+		},
+	})
+	wasResetIncomingLimitCalled := false
+	wasResetOutgoingLimitCalled := false
+	wasZeroIncomingLimitCalled := false
+	wasZeroOutgoingLimitCalled := false
+	bp.SetGasComputation(&testscommon.GasComputationMock{
+		ResetIncomingLimitCalled: func() {
+			wasResetIncomingLimitCalled = true
+		},
+		ResetOutgoingLimitCalled: func() {
+			wasResetOutgoingLimitCalled = true
+		},
+		ZeroIncomingLimitCalled: func() {
+			wasZeroIncomingLimitCalled = true
+		},
+		ZeroOutgoingLimitCalled: func() {
+			wasZeroOutgoingLimitCalled = true
+		},
+	})
+
+	require.False(t, wasResetIncomingLimitCalled)
+	require.False(t, wasResetOutgoingLimitCalled)
+	require.False(t, wasZeroIncomingLimitCalled)
+	require.False(t, wasZeroOutgoingLimitCalled)
+
+	bp.UpdateGasConsumptionLimitsIfNeeded()
+	require.True(t, wasResetIncomingLimitCalled)
+	require.True(t, wasResetOutgoingLimitCalled)
+	require.False(t, wasZeroIncomingLimitCalled)
+	require.False(t, wasZeroOutgoingLimitCalled)
+
+	// set the Reset.* variables to false again
+	wasResetIncomingLimitCalled = false
+	wasResetOutgoingLimitCalled = false
+
+	// set the shard is stuck to true
+	isOwnShardStuck = true
+
+	bp.UpdateGasConsumptionLimitsIfNeeded()
+	require.False(t, wasResetIncomingLimitCalled)
+	require.False(t, wasResetOutgoingLimitCalled)
+	require.True(t, wasZeroIncomingLimitCalled)
+	require.True(t, wasZeroOutgoingLimitCalled)
+}
+
 func TestCheckHeaderBodyCorrelationProposal(t *testing.T) {
 	t.Parallel()
 

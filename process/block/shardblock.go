@@ -1019,6 +1019,8 @@ func (sp *shardProcessor) CommitBlock(
 		return err
 	}
 
+	sp.updateGasConsumptionLimitsIfNeeded()
+
 	errNotCritical := sp.checkSentSignaturesAtCommitTime(headerHandler)
 	if errNotCritical != nil {
 		log.Debug("checkSentSignaturesBeforeCommitting", "error", errNotCritical.Error())
