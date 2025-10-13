@@ -519,13 +519,13 @@
     Name = "ExecutedMiniBlocksCache"
     Capacity = 1000
     Type = "SizeLRU"
-    SizeInBytes = 104857600 # 100MB
+    SizeInBytes = 52428800 # 50MB
 
 [PostProcessTransactionsCache]
     Name = "PostProcessTransactionsCache"
     Capacity = 500000
     Type = "SizeLRU"
-    SizeInBytes = 209715200 # 200MB
+    SizeInBytes = 104857600 # 100MB
 
 #PublicKeyPeerId represents the main cache used to map MultiversX block signing public keys to their associated peer id's.
 [PublicKeyPeerId]
