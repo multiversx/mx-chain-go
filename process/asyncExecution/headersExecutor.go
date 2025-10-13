@@ -4,8 +4,9 @@ import (
 	"context"
 
 	"github.com/multiversx/mx-chain-core-go/core/check"
-	"github.com/multiversx/mx-chain-go/process/asyncExecution/queue"
 	logger "github.com/multiversx/mx-chain-logger-go"
+
+	"github.com/multiversx/mx-chain-go/process/asyncExecution/queue"
 )
 
 var log = logger.GetOrCreate("process/asyncExecution")
@@ -94,7 +95,7 @@ func (he *headersExecutor) handleProcessError(ctx context.Context, pair queue.He
 }
 
 func (he *headersExecutor) process(pair queue.HeaderBodyPair) error {
-	executionResult, err := he.blockProcessor.ProcessBlock(pair.Header, pair.Body)
+	executionResult, err := he.blockProcessor.ProcessBlockProposal(pair.Header, pair.Body)
 	if err != nil {
 		log.Warn("headersExecutor.process process block failed", "err", err)
 		return err

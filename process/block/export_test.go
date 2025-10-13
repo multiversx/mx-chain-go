@@ -12,24 +12,25 @@ import (
 	"github.com/multiversx/mx-chain-core-go/display"
 	"github.com/multiversx/mx-chain-core-go/hashing"
 	"github.com/multiversx/mx-chain-core-go/marshal"
-	"github.com/multiversx/mx-chain-go/process/asyncExecution/executionTrack"
-	"github.com/multiversx/mx-chain-go/process/estimator"
-	"github.com/multiversx/mx-chain-go/process/missingData"
-	"github.com/multiversx/mx-chain-go/testscommon/economicsmocks"
 
+	"github.com/multiversx/mx-chain-go/common"
 	"github.com/multiversx/mx-chain-go/common/configs"
 	"github.com/multiversx/mx-chain-go/common/graceperiod"
 	"github.com/multiversx/mx-chain-go/config"
 	"github.com/multiversx/mx-chain-go/dataRetriever"
 	"github.com/multiversx/mx-chain-go/process"
+	"github.com/multiversx/mx-chain-go/process/asyncExecution/executionTrack"
 	"github.com/multiversx/mx-chain-go/process/block/bootstrapStorage"
 	"github.com/multiversx/mx-chain-go/process/block/processedMb"
 	"github.com/multiversx/mx-chain-go/process/coordinator"
+	"github.com/multiversx/mx-chain-go/process/estimator"
 	"github.com/multiversx/mx-chain-go/process/factory/containers"
+	"github.com/multiversx/mx-chain-go/process/missingData"
 	"github.com/multiversx/mx-chain-go/process/mock"
 	"github.com/multiversx/mx-chain-go/state"
 	"github.com/multiversx/mx-chain-go/testscommon"
 	"github.com/multiversx/mx-chain-go/testscommon/dblookupext"
+	"github.com/multiversx/mx-chain-go/testscommon/economicsmocks"
 	"github.com/multiversx/mx-chain-go/testscommon/enableEpochsHandlerMock"
 	"github.com/multiversx/mx-chain-go/testscommon/epochNotifier"
 	"github.com/multiversx/mx-chain-go/testscommon/factory"
@@ -755,4 +756,29 @@ func (sp *shardProcessor) CheckMetaHeadersValidityAndFinalityProposal(header dat
 // VerifyGasLimit -
 func (sp *shardProcessor) VerifyGasLimit(header data.ShardHeaderHandler) error {
 	return sp.verifyGasLimit(header)
+}
+
+// CheckEpochStartInfoAvailableIfNeeded -
+func (sp *shardProcessor) CheckEpochStartInfoAvailableIfNeeded(header data.ShardHeaderHandler) error {
+	return sp.checkEpochStartInfoAvailableIfNeeded(header)
+}
+
+// HeadersPool -
+func (sp *shardProcessor) HeadersPool() dataRetriever.HeadersPool {
+	return sp.dataPool.Headers()
+}
+
+// ProofsPool -
+func (sp *shardProcessor) ProofsPool() dataRetriever.ProofsPool {
+	return sp.dataPool.Proofs()
+}
+
+// DataPool -
+func (sp *shardProcessor) DataPool() dataRetriever.PoolsHolder {
+	return sp.dataPool
+}
+
+// ShouldDisableOutgoingTxs -
+func ShouldDisableOutgoingTxs(enableEpochsHandler common.EnableEpochsHandler, enableRoundsHandler common.EnableRoundsHandler) bool {
+	return shouldDisableOutgoingTxs(enableEpochsHandler, enableRoundsHandler)
 }

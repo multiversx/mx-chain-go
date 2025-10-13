@@ -14,7 +14,11 @@ import (
 	"github.com/multiversx/mx-chain-go/common"
 	"github.com/multiversx/mx-chain-go/process"
 	"github.com/multiversx/mx-chain-go/process/block/processedMb"
+	"github.com/multiversx/mx-chain-go/state"
 )
+
+// TODO: maybe move this to config
+const maxBlockProcessingTime = 3 * time.Second
 
 // CreateBlockProposal creates a block proposal without executing any of the transactions
 func (sp *shardProcessor) CreateBlockProposal(
@@ -166,17 +170,13 @@ func (sp *shardProcessor) VerifyBlockProposal(
 
 	sp.missingDataResolver.Reset()
 	sp.missingDataResolver.RequestBlockTransactions(body)
+	// the epoch start meta block and its proof is also requested here if missing
 	err = sp.missingDataResolver.RequestMissingMetaHeaders(header)
 	if err != nil {
 		return err
 	}
 
 	err = sp.missingDataResolver.WaitForMissingData(haveTime())
-	if err != nil {
-		return err
-	}
-
-	err = sp.requestEpochStartInfo(header, haveTime)
 	if err != nil {
 		return err
 	}
@@ -233,6 +233,135 @@ func (sp *shardProcessor) verifyGasLimit(header data.ShardHeaderHandler) error {
 	}
 
 	return nil
+}
+
+func getHaveTimeForProposal(startTime time.Time, maxDuration time.Duration) func() time.Duration {
+	timeOut := startTime.Add(maxDuration)
+	haveTime := func() time.Duration {
+		return time.Until(timeOut)
+	}
+	return haveTime
+}
+
+// ProcessBlockProposal processes the proposed block. It returns nil if all ok or the specific error
+func (sp *shardProcessor) ProcessBlockProposal(
+	headerHandler data.HeaderHandler,
+	bodyHandler data.BodyHandler,
+) (data.BaseExecutionResultHandler, error) {
+	if check.IfNil(headerHandler) {
+		return nil, process.ErrNilBlockHeader
+	}
+	if check.IfNil(bodyHandler) {
+		return nil, process.ErrNilBlockBody
+	}
+	if !headerHandler.IsHeaderV3() {
+		return nil, process.ErrInvalidHeader
+	}
+
+	sp.processStatusHandler.SetBusy("shardProcessor.ProcessBlockProposal")
+	defer sp.processStatusHandler.SetIdle()
+
+	sp.roundNotifier.CheckRound(headerHandler)
+	sp.epochNotifier.CheckEpoch(headerHandler)
+	sp.requestHandler.SetEpoch(headerHandler.GetEpoch())
+
+	header, ok := headerHandler.(data.ShardHeaderHandler)
+	if !ok {
+		return nil, process.ErrWrongTypeAssertion
+	}
+
+	body, ok := bodyHandler.(*block.Body)
+	if !ok {
+		return nil, process.ErrWrongTypeAssertion
+	}
+
+	log.Debug("started processing block",
+		"epoch", headerHandler.GetEpoch(),
+		"shard", headerHandler.GetShardID(),
+		"round", headerHandler.GetRound(),
+		"nonce", headerHandler.GetNonce(),
+	)
+
+	// this is used now to reset the context for processing not creation of blocks
+	err := sp.createBlockStarted()
+	if err != nil {
+		return nil, err
+	}
+
+	// should already be available in the pools since it passed the block proposal verification,
+	// but kept here to update the internal caches (txsForBlock, hdrsForCurrBlock)
+	sp.txCoordinator.RequestBlockTransactions(body)
+	sp.hdrsForCurrBlock.RequestMetaHeaders(header)
+
+	// although we can have a long time for processing, it being decoupled from consensus,
+	// we still give some reasonable timeout
+	proposalStartTime := time.Now()
+	haveTime := getHaveTimeForProposal(proposalStartTime, maxBlockProcessingTime)
+
+	err = sp.txCoordinator.IsDataPreparedForProcessing(haveTime)
+	if err != nil {
+		return nil, err
+	}
+
+	// TODO: improvement - add also a request if it is missing as a fallback, although it should not be missing at this point
+	err = sp.checkEpochStartInfoAvailableIfNeeded(header)
+	if err != nil {
+		return nil, err
+	}
+
+	err = sp.hdrsForCurrBlock.WaitForHeadersIfNeeded(haveTime)
+	if err != nil {
+		return nil, err
+	}
+
+	if sp.accountsDB[state.UserAccountsState].JournalLen() != 0 {
+		log.Error("shardProcessor.ProcessBlockProposal first entry", "stack", string(sp.accountsDB[state.UserAccountsState].GetStackDebugFirstEntry()))
+		return nil, process.ErrAccountStateDirty
+	}
+
+	err = sp.blockChainHook.SetCurrentHeader(header)
+	if err != nil {
+		return nil, err
+	}
+
+	defer func() {
+		if err != nil {
+			sp.RevertCurrentBlock()
+		}
+	}()
+
+	startTime := time.Now()
+	err = sp.txCoordinator.ProcessBlockTransaction(header, body, haveTime)
+	elapsedTime := time.Since(startTime)
+	log.Debug("elapsed time to process block transaction",
+		"time [s]", elapsedTime,
+	)
+	if err != nil {
+		return nil, err
+	}
+
+	err = sp.txCoordinator.VerifyCreatedBlockTransactions(header, body)
+	if err != nil {
+		return nil, err
+	}
+
+	// TODO: should receive the header hash instead of re-computing it
+	headerHash, err := core.CalculateHash(sp.marshalizer, sp.hasher, header)
+	if err != nil {
+		return nil, err
+	}
+
+	executionResult, err := sp.collectExecutionResults(headerHash, header, body)
+	if err != nil {
+		return nil, err
+	}
+
+	errCutoff := sp.blockProcessingCutoffHandler.HandleProcessErrorCutoff(header)
+	if errCutoff != nil {
+		return nil, errCutoff
+	}
+
+	return executionResult, nil
 }
 
 func (sp *shardProcessor) splitTransactionsForHeader(header data.HeaderHandler) (
@@ -650,4 +779,76 @@ func (sp *shardProcessor) checkMetaHeadersValidityAndFinalityProposal(header dat
 	}
 
 	return nil
+}
+
+// collectExecutionResults collects the execution results after processing the block
+func (sp *shardProcessor) collectExecutionResults(headerHash []byte, header data.HeaderHandler, body *block.Body) (data.BaseExecutionResultHandler, error) {
+	crossShardIncomingMiniBlocks := sp.getCrossShardIncomingMiniBlocksFromBody(body)
+	// TODO: make sure the miniBlocks are saved in the DB somewhere, otherwise they cannot be synchronized by other nodes
+	// this is for the miniBlocksFromSelf and postProcessMiniBlocks
+	// should be saved on the commit of the block that includes the execution results, but until then need to be cached
+	miniBlocksFromSelf := sp.txCoordinator.GetCreatedMiniBlocksFromMe()
+	postProcessMiniBlocks := sp.txCoordinator.CreatePostProcessMiniBlocks()
+
+	allMiniBlocks := make([]*block.MiniBlock, 0, len(crossShardIncomingMiniBlocks)+len(miniBlocksFromSelf)+len(postProcessMiniBlocks))
+	allMiniBlocks = append(allMiniBlocks, crossShardIncomingMiniBlocks...)
+	allMiniBlocks = append(allMiniBlocks, miniBlocksFromSelf...)
+	allMiniBlocks = append(allMiniBlocks, postProcessMiniBlocks...)
+
+	receiptHash, err := sp.txCoordinator.CreateReceiptsHash()
+	if err != nil {
+		return nil, err
+	}
+
+	gasAndFees := sp.getGasAndFees()
+	gasNotUsedForProcessing := gasAndFees.GetGasPenalized() + gasAndFees.GetGasRefunded()
+	if gasAndFees.GetGasProvided() < gasNotUsedForProcessing {
+		return nil, process.ErrGasUsedExceedsGasProvided
+	}
+
+	gasUsed := gasAndFees.GetGasProvided() - gasNotUsedForProcessing // needed for inclusion estimation
+
+	bodyAfterExecution := &block.Body{MiniBlocks: allMiniBlocks}
+	// remove the self-receipts and self smart contract results mini blocks - similar to Pre-Supernova
+	sanitizedBodyAfterExecution := deleteSelfReceiptsMiniBlocks(bodyAfterExecution)
+
+	// giving an empty processedMiniBlockInfo would cause all miniBlockHeaders to be created as fully processed.
+	processedMiniBlockInfo := make(map[string]*processedMb.ProcessedMiniBlockInfo)
+
+	totalTxCount, miniBlockHeaderHandlers, err := sp.createMiniBlockHeaderHandlers(sanitizedBodyAfterExecution, processedMiniBlockInfo)
+	if err != nil {
+		return nil, err
+	}
+
+	executionResult := &block.ExecutionResult{
+		BaseExecutionResult: &block.BaseExecutionResult{
+			HeaderHash:  headerHash,
+			HeaderNonce: header.GetNonce(),
+			HeaderRound: header.GetRound(),
+			HeaderEpoch: header.GetEpoch(),
+			RootHash:    sp.getRootHash(),
+			GasUsed:     gasUsed,
+		},
+		ReceiptsHash:    receiptHash,
+		DeveloperFees:   gasAndFees.GetDeveloperFees(),
+		AccumulatedFees: gasAndFees.GetAccumulatedFees(),
+		ExecutedTxCount: uint64(totalTxCount),
+	}
+
+	err = executionResult.SetMiniBlockHeadersHandlers(miniBlockHeaderHandlers)
+	if err != nil {
+		return nil, err
+	}
+
+	return executionResult, nil
+}
+
+func (sp *shardProcessor) getCrossShardIncomingMiniBlocksFromBody(body *block.Body) []*block.MiniBlock {
+	miniBlocks := make([]*block.MiniBlock, 0)
+	for _, mb := range body.MiniBlocks {
+		if mb.ReceiverShardID == sp.shardCoordinator.SelfId() && mb.SenderShardID != sp.shardCoordinator.SelfId() {
+			miniBlocks = append(miniBlocks, mb)
+		}
+	}
+	return miniBlocks
 }

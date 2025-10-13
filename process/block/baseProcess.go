@@ -1658,6 +1658,11 @@ func (bp *baseProcessor) revertAccountState() {
 
 func (bp *baseProcessor) revertScheduledInfo() {
 	header, headerHash := bp.getLastCommittedHeaderAndHash()
+	if header.IsHeaderV3() {
+		// v3 headers don't have scheduled info
+		return
+	}
+
 	err := bp.scheduledTxsExecutionHandler.RollBackToBlock(headerHash)
 	if err != nil {
 		log.Trace("baseProcessor.revertScheduledInfo", "error", err.Error())

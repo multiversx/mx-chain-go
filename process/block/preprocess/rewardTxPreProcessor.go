@@ -58,6 +58,7 @@ func NewRewardTxPreprocessor(args RewardsPreProcessorArgs) (*rewardTxPreprocesso
 		processedMiniBlocksTracker: args.ProcessedMiniBlocksTracker,
 		txExecutionOrderHandler:    args.TxExecutionOrderHandler,
 		enableEpochsHandler:        args.EnableEpochsHandler,
+		enableRoundsHandler:        args.EnableRoundsHandler,
 	}
 
 	rtp := &rewardTxPreprocessor{
@@ -226,6 +227,16 @@ func (rtp *rewardTxPreprocessor) ProcessBlockTransactions(
 	}
 
 	return nil
+}
+
+// GetCreatedMiniBlocksFromMe returns nil as this preprocessor does not create any mini blocks
+func (rtp *rewardTxPreprocessor) GetCreatedMiniBlocksFromMe() block.MiniBlockSlice {
+	return make(block.MiniBlockSlice, 0)
+}
+
+// GetUnExecutableTransactions returns an empty map as reward transactions are always executable
+func (rtp *rewardTxPreprocessor) GetUnExecutableTransactions() map[string]struct{} {
+	return make(map[string]struct{})
 }
 
 // SaveTxsToStorage saves the reward transactions from body into storage

@@ -13,8 +13,9 @@ import (
 	"github.com/multiversx/mx-chain-core-go/data"
 	"github.com/multiversx/mx-chain-core-go/data/block"
 	"github.com/multiversx/mx-chain-core-go/data/transaction"
-	"github.com/multiversx/mx-chain-go/state"
 	logger "github.com/multiversx/mx-chain-logger-go"
+
+	"github.com/multiversx/mx-chain-go/state"
 
 	"github.com/multiversx/mx-chain-go/common/holders"
 	"github.com/multiversx/mx-chain-go/config"
@@ -61,6 +62,12 @@ type transactions struct {
 	txTypeHandler                process.TxTypeHandler
 	scheduledTxsExecutionHandler process.ScheduledTxsExecutionHandler
 	txCacheSelectionConfig       config.TxCacheSelectionConfig
+
+	unExecutableTransactions map[string]struct{}
+	mutUnExecutableTxs       sync.RWMutex
+
+	createdMiniBlocks    block.MiniBlockSlice
+	mutCreatedMiniBlocks sync.RWMutex
 }
 
 // NewTransactionPreprocessor creates a new transaction preprocessor object
@@ -128,6 +135,7 @@ func NewTransactionPreprocessor(
 		enableEpochsHandler:        args.EnableEpochsHandler,
 		processedMiniBlocksTracker: args.ProcessedMiniBlocksTracker,
 		txExecutionOrderHandler:    args.TxExecutionOrderHandler,
+		enableRoundsHandler:        args.EnableRoundsHandler,
 	}
 
 	txs := &transactions{
@@ -153,6 +161,9 @@ func NewTransactionPreprocessor(
 	txs.orderedTxHashes = make(map[string][][]byte)
 
 	txs.emptyAddress = make([]byte, txs.pubkeyConverter.Len())
+
+	txs.createdMiniBlocks = make(block.MiniBlockSlice, 0)
+	txs.unExecutableTransactions = make(map[string]struct{})
 
 	return txs, nil
 }
@@ -296,6 +307,28 @@ func (txs *transactions) ProcessBlockTransactions(
 	}
 
 	return process.ErrInvalidBody
+}
+
+// GetCreatedMiniBlocksFromMe returns the created mini blocks from me
+func (txs *transactions) GetCreatedMiniBlocksFromMe() block.MiniBlockSlice {
+	txs.mutCreatedMiniBlocks.RLock()
+	createdMiniBlocks := make(block.MiniBlockSlice, len(txs.createdMiniBlocks))
+	copy(createdMiniBlocks, txs.createdMiniBlocks)
+	txs.mutCreatedMiniBlocks.RUnlock()
+
+	return createdMiniBlocks
+}
+
+// GetUnExecutableTransactions returns the un-executable transactions
+func (txs *transactions) GetUnExecutableTransactions() map[string]struct{} {
+	txs.mutUnExecutableTxs.RLock()
+	unExecutableTransactions := make(map[string]struct{}, len(txs.unExecutableTransactions))
+	for k, v := range txs.unExecutableTransactions {
+		unExecutableTransactions[k] = v
+	}
+	txs.mutUnExecutableTxs.RUnlock()
+
+	return unExecutableTransactions
 }
 
 func (txs *transactions) computeTxsToMe(
@@ -607,6 +640,15 @@ func (txs *transactions) processTxsFromMe(
 		return err
 	}
 
+	if common.IsAsyncExecutionEnabled(txs.enableEpochsHandler, txs.enableRoundsHandler) {
+		// save the calculatedMiniBlocks for later comparison
+		txs.mutCreatedMiniBlocks.Lock()
+		txs.createdMiniBlocks = calculatedMiniBlocks
+		txs.mutCreatedMiniBlocks.Unlock()
+
+		return nil
+	}
+
 	if !haveTime() {
 		return process.ErrTimeIsOut
 	}
@@ -626,8 +668,12 @@ func (txs *transactions) processTxsFromMe(
 
 	calculatedMiniBlocks = append(calculatedMiniBlocks, scheduledMiniBlocks...)
 
+	return txs.checkMiniBlocks(calculatedMiniBlocks, body.MiniBlocks)
+}
+
+func (txs *transactions) checkMiniBlocks(calculatedMiniBlocks, bodyMiniBlocks block.MiniBlockSlice) error {
 	receivedMiniBlocks := make(block.MiniBlockSlice, 0)
-	for _, miniBlock := range body.MiniBlocks {
+	for _, miniBlock := range bodyMiniBlocks {
 		if miniBlock.Type == block.InvalidBlock {
 			continue
 		}
@@ -740,6 +786,14 @@ func (txs *transactions) CreateBlockStarted() {
 	txs.orderedTxHashes = make(map[string][][]byte)
 	txs.mutOrderedTxs.Unlock()
 
+	txs.mutCreatedMiniBlocks.Lock()
+	txs.createdMiniBlocks = make(block.MiniBlockSlice, 0)
+	txs.mutCreatedMiniBlocks.Unlock()
+
+	txs.mutUnExecutableTxs.Lock()
+	txs.unExecutableTransactions = make(map[string]struct{})
+	txs.mutUnExecutableTxs.Unlock()
+
 	txs.scheduledTxsExecutionHandler.Init()
 }
 
@@ -825,11 +879,14 @@ func (txs *transactions) processAndRemoveBadTransaction(
 	sndShardId uint32,
 	dstShardId uint32,
 ) error {
-
 	txs.txExecutionOrderHandler.Add(txHash)
 	_, err := txs.txProcessor.ProcessTransaction(tx)
-	isTxTargetedForDeletion := errors.Is(err, process.ErrLowerNonceInTransaction) || errors.Is(err, process.ErrInsufficientFee) || errors.Is(err, process.ErrTransactionNotExecutable)
-	if isTxTargetedForDeletion {
+
+	isNotExecutable := errors.Is(err, process.ErrLowerNonceInTransaction) || errors.Is(err, process.ErrInsufficientFee) || errors.Is(err, process.ErrTransactionNotExecutable)
+	if err != nil && common.IsAsyncExecutionEnabled(txs.enableEpochsHandler, txs.enableRoundsHandler) {
+		isNotExecutable = process.IsNotExecutableTransactionError(err)
+	}
+	if isNotExecutable {
 		txs.txExecutionOrderHandler.Remove(txHash)
 		strCache := process.ShardCacherIdentifier(sndShardId, dstShardId)
 		txs.txPool.RemoveData(txHash, strCache)

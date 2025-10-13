@@ -2,6 +2,7 @@ package coordinator
 
 import (
 	"fmt"
+	"reflect"
 
 	"github.com/multiversx/mx-chain-core-go/core/check"
 	"github.com/multiversx/mx-chain-core-go/data"
@@ -170,4 +171,53 @@ func (tc *transactionCoordinator) SelectOutgoingTransactions() (selectedTxHashes
 	}
 
 	return selectedTxHashes, pendingMiniBlocksAdded
+}
+
+func (tc *transactionCoordinator) verifyCreatedMiniBlocksSanity(body *block.Body) error {
+	intraShardMbs := make([]*block.MiniBlock, 0)
+	for _, mb := range body.MiniBlocks {
+		if mb.SenderShardID == tc.shardCoordinator.SelfId() {
+			intraShardMbs = append(intraShardMbs, mb)
+		}
+	}
+
+	collectedMbs := tc.GetCreatedMiniBlocksFromMe()
+	unExecutableTransactions := tc.getUnExecutableTransactions()
+
+	allTxsInBody, err := collectTransactionsFromMiniBlocks(intraShardMbs)
+	if err != nil {
+		return fmt.Errorf("%w: for body miniBlocks", err)
+	}
+
+	allCollectedTxs, err := collectTransactionsFromMiniBlocks(collectedMbs)
+	if err != nil {
+		return fmt.Errorf("%w: for created miniBlocks", err)
+	}
+
+	// add the un-executable transactions to the collected transactions
+	for txHash := range unExecutableTransactions {
+		if _, exists := allCollectedTxs[txHash]; exists {
+			return fmt.Errorf("%w: for collected unexecutable transactions", process.ErrDuplicatedTransaction)
+		}
+		allCollectedTxs[txHash] = struct{}{}
+	}
+
+	if !reflect.DeepEqual(allTxsInBody, allCollectedTxs) {
+		return process.ErrTransactionsMismatch
+	}
+
+	return nil
+}
+
+func collectTransactionsFromMiniBlocks(intraShardMbs []*block.MiniBlock) (map[string]struct{}, error) {
+	allTxsInBody := make(map[string]struct{})
+	for _, mb := range intraShardMbs {
+		for _, txHash := range mb.TxHashes {
+			if _, exists := allTxsInBody[string(txHash)]; exists {
+				return nil, process.ErrDuplicatedTransaction
+			}
+			allTxsInBody[string(txHash)] = struct{}{}
+		}
+	}
+	return allTxsInBody, nil
 }

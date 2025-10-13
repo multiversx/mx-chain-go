@@ -30,7 +30,6 @@ type validatorInfoPreprocessor struct {
 	validatorsInfoForBlock      TxsForBlockHandler
 	validatorsInfoPool          dataRetriever.ShardedDataCacherNotifier
 	storage                     dataRetriever.StorageService
-	enableEpochsHandler         common.EnableEpochsHandler
 	shardCoordinator            sharding.Coordinator
 }
 
@@ -54,14 +53,15 @@ func NewValidatorInfoPreprocessor(
 		hasher:               args.Hasher,
 		marshalizer:          args.Marshalizer,
 		blockSizeComputation: args.BlockSizeComputation,
+		enableEpochsHandler:  args.EnableEpochsHandler,
+		enableRoundsHandler:  args.EnableRoundsHandler,
 	}
 
 	vip := &validatorInfoPreprocessor{
-		basePreProcess:      bpp,
-		storage:             args.Store,
-		validatorsInfoPool:  args.DataPool,
-		enableEpochsHandler: args.EnableEpochsHandler,
-		shardCoordinator:    args.ShardCoordinator,
+		basePreProcess:     bpp,
+		storage:            args.Store,
+		validatorsInfoPool: args.DataPool,
+		shardCoordinator:   args.ShardCoordinator,
 	}
 
 	vip.chReceivedAllValidatorsInfo = make(chan bool)
@@ -161,6 +161,16 @@ func (vip *validatorInfoPreprocessor) ProcessBlockTransactions(
 	_ func() bool,
 ) error {
 	return nil
+}
+
+// GetCreatedMiniBlocksFromMe returns nil as this preprocessor does not create any mini blocks
+func (vip *validatorInfoPreprocessor) GetCreatedMiniBlocksFromMe() block.MiniBlockSlice {
+	return make(block.MiniBlockSlice, 0)
+}
+
+// GetUnExecutableTransactions returns an empty map as validator info are always executable
+func (vip *validatorInfoPreprocessor) GetUnExecutableTransactions() map[string]struct{} {
+	return make(map[string]struct{})
 }
 
 // SaveTxsToStorage saves validator info from body into storage

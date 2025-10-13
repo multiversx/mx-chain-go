@@ -10,9 +10,6 @@ import (
 	"github.com/multiversx/mx-chain-core-go/data"
 	"github.com/multiversx/mx-chain-core-go/data/block"
 	"github.com/multiversx/mx-chain-core-go/data/transaction"
-	"github.com/multiversx/mx-chain-go/storage"
-	"github.com/multiversx/mx-chain-go/testscommon/cache"
-	"github.com/multiversx/mx-chain-go/testscommon/pool"
 	"github.com/stretchr/testify/require"
 
 	retriever "github.com/multiversx/mx-chain-go/dataRetriever"
@@ -23,10 +20,13 @@ import (
 	"github.com/multiversx/mx-chain-go/process/block/processedMb"
 	"github.com/multiversx/mx-chain-go/process/estimator"
 	"github.com/multiversx/mx-chain-go/process/mock"
+	"github.com/multiversx/mx-chain-go/storage"
 	"github.com/multiversx/mx-chain-go/testscommon"
+	"github.com/multiversx/mx-chain-go/testscommon/cache"
 	"github.com/multiversx/mx-chain-go/testscommon/dataRetriever"
 	testscommonExecutionTrack "github.com/multiversx/mx-chain-go/testscommon/executionTrack"
 	"github.com/multiversx/mx-chain-go/testscommon/mbSelection"
+	"github.com/multiversx/mx-chain-go/testscommon/pool"
 	"github.com/multiversx/mx-chain-go/testscommon/processMocks"
 	statusHandlerMock "github.com/multiversx/mx-chain-go/testscommon/statusHandler"
 )
@@ -1814,4 +1814,73 @@ func createMiniBlock(hash string, srcShard uint32, dstShard uint32) (block.MiniB
 		ReceiverShardID: dstShard,
 	}
 	return mbh, mb
+}
+
+func TestShardProcessor_ProcessBlockProposal(t *testing.T) {
+	t.Parallel()
+
+	arguments := CreateMockArguments(createComponentHolderMocks())
+
+	t.Run("nil header should error", func(t *testing.T) {
+		t.Parallel()
+
+		sp, _ := blproc.NewShardProcessor(arguments)
+		body := &block.Body{}
+		_, err := sp.ProcessBlockProposal(nil, body)
+
+		require.Equal(t, process.ErrNilBlockHeader, err)
+	})
+	t.Run("nil body should error", func(t *testing.T) {
+		t.Parallel()
+
+		sp, _ := blproc.NewShardProcessor(arguments)
+		header := &block.HeaderV3{}
+		_, err := sp.ProcessBlockProposal(header, nil)
+
+		require.Equal(t, process.ErrNilBlockBody, err)
+	})
+	t.Run("not headerV3 should error", func(t *testing.T) {
+		t.Parallel()
+
+		sp, _ := blproc.NewShardProcessor(arguments)
+
+		header := &block.Header{} // wrong type
+		body := &block.Body{}
+		_, err := sp.ProcessBlockProposal(header, body)
+
+		require.Equal(t, process.ErrInvalidHeader, err)
+	})
+	t.Run("wrong header type (meta) should error", func(t *testing.T) {
+		t.Parallel()
+
+		sp, _ := blproc.NewShardProcessor(arguments)
+
+		header := &block.MetaBlockV3{} // wrong type
+		body := &block.Body{}
+		_, err := sp.ProcessBlockProposal(header, body)
+
+		require.Equal(t, process.ErrWrongTypeAssertion, err)
+	})
+	t.Run("wrong body type should error", func(t *testing.T) {
+		t.Parallel()
+
+		sp, _ := blproc.NewShardProcessor(arguments)
+
+		header := &block.HeaderV3{}
+		body := &wrongBody{} // wrong type
+		_, err := sp.ProcessBlockProposal(header, body)
+
+		require.Equal(t, process.ErrWrongTypeAssertion, err)
+	})
+	t.Run("should work, no transactions", func(t *testing.T) {
+		t.Parallel()
+
+		sp, _ := blproc.NewShardProcessor(arguments)
+
+		header := &block.HeaderV3{}
+		body := &block.Body{}
+		_, err := sp.ProcessBlockProposal(header, body)
+
+		require.Nil(t, err)
+	})
 }

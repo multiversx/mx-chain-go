@@ -267,14 +267,36 @@ func (sp *shardProcessor) ProcessBlock(
 	return nil
 }
 
-func (sp *shardProcessor) requestEpochStartInfo(header data.ShardHeaderHandler, haveTime func() time.Duration) error {
+func (sp *shardProcessor) shouldEpochStartInfoBeAvailable(header data.ShardHeaderHandler) bool {
 	if !header.IsStartOfEpochBlock() {
-		return nil
+		return false
 	}
 	if sp.epochStartTrigger.MetaEpoch() >= header.GetEpoch() {
+		return false
+	}
+	return !sp.epochStartTrigger.IsEpochStart()
+}
+
+func (sp *shardProcessor) checkEpochStartInfoAvailableIfNeeded(header data.ShardHeaderHandler) error {
+	if !sp.shouldEpochStartInfoBeAvailable(header) {
 		return nil
 	}
-	if sp.epochStartTrigger.IsEpochStart() {
+
+	headersPool := sp.dataPool.Headers()
+	_, err := headersPool.GetHeaderByHash(header.GetEpochStartMetaHash())
+	if err != nil {
+		return fmt.Errorf("%w: missing epoch start meta header", process.ErrEpochStartInfoNotAvailable)
+	}
+
+	if !sp.proofsPool.HasProof(core.MetachainShardId, header.GetEpochStartMetaHash()) {
+		return fmt.Errorf("%w: missing proof for epoch start meta header", process.ErrEpochStartInfoNotAvailable)
+	}
+
+	return nil
+}
+
+func (sp *shardProcessor) requestEpochStartInfo(header data.ShardHeaderHandler, haveTime func() time.Duration) error {
+	if !sp.shouldEpochStartInfoBeAvailable(header) {
 		return nil
 	}
 
@@ -2071,6 +2093,16 @@ func (sp *shardProcessor) createMiniBlocks(haveTime func() bool, randomness []by
 		return &block.Body{MiniBlocks: miniBlocks}, processedMiniBlocksDestMeInfo, nil
 	}
 
+	if shouldDisableOutgoingTxs(sp.enableEpochsHandler, sp.enableRoundsHandler) {
+		interMBs := sp.txCoordinator.CreatePostProcessMiniBlocks()
+		miniBlocks = append(miniBlocks, interMBs...)
+
+		log.Debug("outgoing transactions and mini blocks are disabled until Supernova round activation")
+		log.Debug("creating mini blocks has been finished", "num mini blocks", len(miniBlocks))
+
+		return &block.Body{MiniBlocks: miniBlocks}, processedMiniBlocksDestMeInfo, nil
+	}
+
 	startTime = time.Now()
 	mbsFromMe := sp.txCoordinator.CreateMbsAndProcessTransactionsFromMe(haveTime, randomness)
 	elapsedTime = time.Since(startTime)
@@ -2091,6 +2123,12 @@ func (sp *shardProcessor) createMiniBlocks(haveTime func() bool, randomness []by
 
 	log.Debug("creating mini blocks has been finished", "num miniblocks", len(miniBlocks))
 	return &block.Body{MiniBlocks: miniBlocks}, processedMiniBlocksDestMeInfo, nil
+}
+
+func shouldDisableOutgoingTxs(enableEpochsHandler common.EnableEpochsHandler, enableRoundsHandler common.EnableRoundsHandler) bool {
+	isSupernovaEnabled := enableEpochsHandler.IsFlagEnabled(common.SupernovaFlag)
+	supernovaRoundEnabled := enableRoundsHandler.IsFlagEnabled(common.SupernovaRoundFlag)
+	return isSupernovaEnabled && !supernovaRoundEnabled
 }
 
 // applyBodyToHeader creates a miniblock header list given a block body
