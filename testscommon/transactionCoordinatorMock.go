@@ -21,6 +21,7 @@ type TransactionCoordinatorMock struct {
 	RemoveBlockDataFromPoolCalled                        func(body *block.Body) error
 	RemoveTxsFromPoolCalled                              func(body *block.Body) error
 	ProcessBlockTransactionCalled                        func(header data.HeaderHandler, body *block.Body, haveTime func() time.Duration) error
+	GetCreatedMiniBlocksFromMeCalled                     func() block.MiniBlockSlice
 	CreateBlockStartedCalled                             func()
 	CreateMbsCrossShardDstMeCalled                       func(header data.HeaderHandler, processedMiniBlocksInfo map[string]*processedMb.ProcessedMiniBlockInfo) ([]block.MiniblockAndHash, []block.MiniblockAndHash, uint32, bool, error)
 	CreateMbsAndProcessCrossShardTransactionsDstMeCalled func(header data.HeaderHandler, processedMiniBlocksInfo map[string]*processedMb.ProcessedMiniBlockInfo, haveTime func() bool, haveAdditionalTime func() bool, scheduledMode bool) (block.MiniBlockSlice, uint32, bool, error)
@@ -137,6 +138,15 @@ func (tcm *TransactionCoordinatorMock) ProcessBlockTransaction(header data.Heade
 	}
 
 	return tcm.ProcessBlockTransactionCalled(header, body, haveTime)
+}
+
+// GetCreatedMiniBlocksFromMe -
+func (tcm *TransactionCoordinatorMock) GetCreatedMiniBlocksFromMe() block.MiniBlockSlice {
+	if tcm.GetCreatedMiniBlocksFromMeCalled == nil {
+		return nil
+	}
+
+	return tcm.GetCreatedMiniBlocksFromMeCalled()
 }
 
 // CreateBlockStarted -

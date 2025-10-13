@@ -8,9 +8,10 @@ import (
 
 	"github.com/multiversx/mx-chain-core-go/data"
 	"github.com/multiversx/mx-chain-core-go/data/block"
+	"github.com/stretchr/testify/require"
+
 	"github.com/multiversx/mx-chain-go/process/asyncExecution/queue"
 	"github.com/multiversx/mx-chain-go/testscommon/processMocks"
-	"github.com/stretchr/testify/require"
 )
 
 func createMockArgs() ArgsHeadersExecutor {
@@ -72,13 +73,13 @@ func TestHeadersExecutor_StartAndClose(t *testing.T) {
 	blocksQueue, _ := queue.NewBlocksQueue()
 	args.BlocksQueue = blocksQueue
 	args.BlockProcessor = &processMocks.BlockProcessorStub{
-		ProcessBlockCalled: func(handler data.HeaderHandler, body data.BodyHandler) (data.ExecutionResultHandler, error) {
+		ProcessBlockProposalCalled: func(handler data.HeaderHandler, body data.BodyHandler) (data.BaseExecutionResultHandler, error) {
 			calledProcessBlock++
 			return nil, nil
 		},
 	}
 	args.ExecutionTracker = &processMocks.ExecutionTrackerStub{
-		AddExecutionResultCalled: func(executionResult data.ExecutionResultHandler) error {
+		AddExecutionResultCalled: func(executionResult data.BaseExecutionResultHandler) error {
 			calledAddExecutionResult++
 			return nil
 		},
@@ -116,7 +117,7 @@ func TestHeadersExecutor_ProcessBlockError(t *testing.T) {
 		wg := &sync.WaitGroup{}
 		wg.Add(1)
 		args.BlockProcessor = &processMocks.BlockProcessorStub{
-			ProcessBlockCalled: func(handler data.HeaderHandler, body data.BodyHandler) (data.ExecutionResultHandler, error) {
+			ProcessBlockProposalCalled: func(handler data.HeaderHandler, body data.BodyHandler) (data.BaseExecutionResultHandler, error) {
 				if count == 1 {
 					return nil, nil
 				}
@@ -125,7 +126,7 @@ func TestHeadersExecutor_ProcessBlockError(t *testing.T) {
 			},
 		}
 		args.ExecutionTracker = &processMocks.ExecutionTrackerStub{
-			AddExecutionResultCalled: func(executionResult data.ExecutionResultHandler) error {
+			AddExecutionResultCalled: func(executionResult data.BaseExecutionResultHandler) error {
 				countAddResult++
 				wg.Done()
 				return nil
@@ -161,7 +162,7 @@ func TestHeadersExecutor_ProcessBlockError(t *testing.T) {
 		wg := &sync.WaitGroup{}
 		wg.Add(1)
 		args.BlockProcessor = &processMocks.BlockProcessorStub{
-			ProcessBlockCalled: func(handler data.HeaderHandler, body data.BodyHandler) (data.ExecutionResultHandler, error) {
+			ProcessBlockProposalCalled: func(handler data.HeaderHandler, body data.BodyHandler) (data.BaseExecutionResultHandler, error) {
 				time.Sleep(time.Millisecond)
 				if handler.GetRound() == 1 {
 					return nil, errors.New("local error")
@@ -172,7 +173,7 @@ func TestHeadersExecutor_ProcessBlockError(t *testing.T) {
 			},
 		}
 		args.ExecutionTracker = &processMocks.ExecutionTrackerStub{
-			AddExecutionResultCalled: func(executionResult data.ExecutionResultHandler) error {
+			AddExecutionResultCalled: func(executionResult data.BaseExecutionResultHandler) error {
 				countAddResult++
 				wg.Done()
 				return nil

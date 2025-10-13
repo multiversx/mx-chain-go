@@ -39,6 +39,18 @@ import (
 	"github.com/multiversx/mx-chain-go/storage"
 )
 
+// TxShardInfo contains information about the sender and receiver shard IDs of a transaction.
+type TxShardInfo struct {
+	SenderShardID   uint32
+	ReceiverShardID uint32
+}
+
+// TxInfo contains a transaction handler and its associated shard information.
+type TxInfo struct {
+	Tx data.TransactionHandler
+	*TxShardInfo
+}
+
 // TransactionProcessor is the main interface for transaction execution engine
 type TransactionProcessor interface {
 	ProcessTransaction(transaction *transaction.Transaction) (vmcommon.ReturnCode, error)
@@ -163,6 +175,7 @@ type TransactionCoordinator interface {
 	RemoveTxsFromPool(body *block.Body) error
 
 	ProcessBlockTransaction(header data.HeaderHandler, body *block.Body, haveTime func() time.Duration) error
+	GetCreatedMiniBlocksFromMe() block.MiniBlockSlice
 
 	CreateBlockStarted()
 	CreateMbsAndProcessCrossShardTransactionsDstMe(header data.HeaderHandler, processedMiniBlocksInfo map[string]*processedMb.ProcessedMiniBlockInfo, haveTime func() bool, haveAdditionalTime func() bool, scheduledMode bool) (block.MiniBlockSlice, uint32, bool, error)
@@ -247,6 +260,9 @@ type PreProcessor interface {
 	SaveTxsToStorage(body *block.Body) error
 
 	ProcessBlockTransactions(header data.HeaderHandler, body *block.Body, haveTime func() bool) error
+	GetCreatedMiniBlocksFromMe() block.MiniBlockSlice
+	GetUnExecutableTransactions() map[string]struct{}
+
 	RequestBlockTransactions(body *block.Body) int
 
 	GetTransactionsAndRequestMissingForMiniBlock(miniBlock *block.MiniBlock) ([]data.TransactionHandler, int)

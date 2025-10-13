@@ -4,13 +4,13 @@ import "github.com/multiversx/mx-chain-core-go/data"
 
 // BlockProcessorStub -
 type BlockProcessorStub struct {
-	ProcessBlockCalled func(handler data.HeaderHandler, body data.BodyHandler) (data.ExecutionResultHandler, error)
+	ProcessBlockProposalCalled func(handler data.HeaderHandler, body data.BodyHandler) (data.BaseExecutionResultHandler, error)
 }
 
-// ProcessBlock -
-func (bp *BlockProcessorStub) ProcessBlock(header data.HeaderHandler, body data.BodyHandler) (data.ExecutionResultHandler, error) {
-	if bp.ProcessBlockCalled != nil {
-		return bp.ProcessBlockCalled(header, body)
+// ProcessBlockProposal -
+func (bp *BlockProcessorStub) ProcessBlockProposal(header data.HeaderHandler, body data.BodyHandler) (data.BaseExecutionResultHandler, error) {
+	if bp.ProcessBlockProposalCalled != nil {
+		return bp.ProcessBlockProposalCalled(header, body)
 	}
 
 	return nil, nil

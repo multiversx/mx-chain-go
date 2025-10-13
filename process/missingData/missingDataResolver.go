@@ -85,6 +85,11 @@ func (r *Resolver) RequestMissingMetaHeaders(
 	}
 
 	metaBlockHashes := shardHeader.GetMetaBlockHashes()
+	if shardHeader.IsStartOfEpochBlock() {
+		epochStartMetaHash := shardHeader.GetEpochStartMetaHash()
+		metaBlockHashes = append(metaBlockHashes, epochStartMetaHash)
+	}
+
 	for i := 0; i < len(metaBlockHashes); i++ {
 		r.requestHeaderIfNeeded(core.MetachainShardId, metaBlockHashes[i])
 		r.requestProofIfNeeded(core.MetachainShardId, metaBlockHashes[i])

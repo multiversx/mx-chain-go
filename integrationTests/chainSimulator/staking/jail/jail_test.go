@@ -182,7 +182,7 @@ func TestChainSimulator_FromQueueToAuctionList(t *testing.T) {
 			newNumNodes := cfg.SystemSCConfig.StakingSystemSCConfig.MaxNumberOfNodesForStake + 1
 			configs.SetMaxNumberOfNodesInConfigs(cfg, uint32(newNumNodes), 0, numOfShards)
 
-			cfg.EpochConfig.EnableEpochs.SupernovaEnableEpoch = 0
+			cfg.EpochConfig.EnableEpochs.SupernovaEnableEpoch = 100
 		},
 	})
 	require.Nil(t, err)
