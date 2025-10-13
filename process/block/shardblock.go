@@ -1112,6 +1112,7 @@ func (sp *shardProcessor) CommitBlock(
 		epochStartTriggerConfigKey: epochStartKey,
 	}
 
+	// TODO adjust this method if needed for Supernova
 	sp.prepareDataForBootStorer(args)
 
 	// write data to log
@@ -1138,6 +1139,11 @@ func (sp *shardProcessor) CommitBlock(
 	}
 
 	sp.cleanupPools(headerHandler)
+
+	err = sp.saveExecutedData(header, headerHash)
+	if err != nil {
+		return err
+	}
 
 	sp.blockProcessingCutoffHandler.HandlePauseCutoff(header)
 

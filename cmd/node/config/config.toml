@@ -515,6 +515,18 @@
     SizeInBytes = 31457280  #30MB
     Shards = 4
 
+[ExecutedMiniBlocksCache]
+    Name = "ExecutedMiniBlocksCache"
+    Capacity = 500
+    Type = "SizeLRU"
+    SizeInBytes = 52428800 # 50MB
+
+[PostProcessTransactionsCache]
+    Name = "PostProcessTransactionsCache"
+    Capacity = 250000
+    Type = "SizeLRU"
+    SizeInBytes = 104857600 # 100MB
+
 #PublicKeyPeerId represents the main cache used to map MultiversX block signing public keys to their associated peer id's.
 [PublicKeyPeerId]
     Name = "PublicKeyPeerId"

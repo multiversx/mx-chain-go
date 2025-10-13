@@ -491,6 +491,8 @@ func GetGeneralConfig() config.Config {
 			CacheSpanInSec:   1,
 			CacheExpiryInSec: 1,
 		},
+		ExecutedMiniBlocksCache:      getLRUCacheConfig(),
+		PostProcessTransactionsCache: getLRUCacheConfig(),
 	}
 }
 
