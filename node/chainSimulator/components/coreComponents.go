@@ -236,10 +236,9 @@ func CreateCoreComponents(args ArgsCoreComponentsHolder) (*coreComponentsHolder,
 	instance.apiEconomicsData = instance.economicsData
 
 	instance.ratingsData, err = rating.NewRatingsData(rating.RatingsDataArg{
-		EpochNotifier:             instance.epochNotifier,
-		Config:                    args.RatingConfig,
-		ChainParametersHolder:     instance.chainParametersHandler,
-		RoundDurationMilliseconds: args.RoundDurationInMs,
+		EpochNotifier:         instance.epochNotifier,
+		Config:                args.RatingConfig,
+		ChainParametersHolder: instance.chainParametersHandler,
 	})
 	if err != nil {
 		return nil, err
