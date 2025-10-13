@@ -1172,6 +1172,11 @@ func (mp *metaProcessor) CommitBlock(
 	mp.saveMetaHeader(header, headerHash, marshalizedHeader)
 	mp.saveBody(body, header, headerHash)
 
+	err = mp.saveExecutedData(header, headerHash)
+	if err != nil {
+		return err
+	}
+
 	err = mp.commitAll(headerHandler)
 	if err != nil {
 		return err
@@ -1299,6 +1304,7 @@ func (mp *metaProcessor) CommitBlock(
 		highestFinalBlockNonce:     highestFinalBlockNonce,
 	}
 
+	// TODO adjust this method if needed for Supernova
 	mp.prepareDataForBootStorer(args)
 
 	mp.blockSizeThrottler.Succeed(header.Round)

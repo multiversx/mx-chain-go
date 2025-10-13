@@ -1397,3 +1397,6 @@ var ErrGasUsedExceedsGasProvided = errors.New("gas used exceeds gas provided")
 
 // ErrZeroLimit signals that the limit is zero
 var ErrZeroLimit = errors.New("zero limit")
+
+// ErrInvalidBlockType signals that an invalid block type has been provided
+var ErrInvalidBlockType = errors.New("invalid block type")
