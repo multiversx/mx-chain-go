@@ -201,28 +201,30 @@ type Config struct {
 	TrieLeavesRetrieverConfig TrieLeavesRetrieverConfig
 	BadBlocksCache            CacheConfig
 
-	TxBlockBodyDataPool         CacheConfig
-	PeerBlockBodyDataPool       CacheConfig
-	TxDataPool                  CacheConfig
-	TxCacheBounds               TxCacheBoundsConfig
-	TxCacheSelection            TxCacheSelectionConfig
-	UnsignedTransactionDataPool CacheConfig
-	RewardTransactionDataPool   CacheConfig
-	TrieNodesChunksDataPool     CacheConfig
-	WhiteListPool               CacheConfig
-	WhiteListerVerifiedTxs      CacheConfig
-	SmartContractDataPool       CacheConfig
-	ValidatorInfoPool           CacheConfig
-	TrieSyncStorage             TrieSyncStorageConfig
-	EpochStartConfig            EpochStartConfig
-	AddressPubkeyConverter      PubkeyConfig
-	ValidatorPubkeyConverter    PubkeyConfig
-	Hasher                      TypeConfig
-	MultisigHasher              TypeConfig
-	Marshalizer                 MarshalizerConfig
-	VmMarshalizer               TypeConfig
-	TxSignMarshalizer           TypeConfig
-	TxSignHasher                TypeConfig
+	TxBlockBodyDataPool          CacheConfig
+	PeerBlockBodyDataPool        CacheConfig
+	TxDataPool                   CacheConfig
+	TxCacheBounds                TxCacheBoundsConfig
+	TxCacheSelection             TxCacheSelectionConfig
+	UnsignedTransactionDataPool  CacheConfig
+	RewardTransactionDataPool    CacheConfig
+	TrieNodesChunksDataPool      CacheConfig
+	WhiteListPool                CacheConfig
+	WhiteListerVerifiedTxs       CacheConfig
+	SmartContractDataPool        CacheConfig
+	ValidatorInfoPool            CacheConfig
+	ExecutedMiniBlocksCache      CacheConfig
+	PostProcessTransactionsCache CacheConfig
+	TrieSyncStorage              TrieSyncStorageConfig
+	EpochStartConfig             EpochStartConfig
+	AddressPubkeyConverter       PubkeyConfig
+	ValidatorPubkeyConverter     PubkeyConfig
+	Hasher                       TypeConfig
+	MultisigHasher               TypeConfig
+	Marshalizer                  MarshalizerConfig
+	VmMarshalizer                TypeConfig
+	TxSignMarshalizer            TypeConfig
+	TxSignHasher                 TypeConfig
 
 	PublicKeyShardId      CacheConfig
 	PublicKeyPeerId       CacheConfig

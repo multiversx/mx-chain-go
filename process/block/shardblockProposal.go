@@ -784,9 +784,6 @@ func (sp *shardProcessor) checkMetaHeadersValidityAndFinalityProposal(header dat
 // collectExecutionResults collects the execution results after processing the block
 func (sp *shardProcessor) collectExecutionResults(headerHash []byte, header data.HeaderHandler, body *block.Body) (data.BaseExecutionResultHandler, error) {
 	crossShardIncomingMiniBlocks := sp.getCrossShardIncomingMiniBlocksFromBody(body)
-	// TODO: make sure the miniBlocks are saved in the DB somewhere, otherwise they cannot be synchronized by other nodes
-	// this is for the miniBlocksFromSelf and postProcessMiniBlocks
-	// should be saved on the commit of the block that includes the execution results, but until then need to be cached
 	miniBlocksFromSelf := sp.txCoordinator.GetCreatedMiniBlocksFromMe()
 	postProcessMiniBlocks := sp.txCoordinator.CreatePostProcessMiniBlocks()
 
@@ -820,6 +817,11 @@ func (sp *shardProcessor) collectExecutionResults(headerHash []byte, header data
 		return nil, err
 	}
 
+	err = sp.cacheExecutedMiniBlocks(sanitizedBodyAfterExecution, miniBlockHeaderHandlers)
+	if err != nil {
+		return nil, err
+	}
+
 	executionResult := &block.ExecutionResult{
 		BaseExecutionResult: &block.BaseExecutionResult{
 			HeaderHash:  headerHash,
@@ -836,6 +838,11 @@ func (sp *shardProcessor) collectExecutionResults(headerHash []byte, header data
 	}
 
 	err = executionResult.SetMiniBlockHeadersHandlers(miniBlockHeaderHandlers)
+	if err != nil {
+		return nil, err
+	}
+
+	err = sp.cacheIntermediateTxsForHeader(headerHash)
 	if err != nil {
 		return nil, err
 	}
