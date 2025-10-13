@@ -979,6 +979,7 @@ type BlockTracker interface {
 	RestoreToGenesis()
 	ShouldAddHeader(headerHandler data.HeaderHandler) bool
 	ComputeOwnShardStuck(lastExecutionResultsInfo data.BaseExecutionResultHandler, currentNonce uint64)
+	IsOwnShardStuck() bool
 	IsInterfaceNil() bool
 }
 
@@ -1527,6 +1528,8 @@ type GasComputation interface {
 	TotalGasConsumed() uint64
 	DecreaseIncomingLimit()
 	DecreaseOutgoingLimit()
+	ZeroIncomingLimit()
+	ZeroOutgoingLimit()
 	ResetIncomingLimit()
 	ResetOutgoingLimit()
 	Reset()

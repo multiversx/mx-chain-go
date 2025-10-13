@@ -2357,6 +2357,53 @@ func (bp *baseProcessor) computeOwnShardStuckIfNeeded(header data.HeaderHandler)
 	return nil
 }
 
+func (bp *baseProcessor) updateGasConsumptionLimitsIfNeeded() {
+	if !bp.blockTracker.IsOwnShardStuck() {
+		bp.gasComputation.ResetIncomingLimit()
+		bp.gasComputation.ResetOutgoingLimit()
+
+		return
+	}
+
+	// shard is stuck, zeroing the limits
+	bp.gasComputation.ZeroIncomingLimit()
+	bp.gasComputation.ZeroOutgoingLimit()
+}
+
+func getLastBaseExecutionResultHandler(header data.HeaderHandler) (data.BaseExecutionResultHandler, error) {
+	if check.IfNil(header) {
+		return nil, process.ErrNilHeaderHandler
+	}
+	lastExecResultsHandler := header.GetLastExecutionResultHandler()
+	if lastExecResultsHandler == nil {
+		return nil, process.ErrNilLastExecutionResultHandler
+	}
+
+	var baseExecutionResultsHandler data.BaseExecutionResultHandler
+	var ok bool
+	switch executionResultsHandlerType := lastExecResultsHandler.(type) {
+	case data.LastMetaExecutionResultHandler:
+		metaBaseExecutionResults := executionResultsHandlerType.GetExecutionResultHandler()
+		if check.IfNil(metaBaseExecutionResults) {
+			return nil, process.ErrNilBaseExecutionResult
+		}
+		baseExecutionResultsHandler, ok = metaBaseExecutionResults.(data.BaseExecutionResultHandler)
+		if !ok {
+			return nil, process.ErrWrongTypeAssertion
+		}
+	case data.LastShardExecutionResultHandler:
+		baseExecutionResultsHandler = executionResultsHandlerType.GetExecutionResultHandler()
+	default:
+		return nil, fmt.Errorf("%w: unsupported execution result handler type", process.ErrWrongTypeAssertion)
+	}
+
+	if check.IfNil(baseExecutionResultsHandler) {
+		return nil, process.ErrNilBaseExecutionResult
+	}
+
+	return baseExecutionResultsHandler, nil
+}
+
 func (bp *baseProcessor) getMaxRoundsWithoutBlockReceived(round uint64) uint64 {
 	maxRoundsWithoutNewBlockReceived := bp.processConfigsHandler.GetMaxRoundsWithoutNewBlockReceivedByRound(round)
 	return uint64(maxRoundsWithoutNewBlockReceived)

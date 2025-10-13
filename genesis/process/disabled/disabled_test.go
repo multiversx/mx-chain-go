@@ -65,6 +65,7 @@ func TestBlockTracker(t *testing.T) {
 
 	handler := &BlockTracker{}
 	require.False(t, handler.IsShardStuck(0))
+	require.False(t, handler.IsOwnShardStuck())
 	require.False(t, handler.ShouldSkipMiniBlocksCreationFromSelf())
 	require.False(t, handler.IsInterfaceNil())
 }
