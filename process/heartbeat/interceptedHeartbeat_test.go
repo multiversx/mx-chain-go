@@ -78,13 +78,13 @@ func TestNewInterceptedHeartbeat(t *testing.T) {
 		arg := createMockInterceptedHeartbeatArg(createDefaultInterceptedHeartbeat())
 		arg.Marshaller = &mock.MarshalizerStub{
 			UnmarshalCalled: func(obj interface{}, buff []byte) error {
-				return expectedErr
+				return errExpected
 			},
 		}
 
 		ihb, err := NewInterceptedHeartbeat(arg)
 		assert.Nil(t, ihb)
-		assert.Equal(t, expectedErr, err)
+		assert.Equal(t, errExpected, err)
 	})
 	t.Run("unmarshalable payload returns error", func(t *testing.T) {
 		t.Parallel()
@@ -147,10 +147,10 @@ func testInterceptedHeartbeatPropertyLen(property string, tooLong bool) func(t *
 		t.Parallel()
 
 		value := []byte("")
-		expectedError := process.ErrPropertyTooShort
+		errExpectedor := process.ErrPropertyTooShort
 		if tooLong {
 			value = make([]byte, 130)
-			expectedError = process.ErrPropertyTooLong
+			errExpectedor = process.ErrPropertyTooLong
 		}
 
 		arg := createMockInterceptedHeartbeatArg(createDefaultInterceptedHeartbeat())
@@ -171,7 +171,7 @@ func testInterceptedHeartbeatPropertyLen(property string, tooLong bool) func(t *
 		}
 
 		err := ihb.CheckValidity()
-		assert.True(t, strings.Contains(err.Error(), expectedError.Error()))
+		assert.True(t, strings.Contains(err.Error(), errExpectedor.Error()))
 	}
 }
 

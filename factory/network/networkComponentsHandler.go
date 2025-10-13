@@ -166,7 +166,7 @@ func (mnc *managedNetworkComponents) PeerBlackListHandler() process.PeerBlackLis
 		return nil
 	}
 
-	return mnc.networkComponents.peerBlackListHandler
+	return mnc.peerBlackListHandler
 }
 
 // PeerHonestyHandler returns the blacklist handler
@@ -178,7 +178,7 @@ func (mnc *managedNetworkComponents) PeerHonestyHandler() factory.PeerHonestyHan
 		return nil
 	}
 
-	return mnc.networkComponents.peerHonestyHandler
+	return mnc.peerHonestyHandler
 }
 
 // PreferredPeersHolderHandler returns the preferred peers holder of the main network

@@ -69,7 +69,7 @@ func TestNewP2PAntiflood_ShouldWork(t *testing.T) {
 	assert.Nil(t, err)
 }
 
-//------- CanProcessMessage
+// ------- CanProcessMessage
 
 func TestP2PAntiflood_CanProcessMessageNilMessageShouldError(t *testing.T) {
 	t.Parallel()
@@ -195,7 +195,7 @@ func TestP2PAntiflood_ShouldWorkWithMoreThanOneFlodPreventer(t *testing.T) {
 	assert.Equal(t, 4, numIncreasedLoads)
 }
 
-//------- CanProcessMessagesOnTopic
+// ------- CanProcessMessagesOnTopic
 
 func TestP2pAntiflood_CanProcessMessagesOnTopicCanNotAccumulateShouldError(t *testing.T) {
 	t.Parallel()
@@ -396,13 +396,13 @@ func TestP2pAntiflood_BlacklistPeerErrShouldDoNothing(t *testing.T) {
 	t.Parallel()
 
 	numCalls := int32(0)
-	expectedErr := errors.New("expected error")
+	errExpected := errors.New("expected error")
 	afm, _ := antiflood.NewP2PAntiflood(
 		&mock.PeerBlackListHandlerStub{
 			UpsertCalled: func(pid core.PeerID, span time.Duration) error {
 				atomic.AddInt32(&numCalls, 1)
 
-				return expectedErr
+				return errExpected
 			},
 		},
 		&mock.TopicAntiFloodStub{},

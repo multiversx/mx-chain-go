@@ -25,7 +25,7 @@ import (
 )
 
 var (
-	expectedErr    = errors.New("expected error")
+	errExpected    = errors.New("expected error")
 	testMarshaller = &marshallerMock.MarshalizerMock{}
 	providedEpoch  = uint32(123)
 	providedNonce  = uint64(345)
@@ -149,11 +149,11 @@ func TestNewInterceptedEquivalentProof(t *testing.T) {
 		args := createMockArgInterceptedEquivalentProof()
 		args.Marshaller = &marshallerMock.MarshalizerStub{
 			UnmarshalCalled: func(obj interface{}, buff []byte) error {
-				return expectedErr
+				return errExpected
 			},
 		}
 		iep, err := NewInterceptedEquivalentProof(args)
-		require.Equal(t, expectedErr, err)
+		require.Equal(t, errExpected, err)
 		require.Nil(t, iep)
 	})
 	t.Run("nil ProofSizeChecker should error", func(t *testing.T) {

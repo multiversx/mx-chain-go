@@ -276,10 +276,10 @@ func TestAccountsDB_SaveAccountNilAccountShouldErr(t *testing.T) {
 func TestAccountsDB_SaveAccountErrWhenGettingOldAccountShouldErr(t *testing.T) {
 	t.Parallel()
 
-	expectedErr := errors.New("trie get err")
+	errExpected := errors.New("trie get err")
 	adb := generateAccountDBFromTrie(&trieMock.TrieStub{
 		GetCalled: func(_ []byte) ([]byte, uint32, error) {
-			return nil, 0, expectedErr
+			return nil, 0, errExpected
 		},
 		GetStorageManagerCalled: func() common.StorageManager {
 			return &storageManager.StorageManagerStub{}
@@ -287,7 +287,7 @@ func TestAccountsDB_SaveAccountErrWhenGettingOldAccountShouldErr(t *testing.T) {
 	})
 
 	err := adb.SaveAccount(generateAccount())
-	assert.Equal(t, expectedErr, err)
+	assert.Equal(t, errExpected, err)
 }
 
 func TestAccountsDB_SaveAccountNilOldAccount(t *testing.T) {
@@ -1057,7 +1057,7 @@ func TestAccountsDB_SnapshotStateWithErrorsShouldNotMarkActiveDB(t *testing.T) {
 	mut := sync.RWMutex{}
 	lastSnapshotStartedWasPut := false
 	activeDBWasPut := false
-	expectedErr := errors.New("expected error")
+	errExpected := errors.New("expected error")
 	trieStub := &trieMock.TrieStub{
 		GetStorageManagerCalled: func() common.StorageManager {
 			return &storageManager.StorageManagerStub{
@@ -1065,7 +1065,7 @@ func TestAccountsDB_SnapshotStateWithErrorsShouldNotMarkActiveDB(t *testing.T) {
 					return true
 				},
 				TakeSnapshotCalled: func(_ string, _ []byte, _ []byte, iteratorChannels *common.TrieIteratorChannels, _ chan []byte, stats common.SnapshotStatisticsHandler, _ uint32) {
-					iteratorChannels.ErrChan.WriteInChanNonBlocking(expectedErr)
+					iteratorChannels.ErrChan.WriteInChanNonBlocking(errExpected)
 					close(iteratorChannels.LeavesChan)
 					stats.SnapshotFinished()
 				},
@@ -2130,12 +2130,12 @@ func TestAccountsDB_RecreateAllTries(t *testing.T) {
 
 		args := createMockAccountsDBArgs()
 
-		expectedErr := errors.New("expected error")
+		errExpected := errors.New("expected error")
 		args.Trie = &trieMock.TrieStub{
 			GetAllLeavesOnChannelCalled: func(leavesChannels *common.TrieIteratorChannels, ctx context.Context, rootHash []byte, keyBuilder common.KeyBuilder, _ common.TrieLeafParser) error {
 				go func() {
 					leavesChannels.LeavesChan <- keyValStorage.NewKeyValStorage([]byte("key"), []byte("val"))
-					leavesChannels.ErrChan.WriteInChanNonBlocking(expectedErr)
+					leavesChannels.ErrChan.WriteInChanNonBlocking(errExpected)
 
 					close(leavesChannels.LeavesChan)
 					leavesChannels.ErrChan.Close()
@@ -2154,7 +2154,7 @@ func TestAccountsDB_RecreateAllTries(t *testing.T) {
 		adb, _ := state.NewAccountsDB(args)
 
 		tries, err := adb.RecreateAllTries([]byte{})
-		assert.Equal(t, expectedErr, err)
+		assert.Equal(t, errExpected, err)
 		assert.Equal(t, 0, len(tries))
 	})
 
@@ -2267,35 +2267,35 @@ func TestAccountsDB_GetAccountFromBytes(t *testing.T) {
 	t.Run("accountFactory error", func(t *testing.T) {
 		t.Parallel()
 
-		expectedErr := errors.New("expected error")
+		errExpected := errors.New("expected error")
 		args := createMockAccountsDBArgs()
 		args.AccountFactory = &stateMock.AccountsFactoryStub{
 			CreateAccountCalled: func(_ []byte) (vmcommon.AccountHandler, error) {
-				return nil, expectedErr
+				return nil, errExpected
 			},
 		}
 		adb, _ := state.NewAccountsDB(args)
 
 		acc, err := adb.GetAccountFromBytes([]byte{1}, []byte{})
 		assert.Nil(t, acc)
-		assert.Equal(t, expectedErr, err)
+		assert.Equal(t, errExpected, err)
 	})
 
 	t.Run("unmarshal error", func(t *testing.T) {
 		t.Parallel()
 
-		expectedErr := errors.New("expected error")
+		errExpected := errors.New("expected error")
 		args := createMockAccountsDBArgs()
 		args.Marshaller = &marshallerMock.MarshalizerStub{
 			UnmarshalCalled: func(_ interface{}, _ []byte) error {
-				return expectedErr
+				return errExpected
 			},
 		}
 		adb, _ := state.NewAccountsDB(args)
 
 		acc, err := adb.GetAccountFromBytes([]byte{1}, []byte{})
 		assert.Nil(t, acc)
-		assert.Equal(t, expectedErr, err)
+		assert.Equal(t, errExpected, err)
 	})
 
 	t.Run("return peer account directly", func(t *testing.T) {
@@ -2399,7 +2399,7 @@ func TestAccountsDB_SetSyncerAndStartSnapshotIfNeeded(t *testing.T) {
 	t.Parallel()
 
 	rootHash := []byte("rootHash")
-	expectedErr := errors.New("expected error")
+	errExpected := errors.New("expected error")
 
 	t.Run("epoch 0, GetLatestStorageEpoch errors should not put", func(t *testing.T) {
 		trieStub := &trieMock.TrieStub{
@@ -2412,7 +2412,7 @@ func TestAccountsDB_SetSyncerAndStartSnapshotIfNeeded(t *testing.T) {
 						return true
 					},
 					GetLatestStorageEpochCalled: func() (uint32, error) {
-						return 0, expectedErr
+						return 0, errExpected
 					},
 					PutCalled: func(key []byte, val []byte) error {
 						assert.Fail(t, "should have not called put")
@@ -2443,7 +2443,7 @@ func TestAccountsDB_SetSyncerAndStartSnapshotIfNeeded(t *testing.T) {
 						return 1, nil
 					},
 					GetFromCurrentEpochCalled: func(i []byte) ([]byte, error) {
-						return nil, expectedErr
+						return nil, errExpected
 					},
 				}
 			},

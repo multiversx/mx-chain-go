@@ -1221,7 +1221,7 @@ func TestMetaProcessor_CommitBlockShouldRevertCurrentBlockWhenErr(t *testing.T) 
 }
 
 func TestMetaProcessor_RevertStateRevertPeerStateFailsShouldErr(t *testing.T) {
-	expectedErr := errors.New("err")
+	errExpected := errors.New("err")
 	coreComponents, dataComponents, bootstrapComponents, statusComponents := createMockComponentHolders()
 	dataComponents.DataPool = initDataPool()
 	dataComponents.Storage = initStore()
@@ -1234,7 +1234,7 @@ func TestMetaProcessor_RevertStateRevertPeerStateFailsShouldErr(t *testing.T) {
 	}
 	arguments.ValidatorStatisticsProcessor = &testscommon.ValidatorStatisticsProcessorStub{
 		RevertPeerStateCalled: func(header data.MetaHeaderHandler) error {
-			return expectedErr
+			return errExpected
 		},
 	}
 	mp, err := blproc.NewMetaProcessor(arguments)
@@ -1243,7 +1243,7 @@ func TestMetaProcessor_RevertStateRevertPeerStateFailsShouldErr(t *testing.T) {
 
 	hdr := block.MetaBlock{Nonce: 37}
 	err = mp.RevertStateToBlock(&hdr, hdr.RootHash)
-	require.Equal(t, expectedErr, err)
+	require.Equal(t, errExpected, err)
 }
 
 func TestMetaProcessor_RevertStateShouldWork(t *testing.T) {
@@ -3283,10 +3283,10 @@ func TestMetaProcessor_UpdateEpochStartHeader(t *testing.T) {
 	t.Run("fail to compute end of epoch economics", func(t *testing.T) {
 		arguments := createMockMetaArguments(coreComponents, dataComponents, bootstrapComponents, statusComponents)
 
-		expectedErr := errors.New("expected error")
+		errExpected := errors.New("expected error")
 		arguments.EpochEconomics = &mock.EpochEconomicsStub{
 			ComputeEndOfEpochEconomicsCalled: func(metaBlock *block.MetaBlock) (*block.Economics, error) {
-				return nil, expectedErr
+				return nil, errExpected
 			},
 		}
 
@@ -3298,7 +3298,7 @@ func TestMetaProcessor_UpdateEpochStartHeader(t *testing.T) {
 		}
 
 		err := mp.UpdateEpochStartHeader(header)
-		assert.Equal(t, expectedErr, err)
+		assert.Equal(t, errExpected, err)
 	})
 
 	t.Run("should work", func(t *testing.T) {
@@ -3345,17 +3345,17 @@ func TestMetaProcessor_CreateEpochStartBodyShouldFail(t *testing.T) {
 
 		arguments := createMockMetaArguments(coreComponents, dataComponents, bootstrapComponents, statusComponents)
 
-		expectedErr := errors.New("expected error")
+		errExpected := errors.New("expected error")
 		arguments.ValidatorStatisticsProcessor = &testscommon.ValidatorStatisticsProcessorStub{
 			RootHashCalled: func() ([]byte, error) {
-				return nil, expectedErr
+				return nil, errExpected
 			},
 		}
 
 		mp, _ := blproc.NewMetaProcessor(arguments)
 
 		body, err := mp.CreateEpochStartBody(&block.MetaBlock{})
-		assert.Equal(t, expectedErr, err)
+		assert.Equal(t, errExpected, err)
 		assert.Nil(t, body)
 	})
 	t.Run("fail to get validators info root hash", func(t *testing.T) {
@@ -3363,17 +3363,17 @@ func TestMetaProcessor_CreateEpochStartBodyShouldFail(t *testing.T) {
 
 		arguments := createMockMetaArguments(coreComponents, dataComponents, bootstrapComponents, statusComponents)
 
-		expectedErr := errors.New("expected error")
+		errExpected := errors.New("expected error")
 		arguments.ValidatorStatisticsProcessor = &testscommon.ValidatorStatisticsProcessorStub{
 			GetValidatorInfoForRootHashCalled: func(rootHash []byte) (state.ShardValidatorsInfoMapHandler, error) {
-				return nil, expectedErr
+				return nil, errExpected
 			},
 		}
 
 		mp, _ := blproc.NewMetaProcessor(arguments)
 
 		body, err := mp.CreateEpochStartBody(&block.MetaBlock{})
-		assert.Equal(t, expectedErr, err)
+		assert.Equal(t, errExpected, err)
 		assert.Nil(t, body)
 	})
 	t.Run("fail to process ratings end of epoch", func(t *testing.T) {
@@ -3381,17 +3381,17 @@ func TestMetaProcessor_CreateEpochStartBodyShouldFail(t *testing.T) {
 
 		arguments := createMockMetaArguments(coreComponents, dataComponents, bootstrapComponents, statusComponents)
 
-		expectedErr := errors.New("expected error")
+		errExpected := errors.New("expected error")
 		arguments.ValidatorStatisticsProcessor = &testscommon.ValidatorStatisticsProcessorStub{
 			ProcessRatingsEndOfEpochCalled: func(validatorsInfo state.ShardValidatorsInfoMapHandler, epoch uint32) error {
-				return expectedErr
+				return errExpected
 			},
 		}
 
 		mp, _ := blproc.NewMetaProcessor(arguments)
 
 		body, err := mp.CreateEpochStartBody(&block.MetaBlock{})
-		assert.Equal(t, expectedErr, err)
+		assert.Equal(t, errExpected, err)
 		assert.Nil(t, body)
 	})
 }

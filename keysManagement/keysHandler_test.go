@@ -72,13 +72,13 @@ func TestNewKeysHandler(t *testing.T) {
 	t.Run("public key bytes generation errors should error", func(t *testing.T) {
 		t.Parallel()
 
-		expectedErr := errors.New("expected error")
+		errExpected := errors.New("expected error")
 		args := createMockArgsKeysHandler()
 		args.PrivateKey = &cryptoMocks.PrivateKeyStub{
 			GeneratePublicStub: func() crypto.PublicKey {
 				return &cryptoMocks.PublicKeyStub{
 					ToByteArrayStub: func() ([]byte, error) {
-						return nil, expectedErr
+						return nil, errExpected
 					},
 				}
 			},
@@ -86,7 +86,7 @@ func TestNewKeysHandler(t *testing.T) {
 		handler, err := keysManagement.NewKeysHandler(args)
 
 		assert.True(t, check.IfNil(handler))
-		assert.Equal(t, expectedErr, err)
+		assert.Equal(t, errExpected, err)
 	})
 	t.Run("should work", func(t *testing.T) {
 		t.Parallel()

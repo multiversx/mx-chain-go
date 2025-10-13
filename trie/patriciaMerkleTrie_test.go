@@ -622,10 +622,10 @@ func TestPatriciaMerkleTrie_GetAllLeavesOnChannel(t *testing.T) {
 			ErrChan:    errChan.NewErrChanWrapper(),
 		}
 
-		expectedErr := errors.New("expected error")
+		errExpected := errors.New("expected error")
 		keyBuilderStub := &mock.KeyBuilderStub{}
 		keyBuilderStub.GetKeyCalled = func() ([]byte, error) {
-			return nil, expectedErr
+			return nil, errExpected
 		}
 		keyBuilderStub.ShallowCloneCalled = func() common.KeyBuilder {
 			return keyBuilderStub
@@ -640,7 +640,7 @@ func TestPatriciaMerkleTrie_GetAllLeavesOnChannel(t *testing.T) {
 			recovered[string(leaf.Key())] = leaf.Value()
 		}
 		err = leavesChannel.ErrChan.ReadFromChanNonBlocking()
-		assert.Equal(t, expectedErr, err)
+		assert.Equal(t, errExpected, err)
 		assert.Equal(t, 0, len(recovered))
 	})
 
@@ -658,7 +658,7 @@ func TestPatriciaMerkleTrie_GetAllLeavesOnChannel(t *testing.T) {
 			ErrChan:    errChan.NewErrChanWrapper(),
 		}
 
-		expectedErr := errors.New("expected error")
+		errExpected := errors.New("expected error")
 
 		keyBuilderStub := &mock.KeyBuilderStub{}
 		firstRun := true
@@ -667,7 +667,7 @@ func TestPatriciaMerkleTrie_GetAllLeavesOnChannel(t *testing.T) {
 				firstRun = false
 				return []byte("doe"), nil
 			}
-			return nil, expectedErr
+			return nil, errExpected
 		}
 		keyBuilderStub.ShallowCloneCalled = func() common.KeyBuilder {
 			return keyBuilderStub
@@ -682,7 +682,7 @@ func TestPatriciaMerkleTrie_GetAllLeavesOnChannel(t *testing.T) {
 			recovered[string(leaf.Key())] = leaf.Value()
 		}
 		err = leavesChannel.ErrChan.ReadFromChanNonBlocking()
-		assert.Equal(t, expectedErr, err)
+		assert.Equal(t, errExpected, err)
 
 		expectedLeaves := map[string][]byte{
 			"doe": []byte("reindeer"),
@@ -888,7 +888,7 @@ func TestPatriciaMerkleTrie_GetAndVerifyProof(t *testing.T) {
 func dumpTrieContents(tr common.Trie, values [][]byte) {
 	fmt.Println(tr.String())
 	for _, val := range values {
-		fmt.Println(val)
+		fmt.Println(string(val))
 	}
 }
 

@@ -107,7 +107,7 @@ func (mscc *managedStatusCoreComponents) NetworkStatistics() factory.NetworkStat
 		return nil
 	}
 
-	return mscc.statusCoreComponents.networkStatistics
+	return mscc.networkStatistics
 }
 
 // ResourceMonitor returns the resource monitor instance
@@ -119,7 +119,7 @@ func (mscc *managedStatusCoreComponents) ResourceMonitor() factory.ResourceMonit
 		return nil
 	}
 
-	return mscc.statusCoreComponents.resourceMonitor
+	return mscc.resourceMonitor
 }
 
 // TrieSyncStatistics returns the trie sync statistics instance
@@ -131,7 +131,7 @@ func (mscc *managedStatusCoreComponents) TrieSyncStatistics() factory.TrieSyncSt
 		return nil
 	}
 
-	return mscc.statusCoreComponents.trieSyncStatistics
+	return mscc.trieSyncStatistics
 }
 
 // AppStatusHandler returns the app status handler instance
@@ -143,7 +143,7 @@ func (mscc *managedStatusCoreComponents) AppStatusHandler() core.AppStatusHandle
 		return nil
 	}
 
-	return mscc.statusCoreComponents.appStatusHandler
+	return mscc.appStatusHandler
 }
 
 // StatusMetrics returns the status metrics instance
@@ -155,7 +155,7 @@ func (mscc *managedStatusCoreComponents) StatusMetrics() external.StatusMetricsH
 		return nil
 	}
 
-	return mscc.statusCoreComponents.statusMetrics
+	return mscc.statusMetrics
 }
 
 // PersistentStatusHandler returns the persistent handler instance
@@ -167,7 +167,7 @@ func (mscc *managedStatusCoreComponents) PersistentStatusHandler() factory.Persi
 		return nil
 	}
 
-	return mscc.statusCoreComponents.persistentHandler
+	return mscc.persistentHandler
 }
 
 // StateStatsHandler returns the state statistics handler component
@@ -179,7 +179,7 @@ func (mscc *managedStatusCoreComponents) StateStatsHandler() common.StateStatist
 		return nil
 	}
 
-	return mscc.statusCoreComponents.stateStatsHandler
+	return mscc.stateStatsHandler
 }
 
 // IsInterfaceNil returns true if there is no value under the interface

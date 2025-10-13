@@ -28,13 +28,13 @@ func TestMetrics_CalculateRoundDuration(t *testing.T) {
 func TestMetrics_IncrementMetricCountConsensusAcceptedBlocks(t *testing.T) {
 	t.Parallel()
 
-	expectedErr := errors.New("expected error")
+	errExpected := errors.New("expected error")
 	t.Run("nodes coordinator returns error should early exit", func(t *testing.T) {
 		t.Parallel()
 
 		nodesCoord := &shardingMocks.NodesCoordinatorMock{
 			GetValidatorsPublicKeysCalled: func(_ []byte, _ uint64, _ uint32, _ uint32) (string, []string, error) {
-				return "", nil, expectedErr
+				return "", nil, errExpected
 			},
 		}
 		statusHandler := &statusHandlerMock.AppStatusHandlerStub{

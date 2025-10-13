@@ -118,13 +118,13 @@ func TestTokensSuppliesProcessor_HandleTrieAccountIteration(t *testing.T) {
 		args := getTokensSuppliesProcessorArgs()
 		tsp, _ := NewTokensSuppliesProcessor(args)
 
-		expectedErr := errors.New("error")
+		errExpected := errors.New("error")
 
 		userAcc, _ := accounts.NewUserAccount([]byte("addr"), &trie.DataTrieTrackerStub{}, &trie.TrieLeafParserStub{})
 		userAcc.SetRootHash([]byte("rootHash"))
 		userAcc.SetDataTrie(&trie.TrieStub{
 			GetAllLeavesOnChannelCalled: func(leavesChannels *common.TrieIteratorChannels, ctx context.Context, rootHash []byte, keyBuilder common.KeyBuilder, leafParser common.TrieLeafParser) error {
-				return expectedErr
+				return errExpected
 			},
 			RootCalled: func() ([]byte, error) {
 				return []byte("rootHash"), nil
@@ -132,7 +132,7 @@ func TestTokensSuppliesProcessor_HandleTrieAccountIteration(t *testing.T) {
 		})
 
 		err := tsp.HandleTrieAccountIteration(userAcc)
-		require.ErrorIs(t, err, expectedErr)
+		require.ErrorIs(t, err, errExpected)
 		require.Empty(t, tsp.tokensSupplies)
 	})
 

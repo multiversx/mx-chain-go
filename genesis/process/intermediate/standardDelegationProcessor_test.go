@@ -130,12 +130,12 @@ func TestNewStandardDelegationProcessor_ShouldWork(t *testing.T) {
 	assert.Nil(t, err)
 }
 
-//------- ExecuteDelegation
+// ------- ExecuteDelegation
 
 func TestStandardDelegationProcessor_ExecuteDelegationSplitFailsShouldErr(t *testing.T) {
 	t.Parallel()
 
-	expectedErr := fmt.Errorf("expected error")
+	errExpected := fmt.Errorf("expected error")
 	arg := createMockStandardDelegationProcessorArg()
 	arg.Executor = &mock.TxExecutionProcessorStub{
 		ExecuteTransactionCalled: func(nonce uint64, sndAddr []byte, rcvAddress []byte, value *big.Int, data []byte) error {
@@ -146,7 +146,7 @@ func TestStandardDelegationProcessor_ExecuteDelegationSplitFailsShouldErr(t *tes
 	}
 	arg.SmartContractParser = &mock.SmartContractParserStub{
 		InitialSmartContractsSplitOnOwnersShardsCalled: func(shardCoordinator sharding.Coordinator) (map[uint32][]genesis.InitialSmartContractHandler, error) {
-			return nil, expectedErr
+			return nil, errExpected
 		},
 	}
 
@@ -154,7 +154,7 @@ func TestStandardDelegationProcessor_ExecuteDelegationSplitFailsShouldErr(t *tes
 
 	result, delegationTxs, err := dp.ExecuteDelegation()
 
-	assert.Equal(t, expectedErr, err)
+	assert.Equal(t, errExpected, err)
 	assert.Equal(t, genesis.DelegationResult{}, result)
 	assert.Equal(t, []coreData.TransactionHandler(nil), delegationTxs)
 }

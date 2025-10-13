@@ -134,7 +134,7 @@ func startNodeRunner(c *cli.Context, log logger.Logger, baseVersion string, vers
 
 	err = checkHardwareRequirements(cfgs.GeneralConfig.HardwareRequirements)
 	if err != nil {
-		return fmt.Errorf("Hardware Requirements checks failed: %s", err.Error())
+		return fmt.Errorf("hardware requirements checks failed: %s", err.Error())
 	}
 
 	nodeRunner, errRunner := node.NewNodeRunner(cfgs)

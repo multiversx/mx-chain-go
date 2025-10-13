@@ -338,12 +338,12 @@ func TestCheckHeaderHandler_CheckFieldsForNilErrors(t *testing.T) {
 
 	hdr := createDefaultHeaderHandler()
 	hdr.CheckFieldsForNilCalled = func() error {
-		return expectedErr
+		return errExpected
 	}
 
 	err := checkHeaderHandler(hdr, enableEpochsHandlerMock.NewEnableEpochsHandlerStub())
 
-	assert.Equal(t, expectedErr, err)
+	assert.Equal(t, errExpected, err)
 }
 
 func TestCheckHeaderHandler_ShouldWork(t *testing.T) {

@@ -207,7 +207,7 @@ func TestAddressGroup_getAccount(t *testing.T) {
 
 		facade := &mock.FacadeStub{
 			GetAccountCalled: func(address string, options api.AccountQueryOptions) (api.AccountResponse, api.BlockInfo, error) {
-				return api.AccountResponse{}, api.BlockInfo{}, expectedErr
+				return api.AccountResponse{}, api.BlockInfo{}, errExpected
 			},
 		}
 
@@ -218,7 +218,7 @@ func TestAddressGroup_getAccount(t *testing.T) {
 			"GET",
 			nil,
 			http.StatusInternalServerError,
-			formatExpectedErr(apiErrors.ErrCouldNotGetAccount, expectedErr),
+			formatExpectedErr(apiErrors.ErrCouldNotGetAccount, errExpected),
 		)
 	})
 	t.Run("should work", func(t *testing.T) {
@@ -266,7 +266,7 @@ func TestAddressGroup_getBalance(t *testing.T) {
 
 		facade := &mock.FacadeStub{
 			GetBalanceCalled: func(s string, _ api.AccountQueryOptions) (i *big.Int, info api.BlockInfo, e error) {
-				return nil, api.BlockInfo{}, expectedErr
+				return nil, api.BlockInfo{}, errExpected
 			},
 		}
 
@@ -277,7 +277,7 @@ func TestAddressGroup_getBalance(t *testing.T) {
 			"GET",
 			nil,
 			http.StatusInternalServerError,
-			formatExpectedErr(apiErrors.ErrGetBalance, expectedErr),
+			formatExpectedErr(apiErrors.ErrGetBalance, errExpected),
 		)
 	})
 	t.Run("should work", func(t *testing.T) {
@@ -350,7 +350,7 @@ func TestAddressGroup_getAccounts(t *testing.T) {
 
 		facade := mock.FacadeStub{
 			GetAccountsCalled: func(_ []string, _ api.AccountQueryOptions) (map[string]*api.AccountResponse, api.BlockInfo, error) {
-				return nil, api.BlockInfo{}, expectedErr
+				return nil, api.BlockInfo{}, errExpected
 			},
 		}
 		addrGroup, _ := groups.NewAddressGroup(&facade)
@@ -419,7 +419,7 @@ func TestAddressGroup_getUsername(t *testing.T) {
 
 		facade := &mock.FacadeStub{
 			GetUsernameCalled: func(_ string, _ api.AccountQueryOptions) (string, api.BlockInfo, error) {
-				return "", api.BlockInfo{}, expectedErr
+				return "", api.BlockInfo{}, errExpected
 			},
 		}
 
@@ -430,7 +430,7 @@ func TestAddressGroup_getUsername(t *testing.T) {
 			"GET",
 			nil,
 			http.StatusInternalServerError,
-			formatExpectedErr(apiErrors.ErrGetUsername, expectedErr),
+			formatExpectedErr(apiErrors.ErrGetUsername, errExpected),
 		)
 	})
 	t.Run("should work", func(t *testing.T) {
@@ -470,7 +470,7 @@ func TestAddressGroup_getCodeHash(t *testing.T) {
 
 		facade := &mock.FacadeStub{
 			GetCodeHashCalled: func(_ string, _ api.AccountQueryOptions) ([]byte, api.BlockInfo, error) {
-				return nil, api.BlockInfo{}, expectedErr
+				return nil, api.BlockInfo{}, errExpected
 			},
 		}
 
@@ -481,7 +481,7 @@ func TestAddressGroup_getCodeHash(t *testing.T) {
 			"GET",
 			nil,
 			http.StatusInternalServerError,
-			formatExpectedErr(apiErrors.ErrGetCodeHash, expectedErr),
+			formatExpectedErr(apiErrors.ErrGetCodeHash, errExpected),
 		)
 	})
 	t.Run("should work", func(t *testing.T) {
@@ -522,7 +522,7 @@ func TestAddressGroup_getValueForKey(t *testing.T) {
 
 		facade := &mock.FacadeStub{
 			GetValueForKeyCalled: func(_ string, _ string, _ api.AccountQueryOptions) (string, api.BlockInfo, error) {
-				return "", api.BlockInfo{}, expectedErr
+				return "", api.BlockInfo{}, errExpected
 			},
 		}
 
@@ -533,7 +533,7 @@ func TestAddressGroup_getValueForKey(t *testing.T) {
 			"GET",
 			nil,
 			http.StatusInternalServerError,
-			formatExpectedErr(apiErrors.ErrGetValueForKey, expectedErr),
+			formatExpectedErr(apiErrors.ErrGetValueForKey, errExpected),
 		)
 	})
 	t.Run("should work", func(t *testing.T) {
@@ -573,7 +573,7 @@ func TestAddressGroup_getGuardianData(t *testing.T) {
 
 		facade := &mock.FacadeStub{
 			GetGuardianDataCalled: func(address string, options api.AccountQueryOptions) (api.GuardianData, api.BlockInfo, error) {
-				return api.GuardianData{}, api.BlockInfo{}, expectedErr
+				return api.GuardianData{}, api.BlockInfo{}, errExpected
 			},
 		}
 		testAddressGroup(
@@ -583,7 +583,7 @@ func TestAddressGroup_getGuardianData(t *testing.T) {
 			"GET",
 			nil,
 			http.StatusInternalServerError,
-			formatExpectedErr(apiErrors.ErrGetGuardianData, expectedErr),
+			formatExpectedErr(apiErrors.ErrGetGuardianData, errExpected),
 		)
 	})
 	t.Run("should work", func(t *testing.T) {
@@ -633,7 +633,7 @@ func TestAddressGroup_getKeyValuePairs(t *testing.T) {
 
 		facade := &mock.FacadeStub{
 			GetKeyValuePairsCalled: func(_ string, _ api.AccountQueryOptions) (map[string]string, api.BlockInfo, error) {
-				return nil, api.BlockInfo{}, expectedErr
+				return nil, api.BlockInfo{}, errExpected
 			},
 		}
 		testAddressGroup(
@@ -643,7 +643,7 @@ func TestAddressGroup_getKeyValuePairs(t *testing.T) {
 			"GET",
 			nil,
 			http.StatusInternalServerError,
-			formatExpectedErr(apiErrors.ErrGetKeyValuePairs, expectedErr),
+			formatExpectedErr(apiErrors.ErrGetKeyValuePairs, errExpected),
 		)
 	})
 	t.Run("should work", func(t *testing.T) {
@@ -721,7 +721,7 @@ func TestAddressGroup_iterateKeys(t *testing.T) {
 		bodyBytes, _ := json.Marshal(body)
 		facade := &mock.FacadeStub{
 			IterateKeysCalled: func(address string, numKeys uint, iteratorState [][]byte, options api.AccountQueryOptions) (map[string]string, [][]byte, api.BlockInfo, error) {
-				return nil, nil, api.BlockInfo{}, expectedErr
+				return nil, nil, api.BlockInfo{}, errExpected
 			},
 		}
 		testAddressGroup(
@@ -731,7 +731,7 @@ func TestAddressGroup_iterateKeys(t *testing.T) {
 			"POST",
 			bytes.NewBuffer(bodyBytes),
 			http.StatusInternalServerError,
-			formatExpectedErr(apiErrors.ErrIterateKeys, expectedErr),
+			formatExpectedErr(apiErrors.ErrIterateKeys, errExpected),
 		)
 	})
 	t.Run("should work", func(t *testing.T) {
@@ -786,7 +786,7 @@ func TestAddressGroup_getESDTBalance(t *testing.T) {
 
 		facade := &mock.FacadeStub{
 			GetESDTDataCalled: func(_ string, _ string, _ uint64, _ api.AccountQueryOptions) (*esdt.ESDigitalToken, api.BlockInfo, error) {
-				return &esdt.ESDigitalToken{}, api.BlockInfo{}, expectedErr
+				return &esdt.ESDigitalToken{}, api.BlockInfo{}, errExpected
 			},
 		}
 		testAddressGroup(
@@ -796,7 +796,7 @@ func TestAddressGroup_getESDTBalance(t *testing.T) {
 			"GET",
 			nil,
 			http.StatusInternalServerError,
-			formatExpectedErr(apiErrors.ErrGetESDTBalance, expectedErr),
+			formatExpectedErr(apiErrors.ErrGetESDTBalance, errExpected),
 		)
 	})
 	t.Run("should work", func(t *testing.T) {
@@ -838,7 +838,7 @@ func TestAddressGroup_getESDTsRoles(t *testing.T) {
 
 		facade := &mock.FacadeStub{
 			GetESDTsRolesCalled: func(_ string, _ api.AccountQueryOptions) (map[string][]string, api.BlockInfo, error) {
-				return nil, api.BlockInfo{}, expectedErr
+				return nil, api.BlockInfo{}, errExpected
 			},
 		}
 		testAddressGroup(
@@ -848,7 +848,7 @@ func TestAddressGroup_getESDTsRoles(t *testing.T) {
 			"GET",
 			nil,
 			http.StatusInternalServerError,
-			formatExpectedErr(apiErrors.ErrGetRolesForAccount, expectedErr),
+			formatExpectedErr(apiErrors.ErrGetRolesForAccount, errExpected),
 		)
 	})
 	t.Run("should work", func(t *testing.T) {
@@ -894,7 +894,7 @@ func TestAddressGroup_getESDTTokensWithRole(t *testing.T) {
 
 		facade := &mock.FacadeStub{
 			GetESDTsWithRoleCalled: func(_ string, _ string, _ api.AccountQueryOptions) ([]string, api.BlockInfo, error) {
-				return nil, api.BlockInfo{}, expectedErr
+				return nil, api.BlockInfo{}, errExpected
 			},
 		}
 		testAddressGroup(
@@ -904,7 +904,7 @@ func TestAddressGroup_getESDTTokensWithRole(t *testing.T) {
 			"GET",
 			nil,
 			http.StatusInternalServerError,
-			formatExpectedErr(apiErrors.ErrGetESDTTokensWithRole, expectedErr),
+			formatExpectedErr(apiErrors.ErrGetESDTTokensWithRole, errExpected),
 		)
 	})
 	t.Run("should work", func(t *testing.T) {
@@ -944,7 +944,7 @@ func TestAddressGroup_getNFTTokenIDsRegisteredByAddress(t *testing.T) {
 
 		facade := &mock.FacadeStub{
 			GetNFTTokenIDsRegisteredByAddressCalled: func(_ string, _ api.AccountQueryOptions) ([]string, api.BlockInfo, error) {
-				return nil, api.BlockInfo{}, expectedErr
+				return nil, api.BlockInfo{}, errExpected
 			},
 		}
 		testAddressGroup(
@@ -954,7 +954,7 @@ func TestAddressGroup_getNFTTokenIDsRegisteredByAddress(t *testing.T) {
 			"GET",
 			nil,
 			http.StatusInternalServerError,
-			formatExpectedErr(apiErrors.ErrRegisteredNFTTokenIDs, expectedErr),
+			formatExpectedErr(apiErrors.ErrRegisteredNFTTokenIDs, errExpected),
 		)
 	})
 	t.Run("should work", func(t *testing.T) {
@@ -1000,7 +1000,7 @@ func TestAddressGroup_getESDTNFTData(t *testing.T) {
 
 		facade := &mock.FacadeStub{
 			GetESDTDataCalled: func(_ string, _ string, _ uint64, _ api.AccountQueryOptions) (*esdt.ESDigitalToken, api.BlockInfo, error) {
-				return nil, api.BlockInfo{}, expectedErr
+				return nil, api.BlockInfo{}, errExpected
 			},
 		}
 		testAddressGroup(
@@ -1010,7 +1010,7 @@ func TestAddressGroup_getESDTNFTData(t *testing.T) {
 			"GET",
 			nil,
 			http.StatusInternalServerError,
-			formatExpectedErr(apiErrors.ErrGetESDTNFTData, expectedErr),
+			formatExpectedErr(apiErrors.ErrGetESDTNFTData, errExpected),
 		)
 	})
 	t.Run("should work", func(t *testing.T) {
@@ -1059,7 +1059,7 @@ func TestAddressGroup_getAllESDTData(t *testing.T) {
 
 		facade := &mock.FacadeStub{
 			GetAllESDTTokensCalled: func(address string, options api.AccountQueryOptions) (map[string]*esdt.ESDigitalToken, api.BlockInfo, error) {
-				return nil, api.BlockInfo{}, expectedErr
+				return nil, api.BlockInfo{}, errExpected
 			},
 		}
 		testAddressGroup(
@@ -1069,7 +1069,7 @@ func TestAddressGroup_getAllESDTData(t *testing.T) {
 			"GET",
 			nil,
 			http.StatusInternalServerError,
-			formatExpectedErr(apiErrors.ErrGetESDTNFTData, expectedErr),
+			formatExpectedErr(apiErrors.ErrGetESDTNFTData, errExpected),
 		)
 	})
 	t.Run("should work", func(t *testing.T) {
@@ -1178,7 +1178,7 @@ func TestAddressGroup_IsInterfaceNil(t *testing.T) {
 	require.False(t, addrGroup.IsInterfaceNil())
 }
 
-func testErrorScenario(url string, method string, body io.Reader, expectedErr string) func(t *testing.T) {
+func testErrorScenario(url string, method string, body io.Reader, errExpected string) func(t *testing.T) {
 	return func(t *testing.T) {
 		t.Parallel()
 
@@ -1189,7 +1189,7 @@ func testErrorScenario(url string, method string, body io.Reader, expectedErr st
 			method,
 			body,
 			http.StatusBadRequest,
-			expectedErr,
+			errExpected,
 		)
 	}
 }
@@ -1275,14 +1275,14 @@ func TestIsDataTrieMigrated(t *testing.T) {
 	t.Parallel()
 
 	testAddress := "address"
-	expectedErr := errors.New("expected error")
+	errExpected := errors.New("expected error")
 
 	t.Run("should return error if IsDataTrieMigrated returns error", func(t *testing.T) {
 		t.Parallel()
 
 		facade := mock.FacadeStub{
 			IsDataTrieMigratedCalled: func(address string, _ api.AccountQueryOptions) (bool, error) {
-				return false, expectedErr
+				return false, errExpected
 			},
 		}
 
@@ -1297,7 +1297,7 @@ func TestIsDataTrieMigrated(t *testing.T) {
 		response := shared.GenericAPIResponse{}
 		loadResponse(resp.Body, &response)
 		assert.Equal(t, http.StatusInternalServerError, resp.Code)
-		assert.True(t, strings.Contains(response.Error, expectedErr.Error()))
+		assert.True(t, strings.Contains(response.Error, errExpected.Error()))
 	})
 
 	t.Run("should return true if IsDataTrieMigrated returns true", func(t *testing.T) {

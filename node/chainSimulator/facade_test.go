@@ -19,7 +19,7 @@ import (
 	"github.com/stretchr/testify/require"
 )
 
-var expectedErr = errors.New("expected error")
+var errExpected = errors.New("expected error")
 
 func TestNewChainSimulatorFacade(t *testing.T) {
 	t.Parallel()
@@ -68,7 +68,7 @@ func TestChainSimulatorFacade_GetExistingAccountFromBech32AddressString(t *testi
 						return &mock.CoreComponentsStub{
 							AddressPubKeyConverterField: &testscommon.PubkeyConverterStub{
 								DecodeCalled: func(humanReadable string) ([]byte, error) {
-									return nil, expectedErr
+									return nil, errExpected
 								},
 							},
 						}
@@ -79,7 +79,7 @@ func TestChainSimulatorFacade_GetExistingAccountFromBech32AddressString(t *testi
 		require.NoError(t, err)
 
 		handler, err := facade.GetExistingAccountFromBech32AddressString("address")
-		require.Equal(t, expectedErr, err)
+		require.Equal(t, errExpected, err)
 		require.Nil(t, handler)
 	})
 	t.Run("nil shard node should error", func(t *testing.T) {
@@ -136,7 +136,7 @@ func TestChainSimulatorFacade_GetExistingAccountFromBech32AddressString(t *testi
 							AccountsAdapterCalled: func() state.AccountsAdapter {
 								return &stateMock.AccountsStub{
 									GetExistingAccountCalled: func(addressContainer []byte) (vmcommon.AccountHandler, error) {
-										return nil, expectedErr
+										return nil, errExpected
 									},
 								}
 							},
@@ -148,7 +148,7 @@ func TestChainSimulatorFacade_GetExistingAccountFromBech32AddressString(t *testi
 		require.NoError(t, err)
 
 		handler, err := facade.GetExistingAccountFromBech32AddressString("address")
-		require.Equal(t, expectedErr, err)
+		require.Equal(t, errExpected, err)
 		require.Nil(t, handler)
 	})
 	t.Run("should work", func(t *testing.T) {

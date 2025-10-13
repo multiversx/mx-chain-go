@@ -44,14 +44,14 @@ func TestMessageSignVerifier_Verify(t *testing.T) {
 	t.Run("invalid pub key should error", func(t *testing.T) {
 		t.Parallel()
 
-		expectedErr := errors.New("expected error")
+		errExpected := errors.New("expected error")
 		sv, _ := NewMessageSignVerifier(&mock.KeyGeneratorStub{
 			CheckPublicKeyValidCalled: func(b []byte) error {
-				return expectedErr
+				return errExpected
 			},
 		})
 		err := sv.Verify(nil, nil, []byte("pk"))
-		require.Equal(t, expectedErr, err)
+		require.Equal(t, errExpected, err)
 	})
 	t.Run("should work", func(t *testing.T) {
 		t.Parallel()

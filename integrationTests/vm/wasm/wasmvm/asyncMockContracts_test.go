@@ -9,7 +9,6 @@ import (
 	"github.com/multiversx/mx-chain-vm-common-go/txDataBuilder"
 	"github.com/multiversx/mx-chain-vm-go/mock/contracts"
 	"github.com/multiversx/mx-chain-vm-go/testcommon"
-	test "github.com/multiversx/mx-chain-vm-go/testcommon"
 	"github.com/stretchr/testify/require"
 )
 
@@ -39,7 +38,7 @@ func TestMockContract_AsyncLegacy_InShard(t *testing.T) {
 
 	InitializeMockContracts(
 		t, net,
-		test.CreateMockContract(parentAddress).
+		testcommon.CreateMockContract(parentAddress).
 			WithConfig(testConfig).
 			WithMethods(contracts.WasteGasParentMock),
 	)
@@ -113,11 +112,11 @@ func testMockContract_CrossShard(t *testing.T, asyncCallType []byte) {
 
 	InitializeMockContracts(
 		t, net,
-		test.CreateMockContractOnShard(parentAddress, 0).
+		testcommon.CreateMockContractOnShard(parentAddress, 0).
 			WithBalance(testConfig.ParentBalance).
 			WithConfig(testConfig).
 			WithMethods(contracts.PerformAsyncCallParentMock, contracts.CallBackParentMock),
-		test.CreateMockContractOnShard(childAddress, 1).
+		testcommon.CreateMockContractOnShard(childAddress, 1).
 			WithBalance(testConfig.ChildBalance).
 			WithConfig(testConfig).
 			WithMethods(contracts.TransferToThirdPartyAsyncChildMock),
@@ -139,34 +138,34 @@ func testMockContract_CrossShard(t *testing.T, asyncCallType []byte) {
 	parentHandler, err := net.NodesSharded[0][0].BlockchainHook.GetUserAccount(parentAddress)
 	require.Nil(t, err)
 
-	parentValueA, _, err := parentHandler.AccountDataHandler().RetrieveValue(test.ParentKeyA)
+	parentValueA, _, err := parentHandler.AccountDataHandler().RetrieveValue(testcommon.ParentKeyA)
 	require.Nil(t, err)
-	require.Equal(t, test.ParentDataA, parentValueA)
+	require.Equal(t, testcommon.ParentDataA, parentValueA)
 
-	parentValueB, _, err := parentHandler.AccountDataHandler().RetrieveValue(test.ParentKeyB)
+	parentValueB, _, err := parentHandler.AccountDataHandler().RetrieveValue(testcommon.ParentKeyB)
 	require.Nil(t, err)
-	require.Equal(t, test.ParentDataB, parentValueB)
+	require.Equal(t, testcommon.ParentDataB, parentValueB)
 
-	callbackValue, _, err := parentHandler.AccountDataHandler().RetrieveValue(test.CallbackKey)
+	callbackValue, _, err := parentHandler.AccountDataHandler().RetrieveValue(testcommon.CallbackKey)
 	require.Nil(t, err)
-	require.Equal(t, test.CallbackData, callbackValue)
+	require.Equal(t, testcommon.CallbackData, callbackValue)
 
-	originalCallerParent, _, err := parentHandler.AccountDataHandler().RetrieveValue(test.OriginalCallerParent)
+	originalCallerParent, _, err := parentHandler.AccountDataHandler().RetrieveValue(testcommon.OriginalCallerParent)
 	require.Nil(t, err)
 	require.Equal(t, ownerOfParent.Address, originalCallerParent)
 
-	originalCallerCallback, _, err := parentHandler.AccountDataHandler().RetrieveValue(test.OriginalCallerCallback)
+	originalCallerCallback, _, err := parentHandler.AccountDataHandler().RetrieveValue(testcommon.OriginalCallerCallback)
 	require.Nil(t, err)
 	require.Equal(t, ownerOfParent.Address, originalCallerCallback)
 
 	childHandler, err := net.NodesSharded[1][0].BlockchainHook.GetUserAccount(childAddress)
 	require.Nil(t, err)
 
-	childValue, _, err := childHandler.AccountDataHandler().RetrieveValue(test.ChildKey)
+	childValue, _, err := childHandler.AccountDataHandler().RetrieveValue(testcommon.ChildKey)
 	require.Nil(t, err)
-	require.Equal(t, test.ChildData, childValue)
+	require.Equal(t, testcommon.ChildData, childValue)
 
-	originalCallerChild, _, err := childHandler.AccountDataHandler().RetrieveValue(test.OriginalCallerChild)
+	originalCallerChild, _, err := childHandler.AccountDataHandler().RetrieveValue(testcommon.OriginalCallerChild)
 	require.Nil(t, err)
 	require.Equal(t, ownerOfParent.Address, originalCallerChild)
 }
@@ -216,19 +215,19 @@ func TestMockContract_NewAsync_BackTransfer_CrossShard(t *testing.T) {
 
 	InitializeMockContracts(
 		t, net,
-		test.CreateMockContractOnShard(parentAddress, 0).
+		testcommon.CreateMockContractOnShard(parentAddress, 0).
 			WithBalance(testConfig.ParentBalance).
 			WithConfig(testConfig).
 			WithCodeMetadata([]byte{0, 0}).
 			WithMethods(contracts.BackTransfer_ParentCallsChild),
-		test.CreateMockContractOnShard(childAddress, 0).
+		testcommon.CreateMockContractOnShard(childAddress, 0).
 			WithBalance(testConfig.ChildBalance).
 			WithConfig(testConfig).
 			WithMethods(
 				contracts.BackTransfer_ChildMakesAsync,
 				contracts.BackTransfer_ChildCallback,
 			),
-		test.CreateMockContractOnShard(nephewAddress, 1).
+		testcommon.CreateMockContractOnShard(nephewAddress, 1).
 			WithBalance(testConfig.ChildBalance).
 			WithConfig(testConfig).
 			WithMethods(contracts.WasteGasChildMock),

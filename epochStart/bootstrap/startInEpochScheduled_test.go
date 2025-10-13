@@ -85,10 +85,10 @@ func TestStartInEpochWithScheduledDataSyncer_UpdateSyncDataIfNeededGetRequiredHe
 	t.Parallel()
 
 	args := createDefaultDataSyncerFactoryArgs()
-	expectedErr := fmt.Errorf("expected error")
+	errExpected := fmt.Errorf("expected error")
 	args.HeadersSyncer = &epochStartMocks.HeadersByHashSyncerStub{
 		SyncMissingHeadersByHashCalled: func(shardIDs []uint32, headersHashes [][]byte, ctx context.Context) error {
-			return expectedErr
+			return errExpected
 		},
 	}
 	ds, _ := newStartInEpochShardHeaderDataSyncerWithScheduled(args.ScheduledTxsHandler, args.HeadersSyncer, args.MiniBlocksSyncer, args.TxSyncer, 10)
@@ -106,10 +106,10 @@ func TestStartInEpochWithScheduledDataSyncer_UpdateSyncDataIfNeededGetMiniBlocks
 	t.Parallel()
 
 	args := createDefaultDataSyncerFactoryArgs()
-	expectedErr := fmt.Errorf("expected error")
+	errExpected := fmt.Errorf("expected error")
 	args.MiniBlocksSyncer = &epochStartMocks.PendingMiniBlockSyncHandlerStub{
 		SyncPendingMiniBlocksCalled: func(miniBlockHeaders []data.MiniBlockHeaderHandler, ctx context.Context) error {
-			return expectedErr
+			return errExpected
 		},
 	}
 
@@ -190,10 +190,10 @@ func TestStartInEpochWithScheduledDataSyncer_syncHeadersShouldErrOnFailureToSync
 	t.Parallel()
 
 	args := createDefaultDataSyncerFactoryArgs()
-	expectedErr := fmt.Errorf("expected error")
+	errExpected := fmt.Errorf("expected error")
 	args.HeadersSyncer = &epochStartMocks.HeadersByHashSyncerStub{
 		SyncMissingHeadersByHashCalled: func(shardIDs []uint32, headersHashes [][]byte, ctx context.Context) error {
-			return expectedErr
+			return errExpected
 		},
 	}
 	ds, _ := newStartInEpochShardHeaderDataSyncerWithScheduled(args.ScheduledTxsHandler, args.HeadersSyncer, args.MiniBlocksSyncer, args.TxSyncer, 10)
@@ -201,7 +201,7 @@ func TestStartInEpochWithScheduledDataSyncer_syncHeadersShouldErrOnFailureToSync
 	shardIDs := []uint32{0, 1}
 
 	mapHeaders, err := ds.syncHeaders(shardIDs, hashesToRequest)
-	require.Equal(t, expectedErr, err)
+	require.Equal(t, errExpected, err)
 	require.Nil(t, mapHeaders)
 }
 
@@ -235,10 +235,10 @@ func TestStartInEpochWithScheduledDataSyncer_getRequiredMiniBlocksByMbHeaderWith
 	t.Parallel()
 
 	args := createDefaultDataSyncerFactoryArgs()
-	expectedErr := fmt.Errorf("expected error")
+	errExpected := fmt.Errorf("expected error")
 	args.MiniBlocksSyncer = &epochStartMocks.PendingMiniBlockSyncHandlerStub{
 		SyncPendingMiniBlocksCalled: func(miniBlockHeaders []data.MiniBlockHeaderHandler, ctx context.Context) error {
-			return expectedErr
+			return errExpected
 		},
 	}
 
@@ -253,7 +253,7 @@ func TestStartInEpochWithScheduledDataSyncer_getRequiredMiniBlocksByMbHeaderWith
 	}
 
 	mapMbs, err := ds.getRequiredMiniBlocksByMbHeader(mbHeaderHandlers)
-	require.Equal(t, expectedErr, err)
+	require.Equal(t, errExpected, err)
 	require.Nil(t, mapMbs)
 }
 
@@ -532,11 +532,11 @@ func TestStartInEpochWithScheduledDataSyncer_saveScheduledInfo(t *testing.T) {
 func TestStartInEpochWithScheduledDataSyncer_getAllTransactionsForMiniBlocksWithSyncErrorShouldErr(t *testing.T) {
 	t.Parallel()
 
-	expectedErr := fmt.Errorf("expected error")
+	errExpected := fmt.Errorf("expected error")
 	sds := &startInEpochWithScheduledDataSyncer{
 		txSyncer: &syncer.TransactionsSyncHandlerMock{
 			SyncTransactionsForCalled: func(miniBlocks map[string]*block.MiniBlock, epoch uint32, ctx context.Context) error {
-				return expectedErr
+				return errExpected
 			},
 		},
 	}
@@ -546,7 +546,7 @@ func TestStartInEpochWithScheduledDataSyncer_getAllTransactionsForMiniBlocksWith
 
 	txsMap, err := sds.getAllTransactionsForMiniBlocks(miniBlocks, epoch)
 	require.Nil(t, txsMap)
-	require.Equal(t, expectedErr, err)
+	require.Equal(t, errExpected, err)
 }
 
 func TestStartInEpochWithScheduledDataSyncer_getAllTransactionsForMiniBlocks(t *testing.T) {

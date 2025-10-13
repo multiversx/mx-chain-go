@@ -109,10 +109,10 @@ func TestPeerSignatureHandler_VerifyPeerSignatureInvalidSignature(t *testing.T) 
 func TestPeerSignatureHandler_VerifyPeerSignatureCantGetPubKeyBytes(t *testing.T) {
 	t.Parallel()
 
-	expectedErr := fmt.Errorf("keygen err")
+	errExpected := fmt.Errorf("keygen err")
 	keyGen := &cryptoMocks.KeyGenStub{
 		PublicKeyFromByteArrayStub: func(b []byte) (crypto.PublicKey, error) {
-			return nil, expectedErr
+			return nil, errExpected
 		},
 	}
 
@@ -123,7 +123,7 @@ func TestPeerSignatureHandler_VerifyPeerSignatureCantGetPubKeyBytes(t *testing.T
 	)
 
 	err := peerSigHandler.VerifyPeerSignature([]byte("public key"), "dummy peer", []byte("signature"))
-	assert.Equal(t, expectedErr, err)
+	assert.Equal(t, errExpected, err)
 }
 
 func TestPeerSignatureHandler_VerifyPeerSignatureSigNotFoundInCache(t *testing.T) {
@@ -391,10 +391,10 @@ func TestPeerSignatureHandler_VerifyPeerSignatureGetFromCache(t *testing.T) {
 func TestPeerSignatureHandler_GetPeerSignatureErrInConvertingPrivateKeyToByteArray(t *testing.T) {
 	t.Parallel()
 
-	expectedErr := fmt.Errorf("converting error")
+	errExpected := fmt.Errorf("converting error")
 	privateKey := &cryptoMocks.PrivateKeyStub{
 		ToByteArrayStub: func() ([]byte, error) {
-			return nil, expectedErr
+			return nil, errExpected
 		},
 	}
 	pid := []byte("dummy peer")
@@ -407,7 +407,7 @@ func TestPeerSignatureHandler_GetPeerSignatureErrInConvertingPrivateKeyToByteArr
 
 	sig, err := peerSigHandler.GetPeerSignature(privateKey, pid)
 	assert.Nil(t, sig)
-	assert.Equal(t, expectedErr, err)
+	assert.Equal(t, errExpected, err)
 }
 
 func TestPeerSignatureHandler_GetPeerSignatureNotPresentInCache(t *testing.T) {

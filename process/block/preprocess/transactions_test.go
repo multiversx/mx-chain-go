@@ -969,7 +969,7 @@ func TestCleanupSelfShardTxCache(t *testing.T) {
 	}
 
 	expectEvictedByRemoveTxsFromPool := 8 // 5 selected (2,3 for alice, 42,43 for bob, 7 for carol) + lower nonces: 1 for alice, 6 *2 for carol
-	expectedEvictedByCleanup := 4         //nonce 779 * 2 for dave, nonce 100, 101 for eve
+	expectedEvictedByCleanup := 4         // nonce 779 * 2 for dave, nonce 100, 101 for eve
 	assert.Equal(t, 15-expectedEvictedByCleanup-expectEvictedByRemoveTxsFromPool, int(txs.txPool.GetCounts().GetTotal()))
 }
 
@@ -2212,10 +2212,10 @@ func TestTransactions_AddTransactions(t *testing.T) {
 
 		args := createDefaultTransactionsProcessorArgs()
 		txs := []data.TransactionHandler{tx1}
-		expectedErr := errors.New("expected error")
+		errExpected := errors.New("expected error")
 		args.Marshalizer = &marshallerMock.MarshalizerStub{
 			MarshalCalled: func(obj interface{}) ([]byte, error) {
-				return nil, expectedErr
+				return nil, errExpected
 			},
 		}
 		txPreproc, _ := NewTransactionPreprocessor(args)
@@ -2413,7 +2413,7 @@ func TestTransactions_RestoreBlockDataIntoPools(t *testing.T) {
 		assert.Equal(t, 0, len(mbPool.Keys()))
 	})
 	t.Run("feat scheduled not activated", func(t *testing.T) {
-		txs.basePreProcess.enableEpochsHandler = enableEpochsHandlerMock.NewEnableEpochsHandlerStub()
+		txs.enableEpochsHandler = enableEpochsHandlerMock.NewEnableEpochsHandlerStub()
 
 		numRestored, err := txs.RestoreBlockDataIntoPools(body, mbPool)
 		assert.Nil(t, err)
@@ -2428,7 +2428,7 @@ func TestTransactions_RestoreBlockDataIntoPools(t *testing.T) {
 	mbPool.Clear()
 
 	t.Run("feat scheduled activated", func(t *testing.T) {
-		txs.basePreProcess.enableEpochsHandler = enableEpochsHandlerMock.NewEnableEpochsHandlerStub(common.ScheduledMiniBlocksFlag)
+		txs.enableEpochsHandler = enableEpochsHandlerMock.NewEnableEpochsHandlerStub(common.ScheduledMiniBlocksFlag)
 
 		numRestored, err := txs.RestoreBlockDataIntoPools(body, mbPool)
 		assert.Nil(t, err)

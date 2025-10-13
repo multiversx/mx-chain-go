@@ -125,7 +125,7 @@ func TestGetNetworkConfig_ShouldReturnErrorIfFacadeReturnsError(t *testing.T) {
 		StatusMetricsHandler: func() external.StatusMetricsHandler {
 			return &testscommon.StatusMetricsStub{
 				ConfigMetricsCalled: func() (map[string]interface{}, error) {
-					return nil, expectedErr
+					return nil, errExpected
 				},
 			}
 		},
@@ -145,7 +145,7 @@ func TestGetNetworkConfig_ShouldReturnErrorIfFacadeReturnsError(t *testing.T) {
 	response := &shared.GenericAPIResponse{}
 	loadResponse(resp.Body, response)
 
-	assert.Equal(t, expectedErr.Error(), response.Error)
+	assert.Equal(t, errExpected.Error(), response.Error)
 }
 
 func TestGetNetworkStatus_ShouldReturnErrorIfFacadeReturnsError(t *testing.T) {
@@ -153,7 +153,7 @@ func TestGetNetworkStatus_ShouldReturnErrorIfFacadeReturnsError(t *testing.T) {
 		StatusMetricsHandler: func() external.StatusMetricsHandler {
 			return &testscommon.StatusMetricsStub{
 				NetworkMetricsCalled: func() (map[string]interface{}, error) {
-					return nil, expectedErr
+					return nil, errExpected
 				},
 			}
 		},
@@ -173,7 +173,7 @@ func TestGetNetworkStatus_ShouldReturnErrorIfFacadeReturnsError(t *testing.T) {
 	response := &shared.GenericAPIResponse{}
 	loadResponse(resp.Body, response)
 
-	assert.Equal(t, expectedErr.Error(), response.Error)
+	assert.Equal(t, errExpected.Error(), response.Error)
 }
 
 func TestNetworkConfigMetrics_GasLimitGuardedTxShouldWork(t *testing.T) {
@@ -306,7 +306,7 @@ func TestGetEconomicValues_ShouldReturnErrorIfFacadeReturnsError(t *testing.T) {
 		StatusMetricsHandler: func() external.StatusMetricsHandler {
 			return &testscommon.StatusMetricsStub{
 				EconomicsMetricsCalled: func() (map[string]interface{}, error) {
-					return nil, expectedErr
+					return nil, errExpected
 				},
 			}
 		},
@@ -329,7 +329,7 @@ func TestGetEconomicValues_ShouldReturnErrorIfFacadeReturnsError(t *testing.T) {
 	response := &shared.GenericAPIResponse{}
 	loadResponse(resp.Body, response)
 
-	assert.Equal(t, expectedErr.Error(), response.Error)
+	assert.Equal(t, errExpected.Error(), response.Error)
 }
 
 func TestEconomicsMetrics_CannotGetStakeValues(t *testing.T) {
@@ -569,7 +569,7 @@ func TestGetEnableEpochs_ShouldReturnErrorIfFacadeReturnsError(t *testing.T) {
 		StatusMetricsHandler: func() external.StatusMetricsHandler {
 			return &testscommon.StatusMetricsStub{
 				EnableEpochsMetricsCalled: func() (map[string]interface{}, error) {
-					return nil, expectedErr
+					return nil, errExpected
 				},
 			}
 		},
@@ -589,7 +589,7 @@ func TestGetEnableEpochs_ShouldReturnErrorIfFacadeReturnsError(t *testing.T) {
 	response := &shared.GenericAPIResponse{}
 	loadResponse(resp.Body, response)
 
-	assert.Equal(t, expectedErr.Error(), response.Error)
+	assert.Equal(t, errExpected.Error(), response.Error)
 }
 
 func TestGetEnableEpochs_ShouldWork(t *testing.T) {
@@ -627,7 +627,7 @@ func TestGetESDTTotalSupply_InternalError(t *testing.T) {
 
 	facade := mock.FacadeStub{
 		GetTokenSupplyCalled: func(token string) (*api.ESDTSupply, error) {
-			return nil, expectedErr
+			return nil, errExpected
 		},
 	}
 
@@ -644,7 +644,7 @@ func TestGetESDTTotalSupply_InternalError(t *testing.T) {
 	respStr := string(respBytes)
 	assert.Equal(t, resp.Code, http.StatusInternalServerError)
 
-	keyAndValueInResponse := strings.Contains(respStr, expectedErr.Error())
+	keyAndValueInResponse := strings.Contains(respStr, errExpected.Error())
 	require.True(t, keyAndValueInResponse)
 }
 
@@ -653,7 +653,7 @@ func TestGetNetworkRatings_ShouldReturnErrorIfFacadeReturnsError(t *testing.T) {
 		StatusMetricsHandler: func() external.StatusMetricsHandler {
 			return &testscommon.StatusMetricsStub{
 				RatingsMetricsCalled: func() (map[string]interface{}, error) {
-					return nil, expectedErr
+					return nil, errExpected
 				},
 			}
 		},
@@ -673,7 +673,7 @@ func TestGetNetworkRatings_ShouldReturnErrorIfFacadeReturnsError(t *testing.T) {
 	response := &shared.GenericAPIResponse{}
 	loadResponse(resp.Body, response)
 
-	assert.Equal(t, expectedErr.Error(), response.Error)
+	assert.Equal(t, errExpected.Error(), response.Error)
 }
 
 func TestGetNetworkRatings_ShouldWork(t *testing.T) {
@@ -756,7 +756,7 @@ func TestGetGenesisNodes(t *testing.T) {
 
 		facade := mock.FacadeStub{
 			GetGenesisNodesPubKeysCalled: func() (map[uint32][]string, map[uint32][]string, error) {
-				return nil, nil, expectedErr
+				return nil, nil, errExpected
 			},
 		}
 
@@ -773,7 +773,7 @@ func TestGetGenesisNodes(t *testing.T) {
 		loadResponse(resp.Body, &response)
 
 		assert.Equal(t, http.StatusInternalServerError, resp.Code)
-		assert.True(t, strings.Contains(response.Error, expectedErr.Error()))
+		assert.True(t, strings.Contains(response.Error, errExpected.Error()))
 	})
 
 	t.Run("should work", func(t *testing.T) {
@@ -818,7 +818,7 @@ func TestGetGenesisBalances(t *testing.T) {
 
 		facade := mock.FacadeStub{
 			GetGenesisBalancesCalled: func() ([]*common.InitialAccountAPI, error) {
-				return nil, expectedErr
+				return nil, errExpected
 			},
 		}
 
@@ -835,7 +835,7 @@ func TestGetGenesisBalances(t *testing.T) {
 		loadResponse(resp.Body, &response)
 
 		assert.Equal(t, http.StatusInternalServerError, resp.Code)
-		assert.True(t, strings.Contains(response.Error, expectedErr.Error()))
+		assert.True(t, strings.Contains(response.Error, errExpected.Error()))
 	})
 
 	t.Run("should work", func(t *testing.T) {
@@ -879,7 +879,7 @@ func TestGetGasConfigs(t *testing.T) {
 
 		facade := mock.FacadeStub{
 			GetGasConfigsCalled: func() (map[string]map[string]uint64, error) {
-				return nil, expectedErr
+				return nil, errExpected
 			},
 		}
 
@@ -896,7 +896,7 @@ func TestGetGasConfigs(t *testing.T) {
 		loadResponse(resp.Body, &response)
 
 		assert.Equal(t, http.StatusInternalServerError, resp.Code)
-		assert.True(t, strings.Contains(response.Error, expectedErr.Error()))
+		assert.True(t, strings.Contains(response.Error, errExpected.Error()))
 	})
 
 	t.Run("should work", func(t *testing.T) {
@@ -984,7 +984,7 @@ func TestNetworkGroup_UpdateFacade(t *testing.T) {
 
 		newFacade := mock.FacadeStub{
 			GetGasConfigsCalled: func() (map[string]map[string]uint64, error) {
-				return nil, expectedErr
+				return nil, errExpected
 			},
 		}
 		err = networkGroup.UpdateFacade(&newFacade)
@@ -996,7 +996,7 @@ func TestNetworkGroup_UpdateFacade(t *testing.T) {
 
 		loadResponse(resp.Body, &response)
 		assert.Equal(t, http.StatusInternalServerError, resp.Code)
-		assert.True(t, strings.Contains(response.Error, expectedErr.Error()))
+		assert.True(t, strings.Contains(response.Error, errExpected.Error()))
 	})
 }
 

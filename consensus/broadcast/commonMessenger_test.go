@@ -236,7 +236,7 @@ func TestCommonMessenger_broadcast(t *testing.T) {
 	t.Parallel()
 
 	testTopic := "test"
-	expectedErr := errors.New("expected error")
+	errExpected := errors.New("expected error")
 	marshallerMock := &mock.MarshalizerMock{}
 	countersBroadcast := make(map[string]int)
 	mutCounters := &sync.Mutex{}
@@ -321,7 +321,7 @@ func TestCommonMessenger_broadcast(t *testing.T) {
 			peerSigHandler,
 			&testscommon.KeysHandlerStub{
 				GetP2PIdentityCalled: func(pkBytes []byte) ([]byte, core.PeerID, error) {
-					return nil, "", expectedErr
+					return nil, "", errExpected
 				},
 				IsOriginalPublicKeyOfTheNodeCalled: func(pkBytes []byte) bool {
 					return false

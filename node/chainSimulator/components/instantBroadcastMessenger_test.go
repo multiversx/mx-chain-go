@@ -65,11 +65,11 @@ func TestInstantBroadcastMessenger_BroadcastBlockDataLeader(t *testing.T) {
 		mes, err := NewInstantBroadcastMessenger(&consensus.BroadcastMessengerMock{
 			BroadcastMiniBlocksCalled: func(mbs map[uint32][]byte, bytes []byte) error {
 				require.Equal(t, providedMBs, mbs)
-				return expectedErr // for coverage only
+				return errExpected // for coverage only
 			},
 			BroadcastTransactionsCalled: func(txs map[string][][]byte, bytes []byte) error {
 				require.Equal(t, providedTxs, txs)
-				return expectedErr // for coverage only
+				return errExpected // for coverage only
 			},
 		}, &mock.ShardCoordinatorMock{
 			ShardID: common.MetachainShardId,

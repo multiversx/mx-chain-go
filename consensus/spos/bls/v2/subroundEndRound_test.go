@@ -959,7 +959,7 @@ func TestVerifyNodesOnAggSigVerificationFail(t *testing.T) {
 
 		signingHandler := &consensusMocks.SigningHandlerStub{
 			SignatureShareCalled: func(index uint16) ([]byte, error) {
-				return nil, expectedErr
+				return nil, errExpected
 			},
 		}
 
@@ -971,7 +971,7 @@ func TestVerifyNodesOnAggSigVerificationFail(t *testing.T) {
 		_ = sr.SetJobDone(leader, bls.SrSignature, true)
 
 		_, err = sr.VerifyNodesOnAggSigFail(context.TODO())
-		require.Equal(t, expectedErr, err)
+		require.Equal(t, errExpected, err)
 	})
 
 	t.Run("fail to verify signature share, job done will be set to false", func(t *testing.T) {
@@ -985,7 +985,7 @@ func TestVerifyNodesOnAggSigVerificationFail(t *testing.T) {
 				return nil, nil
 			},
 			VerifySignatureShareCalled: func(index uint16, sig, msg []byte, epoch uint32) error {
-				return expectedErr
+				return errExpected
 			},
 		}
 
@@ -1011,11 +1011,11 @@ func TestVerifyNodesOnAggSigVerificationFail(t *testing.T) {
 				if index < 8 {
 					return nil, nil
 				}
-				return nil, expectedErr
+				return nil, errExpected
 			},
 			VerifySignatureShareCalled: func(index uint16, sig, msg []byte, epoch uint32) error {
 				time.Sleep(100 * time.Millisecond)
-				return expectedErr
+				return errExpected
 			},
 			VerifyCalled: func(msg, bitmap []byte, epoch uint32) error {
 				return nil
@@ -1041,7 +1041,7 @@ func TestVerifyNodesOnAggSigVerificationFail(t *testing.T) {
 			}()
 			invalidSigners, err := sr.VerifyNodesOnAggSigFail(context.TODO())
 			time.Sleep(200 * time.Millisecond)
-			require.Equal(t, err, expectedErr)
+			require.Equal(t, err, errExpected)
 			require.Nil(t, invalidSigners)
 		}()
 		time.Sleep(time.Second)
@@ -1098,7 +1098,7 @@ func TestComputeAddSigOnValidNodes(t *testing.T) {
 
 		signingHandler := &consensusMocks.SigningHandlerStub{
 			AggregateSigsCalled: func(bitmap []byte, epoch uint32) ([]byte, error) {
-				return nil, expectedErr
+				return nil, errExpected
 			},
 		}
 		container.SetSigningHandler(signingHandler)
@@ -1109,7 +1109,7 @@ func TestComputeAddSigOnValidNodes(t *testing.T) {
 		}
 
 		_, _, err := sr.ComputeAggSigOnValidNodes()
-		require.Equal(t, expectedErr, err)
+		require.Equal(t, errExpected, err)
 	})
 
 	t.Run("fail to set aggregated sig", func(t *testing.T) {
@@ -1120,7 +1120,7 @@ func TestComputeAddSigOnValidNodes(t *testing.T) {
 
 		signingHandler := &consensusMocks.SigningHandlerStub{
 			SetAggregatedSigCalled: func(_ []byte) error {
-				return expectedErr
+				return errExpected
 			},
 		}
 		container.SetSigningHandler(signingHandler)
@@ -1130,7 +1130,7 @@ func TestComputeAddSigOnValidNodes(t *testing.T) {
 		}
 
 		_, _, err := sr.ComputeAggSigOnValidNodes()
-		require.Equal(t, expectedErr, err)
+		require.Equal(t, errExpected, err)
 	})
 
 	t.Run("should work", func(t *testing.T) {
@@ -1241,7 +1241,7 @@ func TestSubroundEndRound_DoEndRoundJobByNode(t *testing.T) {
 				defer mutex.Unlock()
 				if verifySigShareNumCalls == 0 {
 					verifySigShareNumCalls++
-					return expectedErr
+					return errExpected
 				}
 
 				verifySigShareNumCalls++
@@ -1252,7 +1252,7 @@ func TestSubroundEndRound_DoEndRoundJobByNode(t *testing.T) {
 				defer mutex.Unlock()
 				if verifyFirstCall {
 					verifyFirstCall = false
-					return expectedErr
+					return errExpected
 				}
 
 				return nil
@@ -1365,13 +1365,13 @@ func TestSubroundEndRound_DoEndRoundJobByNode(t *testing.T) {
 		signingHandler := &consensusMocks.SigningHandlerStub{
 			VerifySignatureShareCalled: func(index uint16, sig []byte, msg []byte, epoch uint32) error {
 				if index == 3 {
-					return expectedErr
+					return errExpected
 				}
 				return nil
 			},
 			AggregateSigsCalled: func(bitmap []byte, epoch uint32) ([]byte, error) {
 				if !shouldNotFailAnymore.IsSet() {
-					return nil, expectedErr // force invalid signers on first aggregation
+					return nil, errExpected // force invalid signers on first aggregation
 				}
 
 				return []byte("sig"), nil
@@ -1474,7 +1474,7 @@ func TestSubroundEndRound_ReceivedInvalidSignersInfo(t *testing.T) {
 		container := consensusMocks.InitConsensusCore()
 
 		sr := initSubroundEndRoundWithContainer(container, &statusHandler.AppStatusHandlerStub{})
-		sr.ConsensusStateHandler.SetData(nil)
+		sr.SetData(nil)
 
 		cnsData := consensus.Message{
 			BlockHeaderHash: []byte("X"),
@@ -1652,7 +1652,7 @@ func TestSubroundEndRound_ReceivedInvalidSignersInfo(t *testing.T) {
 
 		messageSigningHandler := &mock.MessageSigningHandlerStub{
 			DeserializeCalled: func(messagesBytes []byte) ([]p2p.MessageP2P, error) {
-				return nil, expectedErr
+				return nil, errExpected
 			},
 		}
 
@@ -1707,7 +1707,7 @@ func TestVerifyInvalidSigners(t *testing.T) {
 
 		messageSigningHandler := &mock.MessageSigningHandlerStub{
 			DeserializeCalled: func(messagesBytes []byte) ([]p2p.MessageP2P, error) {
-				return nil, expectedErr
+				return nil, errExpected
 			},
 		}
 
@@ -1716,7 +1716,7 @@ func TestVerifyInvalidSigners(t *testing.T) {
 		sr := initSubroundEndRoundWithContainer(container, &statusHandler.AppStatusHandlerStub{})
 
 		_, err := sr.VerifyInvalidSigners([]byte{})
-		require.Equal(t, expectedErr, err)
+		require.Equal(t, errExpected, err)
 	})
 
 	t.Run("failed to verify low level p2p message, should error", func(t *testing.T) {
@@ -1735,7 +1735,7 @@ func TestVerifyInvalidSigners(t *testing.T) {
 				return invalidSigners, nil
 			},
 			VerifyCalled: func(message p2p.MessageP2P) error {
-				return expectedErr
+				return errExpected
 			},
 		}
 
@@ -1744,7 +1744,7 @@ func TestVerifyInvalidSigners(t *testing.T) {
 		sr := initSubroundEndRoundWithContainer(container, &statusHandler.AppStatusHandlerStub{})
 
 		_, err := sr.VerifyInvalidSigners(invalidSignersBytes)
-		require.Equal(t, expectedErr, err)
+		require.Equal(t, errExpected, err)
 	})
 
 	t.Run("failed to verify signature share", func(t *testing.T) {
@@ -2324,7 +2324,7 @@ func TestSubroundEndRound_SendProof(t *testing.T) {
 		container.SetBroadcastMessenger(bm)
 		signingHandler := &consensusMocks.SigningHandlerStub{
 			AggregateSigsCalled: func(bitmap []byte, epoch uint32) ([]byte, error) {
-				return nil, expectedErr
+				return nil, errExpected
 			},
 		}
 		container.SetSigningHandler(signingHandler)
@@ -2335,7 +2335,7 @@ func TestSubroundEndRound_SendProof(t *testing.T) {
 
 		wasSent, err := sr.SendProof()
 		require.False(t, wasSent)
-		require.Equal(t, expectedErr, err)
+		require.Equal(t, errExpected, err)
 	})
 	t.Run("no time left should not send proof", func(t *testing.T) {
 		t.Parallel()
@@ -2373,7 +2373,7 @@ func TestSubroundEndRound_SendProof(t *testing.T) {
 
 		bm := &consensusMocks.BroadcastMessengerMock{
 			BroadcastEquivalentProofCalled: func(proof data.HeaderProofHandler, pkBytes []byte) error {
-				return expectedErr
+				return errExpected
 			},
 		}
 		container.SetBroadcastMessenger(bm)
@@ -2384,7 +2384,7 @@ func TestSubroundEndRound_SendProof(t *testing.T) {
 
 		wasSent, err := sr.SendProof()
 		require.False(t, wasSent)
-		require.Equal(t, expectedErr, err)
+		require.Equal(t, errExpected, err)
 	})
 	t.Run("should send", func(t *testing.T) {
 		t.Parallel()

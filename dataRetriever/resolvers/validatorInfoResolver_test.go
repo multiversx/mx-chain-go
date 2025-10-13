@@ -152,14 +152,14 @@ func TestValidatorInfoResolver_ProcessReceivedMessage(t *testing.T) {
 		args := createMockArgValidatorInfoResolver()
 		args.AntifloodHandler = &mock.P2PAntifloodHandlerStub{
 			CanProcessMessageCalled: func(message p2p.MessageP2P, fromConnectedPeer core.PeerID) error {
-				return expectedErr
+				return errExpected
 			},
 		}
 		res, _ := resolvers.NewValidatorInfoResolver(args)
 		require.False(t, check.IfNil(res))
 
 		msgID, err := res.ProcessReceivedMessage(createRequestMsg(dataRetriever.HashType, nil), fromConnectedPeer, &p2pmocks.MessengerStub{})
-		assert.True(t, errors.Is(err, expectedErr))
+		assert.True(t, errors.Is(err, errExpected))
 		assert.False(t, args.Throttler.(*mock.ThrottlerStub).StartWasCalled())
 		assert.False(t, args.Throttler.(*mock.ThrottlerStub).EndWasCalled())
 		assert.Nil(t, msgID)
@@ -170,14 +170,14 @@ func TestValidatorInfoResolver_ProcessReceivedMessage(t *testing.T) {
 		args := createMockArgValidatorInfoResolver()
 		args.Marshaller = &mock.MarshalizerStub{
 			UnmarshalCalled: func(obj interface{}, buff []byte) error {
-				return expectedErr
+				return errExpected
 			},
 		}
 		res, _ := resolvers.NewValidatorInfoResolver(args)
 		require.False(t, check.IfNil(res))
 
 		msgID, err := res.ProcessReceivedMessage(createRequestMsg(dataRetriever.HashType, nil), fromConnectedPeer, &p2pmocks.MessengerStub{})
-		assert.True(t, errors.Is(err, expectedErr))
+		assert.True(t, errors.Is(err, errExpected))
 		assert.Nil(t, msgID)
 	})
 
@@ -204,14 +204,14 @@ func TestValidatorInfoResolver_ProcessReceivedMessage(t *testing.T) {
 		}
 		args.ValidatorInfoStorage = &storage.StorerStub{
 			SearchFirstCalled: func(key []byte) ([]byte, error) {
-				return nil, expectedErr
+				return nil, errExpected
 			},
 		}
 		res, _ := resolvers.NewValidatorInfoResolver(args)
 		require.False(t, check.IfNil(res))
 
 		msgID, err := res.ProcessReceivedMessage(createRequestMsg(dataRetriever.HashType, []byte("hash")), fromConnectedPeer, &p2pmocks.MessengerStub{})
-		assert.Equal(t, expectedErr, err)
+		assert.Equal(t, errExpected, err)
 		assert.Nil(t, msgID)
 	})
 	t.Run("data found in cache but marshal fails", func(t *testing.T) {
@@ -226,7 +226,7 @@ func TestValidatorInfoResolver_ProcessReceivedMessage(t *testing.T) {
 		}
 		args.Marshaller = &marshallerMock.MarshalizerStub{
 			MarshalCalled: func(obj interface{}) ([]byte, error) {
-				return nil, expectedErr
+				return nil, errExpected
 			},
 			UnmarshalCalled: func(obj interface{}, buff []byte) error {
 				return marshMock.Unmarshal(obj, buff)
@@ -256,7 +256,7 @@ func TestValidatorInfoResolver_ProcessReceivedMessage(t *testing.T) {
 		}
 		args.Marshaller = &marshallerMock.MarshalizerStub{
 			MarshalCalled: func(obj interface{}) ([]byte, error) {
-				return nil, expectedErr
+				return nil, errExpected
 			},
 			UnmarshalCalled: func(obj interface{}, buff []byte) error {
 				return marshMock.Unmarshal(obj, buff)
@@ -355,7 +355,7 @@ func TestValidatorInfoResolver_ProcessReceivedMessage(t *testing.T) {
 				case *dataRetriever.RequestData:
 					return marshallerMock.MarshalizerMock{}.Unmarshal(obj, buff)
 				case *batch.Batch:
-					return expectedErr
+					return errExpected
 				}
 				return nil
 			},
@@ -364,7 +364,7 @@ func TestValidatorInfoResolver_ProcessReceivedMessage(t *testing.T) {
 		require.False(t, check.IfNil(res))
 
 		msgID, err := res.ProcessReceivedMessage(createRequestMsg(dataRetriever.HashArrayType, []byte("hash")), fromConnectedPeer, &p2pmocks.MessengerStub{})
-		assert.Equal(t, expectedErr, err)
+		assert.Equal(t, errExpected, err)
 		assert.Nil(t, msgID)
 	})
 	t.Run("no hash found", func(t *testing.T) {
@@ -409,7 +409,7 @@ func TestValidatorInfoResolver_ProcessReceivedMessage(t *testing.T) {
 		}
 		args.DataPacker = &mock.DataPackerStub{
 			PackDataInChunksCalled: func(data [][]byte, limit int) ([][]byte, error) {
-				return nil, expectedErr
+				return nil, errExpected
 			},
 		}
 		res, _ := resolvers.NewValidatorInfoResolver(args)
@@ -420,7 +420,7 @@ func TestValidatorInfoResolver_ProcessReceivedMessage(t *testing.T) {
 		}
 		buff, _ := args.Marshaller.Marshal(b)
 		msgID, err := res.ProcessReceivedMessage(createRequestMsg(dataRetriever.HashArrayType, buff), fromConnectedPeer, &p2pmocks.MessengerStub{})
-		assert.Equal(t, expectedErr, err)
+		assert.Equal(t, errExpected, err)
 		assert.Nil(t, msgID)
 	})
 	t.Run("send returns error", func(t *testing.T) {
@@ -446,7 +446,7 @@ func TestValidatorInfoResolver_ProcessReceivedMessage(t *testing.T) {
 		}
 		args.SenderResolver = &mock.TopicResolverSenderStub{
 			SendCalled: func(buff []byte, peer core.PeerID, source p2p.MessageHandler) error {
-				return expectedErr
+				return errExpected
 			},
 		}
 		args.DataPacker, _ = partitioning.NewSimpleDataPacker(args.Marshaller)
@@ -455,7 +455,7 @@ func TestValidatorInfoResolver_ProcessReceivedMessage(t *testing.T) {
 
 		buff, _ := args.Marshaller.Marshal(&batch.Batch{Data: providedHashes})
 		msgID, err := res.ProcessReceivedMessage(createRequestMsg(dataRetriever.HashArrayType, buff), fromConnectedPeer, &p2pmocks.MessengerStub{})
-		assert.Equal(t, expectedErr, err)
+		assert.Equal(t, errExpected, err)
 		assert.Nil(t, msgID)
 	})
 	t.Run("all hashes in one chunk should work", func(t *testing.T) {

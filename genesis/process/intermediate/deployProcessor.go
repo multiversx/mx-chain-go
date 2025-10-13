@@ -80,15 +80,15 @@ func (dp *deployProcessor) Deploy(sc genesis.InitialSmartContractHandler) ([][]b
 }
 
 func applyCommonPlaceholders(txData string) string {
-	//replace all placeholders containing validatorScAddressPlaceholder with the real hex address
-	txData = strings.Replace(txData, validatorScAddressPlaceholder, hex.EncodeToString(vm.ValidatorSCAddress), -1)
+	// replace all placeholders containing validatorScAddressPlaceholder with the real hex address
+	txData = strings.ReplaceAll(txData, validatorScAddressPlaceholder, hex.EncodeToString(vm.ValidatorSCAddress))
 
 	return txData
 }
 
 func (dp *deployProcessor) checkVersion(sc genesis.InitialSmartContractHandler, scResultingAddressBytes []byte) error {
 	if len(sc.GetVersion()) == 0 {
-		//no version info, assuming deployed contract is up-to-date (let contracts that do not provide "version" function
+		// no version info, assuming deployed contract is up-to-date (let contracts that do not provide "version" function
 		// to be deployed at genesis time)
 		return nil
 	}

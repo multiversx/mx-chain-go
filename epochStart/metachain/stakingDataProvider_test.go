@@ -67,13 +67,13 @@ func TestStakingDataProvider_PrepareDataForBlsKeyGetBlsKeyOwnerErrorsShouldErr(t
 	t.Parallel()
 
 	numCall := 0
-	expectedErr := errors.New("expected error")
+	errExpected := errors.New("expected error")
 	args := createStakingDataProviderArgs()
 	args.SystemVM = &mock.VMExecutionHandlerStub{
 		RunSmartContractCallCalled: func(input *vmcommon.ContractCallInput) (*vmcommon.VMOutput, error) {
 			numCall++
 			if numCall == 1 {
-				return nil, expectedErr
+				return nil, errExpected
 			}
 			if numCall == 2 {
 				return &vmcommon.VMOutput{
@@ -92,7 +92,7 @@ func TestStakingDataProvider_PrepareDataForBlsKeyGetBlsKeyOwnerErrorsShouldErr(t
 	sdp, _ := NewStakingDataProvider(args)
 
 	err := sdp.loadDataForBlsKey(&state.ValidatorInfo{PublicKey: []byte("bls key")})
-	assert.Equal(t, expectedErr, err)
+	assert.Equal(t, errExpected, err)
 
 	err = sdp.loadDataForBlsKey(&state.ValidatorInfo{PublicKey: []byte("bls key")})
 	assert.NotNil(t, err)
@@ -110,7 +110,7 @@ func TestStakingDataProvider_PrepareDataForBlsKeyLoadOwnerDataErrorsShouldErr(t 
 
 	numCall := 0
 	owner := []byte("owner")
-	expectedErr := errors.New("expected error")
+	errExpected := errors.New("expected error")
 	args := createStakingDataProviderArgs()
 	args.SystemVM = &mock.VMExecutionHandlerStub{
 		RunSmartContractCallCalled: func(input *vmcommon.ContractCallInput) (*vmcommon.VMOutput, error) {
@@ -122,7 +122,7 @@ func TestStakingDataProvider_PrepareDataForBlsKeyLoadOwnerDataErrorsShouldErr(t 
 
 			numCall++
 			if numCall == 1 {
-				return nil, expectedErr
+				return nil, errExpected
 			}
 			if numCall == 2 {
 				return &vmcommon.VMOutput{
@@ -140,7 +140,7 @@ func TestStakingDataProvider_PrepareDataForBlsKeyLoadOwnerDataErrorsShouldErr(t 
 	sdp, _ := NewStakingDataProvider(args)
 
 	err := sdp.loadDataForBlsKey(&state.ValidatorInfo{PublicKey: []byte("bls key")})
-	assert.Equal(t, expectedErr, err)
+	assert.Equal(t, errExpected, err)
 
 	err = sdp.loadDataForBlsKey(&state.ValidatorInfo{PublicKey: []byte("bls key")})
 	assert.NotNil(t, err)
@@ -405,7 +405,7 @@ func TestStakingDataProvider_GetNodeStakedTopUpOwnerNotInCacheShouldErr(t *testi
 func TestStakingDataProvider_GetNodeStakedTopUpScCallError(t *testing.T) {
 	t.Parallel()
 
-	expectedErr := errors.New("expected")
+	errExpected := errors.New("expected")
 
 	owner := []byte("owner")
 	topUpVal := big.NewInt(828743)
@@ -416,12 +416,12 @@ func TestStakingDataProvider_GetNodeStakedTopUpScCallError(t *testing.T) {
 	sdp := createStakingDataProviderWithMockArgs(t, owner, topUpVal, stakeVal, &numRunContractCalls)
 	sdp.systemVM = &mock.VMExecutionHandlerStub{
 		RunSmartContractCallCalled: func(_ *vmcommon.ContractCallInput) (*vmcommon.VMOutput, error) {
-			return nil, expectedErr
+			return nil, errExpected
 		},
 	}
 
 	res, err := sdp.GetNodeStakedTopUp(owner)
-	require.Equal(t, expectedErr, err)
+	require.Equal(t, errExpected, err)
 	require.Nil(t, res)
 }
 
@@ -667,7 +667,7 @@ func createStakingDataProviderWithMockArgs(
 			*numRunContractCalls++
 			switch input.Function {
 			case "getOwner":
-				assert.Equal(t, vm.ValidatorSCAddress, input.VMInput.CallerAddr)
+				assert.Equal(t, vm.ValidatorSCAddress, input.CallerAddr)
 				assert.Equal(t, vm.StakingSCAddress, input.RecipientAddr)
 
 				return &vmcommon.VMOutput{

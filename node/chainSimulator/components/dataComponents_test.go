@@ -62,11 +62,11 @@ func TestCreateDataComponents(t *testing.T) {
 		args := createArgsDataComponentsHolder()
 		args.StorageService = &storage.ChainStorerStub{
 			GetStorerCalled: func(unitType retriever.UnitType) (chainStorage.Storer, error) {
-				return nil, expectedErr
+				return nil, errExpected
 			},
 		}
 		comp, err := CreateDataComponents(args)
-		require.Equal(t, expectedErr, err)
+		require.Equal(t, errExpected, err)
 		require.Nil(t, comp)
 	})
 }

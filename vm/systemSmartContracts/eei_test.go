@@ -306,7 +306,7 @@ func TestVmContext_SetOwnerOperatingOnAccount(t *testing.T) {
 
 	scAddress := []byte("sc-address-01234")
 	ownerAddress := []byte("owner-address-01")
-	expectedErr := errors.New("expected error")
+	errExpected := errors.New("expected error")
 
 	t.Run("load account errors, should error", func(t *testing.T) {
 		t.Parallel()
@@ -315,7 +315,7 @@ func TestVmContext_SetOwnerOperatingOnAccount(t *testing.T) {
 		args.UserAccountsDB = &stateMock.AccountsStub{
 			LoadAccountCalled: func(address []byte) (vmcommon.AccountHandler, error) {
 				if bytes.Equal(address, scAddress) {
-					return nil, expectedErr
+					return nil, errExpected
 				}
 
 				return nil, nil
@@ -324,7 +324,7 @@ func TestVmContext_SetOwnerOperatingOnAccount(t *testing.T) {
 		vmCtx, _ := NewVMContext(args)
 		vmCtx.SetSCAddress(scAddress)
 		err := vmCtx.SetOwnerOperatingOnAccount(ownerAddress)
-		assert.Equal(t, expectedErr, err)
+		assert.Equal(t, errExpected, err)
 	})
 	t.Run("wrong type assertion, should error", func(t *testing.T) {
 		t.Parallel()

@@ -45,16 +45,16 @@ type validatorsProvider struct {
 
 // ArgValidatorsProvider contains all parameters needed for creating a validatorsProvider
 type ArgValidatorsProvider struct {
-	NodesCoordinator                  process.NodesCoordinator
-	EpochStartEventNotifier           process.EpochStartEventNotifier
-	CacheRefreshIntervalDurationInSec time.Duration
-	ValidatorStatistics               process.ValidatorStatisticsProcessor
-	ValidatorPubKeyConverter          core.PubkeyConverter
-	AddressPubKeyConverter            core.PubkeyConverter
-	StakingDataProvider               StakingDataProviderAPI
-	AuctionListSelector               epochStart.AuctionListSelector
-	StartEpoch                        uint32
-	MaxRating                         uint32
+	NodesCoordinator             process.NodesCoordinator
+	EpochStartEventNotifier      process.EpochStartEventNotifier
+	CacheRefreshIntervalDuration time.Duration
+	ValidatorStatistics          process.ValidatorStatisticsProcessor
+	ValidatorPubKeyConverter     core.PubkeyConverter
+	AddressPubKeyConverter       core.PubkeyConverter
+	StakingDataProvider          StakingDataProviderAPI
+	AuctionListSelector          epochStart.AuctionListSelector
+	StartEpoch                   uint32
+	MaxRating                    uint32
 }
 
 // NewValidatorsProvider instantiates a new validatorsProvider structure responsible for keeping account of
@@ -86,7 +86,7 @@ func NewValidatorsProvider(
 	if args.MaxRating == 0 {
 		return nil, process.ErrMaxRatingZero
 	}
-	if args.CacheRefreshIntervalDurationInSec <= 0 {
+	if args.CacheRefreshIntervalDuration <= 0 {
 		return nil, process.ErrInvalidCacheRefreshIntervalInSec
 	}
 
@@ -99,7 +99,7 @@ func NewValidatorsProvider(
 		cache:                        make(map[string]*validator.ValidatorStatistics),
 		cachedAuctionValidators:      make([]*common.AuctionListValidatorAPIResponse, 0),
 		cachedRandomness:             make([]byte, 0),
-		cacheRefreshIntervalDuration: args.CacheRefreshIntervalDurationInSec,
+		cacheRefreshIntervalDuration: args.CacheRefreshIntervalDuration,
 		refreshCache:                 make(chan uint32),
 		lock:                         sync.RWMutex{},
 		auctionMutex:                 sync.RWMutex{},

@@ -65,7 +65,7 @@ func TestNewAccountsDBApi(t *testing.T) {
 func TestAccountsDBAPi_recreateTrieIfNecessary(t *testing.T) {
 	t.Parallel()
 
-	expectedErr := errors.New("expected error")
+	errExpected := errors.New("expected error")
 
 	t.Run("block info provider returns nil or empty root hash should error", func(t *testing.T) {
 		t.Parallel()
@@ -149,14 +149,14 @@ func TestAccountsDBAPi_recreateTrieIfNecessary(t *testing.T) {
 			RecreateTrieCalled: func(rootHash common.RootHashHolder) error {
 				assert.Equal(t, rootHash, rootHash)
 
-				return expectedErr
+				return errExpected
 			},
 		}
 
 		accountsApi, _ := state.NewAccountsDBApi(accountsAdapter, createBlockInfoProviderStub(dummyRootHash))
 		accountsApi.SetCurrentBlockInfo(holders.NewBlockInfo(nil, 0, oldRootHash))
 
-		assert.Equal(t, expectedErr, accountsApi.RecreateTrieIfNecessary())
+		assert.Equal(t, errExpected, accountsApi.RecreateTrieIfNecessary())
 		lastRootHash, err := accountsApi.RootHash()
 		assert.Nil(t, lastRootHash)
 		assert.Equal(t, state.ErrNilRootHash, err)
@@ -330,13 +330,13 @@ func TestAccountsDBApi_SimpleProxyMethodsShouldWork(t *testing.T) {
 func TestAccountsDBApi_GetExistingAccount(t *testing.T) {
 	t.Parallel()
 
-	expectedErr := errors.New("expected error")
+	errExpected := errors.New("expected error")
 	t.Run("recreate trie fails", func(t *testing.T) {
 		t.Parallel()
 
 		accountsAdapter := &mockState.AccountsStub{
 			RecreateTrieCalled: func(rootHash common.RootHashHolder) error {
-				return expectedErr
+				return errExpected
 			},
 			GetExistingAccountCalled: func(addressContainer []byte) (vmcommon.AccountHandler, error) {
 				require.Fail(t, "should have not called inner method")
@@ -347,7 +347,7 @@ func TestAccountsDBApi_GetExistingAccount(t *testing.T) {
 		accountsApi, _ := state.NewAccountsDBApi(accountsAdapter, createBlockInfoProviderStub(dummyRootHash))
 		account, err := accountsApi.GetExistingAccount(nil)
 		assert.Nil(t, account)
-		assert.Equal(t, expectedErr, err)
+		assert.Equal(t, errExpected, err)
 	})
 	t.Run("recreate trie works, should call inner method", func(t *testing.T) {
 		t.Parallel()
@@ -374,13 +374,13 @@ func TestAccountsDBApi_GetExistingAccount(t *testing.T) {
 func TestAccountsDBApi_GetAccountFromBytes(t *testing.T) {
 	t.Parallel()
 
-	expectedErr := errors.New("expected error")
+	errExpected := errors.New("expected error")
 	t.Run("recreate trie fails", func(t *testing.T) {
 		t.Parallel()
 
 		accountsAdapter := &mockState.AccountsStub{
 			RecreateTrieCalled: func(rootHash common.RootHashHolder) error {
-				return expectedErr
+				return errExpected
 			},
 			GetAccountFromBytesCalled: func(address []byte, accountBytes []byte) (vmcommon.AccountHandler, error) {
 				require.Fail(t, "should have not called inner method")
@@ -391,7 +391,7 @@ func TestAccountsDBApi_GetAccountFromBytes(t *testing.T) {
 		accountsApi, _ := state.NewAccountsDBApi(accountsAdapter, createBlockInfoProviderStub(dummyRootHash))
 		account, err := accountsApi.GetAccountFromBytes(nil, nil)
 		assert.Nil(t, account)
-		assert.Equal(t, expectedErr, err)
+		assert.Equal(t, errExpected, err)
 	})
 	t.Run("recreate trie works, should call inner method", func(t *testing.T) {
 		t.Parallel()
@@ -418,13 +418,13 @@ func TestAccountsDBApi_GetAccountFromBytes(t *testing.T) {
 func TestAccountsDBApi_LoadAccount(t *testing.T) {
 	t.Parallel()
 
-	expectedErr := errors.New("expected error")
+	errExpected := errors.New("expected error")
 	t.Run("recreate trie fails", func(t *testing.T) {
 		t.Parallel()
 
 		accountsAdapter := &mockState.AccountsStub{
 			RecreateTrieCalled: func(rootHash common.RootHashHolder) error {
-				return expectedErr
+				return errExpected
 			},
 			LoadAccountCalled: func(address []byte) (vmcommon.AccountHandler, error) {
 				require.Fail(t, "should have not called inner method")
@@ -435,7 +435,7 @@ func TestAccountsDBApi_LoadAccount(t *testing.T) {
 		accountsApi, _ := state.NewAccountsDBApi(accountsAdapter, createBlockInfoProviderStub(dummyRootHash))
 		account, err := accountsApi.LoadAccount(nil)
 		assert.Nil(t, account)
-		assert.Equal(t, expectedErr, err)
+		assert.Equal(t, errExpected, err)
 	})
 	t.Run("recreate trie works, should call inner method", func(t *testing.T) {
 		t.Parallel()
@@ -462,13 +462,13 @@ func TestAccountsDBApi_LoadAccount(t *testing.T) {
 func TestAccountsDBApi_GetCode(t *testing.T) {
 	t.Parallel()
 
-	expectedErr := errors.New("expected error")
+	errExpected := errors.New("expected error")
 	t.Run("recreate trie fails", func(t *testing.T) {
 		t.Parallel()
 
 		accountsAdapter := &mockState.AccountsStub{
 			RecreateTrieCalled: func(rootHash common.RootHashHolder) error {
-				return expectedErr
+				return errExpected
 			},
 			GetCodeCalled: func(codeHash []byte) []byte {
 				require.Fail(t, "should have not called inner method")
@@ -505,13 +505,13 @@ func TestAccountsDBApi_GetCode(t *testing.T) {
 func TestAccountsDBApi_GetAllLeaves(t *testing.T) {
 	t.Parallel()
 
-	expectedErr := errors.New("expected error")
+	errExpected := errors.New("expected error")
 	t.Run("recreate trie fails", func(t *testing.T) {
 		t.Parallel()
 
 		accountsAdapter := &mockState.AccountsStub{
 			RecreateTrieCalled: func(rootHash common.RootHashHolder) error {
-				return expectedErr
+				return errExpected
 			},
 			GetAllLeavesCalled: func(_ *common.TrieIteratorChannels, _ context.Context, _ []byte, _ common.TrieLeafParser) error {
 				require.Fail(t, "should have not called inner method")
@@ -521,7 +521,7 @@ func TestAccountsDBApi_GetAllLeaves(t *testing.T) {
 
 		accountsApi, _ := state.NewAccountsDBApi(accountsAdapter, createBlockInfoProviderStub(dummyRootHash))
 		err := accountsApi.GetAllLeaves(&common.TrieIteratorChannels{}, nil, []byte{}, parsers.NewMainTrieLeafParser())
-		assert.Equal(t, expectedErr, err)
+		assert.Equal(t, errExpected, err)
 	})
 	t.Run("recreate trie works, should call inner method", func(t *testing.T) {
 		t.Parallel()

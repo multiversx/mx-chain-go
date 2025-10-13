@@ -384,11 +384,7 @@ func (st *selectionTracker) getChainOfTrackedPendingBlocks(
 	// NOTE: we expect a nil value for a key (block hash) which is not in the map of tracked blocks.
 	previousBlock := st.blocks[string(previousHashToBeFound)]
 
-	for {
-		if nonceOfNextBlock == 0 {
-			// should never actually happen (e.g. genesis)
-			break
-		}
+	for nonceOfNextBlock != 0 {
 
 		// if no block was found, it means there is a gap and we have to return an error
 		if previousBlock == nil {

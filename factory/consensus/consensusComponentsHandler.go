@@ -74,7 +74,7 @@ func (mcc *managedConsensusComponents) Chronology() consensus.ChronologyHandler 
 		return nil
 	}
 
-	return mcc.consensusComponents.chronology
+	return mcc.chronology
 }
 
 // ConsensusWorker returns the consensus worker
@@ -86,7 +86,7 @@ func (mcc *managedConsensusComponents) ConsensusWorker() factory.ConsensusWorker
 		return nil
 	}
 
-	return mcc.consensusComponents.worker
+	return mcc.worker
 }
 
 // BroadcastMessenger returns the consensus broadcast messenger
@@ -98,7 +98,7 @@ func (mcc *managedConsensusComponents) BroadcastMessenger() consensus.BroadcastM
 		return nil
 	}
 
-	return mcc.consensusComponents.broadcastMessenger
+	return mcc.broadcastMessenger
 }
 
 // CheckSubcomponents verifies all subcomponents
@@ -131,7 +131,7 @@ func (mcc *managedConsensusComponents) Bootstrapper() process.Bootstrapper {
 		return nil
 	}
 
-	return mcc.consensusComponents.bootstrapper
+	return mcc.bootstrapper
 }
 
 // IsInterfaceNil returns true if the underlying object is nil

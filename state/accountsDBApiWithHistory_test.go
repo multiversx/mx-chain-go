@@ -102,11 +102,11 @@ func TestAccountsDBApiWithHistory_GetAccountWithBlockInfo(t *testing.T) {
 	arbitraryError := errors.New("arbitrary error")
 
 	t.Run("recreate trie fails", func(t *testing.T) {
-		expectedErr := errors.New("expected error")
+		errExpected := errors.New("expected error")
 
 		accountsAdapter := &mockState.AccountsStub{
 			RecreateTrieCalled: func(_ common.RootHashHolder) error {
-				return expectedErr
+				return errExpected
 			},
 		}
 
@@ -114,7 +114,7 @@ func TestAccountsDBApiWithHistory_GetAccountWithBlockInfo(t *testing.T) {
 		account, blockInfo, err := accountsApi.GetAccountWithBlockInfo(testscommon.TestPubKeyAlice, options)
 		assert.Nil(t, account)
 		assert.Nil(t, blockInfo)
-		assert.Equal(t, expectedErr, err)
+		assert.Equal(t, errExpected, err)
 	})
 
 	t.Run("recreate trie works, should call inner.GetExistingAccount()", func(t *testing.T) {
@@ -191,11 +191,11 @@ func TestAccountsDBApiWithHistory_GetCodeWithBlockInfo(t *testing.T) {
 	options := holders.NewDefaultRootHashesHolder(rootHash)
 
 	t.Run("recreate trie fails", func(t *testing.T) {
-		expectedErr := errors.New("expected error")
+		errExpected := errors.New("expected error")
 
 		accountsAdapter := &mockState.AccountsStub{
 			RecreateTrieCalled: func(_ common.RootHashHolder) error {
-				return expectedErr
+				return errExpected
 			},
 		}
 
@@ -203,7 +203,7 @@ func TestAccountsDBApiWithHistory_GetCodeWithBlockInfo(t *testing.T) {
 		account, blockInfo, err := accountsApi.GetCodeWithBlockInfo(contractCodeHash, options)
 		assert.Nil(t, account)
 		assert.Nil(t, blockInfo)
-		assert.Equal(t, expectedErr, err)
+		assert.Equal(t, errExpected, err)
 	})
 
 	t.Run("recreate trie works, should call inner.GetExistingAccount()", func(t *testing.T) {

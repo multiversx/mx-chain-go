@@ -113,7 +113,7 @@ func createComponentsForEpochStart() (*mock.CoreComponentsMock, *mock.CryptoComp
 			EpochChangeGracePeriodHandlerField: gracePeriod,
 			ChainParametersHandlerField:        chainParams,
 			ProcessConfigsHandlerField:         &testscommon.ProcessConfigsHandlerStub{},
-			CommonConfigsHandlerField:      testscommon.GetDefaultCommonConfigsHandler(),
+			CommonConfigsHandlerField:          testscommon.GetDefaultCommonConfigsHandler(),
 		},
 		&mock.CryptoComponentsMock{
 			PubKey:          &cryptoMocks.PublicKeyStub{},
@@ -720,19 +720,19 @@ func TestEpochStartBootstrap_Boostrap(t *testing.T) {
 
 		epochStartProvider, _ := NewEpochStartBootstrap(args)
 
-		expectedErr := errors.New("expected err")
+		errExpected := errors.New("expected err")
 		epochStartProvider.storageOpenerHandler = &storageMocks.UnitOpenerStub{
 			GetMostRecentStorageUnitCalled: func(config config.DBConfig) (storage.Storer, error) {
 				return &storageMocks.StorerStub{
 					GetCalled: func(key []byte) ([]byte, error) {
-						return nil, expectedErr
+						return nil, errExpected
 					},
 				}, nil
 			},
 		}
 
 		params, err := epochStartProvider.Bootstrap()
-		assert.Equal(t, expectedErr, err)
+		assert.Equal(t, errExpected, err)
 		assert.Equal(t, Parameters{}, params)
 	})
 
@@ -1180,15 +1180,15 @@ func TestRequestAndProcessForShard_ShouldFail(t *testing.T) {
 		epochStartProvider, _ := NewEpochStartBootstrap(args)
 		epochStartProvider.epochStartMeta = metaBlock
 
-		expectedErr := errors.New("sync pending miniblocks error")
+		errExpected := errors.New("sync pending miniblocks error")
 		epochStartProvider.miniBlocksSyncer = &epochStartMocks.PendingMiniBlockSyncHandlerStub{
 			SyncPendingMiniBlocksCalled: func(miniBlockHeaders []data.MiniBlockHeaderHandler, ctx context.Context) error {
-				return expectedErr
+				return errExpected
 			},
 		}
 
 		err := epochStartProvider.requestAndProcessForShard(emptyMiniBlocksSlice)
-		assert.Equal(t, expectedErr, err)
+		assert.Equal(t, errExpected, err)
 	})
 	t.Run("fail to get pending miniblocks", func(t *testing.T) {
 		t.Parallel()
@@ -1198,15 +1198,15 @@ func TestRequestAndProcessForShard_ShouldFail(t *testing.T) {
 		epochStartProvider, _ := NewEpochStartBootstrap(args)
 		epochStartProvider.epochStartMeta = metaBlock
 
-		expectedErr := errors.New("get pending miniblocks error")
+		errExpected := errors.New("get pending miniblocks error")
 		epochStartProvider.miniBlocksSyncer = &epochStartMocks.PendingMiniBlockSyncHandlerStub{
 			GetMiniBlocksCalled: func() (map[string]*block.MiniBlock, error) {
-				return nil, expectedErr
+				return nil, errExpected
 			},
 		}
 
 		err := epochStartProvider.requestAndProcessForShard(emptyMiniBlocksSlice)
-		assert.Equal(t, expectedErr, err)
+		assert.Equal(t, errExpected, err)
 	})
 	t.Run("fail to sync missing headers", func(t *testing.T) {
 		t.Parallel()
@@ -1216,17 +1216,17 @@ func TestRequestAndProcessForShard_ShouldFail(t *testing.T) {
 		epochStartProvider, _ := NewEpochStartBootstrap(args)
 		epochStartProvider.epochStartMeta = metaBlock
 
-		expectedErr := errors.New("sync miniBlocksSyncer headers by hash error")
+		errExpected := errors.New("sync miniBlocksSyncer headers by hash error")
 		epochStartProvider.headersSyncer = &epochStartMocks.HeadersByHashSyncerStub{
 			SyncMissingHeadersByHashCalled: func(shardIDs []uint32, headersHashes [][]byte, ctx context.Context) error {
-				return expectedErr
+				return errExpected
 			},
 		}
 
 		epochStartProvider.miniBlocksSyncer = &epochStartMocks.PendingMiniBlockSyncHandlerStub{}
 
 		err := epochStartProvider.requestAndProcessForShard(emptyMiniBlocksSlice)
-		assert.Equal(t, expectedErr, err)
+		assert.Equal(t, errExpected, err)
 	})
 	t.Run("fail to get needed headers", func(t *testing.T) {
 		t.Parallel()
@@ -1236,17 +1236,17 @@ func TestRequestAndProcessForShard_ShouldFail(t *testing.T) {
 		epochStartProvider, _ := NewEpochStartBootstrap(args)
 		epochStartProvider.epochStartMeta = metaBlock
 
-		expectedErr := errors.New("get pending miniblocks error")
+		errExpected := errors.New("get pending miniblocks error")
 		epochStartProvider.headersSyncer = &epochStartMocks.HeadersByHashSyncerStub{
 			GetHeadersCalled: func() (m map[string]data.HeaderHandler, err error) {
-				return nil, expectedErr
+				return nil, errExpected
 			},
 		}
 
 		epochStartProvider.miniBlocksSyncer = &epochStartMocks.PendingMiniBlockSyncHandlerStub{}
 
 		err := epochStartProvider.requestAndProcessForShard(emptyMiniBlocksSlice)
-		assert.Equal(t, expectedErr, err)
+		assert.Equal(t, errExpected, err)
 	})
 	t.Run("fail to get data to sync", func(t *testing.T) {
 		t.Parallel()
@@ -1281,12 +1281,12 @@ func TestRequestAndProcessForShard_ShouldFail(t *testing.T) {
 			},
 		}
 
-		expectedErr := fmt.Errorf("expected error")
+		errExpected := fmt.Errorf("expected error")
 		args.DataSyncerCreator = &scheduledDataSyncer.ScheduledSyncerFactoryStub{
 			CreateCalled: func(args *types.ScheduledDataSyncerCreateArgs) (types.ScheduledDataSyncer, error) {
 				return &scheduledDataSyncer.ScheduledSyncerStub{
 					UpdateSyncDataIfNeededCalled: func(notarizedShardHeader data.ShardHeaderHandler) (data.ShardHeaderHandler, map[string]data.HeaderHandler, map[string]*block.MiniBlock, error) {
-						return nil, nil, nil, expectedErr
+						return nil, nil, nil, errExpected
 					},
 				}, nil
 			},
@@ -1313,7 +1313,7 @@ func TestRequestAndProcessForShard_ShouldFail(t *testing.T) {
 		epochStartProvider.miniBlocksSyncer = &epochStartMocks.PendingMiniBlockSyncHandlerStub{}
 
 		err := epochStartProvider.requestAndProcessForShard(emptyMiniBlocksSlice)
-		assert.Equal(t, expectedErr, err)
+		assert.Equal(t, errExpected, err)
 	})
 	t.Run("fail to create user accounts syncer", func(t *testing.T) {
 		t.Parallel()
@@ -1383,11 +1383,11 @@ func TestRequestAndProcessForShard_ShouldFail(t *testing.T) {
 	t.Run("fail to save data to storage", func(t *testing.T) {
 		t.Parallel()
 
-		expectedErr := errors.New("expected error")
+		errExpected := errors.New("expected error")
 		coreComp, cryptoComp := createComponentsForEpochStart()
 		coreComp.IntMarsh = &marshallerMock.MarshalizerStub{
 			MarshalCalled: func(obj interface{}) ([]byte, error) {
-				return nil, expectedErr
+				return nil, errExpected
 			},
 		}
 
@@ -1458,7 +1458,7 @@ func TestRequestAndProcessForShard_ShouldFail(t *testing.T) {
 		epochStartProvider.nodesConfig = &nodesCoordinator.NodesCoordinatorRegistry{}
 
 		err := epochStartProvider.requestAndProcessForShard(emptyMiniBlocksSlice)
-		assert.Equal(t, expectedErr, err)
+		assert.Equal(t, errExpected, err)
 	})
 }
 
@@ -1530,11 +1530,11 @@ func TestRequestAndProcessForMeta_ShouldFail(t *testing.T) {
 	t.Run("fail to sync user accounts state", func(t *testing.T) {
 		t.Parallel()
 
-		expectedErr := errors.New("expected error")
+		errExpected := errors.New("expected error")
 		coreComp, cryptoComp := createComponentsForEpochStart()
 		coreComp.IntMarsh = &marshallerMock.MarshalizerStub{
 			MarshalCalled: func(obj interface{}) ([]byte, error) {
-				return nil, expectedErr
+				return nil, errExpected
 			},
 		}
 		args := createMockEpochStartBootstrapArgs(coreComp, cryptoComp)
@@ -1579,7 +1579,7 @@ func TestRequestAndProcessForMeta_ShouldFail(t *testing.T) {
 		epochStartProvider.requestHandler = &testscommon.RequestHandlerStub{}
 
 		err := epochStartProvider.requestAndProcessForMeta(emptyMiniBlocksSlice)
-		assert.Equal(t, expectedErr, err)
+		assert.Equal(t, errExpected, err)
 	})
 }
 
@@ -1676,18 +1676,18 @@ func TestRequestAndProcessing(t *testing.T) {
 		epochStartMetaHash, err := core.CalculateHash(epochStartProvider.coreComponentsHolder.InternalMarshalizer(), epochStartProvider.coreComponentsHolder.Hasher(), epochStartMetaBlock)
 		require.Nil(t, err)
 
-		expectedErr := errors.New("sync miniBlocksSyncer headers by hash error")
+		errExpected := errors.New("sync miniBlocksSyncer headers by hash error")
 		epochStartProvider.headersSyncer = &epochStartMocks.HeadersByHashSyncerStub{
 			SyncMissingHeadersByHashCalled: func(shardIDs []uint32, headersHashes [][]byte, ctx context.Context) error {
 				assert.Equal(t, [][]byte{notarizedShardHeaderHash, epochStartMetaHash}, headersHashes)
 				assert.Equal(t, []uint32{shardId, core.MetachainShardId}, shardIDs)
-				return expectedErr
+				return errExpected
 			},
 		}
 
 		params, err := epochStartProvider.requestAndProcessing()
 		assert.Equal(t, Parameters{}, params)
-		assert.Equal(t, expectedErr, err)
+		assert.Equal(t, errExpected, err)
 	})
 	t.Run("fail with wrong type assertion on epoch start meta", func(t *testing.T) {
 		t.Parallel()
@@ -1730,10 +1730,10 @@ func TestRequestAndProcessing(t *testing.T) {
 		t.Parallel()
 
 		coreComp, cryptoComp := createComponentsForEpochStart()
-		expectedErr := errors.New("expected err")
+		errExpected := errors.New("expected err")
 		cryptoComp.PubKey = &cryptoMocks.PublicKeyStub{
 			ToByteArrayStub: func() ([]byte, error) {
-				return nil, expectedErr
+				return nil, errExpected
 			},
 		}
 
@@ -1780,7 +1780,7 @@ func TestRequestAndProcessing(t *testing.T) {
 
 		params, err := epochStartProvider.requestAndProcessing()
 		assert.Equal(t, Parameters{}, params)
-		assert.Equal(t, expectedErr, err)
+		assert.Equal(t, errExpected, err)
 	})
 	t.Run("failed to set shard coordinator, wrong number of shards", func(t *testing.T) {
 		t.Parallel()
@@ -1838,10 +1838,10 @@ func TestRequestAndProcessing(t *testing.T) {
 		args := createMockEpochStartBootstrapArgs(createComponentsForEpochStart())
 		args.GenesisNodesConfig = getNodesConfigMock(1)
 
-		expectedErr := errors.New("expected error")
+		errExpected := errors.New("expected error")
 		args.MainMessenger = &p2pmocks.MessengerStub{
 			CreateTopicCalled: func(topic string, identifier bool) error {
-				return expectedErr
+				return errExpected
 			},
 		}
 
@@ -1888,7 +1888,7 @@ func TestRequestAndProcessing(t *testing.T) {
 
 		params, err := epochStartProvider.requestAndProcessing()
 		assert.Equal(t, Parameters{}, params)
-		assert.Equal(t, expectedErr, err)
+		assert.Equal(t, errExpected, err)
 	})
 	t.Run("request and process for shard fail, invalid num active persisters", func(t *testing.T) {
 		args := createMockEpochStartBootstrapArgs(createComponentsForEpochStart())
@@ -2210,12 +2210,12 @@ func TestEpochStartBootstrap_updateDataForScheduledNoScheduledRootHash_UpdateSyn
 	args := createMockEpochStartBootstrapArgs(coreComp, cryptoComp)
 	args.DestinationShardAsObserver = common.DisabledShardIDAsObserver
 	args.GenesisNodesConfig = getNodesConfigMock(2)
-	expectedErr := fmt.Errorf("expected error")
+	errExpected := fmt.Errorf("expected error")
 	args.DataSyncerCreator = &scheduledDataSyncer.ScheduledSyncerFactoryStub{
 		CreateCalled: func(args *types.ScheduledDataSyncerCreateArgs) (types.ScheduledDataSyncer, error) {
 			return &scheduledDataSyncer.ScheduledSyncerStub{
 				UpdateSyncDataIfNeededCalled: func(notarizedShardHeader data.ShardHeaderHandler) (data.ShardHeaderHandler, map[string]data.HeaderHandler, map[string]*block.MiniBlock, error) {
-					return nil, nil, nil, expectedErr
+					return nil, nil, nil, errExpected
 				},
 				GetRootHashToSyncCalled: func(notarizedShardHeader data.ShardHeaderHandler) []byte {
 					return notarizedShardHeader.GetRootHash()
@@ -2233,7 +2233,7 @@ func TestEpochStartBootstrap_updateDataForScheduledNoScheduledRootHash_UpdateSyn
 	}
 
 	syncData, err := epochStartProvider.updateDataForScheduled(notarizedShardHdr)
-	require.Equal(t, expectedErr, err)
+	require.Equal(t, errExpected, err)
 	require.Nil(t, syncData)
 }
 
@@ -2336,10 +2336,10 @@ func TestEpochStartBootstrap_getDataToSyncErrorOpeningDB(t *testing.T) {
 	epochStartProvider, err := NewEpochStartBootstrap(args)
 	require.Nil(t, err)
 
-	expectedErr := fmt.Errorf("expected error")
+	errExpected := fmt.Errorf("expected error")
 	epochStartProvider.storageOpenerHandler = &storageMocks.UnitOpenerStub{
 		OpenDBCalled: func(dbConfig config.DBConfig, shardID uint32, epoch uint32) (storage.Storer, error) {
-			return nil, expectedErr
+			return nil, errExpected
 		},
 	}
 
@@ -2351,7 +2351,7 @@ func TestEpochStartBootstrap_getDataToSyncErrorOpeningDB(t *testing.T) {
 
 	syncData, err := epochStartProvider.getDataToSync(epochStartData, shardNotarizedHeader)
 	require.Nil(t, syncData)
-	require.Equal(t, expectedErr, err)
+	require.Equal(t, errExpected, err)
 }
 
 func TestEpochStartBootstrap_getDataToSyncErrorUpdatingDataForScheduled(t *testing.T) {
@@ -2362,12 +2362,12 @@ func TestEpochStartBootstrap_getDataToSyncErrorUpdatingDataForScheduled(t *testi
 	args.DestinationShardAsObserver = common.DisabledShardIDAsObserver
 	args.GenesisNodesConfig = getNodesConfigMock(2)
 
-	expectedErr := fmt.Errorf("expected error")
+	errExpected := fmt.Errorf("expected error")
 
 	// Simulate an error in getDataToSync through the factory
 	args.DataSyncerCreator = &scheduledDataSyncer.ScheduledSyncerFactoryStub{
 		CreateCalled: func(args *types.ScheduledDataSyncerCreateArgs) (types.ScheduledDataSyncer, error) {
-			return nil, expectedErr
+			return nil, errExpected
 		},
 	}
 
@@ -2382,7 +2382,7 @@ func TestEpochStartBootstrap_getDataToSyncErrorUpdatingDataForScheduled(t *testi
 
 	syncData, err := epochStartProvider.getDataToSync(epochStartData, shardNotarizedHeader)
 	require.Nil(t, syncData)
-	require.Equal(t, expectedErr, err)
+	require.Equal(t, errExpected, err)
 }
 
 func TestEpochStartBootstrap_getDataToSyncWithSCRStorageCloseErr(t *testing.T) {
@@ -2422,10 +2422,10 @@ func TestEpochStartBootstrap_getDataToSyncWithSCRStorageCloseErr(t *testing.T) {
 	epochStartProvider, err := NewEpochStartBootstrap(args)
 	require.Nil(t, err)
 
-	expectedErr := fmt.Errorf("expected error")
+	errExpected := fmt.Errorf("expected error")
 	epochStartProvider.storerScheduledSCRs = &storageMocks.StorerStub{
 		CloseCalled: func() error {
-			return expectedErr
+			return errExpected
 		},
 	}
 
@@ -2487,18 +2487,18 @@ func TestEpochStartBootstrap_ComputeAllPendingMiniblocks(t *testing.T) {
 func TestEpochStartBootstrap_Close(t *testing.T) {
 	t.Parallel()
 
-	expectedErr := errors.New("expected error")
+	errExpected := errors.New("expected error")
 	coreComp, cryptoComp := createComponentsForEpochStart()
 	args := createMockEpochStartBootstrapArgs(coreComp, cryptoComp)
 
 	epochStartProvider, _ := NewEpochStartBootstrap(args)
 	epochStartProvider.dataPool = &dataRetrieverMock.PoolsHolderStub{
 		CloseCalled: func() error {
-			return expectedErr
+			return errExpected
 		}}
 
 	err := epochStartProvider.Close()
-	assert.Equal(t, expectedErr, err)
+	assert.Equal(t, errExpected, err)
 }
 
 func TestSyncSetGuardianTransaction(t *testing.T) {

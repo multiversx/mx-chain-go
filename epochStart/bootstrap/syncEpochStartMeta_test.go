@@ -72,12 +72,12 @@ func TestNewEpochStartMetaSyncer_ShouldWork(t *testing.T) {
 func TestEpochStartMetaSyncer_SyncEpochStartMetaRegisterMessengerProcessorFailsShouldErr(t *testing.T) {
 	t.Parallel()
 
-	expectedErr := errors.New("expected error")
+	errExpected := errors.New("expected error")
 
 	args := getEpochStartSyncerArgs()
 	messenger := &p2pmocks.MessengerStub{
 		RegisterMessageProcessorCalled: func(_ string, _ string, _ p2p.MessageProcessor) error {
-			return expectedErr
+			return errExpected
 		},
 	}
 	args.Messenger = messenger
@@ -85,14 +85,14 @@ func TestEpochStartMetaSyncer_SyncEpochStartMetaRegisterMessengerProcessorFailsS
 	require.NoError(t, err)
 
 	mb, err := ess.SyncEpochStartMeta(time.Second)
-	require.Equal(t, expectedErr, err)
+	require.Equal(t, errExpected, err)
 	require.Nil(t, mb)
 }
 
 func TestEpochStartMetaSyncer_SyncEpochStartMetaProcessorFailsShouldErr(t *testing.T) {
 	t.Parallel()
 
-	expectedErr := errors.New("expected error")
+	errExpected := errors.New("expected error")
 
 	args := getEpochStartSyncerArgs()
 	messenger := &p2pmocks.MessengerStub{
@@ -105,13 +105,13 @@ func TestEpochStartMetaSyncer_SyncEpochStartMetaProcessorFailsShouldErr(t *testi
 
 	mbIntercProc := &mock.MetaBlockInterceptorProcessorStub{
 		GetEpochStartMetaBlockCalled: func() (data.MetaHeaderHandler, error) {
-			return nil, expectedErr
+			return nil, errExpected
 		},
 	}
 	ess.SetEpochStartMetaBlockInterceptorProcessor(mbIntercProc)
 
 	mb, err := ess.SyncEpochStartMeta(time.Second)
-	require.Equal(t, expectedErr, err)
+	require.Equal(t, errExpected, err)
 	require.Nil(t, mb)
 }
 

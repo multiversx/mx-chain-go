@@ -108,11 +108,11 @@ func TestNewEquivalentProofsResolver(t *testing.T) {
 		args := createMockArgEquivalentProofsResolver()
 		args.Storage = &storageStubs.ChainStorerStub{
 			GetStorerCalled: func(unitType dataRetriever.UnitType) (storage.Storer, error) {
-				return nil, expectedErr
+				return nil, errExpected
 			},
 		}
 		res, err := resolvers.NewEquivalentProofsResolver(args)
-		require.Equal(t, expectedErr, err)
+		require.Equal(t, errExpected, err)
 		require.Nil(t, res)
 	})
 	t.Run("should work", func(t *testing.T) {
@@ -153,14 +153,14 @@ func TestEquivalentProofsResolver_ProcessReceivedMessage(t *testing.T) {
 		args := createMockArgEquivalentProofsResolver()
 		args.Marshaller = &mock.MarshalizerStub{
 			UnmarshalCalled: func(obj interface{}, buff []byte) error {
-				return expectedErr
+				return errExpected
 			},
 		}
 		res, err := resolvers.NewEquivalentProofsResolver(args)
 		require.Nil(t, err)
 
 		msgID, err := res.ProcessReceivedMessage(createRequestMsg(dataRetriever.HashType, nil), fromConnectedPeer, &p2pmocks.MessengerStub{})
-		require.True(t, errors.Is(err, expectedErr))
+		require.True(t, errors.Is(err, errExpected))
 		require.Nil(t, msgID)
 	})
 	t.Run("invalid request type should error", func(t *testing.T) {
@@ -191,7 +191,7 @@ func TestEquivalentProofsResolver_ProcessReceivedMessage(t *testing.T) {
 		mockMarshaller := &marshallerMock.MarshalizerMock{}
 		args.Marshaller = &marshallerMock.MarshalizerStub{
 			MarshalCalled: func(obj interface{}) ([]byte, error) {
-				return nil, expectedErr
+				return nil, errExpected
 			},
 			UnmarshalCalled: func(obj interface{}, buff []byte) error {
 				return mockMarshaller.Unmarshal(obj, buff)
@@ -208,7 +208,7 @@ func TestEquivalentProofsResolver_ProcessReceivedMessage(t *testing.T) {
 		require.Nil(t, err)
 
 		msgID, err := res.ProcessReceivedMessage(createRequestMsg(dataRetriever.HashType, providedHashKey), fromConnectedPeer, &p2pmocks.MessengerStub{})
-		require.True(t, errors.Is(err, expectedErr))
+		require.True(t, errors.Is(err, errExpected))
 		require.Nil(t, msgID)
 	})
 	t.Run("resolveHashRequest: invalid key should error", func(t *testing.T) {
@@ -245,7 +245,7 @@ func TestEquivalentProofsResolver_ProcessReceivedMessage(t *testing.T) {
 				wasGetProofByHashCalled = true
 				require.Equal(t, []byte("hash"), headerHash)
 
-				return nil, expectedErr
+				return nil, errExpected
 			},
 		}
 		wasSearchFirstCalled := false
@@ -256,7 +256,7 @@ func TestEquivalentProofsResolver_ProcessReceivedMessage(t *testing.T) {
 						wasSearchFirstCalled = true
 						require.Equal(t, []byte("hash"), key)
 
-						return nil, expectedErr
+						return nil, errExpected
 					},
 				}, nil
 			},
@@ -272,7 +272,7 @@ func TestEquivalentProofsResolver_ProcessReceivedMessage(t *testing.T) {
 		require.Nil(t, err)
 
 		msgID, err := res.ProcessReceivedMessage(createRequestMsg(dataRetriever.HashType, providedHashKey), fromConnectedPeer, &p2pmocks.MessengerStub{})
-		require.True(t, errors.Is(err, expectedErr))
+		require.True(t, errors.Is(err, errExpected))
 		require.Nil(t, msgID)
 		require.True(t, wasGetProofByHashCalled)
 		require.True(t, wasSearchFirstCalled)
@@ -313,7 +313,7 @@ func TestEquivalentProofsResolver_ProcessReceivedMessage(t *testing.T) {
 			GetProofCalled: func(shardID uint32, headerHash []byte) (data.HeaderProofHandler, error) {
 				require.Equal(t, []byte("hash"), headerHash)
 
-				return nil, expectedErr
+				return nil, errExpected
 			},
 		}
 		args.Storage = &storageStubs.ChainStorerStub{
@@ -391,7 +391,7 @@ func TestEquivalentProofsResolver_ProcessReceivedMessage(t *testing.T) {
 				wasGetProofByHashCalled = true
 				require.Equal(t, []byte("hash"), headerHash)
 
-				return nil, expectedErr
+				return nil, errExpected
 			},
 		}
 		wasSearchFirstCalled := false
@@ -402,7 +402,7 @@ func TestEquivalentProofsResolver_ProcessReceivedMessage(t *testing.T) {
 						wasSearchFirstCalled = true
 						require.Equal(t, []byte("hash"), key)
 
-						return nil, expectedErr
+						return nil, errExpected
 					},
 				}, nil
 			},
@@ -438,7 +438,7 @@ func TestEquivalentProofsResolver_ProcessReceivedMessage(t *testing.T) {
 		}
 		args.DataPacker = &mock.DataPackerStub{
 			PackDataInChunksCalled: func(data [][]byte, limit int) ([][]byte, error) {
-				return nil, expectedErr
+				return nil, errExpected
 			},
 		}
 		args.SenderResolver = &mock.TopicResolverSenderStub{
@@ -454,7 +454,7 @@ func TestEquivalentProofsResolver_ProcessReceivedMessage(t *testing.T) {
 		providedHashKeyes, err := args.Marshaller.Marshal(batch.Batch{Data: [][]byte{providedHashKey}})
 		require.Nil(t, err)
 		msgID, err := res.ProcessReceivedMessage(createRequestMsg(dataRetriever.HashArrayType, providedHashKeyes), fromConnectedPeer, &p2pmocks.MessengerStub{})
-		require.Equal(t, expectedErr, err)
+		require.Equal(t, errExpected, err)
 		require.Nil(t, msgID)
 	})
 	t.Run("resolveMultipleHashesRequest: Send error should error", func(t *testing.T) {
@@ -470,7 +470,7 @@ func TestEquivalentProofsResolver_ProcessReceivedMessage(t *testing.T) {
 		}
 		args.SenderResolver = &mock.TopicResolverSenderStub{
 			SendCalled: func(buff []byte, peer core.PeerID, source p2p.MessageHandler) error {
-				return expectedErr
+				return errExpected
 			},
 		}
 		res, err := resolvers.NewEquivalentProofsResolver(args)
@@ -479,7 +479,7 @@ func TestEquivalentProofsResolver_ProcessReceivedMessage(t *testing.T) {
 		providedHashKeyes, err := args.Marshaller.Marshal(batch.Batch{Data: [][]byte{providedHashKey}})
 		require.Nil(t, err)
 		msgID, err := res.ProcessReceivedMessage(createRequestMsg(dataRetriever.HashArrayType, providedHashKeyes), fromConnectedPeer, &p2pmocks.MessengerStub{})
-		require.Equal(t, expectedErr, err)
+		require.Equal(t, errExpected, err)
 		require.Nil(t, msgID)
 	})
 	t.Run("resolveMultipleHashesRequest: one hash should work and return from pool", func(t *testing.T) {
@@ -519,7 +519,7 @@ func TestEquivalentProofsResolver_ProcessReceivedMessage(t *testing.T) {
 			GetProofCalled: func(shardID uint32, headerHash []byte) (data.HeaderProofHandler, error) {
 				require.Equal(t, []byte("hash"), headerHash)
 
-				return nil, expectedErr
+				return nil, errExpected
 			},
 		}
 		args.Storage = &storageStubs.ChainStorerStub{
@@ -561,7 +561,7 @@ func TestEquivalentProofsResolver_ProcessReceivedMessage(t *testing.T) {
 				if string(headerHash) == "hash" {
 					return &block.HeaderProof{}, nil
 				}
-				return nil, expectedErr
+				return nil, errExpected
 			},
 		}
 		args.Storage = &storageStubs.ChainStorerStub{
@@ -571,7 +571,7 @@ func TestEquivalentProofsResolver_ProcessReceivedMessage(t *testing.T) {
 						if string(key) == "hash2" {
 							return []byte("proof"), nil
 						}
-						return nil, expectedErr
+						return nil, errExpected
 					},
 				}, nil
 			},
@@ -609,7 +609,7 @@ func TestEquivalentProofsResolver_ProcessReceivedMessage(t *testing.T) {
 		mockMarshaller := &marshallerMock.MarshalizerMock{}
 		args.Marshaller = &marshallerMock.MarshalizerStub{
 			MarshalCalled: func(obj interface{}) ([]byte, error) {
-				return nil, expectedErr
+				return nil, errExpected
 			},
 			UnmarshalCalled: func(obj interface{}, buff []byte) error {
 				return mockMarshaller.Unmarshal(obj, buff)
@@ -626,7 +626,7 @@ func TestEquivalentProofsResolver_ProcessReceivedMessage(t *testing.T) {
 		require.Nil(t, err)
 
 		msgID, err := res.ProcessReceivedMessage(createRequestMsg(dataRetriever.NonceType, providedNonceKey), fromConnectedPeer, &p2pmocks.MessengerStub{})
-		require.True(t, errors.Is(err, expectedErr))
+		require.True(t, errors.Is(err, errExpected))
 		require.Nil(t, msgID)
 	})
 	t.Run("resolveNonceRequest: invalid key should error", func(t *testing.T) {
@@ -670,14 +670,14 @@ func TestEquivalentProofsResolver_ProcessReceivedMessage(t *testing.T) {
 				require.Equal(t, uint64(1), headerNonce)
 				require.Equal(t, core.MetachainShardId, shardID)
 
-				return nil, expectedErr
+				return nil, errExpected
 			},
 		}
 		args.Storage = &storageStubs.ChainStorerStub{
 			GetStorerCalled: func(unitType dataRetriever.UnitType) (storage.Storer, error) {
 				return &storageStubs.StorerStub{
 					SearchFirstCalled: func(key []byte) ([]byte, error) {
-						return nil, expectedErr
+						return nil, errExpected
 					},
 				}, nil
 			},
@@ -693,7 +693,7 @@ func TestEquivalentProofsResolver_ProcessReceivedMessage(t *testing.T) {
 		require.Nil(t, err)
 
 		msgID, err := res.ProcessReceivedMessage(createRequestMsg(dataRetriever.NonceType, []byte(providedMetaNonceKey)), fromConnectedPeer, &p2pmocks.MessengerStub{})
-		require.True(t, errors.Is(err, expectedErr))
+		require.True(t, errors.Is(err, errExpected))
 		require.Nil(t, msgID)
 		require.True(t, wasGetProofByNonceCalled)
 	})
@@ -708,7 +708,7 @@ func TestEquivalentProofsResolver_ProcessReceivedMessage(t *testing.T) {
 				require.Equal(t, uint64(1), headerNonce)
 				require.Equal(t, uint32(1), shardID)
 
-				return nil, expectedErr
+				return nil, errExpected
 			},
 		}
 		wasSearchFirstCalled := false
@@ -718,7 +718,7 @@ func TestEquivalentProofsResolver_ProcessReceivedMessage(t *testing.T) {
 					SearchFirstCalled: func(key []byte) ([]byte, error) {
 						wasSearchFirstCalled = true
 
-						return nil, expectedErr
+						return nil, errExpected
 					},
 				}, nil
 			},
@@ -734,7 +734,7 @@ func TestEquivalentProofsResolver_ProcessReceivedMessage(t *testing.T) {
 		require.Nil(t, err)
 
 		msgID, err := res.ProcessReceivedMessage(createRequestMsg(dataRetriever.NonceType, providedNonceKey), fromConnectedPeer, &p2pmocks.MessengerStub{})
-		require.True(t, errors.Is(err, expectedErr))
+		require.True(t, errors.Is(err, errExpected))
 		require.Nil(t, msgID)
 		require.True(t, wasGetProofByNonceCalled)
 		require.True(t, wasSearchFirstCalled)
@@ -776,7 +776,7 @@ func TestEquivalentProofsResolver_ProcessReceivedMessage(t *testing.T) {
 				require.Equal(t, uint64(1), headerNonce)
 				require.Equal(t, uint32(1), shardID)
 
-				return nil, expectedErr
+				return nil, errExpected
 			},
 		}
 		args.Storage = &storageStubs.ChainStorerStub{

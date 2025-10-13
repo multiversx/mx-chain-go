@@ -21,7 +21,7 @@ func TestNewOldDatabaseCleaner(t *testing.T) {
 	tests := []struct {
 		description string
 		getArgs     func() ArgsOldDatabaseCleaner
-		expectedErr error
+		errExpected error
 	}{
 		{
 			description: "nil epoch start notifier",
@@ -31,7 +31,7 @@ func TestNewOldDatabaseCleaner(t *testing.T) {
 
 				return args
 			},
-			expectedErr: storage.ErrNilEpochStartNotifier,
+			errExpected: storage.ErrNilEpochStartNotifier,
 		},
 		{
 			description: "nil storage list provider",
@@ -41,7 +41,7 @@ func TestNewOldDatabaseCleaner(t *testing.T) {
 
 				return args
 			},
-			expectedErr: storage.ErrNilStorageListProvider,
+			errExpected: storage.ErrNilStorageListProvider,
 		},
 		{
 			description: "nil old data cleaner provider",
@@ -51,14 +51,14 @@ func TestNewOldDatabaseCleaner(t *testing.T) {
 
 				return args
 			},
-			expectedErr: storage.ErrNilOldDataCleanerProvider,
+			errExpected: storage.ErrNilOldDataCleanerProvider,
 		},
 		{
 			description: "should work",
 			getArgs: func() ArgsOldDatabaseCleaner {
 				return createMockArgs()
 			},
-			expectedErr: nil,
+			errExpected: nil,
 		},
 	}
 
@@ -66,7 +66,7 @@ func TestNewOldDatabaseCleaner(t *testing.T) {
 		t.Run(tt.description, func(t1 *testing.T) {
 			args := tt.getArgs()
 			odc, err := NewOldDatabaseCleaner(args)
-			require.Equal(t1, tt.expectedErr, err)
+			require.Equal(t1, tt.errExpected, err)
 			if err == nil {
 				assert.NotNil(t1, odc)
 			} else {

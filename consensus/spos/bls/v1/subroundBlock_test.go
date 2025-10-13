@@ -1015,11 +1015,11 @@ func TestSubroundBlock_CreateHeaderMultipleMiniBlocks(t *testing.T) {
 }
 
 func TestSubroundBlock_CreateHeaderNilMiniBlocks(t *testing.T) {
-	expectedErr := errors.New("nil mini blocks")
+	errExpected := errors.New("nil mini blocks")
 	container := consensusMock.InitConsensusCore()
 	bp := consensusMock.InitBlockProcessorMock(container.Marshalizer())
 	bp.CreateBlockCalled = func(header data.HeaderHandler, haveTime func() bool) (data.HeaderHandler, data.BodyHandler, error) {
-		return nil, nil, expectedErr
+		return nil, nil, errExpected
 	}
 	sr := initSubroundBlockWithBlockProcessor(bp, container)
 	_ = sr.BlockChain().SetCurrentBlockHeaderAndRootHash(&block.Header{
@@ -1027,7 +1027,7 @@ func TestSubroundBlock_CreateHeaderNilMiniBlocks(t *testing.T) {
 	}, []byte("root hash"))
 	header, _ := sr.CreateHeader()
 	_, _, err := sr.CreateBlock(header)
-	assert.Equal(t, expectedErr, err)
+	assert.Equal(t, errExpected, err)
 }
 
 func TestSubroundBlock_CallFuncRemainingTimeWithStructShouldWork(t *testing.T) {

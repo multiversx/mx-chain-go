@@ -28,7 +28,7 @@ func createEmptyInitialAccount() *data.InitialAccount {
 	}
 }
 
-//------- NewNodesSetupChecker
+// ------- NewNodesSetupChecker
 
 func TestNewNodesSetupChecker_NilGenesisParserShouldErr(t *testing.T) {
 	t.Parallel()
@@ -114,7 +114,7 @@ func TestNewNodesSetupChecker_ShouldWork(t *testing.T) {
 	assert.Nil(t, err)
 }
 
-//------- Check
+// ------- Check
 
 func TestNewNodesSetupChecker_CheckNotAValidPubkeyShouldErr(t *testing.T) {
 	t.Parallel()
@@ -122,7 +122,7 @@ func TestNewNodesSetupChecker_CheckNotAValidPubkeyShouldErr(t *testing.T) {
 	ia := createEmptyInitialAccount()
 	ia.SetAddressBytes([]byte("staked address"))
 
-	expectedErr := errors.New("expected error")
+	errExpected := errors.New("expected error")
 	nsc, _ := checking.NewNodesSetupChecker(
 		&mock.AccountsParserStub{
 			InitialAccountsCalled: func() []genesis.InitialAccountHandler {
@@ -133,7 +133,7 @@ func TestNewNodesSetupChecker_CheckNotAValidPubkeyShouldErr(t *testing.T) {
 		testscommon.NewPubkeyConverterMock(32),
 		&mock.KeyGeneratorStub{
 			CheckPublicKeyValidCalled: func(b []byte) error {
-				return expectedErr
+				return errExpected
 			},
 		},
 	)

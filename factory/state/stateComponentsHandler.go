@@ -109,7 +109,7 @@ func (msc *managedStateComponents) PeerAccounts() state.AccountsAdapter {
 		return nil
 	}
 
-	return msc.stateComponents.peerAccounts
+	return msc.peerAccounts
 }
 
 // AccountsAdapter returns the accounts adapter for the user accounts
@@ -121,7 +121,7 @@ func (msc *managedStateComponents) AccountsAdapter() state.AccountsAdapter {
 		return nil
 	}
 
-	return msc.stateComponents.accountsAdapter
+	return msc.accountsAdapter
 }
 
 // AccountsAdapterAPI returns the accounts adapter for the user accounts to be used in REST API
@@ -133,7 +133,7 @@ func (msc *managedStateComponents) AccountsAdapterAPI() state.AccountsAdapter {
 		return nil
 	}
 
-	return msc.stateComponents.accountsAdapterAPI
+	return msc.accountsAdapterAPI
 }
 
 // AccountsRepository returns the accounts adapter for the user accounts to be used in REST API
@@ -145,7 +145,7 @@ func (msc *managedStateComponents) AccountsRepository() state.AccountsRepository
 		return nil
 	}
 
-	return msc.stateComponents.accountsRepository
+	return msc.accountsRepository
 }
 
 // TriesContainer returns the tries container
@@ -157,7 +157,7 @@ func (msc *managedStateComponents) TriesContainer() common.TriesHolder {
 		return nil
 	}
 
-	return msc.stateComponents.triesContainer
+	return msc.triesContainer
 }
 
 // TrieStorageManagers returns the trie storage manager for the given account type
@@ -172,7 +172,7 @@ func (msc *managedStateComponents) TrieStorageManagers() map[string]common.Stora
 	retMap := make(map[string]common.StorageManager)
 
 	// give back a map copy
-	for key, val := range msc.stateComponents.trieStorageManagers {
+	for key, val := range msc.trieStorageManagers {
 		retMap[key] = val
 	}
 
@@ -186,7 +186,7 @@ func (msc *managedStateComponents) SetTriesContainer(triesContainer common.Tries
 	}
 
 	msc.mutStateComponents.Lock()
-	msc.stateComponents.triesContainer = triesContainer
+	msc.triesContainer = triesContainer
 	msc.mutStateComponents.Unlock()
 
 	return nil
@@ -199,7 +199,7 @@ func (msc *managedStateComponents) SetTriesStorageManagers(managers map[string]c
 	}
 
 	msc.mutStateComponents.Lock()
-	msc.stateComponents.trieStorageManagers = managers
+	msc.trieStorageManagers = managers
 	msc.mutStateComponents.Unlock()
 
 	return nil
@@ -214,7 +214,7 @@ func (msc *managedStateComponents) MissingTrieNodesNotifier() common.MissingTrie
 		return nil
 	}
 
-	return msc.stateComponents.missingTrieNodesNotifier
+	return msc.missingTrieNodesNotifier
 }
 
 // TrieLeavesRetriever returns the trie leaves retriever
@@ -226,7 +226,7 @@ func (msc *managedStateComponents) TrieLeavesRetriever() common.TrieLeavesRetrie
 		return nil
 	}
 
-	return msc.stateComponents.trieLeavesRetriever
+	return msc.trieLeavesRetriever
 }
 
 // IsInterfaceNil returns true if the interface is nil

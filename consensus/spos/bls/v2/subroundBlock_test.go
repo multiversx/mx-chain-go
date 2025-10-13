@@ -29,7 +29,7 @@ import (
 	"github.com/multiversx/mx-chain-go/testscommon/statusHandler"
 )
 
-var expectedErr = errors.New("expected error")
+var errExpected = errors.New("expected error")
 
 func defaultSubroundForSRBlock(consensusState *spos.ConsensusState, ch chan bool,
 	container *spos.ConsensusCore, appStatusHandler core.AppStatusHandler) (*spos.Subround, error) {
@@ -406,7 +406,7 @@ func TestSubroundBlock_DoBlockJob(t *testing.T) {
 		bpm := &testscommon.BlockProcessorStub{}
 
 		bpm.CreateNewHeaderCalled = func(round uint64, nonce uint64) (data.HeaderHandler, error) {
-			return nil, expectedErr
+			return nil, errExpected
 		}
 		container.SetBlockProcessor(bpm)
 		r := sr.DoBlockJob()
@@ -428,7 +428,7 @@ func TestSubroundBlock_DoBlockJob(t *testing.T) {
 		sr.SetStatus(bls.SrBlock, spos.SsNotFinished)
 		bpm := &testscommon.BlockProcessorStub{}
 		bpm.CreateBlockCalled = func(header data.HeaderHandler, remainingTime func() bool) (data.HeaderHandler, data.BodyHandler, error) {
-			return header, nil, expectedErr
+			return header, nil, errExpected
 		}
 		bpm.CreateNewHeaderCalled = func(round uint64, nonce uint64) (data.HeaderHandler, error) {
 			return &block.Header{}, nil
@@ -459,7 +459,7 @@ func TestSubroundBlock_DoBlockJob(t *testing.T) {
 			CreateSignatureForPublicKeyCalled: func(message []byte, publicKeyBytes []byte) ([]byte, error) {
 				cnt++
 				if cnt > 1 { // first call is from create header
-					return nil, expectedErr
+					return nil, errExpected
 				}
 
 				return []byte("sig"), nil
@@ -489,7 +489,7 @@ func TestSubroundBlock_DoBlockJob(t *testing.T) {
 			return &testscommon.HeaderHandlerStub{
 				SetLeaderSignatureCalled: func(signature []byte) error {
 					if len(signature) > 0 {
-						return expectedErr
+						return errExpected
 					}
 					return nil
 				},
@@ -529,7 +529,7 @@ func TestSubroundBlock_DoBlockJob(t *testing.T) {
 		container.SetBlockProcessor(bpm)
 		bm := &consensusMocks.BroadcastMessengerMock{
 			BroadcastConsensusMessageCalled: func(message *consensus.Message) error {
-				return expectedErr
+				return errExpected
 			},
 		}
 		container.SetBroadcastMessenger(bm)
@@ -761,7 +761,7 @@ func TestSubroundBlock_ProcessReceivedBlockShouldReturnFalseWhenProcessBlockRetu
 	sr.SetBody(blkBody)
 	blockProcessorMock := consensusMocks.InitBlockProcessorMock(container.Marshalizer())
 	blockProcessorMock.ProcessBlockCalled = func(header data.HeaderHandler, body data.BodyHandler, haveTime func() time.Duration) error {
-		return expectedErr
+		return errExpected
 	}
 	container.SetBlockProcessor(blockProcessorMock)
 	container.SetRoundHandler(&consensusMocks.RoundHandlerMock{RoundIndex: 1})
@@ -1078,11 +1078,11 @@ func TestSubroundBlock_CreateHeaderMultipleMiniBlocks(t *testing.T) {
 }
 
 func TestSubroundBlock_CreateHeaderNilMiniBlocks(t *testing.T) {
-	expectedErr := errors.New("nil mini blocks")
+	errExpected := errors.New("nil mini blocks")
 	container := consensusMocks.InitConsensusCore()
 	bp := consensusMocks.InitBlockProcessorMock(container.Marshalizer())
 	bp.CreateBlockCalled = func(header data.HeaderHandler, haveTime func() bool) (data.HeaderHandler, data.BodyHandler, error) {
-		return nil, nil, expectedErr
+		return nil, nil, errExpected
 	}
 	sr := initSubroundBlockWithBlockProcessor(bp, container)
 	_ = sr.BlockChain().SetCurrentBlockHeaderAndRootHash(&block.Header{
@@ -1090,7 +1090,7 @@ func TestSubroundBlock_CreateHeaderNilMiniBlocks(t *testing.T) {
 	}, []byte("root hash"))
 	header, _ := sr.CreateHeader()
 	_, _, err := sr.CreateBlock(header)
-	assert.Equal(t, expectedErr, err)
+	assert.Equal(t, errExpected, err)
 }
 
 func TestSubroundBlock_CallFuncRemainingTimeWithStructShouldWork(t *testing.T) {
@@ -1232,7 +1232,7 @@ func TestSubroundBlock_ReceivedBlockHeader(t *testing.T) {
 	// nil fields on header
 	sr.ReceivedBlockHeader(&testscommon.HeaderHandlerStub{
 		CheckFieldsForNilCalled: func() error {
-			return expectedErr
+			return errExpected
 		},
 	})
 
@@ -1289,7 +1289,7 @@ func TestSubroundBlock_ReceivedBlockHeader(t *testing.T) {
 	// marshal error
 	container.SetMarshalizer(&testscommon.MarshallerStub{
 		MarshalCalled: func(obj interface{}) ([]byte, error) {
-			return nil, expectedErr
+			return nil, errExpected
 		},
 	})
 	sr.ReceivedBlockHeader(headerForCurrentConsensus)

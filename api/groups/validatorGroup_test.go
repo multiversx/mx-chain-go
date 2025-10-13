@@ -168,10 +168,10 @@ func TestValidatorGroup_UpdateFacade(t *testing.T) {
 		assert.Equal(t, http.StatusOK, resp.Code)
 		assert.Equal(t, validatorStatistics.Result, mapToReturn)
 
-		expectedErr := errors.New("expected error")
+		errExpected := errors.New("expected error")
 		newFacade := mock.FacadeStub{
 			ValidatorStatisticsHandler: func() (map[string]*validator.ValidatorStatistics, error) {
-				return nil, expectedErr
+				return nil, errExpected
 			},
 		}
 
@@ -184,7 +184,7 @@ func TestValidatorGroup_UpdateFacade(t *testing.T) {
 
 		loadResponse(resp.Body, &response)
 		assert.Equal(t, http.StatusBadRequest, resp.Code)
-		assert.Contains(t, response.Error, expectedErr.Error())
+		assert.Contains(t, response.Error, errExpected.Error())
 	})
 }
 

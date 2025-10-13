@@ -727,9 +727,9 @@ func TestShardStorageHandler_saveLastCrossNotarizedHeadersWithoutScheduledErrorW
 	}()
 
 	args := createStorageHandlerArgs()
-	expectedErr := fmt.Errorf("expected error")
+	errExpected := fmt.Errorf("expected error")
 	args.Marshaller = &marshallerMock.MarshalizerStub{MarshalCalled: func(obj interface{}) ([]byte, error) {
-		return nil, expectedErr
+		return nil, errExpected
 	}}
 	shardStorage, _ := NewShardStorageHandler(args)
 	shard0HeaderHash := "shard0 header hash"
@@ -751,7 +751,7 @@ func TestShardStorageHandler_saveLastCrossNotarizedHeadersWithoutScheduledErrorW
 
 	bootstrapHeaderInfo, err := shardStorage.saveLastCrossNotarizedHeaders(meta, headers, false)
 	require.Nil(t, bootstrapHeaderInfo)
-	require.Equal(t, expectedErr, err)
+	require.Equal(t, errExpected, err)
 }
 
 func TestShardStorageHandler_saveLastCrossNotarizedHeadersWithoutScheduled(t *testing.T) {

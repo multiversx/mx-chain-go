@@ -67,7 +67,7 @@ func initAccountsMock() *stateMock.AccountsStub {
 	}
 }
 
-func initBasicTestData() (*dataRetrieverMock.PoolsHolderMock, data.ChainHandler, []byte, *block.Body, [][]byte, *hashingMocks.HasherMock, *mock.MarshalizerMock, error, []byte) {
+func initBasicTestData() (*dataRetrieverMock.PoolsHolderMock, data.ChainHandler, []byte, *block.Body, [][]byte, *hashingMocks.HasherMock, *mock.MarshalizerMock, []byte) {
 	tdp := dataRetrieverMock.NewPoolsHolderMock()
 	txHash := []byte("tx_hash1")
 	randSeed := []byte("rand seed")
@@ -94,7 +94,7 @@ func initBasicTestData() (*dataRetrieverMock.PoolsHolderMock, data.ChainHandler,
 	marshalizer := &mock.MarshalizerMock{}
 	mbbytes, _ := marshalizer.Marshal(&miniblock)
 	mbHash := hasher.Compute(string(mbbytes))
-	return tdp, blkc, rootHash, body, txHashes, hasher, marshalizer, nil, mbHash
+	return tdp, blkc, rootHash, body, txHashes, hasher, marshalizer, mbHash
 }
 
 func initBlockHeader(prevHash []byte, prevRandSeed []byte, rootHash []byte, mbHdrs []block.MiniBlockHeader) block.Header {
@@ -158,13 +158,13 @@ func TestNewShardProcessor(t *testing.T) {
 
 	tests := []struct {
 		args        func() blproc.ArgShardProcessor
-		expectedErr error
+		errExpected error
 	}{
 		{
 			args: func() blproc.ArgShardProcessor {
 				return CreateMockArgumentsMultiShard(coreComponents, nil, bootstrapComponents, statusComponents)
 			},
-			expectedErr: process.ErrNilDataComponentsHolder,
+			errExpected: process.ErrNilDataComponentsHolder,
 		},
 		{
 			args: func() blproc.ArgShardProcessor {
@@ -173,7 +173,7 @@ func TestNewShardProcessor(t *testing.T) {
 
 				return CreateMockArgumentsMultiShard(coreComponents, &dataCompCopy, bootstrapComponents, statusComponents)
 			},
-			expectedErr: process.ErrNilDataPoolHolder,
+			errExpected: process.ErrNilDataPoolHolder,
 		},
 		{
 			args: func() blproc.ArgShardProcessor {
@@ -188,7 +188,7 @@ func TestNewShardProcessor(t *testing.T) {
 				}
 				return CreateMockArgumentsMultiShard(coreComponents, &dataCompCopy, bootstrapComponents, statusComponents)
 			},
-			expectedErr: process.ErrNilHeadersDataPool,
+			errExpected: process.ErrNilHeadersDataPool,
 		},
 		{
 			args: func() blproc.ArgShardProcessor {
@@ -203,7 +203,7 @@ func TestNewShardProcessor(t *testing.T) {
 				}
 				return CreateMockArgumentsMultiShard(coreComponents, &dataCompCopy, bootstrapComponents, statusComponents)
 			},
-			expectedErr: process.ErrNilTransactionPool,
+			errExpected: process.ErrNilTransactionPool,
 		},
 		{
 			args: func() blproc.ArgShardProcessor {
@@ -215,22 +215,22 @@ func TestNewShardProcessor(t *testing.T) {
 				}
 				return CreateMockArgumentsMultiShard(coreComponents, &dataCompCopy, bootstrapComponents, statusComponents)
 			},
-			expectedErr: process.ErrNilHeaderHandler,
+			errExpected: process.ErrNilHeaderHandler,
 		},
 		{
 			args: func() blproc.ArgShardProcessor {
 				return CreateMockArgumentsMultiShard(coreComponents, dataComponents, bootstrapComponents, statusComponents)
 			},
-			expectedErr: nil,
+			errExpected: nil,
 		},
 	}
 
 	for _, test := range tests {
 		sp, err := blproc.NewShardProcessor(test.args())
-		if test.expectedErr != nil {
+		if test.errExpected != nil {
 			require.Nil(t, sp)
 			require.Error(t, err)
-			require.True(t, strings.Contains(err.Error(), test.expectedErr.Error()))
+			require.True(t, strings.Contains(err.Error(), test.errExpected.Error()))
 		} else {
 			require.NotNil(t, sp)
 			require.Nil(t, err)
@@ -1018,7 +1018,7 @@ func TestShardProcessor_ProcessBlockCrossShardWithoutMetaShouldFail(t *testing.T
 func TestShardProcessor_ProcessBlockCrossShardWithMetaShouldPass(t *testing.T) {
 	t.Parallel()
 
-	tdp, blkc, rootHash, body, txHashes, hasher, marshalizer, _, mbHash := initBasicTestData()
+	tdp, blkc, rootHash, body, txHashes, hasher, marshalizer, mbHash := initBasicTestData()
 	mbHdr := block.MiniBlockHeader{
 		ReceiverShardID: 0,
 		SenderShardID:   1,
@@ -1163,7 +1163,7 @@ func TestShardProcessor_ProcessBlockHaveTimeLessThanZeroShouldErr(t *testing.T) 
 func TestShardProcessor_ProcessBlockWithMissingMetaHdrShouldErr(t *testing.T) {
 	t.Parallel()
 
-	tdp, blkc, rootHash, body, txHashes, hasher, marshalizer, _, mbHash := initBasicTestData()
+	tdp, blkc, rootHash, body, txHashes, hasher, marshalizer, mbHash := initBasicTestData()
 	mbHdr := block.MiniBlockHeader{
 		ReceiverShardID: 0,
 		SenderShardID:   1,
@@ -1621,7 +1621,7 @@ func TestShardProcessor_CheckAndRequestIfMetaHeadersMissingShouldErr(t *testing.
 	t.Parallel()
 
 	hdrNoncesRequestCalled := int32(0)
-	tdp, blkc, rootHash, body, txHashes, hasher, marshalizer, _, mbHash := initBasicTestData()
+	tdp, blkc, rootHash, body, txHashes, hasher, marshalizer, mbHash := initBasicTestData()
 	mbHdr := block.MiniBlockHeader{
 		ReceiverShardID: 0,
 		SenderShardID:   1,
@@ -2238,7 +2238,7 @@ func TestShardProcessor_CommitBlockFailsWhenOnExecutedBlockFails(t *testing.T) {
 	dataComponents.DataPool = initDataPool()
 	dataComponents.DataPool.Transactions().(*testscommon.ShardedDataCacheNotifierMock).OnExecutedBlockCalled = func(blockHeader data.HeaderHandler) error {
 		txPoolOnExecutedBlockCalled = true
-		return expectedErr
+		return errExpected
 	}
 
 	arguments := CreateMockArguments(coreComponents, dataComponents, bootstrapComponents, statusComponents)
@@ -2260,7 +2260,7 @@ func TestShardProcessor_CommitBlockFailsWhenOnExecutedBlockFails(t *testing.T) {
 	assert.Nil(t, err)
 
 	err = sp.CommitBlock(header, body)
-	assert.Equal(t, expectedErr, err)
+	assert.Equal(t, errExpected, err)
 	assert.True(t, txPoolOnExecutedBlockCalled)
 }
 

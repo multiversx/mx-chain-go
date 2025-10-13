@@ -212,7 +212,7 @@ func (sm *statusMetrics) addPrometheusMetricToStringBuilder(builder *strings.Bui
 		value = computeDelta(sm.uint64Metrics[common.MetricCurrentRound], sm.uint64Metrics[common.MetricRoundAtEpochStart])
 		sm.mutUint64Operations.RUnlock()
 	}
-	builder.WriteString(fmt.Sprintf("%s{%s=\"%d\"} %v\n", key, common.MetricShardId, shardID, value))
+	_, _ = fmt.Fprintf(builder, "%s{%s=\"%d\"} %v\n", key, common.MetricShardId, shardID, value)
 }
 
 // EconomicsMetrics returns the economics related metrics

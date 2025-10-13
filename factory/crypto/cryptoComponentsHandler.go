@@ -81,46 +81,46 @@ func (mcc *managedCryptoComponents) CheckSubcomponents() error {
 	if mcc.cryptoComponents == nil {
 		return errors.ErrNilCryptoComponents
 	}
-	if check.IfNil(mcc.cryptoComponents.publicKey) {
+	if check.IfNil(mcc.publicKey) {
 		return errors.ErrNilPublicKey
 	}
-	if check.IfNil(mcc.cryptoComponents.p2pPublicKey) {
+	if check.IfNil(mcc.p2pPublicKey) {
 		return errors.ErrNilP2pPublicKey
 	}
-	if check.IfNil(mcc.cryptoComponents.privateKey) {
+	if check.IfNil(mcc.privateKey) {
 		return errors.ErrNilPrivateKey
 	}
-	if check.IfNil(mcc.cryptoComponents.p2pPrivateKey) {
+	if check.IfNil(mcc.p2pPrivateKey) {
 		return errors.ErrNilP2pPrivateKey
 	}
-	if check.IfNil(mcc.cryptoComponents.txSingleSigner) {
+	if check.IfNil(mcc.txSingleSigner) {
 		return errors.ErrNilTxSigner
 	}
-	if check.IfNil(mcc.cryptoComponents.blockSingleSigner) {
+	if check.IfNil(mcc.blockSingleSigner) {
 		return errors.ErrNilBlockSigner
 	}
-	if check.IfNil(mcc.cryptoComponents.p2pSingleSigner) {
+	if check.IfNil(mcc.p2pSingleSigner) {
 		return errors.ErrNilP2pSigner
 	}
-	if check.IfNil(mcc.cryptoComponents.multiSignerContainer) {
+	if check.IfNil(mcc.multiSignerContainer) {
 		return errors.ErrNilMultiSigner
 	}
-	if check.IfNil(mcc.cryptoComponents.peerSignHandler) {
+	if check.IfNil(mcc.peerSignHandler) {
 		return errors.ErrNilPeerSignHandler
 	}
-	if check.IfNil(mcc.cryptoComponents.blockSignKeyGen) {
+	if check.IfNil(mcc.blockSignKeyGen) {
 		return errors.ErrNilBlockSignKeyGen
 	}
-	if check.IfNil(mcc.cryptoComponents.txSignKeyGen) {
+	if check.IfNil(mcc.txSignKeyGen) {
 		return errors.ErrNilTxSignKeyGen
 	}
-	if check.IfNil(mcc.cryptoComponents.p2pKeyGen) {
+	if check.IfNil(mcc.p2pKeyGen) {
 		return errors.ErrNilP2pKeyGen
 	}
-	if check.IfNil(mcc.cryptoComponents.messageSignVerifier) {
+	if check.IfNil(mcc.messageSignVerifier) {
 		return errors.ErrNilMessageSignVerifier
 	}
-	if check.IfNil(mcc.cryptoComponents.managedPeersHolder) {
+	if check.IfNil(mcc.managedPeersHolder) {
 		return errors.ErrNilManagedPeersHolder
 	}
 
@@ -136,7 +136,7 @@ func (mcc *managedCryptoComponents) PublicKey() crypto.PublicKey {
 		return nil
 	}
 
-	return mcc.cryptoParams.publicKey
+	return mcc.publicKey
 }
 
 // PrivateKey returns the configured validator private key
@@ -148,7 +148,7 @@ func (mcc *managedCryptoComponents) PrivateKey() crypto.PrivateKey {
 		return nil
 	}
 
-	return mcc.cryptoParams.privateKey
+	return mcc.privateKey
 }
 
 // P2pPrivateKey returns the configured p2p private key
@@ -160,7 +160,7 @@ func (mcc *managedCryptoComponents) P2pPrivateKey() crypto.PrivateKey {
 		return nil
 	}
 
-	return mcc.p2pCryptoParams.p2pPrivateKey
+	return mcc.p2pPrivateKey
 }
 
 // P2pPublicKey returns the configured p2p public key
@@ -172,7 +172,7 @@ func (mcc *managedCryptoComponents) P2pPublicKey() crypto.PublicKey {
 		return nil
 	}
 
-	return mcc.p2pCryptoParams.p2pPublicKey
+	return mcc.p2pPublicKey
 }
 
 // PublicKeyString returns the configured validator public key as string
@@ -184,7 +184,7 @@ func (mcc *managedCryptoComponents) PublicKeyString() string {
 		return ""
 	}
 
-	return mcc.cryptoParams.publicKeyString
+	return mcc.publicKeyString
 }
 
 // PublicKeyBytes returns the configured validator public key bytes
@@ -196,7 +196,7 @@ func (mcc *managedCryptoComponents) PublicKeyBytes() []byte {
 		return nil
 	}
 
-	return mcc.cryptoParams.publicKeyBytes
+	return mcc.publicKeyBytes
 }
 
 // TxSingleSigner returns the transaction signer
@@ -208,7 +208,7 @@ func (mcc *managedCryptoComponents) TxSingleSigner() crypto.SingleSigner {
 		return nil
 	}
 
-	return mcc.cryptoComponents.txSingleSigner
+	return mcc.txSingleSigner
 }
 
 // BlockSigner returns block single signer
@@ -220,7 +220,7 @@ func (mcc *managedCryptoComponents) BlockSigner() crypto.SingleSigner {
 		return nil
 	}
 
-	return mcc.cryptoComponents.blockSingleSigner
+	return mcc.blockSingleSigner
 }
 
 // P2pSingleSigner returns p2p single signer
@@ -232,7 +232,7 @@ func (mcc *managedCryptoComponents) P2pSingleSigner() crypto.SingleSigner {
 		return nil
 	}
 
-	return mcc.cryptoComponents.p2pSingleSigner
+	return mcc.p2pSingleSigner
 }
 
 // MultiSignerContainer returns the multiSigner container holding the multiSigner versions
@@ -243,7 +243,7 @@ func (mcc *managedCryptoComponents) MultiSignerContainer() cryptoCommon.MultiSig
 		return nil
 	}
 
-	return mcc.cryptoComponents.multiSignerContainer
+	return mcc.multiSignerContainer
 }
 
 // SetMultiSignerContainer sets the multiSigner container in the crypto components
@@ -284,7 +284,7 @@ func (mcc *managedCryptoComponents) PeerSignatureHandler() crypto.PeerSignatureH
 		return nil
 	}
 
-	return mcc.cryptoComponents.peerSignHandler
+	return mcc.peerSignHandler
 }
 
 // BlockSignKeyGen returns the block signer key generator
@@ -296,7 +296,7 @@ func (mcc *managedCryptoComponents) BlockSignKeyGen() crypto.KeyGenerator {
 		return nil
 	}
 
-	return mcc.cryptoComponents.blockSignKeyGen
+	return mcc.blockSignKeyGen
 }
 
 // TxSignKeyGen returns the transaction signer key generator
@@ -308,7 +308,7 @@ func (mcc *managedCryptoComponents) TxSignKeyGen() crypto.KeyGenerator {
 		return nil
 	}
 
-	return mcc.cryptoComponents.txSignKeyGen
+	return mcc.txSignKeyGen
 }
 
 // P2pKeyGen returns the p2p key generator
@@ -320,7 +320,7 @@ func (mcc *managedCryptoComponents) P2pKeyGen() crypto.KeyGenerator {
 		return nil
 	}
 
-	return mcc.cryptoComponents.p2pKeyGen
+	return mcc.p2pKeyGen
 }
 
 // MessageSignVerifier returns the message signature verifier
@@ -332,7 +332,7 @@ func (mcc *managedCryptoComponents) MessageSignVerifier() vm.MessageSignVerifier
 		return nil
 	}
 
-	return mcc.cryptoComponents.messageSignVerifier
+	return mcc.messageSignVerifier
 }
 
 // ConsensusSigningHandler returns the consensus signing handler
@@ -344,7 +344,7 @@ func (mcc *managedCryptoComponents) ConsensusSigningHandler() consensus.SigningH
 		return nil
 	}
 
-	return mcc.cryptoComponents.consensusSigningHandler
+	return mcc.consensusSigningHandler
 }
 
 // ManagedPeersHolder returns the managed peers holder
@@ -356,7 +356,7 @@ func (mcc *managedCryptoComponents) ManagedPeersHolder() common.ManagedPeersHold
 		return nil
 	}
 
-	return mcc.cryptoComponents.managedPeersHolder
+	return mcc.managedPeersHolder
 }
 
 // KeysHandler returns the handler that manages keys either in single sign mode or multi key mode
@@ -368,7 +368,7 @@ func (mcc *managedCryptoComponents) KeysHandler() consensus.KeysHandler {
 		return nil
 	}
 
-	return mcc.cryptoComponents.keysHandler
+	return mcc.keysHandler
 }
 
 // Clone creates a shallow clone of a managedCryptoComponents

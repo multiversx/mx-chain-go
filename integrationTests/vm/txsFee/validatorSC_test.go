@@ -324,9 +324,9 @@ func executeTxAndCheckResults(
 	testContext *vm.VMTestContext,
 	tx *transaction.Transaction,
 	vmCodeExpected vmcommon.ReturnCode,
-	expectedErr error,
+	errExpected error,
 ) {
 	recCode, err := testContext.TxProcessor.ProcessTransaction(tx)
 	require.Equal(t, vmCodeExpected, recCode)
-	require.Equal(t, expectedErr, err)
+	require.Equal(t, errExpected, err)
 }

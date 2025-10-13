@@ -248,7 +248,7 @@ func TestMultikeyHeartbeatSender_Execute(t *testing.T) {
 		argsBase.timeBetweenSends = time.Second * 2
 		argsBase.marshaller = &marshallerMock.MarshalizerStub{
 			MarshalCalled: func(obj interface{}) ([]byte, error) {
-				return nil, expectedErr
+				return nil, errExpected
 			},
 		}
 

@@ -18,7 +18,7 @@ import (
 	"github.com/stretchr/testify/assert"
 )
 
-var expectedErr = fmt.Errorf("expected error")
+var errExpected = fmt.Errorf("expected error")
 
 func createMockDeployArg() ArgDeployProcessor {
 	return ArgDeployProcessor{
@@ -91,13 +91,13 @@ func TestDeployProcessor_DeployGetCodeFailsShouldErr(t *testing.T) {
 	arg := createMockDeployArg()
 	dp, _ := NewDeployProcessor(arg)
 	dp.getScCodeAsHex = func(filename string) (string, error) {
-		return "", expectedErr
+		return "", errExpected
 	}
 
 	scAddresses, err := dp.Deploy(&data.InitialSmartContract{})
 
 	assert.Nil(t, scAddresses)
-	assert.Equal(t, expectedErr, err)
+	assert.Equal(t, errExpected, err)
 }
 
 func TestDeployProcessor_DeployGetNonceFailsShouldErr(t *testing.T) {
@@ -106,7 +106,7 @@ func TestDeployProcessor_DeployGetNonceFailsShouldErr(t *testing.T) {
 	arg := createMockDeployArg()
 	arg.Executor = &mock.TxExecutionProcessorStub{
 		GetNonceCalled: func(senderBytes []byte) (uint64, error) {
-			return 0, expectedErr
+			return 0, errExpected
 		},
 	}
 	dp, _ := NewDeployProcessor(arg)
@@ -117,7 +117,7 @@ func TestDeployProcessor_DeployGetNonceFailsShouldErr(t *testing.T) {
 	scAddresses, err := dp.Deploy(&data.InitialSmartContract{})
 
 	assert.Nil(t, scAddresses)
-	assert.Equal(t, expectedErr, err)
+	assert.Equal(t, errExpected, err)
 }
 
 func TestDeployProcessor_DeployNewAddressFailsShouldErr(t *testing.T) {
@@ -126,7 +126,7 @@ func TestDeployProcessor_DeployNewAddressFailsShouldErr(t *testing.T) {
 	arg := createMockDeployArg()
 	arg.BlockchainHook = &testscommon.BlockChainHookStub{
 		NewAddressCalled: func(creatorAddress []byte, creatorNonce uint64, vmType []byte) ([]byte, error) {
-			return nil, expectedErr
+			return nil, errExpected
 		},
 	}
 	dp, _ := NewDeployProcessor(arg)
@@ -137,7 +137,7 @@ func TestDeployProcessor_DeployNewAddressFailsShouldErr(t *testing.T) {
 	scAddresses, err := dp.Deploy(&data.InitialSmartContract{})
 
 	assert.Nil(t, scAddresses)
-	assert.Equal(t, expectedErr, err)
+	assert.Equal(t, errExpected, err)
 }
 
 func TestDeployProcessor_DeployMissingVersionShouldWork(t *testing.T) {
@@ -223,7 +223,7 @@ func TestDeployProcessor_DeployExecuteQueryFailureShouldError(t *testing.T) {
 	}
 	arg.QueryService = &mock.QueryServiceStub{
 		ExecuteQueryCalled: func(query *process.SCQuery) (*vmcommon.VMOutput, common.BlockInfo, error) {
-			return nil, nil, expectedErr
+			return nil, nil, errExpected
 		},
 	}
 	dp, _ := NewDeployProcessor(arg)
@@ -238,7 +238,7 @@ func TestDeployProcessor_DeployExecuteQueryFailureShouldError(t *testing.T) {
 	sc.SetOwnerBytes(testSender)
 
 	scAddresses, err := dp.Deploy(sc)
-	assert.Equal(t, expectedErr, err)
+	assert.Equal(t, errExpected, err)
 	assert.True(t, executeCalled)
 	assert.Equal(t, 1, len(scAddresses))
 	assert.Equal(t, scResulting, scAddresses[0])

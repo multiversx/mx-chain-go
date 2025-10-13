@@ -113,7 +113,7 @@ func init() {
 	gin.SetMode(gin.TestMode)
 }
 
-//------- Heartbeatstatus
+// ------- Heartbeatstatus
 
 func TestHeartbeatstatus_FromFacadeErrors(t *testing.T) {
 	t.Parallel()
@@ -179,7 +179,7 @@ func TestP2PMetrics_ShouldReturnErrorIfFacadeReturnsError(t *testing.T) {
 		StatusMetricsHandler: func() external.StatusMetricsHandler {
 			return &testscommon.StatusMetricsStub{
 				StatusP2pMetricsMapCalled: func() (map[string]interface{}, error) {
-					return nil, expectedErr
+					return nil, errExpected
 				},
 			}
 		},
@@ -199,7 +199,7 @@ func TestP2PMetrics_ShouldReturnErrorIfFacadeReturnsError(t *testing.T) {
 	response := &shared.GenericAPIResponse{}
 	loadResponse(resp.Body, response)
 
-	assert.Equal(t, expectedErr.Error(), response.Error)
+	assert.Equal(t, errExpected.Error(), response.Error)
 }
 
 func TestNodeStatus_ShouldReturnErrorIfFacadeReturnsError(t *testing.T) {
@@ -207,7 +207,7 @@ func TestNodeStatus_ShouldReturnErrorIfFacadeReturnsError(t *testing.T) {
 		StatusMetricsHandler: func() external.StatusMetricsHandler {
 			return &testscommon.StatusMetricsStub{
 				StatusMetricsMapWithoutP2PCalled: func() (map[string]interface{}, error) {
-					return nil, expectedErr
+					return nil, errExpected
 				},
 			}
 		},
@@ -227,7 +227,7 @@ func TestNodeStatus_ShouldReturnErrorIfFacadeReturnsError(t *testing.T) {
 	response := &shared.GenericAPIResponse{}
 	loadResponse(resp.Body, response)
 
-	assert.Equal(t, expectedErr.Error(), response.Error)
+	assert.Equal(t, errExpected.Error(), response.Error)
 }
 
 func TestBootstrapStatus_ShouldReturnErrorIfFacadeReturnsError(t *testing.T) {
@@ -235,7 +235,7 @@ func TestBootstrapStatus_ShouldReturnErrorIfFacadeReturnsError(t *testing.T) {
 		StatusMetricsHandler: func() external.StatusMetricsHandler {
 			return &testscommon.StatusMetricsStub{
 				BootstrapMetricsCalled: func() (map[string]interface{}, error) {
-					return nil, expectedErr
+					return nil, errExpected
 				},
 			}
 		},
@@ -255,7 +255,7 @@ func TestBootstrapStatus_ShouldReturnErrorIfFacadeReturnsError(t *testing.T) {
 	response := &shared.GenericAPIResponse{}
 	loadResponse(resp.Body, response)
 
-	assert.Equal(t, expectedErr.Error(), response.Error)
+	assert.Equal(t, errExpected.Error(), response.Error)
 }
 
 func TestBootstrapStatusMetrics_ShouldWork(t *testing.T) {
@@ -295,7 +295,7 @@ func TestNodeGroup_GetConnectedPeersRatings(t *testing.T) {
 
 		facade := mock.FacadeStub{
 			GetConnectedPeersRatingsOnMainNetworkCalled: func() (string, error) {
-				return "", expectedErr
+				return "", errExpected
 			},
 		}
 
@@ -312,7 +312,7 @@ func TestNodeGroup_GetConnectedPeersRatings(t *testing.T) {
 		loadResponse(resp.Body, response)
 
 		assert.Equal(t, http.StatusInternalServerError, resp.Code)
-		assert.True(t, strings.Contains(response.Error, expectedErr.Error()))
+		assert.True(t, strings.Contains(response.Error, errExpected.Error()))
 	})
 	t.Run("should work", func(t *testing.T) {
 		t.Parallel()
@@ -444,7 +444,7 @@ func TestQueryDebug_GetQueryErrorsShouldErr(t *testing.T) {
 
 	facade := mock.FacadeStub{
 		GetQueryHandlerCalled: func(name string) (handler debug.QueryHandler, err error) {
-			return nil, expectedErr
+			return nil, errExpected
 		},
 	}
 
@@ -464,7 +464,7 @@ func TestQueryDebug_GetQueryErrorsShouldErr(t *testing.T) {
 	loadResponse(resp.Body, queryResp)
 
 	assert.Equal(t, http.StatusBadRequest, resp.Code)
-	assert.Contains(t, queryResp.Error, expectedErr.Error())
+	assert.Contains(t, queryResp.Error, errExpected.Error())
 }
 
 func TestQueryDebug_GetQueryShouldWork(t *testing.T) {
@@ -513,7 +513,7 @@ func TestPeerInfo_PeerInfoErrorsShouldErr(t *testing.T) {
 
 	facade := mock.FacadeStub{
 		GetPeerInfoCalled: func(pid string) ([]core.QueryP2PPeerInfo, error) {
-			return nil, expectedErr
+			return nil, errExpected
 		},
 	}
 	pid := "pid1"
@@ -531,7 +531,7 @@ func TestPeerInfo_PeerInfoErrorsShouldErr(t *testing.T) {
 	loadResponse(resp.Body, response)
 
 	assert.Equal(t, http.StatusInternalServerError, resp.Code)
-	assert.True(t, strings.Contains(response.Error, expectedErr.Error()))
+	assert.True(t, strings.Contains(response.Error, errExpected.Error()))
 }
 
 func TestPeerInfo_PeerInfoShouldWork(t *testing.T) {
@@ -604,7 +604,7 @@ func TestEpochStartData_FacadeErrorsShouldErr(t *testing.T) {
 
 	facade := mock.FacadeStub{
 		GetEpochStartDataAPICalled: func(epoch uint32) (*common.EpochStartDataAPI, error) {
-			return nil, expectedErr
+			return nil, errExpected
 		},
 	}
 
@@ -621,7 +621,7 @@ func TestEpochStartData_FacadeErrorsShouldErr(t *testing.T) {
 	loadResponse(resp.Body, response)
 
 	assert.Equal(t, http.StatusInternalServerError, resp.Code)
-	assert.True(t, strings.Contains(response.Error, expectedErr.Error()))
+	assert.True(t, strings.Contains(response.Error, errExpected.Error()))
 }
 
 func TestEpochStartData_ShouldWork(t *testing.T) {
@@ -663,7 +663,7 @@ func TestPrometheusMetrics_ShouldReturnErrorIfFacadeReturnsError(t *testing.T) {
 		StatusMetricsHandler: func() external.StatusMetricsHandler {
 			return &testscommon.StatusMetricsStub{
 				StatusMetricsWithoutP2PPrometheusStringCalled: func() (string, error) {
-					return "", expectedErr
+					return "", errExpected
 				},
 			}
 		},
@@ -683,7 +683,7 @@ func TestPrometheusMetrics_ShouldReturnErrorIfFacadeReturnsError(t *testing.T) {
 	response := &shared.GenericAPIResponse{}
 	loadResponse(resp.Body, response)
 
-	assert.Equal(t, expectedErr.Error(), response.Error)
+	assert.Equal(t, errExpected.Error(), response.Error)
 }
 
 func TestPrometheusMetrics_ShouldWork(t *testing.T) {
@@ -809,7 +809,7 @@ func TestNodeGroup_ManagedKeysEligible(t *testing.T) {
 
 		facade := mock.FacadeStub{
 			GetEligibleManagedKeysCalled: func() ([]string, error) {
-				return nil, expectedErr
+				return nil, errExpected
 			},
 		}
 
@@ -826,7 +826,7 @@ func TestNodeGroup_ManagedKeysEligible(t *testing.T) {
 		loadResponse(resp.Body, response)
 
 		assert.Equal(t, http.StatusInternalServerError, resp.Code)
-		assert.True(t, strings.Contains(response.Error, expectedErr.Error()))
+		assert.True(t, strings.Contains(response.Error, errExpected.Error()))
 	})
 	t.Run("should work", func(t *testing.T) {
 		t.Parallel()
@@ -868,7 +868,7 @@ func TestNodeGroup_ManagedKeysWaiting(t *testing.T) {
 
 		facade := mock.FacadeStub{
 			GetWaitingManagedKeysCalled: func() ([]string, error) {
-				return nil, expectedErr
+				return nil, errExpected
 			},
 		}
 
@@ -885,7 +885,7 @@ func TestNodeGroup_ManagedKeysWaiting(t *testing.T) {
 		loadResponse(resp.Body, response)
 
 		assert.Equal(t, http.StatusInternalServerError, resp.Code)
-		assert.True(t, strings.Contains(response.Error, expectedErr.Error()))
+		assert.True(t, strings.Contains(response.Error, errExpected.Error()))
 	})
 	t.Run("should work", func(t *testing.T) {
 		t.Parallel()
@@ -927,7 +927,7 @@ func TestNodeGroup_WaitingEpochsLeft(t *testing.T) {
 
 		facade := mock.FacadeStub{
 			GetWaitingEpochsLeftForPublicKeyCalled: func(publicKey string) (uint32, error) {
-				return 0, expectedErr
+				return 0, errExpected
 			},
 		}
 
@@ -944,7 +944,7 @@ func TestNodeGroup_WaitingEpochsLeft(t *testing.T) {
 		loadResponse(resp.Body, response)
 
 		assert.Equal(t, http.StatusInternalServerError, resp.Code)
-		assert.True(t, strings.Contains(response.Error, expectedErr.Error()))
+		assert.True(t, strings.Contains(response.Error, errExpected.Error()))
 	})
 	t.Run("should work", func(t *testing.T) {
 		t.Parallel()
@@ -1027,7 +1027,7 @@ func TestNodeGroup_UpdateFacade(t *testing.T) {
 			StatusMetricsHandler: func() external.StatusMetricsHandler {
 				return &testscommon.StatusMetricsStub{
 					StatusMetricsWithoutP2PPrometheusStringCalled: func() (string, error) {
-						return "", expectedErr
+						return "", errExpected
 					},
 				}
 			},
@@ -1043,7 +1043,7 @@ func TestNodeGroup_UpdateFacade(t *testing.T) {
 		assert.Equal(t, http.StatusInternalServerError, resp.Code)
 		response := &shared.GenericAPIResponse{}
 		loadResponse(resp.Body, response)
-		assert.Equal(t, expectedErr.Error(), response.Error)
+		assert.Equal(t, errExpected.Error(), response.Error)
 	})
 }
 

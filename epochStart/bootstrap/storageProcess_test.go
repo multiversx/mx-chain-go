@@ -289,16 +289,16 @@ func TestStorageEpochStartBootstrap_syncHeadersFromStorage(t *testing.T) {
 		}
 
 		sesb, _ := NewStorageEpochStartBootstrap(args)
-		expectedErr := errors.New("expected error")
+		errExpected := errors.New("expected error")
 		sesb.headersSyncer = &epochStartMocks.HeadersByHashSyncerStub{
 			SyncMissingHeadersByHashCalled: func(shardIDs []uint32, headersHashes [][]byte, ctx context.Context) error {
-				return expectedErr
+				return errExpected
 			},
 		}
 
 		syncedHeaders, err := sesb.syncHeadersFromStorage(metaBlock, 0)
 		assert.Nil(t, syncedHeaders)
-		assert.Equal(t, expectedErr, err)
+		assert.Equal(t, errExpected, err)
 	})
 
 	t.Run("fail to get synced headers", func(t *testing.T) {
@@ -317,16 +317,16 @@ func TestStorageEpochStartBootstrap_syncHeadersFromStorage(t *testing.T) {
 		}
 
 		sesb, _ := NewStorageEpochStartBootstrap(args)
-		expectedErr := errors.New("expected error")
+		errExpected := errors.New("expected error")
 		sesb.headersSyncer = &epochStartMocks.HeadersByHashSyncerStub{
 			GetHeadersCalled: func() (m map[string]data.HeaderHandler, err error) {
-				return nil, expectedErr
+				return nil, errExpected
 			},
 		}
 
 		syncedHeaders, err := sesb.syncHeadersFromStorage(metaBlock, 0)
 		assert.Nil(t, syncedHeaders)
-		assert.Equal(t, expectedErr, err)
+		assert.Equal(t, errExpected, err)
 	})
 
 	t.Run("empty prev meta block when first epoch", func(t *testing.T) {

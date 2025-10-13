@@ -19,7 +19,7 @@ import (
 	"github.com/stretchr/testify/assert"
 )
 
-var expectedErr = errors.New("expected error")
+var errExpected = errors.New("expected error")
 
 func TestNewTxExecutionProcessor_NilTxProcessorShouldErr(t *testing.T) {
 	t.Parallel()
@@ -87,7 +87,7 @@ func TestTxExecutionProcessor_GetNonceAccountsErrShouldErr(t *testing.T) {
 		&testscommon.TxProcessorStub{},
 		&stateMock.AccountsStub{
 			LoadAccountCalled: func(container []byte) (vmcommon.AccountHandler, error) {
-				return nil, expectedErr
+				return nil, errExpected
 			},
 		},
 	)
@@ -95,7 +95,7 @@ func TestTxExecutionProcessor_GetNonceAccountsErrShouldErr(t *testing.T) {
 	nonce, err := tep.GetNonce([]byte("sender"))
 
 	assert.Equal(t, uint64(0), nonce)
-	assert.Equal(t, expectedErr, err)
+	assert.Equal(t, errExpected, err)
 }
 
 func TestTxExecutionProcessor_GetNonceShouldWork(t *testing.T) {
@@ -129,7 +129,7 @@ func TestTxExecutionProcessor_GetAccount(t *testing.T) {
 			&testscommon.TxProcessorStub{},
 			&stateMock.AccountsStub{
 				GetExistingAccountCalled: func(addressContainer []byte) (vmcommon.AccountHandler, error) {
-					return nil, expectedErr
+					return nil, errExpected
 				},
 			},
 		)
@@ -181,14 +181,14 @@ func TestTxExecutionProcessor_AddBalanceAccountsErrShouldErr(t *testing.T) {
 		&testscommon.TxProcessorStub{},
 		&stateMock.AccountsStub{
 			LoadAccountCalled: func(container []byte) (vmcommon.AccountHandler, error) {
-				return nil, expectedErr
+				return nil, errExpected
 			},
 		},
 	)
 
 	err := tep.AddBalance([]byte("sender"), big.NewInt(0))
 
-	assert.Equal(t, expectedErr, err)
+	assert.Equal(t, errExpected, err)
 }
 
 func TestTxExecutionProcessor_AddBalanceWrongTypeShouldErr(t *testing.T) {
@@ -270,14 +270,14 @@ func TestTxExecutionProcessor_AddNonceAccountsErrShouldErr(t *testing.T) {
 		&testscommon.TxProcessorStub{},
 		&stateMock.AccountsStub{
 			LoadAccountCalled: func(container []byte) (vmcommon.AccountHandler, error) {
-				return nil, expectedErr
+				return nil, errExpected
 			},
 		},
 	)
 
 	err := tep.AddNonce([]byte("sender"), 0)
 
-	assert.Equal(t, expectedErr, err)
+	assert.Equal(t, errExpected, err)
 }
 
 func TestTxExecutionProcessor_AddNonceShouldWork(t *testing.T) {

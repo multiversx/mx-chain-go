@@ -46,13 +46,13 @@ func TestHeartbeatSenderFactory_createHeartbeatSender(t *testing.T) {
 			GeneratePublicStub: func() crypto.PublicKey {
 				return &cryptoMocks.PublicKeyStub{
 					ToByteArrayStub: func() ([]byte, error) {
-						return nil, expectedErr
+						return nil, errExpected
 					},
 				}
 			},
 		}
 		hbSender, err := createHeartbeatSender(args)
-		assert.True(t, errors.Is(err, expectedErr))
+		assert.True(t, errors.Is(err, errExpected))
 		assert.True(t, check.IfNil(hbSender))
 	})
 	t.Run("validator with keys managed should error", func(t *testing.T) {

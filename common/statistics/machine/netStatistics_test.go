@@ -34,11 +34,11 @@ func TestNetStatistics_ComputeStatisticsGetStatisticsErrorsFirstTime(t *testing.
 	t.Parallel()
 
 	numCalls := 0
-	expectedErr := errors.New("expected error")
+	errExpected := errors.New("expected error")
 	testGetStats := func() ([]net.IOCountersStat, error) {
 		numCalls++
 		if numCalls == 1 {
-			return nil, expectedErr
+			return nil, errExpected
 		}
 
 		return []net.IOCountersStat{
@@ -87,11 +87,11 @@ func TestNetStatistics_ComputeStatisticsGetStatisticsErrorsSecondTime(t *testing
 	t.Parallel()
 
 	numCalls := 0
-	expectedErr := errors.New("expected error")
+	errExpected := errors.New("expected error")
 	testGetStats := func() ([]net.IOCountersStat, error) {
 		numCalls++
 		if numCalls == 2 {
-			return nil, expectedErr
+			return nil, errExpected
 		}
 
 		return []net.IOCountersStat{

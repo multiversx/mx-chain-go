@@ -346,13 +346,13 @@ func TestSingleDataInterceptor_InvalidTxChainIDShouldBlackList(t *testing.T) {
 	processReceivedMessageSingleDataInvalidVersion(t, process.ErrInvalidTransactionVersion)
 }
 
-func processReceivedMessageSingleDataInvalidVersion(t *testing.T, expectedErr error) {
+func processReceivedMessageSingleDataInvalidVersion(t *testing.T, errExpected error) {
 	checkCalledNum := int32(0)
 	processCalledNum := int32(0)
 	throttler := createMockThrottler()
 	interceptedData := &testscommon.InterceptedDataStub{
 		CheckValidityCalled: func() error {
-			return expectedErr
+			return errExpected
 		},
 		IsForCurrentShardCalled: func() bool {
 			return false
@@ -393,7 +393,7 @@ func processReceivedMessageSingleDataInvalidVersion(t *testing.T, expectedErr er
 	}
 
 	msgID, err := sdi.ProcessReceivedMessage(msg, fromConnectedPeerId, &p2pmocks.MessengerStub{})
-	assert.Equal(t, expectedErr, err)
+	assert.Equal(t, errExpected, err)
 	assert.True(t, isFromConnectedPeerBlackListed)
 	assert.True(t, isOriginatorBlackListed)
 	assert.Nil(t, msgID)

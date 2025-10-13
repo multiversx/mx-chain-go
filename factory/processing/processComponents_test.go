@@ -616,7 +616,7 @@ func TestNewProcessComponentsFactory(t *testing.T) {
 func TestProcessComponentsFactory_Create(t *testing.T) {
 	t.Parallel()
 
-	expectedErr := errors.New("expected error")
+	errExpected := errors.New("expected error")
 	t.Run("createNetworkShardingCollector fails due to invalid PublicKeyPeerId config should error", func(t *testing.T) {
 		t.Parallel()
 
@@ -646,10 +646,10 @@ func TestProcessComponentsFactory_Create(t *testing.T) {
 		require.True(t, ok)
 		netwCompStub.Messenger = &p2pmocks.MessengerStub{
 			SetPeerShardResolverCalled: func(peerShardResolver p2p.PeerShardResolver) error {
-				return expectedErr
+				return errExpected
 			},
 		}
-		testCreateWithArgs(t, args, expectedErr.Error())
+		testCreateWithArgs(t, args, errExpected.Error())
 	})
 	t.Run("prepareNetworkShardingCollector fails due to SetPeerValidatorMapper failure should error", func(t *testing.T) {
 		t.Parallel()
@@ -659,10 +659,10 @@ func TestProcessComponentsFactory_Create(t *testing.T) {
 		require.True(t, ok)
 		netwCompStub.InputAntiFlood = &testsMocks.P2PAntifloodHandlerStub{
 			SetPeerValidatorMapperCalled: func(validatorMapper process.PeerValidatorMapper) error {
-				return expectedErr
+				return errExpected
 			},
 		}
-		testCreateWithArgs(t, args, expectedErr.Error())
+		testCreateWithArgs(t, args, errExpected.Error())
 	})
 	t.Run("newStorageRequester fails due to NewStorageServiceFactory failure should error", func(t *testing.T) {
 		t.Parallel()
@@ -708,10 +708,10 @@ func TestProcessComponentsFactory_Create(t *testing.T) {
 		args := createMockProcessComponentsFactoryArgs()
 		args.AccountsParser = &mock.AccountsParserStub{
 			GenerateInitialTransactionsCalled: func(shardCoordinator sharding.Coordinator, initialIndexingData map[uint32]*genesis.IndexingData) ([]*dataBlock.MiniBlock, map[uint32]*outportCore.TransactionPool, error) {
-				return nil, nil, expectedErr
+				return nil, nil, errExpected
 			},
 		}
-		testCreateWithArgs(t, args, expectedErr.Error())
+		testCreateWithArgs(t, args, errExpected.Error())
 	})
 	t.Run("NewMiniBlocksPoolsCleaner fails should error", func(t *testing.T) {
 		t.Parallel()
@@ -790,7 +790,7 @@ func TestProcessComponentsFactory_Create(t *testing.T) {
 		stateCompMock.Accounts = &testState.AccountsStub{
 			GetAllLeavesCalled: realAccounts.GetAllLeaves,
 			RootHashCalled: func() ([]byte, error) {
-				return nil, expectedErr
+				return nil, errExpected
 			},
 			CommitCalled: realAccounts.Commit,
 		}
@@ -824,7 +824,7 @@ func TestProcessComponentsFactory_Create(t *testing.T) {
 			GetAllLeavesCalled: func(leavesChannels *common.TrieIteratorChannels, ctx context.Context, rootHash []byte, trieLeavesParser common.TrieLeafParser) error {
 				close(leavesChannels.LeavesChan)
 				leavesChannels.ErrChan.Close()
-				return expectedErr
+				return errExpected
 			},
 			RootHashCalled: realAccounts.RootHash,
 			CommitCalled:   realAccounts.Commit,
@@ -879,7 +879,7 @@ func TestProcessComponentsFactory_Create(t *testing.T) {
 					if cnt == 1 {
 						return nil // coverage, key_ok
 					}
-					return expectedErr
+					return errExpected
 				},
 			}
 		}
@@ -911,7 +911,7 @@ func TestProcessComponentsFactory_Create(t *testing.T) {
 			Accounts: &testState.AccountsStub{
 				GetAllLeavesCalled: func(leavesChannels *common.TrieIteratorChannels, ctx context.Context, rootHash []byte, trieLeavesParser common.TrieLeafParser) error {
 					close(leavesChannels.LeavesChan)
-					leavesChannels.ErrChan.WriteInChanNonBlocking(expectedErr)
+					leavesChannels.ErrChan.WriteInChanNonBlocking(errExpected)
 					leavesChannels.ErrChan.Close()
 					return nil
 				},

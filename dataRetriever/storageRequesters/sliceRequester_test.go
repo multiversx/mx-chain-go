@@ -17,7 +17,7 @@ import (
 	"github.com/stretchr/testify/assert"
 )
 
-var expectedErr = errors.New("expected err")
+var errExpected = errors.New("expected err")
 
 func createMockSliceRequesterArg() ArgSliceRequester {
 	return ArgSliceRequester{
@@ -114,7 +114,7 @@ func TestSliceRequester_RequestDataFromHashNotFoundShouldErr(t *testing.T) {
 	arg := createMockSliceRequesterArg()
 	arg.Storage = &storageStubs.StorerStub{
 		GetCalled: func(key []byte) ([]byte, error) {
-			return nil, expectedErr
+			return nil, errExpected
 		},
 	}
 	arg.Messenger = &p2pmocks.MessengerStub{
@@ -128,7 +128,7 @@ func TestSliceRequester_RequestDataFromHashNotFoundShouldErr(t *testing.T) {
 
 	err := sr.RequestDataFromHash([]byte("hash"), 0)
 
-	assert.Equal(t, expectedErr, err)
+	assert.Equal(t, errExpected, err)
 	assert.False(t, sendWasCalled)
 
 	time.Sleep(time.Second)
@@ -147,7 +147,7 @@ func TestSliceRequester_RequestDataFromHashMarshalFails(t *testing.T) {
 	arg := createMockSliceRequesterArg()
 	arg.Marshalizer = &mock.MarshalizerStub{
 		MarshalCalled: func(obj interface{}) ([]byte, error) {
-			return nil, expectedErr
+			return nil, errExpected
 		},
 	}
 	arg.Storage = &storageStubs.StorerStub{
@@ -164,7 +164,7 @@ func TestSliceRequester_RequestDataFromHashMarshalFails(t *testing.T) {
 	sr, _ := NewSliceRequester(arg)
 
 	err := sr.RequestDataFromHash([]byte("hash"), 0)
-	assert.Equal(t, expectedErr, err)
+	assert.Equal(t, errExpected, err)
 }
 
 func TestSliceRequester_RequestDataFromHashShouldWork(t *testing.T) {
@@ -210,7 +210,7 @@ func TestSliceRequester_RequestDataFromHashesPackDataInChunksFails(t *testing.T)
 	}
 	arg.DataPacker = &mock.DataPackerStub{
 		PackDataInChunksCalled: func(data [][]byte, limit int) ([][]byte, error) {
-			return nil, expectedErr
+			return nil, errExpected
 		},
 	}
 	sr, _ := NewSliceRequester(arg)
@@ -218,7 +218,7 @@ func TestSliceRequester_RequestDataFromHashesPackDataInChunksFails(t *testing.T)
 	hashes := [][]byte{[]byte("hash1"), []byte("hash2")}
 	err := sr.RequestDataFromHashArray(hashes, 0)
 
-	assert.Equal(t, expectedErr, err)
+	assert.Equal(t, errExpected, err)
 	assert.Equal(t, len(hashes), numGetCalled)
 }
 
@@ -260,7 +260,7 @@ func TestSliceRequester_GetErroredShouldReturnErr(t *testing.T) {
 		GetCalled: func(key []byte) ([]byte, error) {
 			numGetCalled++
 			if numGetCalled == 1 {
-				return nil, expectedErr
+				return nil, errExpected
 			}
 
 			return make([]byte, 0), nil
@@ -278,7 +278,7 @@ func TestSliceRequester_GetErroredShouldReturnErr(t *testing.T) {
 	hashes := [][]byte{[]byte("hash1"), []byte("hash2")}
 	err := sr.RequestDataFromHashArray(hashes, 0)
 
-	assert.True(t, errors.Is(err, expectedErr))
+	assert.True(t, errors.Is(err, errExpected))
 	assert.Equal(t, len(hashes)-1, numSendCalled)
 	assert.Equal(t, len(hashes), numGetCalled)
 
@@ -308,7 +308,7 @@ func TestSliceRequester_SendErroredShouldReturnErr(t *testing.T) {
 		SendToConnectedPeerCalled: func(topic string, buff []byte, peerID core.PeerID) error {
 			numSendCalled++
 			if numSendCalled == 1 {
-				return expectedErr
+				return errExpected
 			}
 			return nil
 		},
@@ -318,7 +318,7 @@ func TestSliceRequester_SendErroredShouldReturnErr(t *testing.T) {
 	hashes := [][]byte{[]byte("hash1"), []byte("hash2")}
 	err := sr.RequestDataFromHashArray(hashes, 0)
 
-	assert.True(t, errors.Is(err, expectedErr))
+	assert.True(t, errors.Is(err, errExpected))
 	assert.Equal(t, 1, numSendCalled)
 	assert.Equal(t, len(hashes), numGetCalled)
 }

@@ -721,7 +721,7 @@ func scTxs(t *testing.T, senderNode *integrationTests.TestFullNode, numTxs int, 
 	scCode, err := os.ReadFile("../vm/wasm/testdata/erc20-c-03/wrc20_wasm.wasm")
 	require.Nil(t, err)
 
-	scAddress, _ := senderNode.TestProcessorNode.BlockchainHook.NewAddress(senderNode.OwnAccount.Address, senderNode.OwnAccount.Nonce, vmFactory.WasmVirtualMachine)
+	scAddress, _ := senderNode.BlockchainHook.NewAddress(senderNode.OwnAccount.Address, senderNode.OwnAccount.Nonce, vmFactory.WasmVirtualMachine)
 	initialSupply := hex.EncodeToString(big.NewInt(100000000000).Bytes())
 	integrationTests.DeployScTx(nodesList, 0, hex.EncodeToString(scCode), vmFactory.WasmVirtualMachine, initialSupply)
 	time.Sleep(time.Second)

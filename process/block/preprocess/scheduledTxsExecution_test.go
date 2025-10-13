@@ -998,13 +998,13 @@ func TestScheduledTxsExecution_getScheduledInfoForHeaderShouldFail(t *testing.T)
 	t.Run("failed to get SCRs saved data from storage", func(t *testing.T) {
 		t.Parallel()
 
-		expectedErr := errors.New("storer err")
+		errExpected := errors.New("storer err")
 		scheduledTxsExec, _ := NewScheduledTxsExecution(
 			&testscommon.TxProcessorMock{},
 			&testscommon.TransactionCoordinatorMock{},
 			&storageMocks.StorerStub{
 				GetCalled: func(_ []byte) ([]byte, error) {
-					return nil, expectedErr
+					return nil, errExpected
 				},
 			},
 			&marshal.GogoProtoMarshalizer{},
@@ -1015,12 +1015,12 @@ func TestScheduledTxsExecution_getScheduledInfoForHeaderShouldFail(t *testing.T)
 
 		scheduledInfo, err := scheduledTxsExec.getScheduledInfoForHeader(rootHash, core.OptionalUint32{})
 		assert.Nil(t, scheduledInfo)
-		assert.Equal(t, expectedErr, err)
+		assert.Equal(t, errExpected, err)
 	})
 	t.Run("failed to unmarshal data", func(t *testing.T) {
 		t.Parallel()
 
-		expectedErr := errors.New("marshaller err")
+		errExpected := errors.New("marshaller err")
 		scheduledTxsExec, _ := NewScheduledTxsExecution(
 			&testscommon.TxProcessorMock{},
 			&testscommon.TransactionCoordinatorMock{},
@@ -1031,7 +1031,7 @@ func TestScheduledTxsExecution_getScheduledInfoForHeaderShouldFail(t *testing.T)
 			},
 			&marshallerMock.MarshalizerStub{
 				UnmarshalCalled: func(_ interface{}, _ []byte) error {
-					return expectedErr
+					return errExpected
 				},
 			},
 			&hashingMocks.HasherMock{},
@@ -1041,7 +1041,7 @@ func TestScheduledTxsExecution_getScheduledInfoForHeaderShouldFail(t *testing.T)
 
 		scheduledInfo, err := scheduledTxsExec.getScheduledInfoForHeader(rootHash, core.OptionalUint32{})
 		assert.Nil(t, scheduledInfo)
-		assert.Equal(t, expectedErr, err)
+		assert.Equal(t, errExpected, err)
 	})
 }
 
@@ -1137,13 +1137,13 @@ func TestScheduledTxsExecution_RollBackToBlockShouldFail(t *testing.T) {
 
 	rootHash := []byte("root hash")
 
-	expectedErr := errors.New("local err")
+	errExpected := errors.New("local err")
 	scheduledTxsExec, _ := NewScheduledTxsExecution(
 		&testscommon.TxProcessorMock{},
 		&testscommon.TransactionCoordinatorMock{},
 		&storageMocks.StorerStub{
 			GetCalled: func(_ []byte) ([]byte, error) {
-				return nil, expectedErr
+				return nil, errExpected
 			},
 		},
 		&marshal.GogoProtoMarshalizer{},
@@ -1153,7 +1153,7 @@ func TestScheduledTxsExecution_RollBackToBlockShouldFail(t *testing.T) {
 	)
 
 	err := scheduledTxsExec.RollBackToBlock(rootHash)
-	assert.Equal(t, expectedErr, err)
+	assert.Equal(t, errExpected, err)
 }
 
 func TestScheduledTxsExecution_RollBackToBlockShouldWork(t *testing.T) {
@@ -1674,14 +1674,14 @@ func TestScheduledTxsExecution_setScheduledMiniBlockHashes(t *testing.T) {
 	hash := []byte("hash")
 
 	t.Run("fail to calculate hash", func(t *testing.T) {
-		expectedErr := errors.New("calculate hash err")
+		errExpected := errors.New("calculate hash err")
 		scheduledTxsExec, _ := NewScheduledTxsExecution(
 			&testscommon.TxProcessorMock{},
 			&testscommon.TransactionCoordinatorMock{},
 			genericMocks.NewStorerMock(),
 			&marshallerMock.MarshalizerStub{
 				MarshalCalled: func(obj interface{}) ([]byte, error) {
-					return nil, expectedErr
+					return nil, errExpected
 				},
 			},
 			&mock.HasherStub{},
@@ -1695,7 +1695,7 @@ func TestScheduledTxsExecution_setScheduledMiniBlockHashes(t *testing.T) {
 		scheduledTxsExec.AddScheduledMiniBlocks(miniBlocks)
 
 		err := scheduledTxsExec.setScheduledMiniBlockHashes()
-		assert.Equal(t, expectedErr, err)
+		assert.Equal(t, errExpected, err)
 	})
 
 	t.Run("should work", func(t *testing.T) {

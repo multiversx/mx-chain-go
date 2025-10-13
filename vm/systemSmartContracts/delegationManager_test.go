@@ -78,8 +78,8 @@ func TestNewDelegationManagerSystemSC_InvalidStakingSCAddressShouldErr(t *testin
 
 	dm, err := NewDelegationManagerSystemSC(args)
 	assert.Nil(t, dm)
-	expectedErr := fmt.Errorf("%w for staking sc address", vm.ErrInvalidAddress)
-	assert.Equal(t, expectedErr, err)
+	errExpected := fmt.Errorf("%w for staking sc address", vm.ErrInvalidAddress)
+	assert.Equal(t, errExpected, err)
 }
 
 func TestNewDelegationManagerSystemSC_InvalidValidatorSCAddressShouldErr(t *testing.T) {
@@ -90,8 +90,8 @@ func TestNewDelegationManagerSystemSC_InvalidValidatorSCAddressShouldErr(t *test
 
 	dm, err := NewDelegationManagerSystemSC(args)
 	assert.Nil(t, dm)
-	expectedErr := fmt.Errorf("%w for validator sc address", vm.ErrInvalidAddress)
-	assert.Equal(t, expectedErr, err)
+	errExpected := fmt.Errorf("%w for validator sc address", vm.ErrInvalidAddress)
+	assert.Equal(t, errExpected, err)
 }
 
 func TestNewDelegationManagerSystemSC_InvalidDelegationManagerSCAddressShouldErr(t *testing.T) {
@@ -102,8 +102,8 @@ func TestNewDelegationManagerSystemSC_InvalidDelegationManagerSCAddressShouldErr
 
 	dm, err := NewDelegationManagerSystemSC(args)
 	assert.Nil(t, dm)
-	expectedErr := fmt.Errorf("%w for delegation sc address", vm.ErrInvalidAddress)
-	assert.Equal(t, expectedErr, err)
+	errExpected := fmt.Errorf("%w for delegation sc address", vm.ErrInvalidAddress)
+	assert.Equal(t, errExpected, err)
 }
 
 func TestNewDelegationManagerSystemSC_InvalidConfigChangeAddressShouldErr(t *testing.T) {
@@ -114,8 +114,8 @@ func TestNewDelegationManagerSystemSC_InvalidConfigChangeAddressShouldErr(t *tes
 
 	dm, err := NewDelegationManagerSystemSC(args)
 	assert.Nil(t, dm)
-	expectedErr := fmt.Errorf("%w for config change address", vm.ErrInvalidAddress)
-	assert.Equal(t, expectedErr, err)
+	errExpected := fmt.Errorf("%w for config change address", vm.ErrInvalidAddress)
+	assert.Equal(t, errExpected, err)
 }
 
 func TestNewDelegationManagerSystemSC_NilMarshalizerShouldErr(t *testing.T) {
@@ -287,8 +287,8 @@ func TestDelegationManagerSystemSC_ExecuteCreateNewDelegationContractUserErrors(
 	delete(delegationsMap, string(vmInput.CallerAddr))
 	output = dm.Execute(vmInput)
 	assert.Equal(t, vmcommon.UserError, output)
-	expectedErr := fmt.Errorf("%w getDelegationManagementData", vm.ErrDataNotFoundUnderKey)
-	assert.True(t, strings.Contains(eei.returnMessage, expectedErr.Error()))
+	errExpected := fmt.Errorf("%w getDelegationManagementData", vm.ErrDataNotFoundUnderKey)
+	assert.True(t, strings.Contains(eei.returnMessage, errExpected.Error()))
 
 	_ = saveDelegationManagementData(dm.eei, dm.marshalizer, dm.delegationMgrSCAddress, &DelegationManagement{
 		MinDeposit: big.NewInt(10),
@@ -301,8 +301,8 @@ func TestDelegationManagerSystemSC_ExecuteCreateNewDelegationContractUserErrors(
 	vmInput.CallValue = big.NewInt(20)
 	output = dm.Execute(vmInput)
 	assert.Equal(t, vmcommon.UserError, output)
-	expectedErr = fmt.Errorf("%w getDelegationContractList", vm.ErrDataNotFoundUnderKey)
-	assert.True(t, strings.Contains(eei.returnMessage, expectedErr.Error()))
+	errExpected = fmt.Errorf("%w getDelegationContractList", vm.ErrDataNotFoundUnderKey)
+	assert.True(t, strings.Contains(eei.returnMessage, errExpected.Error()))
 }
 
 func createSystemSCContainer(eei *vmContext) vm.SystemSCContainer {
@@ -428,8 +428,8 @@ func TestDelegationManagerSystemSC_ExecuteGetAllContractAddresses(t *testing.T) 
 	vmInput.CallerAddr = dm.delegationMgrSCAddress
 	output = dm.Execute(vmInput)
 	assert.Equal(t, vmcommon.UserError, output)
-	expectedErr := fmt.Errorf("%w getDelegationContractList", vm.ErrDataNotFoundUnderKey)
-	assert.True(t, strings.Contains(eei.returnMessage, expectedErr.Error()))
+	errExpected := fmt.Errorf("%w getDelegationContractList", vm.ErrDataNotFoundUnderKey)
+	assert.True(t, strings.Contains(eei.returnMessage, errExpected.Error()))
 
 	_ = dm.saveDelegationContractList(&DelegationContractList{Addresses: [][]byte{addr1, addr2}})
 	output = dm.Execute(vmInput)
@@ -466,8 +466,8 @@ func TestDelegationManagerSystemSC_ExecuteChangeMinDepositUserErrors(t *testing.
 	vmInput.CallerAddr = configChangeAddress
 	output = dm.Execute(vmInput)
 	assert.Equal(t, vmcommon.UserError, output)
-	expectedErr := fmt.Errorf("%w getDelegationManagementData", vm.ErrDataNotFoundUnderKey)
-	assert.True(t, strings.Contains(eei.returnMessage, expectedErr.Error()))
+	errExpected := fmt.Errorf("%w getDelegationManagementData", vm.ErrDataNotFoundUnderKey)
+	assert.True(t, strings.Contains(eei.returnMessage, errExpected.Error()))
 }
 
 func TestDelegationManagerSystemSC_ExecuteChangeMinDeposit(t *testing.T) {
@@ -519,8 +519,8 @@ func TestDelegationManager_ChangeMinDelegationAmountInvalidCallerShouldError(t *
 	vmInput.CallerAddr = configChangeAddress
 	output = dm.Execute(vmInput)
 	assert.Equal(t, vmcommon.UserError, output)
-	expectedErr := fmt.Errorf("%w getDelegationManagementData", vm.ErrDataNotFoundUnderKey)
-	assert.True(t, strings.Contains(eei.returnMessage, expectedErr.Error()))
+	errExpected := fmt.Errorf("%w getDelegationManagementData", vm.ErrDataNotFoundUnderKey)
+	assert.True(t, strings.Contains(eei.returnMessage, errExpected.Error()))
 
 	_ = saveDelegationManagementData(dm.eei, dm.marshalizer, dm.delegationMgrSCAddress, &DelegationManagement{MinDelegationAmount: big.NewInt(25)})
 	vmInput.Arguments = [][]byte{{0}}
@@ -532,7 +532,7 @@ func TestDelegationManager_ChangeMinDelegationAmountInvalidCallerShouldError(t *
 func TestDelegationManager_ChangeMinDelegationMarhalizingFailsShouldError(t *testing.T) {
 	t.Parallel()
 
-	expectedErr := errors.New("expected error")
+	errExpected := errors.New("expected error")
 	args := createMockArgumentsForDelegationManager()
 	eei := createDefaultEei()
 	args.Eei = eei
@@ -546,7 +546,7 @@ func TestDelegationManager_ChangeMinDelegationMarhalizingFailsShouldError(t *tes
 	_ = saveDelegationManagementData(dm.eei, dm.marshalizer, dm.delegationMgrSCAddress, &DelegationManagement{MinDelegationAmount: big.NewInt(25)})
 	dm.marshalizer = &mock.MarshalizerStub{
 		MarshalCalled: func(obj interface{}) ([]byte, error) {
-			return nil, expectedErr
+			return nil, errExpected
 		},
 		UnmarshalCalled: func(obj interface{}, buff []byte) error {
 			return nil
@@ -554,7 +554,7 @@ func TestDelegationManager_ChangeMinDelegationMarhalizingFailsShouldError(t *tes
 	}
 	output := dm.Execute(vmInput)
 	assert.Equal(t, vmcommon.UserError, output)
-	assert.True(t, strings.Contains(eei.returnMessage, expectedErr.Error()))
+	assert.True(t, strings.Contains(eei.returnMessage, errExpected.Error()))
 }
 
 func TestDelegationManager_ChangeMinDelegationShouldWork(t *testing.T) {
@@ -633,12 +633,12 @@ func TestDelegationManager_GetContractConfigErrors(t *testing.T) {
 	assert.Equal(t, vmcommon.UserError, output)
 	assert.True(t, strings.Contains(eei.returnMessage, vm.ErrInvalidCaller.Error()))
 
-	//missing data
+	// missing data
 	vmInput.CallerAddr = vm.DelegationManagerSCAddress
 	output = dm.Execute(vmInput)
 	assert.Equal(t, vmcommon.UserError, output)
-	expectedErr := fmt.Errorf("%w getDelegationManagementData", vm.ErrDataNotFoundUnderKey)
-	assert.True(t, strings.Contains(eei.returnMessage, expectedErr.Error()))
+	errExpected := fmt.Errorf("%w getDelegationManagementData", vm.ErrDataNotFoundUnderKey)
+	assert.True(t, strings.Contains(eei.returnMessage, errExpected.Error()))
 }
 
 func TestDelegationManager_GetContractConfigShouldWork(t *testing.T) {
@@ -668,7 +668,7 @@ func TestDelegationManager_GetContractConfigShouldWork(t *testing.T) {
 	assert.Equal(t, vmcommon.Ok, output)
 
 	results := eei.CreateVMOutput()
-	//this test also verify the position in results.ReturnData
+	// this test also verify the position in results.ReturnData
 	assert.Equal(t, big.NewInt(int64(delegationManagement.NumOfContracts)).Bytes(), results.ReturnData[0])
 	assert.Equal(t, delegationManagement.LastAddress, results.ReturnData[1])
 	assert.Equal(t, big.NewInt(int64(delegationManagement.MinServiceFee)).Bytes(), results.ReturnData[2])

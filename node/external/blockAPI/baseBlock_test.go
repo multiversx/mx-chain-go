@@ -587,15 +587,15 @@ func TestBigInToString(t *testing.T) {
 func TestBaseBlock_getAndAttachTxsToMb_MiniblockTxBlockgetFromStore(t *testing.T) {
 	t.Parallel()
 
-	expectedErr := errors.New("expected error")
+	errExpected := errors.New("expected error")
 	baseAPIBlockProc := createBaseBlockProcessor()
 	baseAPIBlockProc.store = &storageMocks.ChainStorerStub{
 		GetStorerCalled: func(unitType dataRetriever.UnitType) (storage.Storer, error) {
-			return nil, expectedErr
+			return nil, errExpected
 		},
 	}
 
 	resp, err := baseAPIBlockProc.getFromStorer(dataRetriever.BlockHeaderUnit, nil)
 	require.Nil(t, resp)
-	require.Equal(t, expectedErr, err)
+	require.Equal(t, errExpected, err)
 }

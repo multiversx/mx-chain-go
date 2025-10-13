@@ -41,13 +41,13 @@ func TestPeerAuthenticationSenderFactory_createPeerAuthenticationSender(t *testi
 			GeneratePublicStub: func() crypto.PublicKey {
 				return &cryptoMocks.PublicKeyStub{
 					ToByteArrayStub: func() ([]byte, error) {
-						return nil, expectedErr
+						return nil, errExpected
 					},
 				}
 			},
 		}
 		peerAuthSender, err := createPeerAuthenticationSender(args)
-		assert.True(t, errors.Is(err, expectedErr))
+		assert.True(t, errors.Is(err, errExpected))
 		assert.True(t, check.IfNil(peerAuthSender))
 	})
 	t.Run("validator with keys managed should error", func(t *testing.T) {

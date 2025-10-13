@@ -13,7 +13,7 @@ import (
 	"github.com/stretchr/testify/require"
 )
 
-var cannotSendOnRouteErr = errors.New("cannot send on route")
+var errCannotSendOnRoute = errors.New("cannot send on route")
 
 var log = logger.GetOrCreate("test")
 
@@ -71,14 +71,14 @@ func TestWebsocketOutportDriverNodePart_SaveBlock(t *testing.T) {
 		args := getMockArgs()
 		args.SenderHost = &outportStubs.SenderHostStub{
 			SendCalled: func(_ []byte, _ string) error {
-				return cannotSendOnRouteErr
+				return errCannotSendOnRoute
 			},
 		}
 		o, err := NewHostDriver(args)
 		require.NoError(t, err)
 
 		err = o.SaveBlock(&outport.OutportBlock{})
-		require.True(t, errors.Is(err, cannotSendOnRouteErr))
+		require.True(t, errors.Is(err, errCannotSendOnRoute))
 	})
 
 	t.Run("SaveBlock - should work", func(t *testing.T) {
@@ -104,14 +104,14 @@ func TestWebsocketOutportDriverNodePart_FinalizedBlock(t *testing.T) {
 		args := getMockArgs()
 		args.SenderHost = &outportStubs.SenderHostStub{
 			SendCalled: func(_ []byte, _ string) error {
-				return cannotSendOnRouteErr
+				return errCannotSendOnRoute
 			},
 		}
 		o, err := NewHostDriver(args)
 		require.NoError(t, err)
 
 		err = o.FinalizedBlock(&outport.FinalizedBlock{HeaderHash: []byte("header hash")})
-		require.True(t, errors.Is(err, cannotSendOnRouteErr))
+		require.True(t, errors.Is(err, errCannotSendOnRoute))
 	})
 
 	t.Run("Finalized block - should work", func(t *testing.T) {
@@ -136,14 +136,14 @@ func TestWebsocketOutportDriverNodePart_RevertIndexedBlock(t *testing.T) {
 		args := getMockArgs()
 		args.SenderHost = &outportStubs.SenderHostStub{
 			SendCalled: func(_ []byte, _ string) error {
-				return cannotSendOnRouteErr
+				return errCannotSendOnRoute
 			},
 		}
 		o, err := NewHostDriver(args)
 		require.NoError(t, err)
 
 		err = o.RevertIndexedBlock(nil)
-		require.True(t, errors.Is(err, cannotSendOnRouteErr))
+		require.True(t, errors.Is(err, errCannotSendOnRoute))
 	})
 
 	t.Run("RevertIndexedBlock block - should work", func(t *testing.T) {
@@ -168,14 +168,14 @@ func TestWebsocketOutportDriverNodePart_SaveAccounts(t *testing.T) {
 		args := getMockArgs()
 		args.SenderHost = &outportStubs.SenderHostStub{
 			SendCalled: func(_ []byte, _ string) error {
-				return cannotSendOnRouteErr
+				return errCannotSendOnRoute
 			},
 		}
 		o, err := NewHostDriver(args)
 		require.NoError(t, err)
 
 		err = o.SaveAccounts(nil)
-		require.True(t, errors.Is(err, cannotSendOnRouteErr))
+		require.True(t, errors.Is(err, errCannotSendOnRoute))
 	})
 
 	t.Run("SaveAccounts block - should work", func(t *testing.T) {
@@ -200,14 +200,14 @@ func TestWebsocketOutportDriverNodePart_SaveRoundsInfo(t *testing.T) {
 		args := getMockArgs()
 		args.SenderHost = &outportStubs.SenderHostStub{
 			SendCalled: func(_ []byte, _ string) error {
-				return cannotSendOnRouteErr
+				return errCannotSendOnRoute
 			},
 		}
 		o, err := NewHostDriver(args)
 		require.NoError(t, err)
 
 		err = o.SaveRoundsInfo(nil)
-		require.True(t, errors.Is(err, cannotSendOnRouteErr))
+		require.True(t, errors.Is(err, errCannotSendOnRoute))
 	})
 
 	t.Run("SaveRoundsInfo block - should work", func(t *testing.T) {
@@ -232,14 +232,14 @@ func TestWebsocketOutportDriverNodePart_SaveValidatorsPubKeys(t *testing.T) {
 		args := getMockArgs()
 		args.SenderHost = &outportStubs.SenderHostStub{
 			SendCalled: func(_ []byte, _ string) error {
-				return cannotSendOnRouteErr
+				return errCannotSendOnRoute
 			},
 		}
 		o, err := NewHostDriver(args)
 		require.NoError(t, err)
 
 		err = o.SaveValidatorsPubKeys(nil)
-		require.True(t, errors.Is(err, cannotSendOnRouteErr))
+		require.True(t, errors.Is(err, errCannotSendOnRoute))
 	})
 
 	t.Run("SaveValidatorsPubKeys block - should work", func(t *testing.T) {
@@ -264,14 +264,14 @@ func TestWebsocketOutportDriverNodePart_SaveValidatorsRating(t *testing.T) {
 		args := getMockArgs()
 		args.SenderHost = &outportStubs.SenderHostStub{
 			SendCalled: func(_ []byte, _ string) error {
-				return cannotSendOnRouteErr
+				return errCannotSendOnRoute
 			},
 		}
 		o, err := NewHostDriver(args)
 		require.NoError(t, err)
 
 		err = o.SaveValidatorsRating(nil)
-		require.True(t, errors.Is(err, cannotSendOnRouteErr))
+		require.True(t, errors.Is(err, errCannotSendOnRoute))
 	})
 
 	t.Run("SaveValidatorsRating block - should work", func(t *testing.T) {

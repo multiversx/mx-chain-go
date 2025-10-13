@@ -136,7 +136,7 @@ func (mdc *managedDataComponents) Datapool() dataRetriever.PoolsHolder {
 		return nil
 	}
 
-	return mdc.dataComponents.datapool
+	return mdc.datapool
 }
 
 // MiniBlocksProvider returns the MiniBlockProvider
@@ -148,7 +148,7 @@ func (mdc *managedDataComponents) MiniBlocksProvider() factory.MiniBlockProvider
 		return nil
 	}
 
-	return mdc.dataComponents.miniBlocksProvider
+	return mdc.miniBlocksProvider
 }
 
 // Clone creates a shallow clone of a managedDataComponents

@@ -484,7 +484,7 @@ func Test_MiniBlocksBuilderAccountGasForTxComputeGasProvidedWithErr(t *testing.T
 	t.Parallel()
 
 	args := createDefaultMiniBlockBuilderArgs()
-	expectedErr := errors.New("expectedError")
+	errExpected := errors.New("expectedError")
 	args.gasTracker = gasTracker{
 		shardCoordinator: args.gasTracker.shardCoordinator,
 		economicsFee:     args.gasTracker.economicsFee,
@@ -493,7 +493,7 @@ func Test_MiniBlocksBuilderAccountGasForTxComputeGasProvidedWithErr(t *testing.T
 			RemoveGasRefundedCalled:  func(hashes [][]byte) {},
 			RemoveGasPenalizedCalled: func(hashes [][]byte) {},
 			ComputeGasProvidedByTxCalled: func(txSenderShardId uint32, txReceiverSharedId uint32, txHandler data.TransactionHandler) (uint64, uint64, error) {
-				return 0, 0, expectedErr
+				return 0, 0, errExpected
 			},
 		},
 	}
@@ -508,7 +508,7 @@ func Test_MiniBlocksBuilderAccountGasForTxComputeGasProvidedWithErr(t *testing.T
 	mbb.gasConsumedInReceiverShard[wtx.ReceiverShardID] = expectedGasConsumedInReceiverShard
 
 	_, err := mbb.accountGasForTx(tx, wtx)
-	require.Equal(t, expectedErr, err)
+	require.Equal(t, errExpected, err)
 	require.Equal(t, expectedGasConsumedInReceiverShard, mbb.gasConsumedInReceiverShard[wtx.ReceiverShardID])
 }
 
@@ -785,7 +785,7 @@ func Test_MiniBlocksBuilderCheckAddTransactionGasAccountingError(t *testing.T) {
 	wtx := createWrappedTransaction(txInitial, senderShardID, receiverShardID)
 
 	args := createDefaultMiniBlockBuilderArgs()
-	expectedErr := errors.New("expectedError")
+	errExpected := errors.New("expectedError")
 	args.gasTracker = gasTracker{
 		shardCoordinator: args.gasTracker.shardCoordinator,
 		economicsFee:     args.gasTracker.economicsFee,
@@ -793,7 +793,7 @@ func Test_MiniBlocksBuilderCheckAddTransactionGasAccountingError(t *testing.T) {
 			RemoveGasProvidedCalled: func(hashes [][]byte) {},
 			RemoveGasRefundedCalled: func(hashes [][]byte) {},
 			ComputeGasProvidedByTxCalled: func(txSenderShardId uint32, txReceiverSharedId uint32, txHandler data.TransactionHandler) (uint64, uint64, error) {
-				return 0, 0, expectedErr
+				return 0, 0, errExpected
 			},
 		},
 	}

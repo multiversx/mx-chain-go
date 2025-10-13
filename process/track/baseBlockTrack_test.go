@@ -2388,11 +2388,11 @@ func TestBaseBlockTrack_CheckBlockAgainstFinalCurrentShardGetFinalFailsShouldErr
 	crtShard := uint32(0)
 	bbt := track.NewBaseBlockTrack()
 	bbt.SetShardCoordinator(mock.NewMultiShardsCoordinatorMock(crtShard))
-	expectedErr := errors.New("expected err")
+	errExpected := errors.New("expected err")
 	bbt.SetSelfNotarizer(
 		&mock.BlockNotarizerHandlerMock{
 			GetFirstNotarizedHeaderCalled: func(shardID uint32) (handler data.HeaderHandler, bytes []byte, err error) {
-				return nil, nil, expectedErr
+				return nil, nil, errExpected
 			},
 		},
 	)
@@ -2401,7 +2401,7 @@ func TestBaseBlockTrack_CheckBlockAgainstFinalCurrentShardGetFinalFailsShouldErr
 	}
 	err := bbt.CheckBlockAgainstFinal(hdr)
 
-	assert.True(t, errors.Is(err, expectedErr))
+	assert.True(t, errors.Is(err, errExpected))
 }
 
 func TestBaseBlockTrack_CheckBlockAgainstFinalCrossShardShardGetFinalFailsShouldErr(t *testing.T) {
@@ -2410,11 +2410,11 @@ func TestBaseBlockTrack_CheckBlockAgainstFinalCrossShardShardGetFinalFailsShould
 	crtShard := uint32(0)
 	bbt := track.NewBaseBlockTrack()
 	bbt.SetShardCoordinator(mock.NewMultiShardsCoordinatorMock(crtShard))
-	expectedErr := errors.New("expected err")
+	errExpected := errors.New("expected err")
 	bbt.SetCrossNotarizer(
 		&mock.BlockNotarizerHandlerMock{
 			GetFirstNotarizedHeaderCalled: func(shardID uint32) (handler data.HeaderHandler, bytes []byte, err error) {
-				return nil, nil, expectedErr
+				return nil, nil, errExpected
 			},
 		},
 	)
@@ -2423,7 +2423,7 @@ func TestBaseBlockTrack_CheckBlockAgainstFinalCrossShardShardGetFinalFailsShould
 	}
 	err := bbt.CheckBlockAgainstFinal(hdr)
 
-	assert.True(t, errors.Is(err, expectedErr))
+	assert.True(t, errors.Is(err, errExpected))
 }
 
 func TestBaseBlockTrack_CheckBlockAgainstFinalLowerRoundInBlockShouldErr(t *testing.T) {

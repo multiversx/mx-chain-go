@@ -28,8 +28,6 @@ import (
 	"github.com/multiversx/mx-chain-go/testscommon/statusHandler"
 )
 
-var expErr = fmt.Errorf("expected error")
-
 func defaultSubroundStartRoundFromSubround(sr *spos.Subround) (v2.SubroundStartRound, error) {
 	startRound, err := v2.NewSubroundStartRound(
 		sr,
@@ -386,7 +384,7 @@ func TestSubroundStartRound_InitCurrentRoundShouldReturnFalseWhenGenerateNextCon
 	validatorGroupSelector := &shardingMocks.NodesCoordinatorMock{}
 
 	validatorGroupSelector.ComputeValidatorsGroupCalled = func(bytes []byte, round uint64, shardId uint32, epoch uint32) (nodesCoordinator.Validator, []nodesCoordinator.Validator, error) {
-		return nil, nil, expErr
+		return nil, nil, errExpected
 	}
 	container := consensus.InitConsensusCore()
 
@@ -830,7 +828,7 @@ func TestSubroundStartRound_InitCurrentRoundShouldReturnFalseWhenResetErr(t *tes
 
 	signingHandlerMock := &consensus.SigningHandlerStub{
 		ResetCalled: func(pubKeys []string) error {
-			return expErr
+			return errExpected
 		},
 	}
 
@@ -867,7 +865,7 @@ func TestSubroundStartRound_IndexRoundIfNeededFailShardIdForEpoch(t *testing.T) 
 	container.SetNodesCoordinator(
 		&shardingMocks.NodesCoordinatorStub{
 			ShardIdForEpochCalled: func(epoch uint32) (uint32, error) {
-				return 0, expErr
+				return 0, errExpected
 			},
 		})
 
@@ -912,7 +910,7 @@ func TestSubroundStartRound_IndexRoundIfNeededGetValidatorsIndexesShouldNotBeCal
 		&shardingMocks.NodesCoordinatorStub{
 			GetValidatorsIndexesCalled: func(pubKeys []string, epoch uint32) ([]uint64, error) {
 				require.Fail(t, "SaveRoundsInfo should not be called")
-				return nil, expErr
+				return nil, errExpected
 			},
 		})
 
@@ -1104,7 +1102,7 @@ func TestSubroundStartRound_GenerateNextConsensusGroupShouldReturnErr(t *testing
 		shardId uint32,
 		epoch uint32,
 	) (nodesCoordinator.Validator, []nodesCoordinator.Validator, error) {
-		return nil, nil, expErr
+		return nil, nil, errExpected
 	}
 	container := consensus.InitConsensusCore()
 	container.SetNodesCoordinator(validatorGroupSelector)
@@ -1113,5 +1111,5 @@ func TestSubroundStartRound_GenerateNextConsensusGroupShouldReturnErr(t *testing
 
 	err2 := srStartRound.GenerateNextConsensusGroup(0)
 
-	assert.Equal(t, expErr, err2)
+	assert.Equal(t, errExpected, err2)
 }

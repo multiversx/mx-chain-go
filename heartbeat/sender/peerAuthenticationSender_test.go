@@ -236,7 +236,7 @@ func TestPeerAuthenticationSender_execute(t *testing.T) {
 		argsBase := createMockBaseArgs()
 		argsBase.mainMessenger = &p2pmocks.MessengerStub{
 			SignCalled: func(payload []byte) ([]byte, error) {
-				return nil, expectedErr
+				return nil, errExpected
 			},
 			BroadcastCalled: func(topic string, buff []byte) {
 				assert.Fail(t, "should have not called Messenger.BroadcastCalled")
@@ -247,7 +247,7 @@ func TestPeerAuthenticationSender_execute(t *testing.T) {
 		senderInstance, _ := newPeerAuthenticationSender(args)
 
 		err, isHardforkTriggered := senderInstance.execute()
-		assert.Equal(t, expectedErr, err)
+		assert.Equal(t, errExpected, err)
 		assert.False(t, isHardforkTriggered)
 	})
 	t.Run("marshaller fails in first time, should return error", func(t *testing.T) {
@@ -261,7 +261,7 @@ func TestPeerAuthenticationSender_execute(t *testing.T) {
 		}
 		argsBase.marshaller = &marshallerMock.MarshalizerStub{
 			MarshalCalled: func(obj interface{}) ([]byte, error) {
-				return nil, expectedErr
+				return nil, errExpected
 			},
 		}
 
@@ -269,7 +269,7 @@ func TestPeerAuthenticationSender_execute(t *testing.T) {
 		senderInstance, _ := newPeerAuthenticationSender(args)
 
 		err, isHardforkTriggered := senderInstance.execute()
-		assert.Equal(t, expectedErr, err)
+		assert.Equal(t, errExpected, err)
 		assert.False(t, isHardforkTriggered)
 	})
 	t.Run("get peer signature method fails, should return error", func(t *testing.T) {
@@ -284,13 +284,13 @@ func TestPeerAuthenticationSender_execute(t *testing.T) {
 		args := createMockPeerAuthenticationSenderArgs(baseArgs)
 		args.peerSignatureHandler = &mock.PeerSignatureHandlerStub{
 			GetPeerSignatureCalled: func(key crypto.PrivateKey, pid []byte) ([]byte, error) {
-				return nil, expectedErr
+				return nil, errExpected
 			},
 		}
 		senderInstance, _ := newPeerAuthenticationSender(args)
 
 		err, isHardforkTriggered := senderInstance.execute()
-		assert.Equal(t, expectedErr, err)
+		assert.Equal(t, errExpected, err)
 		assert.False(t, isHardforkTriggered)
 	})
 	t.Run("marshaller fails for the second time, should return error", func(t *testing.T) {
@@ -309,7 +309,7 @@ func TestPeerAuthenticationSender_execute(t *testing.T) {
 				if numCalls < 2 {
 					return make([]byte, 0), nil
 				}
-				return nil, expectedErr
+				return nil, errExpected
 			},
 		}
 
@@ -317,7 +317,7 @@ func TestPeerAuthenticationSender_execute(t *testing.T) {
 		senderInstance, _ := newPeerAuthenticationSender(args)
 
 		err, isHardforkTriggered := senderInstance.execute()
-		assert.Equal(t, expectedErr, err)
+		assert.Equal(t, errExpected, err)
 		assert.False(t, isHardforkTriggered)
 	})
 	t.Run("should work with stubs", func(t *testing.T) {

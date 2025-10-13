@@ -102,13 +102,16 @@ func TestBroadcastDebug_ProcessMultipleMessageTypes(t *testing.T) {
 
 			id.Process(mockData, mockMessage, fromPeerID)
 
-			hexHash := "74785f686173685f31" // hex encoded "tx_hash_1"
-			if tc.messageType == "intercepted miniblock" {
+			var hexHash string
+			switch tc.messageType {
+			case "intercepted miniblock":
 				hexHash = "6d696e69626c6f636b5f686173685f31" // hex encoded "miniblock_hash_1"
-			} else if tc.messageType == "intercepted header" {
+			case "intercepted header":
 				hexHash = "6865616465725f686173685f31" // hex encoded "header_hash_1"
-			} else if tc.messageType == "intercepted heartbeat" {
+			case "intercepted heartbeat":
 				hexHash = "6865617274626561745f686173685f31" // hex encoded "heartbeat_hash_1"
+			default:
+				hexHash = "74785f686173685f31" // hex encoded "tx_hash_1"
 			}
 
 			assert.Contains(t, id.receivedBroadcast, tc.messageType)

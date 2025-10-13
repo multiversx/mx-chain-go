@@ -118,31 +118,31 @@ func TestNewTotalStakedValueProcessor(t *testing.T) {
 func TestTotalStakedValueProcessor_GetTotalStakedValue_CannotGetAccount(t *testing.T) {
 	t.Parallel()
 
-	expectedErr := errors.New("expected error")
+	errExpected := errors.New("expected error")
 	arg := createMockArgs()
 	arg.Accounts.AccountsAdapter = &stateMock.AccountsStub{
 		RecreateTrieCalled: func(rootHash common.RootHashHolder) error {
 			return nil
 		},
 		GetExistingAccountCalled: func(addressContainer []byte) (vmcommon.AccountHandler, error) {
-			return nil, expectedErr
+			return nil, errExpected
 		},
 	}
 	totalStakedProc, _ := NewTotalStakedValueProcessor(arg)
 
 	resTotalStaked, err := totalStakedProc.GetTotalStakedValue(context.Background())
 	require.Nil(t, resTotalStaked)
-	require.Equal(t, expectedErr, err)
+	require.Equal(t, errExpected, err)
 }
 
 func TestTotalStakedValueProcessor_GetTotalStakedValueAccountsAdapterErrors(t *testing.T) {
 	t.Parallel()
 
-	expectedErr := errors.New("expected error")
+	errExpected := errors.New("expected error")
 	arg := createMockArgs()
 	arg.Accounts.AccountsAdapter = &stateMock.AccountsStub{
 		GetExistingAccountCalled: func(addressContainer []byte) (vmcommon.AccountHandler, error) {
-			return nil, expectedErr
+			return nil, errExpected
 		},
 	}
 	totalStakedProc, _ := NewTotalStakedValueProcessor(arg)
@@ -151,7 +151,7 @@ func TestTotalStakedValueProcessor_GetTotalStakedValueAccountsAdapterErrors(t *t
 
 	resTotalStaked, err := totalStakedProc.GetTotalStakedValue(context.Background())
 	require.Nil(t, resTotalStaked)
-	require.Equal(t, expectedErr, err)
+	require.Equal(t, errExpected, err)
 }
 
 func TestTotalStakedValueProcessor_GetTotalStakedValue_CannotCastAccount(t *testing.T) {
@@ -176,10 +176,10 @@ func TestTotalStakedValueProcessor_GetTotalStakedValue_CannotCastAccount(t *test
 func TestTotalStakedValueProcessor_GetTotalStakedValue_CannotGetRootHash(t *testing.T) {
 	t.Parallel()
 
-	expectedErr := errors.New("expected error")
+	errExpected := errors.New("expected error")
 	tr := &trieMock.TrieStub{
 		RootCalled: func() ([]byte, error) {
-			return nil, expectedErr
+			return nil, errExpected
 		},
 	}
 	acc := getAccountWithDataTrie(tr)
@@ -197,7 +197,7 @@ func TestTotalStakedValueProcessor_GetTotalStakedValue_CannotGetRootHash(t *test
 
 	resTotalStaked, err := totalStakedProc.GetTotalStakedValue(context.Background())
 	require.Nil(t, resTotalStaked)
-	require.Equal(t, expectedErr, err)
+	require.Equal(t, errExpected, err)
 }
 
 func TestTotalStakedValueProcessor_GetTotalStakedValue_ContextShouldTimeout(t *testing.T) {
@@ -238,11 +238,11 @@ func TestTotalStakedValueProcessor_GetTotalStakedValue_ContextShouldTimeout(t *t
 func TestTotalStakedValueProcessor_GetTotalStakedValue_CannotGetAllLeaves(t *testing.T) {
 	t.Parallel()
 
-	expectedErr := errors.New("expected error")
+	errExpected := errors.New("expected error")
 
 	tr := &trieMock.TrieStub{
 		GetAllLeavesOnChannelCalled: func(_ *common.TrieIteratorChannels, _ context.Context, _ []byte, _ common.KeyBuilder, _ common.TrieLeafParser) error {
-			return expectedErr
+			return errExpected
 		},
 		RootCalled: func() ([]byte, error) {
 			return nil, nil
@@ -264,7 +264,7 @@ func TestTotalStakedValueProcessor_GetTotalStakedValue_CannotGetAllLeaves(t *tes
 
 	resTotalStaked, err := totalStakedProc.GetTotalStakedValue(context.Background())
 	require.Nil(t, resTotalStaked)
-	require.Equal(t, expectedErr, err)
+	require.Equal(t, errExpected, err)
 }
 
 func TestTotalStakedValueProcessor_GetTotalStakedValue(t *testing.T) {
@@ -321,7 +321,7 @@ func TestTotalStakedValueProcessor_GetTotalStakedValue(t *testing.T) {
 
 	acc := getAccountWithDataTrie(tr)
 
-	expectedErr := errors.New("expected error")
+	errExpected := errors.New("expected error")
 	arg := createMockArgs()
 	arg.Accounts.AccountsAdapter = &stateMock.AccountsStub{
 		GetExistingAccountCalled: func(addressContainer []byte) (vmcommon.AccountHandler, error) {
@@ -357,7 +357,7 @@ func TestTotalStakedValueProcessor_GetTotalStakedValue(t *testing.T) {
 				}, nil, nil
 
 			default:
-				return nil, nil, expectedErr
+				return nil, nil, errExpected
 			}
 		},
 	}

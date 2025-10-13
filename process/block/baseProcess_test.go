@@ -62,7 +62,7 @@ import (
 	storageStubs "github.com/multiversx/mx-chain-go/testscommon/storage"
 )
 
-var expectedErr = errors.New("expected error")
+var errExpected = errors.New("expected error")
 
 const (
 	busyIdentifier = "busy"
@@ -373,7 +373,7 @@ func TestCheckProcessorNilParameters(t *testing.T) {
 
 	tests := []struct {
 		args        func() blproc.ArgBaseProcessor
-		expectedErr error
+		errExpected error
 	}{
 		{
 			args: func() blproc.ArgBaseProcessor {
@@ -381,19 +381,19 @@ func TestCheckProcessorNilParameters(t *testing.T) {
 				args.AccountsDB[state.UserAccountsState] = nil
 				return args
 			},
-			expectedErr: process.ErrNilAccountsAdapter,
+			errExpected: process.ErrNilAccountsAdapter,
 		},
 		{
 			args: func() blproc.ArgBaseProcessor {
 				return createArgBaseProcessor(coreComponents, nil, bootstrapComponents, statusComponents)
 			},
-			expectedErr: process.ErrNilDataComponentsHolder,
+			errExpected: process.ErrNilDataComponentsHolder,
 		},
 		{
 			args: func() blproc.ArgBaseProcessor {
 				return createArgBaseProcessor(nil, dataComponents, bootstrapComponents, statusComponents)
 			},
-			expectedErr: process.ErrNilCoreComponentsHolder,
+			errExpected: process.ErrNilCoreComponentsHolder,
 		},
 		{
 			args: func() blproc.ArgBaseProcessor {
@@ -401,13 +401,13 @@ func TestCheckProcessorNilParameters(t *testing.T) {
 				args.BootstrapComponents = nil
 				return args
 			},
-			expectedErr: process.ErrNilBootstrapComponentsHolder,
+			errExpected: process.ErrNilBootstrapComponentsHolder,
 		},
 		{
 			args: func() blproc.ArgBaseProcessor {
 				return createArgBaseProcessor(coreComponents, dataComponents, bootstrapComponents, nil)
 			},
-			expectedErr: process.ErrNilStatusComponentsHolder,
+			errExpected: process.ErrNilStatusComponentsHolder,
 		},
 		{
 			args: func() blproc.ArgBaseProcessor {
@@ -415,7 +415,7 @@ func TestCheckProcessorNilParameters(t *testing.T) {
 				args.ForkDetector = nil
 				return args
 			},
-			expectedErr: process.ErrNilForkDetector,
+			errExpected: process.ErrNilForkDetector,
 		},
 		{
 			args: func() blproc.ArgBaseProcessor {
@@ -424,7 +424,7 @@ func TestCheckProcessorNilParameters(t *testing.T) {
 				args := createArgBaseProcessor(&coreCompCopy, dataComponents, bootstrapComponents, statusComponents)
 				return args
 			},
-			expectedErr: process.ErrNilHasher,
+			errExpected: process.ErrNilHasher,
 		},
 		{
 			args: func() blproc.ArgBaseProcessor {
@@ -433,7 +433,7 @@ func TestCheckProcessorNilParameters(t *testing.T) {
 				args := createArgBaseProcessor(&coreCompCopy, dataComponents, bootstrapComponents, statusComponents)
 				return args
 			},
-			expectedErr: process.ErrNilMarshalizer,
+			errExpected: process.ErrNilMarshalizer,
 		},
 		{
 			args: func() blproc.ArgBaseProcessor {
@@ -442,7 +442,7 @@ func TestCheckProcessorNilParameters(t *testing.T) {
 				args := createArgBaseProcessor(coreComponents, &dataCompCopy, bootstrapComponents, statusComponents)
 				return args
 			},
-			expectedErr: process.ErrNilStorage,
+			errExpected: process.ErrNilStorage,
 		},
 		{
 			args: func() blproc.ArgBaseProcessor {
@@ -450,7 +450,7 @@ func TestCheckProcessorNilParameters(t *testing.T) {
 				args.BootstrapComponents = &mainFactoryMocks.BootstrapComponentsStub{ShCoordinator: nil}
 				return args
 			},
-			expectedErr: process.ErrNilShardCoordinator,
+			errExpected: process.ErrNilShardCoordinator,
 		},
 		{
 			args: func() blproc.ArgBaseProcessor {
@@ -458,7 +458,7 @@ func TestCheckProcessorNilParameters(t *testing.T) {
 				args.NodesCoordinator = nil
 				return args
 			},
-			expectedErr: process.ErrNilNodesCoordinator,
+			errExpected: process.ErrNilNodesCoordinator,
 		},
 		{
 			args: func() blproc.ArgBaseProcessor {
@@ -466,7 +466,7 @@ func TestCheckProcessorNilParameters(t *testing.T) {
 				coreCompCopy.UInt64ByteSliceConv = nil
 				return createArgBaseProcessor(&coreCompCopy, dataComponents, bootstrapComponents, statusComponents)
 			},
-			expectedErr: process.ErrNilUint64Converter,
+			errExpected: process.ErrNilUint64Converter,
 		},
 		{
 			args: func() blproc.ArgBaseProcessor {
@@ -474,7 +474,7 @@ func TestCheckProcessorNilParameters(t *testing.T) {
 				args.RequestHandler = nil
 				return args
 			},
-			expectedErr: process.ErrNilRequestHandler,
+			errExpected: process.ErrNilRequestHandler,
 		},
 		{
 			args: func() blproc.ArgBaseProcessor {
@@ -482,7 +482,7 @@ func TestCheckProcessorNilParameters(t *testing.T) {
 				args.EpochStartTrigger = nil
 				return args
 			},
-			expectedErr: process.ErrNilEpochStartTrigger,
+			errExpected: process.ErrNilEpochStartTrigger,
 		},
 		{
 			args: func() blproc.ArgBaseProcessor {
@@ -490,7 +490,7 @@ func TestCheckProcessorNilParameters(t *testing.T) {
 				coreCompCopy.RoundNotifierField = nil
 				return createArgBaseProcessor(&coreCompCopy, dataComponents, bootstrapComponents, statusComponents)
 			},
-			expectedErr: process.ErrNilRoundNotifier,
+			errExpected: process.ErrNilRoundNotifier,
 		},
 		{
 			args: func() blproc.ArgBaseProcessor {
@@ -498,7 +498,7 @@ func TestCheckProcessorNilParameters(t *testing.T) {
 				coreCompCopy.RoundField = nil
 				return createArgBaseProcessor(&coreCompCopy, dataComponents, bootstrapComponents, statusComponents)
 			},
-			expectedErr: process.ErrNilRoundHandler,
+			errExpected: process.ErrNilRoundHandler,
 		},
 		{
 			args: func() blproc.ArgBaseProcessor {
@@ -506,7 +506,7 @@ func TestCheckProcessorNilParameters(t *testing.T) {
 				args.BootStorer = nil
 				return args
 			},
-			expectedErr: process.ErrNilStorage,
+			errExpected: process.ErrNilStorage,
 		},
 		{
 			args: func() blproc.ArgBaseProcessor {
@@ -514,7 +514,7 @@ func TestCheckProcessorNilParameters(t *testing.T) {
 				args.BlockChainHook = nil
 				return args
 			},
-			expectedErr: process.ErrNilBlockChainHook,
+			errExpected: process.ErrNilBlockChainHook,
 		},
 		{
 			args: func() blproc.ArgBaseProcessor {
@@ -522,7 +522,7 @@ func TestCheckProcessorNilParameters(t *testing.T) {
 				args.TxCoordinator = nil
 				return args
 			},
-			expectedErr: process.ErrNilTransactionCoordinator,
+			errExpected: process.ErrNilTransactionCoordinator,
 		},
 		{
 			args: func() blproc.ArgBaseProcessor {
@@ -530,7 +530,7 @@ func TestCheckProcessorNilParameters(t *testing.T) {
 				args.HeaderValidator = nil
 				return args
 			},
-			expectedErr: process.ErrNilHeaderValidator,
+			errExpected: process.ErrNilHeaderValidator,
 		},
 		{
 			args: func() blproc.ArgBaseProcessor {
@@ -538,7 +538,7 @@ func TestCheckProcessorNilParameters(t *testing.T) {
 				args.BlockTracker = nil
 				return args
 			},
-			expectedErr: process.ErrNilBlockTracker,
+			errExpected: process.ErrNilBlockTracker,
 		},
 		{
 			args: func() blproc.ArgBaseProcessor {
@@ -546,7 +546,7 @@ func TestCheckProcessorNilParameters(t *testing.T) {
 				args.FeeHandler = nil
 				return args
 			},
-			expectedErr: process.ErrNilEconomicsFeeHandler,
+			errExpected: process.ErrNilEconomicsFeeHandler,
 		},
 		{
 			args: func() blproc.ArgBaseProcessor {
@@ -557,7 +557,7 @@ func TestCheckProcessorNilParameters(t *testing.T) {
 				}
 				return createArgBaseProcessor(coreComponents, dataComp, bootstrapComponents, statusComponents)
 			},
-			expectedErr: process.ErrNilBlockChain,
+			errExpected: process.ErrNilBlockChain,
 		},
 		{
 			args: func() blproc.ArgBaseProcessor {
@@ -565,7 +565,7 @@ func TestCheckProcessorNilParameters(t *testing.T) {
 				args.BlockSizeThrottler = nil
 				return args
 			},
-			expectedErr: process.ErrNilBlockSizeThrottler,
+			errExpected: process.ErrNilBlockSizeThrottler,
 		},
 		{
 			args: func() blproc.ArgBaseProcessor {
@@ -573,7 +573,7 @@ func TestCheckProcessorNilParameters(t *testing.T) {
 				statusCompCopy.Outport = nil
 				return createArgBaseProcessor(coreComponents, dataComponents, bootstrapComponents, &statusCompCopy)
 			},
-			expectedErr: process.ErrNilOutportHandler,
+			errExpected: process.ErrNilOutportHandler,
 		},
 		{
 			args: func() blproc.ArgBaseProcessor {
@@ -581,7 +581,7 @@ func TestCheckProcessorNilParameters(t *testing.T) {
 				args.HistoryRepository = nil
 				return args
 			},
-			expectedErr: process.ErrNilHistoryRepository,
+			errExpected: process.ErrNilHistoryRepository,
 		},
 		{
 			args: func() blproc.ArgBaseProcessor {
@@ -589,7 +589,7 @@ func TestCheckProcessorNilParameters(t *testing.T) {
 				bootStrapCopy.HdrIntegrityVerifier = nil
 				return createArgBaseProcessor(coreComponents, dataComponents, &bootStrapCopy, statusComponents)
 			},
-			expectedErr: process.ErrNilHeaderIntegrityVerifier,
+			errExpected: process.ErrNilHeaderIntegrityVerifier,
 		},
 		{
 			args: func() blproc.ArgBaseProcessor {
@@ -598,7 +598,7 @@ func TestCheckProcessorNilParameters(t *testing.T) {
 				args := createArgBaseProcessor(&coreCompCopy, dataComponents, bootstrapComponents, statusComponents)
 				return args
 			},
-			expectedErr: process.ErrNilEnableRoundsHandler,
+			errExpected: process.ErrNilEnableRoundsHandler,
 		},
 		{
 			args: func() blproc.ArgBaseProcessor {
@@ -606,7 +606,7 @@ func TestCheckProcessorNilParameters(t *testing.T) {
 				args.StatusCoreComponents = nil
 				return args
 			},
-			expectedErr: process.ErrNilStatusCoreComponentsHolder,
+			errExpected: process.ErrNilStatusCoreComponentsHolder,
 		},
 		{
 			args: func() blproc.ArgBaseProcessor {
@@ -616,7 +616,7 @@ func TestCheckProcessorNilParameters(t *testing.T) {
 				}
 				return args
 			},
-			expectedErr: process.ErrNilAppStatusHandler,
+			errExpected: process.ErrNilAppStatusHandler,
 		},
 		{
 			args: func() blproc.ArgBaseProcessor {
@@ -624,7 +624,7 @@ func TestCheckProcessorNilParameters(t *testing.T) {
 				coreCompCopy.EnableEpochsHandlerField = nil
 				return createArgBaseProcessor(&coreCompCopy, dataComponents, bootstrapComponents, statusComponents)
 			},
-			expectedErr: process.ErrNilEnableEpochsHandler,
+			errExpected: process.ErrNilEnableEpochsHandler,
 		},
 		{
 			args: func() blproc.ArgBaseProcessor {
@@ -632,7 +632,7 @@ func TestCheckProcessorNilParameters(t *testing.T) {
 				coreCompCopy.EpochNotifierField = nil
 				return createArgBaseProcessor(&coreCompCopy, dataComponents, bootstrapComponents, statusComponents)
 			},
-			expectedErr: process.ErrNilEpochNotifier,
+			errExpected: process.ErrNilEpochNotifier,
 		},
 		{
 			args: func() blproc.ArgBaseProcessor {
@@ -640,7 +640,7 @@ func TestCheckProcessorNilParameters(t *testing.T) {
 				args.GasHandler = nil
 				return args
 			},
-			expectedErr: process.ErrNilGasHandler,
+			errExpected: process.ErrNilGasHandler,
 		},
 		{
 			args: func() blproc.ArgBaseProcessor {
@@ -648,7 +648,7 @@ func TestCheckProcessorNilParameters(t *testing.T) {
 				args.ScheduledTxsExecutionHandler = nil
 				return args
 			},
-			expectedErr: process.ErrNilScheduledTxsExecutionHandler,
+			errExpected: process.ErrNilScheduledTxsExecutionHandler,
 		},
 		{
 			args: func() blproc.ArgBaseProcessor {
@@ -656,7 +656,7 @@ func TestCheckProcessorNilParameters(t *testing.T) {
 				args.ProcessedMiniBlocksTracker = nil
 				return args
 			},
-			expectedErr: process.ErrNilProcessedMiniBlocksTracker,
+			errExpected: process.ErrNilProcessedMiniBlocksTracker,
 		},
 		{
 			args: func() blproc.ArgBaseProcessor {
@@ -664,7 +664,7 @@ func TestCheckProcessorNilParameters(t *testing.T) {
 				args.ReceiptsRepository = nil
 				return args
 			},
-			expectedErr: process.ErrNilReceiptsRepository,
+			errExpected: process.ErrNilReceiptsRepository,
 		},
 		{
 			args: func() blproc.ArgBaseProcessor {
@@ -672,7 +672,7 @@ func TestCheckProcessorNilParameters(t *testing.T) {
 				bootstrapCopy.VersionedHdrFactory = nil
 				return createArgBaseProcessor(coreComponents, dataComponents, &bootstrapCopy, statusComponents)
 			},
-			expectedErr: process.ErrNilVersionedHeaderFactory,
+			errExpected: process.ErrNilVersionedHeaderFactory,
 		},
 		{
 			args: func() blproc.ArgBaseProcessor {
@@ -680,7 +680,7 @@ func TestCheckProcessorNilParameters(t *testing.T) {
 				args.ManagedPeersHolder = nil
 				return args
 			},
-			expectedErr: process.ErrNilManagedPeersHolder,
+			errExpected: process.ErrNilManagedPeersHolder,
 		},
 		{
 			args: func() blproc.ArgBaseProcessor {
@@ -688,7 +688,7 @@ func TestCheckProcessorNilParameters(t *testing.T) {
 				args.OutportDataProvider = nil
 				return args
 			},
-			expectedErr: process.ErrNilOutportDataProvider,
+			errExpected: process.ErrNilOutportDataProvider,
 		},
 		{
 			args: func() blproc.ArgBaseProcessor {
@@ -696,7 +696,7 @@ func TestCheckProcessorNilParameters(t *testing.T) {
 				args.BlockProcessingCutoffHandler = nil
 				return args
 			},
-			expectedErr: process.ErrNilBlockProcessingCutoffHandler,
+			errExpected: process.ErrNilBlockProcessingCutoffHandler,
 		},
 		{
 			args: func() blproc.ArgBaseProcessor {
@@ -704,7 +704,7 @@ func TestCheckProcessorNilParameters(t *testing.T) {
 				args.ManagedPeersHolder = nil
 				return args
 			},
-			expectedErr: process.ErrNilManagedPeersHolder,
+			errExpected: process.ErrNilManagedPeersHolder,
 		},
 		{
 			args: func() blproc.ArgBaseProcessor {
@@ -712,19 +712,19 @@ func TestCheckProcessorNilParameters(t *testing.T) {
 				args.SentSignaturesTracker = nil
 				return args
 			},
-			expectedErr: process.ErrNilSentSignatureTracker,
+			errExpected: process.ErrNilSentSignatureTracker,
 		},
 		{
 			args: func() blproc.ArgBaseProcessor {
 				return createArgBaseProcessor(coreComponents, dataComponents, bootstrapComponents, statusComponents)
 			},
-			expectedErr: nil,
+			errExpected: nil,
 		},
 	}
 
 	for _, test := range tests {
 		err := blproc.CheckProcessorNilParameters(test.args())
-		require.Equal(t, test.expectedErr, err)
+		require.Equal(t, test.errExpected, err)
 	}
 
 	coreCompCopy := *coreComponents
@@ -969,11 +969,11 @@ func TestBaseProcessor_SetProcessingTypeAndConstructionStateForNormalMb(t *testi
 func TestBaseProcessor_RevertStateRecreateTrieFailsShouldErr(t *testing.T) {
 	t.Parallel()
 
-	expectedErr := errors.New("err")
+	errExpected := errors.New("err")
 	arguments := CreateMockArguments(createComponentHolderMocks())
 	arguments.AccountsDB[state.UserAccountsState] = &stateMock.AccountsStub{
 		RecreateTrieCalled: func(rootHash common.RootHashHolder) error {
-			return expectedErr
+			return errExpected
 		},
 	}
 
@@ -981,7 +981,7 @@ func TestBaseProcessor_RevertStateRecreateTrieFailsShouldErr(t *testing.T) {
 
 	hdr := block.Header{Nonce: 37}
 	err := bp.RevertStateToBlock(&hdr, hdr.RootHash)
-	assert.Equal(t, expectedErr, err)
+	assert.Equal(t, errExpected, err)
 }
 
 // removeHeadersBehindNonceFromPools
@@ -1044,10 +1044,10 @@ func TestBlockProcessor_computeHeaderHashMarshalizerFail1ShouldErr(t *testing.T)
 	arguments := CreateMockArguments(coreComponents, dataComponents, bootstrapComponents, statusComponents)
 	bp, _ := blproc.NewShardProcessor(arguments)
 	hdr, txBlock := createTestHdrTxBlockBody()
-	expectedError := errors.New("marshalizer fail")
+	errExpectedor := errors.New("marshalizer fail")
 	marshalizer.MarshalCalled = func(obj interface{}) (bytes []byte, e error) {
 		if hdr == obj {
-			return nil, expectedError
+			return nil, errExpectedor
 		}
 
 		if reflect.DeepEqual(txBlock, obj) {
@@ -1056,7 +1056,7 @@ func TestBlockProcessor_computeHeaderHashMarshalizerFail1ShouldErr(t *testing.T)
 		return nil, nil
 	}
 	_, err := bp.ComputeHeaderHash(hdr)
-	assert.Equal(t, expectedError, err)
+	assert.Equal(t, errExpectedor, err)
 }
 
 func TestBlockPorcessor_ComputeNewNoncePrevHashShouldWork(t *testing.T) {
@@ -1908,7 +1908,7 @@ func TestBaseProcessor_commitTrieEpochRootHashIfNeeded_GetAllLeaves(t *testing.T
 				GetAllLeavesCalled: func(channels *common.TrieIteratorChannels, ctx context.Context, rootHash []byte, _ common.TrieLeafParser) error {
 					close(channels.LeavesChan)
 					channels.ErrChan.Close()
-					return expectedErr
+					return errExpected
 				},
 			},
 		}
@@ -1917,7 +1917,7 @@ func TestBaseProcessor_commitTrieEpochRootHashIfNeeded_GetAllLeaves(t *testing.T
 
 		mb := &block.MetaBlock{Epoch: epoch}
 		err := sp.CommitTrieEpochRootHashIfNeeded(mb, []byte("root"))
-		require.Equal(t, expectedErr, err)
+		require.Equal(t, errExpected, err)
 	})
 
 	t.Run("error on trie iterator chan", func(t *testing.T) {
@@ -1943,7 +1943,7 @@ func TestBaseProcessor_commitTrieEpochRootHashIfNeeded_GetAllLeaves(t *testing.T
 					return rootHash, nil
 				},
 				GetAllLeavesCalled: func(channels *common.TrieIteratorChannels, ctx context.Context, rootHash []byte, trieLeafParser common.TrieLeafParser) error {
-					channels.ErrChan.WriteInChanNonBlocking(expectedErr)
+					channels.ErrChan.WriteInChanNonBlocking(errExpected)
 					close(channels.LeavesChan)
 					return nil
 				},
@@ -1954,7 +1954,7 @@ func TestBaseProcessor_commitTrieEpochRootHashIfNeeded_GetAllLeaves(t *testing.T
 
 		mb := &block.MetaBlock{Epoch: epoch}
 		err := sp.CommitTrieEpochRootHashIfNeeded(mb, []byte("root"))
-		require.Equal(t, expectedErr, err)
+		require.Equal(t, errExpected, err)
 	})
 }
 
@@ -2625,7 +2625,7 @@ func TestBaseProcessor_checkScheduledMiniBlockValidity(t *testing.T) {
 		coreComponents.EnableEpochsHandlerField = enableEpochsHandlerMock.NewEnableEpochsHandlerStub(common.ScheduledMiniBlocksFlag)
 		coreComponents.IntMarsh = &marshallerMock.MarshalizerStub{
 			MarshalCalled: func(obj interface{}) ([]byte, error) {
-				return nil, expectedErr
+				return nil, errExpected
 			},
 		}
 		arguments := CreateMockArguments(coreComponents, dataComponents, bootstrapComponents, statusComponents)
@@ -2646,7 +2646,7 @@ func TestBaseProcessor_checkScheduledMiniBlockValidity(t *testing.T) {
 		}
 
 		err := bp.CheckScheduledMiniBlocksValidity(header)
-		assert.Equal(t, expectedErr, err)
+		assert.Equal(t, errExpected, err)
 	})
 
 	t.Run("scheduled miniblocks mismatch", func(t *testing.T) {
@@ -2898,20 +2898,20 @@ func TestMetaProcessor_RestoreBlockBodyIntoPoolsShouldErrNilBlockBody(t *testing
 func TestMetaProcessor_RestoreBlockBodyIntoPoolsShouldErrWhenRestoreBlockDataFromStorageFails(t *testing.T) {
 	t.Parallel()
 
-	expectedError := errors.New("error")
+	errExpectedor := errors.New("error")
 
 	coreComponents, dataComponents, bootstrapComponents, statusComponents := createMockComponentHolders()
 	dataComponents.Storage = initStore()
 	arguments := createMockMetaArguments(coreComponents, dataComponents, bootstrapComponents, statusComponents)
 	arguments.TxCoordinator = &testscommon.TransactionCoordinatorMock{
 		RestoreBlockDataFromStorageCalled: func(body *block.Body) (int, error) {
-			return 0, expectedError
+			return 0, errExpectedor
 		},
 	}
 	mp, _ := blproc.NewMetaProcessor(arguments)
 
 	err := mp.RestoreBlockBodyIntoPools(&block.Body{})
-	assert.Equal(t, err, expectedError)
+	assert.Equal(t, err, errExpectedor)
 }
 
 func TestMetaProcessor_RestoreBlockBodyIntoPoolsShouldWork(t *testing.T) {
@@ -3057,7 +3057,7 @@ func TestBaseProcessor_CheckSentSignaturesAtCommitTime(t *testing.T) {
 	t.Run("nodes coordinator errors, should return error", func(t *testing.T) {
 		nodesCoordinatorInstance := shardingMocks.NewNodesCoordinatorMock()
 		nodesCoordinatorInstance.ComputeValidatorsGroupCalled = func(randomness []byte, round uint64, shardId uint32, epoch uint32) (leader nodesCoordinator.Validator, validatorsGroup []nodesCoordinator.Validator, err error) {
-			return nil, nil, expectedErr
+			return nil, nil, errExpected
 		}
 
 		arguments := CreateMockArguments(createComponentHolderMocks())
@@ -3073,7 +3073,7 @@ func TestBaseProcessor_CheckSentSignaturesAtCommitTime(t *testing.T) {
 			RandSeed:     []byte("randSeed"),
 			PrevRandSeed: []byte("prevRandSeed"),
 		})
-		assert.Equal(t, expectedErr, err)
+		assert.Equal(t, errExpected, err)
 	})
 	t.Run("should work with bitmap", func(t *testing.T) {
 		validator0, _ := nodesCoordinator.NewValidator([]byte("pk0"), 0, 0)

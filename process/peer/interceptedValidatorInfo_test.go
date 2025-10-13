@@ -61,16 +61,16 @@ func TestNewInterceptedValidatorInfo(t *testing.T) {
 	t.Run("unmarshal returns error", func(t *testing.T) {
 		t.Parallel()
 
-		expectedErr := errors.New("expected err")
+		errExpected := errors.New("expected err")
 		args := createMockArgInterceptedValidatorInfo()
 		args.Marshalizer = &marshallerMock.MarshalizerStub{
 			UnmarshalCalled: func(obj interface{}, buff []byte) error {
-				return expectedErr
+				return errExpected
 			},
 		}
 
 		ivi, err := NewInterceptedValidatorInfo(args)
-		assert.Equal(t, expectedErr, err)
+		assert.Equal(t, errExpected, err)
 		assert.True(t, check.IfNil(ivi))
 	})
 	t.Run("should work", func(t *testing.T) {

@@ -107,7 +107,7 @@ func TestCreateInterceptedDebugHandler_SettingOnInterceptorsErrShouldErr(t *test
 	resolversIterateCalled := false
 	requestersIterateCalled := false
 	addQueryHandlerCalled := false
-	expectedErr := errors.New("expected err")
+	errExpected := errors.New("expected err")
 	err := CreateInterceptedDebugHandler(
 		&mock.NodeWrapperStub{
 			AddQueryHandlerCalled: func(name string, handler debug.QueryHandler) error {
@@ -119,7 +119,7 @@ func TestCreateInterceptedDebugHandler_SettingOnInterceptorsErrShouldErr(t *test
 			IterateCalled: func(handler func(key string, interceptor process.Interceptor) bool) {
 				handler("key", &testscommon.InterceptorStub{
 					SetInterceptedDebugHandlerCalled: func(handler process.InterceptedDebugger) error {
-						return expectedErr
+						return errExpected
 					},
 				})
 				interceptorsIterateCalled = true
@@ -142,7 +142,7 @@ func TestCreateInterceptedDebugHandler_SettingOnInterceptorsErrShouldErr(t *test
 		&testscommon.SyncTimerStub{},
 	)
 
-	assert.True(t, errors.Is(err, expectedErr))
+	assert.True(t, errors.Is(err, errExpected))
 	assert.False(t, addQueryHandlerCalled)
 	assert.True(t, interceptorsIterateCalled)
 	assert.False(t, resolversIterateCalled)
@@ -156,7 +156,7 @@ func TestCreateInterceptedDebugHandler_SettingOnResolverErrShouldErr(t *testing.
 	resolversIterateCalled := false
 	requestersIterateCalled := false
 	addQueryHandlerCalled := false
-	expectedErr := errors.New("expected err")
+	errExpected := errors.New("expected err")
 	err := CreateInterceptedDebugHandler(
 		&mock.NodeWrapperStub{
 			AddQueryHandlerCalled: func(name string, handler debug.QueryHandler) error {
@@ -174,7 +174,7 @@ func TestCreateInterceptedDebugHandler_SettingOnResolverErrShouldErr(t *testing.
 			IterateCalled: func(handler func(key string, resolver dataRetriever.Resolver) bool) {
 				handler("key", &dataRetrieverMocks.HeaderResolverStub{
 					SetDebugHandlerCalled: func(handler dataRetriever.DebugHandler) error {
-						return expectedErr
+						return errExpected
 					},
 				})
 				resolversIterateCalled = true
@@ -192,7 +192,7 @@ func TestCreateInterceptedDebugHandler_SettingOnResolverErrShouldErr(t *testing.
 		&testscommon.SyncTimerStub{},
 	)
 
-	assert.True(t, errors.Is(err, expectedErr))
+	assert.True(t, errors.Is(err, errExpected))
 	assert.False(t, addQueryHandlerCalled)
 	assert.True(t, interceptorsIterateCalled)
 	assert.True(t, resolversIterateCalled)

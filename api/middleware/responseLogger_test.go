@@ -117,11 +117,11 @@ func TestResponseLoggerMiddleware_BadRequest(t *testing.T) {
 func TestResponseLoggerMiddleware_InternalError(t *testing.T) {
 	t.Parallel()
 
-	expectedErr := errors.New("internal err")
+	errExpected := errors.New("internal err")
 	thresholdDuration := 10000 * time.Millisecond
 
 	handlerFunc := func(c *gin.Context) {
-		c.JSON(500, expectedErr.Error())
+		c.JSON(500, errExpected.Error())
 	}
 
 	rlf := responseLogFields{}
@@ -148,7 +148,7 @@ func TestResponseLoggerMiddleware_InternalError(t *testing.T) {
 	assert.True(t, strings.Contains(rlf.title, prefixInternalError))
 	assert.True(t, rlf.duration < thresholdDuration)
 	assert.Equal(t, http.StatusInternalServerError, rlf.status)
-	assert.True(t, strings.Contains(rlf.response, removeWhitespacesFromString(expectedErr.Error())))
+	assert.True(t, strings.Contains(rlf.response, removeWhitespacesFromString(errExpected.Error())))
 }
 
 func TestResponseLoggerMiddleware_ShouldNotCallHandler(t *testing.T) {

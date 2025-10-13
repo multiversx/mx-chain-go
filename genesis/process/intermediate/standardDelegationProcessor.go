@@ -122,7 +122,7 @@ func (sdp *standardDelegationProcessor) ExecuteDelegation() (genesis.DelegationR
 		return genesis.DelegationResult{}, nil, err
 	}
 
-	delegationTxs := sdp.TxExecutionProcessor.GetExecutedTransactions()
+	delegationTxs := sdp.GetExecutedTransactions()
 
 	return dr, delegationTxs, err
 }
@@ -251,7 +251,7 @@ func (sdp *standardDelegationProcessor) stake(ac genesis.InitialAccountHandler, 
 	var err error
 	var nonce = uint64(0)
 	if isIntraShardCall {
-		//intra shard transaction, get current nonce in order to make the tx processor work
+		// intra shard transaction, get current nonce in order to make the tx processor work
 		nonce, err = sdp.GetNonce(ac.AddressBytes())
 		if err != nil {
 			return err

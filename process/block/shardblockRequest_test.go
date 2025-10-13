@@ -140,7 +140,7 @@ func TestShardProcessor_computeExistingAndRequestMissingMetaHeaders(t *testing.T
 			require.Fail(t, "should not request meta header by nonce")
 		}
 		requestHandler.RequestMetaHeaderCalled = func(hash []byte) {
-			if !(bytes.Equal(hash, metaChainData.headerData[0].hash) || bytes.Equal(hash, metaChainData.headerData[1].hash)) {
+			if !bytes.Equal(hash, metaChainData.headerData[0].hash) && !bytes.Equal(hash, metaChainData.headerData[1].hash) {
 				require.Fail(t, "other requests than the expected 2 metaBlocks are not expected")
 			}
 
@@ -179,7 +179,7 @@ func TestShardProcessor_computeExistingAndRequestMissingMetaHeaders(t *testing.T
 			numCallsAttestation.Add(1)
 		}
 		requestHandler.RequestMetaHeaderCalled = func(hash []byte) {
-			if !(bytes.Equal(hash, metaChainData.headerData[0].hash) || bytes.Equal(hash, metaChainData.headerData[1].hash)) {
+			if !bytes.Equal(hash, metaChainData.headerData[0].hash) && !bytes.Equal(hash, metaChainData.headerData[1].hash) {
 				require.Fail(t, "other requests than the expected 2 metaBlocks are not expected")
 			}
 
@@ -451,7 +451,7 @@ func shardBlockRequestTestInit(t *testing.T) (blproc.ArgShardProcessor, *testsco
 	headersPoolStub := createPoolsHolderForHeaderRequests()
 	poolsHolder.SetHeadersPool(headersPoolStub)
 
-	requestHandler, ok := arguments.ArgBaseProcessor.RequestHandler.(*testscommon.RequestHandlerStub)
+	requestHandler, ok := arguments.RequestHandler.(*testscommon.RequestHandlerStub)
 	require.True(t, ok)
 	return arguments, requestHandler
 }

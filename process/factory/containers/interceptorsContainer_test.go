@@ -20,7 +20,7 @@ func TestNewInterceptorsContainer_ShouldWork(t *testing.T) {
 	assert.False(t, check.IfNil(c))
 }
 
-//------- Add
+// ------- Add
 
 func TestInterceptorsContainer_AddAlreadyExistingShouldErr(t *testing.T) {
 	t.Parallel()
@@ -54,7 +54,7 @@ func TestInterceptorsContainer_AddShouldWork(t *testing.T) {
 	assert.Equal(t, 1, c.Len())
 }
 
-//------- AddMultiple
+// ------- AddMultiple
 
 func TestInterceptorsContainer_AddMultipleAlreadyExistingShouldErr(t *testing.T) {
 	t.Parallel()
@@ -96,7 +96,7 @@ func TestInterceptorsContainer_AddMultipleShouldWork(t *testing.T) {
 	assert.Equal(t, 2, c.Len())
 }
 
-//------- Get
+// ------- Get
 
 func TestInterceptorsContainer_GetNotFoundShouldErr(t *testing.T) {
 	t.Parallel()
@@ -143,7 +143,7 @@ func TestInterceptorsContainer_GetShouldWork(t *testing.T) {
 	assert.Nil(t, err)
 }
 
-//------- Replace
+// ------- Replace
 
 func TestInterceptorsContainer_ReplaceNilValueShouldErrAndNotModify(t *testing.T) {
 	t.Parallel()
@@ -180,7 +180,7 @@ func TestInterceptorsContainer_ReplaceShouldWork(t *testing.T) {
 	assert.Nil(t, err)
 }
 
-//------- Remove
+// ------- Remove
 
 func TestInterceptorsContainer_RemoveShouldWork(t *testing.T) {
 	t.Parallel()
@@ -199,7 +199,7 @@ func TestInterceptorsContainer_RemoveShouldWork(t *testing.T) {
 	assert.True(t, errors.Is(err, process.ErrInvalidContainerKey))
 }
 
-//------- Len
+// ------- Len
 
 func TestInterceptorsContainer_LenShouldWork(t *testing.T) {
 	t.Parallel()
@@ -216,7 +216,7 @@ func TestInterceptorsContainer_LenShouldWork(t *testing.T) {
 	assert.Equal(t, 1, c.Len())
 }
 
-//-------- Iterate
+// -------- Iterate
 
 func TestInterceptorsContainer_IterateNilHandlerShouldNotPanic(t *testing.T) {
 	t.Parallel()
@@ -322,14 +322,14 @@ func TestInterceptorsContainer_Close(t *testing.T) {
 
 	c := containers.NewInterceptorsContainer()
 
-	expectedErr := errors.New("expected error")
+	errExpected := errors.New("expected error")
 	closeCalled1 := false
 	closeCalled2 := false
 
 	_ = c.Add("key1", &testscommon.InterceptorStub{
 		CloseCalled: func() error {
 			closeCalled1 = true
-			return expectedErr
+			return errExpected
 		},
 	})
 	_ = c.Add("key2", &testscommon.InterceptorStub{
@@ -340,7 +340,7 @@ func TestInterceptorsContainer_Close(t *testing.T) {
 	})
 
 	err := c.Close()
-	assert.Equal(t, expectedErr, err)
+	assert.Equal(t, errExpected, err)
 	assert.True(t, closeCalled1)
 	assert.True(t, closeCalled2)
 }

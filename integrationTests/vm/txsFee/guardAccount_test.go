@@ -401,7 +401,7 @@ func TestGuardAccount_ShouldSetGuardianOnANotProtectedAccount(t *testing.T) {
 	allLogs := testContext.TxsLogsProcessor.GetAllCurrentLogs()
 	require.NotNil(t, allLogs)
 
-	event := allLogs[0].LogHandler.GetLogEvents()[0]
+	event := allLogs[0].GetLogEvents()[0]
 	require.Equal(t, &transaction.Event{
 		Address:        alice,
 		Identifier:     []byte(core.BuiltInFunctionSetGuardian),
@@ -433,7 +433,7 @@ func TestGuardAccount_ShouldSetGuardianOnANotProtectedAccount(t *testing.T) {
 	allLogs = testContext.TxsLogsProcessor.GetAllCurrentLogs()
 	require.NotNil(t, allLogs)
 
-	event = allLogs[0].LogHandler.GetLogEvents()[0]
+	event = allLogs[0].GetLogEvents()[0]
 	require.Equal(t, &transaction.Event{
 		Address:        alice,
 		Identifier:     []byte(core.SignalErrorOperation),
@@ -462,7 +462,7 @@ func TestGuardAccount_ShouldSetGuardianOnANotProtectedAccount(t *testing.T) {
 	allLogs = testContext.TxsLogsProcessor.GetAllCurrentLogs()
 	require.NotNil(t, allLogs)
 
-	event = allLogs[0].LogHandler.GetLogEvents()[0]
+	event = allLogs[0].GetLogEvents()[0]
 	require.Equal(t, &transaction.Event{
 		Address:        alice,
 		Identifier:     []byte(core.BuiltInFunctionGuardAccount),

@@ -54,13 +54,13 @@ func TestNewRewardsCreatorProxy_OK(t *testing.T) {
 
 func TestRewardsCreatorProxy_CreateRewardsMiniBlocksWithError(t *testing.T) {
 	t.Parallel()
-	expectedErr := fmt.Errorf("expectedError")
+	errExpected := fmt.Errorf("expectedError")
 
 	rewardCreatorV1 := &testscommon.RewardsCreatorStub{
 		CreateRewardsMiniBlocksCalled: func(
 			metaBlock data.MetaHeaderHandler, validatorsInfo state.ShardValidatorsInfoMapHandler, computedEconomics *block.Economics,
 		) (block.MiniBlockSlice, error) {
-			return nil, expectedErr
+			return nil, errExpected
 		},
 	}
 
@@ -68,7 +68,7 @@ func TestRewardsCreatorProxy_CreateRewardsMiniBlocksWithError(t *testing.T) {
 	computedEconomics := &mb.EpochStart.Economics
 
 	miniBlocks, err := rewardsCreatorProxy.CreateRewardsMiniBlocks(mb, vInfo, computedEconomics)
-	require.Equal(t, expectedErr, err)
+	require.Equal(t, errExpected, err)
 	require.Nil(t, miniBlocks)
 }
 
@@ -159,11 +159,11 @@ func TestRewardsCreatorProxy_CreateRewardsMiniBlocksWithSwitchToRewardsCreatorV1
 func TestRewardsCreatorProxy_VerifyRewardsMiniBlocksWithError(t *testing.T) {
 	t.Parallel()
 
-	expectedErr := fmt.Errorf("expectedError")
+	errExpected := fmt.Errorf("expectedError")
 	rewardCreatorV1 := &testscommon.RewardsCreatorStub{
 		VerifyRewardsMiniBlocksCalled: func(
 			metaBlock data.MetaHeaderHandler, validatorsInfo state.ShardValidatorsInfoMapHandler, computedEconomics *block.Economics) error {
-			return expectedErr
+			return errExpected
 		},
 	}
 
@@ -171,7 +171,7 @@ func TestRewardsCreatorProxy_VerifyRewardsMiniBlocksWithError(t *testing.T) {
 	economics := &mb.EpochStart.Economics
 
 	err := rewardsCreatorProxy.VerifyRewardsMiniBlocks(mb, vInfo, economics)
-	require.Equal(t, expectedErr, err)
+	require.Equal(t, errExpected, err)
 }
 
 func TestRewardsCreatorProxy_VerifyRewardsMiniBlocksOK(t *testing.T) {

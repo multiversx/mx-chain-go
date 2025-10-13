@@ -1981,13 +1981,13 @@ func TestValidatorStatistics_RootHashWithErrShouldReturnNil(t *testing.T) {
 	t.Parallel()
 
 	hash := []byte("nonExistingRootHash")
-	expectedErr := errors.New("invalid rootHash")
+	errExpected := errors.New("invalid rootHash")
 
 	arguments := createMockArguments()
 
 	peerAdapter := getAccountsMock()
 	peerAdapter.GetAllLeavesCalled = func(_ *common.TrieIteratorChannels, _ context.Context, _ []byte, _ common.TrieLeafParser) error {
-		return expectedErr
+		return errExpected
 	}
 	arguments.PeerAdapter = peerAdapter
 
@@ -1995,14 +1995,14 @@ func TestValidatorStatistics_RootHashWithErrShouldReturnNil(t *testing.T) {
 
 	validatorInfos, err := validatorStatistics.GetValidatorInfoForRootHash(hash)
 	assert.Nil(t, validatorInfos)
-	assert.Equal(t, expectedErr, err)
+	assert.Equal(t, errExpected, err)
 }
 
 func TestValidatorStatistics_ResetValidatorStatisticsAtNewEpoch(t *testing.T) {
 	t.Parallel()
 
 	hash := []byte("correctRootHash")
-	expectedErr := errors.New("unknown peer")
+	errExpected := errors.New("unknown peer")
 	arguments := createMockArguments()
 
 	addrBytes0 := []byte("addr1")
@@ -2023,13 +2023,13 @@ func TestValidatorStatistics_ResetValidatorStatisticsAtNewEpoch(t *testing.T) {
 
 			return nil
 		}
-		return expectedErr
+		return errExpected
 	}
 	peerAdapter.LoadAccountCalled = func(address []byte) (handler vmcommon.AccountHandler, err error) {
 		if bytes.Equal(pa0.AddressBytes(), address) {
 			return pa0, nil
 		}
-		return nil, expectedErr
+		return nil, errExpected
 	}
 	arguments.PeerAdapter = peerAdapter
 	arguments.PubkeyConv = testscommon.NewPubkeyConverterMock(4)
@@ -2063,7 +2063,7 @@ func TestValidatorStatistics_Process(t *testing.T) {
 	t.Parallel()
 
 	hash := []byte("correctRootHash")
-	expectedErr := errors.New("error rootHash")
+	errExpected := errors.New("error rootHash")
 	arguments := createMockArguments()
 
 	addrBytes0 := []byte("addr1")
@@ -2086,13 +2086,13 @@ func TestValidatorStatistics_Process(t *testing.T) {
 
 			return nil
 		}
-		return expectedErr
+		return errExpected
 	}
 	peerAdapter.LoadAccountCalled = func(address []byte) (handler vmcommon.AccountHandler, err error) {
 		if bytes.Equal(pa0.AddressBytes(), address) {
 			return pa0, nil
 		}
-		return nil, expectedErr
+		return nil, errExpected
 	}
 	arguments.PeerAdapter = peerAdapter
 
@@ -2114,7 +2114,7 @@ func TestValidatorStatistics_GetValidatorInfoForRootHash(t *testing.T) {
 	t.Parallel()
 
 	hash := []byte("correctRootHash")
-	expectedErr := errors.New("error rootHash")
+	errExpected := errors.New("error rootHash")
 	arguments := createMockArguments()
 
 	addrBytes0 := []byte("addr1")
@@ -2126,13 +2126,13 @@ func TestValidatorStatistics_GetValidatorInfoForRootHash(t *testing.T) {
 		peerAdapter.GetAllLeavesCalled = func(ch *common.TrieIteratorChannels, ctx context.Context, rootHash []byte, _ common.TrieLeafParser) error {
 			if bytes.Equal(rootHash, hash) {
 				go func() {
-					ch.ErrChan.WriteInChanNonBlocking(expectedErr)
+					ch.ErrChan.WriteInChanNonBlocking(errExpected)
 					close(ch.LeavesChan)
 				}()
 
 				return nil
 			}
-			return expectedErr
+			return errExpected
 		}
 		arguments.PeerAdapter = peerAdapter
 
@@ -2140,7 +2140,7 @@ func TestValidatorStatistics_GetValidatorInfoForRootHash(t *testing.T) {
 
 		validatorInfos, err := validatorStatistics.GetValidatorInfoForRootHash(hash)
 		assert.Nil(t, validatorInfos)
-		assert.Equal(t, expectedErr, err)
+		assert.Equal(t, errExpected, err)
 	})
 
 	t.Run("should work", func(t *testing.T) {
@@ -2161,7 +2161,7 @@ func TestValidatorStatistics_GetValidatorInfoForRootHash(t *testing.T) {
 
 				return nil
 			}
-			return expectedErr
+			return errExpected
 		}
 		arguments.PeerAdapter = peerAdapter
 

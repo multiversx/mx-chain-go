@@ -4384,7 +4384,7 @@ func TestScProcessor_CheckBuiltinFunctionIsExecutable(t *testing.T) {
 	t.Parallel()
 
 	arguments := createMockSmartContractProcessorArguments()
-	expectedErr := errors.New("expected error")
+	errExpected := errors.New("expected error")
 
 	t.Run("nil transaction should error", func(t *testing.T) {
 		sc, _ := NewSmartContractProcessor(arguments)
@@ -4401,12 +4401,12 @@ func TestScProcessor_CheckBuiltinFunctionIsExecutable(t *testing.T) {
 		argsCopy := arguments
 		argsCopy.ArgsParser = &testscommon.ArgumentParserMock{
 			ParseCallDataCalled: func(data string) (string, [][]byte, error) {
-				return "", nil, expectedErr
+				return "", nil, errExpected
 			},
 		}
 		sc, _ := NewSmartContractProcessor(argsCopy)
 		err := sc.CheckBuiltinFunctionIsExecutable("SetGuardian", &transaction.Transaction{})
-		require.Equal(t, expectedErr, err)
+		require.Equal(t, errExpected, err)
 	})
 	t.Run("expected builtin function different than the parsed function name should return error", func(t *testing.T) {
 		argsCopy := arguments

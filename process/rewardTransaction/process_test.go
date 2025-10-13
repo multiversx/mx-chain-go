@@ -137,11 +137,11 @@ func TestRewardTxProcessor_ProcessRewardTransactionAddressNotInNodesShardShouldN
 func TestRewardTxProcessor_ProcessRewardTransactionCannotGetAccountShouldErr(t *testing.T) {
 	t.Parallel()
 
-	expectedErr := errors.New("cannot get account")
+	errExpected := errors.New("cannot get account")
 	rtp, _ := rewardTransaction.NewRewardTxProcessor(
 		&stateMock.AccountsStub{
 			LoadAccountCalled: func(address []byte) (vmcommon.AccountHandler, error) {
-				return nil, expectedErr
+				return nil, errExpected
 			},
 		},
 		createMockPubkeyConverter(),
@@ -156,7 +156,7 @@ func TestRewardTxProcessor_ProcessRewardTransactionCannotGetAccountShouldErr(t *
 	}
 
 	err := rtp.ProcessRewardTransaction(&rwdTx)
-	assert.Equal(t, expectedErr, err)
+	assert.Equal(t, errExpected, err)
 }
 
 func TestRewardTxProcessor_ProcessRewardTransactionWrongTypeAssertionAccountHolderShouldErr(t *testing.T) {
