@@ -798,7 +798,6 @@ func (bp *baseProcessor) sortHeaderHashesForCurrentBlockByNonce(usedInBlock bool
 func (bp *baseProcessor) createMiniBlockHeaderHandlers(
 	body *block.Body,
 	processedMiniBlocksDestMeInfo map[string]*processedMb.ProcessedMiniBlockInfo,
-	isHeaderV3 bool,
 ) (int, []data.MiniBlockHeaderHandler, error) {
 	if len(body.MiniBlocks) == 0 {
 		return 0, nil, nil
@@ -828,25 +827,6 @@ func (bp *baseProcessor) createMiniBlockHeaderHandlers(
 		if err != nil {
 			return 0, nil, err
 		}
-
-		// the following only applies for header v3
-		if !isHeaderV3 {
-			continue
-		}
-		// do not cache the cross-shard incoming mini blocks
-		selfShardID := bp.shardCoordinator.SelfId()
-		isCrossShardIncoming := miniBlockHeaderHandlers[i].GetReceiverShardID() == selfShardID &&
-			miniBlockHeaderHandlers[i].GetSenderShardID() != selfShardID
-		if isCrossShardIncoming {
-			continue
-		}
-
-		marshalledMiniBlock, err := bp.marshalizer.Marshal(body.MiniBlocks[i])
-		if err != nil {
-			return 0, nil, err
-		}
-
-		bp.dataPool.ExecutedMiniBlocks().Put(miniBlockHash, marshalledMiniBlock, len(marshalledMiniBlock))
 	}
 
 	return totalTxCount, miniBlockHeaderHandlers, nil
@@ -2499,6 +2479,16 @@ func (bp *baseProcessor) putMiniBlocksIntoStorage(miniBlockHeaderHandlers []data
 	executedMiniBlocksCache := bp.dataPool.ExecutedMiniBlocks()
 	for _, miniBlockHeaderHandler := range miniBlockHeaderHandlers {
 		mbHash := miniBlockHeaderHandler.GetHash()
+		// do not cache the cross-shard incoming mini blocks
+		selfShardID := bp.shardCoordinator.SelfId()
+		isCrossShardIncoming := miniBlockHeaderHandler.GetReceiverShardID() == selfShardID &&
+			miniBlockHeaderHandler.GetSenderShardID() != selfShardID
+		if isCrossShardIncoming {
+			// no need to move into storer, should be there already
+			executedMiniBlocksCache.Remove(mbHash)
+			continue
+		}
+
 		cachedMiniBlock, found := executedMiniBlocksCache.Get(mbHash)
 		if !found {
 			log.Warn("mini block from execution result not cached after execution",
@@ -2512,8 +2502,22 @@ func (bp *baseProcessor) putMiniBlocksIntoStorage(miniBlockHeaderHandlers []data
 			return errPut
 		}
 
-		// all mini blocks moved, cleaning the cache
+		// mini block moved, cleaning the cache
 		executedMiniBlocksCache.Remove(mbHash)
+	}
+
+	return nil
+}
+
+func (bp *baseProcessor) cacheExecutedMiniBlocks(body *block.Body, miniBlockHeaders []data.MiniBlockHeaderHandler) error {
+	for i, mbHeader := range miniBlockHeaders {
+		miniBlockHash := mbHeader.GetHash()
+		marshalledMiniBlock, err := bp.marshalizer.Marshal(body.MiniBlocks[i])
+		if err != nil {
+			return err
+		}
+
+		bp.dataPool.ExecutedMiniBlocks().Put(miniBlockHash, marshalledMiniBlock, len(marshalledMiniBlock))
 	}
 
 	return nil

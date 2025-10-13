@@ -1112,6 +1112,7 @@ func (sp *shardProcessor) CommitBlock(
 		epochStartTriggerConfigKey: epochStartKey,
 	}
 
+	// TODO adjust this method if needed for Supernova
 	sp.prepareDataForBootStorer(args)
 
 	// write data to log
@@ -2184,7 +2185,7 @@ func (sp *shardProcessor) applyBodyToHeader(
 	newBody := deleteSelfReceiptsMiniBlocks(body)
 
 	sw.Start("createMiniBlockHeaders")
-	totalTxCount, miniBlockHeaderHandlers, err := sp.createMiniBlockHeaderHandlers(newBody, processedMiniBlocksDestMeInfo, shardHeader.IsHeaderV3())
+	totalTxCount, miniBlockHeaderHandlers, err := sp.createMiniBlockHeaderHandlers(newBody, processedMiniBlocksDestMeInfo)
 	sw.Stop("createMiniBlockHeaders")
 	if err != nil {
 		return nil, err

@@ -1304,6 +1304,7 @@ func (mp *metaProcessor) CommitBlock(
 		highestFinalBlockNonce:     highestFinalBlockNonce,
 	}
 
+	// TODO adjust this method if needed for Supernova
 	mp.prepareDataForBootStorer(args)
 
 	mp.blockSizeThrottler.Succeed(header.Round)
@@ -2128,7 +2129,7 @@ func (mp *metaProcessor) applyBodyToHeader(metaHdr data.MetaHeaderHandler, bodyH
 		return nil, err
 	}
 
-	totalTxCount, miniBlockHeaderHandlers, err := mp.createMiniBlockHeaderHandlers(body, make(map[string]*processedMb.ProcessedMiniBlockInfo), metaHdr.IsHeaderV3())
+	totalTxCount, miniBlockHeaderHandlers, err := mp.createMiniBlockHeaderHandlers(body, make(map[string]*processedMb.ProcessedMiniBlockInfo))
 	if err != nil {
 		return nil, err
 	}

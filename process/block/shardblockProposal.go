@@ -812,7 +812,12 @@ func (sp *shardProcessor) collectExecutionResults(headerHash []byte, header data
 	// giving an empty processedMiniBlockInfo would cause all miniBlockHeaders to be created as fully processed.
 	processedMiniBlockInfo := make(map[string]*processedMb.ProcessedMiniBlockInfo)
 
-	totalTxCount, miniBlockHeaderHandlers, err := sp.createMiniBlockHeaderHandlers(sanitizedBodyAfterExecution, processedMiniBlockInfo, header.IsHeaderV3())
+	totalTxCount, miniBlockHeaderHandlers, err := sp.createMiniBlockHeaderHandlers(sanitizedBodyAfterExecution, processedMiniBlockInfo)
+	if err != nil {
+		return nil, err
+	}
+
+	err = sp.cacheExecutedMiniBlocks(sanitizedBodyAfterExecution, miniBlockHeaderHandlers)
 	if err != nil {
 		return nil, err
 	}
