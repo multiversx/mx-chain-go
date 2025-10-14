@@ -8,8 +8,8 @@ import (
 	"github.com/multiversx/mx-chain-core-go/core/check"
 	"github.com/multiversx/mx-chain-go/common"
 	"github.com/multiversx/mx-chain-go/storage"
-	"github.com/multiversx/mx-chain-go/storage/cache"
 	logger "github.com/multiversx/mx-chain-logger-go"
+	"github.com/multiversx/mx-chain-storage-go/lrucache/capacity"
 )
 
 const maxTrieSizeMinValue = 1 * 1024 * 1024 // 1 MB
@@ -35,7 +35,7 @@ func NewDataTriesHolder(maxTriesSize uint64) (*dataTriesHolder, error) {
 	}
 	log.Trace("creating new data tries holder", "maxTriesSize", maxTriesSize)
 
-	c, err := cache.NewCapacityLRU(math.MaxInt, int64(maxTriesSize))
+	c, err := capacity.NewCapacityLRU(math.MaxInt, int64(maxTriesSize))
 	if err != nil {
 		return nil, err
 	}
