@@ -2524,7 +2524,7 @@ func (bp *baseProcessor) putMiniBlocksIntoStorage(miniBlockHeaderHandlers []data
 	executedMiniBlocksCache := bp.dataPool.ExecutedMiniBlocks()
 	for _, miniBlockHeaderHandler := range miniBlockHeaderHandlers {
 		mbHash := miniBlockHeaderHandler.GetHash()
-		// do not cache the cross-shard incoming mini blocks
+		// do not save the cross-shard incoming mini blocks
 		selfShardID := bp.shardCoordinator.SelfId()
 		isCrossShardIncoming := miniBlockHeaderHandler.GetReceiverShardID() == selfShardID &&
 			miniBlockHeaderHandler.GetSenderShardID() != selfShardID
