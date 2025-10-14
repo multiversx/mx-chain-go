@@ -782,3 +782,23 @@ func (sp *shardProcessor) DataPool() dataRetriever.PoolsHolder {
 func ShouldDisableOutgoingTxs(enableEpochsHandler common.EnableEpochsHandler, enableRoundsHandler common.EnableRoundsHandler) bool {
 	return shouldDisableOutgoingTxs(enableEpochsHandler, enableRoundsHandler)
 }
+
+// ShouldEpochStartInfoBeAvailable -
+func (sp *shardProcessor) ShouldEpochStartInfoBeAvailable(header data.ShardHeaderHandler) bool {
+	return sp.shouldEpochStartInfoBeAvailable(header)
+}
+
+// CollectExecutionResults -
+func (sp *shardProcessor) CollectExecutionResults(headerHash []byte, header data.HeaderHandler, body *block.Body) (data.BaseExecutionResultHandler, error) {
+	return sp.collectExecutionResults(headerHash, header, body)
+}
+
+// GetCrossShardIncomingMiniBlocksFromBody -
+func (sp *shardProcessor) GetCrossShardIncomingMiniBlocksFromBody(body *block.Body) []*block.MiniBlock {
+	return sp.getCrossShardIncomingMiniBlocksFromBody(body)
+}
+
+// GetHaveTimeForProposal -
+func GetHaveTimeForProposal(startTime time.Time, maxDuration time.Duration) func() time.Duration {
+	return getHaveTimeForProposal(startTime, maxDuration)
+}

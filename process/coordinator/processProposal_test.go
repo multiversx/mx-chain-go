@@ -571,6 +571,52 @@ func TestTransactionCoordinator_CreateMbsCrossShardDstMe_TypeAssertion(t *testin
 	require.False(t, allAdded) // Not all mini blocks were processed
 }
 
+func TestTransactionCoordinator_verifyCreatedMiniBlocksSanity(t *testing.T) {
+	t.Parallel()
+
+	t.Run("duplicated transactions should error", func(t *testing.T) {
+		t.Parallel()
+
+		ph := dataRetrieverMock.NewPoolsHolderMock()
+		tc, err := createMockTransactionCoordinatorForProposalTests(ph)
+		require.Nil(t, err)
+		require.NotNil(t, tc)
+
+		body := &block.Body{
+			MiniBlocks: []*block.MiniBlock{
+				{
+					TxHashes: [][]byte{
+						[]byte("hash"),
+					},
+				},
+				{
+					TxHashes: [][]byte{
+						[]byte("hash"),
+					},
+				},
+			},
+		}
+		err = tc.verifyCreatedMiniBlocksSanity(body)
+		require.True(t, errors.Is(err, process.ErrDuplicatedTransaction))
+	})
+	t.Run("should work", func(t *testing.T) {
+		t.Parallel()
+
+		ph := dataRetrieverMock.NewPoolsHolderMock()
+		tc, err := createMockTransactionCoordinatorForProposalTests(ph)
+		require.Nil(t, err)
+		require.NotNil(t, tc)
+
+		body := &block.Body{
+			MiniBlocks: []*block.MiniBlock{
+				{},
+			},
+		}
+		err = tc.verifyCreatedMiniBlocksSanity(body)
+		require.NoError(t, err)
+	})
+}
+
 func createPreProcessorContainerWithPoolsHolder(poolsHolder dataRetriever.PoolsHolder) process.PreProcessorsContainer {
 	preProcessorsFactoryArgs := shard.ArgsPreProcessorsContainerFactory{
 		ShardCoordinator: mock.NewMultiShardsCoordinatorMock(5),
