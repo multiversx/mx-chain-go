@@ -214,8 +214,34 @@ func CreateCoreComponents(args ArgsCoreComponentsHolder) (*coreComponentsHolder,
 		"nodesSetup start time", nodesSetup.StartTime,
 	)
 
+	instance.roundNotifier = forking.NewGenericRoundNotifier()
+	instance.enableRoundsHandler, err = enablers.NewEnableRoundsHandler(args.RoundsConfig, instance.roundNotifier)
+	if err != nil {
+		return nil, err
+	}
+
 	roundDuration := time.Millisecond * time.Duration(instance.genesisNodesSetup.GetRoundDuration())
-	instance.roundHandler = NewManualRoundHandler(startTime.UnixMilli(), roundDuration, args.InitialRound)
+	supernovaRound := instance.enableRoundsHandler.GetActivationRound(common.SupernovaRoundFlag)
+	instance.supernovaGenesisTime = instance.genesisTime.Add(time.Duration(supernovaRound) * roundDuration)
+
+	supernovaActivationEpoch := instance.enableEpochsHandler.GetActivationEpoch(common.SupernovaFlag)
+	chainParamsForSupernova, err := instance.chainParametersHandler.ChainParametersForEpoch(supernovaActivationEpoch)
+	if err != nil {
+		return nil, err
+	}
+
+	argsManualRoundHandler := ArgManualRoundHandler{
+		EnableRoundsHandler:       instance.enableRoundsHandler,
+		GenesisTimeStamp:          startTime.UnixMilli(),
+		SupernovaGenesisTimeStamp: instance.supernovaGenesisTime.UnixMilli(),
+		RoundDuration:             roundDuration,
+		SupernovaRoundDuration:    time.Duration(chainParamsForSupernova.RoundDuration) * time.Millisecond,
+		InitialRound:              args.InitialRound,
+	}
+	instance.roundHandler, err = NewManualRoundHandler(argsManualRoundHandler)
+	if err != nil {
+		return nil, err
+	}
 
 	instance.wasmVMChangeLocker = &sync.RWMutex{}
 	instance.txVersionChecker = versioning.NewTxVersionChecker(args.Config.GeneralSettings.MinTransactionVersion)
@@ -260,16 +286,8 @@ func CreateCoreComponents(args ArgsCoreComponentsHolder) (*coreComponentsHolder,
 		return nil, err
 	}
 
-	instance.roundNotifier = forking.NewGenericRoundNotifier()
-	instance.enableRoundsHandler, err = enablers.NewEnableRoundsHandler(args.RoundsConfig, instance.roundNotifier)
-	if err != nil {
-		return nil, err
-	}
-
 	instance.chanStopNodeProcess = args.ChanStopNodeProcess
 	instance.genesisTime = time.Unix(instance.genesisNodesSetup.GetStartTime(), 0)
-	supernovaRound := instance.enableRoundsHandler.GetActivationRound(common.SupernovaRoundFlag)
-	instance.supernovaGenesisTime = instance.genesisTime.Add(time.Duration(supernovaRound) * roundDuration)
 	instance.chainID = args.Config.GeneralSettings.ChainID
 	instance.minTransactionVersion = args.Config.GeneralSettings.MinTransactionVersion
 	instance.encodedAddressLen, err = computeEncodedAddressLen(instance.addressPubKeyConverter)
