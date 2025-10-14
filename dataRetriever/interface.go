@@ -253,6 +253,8 @@ type PoolsHolder interface {
 	Heartbeats() storage.Cacher
 	ValidatorsInfo() ShardedDataCacherNotifier
 	Proofs() ProofsPool
+	ExecutedMiniBlocks() storage.Cacher
+	PostProcessTransactions() storage.Cacher
 	Close() error
 	IsInterfaceNil() bool
 }

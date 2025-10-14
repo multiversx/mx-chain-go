@@ -58,6 +58,7 @@ func NewRewardTxPreprocessor(args RewardsPreProcessorArgs) (*rewardTxPreprocesso
 		processedMiniBlocksTracker: args.ProcessedMiniBlocksTracker,
 		txExecutionOrderHandler:    args.TxExecutionOrderHandler,
 		enableEpochsHandler:        args.EnableEpochsHandler,
+		enableRoundsHandler:        args.EnableRoundsHandler,
 	}
 
 	rtp := &rewardTxPreprocessor{

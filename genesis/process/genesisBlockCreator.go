@@ -542,16 +542,9 @@ func (gbc *genesisBlockCreator) getNewArgForShard(shardID uint32) (ArgsGenesisBl
 }
 
 func (gbc *genesisBlockCreator) createVersionedHeaderFactory() (genesis.VersionedHeaderFactory, error) {
-	cacheConfig := factory.GetCacherFromConfig(gbc.arg.HeaderVersionConfigs.Cache)
-	cache, err := storageunit.NewCache(cacheConfig)
-	if err != nil {
-		return nil, err
-	}
-
 	headerVersionHandler, err := factoryBlock.NewHeaderVersionHandler(
 		gbc.arg.HeaderVersionConfigs.VersionsByEpochs,
 		gbc.arg.HeaderVersionConfigs.DefaultVersion,
-		cache,
 	)
 	if err != nil {
 		return nil, err

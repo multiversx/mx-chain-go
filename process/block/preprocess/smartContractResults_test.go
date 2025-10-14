@@ -185,6 +185,19 @@ func TestScrsPreprocessor_NewSmartContractResultPreprocessorNilGasHandler(t *tes
 	assert.Equal(t, process.ErrNilGasHandler, err)
 }
 
+func TestScrsPreprocessor_NewSmartContractResultPreprocessorNilEnableRoundsHandler(t *testing.T) {
+	t.Parallel()
+
+	tdp := initDataPool()
+	args := createDefaultSmartContractProcessorArgs(tdp)
+	args.EnableRoundsHandler = nil
+
+	txs, err := NewSmartContractResultPreprocessor(args)
+
+	assert.Nil(t, txs)
+	assert.Equal(t, process.ErrNilEnableRoundsHandler, err)
+}
+
 func TestScrsPreprocessor_NewSmartContractResultPreprocessorShouldWork(t *testing.T) {
 	t.Parallel()
 
@@ -664,7 +677,7 @@ func TestScrsPreprocessor_SaveTxsToStorageShouldSaveCorrectly(t *testing.T) {
 
 	scrForBlock.mutTxsForBlock.Lock()
 	for _, hash := range txHashes {
-		scrForBlock.txHashAndInfo[string(hash)] = &TxInfo{
+		scrForBlock.txHashAndInfo[string(hash)] = &process.TxInfo{
 			Tx: &smartContractResult.SmartContractResult{
 				Data: hash,
 			},
@@ -1080,7 +1093,32 @@ func createDefaultSmartContractProcessorArgs(tdp dataRetriever.PoolsHolder) Smar
 			TxExecutionOrderHandler:    &commonTests.TxExecutionOrderHandlerStub{},
 			EconomicsFee:               feeHandlerMock(),
 			EnableEpochsHandler:        enableEpochsHandlerMock.NewEnableEpochsHandlerStub(),
+			EnableRoundsHandler:        &testscommon.EnableRoundsHandlerStub{},
 		},
 		ScrProcessor: &testscommon.TxProcessorMock{},
 	}
+}
+
+func TestSmartContractResults_GetCreatedMiniBlocksFromMe(t *testing.T) {
+	t.Parallel()
+
+	tdp := initDataPool()
+	args := createDefaultSmartContractProcessorArgs(tdp)
+	scrPreproc, _ := NewSmartContractResultPreprocessor(args)
+
+	// always returns empty
+	createdMbs := scrPreproc.GetCreatedMiniBlocksFromMe()
+	assert.Len(t, createdMbs, 0)
+}
+
+func TestSmartContractResult_GetUnExecutableTransactions(t *testing.T) {
+	t.Parallel()
+
+	tdp := initDataPool()
+	args := createDefaultSmartContractProcessorArgs(tdp)
+	scrPreproc, _ := NewSmartContractResultPreprocessor(args)
+
+	// always returns empty
+	unexecTxs := scrPreproc.GetUnExecutableTransactions()
+	assert.Len(t, unexecTxs, 0)
 }

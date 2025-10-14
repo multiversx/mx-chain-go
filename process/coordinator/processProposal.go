@@ -16,14 +16,14 @@ import (
 func (tc *transactionCoordinator) CreateMbsCrossShardDstMe(
 	hdr data.HeaderHandler,
 	processedMiniBlocksInfo map[string]*processedMb.ProcessedMiniBlockInfo,
-) ([]block.MiniblockAndHash, uint32, bool, error) {
+) (addedMiniBlocksAndHashes []block.MiniblockAndHash, pendingMiniBlocksAndHashes []block.MiniblockAndHash, numTransactions uint32, allMiniBlocksAdded bool, err error) {
 	if check.IfNil(hdr) {
-		return nil, 0, false, process.ErrNilHeaderHandler
+		return nil, nil, 0, false, process.ErrNilHeaderHandler
 	}
 
 	numMiniBlocksAlreadyProcessed := 0
 	miniBlocksAndHashes := make([]block.MiniblockAndHash, 0)
-	numTransactions := uint32(0)
+	numTransactions = uint32(0)
 	shouldSkipShard := make(map[uint32]bool)
 
 	finalCrossMiniBlockInfos := tc.blockDataRequesterProposal.GetFinalCrossMiniBlockInfoAndRequestMissing(hdr)
@@ -88,7 +88,7 @@ func (tc *transactionCoordinator) CreateMbsCrossShardDstMe(
 
 		preproc := tc.preProcProposal.getPreProcessor(miniBlock.Type)
 		if check.IfNil(preproc) {
-			return nil, 0, false, fmt.Errorf("%w unknown block type %d", process.ErrNilPreProcessor, miniBlock.Type)
+			return nil, nil, 0, false, fmt.Errorf("%w unknown block type %d", process.ErrNilPreProcessor, miniBlock.Type)
 		}
 
 		existingTxsForMb, missingTxs := preproc.GetTransactionsAndRequestMissingForMiniBlock(miniBlock)
@@ -129,22 +129,24 @@ func (tc *transactionCoordinator) CreateMbsCrossShardDstMe(
 
 	lastMBIndex, _, err := tc.gasComputation.CheckIncomingMiniBlocks(mbsSlice, txsForMbs)
 	if err != nil {
-		return nil, 0, false, err
+		return nil, nil, 0, false, err
 	}
 
 	// if not all mini blocks were included, remove them from the miniBlocksAndHashes slice
+	// but add them into pendingMiniBlocksAndHashes
 	if lastMBIndex != len(mbsSlice) {
+		pendingMiniBlocksAndHashes = miniBlocksAndHashes[lastMBIndex:]
 		miniBlocksAndHashes = miniBlocksAndHashes[:lastMBIndex+1]
 	}
 
-	allMiniBlocksAdded := len(miniBlocksAndHashes)+numMiniBlocksAlreadyProcessed == len(finalCrossMiniBlockInfos)
+	allMiniBlocksAdded = len(miniBlocksAndHashes)+numMiniBlocksAlreadyProcessed == len(finalCrossMiniBlockInfos)
 
-	return miniBlocksAndHashes, numTransactions, allMiniBlocksAdded, nil
+	return miniBlocksAndHashes, pendingMiniBlocksAndHashes, numTransactions, allMiniBlocksAdded, nil
 }
 
 // SelectOutgoingTransactions returns transactions originating in the shard, for a block proposal
-func (tc *transactionCoordinator) SelectOutgoingTransactions() [][]byte {
-	selectedTxHashes := make([][]byte, 0)
+func (tc *transactionCoordinator) SelectOutgoingTransactions() (selectedTxHashes [][]byte, selectedPendingIncomingMiniBlocks []data.MiniBlockHeaderHandler) {
+	selectedTxHashes = make([][]byte, 0)
 	selectedTxs := make([]data.TransactionHandler, 0)
 	for _, blockType := range tc.preProcProposal.keysTxPreProcs {
 		txPreProc := tc.preProcProposal.getPreProcessor(blockType)
@@ -163,12 +165,12 @@ func (tc *transactionCoordinator) SelectOutgoingTransactions() [][]byte {
 		selectedTxs = append(selectedTxs, txs...)
 	}
 
-	selectedTxHashes, err := tc.gasComputation.CheckOutgoingTransactions(selectedTxHashes, selectedTxs)
+	selectedTxHashes, pendingMiniBlocksAdded, err := tc.gasComputation.CheckOutgoingTransactions(selectedTxHashes, selectedTxs)
 	if err != nil {
 		log.Warn("transactionCoordinator.CheckOutgoingTransactions: CheckOutgoingTransactions returned error", "error", err)
 	}
 
-	return selectedTxHashes
+	return selectedTxHashes, pendingMiniBlocksAdded
 }
 
 func (tc *transactionCoordinator) verifyCreatedMiniBlocksSanity(body *block.Body) error {
@@ -201,7 +203,7 @@ func (tc *transactionCoordinator) verifyCreatedMiniBlocksSanity(body *block.Body
 	}
 
 	if !reflect.DeepEqual(allTxsInBody, allCollectedTxs) {
-		return process.ErrTransactionsMissmatch
+		return process.ErrTransactionsMismatch
 	}
 
 	return nil
