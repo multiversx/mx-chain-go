@@ -422,7 +422,7 @@ func TestMultiDataInterceptor_ProcessReceivedMessageCheckBatchErrors(t *testing.
 	expectedErr := errors.New("expected error")
 	_ = mdi.SetChunkProcessor(
 		&mock.ChunkProcessorStub{
-			CheckBatchCalled: func(b *batch.Batch, w process.WhiteListHandler) (process.CheckedChunkResult, error) {
+			CheckBatchCalled: func(b *batch.Batch, w process.WhiteListHandler, _ p2p.BroadcastMethod) (process.CheckedChunkResult, error) {
 				return process.CheckedChunkResult{}, expectedErr
 			},
 		},
@@ -461,7 +461,7 @@ func TestMultiDataInterceptor_ProcessReceivedMessageCheckBatchIsIncomplete(t *te
 	mdi, _ := interceptors.NewMultiDataInterceptor(arg)
 	_ = mdi.SetChunkProcessor(
 		&mock.ChunkProcessorStub{
-			CheckBatchCalled: func(b *batch.Batch, w process.WhiteListHandler) (process.CheckedChunkResult, error) {
+			CheckBatchCalled: func(b *batch.Batch, w process.WhiteListHandler, _ p2p.BroadcastMethod) (process.CheckedChunkResult, error) {
 				return process.CheckedChunkResult{
 					IsChunk:        true,
 					HaveAllChunks:  false,
@@ -517,7 +517,7 @@ func TestMultiDataInterceptor_ProcessReceivedMessageCheckBatchIsComplete(t *test
 	mdi, _ := interceptors.NewMultiDataInterceptor(arg)
 	_ = mdi.SetChunkProcessor(
 		&mock.ChunkProcessorStub{
-			CheckBatchCalled: func(b *batch.Batch, w process.WhiteListHandler) (process.CheckedChunkResult, error) {
+			CheckBatchCalled: func(b *batch.Batch, w process.WhiteListHandler, _ p2p.BroadcastMethod) (process.CheckedChunkResult, error) {
 				return process.CheckedChunkResult{
 					IsChunk:        true,
 					HaveAllChunks:  true,

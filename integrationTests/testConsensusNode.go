@@ -302,6 +302,7 @@ func (tcn *TestConsensusNode) initNode(args ArgsTestConsensusNode) {
 			RoundHandler:         roundHandler,
 			AppStatusHandler:     &statusHandlerMock.AppStatusHandlerStub{},
 			EnableEpochsHandler:  enableEpochsHandler,
+			CommonConfigsHandler: testscommon.GetDefaultCommonConfigsHandler(),
 		}
 		epochStartTrigger, err := shardchain.NewEpochStartTrigger(argsShardEpochStart)
 		if err != nil {
@@ -472,8 +473,9 @@ func (tcn *TestConsensusNode) initInterceptors(
 	epochStartTrigger TestEpochStartTrigger,
 ) {
 	interceptorDataVerifierArgs := interceptorsFactory.InterceptedDataVerifierFactoryArgs{
-		CacheSpan:   time.Second * 10,
-		CacheExpiry: time.Second * 10,
+		InterceptedDataVerifierConfig: config.InterceptedDataVerifierConfig{
+			EnableCaching: false,
+		},
 	}
 
 	accountsAdapter := epochStartDisabled.NewAccountsAdapter()
@@ -561,6 +563,7 @@ func (tcn *TestConsensusNode) initInterceptors(
 			RoundHandler:         roundHandler,
 			AppStatusHandler:     &statusHandlerMock.AppStatusHandlerStub{},
 			EnableEpochsHandler:  enableEpochsHandler,
+			CommonConfigsHandler: testscommon.GetDefaultCommonConfigsHandler(),
 		}
 		_, _ = shardchain.NewEpochStartTrigger(argsShardEpochStart)
 
