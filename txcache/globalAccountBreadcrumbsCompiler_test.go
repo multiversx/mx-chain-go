@@ -684,3 +684,18 @@ func Test_updateGlobalBreadcrumbsOnRemovedBlockOnExecuted(t *testing.T) {
 		require.Equal(t, errNegativeBalanceForBreadcrumb, err)
 	})
 }
+
+func Test_cleanGlobalBreadcrumbs(t *testing.T) {
+	t.Parallel()
+
+	gabc := newGlobalAccountBreadcrumbsCompiler()
+	gabc.globalAccountBreadcrumbs = map[string]*globalAccountBreadcrumb{
+		"alice": {},
+		"bob":   {},
+	}
+
+	require.Equal(t, 2, len(gabc.globalAccountBreadcrumbs))
+
+	gabc.cleanGlobalBreadcrumbs()
+	require.Equal(t, 0, len(gabc.globalAccountBreadcrumbs))
+}

@@ -138,6 +138,9 @@ func (cache *DisabledCache) OnExecutedBlock(data.HeaderHandler) error {
 	return nil
 }
 
+// ResetTracker does nothing
+func (cache *DisabledCache) ResetTracker() {}
+
 // Cleanup does nothing
 func (cache *DisabledCache) Cleanup(_ common.AccountNonceProvider, _ uint64, _ int, _ time.Duration) uint64 {
 	return 0

@@ -112,3 +112,11 @@ func (gabc *globalAccountBreadcrumbsCompiler) getGlobalBreadcrumbs() map[string]
 
 	return globalBreadcrumbsCopy
 }
+
+// cleanGlobalBreadcrumbs resets the global accounts breadcrumbs
+func (gabc *globalAccountBreadcrumbsCompiler) cleanGlobalBreadcrumbs() {
+	gabc.mutCompiler.Lock()
+	defer gabc.mutCompiler.Unlock()
+
+	gabc.globalAccountBreadcrumbs = make(map[string]*globalAccountBreadcrumb)
+}
