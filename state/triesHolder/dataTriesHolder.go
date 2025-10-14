@@ -54,10 +54,15 @@ func (dth *dataTriesHolder) Put(key []byte, tr common.Trie) {
 	dth.mutex.Lock()
 	defer dth.mutex.Unlock()
 
-	dth.putUnprotected(key, tr)
+	dth.putNoLock(key, tr)
 }
 
-func (dth *dataTriesHolder) putUnprotected(key []byte, tr common.Trie) {
+func (dth *dataTriesHolder) putNoLock(key []byte, tr common.Trie) {
+	if check.IfNil(tr) || len(key) == 0 {
+		log.Warn("trying to put nil trie or empty key in dataTriesHolder", "key", key, "trie", tr)
+		return
+	}
+
 	keyString := string(key)
 
 	if len(dth.evictedBuffer) > 0 {
@@ -97,8 +102,13 @@ func (dth *dataTriesHolder) putUnprotected(key []byte, tr common.Trie) {
 
 // Get returns the trie pointer that is stored in the map at the given key
 func (dth *dataTriesHolder) Get(key []byte) common.Trie {
+	if len(key) == 0 {
+		return nil
+	}
+
 	dth.mutex.Lock()
 	defer dth.mutex.Unlock()
+
 	keyString := string(key)
 
 	val, ok := dth.cacher.Get(keyString)
@@ -110,7 +120,7 @@ func (dth *dataTriesHolder) Get(key []byte) common.Trie {
 		}
 
 		delete(dth.evictedBuffer, keyString)
-		dth.putUnprotected(key, evictedTr)
+		dth.putNoLock(key, evictedTr)
 		return evictedTr
 	}
 

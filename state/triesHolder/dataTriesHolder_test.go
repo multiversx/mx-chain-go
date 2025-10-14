@@ -64,6 +64,19 @@ func TestNewDataTriesHolder(t *testing.T) {
 func TestDataTriesHolder_Put(t *testing.T) {
 	t.Parallel()
 
+	t.Run("put invalid data", func(t *testing.T) {
+		t.Parallel()
+
+		dth, _ := NewDataTriesHolder(dthSize)
+
+		dth.Put([]byte("key"), nil)
+		dth.Put(nil, &trieMock.TrieStub{})
+		assert.Equal(t, uint64(0), dth.cacher.SizeInBytesContained())
+		assert.Equal(t, 0, dth.cacher.Len())
+		assert.Equal(t, 0, len(dth.dirtyTries))
+		assert.Equal(t, 0, len(dth.touchedTries))
+		assert.Equal(t, 0, len(dth.evictedBuffer))
+	})
 	t.Run("put in empty tries holder", func(t *testing.T) {
 		t.Parallel()
 
