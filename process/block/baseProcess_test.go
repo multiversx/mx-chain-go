@@ -3790,3 +3790,159 @@ func TestCheckHeaderBodyCorrelationProposal(t *testing.T) {
 		require.NoError(t, err)
 	})
 }
+
+func TestBaseProcessor_GetFinalMiniBlocksFromExecutionResult(t *testing.T) {
+	t.Parallel()
+
+	t.Run("no execution results, should return empty body", func(t *testing.T) {
+		t.Parallel()
+
+		arguments := CreateMockArguments(createComponentHolderMocks())
+		bp, _ := blproc.NewShardProcessor(arguments)
+
+		header := &block.HeaderV3{}
+
+		body, err := bp.GetFinalMiniBlocksFromExecutionResults(header)
+		require.Nil(t, err)
+		require.Equal(t, &block.Body{}, body)
+	})
+
+	t.Run("should fail if miniblock not found in cache", func(t *testing.T) {
+		t.Parallel()
+
+		executedMBs := &cache.CacherStub{
+			GetCalled: func(key []byte) (value interface{}, ok bool) {
+				return nil, false
+			},
+		}
+		dataPool := initDataPool()
+		dataPool.ExecutedMiniBlocksCalled = func() storage.Cacher {
+			return executedMBs
+		}
+
+		coreComponents, dataComponents, bootstrapComponents, statusComponents := createComponentHolderMocks()
+		dataComponents.DataPool = dataPool
+
+		arguments := CreateMockArguments(coreComponents, dataComponents, bootstrapComponents, statusComponents)
+
+		bp, _ := blproc.NewShardProcessor(arguments)
+
+		executionResults := []*block.ExecutionResult{
+			&block.ExecutionResult{
+				MiniBlockHeaders: []block.MiniBlockHeader{
+					block.MiniBlockHeader{
+						Hash:            []byte("mbHash1"),
+						ReceiverShardID: 1,
+						SenderShardID:   0,
+					},
+					block.MiniBlockHeader{
+						Hash:            []byte("mbHash2"),
+						ReceiverShardID: 1,
+						SenderShardID:   0,
+					},
+				},
+			},
+		}
+		header := &block.HeaderV3{
+			ExecutionResults: executionResults,
+		}
+
+		body, err := bp.GetFinalMiniBlocksFromExecutionResults(header)
+		require.Equal(t, process.ErrMissingMiniBlock, err)
+		require.Nil(t, body)
+	})
+
+	t.Run("should fail if miniblock not marshalled properly", func(t *testing.T) {
+		t.Parallel()
+
+		executedMBs := &cache.CacherStub{
+			GetCalled: func(key []byte) (value interface{}, ok bool) {
+				return []byte("invalid miniblock"), true
+			},
+		}
+		dataPool := initDataPool()
+		dataPool.ExecutedMiniBlocksCalled = func() storage.Cacher {
+			return executedMBs
+		}
+
+		coreComponents, dataComponents, bootstrapComponents, statusComponents := createComponentHolderMocks()
+		dataComponents.DataPool = dataPool
+
+		arguments := CreateMockArguments(coreComponents, dataComponents, bootstrapComponents, statusComponents)
+
+		bp, _ := blproc.NewShardProcessor(arguments)
+
+		executionResults := []*block.ExecutionResult{
+			&block.ExecutionResult{
+				MiniBlockHeaders: []block.MiniBlockHeader{
+					block.MiniBlockHeader{
+						Hash:            []byte("mbHash1"),
+						ReceiverShardID: 1,
+						SenderShardID:   0,
+					},
+				},
+			},
+		}
+		header := &block.HeaderV3{
+			ExecutionResults: executionResults,
+		}
+
+		body, err := bp.GetFinalMiniBlocksFromExecutionResults(header)
+		require.Error(t, err) // unmarshall err
+		require.Nil(t, body)
+	})
+
+	t.Run("should work", func(t *testing.T) {
+		t.Parallel()
+
+		marshalizer := &mock.MarshalizerMock{
+			Fail: false,
+		}
+
+		mb1 := &block.MiniBlock{
+			TxHashes:        [][]byte{[]byte("txHash1")},
+			ReceiverShardID: 1,
+			SenderShardID:   2,
+		}
+
+		executedMBs := &cache.CacherStub{
+			GetCalled: func(key []byte) (value interface{}, ok bool) {
+				marshalledMb, _ := marshalizer.Marshal(mb1)
+				return marshalledMb, true
+			},
+		}
+		dataPool := initDataPool()
+		dataPool.ExecutedMiniBlocksCalled = func() storage.Cacher {
+			return executedMBs
+		}
+
+		coreComponents, dataComponents, bootstrapComponents, statusComponents := createComponentHolderMocks()
+		dataComponents.DataPool = dataPool
+		coreComponents.IntMarsh = marshalizer
+
+		arguments := CreateMockArguments(coreComponents, dataComponents, bootstrapComponents, statusComponents)
+
+		bp, _ := blproc.NewShardProcessor(arguments)
+
+		executionResults := []*block.ExecutionResult{
+			&block.ExecutionResult{
+				MiniBlockHeaders: []block.MiniBlockHeader{
+					block.MiniBlockHeader{
+						Hash:            []byte("mbHash1"),
+						ReceiverShardID: 1,
+						SenderShardID:   0,
+					},
+				},
+			},
+		}
+		header := &block.HeaderV3{
+			ExecutionResults: executionResults,
+		}
+
+		body, err := bp.GetFinalMiniBlocksFromExecutionResults(header)
+		require.Nil(t, err) // unmarshall err
+		require.Equal(t, &block.Body{
+			MiniBlocks: []*block.MiniBlock{mb1},
+		}, body)
+	})
+}

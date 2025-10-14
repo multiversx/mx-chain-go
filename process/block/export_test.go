@@ -727,6 +727,13 @@ func (bp *baseProcessor) CheckHeaderBodyCorrelationProposal(miniBlockHeaders []d
 	return bp.checkHeaderBodyCorrelationProposal(miniBlockHeaders, body)
 }
 
+// GetFinalMiniBlocksFromExecutionResults -
+func (bp *baseProcessor) GetFinalMiniBlocksFromExecutionResults(
+	header data.HeaderHandler,
+) (*block.Body, error) {
+	return bp.getFinalMiniBlocksFromExecutionResults(header)
+}
+
 // VerifyCrossShardMiniBlockDstMe -
 func (sp *shardProcessor) VerifyCrossShardMiniBlockDstMe(header data.ShardHeaderHandler) error {
 	return sp.verifyCrossShardMiniBlockDstMe(header)
