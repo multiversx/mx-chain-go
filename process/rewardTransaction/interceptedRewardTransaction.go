@@ -134,6 +134,11 @@ func (inRTx *InterceptedRewardTransaction) CheckValidity() error {
 	return nil
 }
 
+// ShouldAllowDuplicates returns if this type of intercepted data should allow duplicates
+func (inRTx *InterceptedRewardTransaction) ShouldAllowDuplicates() bool {
+	return false
+}
+
 // IsForCurrentShard returns true if this transaction is meant to be processed by the node from this shard
 func (inRTx *InterceptedRewardTransaction) IsForCurrentShard() bool {
 	return inRTx.isForCurrentShard
