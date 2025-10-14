@@ -588,6 +588,7 @@ func (tpn *TestFullNode) initNode(
 	processComponents.ScheduledTxsExecutionHandlerInternal = &testscommon.ScheduledTxsExecutionStub{}
 	processComponents.ProcessedMiniBlocksTrackerInternal = &testscommon.ProcessedMiniBlocksTrackerStub{}
 	processComponents.SentSignaturesTrackerInternal = &testscommon.SentSignatureTrackerStub{}
+	processComponents.BlocksQueueField = tpn.BlocksQueue
 
 	processComponents.RoundHandlerField = roundHandler
 	processComponents.EpochNotifier = tpn.EpochStartNotifier

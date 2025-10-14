@@ -3787,10 +3787,11 @@ func GetDefaultCryptoComponents() *mock.CryptoComponentsStub {
 // GetDefaultStateComponents -
 func GetDefaultStateComponents() *testFactory.StateComponentsMock {
 	return &testFactory.StateComponentsMock{
-		PeersAcc:     &stateMock.AccountsStub{},
-		Accounts:     &stateMock.AccountsStub{},
-		AccountsRepo: &stateMock.AccountsRepositoryStub{},
-		Tries:        &trieMock.TriesHolderStub{},
+		PeersAcc:         &stateMock.AccountsStub{},
+		Accounts:         &stateMock.AccountsStub{},
+		AccountsProposal: &stateMock.AccountsStub{},
+		AccountsRepo:     &stateMock.AccountsRepositoryStub{},
+		Tries:            &trieMock.TriesHolderStub{},
 		StorageManagers: map[string]common.StorageManager{
 			"0":                                     &storageManager.StorageManagerStub{},
 			dataRetriever.UserAccountsUnit.String(): &storageManager.StorageManagerStub{},

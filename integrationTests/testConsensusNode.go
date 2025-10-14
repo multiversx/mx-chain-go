@@ -16,6 +16,7 @@ import (
 	crypto "github.com/multiversx/mx-chain-crypto-go"
 	mclMultiSig "github.com/multiversx/mx-chain-crypto-go/signing/mcl/multisig"
 	"github.com/multiversx/mx-chain-crypto-go/signing/multisig"
+	"github.com/multiversx/mx-chain-go/testscommon/processMocks"
 
 	"github.com/multiversx/mx-chain-go/common"
 	"github.com/multiversx/mx-chain-go/common/enablers"
@@ -428,6 +429,7 @@ func (tcn *TestConsensusNode) initNode(args ArgsTestConsensusNode) {
 	processComponents.ScheduledTxsExecutionHandlerInternal = &testscommon.ScheduledTxsExecutionStub{}
 	processComponents.ProcessedMiniBlocksTrackerInternal = &testscommon.ProcessedMiniBlocksTrackerStub{}
 	processComponents.SentSignaturesTrackerInternal = &testscommon.SentSignatureTrackerStub{}
+	processComponents.BlocksQueueField = &processMocks.BlocksQueueMock{}
 
 	tcn.initInterceptors(coreComponents, cryptoComponents, roundHandler, enableEpochsHandler, store, epochTrigger)
 	processComponents.IntContainer = tcn.MainInterceptorsContainer
@@ -439,6 +441,7 @@ func (tcn *TestConsensusNode) initNode(args ArgsTestConsensusNode) {
 
 	stateComponents := GetDefaultStateComponents()
 	stateComponents.Accounts = tcn.AccountsDB
+	stateComponents.AccountsProposal = tcn.AccountsDB
 	stateComponents.AccountsAPI = tcn.AccountsDB
 
 	statusCoreComponents := &testFactory.StatusCoreComponentsStub{

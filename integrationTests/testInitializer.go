@@ -2353,6 +2353,7 @@ func generateValidTx(
 
 	stateComponents := GetDefaultStateComponents()
 	stateComponents.Accounts = accnts
+	stateComponents.AccountsProposal = accnts
 	stateComponents.AccountsAPI = accnts
 
 	mockNode, _ := node.NewNode(

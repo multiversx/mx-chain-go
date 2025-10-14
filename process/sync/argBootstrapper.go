@@ -34,6 +34,7 @@ type ArgBaseBootstrapper struct {
 	RequestHandler               process.RequestHandler
 	ShardCoordinator             sharding.Coordinator
 	Accounts                     state.AccountsAdapter
+	AccountsProposal             state.AccountsAdapter
 	BlackListHandler             process.TimeCacher
 	NetworkWatcher               process.NetworkConnectionWatcher
 	BootStorer                   process.BootStorer
@@ -48,6 +49,7 @@ type ArgBaseBootstrapper struct {
 	IsInImportMode               bool
 	ScheduledTxsExecutionHandler process.ScheduledTxsExecutionHandler
 	ProcessWaitTime              time.Duration
+	ProcessWaitTimeSupernova     time.Duration
 	RepopulateTokensSupplies     bool
 	EnableEpochsHandler          common.EnableEpochsHandler
 	EnableRoundsHandler          common.EnableRoundsHandler

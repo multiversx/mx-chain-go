@@ -1446,6 +1446,7 @@ func deleteSelfReceiptsMiniBlocks(body *block.Body) *block.Body {
 }
 
 func (bp *baseProcessor) getNoncesToFinal(headerHandler data.HeaderHandler) uint64 {
+	// TODO: modify this method to return last execution result nonce for header v3
 	currentBlockNonce := bp.genesisNonce
 	if !check.IfNil(headerHandler) {
 		currentBlockNonce = headerHandler.GetNonce()

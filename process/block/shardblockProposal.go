@@ -82,7 +82,7 @@ func (sp *shardProcessor) CreateBlockProposal(
 
 	body := &block.Body{MiniBlocks: miniBlocks}
 
-	err = sp.verifyGasLimit(body, shardHdr)
+	err = sp.verifyGasLimit(shardHdr)
 	if err != nil {
 		return nil, nil, err
 	}
@@ -211,10 +211,15 @@ func (sp *shardProcessor) VerifyBlockProposal(
 		return err
 	}
 
-	return sp.verifyGasLimit(body, header)
+	err = sp.verifyGasLimit(header)
+	if err != nil {
+		return err
+	}
+
+	return sp.onProposedBlock(body, header)
 }
 
-func (sp *shardProcessor) verifyGasLimit(body *block.Body, header data.ShardHeaderHandler) error {
+func (sp *shardProcessor) verifyGasLimit(header data.ShardHeaderHandler) error {
 	incomingMiniBlocks, incomingTransactions, outgoingTransactionHashes, outgoingTransactions, err := sp.splitTransactionsForHeader(header)
 	if err != nil {
 		return err
@@ -238,11 +243,7 @@ func (sp *shardProcessor) verifyGasLimit(body *block.Body, header data.ShardHead
 		return fmt.Errorf("%w, incoming mini blocks exceeded the limit", process.ErrInvalidMaxGasLimitPerMiniBlock)
 	}
 
-	// TODO: the verification needs a cutoff handler as well - e.g stop after the block including the execution results for
-	// the configured cutoff round/nonce/epoch
-	// errCutoff := sp.blockProcessingCutoffHandler.HandleProcessErrorCutoff(header)
-
-	return sp.onProposedBlock(body, header)
+	return nil
 }
 
 func (sp *shardProcessor) onProposedBlock(body *block.Body, header data.HeaderHandler) error {
@@ -253,7 +254,8 @@ func (sp *shardProcessor) onProposedBlock(body *block.Body, header data.HeaderHa
 		return err
 	}
 
-	lastExecResHandler, err := common.GetLastBaseExecutionResultHandler(header)
+	currentHeader := sp.getCurrentHeader()
+	lastExecResHandler, err := common.GetLastBaseExecutionResultHandler(currentHeader)
 	if err != nil {
 		return err
 	}
@@ -265,6 +267,15 @@ func (sp *shardProcessor) onProposedBlock(body *block.Body, header data.HeaderHa
 
 	blockChainInfo := holders.NewBlockchainInfo(lastExecResHandler.GetHeaderHash(), header.GetPrevHash(), header.GetNonce())
 	return sp.dataPool.Transactions().OnProposedBlock(hash, body, header, accountsProvider, blockChainInfo)
+}
+
+func (sp *shardProcessor) getCurrentHeader() data.HeaderHandler {
+	currentHeader := sp.blockChain.GetCurrentBlockHeader()
+	if !check.IfNil(currentHeader) {
+		return currentHeader
+	}
+
+	return sp.blockChain.GetGenesisHeader()
 }
 
 func getHaveTimeForProposal(startTime time.Time, maxDuration time.Duration) func() time.Duration {
