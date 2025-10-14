@@ -38,6 +38,7 @@ import (
 	hashingFactory "github.com/multiversx/mx-chain-core-go/hashing/factory"
 	"github.com/multiversx/mx-chain-core-go/marshal"
 	marshalFactory "github.com/multiversx/mx-chain-core-go/marshal/factory"
+
 	commonConfigs "github.com/multiversx/mx-chain-go/common/configs"
 )
 
@@ -268,7 +269,7 @@ func CreateCoreComponents(args ArgsCoreComponentsHolder) (*coreComponentsHolder,
 
 	instance.chanStopNodeProcess = args.ChanStopNodeProcess
 	instance.genesisTime = time.Unix(instance.genesisNodesSetup.GetStartTime(), 0)
-	instance.supernovaGenesisTime = time.UnixMilli(instance.genesisNodesSetup.GetStartTime())
+	instance.supernovaGenesisTime = time.UnixMilli(instance.genesisNodesSetup.GetStartTime() * 1000)
 	instance.chainID = args.Config.GeneralSettings.ChainID
 	instance.minTransactionVersion = args.Config.GeneralSettings.MinTransactionVersion
 	instance.encodedAddressLen, err = computeEncodedAddressLen(instance.addressPubKeyConverter)

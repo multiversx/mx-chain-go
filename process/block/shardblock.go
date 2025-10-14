@@ -972,11 +972,6 @@ func (sp *shardProcessor) CommitBlock(
 
 	sp.saveBody(body, header, headerHash)
 
-	err = sp.saveExecutedData(header, headerHash)
-	if err != nil {
-		return err
-	}
-
 	processedMetaHdrs, err := sp.getOrderedProcessedMetaBlocksFromHeader(header)
 	if err != nil {
 		return err
@@ -1023,6 +1018,8 @@ func (sp *shardProcessor) CommitBlock(
 	if err != nil {
 		return err
 	}
+
+	sp.updateGasConsumptionLimitsIfNeeded()
 
 	errNotCritical := sp.checkSentSignaturesAtCommitTime(headerHandler)
 	if errNotCritical != nil {
@@ -1115,6 +1112,7 @@ func (sp *shardProcessor) CommitBlock(
 		epochStartTriggerConfigKey: epochStartKey,
 	}
 
+	// TODO adjust this method if needed for Supernova
 	sp.prepareDataForBootStorer(args)
 
 	// write data to log
@@ -1141,6 +1139,11 @@ func (sp *shardProcessor) CommitBlock(
 	}
 
 	sp.cleanupPools(headerHandler)
+
+	err = sp.saveExecutedData(header, headerHash)
+	if err != nil {
+		return err
+	}
 
 	sp.blockProcessingCutoffHandler.HandlePauseCutoff(header)
 
@@ -1451,7 +1454,7 @@ func (sp *shardProcessor) saveLastNotarizedHeader(shardId uint32, processedHdrs 
 // CreateNewHeader creates a new header
 func (sp *shardProcessor) CreateNewHeader(round uint64, nonce uint64) (data.HeaderHandler, error) {
 	epoch := sp.epochStartTrigger.MetaEpoch()
-	header := sp.versionedHeaderFactory.Create(epoch)
+	header := sp.versionedHeaderFactory.Create(epoch, round)
 
 	shardHeader, ok := header.(data.ShardHeaderHandler)
 	if !ok {
@@ -1471,12 +1474,7 @@ func (sp *shardProcessor) CreateNewHeader(round uint64, nonce uint64) (data.Head
 		return nil, err
 	}
 
-	err = shardHeader.SetAccumulatedFees(big.NewInt(0))
-	if err != nil {
-		return nil, err
-	}
-
-	err = shardHeader.SetDeveloperFees(big.NewInt(0))
+	err = initializeFeesDataShardHeaderIfNeeded(shardHeader)
 	if err != nil {
 		return nil, err
 	}
@@ -1489,9 +1487,30 @@ func (sp *shardProcessor) CreateNewHeader(round uint64, nonce uint64) (data.Head
 	return header, nil
 }
 
+func initializeFeesDataShardHeaderIfNeeded(shardHeader data.ShardHeaderHandler) error {
+	if shardHeader.IsHeaderV3() {
+		return nil
+	}
+
+	err := shardHeader.SetAccumulatedFees(big.NewInt(0))
+	if err != nil {
+		return err
+	}
+
+	err = shardHeader.SetDeveloperFees(big.NewInt(0))
+	if err != nil {
+		return err
+	}
+
+	return nil
+}
+
 func (sp *shardProcessor) setHeaderVersionData(shardHeader data.ShardHeaderHandler) error {
 	if check.IfNil(shardHeader) {
 		return process.ErrNilHeaderHandler
+	}
+	if shardHeader.IsHeaderV3() {
+		return nil
 	}
 
 	rootHash, err := sp.accountsDB[state.UserAccountsState].RootHash()
@@ -2084,8 +2103,8 @@ func (sp *shardProcessor) createMiniBlocks(haveTime func() bool, randomness []by
 		interMBs := sp.txCoordinator.CreatePostProcessMiniBlocks()
 		miniBlocks = append(miniBlocks, interMBs...)
 
-		log.Debug("transactions and miniblocks from ME are no longer processed until asynchronous execution is activated.")
-		log.Debug("creating mini blocks has been finished", "num miniblocks", len(miniBlocks))
+		log.Debug("outgoing transactions and mini blocks are disabled until Supernova round activation")
+		log.Debug("creating mini blocks has been finished", "num mini blocks", len(miniBlocks))
 
 		return &block.Body{MiniBlocks: miniBlocks}, processedMiniBlocksDestMeInfo, nil
 	}
@@ -2113,11 +2132,9 @@ func (sp *shardProcessor) createMiniBlocks(haveTime func() bool, randomness []by
 }
 
 func shouldDisableOutgoingTxs(enableEpochsHandler common.EnableEpochsHandler, enableRoundsHandler common.EnableRoundsHandler) bool {
-	// // TODO: use flag for async execution
-	// isSupernovaEnabled := enableEpochsHandler.IsFlagEnabled(common.SupernovaFlag)
-	// asyncExecutionEnabled := enableRoundsHandler.IsFlagEnabled(common.SupernovaAsyncExecution)
-	// return isSupernovaEnabled && !asyncExecutionEnabled
-	return false
+	isSupernovaEnabled := enableEpochsHandler.IsFlagEnabled(common.SupernovaFlag)
+	supernovaRoundEnabled := enableRoundsHandler.IsFlagEnabled(common.SupernovaRoundFlag)
+	return isSupernovaEnabled && !supernovaRoundEnabled
 }
 
 // applyBodyToHeader creates a miniblock header list given a block body
@@ -2168,7 +2185,7 @@ func (sp *shardProcessor) applyBodyToHeader(
 	newBody := deleteSelfReceiptsMiniBlocks(body)
 
 	sw.Start("createMiniBlockHeaders")
-	totalTxCount, miniBlockHeaderHandlers, err := sp.createMiniBlockHeaderHandlers(newBody, processedMiniBlocksDestMeInfo, shardHeader.IsHeaderV3())
+	totalTxCount, miniBlockHeaderHandlers, err := sp.createMiniBlockHeaderHandlers(newBody, processedMiniBlocksDestMeInfo)
 	sw.Stop("createMiniBlockHeaders")
 	if err != nil {
 		return nil, err

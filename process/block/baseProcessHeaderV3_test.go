@@ -25,14 +25,18 @@ var (
 	headerHash  = []byte("headerHash")
 )
 
-func TestBaseProcessor_createMiniBlockHeaderHandlers(t *testing.T) {
+func TestBaseProcessor_cacheExecutedMiniBlocks(t *testing.T) {
 	t.Parallel()
 
-	t.Run("not header v3 should skip", func(t *testing.T) {
+	t.Run("marshal error", func(t *testing.T) {
 		t.Parallel()
 
 		bp := &baseProcessor{
-			marshalizer:                &marshallerMock.MarshalizerStub{},
+			marshalizer: &marshallerMock.MarshalizerStub{
+				MarshalCalled: func(obj interface{}) ([]byte, error) {
+					return nil, errExpected
+				},
+			},
 			hasher:                     &testscommon.HasherStub{},
 			shardCoordinator:           &testscommon.ShardsCoordinatorMock{},
 			enableEpochsHandler:        &enableEpochsHandlerMock.EnableEpochsHandlerStub{},
@@ -54,80 +58,10 @@ func TestBaseProcessor_createMiniBlockHeaderHandlers(t *testing.T) {
 				{},
 			},
 		}
-		_, _, err := bp.createMiniBlockHeaderHandlers(body, nil, false)
-		require.NoError(t, err)
-	})
-	t.Run("cross incoming should skip", func(t *testing.T) {
-		t.Parallel()
-
-		bp := &baseProcessor{
-			marshalizer:                &marshallerMock.MarshalizerStub{},
-			hasher:                     &testscommon.HasherStub{},
-			shardCoordinator:           &testscommon.ShardsCoordinatorMock{},
-			enableEpochsHandler:        &enableEpochsHandlerMock.EnableEpochsHandlerStub{},
-			processedMiniBlocksTracker: &testscommon.ProcessedMiniBlocksTrackerStub{},
-			dataPool: &dataRetrieverMock.PoolsHolderStub{
-				ExecutedMiniBlocksCalled: func() storage.Cacher {
-					return &cache.CacherStub{
-						PutCalled: func(key []byte, value interface{}, sizeInBytes int) (evicted bool) {
-							require.Fail(t, "should not be called")
-							return false
-						},
-					}
-				},
-			},
+		mbsHandlers := []data.MiniBlockHeaderHandler{
+			&block.MiniBlockHeader{},
 		}
-
-		body := &block.Body{
-			MiniBlocks: []*block.MiniBlock{
-				{
-					ReceiverShardID: bp.shardCoordinator.SelfId(),
-					SenderShardID:   bp.shardCoordinator.SelfId() + 1,
-				},
-			},
-		}
-		_, _, err := bp.createMiniBlockHeaderHandlers(body, nil, true)
-		require.NoError(t, err)
-	})
-	t.Run("marshal error", func(t *testing.T) {
-		t.Parallel()
-
-		cntMarshal := 0
-		bp := &baseProcessor{
-			marshalizer: &marshallerMock.MarshalizerStub{
-				MarshalCalled: func(obj interface{}) ([]byte, error) {
-					cntMarshal++
-					if cntMarshal == 2 {
-						return nil, errExpected
-					}
-					return []byte(""), nil
-				},
-			},
-			hasher:                     &testscommon.HasherStub{},
-			shardCoordinator:           &testscommon.ShardsCoordinatorMock{},
-			enableEpochsHandler:        &enableEpochsHandlerMock.EnableEpochsHandlerStub{},
-			processedMiniBlocksTracker: &testscommon.ProcessedMiniBlocksTrackerStub{},
-			dataPool: &dataRetrieverMock.PoolsHolderStub{
-				ExecutedMiniBlocksCalled: func() storage.Cacher {
-					return &cache.CacherStub{
-						PutCalled: func(key []byte, value interface{}, sizeInBytes int) (evicted bool) {
-							require.Fail(t, "should not be called")
-							return false
-						},
-					}
-				},
-			},
-		}
-
-		body := &block.Body{
-			MiniBlocks: []*block.MiniBlock{
-				{
-					ReceiverShardID: bp.shardCoordinator.SelfId() + 1,
-					SenderShardID:   bp.shardCoordinator.SelfId(),
-				},
-			},
-		}
-		_, _, err := bp.createMiniBlockHeaderHandlers(body, nil, true)
+		err := bp.cacheExecutedMiniBlocks(body, mbsHandlers)
 		require.Equal(t, errExpected, err)
 	})
 	t.Run("should add executed mini blocks", func(t *testing.T) {
@@ -154,13 +88,13 @@ func TestBaseProcessor_createMiniBlockHeaderHandlers(t *testing.T) {
 
 		body := &block.Body{
 			MiniBlocks: []*block.MiniBlock{
-				{
-					ReceiverShardID: bp.shardCoordinator.SelfId() + 1,
-					SenderShardID:   bp.shardCoordinator.SelfId(),
-				},
+				{},
 			},
 		}
-		_, _, err := bp.createMiniBlockHeaderHandlers(body, nil, true)
+		mbsHandlers := []data.MiniBlockHeaderHandler{
+			&block.MiniBlockHeader{},
+		}
+		err := bp.cacheExecutedMiniBlocks(body, mbsHandlers)
 		require.NoError(t, err)
 		require.True(t, wasPutCalled)
 	})
@@ -362,6 +296,7 @@ func TestBaseProcessor_saveExecutedData(t *testing.T) {
 						}
 					},
 				},
+				shardCoordinator: &testscommon.ShardsCoordinatorMock{},
 			}
 			header := &testscommon.HeaderHandlerStub{
 				IsHeaderV3Called: func() bool {
@@ -381,7 +316,61 @@ func TestBaseProcessor_saveExecutedData(t *testing.T) {
 			err := bp.saveExecutedData(header, headerHash)
 			require.Equal(t, process.ErrMissingMiniBlock, err)
 		})
-		t.Run("putMiniBlocksIntoStorage fails tu add into storer", func(t *testing.T) {
+		t.Run("putMiniBlocksIntoStorage cross-shard incoming should delete only", func(t *testing.T) {
+			t.Parallel()
+
+			bp := &baseProcessor{
+				store: &commonStorage.ChainStorerStub{
+					GetStorerCalled: func(unitType dataRetriever.UnitType) (storage.Storer, error) {
+						return &commonStorage.StorerStub{}, nil
+					},
+				},
+				dataPool: &dataRetrieverMock.PoolsHolderStub{
+					ExecutedMiniBlocksCalled: func() storage.Cacher {
+						return &cache.CacherStub{
+							GetCalled: func(key []byte) (value interface{}, ok bool) {
+								require.Fail(t, "should not be called")
+								return nil, false
+							},
+						}
+					},
+					PostProcessTransactionsCalled: func() storage.Cacher {
+						return &cache.CacherStub{
+							GetCalled: func(key []byte) (value interface{}, ok bool) {
+								return []byte("marshalled map"), true
+							},
+						}
+					},
+				},
+				marshalizer: &marshallerMock.MarshalizerStub{},
+				shardCoordinator: &testscommon.ShardsCoordinatorMock{
+					SelfIDCalled: func() uint32 {
+						return 1
+					},
+				},
+			}
+			header := &testscommon.HeaderHandlerStub{
+				IsHeaderV3Called: func() bool {
+					return true
+				},
+				GetExecutionResultsHandlersCalled: func() []data.BaseExecutionResultHandler {
+					return []data.BaseExecutionResultHandler{
+						&block.ExecutionResult{
+							MiniBlockHeaders: []block.MiniBlockHeader{
+								{
+									ReceiverShardID: 1,
+									SenderShardID:   0,
+								},
+							},
+						},
+					}
+				},
+			}
+
+			err := bp.saveExecutedData(header, headerHash)
+			require.NoError(t, err)
+		})
+		t.Run("putMiniBlocksIntoStorage fails to add into storer", func(t *testing.T) {
 			t.Parallel()
 
 			bp := &baseProcessor{
@@ -403,6 +392,7 @@ func TestBaseProcessor_saveExecutedData(t *testing.T) {
 						}
 					},
 				},
+				shardCoordinator: &testscommon.ShardsCoordinatorMock{},
 			}
 			header := &testscommon.HeaderHandlerStub{
 				IsHeaderV3Called: func() bool {
@@ -443,7 +433,8 @@ func TestBaseProcessor_saveExecutedData(t *testing.T) {
 						}
 					},
 				},
-				marshalizer: &marshallerMock.MarshalizerStub{},
+				marshalizer:      &marshallerMock.MarshalizerStub{},
+				shardCoordinator: &testscommon.ShardsCoordinatorMock{},
 			}
 			header := &testscommon.HeaderHandlerStub{
 				IsHeaderV3Called: func() bool {
@@ -459,7 +450,7 @@ func TestBaseProcessor_saveExecutedData(t *testing.T) {
 			}
 
 			err := bp.saveExecutedData(header, headerHash)
-			require.Equal(t, process.ErrMissingHeader, err)
+			require.True(t, errors.Is(err, process.ErrMissingHeader))
 		})
 		t.Run("unmarshall error", func(t *testing.T) {
 			t.Parallel()
@@ -485,6 +476,7 @@ func TestBaseProcessor_saveExecutedData(t *testing.T) {
 						return errExpected
 					},
 				},
+				shardCoordinator: &testscommon.ShardsCoordinatorMock{},
 			}
 			header := &testscommon.HeaderHandlerStub{
 				IsHeaderV3Called: func() bool {
@@ -528,6 +520,7 @@ func TestBaseProcessor_saveExecutedData(t *testing.T) {
 						return nil
 					},
 				},
+				shardCoordinator: &testscommon.ShardsCoordinatorMock{},
 			}
 			header := &testscommon.HeaderHandlerStub{
 				IsHeaderV3Called: func() bool {
@@ -574,6 +567,7 @@ func TestBaseProcessor_saveExecutedData(t *testing.T) {
 						return nil
 					},
 				},
+				shardCoordinator: &testscommon.ShardsCoordinatorMock{},
 			}
 			header := &testscommon.HeaderHandlerStub{
 				IsHeaderV3Called: func() bool {
@@ -618,6 +612,7 @@ func TestBaseProcessor_saveExecutedData(t *testing.T) {
 						return nil
 					},
 				},
+				shardCoordinator: &testscommon.ShardsCoordinatorMock{},
 			}
 			header := &testscommon.HeaderHandlerStub{
 				IsHeaderV3Called: func() bool {
@@ -665,6 +660,7 @@ func TestBaseProcessor_saveExecutedData(t *testing.T) {
 						return nil, errExpected
 					},
 				},
+				shardCoordinator: &testscommon.ShardsCoordinatorMock{},
 			}
 			header := &testscommon.HeaderHandlerStub{
 				IsHeaderV3Called: func() bool {
@@ -737,6 +733,7 @@ func TestBaseProcessor_saveExecutedData(t *testing.T) {
 					return nil
 				},
 			},
+			shardCoordinator: &testscommon.ShardsCoordinatorMock{},
 		}
 		header := &testscommon.HeaderHandlerStub{
 			IsHeaderV3Called: func() bool {

@@ -39,6 +39,18 @@ import (
 	"github.com/multiversx/mx-chain-go/storage"
 )
 
+// TxShardInfo contains information about the sender and receiver shard IDs of a transaction.
+type TxShardInfo struct {
+	SenderShardID   uint32
+	ReceiverShardID uint32
+}
+
+// TxInfo contains a transaction handler and its associated shard information.
+type TxInfo struct {
+	Tx data.TransactionHandler
+	*TxShardInfo
+}
+
 // TransactionProcessor is the main interface for transaction execution engine
 type TransactionProcessor interface {
 	ProcessTransaction(transaction *transaction.Transaction) (vmcommon.ReturnCode, error)
@@ -183,10 +195,11 @@ type TransactionCoordinator interface {
 	AddTransactions(txHandlers []data.TransactionHandler, blockType block.Type)
 	IsInterfaceNil() bool
 
-	SelectOutgoingTransactions() [][]byte
-	CreateMbsCrossShardDstMe(header data.HeaderHandler, processedMiniBlocksInfo map[string]*processedMb.ProcessedMiniBlockInfo) ([]block.MiniblockAndHash, uint32, bool, error)
-
-	// CollectExecutionResults(header data.HeaderHandler, body *block.Body) (data.BaseExecutionResultHandler, error)
+	SelectOutgoingTransactions() (selectedTxHashes [][]byte, selectedPendingIncomingMiniBlocks []data.MiniBlockHeaderHandler)
+	CreateMbsCrossShardDstMe(
+		header data.HeaderHandler,
+		processedMiniBlocksInfo map[string]*processedMb.ProcessedMiniBlockInfo,
+	) (addedMiniBlocksAndHashes []block.MiniblockAndHash, pendingMiniBlocksAndHashes []block.MiniblockAndHash, numTransactions uint32, allMiniBlocksAdded bool, err error)
 }
 
 // SmartContractProcessor is the main interface for the smart contract caller engine
@@ -482,6 +495,9 @@ type VirtualMachinesContainerFactory interface {
 // EpochStartTriggerHandler defines that actions which are needed by processor for start of epoch
 type EpochStartTriggerHandler interface {
 	Update(round uint64, nonce uint64)
+	UpdateRound(round uint64)
+	SetEpochChange()
+	ShouldProposeEpochChange(round uint64, nonce uint64) bool
 	IsEpochStart() bool
 	Epoch() uint32
 	MetaEpoch() uint32
@@ -912,7 +928,7 @@ type InterceptedHeaderSigVerifier interface {
 // HeaderIntegrityVerifier encapsulates methods useful to check that a header's integrity is correct
 type HeaderIntegrityVerifier interface {
 	Verify(header data.HeaderHandler) error
-	GetVersion(epoch uint32) string
+	GetVersion(epoch uint32, round uint64) string
 	IsInterfaceNil() bool
 }
 
@@ -948,6 +964,7 @@ type BlockTracker interface {
 	RestoreToGenesis()
 	ShouldAddHeader(headerHandler data.HeaderHandler) bool
 	ComputeOwnShardStuck(lastExecutionResultsInfo data.BaseExecutionResultHandler, currentNonce uint64)
+	IsOwnShardStuck() bool
 	IsInterfaceNil() bool
 }
 
@@ -1487,15 +1504,17 @@ type GasComputation interface {
 	CheckIncomingMiniBlocks(
 		miniBlocks []data.MiniBlockHeaderHandler,
 		transactions map[string][]data.TransactionHandler,
-	) (int, int, error)
+	) (lastMiniBlockIndex int, pendingMiniBlocks int, err error)
 	CheckOutgoingTransactions(
 		txHashes [][]byte,
 		transactions []data.TransactionHandler,
-	) ([][]byte, error)
+	) (addedTxHashes [][]byte, pendingMiniBlocksAdded []data.MiniBlockHeaderHandler, err error)
 	GetBandwidthForTransactions() uint64
 	TotalGasConsumed() uint64
 	DecreaseIncomingLimit()
 	DecreaseOutgoingLimit()
+	ZeroIncomingLimit()
+	ZeroOutgoingLimit()
 	ResetIncomingLimit()
 	ResetOutgoingLimit()
 	Reset()

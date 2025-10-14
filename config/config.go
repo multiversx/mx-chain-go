@@ -686,6 +686,7 @@ type RouteConfig struct {
 // VersionByEpochs represents a version entry that will be applied between the provided epochs
 type VersionByEpochs struct {
 	StartEpoch uint32
+	StartRound uint64
 	Version    string
 }
 
@@ -693,7 +694,6 @@ type VersionByEpochs struct {
 type VersionsConfig struct {
 	DefaultVersion   string
 	VersionsByEpochs []VersionByEpochs
-	Cache            CacheConfig
 }
 
 // Configs is a holder for the node configuration parameters

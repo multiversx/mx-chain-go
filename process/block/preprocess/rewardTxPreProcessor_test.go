@@ -147,6 +147,18 @@ func TestNewRewardTxPreprocessor_NilGasHandlerShouldErr(t *testing.T) {
 	assert.Equal(t, process.ErrNilGasHandler, err)
 }
 
+func TestNewRewardTxPreprocessor_NilEnableRoundsHandlerShouldErr(t *testing.T) {
+	t.Parallel()
+
+	tdp := initDataPool()
+	args := createDefaultRewardsProcessorArgs(tdp)
+	args.EnableRoundsHandler = nil
+	rtp, err := NewRewardTxPreprocessor(args)
+
+	assert.Nil(t, rtp)
+	assert.Equal(t, process.ErrNilEnableRoundsHandler, err)
+}
+
 func TestNewRewardTxPreprocessor_NilPubkeyConverterShouldErr(t *testing.T) {
 	t.Parallel()
 
@@ -625,7 +637,32 @@ func createDefaultRewardsProcessorArgs(tdp dataRetriever.PoolsHolder) RewardsPre
 			TxExecutionOrderHandler:    &common.TxExecutionOrderHandlerStub{},
 			EconomicsFee:               feeHandlerMock(),
 			EnableEpochsHandler:        enableEpochsHandlerMock.NewEnableEpochsHandlerStub(),
+			EnableRoundsHandler:        &testscommon.EnableRoundsHandlerStub{},
 		},
 		RewardProcessor: &testscommon.RewardTxProcessorMock{},
 	}
+}
+
+func TestRewardTxPreprocessor_GetCreatedMiniBlocksFromMe(t *testing.T) {
+	t.Parallel()
+
+	tdp := initDataPool()
+	args := createDefaultRewardsProcessorArgs(tdp)
+	rtp, _ := NewRewardTxPreprocessor(args)
+
+	// always returns empty
+	createdMbs := rtp.GetCreatedMiniBlocksFromMe()
+	assert.Len(t, createdMbs, 0)
+}
+
+func TestRewardTxPreprocessor_GetUnExecutableTransactions(t *testing.T) {
+	t.Parallel()
+
+	tdp := initDataPool()
+	args := createDefaultRewardsProcessorArgs(tdp)
+	rtp, _ := NewRewardTxPreprocessor(args)
+
+	// always returns empty
+	unexecTxs := rtp.GetUnExecutableTransactions()
+	assert.Len(t, unexecTxs, 0)
 }

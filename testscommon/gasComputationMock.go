@@ -13,11 +13,13 @@ type GasComputationMock struct {
 	CheckOutgoingTransactionsCalled func(
 		txHashes [][]byte,
 		transactions []data.TransactionHandler,
-	) ([][]byte, error)
+	) ([][]byte, []data.MiniBlockHeaderHandler, error)
 	GetBandwidthForTransactionsCalled func() uint64
 	TotalGasConsumedCalled            func() uint64
 	DecreaseIncomingLimitCalled       func()
 	DecreaseOutgoingLimitCalled       func()
+	ZeroIncomingLimitCalled           func()
+	ZeroOutgoingLimitCalled           func()
 	ResetIncomingLimitCalled          func()
 	ResetOutgoingLimitCalled          func()
 	ResetCalled                       func()
@@ -38,11 +40,11 @@ func (mock *GasComputationMock) CheckIncomingMiniBlocks(
 func (mock *GasComputationMock) CheckOutgoingTransactions(
 	txHashes [][]byte,
 	transactions []data.TransactionHandler,
-) ([][]byte, error) {
+) ([][]byte, []data.MiniBlockHeaderHandler, error) {
 	if mock.CheckOutgoingTransactionsCalled != nil {
 		return mock.CheckOutgoingTransactionsCalled(txHashes, transactions)
 	}
-	return nil, nil
+	return nil, nil, nil
 }
 
 // GetBandwidthForTransactions -
@@ -72,6 +74,20 @@ func (mock *GasComputationMock) DecreaseIncomingLimit() {
 func (mock *GasComputationMock) DecreaseOutgoingLimit() {
 	if mock.DecreaseOutgoingLimitCalled != nil {
 		mock.DecreaseOutgoingLimitCalled()
+	}
+}
+
+// ZeroIncomingLimit -
+func (mock *GasComputationMock) ZeroIncomingLimit() {
+	if mock.ZeroIncomingLimitCalled != nil {
+		mock.ZeroIncomingLimitCalled()
+	}
+}
+
+// ZeroOutgoingLimit -
+func (mock *GasComputationMock) ZeroOutgoingLimit() {
+	if mock.ZeroOutgoingLimitCalled != nil {
+		mock.ZeroOutgoingLimitCalled()
 	}
 }
 

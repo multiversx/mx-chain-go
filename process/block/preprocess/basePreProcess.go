@@ -115,6 +115,7 @@ type BasePreProcessorArgs struct {
 	TxExecutionOrderHandler    common.TxExecutionOrderHandler
 	EconomicsFee               process.FeeHandler
 	EnableEpochsHandler        common.EnableEpochsHandler
+	EnableRoundsHandler        common.EnableRoundsHandler
 }
 
 // basePreProcess is the base struct for all pre-processors
@@ -130,6 +131,7 @@ type basePreProcess struct {
 	processedMiniBlocksTracker process.ProcessedMiniBlocksTracker
 	enableEpochsHandler        common.EnableEpochsHandler
 	txExecutionOrderHandler    common.TxExecutionOrderHandler
+	enableRoundsHandler        common.EnableRoundsHandler
 }
 
 func checkBasePreProcessArgs(args BasePreProcessorArgs) error {
@@ -180,6 +182,9 @@ func checkBasePreProcessArgs(args BasePreProcessorArgs) error {
 	}
 	if check.IfNil(args.EnableEpochsHandler) {
 		return process.ErrNilEnableEpochsHandler
+	}
+	if check.IfNil(args.EnableRoundsHandler) {
+		return process.ErrNilEnableRoundsHandler
 	}
 
 	return nil
