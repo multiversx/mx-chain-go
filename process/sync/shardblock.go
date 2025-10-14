@@ -53,7 +53,6 @@ func NewShardBootstrap(arguments ArgShardBootstrapper) (*ShardBootstrap, error) 
 		requestHandler:               arguments.RequestHandler,
 		shardCoordinator:             arguments.ShardCoordinator,
 		accounts:                     arguments.Accounts,
-		accountsProposal:             arguments.AccountsProposal,
 		blackListHandler:             arguments.BlackListHandler,
 		networkWatcher:               arguments.NetworkWatcher,
 		bootStorer:                   arguments.BootStorer,

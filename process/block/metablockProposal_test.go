@@ -26,3 +26,15 @@ func TestMetaProcessor_VerifyBlockProposal(t *testing.T) {
 	err = mp.VerifyBlockProposal(header, body, haveTime)
 	require.NoError(t, err)
 }
+
+func TestMetaProcessor_OnProposedBlock(t *testing.T) {
+	t.Parallel()
+
+	coreComponents, dataComponents, bootstrapComponents, statusComponents := createMockComponentHolders()
+	arguments := createMockMetaArguments(coreComponents, dataComponents, bootstrapComponents, statusComponents)
+	mp, err := blproc.NewMetaProcessor(arguments)
+	require.Nil(t, err)
+
+	err = mp.OnProposedBlock(nil, nil, nil, nil, nil)
+	require.NoError(t, err)
+}

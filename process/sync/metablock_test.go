@@ -76,7 +76,6 @@ func CreateMetaBootstrapMockArguments() sync.ArgMetaBootstrapper {
 		RequestHandler:               &testscommon.RequestHandlerStub{},
 		ShardCoordinator:             shardCoordinator,
 		Accounts:                     &stateMock.AccountsStub{},
-		AccountsProposal:             &stateMock.AccountsStub{},
 		BlackListHandler:             &testscommon.TimeCacheStub{},
 		NetworkWatcher:               initNetworkWatcher(),
 		BootStorer:                   &mock.BoostrapStorerMock{},

@@ -30,6 +30,13 @@ type BlockProcessorMock struct {
 		bodyHandler data.BodyHandler,
 		haveTime func() time.Duration,
 	) error
+	OnProposedBlockCalled func(
+		proposedBody data.BodyHandler,
+		proposedHeader data.HeaderHandler,
+		proposedHash []byte,
+		lastCommittedHeader data.HeaderHandler,
+		lastCommittedHash []byte,
+	) error
 }
 
 // ProcessBlock mocks processing a block
@@ -176,6 +183,20 @@ func (bpm *BlockProcessorMock) VerifyBlockProposal(
 ) error {
 	if bpm.VerifyBlockProposalCalled != nil {
 		return bpm.VerifyBlockProposalCalled(headerHandler, bodyHandler, haveTime)
+	}
+	return nil
+}
+
+// OnProposedBlock -
+func (bpm *BlockProcessorMock) OnProposedBlock(
+	proposedBody data.BodyHandler,
+	proposedHeader data.HeaderHandler,
+	proposedHash []byte,
+	lastCommittedHeader data.HeaderHandler,
+	lastCommittedHash []byte,
+) error {
+	if bpm.OnProposedBlockCalled != nil {
+		return bpm.OnProposedBlockCalled(proposedBody, proposedHeader, proposedHash, lastCommittedHeader, lastCommittedHash)
 	}
 	return nil
 }

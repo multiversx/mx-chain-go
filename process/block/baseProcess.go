@@ -2315,6 +2315,36 @@ func (bp *baseProcessor) setNonceOfFirstCommittedBlock(nonce uint64) {
 	bp.nonceOfFirstCommittedBlock.Value = nonce
 }
 
+// OnProposedBlock calls the OnProposedBlock from transactions pool
+func (bp *baseProcessor) OnProposedBlock(
+	proposedBody data.BodyHandler,
+	proposedHeader data.HeaderHandler,
+	proposedHash []byte,
+	lastCommittedHeader data.HeaderHandler,
+	lastCommittedHash []byte,
+) error {
+	// this should be removed once OnProposedBlock accepts bodyHandler
+	proposedBodyPtr, ok := proposedBody.(*block.Body)
+	if !ok {
+		return process.ErrWrongTypeAssertion
+	}
+
+	// TODO: proper accounts db should be used and its roothash must be updated first through a new method
+	//  SetRootHashIfNeeded which should recreate the trie if needed
+	accountsProvider, err := state.NewAccountsEphemeralProvider(bp.accountsDB[state.UserAccountsState])
+	if err != nil {
+		return err
+	}
+
+	lastExecResHandler, err := common.GetLastBaseExecutionResultHandler(lastCommittedHeader)
+	if err != nil {
+		return err
+	}
+
+	blockChainInfo := holders.NewBlockchainInfo(lastExecResHandler.GetHeaderHash(), lastCommittedHash, lastCommittedHeader.GetNonce())
+	return bp.dataPool.Transactions().OnProposedBlock(proposedHash, proposedBodyPtr, proposedHeader, accountsProvider, blockChainInfo)
+}
+
 func (bp *baseProcessor) checkSentSignaturesAtCommitTime(header data.HeaderHandler) error {
 	_, validatorsGroup, err := headerCheck.ComputeConsensusGroup(header, bp.nodesCoordinator)
 	if err != nil {

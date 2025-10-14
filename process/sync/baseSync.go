@@ -18,7 +18,6 @@ import (
 	"github.com/multiversx/mx-chain-core-go/data/typeConverters"
 	"github.com/multiversx/mx-chain-core-go/hashing"
 	"github.com/multiversx/mx-chain-core-go/marshal"
-	"github.com/multiversx/mx-chain-go/common/holders"
 	"github.com/multiversx/mx-chain-go/process/asyncExecution/queue"
 	logger "github.com/multiversx/mx-chain-logger-go"
 
@@ -76,7 +75,6 @@ type baseBootstrap struct {
 	requestHandler      process.RequestHandler
 	shardCoordinator    sharding.Coordinator
 	accounts            state.AccountsAdapter
-	accountsProposal    state.AccountsAdapter
 	blockBootstrapper   blockBootstrapper
 	blackListHandler    process.TimeCacher
 	enableEpochsHandler common.EnableEpochsHandler
@@ -628,9 +626,6 @@ func checkBaseBootstrapParameters(arguments ArgBaseBootstrapper) error {
 	if check.IfNil(arguments.Accounts) {
 		return process.ErrNilAccountsAdapter
 	}
-	if check.IfNil(arguments.AccountsProposal) {
-		return fmt.Errorf("%w for proposal", process.ErrNilAccountsAdapter)
-	}
 	if check.IfNil(arguments.Store) {
 		return process.ErrNilStore
 	}
@@ -984,19 +979,6 @@ func (boot *baseBootstrap) prepareForSyncIfNeeded(syncingNonce uint64) error {
 			return errGetBody
 		}
 
-		currentHash := boot.getCurrentBlockHash()
-
-		errOnProposedBlock := boot.onProposedBlock(
-			currentBody,
-			currentHeader,
-			currentHash,
-			currentHeader,
-			currentHash,
-		)
-		if errOnProposedBlock != nil {
-			return errOnProposedBlock
-		}
-
 		boot.preparedForSync = true
 
 		return boot.blocksQueue.AddOrReplace(queue.HeaderBodyPair{
@@ -1020,7 +1002,7 @@ func (boot *baseBootstrap) prepareForSyncIfNeeded(syncingNonce uint64) error {
 			return errGetBody
 		}
 
-		errOnProposedBlock := boot.onProposedBlock(
+		errOnProposedBlock := boot.blockProcessor.OnProposedBlock(
 			body,
 			hdr,
 			hdrHash,
@@ -1046,34 +1028,6 @@ func (boot *baseBootstrap) prepareForSyncIfNeeded(syncingNonce uint64) error {
 	boot.preparedForSync = true
 
 	return nil
-}
-
-func (boot *baseBootstrap) onProposedBlock(
-	proposedBody data.BodyHandler,
-	proposedHeader data.HeaderHandler,
-	proposedHash []byte,
-	lastCommittedHeader data.HeaderHandler,
-	lastCommittedHash []byte,
-) error {
-	proposedBodyPtr, ok := proposedBody.(*block.Body)
-	if !ok {
-		return process.ErrWrongTypeAssertion
-	}
-
-	// TODO: accountsProposal roothash must be updated first through a new method
-	//  SetRootHashIfNeeded which should recreate the trie if needed
-	accountsProvider, err := state.NewAccountsEphemeralProvider(boot.accountsProposal)
-	if err != nil {
-		return err
-	}
-
-	lastExecResHandler, err := common.GetLastBaseExecutionResultHandler(lastCommittedHeader)
-	if err != nil {
-		return err
-	}
-
-	blockChainInfo := holders.NewBlockchainInfo(lastExecResHandler.GetHeaderHash(), lastCommittedHash, lastCommittedHeader.GetNonce())
-	return boot.poolsHolder.Transactions().OnProposedBlock(proposedHash, proposedBodyPtr, proposedHeader, accountsProvider, blockChainInfo)
 }
 
 func (boot *baseBootstrap) handleTrieSyncError(err error, ctx context.Context) {

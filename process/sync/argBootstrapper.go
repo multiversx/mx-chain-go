@@ -34,7 +34,6 @@ type ArgBaseBootstrapper struct {
 	RequestHandler               process.RequestHandler
 	ShardCoordinator             sharding.Coordinator
 	Accounts                     state.AccountsAdapter
-	AccountsProposal             state.AccountsAdapter
 	BlackListHandler             process.TimeCacher
 	NetworkWatcher               process.NetworkConnectionWatcher
 	BootStorer                   process.BootStorer

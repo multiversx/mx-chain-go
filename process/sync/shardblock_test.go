@@ -211,7 +211,6 @@ func CreateShardBootstrapMockArguments() sync.ArgShardBootstrapper {
 		RequestHandler:               &testscommon.RequestHandlerStub{},
 		ShardCoordinator:             mock.NewOneShardCoordinatorMock(),
 		Accounts:                     &stateMock.AccountsStub{},
-		AccountsProposal:             &stateMock.AccountsStub{},
 		BlackListHandler:             &testscommon.TimeCacheStub{},
 		NetworkWatcher:               initNetworkWatcher(),
 		BootStorer:                   &mock.BoostrapStorerMock{},
@@ -444,19 +443,6 @@ func TestNewShardBootstrap_NilAccountsAdapterShouldErr(t *testing.T) {
 
 	assert.True(t, check.IfNil(bs))
 	assert.Equal(t, process.ErrNilAccountsAdapter, err)
-}
-
-func TestNewShardBootstrap_NilAccountsAdapterProposalShouldErr(t *testing.T) {
-	t.Parallel()
-
-	args := CreateShardBootstrapMockArguments()
-	args.AccountsProposal = nil
-
-	bs, err := sync.NewShardBootstrap(args)
-
-	assert.True(t, check.IfNil(bs))
-	assert.True(t, errors.Is(err, process.ErrNilAccountsAdapter))
-	assert.Contains(t, err.Error(), "proposal")
 }
 
 func TestNewShardBootstrap_NilBlackListHandlerShouldErr(t *testing.T) {
@@ -2952,28 +2938,6 @@ func TestShardBootstrap_SyncBlockV3(t *testing.T) {
 		assert.Equal(t, errExpected, err)
 	})
 
-	t.Run("should error when OnProposedBlock fails on the ideal case", func(t *testing.T) {
-		t.Parallel()
-
-		args := createSyncBlockV3Args()
-		poolsStub, ok := args.PoolsHolder.(*dataRetrieverMock.PoolsHolderStub)
-		require.True(t, ok)
-		poolsStub.TransactionsCalled = func() dataRetriever.ShardedDataCacherNotifier {
-			return &testscommon.ShardedDataStub{
-				OnProposedBlockCalled: func(blockHash []byte, blockBody *block.Body, blockHeader data.HeaderHandler, accountsProvider common.AccountNonceAndBalanceProvider, blockchainInfo common.BlockchainInfo) error {
-					return errExpected
-				},
-			}
-		}
-		args.PoolsHolder = poolsStub
-
-		bs, err := sync.NewShardBootstrap(args)
-		require.Nil(t, err)
-
-		err = bs.SyncBlock(context.Background())
-		assert.Equal(t, errExpected, err)
-	})
-
 	t.Run("should error when OnProposedBlock fails on the bigger gap case", func(t *testing.T) {
 		t.Parallel()
 
@@ -2992,13 +2956,23 @@ func TestShardBootstrap_SyncBlockV3(t *testing.T) {
 				},
 			},
 		}
+		header3 := &block.HeaderV3{
+			Nonce:         3,
+			BlockBodyType: block.TxBlock,
+			LastExecutionResult: &block.ExecutionResultInfo{
+				ExecutionResult: &block.BaseExecutionResult{
+					HeaderNonce: 2,
+					HeaderHash:  []byte("hash2"),
+				},
+			},
+		}
 		header4 := &block.HeaderV3{
 			Nonce:         4,
 			BlockBodyType: block.TxBlock,
 			LastExecutionResult: &block.ExecutionResultInfo{
 				ExecutionResult: &block.BaseExecutionResult{
 					HeaderNonce: 2,
-					HeaderHash:  []byte("hash3"),
+					HeaderHash:  []byte("hash2"),
 				},
 			},
 		}
@@ -3018,6 +2992,10 @@ func TestShardBootstrap_SyncBlockV3(t *testing.T) {
 				hash:   []byte("hash2"),
 			},
 			headerAndHash{
+				header: header3,
+				hash:   []byte("hash3"),
+			},
+			headerAndHash{
 				header: header4,
 				hash:   []byte("hash4"),
 			},
@@ -3026,16 +3004,12 @@ func TestShardBootstrap_SyncBlockV3(t *testing.T) {
 				hash:   []byte("hash5"),
 			},
 		)
-		poolsStub, ok := args.PoolsHolder.(*dataRetrieverMock.PoolsHolderStub)
-		require.True(t, ok)
-		poolsStub.TransactionsCalled = func() dataRetriever.ShardedDataCacherNotifier {
-			return &testscommon.ShardedDataStub{
-				OnProposedBlockCalled: func(blockHash []byte, blockBody *block.Body, blockHeader data.HeaderHandler, accountsProvider common.AccountNonceAndBalanceProvider, blockchainInfo common.BlockchainInfo) error {
-					return errExpected
-				},
-			}
+		blockProcessor := &testscommon.BlockProcessorStub{
+			OnProposedBlockCalled: func(proposedBody data.BodyHandler, proposedHeader data.HeaderHandler, proposedHash []byte, lastCommittedHeader data.HeaderHandler, lastCommittedHash []byte) error {
+				return errExpected
+			},
 		}
-		args.PoolsHolder = poolsStub
+		args.BlockProcessor = blockProcessor
 		args.ChainHandler = &testscommon.ChainHandlerStub{
 			GetCurrentBlockHeaderCalled: func() data.HeaderHandler {
 				return header4 // forcing to sync nonce 5
@@ -3044,12 +3018,6 @@ func TestShardBootstrap_SyncBlockV3(t *testing.T) {
 
 		args.Store = setupStore(args.Marshalizer, header2, nil)
 		args.ForkDetector = setupForkDetector(5)
-
-		args.BlocksQueue = &processMocks.BlocksQueueMock{
-			AddOrReplaceCalled: func(pair queue.HeaderBodyPair) error {
-				return errExpected
-			},
-		}
 
 		bs, err := sync.NewShardBootstrap(args)
 		require.Nil(t, err)

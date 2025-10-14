@@ -299,6 +299,13 @@ type BlockProcessor interface {
 		bodyHandler data.BodyHandler,
 		haveTime func() time.Duration,
 	) error
+	OnProposedBlock(
+		proposedBody data.BodyHandler,
+		proposedHeader data.HeaderHandler,
+		proposedHash []byte,
+		lastCommittedHeader data.HeaderHandler,
+		lastCommittedHash []byte,
+	) error
 	Close() error
 	IsInterfaceNil() bool
 }

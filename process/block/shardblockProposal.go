@@ -9,7 +9,6 @@ import (
 	"github.com/multiversx/mx-chain-core-go/core/check"
 	"github.com/multiversx/mx-chain-core-go/data"
 	"github.com/multiversx/mx-chain-core-go/data/block"
-	"github.com/multiversx/mx-chain-go/common/holders"
 	logger "github.com/multiversx/mx-chain-logger-go"
 
 	"github.com/multiversx/mx-chain-go/common"
@@ -97,7 +96,14 @@ func (sp *shardProcessor) CreateBlockProposal(
 
 	sp.blockSizeThrottler.Add(shardHdr.GetRound(), uint32(len(marshalledBody)))
 
-	err = sp.onProposedBlock(body, shardHdr)
+	currentHeader := sp.getCurrentHeader()
+	currentHeaderHash := sp.getCurrentHeaderHash()
+	hash, err := sp.getHeaderHash(shardHdr)
+	if err != nil {
+		return nil, nil, err
+	}
+
+	err = sp.OnProposedBlock(body, shardHdr, hash, currentHeader, currentHeaderHash)
 	if err != nil {
 		return nil, nil, err
 	}
@@ -216,7 +222,25 @@ func (sp *shardProcessor) VerifyBlockProposal(
 		return err
 	}
 
-	return sp.onProposedBlock(body, header)
+	currentHeader := sp.getCurrentHeader()
+	currentHeaderHash := sp.getCurrentHeaderHash()
+	hash, err := sp.getHeaderHash(header)
+	if err != nil {
+		return err
+	}
+
+	return sp.OnProposedBlock(body, header, hash, currentHeader, currentHeaderHash)
+}
+
+// OnProposedBlock calls the OnProposedBlock from transactions pool
+func (sp *shardProcessor) OnProposedBlock(
+	proposedBody data.BodyHandler,
+	proposedHeader data.HeaderHandler,
+	proposedHash []byte,
+	lastCommittedHeader data.HeaderHandler,
+	lastCommittedHash []byte,
+) error {
+	return sp.baseProcessor.OnProposedBlock(proposedBody, proposedHeader, proposedHash, lastCommittedHeader, lastCommittedHash)
 }
 
 func (sp *shardProcessor) verifyGasLimit(header data.ShardHeaderHandler) error {
@@ -246,29 +270,6 @@ func (sp *shardProcessor) verifyGasLimit(header data.ShardHeaderHandler) error {
 	return nil
 }
 
-func (sp *shardProcessor) onProposedBlock(body *block.Body, header data.HeaderHandler) error {
-	// TODO: proper accounts db should be used and its roothash must be updated first through a new method
-	//  SetRootHashIfNeeded which should recreate the trie if needed
-	accountsProvider, err := state.NewAccountsEphemeralProvider(sp.accountsDB[state.UserAccountsState])
-	if err != nil {
-		return err
-	}
-
-	currentHeader := sp.getCurrentHeader()
-	lastExecResHandler, err := common.GetLastBaseExecutionResultHandler(currentHeader)
-	if err != nil {
-		return err
-	}
-
-	hash, err := core.CalculateHash(sp.marshalizer, sp.hasher, header)
-	if err != nil {
-		return err
-	}
-
-	blockChainInfo := holders.NewBlockchainInfo(lastExecResHandler.GetHeaderHash(), header.GetPrevHash(), header.GetNonce())
-	return sp.dataPool.Transactions().OnProposedBlock(hash, body, header, accountsProvider, blockChainInfo)
-}
-
 func (sp *shardProcessor) getCurrentHeader() data.HeaderHandler {
 	currentHeader := sp.blockChain.GetCurrentBlockHeader()
 	if !check.IfNil(currentHeader) {
@@ -276,6 +277,15 @@ func (sp *shardProcessor) getCurrentHeader() data.HeaderHandler {
 	}
 
 	return sp.blockChain.GetGenesisHeader()
+}
+
+func (sp *shardProcessor) getCurrentHeaderHash() []byte {
+	currentHeaderHash := sp.blockChain.GetCurrentBlockHeaderHash()
+	if len(currentHeaderHash) != 0 {
+		return currentHeaderHash
+	}
+
+	return sp.blockChain.GetGenesisHeaderHash()
 }
 
 func getHaveTimeForProposal(startTime time.Time, maxDuration time.Duration) func() time.Duration {
