@@ -1391,3 +1391,26 @@ func TestSelectionTracker_ResetTracker(t *testing.T) {
 	require.Nil(t, tracker.latestRootHash)
 	require.Equal(t, uint64(0), tracker.latestNonce)
 }
+
+func Test_getDimensionOfTrackedBlocks(t *testing.T) {
+	t.Parallel()
+
+	t.Run("should return the number of tracked blocks", func(t *testing.T) {
+		t.Parallel()
+
+		txCache := newCacheToTest(maxNumBytesPerSenderUpperBoundTest, 3)
+		tracker, err := NewSelectionTracker(txCache, maxTrackedBlocks)
+		require.Nil(t, err)
+		txCache.tracker = tracker
+
+		tracker.blocks = map[string]*trackedBlock{}
+		require.Equal(t, uint64(0), tracker.getNumTrackedBlocks())
+
+		tracker.blocks = map[string]*trackedBlock{
+			"hash1": {},
+			"hash2": {},
+			"hash3": {},
+		}
+		require.Equal(t, uint64(3), tracker.getNumTrackedBlocks())
+	})
+}

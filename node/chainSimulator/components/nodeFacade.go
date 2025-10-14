@@ -118,8 +118,9 @@ func (node *testOnlyProcessingNode) createFacade(configs config.Configs, apiInte
 		RestAPIServerDebugMode: flagsConfig.EnableRestAPIServerDebugMode,
 		WsAntifloodConfig:      configs.GeneralConfig.WebServerAntiflood,
 		FacadeConfig: config.FacadeConfig{
-			RestApiInterface: restApiInterface,
-			PprofEnabled:     flagsConfig.EnablePprof,
+			RestApiInterface:       restApiInterface,
+			PprofEnabled:           flagsConfig.EnablePprof,
+			TxCacheSelectionConfig: configs.GeneralConfig.TxCacheSelection,
 		},
 		ApiRoutesConfig:  *configs.ApiRoutesConfig,
 		AccountsStateAPI: node.StateComponentsHolder.AccountsAdapter(),

@@ -502,6 +502,49 @@ func TestTxCache_TransactionIsAdded_EvenWhenInternalMapsAreInconsistent(t *testi
 	cache.Clear()
 }
 
+func TestTxCache_GetDimensionOfTrackedBlocks(t *testing.T) {
+	t.Parallel()
+
+	txCache := newCacheToTest(maxNumBytesPerSenderUpperBoundTest, 3)
+	tracker, err := NewSelectionTracker(txCache, maxTrackedBlocks)
+	require.Nil(t, err)
+	txCache.tracker = tracker
+
+	accountsProvider := txcachemocks.NewAccountNonceAndBalanceProviderMock()
+
+	blockchainInfo := holders.NewBlockchainInfo([]byte("hash0"), nil, 1)
+	err = txCache.OnProposedBlock(
+		[]byte("hash1"),
+		&block.Body{},
+		&block.Header{
+			Nonce:    uint64(1),
+			PrevHash: []byte("hash0"),
+			RootHash: []byte("rootHash0"),
+		},
+		accountsProvider,
+		blockchainInfo,
+	)
+	require.Nil(t, err)
+
+	require.Equal(t, len(tracker.blocks), 1)
+
+	// replacing the block with nonce 1
+	err = txCache.OnProposedBlock(
+		[]byte("hash2"),
+		&block.Body{},
+		&block.Header{
+			Nonce:    uint64(1),
+			PrevHash: []byte("hash0"),
+			RootHash: []byte("rootHash0"),
+		},
+		accountsProvider,
+		blockchainInfo,
+	)
+	require.Nil(t, err)
+
+	require.Equal(t, len(tracker.blocks), 1)
+}
+
 func TestTxCache_NoCriticalInconsistency_WhenConcurrentAdditionsAndRemovals(t *testing.T) {
 	boundsConfig := createMockTxBoundsConfig()
 	cache := newUnconstrainedCacheToTest(boundsConfig)
