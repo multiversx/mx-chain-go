@@ -1,11 +1,14 @@
 package triesHolder
 
 import (
-	"bytes"
 	"fmt"
+	"math"
 	"sync"
 
+	"github.com/multiversx/mx-chain-core-go/core/check"
 	"github.com/multiversx/mx-chain-go/common"
+	"github.com/multiversx/mx-chain-go/storage"
+	"github.com/multiversx/mx-chain-go/storage/cache"
 	logger "github.com/multiversx/mx-chain-logger-go"
 )
 
@@ -13,25 +16,14 @@ const maxTrieSizeMinValue = 1 * 1024 * 1024 // 1 MB
 
 var log = logger.GetOrCreate("state/dataTriesHolder")
 
-type trieEntry struct {
-	trie      common.Trie
-	trieSize  int
-	key       []byte
-	nextEntry *trieEntry
-	prevEntry *trieEntry
-}
-
 // dataTriesHolder is a structure that holds a map of tries and manages their memory usage
 // It uses a doubly linked list to keep track of the order in which the tries were used
 // and evicts the oldest used tries when the total size exceeds a maximum limit.
 type dataTriesHolder struct {
-	tries          map[string]*trieEntry
-	dirtyTries     map[string]struct{} // These are the tries that have been modified and need to be persisted
-	touchedTries   map[string]struct{} // These are needed to compute an accurate totalTriesSize
-	oldestUsed     *trieEntry
-	newestUsed     *trieEntry
-	totalTriesSize uint64
-	maxTriesSize   uint64
+	cacher        storage.AdaptedSizedLRUCache
+	dirtyTries    map[string]struct{}    // These are the tries that have been modified and need to be persisted
+	touchedTries  map[string]struct{}    // These are needed to compute an accurate totalTriesSize
+	evictedBuffer map[string]common.Trie // in case eviction happens for a dirty trie, we keep it here until we commit it
 
 	mutex sync.RWMutex
 }
@@ -43,173 +35,93 @@ func NewDataTriesHolder(maxTriesSize uint64) (*dataTriesHolder, error) {
 	}
 	log.Trace("creating new data tries holder", "maxTriesSize", maxTriesSize)
 
+	c, err := cache.NewCapacityLRU(math.MaxInt, int64(maxTriesSize))
+	if err != nil {
+		return nil, err
+	}
+
 	return &dataTriesHolder{
-		tries:          make(map[string]*trieEntry),
-		dirtyTries:     make(map[string]struct{}),
-		touchedTries:   make(map[string]struct{}),
-		oldestUsed:     nil,
-		newestUsed:     nil,
-		totalTriesSize: 0,
-		maxTriesSize:   maxTriesSize,
-		mutex:          sync.RWMutex{},
+		cacher:        c,
+		dirtyTries:    make(map[string]struct{}),
+		touchedTries:  make(map[string]struct{}),
+		evictedBuffer: make(map[string]common.Trie),
+		mutex:         sync.RWMutex{},
 	}, nil
 }
 
 // Put adds a trie pointer to the tries map
 func (dth *dataTriesHolder) Put(key []byte, tr common.Trie) {
 	dth.mutex.Lock()
-	defer func() {
-		// If the total size of the tries exceeds the maximum size, we need to evict the oldest used tries
-		dth.evictIfNeeded()
-		dth.mutex.Unlock()
-	}()
+	defer dth.mutex.Unlock()
 
-	if len(dth.tries) == 0 {
-		// If the tries map is empty, we create a new entry
-		entry := &trieEntry{
-			trie:      tr,
-			trieSize:  tr.SizeInMemory(),
-			key:       key,
-			nextEntry: nil,
-			prevEntry: nil,
-		}
-		dth.tries[string(key)] = entry
-		dth.dirtyTries[string(key)] = struct{}{}
-		dth.oldestUsed = entry
-		dth.newestUsed = entry
-		dth.totalTriesSize += uint64(entry.trieSize)
-		log.Trace("added first trie to data tries holder", "key", key, "trieSize", entry.trieSize, "totalTriesSize", dth.totalTriesSize)
-
-		return
-	}
-
-	entry, exists := dth.tries[string(key)]
-	if !exists {
-		// If the entry does not exist, we create a new one
-		entry = &trieEntry{
-			trie:      tr,
-			trieSize:  tr.SizeInMemory(),
-			key:       key,
-			nextEntry: nil,
-			prevEntry: dth.newestUsed,
-		}
-		dth.newestUsed.nextEntry = entry
-
-		dth.newestUsed = entry
-		dth.tries[string(key)] = entry
-		dth.dirtyTries[string(key)] = struct{}{}
-		dth.totalTriesSize += uint64(entry.trieSize)
-		log.Trace("added new trie to data tries holder", "key", key, "trieSize", entry.trieSize, "totalTriesSize", dth.totalTriesSize)
-
-		return
-	}
-
-	dth.touchedTries[string(key)] = struct{}{}
-	dth.dirtyTries[string(key)] = struct{}{}
-	dth.moveEntryToNewestUsed(entry)
+	dth.putUnprotected(key, tr)
 }
 
-func (dth *dataTriesHolder) evictIfNeeded() {
-	if dth.totalTriesSize <= dth.maxTriesSize {
+func (dth *dataTriesHolder) putUnprotected(key []byte, tr common.Trie) {
+	keyString := string(key)
+
+	if len(dth.evictedBuffer) > 0 {
+		if _, ok := dth.evictedBuffer[keyString]; ok {
+			// this means that this trie was evicted while being dirty
+			delete(dth.evictedBuffer, keyString)
+		}
+	}
+
+	evicted := dth.cacher.AddSizedAndReturnEvicted(keyString, tr, int64(tr.SizeInMemory()))
+	dth.dirtyTries[keyString] = struct{}{}
+	dth.touchedTries[keyString] = struct{}{}
+
+	if len(evicted) == 0 {
 		return
 	}
 
-	if dth.oldestUsed == nil {
-		// This should never happen, but we check it just in case
-		log.Error("data tries holder is in an invalid state: totalTriesSize exceeds maxTriesSize but oldestUsed is nil")
-		dth.reset()
-		return
-	}
-
-	// We evict the oldest used entries until the total size is less than or equal to the maximum size
-	entryForEviction := dth.oldestUsed
-	for dth.totalTriesSize > dth.maxTriesSize && entryForEviction != nil {
-		_, isDirty := dth.dirtyTries[string(entryForEviction.key)]
-		if isDirty {
-			entryForEviction = entryForEviction.nextEntry
+	for evictedKey, evictedValue := range evicted {
+		evictedKeyString, ok := evictedKey.(string)
+		if !ok {
+			log.Warn("invalid data in dataTriesHolder cache", "entry type", fmt.Sprintf("%T", evictedKey))
+			continue
+		}
+		_, ok = dth.dirtyTries[evictedKeyString]
+		if !ok {
 			continue
 		}
 
-		// Remove entry from the map and update the links between the entries
-		delete(dth.tries, string(entryForEviction.key))
-		delete(dth.touchedTries, string(entryForEviction.key))
-		dth.totalTriesSize -= uint64(entryForEviction.trieSize)
-
-		log.Trace("evicting trie from data tries holder", "key", entryForEviction.key, "trieSize", entryForEviction.trieSize, "totalTriesSize", dth.totalTriesSize)
-
-		if bytes.Equal(entryForEviction.key, dth.oldestUsed.key) {
-			if bytes.Equal(entryForEviction.key, dth.newestUsed.key) {
-				// If the entry to be evicted is the only entry, we need to reset the oldest and newest used pointers
-				dth.oldestUsed = nil
-				dth.newestUsed = nil
-				return
-			}
-
-			// If the entry to be evicted is the oldest used, we need to update the oldest used pointer
-			dth.oldestUsed = dth.oldestUsed.nextEntry
-			dth.oldestUsed.prevEntry = nil
-			entryForEviction = dth.oldestUsed
+		evictedTrie, ok := evictedValue.(common.Trie)
+		if !ok {
+			log.Warn("invalid data in dataTriesHolder cache", "entry type", fmt.Sprintf("%T", evictedValue))
 			continue
 		}
-
-		if bytes.Equal(entryForEviction.key, dth.newestUsed.key) {
-			// If the entry to be evicted is the newest used, we need to update the newest used pointer and return
-			dth.newestUsed = dth.newestUsed.prevEntry
-			dth.newestUsed.nextEntry = nil
-			return
-		}
-
-		// If the entry to be evicted is neither the oldest nor the newest used, we need to update the links between the neighbors
-		entryForEviction.prevEntry.nextEntry = entryForEviction.nextEntry
-		entryForEviction.nextEntry.prevEntry = entryForEviction.prevEntry
-		entryForEviction = entryForEviction.nextEntry
+		dth.evictedBuffer[evictedKeyString] = evictedTrie
 	}
-}
-
-func (dth *dataTriesHolder) moveEntryToNewestUsed(entry *trieEntry) {
-	if bytes.Equal(dth.newestUsed.key, entry.key) {
-		return
-	}
-
-	if bytes.Equal(dth.oldestUsed.key, entry.key) {
-		// If the entry is the oldest used, we need to update the oldest used pointer and move the entry to the
-		// newest used position
-		dth.oldestUsed = entry.nextEntry
-		if dth.oldestUsed != nil {
-			dth.oldestUsed.prevEntry = nil
-		}
-
-		entry.prevEntry = dth.newestUsed
-		entry.nextEntry = nil
-		dth.newestUsed.nextEntry = entry
-		dth.newestUsed = entry
-		return
-	}
-
-	// If the entry is neither the oldest nor the newest used, we need to move it to the newest used position
-	// and update the neighbors
-
-	entry.prevEntry.nextEntry = entry.nextEntry
-	entry.nextEntry.prevEntry = entry.prevEntry
-	entry.prevEntry = dth.newestUsed
-	entry.nextEntry = nil
-	dth.newestUsed.nextEntry = entry
-	dth.newestUsed = entry
 }
 
 // Get returns the trie pointer that is stored in the map at the given key
 func (dth *dataTriesHolder) Get(key []byte) common.Trie {
 	dth.mutex.Lock()
 	defer dth.mutex.Unlock()
+	keyString := string(key)
 
-	entry, exists := dth.tries[string(key)]
-	if !exists {
+	val, ok := dth.cacher.Get(keyString)
+	if !ok {
+		// maybe it was evicted while being dirty
+		evictedTr, exists := dth.evictedBuffer[keyString]
+		if !exists {
+			return nil
+		}
+
+		delete(dth.evictedBuffer, keyString)
+		dth.putUnprotected(key, evictedTr)
+		return evictedTr
+	}
+
+	dth.touchedTries[keyString] = struct{}{}
+	tr, ok := val.(common.Trie)
+	if !ok {
+		log.Warn("invalid data in dataTriesHolder cache", "entry type", fmt.Sprintf("%T", val))
 		return nil
 	}
 
-	dth.touchedTries[string(key)] = struct{}{}
-	dth.moveEntryToNewestUsed(entry)
-	return entry.trie
+	return tr
 }
 
 // GetAll returns all the tries that are marked as dirty for this implementation.
@@ -219,32 +131,53 @@ func (dth *dataTriesHolder) GetAll() []common.Trie {
 	defer dth.mutex.Unlock()
 
 	tries := make([]common.Trie, 0)
-	for key := range dth.dirtyTries {
-		entry, exists := dth.tries[key]
-		if !exists {
-			log.Warn("data tries holder is in an invalid state: dirty trie not found in tries map", "key", key)
+	for keyString := range dth.dirtyTries {
+		tr := dth.getDirtyTrie(keyString)
+		if check.IfNil(tr) {
 			continue
 		}
-		tries = append(tries, entry.trie)
+		tries = append(tries, tr)
 	}
 	dth.dirtyTries = make(map[string]struct{})
+	dth.evictedBuffer = make(map[string]common.Trie)
 	dth.recomputeTotalSize()
-	dth.evictIfNeeded()
 	return tries
 }
 
+func (dth *dataTriesHolder) getDirtyTrie(key string) common.Trie {
+	entry, exists := dth.cacher.Get(key)
+	if exists {
+		tr, ok := entry.(common.Trie)
+		if !ok {
+			log.Warn("invalid data in dataTriesHolder cache", "entry type", fmt.Sprintf("%T", entry))
+			return nil
+		}
+
+		return tr
+	}
+
+	tr, ok := dth.evictedBuffer[key]
+	if !ok {
+		return nil
+	}
+	return tr
+}
+
 func (dth *dataTriesHolder) recomputeTotalSize() {
-	for key := range dth.touchedTries {
-		entry, exists := dth.tries[key]
+	for keyString := range dth.touchedTries {
+		entry, exists := dth.cacher.Get(keyString)
 		if !exists {
-			log.Warn("data tries holder is in an invalid state: touched trie not found in tries map", "key", key)
 			continue
 		}
-		oldSize := entry.trieSize
-		newSize := entry.trie.SizeInMemory()
-		if oldSize != newSize {
-			dth.totalTriesSize = dth.totalTriesSize - uint64(oldSize) + uint64(newSize)
-			entry.trieSize = newSize
+		tr, ok := entry.(common.Trie)
+		if !ok {
+			log.Warn("invalid data in dataTriesHolder cache", "entry type", fmt.Sprintf("%T", entry))
+			continue
+		}
+
+		evicted := dth.cacher.AddSized(keyString, tr, int64(tr.SizeInMemory()))
+		if evicted {
+			log.Warn("unexpected eviction while recomputing total size in dataTriesHolder")
 		}
 	}
 	dth.touchedTries = make(map[string]struct{})
@@ -258,17 +191,12 @@ func (dth *dataTriesHolder) Reset() {
 }
 
 func (dth *dataTriesHolder) reset() {
-	if log.GetLevel() == logger.LogTrace {
-		for key := range dth.tries {
-			log.Trace("reset data tries holder", "key", key)
-		}
-	}
+	log.Trace("reset data tries holder")
 
-	dth.tries = make(map[string]*trieEntry)
+	dth.cacher.Purge()
 	dth.dirtyTries = make(map[string]struct{})
-	dth.oldestUsed = nil
-	dth.newestUsed = nil
-	dth.totalTriesSize = 0
+	dth.touchedTries = make(map[string]struct{})
+	dth.evictedBuffer = make(map[string]common.Trie)
 }
 
 // IsInterfaceNil returns true if underlying object is nil
