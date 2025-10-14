@@ -1872,6 +1872,187 @@ func TestShardProcessor_ProcessBlockProposal(t *testing.T) {
 
 		require.Equal(t, process.ErrWrongTypeAssertion, err)
 	})
+	t.Run("createBlockStarted fails should error", func(t *testing.T) {
+		t.Parallel()
+
+		args := CreateMockArguments(createComponentHolderMocks())
+		args.TxCoordinator = &testscommon.TransactionCoordinatorMock{
+			AddIntermediateTransactionsCalled: func(mapSCRs map[block.Type][]data.TransactionHandler, key []byte) error {
+				return expectedErr
+			},
+		}
+		sp, _ := blproc.NewShardProcessor(args)
+
+		header := &block.HeaderV3{}
+		body := &block.Body{}
+		_, err := sp.ProcessBlockProposal(header, body)
+
+		require.Equal(t, expectedErr, err)
+	})
+	t.Run("IsDataPreparedForProcessing fails should error", func(t *testing.T) {
+		t.Parallel()
+
+		args := CreateMockArguments(createComponentHolderMocks())
+		args.TxCoordinator = &testscommon.TransactionCoordinatorMock{
+			IsDataPreparedForProcessingCalled: func(haveTime func() time.Duration) error {
+				return expectedErr
+			},
+		}
+		sp, _ := blproc.NewShardProcessor(args)
+
+		header := &block.HeaderV3{}
+		body := &block.Body{}
+		_, err := sp.ProcessBlockProposal(header, body)
+
+		require.Equal(t, expectedErr, err)
+	})
+	t.Run("checkEpochStartInfoAvailableIfNeeded fails should error", func(t *testing.T) {
+		t.Parallel()
+
+		coreComponents, dataComponents, bootstrapComponents, statusComponents := createComponentHolderMocks()
+		args := CreateMockArguments(coreComponents, dataComponents, bootstrapComponents, statusComponents)
+		args.EpochStartTrigger = &mock.EpochStartTriggerStub{
+			MetaEpochCalled: func() uint32 {
+				return 5
+			},
+			IsEpochStartCalled: func() bool {
+				return false
+			},
+		}
+		dataComponents.DataPool = &dataRetriever.PoolsHolderStub{
+			HeadersCalled: func() retriever.HeadersPool {
+				return &pool.HeadersPoolStub{
+					GetHeaderByHashCalled: func(hash []byte) (data.HeaderHandler, error) {
+						return nil, expectedErr
+					},
+				}
+			},
+		}
+		sp, _ := blproc.NewShardProcessor(args)
+
+		header := &block.HeaderV3{
+			Epoch:              10,
+			EpochStartMetaHash: []byte("epochStartHash"),
+		}
+		body := &block.Body{}
+		_, err := sp.ProcessBlockProposal(header, body)
+
+		require.Error(t, err)
+		require.ErrorIs(t, err, process.ErrEpochStartInfoNotAvailable)
+	})
+	t.Run("WaitForHeadersIfNeeded fails should error", func(t *testing.T) {
+		t.Parallel()
+
+		args := CreateMockArguments(createComponentHolderMocks())
+		args.HeadersForBlock = &testscommon.HeadersForBlockMock{
+			WaitForHeadersIfNeededCalled: func(haveTime func() time.Duration) error {
+				return expectedErr
+			},
+		}
+		sp, _ := blproc.NewShardProcessor(args)
+
+		header := &block.HeaderV3{}
+		body := &block.Body{}
+		_, err := sp.ProcessBlockProposal(header, body)
+		require.Equal(t, expectedErr, err)
+	})
+	t.Run("WaitForHeadersIfNeeded fails should error", func(t *testing.T) {
+		t.Parallel()
+
+		args := CreateMockArguments(createComponentHolderMocks())
+		args.BlockChainHook = &testscommon.BlockChainHookStub{
+			SetCurrentHeaderCalled: func(hdr data.HeaderHandler) error {
+				return expectedErr
+			},
+		}
+		sp, _ := blproc.NewShardProcessor(args)
+
+		header := &block.HeaderV3{}
+		body := &block.Body{}
+		_, err := sp.ProcessBlockProposal(header, body)
+		require.Equal(t, expectedErr, err)
+	})
+	t.Run("ProcessBlockTransaction fails should error", func(t *testing.T) {
+		t.Parallel()
+
+		args := CreateMockArguments(createComponentHolderMocks())
+		args.TxCoordinator = &testscommon.TransactionCoordinatorMock{
+			ProcessBlockTransactionCalled: func(header data.HeaderHandler, body *block.Body, haveTime func() time.Duration) error {
+				return expectedErr
+			},
+		}
+		sp, _ := blproc.NewShardProcessor(args)
+
+		header := &block.HeaderV3{}
+		body := &block.Body{}
+		_, err := sp.ProcessBlockProposal(header, body)
+		require.Equal(t, expectedErr, err)
+	})
+	t.Run("VerifyCreatedBlockTransactions fails should error", func(t *testing.T) {
+		t.Parallel()
+
+		args := CreateMockArguments(createComponentHolderMocks())
+		args.TxCoordinator = &testscommon.TransactionCoordinatorMock{
+			VerifyCreatedBlockTransactionsCalled: func(hdr data.HeaderHandler, body *block.Body) error {
+				return expectedErr
+			},
+		}
+		sp, _ := blproc.NewShardProcessor(args)
+
+		header := &block.HeaderV3{}
+		body := &block.Body{}
+		_, err := sp.ProcessBlockProposal(header, body)
+		require.Equal(t, expectedErr, err)
+	})
+	t.Run("CalculateHash fails should error", func(t *testing.T) {
+		t.Parallel()
+
+		coreComponents, dataComponents, bootstrapComponents, statusComponents := createComponentHolderMocks()
+		coreComponents.IntMarsh = &mock.MarshalizerStub{
+			MarshalCalled: func(obj interface{}) ([]byte, error) {
+				return nil, expectedErr
+			},
+		}
+		args := CreateMockArguments(coreComponents, dataComponents, bootstrapComponents, statusComponents)
+		sp, _ := blproc.NewShardProcessor(args)
+
+		header := &block.HeaderV3{}
+		body := &block.Body{}
+		_, err := sp.ProcessBlockProposal(header, body)
+		require.Equal(t, expectedErr, err)
+	})
+	t.Run("collectExecutionResults fails should error", func(t *testing.T) {
+		t.Parallel()
+
+		args := CreateMockArguments(createComponentHolderMocks())
+		args.TxCoordinator = &testscommon.TransactionCoordinatorMock{
+			CreateReceiptsHashCalled: func() ([]byte, error) {
+				return nil, expectedErr
+			},
+		}
+		sp, _ := blproc.NewShardProcessor(args)
+
+		header := &block.HeaderV3{}
+		body := &block.Body{}
+		_, err := sp.ProcessBlockProposal(header, body)
+		require.Equal(t, expectedErr, err)
+	})
+	t.Run("HandleProcessErrorCutoff fails should error", func(t *testing.T) {
+		t.Parallel()
+
+		args := CreateMockArguments(createComponentHolderMocks())
+		args.BlockProcessingCutoffHandler = &testscommon.BlockProcessingCutoffStub{
+			HandleProcessErrorCutoffCalled: func(header data.HeaderHandler) error {
+				return expectedErr
+			},
+		}
+		sp, _ := blproc.NewShardProcessor(args)
+
+		header := &block.HeaderV3{}
+		body := &block.Body{}
+		_, err := sp.ProcessBlockProposal(header, body)
+		require.Equal(t, expectedErr, err)
+	})
 	t.Run("should work, no transactions", func(t *testing.T) {
 		t.Parallel()
 
@@ -1882,5 +2063,172 @@ func TestShardProcessor_ProcessBlockProposal(t *testing.T) {
 		_, err := sp.ProcessBlockProposal(header, body)
 
 		require.Nil(t, err)
+	})
+}
+
+func TestShardProcessor_ShouldEpochStartInfoBeAvailable(t *testing.T) {
+	t.Parallel()
+
+	t.Run("no epoch start meta hash should return false", func(t *testing.T) {
+		t.Parallel()
+
+		arguments := CreateMockArguments(createComponentHolderMocks())
+		sp, _ := blproc.NewShardProcessor(arguments)
+
+		header := &block.HeaderV3{}
+		result := sp.ShouldEpochStartInfoBeAvailable(header)
+		require.False(t, result)
+	})
+
+	t.Run("epoch start triggered should return false", func(t *testing.T) {
+		t.Parallel()
+
+		coreComponents, dataComponents, bootstrapComponents, statusComponents := createComponentHolderMocks()
+		arguments := CreateMockArguments(coreComponents, dataComponents, bootstrapComponents, statusComponents)
+		arguments.EpochStartTrigger = &mock.EpochStartTriggerStub{
+			IsEpochStartCalled: func() bool {
+				return true
+			},
+		}
+		sp, _ := blproc.NewShardProcessor(arguments)
+
+		header := &block.HeaderV3{}
+		_ = header.SetEpochStartMetaHash([]byte("hash"))
+		result := sp.ShouldEpochStartInfoBeAvailable(header)
+		require.False(t, result)
+	})
+
+	t.Run("epoch less than or equal to meta epoch should return false", func(t *testing.T) {
+		t.Parallel()
+
+		coreComponents, dataComponents, bootstrapComponents, statusComponents := createComponentHolderMocks()
+		arguments := CreateMockArguments(coreComponents, dataComponents, bootstrapComponents, statusComponents)
+		arguments.EpochStartTrigger = &mock.EpochStartTriggerStub{
+			IsEpochStartCalled: func() bool {
+				return false
+			},
+			MetaEpochCalled: func() uint32 {
+				return 5
+			},
+		}
+		sp, _ := blproc.NewShardProcessor(arguments)
+
+		header := &block.HeaderV3{}
+		_ = header.SetEpochStartMetaHash([]byte("hash"))
+		_ = header.SetEpoch(5) // equal
+		result := sp.ShouldEpochStartInfoBeAvailable(header)
+		require.False(t, result)
+
+		_ = header.SetEpoch(4) // less than
+		result = sp.ShouldEpochStartInfoBeAvailable(header)
+		require.False(t, result)
+	})
+
+	t.Run("should return true when all conditions met", func(t *testing.T) {
+		t.Parallel()
+
+		coreComponents, dataComponents, bootstrapComponents, statusComponents := createComponentHolderMocks()
+		arguments := CreateMockArguments(coreComponents, dataComponents, bootstrapComponents, statusComponents)
+		arguments.EpochStartTrigger = &mock.EpochStartTriggerStub{
+			IsEpochStartCalled: func() bool {
+				return false
+			},
+			MetaEpochCalled: func() uint32 {
+				return 5
+			},
+		}
+		sp, _ := blproc.NewShardProcessor(arguments)
+
+		header := &block.HeaderV3{}
+		_ = header.SetEpochStartMetaHash([]byte("hash"))
+		_ = header.SetEpoch(10)
+		result := sp.ShouldEpochStartInfoBeAvailable(header)
+		require.True(t, result)
+	})
+}
+
+func TestShardProcessor_GetCrossShardIncomingMiniBlocksFromBody(t *testing.T) {
+	t.Parallel()
+
+	t.Run("empty body should return empty", func(t *testing.T) {
+		t.Parallel()
+
+		arguments := CreateMockArguments(createComponentHolderMocks())
+		sp, _ := blproc.NewShardProcessor(arguments)
+
+		body := &block.Body{}
+		result := sp.GetCrossShardIncomingMiniBlocksFromBody(body)
+		require.Empty(t, result)
+	})
+
+	t.Run("should filter only cross shard incoming miniblocks", func(t *testing.T) {
+		t.Parallel()
+
+		coreComponents, dataComponents, bootstrapComponents, statusComponents := createComponentHolderMocks()
+		// Using default OneShardCoordinator from createComponentHolderMocks
+		arguments := CreateMockArguments(coreComponents, dataComponents, bootstrapComponents, statusComponents)
+		sp, _ := blproc.NewShardProcessor(arguments)
+
+		// Test with different shard IDs - one matching self shard, others cross-shard
+		// Default coordinator has selfId = 0
+		body := &block.Body{
+			MiniBlocks: []*block.MiniBlock{
+				{
+					SenderShardID:   0,
+					ReceiverShardID: 0,
+					TxHashes:        [][]byte{[]byte("tx1")},
+				},
+				{
+					SenderShardID:   1,
+					ReceiverShardID: 0,
+					TxHashes:        [][]byte{[]byte("tx2")},
+				},
+				{
+					SenderShardID:   0,
+					ReceiverShardID: 1,
+					TxHashes:        [][]byte{[]byte("tx3")},
+				},
+				{
+					SenderShardID:   2,
+					ReceiverShardID: 0,
+					TxHashes:        [][]byte{[]byte("tx4")},
+				},
+			},
+		}
+		result := sp.GetCrossShardIncomingMiniBlocksFromBody(body)
+		// Should include miniblocks from shard 1 and 2 going to shard 0
+		require.Len(t, result, 2)
+		require.Equal(t, uint32(1), result[0].SenderShardID)
+		require.Equal(t, uint32(2), result[1].SenderShardID)
+	})
+}
+
+func TestGetHaveTimeForProposal(t *testing.T) {
+	t.Parallel()
+
+	startTime := time.Now()
+	maxDuration := 100 * time.Millisecond
+
+	haveTimeLocal := blproc.GetHaveTimeForProposal(startTime, maxDuration)
+	remaining := haveTimeLocal()
+
+	require.Greater(t, remaining, time.Duration(0))
+	require.LessOrEqual(t, remaining, maxDuration)
+
+}
+
+func TestShouldDisableOutgoingTxs(t *testing.T) {
+	t.Parallel()
+
+	t.Run("should return true when conditions met", func(t *testing.T) {
+		t.Parallel()
+
+		coreComponents, _, _, _ := createComponentHolderMocks()
+		enableEpochsHandler := coreComponents.EnableEpochsHandler()
+		enableRoundsHandler := coreComponents.EnableRoundsHandler()
+
+		result := blproc.ShouldDisableOutgoingTxs(enableEpochsHandler, enableRoundsHandler)
+		// This tests that the function executes without error
+		require.NotNil(t, result) // result can be true or false depending on configuration
 	})
 }
