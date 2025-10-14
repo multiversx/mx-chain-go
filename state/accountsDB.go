@@ -19,6 +19,7 @@ import (
 	"github.com/multiversx/mx-chain-go/common/errChan"
 	"github.com/multiversx/mx-chain-go/common/holders"
 	"github.com/multiversx/mx-chain-go/state/parsers"
+	"github.com/multiversx/mx-chain-go/state/triesHolder"
 	"github.com/multiversx/mx-chain-go/trie/keyBuilder"
 	"github.com/multiversx/mx-chain-go/trie/statistics"
 	logger "github.com/multiversx/mx-chain-logger-go"
@@ -95,13 +96,14 @@ var log = logger.GetOrCreate("state")
 
 // ArgsAccountsDB is the arguments DTO for the AccountsDB instance
 type ArgsAccountsDB struct {
-	Trie                  common.Trie
-	Hasher                hashing.Hasher
-	Marshaller            marshal.Marshalizer
-	AccountFactory        AccountFactory
-	StoragePruningManager StoragePruningManager
-	AddressConverter      core.PubkeyConverter
-	SnapshotsManager      SnapshotsManager
+	Trie                     common.Trie
+	Hasher                   hashing.Hasher
+	Marshaller               marshal.Marshalizer
+	AccountFactory           AccountFactory
+	StoragePruningManager    StoragePruningManager
+	AddressConverter         core.PubkeyConverter
+	SnapshotsManager         SnapshotsManager
+	MaxDataTriesSizeInMemory uint64
 }
 
 // NewAccountsDB creates a new account manager
@@ -111,10 +113,15 @@ func NewAccountsDB(args ArgsAccountsDB) (*AccountsDB, error) {
 		return nil, err
 	}
 
-	return createAccountsDb(args), nil
+	return createAccountsDb(args)
 }
 
-func createAccountsDb(args ArgsAccountsDB) *AccountsDB {
+func createAccountsDb(args ArgsAccountsDB) (*AccountsDB, error) {
+	dth, err := triesHolder.NewDataTriesHolder(args.MaxDataTriesSizeInMemory)
+	if err != nil {
+		return nil, fmt.Errorf("cannot create data tries holder: %w", err)
+	}
+
 	return &AccountsDB{
 		mainTrie:               args.Trie,
 		hasher:                 args.Hasher,
@@ -123,14 +130,14 @@ func createAccountsDb(args ArgsAccountsDB) *AccountsDB {
 		storagePruningManager:  args.StoragePruningManager,
 		entries:                make([]JournalEntry, 0),
 		mutOp:                  sync.RWMutex{},
-		dataTries:              NewDataTriesHolder(),
+		dataTries:              dth,
 		obsoleteDataTrieHashes: make(map[string][][]byte),
 		loadCodeMeasurements: &loadingMeasurements{
 			identifier: "load code",
 		},
 		addressConverter: args.AddressConverter,
 		snapshotsManger:  args.SnapshotsManager,
-	}
+	}, nil
 }
 
 func checkArgsAccountsDB(args ArgsAccountsDB) error {

@@ -129,3 +129,6 @@ var ErrEmptyInitialIteratorState = errors.New("empty initial iterator state")
 
 // ErrInvalidIteratorState signals that an invalid iterator state was provided
 var ErrInvalidIteratorState = errors.New("invalid iterator state")
+
+// ErrInvalidMaxSizeInMemory signals that the provided max trie size value is invalid
+var ErrInvalidMaxSizeInMemory = errors.New("invalid max size in memory")

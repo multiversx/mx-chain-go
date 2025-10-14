@@ -40,6 +40,7 @@ func getCreateArgs() factory.TrieCreateArgs {
 		Identifier:          dataRetriever.UserAccountsUnit.String(),
 		EnableEpochsHandler: &enableEpochsHandlerMock.EnableEpochsHandlerStub{},
 		StatsCollector:      disabled.NewStateStatistics(),
+		MaxSizeInMemory:     10 * 1024 * 1024, // 10 MB
 	}
 }
 

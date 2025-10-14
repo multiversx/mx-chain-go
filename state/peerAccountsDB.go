@@ -17,8 +17,13 @@ func NewPeerAccountsDB(args ArgsAccountsDB) (*PeerAccountsDB, error) {
 		return nil, err
 	}
 
+	originalAccountsDb, err := createAccountsDb(args)
+	if err != nil {
+		return nil, err
+	}
+
 	adb := &PeerAccountsDB{
-		AccountsDB: createAccountsDb(args),
+		AccountsDB: originalAccountsDb,
 	}
 
 	return adb, nil

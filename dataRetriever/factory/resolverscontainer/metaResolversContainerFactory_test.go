@@ -6,6 +6,7 @@ import (
 	"testing"
 
 	"github.com/multiversx/mx-chain-core-go/core"
+	"github.com/multiversx/mx-chain-go/state/triesHolder"
 	"github.com/stretchr/testify/assert"
 
 	"github.com/multiversx/mx-chain-go/common"
@@ -14,7 +15,6 @@ import (
 	"github.com/multiversx/mx-chain-go/dataRetriever/mock"
 	"github.com/multiversx/mx-chain-go/p2p"
 	"github.com/multiversx/mx-chain-go/process/factory"
-	"github.com/multiversx/mx-chain-go/state"
 	"github.com/multiversx/mx-chain-go/storage"
 	"github.com/multiversx/mx-chain-go/testscommon"
 	"github.com/multiversx/mx-chain-go/testscommon/cache"
@@ -86,10 +86,10 @@ func createStoreForMeta() dataRetriever.StorageService {
 }
 
 func createTriesHolderForMeta() common.TriesHolder {
-	triesHolder := state.NewDataTriesHolder()
-	triesHolder.Put([]byte(dataRetriever.UserAccountsUnit.String()), &trieMock.TrieStub{})
-	triesHolder.Put([]byte(dataRetriever.PeerAccountsUnit.String()), &trieMock.TrieStub{})
-	return triesHolder
+	triesContainer := triesHolder.NewTriesHolder()
+	triesContainer.Put([]byte(dataRetriever.UserAccountsUnit.String()), &trieMock.TrieStub{})
+	triesContainer.Put([]byte(dataRetriever.PeerAccountsUnit.String()), &trieMock.TrieStub{})
+	return triesContainer
 }
 
 // ------- NewResolversContainerFactory

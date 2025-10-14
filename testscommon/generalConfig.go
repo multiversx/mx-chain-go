@@ -5,6 +5,8 @@ import (
 	"github.com/multiversx/mx-chain-go/storage/storageunit"
 )
 
+const tenMbSize = uint64(10485760)
+
 // GetGeneralConfig returns the common configuration used for testing
 func GetGeneralConfig() config.Config {
 	return config.Config{
@@ -121,6 +123,9 @@ func GetGeneralConfig() config.Config {
 			SnapshotsEnabled:            true,
 			AccountsStatePruningEnabled: false,
 			PeerStatePruningEnabled:     false,
+			MaxUserTrieSizeInMemory:     tenMbSize,
+			MaxPeerTrieSizeInMemory:     tenMbSize,
+			DataTriesSizeInMemory:       tenMbSize,
 		},
 		TrieStorageManagerConfig: config.TrieStorageManagerConfig{
 			PruningBufferLen:      1000,

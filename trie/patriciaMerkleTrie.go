@@ -30,6 +30,7 @@ const (
 	extension = iota
 	leaf
 	branch
+	minSizeInMemory = 1048576 // 1 MB
 )
 
 type patriciaMerkleTrie struct {
@@ -46,6 +47,7 @@ type patriciaMerkleTrie struct {
 	oldRoot      []byte
 	chanClose    chan struct{}
 	sizeInMemory int
+	maxSizeInMem uint64
 }
 
 // NewTrie creates a new Patricia Merkle Trie
@@ -54,6 +56,7 @@ func NewTrie(
 	msh marshal.Marshalizer,
 	hsh hashing.Hasher,
 	enableEpochsHandler common.EnableEpochsHandler,
+	maxSizeInMemory uint64,
 ) (*patriciaMerkleTrie, error) {
 	if check.IfNil(trieStorage) {
 		return nil, ErrNilTrieStorage
@@ -66,6 +69,9 @@ func NewTrie(
 	}
 	if check.IfNil(enableEpochsHandler) {
 		return nil, errors.ErrNilEnableEpochsHandler
+	}
+	if maxSizeInMemory < minSizeInMemory {
+		return nil, fmt.Errorf("%w: provided %d, minimum %d", ErrInvalidMaxSizeInMemory, maxSizeInMemory, minSizeInMemory)
 	}
 
 	tnvv, err := core.NewTrieNodeVersionVerifier(enableEpochsHandler)
@@ -82,6 +88,8 @@ func NewTrie(
 		chanClose:               make(chan struct{}),
 		enableEpochsHandler:     enableEpochsHandler,
 		trieNodeVersionVerifier: tnvv,
+		// TODO collapse trie leaves if maxSizeInMemory is reached
+		maxSizeInMem: maxSizeInMemory,
 	}, nil
 }
 
@@ -295,6 +303,7 @@ func (tr *patriciaMerkleTrie) recreate(root []byte, tsm common.StorageManager) (
 			tr.marshalizer,
 			tr.hasher,
 			tr.enableEpochsHandler,
+			tr.maxSizeInMem,
 		)
 	}
 
@@ -375,6 +384,7 @@ func (tr *patriciaMerkleTrie) recreateFromDb(rootHash []byte, tsm common.Storage
 		tr.marshalizer,
 		tr.hasher,
 		tr.enableEpochsHandler,
+		tr.maxSizeInMem,
 	)
 	if err != nil {
 		return nil, nil, err

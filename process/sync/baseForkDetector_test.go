@@ -1,7 +1,6 @@
 package sync_test
 
 import (
-	"github.com/multiversx/mx-chain-go/testscommon/processMocks"
 	"math"
 	"testing"
 	"time"
@@ -17,6 +16,7 @@ import (
 	"github.com/multiversx/mx-chain-go/testscommon"
 	"github.com/multiversx/mx-chain-go/testscommon/dataRetriever"
 	"github.com/multiversx/mx-chain-go/testscommon/enableEpochsHandlerMock"
+	"github.com/multiversx/mx-chain-go/testscommon/processMocks"
 
 	"github.com/stretchr/testify/assert"
 )

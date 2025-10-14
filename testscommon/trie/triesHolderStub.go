@@ -20,13 +20,6 @@ func (ths *TriesHolderStub) Put(key []byte, trie common.Trie) {
 	}
 }
 
-// Replace -
-func (ths *TriesHolderStub) Replace(key []byte, trie common.Trie) {
-	if ths.RemoveCalled != nil {
-		ths.RemoveCalled(key, trie)
-	}
-}
-
 // Get -
 func (ths *TriesHolderStub) Get(key []byte) common.Trie {
 	if ths.GetCalled != nil {

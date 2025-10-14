@@ -25,7 +25,6 @@ import (
 	"github.com/multiversx/mx-chain-go/testscommon/hashingMocks"
 	"github.com/multiversx/mx-chain-go/testscommon/shardingMocks"
 	stateMock "github.com/multiversx/mx-chain-go/testscommon/state"
-	"github.com/multiversx/mx-chain-go/testscommon/storage"
 	"github.com/multiversx/mx-chain-go/trie"
 	vmcommon "github.com/multiversx/mx-chain-vm-common-go"
 	"github.com/stretchr/testify/assert"
@@ -1154,11 +1153,11 @@ func getBaseRewardsArguments() BaseRewardsCreatorArgs {
 	hasher := sha256.NewSha256()
 	marshalizer := &marshal.GogoProtoMarshalizer{}
 
-	storageManagerArgs := storage.GetStorageManagerArgs()
+	storageManagerArgs := txExecOrderStub.GetStorageManagerArgs()
 	storageManagerArgs.Marshalizer = marshalizer
 	storageManagerArgs.Hasher = hasher
 
-	trieFactoryManager, _ := trie.CreateTrieStorageManager(storageManagerArgs, storage.GetStorageManagerOptions())
+	trieFactoryManager, _ := trie.CreateTrieStorageManager(storageManagerArgs, txExecOrderStub.GetStorageManagerOptions())
 	argsAccCreator := factory.ArgsAccountCreator{
 		Hasher:              hasher,
 		Marshaller:          marshalizer,
