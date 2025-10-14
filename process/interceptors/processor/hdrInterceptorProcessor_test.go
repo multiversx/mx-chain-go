@@ -162,7 +162,7 @@ func TestHdrInterceptorProcessor_SaveNilDataShouldErr(t *testing.T) {
 
 	hip, _ := processor.NewHdrInterceptorProcessor(createMockHdrArgument())
 
-	err := hip.Save(nil, "", "")
+	_, err := hip.Save(nil, "", "")
 
 	assert.Equal(t, process.ErrWrongTypeAssertion, err)
 }
@@ -211,7 +211,7 @@ func TestHdrInterceptorProcessor_SaveShouldWork(t *testing.T) {
 		chanCalled <- struct{}{}
 	})
 
-	err := hip.Save(hdrInterceptedData, "", "")
+	_, err := hip.Save(hdrInterceptedData, "", "")
 
 	assert.Nil(t, err)
 	assert.True(t, wasAddedHeaders)
