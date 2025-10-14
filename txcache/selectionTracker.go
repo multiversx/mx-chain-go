@@ -59,9 +59,32 @@ func (st *selectionTracker) OnProposedBlock(
 		return err
 	}
 
+	accountsRootHash, err := accountsProvider.GetRootHash()
+	if err != nil {
+		return err
+	}
+
+	if !bytes.Equal(st.latestRootHash, accountsRootHash) {
+		// TODO when the right information will be passed on the OnExecutedBlock flow, the error must be returned here.
+		log.Error("selectionTracker.OnProposedBlock",
+			"err", errDifferentRootHashes,
+			"latest saved rootHash", st.latestRootHash,
+			"accountsRootHash", accountsRootHash,
+		)
+	}
+
 	nonce := blockHeader.GetNonce()
 	rootHash := blockHeader.GetRootHash()
 	prevHash := blockHeader.GetPrevHash()
+
+	if !bytes.Equal(st.latestRootHash, rootHash) {
+		// TODO when the right information will be passed on the OnExecutedBlock flow, the error must be returned here.
+		log.Error("selectionTracker.OnProposedBlock",
+			"err", errDifferentRootHashes,
+			"latest saved rootHash", st.latestRootHash,
+			"block rootHash", rootHash,
+		)
+	}
 
 	tBlock := newTrackedBlock(nonce, blockHash, rootHash, prevHash)
 
