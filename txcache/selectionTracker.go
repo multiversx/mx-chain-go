@@ -12,7 +12,6 @@ import (
 	"golang.org/x/exp/slices"
 )
 
-// TODO should add a reset method which cleans the tracked blocks and the global account breadcrumbs
 // TODO rename this to proposedBlocksTracker
 type selectionTracker struct {
 	mutTracker                sync.RWMutex
@@ -358,6 +357,22 @@ func (st *selectionTracker) updateLatestRootHashNoLock(receivedNonce uint64, rec
 		st.latestRootHash = receivedRootHash
 		st.latestNonce = receivedNonce
 	}
+}
+
+// ResetTrackedBlocks resets the tracked blocks, the global account breadcrumbs and the state saved on the OnExecutedBlock.
+func (st *selectionTracker) ResetTrackedBlocks() {
+	st.mutTracker.Lock()
+	defer st.mutTracker.Unlock()
+
+	log.Debug("selectionTracker.ResetTrackedBlocks removing all tracked blocks",
+		"len(trackedBlocks)", len(st.blocks),
+	)
+
+	st.latestRootHash = nil
+	st.latestNonce = 0
+
+	st.blocks = make(map[string]*trackedBlock)
+	st.globalBreadcrumbsCompiler.cleanGlobalBreadcrumbs()
 }
 
 // deriveVirtualSelectionSession creates a virtual selection session by transforming the global accounts breadcrumbs into virtual records

@@ -4,12 +4,15 @@ import (
 	"errors"
 	"fmt"
 	"math"
+	"math/big"
 	"sort"
 	"sync"
 	"testing"
 
 	"github.com/multiversx/mx-chain-core-go/core"
 	"github.com/multiversx/mx-chain-core-go/core/check"
+	"github.com/multiversx/mx-chain-core-go/data/block"
+	"github.com/multiversx/mx-chain-go/common/holders"
 	"github.com/multiversx/mx-chain-go/config"
 	"github.com/multiversx/mx-chain-go/testscommon/txcachemocks"
 	"github.com/multiversx/mx-chain-storage-go/common"
@@ -624,6 +627,74 @@ func TestBenchmarkTxCache_addManyTransactionsWithSameNonce(t *testing.T) {
 	// 0.000120s (TestBenchmarkTxCache_addManyTransactionsWithSameNonce/numTransactions_=_100_(worst_case))
 	// 0.002821s (TestBenchmarkTxCache_addManyTransactionsWithSameNonce/numTransactions_=_1000_(worst_case))
 	// 0.062260s (TestBenchmarkTxCache_addManyTransactionsWithSameNonce/numTransactions_=_5_000_(worst_case))
+}
+
+func Test_ResetTracker(t *testing.T) {
+	t.Parallel()
+
+	accountsProvider := &txcachemocks.AccountNonceAndBalanceProviderMock{
+		GetAccountNonceAndBalanceCalled: func(address []byte) (uint64, *big.Int, bool, error) {
+			return 11, big.NewInt(6 * 100000 * oneBillion), true, nil
+		},
+	}
+
+	config := ConfigSourceMe{
+		Name:                        "test",
+		NumChunks:                   16,
+		NumBytesThreshold:           maxNumBytesUpperBound,
+		NumBytesPerSenderThreshold:  maxNumBytesPerSenderUpperBoundTest,
+		CountThreshold:              math.MaxUint32,
+		CountPerSenderThreshold:     math.MaxUint32,
+		EvictionEnabled:             true,
+		NumItemsToPreemptivelyEvict: 1,
+		TxCacheBoundsConfig:         createMockTxBoundsConfig(),
+	}
+
+	host := txcachemocks.NewMempoolHostMock()
+
+	cache, err := NewTxCache(config, host)
+	require.Nil(t, err)
+
+	txs := []*WrappedTransaction{
+		createTx([]byte("txHash1"), "bob", 11),
+		createTx([]byte("txHash2"), "alice", 11).withRelayer([]byte("bob")).withGasLimit(100_000),
+		createTx([]byte("txHash3"), "alice", 12),
+		createTx([]byte("txHash4"), "alice", 13),
+	}
+	for _, tx := range txs {
+		cache.AddTx(tx)
+	}
+
+	err = cache.OnProposedBlock(
+		[]byte("hash1"),
+		&block.Body{
+			MiniBlocks: []*block.MiniBlock{
+				{
+					TxHashes: [][]byte{
+						[]byte("txHash1"),
+						[]byte("txHash2"),
+						[]byte("txHash3"),
+						[]byte("txHash4"),
+					},
+				},
+			},
+		},
+		&block.Header{
+			Nonce:    uint64(0),
+			PrevHash: []byte("hash0"),
+			RootHash: []byte("rootHash0"),
+		},
+		accountsProvider,
+		holders.NewBlockchainInfo([]byte("hash0"), []byte("hash0"), 0),
+	)
+	require.Nil(t, err)
+
+	require.Equal(t, 1, len(cache.tracker.blocks))
+	require.Equal(t, 2, len(cache.tracker.getGlobalAccountsBreadcrumbs()))
+
+	cache.ResetTracker()
+	require.Equal(t, 0, len(cache.tracker.blocks))
+	require.Equal(t, 0, len(cache.tracker.getGlobalAccountsBreadcrumbs()))
 }
 
 func newUnconstrainedCacheToTest(boundsConfig config.TxCacheBoundsConfig) *TxCache {
