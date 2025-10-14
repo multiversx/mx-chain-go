@@ -61,7 +61,7 @@ func Test_shouldWorkConcurrently(t *testing.T) {
 		go func(tb *trackedBlock) {
 			defer wg.Done()
 
-			err := gabc.updateAfterRemovedBlockWithSameNonceOrBelow(tb)
+			err := gabc.updateOnRemovedBlockWithSameNonceOrBelow(tb)
 			require.NoError(t, err)
 		}(tb)
 	}
@@ -187,7 +187,7 @@ func Test_shouldWorkOnDifferentScenarios(t *testing.T) {
 		requireEqualGlobalAccountsBreadcrumbs(t, expectedGlobalBreadcrumbs, gabc.globalAccountBreadcrumbs)
 
 		// remove the first proposed block and update the global state
-		err = gabc.updateAfterRemovedBlockWithSameNonceOrBelow(tb1)
+		err = gabc.updateOnRemovedBlockWithSameNonceOrBelow(tb1)
 		require.NoError(t, err)
 
 		expectedGlobalBreadcrumbs = map[string]*globalAccountBreadcrumb{
@@ -218,7 +218,7 @@ func Test_shouldWorkOnDifferentScenarios(t *testing.T) {
 		requireEqualGlobalAccountsBreadcrumbs(t, expectedGlobalBreadcrumbs, gabc.globalAccountBreadcrumbs)
 
 		// remove the second proposed block and update the global state
-		err = gabc.updateAfterRemovedBlockWithSameNonceOrBelow(tb2)
+		err = gabc.updateOnRemovedBlockWithSameNonceOrBelow(tb2)
 		require.NoError(t, err)
 
 		expectedGlobalBreadcrumbs = map[string]*globalAccountBreadcrumb{}
@@ -413,7 +413,7 @@ func Test_shouldWorkOnDifferentScenarios(t *testing.T) {
 		// now, replace the first block in the non-canonical chain
 		// first, remove all the once greater or equal to its nonce
 
-		err = gabc.updateAfterRemovedBlockWithSameNonceOrAbove(tb4)
+		err = gabc.updateOnRemovedBlockWithSameNonceOrAbove(tb4)
 		require.NoError(t, err)
 
 		expectedGlobalBreadcrumbs = map[string]*globalAccountBreadcrumb{
@@ -465,7 +465,7 @@ func Test_shouldWorkOnDifferentScenarios(t *testing.T) {
 
 		requireEqualGlobalAccountsBreadcrumbs(t, expectedGlobalBreadcrumbs, gabc.globalAccountBreadcrumbs)
 
-		err = gabc.updateAfterRemovedBlockWithSameNonceOrAbove(tb5)
+		err = gabc.updateOnRemovedBlockWithSameNonceOrAbove(tb5)
 		require.NoError(t, err)
 
 		expectedGlobalBreadcrumbs = map[string]*globalAccountBreadcrumb{
@@ -594,7 +594,7 @@ func Test_updateGlobalBreadcrumbsOnRemovedBlockOnProposed(t *testing.T) {
 		err := tb1.compileBreadcrumbs(txs)
 		require.NoError(t, err)
 
-		err = gabc.updateAfterRemovedBlockWithSameNonceOrAbove(tb1)
+		err = gabc.updateOnRemovedBlockWithSameNonceOrAbove(tb1)
 		require.Equal(t, errGlobalBreadcrumbDoesNotExist, err)
 	})
 
@@ -625,7 +625,7 @@ func Test_updateGlobalBreadcrumbsOnRemovedBlockOnProposed(t *testing.T) {
 		err := tb1.compileBreadcrumbs(txs)
 		require.NoError(t, err)
 
-		err = gabc.updateAfterRemovedBlockWithSameNonceOrAbove(tb1)
+		err = gabc.updateOnRemovedBlockWithSameNonceOrAbove(tb1)
 		require.Equal(t, errNegativeBalanceForBreadcrumb, err)
 	})
 }
@@ -649,7 +649,7 @@ func Test_updateGlobalBreadcrumbsOnRemovedBlockOnExecuted(t *testing.T) {
 		err := tb1.compileBreadcrumbs(txs)
 		require.NoError(t, err)
 
-		err = gabc.updateAfterRemovedBlockWithSameNonceOrBelow(tb1)
+		err = gabc.updateOnRemovedBlockWithSameNonceOrBelow(tb1)
 		require.Equal(t, errGlobalBreadcrumbDoesNotExist, err)
 	})
 
@@ -680,7 +680,7 @@ func Test_updateGlobalBreadcrumbsOnRemovedBlockOnExecuted(t *testing.T) {
 		err := tb1.compileBreadcrumbs(txs)
 		require.NoError(t, err)
 
-		err = gabc.updateAfterRemovedBlockWithSameNonceOrBelow(tb1)
+		err = gabc.updateOnRemovedBlockWithSameNonceOrBelow(tb1)
 		require.Equal(t, errNegativeBalanceForBreadcrumb, err)
 	})
 }

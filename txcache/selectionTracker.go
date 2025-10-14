@@ -266,14 +266,14 @@ func (st *selectionTracker) removeBlockEqualOrAboveNoLock(blockToBeAddedHash []b
 	// search if in the tracked blocks we already have one with same nonce or greater
 	for bHash, b := range st.blocks {
 		if b.hasSameNonceOrHigher(blockToBeAdded) {
-			err := st.globalBreadcrumbsCompiler.updateAfterRemovedBlockWithSameNonceOrAbove(b)
+			err := st.globalBreadcrumbsCompiler.updateOnRemovedBlockWithSameNonceOrAbove(b)
 			if err != nil {
 				return err
 			}
 
 			delete(st.blocks, bHash)
 
-			log.Debug("selectionTracker.addNewTrackedBlockNoLock block with same nonce was deleted, to be replaced",
+			log.Trace("selectionTracker.addNewTrackedBlockNoLock block with same nonce was deleted, to be replaced",
 				"nonce", blockToBeAdded.nonce,
 				"hash of replaced block", b.hash,
 				"hash of new block", blockToBeAddedHash,
@@ -321,7 +321,7 @@ func (st *selectionTracker) removeUpToBlockNoLock(searchedBlock *trackedBlock) e
 	removedBlocks := 0
 	for blockHash, b := range st.blocks {
 		if b.hasSameNonceOrLower(searchedBlock) {
-			err := st.globalBreadcrumbsCompiler.updateAfterRemovedBlockWithSameNonceOrBelow(b)
+			err := st.globalBreadcrumbsCompiler.updateOnRemovedBlockWithSameNonceOrBelow(b)
 			if err != nil {
 				return err
 			}
@@ -331,7 +331,7 @@ func (st *selectionTracker) removeUpToBlockNoLock(searchedBlock *trackedBlock) e
 		}
 	}
 
-	log.Debug("selectionTracker.removeUpToBlockNoLock",
+	log.Trace("selectionTracker.removeUpToBlockNoLock",
 		"searched block nonce", searchedBlock.nonce,
 		"searched block hash", searchedBlock.hash,
 		"searched block rootHash", searchedBlock.rootHash,
@@ -380,9 +380,9 @@ func (st *selectionTracker) ResetTrackedBlocks() {
 func (st *selectionTracker) deriveVirtualSelectionSession(
 	session SelectionSession,
 	nonce uint64,
-	isSimulation bool,
+	shouldRemoveTrackedBlocks bool,
 ) (*virtualSelectionSession, error) {
-	if !isSimulation {
+	if !shouldRemoveTrackedBlocks {
 		err := st.removeBlocksAboveNonce(nonce)
 		if err != nil {
 			return nil, err
@@ -417,14 +417,14 @@ func (st *selectionTracker) removeBlocksAboveNonce(nonce uint64) error {
 
 	for blockHash, tb := range st.blocks {
 		if tb.hasHigherNonce(nonce) {
-			err := st.globalBreadcrumbsCompiler.updateAfterRemovedBlockWithSameNonceOrAbove(tb)
+			err := st.globalBreadcrumbsCompiler.updateOnRemovedBlockWithSameNonceOrAbove(tb)
 			if err != nil {
 				return err
 			}
 
 			delete(st.blocks, blockHash)
 
-			log.Debug("selectionTracker.removeBlocksAboveNonce",
+			log.Trace("selectionTracker.removeBlocksAboveNonce",
 				"nonce", nonce,
 				"nonce of deleted block", tb.nonce,
 				"hash of deleted block", blockHash,
