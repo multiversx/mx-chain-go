@@ -3940,7 +3940,7 @@ func TestBaseProcessor_GetFinalMiniBlocksFromExecutionResult(t *testing.T) {
 		}
 
 		body, err := bp.GetFinalMiniBlocksFromExecutionResults(header)
-		require.Nil(t, err) // unmarshall err
+		require.Nil(t, err)
 		require.Equal(t, &block.Body{
 			MiniBlocks: []*block.MiniBlock{mb1},
 		}, body)
