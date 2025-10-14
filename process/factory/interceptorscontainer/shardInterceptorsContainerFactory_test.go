@@ -768,5 +768,11 @@ func getArgumentsShard(
 		FullArchivePeerShardMapper:     &p2pmocks.NetworkShardingCollectorStub{},
 		HardforkTrigger:                &testscommon.HardforkTriggerStub{},
 		InterceptedDataVerifierFactory: &mock.InterceptedDataVerifierFactoryMock{},
+		Config: config.Config{
+			InterceptedDataVerifier: config.InterceptedDataVerifierConfig{
+				CacheSpanInSec:   1,
+				CacheExpiryInSec: 1,
+			},
+		},
 	}
 }

@@ -5,23 +5,23 @@ import (
 	"sync"
 	"time"
 
+	"github.com/multiversx/mx-chain-go/config"
 	"github.com/multiversx/mx-chain-go/process"
 	"github.com/multiversx/mx-chain-go/process/interceptors"
 	"github.com/multiversx/mx-chain-go/storage"
 	"github.com/multiversx/mx-chain-go/storage/cache"
+	"github.com/multiversx/mx-chain-go/storage/disabled"
 )
 
 // InterceptedDataVerifierFactoryArgs holds the required arguments for interceptedDataVerifierFactory
 type InterceptedDataVerifierFactoryArgs struct {
-	CacheSpan   time.Duration
-	CacheExpiry time.Duration
+	InterceptedDataVerifierConfig config.InterceptedDataVerifierConfig
 }
 
 // interceptedDataVerifierFactory encapsulates the required arguments to create InterceptedDataVerifier
 // Furthermore it will hold all such instances in an internal map.
 type interceptedDataVerifierFactory struct {
-	cacheSpan   time.Duration
-	cacheExpiry time.Duration
+	cfg config.InterceptedDataVerifierConfig
 
 	interceptedDataVerifierMap map[string]storage.Cacher
 	mutex                      sync.Mutex
@@ -30,8 +30,7 @@ type interceptedDataVerifierFactory struct {
 // NewInterceptedDataVerifierFactory will create a factory instance that will create instance of InterceptedDataVerifiers
 func NewInterceptedDataVerifierFactory(args InterceptedDataVerifierFactoryArgs) *interceptedDataVerifierFactory {
 	return &interceptedDataVerifierFactory{
-		cacheSpan:                  args.CacheSpan,
-		cacheExpiry:                args.CacheExpiry,
+		cfg:                        args.InterceptedDataVerifierConfig,
 		interceptedDataVerifierMap: make(map[string]storage.Cacher),
 		mutex:                      sync.Mutex{},
 	}
@@ -39,10 +38,7 @@ func NewInterceptedDataVerifierFactory(args InterceptedDataVerifierFactoryArgs) 
 
 // Create will return an instance of InterceptedDataVerifier
 func (idvf *interceptedDataVerifierFactory) Create(topic string) (process.InterceptedDataVerifier, error) {
-	internalCache, err := cache.NewTimeCacher(cache.ArgTimeCacher{
-		DefaultSpan: idvf.cacheSpan,
-		CacheExpiry: idvf.cacheExpiry,
-	})
+	internalCache, err := idvf.createCache()
 	if err != nil {
 		return nil, err
 	}
@@ -52,6 +48,17 @@ func (idvf *interceptedDataVerifierFactory) Create(topic string) (process.Interc
 	idvf.mutex.Unlock()
 
 	return interceptors.NewInterceptedDataVerifier(internalCache)
+}
+
+func (idvf *interceptedDataVerifierFactory) createCache() (storage.Cacher, error) {
+	if !idvf.cfg.EnableCaching {
+		return disabled.NewCache(), nil
+	}
+
+	return cache.NewTimeCacher(cache.ArgTimeCacher{
+		DefaultSpan: time.Duration(idvf.cfg.CacheSpanInSec) * time.Second,
+		CacheExpiry: time.Duration(idvf.cfg.CacheExpiryInSec) * time.Second,
+	})
 }
 
 // Close will close all the sweeping routines created by the cache.
