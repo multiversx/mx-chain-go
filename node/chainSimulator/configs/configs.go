@@ -133,6 +133,9 @@ func CreateChainSimulatorConfigs(args ArgsChainSimulatorConfigs) (*ArgsConfigsSi
 		return nil, err
 	}
 
+	// disable caching, as message deduplication will break the flow when blocks are generated very fast
+	configs.GeneralConfig.InterceptedDataVerifier.EnableCaching = false
+
 	updateConfigsChainParameters(args, configs)
 	node.ApplyArchCustomConfigs(configs)
 

@@ -531,3 +531,12 @@ func (st *selectionTracker) displayTrackedBlocks(contextualLogger logger.Logger,
 		contextualLogger.Trace("displayTrackedBlocks - trackedBlocks: none")
 	}
 }
+
+// getNumTrackedBlocks returns the dimension of tracked blocks
+// TODO the number of tracked accounts could also be returned when the globalAccountsBreadcrumbs is integrated
+func (st *selectionTracker) getNumTrackedBlocks() uint64 {
+	st.mutTracker.RLock()
+	defer st.mutTracker.RUnlock()
+
+	return uint64(len(st.blocks))
+}
