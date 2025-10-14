@@ -503,7 +503,7 @@ func TestShardProcessor_CreateBlockProposal(t *testing.T) {
 		}
 		dataComponents.BlockChain = &testscommon.ChainHandlerStub{
 			GetCurrentBlockHeaderCalled: func() data.HeaderHandler {
-				return getSimpleHeaderV3Mock() // using V2 for simplicity
+				return getSimpleHeaderV3Mock()
 			},
 			GetCurrentBlockHeaderHashCalled: func() []byte {
 				return []byte("hash")

@@ -140,7 +140,6 @@ type baseBootstrap struct {
 	repopulateTokensSupplies bool
 }
 
-// TODO: remove this handling after async exec
 func (boot *baseBootstrap) getProcessWaitTime() time.Duration {
 	if boot.enableRoundsHandler.IsFlagEnabled(common.SupernovaRoundFlag) {
 		return boot.processWaitTimeSupernova
@@ -896,14 +895,13 @@ func (boot *baseBootstrap) syncBlockLegacy(body data.BodyHandler, header data.He
 // Finally, if everything works, the block will be committed and added into the processing queue.
 // And all this mechanism will be reiterated for the next block.
 func (boot *baseBootstrap) syncBlockV3(body data.BodyHandler, header data.HeaderHandler) error {
-
 	err := boot.prepareForSyncIfNeeded(header.GetNonce())
 	if err != nil {
 		return err
 	}
 
 	startTime := time.Now()
-	waitTime := boot.processWaitTime
+	waitTime := boot.getProcessWaitTime()
 	haveTime := func() time.Duration {
 		return waitTime - time.Since(startTime)
 	}
