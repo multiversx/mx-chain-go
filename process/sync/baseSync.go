@@ -138,8 +138,8 @@ type baseBootstrap struct {
 	repopulateTokensSupplies bool
 }
 
-func (boot *baseBootstrap) getProcessWaitTime() time.Duration {
-	if boot.enableRoundsHandler.IsFlagEnabled(common.SupernovaRoundFlag) {
+func (boot *baseBootstrap) getProcessWaitTime(round uint64) time.Duration {
+	if boot.enableRoundsHandler.IsFlagEnabledInRound(common.SupernovaRoundFlag, round) {
 		return boot.processWaitTimeSupernova
 	}
 
@@ -834,7 +834,7 @@ func (boot *baseBootstrap) syncBlock() error {
 // in the blockchain, and all this mechanism will be reiterated for the next block.
 func (boot *baseBootstrap) syncBlockLegacy(body data.BodyHandler, header data.HeaderHandler) error {
 	startTime := time.Now()
-	waitTime := boot.getProcessWaitTime()
+	waitTime := boot.getProcessWaitTime(header.GetRound())
 	haveTime := func() time.Duration {
 		return waitTime - time.Since(startTime)
 	}
@@ -896,7 +896,7 @@ func (boot *baseBootstrap) syncBlockV3(body data.BodyHandler, header data.Header
 	}
 
 	startTime := time.Now()
-	waitTime := boot.getProcessWaitTime()
+	waitTime := boot.getProcessWaitTime(header.GetRound())
 	haveTime := func() time.Duration {
 		return waitTime - time.Since(startTime)
 	}
