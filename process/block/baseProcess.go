@@ -2389,7 +2389,7 @@ func (bp *baseProcessor) OnProposedBlock(
 		return err
 	}
 
-	blockChainInfo := holders.NewBlockchainInfo(lastExecResHandler.GetHeaderHash(), proposedHeader.GetPrevHash(), lastCommittedHeader.GetNonce()+1)
+	blockChainInfo := holders.NewBlockchainInfo(lastExecResHandler.GetHeaderHash(), proposedHeader.GetPrevHash(), proposedHeader.GetNonce())
 	return bp.dataPool.Transactions().OnProposedBlock(proposedHash, proposedBodyPtr, proposedHeader, accountsProvider, blockChainInfo)
 }
 
