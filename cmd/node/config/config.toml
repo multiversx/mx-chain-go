@@ -1052,6 +1052,7 @@
     MaxRoundsOfInactivityAccepted = 3
 
 [InterceptedDataVerifier]
+    EnableCaching = true
     CacheSpanInSec = 30
     CacheExpiryInSec = 30
 

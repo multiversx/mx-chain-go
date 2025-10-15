@@ -800,6 +800,7 @@ type IndexBroadcastDelay struct {
 
 // InterceptedDataVerifierConfig holds the configuration for the intercepted data verifier
 type InterceptedDataVerifierConfig struct {
+	EnableCaching    bool
 	CacheSpanInSec   uint64
 	CacheExpiryInSec uint64
 }

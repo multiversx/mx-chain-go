@@ -129,6 +129,8 @@ func (sr *subroundBlock) doBlockJob(ctx context.Context) bool {
 		return false
 	}
 
+	sr.updateConsensusMetricsProposedBlockReceivedOrSent()
+
 	err = sr.SetJobDone(leader, sr.Current(), true)
 	if err != nil {
 		log.Debug("doBlockJob.SetSelfJobDone", "error", err.Error())
@@ -574,6 +576,8 @@ func (sr *subroundBlock) processReceivedBlock(
 		return false
 	}
 
+	sr.updateConsensusMetricsProposedBlockReceivedOrSent()
+
 	sw := core.NewStopWatch()
 	sw.Start("processReceivedBlock")
 
@@ -735,6 +739,14 @@ func (sr *subroundBlock) getRoundInLastCommittedBlock() int64 {
 	}
 
 	return roundInLastCommittedBlock
+}
+
+func (sr *subroundBlock) updateConsensusMetricsProposedBlockReceivedOrSent() {
+
+	currentTime := sr.SyncTimer().CurrentTime()
+	bodyReceivedOrSentTime := currentTime.Sub(sr.RoundHandler().TimeStamp()).Nanoseconds()
+
+	sr.worker.ConsensusMetrics().SetBlockReceivedOrSent(uint64(bodyReceivedOrSentTime))
 }
 
 // IsInterfaceNil returns true if there is no value under the interface

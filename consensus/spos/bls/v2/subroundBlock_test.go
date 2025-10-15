@@ -70,17 +70,28 @@ func defaultSubroundBlockFromSubround(sr *spos.Subround) (v2.SubroundBlock, erro
 	srBlock, err := v2.NewSubroundBlock(
 		sr,
 		v2.ProcessingThresholdPercent,
-		&consensusMocks.SposWorkerMock{},
+		&consensusMocks.SposWorkerMock{
+			ConsensusMetricsCalled: func() spos.ConsensusMetricsHandler {
+				consensusMetrics, _ := spos.NewConsensusMetrics(sr.AppStatusHandler())
+				return consensusMetrics
+			},
+		},
 	)
 
 	return srBlock, err
 }
 
 func defaultSubroundBlockWithoutErrorFromSubround(sr *spos.Subround) v2.SubroundBlock {
+
 	srBlock, _ := v2.NewSubroundBlock(
 		sr,
 		v2.ProcessingThresholdPercent,
-		&consensusMocks.SposWorkerMock{},
+		&consensusMocks.SposWorkerMock{
+			ConsensusMetricsCalled: func() spos.ConsensusMetricsHandler {
+				consensusMetrics, _ := spos.NewConsensusMetrics(sr.AppStatusHandler())
+				return consensusMetrics
+			},
+		},
 	)
 
 	return srBlock
@@ -568,7 +579,12 @@ func TestSubroundBlock_DoBlockJob(t *testing.T) {
 		sr, _ := v2.NewSubroundBlock(
 			baseSr,
 			v2.ProcessingThresholdPercent,
-			&consensusMocks.SposWorkerMock{},
+			&consensusMocks.SposWorkerMock{
+				ConsensusMetricsCalled: func() spos.ConsensusMetricsHandler {
+					consensusMetrics, _ := spos.NewConsensusMetrics(baseSr.AppStatusHandler())
+					return consensusMetrics
+				},
+			},
 		)
 
 		providedLeaderSignature := []byte("leader signature")
@@ -1300,6 +1316,79 @@ func TestSubroundBlock_ReceivedBlockHeader(t *testing.T) {
 	sr.ReceivedBlockHeader(headerForCurrentConsensus)
 }
 
+func TestSubroundBlock_UpdateConsensusMetrics(t *testing.T) {
+	t.Parallel()
+
+	now := time.Now()
+	container := consensusMocks.InitConsensusCore()
+	syncTimerMock := &consensusMocks.SyncTimerMock{
+		CurrentTimeCalled: func() time.Time {
+			return now
+		},
+	}
+	count := 0
+	roundHandlerMock := testscommon.RoundHandlerMock{
+		TimeStampCalled: func() time.Time {
+			defer func() { count++ }()
+			if count == 0 {
+				return now.Add(-500 * time.Nanosecond)
+			}
+			return now.Add(-200 * time.Nanosecond)
+		},
+	}
+	container.SetSyncTimer(syncTimerMock)
+	container.SetRoundHandler(&roundHandlerMock)
+
+	appStatusHandler := statusHandler.NewAppStatusHandlerMock()
+
+	providedHeadr := &block.HeaderV2{
+		Header: &block.Header{
+			Signature:     []byte("signature"),
+			PubKeysBitmap: []byte("bitmap"),
+		},
+	}
+	providedHash := []byte("provided hash")
+	chainHandler := &testscommon.ChainHandlerStub{
+		GetCurrentBlockHeaderCalled: func() data.HeaderHandler {
+			return providedHeadr
+		},
+		GetCurrentBlockHeaderHashCalled: func() []byte {
+			return providedHash
+		},
+	}
+	container.SetBlockchain(chainHandler)
+
+	consensusState := initializers.InitConsensusStateWithNodesCoordinator(container.NodesCoordinator())
+	ch := make(chan bool, 1)
+	sr, _ := defaultSubroundForSRBlock(consensusState, ch, container, appStatusHandler)
+
+	consensusMetrics, _ := spos.NewConsensusMetrics(sr.AppStatusHandler())
+	srBlock, _ := v2.NewSubroundBlock(
+		sr,
+		v2.ProcessingThresholdPercent,
+		&consensusMocks.SposWorkerMock{
+			ConsensusMetricsCalled: func() spos.ConsensusMetricsHandler {
+				return consensusMetrics
+			},
+		},
+	)
+
+	consensusMetrics.ResetInstanceValues()
+	consensusMetrics.ResetAverages()
+
+	srBlock.UpdateConsensusMetricsProposedBlockReceivedOrSent()
+	// instance value = 500; avg = 500
+	assert.Equal(t, uint64(500), appStatusHandler.GetUint64(common.MetricReceivedOrSentProposedBlock), "MetricReceivedProof should be set")
+	assert.Equal(t, uint64(500), appStatusHandler.GetUint64(common.MetricAvgReceivedOrSentProposedBlock), "MetricAvgProofsReceived should be set")
+
+	consensusMetrics.ResetInstanceValues()
+
+	srBlock.UpdateConsensusMetricsProposedBlockReceivedOrSent()
+	// instance value = 200; avg = 500 + 200 / 2 = 350
+	assert.Equal(t, uint64(200), appStatusHandler.GetUint64(common.MetricReceivedOrSentProposedBlock), "MetricReceivedProof should be set")
+	assert.Equal(t, uint64(350), appStatusHandler.GetUint64(common.MetricAvgReceivedOrSentProposedBlock), "MetricAvgProofsReceived should be set")
+}
+
 func TestSubroundBlock_GetLeaderForHeader(t *testing.T) {
 	t.Parallel()
 
@@ -1354,7 +1443,6 @@ func TestSubroundBlock_IsInterfaceNil(t *testing.T) {
 	container := consensusMocks.InitConsensusCore()
 	sr := initSubroundBlock(nil, container, nil)
 	require.True(t, sr.IsInterfaceNil())
-
 	sr = initSubroundBlock(nil, container, &statusHandler.AppStatusHandlerStub{})
 	require.False(t, sr.IsInterfaceNil())
 }
