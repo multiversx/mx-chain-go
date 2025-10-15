@@ -570,8 +570,7 @@ func Test_CompleteFlowShouldWork(t *testing.T) {
 	err = cache.OnExecutedBlock(&block.Header{
 		Nonce:    uint64(0),
 		PrevHash: []byte("hash0"),
-		RootHash: []byte("rootHash0"),
-	})
+	}, []byte("rootHash0"))
 	require.Nil(t, err)
 
 	for _, txHash := range proposedBlock1 {

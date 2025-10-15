@@ -2813,7 +2813,7 @@ func TestShardBootstrap_SyncBlockV3(t *testing.T) {
 		require.True(t, ok)
 		poolsStub.TransactionsCalled = func() dataRetriever.ShardedDataCacherNotifier {
 			return &testscommon.ShardedDataStub{
-				OnExecutedBlockCalled: func(blockHeader data.HeaderHandler) error {
+				OnExecutedBlockCalled: func(blockHeader data.HeaderHandler, rootHash []byte) error {
 					return errExpected
 				},
 			}
@@ -2901,7 +2901,7 @@ func TestShardBootstrap_SyncBlockV3(t *testing.T) {
 		require.True(t, ok)
 		poolsStub.TransactionsCalled = func() dataRetriever.ShardedDataCacherNotifier {
 			return &testscommon.ShardedDataStub{
-				OnExecutedBlockCalled: func(blockHeader data.HeaderHandler) error {
+				OnExecutedBlockCalled: func(blockHeader data.HeaderHandler, rootHash []byte) error {
 					return errExpected
 				},
 			}
