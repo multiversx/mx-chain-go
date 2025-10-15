@@ -143,7 +143,7 @@ func (mdi *MultiDataInterceptor) ProcessReceivedMessage(message p2p.MessageP2P, 
 	}
 
 	mdi.mutChunksProcessor.RLock()
-	checkChunksRes, err := mdi.chunksProcessor.CheckBatch(&b, mdi.whiteListRequest)
+	checkChunksRes, err := mdi.chunksProcessor.CheckBatch(&b, mdi.whiteListRequest, message.BroadcastMethod())
 	mdi.mutChunksProcessor.RUnlock()
 	if err != nil {
 		mdi.throttler.EndProcessing()
@@ -165,7 +165,13 @@ func (mdi *MultiDataInterceptor) ProcessReceivedMessage(message p2p.MessageP2P, 
 
 	for index, dataBuff := range multiDataBuff {
 		var interceptedData process.InterceptedData
-		interceptedData, err = mdi.interceptedData(dataBuff, message.Peer(), fromConnectedPeer)
+		interceptedData, err = mdi.interceptedData(
+			dataBuff,
+			message.Peer(),
+			fromConnectedPeer,
+			message.Topic(),
+			message.BroadcastMethod(),
+		)
 		listInterceptedData[index] = interceptedData
 
 		if err != nil {
@@ -200,8 +206,17 @@ func (mdi *MultiDataInterceptor) ProcessReceivedMessage(message p2p.MessageP2P, 
 	}
 
 	go func() {
+		cntSaves := 0
 		for _, interceptedData := range listInterceptedData {
-			mdi.processInterceptedData(interceptedData, message, fromConnectedPeer)
+			dataSaved := mdi.processInterceptedData(interceptedData, message, fromConnectedPeer)
+			if dataSaved {
+				cntSaves++
+			}
+		}
+
+		allInfoSaved := cntSaves == len(listInterceptedData)
+		if allInfoSaved {
+			mdi.chunksProcessor.MarkVerified(&b, message.BroadcastMethod())
 		}
 		mdi.throttler.EndProcessing()
 	}()
@@ -231,7 +246,13 @@ func (mdi *MultiDataInterceptor) createInterceptedMultiDataMsgID(interceptedMult
 	return mdi.hasher.Compute(string(data))
 }
 
-func (mdi *MultiDataInterceptor) interceptedData(dataBuff []byte, originator core.PeerID, fromConnectedPeer core.PeerID) (process.InterceptedData, error) {
+func (mdi *MultiDataInterceptor) interceptedData(
+	dataBuff []byte,
+	originator core.PeerID,
+	fromConnectedPeer core.PeerID,
+	topic string,
+	broadcastMethod p2p.BroadcastMethod,
+) (process.InterceptedData, error) {
 	interceptedData, err := mdi.factory.Create(dataBuff, originator)
 	if err != nil {
 		// this situation is so severe that we need to black list de peers
@@ -244,7 +265,7 @@ func (mdi *MultiDataInterceptor) interceptedData(dataBuff []byte, originator cor
 
 	mdi.receivedDebugInterceptedData(interceptedData)
 
-	err = mdi.interceptedDataVerifier.Verify(interceptedData)
+	err = mdi.interceptedDataVerifier.Verify(interceptedData, topic, broadcastMethod)
 	if err != nil {
 		mdi.processDebugInterceptedData(interceptedData, err)
 

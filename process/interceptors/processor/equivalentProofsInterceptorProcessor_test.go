@@ -26,7 +26,7 @@ func TestNewEquivalentProofsInterceptorProcessor(t *testing.T) {
 	require.Nil(t, epip.Validate(nil, ""))
 
 	// coverage only
-	err := epip.Save(nil, "", "")
+	_, err := epip.Save(nil, "", "")
 	require.Nil(t, err)
 
 	// coverage only
