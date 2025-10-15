@@ -14,12 +14,3 @@ func (mp *metaProcessor) VerifyBlockProposal(
 ) error {
 	return nil
 }
-
-// OnProposedBlock will be implemented in a further PR
-func (mp *metaProcessor) OnProposedBlock(
-	_ data.BodyHandler,
-	_ data.HeaderHandler,
-	_ []byte,
-) error {
-	return nil
-}

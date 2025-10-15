@@ -228,15 +228,6 @@ func (sp *shardProcessor) VerifyBlockProposal(
 	return sp.OnProposedBlock(body, header, hash)
 }
 
-// OnProposedBlock calls the OnProposedBlock from transactions pool
-func (sp *shardProcessor) OnProposedBlock(
-	proposedBody data.BodyHandler,
-	proposedHeader data.HeaderHandler,
-	proposedHash []byte,
-) error {
-	return sp.baseProcessor.OnProposedBlock(proposedBody, proposedHeader, proposedHash)
-}
-
 func (sp *shardProcessor) verifyGasLimit(header data.ShardHeaderHandler) error {
 	incomingMiniBlocks, incomingTransactions, outgoingTransactionHashes, outgoingTransactions, err := sp.splitTransactionsForHeader(header)
 	if err != nil {
