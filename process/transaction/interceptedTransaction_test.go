@@ -1855,7 +1855,7 @@ func TestInterceptedTransaction_checkMaxGasPrice(t *testing.T) {
 		errMaxGasPrice = inTx2.CheckMaxGasPrice()
 		require.Nil(t, errMaxGasPrice)
 	})
-	t.Run("not guarded Tx, not setGuardian always OK", func(t *testing.T) {
+	t.Run("not guarded tx, not setGuardian always OK", func(t *testing.T) {
 		tx1 := *testTx1
 		tx1.Data = []byte("dummy")
 		tx2 := *testTx2
@@ -1878,7 +1878,7 @@ func TestInterceptedTransaction_checkMaxGasPrice(t *testing.T) {
 		errMaxGasPrice = inTx2.CheckMaxGasPrice()
 		require.Nil(t, errMaxGasPrice)
 	})
-	t.Run("not guarded Tx with setGuardian call and price lower than max or equal OK", func(t *testing.T) {
+	t.Run("not guarded tx with setGuardian call and price lower than max or equal OK", func(t *testing.T) {
 		tx1 := *testTx1
 		tx1.GasPrice = maxAllowedGasPriceSetGuardian
 		tx2 := *testTx2
@@ -1901,7 +1901,7 @@ func TestInterceptedTransaction_checkMaxGasPrice(t *testing.T) {
 		errMaxGasPrice = inTx2.CheckMaxGasPrice()
 		require.Nil(t, errMaxGasPrice)
 	})
-	t.Run("not guarded Tx with setGuardian call and price higher than max err", func(t *testing.T) {
+	t.Run("not guarded tx with setGuardian call and price higher than max err", func(t *testing.T) {
 		tx1 := *testTx1
 		tx1.GasPrice = maxAllowedGasPriceSetGuardian * 2
 		txVersionChecker := &testscommon.TxVersionCheckerStub{

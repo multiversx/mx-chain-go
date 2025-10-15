@@ -652,3 +652,32 @@ func TestRound_Concurrency(t *testing.T) {
 		wg.Wait()
 	})
 }
+
+func TestRound_GetTimeStampForRound(t *testing.T) {
+	t.Parallel()
+
+	genesisTime := time.Now()
+
+	syncTimerMock := &consensusMocks.SyncTimerMock{}
+
+	startRound := int64(0)
+	args := createDefaultRoundArgs()
+	args.GenesisTimeStamp = genesisTime
+	args.SupernovaGenesisTimeStamp = genesisTime
+	args.SyncTimer = syncTimerMock
+	args.StartRound = startRound
+	rnd, _ := round.NewRound(args)
+	require.True(t, rnd.BeforeGenesis())
+
+	roundTimeStamp := rnd.GetTimeStampForRound(0)
+	expRoundTimeStamp := genesisTime.Add(0 * roundTimeDuration)
+	require.Equal(t, uint64(expRoundTimeStamp.UnixMilli()), roundTimeStamp)
+
+	roundTimeStamp = rnd.GetTimeStampForRound(10)
+	expRoundTimeStamp = genesisTime.Add(10 * roundTimeDuration)
+	require.Equal(t, uint64(expRoundTimeStamp.UnixMilli()), roundTimeStamp)
+
+	roundTimeStamp = rnd.GetTimeStampForRound(1000)
+	expRoundTimeStamp = genesisTime.Add(1000 * roundTimeDuration)
+	require.Equal(t, uint64(expRoundTimeStamp.UnixMilli()), roundTimeStamp)
+}

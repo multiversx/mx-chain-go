@@ -2,8 +2,10 @@ package state
 
 import (
 	"fmt"
+
 	"github.com/multiversx/mx-chain-core-go/core/check"
 	chainData "github.com/multiversx/mx-chain-core-go/data"
+
 	"github.com/multiversx/mx-chain-go/common"
 	"github.com/multiversx/mx-chain-go/config"
 	"github.com/multiversx/mx-chain-go/dataRetriever"
@@ -50,6 +52,7 @@ type stateComponents struct {
 	peerAccounts             state.AccountsAdapter
 	accountsAdapter          state.AccountsAdapter
 	accountsAdapterAPI       state.AccountsAdapter
+	accountsAdapterProposal  state.AccountsAdapter
 	accountsRepository       state.AccountsRepository
 	triesContainer           common.TriesHolder
 	trieStorageManagers      map[string]common.StorageManager
@@ -80,6 +83,13 @@ func NewStateComponentsFactory(args StateComponentsFactoryArgs) (*stateComponent
 	}, nil
 }
 
+type accountsAdapterCreationResult struct {
+	accountsAdapter         state.AccountsAdapter
+	accountsAdapterAPI      state.AccountsAdapter
+	accountsAdapterProposal state.AccountsAdapter
+	accountsRepository      state.AccountsRepository
+}
+
 // Create creates the state components
 func (scf *stateComponentsFactory) Create() (*stateComponents, error) {
 	triesContainer, trieStorageManagers, err := trieFactory.CreateTriesComponentsForShardId(
@@ -92,7 +102,7 @@ func (scf *stateComponentsFactory) Create() (*stateComponents, error) {
 		return nil, err
 	}
 
-	accountsAdapter, accountsAdapterAPI, accountsRepository, err := scf.createAccountsAdapters(triesContainer)
+	accCreationResult, err := scf.createAccountsAdapters(triesContainer)
 	if err != nil {
 		return nil, err
 	}
@@ -109,9 +119,10 @@ func (scf *stateComponentsFactory) Create() (*stateComponents, error) {
 
 	return &stateComponents{
 		peerAccounts:             peerAdapter,
-		accountsAdapter:          accountsAdapter,
-		accountsAdapterAPI:       accountsAdapterAPI,
-		accountsRepository:       accountsRepository,
+		accountsAdapter:          accCreationResult.accountsAdapter,
+		accountsAdapterAPI:       accCreationResult.accountsAdapterAPI,
+		accountsAdapterProposal:  accCreationResult.accountsAdapterProposal,
+		accountsRepository:       accCreationResult.accountsRepository,
 		triesContainer:           triesContainer,
 		trieStorageManagers:      trieStorageManagers,
 		missingTrieNodesNotifier: syncer.NewMissingTrieNodesNotifier(),
@@ -156,7 +167,7 @@ func (scf *stateComponentsFactory) createSnapshotManager(
 	return state.NewSnapshotsManager(argsSnapshotsManager)
 }
 
-func (scf *stateComponentsFactory) createAccountsAdapters(triesContainer common.TriesHolder) (state.AccountsAdapter, state.AccountsAdapter, state.AccountsRepository, error) {
+func (scf *stateComponentsFactory) createAccountsAdapters(triesContainer common.TriesHolder) (*accountsAdapterCreationResult, error) {
 	argsAccCreator := factoryState.ArgsAccountCreator{
 		Hasher:              scf.core.Hasher(),
 		Marshaller:          scf.core.InternalMarshalizer(),
@@ -164,13 +175,13 @@ func (scf *stateComponentsFactory) createAccountsAdapters(triesContainer common.
 	}
 	accountFactory, err := factoryState.NewAccountCreator(argsAccCreator)
 	if err != nil {
-		return nil, nil, nil, err
+		return nil, err
 	}
 
 	merkleTrie := triesContainer.Get([]byte(dataRetriever.UserAccountsUnit.String()))
 	storagePruning, err := scf.newStoragePruningManager()
 	if err != nil {
-		return nil, nil, nil, err
+		return nil, err
 	}
 
 	argStateMetrics := stateMetrics.ArgsStateMetrics{
@@ -180,12 +191,12 @@ func (scf *stateComponentsFactory) createAccountsAdapters(triesContainer common.
 	}
 	sm, err := stateMetrics.NewStateMetrics(argStateMetrics, scf.statusCore.AppStatusHandler())
 	if err != nil {
-		return nil, nil, nil, err
+		return nil, err
 	}
 
 	snapshotsManager, err := scf.createSnapshotManager(accountFactory, sm, iteratorChannelsProvider.NewUserStateIteratorChannelsProvider())
 	if err != nil {
-		return nil, nil, nil, err
+		return nil, err
 	}
 
 	argsProcessingAccountsDB := state.ArgsAccountsDB{
@@ -199,7 +210,7 @@ func (scf *stateComponentsFactory) createAccountsAdapters(triesContainer common.
 	}
 	accountsAdapter, err := state.NewAccountsDB(argsProcessingAccountsDB)
 	if err != nil {
-		return nil, nil, nil, fmt.Errorf("%w: %s", errors.ErrAccountsAdapterCreation, err.Error())
+		return nil, fmt.Errorf("%w: %s", errors.ErrAccountsAdapterCreation, err.Error())
 	}
 
 	argsAPIAccountsDB := state.ArgsAccountsDB{
@@ -214,17 +225,17 @@ func (scf *stateComponentsFactory) createAccountsAdapters(triesContainer common.
 
 	accountsAdapterApiOnFinal, err := factoryState.CreateAccountsAdapterAPIOnFinal(argsAPIAccountsDB, scf.chainHandler)
 	if err != nil {
-		return nil, nil, nil, fmt.Errorf("accounts adapter API on final: %w: %s", errors.ErrAccountsAdapterCreation, err.Error())
+		return nil, fmt.Errorf("accounts adapter API on final: %w: %s", errors.ErrAccountsAdapterCreation, err.Error())
 	}
 
 	accountsAdapterApiOnCurrent, err := factoryState.CreateAccountsAdapterAPIOnCurrent(argsAPIAccountsDB, scf.chainHandler)
 	if err != nil {
-		return nil, nil, nil, fmt.Errorf("accounts adapter API on current: %w: %s", errors.ErrAccountsAdapterCreation, err.Error())
+		return nil, fmt.Errorf("accounts adapter API on current: %w: %s", errors.ErrAccountsAdapterCreation, err.Error())
 	}
 
 	accountsAdapterApiOnHistorical, err := factoryState.CreateAccountsAdapterAPIOnHistorical(argsAPIAccountsDB)
 	if err != nil {
-		return nil, nil, nil, fmt.Errorf("accounts adapter API on historical: %w: %s", errors.ErrAccountsAdapterCreation, err.Error())
+		return nil, fmt.Errorf("accounts adapter API on historical: %w: %s", errors.ErrAccountsAdapterCreation, err.Error())
 	}
 
 	argsAccountsRepository := state.ArgsAccountsRepository{
@@ -235,10 +246,23 @@ func (scf *stateComponentsFactory) createAccountsAdapters(triesContainer common.
 
 	accountsRepository, err := state.NewAccountsRepository(argsAccountsRepository)
 	if err != nil {
-		return nil, nil, nil, fmt.Errorf("accountsRepository: %w", err)
+		return nil, fmt.Errorf("accountsRepository: %w", err)
 	}
 
-	return accountsAdapter, accountsRepository.GetCurrentStateAccountsWrapper(), accountsRepository, nil
+	// TODO: this account adapter may be required to be changed as the roothash should be the last execution result roothash
+	accountsAdapterProposal, err := factoryState.CreateAccountsAdapterAPIOnCurrent(argsAPIAccountsDB, scf.chainHandler)
+	if err != nil {
+		return nil, fmt.Errorf("accounts adapter for proposal: %w: %s", errors.ErrAccountsAdapterCreation, err)
+	}
+
+	response := &accountsAdapterCreationResult{
+		accountsAdapter:         accountsAdapter,
+		accountsAdapterAPI:      accountsRepository.GetCurrentStateAccountsWrapper(),
+		accountsAdapterProposal: accountsAdapterProposal,
+		accountsRepository:      accountsRepository,
+	}
+
+	return response, nil
 }
 
 func (scf *stateComponentsFactory) createPeerAdapter(triesContainer common.TriesHolder) (state.AccountsAdapter, error) {

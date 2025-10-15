@@ -7,6 +7,21 @@ import (
 	"github.com/multiversx/mx-chain-core-go/data/headerVersionData"
 )
 
+// HeaderHandlerWithExecutionResultsStub -
+type HeaderHandlerWithExecutionResultsStub struct {
+	HeaderHandlerStub
+	GetExecutionResultsCalled func() []data.ExecutionResultHandler
+}
+
+// GetExecutionResults -
+func (hh *HeaderHandlerWithExecutionResultsStub) GetExecutionResults() []data.ExecutionResultHandler {
+	if hh.GetExecutionResultsCalled != nil {
+		return hh.GetExecutionResultsCalled()
+	}
+
+	return nil
+}
+
 // HeaderHandlerStub -
 type HeaderHandlerStub struct {
 	EpochField                             uint32
@@ -40,10 +55,42 @@ type HeaderHandlerStub struct {
 	SetLeaderSignatureCalled               func(signature []byte) error
 	GetShardIDCalled                       func() uint32
 	SetRootHashCalled                      func(hash []byte) error
+	GetGasLimitCalled                      func() uint32
 	GetLastExecutionResultHandlerCalled    func() data.LastExecutionResultHandler
 	GetExecutionResultsHandlersCalled      func() []data.BaseExecutionResultHandler
 	IsHeaderV3Called                       func() bool
-	GetGasLimitCalled                      func() uint32
+	GetMiniBlockHeaderHandlersCalled       func() []data.MiniBlockHeaderHandler
+	SetEpochStartMetaHashCalled            func(hash []byte) error
+	SetLastExecutionResultHandlerCalled    func(resultHandler data.LastExecutionResultHandler) error
+	SetExecutionResultsHandlersCalled      func(resultHandlers []data.BaseExecutionResultHandler) error
+	SetEpochCalled                         func(epoch uint32) error
+	SetMiniBlockHeaderHandlersCalled       func(mbsHandlers []data.MiniBlockHeaderHandler) error
+	SetTxCountCalled                       func(count uint32) error
+	SetMetaBlockHashesCalled               func(hashes [][]byte) error
+}
+
+// SetLastExecutionResultHandler -
+func (hhs *HeaderHandlerStub) SetLastExecutionResultHandler(resultHandler data.LastExecutionResultHandler) error {
+	if hhs.SetLastExecutionResultHandlerCalled != nil {
+		return hhs.SetLastExecutionResultHandlerCalled(resultHandler)
+	}
+	return nil
+}
+
+// SetExecutionResultsHandlers -
+func (hhs *HeaderHandlerStub) SetExecutionResultsHandlers(resultHandlers []data.BaseExecutionResultHandler) error {
+	if hhs.SetExecutionResultsHandlersCalled != nil {
+		return hhs.SetExecutionResultsHandlersCalled(resultHandlers)
+	}
+	return nil
+}
+
+// IsHeaderV3 - checks if the header is a V3 header
+func (hhs *HeaderHandlerStub) IsHeaderV3() bool {
+	if hhs.IsHeaderV3Called != nil {
+		return hhs.IsHeaderV3Called()
+	}
+	return false
 }
 
 // GetAccumulatedFees -
@@ -190,8 +237,11 @@ func (hhs *HeaderHandlerStub) SetNonce(_ uint64) error {
 }
 
 // SetEpoch -
-func (hhs *HeaderHandlerStub) SetEpoch(_ uint32) error {
-	panic("implement me")
+func (hhs *HeaderHandlerStub) SetEpoch(epoch uint32) error {
+	if hhs.SetEpochCalled != nil {
+		return hhs.SetEpochCalled(epoch)
+	}
+	return nil
 }
 
 // SetRound -
@@ -272,8 +322,11 @@ func (hhs *HeaderHandlerStub) SetChainID(chainID []byte) error {
 }
 
 // SetTxCount -
-func (hhs *HeaderHandlerStub) SetTxCount(_ uint32) error {
-	panic("implement me")
+func (hhs *HeaderHandlerStub) SetTxCount(count uint32) error {
+	if hhs.SetTxCountCalled != nil {
+		return hhs.SetTxCountCalled(count)
+	}
+	return nil
 }
 
 // GetMiniBlockHeadersWithDst -
@@ -293,7 +346,10 @@ func (hhs *HeaderHandlerStub) GetMiniBlockHeadersHashes() [][]byte {
 
 // GetMiniBlockHeaderHandlers -
 func (hhs *HeaderHandlerStub) GetMiniBlockHeaderHandlers() []data.MiniBlockHeaderHandler {
-	panic("implement me")
+	if hhs.GetMiniBlockHeaderHandlersCalled != nil {
+		return hhs.GetMiniBlockHeaderHandlersCalled()
+	}
+	return make([]data.MiniBlockHeaderHandler, 0)
 }
 
 // GetMetaBlockHashes -
@@ -317,8 +373,11 @@ func (hhs *HeaderHandlerStub) SetValidatorStatsRootHash(_ []byte) error {
 }
 
 // SetMiniBlockHeaderHandlers -
-func (hhs *HeaderHandlerStub) SetMiniBlockHeaderHandlers(_ []data.MiniBlockHeaderHandler) error {
-	panic("implement me")
+func (hhs *HeaderHandlerStub) SetMiniBlockHeaderHandlers(mbsHandlers []data.MiniBlockHeaderHandler) error {
+	if hhs.SetMiniBlockHeaderHandlersCalled != nil {
+		return hhs.SetMiniBlockHeaderHandlersCalled(mbsHandlers)
+	}
+	return nil
 }
 
 // IsInterfaceNil returns true if there is no value under the interface
@@ -347,12 +406,18 @@ func (hhs *HeaderHandlerStub) SetReceiptsHash(_ []byte) error {
 }
 
 // SetMetaBlockHashes -
-func (hhs *HeaderHandlerStub) SetMetaBlockHashes(_ [][]byte) error {
+func (hhs *HeaderHandlerStub) SetMetaBlockHashes(hashes [][]byte) error {
+	if hhs.SetMetaBlockHashesCalled != nil {
+		return hhs.SetMetaBlockHashesCalled(hashes)
+	}
 	return nil
 }
 
 // SetEpochStartMetaHash -
-func (hhs *HeaderHandlerStub) SetEpochStartMetaHash(_ []byte) error {
+func (hhs *HeaderHandlerStub) SetEpochStartMetaHash(hash []byte) error {
+	if hhs.SetEpochStartMetaHashCalled != nil {
+		return hhs.SetEpochStartMetaHashCalled(hash)
+	}
 	return nil
 }
 
@@ -440,12 +505,19 @@ func (hhs *HeaderHandlerStub) SetBlockBodyTypeInt32(blockBodyType int32) error {
 	return nil
 }
 
+// GetGasLimit -
+func (hhs *HeaderHandlerStub) GetGasLimit() uint32 {
+	if hhs.GetGasLimitCalled != nil {
+		return hhs.GetGasLimitCalled()
+	}
+	return 0
+}
+
 // GetLastExecutionResultHandler -
 func (hhs *HeaderHandlerStub) GetLastExecutionResultHandler() data.LastExecutionResultHandler {
 	if hhs.GetLastExecutionResultHandlerCalled != nil {
 		return hhs.GetLastExecutionResultHandlerCalled()
 	}
-
 	return nil
 }
 
@@ -454,24 +526,18 @@ func (hhs *HeaderHandlerStub) GetExecutionResultsHandlers() []data.BaseExecution
 	if hhs.GetExecutionResultsHandlersCalled != nil {
 		return hhs.GetExecutionResultsHandlersCalled()
 	}
-
 	return nil
 }
 
-// IsHeaderV3 -
-func (hhs *HeaderHandlerStub) IsHeaderV3() bool {
-	if hhs.IsHeaderV3Called != nil {
-		return hhs.IsHeaderV3Called()
-	}
-
-	return false
+// GetAccumulatedFeesInEpoch -
+func (hhs *HeaderHandlerStub) GetAccumulatedFeesInEpoch() *big.Int {
+	return nil
 }
 
-// GetGasLimit -
-func (hhs *HeaderHandlerStub) GetGasLimit() uint32 {
-	if hhs.GetGasLimitCalled != nil {
-		return hhs.GetGasLimitCalled()
-	}
+// SetEpochChangeProposed -
+func (hhs *HeaderHandlerStub) SetEpochChangeProposed(_ bool) {}
 
-	return 0
+// IsEpochChangeProposed -
+func (hhs *HeaderHandlerStub) IsEpochChangeProposed() bool {
+	return false
 }

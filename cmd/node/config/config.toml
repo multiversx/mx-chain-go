@@ -86,14 +86,13 @@
 [Versions]
     DefaultVersion = "default"
     VersionsByEpochs = [
-        { StartEpoch = 0, Version = "*" },
+        { StartEpoch = 0, StartRound = 0, Version = "*"},
         # The value of StartEpoch parameter for version 2 should be the same with the ScheduledMiniBlocksEnableEpoch flag from enableEpoch.toml file
-        { StartEpoch = 1, Version = "2" },
+        { StartEpoch = 1, StartRound = 0, Version = "2" },
+
+        # TODO The value of StartEpoch parameter for version 3 should be the same with the SupernovaEnableEpoch flag from enableEpoch.toml file and StartRound the same with the SupernovaEnableRound flag from enableRounds.toml
+        { StartEpoch = 999999, StartRound = 999999, Version = "3" },
     ]
-    [Versions.Cache]
-        Name = "VersionsCache"
-        Capacity = 100
-        Type = "LRU"
 
 [StoragePruning]
     # If the Enabled flag is set to false, then the storers won't divide epochs into separate dbs
@@ -234,6 +233,19 @@
         SizeInBytes = 20971520 #20MB
     [ProofsStorage.DB]
         FilePath = "Proofs"
+        Type = "LvlDBSerial"
+        BatchDelaySeconds = 2
+        MaxBatchSize = 100
+        MaxOpenFiles = 10
+
+[ExecutionResultsStorage]
+    [ExecutionResultsStorage.Cache]
+        Name = "ExecutionResultsStorage"
+        Capacity = 1000
+        Type = "SizeLRU"
+        SizeInBytes = 20971520 #20MB
+    [ExecutionResultsStorage.DB]
+        FilePath = "ExecutionResults"
         Type = "LvlDBSerial"
         BatchDelaySeconds = 2
         MaxBatchSize = 100
@@ -502,6 +514,18 @@
     Capacity = 10000
     SizeInBytes = 31457280  #30MB
     Shards = 4
+
+[ExecutedMiniBlocksCache]
+    Name = "ExecutedMiniBlocksCache"
+    Capacity = 500
+    Type = "SizeLRU"
+    SizeInBytes = 52428800 # 50MB
+
+[PostProcessTransactionsCache]
+    Name = "PostProcessTransactionsCache"
+    Capacity = 250000
+    Type = "SizeLRU"
+    SizeInBytes = 104857600 # 100MB
 
 #PublicKeyPeerId represents the main cache used to map MultiversX block signing public keys to their associated peer id's.
 [PublicKeyPeerId]
@@ -1028,3 +1052,9 @@
     EnableCaching = true
     CacheSpanInSec = 30
     CacheExpiryInSec = 30
+
+[ExecutionResultInclusionEstimator]
+    # Safety margin = 110 -> 110% -> 10% buffer
+    SafetyMargin = 110
+    # Maximum execution results a single block may carry (0 = unlimited)
+    MaxResultsPerBlock = 20

@@ -41,6 +41,13 @@ type ProofsPoolConfig struct {
 	BucketSize        int
 }
 
+// ExecutionResultInclusionEstimatorConfig will map the EIE configuration - supplied at construction, read‑only thereafter.
+// TODO add also max estimated block gas capacity
+type ExecutionResultInclusionEstimatorConfig struct {
+	SafetyMargin       uint64
+	MaxResultsPerBlock uint64
+}
+
 // DBConfig will map the database configuration
 type DBConfig struct {
 	FilePath            string
@@ -179,9 +186,12 @@ type Config struct {
 	TrieEpochRootHashStorage        StorageConfig
 	SmartContractsStorageSimulate   StorageConfig
 
-	BootstrapStorage StorageConfig
-	MetaBlockStorage StorageConfig
-	ProofsStorage    StorageConfig
+	ExecutionResultInclusionEstimator ExecutionResultInclusionEstimatorConfig
+
+	BootstrapStorage        StorageConfig
+	MetaBlockStorage        StorageConfig
+	ProofsStorage           StorageConfig
+	ExecutionResultsStorage StorageConfig
 
 	AccountsTrieStorage       StorageConfig
 	PeerAccountsTrieStorage   StorageConfig
@@ -191,28 +201,30 @@ type Config struct {
 	TrieLeavesRetrieverConfig TrieLeavesRetrieverConfig
 	BadBlocksCache            CacheConfig
 
-	TxBlockBodyDataPool         CacheConfig
-	PeerBlockBodyDataPool       CacheConfig
-	TxDataPool                  CacheConfig
-	TxCacheBounds               TxCacheBoundsConfig
-	TxCacheSelection            TxCacheSelectionConfig
-	UnsignedTransactionDataPool CacheConfig
-	RewardTransactionDataPool   CacheConfig
-	TrieNodesChunksDataPool     CacheConfig
-	WhiteListPool               CacheConfig
-	WhiteListerVerifiedTxs      CacheConfig
-	SmartContractDataPool       CacheConfig
-	ValidatorInfoPool           CacheConfig
-	TrieSyncStorage             TrieSyncStorageConfig
-	EpochStartConfig            EpochStartConfig
-	AddressPubkeyConverter      PubkeyConfig
-	ValidatorPubkeyConverter    PubkeyConfig
-	Hasher                      TypeConfig
-	MultisigHasher              TypeConfig
-	Marshalizer                 MarshalizerConfig
-	VmMarshalizer               TypeConfig
-	TxSignMarshalizer           TypeConfig
-	TxSignHasher                TypeConfig
+	TxBlockBodyDataPool          CacheConfig
+	PeerBlockBodyDataPool        CacheConfig
+	TxDataPool                   CacheConfig
+	TxCacheBounds                TxCacheBoundsConfig
+	TxCacheSelection             TxCacheSelectionConfig
+	UnsignedTransactionDataPool  CacheConfig
+	RewardTransactionDataPool    CacheConfig
+	TrieNodesChunksDataPool      CacheConfig
+	WhiteListPool                CacheConfig
+	WhiteListerVerifiedTxs       CacheConfig
+	SmartContractDataPool        CacheConfig
+	ValidatorInfoPool            CacheConfig
+	ExecutedMiniBlocksCache      CacheConfig
+	PostProcessTransactionsCache CacheConfig
+	TrieSyncStorage              TrieSyncStorageConfig
+	EpochStartConfig             EpochStartConfig
+	AddressPubkeyConverter       PubkeyConfig
+	ValidatorPubkeyConverter     PubkeyConfig
+	Hasher                       TypeConfig
+	MultisigHasher               TypeConfig
+	Marshalizer                  MarshalizerConfig
+	VmMarshalizer                TypeConfig
+	TxSignMarshalizer            TypeConfig
+	TxSignHasher                 TypeConfig
 
 	PublicKeyShardId      CacheConfig
 	PublicKeyPeerId       CacheConfig
@@ -674,6 +686,7 @@ type RouteConfig struct {
 // VersionByEpochs represents a version entry that will be applied between the provided epochs
 type VersionByEpochs struct {
 	StartEpoch uint32
+	StartRound uint64
 	Version    string
 }
 
@@ -681,7 +694,6 @@ type VersionByEpochs struct {
 type VersionsConfig struct {
 	DefaultVersion   string
 	VersionsByEpochs []VersionByEpochs
-	Cache            CacheConfig
 }
 
 // Configs is a holder for the node configuration parameters

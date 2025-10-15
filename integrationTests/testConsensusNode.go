@@ -219,13 +219,14 @@ func (tcn *TestConsensusNode) initNode(args ArgsTestConsensusNode) {
 				MetachainConsensusGroupSize: uint32(args.ConsensusSize),
 				RoundsPerEpoch:              1000,
 				MinRoundsBetweenEpochs:      1,
+				RoundDuration:               uint64(roundTime.Milliseconds()),
 			}, nil
 		},
 	}
 
 	tcn.ProcessConfigsHandler = testscommon.GetDefaultProcessConfigsHandler()
 
-	tcn.initNodesCoordinator(args.ConsensusSize, testHasher, epochStartRegistrationHandler, args.EligibleMap, args.WaitingMap, pkBytes, consensusCache)
+	tcn.initNodesCoordinator(testHasher, epochStartRegistrationHandler, args.EligibleMap, args.WaitingMap, pkBytes, consensusCache)
 	tcn.MainMessenger = CreateMessengerWithNoDiscovery()
 	tcn.FullArchiveMessenger = &p2pmocks.MessengerStub{}
 	tcn.initBlockChain(testHasher)
@@ -240,11 +241,11 @@ func (tcn *TestConsensusNode) initNode(args ArgsTestConsensusNode) {
 	enableEpochsHandler, _ := enablers.NewEnableEpochsHandler(*epochsConfig, genericEpochNotifier)
 	enableRoundsHandler := &testscommon.EnableRoundsHandlerStub{}
 
-	storage := CreateStore(tcn.ShardCoordinator.NumberOfShards())
+	store := CreateStore(tcn.ShardCoordinator.NumberOfShards())
 
 	roundArgs := round.ArgsRound{
 		GenesisTimeStamp:          time.Unix(args.StartTime, 0),
-		SupernovaGenesisTimeStamp: time.UnixMilli(args.StartTime),
+		SupernovaGenesisTimeStamp: time.UnixMilli(args.StartTime * 1000),
 		CurrentTimeStamp:          syncer.CurrentTime(),
 		RoundTimeDuration:         roundTime,
 		SupernovaTimeDuration:     roundTime,
@@ -292,7 +293,7 @@ func (tcn *TestConsensusNode) initNode(args ArgsTestConsensusNode) {
 			HeaderValidator:      &mock.HeaderValidatorStub{},
 			Uint64Converter:      TestUint64Converter,
 			DataPool:             tcn.DataPool,
-			Storage:              storage,
+			Storage:              store,
 			RequestHandler:       &testscommon.RequestHandlerStub{},
 			Epoch:                0,
 			Validity:             1,
@@ -428,7 +429,7 @@ func (tcn *TestConsensusNode) initNode(args ArgsTestConsensusNode) {
 	processComponents.ProcessedMiniBlocksTrackerInternal = &testscommon.ProcessedMiniBlocksTrackerStub{}
 	processComponents.SentSignaturesTrackerInternal = &testscommon.SentSignatureTrackerStub{}
 
-	tcn.initInterceptors(coreComponents, cryptoComponents, roundHandler, enableEpochsHandler, storage, epochTrigger)
+	tcn.initInterceptors(coreComponents, cryptoComponents, roundHandler, enableEpochsHandler, store, epochTrigger)
 	processComponents.IntContainer = tcn.MainInterceptorsContainer
 
 	dataComponents := GetDefaultDataComponents()
@@ -580,7 +581,6 @@ func (tcn *TestConsensusNode) initInterceptors(
 }
 
 func (tcn *TestConsensusNode) initNodesCoordinator(
-	consensusSize int,
 	hasher hashing.Hasher,
 	epochStartRegistrationHandler notifier.EpochStartNotifier,
 	eligibleMap map[uint32][]nodesCoordinator.Validator,

@@ -26,7 +26,6 @@ import (
 	"github.com/multiversx/mx-chain-go/testscommon/cache"
 	consensusMocks "github.com/multiversx/mx-chain-go/testscommon/consensus"
 	"github.com/multiversx/mx-chain-go/testscommon/cryptoMocks"
-	"github.com/multiversx/mx-chain-go/testscommon/dataRetriever"
 	dataRetrieverMocks "github.com/multiversx/mx-chain-go/testscommon/dataRetriever"
 	"github.com/multiversx/mx-chain-go/testscommon/dblookupext"
 	"github.com/multiversx/mx-chain-go/testscommon/enableEpochsHandlerMock"
@@ -95,7 +94,7 @@ func createMockConsensusComponentsFactoryArgs() consensusComp.ConsensusComponent
 			SigHandler:       &consensusMocks.SigningHandlerStub{},
 		},
 		DataComponents: &testsMocks.DataComponentsStub{
-			DataPool: &dataRetriever.PoolsHolderStub{
+			DataPool: &dataRetrieverMocks.PoolsHolderStub{
 				MiniBlocksCalled: func() storage.Cacher {
 					return &cache.CacherStub{}
 				},
@@ -233,7 +232,7 @@ func TestNewConsensusComponentsFactory(t *testing.T) {
 
 		args := createMockConsensusComponentsFactoryArgs()
 		args.DataComponents = &testsMocks.DataComponentsStub{
-			DataPool:   &dataRetriever.PoolsHolderStub{},
+			DataPool:   &dataRetrieverMocks.PoolsHolderStub{},
 			BlockChain: nil,
 		}
 		ccf, err := consensusComp.NewConsensusComponentsFactory(args)

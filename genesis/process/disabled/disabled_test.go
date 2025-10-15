@@ -65,6 +65,7 @@ func TestBlockTracker(t *testing.T) {
 
 	handler := &BlockTracker{}
 	require.False(t, handler.IsShardStuck(0))
+	require.False(t, handler.IsOwnShardStuck())
 	require.False(t, handler.ShouldSkipMiniBlocksCreationFromSelf())
 	require.False(t, handler.IsInterfaceNil())
 }
@@ -199,7 +200,7 @@ func TestRequestHandler(t *testing.T) {
 	handler.RequestMetaHeader([]byte{})
 	handler.RequestMetaHeaderByNonce(0)
 	handler.RequestShardHeaderByNonce(0, 0)
-	handler.RequestTransaction(0, [][]byte{})
+	handler.RequestTransactions(0, [][]byte{})
 	handler.RequestUnsignedTransactions(0, [][]byte{})
 	handler.RequestRewardTransactions(0, [][]byte{})
 	handler.RequestMiniBlock(0, []byte{})

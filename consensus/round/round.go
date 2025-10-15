@@ -38,6 +38,7 @@ type round struct {
 	supernovaGenesisTimeStamp time.Time     // time duration between genesis and the time duration change
 	timeDuration              time.Duration // represents the duration of the round in current chronology
 	supernovaTimeDuration     time.Duration
+	genesisTimeStamp          time.Time
 	syncTimer                 ntp.SyncTimer
 	startRound                int64
 	supernovaStartRound       int64
@@ -66,6 +67,7 @@ func NewRound(args ArgsRound) (*round, error) {
 		syncTimer:                 args.SyncTimer,
 		startRound:                args.StartRound,
 		supernovaStartRound:       args.SupernovaStartRound,
+		genesisTimeStamp:          args.GenesisTimeStamp,
 		RWMutex:                   &sync.RWMutex{},
 		enableRoundsHandler:       args.EnableRoundsHandler,
 	}
@@ -208,6 +210,12 @@ func (rnd *round) RevertOneRound() {
 	rnd.timeStamp = rnd.timeStamp.Add(-timeDuration)
 
 	rnd.Unlock()
+}
+
+// GetTimeStampForRound returns unix milliseconds timestamp for the specified round
+func (rnd *round) GetTimeStampForRound(round uint64) uint64 {
+	roundTimeStampMs := rnd.genesisTimeStamp.Add(time.Duration(round) * rnd.timeDuration).UnixMilli()
+	return uint64(roundTimeStampMs)
 }
 
 // IsInterfaceNil returns true if there is no value under the interface
