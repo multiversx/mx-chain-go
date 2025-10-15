@@ -1406,6 +1406,3 @@ var ErrZeroLimit = errors.New("zero limit")
 
 // ErrInvalidBlockType signals that an invalid block type has been provided
 var ErrInvalidBlockType = errors.New("invalid block type")
-
-// ErrDuplicatedInterceptedDataNotAllowed signals that duplicated intercepted data is not allowed
-var ErrDuplicatedInterceptedDataNotAllowed = errors.New("duplicated intercepted data not allowed")
