@@ -491,7 +491,11 @@ func TestTxTypeHandler_ComputeTransactionDisabledRelayed(t *testing.T) {
 	tx.Value = big.NewInt(45)
 
 	arg := createMockArguments()
-	arg.EnableEpochsHandler = enableEpochsHandlerMock.NewEnableEpochsHandlerStub(common.RelayedTransactionsV1V2DisableFlag)
+	arg.EnableEpochsHandler = &enableEpochsHandlerMock.EnableEpochsHandlerStub{
+		IsFlagEnabledInEpochCalled: func(flag core.EnableEpochFlag, epoch uint32) bool {
+			return true
+		},
+	}
 	arg.PubkeyConverter = &testscommon.PubkeyConverterStub{
 		LenCalled: func() int {
 			return len(tx.RcvAddr)
