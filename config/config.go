@@ -394,6 +394,7 @@ type GeneralSettingsConfig struct {
 	GenesisString                        string
 	GenesisMaxNumberOfShards             uint32
 	SyncProcessTimeInMillis              uint32
+	SyncProcessTimeSupernovaInMillis     uint32
 	SetGuardianEpochsDelay               uint32
 	ChainParametersByEpoch               []ChainParametersByEpochConfig
 	EpochChangeGracePeriodByEpoch        []EpochChangeGracePeriodByEpoch

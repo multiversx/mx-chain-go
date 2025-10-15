@@ -15,7 +15,7 @@ import (
 )
 
 func createMockArgs() ArgsHeadersExecutor {
-	headerQueue, _ := queue.NewBlocksQueue()
+	headerQueue := queue.NewBlocksQueue()
 
 	return ArgsHeadersExecutor{
 		BlocksQueue:      headerQueue,
@@ -70,7 +70,7 @@ func TestHeadersExecutor_StartAndClose(t *testing.T) {
 	calledProcessBlock := 0
 	calledAddExecutionResult := 0
 	args := createMockArgs()
-	blocksQueue, _ := queue.NewBlocksQueue()
+	blocksQueue := queue.NewBlocksQueue()
 	args.BlocksQueue = blocksQueue
 	args.BlockProcessor = &processMocks.BlockProcessorStub{
 		ProcessBlockProposalCalled: func(handler data.HeaderHandler, body data.BodyHandler) (data.BaseExecutionResultHandler, error) {
@@ -110,7 +110,7 @@ func TestHeadersExecutor_ProcessBlockError(t *testing.T) {
 
 	t.Run("block processing error, after retry should work", func(t *testing.T) {
 		args := createMockArgs()
-		blocksQueue, _ := queue.NewBlocksQueue()
+		blocksQueue := queue.NewBlocksQueue()
 		count := 0
 		countAddResult := 0
 		args.BlocksQueue = blocksQueue
@@ -154,7 +154,7 @@ func TestHeadersExecutor_ProcessBlockError(t *testing.T) {
 
 	t.Run("block processing error, pop header for queue with the same nonce", func(t *testing.T) {
 		args := createMockArgs()
-		blocksQueue, _ := queue.NewBlocksQueue()
+		blocksQueue := queue.NewBlocksQueue()
 
 		count := 0
 		countAddResult := 0

@@ -363,3 +363,43 @@ func prettifyBigNumbers(val reflect.Value) (string, bool) {
 	}
 	return "", false
 }
+
+// GetLastBaseExecutionResultHandler extracts the BaseExecutionResultHandler from the provided header, based on its type
+func GetLastBaseExecutionResultHandler(header data.HeaderHandler) (data.BaseExecutionResultHandler, error) {
+	if check.IfNil(header) {
+		return nil, ErrNilHeaderHandler
+	}
+	lastExecResultsHandler := header.GetLastExecutionResultHandler()
+	return ExtractBaseExecutionResultHandler(lastExecResultsHandler)
+}
+
+// ExtractBaseExecutionResultHandler extracts the base execution result handler from a last execution result handler
+func ExtractBaseExecutionResultHandler(lastExecResultsHandler data.LastExecutionResultHandler) (data.BaseExecutionResultHandler, error) {
+	if check.IfNil(lastExecResultsHandler) {
+		return nil, ErrNilLastExecutionResultHandler
+	}
+
+	var baseExecutionResultsHandler data.BaseExecutionResultHandler
+	var ok bool
+	switch executionResultsHandlerType := lastExecResultsHandler.(type) {
+	case data.LastMetaExecutionResultHandler:
+		metaBaseExecutionResults := executionResultsHandlerType.GetExecutionResultHandler()
+		if check.IfNil(metaBaseExecutionResults) {
+			return nil, ErrNilBaseExecutionResult
+		}
+		baseExecutionResultsHandler, ok = metaBaseExecutionResults.(data.BaseExecutionResultHandler)
+		if !ok {
+			return nil, ErrWrongTypeAssertion
+		}
+	case data.LastShardExecutionResultHandler:
+		baseExecutionResultsHandler = executionResultsHandlerType.GetExecutionResultHandler()
+	default:
+		return nil, fmt.Errorf("%w: unsupported execution result handler type", ErrWrongTypeAssertion)
+	}
+
+	if check.IfNil(baseExecutionResultsHandler) {
+		return nil, ErrNilBaseExecutionResult
+	}
+
+	return baseExecutionResultsHandler, nil
+}

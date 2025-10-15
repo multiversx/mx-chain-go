@@ -60,11 +60,6 @@ func (sp *shardProcessor) CreateBlockProposal(
 		return nil, nil, err
 	}
 
-	err = sp.verifyGasLimit(shardHdr)
-	if err != nil {
-		return nil, nil, err
-	}
-
 	totalTxCount := computeTxTotalTxCount(miniBlockHeaderHandlers)
 	err = shardHdr.SetTxCount(totalTxCount)
 	if err != nil {
@@ -86,6 +81,11 @@ func (sp *shardProcessor) CreateBlockProposal(
 
 	body := &block.Body{MiniBlocks: miniBlocks}
 
+	err = sp.verifyGasLimit(shardHdr)
+	if err != nil {
+		return nil, nil, err
+	}
+
 	sp.appStatusHandler.SetUInt64Value(common.MetricNumTxInBlock, uint64(totalTxCount))
 	sp.appStatusHandler.SetUInt64Value(common.MetricNumMiniBlocks, uint64(len(body.MiniBlocks)))
 
@@ -95,6 +95,16 @@ func (sp *shardProcessor) CreateBlockProposal(
 	}
 
 	sp.blockSizeThrottler.Add(shardHdr.GetRound(), uint32(len(marshalledBody)))
+
+	hash, err := sp.getHeaderHash(shardHdr)
+	if err != nil {
+		return nil, nil, err
+	}
+
+	err = sp.OnProposedBlock(body, shardHdr, hash)
+	if err != nil {
+		return nil, nil, err
+	}
 
 	defer func() {
 		go sp.checkAndRequestIfMetaHeadersMissing()
@@ -205,7 +215,17 @@ func (sp *shardProcessor) VerifyBlockProposal(
 		return err
 	}
 
-	return sp.verifyGasLimit(header)
+	err = sp.verifyGasLimit(header)
+	if err != nil {
+		return err
+	}
+
+	hash, err := sp.getHeaderHash(header)
+	if err != nil {
+		return err
+	}
+
+	return sp.OnProposedBlock(body, header, hash)
 }
 
 func (sp *shardProcessor) verifyGasLimit(header data.ShardHeaderHandler) error {

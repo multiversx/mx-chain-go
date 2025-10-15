@@ -17,6 +17,7 @@ import (
 	wasmConfig "github.com/multiversx/mx-chain-vm-go/config"
 
 	"github.com/multiversx/mx-chain-go/process/asyncExecution/executionTrack"
+	"github.com/multiversx/mx-chain-go/process/asyncExecution/queue"
 	"github.com/multiversx/mx-chain-go/process/estimator"
 	"github.com/multiversx/mx-chain-go/process/missingData"
 
@@ -587,6 +588,7 @@ func (tpn *TestFullNode) initNode(
 	processComponents.ScheduledTxsExecutionHandlerInternal = &testscommon.ScheduledTxsExecutionStub{}
 	processComponents.ProcessedMiniBlocksTrackerInternal = &testscommon.ProcessedMiniBlocksTrackerStub{}
 	processComponents.SentSignaturesTrackerInternal = &testscommon.SentSignatureTrackerStub{}
+	processComponents.BlocksQueueField = tpn.BlocksQueue
 
 	processComponents.RoundHandlerField = roundHandler
 	processComponents.EpochNotifier = tpn.EpochStartNotifier
@@ -1024,6 +1026,8 @@ func (tpn *TestFullNode) initBlockProcessor(
 		tpn.EpochStartNotifier = notifier.NewEpochStartSubscriptionHandler()
 	}
 
+	tpn.BlocksQueue = queue.NewBlocksQueue()
+
 	if tpn.ShardCoordinator.SelfId() == core.MetachainShardId {
 		argumentsBase.EpochStartTrigger = tpn.EpochStartTrigger
 		argumentsBase.TxCoordinator = tpn.TxCoordinator
@@ -1346,6 +1350,8 @@ func (tpn *TestFullNode) initBlockProcessorWithSync(
 		ExecutionResultsTracker:            executionResultsTracker,
 		GasComputation:                     gasConsumption,
 	}
+
+	tpn.BlocksQueue = queue.NewBlocksQueue()
 
 	if tpn.ShardCoordinator.SelfId() == core.MetachainShardId {
 		argumentsBase.ForkDetector = tpn.ForkDetector

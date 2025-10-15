@@ -16,8 +16,7 @@ import (
 func TestNewHeadersQueue(t *testing.T) {
 	t.Parallel()
 
-	hq, err := NewBlocksQueue()
-	require.Nil(t, err)
+	hq := NewBlocksQueue()
 	require.NotNil(t, hq)
 	require.NotNil(t, hq.headerBodyPairs)
 	require.Equal(t, 0, len(hq.headerBodyPairs))
@@ -29,21 +28,21 @@ func TestHeadersQueue_Add(t *testing.T) {
 
 	t.Run("nil header should return error", func(t *testing.T) {
 		t.Parallel()
-		hq, _ := NewBlocksQueue()
+		hq := NewBlocksQueue()
 		err := hq.AddOrReplace(HeaderBodyPair{})
 		assert.Equal(t, common.ErrNilHeaderHandler, err)
 	})
 
 	t.Run("nil body should return error", func(t *testing.T) {
 		t.Parallel()
-		hq, _ := NewBlocksQueue()
+		hq := NewBlocksQueue()
 		err := hq.AddOrReplace(HeaderBodyPair{Header: &block.Header{Nonce: 1}})
 		assert.Equal(t, data.ErrNilBlockBody, err)
 	})
 
 	t.Run("valid header should be added", func(t *testing.T) {
 		t.Parallel()
-		hq, _ := NewBlocksQueue()
+		hq := NewBlocksQueue()
 		header := &block.Header{Nonce: 1}
 		err := hq.AddOrReplace(HeaderBodyPair{Header: header, Body: &block.Body{}})
 		assert.Nil(t, err)
@@ -52,7 +51,7 @@ func TestHeadersQueue_Add(t *testing.T) {
 
 	t.Run("add headers with same nonce", func(t *testing.T) {
 		t.Parallel()
-		hq, _ := NewBlocksQueue()
+		hq := NewBlocksQueue()
 		header := &block.Header{Nonce: 1, Round: 1}
 		err := hq.AddOrReplace(HeaderBodyPair{Header: header, Body: &block.Body{}})
 		assert.Nil(t, err)
@@ -73,7 +72,7 @@ func TestHeadersQueue_Pop(t *testing.T) {
 
 	t.Run("pop should be blocking", func(t *testing.T) {
 		t.Parallel()
-		hq, _ := NewBlocksQueue()
+		hq := NewBlocksQueue()
 
 		go func() {
 			time.Sleep(1 * time.Second)
@@ -87,7 +86,7 @@ func TestHeadersQueue_Pop(t *testing.T) {
 
 	t.Run("should return first header and remove it from queue", func(t *testing.T) {
 		t.Parallel()
-		hq, _ := NewBlocksQueue()
+		hq := NewBlocksQueue()
 		pair1 := HeaderBodyPair{Header: &block.Header{Nonce: 1}, Body: &block.Body{}}
 		pair2 := HeaderBodyPair{Header: &block.Header{Nonce: 2}, Body: &block.Body{}}
 		_ = hq.AddOrReplace(pair1)
@@ -104,7 +103,7 @@ func TestHeadersQueue_Pop(t *testing.T) {
 func TestHeadersQueue_Concurrency(t *testing.T) {
 	t.Parallel()
 
-	hq, _ := NewBlocksQueue()
+	hq := NewBlocksQueue()
 	const numGoroutines = 10
 	const headersPerGoroutine = 10
 
@@ -180,7 +179,7 @@ func TestHeadersQueue_Concurrency(t *testing.T) {
 func TestMultipleAddOrReplaceShouldNotBlock(t *testing.T) {
 	t.Parallel()
 
-	hq, _ := NewBlocksQueue()
+	hq := NewBlocksQueue()
 
 	for i := 0; i < 10; i++ {
 		pair := HeaderBodyPair{Header: &block.Header{Nonce: uint64(i)}, Body: &block.Body{}}
@@ -196,7 +195,7 @@ func TestMultipleAddOrReplaceShouldNotBlock(t *testing.T) {
 func TestAddWrongNonce(t *testing.T) {
 	t.Parallel()
 
-	hq, _ := NewBlocksQueue()
+	hq := NewBlocksQueue()
 	pair := HeaderBodyPair{Header: &block.Header{Nonce: uint64(1)}, Body: &block.Body{}}
 	err := hq.AddOrReplace(pair)
 	require.Nil(t, err)
@@ -212,7 +211,7 @@ func TestBlocksQueue_Peak(t *testing.T) {
 	t.Run("peak should return first element", func(t *testing.T) {
 		t.Parallel()
 
-		hq, _ := NewBlocksQueue()
+		hq := NewBlocksQueue()
 		pair1 := HeaderBodyPair{Header: &block.Header{Nonce: uint64(1)}, Body: &block.Body{}}
 		err := hq.AddOrReplace(pair1)
 		require.Nil(t, err)
@@ -230,7 +229,7 @@ func TestBlocksQueue_Peak(t *testing.T) {
 	t.Run("peak emtpy queue", func(t *testing.T) {
 		t.Parallel()
 
-		hq, _ := NewBlocksQueue()
+		hq := NewBlocksQueue()
 
 		_, ok := hq.Peek()
 		require.False(t, ok)
