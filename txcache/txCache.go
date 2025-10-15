@@ -7,7 +7,6 @@ import (
 	"github.com/multiversx/mx-chain-core-go/core/atomic"
 	"github.com/multiversx/mx-chain-core-go/core/check"
 	"github.com/multiversx/mx-chain-core-go/data"
-	"github.com/multiversx/mx-chain-core-go/data/block"
 	"github.com/multiversx/mx-chain-go/common"
 	"github.com/multiversx/mx-chain-storage-go/monitoring"
 	"github.com/multiversx/mx-chain-storage-go/types"
@@ -172,7 +171,7 @@ func (cache *TxCache) GetVirtualNonceAndRootHash(
 // OnProposedBlock calls the OnProposedBlock method from SelectionTracker
 func (cache *TxCache) OnProposedBlock(
 	blockHash []byte,
-	blockBody *block.Body,
+	blockBody data.BodyHandler,
 	blockHeader data.HeaderHandler,
 	accountsProvider common.AccountNonceAndBalanceProvider,
 	blockchainInfo common.BlockchainInfo) error {

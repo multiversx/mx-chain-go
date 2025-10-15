@@ -12,7 +12,6 @@ import (
 	"golang.org/x/exp/slices"
 )
 
-// TODO rename this to proposedBlocksTracker
 type selectionTracker struct {
 	mutTracker                sync.RWMutex
 	latestNonce               uint64
@@ -49,11 +48,16 @@ func NewSelectionTracker(txCache txCacheForSelectionTracker, maxTrackedBlocks ui
 // blockchainInfo must contain the information about the last executed block. The other information is not used in this flow.
 func (st *selectionTracker) OnProposedBlock(
 	blockHash []byte,
-	blockBody *block.Body,
+	bodyHandler data.BodyHandler,
 	blockHeader data.HeaderHandler,
 	accountsProvider common.AccountNonceAndBalanceProvider,
 	blockchainInfo common.BlockchainInfo,
 ) error {
+	blockBody, ok := bodyHandler.(*block.Body)
+	if !ok {
+		return errWrongTypeAssertion
+	}
+
 	err := st.verifyArgsOfOnProposedBlock(blockHash, blockBody, blockHeader, accountsProvider)
 	if err != nil {
 		return err
@@ -366,7 +370,6 @@ func (st *selectionTracker) deriveVirtualSelectionSession(
 	session SelectionSession,
 	nonce uint64,
 ) (*virtualSelectionSession, error) {
-	// TODO should remove all blocks greater than the received nonce
 	rootHash, err := session.GetRootHash()
 	if err != nil {
 		log.Debug("selectionTracker.deriveVirtualSelectionSession",
@@ -483,7 +486,6 @@ func (st *selectionTracker) GetBulkOfUntrackedTransactions(transactions []*Wrapp
 }
 
 // isTransactionTracked checks if a transaction is still in the tracked blocks of the SelectionTracker
-// TODO analyze if the forks are still an issue here
 func (st *selectionTracker) isTransactionTracked(transaction *WrappedTransaction) bool {
 	if transaction == nil || transaction.Tx == nil {
 		return false
@@ -532,11 +534,10 @@ func (st *selectionTracker) displayTrackedBlocks(contextualLogger logger.Logger,
 	}
 }
 
-// getNumTrackedBlocks returns the dimension of tracked blocks
-// TODO the number of tracked accounts could also be returned when the globalAccountsBreadcrumbs is integrated
-func (st *selectionTracker) getNumTrackedBlocks() uint64 {
+// getTrackerDiagnosis returns the dimension of tracked blocks and the number of global account breadcrumbs
+func (st *selectionTracker) getTrackerDiagnosis() (uint64, uint64) {
 	st.mutTracker.RLock()
 	defer st.mutTracker.RUnlock()
 
-	return uint64(len(st.blocks))
+	return uint64(len(st.blocks)), st.globalBreadcrumbsCompiler.getNumGlobalBreadcrumbs()
 }

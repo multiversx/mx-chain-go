@@ -95,19 +95,8 @@ func TestSelectionTracker_OnProposedBlockShouldErr(t *testing.T) {
 		tracker, err := NewSelectionTracker(txCache, maxTrackedBlocks)
 		require.Nil(t, err)
 
-		err = tracker.OnProposedBlock(nil, nil, nil, nil, nil)
+		err = tracker.OnProposedBlock(nil, &block.Body{}, nil, nil, nil)
 		require.Equal(t, errNilBlockHash, err)
-	})
-
-	t.Run("should err nil header", func(t *testing.T) {
-		t.Parallel()
-
-		txCache := newCacheToTest(maxNumBytesPerSenderUpperBoundTest, 3)
-		tracker, err := NewSelectionTracker(txCache, maxTrackedBlocks)
-		require.Nil(t, err)
-
-		err = tracker.OnProposedBlock([]byte("hash1"), nil, nil, nil, nil)
-		require.Equal(t, errNilBlockBody, err)
 	})
 
 	t.Run("should err nil block header", func(t *testing.T) {
@@ -120,6 +109,19 @@ func TestSelectionTracker_OnProposedBlockShouldErr(t *testing.T) {
 		blockBody := block.Body{}
 		err = tracker.OnProposedBlock([]byte("hash1"), &blockBody, nil, nil, nil)
 		require.Equal(t, errNilBlockHeader, err)
+	})
+
+	t.Run("should return errWrongTypeAssertion", func(t *testing.T) {
+		t.Parallel()
+
+		txCache := newCacheToTest(maxNumBytesPerSenderUpperBoundTest, 3)
+
+		tracker, err := NewSelectionTracker(txCache, maxTrackedBlocks)
+		require.Nil(t, err)
+
+		err = tracker.OnProposedBlock([]byte("hash1"), nil, &block.Header{}, nil, defaultBlockchainInfo)
+
+		require.Equal(t, errWrongTypeAssertion, err)
 	})
 
 	t.Run("should err nil accounts provider", func(t *testing.T) {
@@ -1404,13 +1406,22 @@ func Test_getDimensionOfTrackedBlocks(t *testing.T) {
 		txCache.tracker = tracker
 
 		tracker.blocks = map[string]*trackedBlock{}
-		require.Equal(t, uint64(0), tracker.getNumTrackedBlocks())
+		numBlocks, numBreadcrumbs := tracker.getTrackerDiagnosis()
+		require.Equal(t, uint64(0), numBlocks)
+		require.Equal(t, uint64(0), numBreadcrumbs)
 
 		tracker.blocks = map[string]*trackedBlock{
 			"hash1": {},
 			"hash2": {},
 			"hash3": {},
 		}
-		require.Equal(t, uint64(3), tracker.getNumTrackedBlocks())
+		tracker.globalBreadcrumbsCompiler.globalAccountBreadcrumbs = map[string]*globalAccountBreadcrumb{
+			"alice": {},
+			"bob":   {},
+		}
+
+		numBlocks, numBreadcrumbs = tracker.getTrackerDiagnosis()
+		require.Equal(t, uint64(3), numBlocks)
+		require.Equal(t, uint64(2), numBreadcrumbs)
 	})
 }
