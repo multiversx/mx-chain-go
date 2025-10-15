@@ -442,7 +442,8 @@ func startFullConsensusNode(
 				CheckNodesOnDisk:          false,
 			},
 			GeneralSettings: config.GeneralSettingsConfig{
-				SyncProcessTimeInMillis: 6000,
+				SyncProcessTimeInMillis:          6000,
+				SyncProcessTimeSupernovaInMillis: 3000,
 			},
 		},
 		BootstrapRoundIndex:  0,
@@ -572,7 +573,8 @@ func startNodesWithCommitBlock(nodes []*integrationTests.TestConsensusNode, mute
 					CheckNodesOnDisk:          false,
 				},
 				GeneralSettings: config.GeneralSettingsConfig{
-					SyncProcessTimeInMillis: 6000,
+					SyncProcessTimeInMillis:          6000,
+					SyncProcessTimeSupernovaInMillis: 3000,
 				},
 			},
 			BootstrapRoundIndex:  0,

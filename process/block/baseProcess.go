@@ -1491,6 +1491,7 @@ func deleteSelfReceiptsMiniBlocks(body *block.Body) *block.Body {
 }
 
 func (bp *baseProcessor) getNoncesToFinal(headerHandler data.HeaderHandler) uint64 {
+	// TODO: modify this method to return last execution result nonce for header v3
 	currentBlockNonce := bp.genesisNonce
 	if !check.IfNil(headerHandler) {
 		currentBlockNonce = headerHandler.GetNonce()
@@ -2359,6 +2360,39 @@ func (bp *baseProcessor) setNonceOfFirstCommittedBlock(nonce uint64) {
 	bp.nonceOfFirstCommittedBlock.Value = nonce
 }
 
+// OnProposedBlock calls the OnProposedBlock from transactions pool
+func (bp *baseProcessor) OnProposedBlock(
+	proposedBody data.BodyHandler,
+	proposedHeader data.HeaderHandler,
+	proposedHash []byte,
+) error {
+	// this should be removed once OnProposedBlock accepts bodyHandler
+	proposedBodyPtr, ok := proposedBody.(*block.Body)
+	if !ok {
+		return process.ErrWrongTypeAssertion
+	}
+
+	// TODO: proper accounts db should be used and its roothash must be updated first through a new method
+	//  SetRootHashIfNeeded which should recreate the trie if needed
+	accountsProvider, err := state.NewAccountsEphemeralProvider(bp.accountsDB[state.UserAccountsState])
+	if err != nil {
+		return err
+	}
+
+	lastCommittedHeader, err := bp.dataPool.Headers().GetHeaderByHash(proposedHeader.GetPrevHash())
+	if err != nil {
+		return err
+	}
+
+	lastExecResHandler, err := common.GetLastBaseExecutionResultHandler(lastCommittedHeader)
+	if err != nil {
+		return err
+	}
+
+	blockChainInfo := holders.NewBlockchainInfo(lastExecResHandler.GetHeaderHash(), proposedHeader.GetPrevHash(), proposedHeader.GetNonce())
+	return bp.dataPool.Transactions().OnProposedBlock(proposedHash, proposedBodyPtr, proposedHeader, accountsProvider, blockChainInfo)
+}
+
 func (bp *baseProcessor) checkSentSignaturesAtCommitTime(header data.HeaderHandler) error {
 	_, validatorsGroup, err := headerCheck.ComputeConsensusGroup(header, bp.nodesCoordinator)
 	if err != nil {
@@ -2393,7 +2427,7 @@ func (bp *baseProcessor) computeOwnShardStuckIfNeeded(header data.HeaderHandler)
 		return nil
 	}
 
-	lastExecResultsHandler, err := getLastBaseExecutionResultHandler(header)
+	lastExecResultsHandler, err := common.GetLastBaseExecutionResultHandler(header)
 	if err != nil {
 		return err
 	}
@@ -2413,40 +2447,6 @@ func (bp *baseProcessor) updateGasConsumptionLimitsIfNeeded() {
 	// shard is stuck, zeroing the limits
 	bp.gasComputation.ZeroIncomingLimit()
 	bp.gasComputation.ZeroOutgoingLimit()
-}
-
-func getLastBaseExecutionResultHandler(header data.HeaderHandler) (data.BaseExecutionResultHandler, error) {
-	if check.IfNil(header) {
-		return nil, process.ErrNilHeaderHandler
-	}
-	lastExecResultsHandler := header.GetLastExecutionResultHandler()
-	if lastExecResultsHandler == nil {
-		return nil, process.ErrNilLastExecutionResultHandler
-	}
-
-	var baseExecutionResultsHandler data.BaseExecutionResultHandler
-	var ok bool
-	switch executionResultsHandlerType := lastExecResultsHandler.(type) {
-	case data.LastMetaExecutionResultHandler:
-		metaBaseExecutionResults := executionResultsHandlerType.GetExecutionResultHandler()
-		if check.IfNil(metaBaseExecutionResults) {
-			return nil, process.ErrNilBaseExecutionResult
-		}
-		baseExecutionResultsHandler, ok = metaBaseExecutionResults.(data.BaseExecutionResultHandler)
-		if !ok {
-			return nil, process.ErrWrongTypeAssertion
-		}
-	case data.LastShardExecutionResultHandler:
-		baseExecutionResultsHandler = executionResultsHandlerType.GetExecutionResultHandler()
-	default:
-		return nil, fmt.Errorf("%w: unsupported execution result handler type", process.ErrWrongTypeAssertion)
-	}
-
-	if check.IfNil(baseExecutionResultsHandler) {
-		return nil, process.ErrNilBaseExecutionResult
-	}
-
-	return baseExecutionResultsHandler, nil
 }
 
 func (bp *baseProcessor) getMaxRoundsWithoutBlockReceived(round uint64) uint64 {

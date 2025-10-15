@@ -292,6 +292,7 @@ type ProcessComponentsHolder interface {
 	EpochStartNotifier() EpochStartNotifier
 	ForkDetector() process.ForkDetector
 	BlockProcessor() process.BlockProcessor
+	BlocksQueue() process.BlocksQueue
 	BlackListHandler() process.TimeCacher
 	BootStorer() process.BootStorer
 	HeaderSigVerifier() process.InterceptedHeaderSigVerifier

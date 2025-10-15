@@ -149,6 +149,9 @@ var ErrMissingBody = errors.New("missing body")
 // ErrNilBlockProcessor signals that an operation has been attempted to or with a nil BlockProcessor implementation
 var ErrNilBlockProcessor = errors.New("nil block processor")
 
+// ErrNilBlocksQueue signals that a nil blocks queue has been provided
+var ErrNilBlocksQueue = errors.New("nil blocks queue")
+
 // ErrNilMarshalizer signals that an operation has been attempted to or with a nil Marshalizer implementation
 var ErrNilMarshalizer = errors.New("nil Marshalizer")
 

@@ -177,8 +177,9 @@ func createStateComponents(coreComponents factory.CoreComponentsHolder) factory.
 	_ = peerAccountsDB.SetSyncer(&mock.AccountsDBSyncerStub{})
 
 	return &factoryTests.StateComponentsMock{
-		PeersAcc: peerAccountsDB,
-		Accounts: userAccountsDB,
+		PeersAcc:         peerAccountsDB,
+		Accounts:         userAccountsDB,
+		AccountsProposal: userAccountsDB,
 	}
 }
 

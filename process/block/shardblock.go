@@ -2371,11 +2371,6 @@ func (sp *shardProcessor) removeStartOfEpochBlockDataFromPools(
 	return nil
 }
 
-// Close - closes all underlying components
-func (sp *shardProcessor) Close() error {
-	return sp.baseProcessor.Close()
-}
-
 // DecodeBlockHeader method decodes block header from a given byte array
 func (sp *shardProcessor) DecodeBlockHeader(dta []byte) data.HeaderHandler {
 	if dta == nil {

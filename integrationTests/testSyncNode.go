@@ -7,11 +7,11 @@ import (
 	"github.com/multiversx/mx-chain-core-go/data"
 	"github.com/multiversx/mx-chain-go/process"
 	"github.com/multiversx/mx-chain-go/process/asyncExecution/executionTrack"
-	"github.com/multiversx/mx-chain-go/process/estimator"
-	"github.com/multiversx/mx-chain-go/process/missingData"
-
+	"github.com/multiversx/mx-chain-go/process/asyncExecution/queue"
 	"github.com/multiversx/mx-chain-go/process/block/headerForBlock"
 	"github.com/multiversx/mx-chain-go/process/coordinator"
+	"github.com/multiversx/mx-chain-go/process/estimator"
+	"github.com/multiversx/mx-chain-go/process/missingData"
 
 	"github.com/multiversx/mx-chain-go/common/enablers"
 	"github.com/multiversx/mx-chain-go/common/forking"
@@ -202,6 +202,8 @@ func (tpn *TestProcessorNode) initBlockProcessorWithSync() {
 		GasComputation:                     gasConsumption,
 	}
 
+	tpn.BlocksQueue = queue.NewBlocksQueue()
+
 	if tpn.ShardCoordinator.SelfId() == core.MetachainShardId {
 		tpn.ForkDetector, _ = sync.NewMetaForkDetector(
 			tpn.RoundHandler,
@@ -270,6 +272,7 @@ func (tpn *TestProcessorNode) createShardBootstrapper() (TestBootstrapper, error
 		ChainHandler:                 tpn.BlockChain,
 		RoundHandler:                 tpn.RoundHandler,
 		BlockProcessor:               tpn.BlockProcessor,
+		BlocksQueue:                  tpn.BlocksQueue,
 		Hasher:                       TestHasher,
 		Marshalizer:                  TestMarshalizer,
 		ForkDetector:                 tpn.ForkDetector,
@@ -291,6 +294,7 @@ func (tpn *TestProcessorNode) createShardBootstrapper() (TestBootstrapper, error
 		HistoryRepo:                  &dblookupext.HistoryRepositoryStub{},
 		ScheduledTxsExecutionHandler: &testscommon.ScheduledTxsExecutionStub{},
 		ProcessWaitTime:              tpn.RoundHandler.TimeDuration(),
+		ProcessWaitTimeSupernova:     tpn.RoundHandler.TimeDuration(),
 		RepopulateTokensSupplies:     false,
 		EnableEpochsHandler:          tpn.EnableEpochsHandler,
 		EnableRoundsHandler:          tpn.EnableRoundsHandler,
@@ -318,6 +322,7 @@ func (tpn *TestProcessorNode) createMetaChainBootstrapper() (TestBootstrapper, e
 		ChainHandler:                 tpn.BlockChain,
 		RoundHandler:                 tpn.RoundHandler,
 		BlockProcessor:               tpn.BlockProcessor,
+		BlocksQueue:                  tpn.BlocksQueue,
 		Hasher:                       TestHasher,
 		Marshalizer:                  TestMarshalizer,
 		ForkDetector:                 tpn.ForkDetector,
@@ -339,6 +344,7 @@ func (tpn *TestProcessorNode) createMetaChainBootstrapper() (TestBootstrapper, e
 		HistoryRepo:                  &dblookupext.HistoryRepositoryStub{},
 		ScheduledTxsExecutionHandler: &testscommon.ScheduledTxsExecutionStub{},
 		ProcessWaitTime:              tpn.RoundHandler.TimeDuration(),
+		ProcessWaitTimeSupernova:     tpn.RoundHandler.TimeDuration(),
 		RepopulateTokensSupplies:     false,
 		EnableEpochsHandler:          &enableEpochsHandlerMock.EnableEpochsHandlerStub{},
 		EnableRoundsHandler:          tpn.EnableRoundsHandler,
