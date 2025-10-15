@@ -1238,6 +1238,10 @@ func (bp *baseProcessor) removeTxsFromPools(header data.HeaderHandler, body *blo
 }
 
 func (bp *baseProcessor) getFinalMiniBlocks(header data.HeaderHandler, body *block.Body) (*block.Body, error) {
+	if header.IsHeaderV3() {
+		return bp.getFinalMiniBlocksFromExecutionResults(header)
+	}
+
 	if !bp.enableEpochsHandler.IsFlagEnabled(common.ScheduledMiniBlocksFlag) {
 		return body, nil
 	}
@@ -1257,6 +1261,47 @@ func (bp *baseProcessor) getFinalMiniBlocks(header data.HeaderHandler, body *blo
 		}
 
 		miniBlocks = append(miniBlocks, miniBlock)
+	}
+
+	return &block.Body{MiniBlocks: miniBlocks}, nil
+}
+
+func (bp *baseProcessor) getFinalMiniBlocksFromExecutionResults(
+	header data.HeaderHandler,
+) (*block.Body, error) {
+	var miniBlocks block.MiniBlockSlice
+
+	baseExecutionResults := header.GetExecutionResultsHandlers()
+	if len(baseExecutionResults) == 0 {
+		return &block.Body{}, nil
+	}
+
+	executedMiniBlocksCache := bp.dataPool.ExecutedMiniBlocks()
+	for _, baseExecutionResult := range baseExecutionResults {
+		miniBlockHeaderHandlers, err := bp.extractMiniBlocksHeaderHandlersFromExecResult(baseExecutionResult, header.GetShardID())
+		if err != nil {
+			return nil, err
+		}
+
+		for _, miniBlockHeaderHandler := range miniBlockHeaderHandlers {
+			mbHash := miniBlockHeaderHandler.GetHash()
+			cachedMiniBlock, found := executedMiniBlocksCache.Get(mbHash)
+			if !found {
+				log.Warn("mini block from execution result not cached after execution",
+					"mini block hash", mbHash)
+				return nil, process.ErrMissingMiniBlock
+			}
+
+			cachedMiniBlockBytes := cachedMiniBlock.([]byte)
+
+			var miniBlock *block.MiniBlock
+			err := bp.marshalizer.Unmarshal(&miniBlock, cachedMiniBlockBytes)
+			if err != nil {
+				return nil, err
+			}
+
+			miniBlocks = append(miniBlocks, miniBlock)
+		}
 	}
 
 	return &block.Body{MiniBlocks: miniBlocks}, nil

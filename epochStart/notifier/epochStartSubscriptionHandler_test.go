@@ -190,6 +190,8 @@ func TestEpochStartSubscriptionHandler_NotifyAll(t *testing.T) {
 
 		time.Sleep(10 * time.Millisecond)
 
+		calledHandlersLock.RLock()
+		defer calledHandlersLock.RUnlock()
 		assert.Len(t, calledHandlers, 4)
 	})
 }
