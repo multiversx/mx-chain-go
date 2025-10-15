@@ -103,7 +103,7 @@ func selectTransactionsFromBunches(
 			selectedTransactions = append(selectedTransactions, selectedTransaction)
 			err := virtualSession.accumulateConsumedBalance(selectedTransaction, senderRecord)
 			if err != nil {
-				// This error is unlikely to occur, as it would have been raised earlier during the getRecord call.
+				// This error is unlikely to occur, as it would have been raised earlier during the detectSkippableSender call.
 				// Even if it does occur, it doesn't imply that the transaction should not be selected.
 				// Therefore, we only log the error here.
 				log.Warn("TxCache.selectTransactionsFromBunches error when accumulating consumed balance",
