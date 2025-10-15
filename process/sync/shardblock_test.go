@@ -225,6 +225,7 @@ func CreateShardBootstrapMockArguments() sync.ArgShardBootstrapper {
 		HistoryRepo:                  &dblookupext.HistoryRepositoryStub{},
 		ScheduledTxsExecutionHandler: &testscommon.ScheduledTxsExecutionStub{},
 		ProcessWaitTime:              testProcessWaitTime,
+		ProcessWaitTimeSupernova:     testProcessWaitTime,
 		RepopulateTokensSupplies:     false,
 		EnableEpochsHandler:          &enableEpochsHandlerMock.EnableEpochsHandlerStub{},
 		EnableRoundsHandler:          &testscommon.EnableRoundsHandlerStub{},
@@ -466,6 +467,19 @@ func TestNewShardBootstrap_InvalidProcessTimeShouldErr(t *testing.T) {
 
 	assert.True(t, check.IfNil(bs))
 	assert.True(t, errors.Is(err, process.ErrInvalidProcessWaitTime))
+}
+
+func TestNewShardBootstrap_InvalidProcessWaitTimeSupernovaShouldErr(t *testing.T) {
+	t.Parallel()
+
+	args := CreateShardBootstrapMockArguments()
+	args.ProcessWaitTimeSupernova = time.Millisecond*100 - 1
+
+	bs, err := sync.NewShardBootstrap(args)
+
+	assert.True(t, check.IfNil(bs))
+	assert.True(t, errors.Is(err, process.ErrInvalidProcessWaitTime))
+	assert.Contains(t, err.Error(), "Supernova")
 }
 
 func TestNewShardBootstrap_NilEnableEpochsHandlerShouldErr(t *testing.T) {
@@ -2513,6 +2527,30 @@ func TestShardBootstrap_SyncBlockV3(t *testing.T) {
 
 					return nil, nil, errors.New("err")
 				},
+				GetHeaderByHashCalled: func(hash []byte) (data.HeaderHandler, error) {
+					for i, hh := range headersAndHashes {
+						if string(hh.hash) != string(hash) {
+							continue
+						}
+
+						if i > 0 {
+							return headersAndHashes[i-1].header, nil
+						}
+
+						return &block.HeaderV3{
+							Nonce:         1,
+							BlockBodyType: block.TxBlock,
+							LastExecutionResult: &block.ExecutionResultInfo{
+								ExecutionResult: &block.BaseExecutionResult{
+									HeaderNonce: 0,
+									HeaderHash:  []byte("hash0"),
+								},
+							},
+						}, nil
+					}
+
+					return nil, errors.New("err")
+				},
 			}
 		}
 		pools.MiniBlocksCalled = func() storage.Cacher {
@@ -2556,6 +2594,9 @@ func TestShardBootstrap_SyncBlockV3(t *testing.T) {
 		args.ChainHandler = &testscommon.ChainHandlerStub{
 			GetCurrentBlockHeaderCalled: func() data.HeaderHandler {
 				return hdr
+			},
+			GetCurrentBlockHeaderHashCalled: func() []byte {
+				return []byte("hash")
 			},
 		}
 
@@ -2672,7 +2713,8 @@ func TestShardBootstrap_SyncBlockV3(t *testing.T) {
 			headerAndHash{
 				header: header2,
 				hash:   []byte("hash2"),
-			}, headerAndHash{
+			},
+			headerAndHash{
 				header: header3,
 				hash:   []byte("hash3"),
 			},
@@ -2688,6 +2730,9 @@ func TestShardBootstrap_SyncBlockV3(t *testing.T) {
 		args.ChainHandler = &testscommon.ChainHandlerStub{
 			GetCurrentBlockHeaderCalled: func() data.HeaderHandler {
 				return header4 // forcing to sync nonce 5
+			},
+			GetCurrentBlockHeaderHashCalled: func() []byte {
+				return []byte("hash4")
 			},
 		}
 
@@ -2722,7 +2767,24 @@ func TestShardBootstrap_SyncBlockV3(t *testing.T) {
 		assert.Nil(t, err)
 		assert.True(t, verifyBlockProposalCalled)
 		assert.True(t, commitBlockCalled)
-		assert.Equal(t, 4, cntAddToQueue) // once for the syncing block, and three times for the intermediate blocks
+		assert.Equal(t, 3, cntAddToQueue) // three times for the intermediate blocks
+	})
+
+	t.Run("should error when GetPrevBlockLastExecutionResult fails", func(t *testing.T) {
+		t.Parallel()
+
+		args := createSyncBlockV3Args()
+		chainHandler, ok := args.ChainHandler.(*testscommon.ChainHandlerStub)
+		require.True(t, ok)
+		chainHandler.GetCurrentBlockHeaderHashCalled = func() []byte {
+			return nil
+		}
+
+		bs, err := sync.NewShardBootstrap(args)
+		require.Nil(t, err)
+
+		err = bs.SyncBlock(context.Background())
+		assert.Error(t, err)
 	})
 
 	t.Run("should error when VerifyBlockProposal fails", func(t *testing.T) {
@@ -2735,6 +2797,315 @@ func TestShardBootstrap_SyncBlockV3(t *testing.T) {
 			},
 		}
 		args.BlockProcessor = blockProcessor
+
+		bs, err := sync.NewShardBootstrap(args)
+		require.Nil(t, err)
+
+		err = bs.SyncBlock(context.Background())
+		assert.Equal(t, errExpected, err)
+	})
+
+	t.Run("should error when OnExecutedBlock fails on the ideal case", func(t *testing.T) {
+		t.Parallel()
+
+		args := createSyncBlockV3Args()
+		poolsStub, ok := args.PoolsHolder.(*dataRetrieverMock.PoolsHolderStub)
+		require.True(t, ok)
+		poolsStub.TransactionsCalled = func() dataRetriever.ShardedDataCacherNotifier {
+			return &testscommon.ShardedDataStub{
+				OnExecutedBlockCalled: func(blockHeader data.HeaderHandler) error {
+					return errExpected
+				},
+			}
+		}
+		args.PoolsHolder = poolsStub
+
+		bs, err := sync.NewShardBootstrap(args)
+		require.Nil(t, err)
+
+		err = bs.SyncBlock(context.Background())
+		assert.Equal(t, errExpected, err)
+	})
+
+	t.Run("should error when OnProposedBlock fails on the ideal case", func(t *testing.T) {
+		t.Parallel()
+
+		args := createSyncBlockV3Args()
+		blockProcessor := &testscommon.BlockProcessorStub{
+			OnProposedBlockCalled: func(proposedBody data.BodyHandler, proposedHeader data.HeaderHandler, proposedHash []byte) error {
+				return errExpected
+			},
+		}
+		args.BlockProcessor = blockProcessor
+
+		bs, err := sync.NewShardBootstrap(args)
+		require.Nil(t, err)
+
+		err = bs.SyncBlock(context.Background())
+		assert.Equal(t, errExpected, err)
+	})
+
+	t.Run("should error when OnExecutedBlock fails on the bigger gap case", func(t *testing.T) {
+		t.Parallel()
+
+		// test details:
+		// current header nonce: 4
+		// fork detector highest nonce: 5 -> will sync nonce 5
+		// current header holds last execution result with nonce 2
+		args := createSyncBlockV3Args()
+		header2 := &block.HeaderV3{
+			Nonce:         2,
+			BlockBodyType: block.TxBlock,
+			LastExecutionResult: &block.ExecutionResultInfo{
+				ExecutionResult: &block.BaseExecutionResult{
+					HeaderNonce: 1,
+					HeaderHash:  []byte("hash1"),
+				},
+			},
+		}
+		header4 := &block.HeaderV3{
+			Nonce:         4,
+			BlockBodyType: block.TxBlock,
+			LastExecutionResult: &block.ExecutionResultInfo{
+				ExecutionResult: &block.BaseExecutionResult{
+					HeaderNonce: 2,
+					HeaderHash:  []byte("hash3"),
+				},
+			},
+		}
+		header5 := &block.HeaderV3{
+			Nonce:         5,
+			BlockBodyType: block.TxBlock,
+			LastExecutionResult: &block.ExecutionResultInfo{
+				ExecutionResult: &block.BaseExecutionResult{
+					HeaderNonce: 4,
+					HeaderHash:  []byte("hash4"),
+				},
+			},
+		}
+		args.PoolsHolder = setupPools(
+			headerAndHash{
+				header: header2,
+				hash:   []byte("hash2"),
+			},
+			headerAndHash{
+				header: header4,
+				hash:   []byte("hash4"),
+			},
+			headerAndHash{
+				header: header5,
+				hash:   []byte("hash5"),
+			},
+		)
+		poolsStub, ok := args.PoolsHolder.(*dataRetrieverMock.PoolsHolderStub)
+		require.True(t, ok)
+		poolsStub.TransactionsCalled = func() dataRetriever.ShardedDataCacherNotifier {
+			return &testscommon.ShardedDataStub{
+				OnExecutedBlockCalled: func(blockHeader data.HeaderHandler) error {
+					return errExpected
+				},
+			}
+		}
+		args.PoolsHolder = poolsStub
+		args.ChainHandler = &testscommon.ChainHandlerStub{
+			GetCurrentBlockHeaderCalled: func() data.HeaderHandler {
+				return header4 // forcing to sync nonce 5
+			},
+			GetCurrentBlockHeaderHashCalled: func() []byte {
+				return []byte("hash4")
+			},
+		}
+
+		args.Store = setupStore(args.Marshalizer, header2, nil)
+		args.ForkDetector = setupForkDetector(5)
+
+		args.BlocksQueue = &processMocks.BlocksQueueMock{
+			AddOrReplaceCalled: func(pair queue.HeaderBodyPair) error {
+				return errExpected
+			},
+		}
+
+		bs, err := sync.NewShardBootstrap(args)
+		require.Nil(t, err)
+
+		err = bs.SyncBlock(context.Background())
+		assert.Equal(t, errExpected, err)
+	})
+
+	t.Run("should error when AddOrReplace fails on the bigger gap case", func(t *testing.T) {
+		t.Parallel()
+
+		// test details:
+		// current header nonce: 4
+		// fork detector highest nonce: 5 -> will sync nonce 5
+		// current header holds last execution result with nonce 2
+		args := createSyncBlockV3Args()
+		header2 := &block.HeaderV3{
+			Nonce:         2,
+			BlockBodyType: block.TxBlock,
+			LastExecutionResult: &block.ExecutionResultInfo{
+				ExecutionResult: &block.BaseExecutionResult{
+					HeaderNonce: 1,
+					HeaderHash:  []byte("hash1"),
+				},
+			},
+		}
+		header3 := &block.HeaderV3{
+			Nonce:         3,
+			BlockBodyType: block.TxBlock,
+			LastExecutionResult: &block.ExecutionResultInfo{
+				ExecutionResult: &block.BaseExecutionResult{
+					HeaderNonce: 2,
+					HeaderHash:  []byte("hash2"),
+				},
+			},
+		}
+		header4 := &block.HeaderV3{
+			Nonce:         4,
+			BlockBodyType: block.TxBlock,
+			LastExecutionResult: &block.ExecutionResultInfo{
+				ExecutionResult: &block.BaseExecutionResult{
+					HeaderNonce: 2,
+					HeaderHash:  []byte("hash3"),
+				},
+			},
+		}
+		header5 := &block.HeaderV3{
+			Nonce:         5,
+			BlockBodyType: block.TxBlock,
+			LastExecutionResult: &block.ExecutionResultInfo{
+				ExecutionResult: &block.BaseExecutionResult{
+					HeaderNonce: 4,
+					HeaderHash:  []byte("hash4"),
+				},
+			},
+		}
+		args.PoolsHolder = setupPools(
+			headerAndHash{
+				header: header2,
+				hash:   []byte("hash2"),
+			},
+			headerAndHash{
+				header: header3,
+				hash:   []byte("hash3"),
+			},
+			headerAndHash{
+				header: header4,
+				hash:   []byte("hash4"),
+			},
+			headerAndHash{
+				header: header5,
+				hash:   []byte("hash5"),
+			},
+		)
+		args.ChainHandler = &testscommon.ChainHandlerStub{
+			GetCurrentBlockHeaderCalled: func() data.HeaderHandler {
+				return header4 // forcing to sync nonce 5
+			},
+			GetCurrentBlockHeaderHashCalled: func() []byte {
+				return []byte("hash4")
+			},
+		}
+
+		args.Store = setupStore(args.Marshalizer, header2, nil)
+		args.ForkDetector = setupForkDetector(5)
+
+		args.BlocksQueue = &processMocks.BlocksQueueMock{
+			AddOrReplaceCalled: func(pair queue.HeaderBodyPair) error {
+				return errExpected
+			},
+		}
+
+		bs, err := sync.NewShardBootstrap(args)
+		require.Nil(t, err)
+
+		err = bs.SyncBlock(context.Background())
+		assert.Equal(t, errExpected, err)
+	})
+
+	t.Run("should error when OnProposedBlock fails on the bigger gap case", func(t *testing.T) {
+		t.Parallel()
+
+		// test details:
+		// current header nonce: 4
+		// fork detector highest nonce: 5 -> will sync nonce 5
+		// current header holds last execution result with nonce 2
+		args := createSyncBlockV3Args()
+		header2 := &block.HeaderV3{
+			Nonce:         2,
+			BlockBodyType: block.TxBlock,
+			LastExecutionResult: &block.ExecutionResultInfo{
+				ExecutionResult: &block.BaseExecutionResult{
+					HeaderNonce: 1,
+					HeaderHash:  []byte("hash1"),
+				},
+			},
+		}
+		header3 := &block.HeaderV3{
+			Nonce:         3,
+			BlockBodyType: block.TxBlock,
+			LastExecutionResult: &block.ExecutionResultInfo{
+				ExecutionResult: &block.BaseExecutionResult{
+					HeaderNonce: 2,
+					HeaderHash:  []byte("hash2"),
+				},
+			},
+		}
+		header4 := &block.HeaderV3{
+			Nonce:         4,
+			BlockBodyType: block.TxBlock,
+			LastExecutionResult: &block.ExecutionResultInfo{
+				ExecutionResult: &block.BaseExecutionResult{
+					HeaderNonce: 2,
+					HeaderHash:  []byte("hash2"),
+				},
+			},
+		}
+		header5 := &block.HeaderV3{
+			Nonce:         5,
+			BlockBodyType: block.TxBlock,
+			LastExecutionResult: &block.ExecutionResultInfo{
+				ExecutionResult: &block.BaseExecutionResult{
+					HeaderNonce: 4,
+					HeaderHash:  []byte("hash4"),
+				},
+			},
+		}
+		args.PoolsHolder = setupPools(
+			headerAndHash{
+				header: header2,
+				hash:   []byte("hash2"),
+			},
+			headerAndHash{
+				header: header3,
+				hash:   []byte("hash3"),
+			},
+			headerAndHash{
+				header: header4,
+				hash:   []byte("hash4"),
+			},
+			headerAndHash{
+				header: header5,
+				hash:   []byte("hash5"),
+			},
+		)
+		blockProcessor := &testscommon.BlockProcessorStub{
+			OnProposedBlockCalled: func(proposedBody data.BodyHandler, proposedHeader data.HeaderHandler, proposedHash []byte) error {
+				return errExpected
+			},
+		}
+		args.BlockProcessor = blockProcessor
+		args.ChainHandler = &testscommon.ChainHandlerStub{
+			GetCurrentBlockHeaderCalled: func() data.HeaderHandler {
+				return header4 // forcing to sync nonce 5
+			},
+			GetCurrentBlockHeaderHashCalled: func() []byte {
+				return []byte("hash4")
+			},
+		}
+
+		args.Store = setupStore(args.Marshalizer, header2, nil)
+		args.ForkDetector = setupForkDetector(5)
 
 		bs, err := sync.NewShardBootstrap(args)
 		require.Nil(t, err)
@@ -2781,6 +3152,9 @@ func TestShardBootstrap_SyncBlockV3(t *testing.T) {
 			GetCurrentBlockHeaderCalled: func() data.HeaderHandler {
 				return &hdr
 			},
+			GetCurrentBlockHeaderHashCalled: func() []byte {
+				return []byte("hash")
+			},
 		}
 		args.ChainHandler = blkc
 
@@ -2791,59 +3165,6 @@ func TestShardBootstrap_SyncBlockV3(t *testing.T) {
 
 		err = bs.SyncBlock(context.Background())
 		assert.Nil(t, err)
-	})
-
-	t.Run("should error when header is not HeaderV3", func(t *testing.T) {
-		t.Parallel()
-
-		args := createSyncBlockV3Args()
-
-		prevHdr := &block.HeaderV3{
-			Nonce: 0,
-		}
-
-		hdr := block.HeaderV3{
-			Nonce: 1,
-			LastExecutionResult: &block.ExecutionResultInfo{
-				NotarizedInRound: 1,
-				ExecutionResult: &block.BaseExecutionResult{
-					HeaderNonce: prevHdr.Nonce,
-				},
-			}}
-		blkc := &testscommon.ChainHandlerStub{
-			GetCurrentBlockHeaderCalled: func() data.HeaderHandler {
-				return &hdr
-			},
-		}
-		args.ChainHandler = blkc
-
-		args.Store = &storageStubs.ChainStorerStub{
-			GetStorerCalled: func(unitType dataRetriever.UnitType) (storage.Storer, error) {
-				return &storageStubs.StorerStub{
-					GetCalled: func(key []byte) ([]byte, error) {
-						prevHdrBytes, _ := args.Marshalizer.Marshal(prevHdr)
-						return prevHdrBytes, nil
-					},
-				}, nil
-			},
-		}
-
-		hash := []byte("aaa")
-		header := &block.Header{
-			Nonce:         2,
-			Round:         1,
-			BlockBodyType: block.TxBlock,
-		}
-		args.PoolsHolder = setupPools(headerAndHash{
-			header: header,
-			hash:   hash,
-		})
-
-		bs, err := sync.NewShardBootstrap(args)
-		require.Nil(t, err)
-
-		err = bs.SyncBlock(context.Background())
-		assert.Equal(t, process.ErrInvalidHeader, err)
 	})
 
 	t.Run("should error when last execution result is nil", func(t *testing.T) {
@@ -2862,6 +3183,9 @@ func TestShardBootstrap_SyncBlockV3(t *testing.T) {
 		blkc := &testscommon.ChainHandlerStub{
 			GetCurrentBlockHeaderCalled: func() data.HeaderHandler {
 				return &hdr
+			},
+			GetCurrentBlockHeaderHashCalled: func() []byte {
+				return []byte("hash")
 			},
 		}
 		args.ChainHandler = blkc

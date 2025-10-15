@@ -3,7 +3,6 @@ package bootstrap
 import (
 	"fmt"
 	"path/filepath"
-	"time"
 
 	"github.com/multiversx/mx-chain-core-go/core"
 	"github.com/multiversx/mx-chain-core-go/core/check"
@@ -197,8 +196,7 @@ func (bcf *bootstrapComponentsFactory) Create() (*bootstrapComponents, error) {
 
 	// create a new instance of interceptedDataVerifier which will be used for bootstrap only
 	interceptedDataVerifierFactory := interceptorFactory.NewInterceptedDataVerifierFactory(interceptorFactory.InterceptedDataVerifierFactoryArgs{
-		CacheSpan:   time.Duration(bcf.config.InterceptedDataVerifier.CacheSpanInSec) * time.Second,
-		CacheExpiry: time.Duration(bcf.config.InterceptedDataVerifier.CacheExpiryInSec) * time.Second,
+		InterceptedDataVerifierConfig: bcf.config.InterceptedDataVerifier,
 	})
 
 	epochStartBootstrapArgs := bootstrap.ArgsEpochStartBootstrap{

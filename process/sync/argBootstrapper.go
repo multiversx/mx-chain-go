@@ -48,6 +48,7 @@ type ArgBaseBootstrapper struct {
 	IsInImportMode               bool
 	ScheduledTxsExecutionHandler process.ScheduledTxsExecutionHandler
 	ProcessWaitTime              time.Duration
+	ProcessWaitTimeSupernova     time.Duration
 	RepopulateTokensSupplies     bool
 	EnableEpochsHandler          common.EnableEpochsHandler
 	EnableRoundsHandler          common.EnableRoundsHandler

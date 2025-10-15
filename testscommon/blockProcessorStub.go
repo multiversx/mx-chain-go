@@ -30,6 +30,11 @@ type BlockProcessorStub struct {
 		bodyHandler data.BodyHandler,
 		haveTime func() time.Duration,
 	) error
+	OnProposedBlockCalled func(
+		proposedBody data.BodyHandler,
+		proposedHeader data.HeaderHandler,
+		proposedHash []byte,
+	) error
 }
 
 // SetNumProcessedObj -
@@ -180,6 +185,18 @@ func (bps *BlockProcessorStub) VerifyBlockProposal(
 ) error {
 	if bps.VerifyBlockProposalCalled != nil {
 		return bps.VerifyBlockProposalCalled(headerHandler, bodyHandler, haveTime)
+	}
+	return nil
+}
+
+// OnProposedBlock -
+func (bps *BlockProcessorStub) OnProposedBlock(
+	proposedBody data.BodyHandler,
+	proposedHeader data.HeaderHandler,
+	proposedHash []byte,
+) error {
+	if bps.OnProposedBlockCalled != nil {
+		return bps.OnProposedBlockCalled(proposedBody, proposedHeader, proposedHash)
 	}
 	return nil
 }

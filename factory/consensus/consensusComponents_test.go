@@ -159,6 +159,7 @@ func createMockConsensusComponentsFactoryArgs() consensusComp.ConsensusComponent
 				retriever.PeerAccountsUnit.String(): &storageManager.StorageManagerStub{},
 			},
 			Accounts:             &stateMocks.AccountsStub{},
+			AccountsProposal:     &stateMocks.AccountsStub{},
 			PeersAcc:             &stateMocks.AccountsStub{},
 			MissingNodesNotifier: &testscommon.MissingTrieNodesNotifierStub{},
 		},

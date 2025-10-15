@@ -140,6 +140,7 @@ type InterceptedDataFactory interface {
 // InterceptedData represents the interceptor's view of the received data
 type InterceptedData interface {
 	CheckValidity() error
+	ShouldAllowDuplicates() bool
 	IsForCurrentShard() bool
 	IsInterfaceNil() bool
 	Hash() []byte
@@ -151,7 +152,7 @@ type InterceptedData interface {
 // InterceptorProcessor further validates and saves received data
 type InterceptorProcessor interface {
 	Validate(data InterceptedData, fromConnectedPeer core.PeerID) error
-	Save(data InterceptedData, fromConnectedPeer core.PeerID, topic string) error
+	Save(data InterceptedData, fromConnectedPeer core.PeerID, topic string) (dataSaved bool, err error)
 	RegisterHandler(handler func(topic string, hash []byte, data interface{}))
 	IsInterfaceNil() bool
 }
@@ -298,6 +299,11 @@ type BlockProcessor interface {
 		headerHandler data.HeaderHandler,
 		bodyHandler data.BodyHandler,
 		haveTime func() time.Duration,
+	) error
+	OnProposedBlock(
+		proposedBody data.BodyHandler,
+		proposedHeader data.HeaderHandler,
+		proposedHash []byte,
 	) error
 	Close() error
 	IsInterfaceNil() bool
@@ -1363,7 +1369,8 @@ type CheckedChunkResult struct {
 
 // InterceptedChunksProcessor defines the component that is able to process chunks of intercepted data
 type InterceptedChunksProcessor interface {
-	CheckBatch(b *batch.Batch, whiteListHandler WhiteListHandler) (CheckedChunkResult, error)
+	CheckBatch(b *batch.Batch, whiteListHandler WhiteListHandler, broadcastMethod p2p.BroadcastMethod) (CheckedChunkResult, error)
+	MarkVerified(b *batch.Batch, broadcastMethod p2p.BroadcastMethod)
 	Close() error
 	IsInterfaceNil() bool
 }
@@ -1494,7 +1501,8 @@ type SentSignaturesTracker interface {
 
 // InterceptedDataVerifier defines a component able to verify intercepted data validity
 type InterceptedDataVerifier interface {
-	Verify(interceptedData InterceptedData) error
+	Verify(interceptedData InterceptedData, topic string, broadcastMethod p2p.BroadcastMethod) error
+	MarkVerified(interceptedData InterceptedData, broadcastMethod p2p.BroadcastMethod)
 	IsInterfaceNil() bool
 }
 

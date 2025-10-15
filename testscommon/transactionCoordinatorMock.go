@@ -37,6 +37,7 @@ type TransactionCoordinatorMock struct {
 	GetAllIntermediateTxsCalled                          func() map[block.Type]map[string]data.TransactionHandler
 	AddTxsFromMiniBlocksCalled                           func(miniBlocks block.MiniBlockSlice)
 	AddTransactionsCalled                                func(txHandlers []data.TransactionHandler, blockType block.Type)
+	CreateReceiptsHashCalled                             func() ([]byte, error)
 
 	miniBlocks []*block.MiniBlock
 }
@@ -56,6 +57,9 @@ func (tcm *TransactionCoordinatorMock) CreatePostProcessMiniBlocks() block.MiniB
 
 // CreateReceiptsHash -
 func (tcm *TransactionCoordinatorMock) CreateReceiptsHash() ([]byte, error) {
+	if tcm.CreateReceiptsHashCalled != nil {
+		return tcm.CreateReceiptsHashCalled()
+	}
 	return []byte("receiptHash"), nil
 }
 

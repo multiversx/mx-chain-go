@@ -370,7 +370,12 @@ func GetLastBaseExecutionResultHandler(header data.HeaderHandler) (data.BaseExec
 		return nil, ErrNilHeaderHandler
 	}
 	lastExecResultsHandler := header.GetLastExecutionResultHandler()
-	if lastExecResultsHandler == nil {
+	return ExtractBaseExecutionResultHandler(lastExecResultsHandler)
+}
+
+// ExtractBaseExecutionResultHandler extracts the base execution result handler from a last execution result handler
+func ExtractBaseExecutionResultHandler(lastExecResultsHandler data.LastExecutionResultHandler) (data.BaseExecutionResultHandler, error) {
+	if check.IfNil(lastExecResultsHandler) {
 		return nil, ErrNilLastExecutionResultHandler
 	}
 
