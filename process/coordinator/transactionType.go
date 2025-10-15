@@ -76,6 +76,7 @@ func NewTxTypeHandler(
 	return tc, nil
 }
 
+// ComputeTransactionTypeInEpoch calculates the transaction type based on the provided epoch
 func (tth *txTypeHandler) ComputeTransactionTypeInEpoch(tx data.TransactionHandler, epoch uint32) (process.TransactionType, process.TransactionType, bool) {
 	return tth.computeTransactionType(tx, epoch)
 }
