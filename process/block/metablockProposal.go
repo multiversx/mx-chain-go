@@ -15,13 +15,13 @@ func (mp *metaProcessor) VerifyBlockProposal(
 	return nil
 }
 
-// OnProposedBlock calls the OnProposedBlock from transactions pool
+// OnProposedBlock will be implemented in a further PR
 func (mp *metaProcessor) OnProposedBlock(
-	proposedBody data.BodyHandler,
-	proposedHeader data.HeaderHandler,
-	proposedHash []byte,
-	lastCommittedHeader data.HeaderHandler,
-	lastCommittedHash []byte,
+	_ data.BodyHandler,
+	_ data.HeaderHandler,
+	_ []byte,
+	_ data.HeaderHandler,
+	_ []byte,
 ) error {
-	return mp.baseProcessor.OnProposedBlock(proposedBody, proposedHeader, proposedHash, lastCommittedHeader, lastCommittedHash)
+	return nil
 }
