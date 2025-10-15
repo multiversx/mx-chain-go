@@ -130,8 +130,7 @@ func (it *dfsIterator) GetLeaves(numLeaves int, maxSize uint64, leavesParser com
 				}
 
 				hexKey := hex.EncodeToString(keyValHolder.Key())
-				//TODO - change with decoded value after testing
-				hexData := hex.EncodeToString(childNode.GetData())
+				hexData := hex.EncodeToString(keyValHolder.Value())
 				retrievedLeaves[hexKey] = hexData
 				leavesSize += uint64(len(hexKey) + len(hexData))
 				continue
