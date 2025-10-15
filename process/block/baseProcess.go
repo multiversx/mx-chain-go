@@ -1144,10 +1144,12 @@ func (bp *baseProcessor) cleanupPoolsForCrossShard(
 		return
 	}
 
+	crossNotarizedHeaderNonce := common.GetLastExecutionResultNonce(crossNotarizedHeader)
+
 	bp.removeHeadersBehindNonceFromPools(
 		false,
 		shardID,
-		crossNotarizedHeader.GetNonce(),
+		crossNotarizedHeaderNonce,
 	)
 
 	if common.IsFlagEnabledAfterEpochsStartBlock(crossNotarizedHeader, bp.enableEpochsHandler, common.AndromedaFlag) {
@@ -1329,7 +1331,7 @@ func (bp *baseProcessor) cleanupBlockTrackerPoolsForShard(shardID uint32, nonces
 		return
 	}
 
-	selfNotarizedNonce := selfNotarizedHeader.GetNonce()
+	selfNotarizedNonce := common.GetLastExecutionResultNonce(selfNotarizedHeader)
 
 	crossNotarizedNonce := uint64(0)
 	if shardID != bp.shardCoordinator.SelfId() {
@@ -1342,7 +1344,7 @@ func (bp *baseProcessor) cleanupBlockTrackerPoolsForShard(shardID uint32, nonces
 			return
 		}
 
-		crossNotarizedNonce = crossNotarizedHeader.GetNonce()
+		crossNotarizedNonce = common.GetLastExecutionResultNonce(crossNotarizedHeader)
 	}
 
 	bp.blockTracker.CleanupHeadersBehindNonce(
@@ -1491,7 +1493,6 @@ func deleteSelfReceiptsMiniBlocks(body *block.Body) *block.Body {
 }
 
 func (bp *baseProcessor) getNoncesToFinal(headerHandler data.HeaderHandler) uint64 {
-	// TODO: modify this method to return last execution result nonce for header v3
 	currentBlockNonce := bp.genesisNonce
 	if !check.IfNil(headerHandler) {
 		currentBlockNonce = headerHandler.GetNonce()
@@ -1499,6 +1500,13 @@ func (bp *baseProcessor) getNoncesToFinal(headerHandler data.HeaderHandler) uint
 
 	noncesToFinal := uint64(0)
 	finalBlockNonce := bp.forkDetector.GetHighestFinalBlockNonce()
+
+	// TODO: refactor this
+	finalHeaderHandler, err := bp.dataPool.Headers().GetHeaderByHash(bp.forkDetector.GetHighestFinalBlockHash())
+	if err == nil && finalHeaderHandler.IsHeaderV3() {
+		finalBlockNonce = common.GetLastExecutionResultNonce(finalHeaderHandler)
+	}
+
 	if currentBlockNonce > finalBlockNonce {
 		noncesToFinal = currentBlockNonce - finalBlockNonce
 	}
