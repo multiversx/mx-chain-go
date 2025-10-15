@@ -285,12 +285,6 @@ func convertGenericValues(economics *config.EconomicsConfig) (uint64, uint64, *b
 		return 0, 0, nil, 0, 0, process.ErrInvalidMaxGasPriceSetGuardian
 	}
 
-	// TODO[Sorin]: uncomment this once feat/supernova-async-exec merges with feat/sub-second-round
-	// blockCapacityOverestimationFactor, err := strconv.ParseUint(economics.FeeSettings.BlockCapacityOverestimationFactor, conversionBase, bitConversionSize)
-	// if err != nil {
-	// 	return 0, 0, nil, 0, 0, process.ErrInvalidBlockCapacityOverestimationFactor
-	// }
-	blockCapacityOverestimationFactor := uint64(100) // returning 100 so nothing changes after activation
-
+	blockCapacityOverestimationFactor := economics.FeeSettings.BlockCapacityOverestimationFactor
 	return minGasPrice, gasPerDataByte, genesisTotalSupply, maxGasPriceSetGuardian, blockCapacityOverestimationFactor, nil
 }
