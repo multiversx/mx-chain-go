@@ -1380,8 +1380,9 @@ func (tpn *TestProcessorNode) initInterceptors(heartbeatPk string) {
 	cryptoComponents.TxKeyGen = tpn.OwnAccount.KeygenTxSign
 
 	interceptorDataVerifierArgs := interceptorsFactory.InterceptedDataVerifierFactoryArgs{
-		CacheSpan:   time.Second * 3,
-		CacheExpiry: time.Second * 10,
+		InterceptedDataVerifierConfig: config.InterceptedDataVerifierConfig{
+			EnableCaching: false,
+		},
 	}
 
 	if tpn.ShardCoordinator.SelfId() == core.MetachainShardId {
@@ -1435,6 +1436,12 @@ func (tpn *TestProcessorNode) initInterceptors(heartbeatPk string) {
 			HardforkTrigger:                tpn.HardforkTrigger,
 			NodeOperationMode:              tpn.NodeOperationMode,
 			InterceptedDataVerifierFactory: interceptorsFactory.NewInterceptedDataVerifierFactory(interceptorDataVerifierArgs),
+			Config: config.Config{
+				InterceptedDataVerifier: config.InterceptedDataVerifierConfig{
+					CacheSpanInSec:   1,
+					CacheExpiryInSec: 1,
+				},
+			},
 		}
 		interceptorContainerFactory, _ := interceptorscontainer.NewMetaInterceptorsContainerFactory(metaInterceptorContainerFactoryArgs)
 
@@ -1505,6 +1512,12 @@ func (tpn *TestProcessorNode) initInterceptors(heartbeatPk string) {
 			HardforkTrigger:                tpn.HardforkTrigger,
 			NodeOperationMode:              tpn.NodeOperationMode,
 			InterceptedDataVerifierFactory: interceptorsFactory.NewInterceptedDataVerifierFactory(interceptorDataVerifierArgs),
+			Config: config.Config{
+				InterceptedDataVerifier: config.InterceptedDataVerifierConfig{
+					CacheSpanInSec:   1,
+					CacheExpiryInSec: 1,
+				},
+			},
 		}
 
 		interceptorContainerFactory, _ := interceptorscontainer.NewShardInterceptorsContainerFactory(shardIntereptorContainerFactoryArgs)

@@ -1196,6 +1196,7 @@ func TestInterceptedTransaction_OkValsGettersShouldWork(t *testing.T) {
 	assert.Equal(t, recvShard, txi.ReceiverShardId())
 	assert.False(t, txi.IsForCurrentShard())
 	assert.Equal(t, tx, txi.Transaction())
+	assert.False(t, txi.ShouldAllowDuplicates())
 }
 
 func TestInterceptedTransaction_ScTxDeployRecvShardIdShouldBeSendersShardId(t *testing.T) {
