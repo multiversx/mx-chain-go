@@ -55,6 +55,7 @@ func GetGeneralConfig() config.Config {
 			MaxComputableRounds:                  1000,
 			MaxConsecutiveRoundsOfRatingDecrease: 2000,
 			SyncProcessTimeInMillis:              6000,
+			SyncProcessTimeSupernovaInMillis:     3000,
 			SetGuardianEpochsDelay:               20,
 			StatusPollingIntervalSec:             10,
 			ChainParametersByEpoch: []config.ChainParametersByEpochConfig{

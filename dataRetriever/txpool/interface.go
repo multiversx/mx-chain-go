@@ -21,6 +21,7 @@ type txCache interface {
 	ForEachTransaction(function txcache.ForEachTransaction)
 	NumBytes() int
 	Diagnose(deep bool)
+	GetNumTrackedBlocks() uint64
 	GetTransactionsPoolForSender(sender string) []*txcache.WrappedTransaction
 	OnProposedBlock(blockHash []byte, blockBody *block.Body, blockHeader data.HeaderHandler, accountsProvider common.AccountNonceAndBalanceProvider, blockchainInfo common.BlockchainInfo) error
 	OnExecutedBlock(blockHeader data.HeaderHandler, rootHash []byte) error

@@ -153,6 +153,7 @@ func TestNewInterceptedRewardTransaction_TestGetters(t *testing.T) {
 
 	txHash := irt.Hasher().Compute(string(txBuff))
 	assert.Equal(t, txHash, irt.Hash())
+	assert.False(t, irt.ShouldAllowDuplicates())
 }
 
 func TestNewInterceptedRewardTransaction_NonceShouldBeZero(t *testing.T) {

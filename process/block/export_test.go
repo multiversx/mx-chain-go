@@ -722,6 +722,13 @@ func (bp *baseProcessor) CheckHeaderBodyCorrelationProposal(miniBlockHeaders []d
 	return bp.checkHeaderBodyCorrelationProposal(miniBlockHeaders, body)
 }
 
+// GetFinalMiniBlocksFromExecutionResults -
+func (bp *baseProcessor) GetFinalMiniBlocksFromExecutionResults(
+	header data.HeaderHandler,
+) (*block.Body, error) {
+	return bp.getFinalMiniBlocksFromExecutionResults(header)
+}
+
 // VerifyCrossShardMiniBlockDstMe -
 func (sp *shardProcessor) VerifyCrossShardMiniBlockDstMe(header data.ShardHeaderHandler) error {
 	return sp.verifyCrossShardMiniBlockDstMe(header)
@@ -750,7 +757,7 @@ func (sp *shardProcessor) CheckMetaHeadersValidityAndFinalityProposal(header dat
 
 // VerifyGasLimit -
 func (sp *shardProcessor) VerifyGasLimit(header data.ShardHeaderHandler) error {
-	return sp.verifyGasLimit(&block.Body{}, header)
+	return sp.verifyGasLimit(header)
 }
 
 // CheckEpochStartInfoAvailableIfNeeded -
@@ -776,4 +783,24 @@ func (sp *shardProcessor) DataPool() dataRetriever.PoolsHolder {
 // ShouldDisableOutgoingTxs -
 func ShouldDisableOutgoingTxs(enableEpochsHandler common.EnableEpochsHandler, enableRoundsHandler common.EnableRoundsHandler) bool {
 	return shouldDisableOutgoingTxs(enableEpochsHandler, enableRoundsHandler)
+}
+
+// ShouldEpochStartInfoBeAvailable -
+func (sp *shardProcessor) ShouldEpochStartInfoBeAvailable(header data.ShardHeaderHandler) bool {
+	return sp.shouldEpochStartInfoBeAvailable(header)
+}
+
+// CollectExecutionResults -
+func (sp *shardProcessor) CollectExecutionResults(headerHash []byte, header data.HeaderHandler, body *block.Body) (data.BaseExecutionResultHandler, error) {
+	return sp.collectExecutionResults(headerHash, header, body)
+}
+
+// GetCrossShardIncomingMiniBlocksFromBody -
+func (sp *shardProcessor) GetCrossShardIncomingMiniBlocksFromBody(body *block.Body) []*block.MiniBlock {
+	return sp.getCrossShardIncomingMiniBlocksFromBody(body)
+}
+
+// GetHaveTimeForProposal -
+func GetHaveTimeForProposal(startTime time.Time, maxDuration time.Duration) func() time.Duration {
+	return getHaveTimeForProposal(startTime, maxDuration)
 }

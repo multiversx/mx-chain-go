@@ -9,7 +9,6 @@ import (
 	"github.com/multiversx/mx-chain-core-go/core/check"
 	"github.com/multiversx/mx-chain-core-go/data"
 	"github.com/multiversx/mx-chain-core-go/data/block"
-	"github.com/multiversx/mx-chain-go/common/holders"
 	logger "github.com/multiversx/mx-chain-logger-go"
 
 	"github.com/multiversx/mx-chain-go/common"
@@ -82,7 +81,7 @@ func (sp *shardProcessor) CreateBlockProposal(
 
 	body := &block.Body{MiniBlocks: miniBlocks}
 
-	err = sp.verifyGasLimit(body, shardHdr)
+	err = sp.verifyGasLimit(shardHdr)
 	if err != nil {
 		return nil, nil, err
 	}
@@ -97,7 +96,12 @@ func (sp *shardProcessor) CreateBlockProposal(
 
 	sp.blockSizeThrottler.Add(shardHdr.GetRound(), uint32(len(marshalledBody)))
 
-	err = sp.onProposedBlock(body, shardHdr)
+	hash, err := sp.getHeaderHash(shardHdr)
+	if err != nil {
+		return nil, nil, err
+	}
+
+	err = sp.OnProposedBlock(body, shardHdr, hash)
 	if err != nil {
 		return nil, nil, err
 	}
@@ -211,10 +215,20 @@ func (sp *shardProcessor) VerifyBlockProposal(
 		return err
 	}
 
-	return sp.verifyGasLimit(body, header)
+	err = sp.verifyGasLimit(header)
+	if err != nil {
+		return err
+	}
+
+	hash, err := sp.getHeaderHash(header)
+	if err != nil {
+		return err
+	}
+
+	return sp.OnProposedBlock(body, header, hash)
 }
 
-func (sp *shardProcessor) verifyGasLimit(body *block.Body, header data.ShardHeaderHandler) error {
+func (sp *shardProcessor) verifyGasLimit(header data.ShardHeaderHandler) error {
 	incomingMiniBlocks, incomingTransactions, outgoingTransactionHashes, outgoingTransactions, err := sp.splitTransactionsForHeader(header)
 	if err != nil {
 		return err
@@ -238,33 +252,7 @@ func (sp *shardProcessor) verifyGasLimit(body *block.Body, header data.ShardHead
 		return fmt.Errorf("%w, incoming mini blocks exceeded the limit", process.ErrInvalidMaxGasLimitPerMiniBlock)
 	}
 
-	// TODO: the verification needs a cutoff handler as well - e.g stop after the block including the execution results for
-	// the configured cutoff round/nonce/epoch
-	// errCutoff := sp.blockProcessingCutoffHandler.HandleProcessErrorCutoff(header)
-
-	return sp.onProposedBlock(body, header)
-}
-
-func (sp *shardProcessor) onProposedBlock(body *block.Body, header data.HeaderHandler) error {
-	// TODO: proper accounts db should be used and its roothash must be updated first through a new method
-	//  SetRootHashIfNeeded which should recreate the trie if needed
-	accountsProvider, err := state.NewAccountsEphemeralProvider(sp.accountsDB[state.UserAccountsState])
-	if err != nil {
-		return err
-	}
-
-	lastExecResHandler, err := common.GetLastBaseExecutionResultHandler(header)
-	if err != nil {
-		return err
-	}
-
-	hash, err := core.CalculateHash(sp.marshalizer, sp.hasher, header)
-	if err != nil {
-		return err
-	}
-
-	blockChainInfo := holders.NewBlockchainInfo(lastExecResHandler.GetHeaderHash(), header.GetPrevHash(), header.GetNonce())
-	return sp.dataPool.Transactions().OnProposedBlock(hash, body, header, accountsProvider, blockChainInfo)
+	return nil
 }
 
 func getHaveTimeForProposal(startTime time.Time, maxDuration time.Duration) func() time.Duration {

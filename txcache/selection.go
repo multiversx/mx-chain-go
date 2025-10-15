@@ -126,6 +126,8 @@ func selectTransactionsFromBunches(
 func detectSkippableSender(virtualSession *virtualSelectionSession, item *transactionsHeapItem, virtualRecord *virtualAccountRecord) bool {
 	nonce, err := virtualRecord.getInitialNonce()
 	if err != nil {
+		// Every virtual record is initialized with the session nonce, to avoid virtual records with no initial nonce.
+		// So this error should never appear.
 		log.Debug("detectSkippableSender", "err", err)
 		return true
 	}
@@ -146,6 +148,8 @@ func detectSkippableSender(virtualSession *virtualSelectionSession, item *transa
 func detectSkippableTransaction(virtualSession *virtualSelectionSession, item *transactionsHeapItem, virtualRecord *virtualAccountRecord) bool {
 	nonce, err := virtualRecord.getInitialNonce()
 	if err != nil {
+		// Every virtual record is initialized with the session nonce, to avoid virtual records with no initial nonce.
+		// So this error should never appear.
 		log.Debug("detectSkippableTransaction", "err", err)
 		return true
 	}
