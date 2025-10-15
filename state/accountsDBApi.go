@@ -190,6 +190,31 @@ func (accountsDB *accountsDBApi) RecreateTrie(options common.RootHashHolder) err
 	return nil
 }
 
+// RecreateTrieIfNeeded implements AccountsAdapterAPI.
+func (accountsDB *accountsDBApi) RecreateTrieIfNeeded(options common.RootHashHolder) error {
+	accountsDB.mutRecreatedTrieBlockInfo.Lock()
+	defer accountsDB.mutRecreatedTrieBlockInfo.Unlock()
+
+	if check.IfNil(options) {
+		return ErrNilRootHashHolder
+	}
+
+	newBlockInfo := holders.NewBlockInfo([]byte{}, 0, options.GetRootHash())
+	if newBlockInfo.Equal(accountsDB.blockInfo) {
+		return nil
+	}
+
+	err := accountsDB.innerAccountsAdapter.RecreateTrieIfNeeded(options)
+	if err != nil {
+		accountsDB.blockInfo = nil
+		return err
+	}
+
+	accountsDB.blockInfo = newBlockInfo
+
+	return nil
+}
+
 // PruneTrie is a not permitted operation in this implementation and thus, does nothing
 func (accountsDB *accountsDBApi) PruneTrie(_ []byte, _ TriePruningIdentifier, _ PruningHandler) {
 }

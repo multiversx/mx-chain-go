@@ -132,6 +132,11 @@ func (r *simulationAccountsDB) RecreateTrie(_ common.RootHashHolder) error {
 	return nil
 }
 
+// RecreateTrieIfNeeded won't do anything as write operations are disabled on this component
+func (r *simulationAccountsDB) RecreateTrieIfNeeded(_ common.RootHashHolder) error {
+	return nil
+}
+
 // PruneTrie won't do anything as write operations are disabled on this component
 func (r *simulationAccountsDB) PruneTrie(_ []byte, _ state.TriePruningIdentifier, _ state.PruningHandler) {
 }
