@@ -4,6 +4,7 @@ import (
 	"context"
 	"encoding/hex"
 
+	"github.com/multiversx/mx-chain-core-go/core"
 	"github.com/multiversx/mx-chain-core-go/core/check"
 	"github.com/multiversx/mx-chain-core-go/hashing"
 	"github.com/multiversx/mx-chain-core-go/marshal"
@@ -18,6 +19,11 @@ type dfsIterator struct {
 	db         common.TrieStorageInteractor
 	marshaller marshal.Marshalizer
 	hasher     hashing.Hasher
+}
+
+type leafValue struct {
+	value   []byte
+	version core.TrieNodeVersion
 }
 
 // NewIterator creates a new DFS iterator for the trie.
@@ -124,7 +130,8 @@ func (it *dfsIterator) GetLeaves(numLeaves int, maxSize uint64, leavesParser com
 				}
 
 				hexKey := hex.EncodeToString(keyValHolder.Key())
-				hexData := hex.EncodeToString(keyValHolder.Value())
+				//TODO - change with decoded value after testing
+				hexData := hex.EncodeToString(childNode.GetData())
 				retrievedLeaves[hexKey] = hexData
 				leavesSize += uint64(len(hexKey) + len(hexData))
 				continue
