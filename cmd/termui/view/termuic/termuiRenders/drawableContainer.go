@@ -4,7 +4,7 @@ import (
 	"github.com/gizak/termui/v3"
 )
 
-const topHeight = 22
+const topHeight = 24
 
 // DrawableContainer defines a container of drawable object with position and dimensions
 type DrawableContainer struct {

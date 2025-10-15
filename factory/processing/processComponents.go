@@ -222,8 +222,7 @@ func NewProcessComponentsFactory(args ProcessComponentsFactoryArgs) (*processCom
 	}
 
 	interceptedDataVerifierFactory := interceptorFactory.NewInterceptedDataVerifierFactory(interceptorFactory.InterceptedDataVerifierFactoryArgs{
-		CacheSpan:   time.Duration(args.Config.InterceptedDataVerifier.CacheSpanInSec) * time.Second,
-		CacheExpiry: time.Duration(args.Config.InterceptedDataVerifier.CacheExpiryInSec) * time.Second,
+		InterceptedDataVerifierConfig: args.Config.InterceptedDataVerifier,
 	})
 
 	return &processComponentsFactory{
@@ -1739,6 +1738,7 @@ func (pcf *processComponentsFactory) newShardInterceptorContainerFactory(
 		HardforkTrigger:                hardforkTrigger,
 		NodeOperationMode:              nodeOperationMode,
 		InterceptedDataVerifierFactory: pcf.interceptedDataVerifierFactory,
+		Config:                         pcf.config,
 	}
 
 	interceptorContainerFactory, err := interceptorscontainer.NewShardInterceptorsContainerFactory(shardInterceptorsContainerFactoryArgs)
@@ -1793,6 +1793,7 @@ func (pcf *processComponentsFactory) newMetaInterceptorContainerFactory(
 		HardforkTrigger:                hardforkTrigger,
 		NodeOperationMode:              nodeOperationMode,
 		InterceptedDataVerifierFactory: pcf.interceptedDataVerifierFactory,
+		Config:                         pcf.config,
 	}
 
 	interceptorContainerFactory, err := interceptorscontainer.NewMetaInterceptorsContainerFactory(metaInterceptorsContainerFactoryArgs)
@@ -1909,12 +1910,12 @@ func (pcf *processComponentsFactory) createExportFactoryHandler(
 		HeaderIntegrityVerifier:          pcf.bootstrapComponents.HeaderIntegrityVerifier(),
 		ValidityAttester:                 blockTracker,
 		RoundHandler:                     pcf.coreData.RoundHandler(),
-		InterceptorDebugConfig:           pcf.config.Debug.InterceptorResolver,
 		MaxHardCapForMissingNodes:        pcf.config.TrieSync.MaxHardCapForMissingNodes,
 		NumConcurrentTrieSyncers:         pcf.config.TrieSync.NumConcurrentTrieSyncers,
 		TrieSyncerVersion:                pcf.config.TrieSync.TrieSyncerVersion,
 		NodeOperationMode:                nodeOperationMode,
 		InterceptedDataVerifierFactory:   pcf.interceptedDataVerifierFactory,
+		Config:                           pcf.config,
 	}
 	return updateFactory.NewExportHandlerFactory(argsExporter)
 }

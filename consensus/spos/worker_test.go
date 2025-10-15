@@ -1689,6 +1689,7 @@ func TestWorker_ExecuteSignatureMessagesShouldNotExecuteWhenBlockIsNotFinished(t
 
 func TestWorker_ExecuteMessagesShouldExecute(t *testing.T) {
 	t.Parallel()
+
 	wrk := *initWorker(&statusHandlerMock.AppStatusHandlerStub{})
 	wrk.StartWorking()
 	blk := &block.Body{}
@@ -2394,4 +2395,31 @@ func TestWorker_ReceivedProof(t *testing.T) {
 		wrk.ReceivedProof(&block.HeaderProof{})
 		require.True(t, wasHandlerCalled)
 	})
+}
+
+func TestWorker_ConsensusMetrics(t *testing.T) {
+	t.Parallel()
+
+	workerArgs := createDefaultWorkerArgs(&statusHandlerMock.AppStatusHandlerStub{})
+	wrk, _ := spos.NewWorker(workerArgs)
+
+	metrics := wrk.ConsensusMetrics()
+	require.NotNil(t, metrics)
+}
+
+func TestWorker_NewWorkerNilConsensusMetrics(t *testing.T) {
+	t.Parallel()
+	called := 0
+	var typedNil core.AppStatusHandler = &statusHandlerMock.AppStatusHandlerStub{
+		IsInterfaceNilCalled: func() bool {
+			called++
+			return called > 1
+		},
+	}
+
+	workerArgs := createDefaultWorkerArgs(typedNil)
+	worker, err := spos.NewWorker(workerArgs)
+	require.Nil(t, worker)
+	require.Error(t, err) // should come from NewConsensusMetrics
+	require.Equal(t, spos.ErrNilAppStatusHandler, err)
 }
