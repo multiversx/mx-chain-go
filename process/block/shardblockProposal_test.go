@@ -510,7 +510,6 @@ func TestShardProcessor_CreateBlockProposal(t *testing.T) {
 				return []byte("hash")
 			},
 		}
-		headers := dataComponents.DataPool.Headers()
 		dataComponents.DataPool = &dataRetriever.PoolsHolderStub{
 			ProofsCalled: func() retriever.ProofsPool {
 				return &dataRetriever.ProofsPoolMock{
@@ -520,7 +519,15 @@ func TestShardProcessor_CreateBlockProposal(t *testing.T) {
 				}
 			},
 			HeadersCalled: func() retriever.HeadersPool {
-				return headers
+				return &pool.HeadersPoolStub{
+					GetHeaderByHashCalled: func(hash []byte) (data.HeaderHandler, error) {
+						return &block.HeaderV3{
+							LastExecutionResult: &block.ExecutionResultInfo{
+								ExecutionResult: &block.BaseExecutionResult{},
+							},
+						}, nil
+					},
+				}
 			},
 		}
 
@@ -1128,6 +1135,19 @@ func TestShardProcessor_VerifyBlockProposal(t *testing.T) {
 		t.Parallel()
 
 		coreComponents, dataComponents, bootstrapComponents, statusComponents := createComponentHolderMocks()
+		poolMock, ok := dataComponents.DataPool.(*dataRetriever.PoolsHolderStub)
+		require.True(t, ok)
+		poolMock.HeadersCalled = func() retriever.HeadersPool {
+			return &pool.HeadersPoolStub{
+				GetHeaderByHashCalled: func(hash []byte) (data.HeaderHandler, error) {
+					return &block.HeaderV3{
+						LastExecutionResult: &block.ExecutionResultInfo{
+							ExecutionResult: &block.BaseExecutionResult{},
+						},
+					}, nil
+				},
+			}
+		}
 		currentBlockHeader := &block.HeaderV3{
 			LastExecutionResult: &block.ExecutionResultInfo{
 				ExecutionResult: &block.BaseExecutionResult{},
@@ -1423,8 +1443,6 @@ func TestShardBlockProposal_CreateAndVerifyProposal(t *testing.T) {
 	blkc.SetCurrentBlockHeaderHash(currentHeaderHash)
 	err := blkc.SetCurrentBlockHeaderAndRootHash(currentHeader, []byte("currHdrRootHash"))
 	require.Nil(t, err)
-
-	headers := dataComponents.DataPool.Headers()
 	dataComponents.DataPool = &dataRetriever.PoolsHolderStub{
 		ProofsCalled: func() retriever.ProofsPool {
 			return &dataRetriever.ProofsPoolMock{
@@ -1434,7 +1452,15 @@ func TestShardBlockProposal_CreateAndVerifyProposal(t *testing.T) {
 			}
 		},
 		HeadersCalled: func() retriever.HeadersPool {
-			return headers
+			return &pool.HeadersPoolStub{
+				GetHeaderByHashCalled: func(hash []byte) (data.HeaderHandler, error) {
+					return &block.HeaderV3{
+						LastExecutionResult: &block.ExecutionResultInfo{
+							ExecutionResult: &block.BaseExecutionResult{},
+						},
+					}, nil
+				},
+			}
 		},
 	}
 	dataComponents.BlockChain = blkc
@@ -1549,7 +1575,11 @@ func TestShardBlockProposal_CreateAndVerifyProposal_WithTransactions(t *testing.
 			return lastCrossNotarizedMetaHdr, nil
 		}
 
-		return &block.HeaderV3{}, nil
+		return &block.HeaderV3{
+			LastExecutionResult: &block.ExecutionResultInfo{
+				ExecutionResult: &block.BaseExecutionResult{},
+			},
+		}, nil
 	}
 
 	headers.AddHeader(epochStartMetaHash, &block.MetaBlockV3{})
@@ -1651,6 +1681,9 @@ func TestShardBlockProposal_CreateAndVerifyProposal_WithTransactions(t *testing.
 		Nonce:           11,
 		PrevHash:        currentHeaderHash,
 		MetaBlockHashes: [][]byte{metaBlockHash1},
+		LastExecutionResult: &block.ExecutionResultInfo{
+			ExecutionResult: &block.BaseExecutionResult{},
+		},
 	}
 	headerProposed, bodyProposed, err := shardProcessor.CreateBlockProposal(header, haveTimeTrue)
 	require.Nil(t, err)

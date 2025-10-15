@@ -3382,7 +3382,7 @@ func TestBaseProcessor_computeOwnShardStuckIfNeeded(t *testing.T) {
 		})
 
 		err := baseProcessor.ComputeOwnShardStuckIfNeeded(header)
-		assert.Equal(t, process.ErrNilBaseExecutionResult, err)
+		assert.Equal(t, process.ErrNilLastExecutionResultHandler, err)
 	})
 
 	t.Run("header is metablock v3, last executed result is nil", func(t *testing.T) {
@@ -3397,7 +3397,7 @@ func TestBaseProcessor_computeOwnShardStuckIfNeeded(t *testing.T) {
 		})
 
 		err := baseProcessor.ComputeOwnShardStuckIfNeeded(header)
-		assert.Equal(t, process.ErrNilBaseExecutionResult, err)
+		assert.Equal(t, process.ErrNilLastExecutionResultHandler, err)
 	})
 
 	t.Run("valid shard header v3 with valid last execution result", func(t *testing.T) {
