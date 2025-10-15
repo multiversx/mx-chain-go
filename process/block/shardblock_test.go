@@ -233,6 +233,14 @@ func TestNewShardProcessor(t *testing.T) {
 			},
 			expectedErr: nil,
 		},
+		{
+			args: func() blproc.ArgShardProcessor {
+				args := CreateMockArgumentsMultiShard(coreComponents, dataComponents, bootstrapComponents, statusComponents)
+				args.AccountsProposal = nil
+				return args
+			},
+			expectedErr: process.ErrNilAccountsAdapter,
+		},
 	}
 
 	for _, test := range tests {
