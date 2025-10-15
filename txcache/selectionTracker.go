@@ -208,6 +208,7 @@ func (st *selectionTracker) validateBreadcrumbsOfTrackedBlocks(
 
 	for _, tb := range chainOfTrackedBlocks {
 		for address, breadcrumb := range tb.breadcrumbsByAddress {
+			// NOTE: the initial balance should never change during this validation, because we use an account provider which is not affected by the actual execution.
 			initialNonce, initialBalance, _, err := accountsProvider.GetAccountNonceAndBalance([]byte(address))
 			if err != nil {
 				log.Debug("selectionTracker.validateBreadcrumbsOfTrackedBlocks",
@@ -229,7 +230,6 @@ func (st *selectionTracker) validateBreadcrumbsOfTrackedBlocks(
 				return errDiscontinuousBreadcrumbs
 			}
 
-			// TODO re-brainstorm, validate with more integration tests
 			// use its balance to accumulate and validate (make sure is < than initialBalance from the session)
 			err = validator.validateBalance(address, initialBalance, breadcrumb)
 			if err != nil {
@@ -485,7 +485,8 @@ func (st *selectionTracker) GetBulkOfUntrackedTransactions(transactions []*Wrapp
 	return untrackedTransactions
 }
 
-// isTransactionTracked checks if a transaction is still in the tracked blocks of the SelectionTracker
+// isTransactionTracked checks if a transaction is still in the tracked blocks of the SelectionTracker.
+// However, in the case of forks, isTransactionTracked might return inaccurate results.
 func (st *selectionTracker) isTransactionTracked(transaction *WrappedTransaction) bool {
 	if transaction == nil || transaction.Tx == nil {
 		return false
