@@ -2448,7 +2448,7 @@ func TestSubroundEndRound_UpdateConsensusMetrics(t *testing.T) {
 			return now
 		},
 	}
-	roundHandlerMock := consensusMocks.RoundHandlerMock{
+	roundHandlerMock := testscommon.RoundHandlerMock{
 		TimeStampCalled: func() time.Time {
 			return now.Add(-500 * time.Nanosecond)
 		},

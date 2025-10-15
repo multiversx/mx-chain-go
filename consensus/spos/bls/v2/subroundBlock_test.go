@@ -1327,7 +1327,7 @@ func TestSubroundBlock_UpdateConsensusMetrics(t *testing.T) {
 		},
 	}
 	count := 0
-	roundHandlerMock := consensusMocks.RoundHandlerMock{
+	roundHandlerMock := testscommon.RoundHandlerMock{
 		TimeStampCalled: func() time.Time {
 			defer func() { count++ }()
 			if count == 0 {

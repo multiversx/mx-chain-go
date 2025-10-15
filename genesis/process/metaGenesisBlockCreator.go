@@ -15,9 +15,6 @@ import (
 	"github.com/multiversx/mx-chain-core-go/data/block"
 	"github.com/multiversx/mx-chain-core-go/data/transaction"
 	"github.com/multiversx/mx-chain-core-go/marshal"
-	vmcommon "github.com/multiversx/mx-chain-vm-common-go"
-	vmcommonBuiltInFunctions "github.com/multiversx/mx-chain-vm-common-go/builtInFunctions"
-	"github.com/multiversx/mx-chain-vm-common-go/parsers"
 
 	processBlock "github.com/multiversx/mx-chain-go/process/block"
 
