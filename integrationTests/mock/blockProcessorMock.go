@@ -34,8 +34,6 @@ type BlockProcessorMock struct {
 		proposedBody data.BodyHandler,
 		proposedHeader data.HeaderHandler,
 		proposedHash []byte,
-		lastCommittedHeader data.HeaderHandler,
-		lastCommittedHash []byte,
 	) error
 }
 
@@ -192,11 +190,9 @@ func (bpm *BlockProcessorMock) OnProposedBlock(
 	proposedBody data.BodyHandler,
 	proposedHeader data.HeaderHandler,
 	proposedHash []byte,
-	lastCommittedHeader data.HeaderHandler,
-	lastCommittedHash []byte,
 ) error {
 	if bpm.OnProposedBlockCalled != nil {
-		return bpm.OnProposedBlockCalled(proposedBody, proposedHeader, proposedHash, lastCommittedHeader, lastCommittedHash)
+		return bpm.OnProposedBlockCalled(proposedBody, proposedHeader, proposedHash)
 	}
 	return nil
 }

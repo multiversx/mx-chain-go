@@ -2351,17 +2351,24 @@ func TestShardProcessor_OnProposedBlock(t *testing.T) {
 		wrongBodyInstance := &wrongBody{}
 		header := getSimpleHeaderV3Mock()
 		proposedHash := []byte("proposedHash")
-		lastCommittedHeader := &block.HeaderV2{}
-		lastCommittedHash := []byte("lastCommittedHash")
 
-		err = sp.OnProposedBlock(wrongBodyInstance, header, proposedHash, lastCommittedHeader, lastCommittedHash)
+		err = sp.OnProposedBlock(wrongBodyInstance, header, proposedHash)
 		require.Equal(t, process.ErrWrongTypeAssertion, err)
 	})
 
-	t.Run("GetLastBaseExecutionResultHandler error should return error", func(t *testing.T) {
+	t.Run("GetHeaderByHash error should return error", func(t *testing.T) {
 		t.Parallel()
 
 		coreComponents, dataComponents, bootstrapComponents, statusComponents := createComponentHolderMocks()
+		dataPool, ok := dataComponents.DataPool.(*dataRetriever.PoolsHolderStub)
+		require.True(t, ok)
+		dataPool.HeadersCalled = func() retriever.HeadersPool {
+			return &pool.HeadersPoolStub{
+				GetHeaderByHashCalled: func(hash []byte) (data.HeaderHandler, error) {
+					return nil, expectedErr
+				},
+			}
+		}
 		arguments := CreateMockArguments(coreComponents, dataComponents, bootstrapComponents, statusComponents)
 		sp, err := blproc.NewShardProcessor(arguments)
 		require.Nil(t, err)
@@ -2369,14 +2376,33 @@ func TestShardProcessor_OnProposedBlock(t *testing.T) {
 		body := &block.Body{}
 		header := getSimpleHeaderV3Mock()
 		proposedHash := []byte("proposedHash")
-		lastCommittedHeader := &testscommon.HeaderHandlerStub{
-			GetLastExecutionResultHandlerCalled: func() data.LastExecutionResultHandler {
-				return nil
-			},
-		}
-		lastCommittedHash := []byte("lastCommittedHash")
 
-		err = sp.OnProposedBlock(body, header, proposedHash, lastCommittedHeader, lastCommittedHash)
+		err = sp.OnProposedBlock(body, header, proposedHash)
+		require.Equal(t, expectedErr, err)
+	})
+
+	t.Run("GetLastBaseExecutionResultHandler error should return error", func(t *testing.T) {
+		t.Parallel()
+
+		coreComponents, dataComponents, bootstrapComponents, statusComponents := createComponentHolderMocks()
+		dataPool, ok := dataComponents.DataPool.(*dataRetriever.PoolsHolderStub)
+		require.True(t, ok)
+		dataPool.HeadersCalled = func() retriever.HeadersPool {
+			return &pool.HeadersPoolStub{
+				GetHeaderByHashCalled: func(hash []byte) (data.HeaderHandler, error) {
+					return &block.HeaderV3{}, nil // nil last exec result
+				},
+			}
+		}
+		arguments := CreateMockArguments(coreComponents, dataComponents, bootstrapComponents, statusComponents)
+		sp, err := blproc.NewShardProcessor(arguments)
+		require.Nil(t, err)
+
+		body := &block.Body{}
+		header := getSimpleHeaderV3Mock()
+		proposedHash := []byte("proposedHash")
+
+		err = sp.OnProposedBlock(body, header, proposedHash)
 		require.Error(t, err)
 	})
 
@@ -2395,6 +2421,13 @@ func TestShardProcessor_OnProposedBlock(t *testing.T) {
 				},
 			}
 		}
+		dataPool.HeadersCalled = func() retriever.HeadersPool {
+			return &pool.HeadersPoolStub{
+				GetHeaderByHashCalled: func(hash []byte) (data.HeaderHandler, error) {
+					return getSimpleHeaderV3Mock(), nil
+				},
+			}
+		}
 		dataComponents.DataPool = dataPool
 		arguments := CreateMockArguments(coreComponents, dataComponents, bootstrapComponents, statusComponents)
 		sp, err := blproc.NewShardProcessor(arguments)
@@ -2403,10 +2436,8 @@ func TestShardProcessor_OnProposedBlock(t *testing.T) {
 		body := &block.Body{}
 		header := getSimpleHeaderV3Mock()
 		proposedHash := []byte("proposedHash")
-		lastCommittedHeader := getSimpleHeaderV3Mock()
-		lastCommittedHash := []byte("lastCommittedHash")
 
-		err = sp.OnProposedBlock(body, header, proposedHash, lastCommittedHeader, lastCommittedHash)
+		err = sp.OnProposedBlock(body, header, proposedHash)
 		require.NoError(t, err)
 		require.True(t, wasOnProposedBlockCalled)
 	})

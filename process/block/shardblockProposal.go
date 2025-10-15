@@ -96,14 +96,12 @@ func (sp *shardProcessor) CreateBlockProposal(
 
 	sp.blockSizeThrottler.Add(shardHdr.GetRound(), uint32(len(marshalledBody)))
 
-	currentHeader := sp.getCurrentHeader()
-	currentHeaderHash := sp.getCurrentHeaderHash()
 	hash, err := sp.getHeaderHash(shardHdr)
 	if err != nil {
 		return nil, nil, err
 	}
 
-	err = sp.OnProposedBlock(body, shardHdr, hash, currentHeader, currentHeaderHash)
+	err = sp.OnProposedBlock(body, shardHdr, hash)
 	if err != nil {
 		return nil, nil, err
 	}
@@ -222,14 +220,12 @@ func (sp *shardProcessor) VerifyBlockProposal(
 		return err
 	}
 
-	currentHeader := sp.getCurrentHeader()
-	currentHeaderHash := sp.getCurrentHeaderHash()
 	hash, err := sp.getHeaderHash(header)
 	if err != nil {
 		return err
 	}
 
-	return sp.OnProposedBlock(body, header, hash, currentHeader, currentHeaderHash)
+	return sp.OnProposedBlock(body, header, hash)
 }
 
 // OnProposedBlock calls the OnProposedBlock from transactions pool
@@ -237,10 +233,8 @@ func (sp *shardProcessor) OnProposedBlock(
 	proposedBody data.BodyHandler,
 	proposedHeader data.HeaderHandler,
 	proposedHash []byte,
-	lastCommittedHeader data.HeaderHandler,
-	lastCommittedHash []byte,
 ) error {
-	return sp.baseProcessor.OnProposedBlock(proposedBody, proposedHeader, proposedHash, lastCommittedHeader, lastCommittedHash)
+	return sp.baseProcessor.OnProposedBlock(proposedBody, proposedHeader, proposedHash)
 }
 
 func (sp *shardProcessor) verifyGasLimit(header data.ShardHeaderHandler) error {
@@ -268,24 +262,6 @@ func (sp *shardProcessor) verifyGasLimit(header data.ShardHeaderHandler) error {
 	}
 
 	return nil
-}
-
-func (sp *shardProcessor) getCurrentHeader() data.HeaderHandler {
-	currentHeader := sp.blockChain.GetCurrentBlockHeader()
-	if !check.IfNil(currentHeader) {
-		return currentHeader
-	}
-
-	return sp.blockChain.GetGenesisHeader()
-}
-
-func (sp *shardProcessor) getCurrentHeaderHash() []byte {
-	currentHeaderHash := sp.blockChain.GetCurrentBlockHeaderHash()
-	if len(currentHeaderHash) != 0 {
-		return currentHeaderHash
-	}
-
-	return sp.blockChain.GetGenesisHeaderHash()
 }
 
 func getHaveTimeForProposal(startTime time.Time, maxDuration time.Duration) func() time.Duration {

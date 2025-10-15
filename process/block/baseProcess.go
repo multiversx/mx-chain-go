@@ -2320,8 +2320,6 @@ func (bp *baseProcessor) OnProposedBlock(
 	proposedBody data.BodyHandler,
 	proposedHeader data.HeaderHandler,
 	proposedHash []byte,
-	lastCommittedHeader data.HeaderHandler,
-	lastCommittedHash []byte,
 ) error {
 	// this should be removed once OnProposedBlock accepts bodyHandler
 	proposedBodyPtr, ok := proposedBody.(*block.Body)
@@ -2336,12 +2334,17 @@ func (bp *baseProcessor) OnProposedBlock(
 		return err
 	}
 
+	lastCommittedHeader, err := bp.dataPool.Headers().GetHeaderByHash(proposedHeader.GetPrevHash())
+	if err != nil {
+		return err
+	}
+
 	lastExecResHandler, err := common.GetLastBaseExecutionResultHandler(lastCommittedHeader)
 	if err != nil {
 		return err
 	}
 
-	blockChainInfo := holders.NewBlockchainInfo(lastExecResHandler.GetHeaderHash(), lastCommittedHash, lastCommittedHeader.GetNonce())
+	blockChainInfo := holders.NewBlockchainInfo(lastExecResHandler.GetHeaderHash(), proposedHeader.GetPrevHash(), lastCommittedHeader.GetNonce()+1)
 	return bp.dataPool.Transactions().OnProposedBlock(proposedHash, proposedBodyPtr, proposedHeader, accountsProvider, blockChainInfo)
 }
 

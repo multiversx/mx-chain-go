@@ -303,8 +303,6 @@ type BlockProcessor interface {
 		proposedBody data.BodyHandler,
 		proposedHeader data.HeaderHandler,
 		proposedHash []byte,
-		lastCommittedHeader data.HeaderHandler,
-		lastCommittedHash []byte,
 	) error
 	Close() error
 	IsInterfaceNil() bool

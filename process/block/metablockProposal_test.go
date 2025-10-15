@@ -35,6 +35,6 @@ func TestMetaProcessor_OnProposedBlock(t *testing.T) {
 	mp, err := blproc.NewMetaProcessor(arguments)
 	require.Nil(t, err)
 
-	err = mp.OnProposedBlock(nil, nil, nil, nil, nil)
+	err = mp.OnProposedBlock(nil, nil, nil)
 	require.NoError(t, err)
 }

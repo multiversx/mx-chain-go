@@ -34,8 +34,6 @@ type BlockProcessorStub struct {
 		proposedBody data.BodyHandler,
 		proposedHeader data.HeaderHandler,
 		proposedHash []byte,
-		lastCommittedHeader data.HeaderHandler,
-		lastCommittedHash []byte,
 	) error
 }
 
@@ -196,11 +194,9 @@ func (bps *BlockProcessorStub) OnProposedBlock(
 	proposedBody data.BodyHandler,
 	proposedHeader data.HeaderHandler,
 	proposedHash []byte,
-	lastCommittedHeader data.HeaderHandler,
-	lastCommittedHash []byte,
 ) error {
 	if bps.OnProposedBlockCalled != nil {
-		return bps.OnProposedBlockCalled(proposedBody, proposedHeader, proposedHash, lastCommittedHeader, lastCommittedHash)
+		return bps.OnProposedBlockCalled(proposedBody, proposedHeader, proposedHash)
 	}
 	return nil
 }

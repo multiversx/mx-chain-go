@@ -950,7 +950,12 @@ func (boot *baseBootstrap) prepareForSyncIfNeeded(syncingNonce uint64) error {
 
 	currentHeader := boot.getCurrentBlock()
 	currentHeaderHash := boot.getCurrentBlockHash()
-	lastExecResultsHandler, err := common.GetLastBaseExecutionResultHandler(currentHeader)
+	lastExecResults, err := process.GetPrevBlockLastExecutionResult(boot.chainHandler)
+	if err != nil {
+		return err
+	}
+
+	lastExecResultsHandler, err := common.ExtractBaseExecutionResultHandler(lastExecResults)
 	if err != nil {
 		return err
 	}
@@ -979,6 +984,15 @@ func (boot *baseBootstrap) prepareForSyncIfNeeded(syncingNonce uint64) error {
 			return errGetBody
 		}
 
+		errOnProposedBlock := boot.blockProcessor.OnProposedBlock(
+			currentBody,
+			currentHeader,
+			currentHeaderHash,
+		)
+		if errOnProposedBlock != nil {
+			return errOnProposedBlock
+		}
+
 		boot.preparedForSync = true
 
 		return boot.blocksQueue.AddOrReplace(queue.HeaderBodyPair{
@@ -989,9 +1003,7 @@ func (boot *baseBootstrap) prepareForSyncIfNeeded(syncingNonce uint64) error {
 
 	// if there are multiple headers in between the syncing header and the last one executed,
 	// add them into the queue and pool
-	lastCommittedHeader := currentHeader
-	lastCommittedHash := currentHeaderHash
-	for i := lastExecutedNonce; i < syncingNonce; i++ {
+	for i := lastExecutedNonce + 1; i < syncingNonce; i++ {
 		hdr, hdrHash, errGetHdr := boot.getHeaderFromPoolWithNonce(i)
 		if errGetHdr != nil {
 			return errGetHdr
@@ -1006,8 +1018,6 @@ func (boot *baseBootstrap) prepareForSyncIfNeeded(syncingNonce uint64) error {
 			body,
 			hdr,
 			hdrHash,
-			lastCommittedHeader,
-			lastCommittedHash,
 		)
 		if errOnProposedBlock != nil {
 			return errOnProposedBlock
@@ -1020,9 +1030,6 @@ func (boot *baseBootstrap) prepareForSyncIfNeeded(syncingNonce uint64) error {
 		if errAdd != nil {
 			return errAdd
 		}
-
-		lastCommittedHeader = hdr
-		lastCommittedHash = hdrHash
 	}
 
 	boot.preparedForSync = true

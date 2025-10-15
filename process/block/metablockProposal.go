@@ -20,8 +20,6 @@ func (mp *metaProcessor) OnProposedBlock(
 	_ data.BodyHandler,
 	_ data.HeaderHandler,
 	_ []byte,
-	_ data.HeaderHandler,
-	_ []byte,
 ) error {
 	return nil
 }
