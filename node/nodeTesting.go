@@ -147,23 +147,23 @@ func (n *Node) GenerateAndSendDuplicatedBulkTransactions(
 	whiteList func([]*transaction.Transaction),
 	chainID []byte,
 	minTxVersion uint32,
-) error {
+) (numMessages int, err error) {
 	if sk == nil {
-		return ErrNilPrivateKey
+		return 0, ErrNilPrivateKey
 	}
 
 	if atomic.LoadInt32(&currentSendingGoRoutines) >= maxGoRoutinesSendMessage {
-		return ErrSystemBusyGeneratingTransactions
+		return 0, ErrSystemBusyGeneratingTransactions
 	}
 
-	err := n.generateBulkTransactionsChecks(numOfTxs)
+	err = n.generateBulkTransactionsChecks(numOfTxs)
 	if err != nil {
-		return err
+		return 0, err
 	}
 
 	newNonce, senderAddressBytes, recvAddressBytes, senderShardId, err := n.generateBulkTransactionsPrepareParams(receiverHex, sk)
 	if err != nil {
-		return err
+		return 0, err
 	}
 
 	wg := sync.WaitGroup{}
@@ -177,7 +177,7 @@ func (n *Node) GenerateAndSendDuplicatedBulkTransactions(
 
 	dataPacker, err := partitioning.NewSimpleDataPacker(n.coreComponents.InternalMarshalizer())
 	if err != nil {
-		return err
+		return 0, err
 	}
 
 	txs := make([]*transaction.Transaction, 0)
@@ -215,11 +215,11 @@ func (n *Node) GenerateAndSendDuplicatedBulkTransactions(
 	wg.Wait()
 
 	if errFound != nil {
-		return errFound
+		return 0, errFound
 	}
 
 	if len(txsBuff) != int(numOfTxs) {
-		return fmt.Errorf("generated only %d from required %d transactions", len(txsBuff), numOfTxs)
+		return 0, fmt.Errorf("generated only %d from required %d transactions", len(txsBuff), numOfTxs)
 	}
 
 	if whiteList != nil {
@@ -231,7 +231,7 @@ func (n *Node) GenerateAndSendDuplicatedBulkTransactions(
 
 	packets, err := dataPacker.PackDataInChunks(txsBuff, common.MaxBulkTransactionSize)
 	if err != nil {
-		return err
+		return 0, err
 	}
 
 	atomic.AddInt32(&currentSendingGoRoutines, int32(len(packets)))
@@ -247,7 +247,7 @@ func (n *Node) GenerateAndSendDuplicatedBulkTransactions(
 		atomic.AddInt32(&currentSendingGoRoutines, -1)
 	}
 
-	return nil
+	return len(packets), nil
 }
 
 func (n *Node) generateBulkTransactionsChecks(numOfTxs uint64) error {
