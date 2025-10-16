@@ -690,11 +690,6 @@ func DisplayHeader(
 	return displayHeader(headerHandler, headerProof)
 }
 
-// GetLastBaseExecutionResultHandler -
-func GetLastBaseExecutionResultHandler(header data.HeaderHandler) (data.BaseExecutionResultHandler, error) {
-	return getLastBaseExecutionResultHandler(header)
-}
-
 // CreateBaseProcessorWithMockedTracker -
 func CreateBaseProcessorWithMockedTracker(tracker process.BlockTracker) *baseProcessor {
 	return &baseProcessor{
@@ -725,6 +720,13 @@ func (bp *baseProcessor) SetMiniBlockSelectionSession(session MiniBlocksSelectio
 // CheckHeaderBodyCorrelationProposal -
 func (bp *baseProcessor) CheckHeaderBodyCorrelationProposal(miniBlockHeaders []data.MiniBlockHeaderHandler, body *block.Body) error {
 	return bp.checkHeaderBodyCorrelationProposal(miniBlockHeaders, body)
+}
+
+// GetFinalMiniBlocksFromExecutionResults -
+func (bp *baseProcessor) GetFinalMiniBlocksFromExecutionResults(
+	header data.HeaderHandler,
+) (*block.Body, error) {
+	return bp.getFinalMiniBlocksFromExecutionResults(header)
 }
 
 // VerifyCrossShardMiniBlockDstMe -

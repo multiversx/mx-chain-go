@@ -24,14 +24,14 @@ type blocksQueue struct {
 }
 
 // NewBlocksQueue creates and returns a new instance of blocksQueue
-func NewBlocksQueue() (*blocksQueue, error) {
+func NewBlocksQueue() *blocksQueue {
 	mutex := &sync.Mutex{}
 
 	return &blocksQueue{
 		mutex:           mutex,
 		headerBodyPairs: make([]HeaderBodyPair, 0),
 		notifyCh:        make(chan struct{}, 1), // buffered so send won't block if not read yet
-	}, nil
+	}
 }
 
 // AddOrReplace appends a HeaderBodyPair to the end of the queue,

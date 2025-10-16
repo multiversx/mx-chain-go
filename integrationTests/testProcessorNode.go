@@ -31,6 +31,7 @@ import (
 	ed25519SingleSig "github.com/multiversx/mx-chain-crypto-go/signing/ed25519/singlesig"
 	"github.com/multiversx/mx-chain-crypto-go/signing/mcl"
 	mclsig "github.com/multiversx/mx-chain-crypto-go/signing/mcl/singlesig"
+	"github.com/multiversx/mx-chain-go/process/asyncExecution/queue"
 	vmcommon "github.com/multiversx/mx-chain-vm-common-go"
 	"github.com/multiversx/mx-chain-vm-common-go/parsers"
 	wasmConfig "github.com/multiversx/mx-chain-vm-go/config"
@@ -403,6 +404,7 @@ type TestProcessorNode struct {
 
 	ForkDetector             process.ForkDetector
 	BlockProcessor           process.BlockProcessor
+	BlocksQueue              process.BlocksQueue
 	BroadcastMessenger       consensus.BroadcastMessenger
 	MiniblocksProvider       process.MiniBlockProvider
 	Bootstrapper             TestBootstrapper
@@ -1380,8 +1382,9 @@ func (tpn *TestProcessorNode) initInterceptors(heartbeatPk string) {
 	cryptoComponents.TxKeyGen = tpn.OwnAccount.KeygenTxSign
 
 	interceptorDataVerifierArgs := interceptorsFactory.InterceptedDataVerifierFactoryArgs{
-		CacheSpan:   time.Second * 3,
-		CacheExpiry: time.Second * 10,
+		InterceptedDataVerifierConfig: config.InterceptedDataVerifierConfig{
+			EnableCaching: false,
+		},
 	}
 
 	if tpn.ShardCoordinator.SelfId() == core.MetachainShardId {
@@ -1435,6 +1438,12 @@ func (tpn *TestProcessorNode) initInterceptors(heartbeatPk string) {
 			HardforkTrigger:                tpn.HardforkTrigger,
 			NodeOperationMode:              tpn.NodeOperationMode,
 			InterceptedDataVerifierFactory: interceptorsFactory.NewInterceptedDataVerifierFactory(interceptorDataVerifierArgs),
+			Config: config.Config{
+				InterceptedDataVerifier: config.InterceptedDataVerifierConfig{
+					CacheSpanInSec:   1,
+					CacheExpiryInSec: 1,
+				},
+			},
 		}
 		interceptorContainerFactory, _ := interceptorscontainer.NewMetaInterceptorsContainerFactory(metaInterceptorContainerFactoryArgs)
 
@@ -1505,6 +1514,12 @@ func (tpn *TestProcessorNode) initInterceptors(heartbeatPk string) {
 			HardforkTrigger:                tpn.HardforkTrigger,
 			NodeOperationMode:              tpn.NodeOperationMode,
 			InterceptedDataVerifierFactory: interceptorsFactory.NewInterceptedDataVerifierFactory(interceptorDataVerifierArgs),
+			Config: config.Config{
+				InterceptedDataVerifier: config.InterceptedDataVerifierConfig{
+					CacheSpanInSec:   1,
+					CacheExpiryInSec: 1,
+				},
+			},
 		}
 
 		interceptorContainerFactory, _ := interceptorscontainer.NewShardInterceptorsContainerFactory(shardIntereptorContainerFactoryArgs)
@@ -2550,6 +2565,8 @@ func (tpn *TestProcessorNode) initBlockProcessor() {
 	if check.IfNil(tpn.EpochStartNotifier) {
 		tpn.EpochStartNotifier = notifier.NewEpochStartSubscriptionHandler()
 	}
+
+	tpn.BlocksQueue = queue.NewBlocksQueue()
 
 	if tpn.ShardCoordinator.SelfId() == core.MetachainShardId {
 		if check.IfNil(tpn.EpochStartTrigger) {
@@ -3783,10 +3800,11 @@ func GetDefaultCryptoComponents() *mock.CryptoComponentsStub {
 // GetDefaultStateComponents -
 func GetDefaultStateComponents() *testFactory.StateComponentsMock {
 	return &testFactory.StateComponentsMock{
-		PeersAcc:     &stateMock.AccountsStub{},
-		Accounts:     &stateMock.AccountsStub{},
-		AccountsRepo: &stateMock.AccountsRepositoryStub{},
-		Tries:        &trieMock.TriesHolderStub{},
+		PeersAcc:         &stateMock.AccountsStub{},
+		Accounts:         &stateMock.AccountsStub{},
+		AccountsProposal: &stateMock.AccountsStub{},
+		AccountsRepo:     &stateMock.AccountsRepositoryStub{},
+		Tries:            &trieMock.TriesHolderStub{},
 		StorageManagers: map[string]common.StorageManager{
 			"0":                                     &storageManager.StorageManagerStub{},
 			dataRetriever.UserAccountsUnit.String(): &storageManager.StorageManagerStub{},

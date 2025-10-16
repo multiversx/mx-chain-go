@@ -64,7 +64,7 @@ func (bdi *baseDataInterceptor) isMessageFromSelfToSelf(fromConnectedPeer core.P
 		fromConnectedPeer == bdi.currentPeerId
 }
 
-func (bdi *baseDataInterceptor) processInterceptedData(data process.InterceptedData, msg p2p.MessageP2P, fromConnectedPeer core.PeerID) {
+func (bdi *baseDataInterceptor) processInterceptedData(data process.InterceptedData, msg p2p.MessageP2P, fromConnectedPeer core.PeerID) bool {
 	bdi.processDebugInterceptedDataSuccess(data, msg, fromConnectedPeer)
 
 	err := bdi.processor.Validate(data, msg.Peer())
@@ -79,10 +79,10 @@ func (bdi *baseDataInterceptor) processInterceptedData(data process.InterceptedD
 		)
 		bdi.processDebugInterceptedData(data, err)
 
-		return
+		return false
 	}
 
-	err = bdi.processor.Save(data, msg.Peer(), bdi.topic)
+	savedData, err := bdi.processor.Save(data, msg.Peer(), bdi.topic)
 	if err != nil {
 		log.Trace("intercepted data can not be processed",
 			"hash", data.Hash(),
@@ -94,7 +94,11 @@ func (bdi *baseDataInterceptor) processInterceptedData(data process.InterceptedD
 		)
 		bdi.processDebugInterceptedData(data, err)
 
-		return
+		return savedData
+	}
+
+	if savedData {
+		bdi.interceptedDataVerifier.MarkVerified(data, msg.BroadcastMethod())
 	}
 
 	log.Trace("intercepted data is processed",
@@ -106,6 +110,8 @@ func (bdi *baseDataInterceptor) processInterceptedData(data process.InterceptedD
 	)
 
 	bdi.processDebugInterceptedData(data, err)
+
+	return savedData
 }
 
 func (bdi *baseDataInterceptor) processDebugInterceptedData(interceptedData process.InterceptedData, err error) {

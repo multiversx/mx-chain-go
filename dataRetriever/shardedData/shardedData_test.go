@@ -113,7 +113,7 @@ func TestShardedData_AddDataInParallel(t *testing.T) {
 
 	wg.Wait()
 
-	//checking
+	// checking
 	for i := 0; i < vals; i++ {
 		key := []byte(strconv.Itoa(i))
 		assert.True(t, sd.shardStore("1").cache.Has(key), fmt.Sprintf("for val %d", i))
@@ -272,10 +272,10 @@ func TestShardedData_RegisterAddedDataHandlerNotAddedShouldNotCall(t *testing.T)
 
 	sd, _ := NewShardedData("", defaultTestConfig)
 
-	//first add, no call
+	// first add, no call
 	sd.AddData([]byte("aaaa"), "bbbb", 4, "0")
 	sd.RegisterOnAdded(f)
-	//second add, should not call as the data was found
+	// second add, should not call as the data was found
 	sd.AddData([]byte("aaaa"), "bbbb", 4, "0")
 
 	select {
@@ -370,5 +370,8 @@ func TestShardedData_NotImplemented(t *testing.T) {
 	})
 
 	err = sd.OnExecutedBlock(nil)
+	require.Nil(t, err)
+
+	err = sd.OnProposedBlock(nil, nil, nil, nil, nil)
 	require.Nil(t, err)
 }

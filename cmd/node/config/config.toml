@@ -35,6 +35,9 @@
     # SyncProcessTimeInMillis is the value in milliseconds used when processing blocks while synchronizing blocks
     SyncProcessTimeInMillis = 12000
 
+    # SyncProcessTimeSupernovaInMillis is the value in milliseconds used when processing blocks while synchronizing blocks after Supernova
+    SyncProcessTimeSupernovaInMillis = 6000
+
     # SetGuardianEpochsDelay represents the delay in epochs between the execution time of the SetGuardian transaction and
     # the activation of the configured guardian.
     # Make sure that this is greater than the unbonding period!
@@ -1049,6 +1052,7 @@
     MaxRoundsOfInactivityAccepted = 3
 
 [InterceptedDataVerifier]
+    EnableCaching = true
     CacheSpanInSec = 30
     CacheExpiryInSec = 30
 
