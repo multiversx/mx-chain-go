@@ -817,16 +817,17 @@ func (e *epochStartBootstrap) requestIntermediateBlocksIfNeeded(
 
 	headerHashToSync := header.GetPrevHash()
 	currentNonce := baseHeaderNonce
-	for currentNonce >= lastExecutedNonce {
+	for currentNonce > lastExecutedNonce {
 		syncedHeader, err := e.syncOneHeader(headerHashToSync, shardID)
 		if err != nil {
 			return err
 		}
 
+		syncedHeaders[string(headerHashToSync)] = syncedHeader
+
 		headerHashToSync = syncedHeader.GetPrevHash()
 		currentNonce = syncedHeader.GetNonce()
 
-		syncedHeaders[string(headerHashToSync)] = syncedHeader
 	}
 
 	return nil
