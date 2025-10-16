@@ -403,3 +403,29 @@ func ExtractBaseExecutionResultHandler(lastExecResultsHandler data.LastExecution
 
 	return baseExecutionResultsHandler, nil
 }
+
+// GetMiniBlocksHeaderHandlersFromExecResult returns miniblock handlers based on execution result
+func GetMiniBlocksHeaderHandlersFromExecResult(
+	baseExecResult data.BaseExecutionResultHandler,
+	headerShard uint32,
+) ([]data.MiniBlockHeaderHandler, error) {
+	if check.IfNil(baseExecResult) {
+		return nil, ErrNilBaseExecutionResult
+	}
+
+	if headerShard == MetachainShardId {
+		metaExecResult, ok := baseExecResult.(data.MetaExecutionResultHandler)
+		if !ok {
+			return nil, ErrWrongTypeAssertion
+		}
+
+		return metaExecResult.GetMiniBlockHeadersHandlers(), nil
+	}
+
+	execResult, ok := baseExecResult.(data.ExecutionResultHandler)
+	if !ok {
+		return nil, ErrWrongTypeAssertion
+	}
+
+	return execResult.GetMiniBlockHeadersHandlers(), nil
+}

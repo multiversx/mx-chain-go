@@ -897,14 +897,16 @@ func getMiniBlockHeadersForDest(metaBlock data.MetaHeaderHandler, destId uint32)
 
 			miniBlockHeader, ok := val.(*block.MiniBlockHeader)
 			if !ok {
-				log.Warn("wrong time assertion for mini block header handler", "err", epochStart.ErrWrongTypeAssertion)
+				log.Warn("wrong type assertion for mini block header handler", "err", epochStart.ErrWrongTypeAssertion)
 				continue
 			}
 			hashDst[string(val.GetHash())] = *miniBlockHeader
 		}
 	}
 
-	for _, val := range metaBlock.GetMiniBlockHeaderHandlers() {
+	miniBlockHandlers := getMetaHeaderMiniBlockHandlersFromExecutionResults(metaBlock)
+
+	for _, val := range miniBlockHandlers {
 		isCrossShardDestMe := (val.GetReceiverShardID() == destId || val.GetReceiverShardID() == core.AllShardId) && val.GetSenderShardID() != destId
 		if !isCrossShardDestMe {
 			continue
@@ -919,6 +921,29 @@ func getMiniBlockHeadersForDest(metaBlock data.MetaHeaderHandler, destId uint32)
 	}
 
 	return hashDst
+}
+
+func getMetaHeaderMiniBlockHandlersFromExecutionResults(
+	metaBlock data.MetaHeaderHandler,
+) []data.MiniBlockHeaderHandler {
+	miniBlockHeaderHandlers := metaBlock.GetMiniBlockHeaderHandlers()
+	if !metaBlock.IsHeaderV3() {
+		return miniBlockHeaderHandlers
+	}
+
+	lastExecResults, err := common.GetLastBaseExecutionResultHandler(metaBlock)
+	if err != nil {
+		log.Warn("failed to get last execution result from meta header v3", "err", err)
+		return miniBlockHeaderHandlers
+	}
+
+	execResultsMiniBlockHeaderHandlers, err := common.GetMiniBlocksHeaderHandlersFromExecResult(lastExecResults, core.MetachainShardId)
+	if err != nil {
+		log.Warn("failed to get mini block handler from execution results", "err", err)
+		return miniBlockHeaderHandlers
+	}
+
+	return execResultsMiniBlockHeaderHandlers
 }
 
 // IsInterfaceNil returns true if there is no value under the interface

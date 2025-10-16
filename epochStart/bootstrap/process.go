@@ -827,7 +827,6 @@ func (e *epochStartBootstrap) requestIntermediateBlocksIfNeeded(
 
 		headerHashToSync = syncedHeader.GetPrevHash()
 		currentNonce = syncedHeader.GetNonce()
-
 	}
 
 	return nil
@@ -1027,7 +1026,7 @@ func (e *epochStartBootstrap) requestAndProcessForMeta(peerMiniBlocks []*block.M
 	}
 	log.Debug("start in epoch bootstrap: syncUserAccountsState")
 
-	rootHashToSync := e.getRootHashToSync(e.epochStartMeta)
+	rootHashToSync := e.getRootHashToSync(e.epochStartMeta, e.epochStartMeta.GetRootHash())
 	err = e.syncUserAccountsState(rootHashToSync)
 	if err != nil {
 		return err
@@ -1343,7 +1342,7 @@ func (e *epochStartBootstrap) updateDataForScheduled(
 	rootHashToSync := e.dataSyncerWithScheduled.GetRootHashToSync(shardNotarizedHeader)
 
 	if shardNotarizedHeader.IsHeaderV3() {
-		rootHashToSync = e.getRootHashToSync(shardNotarizedHeader)
+		rootHashToSync = e.getRootHashToSync(shardNotarizedHeader, rootHashToSync)
 	}
 
 	res.rootHashToSync = rootHashToSync
@@ -1353,9 +1352,8 @@ func (e *epochStartBootstrap) updateDataForScheduled(
 
 func (e *epochStartBootstrap) getRootHashToSync(
 	header data.HeaderHandler,
+	rootHashToSync []byte,
 ) []byte {
-	rootHashToSync := header.GetRootHash()
-
 	if !header.IsHeaderV3() {
 		return rootHashToSync
 	}
