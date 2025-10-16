@@ -67,7 +67,7 @@ func (st *selectionTracker) OnProposedBlock(
 	if !bytes.Equal(st.latestRootHash, accountsRootHash) {
 		// TODO when the right information will be passed on the OnExecutedBlock flow, the error must be returned here.
 		log.Error("selectionTracker.OnProposedBlock",
-			"err", errDifferentRootHashes,
+			"err", errRootHashMismatch,
 			"latestRootHash", st.latestRootHash,
 			"accountsRootHash", accountsRootHash,
 		)
@@ -81,7 +81,7 @@ func (st *selectionTracker) OnProposedBlock(
 	if !bytes.Equal(st.latestRootHash, rootHash) {
 		// TODO when the right information will be passed on the OnExecutedBlock flow, the error must be returned here.
 		log.Error("selectionTracker.OnProposedBlock",
-			"err", errDifferentRootHashes,
+			"err", errRootHashMismatch,
 			"latestRootHash", st.latestRootHash,
 			"block rootHash", rootHash,
 		)
@@ -401,7 +401,7 @@ func (st *selectionTracker) deriveVirtualSelectionSession(
 	if !bytes.Equal(st.latestRootHash, rootHash) {
 		// TODO when the right information will be passed on the OnExecutedBlock flow, the error must be returned here.
 		log.Error("selectionTracker.deriveVirtualSelectionSession",
-			"err", errDifferentRootHashes,
+			"err", errRootHashMismatch,
 			"latestRootHash", st.latestRootHash,
 			"session rootHash", rootHash,
 		)
