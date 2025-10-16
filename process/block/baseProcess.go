@@ -1499,19 +1499,34 @@ func (bp *baseProcessor) getNoncesToFinal(headerHandler data.HeaderHandler) uint
 	}
 
 	noncesToFinal := uint64(0)
-	finalBlockNonce := bp.forkDetector.GetHighestFinalBlockNonce()
-
-	// TODO: refactor this
-	finalHeaderHandler, err := bp.dataPool.Headers().GetHeaderByHash(bp.forkDetector.GetHighestFinalBlockHash())
-	if err == nil && finalHeaderHandler.IsHeaderV3() {
-		finalBlockNonce = common.GetLastExecutionResultNonce(finalHeaderHandler)
-	}
-
+	finalBlockNonce := bp.getFinalBlockNonce(headerHandler)
 	if currentBlockNonce > finalBlockNonce {
 		noncesToFinal = currentBlockNonce - finalBlockNonce
 	}
 
 	return noncesToFinal
+}
+
+func (bp *baseProcessor) getFinalBlockNonce(
+	headerHandler data.HeaderHandler,
+) uint64 {
+	finalBlockNonce := bp.forkDetector.GetHighestFinalBlockNonce()
+	if !headerHandler.IsHeaderV3() {
+		return finalBlockNonce
+	}
+
+	finalHeaderHandler, err := bp.dataPool.Headers().GetHeaderByHash(bp.forkDetector.GetHighestFinalBlockHash())
+	if err != nil {
+		return finalBlockNonce
+	}
+
+	if !finalHeaderHandler.IsHeaderV3() {
+		return finalHeaderHandler.GetNonce()
+	}
+
+	finalBlockNonce = common.GetLastExecutionResultNonce(finalHeaderHandler)
+
+	return finalBlockNonce
 }
 
 // DecodeBlockBody method decodes block body from a given byte array
