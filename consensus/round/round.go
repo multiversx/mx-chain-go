@@ -214,7 +214,12 @@ func (rnd *round) RevertOneRound() {
 
 // GetTimeStampForRound returns unix milliseconds timestamp for the specified round
 func (rnd *round) GetTimeStampForRound(round uint64) uint64 {
-	roundTimeStampMs := rnd.genesisTimeStamp.Add(time.Duration(round) * rnd.timeDuration).UnixMilli()
+	if int64(round) <= rnd.supernovaStartRound {
+		roundTimeStampMs := rnd.genesisTimeStamp.Add(time.Duration(int64(round)-rnd.startRound) * rnd.timeDuration).UnixMilli()
+		return uint64(roundTimeStampMs)
+	}
+
+	roundTimeStampMs := rnd.supernovaGenesisTimeStamp.Add(time.Duration(int64(round)-rnd.supernovaStartRound) * rnd.supernovaTimeDuration).UnixMilli()
 	return uint64(roundTimeStampMs)
 }
 
