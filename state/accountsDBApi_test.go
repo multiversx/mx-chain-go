@@ -17,7 +17,7 @@ import (
 	"github.com/multiversx/mx-chain-go/testscommon"
 	mockState "github.com/multiversx/mx-chain-go/testscommon/state"
 	testTrie "github.com/multiversx/mx-chain-go/testscommon/trie"
-	trieMock "github.com/multiversx/mx-chain-go/testscommon/trie"
+
 	"github.com/multiversx/mx-chain-go/trie"
 	vmcommon "github.com/multiversx/mx-chain-vm-common-go"
 	"github.com/stretchr/testify/assert"
@@ -234,13 +234,13 @@ func TestAccountsDB_RecreateTrieIfNeeded(t *testing.T) {
 	recreatedCalled := false
 
 	// mock trie to check whether RecreateTrie was triggered
-	trieStub := &trieMock.TrieStub{
+	trieStub := &testTrie.TrieStub{
 		RootCalled: func() ([]byte, error) {
 			return currentHash, nil
 		},
 		RecreateCalled: func(_ common.RootHashHolder) (common.Trie, error) {
 			recreatedCalled = true
-			return &trieMock.TrieStub{}, nil
+			return &testTrie.TrieStub{}, nil
 		},
 	}
 

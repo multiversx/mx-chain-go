@@ -952,9 +952,9 @@ func (adb *AccountsDB) recreateTrieIfNeeded(options common.RootHashHolder) error
 		return nil
 	}
 
-	log.Trace("accountsDB.RecreateTrie", "root hash holder", options.String())
+	log.Trace("accountsDB.RecreateTrieIfNeeded", "root hash holder", options.String())
 	defer func() {
-		log.Trace("accountsDB.RecreateTrie ended")
+		log.Trace("accountsDB.RecreateTrieIfNeeded ended")
 	}()
 
 	return adb.recreateTrieProcessing(options)
