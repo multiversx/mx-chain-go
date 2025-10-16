@@ -23,8 +23,7 @@ func TestNode_ShouldDeduplicateMessages(t *testing.T) {
 	if testing.Short() {
 		t.Skip("not a short test")
 	}
-	logger.SetLogLevel("*:DEBUG")
-	defer logger.SetLogLevel("*:ERROR")
+	_ = logger.SetLogLevel("*:DEBUG")
 
 	// 2 shards: one sender, one receiver
 	numShards := 2
@@ -36,7 +35,7 @@ func TestNode_ShouldDeduplicateMessages(t *testing.T) {
 		TxSignPrivKeyShardId: 1,
 	})
 	node0Proc := NewCountingMessageProcessor(node0.MainMessenger, "node0")
-	node0.MainMessenger.RegisterMessageProcessor("transactions_0_1", "", node0Proc)
+	_ = node0.MainMessenger.RegisterMessageProcessor("transactions_0_1", "", node0Proc)
 
 	// messenger1 = shard0 sender (connected to node0)
 	messenger1 := integrationTests.NewTestProcessorNode(integrationTests.ArgTestProcessorNode{
@@ -46,25 +45,25 @@ func TestNode_ShouldDeduplicateMessages(t *testing.T) {
 	})
 
 	messenger1Proc := NewCountingMessageProcessor(messenger1.MainMessenger, "messenger1")
-	messenger1.MainMessenger.RegisterMessageProcessor("transactions_0_1", "", messenger1Proc)
+	_ = messenger1.MainMessenger.RegisterMessageProcessor("transactions_0_1", "", messenger1Proc)
 
 	// messenger2 = shard1 receiver (connected only to node0)
 	messenger2 := integrationTests.CreateMessengerWithNoDiscovery()
-	messenger2.CreateTopic("transactions_0_1", true)
+	_ = messenger2.CreateTopic("transactions_0_1", true)
 	messenger2Proc := NewCountingMessageProcessor(messenger2, "messenger2")
-	messenger2.RegisterMessageProcessor("transactions_0_1", "", messenger2Proc)
+	_ = messenger2.RegisterMessageProcessor("transactions_0_1", "", messenger2Proc)
 
 	nodes := []*integrationTests.TestProcessorNode{node0, messenger1}
 	integrationTests.CreateAccountForNodes(nodes)
 
-	messenger2.ConnectToPeer(string(node0.MainMessenger.Addresses()[0]))
-	messenger1.MainMessenger.ConnectToPeer(string(node0.MainMessenger.Addresses()[0]))
+	_ = messenger2.ConnectToPeer(string(node0.MainMessenger.Addresses()[0]))
+	_ = messenger1.MainMessenger.ConnectToPeer(string(node0.MainMessenger.Addresses()[0]))
 
 	integrationTests.DisplayAndStartNodes([]*integrationTests.TestProcessorNode{node0, messenger1})
 
 	defer func() {
 		for _, n := range nodes {
-			logger.SetLogLevel("*:ERROR")
+			_ = logger.SetLogLevel("*:ERROR")
 			n.Close()
 		}
 	}()
