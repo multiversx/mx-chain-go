@@ -156,7 +156,6 @@ func (cache *TxCache) SelectTransactions(
 }
 
 // GetVirtualNonceAndRootHash returns the nonce of the virtual record of an account and the corresponding rootHash.
-// For this method, the blockchainInfo should contain the hash of the last committed block.
 func (cache *TxCache) GetVirtualNonceAndRootHash(
 	address []byte,
 ) (uint64, []byte, error) {

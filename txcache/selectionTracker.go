@@ -45,7 +45,7 @@ func NewSelectionTracker(txCache txCacheForSelectionTracker, maxTrackedBlocks ui
 // blockBody contains the transactions of the new block (required for creating the breadcrumbs and validating the block).
 // blockHeader contains the nonce, the rootHash and the previousHash of the new proposed block.
 // accountsProvider is a wrapper over the current blockchain state.
-// blockchainInfo must contain the information about the last executed block. The other information is not used in this flow.
+// latestExecutedHash represents the hash of the last executed block.
 func (st *selectionTracker) OnProposedBlock(
 	blockHash []byte,
 	bodyHandler data.BodyHandler,
