@@ -51,7 +51,7 @@ func (st *selectionTracker) OnProposedBlock(
 	bodyHandler data.BodyHandler,
 	blockHeader data.HeaderHandler,
 	accountsProvider common.AccountNonceAndBalanceProvider,
-	blockchainInfo common.BlockchainInfo,
+	latestExecutedHash []byte,
 ) error {
 	blockBody, ok := bodyHandler.(*block.Body)
 	if !ok {
@@ -85,7 +85,7 @@ func (st *selectionTracker) OnProposedBlock(
 		return err
 	}
 
-	err = st.validateTrackedBlocksAndCompileBreadcrumbsNoLock(blockBody, tBlock, accountsProvider, blockchainInfo)
+	err = st.validateTrackedBlocksAndCompileBreadcrumbsNoLock(blockBody, tBlock, accountsProvider, latestExecutedHash)
 	if err != nil {
 		log.Debug("selectionTracker.OnProposedBlock: error validating the tracked blocks", "err", err)
 		return err
@@ -157,10 +157,10 @@ func (st *selectionTracker) validateTrackedBlocksAndCompileBreadcrumbsNoLock(
 	blockBody *block.Body,
 	blockToTrack *trackedBlock,
 	accountsProvider common.AccountNonceAndBalanceProvider,
-	blockchainInfo common.BlockchainInfo,
+	latestExecutedHash []byte,
 ) error {
 	blocksToBeValidated, err := st.getChainOfTrackedPendingBlocks(
-		blockchainInfo.GetLatestExecutedBlockHash(),
+		latestExecutedHash,
 		blockToTrack.prevHash,
 		blockToTrack.nonce,
 	)

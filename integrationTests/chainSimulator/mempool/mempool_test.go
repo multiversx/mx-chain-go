@@ -571,7 +571,7 @@ func Test_Selection_ShouldNotSelectSameTransactionsWithSameSender(t *testing.T) 
 		RootHash: []byte(fmt.Sprintf("rootHash%d", 0)),
 	},
 		accountsProvider,
-		defaultBlockchainInfo,
+		defaultLatestExecutedHash,
 	)
 	require.Nil(t, err)
 
@@ -704,7 +704,7 @@ func Test_Selection_ShouldNotSelectSameTransactionsWithDifferentSenders(t *testi
 			RootHash: []byte(fmt.Sprintf("rootHash%d", 0)),
 		},
 		accountsProvider,
-		defaultBlockchainInfo,
+		defaultLatestExecutedHash,
 	)
 	require.Nil(t, err)
 
@@ -774,7 +774,7 @@ func Test_Selection_ShouldNotSelectSameTransactionsWithManyTransactions(t *testi
 		RootHash: []byte(fmt.Sprintf("rootHash%d", 0)),
 	},
 		accountsProvider,
-		defaultBlockchainInfo,
+		defaultLatestExecutedHash,
 	)
 	require.Nil(t, err)
 
@@ -792,7 +792,7 @@ func Test_Selection_ShouldNotSelectSameTransactionsWithManyTransactions(t *testi
 			RootHash: []byte(fmt.Sprintf("rootHash%d", 1)),
 		},
 		accountsProvider,
-		defaultBlockchainInfo,
+		defaultLatestExecutedHash,
 	)
 	require.Nil(t, err)
 
@@ -859,7 +859,7 @@ func Test_Selection_ProposeEmptyBlocks(t *testing.T) {
 		RootHash: []byte(fmt.Sprintf("rootHash%d", 0)),
 	},
 		selectionSession,
-		defaultBlockchainInfo,
+		defaultLatestExecutedHash,
 	)
 	require.Nil(t, err)
 
@@ -871,7 +871,7 @@ func Test_Selection_ProposeEmptyBlocks(t *testing.T) {
 			RootHash: []byte(fmt.Sprintf("rootHash%d", 1)),
 		},
 		selectionSession,
-		defaultBlockchainInfo,
+		defaultLatestExecutedHash,
 	)
 	require.Nil(t, err)
 
@@ -882,7 +882,7 @@ func Test_Selection_ProposeEmptyBlocks(t *testing.T) {
 			RootHash: []byte(fmt.Sprintf("rootHash%d", 1)),
 		},
 		selectionSession,
-		defaultBlockchainInfo,
+		defaultLatestExecutedHash,
 	)
 	require.Nil(t, err)
 
@@ -900,7 +900,7 @@ func Test_Selection_ProposeEmptyBlocks(t *testing.T) {
 			RootHash: []byte(fmt.Sprintf("rootHash%d", 1)),
 		},
 		selectionSession,
-		defaultBlockchainInfo,
+		defaultLatestExecutedHash,
 	)
 	require.Nil(t, err)
 
@@ -968,7 +968,7 @@ func Test_Selection_ProposeBlocksWithSameNonceToTriggerForkScenarios(t *testing.
 			RootHash: []byte(fmt.Sprintf("rootHash%d", 0)),
 		},
 			selectionSession,
-			defaultBlockchainInfo,
+			defaultLatestExecutedHash,
 		)
 		require.Nil(t, err)
 
@@ -980,7 +980,7 @@ func Test_Selection_ProposeBlocksWithSameNonceToTriggerForkScenarios(t *testing.
 				RootHash: []byte(fmt.Sprintf("rootHash%d", 0)),
 			},
 			selectionSession,
-			defaultBlockchainInfo,
+			defaultLatestExecutedHash,
 		)
 		require.Nil(t, err)
 
@@ -997,7 +997,7 @@ func Test_Selection_ProposeBlocksWithSameNonceToTriggerForkScenarios(t *testing.
 			RootHash: []byte(fmt.Sprintf("rootHash%d", 0)),
 		},
 			selectionSession,
-			defaultBlockchainInfo,
+			defaultLatestExecutedHash,
 		)
 		require.Nil(t, err)
 
@@ -1015,7 +1015,7 @@ func Test_Selection_ProposeBlocksWithSameNonceToTriggerForkScenarios(t *testing.
 				RootHash: []byte(fmt.Sprintf("rootHash%d", 1)),
 			},
 			selectionSession,
-			defaultBlockchainInfo,
+			defaultLatestExecutedHash,
 		)
 		require.Nil(t, err)
 
@@ -1084,7 +1084,7 @@ func Test_Selection_ProposeBlocksWithSameNonceToTriggerForkScenarios(t *testing.
 			RootHash: []byte(fmt.Sprintf("rootHash%d", 0)),
 		},
 			selectionSession,
-			defaultBlockchainInfo,
+			defaultLatestExecutedHash,
 		)
 		require.Nil(t, err)
 
@@ -1101,7 +1101,7 @@ func Test_Selection_ProposeBlocksWithSameNonceToTriggerForkScenarios(t *testing.
 			RootHash: []byte(fmt.Sprintf("rootHash%d", 0)),
 		},
 			selectionSession,
-			defaultBlockchainInfo,
+			defaultLatestExecutedHash,
 		)
 		require.Nil(t, err)
 
@@ -1119,7 +1119,7 @@ func Test_Selection_ProposeBlocksWithSameNonceToTriggerForkScenarios(t *testing.
 				RootHash: []byte(fmt.Sprintf("rootHash%d", 1)),
 			},
 			selectionSession,
-			defaultBlockchainInfo,
+			defaultLatestExecutedHash,
 		)
 		require.Nil(t, err)
 
@@ -1135,7 +1135,7 @@ func Test_Selection_ProposeBlocksWithSameNonceToTriggerForkScenarios(t *testing.
 			RootHash: []byte(fmt.Sprintf("rootHash%d", 0)),
 		},
 			selectionSession,
-			defaultBlockchainInfo,
+			defaultLatestExecutedHash,
 		)
 		require.Nil(t, err)
 
@@ -1153,7 +1153,7 @@ func Test_Selection_ProposeBlocksWithSameNonceToTriggerForkScenarios(t *testing.
 				RootHash: []byte(fmt.Sprintf("rootHash%d", 1)),
 			},
 			selectionSession,
-			defaultBlockchainInfo,
+			defaultLatestExecutedHash,
 		)
 		require.Nil(t, err)
 
@@ -1171,7 +1171,7 @@ func Test_Selection_ProposeBlocksWithSameNonceToTriggerForkScenarios(t *testing.
 				RootHash: []byte(fmt.Sprintf("rootHash%d", 1)),
 			},
 			selectionSession,
-			defaultBlockchainInfo,
+			defaultLatestExecutedHash,
 		)
 		require.Nil(t, err)
 
@@ -1239,7 +1239,7 @@ func Test_Selection_ShouldNotSelectSameTransactionsWithManyTransactionsAndExecut
 			RootHash: []byte(fmt.Sprintf("rootHash%d", 0)),
 		},
 		accountsProvider,
-		defaultBlockchainInfo,
+		defaultLatestExecutedHash,
 	)
 	require.Nil(t, err)
 
@@ -1273,7 +1273,7 @@ func Test_Selection_ShouldNotSelectSameTransactionsWithManyTransactionsAndExecut
 			RootHash: []byte(fmt.Sprintf("rootHash%d", 1)),
 		},
 		accountsProvider,
-		holders.NewBlockchainInfo([]byte("blockHash1"), nil, 2),
+		[]byte("blockHash1"),
 	)
 	require.Nil(t, err)
 
@@ -1340,7 +1340,7 @@ func Test_Selection_ProposeEmptyBlocksAndExecutedBlockNotification(t *testing.T)
 			RootHash: []byte(fmt.Sprintf("rootHash%d", 0)),
 		},
 		selectionSession,
-		defaultBlockchainInfo,
+		defaultLatestExecutedHash,
 	)
 	require.Nil(t, err)
 
@@ -1352,7 +1352,7 @@ func Test_Selection_ProposeEmptyBlocksAndExecutedBlockNotification(t *testing.T)
 			RootHash: []byte(fmt.Sprintf("rootHash%d", 0)),
 		},
 		selectionSession,
-		defaultBlockchainInfo,
+		defaultLatestExecutedHash,
 	)
 	require.Nil(t, err)
 
@@ -1363,7 +1363,7 @@ func Test_Selection_ProposeEmptyBlocksAndExecutedBlockNotification(t *testing.T)
 			RootHash: []byte(fmt.Sprintf("rootHash%d", 0)),
 		},
 		selectionSession,
-		defaultBlockchainInfo,
+		defaultLatestExecutedHash,
 	)
 	require.Nil(t, err)
 
@@ -1397,7 +1397,7 @@ func Test_Selection_ProposeEmptyBlocksAndExecutedBlockNotification(t *testing.T)
 			RootHash: []byte(fmt.Sprintf("rootHash%d", 1)),
 		},
 		selectionSession,
-		holders.NewBlockchainInfo([]byte("blockHash1"), nil, 2),
+		[]byte("blockHash1"),
 	)
 	require.Nil(t, err)
 
@@ -1496,7 +1496,7 @@ func Test_Selection_MaxTrackedBlocksReached(t *testing.T) {
 		RootHash: []byte(fmt.Sprintf("rootHash%d", 0)),
 	},
 		selectionSession,
-		defaultBlockchainInfo,
+		defaultLatestExecutedHash,
 	)
 	require.Nil(t, err)
 
@@ -1514,7 +1514,7 @@ func Test_Selection_MaxTrackedBlocksReached(t *testing.T) {
 			RootHash: []byte(fmt.Sprintf("rootHash%d", 1)),
 		},
 		selectionSession,
-		defaultBlockchainInfo,
+		defaultLatestExecutedHash,
 	)
 	require.Nil(t, err)
 
@@ -1531,7 +1531,7 @@ func Test_Selection_MaxTrackedBlocksReached(t *testing.T) {
 			RootHash: []byte(fmt.Sprintf("rootHash%d", 1)),
 		},
 		selectionSession,
-		defaultBlockchainInfo,
+		defaultLatestExecutedHash,
 	)
 	require.Nil(t, err)
 
@@ -1543,7 +1543,7 @@ func Test_Selection_MaxTrackedBlocksReached(t *testing.T) {
 			RootHash: []byte(fmt.Sprintf("rootHash%d", 1)),
 		},
 		selectionSession,
-		defaultBlockchainInfo,
+		defaultLatestExecutedHash,
 	)
 	require.Nil(t, err)
 
@@ -1559,7 +1559,7 @@ func Test_Selection_MaxTrackedBlocksReached(t *testing.T) {
 			RootHash: []byte(fmt.Sprintf("rootHash%d", 1)),
 		},
 		selectionSession,
-		defaultBlockchainInfo,
+		defaultLatestExecutedHash,
 	)
 	require.ErrorContains(t, err, "bad block received while max tracked blocks is reached")
 
@@ -1577,7 +1577,7 @@ func Test_Selection_MaxTrackedBlocksReached(t *testing.T) {
 			},
 		},
 		selectionSession,
-		defaultBlockchainInfo,
+		defaultLatestExecutedHash,
 	)
 	require.Nil(t, err)
 }
@@ -1718,7 +1718,7 @@ func Test_SelectionWhenFeeExceedsBalanceWithMax3TxsSelected(t *testing.T) {
 			RootHash: []byte(fmt.Sprintf("rootHash%d", 0)),
 		},
 		accountsProvider,
-		defaultBlockchainInfo,
+		defaultLatestExecutedHash,
 	)
 	require.Nil(t, err)
 
@@ -1863,7 +1863,7 @@ func Test_SelectionWhenFeeExceedsBalanceWithMax2TxsSelected(t *testing.T) {
 			RootHash: []byte(fmt.Sprintf("rootHash%d", 0)),
 		},
 		accountsProvider,
-		defaultBlockchainInfo,
+		defaultLatestExecutedHash,
 	)
 	require.Nil(t, err)
 

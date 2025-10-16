@@ -17,7 +17,6 @@ import (
 )
 
 func proposeBlocks(t *testing.T, numOfBlocks int, selectionTracker *selectionTracker, accountsProvider common.AccountNonceAndBalanceProvider) {
-	blockchainInfo := holders.NewBlockchainInfo([]byte("hash0"), nil, 20)
 
 	for i := 1; i < numOfBlocks+1; i++ {
 		err := selectionTracker.OnProposedBlock(
@@ -29,7 +28,7 @@ func proposeBlocks(t *testing.T, numOfBlocks int, selectionTracker *selectionTra
 				RootHash: []byte("rootHash0"),
 			},
 			accountsProvider,
-			blockchainInfo,
+			defaultLatestExecutedHash,
 		)
 		require.Nil(t, err)
 	}
@@ -119,7 +118,7 @@ func TestSelectionTracker_OnProposedBlockShouldErr(t *testing.T) {
 		tracker, err := NewSelectionTracker(txCache, maxTrackedBlocks)
 		require.Nil(t, err)
 
-		err = tracker.OnProposedBlock([]byte("hash1"), nil, &block.Header{}, nil, defaultBlockchainInfo)
+		err = tracker.OnProposedBlock([]byte("hash1"), nil, &block.Header{}, nil, defaultLatestExecutedHash)
 
 		require.Equal(t, errWrongTypeAssertion, err)
 	})
@@ -166,7 +165,7 @@ func TestSelectionTracker_OnProposedBlockShouldErr(t *testing.T) {
 			Nonce:    uint64(0),
 			PrevHash: []byte(fmt.Sprintf("prevHash%d", 0)),
 			RootHash: []byte(fmt.Sprintf("rootHash%d", 0)),
-		}, accountsProvider, defaultBlockchainInfo)
+		}, accountsProvider, defaultLatestExecutedHash)
 
 		require.Equal(t, errNonceGap, err)
 	})
@@ -215,22 +214,14 @@ func TestSelectionTracker_OnProposedBlockShouldErr(t *testing.T) {
 			Nonce:    uint64(0),
 			PrevHash: []byte(fmt.Sprintf("prevHash%d", 0)),
 			RootHash: []byte(fmt.Sprintf("rootHash%d", 0)),
-		}, accountsProvider, holders.NewBlockchainInfo(
-			[]byte(fmt.Sprintf("prevHash%d", 0)),
-			nil,
-			1,
-		))
+		}, accountsProvider, defaultLatestExecutedHash)
 		require.Nil(t, err)
 
 		err = tracker.OnProposedBlock([]byte("hash2"), &blockBody2, &block.Header{
 			Nonce:    uint64(1),
 			PrevHash: []byte(fmt.Sprintf("hash%d", 1)),
 			RootHash: []byte(fmt.Sprintf("rootHash%d", 0)),
-		}, accountsProvider, holders.NewBlockchainInfo(
-			[]byte("prevHash0"),
-			[]byte("hash1"),
-			2,
-		))
+		}, accountsProvider, []byte("prevHash0"))
 		require.Equal(t, errDiscontinuousBreadcrumbs, err)
 	})
 
@@ -278,21 +269,14 @@ func TestSelectionTracker_OnProposedBlockShouldErr(t *testing.T) {
 			Nonce:    uint64(0),
 			PrevHash: []byte(fmt.Sprintf("prevHash%d", 0)),
 			RootHash: []byte(fmt.Sprintf("rootHash%d", 0)),
-		}, accountsProvider, holders.NewBlockchainInfo(
-			[]byte(fmt.Sprintf("prevHash%d", 0)),
-			nil,
-			2,
-		))
+		}, accountsProvider, []byte("prevHash0"))
 		require.Nil(t, err)
 
 		err = tracker.OnProposedBlock([]byte("hash2"), &blockBody2, &block.Header{
 			Nonce:    uint64(1),
 			PrevHash: []byte(fmt.Sprintf("hash%d", 1)),
 			RootHash: []byte(fmt.Sprintf("rootHash%d", 0)),
-		}, accountsProvider, holders.NewBlockchainInfo(
-			[]byte(fmt.Sprintf("prevHash%d", 0)),
-			nil,
-			2))
+		}, accountsProvider, []byte("prevHash0"))
 		require.Equal(t, errExceededBalance, err)
 	})
 
@@ -327,7 +311,7 @@ func TestSelectionTracker_OnProposedBlockShouldErr(t *testing.T) {
 			Nonce:    uint64(0),
 			PrevHash: []byte(fmt.Sprintf("prevHash%d", 0)),
 			RootHash: []byte(fmt.Sprintf("rootHash%d", 0)),
-		}, accountsProvider, holders.NewBlockchainInfo([]byte("prevHash0"), nil, 1))
+		}, accountsProvider, []byte("prevHash0"))
 		require.Equal(t, expectedErr, err)
 	})
 }
@@ -376,7 +360,7 @@ func TestSelectionTracker_OnProposedBlockWhenMaxTrackedBlocksIsReached(t *testin
 			RootHash: []byte("rootHash0"),
 		},
 		accountsProvider,
-		holders.NewBlockchainInfo([]byte("hash0"), nil, 20),
+		defaultLatestExecutedHash,
 	)
 	require.Equal(t, errBadBlockWhileMaxTrackedBlocksReached, err)
 	require.Equal(t, 3, len(tracker.blocks))
@@ -399,7 +383,7 @@ func TestSelectionTracker_OnProposedBlockWhenMaxTrackedBlocksIsReached(t *testin
 			},
 		},
 		accountsProvider,
-		holders.NewBlockchainInfo([]byte("hash0"), nil, 20),
+		defaultLatestExecutedHash,
 	)
 	require.Nil(t, err)
 	require.Equal(t, 4, len(tracker.blocks))
@@ -416,7 +400,7 @@ func TestSelectionTracker_OnProposedBlockWhenMaxTrackedBlocksIsReached(t *testin
 			},
 		},
 		accountsProvider,
-		holders.NewBlockchainInfo([]byte("hash0"), nil, 20),
+		defaultLatestExecutedHash,
 	)
 	require.Nil(t, err)
 	require.Equal(t, 5, len(tracker.blocks))
@@ -498,7 +482,7 @@ func Test_CompleteFlowShouldWork(t *testing.T) {
 			RootHash: []byte("rootHash0"),
 		},
 		accountsProvider,
-		holders.NewBlockchainInfo([]byte("hash0"), []byte("hash0"), 0),
+		defaultLatestExecutedHash,
 	)
 	require.Nil(t, err)
 
@@ -533,7 +517,7 @@ func Test_CompleteFlowShouldWork(t *testing.T) {
 			RootHash: []byte("rootHash0"),
 		},
 		accountsProvider,
-		holders.NewBlockchainInfo([]byte("hash0"), []byte("hash1"), 1),
+		defaultLatestExecutedHash,
 	)
 	require.Nil(t, err)
 
@@ -671,7 +655,7 @@ func TestSelectionTracker_OnExecutedBlockShouldDeleteAllBlocksBelowSpecificNonce
 			RootHash: nil,
 		},
 		accountsProvider,
-		defaultBlockchainInfo,
+		defaultLatestExecutedHash,
 	)
 	require.Nil(t, err)
 
@@ -684,7 +668,7 @@ func TestSelectionTracker_OnExecutedBlockShouldDeleteAllBlocksBelowSpecificNonce
 			RootHash: []byte(fmt.Sprintf("rootHash%d", 0)),
 		},
 		accountsProvider,
-		defaultBlockchainInfo,
+		defaultLatestExecutedHash,
 	)
 	require.Nil(t, err)
 
@@ -697,7 +681,7 @@ func TestSelectionTracker_OnExecutedBlockShouldDeleteAllBlocksBelowSpecificNonce
 			RootHash: []byte(fmt.Sprintf("rootHash%d", 0)),
 		},
 		accountsProvider,
-		defaultBlockchainInfo,
+		defaultLatestExecutedHash,
 	)
 	require.Nil(t, err)
 
@@ -710,7 +694,7 @@ func TestSelectionTracker_OnExecutedBlockShouldDeleteAllBlocksBelowSpecificNonce
 			RootHash: []byte(fmt.Sprintf("rootHash%d", 0)),
 		},
 		accountsProvider,
-		defaultBlockchainInfo,
+		defaultLatestExecutedHash,
 	)
 	require.Nil(t, err)
 
@@ -1206,7 +1190,7 @@ func Test_isTransactionTracked(t *testing.T) {
 			RootHash: []byte("rootHash0"),
 		},
 		accountsProvider,
-		holders.NewBlockchainInfo([]byte("hash0"), []byte("hash0"), 0),
+		defaultLatestExecutedHash,
 	)
 	require.Nil(t, err)
 
@@ -1228,7 +1212,7 @@ func Test_isTransactionTracked(t *testing.T) {
 			RootHash: []byte("rootHash0"),
 		},
 		accountsProvider,
-		holders.NewBlockchainInfo([]byte("hash0"), []byte("hash0"), 1),
+		defaultLatestExecutedHash,
 	)
 	require.Nil(t, err)
 
@@ -1249,7 +1233,7 @@ func Test_isTransactionTracked(t *testing.T) {
 			RootHash: []byte("rootHash0"),
 		},
 		accountsProvider,
-		holders.NewBlockchainInfo([]byte("hash0"), []byte("hash0"), 2),
+		defaultLatestExecutedHash,
 	)
 	require.Nil(t, err)
 
@@ -1349,7 +1333,7 @@ func TestSelectionTracker_GetBulkOfUntrackedTransactions(t *testing.T) {
 			RootHash: []byte("rootHash0"),
 		},
 		accountsProvider,
-		holders.NewBlockchainInfo([]byte("hash0"), []byte("hash0"), 0),
+		defaultLatestExecutedHash,
 	)
 	require.Nil(t, err)
 

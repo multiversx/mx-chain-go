@@ -296,14 +296,6 @@ type TxSelectionOptionsAPI interface {
 	GetRequestedFields() string
 }
 
-// BlockchainInfo holds the parameters from the blockchain used for SelectTransactions
-type BlockchainInfo interface {
-	GetLatestExecutedBlockHash() []byte
-	GetLatestCommittedBlockHash() []byte
-	GetCurrentNonce() uint64
-	IsInterfaceNil() bool
-}
-
 // GasScheduleNotifierAPI defines the behavior of the gas schedule notifier components that is used for api
 type GasScheduleNotifierAPI interface {
 	core.GasScheduleNotifier

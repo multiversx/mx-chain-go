@@ -133,7 +133,7 @@ func (cache *DisabledCache) Close() error {
 }
 
 // OnProposedBlock does nothing
-func (cache *DisabledCache) OnProposedBlock(_ []byte, _ data.BodyHandler, _ data.HeaderHandler, _ common.AccountNonceAndBalanceProvider, _ common.BlockchainInfo) error {
+func (cache *DisabledCache) OnProposedBlock(_ []byte, _ data.BodyHandler, _ data.HeaderHandler, _ common.AccountNonceAndBalanceProvider, _ []byte) error {
 	return nil
 }
 

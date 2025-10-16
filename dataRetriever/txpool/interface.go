@@ -22,7 +22,7 @@ type txCache interface {
 	Diagnose(deep bool)
 	GetTrackerDiagnosis() (uint64, uint64)
 	GetTransactionsPoolForSender(sender string) []*txcache.WrappedTransaction
-	OnProposedBlock(blockHash []byte, blockBody data.BodyHandler, blockHeader data.HeaderHandler, accountsProvider common.AccountNonceAndBalanceProvider, blockchainInfo common.BlockchainInfo) error
+	OnProposedBlock(blockHash []byte, blockBody data.BodyHandler, blockHeader data.HeaderHandler, accountsProvider common.AccountNonceAndBalanceProvider, latestExecutedHash []byte) error
 	OnExecutedBlock(blockHeader data.HeaderHandler) error
 	ResetTracker()
 	Cleanup(accountsProvider common.AccountNonceProvider, randomness uint64, maxNum int, cleanupLoopMaximumDurationMs time.Duration) uint64
