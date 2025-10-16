@@ -215,17 +215,65 @@ func TestAccountsDBApi_NotPermittedOperations(t *testing.T) {
 func TestAccountsDBApi_RecreateTrie(t *testing.T) {
 	t.Parallel()
 
-	wasCalled := false
-	accountsApi, _ := state.NewAccountsDBApi(&mockState.AccountsStub{
-		RecreateTrieCalled: func(rootHash common.RootHashHolder) error {
-			wasCalled = true
-			return nil
-		},
-	}, createBlockInfoProviderStub(dummyRootHash))
+	t.Run("should error if the roothash holder is nil", func(t *testing.T) {
+		accountsApi, _ := state.NewAccountsDBApi(&mockState.AccountsStub{
+			RecreateTrieCalled: func(options common.RootHashHolder) error {
+				assert.Fail(t, "should have not called accountsApi.RecreateTrie")
 
-	err := accountsApi.RecreateTrie(holders.NewDefaultRootHashesHolder([]byte{}))
-	assert.NoError(t, err)
-	assert.True(t, wasCalled)
+				return nil
+			},
+		}, createBlockInfoProviderStub(dummyRootHash))
+
+		err := accountsApi.RecreateTrie(nil)
+		assert.Equal(t, trie.ErrNilRootHashHolder, err)
+	})
+
+	t.Run("should error if the inner account RecreateTrie errors", func(t *testing.T) {
+		expectedErr := errors.New("root hash err")
+		trieStub := &testTrie.TrieStub{
+			GetStorageManagerCalled: func() common.StorageManager {
+				return &storageManager.StorageManagerStub{}
+			},
+		}
+		trieStub.RecreateCalled = func(_ common.RootHashHolder) (tree common.Trie, e error) {
+			return nil, expectedErr
+		}
+
+		adb := generateAccountDBFromTrie(trieStub)
+		accountsApi, _ := state.NewAccountsDBApi(adb, createBlockInfoProviderStub(dummyRootHash))
+
+		err := accountsApi.RecreateTrie(holders.NewDefaultRootHashesHolder([]byte("hash")))
+		assert.Equal(t, expectedErr, err)
+	})
+
+	t.Run("should early exit if block info is the same", func(t *testing.T) {
+		currentHash := []byte("hash1")
+		accountsApi, _ := state.NewAccountsDBApi(&mockState.AccountsStub{
+			RecreateTrieIfNeededCalled: func(options common.RootHashHolder) error {
+				assert.Fail(t, "should have not called accountsApi.RecreateTrieIfNeeded")
+
+				return nil
+			},
+		}, createBlockInfoProviderStub(dummyRootHash))
+		accountsApi.SetCurrentBlockInfo(holders.NewBlockInfo(nil, 0, currentHash))
+
+		err := accountsApi.RecreateTrie(holders.NewDefaultRootHashesHolder(currentHash))
+		assert.NoError(t, err)
+	})
+
+	t.Run("should work", func(t *testing.T) {
+		wasCalled := false
+		accountsApi, _ := state.NewAccountsDBApi(&mockState.AccountsStub{
+			RecreateTrieCalled: func(rootHash common.RootHashHolder) error {
+				wasCalled = true
+				return nil
+			},
+		}, createBlockInfoProviderStub(dummyRootHash))
+
+		err := accountsApi.RecreateTrie(holders.NewDefaultRootHashesHolder([]byte{}))
+		assert.NoError(t, err)
+		assert.True(t, wasCalled)
+	})
 }
 
 func TestAccountsDB_RecreateTrieIfNeeded(t *testing.T) {
