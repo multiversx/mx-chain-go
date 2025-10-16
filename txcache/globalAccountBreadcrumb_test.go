@@ -353,9 +353,6 @@ func Test_updateOnRemoveAccountBreadcrumbOnExecutedBlock(t *testing.T) {
 func Test_updateOnRemoveAccountBreadcrumbOnProposedBlock(t *testing.T) {
 	t.Parallel()
 
-	// Currently, this scenario does not exist in the SelectionTracker.
-	// At the moment, on the OnProposedBlock flow, we only replace the block with the same nonce, without deleting the ones with greater nonce.
-	// However, this will be changed in a future PR.
 	t.Run("should work in the following order: replacing and then deleting the ones with greater nonce", func(t *testing.T) {
 		t.Parallel()
 
