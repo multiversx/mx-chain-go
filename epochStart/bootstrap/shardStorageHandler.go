@@ -914,7 +914,7 @@ func getMiniBlockHeadersForDest(metaBlock data.MetaHeaderHandler, destId uint32)
 
 		miniBlockHeader, ok := val.(*block.MiniBlockHeader)
 		if !ok {
-			log.Warn("wrong time assertion for mini block header handler", "err", epochStart.ErrWrongTypeAssertion)
+			log.Warn("wrong type assertion for mini block header handler", "err", epochStart.ErrWrongTypeAssertion)
 			continue
 		}
 		hashDst[string(val.GetHash())] = *miniBlockHeader
@@ -931,15 +931,15 @@ func getMetaHeaderMiniBlockHandlersFromExecutionResults(
 		return miniBlockHeaderHandlers
 	}
 
-	lastExecResults, err := common.GetLastBaseExecutionResultHandler(metaBlock)
+	lastExecResult, err := common.GetLastBaseExecutionResultHandler(metaBlock)
 	if err != nil {
 		log.Warn("failed to get last execution result from meta header v3", "err", err)
 		return miniBlockHeaderHandlers
 	}
 
-	execResultsMiniBlockHeaderHandlers, err := common.GetMiniBlocksHeaderHandlersFromExecResult(lastExecResults, core.MetachainShardId)
+	execResultsMiniBlockHeaderHandlers, err := common.GetMiniBlocksHeaderHandlersFromExecResult(lastExecResult, core.MetachainShardId)
 	if err != nil {
-		log.Warn("failed to get mini block handler from execution results", "err", err)
+		log.Warn("failed to get mini block handlers from execution results", "err", err)
 		return miniBlockHeaderHandlers
 	}
 
