@@ -16,6 +16,7 @@ import (
 	"github.com/multiversx/mx-chain-go/state/parsers"
 	"github.com/multiversx/mx-chain-go/testscommon"
 	mockState "github.com/multiversx/mx-chain-go/testscommon/state"
+	"github.com/multiversx/mx-chain-go/testscommon/storageManager"
 	testTrie "github.com/multiversx/mx-chain-go/testscommon/trie"
 
 	"github.com/multiversx/mx-chain-go/trie"
@@ -229,35 +230,86 @@ func TestAccountsDBApi_RecreateTrie(t *testing.T) {
 
 func TestAccountsDB_RecreateTrieIfNeeded(t *testing.T) {
 	t.Parallel()
-	currentHash := []byte("hash1")
-	newHash := []byte("hash2")
-	recreatedCalled := false
 
-	// mock trie to check whether RecreateTrie was triggered
-	trieStub := &testTrie.TrieStub{
-		RootCalled: func() ([]byte, error) {
-			return currentHash, nil
-		},
-		RecreateCalled: func(_ common.RootHashHolder) (common.Trie, error) {
-			recreatedCalled = true
-			return &testTrie.TrieStub{}, nil
-		},
-	}
+	t.Run("should error if the roothash holder is nil", func(t *testing.T) {
+		accountsApi, _ := state.NewAccountsDBApi(&mockState.AccountsStub{
+			RecreateTrieIfNeededCalled: func(options common.RootHashHolder) error {
+				assert.Fail(t, "should have not called accountsApi.RecreateTrieIfNeeded")
 
-	adb := generateAccountDBFromTrie(trieStub)
-	accountsApi, _ := state.NewAccountsDBApi(adb, createBlockInfoProviderStub(dummyRootHash))
+				return nil
+			},
+		}, createBlockInfoProviderStub(dummyRootHash))
 
-	// same hash → no recreation
-	optsSame := holders.NewDefaultRootHashesHolder(currentHash)
-	err := accountsApi.RecreateTrieIfNeeded(optsSame)
-	assert.NoError(t, err)
-	assert.False(t, recreatedCalled, "should not recreate if same root hash")
+		err := accountsApi.RecreateTrieIfNeeded(nil)
+		assert.Equal(t, trie.ErrNilRootHashHolder, err)
+	})
 
-	// different hash → should recreate
-	optsDifferent := holders.NewDefaultRootHashesHolder(newHash)
-	err = accountsApi.RecreateTrieIfNeeded(optsDifferent)
-	assert.NoError(t, err)
-	assert.True(t, recreatedCalled, "should recreate if root hash differs")
+	t.Run("should error if the inner account RecreateTrieIfNeeded errors", func(t *testing.T) {
+		expectedErr := errors.New("root hash err")
+		trieStub := &testTrie.TrieStub{
+			RootCalled: func() ([]byte, error) {
+				return nil, expectedErr
+			},
+			GetStorageManagerCalled: func() common.StorageManager {
+				return &storageManager.StorageManagerStub{}
+			},
+		}
+		adb := generateAccountDBFromTrie(trieStub)
+		accountsApi, _ := state.NewAccountsDBApi(adb, createBlockInfoProviderStub(dummyRootHash))
+
+		err := accountsApi.RecreateTrieIfNeeded(holders.NewDefaultRootHashesHolder([]byte("hash")))
+		assert.Equal(t, expectedErr, err)
+	})
+
+	t.Run("should early exit if block info is the same", func(t *testing.T) {
+		currentHash := []byte("hash1")
+		trieStub := &testTrie.TrieStub{
+			RootCalled: func() ([]byte, error) {
+				return currentHash, nil
+			},
+			GetStorageManagerCalled: func() common.StorageManager {
+				return &storageManager.StorageManagerStub{}
+			},
+		}
+		adb := generateAccountDBFromTrie(trieStub)
+		accountsApi, _ := state.NewAccountsDBApi(adb, createBlockInfoProviderStub(dummyRootHash))
+		accountsApi.SetCurrentBlockInfo(holders.NewBlockInfo(nil, 0, currentHash))
+
+		err := accountsApi.RecreateTrieIfNeeded(holders.NewDefaultRootHashesHolder(currentHash))
+		assert.NoError(t, err)
+	})
+
+	t.Run("should work", func(t *testing.T) {
+		currentHash := []byte("hash1")
+		newHash := []byte("hash2")
+		recreatedCalled := false
+
+		// mock trie to check whether RecreateTrie was triggered
+		trieStub := &testTrie.TrieStub{
+			RootCalled: func() ([]byte, error) {
+				return currentHash, nil
+			},
+			RecreateCalled: func(_ common.RootHashHolder) (common.Trie, error) {
+				recreatedCalled = true
+				return &testTrie.TrieStub{}, nil
+			},
+		}
+
+		adb := generateAccountDBFromTrie(trieStub)
+		accountsApi, _ := state.NewAccountsDBApi(adb, createBlockInfoProviderStub(dummyRootHash))
+
+		// same hash → no recreation
+		optsSame := holders.NewDefaultRootHashesHolder(currentHash)
+		err := accountsApi.RecreateTrieIfNeeded(optsSame)
+		assert.NoError(t, err)
+		assert.False(t, recreatedCalled, "should not recreate if same root hash")
+
+		// different hash → should recreate
+		optsDifferent := holders.NewDefaultRootHashesHolder(newHash)
+		err = accountsApi.RecreateTrieIfNeeded(optsDifferent)
+		assert.NoError(t, err)
+		assert.True(t, recreatedCalled, "should recreate if root hash differs")
+	})
 }
 
 func TestAccountsDBApi_RecreateTrieFromEpoch(t *testing.T) {
