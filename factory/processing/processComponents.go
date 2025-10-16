@@ -16,6 +16,7 @@ import (
 	dataBlock "github.com/multiversx/mx-chain-core-go/data/block"
 	"github.com/multiversx/mx-chain-core-go/data/outport"
 	"github.com/multiversx/mx-chain-core-go/data/receipt"
+	"github.com/multiversx/mx-chain-go/process/asyncExecution/queue"
 	vmcommon "github.com/multiversx/mx-chain-vm-common-go"
 	vmcommonBuiltInFunctions "github.com/multiversx/mx-chain-vm-common-go/builtInFunctions"
 
@@ -97,6 +98,7 @@ type processComponents struct {
 	epochStartNotifier               factory.EpochStartNotifier
 	forkDetector                     process.ForkDetector
 	blockProcessor                   process.BlockProcessor
+	blocksQueue                      process.BlocksQueue
 	blackListHandler                 process.TimeCacher
 	bootStorer                       process.BootStorer
 	headerSigVerifier                process.InterceptedHeaderSigVerifier
@@ -222,8 +224,7 @@ func NewProcessComponentsFactory(args ProcessComponentsFactoryArgs) (*processCom
 	}
 
 	interceptedDataVerifierFactory := interceptorFactory.NewInterceptedDataVerifierFactory(interceptorFactory.InterceptedDataVerifierFactoryArgs{
-		CacheSpan:   time.Duration(args.Config.InterceptedDataVerifier.CacheSpanInSec) * time.Second,
-		CacheExpiry: time.Duration(args.Config.InterceptedDataVerifier.CacheExpiryInSec) * time.Second,
+		InterceptedDataVerifierConfig: args.Config.InterceptedDataVerifier,
 	})
 
 	return &processComponentsFactory{
@@ -742,6 +743,7 @@ func (pcf *processComponentsFactory) Create() (*processComponents, error) {
 		roundHandler:                     pcf.coreData.RoundHandler(),
 		forkDetector:                     forkDetector,
 		blockProcessor:                   blockProcessorComponents.blockProcessor,
+		blocksQueue:                      queue.NewBlocksQueue(),
 		epochStartTrigger:                epochStartTrigger,
 		epochStartNotifier:               pcf.coreData.EpochStartNotifierWithConfirm(),
 		blackListHandler:                 blackListHandler,
@@ -1739,6 +1741,7 @@ func (pcf *processComponentsFactory) newShardInterceptorContainerFactory(
 		HardforkTrigger:                hardforkTrigger,
 		NodeOperationMode:              nodeOperationMode,
 		InterceptedDataVerifierFactory: pcf.interceptedDataVerifierFactory,
+		Config:                         pcf.config,
 	}
 
 	interceptorContainerFactory, err := interceptorscontainer.NewShardInterceptorsContainerFactory(shardInterceptorsContainerFactoryArgs)
@@ -1793,6 +1796,7 @@ func (pcf *processComponentsFactory) newMetaInterceptorContainerFactory(
 		HardforkTrigger:                hardforkTrigger,
 		NodeOperationMode:              nodeOperationMode,
 		InterceptedDataVerifierFactory: pcf.interceptedDataVerifierFactory,
+		Config:                         pcf.config,
 	}
 
 	interceptorContainerFactory, err := interceptorscontainer.NewMetaInterceptorsContainerFactory(metaInterceptorsContainerFactoryArgs)
@@ -1909,12 +1913,12 @@ func (pcf *processComponentsFactory) createExportFactoryHandler(
 		HeaderIntegrityVerifier:          pcf.bootstrapComponents.HeaderIntegrityVerifier(),
 		ValidityAttester:                 blockTracker,
 		RoundHandler:                     pcf.coreData.RoundHandler(),
-		InterceptorDebugConfig:           pcf.config.Debug.InterceptorResolver,
 		MaxHardCapForMissingNodes:        pcf.config.TrieSync.MaxHardCapForMissingNodes,
 		NumConcurrentTrieSyncers:         pcf.config.TrieSync.NumConcurrentTrieSyncers,
 		TrieSyncerVersion:                pcf.config.TrieSync.TrieSyncerVersion,
 		NodeOperationMode:                nodeOperationMode,
 		InterceptedDataVerifierFactory:   pcf.interceptedDataVerifierFactory,
+		Config:                           pcf.config,
 	}
 	return updateFactory.NewExportHandlerFactory(argsExporter)
 }
@@ -2085,6 +2089,9 @@ func checkProcessComponentsArgs(args ProcessComponentsFactoryArgs) error {
 func (pc *processComponents) Close() error {
 	if !check.IfNil(pc.blockProcessor) {
 		log.LogIfError(pc.blockProcessor.Close())
+	}
+	if !check.IfNil(pc.blocksQueue) {
+		pc.blocksQueue.Close()
 	}
 	if !check.IfNil(pc.validatorsProvider) {
 		log.LogIfError(pc.validatorsProvider.Close())

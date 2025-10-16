@@ -149,6 +149,9 @@ var ErrMissingBody = errors.New("missing body")
 // ErrNilBlockProcessor signals that an operation has been attempted to or with a nil BlockProcessor implementation
 var ErrNilBlockProcessor = errors.New("nil block processor")
 
+// ErrNilBlocksQueue signals that a nil blocks queue has been provided
+var ErrNilBlocksQueue = errors.New("nil blocks queue")
+
 // ErrNilMarshalizer signals that an operation has been attempted to or with a nil Marshalizer implementation
 var ErrNilMarshalizer = errors.New("nil Marshalizer")
 
@@ -1325,6 +1328,9 @@ var ErrBadTxCacheSelectionLoopMaximumDuration = errors.New("bad tx cache selecti
 
 // ErrBadTxCacheSelectionLoopDurationCheckInterval signals a bad txcache config
 var ErrBadTxCacheSelectionLoopDurationCheckInterval = errors.New("bad selection loop duration check interval")
+
+// ErrDuplicatedInterceptedDataNotAllowed signals that duplicated intercepted data is not allowed
+var ErrDuplicatedInterceptedDataNotAllowed = errors.New("duplicated intercepted data not allowed")
 
 // ErrNilTxsForBlockHandler signals that a nil transactions for block handler has been provided
 var ErrNilTxsForBlockHandler = errors.New("nil txs for block handler")

@@ -23,6 +23,7 @@ import (
 	cryptoCommon "github.com/multiversx/mx-chain-go/common/crypto"
 	"github.com/multiversx/mx-chain-go/common/statistics"
 	"github.com/multiversx/mx-chain-go/consensus"
+	"github.com/multiversx/mx-chain-go/consensus/spos"
 	"github.com/multiversx/mx-chain-go/dataRetriever"
 	"github.com/multiversx/mx-chain-go/dblookupext"
 	"github.com/multiversx/mx-chain-go/epochStart"
@@ -291,6 +292,7 @@ type ProcessComponentsHolder interface {
 	EpochStartNotifier() EpochStartNotifier
 	ForkDetector() process.ForkDetector
 	BlockProcessor() process.BlockProcessor
+	BlocksQueue() process.BlocksQueue
 	BlackListHandler() process.TimeCacher
 	BootStorer() process.BootStorer
 	HeaderSigVerifier() process.InterceptedHeaderSigVerifier
@@ -425,6 +427,7 @@ type ConsensusWorker interface {
 	ReceivedProof(proofHandler consensus.ProofHandler)
 	// IsInterfaceNil returns true if there is no value under the interface
 	IsInterfaceNil() bool
+	ConsensusMetrics() spos.ConsensusMetricsHandler
 }
 
 // HardforkTrigger defines the hard-fork trigger functionality
