@@ -1524,9 +1524,7 @@ func (bp *baseProcessor) getFinalBlockNonce(
 		return finalHeaderHandler.GetNonce()
 	}
 
-	finalBlockNonce = common.GetLastExecutionResultNonce(finalHeaderHandler)
-
-	return finalBlockNonce
+	return common.GetLastExecutionResultNonce(finalHeaderHandler)
 }
 
 // DecodeBlockBody method decodes block body from a given byte array
