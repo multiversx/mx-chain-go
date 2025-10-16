@@ -2,6 +2,8 @@ package block_test
 
 import (
 	"bytes"
+	"fmt"
+	"math/big"
 	"sync"
 	"testing"
 	"time"
@@ -11,6 +13,9 @@ import (
 	"github.com/multiversx/mx-chain-core-go/data/block"
 	"github.com/multiversx/mx-chain-core-go/data/transaction"
 	"github.com/multiversx/mx-chain-go/common"
+	"github.com/multiversx/mx-chain-go/state"
+	logger "github.com/multiversx/mx-chain-logger-go"
+	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 
 	retriever "github.com/multiversx/mx-chain-go/dataRetriever"
@@ -25,10 +30,13 @@ import (
 	"github.com/multiversx/mx-chain-go/testscommon"
 	"github.com/multiversx/mx-chain-go/testscommon/cache"
 	"github.com/multiversx/mx-chain-go/testscommon/dataRetriever"
+	"github.com/multiversx/mx-chain-go/testscommon/enableEpochsHandlerMock"
 	testscommonExecutionTrack "github.com/multiversx/mx-chain-go/testscommon/executionTrack"
+	"github.com/multiversx/mx-chain-go/testscommon/hashingMocks"
 	"github.com/multiversx/mx-chain-go/testscommon/mbSelection"
 	"github.com/multiversx/mx-chain-go/testscommon/pool"
 	"github.com/multiversx/mx-chain-go/testscommon/processMocks"
+	stateMock "github.com/multiversx/mx-chain-go/testscommon/state"
 	statusHandlerMock "github.com/multiversx/mx-chain-go/testscommon/statusHandler"
 )
 
@@ -2474,4 +2482,198 @@ func TestShardProcessor_OnProposedBlock(t *testing.T) {
 		require.NoError(t, err)
 		require.True(t, wasOnProposedBlockCalled)
 	})
+}
+
+func TestShardProcessor_ShouldEpoch(t *testing.T) {
+	t.Parallel()
+
+	_ = logger.SetLogLevel("*.TRACE")
+	epochStartTrigger := &mock.EpochStartTriggerStub{
+		MetaEpochCalled:    func() uint32 { return 5 },
+		IsEpochStartCalled: func() bool { return false },
+	}
+	fmt.Println(epochStartTrigger.MetaEpoch())
+
+	sp, err := blproc.ConstructPartialShardBlockProcessorForTest(map[string]interface{}{
+		"metaBlockFinality": uint32(10),
+		"epochStartTrigger": epochStartTrigger,
+	})
+
+	require.Nil(t, err)
+	require.NotNil(t, sp)
+	result := sp.ShouldEpochStartInfoBeAvailable(&testscommon.HeaderHandlerStub{
+		IsStartOfEpochBlockCalled: func() bool { return true },
+		EpochField:                10,
+	})
+	require.True(t, result)
+}
+
+func TestShardProcessor_collectExecutionResults(t *testing.T) {
+	t.Parallel()
+	logErr := logger.SetLogLevel("*:TRACE")
+	require.Nil(t, logErr)
+	t.Run("with CreateReceiptsHash error should return error", func(t *testing.T) {
+		t.Parallel()
+
+		txCoordinator := &testscommon.TransactionCoordinatorMock{
+			CreateReceiptsHashCalled: func() ([]byte, error) {
+				return nil, expectedErr
+			},
+		}
+		sp, err := blproc.ConstructPartialShardBlockProcessorForTest(map[string]interface{}{
+			"txCoordinator": txCoordinator,
+			"shardCoordinator": &mock.ShardCoordinatorStub{
+				SelfIdCalled: func() uint32 {
+					return 0
+				},
+			},
+		})
+		require.Nil(t, err)
+
+		header := &block.HeaderV3{}
+		_, err = sp.CollectExecutionResults(make([]byte, 0), header, &block.Body{})
+		require.Equal(t, expectedErr, err)
+	})
+
+	t.Run("with gas used exceeds gas provided should return error", func(t *testing.T) {
+		t.Parallel()
+
+		subComponents, header, body := createSubComponentsForCollectExecutionResultsTest()
+		gasProvider := subComponents["gasConsumedProvider"].(*testscommon.GasHandlerStub)
+		gasProvider.TotalGasProvidedCalled = func() uint64 {
+			return 10 // less than gas used in test below
+		}
+		sp, err := blproc.ConstructPartialShardBlockProcessorForTest(subComponents)
+		require.Nil(t, err)
+		headerHash := []byte("header hash to be tested")
+		_, err = sp.CollectExecutionResults(headerHash, header, body)
+		assert.Equal(t, process.ErrGasUsedExceedsGasProvided, err)
+	})
+
+	t.Run("should work", func(t *testing.T) {
+		t.Parallel()
+		_ = logger.SetLogLevel("*.DEBUG")
+
+		subComponents, header, body := createSubComponentsForCollectExecutionResultsTest()
+
+		sp, err := blproc.ConstructPartialShardBlockProcessorForTest(subComponents)
+		require.Nil(t, err)
+
+		headerHash := []byte("header hash to be tested")
+		result, err := sp.CollectExecutionResults(headerHash, header, body)
+		require.Nil(t, err)
+		require.NotNil(t, result)
+		assert.Equal(t, uint64(1350), result.GetGasUsed(), "gas used should be set correctly")
+		assert.Equal(t, uint32(10), result.GetHeaderEpoch(), "epoch should be 10 as per mock header")
+		assert.Equal(t, headerHash, result.GetHeaderHash(), "header hash should match input")
+		assert.Equal(t, uint64(155), result.GetHeaderNonce(), "nonce should be 155 as per mock header")
+		assert.Equal(t, uint64(2067), result.GetHeaderRound(), "round should be 2067 as per mock header")
+		assert.Equal(t, []byte("root hash to be tested"), result.GetRootHash(), "root hash should match mock")
+	})
+}
+
+func createSubComponentsForCollectExecutionResultsTest() (map[string]interface{}, data.HeaderHandler, *block.Body) {
+
+	txCoordinator := &testscommon.TransactionCoordinatorMock{
+		GetCreatedMiniBlocksFromMeCalled: func() block.MiniBlockSlice {
+			return block.MiniBlockSlice{
+				&block.MiniBlock{
+					TxHashes: [][]byte{
+						[]byte("tx1"),
+						[]byte("tx2"),
+					},
+					Reserved: []byte("reserved field"),
+				},
+				&block.MiniBlock{
+					TxHashes: [][]byte{
+						[]byte("tx3"),
+						[]byte("tx4"),
+						[]byte("tx5"),
+					},
+					Reserved: []byte("reserved field"),
+				},
+			}
+		},
+	}
+
+	rootHash := []byte("root hash to be tested")
+	accounts := map[state.AccountsDbIdentifier]state.AccountsAdapter{
+		0: &stateMock.AccountsStub{
+			RootHashCalled: func() ([]byte, error) {
+				return rootHash, nil
+			},
+		},
+	}
+	feeHandler := &mock.FeeAccumulatorStub{
+		GetAccumulatedFeesCalled: func() *big.Int {
+			return big.NewInt(1000)
+		},
+		GetDeveloperFeesCalled: func() *big.Int {
+			return big.NewInt(100)
+		},
+	}
+	gasConsumedProvider := &testscommon.GasHandlerStub{
+		TotalGasProvidedCalled: func() uint64 {
+			return 1500
+		},
+		TotalGasRefundedCalled: func() uint64 {
+			return 100
+		},
+		TotalGasPenalizedCalled: func() uint64 {
+			return 50
+		},
+	}
+	subComponents := map[string]interface{}{
+		"txCoordinator": txCoordinator,
+		"shardCoordinator": &mock.ShardCoordinatorStub{
+			SelfIdCalled: func() uint32 {
+				return 0
+			},
+		},
+		"feeHandler":          feeHandler,
+		"gasConsumedProvider": gasConsumedProvider,
+		"marshalizer":         &mock.MarshalizerMock{},
+		"hasher":              &hashingMocks.HasherMock{},
+		"enableEpochsHandler": enableEpochsHandlerMock.NewEnableEpochsHandlerStub(),
+		"dataPool":            initDataPool(),
+		"accountsDB":          accounts,
+	}
+
+	header := &block.HeaderV3{
+		Epoch:   10,
+		Nonce:   155,
+		Round:   2067,
+		TxCount: 5,
+	}
+	body := &block.Body{
+		MiniBlocks: []*block.MiniBlock{
+			{
+				SenderShardID:   0,
+				ReceiverShardID: 0,
+				TxHashes:        [][]byte{[]byte("tx1")},
+			},
+			{
+				SenderShardID:   1,
+				ReceiverShardID: 0,
+				TxHashes:        [][]byte{[]byte("tx2")},
+			},
+			{
+				SenderShardID:   0,
+				ReceiverShardID: 1,
+				TxHashes:        [][]byte{[]byte("tx3")},
+			},
+			{
+				SenderShardID:   2,
+				ReceiverShardID: 0,
+				TxHashes:        [][]byte{[]byte("tx4")},
+			},
+			{
+				SenderShardID:   0,
+				ReceiverShardID: 0,
+				TxHashes:        [][]byte{[]byte("tx5")},
+			},
+		},
+	}
+
+	return subComponents, header, body
 }
