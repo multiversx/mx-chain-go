@@ -7,6 +7,7 @@ import (
 	"github.com/multiversx/mx-chain-core-go/data/batch"
 	"github.com/multiversx/mx-chain-core-go/hashing"
 	"github.com/multiversx/mx-chain-core-go/marshal"
+	"github.com/multiversx/mx-chain-go/p2p"
 	"github.com/multiversx/mx-chain-go/process"
 	"github.com/multiversx/mx-chain-go/storage"
 )
@@ -43,8 +44,11 @@ func NewUniqueChunksProcessor(
 }
 
 // CheckBatch verifies if the provided batch is already received
-func (proc *uniqueChunksProcessor) CheckBatch(b *batch.Batch, _ process.WhiteListHandler) (process.CheckedChunkResult, error) {
+func (proc *uniqueChunksProcessor) CheckBatch(b *batch.Batch, _ process.WhiteListHandler, broadcastMethod p2p.BroadcastMethod) (process.CheckedChunkResult, error) {
 	if b == nil || len(b.Data) == 0 {
+		return process.CheckedChunkResult{}, nil
+	}
+	if isDirectSend(broadcastMethod) {
 		return process.CheckedChunkResult{}, nil
 	}
 
@@ -65,8 +69,11 @@ func (proc *uniqueChunksProcessor) CheckBatch(b *batch.Batch, _ process.WhiteLis
 }
 
 // MarkVerified marks the batch as verified
-func (proc *uniqueChunksProcessor) MarkVerified(b *batch.Batch) {
+func (proc *uniqueChunksProcessor) MarkVerified(b *batch.Batch, broadcastMethod p2p.BroadcastMethod) {
 	if b == nil || len(b.Data) == 0 {
+		return
+	}
+	if isDirectSend(broadcastMethod) {
 		return
 	}
 	batchHash, err := core.CalculateHash(proc.marshaller, proc.hasher, b)
@@ -78,6 +85,10 @@ func (proc *uniqueChunksProcessor) MarkVerified(b *batch.Batch) {
 	defer proc.km.Unlock(batchHashStr)
 
 	proc.cache.Put(batchHash, struct{}{}, 0)
+}
+
+func isDirectSend(broadcastMethod p2p.BroadcastMethod) bool {
+	return broadcastMethod == p2p.Direct
 }
 
 // Close closes the internal cache
