@@ -216,6 +216,7 @@ func TestAccountsDBApi_RecreateTrie(t *testing.T) {
 	t.Parallel()
 
 	t.Run("should error if the roothash holder is nil", func(t *testing.T) {
+		t.Parallel()
 		accountsApi, _ := state.NewAccountsDBApi(&mockState.AccountsStub{
 			RecreateTrieCalled: func(options common.RootHashHolder) error {
 				assert.Fail(t, "should have not called accountsApi.RecreateTrie")
@@ -229,6 +230,7 @@ func TestAccountsDBApi_RecreateTrie(t *testing.T) {
 	})
 
 	t.Run("should error if the inner account RecreateTrie errors", func(t *testing.T) {
+		t.Parallel()
 		expectedErr := errors.New("root hash err")
 		trieStub := &testTrie.TrieStub{
 			GetStorageManagerCalled: func() common.StorageManager {
@@ -247,6 +249,7 @@ func TestAccountsDBApi_RecreateTrie(t *testing.T) {
 	})
 
 	t.Run("should early exit if block info is the same", func(t *testing.T) {
+		t.Parallel()
 		currentHash := []byte("hash1")
 		accountsApi, _ := state.NewAccountsDBApi(&mockState.AccountsStub{
 			RecreateTrieIfNeededCalled: func(options common.RootHashHolder) error {
@@ -262,6 +265,7 @@ func TestAccountsDBApi_RecreateTrie(t *testing.T) {
 	})
 
 	t.Run("should work", func(t *testing.T) {
+		t.Parallel()
 		wasCalled := false
 		accountsApi, _ := state.NewAccountsDBApi(&mockState.AccountsStub{
 			RecreateTrieCalled: func(rootHash common.RootHashHolder) error {
@@ -280,6 +284,7 @@ func TestAccountsDB_RecreateTrieIfNeeded(t *testing.T) {
 	t.Parallel()
 
 	t.Run("should error if the roothash holder is nil", func(t *testing.T) {
+		t.Parallel()
 		accountsApi, _ := state.NewAccountsDBApi(&mockState.AccountsStub{
 			RecreateTrieIfNeededCalled: func(options common.RootHashHolder) error {
 				assert.Fail(t, "should have not called accountsApi.RecreateTrieIfNeeded")
@@ -293,6 +298,7 @@ func TestAccountsDB_RecreateTrieIfNeeded(t *testing.T) {
 	})
 
 	t.Run("should error if the inner account RecreateTrieIfNeeded errors", func(t *testing.T) {
+		t.Parallel()
 		expectedErr := errors.New("root hash err")
 		trieStub := &testTrie.TrieStub{
 			RootCalled: func() ([]byte, error) {
@@ -310,6 +316,7 @@ func TestAccountsDB_RecreateTrieIfNeeded(t *testing.T) {
 	})
 
 	t.Run("should early exit if block info is the same", func(t *testing.T) {
+		t.Parallel()
 		currentHash := []byte("hash1")
 		trieStub := &testTrie.TrieStub{
 			RootCalled: func() ([]byte, error) {
@@ -328,6 +335,7 @@ func TestAccountsDB_RecreateTrieIfNeeded(t *testing.T) {
 	})
 
 	t.Run("should work", func(t *testing.T) {
+		t.Parallel()
 		currentHash := []byte("hash1")
 		newHash := []byte("hash2")
 		recreatedCalled := false
