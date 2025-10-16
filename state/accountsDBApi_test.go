@@ -17,6 +17,7 @@ import (
 	"github.com/multiversx/mx-chain-go/testscommon"
 	mockState "github.com/multiversx/mx-chain-go/testscommon/state"
 	testTrie "github.com/multiversx/mx-chain-go/testscommon/trie"
+	trieMock "github.com/multiversx/mx-chain-go/testscommon/trie"
 	"github.com/multiversx/mx-chain-go/trie"
 	vmcommon "github.com/multiversx/mx-chain-vm-common-go"
 	"github.com/stretchr/testify/assert"
@@ -224,6 +225,39 @@ func TestAccountsDBApi_RecreateTrie(t *testing.T) {
 	err := accountsApi.RecreateTrie(holders.NewDefaultRootHashesHolder([]byte{}))
 	assert.NoError(t, err)
 	assert.True(t, wasCalled)
+}
+
+func TestAccountsDB_RecreateTrieIfNeeded(t *testing.T) {
+	t.Parallel()
+	currentHash := []byte("hash1")
+	newHash := []byte("hash2")
+	recreatedCalled := false
+
+	// mock trie to check whether RecreateTrie was triggered
+	trieStub := &trieMock.TrieStub{
+		RootCalled: func() ([]byte, error) {
+			return currentHash, nil
+		},
+		RecreateCalled: func(_ common.RootHashHolder) (common.Trie, error) {
+			recreatedCalled = true
+			return &trieMock.TrieStub{}, nil
+		},
+	}
+
+	adb := generateAccountDBFromTrie(trieStub)
+	accountsApi, _ := state.NewAccountsDBApi(adb, createBlockInfoProviderStub(dummyRootHash))
+
+	// same hash → no recreation
+	optsSame := holders.NewDefaultRootHashesHolder(currentHash)
+	err := accountsApi.RecreateTrieIfNeeded(optsSame)
+	assert.NoError(t, err)
+	assert.False(t, recreatedCalled, "should not recreate if same root hash")
+
+	// different hash → should recreate
+	optsDifferent := holders.NewDefaultRootHashesHolder(newHash)
+	err = accountsApi.RecreateTrieIfNeeded(optsDifferent)
+	assert.NoError(t, err)
+	assert.True(t, recreatedCalled, "should recreate if root hash differs")
 }
 
 func TestAccountsDBApi_RecreateTrieFromEpoch(t *testing.T) {

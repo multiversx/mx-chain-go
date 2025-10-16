@@ -190,7 +190,7 @@ func (accountsDB *accountsDBApi) RecreateTrie(options common.RootHashHolder) err
 	return nil
 }
 
-// RecreateTrieIfNeeded implements AccountsAdapterAPI.
+// RecreateTrieIfNeeded is used to reload the trie based on the provided options only if the root hash is different than the current one
 func (accountsDB *accountsDBApi) RecreateTrieIfNeeded(options common.RootHashHolder) error {
 	accountsDB.mutRecreatedTrieBlockInfo.Lock()
 	defer accountsDB.mutRecreatedTrieBlockInfo.Unlock()
