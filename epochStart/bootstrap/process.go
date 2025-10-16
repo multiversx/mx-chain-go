@@ -712,8 +712,8 @@ func (e *epochStartBootstrap) syncEpochStartMetaHeaders(
 		return nil, err
 	}
 
-	hashesToRequest := make([][]byte, 0, len(meta.GetEpochStartHandler().GetLastFinalizedHeaderHandlers())+1)
-	shardIds := make([]uint32, 0, len(meta.GetEpochStartHandler().GetLastFinalizedHeaderHandlers())+1)
+	hashesToRequest := make([][]byte, 0)
+	shardIds := make([]uint32, 0)
 	if meta.GetEpoch() > e.startEpoch+1 { // no need to request genesis block
 		hashesToRequest = append(hashesToRequest, meta.GetEpochStartHandler().GetEconomicsHandler().GetPrevEpochStartHash())
 		shardIds = append(shardIds, core.MetachainShardId)
@@ -736,6 +736,7 @@ func (e *epochStartBootstrap) syncEpochStartMetaHeaders(
 	}
 
 	if meta.GetEpoch() == e.startEpoch+1 {
+		// for genesis block there is no epoch start header to sync, so we set an empty meta block
 		syncedHeaders[string(meta.GetEpochStartHandler().GetEconomicsHandler().GetPrevEpochStartHash())] = &block.MetaBlock{}
 	}
 

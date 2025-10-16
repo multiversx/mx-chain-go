@@ -62,6 +62,8 @@ import (
 	"github.com/stretchr/testify/require"
 )
 
+var errExpected = errors.New("expected error")
+
 func createPkBytes(numShards uint32) map[uint32][]byte {
 	pksbytes := make(map[uint32][]byte, numShards+1)
 	for i := uint32(0); i < numShards; i++ {
@@ -2705,13 +2707,12 @@ func TestEpochStartBoostrap_SyncHeadersV3FromMeta(t *testing.T) {
 
 		epochStartProvider, _ := NewEpochStartBootstrap(args)
 
-		expErr := errors.New("expected error")
 		epochStartProvider.headersSyncer = &epochStartMocks.HeadersByHashSyncerStub{
 			SyncMissingHeadersByHashCalled: func(shardIDs []uint32, headersHashes [][]byte, ctx context.Context) error {
 				return nil
 			},
 			GetHeadersCalled: func() (m map[string]data.HeaderHandler, err error) {
-				return nil, expErr
+				return nil, errExpected
 			},
 		}
 
@@ -2728,7 +2729,7 @@ func TestEpochStartBoostrap_SyncHeadersV3FromMeta(t *testing.T) {
 		}
 
 		headers, err := epochStartProvider.syncHeadersFrom(metaBlock)
-		require.Equal(t, expErr, err)
+		require.Equal(t, errExpected, err)
 		require.Nil(t, headers)
 	})
 
