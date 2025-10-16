@@ -938,30 +938,6 @@ func (adb *AccountsDB) recreateTrie(options common.RootHashHolder) error {
 		log.Trace("accountsDB.RecreateTrie ended")
 	}()
 
-	return adb.recreateTrieProcessing(options)
-}
-
-func (adb *AccountsDB) recreateTrieIfNeeded(options common.RootHashHolder) error {
-	currentRootHash, err := adb.getMainTrie().RootHash()
-	if err != nil {
-		return err
-	}
-
-	if bytes.Equal(currentRootHash, options.GetRootHash()) {
-		log.Trace("accountsDB.RecreateTrieIfNeeded - no need to recreate", "root hash", currentRootHash)
-		return nil
-	}
-
-	log.Trace("accountsDB.RecreateTrieIfNeeded", "root hash holder", options.String())
-	defer func() {
-		log.Trace("accountsDB.RecreateTrieIfNeeded ended")
-	}()
-
-	return adb.recreateTrieProcessing(options)
-}
-
-// recreateTrieProcessing does the actual work of recreating the trie, it assumes the mutex is already locked
-func (adb *AccountsDB) recreateTrieProcessing(options common.RootHashHolder) error {
 	adb.obsoleteDataTrieHashes = make(map[string][][]byte)
 	adb.dataTries.Reset()
 	adb.entries = make([]JournalEntry, 0)
@@ -975,6 +951,20 @@ func (adb *AccountsDB) recreateTrieProcessing(options common.RootHashHolder) err
 
 	adb.mainTrie = newTrie
 	return nil
+}
+
+func (adb *AccountsDB) recreateTrieIfNeeded(options common.RootHashHolder) error {
+	currentRootHash, err := adb.getMainTrie().RootHash()
+	if err != nil {
+		return err
+	}
+
+	if bytes.Equal(currentRootHash, options.GetRootHash()) {
+		log.Trace("accountsDB.RecreateTrieIfNeeded - no need to recreate", "root hash", currentRootHash)
+		return nil
+	}
+
+	return adb.recreateTrie(options)
 }
 
 // RecreateAllTries recreates all the tries from the accounts DB
