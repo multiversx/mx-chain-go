@@ -299,7 +299,7 @@ func computeRedundancyStr(redundancyLevel int64, redundancyIsMainActive string) 
 }
 
 func (wr *WidgetsRender) prepareBlockInfo() {
-	// 8 rows and one column
+	// 10 rows and one column
 	numRows := 10
 	rows := make([][]string, numRows)
 
