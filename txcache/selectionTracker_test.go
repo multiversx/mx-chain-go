@@ -537,7 +537,7 @@ func Test_CompleteFlowShouldWork(t *testing.T) {
 		},
 	}
 
-	virtualSession, err := cache.tracker.deriveVirtualSelectionSession(selectionSession, 2)
+	virtualSession, err := cache.tracker.deriveVirtualSelectionSession(selectionSession, 2, false)
 
 	require.Nil(t, err)
 	require.NotNil(t, virtualSession)
@@ -579,7 +579,7 @@ func Test_CompleteFlowShouldWork(t *testing.T) {
 		},
 	}
 
-	virtualSession, err = cache.tracker.deriveVirtualSelectionSession(selectionSession, 2)
+	virtualSession, err = cache.tracker.deriveVirtualSelectionSession(selectionSession, 2, false)
 	require.Nil(t, err)
 
 	expectedVirtualRecords = map[string]*virtualAccountRecord{
@@ -894,9 +894,67 @@ func TestSelectionTracker_deriveVirtualSelectionSessionShouldErr(t *testing.T) {
 	session.GetRootHashCalled = func() ([]byte, error) {
 		return nil, expectedErr
 	}
-	virtualSession, actualErr := tracker.deriveVirtualSelectionSession(&session, 0)
+	virtualSession, actualErr := tracker.deriveVirtualSelectionSession(&session, 0, false)
 	require.Nil(t, virtualSession)
 	require.Equal(t, expectedErr, actualErr)
+}
+
+func TestSelectionTracker_deriveVirtualSelectionSessionShouldDeleteProposedBlocks(t *testing.T) {
+	t.Parallel()
+
+	txCache := newCacheToTest(maxNumBytesPerSenderUpperBoundTest, 3)
+	tracker, err := NewSelectionTracker(txCache, maxTrackedBlocks)
+	tracker.blocks = map[string]*trackedBlock{
+		"hash1": {
+			nonce: 1,
+		},
+		"hash2": {
+			nonce: 2,
+		},
+		"hash3": {
+			nonce: 3,
+		},
+	}
+	require.Nil(t, err)
+	require.Equal(t, 3, len(tracker.blocks))
+
+	session := txcachemocks.SelectionSessionMock{}
+	session.GetRootHashCalled = func() ([]byte, error) {
+		return nil, nil
+	}
+
+	_, err = tracker.deriveVirtualSelectionSession(&session, 0, false)
+	require.Nil(t, err)
+	require.Equal(t, 0, len(tracker.blocks))
+}
+
+func TestSelectionTracker_deriveVirtualSelectionSessionShouldNotDeleteProposedBlocks(t *testing.T) {
+	t.Parallel()
+
+	txCache := newCacheToTest(maxNumBytesPerSenderUpperBoundTest, 3)
+	tracker, err := NewSelectionTracker(txCache, maxTrackedBlocks)
+	tracker.blocks = map[string]*trackedBlock{
+		"hash1": {
+			nonce: 1,
+		},
+		"hash2": {
+			nonce: 2,
+		},
+		"hash3": {
+			nonce: 3,
+		},
+	}
+	require.Nil(t, err)
+	require.Equal(t, 3, len(tracker.blocks))
+
+	session := txcachemocks.SelectionSessionMock{}
+	session.GetRootHashCalled = func() ([]byte, error) {
+		return nil, nil
+	}
+
+	_, err = tracker.deriveVirtualSelectionSession(&session, 0, true)
+	require.Nil(t, err)
+	require.Equal(t, 3, len(tracker.blocks))
 }
 
 func TestSelectionTracker_validateTrackedBlocks(t *testing.T) {
@@ -1408,4 +1466,116 @@ func Test_getDimensionOfTrackedBlocks(t *testing.T) {
 		require.Equal(t, uint64(3), numBlocks)
 		require.Equal(t, uint64(2), numBreadcrumbs)
 	})
+}
+
+func TestSelectionTracker_addNewTrackedBlockNoLock(t *testing.T) {
+	t.Parallel()
+
+	txCache := newCacheToTest(maxNumBytesPerSenderUpperBoundTest, 6)
+	tracker, err := NewSelectionTracker(txCache, maxTrackedBlocks)
+	require.Nil(t, err)
+
+	txCache.tracker = tracker
+
+	tracker.blocks = map[string]*trackedBlock{
+		"hash1": {
+			nonce:    1,
+			hash:     []byte("hash1"),
+			rootHash: []byte("rootHash"),
+		},
+		"hash2": {
+			nonce:    2,
+			hash:     []byte("hash2"),
+			rootHash: []byte("rootHash"),
+		},
+		"hash3": {
+			nonce:    3,
+			hash:     []byte("hash3"),
+			rootHash: []byte("rootHash"),
+		},
+	}
+
+	require.Equal(t, 3, len(txCache.tracker.blocks))
+	err = tracker.addNewTrackedBlockNoLock([]byte("hashX"), &trackedBlock{
+		nonce:    1,
+		hash:     []byte("hashX"),
+		rootHash: []byte("rootHash"),
+	})
+	require.Nil(t, err)
+
+	require.Equal(t, 1, len(txCache.tracker.blocks))
+	_, ok := txCache.tracker.blocks["hashX"]
+	require.True(t, ok)
+}
+
+func TestSelectionTracker_removeBlockAboveOrEqualToNoLock(t *testing.T) {
+	t.Parallel()
+
+	txCache := newCacheToTest(maxNumBytesPerSenderUpperBoundTest, 6)
+	tracker, err := NewSelectionTracker(txCache, maxTrackedBlocks)
+	require.Nil(t, err)
+
+	txCache.tracker = tracker
+
+	tracker.blocks = map[string]*trackedBlock{
+		"hash1": {
+			nonce:    1,
+			hash:     []byte("hash1"),
+			rootHash: []byte("rootHash"),
+		},
+		"hash2": {
+			nonce:    2,
+			hash:     []byte("hash2"),
+			rootHash: []byte("rootHash"),
+		},
+		"hash3": {
+			nonce:    3,
+			hash:     []byte("hash3"),
+			rootHash: []byte("rootHash"),
+		},
+	}
+
+	require.Equal(t, 3, len(txCache.tracker.blocks))
+	err = tracker.removeBlockEqualOrAboveNoLock([]byte("hash1"), &trackedBlock{
+		nonce:    1,
+		hash:     []byte("hash3"),
+		rootHash: []byte("rootHash"),
+	})
+	require.Nil(t, err)
+
+	require.Equal(t, 0, len(txCache.tracker.blocks))
+}
+
+func TestSelectionTracker_removeBlocksAboveNonce(t *testing.T) {
+	t.Parallel()
+
+	txCache := newCacheToTest(maxNumBytesPerSenderUpperBoundTest, 6)
+	tracker, err := NewSelectionTracker(txCache, maxTrackedBlocks)
+	require.Nil(t, err)
+
+	txCache.tracker = tracker
+
+	tracker.blocks = map[string]*trackedBlock{
+		"hash1": {
+			nonce:    1,
+			hash:     []byte("hash1"),
+			rootHash: []byte("rootHash"),
+		},
+		"hash2": {
+			nonce:    2,
+			hash:     []byte("hash2"),
+			rootHash: []byte("rootHash"),
+		},
+		"hash3": {
+			nonce:    3,
+			hash:     []byte("hash3"),
+			rootHash: []byte("rootHash"),
+		},
+	}
+
+	require.Equal(t, 3, len(txCache.tracker.blocks))
+	err = tracker.removeBlocksAboveNonce(1)
+	require.Nil(t, err)
+
+	require.Equal(t, 1, len(txCache.tracker.blocks))
 }
