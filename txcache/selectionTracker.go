@@ -270,12 +270,13 @@ func (st *selectionTracker) removeBlockEqualOrAboveNoLock(blockToBeAddedHash []b
 	// search if in the tracked blocks we already have one with same nonce or greater
 	for bHash, b := range st.blocks {
 		if b.hasSameNonceOrHigher(blockToBeAdded) {
+			// first delete, then update the global breadcrumbs
+			delete(st.blocks, bHash)
+
 			err := st.globalBreadcrumbsCompiler.updateOnRemovedBlockWithSameNonceOrAbove(b)
 			if err != nil {
 				return err
 			}
-
-			delete(st.blocks, bHash)
 
 			log.Trace("selectionTracker.addNewTrackedBlockNoLock block with same nonce was deleted, to be replaced",
 				"nonce", blockToBeAdded.nonce,
@@ -325,12 +326,14 @@ func (st *selectionTracker) removeUpToBlockNoLock(searchedBlock *trackedBlock) e
 	removedBlocks := 0
 	for blockHash, b := range st.blocks {
 		if b.hasSameNonceOrLower(searchedBlock) {
+			// first delete, then update the global breadcrumbs
+			delete(st.blocks, blockHash)
+
 			err := st.globalBreadcrumbsCompiler.updateOnRemovedBlockWithSameNonceOrBelow(b)
 			if err != nil {
 				return err
 			}
 
-			delete(st.blocks, blockHash)
 			removedBlocks++
 		}
 	}
@@ -421,12 +424,13 @@ func (st *selectionTracker) removeBlocksAboveNonce(nonce uint64) error {
 
 	for blockHash, tb := range st.blocks {
 		if tb.hasHigherNonce(nonce) {
+			// first delete, then update the global breadcrumbs
+			delete(st.blocks, blockHash)
+
 			err := st.globalBreadcrumbsCompiler.updateOnRemovedBlockWithSameNonceOrAbove(tb)
 			if err != nil {
 				return err
 			}
-
-			delete(st.blocks, blockHash)
 
 			log.Trace("selectionTracker.removeBlocksAboveNonce",
 				"nonce", nonce,
