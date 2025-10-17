@@ -2,7 +2,7 @@ package block_test
 
 import (
 	"bytes"
-	"fmt"
+	"errors"
 	"math/big"
 	"sync"
 	"testing"
@@ -2484,30 +2484,6 @@ func TestShardProcessor_OnProposedBlock(t *testing.T) {
 	})
 }
 
-func TestShardProcessor_ShouldEpoch(t *testing.T) {
-	t.Parallel()
-
-	_ = logger.SetLogLevel("*.TRACE")
-	epochStartTrigger := &mock.EpochStartTriggerStub{
-		MetaEpochCalled:    func() uint32 { return 5 },
-		IsEpochStartCalled: func() bool { return false },
-	}
-	fmt.Println(epochStartTrigger.MetaEpoch())
-
-	sp, err := blproc.ConstructPartialShardBlockProcessorForTest(map[string]interface{}{
-		"metaBlockFinality": uint32(10),
-		"epochStartTrigger": epochStartTrigger,
-	})
-
-	require.Nil(t, err)
-	require.NotNil(t, sp)
-	result := sp.ShouldEpochStartInfoBeAvailable(&testscommon.HeaderHandlerStub{
-		IsStartOfEpochBlockCalled: func() bool { return true },
-		EpochField:                10,
-	})
-	require.True(t, result)
-}
-
 func TestShardProcessor_collectExecutionResults(t *testing.T) {
 	t.Parallel()
 	logErr := logger.SetLogLevel("*:TRACE")
@@ -2541,13 +2517,53 @@ func TestShardProcessor_collectExecutionResults(t *testing.T) {
 		subComponents, header, body := createSubComponentsForCollectExecutionResultsTest()
 		gasProvider := subComponents["gasConsumedProvider"].(*testscommon.GasHandlerStub)
 		gasProvider.TotalGasProvidedCalled = func() uint64 {
-			return 10 // less than gas used in test below
+			return 10 // less than gas used in test
 		}
 		sp, err := blproc.ConstructPartialShardBlockProcessorForTest(subComponents)
 		require.Nil(t, err)
 		headerHash := []byte("header hash to be tested")
 		_, err = sp.CollectExecutionResults(headerHash, header, body)
 		assert.Equal(t, process.ErrGasUsedExceedsGasProvided, err)
+	})
+
+	t.Run("with cacheExecutedMiniBlocks error should return error", func(t *testing.T) {
+		t.Parallel()
+
+		expectedErr := errors.New("MarshalizerMock generic error")
+		subComponents, header, body := createSubComponentsForCollectExecutionResultsTest()
+
+		marshaller := subComponents["marshalizer"].(*mock.MarshalizerMock)
+		marshaller.Fail = true
+		sp, err := blproc.ConstructPartialShardBlockProcessorForTest(subComponents)
+		require.Nil(t, err)
+		headerHash := []byte("header hash to be tested")
+		_, err = sp.CollectExecutionResults(headerHash, header, body)
+		assert.Error(t, err)
+		assert.Equal(t, expectedErr, err)
+	})
+
+	t.Run("with cacheIntermediateTxsForHeader error should return error", func(t *testing.T) {
+		t.Parallel()
+
+		expectedErr := errors.New("cacheIntermediateTxsForHeader error")
+		subComponents, header, body := createSubComponentsForCollectExecutionResultsTest()
+
+		marshallerMock := subComponents["marshalizer"].(*mock.MarshalizerMock)
+		marshaller := &mock.MarshalizerStub{
+			MarshalCalled: func(obj interface{}) ([]byte, error) {
+				if _, ok := obj.(map[block.Type]map[string]data.TransactionHandler); ok {
+					return nil, expectedErr
+				} else {
+					return marshallerMock.Marshal(obj)
+				}
+			}}
+		subComponents["marshalizer"] = marshaller
+		sp, err := blproc.ConstructPartialShardBlockProcessorForTest(subComponents)
+		require.Nil(t, err)
+		headerHash := []byte("header hash to be tested")
+		_, err = sp.CollectExecutionResults(headerHash, header, body)
+		assert.Error(t, err)
+		assert.Equal(t, expectedErr, err)
 	})
 
 	t.Run("should work", func(t *testing.T) {
