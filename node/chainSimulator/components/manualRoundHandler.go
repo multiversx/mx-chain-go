@@ -94,7 +94,12 @@ func (handler *manualRoundHandler) isSupernovaActive(roundIndex int64) bool {
 
 // TimeDuration returns the provided time duration for this instance
 func (handler *manualRoundHandler) TimeDuration() time.Duration {
-	return handler.roundDuration
+	roundIndex := atomic.LoadInt64(&handler.index)
+	if !handler.isSupernovaActive(roundIndex) {
+		return handler.roundDuration
+	}
+
+	return handler.supernovaRoundDuration
 }
 
 // RemainingTime returns the max time as the start time is not taken into account
