@@ -465,6 +465,7 @@ type TrieLeavesRetriever interface {
 // AccountNonceAndBalanceProvider provides the nonce and balance of accounts
 type AccountNonceAndBalanceProvider interface {
 	GetAccountNonceAndBalance(accountKey []byte) (uint64, *big.Int, bool, error)
+	GetRootHash() ([]byte, error)
 	IsInterfaceNil() bool
 }
 

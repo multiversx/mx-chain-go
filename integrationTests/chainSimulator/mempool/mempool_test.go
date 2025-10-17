@@ -1279,6 +1279,9 @@ func Test_Selection_ShouldNotSelectSameTransactionsWithManyTransactionsAndExecut
 
 	// update the state of the account on the blockchain
 	selectionSession.SetNonce([]byte("alice"), 30_000)
+	selectionSession.GetRootHashCalled = func() ([]byte, error) {
+		return []byte("rootHash0"), nil
+	}
 
 	// propose the second block
 	proposedBlock2 := createProposedBlock(selectedTransactions)
@@ -1405,6 +1408,9 @@ func Test_Selection_ProposeEmptyBlocksAndExecutedBlockNotification(t *testing.T)
 
 	// update the state of the account on the blockchain
 	selectionSession.SetNonce([]byte("alice"), 30_000)
+	selectionSession.GetRootHashCalled = func() ([]byte, error) {
+		return []byte("rootHash0"), nil
+	}
 
 	// propose the second block
 	proposedBlock2 := createProposedBlock(selectedTransactions)
@@ -1434,6 +1440,10 @@ func Test_Selection_ProposeEmptyBlocksAndExecutedBlockNotification(t *testing.T)
 		RootHash: []byte(fmt.Sprintf("rootHash%d", 1)),
 	})
 	require.Nil(t, err)
+
+	selectionSession.GetRootHashCalled = func() ([]byte, error) {
+		return []byte("rootHash1"), nil
+	}
 
 	// the currentNonce should represent here the nonce of the block on which the selection is built
 	// no transactions should be returned
