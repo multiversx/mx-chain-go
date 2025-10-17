@@ -563,7 +563,7 @@ func (st *selectionTracker) GetBulkOfUntrackedTransactions(transactions []*Wrapp
 			continue
 		}
 
-		if !st.isTransactionTracked(tx) {
+		if !st.IsTransactionTracked(tx) {
 			untrackedTransactions = append(untrackedTransactions, tx.TxHash)
 		}
 	}
@@ -571,9 +571,9 @@ func (st *selectionTracker) GetBulkOfUntrackedTransactions(transactions []*Wrapp
 	return untrackedTransactions
 }
 
-// isTransactionTracked checks if a transaction is still in the tracked blocks of the SelectionTracker.
-// However, in the case of forks, isTransactionTracked might return inaccurate results.
-func (st *selectionTracker) isTransactionTracked(transaction *WrappedTransaction) bool {
+// IsTransactionTracked checks if a transaction is still in the tracked blocks of the SelectionTracker.
+// However, in the case of forks, IsTransactionTracked might return inaccurate results.
+func (st *selectionTracker) IsTransactionTracked(transaction *WrappedTransaction) bool {
 	if transaction == nil || transaction.Tx == nil {
 		return false
 	}

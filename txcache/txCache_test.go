@@ -117,21 +117,75 @@ func Test_AddNilTx_DoesNothing(t *testing.T) {
 }
 
 func Test_AddTx_AppliesSizeConstraintsPerSenderForNumTransactions(t *testing.T) {
-	cache := newCacheToTest(maxNumBytesPerSenderUpperBoundTest, 3)
+	t.Run("with untracked txs", func(t *testing.T) {
+		t.Parallel()
 
-	cache.AddTx(createTx([]byte("tx-alice-1"), "alice", 1))
-	cache.AddTx(createTx([]byte("tx-alice-2"), "alice", 2))
-	cache.AddTx(createTx([]byte("tx-alice-4"), "alice", 4))
-	cache.AddTx(createTx([]byte("tx-bob-1"), "bob", 1))
-	cache.AddTx(createTx([]byte("tx-bob-2"), "bob", 2))
-	require.Equal(t, []string{"tx-alice-1", "tx-alice-2", "tx-alice-4"}, cache.getHashesForSender("alice"))
-	require.Equal(t, []string{"tx-bob-1", "tx-bob-2"}, cache.getHashesForSender("bob"))
-	require.True(t, cache.areInternalMapsConsistent())
+		cache := newCacheToTest(maxNumBytesPerSenderUpperBoundTest, 3)
 
-	cache.AddTx(createTx([]byte("tx-alice-3"), "alice", 3))
-	require.Equal(t, []string{"tx-alice-1", "tx-alice-2", "tx-alice-3"}, cache.getHashesForSender("alice"))
-	require.Equal(t, []string{"tx-bob-1", "tx-bob-2"}, cache.getHashesForSender("bob"))
-	require.True(t, cache.areInternalMapsConsistent())
+		cache.AddTx(createTx([]byte("tx-alice-1"), "alice", 1))
+		cache.AddTx(createTx([]byte("tx-alice-2"), "alice", 2))
+		cache.AddTx(createTx([]byte("tx-alice-4"), "alice", 4))
+		cache.AddTx(createTx([]byte("tx-bob-1"), "bob", 1))
+		cache.AddTx(createTx([]byte("tx-bob-2"), "bob", 2))
+		require.Equal(t, []string{"tx-alice-1", "tx-alice-2", "tx-alice-4"}, cache.getHashesForSender("alice"))
+		require.Equal(t, []string{"tx-bob-1", "tx-bob-2"}, cache.getHashesForSender("bob"))
+		require.True(t, cache.areInternalMapsConsistent())
+
+		cache.AddTx(createTx([]byte("tx-alice-3"), "alice", 3))
+		require.Equal(t, []string{"tx-alice-1", "tx-alice-2", "tx-alice-3"}, cache.getHashesForSender("alice"))
+		require.Equal(t, []string{"tx-bob-1", "tx-bob-2"}, cache.getHashesForSender("bob"))
+		require.True(t, cache.areInternalMapsConsistent())
+	})
+
+	t.Run("with tracked txs", func(t *testing.T) {
+		t.Parallel()
+
+		cache := newCacheToTest(maxNumBytesPerSenderUpperBoundTest, 3)
+
+		accountsProvider := &txcachemocks.AccountNonceAndBalanceProviderMock{
+			GetAccountNonceAndBalanceCalled: func(address []byte) (uint64, *big.Int, bool, error) {
+				return 1, big.NewInt(3 * 1500000 * oneBillion), true, nil
+			},
+		}
+
+		cache.AddTx(createTx([]byte("tx-alice-1"), "alice", 1).withGasLimit(50000))
+		cache.AddTx(createTx([]byte("tx-alice-2"), "alice", 2).withGasLimit(1500000))
+		cache.AddTx(createTx([]byte("tx-alice-4"), "alice", 3).withGasLimit(1500000))
+		cache.AddTx(createTx([]byte("tx-bob-1"), "bob", 1).withGasLimit(1500000))
+		cache.AddTx(createTx([]byte("tx-bob-2"), "bob", 2).withGasLimit(1500000))
+		require.Equal(t, []string{"tx-alice-1", "tx-alice-2", "tx-alice-4"}, cache.getHashesForSender("alice"))
+		require.Equal(t, []string{"tx-bob-1", "tx-bob-2"}, cache.getHashesForSender("bob"))
+		require.True(t, cache.areInternalMapsConsistent())
+
+		err := cache.OnProposedBlock(
+			[]byte("blockHash1"),
+			&block.Body{
+				MiniBlocks: []*block.MiniBlock{
+					{
+						TxHashes: [][]byte{
+							[]byte("tx-alice-1"),
+							[]byte("tx-alice-2"),
+							[]byte("tx-alice-4"),
+							[]byte("tx-bob-1"),
+							[]byte("tx-bob-2"),
+						},
+					},
+				},
+			},
+			&block.Header{
+				Nonce:    1,
+				PrevHash: []byte("blockHash0"),
+			},
+			accountsProvider,
+			[]byte("blockHash0"),
+		)
+		require.Nil(t, err)
+
+		cache.AddTx(createTx([]byte("tx-alice-3"), "alice", 3).withGasLimit(1500000))
+		require.Equal(t, []string{"tx-alice-1", "tx-alice-2", "tx-alice-3", "tx-alice-4"}, cache.getHashesForSender("alice"))
+		require.Equal(t, []string{"tx-bob-1", "tx-bob-2"}, cache.getHashesForSender("bob"))
+		require.True(t, cache.areInternalMapsConsistent())
+	})
 }
 
 func Test_AddTx_AppliesSizeConstraintsPerSenderForNumBytes(t *testing.T) {
@@ -490,7 +544,7 @@ func TestTxCache_TransactionIsAdded_EvenWhenInternalMapsAreInconsistent(t *testi
 	cache.Clear()
 
 	// Setup inconsistency: transaction already exists in map by sender, but not in map by hash
-	cache.txListBySender.addTxReturnEvicted(createTx([]byte("alice-x"), "alice", 42))
+	cache.txListBySender.addTxReturnEvicted(createTx([]byte("alice-x"), "alice", 42), cache.tracker)
 
 	require.False(t, cache.Has([]byte("alice-x")))
 	ok, added = cache.AddTx(createTx([]byte("alice-x"), "alice", 42))

@@ -88,16 +88,17 @@ func TestTxCache_GetDeterministicallyShuffledSenders_Dummy(t *testing.T) {
 
 func Test_RemoveSweepableTransactionsReturnHashes_Dummy(t *testing.T) {
 	t.Run("with lower nonces", func(t *testing.T) {
+		txCache := newCacheToTest(maxNumBytesPerSenderUpperBoundTest, math.MaxUint32)
 		list := newUnconstrainedListToTest()
-		list.AddTx(createTx([]byte("a"), ".", 1))
-		list.AddTx(createTx([]byte("b"), ".", 3))
-		list.AddTx(createTx([]byte("c"), ".", 4))
-		list.AddTx(createTx([]byte("d"), ".", 2))
-		list.AddTx(createTx([]byte("e"), ".", 5))
+		list.AddTx(createTx([]byte("a"), ".", 1), txCache.tracker)
+		list.AddTx(createTx([]byte("b"), ".", 3), txCache.tracker)
+		list.AddTx(createTx([]byte("c"), ".", 4), txCache.tracker)
+		list.AddTx(createTx([]byte("d"), ".", 2), txCache.tracker)
+		list.AddTx(createTx([]byte("e"), ".", 5), txCache.tracker)
 
 		hashesBeforeEviction := list.getTxHashesAsStrings()
 
-		list.removeSweepableTransactionsReturnHashes(uint64(3))
+		list.removeSweepableTransactionsReturnHashes(uint64(3), txCache.tracker)
 		hashesAfterEviction := list.getTxHashesAsStrings()
 		require.Equal(t, []string{"c", "e"}, hashesAfterEviction)
 

@@ -1304,8 +1304,8 @@ func Test_isTransactionTracked(t *testing.T) {
 		tx1 := createTx([]byte("txHash1"), "alice", 11)
 		tx2 := createTx([]byte("txHash6"), "eve", 11)
 
-		require.True(t, txCache.tracker.isTransactionTracked(tx1))
-		require.True(t, txCache.tracker.isTransactionTracked(tx2))
+		require.True(t, txCache.tracker.IsTransactionTracked(tx1))
+		require.True(t, txCache.tracker.IsTransactionTracked(tx2))
 	})
 
 	t.Run("should return false because out of range", func(t *testing.T) {
@@ -1314,8 +1314,8 @@ func Test_isTransactionTracked(t *testing.T) {
 		tx1 := createTx([]byte("txHashX"), "alice", 16)
 		tx2 := createTx([]byte("txHashX"), "eve", 12)
 
-		require.False(t, txCache.tracker.isTransactionTracked(tx1))
-		require.False(t, txCache.tracker.isTransactionTracked(tx2))
+		require.False(t, txCache.tracker.IsTransactionTracked(tx1))
+		require.False(t, txCache.tracker.IsTransactionTracked(tx2))
 
 	})
 
@@ -1324,7 +1324,7 @@ func Test_isTransactionTracked(t *testing.T) {
 
 		tx1 := createTx([]byte("txHashX"), "alice", 16)
 
-		require.False(t, txCache.tracker.isTransactionTracked(tx1))
+		require.False(t, txCache.tracker.IsTransactionTracked(tx1))
 	})
 
 	t.Run("should return false because account is not tracked at all", func(t *testing.T) {
@@ -1332,7 +1332,7 @@ func Test_isTransactionTracked(t *testing.T) {
 
 		tx1 := createTx([]byte("txHash2"), "carol", 12)
 
-		require.False(t, txCache.tracker.isTransactionTracked(tx1))
+		require.False(t, txCache.tracker.IsTransactionTracked(tx1))
 	})
 
 	t.Run("should return true for any transaction of sender with a tracked nonce", func(t *testing.T) {
@@ -1340,7 +1340,7 @@ func Test_isTransactionTracked(t *testing.T) {
 
 		tx1 := createTx([]byte("txHash7"), "eve", 12)
 
-		require.False(t, txCache.tracker.isTransactionTracked(tx1))
+		require.False(t, txCache.tracker.IsTransactionTracked(tx1))
 	})
 }
 

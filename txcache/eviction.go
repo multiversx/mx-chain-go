@@ -126,6 +126,10 @@ func (cache *TxCache) evictLeastLikelyToSelectTransactions() *evictionJournal {
 				break
 			}
 
+			if cache.tracker.IsTransactionTracked(item.currentTransaction) {
+				continue
+			}
+
 			transactionsToEvict = append(transactionsToEvict, item.currentTransaction)
 			transactionsToEvictHashes = append(transactionsToEvictHashes, item.currentTransaction.TxHash)
 
@@ -157,17 +161,12 @@ func (cache *TxCache) evictLeastLikelyToSelectTransactions() *evictionJournal {
 		}
 
 		// Remove those transactions from "txByHash".
-		txs := cache.txByHash.GetTxsBulk(transactionsToEvictHashes)
-
-		logRemove.Debug("evictLeastLikelyToSelectTransactions", "pass", pass, "num evicted", len(transactionsToEvict))
-
-		untrackedTransactionsToEvictHashes := cache.tracker.GetBulkOfUntrackedTransactions(txs)
-		_ = cache.txByHash.RemoveTxsBulk(untrackedTransactionsToEvictHashes)
+		_ = cache.txByHash.RemoveTxsBulk(transactionsToEvictHashes)
 
 		journal.numEvictedByPass = append(journal.numEvictedByPass, len(transactionsToEvict))
 		journal.numEvicted += len(transactionsToEvict)
 
-		logRemove.Debug("evictLeastLikelyToSelectTransactions", "pass", pass, "num untracked evicted", len(untrackedTransactionsToEvictHashes))
+		logRemove.Debug("evictLeastLikelyToSelectTransactions", "pass", pass, "num evicted", len(transactionsToEvict))
 	}
 
 	return journal

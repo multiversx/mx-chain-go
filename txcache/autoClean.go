@@ -79,14 +79,11 @@ func (cache *TxCache) RemoveSweepableTxs(accountsProvider common.AccountNoncePro
 		// we want to remove transactions with nonces < lastCommittedNonce
 		targetNonce := accountNonce - 1
 
-		evicted = append(evicted, sender.removeSweepableTransactionsReturnHashes(targetNonce)...)
+		evicted = append(evicted, sender.removeSweepableTransactionsReturnHashes(targetNonce, cache.tracker)...)
 	}
 
 	if len(evicted) > 0 {
-		txs := cache.txByHash.GetTxsBulk(evicted)
-
-		untrackedEvicted := cache.tracker.GetBulkOfUntrackedTransactions(txs)
-		cache.txByHash.RemoveTxsBulk(untrackedEvicted)
+		cache.txByHash.RemoveTxsBulk(evicted)
 	}
 
 	logRemove.Debug("TxCache.RemoveSweepableTxs end",
@@ -134,7 +131,7 @@ func shuffleSendersAddresses(senders []string, randomness uint64) {
 	})
 }
 
-func (listForSender *txListForSender) removeSweepableTransactionsReturnHashes(targetNonce uint64) [][]byte {
+func (listForSender *txListForSender) removeSweepableTransactionsReturnHashes(targetNonce uint64, tracker *selectionTracker) [][]byte {
 	txHashesToEvict := make([][]byte, 0)
 
 	// We don't allow concurrent goroutines to mutate a given sender's list
@@ -144,6 +141,10 @@ func (listForSender *txListForSender) removeSweepableTransactionsReturnHashes(ta
 	for element := listForSender.items.Front(); element != nil; {
 		// finds transactions with lower nonces
 		tx := element.Value.(*WrappedTransaction)
+		if tracker.IsTransactionTracked(tx) {
+			continue
+		}
+
 		txNonce := tx.Tx.GetNonce()
 
 		// nonces are sorted ascending, so we can stop as soon as we find a nonce that is higher
