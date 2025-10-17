@@ -189,7 +189,7 @@ func (atp *apiTransactionProcessor) PopulateComputedFields(tx *transaction.ApiTr
 }
 
 func (atp *apiTransactionProcessor) populateComputedFieldsProcessingType(tx *transaction.ApiTransactionResult) {
-	typeOnSource, typeOnDestination, _ := atp.txTypeHandler.ComputeTransactionType(tx.Tx)
+	typeOnSource, typeOnDestination, _ := atp.txTypeHandler.ComputeTransactionTypeInEpoch(tx.Tx, tx.Epoch)
 	tx.ProcessingTypeOnSource = typeOnSource.String()
 	tx.ProcessingTypeOnDestination = typeOnDestination.String()
 }

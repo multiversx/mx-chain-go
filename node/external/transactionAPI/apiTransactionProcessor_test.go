@@ -1337,7 +1337,7 @@ func TestApiTransactionProcessor_GetTransactionPopulatesComputedFields(t *testin
 	})
 
 	t.Run("ProcessingType", func(t *testing.T) {
-		txTypeHandler.ComputeTransactionTypeCalled = func(data.TransactionHandler) (process.TransactionType, process.TransactionType, bool) {
+		txTypeHandler.ComputeTransactionTypeInEpochCalled = func(data.TransactionHandler, uint32) (process.TransactionType, process.TransactionType, bool) {
 			return process.MoveBalance, process.SCDeployment, false
 		}
 
@@ -1350,7 +1350,7 @@ func TestApiTransactionProcessor_GetTransactionPopulatesComputedFields(t *testin
 	})
 
 	t.Run("ProcessingType (with relayed v3)", func(t *testing.T) {
-		txTypeHandler.ComputeTransactionTypeCalled = func(data.TransactionHandler) (process.TransactionType, process.TransactionType, bool) {
+		txTypeHandler.ComputeTransactionTypeInEpochCalled = func(data.TransactionHandler, uint32) (process.TransactionType, process.TransactionType, bool) {
 			return process.MoveBalance, process.SCDeployment, true
 		}
 
@@ -1394,7 +1394,7 @@ func TestApiTransactionProcessor_PopulateComputedFields(t *testing.T) {
 	require.Nil(t, err)
 	require.NotNil(t, processor)
 
-	txTypeHandler.ComputeTransactionTypeCalled = func(data.TransactionHandler) (process.TransactionType, process.TransactionType, bool) {
+	txTypeHandler.ComputeTransactionTypeInEpochCalled = func(data.TransactionHandler, uint32) (process.TransactionType, process.TransactionType, bool) {
 		return process.MoveBalance, process.SCDeployment, false
 	}
 
