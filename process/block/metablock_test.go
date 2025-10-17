@@ -3185,7 +3185,7 @@ func TestMetaProcessor_CreateNewHeaderValsOK(t *testing.T) {
 	assert.Equal(t, zeroInt, metaHeader.DevFeesInEpoch)
 }
 
-func TestCreateNewHeaderV3(t *testing.T) {
+func TestCreateNewHeaderProposal(t *testing.T) {
 	t.Parallel()
 
 	rootHash := []byte("root")
@@ -3219,14 +3219,41 @@ func TestCreateNewHeaderV3(t *testing.T) {
 	}
 
 	arguments := createMockMetaArguments(coreComponents, dataComponents, boostrapComponents, statusComponents)
+	dataComponents = &mock.DataComponentsMock{
+		BlockChain: &testscommon.ChainHandlerStub{
+			GetCurrentBlockHeaderCalled: func() data.HeaderHandler {
+				return &block.MetaBlockV3{
+					Epoch: epoch,
+					LastExecutionResult: &block.MetaExecutionResultInfo{
+						NotarizedInRound: 10,
+						ExecutionResult: &block.BaseMetaExecutionResult{
+							BaseExecutionResult: &block.BaseExecutionResult{
+								HeaderHash:  []byte("hash2"),
+								HeaderNonce: 9,
+								HeaderRound: 9,
+								HeaderEpoch: epoch,
+								RootHash:    []byte("root hash"),
+								GasUsed:     1000,
+							},
+						},
+					},
+				}
+			},
+			GetCurrentBlockHeaderHashCalled: func() []byte {
+				return []byte("hash")
+			},
+		},
+		DataPool: arguments.DataComponents.Datapool(),
+		Storage:  arguments.DataComponents.StorageService(),
+	}
 
+	arguments.DataComponents = dataComponents
 	arguments.AccountsDB[state.UserAccountsState] = &stateMock.AccountsStub{
 		RootHashCalled: func() ([]byte, error) {
 			return rootHash, nil
 		},
 	}
 
-	updateRoundCalled := false
 	arguments.EpochStartTrigger = &mock.EpochStartTriggerStub{
 		EpochCalled: func() uint32 {
 			return epoch
@@ -3234,19 +3261,15 @@ func TestCreateNewHeaderV3(t *testing.T) {
 		ShouldProposeEpochChangeCalled: func(round uint64, nonce uint64) bool {
 			return true
 		},
-		UpdateRoundCalled: func(round uint64) {
-			updateRoundCalled = true
-		},
 	}
 
 	mp, err := blproc.NewMetaProcessor(arguments)
 	assert.Nil(t, err)
 
-	newHeader, err := mp.CreateNewHeader(round, nonce)
+	newHeader, err := mp.CreateNewHeaderProposal(round, nonce)
 	require.Nil(t, err)
 	require.IsType(t, &block.MetaBlockV3{}, newHeader)
 	require.Equal(t, epoch, newHeader.GetEpoch())
-	require.True(t, updateRoundCalled)
 }
 
 func TestMetaProcessor_ProcessEpochStartMetaBlock(t *testing.T) {

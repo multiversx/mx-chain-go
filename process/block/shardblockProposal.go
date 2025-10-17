@@ -20,6 +20,29 @@ import (
 // TODO: maybe move this to config
 const maxBlockProcessingTime = 3 * time.Second
 
+// CreateNewHeaderProposal creates a new header proposal
+func (sp *shardProcessor) CreateNewHeaderProposal(round uint64, nonce uint64) (data.HeaderHandler, error) {
+	epoch := sp.epochStartTrigger.MetaEpoch()
+	header := sp.versionedHeaderFactory.Create(epoch, round)
+
+	shardHeader, ok := header.(data.ShardHeaderHandler)
+	if !ok {
+		return nil, process.ErrWrongTypeAssertion
+	}
+
+	err := shardHeader.SetRound(round)
+	if err != nil {
+		return nil, err
+	}
+
+	err = shardHeader.SetNonce(nonce)
+	if err != nil {
+		return nil, err
+	}
+
+	return header, nil
+}
+
 // CreateBlockProposal creates a block proposal without executing any of the transactions
 func (sp *shardProcessor) CreateBlockProposal(
 	initialHdr data.HeaderHandler,
@@ -444,29 +467,6 @@ func (sp *shardProcessor) getTransactionsForMiniBlock(
 	return mbForHeaderPtr.TxHashes, txs, nil
 }
 
-func (sp *shardProcessor) checkInclusionEstimationForExecutionResults(header data.HeaderHandler) error {
-	prevBlockLastExecutionResult, err := process.GetPrevBlockLastExecutionResult(sp.blockChain)
-	if err != nil {
-		return err
-	}
-
-	lastResultData, err := process.CreateDataForInclusionEstimation(prevBlockLastExecutionResult)
-	if err != nil {
-		return err
-	}
-	executionResults := header.GetExecutionResultsHandlers()
-	allowed := sp.executionResultsInclusionEstimator.Decide(lastResultData, executionResults, header.GetRound())
-	if allowed != len(executionResults) {
-		log.Warn("number of execution results included in the header is not correct",
-			"expected", allowed,
-			"actual", len(executionResults),
-		)
-		return process.ErrInvalidNumberOfExecutionResultsInHeader
-	}
-
-	return nil
-}
-
 func computeTxTotalTxCount(miniBlockHeaders []data.MiniBlockHeaderHandler) uint32 {
 	totalTxCount := uint32(0)
 	for i := range miniBlockHeaders {
@@ -483,43 +483,6 @@ func checkMiniBlocksAndMiniBlockHeadersConsistency(miniBlocks block.MiniBlockSli
 
 	// TODO: check if the reserved field or other fields are consistent.
 	return nil
-}
-
-func (sp *shardProcessor) addExecutionResultsOnHeader(shardHeader data.HeaderHandler) error {
-	pendingExecutionResults, err := sp.executionResultsTracker.GetPendingExecutionResults()
-	if err != nil {
-		return err
-	}
-
-	lastExecutionResultHandler, err := process.GetPrevBlockLastExecutionResult(sp.blockChain)
-	if err != nil {
-		return err
-	}
-
-	lastNotarizedExecutionResultInfo, err := process.CreateDataForInclusionEstimation(lastExecutionResultHandler)
-	if err != nil {
-		return err
-	}
-
-	var lastExecutionResultForCurrentBlock data.LastExecutionResultHandler
-	numToInclude := sp.executionResultsInclusionEstimator.Decide(lastNotarizedExecutionResultInfo, pendingExecutionResults, shardHeader.GetRound())
-
-	executionResultsToInclude := pendingExecutionResults[:numToInclude]
-	lastExecutionResultForCurrentBlock = lastExecutionResultHandler
-	if len(executionResultsToInclude) > 0 {
-		lastExecutionResult := executionResultsToInclude[len(executionResultsToInclude)-1]
-		lastExecutionResultForCurrentBlock, err = process.CreateLastExecutionResultInfoFromExecutionResult(shardHeader.GetRound(), lastExecutionResult, sp.shardCoordinator.SelfId())
-		if err != nil {
-			return err
-		}
-	}
-
-	err = shardHeader.SetLastExecutionResultHandler(lastExecutionResultForCurrentBlock)
-	if err != nil {
-		return err
-	}
-
-	return shardHeader.SetExecutionResultsHandlers(executionResultsToInclude)
 }
 
 func (sp *shardProcessor) createBlockBodyProposal(

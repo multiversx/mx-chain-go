@@ -20,6 +20,8 @@ import (
 	"github.com/multiversx/mx-chain-core-go/display"
 	"github.com/multiversx/mx-chain-core-go/hashing"
 	"github.com/multiversx/mx-chain-core-go/marshal"
+	logger "github.com/multiversx/mx-chain-logger-go"
+
 	nodeFactory "github.com/multiversx/mx-chain-go/cmd/node/factory"
 	"github.com/multiversx/mx-chain-go/common"
 	"github.com/multiversx/mx-chain-go/common/errChan"
@@ -43,7 +45,6 @@ import (
 	"github.com/multiversx/mx-chain-go/state/parsers"
 	"github.com/multiversx/mx-chain-go/storage"
 	"github.com/multiversx/mx-chain-go/storage/storageunit"
-	logger "github.com/multiversx/mx-chain-logger-go"
 )
 
 var log = logger.GetOrCreate("process/block")
@@ -2658,4 +2659,64 @@ func getStorageUnitFromBlockType(blockType block.Type) (dataRetriever.UnitType, 
 		return dataRetriever.UnsignedTransactionUnit, nil
 	}
 	return 0, process.ErrInvalidBlockType
+}
+
+func (bp *baseProcessor) checkInclusionEstimationForExecutionResults(header data.HeaderHandler) error {
+	prevBlockLastExecutionResult, err := process.GetPrevBlockLastExecutionResult(bp.blockChain)
+	if err != nil {
+		return err
+	}
+
+	lastResultData, err := process.CreateDataForInclusionEstimation(prevBlockLastExecutionResult)
+	if err != nil {
+		return err
+	}
+	executionResults := header.GetExecutionResultsHandlers()
+	allowed := bp.executionResultsInclusionEstimator.Decide(lastResultData, executionResults, header.GetRound())
+	if allowed != len(executionResults) {
+		log.Warn("number of execution results included in the header is not correct",
+			"expected", allowed,
+			"actual", len(executionResults),
+		)
+		return process.ErrInvalidNumberOfExecutionResultsInHeader
+	}
+
+	return nil
+}
+
+func (bp *baseProcessor) addExecutionResultsOnHeader(header data.HeaderHandler) error {
+	pendingExecutionResults, err := bp.executionResultsTracker.GetPendingExecutionResults()
+	if err != nil {
+		return err
+	}
+
+	lastExecutionResultHandler, err := process.GetPrevBlockLastExecutionResult(bp.blockChain)
+	if err != nil {
+		return err
+	}
+
+	lastNotarizedExecutionResultInfo, err := process.CreateDataForInclusionEstimation(lastExecutionResultHandler)
+	if err != nil {
+		return err
+	}
+
+	var lastExecutionResultForCurrentBlock data.LastExecutionResultHandler
+	numToInclude := bp.executionResultsInclusionEstimator.Decide(lastNotarizedExecutionResultInfo, pendingExecutionResults, header.GetRound())
+
+	executionResultsToInclude := pendingExecutionResults[:numToInclude]
+	lastExecutionResultForCurrentBlock = lastExecutionResultHandler
+	if len(executionResultsToInclude) > 0 {
+		lastExecutionResult := executionResultsToInclude[len(executionResultsToInclude)-1]
+		lastExecutionResultForCurrentBlock, err = process.CreateLastExecutionResultInfoFromExecutionResult(header.GetRound(), lastExecutionResult, bp.shardCoordinator.SelfId())
+		if err != nil {
+			return err
+		}
+	}
+
+	err = header.SetLastExecutionResultHandler(lastExecutionResultForCurrentBlock)
+	if err != nil {
+		return err
+	}
+
+	return header.SetExecutionResultsHandlers(executionResultsToInclude)
 }

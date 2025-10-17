@@ -319,15 +319,6 @@ func (mp *metaProcessor) ProcessBlock(
 	return nil
 }
 
-// TODO: move this to the ProcessBlockProposal for meta chain
-func (mp *metaProcessor) updateEpochStartTrigger(round, nonce uint64) {
-	if common.IsAsyncExecutionEnabled(mp.enableEpochsHandler, mp.enableRoundsHandler) {
-		mp.epochStartTrigger.UpdateRound(round)
-	} else {
-		mp.epochStartTrigger.Update(round, nonce)
-	}
-}
-
 func (mp *metaProcessor) processEpochStartMetaBlock(
 	header *block.MetaBlock,
 	body *block.Body,
@@ -2205,9 +2196,7 @@ func (mp *metaProcessor) verifyValidatorStatisticsRootHash(header *block.MetaBlo
 
 // CreateNewHeader creates a new header
 func (mp *metaProcessor) CreateNewHeader(round uint64, nonce uint64) (data.HeaderHandler, error) {
-	mp.updateEpochStartTrigger(round, nonce)
-
-	epochChangeProposed := mp.epochStartTrigger.ShouldProposeEpochChange(round, nonce)
+	mp.epochStartTrigger.Update(round, nonce)
 	epoch := mp.epochStartTrigger.Epoch()
 
 	header := mp.versionedHeaderFactory.Create(epoch, round)
@@ -2217,7 +2206,7 @@ func (mp *metaProcessor) CreateNewHeader(round uint64, nonce uint64) (data.Heade
 	}
 
 	if metaHeader.IsHeaderV3() {
-		metaHeader.SetEpochChangeProposed(epochChangeProposed)
+		return nil, process.ErrInvalidHeader
 	}
 
 	err := metaHeader.SetRound(round)
@@ -2277,9 +2266,6 @@ func initializeFeesDataMetaHeaderIfNeeded(metaHeader data.MetaHeaderHandler) err
 func (mp *metaProcessor) setHeaderVersionData(metaHeader data.MetaHeaderHandler) error {
 	if check.IfNil(metaHeader) {
 		return process.ErrNilHeaderHandler
-	}
-	if metaHeader.IsHeaderV3() {
-		return nil
 	}
 
 	rootHash, err := mp.accountsDB[state.UserAccountsState].RootHash()
