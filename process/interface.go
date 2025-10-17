@@ -516,8 +516,7 @@ type VirtualMachinesContainerFactory interface {
 // EpochStartTriggerHandler defines that actions which are needed by processor for start of epoch
 type EpochStartTriggerHandler interface {
 	Update(round uint64, nonce uint64)
-	UpdateRound(round uint64)
-	SetEpochChange()
+	SetEpochChange(round uint64)
 	ShouldProposeEpochChange(round uint64, nonce uint64) bool
 	IsEpochStart() bool
 	Epoch() uint32
