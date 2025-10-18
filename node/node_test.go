@@ -625,6 +625,129 @@ func TestNode_GetKeyValuePairsContextShouldTimeout(t *testing.T) {
 	assert.Equal(t, node.ErrTrieOperationsTimeout, err)
 }
 
+func TestNode_IterateKeys(t *testing.T) {
+	t.Parallel()
+
+	t.Run("iterate keys for main trie", func(t *testing.T) {
+		t.Parallel()
+
+		pairs := map[string]string{
+			"key1": "value1",
+			"key2": "value2",
+		}
+		currentRootHash := []byte("root hash")
+		currentBlockHash := []byte("header hash")
+
+		accDB := &stateMock.AccountsStub{}
+		accDB.RecreateTrieCalled = func(rootHash common.RootHashHolder) error {
+			return nil
+		}
+
+		coreComponents := getDefaultCoreComponents()
+		coreComponents.IntMarsh = getMarshalizer()
+		coreComponents.VmMarsh = getMarshalizer()
+		coreComponents.Hash = getHasher()
+		coreComponents.AddrPubKeyConv = createMockPubkeyConverter()
+		dataComponents := getDefaultDataComponents()
+		dataComponents.BlockChain = &testscommon.ChainHandlerStub{
+			GetCurrentBlockHeaderCalled: func() data.HeaderHandler {
+				return &block.Header{
+					Nonce:    42,
+					RootHash: currentRootHash,
+				}
+			},
+			GetCurrentBlockHeaderHashCalled: func() []byte {
+				return currentBlockHash
+			},
+			GetCurrentBlockRootHashCalled: func() []byte {
+				return currentRootHash
+			},
+		}
+		stateComponents := getDefaultStateComponents()
+		stateComponents.LeavesRetriever = &trieMock.LeavesRetrieverStub{
+			GetLeavesCalled: func(numLeaves int, iteratorState [][]byte, leavesParser common.TrieLeafParser, ctx context.Context) (map[string]string, [][]byte, error) {
+				return pairs, nil, nil
+			},
+		}
+		args := state.ArgsAccountsRepository{
+			FinalStateAccountsWrapper:      accDB,
+			CurrentStateAccountsWrapper:    accDB,
+			HistoricalStateAccountsWrapper: accDB,
+		}
+		stateComponents.AccountsRepo, _ = state.NewAccountsRepository(args)
+		n, _ := node.NewNode(
+			node.WithCoreComponents(coreComponents),
+			node.WithStateComponents(stateComponents),
+			node.WithDataComponents(dataComponents),
+		)
+
+		options := api.AccountQueryOptions{}
+		retrievedPairs, newIteratorState, blockInfo, err := n.IterateKeys("maintrie", 10, [][]byte{}, options, context.Background())
+		assert.Nil(t, err)
+		assert.Equal(t, pairs, retrievedPairs)
+		assert.Nil(t, newIteratorState)
+		assert.Equal(t, api.BlockInfo{
+			Nonce:    42,
+			Hash:     hex.EncodeToString(currentBlockHash),
+			RootHash: hex.EncodeToString(currentRootHash),
+		}, blockInfo)
+	})
+	t.Run("iterate keys for data tries", func(t *testing.T) {
+		t.Parallel()
+
+		address := []byte("abcabcabca")
+		acc := createAcc(address)
+		acc.SetDataTrie(&trieMock.TrieStub{})
+		pairs := map[string]string{
+			"key1": "value1",
+			"key2": "value2",
+		}
+		currentRootHash := []byte("root hash")
+		currentBlockHash := []byte("header hash")
+		expectedBlockInfo := holders.NewBlockInfo(currentBlockHash, 42, currentRootHash)
+
+		accDB := &stateMock.AccountsStub{}
+		accDB.GetAccountWithBlockInfoCalled = func(address []byte, options common.RootHashHolder) (vmcommon.AccountHandler, common.BlockInfo, error) {
+			return acc, expectedBlockInfo, nil
+		}
+
+		coreComponents := getDefaultCoreComponents()
+		coreComponents.IntMarsh = getMarshalizer()
+		coreComponents.VmMarsh = getMarshalizer()
+		coreComponents.Hash = getHasher()
+		coreComponents.AddrPubKeyConv = createMockPubkeyConverter()
+		dataComponents := getDefaultDataComponents()
+		stateComponents := getDefaultStateComponents()
+		stateComponents.LeavesRetriever = &trieMock.LeavesRetrieverStub{
+			GetLeavesCalled: func(numLeaves int, iteratorState [][]byte, leavesParser common.TrieLeafParser, ctx context.Context) (map[string]string, [][]byte, error) {
+				return pairs, nil, nil
+			},
+		}
+		args := state.ArgsAccountsRepository{
+			FinalStateAccountsWrapper:      accDB,
+			CurrentStateAccountsWrapper:    accDB,
+			HistoricalStateAccountsWrapper: accDB,
+		}
+		stateComponents.AccountsRepo, _ = state.NewAccountsRepository(args)
+		n, _ := node.NewNode(
+			node.WithCoreComponents(coreComponents),
+			node.WithStateComponents(stateComponents),
+			node.WithDataComponents(dataComponents),
+		)
+
+		options := api.AccountQueryOptions{}
+		retrievedPairs, newIteratorState, blockInfo, err := n.IterateKeys("abcabcabca", 10, [][]byte{}, options, context.Background())
+		assert.Nil(t, err)
+		assert.Equal(t, pairs, retrievedPairs)
+		assert.Nil(t, newIteratorState)
+		assert.Equal(t, api.BlockInfo{
+			Nonce:    42,
+			Hash:     hex.EncodeToString(currentBlockHash),
+			RootHash: hex.EncodeToString(currentRootHash),
+		}, blockInfo)
+	})
+}
+
 func TestNode_GetValueForKeyAccNotFoundShouldReturnEmpty(t *testing.T) {
 	t.Parallel()
 
