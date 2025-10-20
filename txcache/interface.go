@@ -29,3 +29,9 @@ type txCacheForSelectionTracker interface {
 	GetByTxHash(txHash []byte) (*WrappedTransaction, bool)
 	IsInterfaceNil() bool
 }
+
+// TrackerDiagnosis provides the methods for a tracker diagnosis
+type TrackerDiagnosis interface {
+	GetNumTrackedBlocks() uint64
+	GetNumTrackedAccounts() uint64
+}

@@ -20,7 +20,7 @@ type txCache interface {
 	ForEachTransaction(function txcache.ForEachTransaction)
 	NumBytes() int
 	Diagnose(deep bool)
-	GetTrackerDiagnosis() (uint64, uint64)
+	GetTrackerDiagnosis() txcache.TrackerDiagnosis
 	GetTransactionsPoolForSender(sender string) []*txcache.WrappedTransaction
 	OnProposedBlock(blockHash []byte, blockBody data.BodyHandler, blockHeader data.HeaderHandler, accountsProvider common.AccountNonceAndBalanceProvider, latestExecutedHash []byte) error
 	OnExecutedBlock(blockHeader data.HeaderHandler) error

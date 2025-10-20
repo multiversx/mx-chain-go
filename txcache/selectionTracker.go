@@ -622,9 +622,9 @@ func (st *selectionTracker) displayTrackedBlocks(contextualLogger logger.Logger,
 }
 
 // getTrackerDiagnosis returns the dimension of tracked blocks and the number of global account breadcrumbs
-func (st *selectionTracker) getTrackerDiagnosis() (uint64, uint64) {
+func (st *selectionTracker) getTrackerDiagnosis() TrackerDiagnosis {
 	st.mutTracker.RLock()
 	defer st.mutTracker.RUnlock()
 
-	return uint64(len(st.blocks)), st.globalBreadcrumbsCompiler.getNumGlobalBreadcrumbs()
+	return NewTrackerDiagnosis(uint64(len(st.blocks)), st.globalBreadcrumbsCompiler.getNumGlobalBreadcrumbs())
 }
