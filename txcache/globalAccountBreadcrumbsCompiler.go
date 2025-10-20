@@ -7,7 +7,6 @@ import (
 // globalAccountBreadcrumbsCompiler represents the global account breadcrumbs compiler used in the Selection Tracker.
 // A globalAccountBreadcrumbsCompiler holds a globalAccountBreadcrumb for each account.
 type globalAccountBreadcrumbsCompiler struct {
-	// TODO analyze if this mutex is needed
 	mutCompiler              sync.RWMutex
 	globalAccountBreadcrumbs map[string]*globalAccountBreadcrumb
 }
@@ -111,6 +110,14 @@ func (gabc *globalAccountBreadcrumbsCompiler) getGlobalBreadcrumbs() map[string]
 	}
 
 	return globalBreadcrumbsCopy
+}
+
+// getNumGlobalBreadcrumbs returns the number of global breadcrumbs
+func (gabc *globalAccountBreadcrumbsCompiler) getNumGlobalBreadcrumbs() uint64 {
+	gabc.mutCompiler.RLock()
+	defer gabc.mutCompiler.RUnlock()
+
+	return uint64(len(gabc.globalAccountBreadcrumbs))
 }
 
 // cleanGlobalBreadcrumbs resets the global accounts breadcrumbs

@@ -32,7 +32,7 @@ var (
 	durationWaitAfterSendMany    = 7500 * time.Millisecond
 	durationWaitAfterSendSome    = 1000 * time.Millisecond
 	selectionLoopMaximumDuration = 1000 * time.Millisecond
-	defaultBlockchainInfo        = holders.NewBlockchainInfo([]byte("blockHash0"), []byte("blockHash0"), 0)
+	defaultLatestExecutedHash    = []byte("blockHash0")
 	gasLimit                     = 50_000
 	gasPrice                     = 1_000_000_000
 )
@@ -363,7 +363,7 @@ func testOnProposed(t *testing.T, sw *core.StopWatch, numTxs int, numAddresses i
 		RootHash: []byte(fmt.Sprintf("rootHash%d", 0)),
 	},
 		accountsAdapter,
-		defaultBlockchainInfo,
+		defaultLatestExecutedHash,
 	)
 	sw.Stop(t.Name())
 	require.Nil(t, err)
@@ -466,7 +466,7 @@ func testSecondSelection(t *testing.T, sw *core.StopWatch, numTxs int, numTxsToB
 		RootHash: []byte(fmt.Sprintf("rootHash%d", 0)),
 	},
 		accountsAdapter,
-		defaultBlockchainInfo,
+		defaultLatestExecutedHash,
 	)
 	require.Nil(t, err)
 
@@ -486,7 +486,7 @@ func testSecondSelection(t *testing.T, sw *core.StopWatch, numTxs int, numTxsToB
 		RootHash: []byte(fmt.Sprintf("rootHash%d", 0)),
 	},
 		selectionSession,
-		defaultBlockchainInfo,
+		defaultLatestExecutedHash,
 	)
 	require.Nil(t, err)
 
@@ -547,7 +547,7 @@ func testSecondSelectionWithManyTxsInPool(t *testing.T, sw *core.StopWatch, numT
 		RootHash: []byte(fmt.Sprintf("rootHash%d", 0)),
 	},
 		accountsAdapter,
-		defaultBlockchainInfo,
+		defaultLatestExecutedHash,
 	)
 	require.Nil(t, err)
 

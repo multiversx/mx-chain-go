@@ -7,7 +7,6 @@ import (
 	"github.com/multiversx/mx-chain-core-go/core/atomic"
 	"github.com/multiversx/mx-chain-core-go/core/check"
 	"github.com/multiversx/mx-chain-core-go/data"
-	"github.com/multiversx/mx-chain-core-go/data/block"
 	"github.com/multiversx/mx-chain-go/common"
 	"github.com/multiversx/mx-chain-storage-go/monitoring"
 	"github.com/multiversx/mx-chain-storage-go/types"
@@ -176,7 +175,6 @@ func (cache *TxCache) selectTransactions(
 }
 
 // GetVirtualNonceAndRootHash returns the nonce of the virtual record of an account and the corresponding rootHash.
-// For this method, the blockchainInfo should contain the hash of the last committed block.
 func (cache *TxCache) GetVirtualNonceAndRootHash(
 	address []byte,
 ) (uint64, []byte, error) {
@@ -191,11 +189,11 @@ func (cache *TxCache) GetVirtualNonceAndRootHash(
 // OnProposedBlock calls the OnProposedBlock method from SelectionTracker
 func (cache *TxCache) OnProposedBlock(
 	blockHash []byte,
-	blockBody *block.Body,
+	blockBody data.BodyHandler,
 	blockHeader data.HeaderHandler,
 	accountsProvider common.AccountNonceAndBalanceProvider,
-	blockchainInfo common.BlockchainInfo) error {
-	return cache.tracker.OnProposedBlock(blockHash, blockBody, blockHeader, accountsProvider, blockchainInfo)
+	latestExecutedHash []byte) error {
+	return cache.tracker.OnProposedBlock(blockHash, blockBody, blockHeader, accountsProvider, latestExecutedHash)
 }
 
 // OnExecutedBlock calls the OnExecutedBlock method from SelectionTracker

@@ -26,3 +26,4 @@ var errBadBlockWhileMaxTrackedBlocksReached = errors.New("bad block received whi
 var errNilBalance = errors.New("nil balance")
 var errGlobalBreadcrumbDoesNotExist = errors.New("global breadcrumb does not exist")
 var errRootHashMismatch = errors.New("root hash mismatch")
+var errWrongTypeAssertion = errors.New("wrong type assertion")

@@ -33,9 +33,9 @@ func (cache *TxCache) Diagnose(_ bool) {
 	cache.diagnoseTransactions()
 }
 
-// GetNumTrackedBlocks returns the dimension of the tracked blocks
-func (cache *TxCache) GetNumTrackedBlocks() uint64 {
-	return cache.tracker.getNumTrackedBlocks()
+// GetTrackerDiagnosis returns the dimension of the tracked blocks
+func (cache *TxCache) GetTrackerDiagnosis() TrackerDiagnosis {
+	return cache.tracker.getTrackerDiagnosis()
 }
 
 func (cache *TxCache) diagnoseTransactions() {

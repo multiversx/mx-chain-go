@@ -12,7 +12,6 @@ import (
 	"golang.org/x/exp/slices"
 )
 
-// TODO rename this to proposedBlocksTracker
 type selectionTracker struct {
 	mutTracker                sync.RWMutex
 	latestNonce               uint64
@@ -46,14 +45,19 @@ func NewSelectionTracker(txCache txCacheForSelectionTracker, maxTrackedBlocks ui
 // blockBody contains the transactions of the new block (required for creating the breadcrumbs and validating the block).
 // blockHeader contains the nonce, the rootHash and the previousHash of the new proposed block.
 // accountsProvider is a wrapper over the current blockchain state.
-// blockchainInfo must contain the information about the last executed block. The other information is not used in this flow.
+// latestExecutedHash represents the hash of the last executed block.
 func (st *selectionTracker) OnProposedBlock(
 	blockHash []byte,
-	blockBody *block.Body,
+	bodyHandler data.BodyHandler,
 	blockHeader data.HeaderHandler,
 	accountsProvider common.AccountNonceAndBalanceProvider,
-	blockchainInfo common.BlockchainInfo,
+	latestExecutedHash []byte,
 ) error {
+	blockBody, ok := bodyHandler.(*block.Body)
+	if !ok {
+		return errWrongTypeAssertion
+	}
+
 	err := st.verifyArgsOfOnProposedBlock(blockHash, blockBody, blockHeader, accountsProvider)
 	if err != nil {
 		return err
@@ -105,7 +109,7 @@ func (st *selectionTracker) OnProposedBlock(
 		return err
 	}
 
-	err = st.validateTrackedBlocksAndCompileBreadcrumbsNoLock(blockBody, tBlock, accountsProvider, blockchainInfo)
+	err = st.validateTrackedBlocksAndCompileBreadcrumbsNoLock(blockBody, tBlock, accountsProvider, latestExecutedHash)
 	if err != nil {
 		log.Debug("selectionTracker.OnProposedBlock: error validating the tracked blocks", "err", err)
 		return err
@@ -177,10 +181,10 @@ func (st *selectionTracker) validateTrackedBlocksAndCompileBreadcrumbsNoLock(
 	blockBody *block.Body,
 	blockToTrack *trackedBlock,
 	accountsProvider common.AccountNonceAndBalanceProvider,
-	blockchainInfo common.BlockchainInfo,
+	latestExecutedHash []byte,
 ) error {
 	blocksToBeValidated, err := st.getChainOfTrackedPendingBlocks(
-		blockchainInfo.GetLatestExecutedBlockHash(),
+		latestExecutedHash,
 		blockToTrack.prevHash,
 		blockToTrack.nonce,
 	)
@@ -228,6 +232,7 @@ func (st *selectionTracker) validateBreadcrumbsOfTrackedBlocks(
 
 	for _, tb := range chainOfTrackedBlocks {
 		for address, breadcrumb := range tb.breadcrumbsByAddress {
+			// NOTE: the initial balance should never change during this validation, because we use an account provider which is not affected by the actual execution.
 			initialNonce, initialBalance, _, err := accountsProvider.GetAccountNonceAndBalance([]byte(address))
 			if err != nil {
 				log.Debug("selectionTracker.validateBreadcrumbsOfTrackedBlocks",
@@ -249,7 +254,6 @@ func (st *selectionTracker) validateBreadcrumbsOfTrackedBlocks(
 				return errDiscontinuousBreadcrumbs
 			}
 
-			// TODO re-brainstorm, validate with more integration tests
 			// use its balance to accumulate and validate (make sure is < than initialBalance from the session)
 			err = validator.validateBalance(address, initialBalance, breadcrumb)
 			if err != nil {
@@ -290,12 +294,13 @@ func (st *selectionTracker) removeBlockEqualOrAboveNoLock(blockToBeAddedHash []b
 	// search if in the tracked blocks we already have one with same nonce or greater
 	for bHash, b := range st.blocks {
 		if b.hasSameNonceOrHigher(blockToBeAdded) {
+			// first delete, then update the global breadcrumbs
+			delete(st.blocks, bHash)
+
 			err := st.globalBreadcrumbsCompiler.updateOnRemovedBlockWithSameNonceOrAbove(b)
 			if err != nil {
 				return err
 			}
-
-			delete(st.blocks, bHash)
 
 			log.Trace("selectionTracker.addNewTrackedBlockNoLock block with same nonce was deleted, to be replaced",
 				"nonce", blockToBeAdded.nonce,
@@ -345,12 +350,14 @@ func (st *selectionTracker) removeUpToBlockNoLock(searchedBlock *trackedBlock) e
 	removedBlocks := 0
 	for blockHash, b := range st.blocks {
 		if b.hasSameNonceOrLower(searchedBlock) {
+			// first delete, then update the global breadcrumbs
+			delete(st.blocks, blockHash)
+
 			err := st.globalBreadcrumbsCompiler.updateOnRemovedBlockWithSameNonceOrBelow(b)
 			if err != nil {
 				return err
 			}
 
-			delete(st.blocks, blockHash)
 			removedBlocks++
 		}
 	}
@@ -450,12 +457,13 @@ func (st *selectionTracker) removeBlocksAboveNonce(nonce uint64) error {
 
 	for blockHash, tb := range st.blocks {
 		if tb.hasHigherNonce(nonce) {
+			// first delete, then update the global breadcrumbs
+			delete(st.blocks, blockHash)
+
 			err := st.globalBreadcrumbsCompiler.updateOnRemovedBlockWithSameNonceOrAbove(tb)
 			if err != nil {
 				return err
 			}
-
-			delete(st.blocks, blockHash)
 
 			log.Trace("selectionTracker.removeBlocksAboveNonce",
 				"nonce", nonce,
@@ -563,8 +571,8 @@ func (st *selectionTracker) GetBulkOfUntrackedTransactions(transactions []*Wrapp
 	return untrackedTransactions
 }
 
-// isTransactionTracked checks if a transaction is still in the tracked blocks of the SelectionTracker
-// TODO analyze if the forks are still an issue here
+// isTransactionTracked checks if a transaction is still in the tracked blocks of the SelectionTracker.
+// However, in the case of forks, isTransactionTracked might return inaccurate results.
 func (st *selectionTracker) isTransactionTracked(transaction *WrappedTransaction) bool {
 	if transaction == nil || transaction.Tx == nil {
 		return false
@@ -613,11 +621,10 @@ func (st *selectionTracker) displayTrackedBlocks(contextualLogger logger.Logger,
 	}
 }
 
-// getNumTrackedBlocks returns the dimension of tracked blocks
-// TODO the number of tracked accounts could also be returned when the globalAccountsBreadcrumbs is integrated
-func (st *selectionTracker) getNumTrackedBlocks() uint64 {
+// getTrackerDiagnosis returns the dimension of tracked blocks and the number of global account breadcrumbs
+func (st *selectionTracker) getTrackerDiagnosis() TrackerDiagnosis {
 	st.mutTracker.RLock()
 	defer st.mutTracker.RUnlock()
 
-	return uint64(len(st.blocks))
+	return NewTrackerDiagnosis(uint64(len(st.blocks)), st.globalBreadcrumbsCompiler.getNumGlobalBreadcrumbs())
 }
