@@ -3,6 +3,7 @@ package block_test
 import (
 	"bytes"
 	"errors"
+	"fmt"
 	"math/big"
 	"sync"
 	"testing"
@@ -2577,6 +2578,7 @@ func TestShardProcessor_collectExecutionResults(t *testing.T) {
 
 		headerHash := []byte("header hash to be tested")
 		result, err := sp.CollectExecutionResults(headerHash, header, body)
+
 		require.Nil(t, err)
 		require.NotNil(t, result)
 		assert.Equal(t, uint64(1350), result.GetGasUsed(), "gas used should be set correctly")
@@ -2585,6 +2587,65 @@ func TestShardProcessor_collectExecutionResults(t *testing.T) {
 		assert.Equal(t, uint64(155), result.GetHeaderNonce(), "nonce should be 155 as per mock header")
 		assert.Equal(t, uint64(2067), result.GetHeaderRound(), "round should be 2067 as per mock header")
 		assert.Equal(t, []byte("root hash to be tested"), result.GetRootHash(), "root hash should match mock")
+
+		realResult := result.(*block.ExecutionResult)
+		realResult.GetMiniBlockHeaders()
+		actual_miniblocks := map[block.Type]int{}
+		expected_miniblocks := map[block.Type]int{
+			block.TxBlock:                  4,
+			block.SmartContractResultBlock: 2,
+			block.ReceiptBlock:             1,
+			block.RewardsBlock:             1,
+			block.InvalidBlock:             1,
+			block.PeerBlock:                1,
+		}
+		for i, mbResult := range realResult.GetMiniBlockHeaders() {
+			switch mbResult.GetType() {
+			case block.TxBlock:
+				actual_miniblocks[block.TxBlock]++
+				if mbResult.GetSenderShardID() == uint32(0) && mbResult.GetReceiverShardID() == uint32(0) {
+					assert.Equal(t, uint32(2), mbResult.GetTxCount(), "same-shard tx miniblock should have 2 txs as per mock")
+				} else if mbResult.GetSenderShardID() == uint32(0) && mbResult.GetReceiverShardID() == uint32(1) {
+					assert.Equal(t, uint32(2), mbResult.GetTxCount(), "cross-shard tx miniblock should have 2 txs as per mock")
+				} else if mbResult.GetSenderShardID() == uint32(1) && mbResult.GetReceiverShardID() == uint32(0) {
+					assert.Equal(t, uint32(1), mbResult.GetTxCount(), "cross-shard tx miniblock should have 1 tx as per mock")
+				} else if mbResult.GetSenderShardID() == uint32(2) && mbResult.GetReceiverShardID() == uint32(0) {
+					assert.Equal(t, uint32(1), mbResult.GetTxCount(), "cross-shard tx miniblock should have 1 tx as per mock")
+				} else {
+					require.Fail(t, "unexpected tx miniblock shard IDs")
+				}
+			case block.SmartContractResultBlock:
+				actual_miniblocks[block.SmartContractResultBlock]++
+				if mbResult.GetSenderShardID() == uint32(0) && mbResult.GetReceiverShardID() == uint32(1) {
+					assert.Equal(t, uint32(1), mbResult.GetTxCount(), "outgoing SCR miniblock should have 1 tx as per mock")
+				} else if mbResult.GetSenderShardID() == uint32(2) && mbResult.GetReceiverShardID() == uint32(0) {
+					assert.Equal(t, uint32(2), mbResult.GetTxCount(), "incoming SCR miniblock should have 2 txs as per mock")
+				} else {
+					require.Fail(t, "unexpected SCR miniblock shard IDs")
+				}
+			case block.ReceiptBlock:
+				actual_miniblocks[block.ReceiptBlock]++
+				assert.NotEqual(t, uint32(0), mbResult.GetSenderShardID(), "receipt miniblock should not be self-shard")
+				assert.Equal(t, uint32(1), mbResult.GetTxCount(), "receipt miniblock should have 1 tx as per mock")
+			case block.RewardsBlock:
+				actual_miniblocks[block.RewardsBlock]++
+				assert.Equal(t, uint32(1), mbResult.GetTxCount(), "rewards miniblock should have 1 tx as per mock")
+			case block.InvalidBlock:
+				actual_miniblocks[block.InvalidBlock]++
+				assert.Equal(t, uint32(1), mbResult.GetTxCount(), "invalid miniblock should have 1 tx as per mock")
+			case block.PeerBlock:
+				actual_miniblocks[block.PeerBlock]++
+				assert.Equal(t, uint32(1), mbResult.GetTxCount(), "peer miniblock should have 1 tx as per mock")
+			default:
+				//require.Fail(t, "unexpected miniblock type")
+				fmt.Println("MiniBlockHeader Result ", i, ": type ", mbResult.GetType(), ", sender shard ", mbResult.GetSenderShardID(), ", receiver shard ", mbResult.GetReceiverShardID(), ", tx count ", mbResult.GetTxCount())
+			}
+
+			fmt.Println("MiniBlockHeader Result ", i, ": type ", mbResult.GetType(), ", sender shard ", mbResult.GetSenderShardID(), ", receiver shard ", mbResult.GetReceiverShardID(), ", tx count ", mbResult.GetTxCount())
+		}
+		assert.Equal(t, expected_miniblocks, actual_miniblocks, "miniblock counts by type should match expected")
+		assert.Equal(t, big.NewInt(1000), realResult.GetAccumulatedFees(), "accumulated fees should match mock")
+		assert.Equal(t, big.NewInt(100), realResult.GetDeveloperFees(), "developer fees should match mock")
 	})
 }
 
@@ -2593,22 +2654,76 @@ func createSubComponentsForCollectExecutionResultsTest() (map[string]interface{}
 	txCoordinator := &testscommon.TransactionCoordinatorMock{
 		GetCreatedMiniBlocksFromMeCalled: func() block.MiniBlockSlice {
 			return block.MiniBlockSlice{
-				&block.MiniBlock{
+				// ✅ same-shard regular transactions
+				{
+					SenderShardID:   0,
+					ReceiverShardID: 0,
+					Type:            block.TxBlock,
 					TxHashes: [][]byte{
-						[]byte("tx1"),
-						[]byte("tx2"),
+						[]byte("tx_self_3"),
+						[]byte("tx_self_4"),
 					},
-					Reserved: []byte("reserved field"),
 				},
-				&block.MiniBlock{
+				// ✅ cross-shard outgoing transactions
+				{
+					SenderShardID:   0,
+					ReceiverShardID: 1,
+					Type:            block.TxBlock,
 					TxHashes: [][]byte{
-						[]byte("tx3"),
-						[]byte("tx4"),
-						[]byte("tx5"),
+						[]byte("tx_cross_3"),
+						[]byte("tx_cross_4"),
 					},
-					Reserved: []byte("reserved field"),
+				},
+				// ⚠️ invalid transactions
+				{
+					SenderShardID:   0,
+					ReceiverShardID: 0,
+					Type:            block.InvalidBlock,
+					TxHashes: [][]byte{
+						[]byte("tx_invalid_1"),
+					},
 				},
 			}
+		},
+
+		CreatePostProcessMiniBlocksCalled: func() block.MiniBlockSlice {
+			return block.MiniBlockSlice{
+				// self shard SCRs - should be sanitized out
+				{
+					SenderShardID:   0,
+					ReceiverShardID: 0,
+					Type:            block.SmartContractResultBlock,
+					TxHashes: [][]byte{
+						[]byte("scr_self_1"),
+						[]byte("scr_self_2"),
+					},
+				},
+				// outgoing SCRs
+				{
+					SenderShardID:   0,
+					ReceiverShardID: 1,
+					Type:            block.SmartContractResultBlock,
+					TxHashes: [][]byte{
+						[]byte("scr_out_1"),
+					},
+				},
+				// self shard receipts - should be sanitized out
+				{
+					SenderShardID:   0,
+					ReceiverShardID: 0,
+					Type:            block.ReceiptBlock,
+					TxHashes: [][]byte{
+						[]byte("rcpt_0"),
+					},
+				},
+			}
+		},
+
+		CreateReceiptsHashCalled: func() ([]byte, error) {
+			return []byte("mock_receipts_hash"), nil
+		},
+		GetAllIntermediateTxsCalled: func() map[block.Type]map[string]data.TransactionHandler {
+			return map[block.Type]map[string]data.TransactionHandler{}
 		},
 	}
 
@@ -2663,30 +2778,54 @@ func createSubComponentsForCollectExecutionResultsTest() (map[string]interface{}
 	}
 	body := &block.Body{
 		MiniBlocks: []*block.MiniBlock{
+			//Outgoing miniblock from shard
 			{
-				SenderShardID:   0,
-				ReceiverShardID: 0,
-				TxHashes:        [][]byte{[]byte("tx1")},
+				SenderShardID: 0,
+				TxHashes: [][]byte{
+					[]byte("tx_self_1"),
+					[]byte("tx_self_2"),
+					[]byte("tx_cross_1"),
+					[]byte("tx_cross_2"),
+					[]byte("tx_invalid_1"),
+					[]byte("tx_unexecutable_1"),
+				},
 			},
+			// Incoming miniblocks to shard
 			{
 				SenderShardID:   1,
 				ReceiverShardID: 0,
-				TxHashes:        [][]byte{[]byte("tx2")},
-			},
-			{
-				SenderShardID:   0,
-				ReceiverShardID: 1,
-				TxHashes:        [][]byte{[]byte("tx3")},
+				TxHashes:        [][]byte{[]byte("tx_incoming_1")},
 			},
 			{
 				SenderShardID:   2,
 				ReceiverShardID: 0,
-				TxHashes:        [][]byte{[]byte("tx4")},
+				TxHashes:        [][]byte{[]byte("tx_incoming_2")},
+			},
+			//Incoming SCR miniblock
+			{
+				SenderShardID:   2,
+				ReceiverShardID: 0,
+				TxHashes:        [][]byte{[]byte("tx_scr_in_1"), []byte("tx_scr_in_2")},
+				Type:            block.SmartContractResultBlock,
+			},
+			// Other types of miniblocks
+			{
+				Type:            block.RewardsBlock,
+				SenderShardID:   core.MetachainShardId,
+				ReceiverShardID: 0,
+				TxHashes:        [][]byte{[]byte("reward1")},
 			},
 			{
-				SenderShardID:   0,
+				Type:            block.PeerBlock,
+				SenderShardID:   core.MetachainShardId,
 				ReceiverShardID: 0,
-				TxHashes:        [][]byte{[]byte("tx5")},
+				TxHashes:        [][]byte{[]byte("peer1")},
+			},
+			{
+				Type:            block.ReceiptBlock,
+				SenderShardID:   2,
+				ReceiverShardID: 0,
+				TxHashes:        [][]byte{[]byte("rcpt_1")},
 			},
 		},
 	}
