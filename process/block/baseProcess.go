@@ -2488,6 +2488,25 @@ func (bp *baseProcessor) saveMiniBlocksFromExecutionResults(header data.HeaderHa
 	return nil
 }
 
+func (bp *baseProcessor) setLastExecutedBlockInfo(header data.HeaderHandler) error {
+	return nil
+}
+
+func (bp *baseProcessor) setLastNotarizedExecutedBlockInfo(header data.HeaderHandler) error {
+	lastExecutionResult, err := common.GetLastBaseExecutionResultHandler(header)
+	if err != nil {
+		return err
+	}
+
+	bp.blockChain.SetLastExecutedBlockInfo(
+		lastExecutionResult.GetHeaderNonce(),
+		lastExecutionResult.GetHeaderHash(),
+		lastExecutionResult.GetRootHash(),
+	)
+
+	return nil
+}
+
 func (bp *baseProcessor) extractMiniBlocksHeaderHandlersFromExecResult(
 	baseExecResult data.BaseExecutionResultHandler,
 	headerShard uint32,

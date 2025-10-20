@@ -16,6 +16,7 @@ type baseBlockChain struct {
 	currentBlockHeader     data.HeaderHandler
 	currentBlockHeaderHash []byte
 	finalBlockInfo         *blockInfo
+	lastExecutedBlockInfo  *blockInfo
 }
 
 type blockInfo struct {
@@ -89,6 +90,17 @@ func (bbc *baseBlockChain) SetFinalBlockInfo(nonce uint64, headerHash []byte, ro
 	bbc.mut.Unlock()
 }
 
+// SetLastExecutedBlockInfo sets the nonce, hash and rootHash associated with the last executed results
+func (bbc *baseBlockChain) SetLastExecutedBlockInfo(nonce uint64, headerHash []byte, rootHash []byte) {
+	bbc.mut.Lock()
+
+	bbc.lastExecutedBlockInfo.nonce = nonce
+	bbc.lastExecutedBlockInfo.hash = headerHash
+	bbc.lastExecutedBlockInfo.committedRootHash = rootHash
+
+	bbc.mut.Unlock()
+}
+
 // GetFinalBlockInfo returns the nonce, hash and rootHash associated with the previous-to-final block
 func (bbc *baseBlockChain) GetFinalBlockInfo() (uint64, []byte, []byte) {
 	bbc.mut.RLock()
@@ -97,6 +109,18 @@ func (bbc *baseBlockChain) GetFinalBlockInfo() (uint64, []byte, []byte) {
 	nonce := bbc.finalBlockInfo.nonce
 	hash := bbc.finalBlockInfo.hash
 	rootHash := bbc.finalBlockInfo.committedRootHash
+
+	return nonce, hash, rootHash
+}
+
+// GetLastExecutedBlockInfo returns the nonce, hash and rootHash associated with the last executed results
+func (bbc *baseBlockChain) GetLastExecutedBlockInfo() (uint64, []byte, []byte) {
+	bbc.mut.RLock()
+	defer bbc.mut.RUnlock()
+
+	nonce := bbc.lastExecutedBlockInfo.nonce
+	hash := bbc.lastExecutedBlockInfo.hash
+	rootHash := bbc.lastExecutedBlockInfo.committedRootHash
 
 	return nonce, hash, rootHash
 }

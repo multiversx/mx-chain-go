@@ -1145,6 +1145,11 @@ func (sp *shardProcessor) CommitBlock(
 		return err
 	}
 
+	err = sp.setLastNotarizedExecutedBlockInfo(header)
+	if err != nil {
+		return err
+	}
+
 	sp.blockProcessingCutoffHandler.HandlePauseCutoff(header)
 
 	return nil
