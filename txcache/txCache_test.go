@@ -151,10 +151,7 @@ func Test_AddTx_AppliesSizeConstraintsPerSenderForNumTransactions(t *testing.T) 
 		cache.AddTx(createTx([]byte("tx-alice-1"), "alice", 1).withGasLimit(50000))
 		cache.AddTx(createTx([]byte("tx-alice-2"), "alice", 2).withGasLimit(1500000))
 		cache.AddTx(createTx([]byte("tx-alice-4"), "alice", 3).withGasLimit(1500000))
-		cache.AddTx(createTx([]byte("tx-bob-1"), "bob", 1).withGasLimit(1500000))
-		cache.AddTx(createTx([]byte("tx-bob-2"), "bob", 2).withGasLimit(1500000))
 		require.Equal(t, []string{"tx-alice-1", "tx-alice-2", "tx-alice-4"}, cache.getHashesForSender("alice"))
-		require.Equal(t, []string{"tx-bob-1", "tx-bob-2"}, cache.getHashesForSender("bob"))
 		require.True(t, cache.areInternalMapsConsistent())
 
 		err := cache.OnProposedBlock(
@@ -166,8 +163,6 @@ func Test_AddTx_AppliesSizeConstraintsPerSenderForNumTransactions(t *testing.T) 
 							[]byte("tx-alice-1"),
 							[]byte("tx-alice-2"),
 							[]byte("tx-alice-4"),
-							[]byte("tx-bob-1"),
-							[]byte("tx-bob-2"),
 						},
 					},
 				},
@@ -183,7 +178,17 @@ func Test_AddTx_AppliesSizeConstraintsPerSenderForNumTransactions(t *testing.T) 
 
 		cache.AddTx(createTx([]byte("tx-alice-3"), "alice", 3).withGasLimit(1500000))
 		require.Equal(t, []string{"tx-alice-1", "tx-alice-2", "tx-alice-3", "tx-alice-4"}, cache.getHashesForSender("alice"))
-		require.Equal(t, []string{"tx-bob-1", "tx-bob-2"}, cache.getHashesForSender("bob"))
+		require.True(t, cache.areInternalMapsConsistent())
+
+		err = cache.OnExecutedBlock(
+			&block.Header{
+				Nonce:    1,
+				PrevHash: []byte("blockHash0"),
+			})
+		require.Nil(t, err)
+
+		cache.AddTx(createTx([]byte("tx-alice-5"), "alice", 3).withGasLimit(1500000))
+		require.Equal(t, []string{"tx-alice-1", "tx-alice-2", "tx-alice-3"}, cache.getHashesForSender("alice"))
 		require.True(t, cache.areInternalMapsConsistent())
 	})
 }

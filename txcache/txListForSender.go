@@ -56,21 +56,24 @@ func (listForSender *txListForSender) applySizeConstraints(tracker *selectionTra
 	evictedTxHashes := make([][]byte, 0)
 
 	// Iterate back to front
-	for element := listForSender.items.Back(); element != nil; element = element.Prev() {
+	for element := listForSender.items.Back(); element != nil; {
 		if !listForSender.isCapacityExceeded() {
 			break
 		}
 
 		value := element.Value.(*WrappedTransaction)
-		if tracker.IsTransactionTracked(value) {
-			continue
+
+		prevElem := element.Prev()
+
+		if !tracker.IsTransactionTracked(value) {
+			listForSender.items.Remove(element)
+			listForSender.onRemovedListElement(element)
+
+			// Keep track of removed transactions
+			evictedTxHashes = append(evictedTxHashes, value.TxHash)
 		}
 
-		listForSender.items.Remove(element)
-		listForSender.onRemovedListElement(element)
-
-		// Keep track of removed transactions
-		evictedTxHashes = append(evictedTxHashes, value.TxHash)
+		element = prevElem
 	}
 
 	return evictedTxHashes

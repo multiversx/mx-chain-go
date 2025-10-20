@@ -141,9 +141,6 @@ func (listForSender *txListForSender) removeSweepableTransactionsReturnHashes(ta
 	for element := listForSender.items.Front(); element != nil; {
 		// finds transactions with lower nonces
 		tx := element.Value.(*WrappedTransaction)
-		if tracker.IsTransactionTracked(tx) {
-			continue
-		}
 
 		txNonce := tx.Tx.GetNonce()
 
@@ -159,12 +156,16 @@ func (listForSender *txListForSender) removeSweepableTransactionsReturnHashes(ta
 		)
 
 		nextElement := element.Next()
-		_ = listForSender.items.Remove(element)
-		listForSender.onRemovedListElement(element)
-		element = nextElement
 
-		// Keep track of removed transactions
-		txHashesToEvict = append(txHashesToEvict, tx.TxHash)
+		if !tracker.IsTransactionTracked(tx) {
+			_ = listForSender.items.Remove(element)
+			listForSender.onRemovedListElement(element)
+
+			// Keep track of removed transactions
+			txHashesToEvict = append(txHashesToEvict, tx.TxHash)
+		}
+
+		element = nextElement
 	}
 
 	return txHashesToEvict

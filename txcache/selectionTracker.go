@@ -555,22 +555,6 @@ func (st *selectionTracker) getVirtualNonceOfAccountWithRootHash(
 	return breadcrumb.lastNonce.Value + 1, st.latestRootHash, nil
 }
 
-// GetBulkOfUntrackedTransactions returns the hashes of the untracked transactions
-func (st *selectionTracker) GetBulkOfUntrackedTransactions(transactions []*WrappedTransaction) [][]byte {
-	untrackedTransactions := make([][]byte, 0)
-	for _, tx := range transactions {
-		if tx == nil || tx.Tx == nil {
-			continue
-		}
-
-		if !st.IsTransactionTracked(tx) {
-			untrackedTransactions = append(untrackedTransactions, tx.TxHash)
-		}
-	}
-
-	return untrackedTransactions
-}
-
 // IsTransactionTracked checks if a transaction is still in the tracked blocks of the SelectionTracker.
 // However, in the case of forks, IsTransactionTracked might return inaccurate results.
 func (st *selectionTracker) IsTransactionTracked(transaction *WrappedTransaction) bool {

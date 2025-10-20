@@ -109,8 +109,8 @@ func TestListForSender_AddTx_AppliesSizeConstraintsForNumBytes(t *testing.T) {
 
 	// Gives priority to higher gas - though undesirably to some extent, "tx4" is evicted
 	_, evicted = list.AddTx(createTx([]byte("tx3++"), ".", 3).withSize(256).withGasLimit(1500000).withGasPrice(1.5*oneBillion), txCache.tracker)
-	require.Equal(t, []string{"tx1", "tx2", "tx3++", "tx3"}, list.getTxHashesAsStrings())
-	require.Equal(t, []string{"tx4"}, hashesAsStrings(evicted))
+	require.Equal(t, []string{"tx1", "tx2", "tx3++"}, list.getTxHashesAsStrings())
+	require.Equal(t, []string{"tx4", "tx3"}, hashesAsStrings(evicted))
 }
 
 func TestListForSender_removeTransactionsWithLowerOrEqualNonceReturnHashes(t *testing.T) {

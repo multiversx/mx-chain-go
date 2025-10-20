@@ -1344,7 +1344,7 @@ func Test_isTransactionTracked(t *testing.T) {
 	})
 }
 
-func TestSelectionTracker_GetBulkOfUntrackedTransactions(t *testing.T) {
+func TestSelectionTracker_IsTransactionTracked(t *testing.T) {
 	t.Parallel()
 
 	txCache := newCacheToTest(maxNumBytesPerSenderUpperBoundTest, 6)
@@ -1384,6 +1384,7 @@ func TestSelectionTracker_GetBulkOfUntrackedTransactions(t *testing.T) {
 						[]byte("txHash1"),
 						[]byte("txHash2"),
 						[]byte("txHash3"),
+						[]byte("txHash6"),
 					},
 				},
 			},
@@ -1398,8 +1399,13 @@ func TestSelectionTracker_GetBulkOfUntrackedTransactions(t *testing.T) {
 	)
 	require.Nil(t, err)
 
-	bulk := tracker.GetBulkOfUntrackedTransactions(txs)
-	require.Len(t, bulk, 4)
+	require.True(t, txCache.tracker.IsTransactionTracked(txs[0]))
+	require.True(t, txCache.tracker.IsTransactionTracked(txs[1]))
+	require.True(t, txCache.tracker.IsTransactionTracked(txs[2]))
+	require.False(t, txCache.tracker.IsTransactionTracked(txs[3]))
+	require.False(t, txCache.tracker.IsTransactionTracked(txs[4]))
+	require.True(t, txCache.tracker.IsTransactionTracked(txs[5]))
+	require.True(t, txCache.tracker.IsTransactionTracked(txs[6]))
 }
 
 func TestSelectionTracker_ResetTracker(t *testing.T) {
