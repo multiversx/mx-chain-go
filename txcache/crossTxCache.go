@@ -134,9 +134,9 @@ func (cache *CrossTxCache) OnExecutedBlock(data.HeaderHandler) error {
 // ResetTracker does nothing (only to satisfy the interface)
 func (cache *CrossTxCache) ResetTracker() {}
 
-// GetTrackerDiagnosis returns 0 (only to satisfy the interface)
-func (cache *CrossTxCache) GetTrackerDiagnosis() (uint64, uint64) {
-	return 0, 0
+// GetTrackerDiagnosis returns nil (only to satisfy the interface)
+func (cache *CrossTxCache) GetTrackerDiagnosis() TrackerDiagnosis {
+	return nil
 }
 
 // Cleanup does nothing (only to satisfy the interface)

@@ -117,9 +117,9 @@ func (cache *DisabledCache) ImmunizeTxsAgainstEviction(_ [][]byte) {
 func (cache *DisabledCache) Diagnose(_ bool) {
 }
 
-// GetTrackerDiagnosis returns 0
-func (cache *DisabledCache) GetTrackerDiagnosis() (uint64, uint64) {
-	return 0, 0
+// GetTrackerDiagnosis returns nil
+func (cache *DisabledCache) GetTrackerDiagnosis() TrackerDiagnosis {
+	return nil
 }
 
 // GetTransactionsPoolForSender returns an empty slice
