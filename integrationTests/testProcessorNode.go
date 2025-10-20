@@ -2531,6 +2531,7 @@ func (tpn *TestProcessorNode) initBlockProcessor() {
 		StatusCoreComponents: statusCoreComponents,
 		Config:               config.Config{},
 		AccountsDB:           accountsDb,
+		AccountsProposal:     tpn.AccntStateProposal,
 		ForkDetector:         tpn.ForkDetector,
 		NodesCoordinator:     tpn.NodesCoordinator,
 		FeeHandler:           tpn.FeeAccumulator,
