@@ -203,6 +203,7 @@ func createMockMetaArguments(
 			StatusComponents:     statusComponents,
 			StatusCoreComponents: statusCoreComponents,
 			AccountsDB:           accountsDb,
+			AccountsProposal:     &stateMock.AccountsStub{},
 			ForkDetector:         &mock.ForkDetectorMock{},
 			NodesCoordinator:     shardingMocks.NewNodesCoordinatorMock(),
 			FeeHandler:           &mock.FeeAccumulatorStub{},
