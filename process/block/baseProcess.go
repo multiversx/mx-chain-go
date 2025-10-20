@@ -1688,9 +1688,28 @@ func (bp *baseProcessor) updateStateStorage(
 }
 
 // RevertCurrentBlock reverts the current block for cleanup failed process
-func (bp *baseProcessor) RevertCurrentBlock() {
+func (bp *baseProcessor) RevertCurrentBlock(headerHandler data.HeaderHandler) {
 	bp.revertAccountState()
 	bp.revertScheduledInfo()
+	bp.revertCurrentBlockV3(headerHandler)
+}
+
+func (bp *baseProcessor) revertCurrentBlockV3(headerHandler data.HeaderHandler) {
+	if check.IfNil(headerHandler) || !headerHandler.IsHeaderV3() {
+		return
+	}
+
+	hash, err := core.CalculateHash(bp.marshalizer, bp.hasher, headerHandler)
+	if err != nil {
+		log.Debug("revertCurrentBlockV3 CalculateHash", "err", err)
+		return
+	}
+
+	err = bp.executionResultsTracker.RemoveFromHash(hash)
+	if err != nil {
+		log.Debug("revertCurrentBlockV3 RemoveFromHash", "err", err)
+		return
+	}
 }
 
 func (bp *baseProcessor) revertAccountState() {
@@ -2141,7 +2160,7 @@ func (bp *baseProcessor) ProcessScheduledBlock(headerHandler data.HeaderHandler,
 	bp.processStatusHandler.SetBusy("baseProcessor.ProcessScheduledBlock")
 	defer func() {
 		if err != nil {
-			bp.RevertCurrentBlock()
+			bp.RevertCurrentBlock(headerHandler)
 		}
 		bp.processStatusHandler.SetIdle()
 	}()

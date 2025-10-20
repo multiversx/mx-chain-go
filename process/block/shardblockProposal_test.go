@@ -2113,6 +2113,13 @@ func TestShardProcessor_ProcessBlockProposal(t *testing.T) {
 		t.Parallel()
 
 		args := CreateMockArguments(createComponentHolderMocks())
+		wasRemoveFromHashCalled := false
+		args.ExecutionResultsTracker = &testscommonExecutionTrack.ExecutionResultsTrackerStub{
+			RemoveFromHashCalled: func(hash []byte) error {
+				wasRemoveFromHashCalled = true
+				return nil
+			},
+		}
 		args.TxCoordinator = &testscommon.TransactionCoordinatorMock{
 			ProcessBlockTransactionCalled: func(header data.HeaderHandler, body *block.Body, haveTime func() time.Duration) error {
 				return expectedErr
@@ -2124,6 +2131,7 @@ func TestShardProcessor_ProcessBlockProposal(t *testing.T) {
 		body := &block.Body{}
 		_, err := sp.ProcessBlockProposal(header, body)
 		require.Equal(t, expectedErr, err)
+		require.True(t, wasRemoveFromHashCalled)
 	})
 	t.Run("VerifyCreatedBlockTransactions fails should error", func(t *testing.T) {
 		t.Parallel()
