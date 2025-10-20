@@ -2493,6 +2493,10 @@ func (bp *baseProcessor) setLastExecutedBlockInfo(header data.HeaderHandler) err
 }
 
 func (bp *baseProcessor) setLastNotarizedExecutedBlockInfo(header data.HeaderHandler) error {
+	if !header.IsHeaderV3() {
+		return nil
+	}
+
 	lastExecutionResult, err := common.GetLastBaseExecutionResultHandler(header)
 	if err != nil {
 		return err
