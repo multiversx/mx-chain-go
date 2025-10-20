@@ -176,6 +176,7 @@ func Test_AddTx_AppliesSizeConstraintsPerSenderForNumTransactions(t *testing.T) 
 		)
 		require.Nil(t, err)
 
+		// TODO analyze if this behaviour is ok. Even if the limit of txs per sender is exceeded, no tx can is removed because the specific nonce is tracked.
 		cache.AddTx(createTx([]byte("tx-alice-3"), "alice", 3).withGasLimit(1500000))
 		require.Equal(t, []string{"tx-alice-1", "tx-alice-2", "tx-alice-3", "tx-alice-4"}, cache.getHashesForSender("alice"))
 		require.True(t, cache.areInternalMapsConsistent())
