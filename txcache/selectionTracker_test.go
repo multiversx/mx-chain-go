@@ -1457,9 +1457,9 @@ func Test_getDimensionOfTrackedBlocks(t *testing.T) {
 		txCache.tracker = tracker
 
 		tracker.blocks = map[string]*trackedBlock{}
-		numBlocks, numBreadcrumbs := tracker.getTrackerDiagnosis()
-		require.Equal(t, uint64(0), numBlocks)
-		require.Equal(t, uint64(0), numBreadcrumbs)
+		trackerDiagnosis := tracker.getTrackerDiagnosis()
+		require.Equal(t, uint64(0), trackerDiagnosis.GetNumTrackedBlocks())
+		require.Equal(t, uint64(0), trackerDiagnosis.GetNumTrackedAccounts())
 
 		tracker.blocks = map[string]*trackedBlock{
 			"hash1": {},
@@ -1471,9 +1471,9 @@ func Test_getDimensionOfTrackedBlocks(t *testing.T) {
 			"bob":   {},
 		}
 
-		numBlocks, numBreadcrumbs = tracker.getTrackerDiagnosis()
-		require.Equal(t, uint64(3), numBlocks)
-		require.Equal(t, uint64(2), numBreadcrumbs)
+		trackerDiagnosis = tracker.getTrackerDiagnosis()
+		require.Equal(t, uint64(3), trackerDiagnosis.GetNumTrackedBlocks())
+		require.Equal(t, uint64(2), trackerDiagnosis.GetNumTrackedAccounts())
 	})
 }
 
