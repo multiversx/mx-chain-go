@@ -34,4 +34,5 @@ type txCacheForSelectionTracker interface {
 type TrackerDiagnosis interface {
 	GetNumTrackedBlocks() uint64
 	GetNumTrackedAccounts() uint64
+	IsInterfaceNil() bool
 }

@@ -22,3 +22,7 @@ func (t *trackerDiagnosis) GetNumTrackedBlocks() uint64 {
 func (t *trackerDiagnosis) GetNumTrackedAccounts() uint64 {
 	return t.numTrackedAccounts
 }
+
+func (t *trackerDiagnosis) IsInterfaceNil() bool {
+	return t == nil
+}
