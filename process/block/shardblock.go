@@ -1063,12 +1063,7 @@ func (sp *shardProcessor) CommitBlock(
 
 	lastBlockHeader := sp.blockChain.GetCurrentBlockHeader()
 
-	committedRootHash, err := sp.accountsDB[state.UserAccountsState].RootHash()
-	if err != nil {
-		return err
-	}
-
-	err = sp.blockChain.SetCurrentBlockHeaderAndRootHash(header, committedRootHash)
+	err = sp.setCurrentBlockHeaderAndRootHash(header)
 	if err != nil {
 		return err
 	}
@@ -1151,6 +1146,32 @@ func (sp *shardProcessor) CommitBlock(
 	}
 
 	sp.blockProcessingCutoffHandler.HandlePauseCutoff(header)
+
+	return nil
+}
+
+func (sp *shardProcessor) setCurrentBlockHeaderAndRootHash(header data.HeaderHandler) error {
+	// if header.IsHeaderV3() {
+	// 	lastExecResult, err := sp.executionResultsTracker.GetLastNotarizedExecutionResult()
+	// 	if err != nil {
+	// 		return err
+	// 	}
+
+	// 	err = sp.blockChain.SetCurrentBlockHeaderAndRootHash(header, lastExecResult.GetRootHash())
+	// 	if err != nil {
+	// 		return err
+	// 	}
+	// }
+
+	committedRootHash, err := sp.accountsDB[state.UserAccountsState].RootHash()
+	if err != nil {
+		return err
+	}
+
+	err = sp.blockChain.SetCurrentBlockHeaderAndRootHash(header, committedRootHash)
+	if err != nil {
+		return err
+	}
 
 	return nil
 }
@@ -1285,6 +1306,7 @@ func (sp *shardProcessor) updateState(headers []data.HeaderHandler, currentHeade
 		return
 	}
 
+	// TODO: set proper finalized header in outport
 	sp.setFinalizedHeaderHashInIndexer(currentHeaderHash)
 
 	scheduledHeaderRootHash, _ := sp.scheduledTxsExecutionHandler.GetScheduledRootHashForHeader(currentHeaderHash)
@@ -1296,12 +1318,27 @@ func (sp *shardProcessor) setFinalBlockInfo(
 	headerHash []byte,
 	scheduledHeaderRootHash []byte,
 ) {
+	if header.IsHeaderV3() {
+		sp.setFinalBlockInfoAsync()
+		return
+	}
+
 	finalRootHash := scheduledHeaderRootHash
 	if len(finalRootHash) == 0 {
 		finalRootHash = header.GetRootHash()
 	}
 
 	sp.blockChain.SetFinalBlockInfo(header.GetNonce(), headerHash, finalRootHash)
+}
+
+func (sp *shardProcessor) setFinalBlockInfoAsync() {
+	lastExecResult, err := sp.executionResultsTracker.GetLastNotarizedExecutionResult()
+	if err != nil {
+		log.Error("failed to get las exection result", "error", err)
+		return
+	}
+
+	sp.blockChain.SetFinalBlockInfo(lastExecResult.GetHeaderNonce(), lastExecResult.GetHeaderHash(), lastExecResult.GetRootHash())
 }
 
 func (sp *shardProcessor) snapShotEpochStartFromMeta(header data.ShardHeaderHandler) {
