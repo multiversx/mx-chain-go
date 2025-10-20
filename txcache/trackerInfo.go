@@ -23,6 +23,7 @@ func (t *trackerDiagnosis) GetNumTrackedAccounts() uint64 {
 	return t.numTrackedAccounts
 }
 
+// IsInterfaceNil returns true if there is no value under the interface
 func (t *trackerDiagnosis) IsInterfaceNil() bool {
 	return t == nil
 }
