@@ -73,6 +73,7 @@ type ArgBaseProcessor struct {
 	Config                             config.Config
 	PrefsConfig                        config.Preferences
 	AccountsDB                         map[state.AccountsDbIdentifier]state.AccountsAdapter
+	AccountsProposal                   state.AccountsAdapter
 	ForkDetector                       process.ForkDetector
 	NodesCoordinator                   nodesCoordinator.NodesCoordinator
 	FeeHandler                         process.TransactionFeeHandler

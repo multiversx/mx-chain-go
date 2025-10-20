@@ -57,6 +57,7 @@ type baseProcessor struct {
 	shardCoordinator        sharding.Coordinator
 	nodesCoordinator        nodesCoordinator.NodesCoordinator
 	accountsDB              map[state.AccountsDbIdentifier]state.AccountsAdapter
+	accountsProposal        state.AccountsAdapter
 	forkDetector            process.ForkDetector
 	hasher                  hashing.Hasher
 	marshalizer             marshal.Marshalizer
@@ -154,6 +155,7 @@ func NewBaseProcessor(arguments ArgBaseProcessor) (*baseProcessor, error) {
 
 	base := &baseProcessor{
 		accountsDB:                    arguments.AccountsDB,
+		accountsProposal:              arguments.AccountsProposal,
 		blockSizeThrottler:            arguments.BlockSizeThrottler,
 		forkDetector:                  arguments.ForkDetector,
 		hasher:                        arguments.CoreComponents.Hasher(),
@@ -563,6 +565,9 @@ func checkProcessorParameters(arguments ArgBaseProcessor) error {
 		if check.IfNil(arguments.AccountsDB[key]) {
 			return process.ErrNilAccountsAdapter
 		}
+	}
+	if check.IfNil(arguments.AccountsProposal) {
+		return fmt.Errorf("%w for proposal", process.ErrNilAccountsAdapter)
 	}
 	if check.IfNil(arguments.DataComponents) {
 		return process.ErrNilDataComponentsHolder
@@ -2391,9 +2396,8 @@ func (bp *baseProcessor) OnProposedBlock(
 		return process.ErrWrongTypeAssertion
 	}
 
-	// TODO: proper accounts db should be used and its roothash must be updated first through a new method
-	//  SetRootHashIfNeeded which should recreate the trie if needed
-	accountsProvider, err := state.NewAccountsEphemeralProvider(bp.accountsDB[state.UserAccountsState])
+	// TODO: call SetRootHashIfNeeded for accountsProposal which should recreate the trie if needed for
+	accountsProvider, err := state.NewAccountsEphemeralProvider(bp.accountsProposal)
 	if err != nil {
 		return err
 	}
