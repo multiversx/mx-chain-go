@@ -311,17 +311,17 @@ func (service *SCQueryService) extractBlockHeaderAndRootHash(query *process.SCQu
 
 func (service *SCQueryService) getCurrentBlockHeaderAndRootHash() (data.HeaderHandler, []byte, error) {
 	currentHeader := service.mainBlockChain.GetCurrentBlockHeader()
-	if !currentHeader.IsHeaderV3() {
-		return service.mainBlockChain.GetCurrentBlockHeader(), service.mainBlockChain.GetCurrentBlockRootHash(), nil
+	if currentHeader != nil && currentHeader.IsHeaderV3() {
+		_, headerHash, rootHash := service.mainBlockChain.GetLastExecutedBlockInfo()
+		lastExecutedHeader, err := service.getBlockHeaderByHash(headerHash)
+		if err != nil {
+			return nil, nil, err
+		}
+
+		return lastExecutedHeader, rootHash, nil
 	}
 
-	_, headerHash, rootHash := service.mainBlockChain.GetLastExecutedBlockInfo()
-	lastExecutedHeader, err := service.getBlockHeaderByHash(headerHash)
-	if err != nil {
-		return nil, nil, err
-	}
-
-	return lastExecutedHeader, rootHash, nil
+	return service.mainBlockChain.GetCurrentBlockHeader(), service.mainBlockChain.GetCurrentBlockRootHash(), nil
 }
 
 func (service *SCQueryService) getRootHashForBlock(currentHeader data.HeaderHandler) (data.HeaderHandler, []byte, error) {
