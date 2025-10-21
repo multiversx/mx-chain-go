@@ -1151,18 +1151,6 @@ func (sp *shardProcessor) CommitBlock(
 }
 
 func (sp *shardProcessor) setCurrentBlockHeaderAndRootHash(header data.HeaderHandler) error {
-	// if header.IsHeaderV3() {
-	// 	lastExecResult, err := sp.executionResultsTracker.GetLastNotarizedExecutionResult()
-	// 	if err != nil {
-	// 		return err
-	// 	}
-
-	// 	err = sp.blockChain.SetCurrentBlockHeaderAndRootHash(header, lastExecResult.GetRootHash())
-	// 	if err != nil {
-	// 		return err
-	// 	}
-	// }
-
 	committedRootHash, err := sp.accountsDB[state.UserAccountsState].RootHash()
 	if err != nil {
 		return err
