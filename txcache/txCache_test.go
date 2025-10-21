@@ -12,7 +12,6 @@ import (
 	"github.com/multiversx/mx-chain-core-go/core"
 	"github.com/multiversx/mx-chain-core-go/core/check"
 	"github.com/multiversx/mx-chain-core-go/data/block"
-	"github.com/multiversx/mx-chain-go/common/holders"
 	"github.com/multiversx/mx-chain-go/config"
 	"github.com/multiversx/mx-chain-go/testscommon/txcachemocks"
 	"github.com/multiversx/mx-chain-storage-go/common"
@@ -512,7 +511,6 @@ func TestTxCache_GetDimensionOfTrackedBlocks(t *testing.T) {
 
 	accountsProvider := txcachemocks.NewAccountNonceAndBalanceProviderMock()
 
-	blockchainInfo := holders.NewBlockchainInfo([]byte("hash0"), nil, 1)
 	err = txCache.OnProposedBlock(
 		[]byte("hash1"),
 		&block.Body{},
@@ -522,7 +520,7 @@ func TestTxCache_GetDimensionOfTrackedBlocks(t *testing.T) {
 			RootHash: []byte("rootHash0"),
 		},
 		accountsProvider,
-		blockchainInfo,
+		defaultLatestExecutedHash,
 	)
 	require.Nil(t, err)
 
@@ -538,7 +536,7 @@ func TestTxCache_GetDimensionOfTrackedBlocks(t *testing.T) {
 			RootHash: []byte("rootHash0"),
 		},
 		accountsProvider,
-		blockchainInfo,
+		defaultLatestExecutedHash,
 	)
 	require.Nil(t, err)
 
@@ -728,7 +726,7 @@ func Test_ResetTracker(t *testing.T) {
 			RootHash: []byte("rootHash0"),
 		},
 		accountsProvider,
-		holders.NewBlockchainInfo([]byte("hash0"), []byte("hash0"), 0),
+		defaultLatestExecutedHash,
 	)
 	require.Nil(t, err)
 

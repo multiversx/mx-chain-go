@@ -12,7 +12,6 @@ import (
 	"golang.org/x/exp/slices"
 )
 
-// TODO rename this to proposedBlocksTracker
 type selectionTracker struct {
 	mutTracker                sync.RWMutex
 	latestNonce               uint64
@@ -46,22 +45,51 @@ func NewSelectionTracker(txCache txCacheForSelectionTracker, maxTrackedBlocks ui
 // blockBody contains the transactions of the new block (required for creating the breadcrumbs and validating the block).
 // blockHeader contains the nonce, the rootHash and the previousHash of the new proposed block.
 // accountsProvider is a wrapper over the current blockchain state.
-// blockchainInfo must contain the information about the last executed block. The other information is not used in this flow.
+// latestExecutedHash represents the hash of the last executed block.
 func (st *selectionTracker) OnProposedBlock(
 	blockHash []byte,
-	blockBody *block.Body,
+	bodyHandler data.BodyHandler,
 	blockHeader data.HeaderHandler,
 	accountsProvider common.AccountNonceAndBalanceProvider,
-	blockchainInfo common.BlockchainInfo,
+	latestExecutedHash []byte,
 ) error {
+	blockBody, ok := bodyHandler.(*block.Body)
+	if !ok {
+		return errWrongTypeAssertion
+	}
+
 	err := st.verifyArgsOfOnProposedBlock(blockHash, blockBody, blockHeader, accountsProvider)
 	if err != nil {
 		return err
 	}
 
+	accountsRootHash, err := accountsProvider.GetRootHash()
+	if err != nil {
+		return err
+	}
+
+	if !bytes.Equal(st.latestRootHash, accountsRootHash) {
+		// TODO when the right information will be passed on the OnExecutedBlock flow, the error must be returned here.
+		log.Error("selectionTracker.OnProposedBlock",
+			"err", errRootHashMismatch,
+			"latestRootHash", st.latestRootHash,
+			"accountsRootHash", accountsRootHash,
+		)
+	}
+
 	nonce := blockHeader.GetNonce()
 	rootHash := blockHeader.GetRootHash()
 	prevHash := blockHeader.GetPrevHash()
+
+	// analyze if we should have this check
+	if !bytes.Equal(st.latestRootHash, rootHash) {
+		// TODO when the right information will be passed on the OnExecutedBlock flow, the error must be returned here.
+		log.Error("selectionTracker.OnProposedBlock",
+			"err", errRootHashMismatch,
+			"latestRootHash", st.latestRootHash,
+			"block rootHash", rootHash,
+		)
+	}
 
 	tBlock := newTrackedBlock(nonce, blockHash, rootHash, prevHash)
 
@@ -81,7 +109,7 @@ func (st *selectionTracker) OnProposedBlock(
 		return err
 	}
 
-	err = st.validateTrackedBlocksAndCompileBreadcrumbsNoLock(blockBody, tBlock, accountsProvider, blockchainInfo)
+	err = st.validateTrackedBlocksAndCompileBreadcrumbsNoLock(blockBody, tBlock, accountsProvider, latestExecutedHash)
 	if err != nil {
 		log.Debug("selectionTracker.OnProposedBlock: error validating the tracked blocks", "err", err)
 		return err
@@ -153,10 +181,10 @@ func (st *selectionTracker) validateTrackedBlocksAndCompileBreadcrumbsNoLock(
 	blockBody *block.Body,
 	blockToTrack *trackedBlock,
 	accountsProvider common.AccountNonceAndBalanceProvider,
-	blockchainInfo common.BlockchainInfo,
+	latestExecutedHash []byte,
 ) error {
 	blocksToBeValidated, err := st.getChainOfTrackedPendingBlocks(
-		blockchainInfo.GetLatestExecutedBlockHash(),
+		latestExecutedHash,
 		blockToTrack.prevHash,
 		blockToTrack.nonce,
 	)
@@ -204,6 +232,7 @@ func (st *selectionTracker) validateBreadcrumbsOfTrackedBlocks(
 
 	for _, tb := range chainOfTrackedBlocks {
 		for address, breadcrumb := range tb.breadcrumbsByAddress {
+			// NOTE: the initial balance should never change during this validation, because we use an account provider which is not affected by the actual execution.
 			initialNonce, initialBalance, _, err := accountsProvider.GetAccountNonceAndBalance([]byte(address))
 			if err != nil {
 				log.Debug("selectionTracker.validateBreadcrumbsOfTrackedBlocks",
@@ -225,7 +254,6 @@ func (st *selectionTracker) validateBreadcrumbsOfTrackedBlocks(
 				return errDiscontinuousBreadcrumbs
 			}
 
-			// TODO re-brainstorm, validate with more integration tests
 			// use its balance to accumulate and validate (make sure is < than initialBalance from the session)
 			err = validator.validateBalance(address, initialBalance, breadcrumb)
 			if err != nil {
@@ -247,22 +275,10 @@ func (st *selectionTracker) validateBreadcrumbsOfTrackedBlocks(
 // addNewTrackedBlockNoLock adds a new tracked block into the map of tracked blocks,
 // replaces an existing block which has the same nonce with the one received.
 func (st *selectionTracker) addNewTrackedBlockNoLock(blockToBeAddedHash []byte, blockToBeAdded *trackedBlock) error {
-	// search if in the tracked blocks we already have one with same nonce or greater
-	for bHash, b := range st.blocks {
-		if b.hasSameNonceOrHigher(blockToBeAdded) {
-			err := st.globalBreadcrumbsCompiler.updateAfterRemovedBlockWithSameNonceOrAbove(b)
-			if err != nil {
-				return err
-			}
-
-			delete(st.blocks, bHash)
-
-			log.Debug("selectionTracker.addNewTrackedBlockNoLock block with same nonce was deleted, to be replaced",
-				"nonce", blockToBeAdded.nonce,
-				"hash of replaced block", b.hash,
-				"hash of new block", blockToBeAddedHash,
-			)
-		}
+	// remove all the blocks with nonce equal or above the given nonce
+	err := st.removeBlockEqualOrAboveNoLock(blockToBeAddedHash, blockToBeAdded)
+	if err != nil {
+		return err
 	}
 
 	// add the new block
@@ -272,7 +288,33 @@ func (st *selectionTracker) addNewTrackedBlockNoLock(blockToBeAddedHash []byte, 
 	return nil
 }
 
+// removeBlockEqualOrAboveNoLock removes blocks higher or equal to the nonce of the given block.
+// The removeBlockEqualOrAboveNoLock is used on the OnProposedBlock flow.
+func (st *selectionTracker) removeBlockEqualOrAboveNoLock(blockToBeAddedHash []byte, blockToBeAdded *trackedBlock) error {
+	// search if in the tracked blocks we already have one with same nonce or greater
+	for bHash, b := range st.blocks {
+		if b.hasSameNonceOrHigher(blockToBeAdded) {
+			// first delete, then update the global breadcrumbs
+			delete(st.blocks, bHash)
+
+			err := st.globalBreadcrumbsCompiler.updateOnRemovedBlockWithSameNonceOrAbove(b)
+			if err != nil {
+				return err
+			}
+
+			log.Trace("selectionTracker.addNewTrackedBlockNoLock block with same nonce was deleted, to be replaced",
+				"nonce", blockToBeAdded.nonce,
+				"hash of replaced block", b.hash,
+				"hash of new block", blockToBeAddedHash,
+			)
+		}
+	}
+
+	return nil
+}
+
 // OnExecutedBlock notifies when a block is executed and updates the state of the selectionTracker
+// by removing each tracked block with nonce equal or lower than the one received in the blockHeader.
 func (st *selectionTracker) OnExecutedBlock(blockHeader data.HeaderHandler) error {
 	if check.IfNil(blockHeader) {
 		return errNilBlockHeader
@@ -302,21 +344,25 @@ func (st *selectionTracker) OnExecutedBlock(blockHeader data.HeaderHandler) erro
 	return nil
 }
 
+// removeUpToBlockNoLock removes all the tracked blocks with nonce equal or lower than the given nonce.
+// The removeUpToBlockNoLock is called on the OnExecutedBlock flow.
 func (st *selectionTracker) removeUpToBlockNoLock(searchedBlock *trackedBlock) error {
 	removedBlocks := 0
 	for blockHash, b := range st.blocks {
-		if b.sameNonceOrBelow(searchedBlock) {
-			err := st.globalBreadcrumbsCompiler.updateAfterRemovedBlockWithSameNonceOrBelow(b)
+		if b.hasSameNonceOrLower(searchedBlock) {
+			// first delete, then update the global breadcrumbs
+			delete(st.blocks, blockHash)
+
+			err := st.globalBreadcrumbsCompiler.updateOnRemovedBlockWithSameNonceOrBelow(b)
 			if err != nil {
 				return err
 			}
 
-			delete(st.blocks, blockHash)
 			removedBlocks++
 		}
 	}
 
-	log.Debug("selectionTracker.removeUpToBlockNoLock",
+	log.Trace("selectionTracker.removeUpToBlockNoLock",
 		"searched block nonce", searchedBlock.nonce,
 		"searched block hash", searchedBlock.hash,
 		"searched block rootHash", searchedBlock.rootHash,
@@ -365,13 +411,29 @@ func (st *selectionTracker) ResetTrackedBlocks() {
 func (st *selectionTracker) deriveVirtualSelectionSession(
 	session SelectionSession,
 	nonce uint64,
+	shouldRemoveTrackedBlocks bool,
 ) (*virtualSelectionSession, error) {
-	// TODO should remove all blocks greater than the received nonce
+	if !shouldRemoveTrackedBlocks {
+		err := st.removeBlocksAboveNonce(nonce)
+		if err != nil {
+			return nil, err
+		}
+	}
+
 	rootHash, err := session.GetRootHash()
 	if err != nil {
 		log.Debug("selectionTracker.deriveVirtualSelectionSession",
 			"err", err)
 		return nil, err
+	}
+
+	if !bytes.Equal(st.latestRootHash, rootHash) {
+		// TODO when the right information will be passed on the OnExecutedBlock flow, the error must be returned here.
+		log.Error("selectionTracker.deriveVirtualSelectionSession",
+			"err", errRootHashMismatch,
+			"latestRootHash", st.latestRootHash,
+			"session rootHash", rootHash,
+		)
 	}
 
 	log.Debug("selectionTracker.deriveVirtualSelectionSession",
@@ -385,6 +447,33 @@ func (st *selectionTracker) deriveVirtualSelectionSession(
 
 	globalAccountsBreadcrumbs := st.getGlobalAccountsBreadcrumbs()
 	return computer.createVirtualSelectionSession(globalAccountsBreadcrumbs)
+}
+
+// removeBlocksAboveNonce removes blocks with nonce higher than the given nonce.
+// The removeBlocksAboveNonce is used on the deriveVirtualSelectionSession flow.
+func (st *selectionTracker) removeBlocksAboveNonce(nonce uint64) error {
+	st.mutTracker.Lock()
+	defer st.mutTracker.Unlock()
+
+	for blockHash, tb := range st.blocks {
+		if tb.hasHigherNonce(nonce) {
+			// first delete, then update the global breadcrumbs
+			delete(st.blocks, blockHash)
+
+			err := st.globalBreadcrumbsCompiler.updateOnRemovedBlockWithSameNonceOrAbove(tb)
+			if err != nil {
+				return err
+			}
+
+			log.Trace("selectionTracker.removeBlocksAboveNonce",
+				"nonce", nonce,
+				"nonce of deleted block", tb.nonce,
+				"hash of deleted block", blockHash,
+			)
+		}
+	}
+
+	return nil
 }
 
 // getChainOfTrackedPendingBlocks finds the chain of tracked blocks, iterating from tail to head,
@@ -482,8 +571,8 @@ func (st *selectionTracker) GetBulkOfUntrackedTransactions(transactions []*Wrapp
 	return untrackedTransactions
 }
 
-// isTransactionTracked checks if a transaction is still in the tracked blocks of the SelectionTracker
-// TODO analyze if the forks are still an issue here
+// isTransactionTracked checks if a transaction is still in the tracked blocks of the SelectionTracker.
+// However, in the case of forks, isTransactionTracked might return inaccurate results.
 func (st *selectionTracker) isTransactionTracked(transaction *WrappedTransaction) bool {
 	if transaction == nil || transaction.Tx == nil {
 		return false
@@ -532,11 +621,10 @@ func (st *selectionTracker) displayTrackedBlocks(contextualLogger logger.Logger,
 	}
 }
 
-// getNumTrackedBlocks returns the dimension of tracked blocks
-// TODO the number of tracked accounts could also be returned when the globalAccountsBreadcrumbs is integrated
-func (st *selectionTracker) getNumTrackedBlocks() uint64 {
+// getTrackerDiagnosis returns the dimension of tracked blocks and the number of global account breadcrumbs
+func (st *selectionTracker) getTrackerDiagnosis() TrackerDiagnosis {
 	st.mutTracker.RLock()
 	defer st.mutTracker.RUnlock()
 
-	return uint64(len(st.blocks))
+	return NewTrackerDiagnosis(uint64(len(st.blocks)), st.globalBreadcrumbsCompiler.getNumGlobalBreadcrumbs())
 }
