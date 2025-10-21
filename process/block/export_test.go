@@ -799,6 +799,10 @@ func (sp *shardProcessor) CollectExecutionResults(headerHash []byte, header data
 	return sp.collectExecutionResults(headerHash, header, body)
 }
 
+func (sp *shardProcessor) AddExecutionResultsOnHeader(shardHeader data.HeaderHandler) error {
+	return sp.addExecutionResultsOnHeader(shardHeader)
+}
+
 // GetCrossShardIncomingMiniBlocksFromBody -
 func (sp *shardProcessor) GetCrossShardIncomingMiniBlocksFromBody(body *block.Body) []*block.MiniBlock {
 	return sp.getCrossShardIncomingMiniBlocksFromBody(body)

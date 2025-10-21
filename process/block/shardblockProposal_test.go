@@ -14,6 +14,7 @@ import (
 	"github.com/multiversx/mx-chain-core-go/data/block"
 	"github.com/multiversx/mx-chain-core-go/data/transaction"
 	"github.com/multiversx/mx-chain-go/common"
+	"github.com/multiversx/mx-chain-go/config"
 	"github.com/multiversx/mx-chain-go/state"
 	logger "github.com/multiversx/mx-chain-logger-go"
 	"github.com/stretchr/testify/assert"
@@ -37,6 +38,7 @@ import (
 	"github.com/multiversx/mx-chain-go/testscommon/mbSelection"
 	"github.com/multiversx/mx-chain-go/testscommon/pool"
 	"github.com/multiversx/mx-chain-go/testscommon/processMocks"
+	"github.com/multiversx/mx-chain-go/testscommon/round"
 	stateMock "github.com/multiversx/mx-chain-go/testscommon/state"
 	statusHandlerMock "github.com/multiversx/mx-chain-go/testscommon/statusHandler"
 )
@@ -610,6 +612,197 @@ func TestShardProcessor_CreateBlockProposal(t *testing.T) {
 		require.Len(t, rawBody.MiniBlocks, 2)
 		require.Equal(t, providedMb, rawBody.MiniBlocks[0])
 		require.Equal(t, providedPendingMb, rawBody.MiniBlocks[1])
+	})
+}
+
+func Test_addExecutionResultsOnHeader(t *testing.T) {
+	t.Parallel()
+	t.Run("executionResultsTracker returns error should error", func(t *testing.T) {
+		t.Parallel()
+		expectedErr := errors.New("expected error")
+		sp, _ := blproc.ConstructPartialShardBlockProcessorForTest(map[string]interface{}{
+			"executionResultsTracker": &testscommonExecutionTrack.ExecutionResultsTrackerStub{
+				GetPendingExecutionResultsCalled: func() ([]data.BaseExecutionResultHandler, error) {
+					return nil, expectedErr
+				},
+			},
+		})
+		err := sp.AddExecutionResultsOnHeader(&block.HeaderV3{})
+		require.Error(t, err)
+		require.Equal(t, expectedErr, err)
+	})
+	t.Run("GetPrevBlockLastExecutionResult returns error should error", func(t *testing.T) {
+		t.Parallel()
+		sp, _ := blproc.ConstructPartialShardBlockProcessorForTest(map[string]interface{}{
+			"executionResultsTracker": &testscommonExecutionTrack.ExecutionResultsTrackerStub{
+				GetPendingExecutionResultsCalled: func() ([]data.BaseExecutionResultHandler, error) {
+					return []data.BaseExecutionResultHandler{
+						&block.ExecutionResult{
+							BaseExecutionResult: &block.BaseExecutionResult{},
+						},
+					}, nil
+				},
+			},
+		})
+		err := sp.AddExecutionResultsOnHeader(&block.HeaderV3{})
+		require.Error(t, err)
+		require.Equal(t, process.ErrNilBlockChain, err)
+	})
+	t.Run("CreateDataForInclusionEstimation returns error should error", func(t *testing.T) {
+		t.Parallel()
+		sp, _ := blproc.ConstructPartialShardBlockProcessorForTest(map[string]interface{}{
+			"executionResultsTracker": &testscommonExecutionTrack.ExecutionResultsTrackerStub{
+				GetPendingExecutionResultsCalled: func() ([]data.BaseExecutionResultHandler, error) {
+					return []data.BaseExecutionResultHandler{
+						&block.ExecutionResult{
+							BaseExecutionResult: &block.BaseExecutionResult{},
+						},
+					}, nil
+				},
+			},
+			"blockChain": &testscommon.ChainHandlerStub{
+				GetCurrentBlockHeaderHashCalled: func() []byte {
+					return []byte("hash")
+				},
+				GetCurrentBlockHeaderCalled: func() data.HeaderHandler {
+					return &block.HeaderV3{
+						PrevHash: []byte("prev_hash"),
+					}
+				},
+			},
+		})
+		err := sp.AddExecutionResultsOnHeader(&block.HeaderV3{})
+		require.Error(t, err)
+		require.Equal(t, process.ErrNilLastExecutionResultHandler, err)
+	})
+
+	t.Run("CreateLastExecutionResultInfoFromExecutionResult returns error should error", func(t *testing.T) {
+		t.Parallel()
+		logger.SetLogLevel("*:DEBUG")
+
+		baseExecutionResults := &block.BaseExecutionResult{
+			HeaderHash:  []byte("hash"),
+			HeaderNonce: 100,
+			HeaderRound: 1,
+			RootHash:    []byte("rootHash"),
+		}
+		header := &block.HeaderV3{
+			PrevHash: []byte("prev_hash"),
+
+			LastExecutionResult: &block.ExecutionResultInfo{
+				NotarizedInRound: 1,
+				ExecutionResult:  baseExecutionResults,
+			},
+		}
+
+		sp, _ := blproc.ConstructPartialShardBlockProcessorForTest(map[string]interface{}{
+			"executionResultsTracker": &testscommonExecutionTrack.ExecutionResultsTrackerStub{
+				GetPendingExecutionResultsCalled: func() ([]data.BaseExecutionResultHandler, error) {
+					// return one meta execution result (so Decide can include it)
+					meta := &block.MetaExecutionResult{
+						ExecutionResult: &block.BaseMetaExecutionResult{
+							BaseExecutionResult: &block.BaseExecutionResult{
+								HeaderHash:  []byte("hdr-hash"),
+								HeaderNonce: 1,
+								HeaderRound: 2,
+								RootHash:    []byte("root"),
+								GasUsed:     100000,
+							},
+							ValidatorStatsRootHash: []byte("vstats"),
+							AccumulatedFeesInEpoch: big.NewInt(123),
+							DevFeesInEpoch:         big.NewInt(45),
+						},
+						ReceiptsHash:     []byte{},
+						MiniBlockHeaders: nil,
+						ExecutedTxCount:  0,
+					}
+					return []data.BaseExecutionResultHandler{meta}, nil
+				},
+			},
+			"blockChain": &testscommon.ChainHandlerStub{
+				GetCurrentBlockHeaderHashCalled: func() []byte {
+					return []byte("hash")
+				},
+				GetCurrentBlockHeaderCalled: func() data.HeaderHandler {
+					return header
+				},
+			},
+			"executionResultsInclusionEstimator": &processMocks.InclusionEstimatorMock{
+				DecideCalled: func(lastNotarised *estimator.LastExecutionResultForInclusion, pending []data.BaseExecutionResultHandler, currentHdrTsMs uint64) (allowed int) {
+					return 1
+				},
+			},
+			"shardCoordinator": &mock.ShardCoordinatorStub{
+				SelfIdCalled: func() uint32 {
+					return 0
+				},
+			},
+		})
+		err := sp.AddExecutionResultsOnHeader(&block.HeaderV3{Round: 3})
+		require.Error(t, err)
+		require.Equal(t, process.ErrWrongTypeAssertion, err)
+	})
+	t.Run("will work with valid data", func(t *testing.T) {
+		t.Parallel()
+		logger.SetLogLevel("*:DEBUG")
+
+		baseExecutionResults := &block.BaseExecutionResult{
+			HeaderHash:  []byte("hash"),
+			HeaderNonce: 100,
+			HeaderRound: 1,
+			RootHash:    []byte("rootHash"),
+		}
+		header := &block.HeaderV3{
+			PrevHash: []byte("prev_hash"),
+
+			LastExecutionResult: &block.ExecutionResultInfo{
+				NotarizedInRound: 1,
+				ExecutionResult:  baseExecutionResults,
+			},
+		}
+
+		genesisTimeStampMs := uint64(1000)
+		roundTime := uint64(100)
+		roundHandler := &round.RoundHandlerMock{
+			GetTimeStampForRoundCalled: func(round uint64) uint64 {
+				return genesisTimeStampMs + round*roundTime
+			},
+		}
+		defaultCfg := config.ExecutionResultInclusionEstimatorConfig{
+			SafetyMargin:       110,
+			MaxResultsPerBlock: 10,
+		}
+
+		sp, _ := blproc.ConstructPartialShardBlockProcessorForTest(map[string]interface{}{
+			"executionResultsTracker": &testscommonExecutionTrack.ExecutionResultsTrackerStub{
+				GetPendingExecutionResultsCalled: func() ([]data.BaseExecutionResultHandler, error) {
+					return []data.BaseExecutionResultHandler{
+						&block.ExecutionResult{
+							BaseExecutionResult: &block.BaseExecutionResult{HeaderNonce: 1, HeaderRound: 2, GasUsed: 100_000_000},
+						},
+						&block.ExecutionResult{
+							BaseExecutionResult: &block.BaseExecutionResult{HeaderNonce: 2, HeaderRound: 2, GasUsed: 999_000_000},
+						},
+					}, nil
+				},
+			},
+			"blockChain": &testscommon.ChainHandlerStub{
+				GetCurrentBlockHeaderHashCalled: func() []byte {
+					return []byte("hash")
+				},
+				GetCurrentBlockHeaderCalled: func() data.HeaderHandler {
+					return header
+				},
+			},
+			"executionResultsInclusionEstimator": estimator.NewExecutionResultInclusionEstimator(defaultCfg, roundHandler),
+			"shardCoordinator": &mock.ShardCoordinatorStub{
+				SelfIdCalled: func() uint32 {
+					return 0
+				},
+			},
+		})
+		err := sp.AddExecutionResultsOnHeader(&block.HeaderV3{Round: 3})
+		require.NoError(t, err)
 	})
 }
 
@@ -2487,8 +2680,7 @@ func TestShardProcessor_OnProposedBlock(t *testing.T) {
 
 func TestShardProcessor_collectExecutionResults(t *testing.T) {
 	t.Parallel()
-	logErr := logger.SetLogLevel("*:TRACE")
-	require.Nil(t, logErr)
+
 	t.Run("with CreateReceiptsHash error should return error", func(t *testing.T) {
 		t.Parallel()
 
@@ -2533,6 +2725,36 @@ func TestShardProcessor_collectExecutionResults(t *testing.T) {
 		expectedErr := errors.New("MarshalizerMock generic error")
 		subComponents, header, body := createSubComponentsForCollectExecutionResultsTest()
 
+		expected_blocks := 10
+		marshallerCalled := 0
+		marshallerMock := subComponents["marshalizer"].(*mock.MarshalizerMock)
+		marshaller := &mock.MarshalizerStub{
+			MarshalCalled: func(obj interface{}) ([]byte, error) {
+				// Marshaller is first called for mini block headers, then for executed mini blocks
+				// We want to fail on the executed mini blocks marshalling
+
+				if marshallerCalled == expected_blocks {
+					marshallerMock.Fail = true
+				}
+				marshallerCalled++
+				return marshallerMock.Marshal(obj)
+			},
+		}
+		subComponents["marshalizer"] = marshaller
+		sp, err := blproc.ConstructPartialShardBlockProcessorForTest(subComponents)
+		require.Nil(t, err)
+		headerHash := []byte("header hash to be tested")
+		_, err = sp.CollectExecutionResults(headerHash, header, body)
+		assert.Error(t, err)
+		assert.Equal(t, expectedErr, err)
+	})
+
+	t.Run("with createMiniBlockHeaderHandlers error should return error", func(t *testing.T) {
+		t.Parallel()
+
+		expectedErr := errors.New("MarshalizerMock generic error")
+		subComponents, header, body := createSubComponentsForCollectExecutionResultsTest()
+
 		marshaller := subComponents["marshalizer"].(*mock.MarshalizerMock)
 		marshaller.Fail = true
 		sp, err := blproc.ConstructPartialShardBlockProcessorForTest(subComponents)
@@ -2569,7 +2791,6 @@ func TestShardProcessor_collectExecutionResults(t *testing.T) {
 
 	t.Run("should work", func(t *testing.T) {
 		t.Parallel()
-		_ = logger.SetLogLevel("*.DEBUG")
 
 		subComponents, header, body := createSubComponentsForCollectExecutionResultsTest()
 
@@ -2637,8 +2858,7 @@ func TestShardProcessor_collectExecutionResults(t *testing.T) {
 				actual_miniblocks[block.PeerBlock]++
 				assert.Equal(t, uint32(1), mbResult.GetTxCount(), "peer miniblock should have 1 tx as per mock")
 			default:
-				//require.Fail(t, "unexpected miniblock type")
-				fmt.Println("MiniBlockHeader Result ", i, ": type ", mbResult.GetType(), ", sender shard ", mbResult.GetSenderShardID(), ", receiver shard ", mbResult.GetReceiverShardID(), ", tx count ", mbResult.GetTxCount())
+				require.Fail(t, "unexpected miniblock type")
 			}
 
 			fmt.Println("MiniBlockHeader Result ", i, ": type ", mbResult.GetType(), ", sender shard ", mbResult.GetSenderShardID(), ", receiver shard ", mbResult.GetReceiverShardID(), ", tx count ", mbResult.GetTxCount())
@@ -2654,7 +2874,7 @@ func createSubComponentsForCollectExecutionResultsTest() (map[string]interface{}
 	txCoordinator := &testscommon.TransactionCoordinatorMock{
 		GetCreatedMiniBlocksFromMeCalled: func() block.MiniBlockSlice {
 			return block.MiniBlockSlice{
-				// ✅ same-shard regular transactions
+				// same-shard regular transactions
 				{
 					SenderShardID:   0,
 					ReceiverShardID: 0,
@@ -2664,7 +2884,7 @@ func createSubComponentsForCollectExecutionResultsTest() (map[string]interface{}
 						[]byte("tx_self_4"),
 					},
 				},
-				// ✅ cross-shard outgoing transactions
+				// cross-shard outgoing transactions
 				{
 					SenderShardID:   0,
 					ReceiverShardID: 1,
@@ -2674,7 +2894,7 @@ func createSubComponentsForCollectExecutionResultsTest() (map[string]interface{}
 						[]byte("tx_cross_4"),
 					},
 				},
-				// ⚠️ invalid transactions
+				// invalid transactions
 				{
 					SenderShardID:   0,
 					ReceiverShardID: 0,
@@ -2774,7 +2994,7 @@ func createSubComponentsForCollectExecutionResultsTest() (map[string]interface{}
 		Epoch:   10,
 		Nonce:   155,
 		Round:   2067,
-		TxCount: 5,
+		TxCount: 13,
 	}
 	body := &block.Body{
 		MiniBlocks: []*block.MiniBlock{
