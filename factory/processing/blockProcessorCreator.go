@@ -1190,6 +1190,17 @@ func (pcf *processComponentsFactory) newMetaBlockProcessor(
 		return nil, err
 	}
 
+	shardInfoCreator, err := block.NewShardInfoCreateData(
+		pcf.coreData.EnableEpochsHandler(),
+		pcf.data.Datapool().Headers(),
+		pcf.data.Datapool().Proofs(),
+		pendingMiniBlocksHandler,
+		blockTracker,
+	)
+	if err != nil {
+		return nil, err
+	}
+
 	arguments := block.ArgMetaProcessor{
 		ArgBaseProcessor:             argumentsBaseProcessor,
 		SCToProtocol:                 smartContractToProtocol,
@@ -1200,6 +1211,7 @@ func (pcf *processComponentsFactory) newMetaBlockProcessor(
 		EpochValidatorInfoCreator:    validatorInfoCreator,
 		ValidatorStatisticsProcessor: validatorStatisticsProcessor,
 		EpochSystemSCProcessor:       epochStartSystemSCProcessor,
+		ShardInfoCreator:             shardInfoCreator,
 	}
 
 	metaProcessor, err := block.NewMetaProcessor(arguments)
