@@ -57,7 +57,7 @@ func TestChainSimulator_MakeNewContractFromValidatorData(t *testing.T) {
 	roundDurationInMillis := uint64(6000)
 	roundsPerEpoch := core.OptionalUint64{
 		HasValue: true,
-		Value:    30,
+		Value:    40,
 	}
 
 	// Test scenario done in staking 3.5 phase (staking v4 is not active)
@@ -2062,7 +2062,7 @@ func TestChainSimulator_CreateDelegationContractAndWithdraw(t *testing.T) {
 		Value:    30,
 	}
 
-	//Staking V4 activated
+	// Staking V4 activated
 	cs, err := chainSimulator.NewChainSimulator(chainSimulator.ArgsChainSimulator{
 		BypassTxSignatureCheck:   true,
 		TempDir:                  t.TempDir(),

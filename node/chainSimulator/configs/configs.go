@@ -128,16 +128,6 @@ func CreateChainSimulatorConfigs(args ArgsChainSimulatorConfigs) (*ArgsConfigsSi
 			configs.GeneralConfig.GeneralSettings.ChainParametersByEpoch[idx].RoundsPerEpoch = int64(args.RoundsPerEpoch.Value)
 			configs.GeneralConfig.GeneralSettings.ChainParametersByEpoch[idx].MinRoundsBetweenEpochs = 1
 		}
-
-		// update supernova round for the new rounds per epoch config
-		supernovaEpoch := configs.EpochConfig.EnableEpochs.SupernovaEnableEpoch
-		newRoundsPerEpoch := args.RoundsPerEpoch.Value
-		newSupernovaRound := uint64(supernovaEpoch)*newRoundsPerEpoch + newRoundsPerEpoch/2 // somewhere in the middle of the epoch
-		oldOptions := configs.RoundConfig.RoundActivations[string(common.SupernovaRoundFlag)].Options
-		configs.RoundConfig.RoundActivations[string(common.SupernovaRoundFlag)] = config.ActivationRoundByName{
-			Round:   fmt.Sprintf("%d", newSupernovaRound),
-			Options: oldOptions,
-		}
 	}
 
 	gasScheduleName, err := GetLatestGasScheduleFilename(configs.ConfigurationPathsHolder.GasScheduleDirectoryName)
@@ -157,6 +147,31 @@ func CreateChainSimulatorConfigs(args ArgsChainSimulatorConfigs) (*ArgsConfigsSi
 		configs.GeneralConfig.GeneralSettings.ChainParametersByEpoch[1].EnableEpoch = configs.EpochConfig.EnableEpochs.AndromedaEnableEpoch
 	}
 
+	// update supernova round duration
+	configs.GeneralConfig.GeneralSettings.ChainParametersByEpoch[2].EnableEpoch = configs.EpochConfig.EnableEpochs.SupernovaEnableEpoch
+	configs.GeneralConfig.GeneralSettings.ChainParametersByEpoch[2].RoundDuration = args.RoundDurationInMillis / 10
+	isSupernovaFromGenesis := configs.EpochConfig.EnableEpochs.SupernovaEnableEpoch == 0
+	if isSupernovaFromGenesis {
+		// if supernova is from genesis, remove other ChainParametersByEpoch entries
+		configs.GeneralConfig.GeneralSettings.ChainParametersByEpoch = configs.GeneralConfig.GeneralSettings.ChainParametersByEpoch[2:]
+	}
+
+	if args.RoundsPerEpoch.HasValue {
+		// update supernova round for the new rounds per epoch config
+		supernovaEpoch := configs.EpochConfig.EnableEpochs.SupernovaEnableEpoch
+		newRoundsPerEpoch := args.RoundsPerEpoch.Value
+		newSupernovaRound := uint64(supernovaEpoch)*newRoundsPerEpoch + 5 // 5 rounds later
+		if isSupernovaFromGenesis {
+			// if supernova is from genesis, the round should be 0 as well
+			newSupernovaRound = 0
+		}
+		oldOptions := configs.RoundConfig.RoundActivations[string(common.SupernovaRoundFlag)].Options
+		configs.RoundConfig.RoundActivations[string(common.SupernovaRoundFlag)] = config.ActivationRoundByName{
+			Round:   fmt.Sprintf("%d", newSupernovaRound),
+			Options: oldOptions,
+		}
+	}
+
 	return &ArgsConfigsSimulator{
 		Configs:               *configs,
 		ValidatorsPrivateKeys: privateKeys,
@@ -166,19 +181,12 @@ func CreateChainSimulatorConfigs(args ArgsChainSimulatorConfigs) (*ArgsConfigsSi
 }
 
 func updateConfigsChainParameters(args ArgsChainSimulatorConfigs, configs *config.Configs) {
-	supernovaEpoch := configs.EpochConfig.EnableEpochs.SupernovaEnableEpoch
 	for idx := 0; idx < len(configs.GeneralConfig.GeneralSettings.ChainParametersByEpoch); idx++ {
-		isAfterSupernova := configs.GeneralConfig.GeneralSettings.ChainParametersByEpoch[idx].EnableEpoch >= supernovaEpoch
-		roundDurationMillis := args.RoundDurationInMillis
-		if isAfterSupernova {
-			roundDurationMillis = args.RoundDurationInMillis / 10
-		}
-		configs.GeneralConfig.GeneralSettings.ChainParametersByEpoch[idx].RoundDuration = roundDurationMillis
-
 		configs.GeneralConfig.GeneralSettings.ChainParametersByEpoch[idx].ShardMinNumNodes = args.MinNodesPerShard
 		configs.GeneralConfig.GeneralSettings.ChainParametersByEpoch[idx].MetachainMinNumNodes = args.MetaChainMinNodes
 		configs.GeneralConfig.GeneralSettings.ChainParametersByEpoch[idx].MetachainConsensusGroupSize = args.MetaChainConsensusGroupSize
 		configs.GeneralConfig.GeneralSettings.ChainParametersByEpoch[idx].ShardConsensusGroupSize = args.ConsensusGroupSize
+		configs.GeneralConfig.GeneralSettings.ChainParametersByEpoch[idx].RoundDuration = args.RoundDurationInMillis
 		configs.GeneralConfig.GeneralSettings.ChainParametersByEpoch[idx].Hysteresis = args.Hysteresis
 	}
 
