@@ -1177,11 +1177,6 @@ func (mp *metaProcessor) CommitBlock(
 		return err
 	}
 
-	err = mp.setLastNotarizedExecutedBlockInfo(header)
-	if err != nil {
-		return err
-	}
-
 	err = mp.commitAll(headerHandler)
 	if err != nil {
 		return err

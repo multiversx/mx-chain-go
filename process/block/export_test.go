@@ -805,8 +805,3 @@ func (sp *shardProcessor) GetCrossShardIncomingMiniBlocksFromBody(body *block.Bo
 func GetHaveTimeForProposal(startTime time.Time, maxDuration time.Duration) func() time.Duration {
 	return getHaveTimeForProposal(startTime, maxDuration)
 }
-
-// SetLastNotarizedExecutedBlockInfo -
-func (bp *baseProcessor) SetLastNotarizedExecutedBlockInfo(header data.HeaderHandler) error {
-	return bp.setLastNotarizedExecutedBlockInfo(header)
-}
