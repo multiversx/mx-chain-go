@@ -121,6 +121,12 @@ func (he *headersExecutor) process(pair queue.HeaderBodyPair) error {
 		executionResult.GetRootHash(),
 	)
 
+	he.blockChain.SetLastExecutedBlockInfo(
+		executionResult.GetHeaderNonce(),
+		executionResult.GetHeaderHash(),
+		executionResult.GetRootHash(),
+	)
+
 	return nil
 }
 

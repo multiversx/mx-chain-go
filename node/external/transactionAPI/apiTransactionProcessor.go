@@ -467,9 +467,9 @@ func (atp *apiTransactionProcessor) recreateTrie(blockchain data.ChainHandler, a
 		return ErrNilBlockchain
 	}
 
-	currentRootHash := blockchain.GetCurrentBlockRootHash()
-	if currentRootHash == nil {
-		return ErrNilCurrentRootHash
+	currentRootHash, err := atp.getCurrentRootHash(blockchain)
+	if err != nil {
+		return err
 	}
 
 	blockHeader := blockchain.GetCurrentBlockHeader()
@@ -481,12 +481,33 @@ func (atp *apiTransactionProcessor) recreateTrie(blockchain data.ChainHandler, a
 	rootHashHolder := holders.NewRootHashHolder(currentRootHash, core.OptionalUint32{Value: epoch, HasValue: true})
 
 	// TODO: keep in mind that the selection simulation can be affected by other API requests which might alter the trie
-	err := accountStateAPI.RecreateTrie(rootHashHolder)
+	err = accountStateAPI.RecreateTrie(rootHashHolder)
 	if err != nil {
 		return err
 	}
 
 	return nil
+}
+
+func (atp *apiTransactionProcessor) getCurrentRootHash(
+	blockchain data.ChainHandler,
+) ([]byte, error) {
+	blockHeader := blockchain.GetCurrentBlockHeader()
+	if blockHeader == nil {
+		return nil, ErrNilBlockHeader
+	}
+
+	if blockHeader.IsHeaderV3() {
+		_, _, lastExecutedRootHash := blockchain.GetLastExecutedBlockInfo()
+		return lastExecutedRootHash, nil
+	}
+
+	currentRootHash := blockchain.GetCurrentBlockRootHash()
+	if currentRootHash == nil {
+		return nil, ErrNilCurrentRootHash
+	}
+
+	return currentRootHash, nil
 }
 
 func (atp *apiTransactionProcessor) selectTransactions(accountsAdapter state.AccountsAdapter, selectionOptions common.TxSelectionOptionsAPI) ([]common.Transaction, error) {
