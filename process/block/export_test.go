@@ -221,6 +221,7 @@ func NewShardProcessorEmptyWith3shards(
 			StatusComponents:     statusComponents,
 			StatusCoreComponents: statusCoreComponents,
 			AccountsDB:           accountsDb,
+			AccountsProposal:     &stateMock.AccountsStub{},
 			ForkDetector:         &mock.ForkDetectorMock{},
 			NodesCoordinator:     nodesCoordinator,
 			FeeHandler:           &mock.FeeAccumulatorStub{},

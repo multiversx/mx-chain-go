@@ -182,6 +182,7 @@ func createArgBaseProcessor(
 		StatusCoreComponents: statusCoreComponents,
 		Config:               config.Config{},
 		AccountsDB:           accountsDb,
+		AccountsProposal:     &stateMock.AccountsStub{},
 		ForkDetector:         &mock.ForkDetectorMock{},
 		NodesCoordinator:     nodesCoordinatorInstance,
 		FeeHandler:           &mock.FeeAccumulatorStub{},
