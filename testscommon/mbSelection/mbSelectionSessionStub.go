@@ -53,14 +53,14 @@ func (mbss *MiniBlockSelectionSessionStub) GetMiniBlockHashes() [][]byte {
 }
 
 // AddReferencedMetaBlock -
-func (mbss *MiniBlockSelectionSessionStub) AddReferencedMetaBlock(metaBlock data.HeaderHandler, metaBlockHash []byte) {
+func (mbss *MiniBlockSelectionSessionStub) AddReferencedHeader(metaBlock data.HeaderHandler, metaBlockHash []byte) {
 	if mbss.AddReferencedMetaBlockCalled != nil {
 		mbss.AddReferencedMetaBlockCalled(metaBlock, metaBlockHash)
 	}
 }
 
 // GetReferencedMetaBlockHashes -
-func (mbss *MiniBlockSelectionSessionStub) GetReferencedMetaBlockHashes() [][]byte {
+func (mbss *MiniBlockSelectionSessionStub) GetReferencedHeaderHashes() [][]byte {
 	if mbss.GetReferencedMetaBlockHashesCalled != nil {
 		return mbss.GetReferencedMetaBlockHashesCalled()
 	}
@@ -68,7 +68,7 @@ func (mbss *MiniBlockSelectionSessionStub) GetReferencedMetaBlockHashes() [][]by
 }
 
 // GetReferencedMetaBlocks -
-func (mbss *MiniBlockSelectionSessionStub) GetReferencedMetaBlocks() []data.HeaderHandler {
+func (mbss *MiniBlockSelectionSessionStub) GetReferencedHeaders() []data.HeaderHandler {
 	if mbss.GetReferencedMetaBlocksCalled != nil {
 		return mbss.GetReferencedMetaBlocksCalled()
 	}
@@ -76,7 +76,7 @@ func (mbss *MiniBlockSelectionSessionStub) GetReferencedMetaBlocks() []data.Head
 }
 
 // GetLastMetaBlock -
-func (mbss *MiniBlockSelectionSessionStub) GetLastMetaBlock() data.HeaderHandler {
+func (mbss *MiniBlockSelectionSessionStub) GetLastHeader() data.HeaderHandler {
 	if mbss.GetLastMetaBlockCalled != nil {
 		return mbss.GetLastMetaBlockCalled()
 	}
