@@ -5,12 +5,14 @@ import (
 	"encoding/hex"
 	"encoding/json"
 	"encoding/pem"
+	"fmt"
 	"math/big"
 	"os"
 	"path"
 	"strconv"
 	"strings"
 
+	"github.com/multiversx/mx-chain-go/common"
 	"github.com/multiversx/mx-chain-go/common/factory"
 	"github.com/multiversx/mx-chain-go/config"
 	"github.com/multiversx/mx-chain-go/genesis/data"
@@ -126,6 +128,16 @@ func CreateChainSimulatorConfigs(args ArgsChainSimulatorConfigs) (*ArgsConfigsSi
 			configs.GeneralConfig.GeneralSettings.ChainParametersByEpoch[idx].RoundsPerEpoch = int64(args.RoundsPerEpoch.Value)
 			configs.GeneralConfig.GeneralSettings.ChainParametersByEpoch[idx].MinRoundsBetweenEpochs = 1
 		}
+
+		// update supernova round for the new rounds per epoch config
+		supernovaEpoch := configs.EpochConfig.EnableEpochs.SupernovaEnableEpoch
+		newRoundsPerEpoch := args.RoundsPerEpoch.Value
+		newSupernovaRound := uint64(supernovaEpoch)*newRoundsPerEpoch + newRoundsPerEpoch/2 // somewhere in the middle of the epoch
+		oldOptions := configs.RoundConfig.RoundActivations[string(common.SupernovaRoundFlag)].Options
+		configs.RoundConfig.RoundActivations[string(common.SupernovaRoundFlag)] = config.ActivationRoundByName{
+			Round:   fmt.Sprintf("%d", newSupernovaRound),
+			Options: oldOptions,
+		}
 	}
 
 	gasScheduleName, err := GetLatestGasScheduleFilename(configs.ConfigurationPathsHolder.GasScheduleDirectoryName)
@@ -154,12 +166,19 @@ func CreateChainSimulatorConfigs(args ArgsChainSimulatorConfigs) (*ArgsConfigsSi
 }
 
 func updateConfigsChainParameters(args ArgsChainSimulatorConfigs, configs *config.Configs) {
+	supernovaEpoch := configs.EpochConfig.EnableEpochs.SupernovaEnableEpoch
 	for idx := 0; idx < len(configs.GeneralConfig.GeneralSettings.ChainParametersByEpoch); idx++ {
+		isAfterSupernova := configs.GeneralConfig.GeneralSettings.ChainParametersByEpoch[idx].EnableEpoch >= supernovaEpoch
+		roundDurationMillis := args.RoundDurationInMillis
+		if isAfterSupernova {
+			roundDurationMillis = args.RoundDurationInMillis / 10
+		}
+		configs.GeneralConfig.GeneralSettings.ChainParametersByEpoch[idx].RoundDuration = roundDurationMillis
+
 		configs.GeneralConfig.GeneralSettings.ChainParametersByEpoch[idx].ShardMinNumNodes = args.MinNodesPerShard
 		configs.GeneralConfig.GeneralSettings.ChainParametersByEpoch[idx].MetachainMinNumNodes = args.MetaChainMinNodes
 		configs.GeneralConfig.GeneralSettings.ChainParametersByEpoch[idx].MetachainConsensusGroupSize = args.MetaChainConsensusGroupSize
 		configs.GeneralConfig.GeneralSettings.ChainParametersByEpoch[idx].ShardConsensusGroupSize = args.ConsensusGroupSize
-		configs.GeneralConfig.GeneralSettings.ChainParametersByEpoch[idx].RoundDuration = args.RoundDurationInMillis
 		configs.GeneralConfig.GeneralSettings.ChainParametersByEpoch[idx].Hysteresis = args.Hysteresis
 	}
 
