@@ -2720,3 +2720,58 @@ func (bp *baseProcessor) addExecutionResultsOnHeader(header data.HeaderHandler) 
 
 	return header.SetExecutionResultsHandlers(executionResultsToInclude)
 }
+
+func (bp *baseProcessor) createMbsCrossShardDstMe(
+	currentBlockHash []byte,
+	currentBlock data.HeaderHandler,
+	miniBlockProcessingInfo map[string]*processedMb.ProcessedMiniBlockInfo,
+	allOrNothing bool,
+) (bool, []block.MiniblockAndHash, error) {
+	currMiniBlocksAdded, pendingMiniBlocks, currNumTxsAdded, hdrFinished, errCreate := bp.txCoordinator.CreateMbsCrossShardDstMe(
+		currentBlock,
+		miniBlockProcessingInfo,
+	)
+	if errCreate != nil {
+		return false, nil, errCreate
+	}
+
+	if allOrNothing && len(pendingMiniBlocks) > 0 {
+		log.Debug("block cannot be fully processed",
+			"round", currentBlock.GetRound(),
+			"nonce", currentBlock.GetNonce(),
+			"hash", currentBlockHash)
+		bp.revertGasForCrossShardDstMeMiniBlocks(currMiniBlocksAdded, pendingMiniBlocks)
+
+		return false, pendingMiniBlocks, nil
+	}
+
+	err := bp.miniBlocksSelectionSession.AddMiniBlocksAndHashes(currMiniBlocksAdded)
+	if err != nil {
+		return false, nil, err
+	}
+
+	if !hdrFinished {
+		log.Debug("block cannot be fully processed",
+			"round", currentBlock.GetRound(),
+			"nonce", currentBlock.GetNonce(),
+			"hash", currentBlockHash,
+			"num mbs added", len(currMiniBlocksAdded),
+			"num txs added", currNumTxsAdded)
+
+		return false, pendingMiniBlocks, nil
+	}
+
+	return true, pendingMiniBlocks, nil
+}
+
+func (bp *baseProcessor) revertGasForCrossShardDstMeMiniBlocks(added, pending []block.MiniblockAndHash) {
+	miniBlockHashesToRevert := make([][]byte, 0, len(added))
+	for _, mbAndHash := range added {
+		miniBlockHashesToRevert = append(miniBlockHashesToRevert, mbAndHash.Hash)
+	}
+	for _, mbAndHash := range pending {
+		miniBlockHashesToRevert = append(miniBlockHashesToRevert, mbAndHash.Hash)
+	}
+
+	bp.gasComputation.RevertIncomingMiniBlocks(miniBlockHashesToRevert)
+}

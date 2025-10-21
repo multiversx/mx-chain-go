@@ -78,7 +78,7 @@ func (sp *shardProcessor) CreateBlockProposal(
 		return nil, nil, err
 	}
 
-	err = shardHdr.SetMetaBlockHashes(sp.miniBlocksSelectionSession.GetReferencedMetaBlockHashes())
+	err = shardHdr.SetMetaBlockHashes(sp.miniBlocksSelectionSession.GetReferencedHeaderHashes())
 	if err != nil {
 		return nil, nil, err
 	}
@@ -526,12 +526,6 @@ func (sp *shardProcessor) selectIncomingMiniBlocksForProposal(
 		return nil, err
 	}
 
-	referencedMetaBlocks := sp.miniBlocksSelectionSession.GetReferencedMetaBlocks()
-	numHeadersAdded := uint32(len(referencedMetaBlocks))
-	if numHeadersAdded > 0 {
-		go sp.requestMetaHeadersIfNeeded(numHeadersAdded, referencedMetaBlocks[numHeadersAdded-1])
-	}
-
 	miniBlockHeaderHandlers := sp.miniBlocksSelectionSession.GetMiniBlockHeaderHandlers()
 	for _, miniBlockHeader := range miniBlockHeaderHandlers {
 		log.Debug("mini block info",
@@ -543,7 +537,7 @@ func (sp *shardProcessor) selectIncomingMiniBlocksForProposal(
 
 	log.Debug("selectIncomingMiniBlocksForProposal has been finished",
 		"num txs added", sp.miniBlocksSelectionSession.GetNumTxsAdded(),
-		"num referenced meta blocks", len(sp.miniBlocksSelectionSession.GetReferencedMetaBlocks()))
+		"num referenced meta blocks", len(sp.miniBlocksSelectionSession.GetReferencedHeaders()))
 
 	return pendingMiniBlocks, nil
 }
@@ -567,9 +561,9 @@ func (sp *shardProcessor) selectIncomingMiniBlocks(
 			break
 		}
 
-		if len(sp.miniBlocksSelectionSession.GetReferencedMetaBlocks()) >= process.MaxMetaHeadersAllowedInOneShardBlock {
+		if len(sp.miniBlocksSelectionSession.GetReferencedHeaders()) >= process.MaxMetaHeadersAllowedInOneShardBlock {
 			log.Debug("maximum meta headers allowed to be included in one shard block has been reached",
-				"meta headers added", len(sp.miniBlocksSelectionSession.GetReferencedMetaBlocks()),
+				"meta headers added", len(sp.miniBlocksSelectionSession.GetReferencedHeaders()),
 			)
 			break
 		}
@@ -598,55 +592,23 @@ func (sp *shardProcessor) selectIncomingMiniBlocks(
 		}
 
 		if len(currentMetaBlock.GetMiniBlockHeadersWithDst(sp.shardCoordinator.SelfId())) == 0 {
-			sp.miniBlocksSelectionSession.AddReferencedMetaBlock(orderedMetaBlocks[i], orderedMetaBlocksHashes[i])
+			sp.miniBlocksSelectionSession.AddReferencedHeader(orderedMetaBlocks[i], orderedMetaBlocksHashes[i])
 			continue
 		}
 
 		currProcessedMiniBlocksInfo := sp.processedMiniBlocksTracker.GetProcessedMiniBlocksInfo(currentMetaBlockHash)
-		shouldContinue, pendingMiniBlocks, errCreated = sp.createMbsCrossShardDstMe(currentMetaBlockHash, metaBlock, currProcessedMiniBlocksInfo)
+		shouldContinue, pendingMiniBlocks, errCreated = sp.createMbsCrossShardDstMe(currentMetaBlockHash, metaBlock, currProcessedMiniBlocksInfo, false)
 		if errCreated != nil {
 			return nil, errCreated
 		}
+
+		sp.miniBlocksSelectionSession.AddReferencedHeader(currentMetaBlock, currentMetaBlockHash)
 		if !shouldContinue {
 			break
 		}
-
-		sp.miniBlocksSelectionSession.AddReferencedMetaBlock(currentMetaBlock, currentMetaBlockHash)
 	}
 
 	return pendingMiniBlocks, nil
-}
-
-func (sp *shardProcessor) createMbsCrossShardDstMe(
-	currentMetaBlockHash []byte,
-	currentMetaBlock data.MetaHeaderHandler,
-	miniBlockProcessingInfo map[string]*processedMb.ProcessedMiniBlockInfo,
-) (bool, []block.MiniblockAndHash, error) {
-	currMiniBlocksAdded, pendingMiniBlocks, currNumTxsAdded, hdrFinished, errCreate := sp.txCoordinator.CreateMbsCrossShardDstMe(
-		currentMetaBlock,
-		miniBlockProcessingInfo,
-	)
-	if errCreate != nil {
-		return false, nil, errCreate
-	}
-
-	err := sp.miniBlocksSelectionSession.AddMiniBlocksAndHashes(currMiniBlocksAdded)
-	if err != nil {
-		return false, nil, err
-	}
-
-	if !hdrFinished {
-		log.Debug("meta block cannot be fully processed",
-			"round", currentMetaBlock.GetRound(),
-			"nonce", currentMetaBlock.GetNonce(),
-			"hash", currentMetaBlockHash,
-			"num mbs added", len(currMiniBlocksAdded),
-			"num txs added", currNumTxsAdded)
-
-		return false, pendingMiniBlocks, nil
-	}
-
-	return true, pendingMiniBlocks, nil
 }
 
 func (sp *shardProcessor) createProposalMiniBlocks(haveTime func() bool) error {
