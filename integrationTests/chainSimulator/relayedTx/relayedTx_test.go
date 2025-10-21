@@ -1202,6 +1202,7 @@ func TestRelayedTransactionFeeField(t *testing.T) {
 	cs := startChainSimulator(t, func(cfg *config.Configs) {
 		cfg.EpochConfig.EnableEpochs.RelayedTransactionsEnableEpoch = 1
 		cfg.EpochConfig.EnableEpochs.FixRelayedBaseCostEnableEpoch = 1
+		cfg.EpochConfig.EnableEpochs.RelayedTransactionsV1V2DisableEpoch = integrationTests.UnreachableEpoch
 	})
 	defer cs.Close()
 
