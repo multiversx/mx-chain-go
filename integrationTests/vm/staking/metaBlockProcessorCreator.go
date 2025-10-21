@@ -6,6 +6,7 @@ import (
 	"github.com/multiversx/mx-chain-core-go/core"
 	"github.com/multiversx/mx-chain-core-go/data"
 	"github.com/multiversx/mx-chain-core-go/data/block"
+
 	"github.com/multiversx/mx-chain-go/config"
 	"github.com/multiversx/mx-chain-go/process/asyncExecution/executionTrack"
 	"github.com/multiversx/mx-chain-go/process/estimator"
@@ -127,6 +128,14 @@ func createMetaBlockProcessor(
 	}
 	missingDataResolver, _ := missingData.NewMissingDataResolver(missingDataArgs)
 
+	shardInfoCreator, _ := blproc.NewShardInfoCreateData(
+		coreComponents.EnableEpochsHandler(),
+		dataComponents.Datapool().Headers(),
+		dataComponents.Datapool().Proofs(),
+		&mock.PendingMiniBlocksHandlerStub{},
+		blockTracker,
+	)
+
 	args := blproc.ArgMetaProcessor{
 		ArgBaseProcessor: blproc.ArgBaseProcessor{
 			CoreComponents:      coreComponents,
@@ -180,6 +189,7 @@ func createMetaBlockProcessor(
 		EpochValidatorInfoCreator:    valInfoCreator,
 		ValidatorStatisticsProcessor: validatorsInfoCreator,
 		EpochSystemSCProcessor:       systemSCProcessor,
+		ShardInfoCreator:             shardInfoCreator,
 	}
 
 	metaProc, _ := blproc.NewMetaProcessor(args)
