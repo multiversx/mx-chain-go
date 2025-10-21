@@ -275,8 +275,8 @@ func (mp *metaProcessor) IsHdrMissing(hdrHash []byte) bool {
 }
 
 // CreateShardInfo -
-func (mp *metaProcessor) CreateShardInfo() ([]data.ShardDataHandler, error) {
-	return mp.createShardInfo()
+func (mp *metaProcessor) CreateShardInfo(metaHeader data.MetaHeaderHandler) ([]data.ShardDataHandler, error) {
+	return mp.createShardInfo(metaHeader)
 }
 
 // SaveMetricCrossCheckBlockHeight -
