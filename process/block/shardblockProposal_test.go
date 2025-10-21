@@ -16,7 +16,7 @@ import (
 	"github.com/multiversx/mx-chain-go/common"
 	"github.com/multiversx/mx-chain-go/config"
 	"github.com/multiversx/mx-chain-go/state"
-	logger "github.com/multiversx/mx-chain-logger-go"
+
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 
@@ -678,7 +678,6 @@ func Test_addExecutionResultsOnHeader(t *testing.T) {
 
 	t.Run("CreateLastExecutionResultInfoFromExecutionResult returns error should error", func(t *testing.T) {
 		t.Parallel()
-		logger.SetLogLevel("*:DEBUG")
 
 		baseExecutionResults := &block.BaseExecutionResult{
 			HeaderHash:  []byte("hash"),
@@ -744,7 +743,6 @@ func Test_addExecutionResultsOnHeader(t *testing.T) {
 	})
 	t.Run("will work with valid data", func(t *testing.T) {
 		t.Parallel()
-		logger.SetLogLevel("*:DEBUG")
 
 		baseExecutionResults := &block.BaseExecutionResult{
 			HeaderHash:  []byte("hash"),
