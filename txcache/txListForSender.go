@@ -34,6 +34,10 @@ func (listForSender *txListForSender) AddTx(tx *WrappedTransaction, tracker *sel
 	listForSender.mutex.Lock()
 	defer listForSender.mutex.Unlock()
 
+	if tracker == nil {
+		return false, nil
+	}
+
 	insertionPlace, err := listForSender.findInsertionPlace(tx)
 	if err != nil {
 		return false, nil
