@@ -1319,7 +1319,7 @@ func (sp *shardProcessor) setFinalBlockInfo(
 	scheduledHeaderRootHash []byte,
 ) {
 	if header.IsHeaderV3() {
-		sp.setFinalBlockInfoAsync()
+		// final block info is set in async mode on header executor
 		return
 	}
 
@@ -1328,17 +1328,8 @@ func (sp *shardProcessor) setFinalBlockInfo(
 		finalRootHash = header.GetRootHash()
 	}
 
+	// TODO: maybe rename this to reflect last execution results
 	sp.blockChain.SetFinalBlockInfo(header.GetNonce(), headerHash, finalRootHash)
-}
-
-func (sp *shardProcessor) setFinalBlockInfoAsync() {
-	lastExecResult, err := sp.executionResultsTracker.GetLastNotarizedExecutionResult()
-	if err != nil {
-		log.Error("failed to get las exection result", "error", err)
-		return
-	}
-
-	sp.blockChain.SetFinalBlockInfo(lastExecResult.GetHeaderNonce(), lastExecResult.GetHeaderHash(), lastExecResult.GetRootHash())
 }
 
 func (sp *shardProcessor) snapShotEpochStartFromMeta(header data.ShardHeaderHandler) {

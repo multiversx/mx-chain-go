@@ -2488,6 +2488,7 @@ func (bp *baseProcessor) saveMiniBlocksFromExecutionResults(header data.HeaderHa
 	return nil
 }
 
+// TODO: not sure if this is needed
 func (bp *baseProcessor) setLastNotarizedExecutedBlockInfo(header data.HeaderHandler) error {
 	if !header.IsHeaderV3() {
 		return nil
