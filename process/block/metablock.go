@@ -92,7 +92,9 @@ func NewMetaProcessor(arguments ArgMetaProcessor) (*metaProcessor, error) {
 	if check.IfNil(arguments.ReceiptsRepository) {
 		return nil, process.ErrNilReceiptsRepository
 	}
-
+	if check.IfNil(arguments.ShardInfoCreator) {
+		return nil, process.ErrNilShardInfoCreator
+	}
 	mp := metaProcessor{
 		baseProcessor:                base,
 		headersCounter:               NewHeaderCounter(),

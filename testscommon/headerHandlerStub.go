@@ -70,6 +70,7 @@ type HeaderHandlerStub struct {
 	SetEpochStartHandlerCalled             func(epochStartHandler data.EpochStartHandler) error
 	SetRoundCalled                         func(round uint64) error
 	SetNonceCalled                         func(nonce uint64) error
+	SetShardInfoHandlersCalled             func(shardInfo []data.ShardDataHandler) error
 }
 
 // SetEpochStartHandler -
@@ -459,8 +460,11 @@ func (hhs *HeaderHandlerStub) SetDevFeesInEpoch(_ *big.Int) error {
 }
 
 // SetShardInfoHandlers -
-func (hhs *HeaderHandlerStub) SetShardInfoHandlers(_ []data.ShardDataHandler) error {
-	panic("implement me")
+func (hhs *HeaderHandlerStub) SetShardInfoHandlers(shardInfo []data.ShardDataHandler) error {
+	if hhs.SetShardInfoHandlersCalled != nil {
+		return hhs.SetShardInfoHandlersCalled(shardInfo)
+	}
+	return nil
 }
 
 // SetAccumulatedFeesInEpoch -

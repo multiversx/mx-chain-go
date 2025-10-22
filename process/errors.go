@@ -1412,3 +1412,6 @@ var ErrNilEpochStartData = errors.New("nil epoch start data")
 
 // ErrInconsistentShardHeadersAndHashes signals that shard headers are inconsistent with their hashes
 var ErrInconsistentShardHeadersAndHashes = errors.New("inconsistent shard headers and hashes")
+
+// ErrNilShardInfoCreator signals that a nil shard info creator has been provided
+var ErrNilShardInfoCreator = errors.New("nil shard info creator")

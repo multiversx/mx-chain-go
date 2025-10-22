@@ -89,7 +89,7 @@ func (mp *metaProcessor) CreateBlockProposal(
 
 	metaHdr.SoftwareVersion = []byte(mp.headerIntegrityVerifier.GetVersion(metaHdr.Epoch, metaHdr.Round))
 
-	if metaHdr.IsStartOfEpochBlock() {
+	if metaHdr.IsStartOfEpochBlock() || metaHdr.GetEpochChangeProposed() {
 		// no new transactions in start of epoch block
 		// to simplify bootstrapping
 		return metaHdr, &block.Body{}, nil
@@ -303,38 +303,44 @@ func (mp *metaProcessor) selectIncomingMiniBlocks(
 			break
 		}
 
-		currShardHdr := orderedHdrs[i]
-		if currShardHdr.GetNonce() > lastShardHdr[currShardHdr.GetShardID()].Header.GetNonce()+1 {
+		currHdr := orderedHdrs[i]
+		currHdrHash := orderedHdrsHashes[i]
+		if currHdr.GetNonce() > lastShardHdr[currHdr.GetShardID()].Header.GetNonce()+1 {
 			log.Trace("skip searching",
-				"shard", currShardHdr.GetShardID(),
-				"last shard hdr nonce", lastShardHdr[currShardHdr.GetShardID()].Header.GetNonce(),
-				"curr shard hdr nonce", currShardHdr.GetNonce())
+				"shard", currHdr.GetShardID(),
+				"last shard hdr nonce", lastShardHdr[currHdr.GetShardID()].Header.GetNonce(),
+				"curr shard hdr nonce", currHdr.GetNonce())
 			continue
 		}
 
-		if hdrsAddedForShard[currShardHdr.GetShardID()] >= maxShardHeadersFromSameShard {
+		if hdrsAddedForShard[currHdr.GetShardID()] >= maxShardHeadersFromSameShard {
 			log.Trace("maximum shard headers from same shard allowed to be included in one meta block has been reached",
-				"shard", currShardHdr.GetShardID(),
-				"shard headers added", hdrsAddedForShard[currShardHdr.GetShardID()],
+				"shard", currHdr.GetShardID(),
+				"shard headers added", hdrsAddedForShard[currHdr.GetShardID()],
 			)
 			continue
 		}
 
-		hasProofForHdr := mp.proofsPool.HasProof(currShardHdr.GetShardID(), orderedHdrsHashes[i])
+		hasProofForHdr := mp.proofsPool.HasProof(currHdr.GetShardID(), currHdrHash)
 		if !hasProofForHdr {
 			log.Trace("no proof for shard header",
-				"shard", currShardHdr.GetShardID(),
-				"hash", logger.DisplayByteSlice(orderedHdrsHashes[i]),
+				"shard", currHdr.GetShardID(),
+				"hash", logger.DisplayByteSlice(currHdrHash),
 			)
 			continue
 		}
 
-		if len(currShardHdr.GetMiniBlockHeadersWithDst(mp.shardCoordinator.SelfId())) == 0 {
-			mp.miniBlocksSelectionSession.AddReferencedHeader(orderedHdrs[i], orderedHdrsHashes[i])
+		if len(currHdr.GetMiniBlockHeadersWithDst(mp.shardCoordinator.SelfId())) == 0 {
+			mp.miniBlocksSelectionSession.AddReferencedHeader(currHdr, currHdrHash)
+			lastShardHdr[currHdr.GetShardID()] = ShardHeaderInfo{
+				Header:      currHdr,
+				Hash:        currHdrHash,
+				UsedInBlock: true,
+			}
 			continue
 		}
 
-		_, pendingMiniBlocks, errCreated := mp.createMbsCrossShardDstMe(orderedHdrsHashes[i], currShardHdr, nil, true)
+		_, pendingMiniBlocks, errCreated := mp.createMbsCrossShardDstMe(currHdrHash, currHdr, nil, true)
 		if errCreated != nil {
 			return errCreated
 		}
@@ -342,13 +348,18 @@ func (mp *metaProcessor) selectIncomingMiniBlocks(
 		// pending miniBlocks were already reverted, but still returned to check if we need to stop adding more shard headers
 		if len(pendingMiniBlocks) > 0 {
 			log.Debug("shard header cannot be fully added",
-				"round", currShardHdr.GetRound(),
-				"nonce", currShardHdr.GetNonce(),
-				"hash", orderedHdrsHashes[i])
+				"round", currHdr.GetRound(),
+				"nonce", currHdr.GetNonce(),
+				"hash", currHdrHash)
 			break
 		}
 
-		mp.miniBlocksSelectionSession.AddReferencedHeader(currShardHdr, orderedHdrsHashes[i])
+		mp.miniBlocksSelectionSession.AddReferencedHeader(currHdr, orderedHdrsHashes[i])
+		lastShardHdr[currHdr.GetShardID()] = ShardHeaderInfo{
+			Header:      currHdr,
+			Hash:        currHdrHash,
+			UsedInBlock: true,
+		}
 	}
 
 	return nil

@@ -56,7 +56,7 @@ func haveTimeFalse() bool {
 	return false
 }
 
-type shardProcessorTest interface {
+type processorTest interface {
 	CreateBlockProposal(
 		initialHdr data.HeaderHandler,
 		haveTime func() bool,
@@ -1406,12 +1406,12 @@ func TestShardProcessor_CheckMetaHeadersValidityAndFinalityProposal(t *testing.T
 
 func checkCreateBlockProposalResult(
 	t *testing.T,
-	sp shardProcessorTest,
+	processor processorTest,
 	header data.HeaderHandler,
 	haveTime func() bool,
 	expectedError error,
 ) {
-	hdr, body, err := sp.CreateBlockProposal(header, haveTime)
+	hdr, body, err := processor.CreateBlockProposal(header, haveTime)
 	require.Equal(t, expectedError, err)
 	require.Nil(t, hdr)
 	require.Nil(t, body)
