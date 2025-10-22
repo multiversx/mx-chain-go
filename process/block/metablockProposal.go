@@ -88,7 +88,6 @@ func (mp *metaProcessor) CreateBlockProposal(
 
 	metaHdr.SoftwareVersion = []byte(mp.headerIntegrityVerifier.GetVersion(metaHdr.Epoch, metaHdr.Round))
 
-	var body data.BodyHandler
 	if metaHdr.IsStartOfEpochBlock() {
 		// no new transactions in start of epoch block
 		// to simplify bootstrapping
@@ -103,13 +102,18 @@ func (mp *metaProcessor) CreateBlockProposal(
 	}
 
 	mbsToMe := mp.miniBlocksSelectionSession.GetMiniBlocks()
+	miniBlocksHeadersToMe := mp.miniBlocksSelectionSession.GetMiniBlockHeaderHandlers()
 	numTxs := mp.miniBlocksSelectionSession.GetNumTxsAdded()
 	referencedShardHeaderHashes := mp.miniBlocksSelectionSession.GetReferencedHeaderHashes()
 	referencedShardHeaders := mp.miniBlocksSelectionSession.GetReferencedHeaders()
+	body := &block.Body{
+		MiniBlocks: mbsToMe,
+	}
+
 	if len(mbsToMe) > 0 {
-		log.Debug("processed miniblocks and txs with destination in self shard",
+		log.Debug("created miniblocks with txs with destination in self shard",
 			"num miniblocks", len(mbsToMe),
-			"num txs", numTxs,
+			"num txs proposed", numTxs,
 			"num shard headers", len(referencedShardHeaderHashes),
 		)
 	}
@@ -118,13 +122,51 @@ func (mp *metaProcessor) CreateBlockProposal(
 		go mp.checkAndRequestIfShardHeadersMissing()
 	}()
 
-	mp.shardInfoCreateData.CreateShardInfoV3(metaHdr, referencedShardHeaders, referencedShardHeaderHashes)
+	// TODO: referenced shard headers should be also notarized, not only the headers corresponding to the execution results
+	// this will be needed for metachain to keep track of the already processed headers.
+	shardDataHandler, err := mp.shardInfoCreateData.CreateShardInfoV3(metaHdr, referencedShardHeaders, referencedShardHeaderHashes)
+	if err != nil {
+		return nil, nil, err
+	}
 
-	// body, err = mp.applyBodyToHeader(metaHdr, body)
-	// if err != nil {
-	// 	return nil, nil, err
-	// }
+	err = metaHdr.SetShardInfoHandlers(shardDataHandler)
+	if err != nil {
+		return nil, nil, err
+	}
+
+	err = metaHdr.SetMiniBlockHeaderHandlers(miniBlocksHeadersToMe)
+	if err != nil {
+		return nil, nil, err
+	}
+
+	totalProcessedTxs := getTxCount(shardDataHandler) + getTxCountExecutionResults(metaHdr)
+	// TODO: consider if tx count per metablock header is still needed
+	// as we still have it in the execution results
+	err = metaHdr.SetTxCount(totalProcessedTxs)
+	if err != nil {
+		return nil, nil, err
+	}
+
+	marshalizedBody, err := mp.marshalizer.Marshal(body)
+	if err != nil {
+		return nil, nil, err
+	}
+	mp.blockSizeThrottler.Add(metaHdr.GetRound(), uint32(len(marshalizedBody)))
+
 	return metaHdr, body, nil
+}
+
+func getTxCountExecutionResults(metaHeader data.MetaHeaderHandler) uint32 {
+	totalTxs := uint64(0)
+	execResults := metaHeader.GetExecutionResultsHandlers()
+	for _, execResult := range execResults {
+		execResultsMeta, ok := execResult.(data.MetaExecutionResultHandler)
+		if !ok {
+			continue
+		}
+		totalTxs += execResultsMeta.GetExecutedTxCount()
+	}
+	return uint32(totalTxs)
 }
 
 // VerifyBlockProposal will be implemented in a further PR
