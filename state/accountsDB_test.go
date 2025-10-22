@@ -980,6 +980,77 @@ func TestAccountsDB_RecreateTrieOkValsShouldWork(t *testing.T) {
 	assert.True(t, wasCalled)
 }
 
+// ------- RecreateTrieIfNeeded
+
+func TestAccountsDB_RecreateTrieIfNeededShouldRecreate(t *testing.T) {
+	t.Parallel()
+
+	currentHash := []byte("hash1")
+	newHash := []byte("hash2")
+
+	recreatedCalled := false
+	trieStub := &trieMock.TrieStub{
+		RootCalled: func() ([]byte, error) {
+			return currentHash, nil
+		},
+		RecreateCalled: func(_ common.RootHashHolder) (common.Trie, error) {
+			recreatedCalled = true
+			return &trieMock.TrieStub{}, nil
+		},
+		GetStorageManagerCalled: func() common.StorageManager {
+			return &storageManager.StorageManagerStub{}
+		},
+	}
+
+	adb := generateAccountDBFromTrie(trieStub)
+	holder := holders.NewDefaultRootHashesHolder(newHash)
+
+	err := adb.RecreateTrieIfNeeded(holder)
+	assert.Nil(t, err)
+	assert.True(t, recreatedCalled)
+}
+
+func TestAccountsDB_RecreateTrieIfNeededShouldNotRecreate(t *testing.T) {
+	t.Parallel()
+
+	currentHash := []byte("hash1")
+	recreatedCalled := false
+	trieStub := &trieMock.TrieStub{
+		RootCalled: func() ([]byte, error) {
+			return currentHash, nil
+		},
+		RecreateCalled: func(_ common.RootHashHolder) (common.Trie, error) {
+			recreatedCalled = true
+			return &trieMock.TrieStub{}, nil
+		},
+	}
+
+	adb := generateAccountDBFromTrie(trieStub)
+	holder := holders.NewDefaultRootHashesHolder(currentHash)
+
+	err := adb.RecreateTrieIfNeeded(holder)
+	assert.Nil(t, err)
+	assert.False(t, recreatedCalled)
+}
+
+func TestAccountsDB_RecreateTrieIfNeededRootHashError(t *testing.T) {
+	t.Parallel()
+
+	expectedErr := errors.New("root hash err")
+	trieStub := &trieMock.TrieStub{
+		RootCalled: func() ([]byte, error) {
+			return nil, expectedErr
+		},
+		GetStorageManagerCalled: func() common.StorageManager {
+			return &storageManager.StorageManagerStub{}
+		},
+	}
+
+	adb := generateAccountDBFromTrie(trieStub)
+	err := adb.RecreateTrieIfNeeded(holders.NewDefaultRootHashesHolder([]byte("x")))
+	assert.Equal(t, expectedErr, err)
+}
+
 func TestAccountsDB_SnapshotState(t *testing.T) {
 	t.Parallel()
 
