@@ -586,13 +586,11 @@ func (st *selectionTracker) IsTransactionTracked(transaction *WrappedTransaction
 	return true
 }
 
+// should be called under mutex protection
 func (st *selectionTracker) displayTrackedBlocks(contextualLogger logger.Logger, linePrefix string) {
 	if contextualLogger.GetLevel() > logger.LogTrace {
 		return
 	}
-
-	st.mutTracker.RLock()
-	defer st.mutTracker.RUnlock()
 
 	log.Debug("selectionTracker.deriveVirtualSelectionSession",
 		"len(trackedBlocks)", len(st.blocks))
