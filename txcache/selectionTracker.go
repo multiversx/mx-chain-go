@@ -591,9 +591,6 @@ func (st *selectionTracker) displayTrackedBlocks(contextualLogger logger.Logger,
 		return
 	}
 
-	st.mutTracker.RLock()
-	defer st.mutTracker.RUnlock()
-
 	log.Debug("selectionTracker.deriveVirtualSelectionSession",
 		"len(trackedBlocks)", len(st.blocks))
 
