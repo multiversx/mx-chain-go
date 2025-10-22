@@ -13,6 +13,7 @@ import (
 	epochStartMocks "github.com/multiversx/mx-chain-go/epochStart/mock"
 	"github.com/multiversx/mx-chain-go/process"
 	"github.com/multiversx/mx-chain-go/storage"
+	dataRetrieverMock "github.com/multiversx/mx-chain-go/testscommon/dataRetriever"
 	"github.com/multiversx/mx-chain-go/testscommon/genericMocks"
 	"github.com/multiversx/mx-chain-go/testscommon/hashingMocks"
 	storageStubs "github.com/multiversx/mx-chain-go/testscommon/storage"
@@ -39,6 +40,7 @@ func createMockHistoryRepoArgs(epoch uint32) HistoryRepositoryArguments {
 		Hasher:                      &hashingMocks.HasherMock{},
 		ESDTSuppliesHandler:         sp,
 		Uint64ByteSliceConverter:    &epochStartMocks.Uint64ByteSliceConverterMock{},
+		DataPool:                    &dataRetrieverMock.PoolsHolderMock{},
 	}
 
 	return args
