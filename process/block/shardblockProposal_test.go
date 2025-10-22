@@ -3133,7 +3133,7 @@ func createSubComponentsForVerifyProposalTest() map[string]interface{} {
 	}
 
 	blkc, _ := blockchain.NewBlockChain(&statusHandlerMock.AppStatusHandlerStub{})
-	blkc.SetCurrentBlockHeaderAndRootHash(currentBlockHeader, []byte("root"))
+	_ = blkc.SetCurrentBlockHeaderAndRootHash(currentBlockHeader, []byte("root"))
 	blkc.SetCurrentBlockHeaderHash([]byte("hash"))
 	gracePeriod, _ := graceperiod.NewEpochChangeGracePeriod([]config.EpochChangeGracePeriodByEpoch{{EnableEpoch: 0, GracePeriodInRounds: 1}})
 
