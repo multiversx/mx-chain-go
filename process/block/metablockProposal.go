@@ -15,6 +15,7 @@ import (
 
 // CreateNewHeaderProposal creates a new header
 func (mp *metaProcessor) CreateNewHeaderProposal(round uint64, nonce uint64) (data.HeaderHandler, error) {
+	// TODO: the trigger would need to be changed upon commit of a block with the epoch start results
 	epoch := mp.epochStartTrigger.Epoch()
 
 	header := mp.versionedHeaderFactory.Create(epoch, round)
@@ -65,7 +66,6 @@ func (mp *metaProcessor) CreateNewHeaderProposal(round uint64, nonce uint64) (da
 	if err != nil {
 		return nil, err
 	}
-	// TODO: the trigger would need to be changed upon commit of a block with the epoch start results
 
 	return metaHeader, nil
 }
@@ -194,15 +194,18 @@ func (mp *metaProcessor) hasStartOfEpochExecutionResults(metaHeader data.MetaHea
 		if err != nil {
 			return false, err
 		}
-		if hasRewardMiniBlocks(mbHeaders) {
+		if hasRewardOrPeerMiniBlocksFromSelf(mbHeaders) {
 			return true, nil
 		}
 	}
 	return false, nil
 }
 
-func hasRewardMiniBlocks(miniBlockHeaders []data.MiniBlockHeaderHandler) bool {
+func hasRewardOrPeerMiniBlocksFromSelf(miniBlockHeaders []data.MiniBlockHeaderHandler) bool {
 	for _, mbHeader := range miniBlockHeaders {
+		if mbHeader.GetSenderShardID() != common.MetachainShardId {
+			continue
+		}
 		if mbHeader.GetTypeInt32() == int32(block.RewardsBlock) ||
 			mbHeader.GetTypeInt32() == int32(block.PeerBlock) {
 			return true

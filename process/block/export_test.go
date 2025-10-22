@@ -804,3 +804,8 @@ func (sp *shardProcessor) GetCrossShardIncomingMiniBlocksFromBody(body *block.Bo
 func GetHaveTimeForProposal(startTime time.Time, maxDuration time.Duration) func() time.Duration {
 	return getHaveTimeForProposal(startTime, maxDuration)
 }
+
+// SetEpochStartData -
+func (mp *metaProcessor) SetEpochStartData(epochStartData *block.EpochStart) {
+	mp.epochStartData = epochStartData
+}

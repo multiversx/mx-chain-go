@@ -68,6 +68,8 @@ type HeaderHandlerStub struct {
 	SetTxCountCalled                       func(count uint32) error
 	SetMetaBlockHashesCalled               func(hashes [][]byte) error
 	SetEpochStartHandlerCalled             func(epochStartHandler data.EpochStartHandler) error
+	SetRoundCalled                         func(round uint64) error
+	SetNonceCalled                         func(nonce uint64) error
 }
 
 // SetEpochStartHandler -
@@ -241,8 +243,11 @@ func (hhs *HeaderHandlerStub) GetReserved() []byte {
 }
 
 // SetNonce -
-func (hhs *HeaderHandlerStub) SetNonce(_ uint64) error {
-	panic("implement me")
+func (hhs *HeaderHandlerStub) SetNonce(nonce uint64) error {
+	if hhs.SetNonceCalled != nil {
+		return hhs.SetNonceCalled(nonce)
+	}
+	return nil
 }
 
 // SetEpoch -
@@ -254,8 +259,11 @@ func (hhs *HeaderHandlerStub) SetEpoch(epoch uint32) error {
 }
 
 // SetRound -
-func (hhs *HeaderHandlerStub) SetRound(_ uint64) error {
-	panic("implement me")
+func (hhs *HeaderHandlerStub) SetRound(round uint64) error {
+	if hhs.SetRoundCalled != nil {
+		return hhs.SetRoundCalled(round)
+	}
+	return nil
 }
 
 // SetTimeStamp -
