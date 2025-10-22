@@ -962,11 +962,14 @@ func TestEnableEpochConfig(t *testing.T) {
     # AutomaticActivationOfNodesDisableEpoch represents the epoch when automatic activation of nodes for validators is disabled
     AutomaticActivationOfNodesDisableEpoch = 111
 
-    # FixGetBalanceEnableEpoch represents the epoch when Barnard opcodes will be enabled
+    # FixGetBalanceEnableEpoch represents the epoch when get balance opcode fix is enabled
     FixGetBalanceEnableEpoch = 112
 
+    # RelayedTransactionsV1V2DisableEpoch represents the epoch when relayed transactions v1 and v2 are disabled
+    RelayedTransactionsV1V2DisableEpoch = 113
+
     # SupernovaEnableEpoch represents the epoch when sub-second finality will be enabled
-    SupernovaEnableEpoch = 113
+    SupernovaEnableEpoch = 114
 
     # MaxNodesChangeEnableEpoch holds configuration for changing the maximum number of nodes and the enabling epoch
     MaxNodesChangeEnableEpoch = [
@@ -1100,7 +1103,8 @@ func TestEnableEpochConfig(t *testing.T) {
 			BarnardOpcodesEnableEpoch:                                110,
 			AutomaticActivationOfNodesDisableEpoch:                   111,
 			FixGetBalanceEnableEpoch:                                 112,
-			SupernovaEnableEpoch:                                     113,
+			RelayedTransactionsV1V2DisableEpoch:                      113,
+			SupernovaEnableEpoch:                                     114,
 			MaxNodesChangeEnableEpoch: []MaxNodesChangeConfig{
 				{
 					EpochEnable:            44,
