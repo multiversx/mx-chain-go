@@ -586,6 +586,7 @@ func (st *selectionTracker) IsTransactionTracked(transaction *WrappedTransaction
 	return true
 }
 
+// should be called under mutex protection
 func (st *selectionTracker) displayTrackedBlocks(contextualLogger logger.Logger, linePrefix string) {
 	if contextualLogger.GetLevel() > logger.LogTrace {
 		return
