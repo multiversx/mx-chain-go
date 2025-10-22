@@ -60,6 +60,7 @@ func (mp *metaProcessor) CreateNewHeaderProposal(round uint64, nonce uint64) (da
 		return nil, process.ErrNilEpochStartData
 	}
 
+	// TODO: clean up the epoch start data upon commit
 	err = metaHeader.SetEpochStartHandler(mp.epochStartData)
 	if err != nil {
 		return nil, err
