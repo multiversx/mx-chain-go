@@ -137,6 +137,7 @@ func createMetaBlockProcessor(
 				AppStatusHandlerField: &statusHandlerMock.AppStatusHandlerStub{},
 			},
 			AccountsDB:                         accountsDb,
+			AccountsProposal:                   stateComponents.AccountsAdapterProposal(),
 			ForkDetector:                       &integrationMocks.ForkDetectorStub{},
 			NodesCoordinator:                   nc,
 			FeeHandler:                         postprocess.NewFeeAccumulator(),
