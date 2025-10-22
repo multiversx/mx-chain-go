@@ -22,6 +22,7 @@ import (
 	"github.com/multiversx/mx-chain-core-go/data/transaction"
 	"github.com/multiversx/mx-chain-core-go/hashing"
 	"github.com/multiversx/mx-chain-core-go/marshal"
+	"github.com/multiversx/mx-chain-go/common/graceperiod"
 	"github.com/multiversx/mx-chain-go/testscommon/cache"
 	"github.com/multiversx/mx-chain-go/testscommon/pool"
 	vmcommon "github.com/multiversx/mx-chain-vm-common-go"
@@ -4751,6 +4752,133 @@ func TestShardProcessor_updateStateStorage(t *testing.T) {
 
 	assert.True(t, pruneTrieWasCalled)
 	assert.True(t, cancelPruneWasCalled)
+}
+
+type gracePeriodErrStub struct{}
+
+func (gracePeriodErrStub) GetGracePeriodForEpoch(_ uint32) (uint32, error) {
+	return 0, errors.New("epochChangeGracePeriodHandler forced error")
+}
+
+func (gracePeriodErrStub) IsInterfaceNil() bool { return false }
+
+func TestShardProcessor_checkEpochCorrectnessCrossChain_gracePeriodError(t *testing.T) {
+	t.Parallel()
+
+	genesisNonce := uint64(0)
+	gracePeriod := &gracePeriodErrStub{}
+	blockchain := &testscommon.ChainHandlerStub{
+		GetCurrentBlockHeaderCalled: func() data.HeaderHandler {
+			return &block.Header{
+				Nonce: 0,
+				Epoch: 1,
+				Round: 10,
+			}
+		},
+		GetGenesisHeaderCalled: func() data.HeaderHandler {
+			return &block.Header{
+				Nonce: 0,
+				Epoch: 0,
+				Round: 10,
+			}
+		},
+		GetGenesisHeaderHashCalled: func() []byte {
+			return []byte("genesis-hash")
+		},
+	}
+
+	epochStartTrigger := &mock.EpochStartTriggerStub{
+		EpochFinalityAttestingRoundCalled: func() uint64 {
+			return 5
+		},
+		EpochStartRoundCalled: func() uint64 {
+			return 1
+		},
+		MetaEpochCalled: func() uint32 {
+			return 2
+		},
+		EpochCalled: func() uint32 {
+			return 1
+		},
+	}
+
+	forkDetector := &mock.ForkDetectorMock{
+		GetHighestFinalBlockNonceCalled: func() uint64 {
+			return genesisNonce
+		},
+	}
+	sp, err := blproc.ConstructPartialShardBlockProcessorForTest(map[string]interface{}{
+		"genesisNonce":                  genesisNonce,
+		"blockChain":                    blockchain,
+		"epochStartTrigger":             epochStartTrigger,
+		"forkDetector":                  forkDetector,
+		"epochChangeGracePeriodHandler": gracePeriod,
+	})
+	require.Nil(t, err)
+
+	err = sp.CheckEpochCorrectnessCrossChain()
+	assert.NotNil(t, err)
+	assert.Equal(t, "epochChangeGracePeriodHandler forced error", err.Error())
+
+}
+
+func TestShardProcessor_checkEpochCorrectnessCrossChain_NoRevertWhenFinalizedReached(t *testing.T) {
+	t.Parallel()
+
+	genesisNonce := uint64(0)
+	gracePeriod, _ := graceperiod.NewEpochChangeGracePeriod([]config.EpochChangeGracePeriodByEpoch{{EnableEpoch: 0, GracePeriodInRounds: 1}})
+	blockchain := &testscommon.ChainHandlerStub{
+		GetCurrentBlockHeaderCalled: func() data.HeaderHandler {
+			return &block.Header{
+				Nonce: 0,
+				Epoch: 1,
+				Round: 10,
+			}
+		},
+		GetGenesisHeaderCalled: func() data.HeaderHandler {
+			return &block.Header{
+				Nonce: 0,
+				Epoch: 0,
+				Round: 10,
+			}
+		},
+		GetGenesisHeaderHashCalled: func() []byte {
+			return []byte("genesis-hash")
+		},
+	}
+
+	epochStartTrigger := &mock.EpochStartTriggerStub{
+		EpochFinalityAttestingRoundCalled: func() uint64 {
+			return 5
+		},
+		EpochStartRoundCalled: func() uint64 {
+			return 1
+		},
+		MetaEpochCalled: func() uint32 {
+			return 2
+		},
+		EpochCalled: func() uint32 {
+			return 1
+		},
+	}
+
+	forkDetector := &mock.ForkDetectorMock{
+		GetHighestFinalBlockNonceCalled: func() uint64 {
+			return genesisNonce
+		},
+	}
+	sp, err := blproc.ConstructPartialShardBlockProcessorForTest(map[string]interface{}{
+		"genesisNonce":                  genesisNonce,
+		"blockChain":                    blockchain,
+		"epochStartTrigger":             epochStartTrigger,
+		"forkDetector":                  forkDetector,
+		"epochChangeGracePeriodHandler": gracePeriod,
+	})
+	require.Nil(t, err)
+
+	err = sp.CheckEpochCorrectnessCrossChain()
+	assert.Nil(t, err)
+
 }
 
 func TestShardProcessor_checkEpochCorrectnessCrossChainNilCurrentBlock(t *testing.T) {

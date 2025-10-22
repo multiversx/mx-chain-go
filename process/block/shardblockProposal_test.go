@@ -14,6 +14,7 @@ import (
 	"github.com/multiversx/mx-chain-core-go/data/block"
 	"github.com/multiversx/mx-chain-core-go/data/transaction"
 	"github.com/multiversx/mx-chain-go/common"
+	"github.com/multiversx/mx-chain-go/common/graceperiod"
 	"github.com/multiversx/mx-chain-go/config"
 	"github.com/multiversx/mx-chain-go/state"
 
@@ -746,7 +747,7 @@ func Test_addExecutionResultsOnHeader(t *testing.T) {
 
 		baseExecutionResults := &block.BaseExecutionResult{
 			HeaderHash:  []byte("hash"),
-			HeaderNonce: 100,
+			HeaderNonce: 3,
 			HeaderRound: 1,
 			RootHash:    []byte("rootHash"),
 		}
@@ -771,16 +772,18 @@ func Test_addExecutionResultsOnHeader(t *testing.T) {
 			MaxResultsPerBlock: 10,
 		}
 
+		executionResult1 := &block.ExecutionResult{
+			BaseExecutionResult: &block.BaseExecutionResult{HeaderHash: []byte("hash1"), HeaderNonce: 1, HeaderRound: 2, GasUsed: 100_000_000},
+		}
+		executionResult2 := &block.ExecutionResult{
+			BaseExecutionResult: &block.BaseExecutionResult{HeaderHash: []byte("hash2"), HeaderNonce: 2, HeaderRound: 2, GasUsed: 999_000_000},
+		}
 		sp, _ := blproc.ConstructPartialShardBlockProcessorForTest(map[string]interface{}{
 			"executionResultsTracker": &testscommonExecutionTrack.ExecutionResultsTrackerStub{
 				GetPendingExecutionResultsCalled: func() ([]data.BaseExecutionResultHandler, error) {
 					return []data.BaseExecutionResultHandler{
-						&block.ExecutionResult{
-							BaseExecutionResult: &block.BaseExecutionResult{HeaderNonce: 1, HeaderRound: 2, GasUsed: 100_000_000},
-						},
-						&block.ExecutionResult{
-							BaseExecutionResult: &block.BaseExecutionResult{HeaderNonce: 2, HeaderRound: 2, GasUsed: 999_000_000},
-						},
+						executionResult1,
+						executionResult2,
 					}, nil
 				},
 			},
@@ -799,8 +802,18 @@ func Test_addExecutionResultsOnHeader(t *testing.T) {
 				},
 			},
 		})
-		err := sp.AddExecutionResultsOnHeader(&block.HeaderV3{Round: 3})
+
+		proposalHeader := &block.HeaderV3{Round: 3}
+		err := sp.AddExecutionResultsOnHeader(proposalHeader)
+
+		// expected only first pending execution result to be added
 		require.NoError(t, err)
+		actualLastExecutionResult := proposalHeader.GetLastExecutionResultHandler().(*block.ExecutionResultInfo)
+		assert.NotNil(t, actualLastExecutionResult)
+		assert.Equal(t, actualLastExecutionResult.ExecutionResult, executionResult1.BaseExecutionResult)
+		assert.NotNil(t, proposalHeader.ExecutionResults)
+		assert.Len(t, proposalHeader.ExecutionResults, 1)
+		assert.Equal(t, proposalHeader.ExecutionResults[0], executionResult1)
 	})
 }
 
@@ -1331,6 +1344,45 @@ func TestShardProcessor_VerifyBlockProposal(t *testing.T) {
 		require.Equal(t, expectedError, err)
 	})
 
+	t.Run("checkEpochCorectnessCrossChain fails should error", func(t *testing.T) {
+		t.Parallel()
+
+		subcomponents := createSubComponentsForVerifyProposalTest()
+		subcomponents["epochChangeGracePeriodHandler"] = &gracePeriodErrStub{}
+		subcomponents["epochStartTrigger"] = &mock.EpochStartTriggerStub{
+			EpochStartRoundCalled: func() uint64 {
+				return 10
+			},
+			EpochFinalityAttestingRoundCalled: func() uint64 {
+				return 15
+			},
+		}
+		genesisNonce := uint64(0)
+		subcomponents["genesisNonce"] = genesisNonce
+		subcomponents["forkDetector"] = &mock.ForkDetectorMock{
+			GetHighestFinalBlockNonceCalled: func() uint64 {
+				return genesisNonce
+			},
+		}
+		sp, err := blproc.ConstructPartialShardBlockProcessorForTest(subcomponents)
+		require.Nil(t, err)
+
+		body := &block.Body{}
+
+		header := &block.HeaderV3{
+			PrevHash:         []byte("hash"),
+			Nonce:            1,
+			Round:            2,
+			MiniBlockHeaders: []block.MiniBlockHeader{},
+			LastExecutionResult: &block.ExecutionResultInfo{
+				ExecutionResult: &block.BaseExecutionResult{},
+			},
+		}
+
+		err = sp.VerifyBlockProposal(header, body, haveTime)
+		require.Error(t, err)
+		assert.Equal(t, "epochChangeGracePeriodHandler forced error", err.Error())
+	})
 	t.Run("should work", func(t *testing.T) {
 		t.Parallel()
 
@@ -2988,11 +3040,18 @@ func createSubComponentsForCollectExecutionResultsTest() (map[string]interface{}
 		"accountsDB":          accounts,
 	}
 
+	header, body := createHeaderAndBodyForTestingProcessBlockProposal()
+
+	return subComponents, header, body
+}
+
+func createHeaderAndBodyForTestingProcessBlockProposal() (data.HeaderHandler, *block.Body) {
 	header := &block.HeaderV3{
-		Epoch:   10,
-		Nonce:   155,
-		Round:   2067,
-		TxCount: 13,
+		PrevHash: []byte("previousHash"),
+		Epoch:    10,
+		Nonce:    155,
+		Round:    2067,
+		TxCount:  13,
 	}
 	body := &block.Body{
 		MiniBlocks: []*block.MiniBlock{
@@ -3047,6 +3106,86 @@ func createSubComponentsForCollectExecutionResultsTest() (map[string]interface{}
 			},
 		},
 	}
+	return header, body
+}
 
-	return subComponents, header, body
+func createSubComponentsForVerifyProposalTest() map[string]interface{} {
+	poolMock := initDataPool()
+	poolMock.HeadersCalled = func() retriever.HeadersPool {
+		return &pool.HeadersPoolStub{
+			GetHeaderByHashCalled: func(hash []byte) (data.HeaderHandler, error) {
+				return &block.HeaderV3{
+					LastExecutionResult: &block.ExecutionResultInfo{
+						ExecutionResult: &block.BaseExecutionResult{},
+					},
+				}, nil
+			},
+		}
+	}
+	currentBlockHeader := &block.HeaderV3{
+		PrevHash: []byte("hash"),
+		Nonce:    0,
+		Round:    1,
+		ShardID:  0,
+		LastExecutionResult: &block.ExecutionResultInfo{
+			ExecutionResult: &block.BaseExecutionResult{},
+		},
+	}
+
+	blkc, _ := blockchain.NewBlockChain(&statusHandlerMock.AppStatusHandlerStub{})
+	blkc.SetCurrentBlockHeaderAndRootHash(currentBlockHeader, []byte("root"))
+	blkc.SetCurrentBlockHeaderHash([]byte("hash"))
+	gracePeriod, _ := graceperiod.NewEpochChangeGracePeriod([]config.EpochChangeGracePeriodByEpoch{{EnableEpoch: 0, GracePeriodInRounds: 1}})
+
+	return map[string]interface{}{
+		"blockChain": blkc,
+		"dataPool":   poolMock,
+		"shardCoordinator": &mock.ShardCoordinatorStub{
+			SelfIdCalled: func() uint32 {
+				return 0
+			},
+		},
+		"executionResultsVerifier": &processMocks.ExecutionResultsVerifierMock{
+			VerifyHeaderExecutionResultsCalled: func(header data.HeaderHandler) error {
+				return nil
+			},
+		},
+		"executionResultsInclusionEstimator": &processMocks.InclusionEstimatorMock{
+			DecideCalled: func(lastNotarised *estimator.LastExecutionResultForInclusion, pending []data.BaseExecutionResultHandler, currentHdrTsMs uint64) (allowed int) {
+				return 0
+			},
+		},
+		"missingDataResolver": &processMocks.MissingDataResolverMock{
+			WaitForMissingDataCalled: func(timeout time.Duration) error {
+				return nil
+			},
+		},
+		"epochStartTrigger": &mock.EpochStartTriggerStub{
+			EpochStartRoundCalled: func() uint64 {
+				return 10
+			},
+			EpochFinalityAttestingRoundCalled: func() uint64 {
+				return 5
+			},
+		},
+		"enableEpochsHandler":           enableEpochsHandlerMock.NewEnableEpochsHandlerStub(),
+		"epochChangeGracePeriodHandler": gracePeriod,
+		"blockTracker": &mock.BlockTrackerMock{
+			GetLastCrossNotarizedHeaderCalled: func(shardID uint32) (data.HeaderHandler, []byte, error) {
+				return &block.MetaBlockV3{}, []byte("h"), nil
+			},
+		},
+		"gasComputation": &testscommon.GasComputationMock{
+			CheckIncomingMiniBlocksCalled: func(miniBlocks []data.MiniBlockHeaderHandler, transactions map[string][]data.TransactionHandler) (int, int, error) {
+				return len(miniBlocks) - 1, 0, nil // no pending mini blocks left
+			},
+			CheckOutgoingTransactionsCalled: func(txHashes [][]byte, transactions []data.TransactionHandler) ([][]byte, []data.MiniBlockHeaderHandler, error) {
+				return txHashes, []data.MiniBlockHeaderHandler{&block.MiniBlockHeader{}}, nil // one pending mini block added
+			},
+		},
+		"appStatusHandler": &statusHandlerMock.AppStatusHandlerStub{},
+		"marshalizer":      &mock.MarshalizerMock{},
+		"roundHandler":     &mock.RoundHandlerMock{},
+	}
+
 }
