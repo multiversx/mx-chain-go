@@ -314,6 +314,7 @@ type BlocksQueue interface {
 	AddOrReplace(pair queue.HeaderBodyPair) error
 	Pop() (queue.HeaderBodyPair, bool)
 	Peek() (queue.HeaderBodyPair, bool)
+	Clean(lastAddedNonce uint64)
 	IsInterfaceNil() bool
 	Close()
 }

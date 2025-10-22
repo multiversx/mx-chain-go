@@ -763,51 +763,30 @@ func (boot *baseBootstrap) rollBackExecutionResults(
 		return
 	}
 
-	switch err {
-	case process.ErrExecutionResultsNumberMismatch:
-		{
-		}
-	}
-
-	if errors.Is(err, process.ErrExecutionResultsNumberMismatch) {
-		// remove all execution results from tracker
-		executionResults := header.GetExecutionResultsHandlers()
-		if len(executionResults) < 0 {
-			return
-		}
-
-		headerHashToRemoveFrom := executionResults[0].GetHeaderHash()
-		boot.executionResultsTracker.RemoveFromHash(headerHashToRemoveFrom)
-
+	executionResults := header.GetExecutionResultsHandlers()
+	if len(executionResults) < 0 {
 		return
 	}
 
-	if errors.Is(err, process.ErrExecutionResultsNonConsecutive) {
-		executionResults := header.GetExecutionResultsHandlers()
-		if len(executionResults) < 0 {
-			return
-		}
-
+	switch err {
+	case process.ErrExecutionResultsNumberMismatch:
+		// remove all execution results from tracker
+		headerHashToRemoveFrom := executionResults[0].GetHeaderHash()
+		boot.executionResultsTracker.RemoveFromHash(headerHashToRemoveFrom)
+		boot.blocksQueue.Clean(executionResults[0].GetHeaderNonce() - 1)
+	case process.ErrExecutionResultsNonConsecutive:
 		headerHashToRemoveFrom := executionResults[0].GetHeaderHash()
 		for i := 0; i < len(executionResults)-1; i++ {
 			if executionResults[i].GetHeaderNonce() != executionResults[i+1].GetHeaderNonce()-1 {
 				boot.executionResultsTracker.RemoveFromHash(headerHashToRemoveFrom)
+				// TODO: cleanup blocks queue (adapt blocks queue to remove by header hash or nonce)
 				return
 			}
 		}
-
-		return
-	}
-
-	if errors.Is(err, process.ErrExecutionResultDoesNotMatch) {
-		executionResults := header.GetExecutionResultsHandlers()
+	case process.ErrExecutionResultDoesNotMatch:
 		pendingExecutionResults, err := boot.executionResultsTracker.GetPendingExecutionResults()
 		if err != nil {
 			log.Debug("rollBackExecutionResults", "error", err.Error())
-			return
-		}
-
-		if len(executionResults) < 0 {
 			return
 		}
 
@@ -815,11 +794,10 @@ func (boot *baseBootstrap) rollBackExecutionResults(
 		for i, er := range executionResults {
 			if !er.Equal(pendingExecutionResults[i]) {
 				boot.executionResultsTracker.RemoveFromHash(headerHashToRemoveFrom)
+				// TODO: cleanup blocks queue
 				return
 			}
 		}
-
-		return
 	}
 }
 
