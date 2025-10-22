@@ -628,7 +628,7 @@ func TestShardProcessor_SelectIncomingMiniBlocks(t *testing.T) {
 		coreComponents, dataComponents, bootstrapComponents, statusComponents := createComponentHolderMocks()
 		arguments := CreateMockArguments(coreComponents, dataComponents, bootstrapComponents, statusComponents)
 		arguments.MiniBlocksSelectionSession = &mbSelection.MiniBlockSelectionSessionStub{
-			GetReferencedMetaBlocksCalled: func() []data.HeaderHandler {
+			GetReferencedHeadersCalled: func() []data.HeaderHandler {
 				require.Fail(t, "should have not been called")
 				return nil
 			},
@@ -659,7 +659,7 @@ func TestShardProcessor_SelectIncomingMiniBlocks(t *testing.T) {
 		}
 		arguments := CreateMockArguments(coreComponents, dataComponents, bootstrapComponents, statusComponents)
 		arguments.MiniBlocksSelectionSession = &mbSelection.MiniBlockSelectionSessionStub{
-			GetReferencedMetaBlocksCalled: func() []data.HeaderHandler {
+			GetReferencedHeadersCalled: func() []data.HeaderHandler {
 				return make([]data.HeaderHandler, process.MaxMetaHeadersAllowedInOneShardBlock)
 			},
 		}
@@ -808,7 +808,7 @@ func TestShardProcessor_SelectIncomingMiniBlocks(t *testing.T) {
 		arguments := CreateMockArguments(coreComponents, dataComponents, bootstrapComponents, statusComponents)
 		cntAddReferencedMetaBlockCalled := 0
 		arguments.MiniBlocksSelectionSession = &mbSelection.MiniBlockSelectionSessionStub{
-			AddReferencedMetaBlockCalled: func(metaBlock data.HeaderHandler, metaBlockHash []byte) {
+			AddReferencedHeaderCalled: func(metaBlock data.HeaderHandler, metaBlockHash []byte) {
 				cntAddReferencedMetaBlockCalled++
 			},
 		}
@@ -847,7 +847,7 @@ func TestShardProcessor_SelectIncomingMiniBlocks(t *testing.T) {
 					return make(map[string]uint32) // empty
 				},
 				GetNonceCalled: func() uint64 {
-					return 2 // same nonce
+					return 3
 				},
 			},
 			&testscommon.HeaderHandlerStub{
@@ -858,7 +858,7 @@ func TestShardProcessor_SelectIncomingMiniBlocks(t *testing.T) {
 					}
 				},
 				GetNonceCalled: func() uint64 {
-					return 2 // same nonce
+					return 4 // same nonce
 				},
 			},
 		}
@@ -866,8 +866,8 @@ func TestShardProcessor_SelectIncomingMiniBlocks(t *testing.T) {
 		orderedMetaBlocksHashes = append(orderedMetaBlocksHashes, []byte("hash4"))
 		_, err = sp.SelectIncomingMiniBlocks(providedLastCrossNotarizedMetaHdr, orderedMetaBlocks, orderedMetaBlocksHashes, haveTimeTrue)
 		require.NoError(t, err)
-		// should be called three times, the third hdr returns shouldContinue false, but still added miniblocks, so meta block is referenced
-		require.Equal(t, 3, cntAddReferencedMetaBlockCalled)
+		// should be called for the first 2 meta blocks, the third one does not add any mini blocks, although it has some for the shard, so it is skipped
+		require.Equal(t, 2, cntAddReferencedMetaBlockCalled)
 	})
 }
 

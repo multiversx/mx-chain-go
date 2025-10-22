@@ -553,6 +553,7 @@ func (sp *shardProcessor) selectIncomingMiniBlocks(
 	var pendingMiniBlocks []block.MiniblockAndHash
 	var errCreated error
 	var shouldContinue bool
+	lastMeta := lastCrossNotarizedMetaHdr
 	for i := 0; i < len(orderedMetaBlocks); i++ {
 		if !haveTime() {
 			log.Debug("time is up after putting cross txs with destination to current shard",
@@ -569,9 +570,9 @@ func (sp *shardProcessor) selectIncomingMiniBlocks(
 		}
 
 		currentMetaBlock = orderedMetaBlocks[i]
-		if currentMetaBlock.GetNonce() > lastCrossNotarizedMetaHdr.GetNonce()+1 {
+		if currentMetaBlock.GetNonce() > lastMeta.GetNonce()+1 {
 			log.Debug("skip searching",
-				"last meta hdr nonce", lastCrossNotarizedMetaHdr.GetNonce(),
+				"last meta hdr nonce", lastMeta.GetNonce(),
 				"curr meta hdr nonce", currentMetaBlock.GetNonce())
 			break
 		}
@@ -593,6 +594,7 @@ func (sp *shardProcessor) selectIncomingMiniBlocks(
 
 		if len(currentMetaBlock.GetMiniBlockHeadersWithDst(sp.shardCoordinator.SelfId())) == 0 {
 			sp.miniBlocksSelectionSession.AddReferencedHeader(orderedMetaBlocks[i], orderedMetaBlocksHashes[i])
+			lastMeta = currentMetaBlock
 			continue
 		}
 
@@ -604,6 +606,7 @@ func (sp *shardProcessor) selectIncomingMiniBlocks(
 		if !shouldContinue {
 			break
 		}
+		lastMeta = currentMetaBlock
 	}
 
 	return pendingMiniBlocks, nil
