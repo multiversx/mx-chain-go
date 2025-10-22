@@ -4822,7 +4822,7 @@ func TestShardProcessor_checkEpochCorrectnessCrossChain_gracePeriodError(t *test
 
 }
 
-func TestShardProcessor_checkEpochCorrectnessCrossChain_NoRevertWhenFinalizedReached(t *testing.T) {
+func TestShardProcessor_checkEpochCorrectnessCrossChain_FinalizedReached(t *testing.T) {
 	t.Parallel()
 
 	genesisNonce := uint64(0)
@@ -4878,7 +4878,6 @@ func TestShardProcessor_checkEpochCorrectnessCrossChain_NoRevertWhenFinalizedRea
 
 	err = sp.CheckEpochCorrectnessCrossChain()
 	assert.Nil(t, err)
-
 }
 
 func TestShardProcessor_checkEpochCorrectnessCrossChainNilCurrentBlock(t *testing.T) {
@@ -5253,6 +5252,56 @@ func TestShardProcessor_RequestMetaHeadersIfNeededShouldAddHeaderIntoTrackerPool
 	assert.Equal(t, expectedAddedNonces, addedNonces)
 }
 
+func TestShardProcessor_CheckEpochCorrectnessShouldErrorWhenHeaderEpochBehindCurrentHeader(t *testing.T) {
+	t.Parallel()
+
+	header := &block.Header{
+		Epoch: 1,
+	}
+	currentHeader := &block.Header{
+		Epoch: 3,
+	}
+	blockChain := &testscommon.ChainHandlerStub{
+		GetCurrentBlockHeaderCalled: func() data.HeaderHandler {
+			return currentHeader
+		},
+	}
+	sp, err := blproc.ConstructPartialShardBlockProcessorForTest(map[string]interface{}{
+		"blockChain": blockChain,
+	})
+	require.Nil(t, err)
+
+	err = sp.CheckEpochCorrectness(header)
+	assert.Error(t, err)
+	assert.Equal(t, "epoch does not match proposed header with older epoch 1 than blockchain epoch 3", err.Error())
+}
+
+func TestShardProcessor_CheckEpochCorrectnessShouldErrorWhenIsStartOfEpochButShouldNotBe(t *testing.T) {
+	t.Parallel()
+
+	// set EpochStartMetaHash non-nil to emulate IsStartOfEpochBlock == true
+	header := &block.Header{
+		Epoch:              3,
+		EpochStartMetaHash: []byte("start"),
+	}
+	currentHeader := &block.Header{
+		Epoch: 3,
+	}
+	blockChain := &testscommon.ChainHandlerStub{
+		GetCurrentBlockHeaderCalled: func() data.HeaderHandler {
+			return currentHeader
+		},
+	}
+	sp, err := blproc.ConstructPartialShardBlockProcessorForTest(map[string]interface{}{
+		"blockChain": blockChain,
+	})
+	require.Nil(t, err)
+
+	err = sp.CheckEpochCorrectness(header)
+	assert.Error(t, err)
+	assert.Equal(t, "epoch does not match proposed header with same epoch 3 as blockchain and it is of epoch start", err.Error())
+}
+
 func TestShardProcessor_CheckEpochCorrectnessShouldRemoveAndRequestStartOfEpochMetaBlockWhenEpochDoesNotMatch(t *testing.T) {
 	t.Parallel()
 
@@ -5326,6 +5375,172 @@ func TestShardProcessor_CheckEpochCorrectnessShouldRemoveAndRequestStartOfEpochM
 	assert.True(t, removeHeaderByHashWasCalled)
 	assert.True(t, requestMetaHeaderWasCalled)
 	assert.True(t, errors.Is(err, process.ErrEpochDoesNotMatch))
+}
+
+func TestShardProcessor_CheckEpochCorrectnessShouldErrorWhenIsHeaderOfInvalidEpoch(t *testing.T) {
+	t.Parallel()
+
+	// isHeaderOfInvalidEpoch := header.GetEpoch() > sp.epochStartTrigger.MetaEpoch()
+	header := &block.Header{
+		Epoch: 3,
+	}
+	currentHeader := &block.Header{
+		Epoch: 3,
+	}
+	blockChain := &testscommon.ChainHandlerStub{
+		GetCurrentBlockHeaderCalled: func() data.HeaderHandler {
+			return currentHeader
+		},
+	}
+	epochStartTriggerStub := &mock.EpochStartTriggerStub{
+		MetaEpochCalled: func() uint32 {
+			return 2
+		},
+	}
+	sp, err := blproc.ConstructPartialShardBlockProcessorForTest(map[string]interface{}{
+		"blockChain":        blockChain,
+		"epochStartTrigger": epochStartTriggerStub,
+	})
+	require.Nil(t, err)
+
+	err = sp.CheckEpochCorrectness(header)
+	assert.Error(t, err)
+	assert.Equal(t, "epoch does not match proposed header with epoch too high 3 with trigger in epoch 2", err.Error())
+}
+
+func TestShardProcessor_CheckEpochCorrectnessShouldErrorWhenEpochChangeGracePeriodHandlerErrors(t *testing.T) {
+	t.Parallel()
+
+	header := &block.Header{
+		Epoch: 3,
+	}
+	currentHeader := &block.Header{
+		Epoch: 3,
+	}
+	blockChain := &testscommon.ChainHandlerStub{
+		GetCurrentBlockHeaderCalled: func() data.HeaderHandler {
+			return currentHeader
+		},
+	}
+	epochStartTriggerStub := &mock.EpochStartTriggerStub{
+		MetaEpochCalled: func() uint32 {
+			return 3
+		},
+	}
+	enableEpochsHandler := &enableEpochsHandlerMock.EnableEpochsHandlerStub{
+		IsFlagEnabledInEpochCalled: func(flag core.EnableEpochFlag, epoch uint32) bool {
+			return false
+		},
+	}
+	sp, err := blproc.ConstructPartialShardBlockProcessorForTest(map[string]interface{}{
+		"blockChain":                    blockChain,
+		"epochStartTrigger":             epochStartTriggerStub,
+		"enableEpochsHandler":           enableEpochsHandler,
+		"epochChangeGracePeriodHandler": &gracePeriodErrStub{},
+	})
+	require.Nil(t, err)
+
+	err = sp.CheckEpochCorrectness(header)
+	assert.Error(t, err)
+	assert.Equal(t, "epochChangeGracePeriodHandler forced error could not get grace period for epoch 3", err.Error())
+}
+
+func TestShardProcessor_CheckEpochCorrectnessShouldErrorWhenIsOldEpochAndShouldBeNew(t *testing.T) {
+	t.Parallel()
+
+	gracePeriod, _ := graceperiod.NewEpochChangeGracePeriod([]config.EpochChangeGracePeriodByEpoch{{EnableEpoch: 0, GracePeriodInRounds: 1}})
+
+	header := &block.Header{
+		Epoch: 3,
+		Round: 7,
+	}
+	currentHeader := &block.Header{
+		Epoch: 3,
+	}
+	blockChain := &testscommon.ChainHandlerStub{
+		GetCurrentBlockHeaderCalled: func() data.HeaderHandler {
+			return currentHeader
+		},
+	}
+
+	//make epochChangeConfirmed true (sp.epochStartTrigger.EpochStartRound() <= sp.epochStartTrigger.EpochFinalityAttestingRound())
+	epochStartTriggerStub := &mock.EpochStartTriggerStub{
+		MetaEpochCalled: func() uint32 {
+			return 4
+		},
+		EpochStartRoundCalled: func() uint64 {
+			return 5
+		},
+		EpochFinalityAttestingRoundCalled: func() uint64 {
+			return 5
+		},
+		IsEpochStartCalled: func() bool {
+			return true
+		},
+	}
+	enableEpochsHandler := &enableEpochsHandlerMock.EnableEpochsHandlerStub{
+		IsFlagEnabledInEpochCalled: func(flag core.EnableEpochFlag, epoch uint32) bool {
+			return true
+		},
+	}
+	sp, err := blproc.ConstructPartialShardBlockProcessorForTest(map[string]interface{}{
+		"blockChain":                    blockChain,
+		"epochStartTrigger":             epochStartTriggerStub,
+		"enableEpochsHandler":           enableEpochsHandler,
+		"epochChangeGracePeriodHandler": gracePeriod,
+	})
+	require.Nil(t, err)
+
+	err = sp.CheckEpochCorrectness(header)
+	assert.Error(t, err)
+	assert.Equal(t, "epoch does not match proposed header with epoch 3 should be in epoch 4", err.Error())
+}
+
+func TestShardProcessor_CheckEpochCorrectnessShouldErrorWhenIsNotEpochStartButShouldBe(t *testing.T) {
+	t.Parallel()
+
+	//isNotEpochStartButShouldBe := header.GetEpoch() != currentBlockHeader.GetEpoch() && !header.IsStartOfEpochBlock()
+	gracePeriod, _ := graceperiod.NewEpochChangeGracePeriod([]config.EpochChangeGracePeriodByEpoch{{EnableEpoch: 0, GracePeriodInRounds: 1}})
+
+	header := &block.Header{
+		Epoch: 4,
+	}
+	currentHeader := &block.Header{
+		Epoch: 3,
+	}
+	blockChain := &testscommon.ChainHandlerStub{
+		GetCurrentBlockHeaderCalled: func() data.HeaderHandler {
+			return currentHeader
+		},
+	}
+
+	epochStartTriggerStub := &mock.EpochStartTriggerStub{
+		MetaEpochCalled: func() uint32 {
+			return 4
+		},
+		EpochStartRoundCalled: func() uint64 {
+			return 5
+		},
+		EpochFinalityAttestingRoundCalled: func() uint64 {
+			return 5
+		},
+	}
+	enableEpochsHandler := &enableEpochsHandlerMock.EnableEpochsHandlerStub{
+		IsFlagEnabledInEpochCalled: func(flag core.EnableEpochFlag, epoch uint32) bool {
+			return false
+		},
+	}
+	sp, err := blproc.ConstructPartialShardBlockProcessorForTest(map[string]interface{}{
+		"blockChain":                    blockChain,
+		"epochStartTrigger":             epochStartTriggerStub,
+		"enableEpochsHandler":           enableEpochsHandler,
+		"epochChangeGracePeriodHandler": gracePeriod,
+	})
+	require.Nil(t, err)
+
+	err = sp.CheckEpochCorrectness(header)
+	assert.Error(t, err)
+	assert.Equal(t, "epoch does not match proposed header with new epoch 4 is not of type epoch start", err.Error())
 }
 
 func TestShardProcessor_CreateNewHeaderErrWrongTypeAssertion(t *testing.T) {

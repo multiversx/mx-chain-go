@@ -1383,6 +1383,31 @@ func TestShardProcessor_VerifyBlockProposal(t *testing.T) {
 		require.Error(t, err)
 		assert.Equal(t, "epochChangeGracePeriodHandler forced error", err.Error())
 	})
+	t.Run("checkEpochCorectness fails should error", func(t *testing.T) {
+		t.Parallel()
+
+		subcomponents := createSubComponentsForVerifyProposalTest()
+
+		sp, err := blproc.ConstructPartialShardBlockProcessorForTest(subcomponents)
+		require.Nil(t, err)
+
+		body := &block.Body{}
+
+		header := &block.HeaderV3{
+			PrevHash:         []byte("hash"),
+			Nonce:            1,
+			Round:            2,
+			Epoch:            5,
+			MiniBlockHeaders: []block.MiniBlockHeader{},
+			LastExecutionResult: &block.ExecutionResultInfo{
+				ExecutionResult: &block.BaseExecutionResult{},
+			},
+		}
+
+		err = sp.VerifyBlockProposal(header, body, haveTime)
+		require.Error(t, err)
+		assert.Contains(t, err.Error(), "epoch does not match")
+	})
 	t.Run("should work", func(t *testing.T) {
 		t.Parallel()
 
