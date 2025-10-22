@@ -126,8 +126,10 @@ func (cache *TxCache) evictLeastLikelyToSelectTransactions() *evictionJournal {
 				break
 			}
 
-			transactionsToEvict = append(transactionsToEvict, item.currentTransaction)
-			transactionsToEvictHashes = append(transactionsToEvictHashes, item.currentTransaction.TxHash)
+			if !cache.tracker.IsTransactionTracked(item.currentTransaction) {
+				transactionsToEvict = append(transactionsToEvict, item.currentTransaction)
+				transactionsToEvictHashes = append(transactionsToEvictHashes, item.currentTransaction.TxHash)
+			}
 
 			// If there are more transactions in the same bunch (same sender as the popped item),
 			// add the next one to the heap (to compete with the others in being "the worst").
@@ -157,17 +159,12 @@ func (cache *TxCache) evictLeastLikelyToSelectTransactions() *evictionJournal {
 		}
 
 		// Remove those transactions from "txByHash".
-		txs := cache.txByHash.GetTxsBulk(transactionsToEvictHashes)
-
-		logRemove.Debug("evictLeastLikelyToSelectTransactions", "pass", pass, "num evicted", len(transactionsToEvict))
-
-		untrackedTransactionsToEvictHashes := cache.tracker.GetBulkOfUntrackedTransactions(txs)
-		_ = cache.txByHash.RemoveTxsBulk(untrackedTransactionsToEvictHashes)
+		_ = cache.txByHash.RemoveTxsBulk(transactionsToEvictHashes)
 
 		journal.numEvictedByPass = append(journal.numEvictedByPass, len(transactionsToEvict))
 		journal.numEvicted += len(transactionsToEvict)
 
-		logRemove.Debug("evictLeastLikelyToSelectTransactions", "pass", pass, "num untracked evicted", len(untrackedTransactionsToEvictHashes))
+		logRemove.Debug("evictLeastLikelyToSelectTransactions", "pass", pass, "num evicted", len(transactionsToEvict))
 	}
 
 	return journal

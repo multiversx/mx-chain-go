@@ -1304,8 +1304,8 @@ func Test_isTransactionTracked(t *testing.T) {
 		tx1 := createTx([]byte("txHash1"), "alice", 11)
 		tx2 := createTx([]byte("txHash6"), "eve", 11)
 
-		require.True(t, txCache.tracker.isTransactionTracked(tx1))
-		require.True(t, txCache.tracker.isTransactionTracked(tx2))
+		require.True(t, txCache.tracker.IsTransactionTracked(tx1))
+		require.True(t, txCache.tracker.IsTransactionTracked(tx2))
 	})
 
 	t.Run("should return false because out of range", func(t *testing.T) {
@@ -1314,8 +1314,8 @@ func Test_isTransactionTracked(t *testing.T) {
 		tx1 := createTx([]byte("txHashX"), "alice", 16)
 		tx2 := createTx([]byte("txHashX"), "eve", 12)
 
-		require.False(t, txCache.tracker.isTransactionTracked(tx1))
-		require.False(t, txCache.tracker.isTransactionTracked(tx2))
+		require.False(t, txCache.tracker.IsTransactionTracked(tx1))
+		require.False(t, txCache.tracker.IsTransactionTracked(tx2))
 
 	})
 
@@ -1324,7 +1324,7 @@ func Test_isTransactionTracked(t *testing.T) {
 
 		tx1 := createTx([]byte("txHashX"), "alice", 16)
 
-		require.False(t, txCache.tracker.isTransactionTracked(tx1))
+		require.False(t, txCache.tracker.IsTransactionTracked(tx1))
 	})
 
 	t.Run("should return false because account is not tracked at all", func(t *testing.T) {
@@ -1332,7 +1332,7 @@ func Test_isTransactionTracked(t *testing.T) {
 
 		tx1 := createTx([]byte("txHash2"), "carol", 12)
 
-		require.False(t, txCache.tracker.isTransactionTracked(tx1))
+		require.False(t, txCache.tracker.IsTransactionTracked(tx1))
 	})
 
 	t.Run("should return true for any transaction of sender with a tracked nonce", func(t *testing.T) {
@@ -1340,11 +1340,11 @@ func Test_isTransactionTracked(t *testing.T) {
 
 		tx1 := createTx([]byte("txHash7"), "eve", 12)
 
-		require.False(t, txCache.tracker.isTransactionTracked(tx1))
+		require.False(t, txCache.tracker.IsTransactionTracked(tx1))
 	})
 }
 
-func TestSelectionTracker_GetBulkOfUntrackedTransactions(t *testing.T) {
+func TestSelectionTracker_IsTransactionTracked(t *testing.T) {
 	t.Parallel()
 
 	txCache := newCacheToTest(maxNumBytesPerSenderUpperBoundTest, 6)
@@ -1384,6 +1384,7 @@ func TestSelectionTracker_GetBulkOfUntrackedTransactions(t *testing.T) {
 						[]byte("txHash1"),
 						[]byte("txHash2"),
 						[]byte("txHash3"),
+						[]byte("txHash6"),
 					},
 				},
 			},
@@ -1398,8 +1399,13 @@ func TestSelectionTracker_GetBulkOfUntrackedTransactions(t *testing.T) {
 	)
 	require.Nil(t, err)
 
-	bulk := tracker.GetBulkOfUntrackedTransactions(txs)
-	require.Len(t, bulk, 4)
+	require.True(t, txCache.tracker.IsTransactionTracked(txs[0]))
+	require.True(t, txCache.tracker.IsTransactionTracked(txs[1]))
+	require.True(t, txCache.tracker.IsTransactionTracked(txs[2]))
+	require.False(t, txCache.tracker.IsTransactionTracked(txs[3]))
+	require.False(t, txCache.tracker.IsTransactionTracked(txs[4]))
+	require.True(t, txCache.tracker.IsTransactionTracked(txs[5]))
+	require.True(t, txCache.tracker.IsTransactionTracked(txs[6]))
 }
 
 func TestSelectionTracker_ResetTracker(t *testing.T) {
@@ -1577,7 +1583,7 @@ func TestSelectionTracker_removeBlocksAboveNonce(t *testing.T) {
 	}
 
 	require.Equal(t, 3, len(txCache.tracker.blocks))
-	err = tracker.removeBlocksAboveNonce(1)
+	err = tracker.removeBlocksAboveNonceNoLock(1)
 	require.Nil(t, err)
 
 	require.Equal(t, 1, len(txCache.tracker.blocks))

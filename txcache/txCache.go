@@ -78,7 +78,7 @@ func (cache *TxCache) AddTx(tx *WrappedTransaction) (ok bool, added bool) {
 
 	cache.mutTxOperation.Lock()
 	addedInByHash := cache.txByHash.addTx(tx)
-	addedInBySender, evicted := cache.txListBySender.addTxReturnEvicted(tx)
+	addedInBySender, evicted := cache.txListBySender.addTxReturnEvicted(tx, cache.tracker)
 	cache.mutTxOperation.Unlock()
 	if addedInByHash != addedInBySender {
 		// This can happen  when two go-routines concur to add the same transaction:
@@ -91,12 +91,7 @@ func (cache *TxCache) AddTx(tx *WrappedTransaction) (ok bool, added bool) {
 
 	if len(evicted) > 0 {
 		logRemove.Trace("TxCache.AddTx with eviction", "sender", tx.Tx.GetSndAddr(), "num evicted txs", len(evicted))
-		txs := cache.txByHash.GetTxsBulk(evicted)
-
-		untrackedEvicted := cache.tracker.GetBulkOfUntrackedTransactions(txs)
-		_ = cache.txByHash.RemoveTxsBulk(untrackedEvicted)
-
-		logRemove.Trace("TxCache.AddTx with eviction and tracking check", "sender", tx.Tx.GetSndAddr(), "num evicted txs with tracking check", len(untrackedEvicted))
+		_ = cache.txByHash.RemoveTxsBulk(evicted)
 	}
 
 	// The return value "added" is true even if transaction added, but then removed due to limits be sender.

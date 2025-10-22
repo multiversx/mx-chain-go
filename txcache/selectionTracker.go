@@ -68,6 +68,9 @@ func (st *selectionTracker) OnProposedBlock(
 		return err
 	}
 
+	st.mutTracker.Lock()
+	defer st.mutTracker.Unlock()
+
 	if !bytes.Equal(st.latestRootHash, accountsRootHash) {
 		// TODO when the right information will be passed on the OnExecutedBlock flow, the error must be returned here.
 		log.Error("selectionTracker.OnProposedBlock",
@@ -99,9 +102,6 @@ func (st *selectionTracker) OnProposedBlock(
 		"rootHash", rootHash,
 		"prevHash", prevHash,
 	)
-
-	st.mutTracker.Lock()
-	defer st.mutTracker.Unlock()
 
 	err = st.checkReceivedBlockNoLock(blockBody, blockHeader)
 	if err != nil {
@@ -413,8 +413,11 @@ func (st *selectionTracker) deriveVirtualSelectionSession(
 	nonce uint64,
 	shouldRemoveTrackedBlocks bool,
 ) (*virtualSelectionSession, error) {
+	st.mutTracker.Lock()
+	defer st.mutTracker.Unlock()
+
 	if !shouldRemoveTrackedBlocks {
-		err := st.removeBlocksAboveNonce(nonce)
+		err := st.removeBlocksAboveNonceNoLock(nonce)
 		if err != nil {
 			return nil, err
 		}
@@ -449,12 +452,9 @@ func (st *selectionTracker) deriveVirtualSelectionSession(
 	return computer.createVirtualSelectionSession(globalAccountsBreadcrumbs)
 }
 
-// removeBlocksAboveNonce removes blocks with nonce higher than the given nonce.
-// The removeBlocksAboveNonce is used on the deriveVirtualSelectionSession flow.
-func (st *selectionTracker) removeBlocksAboveNonce(nonce uint64) error {
-	st.mutTracker.Lock()
-	defer st.mutTracker.Unlock()
-
+// removeBlocksAboveNonceNoLock removes blocks with nonce higher than the given nonce.
+// The removeBlocksAboveNonceNoLock is used on the deriveVirtualSelectionSession flow.
+func (st *selectionTracker) removeBlocksAboveNonceNoLock(nonce uint64) error {
 	for blockHash, tb := range st.blocks {
 		if tb.hasHigherNonce(nonce) {
 			// first delete, then update the global breadcrumbs
@@ -465,7 +465,7 @@ func (st *selectionTracker) removeBlocksAboveNonce(nonce uint64) error {
 				return err
 			}
 
-			log.Trace("selectionTracker.removeBlocksAboveNonce",
+			log.Trace("selectionTracker.removeBlocksAboveNonceNoLock",
 				"nonce", nonce,
 				"nonce of deleted block", tb.nonce,
 				"hash of deleted block", blockHash,
@@ -555,25 +555,9 @@ func (st *selectionTracker) getVirtualNonceOfAccountWithRootHash(
 	return breadcrumb.lastNonce.Value + 1, st.latestRootHash, nil
 }
 
-// GetBulkOfUntrackedTransactions returns the hashes of the untracked transactions
-func (st *selectionTracker) GetBulkOfUntrackedTransactions(transactions []*WrappedTransaction) [][]byte {
-	untrackedTransactions := make([][]byte, 0)
-	for _, tx := range transactions {
-		if tx == nil || tx.Tx == nil {
-			continue
-		}
-
-		if !st.isTransactionTracked(tx) {
-			untrackedTransactions = append(untrackedTransactions, tx.TxHash)
-		}
-	}
-
-	return untrackedTransactions
-}
-
-// isTransactionTracked checks if a transaction is still in the tracked blocks of the SelectionTracker.
-// However, in the case of forks, isTransactionTracked might return inaccurate results.
-func (st *selectionTracker) isTransactionTracked(transaction *WrappedTransaction) bool {
+// IsTransactionTracked checks if a transaction is still in the tracked blocks of the SelectionTracker.
+// However, in the case of forks, IsTransactionTracked might return inaccurate results.
+func (st *selectionTracker) IsTransactionTracked(transaction *WrappedTransaction) bool {
 	if transaction == nil || transaction.Tx == nil {
 		return false
 	}
