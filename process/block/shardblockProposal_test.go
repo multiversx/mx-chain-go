@@ -866,7 +866,8 @@ func TestShardProcessor_SelectIncomingMiniBlocks(t *testing.T) {
 		orderedMetaBlocksHashes = append(orderedMetaBlocksHashes, []byte("hash4"))
 		_, err = sp.SelectIncomingMiniBlocks(providedLastCrossNotarizedMetaHdr, orderedMetaBlocks, orderedMetaBlocksHashes, haveTimeTrue)
 		require.NoError(t, err)
-		require.Equal(t, 2, cntAddReferencedMetaBlockCalled) // should be called twice, the third hdr returns shouldContinue false
+		// should be called three times, the third hdr returns shouldContinue false, but still added miniblocks, so meta block is referenced
+		require.Equal(t, 3, cntAddReferencedMetaBlockCalled)
 	})
 }
 

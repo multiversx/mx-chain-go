@@ -2745,9 +2745,12 @@ func (bp *baseProcessor) createMbsCrossShardDstMe(
 		return false, pendingMiniBlocks, nil
 	}
 
-	err := bp.miniBlocksSelectionSession.AddMiniBlocksAndHashes(currMiniBlocksAdded)
-	if err != nil {
-		return false, nil, err
+	if len(currMiniBlocksAdded) > 0 {
+		err := bp.miniBlocksSelectionSession.AddMiniBlocksAndHashes(currMiniBlocksAdded)
+		if err != nil {
+			return false, nil, err
+		}
+		bp.miniBlocksSelectionSession.AddReferencedHeader(currentBlock, currentBlockHash)
 	}
 
 	if !hdrFinished {

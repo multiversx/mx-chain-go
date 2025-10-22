@@ -601,8 +601,6 @@ func (sp *shardProcessor) selectIncomingMiniBlocks(
 		if errCreated != nil {
 			return nil, errCreated
 		}
-
-		sp.miniBlocksSelectionSession.AddReferencedHeader(currentMetaBlock, currentMetaBlockHash)
 		if !shouldContinue {
 			break
 		}

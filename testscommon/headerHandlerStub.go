@@ -67,6 +67,15 @@ type HeaderHandlerStub struct {
 	SetMiniBlockHeaderHandlersCalled       func(mbsHandlers []data.MiniBlockHeaderHandler) error
 	SetTxCountCalled                       func(count uint32) error
 	SetMetaBlockHashesCalled               func(hashes [][]byte) error
+	SetEpochStartHandlerCalled             func(epochStartHandler data.EpochStartHandler) error
+}
+
+// SetEpochStartHandler -
+func (hhs *HeaderHandlerStub) SetEpochStartHandler(epochStartHandler data.EpochStartHandler) error {
+	if hhs.SetEpochStartHandlerCalled != nil {
+		return hhs.SetEpochStartHandlerCalled(epochStartHandler)
+	}
+	return nil
 }
 
 // SetLastExecutionResultHandler -
