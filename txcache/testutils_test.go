@@ -10,7 +10,6 @@ import (
 
 	"github.com/multiversx/mx-chain-core-go/core"
 	"github.com/multiversx/mx-chain-core-go/data/transaction"
-	"github.com/multiversx/mx-chain-go/common/holders"
 	"github.com/multiversx/mx-chain-go/testscommon/txcachemocks"
 )
 
@@ -30,7 +29,7 @@ const cleanupLoopMaximumDuration = 30_000
 var randomHashes = newRandomData(math.MaxUint16, hashLength)
 var randomAddresses = newRandomData(math.MaxUint16, addressLength)
 
-var defaultBlockchainInfo = holders.NewBlockchainInfo(nil, nil, 0)
+var defaultLatestExecutedHash = []byte("hash0")
 
 type randomData struct {
 	randomBytes []byte
@@ -252,7 +251,13 @@ func (wrappedTx *WrappedTransaction) withTransferredValue(value *big.Int) *Wrapp
 	return wrappedTx
 }
 
+func (wrappedTx *WrappedTransaction) withFee(value *big.Int) *WrappedTransaction {
+	wrappedTx.Fee = value
+	return wrappedTx
+}
+
 func (wrappedTx *WrappedTransaction) withRelayer(relayer []byte) *WrappedTransaction {
+	wrappedTx.FeePayer = relayer
 	tx := wrappedTx.Tx.(*transaction.Transaction)
 	tx.RelayerAddr = relayer
 	return wrappedTx

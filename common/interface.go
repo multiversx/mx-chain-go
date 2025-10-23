@@ -296,14 +296,6 @@ type TxSelectionOptionsAPI interface {
 	GetRequestedFields() string
 }
 
-// BlockchainInfo holds the parameters from the blockchain used for SelectTransactions
-type BlockchainInfo interface {
-	GetLatestExecutedBlockHash() []byte
-	GetLatestCommittedBlockHash() []byte
-	GetCurrentNonce() uint64
-	IsInterfaceNil() bool
-}
-
 // GasScheduleNotifierAPI defines the behavior of the gas schedule notifier components that is used for api
 type GasScheduleNotifierAPI interface {
 	core.GasScheduleNotifier
@@ -465,6 +457,7 @@ type TrieLeavesRetriever interface {
 // AccountNonceAndBalanceProvider provides the nonce and balance of accounts
 type AccountNonceAndBalanceProvider interface {
 	GetAccountNonceAndBalance(accountKey []byte) (uint64, *big.Int, bool, error)
+	GetRootHash() ([]byte, error)
 	IsInterfaceNil() bool
 }
 

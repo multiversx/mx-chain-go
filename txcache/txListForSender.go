@@ -29,10 +29,14 @@ func newTxListForSender(sender string, constraints *senderConstraints) *txListFo
 
 // AddTx adds a transaction in sender's list
 // This is a "sorted" insert
-func (listForSender *txListForSender) AddTx(tx *WrappedTransaction) (bool, [][]byte) {
+func (listForSender *txListForSender) AddTx(tx *WrappedTransaction, tracker *selectionTracker) (bool, [][]byte) {
 	// We don't allow concurrent interceptor goroutines to mutate a given sender's list
 	listForSender.mutex.Lock()
 	defer listForSender.mutex.Unlock()
+
+	if tracker == nil {
+		return false, nil
+	}
 
 	insertionPlace, err := listForSender.findInsertionPlace(tx)
 	if err != nil {
@@ -47,26 +51,33 @@ func (listForSender *txListForSender) AddTx(tx *WrappedTransaction) (bool, [][]b
 
 	listForSender.onAddedTransaction(tx)
 
-	evicted := listForSender.applySizeConstraints()
+	evicted := listForSender.applySizeConstraints(tracker)
 	return true, evicted
 }
 
 // This function should only be used in critical section (listForSender.mutex)
-func (listForSender *txListForSender) applySizeConstraints() [][]byte {
+func (listForSender *txListForSender) applySizeConstraints(tracker *selectionTracker) [][]byte {
 	evictedTxHashes := make([][]byte, 0)
 
 	// Iterate back to front
-	for element := listForSender.items.Back(); element != nil; element = element.Prev() {
+	for element := listForSender.items.Back(); element != nil; {
 		if !listForSender.isCapacityExceeded() {
 			break
 		}
 
-		listForSender.items.Remove(element)
-		listForSender.onRemovedListElement(element)
-
-		// Keep track of removed transactions
 		value := element.Value.(*WrappedTransaction)
-		evictedTxHashes = append(evictedTxHashes, value.TxHash)
+
+		prevElem := element.Prev()
+
+		if !tracker.IsTransactionTracked(value) {
+			listForSender.items.Remove(element)
+			listForSender.onRemovedListElement(element)
+
+			// Keep track of removed transactions
+			evictedTxHashes = append(evictedTxHashes, value.TxHash)
+		}
+
+		element = prevElem
 	}
 
 	return evictedTxHashes
