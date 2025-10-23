@@ -306,6 +306,21 @@ func (service *SCQueryService) extractBlockHeaderAndRootHash(query *process.SCQu
 		return service.getRootHashForBlock(currentHeader)
 	}
 
+	return service.getCurrentBlockHeaderAndRootHash()
+}
+
+func (service *SCQueryService) getCurrentBlockHeaderAndRootHash() (data.HeaderHandler, []byte, error) {
+	currentHeader := service.mainBlockChain.GetCurrentBlockHeader()
+	if currentHeader != nil && currentHeader.IsHeaderV3() {
+		_, headerHash, rootHash := service.mainBlockChain.GetLastExecutedBlockInfo()
+		lastExecutedHeader, err := service.getBlockHeaderByHash(headerHash)
+		if err != nil {
+			return nil, nil, err
+		}
+
+		return lastExecutedHeader, rootHash, nil
+	}
+
 	return service.mainBlockChain.GetCurrentBlockHeader(), service.mainBlockChain.GetCurrentBlockRootHash(), nil
 }
 
