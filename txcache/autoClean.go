@@ -11,7 +11,6 @@ import (
 )
 
 // Cleanup simulates a selection and removes not-executable transactions. Initial implementation: lower nonces
-// TODO Maybe we can think of an alternative fast and simple sort & shuffle at the same time. Maybe we can do a single sorting (in a separate PR).
 func (cache *TxCache) Cleanup(accountsProvider common.AccountNonceProvider, randomness uint64, maxNum int, cleanupLoopMaximumDurationMs time.Duration) uint64 {
 	logRemove.Debug(
 		"TxCache.Cleanup: begin",
@@ -58,7 +57,6 @@ func (cache *TxCache) RemoveSweepableTxs(accountsProvider common.AccountNoncePro
 			continue
 		}
 
-
 		// stop if we reached the max number of evicted transactions for this cleanup loop
 		if len(evicted) >= maxNum {
 			logRemove.Debug("TxCache.RemoveSweepableTxs reached maxNum",
@@ -81,7 +79,7 @@ func (cache *TxCache) RemoveSweepableTxs(accountsProvider common.AccountNoncePro
 		// we want to remove transactions with nonces < lastCommittedNonce
 		targetNonce := accountNonce - 1
 
-		evicted = append(evicted, sender.removeSweepableTransactionsReturnHashes(targetNonce)...)
+		evicted = append(evicted, sender.removeSweepableTransactionsReturnHashes(targetNonce, cache.tracker)...)
 	}
 
 	if len(evicted) > 0 {
@@ -133,7 +131,7 @@ func shuffleSendersAddresses(senders []string, randomness uint64) {
 	})
 }
 
-func (listForSender *txListForSender) removeSweepableTransactionsReturnHashes(targetNonce uint64) [][]byte {
+func (listForSender *txListForSender) removeSweepableTransactionsReturnHashes(targetNonce uint64, tracker *selectionTracker) [][]byte {
 	txHashesToEvict := make([][]byte, 0)
 
 	// We don't allow concurrent goroutines to mutate a given sender's list
@@ -143,6 +141,7 @@ func (listForSender *txListForSender) removeSweepableTransactionsReturnHashes(ta
 	for element := listForSender.items.Front(); element != nil; {
 		// finds transactions with lower nonces
 		tx := element.Value.(*WrappedTransaction)
+
 		txNonce := tx.Tx.GetNonce()
 
 		// nonces are sorted ascending, so we can stop as soon as we find a nonce that is higher
@@ -157,12 +156,16 @@ func (listForSender *txListForSender) removeSweepableTransactionsReturnHashes(ta
 		)
 
 		nextElement := element.Next()
-		_ = listForSender.items.Remove(element)
-		listForSender.onRemovedListElement(element)
-		element = nextElement
 
-		// Keep track of removed transactions
-		txHashesToEvict = append(txHashesToEvict, tx.TxHash)
+		if !tracker.IsTransactionTracked(tx) {
+			_ = listForSender.items.Remove(element)
+			listForSender.onRemovedListElement(element)
+
+			// Keep track of removed transactions
+			txHashesToEvict = append(txHashesToEvict, tx.TxHash)
+		}
+
+		element = nextElement
 	}
 
 	return txHashesToEvict
