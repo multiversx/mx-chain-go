@@ -230,7 +230,7 @@ func TestChronology_UpdateRoundShouldInitRound(t *testing.T) {
 	arg := getDefaultChronologyArg()
 	arg.EnableRoundsHandler = &testscommon.EnableRoundsHandlerStub{
 		GetActivationRoundCalled: func(flag common.EnableRoundFlag) uint64 {
-			return 0
+			return 1
 		},
 	}
 	arg.EnableEpochsHandler = &enableEpochsHandlerMock.EnableEpochsHandlerStub{

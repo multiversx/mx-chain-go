@@ -233,7 +233,7 @@ func (chr *chronology) initRound() {
 		chr.appStatusHandler.SetUInt64Value(common.MetricCurrentRoundTimestamp, uint64(chr.getRoundUnixTimeStamp()))
 
 		if chr.enableEpochsHandler.IsFlagEnabled(common.SupernovaFlag) &&
-			chr.enableRoundsHandler.GetActivationRound(common.SupernovaRoundFlag) == roundIndex-1 {
+			chr.enableRoundsHandler.GetActivationRound(common.SupernovaRoundFlag) == roundIndex {
 			chr.appStatusHandler.SetUInt64Value(common.MetricRoundDuration, uint64(chr.roundHandler.TimeDuration().Milliseconds()))
 
 			// update time duration on each subround
