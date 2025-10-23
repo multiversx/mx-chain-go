@@ -8,6 +8,7 @@ import (
 	"github.com/multiversx/mx-chain-core-go/data/block"
 	"github.com/stretchr/testify/require"
 
+	"github.com/multiversx/mx-chain-go/common"
 	"github.com/multiversx/mx-chain-go/process"
 	blproc "github.com/multiversx/mx-chain-go/process/block"
 	"github.com/multiversx/mx-chain-go/process/mock"
@@ -927,8 +928,57 @@ func Test_hasRewardOrPeerMiniBlocksFromSelf(t *testing.T) {
 	t.Parallel()
 
 	t.Run("nil miniBlocks", func(t *testing.T) {
-		// t.Parallel()
-		// miniBlockHeaders :=  []data.MiniBlockHeaderHandler{nil}
-		// has, err := blproc.HasRewardOrPeerMiniBlocksFromMeta(miniBlockHeaders)
+		t.Parallel()
+		response := blproc.HasRewardOrPeerMiniBlocksFromMeta(nil)
+		require.False(t, response)
+	})
+	t.Run("no miniBlocks", func(t *testing.T) {
+		t.Parallel()
+		response := blproc.HasRewardOrPeerMiniBlocksFromMeta([]data.MiniBlockHeaderHandler{})
+		require.False(t, response)
+	})
+	t.Run("with reward miniBlocks from different shard", func(t *testing.T) {
+		t.Parallel()
+		miniBlocks := []data.MiniBlockHeaderHandler{
+			&block.MiniBlockHeader{
+				SenderShardID: 1,
+				Type:          block.RewardsBlock,
+			},
+		}
+		response := blproc.HasRewardOrPeerMiniBlocksFromMeta(miniBlocks)
+		require.False(t, response)
+	})
+	t.Run("only tx miniBlocks", func(t *testing.T) {
+		t.Parallel()
+		miniBlocks := []data.MiniBlockHeaderHandler{
+			&block.MiniBlockHeader{
+				SenderShardID: common.MetachainShardId, // although not possible in combination with txblock
+				Type:          block.TxBlock,
+			},
+		}
+		response := blproc.HasRewardOrPeerMiniBlocksFromMeta(miniBlocks)
+		require.False(t, response)
+	})
+	t.Run("with reward miniBlocks from meta shard", func(t *testing.T) {
+		t.Parallel()
+		miniBlocks := []data.MiniBlockHeaderHandler{
+			&block.MiniBlockHeader{
+				SenderShardID: common.MetachainShardId,
+				Type:          block.RewardsBlock,
+			},
+		}
+		response := blproc.HasRewardOrPeerMiniBlocksFromMeta(miniBlocks)
+		require.True(t, response)
+	})
+	t.Run("with peer miniBlocks from meta shard", func(t *testing.T) {
+		t.Parallel()
+		miniBlocks := []data.MiniBlockHeaderHandler{
+			&block.MiniBlockHeader{
+				SenderShardID: common.MetachainShardId,
+				Type:          block.PeerBlock,
+			},
+		}
+		response := blproc.HasRewardOrPeerMiniBlocksFromMeta(miniBlocks)
+		require.True(t, response)
 	})
 }
