@@ -663,6 +663,7 @@ func (tfn *TestFullNode) createForkDetector(
 			tfn.EnableRoundsHandler,
 			tfn.DataPool.Proofs(),
 			tfn.ChainParametersHandler,
+			tfn.ProcessConfigsHandler,
 		)
 	} else {
 		forkDetector, err = processSync.NewMetaForkDetector(
@@ -675,6 +676,7 @@ func (tfn *TestFullNode) createForkDetector(
 			tfn.EnableRoundsHandler,
 			tfn.DataPool.Proofs(),
 			tfn.ChainParametersHandler,
+			tfn.ProcessConfigsHandler,
 		)
 	}
 	if err != nil {
@@ -715,22 +717,22 @@ func (tfn *TestFullNode) createEpochStartTrigger() TestEpochStartTrigger {
 		peerMiniBlockSyncer, _ := shardchain.NewPeerMiniBlockSyncer(argsPeerMiniBlocksSyncer)
 
 		argsShardEpochStart := &shardchain.ArgsShardEpochStartTrigger{
-			Marshalizer:                   TestMarshalizer,
-			Hasher:                        TestHasher,
-			HeaderValidator:               &mock.HeaderValidatorStub{},
-			Uint64Converter:               TestUint64Converter,
-			DataPool:                      tfn.DataPool,
-			Storage:                       tfn.Storage,
-			RequestHandler:                &testscommon.RequestHandlerStub{},
-			Epoch:                         0,
-			Validity:                      1,
-			Finality:                      1,
-			EpochStartNotifier:            tfn.EpochStartNotifier,
-			PeerMiniBlocksSyncer:          peerMiniBlockSyncer,
-			RoundHandler:                  tfn.RoundHandler,
-			AppStatusHandler:              &statusHandlerMock.AppStatusHandlerStub{},
-			EnableEpochsHandler:           tfn.EnableEpochsHandler,
-			ExtraDelayForRequestBlockInfo: common.ExtraDelayForRequestBlockInfo,
+			Marshalizer:          TestMarshalizer,
+			Hasher:               TestHasher,
+			HeaderValidator:      &mock.HeaderValidatorStub{},
+			Uint64Converter:      TestUint64Converter,
+			DataPool:             tfn.DataPool,
+			Storage:              tfn.Storage,
+			RequestHandler:       &testscommon.RequestHandlerStub{},
+			Epoch:                0,
+			Validity:             1,
+			Finality:             1,
+			EpochStartNotifier:   tfn.EpochStartNotifier,
+			PeerMiniBlocksSyncer: peerMiniBlockSyncer,
+			RoundHandler:         tfn.RoundHandler,
+			AppStatusHandler:     &statusHandlerMock.AppStatusHandlerStub{},
+			EnableEpochsHandler:  tfn.EnableEpochsHandler,
+			CommonConfigsHandler: testscommon.GetDefaultCommonConfigsHandler(),
 		}
 		epochStartTrigger, err := shardchain.NewEpochStartTrigger(argsShardEpochStart)
 		if err != nil {
@@ -752,8 +754,9 @@ func (tfn *TestFullNode) initInterceptors(
 	epochStartTrigger TestEpochStartTrigger,
 ) {
 	interceptorDataVerifierArgs := interceptorsFactory.InterceptedDataVerifierFactoryArgs{
-		CacheSpan:   time.Second * 10,
-		CacheExpiry: time.Second * 10,
+		InterceptedDataVerifierConfig: config.InterceptedDataVerifierConfig{
+			EnableCaching: false,
+		},
 	}
 
 	accountsAdapter := epochStartDisabled.NewAccountsAdapter()
@@ -801,6 +804,12 @@ func (tfn *TestFullNode) initInterceptors(
 		HardforkTrigger:                &testscommon.HardforkTriggerStub{},
 		NodeOperationMode:              common.NormalOperation,
 		InterceptedDataVerifierFactory: interceptorsFactory.NewInterceptedDataVerifierFactory(interceptorDataVerifierArgs),
+		Config: config.Config{
+			InterceptedDataVerifier: config.InterceptedDataVerifierConfig{
+				CacheSpanInSec:   1,
+				CacheExpiryInSec: 1,
+			},
+		},
 	}
 	if tfn.ShardCoordinator.SelfId() == core.MetachainShardId {
 		interceptorContainerFactory, err := interceptorscontainer.NewMetaInterceptorsContainerFactory(interceptorContainerFactoryArgs)
@@ -820,22 +829,23 @@ func (tfn *TestFullNode) initInterceptors(
 		}
 		peerMiniBlockSyncer, _ := shardchain.NewPeerMiniBlockSyncer(argsPeerMiniBlocksSyncer)
 		argsShardEpochStart := &shardchain.ArgsShardEpochStartTrigger{
-			Marshalizer:                   TestMarshalizer,
-			Hasher:                        TestHasher,
-			HeaderValidator:               &mock.HeaderValidatorStub{},
-			Uint64Converter:               TestUint64Converter,
-			DataPool:                      tfn.DataPool,
-			Storage:                       storage,
-			RequestHandler:                &testscommon.RequestHandlerStub{},
-			Epoch:                         0,
-			Validity:                      1,
-			Finality:                      1,
-			EpochStartNotifier:            tfn.EpochStartNotifier,
-			PeerMiniBlocksSyncer:          peerMiniBlockSyncer,
-			RoundHandler:                  roundHandler,
-			AppStatusHandler:              &statusHandlerMock.AppStatusHandlerStub{},
-			EnableEpochsHandler:           enableEpochsHandler,
-			ExtraDelayForRequestBlockInfo: common.ExtraDelayForRequestBlockInfo}
+			Marshalizer:          TestMarshalizer,
+			Hasher:               TestHasher,
+			HeaderValidator:      &mock.HeaderValidatorStub{},
+			Uint64Converter:      TestUint64Converter,
+			DataPool:             tfn.DataPool,
+			Storage:              storage,
+			RequestHandler:       &testscommon.RequestHandlerStub{},
+			Epoch:                0,
+			Validity:             1,
+			Finality:             1,
+			EpochStartNotifier:   tfn.EpochStartNotifier,
+			PeerMiniBlocksSyncer: peerMiniBlockSyncer,
+			RoundHandler:         roundHandler,
+			AppStatusHandler:     &statusHandlerMock.AppStatusHandlerStub{},
+			EnableEpochsHandler:  enableEpochsHandler,
+			CommonConfigsHandler: testscommon.GetDefaultCommonConfigsHandler(),
+		}
 		_, _ = shardchain.NewEpochStartTrigger(argsShardEpochStart)
 
 		interceptorContainerFactory, err := interceptorscontainer.NewShardInterceptorsContainerFactory(interceptorContainerFactoryArgs)
@@ -1206,6 +1216,7 @@ func (tpn *TestFullNode) initBlockTracker(
 		EnableRoundsHandler:           tpn.EnableRoundsHandler,
 		ProofsPool:                    tpn.DataPool.Proofs(),
 		EpochChangeGracePeriodHandler: tpn.EpochChangeGracePeriodHandler,
+		ProcessConfigsHandler:         tpn.ProcessConfigsHandler,
 	}
 
 	var err error

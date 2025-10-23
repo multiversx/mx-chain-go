@@ -112,6 +112,8 @@ func createComponentsForEpochStart() (*mock.CoreComponentsMock, *mock.CryptoComp
 			},
 			EpochChangeGracePeriodHandlerField: gracePeriod,
 			ChainParametersHandlerField:        chainParams,
+			ProcessConfigsHandlerField:         &testscommon.ProcessConfigsHandlerStub{},
+			CommonConfigsHandlerField:      testscommon.GetDefaultCommonConfigsHandler(),
 		},
 		&mock.CryptoComponentsMock{
 			PubKey:          &cryptoMocks.PublicKeyStub{},
@@ -226,6 +228,10 @@ func createMockEpochStartBootstrapArgs(
 				Shards:   10,
 			},
 			Requesters: generalCfg.Requesters,
+			InterceptedDataVerifier: config.InterceptedDataVerifierConfig{
+				CacheSpanInSec:   1,
+				CacheExpiryInSec: 1,
+			},
 		},
 		EconomicsData: &economicsmocks.EconomicsHandlerMock{
 			MinGasPriceCalled: func() uint64 {

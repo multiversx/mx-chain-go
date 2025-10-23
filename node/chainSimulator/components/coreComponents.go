@@ -38,6 +38,7 @@ import (
 	hashingFactory "github.com/multiversx/mx-chain-core-go/hashing/factory"
 	"github.com/multiversx/mx-chain-core-go/marshal"
 	marshalFactory "github.com/multiversx/mx-chain-core-go/marshal/factory"
+	commonConfigs "github.com/multiversx/mx-chain-go/common/configs"
 )
 
 type coreComponentsHolder struct {
@@ -81,6 +82,8 @@ type coreComponentsHolder struct {
 	chainParametersHandler        process.ChainParametersHandler
 	fieldsSizeChecker             common.FieldsSizeChecker
 	epochChangeGracePeriodHandler common.EpochChangeGracePeriodHandler
+	processConfigsHandler         common.ProcessConfigsHandler
+	epochStartConfigsHandler      common.CommonConfigsHandler
 }
 
 // ArgsCoreComponentsHolder will hold arguments needed for the core components holder
@@ -211,8 +214,34 @@ func CreateCoreComponents(args ArgsCoreComponentsHolder) (*coreComponentsHolder,
 		"nodesSetup start time", nodesSetup.StartTime,
 	)
 
+	instance.roundNotifier = forking.NewGenericRoundNotifier()
+	instance.enableRoundsHandler, err = enablers.NewEnableRoundsHandler(args.RoundsConfig, instance.roundNotifier)
+	if err != nil {
+		return nil, err
+	}
+
 	roundDuration := time.Millisecond * time.Duration(instance.genesisNodesSetup.GetRoundDuration())
-	instance.roundHandler = NewManualRoundHandler(startTime.UnixMilli(), roundDuration, args.InitialRound)
+	supernovaRound := instance.enableRoundsHandler.GetActivationRound(common.SupernovaRoundFlag)
+	instance.supernovaGenesisTime = instance.genesisTime.Add(time.Duration(supernovaRound) * roundDuration)
+
+	supernovaActivationEpoch := instance.enableEpochsHandler.GetActivationEpoch(common.SupernovaFlag)
+	chainParamsForSupernova, err := instance.chainParametersHandler.ChainParametersForEpoch(supernovaActivationEpoch)
+	if err != nil {
+		return nil, err
+	}
+
+	argsManualRoundHandler := ArgManualRoundHandler{
+		EnableRoundsHandler:       instance.enableRoundsHandler,
+		GenesisTimeStamp:          startTime.UnixMilli(),
+		SupernovaGenesisTimeStamp: instance.supernovaGenesisTime.UnixMilli(),
+		RoundDuration:             roundDuration,
+		SupernovaRoundDuration:    time.Duration(chainParamsForSupernova.RoundDuration) * time.Millisecond,
+		InitialRound:              args.InitialRound,
+	}
+	instance.roundHandler, err = NewManualRoundHandler(argsManualRoundHandler)
+	if err != nil {
+		return nil, err
+	}
 
 	instance.wasmVMChangeLocker = &sync.RWMutex{}
 	instance.txVersionChecker = versioning.NewTxVersionChecker(args.Config.GeneralSettings.MinTransactionVersion)
@@ -257,15 +286,8 @@ func CreateCoreComponents(args ArgsCoreComponentsHolder) (*coreComponentsHolder,
 		return nil, err
 	}
 
-	instance.roundNotifier = forking.NewGenericRoundNotifier()
-	instance.enableRoundsHandler, err = enablers.NewEnableRoundsHandler(args.RoundsConfig, instance.roundNotifier)
-	if err != nil {
-		return nil, err
-	}
-
 	instance.chanStopNodeProcess = args.ChanStopNodeProcess
 	instance.genesisTime = time.Unix(instance.genesisNodesSetup.GetStartTime(), 0)
-	instance.supernovaGenesisTime = time.UnixMilli(instance.genesisNodesSetup.GetStartTime())
 	instance.chainID = args.Config.GeneralSettings.ChainID
 	instance.minTransactionVersion = args.Config.GeneralSettings.MinTransactionVersion
 	instance.encodedAddressLen, err = computeEncodedAddressLen(instance.addressPubKeyConverter)
@@ -287,6 +309,23 @@ func CreateCoreComponents(args ArgsCoreComponentsHolder) (*coreComponentsHolder,
 		return nil, err
 	}
 	instance.fieldsSizeChecker = fchecker
+
+	instance.processConfigsHandler, err = commonConfigs.NewProcessConfigsHandler(
+		args.Config.GeneralSettings.ProcessConfigsByEpoch,
+		args.Config.GeneralSettings.ProcessConfigsByRound,
+	)
+	if err != nil {
+		return nil, err
+	}
+
+	instance.epochStartConfigsHandler, err = commonConfigs.NewCommonConfigsHandler(
+		args.Config.GeneralSettings.EpochStartConfigsByEpoch,
+		args.Config.GeneralSettings.EpochStartConfigsByRound,
+		args.Config.GeneralSettings.ConsensusConfigsByEpoch,
+	)
+	if err != nil {
+		return nil, err
+	}
 
 	instance.collectClosableComponents()
 
@@ -515,6 +554,16 @@ func (c *coreComponentsHolder) FieldsSizeChecker() common.FieldsSizeChecker {
 // EpochChangeGracePeriodHandler will return the epoch change grace period handler
 func (c *coreComponentsHolder) EpochChangeGracePeriodHandler() common.EpochChangeGracePeriodHandler {
 	return c.epochChangeGracePeriodHandler
+}
+
+// ProcessConfigsHandler returns process configs handler component
+func (c *coreComponentsHolder) ProcessConfigsHandler() common.ProcessConfigsHandler {
+	return c.processConfigsHandler
+}
+
+// CommonConfigsHandler returns epoch start configs handler component
+func (c *coreComponentsHolder) CommonConfigsHandler() common.CommonConfigsHandler {
+	return c.epochStartConfigsHandler
 }
 
 func (c *coreComponentsHolder) collectClosableComponents() {

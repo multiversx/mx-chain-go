@@ -1152,6 +1152,9 @@ var ErrNilEnableEpochsHandler = errors.New("nil enable epochs handler")
 // ErrNilEpochChangeGracePeriodHandler signals that a nil epoch change grace period handler has been provided
 var ErrNilEpochChangeGracePeriodHandler = errors.New("nil epoch change grace period handler")
 
+// ErrNilProcessConfigsHandler signals that a nil process configs by epoch handler has been provided
+var ErrNilProcessConfigsHandler = errors.New("nil process configs by epoch handler")
+
 // ErrNilMultiSignerContainer signals that the given multisigner container is nil
 var ErrNilMultiSignerContainer = errors.New("nil multiSigner container")
 
@@ -1316,3 +1319,6 @@ var ErrBadTxCacheSelectionLoopMaximumDuration = errors.New("bad tx cache selecti
 
 // ErrBadTxCacheSelectionLoopDurationCheckInterval signals a bad txcache config
 var ErrBadTxCacheSelectionLoopDurationCheckInterval = errors.New("bad selection loop duration check interval")
+
+// ErrDuplicatedInterceptedDataNotAllowed signals that duplicated intercepted data is not allowed
+var ErrDuplicatedInterceptedDataNotAllowed = errors.New("duplicated intercepted data not allowed")

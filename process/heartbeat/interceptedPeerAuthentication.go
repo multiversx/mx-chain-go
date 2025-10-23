@@ -141,6 +141,11 @@ func (ipa *interceptedPeerAuthentication) CheckValidity() error {
 	return nil
 }
 
+// ShouldAllowDuplicates returns if this type of intercepted data should allow duplicates
+func (ipa *interceptedPeerAuthentication) ShouldAllowDuplicates() bool {
+	return true
+}
+
 // IsForCurrentShard always returns true
 func (ipa *interceptedPeerAuthentication) IsForCurrentShard() bool {
 	return true

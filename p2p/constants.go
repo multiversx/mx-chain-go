@@ -33,3 +33,6 @@ type BroadcastMethod = p2p.BroadcastMethod
 
 // Broadcast defines a broadcast message
 const Broadcast = p2p.Broadcast
+
+// Direct defines a direct message
+const Direct = p2p.Direct

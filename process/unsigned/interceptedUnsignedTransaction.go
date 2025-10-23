@@ -97,6 +97,11 @@ func (inUTx *InterceptedUnsignedTransaction) CheckValidity() error {
 	return nil
 }
 
+// ShouldAllowDuplicates returns if this type of intercepted data should allow duplicates
+func (inUTx *InterceptedUnsignedTransaction) ShouldAllowDuplicates() bool {
+	return false
+}
+
 func (inUTx *InterceptedUnsignedTransaction) processFields(uTxBuffWithSig []byte) error {
 	inUTx.hash = inUTx.hasher.Compute(string(uTxBuffWithSig))
 

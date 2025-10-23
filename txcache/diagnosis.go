@@ -21,40 +21,21 @@ type printedTransaction struct {
 	DataLength int    `json:"dataLength"`
 }
 
+type printedTrackedBlock struct {
+	Hash         string `json:"hash"`
+	PreviousHash string `json:"previousHash"`
+	RootHash     string `json:"rootHash"`
+	Nonce        uint64 `json:"nonce"`
+}
+
 // Diagnose checks the state of the cache for inconsistencies and displays a summary, senders and transactions.
 func (cache *TxCache) Diagnose(_ bool) {
-	cache.diagnoseCounters()
 	cache.diagnoseTransactions()
 }
 
-func (cache *TxCache) diagnoseCounters() {
-	if log.GetLevel() > logger.LogDebug {
-		return
-	}
-
-	sizeInBytes := cache.NumBytes()
-	numTxsEstimate := int(cache.CountTx())
-	numTxsInChunks := cache.txByHash.backingMap.Count()
-	txsKeys := cache.txByHash.backingMap.Keys()
-	numSendersEstimate := int(cache.CountSenders())
-	numSendersInChunks := cache.txListBySender.backingMap.Count()
-	sendersKeys := cache.txListBySender.backingMap.Keys()
-
-	fine := numSendersEstimate == numSendersInChunks
-	fine = fine && (int(numSendersEstimate) == len(sendersKeys))
-	fine = fine && (numTxsEstimate == numTxsInChunks && numTxsEstimate == len(txsKeys))
-
-	log.Debug("diagnoseCounters",
-		"fine", fine,
-		"numTxsEstimate", numTxsEstimate,
-		"numTxsInChunks", numTxsInChunks,
-		"len(txsKeys)", len(txsKeys),
-		"sizeInBytes", sizeInBytes,
-		"numBytesThreshold", cache.config.NumBytesThreshold,
-		"numSendersEstimate", numSendersEstimate,
-		"numSendersInChunks", numSendersInChunks,
-		"len(sendersKeys)", len(sendersKeys),
-	)
+// GetNumTrackedBlocks returns the dimension of the tracked blocks
+func (cache *TxCache) GetNumTrackedBlocks() uint64 {
+	return cache.tracker.getNumTrackedBlocks()
 }
 
 func (cache *TxCache) diagnoseTransactions() {
@@ -106,6 +87,34 @@ func convertWrappedTransactionToPrintedTransaction(wrappedTx *WrappedTransaction
 	}
 }
 
+// marshalTrackedBlockToNewlineDelimitedJSON converts a list of tracked blocks to a newline-delimited JSON string.
+// Note: each line is indexed, to improve readability. The index is easily removable if separate analysis is needed.
+func marshalTrackedBlockToNewlineDelimitedJSON(trackedBlocks []*trackedBlock, linePrefix string) string {
+	builder := strings.Builder{}
+	builder.WriteString("\n")
+
+	for i, block := range trackedBlocks {
+		printedBlock := convertTrackedBlockToPrintedBlock(block)
+		printedBlockJSON, _ := json.Marshal(printedBlock)
+
+		builder.WriteString(fmt.Sprintf("%s#%d: ", linePrefix, i))
+		builder.WriteString(string(printedBlockJSON))
+		builder.WriteString("\n")
+	}
+
+	builder.WriteString("\n")
+	return builder.String()
+}
+
+func convertTrackedBlockToPrintedBlock(block *trackedBlock) *printedTrackedBlock {
+	return &printedTrackedBlock{
+		Hash:         hex.EncodeToString(block.hash),
+		PreviousHash: hex.EncodeToString(block.prevHash),
+		RootHash:     hex.EncodeToString(block.rootHash),
+		Nonce:        block.nonce,
+	}
+}
+
 func displaySelectionOutcome(contextualLogger logger.Logger, linePrefix string, transactions []*WrappedTransaction) {
 	if contextualLogger.GetLevel() > logger.LogTrace {
 		return
@@ -116,5 +125,18 @@ func displaySelectionOutcome(contextualLogger logger.Logger, linePrefix string, 
 		contextualLogger.Trace(marshalTransactionsToNewlineDelimitedJSON(transactions, linePrefix))
 	} else {
 		contextualLogger.Trace("displaySelectionOutcome - transactions: none")
+	}
+}
+
+func displayTrackedBlocks(contextualLogger logger.Logger, linePrefix string, trackedBlocks []*trackedBlock) {
+	if contextualLogger.GetLevel() > logger.LogTrace {
+		return
+	}
+
+	if len(trackedBlocks) > 0 {
+		contextualLogger.Trace("displayTrackedBlocks - trackedBlocks (as newline-separated JSON):")
+		contextualLogger.Trace(marshalTrackedBlockToNewlineDelimitedJSON(trackedBlocks, linePrefix))
+	} else {
+		contextualLogger.Trace("displayTrackedBlocks - trackedBlocks: none")
 	}
 }

@@ -111,6 +111,7 @@ type TestConsensusNode struct {
 	DataPool                  dataRetriever.PoolsHolder
 	RequestHandler            process.RequestHandler
 	ChainParametersHandler    common.ChainParametersHandler
+	ProcessConfigsHandler     common.ProcessConfigsHandler
 }
 
 // NewTestConsensusNode returns a new TestConsensusNode
@@ -222,6 +223,8 @@ func (tcn *TestConsensusNode) initNode(args ArgsTestConsensusNode) {
 		},
 	}
 
+	tcn.ProcessConfigsHandler = testscommon.GetDefaultProcessConfigsHandler()
+
 	tcn.initNodesCoordinator(args.ConsensusSize, testHasher, epochStartRegistrationHandler, args.EligibleMap, args.WaitingMap, pkBytes, consensusCache)
 	tcn.MainMessenger = CreateMessengerWithNoDiscovery()
 	tcn.FullArchiveMessenger = &p2pmocks.MessengerStub{}
@@ -299,6 +302,7 @@ func (tcn *TestConsensusNode) initNode(args ArgsTestConsensusNode) {
 			RoundHandler:         roundHandler,
 			AppStatusHandler:     &statusHandlerMock.AppStatusHandlerStub{},
 			EnableEpochsHandler:  enableEpochsHandler,
+			CommonConfigsHandler: testscommon.GetDefaultCommonConfigsHandler(),
 		}
 		epochStartTrigger, err := shardchain.NewEpochStartTrigger(argsShardEpochStart)
 		if err != nil {
@@ -401,6 +405,7 @@ func (tcn *TestConsensusNode) initNode(args ArgsTestConsensusNode) {
 		enableRoundsHandler,
 		dataPool.Proofs(),
 		tcn.ChainParametersHandler,
+		tcn.ProcessConfigsHandler,
 	)
 
 	processComponents := GetDefaultProcessComponents()
@@ -468,8 +473,9 @@ func (tcn *TestConsensusNode) initInterceptors(
 	epochStartTrigger TestEpochStartTrigger,
 ) {
 	interceptorDataVerifierArgs := interceptorsFactory.InterceptedDataVerifierFactoryArgs{
-		CacheSpan:   time.Second * 10,
-		CacheExpiry: time.Second * 10,
+		InterceptedDataVerifierConfig: config.InterceptedDataVerifierConfig{
+			EnableCaching: false,
+		},
 	}
 
 	accountsAdapter := epochStartDisabled.NewAccountsAdapter()
@@ -517,6 +523,12 @@ func (tcn *TestConsensusNode) initInterceptors(
 		HardforkTrigger:                &testscommon.HardforkTriggerStub{},
 		NodeOperationMode:              common.NormalOperation,
 		InterceptedDataVerifierFactory: interceptorsFactory.NewInterceptedDataVerifierFactory(interceptorDataVerifierArgs),
+		Config: config.Config{
+			InterceptedDataVerifier: config.InterceptedDataVerifierConfig{
+				CacheSpanInSec:   1,
+				CacheExpiryInSec: 1,
+			},
+		},
 	}
 	if tcn.ShardCoordinator.SelfId() == core.MetachainShardId {
 		interceptorContainerFactory, err := interceptorscontainer.NewMetaInterceptorsContainerFactory(interceptorContainerFactoryArgs)
@@ -551,6 +563,7 @@ func (tcn *TestConsensusNode) initInterceptors(
 			RoundHandler:         roundHandler,
 			AppStatusHandler:     &statusHandlerMock.AppStatusHandlerStub{},
 			EnableEpochsHandler:  enableEpochsHandler,
+			CommonConfigsHandler: testscommon.GetDefaultCommonConfigsHandler(),
 		}
 		_, _ = shardchain.NewEpochStartTrigger(argsShardEpochStart)
 

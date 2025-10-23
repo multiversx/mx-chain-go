@@ -10,6 +10,8 @@ import (
 
 	"github.com/multiversx/mx-chain-core-go/core"
 	"github.com/multiversx/mx-chain-core-go/core/check"
+	"github.com/multiversx/mx-chain-core-go/data/block"
+	"github.com/multiversx/mx-chain-go/common/holders"
 	"github.com/multiversx/mx-chain-go/config"
 	"github.com/multiversx/mx-chain-go/testscommon/txcachemocks"
 	"github.com/multiversx/mx-chain-storage-go/common"
@@ -64,6 +66,10 @@ func Test_NewTxCache(t *testing.T) {
 	badConfig = config
 	badConfig.CountThreshold = 0
 	requireErrorOnNewTxCache(t, badConfig, common.ErrInvalidConfig, "config.CountThreshold", host)
+
+	badConfig = config
+	badConfig.TxCacheBoundsConfig.MaxTrackedBlocks = 0
+	requireErrorOnNewTxCache(t, badConfig, errInvalidMaxTrackedBlocks, "bad max tracked blocks", host)
 }
 
 func requireErrorOnNewTxCache(t *testing.T, config ConfigSourceMe, errExpected error, errPartialMessage string, host MempoolHost) {
@@ -307,6 +313,20 @@ func Test_GetTransactionsPoolForSender(t *testing.T) {
 	require.Equal(t, expectedTxs, txs)
 }
 
+func TestTxCache_GetVirtualNonce(t *testing.T) {
+	t.Parallel()
+
+	t.Run("should return errNilBlockchainInfo error", func(t *testing.T) {
+		t.Parallel()
+
+		boundsConfig := createMockTxBoundsConfig()
+		cache := newUnconstrainedCacheToTest(boundsConfig)
+
+		_, _, err := cache.GetVirtualNonceAndRootHash([]byte("alice"), nil)
+		require.Equal(t, errNilBlockchainInfo, err)
+	})
+}
+
 func Test_Keys(t *testing.T) {
 	boundsConfig := createMockTxBoundsConfig()
 	cache := newUnconstrainedCacheToTest(boundsConfig)
@@ -493,6 +513,49 @@ func TestTxCache_TransactionIsAdded_EvenWhenInternalMapsAreInconsistent(t *testi
 	require.Equal(t, uint64(1), cache.CountSenders())
 	require.Equal(t, []string{"alice-x"}, cache.getHashesForSender("alice"))
 	cache.Clear()
+}
+
+func TestTxCache_GetDimensionOfTrackedBlocks(t *testing.T) {
+	t.Parallel()
+
+	txCache := newCacheToTest(maxNumBytesPerSenderUpperBoundTest, 3)
+	tracker, err := NewSelectionTracker(txCache, maxTrackedBlocks)
+	require.Nil(t, err)
+	txCache.tracker = tracker
+
+	accountsProvider := txcachemocks.NewAccountNonceAndBalanceProviderMock()
+
+	blockchainInfo := holders.NewBlockchainInfo([]byte("hash0"), nil, 1)
+	err = txCache.OnProposedBlock(
+		[]byte("hash1"),
+		&block.Body{},
+		&block.Header{
+			Nonce:    uint64(1),
+			PrevHash: []byte("hash0"),
+			RootHash: []byte("rootHash0"),
+		},
+		accountsProvider,
+		blockchainInfo,
+	)
+	require.Nil(t, err)
+
+	require.Equal(t, len(tracker.blocks), 1)
+
+	// replacing the block with nonce 1
+	err = txCache.OnProposedBlock(
+		[]byte("hash2"),
+		&block.Body{},
+		&block.Header{
+			Nonce:    uint64(1),
+			PrevHash: []byte("hash0"),
+			RootHash: []byte("rootHash0"),
+		},
+		accountsProvider,
+		blockchainInfo,
+	)
+	require.Nil(t, err)
+
+	require.Equal(t, len(tracker.blocks), 1)
 }
 
 func TestTxCache_NoCriticalInconsistency_WhenConcurrentAdditionsAndRemovals(t *testing.T) {

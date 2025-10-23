@@ -96,6 +96,19 @@ func TestCrossTxCache_Get(t *testing.T) {
 	require.Equal(t, make([]*WrappedTransaction, 0), cache.GetTransactionsPoolForSender(""))
 }
 
+func TestCrossTxCache_NotImplemented(t *testing.T) {
+	cache := newCrossTxCacheToTest(1, 8, math.MaxUint16)
+
+	err := cache.OnProposedBlock(nil, nil, nil, nil, nil)
+	require.Nil(t, err)
+
+	err = cache.OnExecutedBlock(nil)
+	require.Nil(t, err)
+
+	res := cache.GetNumTrackedBlocks()
+	require.Equal(t, uint64(0), res)
+}
+
 func newCrossTxCacheToTest(numChunks uint32, maxNumItems uint32, numMaxBytes uint32) *CrossTxCache {
 	cache, err := NewCrossTxCache(ConfigDestinationMe{
 		Name:                        "test",

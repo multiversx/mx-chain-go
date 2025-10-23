@@ -28,6 +28,7 @@ type blockProcessor struct {
 	selfNotarizedHeadersNotifier          blockNotifierHandler
 	finalMetachainHeadersNotifier         blockNotifierHandler
 	roundHandler                          process.RoundHandler
+	processConfigsHandler                 common.ProcessConfigsHandler
 
 	enableEpochsHandler common.EnableEpochsHandler
 	enableRoundsHandler common.EnableRoundsHandler
@@ -59,6 +60,7 @@ func NewBlockProcessor(arguments ArgBlockProcessor) (*blockProcessor, error) {
 		selfNotarizedHeadersNotifier:          arguments.SelfNotarizedHeadersNotifier,
 		finalMetachainHeadersNotifier:         arguments.FinalMetachainHeadersNotifier,
 		roundHandler:                          arguments.RoundHandler,
+		processConfigsHandler:                 arguments.ProcessConfigsHandler,
 		enableEpochsHandler:                   arguments.EnableEpochsHandler,
 		enableRoundsHandler:                   arguments.EnableRoundsHandler,
 		proofsPool:                            arguments.ProofsPool,
@@ -481,11 +483,7 @@ func (bp *blockProcessor) requestHeadersIfNothingNewIsReceived(
 }
 
 func (bp *blockProcessor) getMaxRoundsWithoutBlockReceived(round uint64) int64 {
-	if bp.enableRoundsHandler.IsFlagEnabledInRound(common.SupernovaRoundFlag, round) {
-		return process.SupernovaMaxRoundsWithoutNewBlockReceived
-	}
-
-	return process.MaxRoundsWithoutNewBlockReceived
+	return int64(bp.processConfigsHandler.GetMaxRoundsWithoutNewBlockReceivedByRound(round))
 }
 
 func (bp *blockProcessor) requestHeaders(shardID uint32, fromNonce uint64) {
@@ -560,6 +558,9 @@ func checkBlockProcessorNilParameters(arguments ArgBlockProcessor) error {
 	}
 	if check.IfNil(arguments.HeadersPool) {
 		return process.ErrNilHeadersDataPool
+	}
+	if check.IfNil(arguments.ProcessConfigsHandler) {
+		return process.ErrNilProcessConfigsHandler
 	}
 
 	return nil
