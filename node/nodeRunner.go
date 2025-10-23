@@ -1225,6 +1225,7 @@ func (nr *nodeRunner) CreateManagedProcessComponents(
 		Marshalizer:              coreComponents.InternalMarshalizer(),
 		Store:                    dataComponents.StorageService(),
 		Uint64ByteSliceConverter: coreComponents.Uint64ByteSliceConverter(),
+		DataPool:                 dataComponents.Datapool(),
 	}
 	historyRepositoryFactory, err := dbLookupFactory.NewHistoryRepositoryFactory(historyRepoFactoryArgs)
 	if err != nil {
