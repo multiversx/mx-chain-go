@@ -28,7 +28,7 @@ type ShardedDataStub struct {
 	GetCountsCalled                        func() counting.CountsWithSize
 	KeysCalled                             func() [][]byte
 	CleanupSelfShardTxCacheCalled          func(session interface{}, randomness uint64, maxNum int, cleanupLoopMaximumDuration time.Duration)
-	OnExecutedBlockCalled                  func(blockHeader data.HeaderHandler) error
+	OnExecutedBlockCalled                  func(blockHeader data.HeaderHandler, rootHash []byte) error
 	OnProposedBlockCalled                  func(
 		blockHash []byte,
 		blockBody *block.Body,
@@ -148,9 +148,9 @@ func (sd *ShardedDataStub) CleanupSelfShardTxCache(accountsProvider common.Accou
 }
 
 // OnExecutedBlock -
-func (sd *ShardedDataStub) OnExecutedBlock(blockHeader data.HeaderHandler) error {
+func (sd *ShardedDataStub) OnExecutedBlock(blockHeader data.HeaderHandler, rootHash []byte) error {
 	if sd.OnExecutedBlockCalled != nil {
-		return sd.OnExecutedBlockCalled(blockHeader)
+		return sd.OnExecutedBlockCalled(blockHeader, rootHash)
 	}
 
 	return nil

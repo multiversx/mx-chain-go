@@ -921,6 +921,17 @@ func (adb *AccountsDB) RecreateTrie(options common.RootHashHolder) error {
 	return nil
 }
 
+// RecreateTrieIfNeeded is used to reload the trie based on the provided options if the root hash is different than the current one
+func (adb *AccountsDB) RecreateTrieIfNeeded(options common.RootHashHolder) error {
+	err := adb.recreateTrieIfNeeded(options)
+	if err != nil {
+		return err
+	}
+	adb.lastRootHash = options.GetRootHash()
+
+	return nil
+}
+
 func (adb *AccountsDB) recreateTrie(options common.RootHashHolder) error {
 	log.Trace("accountsDB.RecreateTrie", "root hash holder", options.String())
 	defer func() {
@@ -940,6 +951,20 @@ func (adb *AccountsDB) recreateTrie(options common.RootHashHolder) error {
 
 	adb.mainTrie = newTrie
 	return nil
+}
+
+func (adb *AccountsDB) recreateTrieIfNeeded(options common.RootHashHolder) error {
+	currentRootHash, err := adb.getMainTrie().RootHash()
+	if err != nil {
+		return err
+	}
+
+	if bytes.Equal(currentRootHash, options.GetRootHash()) {
+		log.Trace("accountsDB.RecreateTrieIfNeeded - no need to recreate", "root hash", currentRootHash)
+		return nil
+	}
+
+	return adb.recreateTrie(options)
 }
 
 // RecreateAllTries recreates all the tries from the accounts DB

@@ -808,6 +808,21 @@ func (sp *shardProcessor) GetCrossShardIncomingMiniBlocksFromBody(body *block.Bo
 	return sp.getCrossShardIncomingMiniBlocksFromBody(body)
 }
 
+// GetLastExecutionResultHeader -
+func (sp *shardProcessor) GetLastExecutionResultHeader(
+	currentHeader data.HeaderHandler,
+) (data.HeaderHandler, error) {
+	return sp.getLastExecutionResultHeader(currentHeader)
+}
+
+// GetLastExecutionResultsRootHash -
+func GetLastExecutionResultsRootHash(
+	header data.HeaderHandler,
+	committedRootHash []byte,
+) []byte {
+	return getLastExecutionResultsRootHash(header, committedRootHash)
+}
+
 // GetHaveTimeForProposal -
 func GetHaveTimeForProposal(startTime time.Time, maxDuration time.Duration) func() time.Duration {
 	return getHaveTimeForProposal(startTime, maxDuration)
