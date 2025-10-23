@@ -2,6 +2,7 @@ package spos
 
 import (
 	"context"
+	"sync"
 	"time"
 
 	"github.com/multiversx/mx-chain-core-go/core"
@@ -26,14 +27,16 @@ type Subround struct {
 	ConsensusCoreHandler
 	ConsensusStateHandler
 
-	previous   int
-	current    int
-	next       int
-	startTime  int64
-	endTime    int64
-	name       string
-	chainID    []byte
-	currentPid core.PeerID
+	previous        int
+	current         int
+	next            int
+	mutBaseDuration sync.RWMutex
+	baseDuration    time.Duration
+	startTime       float64
+	endTime         float64
+	name            string
+	chainID         []byte
+	currentPid      core.PeerID
 
 	consensusStateChangedChannel chan bool
 	executeStoredMessages        func()
@@ -49,8 +52,9 @@ func NewSubround(
 	previous int,
 	current int,
 	next int,
-	startTime int64,
-	endTime int64,
+	baseDuration time.Duration,
+	startTime float64,
+	endTime float64,
 	name string,
 	consensusState ConsensusStateHandler,
 	consensusStateChangedChannel chan bool,
@@ -78,6 +82,7 @@ func NewSubround(
 		previous:                     previous,
 		current:                      current,
 		next:                         next,
+		baseDuration:                 baseDuration,
 		startTime:                    startTime,
 		endTime:                      endTime,
 		name:                         name,
@@ -178,12 +183,26 @@ func (sr *Subround) Next() int {
 
 // StartTime method returns the start time of the Subround
 func (sr *Subround) StartTime() int64 {
-	return sr.startTime
+	sr.mutBaseDuration.RLock()
+	defer sr.mutBaseDuration.RUnlock()
+
+	return int64(float64(sr.baseDuration) * sr.startTime)
 }
 
 // EndTime method returns the upper time limit of the Subround
 func (sr *Subround) EndTime() int64 {
-	return sr.endTime
+	sr.mutBaseDuration.RLock()
+	defer sr.mutBaseDuration.RUnlock()
+
+	return int64(float64(sr.baseDuration) * sr.endTime)
+}
+
+// SetBaseDuration sets the base duration of the subround
+func (sr *Subround) SetBaseDuration(baseDuration time.Duration) {
+	sr.mutBaseDuration.Lock()
+	defer sr.mutBaseDuration.Unlock()
+
+	sr.baseDuration = baseDuration
 }
 
 // Name method returns the name of the Subround

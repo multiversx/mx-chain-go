@@ -235,6 +235,12 @@ func (chr *chronology) initRound() {
 		if chr.enableEpochsHandler.IsFlagEnabled(common.SupernovaFlag) &&
 			chr.enableRoundsHandler.GetActivationRound(common.SupernovaRoundFlag) == roundIndex-1 {
 			chr.appStatusHandler.SetUInt64Value(common.MetricRoundDuration, uint64(chr.roundHandler.TimeDuration().Milliseconds()))
+
+			// update time duration on each subround
+			// TODO: analyze if we should consider modifying startTime and endTime as well for each subround after Supernova
+			for _, subroundHandler := range chr.subroundHandlers {
+				subroundHandler.SetBaseDuration(chr.roundHandler.TimeDuration())
+			}
 		}
 
 	}

@@ -228,13 +228,28 @@ func TestChronology_UpdateRoundShouldInitRound(t *testing.T) {
 	t.Parallel()
 
 	arg := getDefaultChronologyArg()
+	arg.EnableRoundsHandler = &testscommon.EnableRoundsHandlerStub{
+		GetActivationRoundCalled: func(flag common.EnableRoundFlag) uint64 {
+			return 0
+		},
+	}
+	arg.EnableEpochsHandler = &enableEpochsHandlerMock.EnableEpochsHandlerStub{
+		IsFlagEnabledCalled: func(flag core.EnableEpochFlag) bool {
+			return flag == common.SupernovaFlag
+		},
+	}
 	chr, _ := chronology.NewChronology(arg)
 
 	srm := initSubroundHandlerMock()
+	wasSetBaseDurationCalled := false
+	srm.SetBaseDurationCalled = func(baseDuration time.Duration) {
+		wasSetBaseDurationCalled = true
+	}
 	chr.AddSubround(srm)
 	chr.UpdateRound()
 
 	assert.Equal(t, srm.Current(), chr.SubroundId())
+	require.True(t, wasSetBaseDurationCalled)
 }
 
 func TestChronology_LoadSubroundHandlerShouldReturnNilWhenSubroundHandlerNotExists(t *testing.T) {
