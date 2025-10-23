@@ -9,6 +9,7 @@ import (
 	"github.com/multiversx/mx-chain-core-go/core/check"
 	"github.com/multiversx/mx-chain-core-go/data"
 	"github.com/multiversx/mx-chain-core-go/data/block"
+
 	"github.com/multiversx/mx-chain-go/process"
 	"github.com/multiversx/mx-chain-go/process/track"
 	"github.com/multiversx/mx-chain-go/sharding"
@@ -244,6 +245,10 @@ func (btm *BlockTrackerMock) ComputeLongestMetaChainFromLastNotarized() ([]data.
 
 // ComputeLongestShardsChainsFromLastNotarized -
 func (btm *BlockTrackerMock) ComputeLongestShardsChainsFromLastNotarized() ([]data.HeaderHandler, [][]byte, map[uint32][]data.HeaderHandler, error) {
+	if btm.ComputeLongestShardsChainsFromLastNotarizedCalled != nil {
+		return btm.ComputeLongestShardsChainsFromLastNotarizedCalled()
+	}
+
 	hdrsMap := make(map[uint32][]data.HeaderHandler)
 	hdrsHashesMap := make(map[uint32][][]byte)
 

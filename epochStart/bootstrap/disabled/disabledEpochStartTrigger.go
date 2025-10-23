@@ -22,13 +22,8 @@ func (e *epochStartTrigger) ShouldProposeEpochChange(_ uint64, _ uint64) bool {
 	return false
 }
 
-// UpdateRound -
-func (e *epochStartTrigger) UpdateRound(_ uint64) {
-
-}
-
 // SetEpochChange -
-func (e *epochStartTrigger) SetEpochChange() {}
+func (e *epochStartTrigger) SetEpochChange(_ uint64) {}
 
 // ReceivedHeader -
 func (e *epochStartTrigger) ReceivedHeader(_ data.HeaderHandler) {

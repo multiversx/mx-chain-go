@@ -11,10 +11,10 @@ type MiniBlockSelectionSessionStub struct {
 	GetMiniBlockHeaderHandlersCalled            func() []data.MiniBlockHeaderHandler
 	GetMiniBlocksCalled                         func() block.MiniBlockSlice
 	GetMiniBlockHashesCalled                    func() [][]byte
-	AddReferencedMetaBlockCalled                func(metaBlock data.HeaderHandler, metaBlockHash []byte)
-	GetReferencedMetaBlockHashesCalled          func() [][]byte
-	GetReferencedMetaBlocksCalled               func() []data.HeaderHandler
-	GetLastMetaBlockCalled                      func() data.HeaderHandler
+	AddReferencedHeaderCalled                   func(metaBlock data.HeaderHandler, metaBlockHash []byte)
+	GetReferencedHeaderHashesCalled             func() [][]byte
+	GetReferencedHeadersCalled                  func() []data.HeaderHandler
+	GetLastHeaderCalled                         func() data.HeaderHandler
 	GetGasProvidedCalled                        func() uint64
 	GetNumTxsAddedCalled                        func() uint32
 	AddMiniBlocksAndHashesCalled                func(miniBlocksAndHashes []block.MiniblockAndHash) error
@@ -52,33 +52,33 @@ func (mbss *MiniBlockSelectionSessionStub) GetMiniBlockHashes() [][]byte {
 	return nil
 }
 
-// AddReferencedMetaBlock -
-func (mbss *MiniBlockSelectionSessionStub) AddReferencedMetaBlock(metaBlock data.HeaderHandler, metaBlockHash []byte) {
-	if mbss.AddReferencedMetaBlockCalled != nil {
-		mbss.AddReferencedMetaBlockCalled(metaBlock, metaBlockHash)
+// AddReferencedHeader -
+func (mbss *MiniBlockSelectionSessionStub) AddReferencedHeader(metaBlock data.HeaderHandler, metaBlockHash []byte) {
+	if mbss.AddReferencedHeaderCalled != nil {
+		mbss.AddReferencedHeaderCalled(metaBlock, metaBlockHash)
 	}
 }
 
-// GetReferencedMetaBlockHashes -
-func (mbss *MiniBlockSelectionSessionStub) GetReferencedMetaBlockHashes() [][]byte {
-	if mbss.GetReferencedMetaBlockHashesCalled != nil {
-		return mbss.GetReferencedMetaBlockHashesCalled()
-	}
-	return nil
-}
-
-// GetReferencedMetaBlocks -
-func (mbss *MiniBlockSelectionSessionStub) GetReferencedMetaBlocks() []data.HeaderHandler {
-	if mbss.GetReferencedMetaBlocksCalled != nil {
-		return mbss.GetReferencedMetaBlocksCalled()
+// GetReferencedHeaderHashes -
+func (mbss *MiniBlockSelectionSessionStub) GetReferencedHeaderHashes() [][]byte {
+	if mbss.GetReferencedHeaderHashesCalled != nil {
+		return mbss.GetReferencedHeaderHashesCalled()
 	}
 	return nil
 }
 
-// GetLastMetaBlock -
-func (mbss *MiniBlockSelectionSessionStub) GetLastMetaBlock() data.HeaderHandler {
-	if mbss.GetLastMetaBlockCalled != nil {
-		return mbss.GetLastMetaBlockCalled()
+// GetReferencedHeaders -
+func (mbss *MiniBlockSelectionSessionStub) GetReferencedHeaders() []data.HeaderHandler {
+	if mbss.GetReferencedHeadersCalled != nil {
+		return mbss.GetReferencedHeadersCalled()
+	}
+	return nil
+}
+
+// GetLastHeader -
+func (mbss *MiniBlockSelectionSessionStub) GetLastHeader() data.HeaderHandler {
+	if mbss.GetLastHeaderCalled != nil {
+		return mbss.GetLastHeaderCalled()
 	}
 	return nil
 }

@@ -1171,6 +1171,15 @@ func (tpn *TestFullNode) initBlockProcessor(
 		epochStartSystemSCProcessor, _ := metachain.NewSystemSCProcessor(argsEpochSystemSC)
 		tpn.EpochStartSystemSCProcessor = epochStartSystemSCProcessor
 
+		shardInfoCreator, errShardInfoCreate := block.NewShardInfoCreateData(
+			tpn.EnableEpochsHandler,
+			tpn.DataPool.Headers(),
+			tpn.DataPool.Proofs(),
+			&mock.PendingMiniBlocksHandlerStub{},
+			argumentsBase.BlockTracker,
+		)
+		log.LogIfError(errShardInfoCreate)
+
 		arguments := block.ArgMetaProcessor{
 			ArgBaseProcessor:             argumentsBase,
 			SCToProtocol:                 scToProtocolInstance,
@@ -1181,6 +1190,7 @@ func (tpn *TestFullNode) initBlockProcessor(
 			EpochValidatorInfoCreator:    epochStartValidatorInfo,
 			ValidatorStatisticsProcessor: tpn.ValidatorStatisticsProcessor,
 			EpochSystemSCProcessor:       epochStartSystemSCProcessor,
+			ShardInfoCreator:             shardInfoCreator,
 		}
 
 		tpn.BlockProcessor, err = block.NewMetaProcessor(arguments)
@@ -1358,6 +1368,16 @@ func (tpn *TestFullNode) initBlockProcessorWithSync(
 	if tpn.ShardCoordinator.SelfId() == core.MetachainShardId {
 		argumentsBase.ForkDetector = tpn.ForkDetector
 		argumentsBase.TxCoordinator = &mock.TransactionCoordinatorMock{}
+
+		shardInfoCreator, errShardInfoCreate := block.NewShardInfoCreateData(
+			coreComponents.EnableEpochsHandler(),
+			dataComponents.DataPool.Headers(),
+			dataComponents.DataPool.Proofs(),
+			&mock.PendingMiniBlocksHandlerStub{},
+			argumentsBase.BlockTracker,
+		)
+		log.LogIfError(errShardInfoCreate)
+
 		arguments := block.ArgMetaProcessor{
 			ArgBaseProcessor:          argumentsBase,
 			SCToProtocol:              &mock.SCToProtocolStub{},
@@ -1372,6 +1392,7 @@ func (tpn *TestFullNode) initBlockProcessorWithSync(
 				},
 			},
 			EpochSystemSCProcessor: &testscommon.EpochStartSystemSCStub{},
+			ShardInfoCreator:       shardInfoCreator,
 		}
 
 		tpn.BlockProcessor, err = block.NewMetaProcessor(arguments)

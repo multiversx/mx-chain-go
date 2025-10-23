@@ -19,12 +19,13 @@ import (
 	"github.com/multiversx/mx-chain-core-go/display"
 	"github.com/multiversx/mx-chain-core-go/hashing"
 	"github.com/multiversx/mx-chain-core-go/marshal"
+	logger "github.com/multiversx/mx-chain-logger-go"
+
 	"github.com/multiversx/mx-chain-go/common"
 	"github.com/multiversx/mx-chain-go/dataRetriever"
 	"github.com/multiversx/mx-chain-go/epochStart"
 	"github.com/multiversx/mx-chain-go/process"
 	"github.com/multiversx/mx-chain-go/storage"
-	logger "github.com/multiversx/mx-chain-logger-go"
 )
 
 var log = logger.GetOrCreate("epochStart/shardchain")
@@ -1231,12 +1232,8 @@ func (t *trigger) GetSavedStateKey() []byte {
 func (t *trigger) Update(_ uint64, _ uint64) {
 }
 
-// UpdateRound will do nothing
-func (t *trigger) UpdateRound(_ uint64) {
-}
-
 // SetEpochChange will do nothing
-func (t *trigger) SetEpochChange() {
+func (t *trigger) SetEpochChange(_ uint64) {
 }
 
 // ShouldProposeEpochChange will always return false

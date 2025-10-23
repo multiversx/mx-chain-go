@@ -52,9 +52,9 @@ func TestMiniBlockSelectionSession_ResetSelectionSession(t *testing.T) {
 	require.Empty(t, session.GetMiniBlocks())
 	require.Empty(t, session.GetMiniBlockHeaderHandlers())
 	require.Empty(t, session.GetMiniBlockHashes())
-	require.Empty(t, session.GetReferencedMetaBlockHashes())
-	require.Empty(t, session.GetReferencedMetaBlocks())
-	require.Nil(t, session.GetLastMetaBlock())
+	require.Empty(t, session.GetReferencedHeaderHashes())
+	require.Empty(t, session.GetReferencedHeaders())
+	require.Nil(t, session.GetLastHeader())
 	require.Equal(t, uint64(0), session.GetGasProvided())
 	require.Equal(t, uint32(0), session.GetNumTxsAdded())
 }
@@ -67,9 +67,9 @@ func TestMiniBlockSelectionSession_Getters(t *testing.T) {
 	require.Len(t, session.GetMiniBlockHeaderHandlers(), 1)
 	require.Len(t, session.GetMiniBlocks(), 1)
 	require.Len(t, session.GetMiniBlockHashes(), 1)
-	require.Len(t, session.GetReferencedMetaBlockHashes(), 1)
-	require.Len(t, session.GetReferencedMetaBlocks(), 1)
-	require.NotNil(t, session.GetLastMetaBlock())
+	require.Len(t, session.GetReferencedHeaderHashes(), 1)
+	require.Len(t, session.GetReferencedHeaders(), 1)
+	require.NotNil(t, session.GetLastHeader())
 	require.Equal(t, uint64(100), session.GetGasProvided())
 	require.Equal(t, uint32(2), session.GetNumTxsAdded())
 }
@@ -210,31 +210,31 @@ func TestMiniBlocksSelectionSession_AddReferencedMetaBlock(t *testing.T) {
 		session, _ := NewMiniBlocksSelectionSession(1, marshaller, hasher)
 		metaBlock := &block.MetaBlock{Epoch: 1, Round: 1}
 		metaBlockHash := []byte("metaHash")
-		session.AddReferencedMetaBlock(metaBlock, metaBlockHash)
+		session.AddReferencedHeader(metaBlock, metaBlockHash)
 
-		require.Len(t, session.GetReferencedMetaBlocks(), 1)
-		require.Len(t, session.GetReferencedMetaBlockHashes(), 1)
-		require.Equal(t, metaBlock, session.GetReferencedMetaBlocks()[0])
-		require.Equal(t, metaBlockHash, session.GetReferencedMetaBlockHashes()[0])
+		require.Len(t, session.GetReferencedHeaders(), 1)
+		require.Len(t, session.GetReferencedHeaderHashes(), 1)
+		require.Equal(t, metaBlock, session.GetReferencedHeaders()[0])
+		require.Equal(t, metaBlockHash, session.GetReferencedHeaderHashes()[0])
 	})
 	t.Run("should not add nil meta block", func(t *testing.T) {
 		t.Parallel()
 
 		session, _ := NewMiniBlocksSelectionSession(1, marshaller, hasher)
-		session.AddReferencedMetaBlock(nil, []byte("metaHash"))
+		session.AddReferencedHeader(nil, []byte("metaHash"))
 
-		require.Empty(t, session.GetReferencedMetaBlocks())
-		require.Empty(t, session.GetReferencedMetaBlockHashes())
+		require.Empty(t, session.GetReferencedHeaders())
+		require.Empty(t, session.GetReferencedHeaderHashes())
 	})
 	t.Run("should not add empty meta block hash", func(t *testing.T) {
 		t.Parallel()
 
 		session, _ := NewMiniBlocksSelectionSession(1, marshaller, hasher)
 		metaBlock := &block.MetaBlock{Epoch: 1, Round: 1}
-		session.AddReferencedMetaBlock(metaBlock, nil)
+		session.AddReferencedHeader(metaBlock, nil)
 
-		require.Empty(t, session.GetReferencedMetaBlocks())
-		require.Empty(t, session.GetReferencedMetaBlockHashes())
+		require.Empty(t, session.GetReferencedHeaders())
+		require.Empty(t, session.GetReferencedHeaderHashes())
 	})
 }
 
@@ -277,9 +277,9 @@ func createDummyFilledSession() *miniBlocksSelectionSession {
 	session.miniBlocks = append(session.miniBlocks, miniBlock)
 	session.miniBlockHashes = append(session.miniBlockHashes, miniBlockHash)
 	session.miniBlockHeaderHandlers = append(session.miniBlockHeaderHandlers, miniBlockHeader)
-	session.referencedMetaBlockHashes = append(session.referencedMetaBlockHashes, metaBlockHash)
-	session.referencedMetaBlocks = append(session.referencedMetaBlocks, metaBlock)
-	session.lastMetaBlock = metaBlock
+	session.referencedHeaderHashes = append(session.referencedHeaderHashes, metaBlockHash)
+	session.referencedHeader = append(session.referencedHeader, metaBlock)
+	session.lastHeader = metaBlock
 	session.gasProvided = 100
 	session.numTxsAdded = 2
 

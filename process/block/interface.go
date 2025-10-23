@@ -60,10 +60,10 @@ type MiniBlocksSelectionSession interface {
 	GetMiniBlockHeaderHandlers() []data.MiniBlockHeaderHandler
 	GetMiniBlocks() block.MiniBlockSlice
 	GetMiniBlockHashes() [][]byte
-	AddReferencedMetaBlock(metaBlock data.HeaderHandler, metaBlockHash []byte)
-	GetReferencedMetaBlockHashes() [][]byte
-	GetReferencedMetaBlocks() []data.HeaderHandler
-	GetLastMetaBlock() data.HeaderHandler
+	AddReferencedHeader(header data.HeaderHandler, headerHash []byte)
+	GetReferencedHeaderHashes() [][]byte
+	GetReferencedHeaders() []data.HeaderHandler
+	GetLastHeader() data.HeaderHandler
 	GetGasProvided() uint64
 	GetNumTxsAdded() uint32
 	AddMiniBlocksAndHashes(miniBlocksAndHashes []block.MiniblockAndHash) error

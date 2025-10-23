@@ -5,6 +5,7 @@ import (
 
 	"github.com/multiversx/mx-chain-core-go/data/block"
 	"github.com/multiversx/mx-chain-core-go/marshal"
+
 	"github.com/multiversx/mx-chain-go/common"
 	"github.com/multiversx/mx-chain-go/epochStart"
 )
@@ -26,7 +27,6 @@ func (t *trigger) LoadState(key []byte) error {
 
 	t.mutTrigger.Lock()
 	t.triggerStateKey = key
-	t.currentRound = state.CurrentRound
 	t.epochFinalityAttestingRound = state.EpochFinalityAttestingRound
 	t.currEpochStartRound = state.CurrEpochStartRound
 	t.prevEpochStartRound = state.PrevEpochStartRound
@@ -64,7 +64,6 @@ func (t *trigger) saveState(key []byte) error {
 		return epochStart.ErrWrongTypeAssertion
 	}
 	registry := &block.MetaTriggerRegistry{}
-	registry.CurrentRound = t.currentRound
 	registry.EpochFinalityAttestingRound = t.epochFinalityAttestingRound
 	registry.CurrEpochStartRound = t.currEpochStartRound
 	registry.PrevEpochStartRound = t.prevEpochStartRound

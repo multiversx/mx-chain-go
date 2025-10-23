@@ -6,12 +6,13 @@ import (
 
 	"github.com/multiversx/mx-chain-core-go/data"
 	"github.com/multiversx/mx-chain-core-go/data/block"
+	"github.com/stretchr/testify/require"
+
 	"github.com/multiversx/mx-chain-go/common"
 	"github.com/multiversx/mx-chain-go/dataRetriever"
 	"github.com/multiversx/mx-chain-go/storage"
 	"github.com/multiversx/mx-chain-go/testscommon/genericMocks"
 	storageStubs "github.com/multiversx/mx-chain-go/testscommon/storage"
-	"github.com/stretchr/testify/require"
 )
 
 func cloneTrigger(t *trigger) *trigger {
@@ -19,7 +20,6 @@ func cloneTrigger(t *trigger) *trigger {
 
 	rt.isEpochStart = t.isEpochStart
 	rt.epoch = t.epoch
-	rt.currentRound = t.currentRound
 	rt.epochFinalityAttestingRound = t.epochFinalityAttestingRound
 	rt.currEpochStartRound = t.currEpochStartRound
 	rt.prevEpochStartRound = t.prevEpochStartRound
@@ -59,7 +59,6 @@ func TestTrigger_LoadStateAfterSave(t *testing.T) {
 	key := []byte("key")
 	epochStartTrigger1.triggerStateKey = key
 	epochStartTrigger1.epoch = 6
-	epochStartTrigger1.currentRound = 1000
 	epochStartTrigger1.epochFinalityAttestingRound = 998
 	epochStartTrigger1.currEpochStartRound = 800
 	epochStartTrigger1.prevEpochStartRound = 650
@@ -92,7 +91,6 @@ func TestTrigger_LoadStateBackwardsCompatibility(t *testing.T) {
 	key := []byte("key")
 	epochStartTrigger1.triggerStateKey = key
 	epochStartTrigger1.epoch = 6
-	epochStartTrigger1.currentRound = 1000
 	epochStartTrigger1.epochFinalityAttestingRound = 998
 	epochStartTrigger1.currEpochStartRound = 800
 	epochStartTrigger1.prevEpochStartRound = 650
@@ -124,7 +122,6 @@ func createLegacyTriggerRegistryFromTrigger(t *trigger) *legacyTriggerRegistry {
 	metaBlock, _ := t.epochStartMeta.(*block.MetaBlock)
 	return &legacyTriggerRegistry{
 		Epoch:                       t.epoch,
-		CurrentRound:                t.currentRound,
 		EpochFinalityAttestingRound: t.epochFinalityAttestingRound,
 		CurrEpochStartRound:         t.currEpochStartRound,
 		PrevEpochStartRound:         t.prevEpochStartRound,

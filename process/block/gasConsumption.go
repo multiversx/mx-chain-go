@@ -6,6 +6,7 @@ import (
 
 	"github.com/multiversx/mx-chain-core-go/core/check"
 	"github.com/multiversx/mx-chain-core-go/data"
+
 	"github.com/multiversx/mx-chain-go/process"
 )
 
@@ -522,6 +523,11 @@ func (gc *gasConsumption) maxGasLimitPerMiniBlock(shardID uint32) uint64 {
 	}
 
 	return gc.economicsFee.MaxGasLimitPerMiniBlock(shardID)
+}
+
+// RevertIncomingMiniBlocks reverts the gas consumption for the given incoming mini blocks
+func (gc *gasConsumption) RevertIncomingMiniBlocks(miniBlockHashes [][]byte) {
+	// TODO: implement this
 }
 
 // IsInterfaceNil checks if the interface is nil
