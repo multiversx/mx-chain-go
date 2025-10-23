@@ -649,6 +649,7 @@ func TestSubroundBlock_DoBlockJob(t *testing.T) {
 
 func TestSubroundBlock_ReceivedBlock(t *testing.T) {
 	t.Parallel()
+
 	container := consensusMocks.InitConsensusCore()
 	sr := initSubroundBlock(nil, container, &statusHandler.AppStatusHandlerStub{})
 	blkBody := &block.Body{}
@@ -671,8 +672,13 @@ func TestSubroundBlock_ReceivedBlock(t *testing.T) {
 		currentPid,
 		nil,
 	)
-	sr.SetBody(&block.Body{})
 	r := sr.ReceivedBlockBody(cnsMsg)
+	assert.False(t, r) // returns false as start round is not finished yet
+
+	sr.SetStatus(bls.SrStartRound, spos.SsFinished)
+
+	sr.SetBody(&block.Body{})
+	r = sr.ReceivedBlockBody(cnsMsg)
 	assert.False(t, r)
 
 	sr.SetBody(nil)
@@ -1241,6 +1247,15 @@ func TestSubroundBlock_ReceivedBlockHeader(t *testing.T) {
 
 	// nil header
 	sr.ReceivedBlockHeader(nil)
+
+	// start round is not finished
+	sr.ReceivedBlockHeader(&testscommon.HeaderHandlerStub{})
+
+	// set start round finished on go routine for extra coverage
+	go func() {
+		time.Sleep(2 * time.Millisecond)
+		sr.SetStatus(bls.SrStartRound, spos.SsFinished)
+	}()
 
 	// header not for current consensus
 	sr.ReceivedBlockHeader(&testscommon.HeaderHandlerStub{})
