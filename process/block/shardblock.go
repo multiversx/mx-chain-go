@@ -1853,7 +1853,7 @@ func (sp *shardProcessor) getAllMiniBlockDstMeFromMeta(header data.ShardHeaderHa
 		headerInfo, ok := sp.hdrsForCurrBlock.GetHeaderInfo(string(metaBlockHash))
 		if !ok {
 			return nil, fmt.Errorf("%w : getAllMiniBlockDstMeFromMeta metaBlockHash = %s",
-				process.ErrMissingHeader, logger.DisplayByteSlice(metaBlockHash))
+				process.ErrMissingHeader, hex.EncodeToString(metaBlockHash))
 		}
 
 		err = sp.addCrossShardMiniBlocksDstMeToMap(header, metaBlockHash, headerInfo.GetHeader(), lastCrossNotarizedHeader, miniBlockMetaHashes)

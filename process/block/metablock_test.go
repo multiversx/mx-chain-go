@@ -2791,7 +2791,8 @@ func TestMetaProcessor_VerifyCrossShardMiniBlocksDstMe(t *testing.T) {
 	assert.Nil(t, err)
 
 	err = mp.VerifyCrossShardMiniBlockDstMe(hdr)
-	assert.Nil(t, err)
+	assert.Error(t, err)
+	assert.ErrorIs(t, err, process.ErrMissingHeader)
 }
 
 func TestMetaProcess_CreateNewBlockHeaderProcessHeaderExpectCheckRoundCalled(t *testing.T) {
