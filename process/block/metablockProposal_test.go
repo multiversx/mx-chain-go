@@ -598,6 +598,105 @@ func TestMetaProcessor_CreateBlockProposal(t *testing.T) {
 		validMetaHeaderV3 := &block.MetaBlockV3{}
 		checkCreateBlockProposalResult(t, mp, validMetaHeaderV3, haveTimeTrue, data.ErrInvalidTypeAssertion)
 	})
+	t.Run("marshall error", func(t *testing.T) {
+		t.Parallel()
+
+		coreComponents, dataComponents, bootstrapComponents, statusComponents := createMockComponentHolders()
+		arguments := createMockMetaArguments(coreComponents, dataComponents, bootstrapComponents, statusComponents)
+		arguments.MiniBlocksSelectionSession = &mbSelection.MiniBlockSelectionSessionStub{
+			GetMiniBlockHeaderHandlersCalled: func() []data.MiniBlockHeaderHandler { return nil },
+		}
+		cc := coreComponents
+		cc.IntMarsh = &testscommon.MarshallerStub{
+			MarshalCalled: func(obj interface{}) ([]byte, error) {
+				return nil, expectedErr
+			},
+		}
+		mp, err := blproc.NewMetaProcessor(arguments)
+		require.Nil(t, err)
+
+		validMetaHeaderV3 := &block.MetaBlockV3{}
+		checkCreateBlockProposalResult(t, mp, validMetaHeaderV3, haveTimeTrue, expectedErr)
+	})
+	t.Run("successful creation, non start of epoch block", func(t *testing.T) {
+		t.Parallel()
+
+		coreComponents, dataComponents, bootstrapComponents, statusComponents := createMockComponentHolders()
+		arguments := createMockMetaArguments(coreComponents, dataComponents, bootstrapComponents, statusComponents)
+		arguments.MiniBlocksSelectionSession = &mbSelection.MiniBlockSelectionSessionStub{
+			GetMiniBlockHeaderHandlersCalled: func() []data.MiniBlockHeaderHandler { return nil },
+		}
+		mp, err := blproc.NewMetaProcessor(arguments)
+		require.Nil(t, err)
+
+		validMetaHeaderV3 := &block.MetaBlockV3{}
+		header, body, err := mp.CreateBlockProposal(validMetaHeaderV3, haveTimeTrue)
+		require.Nil(t, err)
+		require.NotNil(t, header)
+		require.NotNil(t, body)
+	})
+	t.Run("successful creation, start of epoch block with empy body", func(t *testing.T) {
+		t.Parallel()
+
+		coreComponents, dataComponents, bootstrapComponents, statusComponents := createMockComponentHolders()
+		arguments := createMockMetaArguments(coreComponents, dataComponents, bootstrapComponents, statusComponents)
+		arguments.MiniBlocksSelectionSession = &mbSelection.MiniBlockSelectionSessionStub{
+			GetMiniBlockHeaderHandlersCalled: func() []data.MiniBlockHeaderHandler { return nil },
+		}
+		arguments.GasComputation = &testscommon.GasComputationMock{
+			ResetCalled: func() {
+				require.Fail(t, "should not be called")
+			},
+		}
+		mp, err := blproc.NewMetaProcessor(arguments)
+		require.Nil(t, err)
+
+		// add epoch start data to the meta processor so that IsEpochStartBlock returns true
+		validMetaHeaderV3 := &block.MetaBlockV3{
+			EpochStart: block.EpochStart{
+				LastFinalizedHeaders: make([]block.EpochStartShardData, 3),
+			},
+		}
+		header, body, err := mp.CreateBlockProposal(validMetaHeaderV3, haveTimeTrue)
+		require.Nil(t, err)
+		require.NotNil(t, header)
+		require.NotNil(t, body)
+		b := body.(*block.Body)
+		// start of epoch block should have no mini blocks headers and no mini blocks in the body
+		require.Len(t, header.GetMiniBlockHeaderHandlers(), 0)
+		require.Len(t, b.MiniBlocks, 0)
+	})
+	t.Run("successful creation, epoch change proposal block with empy body", func(t *testing.T) {
+		t.Parallel()
+
+		coreComponents, dataComponents, bootstrapComponents, statusComponents := createMockComponentHolders()
+		arguments := createMockMetaArguments(coreComponents, dataComponents, bootstrapComponents, statusComponents)
+		arguments.MiniBlocksSelectionSession = &mbSelection.MiniBlockSelectionSessionStub{
+			GetMiniBlockHeaderHandlersCalled: func() []data.MiniBlockHeaderHandler { return nil },
+		}
+		arguments.GasComputation = &testscommon.GasComputationMock{
+			ResetCalled: func() {
+				require.Fail(t, "should not be called")
+			},
+		}
+		mp, err := blproc.NewMetaProcessor(arguments)
+		require.Nil(t, err)
+
+		// add epoch start data to the meta processor so that IsEpochStartBlock returns true
+		validMetaHeaderV3 := &block.MetaBlockV3{
+			EpochStart: block.EpochStart{
+				LastFinalizedHeaders: make([]block.EpochStartShardData, 3),
+			},
+		}
+		header, body, err := mp.CreateBlockProposal(validMetaHeaderV3, haveTimeTrue)
+		require.Nil(t, err)
+		require.NotNil(t, header)
+		require.NotNil(t, body)
+		b := body.(*block.Body)
+		// epoch change proposal should have no mini blocks headers and no mini blocks in the body
+		require.Len(t, header.GetMiniBlockHeaderHandlers(), 0)
+		require.Len(t, b.MiniBlocks, 0)
+	})
 }
 
 func TestMetaProcessor_VerifyBlockProposal(t *testing.T) {
@@ -616,4 +715,220 @@ func TestMetaProcessor_VerifyBlockProposal(t *testing.T) {
 
 	err = mp.VerifyBlockProposal(header, body, haveTime)
 	require.NoError(t, err)
+}
+
+func Test_getTxCountExecutionResults(t *testing.T) {
+	t.Parallel()
+
+	t.Run("nil meta block", func(t *testing.T) {
+		t.Parallel()
+
+		txCount, err := blproc.GetTxCountExecutionResults(nil)
+		require.Nil(t, err)
+		require.Equal(t, uint32(0), txCount)
+	})
+	t.Run("no execution results notarized", func(t *testing.T) {
+		t.Parallel()
+
+		metaBlock := &block.MetaBlockV3{}
+		txCount, err := blproc.GetTxCountExecutionResults(metaBlock)
+		require.Nil(t, err)
+		require.Equal(t, uint32(0), txCount)
+	})
+	t.Run("empty execution results notarized", func(t *testing.T) {
+		t.Parallel()
+
+		metaBlock := &block.MetaBlockV3{
+			ExecutionResults: []*block.MetaExecutionResult{{}, {}},
+		}
+		txCount, err := blproc.GetTxCountExecutionResults(metaBlock)
+		require.Nil(t, err)
+		require.Equal(t, uint32(0), txCount)
+	})
+	t.Run("invalid execution result in notarized list", func(t *testing.T) {
+		t.Parallel()
+
+		var metaExecutionResult *block.BaseExecutionResult
+		metaBlock := &testscommon.HeaderHandlerStub{
+			GetExecutionResultsHandlersCalled: func() []data.BaseExecutionResultHandler {
+				return []data.BaseExecutionResultHandler{
+					metaExecutionResult,
+				}
+			},
+		}
+
+		txCount, err := blproc.GetTxCountExecutionResults(metaBlock)
+		require.Equal(t, process.ErrWrongTypeAssertion, err)
+		require.Equal(t, uint32(0), txCount)
+	})
+	t.Run("execution results notarized", func(t *testing.T) {
+		t.Parallel()
+
+		metaBlock := &block.MetaBlockV3{
+			ExecutionResults: []*block.MetaExecutionResult{
+				{
+					ExecutedTxCount: 5,
+				},
+				{
+					ExecutedTxCount: 10,
+				},
+			},
+		}
+		txCount, err := blproc.GetTxCountExecutionResults(metaBlock)
+		require.Nil(t, err)
+		require.Equal(t, uint32(15), txCount)
+	})
+}
+
+func TestMetaProcessor_hasStartOfEpochExecutionResults(t *testing.T) {
+	t.Parallel()
+
+	mbHeaderWithEpochStartData := block.MiniBlockHeader{
+		Hash:          []byte("mb hash"),
+		SenderShardID: core.MetachainShardId,
+		Type:          block.RewardsBlock,
+	}
+	t.Run("nil meta block", func(t *testing.T) {
+		t.Parallel()
+
+		coreComponents, dataComponents, bootstrapComponents, statusComponents := createMockComponentHolders()
+		arguments := createMockMetaArguments(coreComponents, dataComponents, bootstrapComponents, statusComponents)
+		mp, err := blproc.NewMetaProcessor(arguments)
+		require.Nil(t, err)
+
+		hasEpochStartData, err := mp.HasStartOfEpochExecutionResults(nil)
+		require.Equal(t, process.ErrNilHeaderHandler, err)
+		require.False(t, hasEpochStartData)
+	})
+	t.Run("no executionResults", func(t *testing.T) {
+		coreComponents, dataComponents, bootstrapComponents, statusComponents := createMockComponentHolders()
+		arguments := createMockMetaArguments(coreComponents, dataComponents, bootstrapComponents, statusComponents)
+		mp, err := blproc.NewMetaProcessor(arguments)
+		require.Nil(t, err)
+
+		validMetaHeaderV3 := &block.MetaBlockV3{}
+		hasEpochStartData, err := mp.HasStartOfEpochExecutionResults(validMetaHeaderV3)
+		require.Nil(t, err)
+		require.False(t, hasEpochStartData)
+	})
+	t.Run("executionResults with invalid data", func(t *testing.T) {
+		coreComponents, dataComponents, bootstrapComponents, statusComponents := createMockComponentHolders()
+		arguments := createMockMetaArguments(coreComponents, dataComponents, bootstrapComponents, statusComponents)
+		mp, err := blproc.NewMetaProcessor(arguments)
+		require.Nil(t, err)
+
+		validMetaHeaderV3 := &testscommon.HeaderHandlerStub{
+			GetExecutionResultsHandlersCalled: func() []data.BaseExecutionResultHandler {
+				return []data.BaseExecutionResultHandler{
+					&block.ExecutionResult{},
+				}
+			},
+		}
+		hasEpochStartData, err := mp.HasStartOfEpochExecutionResults(validMetaHeaderV3)
+		require.Equal(t, process.ErrWrongTypeAssertion, err)
+		require.False(t, hasEpochStartData)
+	})
+	t.Run("executionResults without epoch start data", func(t *testing.T) {
+		coreComponents, dataComponents, bootstrapComponents, statusComponents := createMockComponentHolders()
+		arguments := createMockMetaArguments(coreComponents, dataComponents, bootstrapComponents, statusComponents)
+		mp, err := blproc.NewMetaProcessor(arguments)
+		require.Nil(t, err)
+		mbHeader := mbHeaderWithEpochStartData
+		mbHeader.Type = block.TxBlock
+		validMetaHeaderV3 := &testscommon.HeaderHandlerStub{
+			GetExecutionResultsHandlersCalled: func() []data.BaseExecutionResultHandler {
+				return []data.BaseExecutionResultHandler{
+					&block.MetaExecutionResult{MiniBlockHeaders: []block.MiniBlockHeader{mbHeader}}}
+			},
+		}
+
+		hasEpochStartData, err := mp.HasStartOfEpochExecutionResults(validMetaHeaderV3)
+		require.Nil(t, err)
+		require.False(t, hasEpochStartData)
+	})
+	t.Run("executionResults with reward miniBlocks epoch start data not from meta", func(t *testing.T) {
+		coreComponents, dataComponents, bootstrapComponents, statusComponents := createMockComponentHolders()
+		arguments := createMockMetaArguments(coreComponents, dataComponents, bootstrapComponents, statusComponents)
+		mp, err := blproc.NewMetaProcessor(arguments)
+		require.Nil(t, err)
+
+		mbHeader := mbHeaderWithEpochStartData
+		mbHeader.SenderShardID = 0
+		validMetaHeaderV3 := &testscommon.HeaderHandlerStub{
+			GetExecutionResultsHandlersCalled: func() []data.BaseExecutionResultHandler {
+				return []data.BaseExecutionResultHandler{
+					&block.MetaExecutionResult{MiniBlockHeaders: []block.MiniBlockHeader{mbHeader}}}
+			},
+		}
+
+		hasEpochStartData, err := mp.HasStartOfEpochExecutionResults(validMetaHeaderV3)
+		require.Nil(t, err)
+		require.False(t, hasEpochStartData)
+	})
+	t.Run("executionResults with peer miniBlocks epoch start data not from meta", func(t *testing.T) {
+		coreComponents, dataComponents, bootstrapComponents, statusComponents := createMockComponentHolders()
+		arguments := createMockMetaArguments(coreComponents, dataComponents, bootstrapComponents, statusComponents)
+		mp, err := blproc.NewMetaProcessor(arguments)
+		require.Nil(t, err)
+
+		mbHeader := mbHeaderWithEpochStartData
+		mbHeader.SenderShardID = 0
+		mbHeader.Type = block.PeerBlock
+		validMetaHeaderV3 := &testscommon.HeaderHandlerStub{
+			GetExecutionResultsHandlersCalled: func() []data.BaseExecutionResultHandler {
+				return []data.BaseExecutionResultHandler{
+					&block.MetaExecutionResult{MiniBlockHeaders: []block.MiniBlockHeader{mbHeader}}}
+			},
+		}
+
+		hasEpochStartData, err := mp.HasStartOfEpochExecutionResults(validMetaHeaderV3)
+		require.Nil(t, err)
+		require.False(t, hasEpochStartData)
+	})
+	t.Run("executionResults with reward miniBlocks epoch start data from meta", func(t *testing.T) {
+		coreComponents, dataComponents, bootstrapComponents, statusComponents := createMockComponentHolders()
+		arguments := createMockMetaArguments(coreComponents, dataComponents, bootstrapComponents, statusComponents)
+		mp, err := blproc.NewMetaProcessor(arguments)
+		require.Nil(t, err)
+		mbHeader := mbHeaderWithEpochStartData
+		mbHeader.Type = block.RewardsBlock
+		validMetaHeaderV3 := &testscommon.HeaderHandlerStub{
+			GetExecutionResultsHandlersCalled: func() []data.BaseExecutionResultHandler {
+				return []data.BaseExecutionResultHandler{
+					&block.MetaExecutionResult{MiniBlockHeaders: []block.MiniBlockHeader{mbHeader}}}
+			},
+		}
+
+		hasEpochStartData, err := mp.HasStartOfEpochExecutionResults(validMetaHeaderV3)
+		require.Nil(t, err)
+		require.True(t, hasEpochStartData)
+	})
+	t.Run("executionResults with peer miniBlocks epoch start data from meta", func(t *testing.T) {
+		coreComponents, dataComponents, bootstrapComponents, statusComponents := createMockComponentHolders()
+		arguments := createMockMetaArguments(coreComponents, dataComponents, bootstrapComponents, statusComponents)
+		mp, err := blproc.NewMetaProcessor(arguments)
+		require.Nil(t, err)
+		mbHeader := mbHeaderWithEpochStartData
+		mbHeader.Type = block.PeerBlock
+		validMetaHeaderV3 := &testscommon.HeaderHandlerStub{
+			GetExecutionResultsHandlersCalled: func() []data.BaseExecutionResultHandler {
+				return []data.BaseExecutionResultHandler{
+					&block.MetaExecutionResult{MiniBlockHeaders: []block.MiniBlockHeader{mbHeader}}}
+			},
+		}
+
+		hasEpochStartData, err := mp.HasStartOfEpochExecutionResults(validMetaHeaderV3)
+		require.Nil(t, err)
+		require.True(t, hasEpochStartData)
+	})
+}
+
+func Test_hasRewardOrPeerMiniBlocksFromSelf(t *testing.T) {
+	t.Parallel()
+
+	t.Run("nil miniBlocks", func(t *testing.T) {
+		// t.Parallel()
+		// miniBlockHeaders :=  []data.MiniBlockHeaderHandler{nil}
+		// has, err := blproc.HasRewardOrPeerMiniBlocksFromMeta(miniBlockHeaders)
+	})
 }

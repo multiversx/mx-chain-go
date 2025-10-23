@@ -809,3 +809,18 @@ func GetHaveTimeForProposal(startTime time.Time, maxDuration time.Duration) func
 func (mp *metaProcessor) SetEpochStartData(epochStartData *block.EpochStart) {
 	mp.epochStartData = epochStartData
 }
+
+// GetTxCountExecutionResults -
+func GetTxCountExecutionResults(metaHeader data.MetaHeaderHandler) (uint32, error) {
+	return getTxCountExecutionResults(metaHeader)
+}
+
+// HasStartOfEpochExecutionResults -
+func (mp *metaProcessor) HasStartOfEpochExecutionResults(metaHeader data.MetaHeaderHandler) (bool, error) {
+	return mp.hasStartOfEpochExecutionResults(metaHeader)
+}
+
+// HasRewardOrPeerMiniBlocksFromMeta -
+func HasRewardOrPeerMiniBlocksFromMeta(miniBlockHeaders []data.MiniBlockHeaderHandler) bool {
+	return hasRewardOrPeerMiniBlocksFromMeta(miniBlockHeaders)
+}

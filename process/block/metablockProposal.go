@@ -140,7 +140,12 @@ func (mp *metaProcessor) CreateBlockProposal(
 		return nil, nil, err
 	}
 
-	totalProcessedTxs := getTxCount(shardDataHandler) + getTxCountExecutionResults(metaHdr)
+	txsInExecutionResults, err := getTxCountExecutionResults(metaHdr)
+	if err != nil {
+		return nil, nil, err
+	}
+
+	totalProcessedTxs := getTxCount(shardDataHandler) + txsInExecutionResults
 	// TODO: consider if tx count per metablock header is still needed
 	// as we still have it in the execution results
 	err = metaHdr.SetTxCount(totalProcessedTxs)
@@ -157,17 +162,21 @@ func (mp *metaProcessor) CreateBlockProposal(
 	return metaHdr, body, nil
 }
 
-func getTxCountExecutionResults(metaHeader data.MetaHeaderHandler) uint32 {
+func getTxCountExecutionResults(metaHeader data.MetaHeaderHandler) (uint32, error) {
+	if check.IfNil(metaHeader) {
+		return 0, nil
+	}
+
 	totalTxs := uint64(0)
 	execResults := metaHeader.GetExecutionResultsHandlers()
 	for _, execResult := range execResults {
 		execResultsMeta, ok := execResult.(data.MetaExecutionResultHandler)
 		if !ok {
-			continue
+			return 0, process.ErrWrongTypeAssertion
 		}
 		totalTxs += execResultsMeta.GetExecutedTxCount()
 	}
-	return uint32(totalTxs)
+	return uint32(totalTxs), nil
 }
 
 // VerifyBlockProposal will be implemented in a further PR
@@ -188,20 +197,23 @@ func (mp *metaProcessor) ProcessBlockProposal(
 }
 
 func (mp *metaProcessor) hasStartOfEpochExecutionResults(metaHeader data.MetaHeaderHandler) (bool, error) {
+	if check.IfNil(metaHeader) {
+		return false, process.ErrNilHeaderHandler
+	}
 	execResults := metaHeader.GetExecutionResultsHandlers()
 	for _, execResult := range execResults {
 		mbHeaders, err := mp.extractMiniBlocksHeaderHandlersFromExecResult(execResult, common.MetachainShardId)
 		if err != nil {
 			return false, err
 		}
-		if hasRewardOrPeerMiniBlocksFromSelf(mbHeaders) {
+		if hasRewardOrPeerMiniBlocksFromMeta(mbHeaders) {
 			return true, nil
 		}
 	}
 	return false, nil
 }
 
-func hasRewardOrPeerMiniBlocksFromSelf(miniBlockHeaders []data.MiniBlockHeaderHandler) bool {
+func hasRewardOrPeerMiniBlocksFromMeta(miniBlockHeaders []data.MiniBlockHeaderHandler) bool {
 	for _, mbHeader := range miniBlockHeaders {
 		if mbHeader.GetSenderShardID() != common.MetachainShardId {
 			continue
