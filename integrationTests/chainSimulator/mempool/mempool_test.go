@@ -1103,8 +1103,7 @@ func Test_Selection_ShouldNotSelectSameTransactionsWithManyTransactionsAndExecut
 	err = txpool.OnExecutedBlock(&block.Header{
 		Nonce:    1,
 		PrevHash: []byte("blockHash0"),
-		RootHash: []byte(fmt.Sprintf("rootHash%d", 0)),
-	})
+	}, []byte(fmt.Sprintf("rootHash%d", 0)))
 	require.Nil(t, err)
 
 	// remove the executed txs from the pool
@@ -1229,8 +1228,7 @@ func Test_Selection_ProposeEmptyBlocksAndExecutedBlockNotification(t *testing.T)
 	err = txpool.OnExecutedBlock(&block.Header{
 		Nonce:    1,
 		PrevHash: []byte("blockHash0"),
-		RootHash: []byte(fmt.Sprintf("rootHash%d", 0)),
-	})
+	}, []byte(fmt.Sprintf("rootHash%d", 0)))
 	require.Nil(t, err)
 
 	// remove the executed txs from the pool
@@ -1258,16 +1256,14 @@ func Test_Selection_ProposeEmptyBlocksAndExecutedBlockNotification(t *testing.T)
 	err = txpool.OnExecutedBlock(&block.Header{
 		Nonce:    2,
 		PrevHash: []byte("blockHash1"),
-		RootHash: []byte(fmt.Sprintf("rootHash%d", 1)),
-	})
+	}, []byte(fmt.Sprintf("rootHash%d", 1)))
 	require.Nil(t, err)
 
 	// execute the empty proposed blocks
 	err = txpool.OnExecutedBlock(&block.Header{
 		Nonce:    3,
 		PrevHash: []byte("blockHash2"),
-		RootHash: []byte(fmt.Sprintf("rootHash%d", 1)),
-	})
+	}, []byte(fmt.Sprintf("rootHash%d", 1)))
 	require.Nil(t, err)
 
 	blockchainInfo = holders.NewBlockchainInfo([]byte("blockHash3"), []byte("blockHash4"), 5)
