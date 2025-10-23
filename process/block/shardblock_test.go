@@ -25,6 +25,7 @@ import (
 	"github.com/multiversx/mx-chain-go/common/graceperiod"
 	"github.com/multiversx/mx-chain-go/testscommon/cache"
 	"github.com/multiversx/mx-chain-go/testscommon/pool"
+	"github.com/multiversx/mx-chain-go/testscommon/processMocks"
 	vmcommon "github.com/multiversx/mx-chain-vm-common-go"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
@@ -4341,6 +4342,100 @@ func TestShardProcessor_RestoreMetaBlockIntoPoolShouldPass(t *testing.T) {
 	assert.Nil(t, err)
 }
 
+func TestShardPreprocessor_getAllMiniBlockDstMeFromMetaGetLastCrossNotarizedHeaderErrorShouldError(t *testing.T) {
+	t.Parallel()
+	sp, err := blproc.ConstructPartialShardBlockProcessorForTest(map[string]interface{}{
+		"blockTracker": &mock.BlockTrackerMock{
+			GetLastCrossNotarizedHeaderCalled: func(shardID uint32) (data.HeaderHandler, []byte, error) {
+				return nil, nil, process.ErrNilBlockHeader
+			},
+		},
+	})
+	require.Nil(t, err)
+
+	metablockHashes := [][]byte{
+		[]byte("hash1"),
+		[]byte("hash2"),
+	}
+	header := &block.HeaderV3{
+		PrevHash:         []byte("hash"),
+		Nonce:            1,
+		Round:            2,
+		MiniBlockHeaders: []block.MiniBlockHeader{},
+		LastExecutionResult: &block.ExecutionResultInfo{
+			ExecutionResult: &block.BaseExecutionResult{},
+		},
+		MetaBlockHashes: metablockHashes,
+	}
+	_, err = sp.GetAllMiniBlockDstMeFromMeta(header)
+	assert.Error(t, err)
+	assert.ErrorIs(t, err, process.ErrNilBlockHeader)
+}
+
+func TestShardPreprocessor_getAllMiniBlockDstMeFromMetaMissingMetaHeaderShouldError(t *testing.T) {
+	t.Parallel()
+
+	headerValidator := &processMocks.HeaderValidatorMock{
+		IsHeaderConstructionValidCalled: func(currHdr, prevHdr data.HeaderHandler) error {
+			return nil
+		},
+	}
+	poolMock := initDataPool()
+	poolMock.HeadersCalled = func() dataRetriever.HeadersPool {
+		return &pool.HeadersPoolStub{
+			GetHeaderByHashCalled: func(hash []byte) (data.HeaderHandler, error) {
+				return &block.HeaderV3{
+					LastExecutionResult: &block.ExecutionResultInfo{
+						ExecutionResult: &block.BaseExecutionResult{},
+					},
+				}, nil
+			},
+		}
+	}
+	//body := &block.Body{}
+
+	metablockHashes := [][]byte{
+		[]byte("hash1"),
+		[]byte("hash2"),
+	}
+	header := &block.HeaderV3{
+		PrevHash:         []byte("hash"),
+		Nonce:            1,
+		Round:            2,
+		MiniBlockHeaders: []block.MiniBlockHeader{},
+		LastExecutionResult: &block.ExecutionResultInfo{
+			ExecutionResult: &block.BaseExecutionResult{},
+		},
+		MetaBlockHashes: metablockHashes,
+	}
+
+	sp, err := blproc.ConstructPartialShardBlockProcessorForTest(map[string]interface{}{
+		"headerValidator": headerValidator,
+		"hasher":          &hashingMocks.HasherMock{},
+		"proofsPool": &dataRetrieverMock.ProofsPoolMock{
+			HasProofCalled: func(shardID uint32, headerHash []byte) bool {
+				return true
+			},
+		},
+		"dataPool": poolMock,
+		"blockTracker": &mock.BlockTrackerMock{
+			GetLastCrossNotarizedHeaderCalled: func(shardID uint32) (data.HeaderHandler, []byte, error) {
+				return &block.MetaBlockV3{}, []byte("h"), nil
+			},
+		},
+		"hdrsForCurrBlock": &testscommon.HeadersForBlockMock{
+			GetHeaderInfoCalled: func(hash string) (headerForBlock.HeaderInfo, bool) {
+				return nil, false
+			},
+		},
+	})
+	require.Nil(t, err)
+
+	mblocks, err := sp.GetAllMiniBlockDstMeFromMeta(header)
+	assert.Error(t, err)
+	assert.ErrorIs(t, err, process.ErrMissingHeader)
+	assert.Nil(t, mblocks)
+}
 func TestShardPreprocessor_getAllMiniBlockDstMeFromMetaShouldPass(t *testing.T) {
 	t.Parallel()
 
@@ -6052,7 +6147,7 @@ func TestVerifyCrossShardMiniBlockDstMe(t *testing.T) {
 		}
 
 		err := sp.VerifyCrossShardMiniBlockDstMe(header)
-		require.Nil(t, err)
+		require.NotNil(t, err)
 	})
 
 	t.Run("cannot find header in pool should error", func(t *testing.T) {

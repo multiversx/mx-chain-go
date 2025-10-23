@@ -214,7 +214,7 @@ func TestShardProcessor_CreateBlockProposal(t *testing.T) {
 	})
 	t.Run("selectIncomingMiniBlocksForProposal fails due to error on selectIncomingMiniBlocks", func(t *testing.T) {
 		t.Parallel()
-
+		expectedError := errors.New("expected error")
 		coreComponents, dataComponents, bootstrapComponents, statusComponents := createComponentHolderMocks()
 		headers := dataComponents.DataPool.Headers()
 		dataComponents.DataPool = &dataRetriever.PoolsHolderStub{
@@ -1408,6 +1408,80 @@ func TestShardProcessor_VerifyBlockProposal(t *testing.T) {
 		require.Error(t, err)
 		assert.Contains(t, err.Error(), "epoch does not match")
 	})
+	t.Run("checkMetaHeadersValidityAndFinalityProposal fails should error", func(t *testing.T) {
+		t.Parallel()
+
+		expectedErr = errors.New("expected error from checkMetaHeadersValidityAndFinalityProposal")
+		subcomponents := createSubComponentsForVerifyProposalTest()
+		subcomponents["blockTracker"] = &mock.BlockTrackerMock{
+			GetLastCrossNotarizedHeaderCalled: func(shardID uint32) (data.HeaderHandler, []byte, error) {
+				return nil, nil, expectedErr
+			},
+		}
+
+		sp, err := blproc.ConstructPartialShardBlockProcessorForTest(subcomponents)
+		require.Nil(t, err)
+
+		body := &block.Body{}
+
+		header := &block.HeaderV3{
+			PrevHash:         []byte("hash"),
+			Nonce:            1,
+			Round:            2,
+			MiniBlockHeaders: []block.MiniBlockHeader{},
+			LastExecutionResult: &block.ExecutionResultInfo{
+				ExecutionResult: &block.BaseExecutionResult{},
+			},
+		}
+
+		err = sp.VerifyBlockProposal(header, body, haveTime)
+		require.Error(t, err)
+		assert.Equal(t, expectedErr, err)
+	})
+	t.Run("verifyCrossShardMiniBlockDstMe fails should error", func(t *testing.T) {
+		t.Parallel()
+
+		headerValidator := &processMocks.HeaderValidatorMock{
+			IsHeaderConstructionValidCalled: func(currHdr, prevHdr data.HeaderHandler) error {
+				return nil
+			},
+		}
+		subcomponents := createSubComponentsForVerifyProposalTest()
+		subcomponents["headerValidator"] = headerValidator
+		subcomponents["hasher"] = &hashingMocks.HasherMock{}
+		subcomponents["proofsPool"] = &dataRetriever.ProofsPoolMock{
+			HasProofCalled: func(shardID uint32, headerHash []byte) bool {
+				return true
+			},
+		}
+
+		sp, err := blproc.ConstructPartialShardBlockProcessorForTest(subcomponents)
+		require.Nil(t, err)
+
+		body := &block.Body{}
+
+		metablockHashes := [][]byte{
+			[]byte("hash1"),
+			[]byte("hash2"),
+		}
+		header := &block.HeaderV3{
+			PrevHash:         []byte("hash"),
+			Nonce:            1,
+			Round:            2,
+			MiniBlockHeaders: []block.MiniBlockHeader{},
+			LastExecutionResult: &block.ExecutionResultInfo{
+				ExecutionResult: &block.BaseExecutionResult{},
+			},
+			MetaBlockHashes: metablockHashes,
+		}
+
+		err = sp.VerifyBlockProposal(header, body, haveTime)
+
+		require.Error(t, err)
+		// stub will not return meta headers, causing type assertion to fail
+		expectedErr = errors.New("wrong type assertion")
+		assert.Equal(t, expectedErr, err)
+	})
 	t.Run("should work", func(t *testing.T) {
 		t.Parallel()
 
@@ -1630,6 +1704,55 @@ func TestShardProcessor_CheckMetaHeadersValidityAndFinalityProposal(t *testing.T
 		err := sp.CheckMetaHeadersValidityAndFinalityProposal(header)
 		require.NotNil(t, err)
 		require.ErrorContains(t, err, process.ErrHeaderNotFinal.Error())
+	})
+
+	t.Run("GetHeaderByHash error should propagate", func(t *testing.T) {
+		t.Parallel()
+
+		coreComponents, dataComponents, bootstrapComponents, statusComponents := createComponentHolderMocks()
+		arguments := CreateMockArguments(coreComponents, dataComponents, bootstrapComponents, statusComponents)
+
+		metaHeader := &block.MetaBlockV3{}
+
+		arguments.HeaderValidator = &processMocks.HeaderValidatorMock{
+			IsHeaderConstructionValidCalled: func(currHdr, prevHdr data.HeaderHandler) error {
+				return nil
+			},
+		}
+
+		arguments.BlockTracker = &mock.BlockTrackerMock{
+			GetLastCrossNotarizedHeaderCalled: func(shardID uint32) (data.HeaderHandler, []byte, error) {
+				return metaHeader, []byte("h"), nil
+			},
+		}
+
+		dataPool, ok := dataComponents.Datapool().(*dataRetriever.PoolsHolderStub)
+		require.True(t, ok)
+
+		expectedError := errors.New("expected error from GetHeaderByHash")
+		dataPool.HeadersCalled = func() retriever.HeadersPool {
+			return &pool.HeadersPoolStub{
+				GetHeaderByHashCalled: func(hash []byte) (data.HeaderHandler, error) {
+					return nil, expectedError
+				},
+			}
+		}
+		dataPool.ProofsCalled = func() retriever.ProofsPool {
+			return &dataRetriever.ProofsPoolMock{
+				HasProofCalled: func(shardID uint32, headerHash []byte) bool {
+					return true
+				},
+			}
+		}
+
+		sp, _ := blproc.NewShardProcessor(arguments)
+
+		header := &block.HeaderV3{
+			MetaBlockHashes: [][]byte{[]byte("hh")},
+		}
+		err := sp.CheckMetaHeadersValidityAndFinalityProposal(header)
+		require.Error(t, err)
+		require.ErrorIs(t, err, expectedError)
 	})
 
 	t.Run("should work", func(t *testing.T) {
