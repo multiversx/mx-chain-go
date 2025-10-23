@@ -279,7 +279,11 @@ func (mp *metaProcessor) selectIncomingMiniBlocksForProposal(
 		return err
 	}
 
-	err = mp.selectIncomingMiniBlocks(lastShardHdr, orderedHdrs, orderedHdrsHashes, haveTime)
+	maxShardHeadersFromSameShard := core.MaxUint32(
+		process.MinShardHeadersFromSameShardInOneMetaBlock,
+		process.MaxShardHeadersAllowedInOneMetaBlock/mp.shardCoordinator.NumberOfShards(),
+	)
+	err = mp.selectIncomingMiniBlocks(lastShardHdr, orderedHdrs, orderedHdrsHashes, maxShardHeadersFromSameShard, haveTime)
 	if err != nil {
 		return err
 	}
@@ -291,13 +295,10 @@ func (mp *metaProcessor) selectIncomingMiniBlocks(
 	lastShardHdr map[uint32]ShardHeaderInfo,
 	orderedHdrs []data.HeaderHandler,
 	orderedHdrsHashes [][]byte,
+	maxShardHeadersFromSameShard uint32,
 	haveTime func() bool,
 ) error {
 	hdrsAdded := uint32(0)
-	maxShardHeadersFromSameShard := core.MaxUint32(
-		process.MinShardHeadersFromSameShardInOneMetaBlock,
-		process.MaxShardHeadersAllowedInOneMetaBlock/mp.shardCoordinator.NumberOfShards(),
-	)
 	maxShardHeadersAllowedInOneMetaBlock := maxShardHeadersFromSameShard * mp.shardCoordinator.NumberOfShards()
 	hdrsAddedForShard := make(map[uint32]uint32)
 	for i := 0; i < len(orderedHdrs); i++ {
@@ -349,6 +350,8 @@ func (mp *metaProcessor) selectIncomingMiniBlocks(
 				Hash:        currHdrHash,
 				UsedInBlock: true,
 			}
+			hdrsAddedForShard[currHdr.GetShardID()]++
+			hdrsAdded++
 			continue
 		}
 
@@ -366,12 +369,14 @@ func (mp *metaProcessor) selectIncomingMiniBlocks(
 			break
 		}
 
-		mp.miniBlocksSelectionSession.AddReferencedHeader(currHdr, orderedHdrsHashes[i])
+		mp.miniBlocksSelectionSession.AddReferencedHeader(currHdr, currHdrHash)
 		lastShardHdr[currHdr.GetShardID()] = ShardHeaderInfo{
 			Header:      currHdr,
 			Hash:        currHdrHash,
 			UsedInBlock: true,
 		}
+		hdrsAddedForShard[currHdr.GetShardID()]++
+		hdrsAdded++
 	}
 
 	return nil

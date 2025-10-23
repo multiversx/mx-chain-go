@@ -824,3 +824,26 @@ func (mp *metaProcessor) HasStartOfEpochExecutionResults(metaHeader data.MetaHea
 func HasRewardOrPeerMiniBlocksFromMeta(miniBlockHeaders []data.MiniBlockHeaderHandler) bool {
 	return hasRewardOrPeerMiniBlocksFromMeta(miniBlockHeaders)
 }
+
+// CreateProposalMiniBlocks -
+func (mp *metaProcessor) CreateProposalMiniBlocks(haveTime func() bool) error {
+	return mp.createProposalMiniBlocks(haveTime)
+}
+
+// SelectIncomingMiniBlocksForProposal -
+func (mp *metaProcessor) SelectIncomingMiniBlocksForProposal(
+	haveTime func() bool,
+) error {
+	return mp.selectIncomingMiniBlocksForProposal(haveTime)
+}
+
+// SelectIncomingMiniBlocks -
+func (mp *metaProcessor) SelectIncomingMiniBlocks(
+	lastShardHdr map[uint32]ShardHeaderInfo,
+	orderedHdrs []data.HeaderHandler,
+	orderedHdrsHashes [][]byte,
+	maxNumHeadersFromSameShard uint32,
+	haveTime func() bool,
+) error {
+	return mp.selectIncomingMiniBlocks(lastShardHdr, orderedHdrs, orderedHdrsHashes, maxNumHeadersFromSameShard, haveTime)
+}

@@ -982,3 +982,177 @@ func Test_hasRewardOrPeerMiniBlocksFromSelf(t *testing.T) {
 		require.True(t, response)
 	})
 }
+
+func TestMetaProcessor_createProposalMiniBlocks(t *testing.T) {
+	t.Parallel()
+	miniblockSelectionSessionNoAdd := &mbSelection.MiniBlockSelectionSessionStub{
+		AddMiniBlocksAndHashesCalled: func(miniBlocksAndHashes []block.MiniblockAndHash) error {
+			require.Fail(t, "miniBlocksAndHashes should not be called")
+			return nil
+		},
+		AddReferencedHeaderCalled: func(metaBlock data.HeaderHandler, metaBlockHash []byte) {
+			require.Fail(t, "AddReferencedHeader should not be called")
+		},
+		CreateAndAddMiniBlockFromTransactionsCalled: func(txHashes [][]byte) error {
+			require.Fail(t, "CreateAndAddMiniBlockFromTransactions should not be called")
+			return nil
+		},
+	}
+	t.Run("no time", func(t *testing.T) {
+		t.Parallel()
+
+		coreComponents, dataComponents, bootstrapComponents, statusComponents := createMockComponentHolders()
+		arguments := createMockMetaArguments(coreComponents, dataComponents, bootstrapComponents, statusComponents)
+		arguments.MiniBlocksSelectionSession = miniblockSelectionSessionNoAdd
+		mp, err := blproc.NewMetaProcessor(arguments)
+		require.Nil(t, err)
+
+		err = mp.CreateProposalMiniBlocks(haveTimeFalse)
+		require.Nil(t, err)
+	})
+	t.Run("with time and error returned by selectIncomingMiniBlocksForProposal", func(t *testing.T) {
+		t.Parallel()
+
+		coreComponents, dataComponents, bootstrapComponents, statusComponents := createMockComponentHolders()
+		arguments := createMockMetaArguments(coreComponents, dataComponents, bootstrapComponents, statusComponents)
+		arguments.BlockTracker = &mock.BlockTrackerMock{
+			ComputeLongestShardsChainsFromLastNotarizedCalled: func() ([]data.HeaderHandler, [][]byte, map[uint32][]data.HeaderHandler, error) {
+				return nil, nil, nil, expectedErr
+			},
+		}
+		arguments.MiniBlocksSelectionSession = miniblockSelectionSessionNoAdd
+		mp, err := blproc.NewMetaProcessor(arguments)
+		require.Nil(t, err)
+
+		err = mp.CreateProposalMiniBlocks(haveTimeTrue)
+		require.Equal(t, expectedErr, err)
+	})
+	t.Run("with time and no error, no mini blocks/shard headers", func(t *testing.T) {
+		t.Parallel()
+
+		coreComponents, dataComponents, bootstrapComponents, statusComponents := createMockComponentHolders()
+		arguments := createMockMetaArguments(coreComponents, dataComponents, bootstrapComponents, statusComponents)
+		arguments.MiniBlocksSelectionSession = miniblockSelectionSessionNoAdd
+		mp, err := blproc.NewMetaProcessor(arguments)
+		require.Nil(t, err)
+
+		err = mp.CreateProposalMiniBlocks(haveTimeTrue)
+		require.Nil(t, err)
+	})
+}
+
+func TestMetaProcessor_selectIncomingMiniBlocksForProposal(t *testing.T) {
+	t.Parallel()
+
+	t.Run("error from ComputeLongestShardsChainsFromLastNotarized", func(t *testing.T) {
+		t.Parallel()
+
+		coreComponents, dataComponents, bootstrapComponents, statusComponents := createMockComponentHolders()
+		arguments := createMockMetaArguments(coreComponents, dataComponents, bootstrapComponents, statusComponents)
+		arguments.BlockTracker = &mock.BlockTrackerMock{
+			ComputeLongestShardsChainsFromLastNotarizedCalled: func() ([]data.HeaderHandler, [][]byte, map[uint32][]data.HeaderHandler, error) {
+				return nil, nil, nil, expectedErr
+			},
+		}
+
+		mp, err := blproc.NewMetaProcessor(arguments)
+		require.Nil(t, err)
+
+		err = mp.SelectIncomingMiniBlocksForProposal(haveTimeTrue)
+		require.Equal(t, expectedErr, err)
+	})
+	t.Run("error from getLastCrossNotarizedShardHdrs", func(t *testing.T) {
+		t.Parallel()
+
+		coreComponents, dataComponents, bootstrapComponents, statusComponents := createMockComponentHolders()
+		arguments := createMockMetaArguments(coreComponents, dataComponents, bootstrapComponents, statusComponents)
+		arguments.BlockTracker = &mock.BlockTrackerMock{
+			ComputeLongestShardsChainsFromLastNotarizedCalled: func() ([]data.HeaderHandler, [][]byte, map[uint32][]data.HeaderHandler, error) {
+				return []data.HeaderHandler{}, [][]byte{}, nil, nil
+			},
+			GetLastCrossNotarizedHeaderCalled: func(shardID uint32) (data.HeaderHandler, []byte, error) {
+				return nil, nil, expectedErr
+			},
+		}
+
+		mp, err := blproc.NewMetaProcessor(arguments)
+		require.Nil(t, err)
+
+		err = mp.SelectIncomingMiniBlocksForProposal(haveTimeTrue)
+		require.Equal(t, expectedErr, err)
+	})
+	t.Run("selection ok", func(t *testing.T) {
+		t.Parallel()
+
+		coreComponents, dataComponents, bootstrapComponents, statusComponents := createMockComponentHolders()
+		arguments := createMockMetaArguments(coreComponents, dataComponents, bootstrapComponents, statusComponents)
+		mp, err := blproc.NewMetaProcessor(arguments)
+		require.Nil(t, err)
+
+		err = mp.SelectIncomingMiniBlocksForProposal(haveTimeTrue)
+		require.Nil(t, err)
+	})
+}
+
+func TestMetaProcessor_selectIncomingMiniBlocks(t *testing.T) {
+	t.Parallel()
+
+	t.Run("no ordered headers", func(t *testing.T) {
+		t.Parallel()
+
+		coreComponents, dataComponents, bootstrapComponents, statusComponents := createMockComponentHolders()
+		arguments := createMockMetaArguments(coreComponents, dataComponents, bootstrapComponents, statusComponents)
+		arguments.MiniBlocksSelectionSession = &mbSelection.MiniBlockSelectionSessionStub{
+			AddMiniBlocksAndHashesCalled: func(miniBlocksAndHashes []block.MiniblockAndHash) error {
+				require.Fail(t, "should not be called")
+				return nil
+			},
+			AddReferencedHeaderCalled: func(metaBlock data.HeaderHandler, metaBlockHash []byte) {
+				require.Fail(t, "should not be called")
+			},
+		}
+		mp, err := blproc.NewMetaProcessor(arguments)
+		require.Nil(t, err)
+
+		lastShardHeaders := createLastShardHeadersNotGenesis()
+		orederdHeaders := []data.HeaderHandler{}
+		orderedHeaderHashes := [][]byte{}
+
+		maxNumHeadersFromSameShard := uint32(2)
+		err = mp.SelectIncomingMiniBlocks(lastShardHeaders, orederdHeaders, orderedHeaderHashes, maxNumHeadersFromSameShard, haveTimeTrue)
+		require.Nil(t, err)
+	})
+}
+
+func createLastShardHeadersNotGenesis() map[uint32]blproc.ShardHeaderInfo {
+	shard0 := uint32(0)
+	shard1 := uint32(1)
+	shard2 := uint32(2)
+
+	return map[uint32]blproc.ShardHeaderInfo{
+		shard0: {
+			Header: &block.Header{
+				ShardID: shard0,
+				Nonce:   10,
+				Round:   10,
+			},
+			Hash: []byte("hash1"),
+		},
+		shard1: {
+			Header: &block.Header{
+				ShardID: shard1,
+				Nonce:   10,
+				Round:   10,
+			},
+			Hash: []byte("hash2"),
+		},
+		shard2: {
+			Header: &block.Header{
+				ShardID: shard2,
+				Nonce:   10,
+				Round:   10,
+			},
+			Hash: []byte("hash3"),
+		},
+	}
+}
