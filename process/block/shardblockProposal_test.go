@@ -1411,11 +1411,11 @@ func TestShardProcessor_VerifyBlockProposal(t *testing.T) {
 	t.Run("checkMetaHeadersValidityAndFinalityProposal fails should error", func(t *testing.T) {
 		t.Parallel()
 
-		expectedErr = errors.New("expected error from checkMetaHeadersValidityAndFinalityProposal")
+		expError := errors.New("expected error from checkMetaHeadersValidityAndFinalityProposal")
 		subcomponents := createSubComponentsForVerifyProposalTest()
 		subcomponents["blockTracker"] = &mock.BlockTrackerMock{
 			GetLastCrossNotarizedHeaderCalled: func(shardID uint32) (data.HeaderHandler, []byte, error) {
-				return nil, nil, expectedErr
+				return nil, nil, expError
 			},
 		}
 
@@ -1436,7 +1436,7 @@ func TestShardProcessor_VerifyBlockProposal(t *testing.T) {
 
 		err = sp.VerifyBlockProposal(header, body, haveTime)
 		require.Error(t, err)
-		assert.Equal(t, expectedErr, err)
+		assert.Equal(t, expError, err)
 	})
 	t.Run("verifyCrossShardMiniBlockDstMe fails should error", func(t *testing.T) {
 		t.Parallel()
@@ -1479,8 +1479,8 @@ func TestShardProcessor_VerifyBlockProposal(t *testing.T) {
 
 		require.Error(t, err)
 		// stub will not return meta headers, causing type assertion to fail
-		expectedErr = errors.New("wrong type assertion")
-		assert.Equal(t, expectedErr, err)
+		expError := errors.New("wrong type assertion")
+		assert.Equal(t, expError, err)
 	})
 	t.Run("should work", func(t *testing.T) {
 		t.Parallel()
