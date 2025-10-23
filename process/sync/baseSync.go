@@ -779,7 +779,8 @@ func (boot *baseBootstrap) rollBackExecutionResults(
 		for i := 0; i < len(executionResults)-1; i++ {
 			if executionResults[i].GetHeaderNonce() != executionResults[i+1].GetHeaderNonce()-1 {
 				boot.executionResultsTracker.RemoveFromHash(headerHashToRemoveFrom)
-				// TODO: cleanup blocks queue (adapt blocks queue to remove by header hash or nonce)
+
+				boot.blocksQueue.RemoveFromNonce(executionResults[i].GetHeaderNonce())
 				return
 			}
 		}
@@ -790,11 +791,10 @@ func (boot *baseBootstrap) rollBackExecutionResults(
 			return
 		}
 
-		headerHashToRemoveFrom := executionResults[0].GetHeaderHash()
 		for i, er := range executionResults {
 			if !er.Equal(pendingExecutionResults[i]) {
-				boot.executionResultsTracker.RemoveFromHash(headerHashToRemoveFrom)
-				// TODO: cleanup blocks queue
+				boot.executionResultsTracker.RemoveFromHash(er.GetHeaderHash())
+				boot.blocksQueue.RemoveFromNonce(er.GetHeaderNonce())
 				return
 			}
 		}

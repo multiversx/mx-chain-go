@@ -315,6 +315,7 @@ type BlocksQueue interface {
 	Pop() (queue.HeaderBodyPair, bool)
 	Peek() (queue.HeaderBodyPair, bool)
 	Clean(lastAddedNonce uint64)
+	RemoveFromNonce(nonce uint64) error
 	IsInterfaceNil() bool
 	Close()
 }
