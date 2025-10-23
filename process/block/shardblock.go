@@ -1977,20 +1977,25 @@ func (sp *shardProcessor) getAllMiniBlockDstMeFromMeta(header data.ShardHeaderHa
 	for _, metaBlockHash := range header.GetMetaBlockHashes() {
 		headerInfo, ok := sp.hdrsForCurrBlock.hdrHashAndInfo[string(metaBlockHash)]
 		if !ok {
-			continue
+			return nil, fmt.Errorf("%w : getAllMiniBlockDstMeFromMeta metaBlockHash = %s",
+				process.ErrMissingHeaderFromMeta, logger.DisplayByteSlice(metaBlockHash))
 		}
 		metaBlock, ok := headerInfo.hdr.(*block.MetaBlock)
 		if !ok {
-			continue
+			return nil, fmt.Errorf("%w : getAllMiniBlockDstMeFromMeta metaBlockHash = %s",
+				process.ErrWrongTypeAssertionInMiniBlockFromMeta, logger.DisplayByteSlice(metaBlockHash))
 		}
 		if metaBlock.GetRound() > header.GetRound() {
-			continue
+			return nil, fmt.Errorf("%w : getAllMiniBlockDstMeFromMeta metaBlockHash = %s",
+				process.ErrHigherRoundInBlockFromMeta, logger.DisplayByteSlice(metaBlockHash))
 		}
 		if metaBlock.GetRound() <= lastCrossNotarizedHeader.GetRound() {
-			continue
+			return nil, fmt.Errorf("%w : getAllMiniBlockDstMeFromMeta metaBlockHash = %s",
+				process.ErrLowerRoundInBlockFromMeta, logger.DisplayByteSlice(metaBlockHash))
 		}
 		if metaBlock.GetNonce() <= lastCrossNotarizedHeader.GetNonce() {
-			continue
+			return nil, fmt.Errorf("%w : getAllMiniBlockDstMeFromMeta metaBlockHash = %s",
+				process.ErrLowerNonceInBlockFromMeta, logger.DisplayByteSlice(metaBlockHash))
 		}
 
 		crossMiniBlockHashes := metaBlock.GetMiniBlockHeadersWithDst(sp.shardCoordinator.SelfId())

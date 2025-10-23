@@ -137,6 +137,12 @@ var ErrInvalidShardId = errors.New("invalid shard id")
 // ErrMissingHeader signals that header of the block is missing
 var ErrMissingHeader = errors.New("missing header")
 
+// ErrMissingHeaderFromShards signals that header of the block is missing from shards
+var ErrMissingHeaderFromShards = errors.New("missing header from shards")
+
+// ErrMissingHeaderFromMeta signals that header of the block is missing from metaShard
+var ErrMissingHeaderFromMeta = errors.New("missing header from metaShard")
+
 // ErrMissingHashForHeaderNonce signals that hash of the block is missing
 var ErrMissingHashForHeaderNonce = errors.New("missing hash for header nonce")
 
@@ -281,6 +287,12 @@ var ErrLenMismatch = errors.New("lengths mismatch")
 // ErrWrongTypeAssertion signals that a type assertion failed
 var ErrWrongTypeAssertion = errors.New("wrong type assertion")
 
+// ErrWrongTypeAssertionInMiniBlockFromShards signals that a type assertion failed in a mini block from shards
+var ErrWrongTypeAssertionInMiniBlockFromShards = errors.New("wrong type assertion in mini block from shards")
+
+// ErrWrongTypeAssertionInMiniBlockFromMeta signals that a type assertion failed in a mini block from meta
+var ErrWrongTypeAssertionInMiniBlockFromMeta = errors.New("wrong type assertion in mini block from meta")
+
 // ErrHeaderShardDataMismatch signals that shard header does not match created shard info
 var ErrHeaderShardDataMismatch = errors.New("shard header does not match shard info")
 
@@ -302,11 +314,29 @@ var ErrReservedFieldInvalid = errors.New("reserved field content is invalid")
 // ErrLowerRoundInBlock signals that a header round is too low for processing it
 var ErrLowerRoundInBlock = errors.New("header round is lower than last committed")
 
+// ErrLowerRoundInBlockFromMeta signals that a meta header round is too low for processing it
+var ErrLowerRoundInBlockFromMeta = errors.New("header round is lower than last committed from meta")
+
+// ErrLowerRoundInBlockFromShards signals that a shard header round is too low for processing it
+var ErrLowerRoundInBlockFromShards = errors.New("header round is lower than last committed from shards")
+
 // ErrHigherRoundInBlock signals that a block with higher round than permitted has been provided
 var ErrHigherRoundInBlock = errors.New("higher round in block")
 
+// ErrHigherRoundInBlockFromMeta signals that a block with higher round than permitted has been provided from meta
+var ErrHigherRoundInBlockFromMeta = errors.New("higher round in block from meta")
+
+// ErrHigherRoundInBlockFromShards signals that a block with higher round than permitted has been provided from shards
+var ErrHigherRoundInBlockFromShards = errors.New("higher round in block from shards")
+
 // ErrLowerNonceInBlock signals that a block with lower nonce than permitted has been provided
 var ErrLowerNonceInBlock = errors.New("lower nonce in block")
+
+// ErrLowerNonceInBlockFromShards signals that a block with lower nonce than permitted has been provided from shards
+var ErrLowerNonceInBlockFromShards = errors.New("lower nonce in block from shards")
+
+// ErrLowerNonceInBlockFromMeta signals that a block with lower nonce than permitted has been provided from meta
+var ErrLowerNonceInBlockFromMeta = errors.New("lower nonce in block from meta")
 
 // ErrHigherNonceInBlock signals that a block with higher nonce than permitted has been provided
 var ErrHigherNonceInBlock = errors.New("higher nonce in block")
