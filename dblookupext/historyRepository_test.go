@@ -8,6 +8,10 @@ import (
 	"github.com/multiversx/mx-chain-core-go/core"
 	"github.com/multiversx/mx-chain-core-go/data"
 	"github.com/multiversx/mx-chain-core-go/data/block"
+	"github.com/multiversx/mx-chain-core-go/data/receipt"
+	"github.com/multiversx/mx-chain-core-go/data/smartContractResult"
+	"github.com/multiversx/mx-chain-core-go/data/transaction"
+	"github.com/multiversx/mx-chain-go/common"
 	"github.com/multiversx/mx-chain-go/common/mock"
 	"github.com/multiversx/mx-chain-go/dblookupext/esdtSupply"
 	epochStartMocks "github.com/multiversx/mx-chain-go/epochStart/mock"
@@ -743,4 +747,95 @@ func TestHistoryRepository_ConcurrentlyRecordAndNotarizeSameBlockMultipleTimes(t
 	require.Equal(t, []byte("metablockFoo"), metadata.NotarizedAtSourceInMetaHash)
 	require.Equal(t, 4001, int(metadata.NotarizedAtDestinationInMetaNonce))
 	require.Equal(t, []byte("metablockFoo"), metadata.NotarizedAtDestinationInMetaHash)
+}
+
+func TestRecordHeaderV3(t *testing.T) {
+	t.Parallel()
+
+	t.Run("record block v3 should work no execution results", func(t *testing.T) {
+		args := createMockHistoryRepoArgs(42)
+		repo, err := NewHistoryRepository(args)
+		require.Nil(t, err)
+
+		header := &block.HeaderV3{}
+		body := &block.Body{}
+
+		headerHash := []byte("headerHash")
+		err = repo.RecordBlock(headerHash, header, body, nil, nil, nil, nil)
+		require.Nil(t, err)
+	})
+
+	t.Run("record block v3 should work", func(t *testing.T) {
+		args := createMockHistoryRepoArgs(42)
+		args.DataPool = dataRetrieverMock.NewPoolsHolderMock()
+		repo, err := NewHistoryRepository(args)
+		require.Nil(t, err)
+
+		executionResultHeaderHash := []byte("executionResultHeaderHash")
+		mb := &block.MiniBlock{SenderShardID: 0}
+		mbHash1, _ := repo.computeMiniblockHash(mb)
+		header := &block.HeaderV3{
+			Nonce: 100,
+			Round: 101,
+			Epoch: 42,
+			ExecutionResults: []*block.ExecutionResult{
+				{
+
+					BaseExecutionResult: &block.BaseExecutionResult{
+						HeaderHash:  executionResultHeaderHash,
+						HeaderNonce: 99,
+						HeaderRound: 100,
+						HeaderEpoch: 42,
+					},
+					MiniBlockHeaders: []block.MiniBlockHeader{
+						{
+							Hash: mbHash1,
+						},
+					},
+				},
+			},
+		}
+
+		mbBytes, _ := repo.marshalizer.Marshal(mb)
+		args.DataPool.ExecutedMiniBlocks().Put(mbHash1, mbBytes, 1)
+
+		cachedIntermediateTxsMap := map[block.Type]map[string]data.TransactionHandler{}
+		cachedIntermediateTxsMap[block.SmartContractResultBlock] = map[string]data.TransactionHandler{
+			"h1": &smartContractResult.SmartContractResult{},
+		}
+		cachedIntermediateTxsMap[block.ReceiptBlock] = map[string]data.TransactionHandler{
+			"r1": &receipt.Receipt{},
+		}
+		args.DataPool.PostProcessTransactions().Put(executionResultHeaderHash, cachedIntermediateTxsMap, 1)
+
+		expectedLogs := []*data.LogData{
+			{
+				LogHandler: &transaction.Log{},
+				TxHash:     "t1",
+			},
+		}
+		logsKey := common.PrepareLogEventsKey(executionResultHeaderHash)
+		args.DataPool.PostProcessTransactions().Put(logsKey, expectedLogs, 1)
+
+		expectedMbs := []*block.MiniBlock{
+			{SenderShardID: 0},
+		}
+		intraMbsBytes, _ := repo.marshalizer.Marshal(expectedMbs)
+
+		args.DataPool.ExecutedMiniBlocks().Put(executionResultHeaderHash, intraMbsBytes, 0)
+
+		body := &block.Body{}
+
+		headerHash := []byte("headerHash")
+		err = repo.RecordBlock(headerHash, header, body, nil, nil, nil, nil)
+		require.Nil(t, err)
+
+		epoch, err := repo.GetEpochByHash(executionResultHeaderHash)
+		require.Nil(t, err)
+		require.Equal(t, 42, int(epoch))
+
+		epoch, err = repo.GetEpochByHash(mbHash1)
+		require.Nil(t, err)
+		require.Equal(t, 42, int(epoch))
+	})
 }
