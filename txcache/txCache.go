@@ -185,8 +185,8 @@ func (cache *TxCache) OnProposedBlock(
 }
 
 // OnExecutedBlock calls the OnExecutedBlock method from SelectionTracker
-func (cache *TxCache) OnExecutedBlock(blockHeader data.HeaderHandler) error {
-	return cache.tracker.OnExecutedBlock(blockHeader)
+func (cache *TxCache) OnExecutedBlock(blockHeader data.HeaderHandler, rootHash []byte) error {
+	return cache.tracker.OnExecutedBlock(blockHeader, rootHash)
 }
 
 func (cache *TxCache) getSenders() []*txListForSender {

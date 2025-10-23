@@ -19,7 +19,7 @@ type ShardedDataCacheNotifierMock struct {
 	caches    map[string]storage.Cacher
 
 	CleanupSelfShardTxCacheCalled func(session interface{}, randomness uint64, maxNum int, cleanupLoopMaximumDuration time.Duration)
-	OnExecutedBlockCalled         func(blockHeader data.HeaderHandler) error
+	OnExecutedBlockCalled         func(blockHeader data.HeaderHandler, rootHash []byte) error
 	OnProposedBlockCalled         func(
 		blockHash []byte,
 		blockBody *block.Body,
@@ -147,9 +147,9 @@ func (mock *ShardedDataCacheNotifierMock) CleanupSelfShardTxCache(accountsProvid
 }
 
 // OnExecutedBlock -
-func (mock *ShardedDataCacheNotifierMock) OnExecutedBlock(blockHeader data.HeaderHandler) error {
+func (mock *ShardedDataCacheNotifierMock) OnExecutedBlock(blockHeader data.HeaderHandler, rootHash []byte) error {
 	if mock.OnExecutedBlockCalled != nil {
-		return mock.OnExecutedBlockCalled(blockHeader)
+		return mock.OnExecutedBlockCalled(blockHeader, rootHash)
 	}
 
 	return nil
