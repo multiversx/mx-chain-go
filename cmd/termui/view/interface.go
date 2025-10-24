@@ -22,6 +22,7 @@ type Presenter interface {
 	GetDurationProofReceivedFromProposedBlockReceivedOrSent() uint64
 	GetAvgDurationProposedBlockReceivedOrSentFromRoundStart() uint64
 	GetAvgDurationProofReceivedFromProposedBlockReceivedOrSent() uint64
+	GetNumTrackedBlocks() uint64
 	GetIsSyncing() uint64
 	GetTxPoolLoad() uint64
 	GetNonce() uint64

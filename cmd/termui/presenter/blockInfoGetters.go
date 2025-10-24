@@ -76,3 +76,8 @@ func (psh *PresenterStatusHandler) GetAvgDurationProposedBlockReceivedOrSentFrom
 func (psh *PresenterStatusHandler) GetAvgDurationProofReceivedFromProposedBlockReceivedOrSent() uint64 {
 	return psh.getFromCacheAsUint64(common.MetricAvgReceivedProof)
 }
+
+// GetNumTrackedBlocks returns how many blocks are currently tracked by txPool
+func (psh *PresenterStatusHandler) GetNumTrackedBlocks() uint64 {
+	return psh.getFromCacheAsUint64(common.MetricNumTrackedBlocks)
+}
