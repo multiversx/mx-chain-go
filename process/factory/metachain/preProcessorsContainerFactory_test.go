@@ -3,8 +3,6 @@ package metachain_test
 import (
 	"testing"
 
-	"github.com/stretchr/testify/assert"
-
 	"github.com/multiversx/mx-chain-go/config"
 	"github.com/multiversx/mx-chain-go/dataRetriever"
 	"github.com/multiversx/mx-chain-go/process"
@@ -18,6 +16,7 @@ import (
 	"github.com/multiversx/mx-chain-go/testscommon/hashingMocks"
 	stateMock "github.com/multiversx/mx-chain-go/testscommon/state"
 	storageStubs "github.com/multiversx/mx-chain-go/testscommon/storage"
+	"github.com/stretchr/testify/assert"
 )
 
 func createMockTxCacheSelectionConfig() config.TxCacheSelectionConfig {

@@ -1432,6 +1432,16 @@ func TestEconomicsData_MaxGasPriceSetGuardian(t *testing.T) {
 	require.Equal(t, expectedMaxGasPriceSetGuardian, economicData.MaxGasPriceSetGuardian())
 }
 
+func TestEconomicsData_BlockCapacityOverestimationFactor(t *testing.T) {
+	t.Parallel()
+
+	args := createArgsForEconomicsDataRealFees()
+	args.Economics.FeeSettings.BlockCapacityOverestimationFactor = 100
+	economicData, _ := economics.NewEconomicsData(args)
+
+	require.Equal(t, uint64(100), economicData.BlockCapacityOverestimationFactor())
+}
+
 func TestEconomicsData_SetStatusHandler(t *testing.T) {
 	t.Parallel()
 
