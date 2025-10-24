@@ -630,6 +630,193 @@ func TestGasConsumption_ZeroIncomingLimit(t *testing.T) {
 	require.Zero(t, pendingMBs)      // added all
 }
 
+func TestGasConsumption_RevertIncomingMiniBlocks(t *testing.T) {
+	t.Parallel()
+
+	t.Run("empty mini block hashes should early exit", func(t *testing.T) {
+		t.Parallel()
+
+		gc, _ := block.NewGasConsumption(getMockArgsGasConsumption())
+		require.NotNil(t, gc)
+
+		gc.RevertIncomingMiniBlocks(nil)
+	})
+
+	t.Run("revert non-pending mini block should decrease total gas consumed", func(t *testing.T) {
+		t.Parallel()
+
+		gc, _ := block.NewGasConsumption(getMockArgsGasConsumption())
+		require.NotNil(t, gc)
+
+		// add mini blocks that will be within limits
+		mbs := generateMiniBlocks(3, 5)
+		txs := generateTxsForMiniBlocks(mbs)
+		lastMbIndex, pendingMbs, err := gc.CheckIncomingMiniBlocks(mbs, txs)
+		require.NoError(t, err)
+		require.Equal(t, 2, lastMbIndex)
+		require.Zero(t, pendingMbs)
+
+		totalGasBeforeRevert := gc.TotalGasConsumed()
+		expectedGasPerMb := maxGasLimitPerTx * 5 // 5 txs per mini block
+
+		// revert the first mini block and one none existing for coverage
+		gc.RevertIncomingMiniBlocks([][]byte{mbs[0].GetHash(), []byte("non-existent-hash")})
+
+		// total gas should decrease by the gas consumed by the first mini block
+		require.Equal(t, totalGasBeforeRevert-expectedGasPerMb, gc.TotalGasConsumed())
+
+		// revert the second and third mini blocks
+		gc.RevertIncomingMiniBlocks([][]byte{mbs[1].GetHash(), mbs[2].GetHash()})
+
+		// total gas should be zero now
+		require.Equal(t, uint64(0), gc.TotalGasConsumed())
+	})
+
+	t.Run("revert pending mini block at first position", func(t *testing.T) {
+		t.Parallel()
+
+		gc, _ := block.NewGasConsumption(getMockArgsGasConsumption())
+		require.NotNil(t, gc)
+
+		// add more mini blocks than the limit to create pending ones
+		mbs := generateMiniBlocks(10, 5)
+		txs := generateTxsForMiniBlocks(mbs)
+		lastMbIndex, pendingMbs, err := gc.CheckIncomingMiniBlocks(mbs, txs)
+		require.NoError(t, err)
+		require.Equal(t, 7, lastMbIndex)
+		require.Equal(t, 2, pendingMbs)
+
+		// get pending mini blocks
+		pendingMiniBlocks := gc.GetPendingMiniBlocks()
+		require.Len(t, pendingMiniBlocks, 2)
+
+		// revert the first pending mini block
+		firstPendingHash := mbs[8].GetHash()
+		gc.RevertIncomingMiniBlocks([][]byte{firstPendingHash})
+
+		// check that pending mini blocks were updated
+		updatedPendingMiniBlocks := gc.GetPendingMiniBlocks()
+		require.Len(t, updatedPendingMiniBlocks, 1)
+		require.Equal(t, mbs[9].GetHash(), updatedPendingMiniBlocks[0].GetHash())
+	})
+
+	t.Run("revert pending mini block at last position", func(t *testing.T) {
+		t.Parallel()
+
+		gc, _ := block.NewGasConsumption(getMockArgsGasConsumption())
+		require.NotNil(t, gc)
+
+		// add more mini blocks than the limit to create pending ones
+		mbs := generateMiniBlocks(10, 5)
+		txs := generateTxsForMiniBlocks(mbs)
+		lastMbIndex, pendingMbs, err := gc.CheckIncomingMiniBlocks(mbs, txs)
+		require.NoError(t, err)
+		require.Equal(t, 7, lastMbIndex)
+		require.Equal(t, 2, pendingMbs)
+
+		// get pending mini blocks
+		pendingMiniBlocks := gc.GetPendingMiniBlocks()
+		require.Len(t, pendingMiniBlocks, 2)
+
+		// revert the last pending mini block (index 9, which is the last in pending)
+		lastPendingHash := mbs[9].GetHash()
+		gc.RevertIncomingMiniBlocks([][]byte{lastPendingHash})
+
+		// check that pending mini blocks were updated
+		updatedPendingMiniBlocks := gc.GetPendingMiniBlocks()
+		require.Len(t, updatedPendingMiniBlocks, 1)
+		require.Equal(t, mbs[8].GetHash(), updatedPendingMiniBlocks[0].GetHash())
+	})
+
+	t.Run("revert pending mini block at middle position", func(t *testing.T) {
+		t.Parallel()
+
+		gc, _ := block.NewGasConsumption(getMockArgsGasConsumption())
+		require.NotNil(t, gc)
+
+		// add more mini blocks than the limit to create 3 pending ones
+		mbs := generateMiniBlocks(11, 5)
+		txs := generateTxsForMiniBlocks(mbs)
+		lastMbIndex, pendingMbs, err := gc.CheckIncomingMiniBlocks(mbs, txs)
+		require.NoError(t, err)
+		require.Equal(t, 7, lastMbIndex)
+		require.Equal(t, 3, pendingMbs)
+
+		// get pending mini blocks
+		pendingMiniBlocks := gc.GetPendingMiniBlocks()
+		require.Len(t, pendingMiniBlocks, 3)
+
+		// revert the middle pending mini block (index 9, which is the middle in pending)
+		middlePendingHash := mbs[9].GetHash()
+		gc.RevertIncomingMiniBlocks([][]byte{middlePendingHash})
+
+		// check that pending mini blocks were updated
+		updatedPendingMiniBlocks := gc.GetPendingMiniBlocks()
+		require.Len(t, updatedPendingMiniBlocks, 2)
+		require.Equal(t, mbs[8].GetHash(), updatedPendingMiniBlocks[0].GetHash())
+		require.Equal(t, mbs[10].GetHash(), updatedPendingMiniBlocks[1].GetHash())
+	})
+
+	t.Run("revert multiple mini blocks with mixed pending and non-pending", func(t *testing.T) {
+		t.Parallel()
+
+		gc, _ := block.NewGasConsumption(getMockArgsGasConsumption())
+		require.NotNil(t, gc)
+
+		// add mini blocks, some will be pending
+		mbs := generateMiniBlocks(10, 5)
+		txs := generateTxsForMiniBlocks(mbs)
+		lastMbIndex, pendingMbs, err := gc.CheckIncomingMiniBlocks(mbs, txs)
+		require.NoError(t, err)
+		require.Equal(t, 7, lastMbIndex)
+		require.Equal(t, 2, pendingMbs)
+
+		totalGasBeforeRevert := gc.TotalGasConsumed()
+		expectedGasPerMb := maxGasLimitPerTx * 5
+
+		// revert both a non-pending mini block (index 0) and a pending one (index 8)
+		hashesToRevert := [][]byte{
+			mbs[0].GetHash(), // non-pending
+			mbs[8].GetHash(), // pending (first in pending)
+		}
+		gc.RevertIncomingMiniBlocks(hashesToRevert)
+
+		// total gas should decrease only by the non-pending mini block
+		require.Equal(t, totalGasBeforeRevert-expectedGasPerMb, gc.TotalGasConsumed())
+
+		// pending mini blocks should be reduced by one
+		updatedPendingMiniBlocks := gc.GetPendingMiniBlocks()
+		require.Len(t, updatedPendingMiniBlocks, 1)
+		require.Equal(t, mbs[9].GetHash(), updatedPendingMiniBlocks[0].GetHash())
+	})
+
+	t.Run("revert all pending mini blocks", func(t *testing.T) {
+		t.Parallel()
+
+		gc, _ := block.NewGasConsumption(getMockArgsGasConsumption())
+		require.NotNil(t, gc)
+
+		// add mini blocks with pending ones
+		mbs := generateMiniBlocks(10, 5)
+		txs := generateTxsForMiniBlocks(mbs)
+		lastMbIndex, pendingMbs, err := gc.CheckIncomingMiniBlocks(mbs, txs)
+		require.NoError(t, err)
+		require.Equal(t, 7, lastMbIndex)
+		require.Equal(t, 2, pendingMbs)
+
+		// revert all pending mini blocks
+		hashesToRevert := [][]byte{
+			mbs[8].GetHash(),
+			mbs[9].GetHash(),
+		}
+		gc.RevertIncomingMiniBlocks(hashesToRevert)
+
+		// no pending mini blocks should remain
+		updatedPendingMiniBlocks := gc.GetPendingMiniBlocks()
+		require.Len(t, updatedPendingMiniBlocks, 0)
+	})
+}
+
 func TestGasConsumption_ConcurrentOps(t *testing.T) {
 	if testing.Short() {
 		t.Skip("this is not a short test")
@@ -637,6 +824,10 @@ func TestGasConsumption_ConcurrentOps(t *testing.T) {
 
 	require.NotPanics(t, func() {
 		mbs := generateMiniBlocks(1, 2)
+		mbsHashes := make([][]byte, len(mbs))
+		for _, mb := range mbs {
+			mbsHashes = append(mbsHashes, mb.GetHash())
+		}
 		txsInMBs := generateTxsForMiniBlocks(mbs)
 
 		txHashes, txs := generateTxs(maxGasLimitPerTx, 3)
@@ -650,7 +841,7 @@ func TestGasConsumption_ConcurrentOps(t *testing.T) {
 
 		for i := 0; i < numCalls; i++ {
 			go func(idx int) {
-				switch idx % 11 {
+				switch idx % 12 {
 				case 0:
 					_, _, _ = gc.CheckOutgoingTransactions(txHashes, txs)
 				case 1:
@@ -673,6 +864,8 @@ func TestGasConsumption_ConcurrentOps(t *testing.T) {
 					gc.ZeroIncomingLimit()
 				case 10:
 					gc.ZeroOutgoingLimit()
+				case 11:
+					gc.RevertIncomingMiniBlocks(mbsHashes)
 				default:
 					require.Fail(t, "should have not been called")
 				}
