@@ -308,6 +308,46 @@ func (ert *executionResultsTracker) RemoveByHash(hash []byte) error {
 	return nil
 }
 
+// RemoveFromHash will remove the execution result with the provided hash and all execution results with higher nonces
+func (ert *executionResultsTracker) RemoveFromHash(hash []byte) error {
+	ert.mutex.Lock()
+	defer ert.mutex.Unlock()
+
+	executionResult, found := ert.executionResultsByHash[string(hash)]
+	if !found {
+		return fmt.Errorf("%w with hash: '%s'", ErrCannotFindExecutionResult, hex.EncodeToString(hash))
+	}
+
+	pendingExecutionResult, err := ert.getPendingExecutionResults()
+	if err != nil {
+		return err
+	}
+
+	nonceToRemove := executionResult.GetHeaderNonce()
+
+	// find all execution results with nonce >= nonceToRemove
+	var resultsToRemove []data.BaseExecutionResultHandler
+	for _, result := range pendingExecutionResult {
+		if result.GetHeaderNonce() >= nonceToRemove {
+			resultsToRemove = append(resultsToRemove, result)
+		}
+	}
+
+	ert.cleanExecutionResults(resultsToRemove)
+
+	// update lastExecutedResultHash
+	remainingResults, err := ert.getPendingExecutionResults()
+	if err != nil || len(remainingResults) == 0 {
+		// set last execution result to last notarized if no pending results remain
+		ert.lastExecutedResultHash = ert.lastNotarizedResult.GetHeaderHash()
+		return nil
+	}
+
+	ert.lastExecutedResultHash = remainingResults[len(remainingResults)-1].GetHeaderHash()
+
+	return nil
+}
+
 // IsInterfaceNil returns true if there is no value under the interface
 func (ert *executionResultsTracker) IsInterfaceNil() bool {
 	return ert == nil

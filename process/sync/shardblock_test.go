@@ -129,7 +129,7 @@ func createBlockProcessor(blk data.ChainHandler) *testscommon.BlockProcessorStub
 			_ = blk.SetCurrentBlockHeaderAndRootHash(hdr.(*block.Header), hdr.GetRootHash())
 			return nil
 		},
-		RevertCurrentBlockCalled: func() {
+		RevertCurrentBlockCalled: func(_ data.HeaderHandler) {
 		},
 		CommitBlockCalled: func(header data.HeaderHandler, body data.BodyHandler) error {
 			return nil

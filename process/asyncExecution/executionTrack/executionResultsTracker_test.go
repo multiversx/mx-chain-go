@@ -444,3 +444,154 @@ func TestExecutionResultsTracker_RemoveByHash(t *testing.T) {
 		require.Equal(t, lastNotarizedHash, tracker.lastExecutedResultHash)
 	})
 }
+
+func TestExecutionResultsTracker_RemoveFromHash(t *testing.T) {
+	t.Parallel()
+
+	t.Run("hash not found should return error", func(t *testing.T) {
+		t.Parallel()
+
+		tracker := NewExecutionResultsTracker()
+		err := tracker.SetLastNotarizedResult(&block.ExecutionResult{
+			BaseExecutionResult: &block.BaseExecutionResult{
+				HeaderHash:  []byte("hash0"),
+				HeaderNonce: 10,
+			},
+		})
+		require.NoError(t, err)
+
+		err = tracker.RemoveFromHash([]byte("nonexistent"))
+		require.True(t, errors.Is(err, ErrCannotFindExecutionResult))
+	})
+
+	t.Run("getPendingExecutionResults error should error", func(t *testing.T) {
+		t.Parallel()
+
+		tracker := NewExecutionResultsTracker()
+		err := tracker.SetLastNotarizedResult(&block.ExecutionResult{
+			BaseExecutionResult: &block.BaseExecutionResult{
+				HeaderHash:  []byte("hash0"),
+				HeaderNonce: 10,
+			},
+		})
+		require.Nil(t, err)
+
+		// Add execution result with nonce 12 (skipping 11) to create an inconsistent state
+		// This will cause getPendingExecutionResults to return an error
+		tracker.executionResultsByHash["hash2"] = &block.ExecutionResult{
+			BaseExecutionResult: &block.BaseExecutionResult{
+				HeaderHash:  []byte("hash2"),
+				HeaderNonce: 12,
+			},
+		}
+		tracker.nonceHash.addNonceHash(12, "hash2")
+
+		err = tracker.RemoveFromHash([]byte("hash2"))
+		require.True(t, errors.Is(err, ErrDifferentNoncesConfirmedExecutionResults))
+	})
+
+	t.Run("remove single execution result should update lastExecutedResultHash to last notarized", func(t *testing.T) {
+		t.Parallel()
+
+		tracker := NewExecutionResultsTracker()
+		lastNotarizedHash := []byte("hash0")
+		err := tracker.SetLastNotarizedResult(&block.ExecutionResult{
+			BaseExecutionResult: &block.BaseExecutionResult{
+				HeaderHash:  lastNotarizedHash,
+				HeaderNonce: 10,
+			},
+		})
+		require.NoError(t, err)
+
+		executionResult1 := &block.ExecutionResult{
+			BaseExecutionResult: &block.BaseExecutionResult{
+				HeaderHash:  []byte("hash1"),
+				HeaderNonce: 11,
+			},
+		}
+		err = tracker.AddExecutionResult(executionResult1)
+		require.NoError(t, err)
+
+		err = tracker.RemoveFromHash([]byte("hash1"))
+		require.NoError(t, err)
+
+		pending, err := tracker.GetPendingExecutionResults()
+		require.NoError(t, err)
+		require.Equal(t, 0, len(pending))
+		lastNotarizedExecRes, err := tracker.GetLastNotarizedExecutionResult()
+		require.NoError(t, err)
+		require.Equal(t, lastNotarizedHash, lastNotarizedExecRes.GetHeaderHash())
+	})
+
+	t.Run("remove from middle hash should remove that hash and all with higher nonces", func(t *testing.T) {
+		t.Parallel()
+
+		tracker := NewExecutionResultsTracker()
+		err := tracker.SetLastNotarizedResult(&block.ExecutionResult{
+			BaseExecutionResult: &block.BaseExecutionResult{
+				HeaderHash:  []byte("hash0"),
+				HeaderNonce: 10,
+			},
+		})
+		require.NoError(t, err)
+
+		executionResult1 := &block.ExecutionResult{
+			BaseExecutionResult: &block.BaseExecutionResult{
+				HeaderHash:  []byte("hash1"),
+				HeaderNonce: 11,
+			},
+		}
+		err = tracker.AddExecutionResult(executionResult1)
+		require.NoError(t, err)
+
+		executionResult2 := &block.ExecutionResult{
+			BaseExecutionResult: &block.BaseExecutionResult{
+				HeaderHash:  []byte("hash2"),
+				HeaderNonce: 12,
+			},
+		}
+		err = tracker.AddExecutionResult(executionResult2)
+		require.NoError(t, err)
+
+		executionResult3 := &block.ExecutionResult{
+			BaseExecutionResult: &block.BaseExecutionResult{
+				HeaderHash:  []byte("hash3"),
+				HeaderNonce: 13,
+			},
+		}
+		err = tracker.AddExecutionResult(executionResult3)
+		require.NoError(t, err)
+
+		executionResult4 := &block.ExecutionResult{
+			BaseExecutionResult: &block.BaseExecutionResult{
+				HeaderHash:  []byte("hash4"),
+				HeaderNonce: 14,
+			},
+		}
+		err = tracker.AddExecutionResult(executionResult4)
+		require.NoError(t, err)
+
+		// Remove from hash2 (nonce 12), should keep only hash1 (nonce 11)
+		err = tracker.RemoveFromHash([]byte("hash2"))
+		require.NoError(t, err)
+
+		pending, err := tracker.GetPendingExecutionResults()
+		require.NoError(t, err)
+		require.Equal(t, 1, len(pending))
+		require.Equal(t, executionResult1, pending[0])
+		require.Equal(t, []byte("hash1"), tracker.lastExecutedResultHash)
+
+		// Verify removed results
+		_, err = tracker.GetPendingExecutionResultByHash([]byte("hash2"))
+		require.True(t, errors.Is(err, ErrCannotFindExecutionResult))
+		_, err = tracker.GetPendingExecutionResultByHash([]byte("hash3"))
+		require.True(t, errors.Is(err, ErrCannotFindExecutionResult))
+		_, err = tracker.GetPendingExecutionResultByHash([]byte("hash4"))
+		require.True(t, errors.Is(err, ErrCannotFindExecutionResult))
+
+		// Verify kept result
+		result, err := tracker.GetPendingExecutionResultByHash([]byte("hash1"))
+		require.NoError(t, err)
+		require.Equal(t, executionResult1, result)
+	})
+}

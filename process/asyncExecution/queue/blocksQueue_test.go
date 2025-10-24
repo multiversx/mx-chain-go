@@ -63,7 +63,6 @@ func TestHeadersQueue_Add(t *testing.T) {
 		assert.Nil(t, err)
 		assert.Equal(t, 1, len(hq.headerBodyPairs))
 		assert.Equal(t, uint64(2), hq.headerBodyPairs[0].Header.GetRound())
-
 	})
 }
 
@@ -235,4 +234,139 @@ func TestBlocksQueue_Peak(t *testing.T) {
 		require.False(t, ok)
 	})
 
+}
+
+func TestBlocksQueue_AddOrReplaceWithLowerNonce(t *testing.T) {
+	t.Parallel()
+
+	t.Run("replace at middle nonce and remove all higher nonces", func(t *testing.T) {
+		t.Parallel()
+
+		hq := NewBlocksQueue()
+		// Add blocks with nonces 1, 2, 3, 4, 5
+		for i := uint64(1); i <= 5; i++ {
+			pair := HeaderBodyPair{
+				Header: &block.Header{Nonce: i},
+				Body:   &block.Body{},
+			}
+			err := hq.AddOrReplace(pair)
+			require.Nil(t, err)
+		}
+
+		require.Equal(t, 5, len(hq.headerBodyPairs))
+		require.Equal(t, uint64(5), hq.lastAddedNonce)
+
+		// Replace at nonce 3 with a different round
+		pairAtNonce3 := HeaderBodyPair{
+			Header: &block.Header{Nonce: 3, Round: 100},
+			Body:   &block.Body{},
+		}
+		err := hq.AddOrReplace(pairAtNonce3)
+		require.Nil(t, err)
+
+		// Should have only 3 elements now (nonces 1, 2, 3)
+		require.Equal(t, 3, len(hq.headerBodyPairs))
+		require.Equal(t, uint64(3), hq.lastAddedNonce)
+
+		// Verify the replacement happened
+		require.Equal(t, uint64(100), hq.headerBodyPairs[2].Header.GetRound())
+
+		// Verify the order of remaining elements
+		require.Equal(t, uint64(1), hq.headerBodyPairs[0].Header.GetNonce())
+		require.Equal(t, uint64(2), hq.headerBodyPairs[1].Header.GetNonce())
+		require.Equal(t, uint64(3), hq.headerBodyPairs[2].Header.GetNonce())
+	})
+
+	t.Run("replace at first nonce and remove all higher nonces", func(t *testing.T) {
+		t.Parallel()
+
+		hq := NewBlocksQueue()
+		// Add blocks with nonces 1, 2, 3, 4
+		for i := uint64(1); i <= 4; i++ {
+			pair := HeaderBodyPair{
+				Header: &block.Header{Nonce: i, Round: i},
+				Body:   &block.Body{},
+			}
+			err := hq.AddOrReplace(pair)
+			require.Nil(t, err)
+		}
+
+		require.Equal(t, 4, len(hq.headerBodyPairs))
+		require.Equal(t, uint64(4), hq.lastAddedNonce)
+
+		// Replace at nonce 1
+		pairAtNonce1 := HeaderBodyPair{
+			Header: &block.Header{Nonce: 1, Round: 200},
+			Body:   &block.Body{},
+		}
+		err := hq.AddOrReplace(pairAtNonce1)
+		require.Nil(t, err)
+
+		// Should have only 1 element now
+		require.Equal(t, 1, len(hq.headerBodyPairs))
+		require.Equal(t, uint64(1), hq.lastAddedNonce)
+		require.Equal(t, uint64(200), hq.headerBodyPairs[0].Header.GetRound())
+	})
+
+	t.Run("replace with nonce lower than first element should error", func(t *testing.T) {
+		t.Parallel()
+
+		hq := NewBlocksQueue()
+		hq.SetLastAddedNonce(10)
+
+		// Add blocks with nonces 11, 12, 13
+		for i := uint64(11); i <= 13; i++ {
+			pair := HeaderBodyPair{
+				Header: &block.Header{Nonce: i, Round: i},
+				Body:   &block.Body{},
+			}
+			err := hq.AddOrReplace(pair)
+			require.Nil(t, err)
+		}
+
+		require.Equal(t, 3, len(hq.headerBodyPairs))
+		require.Equal(t, uint64(13), hq.lastAddedNonce)
+
+		// Try to replace at nonce 5 (which is lower than first element nonce 11)
+		pairAtNonce5 := HeaderBodyPair{
+			Header: &block.Header{Nonce: 5, Round: 500},
+			Body:   &block.Body{},
+		}
+		err := hq.AddOrReplace(pairAtNonce5)
+		require.True(t, errors.Is(err, ErrMissingHeaderNonce))
+
+		// Queue should remain unchanged
+		require.Equal(t, 3, len(hq.headerBodyPairs))
+		require.Equal(t, uint64(13), hq.lastAddedNonce)
+	})
+}
+
+func TestBlocksQueue_Close(t *testing.T) {
+	t.Parallel()
+
+	hq := NewBlocksQueue()
+	hq.Close()
+	hq.Close() // for coverage, should already be closed
+}
+
+func TestBlocksQueue_Clean(t *testing.T) {
+	t.Parallel()
+
+	hq := NewBlocksQueue()
+	// Add blocks with nonces 2, 3, 4, 5
+	for i := uint64(2); i <= 5; i++ {
+		pair := HeaderBodyPair{
+			Header: &block.Header{Nonce: i, Round: i},
+			Body:   &block.Body{},
+		}
+		err := hq.AddOrReplace(pair)
+		require.Nil(t, err)
+	}
+
+	require.Equal(t, 4, len(hq.headerBodyPairs))
+	require.Equal(t, uint64(5), hq.lastAddedNonce)
+
+	hq.Clean(1)
+	require.Equal(t, 0, len(hq.headerBodyPairs))
+	require.Equal(t, uint64(1), hq.lastAddedNonce)
 }

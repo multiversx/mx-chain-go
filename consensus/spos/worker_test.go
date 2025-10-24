@@ -58,7 +58,7 @@ func createDefaultWorkerArgs(appStatusHandler core.AppStatusHandler) *spos.Worke
 		DecodeBlockHeaderCalled: func(dta []byte) data.HeaderHandler {
 			return nil
 		},
-		RevertCurrentBlockCalled: func() {
+		RevertCurrentBlockCalled: func(_ data.HeaderHandler) {
 		},
 		DecodeBlockBodyCalled: func(dta []byte) data.BodyHandler {
 			return nil
@@ -796,7 +796,7 @@ func testWorkerProcessReceivedMessageComputeReceivedProposedBlockMetric(
 
 			return header
 		},
-		RevertCurrentBlockCalled: func() {
+		RevertCurrentBlockCalled: func(_ data.HeaderHandler) {
 		},
 		DecodeBlockBodyCalled: func(dta []byte) data.BodyHandler {
 			return nil
@@ -1210,7 +1210,7 @@ func TestWorker_ProcessReceivedMessageWrongChainIDInProposedBlockShouldError(t *
 					},
 				}
 			},
-			RevertCurrentBlockCalled: func() {
+			RevertCurrentBlockCalled: func(_ data.HeaderHandler) {
 			},
 		},
 	)
@@ -1263,7 +1263,7 @@ func TestWorker_ProcessReceivedMessageWithABadOriginatorShouldErr(t *testing.T) 
 					},
 				}
 			},
-			RevertCurrentBlockCalled: func() {
+			RevertCurrentBlockCalled: func(_ data.HeaderHandler) {
 			},
 			DecodeBlockBodyCalled: func(dta []byte) data.BodyHandler {
 				return nil
@@ -1323,7 +1323,7 @@ func TestWorker_ProcessReceivedMessageWithHeaderAndWrongHash(t *testing.T) {
 					},
 				}
 			},
-			RevertCurrentBlockCalled: func() {
+			RevertCurrentBlockCalled: func(_ data.HeaderHandler) {
 			},
 			DecodeBlockBodyCalled: func(dta []byte) data.BodyHandler {
 				return nil
@@ -1394,7 +1394,7 @@ func TestWorker_ProcessReceivedMessageOkValsShouldWork(t *testing.T) {
 					},
 				}
 			},
-			RevertCurrentBlockCalled: func() {
+			RevertCurrentBlockCalled: func(_ data.HeaderHandler) {
 			},
 			DecodeBlockBodyCalled: func(dta []byte) data.BodyHandler {
 				return nil
@@ -2028,7 +2028,7 @@ func TestWorker_ExtendShouldWorkAfterAWhile(t *testing.T) {
 	wrk := *initWorker(&statusHandlerMock.AppStatusHandlerStub{})
 	executed := int32(0)
 	blockProcessor := &testscommon.BlockProcessorStub{
-		RevertCurrentBlockCalled: func() {
+		RevertCurrentBlockCalled: func(_ data.HeaderHandler) {
 			atomic.AddInt32(&executed, 1)
 		},
 	}
@@ -2053,7 +2053,7 @@ func TestWorker_ExtendShouldWork(t *testing.T) {
 	wrk := *initWorker(&statusHandlerMock.AppStatusHandlerStub{})
 	executed := int32(0)
 	blockProcessor := &testscommon.BlockProcessorStub{
-		RevertCurrentBlockCalled: func() {
+		RevertCurrentBlockCalled: func(_ data.HeaderHandler) {
 			atomic.AddInt32(&executed, 1)
 		},
 	}

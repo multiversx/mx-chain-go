@@ -863,7 +863,7 @@ func (wrk *Worker) Extend(subroundId int) {
 	}
 
 	wrk.scheduledProcessor.ForceStopScheduledExecutionBlocking()
-	wrk.blockProcessor.RevertCurrentBlock()
+	wrk.blockProcessor.RevertCurrentBlock(wrk.consensusState.GetHeader())
 	wrk.removeConsensusHeaderFromPool()
 
 	log.Debug("current block is reverted")
