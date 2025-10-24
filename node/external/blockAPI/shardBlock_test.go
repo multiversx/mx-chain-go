@@ -699,7 +699,7 @@ func TestShardAPIBlockProcessor_GetAlteredAccountsForBlock(t *testing.T) {
 		)
 
 		metaAPIBlockProc.apiTransactionHandler = &mock.TransactionAPIHandlerStub{
-			UnmarshalTransactionCalled: func(txBytes []byte, _ transaction.TxType) (*transaction.ApiTransactionResult, error) {
+			UnmarshalTransactionCalled: func(txBytes []byte, _ transaction.TxType, _ uint32) (*transaction.ApiTransactionResult, error) {
 				var tx transaction.Transaction
 				_ = marshaller.Unmarshal(&tx, txBytes)
 

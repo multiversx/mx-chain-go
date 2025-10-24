@@ -162,6 +162,7 @@ func createMockConsensusComponentsFactoryArgs() consensusComp.ConsensusComponent
 			AccountsProposal:     &stateMocks.AccountsStub{},
 			PeersAcc:             &stateMocks.AccountsStub{},
 			MissingNodesNotifier: &testscommon.MissingTrieNodesNotifierStub{},
+			ChangesCollector:     &stateMocks.StateAccessesCollectorStub{},
 		},
 		StatusComponents: &testsMocks.StatusComponentsStub{
 			Outport: &outportMocks.OutportStub{},

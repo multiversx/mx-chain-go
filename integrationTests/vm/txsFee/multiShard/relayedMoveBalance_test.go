@@ -30,7 +30,8 @@ func TestRelayedMoveBalanceRelayerShard0InnerTxSenderAndReceiverShard1ShouldWork
 func testRelayedMoveBalanceRelayerShard0InnerTxSenderAndReceiverShard1ShouldWork(relayedFixActivationEpoch uint32) func(t *testing.T) {
 	return func(t *testing.T) {
 		testContext, err := vm.CreatePreparedTxProcessorWithVMsMultiShard(1, config.EnableEpochs{
-			FixRelayedBaseCostEnableEpoch: relayedFixActivationEpoch,
+			FixRelayedBaseCostEnableEpoch:       relayedFixActivationEpoch,
+			RelayedTransactionsV1V2DisableEpoch: integrationTests.UnreachableEpoch,
 		}, gasPriceModifier)
 		require.Nil(t, err)
 		defer testContext.Close()
@@ -89,7 +90,8 @@ func TestRelayedMoveBalanceRelayerAndInnerTxSenderShard0ReceiverShard1(t *testin
 func testRelayedMoveBalanceRelayerAndInnerTxSenderShard0ReceiverShard1(relayedFixActivationEpoch uint32) func(t *testing.T) {
 	return func(t *testing.T) {
 		testContext, err := vm.CreatePreparedTxProcessorWithVMsMultiShard(1, config.EnableEpochs{
-			FixRelayedBaseCostEnableEpoch: relayedFixActivationEpoch,
+			FixRelayedBaseCostEnableEpoch:       relayedFixActivationEpoch,
+			RelayedTransactionsV1V2DisableEpoch: integrationTests.UnreachableEpoch,
 		}, gasPriceModifier)
 		require.Nil(t, err)
 		defer testContext.Close()
@@ -146,13 +148,15 @@ func TestRelayedMoveBalanceExecuteOnSourceAndDestination(t *testing.T) {
 func testRelayedMoveBalanceExecuteOnSourceAndDestination(relayedFixActivationEpoch uint32) func(t *testing.T) {
 	return func(t *testing.T) {
 		testContextSource, err := vm.CreatePreparedTxProcessorWithVMsMultiShard(0, config.EnableEpochs{
-			FixRelayedBaseCostEnableEpoch: relayedFixActivationEpoch,
+			FixRelayedBaseCostEnableEpoch:       relayedFixActivationEpoch,
+			RelayedTransactionsV1V2DisableEpoch: integrationTests.UnreachableEpoch,
 		}, gasPriceModifier)
 		require.Nil(t, err)
 		defer testContextSource.Close()
 
 		testContextDst, err := vm.CreatePreparedTxProcessorWithVMsMultiShard(1, config.EnableEpochs{
-			FixRelayedBaseCostEnableEpoch: relayedFixActivationEpoch,
+			FixRelayedBaseCostEnableEpoch:       relayedFixActivationEpoch,
+			RelayedTransactionsV1V2DisableEpoch: integrationTests.UnreachableEpoch,
 		}, gasPriceModifier)
 		require.Nil(t, err)
 		defer testContextDst.Close()
@@ -227,13 +231,15 @@ func TestRelayedMoveBalanceExecuteOnSourceAndDestinationRelayerAndInnerTxSenderS
 func testRelayedMoveBalanceExecuteOnSourceAndDestinationRelayerAndInnerTxSenderShard0InnerTxReceiverShard1ShouldWork(relayedFixActivationEpoch uint32) func(t *testing.T) {
 	return func(t *testing.T) {
 		testContextSource, err := vm.CreatePreparedTxProcessorWithVMsMultiShard(0, config.EnableEpochs{
-			FixRelayedBaseCostEnableEpoch: relayedFixActivationEpoch,
+			FixRelayedBaseCostEnableEpoch:       relayedFixActivationEpoch,
+			RelayedTransactionsV1V2DisableEpoch: integrationTests.UnreachableEpoch,
 		}, gasPriceModifier)
 		require.Nil(t, err)
 		defer testContextSource.Close()
 
 		testContextDst, err := vm.CreatePreparedTxProcessorWithVMsMultiShard(1, config.EnableEpochs{
-			FixRelayedBaseCostEnableEpoch: relayedFixActivationEpoch,
+			FixRelayedBaseCostEnableEpoch:       relayedFixActivationEpoch,
+			RelayedTransactionsV1V2DisableEpoch: integrationTests.UnreachableEpoch,
 		}, gasPriceModifier)
 		require.Nil(t, err)
 		defer testContextDst.Close()
@@ -310,13 +316,15 @@ func TestRelayedMoveBalanceRelayerAndInnerTxReceiverShard0SenderShard1(t *testin
 func testRelayedMoveBalanceRelayerAndInnerTxReceiverShard0SenderShard1(relayedFixActivationEpoch uint32) func(t *testing.T) {
 	return func(t *testing.T) {
 		testContextSource, err := vm.CreatePreparedTxProcessorWithVMsMultiShard(0, config.EnableEpochs{
-			FixRelayedBaseCostEnableEpoch: relayedFixActivationEpoch,
+			FixRelayedBaseCostEnableEpoch:       relayedFixActivationEpoch,
+			RelayedTransactionsV1V2DisableEpoch: integrationTests.UnreachableEpoch,
 		}, gasPriceModifier)
 		require.Nil(t, err)
 		defer testContextSource.Close()
 
 		testContextDst, err := vm.CreatePreparedTxProcessorWithVMsMultiShard(1, config.EnableEpochs{
-			FixRelayedBaseCostEnableEpoch: relayedFixActivationEpoch,
+			FixRelayedBaseCostEnableEpoch:       relayedFixActivationEpoch,
+			RelayedTransactionsV1V2DisableEpoch: integrationTests.UnreachableEpoch,
 		}, gasPriceModifier)
 		require.Nil(t, err)
 		defer testContextDst.Close()
@@ -398,19 +406,22 @@ func TestMoveBalanceRelayerShard0InnerTxSenderShard1InnerTxReceiverShard2ShouldW
 func testMoveBalanceRelayerShard0InnerTxSenderShard1InnerTxReceiverShard2ShouldWork(relayedFixActivationEpoch uint32) func(t *testing.T) {
 	return func(t *testing.T) {
 		testContextRelayer, err := vm.CreatePreparedTxProcessorWithVMsMultiShard(0, config.EnableEpochs{
-			FixRelayedBaseCostEnableEpoch: relayedFixActivationEpoch,
+			FixRelayedBaseCostEnableEpoch:       relayedFixActivationEpoch,
+			RelayedTransactionsV1V2DisableEpoch: integrationTests.UnreachableEpoch,
 		}, gasPriceModifier)
 		require.Nil(t, err)
 		defer testContextRelayer.Close()
 
 		testContextInnerSource, err := vm.CreatePreparedTxProcessorWithVMsMultiShard(1, config.EnableEpochs{
-			FixRelayedBaseCostEnableEpoch: relayedFixActivationEpoch,
+			FixRelayedBaseCostEnableEpoch:       relayedFixActivationEpoch,
+			RelayedTransactionsV1V2DisableEpoch: integrationTests.UnreachableEpoch,
 		}, gasPriceModifier)
 		require.Nil(t, err)
 		defer testContextInnerSource.Close()
 
 		testContextDst, err := vm.CreatePreparedTxProcessorWithVMsMultiShard(2, config.EnableEpochs{
-			FixRelayedBaseCostEnableEpoch: relayedFixActivationEpoch,
+			FixRelayedBaseCostEnableEpoch:       relayedFixActivationEpoch,
+			RelayedTransactionsV1V2DisableEpoch: integrationTests.UnreachableEpoch,
 		}, gasPriceModifier)
 		require.Nil(t, err)
 		defer testContextDst.Close()

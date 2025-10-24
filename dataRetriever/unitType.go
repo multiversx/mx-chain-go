@@ -51,8 +51,10 @@ const (
 	ScheduledSCRsUnit UnitType = 22
 	// ProofsUnit is the header proofs unit identifier
 	ProofsUnit UnitType = 23
+	// StateAccessesUnit is the state accesses storage unit identifier
+	StateAccessesUnit UnitType = 24
 	// ExecutionResultsUnit is the execution results unit identifier
-	ExecutionResultsUnit UnitType = 24
+	ExecutionResultsUnit UnitType = 25
 
 	// ShardHdrNonceHashDataUnit is the header nonce-hash pair data unit identifier
 	//TODO: Add only unit types lower than 100
@@ -116,6 +118,8 @@ func (ut UnitType) String() string {
 		return "ScheduledSCRsUnit"
 	case ProofsUnit:
 		return "ProofsUnit"
+	case StateAccessesUnit:
+		return "StateAccessesUnit"
 	case ExecutionResultsUnit:
 		return "ExecutionResultsUnit"
 	}
