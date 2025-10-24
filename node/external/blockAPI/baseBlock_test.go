@@ -877,7 +877,7 @@ func TestBaseAPIBlockProcessor_AddMbsAndNumTxsAsyncExecutionBasedOnExecutionResu
 	}
 
 	baseAPIBlockProc.apiTransactionHandler = &mock.TransactionAPIHandlerStub{
-		UnmarshalTransactionCalled: func(txBytes []byte, txType transaction.TxType) (*transaction.ApiTransactionResult, error) {
+		UnmarshalTransactionCalled: func(txBytes []byte, txType transaction.TxType, epoch uint32) (*transaction.ApiTransactionResult, error) {
 			return &transaction.ApiTransactionResult{
 				Hash:   "tx_hash_1",
 				Status: transaction.TxStatusSuccess,
@@ -974,7 +974,7 @@ func TestBaseAPIBlockProcessor_AddMbsAndNumTxsAsyncExecutionBasedOnExecutionResu
 	}
 
 	baseAPIBlockProc.apiTransactionHandler = &mock.TransactionAPIHandlerStub{
-		UnmarshalTransactionCalled: func(txBytes []byte, txType transaction.TxType) (*transaction.ApiTransactionResult, error) {
+		UnmarshalTransactionCalled: func(txBytes []byte, txType transaction.TxType, epoch uint32) (*transaction.ApiTransactionResult, error) {
 			return &transaction.ApiTransactionResult{
 				Hash:   "tx_hash_1",
 				Status: transaction.TxStatusPending,

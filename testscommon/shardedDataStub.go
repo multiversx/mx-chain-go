@@ -34,7 +34,7 @@ type ShardedDataStub struct {
 		blockBody *block.Body,
 		blockHeader data.HeaderHandler,
 		accountsProvider common.AccountNonceAndBalanceProvider,
-		blockchainInfo common.BlockchainInfo,
+		latestExecutedHash []byte,
 	) error
 }
 
@@ -162,10 +162,10 @@ func (sd *ShardedDataStub) OnProposedBlock(
 	blockBody *block.Body,
 	blockHeader data.HeaderHandler,
 	accountsProvider common.AccountNonceAndBalanceProvider,
-	blockchainInfo common.BlockchainInfo,
+	latestExecutedHash []byte,
 ) error {
 	if sd.OnProposedBlockCalled != nil {
-		return sd.OnProposedBlockCalled(blockHash, blockBody, blockHeader, accountsProvider, blockchainInfo)
+		return sd.OnProposedBlockCalled(blockHash, blockBody, blockHeader, accountsProvider, latestExecutedHash)
 	}
 	return nil
 }

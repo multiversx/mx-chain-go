@@ -185,7 +185,9 @@ func Test_AddTx_AppliesSizeConstraintsPerSenderForNumTransactions(t *testing.T) 
 			&block.Header{
 				Nonce:    1,
 				PrevHash: []byte("blockHash0"),
-			})
+			},
+			[]byte("rootHAsh"),
+		)
 		require.Nil(t, err)
 
 		cache.AddTx(createTx([]byte("tx-alice-5"), "alice", 3).withGasLimit(1500000))

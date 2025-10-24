@@ -19,7 +19,7 @@ type StateComponentsMock struct {
 	StorageManagers               map[string]common.StorageManager
 	MissingNodesNotifier          common.MissingTrieNodesNotifier
 	LeavesRetriever               common.TrieLeavesRetriever
-	ChangesCollector         state.StateAccessesCollector
+	ChangesCollector              state.StateAccessesCollector
 }
 
 // NewStateComponentsMockFromRealComponent -
@@ -34,6 +34,7 @@ func NewStateComponentsMockFromRealComponent(stateComponents factory.StateCompon
 		StorageManagers:      stateComponents.TrieStorageManagers(),
 		MissingNodesNotifier: stateComponents.MissingTrieNodesNotifier(),
 		LeavesRetriever:      stateComponents.TrieLeavesRetriever(),
+		ChangesCollector:     stateComponents.StateAccessesCollector(),
 	}
 }
 

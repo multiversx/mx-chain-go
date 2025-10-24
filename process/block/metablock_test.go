@@ -14,6 +14,7 @@ import (
 	"github.com/multiversx/mx-chain-core-go/core/check"
 	"github.com/multiversx/mx-chain-core-go/data"
 	"github.com/multiversx/mx-chain-core-go/data/block"
+	"github.com/multiversx/mx-chain-go/state/disabled"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 
@@ -228,6 +229,7 @@ func createMockMetaArguments(
 			BlockProcessingCutoffHandler:       &testscommon.BlockProcessingCutoffStub{},
 			ManagedPeersHolder:                 &testscommon.ManagedPeersHolderStub{},
 			SentSignaturesTracker:              &testscommon.SentSignatureTrackerStub{},
+			StateAccessesCollector:             disabled.NewDisabledStateAccessesCollector(),
 			HeadersForBlock:                    headersForBlock,
 			MiniBlocksSelectionSession:         mbSelectionSession,
 			ExecutionResultsVerifier:           execResultsVerifier,

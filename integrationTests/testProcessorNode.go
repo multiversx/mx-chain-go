@@ -3815,6 +3815,7 @@ func GetDefaultStateComponents() *testFactory.StateComponentsMock {
 			dataRetriever.PeerAccountsUnit.String(): &storageManager.StorageManagerStub{},
 		},
 		MissingNodesNotifier: &testscommon.MissingTrieNodesNotifierStub{},
+		ChangesCollector:     &stateMock.StateAccessesCollectorStub{},
 	}
 }
 

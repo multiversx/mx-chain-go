@@ -155,6 +155,9 @@ func Test_newBlockProcessorCreatorForMeta(t *testing.T) {
 		TrieStorageManagersCalled: func() map[string]common.StorageManager {
 			return trieStorageManagers
 		},
+		StateAccessesCollectorCalled: func() state.StateAccessesCollector {
+			return &stateMock.StateAccessesCollectorStub{}
+		},
 	}
 	args := componentsMock.GetProcessArgs(
 		shardC,

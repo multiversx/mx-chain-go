@@ -105,7 +105,7 @@ type baseProcessor struct {
 	gasConsumedProvider           gasConsumedProvider
 	economicsData                 process.EconomicsDataHandler
 	epochChangeGracePeriodHandler common.EpochChangeGracePeriodHandler
-	stateAccessesCollector 		  state.StateAccessesCollector
+	stateAccessesCollector        state.StateAccessesCollector
 	processConfigsHandler         common.ProcessConfigsHandler
 
 	processDataTriesOnCommitEpoch bool
@@ -202,6 +202,7 @@ func NewBaseProcessor(arguments ArgBaseProcessor) (*baseProcessor, error) {
 		blockProcessingCutoffHandler:  arguments.BlockProcessingCutoffHandler,
 		managedPeersHolder:            arguments.ManagedPeersHolder,
 		sentSignaturesTracker:         arguments.SentSignaturesTracker,
+		stateAccessesCollector:        arguments.StateAccessesCollector,
 		proofsPool:                    arguments.DataComponents.Datapool().Proofs(),
 		hdrsForCurrBlock:              arguments.HeadersForBlock,
 		processConfigsHandler:         arguments.CoreComponents.ProcessConfigsHandler(),
@@ -705,6 +706,9 @@ func checkProcessorParameters(arguments ArgBaseProcessor) error {
 	}
 	if check.IfNil(arguments.SentSignaturesTracker) {
 		return process.ErrNilSentSignatureTracker
+	}
+	if check.IfNil(arguments.StateAccessesCollector) {
+		return process.ErrNilStateAccessesCollector
 	}
 	if check.IfNil(arguments.HeadersForBlock) {
 		return process.ErrNilHeadersForBlock
@@ -2395,8 +2399,7 @@ func (bp *baseProcessor) OnProposedBlock(
 		return err
 	}
 
-	blockChainInfo := holders.NewBlockchainInfo(lastExecResHandler.GetHeaderHash(), proposedHeader.GetPrevHash(), proposedHeader.GetNonce())
-	return bp.dataPool.Transactions().OnProposedBlock(proposedHash, proposedBodyPtr, proposedHeader, accountsProvider, blockChainInfo)
+	return bp.dataPool.Transactions().OnProposedBlock(proposedHash, proposedBodyPtr, proposedHeader, accountsProvider, lastExecResHandler.GetHeaderHash())
 }
 
 func (bp *baseProcessor) checkSentSignaturesAtCommitTime(header data.HeaderHandler) error {
