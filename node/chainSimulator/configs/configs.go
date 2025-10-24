@@ -45,7 +45,6 @@ const (
 type ArgsChainSimulatorConfigs struct {
 	NumOfShards                 uint32
 	OriginalConfigsPath         string
-	GenesisTimeStamp            int64
 	RoundDurationInMillis       uint64
 	TempDir                     string
 	MinNodesPerShard            uint32
@@ -121,16 +120,21 @@ func CreateChainSimulatorConfigs(args ArgsChainSimulatorConfigs) (*ArgsConfigsSi
 
 	configs.GeneralConfig.EpochStartConfig.ExtraDelayForRequestBlockInfoInMilliseconds = 1
 	configs.GeneralConfig.EpochStartConfig.GenesisEpoch = args.InitialEpoch
-	configs.GeneralConfig.EpochStartConfig.MinRoundsBetweenEpochs = 1
 
 	if args.RoundsPerEpoch.HasValue {
-		configs.GeneralConfig.EpochStartConfig.RoundsPerEpoch = int64(args.RoundsPerEpoch.Value)
+		for idx := 0; idx < len(configs.GeneralConfig.GeneralSettings.ChainParametersByEpoch); idx++ {
+			configs.GeneralConfig.GeneralSettings.ChainParametersByEpoch[idx].RoundsPerEpoch = int64(args.RoundsPerEpoch.Value)
+			configs.GeneralConfig.GeneralSettings.ChainParametersByEpoch[idx].MinRoundsBetweenEpochs = 1
+		}
 	}
 
 	gasScheduleName, err := GetLatestGasScheduleFilename(configs.ConfigurationPathsHolder.GasScheduleDirectoryName)
 	if err != nil {
 		return nil, err
 	}
+
+	// disable caching, as message deduplication will break the flow when blocks are generated very fast
+	configs.GeneralConfig.InterceptedDataVerifier.EnableCaching = false
 
 	updateConfigsChainParameters(args, configs)
 	node.ApplyArchCustomConfigs(configs)
@@ -296,7 +300,6 @@ func generateValidatorsKeyAndUpdateFiles(
 	}
 
 	nodes.RoundDuration = args.RoundDurationInMillis
-	nodes.StartTime = args.GenesisTimeStamp
 
 	nodes.Hysteresis = 0
 

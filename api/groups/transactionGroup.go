@@ -37,14 +37,19 @@ const (
 	getTransactionPath               = "/:txhash"
 	getScrsByTxHashPath              = "/scrs-by-tx-hash/:txhash"
 	getTransactionsPool              = "/pool"
+	getSelectedTransactionsPath      = "/pool/simulate-selection"
+	getVirtualNoncePath              = "/pool/:address/virtual-nonce"
 
-	queryParamWithResults    = "withResults"
-	queryParamCheckSignature = "checkSignature"
-	queryParamSender         = "by-sender"
-	queryParamFields         = "fields"
-	queryParamLastNonce      = "last-nonce"
-	queryParamNonceGaps      = "nonce-gaps"
-	queryParameterScrHash    = "scrHash"
+	queryParamWithResults     = "withResults"
+	queryParamCheckSignature  = "checkSignature"
+	queryParamSender          = "by-sender"
+	queryParamFields          = "fields"
+	queryParamLastNonce       = "last-nonce"
+	queryParamNonceGaps       = "nonce-gaps"
+	queryParameterScrHash     = "scrHash"
+	queryParameterWithSender  = "withSender"
+	queryParameterWithRelayer = "withRelayer"
+	queryParameterWithNonce   = "withNonce"
 )
 
 // transactionFacadeHandler defines the methods to be implemented by a facade for transaction requests
@@ -61,6 +66,8 @@ type transactionFacadeHandler interface {
 	GetTransactionsPoolForSender(sender, fields string) (*common.TransactionsPoolForSenderApiResponse, error)
 	GetLastPoolNonceForSender(sender string) (uint64, error)
 	GetTransactionsPoolNonceGapsForSender(sender string) (*common.TransactionsPoolNonceGapsForSenderApiResponse, error)
+	GetSelectedTransactions(requestedFields string) (*common.TransactionsSelectionSimulationResult, error)
+	GetVirtualNonce(address string) (*common.VirtualNonceOfAccountResponse, error)
 	ComputeTransactionGasLimit(tx *transaction.Transaction) (*transaction.CostResponse, error)
 	EncodeAddressPubkey(pk []byte) (string, error)
 	GetThrottlerForEndpoint(endpoint string) (core.Throttler, bool)
@@ -130,6 +137,28 @@ func NewTransactionGroup(facade transactionFacadeHandler) (*transactionGroup, er
 			AdditionalMiddlewares: []shared.AdditionalMiddleware{
 				{
 					Middleware: middleware.CreateEndpointThrottlerFromFacade(getTransactionPath, facade),
+					Position:   shared.Before,
+				},
+			},
+		},
+		{
+			Path:    getSelectedTransactionsPath,
+			Method:  http.MethodGet,
+			Handler: tg.simulateTransactionsSelection,
+			AdditionalMiddlewares: []shared.AdditionalMiddleware{
+				{
+					Middleware: middleware.CreateEndpointThrottlerFromFacade(getSelectedTransactionsPath, facade),
+					Position:   shared.Before,
+				},
+			},
+		},
+		{
+			Path:    getVirtualNoncePath,
+			Method:  http.MethodGet,
+			Handler: tg.getVirtualNonceByAddress,
+			AdditionalMiddlewares: []shared.AdditionalMiddleware{
+				{
+					Middleware: middleware.CreateEndpointThrottlerFromFacade(getVirtualNoncePath, facade),
 					Position:   shared.Before,
 				},
 			},
@@ -494,6 +523,45 @@ func (tg *transactionGroup) getScrsByTxHash(c *gin.Context) {
 	)
 }
 
+func (tg *transactionGroup) getVirtualNonceByAddress(c *gin.Context) {
+	address := c.Param("address")
+	if address == "" {
+		c.JSON(
+			http.StatusBadRequest,
+			shared.GenericAPIResponse{
+				Data:  nil,
+				Error: fmt.Sprintf("%s: %s", errors.ErrValidation.Error(), errors.ErrEmptyAddress.Error()),
+				Code:  shared.ReturnCodeRequestError,
+			},
+		)
+		return
+	}
+
+	start := time.Now()
+	virtualNonce, err := tg.getFacade().GetVirtualNonce(address)
+	if err != nil {
+		c.JSON(
+			http.StatusInternalServerError,
+			shared.GenericAPIResponse{
+				Data:  nil,
+				Error: fmt.Sprintf("%s: %s", errors.ErrGetVirtualNonce.Error(), err.Error()),
+				Code:  shared.ReturnCodeInternalError,
+			},
+		)
+		return
+	}
+	logging.LogAPIActionDurationIfNeeded(start, "API call: GetVirtualNonce")
+
+	c.JSON(
+		http.StatusOK,
+		shared.GenericAPIResponse{
+			Data:  gin.H{"virtualNonce": virtualNonce},
+			Error: "",
+			Code:  shared.ReturnCodeSuccess,
+		},
+	)
+}
+
 // getTransaction returns transaction details for a given txhash
 func (tg *transactionGroup) getTransaction(c *gin.Context) {
 	txhash := c.Param("txhash")
@@ -767,6 +835,35 @@ func (tg *transactionGroup) getTransactionsPoolNonceGapsForSender(sender string,
 		http.StatusOK,
 		shared.GenericAPIResponse{
 			Data:  gin.H{"nonceGaps": gaps},
+			Error: "",
+			Code:  shared.ReturnCodeSuccess,
+		},
+	)
+}
+
+// simulateTransactionsSelection simulates a selection and returns the requested fields of each selected transaction
+func (tg *transactionGroup) simulateTransactionsSelection(c *gin.Context) {
+	start := time.Now()
+
+	selectionSimulationFields := getQueryParameterFields(c)
+	transactions, err := tg.getFacade().GetSelectedTransactions(selectionSimulationFields)
+	logging.LogAPIActionDurationIfNeeded(start, "API call: GetSelectedTransactions")
+	if err != nil {
+		c.JSON(
+			http.StatusInternalServerError,
+			shared.GenericAPIResponse{
+				Data:  nil,
+				Error: err.Error(),
+				Code:  shared.ReturnCodeInternalError,
+			},
+		)
+		return
+	}
+
+	c.JSON(
+		http.StatusOK,
+		shared.GenericAPIResponse{
+			Data:  gin.H{"transactions": transactions},
 			Error: "",
 			Code:  shared.ReturnCodeSuccess,
 		},

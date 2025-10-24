@@ -6,6 +6,7 @@ import (
 	"github.com/multiversx/mx-chain-core-go/core/check"
 	"github.com/multiversx/mx-chain-core-go/data/block"
 	"github.com/stretchr/testify/assert"
+	"github.com/stretchr/testify/require"
 
 	"github.com/multiversx/mx-chain-go/process"
 	"github.com/multiversx/mx-chain-go/process/block/interceptedBlocks"
@@ -36,7 +37,7 @@ func createMockMiniblock() *block.MiniBlock {
 	}
 }
 
-//------- NewInterceptedMiniblock
+// ------- NewInterceptedMiniblock
 
 func TestNewInterceptedMiniblock_NilArgumentShouldErr(t *testing.T) {
 	t.Parallel()
@@ -70,7 +71,7 @@ func TestNewInterceptedMiniblock_ShouldWork(t *testing.T) {
 	assert.Nil(t, err)
 }
 
-//------- Verify
+// ------- Verify
 
 func TestInterceptedMiniblock_InvalidReceiverShardIdShouldErr(t *testing.T) {
 	t.Parallel()
@@ -133,7 +134,7 @@ func TestInterceptedMiniblock_ShouldWork(t *testing.T) {
 	assert.Nil(t, err)
 }
 
-//------- getters
+// ------- getters
 
 func TestInterceptedMiniblock_Getters(t *testing.T) {
 	t.Parallel()
@@ -146,9 +147,10 @@ func TestInterceptedMiniblock_Getters(t *testing.T) {
 
 	assert.Equal(t, hash, inMb.Hash())
 	assert.Equal(t, createMockMiniblock(), inMb.Miniblock())
+	require.False(t, inMb.ShouldAllowDuplicates())
 }
 
-//------- IsForCurrentShard
+// ------- IsForCurrentShard
 
 func TestInterceptedMiniblock_IsForCurrentShardMiniblockForOtherShardsShouldRetFalse(t *testing.T) {
 	t.Parallel()

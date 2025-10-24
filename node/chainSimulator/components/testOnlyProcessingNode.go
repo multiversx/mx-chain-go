@@ -6,6 +6,7 @@ import (
 	"errors"
 	"fmt"
 	"math/big"
+	"time"
 
 	"github.com/multiversx/mx-chain-go/api/shared"
 	"github.com/multiversx/mx-chain-go/config"
@@ -14,6 +15,7 @@ import (
 	"github.com/multiversx/mx-chain-go/dataRetriever"
 	"github.com/multiversx/mx-chain-go/dataRetriever/blockchain"
 	dataRetrieverFactory "github.com/multiversx/mx-chain-go/dataRetriever/factory"
+	"github.com/multiversx/mx-chain-go/debug/handler"
 	"github.com/multiversx/mx-chain-go/facade"
 	"github.com/multiversx/mx-chain-go/factory"
 	bootstrapComp "github.com/multiversx/mx-chain-go/factory/bootstrap"
@@ -51,6 +53,7 @@ type ArgsTestOnlyProcessingNode struct {
 	MetaChainConsensusGroupSize uint32
 	RoundDurationInMillis       uint64
 	VmQueryDelayAfterStartInMs  uint64
+	GenesisTime                 time.Time
 }
 
 type testOnlyProcessingNode struct {
@@ -107,6 +110,8 @@ func NewTestOnlyProcessingNode(args ArgsTestOnlyProcessingNode) (*testOnlyProces
 		MetaChainConsensusGroupSize: args.MetaChainConsensusGroupSize,
 		RoundDurationInMs:           args.RoundDurationInMillis,
 		RatingConfig:                *args.Configs.RatingsConfig,
+		GenesisTime:                 args.GenesisTime,
+		SupernovaGenesisTime:        args.GenesisTime,
 	})
 	if err != nil {
 		return nil, err
@@ -260,9 +265,39 @@ func NewTestOnlyProcessingNode(args ArgsTestOnlyProcessingNode) (*testOnlyProces
 		return nil, err
 	}
 
+	err = instance.createInterceptorDebugHandler(args.Configs)
+	if err != nil {
+		return nil, err
+	}
+
 	instance.collectClosableComponents(args.APIInterface)
 
 	return instance, nil
+}
+
+func (node *testOnlyProcessingNode) createInterceptorDebugHandler(configs config.Configs) error {
+	debugHandler, err := handler.NewInterceptorDebugHandler(configs.GeneralConfig.Debug.InterceptorResolver, node.CoreComponentsHolder.SyncTimer())
+	if err != nil {
+		return err
+	}
+
+	node.CoreComponentsHolder.EpochStartNotifierWithConfirm().RegisterHandler(debugHandler.EpochStartEventHandler())
+
+	var errFound error
+	node.ProcessComponentsHolder.InterceptorsContainer().Iterate(func(key string, interceptor process.Interceptor) bool {
+		err = interceptor.SetInterceptedDebugHandler(debugHandler)
+		if err != nil {
+			errFound = err
+			return false
+		}
+
+		return true
+	})
+	if errFound != nil {
+		return fmt.Errorf("%w while setting up debugger on interceptors", errFound)
+	}
+
+	return nil
 }
 
 func (node *testOnlyProcessingNode) createBlockChain(selfShardID uint32) error {
@@ -281,6 +316,7 @@ func (node *testOnlyProcessingNode) createNodesCoordinator(pref config.Preferenc
 		node.CoreComponentsHolder.GenesisNodesSetup(),
 		generalConfig.EpochStartConfig,
 		node.CoreComponentsHolder.ChanStopNodeProcess(),
+		node.CoreComponentsHolder.ChainParametersHandler(),
 	)
 	if err != nil {
 		return err
@@ -398,7 +434,7 @@ func (node *testOnlyProcessingNode) GetStatusCoreComponents() factory.StatusCore
 	return node.StatusCoreComponents
 }
 
-// NetworkComponents will return the network components
+// GetNetworkComponents will return the network components
 func (node *testOnlyProcessingNode) GetNetworkComponents() factory.NetworkComponentsHolder {
 	return node.NetworkComponentsHolder
 }

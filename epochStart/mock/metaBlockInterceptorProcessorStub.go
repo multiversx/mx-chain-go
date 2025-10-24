@@ -20,8 +20,8 @@ func (m *MetaBlockInterceptorProcessorStub) Validate(_ process.InterceptedData, 
 }
 
 // Save -
-func (m *MetaBlockInterceptorProcessorStub) Save(_ process.InterceptedData, _ core.PeerID, _ string) error {
-	return nil
+func (m *MetaBlockInterceptorProcessorStub) Save(_ process.InterceptedData, _ core.PeerID, _ string) (bool, error) {
+	return true, nil
 }
 
 // RegisterHandler -

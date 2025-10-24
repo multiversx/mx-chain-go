@@ -6,6 +6,8 @@ import (
 	"time"
 
 	"github.com/multiversx/mx-chain-core-go/core/atomic"
+	"github.com/multiversx/mx-chain-go/common"
+	"github.com/multiversx/mx-chain-go/p2p"
 	"github.com/stretchr/testify/require"
 
 	"github.com/multiversx/mx-chain-go/process"
@@ -63,13 +65,85 @@ func TestInterceptedDataVerifier_EmptyHash(t *testing.T) {
 		},
 	}
 
-	err := verifier.Verify(interceptedData)
+	err := verifier.Verify(interceptedData, "topic", p2p.Broadcast)
 	require.NoError(t, err)
 	require.Equal(t, 1, checkValidityCounter)
 
-	err = verifier.Verify(interceptedData)
+	err = verifier.Verify(interceptedData, "topic", p2p.Broadcast)
 	require.NoError(t, err)
 	require.Equal(t, 2, checkValidityCounter)
+}
+
+func TestInterceptedDataVerifier_checkCachedData(t *testing.T) {
+	t.Parallel()
+
+	t.Run("already cached invalid data should error", func(t *testing.T) {
+		t.Parallel()
+
+		interceptedData := &testscommon.InterceptedDataStub{
+			CheckValidityCalled: func() error {
+				require.Fail(t, "should have not been called")
+				return nil
+			},
+			HashCalled: func() []byte {
+				return []byte("hash")
+			},
+		}
+
+		verifier := defaultInterceptedDataVerifier(defaultSpan)
+
+		verifier.PutInCache(interceptedData, interceptedDataStatus(1)) // not validInterceptedData
+
+		err := verifier.Verify(interceptedData, "topic", p2p.Broadcast)
+		require.Equal(t, process.ErrInvalidInterceptedData, err)
+	})
+	t.Run("already cached intra shard data should work", func(t *testing.T) {
+		t.Parallel()
+
+		interceptedData := &testscommon.InterceptedDataStub{
+			CheckValidityCalled: func() error {
+				require.Fail(t, "should have not been called")
+				return nil
+			},
+			HashCalled: func() []byte {
+				return []byte("hash")
+			},
+			ShouldAllowDuplicatesCalled: func() bool {
+				require.Fail(t, "should have not been called")
+				return true
+			},
+		}
+
+		verifier := defaultInterceptedDataVerifier(defaultSpan)
+
+		verifier.PutInCache(interceptedData, validInterceptedData)
+
+		err := verifier.Verify(interceptedData, "topic_1", p2p.Direct) // intra shard
+		require.NoError(t, err)
+	})
+	t.Run("already cached data that does not allow duplicates should error", func(t *testing.T) {
+		t.Parallel()
+
+		interceptedData := &testscommon.InterceptedDataStub{
+			CheckValidityCalled: func() error {
+				require.Fail(t, "should have not been called")
+				return nil
+			},
+			HashCalled: func() []byte {
+				return []byte("hash")
+			},
+			ShouldAllowDuplicatesCalled: func() bool {
+				return false
+			},
+		}
+
+		verifier := defaultInterceptedDataVerifier(defaultSpan)
+
+		verifier.PutInCache(interceptedData, validInterceptedData)
+
+		err := verifier.Verify(interceptedData, "topic_0_1", p2p.Broadcast)
+		require.Equal(t, process.ErrDuplicatedInterceptedDataNotAllowed, err)
+	})
 }
 
 func TestInterceptedDataVerifier_CheckValidityShouldWork(t *testing.T) {
@@ -89,11 +163,23 @@ func TestInterceptedDataVerifier_CheckValidityShouldWork(t *testing.T) {
 			return []byte("hash")
 		},
 	}
+	interceptedDataWithNoHash := &testscommon.InterceptedDataStub{
+		HashCalled: func() []byte {
+			return []byte("") // peerAuthentication
+		},
+	}
 
 	verifier := defaultInterceptedDataVerifier(defaultSpan)
 
-	err := verifier.Verify(interceptedData)
+	err := verifier.Verify(interceptedData, "topic", p2p.Broadcast)
 	require.NoError(t, err)
+
+	verifier.MarkVerified(interceptedData, p2p.Broadcast) // intra shard, for coverage only
+	verifier.MarkVerified(interceptedData, p2p.Direct)    // Direct send, for coverage only
+
+	verifier.MarkVerified(interceptedDataWithNoHash, p2p.Broadcast) // no hash, for coverage only
+
+	verifier.MarkVerified(interceptedData, p2p.Broadcast)
 
 	errCount := atomic.Counter{}
 	wg := sync.WaitGroup{}
@@ -101,7 +187,7 @@ func TestInterceptedDataVerifier_CheckValidityShouldWork(t *testing.T) {
 		wg.Add(1)
 		go func() {
 			defer wg.Done()
-			err := verifier.Verify(interceptedData)
+			err := verifier.Verify(interceptedData, "topic", p2p.Broadcast)
 			if err != nil {
 				errCount.Add(1)
 			}
@@ -132,7 +218,7 @@ func TestInterceptedDataVerifier_CheckValidityShouldNotWork(t *testing.T) {
 
 	verifier := defaultInterceptedDataVerifier(defaultSpan)
 
-	err := verifier.Verify(interceptedData)
+	err := verifier.Verify(interceptedData, "topic", p2p.Broadcast)
 	require.Equal(t, process.ErrInvalidInterceptedData, err)
 
 	errCount := atomic.Counter{}
@@ -141,7 +227,7 @@ func TestInterceptedDataVerifier_CheckValidityShouldNotWork(t *testing.T) {
 		wg.Add(1)
 		go func() {
 			defer wg.Done()
-			err := verifier.Verify(interceptedData)
+			err := verifier.Verify(interceptedData, "topic", p2p.Broadcast)
 			if err != nil {
 				errCount.Add(1)
 			}
@@ -151,6 +237,24 @@ func TestInterceptedDataVerifier_CheckValidityShouldNotWork(t *testing.T) {
 
 	require.Equal(t, int64(100), errCount.Get())
 	require.Equal(t, int64(101), checkValidityCounter.Get())
+}
+
+func TestInterceptedDataVerifier_CheckValidityInterceptedProof(t *testing.T) {
+	t.Parallel()
+
+	interceptedData := &testscommon.InterceptedDataStub{
+		CheckValidityCalled: func() error {
+			return common.ErrAlreadyExistingEquivalentProof // for coverage only
+		},
+		HashCalled: func() []byte {
+			return []byte("hash")
+		},
+	}
+
+	verifier := defaultInterceptedDataVerifier(defaultSpan)
+
+	err := verifier.Verify(interceptedData, "topic", p2p.Broadcast)
+	require.Equal(t, process.ErrInvalidInterceptedData, err)
 }
 
 func TestInterceptedDataVerifier_CheckExpiryTime(t *testing.T) {
@@ -177,12 +281,14 @@ func TestInterceptedDataVerifier_CheckExpiryTime(t *testing.T) {
 		verifier := defaultInterceptedDataVerifier(expiryTestDuration)
 
 		// First retrieval, check validity is reached.
-		err := verifier.Verify(interceptedData)
+		err := verifier.Verify(interceptedData, "topic", p2p.Broadcast)
 		require.NoError(t, err)
 		require.Equal(t, int64(1), checkValidityCounter.Get())
 
+		verifier.MarkVerified(interceptedData, p2p.Broadcast)
+
 		// Second retrieval should be from the cache.
-		err = verifier.Verify(interceptedData)
+		err = verifier.Verify(interceptedData, "topic", p2p.Broadcast)
 		require.NoError(t, err)
 		require.Equal(t, int64(1), checkValidityCounter.Get())
 
@@ -190,7 +296,7 @@ func TestInterceptedDataVerifier_CheckExpiryTime(t *testing.T) {
 		<-time.After(expiryTestDuration + 100*time.Millisecond)
 
 		// Third retrieval should reach validity check again.
-		err = verifier.Verify(interceptedData)
+		err = verifier.Verify(interceptedData, "topic", p2p.Broadcast)
 		require.NoError(t, err)
 		require.Equal(t, int64(2), checkValidityCounter.Get())
 	})
@@ -216,12 +322,12 @@ func TestInterceptedDataVerifier_CheckExpiryTime(t *testing.T) {
 		verifier := defaultInterceptedDataVerifier(expiryTestDuration)
 
 		// First retrieval, check validity is reached.
-		err := verifier.Verify(interceptedData)
+		err := verifier.Verify(interceptedData, "topic", p2p.Broadcast)
 		require.Equal(t, process.ErrInvalidInterceptedData, err)
 		require.Equal(t, int64(1), checkValidityCounter.Get())
 
 		// Second retrieval
-		err = verifier.Verify(interceptedData)
+		err = verifier.Verify(interceptedData, "topic", p2p.Broadcast)
 		require.Equal(t, process.ErrInvalidInterceptedData, err)
 		require.Equal(t, int64(2), checkValidityCounter.Get())
 
@@ -229,7 +335,7 @@ func TestInterceptedDataVerifier_CheckExpiryTime(t *testing.T) {
 		<-time.After(expiryTestDuration + 100*time.Millisecond)
 
 		// Third retrieval should reach validity check again.
-		err = verifier.Verify(interceptedData)
+		err = verifier.Verify(interceptedData, "topic", p2p.Broadcast)
 		require.Equal(t, process.ErrInvalidInterceptedData, err)
 		require.Equal(t, int64(3), checkValidityCounter.Get())
 	})

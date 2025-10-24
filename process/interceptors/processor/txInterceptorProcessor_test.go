@@ -62,7 +62,7 @@ func TestNewTxInterceptorProcessor_ShouldWork(t *testing.T) {
 	assert.Nil(t, err)
 }
 
-//------- Validate
+// ------- Validate
 
 func TestTxInterceptorProcessor_ValidateNilTxShouldErr(t *testing.T) {
 	t.Parallel()
@@ -116,14 +116,14 @@ func TestTxInterceptorProcessor_ValidateReturnsTrueShouldWork(t *testing.T) {
 	assert.Nil(t, err)
 }
 
-//------- Save
+// ------- Save
 
 func TestTxInterceptorProcessor_SaveNilDataShouldErr(t *testing.T) {
 	t.Parallel()
 
 	txip, _ := processor.NewTxInterceptorProcessor(createMockTxArgument())
 
-	err := txip.Save(nil, "", "")
+	_, err := txip.Save(nil, "", "")
 
 	assert.Equal(t, process.ErrWrongTypeAssertion, err)
 }
@@ -161,13 +161,13 @@ func TestTxInterceptorProcessor_SaveShouldWork(t *testing.T) {
 
 	txip, _ := processor.NewTxInterceptorProcessor(arg)
 
-	err := txip.Save(txInterceptedData, "", "")
+	_, err := txip.Save(txInterceptedData, "", "")
 
 	assert.Nil(t, err)
 	assert.True(t, addedWasCalled)
 }
 
-//------- IsInterfaceNil
+// ------- IsInterfaceNil
 
 func TestTxInterceptorProcessor_IsInterfaceNil(t *testing.T) {
 	t.Parallel()

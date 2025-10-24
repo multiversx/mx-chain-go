@@ -51,8 +51,9 @@ func initSubroundEndRoundWithContainer(
 		bls.SrSignature,
 		bls.SrEndRound,
 		-1,
-		int64(85*roundTimeDuration/100),
-		int64(95*roundTimeDuration/100),
+		roundTimeDuration,
+		0.85,
+		0.95,
 		"(END_ROUND)",
 		consensusState,
 		ch,
@@ -71,7 +72,12 @@ func initSubroundEndRoundWithContainer(
 		v2.ProcessingThresholdPercent,
 		appStatusHandler,
 		&testscommon.SentSignatureTrackerStub{},
-		&consensusMocks.SposWorkerMock{},
+		&consensusMocks.SposWorkerMock{
+			ConsensusMetricsCalled: func() spos.ConsensusMetricsHandler {
+				consensusMetrics, _ := spos.NewConsensusMetrics(sr.AppStatusHandler())
+				return consensusMetrics
+			},
+		},
 		&dataRetrieverMocks.ThrottlerStub{},
 	)
 
@@ -89,8 +95,9 @@ func initSubroundEndRoundWithContainerAndConsensusState(
 		bls.SrSignature,
 		bls.SrEndRound,
 		-1,
-		int64(85*roundTimeDuration/100),
-		int64(95*roundTimeDuration/100),
+		roundTimeDuration,
+		0.85,
+		0.95,
 		"(END_ROUND)",
 		consensusState,
 		ch,
@@ -109,7 +116,12 @@ func initSubroundEndRoundWithContainerAndConsensusState(
 		v2.ProcessingThresholdPercent,
 		appStatusHandler,
 		&testscommon.SentSignatureTrackerStub{},
-		&consensusMocks.SposWorkerMock{},
+		&consensusMocks.SposWorkerMock{
+			ConsensusMetricsCalled: func() spos.ConsensusMetricsHandler {
+				consensusMetrics, _ := spos.NewConsensusMetrics(sr.AppStatusHandler())
+				return consensusMetrics
+			},
+		},
 		signatureThrottler,
 	)
 
@@ -135,8 +147,9 @@ func TestNewSubroundEndRound(t *testing.T) {
 		bls.SrSignature,
 		bls.SrEndRound,
 		-1,
-		int64(85*roundTimeDuration/100),
-		int64(95*roundTimeDuration/100),
+		roundTimeDuration,
+		0.85,
+		0.95,
 		"(END_ROUND)",
 		consensusState,
 		ch,
@@ -220,8 +233,9 @@ func TestSubroundEndRound_NewSubroundEndRoundNilBlockChainShouldFail(t *testing.
 		bls.SrSignature,
 		bls.SrEndRound,
 		-1,
-		int64(85*roundTimeDuration/100),
-		int64(95*roundTimeDuration/100),
+		roundTimeDuration,
+		0.85,
+		0.95,
 		"(END_ROUND)",
 		consensusState,
 		ch,
@@ -256,8 +270,9 @@ func TestSubroundEndRound_NewSubroundEndRoundNilBlockProcessorShouldFail(t *test
 		bls.SrSignature,
 		bls.SrEndRound,
 		-1,
-		int64(85*roundTimeDuration/100),
-		int64(95*roundTimeDuration/100),
+		roundTimeDuration,
+		0.85,
+		0.95,
 		"(END_ROUND)",
 		consensusState,
 		ch,
@@ -292,8 +307,9 @@ func TestSubroundEndRound_NewSubroundEndRoundNilConsensusStateShouldFail(t *test
 		bls.SrSignature,
 		bls.SrEndRound,
 		-1,
-		int64(85*roundTimeDuration/100),
-		int64(95*roundTimeDuration/100),
+		roundTimeDuration,
+		0.85,
+		0.95,
 		"(END_ROUND)",
 		consensusState,
 		ch,
@@ -329,8 +345,9 @@ func TestSubroundEndRound_NewSubroundEndRoundNilMultiSignerContainerShouldFail(t
 		bls.SrSignature,
 		bls.SrEndRound,
 		-1,
-		int64(85*roundTimeDuration/100),
-		int64(95*roundTimeDuration/100),
+		roundTimeDuration,
+		0.85,
+		0.95,
 		"(END_ROUND)",
 		consensusState,
 		ch,
@@ -365,8 +382,9 @@ func TestSubroundEndRound_NewSubroundEndRoundNilRoundHandlerShouldFail(t *testin
 		bls.SrSignature,
 		bls.SrEndRound,
 		-1,
-		int64(85*roundTimeDuration/100),
-		int64(95*roundTimeDuration/100),
+		roundTimeDuration,
+		0.85,
+		0.95,
 		"(END_ROUND)",
 		consensusState,
 		ch,
@@ -401,8 +419,9 @@ func TestSubroundEndRound_NewSubroundEndRoundNilSyncTimerShouldFail(t *testing.T
 		bls.SrSignature,
 		bls.SrEndRound,
 		-1,
-		int64(85*roundTimeDuration/100),
-		int64(95*roundTimeDuration/100),
+		roundTimeDuration,
+		0.85,
+		0.95,
 		"(END_ROUND)",
 		consensusState,
 		ch,
@@ -437,8 +456,9 @@ func TestSubroundEndRound_NewSubroundEndRoundNilThrottlerShouldFail(t *testing.T
 		bls.SrSignature,
 		bls.SrEndRound,
 		-1,
-		int64(85*roundTimeDuration/100),
-		int64(95*roundTimeDuration/100),
+		roundTimeDuration,
+		0.85,
+		0.95,
 		"(END_ROUND)",
 		consensusState,
 		ch,
@@ -473,8 +493,9 @@ func TestSubroundEndRound_NewSubroundEndRoundShouldWork(t *testing.T) {
 		bls.SrSignature,
 		bls.SrEndRound,
 		-1,
-		int64(85*roundTimeDuration/100),
-		int64(95*roundTimeDuration/100),
+		roundTimeDuration,
+		0.85,
+		0.95,
 		"(END_ROUND)",
 		consensusState,
 		ch,
@@ -889,8 +910,9 @@ func TestSubroundEndRound_ReceivedProof(t *testing.T) {
 			bls.SrSignature,
 			bls.SrEndRound,
 			-1,
-			int64(85*roundTimeDuration/100),
-			int64(95*roundTimeDuration/100),
+			roundTimeDuration,
+			0.85,
+			0.95,
 			"(END_ROUND)",
 			consensusState,
 			ch,
@@ -1178,8 +1200,9 @@ func TestSubroundEndRound_DoEndRoundJobByNode(t *testing.T) {
 			bls.SrSignature,
 			bls.SrEndRound,
 			-1,
-			int64(85*roundTimeDuration/100),
-			int64(95*roundTimeDuration/100),
+			roundTimeDuration,
+			0.85,
+			0.95,
 			"(END_ROUND)",
 			consensusState,
 			ch,
@@ -1198,7 +1221,12 @@ func TestSubroundEndRound_DoEndRoundJobByNode(t *testing.T) {
 			v2.ProcessingThresholdPercent,
 			&statusHandler.AppStatusHandlerStub{},
 			&testscommon.SentSignatureTrackerStub{},
-			&consensusMocks.SposWorkerMock{},
+			&consensusMocks.SposWorkerMock{
+				ConsensusMetricsCalled: func() spos.ConsensusMetricsHandler {
+					consensusMetrics, _ := spos.NewConsensusMetrics(sr.AppStatusHandler())
+					return consensusMetrics
+				},
+			},
 			&dataRetrieverMocks.ThrottlerStub{},
 		)
 
@@ -1314,8 +1342,9 @@ func TestSubroundEndRound_DoEndRoundJobByNode(t *testing.T) {
 			bls.SrSignature,
 			bls.SrEndRound,
 			-1,
-			int64(85*roundTimeDuration/100),
-			int64(95*roundTimeDuration/100),
+			roundTimeDuration,
+			0.85,
+			0.95,
 			"(END_ROUND)",
 			consensusState,
 			ch,
@@ -1331,7 +1360,12 @@ func TestSubroundEndRound_DoEndRoundJobByNode(t *testing.T) {
 			v2.ProcessingThresholdPercent,
 			sh,
 			&testscommon.SentSignatureTrackerStub{},
-			&consensusMocks.SposWorkerMock{},
+			&consensusMocks.SposWorkerMock{
+				ConsensusMetricsCalled: func() spos.ConsensusMetricsHandler {
+					consensusMetrics, _ := spos.NewConsensusMetrics(sr.AppStatusHandler())
+					return consensusMetrics
+				},
+			},
 			&dataRetrieverMocks.ThrottlerStub{},
 		)
 
@@ -1407,8 +1441,9 @@ func TestSubroundEndRound_DoEndRoundJobByNode(t *testing.T) {
 			bls.SrSignature,
 			bls.SrEndRound,
 			-1,
-			int64(85*roundTimeDuration/100),
-			int64(95*roundTimeDuration/100),
+			roundTimeDuration,
+			0.85,
+			0.95,
 			"(END_ROUND)",
 			consensusState,
 			ch,
@@ -1424,7 +1459,12 @@ func TestSubroundEndRound_DoEndRoundJobByNode(t *testing.T) {
 			v2.ProcessingThresholdPercent,
 			&statusHandler.AppStatusHandlerStub{},
 			&testscommon.SentSignatureTrackerStub{},
-			&consensusMocks.SposWorkerMock{},
+			&consensusMocks.SposWorkerMock{
+				ConsensusMetricsCalled: func() spos.ConsensusMetricsHandler {
+					consensusMetrics, _ := spos.NewConsensusMetrics(sr.AppStatusHandler())
+					return consensusMetrics
+				},
+			},
 			&dataRetrieverMocks.ThrottlerStub{},
 		)
 
@@ -1548,8 +1588,9 @@ func TestSubroundEndRound_ReceivedInvalidSignersInfo(t *testing.T) {
 			bls.SrSignature,
 			bls.SrEndRound,
 			-1,
-			int64(85*roundTimeDuration/100),
-			int64(95*roundTimeDuration/100),
+			roundTimeDuration,
+			0.85,
+			0.95,
 			"(END_ROUND)",
 			consensusState,
 			ch,
@@ -1952,8 +1993,9 @@ func TestSubroundEndRound_getMinConsensusGroupIndexOfManagedKeys(t *testing.T) {
 		bls.SrSignature,
 		bls.SrEndRound,
 		-1,
-		int64(85*roundTimeDuration/100),
-		int64(95*roundTimeDuration/100),
+		roundTimeDuration,
+		0.85,
+		0.95,
 		"(END_ROUND)",
 		consensusState,
 		ch,
@@ -2410,4 +2452,84 @@ func TestSubroundEndRound_SendProof(t *testing.T) {
 		require.NoError(t, err)
 		require.True(t, wasBroadcastEquivalentProofCalled)
 	})
+}
+
+func TestSubroundEndRound_UpdateConsensusMetrics(t *testing.T) {
+	t.Parallel()
+
+	now := time.Now()
+	container := consensusMocks.InitConsensusCore()
+	syncTimerMock := &consensusMocks.SyncTimerMock{
+		CurrentTimeCalled: func() time.Time {
+			return now
+		},
+	}
+	roundHandlerMock := consensusMocks.RoundHandlerMock{
+		TimeStampCalled: func() time.Time {
+			return now.Add(-500 * time.Nanosecond)
+		},
+	}
+	container.SetSyncTimer(syncTimerMock)
+	container.SetRoundHandler(&roundHandlerMock)
+
+	appStatusHandler := statusHandler.NewAppStatusHandlerMock()
+
+	ch := make(chan bool, 1)
+	consensusState := initializers.InitConsensusStateWithNodesCoordinator(container.NodesCoordinator())
+	sr, _ := spos.NewSubround(
+		bls.SrSignature,
+		bls.SrEndRound,
+		-1,
+		roundTimeDuration,
+		0.85,
+		0.95,
+		"(END_ROUND)",
+		consensusState,
+		ch,
+		executeStoredMessages,
+		container,
+		chainID,
+		currentPid,
+		appStatusHandler,
+	)
+	sr.SetHeader(&block.HeaderV2{
+		Header: createDefaultHeader(),
+	})
+
+	consensusMetrics, _ := spos.NewConsensusMetrics(sr.AppStatusHandler())
+	consensusMetrics.ResetInstanceValues()
+	consensusMetrics.ResetAverages()
+
+	worker := consensusMocks.SposWorkerMock{
+		ConsensusMetricsCalled: func() spos.ConsensusMetricsHandler {
+			return consensusMetrics
+		},
+	}
+
+	srEndRound, _ := v2.NewSubroundEndRound(
+		sr,
+		v2.ProcessingThresholdPercent,
+		appStatusHandler,
+		&testscommon.SentSignatureTrackerStub{},
+		&worker,
+		&dataRetrieverMocks.ThrottlerStub{},
+	)
+
+	srEndRound.SetHeader(&block.Header{})
+	srEndRound.SetData([]byte("hash"))
+
+	consensusMetrics.SetBlockReceivedOrSent(uint64(200))
+
+	srEndRound.UpdateConsensusMetricsProof()
+	// instance value = 500 - 200 = 300; avg = 300
+	assert.Equal(t, uint64(300), appStatusHandler.GetUint64(common.MetricReceivedProof), "MetricReceivedProof should be set")
+	assert.Equal(t, uint64(300), appStatusHandler.GetUint64(common.MetricAvgReceivedProof), "MetricAvgProofsReceived should be set")
+
+	consensusMetrics.ResetInstanceValues()
+	consensusMetrics.SetBlockReceivedOrSent(uint64(400))
+
+	srEndRound.UpdateConsensusMetricsProof()
+	// instance value = 500 - 400 = 100; avg = 300 + 100 / 2 = 200
+	assert.Equal(t, uint64(100), appStatusHandler.GetUint64(common.MetricReceivedProof), "MetricReceivedProof should be set")
+	assert.Equal(t, uint64(200), appStatusHandler.GetUint64(common.MetricAvgReceivedProof), "MetricAvgProofsReceived should be set")
 }

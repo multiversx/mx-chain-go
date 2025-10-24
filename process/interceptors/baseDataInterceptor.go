@@ -64,7 +64,9 @@ func (bdi *baseDataInterceptor) isMessageFromSelfToSelf(fromConnectedPeer core.P
 		fromConnectedPeer == bdi.currentPeerId
 }
 
-func (bdi *baseDataInterceptor) processInterceptedData(data process.InterceptedData, msg p2p.MessageP2P) {
+func (bdi *baseDataInterceptor) processInterceptedData(data process.InterceptedData, msg p2p.MessageP2P, fromConnectedPeer core.PeerID) bool {
+	bdi.processDebugInterceptedDataSuccess(data, msg, fromConnectedPeer)
+
 	err := bdi.processor.Validate(data, msg.Peer())
 	if err != nil {
 		log.Trace("intercepted data is not valid",
@@ -77,10 +79,10 @@ func (bdi *baseDataInterceptor) processInterceptedData(data process.InterceptedD
 		)
 		bdi.processDebugInterceptedData(data, err)
 
-		return
+		return false
 	}
 
-	err = bdi.processor.Save(data, msg.Peer(), bdi.topic)
+	savedData, err := bdi.processor.Save(data, msg.Peer(), bdi.topic)
 	if err != nil {
 		log.Trace("intercepted data can not be processed",
 			"hash", data.Hash(),
@@ -92,7 +94,11 @@ func (bdi *baseDataInterceptor) processInterceptedData(data process.InterceptedD
 		)
 		bdi.processDebugInterceptedData(data, err)
 
-		return
+		return savedData
+	}
+
+	if savedData {
+		bdi.interceptedDataVerifier.MarkVerified(data, msg.BroadcastMethod())
 	}
 
 	log.Trace("intercepted data is processed",
@@ -102,7 +108,10 @@ func (bdi *baseDataInterceptor) processInterceptedData(data process.InterceptedD
 		"seq no", p2p.MessageOriginatorSeq(msg),
 		"intercepted data", data.String(),
 	)
+
 	bdi.processDebugInterceptedData(data, err)
+
+	return savedData
 }
 
 func (bdi *baseDataInterceptor) processDebugInterceptedData(interceptedData process.InterceptedData, err error) {
@@ -110,6 +119,12 @@ func (bdi *baseDataInterceptor) processDebugInterceptedData(interceptedData proc
 
 	bdi.mutDebugHandler.RLock()
 	bdi.debugHandler.LogProcessedHashes(bdi.topic, identifiers, err)
+	bdi.mutDebugHandler.RUnlock()
+}
+
+func (bdi *baseDataInterceptor) processDebugInterceptedDataSuccess(data process.InterceptedData, msg p2p.MessageP2P, fromConnectedPeer core.PeerID) {
+	bdi.mutDebugHandler.RLock()
+	bdi.debugHandler.LogReceivedData(data, msg, fromConnectedPeer)
 	bdi.mutDebugHandler.RUnlock()
 }
 

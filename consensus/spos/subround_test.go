@@ -8,6 +8,7 @@ import (
 	"time"
 
 	"github.com/multiversx/mx-chain-core-go/core"
+	"github.com/multiversx/mx-chain-go/testscommon/enableEpochsHandlerMock"
 
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
@@ -104,8 +105,9 @@ func TestSubround_NewSubroundNilConsensusStateShouldFail(t *testing.T) {
 		-1,
 		bls.SrStartRound,
 		bls.SrBlock,
-		int64(0*roundTimeDuration/100),
-		int64(5*roundTimeDuration/100),
+		roundTimeDuration,
+		0,
+		0.05,
 		"(START_ROUND)",
 		nil,
 		ch,
@@ -130,8 +132,9 @@ func TestSubround_NewSubroundNilChannelShouldFail(t *testing.T) {
 		-1,
 		bls.SrStartRound,
 		bls.SrBlock,
-		int64(0*roundTimeDuration/100),
-		int64(5*roundTimeDuration/100),
+		roundTimeDuration,
+		0,
+		0.05,
 		"(START_ROUND)",
 		consensusState,
 		nil,
@@ -157,8 +160,9 @@ func TestSubround_NewSubroundNilExecuteStoredMessagesShouldFail(t *testing.T) {
 		-1,
 		bls.SrStartRound,
 		bls.SrBlock,
-		int64(0*roundTimeDuration/100),
-		int64(5*roundTimeDuration/100),
+		roundTimeDuration,
+		0,
+		0.05,
 		"(START_ROUND)",
 		consensusState,
 		ch,
@@ -183,8 +187,9 @@ func TestSubround_NewSubroundNilContainerShouldFail(t *testing.T) {
 		-1,
 		bls.SrStartRound,
 		bls.SrBlock,
-		int64(0*roundTimeDuration/100),
-		int64(5*roundTimeDuration/100),
+		roundTimeDuration,
+		0,
+		0.05,
 		"(START_ROUND)",
 		consensusState,
 		ch,
@@ -211,8 +216,9 @@ func TestSubround_NilContainerBlockchainShouldFail(t *testing.T) {
 		-1,
 		bls.SrStartRound,
 		bls.SrBlock,
-		int64(0*roundTimeDuration/100),
-		int64(5*roundTimeDuration/100),
+		roundTimeDuration,
+		0,
+		0.05,
 		"(START_ROUND)",
 		consensusState,
 		ch,
@@ -239,8 +245,9 @@ func TestSubround_NilContainerBlockprocessorShouldFail(t *testing.T) {
 		-1,
 		bls.SrStartRound,
 		bls.SrBlock,
-		int64(0*roundTimeDuration/100),
-		int64(5*roundTimeDuration/100),
+		roundTimeDuration,
+		0,
+		0.05,
 		"(START_ROUND)",
 		consensusState,
 		ch,
@@ -267,8 +274,9 @@ func TestSubround_NilContainerBootstrapperShouldFail(t *testing.T) {
 		-1,
 		bls.SrStartRound,
 		bls.SrBlock,
-		int64(0*roundTimeDuration/100),
-		int64(5*roundTimeDuration/100),
+		roundTimeDuration,
+		0,
+		0.05,
 		"(START_ROUND)",
 		consensusState,
 		ch,
@@ -295,8 +303,9 @@ func TestSubround_NilContainerChronologyShouldFail(t *testing.T) {
 		-1,
 		bls.SrStartRound,
 		bls.SrBlock,
-		int64(0*roundTimeDuration/100),
-		int64(5*roundTimeDuration/100),
+		roundTimeDuration,
+		0,
+		0.05,
 		"(START_ROUND)",
 		consensusState,
 		ch,
@@ -323,8 +332,9 @@ func TestSubround_NilContainerHasherShouldFail(t *testing.T) {
 		-1,
 		bls.SrStartRound,
 		bls.SrBlock,
-		int64(0*roundTimeDuration/100),
-		int64(5*roundTimeDuration/100),
+		roundTimeDuration,
+		0,
+		0.05,
 		"(START_ROUND)",
 		consensusState,
 		ch,
@@ -351,8 +361,9 @@ func TestSubround_NilContainerMarshalizerShouldFail(t *testing.T) {
 		-1,
 		bls.SrStartRound,
 		bls.SrBlock,
-		int64(0*roundTimeDuration/100),
-		int64(5*roundTimeDuration/100),
+		roundTimeDuration,
+		0,
+		0.05,
 		"(START_ROUND)",
 		consensusState,
 		ch,
@@ -379,8 +390,9 @@ func TestSubround_NilContainerMultiSignerShouldFail(t *testing.T) {
 		-1,
 		bls.SrStartRound,
 		bls.SrBlock,
-		int64(0*roundTimeDuration/100),
-		int64(5*roundTimeDuration/100),
+		roundTimeDuration,
+		0,
+		0.05,
 		"(START_ROUND)",
 		consensusState,
 		ch,
@@ -407,8 +419,9 @@ func TestSubround_NilContainerRoundHandlerShouldFail(t *testing.T) {
 		-1,
 		bls.SrStartRound,
 		bls.SrBlock,
-		int64(0*roundTimeDuration/100),
-		int64(5*roundTimeDuration/100),
+		roundTimeDuration,
+		0,
+		0.05,
 		"(START_ROUND)",
 		consensusState,
 		ch,
@@ -435,8 +448,9 @@ func TestSubround_NilContainerShardCoordinatorShouldFail(t *testing.T) {
 		-1,
 		bls.SrStartRound,
 		bls.SrBlock,
-		int64(0*roundTimeDuration/100),
-		int64(5*roundTimeDuration/100),
+		roundTimeDuration,
+		0,
+		0.05,
 		"(START_ROUND)",
 		consensusState,
 		ch,
@@ -463,8 +477,9 @@ func TestSubround_NilContainerSyncTimerShouldFail(t *testing.T) {
 		-1,
 		bls.SrStartRound,
 		bls.SrBlock,
-		int64(0*roundTimeDuration/100),
-		int64(5*roundTimeDuration/100),
+		roundTimeDuration,
+		0,
+		0.05,
 		"(START_ROUND)",
 		consensusState,
 		ch,
@@ -491,8 +506,9 @@ func TestSubround_NilContainerValidatorGroupSelectorShouldFail(t *testing.T) {
 		-1,
 		bls.SrStartRound,
 		bls.SrBlock,
-		int64(0*roundTimeDuration/100),
-		int64(5*roundTimeDuration/100),
+		roundTimeDuration,
+		0,
+		0.05,
 		"(START_ROUND)",
 		consensusState,
 		ch,
@@ -517,8 +533,9 @@ func TestSubround_EmptyChainIDShouldFail(t *testing.T) {
 		-1,
 		bls.SrStartRound,
 		bls.SrBlock,
-		int64(0*roundTimeDuration/100),
-		int64(5*roundTimeDuration/100),
+		roundTimeDuration,
+		0,
+		0.05,
 		"(START_ROUND)",
 		consensusState,
 		ch,
@@ -543,8 +560,9 @@ func TestSubround_NewSubroundShouldWork(t *testing.T) {
 		-1,
 		bls.SrStartRound,
 		bls.SrBlock,
-		int64(0*roundTimeDuration/100),
-		int64(5*roundTimeDuration/100),
+		roundTimeDuration,
+		0,
+		0.05,
 		"(START_ROUND)",
 		consensusState,
 		ch,
@@ -578,8 +596,9 @@ func TestSubround_DoWorkShouldReturnFalseWhenJobFunctionIsNotSet(t *testing.T) {
 		-1,
 		bls.SrStartRound,
 		bls.SrBlock,
-		int64(0*roundTimeDuration/100),
-		int64(5*roundTimeDuration/100),
+		roundTimeDuration,
+		0,
+		0.05,
 		"(START_ROUND)",
 		consensusState,
 		ch,
@@ -616,8 +635,9 @@ func TestSubround_DoWorkShouldReturnFalseWhenCheckFunctionIsNotSet(t *testing.T)
 		-1,
 		bls.SrStartRound,
 		bls.SrBlock,
-		int64(0*roundTimeDuration/100),
-		int64(5*roundTimeDuration/100),
+		roundTimeDuration,
+		0,
+		0.05,
 		"(START_ROUND)",
 		consensusState,
 		ch,
@@ -663,8 +683,9 @@ func testDoWork(t *testing.T, checkDone bool, shouldWork bool) {
 		-1,
 		bls.SrStartRound,
 		bls.SrBlock,
-		int64(0*roundTimeDuration/100),
-		int64(5*roundTimeDuration/100),
+		roundTimeDuration,
+		0,
+		0.05,
 		"(START_ROUND)",
 		consensusState,
 		ch,
@@ -702,8 +723,9 @@ func TestSubround_DoWorkShouldReturnTrueWhenJobIsDoneAndConsensusIsDoneAfterAWhi
 		-1,
 		bls.SrStartRound,
 		bls.SrBlock,
-		int64(0*roundTimeDuration/100),
-		int64(5*roundTimeDuration/100),
+		roundTimeDuration,
+		0,
+		0.05,
 		"(START_ROUND)",
 		consensusState,
 		ch,
@@ -760,8 +782,9 @@ func TestSubround_Previous(t *testing.T) {
 		bls.SrStartRound,
 		bls.SrBlock,
 		bls.SrSignature,
-		int64(5*roundTimeDuration/100),
-		int64(25*roundTimeDuration/100),
+		roundTimeDuration,
+		0.05,
+		0.25,
 		"(BLOCK)",
 		consensusState,
 		ch,
@@ -792,8 +815,9 @@ func TestSubround_Current(t *testing.T) {
 		bls.SrStartRound,
 		bls.SrBlock,
 		bls.SrSignature,
-		int64(5*roundTimeDuration/100),
-		int64(25*roundTimeDuration/100),
+		roundTimeDuration,
+		0.05,
+		0.25,
 		"(BLOCK)",
 		consensusState,
 		ch,
@@ -824,8 +848,9 @@ func TestSubround_Next(t *testing.T) {
 		bls.SrStartRound,
 		bls.SrBlock,
 		bls.SrSignature,
-		int64(5*roundTimeDuration/100),
-		int64(25*roundTimeDuration/100),
+		roundTimeDuration,
+		0.05,
+		0.25,
 		"(BLOCK)",
 		consensusState,
 		ch,
@@ -856,8 +881,9 @@ func TestSubround_StartTime(t *testing.T) {
 		bls.SrBlock,
 		bls.SrSignature,
 		bls.SrEndRound,
-		int64(25*roundTimeDuration/100),
-		int64(40*roundTimeDuration/100),
+		roundTimeDuration,
+		0.25,
+		0.4,
 		"(SIGNATURE)",
 		consensusState,
 		ch,
@@ -875,6 +901,10 @@ func TestSubround_StartTime(t *testing.T) {
 	}
 
 	assert.Equal(t, int64(25*roundTimeDuration/100), sr.StartTime())
+
+	newBase := roundTimeDuration * 2
+	sr.SetBaseDuration(newBase)
+	assert.Equal(t, int64(25*newBase/100), sr.StartTime())
 }
 
 func TestSubround_EndTime(t *testing.T) {
@@ -888,8 +918,9 @@ func TestSubround_EndTime(t *testing.T) {
 		bls.SrStartRound,
 		bls.SrBlock,
 		bls.SrSignature,
-		int64(5*roundTimeDuration/100),
-		int64(25*roundTimeDuration/100),
+		roundTimeDuration,
+		0.05,
+		0.25,
 		"(BLOCK)",
 		consensusState,
 		ch,
@@ -907,6 +938,10 @@ func TestSubround_EndTime(t *testing.T) {
 	}
 
 	assert.Equal(t, int64(25*roundTimeDuration/100), sr.EndTime())
+
+	newBase := roundTimeDuration * 2
+	sr.SetBaseDuration(newBase)
+	assert.Equal(t, int64(25*newBase/100), sr.EndTime())
 }
 
 func TestSubround_Name(t *testing.T) {
@@ -920,8 +955,9 @@ func TestSubround_Name(t *testing.T) {
 		bls.SrStartRound,
 		bls.SrBlock,
 		bls.SrSignature,
-		int64(5*roundTimeDuration/100),
-		int64(25*roundTimeDuration/100),
+		roundTimeDuration,
+		0.05,
+		0.25,
 		"(BLOCK)",
 		consensusState,
 		ch,
@@ -953,8 +989,9 @@ func TestSubround_GetAssociatedPid(t *testing.T) {
 		bls.SrStartRound,
 		bls.SrBlock,
 		bls.SrSignature,
-		int64(5*roundTimeDuration/100),
-		int64(25*roundTimeDuration/100),
+		roundTimeDuration,
+		0.05,
+		0.25,
 		"(BLOCK)",
 		consensusState,
 		ch,
@@ -1002,8 +1039,9 @@ func TestSubround_ShouldConsiderSelfKeyInConsensus(t *testing.T) {
 			bls.SrStartRound,
 			bls.SrBlock,
 			bls.SrSignature,
-			int64(5*roundTimeDuration/100),
-			int64(25*roundTimeDuration/100),
+			roundTimeDuration,
+			0.05,
+			0.25,
 			"(BLOCK)",
 			consensusState,
 			ch,
@@ -1038,8 +1076,9 @@ func TestSubround_ShouldConsiderSelfKeyInConsensus(t *testing.T) {
 			bls.SrStartRound,
 			bls.SrBlock,
 			bls.SrSignature,
-			int64(5*roundTimeDuration/100),
-			int64(25*roundTimeDuration/100),
+			roundTimeDuration,
+			0.05,
+			0.25,
 			"(BLOCK)",
 			consensusState,
 			ch,
@@ -1074,8 +1113,9 @@ func TestSubround_ShouldConsiderSelfKeyInConsensus(t *testing.T) {
 			bls.SrStartRound,
 			bls.SrBlock,
 			bls.SrSignature,
-			int64(5*roundTimeDuration/100),
-			int64(25*roundTimeDuration/100),
+			roundTimeDuration,
+			0.05,
+			0.25,
 			"(BLOCK)",
 			consensusState,
 			ch,
@@ -1109,8 +1149,9 @@ func TestSubround_GetLeaderStartRoundMessage(t *testing.T) {
 			bls.SrStartRound,
 			bls.SrBlock,
 			bls.SrSignature,
-			int64(5*roundTimeDuration/100),
-			int64(25*roundTimeDuration/100),
+			roundTimeDuration,
+			0.05,
+			0.25,
 			"(BLOCK)",
 			consensusState,
 			ch,
@@ -1141,8 +1182,9 @@ func TestSubround_GetLeaderStartRoundMessage(t *testing.T) {
 			bls.SrStartRound,
 			bls.SrBlock,
 			bls.SrSignature,
-			int64(5*roundTimeDuration/100),
-			int64(25*roundTimeDuration/100),
+			roundTimeDuration,
+			0.05,
+			0.25,
 			"(BLOCK)",
 			consensusState,
 			ch,
@@ -1173,8 +1215,9 @@ func TestSubround_GetLeaderStartRoundMessage(t *testing.T) {
 			bls.SrStartRound,
 			bls.SrBlock,
 			bls.SrSignature,
-			int64(5*roundTimeDuration/100),
-			int64(25*roundTimeDuration/100),
+			roundTimeDuration,
+			0.05,
+			0.25,
 			"(BLOCK)",
 			consensusState,
 			ch,
@@ -1209,8 +1252,9 @@ func TestSubround_IsSelfInConsensusGroup(t *testing.T) {
 			bls.SrStartRound,
 			bls.SrBlock,
 			bls.SrSignature,
-			int64(5*roundTimeDuration/100),
-			int64(25*roundTimeDuration/100),
+			roundTimeDuration,
+			0.05,
+			0.25,
 			"(BLOCK)",
 			consensusState,
 			ch,
@@ -1235,8 +1279,9 @@ func TestSubround_IsSelfInConsensusGroup(t *testing.T) {
 			bls.SrStartRound,
 			bls.SrBlock,
 			bls.SrSignature,
-			int64(5*roundTimeDuration/100),
-			int64(25*roundTimeDuration/100),
+			roundTimeDuration,
+			0.05,
+			0.25,
 			"(BLOCK)",
 			consensusState,
 			ch,
@@ -1271,8 +1316,9 @@ func TestSubround_IsSelfLeader(t *testing.T) {
 			bls.SrStartRound,
 			bls.SrBlock,
 			bls.SrSignature,
-			int64(5*roundTimeDuration/100),
-			int64(25*roundTimeDuration/100),
+			roundTimeDuration,
+			0.05,
+			0.25,
 			"(BLOCK)",
 			consensusState,
 			ch,
@@ -1299,8 +1345,9 @@ func TestSubround_IsSelfLeader(t *testing.T) {
 			bls.SrStartRound,
 			bls.SrBlock,
 			bls.SrSignature,
-			int64(5*roundTimeDuration/100),
-			int64(25*roundTimeDuration/100),
+			roundTimeDuration,
+			0.05,
+			0.25,
 			"(BLOCK)",
 			consensusState,
 			ch,
@@ -1317,6 +1364,82 @@ func TestSubround_IsSelfLeader(t *testing.T) {
 	})
 }
 
+func TestSubround_Getters(t *testing.T) {
+	t.Parallel()
+
+	consensusState := internalInitConsensusStateWithKeysHandler(&testscommon.KeysHandlerStub{})
+	ch := make(chan bool, 1)
+	container := consensus.InitConsensusCore()
+
+	providedAppStatusHandler := &statusHandler.AppStatusHandlerStub{}
+	sr, _ := spos.NewSubround(
+		bls.SrStartRound,
+		bls.SrBlock,
+		bls.SrSignature,
+		roundTimeDuration,
+		0.05,
+		0.25,
+		"(BLOCK)",
+		consensusState,
+		ch,
+		executeStoredMessages,
+		container,
+		chainID,
+		currentPid,
+		providedAppStatusHandler,
+	)
+	require.Equal(t, chainID, sr.ChainID())
+	require.Equal(t, currentPid, sr.CurrentPid())
+	require.Equal(t, providedAppStatusHandler, sr.AppStatusHandler())
+	require.Equal(t, ch, sr.ConsensusChannel())
+}
+
+func TestSubround_GetUnixTimestampForHeader(t *testing.T) {
+	t.Parallel()
+
+	consensusState := internalInitConsensusStateWithKeysHandler(&testscommon.KeysHandlerStub{})
+	ch := make(chan bool, 1)
+	container := consensus.InitConsensusCore()
+	isFlagEnabled := false
+	container.SetEnableEpochsHandler(&enableEpochsHandlerMock.EnableEpochsHandlerStub{
+		IsFlagEnabledInEpochCalled: func(flag core.EnableEpochFlag, epoch uint32) bool {
+			return isFlagEnabled
+		},
+	})
+	timestampBeforeSupernova := time.Date(2000, 1, 1, 0, 0, 0, 0, time.UTC)
+	timestampAfterSupernova := time.Date(2010, 1, 1, 0, 0, 0, 0, time.UTC)
+	container.SetRoundHandler(&testscommon.RoundHandlerMock{
+		TimeStampCalled: func() time.Time {
+			if !isFlagEnabled {
+				return timestampBeforeSupernova
+			}
+			return timestampAfterSupernova
+		},
+	})
+
+	providedAppStatusHandler := &statusHandler.AppStatusHandlerStub{}
+	sr, _ := spos.NewSubround(
+		bls.SrStartRound,
+		bls.SrBlock,
+		bls.SrSignature,
+		roundTimeDuration,
+		0.05,
+		0.25,
+		"(BLOCK)",
+		consensusState,
+		ch,
+		executeStoredMessages,
+		container,
+		chainID,
+		currentPid,
+		providedAppStatusHandler,
+	)
+	require.Equal(t, uint64(timestampBeforeSupernova.Unix()), sr.GetUnixTimestampForHeader(0))
+
+	isFlagEnabled = true
+	require.Equal(t, uint64(timestampAfterSupernova.UnixMilli()), sr.GetUnixTimestampForHeader(0))
+}
+
 func TestSubround_IsInterfaceNil(t *testing.T) {
 	t.Parallel()
 
@@ -1331,8 +1454,9 @@ func TestSubround_IsInterfaceNil(t *testing.T) {
 		bls.SrStartRound,
 		bls.SrBlock,
 		bls.SrSignature,
-		int64(5*roundTimeDuration/100),
-		int64(25*roundTimeDuration/100),
+		roundTimeDuration,
+		0.05,
+		0.25,
 		"(BLOCK)",
 		consensusState,
 		ch,

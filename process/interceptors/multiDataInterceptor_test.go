@@ -10,6 +10,7 @@ import (
 	"github.com/multiversx/mx-chain-core-go/core"
 	"github.com/multiversx/mx-chain-core-go/core/check"
 	"github.com/multiversx/mx-chain-core-go/data/batch"
+	"github.com/multiversx/mx-chain-go/p2p"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 
@@ -379,7 +380,7 @@ func testProcessReceiveMessageMultiData(t *testing.T, isForCurrentShard bool, ex
 	arg.Processor = createMockInterceptorStub(&checkCalledNum, &processCalledNum)
 	arg.Throttler = throttler
 	arg.InterceptedDataVerifier = &mock.InterceptedDataVerifierMock{
-		VerifyCalled: func(interceptedData process.InterceptedData) error {
+		VerifyCalled: func(interceptedData process.InterceptedData, topic string, broadcastMethod p2p.BroadcastMethod) error {
 			return interceptedData.CheckValidity()
 		},
 	}
@@ -421,7 +422,7 @@ func TestMultiDataInterceptor_ProcessReceivedMessageCheckBatchErrors(t *testing.
 	expectedErr := errors.New("expected error")
 	_ = mdi.SetChunkProcessor(
 		&mock.ChunkProcessorStub{
-			CheckBatchCalled: func(b *batch.Batch, w process.WhiteListHandler) (process.CheckedChunkResult, error) {
+			CheckBatchCalled: func(b *batch.Batch, w process.WhiteListHandler, _ p2p.BroadcastMethod) (process.CheckedChunkResult, error) {
 				return process.CheckedChunkResult{}, expectedErr
 			},
 		},
@@ -460,7 +461,7 @@ func TestMultiDataInterceptor_ProcessReceivedMessageCheckBatchIsIncomplete(t *te
 	mdi, _ := interceptors.NewMultiDataInterceptor(arg)
 	_ = mdi.SetChunkProcessor(
 		&mock.ChunkProcessorStub{
-			CheckBatchCalled: func(b *batch.Batch, w process.WhiteListHandler) (process.CheckedChunkResult, error) {
+			CheckBatchCalled: func(b *batch.Batch, w process.WhiteListHandler, _ p2p.BroadcastMethod) (process.CheckedChunkResult, error) {
 				return process.CheckedChunkResult{
 					IsChunk:        true,
 					HaveAllChunks:  false,
@@ -516,7 +517,7 @@ func TestMultiDataInterceptor_ProcessReceivedMessageCheckBatchIsComplete(t *test
 	mdi, _ := interceptors.NewMultiDataInterceptor(arg)
 	_ = mdi.SetChunkProcessor(
 		&mock.ChunkProcessorStub{
-			CheckBatchCalled: func(b *batch.Batch, w process.WhiteListHandler) (process.CheckedChunkResult, error) {
+			CheckBatchCalled: func(b *batch.Batch, w process.WhiteListHandler, _ p2p.BroadcastMethod) (process.CheckedChunkResult, error) {
 				return process.CheckedChunkResult{
 					IsChunk:        true,
 					HaveAllChunks:  true,
@@ -648,7 +649,7 @@ func processReceivedMessageMultiDataInvalidVersion(t *testing.T, expectedErr err
 		},
 	}
 	arg.InterceptedDataVerifier = &mock.InterceptedDataVerifierMock{
-		VerifyCalled: func(interceptedData process.InterceptedData) error {
+		VerifyCalled: func(interceptedData process.InterceptedData, topic string, broadcastMethod p2p.BroadcastMethod) error {
 			return interceptedData.CheckValidity()
 		},
 	}

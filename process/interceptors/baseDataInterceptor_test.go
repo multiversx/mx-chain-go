@@ -3,6 +3,7 @@ package interceptors
 import (
 	"errors"
 	"testing"
+	"time"
 
 	"github.com/multiversx/mx-chain-core-go/core"
 	"github.com/multiversx/mx-chain-go/p2p"
@@ -15,7 +16,7 @@ import (
 
 const fromConnectedPeer = "from connected peer"
 
-//------- preProcessMessage
+// ------- preProcessMessage
 
 func newBaseDataInterceptorForPreProcess(
 	throttler process.InterceptorThrottler,
@@ -31,9 +32,10 @@ func newBaseDataInterceptorForPreProcess(
 
 func newBaseDataInterceptorForProcess(processor process.InterceptorProcessor, debugHandler process.InterceptedDebugger, topic string) *baseDataInterceptor {
 	return &baseDataInterceptor{
-		topic:        topic,
-		processor:    processor,
-		debugHandler: debugHandler,
+		topic:                   topic,
+		processor:               processor,
+		debugHandler:            debugHandler,
+		interceptedDataVerifier: defaultInterceptedDataVerifier(time.Second),
 	}
 }
 
@@ -214,7 +216,7 @@ func TestPreProcessMessage_CanProcessFromPreferredPeer(t *testing.T) {
 	assert.Equal(t, int32(1), throttler.StartProcessingCount())
 }
 
-//------- processInterceptedData
+// ------- processInterceptedData
 
 func TestProcessInterceptedData_NotValidShouldCallDoneAndNotCallProcessed(t *testing.T) {
 	t.Parallel()
@@ -224,14 +226,14 @@ func TestProcessInterceptedData_NotValidShouldCallDoneAndNotCallProcessed(t *tes
 		ValidateCalled: func(data process.InterceptedData) error {
 			return errors.New("not valid")
 		},
-		SaveCalled: func(data process.InterceptedData) error {
+		SaveCalled: func(data process.InterceptedData) (bool, error) {
 			processCalled = true
-			return nil
+			return true, nil
 		},
 	}
 
 	bdi := newBaseDataInterceptorForProcess(processor, &mock.InterceptedDebugHandlerStub{}, "topic")
-	bdi.processInterceptedData(&testscommon.InterceptedDataStub{}, &p2pmocks.P2PMessageMock{})
+	bdi.processInterceptedData(&testscommon.InterceptedDataStub{}, &p2pmocks.P2PMessageMock{}, fromConnectedPeer)
 
 	assert.False(t, processCalled)
 }
@@ -244,14 +246,14 @@ func TestProcessInterceptedData_ValidShouldCallDoneAndCallProcessed(t *testing.T
 		ValidateCalled: func(data process.InterceptedData) error {
 			return nil
 		},
-		SaveCalled: func(data process.InterceptedData) error {
+		SaveCalled: func(data process.InterceptedData) (bool, error) {
 			processCalled = true
-			return nil
+			return true, nil
 		},
 	}
 
 	bdi := newBaseDataInterceptorForProcess(processor, &mock.InterceptedDebugHandlerStub{}, "topic")
-	bdi.processInterceptedData(&testscommon.InterceptedDataStub{}, &p2pmocks.P2PMessageMock{})
+	bdi.processInterceptedData(&testscommon.InterceptedDataStub{}, &p2pmocks.P2PMessageMock{}, fromConnectedPeer)
 
 	assert.True(t, processCalled)
 }
@@ -264,19 +266,19 @@ func TestProcessInterceptedData_ProcessErrorShouldCallDone(t *testing.T) {
 		ValidateCalled: func(data process.InterceptedData) error {
 			return nil
 		},
-		SaveCalled: func(data process.InterceptedData) error {
+		SaveCalled: func(data process.InterceptedData) (bool, error) {
 			processCalled = true
-			return errors.New("error while processing")
+			return false, errors.New("error while processing")
 		},
 	}
 
 	bdi := newBaseDataInterceptorForProcess(processor, &mock.InterceptedDebugHandlerStub{}, "topic")
-	bdi.processInterceptedData(&testscommon.InterceptedDataStub{}, &p2pmocks.P2PMessageMock{})
+	bdi.processInterceptedData(&testscommon.InterceptedDataStub{}, &p2pmocks.P2PMessageMock{}, fromConnectedPeer)
 
 	assert.True(t, processCalled)
 }
 
-//------- debug
+// ------- debug
 
 func TestProcessDebugInterceptedData_ShouldWork(t *testing.T) {
 	t.Parallel()

@@ -42,10 +42,10 @@ func (viip *validatorInfoInterceptorProcessor) Validate(_ process.InterceptedDat
 }
 
 // Save will save the intercepted validator info into the cache
-func (viip *validatorInfoInterceptorProcessor) Save(data process.InterceptedData, _ core.PeerID, _ string) error {
+func (viip *validatorInfoInterceptorProcessor) Save(data process.InterceptedData, _ core.PeerID, _ string) (bool, error) {
 	ivi, ok := data.(interceptedValidatorInfo)
 	if !ok {
-		return process.ErrWrongTypeAssertion
+		return false, process.ErrWrongTypeAssertion
 	}
 
 	validatorInfo := ivi.ValidatorInfo()
@@ -56,7 +56,7 @@ func (viip *validatorInfoInterceptorProcessor) Save(data process.InterceptedData
 	strCache := process.ShardCacherIdentifier(core.MetachainShardId, core.AllShardId)
 	viip.validatorInfoPool.AddData(hash, validatorInfo, validatorInfo.Size(), strCache)
 
-	return nil
+	return true, nil
 }
 
 // RegisterHandler registers a callback function to be notified of incoming validator info

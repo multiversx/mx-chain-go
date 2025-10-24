@@ -64,31 +64,31 @@ func (paip *peerAuthenticationInterceptorProcessor) Validate(_ process.Intercept
 }
 
 // Save will save the intercepted peer authentication inside the peer authentication cacher
-func (paip *peerAuthenticationInterceptorProcessor) Save(data process.InterceptedData, _ core.PeerID, _ string) error {
+func (paip *peerAuthenticationInterceptorProcessor) Save(data process.InterceptedData, _ core.PeerID, _ string) (bool, error) {
 	interceptedPeerAuthenticationData, ok := data.(interceptedPeerAuthenticationMessageHandler)
 	if !ok {
-		return process.ErrWrongTypeAssertion
+		return false, process.ErrWrongTypeAssertion
 	}
 
 	payloadBuff := interceptedPeerAuthenticationData.Payload()
 	payload := &heartbeat.Payload{}
 	err := paip.marshaller.Unmarshal(payload, payloadBuff)
 	if err != nil {
-		return err
+		return false, err
 	}
 
 	isHardforkTrigger, err := paip.hardforkTrigger.TriggerReceived(nil, []byte(payload.HardforkMessage), interceptedPeerAuthenticationData.Pubkey())
 	if isHardforkTrigger {
-		return err
+		return false, err
 	}
 
 	return paip.updatePeerInfo(interceptedPeerAuthenticationData.Message(), interceptedPeerAuthenticationData.SizeInBytes())
 }
 
-func (paip *peerAuthenticationInterceptorProcessor) updatePeerInfo(message interface{}, messageSize int) error {
+func (paip *peerAuthenticationInterceptorProcessor) updatePeerInfo(message interface{}, messageSize int) (bool, error) {
 	peerAuthenticationData, ok := message.(*heartbeat.PeerAuthentication)
 	if !ok {
-		return process.ErrWrongTypeAssertion
+		return false, process.ErrWrongTypeAssertion
 	}
 
 	pidBytes := peerAuthenticationData.GetPid()
@@ -97,7 +97,7 @@ func (paip *peerAuthenticationInterceptorProcessor) updatePeerInfo(message inter
 
 	log.Trace("PeerAuthentication message saved")
 
-	return nil
+	return true, nil
 }
 
 // RegisterHandler registers a callback function to be notified of incoming peer authentication

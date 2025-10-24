@@ -374,4 +374,5 @@ func TestInterceptedEquivalentProof_Getters(t *testing.T) {
 		logger.DisplayByteSlice(proof.AggregatedSignature),
 		logger.DisplayByteSlice(proof.HeaderHash))
 	require.Equal(t, expectedStr, iep.String())
+	require.True(t, iep.ShouldAllowDuplicates())
 }

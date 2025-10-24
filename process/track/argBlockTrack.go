@@ -26,8 +26,10 @@ type ArgBaseTracker struct {
 	WhitelistHandler              process.WhiteListHandler
 	FeeHandler                    process.FeeHandler
 	EnableEpochsHandler           common.EnableEpochsHandler
+	EnableRoundsHandler           common.EnableRoundsHandler
 	ProofsPool                    process.ProofsPool
 	EpochChangeGracePeriodHandler common.EpochChangeGracePeriodHandler
+	ProcessConfigsHandler         common.ProcessConfigsHandler
 	IsImportDBMode                bool
 }
 

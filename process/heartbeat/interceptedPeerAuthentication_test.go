@@ -341,4 +341,5 @@ func TestInterceptedPeerAuthentication_Getters(t *testing.T) {
 	assert.Equal(t, expectedPeerAuthentication.Pid, identifiers[1])
 	providedPASize := getSizeOfPA(providedPA)
 	assert.Equal(t, providedPASize, ipa.SizeInBytes())
+	assert.True(t, ipa.ShouldAllowDuplicates())
 }

@@ -11,6 +11,7 @@ import (
 	"github.com/multiversx/mx-chain-go/heartbeat"
 	"github.com/multiversx/mx-chain-go/process"
 	"github.com/stretchr/testify/assert"
+	"github.com/stretchr/testify/require"
 )
 
 func createDefaultInterceptedHeartbeat() *heartbeat.HeartbeatV2 {
@@ -189,4 +190,5 @@ func TestInterceptedHeartbeat_Getters(t *testing.T) {
 	assert.Equal(t, []byte(""), ihb.Hash())
 	providedHBSize := getSizeOfHeartbeat(providedHB)
 	assert.Equal(t, providedHBSize, ihb.SizeInBytes())
+	require.True(t, ihb.ShouldAllowDuplicates())
 }

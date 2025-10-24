@@ -83,6 +83,11 @@ func (inHdr *InterceptedHeader) CheckValidity() error {
 	return inHdr.verifySignatures()
 }
 
+// ShouldAllowDuplicates returns if this type of intercepted data should allow duplicates
+func (inHdr *InterceptedHeader) ShouldAllowDuplicates() bool {
+	return false
+}
+
 func (inHdr *InterceptedHeader) verifySignatures() error {
 	err := inHdr.sigVerifier.VerifyRandSeedAndLeaderSignature(inHdr.hdr)
 	if err != nil {
