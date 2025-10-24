@@ -5,6 +5,7 @@ import (
 	"sort"
 
 	"github.com/multiversx/mx-chain-go/config"
+	logger "github.com/multiversx/mx-chain-logger-go"
 )
 
 const (
@@ -190,4 +191,11 @@ func (pce *processConfigsByEpoch) GetRoundModulusTriggerWhenSyncIsStuck(round ui
 // IsInterfaceNil checks if the instance is nil
 func (pce *processConfigsByEpoch) IsInterfaceNil() bool {
 	return pce == nil
+}
+
+// SetActivationRound -
+func (pce *processConfigsByEpoch) SetActivationRound(round uint64, log logger.Logger) {
+	nr := len(pce.orderedConfigByRound)
+	log.Info("processConfigsByEpoch.SetActivationRound", "enableRound", round, "oldRound", pce.orderedConfigByRound[nr-1].EnableRound)
+	pce.orderedConfigByRound[nr-1].EnableRound = round
 }

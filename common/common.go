@@ -247,12 +247,30 @@ type EnableEpochsHandlerWithSet interface {
 	SetActivationRound(flag EnableRoundFlag, round uint64)
 }
 
+type ProcessConfigsHandlerWithSet interface {
+	SetActivationRound(round uint64, log logger.Logger)
+}
+
+type CommonConfigsHandlerWithSet interface {
+	SetActivationRound(round uint64, log logger.Logger)
+}
+
 var erh EnableEpochsHandlerWithSet
 var eeh EnableEpochsHandler
+var pch ProcessConfigsHandlerWithSet
+var cch CommonConfigsHandlerWithSet
 var log = logger.GetOrCreate("common")
 
 func SetEnableRoundsHandler(enableRoundsHandler EnableEpochsHandlerWithSet) {
 	erh = enableRoundsHandler
+}
+
+func SetProcessConfigsHandler(pcHandler ProcessConfigsHandler) {
+	pch = pcHandler
+}
+
+func SetCommonConfigsHandler(ccHandler CommonConfigsHandler) {
+	cch = ccHandler
 }
 
 func SetEnableEpochsHandler(enableEpochsHandler EnableEpochsHandler) {
@@ -261,9 +279,11 @@ func SetEnableEpochsHandler(enableEpochsHandler EnableEpochsHandler) {
 
 func SetSuperNovaActivationRound(epoch uint32, round uint64) {
 	isEnabled := eeh.GetActivationEpoch(SupernovaFlag) == epoch && eeh.IsFlagEnabledInEpoch(SupernovaFlag, epoch)
-	log.Info("SetSuperNovaActivationRound", "round", round, "epoch", epoch, "is enabled in current round", isEnabled)
+	log.Info("SetSuperNovaActivationRound", "currentRound", round, "activationRound", round+20, "epoch", epoch, "is enabled in current round", isEnabled)
 	if isEnabled {
-		erh.SetActivationRound(SupernovaRoundFlag, round+20)
+		supernovaRound := round + 20
+		erh.SetActivationRound(SupernovaRoundFlag, supernovaRound)
+		pch.SetActivationRound(supernovaRound, log)
+		cch.SetActivationRound(supernovaRound, log)
 	}
-
 }
