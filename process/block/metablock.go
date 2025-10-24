@@ -141,6 +141,7 @@ func NewMetaProcessor(arguments ArgMetaProcessor) (*metaProcessor, error) {
 		blockProcessingCutoffHandler:  arguments.BlockProcessingCutoffHandler,
 		managedPeersHolder:            arguments.ManagedPeersHolder,
 		sentSignaturesTracker:         arguments.SentSignaturesTracker,
+		stateAccessesCollector:        arguments.StateAccessesCollector,
 		extraDelayRequestBlockInfo:    time.Duration(arguments.Config.EpochStartConfig.ExtraDelayForRequestBlockInfoInMilliseconds) * time.Millisecond,
 		proofsPool:                    arguments.DataComponents.Datapool().Proofs(),
 	}
@@ -655,6 +656,7 @@ func (mp *metaProcessor) indexBlock(
 		HighestFinalBlockNonce: mp.forkDetector.GetHighestFinalBlockNonce(),
 		HighestFinalBlockHash:  mp.forkDetector.GetHighestFinalBlockHash(),
 	})
+
 	if err != nil {
 		log.Error("metaProcessor.indexBlock cannot prepare argSaveBlock", "error", err.Error(),
 			"hash", headerHash, "nonce", metaBlock.GetNonce(), "round", metaBlock.GetRound())
@@ -1363,6 +1365,7 @@ func (mp *metaProcessor) CommitBlock(
 
 	// TODO: Should be sent also validatorInfoTxs alongside rewardsTxs -> mp.validatorInfoCreator.GetValidatorInfoTxs(body) ?
 	mp.indexBlock(header, headerHash, body, finalMetaBlock, notarizedHeadersHashes, rewardsTxs)
+	mp.stateAccessesCollector.Reset()
 	mp.recordBlockInHistory(headerHash, headerHandler, bodyHandler)
 
 	highestFinalBlockNonce := mp.forkDetector.GetHighestFinalBlockNonce()

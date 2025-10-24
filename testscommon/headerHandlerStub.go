@@ -48,22 +48,6 @@ type HeaderHandlerStub struct {
 	SetExecutionResultsHandlersCalled      func(resultHandlers []data.BaseExecutionResultHandler) error
 }
 
-// SetLastExecutionResultHandler -
-func (hhs *HeaderHandlerStub) SetLastExecutionResultHandler(resultHandler data.LastExecutionResultHandler) error {
-	if hhs.GetLastExecutionResultHandlerCalled() == nil {
-		return hhs.SetLastExecutionResultHandlerCalled(resultHandler)
-	}
-	return nil
-}
-
-// SetExecutionResultsHandlers -
-func (hhs *HeaderHandlerStub) SetExecutionResultsHandlers(resultHandlers []data.BaseExecutionResultHandler) error {
-	if hhs.GetExecutionResultsHandlersCalled() == nil {
-		return hhs.SetExecutionResultsHandlersCalled(resultHandlers)
-	}
-	return nil
-}
-
 // GetAccumulatedFees -
 func (hhs *HeaderHandlerStub) GetAccumulatedFees() *big.Int {
 	return big.NewInt(0)
@@ -471,6 +455,23 @@ func (hhs *HeaderHandlerStub) GetLastExecutionResultHandler() data.LastExecution
 func (hhs *HeaderHandlerStub) GetExecutionResultsHandlers() []data.BaseExecutionResultHandler {
 	if hhs.GetExecutionResultsHandlersCalled != nil {
 		return hhs.GetExecutionResultsHandlersCalled()
+	}
+
+	return nil
+}
+
+// SetLastExecutionResultHandler -
+func (hhs *HeaderHandlerStub) SetLastExecutionResultHandler(resultHandler data.LastExecutionResultHandler) error {
+	if hhs.SetLastExecutionResultHandlerCalled != nil {
+		return hhs.SetLastExecutionResultHandlerCalled(resultHandler)
+	}
+	return nil
+}
+
+// SetExecutionResultsHandlers -
+func (hhs *HeaderHandlerStub) SetExecutionResultsHandlers(resultHandlers []data.BaseExecutionResultHandler) error {
+	if hhs.SetExecutionResultsHandlersCalled != nil {
+		return hhs.SetExecutionResultsHandlersCalled(resultHandlers)
 	}
 
 	return nil

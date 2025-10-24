@@ -14,6 +14,7 @@ import (
 	crypto "github.com/multiversx/mx-chain-crypto-go"
 	mclMultiSig "github.com/multiversx/mx-chain-crypto-go/signing/mcl/multisig"
 	"github.com/multiversx/mx-chain-crypto-go/signing/multisig"
+	"github.com/multiversx/mx-chain-go/state/disabled"
 	wasmConfig "github.com/multiversx/mx-chain-vm-go/config"
 
 	"github.com/multiversx/mx-chain-go/common"
@@ -918,6 +919,7 @@ func (tpn *TestFullNode) initBlockProcessor(
 		BlockProcessingCutoffHandler: &testscommon.BlockProcessingCutoffStub{},
 		ManagedPeersHolder:           &testscommon.ManagedPeersHolderStub{},
 		SentSignaturesTracker:        &testscommon.SentSignatureTrackerStub{},
+		StateAccessesCollector:       disabled.NewDisabledStateAccessesCollector(),
 	}
 
 	if check.IfNil(tpn.EpochStartNotifier) {
@@ -1158,6 +1160,7 @@ func (tpn *TestFullNode) initBlockProcessorWithSync(
 		BlockProcessingCutoffHandler: &testscommon.BlockProcessingCutoffStub{},
 		ManagedPeersHolder:           &testscommon.ManagedPeersHolderStub{},
 		SentSignaturesTracker:        &testscommon.SentSignatureTrackerStub{},
+		StateAccessesCollector:       disabled.NewDisabledStateAccessesCollector(),
 	}
 
 	if tpn.ShardCoordinator.SelfId() == core.MetachainShardId {
