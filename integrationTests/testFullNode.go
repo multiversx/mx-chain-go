@@ -14,6 +14,7 @@ import (
 	crypto "github.com/multiversx/mx-chain-crypto-go"
 	mclMultiSig "github.com/multiversx/mx-chain-crypto-go/signing/mcl/multisig"
 	"github.com/multiversx/mx-chain-crypto-go/signing/multisig"
+	"github.com/multiversx/mx-chain-go/state/disabled"
 	wasmConfig "github.com/multiversx/mx-chain-vm-go/config"
 
 	"github.com/multiversx/mx-chain-go/process/asyncExecution/executionTrack"
@@ -1014,6 +1015,7 @@ func (tpn *TestFullNode) initBlockProcessor(
 		BlockProcessingCutoffHandler:       &testscommon.BlockProcessingCutoffStub{},
 		ManagedPeersHolder:                 &testscommon.ManagedPeersHolderStub{},
 		SentSignaturesTracker:              &testscommon.SentSignatureTrackerStub{},
+		StateAccessesCollector:             disabled.NewDisabledStateAccessesCollector(),
 		HeadersForBlock:                    hdrsForBlock,
 		MiniBlocksSelectionSession:         mbSelectionSession,
 		ExecutionResultsVerifier:           execResultsVerifier,
@@ -1344,6 +1346,7 @@ func (tpn *TestFullNode) initBlockProcessorWithSync(
 		BlockProcessingCutoffHandler:       &testscommon.BlockProcessingCutoffStub{},
 		ManagedPeersHolder:                 &testscommon.ManagedPeersHolderStub{},
 		SentSignaturesTracker:              &testscommon.SentSignatureTrackerStub{},
+		StateAccessesCollector:             disabled.NewDisabledStateAccessesCollector(),
 		HeadersForBlock:                    hdrsForBlock,
 		MiniBlocksSelectionSession:         mbSelectionSession,
 		ExecutionResultsVerifier:           execResultsVerifier,

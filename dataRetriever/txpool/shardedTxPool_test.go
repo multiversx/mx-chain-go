@@ -13,7 +13,6 @@ import (
 	"github.com/multiversx/mx-chain-core-go/data/block"
 	"github.com/multiversx/mx-chain-core-go/data/transaction"
 	"github.com/multiversx/mx-chain-core-go/marshal"
-	"github.com/multiversx/mx-chain-go/common/holders"
 	"github.com/multiversx/mx-chain-go/config"
 	"github.com/multiversx/mx-chain-go/dataRetriever"
 	"github.com/multiversx/mx-chain-go/storage/storageunit"
@@ -579,7 +578,7 @@ func TestShardedTxPool_OnProposedBlock_And_OnExecutedBlock(t *testing.T) {
 			&block.Body{},
 			&block.HeaderV2{},
 			txcachemocks.NewAccountNonceAndBalanceProviderMock(),
-			holders.NewBlockchainInfo(nil, nil, 42),
+			nil,
 		)
 		require.Nil(t, err)
 	})
@@ -587,10 +586,10 @@ func TestShardedTxPool_OnProposedBlock_And_OnExecutedBlock(t *testing.T) {
 	t.Run("OnExecutedBlock calls TxCache.OnExecutedBlock", func(t *testing.T) {
 		t.Parallel()
 
-		err := pool.OnExecutedBlock(nil)
+		err := pool.OnExecutedBlock(nil, []byte{})
 		require.ErrorContains(t, err, "nil block header")
 
-		err = pool.OnExecutedBlock(&block.HeaderV2{})
+		err = pool.OnExecutedBlock(&block.HeaderV2{}, []byte{})
 		require.Nil(t, err)
 	})
 }

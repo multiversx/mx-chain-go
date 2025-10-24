@@ -98,6 +98,7 @@ type ArgBaseProcessor struct {
 	BlockProcessingCutoffHandler       cutoff.BlockProcessingCutoffHandler
 	ManagedPeersHolder                 common.ManagedPeersHolder
 	SentSignaturesTracker              process.SentSignaturesTracker
+	StateAccessesCollector             state.StateAccessesCollector
 	HeadersForBlock                    HeadersForBlock
 	ExecutionResultsInclusionEstimator process.InclusionEstimator
 	ExecutionResultsTracker            process.ExecutionResultsTracker

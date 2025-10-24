@@ -290,6 +290,18 @@ func (psf *StorageServiceFactory) createAndAddBaseStorageUnits(
 	}
 	store.AddStorer(dataRetriever.TrieEpochRootHashUnit, trieEpochRootHashStorageUnit)
 
+	if psf.generalConfig.StateAccessesCollectorConfig.SaveToStorage {
+		stateAccessesUnitArgs, err := psf.createPruningStorerArgs(psf.generalConfig.StateAccessesStorage, disabledCustomDatabaseRemover)
+		if err != nil {
+			return err
+		}
+		stateAccessesUnit, err := psf.createPruningPersister(stateAccessesUnitArgs)
+		if err != nil {
+			return fmt.Errorf("%w for StateAccessesStorage", err)
+		}
+		store.AddStorer(dataRetriever.StateAccessesUnit, stateAccessesUnit)
+	}
+
 	return nil
 }
 

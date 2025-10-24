@@ -1708,6 +1708,8 @@ func (tpn *TestProcessorNode) initInnerProcessors(gasMap map[string]map[string]u
 		tpn.AccntState,
 		TestAddressPubkeyConverter,
 		tpn.ShardCoordinator,
+		TestMarshalizer,
+		TestHasher,
 	)
 
 	mapDNSAddresses := make(map[string]struct{})
@@ -2554,6 +2556,7 @@ func (tpn *TestProcessorNode) initBlockProcessor() {
 		BlockProcessingCutoffHandler:       &testscommon.BlockProcessingCutoffStub{},
 		ManagedPeersHolder:                 &testscommon.ManagedPeersHolderStub{},
 		SentSignaturesTracker:              &testscommon.SentSignatureTrackerStub{},
+		StateAccessesCollector:             &stateMock.StateAccessesCollectorStub{},
 		HeadersForBlock:                    hdrsForBlock,
 		MiniBlocksSelectionSession:         mbSelectionSession,
 		ExecutionResultsVerifier:           execResultsVerifier,
@@ -3812,6 +3815,7 @@ func GetDefaultStateComponents() *testFactory.StateComponentsMock {
 			dataRetriever.PeerAccountsUnit.String(): &storageManager.StorageManagerStub{},
 		},
 		MissingNodesNotifier: &testscommon.MissingTrieNodesNotifierStub{},
+		ChangesCollector:     &stateMock.StateAccessesCollectorStub{},
 	}
 }
 
