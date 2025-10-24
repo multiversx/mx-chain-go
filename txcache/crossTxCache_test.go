@@ -105,8 +105,8 @@ func TestCrossTxCache_NotImplemented(t *testing.T) {
 	err = cache.OnExecutedBlock(nil, nil)
 	require.Nil(t, err)
 
-	res := cache.GetNumTrackedBlocks()
-	require.Equal(t, uint64(0), res)
+	diagnosis := cache.GetTrackerDiagnosis()
+	require.Nil(t, diagnosis)
 }
 
 func newCrossTxCacheToTest(numChunks uint32, maxNumItems uint32, numMaxBytes uint32) *CrossTxCache {

@@ -133,6 +133,10 @@ func (a *accountsAdapter) GetStackDebugFirstEntry() []byte {
 	return nil
 }
 
+// SetTxHashForLatestStateAccesses -
+func (a *accountsAdapter) SetTxHashForLatestStateAccesses(_ []byte) {
+}
+
 // Close -
 func (a *accountsAdapter) Close() error {
 	return nil

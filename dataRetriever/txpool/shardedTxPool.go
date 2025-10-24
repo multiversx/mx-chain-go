@@ -418,9 +418,9 @@ func (txPool *shardedTxPool) CleanupSelfShardTxCache(accountsProvider common.Acc
 }
 
 // OnProposedBlock notifies the underlying TxCache
-func (txPool *shardedTxPool) OnProposedBlock(blockHash []byte, blockBody *block.Body, blockHeader data.HeaderHandler, accountsProvider common.AccountNonceAndBalanceProvider, blockchainInfo common.BlockchainInfo) error {
+func (txPool *shardedTxPool) OnProposedBlock(blockHash []byte, blockBody *block.Body, blockHeader data.HeaderHandler, accountsProvider common.AccountNonceAndBalanceProvider, latestExecutedHash []byte) error {
 	cache := txPool.getSelfShardTxCache()
-	return cache.OnProposedBlock(blockHash, blockBody, blockHeader, accountsProvider, blockchainInfo)
+	return cache.OnProposedBlock(blockHash, blockBody, blockHeader, accountsProvider, latestExecutedHash)
 }
 
 // OnExecutedBlock notifies the underlying TxCache

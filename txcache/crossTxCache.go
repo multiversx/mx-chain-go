@@ -4,7 +4,6 @@ import (
 	"time"
 
 	"github.com/multiversx/mx-chain-core-go/data"
-	"github.com/multiversx/mx-chain-core-go/data/block"
 	"github.com/multiversx/mx-chain-go/common"
 	"github.com/multiversx/mx-chain-storage-go/immunitycache"
 	"github.com/multiversx/mx-chain-storage-go/types"
@@ -123,7 +122,7 @@ func (cache *CrossTxCache) GetTransactionsPoolForSender(_ string) []*WrappedTran
 }
 
 // OnProposedBlock does nothing (only to satisfy the interface)
-func (cache *CrossTxCache) OnProposedBlock(_ []byte, _ *block.Body, _ data.HeaderHandler, _ common.AccountNonceAndBalanceProvider, _ common.BlockchainInfo) error {
+func (cache *CrossTxCache) OnProposedBlock(_ []byte, _ data.BodyHandler, _ data.HeaderHandler, _ common.AccountNonceAndBalanceProvider, _ []byte) error {
 	return nil
 }
 
@@ -132,9 +131,12 @@ func (cache *CrossTxCache) OnExecutedBlock(data.HeaderHandler, []byte) error {
 	return nil
 }
 
-// GetNumTrackedBlocks returns 0 (only to satisfy the interface)
-func (cache *CrossTxCache) GetNumTrackedBlocks() uint64 {
-	return 0
+// ResetTracker does nothing (only to satisfy the interface)
+func (cache *CrossTxCache) ResetTracker() {}
+
+// GetTrackerDiagnosis returns nil (only to satisfy the interface)
+func (cache *CrossTxCache) GetTrackerDiagnosis() TrackerDiagnosis {
+	return nil
 }
 
 // Cleanup does nothing (only to satisfy the interface)

@@ -105,6 +105,7 @@ type baseProcessor struct {
 	gasConsumedProvider           gasConsumedProvider
 	economicsData                 process.EconomicsDataHandler
 	epochChangeGracePeriodHandler common.EpochChangeGracePeriodHandler
+	stateAccessesCollector 		  state.StateAccessesCollector
 	processConfigsHandler         common.ProcessConfigsHandler
 
 	processDataTriesOnCommitEpoch bool
@@ -2020,9 +2021,10 @@ func (bp *baseProcessor) commitTrieEpochRootHashIfNeeded(metaBlock *block.MetaBl
 	totalSizeCodeLeaves := 0
 
 	argsAccCreator := factory.ArgsAccountCreator{
-		Hasher:              bp.hasher,
-		Marshaller:          bp.marshalizer,
-		EnableEpochsHandler: bp.enableEpochsHandler,
+		Hasher:                 bp.hasher,
+		Marshaller:             bp.marshalizer,
+		EnableEpochsHandler:    bp.enableEpochsHandler,
+		StateAccessesCollector: bp.stateAccessesCollector,
 	}
 	accountCreator, err := factory.NewAccountCreator(argsAccCreator)
 	if err != nil {
