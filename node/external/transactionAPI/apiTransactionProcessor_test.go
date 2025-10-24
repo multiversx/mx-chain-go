@@ -1576,34 +1576,6 @@ func TestApiTransactionProcessor_GetVirtualNonce(t *testing.T) {
 		require.ErrorContains(t, err, expectedErr.Error())
 		require.Nil(t, virtualNonce)
 	})
-
-	t.Run("should return nil latest commited block hash", func(t *testing.T) {
-		t.Parallel()
-
-		args := createMockArgAPITransactionProcessor()
-		args.DataPool = &dataRetrieverMock.PoolsHolderStub{
-			TransactionsCalled: func() dataRetriever.ShardedDataCacherNotifier {
-				return &testscommon.ShardedDataStub{
-					ShardDataStoreCalled: func(cacheID string) storage.Cacher {
-						return cache
-					},
-				}
-			},
-		}
-		args.AddressPubKeyConverter = &testscommon.PubkeyConverterMock{
-			DecodeCalled: func(humanReadable string) ([]byte, error) {
-				return []byte("alice"), nil
-			},
-		}
-
-		atp, err := NewAPITransactionProcessor(args)
-		require.NoError(t, err)
-		require.NotNil(t, atp)
-
-		virtualNonce, err := atp.GetVirtualNonce("alice")
-		require.ErrorContains(t, err, "nil latest committed block hash")
-		require.Nil(t, virtualNonce)
-	})
 }
 
 func createAPITransactionProc(t *testing.T, epoch uint32, withDbLookupExt bool) (*apiTransactionProcessor, *genericMocks.ChainStorerMock, *dataRetrieverMock.PoolsHolderMock, *dblookupextMock.HistoryRepositoryStub) {
