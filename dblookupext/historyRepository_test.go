@@ -96,9 +96,27 @@ func TestNewHistoryRepository(t *testing.T) {
 	require.Equal(t, process.ErrNilUint64Converter, err)
 
 	args = createMockHistoryRepoArgs(0)
+	args.DataPool = nil
+	repo, err = NewHistoryRepository(args)
+	require.Nil(t, repo)
+	require.Equal(t, process.ErrNilDataPoolHolder, err)
+
+	args = createMockHistoryRepoArgs(0)
 	repo, err = NewHistoryRepository(args)
 	require.Nil(t, err)
 	require.NotNil(t, repo)
+}
+
+func TestHistoryRepository_RecordBlockErrCannotCastToBlockBody(t *testing.T) {
+	t.Parallel()
+
+	args := createMockHistoryRepoArgs(0)
+
+	repo, err := NewHistoryRepository(args)
+	require.Nil(t, err)
+
+	err = repo.RecordBlock([]byte("headerHash"), &block.Header{}, nil, nil, nil, nil, nil)
+	require.Equal(t, errCannotCastToBlockBody, err)
 }
 
 func TestHistoryRepository_RecordBlockInvalidBlockRoundByHashStorerExpectError(t *testing.T) {
@@ -837,5 +855,169 @@ func TestRecordHeaderV3(t *testing.T) {
 		epoch, err = repo.GetEpochByHash(mbHash1)
 		require.Nil(t, err)
 		require.Equal(t, 42, int(epoch))
+	})
+
+	t.Run("record block v3 should error because the headerHash is not found in cache", func(t *testing.T) {
+		args := createMockHistoryRepoArgs(42)
+		args.DataPool = dataRetrieverMock.NewPoolsHolderMock()
+		repo, err := NewHistoryRepository(args)
+
+		executionResultHeaderHash := []byte("executionResultHeaderHash")
+		header := &block.HeaderV3{
+			ExecutionResults: []*block.ExecutionResult{
+				{
+					BaseExecutionResult: &block.BaseExecutionResult{
+						HeaderHash: executionResultHeaderHash,
+					},
+					MiniBlockHeaders: []block.MiniBlockHeader{
+						{
+							Hash: []byte("mbHash"),
+						},
+					},
+				},
+			},
+		}
+
+		body := &block.Body{}
+		headerHash := []byte("headerHash")
+		err = repo.RecordBlock(headerHash, header, body, nil, nil, nil, nil)
+		require.NotNil(t, err)
+		require.ErrorContains(t, err, process.ErrMissingHeader.Error())
+	})
+
+	t.Run("record block v3 should error because logs were not found in dataPool", func(t *testing.T) {
+		args := createMockHistoryRepoArgs(42)
+		args.DataPool = dataRetrieverMock.NewPoolsHolderMock()
+		repo, err := NewHistoryRepository(args)
+
+		executionResultHeaderHash := []byte("executionResultHeaderHash")
+		header := &block.HeaderV3{
+			ExecutionResults: []*block.ExecutionResult{
+				{
+					BaseExecutionResult: &block.BaseExecutionResult{
+						HeaderHash: executionResultHeaderHash,
+					},
+					MiniBlockHeaders: []block.MiniBlockHeader{
+						{
+							Hash: []byte("mbHash"),
+						},
+					},
+				},
+			},
+		}
+
+		cachedIntermediateTxsMap := map[block.Type]map[string]data.TransactionHandler{}
+		args.DataPool.PostProcessTransactions().Put(executionResultHeaderHash, cachedIntermediateTxsMap, 1)
+
+		body := &block.Body{}
+		headerHash := []byte("headerHash")
+		err = repo.RecordBlock(headerHash, header, body, nil, nil, nil, nil)
+		require.NotNil(t, err)
+		require.ErrorContains(t, err, process.ErrMissingHeader.Error())
+	})
+
+	t.Run("record block v3 should error because mini blocks were not cached", func(t *testing.T) {
+		args := createMockHistoryRepoArgs(42)
+		args.DataPool = dataRetrieverMock.NewPoolsHolderMock()
+		repo, err := NewHistoryRepository(args)
+
+		executionResultHeaderHash := []byte("executionResultHeaderHash")
+		header := &block.HeaderV3{
+			ExecutionResults: []*block.ExecutionResult{
+				{
+					BaseExecutionResult: &block.BaseExecutionResult{
+						HeaderHash: executionResultHeaderHash,
+					},
+					MiniBlockHeaders: []block.MiniBlockHeader{
+						{
+							Hash: []byte("mbHash"),
+						},
+					},
+				},
+			},
+		}
+
+		cachedIntermediateTxsMap := map[block.Type]map[string]data.TransactionHandler{}
+		args.DataPool.PostProcessTransactions().Put(executionResultHeaderHash, cachedIntermediateTxsMap, 1)
+
+		expectedLogs := []*data.LogData{
+			{
+				LogHandler: &transaction.Log{},
+				TxHash:     "t1",
+			},
+		}
+		logsKey := common.PrepareLogEventsKey(executionResultHeaderHash)
+		args.DataPool.PostProcessTransactions().Put(logsKey, expectedLogs, 1)
+
+		body := &block.Body{}
+		headerHash := []byte("headerHash")
+		err = repo.RecordBlock(headerHash, header, body, nil, nil, nil, nil)
+		require.NotNil(t, err)
+		require.ErrorContains(t, err, process.ErrMissingMiniBlock.Error())
+	})
+
+	t.Run("record block v3 should error because intra mini blocks were not found", func(t *testing.T) {
+		args := createMockHistoryRepoArgs(42)
+		args.DataPool = dataRetrieverMock.NewPoolsHolderMock()
+		repo, err := NewHistoryRepository(args)
+
+		executionResultHeaderHash := []byte("executionResultHeaderHash")
+		mb := &block.MiniBlock{SenderShardID: 0}
+		mbHash1, _ := repo.computeMiniblockHash(mb)
+		header := &block.HeaderV3{
+			ExecutionResults: []*block.ExecutionResult{
+				{
+					BaseExecutionResult: &block.BaseExecutionResult{
+						HeaderHash: executionResultHeaderHash,
+					},
+					MiniBlockHeaders: []block.MiniBlockHeader{
+						{
+							Hash: mbHash1,
+						},
+					},
+				},
+			},
+		}
+
+		mbBytes, _ := repo.marshalizer.Marshal(mb)
+		args.DataPool.ExecutedMiniBlocks().Put(mbHash1, mbBytes, 1)
+
+		cachedIntermediateTxsMap := map[block.Type]map[string]data.TransactionHandler{}
+		args.DataPool.PostProcessTransactions().Put(executionResultHeaderHash, cachedIntermediateTxsMap, 1)
+
+		expectedLogs := []*data.LogData{
+			{
+				LogHandler: &transaction.Log{},
+				TxHash:     "t1",
+			},
+		}
+		logsKey := common.PrepareLogEventsKey(executionResultHeaderHash)
+		args.DataPool.PostProcessTransactions().Put(logsKey, expectedLogs, 1)
+
+		body := &block.Body{}
+		headerHash := []byte("headerHash")
+		err = repo.RecordBlock(headerHash, header, body, nil, nil, nil, nil)
+		require.NotNil(t, err)
+		require.ErrorContains(t, err, process.ErrMissingHeader.Error())
+	})
+
+	t.Run("record block v3 should error because of Marshal on recordBlock", func(t *testing.T) {
+		args := createMockHistoryRepoArgs(42)
+
+		expectedError := errors.New("expected error")
+		args.Marshalizer = &mock.MarshalizerMock{MarshalCalled: func(obj interface{}) ([]byte, error) {
+			return nil, expectedError
+		}}
+
+		args.DataPool = dataRetrieverMock.NewPoolsHolderMock()
+		repo, err := NewHistoryRepository(args)
+
+		header := &block.HeaderV3{}
+		body := &block.Body{}
+
+		headerHash := []byte("headerHash")
+
+		err = repo.RecordBlock(headerHash, header, body, nil, nil, nil, nil)
+		require.ErrorContains(t, err, expectedError.Error())
 	})
 }
