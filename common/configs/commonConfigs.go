@@ -5,6 +5,7 @@ import (
 	"sort"
 
 	"github.com/multiversx/mx-chain-go/config"
+	logger "github.com/multiversx/mx-chain-logger-go"
 )
 
 const (
@@ -187,4 +188,11 @@ func (cc *commonConfigs) GetNumRoundsToWaitBeforeSignalingChronologyStuck(epoch 
 // IsInterfaceNil checks if the instance is nil
 func (cc *commonConfigs) IsInterfaceNil() bool {
 	return cc == nil
+}
+
+// SetActivationRound -
+func (cc *commonConfigs) SetActivationRound(round uint64, log logger.Logger) {
+	nr := len(cc.orderedEpochStartConfigByRound)
+	log.Info("commonConfigs.SetActivationRound", "enableRound", round, "oldRound", cc.orderedEpochStartConfigByRound[nr-1].EnableRound)
+	cc.orderedEpochStartConfigByRound[nr-1].EnableRound = round
 }
