@@ -73,6 +73,7 @@ type SmartContractProcessorFacade interface {
 // TxTypeHandler is an interface to calculate the transaction type
 type TxTypeHandler interface {
 	ComputeTransactionType(tx data.TransactionHandler) (TransactionType, TransactionType, bool)
+	ComputeTransactionTypeInEpoch(tx data.TransactionHandler, epoch uint32) (TransactionType, TransactionType, bool)
 	IsInterfaceNil() bool
 }
 
