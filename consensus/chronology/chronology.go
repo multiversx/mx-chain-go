@@ -55,10 +55,11 @@ type chronology struct {
 	appStatusHandler core.AppStatusHandler
 	cancelFunc       func()
 
-	watchdog            core.WatchdogTimer
-	enableEpochsHandler common.EnableEpochsHandler
-	enableRoundsHandler common.EnableRoundsHandler
-	configsHandler      common.CommonConfigsHandler
+	watchdog                core.WatchdogTimer
+	enableEpochsHandler     common.EnableEpochsHandler
+	enableRoundsHandler     common.EnableRoundsHandler
+	configsHandler          common.CommonConfigsHandler
+	supernovaTransitionDone bool
 }
 
 // NewChronology creates a new chronology object
@@ -232,14 +233,36 @@ func (chr *chronology) initRound() {
 		chr.appStatusHandler.SetUInt64Value(common.MetricCurrentRound, roundIndex)
 		chr.appStatusHandler.SetUInt64Value(common.MetricCurrentRoundTimestamp, uint64(chr.getRoundUnixTimeStamp()))
 
-		if chr.enableEpochsHandler.IsFlagEnabled(common.SupernovaFlag) &&
-			chr.enableRoundsHandler.GetActivationRound(common.SupernovaRoundFlag) == roundIndex-1 {
-			chr.appStatusHandler.SetUInt64Value(common.MetricRoundDuration, uint64(chr.roundHandler.TimeDuration().Milliseconds()))
-		}
-
+		chr.handleSupernovaTransitionIfNeeded()
 	}
 
 	chr.mutSubrounds.RUnlock()
+}
+
+func (chr *chronology) handleSupernovaTransitionIfNeeded() {
+	if chr.supernovaTransitionDone {
+		return
+	}
+
+	if !chr.enableEpochsHandler.IsFlagEnabled(common.SupernovaFlag) {
+		return
+	}
+
+	roundIndex := uint64(chr.roundHandler.Index())
+	supernovaActivationRound := chr.enableRoundsHandler.GetActivationRound(common.SupernovaRoundFlag)
+	if supernovaActivationRound > roundIndex {
+		return
+	}
+
+	chr.appStatusHandler.SetUInt64Value(common.MetricRoundDuration, uint64(chr.roundHandler.TimeDuration().Milliseconds()))
+
+	// update time duration on each subround
+	// TODO: analyze if we should consider modifying startTime and endTime as well for each subround after Supernova
+	for _, subroundHandler := range chr.subroundHandlers {
+		subroundHandler.SetBaseDuration(chr.roundHandler.TimeDuration())
+	}
+
+	chr.supernovaTransitionDone = true
 }
 
 // loadSubroundHandler returns the implementation of SubroundHandler given by the subroundId

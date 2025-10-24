@@ -1257,6 +1257,9 @@ var ErrInvalidAsyncArguments = errors.New("invalid arguments to process async/ca
 // ErrNilSentSignatureTracker defines the error for setting a nil SentSignatureTracker
 var ErrNilSentSignatureTracker = errors.New("nil sent signature tracker")
 
+// ErrNilStateAccessesCollector signals that a nil state access collector has been given
+var ErrNilStateAccessesCollector = errors.New("nil state accesses collector")
+
 // ErrTransferAndExecuteByUserAddressesAreNil signals that transfer and execute by user addresses are nil
 var ErrTransferAndExecuteByUserAddressesAreNil = errors.New("transfer and execute by user addresses are nil")
 

@@ -2176,7 +2176,7 @@ func TestShardProcessor_CommitBlockOkValsShouldWork(t *testing.T) {
 
 	txPoolOnExecutedBlockCalled := false
 	dataComponents.DataPool = initDataPool()
-	dataComponents.DataPool.Transactions().(*testscommon.ShardedDataCacheNotifierMock).OnExecutedBlockCalled = func(blockHeader data.HeaderHandler) error {
+	dataComponents.DataPool.Transactions().(*testscommon.ShardedDataCacheNotifierMock).OnExecutedBlockCalled = func(blockHeader data.HeaderHandler, rootHash []byte) error {
 		txPoolOnExecutedBlockCalled = true
 		return nil
 	}
@@ -2278,7 +2278,7 @@ func TestShardProcessor_CommitBlockFailsWhenOnExecutedBlockFails(t *testing.T) {
 
 	txPoolOnExecutedBlockCalled := false
 	dataComponents.DataPool = initDataPool()
-	dataComponents.DataPool.Transactions().(*testscommon.ShardedDataCacheNotifierMock).OnExecutedBlockCalled = func(blockHeader data.HeaderHandler) error {
+	dataComponents.DataPool.Transactions().(*testscommon.ShardedDataCacheNotifierMock).OnExecutedBlockCalled = func(blockHeader data.HeaderHandler, rootHash []byte) error {
 		txPoolOnExecutedBlockCalled = true
 		return expectedErr
 	}
@@ -6124,5 +6124,141 @@ func Test_ShouldDisableOutgoingTxs(t *testing.T) {
 			},
 		}
 		require.False(t, blproc.ShouldDisableOutgoingTxs(enableEpochsHandler, enableRoundsHandler))
+	})
+}
+
+func TestShardProcessor_GetLastExecutionResultHeader(t *testing.T) {
+	t.Parallel()
+
+	t.Run("should return current header if not header v3", func(t *testing.T) {
+		t.Parallel()
+
+		currHeader := &block.Header{}
+
+		dataPool := initDataPool()
+
+		arguments := CreateMockArguments(createComponentHolderMocks())
+		arguments.DataComponents = &mock.DataComponentsMock{
+			Storage:    initStore(),
+			DataPool:   dataPool,
+			BlockChain: arguments.DataComponents.Blockchain(),
+		}
+
+		sp, _ := blproc.NewShardProcessor(arguments)
+
+		retHeader, err := sp.GetLastExecutionResultHeader(currHeader)
+		require.Nil(t, err)
+		require.Equal(t, currHeader, retHeader)
+	})
+
+	t.Run("should error if failed to get header from pool", func(t *testing.T) {
+		t.Parallel()
+
+		headerHash1 := []byte("hash1")
+
+		currHeader := &block.HeaderV3{
+			LastExecutionResult: &block.ExecutionResultInfo{
+				ExecutionResult: &block.BaseExecutionResult{
+					HeaderHash: headerHash1,
+				},
+			},
+		}
+
+		dataPool := initDataPool()
+		dataPool.HeadersCalled = func() dataRetriever.HeadersPool {
+			return &pool.HeadersPoolStub{
+				GetHeaderByHashCalled: func(hash []byte) (data.HeaderHandler, error) {
+					return nil, expectedError
+				},
+			}
+		}
+
+		arguments := CreateMockArguments(createComponentHolderMocks())
+		arguments.DataComponents = &mock.DataComponentsMock{
+			Storage:    initStore(),
+			DataPool:   dataPool,
+			BlockChain: arguments.DataComponents.Blockchain(),
+		}
+
+		sp, _ := blproc.NewShardProcessor(arguments)
+
+		retHeader, err := sp.GetLastExecutionResultHeader(currHeader)
+		require.Equal(t, expectedErr, err)
+		require.Nil(t, retHeader)
+	})
+
+	t.Run("should work", func(t *testing.T) {
+		t.Parallel()
+
+		headerHash1 := []byte("hash1")
+
+		currHeader := &block.HeaderV3{
+			LastExecutionResult: &block.ExecutionResultInfo{
+				ExecutionResult: &block.BaseExecutionResult{
+					HeaderHash: headerHash1,
+				},
+			},
+		}
+
+		execResHeader := &block.HeaderV3{}
+
+		dataPool := initDataPool()
+		dataPool.HeadersCalled = func() dataRetriever.HeadersPool {
+			return &pool.HeadersPoolStub{
+				GetHeaderByHashCalled: func(hash []byte) (data.HeaderHandler, error) {
+					if bytes.Equal(hash, headerHash1) {
+						return execResHeader, nil
+					}
+
+					return nil, expectedError
+				},
+			}
+		}
+
+		arguments := CreateMockArguments(createComponentHolderMocks())
+		arguments.DataComponents = &mock.DataComponentsMock{
+			Storage:    initStore(),
+			DataPool:   dataPool,
+			BlockChain: arguments.DataComponents.Blockchain(),
+		}
+
+		sp, _ := blproc.NewShardProcessor(arguments)
+
+		retHeader, err := sp.GetLastExecutionResultHeader(currHeader)
+		require.Nil(t, err)
+		require.Equal(t, execResHeader, retHeader)
+	})
+}
+
+func TestShardProcessor_GetLastExecutionResultsRootHash(t *testing.T) {
+	t.Parallel()
+
+	t.Run("before header v3, should return provided root hash", func(t *testing.T) {
+		t.Parallel()
+
+		rootHash := []byte("rootHash1")
+
+		header := &block.HeaderV2{}
+
+		retRootHash := blproc.GetLastExecutionResultsRootHash(header, rootHash)
+		require.Equal(t, rootHash, retRootHash)
+	})
+
+	t.Run("with header v3, should return exec results root hash", func(t *testing.T) {
+		t.Parallel()
+
+		rootHash1 := []byte("rootHash1")
+		rootHash2 := []byte("rootHash2")
+
+		header := &block.HeaderV3{
+			LastExecutionResult: &block.ExecutionResultInfo{
+				ExecutionResult: &block.BaseExecutionResult{
+					RootHash: rootHash2,
+				},
+			},
+		}
+
+		retRootHash := blproc.GetLastExecutionResultsRootHash(header, rootHash1)
+		require.Equal(t, rootHash2, retRootHash)
 	})
 }

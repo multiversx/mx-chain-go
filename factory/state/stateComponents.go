@@ -2,9 +2,11 @@ package state
 
 import (
 	"fmt"
+	"strings"
 
 	"github.com/multiversx/mx-chain-core-go/core/check"
 	chainData "github.com/multiversx/mx-chain-core-go/data"
+	data "github.com/multiversx/mx-chain-core-go/data/stateChange"
 
 	"github.com/multiversx/mx-chain-go/common"
 	"github.com/multiversx/mx-chain-go/config"
@@ -16,6 +18,7 @@ import (
 	factoryState "github.com/multiversx/mx-chain-go/state/factory"
 	"github.com/multiversx/mx-chain-go/state/iteratorChannelsProvider"
 	"github.com/multiversx/mx-chain-go/state/lastSnapshotMarker"
+	"github.com/multiversx/mx-chain-go/state/stateAccesses"
 	"github.com/multiversx/mx-chain-go/state/stateMetrics"
 	"github.com/multiversx/mx-chain-go/state/storagePruningManager"
 	"github.com/multiversx/mx-chain-go/state/storagePruningManager/evictionWaitingList"
@@ -58,6 +61,7 @@ type stateComponents struct {
 	trieStorageManagers      map[string]common.StorageManager
 	missingTrieNodesNotifier common.MissingTrieNodesNotifier
 	trieLeavesRetriever      common.TrieLeavesRetriever
+	stateAccessesCollector   state.StateAccessesCollector
 }
 
 // NewStateComponentsFactory will return a new instance of stateComponentsFactory
@@ -102,7 +106,12 @@ func (scf *stateComponentsFactory) Create() (*stateComponents, error) {
 		return nil, err
 	}
 
-	accCreationResult, err := scf.createAccountsAdapters(triesContainer)
+	stateAccessesCollector, err := scf.createStateAccessesCollector()
+	if err != nil {
+		return nil, err
+	}
+
+	accCreationResult, err := scf.createAccountsAdapters(triesContainer, stateAccessesCollector)
 	if err != nil {
 		return nil, err
 	}
@@ -127,6 +136,7 @@ func (scf *stateComponentsFactory) Create() (*stateComponents, error) {
 		trieStorageManagers:      trieStorageManagers,
 		missingTrieNodesNotifier: syncer.NewMissingTrieNodesNotifier(),
 		trieLeavesRetriever:      trieLeavesRetriever,
+		stateAccessesCollector:   stateAccessesCollector,
 	}, nil
 }
 
@@ -141,6 +151,48 @@ func (scf *stateComponentsFactory) createTrieLeavesRetriever(trieStorage common.
 		scf.core.Hasher(),
 		scf.config.TrieLeavesRetrieverConfig.MaxSizeInBytes,
 	)
+}
+
+func (scf *stateComponentsFactory) createStateAccessesCollector() (state.StateAccessesCollector, error) {
+	if len(scf.config.StateAccessesCollectorConfig.TypesToCollect) == 0 {
+		return disabled.NewDisabledStateAccessesCollector(), nil
+	}
+
+	collectRead, collectWrite, err := parseStateChangesTypesToCollect(scf.config.StateAccessesCollectorConfig.TypesToCollect)
+	if err != nil {
+		return nil, fmt.Errorf("failed to parse state changes types to collect: %w", err)
+	}
+
+	var opts []stateAccesses.CollectorOption
+	if collectRead {
+		opts = append(opts, stateAccesses.WithCollectRead())
+	}
+	if collectWrite {
+		opts = append(opts, stateAccesses.WithCollectWrite())
+	}
+	if scf.config.StateAccessesCollectorConfig.WithAccountChanges {
+		opts = append(opts, stateAccesses.WithAccountChanges())
+	}
+
+	storer, err := scf.getStorerForCollector()
+	if err != nil {
+		return nil, err
+	}
+
+	return stateAccesses.NewCollector(storer, opts...)
+}
+
+func (scf *stateComponentsFactory) getStorerForCollector() (state.StateAccessesStorer, error) {
+	if !scf.config.StateAccessesCollectorConfig.SaveToStorage {
+		return disabled.NewDisabledStateAccessesStorer(), nil
+	}
+
+	storer, err := scf.storageService.GetStorer(dataRetriever.StateAccessesUnit)
+	if err != nil {
+		return nil, fmt.Errorf("failed to get storer for state accesses: %w", err)
+	}
+
+	return stateAccesses.NewStateAccessesStorer(storer, scf.core.InternalMarshalizer())
 }
 
 func (scf *stateComponentsFactory) createSnapshotManager(
@@ -167,11 +219,12 @@ func (scf *stateComponentsFactory) createSnapshotManager(
 	return state.NewSnapshotsManager(argsSnapshotsManager)
 }
 
-func (scf *stateComponentsFactory) createAccountsAdapters(triesContainer common.TriesHolder) (*accountsAdapterCreationResult, error) {
+func (scf *stateComponentsFactory) createAccountsAdapters(triesContainer common.TriesHolder, StateAccessesCollector state.StateAccessesCollector) (*accountsAdapterCreationResult, error) {
 	argsAccCreator := factoryState.ArgsAccountCreator{
-		Hasher:              scf.core.Hasher(),
-		Marshaller:          scf.core.InternalMarshalizer(),
-		EnableEpochsHandler: scf.core.EnableEpochsHandler(),
+		Hasher:                 scf.core.Hasher(),
+		Marshaller:             scf.core.InternalMarshalizer(),
+		EnableEpochsHandler:    scf.core.EnableEpochsHandler(),
+		StateAccessesCollector: StateAccessesCollector,
 	}
 	accountFactory, err := factoryState.NewAccountCreator(argsAccCreator)
 	if err != nil {
@@ -200,27 +253,40 @@ func (scf *stateComponentsFactory) createAccountsAdapters(triesContainer common.
 	}
 
 	argsProcessingAccountsDB := state.ArgsAccountsDB{
-		Trie:                  merkleTrie,
-		Hasher:                scf.core.Hasher(),
-		Marshaller:            scf.core.InternalMarshalizer(),
-		AccountFactory:        accountFactory,
-		StoragePruningManager: storagePruning,
-		AddressConverter:      scf.core.AddressPubKeyConverter(),
-		SnapshotsManager:      snapshotsManager,
+		Trie:                   merkleTrie,
+		Hasher:                 scf.core.Hasher(),
+		Marshaller:             scf.core.InternalMarshalizer(),
+		AccountFactory:         accountFactory,
+		StoragePruningManager:  storagePruning,
+		AddressConverter:       scf.core.AddressPubKeyConverter(),
+		SnapshotsManager:       snapshotsManager,
+		StateAccessesCollector: StateAccessesCollector,
 	}
 	accountsAdapter, err := state.NewAccountsDB(argsProcessingAccountsDB)
 	if err != nil {
 		return nil, fmt.Errorf("%w: %s", errors.ErrAccountsAdapterCreation, err.Error())
 	}
 
+	argsAPIAccCreator := factoryState.ArgsAccountCreator{
+		Hasher:                 scf.core.Hasher(),
+		Marshaller:             scf.core.InternalMarshalizer(),
+		EnableEpochsHandler:    scf.core.EnableEpochsHandler(),
+		StateAccessesCollector: disabled.NewDisabledStateAccessesCollector(),
+	}
+	accountFactoryAPI, err := factoryState.NewAccountCreator(argsAPIAccCreator)
+	if err != nil {
+		return nil, err
+	}
+
 	argsAPIAccountsDB := state.ArgsAccountsDB{
-		Trie:                  merkleTrie,
-		Hasher:                scf.core.Hasher(),
-		Marshaller:            scf.core.InternalMarshalizer(),
-		AccountFactory:        accountFactory,
-		StoragePruningManager: storagePruning,
-		AddressConverter:      scf.core.AddressPubKeyConverter(),
-		SnapshotsManager:      disabled.NewDisabledSnapshotsManager(),
+		Trie:                   merkleTrie,
+		Hasher:                 scf.core.Hasher(),
+		Marshaller:             scf.core.InternalMarshalizer(),
+		AccountFactory:         accountFactoryAPI,
+		StoragePruningManager:  storagePruning,
+		AddressConverter:       scf.core.AddressPubKeyConverter(),
+		SnapshotsManager:       disabled.NewDisabledSnapshotsManager(),
+		StateAccessesCollector: disabled.NewDisabledStateAccessesCollector(),
 	}
 
 	accountsAdapterApiOnFinal, err := factoryState.CreateAccountsAdapterAPIOnFinal(argsAPIAccountsDB, scf.chainHandler)
@@ -288,14 +354,16 @@ func (scf *stateComponentsFactory) createPeerAdapter(triesContainer common.Tries
 		return nil, err
 	}
 
+	// TODO: also collect state accesses for the peer trie
 	argsProcessingPeerAccountsDB := state.ArgsAccountsDB{
-		Trie:                  merkleTrie,
-		Hasher:                scf.core.Hasher(),
-		Marshaller:            scf.core.InternalMarshalizer(),
-		AccountFactory:        accountFactory,
-		StoragePruningManager: storagePruning,
-		AddressConverter:      scf.core.AddressPubKeyConverter(),
-		SnapshotsManager:      snapshotManager,
+		Trie:                   merkleTrie,
+		Hasher:                 scf.core.Hasher(),
+		Marshaller:             scf.core.InternalMarshalizer(),
+		AccountFactory:         accountFactory,
+		StoragePruningManager:  storagePruning,
+		AddressConverter:       scf.core.AddressPubKeyConverter(),
+		SnapshotsManager:       snapshotManager,
+		StateAccessesCollector: disabled.NewDisabledStateAccessesCollector(),
 	}
 	peerAdapter, err := state.NewPeerAccountsDB(argsProcessingPeerAccountsDB)
 	if err != nil {
@@ -369,4 +437,33 @@ func (pc *stateComponents) Close() error {
 		return fmt.Errorf("state components close failed: %s", errString)
 	}
 	return nil
+}
+
+func parseStateChangesTypesToCollect(stateChangesTypes []string) (collectRead bool, collectWrite bool, err error) {
+	types := sanitizeActionTypes(data.ActionType_value)
+	for _, stateChangeType := range stateChangesTypes {
+		if value, ok := types[strings.ToLower(stateChangeType)]; ok {
+			switch value {
+			case 0:
+				collectRead = true
+
+			case 1:
+				collectWrite = true
+			}
+		} else {
+			return false, false, fmt.Errorf("unknown action type %s", stateChangeType)
+		}
+	}
+
+	return collectRead, collectWrite, nil
+}
+
+func sanitizeActionTypes(actionTypes map[string]int32) map[string]int32 {
+	sanitizedActionTypes := make(map[string]int32, len(actionTypes))
+
+	for actionType, value := range actionTypes {
+		sanitizedActionTypes[strings.ToLower(actionType)] = value
+	}
+
+	return sanitizedActionTypes
 }
