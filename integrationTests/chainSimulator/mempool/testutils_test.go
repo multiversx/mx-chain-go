@@ -32,7 +32,7 @@ var (
 	durationWaitAfterSendMany    = 7500 * time.Millisecond
 	durationWaitAfterSendSome    = 1000 * time.Millisecond
 	selectionLoopMaximumDuration = 1000 * time.Millisecond
-	defaultBlockchainInfo        = holders.NewBlockchainInfo([]byte("blockHash0"), []byte("blockHash0"), 0)
+	defaultLatestExecutedHash    = []byte("blockHash0")
 	gasLimit                     = 50_000
 	gasPrice                     = 1_000_000_000
 )
@@ -191,7 +191,7 @@ func selectTransactions(t *testing.T, simulator testsChainSimulator.ChainSimulat
 	)
 
 	mempool := poolsHolder.ShardDataStore(shardAsString).(*txcache.TxCache)
-	selectedTransactions, gas, err := mempool.SelectTransactions(selectionSession, options, defaultBlockchainInfo)
+	selectedTransactions, gas, err := mempool.SelectTransactions(selectionSession, options, 0)
 	require.NoError(t, err)
 
 	return selectedTransactions, gas
@@ -349,8 +349,7 @@ func testOnProposed(t *testing.T, sw *core.StopWatch, numTxs int, numAddresses i
 
 	require.Equal(t, numTxs, int(txpool.CountTx()))
 
-	blockchainInfo := holders.NewBlockchainInfo([]byte("blockHash0"), []byte("blockHash0"), 1)
-	selectedTransactions, _, err := txpool.SelectTransactions(selectionSession, options, blockchainInfo)
+	selectedTransactions, _, err := txpool.SelectTransactions(selectionSession, options, 1)
 	require.NoError(t, err)
 	require.Equal(t, numTxs, len(selectedTransactions))
 
@@ -364,7 +363,7 @@ func testOnProposed(t *testing.T, sw *core.StopWatch, numTxs int, numAddresses i
 		RootHash: []byte(fmt.Sprintf("rootHash%d", 0)),
 	},
 		accountsAdapter,
-		defaultBlockchainInfo,
+		defaultLatestExecutedHash,
 	)
 	sw.Stop(t.Name())
 	require.Nil(t, err)
@@ -405,10 +404,8 @@ func testFirstSelection(t *testing.T, sw *core.StopWatch, numTxs int, numTxsToBe
 
 	require.Equal(t, numTxs, int(txpool.CountTx()))
 
-	blockchainInfo := holders.NewBlockchainInfo([]byte("blockHash0"), []byte("blockHash0"), 1)
-
 	sw.Start(t.Name())
-	selectedTransactions, _, err := txpool.SelectTransactions(selectionSession, options, blockchainInfo)
+	selectedTransactions, _, err := txpool.SelectTransactions(selectionSession, options, 1)
 	sw.Stop(t.Name())
 
 	require.Nil(t, err)
@@ -456,8 +453,7 @@ func testSecondSelection(t *testing.T, sw *core.StopWatch, numTxs int, numTxsToB
 
 	require.Equal(t, numTxs, int(txpool.CountTx()))
 
-	blockchainInfo := holders.NewBlockchainInfo([]byte("blockHash0"), []byte("blockHash0"), 1)
-	selectedTransactions, _, err := txpool.SelectTransactions(selectionSession, options, blockchainInfo)
+	selectedTransactions, _, err := txpool.SelectTransactions(selectionSession, options, 1)
 
 	require.NoError(t, err)
 	require.Equal(t, numTxsToBeSelected, len(selectedTransactions))
@@ -470,14 +466,13 @@ func testSecondSelection(t *testing.T, sw *core.StopWatch, numTxs int, numTxsToB
 		RootHash: []byte(fmt.Sprintf("rootHash%d", 0)),
 	},
 		accountsAdapter,
-		defaultBlockchainInfo,
+		defaultLatestExecutedHash,
 	)
 	require.Nil(t, err)
 
-	blockchainInfo = holders.NewBlockchainInfo([]byte("blockHash0"), []byte("blockHash1"), 2)
 	// measure the time for the second selection (now we use the breadcrumbs to create the virtual records)
 	sw.Start(t.Name())
-	selectedTransactions, _, err = txpool.SelectTransactions(selectionSession, options, blockchainInfo)
+	selectedTransactions, _, err = txpool.SelectTransactions(selectionSession, options, 2)
 	sw.Stop(t.Name())
 
 	require.NoError(t, err)
@@ -491,12 +486,11 @@ func testSecondSelection(t *testing.T, sw *core.StopWatch, numTxs int, numTxsToB
 		RootHash: []byte(fmt.Sprintf("rootHash%d", 0)),
 	},
 		selectionSession,
-		defaultBlockchainInfo,
+		defaultLatestExecutedHash,
 	)
 	require.Nil(t, err)
 
-	blockchainInfo = holders.NewBlockchainInfo([]byte("blockHash0"), []byte("blockHash2"), 3)
-	selectedTransactions, _, err = txpool.SelectTransactions(selectionSession, options, blockchainInfo)
+	selectedTransactions, _, err = txpool.SelectTransactions(selectionSession, options, 3)
 	require.NoError(t, err)
 	require.Equal(t, 0, len(selectedTransactions))
 }
@@ -541,8 +535,7 @@ func testSecondSelectionWithManyTxsInPool(t *testing.T, sw *core.StopWatch, numT
 
 	require.Equal(t, numTxs, int(txpool.CountTx()))
 
-	blockchainInfo := holders.NewBlockchainInfo([]byte("blockHash0"), []byte("blockHash0"), 1)
-	selectedTransactions, _, err := txpool.SelectTransactions(selectionSession, options, blockchainInfo)
+	selectedTransactions, _, err := txpool.SelectTransactions(selectionSession, options, 1)
 	require.NoError(t, err)
 	require.Equal(t, numTxsToBeSelected, len(selectedTransactions))
 
@@ -554,15 +547,13 @@ func testSecondSelectionWithManyTxsInPool(t *testing.T, sw *core.StopWatch, numT
 		RootHash: []byte(fmt.Sprintf("rootHash%d", 0)),
 	},
 		accountsAdapter,
-		defaultBlockchainInfo,
+		defaultLatestExecutedHash,
 	)
 	require.Nil(t, err)
 
-	blockchainInfo = holders.NewBlockchainInfo([]byte("blockHash0"), []byte("blockHash1"), 2)
-
 	// measure the time for the second selection (now we use the breadcrumbs to create the virtual records)
 	sw.Start(t.Name())
-	selectedTransactions, _, err = txpool.SelectTransactions(selectionSession, options, blockchainInfo)
+	selectedTransactions, _, err = txpool.SelectTransactions(selectionSession, options, 2)
 	sw.Stop(t.Name())
 
 	require.NoError(t, err)

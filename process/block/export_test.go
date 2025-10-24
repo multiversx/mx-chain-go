@@ -12,6 +12,7 @@ import (
 	"github.com/multiversx/mx-chain-core-go/display"
 	"github.com/multiversx/mx-chain-core-go/hashing"
 	"github.com/multiversx/mx-chain-core-go/marshal"
+	"github.com/multiversx/mx-chain-go/state/disabled"
 
 	"github.com/multiversx/mx-chain-go/common"
 	"github.com/multiversx/mx-chain-go/common/configs"
@@ -247,6 +248,7 @@ func NewShardProcessorEmptyWith3shards(
 			BlockProcessingCutoffHandler:       &testscommon.BlockProcessingCutoffStub{},
 			ManagedPeersHolder:                 &testscommon.ManagedPeersHolderStub{},
 			SentSignaturesTracker:              &testscommon.SentSignatureTrackerStub{},
+			StateAccessesCollector:             disabled.NewDisabledStateAccessesCollector(),
 			HeadersForBlock:                    &testscommon.HeadersForBlockMock{},
 			MiniBlocksSelectionSession:         mbSelectionSession,
 			ExecutionResultsVerifier:           execResultsVerifier,

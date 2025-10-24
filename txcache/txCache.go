@@ -7,7 +7,6 @@ import (
 	"github.com/multiversx/mx-chain-core-go/core/atomic"
 	"github.com/multiversx/mx-chain-core-go/core/check"
 	"github.com/multiversx/mx-chain-core-go/data"
-	"github.com/multiversx/mx-chain-core-go/data/block"
 	"github.com/multiversx/mx-chain-go/common"
 	"github.com/multiversx/mx-chain-storage-go/monitoring"
 	"github.com/multiversx/mx-chain-storage-go/types"
@@ -79,7 +78,7 @@ func (cache *TxCache) AddTx(tx *WrappedTransaction) (ok bool, added bool) {
 
 	cache.mutTxOperation.Lock()
 	addedInByHash := cache.txByHash.addTx(tx)
-	addedInBySender, evicted := cache.txListBySender.addTxReturnEvicted(tx)
+	addedInBySender, evicted := cache.txListBySender.addTxReturnEvicted(tx, cache.tracker)
 	cache.mutTxOperation.Unlock()
 	if addedInByHash != addedInBySender {
 		// This can happen  when two go-routines concur to add the same transaction:
@@ -92,7 +91,7 @@ func (cache *TxCache) AddTx(tx *WrappedTransaction) (ok bool, added bool) {
 
 	if len(evicted) > 0 {
 		logRemove.Trace("TxCache.AddTx with eviction", "sender", tx.Tx.GetSndAddr(), "num evicted txs", len(evicted))
-		cache.txByHash.RemoveTxsBulk(evicted)
+		_ = cache.txByHash.RemoveTxsBulk(evicted)
 	}
 
 	// The return value "added" is true even if transaction added, but then removed due to limits be sender.
@@ -109,19 +108,34 @@ func (cache *TxCache) GetByTxHash(txHash []byte) (*WrappedTransaction, bool) {
 // SelectTransactions selects the best transactions to be included in the next miniblock.
 // It returns up to "options.maxNumTxs" transactions, with total gas <= "options.gasRequested".
 // The selection takes into consideration the proposed blocks which were not yet executed.
+// The SelectTransactions should receive the nonce of the block on which the selection is built.
+// The blocks with a nonce greater than the given one will be removed.
 func (cache *TxCache) SelectTransactions(
 	session SelectionSession,
 	options common.TxSelectionOptions,
-	blockchainInfo common.BlockchainInfo,
+	currentBlockNonce uint64,
+) ([]*WrappedTransaction, uint64, error) {
+	return cache.selectTransactions(session, options, currentBlockNonce, false)
+}
+
+// SimulateSelectTransactions simulates a selection of transaction and does not affect the internal state of the tracker
+func (cache *TxCache) SimulateSelectTransactions(
+	session SelectionSession,
+	options common.TxSelectionOptions,
+) ([]*WrappedTransaction, uint64, error) {
+	return cache.selectTransactions(session, options, 0, true)
+}
+
+// selectTransactions executes a real / simulated selection
+func (cache *TxCache) selectTransactions(
+	session SelectionSession,
+	options common.TxSelectionOptions,
+	nonce uint64,
+	isSimulation bool,
 ) ([]*WrappedTransaction, uint64, error) {
 	if check.IfNil(session) {
 		log.Error("TxCache.SelectTransactions", "err", errNilSelectionSession)
 		return nil, 0, errNilSelectionSession
-	}
-
-	if check.IfNil(blockchainInfo) {
-		log.Error("TxCache.SelectTransactions", "err", errNilBlockchainInfo)
-		return nil, 0, errNilBlockchainInfo
 	}
 
 	stopWatch := core.NewStopWatch()
@@ -134,7 +148,7 @@ func (cache *TxCache) SelectTransactions(
 		"num bytes", cache.NumBytes(),
 	)
 
-	virtualSession, err := cache.tracker.deriveVirtualSelectionSession(session, blockchainInfo)
+	virtualSession, err := cache.tracker.deriveVirtualSelectionSession(session, nonce, isSimulation)
 	if err != nil {
 		log.Error("TxCache.SelectTransactions: could not derive virtual selection session", "err", err)
 		return nil, 0, err
@@ -156,17 +170,10 @@ func (cache *TxCache) SelectTransactions(
 }
 
 // GetVirtualNonceAndRootHash returns the nonce of the virtual record of an account and the corresponding rootHash.
-// For this method, the blockchainInfo should contain the hash of the last committed block.
 func (cache *TxCache) GetVirtualNonceAndRootHash(
 	address []byte,
-	blockchainInfo common.BlockchainInfo,
 ) (uint64, []byte, error) {
-	if check.IfNil(blockchainInfo) {
-		log.Error("TxCache.GetVirtualNonce", "err", errNilBlockchainInfo)
-		return 0, nil, errNilBlockchainInfo
-	}
-
-	virtualNonce, rootHash, err := cache.tracker.getVirtualNonceOfAccountWithRootHash(address, blockchainInfo)
+	virtualNonce, rootHash, err := cache.tracker.getVirtualNonceOfAccountWithRootHash(address)
 	if err != nil {
 		return 0, nil, err
 	}
@@ -177,16 +184,21 @@ func (cache *TxCache) GetVirtualNonceAndRootHash(
 // OnProposedBlock calls the OnProposedBlock method from SelectionTracker
 func (cache *TxCache) OnProposedBlock(
 	blockHash []byte,
-	blockBody *block.Body,
+	blockBody data.BodyHandler,
 	blockHeader data.HeaderHandler,
 	accountsProvider common.AccountNonceAndBalanceProvider,
-	blockchainInfo common.BlockchainInfo) error {
-	return cache.tracker.OnProposedBlock(blockHash, blockBody, blockHeader, accountsProvider, blockchainInfo)
+	latestExecutedHash []byte) error {
+	return cache.tracker.OnProposedBlock(blockHash, blockBody, blockHeader, accountsProvider, latestExecutedHash)
 }
 
 // OnExecutedBlock calls the OnExecutedBlock method from SelectionTracker
 func (cache *TxCache) OnExecutedBlock(blockHeader data.HeaderHandler, rootHash []byte) error {
 	return cache.tracker.OnExecutedBlock(blockHeader, rootHash)
+}
+
+// ResetTracker resets the SelectionTracker
+func (cache *TxCache) ResetTracker() {
+	cache.tracker.ResetTrackedBlocks()
 }
 
 func (cache *TxCache) getSenders() []*txListForSender {

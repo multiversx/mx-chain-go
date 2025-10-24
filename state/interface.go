@@ -6,6 +6,7 @@ import (
 
 	"github.com/multiversx/mx-chain-core-go/core"
 	"github.com/multiversx/mx-chain-core-go/data/api"
+	data "github.com/multiversx/mx-chain-core-go/data/stateChange"
 	vmcommon "github.com/multiversx/mx-chain-vm-common-go"
 
 	"github.com/multiversx/mx-chain-go/common"
@@ -91,6 +92,7 @@ type AccountsAdapter interface {
 	GetStackDebugFirstEntry() []byte
 	SetSyncer(syncer AccountsDBSyncer) error
 	StartSnapshotIfNeeded() error
+	SetTxHashForLatestStateAccesses(txHash []byte)
 	Close() error
 	IsInterfaceNil() bool
 }
@@ -160,7 +162,7 @@ type baseAccountHandler interface {
 	GetRootHash() []byte
 	SetDataTrie(trie common.Trie)
 	DataTrie() common.DataTrieHandler
-	SaveDirtyData(trie common.Trie) ([]core.TrieData, error)
+	SaveDirtyData(trie common.Trie) ([]*data.DataTrieChange, []core.TrieData, error)
 	IsInterfaceNil() bool
 }
 
@@ -258,7 +260,7 @@ type DataTrieTracker interface {
 	SaveKeyValue(key []byte, value []byte) error
 	SetDataTrie(tr common.Trie)
 	DataTrie() common.DataTrieHandler
-	SaveDirtyData(common.Trie) ([]core.TrieData, error)
+	SaveDirtyData(common.Trie) ([]*data.DataTrieChange, []core.TrieData, error)
 	MigrateDataTrieLeaves(args vmcommon.ArgsMigrateDataTrieLeaves) error
 	IsInterfaceNil() bool
 }
@@ -353,4 +355,23 @@ type ValidatorInfoHandler interface {
 	ShallowClone() ValidatorInfoHandler
 	String() string
 	GoString() string
+}
+
+// StateAccessesCollector defines the methods needed for an StateAccessesCollector implementation
+type StateAccessesCollector interface {
+	AddStateAccess(stateAccess *data.StateAccess)
+	GetAccountChanges(oldAccount, account vmcommon.AccountHandler) uint32
+	Reset()
+	GetCollectedAccesses() map[string]*data.StateAccesses
+	Store() error
+	AddTxHashToCollectedStateAccesses(txHash []byte)
+	SetIndexToLatestStateAccesses(index int) error
+	RevertToIndex(index int) error
+	IsInterfaceNil() bool
+}
+
+// StateAccessesStorer defines the methods needed for an StateAccessesStorer implementation
+type StateAccessesStorer interface {
+	Store(stateAccessesForTxs map[string]*data.StateAccesses) error
+	IsInterfaceNil() bool
 }

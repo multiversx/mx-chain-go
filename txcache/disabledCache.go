@@ -4,7 +4,6 @@ import (
 	"time"
 
 	"github.com/multiversx/mx-chain-core-go/data"
-	"github.com/multiversx/mx-chain-core-go/data/block"
 	"github.com/multiversx/mx-chain-go/common"
 	"github.com/multiversx/mx-chain-storage-go/types"
 )
@@ -118,9 +117,9 @@ func (cache *DisabledCache) ImmunizeTxsAgainstEviction(_ [][]byte) {
 func (cache *DisabledCache) Diagnose(_ bool) {
 }
 
-// GetNumTrackedBlocks returns 0
-func (cache *DisabledCache) GetNumTrackedBlocks() uint64 {
-	return 0
+// GetTrackerDiagnosis returns nil
+func (cache *DisabledCache) GetTrackerDiagnosis() TrackerDiagnosis {
+	return nil
 }
 
 // GetTransactionsPoolForSender returns an empty slice
@@ -134,7 +133,7 @@ func (cache *DisabledCache) Close() error {
 }
 
 // OnProposedBlock does nothing
-func (cache *DisabledCache) OnProposedBlock(_ []byte, _ *block.Body, _ data.HeaderHandler, _ common.AccountNonceAndBalanceProvider, _ common.BlockchainInfo) error {
+func (cache *DisabledCache) OnProposedBlock(_ []byte, _ data.BodyHandler, _ data.HeaderHandler, _ common.AccountNonceAndBalanceProvider, _ []byte) error {
 	return nil
 }
 
@@ -142,6 +141,9 @@ func (cache *DisabledCache) OnProposedBlock(_ []byte, _ *block.Body, _ data.Head
 func (cache *DisabledCache) OnExecutedBlock(_ data.HeaderHandler, _ []byte) error {
 	return nil
 }
+
+// ResetTracker does nothing
+func (cache *DisabledCache) ResetTracker() {}
 
 // Cleanup does nothing
 func (cache *DisabledCache) Cleanup(_ common.AccountNonceProvider, _ uint64, _ int, _ time.Duration) uint64 {
