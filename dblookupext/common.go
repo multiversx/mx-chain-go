@@ -21,7 +21,7 @@ func getIntermediateTxs(cache storage.Cacher, headerHash []byte) (map[string]dat
 
 	cachedIntermediateTxsMap, ok := cachedIntermediateTxs.(map[block.Type]map[string]data.TransactionHandler)
 	if !ok {
-		return make(map[string]data.TransactionHandler), make(map[string]data.TransactionHandler), nil
+		return nil, nil, fmt.Errorf("%w for cached intermediate transaction %s", process.ErrWrongTypeAssertion, hex.EncodeToString(headerHash))
 	}
 
 	scrs := cachedIntermediateTxsMap[block.SmartContractResultBlock]
@@ -39,7 +39,7 @@ func getLogs(cache storage.Cacher, headerHash []byte) ([]*data.LogData, error) {
 	}
 	cachedLogsSlice, ok := cachedLogs.([]*data.LogData)
 	if !ok {
-		return []*data.LogData{}, nil
+		return nil, fmt.Errorf("%w for cached logs %s", process.ErrWrongTypeAssertion, hex.EncodeToString(headerHash))
 	}
 	return cachedLogsSlice, nil
 }
@@ -90,6 +90,7 @@ func getBody(cache storage.Cacher, marshaller marshal.Marshalizer, baseExecResul
 	return &block.Body{MiniBlocks: miniBlocks}, nil
 }
 
+// TODO  reuse the method that was moved into common after PR #7337 is merged
 func extractMiniBlocksHeaderHandlersFromExecResult(
 	baseExecResult data.BaseExecutionResultHandler,
 	headerShard uint32,

@@ -22,6 +22,8 @@ func TestGetIntermediateTxs(t *testing.T) {
 	t.Parallel()
 
 	t.Run("getIntermediateTxs cannot find in cache", func(t *testing.T) {
+		t.Parallel()
+
 		cacher := cache.NewCacherMock()
 
 		headerHash := []byte("h")
@@ -31,18 +33,20 @@ func TestGetIntermediateTxs(t *testing.T) {
 	})
 
 	t.Run("getIntermediateTxs wrong type in cache should return empty maps", func(t *testing.T) {
+		t.Parallel()
+
 		cacher := cache.NewCacherMock()
 
 		headerHash := []byte("h")
 		cacher.Put(headerHash, []byte("wrong"), 0)
 
-		scrs, receipts, err := getIntermediateTxs(cacher, headerHash)
-		require.NoError(t, err)
-		require.Len(t, scrs, 0)
-		require.Len(t, receipts, 0)
+		_, _, err := getIntermediateTxs(cacher, headerHash)
+		require.True(t, errors.Is(err, process.ErrWrongTypeAssertion))
 	})
 
 	t.Run("getIntermediateTxs should work", func(t *testing.T) {
+		t.Parallel()
+
 		cachedIntermediateTxsMap := map[block.Type]map[string]data.TransactionHandler{}
 		cachedIntermediateTxsMap[block.SmartContractResultBlock] = map[string]data.TransactionHandler{
 			"h1": &smartContractResult.SmartContractResult{},
@@ -70,6 +74,8 @@ func TestGetLogs(t *testing.T) {
 	t.Parallel()
 
 	t.Run("getLogs cannot find in cache", func(t *testing.T) {
+		t.Parallel()
+
 		cacher := cache.NewCacherMock()
 
 		headerHash := []byte("h")
@@ -79,18 +85,21 @@ func TestGetLogs(t *testing.T) {
 	})
 
 	t.Run("getLogs wrong type in cache should return empty slice", func(t *testing.T) {
+		t.Parallel()
+
 		cacher := cache.NewCacherMock()
 
 		headerHash := []byte("h")
 		logsKey := common.PrepareLogEventsKey(headerHash)
 		cacher.Put(logsKey, "wrong type", 0)
 
-		logs, err := getLogs(cacher, headerHash)
-		require.Nil(t, err)
-		require.Len(t, logs, 0)
+		_, err := getLogs(cacher, headerHash)
+		require.True(t, errors.Is(err, process.ErrWrongTypeAssertion))
 	})
 
 	t.Run("getLogs should work", func(t *testing.T) {
+		t.Parallel()
+
 		cacher := cache.NewCacherMock()
 
 		headerHash := []byte("h")
@@ -120,6 +129,8 @@ func TestGetIntraMbs(t *testing.T) {
 	t.Parallel()
 
 	t.Run("getIntraMbs cannot find in cache", func(t *testing.T) {
+		t.Parallel()
+
 		cacher := cache.NewCacherMock()
 		marshaller := &marshallerMock.MarshalizerMock{}
 
@@ -130,6 +141,8 @@ func TestGetIntraMbs(t *testing.T) {
 	})
 
 	t.Run("getIntraMbs wrong type should error", func(t *testing.T) {
+		t.Parallel()
+
 		cacher := cache.NewCacherMock()
 		marshaller := &marshallerMock.MarshalizerMock{}
 
@@ -143,6 +156,8 @@ func TestGetIntraMbs(t *testing.T) {
 	})
 
 	t.Run("getIntraMbs should work", func(t *testing.T) {
+		t.Parallel()
+
 		cacher := cache.NewCacherMock()
 		marshaller := &marshallerMock.MarshalizerMock{}
 
@@ -164,6 +179,8 @@ func TestGetIntraMbs(t *testing.T) {
 
 func TestExtractMiniBlocksHeaderHandlersFromExecResult(t *testing.T) {
 	t.Run("wrong type shard", func(t *testing.T) {
+		t.Parallel()
+
 		executionResult := &block.BaseExecutionResult{}
 
 		_, err := extractMiniBlocksHeaderHandlersFromExecResult(executionResult, 0)
@@ -182,11 +199,15 @@ func TestExtractMiniBlocksHeaderHandlersFromExecResult(t *testing.T) {
 		require.Len(t, res, 2)
 	})
 	t.Run("wrong type meta", func(t *testing.T) {
+		t.Parallel()
+
 		executionResult := &block.BaseExecutionResult{}
 		_, err := extractMiniBlocksHeaderHandlersFromExecResult(executionResult, core.MetachainShardId)
 		require.Equal(t, process.ErrWrongTypeAssertion, err)
 	})
 	t.Run("should work meta", func(t *testing.T) {
+		t.Parallel()
+
 		executionResult := &block.MetaExecutionResult{
 			MiniBlockHeaders: []block.MiniBlockHeader{
 				{SenderShardID: 0},
@@ -204,6 +225,8 @@ func TestGetBody(t *testing.T) {
 	t.Parallel()
 
 	t.Run("cannot get mb headers should error", func(t *testing.T) {
+		t.Parallel()
+
 		executionResult := &block.BaseExecutionResult{}
 
 		marshaller := &marshallerMock.MarshalizerMock{}
@@ -214,6 +237,8 @@ func TestGetBody(t *testing.T) {
 	})
 
 	t.Run("missing miniblock should error", func(t *testing.T) {
+		t.Parallel()
+
 		mb1 := &block.MiniBlock{
 			SenderShardID: 1,
 		}
@@ -242,6 +267,8 @@ func TestGetBody(t *testing.T) {
 	})
 
 	t.Run("marshaller error", func(t *testing.T) {
+		t.Parallel()
+
 		h1 := []byte("h1")
 		h2 := []byte("h2")
 
@@ -266,6 +293,8 @@ func TestGetBody(t *testing.T) {
 	})
 
 	t.Run("getBody should work", func(t *testing.T) {
+		t.Parallel()
+
 		mb1 := &block.MiniBlock{
 			SenderShardID: 1,
 		}

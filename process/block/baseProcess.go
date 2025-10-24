@@ -2468,9 +2468,6 @@ func (bp *baseProcessor) saveExecutedData(header data.HeaderHandler, headerHash 
 		return err
 	}
 
-	// cleanup intra shard mini-blocks
-	bp.dataPool.MiniBlocks().Remove(headerHash)
-
 	return bp.saveIntermediateTxs(headerHash)
 }
 
@@ -2490,6 +2487,12 @@ func (bp *baseProcessor) saveMiniBlocksFromExecutionResults(header data.HeaderHa
 		if err != nil {
 			return err
 		}
+
+		executionResultHeaderHash := baseExecutionResult.GetHeaderHash()
+		// cleanup all intra shard miniblocks
+		bp.dataPool.MiniBlocks().Remove(executionResultHeaderHash)
+		// cleanup all log events
+		bp.dataPool.PostProcessTransactions().Remove(common.PrepareLogEventsKey(executionResultHeaderHash))
 	}
 
 	return nil
@@ -2632,8 +2635,6 @@ func (bp *baseProcessor) saveIntermediateTxs(headerHash []byte) error {
 
 	// all transactions moved, cleaning the cache
 	postProcessTxsCache.Remove(headerHash)
-	// cleanup all log events
-	postProcessTxsCache.Remove(common.PrepareLogEventsKey(headerHash))
 
 	return nil
 }
