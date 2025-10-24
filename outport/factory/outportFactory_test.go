@@ -9,7 +9,6 @@ import (
 	indexerFactory "github.com/multiversx/mx-chain-es-indexer-go/process/factory"
 	"github.com/multiversx/mx-chain-go/config"
 	"github.com/multiversx/mx-chain-go/outport"
-	"github.com/multiversx/mx-chain-go/outport/factory"
 	notifierFactory "github.com/multiversx/mx-chain-go/outport/factory"
 	"github.com/multiversx/mx-chain-go/process/mock"
 	"github.com/multiversx/mx-chain-go/testscommon"
@@ -18,14 +17,14 @@ import (
 	"github.com/stretchr/testify/require"
 )
 
-func createMockArgsOutportHandler(indexerEnabled, notifierEnabled bool) *factory.OutportFactoryArgs {
+func createMockArgsOutportHandler(indexerEnabled, notifierEnabled bool) *notifierFactory.OutportFactoryArgs {
 	mockElasticArgs := indexerFactory.ArgsIndexerFactory{
 		Enabled: indexerEnabled,
 	}
 	mockNotifierArgs := &notifierFactory.EventNotifierFactoryArgs{
 		Enabled: notifierEnabled,
 	}
-	return &factory.OutportFactoryArgs{
+	return &notifierFactory.OutportFactoryArgs{
 		RetrialInterval:           time.Second,
 		ElasticIndexerFactoryArgs: mockElasticArgs,
 		EventNotifierFactoryArgs:  mockNotifierArgs,
@@ -38,19 +37,19 @@ func TestNewIndexerFactory(t *testing.T) {
 	t.Parallel()
 	tests := []struct {
 		name     string
-		argsFunc func() *factory.OutportFactoryArgs
+		argsFunc func() *notifierFactory.OutportFactoryArgs
 		exError  error
 	}{
 		{
 			name: "NilArgsOutportFactory",
-			argsFunc: func() *factory.OutportFactoryArgs {
+			argsFunc: func() *notifierFactory.OutportFactoryArgs {
 				return nil
 			},
 			exError: outport.ErrNilArgsOutportFactory,
 		},
 		{
 			name: "invalid retrial duration",
-			argsFunc: func() *factory.OutportFactoryArgs {
+			argsFunc: func() *notifierFactory.OutportFactoryArgs {
 				args := createMockArgsOutportHandler(false, false)
 				args.RetrialInterval = 0
 				return args
@@ -59,7 +58,7 @@ func TestNewIndexerFactory(t *testing.T) {
 		},
 		{
 			name: "AllOkShouldWork",
-			argsFunc: func() *factory.OutportFactoryArgs {
+			argsFunc: func() *notifierFactory.OutportFactoryArgs {
 				return createMockArgsOutportHandler(false, false)
 			},
 			exError: nil,
@@ -68,7 +67,7 @@ func TestNewIndexerFactory(t *testing.T) {
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			_, err := factory.CreateOutport(tt.argsFunc())
+			_, err := notifierFactory.CreateOutport(tt.argsFunc())
 			require.True(t, errors.Is(err, tt.exError))
 		})
 	}
@@ -77,22 +76,22 @@ func TestNewIndexerFactory(t *testing.T) {
 func TestCreateOutport_EnabledDriversNilMockArgsExpectErrorSubscribingDrivers(t *testing.T) {
 	t.Parallel()
 	tests := []struct {
-		argsFunc func() *factory.OutportFactoryArgs
+		argsFunc func() *notifierFactory.OutportFactoryArgs
 	}{
 		{
-			argsFunc: func() *factory.OutportFactoryArgs {
+			argsFunc: func() *notifierFactory.OutportFactoryArgs {
 				return createMockArgsOutportHandler(true, false)
 			},
 		},
 		{
-			argsFunc: func() *factory.OutportFactoryArgs {
+			argsFunc: func() *notifierFactory.OutportFactoryArgs {
 				return createMockArgsOutportHandler(false, true)
 			},
 		},
 	}
 
 	for _, currTest := range tests {
-		_, err := factory.CreateOutport(currTest.argsFunc())
+		_, err := notifierFactory.CreateOutport(currTest.argsFunc())
 		require.NotNil(t, err)
 	}
 }
@@ -102,7 +101,7 @@ func TestCreateOutport_SubscribeNotifierDriver(t *testing.T) {
 
 	args.EventNotifierFactoryArgs.Marshaller = &mock.MarshalizerMock{}
 	args.EventNotifierFactoryArgs.RequestTimeoutSec = 1
-	outPort, err := factory.CreateOutport(args)
+	outPort, err := notifierFactory.CreateOutport(args)
 	require.Nil(t, err)
 
 	defer func(c outport.OutportHandler) {
@@ -113,7 +112,7 @@ func TestCreateOutport_SubscribeNotifierDriver(t *testing.T) {
 }
 
 func TestCreateOutport_SubscribeMultipleHostDrivers(t *testing.T) {
-	args := &factory.OutportFactoryArgs{
+	args := &notifierFactory.OutportFactoryArgs{
 		RetrialInterval: time.Second,
 		EventNotifierFactoryArgs: &notifierFactory.EventNotifierFactoryArgs{
 			Enabled: false,
@@ -157,7 +156,7 @@ func TestCreateOutport_SubscribeMultipleHostDrivers(t *testing.T) {
 		EnableRoundsHandler: &testscommon.EnableRoundsHandlerStub{},
 	}
 
-	outPort, err := factory.CreateOutport(args)
+	outPort, err := notifierFactory.CreateOutport(args)
 	require.Nil(t, err)
 
 	defer func() {
@@ -168,7 +167,7 @@ func TestCreateOutport_SubscribeMultipleHostDrivers(t *testing.T) {
 }
 
 func TestCreateAndSubscribeDriversShouldReturnError(t *testing.T) {
-	args := &factory.OutportFactoryArgs{
+	args := &notifierFactory.OutportFactoryArgs{
 		RetrialInterval: time.Second,
 		EventNotifierFactoryArgs: &notifierFactory.EventNotifierFactoryArgs{
 			Enabled: false,
@@ -192,7 +191,7 @@ func TestCreateAndSubscribeDriversShouldReturnError(t *testing.T) {
 		EnableRoundsHandler: &testscommon.EnableRoundsHandlerStub{},
 	}
 
-	outPort, err := factory.CreateOutport(args)
+	outPort, err := notifierFactory.CreateOutport(args)
 	require.Nil(t, outPort)
 	require.ErrorIs(t, err, data.ErrInvalidWebSocketHostMode)
 }

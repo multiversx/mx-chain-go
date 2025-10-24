@@ -2874,3 +2874,25 @@ func TestShardBlockTrack_GetTrackedShardHeaderWithNonceAndHashShouldWork(t *test
 	assert.Equal(t, nonce, header.GetNonce())
 	assert.Equal(t, shardID, header.GetShardID())
 }
+
+func TestBaseBlockTrack_OwnShardStuck(t *testing.T) {
+	t.Parallel()
+
+	args := CreateShardTrackerMockArguments()
+	args.EnableEpochsHandler = &enableEpochsHandlerMock.EnableEpochsHandlerStub{
+		IsFlagEnabledCalled: func(flag core.EnableEpochFlag) bool {
+			return true
+		},
+	}
+	sbt, _ := track.NewShardBlockTrack(args)
+	require.NotNil(t, sbt)
+
+	require.False(t, sbt.IsOwnShardStuck())
+
+	currentNonce := uint64(100)
+	lastExecResult := &block.BaseExecutionResult{
+		HeaderNonce: 50,
+	}
+	sbt.ComputeOwnShardStuck(lastExecResult, currentNonce)
+	require.True(t, sbt.IsOwnShardStuck())
+}

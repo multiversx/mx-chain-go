@@ -136,6 +136,20 @@ func TestNewDataPoolFromConfig_BadConfigShouldErr(t *testing.T) {
 	require.Nil(t, holder)
 	require.True(t, errors.Is(err, storage.ErrInvalidConfig))
 	require.True(t, strings.Contains(err.Error(), "the cache for the validator info results"))
+
+	args = getGoodArgs()
+	args.Config.ExecutedMiniBlocksCache.Type = "invalid cache type"
+	holder, err = NewDataPoolFromConfig(args)
+	require.Nil(t, holder)
+	require.True(t, errors.Is(err, storage.ErrNotSupportedCacheType))
+	require.True(t, strings.Contains(err.Error(), "the cache for the executed mini blocks"))
+
+	args = getGoodArgs()
+	args.Config.PostProcessTransactionsCache.Type = "invalid cache type"
+	holder, err = NewDataPoolFromConfig(args)
+	require.Nil(t, holder)
+	require.True(t, errors.Is(err, storage.ErrNotSupportedCacheType))
+	require.True(t, strings.Contains(err.Error(), "the cache for the post process transactions"))
 }
 
 func getGoodArgs() ArgsDataPool {

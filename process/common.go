@@ -3,6 +3,7 @@ package process
 import (
 	"bytes"
 	"encoding/hex"
+	"errors"
 	"fmt"
 	"math"
 	"math/big"
@@ -22,6 +23,7 @@ import (
 	vmcommon "github.com/multiversx/mx-chain-vm-common-go"
 
 	"github.com/multiversx/mx-chain-go/dataRetriever"
+	"github.com/multiversx/mx-chain-go/process/estimator"
 	"github.com/multiversx/mx-chain-go/state"
 )
 
@@ -790,19 +792,77 @@ func GetHeader(
 	return GetShardHeader(headerHash, headersPool, marshaller, headersStorer)
 }
 
+// UnmarshalExecutionResult unmarshalls an execution result
+func UnmarshalExecutionResult(marshaller marshal.Marshalizer, executionResultsBytes []byte) (data.ExecutionResultHandler, error) {
+	executionResult, err := UnmarshalShardExecutionResult(marshaller, executionResultsBytes)
+	if err == nil {
+		return executionResult, nil
+	}
+
+	return UnmarshallMetaExecutionResult(marshaller, executionResultsBytes)
+}
+
+// UnmarshalShardExecutionResult unmarshalls a shard execution result
+func UnmarshalShardExecutionResult(marshaller marshal.Marshalizer, executionResultsBytes []byte) (data.ExecutionResultHandler, error) {
+	executionResult := &block.ExecutionResult{}
+	err := marshaller.Unmarshal(executionResult, executionResultsBytes)
+	if err != nil {
+		return nil, err
+	}
+
+	return executionResult, nil
+}
+
+// UnmarshallMetaExecutionResult unmarshalls a meta execution result
+func UnmarshallMetaExecutionResult(marshaller marshal.Marshalizer, executionResultsBytes []byte) (data.MetaExecutionResultHandler, error) {
+	executionResult := &block.MetaExecutionResult{}
+	err := marshaller.Unmarshal(executionResult, executionResultsBytes)
+	if err != nil {
+		return nil, err
+	}
+
+	return executionResult, nil
+}
+
 // UnmarshalHeader unmarshalls a block header
-func UnmarshalHeader(shardId uint32, marshalizer marshal.Marshalizer, headerBuffer []byte) (data.HeaderHandler, error) {
+func UnmarshalHeader(shardId uint32, marshaller marshal.Marshalizer, headerBuffer []byte) (data.HeaderHandler, error) {
 	if shardId == core.MetachainShardId {
-		return UnmarshalMetaHeader(marshalizer, headerBuffer)
+		return UnmarshalMetaHeader(marshaller, headerBuffer)
 	} else {
-		return UnmarshalShardHeader(marshalizer, headerBuffer)
+		return UnmarshalShardHeader(marshaller, headerBuffer)
 	}
 }
 
 // UnmarshalMetaHeader unmarshalls a meta header
-func UnmarshalMetaHeader(marshalizer marshal.Marshalizer, headerBuffer []byte) (data.MetaHeaderHandler, error) {
+func UnmarshalMetaHeader(marshaller marshal.Marshalizer, headerBuffer []byte) (data.MetaHeaderHandler, error) {
+	hdr, err := UnmarshalMetaHeaderV3(marshaller, headerBuffer)
+	if err == nil {
+		return hdr, nil
+	}
+
+	return UnmarshalMetaHeaderV1(marshaller, headerBuffer)
+}
+
+// UnmarshalMetaHeaderV3 unmarshalls a meta header v3
+func UnmarshalMetaHeaderV3(marshaller marshal.Marshalizer, headerBuffer []byte) (data.MetaHeaderHandler, error) {
+	header := &block.MetaBlockV3{}
+	err := marshaller.Unmarshal(header, headerBuffer)
+	if err != nil {
+		return nil, err
+	}
+
+	// this should not be nil for meta header v3
+	if header.GetLastExecutionResult() == nil {
+		return nil, ErrInvalidHeader
+	}
+
+	return header, nil
+}
+
+// UnmarshalMetaHeaderV1 unmarshalls a meta header v1
+func UnmarshalMetaHeaderV1(marshaller marshal.Marshalizer, headerBuffer []byte) (data.MetaHeaderHandler, error) {
 	header := &block.MetaBlock{}
-	err := marshalizer.Unmarshal(header, headerBuffer)
+	err := marshaller.Unmarshal(header, headerBuffer)
 	if err != nil {
 		return nil, err
 	}
@@ -811,14 +871,34 @@ func UnmarshalMetaHeader(marshalizer marshal.Marshalizer, headerBuffer []byte) (
 }
 
 // UnmarshalShardHeader unmarshalls a shard header
-func UnmarshalShardHeader(marshalizer marshal.Marshalizer, hdrBuff []byte) (data.ShardHeaderHandler, error) {
-	hdr, err := UnmarshalShardHeaderV2(marshalizer, hdrBuff)
+func UnmarshalShardHeader(marshaller marshal.Marshalizer, hdrBuff []byte) (data.ShardHeaderHandler, error) {
+	hdr, err := UnmarshalShardHeaderV3(marshaller, hdrBuff)
 	if err == nil {
 		return hdr, nil
 	}
 
-	hdr, err = UnmarshalShardHeaderV1(marshalizer, hdrBuff)
-	return hdr, err
+	hdr, err = UnmarshalShardHeaderV2(marshaller, hdrBuff)
+	if err == nil {
+		return hdr, nil
+	}
+
+	return UnmarshalShardHeaderV1(marshaller, hdrBuff)
+}
+
+// UnmarshalShardHeaderV3 unmarshalls a header with version 3
+func UnmarshalShardHeaderV3(marshaller marshal.Marshalizer, hdrBuff []byte) (data.ShardHeaderHandler, error) {
+	hdrV3 := &block.HeaderV3{}
+	err := marshaller.Unmarshal(hdrV3, hdrBuff)
+	if err != nil {
+		return nil, err
+	}
+
+	// this should not be nil for shard header v3
+	if hdrV3.GetLastExecutionResult() == nil {
+		return nil, ErrInvalidHeader
+	}
+
+	return hdrV3, nil
 }
 
 // UnmarshalShardHeaderV2 unmarshalls a header with version 2
@@ -962,4 +1042,214 @@ func CheckIfIndexesAreOutOfBound(
 	}
 
 	return nil
+}
+
+// SetBaseExecutionResult sets the last notarized base execution result in the execution results tracker
+func SetBaseExecutionResult(ert ExecutionResultsTracker, blockChain data.ChainHandler) error {
+	if check.IfNil(blockChain) {
+		return ErrNilBlockChain
+	}
+	if check.IfNil(ert) {
+		return ErrNilExecutionResultsTracker
+	}
+
+	currentBlock := blockChain.GetCurrentBlockHeader()
+	if currentBlock == nil || !currentBlock.IsHeaderV3() {
+		return nil
+	}
+
+	lastNotarizedResult := currentBlock.GetLastExecutionResultHandler()
+	if check.IfNil(lastNotarizedResult) {
+		return ErrNilLastExecutionResultHandler
+	}
+
+	var lastBaseExecutionResult data.BaseExecutionResultHandler
+	switch lastNotarizedBaseResult := lastNotarizedResult.(type) {
+	case data.LastShardExecutionResultHandler:
+		lastBaseExecutionResult = lastNotarizedBaseResult.GetExecutionResultHandler()
+	case data.LastMetaExecutionResultHandler:
+		lastBaseExecutionResult = lastNotarizedBaseResult.GetExecutionResultHandler()
+	default:
+		return ErrWrongTypeAssertion
+	}
+
+	if check.IfNil(lastBaseExecutionResult) {
+		return ErrNilBaseExecutionResult
+	}
+
+	return ert.SetLastNotarizedResult(lastBaseExecutionResult)
+}
+
+// SeparateBodyByType creates a map of bodies according to type
+func SeparateBodyByType(body *block.Body) map[block.Type]*block.Body {
+	separatedBodies := make(map[block.Type]*block.Body)
+	for i := 0; i < len(body.MiniBlocks); i++ {
+		mb := body.MiniBlocks[i]
+
+		separatedMbType := mb.Type
+		if mb.Type == block.InvalidBlock {
+			separatedMbType = block.TxBlock
+		}
+
+		if _, ok := separatedBodies[separatedMbType]; !ok {
+			separatedBodies[separatedMbType] = &block.Body{}
+		}
+
+		separatedBodies[separatedMbType].MiniBlocks = append(separatedBodies[separatedMbType].MiniBlocks, mb)
+	}
+
+	return separatedBodies
+}
+
+// GetPrevBlockLastExecutionResult gets the last execution result from the previous block
+func GetPrevBlockLastExecutionResult(blockChain data.ChainHandler) (data.LastExecutionResultHandler, error) {
+	if check.IfNil(blockChain) {
+		return nil, ErrNilBlockChain
+	}
+
+	prevHeader := blockChain.GetCurrentBlockHeader()
+	prevHeaderHash := blockChain.GetCurrentBlockHeaderHash()
+	if check.IfNil(prevHeader) || len(prevHeaderHash) == 0 {
+		prevHeader = blockChain.GetGenesisHeader()
+		prevHeaderHash = blockChain.GetGenesisHeaderHash()
+
+		if check.IfNil(prevHeader) || len(prevHeaderHash) == 0 {
+			return nil, ErrNilHeaderHandler
+		}
+	}
+
+	if prevHeader.IsHeaderV3() {
+		return prevHeader.GetLastExecutionResultHandler(), nil
+	}
+
+	return CreateLastExecutionResultFromPrevHeader(prevHeader, prevHeaderHash)
+}
+
+// CreateLastExecutionResultFromPrevHeader creates a LastExecutionResultInfo object from the given previous header
+func CreateLastExecutionResultFromPrevHeader(prevHeader data.HeaderHandler, prevHeaderHash []byte) (data.LastExecutionResultHandler, error) {
+	if check.IfNil(prevHeader) {
+		return nil, ErrNilBlockHeader
+	}
+	if len(prevHeaderHash) == 0 {
+		return nil, ErrInvalidHash
+	}
+
+	if prevHeader.GetShardID() != core.MetachainShardId {
+		if _, ok := prevHeader.(*block.HeaderV2); !ok {
+			return nil, ErrWrongTypeAssertion
+		}
+
+		return &block.ExecutionResultInfo{
+			NotarizedInRound: prevHeader.GetRound(),
+			ExecutionResult: &block.BaseExecutionResult{
+				HeaderHash:  prevHeaderHash,
+				HeaderNonce: prevHeader.GetNonce(),
+				HeaderRound: prevHeader.GetRound(),
+				RootHash:    prevHeader.GetRootHash(),
+				GasUsed:     0, // we don't have this information in previous header
+			},
+		}, nil
+	}
+
+	prevMetaHeader, ok := prevHeader.(*block.MetaBlock)
+	if !ok {
+		return nil, ErrWrongTypeAssertion
+	}
+
+	return &block.MetaExecutionResultInfo{
+		NotarizedInRound: prevHeader.GetRound(),
+		ExecutionResult: &block.BaseMetaExecutionResult{
+			BaseExecutionResult: &block.BaseExecutionResult{
+				HeaderHash:  prevHeaderHash,
+				HeaderNonce: prevMetaHeader.GetNonce(),
+				HeaderRound: prevMetaHeader.GetRound(),
+				RootHash:    prevMetaHeader.GetRootHash(),
+				GasUsed:     0, // we don't have this information in previous header
+			},
+			ValidatorStatsRootHash: prevMetaHeader.GetValidatorStatsRootHash(),
+			AccumulatedFeesInEpoch: prevMetaHeader.GetAccumulatedFeesInEpoch(),
+			DevFeesInEpoch:         prevMetaHeader.GetDevFeesInEpoch(),
+		},
+	}, nil
+}
+
+// CreateLastExecutionResultInfoFromExecutionResult creates a LastExecutionResultInfo object from the given execution result
+func CreateLastExecutionResultInfoFromExecutionResult(notarizedInRound uint64, lastExecResult data.BaseExecutionResultHandler, shardID uint32) (data.LastExecutionResultHandler, error) {
+	if check.IfNil(lastExecResult) {
+		return nil, ErrNilExecutionResultHandler
+	}
+
+	if shardID != core.MetachainShardId {
+		if _, ok := lastExecResult.(*block.ExecutionResult); !ok {
+			return nil, ErrWrongTypeAssertion
+		}
+
+		return &block.ExecutionResultInfo{
+			NotarizedInRound: notarizedInRound,
+			ExecutionResult: &block.BaseExecutionResult{
+				HeaderHash:  lastExecResult.GetHeaderHash(),
+				HeaderNonce: lastExecResult.GetHeaderNonce(),
+				HeaderRound: lastExecResult.GetHeaderRound(),
+				RootHash:    lastExecResult.GetRootHash(),
+				GasUsed:     lastExecResult.GetGasUsed(),
+			},
+		}, nil
+	}
+
+	lastMetaExecResult, ok := lastExecResult.(*block.MetaExecutionResult)
+	if !ok {
+		return nil, ErrWrongTypeAssertion
+	}
+
+	return &block.MetaExecutionResultInfo{
+		NotarizedInRound: notarizedInRound,
+		ExecutionResult: &block.BaseMetaExecutionResult{
+			BaseExecutionResult: &block.BaseExecutionResult{
+				HeaderHash:  lastMetaExecResult.GetHeaderHash(),
+				HeaderNonce: lastMetaExecResult.GetHeaderNonce(),
+				HeaderRound: lastMetaExecResult.GetHeaderRound(),
+				RootHash:    lastMetaExecResult.GetRootHash(),
+				GasUsed:     lastMetaExecResult.GetGasUsed(),
+			},
+			ValidatorStatsRootHash: lastMetaExecResult.GetValidatorStatsRootHash(),
+			AccumulatedFeesInEpoch: lastMetaExecResult.GetAccumulatedFeesInEpoch(),
+			DevFeesInEpoch:         lastMetaExecResult.GetDevFeesInEpoch(),
+		},
+	}, nil
+}
+
+// CreateDataForInclusionEstimation creates the metadata needed for inclusion time estimation
+func CreateDataForInclusionEstimation(
+	handler data.LastExecutionResultHandler,
+) (*estimator.LastExecutionResultForInclusion, error) {
+	if check.IfNil(handler) {
+		return nil, ErrNilLastExecutionResultHandler
+	}
+
+	var proposedInRound uint64
+	var notarizedInRound uint64
+	switch lastExecutionResult := handler.(type) {
+	case *block.ExecutionResultInfo:
+		notarizedInRound = lastExecutionResult.GetNotarizedInRound()
+		proposedInRound = lastExecutionResult.GetExecutionResult().HeaderRound
+	case *block.MetaExecutionResultInfo:
+		notarizedInRound = lastExecutionResult.GetNotarizedInRound()
+		proposedInRound = lastExecutionResult.GetExecutionResult().GetHeaderRound()
+	default:
+		return nil, ErrWrongTypeAssertion
+	}
+
+	return &estimator.LastExecutionResultForInclusion{
+		NotarizedInRound: notarizedInRound,
+		ProposedInRound:  proposedInRound,
+	}, nil
+}
+
+// IsNotExecutableTransactionError checks if the given error is related to a transaction which cannot be executed
+// TODO: needs to be called for Supernova processing
+func IsNotExecutableTransactionError(err error) bool {
+	return errors.Is(err, ErrLowerNonceInTransaction) ||
+		errors.Is(err, ErrHigherNonceInTransaction) ||
+		errors.Is(err, ErrInsufficientFee) ||
+		errors.Is(err, ErrTransactionNotExecutable)
 }

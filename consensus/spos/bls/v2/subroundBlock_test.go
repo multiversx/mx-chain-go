@@ -25,6 +25,7 @@ import (
 	"github.com/multiversx/mx-chain-go/testscommon/consensus/initializers"
 	"github.com/multiversx/mx-chain-go/testscommon/dataRetriever"
 	"github.com/multiversx/mx-chain-go/testscommon/enableEpochsHandlerMock"
+	"github.com/multiversx/mx-chain-go/testscommon/round"
 	"github.com/multiversx/mx-chain-go/testscommon/shardingMocks"
 	"github.com/multiversx/mx-chain-go/testscommon/statusHandler"
 )
@@ -629,7 +630,7 @@ func TestSubroundBlock_DoBlockJob(t *testing.T) {
 			},
 		}
 		container.SetBroadcastMessenger(bm)
-		container.SetRoundHandler(&consensusMocks.RoundHandlerMock{
+		container.SetRoundHandler(&round.RoundHandlerMock{
 			RoundIndex: 1,
 		})
 		container.SetEquivalentProofsPool(&dataRetriever.ProofsPoolMock{
@@ -787,7 +788,7 @@ func TestSubroundBlock_ProcessReceivedBlockShouldReturnFalseWhenProcessBlockRetu
 		return expectedErr
 	}
 	container.SetBlockProcessor(blockProcessorMock)
-	container.SetRoundHandler(&consensusMocks.RoundHandlerMock{RoundIndex: 1})
+	container.SetRoundHandler(&round.RoundHandlerMock{RoundIndex: 1})
 	assert.False(t, sr.ProcessReceivedBlock(cnsMsg))
 }
 
@@ -925,7 +926,7 @@ func TestSubroundBlock_HaveTimeInCurrentSubroundShouldReturnTrue(t *testing.T) {
 
 		return time.Duration(remainingTime) > 0
 	}
-	roundHandlerMock := &consensusMocks.RoundHandlerMock{}
+	roundHandlerMock := &round.RoundHandlerMock{}
 	roundHandlerMock.TimeDurationCalled = func() time.Duration {
 		return 4000 * time.Millisecond
 	}
@@ -955,7 +956,7 @@ func TestSubroundBlock_HaveTimeInCurrentSuboundShouldReturnFalse(t *testing.T) {
 
 		return time.Duration(remainingTime) > 0
 	}
-	roundHandlerMock := &consensusMocks.RoundHandlerMock{}
+	roundHandlerMock := &round.RoundHandlerMock{}
 	roundHandlerMock.TimeDurationCalled = func() time.Duration {
 		return 4000 * time.Millisecond
 	}
@@ -1342,7 +1343,7 @@ func TestSubroundBlock_UpdateConsensusMetrics(t *testing.T) {
 		},
 	}
 	count := 0
-	roundHandlerMock := consensusMocks.RoundHandlerMock{
+	roundHandlerMock := testscommon.RoundHandlerMock{
 		TimeStampCalled: func() time.Time {
 			defer func() { count++ }()
 			if count == 0 {

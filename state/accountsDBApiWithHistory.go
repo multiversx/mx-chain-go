@@ -99,6 +99,11 @@ func (accountsDB *accountsDBApiWithHistory) RecreateTrie(_ common.RootHashHolder
 	return ErrOperationNotPermitted
 }
 
+// RecreateTrieIfNeeded is a not permitted operation in this implementation and thus, will return an error
+func (accountsDB *accountsDBApiWithHistory) RecreateTrieIfNeeded(_ common.RootHashHolder) error {
+	return ErrOperationNotPermitted
+}
+
 // PruneTrie is a not permitted operation in this implementation and thus, does nothing
 func (accountsDB *accountsDBApiWithHistory) PruneTrie(_ []byte, _ TriePruningIdentifier, _ PruningHandler) {
 }

@@ -8,6 +8,7 @@ import (
 	"github.com/multiversx/mx-chain-core-go/core"
 	"github.com/multiversx/mx-chain-core-go/core/counting"
 	"github.com/multiversx/mx-chain-core-go/data"
+	"github.com/multiversx/mx-chain-core-go/data/block"
 	"github.com/multiversx/mx-chain-core-go/marshal"
 	"github.com/multiversx/mx-chain-go/common"
 	"github.com/multiversx/mx-chain-go/dataRetriever"
@@ -319,8 +320,20 @@ func (sd *shardedData) CleanupSelfShardTxCache(_ common.AccountNonceProvider, _ 
 }
 
 // OnExecutedBlock does nothing (only to satisfy the interface dataRetriever.ShardedDataCacherNotifier)
-func (sd *shardedData) OnExecutedBlock(_ data.HeaderHandler) error {
+func (sd *shardedData) OnExecutedBlock(_ data.HeaderHandler, _ []byte) error {
 	log.Warn("shardedData.OnExecutedBlock() should not have been called")
+	return nil
+}
+
+// OnProposedBlock does nothing (only to satisfy the interface dataRetriever.ShardedDataCacherNotifier)
+func (sd *shardedData) OnProposedBlock(
+	_ []byte,
+	_ *block.Body,
+	_ data.HeaderHandler,
+	_ common.AccountNonceAndBalanceProvider,
+	_ []byte,
+) error {
+	log.Warn("shardedData.OnProposedBlockCalled() should not have been called")
 	return nil
 }
 

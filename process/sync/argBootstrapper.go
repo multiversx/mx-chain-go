@@ -27,6 +27,7 @@ type ArgBaseBootstrapper struct {
 	ChainHandler                 data.ChainHandler
 	RoundHandler                 consensus.RoundHandler
 	BlockProcessor               process.BlockProcessor
+	BlocksQueue                  process.BlocksQueue
 	Hasher                       hashing.Hasher
 	Marshalizer                  marshal.Marshalizer
 	ForkDetector                 process.ForkDetector
@@ -47,6 +48,7 @@ type ArgBaseBootstrapper struct {
 	IsInImportMode               bool
 	ScheduledTxsExecutionHandler process.ScheduledTxsExecutionHandler
 	ProcessWaitTime              time.Duration
+	ProcessWaitTimeSupernova     time.Duration
 	RepopulateTokensSupplies     bool
 	EnableEpochsHandler          common.EnableEpochsHandler
 	EnableRoundsHandler          common.EnableRoundsHandler

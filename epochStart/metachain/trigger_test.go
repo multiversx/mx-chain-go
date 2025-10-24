@@ -158,6 +158,33 @@ func TestNewEpochStartTrigger_ShouldOk(t *testing.T) {
 	assert.Nil(t, err)
 }
 
+func TestNewEpochStartTrigger_UpdateRoundAndSetEpochChange(t *testing.T) {
+	t.Parallel()
+
+	arguments := createMockEpochStartTriggerArguments()
+
+	epochStartTrigger, err := NewEpochStartTrigger(arguments)
+	require.NotNil(t, epochStartTrigger)
+	require.Nil(t, err)
+
+	epoch := uint32(0)
+	round := uint64(0)
+	nonce := uint64(100)
+	epochStartTrigger.UpdateRound(round)
+	round++
+	epochStartTrigger.UpdateRound(round)
+	round++
+	epochStartTrigger.UpdateRound(round)
+
+	shouldProposeEpochChange := epochStartTrigger.ShouldProposeEpochChange(round, nonce)
+	require.True(t, shouldProposeEpochChange)
+
+	epochStartTrigger.SetEpochChange()
+	currentEpoch := epochStartTrigger.Epoch()
+	require.Equal(t, epoch+1, currentEpoch)
+	require.True(t, epochStartTrigger.IsEpochStart())
+}
+
 func TestTrigger_Update(t *testing.T) {
 	t.Parallel()
 

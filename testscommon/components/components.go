@@ -629,6 +629,12 @@ func GetProcessArgs(
 				},
 			},
 		},
+		EconomicsConfig: config.EconomicsConfig{
+			FeeSettings: config.FeeSettings{
+				BlockCapacityOverestimationFactor: 200,
+				PercentDecreaseLimitsStep:         10,
+			},
+		},
 	}
 }
 

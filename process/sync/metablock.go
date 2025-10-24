@@ -55,6 +55,7 @@ func NewMetaBootstrap(arguments ArgMetaBootstrapper) (*MetaBootstrap, error) {
 	base := &baseBootstrap{
 		chainHandler:                 arguments.ChainHandler,
 		blockProcessor:               arguments.BlockProcessor,
+		blocksQueue:                  arguments.BlocksQueue,
 		store:                        arguments.Store,
 		headers:                      arguments.PoolsHolder.Headers(),
 		proofs:                       arguments.PoolsHolder.Proofs(),
@@ -81,6 +82,7 @@ func NewMetaBootstrap(arguments ArgMetaBootstrapper) (*MetaBootstrap, error) {
 		historyRepo:                  arguments.HistoryRepo,
 		scheduledTxsExecutionHandler: arguments.ScheduledTxsExecutionHandler,
 		processWaitTime:              arguments.ProcessWaitTime,
+		processWaitTimeSupernova:     arguments.ProcessWaitTimeSupernova,
 		enableEpochsHandler:          arguments.EnableEpochsHandler,
 		enableRoundsHandler:          arguments.EnableRoundsHandler,
 		processConfigsHandler:        arguments.ProcessConfigsHandler,

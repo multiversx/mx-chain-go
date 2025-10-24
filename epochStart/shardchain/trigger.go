@@ -46,14 +46,14 @@ type ArgsShardEpochStartTrigger struct {
 	HeaderValidator epochStart.HeaderValidator
 	Uint64Converter typeConverters.Uint64ByteSliceConverter
 
-	DataPool                 dataRetriever.PoolsHolder
-	Storage                  dataRetriever.StorageService
-	RequestHandler           epochStart.RequestHandler
-	EpochStartNotifier       epochStart.Notifier
-	PeerMiniBlocksSyncer     process.ValidatorInfoSyncer
-	RoundHandler             process.RoundHandler
-	AppStatusHandler         core.AppStatusHandler
-	EnableEpochsHandler      common.EnableEpochsHandler
+	DataPool             dataRetriever.PoolsHolder
+	Storage              dataRetriever.StorageService
+	RequestHandler       epochStart.RequestHandler
+	EpochStartNotifier   epochStart.Notifier
+	PeerMiniBlocksSyncer process.ValidatorInfoSyncer
+	RoundHandler         process.RoundHandler
+	AppStatusHandler     core.AppStatusHandler
+	EnableEpochsHandler  common.EnableEpochsHandler
 	CommonConfigsHandler common.CommonConfigsHandler
 
 	Epoch    uint32
@@ -1229,6 +1229,19 @@ func (t *trigger) GetSavedStateKey() []byte {
 
 // Update updates the end-of-epoch trigger
 func (t *trigger) Update(_ uint64, _ uint64) {
+}
+
+// UpdateRound will do nothing
+func (t *trigger) UpdateRound(_ uint64) {
+}
+
+// SetEpochChange will do nothing
+func (t *trigger) SetEpochChange() {
+}
+
+// ShouldProposeEpochChange will always return false
+func (t *trigger) ShouldProposeEpochChange(_ uint64, _ uint64) bool {
+	return false
 }
 
 // SetFinalityAttestingRound sets the round which finalized the start of epoch block

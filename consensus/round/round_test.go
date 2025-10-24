@@ -652,3 +652,45 @@ func TestRound_Concurrency(t *testing.T) {
 		wg.Wait()
 	})
 }
+
+func TestRound_GetTimeStampForRound(t *testing.T) {
+	t.Parallel()
+
+	genesisTime := time.Now()
+	supernovaGenesisTimeStamp := genesisTime.Add(10 * roundTimeDuration)
+
+	roundTimeDuration := 10 * time.Millisecond
+	supernovaRoundTimeDuration := 5 * time.Millisecond
+
+	syncTimerMock := &consensusMocks.SyncTimerMock{}
+
+	startRound := int64(0)
+	supernovaStartRound := int64(10)
+
+	args := createDefaultRoundArgs()
+	args.GenesisTimeStamp = genesisTime
+	args.SupernovaGenesisTimeStamp = supernovaGenesisTimeStamp
+	args.SyncTimer = syncTimerMock
+	args.StartRound = startRound
+	args.RoundTimeDuration = roundTimeDuration
+	args.SupernovaTimeDuration = supernovaRoundTimeDuration
+	args.SupernovaStartRound = supernovaStartRound
+	rnd, _ := round.NewRound(args)
+	require.True(t, rnd.BeforeGenesis())
+
+	roundTimeStamp := rnd.GetTimeStampForRound(0)
+	expRoundTimeStamp := genesisTime.Add(0 * roundTimeDuration)
+	require.Equal(t, uint64(expRoundTimeStamp.UnixMilli()), roundTimeStamp)
+
+	roundTimeStamp = rnd.GetTimeStampForRound(10)
+	expRoundTimeStamp = genesisTime.Add(10 * roundTimeDuration)
+	require.Equal(t, uint64(expRoundTimeStamp.UnixMilli()), roundTimeStamp)
+
+	roundTimeStamp = rnd.GetTimeStampForRound(20)
+	expRoundTimeStamp = supernovaGenesisTimeStamp.Add((20 - 10) * supernovaRoundTimeDuration)
+	require.Equal(t, uint64(expRoundTimeStamp.UnixMilli()), roundTimeStamp)
+
+	roundTimeStamp = rnd.GetTimeStampForRound(1000)
+	expRoundTimeStamp = supernovaGenesisTimeStamp.Add((1000 - 10) * supernovaRoundTimeDuration)
+	require.Equal(t, uint64(expRoundTimeStamp.UnixMilli()), roundTimeStamp)
+}

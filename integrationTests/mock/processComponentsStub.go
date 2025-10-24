@@ -30,6 +30,7 @@ type ProcessComponentsStub struct {
 	EpochNotifier                        factory.EpochStartNotifier
 	ForkDetect                           process.ForkDetector
 	BlockProcess                         process.BlockProcessor
+	BlocksQueueField                     process.BlocksQueue
 	BlackListHdl                         process.TimeCacher
 	BootSore                             process.BootStorer
 	HeaderSigVerif                       process.InterceptedHeaderSigVerifier
@@ -141,6 +142,11 @@ func (pcs *ProcessComponentsStub) ForkDetector() process.ForkDetector {
 // BlockProcessor -
 func (pcs *ProcessComponentsStub) BlockProcessor() process.BlockProcessor {
 	return pcs.BlockProcess
+}
+
+// BlocksQueue -
+func (pcs *ProcessComponentsStub) BlocksQueue() process.BlocksQueue {
+	return pcs.BlocksQueueField
 }
 
 // BlackListHandler -

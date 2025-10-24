@@ -142,6 +142,9 @@ func Test_newBlockProcessorCreatorForMeta(t *testing.T) {
 		AccountsAdapterAPICalled: func() state.AccountsAdapter {
 			return adb
 		},
+		AccountsAdapterProposalCalled: func() state.AccountsAdapter {
+			return adb
+		},
 		TriesContainerCalled: func() common.TriesHolder {
 			return &trieMock.TriesHolderStub{
 				GetCalled: func(bytes []byte) common.Trie {
@@ -151,6 +154,9 @@ func Test_newBlockProcessorCreatorForMeta(t *testing.T) {
 		},
 		TrieStorageManagersCalled: func() map[string]common.StorageManager {
 			return trieStorageManagers
+		},
+		StateAccessesCollectorCalled: func() state.StateAccessesCollector {
+			return &stateMock.StateAccessesCollectorStub{}
 		},
 	}
 	args := componentsMock.GetProcessArgs(

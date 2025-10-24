@@ -424,7 +424,7 @@ func (txPool *shardedTxPool) OnProposedBlock(blockHash []byte, blockBody *block.
 }
 
 // OnExecutedBlock notifies the underlying TxCache
-func (txPool *shardedTxPool) OnExecutedBlock(blockHeader data.HeaderHandler) error {
+func (txPool *shardedTxPool) OnExecutedBlock(blockHeader data.HeaderHandler, rootHash []byte) error {
 	cache := txPool.getSelfShardTxCache()
-	return cache.OnExecutedBlock(blockHeader)
+	return cache.OnExecutedBlock(blockHeader, rootHash)
 }

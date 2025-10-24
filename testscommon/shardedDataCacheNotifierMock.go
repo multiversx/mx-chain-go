@@ -6,6 +6,7 @@ import (
 
 	"github.com/multiversx/mx-chain-core-go/core/counting"
 	"github.com/multiversx/mx-chain-core-go/data"
+	"github.com/multiversx/mx-chain-core-go/data/block"
 
 	"github.com/multiversx/mx-chain-go/common"
 	"github.com/multiversx/mx-chain-go/storage"
@@ -18,7 +19,14 @@ type ShardedDataCacheNotifierMock struct {
 	caches    map[string]storage.Cacher
 
 	CleanupSelfShardTxCacheCalled func(session interface{}, randomness uint64, maxNum int, cleanupLoopMaximumDuration time.Duration)
-	OnExecutedBlockCalled         func(blockHeader data.HeaderHandler) error
+	OnExecutedBlockCalled         func(blockHeader data.HeaderHandler, rootHash []byte) error
+	OnProposedBlockCalled         func(
+		blockHash []byte,
+		blockBody *block.Body,
+		blockHeader data.HeaderHandler,
+		accountsProvider common.AccountNonceAndBalanceProvider,
+		latestExecutedHash []byte,
+	) error
 }
 
 // NewShardedDataCacheNotifierMock -
@@ -132,18 +140,32 @@ func (mock *ShardedDataCacheNotifierMock) Keys() [][]byte {
 }
 
 // CleanupSelfShardTxCache -
-func (sd *ShardedDataCacheNotifierMock) CleanupSelfShardTxCache(accountsProvider common.AccountNonceProvider, randomness uint64, maxNum int, cleanupLoopMaximumDuration time.Duration) {
-	if sd.CleanupSelfShardTxCacheCalled != nil {
-		sd.CleanupSelfShardTxCacheCalled(accountsProvider, randomness, maxNum, cleanupLoopMaximumDuration)
+func (mock *ShardedDataCacheNotifierMock) CleanupSelfShardTxCache(accountsProvider common.AccountNonceProvider, randomness uint64, maxNum int, cleanupLoopMaximumDuration time.Duration) {
+	if mock.CleanupSelfShardTxCacheCalled != nil {
+		mock.CleanupSelfShardTxCacheCalled(accountsProvider, randomness, maxNum, cleanupLoopMaximumDuration)
 	}
 }
 
 // OnExecutedBlock -
-func (sd *ShardedDataCacheNotifierMock) OnExecutedBlock(blockHeader data.HeaderHandler) error {
-	if sd.OnExecutedBlockCalled != nil {
-		return sd.OnExecutedBlockCalled(blockHeader)
+func (mock *ShardedDataCacheNotifierMock) OnExecutedBlock(blockHeader data.HeaderHandler, rootHash []byte) error {
+	if mock.OnExecutedBlockCalled != nil {
+		return mock.OnExecutedBlockCalled(blockHeader, rootHash)
 	}
 
+	return nil
+}
+
+// OnProposedBlock -
+func (mock *ShardedDataCacheNotifierMock) OnProposedBlock(
+	blockHash []byte,
+	blockBody *block.Body,
+	blockHeader data.HeaderHandler,
+	accountsProvider common.AccountNonceAndBalanceProvider,
+	latestExecutedHash []byte,
+) error {
+	if mock.OnProposedBlockCalled != nil {
+		return mock.OnProposedBlockCalled(blockHash, blockBody, blockHeader, accountsProvider, latestExecutedHash)
+	}
 	return nil
 }
 

@@ -235,6 +235,10 @@ func createArgsProcessComponentsHolder() ArgsProcessComponentsHolder {
 					},
 				},
 			},
+			FeeSettings: config.FeeSettings{
+				BlockCapacityOverestimationFactor: 200,
+				PercentDecreaseLimitsStep:         10,
+			},
 		},
 		ConfigurationPathsHolder: config.ConfigurationPathsHolder{
 			Genesis:        "../../../integrationTests/factory/testdata/genesis.json",

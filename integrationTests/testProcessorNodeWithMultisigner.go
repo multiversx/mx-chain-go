@@ -185,6 +185,7 @@ func CreateNodeWithBLSAndTxKeys(
 		MiniBlockPartialExecutionEnableEpoch: UnreachableEpoch,
 		RefactorPeersMiniBlocksEnableEpoch:   UnreachableEpoch,
 		AndromedaEnableEpoch:                 UnreachableEpoch,
+		SupernovaEnableEpoch:                 UnreachableEpoch,
 	}
 
 	return CreateNode(
@@ -247,6 +248,7 @@ func CreateNodesWithNodesCoordinatorFactory(
 		StakingV4Step2EnableEpoch:                       UnreachableEpoch,
 		StakingV4Step3EnableEpoch:                       UnreachableEpoch,
 		AndromedaEnableEpoch:                            UnreachableEpoch,
+		SupernovaEnableEpoch:                            UnreachableEpoch,
 	}
 
 	nodesMap := make(map[uint32][]*TestProcessorNode)

@@ -218,11 +218,6 @@ func GetGeneralConfig() config.Config {
 		Versions: config.VersionsConfig{
 			DefaultVersion:   "1",
 			VersionsByEpochs: nil,
-			Cache: config.CacheConfig{
-				Type:     "LRU",
-				Capacity: 1000,
-				Shards:   1,
-			},
 		},
 		Hardfork: config.HardforkConfig{
 			PublicKeyToListenFrom: DummyPk,

@@ -414,6 +414,7 @@ func CreateStore(numOfShards uint32) dataRetriever.StorageService {
 	store.AddStorer(dataRetriever.ScheduledSCRsUnit, CreateMemUnit())
 	store.AddStorer(dataRetriever.ProofsUnit, CreateMemUnit())
 	store.AddStorer(dataRetriever.TrieEpochRootHashUnit, CreateMemUnit())
+	store.AddStorer(dataRetriever.ExecutionResultsUnit, CreateMemUnit())
 
 	for i := uint32(0); i < numOfShards; i++ {
 		hdrNonceHashDataUnit := dataRetriever.ShardHdrNonceHashDataUnit + dataRetriever.UnitType(i)
@@ -688,6 +689,7 @@ func CreateFullGenesisBlocks(
 		GenesisTime:       0,
 		StartEpochNum:     0,
 		Accounts:          accounts,
+		AccountsProposal:  accounts,
 		InitialNodesSetup: nodesSetup,
 		Economics:         economics,
 		ShardCoordinator:  shardCoordinator,
@@ -757,6 +759,10 @@ func CreateFullGenesisBlocks(
 		EpochConfig: config.EpochConfig{
 			EnableEpochs: enableEpochsConfig,
 		},
+		FeeSettings: config.FeeSettings{
+			BlockCapacityOverestimationFactor: 200,
+			PercentDecreaseLimitsStep:         10,
+		},
 		RoundConfig:             testscommon.GetDefaultRoundsConfig(),
 		HeaderVersionConfigs:    testscommon.GetDefaultHeaderVersionConfig(),
 		HistoryRepository:       &dblookupext.HistoryRepositoryStub{},
@@ -816,6 +822,7 @@ func CreateGenesisMetaBlock(
 		Data:                dataComponents,
 		GenesisTime:         0,
 		Accounts:            accounts,
+		AccountsProposal:    accounts,
 		TrieStorageManagers: trieStorageManagers,
 		InitialNodesSetup:   nodesSetup,
 		ShardCoordinator:    shardCoordinator,
@@ -884,6 +891,10 @@ func CreateGenesisMetaBlock(
 		GenesisNodePrice: big.NewInt(1000),
 		EpochConfig: config.EpochConfig{
 			EnableEpochs: enableEpochsConfig,
+		},
+		FeeSettings: config.FeeSettings{
+			BlockCapacityOverestimationFactor: 200,
+			PercentDecreaseLimitsStep:         10,
 		},
 		RoundConfig:             testscommon.GetDefaultRoundsConfig(),
 		HeaderVersionConfigs:    testscommon.GetDefaultHeaderVersionConfig(),
@@ -2345,6 +2356,7 @@ func generateValidTx(
 
 	stateComponents := GetDefaultStateComponents()
 	stateComponents.Accounts = accnts
+	stateComponents.AccountsProposal = accnts
 	stateComponents.AccountsAPI = accnts
 
 	mockNode, _ := node.NewNode(

@@ -9,11 +9,12 @@ import (
 
 	"github.com/multiversx/mx-chain-core-go/data/block"
 	"github.com/multiversx/mx-chain-core-go/data/transaction"
+	"github.com/stretchr/testify/require"
+
 	"github.com/multiversx/mx-chain-go/common/holders"
 	stateMock "github.com/multiversx/mx-chain-go/testscommon/state"
 	"github.com/multiversx/mx-chain-go/testscommon/txcachemocks"
 	"github.com/multiversx/mx-chain-go/txcache"
-	"github.com/stretchr/testify/require"
 
 	"github.com/multiversx/mx-chain-go/config"
 	"github.com/multiversx/mx-chain-go/node/chainSimulator/configs"
@@ -1268,8 +1269,7 @@ func Test_Selection_ShouldNotSelectSameTransactionsWithManyTransactionsAndExecut
 	err = txpool.OnExecutedBlock(&block.Header{
 		Nonce:    1,
 		PrevHash: []byte("blockHash0"),
-		RootHash: []byte(fmt.Sprintf("rootHash%d", 0)),
-	})
+	}, []byte(fmt.Sprintf("rootHash%d", 0)))
 	require.Nil(t, err)
 
 	// remove the executed txs from the pool
@@ -1397,8 +1397,7 @@ func Test_Selection_ProposeEmptyBlocksAndExecutedBlockNotification(t *testing.T)
 	err = txpool.OnExecutedBlock(&block.Header{
 		Nonce:    1,
 		PrevHash: []byte("blockHash0"),
-		RootHash: []byte(fmt.Sprintf("rootHash%d", 0)),
-	})
+	}, []byte(fmt.Sprintf("rootHash%d", 0)))
 	require.Nil(t, err)
 
 	// remove the executed txs from the pool
@@ -1429,16 +1428,14 @@ func Test_Selection_ProposeEmptyBlocksAndExecutedBlockNotification(t *testing.T)
 	err = txpool.OnExecutedBlock(&block.Header{
 		Nonce:    2,
 		PrevHash: []byte("blockHash1"),
-		RootHash: []byte(fmt.Sprintf("rootHash%d", 1)),
-	})
+	}, []byte(fmt.Sprintf("rootHash%d", 1)))
 	require.Nil(t, err)
 
 	// execute the empty proposed blocks
 	err = txpool.OnExecutedBlock(&block.Header{
 		Nonce:    3,
 		PrevHash: []byte("blockHash2"),
-		RootHash: []byte(fmt.Sprintf("rootHash%d", 1)),
-	})
+	}, []byte(fmt.Sprintf("rootHash%d", 1)))
 	require.Nil(t, err)
 
 	selectionSession.GetRootHashCalled = func() ([]byte, error) {

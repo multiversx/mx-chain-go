@@ -37,3 +37,12 @@ var ErrInvalidNonceShardKey = errors.New("invalid nonce shard key")
 
 // ErrNilCommonConfigsHandler signals that a nil common configs handler has been provided
 var ErrNilCommonConfigsHandler = errors.New("nil common configs handler")
+
+// ErrWrongTypeAssertion signals that a type assertion failed
+var ErrWrongTypeAssertion = errors.New("wrong type assertion")
+
+// ErrNilBaseExecutionResult signals that a nil base execution result has been provided
+var ErrNilBaseExecutionResult = errors.New("nil base execution result")
+
+// ErrNilLastExecutionResultHandler signals that a nil last execution result handler has been provided
+var ErrNilLastExecutionResultHandler = errors.New("nil last execution result handler")

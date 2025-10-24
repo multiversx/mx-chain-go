@@ -184,6 +184,8 @@ func TestChainSimulator_StakingV4Step2APICalls(t *testing.T) {
 			cfg.EpochConfig.EnableEpochs.MaxNodesChangeEnableEpoch[2].EpochEnable = stakingV4Step3Epoch
 			cfg.EpochConfig.EnableEpochs.MaxNodesChangeEnableEpoch[2].MaxNumNodes = 24
 			cfg.EpochConfig.EnableEpochs.MaxNodesChangeEnableEpoch[2].NodesToShufflePerShard = 2
+
+			cfg.EpochConfig.EnableEpochs.SupernovaEnableEpoch = 100
 		},
 	})
 	require.Nil(t, err)

@@ -23,6 +23,7 @@ type RoundHandler interface {
 	TimeStamp() time.Time
 	TimeDuration() time.Duration
 	RemainingTime(startTime time.Time, maxTime time.Duration) time.Duration
+	GetTimeStampForRound(round uint64) uint64
 	IsInterfaceNil() bool
 }
 

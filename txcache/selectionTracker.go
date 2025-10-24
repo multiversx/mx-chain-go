@@ -315,13 +315,12 @@ func (st *selectionTracker) removeBlockEqualOrAboveNoLock(blockToBeAddedHash []b
 
 // OnExecutedBlock notifies when a block is executed and updates the state of the selectionTracker
 // by removing each tracked block with nonce equal or lower than the one received in the blockHeader.
-func (st *selectionTracker) OnExecutedBlock(blockHeader data.HeaderHandler) error {
+func (st *selectionTracker) OnExecutedBlock(blockHeader data.HeaderHandler, rootHash []byte) error {
 	if check.IfNil(blockHeader) {
 		return errNilBlockHeader
 	}
 
 	nonce := blockHeader.GetNonce()
-	rootHash := blockHeader.GetRootHash()
 	prevHash := blockHeader.GetPrevHash()
 
 	log.Debug("selectionTracker.OnExecutedBlock",

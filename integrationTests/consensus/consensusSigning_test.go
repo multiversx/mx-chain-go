@@ -11,6 +11,7 @@ import (
 	"github.com/stretchr/testify/require"
 
 	"github.com/multiversx/mx-chain-core-go/core/check"
+
 	"github.com/multiversx/mx-chain-go/integrationTests"
 )
 
@@ -39,8 +40,7 @@ func initNodesWithTestSigner(
 		consensusType,
 		1,
 		enableEpochsConfig,
-		integrationTests.GetSupernovaRoundsConfig(),
-		false,
+		integrationTests.GetSupernovaRoundsConfigActivated(),
 		100,
 	)
 
