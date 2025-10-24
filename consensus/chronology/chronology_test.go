@@ -230,7 +230,7 @@ func TestChronology_UpdateRoundShouldInitRound(t *testing.T) {
 	arg := getDefaultChronologyArg()
 	arg.EnableRoundsHandler = &testscommon.EnableRoundsHandlerStub{
 		GetActivationRoundCalled: func(flag common.EnableRoundFlag) uint64 {
-			return 1
+			return 2
 		},
 	}
 	arg.EnableEpochsHandler = &enableEpochsHandlerMock.EnableEpochsHandlerStub{
@@ -246,10 +246,18 @@ func TestChronology_UpdateRoundShouldInitRound(t *testing.T) {
 		wasSetBaseDurationCalled = true
 	}
 	chr.AddSubround(srm)
-	chr.UpdateRound()
 
+	// first call, supernova not yet active
+	chr.UpdateRound()
+	require.False(t, wasSetBaseDurationCalled)
+
+	// second call, supernova activation round
+	chr.UpdateRound()
 	assert.Equal(t, srm.Current(), chr.SubroundId())
 	require.True(t, wasSetBaseDurationCalled)
+
+	// third call, coverage only after supernova
+	chr.UpdateRound()
 }
 
 func TestChronology_LoadSubroundHandlerShouldReturnNilWhenSubroundHandlerNotExists(t *testing.T) {

@@ -27,16 +27,17 @@ type Subround struct {
 	ConsensusCoreHandler
 	ConsensusStateHandler
 
-	previous        int
-	current         int
-	next            int
-	mutBaseDuration sync.RWMutex
-	baseDuration    time.Duration
-	startTime       float64
-	endTime         float64
-	name            string
-	chainID         []byte
-	currentPid      core.PeerID
+	previous         int
+	current          int
+	next             int
+	mutDuration      sync.RWMutex
+	startTimePercent float64
+	endTimePercent   float64
+	startTime        int64
+	endTime          int64
+	name             string
+	chainID          []byte
+	currentPid       core.PeerID
 
 	consensusStateChangedChannel chan bool
 	executeStoredMessages        func()
@@ -53,8 +54,8 @@ func NewSubround(
 	current int,
 	next int,
 	baseDuration time.Duration,
-	startTime float64,
-	endTime float64,
+	startTimePercent float64,
+	endTimePercent float64,
 	name string,
 	consensusState ConsensusStateHandler,
 	consensusStateChangedChannel chan bool,
@@ -76,13 +77,15 @@ func NewSubround(
 		return nil, err
 	}
 
+	startTime, endTime := computeStartAndEndTime(baseDuration, startTimePercent, endTimePercent)
 	sr := Subround{
 		ConsensusCoreHandler:         container,
 		ConsensusStateHandler:        consensusState,
 		previous:                     previous,
 		current:                      current,
 		next:                         next,
-		baseDuration:                 baseDuration,
+		startTimePercent:             startTimePercent,
+		endTimePercent:               endTimePercent,
 		startTime:                    startTime,
 		endTime:                      endTime,
 		name:                         name,
@@ -128,6 +131,12 @@ func checkNewSubroundParams(
 	}
 
 	return nil
+}
+
+func computeStartAndEndTime(baseDuration time.Duration, startTimePercent float64, endTimePercent float64) (int64, int64) {
+	startTime := int64(float64(baseDuration) * startTimePercent)
+	endTime := int64(float64(baseDuration) * endTimePercent)
+	return startTime, endTime
 }
 
 // DoWork method actually does the work of this Subround. First it tries to do the Job of the Subround then it will
@@ -183,26 +192,26 @@ func (sr *Subround) Next() int {
 
 // StartTime method returns the start time of the Subround
 func (sr *Subround) StartTime() int64 {
-	sr.mutBaseDuration.RLock()
-	defer sr.mutBaseDuration.RUnlock()
+	sr.mutDuration.RLock()
+	defer sr.mutDuration.RUnlock()
 
-	return int64(float64(sr.baseDuration) * sr.startTime)
+	return sr.startTime
 }
 
 // EndTime method returns the upper time limit of the Subround
 func (sr *Subround) EndTime() int64 {
-	sr.mutBaseDuration.RLock()
-	defer sr.mutBaseDuration.RUnlock()
+	sr.mutDuration.RLock()
+	defer sr.mutDuration.RUnlock()
 
-	return int64(float64(sr.baseDuration) * sr.endTime)
+	return sr.endTime
 }
 
 // SetBaseDuration sets the base duration of the subround
 func (sr *Subround) SetBaseDuration(baseDuration time.Duration) {
-	sr.mutBaseDuration.Lock()
-	defer sr.mutBaseDuration.Unlock()
+	sr.mutDuration.Lock()
+	defer sr.mutDuration.Unlock()
 
-	sr.baseDuration = baseDuration
+	sr.startTime, sr.endTime = computeStartAndEndTime(baseDuration, sr.startTimePercent, sr.endTimePercent)
 }
 
 // Name method returns the name of the Subround
