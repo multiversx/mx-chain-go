@@ -74,7 +74,6 @@ func Test_removeTx(t *testing.T) {
 
 	removeWrappedTxsConcurrently(txByHash, wrappedTxs, numberOfTxs)
 	checkExistenceOfTxs(t, txByHash, wrappedTxs, false)
-
 }
 
 func Test_RemoveTxsBulk(t *testing.T) {

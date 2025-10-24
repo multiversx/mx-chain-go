@@ -320,7 +320,7 @@ func (sd *shardedData) CleanupSelfShardTxCache(_ common.AccountNonceProvider, _ 
 }
 
 // OnExecutedBlock does nothing (only to satisfy the interface dataRetriever.ShardedDataCacherNotifier)
-func (sd *shardedData) OnExecutedBlock(_ data.HeaderHandler) error {
+func (sd *shardedData) OnExecutedBlock(_ data.HeaderHandler, _ []byte) error {
 	log.Warn("shardedData.OnExecutedBlock() should not have been called")
 	return nil
 }
@@ -331,7 +331,7 @@ func (sd *shardedData) OnProposedBlock(
 	_ *block.Body,
 	_ data.HeaderHandler,
 	_ common.AccountNonceAndBalanceProvider,
-	_ common.BlockchainInfo,
+	_ []byte,
 ) error {
 	log.Warn("shardedData.OnProposedBlockCalled() should not have been called")
 	return nil

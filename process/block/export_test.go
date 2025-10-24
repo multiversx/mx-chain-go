@@ -12,6 +12,7 @@ import (
 	"github.com/multiversx/mx-chain-core-go/display"
 	"github.com/multiversx/mx-chain-core-go/hashing"
 	"github.com/multiversx/mx-chain-core-go/marshal"
+	"github.com/multiversx/mx-chain-go/state/disabled"
 
 	"github.com/multiversx/mx-chain-go/common"
 	"github.com/multiversx/mx-chain-go/common/configs"
@@ -247,6 +248,7 @@ func NewShardProcessorEmptyWith3shards(
 			BlockProcessingCutoffHandler:       &testscommon.BlockProcessingCutoffStub{},
 			ManagedPeersHolder:                 &testscommon.ManagedPeersHolderStub{},
 			SentSignaturesTracker:              &testscommon.SentSignatureTrackerStub{},
+			StateAccessesCollector:             disabled.NewDisabledStateAccessesCollector(),
 			HeadersForBlock:                    &testscommon.HeadersForBlockMock{},
 			MiniBlocksSelectionSession:         mbSelectionSession,
 			ExecutionResultsVerifier:           execResultsVerifier,
@@ -799,6 +801,21 @@ func (sp *shardProcessor) CollectExecutionResults(headerHash []byte, header data
 // GetCrossShardIncomingMiniBlocksFromBody -
 func (sp *shardProcessor) GetCrossShardIncomingMiniBlocksFromBody(body *block.Body) []*block.MiniBlock {
 	return sp.getCrossShardIncomingMiniBlocksFromBody(body)
+}
+
+// GetLastExecutionResultHeader -
+func (sp *shardProcessor) GetLastExecutionResultHeader(
+	currentHeader data.HeaderHandler,
+) (data.HeaderHandler, error) {
+	return sp.getLastExecutionResultHeader(currentHeader)
+}
+
+// GetLastExecutionResultsRootHash -
+func GetLastExecutionResultsRootHash(
+	header data.HeaderHandler,
+	committedRootHash []byte,
+) []byte {
+	return getLastExecutionResultsRootHash(header, committedRootHash)
 }
 
 // GetHaveTimeForProposal -

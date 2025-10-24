@@ -6,60 +6,62 @@ import (
 	"github.com/multiversx/mx-chain-core-go/core"
 )
 
-// virtualSessionComputer relies on the internal state of the validator for skipping certain senders
 type virtualSessionComputer struct {
 	session                  SelectionSession
-	validator                *breadcrumbsValidator
 	virtualAccountsByAddress map[string]*virtualAccountRecord
 }
 
 func newVirtualSessionComputer(session SelectionSession) *virtualSessionComputer {
 	return &virtualSessionComputer{
 		session:                  session,
-		validator:                newBreadcrumbValidator(),
 		virtualAccountsByAddress: make(map[string]*virtualAccountRecord),
 	}
 }
 
-// createVirtualSelectionSession iterates over the chain of tracked blocks and for each sender checks that its breadcrumb is continuous
-// If the breadcrumb of an account is continuous, the virtual record of that account is created or updated
+// createVirtualSelectionSession iterates over the global breadcrumbs of the selection tracker.
+// If the global breadcrumb of an account is continuous with the session nonce,
+// the virtual record of that account is created or updated.
+// NOTE: The createVirtualSelectionSession method should receive a deep copy of the globalAccountBreadcrumbs because it mutates them.
 func (computer *virtualSessionComputer) createVirtualSelectionSession(
-	chainOfTrackedBlocks []*trackedBlock,
+	globalAccountBreadcrumbs map[string]*globalAccountBreadcrumb,
 ) (*virtualSelectionSession, error) {
-	for _, tb := range chainOfTrackedBlocks {
-		err := computer.handleTrackedBlock(tb)
-		if err != nil {
-			return nil, err
-		}
+	err := computer.handleGlobalAccountBreadcrumbs(globalAccountBreadcrumbs)
+	if err != nil {
+		return nil, err
 	}
 
 	virtualSession := newVirtualSelectionSession(computer.session, computer.virtualAccountsByAddress)
+	log.Debug("virtualSessionComputer.createVirtualSelectionSession",
+		"num of global accounts breadcrumbs", len(globalAccountBreadcrumbs),
+		"num of actual virtual records", len(virtualSession.virtualAccountsByAddress),
+	)
 	return virtualSession, nil
 }
 
-func (computer *virtualSessionComputer) handleTrackedBlock(tb *trackedBlock) error {
-	for address, breadcrumb := range tb.breadcrumbsByAddress {
-		// check if this address was already marked as not continuous by the validator
-		ok := computer.validator.shouldSkipSender(address)
-		if ok {
-			continue
-		}
-
+// handleGlobalAccountBreadcrumbs iterates over each global account breadcrumb, verifies the continuity with the session nonce
+// and transforms each global account breadcrumb into a virtual record.
+func (computer *virtualSessionComputer) handleGlobalAccountBreadcrumbs(
+	globalAccountBreadcrumbs map[string]*globalAccountBreadcrumb,
+) error {
+	for address, globalBreadcrumb := range globalAccountBreadcrumbs {
 		accountNonce, accountBalance, _, err := computer.session.GetAccountNonceAndBalance([]byte(address))
 		if err != nil {
-			log.Debug("virtualSessionComputer.handleTrackedBlock",
+			log.Debug("virtualSessionComputer.handleGlobalAccountBreadcrumbs",
 				"err", err,
-				"address", address,
-				"tracked block rootHash", tb.rootHash)
+				"address", address)
 			return err
 		}
 
-		if !computer.validator.validateNonceContinuityOfBreadcrumb(address, accountNonce, breadcrumb) {
-			delete(computer.virtualAccountsByAddress, address)
+		if !globalBreadcrumb.isContinuousWithSessionNonce(accountNonce) {
+			log.Debug("virtualSessionComputer.handleGlobalAccountBreadcrumbs global breadcrumb not continuous with session nonce",
+				"address", address,
+				"accountNonce", accountNonce,
+				"breadcrumb nonce", globalBreadcrumb.firstNonce,
+			)
 			continue
 		}
 
-		err = computer.fromBreadcrumbToVirtualRecord(address, accountNonce, accountBalance, breadcrumb)
+		err = computer.fromGlobalBreadcrumbToVirtualRecord(address, accountNonce, accountBalance, globalBreadcrumb)
 		if err != nil {
 			return err
 		}
@@ -68,33 +70,51 @@ func (computer *virtualSessionComputer) handleTrackedBlock(tb *trackedBlock) err
 	return nil
 }
 
-func (computer *virtualSessionComputer) fromBreadcrumbToVirtualRecord(
+// fromGlobalBreadcrumbToVirtualRecord transforms a global account breadcrumb simply by:
+// initializing the initialNonce of the virtual record with the latestNonce + 1
+// copying the consumed balance in the initialBalance of the virtual record.
+// It also saves the created virtual record into the map of the virtualSessionComputer.
+// Each sender has a unique global breadcrumb which contains the necessary information to create a virtual record.
+// If an account already exists in the map of virtual records, its virtual record doesn't need to be updated.
+func (computer *virtualSessionComputer) fromGlobalBreadcrumbToVirtualRecord(
 	address string,
 	accountNonce uint64,
 	accountBalance *big.Int,
-	breadcrumb *accountBreadcrumb,
+	globalBreadcrumb *globalAccountBreadcrumb,
 ) error {
-	virtualRecord, ok := computer.virtualAccountsByAddress[address]
-	if !ok {
-		initialNonce := core.OptionalUint64{
-			Value:    accountNonce,
-			HasValue: true,
-		}
-		initialBalance := accountBalance
-
-		// We initialize the virtual record with the session nonce because an account might be only a relayer in the proposed blocks.
-		// Without this initialization, the initialNonce remains without a value.
-		// On the selection side, a virtual account record that has an initial nonce without a value
-		// will lead to an incorrect skip of a specific tx where the account is a sender.
-		record, err := newVirtualAccountRecord(initialNonce, initialBalance)
-		if err != nil {
-			return err
-		}
-
-		virtualRecord = record
-		computer.virtualAccountsByAddress[address] = record
+	_, ok := computer.virtualAccountsByAddress[address]
+	if ok {
+		return nil
 	}
 
-	virtualRecord.updateVirtualRecord(breadcrumb)
+	initialBalance := accountBalance
+	initialNonce := core.OptionalUint64{
+		Value:    accountNonce,
+		HasValue: true,
+	}
+
+	if globalBreadcrumb.isUser() {
+		initialNonce = core.OptionalUint64{
+			Value:    globalBreadcrumb.lastNonce.Value + 1,
+			HasValue: true,
+		}
+	}
+
+	// We initialize the virtual record with the session nonce because an account might be only a relayer in the proposed blocks.
+	// Without this initialization, the initialNonce remains without a value.
+	// On the selection side, a virtual account record that has an initial nonce without a value
+	// will lead to an incorrect skip of a specific tx where the account is a sender.
+	record, err := newVirtualAccountRecord(initialNonce, initialBalance)
+	if err != nil {
+		log.Debug("virtualSessionComputer.fromGlobalBreadcrumbToVirtualRecord",
+			"err", err,
+			"address", address,
+			"accountBalance", accountBalance,
+		)
+		return err
+	}
+
+	record.accumulateConsumedBalance(globalBreadcrumb.consumedBalance)
+	computer.virtualAccountsByAddress[address] = record
 	return nil
 }

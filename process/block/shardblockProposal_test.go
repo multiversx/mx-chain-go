@@ -2456,7 +2456,7 @@ func TestShardProcessor_OnProposedBlock(t *testing.T) {
 		require.True(t, ok)
 		dataPool.TransactionsCalled = func() retriever.ShardedDataCacherNotifier {
 			return &testscommon.ShardedDataStub{
-				OnProposedBlockCalled: func(blockHash []byte, blockBody *block.Body, blockHeader data.HeaderHandler, accountsProvider common.AccountNonceAndBalanceProvider, blockchainInfo common.BlockchainInfo) error {
+				OnProposedBlockCalled: func(blockHash []byte, blockBody *block.Body, blockHeader data.HeaderHandler, accountsProvider common.AccountNonceAndBalanceProvider, latestExecutedHash []byte) error {
 					wasOnProposedBlockCalled = true
 					return nil
 				},

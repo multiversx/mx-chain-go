@@ -132,6 +132,11 @@ func (r *simulationAccountsDB) RecreateTrie(_ common.RootHashHolder) error {
 	return nil
 }
 
+// RecreateTrieIfNeeded won't do anything as write operations are disabled on this component
+func (r *simulationAccountsDB) RecreateTrieIfNeeded(_ common.RootHashHolder) error {
+	return nil
+}
+
 // PruneTrie won't do anything as write operations are disabled on this component
 func (r *simulationAccountsDB) PruneTrie(_ []byte, _ state.TriePruningIdentifier, _ state.PruningHandler) {
 }
@@ -172,6 +177,11 @@ func (r *simulationAccountsDB) CommitInEpoch(_ uint32, _ uint32) ([]byte, error)
 // GetStackDebugFirstEntry -
 func (r *simulationAccountsDB) GetStackDebugFirstEntry() []byte {
 	return nil
+}
+
+// SetTxHashForLatestStateAccesses -
+func (r *simulationAccountsDB) SetTxHashForLatestStateAccesses(txHash []byte) {
+	r.originalAccounts.SetTxHashForLatestStateAccesses(txHash)
 }
 
 // Close will handle the closing of the underlying components
