@@ -6,9 +6,11 @@ import (
 	"errors"
 	"fmt"
 	"math/big"
+	"strconv"
 	"time"
 
 	"github.com/multiversx/mx-chain-go/api/shared"
+	"github.com/multiversx/mx-chain-go/common"
 	"github.com/multiversx/mx-chain-go/config"
 	"github.com/multiversx/mx-chain-go/consensus"
 	"github.com/multiversx/mx-chain-go/consensus/spos/sposFactory"
@@ -93,6 +95,13 @@ func NewTestOnlyProcessingNode(args ArgsTestOnlyProcessingNode) (*testOnlyProces
 	var err error
 	instance.TransactionFeeHandler = postprocess.NewFeeAccumulator()
 
+	supernovaRoundStr := args.Configs.RoundConfig.RoundActivations[string(common.SupernovaRoundFlag)].Round
+	supernovaRound, err := strconv.ParseUint(supernovaRoundStr, 10, 64)
+	if err != nil {
+		return nil, err
+	}
+
+	supernovaGenesisTime := args.GenesisTime.Add(time.Duration(supernovaRound*args.RoundDurationInMillis) * time.Millisecond)
 	instance.CoreComponentsHolder, err = CreateCoreComponents(ArgsCoreComponentsHolder{
 		Config:                      *args.Configs.GeneralConfig,
 		EnableEpochsConfig:          args.Configs.EpochConfig.EnableEpochs,
@@ -111,7 +120,7 @@ func NewTestOnlyProcessingNode(args ArgsTestOnlyProcessingNode) (*testOnlyProces
 		RoundDurationInMs:           args.RoundDurationInMillis,
 		RatingConfig:                *args.Configs.RatingsConfig,
 		GenesisTime:                 args.GenesisTime,
-		SupernovaGenesisTime:        args.GenesisTime,
+		SupernovaGenesisTime:        supernovaGenesisTime,
 	})
 	if err != nil {
 		return nil, err

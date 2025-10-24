@@ -40,7 +40,7 @@ const (
 	mockTxSignature                         = "ssig"
 	mockRelayerTxSignature                  = "rsig"
 	maxNumOfBlocksToGenerateWhenExecutingTx = 10
-	roundsPerEpoch                          = 30
+	roundsPerEpoch                          = 40
 	guardAccountCost                        = 250_000
 	extraGasLimitForGuarded                 = minGasLimit
 	extraGasESDTTransfer                    = 250000
