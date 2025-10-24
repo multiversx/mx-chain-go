@@ -33,6 +33,11 @@ type chainParametersHandler interface {
 	IsInterfaceNil() bool
 }
 
+// PrepareLogEventsKey will prepare logs key for cacher
+func PrepareLogEventsKey(headerHash []byte) []byte {
+	return append([]byte("logs"), headerHash...)
+}
+
 // IsValidRelayedTxV3 returns true if the provided transaction is a valid transaction of type relayed v3
 func IsValidRelayedTxV3(tx data.TransactionHandler) bool {
 	relayedTx, isRelayedV3 := tx.(data.RelayedTransactionHandler)

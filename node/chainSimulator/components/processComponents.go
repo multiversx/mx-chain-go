@@ -150,6 +150,7 @@ func CreateProcessComponents(args ArgsProcessComponentsHolder) (*processComponen
 		Marshalizer:              args.CoreComponents.InternalMarshalizer(),
 		Store:                    args.DataComponents.StorageService(),
 		Uint64ByteSliceConverter: args.CoreComponents.Uint64ByteSliceConverter(),
+		DataPool:                 args.DataComponents.Datapool(),
 	}
 	historyRepositoryFactory, err := dbLookupFactory.NewHistoryRepositoryFactory(historyRepoFactoryArgs)
 	if err != nil {
