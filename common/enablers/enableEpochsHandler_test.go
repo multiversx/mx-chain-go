@@ -134,7 +134,8 @@ func createEnableEpochsConfig() config.EnableEpochs {
 		ValidationOnGobDecodeEnableEpoch:                         115,
 		BarnardOpcodesEnableEpoch:                                116,
 		AutomaticActivationOfNodesDisableEpoch:                   117,
-		SupernovaEnableEpoch:                                     118,
+		RelayedTransactionsV1V2DisableEpoch:                      118,
+		SupernovaEnableEpoch:                                     119,
 	}
 }
 
@@ -341,6 +342,7 @@ func TestEnableEpochsHandler_IsFlagEnabled(t *testing.T) {
 	require.True(t, handler.IsFlagEnabled(common.FixRelayedMoveBalanceToNonPayableSCFlag))
 	require.True(t, handler.IsFlagEnabled(common.AndromedaFlag))
 	require.True(t, handler.IsFlagEnabled(common.DynamicESDTFlag))
+	require.True(t, handler.IsFlagEnabled(common.RelayedTransactionsV1V2DisableFlag))
 	require.True(t, handler.IsFlagEnabled(common.SupernovaFlag))
 }
 
@@ -477,6 +479,7 @@ func TestEnableEpochsHandler_GetActivationEpoch(t *testing.T) {
 	require.Equal(t, cfg.BarnardOpcodesEnableEpoch, handler.GetActivationEpoch(common.BarnardOpcodesFlag))
 	require.Equal(t, cfg.AutomaticActivationOfNodesDisableEpoch, handler.GetActivationEpoch(common.AutomaticActivationOfNodesDisableFlag))
 	require.Equal(t, cfg.FixGetBalanceEnableEpoch, handler.GetActivationEpoch(common.FixGetBalanceFlag))
+	require.Equal(t, cfg.RelayedTransactionsV1V2DisableEpoch, handler.GetActivationEpoch(common.RelayedTransactionsV1V2DisableFlag))
 	require.Equal(t, cfg.SupernovaEnableEpoch, handler.GetActivationEpoch(common.SupernovaFlag))
 }
 

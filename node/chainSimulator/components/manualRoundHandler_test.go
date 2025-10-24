@@ -92,4 +92,5 @@ func TestManualRoundHandler_Operations(t *testing.T) {
 		handler.IncrementIndex()
 	}
 	require.Equal(t, args.SupernovaGenesisTimeStamp, handler.TimeStamp().UnixMilli())
+	require.Equal(t, args.SupernovaRoundDuration.Milliseconds(), handler.TimeDuration().Milliseconds())
 }
