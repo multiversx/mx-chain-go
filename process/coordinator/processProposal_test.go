@@ -205,6 +205,142 @@ func TestTransactionCoordinator_CreateMbsCrossShardDstMe_MiniBlockProcessing(t *
 	require.False(t, executionPreprocessorCalled)
 }
 
+func TestTransactionCoordinator_CreateMbsCrossShardDstMe_MiniBlockProcessing_WithGasComputationError(t *testing.T) {
+	t.Parallel()
+
+	ph := dataRetrieverMock.NewPoolsHolderMock()
+	tc, err := createMockTransactionCoordinatorForProposalTests(ph)
+	require.Nil(t, err)
+	require.NotNil(t, tc)
+
+	td := createHeaderWithMiniBlocksAndTransactions()
+
+	// Mock mini block pool to return the test mini block
+	tc.miniBlockPool = &cache.CacherStub{
+		PeekCalled: func(key []byte) (value interface{}, ok bool) {
+			if reflect.DeepEqual(key, td.mb1Info.Hash) {
+				return td.mb1Info.Miniblock, true
+			}
+			return nil, false
+		},
+	}
+
+	// Mock the block data requester to return the mini block info
+	tc.blockDataRequesterProposal = &preprocMocks.BlockDataRequesterStub{
+		GetFinalCrossMiniBlockInfoAndRequestMissingCalled: func(header data.HeaderHandler) []*data.MiniBlockInfo {
+			return td.miniBlockInfos[:1] // Only first mini block
+		},
+	}
+
+	// Mock preprocessor to simulate no missing transactions
+	proposalPreprocessorCalled := false
+	tc.preProcProposal.txPreProcessors[block.TxBlock] = &preprocMocks.PreProcessorMock{
+		GetTransactionsAndRequestMissingForMiniBlockCalled: func(miniBlock *block.MiniBlock) ([]data.TransactionHandler, int) {
+			proposalPreprocessorCalled = true
+			require.Equal(t, td.mb1Info.Miniblock, miniBlock)
+			return nil, 0 // No missing transactions
+		},
+	}
+
+	// Mock execution preprocessor to ensure it's not called
+	executionPreprocessorCalled := false
+	tc.preProcExecution.txPreProcessors[block.TxBlock] = &preprocMocks.PreProcessorMock{
+		GetTransactionsAndRequestMissingForMiniBlockCalled: func(miniBlock *block.MiniBlock) ([]data.TransactionHandler, int) {
+			executionPreprocessorCalled = true
+			return nil, 0
+		},
+	}
+
+	tc.gasComputation = &testscommon.GasComputationMock{
+		CheckIncomingMiniBlocksCalled: func(miniBlocks []data.MiniBlockHeaderHandler, transactions map[string][]data.TransactionHandler) (int, int, error) {
+			return 0, 0, errors.New("gas computation error")
+		},
+	}
+
+	miniBlocks, _, numTxs, allAdded, err := tc.CreateMbsCrossShardDstMe(td.hdr, nil)
+
+	require.Error(t, err)
+	require.Contains(t, err.Error(), "gas computation error")
+	require.Nil(t, miniBlocks)
+	require.Equal(t, uint32(0), numTxs)
+	require.False(t, allAdded) // No mini blocks were processed
+
+	// Verify proposal preprocessor was used, not execution
+	require.True(t, proposalPreprocessorCalled)
+	require.False(t, executionPreprocessorCalled)
+}
+
+func TestTransactionCoordinator_CreateMbsCrossShardDstMe_MiniBlockProcessing_WithPendingMiniBlocks(t *testing.T) {
+	t.Parallel()
+
+	ph := dataRetrieverMock.NewPoolsHolderMock()
+	tc, err := createMockTransactionCoordinatorForProposalTests(ph)
+	require.Nil(t, err)
+	require.NotNil(t, tc)
+
+	td := createHeaderWithMiniBlocksAndTransactions()
+
+	// Mock mini block pool to return the test mini block
+	tc.miniBlockPool = &cache.CacherStub{
+		PeekCalled: func(key []byte) (value interface{}, ok bool) {
+			if reflect.DeepEqual(key, td.mb1Info.Hash) {
+				return td.mb1Info.Miniblock, true
+			}
+			return td.mb2Info.Miniblock, true
+		},
+	}
+
+	// Mock the block data requester to return the mini block info
+	tc.blockDataRequesterProposal = &preprocMocks.BlockDataRequesterStub{
+		GetFinalCrossMiniBlockInfoAndRequestMissingCalled: func(header data.HeaderHandler) []*data.MiniBlockInfo {
+			return td.miniBlockInfos
+		},
+	}
+
+	// Mock preprocessor to simulate no missing transactions
+	proposalPreprocessorCalled := false
+	tc.preProcProposal.txPreProcessors[block.TxBlock] = &preprocMocks.PreProcessorMock{
+		GetTransactionsAndRequestMissingForMiniBlockCalled: func(miniBlock *block.MiniBlock) ([]data.TransactionHandler, int) {
+			proposalPreprocessorCalled = true
+			return nil, 0 // No missing transactions
+		},
+	}
+
+	// Mock execution preprocessor to ensure it's not called
+	executionPreprocessorCalled := false
+	tc.preProcExecution.txPreProcessors[block.TxBlock] = &preprocMocks.PreProcessorMock{
+		GetTransactionsAndRequestMissingForMiniBlockCalled: func(miniBlock *block.MiniBlock) ([]data.TransactionHandler, int) {
+			executionPreprocessorCalled = true
+			return nil, 0
+		},
+	}
+
+	tc.gasComputation = &testscommon.GasComputationMock{
+		CheckIncomingMiniBlocksCalled: func(miniBlocks []data.MiniBlockHeaderHandler, transactions map[string][]data.TransactionHandler) (int, int, error) {
+			return 0, 1, nil // last mb added index is 0, so only first mini block is added, num pendings miniblocks is 1, so the second is pending
+		},
+	}
+
+	miniBlocks, pendingMiniBlocks, numTxs, allAdded, err := tc.CreateMbsCrossShardDstMe(td.hdr, nil)
+
+	require.Nil(t, err)
+
+	require.Equal(t, 1, len(miniBlocks))
+	require.Equal(t, td.mb1Info.Miniblock, miniBlocks[0].Miniblock)
+	require.Equal(t, td.mb1Info.Hash, miniBlocks[0].Hash)
+
+	require.Equal(t, 1, len(pendingMiniBlocks))
+	require.Equal(t, td.mb2Info.Miniblock, pendingMiniBlocks[0].Miniblock)
+	require.Equal(t, td.mb2Info.Hash, pendingMiniBlocks[0].Hash)
+
+	require.Equal(t, uint32(3), numTxs)
+	require.False(t, allAdded)
+
+	// Verify proposal preprocessor was used, not execution
+	require.True(t, proposalPreprocessorCalled)
+	require.False(t, executionPreprocessorCalled)
+}
+
 func TestTransactionCoordinator_CreateMbsCrossShardDstMe_SkipShardOnMissingMiniBlock(t *testing.T) {
 	t.Parallel()
 
@@ -489,6 +625,41 @@ func TestTransactionCoordinator_SelectOutgoingTransactions_HandlesNilPreprocesso
 	require.Equal(t, 0, len(txHashes))
 }
 
+func TestTransactionCoordinator_SelectOutgoingTransactions_CheckOutgoingTransactionsError(t *testing.T) {
+	t.Parallel()
+
+	ph := dataRetrieverMock.NewPoolsHolderMock()
+	tc, err := createMockTransactionCoordinatorForProposalTests(ph)
+	require.Nil(t, err)
+	require.NotNil(t, tc)
+	txHashesType1 := [][]byte{[]byte("tx_hash_1"), []byte("tx_hash_2")}
+	txHashesType2 := [][]byte{[]byte("tx_hash_3"), []byte("tx_hash_4")}
+
+	// add transactions to the transactions pool
+	cacheId := process.ShardCacherIdentifier(0, 0)
+	ph.Transactions().AddData(txHashesType1[0], &transaction.Transaction{SndAddr: []byte("sender1"), Nonce: 0}, 100, cacheId)
+	ph.Transactions().AddData(txHashesType1[1], &transaction.Transaction{SndAddr: []byte("sender1"), Nonce: 1}, 100, cacheId)
+
+	// add transactions to the unsigned transactions pool
+	ph.UnsignedTransactions().AddData(txHashesType2[0], &transaction.Transaction{SndAddr: []byte("sender2"), Nonce: 0}, 100, cacheId)
+	ph.UnsignedTransactions().AddData(txHashesType2[1], &transaction.Transaction{SndAddr: []byte("sender3"), Nonce: 0}, 100, cacheId)
+
+	// Add both block types to the keys
+	tc.preProcProposal.keysTxPreProcs = []block.Type{block.TxBlock, block.SmartContractResultBlock}
+	tc.gasComputation = &testscommon.GasComputationMock{
+		CheckOutgoingTransactionsCalled: func(txHashes [][]byte, transactions []data.TransactionHandler) ([][]byte, []data.MiniBlockHeaderHandler, error) {
+			return nil, nil, errors.New("test error in CheckOutgoingTransactions")
+		},
+	}
+
+	require.NotPanics(t, func() {
+		selectedTxHashes, selectedPendingIncomingMiniBlocks := tc.SelectOutgoingTransactions()
+		// Function should continue and return empty slice despite error
+		require.Nil(t, selectedTxHashes)
+		require.Nil(t, selectedPendingIncomingMiniBlocks)
+	})
+}
+
 func TestTransactionCoordinator_CreateMbsCrossShardDstMe_ProcessedMiniBlocksInfo(t *testing.T) {
 	t.Parallel()
 
@@ -599,7 +770,139 @@ func TestTransactionCoordinator_verifyCreatedMiniBlocksSanity(t *testing.T) {
 		err = tc.verifyCreatedMiniBlocksSanity(body)
 		require.True(t, errors.Is(err, process.ErrDuplicatedTransaction))
 	})
-	t.Run("should work", func(t *testing.T) {
+
+	t.Run("error adding un-executable transactions to the collected transactions - should error", func(t *testing.T) {
+		t.Parallel()
+
+		ph := dataRetrieverMock.NewPoolsHolderMock()
+		tc, err := createMockTransactionCoordinatorForProposalTests(ph)
+
+		tc.preProcExecution.txPreProcessors[block.TxBlock] = &preprocMocks.PreProcessorMock{
+			GetUnExecutableTransactionsCalled: func() map[string]struct{} {
+				return map[string]struct{}{
+					string([]byte("tx_unexec_hash")): {},
+				}
+			},
+			// make the same preprocessor also report the created miniblocks from me
+			GetCreatedMiniBlocksFromMeCalled: func() block.MiniBlockSlice {
+				return block.MiniBlockSlice{
+					&block.MiniBlock{
+						SenderShardID:   0,
+						ReceiverShardID: 0,
+						TxHashes: [][]byte{
+							[]byte("tx_unexec_hash"),
+						},
+					},
+				}
+			},
+		}
+		require.Nil(t, err)
+		require.NotNil(t, tc)
+
+		body := &block.Body{
+			MiniBlocks: []*block.MiniBlock{
+				{
+					SenderShardID:   0,
+					ReceiverShardID: 0,
+					TxHashes: [][]byte{
+						[]byte("tx_unexec_hash"),
+					},
+				},
+			},
+		}
+
+		err = tc.verifyCreatedMiniBlocksSanity(body)
+		require.True(t, errors.Is(err, process.ErrDuplicatedTransaction))
+	})
+
+	t.Run("transactions mismatch should error", func(t *testing.T) {
+		t.Parallel()
+
+		ph := dataRetrieverMock.NewPoolsHolderMock()
+		tc, err := createMockTransactionCoordinatorForProposalTests(ph)
+		require.Nil(t, err)
+		require.NotNil(t, tc)
+
+		// preprocessor says we created tx 'a'
+		tc.preProcExecution.txPreProcessors[block.TxBlock] = &preprocMocks.PreProcessorMock{
+			GetUnExecutableTransactionsCalled: func() map[string]struct{} {
+				return map[string]struct{}{} // no duplicates this time
+			},
+			GetCreatedMiniBlocksFromMeCalled: func() block.MiniBlockSlice {
+				return block.MiniBlockSlice{
+					&block.MiniBlock{
+						SenderShardID:   0,
+						ReceiverShardID: 0,
+						TxHashes: [][]byte{
+							[]byte("tx_a"),
+						},
+					},
+				}
+			},
+		}
+
+		// but the block body includes tx 'b'
+		body := &block.Body{
+			MiniBlocks: []*block.MiniBlock{
+				{
+					SenderShardID:   0,
+					ReceiverShardID: 0,
+					TxHashes: [][]byte{
+						[]byte("tx_b"),
+					},
+				},
+			},
+		}
+
+		err = tc.verifyCreatedMiniBlocksSanity(body)
+		require.True(t, errors.Is(err, process.ErrTransactionsMismatch))
+	})
+
+	t.Run("verifyCreatedMiniBlocksSanity should error on collectTransactionsFromMiniBlocks", func(t *testing.T) {
+		t.Parallel()
+
+		ph := dataRetrieverMock.NewPoolsHolderMock()
+		tc, err := createMockTransactionCoordinatorForProposalTests(ph)
+		require.NoError(t, err)
+		require.NotNil(t, tc)
+
+		tc.preProcExecution.txPreProcessors[block.TxBlock] = &preprocMocks.PreProcessorMock{
+			GetCreatedMiniBlocksFromMeCalled: func() block.MiniBlockSlice {
+				return block.MiniBlockSlice{
+					{
+						SenderShardID:   0,
+						ReceiverShardID: 0,
+						TxHashes: [][]byte{
+							[]byte("tx_dup"),
+							[]byte("tx_dup"), // duplicate triggers collectTransactionsFromMiniBlocks error
+						},
+					},
+				}
+			},
+			GetUnExecutableTransactionsCalled: func() map[string]struct{} {
+				return nil
+			},
+		}
+
+		body := &block.Body{
+			MiniBlocks: []*block.MiniBlock{
+				{
+					SenderShardID:   0,
+					ReceiverShardID: 0,
+					TxHashes: [][]byte{
+						[]byte("tx_dup"),
+					},
+				},
+			},
+		}
+
+		err = tc.verifyCreatedMiniBlocksSanity(body)
+		require.Error(t, err)
+		require.Contains(t, err.Error(), "for created miniBlocks")
+		require.True(t, errors.Is(err, process.ErrDuplicatedTransaction))
+	})
+
+	t.Run("should work empty body", func(t *testing.T) {
 		t.Parallel()
 
 		ph := dataRetrieverMock.NewPoolsHolderMock()
@@ -615,6 +918,55 @@ func TestTransactionCoordinator_verifyCreatedMiniBlocksSanity(t *testing.T) {
 		err = tc.verifyCreatedMiniBlocksSanity(body)
 		require.NoError(t, err)
 	})
+	t.Run("should work with unexecutable transactions", func(t *testing.T) {
+		t.Parallel()
+
+		ph := dataRetrieverMock.NewPoolsHolderMock()
+		tc, err := createMockTransactionCoordinatorForProposalTests(ph)
+		require.NoError(t, err)
+		require.NotNil(t, tc)
+
+		// first mini-block tx3 is un-executable
+		mb1 := &block.MiniBlock{
+			SenderShardID: 0,
+			Type:          block.TxBlock,
+			TxHashes:      [][]byte{[]byte("tx1"), []byte("tx2"), []byte("tx_unexec")},
+		}
+		// second mini-block incomming - will be ignored for created txs verification
+		mb2 := &block.MiniBlock{
+			SenderShardID:   1,
+			ReceiverShardID: 0,
+			Type:            block.TxBlock,
+			TxHashes:        [][]byte{[]byte("tx4")},
+		}
+
+		body := &block.Body{
+			MiniBlocks: []*block.MiniBlock{mb1, mb2},
+		}
+
+		// Preprocessor still returns all created mini-blocks
+		tc.preProcExecution.txPreProcessors[block.TxBlock] = &preprocMocks.PreProcessorMock{
+			GetCreatedMiniBlocksFromMeCalled: func() block.MiniBlockSlice {
+				return block.MiniBlockSlice{
+					{
+						SenderShardID:   0,
+						ReceiverShardID: 0,
+						Type:            block.TxBlock,
+						TxHashes:        [][]byte{[]byte("tx1"), []byte("tx2")},
+					},
+				}
+			},
+			GetUnExecutableTransactionsCalled: func() map[string]struct{} {
+				return map[string]struct{}{
+					string([]byte("tx_unexec")): {},
+				}
+			},
+		}
+
+		err = tc.verifyCreatedMiniBlocksSanity(body)
+		require.NoError(t, err)
+	})
+
 }
 
 func createPreProcessorContainerWithPoolsHolder(poolsHolder dataRetriever.PoolsHolder) process.PreProcessorsContainer {

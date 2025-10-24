@@ -134,8 +134,8 @@ func (tc *transactionCoordinator) CreateMbsCrossShardDstMe(
 
 	// if not all mini blocks were included, remove them from the miniBlocksAndHashes slice
 	// but add them into pendingMiniBlocksAndHashes
-	if lastMBIndex != len(mbsSlice) {
-		pendingMiniBlocksAndHashes = miniBlocksAndHashes[lastMBIndex:]
+	if lastMBIndex+1 < len(mbsSlice) {
+		pendingMiniBlocksAndHashes = miniBlocksAndHashes[lastMBIndex+1:]
 		miniBlocksAndHashes = miniBlocksAndHashes[:lastMBIndex+1]
 	}
 
@@ -174,17 +174,17 @@ func (tc *transactionCoordinator) SelectOutgoingTransactions() (selectedTxHashes
 }
 
 func (tc *transactionCoordinator) verifyCreatedMiniBlocksSanity(body *block.Body) error {
-	intraShardMbs := make([]*block.MiniBlock, 0)
+	miniblocksFromSelf := make([]*block.MiniBlock, 0)
 	for _, mb := range body.MiniBlocks {
 		if mb.SenderShardID == tc.shardCoordinator.SelfId() {
-			intraShardMbs = append(intraShardMbs, mb)
+			miniblocksFromSelf = append(miniblocksFromSelf, mb)
 		}
 	}
 
 	collectedMbs := tc.GetCreatedMiniBlocksFromMe()
 	unExecutableTransactions := tc.getUnExecutableTransactions()
 
-	allTxsInBody, err := collectTransactionsFromMiniBlocks(intraShardMbs)
+	allTxsInBody, err := collectTransactionsFromMiniBlocks(miniblocksFromSelf)
 	if err != nil {
 		return fmt.Errorf("%w: for body miniBlocks", err)
 	}

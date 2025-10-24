@@ -269,7 +269,7 @@ func createMockTransactionCoordinatorArguments() ArgTransactionCoordinator {
 				return txHashes, nil, nil
 			},
 			CheckIncomingMiniBlocksCalled: func(miniBlocks []data.MiniBlockHeaderHandler, transactions map[string][]data.TransactionHandler) (int, int, error) {
-				return len(miniBlocks), 0, nil
+				return len(miniBlocks) - 1, 0, nil
 			},
 		},
 	}
