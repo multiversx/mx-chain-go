@@ -86,6 +86,7 @@ func NewMetaBootstrap(arguments ArgMetaBootstrapper) (*MetaBootstrap, error) {
 		enableEpochsHandler:          arguments.EnableEpochsHandler,
 		enableRoundsHandler:          arguments.EnableRoundsHandler,
 		processConfigsHandler:        arguments.ProcessConfigsHandler,
+		executionResultsTracker:      arguments.ExecutionResultsTracker,
 	}
 
 	if base.isInImportMode {

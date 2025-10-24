@@ -4,6 +4,7 @@ import (
 	"bytes"
 	"context"
 	"encoding/hex"
+	"errors"
 	"fmt"
 	"math"
 	"sync"
@@ -119,9 +120,10 @@ type baseBootstrap struct {
 	storageBootstrapper  process.BootstrapperFromStorage
 	currentEpochProvider process.CurrentNetworkEpochProviderHandler
 
-	outportHandler        outport.OutportHandler
-	accountsDBSyncer      process.AccountsDBSyncer
-	processConfigsHandler common.ProcessConfigsHandler
+	outportHandler          outport.OutportHandler
+	accountsDBSyncer        process.AccountsDBSyncer
+	processConfigsHandler   common.ProcessConfigsHandler
+	executionResultsTracker process.ExecutionResultsTracker
 
 	chRcvMiniBlocks              chan bool
 	mutRcvMiniBlocks             sync.Mutex
@@ -728,6 +730,8 @@ func (boot *baseBootstrap) doJobOnSyncBlockFail(bodyHandler data.BodyHandler, he
 	isInProperRound := process.IsInProperRound(boot.roundHandler.Index())
 	isSyncWithErrorsLimitReachedInProperRound := allowedSyncWithErrorsLimitReached && isInProperRound
 
+	isExecResultsError := isExecResultsError(headerHandler, err)
+
 	shouldRollBack := isProcessWithError || isSyncWithErrorsLimitReachedInProperRound
 	if shouldRollBack {
 		if !check.IfNil(headerHandler) {
@@ -740,11 +744,75 @@ func (boot *baseBootstrap) doJobOnSyncBlockFail(bodyHandler data.BodyHandler, he
 			log.Debug("rollBack", "error", errNotCritical.Error())
 		}
 
+		if isExecResultsError {
+			boot.rollBackExecutionResults(headerHandler, err)
+		}
+
 		if isSyncWithErrorsLimitReachedInProperRound {
 			boot.forkDetector.ResetProbableHighestNonce()
 			boot.removeHeadersHigherThanNonceFromPool(boot.getNonceForCurrentBlock())
 		}
 	}
+}
+
+func (boot *baseBootstrap) rollBackExecutionResults(
+	header data.HeaderHandler,
+	err error,
+) {
+	if !header.IsHeaderV3() {
+		return
+	}
+
+	executionResults := header.GetExecutionResultsHandlers()
+	if len(executionResults) < 0 {
+		return
+	}
+
+	switch err {
+	case process.ErrExecutionResultsNumberMismatch:
+		// remove all execution results from tracker
+		headerHashToRemoveFrom := executionResults[0].GetHeaderHash()
+		boot.executionResultsTracker.RemoveFromHash(headerHashToRemoveFrom)
+		boot.blocksQueue.Clean(executionResults[0].GetHeaderNonce() - 1)
+	case process.ErrExecutionResultsNonConsecutive:
+		headerHashToRemoveFrom := executionResults[0].GetHeaderHash()
+		for i := 0; i < len(executionResults)-1; i++ {
+			if executionResults[i].GetHeaderNonce() != executionResults[i+1].GetHeaderNonce()-1 {
+				boot.executionResultsTracker.RemoveFromHash(headerHashToRemoveFrom)
+
+				boot.blocksQueue.RemoveFromNonce(executionResults[i].GetHeaderNonce())
+				return
+			}
+		}
+	case process.ErrExecutionResultDoesNotMatch:
+		pendingExecutionResults, err := boot.executionResultsTracker.GetPendingExecutionResults()
+		if err != nil {
+			log.Debug("rollBackExecutionResults", "error", err.Error())
+			return
+		}
+
+		for i, er := range executionResults {
+			if !er.Equal(pendingExecutionResults[i]) {
+				boot.executionResultsTracker.RemoveFromHash(er.GetHeaderHash())
+				boot.blocksQueue.RemoveFromNonce(er.GetHeaderNonce())
+				return
+			}
+		}
+	}
+}
+
+func isExecResultsError(header data.HeaderHandler, err error) bool {
+	if !header.IsHeaderV3() {
+		return false
+	}
+
+	if errors.Is(err, process.ErrExecutionResultDoesNotMatch) ||
+		errors.Is(err, process.ErrExecutionResultsNonConsecutive) ||
+		errors.Is(err, process.ErrExecutionResultsNumberMismatch) {
+		return true
+	}
+
+	return false
 }
 
 func (boot *baseBootstrap) incrementSyncedWithErrorsForNonce(nonce uint64) uint32 {
