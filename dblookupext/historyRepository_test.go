@@ -869,11 +869,6 @@ func TestRecordHeaderV3(t *testing.T) {
 					BaseExecutionResult: &block.BaseExecutionResult{
 						HeaderHash: executionResultHeaderHash,
 					},
-					MiniBlockHeaders: []block.MiniBlockHeader{
-						{
-							Hash: []byte("mbHash"),
-						},
-					},
 				},
 			},
 		}
@@ -896,11 +891,6 @@ func TestRecordHeaderV3(t *testing.T) {
 				{
 					BaseExecutionResult: &block.BaseExecutionResult{
 						HeaderHash: executionResultHeaderHash,
-					},
-					MiniBlockHeaders: []block.MiniBlockHeader{
-						{
-							Hash: []byte("mbHash"),
-						},
 					},
 				},
 			},
@@ -1020,4 +1010,17 @@ func TestRecordHeaderV3(t *testing.T) {
 		err = repo.RecordBlock(headerHash, header, body, nil, nil, nil, nil)
 		require.ErrorContains(t, err, expectedError.Error())
 	})
+}
+
+func TestHistoryRepository_IsInterfaceNil(t *testing.T) {
+	t.Parallel()
+
+	args := createMockHistoryRepoArgs(42)
+	repo, err := NewHistoryRepository(args)
+	require.Nil(t, err)
+
+	require.False(t, repo.IsInterfaceNil())
+
+	var nilRepo *historyRepository
+	require.True(t, nilRepo.IsInterfaceNil())
 }
