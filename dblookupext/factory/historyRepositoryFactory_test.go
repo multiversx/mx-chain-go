@@ -47,6 +47,12 @@ func TestNewHistoryRepositoryFactory(t *testing.T) {
 	require.Equal(t, process.ErrNilUint64Converter, err)
 	require.Nil(t, hrf)
 
+	argsNilDataPool := getArgs()
+	argsNilDataPool.DataPool = nil
+	hrf, err = factory.NewHistoryRepositoryFactory(argsNilDataPool)
+	require.Equal(t, process.ErrNilDataPoolHolder, err)
+	require.Nil(t, hrf)
+
 	hrf, err = factory.NewHistoryRepositoryFactory(args)
 	require.NoError(t, err)
 	require.False(t, check.IfNil(hrf))
