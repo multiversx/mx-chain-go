@@ -683,7 +683,71 @@ func (e *epochStartBootstrap) createSyncers() error {
 	return nil
 }
 
+func (e *epochStartBootstrap) syncHeadersV3From(meta data.MetaHeaderHandler) (map[string]data.HeaderHandler, error) {
+	syncedHeaders := make(map[string]data.HeaderHandler)
+	for _, epochStartData := range meta.GetEpochStartHandler().GetLastFinalizedHeaderHandlers() {
+		err := e.requestIntermediateBlocksIfNeeded(syncedHeaders, epochStartData.GetHeaderHash(), epochStartData.GetShardID())
+		if err != nil {
+			return nil, err
+		}
+	}
+
+	syncedMetaHeaders, err := e.syncEpochStartMetaHeaders(meta)
+	if err != nil {
+		return nil, err
+	}
+
+	for hash, header := range syncedMetaHeaders {
+		syncedHeaders[hash] = header
+	}
+
+	return syncedHeaders, nil
+}
+
+func (e *epochStartBootstrap) syncEpochStartMetaHeaders(
+	meta data.MetaHeaderHandler,
+) (map[string]data.HeaderHandler, error) {
+	epochStartMetaHash, err := core.CalculateHash(e.coreComponentsHolder.InternalMarshalizer(), e.coreComponentsHolder.Hasher(), meta)
+	if err != nil {
+		return nil, err
+	}
+
+	hashesToRequest := make([][]byte, 0)
+	shardIds := make([]uint32, 0)
+	if meta.GetEpoch() > e.startEpoch+1 { // no need to request genesis block
+		hashesToRequest = append(hashesToRequest, meta.GetEpochStartHandler().GetEconomicsHandler().GetPrevEpochStartHash())
+		shardIds = append(shardIds, core.MetachainShardId)
+	}
+
+	// add the epoch start meta hash to the list to sync its proof
+	hashesToRequest = append(hashesToRequest, epochStartMetaHash)
+	shardIds = append(shardIds, core.MetachainShardId)
+
+	ctx, cancel := context.WithTimeout(context.Background(), DefaultTimeToWaitForRequestedData)
+	err = e.headersSyncer.SyncMissingHeadersByHash(shardIds, hashesToRequest, ctx)
+	cancel()
+	if err != nil {
+		return nil, err
+	}
+
+	syncedHeaders, err := e.headersSyncer.GetHeaders()
+	if err != nil {
+		return nil, err
+	}
+
+	if meta.GetEpoch() == e.startEpoch+1 {
+		// for genesis block there is no epoch start header to sync, so we set an empty meta block
+		syncedHeaders[string(meta.GetEpochStartHandler().GetEconomicsHandler().GetPrevEpochStartHash())] = &block.MetaBlock{}
+	}
+
+	return syncedHeaders, nil
+}
+
 func (e *epochStartBootstrap) syncHeadersFrom(meta data.MetaHeaderHandler) (map[string]data.HeaderHandler, error) {
+	if meta.IsHeaderV3() {
+		return e.syncHeadersV3From(meta)
+	}
+
 	hashesToRequest := make([][]byte, 0, len(meta.GetEpochStartHandler().GetLastFinalizedHeaderHandlers())+1)
 	shardIds := make([]uint32, 0, len(meta.GetEpochStartHandler().GetLastFinalizedHeaderHandlers())+1)
 	epochStartMetaHash, err := core.CalculateHash(e.coreComponentsHolder.InternalMarshalizer(), e.coreComponentsHolder.Hasher(), meta)
@@ -722,6 +786,74 @@ func (e *epochStartBootstrap) syncHeadersFrom(meta data.MetaHeaderHandler) (map[
 	}
 
 	return syncedHeaders, nil
+}
+
+func (e *epochStartBootstrap) requestIntermediateBlocksIfNeeded(
+	syncedHeaders map[string]data.HeaderHandler,
+	headerHash []byte,
+	shardID uint32,
+) error {
+	header, err := e.syncOneHeader(headerHash, shardID)
+	if err != nil {
+		return err
+	}
+
+	if !header.IsHeaderV3() {
+		syncedHeaders[string(headerHash)] = header
+		return nil
+	}
+
+	lastExecutionResult, err := common.GetLastBaseExecutionResultHandler(header)
+	if err != nil {
+		return err
+	}
+
+	baseHeaderNonce := header.GetNonce()
+	lastExecutedNonce := lastExecutionResult.GetHeaderNonce()
+
+	if lastExecutedNonce >= baseHeaderNonce {
+		return nil
+	}
+
+	headerHashToSync := header.GetPrevHash()
+	currentNonce := baseHeaderNonce
+	for currentNonce > lastExecutedNonce {
+		syncedHeader, err := e.syncOneHeader(headerHashToSync, shardID)
+		if err != nil {
+			return err
+		}
+
+		syncedHeaders[string(headerHashToSync)] = syncedHeader
+
+		headerHashToSync = syncedHeader.GetPrevHash()
+		currentNonce = syncedHeader.GetNonce()
+	}
+
+	return nil
+}
+
+func (e *epochStartBootstrap) syncOneHeader(
+	headerHash []byte,
+	shardID uint32,
+) (data.HeaderHandler, error) {
+	e.headersSyncer.ClearFields()
+	ctx, cancel := context.WithTimeout(context.Background(), DefaultTimeToWaitForRequestedData)
+	err := e.headersSyncer.SyncMissingHeadersByHash([]uint32{shardID}, [][]byte{headerHash}, ctx)
+	cancel()
+	if err != nil {
+		return nil, err
+	}
+
+	syncedHeadersTmp, err := e.headersSyncer.GetHeaders()
+	if err != nil {
+		return nil, err
+	}
+	syncedHeader, ok := syncedHeadersTmp[string(headerHash)]
+	if !ok {
+		return nil, epochStart.ErrMissingHeader
+	}
+
+	return syncedHeader, nil
 }
 
 // requestAndProcessing will handle requesting and receiving the needed information the node will bootstrap from
@@ -894,7 +1026,8 @@ func (e *epochStartBootstrap) requestAndProcessForMeta(peerMiniBlocks []*block.M
 	}
 	log.Debug("start in epoch bootstrap: syncUserAccountsState")
 
-	err = e.syncUserAccountsState(e.epochStartMeta.GetRootHash())
+	rootHashToSync := e.getRootHashToSync(e.epochStartMeta, e.epochStartMeta.GetRootHash())
+	err = e.syncUserAccountsState(rootHashToSync)
 	if err != nil {
 		return err
 	}
@@ -1206,9 +1339,32 @@ func (e *epochStartBootstrap) updateDataForScheduled(
 		return nil, err
 	}
 
-	res.rootHashToSync = e.dataSyncerWithScheduled.GetRootHashToSync(shardNotarizedHeader)
+	rootHashToSync := e.dataSyncerWithScheduled.GetRootHashToSync(shardNotarizedHeader)
+
+	if shardNotarizedHeader.IsHeaderV3() {
+		rootHashToSync = e.getRootHashToSync(shardNotarizedHeader, rootHashToSync)
+	}
+
+	res.rootHashToSync = rootHashToSync
 
 	return res, nil
+}
+
+func (e *epochStartBootstrap) getRootHashToSync(
+	header data.HeaderHandler,
+	rootHashToSync []byte,
+) []byte {
+	if !header.IsHeaderV3() {
+		return rootHashToSync
+	}
+
+	lastExecutionResult := header.GetLastExecutionResultHandler()
+	baseLastExecutionResult, ok := lastExecutionResult.(data.BaseExecutionResultHandler)
+	if !ok {
+		return rootHashToSync
+	}
+
+	return baseLastExecutionResult.GetRootHash()
 }
 
 func (e *epochStartBootstrap) syncUserAccountsState(rootHash []byte) error {
