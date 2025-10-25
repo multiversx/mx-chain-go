@@ -771,6 +771,8 @@ func TestRecordHeaderV3(t *testing.T) {
 	t.Parallel()
 
 	t.Run("record block v3 should work no execution results", func(t *testing.T) {
+		t.Parallel()
+
 		args := createMockHistoryRepoArgs(42)
 		repo, err := NewHistoryRepository(args)
 		require.Nil(t, err)
@@ -784,6 +786,8 @@ func TestRecordHeaderV3(t *testing.T) {
 	})
 
 	t.Run("record block v3 should work", func(t *testing.T) {
+		t.Parallel()
+
 		args := createMockHistoryRepoArgs(42)
 		args.DataPool = dataRetrieverMock.NewPoolsHolderMock()
 		repo, err := NewHistoryRepository(args)
@@ -858,6 +862,8 @@ func TestRecordHeaderV3(t *testing.T) {
 	})
 
 	t.Run("record block v3 should error because the headerHash is not found in cache", func(t *testing.T) {
+		t.Parallel()
+
 		args := createMockHistoryRepoArgs(42)
 		args.DataPool = dataRetrieverMock.NewPoolsHolderMock()
 		repo, err := NewHistoryRepository(args)
@@ -881,6 +887,8 @@ func TestRecordHeaderV3(t *testing.T) {
 	})
 
 	t.Run("record block v3 should error because logs were not found in dataPool", func(t *testing.T) {
+		t.Parallel()
+
 		args := createMockHistoryRepoArgs(42)
 		args.DataPool = dataRetrieverMock.NewPoolsHolderMock()
 		repo, err := NewHistoryRepository(args)
@@ -907,6 +915,8 @@ func TestRecordHeaderV3(t *testing.T) {
 	})
 
 	t.Run("record block v3 should error because mini blocks were not cached", func(t *testing.T) {
+		t.Parallel()
+
 		args := createMockHistoryRepoArgs(42)
 		args.DataPool = dataRetrieverMock.NewPoolsHolderMock()
 		repo, err := NewHistoryRepository(args)
@@ -947,6 +957,8 @@ func TestRecordHeaderV3(t *testing.T) {
 	})
 
 	t.Run("record block v3 should error because intra mini blocks were not found", func(t *testing.T) {
+		t.Parallel()
+
 		args := createMockHistoryRepoArgs(42)
 		args.DataPool = dataRetrieverMock.NewPoolsHolderMock()
 		repo, err := NewHistoryRepository(args)
@@ -992,6 +1004,8 @@ func TestRecordHeaderV3(t *testing.T) {
 	})
 
 	t.Run("record block v3 should error because of Marshal on recordBlock", func(t *testing.T) {
+		t.Parallel()
+
 		args := createMockHistoryRepoArgs(42)
 
 		expectedError := errors.New("expected error")
@@ -1010,6 +1024,16 @@ func TestRecordHeaderV3(t *testing.T) {
 		err = repo.RecordBlock(headerHash, header, body, nil, nil, nil, nil)
 		require.ErrorContains(t, err, expectedError.Error())
 	})
+}
+
+func TestHistoryRepository_IsEnabled(t *testing.T) {
+	t.Parallel()
+
+	args := createMockHistoryRepoArgs(42)
+	repo, err := NewHistoryRepository(args)
+	require.Nil(t, err)
+
+	require.True(t, repo.IsEnabled())
 }
 
 func TestHistoryRepository_IsInterfaceNil(t *testing.T) {
