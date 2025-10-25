@@ -30,6 +30,7 @@ import (
 	"github.com/multiversx/mx-chain-go/process/estimator"
 	"github.com/multiversx/mx-chain-go/process/missingData"
 	"github.com/multiversx/mx-chain-go/testscommon/mbSelection"
+	"github.com/multiversx/mx-chain-go/testscommon/pool"
 	"github.com/multiversx/mx-chain-go/testscommon/processMocks"
 
 	"github.com/multiversx/mx-chain-go/common"
@@ -3864,5 +3865,184 @@ func TestBaseProcessor_GetFinalMiniBlocksFromExecutionResult(t *testing.T) {
 		require.Equal(t, &block.Body{
 			MiniBlocks: []*block.MiniBlock{mb1},
 		}, body)
+	})
+}
+
+func TestBaseProcessor_GetFinalBlockNonce(t *testing.T) {
+	t.Parallel()
+
+	t.Run("should return fork detector final nonce, if current block not header v3", func(t *testing.T) {
+		t.Parallel()
+
+		finalHash := []byte("finalHash")
+		finalNonce := uint64(10)
+
+		header := &block.Header{
+			Nonce: 11,
+		}
+
+		dataPool := initDataPool()
+		dataPool.HeadersCalled = func() dataRetriever.HeadersPool {
+			return &pool.HeadersPoolStub{
+				GetHeaderByHashCalled: func(hash []byte) (data.HeaderHandler, error) {
+					return nil, expectedError
+				},
+			}
+		}
+
+		coreComponents, dataComponents, bootstrapComponents, statusComponents := createComponentHolderMocks()
+		dataComponents.DataPool = dataPool
+
+		arguments := CreateMockArguments(coreComponents, dataComponents, bootstrapComponents, statusComponents)
+		arguments.ForkDetector = &mock.ForkDetectorMock{
+			GetHighestFinalBlockNonceCalled: func() uint64 {
+				return finalNonce
+			},
+			GetHighestFinalBlockHashCalled: func() []byte {
+				return finalHash
+			},
+		}
+
+		bp, _ := blproc.NewShardProcessor(arguments)
+
+		retNoncesToFinal := bp.GetFinalBlockNonce(header)
+		require.Equal(t, finalNonce, retNoncesToFinal)
+	})
+
+	t.Run("should return fork detector final nonce, if failed to get header from pool", func(t *testing.T) {
+		t.Parallel()
+
+		finalHash := []byte("finalHash")
+		finalNonce := uint64(10)
+
+		header := &block.HeaderV3{
+			Nonce: 11,
+		}
+
+		dataPool := initDataPool()
+		dataPool.HeadersCalled = func() dataRetriever.HeadersPool {
+			return &pool.HeadersPoolStub{
+				GetHeaderByHashCalled: func(hash []byte) (data.HeaderHandler, error) {
+					return nil, expectedError
+				},
+			}
+		}
+
+		coreComponents, dataComponents, bootstrapComponents, statusComponents := createComponentHolderMocks()
+		dataComponents.DataPool = dataPool
+
+		arguments := CreateMockArguments(coreComponents, dataComponents, bootstrapComponents, statusComponents)
+		arguments.ForkDetector = &mock.ForkDetectorMock{
+			GetHighestFinalBlockNonceCalled: func() uint64 {
+				return finalNonce
+			},
+			GetHighestFinalBlockHashCalled: func() []byte {
+				return finalHash
+			},
+		}
+
+		bp, _ := blproc.NewShardProcessor(arguments)
+
+		retNoncesToFinal := bp.GetFinalBlockNonce(header)
+		require.Equal(t, finalNonce, retNoncesToFinal)
+	})
+
+	t.Run("should return last final nonce, if final block not header v3", func(t *testing.T) {
+		t.Parallel()
+
+		finalHash := []byte("finalHash")
+
+		header := &block.HeaderV3{
+			Nonce: 11,
+		}
+
+		finalNonce := uint64(10)
+
+		finalHeader := &block.Header{
+			Nonce: finalNonce,
+		}
+
+		dataPool := initDataPool()
+		dataPool.HeadersCalled = func() dataRetriever.HeadersPool {
+			return &pool.HeadersPoolStub{
+				GetHeaderByHashCalled: func(hash []byte) (data.HeaderHandler, error) {
+					if bytes.Equal(hash, finalHash) {
+						return finalHeader, nil
+					}
+
+					return nil, expectedError
+				},
+			}
+		}
+
+		coreComponents, dataComponents, bootstrapComponents, statusComponents := createComponentHolderMocks()
+		dataComponents.DataPool = dataPool
+
+		arguments := CreateMockArguments(coreComponents, dataComponents, bootstrapComponents, statusComponents)
+		arguments.ForkDetector = &mock.ForkDetectorMock{
+			GetHighestFinalBlockNonceCalled: func() uint64 {
+				return finalNonce
+			},
+			GetHighestFinalBlockHashCalled: func() []byte {
+				return finalHash
+			},
+		}
+
+		bp, _ := blproc.NewShardProcessor(arguments)
+
+		retNoncesToFinal := bp.GetFinalBlockNonce(header)
+		require.Equal(t, finalNonce, retNoncesToFinal)
+	})
+
+	t.Run("should return last executed final nonce, if header v3", func(t *testing.T) {
+		t.Parallel()
+		finalHash := []byte("finalHash")
+
+		header := &block.HeaderV3{
+			Nonce: 11,
+		}
+
+		finalNonce := uint64(10)
+		finalExecResNonce := uint64(9)
+
+		finalHeader := &block.HeaderV3{
+			Nonce: finalNonce,
+			LastExecutionResult: &block.ExecutionResultInfo{
+				ExecutionResult: &block.BaseExecutionResult{
+					HeaderNonce: finalExecResNonce,
+				},
+			},
+		}
+
+		dataPool := initDataPool()
+		dataPool.HeadersCalled = func() dataRetriever.HeadersPool {
+			return &pool.HeadersPoolStub{
+				GetHeaderByHashCalled: func(hash []byte) (data.HeaderHandler, error) {
+					if bytes.Equal(hash, finalHash) {
+						return finalHeader, nil
+					}
+
+					return nil, expectedError
+				},
+			}
+		}
+
+		coreComponents, dataComponents, bootstrapComponents, statusComponents := createComponentHolderMocks()
+		dataComponents.DataPool = dataPool
+
+		arguments := CreateMockArguments(coreComponents, dataComponents, bootstrapComponents, statusComponents)
+		arguments.ForkDetector = &mock.ForkDetectorMock{
+			GetHighestFinalBlockNonceCalled: func() uint64 {
+				return finalNonce
+			},
+			GetHighestFinalBlockHashCalled: func() []byte {
+				return finalHash
+			},
+		}
+
+		bp, _ := blproc.NewShardProcessor(arguments)
+
+		retNoncesToFinal := bp.GetFinalBlockNonce(header)
+		require.Equal(t, finalExecResNonce, retNoncesToFinal)
 	})
 }
