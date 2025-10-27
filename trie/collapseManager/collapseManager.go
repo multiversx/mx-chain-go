@@ -12,8 +12,9 @@ var log = logger.GetOrCreate("trie/collapseManager")
 
 const (
 	// TODO calibrate these values
-	minNumLeavesToCollapseTrie = 1000
-	minSizeInMemory            = 1048576 // 1 MB
+	numLeavesToCollapseSingleRun = 100
+	minNumLeavesToCollapseTrie   = 1000
+	minSizeInMemory              = 1048576 // 1 MB
 )
 
 type collapseManager struct {
@@ -46,6 +47,7 @@ func (cm *collapseManager) addSizeInMemory(size int) {
 	cm.sizeInMemory += size
 }
 
+// MarkKeyAsAccessed marks a key as accessed, updating its position in the access order
 func (cm *collapseManager) MarkKeyAsAccessed(key []byte, sizeLoadedInMemory int) {
 	defer cm.addSizeInMemory(sizeLoadedInMemory)
 
@@ -60,6 +62,7 @@ func (cm *collapseManager) MarkKeyAsAccessed(key []byte, sizeLoadedInMemory int)
 	cm.orderAccess.MoveToFront(entry)
 }
 
+// RemoveKey removes a key from the accessed keys list and updates the size in memory
 func (cm *collapseManager) RemoveKey(key []byte, sizeLoadedInMemory int) {
 	defer cm.addSizeInMemory(sizeLoadedInMemory)
 
@@ -72,14 +75,20 @@ func (cm *collapseManager) RemoveKey(key []byte, sizeLoadedInMemory int) {
 	delete(cm.accessedKeys, string(key))
 }
 
+// AddSizeInMemory adds size to the current size in memory
 func (cm *collapseManager) AddSizeInMemory(size int) {
 	cm.addSizeInMemory(size)
 }
+
+// GetSizeInMemory returns the current size in memory
 func (cm *collapseManager) GetSizeInMemory() int {
 	return cm.sizeInMemory
 }
 
+// ShouldCollapseTrie determines if the trie should be collapsed based on memory usage and accessed keys
 func (cm *collapseManager) ShouldCollapseTrie() bool {
+	// we collapse only if we are over the memory limit and there are not enough accessed keys to
+	// free memory by collapsing only leaves
 	if uint64(cm.sizeInMemory) > cm.maxSizeInMem && len(cm.accessedKeys) < minNumLeavesToCollapseTrie {
 		return true
 	}
@@ -87,13 +96,17 @@ func (cm *collapseManager) ShouldCollapseTrie() bool {
 	return false
 }
 
+// GetCollapsibleLeaves returns a list of keys that can be collapsed to free memory
 func (cm *collapseManager) GetCollapsibleLeaves() ([][]byte, error) {
 	if uint64(cm.sizeInMemory) < cm.maxSizeInMem {
 		return nil, nil
 	}
 
 	evictedKeys := make([][]byte, 0)
-	for cm.sizeInMemory > int(cm.maxSizeInMem) && cm.orderAccess.Len() > 0 {
+	for i := 0; i < numLeavesToCollapseSingleRun; i++ {
+		if cm.orderAccess.Len() == 0 {
+			break
+		}
 		entry := cm.orderAccess.Back()
 		if entry == nil {
 			return nil, fmt.Errorf("unexpected nil entry in collapseManager orderAccess list")
@@ -111,14 +124,22 @@ func (cm *collapseManager) GetCollapsibleLeaves() ([][]byte, error) {
 	return evictedKeys, nil
 }
 
+// CloneWithoutState creates a new collapse manager with the same configuration but without the current state
 func (cm *collapseManager) CloneWithoutState() common.TrieCollapseManager {
-	return &collapseManager{}
+	return &collapseManager{
+		accessedKeys: make(map[string]*list.Element),
+		orderAccess:  list.New(),
+		sizeInMemory: 0,
+		maxSizeInMem: cm.maxSizeInMem,
+	}
 }
 
+// IsCollapseEnabled returns true
 func (cm *collapseManager) IsCollapseEnabled() bool {
 	return true
 }
 
+// IsInterfaceNil returns true if there is no value under the interface
 func (cm *collapseManager) IsInterfaceNil() bool {
 	return cm == nil
 }
