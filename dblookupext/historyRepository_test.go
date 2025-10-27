@@ -2,6 +2,7 @@ package dblookupext
 
 import (
 	"errors"
+	"math/big"
 	"sync"
 	"testing"
 
@@ -905,6 +906,7 @@ func TestRecordHeaderV3(t *testing.T) {
 		}
 
 		cachedIntermediateTxsMap := map[block.Type]map[string]data.TransactionHandler{}
+		// add the header hash
 		args.DataPool.PostProcessTransactions().Put(executionResultHeaderHash, cachedIntermediateTxsMap, 1)
 
 		body := &block.Body{}
@@ -938,6 +940,7 @@ func TestRecordHeaderV3(t *testing.T) {
 		}
 
 		cachedIntermediateTxsMap := map[block.Type]map[string]data.TransactionHandler{}
+		// add the header hash
 		args.DataPool.PostProcessTransactions().Put(executionResultHeaderHash, cachedIntermediateTxsMap, 1)
 
 		expectedLogs := []*data.LogData{
@@ -947,6 +950,7 @@ func TestRecordHeaderV3(t *testing.T) {
 			},
 		}
 		logsKey := common.PrepareLogEventsKey(executionResultHeaderHash)
+		// add the logs
 		args.DataPool.PostProcessTransactions().Put(logsKey, expectedLogs, 1)
 
 		body := &block.Body{}
@@ -982,9 +986,11 @@ func TestRecordHeaderV3(t *testing.T) {
 		}
 
 		mbBytes, _ := repo.marshalizer.Marshal(mb)
+		// add the mini blocks
 		args.DataPool.ExecutedMiniBlocks().Put(mbHash1, mbBytes, 1)
 
 		cachedIntermediateTxsMap := map[block.Type]map[string]data.TransactionHandler{}
+		// add the header hash
 		args.DataPool.PostProcessTransactions().Put(executionResultHeaderHash, cachedIntermediateTxsMap, 1)
 
 		expectedLogs := []*data.LogData{
@@ -994,6 +1000,7 @@ func TestRecordHeaderV3(t *testing.T) {
 			},
 		}
 		logsKey := common.PrepareLogEventsKey(executionResultHeaderHash)
+		// add the logs
 		args.DataPool.PostProcessTransactions().Put(logsKey, expectedLogs, 1)
 
 		body := &block.Body{}
@@ -1023,6 +1030,116 @@ func TestRecordHeaderV3(t *testing.T) {
 
 		err = repo.RecordBlock(headerHash, header, body, nil, nil, nil, nil)
 		require.ErrorContains(t, err, expectedError.Error())
+	})
+}
+
+func TestHistoryRepository_GetResultsHashesByTxHashShouldError(t *testing.T) {
+	t.Parallel()
+
+	t.Run("should error ErrNotFoundInStorage", func(t *testing.T) {
+		t.Parallel()
+
+		args := createMockHistoryRepoArgs(42)
+
+		repo, err := NewHistoryRepository(args)
+		require.NoError(t, err)
+
+		results, err := repo.GetResultsHashesByTxHash([]byte("txHash1"), 42)
+		require.Nil(t, results)
+		require.ErrorContains(t, err, ErrNotFoundInStorage.Error())
+	})
+}
+
+func TestHistoryRepository_RevertBlockShouldError(t *testing.T) {
+	t.Parallel()
+
+	t.Run("should return nil because of nil body", func(t *testing.T) {
+		t.Parallel()
+
+		args := createMockHistoryRepoArgs(42)
+		repo, err := NewHistoryRepository(args)
+		require.NoError(t, err)
+
+		err = repo.RevertBlock(&block.Header{}, nil)
+		require.NoError(t, err)
+	})
+
+	t.Run("should return nil because of nil header", func(t *testing.T) {
+		t.Parallel()
+
+		args := createMockHistoryRepoArgs(42)
+		repo, err := NewHistoryRepository(args)
+		require.NoError(t, err)
+
+		err = repo.RevertBlock(nil, &block.Body{})
+		require.NoError(t, err)
+	})
+
+	t.Run("should error because of unmarshal", func(t *testing.T) {
+		t.Parallel()
+
+		sp, _ := esdtSupply.NewSuppliesProcessor(&mock.MarshalizerMock{
+			Fail: true,
+		}, &storageStubs.StorerStub{
+			GetCalled: func(key []byte) ([]byte, error) {
+				return nil, storage.ErrKeyNotFound
+			},
+		}, &storageStubs.StorerStub{})
+
+		args := createMockHistoryRepoArgs(42)
+		args.ESDTSuppliesHandler = sp
+
+		repo, err := NewHistoryRepository(args)
+		require.NoError(t, err)
+
+		err = repo.RevertBlock(&block.Header{}, &block.Body{
+			MiniBlocks: []*block.MiniBlock{
+				{
+					TxHashes: [][]byte{[]byte("txHash1")},
+				},
+			},
+		})
+		require.Equal(t, mock.ErrMockMarshalizer, err)
+	})
+}
+
+func TestHistoryRepository_GetESDTSupply(t *testing.T) {
+	t.Parallel()
+
+	t.Run("should return error", func(t *testing.T) {
+		t.Parallel()
+
+		expectedError := errors.New("expected error")
+
+		args := createMockHistoryRepoArgs(42)
+		sp, _ := esdtSupply.NewSuppliesProcessor(&mock.MarshalizerMock{}, &storageStubs.StorerStub{
+			GetCalled: func(key []byte) ([]byte, error) {
+				return nil, expectedError
+			},
+		}, &storageStubs.StorerStub{})
+
+		args.ESDTSuppliesHandler = sp
+		repo, err := NewHistoryRepository(args)
+		require.Nil(t, err)
+
+		res, err := repo.GetESDTSupply("token1")
+		require.Nil(t, res)
+		require.Equal(t, expectedError, err)
+	})
+
+	t.Run("should return SupplyESDTZero because of ErrKeyNotFound", func(t *testing.T) {
+		t.Parallel()
+
+		args := createMockHistoryRepoArgs(42)
+		repo, err := NewHistoryRepository(args)
+		require.Nil(t, err)
+
+		res, err := repo.GetESDTSupply("token1")
+		require.Nil(t, err)
+
+		require.Equal(t, big.NewInt(0), res.Supply)
+		require.Equal(t, big.NewInt(0), res.Burned)
+		require.Equal(t, big.NewInt(0), res.Minted)
 	})
 }
 
