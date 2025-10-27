@@ -3,6 +3,9 @@ package mock
 import (
 	"context"
 
+	"github.com/multiversx/mx-chain-core-go/data"
+	"github.com/multiversx/mx-chain-core-go/data/smartContractResult"
+
 	"github.com/multiversx/mx-chain-core-go/data/alteredAccount"
 	"github.com/multiversx/mx-chain-core-go/data/api"
 	"github.com/multiversx/mx-chain-core-go/data/transaction"
@@ -43,6 +46,8 @@ type ApiResolverStub struct {
 	GetTransactionsPoolForSenderCalled          func(sender, fields string) (*common.TransactionsPoolForSenderApiResponse, error)
 	GetLastPoolNonceForSenderCalled             func(sender string) (uint64, error)
 	GetTransactionsPoolNonceGapsForSenderCalled func(sender string, senderAccountNonce uint64) (*common.TransactionsPoolNonceGapsForSenderApiResponse, error)
+	GetSelectedTransactionsCalled               func(selectionOptions common.TxSelectionOptionsAPI, blockchain data.ChainHandler, accountsAdapter state.AccountsAdapter) (*common.TransactionsSelectionSimulationResult, error)
+	GetVirtualNonceCalled                       func(address string) (*common.VirtualNonceOfAccountResponse, error)
 	GetGasConfigsCalled                         func() map[string]map[string]uint64
 	GetManagedKeysCountCalled                   func() int
 	GetManagedKeysCalled                        func() []string
@@ -51,12 +56,31 @@ type ApiResolverStub struct {
 	GetWaitingManagedKeysCalled                 func() ([]string, error)
 	GetWaitingEpochsLeftForPublicKeyCalled      func(publicKey string) (uint32, error)
 	GetSCRsByTxHashCalled                       func(txHash string, scrHash string) ([]*transaction.ApiSmartContractResult, error)
+	SimulateSCRExecutionCostCalled              func(scr *smartContractResult.SmartContractResult) (*transaction.CostResponse, error)
+}
+
+// SimulateSCRExecutionCost -
+func (ars *ApiResolverStub) SimulateSCRExecutionCost(scr *smartContractResult.SmartContractResult) (*transaction.CostResponse, error) {
+	if ars.SimulateSCRExecutionCostCalled != nil {
+		return ars.SimulateSCRExecutionCostCalled(scr)
+	}
+
+	return nil, nil
 }
 
 // GetSCRsByTxHash -
 func (ars *ApiResolverStub) GetSCRsByTxHash(txHash string, scrHash string) ([]*transaction.ApiSmartContractResult, error) {
 	if ars.GetSCRsByTxHashCalled != nil {
 		return ars.GetSCRsByTxHashCalled(txHash, scrHash)
+	}
+
+	return nil, nil
+}
+
+// GetVirtualNonce -
+func (ars *ApiResolverStub) GetVirtualNonce(address string) (*common.VirtualNonceOfAccountResponse, error) {
+	if ars.GetVirtualNonceCalled != nil {
+		return ars.GetVirtualNonceCalled(address)
 	}
 
 	return nil, nil
@@ -232,6 +256,15 @@ func (ars *ApiResolverStub) GetLastPoolNonceForSender(sender string) (uint64, er
 func (ars *ApiResolverStub) GetTransactionsPoolNonceGapsForSender(sender string, senderAccountNonce uint64) (*common.TransactionsPoolNonceGapsForSenderApiResponse, error) {
 	if ars.GetTransactionsPoolNonceGapsForSenderCalled != nil {
 		return ars.GetTransactionsPoolNonceGapsForSenderCalled(sender, senderAccountNonce)
+	}
+
+	return nil, nil
+}
+
+// GetSelectedTransactions -
+func (ars *ApiResolverStub) GetSelectedTransactions(selectionOptions common.TxSelectionOptionsAPI, blockchain data.ChainHandler, accountsAdapter state.AccountsAdapter) (*common.TransactionsSelectionSimulationResult, error) {
+	if ars.GetSelectedTransactionsCalled != nil {
+		return ars.GetSelectedTransactionsCalled(selectionOptions, blockchain, accountsAdapter)
 	}
 
 	return nil, nil

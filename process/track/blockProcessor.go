@@ -28,8 +28,10 @@ type blockProcessor struct {
 	selfNotarizedHeadersNotifier          blockNotifierHandler
 	finalMetachainHeadersNotifier         blockNotifierHandler
 	roundHandler                          process.RoundHandler
+	processConfigsHandler                 common.ProcessConfigsHandler
 
 	enableEpochsHandler common.EnableEpochsHandler
+	enableRoundsHandler common.EnableRoundsHandler
 	proofsPool          process.ProofsPool
 	marshaller          marshal.Marshalizer
 	hasher              hashing.Hasher
@@ -58,7 +60,9 @@ func NewBlockProcessor(arguments ArgBlockProcessor) (*blockProcessor, error) {
 		selfNotarizedHeadersNotifier:          arguments.SelfNotarizedHeadersNotifier,
 		finalMetachainHeadersNotifier:         arguments.FinalMetachainHeadersNotifier,
 		roundHandler:                          arguments.RoundHandler,
+		processConfigsHandler:                 arguments.ProcessConfigsHandler,
 		enableEpochsHandler:                   arguments.EnableEpochsHandler,
+		enableRoundsHandler:                   arguments.EnableRoundsHandler,
 		proofsPool:                            arguments.ProofsPool,
 		headersPool:                           arguments.HeadersPool,
 		marshaller:                            arguments.Marshaller,
@@ -454,7 +458,7 @@ func (bp *blockProcessor) requestHeadersIfNothingNewIsReceived(
 		return
 	}
 
-	shouldRequestHeaders := bp.roundHandler.Index()-int64(highestRoundInReceivedHeaders) > process.MaxRoundsWithoutNewBlockReceived &&
+	shouldRequestHeaders := bp.roundHandler.Index()-int64(highestRoundInReceivedHeaders) > bp.getMaxRoundsWithoutBlockReceived(highestRoundInReceivedHeaders) &&
 		int64(latestValidHeader.GetNonce())-int64(lastNotarizedHeaderNonce) <= process.MaxHeadersToRequestInAdvance
 	if !shouldRequestHeaders {
 		return
@@ -476,6 +480,10 @@ func (bp *blockProcessor) requestHeadersIfNothingNewIsReceived(
 		bp.headersPool.RemoveHeaderByHash(headerHash)
 	}
 	bp.requestHeaders(shardID, fromNonce)
+}
+
+func (bp *blockProcessor) getMaxRoundsWithoutBlockReceived(round uint64) int64 {
+	return int64(bp.processConfigsHandler.GetMaxRoundsWithoutNewBlockReceivedByRound(round))
 }
 
 func (bp *blockProcessor) requestHeaders(shardID uint32, fromNonce uint64) {
@@ -550,6 +558,9 @@ func checkBlockProcessorNilParameters(arguments ArgBlockProcessor) error {
 	}
 	if check.IfNil(arguments.HeadersPool) {
 		return process.ErrNilHeadersDataPool
+	}
+	if check.IfNil(arguments.ProcessConfigsHandler) {
+		return process.ErrNilProcessConfigsHandler
 	}
 
 	return nil

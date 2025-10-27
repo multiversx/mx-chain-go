@@ -21,21 +21,23 @@ import (
 
 // PoolsHolderMock -
 type PoolsHolderMock struct {
-	transactions           dataRetriever.ShardedDataCacherNotifier
-	unsignedTransactions   dataRetriever.ShardedDataCacherNotifier
-	rewardTransactions     dataRetriever.ShardedDataCacherNotifier
-	headers                dataRetriever.HeadersPool
-	miniBlocks             storage.Cacher
-	peerChangesBlocks      storage.Cacher
-	trieNodes              storage.Cacher
-	trieNodesChunks        storage.Cacher
-	smartContracts         storage.Cacher
-	currBlockTxs           dataRetriever.TransactionCacher
-	currEpochValidatorInfo dataRetriever.ValidatorInfoCacher
-	peerAuthentications    storage.Cacher
-	heartbeats             storage.Cacher
-	validatorsInfo         dataRetriever.ShardedDataCacherNotifier
-	proofs                 dataRetriever.ProofsPool
+	transactions            dataRetriever.ShardedDataCacherNotifier
+	unsignedTransactions    dataRetriever.ShardedDataCacherNotifier
+	rewardTransactions      dataRetriever.ShardedDataCacherNotifier
+	headers                 dataRetriever.HeadersPool
+	miniBlocks              storage.Cacher
+	peerChangesBlocks       storage.Cacher
+	trieNodes               storage.Cacher
+	trieNodesChunks         storage.Cacher
+	smartContracts          storage.Cacher
+	currBlockTxs            dataRetriever.TransactionCacher
+	currEpochValidatorInfo  dataRetriever.ValidatorInfoCacher
+	peerAuthentications     storage.Cacher
+	heartbeats              storage.Cacher
+	validatorsInfo          dataRetriever.ShardedDataCacherNotifier
+	proofs                  dataRetriever.ProofsPool
+	executedMiniBlocks      storage.Cacher
+	postProcessTransactions storage.Cacher
 }
 
 // NewPoolsHolderMock -
@@ -55,6 +57,10 @@ func NewPoolsHolderMock() *PoolsHolderMock {
 			TxGasHandler:   txcachemocks.NewTxGasHandlerMock(),
 			Marshalizer:    &marshal.GogoProtoMarshalizer{},
 			NumberOfShards: 1,
+			TxCacheBoundsConfig: config.TxCacheBoundsConfig{
+				MaxNumBytesPerSenderUpperBound: 33_554_432,
+				MaxTrackedBlocks:               100,
+			},
 		},
 	)
 	panicIfError("NewPoolsHolderMock", err)
@@ -111,6 +117,12 @@ func NewPoolsHolderMock() *PoolsHolderMock {
 	panicIfError("NewPoolsHolderMock", err)
 
 	holder.proofs = proofscache.NewProofsPool(3, 100)
+
+	holder.executedMiniBlocks, err = storageunit.NewCache(storageunit.CacheConfig{Type: storageunit.LRUCache, Capacity: 10000, Shards: 1, SizeInBytes: 0})
+	panicIfError("NewPoolsHolderMock", err)
+
+	holder.postProcessTransactions, err = storageunit.NewCache(storageunit.CacheConfig{Type: storageunit.LRUCache, Capacity: 10000, Shards: 1, SizeInBytes: 0})
+	panicIfError("NewPoolsHolderMock", err)
 
 	return holder
 }
@@ -203,6 +215,21 @@ func (holder *PoolsHolderMock) ValidatorsInfo() dataRetriever.ShardedDataCacherN
 // Proofs -
 func (holder *PoolsHolderMock) Proofs() dataRetriever.ProofsPool {
 	return holder.proofs
+}
+
+// ExecutedMiniBlocks -
+func (holder *PoolsHolderMock) ExecutedMiniBlocks() storage.Cacher {
+	return holder.executedMiniBlocks
+}
+
+// PostProcessTransactions -
+func (holder *PoolsHolderMock) PostProcessTransactions() storage.Cacher {
+	return holder.postProcessTransactions
+}
+
+// SetProofsPool -
+func (holder *PoolsHolderMock) SetProofsPool(proofsPool dataRetriever.ProofsPool) {
+	holder.proofs = proofsPool
 }
 
 // Close -

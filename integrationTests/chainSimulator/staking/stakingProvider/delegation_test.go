@@ -73,7 +73,6 @@ func TestChainSimulator_MakeNewContractFromValidatorData(t *testing.T) {
 			TempDir:                  t.TempDir(),
 			PathToInitialConfig:      defaultPathToInitialConfig,
 			NumOfShards:              3,
-			GenesisTimestamp:         time.Now().Unix(),
 			RoundDurationInMillis:    roundDurationInMillis,
 			RoundsPerEpoch:           roundsPerEpoch,
 			ApiInterface:             api.NewNoApiInterface(),
@@ -96,6 +95,7 @@ func TestChainSimulator_MakeNewContractFromValidatorData(t *testing.T) {
 				cfg.EpochConfig.EnableEpochs.MaxNodesChangeEnableEpoch[2].EpochEnable = 102
 
 				cfg.EpochConfig.EnableEpochs.AndromedaEnableEpoch = 1
+				cfg.EpochConfig.EnableEpochs.SupernovaEnableEpoch = 100
 			},
 		})
 		require.Nil(t, err)
@@ -119,7 +119,6 @@ func TestChainSimulator_MakeNewContractFromValidatorData(t *testing.T) {
 			TempDir:                  t.TempDir(),
 			PathToInitialConfig:      defaultPathToInitialConfig,
 			NumOfShards:              3,
-			GenesisTimestamp:         time.Now().Unix(),
 			RoundDurationInMillis:    roundDurationInMillis,
 			RoundsPerEpoch:           roundsPerEpoch,
 			ApiInterface:             api.NewNoApiInterface(),
@@ -143,6 +142,7 @@ func TestChainSimulator_MakeNewContractFromValidatorData(t *testing.T) {
 				cfg.EpochConfig.EnableEpochs.MaxNodesChangeEnableEpoch[2].EpochEnable = 102
 
 				cfg.EpochConfig.EnableEpochs.AndromedaEnableEpoch = 1
+				cfg.EpochConfig.EnableEpochs.SupernovaEnableEpoch = 100
 			},
 		})
 		require.Nil(t, err)
@@ -172,7 +172,6 @@ func TestChainSimulator_MakeNewContractFromValidatorData(t *testing.T) {
 			TempDir:                  t.TempDir(),
 			PathToInitialConfig:      defaultPathToInitialConfig,
 			NumOfShards:              3,
-			GenesisTimestamp:         time.Now().Unix(),
 			RoundDurationInMillis:    roundDurationInMillis,
 			RoundsPerEpoch:           roundsPerEpoch,
 			ApiInterface:             api.NewNoApiInterface(),
@@ -186,6 +185,8 @@ func TestChainSimulator_MakeNewContractFromValidatorData(t *testing.T) {
 				cfg.EpochConfig.EnableEpochs.StakingV4Step3EnableEpoch = 4
 
 				cfg.EpochConfig.EnableEpochs.MaxNodesChangeEnableEpoch[2].EpochEnable = 4
+
+				cfg.EpochConfig.EnableEpochs.SupernovaEnableEpoch = 100
 			},
 		})
 		require.Nil(t, err)
@@ -209,7 +210,6 @@ func TestChainSimulator_MakeNewContractFromValidatorData(t *testing.T) {
 			TempDir:                  t.TempDir(),
 			PathToInitialConfig:      defaultPathToInitialConfig,
 			NumOfShards:              3,
-			GenesisTimestamp:         time.Now().Unix(),
 			RoundDurationInMillis:    roundDurationInMillis,
 			RoundsPerEpoch:           roundsPerEpoch,
 			ApiInterface:             api.NewNoApiInterface(),
@@ -223,6 +223,8 @@ func TestChainSimulator_MakeNewContractFromValidatorData(t *testing.T) {
 				cfg.EpochConfig.EnableEpochs.StakingV4Step3EnableEpoch = 4
 
 				cfg.EpochConfig.EnableEpochs.MaxNodesChangeEnableEpoch[2].EpochEnable = 4
+
+				cfg.EpochConfig.EnableEpochs.SupernovaEnableEpoch = 100
 			},
 		})
 		require.Nil(t, err)
@@ -246,7 +248,6 @@ func TestChainSimulator_MakeNewContractFromValidatorData(t *testing.T) {
 			TempDir:                  t.TempDir(),
 			PathToInitialConfig:      defaultPathToInitialConfig,
 			NumOfShards:              3,
-			GenesisTimestamp:         time.Now().Unix(),
 			RoundDurationInMillis:    roundDurationInMillis,
 			RoundsPerEpoch:           roundsPerEpoch,
 			ApiInterface:             api.NewNoApiInterface(),
@@ -260,6 +261,8 @@ func TestChainSimulator_MakeNewContractFromValidatorData(t *testing.T) {
 				cfg.EpochConfig.EnableEpochs.StakingV4Step3EnableEpoch = 4
 
 				cfg.EpochConfig.EnableEpochs.MaxNodesChangeEnableEpoch[2].EpochEnable = 4
+
+				cfg.EpochConfig.EnableEpochs.SupernovaEnableEpoch = 100
 			},
 		})
 		require.Nil(t, err)
@@ -498,7 +501,6 @@ func TestChainSimulator_MakeNewContractFromValidatorDataWith2StakingContracts(t 
 			TempDir:                  t.TempDir(),
 			PathToInitialConfig:      defaultPathToInitialConfig,
 			NumOfShards:              3,
-			GenesisTimestamp:         time.Now().Unix(),
 			RoundDurationInMillis:    roundDurationInMillis,
 			RoundsPerEpoch:           roundsPerEpoch,
 			ApiInterface:             api.NewNoApiInterface(),
@@ -527,7 +529,6 @@ func TestChainSimulator_MakeNewContractFromValidatorDataWith2StakingContracts(t 
 			TempDir:                  t.TempDir(),
 			PathToInitialConfig:      defaultPathToInitialConfig,
 			NumOfShards:              3,
-			GenesisTimestamp:         time.Now().Unix(),
 			RoundDurationInMillis:    roundDurationInMillis,
 			RoundsPerEpoch:           roundsPerEpoch,
 			ApiInterface:             api.NewNoApiInterface(),
@@ -541,6 +542,8 @@ func TestChainSimulator_MakeNewContractFromValidatorDataWith2StakingContracts(t 
 				cfg.EpochConfig.EnableEpochs.StakingV4Step3EnableEpoch = 4
 
 				cfg.EpochConfig.EnableEpochs.MaxNodesChangeEnableEpoch[2].EpochEnable = 4
+
+				cfg.EpochConfig.EnableEpochs.SupernovaEnableEpoch = 100
 			},
 		})
 		require.Nil(t, err)
@@ -556,7 +559,6 @@ func TestChainSimulator_MakeNewContractFromValidatorDataWith2StakingContracts(t 
 			TempDir:                  t.TempDir(),
 			PathToInitialConfig:      defaultPathToInitialConfig,
 			NumOfShards:              3,
-			GenesisTimestamp:         time.Now().Unix(),
 			RoundDurationInMillis:    roundDurationInMillis,
 			RoundsPerEpoch:           roundsPerEpoch,
 			ApiInterface:             api.NewNoApiInterface(),
@@ -570,6 +572,8 @@ func TestChainSimulator_MakeNewContractFromValidatorDataWith2StakingContracts(t 
 				cfg.EpochConfig.EnableEpochs.StakingV4Step3EnableEpoch = 4
 
 				cfg.EpochConfig.EnableEpochs.MaxNodesChangeEnableEpoch[2].EpochEnable = 4
+
+				cfg.EpochConfig.EnableEpochs.SupernovaEnableEpoch = 100
 			},
 		})
 		require.Nil(t, err)
@@ -585,7 +589,6 @@ func TestChainSimulator_MakeNewContractFromValidatorDataWith2StakingContracts(t 
 			TempDir:                  t.TempDir(),
 			PathToInitialConfig:      defaultPathToInitialConfig,
 			NumOfShards:              3,
-			GenesisTimestamp:         time.Now().Unix(),
 			RoundDurationInMillis:    roundDurationInMillis,
 			RoundsPerEpoch:           roundsPerEpoch,
 			ApiInterface:             api.NewNoApiInterface(),
@@ -599,6 +602,8 @@ func TestChainSimulator_MakeNewContractFromValidatorDataWith2StakingContracts(t 
 				cfg.EpochConfig.EnableEpochs.StakingV4Step3EnableEpoch = 4
 
 				cfg.EpochConfig.EnableEpochs.MaxNodesChangeEnableEpoch[2].EpochEnable = 4
+
+				cfg.EpochConfig.EnableEpochs.SupernovaEnableEpoch = 100
 			},
 		})
 		require.Nil(t, err)
@@ -726,7 +731,6 @@ func TestChainSimulatorMakeNewContractFromValidatorDataWith1StakingContractUnsta
 			TempDir:                  t.TempDir(),
 			PathToInitialConfig:      defaultPathToInitialConfig,
 			NumOfShards:              3,
-			GenesisTimestamp:         time.Now().Unix(),
 			RoundDurationInMillis:    roundDurationInMillis,
 			RoundsPerEpoch:           roundsPerEpoch,
 			ApiInterface:             api.NewNoApiInterface(),
@@ -757,7 +761,6 @@ func TestChainSimulatorMakeNewContractFromValidatorDataWith1StakingContractUnsta
 			TempDir:                  t.TempDir(),
 			PathToInitialConfig:      defaultPathToInitialConfig,
 			NumOfShards:              3,
-			GenesisTimestamp:         time.Now().Unix(),
 			RoundDurationInMillis:    roundDurationInMillis,
 			RoundsPerEpoch:           roundsPerEpoch,
 			ApiInterface:             api.NewNoApiInterface(),
@@ -771,6 +774,7 @@ func TestChainSimulatorMakeNewContractFromValidatorDataWith1StakingContractUnsta
 				cfg.EpochConfig.EnableEpochs.StakingV4Step2EnableEpoch = 3
 				cfg.EpochConfig.EnableEpochs.StakingV4Step3EnableEpoch = 4
 				cfg.EpochConfig.EnableEpochs.AlwaysMergeContextsInEEIEnableEpoch = 1
+				cfg.EpochConfig.EnableEpochs.SupernovaEnableEpoch = 100
 
 				cfg.EpochConfig.EnableEpochs.MaxNodesChangeEnableEpoch[2].EpochEnable = 4
 				cfg.SystemSCConfig.StakingSystemSCConfig.NodeLimitPercentage = 1
@@ -789,7 +793,6 @@ func TestChainSimulatorMakeNewContractFromValidatorDataWith1StakingContractUnsta
 			TempDir:                  t.TempDir(),
 			PathToInitialConfig:      defaultPathToInitialConfig,
 			NumOfShards:              3,
-			GenesisTimestamp:         time.Now().Unix(),
 			RoundDurationInMillis:    roundDurationInMillis,
 			RoundsPerEpoch:           roundsPerEpoch,
 			ApiInterface:             api.NewNoApiInterface(),
@@ -803,6 +806,7 @@ func TestChainSimulatorMakeNewContractFromValidatorDataWith1StakingContractUnsta
 				cfg.EpochConfig.EnableEpochs.StakingV4Step2EnableEpoch = 3
 				cfg.EpochConfig.EnableEpochs.StakingV4Step3EnableEpoch = 4
 				cfg.EpochConfig.EnableEpochs.AlwaysMergeContextsInEEIEnableEpoch = 1
+				cfg.EpochConfig.EnableEpochs.SupernovaEnableEpoch = 100
 
 				cfg.EpochConfig.EnableEpochs.MaxNodesChangeEnableEpoch[2].EpochEnable = 4
 				cfg.SystemSCConfig.StakingSystemSCConfig.NodeLimitPercentage = 1
@@ -821,7 +825,6 @@ func TestChainSimulatorMakeNewContractFromValidatorDataWith1StakingContractUnsta
 			TempDir:                  t.TempDir(),
 			PathToInitialConfig:      defaultPathToInitialConfig,
 			NumOfShards:              3,
-			GenesisTimestamp:         time.Now().Unix(),
 			RoundDurationInMillis:    roundDurationInMillis,
 			RoundsPerEpoch:           roundsPerEpoch,
 			ApiInterface:             api.NewNoApiInterface(),
@@ -835,6 +838,7 @@ func TestChainSimulatorMakeNewContractFromValidatorDataWith1StakingContractUnsta
 				cfg.EpochConfig.EnableEpochs.StakingV4Step2EnableEpoch = 3
 				cfg.EpochConfig.EnableEpochs.StakingV4Step3EnableEpoch = 4
 				cfg.EpochConfig.EnableEpochs.AlwaysMergeContextsInEEIEnableEpoch = 1
+				cfg.EpochConfig.EnableEpochs.SupernovaEnableEpoch = 100
 
 				cfg.EpochConfig.EnableEpochs.MaxNodesChangeEnableEpoch[2].EpochEnable = 4
 				cfg.SystemSCConfig.StakingSystemSCConfig.NodeLimitPercentage = 1
@@ -1049,7 +1053,6 @@ func TestChainSimulator_CreateNewDelegationContract(t *testing.T) {
 			TempDir:                  t.TempDir(),
 			PathToInitialConfig:      defaultPathToInitialConfig,
 			NumOfShards:              3,
-			GenesisTimestamp:         time.Now().Unix(),
 			RoundDurationInMillis:    roundDurationInMillis,
 			RoundsPerEpoch:           roundsPerEpoch,
 			ApiInterface:             api.NewNoApiInterface(),
@@ -1088,7 +1091,6 @@ func TestChainSimulator_CreateNewDelegationContract(t *testing.T) {
 			TempDir:                  t.TempDir(),
 			PathToInitialConfig:      defaultPathToInitialConfig,
 			NumOfShards:              3,
-			GenesisTimestamp:         time.Now().Unix(),
 			RoundDurationInMillis:    roundDurationInMillis,
 			RoundsPerEpoch:           roundsPerEpoch,
 			ApiInterface:             api.NewNoApiInterface(),
@@ -1100,6 +1102,7 @@ func TestChainSimulator_CreateNewDelegationContract(t *testing.T) {
 				cfg.EpochConfig.EnableEpochs.StakingV4Step1EnableEpoch = 2
 				cfg.EpochConfig.EnableEpochs.StakingV4Step2EnableEpoch = 3
 				cfg.EpochConfig.EnableEpochs.StakingV4Step3EnableEpoch = 4
+				cfg.EpochConfig.EnableEpochs.SupernovaEnableEpoch = 100
 
 				cfg.EpochConfig.EnableEpochs.MaxNodesChangeEnableEpoch[2].EpochEnable = 4
 			},
@@ -1127,7 +1130,6 @@ func TestChainSimulator_CreateNewDelegationContract(t *testing.T) {
 			TempDir:                  t.TempDir(),
 			PathToInitialConfig:      defaultPathToInitialConfig,
 			NumOfShards:              3,
-			GenesisTimestamp:         time.Now().Unix(),
 			RoundDurationInMillis:    roundDurationInMillis,
 			RoundsPerEpoch:           roundsPerEpoch,
 			ApiInterface:             api.NewNoApiInterface(),
@@ -1139,6 +1141,7 @@ func TestChainSimulator_CreateNewDelegationContract(t *testing.T) {
 				cfg.EpochConfig.EnableEpochs.StakingV4Step1EnableEpoch = 2
 				cfg.EpochConfig.EnableEpochs.StakingV4Step2EnableEpoch = 3
 				cfg.EpochConfig.EnableEpochs.StakingV4Step3EnableEpoch = 4
+				cfg.EpochConfig.EnableEpochs.SupernovaEnableEpoch = 100
 
 				cfg.EpochConfig.EnableEpochs.MaxNodesChangeEnableEpoch[2].EpochEnable = 4
 			},
@@ -1166,7 +1169,6 @@ func TestChainSimulator_CreateNewDelegationContract(t *testing.T) {
 			TempDir:                  t.TempDir(),
 			PathToInitialConfig:      defaultPathToInitialConfig,
 			NumOfShards:              3,
-			GenesisTimestamp:         time.Now().Unix(),
 			RoundDurationInMillis:    roundDurationInMillis,
 			RoundsPerEpoch:           roundsPerEpoch,
 			ApiInterface:             api.NewNoApiInterface(),
@@ -1178,6 +1180,7 @@ func TestChainSimulator_CreateNewDelegationContract(t *testing.T) {
 				cfg.EpochConfig.EnableEpochs.StakingV4Step1EnableEpoch = 2
 				cfg.EpochConfig.EnableEpochs.StakingV4Step2EnableEpoch = 3
 				cfg.EpochConfig.EnableEpochs.StakingV4Step3EnableEpoch = 4
+				cfg.EpochConfig.EnableEpochs.SupernovaEnableEpoch = 100
 
 				cfg.EpochConfig.EnableEpochs.MaxNodesChangeEnableEpoch[2].EpochEnable = 4
 			},
@@ -1420,7 +1423,6 @@ func TestChainSimulator_MaxDelegationCap(t *testing.T) {
 			TempDir:                  t.TempDir(),
 			PathToInitialConfig:      defaultPathToInitialConfig,
 			NumOfShards:              3,
-			GenesisTimestamp:         time.Now().Unix(),
 			RoundDurationInMillis:    roundDurationInMillis,
 			RoundsPerEpoch:           roundsPerEpoch,
 			ApiInterface:             api.NewNoApiInterface(),
@@ -1461,7 +1463,6 @@ func TestChainSimulator_MaxDelegationCap(t *testing.T) {
 			TempDir:                  t.TempDir(),
 			PathToInitialConfig:      defaultPathToInitialConfig,
 			NumOfShards:              3,
-			GenesisTimestamp:         time.Now().Unix(),
 			RoundDurationInMillis:    roundDurationInMillis,
 			RoundsPerEpoch:           roundsPerEpoch,
 			ApiInterface:             api.NewNoApiInterface(),
@@ -1473,6 +1474,7 @@ func TestChainSimulator_MaxDelegationCap(t *testing.T) {
 				cfg.EpochConfig.EnableEpochs.StakingV4Step1EnableEpoch = 2
 				cfg.EpochConfig.EnableEpochs.StakingV4Step2EnableEpoch = 3
 				cfg.EpochConfig.EnableEpochs.StakingV4Step3EnableEpoch = 4
+				cfg.EpochConfig.EnableEpochs.SupernovaEnableEpoch = 100
 
 				cfg.EpochConfig.EnableEpochs.MaxNodesChangeEnableEpoch[2].EpochEnable = 4
 			},
@@ -1502,7 +1504,6 @@ func TestChainSimulator_MaxDelegationCap(t *testing.T) {
 			TempDir:                  t.TempDir(),
 			PathToInitialConfig:      defaultPathToInitialConfig,
 			NumOfShards:              3,
-			GenesisTimestamp:         time.Now().Unix(),
 			RoundDurationInMillis:    roundDurationInMillis,
 			RoundsPerEpoch:           roundsPerEpoch,
 			ApiInterface:             api.NewNoApiInterface(),
@@ -1514,6 +1515,7 @@ func TestChainSimulator_MaxDelegationCap(t *testing.T) {
 				cfg.EpochConfig.EnableEpochs.StakingV4Step1EnableEpoch = 2
 				cfg.EpochConfig.EnableEpochs.StakingV4Step2EnableEpoch = 3
 				cfg.EpochConfig.EnableEpochs.StakingV4Step3EnableEpoch = 4
+				cfg.EpochConfig.EnableEpochs.SupernovaEnableEpoch = 100
 
 				cfg.EpochConfig.EnableEpochs.MaxNodesChangeEnableEpoch[2].EpochEnable = 4
 			},
@@ -1543,7 +1545,6 @@ func TestChainSimulator_MaxDelegationCap(t *testing.T) {
 			TempDir:                  t.TempDir(),
 			PathToInitialConfig:      defaultPathToInitialConfig,
 			NumOfShards:              3,
-			GenesisTimestamp:         time.Now().Unix(),
 			RoundDurationInMillis:    roundDurationInMillis,
 			RoundsPerEpoch:           roundsPerEpoch,
 			ApiInterface:             api.NewNoApiInterface(),
@@ -1833,7 +1834,6 @@ func TestChainSimulator_MergeDelegation(t *testing.T) {
 			TempDir:                  t.TempDir(),
 			PathToInitialConfig:      defaultPathToInitialConfig,
 			NumOfShards:              3,
-			GenesisTimestamp:         time.Now().Unix(),
 			RoundDurationInMillis:    roundDurationInMillis,
 			RoundsPerEpoch:           roundsPerEpoch,
 			ApiInterface:             api.NewNoApiInterface(),
@@ -1864,7 +1864,6 @@ func TestChainSimulator_MergeDelegation(t *testing.T) {
 			TempDir:                  t.TempDir(),
 			PathToInitialConfig:      defaultPathToInitialConfig,
 			NumOfShards:              3,
-			GenesisTimestamp:         time.Now().Unix(),
 			RoundDurationInMillis:    roundDurationInMillis,
 			RoundsPerEpoch:           roundsPerEpoch,
 			ApiInterface:             api.NewNoApiInterface(),
@@ -1896,7 +1895,6 @@ func TestChainSimulator_MergeDelegation(t *testing.T) {
 			TempDir:                  t.TempDir(),
 			PathToInitialConfig:      defaultPathToInitialConfig,
 			NumOfShards:              3,
-			GenesisTimestamp:         time.Now().Unix(),
 			RoundDurationInMillis:    roundDurationInMillis,
 			RoundsPerEpoch:           roundsPerEpoch,
 			ApiInterface:             api.NewNoApiInterface(),
@@ -1928,7 +1926,6 @@ func TestChainSimulator_MergeDelegation(t *testing.T) {
 			TempDir:                  t.TempDir(),
 			PathToInitialConfig:      defaultPathToInitialConfig,
 			NumOfShards:              3,
-			GenesisTimestamp:         time.Now().Unix(),
 			RoundDurationInMillis:    roundDurationInMillis,
 			RoundsPerEpoch:           roundsPerEpoch,
 			ApiInterface:             api.NewNoApiInterface(),
@@ -2087,7 +2084,7 @@ func TestChainSimulator_CreateDelegationContractAndWithdraw(t *testing.T) {
 		Value:    30,
 	}
 
-	//Staking V4 activated
+	// Staking V4 activated
 	cs, err := chainSimulator.NewChainSimulator(chainSimulator.ArgsChainSimulator{
 		BypassTxSignatureCheck:   true,
 		TempDir:                  t.TempDir(),

@@ -9,8 +9,10 @@ import (
 
 	"github.com/multiversx/mx-chain-core-go/core/check"
 	"github.com/multiversx/mx-chain-core-go/data"
-	"github.com/multiversx/mx-chain-core-go/data/block"
 	dataBlock "github.com/multiversx/mx-chain-core-go/data/block"
+	logger "github.com/multiversx/mx-chain-logger-go"
+	"github.com/multiversx/mx-chain-vm-common-go/parsers"
+
 	"github.com/multiversx/mx-chain-go/common"
 	disabledCommon "github.com/multiversx/mx-chain-go/common/disabled"
 	"github.com/multiversx/mx-chain-go/common/enablers"
@@ -23,6 +25,7 @@ import (
 	"github.com/multiversx/mx-chain-go/genesis/process/disabled"
 	"github.com/multiversx/mx-chain-go/genesis/process/intermediate"
 	"github.com/multiversx/mx-chain-go/process"
+	"github.com/multiversx/mx-chain-go/process/block"
 	"github.com/multiversx/mx-chain-go/process/block/preprocess"
 	"github.com/multiversx/mx-chain-go/process/coordinator"
 	"github.com/multiversx/mx-chain-go/process/factory/shard"
@@ -39,11 +42,9 @@ import (
 	"github.com/multiversx/mx-chain-go/process/transaction"
 	"github.com/multiversx/mx-chain-go/state"
 	"github.com/multiversx/mx-chain-go/state/syncer"
-	"github.com/multiversx/mx-chain-go/storage/txcache"
+	"github.com/multiversx/mx-chain-go/txcache"
 	"github.com/multiversx/mx-chain-go/update"
 	hardForkProcess "github.com/multiversx/mx-chain-go/update/process"
-	logger "github.com/multiversx/mx-chain-logger-go"
-	"github.com/multiversx/mx-chain-vm-common-go/parsers"
 )
 
 const unreachableEpoch = ^uint32(0)
@@ -82,7 +83,7 @@ func createGenesisRoundConfig(providedEnableRounds config.RoundConfig) config.Ro
 // CreateShardGenesisBlock will create a shard genesis block
 func CreateShardGenesisBlock(
 	arg ArgsGenesisBlockCreator,
-	body *block.Body,
+	body *dataBlock.Body,
 	nodesListSplitter genesis.NodesListSplitter,
 	hardForkBlockProcessor update.HardForkBlockProcessor,
 ) (data.HeaderHandler, [][]byte, *genesis.IndexingData, error) {
@@ -140,7 +141,7 @@ func CreateShardGenesisBlock(
 			err, arg.ShardCoordinator.SelfId())
 	}
 
-	scrsTxs := processors.txCoordinator.GetAllCurrentUsedTxs(block.SmartContractResultBlock)
+	scrsTxs := processors.txCoordinator.GetAllCurrentUsedTxs(dataBlock.SmartContractResultBlock)
 	indexingData.ScrsTxs = scrsTxs
 
 	rootHash, err := arg.Accounts.Commit()
@@ -162,7 +163,7 @@ func CreateShardGenesisBlock(
 	)
 
 	round, nonce, epoch := getGenesisBlocksRoundNonceEpoch(arg)
-	headerHandler := arg.versionedHeaderFactory.Create(epoch)
+	headerHandler := arg.versionedHeaderFactory.Create(epoch, round)
 	err = setInitialDataInHeader(headerHandler, arg, epoch, nonce, round, rootHash)
 	if err != nil {
 		return nil, nil, nil, err
@@ -199,7 +200,7 @@ func setInitialDataInHeader(
 	setErrors = append(setErrors, shardHeaderHandler.SetNonce(nonce))
 	setErrors = append(setErrors, shardHeaderHandler.SetRound(round))
 	setErrors = append(setErrors, shardHeaderHandler.SetShardID(arg.ShardCoordinator.SelfId()))
-	setErrors = append(setErrors, shardHeaderHandler.SetBlockBodyTypeInt32(int32(block.StateBlock)))
+	setErrors = append(setErrors, shardHeaderHandler.SetBlockBodyTypeInt32(int32(dataBlock.StateBlock)))
 	setErrors = append(setErrors, shardHeaderHandler.SetPubKeysBitmap([]byte{1}))
 	setErrors = append(setErrors, shardHeaderHandler.SetSignature(rootHash))
 	setErrors = append(setErrors, shardHeaderHandler.SetRootHash(rootHash))
@@ -222,7 +223,7 @@ func setInitialDataInHeader(
 
 func createShardGenesisBlockAfterHardFork(
 	arg ArgsGenesisBlockCreator,
-	body *block.Body,
+	body *dataBlock.Body,
 	hardForkBlockProcessor update.HardForkBlockProcessor,
 ) (data.HeaderHandler, [][]byte, *genesis.IndexingData, error) {
 	if check.IfNil(hardForkBlockProcessor) {
@@ -542,6 +543,8 @@ func createProcessorsForShardGenesisBlock(arg ArgsGenesisBlockCreator, enableEpo
 		arg.Accounts,
 		arg.Core.AddressPubKeyConverter(),
 		arg.ShardCoordinator,
+		arg.Core.InternalMarshalizer(),
+		arg.Core.Hasher(),
 	)
 	if err != nil {
 		return nil, err
@@ -580,30 +583,46 @@ func createProcessorsForShardGenesisBlock(arg ArgsGenesisBlockCreator, enableEpo
 	disabledScheduledTxsExecutionHandler := &disabled.ScheduledTxsExecutionHandler{}
 	disabledProcessedMiniBlocksTracker := &disabled.ProcessedMiniBlocksTracker{}
 
-	preProcFactory, err := shard.NewPreProcessorsContainerFactory(
-		arg.ShardCoordinator,
-		arg.Data.StorageService(),
-		arg.Core.InternalMarshalizer(),
-		arg.Core.Hasher(),
-		arg.Data.Datapool(),
-		arg.Core.AddressPubKeyConverter(),
-		arg.Accounts,
-		disabledRequestHandler,
-		transactionProcessor,
-		scProcessorProxy,
-		scProcessorProxy,
-		rewardsTxProcessor,
-		arg.Economics,
-		gasHandler,
-		disabledBlockTracker,
-		disabledBlockSizeComputationHandler,
-		disabledBalanceComputationHandler,
-		enableEpochsHandler,
-		txTypeHandler,
-		disabledScheduledTxsExecutionHandler,
-		disabledProcessedMiniBlocksTracker,
-		arg.TxExecutionOrderHandler,
-	)
+	argsGasConsumption := block.ArgsGasConsumption{
+		EconomicsFee:                      arg.Core.EconomicsData(),
+		ShardCoordinator:                  arg.ShardCoordinator,
+		GasHandler:                        gasHandler,
+		BlockCapacityOverestimationFactor: arg.FeeSettings.BlockCapacityOverestimationFactor,
+		PercentDecreaseLimitsStep:         arg.FeeSettings.PercentDecreaseLimitsStep,
+	}
+	gasConsumption, err := block.NewGasConsumption(argsGasConsumption)
+	if err != nil {
+		return nil, err
+	}
+
+	argsPreProcessorContainerFactory := shard.ArgsPreProcessorsContainerFactory{
+		ShardCoordinator:             arg.ShardCoordinator,
+		Store:                        arg.Data.StorageService(),
+		Marshalizer:                  arg.Core.InternalMarshalizer(),
+		Hasher:                       arg.Core.Hasher(),
+		DataPool:                     arg.Data.Datapool(),
+		PubkeyConverter:              arg.Core.AddressPubKeyConverter(),
+		Accounts:                     arg.Accounts,
+		AccountsProposal:             arg.AccountsProposal,
+		RequestHandler:               disabledRequestHandler,
+		TxProcessor:                  transactionProcessor,
+		ScProcessor:                  scProcessorProxy,
+		ScResultProcessor:            scProcessorProxy,
+		RewardsTxProcessor:           rewardsTxProcessor,
+		EconomicsFee:                 arg.Economics,
+		GasHandler:                   gasHandler,
+		BlockTracker:                 disabledBlockTracker,
+		BlockSizeComputation:         disabledBlockSizeComputationHandler,
+		BalanceComputation:           disabledBalanceComputationHandler,
+		EnableEpochsHandler:          enableEpochsHandler,
+		EnableRoundsHandler:          enableRoundsHandler,
+		TxTypeHandler:                txTypeHandler,
+		ScheduledTxsExecutionHandler: disabledScheduledTxsExecutionHandler,
+		ProcessedMiniBlocksTracker:   disabledProcessedMiniBlocksTracker,
+		TxExecutionOrderHandler:      arg.TxExecutionOrderHandler,
+		TxCacheSelectionConfig:       arg.TxCacheSelectionConfig,
+	}
+	preProcFactory, err := shard.NewPreProcessorsContainerFactory(argsPreProcessorContainerFactory)
 	if err != nil {
 		return nil, err
 	}
@@ -623,14 +642,27 @@ func createProcessorsForShardGenesisBlock(arg ArgsGenesisBlockCreator, enableEpo
 		return nil, err
 	}
 
+	blockDataRequesterArgs := coordinator.BlockDataRequestArgs{
+		RequestHandler:      disabledRequestHandler,
+		MiniBlockPool:       arg.Data.Datapool().MiniBlocks(),
+		PreProcessors:       preProcContainer,
+		ShardCoordinator:    arg.ShardCoordinator,
+		EnableEpochsHandler: enableEpochsHandler,
+	}
+
+	blockDataRequester, err := coordinator.NewBlockDataRequester(blockDataRequesterArgs)
+	if err != nil {
+		return nil, err
+	}
+
 	argsTransactionCoordinator := coordinator.ArgTransactionCoordinator{
 		Hasher:                       arg.Core.Hasher(),
 		Marshalizer:                  arg.Core.InternalMarshalizer(),
 		ShardCoordinator:             arg.ShardCoordinator,
 		Accounts:                     arg.Accounts,
 		MiniBlockPool:                arg.Data.Datapool().MiniBlocks(),
-		RequestHandler:               disabledRequestHandler,
 		PreProcessors:                preProcContainer,
+		PreProcessorsProposal:        preProcContainer, // no need for a different one in genesis
 		InterProcessors:              interimProcContainer,
 		GasHandler:                   gasHandler,
 		FeeHandler:                   genesisFeeHandler,
@@ -644,6 +676,9 @@ func createProcessorsForShardGenesisBlock(arg ArgsGenesisBlockCreator, enableEpo
 		DoubleTransactionsDetector:   doubleTransactionsDetector,
 		ProcessedMiniBlocksTracker:   disabledProcessedMiniBlocksTracker,
 		TxExecutionOrderHandler:      arg.TxExecutionOrderHandler,
+		BlockDataRequester:           blockDataRequester,
+		BlockDataRequesterProposal:   blockDataRequester, // no need for a different one in genesis
+		GasComputation:               gasConsumption,
 	}
 	txCoordinator, err := coordinator.NewTransactionCoordinator(argsTransactionCoordinator)
 	if err != nil {

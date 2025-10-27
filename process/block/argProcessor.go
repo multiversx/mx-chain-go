@@ -28,8 +28,9 @@ type coreComponentsHolder interface {
 	EpochNotifier() process.EpochNotifier
 	EnableEpochsHandler() common.EnableEpochsHandler
 	RoundNotifier() process.RoundNotifier
-	EnableRoundsHandler() process.EnableRoundsHandler
+	EnableRoundsHandler() common.EnableRoundsHandler
 	EpochChangeGracePeriodHandler() common.EpochChangeGracePeriodHandler
+	ProcessConfigsHandler() common.ProcessConfigsHandler
 	RoundHandler() consensus.RoundHandler
 	EconomicsData() process.EconomicsDataHandler
 	ProcessStatusHandler() common.ProcessStatusHandler
@@ -69,33 +70,42 @@ type ArgBaseProcessor struct {
 	StatusComponents     statusComponentsHolder
 	StatusCoreComponents statusCoreComponentsHolder
 
-	Config                         config.Config
-	PrefsConfig                    config.Preferences
-	AccountsDB                     map[state.AccountsDbIdentifier]state.AccountsAdapter
-	ForkDetector                   process.ForkDetector
-	NodesCoordinator               nodesCoordinator.NodesCoordinator
-	FeeHandler                     process.TransactionFeeHandler
-	RequestHandler                 process.RequestHandler
-	BlockChainHook                 process.BlockChainHookHandler
-	TxCoordinator                  process.TransactionCoordinator
-	EpochStartTrigger              process.EpochStartTriggerHandler
-	HeaderValidator                process.HeaderConstructionValidator
-	BootStorer                     process.BootStorer
-	BlockTracker                   process.BlockTracker
-	BlockSizeThrottler             process.BlockSizeThrottler
-	Version                        string
-	HistoryRepository              dblookupext.HistoryRepository
-	VMContainersFactory            process.VirtualMachinesContainerFactory
-	VmContainer                    process.VirtualMachinesContainer
-	GasHandler                     gasConsumedProvider
-	OutportDataProvider            outport.DataProviderOutport
-	ScheduledTxsExecutionHandler   process.ScheduledTxsExecutionHandler
-	ScheduledMiniBlocksEnableEpoch uint32
-	ProcessedMiniBlocksTracker     process.ProcessedMiniBlocksTracker
-	ReceiptsRepository             receiptsRepository
-	BlockProcessingCutoffHandler   cutoff.BlockProcessingCutoffHandler
-	ManagedPeersHolder             common.ManagedPeersHolder
-	SentSignaturesTracker          process.SentSignaturesTracker
+	Config                             config.Config
+	PrefsConfig                        config.Preferences
+	AccountsDB                         map[state.AccountsDbIdentifier]state.AccountsAdapter
+	AccountsProposal                   state.AccountsAdapter
+	ForkDetector                       process.ForkDetector
+	NodesCoordinator                   nodesCoordinator.NodesCoordinator
+	FeeHandler                         process.TransactionFeeHandler
+	RequestHandler                     process.RequestHandler
+	BlockChainHook                     process.BlockChainHookHandler
+	TxCoordinator                      process.TransactionCoordinator
+	EpochStartTrigger                  process.EpochStartTriggerHandler
+	HeaderValidator                    process.HeaderConstructionValidator
+	BootStorer                         process.BootStorer
+	BlockTracker                       process.BlockTracker
+	BlockSizeThrottler                 process.BlockSizeThrottler
+	Version                            string
+	HistoryRepository                  dblookupext.HistoryRepository
+	VMContainersFactory                process.VirtualMachinesContainerFactory
+	VmContainer                        process.VirtualMachinesContainer
+	GasHandler                         gasConsumedProvider
+	OutportDataProvider                outport.DataProviderOutport
+	ScheduledTxsExecutionHandler       process.ScheduledTxsExecutionHandler
+	ScheduledMiniBlocksEnableEpoch     uint32
+	ProcessedMiniBlocksTracker         process.ProcessedMiniBlocksTracker
+	ReceiptsRepository                 receiptsRepository
+	BlockProcessingCutoffHandler       cutoff.BlockProcessingCutoffHandler
+	ManagedPeersHolder                 common.ManagedPeersHolder
+	SentSignaturesTracker              process.SentSignaturesTracker
+	StateAccessesCollector             state.StateAccessesCollector
+	HeadersForBlock                    HeadersForBlock
+	ExecutionResultsInclusionEstimator process.InclusionEstimator
+	ExecutionResultsTracker            process.ExecutionResultsTracker
+	MiniBlocksSelectionSession         MiniBlocksSelectionSession
+	ExecutionResultsVerifier           ExecutionResultsVerifier
+	MissingDataResolver                MissingDataResolver
+	GasComputation                     process.GasComputation
 }
 
 // ArgShardProcessor holds all dependencies required by the process data factory in order to create

@@ -5,7 +5,6 @@ import (
 	"fmt"
 	"math/big"
 	"testing"
-	"time"
 
 	"github.com/multiversx/mx-chain-go/common"
 	"github.com/multiversx/mx-chain-go/config"
@@ -56,7 +55,6 @@ func TestChainSimulator_ValidatorJailUnJail(t *testing.T) {
 }
 
 func testChainSimulatorJailAndUnJail(t *testing.T, targetEpoch int32, nodeStatusAfterUnJail string) {
-	startTime := time.Now().Unix()
 	roundDurationInMillis := uint64(6000)
 	roundsPerEpoch := core.OptionalUint64{
 		HasValue: true,
@@ -70,7 +68,6 @@ func testChainSimulatorJailAndUnJail(t *testing.T, targetEpoch int32, nodeStatus
 		TempDir:                t.TempDir(),
 		PathToInitialConfig:    defaultPathToInitialConfig,
 		NumOfShards:            numOfShards,
-		GenesisTimestamp:       startTime,
 		RoundDurationInMillis:  roundDurationInMillis,
 		RoundsPerEpoch:         roundsPerEpoch,
 		ApiInterface:           api.NewNoApiInterface(),
@@ -160,7 +157,6 @@ func TestChainSimulator_FromQueueToAuctionList(t *testing.T) {
 		t.Skip("this is not a short test")
 	}
 
-	startTime := time.Now().Unix()
 	roundDurationInMillis := uint64(6000)
 	roundsPerEpoch := core.OptionalUint64{
 		HasValue: true,
@@ -174,7 +170,6 @@ func TestChainSimulator_FromQueueToAuctionList(t *testing.T) {
 		TempDir:                t.TempDir(),
 		PathToInitialConfig:    defaultPathToInitialConfig,
 		NumOfShards:            numOfShards,
-		GenesisTimestamp:       startTime,
 		RoundDurationInMillis:  roundDurationInMillis,
 		RoundsPerEpoch:         roundsPerEpoch,
 		ApiInterface:           api.NewNoApiInterface(),
@@ -186,6 +181,8 @@ func TestChainSimulator_FromQueueToAuctionList(t *testing.T) {
 
 			newNumNodes := cfg.SystemSCConfig.StakingSystemSCConfig.MaxNumberOfNodesForStake + 1
 			configs.SetMaxNumberOfNodesInConfigs(cfg, uint32(newNumNodes), 0, numOfShards)
+
+			cfg.EpochConfig.EnableEpochs.SupernovaEnableEpoch = 100
 		},
 	})
 	require.Nil(t, err)
@@ -257,7 +254,6 @@ func TestChainSimulator_FromQueueToAuctionList(t *testing.T) {
 }
 
 func TestJailNodes(t *testing.T) {
-	startTime := time.Now().Unix()
 	roundDurationInMillis := uint64(6000)
 	roundsPerEpoch := core.OptionalUint64{
 		HasValue: true,
@@ -271,7 +267,6 @@ func TestJailNodes(t *testing.T) {
 		TempDir:                  t.TempDir(),
 		PathToInitialConfig:      defaultPathToInitialConfig,
 		NumOfShards:              numOfShards,
-		GenesisTimestamp:         startTime,
 		RoundDurationInMillis:    roundDurationInMillis,
 		RoundsPerEpoch:           roundsPerEpoch,
 		ApiInterface:             api.NewNoApiInterface(),
@@ -283,6 +278,17 @@ func TestJailNodes(t *testing.T) {
 			configs.SetQuickJailRatingConfig(cfg)
 			newNumNodes := cfg.SystemSCConfig.StakingSystemSCConfig.MaxNumberOfNodesForStake + 1
 			configs.SetMaxNumberOfNodesInConfigs(cfg, uint32(newNumNodes), 0, numOfShards)
+
+			cfg.EpochConfig.EnableEpochs.SupernovaEnableEpoch = 0
+			cfg.RoundConfig.RoundActivations = map[string]config.ActivationRoundByName{
+				"DisableAsyncCallV1": {
+					Round: "9999999",
+				},
+				// TODO: Set to 0 when async execution is done
+				"SupernovaEnableRound": {
+					Round: "8000",
+				},
+			}
 		},
 	})
 	require.Nil(t, err)

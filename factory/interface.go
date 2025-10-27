@@ -16,11 +16,14 @@ import (
 	crypto "github.com/multiversx/mx-chain-crypto-go"
 	vmcommon "github.com/multiversx/mx-chain-vm-common-go"
 
+	"github.com/multiversx/mx-chain-core-go/data/smartContractResult"
+
 	"github.com/multiversx/mx-chain-go/cmd/node/factory"
 	"github.com/multiversx/mx-chain-go/common"
 	cryptoCommon "github.com/multiversx/mx-chain-go/common/crypto"
 	"github.com/multiversx/mx-chain-go/common/statistics"
 	"github.com/multiversx/mx-chain-go/consensus"
+	"github.com/multiversx/mx-chain-go/consensus/spos"
 	"github.com/multiversx/mx-chain-go/dataRetriever"
 	"github.com/multiversx/mx-chain-go/dblookupext"
 	"github.com/multiversx/mx-chain-go/epochStart"
@@ -122,11 +125,12 @@ type CoreComponentsHolder interface {
 	NodesShuffler() nodesCoordinator.NodesShuffler
 	EpochNotifier() process.EpochNotifier
 	ChainParametersSubscriber() process.ChainParametersSubscriber
-	EnableRoundsHandler() process.EnableRoundsHandler
+	EnableRoundsHandler() common.EnableRoundsHandler
 	RoundNotifier() process.RoundNotifier
 	EpochStartNotifierWithConfirm() EpochStartNotifierWithConfirm
 	ChanStopNodeProcess() chan endProcess.ArgEndProcess
 	GenesisTime() time.Time
+	SupernovaGenesisTime() time.Time
 	ChainID() string
 	MinTransactionVersion() uint32
 	TxVersionChecker() process.TxVersionCheckerHandler
@@ -139,6 +143,8 @@ type CoreComponentsHolder interface {
 	ChainParametersHandler() process.ChainParametersHandler
 	FieldsSizeChecker() common.FieldsSizeChecker
 	EpochChangeGracePeriodHandler() common.EpochChangeGracePeriodHandler
+	ProcessConfigsHandler() common.ProcessConfigsHandler
+	CommonConfigsHandler() common.CommonConfigsHandler
 	IsInterfaceNil() bool
 }
 
@@ -267,6 +273,7 @@ type NetworkComponentsHandler interface {
 
 // TransactionEvaluator defines the transaction evaluator actions
 type TransactionEvaluator interface {
+	SimulateSCRExecutionCost(scr *smartContractResult.SmartContractResult) (*transaction.CostResponse, error)
 	SimulateTransactionExecution(tx *transaction.Transaction) (*txSimData.SimulationResultsWithVMOutput, error)
 	ComputeTransactionGasLimit(tx *transaction.Transaction) (*transaction.CostResponse, error)
 	IsInterfaceNil() bool
@@ -285,6 +292,7 @@ type ProcessComponentsHolder interface {
 	EpochStartNotifier() EpochStartNotifier
 	ForkDetector() process.ForkDetector
 	BlockProcessor() process.BlockProcessor
+	BlocksQueue() process.BlocksQueue
 	BlackListHandler() process.TimeCacher
 	BootStorer() process.BootStorer
 	HeaderSigVerifier() process.InterceptedHeaderSigVerifier
@@ -337,11 +345,13 @@ type StateComponentsHolder interface {
 	PeerAccounts() state.AccountsAdapter
 	AccountsAdapter() state.AccountsAdapter
 	AccountsAdapterAPI() state.AccountsAdapter
+	AccountsAdapterProposal() state.AccountsAdapter
 	AccountsRepository() state.AccountsRepository
 	TriesContainer() common.TriesHolder
 	TrieStorageManagers() map[string]common.StorageManager
 	MissingTrieNodesNotifier() common.MissingTrieNodesNotifier
 	TrieLeavesRetriever() common.TrieLeavesRetriever
+	StateAccessesCollector() state.StateAccessesCollector
 	Close() error
 	IsInterfaceNil() bool
 }
@@ -418,6 +428,7 @@ type ConsensusWorker interface {
 	ReceivedProof(proofHandler consensus.ProofHandler)
 	// IsInterfaceNil returns true if there is no value under the interface
 	IsInterfaceNil() bool
+	ConsensusMetrics() spos.ConsensusMetricsHandler
 }
 
 // HardforkTrigger defines the hard-fork trigger functionality

@@ -25,6 +25,16 @@ type BlockProcessorMock struct {
 	PruneStateOnRollbackCalled       func(currHeader data.HeaderHandler, currHeaderHash []byte, prevHeader data.HeaderHandler, prevHeaderHash []byte)
 	RevertStateToBlockCalled         func(header data.HeaderHandler, rootHash []byte) error
 	DecodeBlockHeaderCalled          func(dta []byte) data.HeaderHandler
+	VerifyBlockProposalCalled        func(
+		headerHandler data.HeaderHandler,
+		bodyHandler data.BodyHandler,
+		haveTime func() time.Duration,
+	) error
+	OnProposedBlockCalled func(
+		proposedBody data.BodyHandler,
+		proposedHeader data.HeaderHandler,
+		proposedHash []byte,
+	) error
 }
 
 // ProcessBlock mocks processing a block
@@ -161,6 +171,30 @@ func (bpm *BlockProcessorMock) NonceOfFirstCommittedBlock() core.OptionalUint64 
 	return core.OptionalUint64{
 		HasValue: false,
 	}
+}
+
+// VerifyBlockProposal -
+func (bpm *BlockProcessorMock) VerifyBlockProposal(
+	headerHandler data.HeaderHandler,
+	bodyHandler data.BodyHandler,
+	haveTime func() time.Duration,
+) error {
+	if bpm.VerifyBlockProposalCalled != nil {
+		return bpm.VerifyBlockProposalCalled(headerHandler, bodyHandler, haveTime)
+	}
+	return nil
+}
+
+// OnProposedBlock -
+func (bpm *BlockProcessorMock) OnProposedBlock(
+	proposedBody data.BodyHandler,
+	proposedHeader data.HeaderHandler,
+	proposedHash []byte,
+) error {
+	if bpm.OnProposedBlockCalled != nil {
+		return bpm.OnProposedBlockCalled(proposedBody, proposedHeader, proposedHash)
+	}
+	return nil
 }
 
 // Close -

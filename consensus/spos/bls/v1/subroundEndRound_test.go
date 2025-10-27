@@ -27,6 +27,7 @@ import (
 	consensusMocks "github.com/multiversx/mx-chain-go/testscommon/consensus"
 	"github.com/multiversx/mx-chain-go/testscommon/consensus/initializers"
 	"github.com/multiversx/mx-chain-go/testscommon/p2pmocks"
+	"github.com/multiversx/mx-chain-go/testscommon/round"
 	"github.com/multiversx/mx-chain-go/testscommon/statusHandler"
 )
 
@@ -40,8 +41,9 @@ func initSubroundEndRoundWithContainer(
 		bls.SrSignature,
 		bls.SrEndRound,
 		-1,
-		int64(85*roundTimeDuration/100),
-		int64(95*roundTimeDuration/100),
+		roundTimeDuration,
+		0.85,
+		0.95,
 		"(END_ROUND)",
 		consensusState,
 		ch,
@@ -79,8 +81,9 @@ func TestNewSubroundEndRound(t *testing.T) {
 		bls.SrSignature,
 		bls.SrEndRound,
 		-1,
-		int64(85*roundTimeDuration/100),
-		int64(95*roundTimeDuration/100),
+		roundTimeDuration,
+		0.85,
+		0.95,
 		"(END_ROUND)",
 		consensusState,
 		ch,
@@ -164,8 +167,9 @@ func TestSubroundEndRound_NewSubroundEndRoundNilBlockChainShouldFail(t *testing.
 		bls.SrSignature,
 		bls.SrEndRound,
 		-1,
-		int64(85*roundTimeDuration/100),
-		int64(95*roundTimeDuration/100),
+		roundTimeDuration,
+		0.85,
+		0.95,
 		"(END_ROUND)",
 		consensusState,
 		ch,
@@ -200,8 +204,9 @@ func TestSubroundEndRound_NewSubroundEndRoundNilBlockProcessorShouldFail(t *test
 		bls.SrSignature,
 		bls.SrEndRound,
 		-1,
-		int64(85*roundTimeDuration/100),
-		int64(95*roundTimeDuration/100),
+		roundTimeDuration,
+		0.85,
+		0.95,
 		"(END_ROUND)",
 		consensusState,
 		ch,
@@ -236,8 +241,9 @@ func TestSubroundEndRound_NewSubroundEndRoundNilConsensusStateShouldFail(t *test
 		bls.SrSignature,
 		bls.SrEndRound,
 		-1,
-		int64(85*roundTimeDuration/100),
-		int64(95*roundTimeDuration/100),
+		roundTimeDuration,
+		0.85,
+		0.95,
 		"(END_ROUND)",
 		consensusState,
 		ch,
@@ -273,8 +279,9 @@ func TestSubroundEndRound_NewSubroundEndRoundNilMultiSignerContainerShouldFail(t
 		bls.SrSignature,
 		bls.SrEndRound,
 		-1,
-		int64(85*roundTimeDuration/100),
-		int64(95*roundTimeDuration/100),
+		roundTimeDuration,
+		0.85,
+		0.95,
 		"(END_ROUND)",
 		consensusState,
 		ch,
@@ -309,8 +316,9 @@ func TestSubroundEndRound_NewSubroundEndRoundNilRoundHandlerShouldFail(t *testin
 		bls.SrSignature,
 		bls.SrEndRound,
 		-1,
-		int64(85*roundTimeDuration/100),
-		int64(95*roundTimeDuration/100),
+		roundTimeDuration,
+		0.85,
+		0.95,
 		"(END_ROUND)",
 		consensusState,
 		ch,
@@ -345,8 +353,9 @@ func TestSubroundEndRound_NewSubroundEndRoundNilSyncTimerShouldFail(t *testing.T
 		bls.SrSignature,
 		bls.SrEndRound,
 		-1,
-		int64(85*roundTimeDuration/100),
-		int64(95*roundTimeDuration/100),
+		roundTimeDuration,
+		0.85,
+		0.95,
 		"(END_ROUND)",
 		consensusState,
 		ch,
@@ -381,8 +390,9 @@ func TestSubroundEndRound_NewSubroundEndRoundShouldWork(t *testing.T) {
 		bls.SrSignature,
 		bls.SrEndRound,
 		-1,
-		int64(85*roundTimeDuration/100),
-		int64(95*roundTimeDuration/100),
+		roundTimeDuration,
+		0.85,
+		0.95,
 		"(END_ROUND)",
 		consensusState,
 		ch,
@@ -460,7 +470,7 @@ func TestSubroundEndRound_DoEndRoundJobErrTimeIsOutShouldFail(t *testing.T) {
 	sr.SetLeader("A")
 
 	remainingTime := time.Millisecond
-	roundHandlerMock := &consensusMocks.RoundHandlerMock{
+	roundHandlerMock := &round.RoundHandlerMock{
 		RemainingTimeCalled: func(startTime time.Time, maxTime time.Duration) time.Duration {
 			return remainingTime
 		},
@@ -957,7 +967,7 @@ func TestSubroundEndRound_IsOutOfTimeShouldReturnTrue(t *testing.T) {
 
 	// update roundHandler's mock, so it will calculate for real the duration
 	container := consensusMocks.InitConsensusCore()
-	roundHandler := consensusMocks.RoundHandlerMock{RemainingTimeCalled: func(startTime time.Time, maxTime time.Duration) time.Duration {
+	roundHandler := round.RoundHandlerMock{RemainingTimeCalled: func(startTime time.Time, maxTime time.Duration) time.Duration {
 		currentTime := time.Now()
 		elapsedTime := currentTime.Sub(startTime)
 		remainingTime := maxTime - elapsedTime
@@ -1359,8 +1369,9 @@ func TestSubroundEndRound_ReceivedInvalidSignersInfo(t *testing.T) {
 			bls.SrSignature,
 			bls.SrEndRound,
 			-1,
-			int64(85*roundTimeDuration/100),
-			int64(95*roundTimeDuration/100),
+			roundTimeDuration,
+			0.85,
+			0.95,
 			"(END_ROUND)",
 			consensusState,
 			ch,
@@ -1731,8 +1742,9 @@ func TestSubroundEndRound_getMinConsensusGroupIndexOfManagedKeys(t *testing.T) {
 		bls.SrSignature,
 		bls.SrEndRound,
 		-1,
-		int64(85*roundTimeDuration/100),
-		int64(95*roundTimeDuration/100),
+		roundTimeDuration,
+		0.85,
+		0.95,
 		"(END_ROUND)",
 		consensusState,
 		ch,

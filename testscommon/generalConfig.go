@@ -55,6 +55,7 @@ func GetGeneralConfig() config.Config {
 			MaxComputableRounds:                  1000,
 			MaxConsecutiveRoundsOfRatingDecrease: 2000,
 			SyncProcessTimeInMillis:              6000,
+			SyncProcessTimeSupernovaInMillis:     3000,
 			SetGuardianEpochsDelay:               20,
 			StatusPollingIntervalSec:             10,
 			ChainParametersByEpoch: []config.ChainParametersByEpochConfig{
@@ -67,13 +68,31 @@ func GetGeneralConfig() config.Config {
 					MetachainMinNumNodes:        1,
 					Hysteresis:                  0,
 					Adaptivity:                  false,
+					RoundsPerEpoch:              10,
+					MinRoundsBetweenEpochs:      5,
 				},
 			},
 			EpochChangeGracePeriodByEpoch: []config.EpochChangeGracePeriodByEpoch{{EnableEpoch: 0, GracePeriodInRounds: 1}},
+			ProcessConfigsByEpoch: []config.ProcessConfigByEpoch{{
+				EnableEpoch:                       0,
+				MaxMetaNoncesBehind:               15,
+				MaxMetaNoncesBehindForGlobalStuck: 30,
+				MaxShardNoncesBehind:              15,
+			}},
+			ProcessConfigsByRound: []config.ProcessConfigByRound{
+				{EnableRound: 0, MaxRoundsWithoutNewBlockReceived: 10, MaxRoundsWithoutCommittedBlock: 10},
+			},
+			EpochStartConfigsByEpoch: []config.EpochStartConfigByEpoch{
+				{EnableEpoch: 0, GracePeriodRounds: 25, ExtraDelayForRequestBlockInfoInMilliseconds: 3000},
+			},
+			EpochStartConfigsByRound: []config.EpochStartConfigByRound{
+				{EnableRound: 0, MaxRoundsWithoutCommittedStartInEpochBlock: 50},
+			},
+			ConsensusConfigsByEpoch: []config.ConsensusConfigByEpoch{
+				{EnableEpoch: 0, NumRoundsToWaitBeforeSignalingChronologyStuck: 10},
+			},
 		},
 		EpochStartConfig: config.EpochStartConfig{
-			MinRoundsBetweenEpochs:            5,
-			RoundsPerEpoch:                    10,
 			MinNumConnectedPeersToStart:       2,
 			MinNumOfPeersToConsiderBlockValid: 2,
 		},
@@ -135,6 +154,18 @@ func GetGeneralConfig() config.Config {
 			SizeInBytes:          1000000000,
 			SizeInBytesPerSender: 10000000,
 			Shards:               1,
+		},
+		TxCacheBounds: config.TxCacheBoundsConfig{
+			MaxNumBytesPerSenderUpperBound: 33_554_432,
+			MaxTrackedBlocks:               100,
+		},
+		TxCacheSelection: config.TxCacheSelectionConfig{
+			SelectionGasBandwidthIncreasePercent:          400,
+			SelectionGasBandwidthIncreaseScheduledPercent: 260,
+			SelectionGasRequested:                         10_000_000_000,
+			SelectionMaxNumTxs:                            30000,
+			SelectionLoopMaximumDuration:                  250,
+			SelectionLoopDurationCheckInterval:            10,
 		},
 		UnsignedTransactionDataPool: config.CacheConfig{
 			Capacity:    10000,
@@ -215,6 +246,16 @@ func GetGeneralConfig() config.Config {
 			Cache: getLRUCacheConfig(),
 			DB: config.DBConfig{
 				FilePath:          AddTimestampSuffix("Proofs"),
+				Type:              string(storageunit.MemoryDB),
+				BatchDelaySeconds: 30,
+				MaxBatchSize:      6,
+				MaxOpenFiles:      10,
+			},
+		},
+		ExecutionResultsStorage: config.StorageConfig{
+			Cache: getLRUCacheConfig(),
+			DB: config.DBConfig{
+				FilePath:          AddTimestampSuffix("ExecutionResults"),
 				Type:              string(storageunit.MemoryDB),
 				BatchDelaySeconds: 30,
 				MaxBatchSize:      6,
@@ -363,11 +404,6 @@ func GetGeneralConfig() config.Config {
 			},
 		},
 		Versions: config.VersionsConfig{
-			Cache: config.CacheConfig{
-				Type:     "LRU",
-				Capacity: 1000,
-				Shards:   1,
-			},
 			DefaultVersion: "default",
 			VersionsByEpochs: []config.VersionByEpochs{
 				{
@@ -456,6 +492,8 @@ func GetGeneralConfig() config.Config {
 			CacheSpanInSec:   1,
 			CacheExpiryInSec: 1,
 		},
+		ExecutedMiniBlocksCache:      getLRUCacheConfig(),
+		PostProcessTransactionsCache: getLRUCacheConfig(),
 	}
 }
 

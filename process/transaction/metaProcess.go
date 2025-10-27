@@ -8,16 +8,17 @@ import (
 	"github.com/multiversx/mx-chain-core-go/data/transaction"
 	"github.com/multiversx/mx-chain-core-go/hashing"
 	"github.com/multiversx/mx-chain-core-go/marshal"
+	vmcommon "github.com/multiversx/mx-chain-vm-common-go"
+
 	"github.com/multiversx/mx-chain-go/common"
 	"github.com/multiversx/mx-chain-go/process"
 	"github.com/multiversx/mx-chain-go/sharding"
 	"github.com/multiversx/mx-chain-go/state"
-	vmcommon "github.com/multiversx/mx-chain-vm-common-go"
 )
 
 var _ process.TransactionProcessor = (*metaTxProcessor)(nil)
 
-// txProcessor implements TransactionProcessor interface and can modify account states according to a transaction
+// metaTxProcessor implements TransactionProcessor interface and can modify account states according to a transaction
 type metaTxProcessor struct {
 	*baseTxProcessor
 	enableEpochsHandler common.EnableEpochsHandler
@@ -122,6 +123,11 @@ func (txProc *metaTxProcessor) ProcessTransaction(tx *transaction.Transaction) (
 		txHash,
 		txProc.pubkeyConv,
 	)
+
+	defer func() {
+		txProc.accounts.SetTxHashForLatestStateAccesses(txHash)
+		log.Trace("SetTxHashForLatestStateAccesses", "txHash", txHash)
+	}()
 
 	err = txProc.checkTxValues(tx, acntSnd, acntDst, false)
 	if err != nil {

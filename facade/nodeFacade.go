@@ -15,10 +15,12 @@ import (
 	"github.com/multiversx/mx-chain-core-go/data/alteredAccount"
 	apiData "github.com/multiversx/mx-chain-core-go/data/api"
 	"github.com/multiversx/mx-chain-core-go/data/esdt"
+	"github.com/multiversx/mx-chain-core-go/data/smartContractResult"
 	"github.com/multiversx/mx-chain-core-go/data/transaction"
 	"github.com/multiversx/mx-chain-core-go/data/validator"
 	"github.com/multiversx/mx-chain-core-go/data/vm"
 	"github.com/multiversx/mx-chain-go/common"
+	"github.com/multiversx/mx-chain-go/common/holders"
 	"github.com/multiversx/mx-chain-go/config"
 	"github.com/multiversx/mx-chain-go/debug"
 	"github.com/multiversx/mx-chain-go/epochStart/bootstrap/disabled"
@@ -49,8 +51,7 @@ type ArgNodeFacade struct {
 	WsAntifloodConfig      config.WebServerAntifloodConfig
 	FacadeConfig           config.FacadeConfig
 	ApiRoutesConfig        config.ApiRoutesConfig
-	AccountsState          state.AccountsAdapter
-	PeerState              state.AccountsAdapter
+	AccountsStateAPI       state.AccountsAdapter
 	Blockchain             chainData.ChainHandler
 }
 
@@ -64,8 +65,7 @@ type nodeFacade struct {
 	endpointsThrottlers    map[string]core.Throttler
 	wsAntifloodConfig      config.WebServerAntifloodConfig
 	restAPIServerDebugMode bool
-	accountsState          state.AccountsAdapter
-	peerState              state.AccountsAdapter
+	accountsStateAPI       state.AccountsAdapter
 	blockchain             chainData.ChainHandler
 }
 
@@ -84,11 +84,8 @@ func NewNodeFacade(arg ArgNodeFacade) (*nodeFacade, error) {
 	if err != nil {
 		return nil, err
 	}
-	if check.IfNil(arg.AccountsState) {
+	if check.IfNil(arg.AccountsStateAPI) {
 		return nil, ErrNilAccountState
-	}
-	if check.IfNil(arg.PeerState) {
-		return nil, ErrNilPeerState
 	}
 	if check.IfNil(arg.Blockchain) {
 		return nil, ErrNilBlockchain
@@ -104,8 +101,7 @@ func NewNodeFacade(arg ArgNodeFacade) (*nodeFacade, error) {
 		config:                 arg.FacadeConfig,
 		apiRoutesConfig:        arg.ApiRoutesConfig,
 		endpointsThrottlers:    throttlersMap,
-		accountsState:          arg.AccountsState,
-		peerState:              arg.PeerState,
+		accountsStateAPI:       arg.AccountsStateAPI,
 		blockchain:             arg.Blockchain,
 	}
 
@@ -307,6 +303,11 @@ func (nf *nodeFacade) SimulateTransactionExecution(tx *transaction.Transaction) 
 	return nf.apiResolver.SimulateTransactionExecution(tx)
 }
 
+// SimulateSCRExecutionCost will simulate a smart contract results and will return the gas cost
+func (nf *nodeFacade) SimulateSCRExecutionCost(scr *smartContractResult.SmartContractResult) (*transaction.CostResponse, error) {
+	return nf.apiResolver.SimulateSCRExecutionCost(scr)
+}
+
 // GetTransaction gets the transaction with a specified hash
 func (nf *nodeFacade) GetTransaction(hash string, withResults bool) (*transaction.ApiTransactionResult, error) {
 	return nf.apiResolver.GetTransaction(hash, withResults)
@@ -340,6 +341,29 @@ func (nf *nodeFacade) GetTransactionsPoolNonceGapsForSender(sender string) (*com
 	}
 
 	return nf.apiResolver.GetTransactionsPoolNonceGapsForSender(sender, accountResponse.Nonce)
+}
+
+// GetSelectedTransactions will simulate a SelectTransactions, and it will return the corresponding hash of each selected transaction
+func (nf *nodeFacade) GetSelectedTransactions(fields string) (*common.TransactionsSelectionSimulationResult, error) {
+	selectionOptions := holders.NewTxSelectionOptions(
+		nf.config.TxCacheSelectionConfig.SelectionGasRequested,
+		nf.config.TxCacheSelectionConfig.SelectionMaxNumTxs,
+		nf.config.TxCacheSelectionConfig.SelectionLoopMaximumDuration,
+		nf.config.TxCacheSelectionConfig.SelectionLoopDurationCheckInterval,
+	)
+
+	selectionOptionsAPI := holders.NewTxSelectionOptionsAPI(
+		selectionOptions,
+		fields,
+	)
+
+	// TODO brainstorm if this could be handled by the node
+	return nf.apiResolver.GetSelectedTransactions(selectionOptionsAPI, nf.blockchain, nf.accountsStateAPI)
+}
+
+// GetVirtualNonce will return the virtual nonce of an account
+func (nf *nodeFacade) GetVirtualNonce(address string) (*common.VirtualNonceOfAccountResponse, error) {
+	return nf.apiResolver.GetVirtualNonce(address)
 }
 
 // ComputeTransactionGasLimit will estimate how many gas a transaction will consume

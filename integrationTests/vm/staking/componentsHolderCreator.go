@@ -29,6 +29,7 @@ import (
 	"github.com/multiversx/mx-chain-go/sharding"
 	"github.com/multiversx/mx-chain-go/sharding/nodesCoordinator"
 	"github.com/multiversx/mx-chain-go/state"
+	disabledState "github.com/multiversx/mx-chain-go/state/disabled"
 	stateFactory "github.com/multiversx/mx-chain-go/state/factory"
 	"github.com/multiversx/mx-chain-go/state/storagePruningManager"
 	"github.com/multiversx/mx-chain-go/state/storagePruningManager/evictionWaitingList"
@@ -94,6 +95,8 @@ func createCoreComponents() factory.CoreComponentsHolder {
 		EnableRoundsHandlerField:           &testscommon.EnableRoundsHandlerStub{},
 		RoundNotifierField:                 &notifierMocks.RoundNotifierStub{},
 		EpochChangeGracePeriodHandlerField: gracePeriod,
+		ProcessConfigsHandlerField:         testscommon.GetDefaultProcessConfigsHandler(),
+		CommonConfigsHandlerField:          testscommon.GetDefaultCommonConfigsHandler(),
 	}
 }
 
@@ -139,7 +142,7 @@ func createBootstrapComponents(
 		ShCoordinator:        shardCoordinator,
 		HdrIntegrityVerifier: &mock.HeaderIntegrityVerifierStub{},
 		VersionedHdrFactory: &testscommon.VersionedHeaderFactoryStub{
-			CreateCalled: func(epoch uint32) data.HeaderHandler {
+			CreateCalled: func(epoch uint32, _ uint64) data.HeaderHandler {
 				return &block.MetaBlock{Epoch: epoch}
 			},
 		},
@@ -161,9 +164,10 @@ func createStateComponents(coreComponents factory.CoreComponentsHolder) factory.
 	trieFactoryManager, _ := trie.NewTrieStorageManagerWithoutPruning(tsm)
 
 	argsAccCreator := stateFactory.ArgsAccountCreator{
-		Hasher:              coreComponents.Hasher(),
-		Marshaller:          coreComponents.InternalMarshalizer(),
-		EnableEpochsHandler: coreComponents.EnableEpochsHandler(),
+		Hasher:                 coreComponents.Hasher(),
+		Marshaller:             coreComponents.InternalMarshalizer(),
+		EnableEpochsHandler:    coreComponents.EnableEpochsHandler(),
+		StateAccessesCollector: disabledState.NewDisabledStateAccessesCollector(),
 	}
 
 	accCreator, _ := stateFactory.NewAccountCreator(argsAccCreator)
@@ -175,8 +179,9 @@ func createStateComponents(coreComponents factory.CoreComponentsHolder) factory.
 	_ = peerAccountsDB.SetSyncer(&mock.AccountsDBSyncerStub{})
 
 	return &factoryTests.StateComponentsMock{
-		PeersAcc: peerAccountsDB,
-		Accounts: userAccountsDB,
+		PeersAcc:         peerAccountsDB,
+		Accounts:         userAccountsDB,
+		AccountsProposal: userAccountsDB,
 	}
 }
 
@@ -212,13 +217,14 @@ func createAccountsDB(
 	ewl, _ := evictionWaitingList.NewMemoryEvictionWaitingList(argsEvictionWaitingList)
 	spm, _ := storagePruningManager.NewStoragePruningManager(ewl, 10)
 	argsAccountsDb := state.ArgsAccountsDB{
-		Trie:                  tr,
-		Hasher:                coreComponents.Hasher(),
-		Marshaller:            coreComponents.InternalMarshalizer(),
-		AccountFactory:        accountFactory,
-		StoragePruningManager: spm,
-		AddressConverter:      coreComponents.AddressPubKeyConverter(),
-		SnapshotsManager:      &stateTests.SnapshotsManagerStub{},
+		Trie:                   tr,
+		Hasher:                 coreComponents.Hasher(),
+		Marshaller:             coreComponents.InternalMarshalizer(),
+		AccountFactory:         accountFactory,
+		StoragePruningManager:  spm,
+		AddressConverter:       coreComponents.AddressPubKeyConverter(),
+		SnapshotsManager:       &stateTests.SnapshotsManagerStub{},
+		StateAccessesCollector: disabledState.NewDisabledStateAccessesCollector(),
 	}
 	adb, _ := state.NewAccountsDB(argsAccountsDb)
 	return adb

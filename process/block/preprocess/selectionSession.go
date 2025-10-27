@@ -2,23 +2,18 @@ package preprocess
 
 import (
 	"errors"
+	"math/big"
 
 	"github.com/multiversx/mx-chain-core-go/core/check"
 	"github.com/multiversx/mx-chain-core-go/data"
 	"github.com/multiversx/mx-chain-core-go/data/transaction"
 	"github.com/multiversx/mx-chain-go/process"
 	"github.com/multiversx/mx-chain-go/state"
-	"github.com/multiversx/mx-chain-go/storage/txcache"
-	vmcommon "github.com/multiversx/mx-chain-vm-common-go"
 )
 
 type selectionSession struct {
-	accountsAdapter       state.AccountsAdapter
 	transactionsProcessor process.TransactionProcessor
-
-	// Cache of accounts, held in the scope of a single selection session.
-	// Not concurrency-safe, but never accessed concurrently.
-	ephemeralAccountsCache map[string]vmcommon.AccountHandler
+	accountsProvider      *state.AccountsEphemeralProvider
 }
 
 // ArgsSelectionSession holds the arguments for creating a new selection session.
@@ -28,68 +23,38 @@ type ArgsSelectionSession struct {
 }
 
 // NewSelectionSession creates a new selection session.
+// TODO minimalize the interface used for AccountsAdapter
 func NewSelectionSession(args ArgsSelectionSession) (*selectionSession, error) {
-	if check.IfNil(args.AccountsAdapter) {
-		return nil, process.ErrNilAccountsAdapter
-	}
 	if check.IfNil(args.TransactionsProcessor) {
 		return nil, process.ErrNilTxProcessor
 	}
 
+	// Provider is not concurrency-safe, but it's never accessed concurrently.
+	accountsProvider, err := state.NewAccountsEphemeralProvider(args.AccountsAdapter)
+	if err != nil {
+		return nil, err
+	}
+
 	return &selectionSession{
-		accountsAdapter:        args.AccountsAdapter,
-		transactionsProcessor:  args.TransactionsProcessor,
-		ephemeralAccountsCache: make(map[string]vmcommon.AccountHandler),
+		transactionsProcessor: args.TransactionsProcessor,
+		accountsProvider:      accountsProvider,
 	}, nil
 }
 
-// GetAccountState returns the state of an account.
-// Will be called by mempool during transaction selection.
-func (session *selectionSession) GetAccountState(address []byte) (*txcache.AccountState, error) {
-	account, err := session.getExistingAccount(address)
-	if err != nil {
-		return nil, err
-	}
-
-	userAccount, ok := account.(state.UserAccountHandler)
-	if !ok {
-		return nil, process.ErrWrongTypeAssertion
-	}
-
-	return &txcache.AccountState{
-		Nonce:   userAccount.GetNonce(),
-		Balance: userAccount.GetBalance(),
-	}, nil
-}
-
-func (session *selectionSession) getExistingAccount(address []byte) (vmcommon.AccountHandler, error) {
-	account, ok := session.ephemeralAccountsCache[string(address)]
-	if ok {
-		return account, nil
-	}
-
-	account, err := session.accountsAdapter.GetExistingAccount(address)
-	if err != nil {
-		return nil, err
-	}
-
-	session.ephemeralAccountsCache[string(address)] = account
-	return account, nil
+// GetAccountNonceAndBalance returns the nonce of the account, the balance of the account, and whether it's currently existing on-chain.
+// Will be called by the transactions pool, during transactions selection.
+func (session *selectionSession) GetAccountNonceAndBalance(address []byte) (uint64, *big.Int, bool, error) {
+	return session.accountsProvider.GetAccountNonceAndBalance(address)
 }
 
 // IsIncorrectlyGuarded checks if a transaction is incorrectly guarded (not executable).
 // Will be called by mempool during transaction selection.
 func (session *selectionSession) IsIncorrectlyGuarded(tx data.TransactionHandler) bool {
 	address := tx.GetSndAddr()
-	account, err := session.getExistingAccount(address)
-	if err != nil {
+	account, err := session.accountsProvider.GetUserAccount(address)
+	if err != nil || check.IfNil(account) {
+		// Unexpected failure. In case of any error (or missing account), we assume the transaction is "correctly guarded".
 		return false
-	}
-
-	userAccount, ok := account.(state.UserAccountHandler)
-	if !ok {
-		// On this branch, we are (approximately) mirroring the behavior of "transactionsProcessor.VerifyGuardian()".
-		return true
 	}
 
 	txTyped, ok := tx.(*transaction.Transaction)
@@ -97,8 +62,13 @@ func (session *selectionSession) IsIncorrectlyGuarded(tx data.TransactionHandler
 		return false
 	}
 
-	err = session.transactionsProcessor.VerifyGuardian(txTyped, userAccount)
+	err = session.transactionsProcessor.VerifyGuardian(txTyped, account)
 	return errors.Is(err, process.ErrTransactionNotExecutable)
+}
+
+// GetRootHash returns the current root hash
+func (session *selectionSession) GetRootHash() ([]byte, error) {
+	return session.accountsProvider.GetRootHash()
 }
 
 // IsInterfaceNil returns true if there is no value under the interface

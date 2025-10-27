@@ -35,6 +35,9 @@
     # SyncProcessTimeInMillis is the value in milliseconds used when processing blocks while synchronizing blocks
     SyncProcessTimeInMillis = 12000
 
+    # SyncProcessTimeSupernovaInMillis is the value in milliseconds used when processing blocks while synchronizing blocks after Supernova
+    SyncProcessTimeSupernovaInMillis = 6000
+
     # SetGuardianEpochsDelay represents the delay in epochs between the execution time of the SetGuardian transaction and
     # the activation of the configured guardian.
     # Make sure that this is greater than the unbonding period!
@@ -42,14 +45,42 @@
 
     # ChainParametersByEpoch defines chain operation configurable values that can be modified based on epochs
     ChainParametersByEpoch = [
-        { EnableEpoch = 0, RoundDuration = 6000, ShardConsensusGroupSize = 7, ShardMinNumNodes = 10, MetachainConsensusGroupSize = 10, MetachainMinNumNodes = 10, Hysteresis = 0.2, Adaptivity = false },
-        { EnableEpoch = 1, RoundDuration = 6000, ShardConsensusGroupSize = 10, ShardMinNumNodes = 10, MetachainConsensusGroupSize = 10, MetachainMinNumNodes = 10, Hysteresis = 0.2, Adaptivity = false }
+        { EnableEpoch = 0, RoundDuration = 6000, RoundsPerEpoch = 200, MinRoundsBetweenEpochs = 20, ShardConsensusGroupSize = 7, ShardMinNumNodes = 10, MetachainConsensusGroupSize = 10, MetachainMinNumNodes = 10, Hysteresis = 0.2, Adaptivity = false },
+        { EnableEpoch = 1, RoundDuration = 6000, RoundsPerEpoch = 200, MinRoundsBetweenEpochs = 20, ShardConsensusGroupSize = 10, ShardMinNumNodes = 10, MetachainConsensusGroupSize = 10, MetachainMinNumNodes = 10, Hysteresis = 0.2, Adaptivity = false },
+        { EnableEpoch = 2, RoundDuration = 600, RoundsPerEpoch = 2000, MinRoundsBetweenEpochs = 50, ShardConsensusGroupSize = 10, ShardMinNumNodes = 10, MetachainConsensusGroupSize = 10, MetachainMinNumNodes = 10, Hysteresis = 0.2, Adaptivity = false }
     ]
 
     # EpochChangeGracePeriodEnableEpoch represents the configuration of different grace periods for epoch change with their activation epochs
     EpochChangeGracePeriodByEpoch = [
         {EnableEpoch = 0, GracePeriodInRounds = 1 },
         {EnableEpoch = 1, GracePeriodInRounds = 10 }, # Andromeda epoch comes with a longer grace period
+        {EnableEpoch = 2, GracePeriodInRounds = 100 }, # Supernova epoch comes with an even longer grace period due to round duration reduction
+    ]
+
+    # ProcessConfigsByEpoch represents the configuration of process configuration parameters by epoch
+    ProcessConfigsByEpoch = [
+        { EnableEpoch = 0, MaxMetaNoncesBehind = 15, MaxMetaNoncesBehindForGlobalStuck = 30, MaxShardNoncesBehind = 15 },
+        { EnableEpoch = 2, MaxMetaNoncesBehind = 75, MaxMetaNoncesBehindForGlobalStuck = 120, MaxShardNoncesBehind = 75 },
+    ]
+
+    ProcessConfigsByRound = [
+        { EnableRound = 0, MaxRoundsWithoutNewBlockReceived = 10, MaxRoundsWithoutCommittedBlock = 10, RoundModulusTriggerWhenSyncIsStuck = 20 },
+        { EnableRound = 2, MaxRoundsWithoutNewBlockReceived = 100, MaxRoundsWithoutCommittedBlock = 100, RoundModulusTriggerWhenSyncIsStuck = 200 },
+    ]
+
+    EpochStartConfigsByEpoch = [
+        { EnableEpoch = 0, GracePeriodRounds = 25, ExtraDelayForRequestBlockInfoInMilliseconds = 3000 },
+        { EnableEpoch = 2, GracePeriodRounds = 250, ExtraDelayForRequestBlockInfoInMilliseconds = 220 },
+    ]
+
+    EpochStartConfigsByRound = [
+        { EnableRound = 0, MaxRoundsWithoutCommittedStartInEpochBlock = 50 },
+        { EnableRound = 2, MaxRoundsWithoutCommittedStartInEpochBlock = 500 },
+    ]
+
+    ConsensusConfigsByEpoch = [
+        { EnableEpoch = 0, NumRoundsToWaitBeforeSignalingChronologyStuck = 10 },
+        { EnableEpoch = 2, NumRoundsToWaitBeforeSignalingChronologyStuck = 100 },
     ]
 
 [HardwareRequirements]
@@ -58,14 +89,13 @@
 [Versions]
     DefaultVersion = "default"
     VersionsByEpochs = [
-        { StartEpoch = 0, Version = "*" },
+        { StartEpoch = 0, StartRound = 0, Version = "*"},
         # The value of StartEpoch parameter for version 2 should be the same with the ScheduledMiniBlocksEnableEpoch flag from enableEpoch.toml file
-        { StartEpoch = 1, Version = "2" },
+        { StartEpoch = 1, StartRound = 0, Version = "2" },
+
+        # TODO The value of StartEpoch parameter for version 3 should be the same with the SupernovaEnableEpoch flag from enableEpoch.toml file and StartRound the same with the SupernovaEnableRound flag from enableRounds.toml
+        { StartEpoch = 999999, StartRound = 999999, Version = "3" },
     ]
-    [Versions.Cache]
-        Name = "VersionsCache"
-        Capacity = 100
-        Type = "LRU"
 
 [StoragePruning]
     # If the Enabled flag is set to false, then the storers won't divide epochs into separate dbs
@@ -206,6 +236,19 @@
         SizeInBytes = 20971520 #20MB
     [ProofsStorage.DB]
         FilePath = "Proofs"
+        Type = "LvlDBSerial"
+        BatchDelaySeconds = 2
+        MaxBatchSize = 100
+        MaxOpenFiles = 10
+
+[ExecutionResultsStorage]
+    [ExecutionResultsStorage.Cache]
+        Name = "ExecutionResultsStorage"
+        Capacity = 1000
+        Type = "SizeLRU"
+        SizeInBytes = 20971520 #20MB
+    [ExecutionResultsStorage.DB]
+        FilePath = "ExecutionResults"
         Type = "LvlDBSerial"
         BatchDelaySeconds = 2
         MaxBatchSize = 100
@@ -355,6 +398,19 @@
         ShardIDProviderType = "BinarySplit"
         NumShards = 4
 
+[StateAccessesStorage]
+    [StateAccessesStorage.Cache]
+        Name = "StateAccessesStorage"
+        Capacity = 5000
+        Type = "SizeLRU"
+        SizeInBytes = 10485760 #10MB
+    [StateAccessesStorage.DB]
+        FilePath = "StateAccesses"
+        Type = "LvlDBSerial"
+        BatchDelaySeconds = 2
+        MaxBatchSize = 100
+        MaxOpenFiles = 10
+
 [PeerAccountsTrieStorage]
     [PeerAccountsTrieStorage.Cache]
         Name = "PeerAccountsTrieStorage"
@@ -421,6 +477,18 @@
     Type = "TxCache"
     Shards = 16
 
+[TxCacheBounds]
+    MaxNumBytesPerSenderUpperBound = 33_554_432             #32MB
+    MaxTrackedBlocks = 100
+
+[TxCacheSelection]
+    SelectionMaxNumTxs = 30000
+    SelectionLoopMaximumDuration = 250                      #milliseconds
+    SelectionLoopDurationCheckInterval = 10                 #chunk (of transactions) size
+    SelectionGasBandwidthIncreasePercent = 400
+    SelectionGasBandwidthIncreaseScheduledPercent = 260
+    SelectionGasRequested = 10_000_000_000
+
 [TrieNodesChunksDataPool]
     Name = "TrieNodesDataPool"
     Capacity = 400
@@ -463,6 +531,18 @@
     SizeInBytes = 31457280  #30MB
     Shards = 4
 
+[ExecutedMiniBlocksCache]
+    Name = "ExecutedMiniBlocksCache"
+    Capacity = 500
+    Type = "SizeLRU"
+    SizeInBytes = 52428800 # 50MB
+
+[PostProcessTransactionsCache]
+    Name = "PostProcessTransactionsCache"
+    Capacity = 250000
+    Type = "SizeLRU"
+    SizeInBytes = 104857600 # 100MB
+
 #PublicKeyPeerId represents the main cache used to map MultiversX block signing public keys to their associated peer id's.
 [PublicKeyPeerId]
     Name = "PublicKeyPeerId"
@@ -503,6 +583,7 @@
     BadRatedCacheCapacity = 5000
 
 [PoolsCleanersConfig]
+    # TODO: update these (maybe in txpool feat)
     MaxRoundsToKeepUnprocessedMiniBlocks = 300   # max number of rounds unprocessed miniblocks are kept in pool
     MaxRoundsToKeepUnprocessedTransactions = 300 # max number of rounds unprocessed transactions are kept in pool
 
@@ -651,8 +732,6 @@
 
 [EpochStartConfig]
     GenesisEpoch = 0
-    MinRoundsBetweenEpochs = 20
-    RoundsPerEpoch         = 200
     # Min and Max ShuffledOutRestartThreshold represents the minimum and maximum duration of an epoch (in percentage) after a node which
     # has been shuffled out has to restart its process in order to start in a new shard
     MinShuffledOutRestartThreshold = 0.05
@@ -660,7 +739,7 @@
 
     MinNumConnectedPeersToStart       = 2
     MinNumOfPeersToConsiderBlockValid = 2
-    ExtraDelayForRequestBlockInfoInMilliseconds = 3000
+    ExtraDelayForRequestBlockInfoInMilliseconds = 220
 
 # ResourceStats, if enabled, will output in a folder called "stats"
 # resource statistics. For example: number of active go routines, memory allocation, number of GC sweeps, etc.
@@ -683,6 +762,9 @@
     TimeoutMilliseconds = 100
     SyncPeriodSeconds = 3600
     Version = 0  # Setting 0 means 'use default value'
+    # OutOfBoundsThreshold defines the threshold in milliseconds for checking out of bound
+    # limit in ntp syncer
+    OutOfBoundsThreshold = 120
 
 [StateTriesConfig]
     SnapshotsEnabled = true
@@ -695,6 +777,11 @@
 [TrieLeavesRetrieverConfig]
     Enabled = false
     MaxSizeInBytes = 10485760 #10MB
+
+[StateAccessesCollectorConfig]
+    TypesToCollect = []          # These can be "READ","WRITE".
+    SaveToStorage = false
+    WithAccountChanges = false
 
 [BlockSizeThrottleConfig]
     MinSizeInBytes = 104857 # 104857 is 10% from 1MB
@@ -817,7 +904,7 @@
         NumResolveFailureThreshold = 3
         DebugLineExpiration = 10 #Will remove the debug line after a `DebugLineExpiration` number of prints
         [Debug.InterceptorResolver.BroadcastStatistics]
-            Enabled = true
+            Enabled = false
             # "intercepted tx", "intercepted reward tx", "intercepted unsigned tx", "intercepted header", ...
             Messages = ["intercepted tx"]
     [Debug.Antiflood]
@@ -983,5 +1070,12 @@
     MaxRoundsOfInactivityAccepted = 3
 
 [InterceptedDataVerifier]
+    EnableCaching = true
     CacheSpanInSec = 30
     CacheExpiryInSec = 30
+
+[ExecutionResultInclusionEstimator]
+    # Safety margin = 110 -> 110% -> 10% buffer
+    SafetyMargin = 110
+    # Maximum execution results a single block may carry (0 = unlimited)
+    MaxResultsPerBlock = 20

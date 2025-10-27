@@ -2,15 +2,21 @@ package common
 
 import (
 	"encoding/hex"
+	"encoding/json"
 	"fmt"
+	"math/big"
 	"math/bits"
+	"reflect"
 	"strconv"
 	"strings"
 
 	"github.com/multiversx/mx-chain-core-go/core"
+	"github.com/multiversx/mx-chain-core-go/core/check"
 	"github.com/multiversx/mx-chain-core-go/data"
-	"github.com/multiversx/mx-chain-go/config"
 	logger "github.com/multiversx/mx-chain-logger-go"
+
+	"github.com/multiversx/mx-chain-go/config"
+	"github.com/multiversx/mx-chain-go/errors"
 )
 
 const (
@@ -48,6 +54,12 @@ func IsRelayedTxV3(tx data.TransactionHandler) bool {
 	hasRelayer := len(relayedTx.GetRelayerAddr()) > 0
 	hasRelayerSignature := len(relayedTx.GetRelayerSignature()) > 0
 	return hasRelayer || hasRelayerSignature
+}
+
+// IsAsyncExecutionEnabled returns true if both Supernova epochs and Supernova rounds are enabled
+func IsAsyncExecutionEnabled(enableEpochsHandler EnableEpochsHandler, enableRoundsHandler EnableRoundsHandler) bool {
+	return enableEpochsHandler.IsFlagEnabled(SupernovaFlag) &&
+		enableRoundsHandler.IsFlagEnabled(SupernovaRoundFlag)
 }
 
 // IsEpochChangeBlockForFlagActivation returns true if the provided header is the first one after the specified flag's activation
@@ -204,7 +216,190 @@ func GetNonceAndShardFromKey(nonceShardKey []byte) (uint64, uint32, error) {
 }
 
 // ConvertTimeStampSecToMs will convert unix timestamp from seconds to milliseconds
-// TODO: this has to be handled properly when round timestamp granularity will be changed to milliseconds
 func ConvertTimeStampSecToMs(timeStamp uint64) uint64 {
 	return timeStamp * 1000
+}
+
+func convertTimeStampMsToSec(timeStamp uint64) uint64 {
+	return timeStamp / 1000
+}
+
+// GetHeaderTimestamps will return timestamps as seconds and milliseconds based on supernova round activation
+func GetHeaderTimestamps(
+	header data.HeaderHandler,
+	enableEpochsHandler EnableEpochsHandler,
+) (uint64, uint64, error) {
+	if check.IfNil(header) {
+		return 0, 0, ErrNilHeaderHandler
+	}
+	if check.IfNil(enableEpochsHandler) {
+		return 0, 0, errors.ErrNilEnableEpochsHandler
+	}
+
+	headerTimestamp := header.GetTimeStamp()
+
+	timestampSec := headerTimestamp
+	timestampMs := headerTimestamp
+
+	if !enableEpochsHandler.IsFlagEnabledInEpoch(SupernovaFlag, header.GetEpoch()) {
+		timestampMs = ConvertTimeStampSecToMs(headerTimestamp)
+		return timestampSec, timestampMs, nil
+	}
+
+	// reduce block timestamp (which now comes as milliseconds) to seconds to keep backwards compatibility
+	// from now on timestampMs will be used for milliseconds granularity
+	timestampSec = convertTimeStampMsToSec(headerTimestamp)
+
+	return timestampSec, timestampMs, nil
+}
+
+// PrettifyStruct returns a JSON string representation of a struct, converting byte slices to hex
+// and formatting big number values into readable strings. Useful for logging or debugging.
+func PrettifyStruct(x interface{}) (string, error) {
+	if x == nil {
+		return "nil", nil
+	}
+
+	val := reflect.ValueOf(x)
+	result := prettifyValue(val, val.Type())
+
+	jsonBytes, err := json.Marshal(result)
+	if err != nil {
+		return "", err
+	}
+	return string(jsonBytes), nil
+}
+
+// prettifyValue recursively converts a reflect.Value into a representation suitable for JSON serialization,
+// handling pointers, slices, structs, and special formatting for big numeric types.
+func prettifyValue(val reflect.Value, typ reflect.Type) interface{} {
+	if bigValue, isBig := prettifyBigNumbers(val); isBig {
+		return bigValue
+	}
+
+	if val.Kind() == reflect.Ptr {
+		if val.IsNil() {
+			return nil
+		}
+		val = val.Elem()
+		typ = val.Type()
+	}
+
+	switch val.Kind() {
+	case reflect.Struct:
+		return prettifyStructFields(val, typ)
+	case reflect.Slice, reflect.Array:
+		return prettifySliceOrArray(val)
+	default:
+		return val.Interface()
+	}
+}
+
+func prettifyStructFields(val reflect.Value, typ reflect.Type) map[string]interface{} {
+	out := make(map[string]interface{})
+	for i := 0; i < val.NumField(); i++ {
+		field := val.Field(i)
+		fieldType := typ.Field(i)
+
+		name := fieldType.Tag.Get("json")
+		if name == "" {
+			name = fieldType.Name
+		} else {
+			name = strings.Split(name, ",")[0]
+		}
+
+		if fieldType.PkgPath != "" {
+			out[name] = "<unexported>"
+			continue
+		}
+
+		if field.Kind() == reflect.Slice && field.Type() == reflect.TypeOf([]byte{}) {
+			out[name] = fmt.Sprintf("%x", field.Bytes())
+		} else {
+			out[name] = prettifyValue(field, field.Type())
+		}
+	}
+	return out
+}
+
+func prettifySliceOrArray(val reflect.Value) interface{} {
+	if val.Type().Elem().Kind() == reflect.Uint8 {
+		b := make([]byte, val.Len())
+		for i := 0; i < val.Len(); i++ {
+			b[i] = byte(val.Index(i).Uint())
+		}
+		return fmt.Sprintf("%x", b)
+	}
+
+	out := make([]interface{}, val.Len())
+	for i := 0; i < val.Len(); i++ {
+		out[i] = prettifyValue(val.Index(i), val.Index(i).Type())
+	}
+	return out
+}
+
+func prettifyBigNumbers(val reflect.Value) (string, bool) {
+	if val.CanInterface() {
+		switch v := val.Interface().(type) {
+		case *big.Int:
+			if v != nil {
+				return v.String(), true
+			}
+		case big.Int:
+			return v.String(), true
+		case *big.Float:
+			if v != nil {
+				return v.Text('g', -1), true
+			}
+		case big.Float:
+			return v.Text('g', -1), true
+		case *big.Rat:
+			if v != nil {
+				return v.RatString(), true
+			}
+		case big.Rat:
+			return v.RatString(), true
+		}
+	}
+	return "", false
+}
+
+// GetLastBaseExecutionResultHandler extracts the BaseExecutionResultHandler from the provided header, based on its type
+func GetLastBaseExecutionResultHandler(header data.HeaderHandler) (data.BaseExecutionResultHandler, error) {
+	if check.IfNil(header) {
+		return nil, ErrNilHeaderHandler
+	}
+	lastExecResultsHandler := header.GetLastExecutionResultHandler()
+	return ExtractBaseExecutionResultHandler(lastExecResultsHandler)
+}
+
+// ExtractBaseExecutionResultHandler extracts the base execution result handler from a last execution result handler
+func ExtractBaseExecutionResultHandler(lastExecResultsHandler data.LastExecutionResultHandler) (data.BaseExecutionResultHandler, error) {
+	if check.IfNil(lastExecResultsHandler) {
+		return nil, ErrNilLastExecutionResultHandler
+	}
+
+	var baseExecutionResultsHandler data.BaseExecutionResultHandler
+	var ok bool
+	switch executionResultsHandlerType := lastExecResultsHandler.(type) {
+	case data.LastMetaExecutionResultHandler:
+		metaBaseExecutionResults := executionResultsHandlerType.GetExecutionResultHandler()
+		if check.IfNil(metaBaseExecutionResults) {
+			return nil, ErrNilBaseExecutionResult
+		}
+		baseExecutionResultsHandler, ok = metaBaseExecutionResults.(data.BaseExecutionResultHandler)
+		if !ok {
+			return nil, ErrWrongTypeAssertion
+		}
+	case data.LastShardExecutionResultHandler:
+		baseExecutionResultsHandler = executionResultsHandlerType.GetExecutionResultHandler()
+	default:
+		return nil, fmt.Errorf("%w: unsupported execution result handler type", ErrWrongTypeAssertion)
+	}
+
+	if check.IfNil(baseExecutionResultsHandler) {
+		return nil, ErrNilBaseExecutionResult
+	}
+
+	return baseExecutionResultsHandler, nil
 }

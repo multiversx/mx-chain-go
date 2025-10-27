@@ -67,6 +67,9 @@ var ErrNilBlockChainHandler = errors.New("blockchain handler is nil")
 // ErrNilBlockProcessor is raised when a valid block processor is expected but nil used
 var ErrNilBlockProcessor = errors.New("block processor is nil")
 
+// ErrNilBlocksQueue is raised when a valid blocks queue is expected but nil used
+var ErrNilBlocksQueue = errors.New("blocks queue is nil")
+
 // ErrNilBlockSigner signals the nil block signer was provided
 var ErrNilBlockSigner = errors.New("nil block signer")
 
@@ -474,6 +477,9 @@ var ErrNilESDTDataStorage = errors.New("nil esdt data storage")
 
 // ErrNilEnableEpochsHandler signals that a nil enable epochs handler was provided
 var ErrNilEnableEpochsHandler = errors.New("nil enable epochs handler")
+
+// ErrNilEnableRoundsHandler signals that a nil enable rounds handler was provided
+var ErrNilEnableRoundsHandler = errors.New("nil enable rounds handler")
 
 // ErrNilChainParametersHandler signals that a nil chain parameters handler was provided
 var ErrNilChainParametersHandler = errors.New("nil chain parameters handler")

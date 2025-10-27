@@ -103,9 +103,10 @@ func Test_newBlockProcessorCreatorForMeta(t *testing.T) {
 	trieStorageManagers[dataRetriever.PeerAccountsUnit.String()] = storageManagerPeer
 
 	argsAccCreator := factoryState.ArgsAccountCreator{
-		Hasher:              coreComponents.Hasher(),
-		Marshaller:          coreComponents.InternalMarshalizer(),
-		EnableEpochsHandler: coreComponents.EnableEpochsHandler(),
+		Hasher:                 coreComponents.Hasher(),
+		Marshaller:             coreComponents.InternalMarshalizer(),
+		EnableEpochsHandler:    coreComponents.EnableEpochsHandler(),
+		StateAccessesCollector: &stateMock.StateAccessesCollectorStub{},
 	}
 	accCreator, _ := factoryState.NewAccountCreator(argsAccCreator)
 
@@ -141,6 +142,9 @@ func Test_newBlockProcessorCreatorForMeta(t *testing.T) {
 		AccountsAdapterAPICalled: func() state.AccountsAdapter {
 			return adb
 		},
+		AccountsAdapterProposalCalled: func() state.AccountsAdapter {
+			return adb
+		},
 		TriesContainerCalled: func() common.TriesHolder {
 			return &trieMock.TriesHolderStub{
 				GetCalled: func(bytes []byte) common.Trie {
@@ -150,6 +154,9 @@ func Test_newBlockProcessorCreatorForMeta(t *testing.T) {
 		},
 		TrieStorageManagersCalled: func() map[string]common.StorageManager {
 			return trieStorageManagers
+		},
+		StateAccessesCollectorCalled: func() state.StateAccessesCollector {
+			return &stateMock.StateAccessesCollectorStub{}
 		},
 	}
 	args := componentsMock.GetProcessArgs(
@@ -206,13 +213,14 @@ func createAccountAdapter(
 	}
 
 	args := state.ArgsAccountsDB{
-		Trie:                  tr,
-		Hasher:                hasher,
-		Marshaller:            marshaller,
-		AccountFactory:        accountFactory,
-		StoragePruningManager: disabled.NewDisabledStoragePruningManager(),
-		AddressConverter:      &testscommon.PubkeyConverterMock{},
-		SnapshotsManager:      disabledState.NewDisabledSnapshotsManager(),
+		Trie:                   tr,
+		Hasher:                 hasher,
+		Marshaller:             marshaller,
+		AccountFactory:         accountFactory,
+		StoragePruningManager:  disabled.NewDisabledStoragePruningManager(),
+		AddressConverter:       &testscommon.PubkeyConverterMock{},
+		SnapshotsManager:       disabledState.NewDisabledSnapshotsManager(),
+		StateAccessesCollector: disabledState.NewDisabledStateAccessesCollector(),
 	}
 	adb, err := state.NewAccountsDB(args)
 	if err != nil {

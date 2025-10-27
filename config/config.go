@@ -13,6 +13,22 @@ type CacheConfig struct {
 	Shards               uint32
 }
 
+// TxCacheBoundsConfig will map the transactions cache bounds config
+type TxCacheBoundsConfig struct {
+	MaxNumBytesPerSenderUpperBound uint32
+	MaxTrackedBlocks               uint32
+}
+
+// TxCacheSelectionConfig will map the mempool selection config
+type TxCacheSelectionConfig struct {
+	SelectionGasBandwidthIncreasePercent          uint32
+	SelectionGasBandwidthIncreaseScheduledPercent uint32
+	SelectionGasRequested                         uint64
+	SelectionMaxNumTxs                            int
+	SelectionLoopMaximumDuration                  int
+	SelectionLoopDurationCheckInterval            int
+}
+
 // HeadersPoolConfig will map the headers cache configuration
 type HeadersPoolConfig struct {
 	MaxHeadersPerShard            int
@@ -23,6 +39,13 @@ type HeadersPoolConfig struct {
 type ProofsPoolConfig struct {
 	CleanupNonceDelta uint64
 	BucketSize        int
+}
+
+// ExecutionResultInclusionEstimatorConfig will map the EIE configuration - supplied at construction, read‑only thereafter.
+// TODO add also max estimated block gas capacity
+type ExecutionResultInclusionEstimatorConfig struct {
+	SafetyMargin       uint64
+	MaxResultsPerBlock uint64
 }
 
 // DBConfig will map the database configuration
@@ -78,11 +101,12 @@ type ConsensusConfig struct {
 
 // NTPConfig will hold the configuration for NTP queries
 type NTPConfig struct {
-	Hosts               []string
-	Port                int
-	TimeoutMilliseconds int
-	SyncPeriodSeconds   int
-	Version             int
+	Hosts                []string
+	Port                 int
+	TimeoutMilliseconds  int
+	SyncPeriodSeconds    int
+	Version              int
+	OutOfBoundsThreshold int
 }
 
 // EvictionWaitingListConfig will hold the configuration for the EvictionWaitingList
@@ -94,8 +118,6 @@ type EvictionWaitingListConfig struct {
 
 // EpochStartConfig will hold the configuration of EpochStart settings
 type EpochStartConfig struct {
-	MinRoundsBetweenEpochs                      int64
-	RoundsPerEpoch                              int64
 	MinShuffledOutRestartThreshold              float64
 	MaxShuffledOutRestartThreshold              float64
 	MinNumConnectedPeersToStart                 int
@@ -163,39 +185,48 @@ type Config struct {
 	SmartContractsStorageForSCQuery StorageConfig
 	TrieEpochRootHashStorage        StorageConfig
 	SmartContractsStorageSimulate   StorageConfig
+	StateAccessesStorage            StorageConfig
 
-	BootstrapStorage StorageConfig
-	MetaBlockStorage StorageConfig
-	ProofsStorage    StorageConfig
+	ExecutionResultInclusionEstimator ExecutionResultInclusionEstimatorConfig
 
-	AccountsTrieStorage       StorageConfig
-	PeerAccountsTrieStorage   StorageConfig
-	EvictionWaitingList       EvictionWaitingListConfig
-	StateTriesConfig          StateTriesConfig
-	TrieStorageManagerConfig  TrieStorageManagerConfig
+	BootstrapStorage        StorageConfig
+	MetaBlockStorage        StorageConfig
+	ProofsStorage           StorageConfig
+	ExecutionResultsStorage StorageConfig
+
+	AccountsTrieStorage      StorageConfig
+	PeerAccountsTrieStorage  StorageConfig
+	EvictionWaitingList      EvictionWaitingListConfig
+	StateTriesConfig         StateTriesConfig
+	StateAccessesCollectorConfig StateAccessesCollectorConfig
+	TrieStorageManagerConfig TrieStorageManagerConfig
 	TrieLeavesRetrieverConfig TrieLeavesRetrieverConfig
-	BadBlocksCache            CacheConfig
+	BadBlocksCache           CacheConfig
 
-	TxBlockBodyDataPool         CacheConfig
-	PeerBlockBodyDataPool       CacheConfig
-	TxDataPool                  CacheConfig
-	UnsignedTransactionDataPool CacheConfig
-	RewardTransactionDataPool   CacheConfig
-	TrieNodesChunksDataPool     CacheConfig
-	WhiteListPool               CacheConfig
-	WhiteListerVerifiedTxs      CacheConfig
-	SmartContractDataPool       CacheConfig
-	ValidatorInfoPool           CacheConfig
-	TrieSyncStorage             TrieSyncStorageConfig
-	EpochStartConfig            EpochStartConfig
-	AddressPubkeyConverter      PubkeyConfig
-	ValidatorPubkeyConverter    PubkeyConfig
-	Hasher                      TypeConfig
-	MultisigHasher              TypeConfig
-	Marshalizer                 MarshalizerConfig
-	VmMarshalizer               TypeConfig
-	TxSignMarshalizer           TypeConfig
-	TxSignHasher                TypeConfig
+	TxBlockBodyDataPool          CacheConfig
+	PeerBlockBodyDataPool        CacheConfig
+	TxDataPool                   CacheConfig
+	TxCacheBounds                TxCacheBoundsConfig
+	TxCacheSelection             TxCacheSelectionConfig
+	UnsignedTransactionDataPool  CacheConfig
+	RewardTransactionDataPool    CacheConfig
+	TrieNodesChunksDataPool      CacheConfig
+	WhiteListPool                CacheConfig
+	WhiteListerVerifiedTxs       CacheConfig
+	SmartContractDataPool        CacheConfig
+	ValidatorInfoPool            CacheConfig
+	ExecutedMiniBlocksCache      CacheConfig
+	PostProcessTransactionsCache CacheConfig
+	TrieSyncStorage              TrieSyncStorageConfig
+	EpochStartConfig             EpochStartConfig
+	AddressPubkeyConverter       PubkeyConfig
+	ValidatorPubkeyConverter     PubkeyConfig
+	Hasher                       TypeConfig
+	MultisigHasher               TypeConfig
+	Marshalizer                  MarshalizerConfig
+	VmMarshalizer                TypeConfig
+	TxSignMarshalizer            TypeConfig
+	TxSignHasher                 TypeConfig
 
 	PublicKeyShardId      CacheConfig
 	PublicKeyPeerId       CacheConfig
@@ -295,9 +326,68 @@ type EpochChangeGracePeriodByEpoch struct {
 	GracePeriodInRounds uint32
 }
 
+// ConsensusConfigByEpoch defines consensus configuration parameters by epoch
+type ConsensusConfigByEpoch struct {
+	EnableEpoch uint32
+
+	NumRoundsToWaitBeforeSignalingChronologyStuck uint32
+}
+
+// EpochStartConfigByEpoch defines epoch start configuration parameters by epoch
+type EpochStartConfigByEpoch struct {
+	EnableEpoch uint32
+
+	GracePeriodRounds                           uint32
+	ExtraDelayForRequestBlockInfoInMilliseconds uint32
+}
+
+// EpochStartConfigByRound defines epoch start configuration parameters by round
+type EpochStartConfigByRound struct {
+	EnableRound uint64
+
+	// MaxRoundsWithoutCommittedStartInEpochBlock defines the maximum rounds to wait for start in epoch block to be committed,
+	// before a special action to be applied
+	MaxRoundsWithoutCommittedStartInEpochBlock uint32
+}
+
+// ProcessConfigByEpoch defines process configuration parameters by epoch
+type ProcessConfigByEpoch struct {
+	EnableEpoch uint32
+
+	// MaxMetaNoncesBehind defines the maximum difference between the current meta block nonce and the processed meta block
+	// nonce before a shard is considered stuck
+	MaxMetaNoncesBehind uint32
+
+	// MaxMetaNoncesBehindForGlobalStuck defines the maximum difference between the current meta block nonce and the processed
+	// meta block nonce for any shard, where the chain is considered stuck and enters recovery
+
+	MaxMetaNoncesBehindForGlobalStuck uint32
+
+	// MaxShardNoncesBehind defines the maximum difference between the current shard block nonce and the last notarized
+	// shard block nonce by meta, before meta is considered stuck
+	MaxShardNoncesBehind uint32
+}
+
+// ProcessConfigByRound defines process configuration parameters by round
+type ProcessConfigByRound struct {
+	EnableRound uint64
+
+	// MaxRoundsWithoutNewBlockReceived defines the maximum number of rounds to wait for a new block to be received,
+	// before a special action to be applied
+	MaxRoundsWithoutNewBlockReceived uint32
+
+	// MaxRoundsWithoutCommittedBlock defines the maximum rounds to wait for a new block to be committed,
+	// before a special action to be applied
+	MaxRoundsWithoutCommittedBlock uint32
+
+	// RoundModulusTriggerWhenSyncIsStuck defines a round modulus on which a trigger for an action when sync is stuck will be released
+	RoundModulusTriggerWhenSyncIsStuck uint32
+}
+
 // GeneralSettingsConfig will hold the general settings for a node
 type GeneralSettingsConfig struct {
-	StatusPollingIntervalSec             int
+	StatusPollingIntervalSec int
+	// TODO: add config per epoch for supernova
 	MaxComputableRounds                  uint64
 	MaxConsecutiveRoundsOfRatingDecrease uint64
 	StartInEpochEnabled                  bool
@@ -306,9 +396,15 @@ type GeneralSettingsConfig struct {
 	GenesisString                        string
 	GenesisMaxNumberOfShards             uint32
 	SyncProcessTimeInMillis              uint32
+	SyncProcessTimeSupernovaInMillis     uint32
 	SetGuardianEpochsDelay               uint32
 	ChainParametersByEpoch               []ChainParametersByEpochConfig
 	EpochChangeGracePeriodByEpoch        []EpochChangeGracePeriodByEpoch
+	ProcessConfigsByEpoch                []ProcessConfigByEpoch
+	ProcessConfigsByRound                []ProcessConfigByRound
+	EpochStartConfigsByEpoch             []EpochStartConfigByEpoch
+	EpochStartConfigsByRound             []EpochStartConfigByRound
+	ConsensusConfigsByEpoch              []ConsensusConfigByEpoch
 }
 
 // HardwareRequirementsConfig will hold the hardware requirements config
@@ -321,6 +417,7 @@ type FacadeConfig struct {
 	RestApiInterface            string
 	PprofEnabled                bool
 	P2PPrometheusMetricsEnabled bool
+	TxCacheSelectionConfig      TxCacheSelectionConfig
 }
 
 // StateTriesConfig will hold information about state tries
@@ -331,6 +428,13 @@ type StateTriesConfig struct {
 	MaxStateTrieLevelInMemory   uint
 	MaxPeerTrieLevelInMemory    uint
 	StateStatisticsEnabled      bool
+}
+
+// StateAccessesCollectorConfig will hold information about state accesses collector
+type StateAccessesCollectorConfig struct {
+	TypesToCollect     []string
+	SaveToStorage      bool
+	WithAccountChanges bool
 }
 
 // TrieStorageManagerConfig will hold config information about trie storage manager
@@ -362,8 +466,9 @@ type WebServerAntifloodConfig struct {
 type BlackListConfig struct {
 	ThresholdNumMessagesPerInterval uint32
 	ThresholdSizePerInterval        uint64
-	NumFloodingRounds               uint32
-	PeerBanDurationInSeconds        uint32
+	// TODO: add config per epoch for supernova
+	NumFloodingRounds        uint32
+	PeerBanDurationInSeconds uint32
 }
 
 // TopicMaxMessagesConfig will hold the maximum number of messages/sec per topic value
@@ -591,6 +696,7 @@ type RouteConfig struct {
 // VersionByEpochs represents a version entry that will be applied between the provided epochs
 type VersionByEpochs struct {
 	StartEpoch uint32
+	StartRound uint64
 	Version    string
 }
 
@@ -598,7 +704,6 @@ type VersionByEpochs struct {
 type VersionsConfig struct {
 	DefaultVersion   string
 	VersionsByEpochs []VersionByEpochs
-	Cache            CacheConfig
 }
 
 // Configs is a holder for the node configuration parameters
@@ -678,12 +783,15 @@ type PoolsCleanersConfig struct {
 
 // RedundancyConfig represents the config options to be used when setting the redundancy configuration
 type RedundancyConfig struct {
+	// TODO: add config per epoch for supernova
 	MaxRoundsOfInactivityAccepted int
 }
 
 // ChainParametersByEpochConfig holds chain parameters that are configurable based on epochs
 type ChainParametersByEpochConfig struct {
 	RoundDuration               uint64
+	RoundsPerEpoch              int64
+	MinRoundsBetweenEpochs      int64
 	Hysteresis                  float32
 	EnableEpoch                 uint32
 	ShardConsensusGroupSize     uint32
@@ -701,6 +809,7 @@ type IndexBroadcastDelay struct {
 
 // InterceptedDataVerifierConfig holds the configuration for the intercepted data verifier
 type InterceptedDataVerifierConfig struct {
+	EnableCaching    bool
 	CacheSpanInSec   uint64
 	CacheExpiryInSec uint64
 }

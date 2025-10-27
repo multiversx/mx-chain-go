@@ -64,11 +64,12 @@ func NewDataPoolFromConfig(args ArgsDataPool) (dataRetriever.PoolsHolder, error)
 	mainConfig := args.Config
 
 	txPool, err := txpool.NewShardedTxPool(txpool.ArgShardedTxPool{
-		Config:         factory.GetCacherFromConfig(mainConfig.TxDataPool),
-		TxGasHandler:   args.EconomicsData,
-		Marshalizer:    args.Marshalizer,
-		NumberOfShards: args.ShardCoordinator.NumberOfShards(),
-		SelfShardID:    args.ShardCoordinator.SelfId(),
+		Config:              factory.GetCacherFromConfig(mainConfig.TxDataPool),
+		TxGasHandler:        args.EconomicsData,
+		Marshalizer:         args.Marshalizer,
+		NumberOfShards:      args.ShardCoordinator.NumberOfShards(),
+		SelfShardID:         args.ShardCoordinator.SelfId(),
+		TxCacheBoundsConfig: mainConfig.TxCacheBounds,
 	})
 	if err != nil {
 		return nil, fmt.Errorf("%w while creating the cache for the transactions", err)
@@ -155,6 +156,18 @@ func NewDataPoolFromConfig(args ArgsDataPool) (dataRetriever.PoolsHolder, error)
 	currBlockTransactions := dataPool.NewCurrentBlockTransactionsPool()
 	currEpochValidatorInfo := dataPool.NewCurrentEpochValidatorInfoPool()
 
+	cacherCfg = factory.GetCacherFromConfig(mainConfig.ExecutedMiniBlocksCache)
+	executedMiniBlocksCache, err := storageunit.NewCache(cacherCfg)
+	if err != nil {
+		return nil, fmt.Errorf("%w while creating the cache for the executed mini blocks", err)
+	}
+
+	cacherCfg = factory.GetCacherFromConfig(mainConfig.PostProcessTransactionsCache)
+	postProcessTransactionsCache, err := storageunit.NewCache(cacherCfg)
+	if err != nil {
+		return nil, fmt.Errorf("%w while creating the cache for the post process transactions", err)
+	}
+
 	dataPoolArgs := dataPool.DataPoolArgs{
 		Transactions:              txPool,
 		UnsignedTransactions:      uTxPool,
@@ -171,6 +184,8 @@ func NewDataPoolFromConfig(args ArgsDataPool) (dataRetriever.PoolsHolder, error)
 		Heartbeats:                heartbeatPool,
 		ValidatorsInfo:            validatorsInfo,
 		Proofs:                    proofsPool,
+		ExecutedMiniBlocks:        executedMiniBlocksCache,
+		PostProcessTransactions:   postProcessTransactionsCache,
 	}
 	return dataPool.NewDataPool(dataPoolArgs)
 }

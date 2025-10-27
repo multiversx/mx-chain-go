@@ -34,6 +34,7 @@ func createMockHistoryRepoArgs(epoch uint32) HistoryRepositoryArguments {
 		EpochByHashStorer:           genericMocks.NewStorerMockWithEpoch(epoch),
 		EventsHashesByTxHashStorer:  genericMocks.NewStorerMockWithEpoch(epoch),
 		BlockHashByRound:            genericMocks.NewStorerMockWithEpoch(epoch),
+		ExecutionResultsStorer:      genericMocks.NewStorerMockWithEpoch(epoch),
 		Marshalizer:                 &mock.MarshalizerMock{},
 		Hasher:                      &hashingMocks.HasherMock{},
 		ESDTSuppliesHandler:         sp,

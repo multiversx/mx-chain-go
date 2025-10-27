@@ -3,10 +3,14 @@ package shardedData
 import (
 	"fmt"
 	"sync"
+	"time"
 
 	"github.com/multiversx/mx-chain-core-go/core"
 	"github.com/multiversx/mx-chain-core-go/core/counting"
+	"github.com/multiversx/mx-chain-core-go/data"
+	"github.com/multiversx/mx-chain-core-go/data/block"
 	"github.com/multiversx/mx-chain-core-go/marshal"
+	"github.com/multiversx/mx-chain-go/common"
 	"github.com/multiversx/mx-chain-go/dataRetriever"
 	"github.com/multiversx/mx-chain-go/storage"
 	"github.com/multiversx/mx-chain-go/storage/cache"
@@ -308,6 +312,29 @@ func (sd *shardedData) Diagnose(deep bool) {
 	for _, shard := range sd.shardedDataStore {
 		shard.cache.Diagnose(deep)
 	}
+}
+
+// CleanupSelfShardTxCache does nothing (only to satisfy the interface dataRetriever.ShardedDataCacherNotifier)
+func (sd *shardedData) CleanupSelfShardTxCache(_ common.AccountNonceProvider, _ uint64, _ int, _ time.Duration) {
+	log.Warn("shardedData.CleanupSelfShardTxCache() should not have been called")
+}
+
+// OnExecutedBlock does nothing (only to satisfy the interface dataRetriever.ShardedDataCacherNotifier)
+func (sd *shardedData) OnExecutedBlock(_ data.HeaderHandler, _ []byte) error {
+	log.Warn("shardedData.OnExecutedBlock() should not have been called")
+	return nil
+}
+
+// OnProposedBlock does nothing (only to satisfy the interface dataRetriever.ShardedDataCacherNotifier)
+func (sd *shardedData) OnProposedBlock(
+	_ []byte,
+	_ *block.Body,
+	_ data.HeaderHandler,
+	_ common.AccountNonceAndBalanceProvider,
+	_ []byte,
+) error {
+	log.Warn("shardedData.OnProposedBlockCalled() should not have been called")
+	return nil
 }
 
 // IsInterfaceNil returns true if there is no value under the interface

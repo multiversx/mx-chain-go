@@ -7,13 +7,16 @@ import (
 	"math/big"
 
 	"github.com/multiversx/mx-chain-core-go/core"
+	"github.com/multiversx/mx-chain-core-go/data/stateChange"
+	vmcommon "github.com/multiversx/mx-chain-vm-common-go"
+
 	"github.com/multiversx/mx-chain-go/common"
 	"github.com/multiversx/mx-chain-go/state"
+	"github.com/multiversx/mx-chain-go/state/disabled"
 	"github.com/multiversx/mx-chain-go/state/trackableDataTrie"
 	"github.com/multiversx/mx-chain-go/testscommon/enableEpochsHandlerMock"
 	"github.com/multiversx/mx-chain-go/testscommon/hashingMocks"
 	"github.com/multiversx/mx-chain-go/testscommon/marshallerMock"
-	vmcommon "github.com/multiversx/mx-chain-vm-common-go"
 )
 
 var _ state.UserAccountHandler = (*AccountWrapMock)(nil)
@@ -47,6 +50,7 @@ func NewAccountWrapMock(adr []byte) *AccountWrapMock {
 		&hashingMocks.HasherMock{},
 		&marshallerMock.MarshalizerMock{},
 		&enableEpochsHandlerMock.EnableEpochsHandlerStub{},
+		disabled.NewDisabledStateAccessesCollector(),
 	)
 
 	return &AccountWrapMock{
@@ -196,7 +200,7 @@ func (awm *AccountWrapMock) DataTrie() common.DataTrieHandler {
 }
 
 // SaveDirtyData -
-func (awm *AccountWrapMock) SaveDirtyData(trie common.Trie) ([]core.TrieData, error) {
+func (awm *AccountWrapMock) SaveDirtyData(trie common.Trie) ([]*stateChange.DataTrieChange, []core.TrieData, error) {
 	return awm.trackableDataTrie.SaveDirtyData(trie)
 }
 
@@ -216,6 +220,11 @@ func (awm *AccountWrapMock) AccountDataHandler() vmcommon.AccountDataHandler {
 		return awm.AccountDataHandlerCalled()
 	}
 	return awm.trackableDataTrie
+}
+
+// SetNonce -
+func (awm *AccountWrapMock) SetNonce(nonce uint64) {
+	awm.nonce = nonce
 }
 
 // GetNonce gets the nonce of the account

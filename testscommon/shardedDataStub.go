@@ -1,7 +1,12 @@
 package testscommon
 
 import (
+	"time"
+
 	"github.com/multiversx/mx-chain-core-go/core/counting"
+	"github.com/multiversx/mx-chain-core-go/data"
+	"github.com/multiversx/mx-chain-core-go/data/block"
+	"github.com/multiversx/mx-chain-go/common"
 	"github.com/multiversx/mx-chain-go/storage"
 )
 
@@ -22,6 +27,15 @@ type ShardedDataStub struct {
 	CreateShardStoreCalled                 func(destCacheID string)
 	GetCountsCalled                        func() counting.CountsWithSize
 	KeysCalled                             func() [][]byte
+	CleanupSelfShardTxCacheCalled          func(session interface{}, randomness uint64, maxNum int, cleanupLoopMaximumDuration time.Duration)
+	OnExecutedBlockCalled                  func(blockHeader data.HeaderHandler, rootHash []byte) error
+	OnProposedBlockCalled                  func(
+		blockHash []byte,
+		blockBody *block.Body,
+		blockHeader data.HeaderHandler,
+		accountsProvider common.AccountNonceAndBalanceProvider,
+		latestExecutedHash []byte,
+	) error
 }
 
 // NewShardedDataStub -
@@ -126,7 +140,37 @@ func (sd *ShardedDataStub) Keys() [][]byte {
 	return nil
 }
 
-// IsInterfaceNil returns true if there is no value under the interface
+// CleanupSelfShardTxCache -
+func (sd *ShardedDataStub) CleanupSelfShardTxCache(accountsProvider common.AccountNonceProvider, randomness uint64, maxNum int, cleanupLoopMaximumDuration time.Duration) {
+	if sd.CleanupSelfShardTxCacheCalled != nil {
+		sd.CleanupSelfShardTxCacheCalled(accountsProvider, randomness, maxNum, cleanupLoopMaximumDuration)
+	}
+}
+
+// OnExecutedBlock -
+func (sd *ShardedDataStub) OnExecutedBlock(blockHeader data.HeaderHandler, rootHash []byte) error {
+	if sd.OnExecutedBlockCalled != nil {
+		return sd.OnExecutedBlockCalled(blockHeader, rootHash)
+	}
+
+	return nil
+}
+
+// OnProposedBlock -
+func (sd *ShardedDataStub) OnProposedBlock(
+	blockHash []byte,
+	blockBody *block.Body,
+	blockHeader data.HeaderHandler,
+	accountsProvider common.AccountNonceAndBalanceProvider,
+	latestExecutedHash []byte,
+) error {
+	if sd.OnProposedBlockCalled != nil {
+		return sd.OnProposedBlockCalled(blockHash, blockBody, blockHeader, accountsProvider, latestExecutedHash)
+	}
+	return nil
+}
+
+// IsInterfaceNil -
 func (sd *ShardedDataStub) IsInterfaceNil() bool {
 	return sd == nil
 }

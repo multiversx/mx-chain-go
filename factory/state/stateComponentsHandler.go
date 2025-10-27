@@ -5,6 +5,7 @@ import (
 	"sync"
 
 	"github.com/multiversx/mx-chain-core-go/core/check"
+
 	"github.com/multiversx/mx-chain-go/common"
 	"github.com/multiversx/mx-chain-go/errors"
 	"github.com/multiversx/mx-chain-go/factory"
@@ -136,6 +137,18 @@ func (msc *managedStateComponents) AccountsAdapterAPI() state.AccountsAdapter {
 	return msc.stateComponents.accountsAdapterAPI
 }
 
+// AccountsAdapterProposal returns the accounts adapter for the user accounts to be used in proposals
+func (msc *managedStateComponents) AccountsAdapterProposal() state.AccountsAdapter {
+	msc.mutStateComponents.RLock()
+	defer msc.mutStateComponents.RUnlock()
+
+	if msc.stateComponents == nil {
+		return nil
+	}
+
+	return msc.stateComponents.accountsAdapterProposal
+}
+
 // AccountsRepository returns the accounts adapter for the user accounts to be used in REST API
 func (msc *managedStateComponents) AccountsRepository() state.AccountsRepository {
 	msc.mutStateComponents.RLock()
@@ -227,6 +240,18 @@ func (msc *managedStateComponents) TrieLeavesRetriever() common.TrieLeavesRetrie
 	}
 
 	return msc.stateComponents.trieLeavesRetriever
+}
+
+// StateAccessesCollector returns the state accesses collector
+func (msc *managedStateComponents) StateAccessesCollector() state.StateAccessesCollector {
+	msc.mutStateComponents.RLock()
+	defer msc.mutStateComponents.RUnlock()
+
+	if msc.stateComponents == nil {
+		return nil
+	}
+
+	return msc.stateComponents.stateAccessesCollector
 }
 
 // IsInterfaceNil returns true if the interface is nil

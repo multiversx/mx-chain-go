@@ -11,6 +11,7 @@ import (
 	"github.com/stretchr/testify/require"
 
 	"github.com/multiversx/mx-chain-core-go/core/check"
+
 	"github.com/multiversx/mx-chain-go/integrationTests"
 )
 
@@ -29,6 +30,7 @@ func initNodesWithTestSigner(
 
 	enableEpochsConfig := integrationTests.CreateEnableEpochsConfig()
 	enableEpochsConfig.AndromedaEnableEpoch = equivalentProofsActivationEpoch
+	enableEpochsConfig.SupernovaEnableEpoch = 0
 
 	nodes := integrationTests.CreateNodesWithTestFullNode(
 		int(numMetaNodes),
@@ -38,7 +40,8 @@ func initNodesWithTestSigner(
 		consensusType,
 		1,
 		enableEpochsConfig,
-		false,
+		integrationTests.GetSupernovaRoundsConfigActivated(),
+		100,
 	)
 
 	time.Sleep(p2pBootstrapDelay)

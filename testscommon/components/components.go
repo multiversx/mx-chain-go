@@ -115,6 +115,9 @@ func GetCoreArgs() coreComp.CoreComponentsFactoryArgs {
 				"DisableAsyncCallV1": {
 					Round: "18446744073709551615",
 				},
+				"SupernovaEnableRound": {
+					Round: "9999999",
+				},
 			},
 		},
 	}
@@ -624,6 +627,12 @@ func GetProcessArgs(
 						NodesToShufflePerShard: 2,
 					},
 				},
+			},
+		},
+		EconomicsConfig: config.EconomicsConfig{
+			FeeSettings: config.FeeSettings{
+				BlockCapacityOverestimationFactor: 200,
+				PercentDecreaseLimitsStep:         10,
 			},
 		},
 	}

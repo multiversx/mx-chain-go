@@ -129,6 +129,8 @@ func (sr *subroundBlock) doBlockJob(ctx context.Context) bool {
 		return false
 	}
 
+	sr.updateConsensusMetricsProposedBlockReceivedOrSent()
+
 	err = sr.SetJobDone(leader, sr.Current(), true)
 	if err != nil {
 		log.Debug("doBlockJob.SetSelfJobDone", "error", err.Error())
@@ -281,10 +283,17 @@ func (sr *subroundBlock) sendBlockHeader(
 
 	log.Debug("step 1: block header has been sent",
 		"nonce", headerHandler.GetNonce(),
-		"hash", headerHash)
+		"hash", headerHash,
+	)
 
 	sr.SetData(headerHash)
 	sr.SetHeader(headerHandler)
+
+	// log the header output for debugging purposes
+	headerOutput, err := common.PrettifyStruct(headerHandler)
+	if err == nil {
+		log.Debug("Proposed header sent", "header", headerOutput)
+	}
 
 	return true
 }
@@ -331,7 +340,7 @@ func (sr *subroundBlock) createHeader() (data.HeaderHandler, error) {
 		return nil, err
 	}
 
-	err = hdr.SetTimeStamp(uint64(sr.RoundHandler().TimeStamp().Unix()))
+	err = hdr.SetTimeStamp(sr.GetUnixTimestampForHeader(hdr.GetEpoch()))
 	if err != nil {
 		return nil, err
 	}
@@ -356,6 +365,10 @@ func (sr *subroundBlock) createHeader() (data.HeaderHandler, error) {
 
 // receivedBlockBody method is called when a block body is received through the block body channel
 func (sr *subroundBlock) receivedBlockBody(ctx context.Context, cnsDta *consensus.Message) bool {
+	if !sr.waitForStartRoundToFinishBlocking() {
+		return false
+	}
+
 	node := string(cnsDta.PubKey)
 
 	if !sr.IsNodeLeaderInCurrentRound(node) { // is NOT this node leader in current round?
@@ -447,13 +460,44 @@ func (sr *subroundBlock) getLeaderForHeader(headerHandler data.HeaderHandler) ([
 	return leader.PubKey(), err
 }
 
+func (sr *subroundBlock) waitForStartRoundToFinishBlocking() bool {
+	if sr.IsSubroundFinished(bls.SrStartRound) {
+		return true
+	}
+
+	timerStartRoundChecks := time.NewTimer(timeSpentBetweenChecks)
+
+	ctx, cancel := context.WithTimeout(context.Background(), sr.RoundHandler().TimeDuration())
+	defer cancel()
+
+	for {
+		timerStartRoundChecks.Reset(timeSpentBetweenChecks)
+
+		select {
+		case <-timerStartRoundChecks.C:
+			if sr.IsSubroundFinished(bls.SrStartRound) {
+				return true
+			}
+		case <-ctx.Done():
+			log.Debug("subroundBlock timeout while waiting for start round to finish")
+			return false
+		}
+	}
+}
+
 func (sr *subroundBlock) receivedBlockHeader(headerHandler data.HeaderHandler) {
 	if check.IfNil(headerHandler) {
+		log.Debug("subroundBlock.receivedBlockHeader - header is nil")
 		return
 	}
 
 	log.Debug("subroundBlock.receivedBlockHeader", "nonce", headerHandler.GetNonce(), "round", headerHandler.GetRound())
 	if headerHandler.CheckFieldsForNil() != nil {
+		log.Debug("subroundBlock.receivedBlockHeader - header fields are nil")
+		return
+	}
+
+	if !sr.waitForStartRoundToFinishBlocking() {
 		return
 	}
 
@@ -525,6 +569,12 @@ func (sr *subroundBlock) receivedBlockHeader(headerHandler data.HeaderHandler) {
 		spos.GetConsensusTopicID(sr.ShardCoordinator()),
 		spos.LeaderPeerHonestyIncreaseFactor,
 	)
+
+	// log the header output for debugging purposes
+	headerOutput, err := common.PrettifyStruct(headerHandler)
+	if err == nil {
+		log.Debug("Proposed header received", "header", headerOutput)
+	}
 }
 
 // CanProcessReceivedHeader method returns true if the received header can be processed and false otherwise
@@ -559,6 +609,8 @@ func (sr *subroundBlock) processReceivedBlock(
 		return false
 	}
 
+	sr.updateConsensusMetricsProposedBlockReceivedOrSent()
+
 	sw := core.NewStopWatch()
 	sw.Start("processReceivedBlock")
 
@@ -567,7 +619,7 @@ func (sr *subroundBlock) processReceivedBlock(
 
 	defer func() {
 		sw.Stop("processReceivedBlock")
-		log.Info("time measurements of processReceivedBlock", sw.GetMeasurements()...)
+		log.Debug("time measurements of processReceivedBlock", sw.GetMeasurements()...)
 
 		sr.SetProcessingBlock(false)
 	}()
@@ -720,6 +772,14 @@ func (sr *subroundBlock) getRoundInLastCommittedBlock() int64 {
 	}
 
 	return roundInLastCommittedBlock
+}
+
+func (sr *subroundBlock) updateConsensusMetricsProposedBlockReceivedOrSent() {
+
+	currentTime := sr.SyncTimer().CurrentTime()
+	bodyReceivedOrSentTime := currentTime.Sub(sr.RoundHandler().TimeStamp()).Nanoseconds()
+
+	sr.worker.ConsensusMetrics().SetBlockReceivedOrSent(uint64(bodyReceivedOrSentTime))
 }
 
 // IsInterfaceNil returns true if there is no value under the interface

@@ -24,6 +24,8 @@ var _ process.ValidityAttester = (*baseBlockTrack)(nil)
 
 var log = logger.GetOrCreate("process/track")
 
+const maxNonceDifference = 10 // TODO move this to a config file
+
 // HeaderInfo holds the information about a header
 type HeaderInfo struct {
 	Hash   []byte
@@ -51,7 +53,10 @@ type baseBlockTrack struct {
 	whitelistHandler                      process.WhiteListHandler
 	feeHandler                            process.FeeHandler
 	enableEpochsHandler                   common.EnableEpochsHandler
+	enableRoundsHandler                   common.EnableRoundsHandler
 	epochChangeGracePeriodHandler         common.EpochChangeGracePeriodHandler
+	processConfigsHandler                 common.ProcessConfigsHandler
+	ownShardTracker                       OwnShardTrackerHandler
 
 	mutHeaders                  sync.RWMutex
 	headers                     map[uint32]map[uint64][]*HeaderInfo
@@ -101,6 +106,11 @@ func createBaseBlockTrack(arguments ArgBaseTracker) (*baseBlockTrack, error) {
 		return nil, err
 	}
 
+	tracker, err := NewOwnShardTracker(arguments.EnableEpochsHandler, maxNonceDifference)
+	if err != nil {
+		return nil, fmt.Errorf("failed to create own shard tracker: %w", err)
+	}
+
 	bbt := &baseBlockTrack{
 		hasher:                                arguments.Hasher,
 		headerValidator:                       arguments.HeaderValidator,
@@ -121,7 +131,10 @@ func createBaseBlockTrack(arguments ArgBaseTracker) (*baseBlockTrack, error) {
 		whitelistHandler:                      arguments.WhitelistHandler,
 		feeHandler:                            arguments.FeeHandler,
 		enableEpochsHandler:                   arguments.EnableEpochsHandler,
+		enableRoundsHandler:                   arguments.EnableRoundsHandler,
 		epochChangeGracePeriodHandler:         arguments.EpochChangeGracePeriodHandler,
+		processConfigsHandler:                 arguments.ProcessConfigsHandler,
+		ownShardTracker:                       tracker,
 	}
 
 	return bbt, nil
@@ -654,9 +667,12 @@ func (bbt *baseBlockTrack) ShouldSkipMiniBlocksCreationFromSelf() bool {
 		return false
 	}
 
+	currentEpoch := bbt.enableEpochsHandler.GetCurrentEpoch()
+	maxMetaNoncesBehind := bbt.processConfigsHandler.GetMaxMetaNoncesBehindForGlobalStuckByEpoch(currentEpoch)
+
 	shards := bbt.shardCoordinator.NumberOfShards()
 	for shardID := uint32(0); shardID < shards; shardID++ {
-		if bbt.isShardBehind(shardID, process.MaxMetaNoncesBehindForGlobalStuck) {
+		if bbt.isShardBehind(shardID, uint64(maxMetaNoncesBehind)) {
 			return true
 		}
 	}
@@ -674,7 +690,9 @@ func (bbt *baseBlockTrack) IsShardStuck(shardID uint32) bool {
 		return bbt.isMetaStuck()
 	}
 
-	return bbt.isShardBehind(shardID, process.MaxMetaNoncesBehind)
+	currentEpoch := bbt.enableEpochsHandler.GetCurrentEpoch()
+	maxMetaNoncesBehind := bbt.processConfigsHandler.GetMaxMetaNoncesBehindByEpoch(currentEpoch)
+	return bbt.isShardBehind(shardID, uint64(maxMetaNoncesBehind))
 }
 
 func (bbt *baseBlockTrack) isShardBehind(shardID uint32, maxMetaNoncesBehind uint64) bool {
@@ -739,7 +757,11 @@ func (bbt *baseBlockTrack) computeMetaBlocksBehind() int64 {
 
 func (bbt *baseBlockTrack) isMetaStuck() bool {
 	noncesBehind := bbt.computeMetaBlocksBehind()
-	isMetaStuck := noncesBehind > process.MaxShardNoncesBehind
+
+	currentEpoch := bbt.enableEpochsHandler.GetCurrentEpoch()
+	maxShardNoncesBehind := bbt.processConfigsHandler.GetMaxShardNoncesBehindByEpoch(currentEpoch)
+
+	isMetaStuck := noncesBehind > int64(maxShardNoncesBehind)
 	return isMetaStuck
 }
 
@@ -838,6 +860,9 @@ func checkTrackerNilParameters(arguments ArgBaseTracker) error {
 	}
 	if check.IfNil(arguments.EpochChangeGracePeriodHandler) {
 		return process.ErrNilEpochChangeGracePeriodHandler
+	}
+	if check.IfNil(arguments.ProcessConfigsHandler) {
+		return process.ErrNilProcessConfigsHandler
 	}
 
 	return nil
@@ -951,4 +976,14 @@ func (bbt *baseBlockTrack) isHeaderOutOfRange(headerHandler data.HeaderHandler) 
 
 	isHeaderOutOfRange := headerHandler.GetNonce() > lastCrossNotarizedHeader.GetNonce()+process.MaxHeadersToWhitelistInAdvance
 	return isHeaderOutOfRange
+}
+
+// ComputeOwnShardStuck checks if the own shard is stuck and updates the own shard tracker accordingly
+func (bbt *baseBlockTrack) ComputeOwnShardStuck(lastExecutionResultsInfo data.BaseExecutionResultHandler, currentNonce uint64) {
+	bbt.ownShardTracker.ComputeOwnShardStuck(lastExecutionResultsInfo, currentNonce)
+}
+
+// IsOwnShardStuck returns true if the own shard is stuck, false otherwise
+func (bbt *baseBlockTrack) IsOwnShardStuck() bool {
+	return bbt.ownShardTracker.IsOwnShardStuck()
 }

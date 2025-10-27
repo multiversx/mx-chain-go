@@ -25,6 +25,7 @@ import (
 	"github.com/multiversx/mx-chain-go/testscommon/consensus/initializers"
 	"github.com/multiversx/mx-chain-go/testscommon/dataRetriever"
 	"github.com/multiversx/mx-chain-go/testscommon/enableEpochsHandlerMock"
+	"github.com/multiversx/mx-chain-go/testscommon/round"
 	"github.com/multiversx/mx-chain-go/testscommon/shardingMocks"
 	"github.com/multiversx/mx-chain-go/testscommon/statusHandler"
 )
@@ -37,8 +38,9 @@ func defaultSubroundForSRBlock(consensusState *spos.ConsensusState, ch chan bool
 		bls.SrStartRound,
 		bls.SrBlock,
 		bls.SrSignature,
-		int64(5*roundTimeDuration/100),
-		int64(25*roundTimeDuration/100),
+		roundTimeDuration,
+		0.05,
+		0.25,
 		"(BLOCK)",
 		consensusState,
 		ch,
@@ -69,17 +71,28 @@ func defaultSubroundBlockFromSubround(sr *spos.Subround) (v2.SubroundBlock, erro
 	srBlock, err := v2.NewSubroundBlock(
 		sr,
 		v2.ProcessingThresholdPercent,
-		&consensusMocks.SposWorkerMock{},
+		&consensusMocks.SposWorkerMock{
+			ConsensusMetricsCalled: func() spos.ConsensusMetricsHandler {
+				consensusMetrics, _ := spos.NewConsensusMetrics(sr.AppStatusHandler())
+				return consensusMetrics
+			},
+		},
 	)
 
 	return srBlock, err
 }
 
 func defaultSubroundBlockWithoutErrorFromSubround(sr *spos.Subround) v2.SubroundBlock {
+
 	srBlock, _ := v2.NewSubroundBlock(
 		sr,
 		v2.ProcessingThresholdPercent,
-		&consensusMocks.SposWorkerMock{},
+		&consensusMocks.SposWorkerMock{
+			ConsensusMetricsCalled: func() spos.ConsensusMetricsHandler {
+				consensusMetrics, _ := spos.NewConsensusMetrics(sr.AppStatusHandler())
+				return consensusMetrics
+			},
+		},
 	)
 
 	return srBlock
@@ -567,7 +580,12 @@ func TestSubroundBlock_DoBlockJob(t *testing.T) {
 		sr, _ := v2.NewSubroundBlock(
 			baseSr,
 			v2.ProcessingThresholdPercent,
-			&consensusMocks.SposWorkerMock{},
+			&consensusMocks.SposWorkerMock{
+				ConsensusMetricsCalled: func() spos.ConsensusMetricsHandler {
+					consensusMetrics, _ := spos.NewConsensusMetrics(baseSr.AppStatusHandler())
+					return consensusMetrics
+				},
+			},
 		)
 
 		providedLeaderSignature := []byte("leader signature")
@@ -612,7 +630,7 @@ func TestSubroundBlock_DoBlockJob(t *testing.T) {
 			},
 		}
 		container.SetBroadcastMessenger(bm)
-		container.SetRoundHandler(&consensusMocks.RoundHandlerMock{
+		container.SetRoundHandler(&round.RoundHandlerMock{
 			RoundIndex: 1,
 		})
 		container.SetEquivalentProofsPool(&dataRetriever.ProofsPoolMock{
@@ -633,6 +651,7 @@ func TestSubroundBlock_DoBlockJob(t *testing.T) {
 
 func TestSubroundBlock_ReceivedBlock(t *testing.T) {
 	t.Parallel()
+
 	container := consensusMocks.InitConsensusCore()
 	sr := initSubroundBlock(nil, container, &statusHandler.AppStatusHandlerStub{})
 	blkBody := &block.Body{}
@@ -655,8 +674,13 @@ func TestSubroundBlock_ReceivedBlock(t *testing.T) {
 		currentPid,
 		nil,
 	)
-	sr.SetBody(&block.Body{})
 	r := sr.ReceivedBlockBody(cnsMsg)
+	assert.False(t, r) // returns false as start round is not finished yet
+
+	sr.SetStatus(bls.SrStartRound, spos.SsFinished)
+
+	sr.SetBody(&block.Body{})
+	r = sr.ReceivedBlockBody(cnsMsg)
 	assert.False(t, r)
 
 	sr.SetBody(nil)
@@ -764,7 +788,7 @@ func TestSubroundBlock_ProcessReceivedBlockShouldReturnFalseWhenProcessBlockRetu
 		return expectedErr
 	}
 	container.SetBlockProcessor(blockProcessorMock)
-	container.SetRoundHandler(&consensusMocks.RoundHandlerMock{RoundIndex: 1})
+	container.SetRoundHandler(&round.RoundHandlerMock{RoundIndex: 1})
 	assert.False(t, sr.ProcessReceivedBlock(cnsMsg))
 }
 
@@ -902,7 +926,7 @@ func TestSubroundBlock_HaveTimeInCurrentSubroundShouldReturnTrue(t *testing.T) {
 
 		return time.Duration(remainingTime) > 0
 	}
-	roundHandlerMock := &consensusMocks.RoundHandlerMock{}
+	roundHandlerMock := &round.RoundHandlerMock{}
 	roundHandlerMock.TimeDurationCalled = func() time.Duration {
 		return 4000 * time.Millisecond
 	}
@@ -932,7 +956,7 @@ func TestSubroundBlock_HaveTimeInCurrentSuboundShouldReturnFalse(t *testing.T) {
 
 		return time.Duration(remainingTime) > 0
 	}
-	roundHandlerMock := &consensusMocks.RoundHandlerMock{}
+	roundHandlerMock := &round.RoundHandlerMock{}
 	roundHandlerMock.TimeDurationCalled = func() time.Duration {
 		return 4000 * time.Millisecond
 	}
@@ -1226,6 +1250,15 @@ func TestSubroundBlock_ReceivedBlockHeader(t *testing.T) {
 	// nil header
 	sr.ReceivedBlockHeader(nil)
 
+	// start round is not finished
+	sr.ReceivedBlockHeader(&testscommon.HeaderHandlerStub{})
+
+	// set start round finished on go routine for extra coverage
+	go func() {
+		time.Sleep(2 * time.Millisecond)
+		sr.SetStatus(bls.SrStartRound, spos.SsFinished)
+	}()
+
 	// header not for current consensus
 	sr.ReceivedBlockHeader(&testscommon.HeaderHandlerStub{})
 
@@ -1299,6 +1332,79 @@ func TestSubroundBlock_ReceivedBlockHeader(t *testing.T) {
 	sr.ReceivedBlockHeader(headerForCurrentConsensus)
 }
 
+func TestSubroundBlock_UpdateConsensusMetrics(t *testing.T) {
+	t.Parallel()
+
+	now := time.Now()
+	container := consensusMocks.InitConsensusCore()
+	syncTimerMock := &consensusMocks.SyncTimerMock{
+		CurrentTimeCalled: func() time.Time {
+			return now
+		},
+	}
+	count := 0
+	roundHandlerMock := testscommon.RoundHandlerMock{
+		TimeStampCalled: func() time.Time {
+			defer func() { count++ }()
+			if count == 0 {
+				return now.Add(-500 * time.Nanosecond)
+			}
+			return now.Add(-200 * time.Nanosecond)
+		},
+	}
+	container.SetSyncTimer(syncTimerMock)
+	container.SetRoundHandler(&roundHandlerMock)
+
+	appStatusHandler := statusHandler.NewAppStatusHandlerMock()
+
+	providedHeadr := &block.HeaderV2{
+		Header: &block.Header{
+			Signature:     []byte("signature"),
+			PubKeysBitmap: []byte("bitmap"),
+		},
+	}
+	providedHash := []byte("provided hash")
+	chainHandler := &testscommon.ChainHandlerStub{
+		GetCurrentBlockHeaderCalled: func() data.HeaderHandler {
+			return providedHeadr
+		},
+		GetCurrentBlockHeaderHashCalled: func() []byte {
+			return providedHash
+		},
+	}
+	container.SetBlockchain(chainHandler)
+
+	consensusState := initializers.InitConsensusStateWithNodesCoordinator(container.NodesCoordinator())
+	ch := make(chan bool, 1)
+	sr, _ := defaultSubroundForSRBlock(consensusState, ch, container, appStatusHandler)
+
+	consensusMetrics, _ := spos.NewConsensusMetrics(sr.AppStatusHandler())
+	srBlock, _ := v2.NewSubroundBlock(
+		sr,
+		v2.ProcessingThresholdPercent,
+		&consensusMocks.SposWorkerMock{
+			ConsensusMetricsCalled: func() spos.ConsensusMetricsHandler {
+				return consensusMetrics
+			},
+		},
+	)
+
+	consensusMetrics.ResetInstanceValues()
+	consensusMetrics.ResetAverages()
+
+	srBlock.UpdateConsensusMetricsProposedBlockReceivedOrSent()
+	// instance value = 500; avg = 500
+	assert.Equal(t, uint64(500), appStatusHandler.GetUint64(common.MetricReceivedOrSentProposedBlock), "MetricReceivedProof should be set")
+	assert.Equal(t, uint64(500), appStatusHandler.GetUint64(common.MetricAvgReceivedOrSentProposedBlock), "MetricAvgProofsReceived should be set")
+
+	consensusMetrics.ResetInstanceValues()
+
+	srBlock.UpdateConsensusMetricsProposedBlockReceivedOrSent()
+	// instance value = 200; avg = 500 + 200 / 2 = 350
+	assert.Equal(t, uint64(200), appStatusHandler.GetUint64(common.MetricReceivedOrSentProposedBlock), "MetricReceivedProof should be set")
+	assert.Equal(t, uint64(350), appStatusHandler.GetUint64(common.MetricAvgReceivedOrSentProposedBlock), "MetricAvgProofsReceived should be set")
+}
+
 func TestSubroundBlock_GetLeaderForHeader(t *testing.T) {
 	t.Parallel()
 
@@ -1353,7 +1459,6 @@ func TestSubroundBlock_IsInterfaceNil(t *testing.T) {
 	container := consensusMocks.InitConsensusCore()
 	sr := initSubroundBlock(nil, container, nil)
 	require.True(t, sr.IsInterfaceNil())
-
 	sr = initSubroundBlock(nil, container, &statusHandler.AppStatusHandlerStub{})
 	require.False(t, sr.IsInterfaceNil())
 }

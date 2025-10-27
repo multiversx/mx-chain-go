@@ -266,8 +266,20 @@ var ErrValidatorInfoNotFound = errors.New("validator info not found")
 // ErrNilProofsPool signals that a nil proofs pool has been provided
 var ErrNilProofsPool = errors.New("nil proofs pool")
 
+// ErrNilExecutedMiniBlocksCache signals that a nil executed mini blocks cache has been provided
+var ErrNilExecutedMiniBlocksCache = errors.New("nil executed mini blocks cache")
+
+// ErrNilPostProcessTransactionsCache signals that a nil post-process transactions cache has been provided
+var ErrNilPostProcessTransactionsCache = errors.New("nil post process transactions cache")
+
 // ErrEquivalentProofsNotFound signals that no equivalent proof found
 var ErrEquivalentProofsNotFound = errors.New("equivalent proof not found")
 
 // ErrNilEnableEpochsHandler signals that a nil enable epochs handler has been provided
 var ErrNilEnableEpochsHandler = errors.New("nil enable epochs handler")
+
+// ErrBadMaxNumBytesPerSenderUpperBound signals a bad MaxNumBytesPerSenderUpperBound config
+var ErrBadMaxNumBytesPerSenderUpperBound = errors.New("bad max number of bytes per sender upper bound")
+
+// ErrBadMaxTrackedBlocks signals a bad MaxTrackedBlocks config
+var ErrBadMaxTrackedBlocks = errors.New("bad max tracked blocks")

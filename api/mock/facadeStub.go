@@ -4,6 +4,8 @@ import (
 	"encoding/hex"
 	"math/big"
 
+	"github.com/multiversx/mx-chain-core-go/data/smartContractResult"
+
 	"github.com/multiversx/mx-chain-core-go/core"
 	"github.com/multiversx/mx-chain-core-go/data/alteredAccount"
 	"github.com/multiversx/mx-chain-core-go/data/api"
@@ -84,6 +86,7 @@ type FacadeStub struct {
 	GetTransactionsPoolForSenderCalled          func(sender, fields string) (*common.TransactionsPoolForSenderApiResponse, error)
 	GetLastPoolNonceForSenderCalled             func(sender string) (uint64, error)
 	GetTransactionsPoolNonceGapsForSenderCalled func(sender string) (*common.TransactionsPoolNonceGapsForSenderApiResponse, error)
+	GetSelectedTransactionsCalled               func(fields string) (*common.TransactionsSelectionSimulationResult, error)
 	GetGasConfigsCalled                         func() (map[string]map[string]uint64, error)
 	RestApiInterfaceCalled                      func() string
 	RestAPIServerDebugModeCalled                func() bool
@@ -99,6 +102,17 @@ type FacadeStub struct {
 	P2PPrometheusMetricsEnabledCalled           func() bool
 	AuctionListHandler                          func() ([]*common.AuctionListValidatorAPIResponse, error)
 	GetSCRsByTxHashCalled                       func(txHash string, scrHash string) ([]*transaction.ApiSmartContractResult, error)
+	GetVirtualNonceCalled                       func(address string) (*common.VirtualNonceOfAccountResponse, error)
+	SimulateSCRExecutionCostCalled              func(scr *smartContractResult.SmartContractResult) (*transaction.CostResponse, error)
+}
+
+// SimulateSCRExecutionCost -
+func (f *FacadeStub) SimulateSCRExecutionCost(scr *smartContractResult.SmartContractResult) (*transaction.CostResponse, error) {
+	if f.SimulateSCRExecutionCostCalled != nil {
+		return f.SimulateSCRExecutionCostCalled(scr)
+	}
+
+	return nil, nil
 }
 
 // GetSCRsByTxHash -
@@ -662,6 +676,15 @@ func (f *FacadeStub) GetTransactionsPoolNonceGapsForSender(sender string) (*comm
 	return nil, nil
 }
 
+// GetSelectedTransactions -
+func (f *FacadeStub) GetSelectedTransactions(fields string) (*common.TransactionsSelectionSimulationResult, error) {
+	if f.GetSelectedTransactionsCalled != nil {
+		return f.GetSelectedTransactionsCalled(fields)
+	}
+
+	return nil, nil
+}
+
 // GetGasConfigs -
 func (f *FacadeStub) GetGasConfigs() (map[string]map[string]uint64, error) {
 	if f.GetGasConfigsCalled != nil {
@@ -745,6 +768,15 @@ func (f *FacadeStub) GetWaitingEpochsLeftForPublicKey(publicKey string) (uint32,
 		return f.GetWaitingEpochsLeftForPublicKeyCalled(publicKey)
 	}
 	return 0, nil
+}
+
+// GetVirtualNonce -
+func (f *FacadeStub) GetVirtualNonce(address string) (*common.VirtualNonceOfAccountResponse, error) {
+	if f.GetVirtualNonceCalled != nil {
+		return f.GetVirtualNonceCalled(address)
+	}
+
+	return nil, nil
 }
 
 // P2PPrometheusMetricsEnabled -

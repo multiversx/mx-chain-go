@@ -7,9 +7,11 @@ import (
 
 	"github.com/multiversx/mx-chain-core-go/core"
 	"github.com/multiversx/mx-chain-core-go/core/check"
-	"github.com/multiversx/mx-chain-go/testscommon/shardingMocks"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
+
+	"github.com/multiversx/mx-chain-go/testscommon/round"
+	"github.com/multiversx/mx-chain-go/testscommon/shardingMocks"
 
 	"github.com/multiversx/mx-chain-go/consensus"
 	"github.com/multiversx/mx-chain-go/consensus/spos"
@@ -34,8 +36,8 @@ const roundTimeDuration = 100 * time.Millisecond
 func executeStoredMessages() {
 }
 
-func initRoundHandlerMock() *testscommonConsensus.RoundHandlerMock {
-	return &testscommonConsensus.RoundHandlerMock{
+func initRoundHandlerMock() *round.RoundHandlerMock {
+	return &round.RoundHandlerMock{
 		RoundIndex: 0,
 		TimeStampCalled: func() time.Time {
 			return time.Unix(0, 0)
