@@ -135,6 +135,13 @@ func (ln *leafNode) commitDirty(_ common.TrieStorageInteractor, targetDb common.
 	return err
 }
 
+func (ln *leafNode) collapseChild(hexKey []byte, _ MetricsCollector) bool {
+	if bytes.Equal(hexKey, ln.Key) {
+		return true
+	}
+	return false
+}
+
 func (ln *leafNode) commitSnapshot(
 	db common.TrieStorageInteractor,
 	leavesChan chan core.KeyValueHolder,

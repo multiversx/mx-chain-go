@@ -12,6 +12,7 @@ import (
 	trie2 "github.com/multiversx/mx-chain-go/testscommon/common"
 	"github.com/multiversx/mx-chain-go/testscommon/enableEpochsHandlerMock"
 	"github.com/multiversx/mx-chain-go/trie"
+	"github.com/multiversx/mx-chain-go/trie/collapseManager"
 	"github.com/stretchr/testify/assert"
 )
 
@@ -116,7 +117,7 @@ func TestWriteContinuouslyInTree(t *testing.T) {
 
 	trieStorage, _ := trie.CreateTrieStorageManager(storageManagerArgs, options)
 
-	tr, _ := trie.NewTrie(trieStorage, &marshal.JsonMarshalizer{}, blake2b.NewBlake2b(), &enableEpochsHandlerMock.EnableEpochsHandlerStub{}, integrationTests.TenMbSize)
+	tr, _ := trie.NewTrie(trieStorage, &marshal.JsonMarshalizer{}, blake2b.NewBlake2b(), &enableEpochsHandlerMock.EnableEpochsHandlerStub{}, collapseManager.NewDisabledCollapseManager())
 
 	defer func() {
 		_ = store.DestroyUnit()

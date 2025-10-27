@@ -434,3 +434,15 @@ type TrieLeavesRetriever interface {
 	GetLeaves(numLeaves int, iteratorState [][]byte, leavesParser TrieLeafParser, ctx context.Context) (map[string]string, [][]byte, error)
 	IsInterfaceNil() bool
 }
+
+type TrieCollapseManager interface {
+	MarkKeyAsAccessed(key []byte, sizeLoadedInMemory int)
+	RemoveKey(key []byte, sizeLoadedInMemory int)
+	ShouldCollapseTrie() bool
+	GetCollapsibleLeaves() ([][]byte, error)
+	AddSizeInMemory(size int)
+	GetSizeInMemory() int
+	CloneWithoutState() TrieCollapseManager
+	IsCollapseEnabled() bool
+	IsInterfaceNil() bool
+}

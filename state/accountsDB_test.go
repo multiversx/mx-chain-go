@@ -41,6 +41,7 @@ import (
 	"github.com/multiversx/mx-chain-go/testscommon/storageManager"
 	trieMock "github.com/multiversx/mx-chain-go/testscommon/trie"
 	"github.com/multiversx/mx-chain-go/trie"
+	"github.com/multiversx/mx-chain-go/trie/collapseManager"
 	vmcommon "github.com/multiversx/mx-chain-vm-common-go"
 	"github.com/multiversx/mx-chain-vm-common-go/dataTrieMigrator"
 	"github.com/stretchr/testify/assert"
@@ -138,7 +139,7 @@ func getDefaultStateComponents(
 	args := common2.GetStorageManagerArgs()
 	args.MainStorer = db
 	trieStorage, _ := trie.NewTrieStorageManager(args)
-	tr, _ := trie.NewTrie(trieStorage, marshaller, hasher, enableEpochsHandler, tenMbSize)
+	tr, _ := trie.NewTrie(trieStorage, marshaller, hasher, enableEpochsHandler, collapseManager.NewDisabledCollapseManager())
 	ewlArgs := evictionWaitingList.MemoryEvictionWaitingListArgs{
 		RootHashesSize: 100,
 		HashesSize:     10000,
@@ -1783,7 +1784,7 @@ func TestAccountsDB_MainTrieAutomaticallyMarksCodeUpdatesForEviction(t *testing.
 	ewl := stateMock.NewEvictionWaitingListMock(100)
 	args := common2.GetStorageManagerArgs()
 	tsm, _ := trie.NewTrieStorageManager(args)
-	tr, _ := trie.NewTrie(tsm, marshaller, hasher, &enableEpochsHandlerMock.EnableEpochsHandlerStub{}, tenMbSize)
+	tr, _ := trie.NewTrie(tsm, marshaller, hasher, &enableEpochsHandlerMock.EnableEpochsHandlerStub{}, collapseManager.NewDisabledCollapseManager())
 	spm, _ := storagePruningManager.NewStoragePruningManager(ewl, 5)
 
 	argsAccountsDB := createMockAccountsDBArgs()
@@ -1863,7 +1864,7 @@ func TestAccountsDB_RemoveAccountMarksObsoleteHashesForEviction(t *testing.T) {
 	ewl := stateMock.NewEvictionWaitingListMock(100)
 	args := common2.GetStorageManagerArgs()
 	tsm, _ := trie.NewTrieStorageManager(args)
-	tr, _ := trie.NewTrie(tsm, marshaller, hasher, &enableEpochsHandlerMock.EnableEpochsHandlerStub{}, tenMbSize)
+	tr, _ := trie.NewTrie(tsm, marshaller, hasher, &enableEpochsHandlerMock.EnableEpochsHandlerStub{}, collapseManager.NewDisabledCollapseManager())
 	spm, _ := storagePruningManager.NewStoragePruningManager(ewl, 5)
 
 	argsAccountsDB := createMockAccountsDBArgs()
@@ -2065,7 +2066,7 @@ func TestAccountsDB_GetCode(t *testing.T) {
 
 	args := common2.GetStorageManagerArgs()
 	tsm, _ := trie.NewTrieStorageManager(args)
-	tr, _ := trie.NewTrie(tsm, marshaller, hasher, &enableEpochsHandlerMock.EnableEpochsHandlerStub{}, tenMbSize)
+	tr, _ := trie.NewTrie(tsm, marshaller, hasher, &enableEpochsHandlerMock.EnableEpochsHandlerStub{}, collapseManager.NewDisabledCollapseManager())
 	spm := disabled.NewDisabledStoragePruningManager()
 	argsAccountsDB := createMockAccountsDBArgs()
 	argsAccountsDB.Trie = tr
@@ -2518,7 +2519,7 @@ func BenchmarkAccountsDb_GetCodeEntry(b *testing.B) {
 
 	args := common2.GetStorageManagerArgs()
 	tsm, _ := trie.NewTrieStorageManager(args)
-	tr, _ := trie.NewTrie(tsm, marshaller, hasher, &enableEpochsHandlerMock.EnableEpochsHandlerStub{}, tenMbSize)
+	tr, _ := trie.NewTrie(tsm, marshaller, hasher, &enableEpochsHandlerMock.EnableEpochsHandlerStub{}, collapseManager.NewDisabledCollapseManager())
 	spm := disabled.NewDisabledStoragePruningManager()
 
 	argsAccountsDB := createMockAccountsDBArgs()
@@ -2839,7 +2840,7 @@ func TestAccountsDB_RevertTxWhichMigratesDataRemovesMigratedData(t *testing.T) {
 	hasher := &hashingMocks.HasherMock{}
 	enableEpochsHandler := enableEpochsHandlerMock.NewEnableEpochsHandlerStub()
 	tsm, _ := trie.NewTrieStorageManager(common2.GetStorageManagerArgs())
-	tr, _ := trie.NewTrie(tsm, marshaller, hasher, enableEpochsHandler, tenMbSize)
+	tr, _ := trie.NewTrie(tsm, marshaller, hasher, enableEpochsHandler, collapseManager.NewDisabledCollapseManager())
 	spm := &stateMock.StoragePruningManagerStub{}
 	argsAccountsDB := createMockAccountsDBArgs()
 	argsAccountsDB.Trie = tr

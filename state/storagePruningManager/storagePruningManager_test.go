@@ -19,6 +19,7 @@ import (
 	"github.com/multiversx/mx-chain-go/testscommon/marshallerMock"
 	testStorage "github.com/multiversx/mx-chain-go/testscommon/state"
 	"github.com/multiversx/mx-chain-go/trie"
+	"github.com/multiversx/mx-chain-go/trie/collapseManager"
 	"github.com/stretchr/testify/assert"
 )
 
@@ -33,7 +34,7 @@ func getDefaultTrieAndAccountsDbAndStoragePruningManager() (common.Trie, *state.
 	args := common2.GetStorageManagerArgs()
 	trieStorage, _ := trie.NewTrieStorageManager(args)
 	tenMBSize := uint64(10485760)
-	tr, _ := trie.NewTrie(trieStorage, marshaller, hasher, &enableEpochsHandlerMock.EnableEpochsHandlerStub{}, tenMBSize)
+	tr, _ := trie.NewTrie(trieStorage, marshaller, hasher, &enableEpochsHandlerMock.EnableEpochsHandlerStub{}, collapseManager.NewDisabledCollapseManager())
 	ewlArgs := evictionWaitingList.MemoryEvictionWaitingListArgs{
 		RootHashesSize: 100,
 		HashesSize:     10000,

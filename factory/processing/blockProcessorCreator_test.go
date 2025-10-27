@@ -9,6 +9,7 @@ import (
 	"github.com/multiversx/mx-chain-core-go/hashing"
 	"github.com/multiversx/mx-chain-core-go/marshal"
 	common2 "github.com/multiversx/mx-chain-go/testscommon/common"
+	"github.com/multiversx/mx-chain-go/trie/collapseManager"
 	vmcommon "github.com/multiversx/mx-chain-vm-common-go"
 	"github.com/stretchr/testify/require"
 
@@ -201,7 +202,7 @@ func createAccountAdapter(
 	handler common.EnableEpochsHandler,
 ) (state.AccountsAdapter, error) {
 	tenMbSize := uint64(10485760)
-	tr, err := trie.NewTrie(trieStorage, marshaller, hasher, handler, tenMbSize)
+	tr, err := trie.NewTrie(trieStorage, marshaller, hasher, handler, collapseManager.NewDisabledCollapseManager())
 	if err != nil {
 		return nil, err
 	}

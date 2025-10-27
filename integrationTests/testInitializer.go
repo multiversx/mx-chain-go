@@ -29,6 +29,7 @@ import (
 	"github.com/multiversx/mx-chain-crypto-go/signing/ed25519"
 	"github.com/multiversx/mx-chain-crypto-go/signing/mcl"
 	"github.com/multiversx/mx-chain-crypto-go/signing/secp256k1"
+	"github.com/multiversx/mx-chain-go/trie/collapseManager"
 	logger "github.com/multiversx/mx-chain-logger-go"
 	wasmConfig "github.com/multiversx/mx-chain-vm-go/config"
 	"github.com/pkg/errors"
@@ -466,7 +467,7 @@ func CreateAccountsDBWithEnableEpochsHandler(
 	trieStorageManager common.StorageManager,
 	enableEpochsHandler common.EnableEpochsHandler,
 ) (*state.AccountsDB, common.Trie) {
-	tr, _ := trie.NewTrie(trieStorageManager, TestMarshalizer, TestHasher, enableEpochsHandler, TenMbSize)
+	tr, _ := trie.NewTrie(trieStorageManager, TestMarshalizer, TestHasher, enableEpochsHandler, collapseManager.NewDisabledCollapseManager())
 
 	ewlArgs := evictionWaitingList.MemoryEvictionWaitingListArgs{
 		RootHashesSize: 100,
@@ -1112,7 +1113,7 @@ func CreateNewDefaultTrie() common.Trie {
 
 	trieStorage, _ := trie.NewTrieStorageManager(args)
 
-	tr, _ := trie.NewTrie(trieStorage, TestMarshalizer, TestHasher, &enableEpochsHandlerMock.EnableEpochsHandlerStub{}, TenMbSize)
+	tr, _ := trie.NewTrie(trieStorage, TestMarshalizer, TestHasher, &enableEpochsHandlerMock.EnableEpochsHandlerStub{}, collapseManager.NewDisabledCollapseManager())
 	return tr
 }
 

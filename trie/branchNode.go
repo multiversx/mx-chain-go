@@ -277,15 +277,31 @@ func (bn *branchNode) commitDirty(originDb common.TrieStorageInteractor, targetD
 		return err
 	}
 
-	for i := range bn.children {
-		// TODO: do not collapse if maxSizeInMem is not reached
-		if isLeafNode(bn.children[i]) {
-			tmc.AddSizeLoadedInMem(-bn.children[i].sizeInBytes())
-			bn.children[i] = nil
-		}
+	return nil
+}
+
+func (bn *branchNode) collapseChild(hexKey []byte, tmc MetricsCollector) bool {
+	if len(hexKey) == 0 {
+		return false
+	}
+	childPos := hexKey[firstByte]
+	if childPosOutOfRange(childPos) {
+		return false
+	}
+	hexKey = hexKey[1:]
+
+	if bn.children[childPos] == nil {
+		return false
 	}
 
-	return nil
+	shouldCollapseChild := bn.children[childPos].collapseChild(hexKey, tmc)
+	if shouldCollapseChild {
+		tmc.AddSizeLoadedInMem(-bn.children[childPos].sizeInBytes())
+		bn.children[childPos] = nil
+		return true
+	}
+
+	return false
 }
 
 func (bn *branchNode) commitSnapshot(

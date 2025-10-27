@@ -10,6 +10,7 @@ import (
 	"github.com/multiversx/mx-chain-core-go/data"
 	"github.com/multiversx/mx-chain-core-go/hashing"
 	"github.com/multiversx/mx-chain-core-go/marshal"
+	"github.com/multiversx/mx-chain-go/trie/collapseManager"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 
@@ -113,7 +114,7 @@ func getSerializedTrieNode(
 		},
 	}
 
-	tr, _ := trie.NewTrie(tsm, marshaller, hasher, &enableEpochsHandlerMock.EnableEpochsHandlerStub{}, tenMBSize)
+	tr, _ := trie.NewTrie(tsm, marshaller, hasher, &enableEpochsHandlerMock.EnableEpochsHandlerStub{}, collapseManager.NewDisabledCollapseManager())
 	_ = tr.Update(key, []byte("value"))
 	_ = tr.Commit()
 
@@ -164,7 +165,7 @@ func TestUserAccountsSyncer_SyncAccounts(t *testing.T) {
 	})
 }
 
-func getDefaultTrieParameters() (common.StorageManager, marshal.Marshalizer, hashing.Hasher, common.EnableEpochsHandler, uint64) {
+func getDefaultTrieParameters() (common.StorageManager, marshal.Marshalizer, hashing.Hasher, common.EnableEpochsHandler, common.TrieCollapseManager) {
 	marshalizer := &testscommon.ProtobufMarshalizerMock{}
 	hasher := &testscommon.KeccakMock{}
 
@@ -186,7 +187,7 @@ func getDefaultTrieParameters() (common.StorageManager, marshal.Marshalizer, has
 
 	trieStorageManager, _ := trie.NewTrieStorageManager(args)
 
-	return trieStorageManager, args.Marshalizer, args.Hasher, &enableEpochsHandlerMock.EnableEpochsHandlerStub{}, tenMBSize
+	return trieStorageManager, args.Marshalizer, args.Hasher, &enableEpochsHandlerMock.EnableEpochsHandlerStub{}, collapseManager.NewDisabledCollapseManager()
 }
 
 func emptyTrie() common.Trie {
@@ -238,7 +239,7 @@ func TestUserAccountsSyncer_SyncAccountDataTries(t *testing.T) {
 		s, err := syncer.NewUserAccountsSyncer(args)
 		require.Nil(t, err)
 
-		_, _ = trie.NewTrie(args.TrieStorageManager, args.Marshalizer, args.Hasher, &enableEpochsHandlerMock.EnableEpochsHandlerStub{}, tenMBSize)
+		_, _ = trie.NewTrie(args.TrieStorageManager, args.Marshalizer, args.Hasher, &enableEpochsHandlerMock.EnableEpochsHandlerStub{}, collapseManager.NewDisabledCollapseManager())
 		tr := emptyTrie()
 
 		account, err := accounts.NewUserAccount(testscommon.TestPubKeyAlice, &trieMock.DataTrieTrackerStub{}, &trieMock.TrieLeafParserStub{})
@@ -295,7 +296,7 @@ func TestUserAccountsSyncer_SyncAccountDataTries(t *testing.T) {
 		s, err := syncer.NewUserAccountsSyncer(args)
 		require.Nil(t, err)
 
-		_, _ = trie.NewTrie(args.TrieStorageManager, args.Marshalizer, args.Hasher, &enableEpochsHandlerMock.EnableEpochsHandlerStub{}, tenMBSize)
+		_, _ = trie.NewTrie(args.TrieStorageManager, args.Marshalizer, args.Hasher, &enableEpochsHandlerMock.EnableEpochsHandlerStub{}, collapseManager.NewDisabledCollapseManager())
 		tr := emptyTrie()
 
 		account, err := accounts.NewUserAccount(testscommon.TestPubKeyAlice, &trieMock.DataTrieTrackerStub{}, &trieMock.TrieLeafParserStub{})
@@ -362,7 +363,7 @@ func TestUserAccountsSyncer_MissingDataTrieNodeFound(t *testing.T) {
 		},
 	}
 
-	tr, _ := trie.NewTrie(tsm, args.Marshalizer, args.Hasher, &enableEpochsHandlerMock.EnableEpochsHandlerStub{}, tenMBSize)
+	tr, _ := trie.NewTrie(tsm, args.Marshalizer, args.Hasher, &enableEpochsHandlerMock.EnableEpochsHandlerStub{}, collapseManager.NewDisabledCollapseManager())
 	key := []byte("key")
 	value := []byte("value")
 	_ = tr.Update(key, value)

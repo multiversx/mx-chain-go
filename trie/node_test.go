@@ -1212,18 +1212,6 @@ func Test_treatCommitSnapshotErr(t *testing.T) {
 	})
 }
 
-func TestIsLeafNode(t *testing.T) {
-	t.Parallel()
-
-	bn, _ := getBnAndCollapsedBn(getTestMarshalizerAndHasher())
-	assert.False(t, isLeafNode(bn))
-
-	ln, _ := newLeafNode(getTrieDataWithDefaultVersion("dog", "dog"), bn.marsh, bn.hasher)
-	assert.True(t, isLeafNode(ln))
-
-	assert.False(t, isLeafNode(nil))
-}
-
 func Benchmark_ShouldStopIfContextDoneBlockingIfBusy(b *testing.B) {
 	ctx := context.Background()
 	b.ResetTimer()

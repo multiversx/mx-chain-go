@@ -4,6 +4,7 @@ import (
 	"testing"
 	"time"
 
+	"github.com/multiversx/mx-chain-go/trie/collapseManager"
 	"github.com/stretchr/testify/assert"
 
 	"github.com/multiversx/mx-chain-go/dataRetriever/mock"
@@ -89,8 +90,7 @@ func TestUserAccountsSyncer_MissingDataTrieNodeFound(t *testing.T) {
 		},
 	}
 
-	tenMBSize := uint64(10485760)
-	tr, _ := trie.NewTrie(tsm, args.Marshalizer, args.Hasher, &enableEpochsHandlerMock.EnableEpochsHandlerStub{}, tenMBSize)
+	tr, _ := trie.NewTrie(tsm, args.Marshalizer, args.Hasher, &enableEpochsHandlerMock.EnableEpochsHandlerStub{}, collapseManager.NewDisabledCollapseManager())
 	key := []byte("key")
 	value := []byte("value")
 	_ = tr.Update(key, value)

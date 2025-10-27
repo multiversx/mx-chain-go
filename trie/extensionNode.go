@@ -199,6 +199,29 @@ func (en *extensionNode) commitDirty(originDb common.TrieStorageInteractor, targ
 	return nil
 }
 
+func (en *extensionNode) collapseChild(hexKey []byte, tmc MetricsCollector) bool {
+	keyTooShort := len(hexKey) < len(en.Key)
+	if keyTooShort {
+		return false
+	}
+	keysDontMatch := !bytes.Equal(en.Key, hexKey[:len(en.Key)])
+	if keysDontMatch {
+		return false
+	}
+	hexKey = hexKey[len(en.Key):]
+	if en.child == nil {
+		return false
+	}
+
+	shouldCollapseChild := en.child.collapseChild(hexKey, tmc)
+	if shouldCollapseChild {
+		tmc.AddSizeLoadedInMem(-en.child.sizeInBytes())
+		en.child = nil
+		return true
+	}
+	return false
+}
+
 func (en *extensionNode) commitSnapshot(
 	db common.TrieStorageInteractor,
 	leavesChan chan core.KeyValueHolder,

@@ -21,6 +21,7 @@ import (
 	"github.com/multiversx/mx-chain-go/testscommon/enableEpochsHandlerMock"
 	testStorage "github.com/multiversx/mx-chain-go/testscommon/state"
 	"github.com/multiversx/mx-chain-go/trie"
+	"github.com/multiversx/mx-chain-go/trie/collapseManager"
 )
 
 // TestMarshalizer -
@@ -98,7 +99,7 @@ func CreateAccountsDB(db storage.Storer, enableEpochs common.EnableEpochsHandler
 	trieStorage, _ := trie.NewTrieStorageManager(args)
 	tenMBSize := uint64(10485760)
 
-	tr, _ := trie.NewTrie(trieStorage, TestMarshalizer, TestHasher, enableEpochs, tenMBSize)
+	tr, _ := trie.NewTrie(trieStorage, TestMarshalizer, TestHasher, enableEpochs, collapseManager.NewDisabledCollapseManager())
 	spm, _ := storagePruningManager.NewStoragePruningManager(ewl, 10)
 
 	argsAccCreator := accountFactory.ArgsAccountCreator{

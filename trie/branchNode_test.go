@@ -16,6 +16,7 @@ import (
 	"github.com/multiversx/mx-chain-go/testscommon/enableEpochsHandlerMock"
 	"github.com/multiversx/mx-chain-go/testscommon/hashingMocks"
 	"github.com/multiversx/mx-chain-go/testscommon/marshallerMock"
+	"github.com/multiversx/mx-chain-go/trie/collapseManager"
 	"github.com/multiversx/mx-chain-go/trie/keyBuilder"
 	"github.com/multiversx/mx-chain-go/trie/statistics"
 	"github.com/multiversx/mx-chain-go/trie/trieMetricsCollector"
@@ -96,7 +97,7 @@ func newEmptyTrie() (*patriciaMerkleTrie, *trieStorageManager) {
 		oldRoot:             make([]byte, 0),
 		chanClose:           make(chan struct{}),
 		enableEpochsHandler: &enableEpochsHandlerMock.EnableEpochsHandlerStub{},
-		maxSizeInMem:        tenMBSize,
+		collapseManager:     collapseManager.NewDisabledCollapseManager(),
 	}
 
 	return tr, trieStorage
@@ -211,8 +212,8 @@ func TestBranchNode_setRootHash(t *testing.T) {
 	trieStorage1, _ := NewTrieStorageManager(GetDefaultTrieStorageManagerParameters())
 	trieStorage2, _ := NewTrieStorageManager(GetDefaultTrieStorageManagerParameters())
 
-	tr1, _ := NewTrie(trieStorage1, marsh, hsh, &enableEpochsHandlerMock.EnableEpochsHandlerStub{}, tenMBSize)
-	tr2, _ := NewTrie(trieStorage2, marsh, hsh, &enableEpochsHandlerMock.EnableEpochsHandlerStub{}, tenMBSize)
+	tr1, _ := NewTrie(trieStorage1, marsh, hsh, &enableEpochsHandlerMock.EnableEpochsHandlerStub{}, collapseManager.NewDisabledCollapseManager())
+	tr2, _ := NewTrie(trieStorage2, marsh, hsh, &enableEpochsHandlerMock.EnableEpochsHandlerStub{}, collapseManager.NewDisabledCollapseManager())
 
 	maxIterations := 10000
 	for i := 0; i < maxIterations; i++ {

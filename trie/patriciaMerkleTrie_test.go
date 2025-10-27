@@ -17,6 +17,7 @@ import (
 	"github.com/multiversx/mx-chain-core-go/hashing"
 	"github.com/multiversx/mx-chain-core-go/hashing/keccak"
 	"github.com/multiversx/mx-chain-core-go/marshal"
+	"github.com/multiversx/mx-chain-go/trie/collapseManager"
 	vmcommon "github.com/multiversx/mx-chain-vm-common-go"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
@@ -52,11 +53,11 @@ func emptyTrieWithCustomEnableEpochsHandler(handler common.EnableEpochsHandler) 
 	return tr
 }
 
-func getDefaultTrieParameters() (common.StorageManager, marshal.Marshalizer, hashing.Hasher, common.EnableEpochsHandler, uint64) {
+func getDefaultTrieParameters() (common.StorageManager, marshal.Marshalizer, hashing.Hasher, common.EnableEpochsHandler, common.TrieCollapseManager) {
 	args := trie.GetDefaultTrieStorageManagerParameters()
 	trieStorageManager, _ := trie.NewTrieStorageManager(args)
 
-	return trieStorageManager, args.Marshalizer, args.Hasher, &enableEpochsHandlerMock.EnableEpochsHandlerStub{}, tenMBSize
+	return trieStorageManager, args.Marshalizer, args.Hasher, &enableEpochsHandlerMock.EnableEpochsHandlerStub{}, collapseManager.NewDisabledCollapseManager()
 }
 
 func initTrieMultipleValues(nr int) (common.Trie, [][]byte) {
@@ -89,8 +90,8 @@ func addDefaultDataToTrie(tr common.Trie) {
 func TestNewTrieWithNilTrieStorage(t *testing.T) {
 	t.Parallel()
 
-	_, marshalizer, hasher, enableEpochsHandler, maxSizeInMem := getDefaultTrieParameters()
-	tr, err := trie.NewTrie(nil, marshalizer, hasher, enableEpochsHandler, maxSizeInMem)
+	_, marshalizer, hasher, enableEpochsHandler, cm := getDefaultTrieParameters()
+	tr, err := trie.NewTrie(nil, marshalizer, hasher, enableEpochsHandler, cm)
 
 	assert.Nil(t, tr)
 	assert.Equal(t, trie.ErrNilTrieStorage, err)
@@ -99,8 +100,8 @@ func TestNewTrieWithNilTrieStorage(t *testing.T) {
 func TestNewTrieWithNilMarshalizer(t *testing.T) {
 	t.Parallel()
 
-	trieStorage, _, hasher, enableEpochsHandler, maxSizeInMem := getDefaultTrieParameters()
-	tr, err := trie.NewTrie(trieStorage, nil, hasher, enableEpochsHandler, maxSizeInMem)
+	trieStorage, _, hasher, enableEpochsHandler, cm := getDefaultTrieParameters()
+	tr, err := trie.NewTrie(trieStorage, nil, hasher, enableEpochsHandler, cm)
 
 	assert.Nil(t, tr)
 	assert.Equal(t, trie.ErrNilMarshalizer, err)
@@ -109,8 +110,8 @@ func TestNewTrieWithNilMarshalizer(t *testing.T) {
 func TestNewTrieWithNilHasher(t *testing.T) {
 	t.Parallel()
 
-	trieStorage, marshalizer, _, enableEpochsHandler, maxSizeInMem := getDefaultTrieParameters()
-	tr, err := trie.NewTrie(trieStorage, marshalizer, nil, enableEpochsHandler, maxSizeInMem)
+	trieStorage, marshalizer, _, enableEpochsHandler, cm := getDefaultTrieParameters()
+	tr, err := trie.NewTrie(trieStorage, marshalizer, nil, enableEpochsHandler, cm)
 
 	assert.Nil(t, tr)
 	assert.Equal(t, trie.ErrNilHasher, err)
@@ -119,8 +120,8 @@ func TestNewTrieWithNilHasher(t *testing.T) {
 func TestNewTrieWithNilEnableEpochsHandler(t *testing.T) {
 	t.Parallel()
 
-	trieStorage, marshalizer, hasher, _, maxSizeInMem := getDefaultTrieParameters()
-	tr, err := trie.NewTrie(trieStorage, marshalizer, hasher, nil, maxSizeInMem)
+	trieStorage, marshalizer, hasher, _, cm := getDefaultTrieParameters()
+	tr, err := trie.NewTrie(trieStorage, marshalizer, hasher, nil, cm)
 
 	assert.Nil(t, tr)
 	assert.Equal(t, errorsCommon.ErrNilEnableEpochsHandler, err)
@@ -130,7 +131,7 @@ func TestNewTrieWithInvalidMaxSizeInMemory(t *testing.T) {
 	t.Parallel()
 
 	trieStorage, marshalizer, hasher, enableEpochsHandler, _ := getDefaultTrieParameters()
-	tr, err := trie.NewTrie(trieStorage, marshalizer, hasher, enableEpochsHandler, 0)
+	tr, err := trie.NewTrie(trieStorage, marshalizer, hasher, enableEpochsHandler, nil)
 
 	assert.Nil(t, tr)
 	assert.True(t, errors.Is(err, trie.ErrInvalidMaxSizeInMemory))
@@ -1063,7 +1064,7 @@ func TestPatriciaMerkleTrie_GetSerializedNodesShouldSerializeTheCalls(t *testing
 		},
 	}
 
-	tr, _ := trie.NewTrie(testTrieStorageManager, args.Marshalizer, args.Hasher, &enableEpochsHandlerMock.EnableEpochsHandlerStub{}, tenMBSize)
+	tr, _ := trie.NewTrie(testTrieStorageManager, args.Marshalizer, args.Hasher, &enableEpochsHandlerMock.EnableEpochsHandlerStub{}, collapseManager.NewDisabledCollapseManager())
 	numGoRoutines := 100
 	wg := sync.WaitGroup{}
 	wg.Add(numGoRoutines)
@@ -1485,13 +1486,13 @@ func TestPatriciaMerkleTrie_IsMigrated(t *testing.T) {
 	t.Run("not migrated", func(t *testing.T) {
 		t.Parallel()
 
-		tsm, marshaller, hasher, _, maxSizeInMem := getDefaultTrieParameters()
+		tsm, marshaller, hasher, _, cm := getDefaultTrieParameters()
 		enableEpochs := &enableEpochsHandlerMock.EnableEpochsHandlerStub{
 			IsFlagEnabledCalled: func(flag core.EnableEpochFlag) bool {
 				return flag == common.AutoBalanceDataTriesFlag
 			},
 		}
-		tr, _ := trie.NewTrie(tsm, marshaller, hasher, enableEpochs, maxSizeInMem)
+		tr, _ := trie.NewTrie(tsm, marshaller, hasher, enableEpochs, cm)
 
 		_ = tr.Update([]byte("dog"), []byte("reindeer"))
 		isMigrated, err := tr.IsMigratedToLatestVersion()
@@ -1502,13 +1503,13 @@ func TestPatriciaMerkleTrie_IsMigrated(t *testing.T) {
 	t.Run("migrated", func(t *testing.T) {
 		t.Parallel()
 
-		tsm, marshaller, hasher, _, maxSizeInMem := getDefaultTrieParameters()
+		tsm, marshaller, hasher, _, cm := getDefaultTrieParameters()
 		enableEpochs := &enableEpochsHandlerMock.EnableEpochsHandlerStub{
 			IsFlagEnabledCalled: func(flag core.EnableEpochFlag) bool {
 				return flag == common.AutoBalanceDataTriesFlag
 			},
 		}
-		tr, _ := trie.NewTrie(tsm, marshaller, hasher, enableEpochs, maxSizeInMem)
+		tr, _ := trie.NewTrie(tsm, marshaller, hasher, enableEpochs, cm)
 
 		_ = tr.UpdateWithVersion([]byte("dog"), []byte("reindeer"), core.AutoBalanceEnabled)
 		isMigrated, err := tr.IsMigratedToLatestVersion()
