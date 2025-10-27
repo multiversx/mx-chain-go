@@ -25,6 +25,7 @@ import (
 	"github.com/multiversx/mx-chain-go/process/smartContract/hooks"
 	"github.com/multiversx/mx-chain-go/process/smartContract/hooks/counters"
 	"github.com/multiversx/mx-chain-go/sharding"
+	disabledState "github.com/multiversx/mx-chain-go/state/disabled"
 	factoryState "github.com/multiversx/mx-chain-go/state/factory"
 	"github.com/multiversx/mx-chain-go/state/syncer"
 	"github.com/multiversx/mx-chain-go/statusHandler"
@@ -498,9 +499,10 @@ func (gbc *genesisBlockCreator) getNewArgForShard(shardID uint32) (ArgsGenesisBl
 	}
 
 	argsAccCreator := factoryState.ArgsAccountCreator{
-		Hasher:              newArgument.Core.Hasher(),
-		Marshaller:          newArgument.Core.InternalMarshalizer(),
-		EnableEpochsHandler: newArgument.Core.EnableEpochsHandler(),
+		Hasher:                 newArgument.Core.Hasher(),
+		Marshaller:             newArgument.Core.InternalMarshalizer(),
+		EnableEpochsHandler:    newArgument.Core.EnableEpochsHandler(),
+		StateAccessesCollector: disabledState.NewDisabledStateAccessesCollector(),
 	}
 	accCreator, err := factoryState.NewAccountCreator(argsAccCreator)
 	if err != nil {
