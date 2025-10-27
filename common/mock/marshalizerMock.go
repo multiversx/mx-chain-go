@@ -13,18 +13,13 @@ var ErrNilObjectToMarshal = errors.New("nil object to serialize from")
 
 // MarshalizerMock that will be used for testing
 type MarshalizerMock struct {
-	MarshalCalled func(obj interface{}) ([]byte, error)
-	Fail          bool
+	Fail bool
 }
 
 // Marshal converts the input object in a slice of bytes
 func (mm *MarshalizerMock) Marshal(obj interface{}) ([]byte, error) {
 	if mm.Fail {
 		return nil, ErrMockMarshalizer
-	}
-
-	if mm.MarshalCalled != nil {
-		return mm.MarshalCalled(obj)
 	}
 
 	if obj == nil {

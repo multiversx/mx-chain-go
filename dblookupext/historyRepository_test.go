@@ -21,10 +21,13 @@ import (
 	dataRetrieverMock "github.com/multiversx/mx-chain-go/testscommon/dataRetriever"
 	"github.com/multiversx/mx-chain-go/testscommon/genericMocks"
 	"github.com/multiversx/mx-chain-go/testscommon/hashingMocks"
+	"github.com/multiversx/mx-chain-go/testscommon/marshallerMock"
 	storageStubs "github.com/multiversx/mx-chain-go/testscommon/storage"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 )
+
+var expectedError = errors.New("expected error")
 
 func createMockHistoryRepoArgs(epoch uint32) HistoryRepositoryArguments {
 	sp, _ := esdtSupply.NewSuppliesProcessor(&mock.MarshalizerMock{}, &storageStubs.StorerStub{
@@ -1016,7 +1019,7 @@ func TestRecordHeaderV3(t *testing.T) {
 		args := createMockHistoryRepoArgs(42)
 
 		expectedError := errors.New("expected error")
-		args.Marshalizer = &mock.MarshalizerMock{MarshalCalled: func(obj interface{}) ([]byte, error) {
+		args.Marshalizer = &marshallerMock.MarshalizerStub{MarshalCalled: func(obj interface{}) ([]byte, error) {
 			return nil, expectedError
 		}}
 
@@ -1108,8 +1111,6 @@ func TestHistoryRepository_GetESDTSupply(t *testing.T) {
 
 	t.Run("should return error", func(t *testing.T) {
 		t.Parallel()
-
-		expectedError := errors.New("expected error")
 
 		args := createMockHistoryRepoArgs(42)
 		sp, _ := esdtSupply.NewSuppliesProcessor(&mock.MarshalizerMock{}, &storageStubs.StorerStub{
