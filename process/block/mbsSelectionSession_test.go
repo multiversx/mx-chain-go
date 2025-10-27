@@ -67,7 +67,6 @@ func TestMiniBlockSelectionSession_ResetSelectionSession(t *testing.T) {
 	require.Empty(t, session.referenceHeaderHashesUnique)
 	require.Empty(t, session.miniBlockHashesUnique)
 	require.Nil(t, session.GetLastHeader())
-	require.Equal(t, uint64(0), session.GetGasProvided())
 	require.Equal(t, uint32(0), session.GetNumTxsAdded())
 }
 
@@ -82,7 +81,6 @@ func TestMiniBlockSelectionSession_Getters(t *testing.T) {
 	require.Len(t, session.GetReferencedHeaderHashes(), 1)
 	require.Len(t, session.GetReferencedHeaders(), 1)
 	require.NotNil(t, session.GetLastHeader())
-	require.Equal(t, uint64(100), session.GetGasProvided())
 	require.Equal(t, uint32(2), session.GetNumTxsAdded())
 }
 
@@ -335,7 +333,6 @@ func createDummyFilledSession() *miniBlocksSelectionSession {
 	session.referencedHeaderHashes = append(session.referencedHeaderHashes, metaBlockHash)
 	session.referencedHeader = append(session.referencedHeader, metaBlock)
 	session.lastHeader = metaBlock
-	session.gasProvided = 100
 	session.numTxsAdded = 2
 
 	return session

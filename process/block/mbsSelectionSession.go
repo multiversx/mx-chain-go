@@ -28,7 +28,6 @@ type miniBlocksSelectionResult struct {
 	referencedHeaderHashes      [][]byte
 	referencedHeader            []data.HeaderHandler
 	lastHeader                  data.HeaderHandler
-	gasProvided                 uint64
 	numTxsAdded                 uint32
 	mut                         sync.RWMutex
 }
@@ -64,7 +63,6 @@ func NewMiniBlocksSelectionSession(shardID uint32, marshaller marshal.Marshalize
 			referencedHeaderHashes:      make([][]byte, 0, defaultCapacity),
 			referencedHeader:            make([]data.HeaderHandler, 0, defaultCapacity),
 			lastHeader:                  nil,
-			gasProvided:                 0,
 			numTxsAdded:                 0,
 		},
 	}, nil
@@ -83,7 +81,6 @@ func (s *miniBlocksSelectionSession) ResetSelectionSession() {
 	s.referencedHeaderHashes = make([][]byte, 0, defaultCapacity)
 	s.referencedHeader = make([]data.HeaderHandler, 0, defaultCapacity)
 	s.lastHeader = nil
-	s.gasProvided = 0
 	s.numTxsAdded = 0
 }
 
@@ -186,14 +183,6 @@ func (s *miniBlocksSelectionSession) GetLastHeader() data.HeaderHandler {
 	defer s.mut.RUnlock()
 
 	return s.lastHeader
-}
-
-// GetGasProvided returns the gas provided for the mini blocks
-func (s *miniBlocksSelectionSession) GetGasProvided() uint64 {
-	s.mut.RLock()
-	defer s.mut.RUnlock()
-
-	return s.gasProvided
 }
 
 // GetNumTxsAdded returns the number of transactions added to the mini blocks
