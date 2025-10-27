@@ -201,6 +201,9 @@ func (s *miniBlocksSelectionSession) AddMiniBlocksAndHashes(miniBlocksAndHashes 
 	miniBlockHashes := make([][]byte, 0, len(miniBlocksAndHashes))
 	numTxsAdded := 0
 
+	s.mut.Lock()
+	defer s.mut.Unlock()
+
 	for _, miniBlockInfo := range miniBlocksAndHashes {
 		_, ok := s.miniBlockHashesUnique[string(miniBlockInfo.Hash)]
 		if ok {
@@ -229,8 +232,6 @@ func (s *miniBlocksSelectionSession) AddMiniBlocksAndHashes(miniBlocksAndHashes 
 		numTxsAdded += txCount
 	}
 
-	s.mut.Lock()
-	defer s.mut.Unlock()
 	s.miniBlocks = append(s.miniBlocks, miniBlocks...)
 	s.miniBlockHeaderHandlers = append(s.miniBlockHeaderHandlers, miniBlockHeaderHandlers...)
 	s.miniBlockHashes = append(s.miniBlockHashes, miniBlockHashes...)
