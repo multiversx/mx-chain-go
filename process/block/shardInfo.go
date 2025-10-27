@@ -61,6 +61,9 @@ func (sic *ShardInfoCreateData) CreateShardInfoV3(
 	shardHeaders []data.HeaderHandler,
 	shardHeaderHashes [][]byte,
 ) ([]data.ShardDataHandler, error) {
+	if check.IfNil(metaHeader) {
+		return nil, process.ErrNilHeaderHandler
+	}
 	if !metaHeader.IsHeaderV3() {
 		return nil, process.ErrInvalidHeader
 	}
@@ -87,6 +90,9 @@ func (sic *ShardInfoCreateData) CreateShardInfoFromLegacyMeta(
 	shardHeaders []data.ShardHeaderHandler,
 	shardHeaderHashes [][]byte,
 ) ([]data.ShardDataHandler, error) {
+	if check.IfNil(metaHeader) {
+		return nil, process.ErrNilHeaderHandler
+	}
 	if metaHeader.IsHeaderV3() {
 		return nil, process.ErrInvalidHeader
 	}
@@ -184,7 +190,6 @@ func (sic *ShardInfoCreateData) createShardDataFromExecutionResult(
 		return nil, process.ErrWrongTypeAssertion
 	}
 
-	execResultHandler.GetMiniBlockHeadersHandlers()
 	header, err := sic.headersPool.GetHeaderByHash(execResultHandler.GetHeaderHash())
 	if err != nil {
 		return nil, err
@@ -235,7 +240,7 @@ func createShardMiniBlockHeaderFromExecutionResultHandler(
 	execResultHandler data.ExecutionResultHandler,
 ) []block.MiniBlockHeader {
 	mbHeaderHandlers := execResultHandler.GetMiniBlockHeadersHandlers()
-	shardMiniBlockHeaders := make([]block.MiniBlockHeader, 0)
+	shardMiniBlockHeaders := make([]block.MiniBlockHeader, 0, len(mbHeaderHandlers))
 	for i := 0; i < len(mbHeaderHandlers); i++ {
 		shardMiniBlockHeader := miniBlockHeaderFromMiniBlockHeaderHandler(mbHeaderHandlers[i])
 		shardMiniBlockHeaders = append(shardMiniBlockHeaders, shardMiniBlockHeader)
