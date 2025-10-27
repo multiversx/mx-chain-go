@@ -118,6 +118,195 @@ func TestShardInfo_NewShardInfoCreateData(t *testing.T) {
 	})
 }
 
+func TestShardInfoCreateData_createShardInfoFromHeader(t *testing.T) {
+	t.Parallel()
+
+}
+
+func TestShardInfoCreateData_createShardDataFromLegacyHeader(t *testing.T) {
+	t.Parallel()
+
+	t.Run("should fail with updateShardDataWithCrossShardInfo error", func(t *testing.T) {
+		t.Parallel()
+		header := getShardHeaderForShard1()
+		args := createDefaultShardInfoCreateDataArgs()
+		args.pendingMiniBlocksHandler.GetPendingMiniBlocksCalled = func(shardID uint32) [][]byte {
+			return [][]byte{[]byte("hash1"), []byte("hash2")}
+		}
+		args.blockTracker.GetLastSelfNotarizedHeaderCalled = func(shardID uint32) (data.HeaderHandler, []byte, error) {
+			return nil, nil, fmt.Errorf("GetLastSelfNotarizedHeader error")
+		}
+		args.enableEpochsHandler.IsFlagEnabledInEpochCalled = func(flag core.EnableEpochFlag, epoch uint32) bool {
+			return false
+		}
+		sic, err := NewShardInfoCreateData(
+			args.enableEpochsHandler,
+			args.headersPool,
+			args.proofsPool,
+			args.pendingMiniBlocksHandler,
+			args.blockTracker,
+		)
+		require.Nil(t, err)
+		shardData, err := sic.createShardDataFromLegacyHeader(header, []byte("headerHash"))
+		require.NotNil(t, err)
+		require.Nil(t, shardData)
+	})
+
+	t.Run("should work with enable epoch flag disabled", func(t *testing.T) {
+		t.Parallel()
+		header := getShardHeaderForShard1()
+		args := createDefaultShardInfoCreateDataArgs()
+		args.pendingMiniBlocksHandler.GetPendingMiniBlocksCalled = func(shardID uint32) [][]byte {
+			return [][]byte{[]byte("hash1"), []byte("hash2")}
+		}
+		args.blockTracker.GetLastSelfNotarizedHeaderCalled = func(shardID uint32) (data.HeaderHandler, []byte, error) {
+			return &block.Header{Nonce: header.GetNonce()}, []byte("selfNotarizedHash"), nil
+		}
+		args.enableEpochsHandler.IsFlagEnabledInEpochCalled = func(flag core.EnableEpochFlag, epoch uint32) bool {
+			return false
+		}
+		sic, err := NewShardInfoCreateData(
+			args.enableEpochsHandler,
+			args.headersPool,
+			args.proofsPool,
+			args.pendingMiniBlocksHandler,
+			args.blockTracker,
+		)
+		require.Nil(t, err)
+		shardData, err := sic.createShardDataFromLegacyHeader(header, []byte("headerHash"))
+		require.Nil(t, err)
+		require.NotNil(t, shardData)
+		require.Equal(t, 1, len(shardData))
+		require.Equal(t, header.GetNonce(), shardData[0].GetNonce())
+		require.Equal(t, uint32(0), shardData[0].(*block.ShardData).GetEpoch())
+	})
+	t.Run("should work with enable epoch flag enabled", func(t *testing.T) {
+		t.Parallel()
+		header := getShardHeaderForShard1()
+		args := createDefaultShardInfoCreateDataArgs()
+		args.pendingMiniBlocksHandler.GetPendingMiniBlocksCalled = func(shardID uint32) [][]byte {
+			return [][]byte{[]byte("hash1"), []byte("hash2")}
+		}
+		args.blockTracker.GetLastSelfNotarizedHeaderCalled = func(shardID uint32) (data.HeaderHandler, []byte, error) {
+			return &block.Header{Nonce: header.GetNonce()}, []byte("selfNotarizedHash"), nil
+		}
+		args.enableEpochsHandler.IsFlagEnabledInEpochCalled = func(flag core.EnableEpochFlag, epoch uint32) bool {
+			return true
+		}
+		sic, err := NewShardInfoCreateData(
+			args.enableEpochsHandler,
+			args.headersPool,
+			args.proofsPool,
+			args.pendingMiniBlocksHandler,
+			args.blockTracker,
+		)
+		require.Nil(t, err)
+		shardData, err := sic.createShardDataFromLegacyHeader(header, []byte("headerHash"))
+		require.Nil(t, err)
+		require.NotNil(t, shardData)
+		require.Equal(t, 1, len(shardData))
+		require.Equal(t, header.GetNonce(), shardData[0].GetNonce())
+		require.Equal(t, header.GetEpoch(), shardData[0].(*block.ShardData).GetEpoch())
+	})
+}
+func TestShardInfoCreateData_createShardDataFromV3Header(t *testing.T) {
+	t.Parallel()
+
+	t.Run("should fail with nil header", func(t *testing.T) {
+		t.Parallel()
+		args := createDefaultShardInfoCreateDataArgs()
+		sic, err := NewShardInfoCreateData(
+			args.enableEpochsHandler,
+			args.headersPool,
+			args.proofsPool,
+			args.pendingMiniBlocksHandler,
+			args.blockTracker,
+		)
+		require.Nil(t, err)
+		shardData, err := sic.createShardDataFromV3Header(nil)
+		require.NotNil(t, err)
+		require.Nil(t, shardData)
+		require.ErrorIs(t, err, process.ErrNilHeaderHandler)
+	})
+	t.Run("should return early if no execution results", func(t *testing.T) {
+		t.Parallel()
+		header := &block.HeaderV3{
+			Nonce: 0,
+		}
+		args := createDefaultShardInfoCreateDataArgs()
+		sic, err := NewShardInfoCreateData(
+			args.enableEpochsHandler,
+			args.headersPool,
+			args.proofsPool,
+			args.pendingMiniBlocksHandler,
+			args.blockTracker,
+		)
+		require.Nil(t, err)
+		shardData, err := sic.createShardDataFromV3Header(header)
+		require.Nil(t, err)
+		require.NotNil(t, shardData)
+		require.Equal(t, 0, len(shardData))
+	})
+	t.Run("should fail with createShardDataFromExecutionResult error", func(t *testing.T) {
+		t.Parallel()
+		expectedNonce := uint64(12345)
+		header := getHeaderV3ForShard1()
+		args := createDefaultShardInfoCreateDataArgs()
+		// GetHeaderByHash error will fail createShardDataFromExecutionResult
+		args.headersPool.GetHeaderByHashCalled = func(hash []byte) (data.HeaderHandler, error) {
+			return nil, fmt.Errorf("GetHeaderByHash error")
+		}
+
+		args.pendingMiniBlocksHandler.GetPendingMiniBlocksCalled = func(shardID uint32) [][]byte {
+			return [][]byte{[]byte("hash1"), []byte("hash2")}
+		}
+		args.blockTracker.GetLastSelfNotarizedHeaderCalled = func(shardID uint32) (data.HeaderHandler, []byte, error) {
+			return &block.Header{Nonce: expectedNonce}, []byte("selfNotarizedHash"), nil
+		}
+		sic, err := NewShardInfoCreateData(
+			args.enableEpochsHandler,
+			args.headersPool,
+			args.proofsPool,
+			args.pendingMiniBlocksHandler,
+			args.blockTracker,
+		)
+		require.Nil(t, err)
+		shardData, err := sic.createShardDataFromV3Header(header)
+		require.NotNil(t, err)
+		require.Nil(t, shardData)
+		require.Equal(t, fmt.Errorf("GetHeaderByHash error"), err)
+	})
+
+	t.Run("should work", func(t *testing.T) {
+		t.Parallel()
+		expectedNonce := uint64(12345)
+		header := getHeaderV3ForShard1()
+		args := createDefaultShardInfoCreateDataArgs()
+		args.headersPool.GetHeaderByHashCalled = func(hash []byte) (data.HeaderHandler, error) {
+			return header, nil
+		}
+		args.pendingMiniBlocksHandler.GetPendingMiniBlocksCalled = func(shardID uint32) [][]byte {
+			return [][]byte{[]byte("hash1"), []byte("hash2")}
+		}
+		args.blockTracker.GetLastSelfNotarizedHeaderCalled = func(shardID uint32) (data.HeaderHandler, []byte, error) {
+			return &block.Header{Nonce: expectedNonce}, []byte("selfNotarizedHash"), nil
+		}
+		sic, err := NewShardInfoCreateData(
+			args.enableEpochsHandler,
+			args.headersPool,
+			args.proofsPool,
+			args.pendingMiniBlocksHandler,
+			args.blockTracker,
+		)
+		require.Nil(t, err)
+		shardData, err := sic.createShardDataFromV3Header(header)
+		require.Nil(t, err)
+		require.NotNil(t, shardData)
+		require.Equal(t, 1, len(shardData))
+		require.Equal(t, expectedNonce, shardData[0].GetNonce())
+	})
+}
+
 func TestShardInfoCreateData_createShardDataFromExecutionResult(t *testing.T) {
 	t.Parallel()
 
@@ -229,15 +418,16 @@ func TestShardInfoCreateData_createShardDataFromExecutionResult(t *testing.T) {
 		assert.Equal(t, uint32(2), shardData.GetNumPendingMiniBlocks())
 		assert.Equal(t, uint32(execResult.GetExecutedTxCount()), shardData.GetTxCount())
 		assert.Equal(t, uint32(1), shardData.GetShardID())
-		assert.Equal(t, shardData.GetAccumulatedFees(), execResult.GetAccumulatedFees())
+		assert.Equal(t, execResult.GetAccumulatedFees(), shardData.GetAccumulatedFees())
 		assert.Equal(t, execResult.GetHeaderHash(), shardData.GetHeaderHash())
 		assert.Equal(t, execResult.GetHeaderRound(), shardData.GetRound())
 		assert.Equal(t, header.GetPrevHash(), shardData.GetPrevHash())
 		assert.Equal(t, execResult.GetHeaderNonce(), shardData.GetNonce())
 		assert.Equal(t, header.GetPrevRandSeed(), shardData.GetPrevRandSeed())
 		assert.Equal(t, header.GetPubKeysBitmap(), shardData.GetPubKeysBitmap())
-		assert.Equal(t, shardData.GetAccumulatedFees(), execResult.GetAccumulatedFees())
-		assert.Equal(t, shardData.GetDeveloperFees(), execResult.GetDeveloperFees())
+		assert.Equal(t, execResult.GetAccumulatedFees(), shardData.GetAccumulatedFees())
+		assert.Equal(t, execResult.GetDeveloperFees(), shardData.GetDeveloperFees())
+		require.Equal(t, header.GetEpoch(), shardData.(*block.ShardData).GetEpoch())
 	})
 }
 
@@ -431,6 +621,23 @@ func getShardHeaderForShard1() data.HeaderHandler {
 			PrevHash:         prevHash,
 			MiniBlockHeaders: getMiniBlockHeadersForShard1(),
 		},
+	}
+}
+
+func getHeaderV3ForShard1() data.HeaderHandler {
+	prevHash := []byte("prevHash")
+	prevRandSeed := []byte("prevRandSeed")
+	currRandSeed := []byte("currRandSeed")
+	return &block.HeaderV3{
+		Epoch:            7,
+		Round:            10,
+		Nonce:            45,
+		ShardID:          1,
+		PrevRandSeed:     prevRandSeed,
+		RandSeed:         currRandSeed,
+		PrevHash:         prevHash,
+		MiniBlockHeaders: getMiniBlockHeadersForShard1(),
+		ExecutionResults: []*block.ExecutionResult{getExecutionResultForShard1()},
 	}
 }
 
