@@ -30,7 +30,6 @@ func ConstructPartialComponentForTest(component interface{}, subcomponents map[s
 		rv := reflect.ValueOf(target).Elem()
 		field := rv.FieldByName(name)
 		if !field.IsValid() {
-			component = nil
 			return fmt.Errorf("invalid field: %s", name)
 		}
 		if !field.CanSet() {
