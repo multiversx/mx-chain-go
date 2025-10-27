@@ -435,6 +435,7 @@ type TrieLeavesRetriever interface {
 	IsInterfaceNil() bool
 }
 
+// TrieCollapseManager defines the behavior of a trie collapse manager
 type TrieCollapseManager interface {
 	MarkKeyAsAccessed(key []byte, sizeLoadedInMemory int)
 	RemoveKey(key []byte, sizeLoadedInMemory int)

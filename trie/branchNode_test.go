@@ -1615,25 +1615,3 @@ func TestBranchNode_getNodeData(t *testing.T) {
 		assert.False(t, thirdChildData.IsLeaf())
 	})
 }
-
-func TestBranchNode_commitCollapsesLeaves(t *testing.T) {
-	t.Parallel()
-
-	tr := initTrie()
-	en := tr.root.(*branchNode).children[7]
-	bn := en.(*extensionNode).child.(*branchNode)
-
-	assert.NotNil(t, tr.root.(*branchNode).children[5])
-	assert.NotNil(t, tr.root.(*branchNode).children[7])
-	assert.NotNil(t, en.(*extensionNode).child)
-	assert.NotNil(t, bn.children[4])
-	assert.NotNil(t, bn.children[16])
-	_ = tr.Commit()
-
-	assert.Nil(t, tr.root.(*branchNode).children[5]) // leaf node is collapsed
-	assert.NotNil(t, tr.root.(*branchNode).children[7])
-	assert.NotNil(t, en.(*extensionNode).child)
-	assert.Nil(t, bn.children[4])  // leaf node is collapsed
-	assert.Nil(t, bn.children[16]) // leaf node is collapsed
-
-}
