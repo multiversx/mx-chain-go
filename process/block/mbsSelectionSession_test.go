@@ -47,6 +47,16 @@ func TestMiniBlockSelectionSession_ResetSelectionSession(t *testing.T) {
 	t.Parallel()
 
 	session := createDummyFilledSession()
+
+	require.NotEmpty(t, session.GetMiniBlocks())
+	require.NotEmpty(t, session.GetMiniBlockHeaderHandlers())
+	require.NotEmpty(t, session.GetMiniBlockHashes())
+	require.NotEmpty(t, session.GetReferencedHeaderHashes())
+	require.NotEmpty(t, session.GetReferencedHeaders())
+	require.NotEmpty(t, session.referenceHeaderHashesUnique)
+	require.NotEmpty(t, session.miniBlockHashesUnique)
+	require.NotNil(t, session.GetLastHeader())
+
 	session.ResetSelectionSession()
 
 	require.Empty(t, session.GetMiniBlocks())
@@ -54,8 +64,9 @@ func TestMiniBlockSelectionSession_ResetSelectionSession(t *testing.T) {
 	require.Empty(t, session.GetMiniBlockHashes())
 	require.Empty(t, session.GetReferencedHeaderHashes())
 	require.Empty(t, session.GetReferencedHeaders())
+	require.Empty(t, session.referenceHeaderHashesUnique)
+	require.Empty(t, session.miniBlockHashesUnique)
 	require.Nil(t, session.GetLastHeader())
-	require.Equal(t, uint64(0), session.GetGasProvided())
 	require.Equal(t, uint32(0), session.GetNumTxsAdded())
 }
 
@@ -70,7 +81,6 @@ func TestMiniBlockSelectionSession_Getters(t *testing.T) {
 	require.Len(t, session.GetReferencedHeaderHashes(), 1)
 	require.Len(t, session.GetReferencedHeaders(), 1)
 	require.NotNil(t, session.GetLastHeader())
-	require.Equal(t, uint64(100), session.GetGasProvided())
 	require.Equal(t, uint32(2), session.GetNumTxsAdded())
 }
 
@@ -89,6 +99,29 @@ func TestMiniBlockSelectionSession_AddMiniBlocksAndHashes(t *testing.T) {
 		require.Empty(t, session.GetMiniBlocks())
 		require.Empty(t, session.GetMiniBlockHashes())
 	})
+
+	t.Run("should not add same mini block twice", func(t *testing.T) {
+		t.Parallel()
+
+		session, _ := NewMiniBlocksSelectionSession(1, marshaller, hasher)
+		err := session.AddMiniBlocksAndHashes([]block.MiniblockAndHash{
+			{&block.MiniBlock{}, []byte("hash1")},
+			{&block.MiniBlock{}, []byte("hash2")},
+			{&block.MiniBlock{}, []byte("hash3")},
+		})
+
+		require.NoError(t, err)
+		require.Equal(t, 3, len(session.GetMiniBlocks()))
+		require.Equal(t, 3, len(session.GetMiniBlockHashes()))
+
+		err = session.AddMiniBlocksAndHashes([]block.MiniblockAndHash{
+			{&block.MiniBlock{}, []byte("hash1")},
+		})
+
+		require.NoError(t, err)
+		require.Equal(t, 3, len(session.GetMiniBlocks()))
+	})
+
 	t.Run("should add mini blocks and hashes successfully", func(t *testing.T) {
 		t.Parallel()
 
@@ -236,6 +269,24 @@ func TestMiniBlocksSelectionSession_AddReferencedMetaBlock(t *testing.T) {
 		require.Empty(t, session.GetReferencedHeaders())
 		require.Empty(t, session.GetReferencedHeaderHashes())
 	})
+	t.Run("should not add same reference header twice", func(t *testing.T) {
+		session, _ := NewMiniBlocksSelectionSession(1, marshaller, hasher)
+		metaBlock := &block.MetaBlock{Epoch: 1, Round: 1}
+		metaBlockHash := []byte("metaHash")
+		session.AddReferencedHeader(metaBlock, metaBlockHash)
+
+		require.Len(t, session.GetReferencedHeaders(), 1)
+		require.Len(t, session.GetReferencedHeaderHashes(), 1)
+		require.Equal(t, metaBlock, session.GetReferencedHeaders()[0])
+		require.Equal(t, metaBlockHash, session.GetReferencedHeaderHashes()[0])
+
+		session.AddReferencedHeader(metaBlock, metaBlockHash)
+
+		require.Len(t, session.GetReferencedHeaders(), 1)
+		require.Len(t, session.GetReferencedHeaderHashes(), 1)
+		require.Equal(t, metaBlock, session.GetReferencedHeaders()[0])
+		require.Equal(t, metaBlockHash, session.GetReferencedHeaderHashes()[0])
+	})
 }
 
 func TestMiniBlocksSelectionSession_IsInterfaceNil(t *testing.T) {
@@ -276,11 +327,12 @@ func createDummyFilledSession() *miniBlocksSelectionSession {
 	// Add dummy mini blocks and hashes
 	session.miniBlocks = append(session.miniBlocks, miniBlock)
 	session.miniBlockHashes = append(session.miniBlockHashes, miniBlockHash)
+	session.miniBlockHashesUnique[string(miniBlockHash)] = struct{}{}
+	session.referenceHeaderHashesUnique[string(metaBlockHash)] = struct{}{}
 	session.miniBlockHeaderHandlers = append(session.miniBlockHeaderHandlers, miniBlockHeader)
 	session.referencedHeaderHashes = append(session.referencedHeaderHashes, metaBlockHash)
 	session.referencedHeader = append(session.referencedHeader, metaBlock)
 	session.lastHeader = metaBlock
-	session.gasProvided = 100
 	session.numTxsAdded = 2
 
 	return session
