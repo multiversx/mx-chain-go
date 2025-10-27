@@ -3743,14 +3743,14 @@ func TestBaseProcessor_GetFinalMiniBlocksFromExecutionResult(t *testing.T) {
 		bp, _ := blproc.NewShardProcessor(arguments)
 
 		executionResults := []*block.ExecutionResult{
-			&block.ExecutionResult{
+			{
 				MiniBlockHeaders: []block.MiniBlockHeader{
-					block.MiniBlockHeader{
+					{
 						Hash:            []byte("mbHash1"),
 						ReceiverShardID: 1,
 						SenderShardID:   0,
 					},
-					block.MiniBlockHeader{
+					{
 						Hash:            []byte("mbHash2"),
 						ReceiverShardID: 1,
 						SenderShardID:   0,
@@ -3788,9 +3788,9 @@ func TestBaseProcessor_GetFinalMiniBlocksFromExecutionResult(t *testing.T) {
 		bp, _ := blproc.NewShardProcessor(arguments)
 
 		executionResults := []*block.ExecutionResult{
-			&block.ExecutionResult{
+			{
 				MiniBlockHeaders: []block.MiniBlockHeader{
-					block.MiniBlockHeader{
+					{
 						Hash:            []byte("mbHash1"),
 						ReceiverShardID: 1,
 						SenderShardID:   0,
@@ -3840,9 +3840,9 @@ func TestBaseProcessor_GetFinalMiniBlocksFromExecutionResult(t *testing.T) {
 		bp, _ := blproc.NewShardProcessor(arguments)
 
 		executionResults := []*block.ExecutionResult{
-			&block.ExecutionResult{
+			{
 				MiniBlockHeaders: []block.MiniBlockHeader{
-					block.MiniBlockHeader{
+					{
 						Hash:            []byte("mbHash1"),
 						ReceiverShardID: 1,
 						SenderShardID:   0,
