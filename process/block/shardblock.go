@@ -1852,7 +1852,7 @@ func (sp *shardProcessor) getAllMiniBlockDstMeFromMeta(header data.ShardHeaderHa
 	for _, metaBlockHash := range header.GetMetaBlockHashes() {
 		headerInfo, ok := sp.hdrsForCurrBlock.GetHeaderInfo(string(metaBlockHash))
 		if !ok {
-			return nil, fmt.Errorf("%w : getAllMiniBlockDstMeFromMeta metaBlockHash = %s",
+			return nil, fmt.Errorf("%w for metaBlockHash %s",
 				process.ErrMissingHeader, hex.EncodeToString(metaBlockHash))
 		}
 

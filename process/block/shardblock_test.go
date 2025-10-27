@@ -4392,7 +4392,6 @@ func TestShardPreprocessor_getAllMiniBlockDstMeFromMetaMissingMetaHeaderShouldEr
 			},
 		}
 	}
-	//body := &block.Body{}
 
 	metablockHashes := [][]byte{
 		[]byte("hash1"),
@@ -4849,19 +4848,11 @@ func TestShardProcessor_updateStateStorage(t *testing.T) {
 	assert.True(t, cancelPruneWasCalled)
 }
 
-type gracePeriodErrStub struct{}
-
-func (gracePeriodErrStub) GetGracePeriodForEpoch(_ uint32) (uint32, error) {
-	return 0, errors.New("epochChangeGracePeriodHandler forced error")
-}
-
-func (gracePeriodErrStub) IsInterfaceNil() bool { return false }
-
 func TestShardProcessor_checkEpochCorrectnessCrossChain_gracePeriodError(t *testing.T) {
 	t.Parallel()
 
 	genesisNonce := uint64(0)
-	gracePeriod := &gracePeriodErrStub{}
+	gracePeriod := &processMocks.GracePeriodErrStub{}
 	blockchain := &testscommon.ChainHandlerStub{
 		GetCurrentBlockHeaderCalled: func() data.HeaderHandler {
 			return &block.Header{
@@ -5475,7 +5466,6 @@ func TestShardProcessor_CheckEpochCorrectnessShouldRemoveAndRequestStartOfEpochM
 func TestShardProcessor_CheckEpochCorrectnessShouldErrorWhenIsHeaderOfInvalidEpoch(t *testing.T) {
 	t.Parallel()
 
-	// isHeaderOfInvalidEpoch := header.GetEpoch() > sp.epochStartTrigger.MetaEpoch()
 	header := &block.Header{
 		Epoch: 3,
 	}
@@ -5531,7 +5521,7 @@ func TestShardProcessor_CheckEpochCorrectnessShouldErrorWhenEpochChangeGracePeri
 		"blockChain":                    blockChain,
 		"epochStartTrigger":             epochStartTriggerStub,
 		"enableEpochsHandler":           enableEpochsHandler,
-		"epochChangeGracePeriodHandler": &gracePeriodErrStub{},
+		"epochChangeGracePeriodHandler": &processMocks.GracePeriodErrStub{},
 	})
 	require.Nil(t, err)
 
@@ -5558,7 +5548,6 @@ func TestShardProcessor_CheckEpochCorrectnessShouldErrorWhenIsOldEpochAndShouldB
 		},
 	}
 
-	//make epochChangeConfirmed true (sp.epochStartTrigger.EpochStartRound() <= sp.epochStartTrigger.EpochFinalityAttestingRound())
 	epochStartTriggerStub := &mock.EpochStartTriggerStub{
 		MetaEpochCalled: func() uint32 {
 			return 4
@@ -5594,7 +5583,6 @@ func TestShardProcessor_CheckEpochCorrectnessShouldErrorWhenIsOldEpochAndShouldB
 func TestShardProcessor_CheckEpochCorrectnessShouldErrorWhenIsNotEpochStartButShouldBe(t *testing.T) {
 	t.Parallel()
 
-	//isNotEpochStartButShouldBe := header.GetEpoch() != currentBlockHeader.GetEpoch() && !header.IsStartOfEpochBlock()
 	gracePeriod, _ := graceperiod.NewEpochChangeGracePeriod([]config.EpochChangeGracePeriodByEpoch{{EnableEpoch: 0, GracePeriodInRounds: 1}})
 
 	header := &block.Header{

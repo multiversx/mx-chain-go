@@ -214,7 +214,7 @@ func TestShardProcessor_CreateBlockProposal(t *testing.T) {
 	})
 	t.Run("selectIncomingMiniBlocksForProposal fails due to error on selectIncomingMiniBlocks", func(t *testing.T) {
 		t.Parallel()
-		expectedError := errors.New("expected error")
+
 		coreComponents, dataComponents, bootstrapComponents, statusComponents := createComponentHolderMocks()
 		headers := dataComponents.DataPool.Headers()
 		dataComponents.DataPool = &dataRetriever.PoolsHolderStub{
@@ -620,7 +620,7 @@ func Test_addExecutionResultsOnHeader(t *testing.T) {
 	t.Parallel()
 	t.Run("executionResultsTracker returns error should error", func(t *testing.T) {
 		t.Parallel()
-		expectedErr := errors.New("expected error")
+
 		sp, _ := blproc.ConstructPartialShardBlockProcessorForTest(map[string]interface{}{
 			"executionResultsTracker": &testscommonExecutionTrack.ExecutionResultsTrackerStub{
 				GetPendingExecutionResultsCalled: func() ([]data.BaseExecutionResultHandler, error) {
@@ -1348,7 +1348,7 @@ func TestShardProcessor_VerifyBlockProposal(t *testing.T) {
 		t.Parallel()
 
 		subcomponents := createSubComponentsForVerifyProposalTest()
-		subcomponents["epochChangeGracePeriodHandler"] = &gracePeriodErrStub{}
+		subcomponents["epochChangeGracePeriodHandler"] = processMocks.GracePeriodErrStub{}
 		subcomponents["epochStartTrigger"] = &mock.EpochStartTriggerStub{
 			EpochStartRoundCalled: func() uint64 {
 				return 10
@@ -1411,11 +1411,10 @@ func TestShardProcessor_VerifyBlockProposal(t *testing.T) {
 	t.Run("checkMetaHeadersValidityAndFinalityProposal fails should error", func(t *testing.T) {
 		t.Parallel()
 
-		expError := errors.New("expected error from checkMetaHeadersValidityAndFinalityProposal")
 		subcomponents := createSubComponentsForVerifyProposalTest()
 		subcomponents["blockTracker"] = &mock.BlockTrackerMock{
 			GetLastCrossNotarizedHeaderCalled: func(shardID uint32) (data.HeaderHandler, []byte, error) {
-				return nil, nil, expError
+				return nil, nil, expectedError
 			},
 		}
 
@@ -1436,7 +1435,7 @@ func TestShardProcessor_VerifyBlockProposal(t *testing.T) {
 
 		err = sp.VerifyBlockProposal(header, body, haveTime)
 		require.Error(t, err)
-		assert.Equal(t, expError, err)
+		assert.Equal(t, expectedError, err)
 	})
 	t.Run("verifyCrossShardMiniBlockDstMe fails should error", func(t *testing.T) {
 		t.Parallel()
@@ -3146,24 +3145,34 @@ func TestShardProcessor_collectExecutionResults(t *testing.T) {
 				actual_miniblocks[block.TxBlock]++
 				if mbResult.GetSenderShardID() == uint32(0) && mbResult.GetReceiverShardID() == uint32(0) {
 					assert.Equal(t, uint32(2), mbResult.GetTxCount(), "same-shard tx miniblock should have 2 txs as per mock")
-				} else if mbResult.GetSenderShardID() == uint32(0) && mbResult.GetReceiverShardID() == uint32(1) {
-					assert.Equal(t, uint32(2), mbResult.GetTxCount(), "cross-shard tx miniblock should have 2 txs as per mock")
-				} else if mbResult.GetSenderShardID() == uint32(1) && mbResult.GetReceiverShardID() == uint32(0) {
-					assert.Equal(t, uint32(1), mbResult.GetTxCount(), "cross-shard tx miniblock should have 1 tx as per mock")
-				} else if mbResult.GetSenderShardID() == uint32(2) && mbResult.GetReceiverShardID() == uint32(0) {
-					assert.Equal(t, uint32(1), mbResult.GetTxCount(), "cross-shard tx miniblock should have 1 tx as per mock")
-				} else {
-					require.Fail(t, "unexpected tx miniblock shard IDs")
+					continue
 				}
+				if mbResult.GetSenderShardID() == uint32(0) && mbResult.GetReceiverShardID() == uint32(1) {
+					assert.Equal(t, uint32(2), mbResult.GetTxCount(), "cross-shard tx miniblock should have 2 txs as per mock")
+					continue
+				}
+				if mbResult.GetSenderShardID() == uint32(1) && mbResult.GetReceiverShardID() == uint32(0) {
+					assert.Equal(t, uint32(1), mbResult.GetTxCount(), "cross-shard tx miniblock should have 1 tx as per mock")
+					continue
+				}
+				if mbResult.GetSenderShardID() == uint32(2) && mbResult.GetReceiverShardID() == uint32(0) {
+					assert.Equal(t, uint32(1), mbResult.GetTxCount(), "cross-shard tx miniblock should have 1 tx as per mock")
+					continue
+				}
+				require.Fail(t, "unexpected tx miniblock shard IDs")
+
 			case block.SmartContractResultBlock:
 				actual_miniblocks[block.SmartContractResultBlock]++
 				if mbResult.GetSenderShardID() == uint32(0) && mbResult.GetReceiverShardID() == uint32(1) {
 					assert.Equal(t, uint32(1), mbResult.GetTxCount(), "outgoing SCR miniblock should have 1 tx as per mock")
-				} else if mbResult.GetSenderShardID() == uint32(2) && mbResult.GetReceiverShardID() == uint32(0) {
-					assert.Equal(t, uint32(2), mbResult.GetTxCount(), "incoming SCR miniblock should have 2 txs as per mock")
-				} else {
-					require.Fail(t, "unexpected SCR miniblock shard IDs")
+					continue
 				}
+				if mbResult.GetSenderShardID() == uint32(2) && mbResult.GetReceiverShardID() == uint32(0) {
+					assert.Equal(t, uint32(2), mbResult.GetTxCount(), "incoming SCR miniblock should have 2 txs as per mock")
+					continue
+				}
+				require.Fail(t, "unexpected SCR miniblock shard IDs")
+
 			case block.ReceiptBlock:
 				actual_miniblocks[block.ReceiptBlock]++
 				assert.NotEqual(t, uint32(0), mbResult.GetSenderShardID(), "receipt miniblock should not be self-shard")

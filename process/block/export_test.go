@@ -1,11 +1,8 @@
 package block
 
 import (
-	"fmt"
-	"reflect"
 	"sync"
 	"time"
-	"unsafe"
 
 	"github.com/multiversx/mx-chain-core-go/core"
 	"github.com/multiversx/mx-chain-core-go/core/check"
@@ -799,6 +796,7 @@ func (sp *shardProcessor) CollectExecutionResults(headerHash []byte, header data
 	return sp.collectExecutionResults(headerHash, header, body)
 }
 
+// AddExecutionResultsOnHeader -
 func (sp *shardProcessor) AddExecutionResultsOnHeader(shardHeader data.HeaderHandler) error {
 	return sp.addExecutionResultsOnHeader(shardHeader)
 }
@@ -828,47 +826,12 @@ func GetHaveTimeForProposal(startTime time.Time, maxDuration time.Duration) func
 	return getHaveTimeForProposal(startTime, maxDuration)
 }
 
+// ConstructPartialShardBlockProcessorForTest -
 func ConstructPartialShardBlockProcessorForTest(subcomponents map[string]interface{}) (*shardProcessor, error) {
-	bp := &baseProcessor{}
-	sp := &shardProcessor{baseProcessor: bp}
-
-	setField := func(target any, name string, component any) error {
-		rv := reflect.ValueOf(target).Elem()
-		field := rv.FieldByName(name)
-		if !field.IsValid() {
-			return fmt.Errorf("invalid field: %s", name)
-		}
-		if !field.CanSet() {
-			// bypass export check (ok in tests, same package)
-			field = reflect.NewAt(field.Type(), unsafe.Pointer(field.UnsafeAddr())).Elem()
-		}
-
-		val := reflect.ValueOf(component)
-		switch {
-		case val.Type().AssignableTo(field.Type()):
-			field.Set(val)
-		case val.Type().ConvertibleTo(field.Type()):
-			field.Set(val.Convert(field.Type()))
-		case val.Kind() != reflect.Ptr && field.Kind() == reflect.Ptr && val.Type().AssignableTo(field.Type().Elem()):
-			ptr := reflect.New(val.Type())
-			ptr.Elem().Set(val)
-			field.Set(ptr)
-		case val.Kind() != reflect.Ptr && field.Kind() == reflect.Ptr && val.Type().ConvertibleTo(field.Type().Elem()):
-			ptr := reflect.New(field.Type().Elem())
-			ptr.Elem().Set(val.Convert(field.Type().Elem()))
-			field.Set(ptr)
-		default:
-			return fmt.Errorf("cannot set field %s (got %s, expected %s)", name, val.Type(), field.Type())
-		}
-		return nil
+	sp := &shardProcessor{}
+	err := factory.ConstructPartialComponentForTest(sp, subcomponents)
+	if err != nil {
+		return nil, err
 	}
-
-	for name, component := range subcomponents {
-		if err := setField(sp, name, component); err != nil {
-			if err2 := setField(sp.baseProcessor, name, component); err2 != nil {
-				return nil, err
-			}
-		}
-	}
-	return sp, nil
+	return sp, err
 }

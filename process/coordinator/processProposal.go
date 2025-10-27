@@ -134,7 +134,7 @@ func (tc *transactionCoordinator) CreateMbsCrossShardDstMe(
 
 	// if not all mini blocks were included, remove them from the miniBlocksAndHashes slice
 	// but add them into pendingMiniBlocksAndHashes
-	if lastMBIndex+1 < len(mbsSlice) {
+	if lastMBIndex < len(mbsSlice)-1 {
 		pendingMiniBlocksAndHashes = miniBlocksAndHashes[lastMBIndex+1:]
 		miniBlocksAndHashes = miniBlocksAndHashes[:lastMBIndex+1]
 	}

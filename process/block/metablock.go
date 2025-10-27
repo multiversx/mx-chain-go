@@ -476,12 +476,12 @@ func (mp *metaProcessor) getAllMiniBlockDstMeFromShards(metaHdr *block.MetaBlock
 	for _, shardInfo := range metaHdr.ShardInfo {
 		headerInfo, ok := mp.hdrsForCurrBlock.GetHeaderInfo(string(shardInfo.HeaderHash))
 		if !ok {
-			return nil, fmt.Errorf("%w : getAllMiniBlockDstMeFromShards shardInfo.HeaderHash = %s",
+			return nil, fmt.Errorf("%w for shard info with hash = %s",
 				process.ErrMissingHeader, hex.EncodeToString(shardInfo.HeaderHash))
 		}
 		shardHeader, ok := headerInfo.GetHeader().(data.ShardHeaderHandler)
 		if !ok {
-			return nil, fmt.Errorf("%w : getAllMiniBlockDstMeFromShards shardInfo.HeaderHash = %s",
+			return nil, fmt.Errorf("%w : for shardInfo.HeaderHash = %s",
 				process.ErrWrongTypeAssertion, hex.EncodeToString(shardInfo.HeaderHash))
 		}
 
@@ -491,15 +491,15 @@ func (mp *metaProcessor) getAllMiniBlockDstMeFromShards(metaHdr *block.MetaBlock
 		}
 
 		if shardHeader.GetRound() > metaHdr.Round {
-			return nil, fmt.Errorf("%w : getAllMiniBlockDstMeFromShards shardInfo.HeaderHash = %s",
+			return nil, fmt.Errorf("%w : for shard info with hash = %s",
 				process.ErrHigherRoundInBlock, hex.EncodeToString(shardInfo.HeaderHash))
 		}
 		if shardHeader.GetRound() <= lastCrossNotarizedHeader.GetRound() {
-			return nil, fmt.Errorf("%w : getAllMiniBlockDstMeFromShards shardInfo.HeaderHash = %s",
+			return nil, fmt.Errorf("%w : for shard info with hash = %s",
 				process.ErrLowerRoundInBlock, hex.EncodeToString(shardInfo.HeaderHash))
 		}
 		if shardHeader.GetNonce() <= lastCrossNotarizedHeader.GetNonce() {
-			return nil, fmt.Errorf("%w : getAllMiniBlockDstMeFromShards shardInfo.HeaderHash = %s",
+			return nil, fmt.Errorf("%w : for shard info with hash = %s",
 				process.ErrLowerNonceInBlock, hex.EncodeToString(shardInfo.HeaderHash))
 		}
 
