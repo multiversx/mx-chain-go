@@ -24,7 +24,7 @@ func TestTrackedBlock_sameNonceOrBelow(t *testing.T) {
 		trackedBlock1 := newTrackedBlock(0, []byte("blockHash1"), []byte("blockRootHash1"), []byte("blockPrevHash1"))
 		trackedBlock2 := newTrackedBlock(0, []byte("blockHash1"), []byte("blockRootHash2"), []byte("blockPrevHash1"))
 
-		shouldRemoveBlock := trackedBlock1.sameNonceOrBelow(trackedBlock2)
+		shouldRemoveBlock := trackedBlock1.hasSameNonceOrLower(trackedBlock2)
 		require.True(t, shouldRemoveBlock)
 	})
 
@@ -34,7 +34,7 @@ func TestTrackedBlock_sameNonceOrBelow(t *testing.T) {
 		trackedBlock1 := newTrackedBlock(0, []byte("blockHash1"), []byte("blockRootHash1"), []byte("blockPrevHash1"))
 		trackedBlock2 := newTrackedBlock(1, []byte("blockHash1"), []byte("blockRootHash1"), []byte("blockPrevHash1"))
 
-		shouldRemoveBlock := trackedBlock1.sameNonceOrBelow(trackedBlock2)
+		shouldRemoveBlock := trackedBlock1.hasSameNonceOrLower(trackedBlock2)
 		require.True(t, shouldRemoveBlock)
 	})
 
@@ -44,19 +44,28 @@ func TestTrackedBlock_sameNonceOrBelow(t *testing.T) {
 		trackedBlock1 := newTrackedBlock(2, []byte("blockHash1"), []byte("blockRootHash1"), []byte("blockPrevHash1"))
 		trackedBlock2 := newTrackedBlock(1, []byte("blockHash1"), []byte("blockRootHash1"), []byte("blockPrevHash1"))
 
-		shouldRemoveBlock := trackedBlock1.sameNonceOrBelow(trackedBlock2)
+		shouldRemoveBlock := trackedBlock1.hasSameNonceOrLower(trackedBlock2)
 		require.False(t, shouldRemoveBlock)
 	})
 }
 
-func TestTrackedBlock_sameNonce(t *testing.T) {
+func TestTrackedBlock_sameNonceOrHigher(t *testing.T) {
 	t.Parallel()
 
-	trackedBlock1 := newTrackedBlock(0, []byte("blockHash1"), []byte("blockRootHash1"), []byte("blockPrevHash1"))
-	trackedBlock2 := newTrackedBlock(0, []byte("blockHash1"), []byte("blockRootHash2"), []byte("blockPrevHash1"))
+	trackedBlock0 := newTrackedBlock(1, []byte("blockHash1"), []byte("blockRootHash1"), []byte("blockPrevHash1"))
+	trackedBlock1 := newTrackedBlock(2, []byte("blockHash1"), []byte("blockRootHash1"), []byte("blockPrevHash1"))
+	trackedBlock2 := newTrackedBlock(3, []byte("blockHash1"), []byte("blockRootHash2"), []byte("blockPrevHash1"))
 
-	shouldRemoveBlock := trackedBlock1.sameNonce(trackedBlock2)
+	newProposedBlock := newTrackedBlock(2, []byte("blockHash1"), []byte("blockRootHash2"), []byte("blockPrevHash1"))
+
+	shouldRemoveBlock := trackedBlock1.hasSameNonceOrHigher(newProposedBlock)
 	require.True(t, shouldRemoveBlock)
+
+	shouldRemoveBlock = trackedBlock2.hasSameNonceOrHigher(newProposedBlock)
+	require.True(t, shouldRemoveBlock)
+
+	shouldRemoveBlock = trackedBlock0.hasSameNonceOrHigher(newProposedBlock)
+	require.False(t, shouldRemoveBlock)
 }
 
 func TestTrackedBlock_getBreadcrumb(t *testing.T) {

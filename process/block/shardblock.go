@@ -992,12 +992,6 @@ func (sp *shardProcessor) CommitBlock(
 		return err
 	}
 
-	err = sp.dataPool.Transactions().OnExecutedBlock(headerHandler)
-	if err != nil {
-		log.Debug("dataPool.Transactions().OnExecutedBlock()", "error", err)
-		return err
-	}
-
 	err = sp.commitAll(headerHandler)
 	if err != nil {
 		return err
@@ -1068,13 +1062,28 @@ func (sp *shardProcessor) CommitBlock(
 		return err
 	}
 
+	// TODO: make sure to set current header and rootHash in blockChain properly
+
 	err = sp.blockChain.SetCurrentBlockHeaderAndRootHash(header, committedRootHash)
 	if err != nil {
 		return err
 	}
 
+	rootHash := getLastExecutionResultsRootHash(header, committedRootHash)
+	lastExecutionResultHeader, err := sp.getLastExecutionResultHeader(header)
+	if err != nil {
+		return err
+	}
+
+	err = sp.dataPool.Transactions().OnExecutedBlock(lastExecutionResultHeader, rootHash)
+	if err != nil {
+		log.Debug("dataPool.Transactions().OnExecutedBlock()", "error", err)
+		return err
+	}
+
 	sp.blockChain.SetCurrentBlockHeaderHash(headerHash)
 	sp.indexBlockIfNeeded(bodyHandler, headerHash, headerHandler, lastBlockHeader)
+	sp.stateAccessesCollector.Reset()
 	sp.recordBlockInHistory(headerHash, headerHandler, bodyHandler)
 
 	lastCrossNotarizedHeader, _, err := sp.blockTracker.GetLastCrossNotarizedHeader(core.MetachainShardId)
@@ -1148,6 +1157,45 @@ func (sp *shardProcessor) CommitBlock(
 	sp.blockProcessingCutoffHandler.HandlePauseCutoff(header)
 
 	return nil
+}
+
+func getLastExecutionResultsRootHash(
+	header data.HeaderHandler,
+	committedRootHash []byte,
+) []byte {
+	if !header.IsHeaderV3() {
+		return committedRootHash
+	}
+
+	lastExecutionResult, err := common.GetLastBaseExecutionResultHandler(header)
+	if err != nil {
+		log.Warn("failed to get last execution result for header", "err", err)
+		return committedRootHash
+	}
+
+	return lastExecutionResult.GetRootHash()
+}
+
+func (sp *shardProcessor) getLastExecutionResultHeader(
+	currentHeader data.HeaderHandler,
+) (data.HeaderHandler, error) {
+	if !currentHeader.IsHeaderV3() {
+		return currentHeader, nil
+	}
+
+	lastExecutionResult, err := common.GetLastBaseExecutionResultHandler(currentHeader)
+	if err != nil {
+		return nil, err
+	}
+
+	headersPool := sp.dataPool.Headers()
+
+	header, err := headersPool.GetHeaderByHash(lastExecutionResult.GetHeaderHash())
+	if err != nil {
+		return nil, err
+	}
+
+	return header, nil
 }
 
 func (sp *shardProcessor) notifyFinalMetaHdrs(processedMetaHeaders []data.HeaderHandler) {
@@ -1805,7 +1853,8 @@ func (sp *shardProcessor) getAllMiniBlockDstMeFromMeta(header data.ShardHeaderHa
 	for _, metaBlockHash := range header.GetMetaBlockHashes() {
 		headerInfo, ok := sp.hdrsForCurrBlock.GetHeaderInfo(string(metaBlockHash))
 		if !ok {
-			return nil, err
+			return nil, fmt.Errorf("%w for metaBlockHash %s",
+				process.ErrMissingHeader, hex.EncodeToString(metaBlockHash))
 		}
 
 		err = sp.addCrossShardMiniBlocksDstMeToMap(header, metaBlockHash, headerInfo.GetHeader(), lastCrossNotarizedHeader, miniBlockMetaHashes)
