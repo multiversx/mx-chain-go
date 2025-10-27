@@ -221,6 +221,7 @@ func TestShardProcessor_CreateBlockProposal(t *testing.T) {
 		arguments.BlockTracker = &mock.BlockTrackerMock{
 			ComputeLongestMetaChainFromLastNotarizedCalled: func() ([]data.HeaderHandler, [][]byte, error) {
 				return []data.HeaderHandler{&block.MetaBlockV3{
+					Nonce: 1,
 					ShardInfo: []block.ShardData{
 						{
 							ShardID: 1,
@@ -535,8 +536,10 @@ func TestShardProcessor_CreateBlockProposal(t *testing.T) {
 		arguments.BlockTracker = &mock.BlockTrackerMock{
 			ComputeLongestMetaChainFromLastNotarizedCalled: func() ([]data.HeaderHandler, [][]byte, error) {
 				return []data.HeaderHandler{&block.MetaBlockV3{
+						Nonce: 1,
 						ShardInfo: []block.ShardData{
 							{
+								Nonce:   0,
 								ShardID: 1,
 								ShardMiniBlockHeaders: []block.MiniBlockHeader{
 									{
@@ -547,6 +550,7 @@ func TestShardProcessor_CreateBlockProposal(t *testing.T) {
 							},
 							// for extra coverage, should be skipped as it is empty
 							{
+								Nonce:                 1,
 								ShardID:               1,
 								ShardMiniBlockHeaders: []block.MiniBlockHeader{},
 							},
@@ -554,12 +558,15 @@ func TestShardProcessor_CreateBlockProposal(t *testing.T) {
 						MiniBlockHeaders: []block.MiniBlockHeader{
 							{},
 						},
-					}},
+					}, &block.MetaBlockV3{Nonce: 2},
+					},
 					[][]byte{[]byte("hash_ok"), []byte("hash_empty")},
 					nil
 			},
 			GetLastCrossNotarizedHeaderCalled: func(shardID uint32) (data.HeaderHandler, []byte, error) {
-				return &block.MetaBlockV3{}, []byte("hash"), nil // dummy
+				return &block.MetaBlockV3{
+					Nonce: 0,
+				}, []byte("hash"), nil // dummy
 			},
 		}
 		providedMb := &block.MiniBlock{
@@ -2429,6 +2436,10 @@ func TestShardProcessor_OnProposedBlock(t *testing.T) {
 			}
 		}
 		arguments := CreateMockArguments(coreComponents, dataComponents, bootstrapComponents, statusComponents)
+		cntAddRef := 0
+		arguments.MiniBlocksSelectionSession = &mbSelection.MiniBlockSelectionSessionStub{
+			AddReferencedHeaderCalled: func(metaBlock data.HeaderHandler, metaBlockHash []byte) { cntAddRef++ },
+		}
 		sp, err := blproc.NewShardProcessor(arguments)
 		require.Nil(t, err)
 
