@@ -49,6 +49,13 @@ import (
 
 var log = logger.GetOrCreate("process/block")
 
+// CrossShardIncomingMbsCreationResult represents the result of creating cross-shard mini blocks
+type CrossShardIncomingMbsCreationResult struct {
+	HeaderFinished    bool
+	PendingMiniBlocks []block.MiniblockAndHash
+	AddedMiniBlocks   []block.MiniblockAndHash
+}
+
 type hashAndHdr struct {
 	hdr  data.HeaderHandler
 	hash []byte
@@ -1129,7 +1136,6 @@ func (bp *baseProcessor) cleanupPools(headerHandler data.HeaderHandler) {
 	} else {
 		bp.cleanupPoolsForCrossShard(core.MetachainShardId, noncesToPrevFinal)
 	}
-
 }
 
 func (bp *baseProcessor) cleanupPoolsForCrossShard(
@@ -2725,32 +2731,13 @@ func (bp *baseProcessor) createMbsCrossShardDstMe(
 	currentBlockHash []byte,
 	currentBlock data.HeaderHandler,
 	miniBlockProcessingInfo map[string]*processedMb.ProcessedMiniBlockInfo,
-	allOrNothing bool,
-) (bool, []block.MiniblockAndHash, error) {
+) (*CrossShardIncomingMbsCreationResult, error) {
 	currMiniBlocksAdded, pendingMiniBlocks, currNumTxsAdded, hdrFinished, errCreate := bp.txCoordinator.CreateMbsCrossShardDstMe(
 		currentBlock,
 		miniBlockProcessingInfo,
 	)
 	if errCreate != nil {
-		return false, nil, errCreate
-	}
-
-	if allOrNothing && len(pendingMiniBlocks) > 0 {
-		log.Debug("block cannot be fully processed",
-			"round", currentBlock.GetRound(),
-			"nonce", currentBlock.GetNonce(),
-			"hash", currentBlockHash)
-		bp.revertGasForCrossShardDstMeMiniBlocks(currMiniBlocksAdded, pendingMiniBlocks)
-
-		return false, pendingMiniBlocks, nil
-	}
-
-	if len(currMiniBlocksAdded) > 0 {
-		err := bp.miniBlocksSelectionSession.AddMiniBlocksAndHashes(currMiniBlocksAdded)
-		if err != nil {
-			return false, nil, err
-		}
-		bp.miniBlocksSelectionSession.AddReferencedHeader(currentBlock, currentBlockHash)
+		return nil, errCreate
 	}
 
 	if !hdrFinished {
@@ -2761,10 +2748,18 @@ func (bp *baseProcessor) createMbsCrossShardDstMe(
 			"num mbs added", len(currMiniBlocksAdded),
 			"num txs added", currNumTxsAdded)
 
-		return false, pendingMiniBlocks, nil
+		return &CrossShardIncomingMbsCreationResult{
+			HeaderFinished:    false,
+			PendingMiniBlocks: pendingMiniBlocks,
+			AddedMiniBlocks:   currMiniBlocksAdded,
+		}, nil
 	}
 
-	return true, pendingMiniBlocks, nil
+	return &CrossShardIncomingMbsCreationResult{
+		HeaderFinished:    true,
+		PendingMiniBlocks: pendingMiniBlocks,
+		AddedMiniBlocks:   currMiniBlocksAdded,
+	}, nil
 }
 
 func (bp *baseProcessor) revertGasForCrossShardDstMeMiniBlocks(added, pending []block.MiniblockAndHash) {

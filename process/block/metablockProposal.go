@@ -301,9 +301,15 @@ func (mp *metaProcessor) selectIncomingMiniBlocks(
 	hdrsAdded := uint32(0)
 	maxShardHeadersAllowedInOneMetaBlock := maxShardHeadersFromSameShard * mp.shardCoordinator.NumberOfShards()
 	hdrsAddedForShard := make(map[uint32]uint32)
+	var err error
+
+	if len(orderedHdrs) != len(orderedHdrsHashes) {
+		return process.ErrInconsistentShardHeadersAndHashes
+	}
+
 	for i := 0; i < len(orderedHdrs); i++ {
 		if !haveTime() {
-			log.Debug("time is up after putting cross txs with destination to current shard",
+			log.Debug("time is up after putting cross txs with destination to  metachain",
 				"num txs", mp.miniBlocksSelectionSession.GetNumTxsAdded(),
 			)
 			break
@@ -318,10 +324,14 @@ func (mp *metaProcessor) selectIncomingMiniBlocks(
 
 		currHdr := orderedHdrs[i]
 		currHdrHash := orderedHdrsHashes[i]
-		if currHdr.GetNonce() > lastShardHdr[currHdr.GetShardID()].Header.GetNonce()+1 {
+		lastShardHeaderInfo, ok := lastShardHdr[currHdr.GetShardID()]
+		if !ok {
+			return process.ErrMissingHeader
+		}
+		if currHdr.GetNonce() != lastShardHeaderInfo.Header.GetNonce()+1 {
 			log.Trace("skip searching",
 				"shard", currHdr.GetShardID(),
-				"last shard hdr nonce", lastShardHdr[currHdr.GetShardID()].Header.GetNonce(),
+				"last shard hdr nonce", lastShardHeaderInfo.Header.GetNonce(),
 				"curr shard hdr nonce", currHdr.GetNonce())
 			continue
 		}
@@ -355,18 +365,24 @@ func (mp *metaProcessor) selectIncomingMiniBlocks(
 			continue
 		}
 
-		_, pendingMiniBlocks, errCreated := mp.createMbsCrossShardDstMe(currHdrHash, currHdr, nil, true)
+		createIncomingMbsResult, errCreated := mp.createMbsCrossShardDstMe(currHdrHash, currHdr, nil)
 		if errCreated != nil {
 			return errCreated
 		}
-
-		// pending miniBlocks were already reverted, but still returned to check if we need to stop adding more shard headers
-		if len(pendingMiniBlocks) > 0 {
+		if !createIncomingMbsResult.HeaderFinished {
+			mp.revertGasForCrossShardDstMeMiniBlocks(createIncomingMbsResult.AddedMiniBlocks, createIncomingMbsResult.PendingMiniBlocks)
 			log.Debug("shard header cannot be fully added",
 				"round", currHdr.GetRound(),
 				"nonce", currHdr.GetNonce(),
 				"hash", currHdrHash)
 			break
+		}
+
+		if len(createIncomingMbsResult.AddedMiniBlocks) > 0 {
+			err = mp.miniBlocksSelectionSession.AddMiniBlocksAndHashes(createIncomingMbsResult.AddedMiniBlocks)
+			if err != nil {
+				return err
+			}
 		}
 
 		mp.miniBlocksSelectionSession.AddReferencedHeader(currHdr, currHdrHash)
