@@ -331,7 +331,7 @@ func (sd *shardedData) OnProposedBlock(
 	_ *block.Body,
 	_ data.HeaderHandler,
 	_ common.AccountNonceAndBalanceProvider,
-	_ common.BlockchainInfo,
+	_ []byte,
 ) error {
 	log.Warn("shardedData.OnProposedBlockCalled() should not have been called")
 	return nil
