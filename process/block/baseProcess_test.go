@@ -64,7 +64,6 @@ import (
 	"github.com/multiversx/mx-chain-go/testscommon/mainFactoryMocks"
 	"github.com/multiversx/mx-chain-go/testscommon/marshallerMock"
 	"github.com/multiversx/mx-chain-go/testscommon/outport"
-	"github.com/multiversx/mx-chain-go/testscommon/preprocMocks"
 	"github.com/multiversx/mx-chain-go/testscommon/shardingMocks"
 	stateMock "github.com/multiversx/mx-chain-go/testscommon/state"
 	statusHandlerMock "github.com/multiversx/mx-chain-go/testscommon/statusHandler"
@@ -132,7 +131,6 @@ func createArgBaseProcessor(
 	var execResultsVerifier blproc.ExecutionResultsVerifier
 	var missingDataResolver blproc.MissingDataResolver
 	if check.IfNil(dataComponents) || check.IfNil(dataComponents.Datapool()) || check.IfNil(coreComponents) || check.IfNil(bootstrapComponents) {
-		blockDataRequester = &preprocMocks.BlockDataRequesterStub{}
 		inclusionEstimator = &processMocks.InclusionEstimatorMock{}
 		mbSelectionSession = &mbSelection.MiniBlockSelectionSessionStub{}
 		execResultsVerifier = &processMocks.ExecutionResultsVerifierMock{}
