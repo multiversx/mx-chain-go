@@ -365,6 +365,10 @@ func (sr *subroundBlock) createHeader() (data.HeaderHandler, error) {
 
 // receivedBlockBody method is called when a block body is received through the block body channel
 func (sr *subroundBlock) receivedBlockBody(ctx context.Context, cnsDta *consensus.Message) bool {
+	if !sr.waitForStartRoundToFinishBlocking() {
+		return false
+	}
+
 	node := string(cnsDta.PubKey)
 
 	if !sr.IsNodeLeaderInCurrentRound(node) { // is NOT this node leader in current round?
@@ -456,6 +460,31 @@ func (sr *subroundBlock) getLeaderForHeader(headerHandler data.HeaderHandler) ([
 	return leader.PubKey(), err
 }
 
+func (sr *subroundBlock) waitForStartRoundToFinishBlocking() bool {
+	if sr.IsSubroundFinished(bls.SrStartRound) {
+		return true
+	}
+
+	timerStartRoundChecks := time.NewTimer(timeSpentBetweenChecks)
+
+	ctx, cancel := context.WithTimeout(context.Background(), sr.RoundHandler().TimeDuration())
+	defer cancel()
+
+	for {
+		timerStartRoundChecks.Reset(timeSpentBetweenChecks)
+
+		select {
+		case <-timerStartRoundChecks.C:
+			if sr.IsSubroundFinished(bls.SrStartRound) {
+				return true
+			}
+		case <-ctx.Done():
+			log.Debug("subroundBlock timeout while waiting for start round to finish")
+			return false
+		}
+	}
+}
+
 func (sr *subroundBlock) receivedBlockHeader(headerHandler data.HeaderHandler) {
 	if check.IfNil(headerHandler) {
 		log.Debug("subroundBlock.receivedBlockHeader - header is nil")
@@ -465,6 +494,10 @@ func (sr *subroundBlock) receivedBlockHeader(headerHandler data.HeaderHandler) {
 	log.Debug("subroundBlock.receivedBlockHeader", "nonce", headerHandler.GetNonce(), "round", headerHandler.GetRound())
 	if headerHandler.CheckFieldsForNil() != nil {
 		log.Debug("subroundBlock.receivedBlockHeader - header fields are nil")
+		return
+	}
+
+	if !sr.waitForStartRoundToFinishBlocking() {
 		return
 	}
 

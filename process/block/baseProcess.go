@@ -57,6 +57,7 @@ type baseProcessor struct {
 	shardCoordinator        sharding.Coordinator
 	nodesCoordinator        nodesCoordinator.NodesCoordinator
 	accountsDB              map[state.AccountsDbIdentifier]state.AccountsAdapter
+	accountsProposal        state.AccountsAdapter
 	forkDetector            process.ForkDetector
 	hasher                  hashing.Hasher
 	marshalizer             marshal.Marshalizer
@@ -104,6 +105,7 @@ type baseProcessor struct {
 	gasConsumedProvider           gasConsumedProvider
 	economicsData                 process.EconomicsDataHandler
 	epochChangeGracePeriodHandler common.EpochChangeGracePeriodHandler
+	stateAccessesCollector        state.StateAccessesCollector
 	processConfigsHandler         common.ProcessConfigsHandler
 
 	processDataTriesOnCommitEpoch bool
@@ -154,6 +156,7 @@ func NewBaseProcessor(arguments ArgBaseProcessor) (*baseProcessor, error) {
 
 	base := &baseProcessor{
 		accountsDB:                    arguments.AccountsDB,
+		accountsProposal:              arguments.AccountsProposal,
 		blockSizeThrottler:            arguments.BlockSizeThrottler,
 		forkDetector:                  arguments.ForkDetector,
 		hasher:                        arguments.CoreComponents.Hasher(),
@@ -199,6 +202,7 @@ func NewBaseProcessor(arguments ArgBaseProcessor) (*baseProcessor, error) {
 		blockProcessingCutoffHandler:  arguments.BlockProcessingCutoffHandler,
 		managedPeersHolder:            arguments.ManagedPeersHolder,
 		sentSignaturesTracker:         arguments.SentSignaturesTracker,
+		stateAccessesCollector:        arguments.StateAccessesCollector,
 		proofsPool:                    arguments.DataComponents.Datapool().Proofs(),
 		hdrsForCurrBlock:              arguments.HeadersForBlock,
 		processConfigsHandler:         arguments.CoreComponents.ProcessConfigsHandler(),
@@ -564,6 +568,9 @@ func checkProcessorParameters(arguments ArgBaseProcessor) error {
 			return process.ErrNilAccountsAdapter
 		}
 	}
+	if check.IfNil(arguments.AccountsProposal) {
+		return fmt.Errorf("%w for proposal", process.ErrNilAccountsAdapter)
+	}
 	if check.IfNil(arguments.DataComponents) {
 		return process.ErrNilDataComponentsHolder
 	}
@@ -699,6 +706,9 @@ func checkProcessorParameters(arguments ArgBaseProcessor) error {
 	}
 	if check.IfNil(arguments.SentSignaturesTracker) {
 		return process.ErrNilSentSignatureTracker
+	}
+	if check.IfNil(arguments.StateAccessesCollector) {
+		return process.ErrNilStateAccessesCollector
 	}
 	if check.IfNil(arguments.HeadersForBlock) {
 		return process.ErrNilHeadersForBlock
@@ -2036,9 +2046,10 @@ func (bp *baseProcessor) commitTrieEpochRootHashIfNeeded(metaBlock *block.MetaBl
 	totalSizeCodeLeaves := 0
 
 	argsAccCreator := factory.ArgsAccountCreator{
-		Hasher:              bp.hasher,
-		Marshaller:          bp.marshalizer,
-		EnableEpochsHandler: bp.enableEpochsHandler,
+		Hasher:                 bp.hasher,
+		Marshaller:             bp.marshalizer,
+		EnableEpochsHandler:    bp.enableEpochsHandler,
+		StateAccessesCollector: bp.stateAccessesCollector,
 	}
 	accountCreator, err := factory.NewAccountCreator(argsAccCreator)
 	if err != nil {
@@ -2393,9 +2404,8 @@ func (bp *baseProcessor) OnProposedBlock(
 		return process.ErrWrongTypeAssertion
 	}
 
-	// TODO: proper accounts db should be used and its roothash must be updated first through a new method
-	//  SetRootHashIfNeeded which should recreate the trie if needed
-	accountsProvider, err := state.NewAccountsEphemeralProvider(bp.accountsDB[state.UserAccountsState])
+	// TODO: call SetRootHashIfNeeded for accountsProposal which should recreate the trie if needed for
+	accountsProvider, err := state.NewAccountsEphemeralProvider(bp.accountsProposal)
 	if err != nil {
 		return err
 	}
@@ -2410,8 +2420,7 @@ func (bp *baseProcessor) OnProposedBlock(
 		return err
 	}
 
-	blockChainInfo := holders.NewBlockchainInfo(lastExecResHandler.GetHeaderHash(), proposedHeader.GetPrevHash(), proposedHeader.GetNonce())
-	return bp.dataPool.Transactions().OnProposedBlock(proposedHash, proposedBodyPtr, proposedHeader, accountsProvider, blockChainInfo)
+	return bp.dataPool.Transactions().OnProposedBlock(proposedHash, proposedBodyPtr, proposedHeader, accountsProvider, lastExecResHandler.GetHeaderHash())
 }
 
 func (bp *baseProcessor) checkSentSignaturesAtCommitTime(header data.HeaderHandler) error {

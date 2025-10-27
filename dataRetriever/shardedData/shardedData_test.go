@@ -369,7 +369,7 @@ func TestShardedData_NotImplemented(t *testing.T) {
 		sd.CleanupSelfShardTxCache(nil, 0, 0, 0)
 	})
 
-	err = sd.OnExecutedBlock(nil)
+	err = sd.OnExecutedBlock(nil, nil)
 	require.Nil(t, err)
 
 	err = sd.OnProposedBlock(nil, nil, nil, nil, nil)

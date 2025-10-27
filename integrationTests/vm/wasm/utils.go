@@ -187,7 +187,13 @@ func SetupTestContextWithGasSchedule(t *testing.T, gasSchedule map[string]map[st
 	}
 	context.QueryService, _ = smartContract.NewSCQueryService(argsNewSCQueryService)
 
-	context.RewardsProcessor, err = rewardTransaction.NewRewardTxProcessor(context.Accounts, pkConverter, oneShardCoordinator)
+	context.RewardsProcessor, err = rewardTransaction.NewRewardTxProcessor(
+		context.Accounts,
+		pkConverter,
+		oneShardCoordinator,
+		integrationTests.TestMarshalizer,
+		integrationTests.TestHasher,
+	)
 	require.Nil(t, err)
 
 	require.NotNil(t, context.TxProcessor)

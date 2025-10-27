@@ -5,6 +5,7 @@ import (
 	"math"
 	"testing"
 
+	"github.com/multiversx/mx-chain-core-go/data/block"
 	"github.com/multiversx/mx-chain-go/testscommon/txcachemocks"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
@@ -88,16 +89,17 @@ func TestTxCache_GetDeterministicallyShuffledSenders_Dummy(t *testing.T) {
 
 func Test_RemoveSweepableTransactionsReturnHashes_Dummy(t *testing.T) {
 	t.Run("with lower nonces", func(t *testing.T) {
+		txCache := newCacheToTest(maxNumBytesPerSenderUpperBoundTest, math.MaxUint32)
 		list := newUnconstrainedListToTest()
-		list.AddTx(createTx([]byte("a"), ".", 1))
-		list.AddTx(createTx([]byte("b"), ".", 3))
-		list.AddTx(createTx([]byte("c"), ".", 4))
-		list.AddTx(createTx([]byte("d"), ".", 2))
-		list.AddTx(createTx([]byte("e"), ".", 5))
+		list.AddTx(createTx([]byte("a"), ".", 1), txCache.tracker)
+		list.AddTx(createTx([]byte("b"), ".", 3), txCache.tracker)
+		list.AddTx(createTx([]byte("c"), ".", 4), txCache.tracker)
+		list.AddTx(createTx([]byte("d"), ".", 2), txCache.tracker)
+		list.AddTx(createTx([]byte("e"), ".", 5), txCache.tracker)
 
 		hashesBeforeEviction := list.getTxHashesAsStrings()
 
-		list.removeSweepableTransactionsReturnHashes(uint64(3))
+		list.removeSweepableTransactionsReturnHashes(uint64(3), txCache.tracker)
 		hashesAfterEviction := list.getTxHashesAsStrings()
 		require.Equal(t, []string{"c", "e"}, hashesAfterEviction)
 
@@ -139,6 +141,7 @@ func TestTxCache_Cleanup(t *testing.T) {
 		evicted := cache.Cleanup(accountsProvider, 7, math.MaxInt, 1000*cleanupLoopMaximumDuration)
 
 		require.Equal(t, uint64(expectedNumEvicted), evicted)
+		require.True(t, cache.areInternalMapsConsistent())
 	})
 
 	t.Run("with nonce equal 0", func(t *testing.T) {
@@ -177,6 +180,7 @@ func TestTxCache_Cleanup(t *testing.T) {
 		expectedNumEvicted := 2 // only alice, because maxNum is 2
 		evicted := cache.Cleanup(accountsProvider, 7, 2, 1000*cleanupLoopMaximumDuration)
 		require.Equal(t, uint64(expectedNumEvicted), evicted)
+		require.True(t, cache.areInternalMapsConsistent())
 	})
 
 	t.Run("with cleanupLoopMaximumDuration cap reached", func(t *testing.T) {
@@ -200,6 +204,7 @@ func TestTxCache_Cleanup(t *testing.T) {
 		evictable := 8
 		evicted := cache.Cleanup(accountsProvider, 7, math.MaxInt, 1000)
 		require.Less(t, evicted, uint64(evictable))
+		require.True(t, cache.areInternalMapsConsistent())
 	})
 
 	t.Run("with lower nonces", func(t *testing.T) {
@@ -228,6 +233,94 @@ func TestTxCache_Cleanup(t *testing.T) {
 		expectedNumEvicted := 3 // 2 bob, 1 alice
 		evicted := cache.Cleanup(accountsProvider, 7, math.MaxInt, 1000*cleanupLoopMaximumDuration)
 		require.Equal(t, uint64(expectedNumEvicted), evicted)
+		require.True(t, cache.areInternalMapsConsistent())
+	})
+
+	t.Run("with tracked txs", func(t *testing.T) {
+		boundsConfig := createMockTxBoundsConfig()
+		cache := newUnconstrainedCacheToTest(boundsConfig)
+
+		accountsProvider := txcachemocks.NewAccountNonceAndBalanceProviderMock()
+		accountsProvider.SetNonce([]byte("alice"), 2)
+		accountsProvider.SetNonce([]byte("bob"), 42)
+		accountsProvider.SetNonce([]byte("carol"), 7)
+
+		// add txs into the cache
+		cache.AddTx(createTx([]byte("hash-alice-2"), "alice", 2))
+		cache.AddTx(createTx([]byte("hash-alice-3"), "alice", 3))
+		cache.AddTx(createTx([]byte("hash-bob-42"), "bob", 42))
+		cache.AddTx(createTx([]byte("hash-carol-7"), "carol", 7))
+		cache.AddTx(createTx([]byte("hash-carol-8"), "carol", 8))
+
+		// propose those txs
+		err := cache.OnProposedBlock(
+			[]byte("blockHash1"),
+			&block.Body{
+				MiniBlocks: []*block.MiniBlock{
+					{
+						TxHashes: [][]byte{
+							[]byte("hash-alice-2"),
+							[]byte("hash-alice-3"),
+							[]byte("hash-bob-42"),
+							[]byte("hash-carol-7"),
+							[]byte("hash-carol-8"),
+						},
+					},
+				},
+			},
+			&block.Header{
+				Nonce:    1,
+				PrevHash: []byte("blockHash0"),
+			},
+			accountsProvider,
+			[]byte("blockHash0"),
+		)
+		require.Nil(t, err)
+
+		expectedNumEvicted := 0
+		evicted := cache.Cleanup(accountsProvider, 7, math.MaxInt, 1000*cleanupLoopMaximumDuration)
+		require.Equal(t, uint64(expectedNumEvicted), evicted)
+		require.True(t, cache.areInternalMapsConsistent())
+
+		// add a transaction that has a tracked nonce
+		cache.AddTx(createTx([]byte("hash-carol-X"), "carol", 8))
+		evicted = cache.Cleanup(accountsProvider, 7, math.MaxInt, 1000*cleanupLoopMaximumDuration)
+		require.Equal(t, uint64(expectedNumEvicted), evicted)
+		require.True(t, cache.areInternalMapsConsistent())
+
+		_, ok := cache.GetByTxHash([]byte("hash-carol-X"))
+		require.True(t, ok)
+
+		// add a transaction with lower nonce
+		cache.AddTx(createTx([]byte("hash-alice-X"), "alice", 1))
+		expectedNumEvicted = 1
+		evicted = cache.Cleanup(accountsProvider, 7, math.MaxInt, 1000*cleanupLoopMaximumDuration)
+		require.Equal(t, uint64(expectedNumEvicted), evicted)
+		require.True(t, cache.areInternalMapsConsistent())
+
+		_, ok = cache.GetByTxHash([]byte("hash-alice-X"))
+		require.False(t, ok)
+
+		err = cache.OnExecutedBlock(
+			&block.Header{
+				Nonce:    1,
+				PrevHash: []byte("blockHash0"),
+			},
+			[]byte("rootHAsh"),
+		)
+		require.Nil(t, err)
+
+		cache.Remove([]byte("hash-alice-2"))
+		cache.Remove([]byte("hash-alice-3"))
+		cache.Remove([]byte("hash-bob-42"))
+		cache.Remove([]byte("hash-carol-7"))
+		// when this transaction is removed, the hash-carol-X transaction is also removed
+		cache.Remove([]byte("hash-carol-8"))
+
+		expectedNumEvicted = 0
+		evicted = cache.Cleanup(accountsProvider, 7, math.MaxInt, 1000*cleanupLoopMaximumDuration)
+		require.Equal(t, uint64(expectedNumEvicted), evicted)
+		require.True(t, cache.areInternalMapsConsistent())
 	})
 }
 
