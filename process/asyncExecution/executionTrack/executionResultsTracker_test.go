@@ -448,7 +448,7 @@ func TestExecutionResultsTracker_RemoveByHash(t *testing.T) {
 func TestExecutionResultsTracker_RemoveFromHash(t *testing.T) {
 	t.Parallel()
 
-	t.Run("hash not found should return error", func(t *testing.T) {
+	t.Run("hash not found should return nil", func(t *testing.T) {
 		t.Parallel()
 
 		tracker := NewExecutionResultsTracker()
@@ -461,7 +461,7 @@ func TestExecutionResultsTracker_RemoveFromHash(t *testing.T) {
 		require.NoError(t, err)
 
 		err = tracker.RemoveFromHash([]byte("nonexistent"))
-		require.True(t, errors.Is(err, ErrCannotFindExecutionResult))
+		require.NoError(t, err)
 	})
 
 	t.Run("getPendingExecutionResults error should error", func(t *testing.T) {
@@ -594,4 +594,43 @@ func TestExecutionResultsTracker_RemoveFromHash(t *testing.T) {
 		require.NoError(t, err)
 		require.Equal(t, executionResult1, result)
 	})
+}
+
+func TestExecutionResultsTracker_OnHeaderEvicted(t *testing.T) {
+	t.Parallel()
+
+	tracker := NewExecutionResultsTracker()
+	err := tracker.SetLastNotarizedResult(&block.ExecutionResult{
+		BaseExecutionResult: &block.BaseExecutionResult{
+			HeaderHash:  []byte("hash1"),
+			HeaderNonce: 10,
+		},
+	})
+	require.Nil(t, err)
+
+	executionResults := []data.ExecutionResultHandler{
+		&block.ExecutionResult{
+			BaseExecutionResult: &block.BaseExecutionResult{
+				HeaderHash:  []byte("hash2"),
+				HeaderNonce: 11,
+			},
+		},
+		&block.ExecutionResult{
+			BaseExecutionResult: &block.BaseExecutionResult{
+				HeaderHash:  []byte("hash3"),
+				HeaderNonce: 12,
+			},
+		},
+	}
+
+	err = tracker.AddExecutionResult(executionResults[0])
+	require.Nil(t, err)
+
+	tracker.OnHeaderEvicted(executionResults[1].GetHeaderNonce())
+	err = tracker.AddExecutionResult(executionResults[1])
+	require.Nil(t, err)
+
+	results, errG := tracker.GetPendingExecutionResults()
+	require.Nil(t, errG)
+	require.Equal(t, 1, len(results))
 }

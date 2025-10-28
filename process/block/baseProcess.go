@@ -124,6 +124,7 @@ type baseProcessor struct {
 	executionResultsVerifier           ExecutionResultsVerifier
 	missingDataResolver                MissingDataResolver
 	gasComputation                     process.GasComputation
+	blocksQueue                        process.BlocksQueue
 }
 
 type bootStorerDataArgs struct {
@@ -213,6 +214,7 @@ func NewBaseProcessor(arguments ArgBaseProcessor) (*baseProcessor, error) {
 		executionResultsVerifier:           arguments.ExecutionResultsVerifier,
 		missingDataResolver:                arguments.MissingDataResolver,
 		gasComputation:                     arguments.GasComputation,
+		blocksQueue:                        arguments.BlocksQueue,
 	}
 
 	return base, nil
@@ -736,6 +738,9 @@ func checkProcessorParameters(arguments ArgBaseProcessor) error {
 	}
 	if check.IfNil(arguments.GasComputation) {
 		return process.ErrNilGasComputation
+	}
+	if check.IfNil(arguments.BlocksQueue) {
+		return process.ErrNilBlocksQueue
 	}
 
 	return nil
@@ -1711,14 +1716,19 @@ func (bp *baseProcessor) revertCurrentBlockV3(headerHandler data.HeaderHandler) 
 
 	hash, err := core.CalculateHash(bp.marshalizer, bp.hasher, headerHandler)
 	if err != nil {
-		log.Debug("revertCurrentBlockV3 CalculateHash", "err", err)
+		log.Error("revertCurrentBlockV3 CalculateHash", "err", err)
 		return
 	}
 
 	err = bp.executionResultsTracker.RemoveFromHash(hash)
 	if err != nil {
-		log.Debug("revertCurrentBlockV3 RemoveFromHash", "err", err)
+		log.Error("revertCurrentBlockV3 RemoveFromHash", "err", err)
 		return
+	}
+
+	err = bp.blocksQueue.RemoveAtNonceAndHigher(headerHandler.GetNonce())
+	if err != nil {
+		log.Error("revertCurrentBlockV3 RemoveAtNonceAndHigher", "err", err)
 	}
 }
 

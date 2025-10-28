@@ -10,6 +10,8 @@ import (
 type BlocksQueue interface {
 	Pop() (queue.HeaderBodyPair, bool)
 	Peek() (queue.HeaderBodyPair, bool)
+	RemoveAtNonceAndHigher(nonce uint64) error
+	RegisterEvictionSubscriber(subscriber queue.BlocksQueueEvictionSubscriber)
 	IsInterfaceNil() bool
 	Close()
 }
