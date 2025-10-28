@@ -552,7 +552,7 @@ func TestShardedTxPool_GetNumTrackedBlocks(t *testing.T) {
 
 	numOfBlocks := 10
 	accountsProvider := txcachemocks.NewAccountNonceAndBalanceProviderMock()
-	blockchainInfo := holders.NewBlockchainInfo([]byte("hash0"), nil, 20)
+	//blockchainInfo := holders.NewBlockchainInfo([]byte("hash0"), nil, 20)
 
 	for i := 1; i < numOfBlocks+1; i++ {
 		err := txCache.OnProposedBlock(
@@ -564,7 +564,7 @@ func TestShardedTxPool_GetNumTrackedBlocks(t *testing.T) {
 				RootHash: []byte("rootHash0"),
 			},
 			accountsProvider,
-			blockchainInfo,
+			[]byte("hash0"),
 		)
 		require.Nil(t, err)
 	}
