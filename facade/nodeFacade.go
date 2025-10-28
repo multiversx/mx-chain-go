@@ -637,7 +637,7 @@ func (nf *nodeFacade) GetProofCurrentRootHash(address string) (*common.GetProofR
 
 func (nf *nodeFacade) getCurrentRootHash() []byte {
 	currentHeader := nf.blockchain.GetCurrentBlockHeader()
-	if !currentHeader.IsHeaderV3() {
+	if currentHeader != nil && !currentHeader.IsHeaderV3() {
 		return nf.blockchain.GetCurrentBlockRootHash()
 	}
 
