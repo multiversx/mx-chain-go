@@ -1057,18 +1057,12 @@ func (sp *shardProcessor) CommitBlock(
 
 	lastBlockHeader := sp.blockChain.GetCurrentBlockHeader()
 
-<<<<<<< HEAD
-	err = sp.setCurrentBlockHeaderAndRootHash(header)
-=======
 	committedRootHash, err := sp.accountsDB[state.UserAccountsState].RootHash()
 	if err != nil {
 		return err
 	}
 
-	// TODO: make sure to set current header and rootHash in blockChain properly
-
 	err = sp.blockChain.SetCurrentBlockHeaderAndRootHash(header, committedRootHash)
->>>>>>> feat/supernova-async-exec
 	if err != nil {
 		return err
 	}
@@ -1163,20 +1157,6 @@ func (sp *shardProcessor) CommitBlock(
 	return nil
 }
 
-<<<<<<< HEAD
-func (sp *shardProcessor) setCurrentBlockHeaderAndRootHash(header data.HeaderHandler) error {
-	committedRootHash, err := sp.accountsDB[state.UserAccountsState].RootHash()
-	if err != nil {
-		return err
-	}
-
-	err = sp.blockChain.SetCurrentBlockHeaderAndRootHash(header, committedRootHash)
-	if err != nil {
-		return err
-	}
-
-	return nil
-=======
 func getLastExecutionResultsRootHash(
 	header data.HeaderHandler,
 	committedRootHash []byte,
@@ -1214,7 +1194,6 @@ func (sp *shardProcessor) getLastExecutionResultHeader(
 	}
 
 	return header, nil
->>>>>>> feat/supernova-async-exec
 }
 
 func (sp *shardProcessor) notifyFinalMetaHdrs(processedMetaHeaders []data.HeaderHandler) {

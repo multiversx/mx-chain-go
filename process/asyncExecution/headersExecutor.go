@@ -115,7 +115,6 @@ func (he *headersExecutor) process(pair queue.HeaderBodyPair) error {
 		return nil
 	}
 
-<<<<<<< HEAD
 	he.blockChain.SetFinalBlockInfo(
 		executionResult.GetHeaderNonce(),
 		executionResult.GetHeaderHash(),
@@ -127,9 +126,6 @@ func (he *headersExecutor) process(pair queue.HeaderBodyPair) error {
 		executionResult.GetHeaderHash(),
 		executionResult.GetRootHash(),
 	)
-=======
-	// TODO?: set rootHash in blockchain hook
->>>>>>> feat/supernova-async-exec
 
 	return nil
 }
