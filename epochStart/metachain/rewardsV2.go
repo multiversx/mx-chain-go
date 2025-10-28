@@ -49,6 +49,14 @@ func NewRewardsCreatorV2(args RewardsCreatorArgsV2) (*rewardsCreatorV2, error) {
 	if err != nil {
 		return nil, err
 	}
+	err = rc.addProtocolRewardToMiniBlocks(ecoGrowthRwdTx, miniBlocks, ecoGrowthShardId)
+	if err != nil {
+		return nil, err
+	}
+	err = rc.addProtocolRewardToMiniBlocks(growthDivRwdTx, miniBlocks, growthDivShardId)
+	if err != nil {
+		return nil, err
+	}
 
 	if check.IfNil(args.StakingDataProvider) {
 		return nil, epochStart.ErrNilStakingDataProvider
@@ -91,6 +99,8 @@ func (rc *rewardsCreatorV2) CreateRewardsMiniBlocks(
 	log.Debug("rewardsCreatorV2.CreateRewardsMiniBlocks",
 		"totalToDistribute", computedEconomics.TotalToDistribute,
 		"rewardsForProtocolSustainability", computedEconomics.RewardsForProtocolSustainability,
+		"rewardsForEcosystemGrowth", computedEconomics.RewardsForEcosystemGrowth,
+		"rewardsForGrowthDividend", computedEconomics.RewardsForGrowthDividend,
 		"rewardsPerBlock", computedEconomics.RewardsPerBlock,
 		"devFeesInEpoch", metaBlock.GetDevFeesInEpoch(),
 		"rewardsForBlocks no fees", rc.economicsDataProvider.RewardsToBeDistributedForBlocks(),
@@ -103,6 +113,14 @@ func (rc *rewardsCreatorV2) CreateRewardsMiniBlocks(
 	rc.flagDelegationSystemSCEnabled.SetValue(metaBlock.GetEpoch() >= rc.enableEpochsHandler.GetActivationEpoch(common.StakingV2Flag))
 
 	protRwdTx, protRwdShardId, err := rc.createProtocolSustainabilityRewardTransaction(metaBlock, computedEconomics)
+	if err != nil {
+		return nil, err
+	}
+	ecoGrowthRwdTx, ecoGrowthShardId, err := rc.createEcosystemGrowthRewardTransaction(metaBlock, computedEconomics)
+	if err != nil {
+		return nil, err
+	}
+	growthDivRwdTx, growthDivShardId, err := rc.createGrowthDividendRewardTransaction(metaBlock, computedEconomics)
 	if err != nil {
 		return nil, err
 	}

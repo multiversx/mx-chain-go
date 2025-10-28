@@ -39,6 +39,14 @@ func NewRewardsCreator(args ArgsNewRewardsCreator) (*rewardsCreator, error) {
 	if err != nil {
 		return nil, err
 	}
+	ecoGrowthRwdTx, ecoGrowthShardId, err := rc.createEcosystemGrowthRewardTransaction(metaBlock, computedEconomics)
+	if err != nil {
+		return nil, err
+	}
+	growthDivRwdTx, growthDivShardId, err := rc.createGrowthDividendRewardTransaction(metaBlock, computedEconomics)
+	if err != nil {
+		return nil, err
+	}
 
 	rc := &rewardsCreator{
 		baseRewardsCreator: brc,
@@ -66,6 +74,8 @@ func (rc *rewardsCreator) CreateRewardsMiniBlocks(
 	log.Debug("rewardsCreator.CreateRewardsMiniBlocks",
 		"totalToDistribute", economicsData.GetTotalToDistribute(),
 		"rewardsForProtocolSustainability", economicsData.GetRewardsForProtocolSustainability(),
+		"rewardsForEcosystemGrowth", computedEconomics.RewardsForEcosystemGrowth,
+		"rewardsForGrowthDividend", computedEconomics.RewardsForGrowthDividend,
 		"rewardsPerBlock", economicsData.GetRewardsPerBlock(),
 		"devFeesInEpoch", metaBlock.GetDevFeesInEpoch(),
 	)
@@ -73,6 +83,14 @@ func (rc *rewardsCreator) CreateRewardsMiniBlocks(
 	miniBlocks := rc.initializeRewardsMiniBlocks()
 
 	protSustRwdTx, protSustShardId, err := rc.createProtocolSustainabilityRewardTransaction(metaBlock, computedEconomics)
+	if err != nil {
+		return nil, err
+	}
+	ecoGrowthRwdTx, ecoGrowthShardId, err := rc.createEcosystemGrowthRewardTransaction(metaBlock, computedEconomics)
+	if err != nil {
+		return nil, err
+	}
+	growthDivRwdTx, growthDivShardId, err := rc.createGrowthDividendRewardTransaction(metaBlock, computedEconomics)
 	if err != nil {
 		return nil, err
 	}
@@ -84,10 +102,22 @@ func (rc *rewardsCreator) CreateRewardsMiniBlocks(
 	}
 
 	totalWithoutDevelopers := big.NewInt(0).Sub(economicsData.GetTotalToDistribute(), metaBlock.GetDevFeesInEpoch())
-	difference := big.NewInt(0).Sub(totalWithoutDevelopers, rc.accumulatedRewards)
+	accumulatedRewardsWithProtocol := big.NewInt(0).Add(rc.accumulatedRewards, protSustRwdTx.Value)
+	accumulatedRewardsWithProtocol.Add(accumulatedRewardsWithProtocol, ecoGrowthRwdTx.Value)
+	accumulatedRewardsWithProtocol.Add(accumulatedRewardsWithProtocol, growthDivRwdTx.Value)
+	difference := big.NewInt(0).Sub(totalWithoutDevelopers, accumulatedRewardsWithProtocol)
+
 	log.Debug("arithmetic difference in end of epoch rewards economics", "epoch", metaBlock.GetEpoch(), "value", difference)
 	rc.adjustProtocolSustainabilityRewards(protSustRwdTx, difference)
 	err = rc.addProtocolRewardToMiniBlocks(protSustRwdTx, miniBlocks, protSustShardId)
+	if err != nil {
+		return nil, err
+	}
+	err = rc.addProtocolRewardToMiniBlocks(ecoGrowthRwdTx, miniBlocks, ecoGrowthShardId)
+	if err != nil {
+		return nil, err
+	}
+	err = rc.addProtocolRewardToMiniBlocks(growthDivRwdTx, miniBlocks, growthDivShardId)
 	if err != nil {
 		return nil, err
 	}
@@ -226,4 +256,40 @@ func (rc *rewardsCreator) IsInterfaceNil() bool {
 
 func (rc *rewardsCreator) isRewardsFix1Enabled(epoch uint32) bool {
 	return epoch > rc.enableEpochsHandler.GetActivationEpoch(common.SwitchJailWaitingFlag)
+}
+
+func (brc *baseRewardsCreator) createEcosystemGrowthRewardTransaction(
+	metaBlock data.MetaHeaderHandler,
+	computedEconomics *block.Economics,
+) (*rewardTx.RewardTx, uint32, error) {
+	epoch := metaBlock.GetEpoch()
+	rwdAddr := brc.rewardsHandler.EcosystemGrowthAddressInEpoch(epoch)
+	shardId := brc.shardCoordinator.ComputeId([]byte(rwdAddr))
+
+	rwdTx := &rewardTx.RewardTx{
+		Round:   metaBlock.GetRound(),
+		Epoch:   epoch,
+		RcvAddr: []byte(rwdAddr),
+		Value:   big.NewInt(0).Set(computedEconomics.RewardsForEcosystemGrowth),
+	}
+
+	return rwdTx, shardId, nil
+}
+
+func (brc *baseRewardsCreator) createGrowthDividendRewardTransaction(
+	metaBlock data.MetaHeaderHandler,
+	computedEconomics *block.Economics,
+) (*rewardTx.RewardTx, uint32, error) {
+	epoch := metaBlock.GetEpoch()
+	rwdAddr := brc.rewardsHandler.GrowthDividendAddressInEpoch(epoch)
+	shardId := brc.shardCoordinator.ComputeId([]byte(rwdAddr))
+
+	rwdTx := &rewardTx.RewardTx{
+		Round:   metaBlock.GetRound(),
+		Epoch:   epoch,
+		RcvAddr: []byte(rwdAddr),
+		Value:   big.NewInt(0).Set(computedEconomics.RewardsForGrowthDividend),
+	}
+
+	return rwdTx, shardId, nil
 }

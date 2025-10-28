@@ -681,6 +681,14 @@ type rewardsHandler interface {
 // RewardsHandler will return information about rewards
 type RewardsHandler interface {
 	rewardsHandler
+	GetTailInflationActivationEpoch() uint32
+	GetMaximumYearlyInflation() float64
+	GetDecayPercentage() float64
+	GetMinimumInflation() float64
+	EcosystemGrowthPercentageInEpoch(epoch uint32) float64
+	EcosystemGrowthAddressInEpoch(epoch uint32) string
+	GrowthDividendPercentageInEpoch(epoch uint32) float64
+	GrowthDividendAddressInEpoch(epoch uint32) string
 	IsInterfaceNil() bool
 }
 

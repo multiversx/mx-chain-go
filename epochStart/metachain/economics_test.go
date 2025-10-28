@@ -316,23 +316,23 @@ func TestEconomics_ComputeInflationRate(t *testing.T) {
 	}
 	ec, _ := NewEndOfEpochEconomicsDataCreator(args)
 
-	rate := ec.computeInflationRate(1)
+	rate := ec.computeInflationRate(1, 0, nil)
 	assert.Nil(t, errFound)
 	assert.Equal(t, rate, year1inflation)
 
-	rate = ec.computeInflationRate(50000)
+	rate = ec.computeInflationRate(50000, 0, nil)
 	assert.Nil(t, errFound)
 	assert.Equal(t, rate, year1inflation)
 
-	rate = ec.computeInflationRate(7884000)
+	rate = ec.computeInflationRate(7884000, 0, nil)
 	assert.Nil(t, errFound)
 	assert.Equal(t, rate, year2inflation)
 
-	rate = ec.computeInflationRate(8884000)
+	rate = ec.computeInflationRate(8884000, 0, nil)
 	assert.Nil(t, errFound)
 	assert.Equal(t, rate, year2inflation)
 
-	rate = ec.computeInflationRate(38884000)
+	rate = ec.computeInflationRate(38884000, 0, nil)
 	assert.Nil(t, errFound)
 	assert.Equal(t, rate, lateYearInflation)
 }
@@ -1599,6 +1599,12 @@ func createArgsForComputeEndOfEpochEconomics(
 		},
 		RewardsTopUpGradientPointInEpochCalled: func(_ uint32) *big.Int {
 			return big.NewInt(0).Div(args.GenesisTotalSupply, big.NewInt(10))
+		},
+		EcosystemGrowthPercentageInEpochCalled: func(_ uint32) float64 {
+			return 0.1
+		},
+		GrowthDividendPercentageInEpochCalled: func(_ uint32) float64 {
+			return 0.1
 		},
 	}
 	args.RoundTime = &mock.RoundTimeDurationHandler{

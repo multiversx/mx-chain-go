@@ -651,3 +651,43 @@ func (ed *economicsData) getExtraGasLimitRelayedTx(txInstance *transaction.Trans
 func (ed *economicsData) IsInterfaceNil() bool {
 	return ed == nil
 }
+
+// GetTailInflationActivationEpoch returns the activation epoch for tail inflation
+func (ed *economicsData) GetTailInflationActivationEpoch() uint32 {
+	return ed.rewardsConfigHandler.getTailInflationActivationEpoch()
+}
+
+// GetMaximumYearlyInflation returns the maximum yearly inflation
+func (ed *economicsData) GetMaximumYearlyInflation() float64 {
+	return ed.rewardsConfigHandler.getMaximumYearlyInflation()
+}
+
+// GetDecayPercentage returns the decay percentage
+func (ed *economicsData) GetDecayPercentage() float64 {
+	return ed.rewardsConfigHandler.getDecayPercentage()
+}
+
+// GetMinimumInflation returns the minimum inflation
+func (ed *economicsData) GetMinimumInflation() float64 {
+	return ed.rewardsConfigHandler.getMinimumInflation()
+}
+
+// EcosystemGrowthPercentageInEpoch returns the ecosystem growth percentage in a specific epoch
+func (ed *economicsData) EcosystemGrowthPercentageInEpoch(epoch uint32) float64 {
+	return ed.rewardsConfigHandler.getEcosystemGrowthPercentage(epoch)
+}
+
+// EcosystemGrowthAddressInEpoch returns the ecosystem growth address in a specific epoch
+func (ed *economicsData) EcosystemGrowthAddressInEpoch(epoch uint32) string {
+	return ed.rewardsConfigHandler.getEcosystemGrowthAddress(epoch)
+}
+
+// GrowthDividendPercentageInEpoch returns the growth dividend percentage in a specific epoch
+func (ed *economicsData) GrowthDividendPercentageInEpoch(epoch uint32) float64 {
+	return ed.rewardsConfigHandler.getGrowthDividendPercentage(epoch)
+}
+
+// GrowthDividendAddressInEpoch returns the growth dividend address in a specific epoch
+func (ed *economicsData) GrowthDividendAddressInEpoch(epoch uint32) string {
+	return ed.rewardsConfigHandler.getGrowthDividendAddress(epoch)
+}

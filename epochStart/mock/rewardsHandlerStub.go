@@ -17,6 +17,12 @@ type RewardsHandlerStub struct {
 	ProtocolSustainabilityAddressInEpochCalled    func(epoch uint32) string
 	RewardsTopUpGradientPointInEpochCalled        func(epoch uint32) *big.Int
 	RewardsTopUpFactorInEpochCalled               func(epoch uint32) float64
+	GetTailInflationActivationEpochCalled         func() uint32
+	GetMaximumYearlyInflationCalled               func() float64
+	GetDecayPercentageCalled                      func() float64
+	GetMinimumInflationCalled                     func() float64
+	EcosystemGrowthPercentageInEpochCalled        func(epoch uint32) float64
+	GrowthDividendPercentageInEpochCalled         func(epoch uint32) float64
 }
 
 // LeaderPercentage -
@@ -125,4 +131,52 @@ func (r *RewardsHandlerStub) RewardsTopUpFactorInEpoch(epoch uint32) float64 {
 // IsInterfaceNil -
 func (r *RewardsHandlerStub) IsInterfaceNil() bool {
 	return r == nil
+}
+
+// GetTailInflationActivationEpoch -
+func (r *RewardsHandlerStub) GetTailInflationActivationEpoch() uint32 {
+	if r.GetTailInflationActivationEpochCalled != nil {
+		return r.GetTailInflationActivationEpochCalled()
+	}
+	return 0
+}
+
+// GetMaximumYearlyInflation -
+func (r *RewardsHandlerStub) GetMaximumYearlyInflation() float64 {
+	if r.GetMaximumYearlyInflationCalled != nil {
+		return r.GetMaximumYearlyInflationCalled()
+	}
+	return 0
+}
+
+// GetDecayPercentage -
+func (r *RewardsHandlerStub) GetDecayPercentage() float64 {
+	if r.GetDecayPercentageCalled != nil {
+		return r.GetDecayPercentageCalled()
+	}
+	return 0
+}
+
+// GetMinimumInflation -
+func (r *RewardsHandlerStub) GetMinimumInflation() float64 {
+	if r.GetMinimumInflationCalled != nil {
+		return r.GetMinimumInflationCalled()
+	}
+	return 0
+}
+
+// EcosystemGrowthPercentageInEpoch -
+func (r *RewardsHandlerStub) EcosystemGrowthPercentageInEpoch(epoch uint32) float64 {
+	if r.EcosystemGrowthPercentageInEpochCalled != nil {
+		return r.EcosystemGrowthPercentageInEpochCalled(epoch)
+	}
+	return 0
+}
+
+// GrowthDividendPercentageInEpoch -
+func (r *RewardsHandlerStub) GrowthDividendPercentageInEpoch(epoch uint32) float64 {
+	if r.GrowthDividendPercentageInEpochCalled != nil {
+		return r.GrowthDividendPercentageInEpochCalled(epoch)
+	}
+	return 0
 }

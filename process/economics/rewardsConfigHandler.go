@@ -23,12 +23,20 @@ type rewardsConfig struct {
 	developerPercentage              float64
 	topUpGradientPoint               *big.Int
 	topUpFactor                      float64
+	ecosystemGrowthPercentage        float64
+	ecosystemGrowthAddress           string
+	growthDividendPercentage         float64
+	growthDividendAddress            string
 }
 
 type rewardsConfigHandler struct {
-	statusHandler         core.AppStatusHandler
-	rewardsConfigSettings []*rewardsConfig
-	mut                   sync.RWMutex
+	statusHandler                core.AppStatusHandler
+	rewardsConfigSettings        []*rewardsConfig
+	tailInflationActivationEpoch uint32
+	maximumYearlyInflation       float64
+	decayPercentage              float64
+	minimumInflation             float64
+	mut                          sync.RWMutex
 }
 
 // newRewardsConfigHandler returns a new instance of rewardsConfigHandler
@@ -47,8 +55,12 @@ func newRewardsConfigHandler(
 	})
 
 	return &rewardsConfigHandler{
-		statusHandler:         statusHandler.NewNilStatusHandler(),
-		rewardsConfigSettings: rewardsConfigSlice,
+		statusHandler:                statusHandler.NewNilStatusHandler(),
+		rewardsConfigSettings:        rewardsConfigSlice,
+		tailInflationActivationEpoch: rewardsSettings.TailInflation.ActivationEpoch,
+		maximumYearlyInflation:       rewardsSettings.TailInflation.MaximumYearlyInflation,
+		decayPercentage:              rewardsSettings.TailInflation.DecayPercentage,
+		minimumInflation:             rewardsSettings.TailInflation.MinimumInflation,
 	}, nil
 }
 
@@ -163,6 +175,15 @@ func checkAndParseRewardsSettings(
 			return nil, process.ErrProtocolSustainabilityAddressInMetachain
 		}
 
+		decodedEcosystemGrowthAddress, err := pubkeyConverter.Decode(rewardsCfg.EcosystemGrowthAddress)
+		if err != nil {
+			return nil, fmt.Errorf("%w for ecosystem growth address in epoch %d", err, rewardsCfg.EpochEnable)
+		}
+		decodedGrowthDividendAddress, err := pubkeyConverter.Decode(rewardsCfg.GrowthDividendAddress)
+		if err != nil {
+			return nil, fmt.Errorf("%w for growth dividend address in epoch %d", err, rewardsCfg.EpochEnable)
+		}
+
 		rewardsConfigSlice = append(rewardsConfigSlice, &rewardsConfig{
 			rewardsSettingEpoch:              rewardsCfg.EpochEnable,
 			leaderPercentage:                 rewardsCfg.LeaderPercentage,
@@ -171,10 +192,54 @@ func checkAndParseRewardsSettings(
 			developerPercentage:              rewardsCfg.DeveloperPercentage,
 			topUpGradientPoint:               topUpGradientPoint,
 			topUpFactor:                      rewardsCfg.TopUpFactor,
+			ecosystemGrowthPercentage:        rewardsCfg.EcosystemGrowthPercentage,
+			ecosystemGrowthAddress:           string(decodedEcosystemGrowthAddress),
+			growthDividendPercentage:         rewardsCfg.GrowthDividendPercentage,
+			growthDividendAddress:            string(decodedGrowthDividendAddress),
 		})
 	}
 
 	return rewardsConfigSlice, nil
+}
+
+// getEcosystemGrowthPercentage returns the ecosystem growth percentage in a specific epoch
+func (handler *rewardsConfigHandler) getEcosystemGrowthPercentage(epoch uint32) float64 {
+	rc := handler.getRewardsConfigForEpoch(epoch)
+	return rc.ecosystemGrowthPercentage
+}
+
+// getGrowthDividendPercentage returns the growth dividend percentage in a specific epoch
+func (handler *rewardsConfigHandler) getGrowthDividendPercentage(epoch uint32) float64 {
+	rc := handler.getRewardsConfigForEpoch(epoch)
+	return rc.growthDividendPercentage
+}
+
+// getEcosystemGrowthAddress returns the ecosystem growth address in a specific epoch
+func (handler *rewardsConfigHandler) getEcosystemGrowthAddress(epoch uint32) string {
+	rc := handler.getRewardsConfigForEpoch(epoch)
+	return rc.ecosystemGrowthAddress
+}
+
+// getGrowthDividendAddress returns the growth dividend address in a specific epoch
+func (handler *rewardsConfigHandler) getGrowthDividendAddress(epoch uint32) string {
+	rc := handler.getRewardsConfigForEpoch(epoch)
+	return rc.growthDividendAddress
+}
+
+func (handler *rewardsConfigHandler) getTailInflationActivationEpoch() uint32 {
+	return handler.tailInflationActivationEpoch
+}
+
+func (handler *rewardsConfigHandler) getMaximumYearlyInflation() float64 {
+	return handler.maximumYearlyInflation
+}
+
+func (handler *rewardsConfigHandler) getDecayPercentage() float64 {
+	return handler.decayPercentage
+}
+
+func (handler *rewardsConfigHandler) getMinimumInflation() float64 {
+	return handler.minimumInflation
 }
 
 func checkRewardConfig(rewardsCfg config.EpochRewardSettings) error {
