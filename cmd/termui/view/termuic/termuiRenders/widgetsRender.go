@@ -364,7 +364,7 @@ func (wr *WidgetsRender) prepareBlockInfo() {
 	currentRoundTimestamp := wr.presenter.GetCurrentRoundTimestamp()
 	rows[8] = []string{fmt.Sprintf("Current round timestamp: %d", currentRoundTimestamp)}
 
-	rows[9] = []string{fmt.Sprintf("Num tracked blocks: %d", wr.presenter.GetNumTrackedBlocks())}
+	rows[9] = []string{fmt.Sprintf("Num tracked blocks: %d, Num tracked accounts: %d", wr.presenter.GetNumTrackedBlocks(), wr.presenter.GetNumTrackedAccounts())}
 
 	wr.blockInfo.Title = "Block info:"
 	wr.blockInfo.RowSeparator = false

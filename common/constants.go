@@ -334,6 +334,9 @@ const MetricAvgReceivedProof = "erd_consensus_average_received_sent_proof"
 // MetricNumTrackedBlocks is the metric that specifies how many blocks are tracked by the txPool
 const MetricNumTrackedBlocks = "erd_num_tracked_blocks"
 
+// MetricNumTrackedAccounts is the metric that specifies how many accounts are tracked by the txPool
+const MetricNumTrackedAccounts = "erd_num_tracked_accounts"
+
 // MetricCreatedProposedBlock is the metric that specifies the percent of the block subround used for header and body
 // creation (0 meaning that the block was created in no-time and 100 meaning that the block creation used all the
 // subround spare duration)

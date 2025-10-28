@@ -28,6 +28,7 @@ type ShardedDataStub struct {
 	KeysCalled                             func() [][]byte
 	CleanupSelfShardTxCacheCalled          func(session interface{}, randomness uint64, maxNum int, cleanupLoopMaximumDuration time.Duration)
 	GetNumTrackedBlocksCalled              func() uint64
+	GetNumTrackedAccountsCalled            func() uint64
 	OnExecutedBlockCalled                  func(blockHeader data.HeaderHandler) error
 }
 
@@ -144,6 +145,15 @@ func (sd *ShardedDataStub) CleanupSelfShardTxCache(accountsProvider common.Accou
 func (sd *ShardedDataStub) GetNumTrackedBlocks() uint64 {
 	if sd.GetNumTrackedBlocksCalled != nil {
 		return sd.GetNumTrackedBlocksCalled()
+	}
+
+	return 0
+}
+
+// GetNumTrackedAccounts -
+func (sd *ShardedDataStub) GetNumTrackedAccounts() uint64 {
+	if sd.GetNumTrackedAccountsCalled != nil {
+		return sd.GetNumTrackedAccountsCalled()
 	}
 
 	return 0

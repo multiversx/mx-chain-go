@@ -1076,6 +1076,7 @@ func (sp *shardProcessor) CommitBlock(
 	}
 
 	sp.appStatusHandler.SetUInt64Value(common.MetricNumTrackedBlocks, sp.dataPool.Transactions().GetNumTrackedBlocks())
+	sp.appStatusHandler.SetUInt64Value(common.MetricNumTrackedAccounts, sp.dataPool.Transactions().GetNumTrackedAccounts())
 
 	err = sp.dataPool.Transactions().OnExecutedBlock(headerHandler)
 	if err != nil {

@@ -572,6 +572,84 @@ func TestShardedTxPool_GetNumTrackedBlocks(t *testing.T) {
 	require.Equal(t, uint64(numOfBlocks), pool.GetNumTrackedBlocks())
 }
 
+func TestShardedTxPool_GetNumTrackedAccounts(t *testing.T) {
+	t.Parallel()
+
+	poolAsInterface, _ := newTxPoolToTest()
+	pool := poolAsInterface.(*shardedTxPool)
+
+	txCache := pool.getSelfShardTxCache()
+
+	accountsProvider := txcachemocks.NewAccountNonceAndBalanceProviderMock()
+	accountsProvider.GetRootHashCalled = func() ([]byte, error) {
+		return []byte("rootHash0"), nil
+	}
+	accountsProvider.SetNonce([]byte("alice"), 1)
+	accountsProvider.SetNonce([]byte("bob"), 40)
+	accountsProvider.SetNonce([]byte("carol"), 7)
+
+	pool.AddData([]byte("hash1"), createTx("alice", 1), 0, "0")
+	pool.AddData([]byte("hash2"), createTx("alice", 2), 0, "0")
+	pool.AddData([]byte("hash3"), createTx("alice", 3), 0, "0")
+
+	pool.AddData([]byte("hash4"), createTx("bob", 40), 0, "0")
+	pool.AddData([]byte("hash5"), createTx("bob", 41), 0, "0")
+	pool.AddData([]byte("hash6"), createTx("bob", 42), 0, "0")
+
+	pool.AddData([]byte("hash7"), createTx("carol", 7), 0, "0")
+	pool.AddData([]byte("hash8"), createTx("carol", 8), 0, "0")
+	miniblocks := []*block.MiniBlock{
+		{
+			TxHashes: [][]byte{
+				[]byte("hash1"),
+				[]byte("hash2"),
+				[]byte("hash3"),
+			},
+			SenderShardID:   0,
+			ReceiverShardID: 0,
+			Type:            block.TxBlock,
+		},
+		{
+			TxHashes: [][]byte{
+				[]byte("hash4"),
+				[]byte("hash5"),
+				[]byte("hash6"),
+			},
+			SenderShardID:   0,
+			ReceiverShardID: 0,
+			Type:            block.TxBlock,
+		},
+		{
+			TxHashes: [][]byte{
+				[]byte("hash7"),
+				[]byte("hash8"),
+			},
+			SenderShardID:   0,
+			ReceiverShardID: 0,
+			Type:            block.TxBlock,
+		},
+	}
+
+	execHdr := &block.Header{Nonce: 1, RootHash: []byte("rootHash0")}
+	_ = txCache.OnExecutedBlock(execHdr)
+
+	err := txCache.OnProposedBlock(
+		[]byte("hash0"),
+		&block.Body{
+			MiniBlocks: miniblocks,
+		},
+		&block.Header{
+			Nonce:    uint64(1),
+			PrevHash: []byte("hash0"),
+			RootHash: []byte("rootHash0"),
+		},
+		accountsProvider,
+		[]byte("hash0"),
+	)
+	require.Nil(t, err)
+	require.Equal(t, uint64(3), pool.GetNumTrackedAccounts())
+}
+
 func TestShardedTxPool_OnProposedBlock_And_OnExecutedBlock(t *testing.T) {
 	t.Parallel()
 

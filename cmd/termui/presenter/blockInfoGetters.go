@@ -81,3 +81,8 @@ func (psh *PresenterStatusHandler) GetAvgDurationProofReceivedFromProposedBlockR
 func (psh *PresenterStatusHandler) GetNumTrackedBlocks() uint64 {
 	return psh.getFromCacheAsUint64(common.MetricNumTrackedBlocks)
 }
+
+// GetNumTrackedAccounts returns how many accounts are currently tracked by txPool
+func (psh *PresenterStatusHandler) GetNumTrackedAccounts() uint64 {
+	return psh.getFromCacheAsUint64(common.MetricNumTrackedAccounts)
+}

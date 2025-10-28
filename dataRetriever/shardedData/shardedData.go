@@ -324,6 +324,12 @@ func (sd *shardedData) GetNumTrackedBlocks() uint64 {
 	return 0
 }
 
+// GetNumTrackedAccounts returns 0 (only to satisfy the interface dataRetriever.ShardedDataCacherNotifier)
+func (sd *shardedData) GetNumTrackedAccounts() uint64 {
+	log.Warn("shardedData.GetNumTrackedAccounts() should not have been called")
+	return 0
+}
+
 // OnExecutedBlock does nothing (only to satisfy the interface dataRetriever.ShardedDataCacherNotifier)
 func (sd *shardedData) OnExecutedBlock(_ data.HeaderHandler) error {
 	log.Warn("shardedData.OnExecutedBlock() should not have been called")
