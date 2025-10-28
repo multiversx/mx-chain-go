@@ -377,7 +377,7 @@ func (ert *executionResultsTracker) OnHeaderEvicted(headerNonce uint64) {
 	ert.mutex.Lock()
 	defer ert.mutex.Unlock()
 
-	// first search thorough pending execution results and remove it if already processed
+	// first search through pending execution results and remove it if already processed
 	// if the provided nonce is removed, do not add it into noncesToRemoveOnAdd
 	removedProvidedNonce, err := ert.removePendingFromNonceUnprotected(headerNonce)
 	if err != nil || removedProvidedNonce {

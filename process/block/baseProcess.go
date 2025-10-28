@@ -1735,15 +1735,16 @@ func (bp *baseProcessor) revertCurrentBlockV3(headerHandler data.HeaderHandler) 
 		return
 	}
 
-	err := bp.executionResultsTracker.RemoveFromNonce(headerHandler.GetNonce())
+	headerNonce := headerHandler.GetNonce()
+	err := bp.executionResultsTracker.RemoveFromNonce(headerNonce)
 	if err != nil {
-		log.Error("revertCurrentBlockV3 RemoveFromNonce", "err", err)
+		log.Error("revertCurrentBlockV3 RemoveFromNonce", "nonce", headerNonce, "err", err)
 		return
 	}
 
-	err = bp.blocksQueue.RemoveAtNonceAndHigher(headerHandler.GetNonce())
+	err = bp.blocksQueue.RemoveAtNonceAndHigher(headerNonce)
 	if err != nil {
-		log.Error("revertCurrentBlockV3 RemoveAtNonceAndHigher", "err", err)
+		log.Error("revertCurrentBlockV3 RemoveAtNonceAndHigher", "nonce", headerNonce, "err", err)
 	}
 }
 
