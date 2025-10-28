@@ -33,6 +33,11 @@ func (cache *TxCache) Diagnose(_ bool) {
 	cache.diagnoseTransactions()
 }
 
+// GetTrackerDiagnosis returns the dimension of the tracked blocks
+func (cache *TxCache) GetTrackerDiagnosis() TrackerDiagnosis {
+	return cache.tracker.getTrackerDiagnosis()
+}
+
 func (cache *TxCache) diagnoseTransactions() {
 	if logDiagnoseTransactions.GetLevel() > logger.LogTrace {
 		return
@@ -84,17 +89,20 @@ func convertWrappedTransactionToPrintedTransaction(wrappedTx *WrappedTransaction
 
 // marshalTrackedBlockToNewlineDelimitedJSON converts a list of tracked blocks to a newline-delimited JSON string.
 // Note: each line is indexed, to improve readability. The index is easily removable if separate analysis is needed.
-func marshalTrackedBlockToNewlineDelimitedJSON(trackedBlocks []*trackedBlock, linePrefix string) string {
+func marshalTrackedBlockToNewlineDelimitedJSON(trackedBlocks map[string]*trackedBlock, linePrefix string) string {
 	builder := strings.Builder{}
 	builder.WriteString("\n")
 
-	for i, block := range trackedBlocks {
+	i := 0
+	for _, block := range trackedBlocks {
 		printedBlock := convertTrackedBlockToPrintedBlock(block)
 		printedBlockJSON, _ := json.Marshal(printedBlock)
 
 		builder.WriteString(fmt.Sprintf("%s#%d: ", linePrefix, i))
 		builder.WriteString(string(printedBlockJSON))
 		builder.WriteString("\n")
+
+		i += 1
 	}
 
 	builder.WriteString("\n")
@@ -120,18 +128,5 @@ func displaySelectionOutcome(contextualLogger logger.Logger, linePrefix string, 
 		contextualLogger.Trace(marshalTransactionsToNewlineDelimitedJSON(transactions, linePrefix))
 	} else {
 		contextualLogger.Trace("displaySelectionOutcome - transactions: none")
-	}
-}
-
-func displayTrackedBlocks(contextualLogger logger.Logger, linePrefix string, trackedBlocks []*trackedBlock) {
-	if contextualLogger.GetLevel() > logger.LogTrace {
-		return
-	}
-
-	if len(trackedBlocks) > 0 {
-		contextualLogger.Trace("displayTrackedBlocks - trackedBlocks (as newline-separated JSON):")
-		contextualLogger.Trace(marshalTrackedBlockToNewlineDelimitedJSON(trackedBlocks, linePrefix))
-	} else {
-		contextualLogger.Trace("displayTrackedBlocks - trackedBlocks: none")
 	}
 }

@@ -46,10 +46,10 @@ func (txip *TxInterceptorProcessor) Validate(data process.InterceptedData, _ cor
 }
 
 // Save will save the received data into the cacher
-func (txip *TxInterceptorProcessor) Save(data process.InterceptedData, peerOriginator core.PeerID, _ string) error {
+func (txip *TxInterceptorProcessor) Save(data process.InterceptedData, peerOriginator core.PeerID, _ string) (bool, error) {
 	interceptedTx, ok := data.(process.InterceptedTransactionHandler)
 	if !ok {
-		return process.ErrWrongTypeAssertion
+		return false, process.ErrWrongTypeAssertion
 	}
 
 	err := txip.txValidator.CheckTxWhiteList(data)
@@ -61,7 +61,7 @@ func (txip *TxInterceptorProcessor) Save(data process.InterceptedData, peerOrigi
 			"sender shard", interceptedTx.SenderShardId(),
 			"receiver shard", interceptedTx.ReceiverShardId(),
 		)
-		return nil
+		return false, nil
 	}
 
 	txLog.Trace("received transaction", "pid", peerOriginator.Pretty(), "hash", data.Hash())
@@ -73,7 +73,7 @@ func (txip *TxInterceptorProcessor) Save(data process.InterceptedData, peerOrigi
 		cacherIdentifier,
 	)
 
-	return nil
+	return true, nil
 }
 
 // RegisterHandler registers a callback function to be notified of incoming transactions

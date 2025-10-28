@@ -8,8 +8,8 @@ import (
 	"math/rand"
 	"strconv"
 
+	"github.com/multiversx/mx-chain-core-go/core"
 	"github.com/multiversx/mx-chain-core-go/data/transaction"
-	"github.com/multiversx/mx-chain-go/common/holders"
 	"github.com/multiversx/mx-chain-go/testscommon/txcachemocks"
 )
 
@@ -29,7 +29,7 @@ const cleanupLoopMaximumDuration = 30_000
 var randomHashes = newRandomData(math.MaxUint16, hashLength)
 var randomAddresses = newRandomData(math.MaxUint16, addressLength)
 
-var defaultBlockchainInfo = holders.NewBlockchainInfo(nil, nil, 0)
+var defaultLatestExecutedHash = []byte("hash0")
 
 type randomData struct {
 	randomBytes []byte
@@ -251,7 +251,13 @@ func (wrappedTx *WrappedTransaction) withTransferredValue(value *big.Int) *Wrapp
 	return wrappedTx
 }
 
+func (wrappedTx *WrappedTransaction) withFee(value *big.Int) *WrappedTransaction {
+	wrappedTx.Fee = value
+	return wrappedTx
+}
+
 func (wrappedTx *WrappedTransaction) withRelayer(relayer []byte) *WrappedTransaction {
+	wrappedTx.FeePayer = relayer
 	tx := wrappedTx.Tx.(*transaction.Transaction)
 	tx.RelayerAddr = relayer
 	return wrappedTx
@@ -270,4 +276,31 @@ func createFakeTxHash(fakeSenderAddress []byte, nonce int) []byte {
 	binary.LittleEndian.PutUint64(bytes[8:], uint64(nonce))
 	binary.LittleEndian.PutUint64(bytes[16:], uint64(nonce))
 	return bytes
+}
+
+func createExpectedBreadcrumb(isSender bool, firstNonce uint64, lastNonce uint64, consumedBalance *big.Int) *accountBreadcrumb {
+	return &accountBreadcrumb{
+		firstNonce: core.OptionalUint64{
+			Value:    firstNonce,
+			HasValue: isSender,
+		},
+		lastNonce: core.OptionalUint64{
+			Value:    lastNonce,
+			HasValue: isSender,
+		},
+		consumedBalance: consumedBalance,
+	}
+}
+
+func createExpectedVirtualRecord(isSender bool, initialNonce uint64, initialBalance *big.Int, consumedBalance *big.Int) *virtualAccountRecord {
+	return &virtualAccountRecord{
+		initialNonce: core.OptionalUint64{
+			Value:    initialNonce,
+			HasValue: isSender,
+		},
+		virtualBalance: &virtualAccountBalance{
+			initialBalance:  initialBalance,
+			consumedBalance: consumedBalance,
+		},
+	}
 }

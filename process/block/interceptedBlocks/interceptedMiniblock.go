@@ -85,6 +85,11 @@ func (inMb *InterceptedMiniblock) CheckValidity() error {
 	return inMb.integrity()
 }
 
+// ShouldAllowDuplicates returns if this type of intercepted data should allow duplicates
+func (inMb *InterceptedMiniblock) ShouldAllowDuplicates() bool {
+	return false
+}
+
 // IsForCurrentShard returns true if at least one contained miniblock is for current shard
 func (inMb *InterceptedMiniblock) IsForCurrentShard() bool {
 	return inMb.isForCurrentShard

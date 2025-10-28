@@ -71,4 +71,7 @@ func TestDisabledCache_DoesNothing(t *testing.T) {
 
 	err = cache.OnExecutedBlock(nil)
 	require.Nil(t, err)
+
+	diagnosis := cache.GetTrackerDiagnosis()
+	require.Nil(t, diagnosis)
 }

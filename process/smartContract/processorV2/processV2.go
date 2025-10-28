@@ -2821,6 +2821,11 @@ func (sc *scProcessor) ProcessSmartContractResult(scr *smartContractResult.Smart
 		txHash,
 		sc.pubkeyConv,
 	)
+	// TODO refactor to set the tx hash for the following state accesses before the processing occurs
+	defer func() {
+		sc.accounts.SetTxHashForLatestStateAccesses(txHash)
+		log.Trace("SetTxHashForLatestStateAccesses", "txHash", txHash)
+	}()
 
 	gasLocked := sc.getGasLockedFromSCR(scr)
 

@@ -29,12 +29,16 @@ func newTrackedBlock(
 	}
 }
 
-func (tb *trackedBlock) sameNonceOrBelow(otherBlock *trackedBlock) bool {
+func (tb *trackedBlock) hasSameNonceOrLower(otherBlock *trackedBlock) bool {
 	return tb.nonce <= otherBlock.nonce
 }
 
-func (tb *trackedBlock) sameNonce(otherBlock *trackedBlock) bool {
-	return tb.nonce == otherBlock.nonce
+func (tb *trackedBlock) hasSameNonceOrHigher(otherBlock *trackedBlock) bool {
+	return tb.nonce >= otherBlock.nonce
+}
+
+func (tb *trackedBlock) hasHigherNonce(nonce uint64) bool {
+	return tb.nonce > nonce
 }
 
 func (tb *trackedBlock) compileBreadcrumbs(txs []*WrappedTransaction) error {
@@ -69,7 +73,7 @@ func (tb *trackedBlock) compileBreadcrumb(tx *WrappedTransaction) error {
 	transferredValue := tx.TransferredValue
 	senderBreadcrumb.accumulateConsumedBalance(transferredValue)
 
-	err := senderBreadcrumb.updateLastNonce(core.OptionalUint64{
+	err := senderBreadcrumb.updateNonceRange(core.OptionalUint64{
 		Value:    latestNonce,
 		HasValue: true,
 	})
