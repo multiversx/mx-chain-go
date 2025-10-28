@@ -6,6 +6,7 @@ import (
 	"encoding/hex"
 	"fmt"
 	"sync"
+	"sync/atomic"
 
 	"github.com/multiversx/mx-chain-core-go/core"
 	"github.com/multiversx/mx-chain-core-go/core/check"
@@ -32,7 +33,7 @@ const (
 	branch
 )
 
-const numCollapseRequests = 100
+const maxNumGoroutinesForCollapsing = 10
 
 type patriciaMerkleTrie struct {
 	root node
@@ -45,10 +46,11 @@ type patriciaMerkleTrie struct {
 	mutOperation            sync.RWMutex
 	collapseManager         common.TrieCollapseManager
 
-	oldHashes           [][]byte
-	oldRoot             []byte
-	chanClose           chan struct{}
-	collapseRequestChan chan [][]byte
+	oldHashes     [][]byte
+	oldRoot       []byte
+	chanClose     chan struct{}
+	ctx           context.Context
+	numGoroutines atomic.Int32
 }
 
 // NewTrie creates a new Patricia Merkle Trie
@@ -80,7 +82,7 @@ func NewTrie(
 		return nil, err
 	}
 
-	tr := &patriciaMerkleTrie{
+	return &patriciaMerkleTrie{
 		trieStorage:             trieStorage,
 		marshalizer:             msh,
 		hasher:                  hsh,
@@ -90,38 +92,9 @@ func NewTrie(
 		enableEpochsHandler:     enableEpochsHandler,
 		trieNodeVersionVerifier: tnvv,
 		collapseManager:         collapseManager,
-		collapseRequestChan:     make(chan [][]byte, numCollapseRequests),
-	}
-
-	if collapseManager.IsCollapseEnabled() {
-		go tr.startCollapseLeavesProcessLoop()
-	}
-
-	return tr, nil
-}
-
-func (tr *patriciaMerkleTrie) startCollapseLeavesProcessLoop() {
-	for {
-		select {
-		case <-tr.chanClose:
-			return
-		case collapsibleLeaves := <-tr.collapseRequestChan:
-			tmc := trieMetricsCollector.NewTrieMetricsCollector()
-			for _, hexKey := range collapsibleLeaves {
-				tr.mutOperation.Lock()
-				if check.IfNil(tr.root) {
-					tr.mutOperation.Unlock()
-					return
-				}
-				_ = tr.root.collapseChild(hexKey, tmc)
-				tr.mutOperation.Unlock()
-			}
-
-			tr.mutOperation.Lock()
-			tr.collapseManager.AddSizeInMemory(-tmc.GetSizeLoadedInMem())
-			tr.mutOperation.Unlock()
-		}
-	}
+		ctx:                     context.Background(),
+		numGoroutines:           atomic.Int32{},
+	}, nil
 }
 
 // Get starts at the root and searches for the given key.
@@ -300,7 +273,7 @@ func (tr *patriciaMerkleTrie) Commit() error {
 		return err
 	}
 
-	if tr.collapseManager.ShouldCollapseTrie() {
+	if tr.collapseManager.ShouldCollapseTrie() && tr.numGoroutines.Load() > maxNumGoroutinesForCollapsing {
 		return tr.collapseTrie()
 	}
 
@@ -308,10 +281,14 @@ func (tr *patriciaMerkleTrie) Commit() error {
 	if err != nil {
 		return err
 	}
-	return tr.collapseLeaves(collapsibleLeaves)
+
+	tr.numGoroutines.Add(1)
+	go tr.collapseLeaves(collapsibleLeaves, tr.ctx)
+	return nil
 }
 
 func (tr *patriciaMerkleTrie) collapseTrie() error {
+	tr.ctx.Done()
 	collapsedRoot, err := tr.root.getCollapsed()
 	if err != nil {
 		return err
@@ -320,21 +297,38 @@ func (tr *patriciaMerkleTrie) collapseTrie() error {
 	tr.root = collapsedRoot
 	tr.collapseManager = tr.collapseManager.CloneWithoutState()
 	tr.collapseManager.AddSizeInMemory(tr.root.sizeInBytes())
-	tr.collapseRequestChan = make(chan [][]byte, numCollapseRequests)
+	tr.ctx = context.Background()
 	log.Info("trie collapsed", "root", tr.root.getHash())
 	return nil
 }
 
-func (tr *patriciaMerkleTrie) collapseLeaves(collapsibleLeaves [][]byte) error {
+func (tr *patriciaMerkleTrie) collapseLeaves(collapsibleLeaves [][]byte, ctx context.Context) {
+	defer tr.numGoroutines.Add(-1)
+
 	if len(collapsibleLeaves) == 0 {
-		return nil
+		return
 	}
 
-	if len(collapsibleLeaves) < numCollapseRequests {
-		tr.collapseRequestChan <- collapsibleLeaves
+	for _, hexKey := range collapsibleLeaves {
+		select {
+		case <-ctx.Done():
+			return
+		default:
+			tr.collapseLeaf(hexKey)
+		}
 	}
+}
 
-	return tr.collapseTrie()
+func (tr *patriciaMerkleTrie) collapseLeaf(hexKey []byte) {
+	tr.mutOperation.Lock()
+	defer tr.mutOperation.Unlock()
+
+	tmc := trieMetricsCollector.NewTrieMetricsCollector()
+	if check.IfNil(tr.root) {
+		return
+	}
+	_ = tr.root.shouldCollapseChild(hexKey, tmc)
+	tr.collapseManager.AddSizeInMemory(-tmc.GetSizeLoadedInMem())
 }
 
 // Recreate returns a new trie, given the options

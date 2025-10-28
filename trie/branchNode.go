@@ -280,7 +280,7 @@ func (bn *branchNode) commitDirty(originDb common.TrieStorageInteractor, targetD
 	return nil
 }
 
-func (bn *branchNode) collapseChild(hexKey []byte, tmc MetricsCollector) bool {
+func (bn *branchNode) shouldCollapseChild(hexKey []byte, tmc MetricsCollector) bool {
 	if len(hexKey) == 0 {
 		return false
 	}
@@ -294,11 +294,11 @@ func (bn *branchNode) collapseChild(hexKey []byte, tmc MetricsCollector) bool {
 		return false
 	}
 
-	shouldCollapseChild := bn.children[childPos].collapseChild(hexKey, tmc)
+	shouldCollapseChild := bn.children[childPos].shouldCollapseChild(hexKey, tmc)
 	if shouldCollapseChild {
-		tmc.AddSizeLoadedInMem(-bn.children[childPos].sizeInBytes())
+		tmc.AddSizeLoadedInMem(-bn.children[childPos].sizeInBytes() - pointerSizeInBytes)
 		bn.children[childPos] = nil
-		return true
+		return false
 	}
 
 	return false

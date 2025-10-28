@@ -1615,3 +1615,49 @@ func TestBranchNode_getNodeData(t *testing.T) {
 		assert.False(t, thirdChildData.IsLeaf())
 	})
 }
+
+func TestBranchNode_shouldCollapseChild(t *testing.T) {
+	t.Parallel()
+
+	t.Run("empty hexKey", func(t *testing.T) {
+		t.Parallel()
+
+		bn, _ := getBnAndCollapsedBn(getTestMarshalizerAndHasher())
+		shouldCollapseChild := bn.shouldCollapseChild([]byte{}, trieMetricsCollector.NewTrieMetricsCollector())
+		assert.False(t, shouldCollapseChild)
+	})
+	t.Run("invalid hexKey", func(t *testing.T) {
+		t.Parallel()
+
+		bn, _ := getBnAndCollapsedBn(getTestMarshalizerAndHasher())
+		shouldCollapseChild := bn.shouldCollapseChild([]byte{17}, trieMetricsCollector.NewTrieMetricsCollector())
+		assert.False(t, shouldCollapseChild)
+	})
+	t.Run("child is nil", func(t *testing.T) {
+		t.Parallel()
+
+		bn, _ := getBnAndCollapsedBn(getTestMarshalizerAndHasher())
+		shouldCollapseChild := bn.shouldCollapseChild([]byte{4}, trieMetricsCollector.NewTrieMetricsCollector())
+		assert.False(t, shouldCollapseChild)
+	})
+	t.Run("collapse child that is already collapsed", func(t *testing.T) {
+		t.Parallel()
+
+		_, collapsedBn := getBnAndCollapsedBn(getTestMarshalizerAndHasher())
+		leafChildKey := append([]byte{2}, []byte("dog")...)
+		shouldCollapseChild := collapsedBn.shouldCollapseChild(leafChildKey, trieMetricsCollector.NewTrieMetricsCollector())
+		assert.False(t, shouldCollapseChild)
+	})
+	t.Run("successful collapse", func(t *testing.T) {
+		t.Parallel()
+
+		bn, _ := getBnAndCollapsedBn(getTestMarshalizerAndHasher())
+		leafSize := bn.children[2].sizeInBytes()
+		leafChildKey := append([]byte{2}, []byte("dog")...)
+		tmc := trieMetricsCollector.NewTrieMetricsCollector()
+		shouldCollapseChild := bn.shouldCollapseChild(leafChildKey, tmc)
+		assert.False(t, shouldCollapseChild)
+		assert.Nil(t, bn.children[2])
+		assert.Equal(t, -leafSize-pointerSizeInBytes, tmc.GetSizeLoadedInMem())
+	})
+}

@@ -199,7 +199,7 @@ func (en *extensionNode) commitDirty(originDb common.TrieStorageInteractor, targ
 	return nil
 }
 
-func (en *extensionNode) collapseChild(hexKey []byte, tmc MetricsCollector) bool {
+func (en *extensionNode) shouldCollapseChild(hexKey []byte, tmc MetricsCollector) bool {
 	keyTooShort := len(hexKey) < len(en.Key)
 	if keyTooShort {
 		return false
@@ -213,12 +213,8 @@ func (en *extensionNode) collapseChild(hexKey []byte, tmc MetricsCollector) bool
 		return false
 	}
 
-	shouldCollapseChild := en.child.collapseChild(hexKey, tmc)
-	if shouldCollapseChild {
-		tmc.AddSizeLoadedInMem(-en.child.sizeInBytes())
-		en.child = nil
-		return true
-	}
+	// an extension node can not have a leaf as child, so no need to check for that
+	_ = en.child.shouldCollapseChild(hexKey, tmc)
 	return false
 }
 

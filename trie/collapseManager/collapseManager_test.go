@@ -179,10 +179,3 @@ func TestCollapseManager_CloneWithoutState(t *testing.T) {
 	assert.Equal(t, 0, clonedCM.orderAccess.Len())
 	assert.Equal(t, 0, clone.GetSizeInMemory())
 }
-
-func TestCollapseManager_IsCollapseEnabled(t *testing.T) {
-	t.Parallel()
-
-	cm, _ := NewCollapseManager(2 * minSizeInMemory)
-	assert.True(t, cm.IsCollapseEnabled())
-}

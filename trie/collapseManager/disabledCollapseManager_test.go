@@ -65,12 +65,4 @@ func TestDisabledCollapseManager_CloneWithoutState(t *testing.T) {
 	clone := dcm.CloneWithoutState()
 
 	assert.False(t, clone.IsInterfaceNil())
-	assert.False(t, clone.IsCollapseEnabled())
-}
-
-func TestDisabledCollapseManager_IsCollapseEnabled(t *testing.T) {
-	t.Parallel()
-
-	dcm := NewDisabledCollapseManager()
-	assert.False(t, dcm.IsCollapseEnabled())
 }

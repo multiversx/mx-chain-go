@@ -134,11 +134,6 @@ func (cm *collapseManager) CloneWithoutState() common.TrieCollapseManager {
 	}
 }
 
-// IsCollapseEnabled returns true
-func (cm *collapseManager) IsCollapseEnabled() bool {
-	return true
-}
-
 // IsInterfaceNil returns true if there is no value under the interface
 func (cm *collapseManager) IsInterfaceNil() bool {
 	return cm == nil

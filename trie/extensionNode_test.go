@@ -1159,3 +1159,41 @@ func TestExtensionNode_getNodeData(t *testing.T) {
 		assert.False(t, nodeData[0].IsLeaf())
 	})
 }
+
+func TestExtensionNode_shouldCollapseChild(t *testing.T) {
+	t.Parallel()
+
+	t.Run("key too short", func(t *testing.T) {
+		t.Parallel()
+
+		en, _ := getEnAndCollapsedEn()
+		shouldCollapse := en.shouldCollapseChild([]byte{}, nil)
+		assert.False(t, shouldCollapse)
+	})
+	t.Run("keys do not match", func(t *testing.T) {
+		t.Parallel()
+
+		en, _ := getEnAndCollapsedEn()
+		shouldCollapse := en.shouldCollapseChild([]byte{1, 2, 3}, nil)
+		assert.False(t, shouldCollapse)
+	})
+	t.Run("nil child", func(t *testing.T) {
+		t.Parallel()
+
+		_, collapsedEn := getEnAndCollapsedEn()
+		shouldCollapse := collapsedEn.shouldCollapseChild(collapsedEn.Key, nil)
+		assert.False(t, shouldCollapse)
+	})
+	t.Run("calls collapse for child", func(t *testing.T) {
+		t.Parallel()
+
+		en, _ := getEnAndCollapsedEn()
+		bn, _ := getBnAndCollapsedBn(en.marsh, en.hasher)
+		tmc := trieMetricsCollector.NewTrieMetricsCollector()
+		leafKey := append(en.Key, byte(2))
+		leafKey = append(leafKey, []byte("dog")...)
+		shouldCollapse := en.shouldCollapseChild(leafKey, tmc)
+		assert.False(t, shouldCollapse)
+		assert.Equal(t, -bn.children[2].sizeInBytes()-pointerSizeInBytes, tmc.GetSizeLoadedInMem())
+	})
+}

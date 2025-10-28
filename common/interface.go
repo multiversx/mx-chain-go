@@ -444,6 +444,5 @@ type TrieCollapseManager interface {
 	AddSizeInMemory(size int)
 	GetSizeInMemory() int
 	CloneWithoutState() TrieCollapseManager
-	IsCollapseEnabled() bool
 	IsInterfaceNil() bool
 }

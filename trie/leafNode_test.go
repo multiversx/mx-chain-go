@@ -823,3 +823,13 @@ func TestLeafNode_getNodeData(t *testing.T) {
 		assert.True(t, nodeData[0].IsLeaf())
 	})
 }
+
+func TestLeafNode_shouldCollapse(t *testing.T) {
+	t.Parallel()
+
+	ln := getLn(getTestMarshalizerAndHasher())
+	shouldCollapse := ln.shouldCollapseChild([]byte("doge"), nil)
+	assert.False(t, shouldCollapse)
+	shouldCollapse = ln.shouldCollapseChild([]byte("dog"), nil)
+	assert.True(t, shouldCollapse)
+}
