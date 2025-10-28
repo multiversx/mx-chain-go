@@ -734,6 +734,11 @@ func (bp *baseProcessor) GetFinalMiniBlocksFromExecutionResults(
 	return bp.getFinalMiniBlocksFromExecutionResults(header)
 }
 
+// GetFinalBlockNonce -
+func (bp *baseProcessor) GetFinalBlockNonce(headerHandler data.HeaderHandler) uint64 {
+	return bp.getFinalBlockNonce(headerHandler)
+}
+
 // VerifyCrossShardMiniBlockDstMe -
 func (sp *shardProcessor) VerifyCrossShardMiniBlockDstMe(header data.ShardHeaderHandler) error {
 	return sp.verifyCrossShardMiniBlockDstMe(header)

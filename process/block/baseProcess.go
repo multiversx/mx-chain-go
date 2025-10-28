@@ -1159,10 +1159,12 @@ func (bp *baseProcessor) cleanupPoolsForCrossShard(
 		return
 	}
 
+	crossNotarizedHeaderNonce := common.GetLastExecutionResultNonce(crossNotarizedHeader)
+
 	bp.removeHeadersBehindNonceFromPools(
 		false,
 		shardID,
-		crossNotarizedHeader.GetNonce(),
+		crossNotarizedHeaderNonce,
 	)
 
 	if common.IsFlagEnabledAfterEpochsStartBlock(crossNotarizedHeader, bp.enableEpochsHandler, common.AndromedaFlag) {
@@ -1344,7 +1346,7 @@ func (bp *baseProcessor) cleanupBlockTrackerPoolsForShard(shardID uint32, nonces
 		return
 	}
 
-	selfNotarizedNonce := selfNotarizedHeader.GetNonce()
+	selfNotarizedNonce := common.GetLastExecutionResultNonce(selfNotarizedHeader)
 
 	crossNotarizedNonce := uint64(0)
 	if shardID != bp.shardCoordinator.SelfId() {
@@ -1357,7 +1359,7 @@ func (bp *baseProcessor) cleanupBlockTrackerPoolsForShard(shardID uint32, nonces
 			return
 		}
 
-		crossNotarizedNonce = crossNotarizedHeader.GetNonce()
+		crossNotarizedNonce = common.GetLastExecutionResultNonce(crossNotarizedHeader)
 	}
 
 	bp.blockTracker.CleanupHeadersBehindNonce(
@@ -1506,19 +1508,38 @@ func deleteSelfReceiptsMiniBlocks(body *block.Body) *block.Body {
 }
 
 func (bp *baseProcessor) getNoncesToFinal(headerHandler data.HeaderHandler) uint64 {
-	// TODO: modify this method to return last execution result nonce for header v3
 	currentBlockNonce := bp.genesisNonce
 	if !check.IfNil(headerHandler) {
 		currentBlockNonce = headerHandler.GetNonce()
 	}
 
 	noncesToFinal := uint64(0)
-	finalBlockNonce := bp.forkDetector.GetHighestFinalBlockNonce()
+	finalBlockNonce := bp.getFinalBlockNonce(headerHandler)
 	if currentBlockNonce > finalBlockNonce {
 		noncesToFinal = currentBlockNonce - finalBlockNonce
 	}
 
 	return noncesToFinal
+}
+
+func (bp *baseProcessor) getFinalBlockNonce(
+	headerHandler data.HeaderHandler,
+) uint64 {
+	finalBlockNonce := bp.forkDetector.GetHighestFinalBlockNonce()
+	if !headerHandler.IsHeaderV3() {
+		return finalBlockNonce
+	}
+
+	finalHeaderHandler, err := bp.dataPool.Headers().GetHeaderByHash(bp.forkDetector.GetHighestFinalBlockHash())
+	if err != nil {
+		return finalBlockNonce
+	}
+
+	if !finalHeaderHandler.IsHeaderV3() {
+		return finalHeaderHandler.GetNonce()
+	}
+
+	return common.GetLastExecutionResultNonce(finalHeaderHandler)
 }
 
 // DecodeBlockBody method decodes block body from a given byte array

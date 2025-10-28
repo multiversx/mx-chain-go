@@ -403,3 +403,21 @@ func ExtractBaseExecutionResultHandler(lastExecResultsHandler data.LastExecution
 
 	return baseExecutionResultsHandler, nil
 }
+
+// GetLastExecutionResultNonce returns last execution result nonce if header v3 enable, otherwise it returns provided header nonce
+func GetLastExecutionResultNonce(
+	header data.HeaderHandler,
+) uint64 {
+	nonce := header.GetNonce()
+
+	if !header.IsHeaderV3() {
+		return nonce
+	}
+
+	lastExecutionResult, err := GetLastBaseExecutionResultHandler(header)
+	if err != nil {
+		return nonce
+	}
+
+	return lastExecutionResult.GetHeaderNonce()
+}
