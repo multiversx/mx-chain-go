@@ -273,7 +273,7 @@ func TestJailNodes(t *testing.T) {
 	}
 	supernovaRoundsPerEpochOpt := core.OptionalUint64{
 		HasValue: true,
-		Value:    400,
+		Value:    50,
 	}
 
 	numOfShards := uint32(3)
@@ -333,7 +333,7 @@ func TestJailNodes(t *testing.T) {
 	require.Nil(t, err)
 	require.NotNil(t, stakeTx)
 
-	err = cs.GenerateBlocks(200)
+	err = cs.GenerateBlocks(250)
 	require.Nil(t, err)
 
 	decodedBLSKey0, _ := hex.DecodeString(blsKeys[0])
