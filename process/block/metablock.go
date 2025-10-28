@@ -955,6 +955,20 @@ func (mp *metaProcessor) createMiniBlocks(
 		)
 	}
 
+	rootHash := mp.blockChain.GetCurrentBlockRootHash()
+	if len(rootHash) == 0 {
+		genesisBlock := mp.blockChain.GetGenesisHeader()
+		rootHash = genesisBlock.GetRootHash()
+	}
+
+	log.Debug("REMOVE: settingRootHash before creating miniblocks", "rootHash", rootHash)
+
+	rh := holders.NewDefaultRootHashesHolder(rootHash)
+	err = mp.accountsProposal.RecreateTrieIfNeeded(rh)
+	if err != nil {
+		return nil, err
+	}
+
 	mbsFromMe := mp.txCoordinator.CreateMbsAndProcessTransactionsFromMe(haveTime, randomness)
 	if len(mbsFromMe) > 0 {
 		miniBlocks = append(miniBlocks, mbsFromMe...)
@@ -1276,6 +1290,10 @@ func (mp *metaProcessor) CommitBlock(
 	}
 
 	mp.blockChain.SetCurrentBlockHeaderHash(headerHash)
+	err = mp.dataPool.Transactions().OnExecutedBlock(headerHandler, committedRootHash)
+	if err != nil {
+		return err
+	}
 
 	if !check.IfNil(finalMetaBlock) && finalMetaBlock.IsStartOfEpochBlock() {
 		mp.blockTracker.CleanupInvalidCrossHeaders(header.Epoch, header.Round)

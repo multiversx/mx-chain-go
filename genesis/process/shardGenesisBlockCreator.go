@@ -179,6 +179,11 @@ func CreateShardGenesisBlock(
 		return nil, nil, nil, err
 	}
 
+	err = arg.Data.Datapool().Transactions().OnExecutedBlock(headerHandler, rootHash)
+	if err != nil {
+		return nil, nil, nil, err
+	}
+
 	return headerHandler, scAddresses, indexingData, nil
 }
 

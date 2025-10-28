@@ -161,6 +161,11 @@ func CreateMetaGenesisBlock(
 		return nil, nil, nil, err
 	}
 
+	err = arg.Data.Datapool().Transactions().OnExecutedBlock(header, rootHash)
+	if err != nil {
+		return nil, nil, nil, err
+	}
+
 	return header, make([][]byte, 0), indexingData, nil
 }
 

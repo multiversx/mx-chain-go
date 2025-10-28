@@ -162,10 +162,22 @@ func TestConsensusBLSWithFullProcessing_TransitionWithEquivalentProofs(t *testin
 	testConsensusBLSWithFullProcessing(t, testParams)
 }
 
+// func outputLogToFile(logPath string) error {
+// 	logFile, err := os.OpenFile(logPath, os.O_RDWR|os.O_CREATE|os.O_APPEND, 0644)
+// 	if err != nil {
+// 		return err
+// 	}
+// 	return logger.AddLogObserver(logFile, &logger.PlainFormatter{})
+// }
+
 func TestConsensusBLSWithFullProcessing_WithEquivalentProofs_MultiKeys(t *testing.T) {
 	if testing.Short() {
 		t.Skip("this is not a short test")
 	}
+
+	// err := outputLogToFile("testLog")
+	// require.Nil(t, err)
+	// _ = logger.SetLogLevel("*:DEBUG")
 
 	enableEpochsConfig := integrationTests.CreateEnableEpochsConfig()
 	enableEpochsConfig.AndromedaEnableEpoch = uint32(0)

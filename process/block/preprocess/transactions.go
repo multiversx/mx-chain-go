@@ -1475,7 +1475,7 @@ func (txs *transactions) selectTransactionsFromTxPool(
 	}
 
 	session, err := NewSelectionSession(ArgsSelectionSession{
-		AccountsAdapter:       txs.accounts,
+		AccountsAdapter:       txs.accountsProposal,
 		TransactionsProcessor: txs.txProcessor,
 	})
 	if err != nil {
