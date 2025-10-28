@@ -194,6 +194,10 @@ func (bq *blocksQueue) RemoveAtNonceAndHigher(nonce uint64) error {
 
 	if indexToRemove == 0 {
 		// removing from the beginning, clear the entire queue
+		pairsRemoved := make([]HeaderBodyPair, 0, len(bq.headerBodyPairs))
+		copy(pairsRemoved, bq.headerBodyPairs)
+		bq.notifyEvictedPairs(pairsRemoved)
+
 		bq.headerBodyPairs = make([]HeaderBodyPair, 0)
 		if nonce > 0 {
 			bq.lastAddedNonce = nonce - 1
