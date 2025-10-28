@@ -1735,15 +1735,9 @@ func (bp *baseProcessor) revertCurrentBlockV3(headerHandler data.HeaderHandler) 
 		return
 	}
 
-	hash, err := core.CalculateHash(bp.marshalizer, bp.hasher, headerHandler)
+	err := bp.executionResultsTracker.RemoveFromNonce(headerHandler.GetNonce())
 	if err != nil {
-		log.Error("revertCurrentBlockV3 CalculateHash", "err", err)
-		return
-	}
-
-	err = bp.executionResultsTracker.RemoveFromHash(hash)
-	if err != nil {
-		log.Error("revertCurrentBlockV3 RemoveFromHash", "err", err)
+		log.Error("revertCurrentBlockV3 RemoveFromNonce", "err", err)
 		return
 	}
 

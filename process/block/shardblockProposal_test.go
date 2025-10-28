@@ -2634,10 +2634,10 @@ func TestShardProcessor_ProcessBlockProposal(t *testing.T) {
 		t.Parallel()
 
 		args := CreateMockArguments(createComponentHolderMocks())
-		wasRemoveFromHashCalled := false
+		wasRemoveFromNonceCalled := false
 		args.ExecutionResultsTracker = &testscommonExecutionTrack.ExecutionResultsTrackerStub{
-			RemoveFromHashCalled: func(hash []byte) error {
-				wasRemoveFromHashCalled = true
+			RemoveFromNonceCalled: func(nonce uint64) error {
+				wasRemoveFromNonceCalled = true
 				return nil
 			},
 		}
@@ -2652,7 +2652,7 @@ func TestShardProcessor_ProcessBlockProposal(t *testing.T) {
 		body := &block.Body{}
 		_, err := sp.ProcessBlockProposal(header, body)
 		require.Equal(t, expectedErr, err)
-		require.True(t, wasRemoveFromHashCalled)
+		require.True(t, wasRemoveFromNonceCalled)
 	})
 	t.Run("VerifyCreatedBlockTransactions fails should error", func(t *testing.T) {
 		t.Parallel()
@@ -3342,7 +3342,7 @@ func createHeaderAndBodyForTestingProcessBlockProposal() (data.HeaderHandler, *b
 	}
 	body := &block.Body{
 		MiniBlocks: []*block.MiniBlock{
-			//Outgoing miniblock from shard
+			// Outgoing miniblock from shard
 			{
 				SenderShardID: 0,
 				TxHashes: [][]byte{
@@ -3365,7 +3365,7 @@ func createHeaderAndBodyForTestingProcessBlockProposal() (data.HeaderHandler, *b
 				ReceiverShardID: 0,
 				TxHashes:        [][]byte{[]byte("tx_incoming_2")},
 			},
-			//Incoming SCR miniblock
+			// Incoming SCR miniblock
 			{
 				SenderShardID:   2,
 				ReceiverShardID: 0,
