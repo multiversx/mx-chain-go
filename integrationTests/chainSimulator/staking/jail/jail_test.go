@@ -160,7 +160,7 @@ func TestChainSimulator_FromQueueToAuctionList(t *testing.T) {
 	roundDurationInMillis := uint64(6000)
 	roundsPerEpoch := core.OptionalUint64{
 		HasValue: true,
-		Value:    20,
+		Value:    40,
 	}
 
 	numOfShards := uint32(3)
@@ -257,7 +257,7 @@ func TestJailNodes(t *testing.T) {
 	roundDurationInMillis := uint64(6000)
 	roundsPerEpoch := core.OptionalUint64{
 		HasValue: true,
-		Value:    20,
+		Value:    40,
 	}
 
 	numOfShards := uint32(3)
