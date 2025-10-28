@@ -29,6 +29,11 @@ func (txCoordinator *TxCoordinator) ComputeTransactionType(_ data.TransactionHan
 	return 0, 0, false
 }
 
+// ComputeTransactionTypeInEpoch does nothing as it is disabled
+func (txCoordinator *TxCoordinator) ComputeTransactionTypeInEpoch(_ data.TransactionHandler, _ uint32) (process.TransactionType, process.TransactionType, bool) {
+	return 0, 0, false
+}
+
 // RequestMiniBlocksAndTransactions does nothing as it is disabled
 func (txCoordinator *TxCoordinator) RequestMiniBlocksAndTransactions(_ data.HeaderHandler) {
 }

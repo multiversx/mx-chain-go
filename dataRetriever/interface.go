@@ -185,13 +185,13 @@ type ShardedDataCacherNotifier interface {
 	Keys() [][]byte
 	IsInterfaceNil() bool
 	CleanupSelfShardTxCache(accountsProvider common.AccountNonceProvider, randomness uint64, maxNum int, cleanupLoopMaximumDuration time.Duration)
-	OnExecutedBlock(blockHeader data.HeaderHandler) error
+	OnExecutedBlock(blockHeader data.HeaderHandler, rootHash []byte) error
 	OnProposedBlock(
 		blockHash []byte,
 		blockBody *block.Body,
 		blockHeader data.HeaderHandler,
 		accountsProvider common.AccountNonceAndBalanceProvider,
-		blockchainInfo common.BlockchainInfo,
+		latestExecutedHash []byte,
 	) error
 }
 

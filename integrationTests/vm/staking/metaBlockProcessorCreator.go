@@ -32,6 +32,7 @@ import (
 	"github.com/multiversx/mx-chain-go/sharding"
 	"github.com/multiversx/mx-chain-go/sharding/nodesCoordinator"
 	"github.com/multiversx/mx-chain-go/state"
+	"github.com/multiversx/mx-chain-go/state/disabled"
 	"github.com/multiversx/mx-chain-go/testscommon"
 	"github.com/multiversx/mx-chain-go/testscommon/dblookupext"
 	testsFactory "github.com/multiversx/mx-chain-go/testscommon/factory"
@@ -146,6 +147,7 @@ func createMetaBlockProcessor(
 				AppStatusHandlerField: &statusHandlerMock.AppStatusHandlerStub{},
 			},
 			AccountsDB:                         accountsDb,
+			AccountsProposal:                   stateComponents.AccountsAdapterProposal(),
 			ForkDetector:                       &integrationMocks.ForkDetectorStub{},
 			NodesCoordinator:                   nc,
 			FeeHandler:                         postprocess.NewFeeAccumulator(),
@@ -169,6 +171,7 @@ func createMetaBlockProcessor(
 			ManagedPeersHolder:                 &testscommon.ManagedPeersHolderStub{},
 			BlockProcessingCutoffHandler:       &testscommon.BlockProcessingCutoffStub{},
 			SentSignaturesTracker:              &testscommon.SentSignatureTrackerStub{},
+			StateAccessesCollector:             disabled.NewDisabledStateAccessesCollector(),
 			HeadersForBlock:                    headersForBlock,
 			MiniBlocksSelectionSession:         mbSelectionSession,
 			ExecutionResultsVerifier:           execResultsVerifier,

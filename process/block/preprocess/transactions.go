@@ -1449,8 +1449,7 @@ func (txs *transactions) selectTransactionsFromTxPoolForProposal(
 		txs.txCacheSelectionConfig.SelectionLoopMaximumDuration,
 		txs.txCacheSelectionConfig.SelectionLoopDurationCheckInterval,
 	)
-	blockchainInfo := holders.NewBlockchainInfo(nil, nil, 0)
-	selectedTransactions, _, err := txCache.SelectTransactions(session, selectionOptions, blockchainInfo)
+	selectedTransactions, _, err := txCache.SelectTransactions(session, selectionOptions, 0)
 	if err != nil {
 		// TODO re-brainstorm if this error should be propagated or just logged
 		return nil, err
@@ -1490,8 +1489,8 @@ func (txs *transactions) selectTransactionsFromTxPool(
 		txs.txCacheSelectionConfig.SelectionLoopDurationCheckInterval,
 	)
 
-	blockchainInfo := holders.NewBlockchainInfo(nil, nil, 0)
-	selectedTxs, _, err := txCache.SelectTransactions(session, selectionOptions, blockchainInfo)
+	// TODO should use the right information for the nonce
+	selectedTxs, _, err := txCache.SelectTransactions(session, selectionOptions, 0)
 	if err != nil {
 		// TODO re-brainstorm if this error should be propagated or just logged
 		return nil, err

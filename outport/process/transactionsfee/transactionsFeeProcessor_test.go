@@ -325,52 +325,101 @@ func TestPutFeeAndGasUsedLogWithErrorAndInformative(t *testing.T) {
 func TestPutFeeAndGasUsedWrongRelayedTx(t *testing.T) {
 	t.Parallel()
 
-	txHash := []byte("relayedTx")
-	scrHash1 := []byte("scrHash1")
-	initialTx := &outportcore.TxInfo{
-		Transaction: &transaction.Transaction{
-			Nonce:    1011,
-			SndAddr:  []byte("erd1dglncxk6sl9a3xumj78n6z2xux4ghp5c92cstv5zsn56tjgtdwpsk46qrs"),
-			RcvAddr:  []byte("erd1xlrw5j482m3fwl72fsu9saj984rxqdrjd860e02tcz0qakvqrp6q2pjqgg"),
-			GasLimit: 550000000,
-			GasPrice: 1000000000,
-			Data:     []byte("relayedTxV2@000000000000000005005eaf5311cedc6fa17f08f33e156926f8f3816d8ed8dc@06e2@7472616e73666572546f6b656e4064633132346163313733323937623836623936316362636663363339326231643130303533326533336530663933313838373634396336613935636236633931403031@ba26daf1353b8fa62d183b7d7df8db48846ea982a0cb26450b703e16720c77b9d7d4e47b652d270b160ae6866ca7b04aae38ca83a58ce508bf660db07d5b6401"),
-			Value:    big.NewInt(0),
-		},
-		FeeInfo: &outportcore.FeeInfo{Fee: big.NewInt(0)},
-	}
+	t.Run("should work before deactivation", func(t *testing.T) {
+		t.Parallel()
 
-	scr1 := &outportcore.SCRInfo{
-		SmartContractResult: &smartContractResult.SmartContractResult{
-			Nonce:          1011,
-			SndAddr:        []byte("erd1xlrw5j482m3fwl72fsu9saj984rxqdrjd860e02tcz0qakvqrp6q2pjqgg"),
-			RcvAddr:        []byte("erd1dglncxk6sl9a3xumj78n6z2xux4ghp5c92cstv5zsn56tjgtdwpsk46qrs"),
-			PrevTxHash:     txHash,
-			OriginalTxHash: txHash,
-			ReturnMessage:  []byte("higher nonce in transaction"),
-		},
-		FeeInfo: &outportcore.FeeInfo{Fee: big.NewInt(0)},
-	}
+		txHash := []byte("relayedTx")
+		scrHash1 := []byte("scrHash1")
+		initialTx := &outportcore.TxInfo{
+			Transaction: &transaction.Transaction{
+				Nonce:    1011,
+				SndAddr:  []byte("erd1dglncxk6sl9a3xumj78n6z2xux4ghp5c92cstv5zsn56tjgtdwpsk46qrs"),
+				RcvAddr:  []byte("erd1xlrw5j482m3fwl72fsu9saj984rxqdrjd860e02tcz0qakvqrp6q2pjqgg"),
+				GasLimit: 550000000,
+				GasPrice: 1000000000,
+				Data:     []byte("relayedTxV2@000000000000000005005eaf5311cedc6fa17f08f33e156926f8f3816d8ed8dc@06e2@7472616e73666572546f6b656e4064633132346163313733323937623836623936316362636663363339326231643130303533326533336530663933313838373634396336613935636236633931403031@ba26daf1353b8fa62d183b7d7df8db48846ea982a0cb26450b703e16720c77b9d7d4e47b652d270b160ae6866ca7b04aae38ca83a58ce508bf660db07d5b6401"),
+				Value:    big.NewInt(0),
+			},
+			FeeInfo: &outportcore.FeeInfo{Fee: big.NewInt(0)},
+		}
 
-	pool := &outportcore.TransactionPool{
-		Transactions: map[string]*outportcore.TxInfo{
-			hex.EncodeToString(txHash): initialTx,
-		},
-		SmartContractResults: map[string]*outportcore.SCRInfo{
-			hex.EncodeToString(scrHash1): scr1,
-		},
-	}
+		scr1 := &outportcore.SCRInfo{
+			SmartContractResult: &smartContractResult.SmartContractResult{
+				Nonce:          1011,
+				SndAddr:        []byte("erd1xlrw5j482m3fwl72fsu9saj984rxqdrjd860e02tcz0qakvqrp6q2pjqgg"),
+				RcvAddr:        []byte("erd1dglncxk6sl9a3xumj78n6z2xux4ghp5c92cstv5zsn56tjgtdwpsk46qrs"),
+				PrevTxHash:     txHash,
+				OriginalTxHash: txHash,
+				ReturnMessage:  []byte("higher nonce in transaction"),
+			},
+			FeeInfo: &outportcore.FeeInfo{Fee: big.NewInt(0)},
+		}
 
-	arg := prepareMockArg()
-	txsFeeProc, err := NewTransactionsFeeProcessor(arg)
-	require.NotNil(t, txsFeeProc)
-	require.Nil(t, err)
+		pool := &outportcore.TransactionPool{
+			Transactions: map[string]*outportcore.TxInfo{
+				hex.EncodeToString(txHash): initialTx,
+			},
+			SmartContractResults: map[string]*outportcore.SCRInfo{
+				hex.EncodeToString(scrHash1): scr1,
+			},
+		}
 
-	err = txsFeeProc.PutFeeAndGasUsed(pool, 0)
-	require.Nil(t, err)
-	require.Equal(t, big.NewInt(6103405000000000), initialTx.GetFeeInfo().GetFee())
-	require.Equal(t, uint64(550000000), initialTx.GetFeeInfo().GetGasUsed())
-	require.Equal(t, "6103405000000000", initialTx.GetFeeInfo().GetInitialPaidFee().String())
+		arg := prepareMockArg()
+		txsFeeProc, err := NewTransactionsFeeProcessor(arg)
+		require.NotNil(t, txsFeeProc)
+		require.Nil(t, err)
+
+		err = txsFeeProc.PutFeeAndGasUsed(pool, 0)
+		require.Nil(t, err)
+		require.Equal(t, big.NewInt(6103405000000000), initialTx.GetFeeInfo().GetFee())
+		require.Equal(t, uint64(550000000), initialTx.GetFeeInfo().GetGasUsed())
+		require.Equal(t, "6103405000000000", initialTx.GetFeeInfo().GetInitialPaidFee().String())
+	})
+	t.Run("should work as move balance after deactivation", func(t *testing.T) {
+		t.Parallel()
+
+		txHash := []byte("relayedTx")
+		initialTx := &outportcore.TxInfo{
+			Transaction: &transaction.Transaction{
+				Nonce:    1011,
+				SndAddr:  []byte("erd1dglncxk6sl9a3xumj78n6z2xux4ghp5c92cstv5zsn56tjgtdwpsk46qrs"),
+				RcvAddr:  []byte("erd1xlrw5j482m3fwl72fsu9saj984rxqdrjd860e02tcz0qakvqrp6q2pjqgg"),
+				GasLimit: 550000000,
+				GasPrice: 1000000000,
+				Data:     []byte("relayedTxV2@000000000000000005005eaf5311cedc6fa17f08f33e156926f8f3816d8ed8dc@06e2@7472616e73666572546f6b656e4064633132346163313733323937623836623936316362636663363339326231643130303533326533336530663933313838373634396336613935636236633931403031@ba26daf1353b8fa62d183b7d7df8db48846ea982a0cb26450b703e16720c77b9d7d4e47b652d270b160ae6866ca7b04aae38ca83a58ce508bf660db07d5b6401"),
+				Value:    big.NewInt(0),
+			},
+			FeeInfo: &outportcore.FeeInfo{Fee: big.NewInt(0)},
+		}
+
+		pool := &outportcore.TransactionPool{
+			Transactions: map[string]*outportcore.TxInfo{
+				hex.EncodeToString(txHash): initialTx,
+			},
+		}
+
+		arg := prepareMockArg()
+		arg.EnableEpochsHandler = &enableEpochsHandlerMock.EnableEpochsHandlerStub{
+			IsFlagEnabledInEpochCalled: func(flag core.EnableEpochFlag, epoch uint32) bool {
+				return flag == common.RelayedTransactionsV1V2DisableFlag
+			},
+		}
+		txsFeeProc, err := NewTransactionsFeeProcessor(arg)
+		require.NotNil(t, txsFeeProc)
+		require.Nil(t, err)
+
+		err = txsFeeProc.PutFeeAndGasUsed(pool, 0)
+		require.Nil(t, err)
+		gasNeeded := uint64(50000 + 1500*len(initialTx.GetTxHandler().GetData()))
+		gasLimit := initialTx.GetTxHandler().GetGasLimit()
+		gasPrice := initialTx.GetTxHandler().GetGasPrice()
+		extraGas := gasLimit - gasNeeded
+		initiallyPaidFee := gasNeeded*gasPrice + (extraGas * gasPrice / 100)
+		actualFee := big.NewInt(0).SetUint64(gasNeeded * gasPrice)
+		require.Equal(t, big.NewInt(0).SetUint64(initiallyPaidFee), initialTx.GetFeeInfo().GetInitialPaidFee())
+		require.Equal(t, gasNeeded, initialTx.GetFeeInfo().GetGasUsed())
+		require.Equal(t, actualFee, initialTx.GetFeeInfo().GetFee())
+	})
 }
 
 func TestPutFeeAndGasUsedESDTWithScCall(t *testing.T) {
