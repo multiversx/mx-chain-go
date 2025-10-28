@@ -19,6 +19,7 @@ import (
 	"github.com/multiversx/mx-chain-go/process"
 	"github.com/multiversx/mx-chain-go/process/sync/disabled"
 	"github.com/multiversx/mx-chain-go/state"
+	stateDisabled "github.com/multiversx/mx-chain-go/state/disabled"
 	"github.com/multiversx/mx-chain-go/testscommon"
 	componentsMock "github.com/multiversx/mx-chain-go/testscommon/components"
 	"github.com/multiversx/mx-chain-go/testscommon/dataRetriever"
@@ -343,6 +344,9 @@ func createMockSCQueryElementArgs() api.SCQueryElementArgs {
 			},
 			PeerAccountsCalled: func() state.AccountsAdapter {
 				return &stateMocks.AccountsStub{}
+			},
+			StateAccessesCollectorCalled: func() state.StateAccessesCollector {
+				return stateDisabled.NewDisabledStateAccessesCollector()
 			},
 		},
 		StatusCoreComponents: &factory.StatusCoreComponentsStub{
