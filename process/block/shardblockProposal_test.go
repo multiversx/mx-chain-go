@@ -2634,10 +2634,10 @@ func TestShardProcessor_ProcessBlockProposal(t *testing.T) {
 		t.Parallel()
 
 		args := CreateMockArguments(createComponentHolderMocks())
-		wasRemoveFromNonceCalled := false
-		args.ExecutionResultsTracker = &testscommonExecutionTrack.ExecutionResultsTrackerStub{
-			RemoveFromNonceCalled: func(nonce uint64) error {
-				wasRemoveFromNonceCalled = true
+		wasRemoveAtNonceAndHigherCalled := false
+		args.BlocksQueue = &processMocks.BlocksQueueMock{
+			RemoveAtNonceAndHigherCalled: func(nonce uint64) error {
+				wasRemoveAtNonceAndHigherCalled = true
 				return nil
 			},
 		}
@@ -2652,7 +2652,7 @@ func TestShardProcessor_ProcessBlockProposal(t *testing.T) {
 		body := &block.Body{}
 		_, err := sp.ProcessBlockProposal(header, body)
 		require.Equal(t, expectedErr, err)
-		require.True(t, wasRemoveFromNonceCalled)
+		require.True(t, wasRemoveAtNonceAndHigherCalled)
 	})
 	t.Run("VerifyCreatedBlockTransactions fails should error", func(t *testing.T) {
 		t.Parallel()
