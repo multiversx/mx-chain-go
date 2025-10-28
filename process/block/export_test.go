@@ -732,6 +732,11 @@ func (bp *baseProcessor) GetFinalMiniBlocksFromExecutionResults(
 	return bp.getFinalMiniBlocksFromExecutionResults(header)
 }
 
+// GetFinalBlockNonce -
+func (bp *baseProcessor) GetFinalBlockNonce(headerHandler data.HeaderHandler) uint64 {
+	return bp.getFinalBlockNonce(headerHandler)
+}
+
 // VerifyCrossShardMiniBlockDstMe -
 func (sp *shardProcessor) VerifyCrossShardMiniBlockDstMe(header data.ShardHeaderHandler) error {
 	return sp.verifyCrossShardMiniBlockDstMe(header)
@@ -798,6 +803,11 @@ func (sp *shardProcessor) CollectExecutionResults(headerHash []byte, header data
 	return sp.collectExecutionResults(headerHash, header, body)
 }
 
+// AddExecutionResultsOnHeader -
+func (sp *shardProcessor) AddExecutionResultsOnHeader(shardHeader data.HeaderHandler) error {
+	return sp.addExecutionResultsOnHeader(shardHeader)
+}
+
 // GetCrossShardIncomingMiniBlocksFromBody -
 func (sp *shardProcessor) GetCrossShardIncomingMiniBlocksFromBody(body *block.Body) []*block.MiniBlock {
 	return sp.getCrossShardIncomingMiniBlocksFromBody(body)
@@ -821,4 +831,14 @@ func GetLastExecutionResultsRootHash(
 // GetHaveTimeForProposal -
 func GetHaveTimeForProposal(startTime time.Time, maxDuration time.Duration) func() time.Duration {
 	return getHaveTimeForProposal(startTime, maxDuration)
+}
+
+// ConstructPartialShardBlockProcessorForTest -
+func ConstructPartialShardBlockProcessorForTest(subcomponents map[string]interface{}) (*shardProcessor, error) {
+	sp := &shardProcessor{}
+	err := factory.ConstructPartialComponentForTest(sp, subcomponents)
+	if err != nil {
+		return nil, err
+	}
+	return sp, err
 }
