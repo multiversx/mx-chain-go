@@ -105,18 +105,16 @@ func TestMiniBlockSelectionSession_AddMiniBlocksAndHashes(t *testing.T) {
 
 		session, _ := NewMiniBlocksSelectionSession(1, marshaller, hasher)
 		err := session.AddMiniBlocksAndHashes([]block.MiniblockAndHash{
-			{&block.MiniBlock{}, []byte("hash1")},
-			{&block.MiniBlock{}, []byte("hash2")},
-			{&block.MiniBlock{}, []byte("hash3")},
+			{Miniblock: &block.MiniBlock{}, Hash: []byte("hash1")},
+			{Miniblock: &block.MiniBlock{}, Hash: []byte("hash2")},
+			{Miniblock: &block.MiniBlock{}, Hash: []byte("hash3")},
 		})
 
 		require.NoError(t, err)
 		require.Equal(t, 3, len(session.GetMiniBlocks()))
 		require.Equal(t, 3, len(session.GetMiniBlockHashes()))
 
-		err = session.AddMiniBlocksAndHashes([]block.MiniblockAndHash{
-			{&block.MiniBlock{}, []byte("hash1")},
-		})
+		err = session.AddMiniBlocksAndHashes([]block.MiniblockAndHash{{Miniblock: &block.MiniBlock{}, Hash: []byte("hash1")}})
 
 		require.NoError(t, err)
 		require.Equal(t, 3, len(session.GetMiniBlocks()))
