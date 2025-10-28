@@ -24,7 +24,7 @@ func TestTrackedBlock_sameNonceOrBelow(t *testing.T) {
 		trackedBlock1 := newTrackedBlock(0, []byte("blockHash1"), []byte("blockRootHash1"), []byte("blockPrevHash1"))
 		trackedBlock2 := newTrackedBlock(0, []byte("blockHash1"), []byte("blockRootHash2"), []byte("blockPrevHash1"))
 
-		shouldRemoveBlock := trackedBlock1.sameNonceOrBelow(trackedBlock2)
+		shouldRemoveBlock := trackedBlock1.hasSameNonceOrLower(trackedBlock2)
 		require.True(t, shouldRemoveBlock)
 	})
 
@@ -34,7 +34,7 @@ func TestTrackedBlock_sameNonceOrBelow(t *testing.T) {
 		trackedBlock1 := newTrackedBlock(0, []byte("blockHash1"), []byte("blockRootHash1"), []byte("blockPrevHash1"))
 		trackedBlock2 := newTrackedBlock(1, []byte("blockHash1"), []byte("blockRootHash1"), []byte("blockPrevHash1"))
 
-		shouldRemoveBlock := trackedBlock1.sameNonceOrBelow(trackedBlock2)
+		shouldRemoveBlock := trackedBlock1.hasSameNonceOrLower(trackedBlock2)
 		require.True(t, shouldRemoveBlock)
 	})
 
@@ -44,19 +44,28 @@ func TestTrackedBlock_sameNonceOrBelow(t *testing.T) {
 		trackedBlock1 := newTrackedBlock(2, []byte("blockHash1"), []byte("blockRootHash1"), []byte("blockPrevHash1"))
 		trackedBlock2 := newTrackedBlock(1, []byte("blockHash1"), []byte("blockRootHash1"), []byte("blockPrevHash1"))
 
-		shouldRemoveBlock := trackedBlock1.sameNonceOrBelow(trackedBlock2)
+		shouldRemoveBlock := trackedBlock1.hasSameNonceOrLower(trackedBlock2)
 		require.False(t, shouldRemoveBlock)
 	})
 }
 
-func TestTrackedBlock_sameNonce(t *testing.T) {
+func TestTrackedBlock_sameNonceOrHigher(t *testing.T) {
 	t.Parallel()
 
-	trackedBlock1 := newTrackedBlock(0, []byte("blockHash1"), []byte("blockRootHash1"), []byte("blockPrevHash1"))
-	trackedBlock2 := newTrackedBlock(0, []byte("blockHash1"), []byte("blockRootHash2"), []byte("blockPrevHash1"))
+	trackedBlock0 := newTrackedBlock(1, []byte("blockHash1"), []byte("blockRootHash1"), []byte("blockPrevHash1"))
+	trackedBlock1 := newTrackedBlock(2, []byte("blockHash1"), []byte("blockRootHash1"), []byte("blockPrevHash1"))
+	trackedBlock2 := newTrackedBlock(3, []byte("blockHash1"), []byte("blockRootHash2"), []byte("blockPrevHash1"))
 
-	shouldRemoveBlock := trackedBlock1.sameNonce(trackedBlock2)
+	newProposedBlock := newTrackedBlock(2, []byte("blockHash1"), []byte("blockRootHash2"), []byte("blockPrevHash1"))
+
+	shouldRemoveBlock := trackedBlock1.hasSameNonceOrHigher(newProposedBlock)
 	require.True(t, shouldRemoveBlock)
+
+	shouldRemoveBlock = trackedBlock2.hasSameNonceOrHigher(newProposedBlock)
+	require.True(t, shouldRemoveBlock)
+
+	shouldRemoveBlock = trackedBlock0.hasSameNonceOrHigher(newProposedBlock)
+	require.False(t, shouldRemoveBlock)
 }
 
 func TestTrackedBlock_getBreadcrumb(t *testing.T) {
@@ -331,6 +340,68 @@ func TestTrackedBlock_compileBreadcrumbs(t *testing.T) {
 			require.True(t, ok)
 			requireEqualBreadcrumbs(t, expectedBreadcrumbs[key], block.breadcrumbsByAddress[key])
 		}
+	})
 
+	t.Run("sender becomes fee payer, fee payer becomes sender", func(t *testing.T) {
+		t.Parallel()
+
+		block := newTrackedBlock(0, []byte("blockHash1"), []byte("blockRootHash1"), []byte("blockPrevHash1"))
+
+		txs := []*WrappedTransaction{
+			{
+				Tx: &transaction.Transaction{
+					SndAddr: []byte("alice"),
+					Nonce:   1,
+				},
+				FeePayer:         []byte("bob"),
+				Fee:              big.NewInt(2),
+				TransferredValue: big.NewInt(5),
+			},
+			{
+				Tx: &transaction.Transaction{
+					SndAddr: []byte("bob"),
+					Nonce:   4,
+				},
+				FeePayer:         []byte("alice"),
+				Fee:              big.NewInt(3),
+				TransferredValue: big.NewInt(10),
+			},
+			{
+				Tx: &transaction.Transaction{
+					SndAddr: []byte("alice"),
+					Nonce:   2,
+				},
+				TransferredValue: big.NewInt(10),
+			},
+			{
+				Tx: &transaction.Transaction{
+					SndAddr: []byte("bob"),
+					Nonce:   5,
+				},
+				TransferredValue: big.NewInt(10),
+			},
+		}
+
+		err := block.compileBreadcrumbs(txs)
+		require.NoError(t, err)
+
+		aliceBreadcrumb := newAccountBreadcrumb(core.OptionalUint64{Value: 1, HasValue: true})
+		aliceBreadcrumb.accumulateConsumedBalance(big.NewInt(18))
+		aliceBreadcrumb.lastNonce = core.OptionalUint64{Value: 2, HasValue: true}
+
+		bobBreadcrumb := newAccountBreadcrumb(core.OptionalUint64{Value: 4, HasValue: true})
+		bobBreadcrumb.accumulateConsumedBalance(big.NewInt(22))
+		bobBreadcrumb.lastNonce = core.OptionalUint64{Value: 5, HasValue: true}
+
+		expectedBreadcrumbs := map[string]*accountBreadcrumb{
+			"alice": aliceBreadcrumb,
+			"bob":   bobBreadcrumb,
+		}
+
+		for key := range expectedBreadcrumbs {
+			_, ok := block.breadcrumbsByAddress[key]
+			require.True(t, ok)
+			requireEqualBreadcrumbs(t, expectedBreadcrumbs[key], block.breadcrumbsByAddress[key])
+		}
 	})
 }

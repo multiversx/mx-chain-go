@@ -315,6 +315,22 @@ const MetricNoncesPassedInCurrentEpoch = "erd_nonces_passed_in_current_epoch"
 // 100 meaning that the block has been received in the last moment of the round)
 const MetricReceivedProposedBlock = "erd_consensus_received_proposed_block"
 
+// MetricReceivedOrSentProposedBlock is the metric that specifies the delay in nanoseconds from the start of the current round until
+// the time the proposed block body has been sent or has reached the current node.
+const MetricReceivedOrSentProposedBlock = "erd_consensus_received_or_sent_proposed_block"
+
+// MetricReceivedProof is the metric that specifies the delay in nanoseconds between the time the proposed block has been sent
+// or has reached the current node until the proof was received.
+const MetricReceivedProof = "erd_consensus_received_proof"
+
+// MetricAvgReceivedOrSentProposedBlock is the metric that specifies the average delay in nanoseconds from the start of the round until
+// the time the proposed block has been sent or has reached the current node.
+const MetricAvgReceivedOrSentProposedBlock = "erd_consensus_average_received_or_sent_proposed_block"
+
+// MetricAvgReceivedProof is the metric that specifies the average delay in nanoseconds between the time the proposed block
+// has been sent or has reached the current node until proof was received.
+const MetricAvgReceivedProof = "erd_consensus_average_received_sent_proof"
+
 // MetricCreatedProposedBlock is the metric that specifies the percent of the block subround used for header and body
 // creation (0 meaning that the block was created in no-time and 100 meaning that the block creation used all the
 // subround spare duration)
@@ -775,6 +791,9 @@ const (
 
 	// MetricCryptoOpcodesV2EnableEpoch represents the epoch when crypto opcodes v2 feature is enabled
 	MetricCryptoOpcodesV2EnableEpoch = "erd_crypto_opcodes_v2_enable_epoch"
+
+	// MetricRelayedTransactionsV1V2DisableEpoch represents the epoch when relayed transactions v1 and v2 are disabled
+	MetricRelayedTransactionsV1V2DisableEpoch = "erd_relayed_transactions_v1_v2_disable_epoch"
 
 	// MetricEpochEnable represents the epoch when the max nodes change configuration is applied
 	MetricEpochEnable = "erd_epoch_enable"
@@ -1285,6 +1304,7 @@ const (
 	BarnardOpcodesFlag                                  core.EnableEpochFlag = "BarnardOpcodesFlag"
 	AutomaticActivationOfNodesDisableFlag               core.EnableEpochFlag = "AutomaticActivationOfNodesDisableFlag"
 	FixGetBalanceFlag                                   core.EnableEpochFlag = "FixGetBalanceFlag"
+	RelayedTransactionsV1V2DisableFlag                  core.EnableEpochFlag = "RelayedTransactionsV1V2DisableFlag"
 	// all new flags must be added to createAllFlagsMap method, as part of enableEpochsHandler allFlagsDefined
 )
 

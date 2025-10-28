@@ -103,7 +103,9 @@ func selectTransactionsFromBunches(
 			selectedTransactions = append(selectedTransactions, selectedTransaction)
 			err := virtualSession.accumulateConsumedBalance(selectedTransaction, senderRecord)
 			if err != nil {
-				// TODO brainstorm whether we should select / not select the transaction on this flow.
+				// This error is unlikely to occur, as it would have been raised earlier during the detectSkippableSender call.
+				// Even if it does occur, it doesn't imply that the transaction should not be selected.
+				// Therefore, we only log the error here.
 				log.Warn("TxCache.selectTransactionsFromBunches error when accumulating consumed balance",
 					"err", err,
 					"txHash", selectedTransaction.TxHash)
@@ -126,6 +128,8 @@ func selectTransactionsFromBunches(
 func detectSkippableSender(virtualSession *virtualSelectionSession, item *transactionsHeapItem, virtualRecord *virtualAccountRecord) bool {
 	nonce, err := virtualRecord.getInitialNonce()
 	if err != nil {
+		// Every virtual record is initialized with the session nonce, to avoid virtual records with no initial nonce.
+		// So this error should never appear.
 		log.Debug("detectSkippableSender", "err", err)
 		return true
 	}
@@ -146,6 +150,8 @@ func detectSkippableSender(virtualSession *virtualSelectionSession, item *transa
 func detectSkippableTransaction(virtualSession *virtualSelectionSession, item *transactionsHeapItem, virtualRecord *virtualAccountRecord) bool {
 	nonce, err := virtualRecord.getInitialNonce()
 	if err != nil {
+		// Every virtual record is initialized with the session nonce, to avoid virtual records with no initial nonce.
+		// So this error should never appear.
 		log.Debug("detectSkippableTransaction", "err", err)
 		return true
 	}

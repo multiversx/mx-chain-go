@@ -5,12 +5,14 @@ import (
 	"encoding/hex"
 	"encoding/json"
 	"encoding/pem"
+	"fmt"
 	"math/big"
 	"os"
 	"path"
 	"strconv"
 	"strings"
 
+	"github.com/multiversx/mx-chain-go/common"
 	"github.com/multiversx/mx-chain-go/common/factory"
 	"github.com/multiversx/mx-chain-go/config"
 	"github.com/multiversx/mx-chain-go/genesis/data"
@@ -133,6 +135,9 @@ func CreateChainSimulatorConfigs(args ArgsChainSimulatorConfigs) (*ArgsConfigsSi
 		return nil, err
 	}
 
+	// disable caching, as message deduplication will break the flow when blocks are generated very fast
+	configs.GeneralConfig.InterceptedDataVerifier.EnableCaching = false
+
 	updateConfigsChainParameters(args, configs)
 	node.ApplyArchCustomConfigs(configs)
 
@@ -140,6 +145,31 @@ func CreateChainSimulatorConfigs(args ArgsChainSimulatorConfigs) (*ArgsConfigsSi
 		args.AlterConfigsFunction(configs)
 		// this is needed to keep in sync Andromeda flag and the second entry from chain parameters
 		configs.GeneralConfig.GeneralSettings.ChainParametersByEpoch[1].EnableEpoch = configs.EpochConfig.EnableEpochs.AndromedaEnableEpoch
+	}
+
+	// update supernova round duration
+	configs.GeneralConfig.GeneralSettings.ChainParametersByEpoch[2].EnableEpoch = configs.EpochConfig.EnableEpochs.SupernovaEnableEpoch
+	configs.GeneralConfig.GeneralSettings.ChainParametersByEpoch[2].RoundDuration = args.RoundDurationInMillis / 10
+	isSupernovaFromGenesis := configs.EpochConfig.EnableEpochs.SupernovaEnableEpoch == 0
+	if isSupernovaFromGenesis {
+		// if supernova is from genesis, remove other ChainParametersByEpoch entries
+		configs.GeneralConfig.GeneralSettings.ChainParametersByEpoch = configs.GeneralConfig.GeneralSettings.ChainParametersByEpoch[2:]
+	}
+
+	if args.RoundsPerEpoch.HasValue {
+		// update supernova round for the new rounds per epoch config
+		supernovaEpoch := configs.EpochConfig.EnableEpochs.SupernovaEnableEpoch
+		newRoundsPerEpoch := args.RoundsPerEpoch.Value
+		newSupernovaRound := uint64(supernovaEpoch)*newRoundsPerEpoch + 5 // 5 rounds later
+		if isSupernovaFromGenesis {
+			// if supernova is from genesis, the round should be 0 as well
+			newSupernovaRound = 0
+		}
+		oldOptions := configs.RoundConfig.RoundActivations[string(common.SupernovaRoundFlag)].Options
+		configs.RoundConfig.RoundActivations[string(common.SupernovaRoundFlag)] = config.ActivationRoundByName{
+			Round:   fmt.Sprintf("%d", newSupernovaRound),
+			Options: oldOptions,
+		}
 	}
 
 	return &ArgsConfigsSimulator{
