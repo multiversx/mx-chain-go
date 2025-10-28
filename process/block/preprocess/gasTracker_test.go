@@ -6,6 +6,7 @@ import (
 	"math/big"
 	"testing"
 
+	"github.com/multiversx/mx-chain-core-go/core"
 	"github.com/multiversx/mx-chain-core-go/data"
 	"github.com/multiversx/mx-chain-core-go/data/transaction"
 	"github.com/multiversx/mx-chain-go/common"
@@ -98,10 +99,14 @@ func createDefaultGasTracker(
 	}
 
 	gt := &gasTracker{
-		shardCoordinator:    shardCoordinator,
-		economicsFee:        economicsFee,
-		gasHandler:          gasHandler,
-		enableEpochsHandler: &enableEpochsHandlerMock.EnableEpochsHandlerStub{},
+		shardCoordinator: shardCoordinator,
+		economicsFee:     economicsFee,
+		gasHandler:       gasHandler,
+		enableEpochsHandler: &enableEpochsHandlerMock.EnableEpochsHandlerStub{
+			IsFlagEnabledCalled: func(flag core.EnableEpochFlag) bool {
+				return afterSupernova
+			},
+		},
 		enableRoundsHandler: &testscommon.EnableRoundsHandlerStub{
 			IsFlagEnabledCalled: func(flag common.EnableRoundFlag) bool {
 				return afterSupernova
@@ -569,4 +574,56 @@ func Test_computeGasProvidedOK(t *testing.T) {
 	require.Equal(t, gcr.consumedSenderShard, gci.gasConsumedByMiniBlocksInSenderShard)
 	require.Equal(t, gcr.consumedReceiverShard, gci.gasConsumedByMiniBlockInReceiverShard)
 	require.Equal(t, gcr.consumedSenderShard, gci.totalGasConsumedInSelfShard)
+}
+
+func Test_getEpochAndOverestimationFactorForGasLimits(t *testing.T) {
+	t.Parallel()
+
+	var isSupernovaEpochEnabled bool
+	var isSupernovaRoundEnabled bool
+	providedCurrentEpoch := uint32(10)
+	providedOverestimationFactor := uint64(200)
+	gt := &gasTracker{
+		shardCoordinator: &testscommon.ShardsCoordinatorMock{},
+		economicsFee: &economicsmocks.EconomicsHandlerMock{
+			BlockCapacityOverestimationFactorCalled: func() uint64 {
+				return providedOverestimationFactor
+			},
+		},
+		gasHandler: &testscommon.GasHandlerStub{},
+		enableEpochsHandler: &enableEpochsHandlerMock.EnableEpochsHandlerStub{
+			IsFlagEnabledCalled: func(flag core.EnableEpochFlag) bool {
+				return isSupernovaEpochEnabled
+			},
+			GetCurrentEpochCalled: func() uint32 {
+				return providedCurrentEpoch
+			},
+		},
+		enableRoundsHandler: &testscommon.EnableRoundsHandlerStub{
+			IsFlagEnabledCalled: func(flag common.EnableRoundFlag) bool {
+				return isSupernovaRoundEnabled
+			},
+		},
+	}
+
+	// before supernova
+	isSupernovaEpochEnabled = false
+	isSupernovaRoundEnabled = false
+	epoch, overestimationFactor := gt.getEpochAndOverestimationFactorForGasLimits()
+	require.Equal(t, providedCurrentEpoch, epoch)
+	require.Equal(t, noOverestimationFactor, overestimationFactor)
+
+	// supernova epoch active
+	isSupernovaEpochEnabled = true
+	isSupernovaRoundEnabled = false
+	epoch, overestimationFactor = gt.getEpochAndOverestimationFactorForGasLimits()
+	require.Equal(t, providedCurrentEpoch-1, epoch)
+	require.Equal(t, noOverestimationFactor, overestimationFactor)
+
+	// supernova activation completed
+	isSupernovaEpochEnabled = true
+	isSupernovaRoundEnabled = true
+	epoch, overestimationFactor = gt.getEpochAndOverestimationFactorForGasLimits()
+	require.Equal(t, providedCurrentEpoch, epoch)
+	require.Equal(t, providedOverestimationFactor, overestimationFactor)
 }

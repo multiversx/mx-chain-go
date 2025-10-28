@@ -29,6 +29,14 @@ type gasConfig struct {
 	maxGasHigherFactorAccepted  uint64
 }
 
+type convertedGenericEconomicValues struct {
+	minGasPrice                       uint64
+	gasPerDataByte                    uint64
+	genesisTotalSupply                *big.Int
+	maxGasPriceSetGuardian            uint64
+	blockCapacityOverestimationFactor uint64
+}
+
 type gasConfigHandler struct {
 	statusHandler                     core.AppStatusHandler
 	gasLimitSettings                  []*gasConfig
@@ -51,7 +59,7 @@ func newGasConfigHandler(economics *config.EconomicsConfig) (*gasConfigHandler, 
 		return gasConfigSlice[i].gasLimitSettingEpoch < gasConfigSlice[j].gasLimitSettingEpoch
 	})
 
-	minGasPrice, gasPerDataByte, genesisTotalSupply, maxGasPriceSetGuardian, blockCapacityOverestimationFactor, err := convertGenericValues(economics)
+	result, err := convertGenericValues(economics)
 	if err != nil {
 		return nil, err
 	}
@@ -59,11 +67,11 @@ func newGasConfigHandler(economics *config.EconomicsConfig) (*gasConfigHandler, 
 	return &gasConfigHandler{
 		statusHandler:                     statusHandler.NewNilStatusHandler(),
 		gasLimitSettings:                  gasConfigSlice,
-		minGasPrice:                       minGasPrice,
-		gasPerDataByte:                    gasPerDataByte,
-		genesisTotalSupply:                genesisTotalSupply,
-		maxGasPriceSetGuardian:            maxGasPriceSetGuardian,
-		blockCapacityOverestimationFactor: blockCapacityOverestimationFactor,
+		minGasPrice:                       result.minGasPrice,
+		gasPerDataByte:                    result.gasPerDataByte,
+		genesisTotalSupply:                result.genesisTotalSupply,
+		maxGasPriceSetGuardian:            result.maxGasPriceSetGuardian,
+		blockCapacityOverestimationFactor: result.blockCapacityOverestimationFactor,
 	}, nil
 }
 
@@ -261,30 +269,37 @@ func checkAndParseGasLimitSettings(gasLimitSetting config.GasLimitSetting) (*gas
 	return gc, nil
 }
 
-func convertGenericValues(economics *config.EconomicsConfig) (uint64, uint64, *big.Int, uint64, uint64, error) {
+func convertGenericValues(economics *config.EconomicsConfig) (*convertedGenericEconomicValues, error) {
 	conversionBase := 10
 	bitConversionSize := 64
 
 	minGasPrice, err := strconv.ParseUint(economics.FeeSettings.MinGasPrice, conversionBase, bitConversionSize)
 	if err != nil {
-		return 0, 0, nil, 0, 0, process.ErrInvalidMinimumGasPrice
+		return nil, process.ErrInvalidMinimumGasPrice
 	}
 
 	gasPerDataByte, err := strconv.ParseUint(economics.FeeSettings.GasPerDataByte, conversionBase, bitConversionSize)
 	if err != nil {
-		return 0, 0, nil, 0, 0, process.ErrInvalidGasPerDataByte
+		return nil, process.ErrInvalidGasPerDataByte
 	}
 
 	genesisTotalSupply, ok := big.NewInt(0).SetString(economics.GlobalSettings.GenesisTotalSupply, conversionBase)
 	if !ok {
-		return 0, 0, nil, 0, 0, process.ErrInvalidGenesisTotalSupply
+		return nil, process.ErrInvalidGenesisTotalSupply
 	}
 
 	maxGasPriceSetGuardian, err := strconv.ParseUint(economics.FeeSettings.MaxGasPriceSetGuardian, conversionBase, bitConversionSize)
 	if err != nil {
-		return 0, 0, nil, 0, 0, process.ErrInvalidMaxGasPriceSetGuardian
+		return nil, process.ErrInvalidMaxGasPriceSetGuardian
 	}
 
 	blockCapacityOverestimationFactor := economics.FeeSettings.BlockCapacityOverestimationFactor
-	return minGasPrice, gasPerDataByte, genesisTotalSupply, maxGasPriceSetGuardian, blockCapacityOverestimationFactor, nil
+
+	return &convertedGenericEconomicValues{
+		minGasPrice:                       minGasPrice,
+		gasPerDataByte:                    gasPerDataByte,
+		genesisTotalSupply:                genesisTotalSupply,
+		maxGasPriceSetGuardian:            maxGasPriceSetGuardian,
+		blockCapacityOverestimationFactor: blockCapacityOverestimationFactor,
+	}, nil
 }

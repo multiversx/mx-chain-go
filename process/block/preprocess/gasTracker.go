@@ -34,22 +34,24 @@ func (gt *gasTracker) computeGasProvided(
 		return 0, err
 	}
 
+	epoch, overEstimationFactor := gt.getEpochAndOverestimationFactorForGasLimits()
+
 	gasProvidedByTxInSelfShard := uint64(0)
 	if gt.shardCoordinator.SelfId() == senderShardId {
 		gasProvidedByTxInSelfShard = gasProvidedByTxInSenderShard
 
-		if gasProvidedByTxInReceiverShard > gt.getMaxGasLimitPerTx() {
+		if gasProvidedByTxInReceiverShard > gt.getMaxGasLimitPerTx(epoch) {
 			return 0, process.ErrMaxGasLimitPerOneTxInReceiverShardIsReached
 		}
 
-		if gasInfo.gasConsumedByMiniBlockInReceiverShard+gasProvidedByTxInReceiverShard > gt.getMaxGasLimitPerBlockForSafeCrossShard() {
+		if gasInfo.gasConsumedByMiniBlockInReceiverShard+gasProvidedByTxInReceiverShard > gt.getMaxGasLimitPerBlockForSafeCrossShard(epoch, overEstimationFactor) {
 			return 0, process.ErrMaxGasLimitPerMiniBlockInReceiverShardIsReached
 		}
 	} else {
 		gasProvidedByTxInSelfShard = gasProvidedByTxInReceiverShard
 	}
 
-	if gasInfo.totalGasConsumedInSelfShard+gasProvidedByTxInSelfShard > gt.getMaxGasLimitPerBlock() {
+	if gasInfo.totalGasConsumedInSelfShard+gasProvidedByTxInSelfShard > gt.getMaxGasLimitPerBlock(epoch, overEstimationFactor) {
 		return 0, process.ErrMaxGasLimitPerBlockInSelfShardIsReached
 	}
 
@@ -63,30 +65,39 @@ func (gt *gasTracker) computeGasProvided(
 func (gt *gasTracker) getEpochAndOverestimationFactorForGasLimits() (epoch uint32, overestimationFactor uint64) {
 	epoch = gt.enableEpochsHandler.GetCurrentEpoch()
 	overestimationFactor = noOverestimationFactor
+
+	// TODO: optimize this to be called once per epoch, not once per tx
+	isSupernovaEpochEnabled := gt.enableEpochsHandler.IsFlagEnabled(common.SupernovaFlag)
+	if !isSupernovaEpochEnabled {
+		return
+	}
+
 	isSupernovaRoundEnabled := gt.enableRoundsHandler.IsFlagEnabled(common.SupernovaRoundFlag)
 	if !isSupernovaRoundEnabled {
+		// if Supernova epoch is active, but round not yet,
+		// use the limits from previous epoch with no overestimation factor
+		if epoch > 0 {
+			epoch = epoch - 1
+		}
+
 		return
 	}
 
 	// new limits and overestimation should be enabled once the Supernova round is active
-	epoch = epoch - 1
 	overestimationFactor = gt.economicsFee.BlockCapacityOverestimationFactor()
 
 	return
 }
 
-func (gt *gasTracker) getMaxGasLimitPerTx() uint64 {
-	epoch, _ := gt.getEpochAndOverestimationFactorForGasLimits()
+func (gt *gasTracker) getMaxGasLimitPerTx(epoch uint32) uint64 {
 	return gt.economicsFee.MaxGasLimitPerTxInEpoch(epoch)
 }
 
-func (gt *gasTracker) getMaxGasLimitPerBlockForSafeCrossShard() uint64 {
-	epoch, overEstimationFactor := gt.getEpochAndOverestimationFactorForGasLimits()
+func (gt *gasTracker) getMaxGasLimitPerBlockForSafeCrossShard(epoch uint32, overEstimationFactor uint64) uint64 {
 	return gt.economicsFee.MaxGasLimitPerBlockForSafeCrossShardInEpoch(epoch) * overEstimationFactor / 100
 }
 
-func (gt *gasTracker) getMaxGasLimitPerBlock() uint64 {
-	epoch, overEstimationFactor := gt.getEpochAndOverestimationFactorForGasLimits()
+func (gt *gasTracker) getMaxGasLimitPerBlock(epoch uint32, overEstimationFactor uint64) uint64 {
 	return gt.economicsFee.MaxGasLimitPerBlockInEpoch(gt.shardCoordinator.SelfId(), epoch) * overEstimationFactor / 100
 }
 
