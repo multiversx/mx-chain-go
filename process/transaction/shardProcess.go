@@ -15,6 +15,7 @@ import (
 	"github.com/multiversx/mx-chain-core-go/data/vm"
 	"github.com/multiversx/mx-chain-core-go/hashing"
 	"github.com/multiversx/mx-chain-core-go/marshal"
+
 	logger "github.com/multiversx/mx-chain-logger-go"
 	vmcommon "github.com/multiversx/mx-chain-vm-common-go"
 
@@ -129,6 +130,7 @@ func NewTxProcessor(args ArgsNewTxProcessor) (*txProcessor, error) {
 		common.RelayedTransactionsV2Flag,
 		common.RelayedNonceFixFlag,
 		common.FixRelayedBaseCostFlag,
+		common.RelayedTransactionsV1V2DisableFlag,
 	})
 	if err != nil {
 		return nil, err
@@ -195,6 +197,12 @@ func (txProc *txProcessor) ProcessTransaction(tx *transaction.Transaction) (vmco
 		txHash,
 		txProc.pubkeyConv,
 	)
+
+	// TODO refactor to set the tx hash for the following state accesses before the processing occurs
+	defer func() {
+		txProc.accounts.SetTxHashForLatestStateAccesses(txHash)
+		log.Trace("SetTxHashForLatestStateAccesses", "txHash", txHash)
+	}()
 
 	txType, dstShardTxType, isRelayedV3 := txProc.txTypeHandler.ComputeTransactionType(tx)
 	err = txProc.checkTxValues(tx, acntSnd, acntDst, false)

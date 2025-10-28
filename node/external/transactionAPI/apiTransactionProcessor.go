@@ -59,7 +59,13 @@ func NewAPITransactionProcessor(args *ArgAPITransactionProcessor) (*apiTransacti
 		return nil, err
 	}
 
-	txUnmarshalerAndPreparer := newTransactionUnmarshaller(args.Marshalizer, args.AddressPubKeyConverter, args.DataFieldParser, args.ShardCoordinator)
+	txUnmarshalerAndPreparer := newTransactionUnmarshaller(
+		args.Marshalizer,
+		args.AddressPubKeyConverter,
+		args.DataFieldParser,
+		args.ShardCoordinator,
+		args.EnableEpochsHandler,
+	)
 	txResultsProc := newAPITransactionResultProcessor(
 		args.AddressPubKeyConverter,
 		args.HistoryRepository,
@@ -187,7 +193,7 @@ func (atp *apiTransactionProcessor) PopulateComputedFields(tx *transaction.ApiTr
 }
 
 func (atp *apiTransactionProcessor) populateComputedFieldsProcessingType(tx *transaction.ApiTransactionResult) {
-	typeOnSource, typeOnDestination, _ := atp.txTypeHandler.ComputeTransactionType(tx.Tx)
+	typeOnSource, typeOnDestination, _ := atp.txTypeHandler.ComputeTransactionTypeInEpoch(tx.Tx, tx.Epoch)
 	tx.ProcessingTypeOnSource = typeOnSource.String()
 	tx.ProcessingTypeOnDestination = typeOnDestination.String()
 }
@@ -532,9 +538,8 @@ func (atp *apiTransactionProcessor) selectTransactions(accountsAdapter state.Acc
 		return nil, err
 	}
 
-	// TODO use the right information for blockchainInfo
-	blockchainInfo := holders.NewBlockchainInfo(nil, nil, 0)
-	selectedTxs, _, err := txCache.SelectTransactions(selectionSession, selectionOptions, blockchainInfo)
+	// TODO use the right information for nonce
+	selectedTxs, _, err := txCache.SimulateSelectTransactions(selectionSession, selectionOptions)
 	if err != nil {
 		log.Warn("apiTransactionProcessor.selectTransactions could not SelectTransactions")
 		return nil, err
@@ -568,14 +573,13 @@ func (atp *apiTransactionProcessor) getVirtualNonceWithBlockInfo(
 
 	// the SelectionSession is used in this flow for fallbacks (e.g. the account does not exist in the proposed blocks, unexpected errors etc.)
 
-	// TODO use the right information for blockchainInfo
-	// these blockchainInfo should contain the hash of the last committed block and the actual nonce
+	// TODO use the right information below
 	// these variables will also be used for the response
 	// NOTE: should not remain like this
 	var latestCommittedBlockHash []byte
 	var currentNonce uint64
-	blockchainInfo := holders.NewBlockchainInfo(nil, latestCommittedBlockHash, currentNonce)
-	virtualNonce, rootHash, err := txCache.GetVirtualNonceAndRootHash(address, blockchainInfo)
+
+	virtualNonce, rootHash, err := txCache.GetVirtualNonceAndRootHash(address)
 	if err != nil {
 		log.Warn("apiTransactionProcessor.getVirtualNonceWithBlockInfo could not get virtual nonce")
 		return 0, nil, err
@@ -727,7 +731,7 @@ func (atp *apiTransactionProcessor) lookupHistoricalTransaction(hash []byte, wit
 		txType = transaction.TxTypeInvalid
 	}
 
-	tx, err := atp.txUnmarshaller.unmarshalTransaction(txBytes, txType)
+	tx, err := atp.txUnmarshaller.unmarshalTransaction(txBytes, txType, miniblockMetadata.Epoch)
 	if err != nil {
 		log.Warn("lookupHistoricalTransaction(): unexpected condition, cannot unmarshal transaction")
 		return nil, fmt.Errorf("%s: %w", ErrCannotRetrieveTransaction.Error(), err)
@@ -787,7 +791,12 @@ func (atp *apiTransactionProcessor) getTransactionFromStorage(hash []byte) (*tra
 		return nil, ErrTransactionNotFound
 	}
 
-	tx, err := atp.txUnmarshaller.unmarshalTransaction(txBytes, txType)
+	// will use the current epoch here as it is unknown at this point
+	// considering that this epoch will be used for relayed v1/v2, this may lead
+	// to inconsistent responses for relayed v1/v2 that will be returned from storage
+	// that were executed before deactivation and the request is made after
+	currentEpoch := atp.enableEpochsHandler.GetCurrentEpoch()
+	tx, err := atp.txUnmarshaller.unmarshalTransaction(txBytes, txType, currentEpoch)
 	if err != nil {
 		return nil, err
 	}
@@ -946,8 +955,8 @@ func getTxValue(wrappedTx *txcache.WrappedTransaction) string {
 }
 
 // UnmarshalTransaction will try to unmarshal the transaction bytes based on the transaction type
-func (atp *apiTransactionProcessor) UnmarshalTransaction(txBytes []byte, txType transaction.TxType) (*transaction.ApiTransactionResult, error) {
-	tx, err := atp.txUnmarshaller.unmarshalTransaction(txBytes, txType)
+func (atp *apiTransactionProcessor) UnmarshalTransaction(txBytes []byte, txType transaction.TxType, epoch uint32) (*transaction.ApiTransactionResult, error) {
+	tx, err := atp.txUnmarshaller.unmarshalTransaction(txBytes, txType, epoch)
 	if err != nil {
 		return nil, err
 	}

@@ -47,6 +47,8 @@ type SubroundHandler interface {
 	StartTime() int64
 	// EndTime returns the top limit time, in the roundHandler time, of the current subround
 	EndTime() int64
+	// SetBaseDuration sets the base duration
+	SetBaseDuration(baseDuration time.Duration)
 	// Name returns the name of the current roundHandler
 	Name() string
 	// ConsensusChannel returns the consensus channel
