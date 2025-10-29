@@ -159,7 +159,7 @@ func TestLeafNode_commit(t *testing.T) {
 	hash, _ := encodeNodeAndGetHash(ln)
 	_ = ln.setHash()
 
-	err := ln.commitDirty(db, db, dtmc)
+	err := ln.commitDirty(db, db)
 	assert.Nil(t, err)
 
 	encNode, _ := db.Get(hash)
@@ -174,7 +174,7 @@ func TestLeafNode_commitEmptyNode(t *testing.T) {
 
 	ln := &leafNode{}
 
-	err := ln.commitDirty(nil, nil, nil)
+	err := ln.commitDirty(nil, nil)
 	assert.True(t, errors.Is(err, ErrEmptyLeafNode))
 }
 
@@ -183,7 +183,7 @@ func TestLeafNode_commitNilNode(t *testing.T) {
 
 	var ln *leafNode
 
-	err := ln.commitDirty(nil, nil, nil)
+	err := ln.commitDirty(nil, nil)
 	assert.True(t, errors.Is(err, ErrNilLeafNode))
 }
 
@@ -367,7 +367,7 @@ func TestLeafNode_insertInStoredLnAtSameKey(t *testing.T) {
 
 	db := testscommon.NewMemDbMock()
 	ln := getLn(getTestMarshalizerAndHasher())
-	_ = ln.commitDirty(db, db, dtmc)
+	_ = ln.commitDirty(db, db)
 	lnHash := ln.getHash()
 
 	tmc := trieMetricsCollector.NewTrieMetricsCollector()
@@ -384,7 +384,7 @@ func TestLeafNode_insertInStoredLnAtDifferentKey(t *testing.T) {
 	db := testscommon.NewMemDbMock()
 	marsh, hasher := getTestMarshalizerAndHasher()
 	ln, _ := newLeafNode(getTrieDataWithDefaultVersion(string([]byte{1, 2, 3}), "dog"), marsh, hasher)
-	_ = ln.commitDirty(db, db, dtmc)
+	_ = ln.commitDirty(db, db)
 	lnHash := ln.getHash()
 
 	tmc := trieMetricsCollector.NewTrieMetricsCollector()
@@ -448,7 +448,7 @@ func TestLeafNode_deleteFromStoredLnAtSameKey(t *testing.T) {
 
 	db := testscommon.NewMemDbMock()
 	ln := getLn(getTestMarshalizerAndHasher())
-	_ = ln.commitDirty(db, db, dtmc)
+	_ = ln.commitDirty(db, db)
 	lnHash := ln.getHash()
 
 	dirty, _, oldHashes, err := ln.delete([]byte("dog"), dtmc, db)
@@ -462,7 +462,7 @@ func TestLeafNode_deleteFromLnAtDifferentKey(t *testing.T) {
 
 	db := testscommon.NewMemDbMock()
 	ln := getLn(getTestMarshalizerAndHasher())
-	_ = ln.commitDirty(db, db, nil)
+	_ = ln.commitDirty(db, db)
 	wrongKey := []byte{1, 2, 3}
 
 	tmc := trieMetricsCollector.NewTrieMetricsCollector()
@@ -828,6 +828,7 @@ func TestLeafNode_shouldCollapse(t *testing.T) {
 	t.Parallel()
 
 	ln := getLn(getTestMarshalizerAndHasher())
+	ln.setDirty(false)
 	shouldCollapse := ln.shouldCollapseChild([]byte("doge"), nil)
 	assert.False(t, shouldCollapse)
 	shouldCollapse = ln.shouldCollapseChild([]byte("dog"), nil)

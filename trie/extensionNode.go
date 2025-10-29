@@ -173,7 +173,7 @@ func (en *extensionNode) hashNode() ([]byte, error) {
 	return encodeNodeAndGetHash(en)
 }
 
-func (en *extensionNode) commitDirty(originDb common.TrieStorageInteractor, targetDb common.BaseStorer, tmc MetricsCollector) error {
+func (en *extensionNode) commitDirty(originDb common.TrieStorageInteractor, targetDb common.BaseStorer) error {
 	err := en.isEmptyOrNil()
 	if err != nil {
 		return fmt.Errorf("commit error %w", err)
@@ -184,7 +184,7 @@ func (en *extensionNode) commitDirty(originDb common.TrieStorageInteractor, targ
 	}
 
 	if en.child != nil {
-		err = en.child.commitDirty(originDb, targetDb, tmc)
+		err = en.child.commitDirty(originDb, targetDb)
 		if err != nil {
 			return err
 		}

@@ -248,7 +248,7 @@ func TestExtensionNode_commit(t *testing.T) {
 	hash, _ := encodeNodeAndGetHash(collapsedEn)
 	_ = en.setHash()
 
-	err := en.commitDirty(db, db, dtmc)
+	err := en.commitDirty(db, db)
 	assert.Nil(t, err)
 
 	encNode, _ := db.Get(hash)
@@ -264,7 +264,7 @@ func TestExtensionNode_commitEmptyNode(t *testing.T) {
 
 	en := &extensionNode{}
 
-	err := en.commitDirty(nil, nil, nil)
+	err := en.commitDirty(nil, nil)
 	assert.True(t, errors.Is(err, ErrEmptyExtensionNode))
 }
 
@@ -273,7 +273,7 @@ func TestExtensionNode_commitNilNode(t *testing.T) {
 
 	var en *extensionNode
 
-	err := en.commitDirty(nil, nil, nil)
+	err := en.commitDirty(nil, nil)
 	assert.True(t, errors.Is(err, ErrNilExtensionNode))
 }
 
@@ -286,7 +286,7 @@ func TestExtensionNode_commitCollapsedNode(t *testing.T) {
 	_ = collapsedEn.setHash()
 
 	collapsedEn.dirty = true
-	err := collapsedEn.commitDirty(db, db, dtmc)
+	err := collapsedEn.commitDirty(db, db)
 	assert.Nil(t, err)
 
 	encNode, _ := db.Get(hash)
@@ -336,7 +336,7 @@ func TestExtensionNode_resolveCollapsed(t *testing.T) {
 	db := testscommon.NewMemDbMock()
 	en, collapsedEn := getEnAndCollapsedEn()
 	_ = en.setHash()
-	_ = en.commitDirty(db, db, dtmc)
+	_ = en.commitDirty(db, db)
 	_, resolved := getBnAndCollapsedBn(en.marsh, en.hasher)
 	expectedSize := resolved.sizeInBytes()
 
@@ -431,7 +431,7 @@ func TestExtensionNode_tryGetCollapsedNode(t *testing.T) {
 	db := testscommon.NewMemDbMock()
 	en, collapsedEn := getEnAndCollapsedEn()
 	_ = en.setHash()
-	_ = en.commitDirty(db, db, dtmc)
+	_ = en.commitDirty(db, db)
 
 	enKey := []byte{100}
 	bnKey := []byte{2}
@@ -535,7 +535,7 @@ func TestExtensionNode_insertCollapsedNode(t *testing.T) {
 	newData := getTrieDataWithDefaultVersion(string(key), "dogs")
 
 	_ = en.setHash()
-	_ = en.commitDirty(db, db, dtmc)
+	_ = en.commitDirty(db, db)
 
 	tmc := trieMetricsCollector.NewTrieMetricsCollector()
 	newNode, _, err := collapsedEn.insert(newData, tmc, db)
@@ -688,7 +688,7 @@ func TestExtensionNode_deleteFromStoredEn(t *testing.T) {
 	lnPathKey := key
 
 	dtmc := dtmc
-	_ = en.commitDirty(db, db, dtmc)
+	_ = en.commitDirty(db, db)
 	bn, key, _ := en.getNext(key, dtmc, db)
 	ln, _, _ := bn.getNext(key, dtmc, db)
 	expectedHashes := [][]byte{ln.getHash(), bn.getHash(), en.getHash()}
@@ -750,7 +750,7 @@ func TestExtensionNode_deleteCollapsedNode(t *testing.T) {
 	db := testscommon.NewMemDbMock()
 	en, collapsedEn := getEnAndCollapsedEn()
 	_ = en.setHash()
-	_ = en.commitDirty(db, db, dtmc)
+	_ = en.commitDirty(db, db)
 
 	enKey := []byte{100}
 	bnKey := []byte{2}
@@ -838,7 +838,7 @@ func TestExtensionNode_getChildrenCollapsedEn(t *testing.T) {
 
 	db := testscommon.NewMemDbMock()
 	en, collapsedEn := getEnAndCollapsedEn()
-	_ = en.commitDirty(db, db, dtmc)
+	_ = en.commitDirty(db, db)
 
 	children, err := collapsedEn.getChildren(dtmc, db)
 	assert.Nil(t, err)
@@ -954,8 +954,7 @@ func TestExtensionNode_printShouldNotPanicEvenIfNodeIsCollapsed(t *testing.T) {
 
 	db := testscommon.NewMemDbMock()
 	en, collapsedEn := getEnAndCollapsedEn()
-	dtmc := dtmc
-	_ = en.commitDirty(db, db, dtmc)
+	_ = en.commitDirty(db, db)
 	_ = collapsedEn.commitSnapshot(db, nil, nil, context.Background(), statistics.NewTrieStatistics(), &testscommon.ProcessStatusHandlerStub{}, dtmc)
 
 	en.print(enWriter, 0, dtmc, db)
@@ -1188,12 +1187,13 @@ func TestExtensionNode_shouldCollapseChild(t *testing.T) {
 		t.Parallel()
 
 		en, _ := getEnAndCollapsedEn()
+		en.child.(*branchNode).children[2].setDirty(false)
 		bn, _ := getBnAndCollapsedBn(en.marsh, en.hasher)
 		tmc := trieMetricsCollector.NewTrieMetricsCollector()
 		leafKey := append(en.Key, byte(2))
 		leafKey = append(leafKey, []byte("dog")...)
 		shouldCollapse := en.shouldCollapseChild(leafKey, tmc)
 		assert.False(t, shouldCollapse)
-		assert.Equal(t, -bn.children[2].sizeInBytes()-pointerSizeInBytes, tmc.GetSizeLoadedInMem())
+		assert.Equal(t, -bn.children[2].sizeInBytes(), tmc.GetSizeLoadedInMem())
 	})
 }

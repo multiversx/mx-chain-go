@@ -48,7 +48,7 @@ type node interface {
 	collectLeavesForMigration(migrationArgs vmcommon.ArgsMigrateDataTrieLeaves, tmc MetricsCollector, db common.TrieStorageInteractor, keyBuilder common.KeyBuilder) (bool, error)
 	shouldCollapseChild([]byte, MetricsCollector) bool
 
-	commitDirty(originDb common.TrieStorageInteractor, targetDb common.BaseStorer, tmc MetricsCollector) error
+	commitDirty(originDb common.TrieStorageInteractor, targetDb common.BaseStorer) error
 	commitSnapshot(originDb common.TrieStorageInteractor, leavesChan chan core.KeyValueHolder, missingNodesChan chan []byte, ctx context.Context, stats common.TrieStatisticsHandler, idleProvider IdleNodeProvider, tmc MetricsCollector) error
 
 	getMarshalizer() marshal.Marshalizer

@@ -166,7 +166,7 @@ func TestNode_getNodeFromDBAndDecodeBranchNode(t *testing.T) {
 
 	db := testscommon.NewMemDbMock()
 	bn, collapsedBn := getBnAndCollapsedBn(getTestMarshalizerAndHasher())
-	_ = bn.commitDirty(db, db, dtmc)
+	_ = bn.commitDirty(db, db)
 
 	encNode, _ := bn.marsh.Marshal(collapsedBn)
 	encNode = append(encNode, branch)
@@ -185,7 +185,7 @@ func TestNode_getNodeFromDBAndDecodeExtensionNode(t *testing.T) {
 
 	db := testscommon.NewMemDbMock()
 	en, collapsedEn := getEnAndCollapsedEn()
-	_ = en.commitDirty(db, db, dtmc)
+	_ = en.commitDirty(db, db)
 
 	encNode, _ := en.marsh.Marshal(collapsedEn)
 	encNode = append(encNode, extension)
@@ -204,7 +204,7 @@ func TestNode_getNodeFromDBAndDecodeLeafNode(t *testing.T) {
 
 	db := testscommon.NewMemDbMock()
 	ln := getLn(getTestMarshalizerAndHasher())
-	_ = ln.commitDirty(db, db, dtmc)
+	_ = ln.commitDirty(db, db)
 
 	encNode, _ := ln.marsh.Marshal(ln)
 	encNode = append(encNode, leaf)
@@ -224,7 +224,7 @@ func TestNode_resolveIfCollapsedBranchNode(t *testing.T) {
 	db := testscommon.NewMemDbMock()
 	bn, collapsedBn := getBnAndCollapsedBn(getTestMarshalizerAndHasher())
 	childPos := byte(2)
-	_ = bn.commitDirty(db, db, dtmc)
+	_ = bn.commitDirty(db, db)
 
 	tmc := trieMetricsCollector.NewTrieMetricsCollector()
 	err := resolveIfCollapsed(collapsedBn, childPos, tmc, db)
@@ -238,7 +238,7 @@ func TestNode_resolveIfCollapsedExtensionNode(t *testing.T) {
 
 	db := testscommon.NewMemDbMock()
 	en, collapsedEn := getEnAndCollapsedEn()
-	_ = en.commitDirty(db, db, dtmc)
+	_ = en.commitDirty(db, db)
 
 	tmc := trieMetricsCollector.NewTrieMetricsCollector()
 	err := resolveIfCollapsed(collapsedEn, 0, tmc, db)
@@ -252,7 +252,7 @@ func TestNode_resolveIfCollapsedLeafNode(t *testing.T) {
 
 	db := testscommon.NewMemDbMock()
 	ln := getLn(getTestMarshalizerAndHasher())
-	_ = ln.commitDirty(db, db, dtmc)
+	_ = ln.commitDirty(db, db)
 
 	tmc := trieMetricsCollector.NewTrieMetricsCollector()
 	err := resolveIfCollapsed(ln, 0, tmc, db)

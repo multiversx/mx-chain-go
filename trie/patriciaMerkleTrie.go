@@ -6,7 +6,6 @@ import (
 	"encoding/hex"
 	"fmt"
 	"sync"
-	"sync/atomic"
 
 	"github.com/multiversx/mx-chain-core-go/core"
 	"github.com/multiversx/mx-chain-core-go/core/check"
@@ -33,8 +32,6 @@ const (
 	branch
 )
 
-const maxNumGoroutinesForCollapsing = 10
-
 type patriciaMerkleTrie struct {
 	root node
 
@@ -46,11 +43,9 @@ type patriciaMerkleTrie struct {
 	mutOperation            sync.RWMutex
 	collapseManager         common.TrieCollapseManager
 
-	oldHashes     [][]byte
-	oldRoot       []byte
-	chanClose     chan struct{}
-	ctx           context.Context
-	numGoroutines atomic.Int32
+	oldHashes [][]byte
+	oldRoot   []byte
+	chanClose chan struct{}
 }
 
 // NewTrie creates a new Patricia Merkle Trie
@@ -92,8 +87,6 @@ func NewTrie(
 		enableEpochsHandler:     enableEpochsHandler,
 		trieNodeVersionVerifier: tnvv,
 		collapseManager:         collapseManager,
-		ctx:                     context.Background(),
-		numGoroutines:           atomic.Int32{},
 	}, nil
 }
 
@@ -267,13 +260,12 @@ func (tr *patriciaMerkleTrie) Commit() error {
 		log.Trace("started committing trie", "trie", tr.root.getHash())
 	}
 
-	tmc := trieMetricsCollector.NewTrieMetricsCollector()
-	err = tr.root.commitDirty(tr.trieStorage, tr.trieStorage, tmc)
+	err = tr.root.commitDirty(tr.trieStorage, tr.trieStorage)
 	if err != nil {
 		return err
 	}
 
-	if tr.collapseManager.ShouldCollapseTrie() && tr.numGoroutines.Load() > maxNumGoroutinesForCollapsing {
+	if tr.collapseManager.ShouldCollapseTrie() {
 		return tr.collapseTrie()
 	}
 
@@ -282,13 +274,11 @@ func (tr *patriciaMerkleTrie) Commit() error {
 		return err
 	}
 
-	tr.numGoroutines.Add(1)
-	go tr.collapseLeaves(collapsibleLeaves, tr.ctx)
+	tr.collapseLeaves(collapsibleLeaves)
 	return nil
 }
 
 func (tr *patriciaMerkleTrie) collapseTrie() error {
-	tr.ctx.Done()
 	collapsedRoot, err := tr.root.getCollapsed()
 	if err != nil {
 		return err
@@ -297,38 +287,23 @@ func (tr *patriciaMerkleTrie) collapseTrie() error {
 	tr.root = collapsedRoot
 	tr.collapseManager = tr.collapseManager.CloneWithoutState()
 	tr.collapseManager.AddSizeInMemory(tr.root.sizeInBytes())
-	tr.ctx = context.Background()
 	log.Info("trie collapsed", "root", tr.root.getHash())
 	return nil
 }
 
-func (tr *patriciaMerkleTrie) collapseLeaves(collapsibleLeaves [][]byte, ctx context.Context) {
-	defer tr.numGoroutines.Add(-1)
-
+func (tr *patriciaMerkleTrie) collapseLeaves(collapsibleLeaves [][]byte) {
 	if len(collapsibleLeaves) == 0 {
 		return
 	}
 
 	for _, hexKey := range collapsibleLeaves {
-		select {
-		case <-ctx.Done():
+		tmc := trieMetricsCollector.NewTrieMetricsCollector()
+		if check.IfNil(tr.root) {
 			return
-		default:
-			tr.collapseLeaf(hexKey)
 		}
+		_ = tr.root.shouldCollapseChild(hexKey, tmc)
+		tr.collapseManager.AddSizeInMemory(tmc.GetSizeLoadedInMem())
 	}
-}
-
-func (tr *patriciaMerkleTrie) collapseLeaf(hexKey []byte) {
-	tr.mutOperation.Lock()
-	defer tr.mutOperation.Unlock()
-
-	tmc := trieMetricsCollector.NewTrieMetricsCollector()
-	if check.IfNil(tr.root) {
-		return
-	}
-	_ = tr.root.shouldCollapseChild(hexKey, tmc)
-	tr.collapseManager.AddSizeInMemory(-tmc.GetSizeLoadedInMem())
 }
 
 // Recreate returns a new trie, given the options

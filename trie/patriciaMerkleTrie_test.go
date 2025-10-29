@@ -1600,6 +1600,67 @@ func TestPatriciaMerkleTree_SizeInMemory(t *testing.T) {
 	assert.Equal(t, 464, tr.SizeInMemory())
 }
 
+func TestPatriciaMerkleTree_CollapseTrie(t *testing.T) {
+	t.Parallel()
+
+	t.Run("collapse leaves when size threshold reached", func(t *testing.T) {
+		t.Parallel()
+
+		db, msh, hsh, epochs, _ := getDefaultTrieParameters()
+		oneMbSize := uint64(1048576)
+		cm, _ := collapseManager.NewCollapseManager(oneMbSize)
+		tr, _ := trie.NewTrie(db, msh, hsh, epochs, cm)
+
+		for uint64(tr.SizeInMemory()) < oneMbSize {
+			randomKey := make([]byte, 32)
+			_, _ = cryptoRand.Read(randomKey)
+			_ = tr.Update(randomKey, randomKey)
+		}
+
+		sizeBeforeCollapse := tr.SizeInMemory()
+		numCollapsed, err := tr.GetNumCollapsedNodes()
+		assert.Nil(t, err)
+		assert.Equal(t, 0, numCollapsed)
+		err = tr.Commit()
+		assert.Nil(t, err)
+		sizeAfterCollapse := tr.SizeInMemory()
+		assert.Less(t, sizeAfterCollapse, sizeBeforeCollapse)
+		assert.Less(t, sizeAfterCollapse, int(oneMbSize))
+		numCollapsed, err = tr.GetNumCollapsedNodes()
+		assert.Nil(t, err)
+		assert.Equal(t, 100, numCollapsed)
+	})
+	//t.Run("multiple collapse leaves in progress triggers collapse trie", func(t *testing.T) {
+	//	t.Parallel()
+	//	db, msh, hsh, epochs, _ := getDefaultTrieParameters()
+	//	oneMbSize := uint64(1048576)
+	//	cm, _ := collapseManager.NewCollapseManager(oneMbSize)
+	//	tr, _ := trie.NewTrie(db, msh, hsh, epochs, cm)
+	//
+	//	for uint64(tr.SizeInMemory()) < oneMbSize {
+	//		randomKey := make([]byte, 32)
+	//		_, _ = cryptoRand.Read(randomKey)
+	//		_ = tr.Update(randomKey, randomKey)
+	//	}
+	//
+	//	numCollapsed, err := tr.GetNumCollapsedNodes()
+	//	assert.Nil(t, err)
+	//	assert.Equal(t, 0, numCollapsed)
+	//	err = tr.Commit()
+	//	assert.Nil(t, err)
+	//
+	//	// if no goroutines are working, the test is invalid
+	//	if tr.GetNumGoRoutinesWorking() == 0 {
+	//		return
+	//
+	//	}
+	//	err = tr.CollapseTrie()
+	//	assert.Nil(t, err)
+	//
+	//
+	//})
+}
+
 func BenchmarkPatriciaMerkleTree_Insert(b *testing.B) {
 	tr := emptyTrie()
 	hsh := keccak.NewKeccak()

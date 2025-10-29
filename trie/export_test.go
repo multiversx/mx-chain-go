@@ -111,3 +111,35 @@ func GetDefaultTrieStorageManagerParameters() NewTrieStorageManagerArgs {
 		StatsCollector: statistics.NewStateStatistics(),
 	}
 }
+
+// GetNumCollapsedNodes returns the number of collapsed nodes in the trie
+func (tr *patriciaMerkleTrie) GetNumCollapsedNodes() (int, error) {
+	count := 0
+
+	nextNodes := make([]node, 0)
+	nextNodes = append(nextNodes, tr.root)
+	for len(nextNodes) > 0 {
+		currentNode := nextNodes[0]
+		switch current := currentNode.(type) {
+		case *branchNode:
+			for i := range current.children {
+				if current.children[i] != nil {
+					nextNodes = append(nextNodes, current.children[i])
+				}
+				if current.children[i] == nil && len(current.EncodedChildren[i]) != 0 {
+					count++
+				}
+			}
+		case *extensionNode:
+			if current.child != nil {
+				nextNodes = append(nextNodes, current.child)
+			}
+		case *leafNode:
+			// do nothing
+		default:
+			return 0, ErrInvalidNode
+		}
+		nextNodes = nextNodes[1:]
+	}
+	return count, nil
+}
