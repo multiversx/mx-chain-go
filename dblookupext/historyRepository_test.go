@@ -871,6 +871,7 @@ func TestRecordHeaderV3(t *testing.T) {
 		args := createMockHistoryRepoArgs(42)
 		args.DataPool = dataRetrieverMock.NewPoolsHolderMock()
 		repo, err := NewHistoryRepository(args)
+		require.Nil(t, err)
 
 		executionResultHeaderHash := []byte("executionResultHeaderHash")
 		header := &block.HeaderV3{
@@ -896,6 +897,7 @@ func TestRecordHeaderV3(t *testing.T) {
 		args := createMockHistoryRepoArgs(42)
 		args.DataPool = dataRetrieverMock.NewPoolsHolderMock()
 		repo, err := NewHistoryRepository(args)
+		require.Nil(t, err)
 
 		executionResultHeaderHash := []byte("executionResultHeaderHash")
 		header := &block.HeaderV3{
@@ -925,6 +927,7 @@ func TestRecordHeaderV3(t *testing.T) {
 		args := createMockHistoryRepoArgs(42)
 		args.DataPool = dataRetrieverMock.NewPoolsHolderMock()
 		repo, err := NewHistoryRepository(args)
+		require.Nil(t, err)
 
 		executionResultHeaderHash := []byte("executionResultHeaderHash")
 		header := &block.HeaderV3{
@@ -969,6 +972,7 @@ func TestRecordHeaderV3(t *testing.T) {
 		args := createMockHistoryRepoArgs(42)
 		args.DataPool = dataRetrieverMock.NewPoolsHolderMock()
 		repo, err := NewHistoryRepository(args)
+		require.Nil(t, err)
 
 		executionResultHeaderHash := []byte("executionResultHeaderHash")
 		mb := &block.MiniBlock{SenderShardID: 0}
@@ -1025,6 +1029,7 @@ func TestRecordHeaderV3(t *testing.T) {
 
 		args.DataPool = dataRetrieverMock.NewPoolsHolderMock()
 		repo, err := NewHistoryRepository(args)
+		require.Nil(t, err)
 
 		header := &block.HeaderV3{}
 		body := &block.Body{}
