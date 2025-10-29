@@ -494,11 +494,23 @@ func (mp *metaProcessor) getAllMiniBlockDstMeFromShards(metaHdr *block.MetaBlock
 			return nil, fmt.Errorf("%w : for shard info with hash = %s",
 				process.ErrHigherRoundInBlock, hex.EncodeToString(shardInfo.HeaderHash))
 		}
-		if shardHeader.GetRound() <= lastCrossNotarizedHeader.GetRound() {
+
+		isGenesisNotarization := metaHdr.GetNonce() == 1
+
+		if isGenesisNotarization && shardHeader.GetRound() != 0 {
 			return nil, fmt.Errorf("%w : for shard info with hash = %s",
 				process.ErrLowerRoundInBlock, hex.EncodeToString(shardInfo.HeaderHash))
 		}
-		if shardHeader.GetNonce() <= lastCrossNotarizedHeader.GetNonce() {
+		if isGenesisNotarization && shardHeader.GetNonce() != 0 {
+			return nil, fmt.Errorf("%w : for shard info with hash = %s",
+				process.ErrLowerNonceInBlock, hex.EncodeToString(shardInfo.HeaderHash))
+		}
+
+		if !isGenesisNotarization && shardHeader.GetRound() <= lastCrossNotarizedHeader.GetRound() {
+			return nil, fmt.Errorf("%w : for shard info with hash = %s",
+				process.ErrLowerRoundInBlock, hex.EncodeToString(shardInfo.HeaderHash))
+		}
+		if !isGenesisNotarization && shardHeader.GetNonce() <= lastCrossNotarizedHeader.GetNonce() {
 			return nil, fmt.Errorf("%w : for shard info with hash = %s",
 				process.ErrLowerNonceInBlock, hex.EncodeToString(shardInfo.HeaderHash))
 		}
