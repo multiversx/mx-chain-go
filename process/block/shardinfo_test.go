@@ -202,7 +202,6 @@ func TestShardInfoCreateData_CreateShardInfoV3(t *testing.T) {
 	t.Run("should work", func(t *testing.T) {
 		t.Parallel()
 
-		expectedNonce := uint64(12345)
 		args := createDefaultShardInfoCreateDataArgs()
 		args.pendingMiniBlocksHandler.GetPendingMiniBlocksCalled = func(shardID uint32) [][]byte {
 			return [][]byte{[]byte("hash1"), []byte("hash2")}
@@ -216,9 +215,7 @@ func TestShardInfoCreateData_CreateShardInfoV3(t *testing.T) {
 		args.proofsPool.HasProofCalled = func(shardID uint32, headerHash []byte) bool {
 			return true
 		}
-		args.blockTracker.GetLastSelfNotarizedHeaderCalled = func(shardID uint32) (data.HeaderHandler, []byte, error) {
-			return &block.Header{Nonce: expectedNonce}, []byte("selfNotarizedHash"), nil
-		}
+
 		sic, err := NewShardInfoCreateData(
 			args.enableEpochsHandler,
 			pool.Headers(),
@@ -501,17 +498,11 @@ func TestShardInfoCreateData_createShardInfoFromHeader(t *testing.T) {
 	t.Run("should work with V3", func(t *testing.T) {
 		t.Parallel()
 		header := getHeaderV3ForShard(uint32(1), []byte("header hash for shard 1"))
-		expectedNonce := uint64(12345)
 		args := createDefaultShardInfoCreateDataArgs()
 		args.headersPool.GetHeaderByHashCalled = func(hash []byte) (data.HeaderHandler, error) {
 			return header, nil
 		}
-		args.pendingMiniBlocksHandler.GetPendingMiniBlocksCalled = func(shardID uint32) [][]byte {
-			return [][]byte{[]byte("hash1"), []byte("hash2")}
-		}
-		args.blockTracker.GetLastSelfNotarizedHeaderCalled = func(shardID uint32) (data.HeaderHandler, []byte, error) {
-			return &block.Header{Nonce: expectedNonce}, []byte("selfNotarizedHash"), nil
-		}
+
 		args.pendingMiniBlocksHandler.GetPendingMiniBlocksCalled = func(shardID uint32) [][]byte {
 			return [][]byte{[]byte("hash1"), []byte("hash2")}
 		}
@@ -545,12 +536,6 @@ func TestShardInfoCreateData_createShardInfoFromHeader(t *testing.T) {
 		args := createDefaultShardInfoCreateDataArgs()
 		args.headersPool.GetHeaderByHashCalled = func(hash []byte) (data.HeaderHandler, error) {
 			return header, nil
-		}
-		args.pendingMiniBlocksHandler.GetPendingMiniBlocksCalled = func(shardID uint32) [][]byte {
-			return [][]byte{[]byte("hash1"), []byte("hash2")}
-		}
-		args.blockTracker.GetLastSelfNotarizedHeaderCalled = func(shardID uint32) (data.HeaderHandler, []byte, error) {
-			return &block.Header{Nonce: expectedNonce}, []byte("selfNotarizedHash"), nil
 		}
 		args.pendingMiniBlocksHandler.GetPendingMiniBlocksCalled = func(shardID uint32) [][]byte {
 			return [][]byte{[]byte("hash1"), []byte("hash2")}
@@ -933,8 +918,6 @@ func TestShardInfoCreateData_miniBlockHeaderFromMiniBlockHeader(t *testing.T) {
 			return flag == common.ScheduledMiniBlocksFlag
 		}
 		for i := 0; i < len(headerHandler.GetMiniBlockHeaderHandlers()); i++ {
-			fmt.Printf("MiniBlockHeader %d: %v\n", i, headerHandler.GetMiniBlockHeaderHandlers()[i])
-			_ = headerHandler.GetMiniBlockHeaderHandlers()[i].SetConstructionState(int32(block.Proposed))
 			require.False(t, headerHandler.GetMiniBlockHeaderHandlers()[i].IsFinal())
 		}
 
