@@ -949,6 +949,24 @@ func (mp *metaProcessor) createMiniBlocks(
 		)
 	}
 
+	rootHash := mp.blockChain.GetCurrentBlockRootHash()
+	if len(rootHash) == 0 {
+		genesisBlock := mp.blockChain.GetGenesisHeader()
+		rootHash = genesisBlock.GetRootHash()
+	}
+
+	accountsProposalRootHash, err := mp.accountsProposal.RootHash()
+	log.Debug("shardProcessor.createMiniBlocks recreating the trie if needed", "accountsProposal rootHash", accountsProposalRootHash)
+
+	rh := holders.NewDefaultRootHashesHolder(rootHash)
+	err = mp.accountsProposal.RecreateTrieIfNeeded(rh)
+	if err != nil {
+		return nil, err
+	}
+
+	accountsProposalRootHash, err = mp.accountsProposal.RootHash()
+	log.Debug("shardProcessor.createMiniBlocks updated rootHash", "accountsProposal rootHash", accountsProposalRootHash)
+
 	mbsFromMe := mp.txCoordinator.CreateMbsAndProcessTransactionsFromMe(haveTime, randomness)
 	if len(mbsFromMe) > 0 {
 		miniBlocks = append(miniBlocks, mbsFromMe...)
@@ -1270,6 +1288,11 @@ func (mp *metaProcessor) CommitBlock(
 	}
 
 	mp.blockChain.SetCurrentBlockHeaderHash(headerHash)
+
+	err = mp.dataPool.Transactions().OnExecutedBlock(headerHandler, committedRootHash)
+	if err != nil {
+		return err
+	}
 
 	if !check.IfNil(finalMetaBlock) && finalMetaBlock.IsStartOfEpochBlock() {
 		mp.blockTracker.CleanupInvalidCrossHeaders(header.Epoch, header.Round)

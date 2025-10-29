@@ -4,11 +4,13 @@ import (
 	"fmt"
 	"math"
 	"math/big"
+	"os"
 	"testing"
 	"time"
 
 	"github.com/multiversx/mx-chain-core-go/data/block"
 	"github.com/multiversx/mx-chain-core-go/data/transaction"
+	logger "github.com/multiversx/mx-chain-logger-go"
 	"github.com/stretchr/testify/require"
 
 	"github.com/multiversx/mx-chain-go/common/holders"
@@ -22,11 +24,22 @@ import (
 )
 
 // TODO add some integration tests for forks scenarios
+func outputLogToFile(logPath string) error {
+	logFile, err := os.OpenFile(logPath, os.O_RDWR|os.O_CREATE, 0644)
+	if err != nil {
+		return err
+	}
+	return logger.AddLogObserver(logFile, &logger.PlainFormatter{})
+}
 
 func TestMempoolWithChainSimulator_Selection(t *testing.T) {
 	if testing.Short() {
 		t.Skip("this is not a short test")
 	}
+
+	err := outputLogToFile(fmt.Sprintf("testLog%s", time.Now()))
+	require.Nil(t, err)
+	_ = logger.SetLogLevel("*:DEBUG")
 
 	numSenders := 10000
 	numTransactionsPerSender := 3
@@ -70,7 +83,7 @@ func TestMempoolWithChainSimulator_Selection(t *testing.T) {
 	require.Equal(t, 30_000, len(selectedTransactions))
 	require.Equal(t, 50_000*30_000, int(gas))
 
-	err := simulator.GenerateBlocks(1)
+	err = simulator.GenerateBlocks(1)
 	require.Nil(t, err)
 	require.Equal(t, 27_756, getNumTransactionsInCurrentBlock(simulator, shard))
 

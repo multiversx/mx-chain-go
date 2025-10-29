@@ -771,11 +771,20 @@ func (tpn *TestProcessorNode) initGenesisBlocks(args ArgTestProcessorNode) {
 			tpn.SmartContractParser,
 			tpn.EnableEpochs,
 		)
+		tpn.GenesisBlocks = CreateSimpleGenesisBlocks(tpn.ShardCoordinator)
+		shardID := tpn.ShardCoordinator.SelfId()
+		genesisBlock := tpn.GenesisBlocks[shardID]
+		_ = tpn.DataPool.Transactions().OnExecutedBlock(genesisBlock, genesisBlock.GetRootHash())
+
 		return
 	}
 
 	if args.WithSync {
 		tpn.GenesisBlocks = CreateSimpleGenesisBlocks(tpn.ShardCoordinator)
+		shardID := tpn.ShardCoordinator.SelfId()
+		genesisBlock := tpn.GenesisBlocks[shardID]
+		_ = tpn.DataPool.Transactions().OnExecutedBlock(genesisBlock, genesisBlock.GetRootHash())
+
 		return
 	}
 
@@ -796,6 +805,11 @@ func (tpn *TestProcessorNode) initGenesisBlocks(args ArgTestProcessorNode) {
 		tpn.EnableEpochs,
 		tpn.ChainParametersHandler,
 	)
+
+	tpn.GenesisBlocks = CreateSimpleGenesisBlocks(tpn.ShardCoordinator)
+	shardID := tpn.ShardCoordinator.SelfId()
+	genesisBlock := tpn.GenesisBlocks[shardID]
+	_ = tpn.DataPool.Transactions().OnExecutedBlock(genesisBlock, genesisBlock.GetRootHash())
 }
 
 func (tpn *TestProcessorNode) initTestNodeWithArgs(args ArgTestProcessorNode) {
