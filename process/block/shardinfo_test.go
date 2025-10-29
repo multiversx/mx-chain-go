@@ -918,6 +918,7 @@ func TestShardInfoCreateData_miniBlockHeaderFromMiniBlockHeader(t *testing.T) {
 			return flag == common.ScheduledMiniBlocksFlag
 		}
 		for i := 0; i < len(headerHandler.GetMiniBlockHeaderHandlers()); i++ {
+			_ = headerHandler.GetMiniBlockHeaderHandlers()[i].SetConstructionState(int32(block.Proposed))
 			require.False(t, headerHandler.GetMiniBlockHeaderHandlers()[i].IsFinal())
 		}
 
