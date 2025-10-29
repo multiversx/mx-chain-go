@@ -1144,6 +1144,14 @@ func (bp *baseProcessor) cleanupPools(headerHandler data.HeaderHandler) {
 		bp.cleanupPoolsForCrossShard(core.MetachainShardId, noncesToPrevFinal)
 	}
 
+	for _, executionResult := range headerHandler.GetExecutionResultsHandlers() {
+		executionResultHeaderHash := executionResult.GetHeaderHash()
+		// cleanup all intra shard miniblocks
+		bp.dataPool.MiniBlocks().Remove(executionResultHeaderHash)
+		// cleanup all log events
+		bp.dataPool.PostProcessTransactions().Remove(common.PrepareLogEventsKey(executionResultHeaderHash))
+	}
+
 }
 
 func (bp *baseProcessor) cleanupPoolsForCrossShard(
@@ -1312,7 +1320,7 @@ func (bp *baseProcessor) getFinalMiniBlocksFromExecutionResults(
 			cachedMiniBlockBytes := cachedMiniBlock.([]byte)
 
 			var miniBlock *block.MiniBlock
-			err := bp.marshalizer.Unmarshal(&miniBlock, cachedMiniBlockBytes)
+			err = bp.marshalizer.Unmarshal(&miniBlock, cachedMiniBlockBytes)
 			if err != nil {
 				return nil, err
 			}
@@ -2602,6 +2610,29 @@ func (bp *baseProcessor) putMiniBlocksIntoStorage(miniBlockHeaderHandlers []data
 	return nil
 }
 
+func (bp *baseProcessor) cacheIntraShardMiniBlocks(headerHash []byte, mbs []*block.MiniBlock) error {
+	marshalledMbs, err := bp.marshalizer.Marshal(mbs)
+	if err != nil {
+		return err
+	}
+
+	bp.dataPool.ExecutedMiniBlocks().Put(headerHash, marshalledMbs, len(marshalledMbs))
+
+	return nil
+}
+
+func (bp *baseProcessor) cacheLogEvents(headerHash []byte, logs []*data.LogData) error {
+	logsMarshalled, err := bp.marshalizer.Marshal(logs)
+	if err != nil {
+		return err
+	}
+
+	key := common.PrepareLogEventsKey(headerHash)
+	bp.dataPool.PostProcessTransactions().Put(key, logs, len(logsMarshalled))
+
+	return nil
+}
+
 func (bp *baseProcessor) cacheExecutedMiniBlocks(body *block.Body, miniBlockHeaders []data.MiniBlockHeaderHandler) error {
 	for i, mbHeader := range miniBlockHeaders {
 		miniBlockHash := mbHeader.GetHash()
@@ -2623,7 +2654,7 @@ func (bp *baseProcessor) cacheIntermediateTxsForHeader(headerHash []byte) error 
 		return err
 	}
 
-	bp.dataPool.PostProcessTransactions().Put(headerHash, buff, len(buff))
+	bp.dataPool.PostProcessTransactions().Put(headerHash, intermediateTxs, len(buff))
 
 	return nil
 }
@@ -2636,11 +2667,9 @@ func (bp *baseProcessor) saveIntermediateTxs(headerHash []byte) error {
 		return fmt.Errorf("%w for header %s", process.ErrMissingHeader, hex.EncodeToString(headerHash))
 	}
 
-	cachedIntermediateTxsBuff := cachedIntermediateTxs.([]byte)
-	cachedIntermediateTxsMap := map[block.Type]map[string]data.TransactionHandler{}
-	errUnmarshal := bp.marshalizer.Unmarshal(cachedIntermediateTxsMap, cachedIntermediateTxsBuff)
-	if errUnmarshal != nil {
-		return errUnmarshal
+	cachedIntermediateTxsMap, ok := cachedIntermediateTxs.(map[block.Type]map[string]data.TransactionHandler)
+	if !ok {
+		log.Warn("saveIntermediateTxs: intermediateTxs cannot cast to concrete type", "hash", headerHash)
 	}
 
 	for blockType, cachedTransactionsMap := range cachedIntermediateTxsMap {
