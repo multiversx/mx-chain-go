@@ -773,6 +773,12 @@ func (sp *shardProcessor) collectExecutionResults(headerHash []byte, header data
 		return nil, err
 	}
 
+	intraMiniBlocks := sp.txCoordinator.GetCreatedInShardMiniBlocks()
+	err = sp.cacheIntraShardMiniBlocks(headerHash, intraMiniBlocks)
+	if err != nil {
+		return nil, err
+	}
+
 	err = sp.cacheExecutedMiniBlocks(sanitizedBodyAfterExecution, miniBlockHeaderHandlers)
 	if err != nil {
 		return nil, err
@@ -794,6 +800,12 @@ func (sp *shardProcessor) collectExecutionResults(headerHash []byte, header data
 	}
 
 	err = executionResult.SetMiniBlockHeadersHandlers(miniBlockHeaderHandlers)
+	if err != nil {
+		return nil, err
+	}
+
+	logs := sp.txCoordinator.GetAllCurrentLogs()
+	err = sp.cacheLogEvents(headerHash, logs)
 	if err != nil {
 		return nil, err
 	}

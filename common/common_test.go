@@ -577,3 +577,10 @@ func TestGetLastBaseExecutionResultHandler(t *testing.T) {
 		require.Equal(t, common.ErrNilBaseExecutionResult, err)
 	})
 }
+
+func TestPrepareLogEventsKey(t *testing.T) {
+	t.Parallel()
+
+	logs := common.PrepareLogEventsKey([]byte("LogsX"))
+	require.Equal(t, "logsLogsX", string(logs))
+}

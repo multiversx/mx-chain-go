@@ -233,6 +233,11 @@ func (ed *economicsData) MaxGasPriceSetGuardian() uint64 {
 	return ed.maxGasPriceSetGuardian
 }
 
+// BlockCapacityOverestimationFactor returns the block capacity overestimation factor
+func (ed *economicsData) BlockCapacityOverestimationFactor() uint64 {
+	return ed.blockCapacityOverestimationFactor
+}
+
 // GasPerDataByte returns the gas required for a economicsData byte
 func (ed *economicsData) GasPerDataByte() uint64 {
 	return ed.gasPerDataByte
