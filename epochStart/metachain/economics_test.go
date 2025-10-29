@@ -34,6 +34,10 @@ func createMockEpochEconomicsArguments() ArgsNewEpochEconomics {
 		RoundTime:             &mock.RoundTimeDurationHandler{},
 		GenesisTotalSupply:    big.NewInt(2000000),
 		EconomicsDataNotified: NewEpochEconomicsStatistics(),
+		TailActivationEpoch:   438,
+		TailMaximumYearlyInflation: 0.02,
+		TailDecayPercentage:   0.0025,
+		TailMinimumInflation:  0.005,
 	}
 	return argsNewEpochEconomics
 }
@@ -316,23 +320,23 @@ func TestEconomics_ComputeInflationRate(t *testing.T) {
 	}
 	ec, _ := NewEndOfEpochEconomicsDataCreator(args)
 
-	rate := ec.computeInflationRate(1, 0, nil)
+	rate := ec.computeInflationRate(1, 0)
 	assert.Nil(t, errFound)
 	assert.Equal(t, rate, year1inflation)
 
-	rate = ec.computeInflationRate(50000, 0, nil)
+	rate = ec.computeInflationRate(50000, 0)
 	assert.Nil(t, errFound)
 	assert.Equal(t, rate, year1inflation)
 
-	rate = ec.computeInflationRate(7884000, 0, nil)
+	rate = ec.computeInflationRate(7884000, 0)
 	assert.Nil(t, errFound)
 	assert.Equal(t, rate, year2inflation)
 
-	rate = ec.computeInflationRate(8884000, 0, nil)
+	rate = ec.computeInflationRate(8884000, 0)
 	assert.Nil(t, errFound)
 	assert.Equal(t, rate, year2inflation)
 
-	rate = ec.computeInflationRate(38884000, 0, nil)
+	rate = ec.computeInflationRate(38884000, 0)
 	assert.Nil(t, errFound)
 	assert.Equal(t, rate, lateYearInflation)
 }
@@ -1729,5 +1733,9 @@ func getArguments() ArgsNewEpochEconomics {
 		RoundTime:             &mock.RoundTimeDurationHandler{},
 		GenesisTotalSupply:    genesisSupply,
 		EconomicsDataNotified: NewEpochEconomicsStatistics(),
+		TailActivationEpoch:   438,
+		TailMaximumYearlyInflation: 0.02,
+		TailDecayPercentage:   0.0025,
+		TailMinimumInflation:  0.005,
 	}
 }

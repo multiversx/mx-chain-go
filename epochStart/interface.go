@@ -183,11 +183,17 @@ type EpochEconomicsDataProvider interface {
 	SetLeadersFees(fees *big.Int)
 	SetRewardsToBeDistributed(rewards *big.Int)
 	SetRewardsToBeDistributedForBlocks(rewards *big.Int)
+	SetRewardsForProtocolSustainability(rewards *big.Int)
+	SetRewardsForEcosystemGrowth(rewards *big.Int)
+	SetRewardsForGrowthDividend(rewards *big.Int)
 	NumberOfBlocks() uint64
 	NumberOfBlocksPerShard() map[uint32]uint64
 	LeaderFees() *big.Int
 	RewardsToBeDistributed() *big.Int
 	RewardsToBeDistributedForBlocks() *big.Int
+	RewardsForProtocolSustainability() *big.Int
+	RewardsForEcosystemGrowth() *big.Int
+	RewardsForGrowthDividend() *big.Int
 	IsInterfaceNil() bool
 }
 

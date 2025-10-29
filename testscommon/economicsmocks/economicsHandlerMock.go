@@ -62,7 +62,9 @@ type EconomicsHandlerMock struct {
 	GetDecayPercentageCalled                            func() float64
 	GetMinimumInflationCalled                           func() float64
 	EcosystemGrowthPercentageInEpochCalled              func(epoch uint32) float64
+	EcosystemGrowthAddressInEpochCalled                 func(epoch uint32) string
 	GrowthDividendPercentageInEpochCalled               func(epoch uint32) float64
+	GrowthDividendAddressInEpochCalled                  func(epoch uint32) string
 }
 
 // ComputeGasUnitsFromRefundValue -
@@ -101,6 +103,22 @@ func (ehm *EconomicsHandlerMock) MinGasPrice() uint64 {
 		return ehm.MinGasPriceCalled()
 	}
 	return 0
+}
+
+// EcosystemGrowthAddressInEpoch -
+func (ehm *EconomicsHandlerMock) EcosystemGrowthAddressInEpoch(epoch uint32) string {
+	if ehm.EcosystemGrowthAddressInEpochCalled != nil {
+		return ehm.EcosystemGrowthAddressInEpochCalled(epoch)
+	}
+	return ""
+}
+
+// GrowthDividendAddressInEpoch -
+func (ehm *EconomicsHandlerMock) GrowthDividendAddressInEpoch(epoch uint32) string {
+	if ehm.GrowthDividendAddressInEpochCalled != nil {
+		return ehm.GrowthDividendAddressInEpochCalled(epoch)
+	}
+	return ""
 }
 
 // MinGasLimit will return min gas limit

@@ -42,6 +42,7 @@ type BaseRewardsCreatorArgs struct {
 	EnableEpochsHandler   common.EnableEpochsHandler
 	ExecutionOrderHandler common.TxExecutionOrderHandler
 	RewardsHandler        process.RewardsHandler
+	EconomicsData         epochStart.EpochEconomicsDataProvider
 }
 
 type baseRewardsCreator struct {
@@ -63,6 +64,7 @@ type baseRewardsCreator struct {
 	mutRewardsData                     sync.RWMutex
 	executionOrderHandler              common.TxExecutionOrderHandler
 	rewardsHandler                     process.RewardsHandler
+	economicsData                      epochStart.EpochEconomicsDataProvider
 }
 
 // NewBaseRewardsCreator will create a new base rewards creator instance
@@ -90,6 +92,7 @@ func NewBaseRewardsCreator(args BaseRewardsCreatorArgs) (*baseRewardsCreator, er
 		enableEpochsHandler:                args.EnableEpochsHandler,
 		executionOrderHandler:              args.ExecutionOrderHandler,
 		rewardsHandler:                     args.RewardsHandler,
+		economicsData:                      args.EconomicsData,
 	}
 
 	return brc, nil
@@ -312,6 +315,9 @@ func checkBaseArgs(args BaseRewardsCreatorArgs) error {
 	if check.IfNil(args.RewardsHandler) {
 		return epochStart.ErrNilRewardsHandler
 	}
+	if check.IfNil(args.EconomicsData) {
+		return epochStart.ErrNilEconomicsDataProvider
+	}
 
 	return nil
 }
@@ -345,14 +351,13 @@ func (brc *baseRewardsCreator) isSystemDelegationSC(address []byte) bool {
 
 func (brc *baseRewardsCreator) createProtocolSustainabilityRewardTransaction(
 	metaBlock data.HeaderHandler,
-	computedEconomics *block.Economics,
 ) (*rewardTx.RewardTx, uint32, error) {
 
 	protocolSustainabilityAddressForEpoch := brc.rewardsHandler.ProtocolSustainabilityAddressInEpoch(metaBlock.GetEpoch())
 	protocolSustainabilityShardID := brc.shardCoordinator.ComputeId([]byte(protocolSustainabilityAddressForEpoch))
 	protocolSustainabilityRwdTx := &rewardTx.RewardTx{
 		Round:   metaBlock.GetRound(),
-		Value:   big.NewInt(0).Set(computedEconomics.RewardsForProtocolSustainability),
+		Value:   big.NewInt(0).Set(brc.economicsData.RewardsForProtocolSustainability()),
 		RcvAddr: []byte(protocolSustainabilityAddressForEpoch),
 		Epoch:   metaBlock.GetEpoch(),
 	}
@@ -413,6 +418,9 @@ func (brc *baseRewardsCreator) addProtocolRewardToMiniBlocks(
 	}
 
 	brc.currTxs.AddTx(protocolSustainabilityRwdHash, protocolSustainabilityRwdTx)
+	if protocolSustainabilityShardId == core.MetachainShardId {
+		protocolSustainabilityShardId = brc.shardCoordinator.NumberOfShards()
+	}
 	miniBlocks[protocolSustainabilityShardId].TxHashes = append(miniBlocks[protocolSustainabilityShardId].TxHashes, protocolSustainabilityRwdHash)
 	brc.protocolSustainabilityValue.Set(protocolSustainabilityRwdTx.Value)
 

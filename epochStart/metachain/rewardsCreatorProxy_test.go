@@ -368,8 +368,15 @@ func createDefaultBlockBody() *block.Body {
 }
 
 func createDefaultRewardsCreatorProxyArgs() RewardsCreatorProxyArgs {
+	baseArguments := getBaseRewardsArguments()
+	baseArguments.EconomicsData = &mock.EpochEconomicsData{
+		RewardsForProtocolSustainabilityVal: big.NewInt(50),
+		RewardsForEcosystemGrowthVal:        big.NewInt(0),
+		RewardsForGrowthDividendVal:         big.NewInt(0),
+	}
+
 	return RewardsCreatorProxyArgs{
-		BaseRewardsCreatorArgs: getBaseRewardsArguments(),
+		BaseRewardsCreatorArgs: baseArguments,
 		StakingDataProvider:    &stakingcommon.StakingDataProviderStub{},
 		EconomicsDataProvider:  NewEpochEconomicsStatistics(),
 	}

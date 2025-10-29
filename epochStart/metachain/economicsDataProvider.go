@@ -11,6 +11,9 @@ type epochEconomicsStatistics struct {
 	leaderFees                      *big.Int
 	rewardsToBeDistributed          *big.Int
 	rewardsToBeDistributedForBlocks *big.Int // without leader fees, protocol sustainability and developer fees
+	rewardsForProtocolSustainability *big.Int
+	rewardsForEcosystemGrowth        *big.Int
+	rewardsForGrowthDividend         *big.Int
 	mutEconomicsStatistics          sync.RWMutex
 }
 
@@ -21,6 +24,9 @@ func NewEpochEconomicsStatistics() *epochEconomicsStatistics {
 		leaderFees:                      big.NewInt(0),
 		rewardsToBeDistributed:          big.NewInt(0),
 		rewardsToBeDistributedForBlocks: big.NewInt(0),
+		rewardsForProtocolSustainability: big.NewInt(0),
+		rewardsForEcosystemGrowth:        big.NewInt(0),
+		rewardsForGrowthDividend:         big.NewInt(0),
 	}
 }
 
@@ -113,6 +119,54 @@ func (es *epochEconomicsStatistics) RewardsToBeDistributedForBlocks() *big.Int {
 	defer es.mutEconomicsStatistics.RUnlock()
 
 	return big.NewInt(0).Set(es.rewardsToBeDistributedForBlocks)
+}
+
+// SetRewardsForProtocolSustainability sets the rewards for protocol sustainability
+func (es *epochEconomicsStatistics) SetRewardsForProtocolSustainability(rewards *big.Int) {
+	es.mutEconomicsStatistics.Lock()
+	defer es.mutEconomicsStatistics.Unlock()
+
+	es.rewardsForProtocolSustainability = big.NewInt(0).Set(rewards)
+}
+
+// SetRewardsForEcosystemGrowth sets the rewards for ecosystem growth
+func (es *epochEconomicsStatistics) SetRewardsForEcosystemGrowth(rewards *big.Int) {
+	es.mutEconomicsStatistics.Lock()
+	defer es.mutEconomicsStatistics.Unlock()
+
+	es.rewardsForEcosystemGrowth = big.NewInt(0).Set(rewards)
+}
+
+// SetRewardsForGrowthDividend sets the rewards for growth dividend
+func (es *epochEconomicsStatistics) SetRewardsForGrowthDividend(rewards *big.Int) {
+	es.mutEconomicsStatistics.Lock()
+	defer es.mutEconomicsStatistics.Unlock()
+
+	es.rewardsForGrowthDividend = big.NewInt(0).Set(rewards)
+}
+
+// RewardsForProtocolSustainability returns the rewards for protocol sustainability
+func (es *epochEconomicsStatistics) RewardsForProtocolSustainability() *big.Int {
+	es.mutEconomicsStatistics.RLock()
+	defer es.mutEconomicsStatistics.RUnlock()
+
+	return big.NewInt(0).Set(es.rewardsForProtocolSustainability)
+}
+
+// RewardsForEcosystemGrowth returns the rewards for ecosystem growth
+func (es *epochEconomicsStatistics) RewardsForEcosystemGrowth() *big.Int {
+	es.mutEconomicsStatistics.RLock()
+	defer es.mutEconomicsStatistics.RUnlock()
+
+	return big.NewInt(0).Set(es.rewardsForEcosystemGrowth)
+}
+
+// RewardsForGrowthDividend returns the rewards for growth dividend
+func (es *epochEconomicsStatistics) RewardsForGrowthDividend() *big.Int {
+	es.mutEconomicsStatistics.RLock()
+	defer es.mutEconomicsStatistics.RUnlock()
+
+	return big.NewInt(0).Set(es.rewardsForGrowthDividend)
 }
 
 // IsInterfaceNil returns nil if the underlying object is nil

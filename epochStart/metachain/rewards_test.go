@@ -107,6 +107,9 @@ func TestRewardsCreator_CreateRewardsMiniBlocks(t *testing.T) {
 	t.Parallel()
 
 	args := getRewardsArguments()
+	args.EconomicsData.(*mock.EpochEconomicsData).RewardsForProtocolSustainabilityVal = big.NewInt(50)
+	args.EconomicsData.(*mock.EpochEconomicsData).RewardsForEcosystemGrowthVal = big.NewInt(0)
+	args.EconomicsData.(*mock.EpochEconomicsData).RewardsForGrowthDividendVal = big.NewInt(0)
 	rwd, err := NewRewardsCreator(args)
 	require.Nil(t, err)
 
@@ -129,6 +132,9 @@ func TestRewardsCreator_VerifyRewardsMiniBlocksHashDoesNotMatch(t *testing.T) {
 	t.Parallel()
 
 	args := getRewardsArguments()
+	args.EconomicsData.(*mock.EpochEconomicsData).RewardsForProtocolSustainabilityVal = big.NewInt(50)
+	args.EconomicsData.(*mock.EpochEconomicsData).RewardsForEcosystemGrowthVal = big.NewInt(0)
+	args.EconomicsData.(*mock.EpochEconomicsData).RewardsForGrowthDividendVal = big.NewInt(0)
 	rwd, _ := NewRewardsCreator(args)
 
 	bdy := block.MiniBlock{
@@ -169,6 +175,9 @@ func TestRewardsCreator_VerifyRewardsMiniBlocksRewardsMbNumDoesNotMatch(t *testi
 	t.Parallel()
 
 	args := getRewardsArguments()
+	args.EconomicsData.(*mock.EpochEconomicsData).RewardsForProtocolSustainabilityVal = big.NewInt(50)
+	args.EconomicsData.(*mock.EpochEconomicsData).RewardsForEcosystemGrowthVal = big.NewInt(0)
+	args.EconomicsData.(*mock.EpochEconomicsData).RewardsForGrowthDividendVal = big.NewInt(0)
 	rwd, _ := NewRewardsCreator(args)
 	rwdTx := rewardTx.RewardTx{
 		Round:   0,
@@ -322,6 +331,9 @@ func TestRewardsCreator_VerifyRewardsMiniBlocksShouldWork(t *testing.T) {
 	t.Parallel()
 
 	args := getRewardsArguments()
+	args.EconomicsData.(*mock.EpochEconomicsData).RewardsForProtocolSustainabilityVal = big.NewInt(50)
+	args.EconomicsData.(*mock.EpochEconomicsData).RewardsForEcosystemGrowthVal = big.NewInt(0)
+	args.EconomicsData.(*mock.EpochEconomicsData).RewardsForGrowthDividendVal = big.NewInt(0)
 	rwd, _ := NewRewardsCreator(args)
 	rwdTx := rewardTx.RewardTx{
 		Round:   0,
@@ -389,6 +401,9 @@ func TestRewardsCreator_VerifyRewardsMiniBlocksShouldWorkEvenIfNotAllShardsHaveR
 			return receivedShardID + 1
 		}}
 	args := getRewardsArguments()
+	args.EconomicsData.(*mock.EpochEconomicsData).RewardsForProtocolSustainabilityVal = big.NewInt(50)
+	args.EconomicsData.(*mock.EpochEconomicsData).RewardsForEcosystemGrowthVal = big.NewInt(0)
+	args.EconomicsData.(*mock.EpochEconomicsData).RewardsForGrowthDividendVal = big.NewInt(0)
 	args.ShardCoordinator = shardCoordinator
 	rwd, _ := NewRewardsCreator(args)
 	rwdTx := rewardTx.RewardTx{
@@ -449,6 +464,9 @@ func TestRewardsCreator_CreateMarshalizedData(t *testing.T) {
 	t.Parallel()
 
 	args := getRewardsArguments()
+	args.EconomicsData.(*mock.EpochEconomicsData).RewardsForProtocolSustainabilityVal = big.NewInt(50)
+	args.EconomicsData.(*mock.EpochEconomicsData).RewardsForEcosystemGrowthVal = big.NewInt(0)
+	args.EconomicsData.(*mock.EpochEconomicsData).RewardsForGrowthDividendVal = big.NewInt(0)
 	rwd, _ := NewRewardsCreator(args)
 
 	mb := &block.MetaBlock{
@@ -492,6 +510,9 @@ func TestRewardsCreator_SaveTxBlockToStorage(t *testing.T) {
 	putMbWasCalled := false
 
 	args := getRewardsArguments()
+	args.EconomicsData.(*mock.EpochEconomicsData).RewardsForProtocolSustainabilityVal = big.NewInt(50)
+	args.EconomicsData.(*mock.EpochEconomicsData).RewardsForEcosystemGrowthVal = big.NewInt(0)
+	args.EconomicsData.(*mock.EpochEconomicsData).RewardsForGrowthDividendVal = big.NewInt(0)
 	args.RewardsStorage = &storageStubs.StorerStub{
 		PutCalled: func(_, _ []byte) error {
 			putRwdTxWasCalled = true
@@ -642,6 +663,9 @@ func TestRewardsCreator_CreateProtocolSustainabilityRewardTransaction(t *testing
 	t.Parallel()
 
 	args := getRewardsArguments()
+	args.EconomicsData.(*mock.EpochEconomicsData).RewardsForProtocolSustainabilityVal = big.NewInt(50)
+	args.EconomicsData.(*mock.EpochEconomicsData).RewardsForEcosystemGrowthVal = big.NewInt(0)
+	args.EconomicsData.(*mock.EpochEconomicsData).RewardsForGrowthDividendVal = big.NewInt(0)
 	rwdc, _ := NewRewardsCreator(args)
 	mb := &block.MetaBlock{
 		EpochStart: getDefaultEpochStart(),
@@ -653,7 +677,7 @@ func TestRewardsCreator_CreateProtocolSustainabilityRewardTransaction(t *testing
 		Epoch:   0,
 	}
 
-	rwdTx, _, err := rwdc.createProtocolSustainabilityRewardTransaction(mb, &mb.EpochStart.Economics)
+	rwdTx, _, err := rwdc.createProtocolSustainabilityRewardTransaction(mb)
 	assert.Equal(t, expectedRewardTx, rwdTx)
 	assert.Nil(t, err)
 }
@@ -662,6 +686,9 @@ func TestRewardsCreator_AddProtocolSustainabilityRewardToMiniBlocks(t *testing.T
 	t.Parallel()
 
 	args := getRewardsArguments()
+	args.EconomicsData.(*mock.EpochEconomicsData).RewardsForProtocolSustainabilityVal = big.NewInt(50)
+	args.EconomicsData.(*mock.EpochEconomicsData).RewardsForEcosystemGrowthVal = big.NewInt(0)
+	args.EconomicsData.(*mock.EpochEconomicsData).RewardsForGrowthDividendVal = big.NewInt(0)
 	rwdc, _ := NewRewardsCreator(args)
 	metaBlk := &block.MetaBlock{
 		EpochStart:     getDefaultEpochStart(),
@@ -721,6 +748,9 @@ func TestRewardsCreator_ValidatorInfoWithMetaAddressAddedToProtocolSustainabilit
 		LeaderSuccess:              1,
 	})
 
+	args.EconomicsData.(*mock.EpochEconomicsData).RewardsForProtocolSustainabilityVal = big.NewInt(50)
+	args.EconomicsData.(*mock.EpochEconomicsData).RewardsForEcosystemGrowthVal = big.NewInt(0)
+	args.EconomicsData.(*mock.EpochEconomicsData).RewardsForGrowthDividendVal = big.NewInt(0)
 	acc, _ := args.UserAccountsDB.LoadAccount(vm.FirstDelegationSCAddress)
 	userAcc, _ := acc.(state.UserAccountHandler)
 	_ = userAcc.SaveKeyValue([]byte(core.DelegationSystemSCKey), []byte(core.DelegationSystemSCKey))

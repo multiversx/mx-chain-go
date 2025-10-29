@@ -22,7 +22,9 @@ type RewardsHandlerStub struct {
 	GetDecayPercentageCalled                      func() float64
 	GetMinimumInflationCalled                     func() float64
 	EcosystemGrowthPercentageInEpochCalled        func(epoch uint32) float64
+	EcosystemGrowthAddressInEpochCalled           func(epoch uint32) string
 	GrowthDividendPercentageInEpochCalled         func(epoch uint32) float64
+	GrowthDividendAddressInEpochCalled            func(epoch uint32) string
 }
 
 // LeaderPercentage -
@@ -94,6 +96,22 @@ func (r *RewardsHandlerStub) DeveloperPercentageInEpoch(epoch uint32) float64 {
 		return r.DeveloperPercentageInEpochCalled(epoch)
 	}
 	return 0
+}
+
+// EcosystemGrowthAddressInEpoch -
+func (r *RewardsHandlerStub) EcosystemGrowthAddressInEpoch(epoch uint32) string {
+	if r.EcosystemGrowthAddressInEpochCalled != nil {
+		return r.EcosystemGrowthAddressInEpochCalled(epoch)
+	}
+	return ""
+}
+
+// GrowthDividendAddressInEpoch -
+func (r *RewardsHandlerStub) GrowthDividendAddressInEpoch(epoch uint32) string {
+	if r.GrowthDividendAddressInEpochCalled != nil {
+		return r.GrowthDividendAddressInEpochCalled(epoch)
+	}
+	return ""
 }
 
 // ProtocolSustainabilityPercentageInEpoch -

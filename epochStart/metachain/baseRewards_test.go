@@ -224,6 +224,7 @@ func TestBaseRewardsCreator_GetProtocolSustainabilityRewards(t *testing.T) {
 	t.Parallel()
 
 	args := getBaseRewardsArguments()
+	args.EconomicsData.(*mock.EpochEconomicsData).RewardsForProtocolSustainabilityVal = big.NewInt(50)
 	rwd, err := NewBaseRewardsCreator(args)
 	require.Nil(t, err)
 	require.NotNil(t, rwd)
@@ -237,6 +238,7 @@ func TestBaseRewardsCreator_addProtocolRewardToMiniblocks(t *testing.T) {
 	t.Parallel()
 
 	args := getBaseRewardsArguments()
+	args.EconomicsData.(*mock.EpochEconomicsData).RewardsForProtocolSustainabilityVal = big.NewInt(50)
 	rwd, err := NewBaseRewardsCreator(args)
 	require.Nil(t, err)
 	require.NotNil(t, rwd)
@@ -898,7 +900,7 @@ func TestBaseRewardsCreator_createProtocolSustainabilityRewardTransaction(t *tes
 		DevFeesInEpoch: big.NewInt(0),
 	}
 
-	rwTx, _, err := rwd.createProtocolSustainabilityRewardTransaction(metaBlk, &metaBlk.EpochStart.Economics)
+	rwTx, _, err := rwd.createProtocolSustainabilityRewardTransaction(metaBlk)
 	require.Nil(t, err)
 	require.NotNil(t, rwTx)
 	require.Equal(t, metaBlk.EpochStart.Economics.RewardsForProtocolSustainability, rwTx.Value)
@@ -1209,6 +1211,7 @@ func getBaseRewardsArguments() BaseRewardsCreatorArgs {
 		EnableEpochsHandler:   enableEpochsHandler,
 		ExecutionOrderHandler: &txExecOrderStub.TxExecutionOrderHandlerStub{},
 		RewardsHandler:        rewardsHandler,
+		EconomicsData:         &mock.EpochEconomicsData{},
 	}
 }
 

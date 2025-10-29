@@ -604,7 +604,8 @@ func TestNewRewardsCreatorV2_computeTopUpRewardsPerNode(t *testing.T) {
 	args := getRewardsCreatorV2Arguments()
 	nbEligiblePerShard := uint32(400)
 	vInfo := createDefaultValidatorInfo(nbEligiblePerShard, args.ShardCoordinator, args.NodesConfigProvider, 100, defaultBlocksPerShard)
-	dummyRwd, _ := NewRewardsCreatorV2(args)
+	dummyRwd, err := NewRewardsCreatorV2(args)
+	require.Nil(t, err)
 	nodesRewardInfo := dummyRwd.initNodesRewardsInfo(vInfo)
 	_, _ = setDummyValuesInNodesRewardInfo(nodesRewardInfo, nbEligiblePerShard, tuStake, 0)
 
@@ -734,7 +735,8 @@ func TestNewRewardsCreatorV2_computeRewardsPerNode(t *testing.T) {
 	args := getRewardsCreatorV2Arguments()
 	nbEligiblePerShard := uint32(400)
 	vInfo := createDefaultValidatorInfo(nbEligiblePerShard, args.ShardCoordinator, args.NodesConfigProvider, 100, defaultBlocksPerShard)
-	dummyRwd, _ := NewRewardsCreatorV2(args)
+	dummyRwd, err := NewRewardsCreatorV2(args)
+	require.Nil(t, err)
 	nodesRewardInfo := dummyRwd.initNodesRewardsInfo(vInfo)
 	_, totalTopUpStake := setDummyValuesInNodesRewardInfo(nodesRewardInfo, nbEligiblePerShard, tuStake, 0)
 
@@ -991,7 +993,6 @@ func TestNewRewardsCreatorV35_computeRewardsPer3200NodesWithDifferentTopups(t *t
 
 	args := getRewardsCreatorV35Arguments()
 	setupResult := setUpRewards(args)
-
 	baseStakePerNode := big.NewInt(0).Mul(big.NewInt(2500), setupResult.smallestDivisionEGLD)
 	topupStakePerNode := big.NewInt(0).Mul(big.NewInt(750), setupResult.smallestDivisionEGLD)
 
@@ -1038,9 +1039,11 @@ func TestNewRewardsCreatorV35_computeRewardsPer3200NodesWithDifferentTopups(t *t
 
 	for _, tt := range tests {
 		t.Run("", func(t *testing.T) {
+			args := getRewardsCreatorV35Arguments()
+			setupResult := setUpRewards(args)
 
 			vInfo := createDefaultValidatorInfo(nbEligiblePerShard, setupResult.ShardCoordinator, setupResult.NodesConfigProvider, 100, defaultBlocksPerShard)
-			nodesRewardInfo, _ := setupNodeRewardInfo(setupResult, vInfo, topupStakePerNode, tt.validatorTopupStake)
+			nodesRewardInfo, _ := setupNodeRewardInfo(t, setupResult, vInfo, topupStakePerNode, tt.validatorTopupStake)
 
 			setupResult.EconomicsDataProvider.SetRewardsToBeDistributedForBlocks(setupResult.rewardsForBlocks)
 			setupResult.RewardsCreatorArgsV2.StakingDataProvider = &stakingcommon.StakingDataProviderStub{
@@ -1099,7 +1102,6 @@ func TestNewRewardsCreatorV2_computeRewardsPer3200NodesWithDifferentTopups(t *te
 
 	args := getRewardsCreatorV2Arguments()
 	setupResult := setUpRewards(args)
-
 	baseStakePerNode := big.NewInt(0).Mul(big.NewInt(2500), setupResult.smallestDivisionEGLD)
 	topupStakePerNode := big.NewInt(0).Mul(big.NewInt(750), setupResult.smallestDivisionEGLD)
 
@@ -1145,9 +1147,11 @@ func TestNewRewardsCreatorV2_computeRewardsPer3200NodesWithDifferentTopups(t *te
 
 	for _, tt := range tests {
 		t.Run("", func(t *testing.T) {
+			args := getRewardsCreatorV2Arguments()
+			setupResult := setUpRewards(args)
 
 			vInfo := createDefaultValidatorInfo(nbEligiblePerShard, setupResult.ShardCoordinator, setupResult.NodesConfigProvider, 100, defaultBlocksPerShard)
-			nodesRewardInfo, _ := setupNodeRewardInfo(setupResult, vInfo, topupStakePerNode, tt.validatorTopupStake)
+			nodesRewardInfo, _ := setupNodeRewardInfo(t, setupResult, vInfo, topupStakePerNode, tt.validatorTopupStake)
 
 			setupResult.EconomicsDataProvider.SetRewardsToBeDistributedForBlocks(setupResult.rewardsForBlocks)
 			setupResult.RewardsCreatorArgsV2.StakingDataProvider = &stakingcommon.StakingDataProviderStub{
@@ -1200,12 +1204,14 @@ func TestNewRewardsCreatorV2_computeRewardsPer3200NodesWithDifferentTopups(t *te
 }
 
 func setupNodeRewardInfo(
+	t *testing.T,
 	setupResult SetupRewardsResult,
 	vInfo state.ShardValidatorsInfoMapHandler,
 	topupStakePerNode *big.Int,
 	validatorTopupStake *big.Int,
 ) (map[uint32][]*nodeRewardsData, error) {
-	dummyRwd, _ := NewRewardsCreatorV2(setupResult.RewardsCreatorArgsV2)
+	dummyRwd, err := NewRewardsCreatorV2(setupResult.RewardsCreatorArgsV2)
+	require.Nil(t, err)
 	nodesRewardInfo := dummyRwd.initNodesRewardsInfo(vInfo)
 	_, _ = setValuesInNodesRewardInfo(nodesRewardInfo, topupStakePerNode, tuStake)
 
@@ -1260,9 +1266,10 @@ func setUpRewards(args RewardsCreatorArgsV2) SetupRewardsResult {
 	}
 }
 
-func computeRewardsAndDust(nbEligiblePerShard uint32, args SetupRewardsResult, topupStake *big.Int) (map[uint32][]*nodeRewardsData, *big.Int) {
+func computeRewardsAndDust(t *testing.T, nbEligiblePerShard uint32, args SetupRewardsResult, topupStake *big.Int) (map[uint32][]*nodeRewardsData, *big.Int) {
 	vInfo := createDefaultValidatorInfo(nbEligiblePerShard, args.ShardCoordinator, args.NodesConfigProvider, 100, defaultBlocksPerShard)
-	dummyRwd, _ := NewRewardsCreatorV2(args.RewardsCreatorArgsV2)
+	dummyRwd, err := NewRewardsCreatorV2(args.RewardsCreatorArgsV2)
+	require.Nil(t, err)
 	nodesRewardInfo := dummyRwd.initNodesRewardsInfo(vInfo)
 	_, totalTopUpStake := setValuesInNodesRewardInfo(nodesRewardInfo, topupStake, tuStake)
 
@@ -1304,7 +1311,7 @@ func verifyRewardsComputation(
 	expectedROI float64,
 	eligiblePercentage float64,
 ) {
-	nodesRewardInfo, _ := computeRewardsAndDust(nbEligiblePerShard, srr, topupStake)
+	nodesRewardInfo, _ := computeRewardsAndDust(t, nbEligiblePerShard, srr, topupStake)
 
 	for _, nodeInfoList := range nodesRewardInfo {
 		for _, nodeInfo := range nodeInfoList {
@@ -1774,8 +1781,15 @@ func getRewardsCreatorV2Arguments() RewardsCreatorArgsV2 {
 			return topUpRewardFactor
 		},
 	}
+	args := getBaseRewardsArguments()
+	args.EconomicsData = &mock.EpochEconomicsData{
+		RewardsForProtocolSustainabilityVal: big.NewInt(50),
+		RewardsForEcosystemGrowthVal:        big.NewInt(0),
+		RewardsForGrowthDividendVal:         big.NewInt(0),
+	}
+
 	return RewardsCreatorArgsV2{
-		BaseRewardsCreatorArgs: getBaseRewardsArguments(),
+		BaseRewardsCreatorArgs: args,
 		StakingDataProvider:    &stakingcommon.StakingDataProviderStub{},
 		EconomicsDataProvider:  NewEpochEconomicsStatistics(),
 		RewardsHandler:         rewardsHandler,

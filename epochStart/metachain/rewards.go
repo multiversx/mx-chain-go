@@ -39,14 +39,6 @@ func NewRewardsCreator(args ArgsNewRewardsCreator) (*rewardsCreator, error) {
 	if err != nil {
 		return nil, err
 	}
-	ecoGrowthRwdTx, ecoGrowthShardId, err := rc.createEcosystemGrowthRewardTransaction(metaBlock, computedEconomics)
-	if err != nil {
-		return nil, err
-	}
-	growthDivRwdTx, growthDivShardId, err := rc.createGrowthDividendRewardTransaction(metaBlock, computedEconomics)
-	if err != nil {
-		return nil, err
-	}
 
 	rc := &rewardsCreator{
 		baseRewardsCreator: brc,
@@ -74,23 +66,21 @@ func (rc *rewardsCreator) CreateRewardsMiniBlocks(
 	log.Debug("rewardsCreator.CreateRewardsMiniBlocks",
 		"totalToDistribute", economicsData.GetTotalToDistribute(),
 		"rewardsForProtocolSustainability", economicsData.GetRewardsForProtocolSustainability(),
-		"rewardsForEcosystemGrowth", computedEconomics.RewardsForEcosystemGrowth,
-		"rewardsForGrowthDividend", computedEconomics.RewardsForGrowthDividend,
 		"rewardsPerBlock", economicsData.GetRewardsPerBlock(),
 		"devFeesInEpoch", metaBlock.GetDevFeesInEpoch(),
 	)
 
 	miniBlocks := rc.initializeRewardsMiniBlocks()
 
-	protSustRwdTx, protSustShardId, err := rc.createProtocolSustainabilityRewardTransaction(metaBlock, computedEconomics)
+	protSustRwdTx, protSustShardId, err := rc.createProtocolSustainabilityRewardTransaction(metaBlock)
 	if err != nil {
 		return nil, err
 	}
-	ecoGrowthRwdTx, ecoGrowthShardId, err := rc.createEcosystemGrowthRewardTransaction(metaBlock, computedEconomics)
+	ecoGrowthRwdTx, ecoGrowthShardId, err := rc.createEcosystemGrowthRewardTransaction(metaBlock)
 	if err != nil {
 		return nil, err
 	}
-	growthDivRwdTx, growthDivShardId, err := rc.createGrowthDividendRewardTransaction(metaBlock, computedEconomics)
+	growthDivRwdTx, growthDivShardId, err := rc.createGrowthDividendRewardTransaction(metaBlock)
 	if err != nil {
 		return nil, err
 	}
@@ -109,6 +99,7 @@ func (rc *rewardsCreator) CreateRewardsMiniBlocks(
 
 	log.Debug("arithmetic difference in end of epoch rewards economics", "epoch", metaBlock.GetEpoch(), "value", difference)
 	rc.adjustProtocolSustainabilityRewards(protSustRwdTx, difference)
+
 	err = rc.addProtocolRewardToMiniBlocks(protSustRwdTx, miniBlocks, protSustShardId)
 	if err != nil {
 		return nil, err
@@ -260,7 +251,6 @@ func (rc *rewardsCreator) isRewardsFix1Enabled(epoch uint32) bool {
 
 func (brc *baseRewardsCreator) createEcosystemGrowthRewardTransaction(
 	metaBlock data.MetaHeaderHandler,
-	computedEconomics *block.Economics,
 ) (*rewardTx.RewardTx, uint32, error) {
 	epoch := metaBlock.GetEpoch()
 	rwdAddr := brc.rewardsHandler.EcosystemGrowthAddressInEpoch(epoch)
@@ -270,7 +260,7 @@ func (brc *baseRewardsCreator) createEcosystemGrowthRewardTransaction(
 		Round:   metaBlock.GetRound(),
 		Epoch:   epoch,
 		RcvAddr: []byte(rwdAddr),
-		Value:   big.NewInt(0).Set(computedEconomics.RewardsForEcosystemGrowth),
+		Value:   big.NewInt(0).Set(brc.economicsData.RewardsForEcosystemGrowth()),
 	}
 
 	return rwdTx, shardId, nil
@@ -278,7 +268,6 @@ func (brc *baseRewardsCreator) createEcosystemGrowthRewardTransaction(
 
 func (brc *baseRewardsCreator) createGrowthDividendRewardTransaction(
 	metaBlock data.MetaHeaderHandler,
-	computedEconomics *block.Economics,
 ) (*rewardTx.RewardTx, uint32, error) {
 	epoch := metaBlock.GetEpoch()
 	rwdAddr := brc.rewardsHandler.GrowthDividendAddressInEpoch(epoch)
@@ -288,7 +277,7 @@ func (brc *baseRewardsCreator) createGrowthDividendRewardTransaction(
 		Round:   metaBlock.GetRound(),
 		Epoch:   epoch,
 		RcvAddr: []byte(rwdAddr),
-		Value:   big.NewInt(0).Set(computedEconomics.RewardsForGrowthDividend),
+		Value:   big.NewInt(0).Set(brc.economicsData.RewardsForGrowthDividend()),
 	}
 
 	return rwdTx, shardId, nil

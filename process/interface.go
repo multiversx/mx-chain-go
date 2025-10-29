@@ -754,7 +754,7 @@ type FeeHandler interface {
 
 // EconomicsDataHandler provides some economics related computation and read access to economics data
 type EconomicsDataHandler interface {
-	rewardsHandler
+	RewardsHandler
 	feeHandler
 	SetStatusHandler(statusHandler core.AppStatusHandler) error
 	IsInterfaceNil() bool
