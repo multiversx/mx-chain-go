@@ -86,40 +86,7 @@ func (bq *blocksQueue) AddOrReplace(pair HeaderBodyPair) error {
 	return nil
 }
 
-<<<<<<< HEAD
-func (bq *blocksQueue) RemoveFromNonce(nonce uint64) error {
-	bq.mutex.Lock()
-	defer bq.mutex.Unlock()
-	if bq.closed {
-		log.Warn("blocksQueue.AddOrReplace - block queue is closed")
-		return nil
-	}
-
-	if len(bq.headerBodyPairs) == 0 {
-		return nil
-	}
-
-	indexToRemoveFrom := -1
-	for i, bp := range bq.headerBodyPairs {
-		if bp.Header.GetNonce() == nonce {
-			indexToRemoveFrom = i
-			break
-		}
-	}
-	if indexToRemoveFrom == -1 {
-		return fmt.Errorf("%w for nonce %d", ErrMissingHeaderNonce, nonce)
-	}
-
-	bq.headerBodyPairs = bq.headerBodyPairs[:indexToRemoveFrom]
-
-	return nil
-}
-
-func (bq *blocksQueue) replaceAndRemoveHigherNonces(pair HeaderBodyPair, nonce uint64) error {
-	indexToReplace := -1
-=======
 func (bq *blocksQueue) getIndexForNonce(nonce uint64) int {
->>>>>>> revert-current-block
 	for i, bp := range bq.headerBodyPairs {
 		if bp.Header.GetNonce() == nonce {
 			return i
