@@ -730,7 +730,7 @@ func (boot *baseBootstrap) doJobOnSyncBlockFail(bodyHandler data.BodyHandler, he
 	isInProperRound := process.IsInProperRound(boot.roundHandler.Index())
 	isSyncWithErrorsLimitReachedInProperRound := allowedSyncWithErrorsLimitReached && isInProperRound
 
-	isExecResultsError := isExecResultsError(headerHandler, err)
+	isExecResultsError := isProcessWithError && isExecResultsError(headerHandler, err)
 
 	shouldRollBack := isProcessWithError || isSyncWithErrorsLimitReachedInProperRound
 	if shouldRollBack {
@@ -764,23 +764,18 @@ func (boot *baseBootstrap) rollBackExecutionResults(
 	}
 
 	executionResults := header.GetExecutionResultsHandlers()
-	if len(executionResults) < 0 {
+	if len(executionResults) <= 0 {
 		return
 	}
 
 	switch err {
 	case process.ErrExecutionResultsNumberMismatch:
-		// remove all execution results from tracker
-		headerHashToRemoveFrom := executionResults[0].GetHeaderHash()
-		boot.executionResultsTracker.RemoveFromHash(headerHashToRemoveFrom)
-		boot.blocksQueue.Clean(executionResults[0].GetHeaderNonce() - 1)
+		headerNonceToRemoveFrom := executionResults[0].GetHeaderNonce()
+		boot.removeExecutionResultsFromNonce(headerNonceToRemoveFrom)
 	case process.ErrExecutionResultsNonConsecutive:
-		headerHashToRemoveFrom := executionResults[0].GetHeaderHash()
 		for i := 0; i < len(executionResults)-1; i++ {
 			if executionResults[i].GetHeaderNonce() != executionResults[i+1].GetHeaderNonce()-1 {
-				boot.executionResultsTracker.RemoveFromHash(headerHashToRemoveFrom)
-
-				boot.blocksQueue.RemoveFromNonce(executionResults[i].GetHeaderNonce())
+				boot.removeExecutionResultsFromNonce(executionResults[i+1].GetHeaderNonce())
 				return
 			}
 		}
@@ -793,11 +788,21 @@ func (boot *baseBootstrap) rollBackExecutionResults(
 
 		for i, er := range executionResults {
 			if !er.Equal(pendingExecutionResults[i]) {
-				boot.executionResultsTracker.RemoveFromHash(er.GetHeaderHash())
-				boot.blocksQueue.RemoveFromNonce(er.GetHeaderNonce())
+				boot.removeExecutionResultsFromNonce(er.GetHeaderNonce())
 				return
 			}
 		}
+	}
+}
+
+func (boot *baseBootstrap) removeExecutionResultsFromNonce(nonce uint64) {
+	errNotCritical := boot.executionResultsTracker.RemoveFromNonce(nonce)
+	if errNotCritical != nil {
+		log.Debug("rollBackExecutionResults", "error", errNotCritical.Error())
+	}
+	errNotCritical = boot.blocksQueue.RemoveAtNonceAndHigher(nonce)
+	if errNotCritical != nil {
+		log.Debug("rollBackExecutionResults", "error", errNotCritical.Error())
 	}
 }
 
