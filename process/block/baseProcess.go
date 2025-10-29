@@ -1139,6 +1139,14 @@ func (bp *baseProcessor) cleanupPools(headerHandler data.HeaderHandler) {
 		bp.cleanupPoolsForCrossShard(core.MetachainShardId, noncesToPrevFinal)
 	}
 
+	for _, executionResult := range headerHandler.GetExecutionResultsHandlers() {
+		executionResultHeaderHash := executionResult.GetHeaderHash()
+		// cleanup all intra shard miniblocks
+		bp.dataPool.MiniBlocks().Remove(executionResultHeaderHash)
+		// cleanup all log events
+		bp.dataPool.PostProcessTransactions().Remove(common.PrepareLogEventsKey(executionResultHeaderHash))
+	}
+
 }
 
 func (bp *baseProcessor) cleanupPoolsForCrossShard(
@@ -2513,12 +2521,6 @@ func (bp *baseProcessor) saveMiniBlocksFromExecutionResults(header data.HeaderHa
 		if err != nil {
 			return err
 		}
-
-		executionResultHeaderHash := baseExecutionResult.GetHeaderHash()
-		// cleanup all intra shard miniblocks
-		bp.dataPool.MiniBlocks().Remove(executionResultHeaderHash)
-		// cleanup all log events
-		bp.dataPool.PostProcessTransactions().Remove(common.PrepareLogEventsKey(executionResultHeaderHash))
 	}
 
 	return nil

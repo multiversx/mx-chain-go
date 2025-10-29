@@ -753,6 +753,8 @@ func TestRecordHeaderV3(t *testing.T) {
 	t.Parallel()
 
 	t.Run("record block v3 should work no execution results", func(t *testing.T) {
+		t.Parallel()
+
 		args := createMockHistoryRepoArgs(42)
 		repo, err := NewHistoryRepository(args)
 		require.Nil(t, err)
@@ -766,6 +768,8 @@ func TestRecordHeaderV3(t *testing.T) {
 	})
 
 	t.Run("record block v3 should work", func(t *testing.T) {
+		t.Parallel()
+
 		args := createMockHistoryRepoArgs(42)
 		args.DataPool = dataRetrieverMock.NewPoolsHolderMock()
 		repo, err := NewHistoryRepository(args)
