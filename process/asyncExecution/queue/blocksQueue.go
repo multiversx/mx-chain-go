@@ -86,14 +86,18 @@ func (bq *blocksQueue) AddOrReplace(pair HeaderBodyPair) error {
 	return nil
 }
 
-func (bq *blocksQueue) replaceAndRemoveHigherNonces(pair HeaderBodyPair, nonce uint64) error {
-	indexToReplace := -1
+func (bq *blocksQueue) getIndexForNonce(nonce uint64) int {
 	for i, bp := range bq.headerBodyPairs {
 		if bp.Header.GetNonce() == nonce {
-			indexToReplace = i
-			break
+			return i
 		}
 	}
+
+	return -1
+}
+
+func (bq *blocksQueue) replaceAndRemoveHigherNonces(pair HeaderBodyPair, nonce uint64) error {
+	indexToReplace := bq.getIndexForNonce(nonce)
 	if indexToReplace == -1 {
 		return fmt.Errorf("%w for nonce %d", ErrMissingHeaderNonce, nonce)
 	}
@@ -171,18 +175,11 @@ func (bq *blocksQueue) RemoveAtNonceAndHigher(nonce uint64) error {
 	bq.mutex.Lock()
 	defer bq.mutex.Unlock()
 
-	if len(bq.headerBodyPairs) == 0 {
+	if bq.closed || len(bq.headerBodyPairs) == 0 {
 		return nil
 	}
 
-	indexToRemove := -1
-	for i, bp := range bq.headerBodyPairs {
-		if bp.Header.GetNonce() == nonce {
-			indexToRemove = i
-			break
-		}
-	}
-
+	indexToRemove := bq.getIndexForNonce(nonce)
 	if indexToRemove == -1 {
 		return fmt.Errorf("%w for nonce %d", ErrMissingHeaderNonce, nonce)
 	}
@@ -219,7 +216,7 @@ func (bq *blocksQueue) RemoveAtNonceAndHigher(nonce uint64) error {
 
 // RegisterEvictionSubscriber registers a new eviction subscriber
 func (bq *blocksQueue) RegisterEvictionSubscriber(subscriber BlocksQueueEvictionSubscriber) {
-	if check.IfNil(subscriber) {
+	if bq.closed || check.IfNil(subscriber) {
 		return
 	}
 
