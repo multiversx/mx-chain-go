@@ -4,10 +4,12 @@ import "github.com/multiversx/mx-chain-go/process/asyncExecution/queue"
 
 // BlocksQueueMock is a mock implementation of the BlocksQueue interface
 type BlocksQueueMock struct {
-	AddOrReplaceCalled func(pair queue.HeaderBodyPair) error
-	PopCalled          func() (queue.HeaderBodyPair, bool)
-	PeekCalled         func() (queue.HeaderBodyPair, bool)
-	CloseCalled        func()
+	AddOrReplaceCalled               func(pair queue.HeaderBodyPair) error
+	PopCalled                        func() (queue.HeaderBodyPair, bool)
+	PeekCalled                       func() (queue.HeaderBodyPair, bool)
+	RemoveAtNonceAndHigherCalled     func(nonce uint64) error
+	RegisterEvictionSubscriberCalled func(subscriber queue.BlocksQueueEvictionSubscriber)
+	CloseCalled                      func()
 }
 
 // AddOrReplace -
@@ -32,6 +34,21 @@ func (bqm *BlocksQueueMock) Peek() (queue.HeaderBodyPair, bool) {
 		return bqm.PeekCalled()
 	}
 	return queue.HeaderBodyPair{}, false
+}
+
+// RemoveAtNonceAndHigher -
+func (bqm *BlocksQueueMock) RemoveAtNonceAndHigher(nonce uint64) error {
+	if bqm.RemoveAtNonceAndHigherCalled != nil {
+		return bqm.RemoveAtNonceAndHigherCalled(nonce)
+	}
+	return nil
+}
+
+// RegisterEvictionSubscriber -
+func (bqm *BlocksQueueMock) RegisterEvictionSubscriber(subscriber queue.BlocksQueueEvictionSubscriber) {
+	if bqm.RegisterEvictionSubscriberCalled != nil {
+		bqm.RegisterEvictionSubscriberCalled(subscriber)
+	}
 }
 
 // Close -

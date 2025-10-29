@@ -12,7 +12,7 @@ type ExecutionResultsTrackerStub struct {
 	GetPendingExecutionResultByNonceCalled func(nonce uint64) (data.BaseExecutionResultHandler, error)
 	GetLastNotarizedExecutionResultCalled  func() (data.BaseExecutionResultHandler, error)
 	SetLastNotarizedResultCalled           func(executionResult data.BaseExecutionResultHandler) error
-	RemoveFromHashCalled                   func(hash []byte) error
+	RemoveFromNonceCalled                  func(nonce uint64) error
 }
 
 // AddExecutionResult -
@@ -63,10 +63,10 @@ func (ets *ExecutionResultsTrackerStub) SetLastNotarizedResult(executionResult d
 	return nil
 }
 
-// RemoveFromHash -
-func (ets *ExecutionResultsTrackerStub) RemoveFromHash(hash []byte) error {
-	if ets.RemoveFromHashCalled != nil {
-		return ets.RemoveFromHashCalled(hash)
+// RemoveFromNonce -
+func (ets *ExecutionResultsTrackerStub) RemoveFromNonce(nonce uint64) error {
+	if ets.RemoveFromNonceCalled != nil {
+		return ets.RemoveFromNonceCalled(nonce)
 	}
 	return nil
 }

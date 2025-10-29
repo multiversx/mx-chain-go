@@ -69,9 +69,9 @@ func TestDisabledCache_DoesNothing(t *testing.T) {
 	err = cache.OnProposedBlock(nil, nil, nil, nil, nil)
 	require.Nil(t, err)
 
-	err = cache.OnExecutedBlock(nil)
+	err = cache.OnExecutedBlock(nil, nil)
 	require.Nil(t, err)
 
-	numTrackedBlocks := cache.GetNumTrackedBlocks()
-	require.Equal(t, uint64(0), numTrackedBlocks)
+	diagnosis := cache.GetTrackerDiagnosis()
+	require.Nil(t, diagnosis)
 }

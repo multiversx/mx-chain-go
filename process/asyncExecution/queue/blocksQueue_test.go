@@ -9,6 +9,7 @@ import (
 	"github.com/multiversx/mx-chain-core-go/data"
 	"github.com/multiversx/mx-chain-core-go/data/block"
 	"github.com/multiversx/mx-chain-go/common"
+	"github.com/multiversx/mx-chain-go/testscommon/processMocks/queue"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 )
@@ -369,4 +370,174 @@ func TestBlocksQueue_Clean(t *testing.T) {
 	hq.Clean(1)
 	require.Equal(t, 0, len(hq.headerBodyPairs))
 	require.Equal(t, uint64(1), hq.lastAddedNonce)
+}
+
+func TestBlocksQueue_RemoveAtNonceAndHigher(t *testing.T) {
+	t.Parallel()
+
+	t.Run("remove from empty queue should return nil", func(t *testing.T) {
+		t.Parallel()
+
+		hq := NewBlocksQueue()
+		err := hq.RemoveAtNonceAndHigher(5)
+		require.Nil(t, err)
+		require.Equal(t, 0, len(hq.headerBodyPairs))
+	})
+
+	t.Run("remove from middle nonce removes that nonce and all higher", func(t *testing.T) {
+		t.Parallel()
+
+		hq := NewBlocksQueue()
+
+		// register a mocked subscriber to check if the callback is called for each nonce
+		evictedNonces := make(map[uint64]struct{})
+		subscriber := &queue.BlocksQueueEvictionSubscriberMock{
+			OnHeaderEvictedCalled: func(headerNonce uint64) {
+				evictedNonces[headerNonce] = struct{}{}
+			},
+		}
+		hq.RegisterEvictionSubscriber(subscriber)
+		hq.RegisterEvictionSubscriber(nil) // coverage only
+
+		// Add blocks with nonces 1, 2, 3, 4, 5
+		for i := uint64(1); i <= 5; i++ {
+			pair := HeaderBodyPair{
+				Header: &block.Header{Nonce: i, Round: i},
+				Body:   &block.Body{},
+			}
+			err := hq.AddOrReplace(pair)
+			require.Nil(t, err)
+		}
+
+		require.Equal(t, 5, len(hq.headerBodyPairs))
+		require.Equal(t, uint64(5), hq.lastAddedNonce)
+		require.Zero(t, len(evictedNonces))
+
+		// Remove from nonce 3 onwards
+		err := hq.RemoveAtNonceAndHigher(3)
+		require.Nil(t, err)
+
+		// Should have only 2 elements now (nonces 1, 2)
+		require.Equal(t, 2, len(hq.headerBodyPairs))
+		require.Equal(t, uint64(2), hq.lastAddedNonce)
+
+		// Verify remaining elements
+		require.Equal(t, uint64(1), hq.headerBodyPairs[0].Header.GetNonce())
+		require.Equal(t, uint64(2), hq.headerBodyPairs[1].Header.GetNonce())
+
+		// Check evicted nonces
+		require.Len(t, evictedNonces, 3)
+		require.Contains(t, evictedNonces, uint64(3))
+		require.Contains(t, evictedNonces, uint64(4))
+		require.Contains(t, evictedNonces, uint64(5))
+	})
+
+	t.Run("remove from first nonce clears entire queue", func(t *testing.T) {
+		t.Parallel()
+
+		hq := NewBlocksQueue()
+		// Add blocks with nonces 1, 2, 3, 4
+		for i := uint64(1); i <= 4; i++ {
+			pair := HeaderBodyPair{
+				Header: &block.Header{Nonce: i, Round: i},
+				Body:   &block.Body{},
+			}
+			err := hq.AddOrReplace(pair)
+			require.Nil(t, err)
+		}
+
+		require.Equal(t, 4, len(hq.headerBodyPairs))
+		require.Equal(t, uint64(4), hq.lastAddedNonce)
+
+		// Remove all
+		err := hq.RemoveAtNonceAndHigher(1)
+		require.Nil(t, err)
+
+		// Queue should be empty
+		require.Equal(t, 0, len(hq.headerBodyPairs))
+		require.Equal(t, uint64(0), hq.lastAddedNonce)
+	})
+
+	t.Run("remove from last nonce removes only last element", func(t *testing.T) {
+		t.Parallel()
+
+		hq := NewBlocksQueue()
+		// Add blocks with nonces 1, 2, 3, 4
+		for i := uint64(1); i <= 4; i++ {
+			pair := HeaderBodyPair{
+				Header: &block.Header{Nonce: i, Round: i},
+				Body:   &block.Body{},
+			}
+			err := hq.AddOrReplace(pair)
+			require.Nil(t, err)
+		}
+
+		require.Equal(t, 4, len(hq.headerBodyPairs))
+		require.Equal(t, uint64(4), hq.lastAddedNonce)
+
+		// Remove from nonce 4 (last element)
+		err := hq.RemoveAtNonceAndHigher(4)
+		require.Nil(t, err)
+
+		// Should have 3 elements now
+		require.Equal(t, 3, len(hq.headerBodyPairs))
+		require.Equal(t, uint64(3), hq.lastAddedNonce)
+
+		// Verify remaining elements
+		require.Equal(t, uint64(1), hq.headerBodyPairs[0].Header.GetNonce())
+		require.Equal(t, uint64(2), hq.headerBodyPairs[1].Header.GetNonce())
+		require.Equal(t, uint64(3), hq.headerBodyPairs[2].Header.GetNonce())
+	})
+
+	t.Run("remove non-existent nonce returns error", func(t *testing.T) {
+		t.Parallel()
+
+		hq := NewBlocksQueue()
+		hq.SetLastAddedNonce(10)
+
+		// Add blocks with nonces 11, 12, 13
+		for i := uint64(11); i <= 13; i++ {
+			pair := HeaderBodyPair{
+				Header: &block.Header{Nonce: i, Round: i},
+				Body:   &block.Body{},
+			}
+			err := hq.AddOrReplace(pair)
+			require.Nil(t, err)
+		}
+
+		require.Equal(t, 3, len(hq.headerBodyPairs))
+		require.Equal(t, uint64(13), hq.lastAddedNonce)
+
+		// Try to remove at nonce 5 (which doesn't exist)
+		err := hq.RemoveAtNonceAndHigher(5)
+		require.True(t, errors.Is(err, ErrMissingHeaderNonce))
+
+		// Queue should remain unchanged
+		require.Equal(t, 3, len(hq.headerBodyPairs))
+		require.Equal(t, uint64(13), hq.lastAddedNonce)
+	})
+
+	t.Run("remove from first nonce with nonce 0", func(t *testing.T) {
+		t.Parallel()
+
+		hq := NewBlocksQueue()
+		// Add block with nonce 0
+		pair := HeaderBodyPair{
+			Header: &block.Header{Nonce: 0, Round: 1},
+			Body:   &block.Body{},
+		}
+		err := hq.AddOrReplace(pair)
+		require.Nil(t, err)
+
+		require.Equal(t, 1, len(hq.headerBodyPairs))
+		require.Equal(t, uint64(0), hq.lastAddedNonce)
+
+		// Remove from nonce 0
+		err = hq.RemoveAtNonceAndHigher(0)
+		require.Nil(t, err)
+
+		// Queue should be empty, lastAddedNonce should be 0
+		require.Equal(t, 0, len(hq.headerBodyPairs))
+		require.Equal(t, uint64(0), hq.lastAddedNonce)
+	})
 }

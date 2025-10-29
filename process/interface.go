@@ -87,6 +87,7 @@ type SmartContractProcessorFacade interface {
 // TxTypeHandler is an interface to calculate the transaction type
 type TxTypeHandler interface {
 	ComputeTransactionType(tx data.TransactionHandler) (TransactionType, TransactionType, bool)
+	ComputeTransactionTypeInEpoch(tx data.TransactionHandler, epoch uint32) (TransactionType, TransactionType, bool)
 	IsInterfaceNil() bool
 }
 
@@ -314,8 +315,13 @@ type BlocksQueue interface {
 	AddOrReplace(pair queue.HeaderBodyPair) error
 	Pop() (queue.HeaderBodyPair, bool)
 	Peek() (queue.HeaderBodyPair, bool)
+<<<<<<< HEAD
 	Clean(lastAddedNonce uint64)
 	RemoveFromNonce(nonce uint64) error
+=======
+	RemoveAtNonceAndHigher(nonce uint64) error
+	RegisterEvictionSubscriber(subscriber queue.BlocksQueueEvictionSubscriber)
+>>>>>>> revert-current-block
 	IsInterfaceNil() bool
 	Close()
 }
@@ -1561,7 +1567,7 @@ type ExecutionResultsTracker interface {
 	GetPendingExecutionResultByNonce(nonce uint64) (data.BaseExecutionResultHandler, error)
 	GetLastNotarizedExecutionResult() (data.BaseExecutionResultHandler, error)
 	SetLastNotarizedResult(executionResult data.BaseExecutionResultHandler) error
-	RemoveFromHash(hash []byte) error
+	RemoveFromNonce(nonce uint64) error
 	IsInterfaceNil() bool
 }
 

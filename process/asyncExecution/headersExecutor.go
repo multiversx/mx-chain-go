@@ -107,6 +107,8 @@ func (he *headersExecutor) process(pair queue.HeaderBodyPair) error {
 		return nil
 	}
 
+	// TODO?: set rootHash in blockchain hook
+
 	return nil
 }
 

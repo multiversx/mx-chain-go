@@ -22,8 +22,10 @@ import (
 	"github.com/multiversx/mx-chain-core-go/data/transaction"
 	"github.com/multiversx/mx-chain-core-go/hashing"
 	"github.com/multiversx/mx-chain-core-go/marshal"
+	"github.com/multiversx/mx-chain-go/common/graceperiod"
 	"github.com/multiversx/mx-chain-go/testscommon/cache"
 	"github.com/multiversx/mx-chain-go/testscommon/pool"
+	"github.com/multiversx/mx-chain-go/testscommon/processMocks"
 	vmcommon "github.com/multiversx/mx-chain-vm-common-go"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
@@ -2176,7 +2178,7 @@ func TestShardProcessor_CommitBlockOkValsShouldWork(t *testing.T) {
 
 	txPoolOnExecutedBlockCalled := false
 	dataComponents.DataPool = initDataPool()
-	dataComponents.DataPool.Transactions().(*testscommon.ShardedDataCacheNotifierMock).OnExecutedBlockCalled = func(blockHeader data.HeaderHandler) error {
+	dataComponents.DataPool.Transactions().(*testscommon.ShardedDataCacheNotifierMock).OnExecutedBlockCalled = func(blockHeader data.HeaderHandler, rootHash []byte) error {
 		txPoolOnExecutedBlockCalled = true
 		return nil
 	}
@@ -2278,7 +2280,7 @@ func TestShardProcessor_CommitBlockFailsWhenOnExecutedBlockFails(t *testing.T) {
 
 	txPoolOnExecutedBlockCalled := false
 	dataComponents.DataPool = initDataPool()
-	dataComponents.DataPool.Transactions().(*testscommon.ShardedDataCacheNotifierMock).OnExecutedBlockCalled = func(blockHeader data.HeaderHandler) error {
+	dataComponents.DataPool.Transactions().(*testscommon.ShardedDataCacheNotifierMock).OnExecutedBlockCalled = func(blockHeader data.HeaderHandler, rootHash []byte) error {
 		txPoolOnExecutedBlockCalled = true
 		return expectedErr
 	}
@@ -4340,6 +4342,99 @@ func TestShardProcessor_RestoreMetaBlockIntoPoolShouldPass(t *testing.T) {
 	assert.Nil(t, err)
 }
 
+func TestShardPreprocessor_getAllMiniBlockDstMeFromMetaGetLastCrossNotarizedHeaderErrorShouldError(t *testing.T) {
+	t.Parallel()
+	sp, err := blproc.ConstructPartialShardBlockProcessorForTest(map[string]interface{}{
+		"blockTracker": &mock.BlockTrackerMock{
+			GetLastCrossNotarizedHeaderCalled: func(shardID uint32) (data.HeaderHandler, []byte, error) {
+				return nil, nil, process.ErrNilBlockHeader
+			},
+		},
+	})
+	require.Nil(t, err)
+
+	metablockHashes := [][]byte{
+		[]byte("hash1"),
+		[]byte("hash2"),
+	}
+	header := &block.HeaderV3{
+		PrevHash:         []byte("hash"),
+		Nonce:            1,
+		Round:            2,
+		MiniBlockHeaders: []block.MiniBlockHeader{},
+		LastExecutionResult: &block.ExecutionResultInfo{
+			ExecutionResult: &block.BaseExecutionResult{},
+		},
+		MetaBlockHashes: metablockHashes,
+	}
+	_, err = sp.GetAllMiniBlockDstMeFromMeta(header)
+	assert.Error(t, err)
+	assert.ErrorIs(t, err, process.ErrNilBlockHeader)
+}
+
+func TestShardPreprocessor_getAllMiniBlockDstMeFromMetaMissingMetaHeaderShouldError(t *testing.T) {
+	t.Parallel()
+
+	headerValidator := &processMocks.HeaderValidatorMock{
+		IsHeaderConstructionValidCalled: func(currHdr, prevHdr data.HeaderHandler) error {
+			return nil
+		},
+	}
+	poolMock := initDataPool()
+	poolMock.HeadersCalled = func() dataRetriever.HeadersPool {
+		return &pool.HeadersPoolStub{
+			GetHeaderByHashCalled: func(hash []byte) (data.HeaderHandler, error) {
+				return &block.HeaderV3{
+					LastExecutionResult: &block.ExecutionResultInfo{
+						ExecutionResult: &block.BaseExecutionResult{},
+					},
+				}, nil
+			},
+		}
+	}
+
+	metablockHashes := [][]byte{
+		[]byte("hash1"),
+		[]byte("hash2"),
+	}
+	header := &block.HeaderV3{
+		PrevHash:         []byte("hash"),
+		Nonce:            1,
+		Round:            2,
+		MiniBlockHeaders: []block.MiniBlockHeader{},
+		LastExecutionResult: &block.ExecutionResultInfo{
+			ExecutionResult: &block.BaseExecutionResult{},
+		},
+		MetaBlockHashes: metablockHashes,
+	}
+
+	sp, err := blproc.ConstructPartialShardBlockProcessorForTest(map[string]interface{}{
+		"headerValidator": headerValidator,
+		"hasher":          &hashingMocks.HasherMock{},
+		"proofsPool": &dataRetrieverMock.ProofsPoolMock{
+			HasProofCalled: func(shardID uint32, headerHash []byte) bool {
+				return true
+			},
+		},
+		"dataPool": poolMock,
+		"blockTracker": &mock.BlockTrackerMock{
+			GetLastCrossNotarizedHeaderCalled: func(shardID uint32) (data.HeaderHandler, []byte, error) {
+				return &block.MetaBlockV3{}, []byte("h"), nil
+			},
+		},
+		"hdrsForCurrBlock": &testscommon.HeadersForBlockMock{
+			GetHeaderInfoCalled: func(hash string) (headerForBlock.HeaderInfo, bool) {
+				return nil, false
+			},
+		},
+	})
+	require.Nil(t, err)
+
+	mblocks, err := sp.GetAllMiniBlockDstMeFromMeta(header)
+	assert.Error(t, err)
+	assert.ErrorIs(t, err, process.ErrMissingHeader)
+	assert.Nil(t, mblocks)
+}
 func TestShardPreprocessor_getAllMiniBlockDstMeFromMetaShouldPass(t *testing.T) {
 	t.Parallel()
 
@@ -4753,6 +4848,124 @@ func TestShardProcessor_updateStateStorage(t *testing.T) {
 	assert.True(t, cancelPruneWasCalled)
 }
 
+func TestShardProcessor_checkEpochCorrectnessCrossChain_gracePeriodError(t *testing.T) {
+	t.Parallel()
+
+	genesisNonce := uint64(0)
+	gracePeriod := &processMocks.GracePeriodErrStub{}
+	blockchain := &testscommon.ChainHandlerStub{
+		GetCurrentBlockHeaderCalled: func() data.HeaderHandler {
+			return &block.Header{
+				Nonce: 0,
+				Epoch: 1,
+				Round: 10,
+			}
+		},
+		GetGenesisHeaderCalled: func() data.HeaderHandler {
+			return &block.Header{
+				Nonce: 0,
+				Epoch: 0,
+				Round: 10,
+			}
+		},
+		GetGenesisHeaderHashCalled: func() []byte {
+			return []byte("genesis-hash")
+		},
+	}
+
+	epochStartTrigger := &mock.EpochStartTriggerStub{
+		EpochFinalityAttestingRoundCalled: func() uint64 {
+			return 5
+		},
+		EpochStartRoundCalled: func() uint64 {
+			return 1
+		},
+		MetaEpochCalled: func() uint32 {
+			return 2
+		},
+		EpochCalled: func() uint32 {
+			return 1
+		},
+	}
+
+	forkDetector := &mock.ForkDetectorMock{
+		GetHighestFinalBlockNonceCalled: func() uint64 {
+			return genesisNonce
+		},
+	}
+	sp, err := blproc.ConstructPartialShardBlockProcessorForTest(map[string]interface{}{
+		"genesisNonce":                  genesisNonce,
+		"blockChain":                    blockchain,
+		"epochStartTrigger":             epochStartTrigger,
+		"forkDetector":                  forkDetector,
+		"epochChangeGracePeriodHandler": gracePeriod,
+	})
+	require.Nil(t, err)
+
+	err = sp.CheckEpochCorrectnessCrossChain()
+	assert.NotNil(t, err)
+	assert.Equal(t, "epochChangeGracePeriodHandler forced error", err.Error())
+
+}
+
+func TestShardProcessor_checkEpochCorrectnessCrossChain_FinalizedReached(t *testing.T) {
+	t.Parallel()
+
+	genesisNonce := uint64(0)
+	gracePeriod, _ := graceperiod.NewEpochChangeGracePeriod([]config.EpochChangeGracePeriodByEpoch{{EnableEpoch: 0, GracePeriodInRounds: 1}})
+	blockchain := &testscommon.ChainHandlerStub{
+		GetCurrentBlockHeaderCalled: func() data.HeaderHandler {
+			return &block.Header{
+				Nonce: 0,
+				Epoch: 1,
+				Round: 10,
+			}
+		},
+		GetGenesisHeaderCalled: func() data.HeaderHandler {
+			return &block.Header{
+				Nonce: 0,
+				Epoch: 0,
+				Round: 10,
+			}
+		},
+		GetGenesisHeaderHashCalled: func() []byte {
+			return []byte("genesis-hash")
+		},
+	}
+
+	epochStartTrigger := &mock.EpochStartTriggerStub{
+		EpochFinalityAttestingRoundCalled: func() uint64 {
+			return 5
+		},
+		EpochStartRoundCalled: func() uint64 {
+			return 1
+		},
+		MetaEpochCalled: func() uint32 {
+			return 2
+		},
+		EpochCalled: func() uint32 {
+			return 1
+		},
+	}
+
+	forkDetector := &mock.ForkDetectorMock{
+		GetHighestFinalBlockNonceCalled: func() uint64 {
+			return genesisNonce
+		},
+	}
+	sp, err := blproc.ConstructPartialShardBlockProcessorForTest(map[string]interface{}{
+		"genesisNonce":                  genesisNonce,
+		"blockChain":                    blockchain,
+		"epochStartTrigger":             epochStartTrigger,
+		"forkDetector":                  forkDetector,
+		"epochChangeGracePeriodHandler": gracePeriod,
+	})
+	require.Nil(t, err)
+
+	err = sp.CheckEpochCorrectnessCrossChain()
+	assert.Nil(t, err)
+}
+
 func TestShardProcessor_checkEpochCorrectnessCrossChainNilCurrentBlock(t *testing.T) {
 	t.Parallel()
 
@@ -5125,6 +5338,56 @@ func TestShardProcessor_RequestMetaHeadersIfNeededShouldAddHeaderIntoTrackerPool
 	assert.Equal(t, expectedAddedNonces, addedNonces)
 }
 
+func TestShardProcessor_CheckEpochCorrectnessShouldErrorWhenHeaderEpochBehindCurrentHeader(t *testing.T) {
+	t.Parallel()
+
+	header := &block.Header{
+		Epoch: 1,
+	}
+	currentHeader := &block.Header{
+		Epoch: 3,
+	}
+	blockChain := &testscommon.ChainHandlerStub{
+		GetCurrentBlockHeaderCalled: func() data.HeaderHandler {
+			return currentHeader
+		},
+	}
+	sp, err := blproc.ConstructPartialShardBlockProcessorForTest(map[string]interface{}{
+		"blockChain": blockChain,
+	})
+	require.Nil(t, err)
+
+	err = sp.CheckEpochCorrectness(header)
+	assert.Error(t, err)
+	assert.Equal(t, "epoch does not match proposed header with older epoch 1 than blockchain epoch 3", err.Error())
+}
+
+func TestShardProcessor_CheckEpochCorrectnessShouldErrorWhenIsStartOfEpochButShouldNotBe(t *testing.T) {
+	t.Parallel()
+
+	// set EpochStartMetaHash non-nil to emulate IsStartOfEpochBlock == true
+	header := &block.Header{
+		Epoch:              3,
+		EpochStartMetaHash: []byte("start"),
+	}
+	currentHeader := &block.Header{
+		Epoch: 3,
+	}
+	blockChain := &testscommon.ChainHandlerStub{
+		GetCurrentBlockHeaderCalled: func() data.HeaderHandler {
+			return currentHeader
+		},
+	}
+	sp, err := blproc.ConstructPartialShardBlockProcessorForTest(map[string]interface{}{
+		"blockChain": blockChain,
+	})
+	require.Nil(t, err)
+
+	err = sp.CheckEpochCorrectness(header)
+	assert.Error(t, err)
+	assert.Equal(t, "epoch does not match proposed header with same epoch 3 as blockchain and it is of epoch start", err.Error())
+}
+
 func TestShardProcessor_CheckEpochCorrectnessShouldRemoveAndRequestStartOfEpochMetaBlockWhenEpochDoesNotMatch(t *testing.T) {
 	t.Parallel()
 
@@ -5198,6 +5461,169 @@ func TestShardProcessor_CheckEpochCorrectnessShouldRemoveAndRequestStartOfEpochM
 	assert.True(t, removeHeaderByHashWasCalled)
 	assert.True(t, requestMetaHeaderWasCalled)
 	assert.True(t, errors.Is(err, process.ErrEpochDoesNotMatch))
+}
+
+func TestShardProcessor_CheckEpochCorrectnessShouldErrorWhenIsHeaderOfInvalidEpoch(t *testing.T) {
+	t.Parallel()
+
+	header := &block.Header{
+		Epoch: 3,
+	}
+	currentHeader := &block.Header{
+		Epoch: 3,
+	}
+	blockChain := &testscommon.ChainHandlerStub{
+		GetCurrentBlockHeaderCalled: func() data.HeaderHandler {
+			return currentHeader
+		},
+	}
+	epochStartTriggerStub := &mock.EpochStartTriggerStub{
+		MetaEpochCalled: func() uint32 {
+			return 2
+		},
+	}
+	sp, err := blproc.ConstructPartialShardBlockProcessorForTest(map[string]interface{}{
+		"blockChain":        blockChain,
+		"epochStartTrigger": epochStartTriggerStub,
+	})
+	require.Nil(t, err)
+
+	err = sp.CheckEpochCorrectness(header)
+	assert.Error(t, err)
+	assert.Equal(t, "epoch does not match proposed header with epoch too high 3 with trigger in epoch 2", err.Error())
+}
+
+func TestShardProcessor_CheckEpochCorrectnessShouldErrorWhenEpochChangeGracePeriodHandlerErrors(t *testing.T) {
+	t.Parallel()
+
+	header := &block.Header{
+		Epoch: 3,
+	}
+	currentHeader := &block.Header{
+		Epoch: 3,
+	}
+	blockChain := &testscommon.ChainHandlerStub{
+		GetCurrentBlockHeaderCalled: func() data.HeaderHandler {
+			return currentHeader
+		},
+	}
+	epochStartTriggerStub := &mock.EpochStartTriggerStub{
+		MetaEpochCalled: func() uint32 {
+			return 3
+		},
+	}
+	enableEpochsHandler := &enableEpochsHandlerMock.EnableEpochsHandlerStub{
+		IsFlagEnabledInEpochCalled: func(flag core.EnableEpochFlag, epoch uint32) bool {
+			return false
+		},
+	}
+	sp, err := blproc.ConstructPartialShardBlockProcessorForTest(map[string]interface{}{
+		"blockChain":                    blockChain,
+		"epochStartTrigger":             epochStartTriggerStub,
+		"enableEpochsHandler":           enableEpochsHandler,
+		"epochChangeGracePeriodHandler": &processMocks.GracePeriodErrStub{},
+	})
+	require.Nil(t, err)
+
+	err = sp.CheckEpochCorrectness(header)
+	assert.Error(t, err)
+	assert.Equal(t, "epochChangeGracePeriodHandler forced error could not get grace period for epoch 3", err.Error())
+}
+
+func TestShardProcessor_CheckEpochCorrectnessShouldErrorWhenIsOldEpochAndShouldBeNew(t *testing.T) {
+	t.Parallel()
+
+	gracePeriod, _ := graceperiod.NewEpochChangeGracePeriod([]config.EpochChangeGracePeriodByEpoch{{EnableEpoch: 0, GracePeriodInRounds: 1}})
+
+	header := &block.Header{
+		Epoch: 3,
+		Round: 7,
+	}
+	currentHeader := &block.Header{
+		Epoch: 3,
+	}
+	blockChain := &testscommon.ChainHandlerStub{
+		GetCurrentBlockHeaderCalled: func() data.HeaderHandler {
+			return currentHeader
+		},
+	}
+
+	epochStartTriggerStub := &mock.EpochStartTriggerStub{
+		MetaEpochCalled: func() uint32 {
+			return 4
+		},
+		EpochStartRoundCalled: func() uint64 {
+			return 5
+		},
+		EpochFinalityAttestingRoundCalled: func() uint64 {
+			return 5
+		},
+		IsEpochStartCalled: func() bool {
+			return true
+		},
+	}
+	enableEpochsHandler := &enableEpochsHandlerMock.EnableEpochsHandlerStub{
+		IsFlagEnabledInEpochCalled: func(flag core.EnableEpochFlag, epoch uint32) bool {
+			return true
+		},
+	}
+	sp, err := blproc.ConstructPartialShardBlockProcessorForTest(map[string]interface{}{
+		"blockChain":                    blockChain,
+		"epochStartTrigger":             epochStartTriggerStub,
+		"enableEpochsHandler":           enableEpochsHandler,
+		"epochChangeGracePeriodHandler": gracePeriod,
+	})
+	require.Nil(t, err)
+
+	err = sp.CheckEpochCorrectness(header)
+	assert.Error(t, err)
+	assert.Equal(t, "epoch does not match proposed header with epoch 3 should be in epoch 4", err.Error())
+}
+
+func TestShardProcessor_CheckEpochCorrectnessShouldErrorWhenIsNotEpochStartButShouldBe(t *testing.T) {
+	t.Parallel()
+
+	gracePeriod, _ := graceperiod.NewEpochChangeGracePeriod([]config.EpochChangeGracePeriodByEpoch{{EnableEpoch: 0, GracePeriodInRounds: 1}})
+
+	header := &block.Header{
+		Epoch: 4,
+	}
+	currentHeader := &block.Header{
+		Epoch: 3,
+	}
+	blockChain := &testscommon.ChainHandlerStub{
+		GetCurrentBlockHeaderCalled: func() data.HeaderHandler {
+			return currentHeader
+		},
+	}
+
+	epochStartTriggerStub := &mock.EpochStartTriggerStub{
+		MetaEpochCalled: func() uint32 {
+			return 4
+		},
+		EpochStartRoundCalled: func() uint64 {
+			return 5
+		},
+		EpochFinalityAttestingRoundCalled: func() uint64 {
+			return 5
+		},
+	}
+	enableEpochsHandler := &enableEpochsHandlerMock.EnableEpochsHandlerStub{
+		IsFlagEnabledInEpochCalled: func(flag core.EnableEpochFlag, epoch uint32) bool {
+			return false
+		},
+	}
+	sp, err := blproc.ConstructPartialShardBlockProcessorForTest(map[string]interface{}{
+		"blockChain":                    blockChain,
+		"epochStartTrigger":             epochStartTriggerStub,
+		"enableEpochsHandler":           enableEpochsHandler,
+		"epochChangeGracePeriodHandler": gracePeriod,
+	})
+	require.Nil(t, err)
+
+	err = sp.CheckEpochCorrectness(header)
+	assert.Error(t, err)
+	assert.Equal(t, "epoch does not match proposed header with new epoch 4 is not of type epoch start", err.Error())
 }
 
 func TestShardProcessor_CreateNewHeaderErrWrongTypeAssertion(t *testing.T) {
@@ -5709,7 +6135,7 @@ func TestVerifyCrossShardMiniBlockDstMe(t *testing.T) {
 		}
 
 		err := sp.VerifyCrossShardMiniBlockDstMe(header)
-		require.Nil(t, err)
+		require.NotNil(t, err)
 	})
 
 	t.Run("cannot find header in pool should error", func(t *testing.T) {
@@ -6124,5 +6550,141 @@ func Test_ShouldDisableOutgoingTxs(t *testing.T) {
 			},
 		}
 		require.False(t, blproc.ShouldDisableOutgoingTxs(enableEpochsHandler, enableRoundsHandler))
+	})
+}
+
+func TestShardProcessor_GetLastExecutionResultHeader(t *testing.T) {
+	t.Parallel()
+
+	t.Run("should return current header if not header v3", func(t *testing.T) {
+		t.Parallel()
+
+		currHeader := &block.Header{}
+
+		dataPool := initDataPool()
+
+		arguments := CreateMockArguments(createComponentHolderMocks())
+		arguments.DataComponents = &mock.DataComponentsMock{
+			Storage:    initStore(),
+			DataPool:   dataPool,
+			BlockChain: arguments.DataComponents.Blockchain(),
+		}
+
+		sp, _ := blproc.NewShardProcessor(arguments)
+
+		retHeader, err := sp.GetLastExecutionResultHeader(currHeader)
+		require.Nil(t, err)
+		require.Equal(t, currHeader, retHeader)
+	})
+
+	t.Run("should error if failed to get header from pool", func(t *testing.T) {
+		t.Parallel()
+
+		headerHash1 := []byte("hash1")
+
+		currHeader := &block.HeaderV3{
+			LastExecutionResult: &block.ExecutionResultInfo{
+				ExecutionResult: &block.BaseExecutionResult{
+					HeaderHash: headerHash1,
+				},
+			},
+		}
+
+		dataPool := initDataPool()
+		dataPool.HeadersCalled = func() dataRetriever.HeadersPool {
+			return &pool.HeadersPoolStub{
+				GetHeaderByHashCalled: func(hash []byte) (data.HeaderHandler, error) {
+					return nil, expectedError
+				},
+			}
+		}
+
+		arguments := CreateMockArguments(createComponentHolderMocks())
+		arguments.DataComponents = &mock.DataComponentsMock{
+			Storage:    initStore(),
+			DataPool:   dataPool,
+			BlockChain: arguments.DataComponents.Blockchain(),
+		}
+
+		sp, _ := blproc.NewShardProcessor(arguments)
+
+		retHeader, err := sp.GetLastExecutionResultHeader(currHeader)
+		require.Equal(t, expectedErr, err)
+		require.Nil(t, retHeader)
+	})
+
+	t.Run("should work", func(t *testing.T) {
+		t.Parallel()
+
+		headerHash1 := []byte("hash1")
+
+		currHeader := &block.HeaderV3{
+			LastExecutionResult: &block.ExecutionResultInfo{
+				ExecutionResult: &block.BaseExecutionResult{
+					HeaderHash: headerHash1,
+				},
+			},
+		}
+
+		execResHeader := &block.HeaderV3{}
+
+		dataPool := initDataPool()
+		dataPool.HeadersCalled = func() dataRetriever.HeadersPool {
+			return &pool.HeadersPoolStub{
+				GetHeaderByHashCalled: func(hash []byte) (data.HeaderHandler, error) {
+					if bytes.Equal(hash, headerHash1) {
+						return execResHeader, nil
+					}
+
+					return nil, expectedError
+				},
+			}
+		}
+
+		arguments := CreateMockArguments(createComponentHolderMocks())
+		arguments.DataComponents = &mock.DataComponentsMock{
+			Storage:    initStore(),
+			DataPool:   dataPool,
+			BlockChain: arguments.DataComponents.Blockchain(),
+		}
+
+		sp, _ := blproc.NewShardProcessor(arguments)
+
+		retHeader, err := sp.GetLastExecutionResultHeader(currHeader)
+		require.Nil(t, err)
+		require.Equal(t, execResHeader, retHeader)
+	})
+}
+
+func TestShardProcessor_GetLastExecutionResultsRootHash(t *testing.T) {
+	t.Parallel()
+
+	t.Run("before header v3, should return provided root hash", func(t *testing.T) {
+		t.Parallel()
+
+		rootHash := []byte("rootHash1")
+
+		header := &block.HeaderV2{}
+
+		retRootHash := blproc.GetLastExecutionResultsRootHash(header, rootHash)
+		require.Equal(t, rootHash, retRootHash)
+	})
+
+	t.Run("with header v3, should return exec results root hash", func(t *testing.T) {
+		t.Parallel()
+
+		rootHash1 := []byte("rootHash1")
+		rootHash2 := []byte("rootHash2")
+
+		header := &block.HeaderV3{
+			LastExecutionResult: &block.ExecutionResultInfo{
+				ExecutionResult: &block.BaseExecutionResult{
+					RootHash: rootHash2,
+				},
+			},
+		}
+
+		retRootHash := blproc.GetLastExecutionResultsRootHash(header, rootHash1)
+		require.Equal(t, rootHash2, retRootHash)
 	})
 }

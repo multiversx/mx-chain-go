@@ -105,6 +105,7 @@ type baseProcessor struct {
 	gasConsumedProvider           gasConsumedProvider
 	economicsData                 process.EconomicsDataHandler
 	epochChangeGracePeriodHandler common.EpochChangeGracePeriodHandler
+	stateAccessesCollector        state.StateAccessesCollector
 	processConfigsHandler         common.ProcessConfigsHandler
 
 	processDataTriesOnCommitEpoch bool
@@ -123,6 +124,7 @@ type baseProcessor struct {
 	executionResultsVerifier           ExecutionResultsVerifier
 	missingDataResolver                MissingDataResolver
 	gasComputation                     process.GasComputation
+	blocksQueue                        process.BlocksQueue
 }
 
 type bootStorerDataArgs struct {
@@ -201,6 +203,7 @@ func NewBaseProcessor(arguments ArgBaseProcessor) (*baseProcessor, error) {
 		blockProcessingCutoffHandler:  arguments.BlockProcessingCutoffHandler,
 		managedPeersHolder:            arguments.ManagedPeersHolder,
 		sentSignaturesTracker:         arguments.SentSignaturesTracker,
+		stateAccessesCollector:        arguments.StateAccessesCollector,
 		proofsPool:                    arguments.DataComponents.Datapool().Proofs(),
 		hdrsForCurrBlock:              arguments.HeadersForBlock,
 		processConfigsHandler:         arguments.CoreComponents.ProcessConfigsHandler(),
@@ -211,6 +214,7 @@ func NewBaseProcessor(arguments ArgBaseProcessor) (*baseProcessor, error) {
 		executionResultsVerifier:           arguments.ExecutionResultsVerifier,
 		missingDataResolver:                arguments.MissingDataResolver,
 		gasComputation:                     arguments.GasComputation,
+		blocksQueue:                        arguments.BlocksQueue,
 	}
 
 	return base, nil
@@ -705,6 +709,9 @@ func checkProcessorParameters(arguments ArgBaseProcessor) error {
 	if check.IfNil(arguments.SentSignaturesTracker) {
 		return process.ErrNilSentSignatureTracker
 	}
+	if check.IfNil(arguments.StateAccessesCollector) {
+		return process.ErrNilStateAccessesCollector
+	}
 	if check.IfNil(arguments.HeadersForBlock) {
 		return process.ErrNilHeadersForBlock
 	}
@@ -731,6 +738,9 @@ func checkProcessorParameters(arguments ArgBaseProcessor) error {
 	}
 	if check.IfNil(arguments.GasComputation) {
 		return process.ErrNilGasComputation
+	}
+	if check.IfNil(arguments.BlocksQueue) {
+		return process.ErrNilBlocksQueue
 	}
 
 	return nil
@@ -1134,6 +1144,14 @@ func (bp *baseProcessor) cleanupPools(headerHandler data.HeaderHandler) {
 		bp.cleanupPoolsForCrossShard(core.MetachainShardId, noncesToPrevFinal)
 	}
 
+	for _, executionResult := range headerHandler.GetExecutionResultsHandlers() {
+		executionResultHeaderHash := executionResult.GetHeaderHash()
+		// cleanup all intra shard miniblocks
+		bp.dataPool.MiniBlocks().Remove(executionResultHeaderHash)
+		// cleanup all log events
+		bp.dataPool.PostProcessTransactions().Remove(common.PrepareLogEventsKey(executionResultHeaderHash))
+	}
+
 }
 
 func (bp *baseProcessor) cleanupPoolsForCrossShard(
@@ -1149,10 +1167,12 @@ func (bp *baseProcessor) cleanupPoolsForCrossShard(
 		return
 	}
 
+	crossNotarizedHeaderNonce := common.GetLastExecutionResultNonce(crossNotarizedHeader)
+
 	bp.removeHeadersBehindNonceFromPools(
 		false,
 		shardID,
-		crossNotarizedHeader.GetNonce(),
+		crossNotarizedHeaderNonce,
 	)
 
 	if common.IsFlagEnabledAfterEpochsStartBlock(crossNotarizedHeader, bp.enableEpochsHandler, common.AndromedaFlag) {
@@ -1300,7 +1320,7 @@ func (bp *baseProcessor) getFinalMiniBlocksFromExecutionResults(
 			cachedMiniBlockBytes := cachedMiniBlock.([]byte)
 
 			var miniBlock *block.MiniBlock
-			err := bp.marshalizer.Unmarshal(&miniBlock, cachedMiniBlockBytes)
+			err = bp.marshalizer.Unmarshal(&miniBlock, cachedMiniBlockBytes)
 			if err != nil {
 				return nil, err
 			}
@@ -1334,7 +1354,7 @@ func (bp *baseProcessor) cleanupBlockTrackerPoolsForShard(shardID uint32, nonces
 		return
 	}
 
-	selfNotarizedNonce := selfNotarizedHeader.GetNonce()
+	selfNotarizedNonce := common.GetLastExecutionResultNonce(selfNotarizedHeader)
 
 	crossNotarizedNonce := uint64(0)
 	if shardID != bp.shardCoordinator.SelfId() {
@@ -1347,7 +1367,7 @@ func (bp *baseProcessor) cleanupBlockTrackerPoolsForShard(shardID uint32, nonces
 			return
 		}
 
-		crossNotarizedNonce = crossNotarizedHeader.GetNonce()
+		crossNotarizedNonce = common.GetLastExecutionResultNonce(crossNotarizedHeader)
 	}
 
 	bp.blockTracker.CleanupHeadersBehindNonce(
@@ -1496,19 +1516,38 @@ func deleteSelfReceiptsMiniBlocks(body *block.Body) *block.Body {
 }
 
 func (bp *baseProcessor) getNoncesToFinal(headerHandler data.HeaderHandler) uint64 {
-	// TODO: modify this method to return last execution result nonce for header v3
 	currentBlockNonce := bp.genesisNonce
 	if !check.IfNil(headerHandler) {
 		currentBlockNonce = headerHandler.GetNonce()
 	}
 
 	noncesToFinal := uint64(0)
-	finalBlockNonce := bp.forkDetector.GetHighestFinalBlockNonce()
+	finalBlockNonce := bp.getFinalBlockNonce(headerHandler)
 	if currentBlockNonce > finalBlockNonce {
 		noncesToFinal = currentBlockNonce - finalBlockNonce
 	}
 
 	return noncesToFinal
+}
+
+func (bp *baseProcessor) getFinalBlockNonce(
+	headerHandler data.HeaderHandler,
+) uint64 {
+	finalBlockNonce := bp.forkDetector.GetHighestFinalBlockNonce()
+	if !headerHandler.IsHeaderV3() {
+		return finalBlockNonce
+	}
+
+	finalHeaderHandler, err := bp.dataPool.Headers().GetHeaderByHash(bp.forkDetector.GetHighestFinalBlockHash())
+	if err != nil {
+		return finalBlockNonce
+	}
+
+	if !finalHeaderHandler.IsHeaderV3() {
+		return finalHeaderHandler.GetNonce()
+	}
+
+	return common.GetLastExecutionResultNonce(finalHeaderHandler)
 }
 
 // DecodeBlockBody method decodes block body from a given byte array
@@ -1704,16 +1743,10 @@ func (bp *baseProcessor) revertCurrentBlockV3(headerHandler data.HeaderHandler) 
 		return
 	}
 
-	hash, err := core.CalculateHash(bp.marshalizer, bp.hasher, headerHandler)
+	headerNonce := headerHandler.GetNonce()
+	err := bp.blocksQueue.RemoveAtNonceAndHigher(headerNonce)
 	if err != nil {
-		log.Debug("revertCurrentBlockV3 CalculateHash", "err", err)
-		return
-	}
-
-	err = bp.executionResultsTracker.RemoveFromHash(hash)
-	if err != nil {
-		log.Debug("revertCurrentBlockV3 RemoveFromHash", "err", err)
-		return
+		log.Error("revertCurrentBlockV3 RemoveAtNonceAndHigher", "nonce", headerNonce, "err", err)
 	}
 }
 
@@ -2039,9 +2072,10 @@ func (bp *baseProcessor) commitTrieEpochRootHashIfNeeded(metaBlock *block.MetaBl
 	totalSizeCodeLeaves := 0
 
 	argsAccCreator := factory.ArgsAccountCreator{
-		Hasher:              bp.hasher,
-		Marshaller:          bp.marshalizer,
-		EnableEpochsHandler: bp.enableEpochsHandler,
+		Hasher:                 bp.hasher,
+		Marshaller:             bp.marshalizer,
+		EnableEpochsHandler:    bp.enableEpochsHandler,
+		StateAccessesCollector: bp.stateAccessesCollector,
 	}
 	accountCreator, err := factory.NewAccountCreator(argsAccCreator)
 	if err != nil {
@@ -2412,8 +2446,7 @@ func (bp *baseProcessor) OnProposedBlock(
 		return err
 	}
 
-	blockChainInfo := holders.NewBlockchainInfo(lastExecResHandler.GetHeaderHash(), proposedHeader.GetPrevHash(), proposedHeader.GetNonce())
-	return bp.dataPool.Transactions().OnProposedBlock(proposedHash, proposedBodyPtr, proposedHeader, accountsProvider, blockChainInfo)
+	return bp.dataPool.Transactions().OnProposedBlock(proposedHash, proposedBodyPtr, proposedHeader, accountsProvider, lastExecResHandler.GetHeaderHash())
 }
 
 func (bp *baseProcessor) checkSentSignaturesAtCommitTime(header data.HeaderHandler) error {
@@ -2577,6 +2610,29 @@ func (bp *baseProcessor) putMiniBlocksIntoStorage(miniBlockHeaderHandlers []data
 	return nil
 }
 
+func (bp *baseProcessor) cacheIntraShardMiniBlocks(headerHash []byte, mbs []*block.MiniBlock) error {
+	marshalledMbs, err := bp.marshalizer.Marshal(mbs)
+	if err != nil {
+		return err
+	}
+
+	bp.dataPool.ExecutedMiniBlocks().Put(headerHash, marshalledMbs, len(marshalledMbs))
+
+	return nil
+}
+
+func (bp *baseProcessor) cacheLogEvents(headerHash []byte, logs []*data.LogData) error {
+	logsMarshalled, err := bp.marshalizer.Marshal(logs)
+	if err != nil {
+		return err
+	}
+
+	key := common.PrepareLogEventsKey(headerHash)
+	bp.dataPool.PostProcessTransactions().Put(key, logs, len(logsMarshalled))
+
+	return nil
+}
+
 func (bp *baseProcessor) cacheExecutedMiniBlocks(body *block.Body, miniBlockHeaders []data.MiniBlockHeaderHandler) error {
 	for i, mbHeader := range miniBlockHeaders {
 		miniBlockHash := mbHeader.GetHash()
@@ -2598,7 +2654,7 @@ func (bp *baseProcessor) cacheIntermediateTxsForHeader(headerHash []byte) error 
 		return err
 	}
 
-	bp.dataPool.PostProcessTransactions().Put(headerHash, buff, len(buff))
+	bp.dataPool.PostProcessTransactions().Put(headerHash, intermediateTxs, len(buff))
 
 	return nil
 }
@@ -2611,11 +2667,9 @@ func (bp *baseProcessor) saveIntermediateTxs(headerHash []byte) error {
 		return fmt.Errorf("%w for header %s", process.ErrMissingHeader, hex.EncodeToString(headerHash))
 	}
 
-	cachedIntermediateTxsBuff := cachedIntermediateTxs.([]byte)
-	cachedIntermediateTxsMap := map[block.Type]map[string]data.TransactionHandler{}
-	errUnmarshal := bp.marshalizer.Unmarshal(cachedIntermediateTxsMap, cachedIntermediateTxsBuff)
-	if errUnmarshal != nil {
-		return errUnmarshal
+	cachedIntermediateTxsMap, ok := cachedIntermediateTxs.(map[block.Type]map[string]data.TransactionHandler)
+	if !ok {
+		log.Warn("saveIntermediateTxs: intermediateTxs cannot cast to concrete type", "hash", headerHash)
 	}
 
 	for blockType, cachedTransactionsMap := range cachedIntermediateTxsMap {

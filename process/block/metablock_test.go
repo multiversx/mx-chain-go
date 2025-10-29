@@ -14,6 +14,8 @@ import (
 	"github.com/multiversx/mx-chain-core-go/core/check"
 	"github.com/multiversx/mx-chain-core-go/data"
 	"github.com/multiversx/mx-chain-core-go/data/block"
+	"github.com/multiversx/mx-chain-go/state/disabled"
+	"github.com/multiversx/mx-chain-go/testscommon/processMocks"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 
@@ -228,6 +230,7 @@ func createMockMetaArguments(
 			BlockProcessingCutoffHandler:       &testscommon.BlockProcessingCutoffStub{},
 			ManagedPeersHolder:                 &testscommon.ManagedPeersHolderStub{},
 			SentSignaturesTracker:              &testscommon.SentSignatureTrackerStub{},
+			StateAccessesCollector:             disabled.NewDisabledStateAccessesCollector(),
 			HeadersForBlock:                    headersForBlock,
 			MiniBlocksSelectionSession:         mbSelectionSession,
 			ExecutionResultsVerifier:           execResultsVerifier,
@@ -235,6 +238,7 @@ func createMockMetaArguments(
 			ExecutionResultsInclusionEstimator: inclusionEstimator,
 			ExecutionResultsTracker:            executionResultsTracker,
 			GasComputation:                     gasComputation,
+			BlocksQueue:                        &processMocks.BlocksQueueMock{},
 		},
 		SCToProtocol:                 &mock.SCToProtocolStub{},
 		PendingMiniBlocksHandler:     &mock.PendingMiniBlocksHandlerStub{},
@@ -1009,6 +1013,7 @@ func TestMetaProcessor_CommitBlockStorageFailsForHeaderShouldNotReturnError(t *t
 		return &block.Header{}, []byte("hash"), nil
 	}
 	arguments.BlockTracker = blockTrackerMock
+	arguments.StateAccessesCollector = &stateMock.StateAccessesCollectorStub{}
 	mp, _ := blproc.NewMetaProcessor(arguments)
 
 	processHandler := arguments.CoreComponents.ProcessStatusHandler()
@@ -1140,6 +1145,7 @@ func TestMetaProcessor_CommitBlockOkValsShouldWork(t *testing.T) {
 			resetCountersForManagedBlockSignerCalled = true
 		},
 	}
+	arguments.StateAccessesCollector = &stateMock.StateAccessesCollectorStub{}
 
 	mp, _ := blproc.NewMetaProcessor(arguments)
 
@@ -2791,7 +2797,8 @@ func TestMetaProcessor_VerifyCrossShardMiniBlocksDstMe(t *testing.T) {
 	assert.Nil(t, err)
 
 	err = mp.VerifyCrossShardMiniBlockDstMe(hdr)
-	assert.Nil(t, err)
+	assert.Error(t, err)
+	assert.ErrorIs(t, err, process.ErrMissingHeader)
 }
 
 func TestMetaProcess_CreateNewBlockHeaderProcessHeaderExpectCheckRoundCalled(t *testing.T) {
