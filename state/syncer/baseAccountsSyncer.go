@@ -16,6 +16,7 @@ import (
 	"github.com/multiversx/mx-chain-go/state"
 	"github.com/multiversx/mx-chain-go/storage"
 	"github.com/multiversx/mx-chain-go/trie"
+	"github.com/multiversx/mx-chain-go/trie/collapseManager"
 )
 
 type baseAccountsSyncer struct {
@@ -215,8 +216,7 @@ func (b *baseAccountsSyncer) GetSyncedTries() map[string]common.Trie {
 	b.mutex.Lock()
 	defer b.mutex.Unlock()
 
-	tenMBSize := uint64(10485760)
-	dataTrie, err := trie.NewTrie(b.trieStorageManager, b.marshalizer, b.hasher, b.enableEpochsHandler, tenMBSize)
+	dataTrie, err := trie.NewTrie(b.trieStorageManager, b.marshalizer, b.hasher, b.enableEpochsHandler, collapseManager.NewDisabledCollapseManager())
 	if err != nil {
 		log.Warn("error creating a new trie in baseAccountsSyncer.GetSyncedTries", "error", err)
 		return make(map[string]common.Trie)

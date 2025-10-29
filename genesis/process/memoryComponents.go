@@ -9,6 +9,7 @@ import (
 	disabledState "github.com/multiversx/mx-chain-go/state/disabled"
 	"github.com/multiversx/mx-chain-go/state/storagePruningManager/disabled"
 	"github.com/multiversx/mx-chain-go/trie"
+	"github.com/multiversx/mx-chain-go/trie/collapseManager"
 )
 
 const tenMbSize = uint64(10485760)
@@ -21,7 +22,7 @@ func createAccountAdapter(
 	addressConverter core.PubkeyConverter,
 	enableEpochsHandler common.EnableEpochsHandler,
 ) (state.AccountsAdapter, error) {
-	tr, err := trie.NewTrie(trieStorage, marshaller, hasher, enableEpochsHandler, tenMbSize)
+	tr, err := trie.NewTrie(trieStorage, marshaller, hasher, enableEpochsHandler, collapseManager.NewDisabledCollapseManager())
 	if err != nil {
 		return nil, err
 	}

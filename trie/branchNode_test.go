@@ -16,6 +16,7 @@ import (
 	"github.com/multiversx/mx-chain-go/testscommon/enableEpochsHandlerMock"
 	"github.com/multiversx/mx-chain-go/testscommon/hashingMocks"
 	"github.com/multiversx/mx-chain-go/testscommon/marshallerMock"
+	"github.com/multiversx/mx-chain-go/trie/collapseManager"
 	"github.com/multiversx/mx-chain-go/trie/keyBuilder"
 	"github.com/multiversx/mx-chain-go/trie/statistics"
 	"github.com/multiversx/mx-chain-go/trie/trieMetricsCollector"
@@ -96,7 +97,7 @@ func newEmptyTrie() (*patriciaMerkleTrie, *trieStorageManager) {
 		oldRoot:             make([]byte, 0),
 		chanClose:           make(chan struct{}),
 		enableEpochsHandler: &enableEpochsHandlerMock.EnableEpochsHandlerStub{},
-		maxSizeInMem:        tenMBSize,
+		collapseManager:     collapseManager.NewDisabledCollapseManager(),
 	}
 
 	return tr, trieStorage
@@ -211,8 +212,8 @@ func TestBranchNode_setRootHash(t *testing.T) {
 	trieStorage1, _ := NewTrieStorageManager(GetDefaultTrieStorageManagerParameters())
 	trieStorage2, _ := NewTrieStorageManager(GetDefaultTrieStorageManagerParameters())
 
-	tr1, _ := NewTrie(trieStorage1, marsh, hsh, &enableEpochsHandlerMock.EnableEpochsHandlerStub{}, tenMBSize)
-	tr2, _ := NewTrie(trieStorage2, marsh, hsh, &enableEpochsHandlerMock.EnableEpochsHandlerStub{}, tenMBSize)
+	tr1, _ := NewTrie(trieStorage1, marsh, hsh, &enableEpochsHandlerMock.EnableEpochsHandlerStub{}, collapseManager.NewDisabledCollapseManager())
+	tr2, _ := NewTrie(trieStorage2, marsh, hsh, &enableEpochsHandlerMock.EnableEpochsHandlerStub{}, collapseManager.NewDisabledCollapseManager())
 
 	maxIterations := 10000
 	for i := 0; i < maxIterations; i++ {
@@ -371,7 +372,7 @@ func TestBranchNode_commit(t *testing.T) {
 	hash, _ := encodeNodeAndGetHash(collapsedBn)
 	_ = bn.setHash()
 
-	err := bn.commitDirty(db, db, dtmc)
+	err := bn.commitDirty(db, db)
 	assert.Nil(t, err)
 
 	encNode, _ := db.Get(hash)
@@ -386,7 +387,7 @@ func TestBranchNode_commitEmptyNode(t *testing.T) {
 
 	bn := emptyDirtyBranchNode()
 
-	err := bn.commitDirty(nil, nil, nil)
+	err := bn.commitDirty(nil, nil)
 	assert.True(t, errors.Is(err, ErrEmptyBranchNode))
 }
 
@@ -395,7 +396,7 @@ func TestBranchNode_commitNilNode(t *testing.T) {
 
 	var bn *branchNode
 
-	err := bn.commitDirty(nil, nil, nil)
+	err := bn.commitDirty(nil, nil)
 	assert.True(t, errors.Is(err, ErrNilBranchNode))
 }
 
@@ -440,7 +441,7 @@ func TestBranchNode_resolveCollapsed(t *testing.T) {
 	childPos := byte(2)
 
 	_ = bn.setHash()
-	_ = bn.commitDirty(db, db, dtmc)
+	_ = bn.commitDirty(db, db)
 	resolved, _ := newLeafNode(getTrieDataWithDefaultVersion("dog", "dog"), bn.marsh, bn.hasher)
 	resolved.dirty = false
 	resolved.hash = bn.EncodedChildren[childPos]
@@ -551,7 +552,7 @@ func TestBranchNode_tryGetCollapsedNode(t *testing.T) {
 	bn, collapsedBn := getBnAndCollapsedBn(getTestMarshalizerAndHasher())
 
 	_ = bn.setHash()
-	_ = bn.commitDirty(db, db, dtmc)
+	_ = bn.commitDirty(db, db)
 
 	childPos := byte(2)
 	key := append([]byte{childPos}, []byte("dog")...)
@@ -680,7 +681,7 @@ func TestBranchNode_insertCollapsedNode(t *testing.T) {
 
 	originalSize := bn.children[childPos].sizeInBytes()
 	_ = bn.setHash()
-	_ = bn.commitDirty(db, db, dtmc)
+	_ = bn.commitDirty(db, db)
 
 	tmc := trieMetricsCollector.NewTrieMetricsCollector()
 	newBn, _, err := collapsedBn.insert(getTrieDataWithDefaultVersion(string(key), "dogs"), tmc, db)
@@ -912,7 +913,7 @@ func TestBranchNode_deleteCollapsedNode(t *testing.T) {
 	db := testscommon.NewMemDbMock()
 	bn, collapsedBn := getBnAndCollapsedBn(getTestMarshalizerAndHasher())
 	_ = bn.setHash()
-	_ = bn.commitDirty(db, db, dtmc)
+	_ = bn.commitDirty(db, db)
 
 	childPos := byte(2)
 	key := append([]byte{childPos}, []byte("dog")...)
@@ -1293,7 +1294,7 @@ func TestBranchNode_getDirtyHashesFromCleanNode(t *testing.T) {
 
 	db := testscommon.NewMemDbMock()
 	bn, _ := getBnAndCollapsedBn(getTestMarshalizerAndHasher())
-	_ = bn.commitDirty(db, db, dtmc)
+	_ = bn.commitDirty(db, db)
 	dirtyHashes := make(common.ModifiedHashes)
 
 	err := bn.getDirtyHashes(dirtyHashes)
@@ -1615,24 +1616,49 @@ func TestBranchNode_getNodeData(t *testing.T) {
 	})
 }
 
-func TestBranchNode_commitCollapsesLeaves(t *testing.T) {
+func TestBranchNode_shouldCollapseChild(t *testing.T) {
 	t.Parallel()
 
-	tr := initTrie()
-	en := tr.root.(*branchNode).children[7]
-	bn := en.(*extensionNode).child.(*branchNode)
+	t.Run("empty hexKey", func(t *testing.T) {
+		t.Parallel()
 
-	assert.NotNil(t, tr.root.(*branchNode).children[5])
-	assert.NotNil(t, tr.root.(*branchNode).children[7])
-	assert.NotNil(t, en.(*extensionNode).child)
-	assert.NotNil(t, bn.children[4])
-	assert.NotNil(t, bn.children[16])
-	_ = tr.Commit()
+		bn, _ := getBnAndCollapsedBn(getTestMarshalizerAndHasher())
+		shouldCollapseChild := bn.shouldCollapseChild([]byte{}, trieMetricsCollector.NewTrieMetricsCollector())
+		assert.False(t, shouldCollapseChild)
+	})
+	t.Run("invalid hexKey", func(t *testing.T) {
+		t.Parallel()
 
-	assert.Nil(t, tr.root.(*branchNode).children[5]) // leaf node is collapsed
-	assert.NotNil(t, tr.root.(*branchNode).children[7])
-	assert.NotNil(t, en.(*extensionNode).child)
-	assert.Nil(t, bn.children[4])  // leaf node is collapsed
-	assert.Nil(t, bn.children[16]) // leaf node is collapsed
+		bn, _ := getBnAndCollapsedBn(getTestMarshalizerAndHasher())
+		shouldCollapseChild := bn.shouldCollapseChild([]byte{17}, trieMetricsCollector.NewTrieMetricsCollector())
+		assert.False(t, shouldCollapseChild)
+	})
+	t.Run("child is nil", func(t *testing.T) {
+		t.Parallel()
 
+		bn, _ := getBnAndCollapsedBn(getTestMarshalizerAndHasher())
+		shouldCollapseChild := bn.shouldCollapseChild([]byte{4}, trieMetricsCollector.NewTrieMetricsCollector())
+		assert.False(t, shouldCollapseChild)
+	})
+	t.Run("collapse child that is already collapsed", func(t *testing.T) {
+		t.Parallel()
+
+		_, collapsedBn := getBnAndCollapsedBn(getTestMarshalizerAndHasher())
+		leafChildKey := append([]byte{2}, []byte("dog")...)
+		shouldCollapseChild := collapsedBn.shouldCollapseChild(leafChildKey, trieMetricsCollector.NewTrieMetricsCollector())
+		assert.False(t, shouldCollapseChild)
+	})
+	t.Run("successful collapse", func(t *testing.T) {
+		t.Parallel()
+
+		bn, _ := getBnAndCollapsedBn(getTestMarshalizerAndHasher())
+		bn.children[2].setDirty(false)
+		leafSize := bn.children[2].sizeInBytes()
+		leafChildKey := append([]byte{2}, []byte("dog")...)
+		tmc := trieMetricsCollector.NewTrieMetricsCollector()
+		shouldCollapseChild := bn.shouldCollapseChild(leafChildKey, tmc)
+		assert.False(t, shouldCollapseChild)
+		assert.Nil(t, bn.children[2])
+		assert.Equal(t, -leafSize, tmc.GetSizeLoadedInMem())
+	})
 }

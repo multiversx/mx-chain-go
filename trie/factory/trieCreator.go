@@ -10,6 +10,7 @@ import (
 	"github.com/multiversx/mx-chain-go/state/triesHolder"
 	"github.com/multiversx/mx-chain-go/storage"
 	"github.com/multiversx/mx-chain-go/trie"
+	"github.com/multiversx/mx-chain-go/trie/collapseManager"
 )
 
 // TrieCreateArgs holds arguments for calling the Create method on the TrieFactory
@@ -78,7 +79,12 @@ func (tc *trieCreator) Create(args TrieCreateArgs) (common.StorageManager, commo
 		return nil, nil, err
 	}
 
-	newTrie, err := trie.NewTrie(trieStorage, tc.marshalizer, tc.hasher, args.EnableEpochsHandler, args.MaxSizeInMemory)
+	cm, err := collapseManager.NewCollapseManager(args.MaxSizeInMemory)
+	if err != nil {
+		return nil, nil, err
+	}
+
+	newTrie, err := trie.NewTrie(trieStorage, tc.marshalizer, tc.hasher, args.EnableEpochsHandler, cm)
 	if err != nil {
 		return nil, nil, err
 	}

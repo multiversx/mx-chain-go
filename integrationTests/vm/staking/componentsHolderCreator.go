@@ -11,6 +11,7 @@ import (
 	"github.com/multiversx/mx-chain-core-go/data/typeConverters/uint64ByteSlice"
 	"github.com/multiversx/mx-chain-core-go/hashing/sha256"
 	"github.com/multiversx/mx-chain-core-go/marshal"
+	"github.com/multiversx/mx-chain-go/trie/collapseManager"
 
 	"github.com/multiversx/mx-chain-go/common"
 	"github.com/multiversx/mx-chain-go/common/enablers"
@@ -202,7 +203,7 @@ func createAccountsDB(
 		coreComponents.InternalMarshalizer(),
 		coreComponents.Hasher(),
 		coreComponents.EnableEpochsHandler(),
-		integrationTests.TenMbSize,
+		collapseManager.NewDisabledCollapseManager(),
 	)
 
 	argsEvictionWaitingList := evictionWaitingList.MemoryEvictionWaitingListArgs{
