@@ -352,3 +352,11 @@ func (boot *baseBootstrap) IsInImportMode() bool {
 func (boot *baseBootstrap) ProcessWaitTime() time.Duration {
 	return boot.processWaitTime
 }
+
+// RollBackExecutionResults -
+func (boot *baseBootstrap) RollBackExecutionResults(
+	header data.HeaderHandler,
+	err error,
+) {
+	boot.rollBackExecutionResults(header, err)
+}

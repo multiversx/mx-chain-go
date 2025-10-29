@@ -2,6 +2,7 @@ package sync
 
 import (
 	"context"
+	"errors"
 	"sync/atomic"
 	"testing"
 	"time"
@@ -13,6 +14,7 @@ import (
 	"github.com/multiversx/mx-chain-go/process"
 	"github.com/multiversx/mx-chain-go/process/mock"
 	"github.com/multiversx/mx-chain-go/testscommon"
+	"github.com/multiversx/mx-chain-go/testscommon/executionTrack"
 	"github.com/multiversx/mx-chain-go/testscommon/processMocks"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
@@ -355,5 +357,401 @@ func TestBaseSync_shouldAllowRollback(t *testing.T) {
 		}
 		require.False(t, boot.shouldAllowRollback(header, finalBlockHash))
 		require.False(t, boot.shouldAllowRollback(header, notFinalBlockHash))
+	})
+}
+
+func TestBaseSync_RollBackExecutionResults(t *testing.T) {
+	t.Parallel()
+
+	t.Run("should return early if no header v3", func(t *testing.T) {
+		t.Parallel()
+
+		resultsTrackerRemoveCalled := false
+		blocksQueueRemoveCalled := false
+
+		boot := &baseBootstrap{
+			executionResultsTracker: &executionTrack.ExecutionResultsTrackerStub{
+				RemoveFromNonceCalled: func(nonce uint64) error {
+					resultsTrackerRemoveCalled = true
+					return nil
+				},
+			},
+			blocksQueue: &processMocks.BlocksQueueMock{
+				RemoveAtNonceAndHigherCalled: func(nonce uint64) error {
+					blocksQueueRemoveCalled = true
+					return nil
+				},
+			},
+		}
+
+		providedErr := errors.New("")
+
+		header := &block.HeaderV2{}
+
+		boot.RollBackExecutionResults(header, providedErr)
+
+		require.False(t, resultsTrackerRemoveCalled)
+		require.False(t, blocksQueueRemoveCalled)
+	})
+
+	t.Run("should return early if no execution results on header", func(t *testing.T) {
+		t.Parallel()
+
+		resultsTrackerRemoveCalled := false
+		blocksQueueRemoveCalled := false
+
+		boot := &baseBootstrap{
+			executionResultsTracker: &executionTrack.ExecutionResultsTrackerStub{
+				RemoveFromNonceCalled: func(nonce uint64) error {
+					resultsTrackerRemoveCalled = true
+					return nil
+				},
+			},
+			blocksQueue: &processMocks.BlocksQueueMock{
+				RemoveAtNonceAndHigherCalled: func(nonce uint64) error {
+					blocksQueueRemoveCalled = true
+					return nil
+				},
+			},
+		}
+
+		providedErr := errors.New("")
+
+		header := &block.HeaderV3{}
+
+		execResults := []data.BaseExecutionResultHandler{}
+		header.SetExecutionResultsHandlers(execResults)
+
+		boot.RollBackExecutionResults(header, providedErr)
+
+		require.False(t, resultsTrackerRemoveCalled)
+		require.False(t, blocksQueueRemoveCalled)
+	})
+
+	t.Run("should not do cleanup if no execution results error", func(t *testing.T) {
+		t.Parallel()
+
+		resultsTrackerRemoveCalled := false
+		blocksQueueRemoveCalled := false
+
+		boot := &baseBootstrap{
+			executionResultsTracker: &executionTrack.ExecutionResultsTrackerStub{
+				RemoveFromNonceCalled: func(nonce uint64) error {
+					resultsTrackerRemoveCalled = true
+					return nil
+				},
+			},
+			blocksQueue: &processMocks.BlocksQueueMock{
+				RemoveAtNonceAndHigherCalled: func(nonce uint64) error {
+					blocksQueueRemoveCalled = true
+					return nil
+				},
+			},
+		}
+
+		header := &block.HeaderV3{}
+
+		execResults := []data.BaseExecutionResultHandler{
+			&block.ExecutionResult{
+				BaseExecutionResult: &block.BaseExecutionResult{
+					HeaderHash:  []byte("hash1"),
+					HeaderNonce: 1,
+					HeaderRound: 1,
+				},
+			},
+			&block.ExecutionResult{
+				BaseExecutionResult: &block.BaseExecutionResult{
+					HeaderHash:  []byte("hash2"),
+					HeaderNonce: 2,
+					HeaderRound: 2,
+				},
+			},
+		}
+		header.SetExecutionResultsHandlers(execResults)
+
+		providedErr := errors.New("")
+		boot.RollBackExecutionResults(header, providedErr)
+
+		require.False(t, resultsTrackerRemoveCalled)
+		require.False(t, blocksQueueRemoveCalled)
+	})
+
+	t.Run("should do cleanup if execution results mismatch error", func(t *testing.T) {
+		t.Parallel()
+
+		resultsTrackerRemoveCalled := false
+		blocksQueueRemoveCalled := false
+
+		boot := &baseBootstrap{
+			executionResultsTracker: &executionTrack.ExecutionResultsTrackerStub{
+				RemoveFromNonceCalled: func(nonce uint64) error {
+					resultsTrackerRemoveCalled = true
+					return nil
+				},
+			},
+			blocksQueue: &processMocks.BlocksQueueMock{
+				RemoveAtNonceAndHigherCalled: func(nonce uint64) error {
+					blocksQueueRemoveCalled = true
+					return nil
+				},
+			},
+		}
+
+		header := &block.HeaderV3{}
+
+		execResults := []data.BaseExecutionResultHandler{
+			&block.ExecutionResult{
+				BaseExecutionResult: &block.BaseExecutionResult{
+					HeaderHash:  []byte("hash1"),
+					HeaderNonce: 1,
+					HeaderRound: 1,
+				},
+			},
+			&block.ExecutionResult{
+				BaseExecutionResult: &block.BaseExecutionResult{
+					HeaderHash:  []byte("hash2"),
+					HeaderNonce: 2,
+					HeaderRound: 2,
+				},
+			},
+		}
+		header.SetExecutionResultsHandlers(execResults)
+
+		providedErr := process.ErrExecutionResultsNumberMismatch
+		boot.RollBackExecutionResults(header, providedErr)
+
+		require.True(t, resultsTrackerRemoveCalled)
+		require.True(t, blocksQueueRemoveCalled)
+	})
+
+	t.Run("should do cleanup if execution results non consecutive error", func(t *testing.T) {
+		t.Parallel()
+
+		resultsTrackerRemoveCalled := false
+		blocksQueueRemoveCalled := false
+
+		execResults := []data.BaseExecutionResultHandler{
+			&block.ExecutionResult{
+				BaseExecutionResult: &block.BaseExecutionResult{
+					HeaderHash:  []byte("hash1"),
+					HeaderNonce: 1,
+					HeaderRound: 1,
+				},
+			},
+			&block.ExecutionResult{
+				BaseExecutionResult: &block.BaseExecutionResult{
+					HeaderHash:  []byte("hash2"),
+					HeaderNonce: 2,
+					HeaderRound: 2,
+				},
+			},
+			&block.ExecutionResult{
+				BaseExecutionResult: &block.BaseExecutionResult{
+					HeaderHash:  []byte("hash3"),
+					HeaderNonce: 4,
+					HeaderRound: 4,
+				},
+			},
+		}
+
+		boot := &baseBootstrap{
+			executionResultsTracker: &executionTrack.ExecutionResultsTrackerStub{
+				RemoveFromNonceCalled: func(nonce uint64) error {
+					require.Equal(t, uint64(4), nonce)
+					resultsTrackerRemoveCalled = true
+					return nil
+				},
+			},
+			blocksQueue: &processMocks.BlocksQueueMock{
+				RemoveAtNonceAndHigherCalled: func(nonce uint64) error {
+					require.Equal(t, uint64(4), nonce)
+					blocksQueueRemoveCalled = true
+					return nil
+				},
+			},
+		}
+
+		header := &block.HeaderV3{}
+
+		header.SetExecutionResultsHandlers(execResults)
+
+		providedErr := process.ErrExecutionResultsNonConsecutive
+		boot.RollBackExecutionResults(header, providedErr)
+
+		require.True(t, resultsTrackerRemoveCalled)
+		require.True(t, blocksQueueRemoveCalled)
+	})
+
+	t.Run("should not do cleanup if execution results does not match error, but equal checks succeeded", func(t *testing.T) {
+		t.Parallel()
+
+		resultsTrackerRemoveCalled := false
+		blocksQueueRemoveCalled := false
+
+		execResults := []data.BaseExecutionResultHandler{
+			&block.ExecutionResult{
+				BaseExecutionResult: &block.BaseExecutionResult{
+					HeaderHash:  []byte("hash1"),
+					HeaderNonce: 1,
+					HeaderRound: 1,
+				},
+			},
+			&block.ExecutionResult{
+				BaseExecutionResult: &block.BaseExecutionResult{
+					HeaderHash:  []byte("hash2"),
+					HeaderNonce: 2,
+					HeaderRound: 2,
+				},
+			},
+		}
+
+		pendingExecResults := []data.BaseExecutionResultHandler{
+			&block.ExecutionResult{
+				BaseExecutionResult: &block.BaseExecutionResult{
+					HeaderHash:  []byte("hash1"),
+					HeaderNonce: 1,
+					HeaderRound: 1,
+				},
+			},
+			&block.ExecutionResult{
+				BaseExecutionResult: &block.BaseExecutionResult{
+					HeaderHash:  []byte("hash2"),
+					HeaderNonce: 2,
+					HeaderRound: 2,
+				},
+			},
+		}
+
+		boot := &baseBootstrap{
+			executionResultsTracker: &executionTrack.ExecutionResultsTrackerStub{
+				RemoveFromNonceCalled: func(nonce uint64) error {
+					require.Equal(t, uint64(4), nonce)
+					resultsTrackerRemoveCalled = true
+					return nil
+				},
+				GetPendingExecutionResultsCalled: func() ([]data.BaseExecutionResultHandler, error) {
+					return pendingExecResults, nil
+				},
+			},
+			blocksQueue: &processMocks.BlocksQueueMock{
+				RemoveAtNonceAndHigherCalled: func(nonce uint64) error {
+					require.Equal(t, uint64(4), nonce)
+					blocksQueueRemoveCalled = true
+					return nil
+				},
+			},
+		}
+
+		header := &block.HeaderV3{}
+
+		header.SetExecutionResultsHandlers(execResults)
+
+		providedErr := process.ErrExecutionResultDoesNotMatch
+		boot.RollBackExecutionResults(header, providedErr)
+
+		require.False(t, resultsTrackerRemoveCalled)
+		require.False(t, blocksQueueRemoveCalled)
+	})
+
+	t.Run("should do cleanup if execution results does not match error", func(t *testing.T) {
+		t.Parallel()
+
+		resultsTrackerRemoveCalled := false
+		blocksQueueRemoveCalled := false
+
+		execResults := []data.BaseExecutionResultHandler{
+			&block.ExecutionResult{
+				BaseExecutionResult: &block.BaseExecutionResult{
+					HeaderHash:  []byte("hash1"),
+					HeaderNonce: 1,
+					HeaderRound: 1,
+				},
+			},
+			&block.ExecutionResult{
+				BaseExecutionResult: &block.BaseExecutionResult{
+					HeaderHash:  []byte("hash2"),
+					HeaderNonce: 2,
+					HeaderRound: 2,
+				},
+			},
+		}
+
+		pendingExecResults := []data.BaseExecutionResultHandler{
+			&block.ExecutionResult{
+				BaseExecutionResult: &block.BaseExecutionResult{
+					HeaderHash:  []byte("hash1"),
+					HeaderNonce: 1,
+					HeaderRound: 1,
+				},
+			},
+			&block.ExecutionResult{
+				BaseExecutionResult: &block.BaseExecutionResult{
+					HeaderHash:  []byte("hash22222"),
+					HeaderNonce: 2,
+					HeaderRound: 2,
+				},
+			},
+		}
+
+		boot := &baseBootstrap{
+			executionResultsTracker: &executionTrack.ExecutionResultsTrackerStub{
+				RemoveFromNonceCalled: func(nonce uint64) error {
+					require.Equal(t, uint64(2), nonce)
+					resultsTrackerRemoveCalled = true
+					return nil
+				},
+				GetPendingExecutionResultsCalled: func() ([]data.BaseExecutionResultHandler, error) {
+					return pendingExecResults, nil
+				},
+			},
+			blocksQueue: &processMocks.BlocksQueueMock{
+				RemoveAtNonceAndHigherCalled: func(nonce uint64) error {
+					require.Equal(t, uint64(2), nonce)
+					blocksQueueRemoveCalled = true
+					return nil
+				},
+			},
+		}
+
+		header := &block.HeaderV3{}
+		header.SetExecutionResultsHandlers(execResults)
+
+		providedErr := process.ErrExecutionResultDoesNotMatch
+		boot.RollBackExecutionResults(header, providedErr)
+
+		require.True(t, resultsTrackerRemoveCalled)
+		require.True(t, blocksQueueRemoveCalled)
+	})
+}
+
+func TestIsExecResultsError(t *testing.T) {
+	t.Parallel()
+
+	t.Run("not header v3 should return false", func(t *testing.T) {
+		t.Parallel()
+
+		providedErr := errors.New("")
+		header := &block.HeaderV2{}
+
+		require.False(t, isExecResultsError(header, providedErr))
+	})
+
+	t.Run("not execution results error should return false", func(t *testing.T) {
+		t.Parallel()
+
+		providedErr := errors.New("other error")
+		header := &block.HeaderV3{}
+
+		require.False(t, isExecResultsError(header, providedErr))
+	})
+
+	t.Run("execution results error should return true", func(t *testing.T) {
+		t.Parallel()
+
+		header := &block.HeaderV3{}
+
+		require.True(t, isExecResultsError(header, process.ErrExecutionResultDoesNotMatch))
+		require.True(t, isExecResultsError(header, process.ErrExecutionResultsNonConsecutive))
+		require.True(t, isExecResultsError(header, process.ErrExecutionResultsNumberMismatch))
 	})
 }
