@@ -520,6 +520,7 @@ func (ccf *consensusComponentsFactory) createShardBootstrapper() (process.Bootst
 		BlocksQueue:                  ccf.processComponents.BlocksQueue(),
 		EnableRoundsHandler:          ccf.coreComponents.EnableRoundsHandler(),
 		ProcessConfigsHandler:        ccf.coreComponents.ProcessConfigsHandler(),
+		ExecutionResultsTracker:      ccf.processComponents.ExecutionResultsTracker(),
 	}
 
 	argsShardBootstrapper := sync.ArgShardBootstrapper{
@@ -656,6 +657,7 @@ func (ccf *consensusComponentsFactory) createMetaChainBootstrapper() (process.Bo
 		EnableEpochsHandler:          ccf.coreComponents.EnableEpochsHandler(),
 		EnableRoundsHandler:          ccf.coreComponents.EnableRoundsHandler(),
 		ProcessConfigsHandler:        ccf.coreComponents.ProcessConfigsHandler(),
+		ExecutionResultsTracker:      ccf.processComponents.ExecutionResultsTracker(),
 	}
 
 	argsMetaBootstrapper := sync.ArgMetaBootstrapper{

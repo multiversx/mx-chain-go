@@ -465,6 +465,7 @@ type TestProcessorNode struct {
 	AppStatusHandler        core.AppStatusHandler
 	StatusMetrics           external.StatusMetricsHandler
 	ChainParametersHandler  common.ChainParametersHandler
+	ExecutionResultsTracker process.ExecutionResultsTracker
 }
 
 // CreatePkBytes creates 'numShards' public key-like byte slices

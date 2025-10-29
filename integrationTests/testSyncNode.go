@@ -304,6 +304,7 @@ func (tpn *TestProcessorNode) createShardBootstrapper() (TestBootstrapper, error
 		EnableEpochsHandler:          tpn.EnableEpochsHandler,
 		EnableRoundsHandler:          tpn.EnableRoundsHandler,
 		ProcessConfigsHandler:        tpn.ProcessConfigsHandler,
+		ExecutionResultsTracker:      tpn.ExecutionResultsTracker,
 	}
 
 	argsShardBootstrapper := sync.ArgShardBootstrapper{
@@ -354,6 +355,7 @@ func (tpn *TestProcessorNode) createMetaChainBootstrapper() (TestBootstrapper, e
 		EnableEpochsHandler:          &enableEpochsHandlerMock.EnableEpochsHandlerStub{},
 		EnableRoundsHandler:          tpn.EnableRoundsHandler,
 		ProcessConfigsHandler:        tpn.ProcessConfigsHandler,
+		ExecutionResultsTracker:      tpn.ExecutionResultsTracker,
 	}
 
 	argsMetaBootstrapper := sync.ArgMetaBootstrapper{

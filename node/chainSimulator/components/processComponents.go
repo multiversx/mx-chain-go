@@ -104,6 +104,7 @@ type processComponentsHolder struct {
 	epochStartSystemSCProcessor      process.EpochStartSystemSCProcessor
 	blockchainHook                   process.BlockChainHookWithAccountsAdapter
 	managedProcessComponentsCloser   io.Closer
+	executionResultsTracker          process.ExecutionResultsTracker
 }
 
 // CreateProcessComponents will create the process components holder
@@ -536,6 +537,11 @@ func (p *processComponentsHolder) EpochSystemSCProcessor() process.EpochStartSys
 // BlockchainHook returns the blockchain hook
 func (p *processComponentsHolder) BlockchainHook() process.BlockChainHookWithAccountsAdapter {
 	return p.blockchainHook
+}
+
+// ExecutionResultsTracker returns the blockchain hook
+func (p *processComponentsHolder) ExecutionResultsTracker() process.ExecutionResultsTracker {
+	return p.executionResultsTracker
 }
 
 // Close will call the Close methods on all inner components

@@ -63,6 +63,7 @@ type ProcessComponentsStub struct {
 	SentSignaturesTrackerInternal        process.SentSignaturesTracker
 	EpochSystemSCProcessorInternal       process.EpochStartSystemSCProcessor
 	BlockchainHookField                  process.BlockChainHookWithAccountsAdapter
+	ExecutionResultsTrackerField         process.ExecutionResultsTracker
 }
 
 // Create -
@@ -312,6 +313,11 @@ func (pcs *ProcessComponentsStub) EpochSystemSCProcessor() process.EpochStartSys
 // BlockchainHook -
 func (pcs *ProcessComponentsStub) BlockchainHook() process.BlockChainHookWithAccountsAdapter {
 	return pcs.BlockchainHookField
+}
+
+// ExecutionResultsTracker -
+func (pcs *ProcessComponentsStub) ExecutionResultsTracker() process.ExecutionResultsTracker {
+	return pcs.ExecutionResultsTrackerField
 }
 
 // IsInterfaceNil -

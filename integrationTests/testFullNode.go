@@ -943,6 +943,7 @@ func (tpn *TestFullNode) initBlockProcessor(
 	}
 
 	executionResultsTracker := executionTrack.NewExecutionResultsTracker()
+	tpn.ExecutionResultsTracker = executionResultsTracker
 	err = process.SetBaseExecutionResult(executionResultsTracker, tpn.BlockChain)
 	if err != nil {
 		log.LogIfError(err)

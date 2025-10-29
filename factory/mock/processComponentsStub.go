@@ -60,6 +60,7 @@ type ProcessComponentsMock struct {
 	SentSignaturesTrackerInternal        process.SentSignaturesTracker
 	EpochSystemSCProcessorInternal       process.EpochStartSystemSCProcessor
 	BlockchainHookField                  process.BlockChainHookWithAccountsAdapter
+	ExecutionResultsTrackerField         process.ExecutionResultsTracker
 }
 
 // Create -
@@ -300,6 +301,11 @@ func (pcm *ProcessComponentsMock) EpochSystemSCProcessor() process.EpochStartSys
 // BlockchainHook -
 func (pcm *ProcessComponentsMock) BlockchainHook() process.BlockChainHookWithAccountsAdapter {
 	return pcm.BlockchainHookField
+}
+
+// ExecutionResultsTracker -
+func (pcm *ProcessComponentsMock) ExecutionResultsTracker() process.ExecutionResultsTracker {
+	return pcm.ExecutionResultsTrackerField
 }
 
 // IsInterfaceNil -

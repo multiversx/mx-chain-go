@@ -331,6 +331,18 @@ func (m *managedProcessComponents) BlocksQueue() process.BlocksQueue {
 	return m.processComponents.blocksQueue
 }
 
+// ExecutionResultsTracker returns the execution results tracker
+func (m *managedProcessComponents) ExecutionResultsTracker() process.ExecutionResultsTracker {
+	m.mutProcessComponents.RLock()
+	defer m.mutProcessComponents.RUnlock()
+
+	if m.processComponents == nil {
+		return nil
+	}
+
+	return m.processComponents.executionResultsTracker
+}
+
 // BlockchainHook returns the block chain hook
 func (m *managedProcessComponents) BlockchainHook() process.BlockChainHookWithAccountsAdapter {
 	m.mutProcessComponents.RLock()

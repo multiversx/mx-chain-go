@@ -138,6 +138,7 @@ type processComponents struct {
 	epochSystemSCProcessor           process.EpochStartSystemSCProcessor
 	interceptedDataVerifierFactory   process.InterceptedDataVerifierFactory
 	epochStartTriggerHanlder         epochStart.TriggerHandler
+	executionResultsTracker          process.ExecutionResultsTracker
 }
 
 // ProcessComponentsFactoryArgs holds the arguments needed to create a process components factory
@@ -791,6 +792,7 @@ func (pcf *processComponentsFactory) Create() (*processComponents, error) {
 		sentSignaturesTracker:            sentSignaturesTracker,
 		interceptedDataVerifierFactory:   pcf.interceptedDataVerifierFactory,
 		epochStartTriggerHanlder:         epochStartTrigger,
+		executionResultsTracker:          executionResultsTracker,
 	}, nil
 }
 

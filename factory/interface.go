@@ -325,6 +325,7 @@ type ProcessComponentsHolder interface {
 	SentSignaturesTracker() process.SentSignaturesTracker
 	EpochSystemSCProcessor() process.EpochStartSystemSCProcessor
 	BlockchainHook() process.BlockChainHookWithAccountsAdapter
+	ExecutionResultsTracker() process.ExecutionResultsTracker
 	IsInterfaceNil() bool
 }
 
