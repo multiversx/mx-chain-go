@@ -409,7 +409,6 @@ func ExtractBaseExecutionResultHandler(lastExecResultsHandler data.LastExecution
 	return baseExecutionResultsHandler, nil
 }
 
-<<<<<<< HEAD
 // GetMiniBlocksHeaderHandlersFromExecResult returns miniblock handlers based on execution result
 func GetMiniBlocksHeaderHandlersFromExecResult(
 	baseExecResult data.BaseExecutionResultHandler,
@@ -434,7 +433,8 @@ func GetMiniBlocksHeaderHandlersFromExecResult(
 	}
 
 	return execResult.GetMiniBlockHeadersHandlers(), nil
-=======
+}
+
 // GetLastExecutionResultNonce returns last execution result nonce if header v3 enable, otherwise it returns provided header nonce
 func GetLastExecutionResultNonce(
 	header data.HeaderHandler,
@@ -451,5 +451,4 @@ func GetLastExecutionResultNonce(
 	}
 
 	return lastExecutionResult.GetHeaderNonce()
->>>>>>> feat/supernova-async-exec
 }

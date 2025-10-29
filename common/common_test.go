@@ -578,7 +578,6 @@ func TestGetLastBaseExecutionResultHandler(t *testing.T) {
 	})
 }
 
-<<<<<<< HEAD
 func TestGetMiniBlockHeaderHandlersFromExecResults(t *testing.T) {
 	t.Parallel()
 
@@ -667,11 +666,11 @@ func TestGetMiniBlockHeaderHandlersFromExecResults(t *testing.T) {
 		require.Nil(t, err)
 		require.Equal(t, expMiniBlockHandlers, retExecResult)
 	})
-=======
+}
+
 func TestPrepareLogEventsKey(t *testing.T) {
 	t.Parallel()
 
 	logs := common.PrepareLogEventsKey([]byte("LogsX"))
 	require.Equal(t, "logsLogsX", string(logs))
->>>>>>> feat/supernova-async-exec
 }
