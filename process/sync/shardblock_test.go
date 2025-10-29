@@ -2811,10 +2811,14 @@ func TestShardBootstrap_SyncBlockV3(t *testing.T) {
 		args := createSyncBlockV3Args()
 		poolsStub, ok := args.PoolsHolder.(*dataRetrieverMock.PoolsHolderStub)
 		require.True(t, ok)
+		resetTrackerCalled := false
 		poolsStub.TransactionsCalled = func() dataRetriever.ShardedDataCacherNotifier {
 			return &testscommon.ShardedDataStub{
 				OnExecutedBlockCalled: func(blockHeader data.HeaderHandler, rootHash []byte) error {
 					return errExpected
+				},
+				ResetTrackerCalled: func() {
+					resetTrackerCalled = true
 				},
 			}
 		}
@@ -2825,6 +2829,7 @@ func TestShardBootstrap_SyncBlockV3(t *testing.T) {
 
 		err = bs.SyncBlock(context.Background())
 		assert.Equal(t, errExpected, err)
+		assert.True(t, resetTrackerCalled)
 	})
 
 	t.Run("should error when OnProposedBlock fails on the ideal case", func(t *testing.T) {
@@ -2899,10 +2904,14 @@ func TestShardBootstrap_SyncBlockV3(t *testing.T) {
 		)
 		poolsStub, ok := args.PoolsHolder.(*dataRetrieverMock.PoolsHolderStub)
 		require.True(t, ok)
+		resetTrackerCalled := false
 		poolsStub.TransactionsCalled = func() dataRetriever.ShardedDataCacherNotifier {
 			return &testscommon.ShardedDataStub{
 				OnExecutedBlockCalled: func(blockHeader data.HeaderHandler, rootHash []byte) error {
 					return errExpected
+				},
+				ResetTrackerCalled: func() {
+					resetTrackerCalled = true
 				},
 			}
 		}
@@ -2930,6 +2939,7 @@ func TestShardBootstrap_SyncBlockV3(t *testing.T) {
 
 		err = bs.SyncBlock(context.Background())
 		assert.Equal(t, errExpected, err)
+		assert.True(t, resetTrackerCalled)
 	})
 
 	t.Run("should error when AddOrReplace fails on the bigger gap case", func(t *testing.T) {

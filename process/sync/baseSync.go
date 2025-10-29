@@ -392,6 +392,16 @@ func (boot *baseBootstrap) getCurrentBlock() data.HeaderHandler {
 	return boot.chainHandler.GetGenesisHeader()
 }
 
+// getCurrentRootHash will get the current root hash
+func (boot *baseBootstrap) getCurrentRootHash() []byte {
+	currentRootHash := boot.chainHandler.GetCurrentBlockRootHash()
+	if len(currentRootHash) != 0 {
+		return currentRootHash
+	}
+	genesisHeader := boot.chainHandler.GetGenesisHeader()
+	return genesisHeader.GetRootHash()
+}
+
 // getCurrentBlockHash will get the current block hash
 func (boot *baseBootstrap) getCurrentBlockHash() []byte {
 	currentHash := boot.chainHandler.GetCurrentBlockHeaderHash()
@@ -894,11 +904,11 @@ func (boot *baseBootstrap) prepareForLegacySyncIfNeeded() error {
 	}
 
 	currentHeader := boot.getCurrentBlock()
-	currentRootHash := boot.chainHandler.GetCurrentBlockRootHash()
+	currentRootHash := boot.getCurrentRootHash()
 	txPool := boot.poolsHolder.Transactions()
 	err := txPool.OnExecutedBlock(currentHeader, currentRootHash)
 	if err != nil {
-		// TODO: reset the txPool context in case of error, once this will be implemented
+		txPool.ResetTracker()
 		return err
 	}
 
@@ -995,7 +1005,7 @@ func (boot *baseBootstrap) prepareForSyncIfNeeded(syncingNonce uint64) error {
 	txPool := boot.poolsHolder.Transactions()
 	err = txPool.OnExecutedBlock(lastExecutedHeader, rootHash)
 	if err != nil {
-		// TODO: reset the txPool context in case of error, once this will be implemented
+		txPool.ResetTracker()
 		return err
 	}
 
