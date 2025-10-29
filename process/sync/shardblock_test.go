@@ -51,6 +51,108 @@ const testProcessWaitTime = time.Second
 
 var errExpected = errors.New("expected error")
 
+func setupStore(marshaller marshal.Marshalizer, prevHdr data.HeaderHandler, returnError error) dataRetriever.StorageService {
+	return &storageStubs.ChainStorerStub{
+		GetStorerCalled: func(unitType dataRetriever.UnitType) (storage.Storer, error) {
+			return &storageStubs.StorerStub{
+				GetCalled: func(key []byte) ([]byte, error) {
+					if returnError != nil {
+						return nil, returnError
+					}
+					prevHdrBytes, _ := marshaller.Marshal(prevHdr)
+					return prevHdrBytes, nil
+				},
+			}, nil
+		},
+	}
+}
+
+func setupForkDetector(highestNonce uint64) process.ForkDetector {
+	return &mock.ForkDetectorMock{
+		CheckForkCalled: func() *process.ForkInfo {
+			return process.NewForkInfo()
+		},
+		GetHighestFinalBlockNonceCalled: func() uint64 {
+			return highestNonce
+		},
+		GetHighestFinalBlockHashCalled: func() []byte {
+			return []byte("hash")
+		},
+		ProbableHighestNonceCalled: func() uint64 {
+			return highestNonce
+		},
+		RemoveHeaderCalled: func(nonce uint64, hash []byte) {},
+		GetNotarizedHeaderHashCalled: func(nonce uint64) []byte {
+			return nil
+		},
+	}
+}
+
+type headerAndHash struct {
+	header data.HeaderHandler
+	hash   []byte
+}
+
+func setupPools(headersAndHashes ...headerAndHash) dataRetriever.PoolsHolder {
+	pools := dataRetrieverMock.NewPoolsHolderStub()
+	pools.HeadersCalled = func() dataRetriever.HeadersPool {
+		return &mock.HeadersCacherStub{
+			GetHeaderByNonceAndShardIdCalled: func(hdrNonce uint64, shardId uint32) ([]data.HeaderHandler, [][]byte, error) {
+				for _, hh := range headersAndHashes {
+					if hh.header.GetNonce() == hdrNonce {
+						return []data.HeaderHandler{hh.header}, [][]byte{hh.hash}, nil
+					}
+				}
+
+				return nil, nil, errors.New("err")
+			},
+			GetHeaderByHashCalled: func(hash []byte) (data.HeaderHandler, error) {
+				for i, hh := range headersAndHashes {
+					if string(hh.hash) != string(hash) {
+						continue
+					}
+
+					if i > 0 {
+						return headersAndHashes[i-1].header, nil
+					}
+
+					return &block.HeaderV3{
+						Nonce:         1,
+						BlockBodyType: block.TxBlock,
+						LastExecutionResult: &block.ExecutionResultInfo{
+							ExecutionResult: &block.BaseExecutionResult{
+								HeaderNonce: 0,
+								HeaderHash:  []byte("hash0"),
+							},
+						},
+					}, nil
+				}
+
+				return nil, errors.New("err")
+			},
+		}
+	}
+	pools.MiniBlocksCalled = func() storage.Cacher {
+		cs := cache.NewCacherStub()
+		cs.RegisterHandlerCalled = func(i func(key []byte, value interface{})) {}
+		cs.GetCalled = func(key []byte) (value interface{}, ok bool) {
+			return make(block.MiniBlockSlice, 0), true
+		}
+		return cs
+	}
+	pools.TransactionsCalled = func() dataRetriever.ShardedDataCacherNotifier {
+		return &testscommon.ShardedDataStub{
+			OnExecutedBlockCalled: func(header data.HeaderHandler, rootHash []byte) error {
+				return nil
+			},
+		}
+	}
+	pools.ProofsCalled = func() dataRetriever.ProofsPool {
+		return &dataRetrieverMock.ProofsPoolMock{}
+	}
+	return pools
+}
+
 type removedFlags struct {
 	flagHdrRemovedFromHeaders      bool
 	flagHdrRemovedFromStorage      bool
@@ -2472,108 +2574,6 @@ func TestShardBootstrap_NilInnerBootstrapperClose(t *testing.T) {
 func TestShardBootstrap_SyncBlockV3(t *testing.T) {
 	t.Parallel()
 
-	setupStore := func(marshaller marshal.Marshalizer, prevHdr data.HeaderHandler, returnError error) dataRetriever.StorageService {
-		return &storageStubs.ChainStorerStub{
-			GetStorerCalled: func(unitType dataRetriever.UnitType) (storage.Storer, error) {
-				return &storageStubs.StorerStub{
-					GetCalled: func(key []byte) ([]byte, error) {
-						if returnError != nil {
-							return nil, returnError
-						}
-						prevHdrBytes, _ := marshaller.Marshal(prevHdr)
-						return prevHdrBytes, nil
-					},
-				}, nil
-			},
-		}
-	}
-
-	setupForkDetector := func(highestNonce uint64) process.ForkDetector {
-		return &mock.ForkDetectorMock{
-			CheckForkCalled: func() *process.ForkInfo {
-				return process.NewForkInfo()
-			},
-			GetHighestFinalBlockNonceCalled: func() uint64 {
-				return highestNonce
-			},
-			GetHighestFinalBlockHashCalled: func() []byte {
-				return []byte("hash")
-			},
-			ProbableHighestNonceCalled: func() uint64 {
-				return highestNonce
-			},
-			RemoveHeaderCalled: func(nonce uint64, hash []byte) {},
-			GetNotarizedHeaderHashCalled: func(nonce uint64) []byte {
-				return nil
-			},
-		}
-	}
-
-	type headerAndHash struct {
-		header data.HeaderHandler
-		hash   []byte
-	}
-
-	setupPools := func(headersAndHashes ...headerAndHash) dataRetriever.PoolsHolder {
-		pools := dataRetrieverMock.NewPoolsHolderStub()
-		pools.HeadersCalled = func() dataRetriever.HeadersPool {
-			return &mock.HeadersCacherStub{
-				GetHeaderByNonceAndShardIdCalled: func(hdrNonce uint64, shardId uint32) ([]data.HeaderHandler, [][]byte, error) {
-					for _, hh := range headersAndHashes {
-						if hh.header.GetNonce() == hdrNonce {
-							return []data.HeaderHandler{hh.header}, [][]byte{hh.hash}, nil
-						}
-					}
-
-					return nil, nil, errors.New("err")
-				},
-				GetHeaderByHashCalled: func(hash []byte) (data.HeaderHandler, error) {
-					for i, hh := range headersAndHashes {
-						if string(hh.hash) != string(hash) {
-							continue
-						}
-
-						if i > 0 {
-							return headersAndHashes[i-1].header, nil
-						}
-
-						return &block.HeaderV3{
-							Nonce:         1,
-							BlockBodyType: block.TxBlock,
-							LastExecutionResult: &block.ExecutionResultInfo{
-								ExecutionResult: &block.BaseExecutionResult{
-									HeaderNonce: 0,
-									HeaderHash:  []byte("hash0"),
-								},
-							},
-						}, nil
-					}
-
-					return nil, errors.New("err")
-				},
-			}
-		}
-		pools.MiniBlocksCalled = func() storage.Cacher {
-			cs := cache.NewCacherStub()
-			cs.RegisterHandlerCalled = func(i func(key []byte, value interface{})) {}
-			cs.GetCalled = func(key []byte) (value interface{}, ok bool) {
-				return make(block.MiniBlockSlice, 0), true
-			}
-			return cs
-		}
-		pools.TransactionsCalled = func() dataRetriever.ShardedDataCacherNotifier {
-			return &testscommon.ShardedDataStub{
-				OnExecutedBlockCalled: func(header data.HeaderHandler, rootHash []byte) error {
-					return nil
-				},
-			}
-		}
-		pools.ProofsCalled = func() dataRetriever.ProofsPool {
-			return &dataRetrieverMock.ProofsPoolMock{}
-		}
-		return pools
-	}
-
 	createSyncBlockV3Args := func() sync.ArgShardBootstrapper {
 		args := CreateShardBootstrapMockArguments()
 
@@ -3287,5 +3287,117 @@ func TestShardBootstrap_SyncBlockV3(t *testing.T) {
 
 		err = bs.SyncBlock(context.Background())
 		assert.Equal(t, process.ErrTimeIsOut, err)
+	})
+}
+
+func TestShardBootstrap_SyncBlockLegacy(t *testing.T) {
+	t.Parallel()
+
+	createSyncBlockLegacyArgs := func() sync.ArgShardBootstrapper {
+		args := CreateShardBootstrapMockArguments()
+
+		currentHdr := &block.Header{
+			Nonce:    2,
+			RootHash: []byte("currentRootHash"),
+		}
+		args.ChainHandler = &testscommon.ChainHandlerStub{
+			GetCurrentBlockHeaderCalled: func() data.HeaderHandler {
+				return currentHdr
+			},
+			GetCurrentBlockHeaderHashCalled: func() []byte {
+				return []byte("currentHash")
+			},
+			GetCurrentBlockRootHashCalled: func() []byte {
+				return []byte("currentRootHash")
+			},
+		}
+
+		// Header to sync (non-V3)
+		header := &block.Header{
+			Nonce:    3,
+			Round:    1,
+			RootHash: []byte("rootHash"),
+		}
+		args.PoolsHolder = setupPools(headerAndHash{
+			header: header,
+			hash:   []byte("aaa"),
+		})
+
+		args.ForkDetector = setupForkDetector(3)
+
+		return args
+	}
+
+	t.Run("should work", func(t *testing.T) {
+		t.Parallel()
+
+		args := createSyncBlockLegacyArgs()
+
+		processBlockCalled := false
+		processScheduledBlockCalled := false
+		commitBlockCalled := false
+		args.BlockProcessor = &testscommon.BlockProcessorStub{
+			ProcessBlockCalled: func(header data.HeaderHandler, body data.BodyHandler, haveTime func() time.Duration) error {
+				processBlockCalled = true
+				return nil
+			},
+			ProcessScheduledBlockCalled: func(header data.HeaderHandler, body data.BodyHandler, haveTime func() time.Duration) error {
+				processScheduledBlockCalled = true
+				return nil
+			},
+			CommitBlockCalled: func(header data.HeaderHandler, body data.BodyHandler) error {
+				commitBlockCalled = true
+				return nil
+			},
+		}
+		poolsStub, ok := args.PoolsHolder.(*dataRetrieverMock.PoolsHolderStub)
+		require.True(t, ok)
+		onExecutedBlockCalled := false
+		poolsStub.TransactionsCalled = func() dataRetriever.ShardedDataCacherNotifier {
+			return &testscommon.ShardedDataStub{
+				OnExecutedBlockCalled: func(header data.HeaderHandler, rootHash []byte) error {
+					onExecutedBlockCalled = true
+					return nil
+				},
+			}
+		}
+		args.PoolsHolder = poolsStub
+
+		bs, err := sync.NewShardBootstrap(args)
+		require.Nil(t, err)
+
+		err = bs.SyncBlock(context.Background())
+		assert.Nil(t, err)
+		assert.True(t, processBlockCalled)
+		assert.True(t, processScheduledBlockCalled)
+		assert.True(t, commitBlockCalled)
+		assert.True(t, onExecutedBlockCalled)
+
+		// coverage only. should not prepare again
+		err = bs.SyncBlock(context.Background())
+		assert.Nil(t, err)
+	})
+
+	t.Run("should error when OnExecutedBlock fails", func(t *testing.T) {
+		t.Parallel()
+
+		args := createSyncBlockLegacyArgs()
+
+		poolsStub, ok := args.PoolsHolder.(*dataRetrieverMock.PoolsHolderStub)
+		require.True(t, ok)
+		poolsStub.TransactionsCalled = func() dataRetriever.ShardedDataCacherNotifier {
+			return &testscommon.ShardedDataStub{
+				OnExecutedBlockCalled: func(header data.HeaderHandler, rootHash []byte) error {
+					return errExpected
+				},
+			}
+		}
+		args.PoolsHolder = poolsStub
+
+		bs, err := sync.NewShardBootstrap(args)
+		require.Nil(t, err)
+
+		err = bs.SyncBlock(context.Background())
+		assert.Equal(t, errExpected, err)
 	})
 }

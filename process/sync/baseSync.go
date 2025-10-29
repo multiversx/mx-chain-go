@@ -833,6 +833,11 @@ func (boot *baseBootstrap) syncBlock() error {
 // These methods will execute the block and its transactions. Finally, if everything works, the block will be committed
 // in the blockchain, and all this mechanism will be reiterated for the next block.
 func (boot *baseBootstrap) syncBlockLegacy(body data.BodyHandler, header data.HeaderHandler) error {
+	err := boot.prepareForLegacySyncIfNeeded()
+	if err != nil {
+		return err
+	}
+
 	startTime := time.Now()
 	waitTime := boot.getProcessWaitTime(header.GetRound())
 	haveTime := func() time.Duration {
@@ -840,7 +845,7 @@ func (boot *baseBootstrap) syncBlockLegacy(body data.BodyHandler, header data.He
 	}
 
 	startProcessBlockTime := time.Now()
-	err := boot.blockProcessor.ProcessBlock(header, body, haveTime)
+	err = boot.blockProcessor.ProcessBlock(header, body, haveTime)
 	elapsedTime := time.Since(startProcessBlockTime)
 	log.Debug("elapsed time to process block",
 		"time [s]", elapsedTime,
@@ -879,6 +884,25 @@ func (boot *baseBootstrap) syncBlockLegacy(body data.BodyHandler, header data.He
 
 	boot.cleanNoncesSyncedWithErrorsBehindFinal()
 	boot.cleanProofsBehindFinal(header)
+
+	return nil
+}
+
+func (boot *baseBootstrap) prepareForLegacySyncIfNeeded() error {
+	if boot.preparedForSync {
+		return nil
+	}
+
+	currentHeader := boot.getCurrentBlock()
+	currentRootHash := boot.chainHandler.GetCurrentBlockRootHash()
+	txPool := boot.poolsHolder.Transactions()
+	err := txPool.OnExecutedBlock(currentHeader, currentRootHash)
+	if err != nil {
+		// TODO: reset the txPool context in case of error, once this will be implemented
+		return err
+	}
+
+	boot.preparedForSync = true
 
 	return nil
 }
