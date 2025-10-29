@@ -135,6 +135,7 @@ type EnableEpochs struct {
 	BarnardOpcodesEnableEpoch                                uint32
 	FixGetBalanceEnableEpoch                                 uint32
 	AutomaticActivationOfNodesDisableEpoch                   uint32
+	RelayedTransactionsV1V2DisableEpoch                      uint32
 	BLSMultiSignerEnableEpoch                                []MultiSignerConfig
 }
 

@@ -191,7 +191,7 @@ type ShardedDataCacherNotifier interface {
 		blockBody *block.Body,
 		blockHeader data.HeaderHandler,
 		accountsProvider common.AccountNonceAndBalanceProvider,
-		blockchainInfo common.BlockchainInfo,
+		latestExecutedHash []byte,
 	) error
 }
 

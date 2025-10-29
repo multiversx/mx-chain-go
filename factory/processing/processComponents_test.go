@@ -930,6 +930,7 @@ func TestProcessComponentsFactory_Create(t *testing.T) {
 			AccountsAPI:          realStateComp.AccountsAdapterAPI(),
 			StorageManagers:      realStateComp.TrieStorageManagers(),
 			MissingNodesNotifier: realStateComp.MissingTrieNodesNotifier(),
+			ChangesCollector:     realStateComp.StateAccessesCollector(),
 		}
 
 		pcf, _ := processComp.NewProcessComponentsFactory(args)
@@ -972,6 +973,7 @@ func TestProcessComponentsFactory_Create(t *testing.T) {
 			AccountsProposal:     realStateComp.AccountsAdapterProposal(),
 			StorageManagers:      realStateComp.TrieStorageManagers(),
 			MissingNodesNotifier: realStateComp.MissingTrieNodesNotifier(),
+			ChangesCollector:     realStateComp.StateAccessesCollector(),
 		}
 		coreCompStub := factoryMocks.NewCoreComponentsHolderStubFromRealComponent(args.CoreData)
 		coreCompStub.InternalMarshalizerCalled = func() marshal.Marshalizer {
