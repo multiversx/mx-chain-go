@@ -926,21 +926,29 @@ func getMiniBlockHeadersForDest(metaBlock data.MetaHeaderHandler, destId uint32)
 func getMetaHeaderMiniBlockHandlersFromExecutionResults(
 	metaBlock data.MetaHeaderHandler,
 ) []data.MiniBlockHeaderHandler {
+	if check.IfNil(metaBlock) {
+		return nil
+	}
+
 	miniBlockHeaderHandlers := metaBlock.GetMiniBlockHeaderHandlers()
 	if !metaBlock.IsHeaderV3() {
 		return miniBlockHeaderHandlers
 	}
 
-	lastExecResult, err := common.GetLastBaseExecutionResultHandler(metaBlock)
-	if err != nil {
-		log.Warn("failed to get last execution result from meta header v3", "err", err)
-		return miniBlockHeaderHandlers
+	baseExecutionResults := metaBlock.GetExecutionResultsHandlers()
+	if len(baseExecutionResults) == 0 {
+		return nil
 	}
 
-	execResultsMiniBlockHeaderHandlers, err := common.GetMiniBlocksHeaderHandlersFromExecResult(lastExecResult, core.MetachainShardId)
-	if err != nil {
-		log.Warn("failed to get mini block handlers from execution results", "err", err)
-		return miniBlockHeaderHandlers
+	execResultsMiniBlockHeaderHandlers := make([]data.MiniBlockHeaderHandler, 0)
+	for _, baseExecutionResult := range baseExecutionResults {
+		miniBlockHeaderHandlers, err := common.GetMiniBlocksHeaderHandlersFromExecResult(baseExecutionResult, metaBlock.GetShardID())
+		if err != nil {
+			log.Warn("failed to get mini blocks header handlers from execution result", "err", err)
+			return nil
+		}
+
+		execResultsMiniBlockHeaderHandlers = append(execResultsMiniBlockHeaderHandlers, miniBlockHeaderHandlers...)
 	}
 
 	return execResultsMiniBlockHeaderHandlers

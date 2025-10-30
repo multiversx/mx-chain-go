@@ -692,7 +692,9 @@ func (e *epochStartBootstrap) syncHeadersV3From(meta data.MetaHeaderHandler) (ma
 		}
 	}
 
-	syncedMetaHeaders, err := e.syncEpochStartMetaHeaders(meta)
+	hashesToRequest := make([][]byte, 0)
+	shardIds := make([]uint32, 0)
+	syncedMetaHeaders, err := e.syncEpochStartMetaHeaders(meta, hashesToRequest, shardIds)
 	if err != nil {
 		return nil, err
 	}
@@ -706,17 +708,17 @@ func (e *epochStartBootstrap) syncHeadersV3From(meta data.MetaHeaderHandler) (ma
 
 func (e *epochStartBootstrap) syncEpochStartMetaHeaders(
 	meta data.MetaHeaderHandler,
+	hashesToRequest [][]byte,
+	shardIds []uint32,
 ) (map[string]data.HeaderHandler, error) {
-	epochStartMetaHash, err := core.CalculateHash(e.coreComponentsHolder.InternalMarshalizer(), e.coreComponentsHolder.Hasher(), meta)
-	if err != nil {
-		return nil, err
-	}
-
-	hashesToRequest := make([][]byte, 0)
-	shardIds := make([]uint32, 0)
 	if meta.GetEpoch() > e.startEpoch+1 { // no need to request genesis block
 		hashesToRequest = append(hashesToRequest, meta.GetEpochStartHandler().GetEconomicsHandler().GetPrevEpochStartHash())
 		shardIds = append(shardIds, core.MetachainShardId)
+	}
+
+	epochStartMetaHash, err := core.CalculateHash(e.coreComponentsHolder.InternalMarshalizer(), e.coreComponentsHolder.Hasher(), meta)
+	if err != nil {
+		return nil, err
 	}
 
 	// add the epoch start meta hash to the list to sync its proof
@@ -750,39 +752,14 @@ func (e *epochStartBootstrap) syncHeadersFrom(meta data.MetaHeaderHandler) (map[
 
 	hashesToRequest := make([][]byte, 0, len(meta.GetEpochStartHandler().GetLastFinalizedHeaderHandlers())+1)
 	shardIds := make([]uint32, 0, len(meta.GetEpochStartHandler().GetLastFinalizedHeaderHandlers())+1)
-	epochStartMetaHash, err := core.CalculateHash(e.coreComponentsHolder.InternalMarshalizer(), e.coreComponentsHolder.Hasher(), meta)
-	if err != nil {
-		return nil, err
-	}
 	for _, epochStartData := range meta.GetEpochStartHandler().GetLastFinalizedHeaderHandlers() {
 		hashesToRequest = append(hashesToRequest, epochStartData.GetHeaderHash())
 		shardIds = append(shardIds, epochStartData.GetShardID())
 	}
 
-	if meta.GetEpoch() > e.startEpoch+1 { // no need to request genesis block
-		hashesToRequest = append(hashesToRequest, meta.GetEpochStartHandler().GetEconomicsHandler().GetPrevEpochStartHash())
-		shardIds = append(shardIds, core.MetachainShardId)
-	}
-
-	// add the epoch start meta hash to the list to sync its proof
-	// TODO: this can be removed when the proof will be loaded from storage
-	hashesToRequest = append(hashesToRequest, epochStartMetaHash)
-	shardIds = append(shardIds, core.MetachainShardId)
-
-	ctx, cancel := context.WithTimeout(context.Background(), DefaultTimeToWaitForRequestedData)
-	err = e.headersSyncer.SyncMissingHeadersByHash(shardIds, hashesToRequest, ctx)
-	cancel()
+	syncedHeaders, err := e.syncEpochStartMetaHeaders(meta, hashesToRequest, shardIds)
 	if err != nil {
 		return nil, err
-	}
-
-	syncedHeaders, err := e.headersSyncer.GetHeaders()
-	if err != nil {
-		return nil, err
-	}
-
-	if meta.GetEpoch() == e.startEpoch+1 {
-		syncedHeaders[string(meta.GetEpochStartHandler().GetEconomicsHandler().GetPrevEpochStartHash())] = &block.MetaBlock{}
 	}
 
 	return syncedHeaders, nil
@@ -797,9 +774,9 @@ func (e *epochStartBootstrap) requestIntermediateBlocksIfNeeded(
 	if err != nil {
 		return err
 	}
+	syncedHeaders[string(headerHash)] = header
 
 	if !header.IsHeaderV3() {
-		syncedHeaders[string(headerHash)] = header
 		return nil
 	}
 
