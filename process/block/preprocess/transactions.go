@@ -13,18 +13,16 @@ import (
 	"github.com/multiversx/mx-chain-core-go/data"
 	"github.com/multiversx/mx-chain-core-go/data/block"
 	"github.com/multiversx/mx-chain-core-go/data/transaction"
-	logger "github.com/multiversx/mx-chain-logger-go"
-
-	"github.com/multiversx/mx-chain-go/state"
-
 	"github.com/multiversx/mx-chain-go/common/holders"
 	"github.com/multiversx/mx-chain-go/config"
 	"github.com/multiversx/mx-chain-go/txcache"
+	logger "github.com/multiversx/mx-chain-logger-go"
 
 	"github.com/multiversx/mx-chain-go/common"
 	"github.com/multiversx/mx-chain-go/dataRetriever"
 	"github.com/multiversx/mx-chain-go/process"
 	"github.com/multiversx/mx-chain-go/process/block/helpers"
+	"github.com/multiversx/mx-chain-go/state"
 	"github.com/multiversx/mx-chain-go/storage"
 )
 
@@ -123,9 +121,11 @@ func NewTransactionPreprocessor(
 		hasher:      args.Hasher,
 		marshalizer: args.Marshalizer,
 		gasTracker: gasTracker{
-			shardCoordinator: args.ShardCoordinator,
-			gasHandler:       args.GasHandler,
-			economicsFee:     args.EconomicsFee,
+			shardCoordinator:    args.ShardCoordinator,
+			gasHandler:          args.GasHandler,
+			economicsFee:        args.EconomicsFee,
+			enableEpochsHandler: args.EnableEpochsHandler,
+			enableRoundsHandler: args.EnableRoundsHandler,
 		},
 		blockSizeComputation:       args.BlockSizeComputation,
 		balanceComputation:         args.BalanceComputation,
@@ -133,9 +133,9 @@ func NewTransactionPreprocessor(
 		accountsProposal:           args.AccountsProposal,
 		pubkeyConverter:            args.PubkeyConverter,
 		enableEpochsHandler:        args.EnableEpochsHandler,
+		enableRoundsHandler:        args.EnableRoundsHandler,
 		processedMiniBlocksTracker: args.ProcessedMiniBlocksTracker,
 		txExecutionOrderHandler:    args.TxExecutionOrderHandler,
-		enableRoundsHandler:        args.EnableRoundsHandler,
 	}
 
 	txs := &transactions{

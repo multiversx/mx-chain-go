@@ -394,6 +394,7 @@ func (pr *ProcessorRunner) createProcessComponents(tb testing.TB) {
 		Marshalizer:              pr.CoreComponents.InternalMarshalizer(),
 		Store:                    pr.DataComponents.StorageService(),
 		Uint64ByteSliceConverter: pr.CoreComponents.Uint64ByteSliceConverter(),
+		DataPool:                 pr.DataComponents.Datapool(),
 	}
 	historyRepositoryFactory, err := dbLookupFactory.NewHistoryRepositoryFactory(historyRepoFactoryArgs)
 	require.Nil(tb, err)

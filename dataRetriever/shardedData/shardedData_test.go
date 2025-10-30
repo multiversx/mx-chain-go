@@ -374,4 +374,6 @@ func TestShardedData_NotImplemented(t *testing.T) {
 
 	err = sd.OnProposedBlock(nil, nil, nil, nil, nil)
 	require.Nil(t, err)
+
+	sd.ResetTracker()
 }
