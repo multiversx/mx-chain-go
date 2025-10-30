@@ -178,6 +178,11 @@ func (s *simulator) createChainHandlers(args ArgsBaseChainSimulator) error {
 				return err
 			}
 
+			_, err = node.GetStateComponents().AccountsAdapter().Commit()
+			if err != nil {
+				return err
+			}
+
 			epochStartBlockHeader = &block.MetaBlock{
 				Nonce:     args.InitialNonce,
 				Epoch:     args.InitialEpoch,
