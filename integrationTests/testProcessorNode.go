@@ -32,7 +32,6 @@ import (
 	"github.com/multiversx/mx-chain-crypto-go/signing/mcl"
 	mclsig "github.com/multiversx/mx-chain-crypto-go/signing/mcl/singlesig"
 	"github.com/multiversx/mx-chain-go/process/asyncExecution/queue"
-	"github.com/multiversx/mx-chain-go/testscommon/integrationtests"
 	vmcommon "github.com/multiversx/mx-chain-vm-common-go"
 	"github.com/multiversx/mx-chain-vm-common-go/parsers"
 	wasmConfig "github.com/multiversx/mx-chain-vm-go/config"
@@ -752,14 +751,10 @@ func (tpn *TestProcessorNode) initValidatorStatistics() {
 }
 
 func (tpn *TestProcessorNode) initGenesisBlocks(args ArgTestProcessorNode) {
-	accPropRootHash, err := tpn.AccntStateProposal.RootHash()
-	log.Error("tpn.initGenesisBlocks", "account state proposal rootHash", accPropRootHash)
-
 	rootHash, err := tpn.AccntState.Commit()
 	if err != nil {
-		log.Debug("tpn.initGenesisBlocks", "err", err)
+		log.Error("tpn.initGenesisBlocks", "err", err)
 	}
-	log.Error("tpn.initGenesisBlocks", "rootHash", rootHash)
 
 	if args.GenesisFile != "" {
 		tpn.SmartContractParser, _ = parsing.NewSmartContractsParser(
@@ -820,17 +815,6 @@ func (tpn *TestProcessorNode) initGenesisBlocks(args ArgTestProcessorNode) {
 	shardID := tpn.ShardCoordinator.SelfId()
 	genesisBlock := tpn.GenesisBlocks[shardID]
 	_ = tpn.DataPool.Transactions().OnExecutedBlock(genesisBlock, genesisBlock.GetRootHash())
-
-	for _, gb := range tpn.GenesisBlocks {
-		log.Error("tpn.initGenesisBlocks", "genesis block rootHash", gb.GetRootHash())
-		hash, err := core.CalculateHash(integrationtests.TestMarshalizer, integrationtests.TestHasher, gb)
-		if err != nil {
-			log.Error("tpn.initGenesisBlocks", "err", err)
-		}
-
-		log.Error("tpn.initGenesisBlocks", "genesis block hash", hash)
-	}
-
 }
 
 func (tpn *TestProcessorNode) initTestNodeWithArgs(args ArgTestProcessorNode) {

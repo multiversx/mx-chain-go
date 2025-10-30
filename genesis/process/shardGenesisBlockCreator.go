@@ -150,7 +150,7 @@ func CreateShardGenesisBlock(
 			err, arg.ShardCoordinator.SelfId())
 	}
 
-	log.Error("shard block genesis",
+	log.Debug("shard block genesis",
 		"shard ID", arg.ShardCoordinator.SelfId(),
 		"num delegation SC deployed", deployMetrics.numDelegation,
 		"num other SC deployed", deployMetrics.numOtherTypes,

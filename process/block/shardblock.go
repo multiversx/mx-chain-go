@@ -2167,6 +2167,9 @@ func (sp *shardProcessor) createMiniBlocks(haveTime func() bool, randomness []by
 	}
 
 	accountsProposalRootHash, err := sp.accountsProposal.RootHash()
+	if err != nil {
+		log.Error("shardProcessor.createMiniBlocks", "error", err)
+	}
 	log.Error("shardProcessor.createMiniBlocks recreating the trie if needed", "accountsProposal rootHash", accountsProposalRootHash)
 
 	rh := holders.NewDefaultRootHashesHolder(rootHash)
