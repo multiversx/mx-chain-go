@@ -2182,7 +2182,7 @@ func (sp *shardProcessor) createMiniBlocks(haveTime func() bool, randomness []by
 	if err != nil {
 		log.Error("shardProcessor.createMiniBlocks", "error", err)
 	}
-	log.Error("shardProcessor.createMiniBlocks updated rootHash", "accountsProposal rootHash", accountsProposalRootHash)
+	log.Debug("shardProcessor.createMiniBlocks updated rootHash", "accountsProposal rootHash", accountsProposalRootHash)
 
 	mbsFromMe := sp.txCoordinator.CreateMbsAndProcessTransactionsFromMe(haveTime, randomness)
 	elapsedTime = time.Since(startTime)
