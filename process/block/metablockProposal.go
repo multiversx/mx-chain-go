@@ -1,6 +1,7 @@
 package block
 
 import (
+	"errors"
 	"time"
 
 	"github.com/multiversx/mx-chain-core-go/core"
@@ -179,12 +180,51 @@ func getTxCountExecutionResults(metaHeader data.MetaHeaderHandler) (uint32, erro
 	return uint32(totalTxs), nil
 }
 
-// VerifyBlockProposal will be implemented in a further PR
+// VerifyBlockProposal verifies the proposed block. It returns nil if all ok or the specific error
 func (mp *metaProcessor) VerifyBlockProposal(
-	_ data.HeaderHandler,
-	_ data.BodyHandler,
-	_ func() time.Duration,
+	headerHandler data.HeaderHandler,
+	bodyHandler data.BodyHandler,
+	haveTime func() time.Duration,
 ) error {
+	err := mp.checkBlockValidity(headerHandler, bodyHandler)
+	if err != nil {
+		if errors.Is(err, process.ErrBlockHashDoesNotMatch) {
+			log.Debug("requested missing meta header",
+				"hash", headerHandler.GetPrevHash(),
+				"for shard", headerHandler.GetShardID(),
+			)
+
+			go mp.requestHandler.RequestMetaHeaderForEpoch(headerHandler.GetPrevHash(), headerHandler.GetEpoch())
+		}
+
+		return err
+	}
+
+	log.Debug("started verifying proposed meta block",
+		"epoch", headerHandler.GetEpoch(),
+		"shard", headerHandler.GetShardID(),
+		"round", headerHandler.GetRound(),
+		"nonce", headerHandler.GetNonce())
+
+	header, ok := headerHandler.(*block.MetaBlock)
+	if !ok {
+		return process.ErrWrongTypeAssertion
+	}
+
+	if !header.IsHeaderV3() {
+		return process.ErrInvalidHeader
+	}
+
+	body, ok := bodyHandler.(*block.Body)
+	if !ok {
+		return process.ErrWrongTypeAssertion
+	}
+
+	err = mp.checkHeaderBodyCorrelationProposal(header.GetMiniBlockHeaderHandlers(), body)
+	if err != nil {
+		return err
+	}
+
 	return nil
 }
 
