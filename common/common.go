@@ -33,6 +33,11 @@ type chainParametersHandler interface {
 	IsInterfaceNil() bool
 }
 
+// PrepareLogEventsKey will prepare logs key for cacher
+func PrepareLogEventsKey(headerHash []byte) []byte {
+	return append([]byte("logs"), headerHash...)
+}
+
 // IsValidRelayedTxV3 returns true if the provided transaction is a valid transaction of type relayed v3
 func IsValidRelayedTxV3(tx data.TransactionHandler) bool {
 	relayedTx, isRelayedV3 := tx.(data.RelayedTransactionHandler)
@@ -402,4 +407,22 @@ func ExtractBaseExecutionResultHandler(lastExecResultsHandler data.LastExecution
 	}
 
 	return baseExecutionResultsHandler, nil
+}
+
+// GetLastExecutionResultNonce returns last execution result nonce if header v3 enable, otherwise it returns provided header nonce
+func GetLastExecutionResultNonce(
+	header data.HeaderHandler,
+) uint64 {
+	nonce := header.GetNonce()
+
+	if !header.IsHeaderV3() {
+		return nonce
+	}
+
+	lastExecutionResult, err := GetLastBaseExecutionResultHandler(header)
+	if err != nil {
+		return nonce
+	}
+
+	return lastExecutionResult.GetHeaderNonce()
 }

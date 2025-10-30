@@ -27,6 +27,7 @@ type ShardedDataCacheNotifierMock struct {
 		accountsProvider common.AccountNonceAndBalanceProvider,
 		latestExecutedHash []byte,
 	) error
+	ResetTrackerCalled func()
 }
 
 // NewShardedDataCacheNotifierMock -
@@ -167,6 +168,13 @@ func (mock *ShardedDataCacheNotifierMock) OnProposedBlock(
 		return mock.OnProposedBlockCalled(blockHash, blockBody, blockHeader, accountsProvider, latestExecutedHash)
 	}
 	return nil
+}
+
+// ResetTracker -
+func (mock *ShardedDataCacheNotifierMock) ResetTracker() {
+	if mock.ResetTrackerCalled != nil {
+		mock.ResetTrackerCalled()
+	}
 }
 
 // IsInterfaceNil -

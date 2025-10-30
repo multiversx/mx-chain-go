@@ -23,6 +23,7 @@ type ArgsHistoryRepositoryFactory struct {
 	Marshalizer              marshal.Marshalizer
 	Hasher                   hashing.Hasher
 	Uint64ByteSliceConverter typeConverters.Uint64ByteSliceConverter
+	DataPool                 dataRetriever.PoolsHolder
 }
 
 type historyRepositoryFactory struct {
@@ -32,6 +33,7 @@ type historyRepositoryFactory struct {
 	marshalizer              marshal.Marshalizer
 	hasher                   hashing.Hasher
 	uInt64ByteSliceConverter typeConverters.Uint64ByteSliceConverter
+	dataPool                 dataRetriever.PoolsHolder
 }
 
 // NewHistoryRepositoryFactory creates an instance of historyRepositoryFactory
@@ -48,6 +50,9 @@ func NewHistoryRepositoryFactory(args *ArgsHistoryRepositoryFactory) (dblookupex
 	if check.IfNil(args.Uint64ByteSliceConverter) {
 		return nil, process.ErrNilUint64Converter
 	}
+	if check.IfNil(args.DataPool) {
+		return nil, process.ErrNilDataPoolHolder
+	}
 
 	return &historyRepositoryFactory{
 		selfShardID:              args.SelfShardID,
@@ -56,6 +61,7 @@ func NewHistoryRepositoryFactory(args *ArgsHistoryRepositoryFactory) (dblookupex
 		marshalizer:              args.Marshalizer,
 		hasher:                   args.Hasher,
 		uInt64ByteSliceConverter: args.Uint64ByteSliceConverter,
+		dataPool:                 args.DataPool,
 	}, nil
 }
 
@@ -126,6 +132,7 @@ func (hpf *historyRepositoryFactory) Create() (dblookupext.HistoryRepository, er
 		EventsHashesByTxHashStorer:  resultsHashesByTxHashStorer,
 		ESDTSuppliesHandler:         esdtSuppliesHandler,
 		ExecutionResultsStorer:      executionResultsStorer,
+		DataPool:                    hpf.dataPool,
 	}
 	return dblookupext.NewHistoryRepository(historyRepArgs)
 }
