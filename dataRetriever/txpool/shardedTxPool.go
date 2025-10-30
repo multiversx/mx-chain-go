@@ -428,3 +428,9 @@ func (txPool *shardedTxPool) OnExecutedBlock(blockHeader data.HeaderHandler, roo
 	cache := txPool.getSelfShardTxCache()
 	return cache.OnExecutedBlock(blockHeader, rootHash)
 }
+
+// ResetTracker resets the underlying TxCache
+func (txPool *shardedTxPool) ResetTracker() {
+	cache := txPool.getSelfShardTxCache()
+	cache.ResetTracker()
+}

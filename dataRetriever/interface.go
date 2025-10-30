@@ -193,6 +193,7 @@ type ShardedDataCacherNotifier interface {
 		accountsProvider common.AccountNonceAndBalanceProvider,
 		latestExecutedHash []byte,
 	) error
+	ResetTracker()
 }
 
 // ShardIdHashMap represents a map for shardId and hash
