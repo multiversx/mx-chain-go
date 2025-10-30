@@ -591,6 +591,8 @@ func TestShardedTxPool_OnProposedBlock_And_OnExecutedBlock(t *testing.T) {
 
 		err = pool.OnExecutedBlock(&block.HeaderV2{}, []byte{})
 		require.Nil(t, err)
+
+		pool.ResetTracker() // coverage
 	})
 }
 
