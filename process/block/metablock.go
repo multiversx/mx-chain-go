@@ -206,7 +206,7 @@ func (mp *metaProcessor) ProcessBlock(
 		return err
 	}
 
-	mp.epochStartTrigger.Update(header.GetRound(), header.GetNonce())
+	mp.updateEpochStartTrigger(header.GetRound(), header.GetNonce())
 	err = mp.checkEpochCorrectness(header)
 	if err != nil {
 		return err
