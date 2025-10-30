@@ -160,12 +160,12 @@ func (s *simulator) createChainHandlers(args ArgsBaseChainSimulator) error {
 		var epochStartBlockHeader data.HeaderHandler
 
 		if node.GetShardCoordinator().SelfId() == core.MetachainShardId {
-			currentRootHash, errRootHash := node.GetProcessComponents().ValidatorsStatistics().RootHash()
+			validatorStatisticsRootHash, errRootHash := node.GetProcessComponents().ValidatorsStatistics().RootHash()
 			if errRootHash != nil {
 				return errRootHash
 			}
 
-			allValidatorsInfo, errGet := node.GetProcessComponents().ValidatorsStatistics().GetValidatorInfoForRootHash(currentRootHash)
+			allValidatorsInfo, errGet := node.GetProcessComponents().ValidatorsStatistics().GetValidatorInfoForRootHash(validatorStatisticsRootHash)
 			if errGet != nil {
 				return errGet
 			}
@@ -178,20 +178,27 @@ func (s *simulator) createChainHandlers(args ArgsBaseChainSimulator) error {
 				return err
 			}
 
-			_, err = node.GetStateComponents().AccountsAdapter().Commit()
+			rootHash, err := node.GetStateComponents().AccountsAdapter().Commit()
 			if err != nil {
 				return err
 			}
 
 			epochStartBlockHeader = &block.MetaBlock{
+				RootHash:  rootHash,
 				Nonce:     args.InitialNonce,
 				Epoch:     args.InitialEpoch,
 				Round:     uint64(args.InitialRound),
 				TimeStamp: uint64(node.GetCoreComponents().RoundHandler().TimeStamp().Unix()),
 			}
 		} else {
+			rootHash, err := node.GetStateComponents().AccountsAdapter().Commit()
+			if err != nil {
+				return err
+			}
+
 			epochStartBlockHeader = &block.HeaderV2{
 				Header: &block.Header{
+					RootHash:  rootHash,
 					Nonce:     args.InitialNonce,
 					Epoch:     args.InitialEpoch,
 					Round:     uint64(args.InitialRound),
@@ -201,6 +208,7 @@ func (s *simulator) createChainHandlers(args ArgsBaseChainSimulator) error {
 		}
 
 		genesisBlock := node.GetDataComponents().Blockchain().GetGenesisHeader()
+		log.Error("simulator.createChainHandlers", "genesis block rootHash", genesisBlock)
 		err = node.GetDataComponents().Datapool().Transactions().OnExecutedBlock(genesisBlock, genesisBlock.GetRootHash())
 		if err != nil {
 			return err

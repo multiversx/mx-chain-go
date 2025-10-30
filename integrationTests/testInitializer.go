@@ -544,21 +544,19 @@ func CreateMetaChain() data.ChainHandler {
 }
 
 // CreateSimpleGenesisBlocks creates empty genesis blocks for all known shards, including metachain
-func CreateSimpleGenesisBlocks(shardCoordinator sharding.Coordinator) map[uint32]data.HeaderHandler {
+func CreateSimpleGenesisBlocks(shardCoordinator sharding.Coordinator, rootHash []byte) map[uint32]data.HeaderHandler {
 	genesisBlocks := make(map[uint32]data.HeaderHandler)
 	for shardId := uint32(0); shardId < shardCoordinator.NumberOfShards(); shardId++ {
-		genesisBlocks[shardId] = CreateSimpleGenesisBlock(shardId)
+		genesisBlocks[shardId] = CreateSimpleGenesisBlock(shardId, rootHash)
 	}
 
-	genesisBlocks[core.MetachainShardId] = CreateSimpleGenesisMetaBlock()
+	genesisBlocks[core.MetachainShardId] = CreateSimpleGenesisMetaBlock(rootHash)
 
 	return genesisBlocks
 }
 
 // CreateSimpleGenesisBlock creates a new mock shard genesis block
-func CreateSimpleGenesisBlock(shardId uint32) *dataBlock.Header {
-	rootHash := []byte("root hash")
-
+func CreateSimpleGenesisBlock(shardId uint32, rootHash []byte) *dataBlock.Header {
 	return &dataBlock.Header{
 		Nonce:           0,
 		Round:           0,
@@ -575,9 +573,7 @@ func CreateSimpleGenesisBlock(shardId uint32) *dataBlock.Header {
 }
 
 // CreateSimpleGenesisMetaBlock creates a new mock meta genesis block
-func CreateSimpleGenesisMetaBlock() *dataBlock.MetaBlock {
-	rootHash := []byte("root hash")
-
+func CreateSimpleGenesisMetaBlock(rootHash []byte) *dataBlock.MetaBlock {
 	return &dataBlock.MetaBlock{
 		Nonce:                  0,
 		Epoch:                  0,
@@ -621,7 +617,9 @@ func CreateGenesisBlocks(
 
 	genesisBlocks := make(map[uint32]data.HeaderHandler)
 	for shardId := uint32(0); shardId < shardCoordinator.NumberOfShards(); shardId++ {
-		genesisBlocks[shardId] = CreateSimpleGenesisBlock(shardId)
+		rootHash, err := accounts.Commit()
+		log.Debug("CreateGenesisBlocks", "err", err)
+		genesisBlocks[shardId] = CreateSimpleGenesisBlock(shardId, rootHash)
 	}
 
 	genesisBlocks[core.MetachainShardId] = CreateGenesisMetaBlock(

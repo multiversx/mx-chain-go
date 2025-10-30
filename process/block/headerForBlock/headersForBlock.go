@@ -764,6 +764,7 @@ func (hfb *headersForBlock) checkFinalityRequestingMissing(metaBlock *block.Meta
 }
 
 func (hfb *headersForBlock) updateLastNotarizedBlockForShard(hdr data.ShardHeaderHandler, headerHash []byte) {
+	log.Error("headersForBlock.updateLastNotarizedBlockForShard", "headerHash", headerHash)
 	lastNotarizedForShard, found := hfb.lastNotarizedShardHeaders[hdr.GetShardID()]
 	if !found || lastNotarizedForShard == nil {
 		lastNotarizedForShard = newLastNotarizedHeaderInfo(hdr, headerHash, false, false)
