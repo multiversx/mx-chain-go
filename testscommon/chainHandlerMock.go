@@ -17,9 +17,9 @@ type ChainHandlerMock struct {
 	finalBlockHash     []byte
 	finalBlockRootHash []byte
 
-	lastNotarizedBlockNonce    uint64
-	lastNotarizedBlockHash     []byte
-	lastNotarizedBlockRootHash []byte
+	lastExecutedBlockNonce    uint64
+	lastExecutedBlockHash     []byte
+	lastExecutedBlockRootHash []byte
 }
 
 // GetGenesisHeader -
@@ -79,9 +79,9 @@ func (mock *ChainHandlerMock) SetFinalBlockInfo(nonce uint64, headerHash []byte,
 
 // SetLastExecutedBlockInfo -
 func (mock *ChainHandlerMock) SetLastExecutedBlockInfo(nonce uint64, headerHash []byte, rootHash []byte) {
-	mock.lastNotarizedBlockNonce = nonce
-	mock.lastNotarizedBlockHash = headerHash
-	mock.lastNotarizedBlockRootHash = rootHash
+	mock.lastExecutedBlockNonce = nonce
+	mock.lastExecutedBlockHash = headerHash
+	mock.lastExecutedBlockRootHash = rootHash
 }
 
 // GetFinalBlockInfo -
@@ -91,7 +91,7 @@ func (mock *ChainHandlerMock) GetFinalBlockInfo() (nonce uint64, blockHash []byt
 
 // GetLastExecutedBlockInfo -
 func (mock *ChainHandlerMock) GetLastExecutedBlockInfo() (nonce uint64, blockHash []byte, rootHash []byte) {
-	return mock.lastNotarizedBlockNonce, mock.lastNotarizedBlockHash, mock.lastNotarizedBlockRootHash
+	return mock.lastExecutedBlockNonce, mock.lastExecutedBlockHash, mock.lastExecutedBlockRootHash
 }
 
 // IsInterfaceNil -

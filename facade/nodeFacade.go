@@ -637,12 +637,12 @@ func (nf *nodeFacade) GetProofCurrentRootHash(address string) (*common.GetProofR
 
 func (nf *nodeFacade) getCurrentRootHash() []byte {
 	currentHeader := nf.blockchain.GetCurrentBlockHeader()
-	if currentHeader != nil && !currentHeader.IsHeaderV3() {
-		return nf.blockchain.GetCurrentBlockRootHash()
+	if currentHeader != nil && currentHeader.IsHeaderV3() {
+		_, _, lastExecutedRootHash := nf.blockchain.GetLastExecutedBlockInfo()
+		return lastExecutedRootHash
 	}
 
-	_, _, lastExecutedRootHash := nf.blockchain.GetLastExecutedBlockInfo()
-	return lastExecutedRootHash
+	return nf.blockchain.GetCurrentBlockRootHash()
 }
 
 // VerifyProof verifies the given Merkle proof
