@@ -973,7 +973,6 @@ func TestCommunityContract_CrossShard_TxProcessor(t *testing.T) {
 	parentCode := codePath + "/parent_old.wasm"
 
 	logger.ToggleLoggerName(true)
-	// logger.SetLogLevel("*:TRACE")
 
 	// Deploy Funder SC in shard 0
 	funderOwnerAccount, _ := testContextFunderSC.Accounts.LoadAccount(funderOwner)
