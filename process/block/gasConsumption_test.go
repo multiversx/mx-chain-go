@@ -690,9 +690,14 @@ func TestGasConsumption_RevertIncomingMiniBlocks(t *testing.T) {
 		pendingMiniBlocks := gc.GetPendingMiniBlocks()
 		require.Len(t, pendingMiniBlocks, 2)
 
+		totalGasBeforeRevert := gc.TotalGasConsumed()
+
 		// revert the first pending mini block
 		firstPendingHash := mbs[8].GetHash()
 		gc.RevertIncomingMiniBlocks([][]byte{firstPendingHash})
+
+		// total gas should stay the same, only a pending mini block was removed
+		require.Equal(t, totalGasBeforeRevert, gc.TotalGasConsumed())
 
 		// check that pending mini blocks were updated
 		updatedPendingMiniBlocks := gc.GetPendingMiniBlocks()
@@ -718,9 +723,14 @@ func TestGasConsumption_RevertIncomingMiniBlocks(t *testing.T) {
 		pendingMiniBlocks := gc.GetPendingMiniBlocks()
 		require.Len(t, pendingMiniBlocks, 2)
 
+		totalGasBeforeRevert := gc.TotalGasConsumed()
+
 		// revert the last pending mini block (index 9, which is the last in pending)
 		lastPendingHash := mbs[9].GetHash()
 		gc.RevertIncomingMiniBlocks([][]byte{lastPendingHash})
+
+		// total gas should stay the same, only a pending mini block was removed
+		require.Equal(t, totalGasBeforeRevert, gc.TotalGasConsumed())
 
 		// check that pending mini blocks were updated
 		updatedPendingMiniBlocks := gc.GetPendingMiniBlocks()
@@ -746,9 +756,14 @@ func TestGasConsumption_RevertIncomingMiniBlocks(t *testing.T) {
 		pendingMiniBlocks := gc.GetPendingMiniBlocks()
 		require.Len(t, pendingMiniBlocks, 3)
 
+		totalGasBeforeRevert := gc.TotalGasConsumed()
+
 		// revert the middle pending mini block (index 9, which is the middle in pending)
 		middlePendingHash := mbs[9].GetHash()
 		gc.RevertIncomingMiniBlocks([][]byte{middlePendingHash})
+
+		// total gas should stay the same, only a pending mini block was removed
+		require.Equal(t, totalGasBeforeRevert, gc.TotalGasConsumed())
 
 		// check that pending mini blocks were updated
 		updatedPendingMiniBlocks := gc.GetPendingMiniBlocks()
@@ -804,12 +819,17 @@ func TestGasConsumption_RevertIncomingMiniBlocks(t *testing.T) {
 		require.Equal(t, 7, lastMbIndex)
 		require.Equal(t, 2, pendingMbs)
 
+		totalGasBeforeRevert := gc.TotalGasConsumed()
+
 		// revert all pending mini blocks
 		hashesToRevert := [][]byte{
 			mbs[8].GetHash(),
 			mbs[9].GetHash(),
 		}
 		gc.RevertIncomingMiniBlocks(hashesToRevert)
+
+		// total gas should stay the same, only pending mini blocks were removed
+		require.Equal(t, totalGasBeforeRevert, gc.TotalGasConsumed())
 
 		// no pending mini blocks should remain
 		updatedPendingMiniBlocks := gc.GetPendingMiniBlocks()
