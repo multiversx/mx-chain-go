@@ -655,10 +655,11 @@ func TestExecutionResultsTracker_OnHeaderEvicted(t *testing.T) {
 	err = tracker.AddExecutionResult(executionResults[0])
 	require.Nil(t, err)
 
-	// marking upcoming nonce for deletion should not add anymore
-	tracker.OnHeaderEvicted(executionResults[1].GetHeaderNonce())
 	err = tracker.AddExecutionResult(executionResults[1])
 	require.Nil(t, err)
+
+	// evicting already processed nonce should remove it from pending
+	tracker.OnHeaderEvicted(executionResults[1].GetHeaderNonce())
 
 	results, errG := tracker.GetPendingExecutionResults()
 	require.Nil(t, errG)

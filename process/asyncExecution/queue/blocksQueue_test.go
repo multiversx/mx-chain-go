@@ -309,7 +309,7 @@ func TestBlocksQueue_AddOrReplaceWithLowerNonce(t *testing.T) {
 		require.Equal(t, uint64(200), hq.headerBodyPairs[0].Header.GetRound())
 	})
 
-	t.Run("replace with nonce lower than first element should error", func(t *testing.T) {
+	t.Run("replace with nonce lower than first element should remove all higher nonces", func(t *testing.T) {
 		t.Parallel()
 
 		hq := NewBlocksQueue()
@@ -334,11 +334,11 @@ func TestBlocksQueue_AddOrReplaceWithLowerNonce(t *testing.T) {
 			Body:   &block.Body{},
 		}
 		err := hq.AddOrReplace(pairAtNonce5)
-		require.True(t, errors.Is(err, ErrMissingHeaderNonce))
+		require.NoError(t, err)
 
 		// Queue should remain unchanged
-		require.Equal(t, 3, len(hq.headerBodyPairs))
-		require.Equal(t, uint64(13), hq.lastAddedNonce)
+		require.Equal(t, 1, len(hq.headerBodyPairs))
+		require.Equal(t, uint64(5), hq.lastAddedNonce)
 	})
 }
 
@@ -489,7 +489,7 @@ func TestBlocksQueue_RemoveAtNonceAndHigher(t *testing.T) {
 		require.Equal(t, uint64(3), hq.headerBodyPairs[2].Header.GetNonce())
 	})
 
-	t.Run("remove non-existent nonce returns error", func(t *testing.T) {
+	t.Run("remove non-existent nonce removes higher ones", func(t *testing.T) {
 		t.Parallel()
 
 		hq := NewBlocksQueue()
@@ -510,10 +510,10 @@ func TestBlocksQueue_RemoveAtNonceAndHigher(t *testing.T) {
 
 		// Try to remove at nonce 5 (which doesn't exist)
 		err := hq.RemoveAtNonceAndHigher(5)
-		require.True(t, errors.Is(err, ErrMissingHeaderNonce))
+		require.NoError(t, err)
 
 		// Queue should remain unchanged
-		require.Equal(t, 3, len(hq.headerBodyPairs))
+		require.Equal(t, 0, len(hq.headerBodyPairs))
 		require.Equal(t, uint64(13), hq.lastAddedNonce)
 	})
 
