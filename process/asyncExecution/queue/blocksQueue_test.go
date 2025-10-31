@@ -541,6 +541,7 @@ func TestBlocksQueue_RemoveAtNonceAndHigher(t *testing.T) {
 		require.Equal(t, uint64(0), hq.lastAddedNonce)
 
 		hq.Close()
-		hq.RemoveAtNonceAndHigher(10) // coverage only, should early exit
+		err = hq.RemoveAtNonceAndHigher(10) // coverage only, should early exit
+		require.Nil(t, err)
 	})
 }
