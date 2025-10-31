@@ -251,8 +251,7 @@ func TestConsensusBLSWithFullProcessing_TransitionToSupernova_HighLoad(t *testin
 
 	enableEpochsConfig := integrationTests.CreateEnableEpochsConfig()
 	enableEpochsConfig.AndromedaEnableEpoch = uint32(0)
-	// TODO SupernovaEnableEpoch flag should be activation after async execution is done -> enableEpochsConfig.SupernovaEnableEpoch = uint32(1)
-	enableEpochsConfig.SupernovaEnableEpoch = uint32(5)
+	enableEpochsConfig.SupernovaEnableEpoch = uint32(1)
 	numKeysOnEachNode := 3
 	targetEpoch := uint32(2)
 	txs := &generatedTxsParams{
@@ -280,8 +279,7 @@ func TestConsensusBLSWithFullProcessing_AfterSupernova_HighLoad(t *testing.T) {
 
 	enableEpochsConfig := integrationTests.CreateEnableEpochsConfig()
 	enableEpochsConfig.AndromedaEnableEpoch = uint32(0)
-	// TODO SupernovaEnableEpoch flag should be activation after async execution is done -> enableEpochsConfig.SupernovaEnableEpoch = uint32(1)
-	enableEpochsConfig.SupernovaEnableEpoch = uint32(5)
+	enableEpochsConfig.SupernovaEnableEpoch = uint32(0)
 	numKeysOnEachNode := 3
 	targetEpoch := uint32(2)
 	txs := &generatedTxsParams{

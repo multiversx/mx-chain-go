@@ -1239,10 +1239,11 @@ func createDefaultEconomicsConfig() *config.EconomicsConfig {
 					MaxGasHigherFactorAccepted:  "10",
 				},
 			},
-			MinGasPrice:            minGasPrice,
-			GasPerDataByte:         "1",
-			GasPriceModifier:       0.01,
-			MaxGasPriceSetGuardian: "2000000000",
+			MinGasPrice:                       minGasPrice,
+			GasPerDataByte:                    "1",
+			GasPriceModifier:                  0.01,
+			MaxGasPriceSetGuardian:            "2000000000",
+			BlockCapacityOverestimationFactor: 200,
 		},
 	}
 }
