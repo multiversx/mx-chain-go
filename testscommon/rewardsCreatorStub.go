@@ -17,13 +17,13 @@ type RewardsCreatorStub struct {
 	VerifyRewardsMiniBlocksCalled func(
 		metaBlock data.MetaHeaderHandler, validatorsInfo state.ShardValidatorsInfoMapHandler, computedEconomics *block.Economics,
 	) error
-	GetProtocolSustainabilityRewardsCalled func() *big.Int
-	GetLocalTxCacheCalled                  func() epochStart.TransactionCacher
-	CreateMarshalledDataCalled             func(body *block.Body) map[string][][]byte
-	GetRewardsTxsCalled                    func(body *block.Body) map[string]data.TransactionHandler
-	SaveBlockDataToStorageCalled           func(metaBlock data.MetaHeaderHandler, body *block.Body)
-	DeleteBlockDataFromStorageCalled       func(metaBlock data.MetaHeaderHandler, body *block.Body)
-	RemoveBlockDataFromPoolsCalled         func(metaBlock data.MetaHeaderHandler, body *block.Body)
+	GetAcceleratorRewardsCalled      func() *big.Int
+	GetLocalTxCacheCalled            func() epochStart.TransactionCacher
+	CreateMarshalledDataCalled       func(body *block.Body) map[string][][]byte
+	GetRewardsTxsCalled              func(body *block.Body) map[string]data.TransactionHandler
+	SaveBlockDataToStorageCalled     func(metaBlock data.MetaHeaderHandler, body *block.Body)
+	DeleteBlockDataFromStorageCalled func(metaBlock data.MetaHeaderHandler, body *block.Body)
+	RemoveBlockDataFromPoolsCalled   func(metaBlock data.MetaHeaderHandler, body *block.Body)
 }
 
 // CreateRewardsMiniBlocks -
@@ -51,10 +51,10 @@ func (rcs *RewardsCreatorStub) VerifyRewardsMiniBlocks(
 	return nil
 }
 
-// GetProtocolSustainabilityRewards -
-func (rcs *RewardsCreatorStub) GetProtocolSustainabilityRewards() *big.Int {
-	if rcs.GetProtocolSustainabilityRewardsCalled != nil {
-		return rcs.GetProtocolSustainabilityRewardsCalled()
+// GetAcceleratorRewards -
+func (rcs *RewardsCreatorStub) GetAcceleratorRewards() *big.Int {
+	if rcs.GetAcceleratorRewardsCalled != nil {
+		return rcs.GetAcceleratorRewardsCalled()
 	}
 
 	return big.NewInt(0)

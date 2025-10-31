@@ -51,7 +51,7 @@ func NewRewardsCreator(args ArgsNewRewardsCreator) (*rewardsCreator, error) {
 func (rc *rewardsCreator) CreateRewardsMiniBlocks(
 	metaBlock data.MetaHeaderHandler,
 	validatorsInfo state.ShardValidatorsInfoMapHandler,
-	computedEconomics *block.Economics,
+	_ *block.Economics,
 ) (block.MiniBlockSlice, error) {
 	if check.IfNil(metaBlock) {
 		return nil, epochStart.ErrNilHeaderHandler
@@ -72,7 +72,7 @@ func (rc *rewardsCreator) CreateRewardsMiniBlocks(
 
 	miniBlocks := rc.initializeRewardsMiniBlocks()
 
-	protSustRwdTx, protSustShardId, err := rc.createProtocolSustainabilityRewardTransaction(metaBlock, computedEconomics)
+	protSustRwdTx, protSustShardId, err := rc.createProtocolSustainabilityRewardTransaction(metaBlock)
 	if err != nil {
 		return nil, err
 	}
@@ -87,6 +87,7 @@ func (rc *rewardsCreator) CreateRewardsMiniBlocks(
 	difference := big.NewInt(0).Sub(totalWithoutDevelopers, rc.accumulatedRewards)
 	log.Debug("arithmetic difference in end of epoch rewards economics", "epoch", metaBlock.GetEpoch(), "value", difference)
 	rc.adjustProtocolSustainabilityRewards(protSustRwdTx, difference)
+
 	err = rc.addProtocolRewardToMiniBlocks(protSustRwdTx, miniBlocks, protSustShardId)
 	if err != nil {
 		return nil, err
@@ -112,7 +113,7 @@ func (rc *rewardsCreator) adjustProtocolSustainabilityRewards(protocolSustainabi
 		"destination", protocolSustainabilityRwdTx.GetRcvAddr(),
 		"value", protocolSustainabilityRwdTx.GetValue().String())
 
-	rc.protocolSustainabilityValue.Set(protocolSustainabilityRwdTx.Value)
+	rc.economicsData.SetRewardsForProtocolSustainability(protocolSustainabilityRwdTx.Value)
 }
 
 func (rc *rewardsCreator) addValidatorRewardsToMiniBlocks(

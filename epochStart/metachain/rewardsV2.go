@@ -102,7 +102,7 @@ func (rc *rewardsCreatorV2) CreateRewardsMiniBlocks(
 	rc.clean()
 	rc.flagDelegationSystemSCEnabled.SetValue(metaBlock.GetEpoch() >= rc.enableEpochsHandler.GetActivationEpoch(common.StakingV2Flag))
 
-	protRwdTx, protRwdShardId, err := rc.createProtocolSustainabilityRewardTransaction(metaBlock, computedEconomics)
+	protRwdTx, protRwdShardId, err := rc.createProtocolSustainabilityRewardTransaction(metaBlock)
 	if err != nil {
 		return nil, err
 	}
@@ -120,6 +120,23 @@ func (rc *rewardsCreatorV2) CreateRewardsMiniBlocks(
 
 	rc.adjustProtocolSustainabilityRewards(protRwdTx, dust)
 	err = rc.addProtocolRewardToMiniBlocks(protRwdTx, miniBlocks, protRwdShardId)
+	if err != nil {
+		return nil, err
+	}
+
+	ecoGrowthRwdTx, ecoGrowthShardId, err := rc.createEcosystemGrowthRewardTransaction(metaBlock)
+	if err != nil {
+		return nil, err
+	}
+	growthDivRwdTx, growthDivShardId, err := rc.createGrowthDividendRewardTransaction(metaBlock)
+	if err != nil {
+		return nil, err
+	}
+	err = rc.addProtocolRewardToMiniBlocks(ecoGrowthRwdTx, miniBlocks, ecoGrowthShardId)
+	if err != nil {
+		return nil, err
+	}
+	err = rc.addProtocolRewardToMiniBlocks(growthDivRwdTx, miniBlocks, growthDivShardId)
 	if err != nil {
 		return nil, err
 	}
@@ -145,7 +162,7 @@ func (rc *rewardsCreatorV2) adjustProtocolSustainabilityRewards(protocolSustaina
 		"destination", protocolSustainabilityRwdTx.GetRcvAddr(),
 		"value", protocolSustainabilityRwdTx.GetValue().String())
 
-	rc.protocolSustainabilityValue.Set(protocolSustainabilityRwdTx.Value)
+	rc.economicsData.SetRewardsForProtocolSustainability(protocolSustainabilityRwdTx.Value)
 }
 
 // VerifyRewardsMiniBlocks verifies if received rewards miniblocks are correct

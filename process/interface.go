@@ -988,7 +988,7 @@ type RewardsCreator interface {
 	VerifyRewardsMiniBlocks(
 		metaBlock data.MetaHeaderHandler, validatorsInfo state.ShardValidatorsInfoMapHandler, computedEconomics *block.Economics,
 	) error
-	GetProtocolSustainabilityRewards() *big.Int
+	GetAcceleratorRewards() *big.Int
 	GetLocalTxCache() epochStart.TransactionCacher
 	CreateMarshalledData(body *block.Body) map[string][][]byte
 	GetRewardsTxs(body *block.Body) map[string]data.TransactionHandler

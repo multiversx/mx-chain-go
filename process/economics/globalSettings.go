@@ -46,6 +46,12 @@ func newGlobalSettingsHandler(
 		}
 	}
 
+	if isPercentageInvalid(g.minInflation) ||
+		isPercentageInvalid(g.startYearInflation) ||
+		isPercentageInvalid(g.decayPercentage) {
+		return nil, process.ErrInvalidInflationPercentages
+	}
+
 	return g, nil
 }
 

@@ -249,7 +249,7 @@ func TestRewardsCreator_adjustProtocolSustainabilityRewardsPositiveValue(t *test
 	}
 	rwd1.adjustProtocolSustainabilityRewards(protRwTx, dust)
 	require.Zero(t, protRwTx.Value.Cmp(big.NewInt(0).Add(dust, initialProtRewardValue)))
-	setProtValue := rwd.GetProtocolSustainabilityRewards()
+	setProtValue := rwd.GetAcceleratorRewards()
 	require.Zero(t, protRwTx.Value.Cmp(setProtValue))
 }
 
@@ -282,7 +282,7 @@ func TestRewardsCreator_adjustProtocolSustainabilityRewardsNegValueShouldWork(t 
 	rwd1.adjustProtocolSustainabilityRewards(protRwTx, dust)
 	expected := big.NewInt(0).Add(dust, initialProtRewardValue).String()
 	assert.Equal(t, expected, protRwTx.Value.String())
-	setProtValue := rwd.GetProtocolSustainabilityRewards()
+	setProtValue := rwd.GetAcceleratorRewards()
 	require.Zero(t, protRwTx.Value.Cmp(setProtValue))
 }
 
@@ -314,7 +314,7 @@ func TestRewardsCreator_adjustProtocolSustainabilityRewardsInitialNegativeValue(
 	dust := big.NewInt(0)
 	rwd1.adjustProtocolSustainabilityRewards(protRwTx, dust)
 	require.Zero(t, protRwTx.Value.Cmp(big.NewInt(0)))
-	setProtValue := rwd.GetProtocolSustainabilityRewards()
+	setProtValue := rwd.GetAcceleratorRewards()
 	require.Zero(t, protRwTx.Value.Cmp(setProtValue))
 }
 
@@ -653,7 +653,7 @@ func TestRewardsCreator_CreateProtocolSustainabilityRewardTransaction(t *testing
 		Epoch:   0,
 	}
 
-	rwdTx, _, err := rwdc.createProtocolSustainabilityRewardTransaction(mb, &mb.EpochStart.Economics)
+	rwdTx, _, err := rwdc.createProtocolSustainabilityRewardTransaction(mb)
 	assert.Equal(t, expectedRewardTx, rwdTx)
 	assert.Nil(t, err)
 }
