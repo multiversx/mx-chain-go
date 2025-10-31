@@ -130,8 +130,6 @@ func (bq *blocksQueue) add(pair HeaderBodyPair) error {
 		return nil
 	}
 
-	bq.updateLastAddedNonceBasedOnRemovingNonce(nonce)
-
 	return fmt.Errorf("%w for nonce %d (lastAddedNonce=%d)", ErrInvalidHeaderNonce, nonce, bq.lastAddedNonce)
 }
 
@@ -204,6 +202,7 @@ func (bq *blocksQueue) updateLastAddedNonceBasedOnRemovingNonce(removingNonce ui
 	// so they are always synchronized
 	// (bq.lastAddedNonce might get inconsistent with ert.lastNotarizedResult if RemoveAtNonceAndHigher is called for
 	// a nonce older than lastNotarizedResult)
+	// initial PR with discussions: https://github.com/multiversx/mx-chain-go/pull/7355
 	if removingNonce > 0 {
 		bq.lastAddedNonce = removingNonce - 1
 		return
