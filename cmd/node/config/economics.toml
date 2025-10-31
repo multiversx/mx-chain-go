@@ -17,7 +17,8 @@
     ]
     Denomination = 18 # represents the smallest eGLD subdivision (10^-X eGLD for a denomination of X)
     GenesisMintingSenderAddress = "erd17rc0pu8s7rc0pu8s7rc0pu8s7rc0pu8s7rc0pu8s7rc0pu8s7rcqqkhty3"
-    [[GlobalSettings.TailInflation]]
+
+    [GlobalSettings.TailInflation]
         EnableEpoch        = 438
         StartYearInflation = 0.08757
         DecayPercentage    = 0.0025
@@ -31,9 +32,9 @@
         ProtocolSustainabilityPercentage = 0.1 #fraction of value 0.1 - 10%
         ProtocolSustainabilityAddress = "erd1j25xk97yf820rgdp3mj5scavhjkn6tjyn0t63pmv5qyjj7wxlcfqqe2rw5"
         EcosystemGrowthPercentage = 0.0
-        EcosystemGrowthAddress = "erd1v8dsp4s9z7esadssgf8gu040fece6sy8nff482hgev200ry5lcfqj8l3m0"
+        EcosystemGrowthAddress = "erd1j25xk97yf820rgdp3mj5scavhjkn6tjyn0t63pmv5qyjj7wxlcfqqe2rw5"
         GrowthDividendPercentage = 0.0
-        GrowthDividendAddress = "erd1zth5p0z3drztr92h230q2pu8z224qrl5km02u0eyq0k3g4fyacfqs6ms68"
+        GrowthDividendAddress = "erd1j25xk97yf820rgdp3mj5scavhjkn6tjyn0t63pmv5qyjj7wxlcfqqe2rw5"
         TopUpGradientPoint = "3000000000000000000000000" # 3MIL eGLD (eligible topUp)
         TopUpFactor = 0.25 # fraction of value 0.25 - 25%
 
@@ -44,9 +45,9 @@
         ProtocolSustainabilityPercentage = 0.1 #fraction of value 0.1 - 10%
         ProtocolSustainabilityAddress = "erd1e5cw5pegj9w2zfpzeq94wf3d5tp6g943xuhgnyysdwyr63rlkspqr0u05s"
         EcosystemGrowthPercentage = 0.0
-        EcosystemGrowthAddress = "erd1v8dsp4s9z7esadssgf8gu040fece6sy8nff482hgev200ry5lcfqj8l3m0"
+        EcosystemGrowthAddress = "erd1j25xk97yf820rgdp3mj5scavhjkn6tjyn0t63pmv5qyjj7wxlcfqqe2rw5"
         GrowthDividendPercentage = 0.0
-        GrowthDividendAddress = "erd1zth5p0z3drztr92h230q2pu8z224qrl5km02u0eyq0k3g4fyacfqs6ms68"
+        GrowthDividendAddress = "erd1j25xk97yf820rgdp3mj5scavhjkn6tjyn0t63pmv5qyjj7wxlcfqqe2rw5"
         TopUpGradientPoint = "2000000000000000000000000" # 2MIL eGLD (eligible topUp)
         TopUpFactor = 0.5 # fraction of value 0.5 - 50%
 
@@ -57,9 +58,9 @@
         ProtocolSustainabilityPercentage = 0.1 #fraction of value 0.1 - 10%
         ProtocolSustainabilityAddress = "erd1e5cw5pegj9w2zfpzeq94wf3d5tp6g943xuhgnyysdwyr63rlkspqr0u05s"
         EcosystemGrowthPercentage = 0.2 #fraction of value 0.2 - 20%
-        EcosystemGrowthAddress = "erd1v8dsp4s9z7esadssgf8gu040fece6sy8nff482hgev200ry5lcfqj8l3m0"
+        EcosystemGrowthAddress = "erd1j25xk97yf820rgdp3mj5scavhjkn6tjyn0t63pmv5qyjj7wxlcfqqe2rw5"
         GrowthDividendPercentage = 0.2 #fraction of value 0.2 - 20%
-        GrowthDividendAddress = "erd1zth5p0z3drztr92h230q2pu8z224qrl5km02u0eyq0k3g4fyacfqs6ms68"
+        GrowthDividendAddress = "erd1e5cw5pegj9w2zfpzeq94wf3d5tp6g943xuhgnyysdwyr63rlkspqr0u05s"
         TopUpGradientPoint = "2000000000000000000000000" # 2MIL eGLD (eligible topUp)
         TopUpFactor = 0.5 # fraction of value 0.5 - 50%
 
