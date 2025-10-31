@@ -29,7 +29,7 @@ func newGlobalSettingsHandler(
 	}
 
 	g := &globalSettingsHandler{
-		minInflation:                 economics.GlobalSettings.TailInflation.MinimumInflation,
+		minInflation:                 economics.GlobalSettings.MinimumInflation,
 		yearSettings:                 make(map[uint32]*config.YearSetting),
 		tailInflationActivationEpoch: economics.GlobalSettings.TailInflation.EnableEpoch,
 		startYearInflation:           economics.GlobalSettings.TailInflation.StartYearInflation,
@@ -57,7 +57,7 @@ func newGlobalSettingsHandler(
 
 // TODO: implement decay, implement growth, calculations will change after supernova
 func (g *globalSettingsHandler) maxInflationRate(year uint32) float64 {
-	if g.tailInflationActivationEpoch >= g.enableEpochHandler.GetCurrentEpoch() {
+	if g.tailInflationActivationEpoch < g.enableEpochHandler.GetCurrentEpoch() {
 		return g.startYearInflation
 	}
 

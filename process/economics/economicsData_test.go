@@ -1483,6 +1483,7 @@ func TestEconomicsData_MaxInflationRate(t *testing.T) {
 	maxInflationRate := 0.99
 	args.Economics.GlobalSettings.MinimumInflation = minInflationRate
 	args.Economics.GlobalSettings.YearSettings[0].MaximumInflation = maxInflationRate
+	args.Economics.GlobalSettings.TailInflation.EnableEpoch = 100
 	economicsData, _ := economics.NewEconomicsData(args)
 
 	value := economicsData.MaxInflationRate(0)

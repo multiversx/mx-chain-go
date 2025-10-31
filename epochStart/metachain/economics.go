@@ -284,7 +284,7 @@ func (e *economics) computeRewardsForProtocolSustainability(totalRewards *big.In
 }
 
 func (e *economics) computeRewardsForAccelerator(totalRewards *big.Int, epoch uint32) *big.Int {
-	if epoch >= e.accRewardsEnableEpoch {
+	if e.accRewardsEnableEpoch >= epoch {
 		return e.computeRewardsForProtocolSustainability(totalRewards, epoch)
 	}
 
