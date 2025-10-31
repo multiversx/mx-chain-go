@@ -104,15 +104,14 @@ func (bq *blocksQueue) getPairsFromNonce(nonce uint64) ([]HeaderBodyPair, int) {
 }
 
 func (bq *blocksQueue) removeFromNonce(nonce uint64) {
+	// first notify all subscribers, no matter this nonce still exists in queue or not
+	bq.notifyHeaderEvicted(nonce)
+
 	pairsToBeRemoved, firstIndex := bq.getPairsFromNonce(nonce)
 	if len(pairsToBeRemoved) == 0 {
-		// if no pair was found, notify for the starting nonce in case it was already popped
-		bq.notifyHeaderEvicted(nonce)
 		bq.updateLastAddedNonceBasedOnRemovingNonce(nonce)
 		return
 	}
-
-	bq.notifyEvictedPairs(pairsToBeRemoved)
 
 	bq.headerBodyPairs = bq.headerBodyPairs[:firstIndex]
 	bq.updateLastAddedNonceBasedOnRemovingNonce(nonce)
@@ -219,12 +218,6 @@ func (bq *blocksQueue) RegisterEvictionSubscriber(subscriber BlocksQueueEviction
 	defer bq.mutEvictionHandlers.Unlock()
 
 	bq.evictionHandlers = append(bq.evictionHandlers, subscriber)
-}
-
-func (bq *blocksQueue) notifyEvictedPairs(evicted []HeaderBodyPair) {
-	for _, evictedPair := range evicted {
-		bq.notifyHeaderEvicted(evictedPair.Header.GetNonce())
-	}
 }
 
 func (bq *blocksQueue) notifyHeaderEvicted(headerNonce uint64) {

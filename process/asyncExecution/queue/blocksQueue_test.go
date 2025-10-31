@@ -423,11 +423,9 @@ func TestBlocksQueue_RemoveAtNonceAndHigher(t *testing.T) {
 		require.Equal(t, uint64(1), hq.headerBodyPairs[0].Header.GetNonce())
 		require.Equal(t, uint64(2), hq.headerBodyPairs[1].Header.GetNonce())
 
-		// Check evicted nonces
-		require.Len(t, evictedNonces, 3)
+		// Check evicted nonces, should only be the provided one
+		require.Len(t, evictedNonces, 1)
 		require.Contains(t, evictedNonces, uint64(3))
-		require.Contains(t, evictedNonces, uint64(4))
-		require.Contains(t, evictedNonces, uint64(5))
 	})
 
 	t.Run("remove from first nonce clears entire queue", func(t *testing.T) {
