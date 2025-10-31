@@ -1744,10 +1744,7 @@ func (bp *baseProcessor) revertCurrentBlockV3(headerHandler data.HeaderHandler) 
 	}
 
 	headerNonce := headerHandler.GetNonce()
-	err := bp.blocksQueue.RemoveAtNonceAndHigher(headerNonce)
-	if err != nil {
-		log.Error("revertCurrentBlockV3 RemoveAtNonceAndHigher", "nonce", headerNonce, "err", err)
-	}
+	bp.blocksQueue.RemoveAtNonceAndHigher(headerNonce)
 }
 
 func (bp *baseProcessor) revertAccountState() {

@@ -161,8 +161,7 @@ func TestHeadersExecutor_ProcessBlockError(t *testing.T) {
 		args.BlockProcessor = &processMocks.BlockProcessorStub{
 			ProcessBlockProposalCalled: func(handler data.HeaderHandler, body data.BodyHandler) (data.BaseExecutionResultHandler, error) {
 				// this should trigger the notification
-				err := blocksQueue.RemoveAtNonceAndHigher(1)
-				require.NoError(t, err)
+				blocksQueue.RemoveAtNonceAndHigher(1)
 
 				return &block.BaseExecutionResult{}, nil
 			},
