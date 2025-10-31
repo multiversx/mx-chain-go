@@ -776,7 +776,6 @@ func (tpn *TestProcessorNode) initGenesisBlocks(args ArgTestProcessorNode) {
 			tpn.SmartContractParser,
 			tpn.EnableEpochs,
 		)
-		tpn.GenesisBlocks = CreateSimpleGenesisBlocks(tpn.ShardCoordinator, rootHash)
 		shardID := tpn.ShardCoordinator.SelfId()
 		genesisBlock := tpn.GenesisBlocks[shardID]
 		_ = tpn.DataPool.Transactions().OnExecutedBlock(genesisBlock, genesisBlock.GetRootHash())
@@ -811,7 +810,6 @@ func (tpn *TestProcessorNode) initGenesisBlocks(args ArgTestProcessorNode) {
 		tpn.ChainParametersHandler,
 	)
 
-	tpn.GenesisBlocks = CreateSimpleGenesisBlocks(tpn.ShardCoordinator, rootHash)
 	shardID := tpn.ShardCoordinator.SelfId()
 	genesisBlock := tpn.GenesisBlocks[shardID]
 	_ = tpn.DataPool.Transactions().OnExecutedBlock(genesisBlock, genesisBlock.GetRootHash())

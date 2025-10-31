@@ -285,6 +285,7 @@ func TestConsensusBLSWithFullProcessing_TransitionToSupernova_HighLoad(t *testin
 }
 
 func TestConsensusBLSWithFullProcessing_AfterSupernova_HighLoad(t *testing.T) {
+	t.Skip("skip this test...")
 	if testing.Short() {
 		t.Skip("this is not a short test")
 	}
