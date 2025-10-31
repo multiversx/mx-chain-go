@@ -32,6 +32,7 @@ import (
 	debugFactory "github.com/multiversx/mx-chain-go/debug/factory"
 	"github.com/multiversx/mx-chain-go/outport"
 	"github.com/multiversx/mx-chain-go/process"
+	"github.com/multiversx/mx-chain-go/process/asyncExecution/executionTrack"
 	"github.com/multiversx/mx-chain-go/process/block/bootstrapStorage"
 	"github.com/multiversx/mx-chain-go/process/block/cutoff"
 	"github.com/multiversx/mx-chain-go/process/block/processedMb"
@@ -1104,6 +1105,20 @@ func (bp *baseProcessor) requestHeaderByShardAndNonce(shardID uint32, nonce uint
 	} else {
 		bp.requestHandler.RequestShardHeaderByNonce(shardID, nonce)
 	}
+}
+
+func (bp *baseProcessor) cleanExecutionResultsFromTracker(header data.HeaderHandler) error {
+	res, err := bp.executionResultsTracker.CleanConfirmedExecutionResults(header)
+	if err != nil {
+		return err
+	}
+	if res.CleanResult != executionTrack.CleanResultOK {
+		log.Error("cannot clean execution results", "clean status", res.CleanResult.String(),
+			"last matching nonce from tracker", res.LastMatchingResultNonce)
+		return fmt.Errorf("cannot clean execution results, clean clean result: %s", res.CleanResult.String())
+	}
+
+	return nil
 }
 
 func (bp *baseProcessor) cleanupPools(headerHandler data.HeaderHandler) {

@@ -19,3 +19,16 @@ type CleanInfo struct {
 	CleanResult             CleanResult
 	LastMatchingResultNonce uint64
 }
+
+func (cr CleanResult) String() string {
+	switch cr {
+	case CleanResultOK:
+		return "ok"
+	case CleanResultNotFound:
+		return "not found"
+	case CleanResultMismatch:
+		return "mismatch"
+	default:
+		return "unknown"
+	}
+}

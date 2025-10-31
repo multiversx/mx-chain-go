@@ -164,23 +164,13 @@ func (ert *executionResultsTracker) getPendingExecutionResultsByNonce(nonce uint
 }
 
 // CleanConfirmedExecutionResults will clean the confirmed execution results
-func (ert *executionResultsTracker) CleanConfirmedExecutionResults(header HeaderWithExecutionResults) (*CleanInfo, error) {
+func (ert *executionResultsTracker) CleanConfirmedExecutionResults(header data.HeaderHandler) (*CleanInfo, error) {
 	ert.mutex.Lock()
 	defer ert.mutex.Unlock()
 
-	headerExecutionResults := header.GetExecutionResults()
-	headerBaseExecutionResults := executionHandlersToBaseExecutionHandlers(headerExecutionResults)
+	headerExecutionResults := header.GetExecutionResultsHandlers()
 
-	return ert.cleanConfirmedExecutionResults(headerBaseExecutionResults)
-}
-
-func executionHandlersToBaseExecutionHandlers(execHandlers []data.ExecutionResultHandler) []data.BaseExecutionResultHandler {
-	baseExecHandlers := make([]data.BaseExecutionResultHandler, len(execHandlers))
-	for i, execHandler := range execHandlers {
-		baseExecHandlers[i] = execHandler
-	}
-
-	return baseExecHandlers
+	return ert.cleanConfirmedExecutionResults(headerExecutionResults)
 }
 
 func (ert *executionResultsTracker) cleanConfirmedExecutionResults(headerExecutionResults []data.BaseExecutionResultHandler) (*CleanInfo, error) {

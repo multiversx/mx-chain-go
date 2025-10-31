@@ -4,9 +4,7 @@ import (
 	"errors"
 	"testing"
 
-	"github.com/multiversx/mx-chain-core-go/data"
 	"github.com/multiversx/mx-chain-core-go/data/block"
-	"github.com/multiversx/mx-chain-go/testscommon"
 	"github.com/stretchr/testify/require"
 )
 
@@ -171,11 +169,7 @@ func TestAddExecutionResultAndCleanShouldWork(t *testing.T) {
 		})
 		require.Nil(t, err)
 
-		header := &testscommon.HeaderHandlerWithExecutionResultsStub{
-			GetExecutionResultsCalled: func() []data.ExecutionResultHandler {
-				return nil
-			},
-		}
+		header := &block.HeaderV3{}
 		res, errC := tracker.CleanConfirmedExecutionResults(header)
 		require.Nil(t, errC)
 		require.Equal(t, CleanResultOK, res.CleanResult)
@@ -197,14 +191,14 @@ func TestAddExecutionResultAndCleanShouldWork(t *testing.T) {
 		})
 		require.Nil(t, err)
 
-		executionResults := []data.ExecutionResultHandler{
-			&block.ExecutionResult{
+		executionResults := []*block.ExecutionResult{
+			{
 				BaseExecutionResult: &block.BaseExecutionResult{
 					HeaderHash:  []byte("hash2"),
 					HeaderNonce: 11,
 				},
 			},
-			&block.ExecutionResult{
+			{
 				BaseExecutionResult: &block.BaseExecutionResult{
 					HeaderHash:  []byte("hash3"),
 					HeaderNonce: 12,
@@ -212,10 +206,8 @@ func TestAddExecutionResultAndCleanShouldWork(t *testing.T) {
 			},
 		}
 
-		header := &testscommon.HeaderHandlerWithExecutionResultsStub{
-			GetExecutionResultsCalled: func() []data.ExecutionResultHandler {
-				return executionResults
-			},
+		header := &block.HeaderV3{
+			ExecutionResults: executionResults,
 		}
 
 		err = tracker.AddExecutionResult(executionResults[0])
@@ -245,16 +237,14 @@ func TestAddExecutionResultAndCleanShouldWork(t *testing.T) {
 		})
 		require.Nil(t, err)
 
-		header := &testscommon.HeaderHandlerWithExecutionResultsStub{
-			GetExecutionResultsCalled: func() []data.ExecutionResultHandler {
-				return []data.ExecutionResultHandler{
-					&block.ExecutionResult{
-						BaseExecutionResult: &block.BaseExecutionResult{
-							HeaderHash:  []byte("hash22"),
-							HeaderNonce: 22,
-						},
+		header := &block.HeaderV3{
+			ExecutionResults: []*block.ExecutionResult{
+				{
+					BaseExecutionResult: &block.BaseExecutionResult{
+						HeaderHash:  []byte("hash22"),
+						HeaderNonce: 22,
 					},
-				}
+				},
 			},
 		}
 
@@ -301,22 +291,20 @@ func TestAddExecutionResultAndCleanDifferentResultsFromHeader(t *testing.T) {
 	})
 	require.Nil(t, err)
 
-	header := &testscommon.HeaderHandlerWithExecutionResultsStub{
-		GetExecutionResultsCalled: func() []data.ExecutionResultHandler {
-			return []data.ExecutionResultHandler{
-				&block.ExecutionResult{
-					BaseExecutionResult: &block.BaseExecutionResult{
-						HeaderHash:  []byte("hash1"),
-						HeaderNonce: 11,
-					},
+	header := &block.HeaderV3{
+		ExecutionResults: []*block.ExecutionResult{
+			{
+				BaseExecutionResult: &block.BaseExecutionResult{
+					HeaderHash:  []byte("hash1"),
+					HeaderNonce: 11,
 				},
-				&block.ExecutionResult{
-					BaseExecutionResult: &block.BaseExecutionResult{
-						HeaderHash:  []byte("different"),
-						HeaderNonce: 12,
-					},
+			},
+			{
+				BaseExecutionResult: &block.BaseExecutionResult{
+					HeaderHash:  []byte("different"),
+					HeaderNonce: 12,
 				},
-			}
+			},
 		},
 	}
 

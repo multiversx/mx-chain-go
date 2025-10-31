@@ -158,6 +158,7 @@ func createArgBaseProcessor(
 		)
 
 		executionResultsTracker = executionTrack.NewExecutionResultsTracker()
+		_ = executionResultsTracker.SetLastNotarizedResult(&block.ExecutionResult{})
 		execResultsVerifier, _ = blproc.NewExecutionResultsVerifier(dataComponents.BlockChain, executionResultsTracker)
 		inclusionEstimator = estimator.NewExecutionResultInclusionEstimator(
 			config.ExecutionResultInclusionEstimatorConfig{

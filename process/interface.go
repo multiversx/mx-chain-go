@@ -5,6 +5,7 @@ import (
 	"time"
 
 	"github.com/multiversx/mx-chain-go/ntp"
+	"github.com/multiversx/mx-chain-go/process/asyncExecution/executionTrack"
 	"github.com/multiversx/mx-chain-go/process/asyncExecution/queue"
 	"github.com/multiversx/mx-chain-go/process/estimator"
 
@@ -1565,6 +1566,7 @@ type ExecutionResultsTracker interface {
 	GetPendingExecutionResultByNonce(nonce uint64) (data.BaseExecutionResultHandler, error)
 	GetLastNotarizedExecutionResult() (data.BaseExecutionResultHandler, error)
 	SetLastNotarizedResult(executionResult data.BaseExecutionResultHandler) error
+	CleanConfirmedExecutionResults(header data.HeaderHandler) (*executionTrack.CleanInfo, error)
 	IsInterfaceNil() bool
 }
 
