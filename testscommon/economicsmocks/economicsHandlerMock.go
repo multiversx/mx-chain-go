@@ -10,7 +10,6 @@ import (
 // EconomicsHandlerMock -
 type EconomicsHandlerMock struct {
 	MaxInflationRateCalled                              func(year uint32) float64
-	MinInflationRateCalled                              func() float64
 	LeaderPercentageCalled                              func() float64
 	ProtocolSustainabilityPercentageCalled              func() float64
 	ProtocolSustainabilityAddressCalled                 func() string
@@ -77,11 +76,6 @@ func (ehm *EconomicsHandlerMock) ProtocolSustainabilityPercentage() float64 {
 // ProtocolSustainabilityAddress will return the protocol sustainability address
 func (ehm *EconomicsHandlerMock) ProtocolSustainabilityAddress() string {
 	return ehm.ProtocolSustainabilityAddressCalled()
-}
-
-// MinInflationRate -
-func (ehm *EconomicsHandlerMock) MinInflationRate() float64 {
-	return ehm.MinInflationRateCalled()
 }
 
 // MaxInflationRate -

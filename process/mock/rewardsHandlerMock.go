@@ -5,7 +5,6 @@ import "math/big"
 // RewardsHandlerMock -
 type RewardsHandlerMock struct {
 	MaxInflationRateCalled                 func() float64
-	MinInflationRateCalled                 func() float64
 	LeaderPercentageCalled                 func() float64
 	ProtocolSustainabilityPercentageCalled func() float64
 	ProtocolSustainabilityAddressCalled    func() string
@@ -26,11 +25,6 @@ func (rhm *RewardsHandlerMock) ProtocolSustainabilityPercentage() float64 {
 // ProtocolSustainabilityAddress will return the protocol sustainability address
 func (rhm *RewardsHandlerMock) ProtocolSustainabilityAddress() string {
 	return rhm.ProtocolSustainabilityAddressCalled()
-}
-
-// MinInflationRate -
-func (rhm *RewardsHandlerMock) MinInflationRate() float64 {
-	return rhm.MinInflationRateCalled()
 }
 
 // MaxInflationRate -

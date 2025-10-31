@@ -1455,18 +1455,6 @@ func TestEconomicsData_SetStatusHandler(t *testing.T) {
 	})
 }
 
-func TestEconomicsData_MinInflationRate(t *testing.T) {
-	t.Parallel()
-
-	args := createArgsForEconomicsData(1)
-	minInflationRate := 0.40
-	args.Economics.GlobalSettings.MinimumInflation = minInflationRate
-	economicsData, _ := economics.NewEconomicsData(args)
-
-	value := economicsData.MinInflationRate()
-	assert.Equal(t, minInflationRate, value)
-}
-
 func TestEconomicsData_MaxInflationRate(t *testing.T) {
 	t.Parallel()
 

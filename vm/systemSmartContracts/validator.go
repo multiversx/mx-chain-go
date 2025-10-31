@@ -1880,7 +1880,7 @@ func (v *validatorSC) unBondTokensFromRegistrationDataV2(
 			continue
 		}
 
-		if unDelegateAllPossible {
+		if unDelegateAllPossible && canUnbond {
 			totalUnBond.Add(totalUnBond, unstakedValue.UnstakedValue)
 			continue
 		}
