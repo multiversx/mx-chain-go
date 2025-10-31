@@ -19,7 +19,6 @@ type executionResultsTracker struct {
 	executionResultsByHash map[string]data.BaseExecutionResultHandler
 	nonceHash              *nonceHash
 	lastExecutedResultHash []byte
-	hashToRemoveOnAdd      []byte
 }
 
 // NewExecutionResultsTracker will create a new instance of *executionResultsTracker
@@ -41,11 +40,6 @@ func (ert *executionResultsTracker) AddExecutionResult(executionResult data.Base
 	defer ert.mutex.Unlock()
 	if ert.lastNotarizedResult == nil {
 		return ErrNilLastNotarizedExecutionResult
-	}
-
-	if ert.shouldIgnoreExecutionResult(executionResult) {
-		log.Debug("ert.AddExecutionResult ignored execution result", "hash", executionResult.GetHeaderHash())
-		return nil
 	}
 
 	if ert.lastNotarizedResult.GetHeaderNonce() >= executionResult.GetHeaderNonce() {
@@ -70,16 +64,6 @@ func (ert *executionResultsTracker) AddExecutionResult(executionResult data.Base
 	ert.lastExecutedResultHash = executionResult.GetHeaderHash()
 
 	return nil
-}
-
-func (ert *executionResultsTracker) shouldIgnoreExecutionResult(executionResult data.BaseExecutionResultHandler) bool {
-	shouldIgnoreExecutionResultHash := bytes.Equal(ert.hashToRemoveOnAdd, executionResult.GetHeaderHash())
-	if shouldIgnoreExecutionResultHash {
-		ert.hashToRemoveOnAdd = nil
-		return true
-	}
-
-	return false
 }
 
 func (ert *executionResultsTracker) getLastExecutionResult() (data.BaseExecutionResultHandler, error) {
@@ -275,44 +259,6 @@ func (ert *executionResultsTracker) SetLastNotarizedResult(executionResult data.
 	ert.lastExecutedResultHash = executionResult.GetHeaderHash()
 	ert.mutex.Unlock()
 
-	return nil
-}
-
-// RemoveByHash will remove the execution result by header hash
-func (ert *executionResultsTracker) RemoveByHash(hash []byte) error {
-	ert.mutex.Lock()
-	defer ert.mutex.Unlock()
-
-	executionResult, found := ert.executionResultsByHash[string(hash)]
-	if !found {
-		ert.hashToRemoveOnAdd = hash
-		return nil
-	}
-
-	pendingExecutionResult, err := ert.getPendingExecutionResults()
-	if err != nil {
-		return err
-	}
-
-	// check that the provided is the last execution result
-	lastElement := pendingExecutionResult[len(pendingExecutionResult)-1]
-	if !bytes.Equal(lastElement.GetHeaderHash(), hash) {
-		return fmt.Errorf("%w between last pending execution result hash and the provided hash", ErrHashMismatch)
-	}
-
-	delete(ert.executionResultsByHash, string(hash))
-	ert.nonceHash.removeByNonce(executionResult.GetHeaderNonce())
-
-	// remove the last element
-	pendingExecutionResult = pendingExecutionResult[:len(pendingExecutionResult)-1]
-
-	if len(pendingExecutionResult) == 0 {
-		// set last execution result with last notarized
-		ert.lastExecutedResultHash = ert.lastNotarizedResult.GetHeaderHash()
-		return nil
-	}
-
-	ert.lastExecutedResultHash = pendingExecutionResult[len(pendingExecutionResult)-1].GetHeaderHash()
 	return nil
 }
 

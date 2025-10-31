@@ -17,7 +17,4 @@ var (
 
 	// ErrNilLastNotarizedExecutionResult signals that last notarized execution result is nil
 	ErrNilLastNotarizedExecutionResult = errors.New("nil last notarized execution result")
-
-	// ErrHashMismatch signals a hash mismatch
-	ErrHashMismatch = errors.New("hash mismatch")
 )
