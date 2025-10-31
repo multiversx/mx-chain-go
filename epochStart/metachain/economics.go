@@ -25,18 +25,18 @@ const numberOfDaysInYear = 365.0
 const numberOfSecondsInDay = 86400
 
 type economics struct {
-	marshalizer                   marshal.Marshalizer
-	hasher                        hashing.Hasher
-	store                         dataRetriever.StorageService
-	shardCoordinator              sharding.Coordinator
-	rewardsHandler                process.RewardsHandler
-	roundTime                     process.RoundTimeDurationHandler
-	genesisEpoch                  uint32
-	genesisNonce                  uint64
-	genesisTotalSupply            *big.Int
-	economicsDataNotified         epochStart.EpochEconomicsDataProvider
-	stakingV2EnableEpoch          uint32
-	acceleratorRewardsEnableEpoch uint32
+	marshalizer           marshal.Marshalizer
+	hasher                hashing.Hasher
+	store                 dataRetriever.StorageService
+	shardCoordinator      sharding.Coordinator
+	rewardsHandler        process.RewardsHandler
+	roundTime             process.RoundTimeDurationHandler
+	genesisEpoch          uint32
+	genesisNonce          uint64
+	genesisTotalSupply    *big.Int
+	economicsDataNotified epochStart.EpochEconomicsDataProvider
+	stakingV2EnableEpoch  uint32
+	accRewardsEnableEpoch uint32
 }
 
 // ArgsNewEpochEconomics is the argument for the economics constructor
@@ -52,6 +52,7 @@ type ArgsNewEpochEconomics struct {
 	GenesisTotalSupply    *big.Int
 	EconomicsDataNotified epochStart.EpochEconomicsDataProvider
 	StakingV2EnableEpoch  uint32
+	AccRewardsEnableEpoch uint32
 }
 
 // NewEndOfEpochEconomicsDataCreator creates a new end of epoch economics data creator object
@@ -93,6 +94,7 @@ func NewEndOfEpochEconomicsDataCreator(args ArgsNewEpochEconomics) (*economics, 
 		genesisTotalSupply:    big.NewInt(0).Set(args.GenesisTotalSupply),
 		economicsDataNotified: args.EconomicsDataNotified,
 		stakingV2EnableEpoch:  args.StakingV2EnableEpoch,
+		accRewardsEnableEpoch: args.AccRewardsEnableEpoch,
 	}
 	log.Debug("economics: enable epoch for staking v2", "epoch", e.stakingV2EnableEpoch)
 
@@ -115,6 +117,8 @@ func (e *economics) ComputeEndOfEpochEconomics(
 	if !metaBlock.IsStartOfEpochBlock() || metaBlock.Epoch < e.genesisEpoch+1 {
 		return nil, epochStart.ErrNotEpochStartBlock
 	}
+
+	e.economicsDataNotified.Clean()
 
 	noncesPerShardPrevEpoch, prevEpochStart, err := e.startNoncePerShardFromEpochStart(metaBlock.Epoch - 1)
 	if err != nil {
@@ -280,7 +284,7 @@ func (e *economics) computeRewardsForProtocolSustainability(totalRewards *big.In
 }
 
 func (e *economics) computeRewardsForAccelerator(totalRewards *big.Int, epoch uint32) *big.Int {
-	if epoch >= e.acceleratorRewardsEnableEpoch {
+	if epoch >= e.accRewardsEnableEpoch {
 		return e.computeRewardsForProtocolSustainability(totalRewards, epoch)
 	}
 

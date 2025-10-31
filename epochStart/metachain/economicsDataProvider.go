@@ -30,6 +30,17 @@ func NewEpochEconomicsStatistics() *epochEconomicsStatistics {
 	}
 }
 
+// Clean clears the previous data
+func (es *epochEconomicsStatistics) Clean() {
+	es.numberOfBlocksPerShard = make(map[uint32]uint64)
+	es.leaderFees = big.NewInt(0)
+	es.rewardsToBeDistributed = big.NewInt(0)
+	es.rewardsToBeDistributedForBlocks = big.NewInt(0)
+	es.rewardsForProtocolSustainability = big.NewInt(0)
+	es.rewardsForEcosystemGrowth = big.NewInt(0)
+	es.rewardsForGrowthDividend = big.NewInt(0)
+}
+
 // SetNumberOfBlocks sets the number of blocks produced in the epoch
 func (es *epochEconomicsStatistics) SetNumberOfBlocks(nbBlocks uint64) {
 	es.mutEconomicsStatistics.Lock()

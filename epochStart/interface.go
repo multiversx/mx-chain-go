@@ -195,6 +195,7 @@ type EpochEconomicsDataProvider interface {
 	RewardsForEcosystemGrowth() *big.Int
 	RewardsForGrowthDividend() *big.Int
 	RewardsForAccelerator() *big.Int
+	Clean()
 	IsInterfaceNil() bool
 }
 

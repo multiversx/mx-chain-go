@@ -229,7 +229,7 @@ func TestEconomics_AdjustRewardsPerBlockWithProtocolSustainabilityRewards(t *tes
 	expectedRewardsProtocolSustainabilityAfterAdjustment := big.NewInt(0).Set(protocolSustainabilityRewards)
 	expectedRwdPerBlock := big.NewInt(900)
 
-	ec.adjustRewardsPerBlockWithProtocolSustainabilityRewards(rwdPerBlock, protocolSustainabilityRewards, blocksInEpoch)
+	ec.adjustRewardsPerBlockWithAcceleratorRewards(rwdPerBlock, protocolSustainabilityRewards, blocksInEpoch)
 
 	assert.Equal(t, expectedRewardsProtocolSustainabilityAfterAdjustment, protocolSustainabilityRewards)
 	assert.Equal(t, expectedRwdPerBlock, rwdPerBlock)

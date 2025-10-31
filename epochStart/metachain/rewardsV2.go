@@ -70,6 +70,11 @@ func NewRewardsCreatorV2(args RewardsCreatorArgsV2) (*rewardsCreatorV2, error) {
 	return rc, nil
 }
 
+// GetAcceleratorRewards returns the sum of all rewards
+func (rc *rewardsCreatorV2) GetAcceleratorRewards() *big.Int {
+	return rc.economicsDataProvider.RewardsForAccelerator()
+}
+
 // CreateRewardsMiniBlocks creates the rewards miniblocks according to economics data and validator info.
 // This method applies the rewards according to the economics version 2 proposal, which takes into consideration
 // stake top-up values per node
@@ -102,7 +107,7 @@ func (rc *rewardsCreatorV2) CreateRewardsMiniBlocks(
 	rc.clean()
 	rc.flagDelegationSystemSCEnabled.SetValue(metaBlock.GetEpoch() >= rc.enableEpochsHandler.GetActivationEpoch(common.StakingV2Flag))
 
-	protRwdTx, protRwdShardId, err := rc.createProtocolSustainabilityRewardTransaction(metaBlock)
+	protRwdTx, protRwdShardId, err := rc.createProtocolSustainabilityRewardTransaction(metaBlock, rc.economicsDataProvider.RewardsForProtocolSustainability())
 	if err != nil {
 		return nil, err
 	}
@@ -144,6 +149,42 @@ func (rc *rewardsCreatorV2) CreateRewardsMiniBlocks(
 	return rc.finalizeMiniBlocks(miniBlocks), nil
 }
 
+func (rc *rewardsCreatorV2) createEcosystemGrowthRewardTransaction(
+	metaBlock data.MetaHeaderHandler,
+) (*rewardTx.RewardTx, uint32, error) {
+	epoch := metaBlock.GetEpoch()
+	rwdAddr := rc.rewardsHandler.EcosystemGrowthAddressInEpoch(epoch)
+	shardId := rc.shardCoordinator.ComputeId([]byte(rwdAddr))
+
+	rwdTx := &rewardTx.RewardTx{
+		Round:   metaBlock.GetRound(),
+		Epoch:   epoch,
+		RcvAddr: []byte(rwdAddr),
+		Value:   big.NewInt(0).Set(rc.economicsDataProvider.RewardsForEcosystemGrowth()),
+	}
+
+	rc.accumulatedRewards.Add(rc.accumulatedRewards, rwdTx.Value)
+	return rwdTx, shardId, nil
+}
+
+func (rc *rewardsCreatorV2) createGrowthDividendRewardTransaction(
+	metaBlock data.MetaHeaderHandler,
+) (*rewardTx.RewardTx, uint32, error) {
+	epoch := metaBlock.GetEpoch()
+	rwdAddr := rc.rewardsHandler.GrowthDividendAddressInEpoch(epoch)
+	shardId := rc.shardCoordinator.ComputeId([]byte(rwdAddr))
+
+	rwdTx := &rewardTx.RewardTx{
+		Round:   metaBlock.GetRound(),
+		Epoch:   epoch,
+		RcvAddr: []byte(rwdAddr),
+		Value:   big.NewInt(0).Set(rc.economicsDataProvider.RewardsForGrowthDividend()),
+	}
+
+	rc.accumulatedRewards.Add(rc.accumulatedRewards, rwdTx.Value)
+	return rwdTx, shardId, nil
+}
+
 func (rc *rewardsCreatorV2) adjustProtocolSustainabilityRewards(protocolSustainabilityRwdTx *rewardTx.RewardTx, dustRewards *big.Int) {
 	if protocolSustainabilityRwdTx.Value.Cmp(big.NewInt(0)) < 0 {
 		log.Error("negative rewards protocol sustainability")
@@ -162,7 +203,7 @@ func (rc *rewardsCreatorV2) adjustProtocolSustainabilityRewards(protocolSustaina
 		"destination", protocolSustainabilityRwdTx.GetRcvAddr(),
 		"value", protocolSustainabilityRwdTx.GetValue().String())
 
-	rc.economicsData.SetRewardsForProtocolSustainability(protocolSustainabilityRwdTx.Value)
+	rc.economicsDataProvider.SetRewardsForProtocolSustainability(protocolSustainabilityRwdTx.Value)
 }
 
 // VerifyRewardsMiniBlocks verifies if received rewards miniblocks are correct
