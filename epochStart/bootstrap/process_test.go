@@ -2926,3 +2926,164 @@ func TestEpochStartBoostrap_SyncHeadersV3FromMeta(t *testing.T) {
 		require.Equal(t, 2, len(headers))
 	})
 }
+
+func TestGetStartOfEpochRootHashFromExecutionResults(t *testing.T) {
+	t.Parallel()
+
+	t.Run("should fail if invalid execution result", func(t *testing.T) {
+		t.Parallel()
+
+		metaBlock := &block.MetaBlockV3{
+			ExecutionResults: []*block.MetaExecutionResult{
+				nil,
+			},
+		}
+
+		retRootHash, err := getStartOfEpochRootHashFromExecutionResults(metaBlock)
+		require.Error(t, err)
+		require.Nil(t, retRootHash)
+	})
+
+	t.Run("shoud fail if not able to find epoch start mini blocks", func(t *testing.T) {
+		t.Parallel()
+
+		mbHeader1 := &block.MiniBlockHeader{
+			Hash:            []byte("mbHeaderHash1"),
+			Type:            block.TxBlock,
+			SenderShardID:   1,
+			ReceiverShardID: 1,
+		}
+		mbHeader2 := &block.MiniBlockHeader{
+			Hash:            []byte("mbHeaderHash2"),
+			Type:            block.TxBlock,
+			SenderShardID:   2,
+			ReceiverShardID: 2,
+		}
+		mbHeader3 := &block.MiniBlockHeader{
+			Hash:            []byte("mbHeaderHash3"),
+			Type:            block.InvalidBlock,
+			SenderShardID:   3,
+			ReceiverShardID: 3,
+		}
+
+		miniBlockHeaderHandlers := []block.MiniBlockHeader{
+			*mbHeader1,
+			*mbHeader2,
+		}
+
+		metaBlock := &block.MetaBlockV3{
+			MiniBlockHeaders: miniBlockHeaderHandlers,
+			LastExecutionResult: &block.MetaExecutionResultInfo{ // this should not be considered
+				ExecutionResult: &block.BaseMetaExecutionResult{
+					BaseExecutionResult: &block.BaseExecutionResult{
+						HeaderHash: []byte("headerHash1"),
+					},
+				},
+			},
+			ExecutionResults: []*block.MetaExecutionResult{
+				{
+					ExecutionResult: &block.BaseMetaExecutionResult{
+						BaseExecutionResult: &block.BaseExecutionResult{
+							HeaderHash: []byte("headerHash2"),
+						},
+					},
+					MiniBlockHeaders: []block.MiniBlockHeader{
+						*mbHeader1,
+						*mbHeader2,
+					},
+				},
+				{
+					ExecutionResult: &block.BaseMetaExecutionResult{
+						BaseExecutionResult: &block.BaseExecutionResult{
+							HeaderHash: []byte("headerHash2"),
+						},
+					},
+					MiniBlockHeaders: []block.MiniBlockHeader{
+						*mbHeader3,
+					},
+				},
+			},
+		}
+
+		retRootHash, err := getStartOfEpochRootHashFromExecutionResults(metaBlock)
+		require.Equal(t, ErrGetEpochStartRootHash, err)
+		require.Nil(t, retRootHash)
+	})
+
+	t.Run("shoud work", func(t *testing.T) {
+		t.Parallel()
+
+		expRootHash := []byte("expRootHash")
+
+		mbHeader1 := &block.MiniBlockHeader{
+			Hash:            []byte("mbHeaderHash1"),
+			Type:            block.TxBlock,
+			SenderShardID:   1,
+			ReceiverShardID: 1,
+		}
+		mbHeader2 := &block.MiniBlockHeader{
+			Hash:            []byte("mbHeaderHash2"),
+			Type:            block.TxBlock,
+			SenderShardID:   2,
+			ReceiverShardID: 2,
+		}
+		mbHeader3 := &block.MiniBlockHeader{
+			Hash:            []byte("mbHeaderHash3"),
+			Type:            block.PeerBlock,
+			SenderShardID:   3,
+			ReceiverShardID: 3,
+		}
+
+		miniBlockHeaderHandlers := []block.MiniBlockHeader{
+			*mbHeader1,
+			*mbHeader2,
+		}
+
+		metaBlock := &block.MetaBlockV3{
+			MiniBlockHeaders: miniBlockHeaderHandlers,
+			LastExecutionResult: &block.MetaExecutionResultInfo{ // this should not be considered
+				ExecutionResult: &block.BaseMetaExecutionResult{
+					BaseExecutionResult: &block.BaseExecutionResult{
+						HeaderHash:  []byte("headerHash1"),
+						HeaderNonce: 1,
+						HeaderRound: 1,
+						RootHash:    []byte("rootHash1"),
+					},
+				},
+			},
+			ExecutionResults: []*block.MetaExecutionResult{
+				{
+					ExecutionResult: &block.BaseMetaExecutionResult{
+						BaseExecutionResult: &block.BaseExecutionResult{
+							HeaderHash:  []byte("headerHash2"),
+							HeaderNonce: 2,
+							HeaderRound: 2,
+							RootHash:    []byte("rootHash2"),
+						},
+					},
+					MiniBlockHeaders: []block.MiniBlockHeader{
+						*mbHeader1,
+						*mbHeader2,
+					},
+				},
+				{
+					ExecutionResult: &block.BaseMetaExecutionResult{
+						BaseExecutionResult: &block.BaseExecutionResult{
+							HeaderHash:  []byte("headerHash2"),
+							HeaderNonce: 3,
+							HeaderRound: 3,
+							RootHash:    expRootHash,
+						},
+					},
+					MiniBlockHeaders: []block.MiniBlockHeader{
+						*mbHeader3,
+					},
+				},
+			},
+		}
+
+		retRootHash, err := getStartOfEpochRootHashFromExecutionResults(metaBlock)
+		require.Nil(t, err)
+		require.Equal(t, expRootHash, retRootHash)
+	})
+}

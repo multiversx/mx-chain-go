@@ -3,6 +3,7 @@ package bootstrap
 import (
 	"bytes"
 	"context"
+	"errors"
 	"fmt"
 	"sync"
 	"time"
@@ -57,6 +58,9 @@ import (
 	"github.com/multiversx/mx-chain-go/update"
 	updateSync "github.com/multiversx/mx-chain-go/update/sync"
 )
+
+// ErrGetEpochStartRootHash signals that root hash was not found in execution results for epoch start header
+var ErrGetEpochStartRootHash = errors.New("failed to get epoch start root hash from execution results")
 
 var log = logger.GetOrCreate("epochStart/bootstrap")
 
@@ -1003,7 +1007,11 @@ func (e *epochStartBootstrap) requestAndProcessForMeta(peerMiniBlocks []*block.M
 	}
 	log.Debug("start in epoch bootstrap: syncUserAccountsState")
 
-	rootHashToSync := e.getRootHashToSync(e.epochStartMeta, e.epochStartMeta.GetRootHash())
+	rootHashToSync, err := e.getRootHashToSync(e.epochStartMeta, e.epochStartMeta.GetRootHash())
+	if err != nil {
+		return err
+	}
+
 	err = e.syncUserAccountsState(rootHashToSync)
 	if err != nil {
 		return err
@@ -1319,7 +1327,10 @@ func (e *epochStartBootstrap) updateDataForScheduled(
 	rootHashToSync := e.dataSyncerWithScheduled.GetRootHashToSync(shardNotarizedHeader)
 
 	if shardNotarizedHeader.IsHeaderV3() {
-		rootHashToSync = e.getRootHashToSync(shardNotarizedHeader, rootHashToSync)
+		rootHashToSync, err = e.getRootHashToSync(shardNotarizedHeader, rootHashToSync)
+		if err != nil {
+			return nil, err
+		}
 	}
 
 	res.rootHashToSync = rootHashToSync
@@ -1330,18 +1341,40 @@ func (e *epochStartBootstrap) updateDataForScheduled(
 func (e *epochStartBootstrap) getRootHashToSync(
 	header data.HeaderHandler,
 	rootHashToSync []byte,
-) []byte {
+) ([]byte, error) {
 	if !header.IsHeaderV3() {
-		return rootHashToSync
+		return rootHashToSync, nil
 	}
 
-	lastExecutionResult := header.GetLastExecutionResultHandler()
-	baseLastExecutionResult, ok := lastExecutionResult.(data.BaseExecutionResultHandler)
-	if !ok {
-		return rootHashToSync
+	return getStartOfEpochRootHashFromExecutionResults(header)
+}
+
+func getStartOfEpochRootHashFromExecutionResults(
+	header data.HeaderHandler,
+) ([]byte, error) {
+	var rootHash []byte
+
+	for i := len(header.GetExecutionResultsHandlers()) - 1; i >= 0; i-- {
+		executionResult := header.GetExecutionResultsHandlers()[i]
+
+		miniBlockHeaderHandlers, err := common.GetMiniBlocksHeaderHandlersFromExecResult(executionResult, header.GetShardID())
+		if err != nil {
+			return nil, err
+		}
+
+		for _, miniBlock := range miniBlockHeaderHandlers {
+			if miniBlock.GetTypeInt32() == int32(block.PeerBlock) {
+				rootHash = executionResult.GetRootHash()
+				break
+			}
+		}
 	}
 
-	return baseLastExecutionResult.GetRootHash()
+	if len(rootHash) == 0 {
+		return nil, ErrGetEpochStartRootHash
+	}
+
+	return rootHash, nil
 }
 
 func (e *epochStartBootstrap) syncUserAccountsState(rootHash []byte) error {
