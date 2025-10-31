@@ -514,7 +514,7 @@ func TestBlocksQueue_RemoveAtNonceAndHigher(t *testing.T) {
 
 		// Queue should remain unchanged
 		require.Equal(t, 0, len(hq.headerBodyPairs))
-		require.Equal(t, uint64(13), hq.lastAddedNonce)
+		require.Equal(t, uint64(4), hq.lastAddedNonce)
 	})
 
 	t.Run("remove from first nonce with nonce 0", func(t *testing.T) {
@@ -539,5 +539,8 @@ func TestBlocksQueue_RemoveAtNonceAndHigher(t *testing.T) {
 		// Queue should be empty, lastAddedNonce should be 0
 		require.Equal(t, 0, len(hq.headerBodyPairs))
 		require.Equal(t, uint64(0), hq.lastAddedNonce)
+
+		hq.Close()
+		hq.RemoveAtNonceAndHigher(10) // coverage only, should early exit
 	})
 }

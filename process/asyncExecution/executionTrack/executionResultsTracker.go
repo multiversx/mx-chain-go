@@ -311,7 +311,10 @@ func (ert *executionResultsTracker) OnHeaderEvicted(headerNonce uint64) {
 	defer ert.mutex.Unlock()
 
 	// search through pending execution results and remove it if already processed
-	_ = ert.removePendingFromNonceUnprotected(headerNonce)
+	err := ert.removePendingFromNonceUnprotected(headerNonce)
+	if err != nil {
+		log.Debug("OnHeaderEvicted failed", "nonce", headerNonce, "error", err)
+	}
 }
 
 // IsInterfaceNil returns true if there is no value under the interface
