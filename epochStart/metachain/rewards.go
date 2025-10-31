@@ -50,7 +50,7 @@ func NewRewardsCreator(args ArgsNewRewardsCreator) (*rewardsCreator, error) {
 // GetAcceleratorRewards returns the sum of all rewards
 func (rc *rewardsCreator) GetAcceleratorRewards() *big.Int {
 	rc.mutRewardsData.RLock()
-	defer rc.mutRewardsData.Unlock()
+	defer rc.mutRewardsData.RUnlock()
 
 	return rc.protocolSustainabilityValue
 }

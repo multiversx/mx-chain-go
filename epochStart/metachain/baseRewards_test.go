@@ -226,7 +226,7 @@ func TestBaseRewardsCreator_addProtocolRewardToMiniblocks(t *testing.T) {
 	require.Nil(t, err)
 	require.NotNil(t, rwd)
 
-	initialProtRewardValue := big.NewInt(-100)
+	initialProtRewardValue := big.NewInt(100)
 	protRwAddr, _ := args.PubkeyConverter.Decode(args.RewardsHandler.ProtocolSustainabilityAddressInEpoch(0))
 	protRwTx := &rewardTx.RewardTx{
 		Round:   100,
