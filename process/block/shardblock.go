@@ -2158,31 +2158,20 @@ func (sp *shardProcessor) createMiniBlocks(haveTime func() bool, randomness []by
 		return &block.Body{MiniBlocks: miniBlocks}, processedMiniBlocksDestMeInfo, nil
 	}
 
-	startTime = time.Now()
-
 	rootHash := sp.blockChain.GetCurrentBlockRootHash()
 	if len(rootHash) == 0 {
 		genesisBlock := sp.blockChain.GetGenesisHeader()
 		rootHash = genesisBlock.GetRootHash()
 	}
 
-	accountsProposalRootHash, err := sp.accountsProposal.RootHash()
-	if err != nil {
-		log.Error("shardProcessor.createMiniBlocks", "error", err)
-	}
-	log.Debug("shardProcessor.createMiniBlocks recreating the trie if needed", "accountsProposal rootHash", accountsProposalRootHash)
-
 	rh := holders.NewDefaultRootHashesHolder(rootHash)
 	err = sp.accountsProposal.RecreateTrieIfNeeded(rh)
 	if err != nil {
+		log.Error("shardProcessor.createMiniBlocks", "err", err)
 		return nil, nil, err
 	}
 
-	accountsProposalRootHash, err = sp.accountsProposal.RootHash()
-	if err != nil {
-		log.Error("shardProcessor.createMiniBlocks", "error", err)
-	}
-	log.Debug("shardProcessor.createMiniBlocks updated rootHash", "accountsProposal rootHash", accountsProposalRootHash)
+	startTime = time.Now()
 
 	mbsFromMe := sp.txCoordinator.CreateMbsAndProcessTransactionsFromMe(haveTime, randomness)
 	elapsedTime = time.Since(startTime)

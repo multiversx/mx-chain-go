@@ -955,23 +955,12 @@ func (mp *metaProcessor) createMiniBlocks(
 		rootHash = genesisBlock.GetRootHash()
 	}
 
-	accountsProposalRootHash, err := mp.accountsProposal.RootHash()
-	if err != nil {
-		log.Error("metaProcessor.createMiniBlocks", "error", err)
-	}
-	log.Debug("metaProcessor.createMiniBlocks recreating the trie if needed", "accountsProposal rootHash", accountsProposalRootHash)
-
 	rh := holders.NewDefaultRootHashesHolder(rootHash)
 	err = mp.accountsProposal.RecreateTrieIfNeeded(rh)
 	if err != nil {
+		log.Error("metaProcessor.createMiniBlocks", "err", err)
 		return nil, err
 	}
-
-	accountsProposalRootHash, err = mp.accountsProposal.RootHash()
-	if err != nil {
-		log.Error("metaProcessor.createMiniBlocks", "error", err)
-	}
-	log.Debug("metaProcessor.createMiniBlocks updated rootHash", "accountsProposal rootHash", accountsProposalRootHash)
 
 	mbsFromMe := mp.txCoordinator.CreateMbsAndProcessTransactionsFromMe(haveTime, randomness)
 	if len(mbsFromMe) > 0 {
