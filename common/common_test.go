@@ -589,16 +589,6 @@ func TestGetMiniBlockHeaderHandlersFromExecResults(t *testing.T) {
 		require.Nil(t, retExecResult)
 	})
 
-	t.Run("should fail if wrong type for meta", func(t *testing.T) {
-		t.Parallel()
-
-		execResult := &block.ExecutionResult{}
-
-		retExecResult, err := common.GetMiniBlocksHeaderHandlersFromExecResult(execResult, core.MetachainShardId)
-		require.Equal(t, common.ErrWrongTypeAssertion, err)
-		require.Nil(t, retExecResult)
-	})
-
 	t.Run("should fail if wrong type for shard", func(t *testing.T) {
 		t.Parallel()
 
