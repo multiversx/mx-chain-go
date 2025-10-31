@@ -48,6 +48,10 @@ func createDummyEconomicsConfig(feeSettings config.FeeSettings) *config.Economic
 					TopUpGradientPoint:               "300000000000000000000",
 					TopUpFactor:                      0.25,
 					EpochEnable:                      0,
+					EcosystemGrowthPercentage:        0.0,
+					EcosystemGrowthAddress:           "erd1932eft30w753xyvme8d49qejgkjc09n5e49w4mwdjtm0neld797su0dlxp",
+					GrowthDividendPercentage:         0.0,
+					GrowthDividendAddress:            "erd1932eft30w753xyvme8d49qejgkjc09n5e49w4mwdjtm0neld797su0dlxp",
 				},
 			},
 		},
@@ -769,6 +773,10 @@ func TestEconomicsData_ConfirmedEpochRewardsSettingsChangeOrderedConfigs(t *test
 			TopUpGradientPoint:               "300000000000000000000",
 			TopUpFactor:                      0.25,
 			EpochEnable:                      0,
+			EcosystemGrowthPercentage:        0.0,
+			EcosystemGrowthAddress:           "erd1932eft30w753xyvme8d49qejgkjc09n5e49w4mwdjtm0neld797su0dlxp",
+			GrowthDividendPercentage:         0.0,
+			GrowthDividendAddress:            "erd1932eft30w753xyvme8d49qejgkjc09n5e49w4mwdjtm0neld797su0dlxp",
 		},
 		{
 			LeaderPercentage:                 0.2,
@@ -778,6 +786,10 @@ func TestEconomicsData_ConfirmedEpochRewardsSettingsChangeOrderedConfigs(t *test
 			TopUpGradientPoint:               "200000000000000000000",
 			TopUpFactor:                      0.5,
 			EpochEnable:                      2,
+			EcosystemGrowthPercentage:        0.0,
+			EcosystemGrowthAddress:           "erd1932eft30w753xyvme8d49qejgkjc09n5e49w4mwdjtm0neld797su0dlxp",
+			GrowthDividendPercentage:         0.0,
+			GrowthDividendAddress:            "erd1932eft30w753xyvme8d49qejgkjc09n5e49w4mwdjtm0neld797su0dlxp",
 		},
 	}
 
@@ -857,6 +869,10 @@ func TestEconomicsData_ConfirmedEpochRewardsSettingsChangeUnOrderedConfigs(t *te
 			TopUpGradientPoint:               "200000000000000000000",
 			TopUpFactor:                      0.5,
 			EpochEnable:                      2,
+			EcosystemGrowthPercentage:        0.0,
+			EcosystemGrowthAddress:           "erd1932eft30w753xyvme8d49qejgkjc09n5e49w4mwdjtm0neld797su0dlxp",
+			GrowthDividendPercentage:         0.0,
+			GrowthDividendAddress:            "erd1932eft30w753xyvme8d49qejgkjc09n5e49w4mwdjtm0neld797su0dlxp",
 		},
 		{
 			LeaderPercentage:                 0.1,
@@ -866,6 +882,10 @@ func TestEconomicsData_ConfirmedEpochRewardsSettingsChangeUnOrderedConfigs(t *te
 			TopUpGradientPoint:               "300000000000000000000",
 			TopUpFactor:                      0.25,
 			EpochEnable:                      0,
+			EcosystemGrowthPercentage:        0.0,
+			EcosystemGrowthAddress:           "erd1932eft30w753xyvme8d49qejgkjc09n5e49w4mwdjtm0neld797su0dlxp",
+			GrowthDividendPercentage:         0.0,
+			GrowthDividendAddress:            "erd1932eft30w753xyvme8d49qejgkjc09n5e49w4mwdjtm0neld797su0dlxp",
 		},
 	}
 	expectedRS := getExpectedSettings(rs, args.PubkeyConverter)

@@ -218,19 +218,6 @@ func TestBaseRewardsCreator_GetLocalTxCache(t *testing.T) {
 	require.False(t, check.IfNil(txCache))
 }
 
-func TestBaseRewardsCreator_GetAcceleratorRewards(t *testing.T) {
-	t.Parallel()
-
-	args := getBaseRewardsArguments()
-	rwd, err := NewBaseRewardsCreator(args)
-	require.Nil(t, err)
-	require.NotNil(t, rwd)
-
-	// should return 0 as just initialized
-	rewards := rwd.GetAcceleratorRewards()
-	require.Zero(t, big.NewInt(0).Cmp(rewards))
-}
-
 func TestBaseRewardsCreator_addProtocolRewardToMiniblocks(t *testing.T) {
 	t.Parallel()
 
@@ -896,7 +883,7 @@ func TestBaseRewardsCreator_createProtocolSustainabilityRewardTransaction(t *tes
 		DevFeesInEpoch: big.NewInt(0),
 	}
 
-	rwTx, _, err := rwd.createProtocolSustainabilityRewardTransaction(metaBlk)
+	rwTx, _, err := rwd.createProtocolSustainabilityRewardTransaction(metaBlk, metaBlk.EpochStart.Economics.RewardsForProtocolSustainability)
 	require.Nil(t, err)
 	require.NotNil(t, rwTx)
 	require.Equal(t, metaBlk.EpochStart.Economics.RewardsForProtocolSustainability, rwTx.Value)

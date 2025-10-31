@@ -83,14 +83,6 @@ func NewEconomicsData(args ArgsNewEconomicsData) (*economicsData, error) {
 		txVersionHandler:    args.TxVersionChecker,
 	}
 
-	ed.yearSettings = make(map[uint32]*config.YearSetting)
-	for _, yearSetting := range args.Economics.GlobalSettings.YearSettings {
-		ed.yearSettings[yearSetting.Year] = &config.YearSetting{
-			Year:             yearSetting.Year,
-			MaximumInflation: yearSetting.MaximumInflation,
-		}
-	}
-
 	ed.gasConfigHandler, err = newGasConfigHandler(args.Economics)
 	if err != nil {
 		return nil, err
