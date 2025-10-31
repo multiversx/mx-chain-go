@@ -1859,3 +1859,140 @@ func TestApiTransactionProcessor_PopulateComputedFields(t *testing.T) {
 	require.Equal(t, "SCDeployment", apiTx.ProcessingTypeOnDestination)
 	require.Equal(t, "1000", apiTx.InitiallyPaidFee)
 }
+
+func Test_GetCurrentRootHash(t *testing.T) {
+	t.Parallel()
+
+	t.Run("should fail if nil current header", func(t *testing.T) {
+		t.Parallel()
+
+		arguments := createMockArgAPITransactionProcessor()
+
+		processor, _ := NewAPITransactionProcessor(arguments)
+
+		chainHandler := &testscommon.ChainHandlerStub{
+			GetCurrentBlockHeaderCalled: func() data.HeaderHandler {
+				return nil
+			},
+		}
+
+		retRootHash, err := processor.getCurrentRootHash(chainHandler)
+		require.Equal(t, ErrNilBlockHeader, err)
+		require.Nil(t, retRootHash)
+	})
+
+	t.Run("before header v3, should fail if not able to get current root hash", func(t *testing.T) {
+		t.Parallel()
+
+		arguments := createMockArgAPITransactionProcessor()
+
+		processor, _ := NewAPITransactionProcessor(arguments)
+
+		header := &block.HeaderV2{}
+
+		chainHandler := &testscommon.ChainHandlerStub{
+			GetCurrentBlockRootHashCalled: func() []byte {
+				return nil
+			},
+			GetCurrentBlockHeaderCalled: func() data.HeaderHandler {
+				return header
+			},
+		}
+
+		retRootHash, err := processor.getCurrentRootHash(chainHandler)
+		require.Equal(t, ErrNilCurrentRootHash, err)
+		require.Nil(t, retRootHash)
+	})
+
+	t.Run("before header v3 should get root hash from current chain handler root hash", func(t *testing.T) {
+		t.Parallel()
+
+		arguments := createMockArgAPITransactionProcessor()
+
+		processor, _ := NewAPITransactionProcessor(arguments)
+
+		expRootHash := []byte("expRootHash")
+
+		header := &block.HeaderV2{}
+
+		chainHandler := &testscommon.ChainHandlerStub{
+			GetCurrentBlockRootHashCalled: func() []byte {
+				return expRootHash
+			},
+			GetCurrentBlockHeaderCalled: func() data.HeaderHandler {
+				return header
+			},
+			GetLastExecutedBlockInfoCalled: func() (uint64, []byte, []byte) {
+				return 0, []byte{}, []byte{}
+			},
+		}
+
+		retRootHash, err := processor.getCurrentRootHash(chainHandler)
+		require.Nil(t, err)
+		require.Equal(t, expRootHash, retRootHash)
+	})
+
+	t.Run("on header v3 should get root hash from last executed block info", func(t *testing.T) {
+		t.Parallel()
+
+		arguments := createMockArgAPITransactionProcessor()
+
+		processor, _ := NewAPITransactionProcessor(arguments)
+
+		expRootHash := []byte("expRootHash")
+
+		header := &block.HeaderV3{
+			LastExecutionResult: &block.ExecutionResultInfo{
+				ExecutionResult: &block.BaseExecutionResult{
+					HeaderHash: []byte("headerHash1"),
+					RootHash:   []byte("rootHash1"),
+				},
+			},
+		}
+
+		chainHandler := &testscommon.ChainHandlerStub{
+			GetCurrentBlockHeaderCalled: func() data.HeaderHandler {
+				return header
+			},
+			GetLastExecutedBlockInfoCalled: func() (uint64, []byte, []byte) {
+				return 0, []byte{}, expRootHash
+			},
+		}
+
+		retRootHash, err := processor.getCurrentRootHash(chainHandler)
+		require.Nil(t, err)
+		require.Equal(t, expRootHash, retRootHash)
+	})
+
+	t.Run("on first header v3 should get root hash from last execution result", func(t *testing.T) {
+		t.Parallel()
+
+		arguments := createMockArgAPITransactionProcessor()
+
+		processor, _ := NewAPITransactionProcessor(arguments)
+
+		expRootHash := []byte("rootHash1")
+
+		header := &block.HeaderV3{
+			LastExecutionResult: &block.ExecutionResultInfo{
+				ExecutionResult: &block.BaseExecutionResult{
+					HeaderHash: []byte("headerHash1"),
+					RootHash:   expRootHash,
+				},
+			},
+		}
+
+		chainHandler := &testscommon.ChainHandlerStub{
+			GetLastExecutedBlockInfoCalled: func() (uint64, []byte, []byte) {
+				return 0, []byte{}, []byte{} // root hash not set
+			},
+			GetCurrentBlockHeaderCalled: func() data.HeaderHandler {
+				return header
+			},
+		}
+
+		retRootHash, err := processor.getCurrentRootHash(chainHandler)
+		require.Nil(t, err)
+		require.Equal(t, expRootHash, retRootHash)
+	})
+}

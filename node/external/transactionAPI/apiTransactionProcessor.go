@@ -504,8 +504,7 @@ func (atp *apiTransactionProcessor) getCurrentRootHash(
 	}
 
 	if blockHeader.IsHeaderV3() {
-		_, _, lastExecutedRootHash := blockchain.GetLastExecutedBlockInfo()
-		return lastExecutedRootHash, nil
+		return getHeaderV3RootHash(blockchain)
 	}
 
 	currentRootHash := blockchain.GetCurrentBlockRootHash()
@@ -514,6 +513,28 @@ func (atp *apiTransactionProcessor) getCurrentRootHash(
 	}
 
 	return currentRootHash, nil
+}
+
+func getHeaderV3RootHash(
+	blockchain data.ChainHandler,
+) ([]byte, error) {
+	_, _, lastExecutedRootHash := blockchain.GetLastExecutedBlockInfo()
+	if len(lastExecutedRootHash) != 0 {
+		return lastExecutedRootHash, nil
+	}
+
+	blockHeader := blockchain.GetCurrentBlockHeader()
+
+	// is first header v3, last executed block info might not be updated yet
+	// rootHash can be taken from last execution results directly from header
+	// on creation, the first header v3 has the last execution info from last header v2
+	// and it should be available
+	lastExecutionResult, err := common.ExtractBaseExecutionResultHandler(blockHeader.GetLastExecutionResultHandler())
+	if err != nil {
+		return nil, err
+	}
+
+	return lastExecutionResult.GetRootHash(), nil
 }
 
 func (atp *apiTransactionProcessor) selectTransactions(accountsAdapter state.AccountsAdapter, selectionOptions common.TxSelectionOptionsAPI) ([]common.Transaction, error) {
