@@ -315,7 +315,7 @@ type BlocksQueue interface {
 	AddOrReplace(pair queue.HeaderBodyPair) error
 	Pop() (queue.HeaderBodyPair, bool)
 	Peek() (queue.HeaderBodyPair, bool)
-	RemoveAtNonceAndHigher(nonce uint64) error
+	RemoveAtNonceAndHigher(nonce uint64)
 	RegisterEvictionSubscriber(subscriber queue.BlocksQueueEvictionSubscriber)
 	IsInterfaceNil() bool
 	Close()

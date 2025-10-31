@@ -379,8 +379,7 @@ func TestBlocksQueue_RemoveAtNonceAndHigher(t *testing.T) {
 		t.Parallel()
 
 		hq := NewBlocksQueue()
-		err := hq.RemoveAtNonceAndHigher(5)
-		require.Nil(t, err)
+		hq.RemoveAtNonceAndHigher(5)
 		require.Equal(t, 0, len(hq.headerBodyPairs))
 	})
 
@@ -414,8 +413,7 @@ func TestBlocksQueue_RemoveAtNonceAndHigher(t *testing.T) {
 		require.Zero(t, len(evictedNonces))
 
 		// Remove from nonce 3 onwards
-		err := hq.RemoveAtNonceAndHigher(3)
-		require.Nil(t, err)
+		hq.RemoveAtNonceAndHigher(3)
 
 		// Should have only 2 elements now (nonces 1, 2)
 		require.Equal(t, 2, len(hq.headerBodyPairs))
@@ -450,8 +448,7 @@ func TestBlocksQueue_RemoveAtNonceAndHigher(t *testing.T) {
 		require.Equal(t, uint64(4), hq.lastAddedNonce)
 
 		// Remove all
-		err := hq.RemoveAtNonceAndHigher(1)
-		require.Nil(t, err)
+		hq.RemoveAtNonceAndHigher(1)
 
 		// Queue should be empty
 		require.Equal(t, 0, len(hq.headerBodyPairs))
@@ -476,8 +473,7 @@ func TestBlocksQueue_RemoveAtNonceAndHigher(t *testing.T) {
 		require.Equal(t, uint64(4), hq.lastAddedNonce)
 
 		// Remove from nonce 4 (last element)
-		err := hq.RemoveAtNonceAndHigher(4)
-		require.Nil(t, err)
+		hq.RemoveAtNonceAndHigher(4)
 
 		// Should have 3 elements now
 		require.Equal(t, 3, len(hq.headerBodyPairs))
@@ -509,8 +505,7 @@ func TestBlocksQueue_RemoveAtNonceAndHigher(t *testing.T) {
 		require.Equal(t, uint64(13), hq.lastAddedNonce)
 
 		// Try to remove at nonce 5 (which doesn't exist)
-		err := hq.RemoveAtNonceAndHigher(5)
-		require.NoError(t, err)
+		hq.RemoveAtNonceAndHigher(5)
 
 		// Queue should remain unchanged
 		require.Equal(t, 0, len(hq.headerBodyPairs))
@@ -533,15 +528,13 @@ func TestBlocksQueue_RemoveAtNonceAndHigher(t *testing.T) {
 		require.Equal(t, uint64(0), hq.lastAddedNonce)
 
 		// Remove from nonce 0
-		err = hq.RemoveAtNonceAndHigher(0)
-		require.Nil(t, err)
+		hq.RemoveAtNonceAndHigher(0)
 
 		// Queue should be empty, lastAddedNonce should be 0
 		require.Equal(t, 0, len(hq.headerBodyPairs))
 		require.Equal(t, uint64(0), hq.lastAddedNonce)
 
 		hq.Close()
-		err = hq.RemoveAtNonceAndHigher(10) // coverage only, should early exit
-		require.Nil(t, err)
+		hq.RemoveAtNonceAndHigher(10) // coverage only, should early exit
 	})
 }
