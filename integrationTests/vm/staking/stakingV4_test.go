@@ -6,8 +6,10 @@ import (
 	"testing"
 
 	"github.com/multiversx/mx-chain-core-go/core"
+	chainData "github.com/multiversx/mx-chain-core-go/data"
 	"github.com/multiversx/mx-chain-core-go/marshal"
 	"github.com/multiversx/mx-chain-go/config"
+	"github.com/multiversx/mx-chain-go/dataRetriever"
 	"github.com/multiversx/mx-chain-go/state"
 	"github.com/multiversx/mx-chain-go/testscommon/stakingcommon"
 	"github.com/multiversx/mx-chain-go/vm"
@@ -111,7 +113,10 @@ func getAllPubKeysFromConfig(nodesCfg nodesConfig) [][]byte {
 	return allPubKeys
 }
 
-func unStake(t *testing.T, owner []byte, accountsDB state.AccountsAdapter, marshaller marshal.Marshalizer, stake *big.Int) {
+func unStake(t *testing.T, owner []byte, accountsDB state.AccountsAdapter, marshaller marshal.Marshalizer, stake *big.Int,
+	txPool dataRetriever.ShardedDataCacherNotifier,
+	blockchain chainData.ChainHandler,
+) {
 	validatorSC := stakingcommon.LoadUserAccount(accountsDB, vm.ValidatorSCAddress)
 	ownerStoredData, _, err := validatorSC.RetrieveValue(owner)
 	require.Nil(t, err)
@@ -128,6 +133,29 @@ func unStake(t *testing.T, owner []byte, accountsDB state.AccountsAdapter, marsh
 	err = accountsDB.SaveAccount(validatorSC)
 	require.Nil(t, err)
 	_, err = accountsDB.Commit()
+	require.Nil(t, err)
+
+	newRootHash, err := accountsDB.RootHash()
+	require.Nil(t, err)
+
+	block := blockchain.GetCurrentBlockHeader()
+	if block == nil {
+		block = blockchain.GetGenesisHeader()
+
+		err = block.SetRootHash(newRootHash)
+		require.Nil(t, err)
+
+		err = blockchain.SetGenesisHeader(block)
+		require.Nil(t, err)
+	} else {
+		err = block.SetRootHash(newRootHash)
+		require.Nil(t, err)
+
+		err = blockchain.SetCurrentBlockHeaderAndRootHash(block, newRootHash)
+		require.Nil(t, err)
+	}
+
+	err = txPool.OnExecutedBlock(block, newRootHash)
 	require.Nil(t, err)
 }
 
@@ -477,7 +505,10 @@ func TestStakingV4_UnStakeNodesWithNotEnoughFunds(t *testing.T) {
 	requireSliceContainsNumOfElements(t, getAllPubKeys(currNodesConfig.leaving), getAllPubKeys(owner2Stats.WaitingBlsKeys), 1)
 
 	// Owner1 will unStake some EGLD => at the end of next epoch, he should not be able to reStake all the nodes
-	unStake(t, []byte(owner1), node.AccountsAdapter, node.Marshaller, big.NewInt(0.1*nodePrice))
+	unStake(t, []byte(owner1), node.AccountsAdapter, node.Marshaller, big.NewInt(0.1*nodePrice),
+		node.DataPool.Transactions(),
+		node.BlockChainHandler,
+	)
 
 	// 3. ReStake the nodes that were in the queue
 	queue = remove(queue, owner1StakingQueue[0])
@@ -509,7 +540,7 @@ func TestStakingV4_UnStakeNodesWithNotEnoughFunds(t *testing.T) {
 	// Owner3 will unStake EGLD => he will have negative top-up at the selection time => one of his nodes will be unStaked.
 	// His other node should not have been selected => remains in auction.
 	// Meanwhile, owner4 had never unStaked EGLD => his node from auction list will be distributed to waiting
-	unStake(t, []byte(owner3), node.AccountsAdapter, node.Marshaller, big.NewInt(2*nodePrice))
+	unStake(t, []byte(owner3), node.AccountsAdapter, node.Marshaller, big.NewInt(2*nodePrice), node.DataPool.Transactions(), node.BlockChainHandler)
 
 	// 5. Check config in epoch = staking v4 step3
 	node.Process(t, 5)

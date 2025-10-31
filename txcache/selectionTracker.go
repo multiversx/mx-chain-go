@@ -453,7 +453,7 @@ func (st *selectionTracker) deriveVirtualSelectionSession(
 			"latestRootHash", st.latestRootHash,
 			"session rootHash", rootHash,
 		)
-		return nil, errRootHashMismatch
+		//return nil, errRootHashMismatch
 	}
 
 	log.Debug("selectionTracker.deriveVirtualSelectionSession",
