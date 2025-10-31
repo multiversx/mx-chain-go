@@ -673,6 +673,10 @@ type rewardsHandler interface {
 	DeveloperPercentageInEpoch(epoch uint32) float64
 	ProtocolSustainabilityPercentageInEpoch(epoch uint32) float64
 	ProtocolSustainabilityAddressInEpoch(epoch uint32) string
+	EcosystemGrowthPercentageInEpoch(epoch uint32) float64
+	EcosystemGrowthAddressInEpoch(epoch uint32) string
+	GrowthDividendPercentageInEpoch(epoch uint32) float64
+	GrowthDividendAddressInEpoch(epoch uint32) string
 	RewardsTopUpGradientPointInEpoch(epoch uint32) *big.Int
 	RewardsTopUpFactorInEpoch(epoch uint32) float64
 }

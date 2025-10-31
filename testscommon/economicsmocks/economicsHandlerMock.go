@@ -56,6 +56,10 @@ type EconomicsHandlerMock struct {
 	ProtocolSustainabilityAddressInEpochCalled          func(epoch uint32) string
 	RewardsTopUpGradientPointInEpochCalled              func(epoch uint32) *big.Int
 	RewardsTopUpFactorInEpochCalled                     func(epoch uint32) float64
+	EcosystemGrowthPercentageInEpochCalled              func(epoch uint32) float64
+	EcosystemGrowthAddressInEpochCalled                 func(epoch uint32) string
+	GrowthDividendPercentageInEpochCalled               func(epoch uint32) float64
+	GrowthDividendAddressInEpochCalled                  func(epoch uint32) string
 }
 
 // ComputeGasUnitsFromRefundValue -
@@ -418,6 +422,38 @@ func (ehm *EconomicsHandlerMock) MaxGasHigherFactorAccepted() uint64 {
 		return ehm.MaxGasHigherFactorAcceptedCalled()
 	}
 	return 10
+}
+
+// EcosystemGrowthAddressInEpoch -
+func (ehm *EconomicsHandlerMock) EcosystemGrowthAddressInEpoch(epoch uint32) string {
+	if ehm.EcosystemGrowthAddressInEpochCalled != nil {
+		return ehm.EcosystemGrowthAddressInEpochCalled(epoch)
+	}
+	return ""
+}
+
+// GrowthDividendAddressInEpoch -
+func (ehm *EconomicsHandlerMock) GrowthDividendAddressInEpoch(epoch uint32) string {
+	if ehm.GrowthDividendAddressInEpochCalled != nil {
+		return ehm.GrowthDividendAddressInEpochCalled(epoch)
+	}
+	return ""
+}
+
+// EcosystemGrowthPercentageInEpoch -
+func (ehm *EconomicsHandlerMock) EcosystemGrowthPercentageInEpoch(epoch uint32) float64 {
+	if ehm.EcosystemGrowthPercentageInEpochCalled != nil {
+		return ehm.EcosystemGrowthPercentageInEpochCalled(epoch)
+	}
+	return 0
+}
+
+// GrowthDividendPercentageInEpoch -
+func (ehm *EconomicsHandlerMock) GrowthDividendPercentageInEpoch(epoch uint32) float64 {
+	if ehm.GrowthDividendPercentageInEpochCalled != nil {
+		return ehm.GrowthDividendPercentageInEpochCalled(epoch)
+	}
+	return 0
 }
 
 // IsInterfaceNil returns true if there is no value under the interface
