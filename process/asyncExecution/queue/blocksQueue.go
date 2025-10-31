@@ -200,6 +200,10 @@ func (bq *blocksQueue) updateLastAddedNonceBasedOnRemovingNonce(removingNonce ui
 		return
 	}
 
+	// TODO: consider adding new component that manages blocksQueue, executionResultsTracker and headersExecutor
+	// so they are always synchronized
+	// (bq.lastAddedNonce might get inconsistent with ert.lastNotarizedResult if RemoveAtNonceAndHigher is called for
+	// a nonce older than lastNotarizedResult)
 	if removingNonce > 0 {
 		bq.lastAddedNonce = removingNonce - 1
 		return
