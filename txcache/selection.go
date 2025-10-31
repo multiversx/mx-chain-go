@@ -61,7 +61,7 @@ func selectTransactionsFromBunches(
 	}
 
 	accumulatedGas := uint64(0)
-	//selectionLoopStartTime := time.Now()
+	selectionLoopStartTime := time.Now()
 
 	// Select transactions (sorted).
 	for transactionsHeap.Len() > 0 {
@@ -75,12 +75,12 @@ func selectTransactionsFromBunches(
 		if len(selectedTransactions) >= maxNumTxs {
 			break
 		}
-		//if len(selectedTransactions)%loopDurationCheckInterval == 0 {
-		//	if time.Since(selectionLoopStartTime) > selectionLoopMaxDuration {
-		//		logSelect.Debug("TxCache.selectTransactionsFromBunches, selection loop timeout", "duration", time.Since(selectionLoopStartTime))
-		//		break
-		//	}
-		//}
+		if len(selectedTransactions)%loopDurationCheckInterval == 0 {
+			if time.Since(selectionLoopStartTime) > selectionLoopMaxDuration {
+				logSelect.Debug("TxCache.selectTransactionsFromBunches, selection loop timeout", "duration", time.Since(selectionLoopStartTime))
+				break
+			}
+		}
 
 		senderRecord, err := virtualSession.getRecord(item.sender)
 		if err != nil {
