@@ -30,7 +30,7 @@ func NewPendingMiniBlocks() (*pendingMiniBlocks, error) {
 	}, nil
 }
 
-func (p *pendingMiniBlocks) getAllCrossShardMiniBlocksHashes(metaBlock data.MetaHeaderHandler) (map[string]uint32, error) {
+func (p *pendingMiniBlocks) getMiniBlocksHashesReadyForCrossShardExecution(metaBlock data.MetaHeaderHandler) (map[string]uint32, error) {
 	crossShardMiniBlocks := make(map[string]uint32)
 
 	shardInfoHandlers := metaBlock.GetShardInfoHandlers()
@@ -45,7 +45,7 @@ func (p *pendingMiniBlocks) getAllCrossShardMiniBlocksHashes(metaBlock data.Meta
 		}
 	}
 
-	miniBlocks, err := getMiniBlocksFromHeader(metaBlock)
+	miniBlocks, err := getMiniBlocksFromHeaderReadyForCrossShardExecution(metaBlock)
 	if err != nil {
 		return nil, err
 	}
@@ -60,7 +60,7 @@ func (p *pendingMiniBlocks) getAllCrossShardMiniBlocksHashes(metaBlock data.Meta
 	return crossShardMiniBlocks, nil
 }
 
-func getMiniBlocksFromHeader(header data.MetaHeaderHandler) ([]data.MiniBlockHeaderHandler, error) {
+func getMiniBlocksFromHeaderReadyForCrossShardExecution(header data.MetaHeaderHandler) ([]data.MiniBlockHeaderHandler, error) {
 	if !header.IsHeaderV3() {
 		return header.GetMiniBlockHeaderHandlers(), nil
 	}
@@ -145,7 +145,7 @@ func (p *pendingMiniBlocks) RevertHeader(headerHandler data.HeaderHandler) error
 }
 
 func (p *pendingMiniBlocks) processHeader(metaHandler data.MetaHeaderHandler) error {
-	crossShardMiniBlocksHashes, err := p.getAllCrossShardMiniBlocksHashes(metaHandler)
+	crossShardMiniBlocksHashes, err := p.getMiniBlocksHashesReadyForCrossShardExecution(metaHandler)
 	if err != nil {
 		return err
 	}
