@@ -19,7 +19,6 @@ type executionResultsTracker struct {
 	executionResultsByHash map[string]data.BaseExecutionResultHandler
 	nonceHash              *nonceHash
 	lastExecutedResultHash []byte
-	hashToRemoveOnAdd      []byte
 }
 
 // NewExecutionResultsTracker will create a new instance of *executionResultsTracker
@@ -41,13 +40,6 @@ func (ert *executionResultsTracker) AddExecutionResult(executionResult data.Base
 	defer ert.mutex.Unlock()
 	if ert.lastNotarizedResult == nil {
 		return ErrNilLastNotarizedExecutionResult
-	}
-
-	shouldIgnoreExecutionResult := bytes.Equal(ert.hashToRemoveOnAdd, executionResult.GetHeaderHash())
-	if shouldIgnoreExecutionResult {
-		ert.hashToRemoveOnAdd = nil
-		log.Debug("ert.AddExecutionResult ignored execution result", "hash", executionResult.GetHeaderHash())
-		return nil
 	}
 
 	if ert.lastNotarizedResult.GetHeaderNonce() >= executionResult.GetHeaderNonce() {
@@ -270,42 +262,59 @@ func (ert *executionResultsTracker) SetLastNotarizedResult(executionResult data.
 	return nil
 }
 
-// RemoveByHash will remove the execution result by header hash
-func (ert *executionResultsTracker) RemoveByHash(hash []byte) error {
+// RemoveFromNonce will remove the execution result with the provided nonce and all execution results with higher nonces
+func (ert *executionResultsTracker) RemoveFromNonce(nonce uint64) error {
 	ert.mutex.Lock()
 	defer ert.mutex.Unlock()
 
-	executionResult, found := ert.executionResultsByHash[string(hash)]
-	if !found {
-		ert.hashToRemoveOnAdd = hash
-		return nil
-	}
+	return ert.removePendingFromNonceUnprotected(nonce)
+}
 
+func (ert *executionResultsTracker) removePendingFromNonceUnprotected(nonce uint64) error {
 	pendingExecutionResult, err := ert.getPendingExecutionResults()
 	if err != nil {
 		return err
 	}
 
-	// check that the provided is the last execution result
-	lastElement := pendingExecutionResult[len(pendingExecutionResult)-1]
-	if !bytes.Equal(lastElement.GetHeaderHash(), hash) {
-		return fmt.Errorf("%w between last pending execution result hash and the provided hash", ErrHashMismatch)
+	// find all execution results with nonce >= nonceToRemove
+	var resultsToRemove []data.BaseExecutionResultHandler
+	for _, result := range pendingExecutionResult {
+		resultNonce := result.GetHeaderNonce()
+		if resultNonce < nonce {
+			continue
+		}
+
+		resultsToRemove = append(resultsToRemove, result)
 	}
 
-	delete(ert.executionResultsByHash, string(hash))
-	ert.nonceHash.removeByNonce(executionResult.GetHeaderNonce())
+	if len(resultsToRemove) == 0 {
+		return nil
+	}
 
-	// remove the last element
-	pendingExecutionResult = pendingExecutionResult[:len(pendingExecutionResult)-1]
+	ert.cleanExecutionResults(resultsToRemove)
 
-	if len(pendingExecutionResult) == 0 {
-		// set last execution result with last notarized
+	// update lastExecutedResultHash
+	remainingResults, err := ert.getPendingExecutionResults()
+	if err != nil || len(remainingResults) == 0 {
+		// set last execution result to last notarized if no pending results remain
 		ert.lastExecutedResultHash = ert.lastNotarizedResult.GetHeaderHash()
 		return nil
 	}
 
-	ert.lastExecutedResultHash = pendingExecutionResult[len(pendingExecutionResult)-1].GetHeaderHash()
+	ert.lastExecutedResultHash = remainingResults[len(remainingResults)-1].GetHeaderHash()
 	return nil
+}
+
+// OnHeaderEvicted is a callback called when a header is removed from the execution queue
+func (ert *executionResultsTracker) OnHeaderEvicted(headerNonce uint64) {
+	ert.mutex.Lock()
+	defer ert.mutex.Unlock()
+
+	// search through pending execution results and remove it if already processed
+	err := ert.removePendingFromNonceUnprotected(headerNonce)
+	if err != nil {
+		log.Debug("OnHeaderEvicted failed", "nonce", headerNonce, "error", err)
+	}
 }
 
 // IsInterfaceNil returns true if there is no value under the interface

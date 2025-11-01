@@ -202,7 +202,7 @@ func TestBaseProcessor_saveExecutedData(t *testing.T) {
 				},
 				GetExecutionResultsHandlersCalled: func() []data.BaseExecutionResultHandler {
 					return []data.BaseExecutionResultHandler{
-						&block.ExecutionResult{}, // shard execution result
+						&block.BaseExecutionResult{}, // shard execution result
 					}
 				},
 				GetShardIDCalled: func() uint32 {
