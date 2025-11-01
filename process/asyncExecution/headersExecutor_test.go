@@ -14,6 +14,8 @@ import (
 	"github.com/multiversx/mx-chain-go/testscommon/processMocks"
 )
 
+var errExpected = errors.New("expected error")
+
 func createMockArgs() ArgsHeadersExecutor {
 	headerQueue := queue.NewBlocksQueue()
 
@@ -108,6 +110,124 @@ func TestHeadersExecutor_StartAndClose(t *testing.T) {
 func TestHeadersExecutor_ProcessBlockError(t *testing.T) {
 	t.Parallel()
 
+	t.Run("header marked for deletion before processing should be skipped", func(t *testing.T) {
+		t.Parallel()
+
+		args := createMockArgs()
+		blocksQueue := queue.NewBlocksQueue()
+		args.BlocksQueue = blocksQueue
+		args.BlockProcessor = &processMocks.BlockProcessorStub{
+			ProcessBlockProposalCalled: func(handler data.HeaderHandler, body data.BodyHandler) (data.BaseExecutionResultHandler, error) {
+				require.Fail(t, "should not be called")
+				return nil, nil
+			},
+		}
+		args.ExecutionTracker = &processMocks.ExecutionTrackerStub{
+			AddExecutionResultCalled: func(executionResult data.BaseExecutionResultHandler) error {
+				require.Fail(t, "should not be called")
+				return nil
+			},
+		}
+
+		executor, err := NewHeadersExecutor(args)
+		require.NoError(t, err)
+
+		err = blocksQueue.AddOrReplace(queue.HeaderBodyPair{
+			Header: &block.Header{
+				Nonce: 1,
+			},
+			Body: &block.Body{},
+		})
+		require.NoError(t, err)
+
+		// mark the popped header as evicted
+		executor.OnHeaderEvicted(1)
+
+		executor.StartExecution()
+
+		// allow Pop operation
+		time.Sleep(time.Millisecond * 100)
+
+		err = executor.Close()
+		require.NoError(t, err)
+	})
+
+	t.Run("header marked for deletion during processing should be skipped", func(t *testing.T) {
+		t.Parallel()
+
+		args := createMockArgs()
+		blocksQueue := queue.NewBlocksQueue()
+		args.BlocksQueue = blocksQueue
+		args.BlockProcessor = &processMocks.BlockProcessorStub{
+			ProcessBlockProposalCalled: func(handler data.HeaderHandler, body data.BodyHandler) (data.BaseExecutionResultHandler, error) {
+				// this should trigger the notification
+				blocksQueue.RemoveAtNonceAndHigher(1)
+
+				return &block.BaseExecutionResult{}, nil
+			},
+		}
+		args.ExecutionTracker = &processMocks.ExecutionTrackerStub{
+			AddExecutionResultCalled: func(executionResult data.BaseExecutionResultHandler) error {
+				require.Fail(t, "should not be called")
+				return nil
+			},
+		}
+
+		executor, err := NewHeadersExecutor(args)
+		require.NoError(t, err)
+
+		executor.StartExecution()
+
+		err = blocksQueue.AddOrReplace(queue.HeaderBodyPair{
+			Header: &block.Header{
+				Nonce: 1,
+			},
+			Body: &block.Body{},
+		})
+		require.NoError(t, err)
+
+		// allow Pop operation
+		time.Sleep(time.Millisecond * 100)
+
+		err = executor.Close()
+		require.NoError(t, err)
+	})
+
+	t.Run("add execution result error", func(t *testing.T) {
+		t.Parallel()
+
+		args := createMockArgs()
+		blocksQueue := queue.NewBlocksQueue()
+		args.BlocksQueue = blocksQueue
+		wasAddExecutionResultCalled := false
+		args.ExecutionTracker = &processMocks.ExecutionTrackerStub{
+			AddExecutionResultCalled: func(executionResult data.BaseExecutionResultHandler) error {
+				wasAddExecutionResultCalled = true
+				return errExpected
+			},
+		}
+
+		executor, err := NewHeadersExecutor(args)
+		require.NoError(t, err)
+
+		err = blocksQueue.AddOrReplace(queue.HeaderBodyPair{
+			Header: &block.Header{
+				Nonce: 1,
+			},
+			Body: &block.Body{},
+		})
+		require.NoError(t, err)
+
+		executor.StartExecution()
+
+		// allow Pop operation
+		time.Sleep(time.Millisecond * 100)
+
+		err = executor.Close()
+		require.NoError(t, err)
+		require.True(t, wasAddExecutionResultCalled)
+	})
+
 	t.Run("block processing error, after retry should work", func(t *testing.T) {
 		args := createMockArgs()
 		blocksQueue := queue.NewBlocksQueue()
@@ -122,7 +242,7 @@ func TestHeadersExecutor_ProcessBlockError(t *testing.T) {
 					return nil, nil
 				}
 				count++
-				return nil, errors.New("local error")
+				return nil, errExpected
 			},
 		}
 		args.ExecutionTracker = &processMocks.ExecutionTrackerStub{
@@ -165,7 +285,7 @@ func TestHeadersExecutor_ProcessBlockError(t *testing.T) {
 			ProcessBlockProposalCalled: func(handler data.HeaderHandler, body data.BodyHandler) (data.BaseExecutionResultHandler, error) {
 				time.Sleep(time.Millisecond)
 				if handler.GetRound() == 1 {
-					return nil, errors.New("local error")
+					return nil, errExpected
 				}
 
 				count++

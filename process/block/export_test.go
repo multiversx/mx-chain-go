@@ -13,6 +13,7 @@ import (
 	"github.com/multiversx/mx-chain-core-go/hashing"
 	"github.com/multiversx/mx-chain-core-go/marshal"
 	"github.com/multiversx/mx-chain-go/state/disabled"
+	"github.com/multiversx/mx-chain-go/testscommon/processMocks"
 
 	"github.com/multiversx/mx-chain-go/common"
 	"github.com/multiversx/mx-chain-go/common/configs"
@@ -256,6 +257,7 @@ func NewShardProcessorEmptyWith3shards(
 			ExecutionResultsInclusionEstimator: inclusionEstimator,
 			ExecutionResultsTracker:            executionResultsTracker,
 			GasComputation:                     gasComputation,
+			BlocksQueue:                        &processMocks.BlocksQueueMock{},
 		},
 	}
 	shardProc, err := NewShardProcessor(arguments)

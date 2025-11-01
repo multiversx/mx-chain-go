@@ -164,6 +164,9 @@ func (tpn *TestProcessorNode) initBlockProcessorWithSync() {
 		log.LogIfError(err)
 	}
 
+	tpn.BlocksQueue = queue.NewBlocksQueue()
+	tpn.BlocksQueue.RegisterEvictionSubscriber(executionResultsTracker)
+
 	argumentsBase := block.ArgBaseProcessor{
 		CoreComponents:       coreComponents,
 		DataComponents:       dataComponents,
@@ -204,9 +207,8 @@ func (tpn *TestProcessorNode) initBlockProcessorWithSync() {
 		ExecutionResultsInclusionEstimator: inclusionEstimator,
 		ExecutionResultsTracker:            executionResultsTracker,
 		GasComputation:                     gasConsumption,
+		BlocksQueue:                        tpn.BlocksQueue,
 	}
-
-	tpn.BlocksQueue = queue.NewBlocksQueue()
 
 	if tpn.ShardCoordinator.SelfId() == core.MetachainShardId {
 		tpn.ForkDetector, _ = sync.NewMetaForkDetector(

@@ -132,6 +132,7 @@ type baseProcessor struct {
 	executionResultsVerifier           ExecutionResultsVerifier
 	missingDataResolver                MissingDataResolver
 	gasComputation                     process.GasComputation
+	blocksQueue                        process.BlocksQueue
 }
 
 type bootStorerDataArgs struct {
@@ -221,6 +222,7 @@ func NewBaseProcessor(arguments ArgBaseProcessor) (*baseProcessor, error) {
 		executionResultsVerifier:           arguments.ExecutionResultsVerifier,
 		missingDataResolver:                arguments.MissingDataResolver,
 		gasComputation:                     arguments.GasComputation,
+		blocksQueue:                        arguments.BlocksQueue,
 	}
 
 	return base, nil
@@ -744,6 +746,9 @@ func checkProcessorParameters(arguments ArgBaseProcessor) error {
 	}
 	if check.IfNil(arguments.GasComputation) {
 		return process.ErrNilGasComputation
+	}
+	if check.IfNil(arguments.BlocksQueue) {
+		return process.ErrNilBlocksQueue
 	}
 
 	return nil
@@ -1305,7 +1310,7 @@ func (bp *baseProcessor) getFinalMiniBlocksFromExecutionResults(
 
 	executedMiniBlocksCache := bp.dataPool.ExecutedMiniBlocks()
 	for _, baseExecutionResult := range baseExecutionResults {
-		miniBlockHeaderHandlers, err := bp.extractMiniBlocksHeaderHandlersFromExecResult(baseExecutionResult, header.GetShardID())
+		miniBlockHeaderHandlers, err := common.GetMiniBlocksHeaderHandlersFromExecResult(baseExecutionResult, header.GetShardID())
 		if err != nil {
 			return nil, err
 		}
@@ -1734,9 +1739,19 @@ func (bp *baseProcessor) updateStateStorage(
 }
 
 // RevertCurrentBlock reverts the current block for cleanup failed process
-func (bp *baseProcessor) RevertCurrentBlock() {
+func (bp *baseProcessor) RevertCurrentBlock(headerHandler data.HeaderHandler) {
 	bp.revertAccountState()
 	bp.revertScheduledInfo()
+	bp.revertCurrentBlockV3(headerHandler)
+}
+
+func (bp *baseProcessor) revertCurrentBlockV3(headerHandler data.HeaderHandler) {
+	if check.IfNil(headerHandler) || !headerHandler.IsHeaderV3() {
+		return
+	}
+
+	headerNonce := headerHandler.GetNonce()
+	bp.blocksQueue.RemoveAtNonceAndHigher(headerNonce)
 }
 
 func (bp *baseProcessor) revertAccountState() {
@@ -2188,7 +2203,7 @@ func (bp *baseProcessor) ProcessScheduledBlock(headerHandler data.HeaderHandler,
 	bp.processStatusHandler.SetBusy("baseProcessor.ProcessScheduledBlock")
 	defer func() {
 		if err != nil {
-			bp.RevertCurrentBlock()
+			bp.RevertCurrentBlock(headerHandler)
 		}
 		bp.processStatusHandler.SetIdle()
 	}()
@@ -2519,7 +2534,7 @@ func (bp *baseProcessor) saveMiniBlocksFromExecutionResults(header data.HeaderHa
 	}
 
 	for _, baseExecutionResult := range baseExecutionResults {
-		miniBlockHeaderHandlers, err := bp.extractMiniBlocksHeaderHandlersFromExecResult(baseExecutionResult, header.GetShardID())
+		miniBlockHeaderHandlers, err := common.GetMiniBlocksHeaderHandlersFromExecResult(baseExecutionResult, header.GetShardID())
 		if err != nil {
 			return err
 		}
@@ -2531,29 +2546,6 @@ func (bp *baseProcessor) saveMiniBlocksFromExecutionResults(header data.HeaderHa
 	}
 
 	return nil
-}
-
-func (bp *baseProcessor) extractMiniBlocksHeaderHandlersFromExecResult(
-	baseExecResult data.BaseExecutionResultHandler,
-	headerShard uint32,
-) ([]data.MiniBlockHeaderHandler, error) {
-	if headerShard == common.MetachainShardId {
-		metaExecResult, ok := baseExecResult.(data.MetaExecutionResultHandler)
-		if !ok {
-			log.Warn("extractMiniBlocksHeaderHandlersFromExecResult assert failed to MetaExecutionResultHandler")
-			return nil, process.ErrWrongTypeAssertion
-		}
-
-		return metaExecResult.GetMiniBlockHeadersHandlers(), nil
-	}
-
-	execResult, ok := baseExecResult.(data.ExecutionResultHandler)
-	if !ok {
-		log.Warn("extractMiniBlocksHeaderHandlersFromExecResult assert failed to ExecutionResultHandler")
-		return nil, process.ErrWrongTypeAssertion
-	}
-
-	return execResult.GetMiniBlockHeadersHandlers(), nil
 }
 
 func (bp *baseProcessor) putMiniBlocksIntoStorage(miniBlockHeaderHandlers []data.MiniBlockHeaderHandler) error {

@@ -106,6 +106,7 @@ type ArgBaseProcessor struct {
 	ExecutionResultsVerifier           ExecutionResultsVerifier
 	MissingDataResolver                MissingDataResolver
 	GasComputation                     process.GasComputation
+	BlocksQueue                        process.BlocksQueue
 }
 
 // ArgShardProcessor holds all dependencies required by the process data factory in order to create
