@@ -251,12 +251,52 @@ func (r *Resolver) RequestMissingShardHeaders(
 		return process.ErrNilMetaBlockHeader
 	}
 
-	for _, shardData := range metaHeader.GetShardInfoProposalHandlers() {
-		r.requestHeaderIfNeeded(shardData.GetShardID(), shardData.GetHeaderHash())
-		r.requestProofIfNeeded(shardData.GetShardID(), shardData.GetHeaderHash())
+	if metaHeader.IsStartOfEpochBlock() {
+		r.requestEpochStartLastFinalizedHeaders(metaHeader)
+		return nil
+	}
+
+	shardDataFinalizedNonces := make(map[uint32]uint64)
+	for _, shardData := range metaHeader.GetShardInfoHandlers() {
+		shardDataFinalizedNonces[shardData.GetShardID()] = shardData.GetNonce()
+	}
+
+	shardDataProposedNonces := make(map[uint32]uint64)
+	for _, shardProposalData := range metaHeader.GetShardInfoProposalHandlers() {
+		shardDataProposedNonces[shardProposalData.GetShardID()] = shardProposalData.GetNonce()
+
+		r.requestHeaderIfNeeded(shardProposalData.GetShardID(), shardProposalData.GetHeaderHash())
+		r.requestProofIfNeeded(shardProposalData.GetShardID(), shardProposalData.GetHeaderHash())
+	}
+
+	for shardID, lastProposedNonce := range shardDataProposedNonces {
+		lastFinalizedNonce, found := shardDataFinalizedNonces[shardID]
+		if !found {
+			continue
+		}
+
+		nonceGaps := lastProposedNonce - lastFinalizedNonce
+		if nonceGaps > 2 {
+			for shardNonceToRequest := lastFinalizedNonce + 1; shardNonceToRequest < lastFinalizedNonce; shardNonceToRequest++ {
+				_, _, err := r.headersPool.GetHeadersByNonceAndShardId(shardNonceToRequest, shardID)
+				if err == nil {
+					continue
+				}
+
+				go r.requestHandler.RequestShardHeaderByNonce(shardID, shardNonceToRequest)
+
+			}
+		}
 	}
 
 	return nil
+}
+
+func (r *Resolver) requestEpochStartLastFinalizedHeaders(metaHeader data.MetaHeaderHandler) {
+	for _, finalizedHdr := range metaHeader.GetEpochStartHandler().GetLastFinalizedHeaderHandlers() {
+		r.requestHeaderIfNeeded(finalizedHdr.GetShardID(), finalizedHdr.GetHeaderHash())
+		r.requestProofIfNeeded(finalizedHdr.GetShardID(), finalizedHdr.GetHeaderHash())
+	}
 }
 
 // RequestBlockTransactions requests the transactions for the given block body.
