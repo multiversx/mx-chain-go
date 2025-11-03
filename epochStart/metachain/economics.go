@@ -135,8 +135,18 @@ func (e *economics) ComputeEndOfEpochEconomics(
 	maxBlocksInEpoch := core.MaxUint64(1, roundsPassedInEpoch*uint64(e.shardCoordinator.NumberOfShards()+1))
 	totalNumBlocksInEpoch := e.computeNumOfTotalCreatedBlocks(noncesPerShardPrevEpoch, noncesPerShardCurrEpoch)
 
+	supplyToUseForRewardsperBlock := e.genesisTotalSupply
+	if metaBlock.Epoch >= e.accRewardsEnableEpoch {
+		supplyToUseForRewardsperBlock = prevEpochEconomics.TotalSupply
+	}
+
 	inflationRate := e.computeInflationRate(metaBlock.GetRound())
-	rwdPerBlock := e.computeRewardsPerBlock(e.genesisTotalSupply, maxBlocksInEpoch, inflationRate, metaBlock.Epoch)
+	rwdPerBlock := e.computeRewardsPerBlock(
+		supplyToUseForRewardsperBlock,
+		maxBlocksInEpoch,
+		inflationRate,
+		metaBlock.Epoch,
+	)
 	totalRewardsToBeDistributed := big.NewInt(0).Mul(rwdPerBlock, big.NewInt(0).SetUint64(totalNumBlocksInEpoch))
 
 	newTokens := big.NewInt(0).Sub(totalRewardsToBeDistributed, metaBlock.AccumulatedFeesInEpoch)
