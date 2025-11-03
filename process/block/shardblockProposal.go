@@ -394,13 +394,13 @@ func (sp *shardProcessor) ProcessBlockProposal(
 }
 
 func (sp *shardProcessor) checkRootHashBeforeExecution() error {
-	lastCommitedRootHash, err := sp.accountsDB[state.UserAccountsState].RootHash()
+	lastCommittedRootHash, err := sp.accountsDB[state.UserAccountsState].RootHash()
 	if err != nil {
 		return err
 	}
 
 	currentRootHash := sp.blockChain.GetCurrentBlockRootHash()
-	if !bytes.Equal(lastCommitedRootHash, currentRootHash) {
+	if !bytes.Equal(lastCommittedRootHash, currentRootHash) {
 		return process.ErrRootStateDoesNotMatch
 	}
 

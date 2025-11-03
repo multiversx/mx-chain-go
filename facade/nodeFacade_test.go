@@ -1145,11 +1145,11 @@ func TestNodeFacade_GetProofCurrentRootHash(t *testing.T) {
 	t.Run("should work with header v3", func(t *testing.T) {
 		t.Parallel()
 
-		rootHash := []byte("rootHash1")
+		rootHash1 := []byte("rootHash1")
 		expectedResponse := &common.GetProofResponse{
 			Proof:    [][]byte{[]byte("valid"), []byte("proof")},
 			Value:    []byte("value"),
-			RootHash: string(rootHash),
+			RootHash: string(rootHash1),
 		}
 
 		arg := createMockArguments()
@@ -1158,12 +1158,12 @@ func TestNodeFacade_GetProofCurrentRootHash(t *testing.T) {
 				return &block.HeaderV3{}
 			},
 			GetLastExecutedBlockInfoCalled: func() (uint64, []byte, []byte) {
-				return 0, []byte(""), rootHash
+				return 0, []byte(""), rootHash1
 			},
 		}
 		arg.Node = &mock.NodeStub{
 			GetProofCalled: func(rootHash string, _ string) (*common.GetProofResponse, error) {
-				require.Equal(t, rootHash, rootHash)
+				require.Equal(t, hex.EncodeToString(rootHash1), rootHash)
 				return expectedResponse, nil
 			},
 		}
