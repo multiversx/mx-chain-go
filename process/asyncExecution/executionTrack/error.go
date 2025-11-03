@@ -20,4 +20,7 @@ var (
 
 	// ErrHashMismatch signals a hash mismatch
 	ErrHashMismatch = errors.New("hash mismatch")
+
+	// ErrExecutionResultMissmatch signals an execution result missmatch
+	ErrExecutionResultMissmatch = errors.New("execution result mismatch")
 )

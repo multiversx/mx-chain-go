@@ -2,7 +2,6 @@ package executionTrack
 
 import (
 	"github.com/multiversx/mx-chain-core-go/data"
-	"github.com/multiversx/mx-chain-go/process/asyncExecution/executionTrack"
 )
 
 // ExecutionResultsTrackerStub is a stub implementation of the ExecutionResultsTracker interface
@@ -13,7 +12,7 @@ type ExecutionResultsTrackerStub struct {
 	GetPendingExecutionResultByNonceCalled func(nonce uint64) (data.BaseExecutionResultHandler, error)
 	GetLastNotarizedExecutionResultCalled  func() (data.BaseExecutionResultHandler, error)
 	SetLastNotarizedResultCalled           func(executionResult data.BaseExecutionResultHandler) error
-	CleanConfirmedExecutionResultsCalled   func(header data.HeaderHandler) (*executionTrack.CleanInfo, error)
+	CleanConfirmedExecutionResultsCalled   func(header data.HeaderHandler) error
 }
 
 // AddExecutionResult -
@@ -65,12 +64,12 @@ func (ets *ExecutionResultsTrackerStub) SetLastNotarizedResult(executionResult d
 }
 
 // CleanConfirmedExecutionResults -
-func (ets *ExecutionResultsTrackerStub) CleanConfirmedExecutionResults(header data.HeaderHandler) (*executionTrack.CleanInfo, error) {
+func (ets *ExecutionResultsTrackerStub) CleanConfirmedExecutionResults(header data.HeaderHandler) error {
 	if ets.CleanConfirmedExecutionResultsCalled != nil {
 		return ets.CleanConfirmedExecutionResultsCalled(header)
 	}
 
-	return nil, nil
+	return nil
 }
 
 // IsInterfaceNil checks if the interface is nil
