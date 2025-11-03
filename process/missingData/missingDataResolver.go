@@ -10,7 +10,10 @@ import (
 	"github.com/multiversx/mx-chain-core-go/data/block"
 	"github.com/multiversx/mx-chain-go/dataRetriever"
 	"github.com/multiversx/mx-chain-go/process"
+	logger "github.com/multiversx/mx-chain-logger-go"
 )
+
+var log = logger.GetOrCreate("missingData")
 
 const checkMissingDataStep = 10 * time.Millisecond
 
@@ -253,7 +256,6 @@ func (r *Resolver) RequestMissingShardHeaders(
 
 	if metaHeader.IsStartOfEpochBlock() {
 		r.requestEpochStartLastFinalizedHeaders(metaHeader)
-		return nil
 	}
 
 	shardDataFinalizedNonces := make(map[uint32]uint64)
@@ -269,25 +271,7 @@ func (r *Resolver) RequestMissingShardHeaders(
 		r.requestProofIfNeeded(shardProposalData.GetShardID(), shardProposalData.GetHeaderHash())
 	}
 
-	for shardID, lastProposedNonce := range shardDataProposedNonces {
-		lastFinalizedNonce, found := shardDataFinalizedNonces[shardID]
-		if !found {
-			continue
-		}
-
-		nonceGaps := lastProposedNonce - lastFinalizedNonce
-		if nonceGaps > 2 {
-			for shardNonceToRequest := lastFinalizedNonce + 1; shardNonceToRequest < lastFinalizedNonce; shardNonceToRequest++ {
-				_, _, err := r.headersPool.GetHeadersByNonceAndShardId(shardNonceToRequest, shardID)
-				if err == nil {
-					continue
-				}
-
-				go r.requestHandler.RequestShardHeaderByNonce(shardID, shardNonceToRequest)
-
-			}
-		}
-	}
+	r.requestNonceGapsIfNeeded(shardDataFinalizedNonces, shardDataProposedNonces)
 
 	return nil
 }
@@ -296,6 +280,34 @@ func (r *Resolver) requestEpochStartLastFinalizedHeaders(metaHeader data.MetaHea
 	for _, finalizedHdr := range metaHeader.GetEpochStartHandler().GetLastFinalizedHeaderHandlers() {
 		r.requestHeaderIfNeeded(finalizedHdr.GetShardID(), finalizedHdr.GetHeaderHash())
 		r.requestProofIfNeeded(finalizedHdr.GetShardID(), finalizedHdr.GetHeaderHash())
+	}
+}
+
+func (r *Resolver) requestNonceGapsIfNeeded(shardDataFinalizedNonces, shardDataProposedNonces map[uint32]uint64) {
+	for shardID, proposedNonce := range shardDataProposedNonces {
+		lastFinalizedNonce, found := shardDataFinalizedNonces[shardID]
+		if !found {
+			log.Warn("Resolver.requestNonceGapsIfNeeded: shard found in shardDataFinalizedNonces", "shard", shardID)
+			continue
+		}
+
+		nonceGaps := proposedNonce - lastFinalizedNonce
+		if nonceGaps < 2 {
+			continue
+		}
+
+		r.requestShardHeadersByNonce(shardID, lastFinalizedNonce+1, proposedNonce)
+	}
+}
+
+func (r *Resolver) requestShardHeadersByNonce(shardID uint32, startNonce, endNonce uint64) {
+	for shardNonceToRequest := startNonce; shardNonceToRequest < endNonce; shardNonceToRequest++ {
+		_, _, err := r.headersPool.GetHeadersByNonceAndShardId(shardNonceToRequest, shardID)
+		if err == nil {
+			continue
+		}
+
+		go r.requestHandler.RequestShardHeaderByNonce(shardID, shardNonceToRequest)
 	}
 }
 
