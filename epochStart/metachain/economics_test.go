@@ -1746,9 +1746,16 @@ func TestEconomics_VerifyRewardsPerBlockError(t *testing.T) {
 	ec, _ := NewEndOfEpochEconomicsDataCreator(args)
 
 	err := ec.VerifyRewardsPerBlock(
-		&block.MetaBlock{Epoch: 1, EpochStart: block.EpochStart{Economics: block.Economics{TotalSupply: big.NewInt(1)}}},
+		&block.MetaBlock{Epoch: 1, EpochStart: block.EpochStart{
+			Economics: block.Economics{TotalSupply: big.NewInt(1), RewardsForProtocolSustainability: big.NewInt(0)},
+			LastFinalizedHeaders: []block.EpochStartShardData{
+				{ShardID: 0, Round: 2, Nonce: 3},
+				{ShardID: 1, Round: 2, Nonce: 3},
+			},
+		},
+		},
 		big.NewInt(0),
-		&block.Economics{TotalSupply: big.NewInt(0)},
+		&block.Economics{TotalSupply: big.NewInt(0), RewardsForProtocolSustainability: big.NewInt(0)},
 	)
 	assert.NotNil(t, err)
 }
