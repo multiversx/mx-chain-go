@@ -1357,7 +1357,7 @@ func getStartOfEpochRootHashFromExecutionResults(
 	for i := len(header.GetExecutionResultsHandlers()) - 1; i >= 0; i-- {
 		executionResult := header.GetExecutionResultsHandlers()[i]
 
-		miniBlockHeaderHandlers, err := common.GetMiniBlocksHeaderHandlersFromExecResult(executionResult, header.GetShardID())
+		miniBlockHeaderHandlers, err := common.GetMiniBlocksHeaderHandlersFromExecResult(executionResult)
 		if err != nil {
 			return nil, err
 		}

@@ -1538,7 +1538,6 @@ type GasComputation interface {
 		txHashes [][]byte,
 		transactions []data.TransactionHandler,
 	) (addedTxHashes [][]byte, pendingMiniBlocksAdded []data.MiniBlockHeaderHandler, err error)
-	RevertIncomingMiniBlocks(miniBlockHashes [][]byte)
 	GetBandwidthForTransactions() uint64
 	RevertIncomingMiniBlocks(miniBlockHashes [][]byte)
 	TotalGasConsumed() uint64
