@@ -10,6 +10,7 @@ import (
 	"github.com/multiversx/mx-chain-core-go/data"
 	dataBlock "github.com/multiversx/mx-chain-core-go/data/block"
 	"github.com/multiversx/mx-chain-core-go/marshal"
+
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 
@@ -92,6 +93,85 @@ func createMockShardHeader() *dataBlock.Header {
 		SoftwareVersion:  []byte("version"),
 		AccumulatedFees:  big.NewInt(0),
 		DeveloperFees:    big.NewInt(0),
+	}
+}
+
+func createDefaultShardArgumentWithV3Support() *interceptedBlocks.ArgInterceptedBlockHeader {
+	gracePeriod, _ := graceperiod.NewEpochChangeGracePeriod([]config.EpochChangeGracePeriodByEpoch{{EnableEpoch: 0, GracePeriodInRounds: 1}})
+	arg := &interceptedBlocks.ArgInterceptedBlockHeader{
+		ShardCoordinator:              mock.NewOneShardCoordinatorMock(),
+		Hasher:                        testHasher,
+		Marshalizer:                   &marshal.GogoProtoMarshalizer{},
+		HeaderSigVerifier:             &consensus.HeaderSigVerifierMock{},
+		HeaderIntegrityVerifier:       &mock.HeaderIntegrityVerifierStub{},
+		ValidityAttester:              &mock.ValidityAttesterStub{},
+		EpochStartTrigger:             &mock.EpochStartTriggerStub{},
+		EnableEpochsHandler:           &enableEpochsHandlerMock.EnableEpochsHandlerStub{},
+		EpochChangeGracePeriodHandler: gracePeriod,
+	}
+	hdr := createMockShardHeaderV3()
+	arg.HdrBuff, _ = arg.Marshalizer.Marshal(hdr)
+
+	return arg
+}
+
+func createMockShardHeaderV3() *dataBlock.HeaderV3 {
+	return &dataBlock.HeaderV3{
+		Nonce:            hdrNonce,
+		PrevHash:         []byte("prev hash"),
+		PrevRandSeed:     []byte("prev rand seed"),
+		RandSeed:         []byte("rand seed"),
+		ShardID:          hdrShardId,
+		TimestampMs:      0,
+		Round:            hdrRound,
+		Epoch:            hdrEpoch,
+		BlockBodyType:    dataBlock.TxBlock,
+		LeaderSignature:  []byte("signature"),
+		MiniBlockHeaders: nil,
+		PeerChanges:      nil,
+		MetaBlockHashes:  nil,
+		TxCount:          0,
+		ChainID:          []byte("chain ID"),
+		SoftwareVersion:  []byte("version"),
+		LastExecutionResult: &dataBlock.ExecutionResultInfo{
+			ExecutionResult: &dataBlock.BaseExecutionResult{
+				HeaderHash:  []byte("header hash"),
+				HeaderNonce: hdrNonce - 1,
+				HeaderRound: hdrRound - 1,
+				HeaderEpoch: hdrEpoch,
+				RootHash:    []byte("root hash"),
+			},
+			NotarizedInRound: hdrRound - 1,
+		},
+		ExecutionResults: []*dataBlock.ExecutionResult{
+			&dataBlock.ExecutionResult{
+				BaseExecutionResult: &dataBlock.BaseExecutionResult{
+					HeaderHash:  []byte("header hash"),
+					HeaderNonce: hdrNonce - 3,
+					HeaderRound: hdrRound - 3,
+					HeaderEpoch: hdrEpoch - 1,
+					RootHash:    []byte("root hash"),
+				},
+			},
+			&dataBlock.ExecutionResult{
+				BaseExecutionResult: &dataBlock.BaseExecutionResult{
+					HeaderHash:  []byte("header hash"),
+					HeaderNonce: hdrNonce - 2,
+					HeaderRound: hdrRound - 2,
+					HeaderEpoch: hdrEpoch - 1,
+					RootHash:    []byte("root hash"),
+				},
+			},
+			&dataBlock.ExecutionResult{
+				BaseExecutionResult: &dataBlock.BaseExecutionResult{
+					HeaderHash:  []byte("header hash"),
+					HeaderNonce: hdrNonce - 1,
+					HeaderRound: hdrRound - 1,
+					HeaderEpoch: hdrEpoch,
+					RootHash:    []byte("root hash"),
+				},
+			},
+		},
 	}
 }
 
@@ -274,7 +354,7 @@ func TestInterceptedHeader_CheckValidityLeaderSignatureOkWithFlagActiveShouldWor
 	assert.True(t, wasVerifySignatureCalled)
 }
 
-func TestInterceptedHeader_ErrorInMiniBlockShouldErr(t *testing.T) {
+func TestInterceptedHeader_CheckValidityErrorInMiniBlockShouldErr(t *testing.T) {
 	t.Parallel()
 
 	hdr := createMockShardHeader()
@@ -300,8 +380,27 @@ func TestInterceptedHeader_ErrorInMiniBlockShouldErr(t *testing.T) {
 	err = inHdr.CheckValidity()
 
 	assert.Equal(t, process.ErrInvalidShardId, err)
+
 }
 
+func TestInterceptedHeader_CheckValidityIntegrityVerifierError(t *testing.T) {
+	t.Parallel()
+
+	arg := createDefaultShardArgumentWithV2Support()
+	arg.HeaderIntegrityVerifier = &mock.HeaderIntegrityVerifierStub{
+		VerifyCalled: func(header data.HeaderHandler) error {
+			return errors.New("expected error")
+		},
+	}
+	inHdr, err := interceptedBlocks.NewInterceptedHeader(arg)
+	require.Nil(t, err)
+	require.NotNil(t, inHdr)
+
+	err = inHdr.CheckValidity()
+
+	assert.Error(t, err)
+	assert.Contains(t, err.Error(), "expected error")
+}
 func TestInterceptedHeader_CheckValidityShouldWork(t *testing.T) {
 	t.Parallel()
 
@@ -315,6 +414,18 @@ func TestInterceptedHeader_CheckValidityShouldWork(t *testing.T) {
 	assert.Nil(t, err)
 }
 
+func TestInterceptedHeader_CheckValidityShouldWorkHeaderV3(t *testing.T) {
+	t.Parallel()
+
+	arg := createDefaultShardArgumentWithV3Support()
+	inHdr, err := interceptedBlocks.NewInterceptedHeader(arg)
+	assert.Nil(t, err)
+	assert.NotNil(t, inHdr)
+	assert.True(t, inHdr.HeaderHandler().IsHeaderV3())
+	err = inHdr.CheckValidity()
+
+	assert.Nil(t, err)
+}
 func TestInterceptedHeader_CheckAgainstRoundHandlerErrorsShouldErr(t *testing.T) {
 	t.Parallel()
 

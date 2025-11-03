@@ -4,6 +4,7 @@ import (
 	"github.com/multiversx/mx-chain-core-go/core"
 	"github.com/multiversx/mx-chain-core-go/core/check"
 	"github.com/multiversx/mx-chain-core-go/data"
+	"github.com/multiversx/mx-chain-core-go/data/block"
 
 	"github.com/multiversx/mx-chain-go/common"
 	"github.com/multiversx/mx-chain-go/process"
@@ -77,26 +78,40 @@ func checkHeaderHandler(
 ) error {
 	equivalentMessagesEnabled := enableEpochsHandler.IsFlagEnabledInEpoch(common.AndromedaFlag, hdr.GetEpoch())
 
-	if len(hdr.GetPubKeysBitmap()) == 0 && !equivalentMessagesEnabled {
+	if !hdr.IsHeaderV3() && len(hdr.GetPubKeysBitmap()) == 0 && !equivalentMessagesEnabled {
 		return process.ErrNilPubKeysBitmap
 	}
-	if len(hdr.GetPrevHash()) == 0 {
+
+	isGenesis := hdr.GetNonce() == 0
+	if !isGenesis && len(hdr.GetPrevHash()) == 0 {
 		return process.ErrNilPreviousBlockHash
 	}
-	if len(hdr.GetSignature()) == 0 && !equivalentMessagesEnabled {
+	signature := hdr.GetSignature()
+	if hdr.IsHeaderV3() {
+		signature = hdr.GetLeaderSignature()
+	}
+	if len(signature) == 0 && !equivalentMessagesEnabled {
 		return process.ErrNilSignature
 	}
-	if len(hdr.GetRootHash()) == 0 {
+	if !hdr.IsHeaderV3() && len(hdr.GetRootHash()) == 0 {
 		return process.ErrNilRootHash
 	}
 	if len(hdr.GetRandSeed()) == 0 {
 		return process.ErrNilRandSeed
 	}
-	if len(hdr.GetPrevRandSeed()) == 0 {
+	if !isGenesis && len(hdr.GetPrevRandSeed()) == 0 {
 		return process.ErrNilPrevRandSeed
 	}
 
-	return hdr.CheckFieldsForNil()
+	err := hdr.CheckFieldsForNil()
+	if err != nil {
+		return err
+	}
+	if hdr.IsHeaderV3() {
+		return hdr.(*block.HeaderV3).CheckFieldsIntegrity()
+	}
+
+	return nil
 }
 
 func checkMetaShardInfo(
