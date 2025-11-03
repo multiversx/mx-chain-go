@@ -223,9 +223,7 @@ func TestMetaProcessor_CreateNewHeaderProposal(t *testing.T) {
 		metaBlockWithInvalidExecutionResult := validMetaHeaderV3
 		metaBlockWithInvalidExecutionResult.GetExecutionResultsHandlersCalled = func() []data.BaseExecutionResultHandler {
 			return []data.BaseExecutionResultHandler{
-				&block.ExecutionResult{
-					BaseExecutionResult: &block.BaseExecutionResult{},
-				}, // invalid for meta block
+				&block.BaseExecutionResult{}, // invalid for meta block
 			}
 		}
 
@@ -831,7 +829,7 @@ func TestMetaProcessor_hasStartOfEpochExecutionResults(t *testing.T) {
 		validMetaHeaderV3 := &testscommon.HeaderHandlerStub{
 			GetExecutionResultsHandlersCalled: func() []data.BaseExecutionResultHandler {
 				return []data.BaseExecutionResultHandler{
-					&block.ExecutionResult{},
+					&block.BaseExecutionResult{}, // invalid for meta block
 				}
 			},
 		}

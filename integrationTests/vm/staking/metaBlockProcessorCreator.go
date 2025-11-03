@@ -11,6 +11,7 @@ import (
 	"github.com/multiversx/mx-chain-go/process/asyncExecution/executionTrack"
 	"github.com/multiversx/mx-chain-go/process/estimator"
 	"github.com/multiversx/mx-chain-go/process/missingData"
+	"github.com/multiversx/mx-chain-go/testscommon/processMocks"
 
 	"github.com/multiversx/mx-chain-go/process/block/headerForBlock"
 	"github.com/multiversx/mx-chain-go/process/coordinator"
@@ -179,6 +180,7 @@ func createMetaBlockProcessor(
 			ExecutionResultsInclusionEstimator: inclusionEstimator,
 			ExecutionResultsTracker:            executionResultsTracker,
 			GasComputation:                     &testscommon.GasComputationMock{},
+			BlocksQueue:                        &processMocks.BlocksQueueMock{},
 		},
 		SCToProtocol:             stakingToPeer,
 		PendingMiniBlocksHandler: &mock.PendingMiniBlocksHandlerStub{},
