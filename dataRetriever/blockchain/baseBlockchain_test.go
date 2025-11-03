@@ -47,3 +47,24 @@ func TestBaseBlockchain_SetAndGetSetFinalBlockInfoWorksWithNilValues(t *testing.
 	require.Nil(t, actualHash)
 	require.Nil(t, actualRootHash)
 }
+
+func TestBaseBlockchain_SetAndGetLastExecutedBlockInfo(t *testing.T) {
+	t.Parallel()
+
+	base := &baseBlockChain{
+		appStatusHandler:      &mock.AppStatusHandlerStub{},
+		finalBlockInfo:        &blockInfo{},
+		lastExecutedBlockInfo: &blockInfo{},
+	}
+
+	nonce := uint64(10)
+	hash := []byte("hash")
+	rootHash := []byte("root-hash")
+
+	base.SetLastExecutedBlockInfo(nonce, hash, rootHash)
+	actualNonce, actualHash, actualRootHash := base.GetLastExecutedBlockInfo()
+
+	require.Equal(t, nonce, actualNonce)
+	require.Equal(t, hash, actualHash)
+	require.Equal(t, rootHash, actualRootHash)
+}
