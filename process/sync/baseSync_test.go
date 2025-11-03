@@ -377,9 +377,8 @@ func TestBaseSync_RollBackExecutionResults(t *testing.T) {
 				},
 			},
 			blocksQueue: &processMocks.BlocksQueueMock{
-				RemoveAtNonceAndHigherCalled: func(nonce uint64) error {
+				RemoveAtNonceAndHigherCalled: func(nonce uint64) {
 					blocksQueueRemoveCalled = true
-					return nil
 				},
 			},
 		}
@@ -408,9 +407,8 @@ func TestBaseSync_RollBackExecutionResults(t *testing.T) {
 				},
 			},
 			blocksQueue: &processMocks.BlocksQueueMock{
-				RemoveAtNonceAndHigherCalled: func(nonce uint64) error {
+				RemoveAtNonceAndHigherCalled: func(nonce uint64) {
 					blocksQueueRemoveCalled = true
-					return nil
 				},
 			},
 		}
@@ -442,9 +440,8 @@ func TestBaseSync_RollBackExecutionResults(t *testing.T) {
 				},
 			},
 			blocksQueue: &processMocks.BlocksQueueMock{
-				RemoveAtNonceAndHigherCalled: func(nonce uint64) error {
+				RemoveAtNonceAndHigherCalled: func(nonce uint64) {
 					blocksQueueRemoveCalled = true
-					return nil
 				},
 			},
 		}
@@ -490,9 +487,8 @@ func TestBaseSync_RollBackExecutionResults(t *testing.T) {
 				},
 			},
 			blocksQueue: &processMocks.BlocksQueueMock{
-				RemoveAtNonceAndHigherCalled: func(nonce uint64) error {
+				RemoveAtNonceAndHigherCalled: func(nonce uint64) {
 					blocksQueueRemoveCalled = true
-					return nil
 				},
 			},
 		}
@@ -563,10 +559,9 @@ func TestBaseSync_RollBackExecutionResults(t *testing.T) {
 				},
 			},
 			blocksQueue: &processMocks.BlocksQueueMock{
-				RemoveAtNonceAndHigherCalled: func(nonce uint64) error {
+				RemoveAtNonceAndHigherCalled: func(nonce uint64) {
 					require.Equal(t, uint64(4), nonce)
 					blocksQueueRemoveCalled = true
-					return nil
 				},
 			},
 		}
@@ -634,10 +629,9 @@ func TestBaseSync_RollBackExecutionResults(t *testing.T) {
 				},
 			},
 			blocksQueue: &processMocks.BlocksQueueMock{
-				RemoveAtNonceAndHigherCalled: func(nonce uint64) error {
+				RemoveAtNonceAndHigherCalled: func(nonce uint64) {
 					require.Equal(t, uint64(4), nonce)
 					blocksQueueRemoveCalled = true
-					return nil
 				},
 			},
 		}
@@ -705,10 +699,9 @@ func TestBaseSync_RollBackExecutionResults(t *testing.T) {
 				},
 			},
 			blocksQueue: &processMocks.BlocksQueueMock{
-				RemoveAtNonceAndHigherCalled: func(nonce uint64) error {
+				RemoveAtNonceAndHigherCalled: func(nonce uint64) {
 					require.Equal(t, uint64(2), nonce)
 					blocksQueueRemoveCalled = true
-					return nil
 				},
 			},
 		}

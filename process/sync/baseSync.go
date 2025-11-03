@@ -810,10 +810,8 @@ func (boot *baseBootstrap) removeExecutionResultsFromNonce(nonce uint64) {
 	if errNotCritical != nil {
 		log.Debug("rollBackExecutionResults", "error", errNotCritical.Error())
 	}
-	errNotCritical = boot.blocksQueue.RemoveAtNonceAndHigher(nonce)
-	if errNotCritical != nil {
-		log.Debug("rollBackExecutionResults", "error", errNotCritical.Error())
-	}
+
+	boot.blocksQueue.RemoveAtNonceAndHigher(nonce)
 }
 
 func isExecResultsError(header data.HeaderHandler, err error) bool {
