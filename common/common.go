@@ -447,30 +447,3 @@ func GetLastExecutionResultNonce(
 
 	return lastExecutionResult.GetHeaderNonce()
 }
-
-// GetMiniBlocksHeaderHandlersFromExecResult returns miniblock handlers based on execution result
-// TODO: no tests, this was already implemented and tested in https://github.com/multiversx/mx-chain-go/pull/7337
-func GetMiniBlocksHeaderHandlersFromExecResult(
-	baseExecResult data.BaseExecutionResultHandler,
-	headerShard uint32,
-) ([]data.MiniBlockHeaderHandler, error) {
-	if check.IfNil(baseExecResult) {
-		return nil, ErrNilBaseExecutionResult
-	}
-
-	if headerShard == MetachainShardId {
-		metaExecResult, ok := baseExecResult.(data.MetaExecutionResultHandler)
-		if !ok {
-			return nil, ErrWrongTypeAssertion
-		}
-
-		return metaExecResult.GetMiniBlockHeadersHandlers(), nil
-	}
-
-	execResult, ok := baseExecResult.(data.ExecutionResultHandler)
-	if !ok {
-		return nil, ErrWrongTypeAssertion
-	}
-
-	return execResult.GetMiniBlockHeadersHandlers(), nil
-}
