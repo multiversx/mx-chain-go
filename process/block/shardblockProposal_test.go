@@ -2636,9 +2636,8 @@ func TestShardProcessor_ProcessBlockProposal(t *testing.T) {
 		args := CreateMockArguments(createComponentHolderMocks())
 		wasRemoveAtNonceAndHigherCalled := false
 		args.BlocksQueue = &processMocks.BlocksQueueMock{
-			RemoveAtNonceAndHigherCalled: func(nonce uint64) error {
+			RemoveAtNonceAndHigherCalled: func(nonce uint64) {
 				wasRemoveAtNonceAndHigherCalled = true
-				return nil
 			},
 		}
 		args.TxCoordinator = &testscommon.TransactionCoordinatorMock{

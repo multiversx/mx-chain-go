@@ -577,3 +577,90 @@ func TestGetLastBaseExecutionResultHandler(t *testing.T) {
 		require.Equal(t, common.ErrNilBaseExecutionResult, err)
 	})
 }
+
+func TestGetMiniBlockHeaderHandlersFromExecResults(t *testing.T) {
+	t.Parallel()
+
+	t.Run("should fail if nil base execution result", func(t *testing.T) {
+		t.Parallel()
+
+		retExecResult, err := common.GetMiniBlocksHeaderHandlersFromExecResult(nil, 1)
+		require.Equal(t, common.ErrNilBaseExecutionResult, err)
+		require.Nil(t, retExecResult)
+	})
+
+	t.Run("should fail if wrong type for shard", func(t *testing.T) {
+		t.Parallel()
+
+		execResult := &block.BaseExecutionResult{}
+
+		retExecResult, err := common.GetMiniBlocksHeaderHandlersFromExecResult(execResult, 1)
+		require.Equal(t, common.ErrWrongTypeAssertion, err)
+		require.Nil(t, retExecResult)
+	})
+
+	t.Run("should work for shard", func(t *testing.T) {
+		t.Parallel()
+
+		mbh1 := block.MiniBlockHeader{
+			Hash: []byte("hash1"),
+		}
+		mbh2 := block.MiniBlockHeader{
+			Hash: []byte("hash1"),
+		}
+
+		miniBlockHeaders := []block.MiniBlockHeader{
+			mbh1,
+			mbh2,
+		}
+
+		execResult := &block.ExecutionResult{
+			MiniBlockHeaders: miniBlockHeaders,
+		}
+
+		expMiniBlockHandlers := []data.MiniBlockHeaderHandler{
+			&mbh1,
+			&mbh2,
+		}
+
+		retExecResult, err := common.GetMiniBlocksHeaderHandlersFromExecResult(execResult, 1)
+		require.Nil(t, err)
+		require.Equal(t, expMiniBlockHandlers, retExecResult)
+	})
+
+	t.Run("should work for meta", func(t *testing.T) {
+		t.Parallel()
+
+		mbh1 := block.MiniBlockHeader{
+			Hash: []byte("hash1"),
+		}
+		mbh2 := block.MiniBlockHeader{
+			Hash: []byte("hash1"),
+		}
+
+		miniBlockHeaders := []block.MiniBlockHeader{
+			mbh1,
+			mbh2,
+		}
+
+		execResult := &block.MetaExecutionResult{
+			MiniBlockHeaders: miniBlockHeaders,
+		}
+
+		expMiniBlockHandlers := []data.MiniBlockHeaderHandler{
+			&mbh1,
+			&mbh2,
+		}
+
+		retExecResult, err := common.GetMiniBlocksHeaderHandlersFromExecResult(execResult, core.MetachainShardId)
+		require.Nil(t, err)
+		require.Equal(t, expMiniBlockHandlers, retExecResult)
+	})
+}
+
+func TestPrepareLogEventsKey(t *testing.T) {
+	t.Parallel()
+
+	logs := common.PrepareLogEventsKey([]byte("LogsX"))
+	require.Equal(t, "logsLogsX", string(logs))
+}

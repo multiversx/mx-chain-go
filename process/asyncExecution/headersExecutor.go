@@ -2,6 +2,7 @@ package asyncExecution
 
 import (
 	"context"
+	"sync"
 
 	"github.com/multiversx/mx-chain-core-go/core/check"
 	logger "github.com/multiversx/mx-chain-logger-go"
@@ -23,6 +24,7 @@ type headersExecutor struct {
 	executionTracker ExecutionResultsHandler
 	blockProcessor   BlockProcessor
 	cancelFunc       context.CancelFunc
+	evictedNonces    sync.Map
 }
 
 // NewHeadersExecutor will create a new instance of *headersExecutor
@@ -37,11 +39,16 @@ func NewHeadersExecutor(args ArgsHeadersExecutor) (*headersExecutor, error) {
 		return nil, ErrNilBlockProcessor
 	}
 
-	return &headersExecutor{
+	instance := &headersExecutor{
 		blocksQueue:      args.BlocksQueue,
 		executionTracker: args.ExecutionTracker,
 		blockProcessor:   args.BlockProcessor,
-	}, nil
+		evictedNonces:    sync.Map{},
+	}
+
+	instance.blocksQueue.RegisterEvictionSubscriber(instance)
+
+	return instance, nil
 }
 
 // StartExecution starts a goroutine to continuously process blocks from the queue
@@ -95,10 +102,22 @@ func (he *headersExecutor) handleProcessError(ctx context.Context, pair queue.He
 }
 
 func (he *headersExecutor) process(pair queue.HeaderBodyPair) error {
+	_, wasEvicted := he.evictedNonces.Load(pair.Header.GetNonce())
+	if wasEvicted {
+		he.evictedNonces.Delete(pair.Header.GetNonce())
+		return nil
+	}
+
 	executionResult, err := he.blockProcessor.ProcessBlockProposal(pair.Header, pair.Body)
 	if err != nil {
 		log.Warn("headersExecutor.process process block failed", "err", err)
 		return err
+	}
+
+	_, wasEvicted = he.evictedNonces.Load(pair.Header.GetNonce())
+	if wasEvicted {
+		he.evictedNonces.Delete(pair.Header.GetNonce())
+		return nil
 	}
 
 	err = he.executionTracker.AddExecutionResult(executionResult)
@@ -110,6 +129,11 @@ func (he *headersExecutor) process(pair queue.HeaderBodyPair) error {
 	// TODO?: set rootHash in blockchain hook
 
 	return nil
+}
+
+// OnHeaderEvicted is a callback called when a header is removed from the execution queue
+func (he *headersExecutor) OnHeaderEvicted(headerNonce uint64) {
+	he.evictedNonces.Store(headerNonce, struct{}{})
 }
 
 // Close will close the blocks execution loop

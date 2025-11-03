@@ -7,7 +7,7 @@ type BlocksQueueMock struct {
 	AddOrReplaceCalled               func(pair queue.HeaderBodyPair) error
 	PopCalled                        func() (queue.HeaderBodyPair, bool)
 	PeekCalled                       func() (queue.HeaderBodyPair, bool)
-	RemoveAtNonceAndHigherCalled     func(nonce uint64) error
+	RemoveAtNonceAndHigherCalled     func(nonce uint64)
 	RegisterEvictionSubscriberCalled func(subscriber queue.BlocksQueueEvictionSubscriber)
 	CloseCalled                      func()
 }
@@ -37,11 +37,10 @@ func (bqm *BlocksQueueMock) Peek() (queue.HeaderBodyPair, bool) {
 }
 
 // RemoveAtNonceAndHigher -
-func (bqm *BlocksQueueMock) RemoveAtNonceAndHigher(nonce uint64) error {
+func (bqm *BlocksQueueMock) RemoveAtNonceAndHigher(nonce uint64) {
 	if bqm.RemoveAtNonceAndHigherCalled != nil {
-		return bqm.RemoveAtNonceAndHigherCalled(nonce)
+		bqm.RemoveAtNonceAndHigherCalled(nonce)
 	}
-	return nil
 }
 
 // RegisterEvictionSubscriber -

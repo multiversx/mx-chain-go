@@ -18,10 +18,13 @@ type EconomicsHandlerMock struct {
 	SetMinGasPriceCalled                                func(minGasPrice uint64)
 	SetMinGasLimitCalled                                func(minGasLimit uint64)
 	MaxGasLimitPerBlockCalled                           func(shardID uint32) uint64
+	MaxGasLimitPerBlockInEpochCalled                    func(shardID uint32, epoch uint32) uint64
 	MaxGasLimitPerMiniBlockCalled                       func(shardID uint32) uint64
 	MaxGasLimitPerBlockForSafeCrossShardCalled          func() uint64
+	MaxGasLimitPerBlockForSafeCrossShardInEpochCalled   func(epoch uint32) uint64
 	MaxGasLimitPerMiniBlockForSafeCrossShardCalled      func() uint64
 	MaxGasLimitPerTxCalled                              func() uint64
+	MaxGasLimitPerTxInEpochCalled                       func(epoch uint32) uint64
 	ComputeGasLimitCalled                               func(tx data.TransactionWithFeeHandler) uint64
 	ComputeFeeCalled                                    func(tx data.TransactionWithFeeHandler) *big.Int
 	CheckValidityTxValuesCalled                         func(tx data.TransactionWithFeeHandler) error
@@ -51,6 +54,7 @@ type EconomicsHandlerMock struct {
 	ComputeTxFeeBasedOnGasUsedInEpochCalled             func(tx data.TransactionWithFeeHandler, gasUsed uint64, epoch uint32) *big.Int
 	GenesisTotalSupplyCalled                            func() *big.Int
 	MaxGasPriceSetGuardianCalled                        func() uint64
+	BlockCapacityOverestimationFactorCalled             func() uint64
 	LeaderPercentageInEpochCalled                       func(epoch uint32) float64
 	DeveloperPercentageInEpochCalled                    func(epoch uint32) float64
 	ProtocolSustainabilityPercentageInEpochCalled       func(epoch uint32) float64
@@ -118,6 +122,14 @@ func (ehm *EconomicsHandlerMock) MaxGasPriceSetGuardian() uint64 {
 	return 0
 }
 
+// BlockCapacityOverestimationFactor -
+func (ehm *EconomicsHandlerMock) BlockCapacityOverestimationFactor() uint64 {
+	if ehm.BlockCapacityOverestimationFactorCalled != nil {
+		return ehm.BlockCapacityOverestimationFactorCalled()
+	}
+	return 0
+}
+
 // GasPerDataByte -
 func (ehm *EconomicsHandlerMock) GasPerDataByte() uint64 {
 	return 0
@@ -162,6 +174,14 @@ func (ehm *EconomicsHandlerMock) MaxGasLimitPerBlock(shardID uint32) uint64 {
 	return 0
 }
 
+// MaxGasLimitPerBlockInEpoch -
+func (ehm *EconomicsHandlerMock) MaxGasLimitPerBlockInEpoch(shardID uint32, epoch uint32) uint64 {
+	if ehm.MaxGasLimitPerBlockInEpochCalled != nil {
+		return ehm.MaxGasLimitPerBlockInEpochCalled(shardID, epoch)
+	}
+	return 0
+}
+
 // MaxGasLimitPerMiniBlock -
 func (ehm *EconomicsHandlerMock) MaxGasLimitPerMiniBlock(shardID uint32) uint64 {
 	if ehm.MaxGasLimitPerMiniBlockCalled != nil {
@@ -178,6 +198,14 @@ func (ehm *EconomicsHandlerMock) MaxGasLimitPerBlockForSafeCrossShard() uint64 {
 	return 0
 }
 
+// MaxGasLimitPerBlockForSafeCrossShardInEpoch -
+func (ehm *EconomicsHandlerMock) MaxGasLimitPerBlockForSafeCrossShardInEpoch(epoch uint32) uint64 {
+	if ehm.MaxGasLimitPerBlockForSafeCrossShardInEpochCalled != nil {
+		return ehm.MaxGasLimitPerBlockForSafeCrossShardInEpochCalled(epoch)
+	}
+	return 0
+}
+
 // MaxGasLimitPerMiniBlockForSafeCrossShard -
 func (ehm *EconomicsHandlerMock) MaxGasLimitPerMiniBlockForSafeCrossShard() uint64 {
 	if ehm.MaxGasLimitPerMiniBlockForSafeCrossShardCalled != nil {
@@ -190,6 +218,14 @@ func (ehm *EconomicsHandlerMock) MaxGasLimitPerMiniBlockForSafeCrossShard() uint
 func (ehm *EconomicsHandlerMock) MaxGasLimitPerTx() uint64 {
 	if ehm.MaxGasLimitPerTxCalled != nil {
 		return ehm.MaxGasLimitPerTxCalled()
+	}
+	return 0
+}
+
+// MaxGasLimitPerTxInEpoch -
+func (ehm *EconomicsHandlerMock) MaxGasLimitPerTxInEpoch(epoch uint32) uint64 {
+	if ehm.MaxGasLimitPerTxInEpochCalled != nil {
+		return ehm.MaxGasLimitPerTxInEpochCalled(epoch)
 	}
 	return 0
 }

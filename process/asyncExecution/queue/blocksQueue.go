@@ -57,12 +57,11 @@ func (bq *blocksQueue) AddOrReplace(pair HeaderBodyPair) error {
 	nonce := pair.Header.GetNonce()
 	switch {
 	case nonce == bq.lastAddedNonce+1 || len(bq.headerBodyPairs) == 0:
-		// append next
-		bq.lastAddedNonce = nonce
-		bq.headerBodyPairs = append(bq.headerBodyPairs, pair)
+		// safe to ignore error here, as the condition inside add method is the same as this one
+		_ = bq.add(pair)
 	case nonce <= bq.lastAddedNonce:
-		// replace at provided nonce and remove all higher nonces
-		err := bq.replaceAndRemoveHigherNonces(pair, nonce)
+		// remove all nonces starting with the new one, then add it
+		err := bq.replaceAndRemoveHigherNonces(pair)
 		if err != nil {
 			return err
 		}
@@ -86,41 +85,52 @@ func (bq *blocksQueue) AddOrReplace(pair HeaderBodyPair) error {
 	return nil
 }
 
-func (bq *blocksQueue) getIndexForNonce(nonce uint64) int {
+func (bq *blocksQueue) getPairsFromNonce(nonce uint64) ([]HeaderBodyPair, int) {
+	pairsToBeRemoved := make([]HeaderBodyPair, 0)
+	firstIndex := len(bq.headerBodyPairs)
 	for i, bp := range bq.headerBodyPairs {
-		if bp.Header.GetNonce() == nonce {
-			return i
+		if bp.Header.GetNonce() < nonce {
+			continue
 		}
+
+		if i < firstIndex {
+			firstIndex = i
+		}
+
+		pairsToBeRemoved = append(pairsToBeRemoved, bp)
 	}
 
-	return -1
+	return pairsToBeRemoved, firstIndex
 }
 
-func (bq *blocksQueue) replaceAndRemoveHigherNonces(pair HeaderBodyPair, nonce uint64) error {
-	indexToReplace := bq.getIndexForNonce(nonce)
-	if indexToReplace == -1 {
-		return fmt.Errorf("%w for nonce %d", ErrMissingHeaderNonce, nonce)
+func (bq *blocksQueue) removeFromNonce(nonce uint64) {
+	// first notify all subscribers, no matter this nonce still exists in queue or not
+	bq.notifyHeaderEvicted(nonce)
+
+	pairsToBeRemoved, firstIndex := bq.getPairsFromNonce(nonce)
+	if len(pairsToBeRemoved) == 0 {
+		bq.updateLastAddedNonceBasedOnRemovingNonce(nonce)
+		return
 	}
 
-	initialLen := len(bq.headerBodyPairs)
-	if indexToReplace == initialLen-1 {
-		// last element, replace it
-		bq.headerBodyPairs[indexToReplace] = pair
+	bq.headerBodyPairs = bq.headerBodyPairs[:firstIndex]
+	bq.updateLastAddedNonceBasedOnRemovingNonce(nonce)
+}
+
+func (bq *blocksQueue) replaceAndRemoveHigherNonces(pair HeaderBodyPair) error {
+	bq.removeFromNonce(pair.Header.GetNonce())
+	return bq.add(pair)
+}
+
+func (bq *blocksQueue) add(pair HeaderBodyPair) error {
+	nonce := pair.Header.GetNonce()
+	if len(bq.headerBodyPairs) == 0 || nonce == bq.lastAddedNonce+1 {
+		bq.headerBodyPairs = append(bq.headerBodyPairs, pair)
 		bq.lastAddedNonce = nonce
 		return nil
 	}
 
-	// replace at the found index and truncate everything after it
-	bq.headerBodyPairs[indexToReplace] = pair
-	pairsRemoved := bq.headerBodyPairs[indexToReplace+1:]
-	bq.headerBodyPairs = bq.headerBodyPairs[:indexToReplace+1]
-	bq.lastAddedNonce = nonce
-	log.Debug("blocksQueue.replaceAndRemoveHigherNonces",
-		"nonce", nonce,
-		"removed count", initialLen-indexToReplace-1)
-	bq.notifyEvictedPairs(pairsRemoved)
-
-	return nil
+	return fmt.Errorf("%w for nonce %d (lastAddedNonce=%d)", ErrInvalidHeaderNonce, nonce, bq.lastAddedNonce)
 }
 
 // Pop removes and returns the first HeaderBodyPair from the queue.
@@ -171,47 +181,34 @@ func (bq *blocksQueue) Peek() (HeaderBodyPair, bool) {
 
 // RemoveAtNonceAndHigher removes the header-body pair at the specified nonce
 // and all pairs with higher nonces from the queue
-func (bq *blocksQueue) RemoveAtNonceAndHigher(nonce uint64) error {
+func (bq *blocksQueue) RemoveAtNonceAndHigher(nonce uint64) {
 	bq.mutex.Lock()
 	defer bq.mutex.Unlock()
 
-	if bq.closed || len(bq.headerBodyPairs) == 0 {
-		return nil
+	if bq.closed {
+		return
 	}
 
-	indexToRemove := bq.getIndexForNonce(nonce)
-	if indexToRemove == -1 {
-		return fmt.Errorf("%w for nonce %d", ErrMissingHeaderNonce, nonce)
+	bq.removeFromNonce(nonce)
+}
+
+func (bq *blocksQueue) updateLastAddedNonceBasedOnRemovingNonce(removingNonce uint64) {
+	if len(bq.headerBodyPairs) > 0 {
+		bq.lastAddedNonce = bq.headerBodyPairs[len(bq.headerBodyPairs)-1].Header.GetNonce()
+		return
 	}
 
-	log.Debug("blocksQueue.RemoveAtNonceAndHigher",
-		"nonce", nonce,
-		"queue count", len(bq.headerBodyPairs),
-		"indexToRemove", indexToRemove)
-
-	if indexToRemove == 0 {
-		// removing from the beginning, clear the entire queue
-		pairsRemoved := make([]HeaderBodyPair, 0, len(bq.headerBodyPairs))
-		copy(pairsRemoved, bq.headerBodyPairs)
-		bq.notifyEvictedPairs(pairsRemoved)
-
-		bq.headerBodyPairs = make([]HeaderBodyPair, 0)
-		if nonce > 0 {
-			bq.lastAddedNonce = nonce - 1
-			return nil
-		}
-
-		bq.lastAddedNonce = 0
-		return nil
+	// TODO: consider adding new component that manages blocksQueue, executionResultsTracker and headersExecutor
+	// so they are always synchronized
+	// (bq.lastAddedNonce might get inconsistent with ert.lastNotarizedResult if RemoveAtNonceAndHigher is called for
+	// a nonce older than lastNotarizedResult)
+	// initial PR with discussions: https://github.com/multiversx/mx-chain-go/pull/7355
+	if removingNonce > 0 {
+		bq.lastAddedNonce = removingNonce - 1
+		return
 	}
 
-	// remove from index onwards, keep everything before it
-	pairsRemoved := bq.headerBodyPairs[indexToRemove:]
-	bq.headerBodyPairs = bq.headerBodyPairs[:indexToRemove]
-	bq.lastAddedNonce = bq.headerBodyPairs[len(bq.headerBodyPairs)-1].Header.GetNonce()
-	bq.notifyEvictedPairs(pairsRemoved)
-
-	return nil
+	bq.lastAddedNonce = 0
 }
 
 // RegisterEvictionSubscriber registers a new eviction subscriber
@@ -224,12 +221,6 @@ func (bq *blocksQueue) RegisterEvictionSubscriber(subscriber BlocksQueueEviction
 	defer bq.mutEvictionHandlers.Unlock()
 
 	bq.evictionHandlers = append(bq.evictionHandlers, subscriber)
-}
-
-func (bq *blocksQueue) notifyEvictedPairs(evicted []HeaderBodyPair) {
-	for _, evictedPair := range evicted {
-		bq.notifyHeaderEvicted(evictedPair.Header.GetNonce())
-	}
 }
 
 func (bq *blocksQueue) notifyHeaderEvicted(headerNonce uint64) {

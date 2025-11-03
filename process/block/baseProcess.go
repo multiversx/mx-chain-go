@@ -1303,7 +1303,7 @@ func (bp *baseProcessor) getFinalMiniBlocksFromExecutionResults(
 
 	executedMiniBlocksCache := bp.dataPool.ExecutedMiniBlocks()
 	for _, baseExecutionResult := range baseExecutionResults {
-		miniBlockHeaderHandlers, err := bp.extractMiniBlocksHeaderHandlersFromExecResult(baseExecutionResult, header.GetShardID())
+		miniBlockHeaderHandlers, err := common.GetMiniBlocksHeaderHandlersFromExecResult(baseExecutionResult, header.GetShardID())
 		if err != nil {
 			return nil, err
 		}
@@ -1744,10 +1744,7 @@ func (bp *baseProcessor) revertCurrentBlockV3(headerHandler data.HeaderHandler) 
 	}
 
 	headerNonce := headerHandler.GetNonce()
-	err := bp.blocksQueue.RemoveAtNonceAndHigher(headerNonce)
-	if err != nil {
-		log.Error("revertCurrentBlockV3 RemoveAtNonceAndHigher", "nonce", headerNonce, "err", err)
-	}
+	bp.blocksQueue.RemoveAtNonceAndHigher(headerNonce)
 }
 
 func (bp *baseProcessor) revertAccountState() {
@@ -2530,7 +2527,7 @@ func (bp *baseProcessor) saveMiniBlocksFromExecutionResults(header data.HeaderHa
 	}
 
 	for _, baseExecutionResult := range baseExecutionResults {
-		miniBlockHeaderHandlers, err := bp.extractMiniBlocksHeaderHandlersFromExecResult(baseExecutionResult, header.GetShardID())
+		miniBlockHeaderHandlers, err := common.GetMiniBlocksHeaderHandlersFromExecResult(baseExecutionResult, header.GetShardID())
 		if err != nil {
 			return err
 		}
@@ -2542,29 +2539,6 @@ func (bp *baseProcessor) saveMiniBlocksFromExecutionResults(header data.HeaderHa
 	}
 
 	return nil
-}
-
-func (bp *baseProcessor) extractMiniBlocksHeaderHandlersFromExecResult(
-	baseExecResult data.BaseExecutionResultHandler,
-	headerShard uint32,
-) ([]data.MiniBlockHeaderHandler, error) {
-	if headerShard == common.MetachainShardId {
-		metaExecResult, ok := baseExecResult.(data.MetaExecutionResultHandler)
-		if !ok {
-			log.Warn("extractMiniBlocksHeaderHandlersFromExecResult assert failed to MetaExecutionResultHandler")
-			return nil, process.ErrWrongTypeAssertion
-		}
-
-		return metaExecResult.GetMiniBlockHeadersHandlers(), nil
-	}
-
-	execResult, ok := baseExecResult.(data.ExecutionResultHandler)
-	if !ok {
-		log.Warn("extractMiniBlocksHeaderHandlersFromExecResult assert failed to ExecutionResultHandler")
-		return nil, process.ErrWrongTypeAssertion
-	}
-
-	return execResult.GetMiniBlockHeadersHandlers(), nil
 }
 
 func (bp *baseProcessor) putMiniBlocksIntoStorage(miniBlockHeaderHandlers []data.MiniBlockHeaderHandler) error {
