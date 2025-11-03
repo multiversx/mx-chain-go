@@ -6,7 +6,7 @@ import (
 
 // ShardInfoCreatorMock is a mock implementation of ShardInfoCreator interface
 type ShardInfoCreatorMock struct {
-	CreateShardInfoV3Called             func(metaHeader data.MetaHeaderHandler, shardHeaders []data.HeaderHandler, shardHeaderHashes [][]byte) ([]data.ShardDataHandler, error)
+	CreateShardInfoV3Called             func(metaHeader data.MetaHeaderHandler, shardHeaders []data.HeaderHandler, shardHeaderHashes [][]byte) ([]data.ShardDataProposalHandler, []data.ShardDataHandler, error)
 	CreateShardInfoFromLegacyMetaCalled func(metaHeader data.MetaHeaderHandler, shardHeaders []data.ShardHeaderHandler, shardHeaderHashes [][]byte) ([]data.ShardDataHandler, error)
 }
 
@@ -15,11 +15,11 @@ func (scm *ShardInfoCreatorMock) CreateShardInfoV3(
 	metaHeader data.MetaHeaderHandler,
 	shardHeaders []data.HeaderHandler,
 	shardHeaderHashes [][]byte,
-) ([]data.ShardDataHandler, error) {
+) ([]data.ShardDataProposalHandler, []data.ShardDataHandler, error) {
 	if scm.CreateShardInfoV3Called != nil {
 		return scm.CreateShardInfoV3Called(metaHeader, shardHeaders, shardHeaderHashes)
 	}
-	return nil, nil
+	return nil, nil, nil
 }
 
 // CreateShardInfoFromLegacyMeta -

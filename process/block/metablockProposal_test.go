@@ -557,8 +557,8 @@ func TestMetaProcessor_CreateBlockProposal(t *testing.T) {
 		coreComponents, dataComponents, bootstrapComponents, statusComponents := createMockComponentHolders()
 		arguments := createMockMetaArguments(coreComponents, dataComponents, bootstrapComponents, statusComponents)
 		arguments.ShardInfoCreator = &processMocks.ShardInfoCreatorMock{
-			CreateShardInfoV3Called: func(metaHeader data.MetaHeaderHandler, shardHeaders []data.HeaderHandler, shardHeaderHashes [][]byte) ([]data.ShardDataHandler, error) {
-				return nil, expectedErr
+			CreateShardInfoV3Called: func(metaHeader data.MetaHeaderHandler, shardHeaders []data.HeaderHandler, shardHeaderHashes [][]byte) ([]data.ShardDataProposalHandler, []data.ShardDataHandler, error) {
+				return nil, nil, expectedErr
 			},
 		}
 
@@ -580,8 +580,25 @@ func TestMetaProcessor_CreateBlockProposal(t *testing.T) {
 		}
 		var invalidShardData data.ShardDataHandler
 		arguments.ShardInfoCreator = &processMocks.ShardInfoCreatorMock{
-			CreateShardInfoV3Called: func(metaHeader data.MetaHeaderHandler, shardHeaders []data.HeaderHandler, shardHeaderHashes [][]byte) ([]data.ShardDataHandler, error) {
-				return []data.ShardDataHandler{invalidShardData}, nil
+			CreateShardInfoV3Called: func(metaHeader data.MetaHeaderHandler, shardHeaders []data.HeaderHandler, shardHeaderHashes [][]byte) ([]data.ShardDataProposalHandler, []data.ShardDataHandler, error) {
+				return nil, []data.ShardDataHandler{invalidShardData}, nil
+			},
+		}
+
+		mp, err := blproc.NewMetaProcessor(arguments)
+		require.Nil(t, err)
+
+		validMetaHeaderV3 := &block.MetaBlockV3{}
+		checkCreateBlockProposalResult(t, mp, validMetaHeaderV3, haveTimeTrue, data.ErrInvalidTypeAssertion)
+	})
+	t.Run("set shard info proposal error", func(t *testing.T) {
+		t.Parallel()
+
+		coreComponents, dataComponents, bootstrapComponents, statusComponents := createMockComponentHolders()
+		arguments := createMockMetaArguments(coreComponents, dataComponents, bootstrapComponents, statusComponents)
+		arguments.ShardInfoCreator = &processMocks.ShardInfoCreatorMock{
+			CreateShardInfoV3Called: func(metaHeader data.MetaHeaderHandler, shardHeaders []data.HeaderHandler, shardHeaderHashes [][]byte) ([]data.ShardDataProposalHandler, []data.ShardDataHandler, error) {
+				return nil, []data.ShardDataHandler{}, nil // nil shard data proposal
 			},
 		}
 
