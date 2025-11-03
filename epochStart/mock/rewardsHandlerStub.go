@@ -7,7 +7,6 @@ type RewardsHandlerStub struct {
 	LeaderPercentageCalled                        func() float64
 	ProtocolSustainabilityPercentageCalled        func() float64
 	ProtocolSustainabilityAddressCalled           func() string
-	MinInflationRateCalled                        func() float64
 	MaxInflationRateCalled                        func(year uint32) float64
 	RewardsTopUpGradientPointCalled               func() *big.Int
 	RewardsTopUpFactorCalled                      func() float64
@@ -17,6 +16,10 @@ type RewardsHandlerStub struct {
 	ProtocolSustainabilityAddressInEpochCalled    func(epoch uint32) string
 	RewardsTopUpGradientPointInEpochCalled        func(epoch uint32) *big.Int
 	RewardsTopUpFactorInEpochCalled               func(epoch uint32) float64
+	EcosystemGrowthPercentageInEpochCalled        func(epoch uint32) float64
+	EcosystemGrowthAddressInEpochCalled           func(epoch uint32) string
+	GrowthDividendPercentageInEpochCalled         func(epoch uint32) float64
+	GrowthDividendAddressInEpochCalled            func(epoch uint32) string
 }
 
 // LeaderPercentage -
@@ -44,15 +47,6 @@ func (r *RewardsHandlerStub) ProtocolSustainabilityAddress() string {
 	}
 
 	return "1111"
-}
-
-// MinInflationRate -
-func (r *RewardsHandlerStub) MinInflationRate() float64 {
-	if r.MinInflationRateCalled != nil {
-		return r.MinInflationRateCalled()
-	}
-
-	return 1
 }
 
 // MaxInflationRate -
@@ -120,6 +114,38 @@ func (r *RewardsHandlerStub) RewardsTopUpFactorInEpoch(epoch uint32) float64 {
 		return r.RewardsTopUpFactorInEpochCalled(epoch)
 	}
 	return 0
+}
+
+// EcosystemGrowthPercentageInEpoch -
+func (r *RewardsHandlerStub) EcosystemGrowthPercentageInEpoch(epoch uint32) float64 {
+	if r.EcosystemGrowthPercentageInEpochCalled != nil {
+		return r.EcosystemGrowthPercentageInEpochCalled(epoch)
+	}
+	return 0
+}
+
+// GrowthDividendPercentageInEpoch -
+func (r *RewardsHandlerStub) GrowthDividendPercentageInEpoch(epoch uint32) float64 {
+	if r.GrowthDividendPercentageInEpochCalled != nil {
+		return r.GrowthDividendPercentageInEpochCalled(epoch)
+	}
+	return 0
+}
+
+// EcosystemGrowthAddressInEpoch -
+func (r *RewardsHandlerStub) EcosystemGrowthAddressInEpoch(epoch uint32) string {
+	if r.EcosystemGrowthAddressInEpochCalled != nil {
+		return r.EcosystemGrowthAddressInEpochCalled(epoch)
+	}
+	return ""
+}
+
+// GrowthDividendAddressInEpoch -
+func (r *RewardsHandlerStub) GrowthDividendAddressInEpoch(epoch uint32) string {
+	if r.GrowthDividendAddressInEpochCalled != nil {
+		return r.GrowthDividendAddressInEpochCalled(epoch)
+	}
+	return ""
 }
 
 // IsInterfaceNil -

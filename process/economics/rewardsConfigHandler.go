@@ -20,6 +20,10 @@ type rewardsConfig struct {
 	leaderPercentage                 float64
 	protocolSustainabilityPercentage float64
 	protocolSustainabilityAddress    string
+	ecosystemGrowthPercentage        float64
+	ecosystemGrowthAddress           string
+	growthDividendPercentage         float64
+	growthDividendAddress            string
 	developerPercentage              float64
 	topUpGradientPoint               *big.Int
 	topUpFactor                      float64
@@ -113,6 +117,30 @@ func (handler *rewardsConfigHandler) getRewardsConfigForEpoch(epoch uint32) *rew
 	return rewardsConfigSetting
 }
 
+// getEcosystemGrowthPercentage returns the ecosystem growth percentage in a specific epoch
+func (handler *rewardsConfigHandler) getEcosystemGrowthPercentage(epoch uint32) float64 {
+	rc := handler.getRewardsConfigForEpoch(epoch)
+	return rc.ecosystemGrowthPercentage
+}
+
+// getGrowthDividendPercentage returns the growth dividend percentage in a specific epoch
+func (handler *rewardsConfigHandler) getGrowthDividendPercentage(epoch uint32) float64 {
+	rc := handler.getRewardsConfigForEpoch(epoch)
+	return rc.growthDividendPercentage
+}
+
+// getEcosystemGrowthAddress returns the ecosystem growth address in a specific epoch
+func (handler *rewardsConfigHandler) getEcosystemGrowthAddress(epoch uint32) string {
+	rc := handler.getRewardsConfigForEpoch(epoch)
+	return rc.ecosystemGrowthAddress
+}
+
+// getGrowthDividendAddress returns the growth dividend address in a specific epoch
+func (handler *rewardsConfigHandler) getGrowthDividendAddress(epoch uint32) string {
+	rc := handler.getRewardsConfigForEpoch(epoch)
+	return rc.growthDividendAddress
+}
+
 func (handler *rewardsConfigHandler) updateRewardsConfigMetrics(epoch uint32) {
 	rc := handler.getRewardsConfigForEpoch(epoch)
 
@@ -148,26 +176,30 @@ func checkAndParseRewardsSettings(
 
 		topUpGradientPoint, _ := big.NewInt(0).SetString(rewardsCfg.TopUpGradientPoint, 10)
 
-		decodedAddress, err := pubkeyConverter.Decode(rewardsCfg.ProtocolSustainabilityAddress)
+		protocolSustainability, err := decodeAddressAndVerifyShard(pubkeyConverter, shardCoordinator, rewardsCfg.ProtocolSustainabilityAddress)
 		if err != nil {
-			log.Warn("invalid protocol sustainability reward address",
-				"err", err,
-				"provided address", rewardsCfg.ProtocolSustainabilityAddress,
-				"epoch", rewardsCfg.EpochEnable,
-			)
 			return nil, err
 		}
 
-		protocolSustainabilityShardID := shardCoordinator.ComputeId(decodedAddress)
-		if protocolSustainabilityShardID == core.MetachainShardId {
-			return nil, process.ErrProtocolSustainabilityAddressInMetachain
+		ecosystemGrowth, err := decodeAddressAndVerifyShard(pubkeyConverter, shardCoordinator, rewardsCfg.EcosystemGrowthAddress)
+		if err != nil {
+			return nil, err
+		}
+
+		growthDividend, err := decodeAddressAndVerifyShard(pubkeyConverter, shardCoordinator, rewardsCfg.GrowthDividendAddress)
+		if err != nil {
+			return nil, err
 		}
 
 		rewardsConfigSlice = append(rewardsConfigSlice, &rewardsConfig{
 			rewardsSettingEpoch:              rewardsCfg.EpochEnable,
 			leaderPercentage:                 rewardsCfg.LeaderPercentage,
 			protocolSustainabilityPercentage: rewardsCfg.ProtocolSustainabilityPercentage,
-			protocolSustainabilityAddress:    string(decodedAddress),
+			protocolSustainabilityAddress:    string(protocolSustainability),
+			ecosystemGrowthPercentage:        rewardsCfg.EcosystemGrowthPercentage,
+			ecosystemGrowthAddress:           string(ecosystemGrowth),
+			growthDividendPercentage:         rewardsCfg.GrowthDividendPercentage,
+			growthDividendAddress:            string(growthDividend),
 			developerPercentage:              rewardsCfg.DeveloperPercentage,
 			topUpGradientPoint:               topUpGradientPoint,
 			topUpFactor:                      rewardsCfg.TopUpFactor,
@@ -177,15 +209,45 @@ func checkAndParseRewardsSettings(
 	return rewardsConfigSlice, nil
 }
 
+func decodeAddressAndVerifyShard(
+	pubkeyConverter core.PubkeyConverter,
+	shardCoordinator sharding.Coordinator,
+	address string,
+) ([]byte, error) {
+	decodedAddress, err := pubkeyConverter.Decode(address)
+	if err != nil {
+		log.Warn("invalid reward address",
+			"err", err,
+			"provided address", address,
+		)
+		return nil, err
+	}
+
+	protocolSustainabilityShardID := shardCoordinator.ComputeId(decodedAddress)
+	if protocolSustainabilityShardID == core.MetachainShardId {
+		return nil, process.ErrProtocolSustainabilityAddressInMetachain
+	}
+
+	return decodedAddress, nil
+}
+
 func checkRewardConfig(rewardsCfg config.EpochRewardSettings) error {
 	if isPercentageInvalid(rewardsCfg.LeaderPercentage) ||
 		isPercentageInvalid(rewardsCfg.DeveloperPercentage) ||
 		isPercentageInvalid(rewardsCfg.ProtocolSustainabilityPercentage) ||
-		isPercentageInvalid(rewardsCfg.TopUpFactor) {
+		isPercentageInvalid(rewardsCfg.TopUpFactor) ||
+		isPercentageInvalid(rewardsCfg.GrowthDividendPercentage) ||
+		isPercentageInvalid(rewardsCfg.EcosystemGrowthPercentage) {
 		return process.ErrInvalidRewardsPercentages
 	}
 
 	if len(rewardsCfg.ProtocolSustainabilityAddress) == 0 {
+		return process.ErrNilProtocolSustainabilityAddress
+	}
+	if len(rewardsCfg.EcosystemGrowthAddress) == 0 {
+		return process.ErrNilProtocolSustainabilityAddress
+	}
+	if len(rewardsCfg.GrowthDividendAddress) == 0 {
 		return process.ErrNilProtocolSustainabilityAddress
 	}
 

@@ -666,7 +666,6 @@ type rewardsHandler interface {
 	LeaderPercentage() float64
 	ProtocolSustainabilityPercentage() float64
 	ProtocolSustainabilityAddress() string
-	MinInflationRate() float64
 	MaxInflationRate(year uint32) float64
 	RewardsTopUpGradientPoint() *big.Int
 	RewardsTopUpFactor() float64
@@ -674,6 +673,10 @@ type rewardsHandler interface {
 	DeveloperPercentageInEpoch(epoch uint32) float64
 	ProtocolSustainabilityPercentageInEpoch(epoch uint32) float64
 	ProtocolSustainabilityAddressInEpoch(epoch uint32) string
+	EcosystemGrowthPercentageInEpoch(epoch uint32) float64
+	EcosystemGrowthAddressInEpoch(epoch uint32) string
+	GrowthDividendPercentageInEpoch(epoch uint32) float64
+	GrowthDividendAddressInEpoch(epoch uint32) string
 	RewardsTopUpGradientPointInEpoch(epoch uint32) *big.Int
 	RewardsTopUpFactorInEpoch(epoch uint32) float64
 }
@@ -985,7 +988,7 @@ type RewardsCreator interface {
 	VerifyRewardsMiniBlocks(
 		metaBlock data.MetaHeaderHandler, validatorsInfo state.ShardValidatorsInfoMapHandler, computedEconomics *block.Economics,
 	) error
-	GetProtocolSustainabilityRewards() *big.Int
+	GetAcceleratorRewards() *big.Int
 	GetLocalTxCache() epochStart.TransactionCacher
 	CreateMarshalledData(body *block.Body) map[string][][]byte
 	GetRewardsTxs(body *block.Body) map[string]data.TransactionHandler

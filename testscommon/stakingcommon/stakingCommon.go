@@ -252,6 +252,10 @@ func CreateEconomicsData() process.EconomicsDataHandler {
 						DeveloperPercentage:              0.1,
 						ProtocolSustainabilityPercentage: 0.1,
 						ProtocolSustainabilityAddress:    "protocol",
+						EcosystemGrowthPercentage:        0.0,
+						EcosystemGrowthAddress:           "protocol",
+						GrowthDividendPercentage:         0.0,
+						GrowthDividendAddress:            "protocol",
 						TopUpGradientPoint:               "300000000000000000000",
 						TopUpFactor:                      0.25,
 					},
@@ -282,7 +286,8 @@ func CreateEconomicsData() process.EconomicsDataHandler {
 		PubkeyConverter:     &testscommon.PubkeyConverterStub{},
 		ShardCoordinator:    &testscommon.ShardsCoordinatorMock{},
 	}
-	economicsData, _ := economicsHandler.NewEconomicsData(argsNewEconomicsData)
+	economicsData, err := economicsHandler.NewEconomicsData(argsNewEconomicsData)
+	log.LogIfError(err, "something")
 	return economicsData
 }
 

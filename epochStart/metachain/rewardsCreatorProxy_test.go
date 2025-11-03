@@ -191,19 +191,19 @@ func TestRewardsCreatorProxy_VerifyRewardsMiniBlocksOK(t *testing.T) {
 	require.Nil(t, err)
 }
 
-func TestRewardsCreatorProxy_GetProtocolSustainabilityRewards(t *testing.T) {
+func TestRewardsCreatorProxy_GetAcceleratorRewards(t *testing.T) {
 	t.Parallel()
 
 	expectedValue := big.NewInt(12345)
 	rewardCreatorV1 := &testscommon.RewardsCreatorStub{
-		GetProtocolSustainabilityRewardsCalled: func() *big.Int {
+		GetAcceleratorRewardsCalled: func() *big.Int {
 			return expectedValue
 		},
 	}
 
 	rewardsCreatorProxy, _, _ := createTestData(rewardCreatorV1, rCreatorV1)
 
-	protocolSustainabilityRewards := rewardsCreatorProxy.GetProtocolSustainabilityRewards()
+	protocolSustainabilityRewards := rewardsCreatorProxy.GetAcceleratorRewards()
 	require.Equal(t, expectedValue, protocolSustainabilityRewards)
 }
 

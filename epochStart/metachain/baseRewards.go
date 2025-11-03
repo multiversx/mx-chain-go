@@ -42,6 +42,7 @@ type BaseRewardsCreatorArgs struct {
 	EnableEpochsHandler   common.EnableEpochsHandler
 	ExecutionOrderHandler common.TxExecutionOrderHandler
 	RewardsHandler        process.RewardsHandler
+	EconomicsData         epochStart.EpochEconomicsDataProvider
 }
 
 type baseRewardsCreator struct {
@@ -93,14 +94,6 @@ func NewBaseRewardsCreator(args BaseRewardsCreatorArgs) (*baseRewardsCreator, er
 	}
 
 	return brc, nil
-}
-
-// GetProtocolSustainabilityRewards returns the sum of all rewards
-func (brc *baseRewardsCreator) GetProtocolSustainabilityRewards() *big.Int {
-	brc.mutRewardsData.RLock()
-	defer brc.mutRewardsData.RUnlock()
-
-	return brc.protocolSustainabilityValue
 }
 
 // GetLocalTxCache returns the local tx cache which holds all the rewards
@@ -345,14 +338,14 @@ func (brc *baseRewardsCreator) isSystemDelegationSC(address []byte) bool {
 
 func (brc *baseRewardsCreator) createProtocolSustainabilityRewardTransaction(
 	metaBlock data.HeaderHandler,
-	computedEconomics *block.Economics,
+	protocolSustainability *big.Int,
 ) (*rewardTx.RewardTx, uint32, error) {
 
 	protocolSustainabilityAddressForEpoch := brc.rewardsHandler.ProtocolSustainabilityAddressInEpoch(metaBlock.GetEpoch())
 	protocolSustainabilityShardID := brc.shardCoordinator.ComputeId([]byte(protocolSustainabilityAddressForEpoch))
 	protocolSustainabilityRwdTx := &rewardTx.RewardTx{
 		Round:   metaBlock.GetRound(),
-		Value:   big.NewInt(0).Set(computedEconomics.RewardsForProtocolSustainability),
+		Value:   big.NewInt(0).Set(protocolSustainability),
 		RcvAddr: []byte(protocolSustainabilityAddressForEpoch),
 		Epoch:   metaBlock.GetEpoch(),
 	}
@@ -411,10 +404,12 @@ func (brc *baseRewardsCreator) addProtocolRewardToMiniBlocks(
 	if errHash != nil {
 		return errHash
 	}
+	if protocolSustainabilityRwdTx.Value.Cmp(zero) <= 0 {
+		return nil
+	}
 
 	brc.currTxs.AddTx(protocolSustainabilityRwdHash, protocolSustainabilityRwdTx)
 	miniBlocks[protocolSustainabilityShardId].TxHashes = append(miniBlocks[protocolSustainabilityShardId].TxHashes, protocolSustainabilityRwdHash)
-	brc.protocolSustainabilityValue.Set(protocolSustainabilityRwdTx.Value)
 
 	return nil
 }

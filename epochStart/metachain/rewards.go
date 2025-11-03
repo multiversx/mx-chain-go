@@ -47,6 +47,14 @@ func NewRewardsCreator(args ArgsNewRewardsCreator) (*rewardsCreator, error) {
 	return rc, nil
 }
 
+// GetAcceleratorRewards returns the sum of all rewards
+func (rc *rewardsCreator) GetAcceleratorRewards() *big.Int {
+	rc.mutRewardsData.RLock()
+	defer rc.mutRewardsData.RUnlock()
+
+	return rc.protocolSustainabilityValue
+}
+
 // CreateRewardsMiniBlocks creates the rewards miniblocks according to economics data and validator info
 func (rc *rewardsCreator) CreateRewardsMiniBlocks(
 	metaBlock data.MetaHeaderHandler,
@@ -72,7 +80,7 @@ func (rc *rewardsCreator) CreateRewardsMiniBlocks(
 
 	miniBlocks := rc.initializeRewardsMiniBlocks()
 
-	protSustRwdTx, protSustShardId, err := rc.createProtocolSustainabilityRewardTransaction(metaBlock, computedEconomics)
+	protSustRwdTx, protSustShardId, err := rc.createProtocolSustainabilityRewardTransaction(metaBlock, computedEconomics.RewardsForProtocolSustainability)
 	if err != nil {
 		return nil, err
 	}
@@ -87,6 +95,7 @@ func (rc *rewardsCreator) CreateRewardsMiniBlocks(
 	difference := big.NewInt(0).Sub(totalWithoutDevelopers, rc.accumulatedRewards)
 	log.Debug("arithmetic difference in end of epoch rewards economics", "epoch", metaBlock.GetEpoch(), "value", difference)
 	rc.adjustProtocolSustainabilityRewards(protSustRwdTx, difference)
+
 	err = rc.addProtocolRewardToMiniBlocks(protSustRwdTx, miniBlocks, protSustShardId)
 	if err != nil {
 		return nil, err
