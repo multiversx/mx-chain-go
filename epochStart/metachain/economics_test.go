@@ -455,6 +455,7 @@ func TestEconomics_VerifyRewardsPerBlock_DifferentHitRates(t *testing.T) {
 		},
 	}
 	args.GenesisTotalSupply = totalSupply
+	args.AccRewardsEnableEpoch = 9999999
 	ec, _ := NewEndOfEpochEconomicsDataCreator(args)
 
 	expRwdPerBlock := 84 // based on 0.1 inflation
