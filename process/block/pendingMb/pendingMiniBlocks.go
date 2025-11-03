@@ -69,7 +69,7 @@ func getMiniBlocksFromHeaderReadyForCrossShardExecution(header data.MetaHeaderHa
 	miniBlocks := make([]data.MiniBlockHeaderHandler, 0)
 	execResultHandlers := header.GetExecutionResultsHandlers()
 	for _, execResult := range execResultHandlers {
-		mbs, errGetMbs := common.GetMiniBlocksHeaderHandlersFromExecResult(execResult, common.MetachainShardId)
+		mbs, errGetMbs := common.GetMiniBlocksHeaderHandlersFromExecResult(execResult)
 		if errGetMbs != nil {
 			return nil, errGetMbs
 		}
