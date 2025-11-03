@@ -207,7 +207,7 @@ func (mp *metaProcessor) hasStartOfEpochExecutionResults(metaHeader data.MetaHea
 	}
 	execResults := metaHeader.GetExecutionResultsHandlers()
 	for _, execResult := range execResults {
-		mbHeaders, err := mp.extractMiniBlocksHeaderHandlersFromExecResult(execResult, common.MetachainShardId)
+		mbHeaders, err := common.GetMiniBlocksHeaderHandlersFromExecResult(execResult)
 		if err != nil {
 			return false, err
 		}
