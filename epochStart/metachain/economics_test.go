@@ -1692,6 +1692,131 @@ func verifyEconomicsBlock(
 	assert.Equal(t, adjustedRewardsPerBlock, economicsBlock.RewardsPerBlock)
 }
 
+func TestEconomics_ComputeRewardsForAccelerator(t *testing.T) {
+	t.Parallel()
+
+	totalRewards := big.NewInt(10000)
+	protocolSustainabilityPercentage := 0.1
+	ecosystemGrowthPercentage := 0.2
+	growthDividendPercentage := 0.3
+	accRewardsEnableEpoch := uint32(10)
+
+	args := getArguments()
+	args.RewardsHandler = &mock.RewardsHandlerStub{
+		ProtocolSustainabilityPercentageInEpochCalled: func(epoch uint32) float64 {
+			return protocolSustainabilityPercentage
+		},
+		EcosystemGrowthPercentageInEpochCalled: func(epoch uint32) float64 {
+			return ecosystemGrowthPercentage
+		},
+		GrowthDividendPercentageInEpochCalled: func(epoch uint32) float64 {
+			return growthDividendPercentage
+		},
+	}
+	args.AccRewardsEnableEpoch = accRewardsEnableEpoch
+
+	ec, _ := NewEndOfEpochEconomicsDataCreator(args)
+
+	// Before accRewardsEnableEpoch
+	rewards := ec.computeRewardsForAccelerator(totalRewards, accRewardsEnableEpoch-1)
+	expectedRewards := big.NewInt(1000) // 10000 * 0.1
+	assert.Equal(t, expectedRewards, rewards)
+
+	// At accRewardsEnableEpoch
+	rewards = ec.computeRewardsForAccelerator(totalRewards, accRewardsEnableEpoch)
+	expectedRewards = big.NewInt(1000) // 10000 * 0.1
+	assert.Equal(t, expectedRewards, rewards)
+
+	// After accRewardsEnableEpoch
+	rewards = ec.computeRewardsForAccelerator(totalRewards, accRewardsEnableEpoch+1)
+	expectedRewards = big.NewInt(6000) // 10000 * (0.1 + 0.2 + 0.3)
+	assert.Equal(t, expectedRewards, rewards)
+}
+
+func TestEconomics_LogEconomicsDifferences(t *testing.T) {
+	t.Parallel()
+
+	logEconomicsDifferences(&block.Economics{}, &block.Economics{})
+}
+
+func TestEconomics_VerifyRewardsPerBlockError(t *testing.T) {
+	t.Parallel()
+
+	args := getArguments()
+	ec, _ := NewEndOfEpochEconomicsDataCreator(args)
+
+	err := ec.VerifyRewardsPerBlock(
+		&block.MetaBlock{Epoch: 1, EpochStart: block.EpochStart{Economics: block.Economics{TotalSupply: big.NewInt(1)}}},
+		big.NewInt(0),
+		&block.Economics{TotalSupply: big.NewInt(0)},
+	)
+	assert.NotNil(t, err)
+}
+
+func TestEconomics_ComputeEndOfEpochEconomicsWithTailInflation(t *testing.T) {
+	t.Parallel()
+
+	mbPrevStartEpoch := block.MetaBlock{
+		Round: 10,
+		Nonce: 5,
+		EpochStart: block.EpochStart{
+			Economics: block.Economics{
+				TotalSupply:       big.NewInt(100000),
+				TotalToDistribute: big.NewInt(10),
+				TotalNewlyMinted:  big.NewInt(109),
+				RewardsPerBlock:   big.NewInt(10),
+				NodePrice:         big.NewInt(10),
+			},
+		},
+	}
+
+	leaderPercentage := 0.1
+	args := getArguments()
+	args.RewardsHandler = &mock.RewardsHandlerStub{
+		LeaderPercentageInEpochCalled: func(epoch uint32) float64 {
+			return leaderPercentage
+		},
+	}
+	args.Store = &storageStubs.ChainStorerStub{
+		GetStorerCalled: func(unitType dataRetriever.UnitType) (storage.Storer, error) {
+			return &storageStubs.StorerStub{GetCalled: func(key []byte) ([]byte, error) {
+				hdr := mbPrevStartEpoch
+				hdrBytes, _ := json.Marshal(hdr)
+				return hdrBytes, nil
+			}}, nil
+		},
+	}
+	args.AccRewardsEnableEpoch = 1
+	ec, _ := NewEndOfEpochEconomicsDataCreator(args)
+
+	mb := block.MetaBlock{
+		Round: 15000,
+		EpochStart: block.EpochStart{
+			LastFinalizedHeaders: []block.EpochStartShardData{
+				{ShardID: 0, Round: 2, Nonce: 3},
+				{ShardID: 1, Round: 2, Nonce: 3},
+			},
+			Economics: block.Economics{},
+		},
+		Epoch:                  2,
+		AccumulatedFeesInEpoch: big.NewInt(10000),
+		DevFeesInEpoch:         big.NewInt(0),
+	}
+
+	res, err := ec.ComputeEndOfEpochEconomics(&mb)
+	assert.Nil(t, err)
+	assert.NotNil(t, res)
+
+	var expectedLeaderFees *big.Int
+	if mb.Epoch > args.StakingV2EnableEpoch {
+		expectedLeaderFees = core.GetIntTrimmedPercentageOfValue(mb.AccumulatedFeesInEpoch, leaderPercentage)
+	} else {
+		expectedLeaderFees = core.GetApproximatePercentageOfValue(mb.AccumulatedFeesInEpoch, leaderPercentage)
+	}
+
+	assert.Equal(t, expectedLeaderFees, ec.economicsDataNotified.LeaderFees(), expectedLeaderFees)
+}
+
 func printEconomicsData(eb *block.Economics, hitRate float64, numBlocksTotal int64) {
 	fmt.Printf("Hit rate per shard %.4f%%, Total block produced: %d \n", hitRate, numBlocksTotal)
 	fmt.Printf("Total supply: %vEGLD, TotalToDistribute %vEGLD, "+
