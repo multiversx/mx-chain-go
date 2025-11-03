@@ -225,6 +225,28 @@ func (mp *metaProcessor) VerifyBlockProposal(
 		return err
 	}
 
+	// todo check that no scheduled mini blocks are included
+
+	err = mp.checkHeaderBodyCorrelationProposal(header.GetMiniBlockHeaderHandlers(), body)
+	if err != nil {
+		return err
+	}
+
+	err = mp.executionResultsVerifier.VerifyHeaderExecutionResults(header)
+	if err != nil {
+		return err
+	}
+
+	err = mp.checkInclusionEstimationForExecutionResults(header)
+	if err != nil {
+		return err
+	}
+
+	mp.updateMetrics(header)
+	mp.missingDataResolver.Reset()
+	mp.missingDataResolver.RequestBlockTransactions(body)
+	// mp.missingDataResolver.RequestShardHeaders(header)
+
 	return nil
 }
 

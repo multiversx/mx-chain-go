@@ -182,8 +182,6 @@ func (sp *shardProcessor) VerifyBlockProposal(
 		return err
 	}
 
-	go getMetricsFromBlockBody(body, sp.marshalizer, sp.appStatusHandler)
-
 	err = sp.executionResultsVerifier.VerifyHeaderExecutionResults(header)
 	if err != nil {
 		return err
@@ -194,12 +192,7 @@ func (sp *shardProcessor) VerifyBlockProposal(
 		return err
 	}
 
-	txCounts, rewardCounts, unsignedCounts := sp.txCounter.getPoolCounts(sp.dataPool)
-	log.Debug("total txs in pool", "counts", txCounts.String())
-	log.Debug("total txs in rewards pool", "counts", rewardCounts.String())
-	log.Debug("total txs in unsigned pool", "counts", unsignedCounts.String())
-
-	go getMetricsFromHeader(header, uint64(txCounts.GetTotal()), sp.marshalizer, sp.appStatusHandler)
+	sp.updateMetrics(header, body)
 
 	sp.missingDataResolver.Reset()
 	sp.missingDataResolver.RequestBlockTransactions(body)
@@ -249,6 +242,17 @@ func (sp *shardProcessor) VerifyBlockProposal(
 	}
 
 	return sp.OnProposedBlock(body, header, hash)
+}
+
+func (sp *shardProcessor) updateMetrics(header data.HeaderHandler, body *block.Body) {
+	go getMetricsFromBlockBody(body, sp.marshalizer, sp.appStatusHandler)
+
+	txCounts, rewardCounts, unsignedCounts := sp.txCounter.getPoolCounts(sp.dataPool)
+	log.Debug("total txs in pool", "counts", txCounts.String())
+	log.Debug("total txs in rewards pool", "counts", rewardCounts.String())
+	log.Debug("total txs in unsigned pool", "counts", unsignedCounts.String())
+
+	go getMetricsFromHeader(header, uint64(txCounts.GetTotal()), sp.marshalizer, sp.appStatusHandler)
 }
 
 func (sp *shardProcessor) verifyGasLimit(header data.ShardHeaderHandler) error {
