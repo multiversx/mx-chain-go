@@ -8,7 +8,6 @@ import (
 	"github.com/multiversx/mx-chain-core-go/core/check"
 	"github.com/multiversx/mx-chain-core-go/data"
 	"github.com/multiversx/mx-chain-core-go/data/block"
-
 	"github.com/multiversx/mx-chain-go/dataRetriever"
 	"github.com/multiversx/mx-chain-go/process"
 )
@@ -229,6 +228,35 @@ func (r *Resolver) WaitForMissingData(timeout time.Duration) error {
 			return process.ErrTimeIsOut
 		}
 	}
+}
+
+// RequestMissingShardHeadersBlocking requests the missing shard headers and proofs for the given meta header and waits for results.
+func (r *Resolver) RequestMissingShardHeadersBlocking(
+	metaHeader data.MetaHeaderHandler,
+	timeout time.Duration,
+) error {
+	err := r.RequestMissingShardHeaders(metaHeader)
+	if err != nil {
+		return err
+	}
+
+	return r.WaitForMissingData(timeout)
+}
+
+// RequestMissingShardHeaders requests the missing shard headers and proofs for the given meta header.
+func (r *Resolver) RequestMissingShardHeaders(
+	metaHeader data.MetaHeaderHandler,
+) error {
+	if check.IfNil(metaHeader) {
+		return process.ErrNilMetaBlockHeader
+	}
+
+	for _, shardData := range metaHeader.GetShardInfoProposalHandlers() {
+		r.requestHeaderIfNeeded(shardData.GetShardID(), shardData.GetHeaderHash())
+		r.requestProofIfNeeded(shardData.GetShardID(), shardData.GetHeaderHash())
+	}
+
+	return nil
 }
 
 // RequestBlockTransactions requests the transactions for the given block body.
