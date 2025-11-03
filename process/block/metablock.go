@@ -212,7 +212,7 @@ func (mp *metaProcessor) ProcessBlock(
 
 	defer func() {
 		if err != nil {
-			mp.RevertCurrentBlock()
+			mp.RevertCurrentBlock(headerHandler)
 		}
 	}()
 
@@ -1146,7 +1146,7 @@ func (mp *metaProcessor) CommitBlock(
 	var err error
 	defer func() {
 		if err != nil {
-			mp.RevertCurrentBlock()
+			mp.RevertCurrentBlock(headerHandler)
 		}
 		mp.processStatusHandler.SetIdle()
 	}()

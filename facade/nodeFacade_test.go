@@ -1083,6 +1083,9 @@ func TestNodeFacade_GetProofCurrentRootHashIsEmptyShouldErr(t *testing.T) {
 
 	arg := createMockArguments()
 	arg.Blockchain = &testscommon.ChainHandlerStub{
+		GetCurrentBlockHeaderCalled: func() coreData.HeaderHandler {
+			return &block.Header{}
+		},
 		GetCurrentBlockRootHashCalled: func() []byte {
 			return nil
 		},
@@ -1118,22 +1121,58 @@ func TestNodeFacade_GetProof(t *testing.T) {
 func TestNodeFacade_GetProofCurrentRootHash(t *testing.T) {
 	t.Parallel()
 
-	expectedResponse := &common.GetProofResponse{
-		Proof:    [][]byte{[]byte("valid"), []byte("proof")},
-		Value:    []byte("value"),
-		RootHash: "rootHash",
-	}
-	arg := createMockArguments()
-	arg.Node = &mock.NodeStub{
-		GetProofCalled: func(_ string, _ string) (*common.GetProofResponse, error) {
-			return expectedResponse, nil
-		},
-	}
-	nf, _ := NewNodeFacade(arg)
+	t.Run("should work", func(t *testing.T) {
+		t.Parallel()
 
-	response, err := nf.GetProofCurrentRootHash("addr")
-	require.NoError(t, err)
-	require.Equal(t, expectedResponse, response)
+		expectedResponse := &common.GetProofResponse{
+			Proof:    [][]byte{[]byte("valid"), []byte("proof")},
+			Value:    []byte("value"),
+			RootHash: "rootHash",
+		}
+		arg := createMockArguments()
+		arg.Node = &mock.NodeStub{
+			GetProofCalled: func(_ string, _ string) (*common.GetProofResponse, error) {
+				return expectedResponse, nil
+			},
+		}
+		nf, _ := NewNodeFacade(arg)
+
+		response, err := nf.GetProofCurrentRootHash("addr")
+		require.NoError(t, err)
+		require.Equal(t, expectedResponse, response)
+	})
+
+	t.Run("should work with header v3", func(t *testing.T) {
+		t.Parallel()
+
+		rootHash1 := []byte("rootHash1")
+		expectedResponse := &common.GetProofResponse{
+			Proof:    [][]byte{[]byte("valid"), []byte("proof")},
+			Value:    []byte("value"),
+			RootHash: string(rootHash1),
+		}
+
+		arg := createMockArguments()
+		arg.Blockchain = &testscommon.ChainHandlerStub{
+			GetCurrentBlockHeaderCalled: func() coreData.HeaderHandler {
+				return &block.HeaderV3{}
+			},
+			GetLastExecutedBlockInfoCalled: func() (uint64, []byte, []byte) {
+				return 0, []byte(""), rootHash1
+			},
+		}
+		arg.Node = &mock.NodeStub{
+			GetProofCalled: func(rootHash string, _ string) (*common.GetProofResponse, error) {
+				require.Equal(t, hex.EncodeToString(rootHash1), rootHash)
+				return expectedResponse, nil
+			},
+		}
+		nf, _ := NewNodeFacade(arg)
+
+		response, err := nf.GetProofCurrentRootHash("addr")
+		require.NoError(t, err)
+		require.Equal(t, expectedResponse, response)
+	})
 }
 
 func TestNodeFacade_GetProofDataTrie(t *testing.T) {

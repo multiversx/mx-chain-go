@@ -2641,6 +2641,12 @@ func TestShardProcessor_ProcessBlockProposal(t *testing.T) {
 		t.Parallel()
 
 		args := CreateMockArguments(createComponentHolderMocks())
+		wasRemoveAtNonceAndHigherCalled := false
+		args.BlocksQueue = &processMocks.BlocksQueueMock{
+			RemoveAtNonceAndHigherCalled: func(nonce uint64) {
+				wasRemoveAtNonceAndHigherCalled = true
+			},
+		}
 		args.TxCoordinator = &testscommon.TransactionCoordinatorMock{
 			ProcessBlockTransactionCalled: func(header data.HeaderHandler, body *block.Body, haveTime func() time.Duration) error {
 				return expectedErr
@@ -2652,6 +2658,7 @@ func TestShardProcessor_ProcessBlockProposal(t *testing.T) {
 		body := &block.Body{}
 		_, err := sp.ProcessBlockProposal(header, body)
 		require.Equal(t, expectedErr, err)
+		require.True(t, wasRemoveAtNonceAndHigherCalled)
 	})
 	t.Run("VerifyCreatedBlockTransactions fails should error", func(t *testing.T) {
 		t.Parallel()

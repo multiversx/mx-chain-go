@@ -16,11 +16,13 @@ var log = logger.GetOrCreate("process/asyncExecution/queue")
 // It provides methods to add headers at the end or beginning of the queue and retrieve them
 // for processing in a FIFO (First In, First Out) manner
 type blocksQueue struct {
-	mutex           *sync.Mutex
-	headerBodyPairs []HeaderBodyPair
-	lastAddedNonce  uint64
-	closed          bool
-	notifyCh        chan struct{} // used only for blocking
+	mutex               *sync.Mutex
+	headerBodyPairs     []HeaderBodyPair
+	lastAddedNonce      uint64
+	closed              bool
+	notifyCh            chan struct{} // used only for blocking
+	mutEvictionHandlers sync.RWMutex
+	evictionHandlers    []BlocksQueueEvictionSubscriber
 }
 
 // NewBlocksQueue creates and returns a new instance of blocksQueue
@@ -28,14 +30,15 @@ func NewBlocksQueue() *blocksQueue {
 	mutex := &sync.Mutex{}
 
 	return &blocksQueue{
-		mutex:           mutex,
-		headerBodyPairs: make([]HeaderBodyPair, 0),
-		notifyCh:        make(chan struct{}, 1), // buffered so send won't block if not read yet
+		mutex:            mutex,
+		headerBodyPairs:  make([]HeaderBodyPair, 0),
+		notifyCh:         make(chan struct{}, 1), // buffered so send won't block if not read yet
+		evictionHandlers: make([]BlocksQueueEvictionSubscriber, 0),
 	}
 }
 
 // AddOrReplace appends a HeaderBodyPair to the end of the queue,
-// or replaces the last element if it has the same nonce.
+// or replaces the element with the same nonce, removing all higher nonces.
 func (bq *blocksQueue) AddOrReplace(pair HeaderBodyPair) error {
 	if check.IfNil(pair.Header) {
 		return common.ErrNilHeaderHandler
@@ -53,17 +56,15 @@ func (bq *blocksQueue) AddOrReplace(pair HeaderBodyPair) error {
 
 	nonce := pair.Header.GetNonce()
 	switch {
-	case nonce == bq.lastAddedNonce:
-		// replace last
-		if len(bq.headerBodyPairs) == 0 {
-			bq.headerBodyPairs = append(bq.headerBodyPairs, pair)
-		} else {
-			bq.headerBodyPairs[len(bq.headerBodyPairs)-1] = pair
+	case nonce == bq.lastAddedNonce+1 || len(bq.headerBodyPairs) == 0:
+		// safe to ignore error here, as the condition inside add method is the same as this one
+		_ = bq.add(pair)
+	case nonce <= bq.lastAddedNonce:
+		// remove all nonces starting with the new one, then add it
+		err := bq.replaceAndRemoveHigherNonces(pair)
+		if err != nil {
+			return err
 		}
-	case nonce == bq.lastAddedNonce+1:
-		// append next
-		bq.lastAddedNonce = nonce
-		bq.headerBodyPairs = append(bq.headerBodyPairs, pair)
 	default:
 		// mismatch
 		return fmt.Errorf("%w: last header nonce: %d, current header nonce %d",
@@ -82,6 +83,54 @@ func (bq *blocksQueue) AddOrReplace(pair HeaderBodyPair) error {
 	}
 
 	return nil
+}
+
+func (bq *blocksQueue) getPairsFromNonce(nonce uint64) ([]HeaderBodyPair, int) {
+	pairsToBeRemoved := make([]HeaderBodyPair, 0)
+	firstIndex := len(bq.headerBodyPairs)
+	for i, bp := range bq.headerBodyPairs {
+		if bp.Header.GetNonce() < nonce {
+			continue
+		}
+
+		if i < firstIndex {
+			firstIndex = i
+		}
+
+		pairsToBeRemoved = append(pairsToBeRemoved, bp)
+	}
+
+	return pairsToBeRemoved, firstIndex
+}
+
+func (bq *blocksQueue) removeFromNonce(nonce uint64) {
+	// first notify all subscribers, no matter this nonce still exists in queue or not
+	bq.notifyHeaderEvicted(nonce)
+
+	pairsToBeRemoved, firstIndex := bq.getPairsFromNonce(nonce)
+	if len(pairsToBeRemoved) == 0 {
+		bq.updateLastAddedNonceBasedOnRemovingNonce(nonce)
+		return
+	}
+
+	bq.headerBodyPairs = bq.headerBodyPairs[:firstIndex]
+	bq.updateLastAddedNonceBasedOnRemovingNonce(nonce)
+}
+
+func (bq *blocksQueue) replaceAndRemoveHigherNonces(pair HeaderBodyPair) error {
+	bq.removeFromNonce(pair.Header.GetNonce())
+	return bq.add(pair)
+}
+
+func (bq *blocksQueue) add(pair HeaderBodyPair) error {
+	nonce := pair.Header.GetNonce()
+	if len(bq.headerBodyPairs) == 0 || nonce == bq.lastAddedNonce+1 {
+		bq.headerBodyPairs = append(bq.headerBodyPairs, pair)
+		bq.lastAddedNonce = nonce
+		return nil
+	}
+
+	return fmt.Errorf("%w for nonce %d (lastAddedNonce=%d)", ErrInvalidHeaderNonce, nonce, bq.lastAddedNonce)
 }
 
 // Pop removes and returns the first HeaderBodyPair from the queue.
@@ -128,6 +177,59 @@ func (bq *blocksQueue) Peek() (HeaderBodyPair, bool) {
 
 	return bq.headerBodyPairs[0], true
 
+}
+
+// RemoveAtNonceAndHigher removes the header-body pair at the specified nonce
+// and all pairs with higher nonces from the queue
+func (bq *blocksQueue) RemoveAtNonceAndHigher(nonce uint64) {
+	bq.mutex.Lock()
+	defer bq.mutex.Unlock()
+
+	if bq.closed {
+		return
+	}
+
+	bq.removeFromNonce(nonce)
+}
+
+func (bq *blocksQueue) updateLastAddedNonceBasedOnRemovingNonce(removingNonce uint64) {
+	if len(bq.headerBodyPairs) > 0 {
+		bq.lastAddedNonce = bq.headerBodyPairs[len(bq.headerBodyPairs)-1].Header.GetNonce()
+		return
+	}
+
+	// TODO: consider adding new component that manages blocksQueue, executionResultsTracker and headersExecutor
+	// so they are always synchronized
+	// (bq.lastAddedNonce might get inconsistent with ert.lastNotarizedResult if RemoveAtNonceAndHigher is called for
+	// a nonce older than lastNotarizedResult)
+	// initial PR with discussions: https://github.com/multiversx/mx-chain-go/pull/7355
+	if removingNonce > 0 {
+		bq.lastAddedNonce = removingNonce - 1
+		return
+	}
+
+	bq.lastAddedNonce = 0
+}
+
+// RegisterEvictionSubscriber registers a new eviction subscriber
+func (bq *blocksQueue) RegisterEvictionSubscriber(subscriber BlocksQueueEvictionSubscriber) {
+	if bq.closed || check.IfNil(subscriber) {
+		return
+	}
+
+	bq.mutEvictionHandlers.Lock()
+	defer bq.mutEvictionHandlers.Unlock()
+
+	bq.evictionHandlers = append(bq.evictionHandlers, subscriber)
+}
+
+func (bq *blocksQueue) notifyHeaderEvicted(headerNonce uint64) {
+	bq.mutEvictionHandlers.RLock()
+	defer bq.mutEvictionHandlers.RUnlock()
+
+	for _, subscriber := range bq.evictionHandlers {
+		subscriber.OnHeaderEvicted(headerNonce)
+	}
 }
 
 // Clean cleanup the queue and set the provided last added nonce

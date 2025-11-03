@@ -1,11 +1,14 @@
 package block
 
 import (
+	"bytes"
 	"fmt"
 	"sync"
 
 	"github.com/multiversx/mx-chain-core-go/core/check"
 	"github.com/multiversx/mx-chain-core-go/data"
+
+	"golang.org/x/exp/slices"
 
 	"github.com/multiversx/mx-chain-go/process"
 )
@@ -112,8 +115,12 @@ func (gc *gasConsumption) CheckIncomingMiniBlocks(
 	for i := 0; i < len(miniBlocks); i++ {
 		shouldSavePending, err = gc.checkIncomingMiniBlock(miniBlocks[i], transactions, bandwidthForIncomingMiniBlocks)
 		if shouldSavePending {
+			// saving pending starting with idx i, as it was not included either
 			gc.pendingMiniBlocks = append(gc.pendingMiniBlocks, miniBlocks[i:]...)
-			gc.transactionsForPendingMiniBlocks = transactions
+			for _, mb := range miniBlocks[i:] {
+				hashStr := string(mb.GetHash())
+				gc.transactionsForPendingMiniBlocks[hashStr] = transactions[hashStr]
+			}
 
 			return lastMiniBlockIndex, len(gc.pendingMiniBlocks), err
 		}
@@ -124,6 +131,48 @@ func (gc *gasConsumption) CheckIncomingMiniBlocks(
 	}
 
 	return lastMiniBlockIndex, 0, nil
+}
+
+// RevertIncomingMiniBlocks gets a list of mini block hashes and removes them from the local state
+func (gc *gasConsumption) RevertIncomingMiniBlocks(miniBlockHashes [][]byte) {
+	if len(miniBlockHashes) == 0 {
+		return
+	}
+
+	gc.mut.Lock()
+	defer gc.mut.Unlock()
+
+	for _, miniBlockHash := range miniBlockHashes {
+		// do not check here if it was found or not, as some pending mini blocks may be missing from this map
+		gasConsumedByMb := gc.gasConsumedByMiniBlock[string(miniBlockHash)]
+		delete(gc.gasConsumedByMiniBlock, string(miniBlockHash))
+
+		isPending, idxInPendingSlice := gc.isPendingMiniBlock(miniBlockHash)
+		if isPending {
+			gc.revertPendingMiniBlock(miniBlockHash, idxInPendingSlice)
+			continue
+		}
+
+		// if the mini block is not pending, remove it from the total gas consumed
+		gc.totalGasConsumed[incoming] -= gasConsumedByMb
+	}
+}
+
+func (gc *gasConsumption) isPendingMiniBlock(blockHash []byte) (bool, int) {
+	for idx, miniBlock := range gc.pendingMiniBlocks {
+		if bytes.Equal(miniBlock.GetHash(), blockHash) {
+			return true, idx
+		}
+	}
+
+	return false, initialLastIndex
+}
+
+func (gc *gasConsumption) revertPendingMiniBlock(miniBlockHash []byte, idxInPendingSlice int) {
+	// if the mini block was saved as pending, remove its transactions
+	// and remove it from pending slice
+	delete(gc.transactionsForPendingMiniBlocks, string(miniBlockHash))
+	gc.pendingMiniBlocks = slices.Delete(gc.pendingMiniBlocks, idxInPendingSlice, idxInPendingSlice+1)
 }
 
 func (gc *gasConsumption) checkIncomingMiniBlock(
@@ -154,13 +203,13 @@ func (gc *gasConsumption) checkIncomingMiniBlock(
 		return false, err
 	}
 
+	gc.gasConsumedByMiniBlock[string(mbHash)] = gasConsumedByMB
 	mbsLimitReached := gc.totalGasConsumed[incoming]+gasConsumedByMB > bandwidthForIncomingMiniBlocks
 	if !mbsLimitReached {
 		// limit not reached, continue
 		// this method might be called either from handling all mini blocks,
 		// either from handling pending, where the pending ones
 		// should have continuous indexes after the ones already included
-		gc.gasConsumedByMiniBlock[string(mbHash)] = gasConsumedByMB
 		gc.totalGasConsumed[incoming] += gasConsumedByMB
 
 		return false, nil
@@ -523,11 +572,6 @@ func (gc *gasConsumption) maxGasLimitPerMiniBlock(shardID uint32) uint64 {
 	}
 
 	return gc.economicsFee.MaxGasLimitPerMiniBlock(shardID)
-}
-
-// RevertIncomingMiniBlocks reverts the gas consumption for the given incoming mini blocks
-func (gc *gasConsumption) RevertIncomingMiniBlocks(miniBlockHashes [][]byte) {
-	// TODO: implement this
 }
 
 // IsInterfaceNil checks if the interface is nil

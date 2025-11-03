@@ -48,19 +48,19 @@ func (mock *GasComputationMock) CheckOutgoingTransactions(
 	return nil, nil, nil
 }
 
+// RevertIncomingMiniBlocks -
+func (mock *GasComputationMock) RevertIncomingMiniBlocks(miniBlockHashes [][]byte) {
+	if mock.RevertIncomingMiniBlocksCalled != nil {
+		mock.RevertIncomingMiniBlocksCalled(miniBlockHashes)
+	}
+}
+
 // GetBandwidthForTransactions -
 func (mock *GasComputationMock) GetBandwidthForTransactions() uint64 {
 	if mock.GetBandwidthForTransactionsCalled != nil {
 		return mock.GetBandwidthForTransactionsCalled()
 	}
 	return 0
-}
-
-// RevertIncomingMiniBlocks -
-func (mock *GasComputationMock) RevertIncomingMiniBlocks(miniBlockHashes [][]byte) {
-	if mock.RevertIncomingMiniBlocksCalled != nil {
-		mock.RevertIncomingMiniBlocksCalled(miniBlockHashes)
-	}
 }
 
 // TotalGasConsumed -
