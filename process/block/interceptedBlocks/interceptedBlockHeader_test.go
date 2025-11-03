@@ -23,6 +23,7 @@ import (
 	"github.com/multiversx/mx-chain-go/testscommon/consensus"
 	"github.com/multiversx/mx-chain-go/testscommon/enableEpochsHandlerMock"
 	"github.com/multiversx/mx-chain-go/testscommon/hashingMocks"
+	"github.com/multiversx/mx-chain-go/testscommon/processMocks"
 )
 
 var testMarshalizer = &mock.MarshalizerMock{}
@@ -99,14 +100,18 @@ func createMockShardHeader() *dataBlock.Header {
 func createDefaultShardArgumentWithV3Support() *interceptedBlocks.ArgInterceptedBlockHeader {
 	gracePeriod, _ := graceperiod.NewEpochChangeGracePeriod([]config.EpochChangeGracePeriodByEpoch{{EnableEpoch: 0, GracePeriodInRounds: 1}})
 	arg := &interceptedBlocks.ArgInterceptedBlockHeader{
-		ShardCoordinator:              mock.NewOneShardCoordinatorMock(),
-		Hasher:                        testHasher,
-		Marshalizer:                   &marshal.GogoProtoMarshalizer{},
-		HeaderSigVerifier:             &consensus.HeaderSigVerifierMock{},
-		HeaderIntegrityVerifier:       &mock.HeaderIntegrityVerifierStub{},
-		ValidityAttester:              &mock.ValidityAttesterStub{},
-		EpochStartTrigger:             &mock.EpochStartTriggerStub{},
-		EnableEpochsHandler:           &enableEpochsHandlerMock.EnableEpochsHandlerStub{},
+		ShardCoordinator:        mock.NewOneShardCoordinatorMock(),
+		Hasher:                  testHasher,
+		Marshalizer:             &marshal.GogoProtoMarshalizer{},
+		HeaderSigVerifier:       &consensus.HeaderSigVerifierMock{},
+		HeaderIntegrityVerifier: &mock.HeaderIntegrityVerifierStub{},
+		ValidityAttester:        &mock.ValidityAttesterStub{},
+		EpochStartTrigger:       &mock.EpochStartTriggerStub{},
+		EnableEpochsHandler: &enableEpochsHandlerMock.EnableEpochsHandlerStub{
+			IsFlagEnabledInEpochCalled: func(flag core.EnableEpochFlag, epoch uint32) bool {
+				return true
+			},
+		},
 		EpochChangeGracePeriodHandler: gracePeriod,
 	}
 	hdr := createMockShardHeaderV3()
@@ -383,7 +388,7 @@ func TestInterceptedHeader_CheckValidityErrorInMiniBlockShouldErr(t *testing.T) 
 
 }
 
-func TestInterceptedHeader_CheckValidityIntegrityVerifierError(t *testing.T) {
+func TestInterceptedHeader_CheckValidityIntegrityVerifierErrorShouldErr(t *testing.T) {
 	t.Parallel()
 
 	arg := createDefaultShardArgumentWithV2Support()
@@ -401,6 +406,7 @@ func TestInterceptedHeader_CheckValidityIntegrityVerifierError(t *testing.T) {
 	assert.Error(t, err)
 	assert.Contains(t, err.Error(), "expected error")
 }
+
 func TestInterceptedHeader_CheckValidityShouldWork(t *testing.T) {
 	t.Parallel()
 
@@ -412,6 +418,209 @@ func TestInterceptedHeader_CheckValidityShouldWork(t *testing.T) {
 	err = inHdr.CheckValidity()
 
 	assert.Nil(t, err)
+}
+
+func TestInterceptedHeader_CheckValidityExecutionResultIsEpochCorrectMetaChain(t *testing.T) {
+	t.Parallel()
+
+	t.Run("should work with epoch start round >= epoch finality attesting round", func(t *testing.T) {
+		arg := createDefaultShardArgumentWithV3Support()
+		arg.ShardCoordinator = &mock.CoordinatorStub{
+			NumberOfShardsCalled: func() uint32 {
+				return uint32(4)
+			},
+			SelfIdCalled: func() uint32 {
+				return core.MetachainShardId
+			},
+		}
+		arg.EpochStartTrigger = &mock.EpochStartTriggerStub{
+			EpochStartRoundCalled: func() uint64 {
+				return hdrRound - 1
+			},
+			EpochFinalityAttestingRoundCalled: func() uint64 {
+				return hdrRound - 2
+			},
+		}
+		inHdr, _ := interceptedBlocks.NewInterceptedHeader(arg)
+		inHdr.HeaderHandler().SetShardID(1)
+
+		err := inHdr.CheckValidity()
+		assert.Nil(t, err)
+	})
+
+	t.Run("should work with header epoch < epoch start trigger epoch", func(t *testing.T) {
+		arg := createDefaultShardArgumentWithV3Support()
+		arg.ShardCoordinator = &mock.CoordinatorStub{
+			NumberOfShardsCalled: func() uint32 {
+				return uint32(4)
+			},
+			SelfIdCalled: func() uint32 {
+				return core.MetachainShardId
+			},
+		}
+		arg.EpochStartTrigger = &mock.EpochStartTriggerStub{
+			EpochStartRoundCalled: func() uint64 {
+				return hdrRound - 2
+			},
+			EpochFinalityAttestingRoundCalled: func() uint64 {
+				return hdrRound - 1
+			},
+			EpochCalled: func() uint32 {
+				return hdrEpoch - 1
+			},
+		}
+		inHdr, _ := interceptedBlocks.NewInterceptedHeader(arg)
+		inHdr.HeaderHandler().SetShardID(1)
+
+		err := inHdr.CheckValidity()
+		assert.Nil(t, err)
+	})
+
+	t.Run("should work with header round <= epoch start round", func(t *testing.T) {
+		arg := createDefaultShardArgumentWithV3Support()
+		arg.ShardCoordinator = &mock.CoordinatorStub{
+			NumberOfShardsCalled: func() uint32 {
+				return uint32(4)
+			},
+			SelfIdCalled: func() uint32 {
+				return core.MetachainShardId
+			},
+		}
+		arg.EpochStartTrigger = &mock.EpochStartTriggerStub{
+			EpochStartRoundCalled: func() uint64 {
+				return hdrRound
+			},
+			EpochFinalityAttestingRoundCalled: func() uint64 {
+				return hdrRound + 1
+			},
+			EpochCalled: func() uint32 {
+				return hdrEpoch + 1
+			},
+		}
+		inHdr, _ := interceptedBlocks.NewInterceptedHeader(arg)
+		inHdr.HeaderHandler().SetShardID(1)
+
+		err := inHdr.CheckValidity()
+		assert.Nil(t, err)
+	})
+	t.Run("should work with header round <= epoch finality attesting round + grace period", func(t *testing.T) {
+		arg := createDefaultShardArgumentWithV3Support()
+		arg.ShardCoordinator = &mock.CoordinatorStub{
+			NumberOfShardsCalled: func() uint32 {
+				return uint32(4)
+			},
+			SelfIdCalled: func() uint32 {
+				return core.MetachainShardId
+			},
+		}
+		arg.EpochStartTrigger = &mock.EpochStartTriggerStub{
+			EpochStartRoundCalled: func() uint64 {
+				return hdrRound - 1
+			},
+			EpochFinalityAttestingRoundCalled: func() uint64 {
+				return hdrRound + 1
+			},
+			EpochCalled: func() uint32 {
+				return hdrEpoch + 1
+			},
+		}
+		gracePeriod, _ := graceperiod.NewEpochChangeGracePeriod([]config.EpochChangeGracePeriodByEpoch{{EnableEpoch: 0, GracePeriodInRounds: 1}})
+		arg.EpochChangeGracePeriodHandler = gracePeriod
+		inHdr, _ := interceptedBlocks.NewInterceptedHeader(arg)
+		inHdr.HeaderHandler().SetShardID(1)
+
+		err := inHdr.CheckValidity()
+		assert.Nil(t, err)
+	})
+
+	t.Run("should fail with grace period for epoch error", func(t *testing.T) {
+		arg := createDefaultShardArgumentWithV3Support()
+		arg.ShardCoordinator = &mock.CoordinatorStub{
+			NumberOfShardsCalled: func() uint32 {
+				return uint32(4)
+			},
+			SelfIdCalled: func() uint32 {
+				return core.MetachainShardId
+			},
+		}
+		arg.EpochStartTrigger = &mock.EpochStartTriggerStub{
+			EpochStartRoundCalled: func() uint64 {
+				return hdrRound - 1
+			},
+			EpochFinalityAttestingRoundCalled: func() uint64 {
+				return hdrRound + 1
+			},
+			EpochCalled: func() uint32 {
+				return hdrEpoch + 1
+			},
+		}
+
+		arg.EpochChangeGracePeriodHandler = &processMocks.GracePeriodErrStub{}
+		inHdr, _ := interceptedBlocks.NewInterceptedHeader(arg)
+		inHdr.HeaderHandler().SetShardID(1)
+
+		err := inHdr.CheckValidity()
+		assert.Error(t, err)
+	})
+	t.Run("should fail with header round > epoch finality attesting round + grace period", func(t *testing.T) {
+		arg := createDefaultShardArgumentWithV3Support()
+		arg.ShardCoordinator = &mock.CoordinatorStub{
+			NumberOfShardsCalled: func() uint32 {
+				return uint32(4)
+			},
+			SelfIdCalled: func() uint32 {
+				return core.MetachainShardId
+			},
+		}
+		arg.EpochStartTrigger = &mock.EpochStartTriggerStub{
+			EpochStartRoundCalled: func() uint64 {
+				return hdrRound - 3
+			},
+			EpochFinalityAttestingRoundCalled: func() uint64 {
+				return hdrRound - 2
+			},
+			EpochCalled: func() uint32 {
+				return hdrEpoch + 1
+			},
+		}
+		gracePeriod, _ := graceperiod.NewEpochChangeGracePeriod([]config.EpochChangeGracePeriodByEpoch{{EnableEpoch: 0, GracePeriodInRounds: 0}})
+		arg.EpochChangeGracePeriodHandler = gracePeriod
+		inHdr, _ := interceptedBlocks.NewInterceptedHeader(arg)
+		inHdr.HeaderHandler().SetShardID(1)
+
+		err := inHdr.CheckValidity()
+		assert.Error(t, err)
+	})
+
+}
+func TestInterceptedHeader_CheckValidityExecutionResultMiniblockErrorInHeaderV3ShouldErr(t *testing.T) {
+	t.Parallel()
+
+	arg := createDefaultShardArgumentWithV3Support()
+	inHdr, err := interceptedBlocks.NewInterceptedHeader(arg)
+	assert.Nil(t, err)
+	assert.NotNil(t, inHdr)
+	assert.True(t, inHdr.HeaderHandler().IsHeaderV3())
+	badShardId := uint32(28)
+	mbs := []dataBlock.MiniBlockHeader{
+		{
+			Hash:            make([]byte, 0),
+			SenderShardID:   badShardId,
+			ReceiverShardID: 0,
+			TxCount:         0,
+			Type:            0,
+		},
+	}
+	mbHandlers := make([]data.MiniBlockHeaderHandler, len(mbs))
+	for i := range mbs {
+		tmp := mbs[i]
+		mbHandlers[i] = &tmp
+	}
+	_ = inHdr.HeaderHandler().(*dataBlock.HeaderV3).ExecutionResults[1].SetMiniBlockHeadersHandlers(mbHandlers)
+	err = inHdr.CheckValidity()
+
+	assert.Error(t, err)
+	assert.Equal(t, process.ErrInvalidShardId, err)
 }
 
 func TestInterceptedHeader_CheckValidityShouldWorkHeaderV3(t *testing.T) {

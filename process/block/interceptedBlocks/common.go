@@ -86,11 +86,7 @@ func checkHeaderHandler(
 	if !isGenesis && len(hdr.GetPrevHash()) == 0 {
 		return process.ErrNilPreviousBlockHash
 	}
-	signature := hdr.GetSignature()
-	if hdr.IsHeaderV3() {
-		signature = hdr.GetLeaderSignature()
-	}
-	if len(signature) == 0 && !equivalentMessagesEnabled {
+	if len(hdr.GetSignature()) == 0 && !equivalentMessagesEnabled {
 		return process.ErrNilSignature
 	}
 	if !hdr.IsHeaderV3() && len(hdr.GetRootHash()) == 0 {
