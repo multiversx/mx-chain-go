@@ -27,6 +27,10 @@ const (
 	nonceIndex     = 0
 )
 
+type executionResultHandler interface {
+	GetMiniBlockHeadersHandlers() []data.MiniBlockHeaderHandler
+}
+
 type chainParametersHandler interface {
 	CurrentChainParameters() config.ChainParametersByEpochConfig
 	ChainParametersForEpoch(epoch uint32) (config.ChainParametersByEpochConfig, error)
@@ -418,16 +422,7 @@ func GetMiniBlocksHeaderHandlersFromExecResult(
 		return nil, ErrNilBaseExecutionResult
 	}
 
-	if headerShard == MetachainShardId {
-		metaExecResult, ok := baseExecResult.(data.MetaExecutionResultHandler)
-		if !ok {
-			return nil, ErrWrongTypeAssertion
-		}
-
-		return metaExecResult.GetMiniBlockHeadersHandlers(), nil
-	}
-
-	execResult, ok := baseExecResult.(data.ExecutionResultHandler)
+	execResult, ok := baseExecResult.(executionResultHandler)
 	if !ok {
 		return nil, ErrWrongTypeAssertion
 	}

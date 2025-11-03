@@ -227,6 +227,7 @@ func createArgBaseProcessor(
 				return txHashes, nil, nil
 			},
 		},
+		BlocksQueue: &processMocks.BlocksQueueMock{},
 	}
 }
 
@@ -864,6 +865,14 @@ func TestCheckProcessorNilParameters(t *testing.T) {
 				return args
 			},
 			expectedErr: process.ErrNilExecutionResultsTracker,
+		},
+		{
+			args: func() blproc.ArgBaseProcessor {
+				args := createArgBaseProcessor(coreComponents, dataComponents, bootstrapComponents, statusComponents)
+				args.BlocksQueue = nil
+				return args
+			},
+			expectedErr: process.ErrNilBlocksQueue,
 		},
 		{
 			args: func() blproc.ArgBaseProcessor {
