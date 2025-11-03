@@ -5,8 +5,10 @@ import (
 	"sync"
 
 	"github.com/multiversx/mx-chain-core-go/core/check"
+	"github.com/multiversx/mx-chain-core-go/data"
 	logger "github.com/multiversx/mx-chain-logger-go"
 
+	"github.com/multiversx/mx-chain-go/process"
 	"github.com/multiversx/mx-chain-go/process/asyncExecution/queue"
 )
 
@@ -17,12 +19,14 @@ type ArgsHeadersExecutor struct {
 	BlocksQueue      BlocksQueue
 	ExecutionTracker ExecutionResultsHandler
 	BlockProcessor   BlockProcessor
+	BlockChain       data.ChainHandler
 }
 
 type headersExecutor struct {
 	blocksQueue      BlocksQueue
 	executionTracker ExecutionResultsHandler
 	blockProcessor   BlockProcessor
+	blockChain       data.ChainHandler
 	cancelFunc       context.CancelFunc
 	evictedNonces    sync.Map
 }
@@ -38,11 +42,15 @@ func NewHeadersExecutor(args ArgsHeadersExecutor) (*headersExecutor, error) {
 	if check.IfNil(args.BlockProcessor) {
 		return nil, ErrNilBlockProcessor
 	}
+	if check.IfNil(args.BlockChain) {
+		return nil, process.ErrNilBlockChain
+	}
 
 	instance := &headersExecutor{
 		blocksQueue:      args.BlocksQueue,
 		executionTracker: args.ExecutionTracker,
 		blockProcessor:   args.BlockProcessor,
+		blockChain:       args.BlockChain,
 		evictedNonces:    sync.Map{},
 	}
 
@@ -126,7 +134,17 @@ func (he *headersExecutor) process(pair queue.HeaderBodyPair) error {
 		return nil
 	}
 
-	// TODO?: set rootHash in blockchain hook
+	he.blockChain.SetFinalBlockInfo(
+		executionResult.GetHeaderNonce(),
+		executionResult.GetHeaderHash(),
+		executionResult.GetRootHash(),
+	)
+
+	he.blockChain.SetLastExecutedBlockInfo(
+		executionResult.GetHeaderNonce(),
+		executionResult.GetHeaderHash(),
+		executionResult.GetRootHash(),
+	)
 
 	return nil
 }

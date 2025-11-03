@@ -1,6 +1,7 @@
 package block
 
 import (
+	"bytes"
 	"errors"
 	"fmt"
 	"time"
@@ -329,6 +330,12 @@ func (sp *shardProcessor) ProcessBlockProposal(
 		return nil, err
 	}
 
+	// TODO: add check also for meta
+	err = sp.checkRootHashBeforeExecution()
+	if err != nil {
+		return nil, err
+	}
+
 	err = sp.hdrsForCurrBlock.WaitForHeadersIfNeeded(haveTime)
 	if err != nil {
 		return nil, err
@@ -384,6 +391,20 @@ func (sp *shardProcessor) ProcessBlockProposal(
 	}
 
 	return executionResult, nil
+}
+
+func (sp *shardProcessor) checkRootHashBeforeExecution() error {
+	lastCommittedRootHash, err := sp.accountsDB[state.UserAccountsState].RootHash()
+	if err != nil {
+		return err
+	}
+
+	currentRootHash := sp.blockChain.GetCurrentBlockRootHash()
+	if !bytes.Equal(lastCommittedRootHash, currentRootHash) {
+		return process.ErrRootStateDoesNotMatch
+	}
+
+	return nil
 }
 
 func (sp *shardProcessor) splitTransactionsForHeader(header data.HeaderHandler) (
