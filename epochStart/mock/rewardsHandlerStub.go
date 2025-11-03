@@ -8,6 +8,7 @@ type RewardsHandlerStub struct {
 	ProtocolSustainabilityPercentageCalled        func() float64
 	ProtocolSustainabilityAddressCalled           func() string
 	MaxInflationRateCalled                        func(year uint32) float64
+	TailInflationActivationEpochCalled            func() uint32
 	RewardsTopUpGradientPointCalled               func() *big.Int
 	RewardsTopUpFactorCalled                      func() float64
 	LeaderPercentageInEpochCalled                 func(epoch uint32) float64
@@ -56,6 +57,15 @@ func (r *RewardsHandlerStub) MaxInflationRate(year uint32) float64 {
 	}
 
 	return 1000000
+}
+
+// TailInflationActivationEpoch -
+func (r *RewardsHandlerStub) TailInflationActivationEpoch() uint32 {
+	if r.TailInflationActivationEpochCalled != nil {
+		return r.TailInflationActivationEpochCalled()
+	}
+
+	return 0
 }
 
 // RewardsTopUpGradientPoint -

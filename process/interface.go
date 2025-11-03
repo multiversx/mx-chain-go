@@ -667,6 +667,7 @@ type rewardsHandler interface {
 	ProtocolSustainabilityPercentage() float64
 	ProtocolSustainabilityAddress() string
 	MaxInflationRate(year uint32) float64
+	TailInflationActivationEpoch() uint32
 	RewardsTopUpGradientPoint() *big.Int
 	RewardsTopUpFactor() float64
 	LeaderPercentageInEpoch(epoch uint32) float64

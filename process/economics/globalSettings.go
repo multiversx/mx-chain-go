@@ -71,3 +71,7 @@ func (g *globalSettingsHandler) maxInflationRate(year uint32) float64 {
 
 	return yearSetting.MaximumInflation
 }
+
+func (g *globalSettingsHandler) TailInflationActivationEpoch() uint32 {
+	return g.tailInflationActivationEpoch
+}

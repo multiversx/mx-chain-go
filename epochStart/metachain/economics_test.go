@@ -275,6 +275,47 @@ func TestEconomics_AdjustRewardsPerBlockWithDeveloperFees(t *testing.T) {
 	assert.Equal(t, expectedRwdPerBlock, rwdPerBlock)
 }
 
+func TestEconomics_ComputeRewardsForAccelerator(t *testing.T) {
+	t.Parallel()
+
+	totalRewards := big.NewInt(10000)
+	protocolSustainabilityPercentage := 0.1
+	ecosystemGrowthPercentage := 0.2
+	growthDividendPercentage := 0.3
+	accRewardsEnableEpoch := uint32(10)
+
+	args := getArguments()
+	args.RewardsHandler = &mock.RewardsHandlerStub{
+		ProtocolSustainabilityPercentageInEpochCalled: func(epoch uint32) float64 {
+			return protocolSustainabilityPercentage
+		},
+		EcosystemGrowthPercentageInEpochCalled: func(epoch uint32) float64 {
+			return ecosystemGrowthPercentage
+		},
+		GrowthDividendPercentageInEpochCalled: func(epoch uint32) float64 {
+			return growthDividendPercentage
+		},
+	}
+	args.AccRewardsEnableEpoch = accRewardsEnableEpoch
+
+	ec, _ := NewEndOfEpochEconomicsDataCreator(args)
+
+	// Before accRewardsEnableEpoch
+	rewards := ec.computeRewardsForAccelerator(totalRewards, accRewardsEnableEpoch-1)
+	expectedRewards := big.NewInt(1000) // 10000 * 0.1
+	assert.Equal(t, expectedRewards, rewards)
+
+	// At accRewardsEnableEpoch
+	rewards = ec.computeRewardsForAccelerator(totalRewards, accRewardsEnableEpoch)
+	expectedRewards = big.NewInt(1000) // 10000 * 0.1
+	assert.Equal(t, expectedRewards, rewards)
+
+	// After accRewardsEnableEpoch
+	rewards = ec.computeRewardsForAccelerator(totalRewards, accRewardsEnableEpoch+1)
+	expectedRewards = big.NewInt(6000) // 10000 * (0.1 + 0.2 + 0.3)
+	assert.Equal(t, expectedRewards, rewards)
+}
+
 func TestEconomics_ComputeEndOfEpochEconomics_NotEpochStartShouldErr(t *testing.T) {
 	t.Parallel()
 
@@ -316,25 +357,59 @@ func TestEconomics_ComputeInflationRate(t *testing.T) {
 	}
 	ec, _ := NewEndOfEpochEconomicsDataCreator(args)
 
-	rate := ec.computeInflationRate(1)
+	rate := ec.computeInflationRate(1, 0)
 	assert.Nil(t, errFound)
 	assert.Equal(t, rate, year1inflation)
 
-	rate = ec.computeInflationRate(50000)
+	rate = ec.computeInflationRate(50000, 0)
 	assert.Nil(t, errFound)
 	assert.Equal(t, rate, year1inflation)
 
-	rate = ec.computeInflationRate(7884000)
+	rate = ec.computeInflationRate(7884000, 0)
 	assert.Nil(t, errFound)
 	assert.Equal(t, rate, year2inflation)
 
-	rate = ec.computeInflationRate(8884000)
+	rate = ec.computeInflationRate(8884000, 0)
 	assert.Nil(t, errFound)
 	assert.Equal(t, rate, year2inflation)
 
-	rate = ec.computeInflationRate(38884000)
+	rate = ec.computeInflationRate(38884000, 0)
 	assert.Nil(t, errFound)
 	assert.Equal(t, rate, lateYearInflation)
+}
+
+func TestEconomics_ComputeInflationRate_TailInflation(t *testing.T) {
+	t.Parallel()
+
+	tailInflationActivationEpoch := uint32(100)
+	startYearInflation := 0.02
+	year1inflation := 0.1
+
+	args := getArguments()
+	args.RewardsHandler = &mock.RewardsHandlerStub{
+		TailInflationActivationEpochCalled: func() uint32 {
+			return tailInflationActivationEpoch
+		},
+		MaxInflationRateCalled: func(year uint32) float64 {
+			if year == 0 {
+				return startYearInflation
+			}
+			return year1inflation
+		},
+	}
+	ec, _ := NewEndOfEpochEconomicsDataCreator(args)
+
+	// Test before tail inflation activation
+	rate := ec.computeInflationRate(1, tailInflationActivationEpoch-1)
+	assert.Equal(t, year1inflation, rate)
+
+	// Test at tail inflation activation
+	rate = ec.computeInflationRate(1, tailInflationActivationEpoch)
+	assert.Equal(t, year1inflation, rate)
+
+	// Test after tail inflation activation
+	rate = ec.computeInflationRate(1, tailInflationActivationEpoch+1)
+	assert.Equal(t, startYearInflation, rate)
 }
 
 func TestEconomics_ComputeEndOfEpochEconomics(t *testing.T) {

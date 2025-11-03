@@ -140,7 +140,7 @@ func (e *economics) ComputeEndOfEpochEconomics(
 		supplyToUseForRewardsperBlock = prevEpochEconomics.TotalSupply
 	}
 
-	inflationRate := e.computeInflationRate(metaBlock.GetRound())
+	inflationRate := e.computeInflationRate(metaBlock.GetRound(), metaBlock.GetEpoch())
 	rwdPerBlock := e.computeRewardsPerBlock(
 		supplyToUseForRewardsperBlock,
 		maxBlocksInEpoch,
@@ -354,7 +354,11 @@ func (e *economics) adjustRewardsPerBlockWithLeaderPercentage(
 }
 
 // compute inflation rate from genesisTotalSupply and economics settings for that year
-func (e *economics) computeInflationRate(currentRound uint64) float64 {
+func (e *economics) computeInflationRate(currentRound uint64, currentEpoch uint32) float64 {
+	if e.rewardsHandler.TailInflationActivationEpoch() < currentEpoch {
+		return e.rewardsHandler.MaxInflationRate(0)
+	}
+
 	roundsPerDay := numberOfSecondsInDay / uint64(e.roundTime.TimeDuration().Seconds())
 	roundsPerYear := numberOfDaysInYear * roundsPerDay
 	yearsIndex := uint32(currentRound/roundsPerYear) + 1
