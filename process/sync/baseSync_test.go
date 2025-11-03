@@ -418,7 +418,7 @@ func TestBaseSync_RollBackExecutionResults(t *testing.T) {
 		header := &block.HeaderV3{}
 
 		execResults := []data.BaseExecutionResultHandler{}
-		header.SetExecutionResultsHandlers(execResults)
+		_ = header.SetExecutionResultsHandlers(execResults)
 
 		boot.RollBackExecutionResults(header, providedErr)
 
@@ -464,7 +464,7 @@ func TestBaseSync_RollBackExecutionResults(t *testing.T) {
 				},
 			},
 		}
-		header.SetExecutionResultsHandlers(execResults)
+		_ = header.SetExecutionResultsHandlers(execResults)
 
 		providedErr := errors.New("")
 		boot.RollBackExecutionResults(header, providedErr)
@@ -511,7 +511,7 @@ func TestBaseSync_RollBackExecutionResults(t *testing.T) {
 				},
 			},
 		}
-		header.SetExecutionResultsHandlers(execResults)
+		_ = header.SetExecutionResultsHandlers(execResults)
 
 		providedErr := process.ErrExecutionResultsNumberMismatch
 		boot.RollBackExecutionResults(header, providedErr)
@@ -568,7 +568,7 @@ func TestBaseSync_RollBackExecutionResults(t *testing.T) {
 
 		header := &block.HeaderV3{}
 
-		header.SetExecutionResultsHandlers(execResults)
+		_ = header.SetExecutionResultsHandlers(execResults)
 
 		providedErr := process.ErrExecutionResultsNonConsecutive
 		boot.RollBackExecutionResults(header, providedErr)
@@ -638,7 +638,7 @@ func TestBaseSync_RollBackExecutionResults(t *testing.T) {
 
 		header := &block.HeaderV3{}
 
-		header.SetExecutionResultsHandlers(execResults)
+		_ = header.SetExecutionResultsHandlers(execResults)
 
 		providedErr := process.ErrExecutionResultDoesNotMatch
 		boot.RollBackExecutionResults(header, providedErr)
@@ -707,7 +707,7 @@ func TestBaseSync_RollBackExecutionResults(t *testing.T) {
 		}
 
 		header := &block.HeaderV3{}
-		header.SetExecutionResultsHandlers(execResults)
+		_ = header.SetExecutionResultsHandlers(execResults)
 
 		providedErr := process.ErrExecutionResultDoesNotMatch
 		boot.RollBackExecutionResults(header, providedErr)
