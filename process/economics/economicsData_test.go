@@ -1733,6 +1733,22 @@ func TestEconomicsData_RewardsTopUpFactor(t *testing.T) {
 	assert.Equal(t, topUpFactor, value)
 }
 
+func TestEconomicsData_RewardsSettingsGetters(t *testing.T) {
+	t.Parallel()
+
+	args := createArgsForEconomicsData(1)
+	economicsData, _ := economics.NewEconomicsData(args)
+
+	pkConv, _ := pubkeyConverter.NewBech32PubkeyConverter(32, "erd")
+	expectedAddr, _ := pkConv.Decode("erd1932eft30w753xyvme8d49qejgkjc09n5e49w4mwdjtm0neld797su0dlxp")
+
+	// Test getters for epoch 0
+	assert.Equal(t, 0.0, economicsData.EcosystemGrowthPercentageInEpoch(0))
+	assert.Equal(t, string(expectedAddr), economicsData.EcosystemGrowthAddressInEpoch(0))
+	assert.Equal(t, 0.0, economicsData.GrowthDividendPercentageInEpoch(0))
+	assert.Equal(t, string(expectedAddr), economicsData.GrowthDividendAddressInEpoch(0))
+}
+
 func getExpectedSettings(rs []config.EpochRewardSettings, pkConv core.PubkeyConverter) []config.EpochRewardSettings {
 	expectedRS := make([]config.EpochRewardSettings, 0, len(rs))
 	for _, rewardSettingsPerEpoch := range rs {

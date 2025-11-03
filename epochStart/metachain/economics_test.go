@@ -1817,6 +1817,147 @@ func TestEconomics_ComputeEndOfEpochEconomicsWithTailInflation(t *testing.T) {
 	assert.Equal(t, expectedLeaderFees, ec.economicsDataNotified.LeaderFees(), expectedLeaderFees)
 }
 
+func TestEconomics_ComputeEndOfEpochEconomicsWithPrevEpochTotalSupply(t *testing.T) {
+	t.Parallel()
+
+	totalSupply := big.NewInt(0)
+	totalSupply.SetString("400000000000", 10)
+
+	mbPrevStartEpoch := block.MetaBlock{
+		Round: 10,
+		Nonce: 5,
+		EpochStart: block.EpochStart{
+			Economics: block.Economics{
+				TotalSupply: totalSupply,
+				NodePrice:   big.NewInt(100),
+			},
+		},
+	}
+
+	args := getArguments()
+	args.Store = &storageStubs.ChainStorerStub{
+		GetStorerCalled: func(unitType dataRetriever.UnitType) (storage.Storer, error) {
+			return &storageStubs.StorerStub{GetCalled: func(key []byte) ([]byte, error) {
+				hdr := mbPrevStartEpoch
+				hdrBytes, _ := json.Marshal(hdr)
+				return hdrBytes, nil
+			}}, nil
+		},
+	}
+	args.AccRewardsEnableEpoch = 2
+	ec, _ := NewEndOfEpochEconomicsDataCreator(args)
+
+	mb := block.MetaBlock{
+		Round: 15000,
+		EpochStart: block.EpochStart{
+			LastFinalizedHeaders: []block.EpochStartShardData{
+				{ShardID: 0, Round: 2, Nonce: 3},
+				{ShardID: 1, Round: 2, Nonce: 3},
+			},
+		},
+		Epoch:                  2,
+		AccumulatedFeesInEpoch: big.NewInt(10000),
+		DevFeesInEpoch:         big.NewInt(0),
+	}
+
+	res, err := ec.ComputeEndOfEpochEconomics(&mb)
+	require.Nil(t, err)
+	require.NotNil(t, res)
+
+	// re-calculate expected values for verification
+	inflationRate := ec.computeInflationRate(mb.GetRound())
+	roundsPassedInEpoch := mb.GetRound() - mbPrevStartEpoch.GetRound()
+	maxBlocksInEpoch := core.MaxUint64(1, roundsPassedInEpoch*uint64(args.ShardCoordinator.NumberOfShards()+1))
+
+	noncesPerShardPrevEpoch, _, _ := ec.startNoncePerShardFromEpochStart(mb.Epoch - 1)
+	noncesPerShardCurrEpoch, _ := ec.startNoncePerShardFromLastCrossNotarized(mb.GetNonce(), mb.EpochStart)
+	totalNumBlocksInEpoch := ec.computeNumOfTotalCreatedBlocks(noncesPerShardPrevEpoch, noncesPerShardCurrEpoch)
+
+	rwdPerBlock := ec.computeRewardsPerBlock(
+		mbPrevStartEpoch.EpochStart.Economics.TotalSupply,
+		maxBlocksInEpoch,
+		inflationRate,
+		mb.Epoch,
+	)
+	totalRewardsToBeDistributed := big.NewInt(0).Mul(rwdPerBlock, big.NewInt(0).SetUint64(totalNumBlocksInEpoch))
+	newTokens := big.NewInt(0).Sub(totalRewardsToBeDistributed, mb.AccumulatedFeesInEpoch)
+	if newTokens.Cmp(big.NewInt(0)) < 0 {
+		newTokens = big.NewInt(0)
+	}
+
+	expectedTotalSupply := big.NewInt(0).Add(mbPrevStartEpoch.EpochStart.Economics.TotalSupply, newTokens)
+	assert.Equal(t, expectedTotalSupply, res.TotalSupply)
+}
+
+func TestEconomics_TotalSupplyCalculation(t *testing.T) {
+	t.Parallel()
+
+	mbPrevStartEpoch := block.MetaBlock{
+		Round: 10,
+		Nonce: 5,
+		EpochStart: block.EpochStart{
+			Economics: block.Economics{
+				TotalSupply: big.NewInt(100000),
+				NodePrice:   big.NewInt(100),
+			},
+		},
+	}
+
+	args := getArguments()
+	args.Store = &storageStubs.ChainStorerStub{
+		GetStorerCalled: func(unitType dataRetriever.UnitType) (storage.Storer, error) {
+			return &storageStubs.StorerStub{GetCalled: func(key []byte) ([]byte, error) {
+				hdr := mbPrevStartEpoch
+				hdrBytes, _ := json.Marshal(hdr)
+				return hdrBytes, nil
+			}}, nil
+		},
+	}
+	args.AccRewardsEnableEpoch = 3 // future epoch
+	ec, _ := NewEndOfEpochEconomicsDataCreator(args)
+
+	mb := block.MetaBlock{
+		Round: 15000,
+		EpochStart: block.EpochStart{
+			LastFinalizedHeaders: []block.EpochStartShardData{
+				{ShardID: 0, Round: 2, Nonce: 3},
+				{ShardID: 1, Round: 2, Nonce: 3},
+			},
+		},
+		Epoch:                  2,
+		AccumulatedFeesInEpoch: big.NewInt(10000),
+		DevFeesInEpoch:         big.NewInt(0),
+	}
+
+	res, err := ec.ComputeEndOfEpochEconomics(&mb)
+	require.Nil(t, err)
+	require.NotNil(t, res)
+
+	// re-calculate expected values for verification
+	inflationRate := ec.computeInflationRate(mb.GetRound())
+	roundsPassedInEpoch := mb.GetRound() - mbPrevStartEpoch.GetRound()
+	maxBlocksInEpoch := core.MaxUint64(1, roundsPassedInEpoch*uint64(args.ShardCoordinator.NumberOfShards()+1))
+
+	noncesPerShardPrevEpoch, _, _ := ec.startNoncePerShardFromEpochStart(mb.Epoch - 1)
+	noncesPerShardCurrEpoch, _ := ec.startNoncePerShardFromLastCrossNotarized(mb.GetNonce(), mb.EpochStart)
+	totalNumBlocksInEpoch := ec.computeNumOfTotalCreatedBlocks(noncesPerShardPrevEpoch, noncesPerShardCurrEpoch)
+
+	rwdPerBlock := ec.computeRewardsPerBlock(
+		args.GenesisTotalSupply,
+		maxBlocksInEpoch,
+		inflationRate,
+		mb.Epoch,
+	)
+	totalRewardsToBeDistributed := big.NewInt(0).Mul(rwdPerBlock, big.NewInt(0).SetUint64(totalNumBlocksInEpoch))
+	newTokens := big.NewInt(0).Sub(totalRewardsToBeDistributed, mb.AccumulatedFeesInEpoch)
+	if newTokens.Cmp(big.NewInt(0)) < 0 {
+		newTokens = big.NewInt(0)
+	}
+
+	expectedTotalSupply := big.NewInt(0).Add(mbPrevStartEpoch.EpochStart.Economics.TotalSupply, newTokens)
+	assert.Equal(t, expectedTotalSupply, res.TotalSupply)
+}
+
 func printEconomicsData(eb *block.Economics, hitRate float64, numBlocksTotal int64) {
 	fmt.Printf("Hit rate per shard %.4f%%, Total block produced: %d \n", hitRate, numBlocksTotal)
 	fmt.Printf("Total supply: %vEGLD, TotalToDistribute %vEGLD, "+
