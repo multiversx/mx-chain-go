@@ -1943,3 +1943,87 @@ func addNonEligibleValidatorInfo(
 
 	return resultedValidatorsInfo
 }
+
+func TestRewardsCreatorV2_CreateRewardsMiniBlocksWithTopUp(t *testing.T) {
+	t.Parallel()
+
+	args := getRewardsCreatorV2Arguments()
+	nbEligiblePerShard := uint32(10)
+	vInfo := createDefaultValidatorInfo(nbEligiblePerShard, args.ShardCoordinator, args.NodesConfigProvider, 100, defaultBlocksPerShard)
+
+	// Set up validators with varying top-up stakes
+	nodesRewardInfo := make(map[uint32][]*nodeRewardsData)
+	totalTopUpStake := big.NewInt(0)
+	for shardID, valList := range vInfo.GetShardValidatorsInfoMap() {
+		nodesRewardInfo[shardID] = make([]*nodeRewardsData, len(valList))
+		for i, valInfo := range valList {
+			topUp := big.NewInt(int64(i * 100)) // Different top-up for each validator
+			totalTopUpStake.Add(totalTopUpStake, topUp)
+			nodesRewardInfo[shardID][i] = &nodeRewardsData{
+				valInfo:    valInfo,
+				topUpStake: topUp,
+			}
+		}
+	}
+
+	args.StakingDataProvider = &stakingcommon.StakingDataProviderStub{
+		GetTotalTopUpStakeEligibleNodesCalled: func() *big.Int {
+			return totalTopUpStake
+		},
+		GetNodeStakedTopUpCalled: func(blsKey []byte) (*big.Int, error) {
+			for _, nodes := range nodesRewardInfo {
+				for _, node := range nodes {
+					if bytes.Equal(node.valInfo.GetPublicKey(), blsKey) {
+						return node.topUpStake, nil
+					}
+				}
+			}
+			return nil, fmt.Errorf("not found")
+		},
+	}
+
+	nbBlocksPerShard := uint64(14400)
+	blocksPerShard := make(map[uint32]uint64)
+	shardMap := createShardsMap(args.ShardCoordinator)
+	for shardID := range shardMap {
+		blocksPerShard[shardID] = nbBlocksPerShard
+	}
+	args.EconomicsDataProvider.SetNumberOfBlocksPerShard(blocksPerShard)
+	rewardsForBlocks, _ := big.NewInt(0).SetString("5000000000000000000000", 10)
+	args.EconomicsDataProvider.SetRewardsToBeDistributedForBlocks(rewardsForBlocks)
+
+	rwd, err := NewRewardsCreatorV2(args)
+	require.Nil(t, err)
+	require.NotNil(t, rwd)
+
+	metaBlock := &block.MetaBlock{
+		EpochStart:     getDefaultEpochStart(),
+		DevFeesInEpoch: big.NewInt(0),
+	}
+	rwd.economicsDataProvider.SetRewardsForProtocolSustainability(metaBlock.EpochStart.Economics.RewardsForProtocolSustainability)
+
+	miniBlocks, err := rwd.CreateRewardsMiniBlocks(metaBlock, vInfo, &metaBlock.EpochStart.Economics)
+	require.Nil(t, err)
+	require.NotNil(t, miniBlocks)
+
+	sumRewards := big.NewInt(0)
+	var tx data.TransactionHandler
+	for _, mb := range miniBlocks {
+		for _, txHash := range mb.TxHashes {
+			tx, err = rwd.Txs(mb.ReceiverShardID).GetTx(txHash)
+			require.Nil(t, err)
+			sumRewards.Add(sumRewards, tx.GetValue())
+		}
+	}
+
+	sumFees := big.NewInt(0)
+	for _, v := range vInfo.GetAllValidatorsInfo() {
+		sumFees.Add(sumFees, v.GetAccumulatedFees())
+	}
+
+	totalRws := rwd.economicsDataProvider.RewardsToBeDistributedForBlocks()
+	rewardsForProtocolSustainability := big.NewInt(0).Set(metaBlock.EpochStart.Economics.RewardsForProtocolSustainability)
+	expectedRewards := big.NewInt(0).Add(sumFees, totalRws)
+	expectedRewards.Add(expectedRewards, rewardsForProtocolSustainability)
+	require.Equal(t, expectedRewards, sumRewards)
+}

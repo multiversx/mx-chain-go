@@ -1751,3 +1751,20 @@ func getExpectedSettings(rs []config.EpochRewardSettings, pkConv core.PubkeyConv
 
 	return expectedRS
 }
+
+
+func TestEconomicsData_RewardsSettingsGetters(t *testing.T) {
+	t.Parallel()
+
+	args := createArgsForEconomicsData(1)
+	economicsData, _ := economics.NewEconomicsData(args)
+
+	pkConv, _ := pubkeyConverter.NewBech32PubkeyConverter(32, "erd")
+	expectedAddr, _ := pkConv.Decode("erd1932eft30w753xyvme8d49qejgkjc09n5e49w4mwdjtm0neld797su0dlxp")
+
+	// Test getters for epoch 0
+	assert.Equal(t, 0.0, economicsData.EcosystemGrowthPercentageInEpoch(0))
+	assert.Equal(t, string(expectedAddr), economicsData.EcosystemGrowthAddressInEpoch(0))
+	assert.Equal(t, 0.0, economicsData.GrowthDividendPercentageInEpoch(0))
+	assert.Equal(t, string(expectedAddr), economicsData.GrowthDividendAddressInEpoch(0))
+}
