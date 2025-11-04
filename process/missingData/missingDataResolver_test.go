@@ -586,7 +586,7 @@ func TestResolver_RequestMissingShardHeadersBlocking(t *testing.T) {
 	t.Parallel()
 
 	headerNotFoundErr := errors.New("header not found")
-	shardHeaderHash := []byte("metaHeaderHash")
+	shardHeaderHash := []byte("shardHeaderHash")
 	metaHeader := &block.MetaBlockV3{
 		ShardInfoProposal: []block.ShardDataProposal{
 			{

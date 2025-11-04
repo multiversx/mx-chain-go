@@ -260,10 +260,11 @@ func (r *Resolver) RequestMissingShardHeaders(
 
 	shardDataProposedNonces := make(map[uint32]uint64)
 	for _, shardProposalData := range metaHeader.GetShardInfoProposalHandlers() {
-		shardDataProposedNonces[shardProposalData.GetShardID()] = shardProposalData.GetNonce()
+		shardID := shardProposalData.GetShardID()
+		shardDataProposedNonces[shardID] = shardProposalData.GetNonce()
 
-		r.requestHeaderIfNeeded(shardProposalData.GetShardID(), shardProposalData.GetHeaderHash())
-		r.requestProofIfNeeded(shardProposalData.GetShardID(), shardProposalData.GetHeaderHash())
+		r.requestHeaderIfNeeded(shardID, shardProposalData.GetHeaderHash())
+		r.requestProofIfNeeded(shardID, shardProposalData.GetHeaderHash())
 	}
 
 	shardDataFinalizedNonces := getShardDataFinalizedNonces(metaHeader.GetShardInfoHandlers())
