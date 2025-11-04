@@ -1112,12 +1112,7 @@ func (bp *baseProcessor) requestHeaderByShardAndNonce(shardID uint32, nonce uint
 }
 
 func (bp *baseProcessor) cleanExecutionResultsFromTracker(header data.HeaderHandler) error {
-	err := bp.executionResultsTracker.CleanConfirmedExecutionResults(header)
-	if err != nil {
-		return err
-	}
-
-	return nil
+	return bp.executionResultsTracker.CleanConfirmedExecutionResults(header)
 }
 
 func (bp *baseProcessor) cleanupPools(headerHandler data.HeaderHandler) {

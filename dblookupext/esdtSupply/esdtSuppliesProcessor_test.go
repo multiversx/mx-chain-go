@@ -410,6 +410,8 @@ func TestProcessLogs_RevertChangesHeaderV3(t *testing.T) {
 	t.Parallel()
 
 	t.Run("cannot get mb headers should err", func(t *testing.T) {
+		t.Parallel()
+
 		marshalizer := marshallerMock.MarshalizerMock{}
 		logsStorer := genericMocks.NewStorerMockWithErrKeyNotFound(0)
 		suppliesStorer := genericMocks.NewStorerMockWithErrKeyNotFound(0)
@@ -428,6 +430,8 @@ func TestProcessLogs_RevertChangesHeaderV3(t *testing.T) {
 	})
 
 	t.Run("cannot get mb from storage should error", func(t *testing.T) {
+		t.Parallel()
+
 		marshalizer := marshallerMock.MarshalizerMock{}
 		logsStorer := genericMocks.NewStorerMockWithErrKeyNotFound(0)
 		suppliesStorer := genericMocks.NewStorerMockWithErrKeyNotFound(0)
@@ -452,6 +456,8 @@ func TestProcessLogs_RevertChangesHeaderV3(t *testing.T) {
 	})
 
 	t.Run("should work", func(t *testing.T) {
+		t.Parallel()
+
 		marshalizer := marshallerMock.MarshalizerMock{}
 		logsStorer := genericMocks.NewStorerMockWithErrKeyNotFound(0)
 		suppliesStorer := genericMocks.NewStorerMockWithErrKeyNotFound(0)

@@ -195,7 +195,7 @@ func (ert *executionResultsTracker) cleanConfirmedExecutionResults(headerExecuti
 			// different execution result should clean everything starting from this execution result and return CleanResultMismatch
 			ert.cleanExecutionResults(pendingExecutionResult[idx:])
 
-			return fmt.Errorf("%w, last matching result nonce: %d", ErrExecutionResultMissmatch, lastMatchingResultNonce)
+			return fmt.Errorf("%w, last matching result nonce: %d", ErrExecutionResultMismatch, lastMatchingResultNonce)
 		}
 
 		lastMatchingResultNonce = executionResultFromHeader.GetHeaderNonce()

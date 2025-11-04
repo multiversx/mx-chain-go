@@ -301,7 +301,7 @@ func TestAddExecutionResultAndCleanDifferentResultsFromHeader(t *testing.T) {
 	}
 
 	err = tracker.CleanConfirmedExecutionResults(header)
-	require.True(t, errors.Is(err, ErrExecutionResultMissmatch))
+	require.True(t, errors.Is(err, ErrExecutionResultMismatch))
 
 	// check that everything before the mismatch was kept inside tracker
 	results, err := tracker.GetPendingExecutionResults()
