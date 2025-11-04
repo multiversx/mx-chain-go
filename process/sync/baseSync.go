@@ -749,13 +749,14 @@ func (boot *baseBootstrap) doJobOnSyncBlockFail(bodyHandler data.BodyHandler, he
 			boot.forkDetector.RemoveHeader(headerHandler.GetNonce(), hash)
 		}
 
-		errNotCritical := boot.rollBack(false)
-		if errNotCritical != nil {
-			log.Debug("rollBack", "error", errNotCritical.Error())
+		var execResultsErr error
+		if isExecResultsError {
+			execResultsErr = err
 		}
 
-		if isExecResultsError {
-			boot.rollBackExecutionResults(headerHandler, err)
+		errNotCritical := boot.rollBack(false, execResultsErr)
+		if errNotCritical != nil {
+			log.Debug("rollBack", "error", errNotCritical.Error())
 		}
 
 		if isSyncWithErrorsLimitReachedInProperRound {
@@ -803,6 +804,21 @@ func (boot *baseBootstrap) rollBackExecutionResults(
 			}
 		}
 	}
+}
+
+func (boot *baseBootstrap) setLastExecutionResultInfo() error {
+	executionResult, err := boot.executionResultsTracker.GetLastExecutionResult()
+	if err != nil {
+		return err
+	}
+
+	boot.chainHandler.SetLastExecutedBlockInfo(
+		executionResult.GetHeaderNonce(),
+		executionResult.GetHeaderHash(),
+		executionResult.GetRootHash(),
+	)
+
+	return nil
 }
 
 func (boot *baseBootstrap) removeExecutionResultsFromNonce(nonce uint64) {
@@ -870,7 +886,7 @@ func (boot *baseBootstrap) syncBlock() error {
 			"nonce", boot.forkInfo.Nonce,
 			"hash", boot.forkInfo.Hash,
 		)
-		err := boot.rollBack(true)
+		err := boot.rollBack(true, nil)
 		if err != nil {
 			return err
 		}
@@ -1187,7 +1203,10 @@ func (boot *baseBootstrap) cleanProofsBehindFinal(header data.HeaderHandler) {
 }
 
 // rollBack decides if rollBackOneBlock must be called
-func (boot *baseBootstrap) rollBack(revertUsingForkNonce bool) error {
+func (boot *baseBootstrap) rollBack(
+	revertUsingForkNonce bool,
+	execResultErr error,
+) error {
 	var roleBackOneBlockExecuted bool
 	var err error
 	var currHeaderHash []byte
@@ -1245,6 +1264,10 @@ func (boot *baseBootstrap) rollBack(revertUsingForkNonce bool) error {
 		log.Debug("highest final block nonce",
 			"nonce", boot.forkDetector.GetHighestFinalBlockNonce(),
 		)
+
+		if execResultErr != nil {
+			boot.rollBackExecutionResults(currHeader, execResultErr)
+		}
 
 		currBody, err = boot.rollBackOneBlock(
 			currHeaderHash,
@@ -1353,8 +1376,14 @@ func (boot *baseBootstrap) rollBackOneBlock(
 
 	var err error
 
-	prevHeaderRootHash := boot.getRootHashFromBlock(prevHeader, prevHeaderHash)
-	currHeaderRootHash := boot.getRootHashFromBlock(currHeader, currHeaderHash)
+	prevHeaderRootHash, err := boot.getRootHashFromPrevBlock(prevHeader, prevHeaderHash)
+	if err != nil {
+		return nil, err
+	}
+	currHeaderRootHash, err := boot.getRootHashFromCurrBlock(currHeader, currHeaderHash)
+	if err != nil {
+		return nil, err
+	}
 
 	defer func() {
 		if err != nil {
@@ -1374,7 +1403,7 @@ func (boot *baseBootstrap) rollBackOneBlock(
 		}
 	}
 
-	err = boot.blockProcessor.RevertStateToBlock(prevHeader, prevHeaderRootHash)
+	err = boot.revertStateToBlock(prevHeader, prevHeaderRootHash)
 	if err != nil {
 		return nil, err
 	}
@@ -1396,14 +1425,61 @@ func (boot *baseBootstrap) rollBackOneBlock(
 	return currBlockBody, nil
 }
 
-func (boot *baseBootstrap) getRootHashFromBlock(hdr data.HeaderHandler, hdrHash []byte) []byte {
+func (boot *baseBootstrap) revertStateToBlock(
+	header data.HeaderHandler,
+	rootHash []byte,
+) error {
+	if header.IsHeaderV3() {
+		// restore stake to block will be done later after checking and cleaning up execution results
+		return nil
+	}
+
+	return boot.blockProcessor.RevertStateToBlock(header, rootHash)
+}
+
+func (boot *baseBootstrap) getRootHashFromBlock(hdr data.HeaderHandler, hdrHash []byte) ([]byte, error) {
 	hdrRootHash := hdr.GetRootHash()
 	scheduledHdrRootHash, err := boot.scheduledTxsExecutionHandler.GetScheduledRootHashForHeader(hdrHash)
 	if err == nil {
 		hdrRootHash = scheduledHdrRootHash
 	}
 
-	return hdrRootHash
+	return hdrRootHash, nil
+}
+
+func (boot *baseBootstrap) getRootHashFromPrevBlock(hdr data.HeaderHandler, hdrHash []byte) ([]byte, error) {
+	if hdr.IsHeaderV3() {
+		return boot.getRootHashFromPrevBlockV3(hdr)
+	}
+
+	return boot.getRootHashFromBlock(hdr, hdrHash)
+}
+
+func (boot *baseBootstrap) getRootHashFromCurrBlock(hdr data.HeaderHandler, hdrHash []byte) ([]byte, error) {
+	if hdr.IsHeaderV3() {
+		return boot.getRootHashFromCurrBlockV3(hdr)
+	}
+
+	return boot.getRootHashFromBlock(hdr, hdrHash)
+}
+
+func (boot *baseBootstrap) getRootHashFromCurrBlockV3(header data.HeaderHandler) ([]byte, error) {
+	lastExecutionResult, err := boot.executionResultsTracker.GetLastExecutionResult()
+	if err != nil {
+		return nil, err
+	}
+
+	return lastExecutionResult.GetRootHash(), nil
+}
+
+func (boot *baseBootstrap) getRootHashFromPrevBlockV3(header data.HeaderHandler) ([]byte, error) {
+	lastExecutionResult, err := common.GetLastBaseExecutionResultHandler(header)
+	if err != nil {
+		log.Warn("failed to get last execution result for header", "err", err)
+		return nil, err
+	}
+
+	return lastExecutionResult.GetRootHash(), nil
 }
 
 func (boot *baseBootstrap) getNextHeaderRequestingIfMissing() (data.HeaderHandler, error) {
@@ -1674,7 +1750,7 @@ func (boot *baseBootstrap) isForcedRollBackToNonce() bool {
 }
 
 func (boot *baseBootstrap) rollBackOneBlockForced() {
-	err := boot.rollBack(false)
+	err := boot.rollBack(false, nil)
 	if err != nil {
 		log.Debug("rollBackOneBlockForced", "error", err.Error())
 	}
@@ -1684,7 +1760,7 @@ func (boot *baseBootstrap) rollBackOneBlockForced() {
 }
 
 func (boot *baseBootstrap) rollBackToNonceForced() {
-	err := boot.rollBack(true)
+	err := boot.rollBack(true, nil)
 	if err != nil {
 		log.Debug("rollBackToNonceForced", "error", err.Error())
 	}
@@ -1693,11 +1769,35 @@ func (boot *baseBootstrap) rollBackToNonceForced() {
 	boot.removeHeadersHigherThanNonceFromPool(boot.getNonceForCurrentBlock())
 }
 
+func (boot *baseBootstrap) restoreStateV3(
+	currHeaderHash []byte,
+	currHeader data.HeaderHandler,
+	currRootHash []byte,
+) {
+	// TODO: add method in chain handler to set current header
+	err := boot.chainHandler.SetCurrentBlockHeaderAndRootHash(currHeader, nil)
+	if err != nil {
+		log.Debug("SetCurrentBlockHeader", "error", err.Error())
+	}
+
+	boot.chainHandler.SetCurrentBlockHeaderHash(currHeaderHash)
+
+	err = boot.blockProcessor.RevertStateToBlock(currHeader, currRootHash)
+	if err != nil {
+		log.Debug("RevertState", "error", err.Error())
+	}
+}
+
 func (boot *baseBootstrap) restoreState(
 	currHeaderHash []byte,
 	currHeader data.HeaderHandler,
 	currRootHash []byte,
 ) {
+	if currHeader.IsHeaderV3() {
+		boot.restoreStateV3(currHeaderHash, currHeader, currRootHash)
+		return
+	}
+
 	log.Debug("revert state to header",
 		"nonce", currHeader.GetNonce(),
 		"hash", currHeaderHash,
@@ -1732,6 +1832,9 @@ func (boot *baseBootstrap) setCurrentBlockInfo(
 	header data.HeaderHandler,
 	rootHash []byte,
 ) error {
+	if header != nil && header.IsHeaderV3() {
+		return boot.setCurrentBlockInfoV3(headerHash, header, rootHash)
+	}
 
 	err := boot.chainHandler.SetCurrentBlockHeaderAndRootHash(header, rootHash)
 	if err != nil {
@@ -1741,6 +1844,21 @@ func (boot *baseBootstrap) setCurrentBlockInfo(
 	boot.chainHandler.SetCurrentBlockHeaderHash(headerHash)
 
 	return nil
+}
+
+func (boot *baseBootstrap) setCurrentBlockInfoV3(
+	headerHash []byte,
+	header data.HeaderHandler,
+	rootHash []byte,
+) error {
+	err := boot.chainHandler.SetCurrentBlockHeaderAndRootHash(header, rootHash) // root hash not set here on heaver v3
+	if err != nil {
+		return err
+	}
+
+	boot.chainHandler.SetCurrentBlockHeaderHash(headerHash)
+
+	return boot.setLastExecutionResultInfo()
 }
 
 // setRequestedMiniBlocks method sets the body hash requested by the sync mechanism

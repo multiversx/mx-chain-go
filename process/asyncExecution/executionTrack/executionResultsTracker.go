@@ -66,6 +66,11 @@ func (ert *executionResultsTracker) AddExecutionResult(executionResult data.Base
 	return nil
 }
 
+// GetLastExecutionResult return last execution result from tracker
+func (ert *executionResultsTracker) GetLastExecutionResult() (data.BaseExecutionResultHandler, error) {
+	return ert.getLastExecutionResult()
+}
+
 func (ert *executionResultsTracker) getLastExecutionResult() (data.BaseExecutionResultHandler, error) {
 	if ert.lastNotarizedResult == nil {
 		return nil, ErrNilLastNotarizedExecutionResult

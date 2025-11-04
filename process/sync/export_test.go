@@ -67,12 +67,12 @@ func (boot *ShardBootstrap) SetRcvHdrHash() {
 
 // RollBack -
 func (boot *ShardBootstrap) RollBack(revertUsingForkNonce bool) error {
-	return boot.rollBack(revertUsingForkNonce)
+	return boot.rollBack(revertUsingForkNonce, nil)
 }
 
 // RollBack -
 func (boot *MetaBootstrap) RollBack(revertUsingForkNonce bool) error {
-	return boot.rollBack(revertUsingForkNonce)
+	return boot.rollBack(revertUsingForkNonce, nil)
 }
 
 // GetHeaders -

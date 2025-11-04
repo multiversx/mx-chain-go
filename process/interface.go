@@ -1568,6 +1568,7 @@ type ExecutionResultsTracker interface {
 	GetLastNotarizedExecutionResult() (data.BaseExecutionResultHandler, error)
 	SetLastNotarizedResult(executionResult data.BaseExecutionResultHandler) error
 	RemoveFromNonce(nonce uint64) error
+	GetLastExecutionResult() (data.BaseExecutionResultHandler, error)
 	IsInterfaceNil() bool
 }
 
