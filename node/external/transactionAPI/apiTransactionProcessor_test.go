@@ -1214,14 +1214,13 @@ func TestApiTransactionProcessor_GetSelectedTransactions(t *testing.T) {
 				}
 			},
 		}
-
 		atp, err := NewAPITransactionProcessor(args)
 		require.NoError(t, err)
 		require.NotNil(t, atp)
 
 		accountsAdapter := &stateMock.AccountsStub{
 			RootHashCalled: func() ([]byte, error) {
-				return []byte("rootHash"), nil
+				return nil, nil
 			},
 			GetExistingAccountCalled: func(addressContainer []byte) (vmcommon.AccountHandler, error) {
 				if bytes.Equal(addressContainer, []byte("alice")) {
@@ -1291,7 +1290,7 @@ func TestApiTransactionProcessor_GetSelectedTransactions(t *testing.T) {
 
 		accountsAdapter := &stateMock.AccountsStub{
 			RootHashCalled: func() ([]byte, error) {
-				return []byte("rootHash"), nil
+				return nil, nil
 			},
 			GetExistingAccountCalled: func(addressContainer []byte) (vmcommon.AccountHandler, error) {
 				if bytes.Equal(addressContainer, []byte("alice")) {

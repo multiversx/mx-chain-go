@@ -249,11 +249,18 @@ func initAccountsMock() *stateMock.AccountsStub {
 }
 
 func createMockTransactionCoordinatorArguments() ArgTransactionCoordinator {
+	accounts := &stateMock.AccountsStub{}
+	accounts.RecreateTrieIfNeededCalled = func(options common.RootHashHolder) error {
+		return nil
+	}
+	accounts.RootHashCalled = func() ([]byte, error) {
+		return nil, nil
+	}
 	argsTransactionCoordinator := ArgTransactionCoordinator{
 		Hasher:                       &hashingMocks.HasherMock{},
 		Marshalizer:                  &mock.MarshalizerMock{},
 		ShardCoordinator:             mock.NewMultiShardsCoordinatorMock(5),
-		Accounts:                     &stateMock.AccountsStub{},
+		Accounts:                     accounts,
 		MiniBlockPool:                dataRetrieverMock.NewPoolsHolderMock().MiniBlocks(),
 		PreProcessors:                &preprocMocks.PreProcessorContainerMock{},
 		PreProcessorsProposal:        &preprocMocks.PreProcessorContainerMock{},
@@ -1388,7 +1395,7 @@ func TestTransactionCoordinator_CreateMbsAndProcessTransactionsFromMe(t *testing
 	argsTransactionCoordinator := createMockTransactionCoordinatorArguments()
 	argsTransactionCoordinator.Accounts = &stateMock.AccountsStub{
 		RootHashCalled: func() ([]byte, error) {
-			return []byte("rootHash"), nil
+			return nil, nil
 		},
 		GetExistingAccountCalled: func(_ []byte) (vmcommon.AccountHandler, error) {
 			return &stateMock.UserAccountStub{
@@ -1438,7 +1445,7 @@ func TestTransactionCoordinator_CreateMbsAndProcessTransactionsFromMeMultipleMin
 	argsTransactionCoordinator := createMockTransactionCoordinatorArguments()
 	argsTransactionCoordinator.Accounts = &stateMock.AccountsStub{
 		RootHashCalled: func() ([]byte, error) {
-			return []byte("rootHash"), nil
+			return nil, nil
 		},
 		GetExistingAccountCalled: func(_ []byte) (vmcommon.AccountHandler, error) {
 			return &stateMock.UserAccountStub{
@@ -1502,7 +1509,7 @@ func TestTransactionCoordinator_CreateMbsAndProcessTransactionsFromMeMultipleMin
 	argsTransactionCoordinator := createMockTransactionCoordinatorArguments()
 	argsTransactionCoordinator.Accounts = &stateMock.AccountsStub{
 		RootHashCalled: func() ([]byte, error) {
-			return []byte("rootHash"), nil
+			return nil, nil
 		},
 		GetExistingAccountCalled: func(_ []byte) (vmcommon.AccountHandler, error) {
 			return &stateMock.UserAccountStub{
@@ -1576,7 +1583,7 @@ func TestTransactionCoordinator_CompactAndExpandMiniblocksShouldWork(t *testing.
 	argsTransactionCoordinator := createMockTransactionCoordinatorArguments()
 	argsTransactionCoordinator.Accounts = &stateMock.AccountsStub{
 		RootHashCalled: func() ([]byte, error) {
-			return []byte("rootHash"), nil
+			return nil, nil
 		},
 		GetExistingAccountCalled: func(_ []byte) (vmcommon.AccountHandler, error) {
 			return &stateMock.UserAccountStub{
@@ -1651,7 +1658,7 @@ func TestTransactionCoordinator_GetAllCurrentUsedTxs(t *testing.T) {
 	argsTransactionCoordinator := createMockTransactionCoordinatorArguments()
 	argsTransactionCoordinator.Accounts = &stateMock.AccountsStub{
 		RootHashCalled: func() ([]byte, error) {
-			return []byte("rootHash"), nil
+			return nil, nil
 		},
 		GetExistingAccountCalled: func(_ []byte) (vmcommon.AccountHandler, error) {
 			return &stateMock.UserAccountStub{

@@ -429,10 +429,6 @@ func (st *selectionTracker) deriveVirtualSelectionSession(
 		return nil, err
 	}
 
-	if len(rootHash) == 0 {
-		log.Debug("selectionTracker.deriveVirtualSelectionSession nil session rootHash")
-	}
-
 	if !bytes.Equal(st.latestRootHash, rootHash) {
 		// TODO when the right information will be passed on the OnExecutedBlock flow, the error must be returned here.
 		log.Error("selectionTracker.deriveVirtualSelectionSession",
