@@ -594,9 +594,10 @@ func TestMetaProcessor_CreateBlockProposal(t *testing.T) {
 
 		coreComponents, dataComponents, bootstrapComponents, statusComponents := createMockComponentHolders()
 		arguments := createMockMetaArguments(coreComponents, dataComponents, bootstrapComponents, statusComponents)
+		var invalidShardDataProposal data.ShardDataProposalHandler
 		arguments.ShardInfoCreator = &processMocks.ShardInfoCreatorMock{
 			CreateShardInfoV3Called: func(metaHeader data.MetaHeaderHandler, shardHeaders []data.HeaderHandler, shardHeaderHashes [][]byte) ([]data.ShardDataProposalHandler, []data.ShardDataHandler, error) {
-				return nil, []data.ShardDataHandler{}, nil // nil shard data proposal
+				return []data.ShardDataProposalHandler{invalidShardDataProposal}, []data.ShardDataHandler{}, nil
 			},
 		}
 
