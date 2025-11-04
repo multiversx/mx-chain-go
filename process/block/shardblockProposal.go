@@ -330,8 +330,19 @@ func (sp *shardProcessor) ProcessBlockProposal(
 		"nonce", headerHandler.GetNonce(),
 	)
 
+	if sp.accountsDB[state.UserAccountsState].JournalLen() != 0 {
+		log.Error("shardProcessor.ProcessBlockProposal first entry", "stack", string(sp.accountsDB[state.UserAccountsState].GetStackDebugFirstEntry()))
+		return nil, process.ErrAccountStateDirty
+	}
+
+	// TODO: add check also for meta
+	err := sp.checkContextBeforeExecution(header)
+	if err != nil {
+		return nil, err
+	}
+
 	// this is used now to reset the context for processing not creation of blocks
-	err := sp.createBlockStarted()
+	err = sp.createBlockStarted()
 	if err != nil {
 		return nil, err
 	}
@@ -357,20 +368,9 @@ func (sp *shardProcessor) ProcessBlockProposal(
 		return nil, err
 	}
 
-	// TODO: add check also for meta
-	err = sp.checkRootHashBeforeExecution()
-	if err != nil {
-		return nil, err
-	}
-
 	err = sp.hdrsForCurrBlock.WaitForHeadersIfNeeded(haveTime)
 	if err != nil {
 		return nil, err
-	}
-
-	if sp.accountsDB[state.UserAccountsState].JournalLen() != 0 {
-		log.Error("shardProcessor.ProcessBlockProposal first entry", "stack", string(sp.accountsDB[state.UserAccountsState].GetStackDebugFirstEntry()))
-		return nil, process.ErrAccountStateDirty
 	}
 
 	// TODO: check if the current processing is done on the proper context(prev header and root hash)
@@ -420,14 +420,20 @@ func (sp *shardProcessor) ProcessBlockProposal(
 	return executionResult, nil
 }
 
-func (sp *shardProcessor) checkRootHashBeforeExecution() error {
+func (sp *shardProcessor) checkContextBeforeExecution(header data.HeaderHandler) error {
 	lastCommittedRootHash, err := sp.accountsDB[state.UserAccountsState].RootHash()
 	if err != nil {
 		return err
 	}
 
-	currentRootHash := sp.blockChain.GetCurrentBlockRootHash()
-	if !bytes.Equal(lastCommittedRootHash, currentRootHash) {
+	lastExecutedNonce, lastExecutedHash, lastExecutedRootHash := sp.blockChain.GetLastExecutedBlockInfo()
+	if !bytes.Equal(header.GetPrevHash(), lastExecutedHash) {
+		return process.ErrBlockHashDoesNotMatch
+	}
+	if header.GetNonce() != lastExecutedNonce+1 {
+		return process.ErrWrongNonceInBlock
+	}
+	if !bytes.Equal(lastCommittedRootHash, lastExecutedRootHash) {
 		return process.ErrRootStateDoesNotMatch
 	}
 

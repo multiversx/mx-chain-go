@@ -711,14 +711,36 @@ func TestMetaProcessor_CreateBlockProposal(t *testing.T) {
 func TestMetaProcessor_VerifyBlockProposal(t *testing.T) {
 	t.Parallel()
 
+	prevBlockHash := []byte("prev header hash")
+	prevLastMetaExecutionResult := &block.MetaExecutionResultInfo{
+		ExecutionResult: &block.BaseMetaExecutionResult{
+			BaseExecutionResult: &block.BaseExecutionResult{},
+		},
+	}
 	coreComponents, dataComponents, bootstrapComponents, statusComponents := createMockComponentHolders()
+	dataComponents = &mock.DataComponentsMock{
+		Storage:  dataComponents.Storage,
+		DataPool: dataComponents.DataPool,
+		BlockChain: &testscommon.ChainHandlerStub{
+			GetCurrentBlockHeaderHashCalled: func() []byte {
+				return prevBlockHash
+			},
+			GetCurrentBlockHeaderCalled: func() data.HeaderHandler {
+				return &block.MetaBlockV3{
+					LastExecutionResult: prevLastMetaExecutionResult,
+				}
+			},
+		},
+	}
 	arguments := createMockMetaArguments(coreComponents, dataComponents, bootstrapComponents, statusComponents)
 	mp, err := blproc.NewMetaProcessor(arguments)
 	require.Nil(t, err)
 
-	header := &block.MetaBlock{
-		Nonce: 1,
-		Round: 1,
+	header := &block.MetaBlockV3{
+		PrevHash:            prevBlockHash,
+		Nonce:               1,
+		Round:               1,
+		LastExecutionResult: prevLastMetaExecutionResult,
 	}
 	body := &block.Body{}
 

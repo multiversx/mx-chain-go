@@ -2,6 +2,8 @@ package block
 
 import (
 	"errors"
+	"fmt"
+	"sort"
 	"time"
 
 	"github.com/multiversx/mx-chain-core-go/core"
@@ -206,7 +208,7 @@ func (mp *metaProcessor) VerifyBlockProposal(
 		"round", headerHandler.GetRound(),
 		"nonce", headerHandler.GetNonce())
 
-	header, ok := headerHandler.(*block.MetaBlock)
+	header, ok := headerHandler.(*block.MetaBlockV3)
 	if !ok {
 		return process.ErrWrongTypeAssertion
 	}
@@ -245,7 +247,30 @@ func (mp *metaProcessor) VerifyBlockProposal(
 	mp.updateMetrics(header)
 	mp.missingDataResolver.Reset()
 	mp.missingDataResolver.RequestBlockTransactions(body)
-	// mp.missingDataResolver.RequestShardHeaders(header)
+	// the epoch start meta block and its proof is also requested here if missing
+	err = mp.missingDataResolver.RequestMissingShardHeaders(header)
+	if err != nil {
+		return err
+	}
+
+	err = mp.missingDataResolver.WaitForMissingData(haveTime())
+	if err != nil {
+		return err
+	}
+
+	defer func() {
+		go mp.checkAndRequestIfShardHeadersMissing()
+	}()
+
+	err = mp.checkEpochCorrectness(header)
+	if err != nil {
+		return err
+	}
+
+	err = mp.checkShardHeadersValidityAndFinalityProposal(header)
+	if err != nil {
+		return err
+	}
 
 	return nil
 }
@@ -458,4 +483,206 @@ func (mp *metaProcessor) selectIncomingMiniBlocks(
 	}
 
 	return nil
+}
+
+func (mp *metaProcessor) checkEpochCorrectnessV3(
+	headerHandler data.MetaHeaderHandler,
+) error {
+	currentBlockHeader := mp.blockChain.GetCurrentBlockHeader()
+	if check.IfNil(currentBlockHeader) {
+		return nil
+	}
+
+	hasEpochStartExecutionResults, err := mp.hasStartOfEpochExecutionResults(headerHandler)
+	if err != nil {
+		return err
+	}
+
+	wasEpochStartProposed, err := mp.hasExecutionResultsForProposedEpochChange(headerHandler)
+	if err != nil {
+		return err
+	}
+
+	isEpochStartBlock := headerHandler.IsStartOfEpochBlock()
+	hasAllEpochStartData := hasEpochStartExecutionResults && isEpochStartBlock && wasEpochStartProposed
+	hasAnyEpochStartData := hasEpochStartExecutionResults || isEpochStartBlock || wasEpochStartProposed
+	hasIncompleteEpochStartData := hasAnyEpochStartData && !hasAllEpochStartData
+
+	if hasIncompleteEpochStartData {
+		log.Warn("block has incomplete epoch start data",
+			"hasEpochStartExecutionResults", hasEpochStartExecutionResults,
+			"isEpochStartBlock", isEpochStartBlock,
+			"wasEpochStartProposed", wasEpochStartProposed,
+			"epochStartTrigger", mp.epochStartTrigger.Epoch())
+		return process.ErrEpochDoesNotMatch
+	}
+
+	isEpochIncorrect := headerHandler.GetEpoch() != currentBlockHeader.GetEpoch() && !hasAllEpochStartData
+	if isEpochIncorrect {
+		log.Warn("block does not have epoch start results but epoch has changed",
+			"currentHeaderEpoch", currentBlockHeader.GetEpoch(),
+			"receivedHeaderEpoch", headerHandler.GetEpoch(),
+			"epochStartTrigger", mp.epochStartTrigger.Epoch())
+		return process.ErrEpochDoesNotMatch
+	}
+
+	isEpochIncorrect = headerHandler.GetEpoch() == currentBlockHeader.GetEpoch() && hasAllEpochStartData
+	if isEpochIncorrect {
+		log.Warn("block has epoch start results but epoch did not change",
+			"currentHeaderEpoch", currentBlockHeader.GetEpoch(),
+			"receivedHeaderEpoch", headerHandler.GetEpoch(),
+			"epochStartTrigger", mp.epochStartTrigger.Epoch())
+		return process.ErrEpochDoesNotMatch
+	}
+
+	isEpochIncorrect = headerHandler.GetEpoch() != currentBlockHeader.GetEpoch()+1 && hasAllEpochStartData
+	if isEpochIncorrect {
+		log.Warn("block did not correctly change epoch, with proposed epoch change",
+			"currentHeaderEpoch", currentBlockHeader.GetEpoch(),
+			"receivedHeaderEpoch", headerHandler.GetEpoch(),
+			"epochStartTrigger", mp.epochStartTrigger.Epoch())
+		return process.ErrEpochDoesNotMatch
+	}
+
+	return nil
+}
+
+func (mp *metaProcessor) hasExecutionResultsForProposedEpochChange(headerHandler data.MetaHeaderHandler) (bool, error) {
+	executionResults := headerHandler.GetExecutionResultsHandlers()
+	var header data.HeaderHandler
+	var err error
+
+	for _, execResult := range executionResults {
+		header, err = mp.dataPool.Headers().GetHeaderByHash(execResult.GetHeaderHash())
+		if err != nil {
+			return false, err
+		}
+		metaHeaderHandler, ok := header.(data.MetaHeaderHandler)
+		if !ok {
+			return false, process.ErrWrongTypeAssertion
+		}
+		if metaHeaderHandler.IsEpochChangeProposed() {
+			return true, nil
+		}
+	}
+
+	return false, nil
+}
+
+func (mp *metaProcessor) checkShardHeadersValidityAndFinalityProposal(
+	metaHeaderHandler data.MetaHeaderHandler,
+) error {
+	lastCrossNotarizedHeader, err := mp.getLastCrossNotarizedShardHdrs()
+	if err != nil {
+		return err
+	}
+
+	usedShardHeadersInfo, err := mp.getShardHeadersFromMetaHeader(metaHeaderHandler)
+	if err != nil {
+		return fmt.Errorf("%w : checkShardHeadersValidityAndFinalityProposal -> getShardHeadersFromMetaHeader", err)
+	}
+
+	for _, headers := range usedShardHeadersInfo.HeadersPerShard {
+		sort.Slice(headers, func(i, j int) bool {
+			return headers[i].Header.GetNonce() < headers[j].Header.GetNonce()
+		})
+	}
+
+	ok := mp.HasProofsForHeaders(usedShardHeadersInfo.HeadersPerShard)
+	if !ok {
+		return process.ErrMissingHeaderProof
+	}
+
+	err = mp.verifyUsedShardHeadersValidity(usedShardHeadersInfo.HeadersPerShard, lastCrossNotarizedHeader)
+	if err != nil {
+		return fmt.Errorf("%w : checkShardHeadersValidityAndFinalityProposal -> verifyUsedShardHeadersValidity", err)
+	}
+
+	comparisonShardInfo, err := mp.shardInfoCreateData.CreateShardInfoV3(metaHeaderHandler, usedShardHeadersInfo.OrderedShardHeaders, usedShardHeadersInfo.OrderedShardHeaderHashes)
+	if err != nil {
+		return fmt.Errorf("%w : checkShardHeadersValidityAndFinalityProposal -> CreateShardInfoV3", err)
+	}
+
+	// TODO: use the shard info for notarized proposals instead
+	shardInfoProposal := metaHeaderHandler.GetShardInfoHandlers()
+	for i, proposedShardInfo := range shardInfoProposal {
+		shardData, ok := proposedShardInfo.(*block.ShardData)
+		if !ok {
+			return process.ErrWrongTypeAssertion
+		}
+		if !shardData.Equal(comparisonShardInfo[i]) {
+			return process.ErrShardInfoDoesNotMatch
+		}
+	}
+
+	return nil
+}
+
+func (mp *metaProcessor) verifyUsedShardHeadersValidity(
+	usedShardHeaders map[uint32][]ShardHeaderInfo,
+	lastCrossNotarizedHeader map[uint32]ShardHeaderInfo,
+) error {
+	var err error
+	for shardID, hdrsForShard := range usedShardHeaders {
+		lastNotarizedHeaderInfoForShard := lastCrossNotarizedHeader[shardID]
+		for _, shardHdrInfo := range hdrsForShard {
+			if !mp.isGenesisShardBlockAndFirstMeta(shardHdrInfo.Header.GetNonce()) {
+				err = mp.headerValidator.IsHeaderConstructionValid(shardHdrInfo.Header, lastNotarizedHeaderInfoForShard.Header)
+				if err != nil {
+					return err
+				}
+			}
+
+			lastNotarizedHeaderInfoForShard = shardHdrInfo
+		}
+	}
+	return nil
+}
+
+func (mp *metaProcessor) HasProofsForHeaders(headersPerShard map[uint32][]ShardHeaderInfo) bool {
+	for _, headersForShard := range headersPerShard {
+		for _, headerInfo := range headersForShard {
+			if !mp.proofsPool.HasProof(headerInfo.Header.GetShardID(), headerInfo.Hash) {
+				return false
+			}
+		}
+	}
+	return true
+}
+
+type UsedShardHeadersInfo struct {
+	HeadersPerShard          map[uint32][]ShardHeaderInfo
+	OrderedShardHeaders      []data.HeaderHandler
+	OrderedShardHeaderHashes [][]byte
+}
+
+func (mp *metaProcessor) getShardHeadersFromMetaHeader(
+	metaHeaderHandler data.MetaHeaderHandler,
+) (*UsedShardHeadersInfo, error) {
+	// TODO: use the shard info for notarized proposals instead
+	shardInfoHandlers := metaHeaderHandler.GetShardInfoHandlers()
+	usedShardHeaders := make(map[uint32][]ShardHeaderInfo)
+	var err error
+	var header data.HeaderHandler
+	orderedShardHeaders := make([]data.HeaderHandler, 0, len(shardInfoHandlers))
+	orderedShardHeaderHashes := make([][]byte, 0, len(shardInfoHandlers))
+	for _, shardInfoHandler := range shardInfoHandlers {
+		header, err = mp.dataPool.Headers().GetHeaderByHash(shardInfoHandler.GetHeaderHash())
+		if err != nil {
+			return nil, process.ErrMissingHeader
+		}
+
+		usedShardHeaders[header.GetShardID()] = append(usedShardHeaders[header.GetShardID()], ShardHeaderInfo{
+			Header:      header,
+			Hash:        shardInfoHandler.GetHeaderHash(),
+			UsedInBlock: true,
+		})
+		orderedShardHeaders = append(orderedShardHeaders, header)
+		orderedShardHeaderHashes = append(orderedShardHeaderHashes, shardInfoHandler.GetHeaderHash())
+	}
+	return &UsedShardHeadersInfo{
+		HeadersPerShard:          usedShardHeaders,
+		OrderedShardHeaders:      orderedShardHeaders,
+		OrderedShardHeaderHashes: orderedShardHeaderHashes,
+	}, nil
 }

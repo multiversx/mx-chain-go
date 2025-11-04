@@ -259,6 +259,12 @@ func (r *Resolver) Reset() {
 	r.blockDataRequester.Reset()
 }
 
+// RequestMissingShardHeaders requests missing shard headers for the given meta header.
+func (r *Resolver) RequestMissingShardHeaders(metaHeader data.MetaHeaderHandler) error {
+	// TODO: implement this
+	return nil
+}
+
 // IsInterfaceNil returns true if there is no value under the interface
 func (r *Resolver) IsInterfaceNil() bool {
 	return r == nil
