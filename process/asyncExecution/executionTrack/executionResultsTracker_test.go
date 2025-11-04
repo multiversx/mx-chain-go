@@ -6,7 +6,6 @@ import (
 
 	"github.com/multiversx/mx-chain-core-go/data"
 	"github.com/multiversx/mx-chain-core-go/data/block"
-	"github.com/multiversx/mx-chain-go/testscommon"
 	"github.com/stretchr/testify/require"
 )
 
@@ -171,18 +170,9 @@ func TestAddExecutionResultAndCleanShouldWork(t *testing.T) {
 		})
 		require.Nil(t, err)
 
-		header := &testscommon.HeaderHandlerWithExecutionResultsStub{
-			GetExecutionResultsCalled: func() []data.ExecutionResultHandler {
-				return nil
-			},
-		}
-		res, errC := tracker.CleanConfirmedExecutionResults(header)
+		header := &block.HeaderV3{}
+		errC := tracker.CleanConfirmedExecutionResults(header)
 		require.Nil(t, errC)
-		require.Equal(t, CleanResultOK, res.CleanResult)
-
-		lastNotarizedResult, errL := tracker.GetLastNotarizedExecutionResult()
-		require.Nil(t, errL)
-		require.Equal(t, lastNotarizedResult.GetHeaderNonce(), res.LastMatchingResultNonce)
 	})
 
 	t.Run("header with 2 execution results", func(t *testing.T) {
@@ -197,14 +187,14 @@ func TestAddExecutionResultAndCleanShouldWork(t *testing.T) {
 		})
 		require.Nil(t, err)
 
-		executionResults := []data.ExecutionResultHandler{
-			&block.ExecutionResult{
+		executionResults := []*block.ExecutionResult{
+			{
 				BaseExecutionResult: &block.BaseExecutionResult{
 					HeaderHash:  []byte("hash2"),
 					HeaderNonce: 11,
 				},
 			},
-			&block.ExecutionResult{
+			{
 				BaseExecutionResult: &block.BaseExecutionResult{
 					HeaderHash:  []byte("hash3"),
 					HeaderNonce: 12,
@@ -212,10 +202,8 @@ func TestAddExecutionResultAndCleanShouldWork(t *testing.T) {
 			},
 		}
 
-		header := &testscommon.HeaderHandlerWithExecutionResultsStub{
-			GetExecutionResultsCalled: func() []data.ExecutionResultHandler {
-				return executionResults
-			},
+		header := &block.HeaderV3{
+			ExecutionResults: executionResults,
 		}
 
 		err = tracker.AddExecutionResult(executionResults[0])
@@ -223,10 +211,8 @@ func TestAddExecutionResultAndCleanShouldWork(t *testing.T) {
 		err = tracker.AddExecutionResult(executionResults[1])
 		require.Nil(t, err)
 
-		res, errC := tracker.CleanConfirmedExecutionResults(header)
+		errC := tracker.CleanConfirmedExecutionResults(header)
 		require.Nil(t, errC)
-		require.Equal(t, CleanResultOK, res.CleanResult)
-		require.Equal(t, uint64(12), res.LastMatchingResultNonce)
 
 		results, errG := tracker.GetPendingExecutionResults()
 		require.Nil(t, errG)
@@ -245,23 +231,19 @@ func TestAddExecutionResultAndCleanShouldWork(t *testing.T) {
 		})
 		require.Nil(t, err)
 
-		header := &testscommon.HeaderHandlerWithExecutionResultsStub{
-			GetExecutionResultsCalled: func() []data.ExecutionResultHandler {
-				return []data.ExecutionResultHandler{
-					&block.ExecutionResult{
-						BaseExecutionResult: &block.BaseExecutionResult{
-							HeaderHash:  []byte("hash22"),
-							HeaderNonce: 22,
-						},
+		header := &block.HeaderV3{
+			ExecutionResults: []*block.ExecutionResult{
+				{
+					BaseExecutionResult: &block.BaseExecutionResult{
+						HeaderHash:  []byte("hash22"),
+						HeaderNonce: 22,
 					},
-				}
+				},
 			},
 		}
 
-		res, errC := tracker.CleanConfirmedExecutionResults(header)
-		require.Nil(t, errC)
-		require.Equal(t, CleanResultNotFound, res.CleanResult)
-		require.Equal(t, uint64(10), res.LastMatchingResultNonce)
+		errC := tracker.CleanConfirmedExecutionResults(header)
+		require.True(t, errors.Is(errC, ErrCannotFindExecutionResult))
 	})
 }
 
@@ -301,30 +283,25 @@ func TestAddExecutionResultAndCleanDifferentResultsFromHeader(t *testing.T) {
 	})
 	require.Nil(t, err)
 
-	header := &testscommon.HeaderHandlerWithExecutionResultsStub{
-		GetExecutionResultsCalled: func() []data.ExecutionResultHandler {
-			return []data.ExecutionResultHandler{
-				&block.ExecutionResult{
-					BaseExecutionResult: &block.BaseExecutionResult{
-						HeaderHash:  []byte("hash1"),
-						HeaderNonce: 11,
-					},
+	header := &block.HeaderV3{
+		ExecutionResults: []*block.ExecutionResult{
+			{
+				BaseExecutionResult: &block.BaseExecutionResult{
+					HeaderHash:  []byte("hash1"),
+					HeaderNonce: 11,
 				},
-				&block.ExecutionResult{
-					BaseExecutionResult: &block.BaseExecutionResult{
-						HeaderHash:  []byte("different"),
-						HeaderNonce: 12,
-					},
+			},
+			{
+				BaseExecutionResult: &block.BaseExecutionResult{
+					HeaderHash:  []byte("different"),
+					HeaderNonce: 12,
 				},
-			}
+			},
 		},
 	}
 
-	res, err := tracker.CleanConfirmedExecutionResults(header)
-	require.Nil(t, err)
-	require.Equal(t, CleanResultMismatch, res.CleanResult)
-	require.Equal(t, uint64(11), res.LastMatchingResultNonce)
-	require.Equal(t, []byte("hash1"), tracker.lastExecutedResultHash)
+	err = tracker.CleanConfirmedExecutionResults(header)
+	require.True(t, errors.Is(err, ErrExecutionResultMismatch))
 
 	// check that everything before the mismatch was kept inside tracker
 	results, err := tracker.GetPendingExecutionResults()

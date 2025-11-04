@@ -1111,6 +1111,10 @@ func (bp *baseProcessor) requestHeaderByShardAndNonce(shardID uint32, nonce uint
 	}
 }
 
+func (bp *baseProcessor) cleanExecutionResultsFromTracker(header data.HeaderHandler) error {
+	return bp.executionResultsTracker.CleanConfirmedExecutionResults(header)
+}
+
 func (bp *baseProcessor) cleanupPools(headerHandler data.HeaderHandler) {
 	noncesToPrevFinal := bp.getNoncesToFinal(headerHandler) + 1
 	bp.cleanupBlockTrackerPools(noncesToPrevFinal)
