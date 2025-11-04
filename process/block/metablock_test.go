@@ -116,23 +116,19 @@ func createMockMetaArguments(
 
 	startHeaders := createGenesisBlocks(bootstrapComponents.ShardCoordinator())
 	accountsDb := make(map[state.AccountsDbIdentifier]state.AccountsAdapter)
-	accountsDb[state.UserAccountsState] = &stateMock.AccountsStub{
+	accounts := &stateMock.AccountsStub{
 		CommitCalled: func() ([]byte, error) {
 			return nil, nil
 		},
 		RootHashCalled: func() ([]byte, error) {
 			return nil, nil
 		},
-	}
-	accountsDb[state.PeerAccountsState] = &stateMock.AccountsStub{
-		CommitCalled: func() ([]byte, error) {
-			return nil, nil
-		},
-		RootHashCalled: func() ([]byte, error) {
-			return nil, nil
+		RecreateTrieIfNeededCalled: func(options common.RootHashHolder) error {
+			return nil
 		},
 	}
-
+	accountsDb[state.UserAccountsState] = accounts
+	accountsDb[state.PeerAccountsState] = accounts
 	statusCoreComponents := &factory.StatusCoreComponentsStub{
 		AppStatusHandlerField: &statusHandlerMock.AppStatusHandlerStub{},
 	}
@@ -206,7 +202,7 @@ func createMockMetaArguments(
 			StatusComponents:     statusComponents,
 			StatusCoreComponents: statusCoreComponents,
 			AccountsDB:           accountsDb,
-			AccountsProposal:     &stateMock.AccountsStub{},
+			AccountsProposal:     accounts,
 			ForkDetector:         &mock.ForkDetectorMock{},
 			NodesCoordinator:     shardingMocks.NewNodesCoordinatorMock(),
 			FeeHandler:           &mock.FeeAccumulatorStub{},

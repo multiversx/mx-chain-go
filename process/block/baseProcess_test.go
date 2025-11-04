@@ -101,11 +101,15 @@ func createArgBaseProcessor(
 	startHeaders := createGenesisBlocks(mock.NewOneShardCoordinatorMock())
 
 	accountsDb := make(map[state.AccountsDbIdentifier]state.AccountsAdapter)
-	accountsDb[state.UserAccountsState] = &stateMock.AccountsStub{
+	accounts := &stateMock.AccountsStub{
 		RootHashCalled: func() ([]byte, error) {
 			return nil, nil
 		},
+		RecreateTrieIfNeededCalled: func(options common.RootHashHolder) error {
+			return nil
+		},
 	}
+	accountsDb[state.UserAccountsState] = accounts
 
 	statusCoreComponents := &factory.StatusCoreComponentsStub{
 		AppStatusHandlerField: &statusHandlerMock.AppStatusHandlerStub{},
@@ -185,7 +189,7 @@ func createArgBaseProcessor(
 		StatusCoreComponents: statusCoreComponents,
 		Config:               config.Config{},
 		AccountsDB:           accountsDb,
-		AccountsProposal:     &stateMock.AccountsStub{},
+		AccountsProposal:     accounts,
 		ForkDetector:         &mock.ForkDetectorMock{},
 		NodesCoordinator:     nodesCoordinatorInstance,
 		FeeHandler:           &mock.FeeAccumulatorStub{},
