@@ -133,7 +133,7 @@ func (sic *ShardInfoCreateData) createShardInfoFromHeader(
 
 	if !shardHeader.IsHeaderV3() {
 		shardData, err := sic.createShardDataFromLegacyHeader(shardHeader, hdrHash)
-		return &block.ShardDataProposal{}, shardData, err // no shard data proposal for legacy header
+		return createShardDataProposalFromHeader(shardHeader, hdrHash), shardData, err
 	}
 
 	return sic.createShardDataFromV3Header(shardHeader, hdrHash)
