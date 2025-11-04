@@ -254,13 +254,8 @@ func (r *Resolver) RequestMissingShardHeaders(
 		return process.ErrNilMetaBlockHeader
 	}
 
-	if metaHeader.IsStartOfEpochBlock() {
-		r.requestEpochStartLastFinalizedHeaders(metaHeader)
-	}
-
-	shardDataFinalizedNonces := make(map[uint32]uint64)
-	for _, shardData := range metaHeader.GetShardInfoHandlers() {
-		shardDataFinalizedNonces[shardData.GetShardID()] = shardData.GetNonce()
+	if metaHeader.IsStartOfEpochBlock() && metaHeader.GetEpochStartHandler() != nil {
+		r.requestEpochStartLastFinalizedHeaders(metaHeader.GetEpochStartHandler())
 	}
 
 	shardDataProposedNonces := make(map[uint32]uint64)
@@ -271,16 +266,25 @@ func (r *Resolver) RequestMissingShardHeaders(
 		r.requestProofIfNeeded(shardProposalData.GetShardID(), shardProposalData.GetHeaderHash())
 	}
 
+	shardDataFinalizedNonces := getShardDataFinalizedNonces(metaHeader.GetShardInfoHandlers())
 	r.requestNonceGapsIfNeeded(shardDataFinalizedNonces, shardDataProposedNonces)
 
 	return nil
 }
 
-func (r *Resolver) requestEpochStartLastFinalizedHeaders(metaHeader data.MetaHeaderHandler) {
-	for _, finalizedHdr := range metaHeader.GetEpochStartHandler().GetLastFinalizedHeaderHandlers() {
+func (r *Resolver) requestEpochStartLastFinalizedHeaders(epochStartHandler data.EpochStartHandler) {
+	for _, finalizedHdr := range epochStartHandler.GetLastFinalizedHeaderHandlers() {
 		r.requestHeaderIfNeeded(finalizedHdr.GetShardID(), finalizedHdr.GetHeaderHash())
 		r.requestProofIfNeeded(finalizedHdr.GetShardID(), finalizedHdr.GetHeaderHash())
 	}
+}
+
+func getShardDataFinalizedNonces(shardInfoHandlers []data.ShardDataHandler) map[uint32]uint64 {
+	shardDataFinalizedNonces := make(map[uint32]uint64)
+	for _, shardData := range shardInfoHandlers {
+		shardDataFinalizedNonces[shardData.GetShardID()] = shardData.GetNonce()
+	}
+	return shardDataFinalizedNonces
 }
 
 func (r *Resolver) requestNonceGapsIfNeeded(shardDataFinalizedNonces, shardDataProposedNonces map[uint32]uint64) {
