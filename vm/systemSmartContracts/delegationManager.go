@@ -6,6 +6,7 @@ import (
 	"encoding/hex"
 	"fmt"
 	"math/big"
+	"strings"
 	"sync"
 
 	"github.com/multiversx/mx-chain-core-go/core"
@@ -19,6 +20,13 @@ import (
 
 const delegationManagementKey = "delegationManagement"
 const delegationContractsList = "delegationContracts"
+
+const (
+	logDelegatedWalletSet         = "delegatedWalletSet"
+	logDelegatedWalletRemoved     = "delegatedWalletRemoved"
+	functionSetDelegatedWallet    = "setDelegatedWallet"
+	functionRemoveDelegatedWallet = "removeDelegatedWallet"
+)
 
 var nextAddressAdd = big.NewInt(1 << 24)
 
@@ -80,6 +88,7 @@ func NewDelegationManagerSystemSC(args ArgsNewDelegationManager) (*delegationMan
 		common.ValidatorToDelegationFlag,
 		common.FixDelegationChangeOwnerOnAccountFlag,
 		common.MultiClaimOnDelegationFlag,
+		common.DelegationOnBehalfFlag,
 	})
 	if err != nil {
 		return nil, err
@@ -155,8 +164,16 @@ func (d *delegationManager) Execute(args *vmcommon.ContractCallInput) vmcommon.R
 		return d.mergeValidatorToDelegation(args, d.isAddressWhiteListedForMerge)
 	case "claimMulti":
 		return d.claimMulti(args)
+	case "claimMultiOf":
+		return d.claimMultiOf(args)
 	case "reDelegateMulti":
 		return d.reDelegateMulti(args)
+	case "reDelegateMultiOf":
+		return d.reDelegateMultiOf(args)
+	case functionSetDelegatedWallet:
+		return d.setDelegatedWallet(args)
+	case functionRemoveDelegatedWallet:
+		return d.removeDelegatedWallet(args)
 	}
 
 	d.eei.AddReturnMessage("invalid function to call")
@@ -552,6 +569,29 @@ func (d *delegationManager) reDelegateMulti(args *vmcommon.ContractCallInput) vm
 	return vmcommon.Ok
 }
 
+func (d *delegationManager) claimMultiOf(args *vmcommon.ContractCallInput) vmcommon.ReturnCode {
+	returnCode := d.executeFuncOnListAddressesOnBehalf(args, claimRewardsOf)
+	if returnCode != vmcommon.Ok {
+		return returnCode
+	}
+	totalSent := d.eei.GetTotalSentToUser(args.CallerAddr)
+	d.eei.Finish(totalSent.Bytes())
+
+	return vmcommon.Ok
+}
+
+func (d *delegationManager) reDelegateMultiOf(args *vmcommon.ContractCallInput) vmcommon.ReturnCode {
+	returnCode := d.executeFuncOnListAddressesOnBehalf(args, reDelegateRewardsOf)
+	if returnCode != vmcommon.Ok {
+		return returnCode
+	}
+	logs := d.eei.GetLogs()
+	totalReDelegated := getTotalReDelegatedFromLogs(logs)
+	d.eei.Finish(totalReDelegated.Bytes())
+
+	return vmcommon.Ok
+}
+
 func getTotalReDelegatedFromLogs(logs []*vmcommon.LogEntry) *big.Int {
 	totalReDelegated := big.NewInt(0)
 	for _, reDelegateLog := range logs {
@@ -594,6 +634,10 @@ func (d *delegationManager) executeFuncOnListAddresses(
 			d.eei.AddReturnMessage(vm.ErrInvalidArgument.Error())
 			return vmcommon.UserError
 		}
+		if bytes.Equal(address, vm.FirstDelegationSCAddress) {
+			d.eei.AddReturnMessage("first delegation sc address cannot be called")
+			return vmcommon.UserError
+		}
 		_, found = mapAddresses[string(address)]
 		if found {
 			d.eei.AddReturnMessage("duplicated input")
@@ -613,6 +657,151 @@ func (d *delegationManager) executeFuncOnListAddresses(
 	}
 
 	return vmcommon.Ok
+}
+
+func (d *delegationManager) executeFuncOnListAddressesOnBehalf(
+	args *vmcommon.ContractCallInput,
+	funcName string,
+) vmcommon.ReturnCode {
+	if !d.ensureDelegationOnBehalfFeatureEnabled() {
+		return vmcommon.UserError
+	}
+	if len(args.Arguments) < 2 {
+		d.eei.AddReturnMessage(vm.ErrInvalidNumOfArguments.Error())
+		return vmcommon.UserError
+	}
+	err := d.eei.UseGas(d.gasCost.MetaChainSystemSCsCost.DelegationOps)
+	if err != nil {
+		d.eei.AddReturnMessage(err.Error())
+		return vmcommon.UserError
+	}
+
+	ownerAddress := args.Arguments[0]
+	if len(ownerAddress) != len(args.CallerAddr) {
+		d.eei.AddReturnMessage(vm.ErrInvalidArgument.Error())
+		return vmcommon.UserError
+	}
+
+	storedBot := getDelegatedWalletForUserFromManager(d.eei, d.delegationMgrSCAddress, ownerAddress)
+	if len(storedBot) == 0 || !bytes.Equal(storedBot, args.CallerAddr) {
+		d.eei.AddReturnMessage(vm.ErrInvalidCaller.Error())
+		return vmcommon.UserError
+	}
+
+	seenContracts := make(map[string]struct{})
+	var vmOutput *vmcommon.VMOutput
+	for _, contractAddress := range args.Arguments[1:] {
+		if len(contractAddress) != len(args.CallerAddr) {
+			d.eei.AddReturnMessage(vm.ErrInvalidArgument.Error())
+			return vmcommon.UserError
+		}
+		if bytes.Equal(contractAddress, vm.FirstDelegationSCAddress) {
+			d.eei.AddReturnMessage("first delegation sc address cannot be called")
+			return vmcommon.UserError
+		}
+
+		if _, found := seenContracts[string(contractAddress)]; found {
+			d.eei.AddReturnMessage("duplicated input")
+			return vmcommon.UserError
+		}
+		seenContracts[string(contractAddress)] = struct{}{}
+
+		callData := buildFunctionCallData(funcName, ownerAddress)
+		vmOutput, err = d.eei.ExecuteOnDestContext(contractAddress, args.CallerAddr, big.NewInt(0), []byte(callData))
+		if err != nil {
+			d.eei.AddReturnMessage(err.Error())
+			return vmcommon.UserError
+		}
+
+		if vmOutput.ReturnCode != vmcommon.Ok {
+			return vmOutput.ReturnCode
+		}
+	}
+
+	return vmcommon.Ok
+}
+
+func (d *delegationManager) setDelegatedWallet(args *vmcommon.ContractCallInput) vmcommon.ReturnCode {
+	if !d.ensureDelegationOnBehalfFeatureEnabled() {
+		return vmcommon.UserError
+	}
+	if args.CallValue.Cmp(zero) != 0 {
+		d.eei.AddReturnMessage(vm.ErrCallValueMustBeZero.Error())
+		return vmcommon.UserError
+	}
+	if len(args.Arguments) != 1 {
+		d.eei.AddReturnMessage("wrong number of arguments")
+		return vmcommon.FunctionWrongSignature
+	}
+
+	newDelegatedWallet := args.Arguments[0]
+	if len(newDelegatedWallet) == 0 || len(newDelegatedWallet) != len(args.CallerAddr) {
+		d.eei.AddReturnMessage(vm.ErrInvalidArgument.Error())
+		return vmcommon.UserError
+	}
+
+	err := d.eei.UseGas(d.gasCost.MetaChainSystemSCsCost.DelegationOps)
+	if err != nil {
+		d.eei.AddReturnMessage(err.Error())
+		return vmcommon.OutOfGas
+	}
+
+	userAddress := args.CallerAddr
+	currentDelegatedWallet := getDelegatedWalletForUserFromManager(d.eei, d.delegationMgrSCAddress, userAddress)
+	if bytes.Equal(currentDelegatedWallet, newDelegatedWallet) {
+		return vmcommon.Ok
+	}
+
+	setDelegatedWalletInManager(d.eei, d.delegationMgrSCAddress, userAddress, newDelegatedWallet)
+	d.logDelegatedWalletEvent(logDelegatedWalletSet, userAddress, newDelegatedWallet)
+
+	return vmcommon.Ok
+}
+
+func (d *delegationManager) removeDelegatedWallet(args *vmcommon.ContractCallInput) vmcommon.ReturnCode {
+	if !d.ensureDelegationOnBehalfFeatureEnabled() {
+		return vmcommon.UserError
+	}
+	if args.CallValue.Cmp(zero) != 0 {
+		d.eei.AddReturnMessage(vm.ErrCallValueMustBeZero.Error())
+		return vmcommon.UserError
+	}
+	if len(args.Arguments) != 0 {
+		d.eei.AddReturnMessage("must be called without arguments")
+		return vmcommon.FunctionWrongSignature
+	}
+
+	err := d.eei.UseGas(d.gasCost.MetaChainSystemSCsCost.DelegationOps)
+	if err != nil {
+		d.eei.AddReturnMessage(err.Error())
+		return vmcommon.OutOfGas
+	}
+
+	userAddress := args.CallerAddr
+	currentDelegatedWallet := getDelegatedWalletForUserFromManager(d.eei, d.delegationMgrSCAddress, userAddress)
+	if len(currentDelegatedWallet) == 0 {
+		return vmcommon.Ok
+	}
+
+	clearDelegatedWalletFromManager(d.eei, d.delegationMgrSCAddress, userAddress)
+	d.logDelegatedWalletEvent(logDelegatedWalletRemoved, userAddress, currentDelegatedWallet)
+
+	return vmcommon.Ok
+}
+
+func buildFunctionCallData(functionName string, arguments ...[]byte) string {
+	if len(arguments) == 0 {
+		return functionName
+	}
+
+	var builder strings.Builder
+	builder.WriteString(functionName)
+	for _, argument := range arguments {
+		builder.WriteByte('@')
+		builder.WriteString(hex.EncodeToString(argument))
+	}
+
+	return builder.String()
 }
 
 func createNewAddress(lastAddress []byte) []byte {
@@ -704,4 +893,22 @@ func (d *delegationManager) CanUseContract() bool {
 // IsInterfaceNil returns true if underlying object is nil
 func (d *delegationManager) IsInterfaceNil() bool {
 	return d == nil
+}
+
+func (d *delegationManager) ensureDelegationOnBehalfFeatureEnabled() bool {
+	if d.enableEpochsHandler.IsFlagEnabled(common.DelegationOnBehalfFlag) {
+		return true
+	}
+
+	d.eei.AddReturnMessage("delegation on behalf feature is not enabled")
+	return false
+}
+
+func (d *delegationManager) logDelegatedWalletEvent(identifier string, owner []byte, bot []byte) {
+	entry := &vmcommon.LogEntry{
+		Identifier: []byte(identifier),
+		Address:    d.delegationMgrSCAddress,
+		Topics:     [][]byte{owner, bot},
+	}
+	d.eei.AddLogEntry(entry)
 }

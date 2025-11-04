@@ -101,6 +101,7 @@ func createEnableEpochsConfig() config.EnableEpochs {
 		AutoBalanceDataTriesEnableEpoch:                          82,
 		KeepExecOrderOnCreatedSCRsEnableEpoch:                    83,
 		MultiClaimOnDelegationEnableEpoch:                        84,
+		DelegationOnBehalfEnableEpoch:                            84,
 		ChangeUsernameEnableEpoch:                                85,
 		ConsistentTokensValuesLengthCheckEnableEpoch:             86,
 		FixDelegationChangeOwnerOnAccountEnableEpoch:             87,
@@ -315,6 +316,7 @@ func TestEnableEpochsHandler_IsFlagEnabled(t *testing.T) {
 	require.True(t, handler.IsFlagEnabled(common.ConsistentTokensValuesLengthCheckFlag))
 	require.True(t, handler.IsFlagEnabled(common.KeepExecOrderOnCreatedSCRsFlag))
 	require.True(t, handler.IsFlagEnabled(common.MultiClaimOnDelegationFlag))
+	require.True(t, handler.IsFlagEnabled(common.DelegationOnBehalfFlag))
 	require.True(t, handler.IsFlagEnabled(common.ChangeUsernameFlag))
 	require.True(t, handler.IsFlagEnabled(common.AutoBalanceDataTriesFlag))
 	require.True(t, handler.IsFlagEnabled(common.MigrateDataTrieFlag))
@@ -437,6 +439,7 @@ func TestEnableEpochsHandler_GetActivationEpoch(t *testing.T) {
 	require.Equal(t, cfg.ConsistentTokensValuesLengthCheckEnableEpoch, handler.GetActivationEpoch(common.ConsistentTokensValuesLengthCheckFlag))
 	require.Equal(t, cfg.KeepExecOrderOnCreatedSCRsEnableEpoch, handler.GetActivationEpoch(common.KeepExecOrderOnCreatedSCRsFlag))
 	require.Equal(t, cfg.MultiClaimOnDelegationEnableEpoch, handler.GetActivationEpoch(common.MultiClaimOnDelegationFlag))
+	require.Equal(t, cfg.DelegationOnBehalfEnableEpoch, handler.GetActivationEpoch(common.DelegationOnBehalfFlag))
 	require.Equal(t, cfg.ChangeUsernameEnableEpoch, handler.GetActivationEpoch(common.ChangeUsernameFlag))
 	require.Equal(t, cfg.AutoBalanceDataTriesEnableEpoch, handler.GetActivationEpoch(common.AutoBalanceDataTriesFlag))
 	require.Equal(t, cfg.MigrateDataTrieEnableEpoch, handler.GetActivationEpoch(common.MigrateDataTrieFlag))

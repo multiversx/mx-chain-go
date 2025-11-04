@@ -683,6 +683,9 @@ const (
 	// MetricMultiClaimOnDelegationEnableEpoch represents the epoch when multi claim on delegation functionality is enabled
 	MetricMultiClaimOnDelegationEnableEpoch = "erd_multi_claim_on_delegation_enable_epoch"
 
+	// MetricDelegationOnBehalfEnableEpoch represents the epoch when delegation on behalf functionality is enabled
+	MetricDelegationOnBehalfEnableEpoch = "erd_delegation_on_behalf_enable_epoch"
+
 	// MetricChangeUsernameEnableEpoch represents the epoch when change username functionality is enabled
 	MetricChangeUsernameEnableEpoch = "erd_change_username_enable_epoch"
 
@@ -1247,6 +1250,7 @@ const (
 	ConsistentTokensValuesLengthCheckFlag               core.EnableEpochFlag = "ConsistentTokensValuesLengthCheckFlag"
 	KeepExecOrderOnCreatedSCRsFlag                      core.EnableEpochFlag = "KeepExecOrderOnCreatedSCRsFlag"
 	MultiClaimOnDelegationFlag                          core.EnableEpochFlag = "MultiClaimOnDelegationFlag"
+	DelegationOnBehalfFlag                              core.EnableEpochFlag = "DelegationOnBehalfFlag"
 	ChangeUsernameFlag                                  core.EnableEpochFlag = "ChangeUsernameFlag"
 	AutoBalanceDataTriesFlag                            core.EnableEpochFlag = "AutoBalanceDataTriesFlag"
 	MigrateDataTrieFlag                                 core.EnableEpochFlag = "MigrateDataTrieFlag"

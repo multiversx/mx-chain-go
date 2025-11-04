@@ -359,6 +359,7 @@ func (sm *statusMetrics) EnableEpochsMetrics() (map[string]interface{}, error) {
 	enableEpochsMetrics[common.MetricDeterministicSortOnValidatorsInfoEnableEpoch] = sm.uint64Metrics[common.MetricDeterministicSortOnValidatorsInfoEnableEpoch]
 	enableEpochsMetrics[common.MetricKeepExecOrderOnCreatedSCRsEnableEpoch] = sm.uint64Metrics[common.MetricKeepExecOrderOnCreatedSCRsEnableEpoch]
 	enableEpochsMetrics[common.MetricMultiClaimOnDelegationEnableEpoch] = sm.uint64Metrics[common.MetricMultiClaimOnDelegationEnableEpoch]
+	enableEpochsMetrics[common.MetricDelegationOnBehalfEnableEpoch] = sm.uint64Metrics[common.MetricDelegationOnBehalfEnableEpoch]
 	enableEpochsMetrics[common.MetricChangeUsernameEnableEpoch] = sm.uint64Metrics[common.MetricChangeUsernameEnableEpoch]
 	enableEpochsMetrics[common.MetricAutoBalanceDataTriesEnableEpoch] = sm.uint64Metrics[common.MetricAutoBalanceDataTriesEnableEpoch]
 	enableEpochsMetrics[common.MetricMigrateDataTrieEnableEpoch] = sm.uint64Metrics[common.MetricMigrateDataTrieEnableEpoch]

@@ -851,6 +851,9 @@ func TestEnableEpochConfig(t *testing.T) {
     # MultiClaimOnDelegationEnableEpoch represents the epoch when the multi claim on delegation is enabled
     MultiClaimOnDelegationEnableEpoch = 84
 
+    # DelegationOnBehalfEnableEpoch represents the epoch when delegated wallets can act on behalf of users in delegation contracts
+    DelegationOnBehalfEnableEpoch = 84
+
     # ChangeUsernameEnableEpoch represents the epoch when changing username is enabled
     ChangeUsernameEnableEpoch = 85
 
@@ -1045,6 +1048,7 @@ func TestEnableEpochConfig(t *testing.T) {
 			AutoBalanceDataTriesEnableEpoch:                          82,
 			KeepExecOrderOnCreatedSCRsEnableEpoch:                    83,
 			MultiClaimOnDelegationEnableEpoch:                        84,
+			DelegationOnBehalfEnableEpoch:                            84,
 			ChangeUsernameEnableEpoch:                                85,
 			ConsistentTokensValuesLengthCheckEnableEpoch:             86,
 			FixDelegationChangeOwnerOnAccountEnableEpoch:             87,
