@@ -433,19 +433,6 @@ func (st *selectionTracker) deriveVirtualSelectionSession(
 		log.Debug("selectionTracker.deriveVirtualSelectionSession nil session rootHash")
 	}
 
-	if len(st.latestRootHash) == 0 || st.latestRootHash == nil {
-		log.Debug("selectionTracker.deriveVirtualSelectionSession nil latest rootHash")
-	}
-
-	emptyRootHash := make([]byte, len(rootHash))
-	if bytes.Equal(rootHash, emptyRootHash) {
-		log.Debug("selectionTracker.deriveVirtualSelectionSession empty session rootHash")
-	}
-
-	if bytes.Equal(st.latestRootHash, emptyRootHash) {
-		log.Debug("selectionTracker.deriveVirtualSelectionSession empty latest rootHash")
-	}
-
 	if !bytes.Equal(st.latestRootHash, rootHash) {
 		// TODO when the right information will be passed on the OnExecutedBlock flow, the error must be returned here.
 		log.Error("selectionTracker.deriveVirtualSelectionSession",
@@ -453,7 +440,7 @@ func (st *selectionTracker) deriveVirtualSelectionSession(
 			"latestRootHash", st.latestRootHash,
 			"session rootHash", rootHash,
 		)
-		//return nil, errRootHashMismatch
+		return nil, errRootHashMismatch
 	}
 
 	log.Debug("selectionTracker.deriveVirtualSelectionSession",

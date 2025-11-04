@@ -751,11 +751,6 @@ func (tpn *TestProcessorNode) initValidatorStatistics() {
 }
 
 func (tpn *TestProcessorNode) initGenesisBlocks(args ArgTestProcessorNode) {
-	rootHash, err := tpn.AccntState.Commit()
-	if err != nil {
-		log.Error("tpn.initGenesisBlocks", "err", err)
-	}
-
 	if args.GenesisFile != "" {
 		tpn.SmartContractParser, _ = parsing.NewSmartContractsParser(
 			args.GenesisFile,
@@ -776,19 +771,18 @@ func (tpn *TestProcessorNode) initGenesisBlocks(args ArgTestProcessorNode) {
 			tpn.SmartContractParser,
 			tpn.EnableEpochs,
 		)
-		shardID := tpn.ShardCoordinator.SelfId()
-		genesisBlock := tpn.GenesisBlocks[shardID]
-		_ = tpn.DataPool.Transactions().OnExecutedBlock(genesisBlock, genesisBlock.GetRootHash())
 
+		OnExecutedBlock(tpn)
 		return
 	}
 
 	if args.WithSync {
-		tpn.GenesisBlocks = CreateSimpleGenesisBlocks(tpn.ShardCoordinator, rootHash)
-		shardID := tpn.ShardCoordinator.SelfId()
-		genesisBlock := tpn.GenesisBlocks[shardID]
-		_ = tpn.DataPool.Transactions().OnExecutedBlock(genesisBlock, genesisBlock.GetRootHash())
+		rootHash, err := tpn.AccntState.RootHash()
+		if err != nil {
+			log.Error("tpn.initGenesisBlocks", "err", err)
+		}
 
+		tpn.GenesisBlocks = CreateSimpleGenesisBlocks(tpn.ShardCoordinator, rootHash)
 		return
 	}
 
@@ -810,9 +804,7 @@ func (tpn *TestProcessorNode) initGenesisBlocks(args ArgTestProcessorNode) {
 		tpn.ChainParametersHandler,
 	)
 
-	shardID := tpn.ShardCoordinator.SelfId()
-	genesisBlock := tpn.GenesisBlocks[shardID]
-	_ = tpn.DataPool.Transactions().OnExecutedBlock(genesisBlock, genesisBlock.GetRootHash())
+	OnExecutedBlock(tpn)
 }
 
 func (tpn *TestProcessorNode) initTestNodeWithArgs(args ArgTestProcessorNode) {
