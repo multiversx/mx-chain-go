@@ -140,6 +140,7 @@ func unStake(
 	_, err = accountsDB.Commit()
 	require.Nil(t, err)
 
+	updateRootHash(t, accountsDB, txPool, blockchain)
 }
 
 func updateRootHash(
