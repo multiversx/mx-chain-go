@@ -772,7 +772,11 @@ func (tpn *TestProcessorNode) initGenesisBlocks(args ArgTestProcessorNode) {
 			tpn.EnableEpochs,
 		)
 
-		OnExecutedBlock(tpn)
+		err := OnExecutedBlock(tpn)
+		if err != nil {
+			log.Error("tpn.initGenesisBlocks", "err", err)
+		}
+
 		return
 	}
 
@@ -804,7 +808,10 @@ func (tpn *TestProcessorNode) initGenesisBlocks(args ArgTestProcessorNode) {
 		tpn.ChainParametersHandler,
 	)
 
-	OnExecutedBlock(tpn)
+	err := OnExecutedBlock(tpn)
+	if err != nil {
+		log.Error("tpn.initGenesisBlocks", "err", err)
+	}
 }
 
 func (tpn *TestProcessorNode) initTestNodeWithArgs(args ArgTestProcessorNode) {
