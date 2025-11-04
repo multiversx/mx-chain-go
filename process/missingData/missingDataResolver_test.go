@@ -21,6 +21,65 @@ import (
 	"github.com/multiversx/mx-chain-go/testscommon/processMocks"
 )
 
+type requestHeader func(mdr *Resolver) error
+
+func testRequestMissingHeaderAndProofsAllReceived(
+	t *testing.T,
+	requestHeaderFunc requestHeader,
+	headerHash []byte,
+) {
+	var headerReceivedHandler func(header data.HeaderHandler, _ []byte)
+	var proofReceivedHandler func(proof data.HeaderProofHandler)
+
+	proofsPool := &dataRetriever.ProofsPoolMock{
+		HasProofCalled: func(shardID uint32, headerHash []byte) bool {
+			return false
+		},
+		RegisterHandlerCalled: func(handler func(headerProof data.HeaderProofHandler)) {
+			proofReceivedHandler = handler
+		},
+	}
+	headersPool := &pool.HeadersPoolStub{
+		GetHeaderByHashCalled: func(hash []byte) (data.HeaderHandler, error) {
+			if string(hash) == string(headerHash) {
+				return nil, errors.New("not found")
+			}
+			return nil, nil
+		},
+		RegisterHandlerCalled: func(handler func(header data.HeaderHandler, _ []byte)) {
+			headerReceivedHandler = handler
+		},
+	}
+	commonArgs := ResolverArgs{
+		HeadersPool:        headersPool,
+		ProofsPool:         proofsPool,
+		RequestHandler:     &testscommon.RequestHandlerStub{},
+		BlockDataRequester: &preprocMocks.BlockDataRequesterStub{},
+	}
+	mdr, _ := NewMissingDataResolver(commonArgs)
+
+	go func() {
+		time.Sleep(50 * time.Millisecond)
+		headerReceivedHandler(&block.HeaderV2{}, headerHash)
+		proofReceivedHandler(&processMocks.HeaderProofHandlerStub{
+			GetHeaderHashCalled: func() []byte {
+				return headerHash
+			},
+		})
+	}()
+
+	wg := sync.WaitGroup{}
+	wg.Add(1)
+	go func() {
+		err := requestHeaderFunc(mdr)
+		require.Nil(t, err)
+		require.True(t, mdr.allHeadersReceived())
+		require.True(t, mdr.allProofsReceived())
+		wg.Done()
+	}()
+	wg.Wait()
+}
+
 func TestNewMissingDataResolver(t *testing.T) {
 	t.Parallel()
 
@@ -516,56 +575,10 @@ func TestResolver_RequestMissingMetaHeadersBlocking(t *testing.T) {
 	t.Run("request missing meta headers and proofs, all received", func(t *testing.T) {
 		t.Parallel()
 
-		var headerReceivedHandler func(header data.HeaderHandler, _ []byte)
-		var proofReceivedHandler func(proof data.HeaderProofHandler)
-
-		proofsPool := &dataRetriever.ProofsPoolMock{
-			HasProofCalled: func(shardID uint32, headerHash []byte) bool {
-				return false
-			},
-			RegisterHandlerCalled: func(handler func(headerProof data.HeaderProofHandler)) {
-				proofReceivedHandler = handler
-			},
+		requestMetaHdrFunc := func(mdr *Resolver) error {
+			return mdr.RequestMissingMetaHeadersBlocking(shardHeader, 200*time.Millisecond)
 		}
-		headersPool := &pool.HeadersPoolStub{
-			GetHeaderByHashCalled: func(hash []byte) (data.HeaderHandler, error) {
-				if string(hash) == string(metaHeaderHash) {
-					return nil, headerNotFoundErr
-				}
-				return nil, nil
-			},
-			RegisterHandlerCalled: func(handler func(header data.HeaderHandler, _ []byte)) {
-				headerReceivedHandler = handler
-			},
-		}
-		commonArgs := ResolverArgs{
-			HeadersPool:        headersPool,
-			ProofsPool:         proofsPool,
-			RequestHandler:     requestHandler,
-			BlockDataRequester: blockDataRequester,
-		}
-		mdr, _ := NewMissingDataResolver(commonArgs)
-
-		go func() {
-			time.Sleep(50 * time.Millisecond)
-			headerReceivedHandler(&block.HeaderV2{}, metaHeaderHash)
-			proofReceivedHandler(&processMocks.HeaderProofHandlerStub{
-				GetHeaderHashCalled: func() []byte {
-					return metaHeaderHash
-				},
-			})
-		}()
-
-		wg := sync.WaitGroup{}
-		wg.Add(1)
-		go func() {
-			err := mdr.RequestMissingMetaHeadersBlocking(shardHeader, 200*time.Millisecond)
-			require.Nil(t, err)
-			require.True(t, mdr.allHeadersReceived())
-			require.True(t, mdr.allProofsReceived())
-			wg.Done()
-		}()
-		wg.Wait()
+		testRequestMissingHeaderAndProofsAllReceived(t, requestMetaHdrFunc, metaHeaderHash)
 	})
 }
 
@@ -573,10 +586,15 @@ func TestResolver_RequestMissingShardHeadersBlocking(t *testing.T) {
 	t.Parallel()
 
 	headerNotFoundErr := errors.New("header not found")
-	metaHeaderHash := []byte("metaHeaderHash")
+	shardHeaderHash := []byte("metaHeaderHash")
 	metaHeader := &block.MetaBlockV3{
-		ShardInfo:         []block.ShardData{},
-		ShardInfoProposal: []block.ShardDataProposal{},
+		ShardInfoProposal: []block.ShardDataProposal{
+			{
+				Nonce:      4,
+				ShardID:    1,
+				HeaderHash: shardHeaderHash,
+			},
+		},
 	}
 
 	proofsPool := &dataRetriever.ProofsPoolMock{
@@ -586,7 +604,7 @@ func TestResolver_RequestMissingShardHeadersBlocking(t *testing.T) {
 	}
 	headersPool := &pool.HeadersPoolStub{
 		GetHeaderByHashCalled: func(hash []byte) (data.HeaderHandler, error) {
-			if string(hash) == string(metaHeaderHash) {
+			if string(hash) == string(shardHeaderHash) {
 				return nil, headerNotFoundErr
 			}
 			return nil, nil
@@ -842,56 +860,10 @@ func TestResolver_RequestMissingShardHeadersBlocking(t *testing.T) {
 	t.Run("request missing shard headers and proofs, all received", func(t *testing.T) {
 		t.Parallel()
 
-		var headerReceivedHandler func(header data.HeaderHandler, _ []byte)
-		var proofReceivedHandler func(proof data.HeaderProofHandler)
-
-		proofsPoolMock := &dataRetriever.ProofsPoolMock{
-			HasProofCalled: func(shardID uint32, headerHash []byte) bool {
-				return false
-			},
-			RegisterHandlerCalled: func(handler func(headerProof data.HeaderProofHandler)) {
-				proofReceivedHandler = handler
-			},
+		requestShardHdrFunc := func(mdr *Resolver) error {
+			return mdr.RequestMissingShardHeadersBlocking(metaHeader, 200*time.Millisecond)
 		}
-		headersPoolMock := &pool.HeadersPoolStub{
-			GetHeaderByHashCalled: func(hash []byte) (data.HeaderHandler, error) {
-				if string(hash) == string(metaHeaderHash) {
-					return nil, headerNotFoundErr
-				}
-				return nil, nil
-			},
-			RegisterHandlerCalled: func(handler func(header data.HeaderHandler, _ []byte)) {
-				headerReceivedHandler = handler
-			},
-		}
-		args := ResolverArgs{
-			HeadersPool:        headersPoolMock,
-			ProofsPool:         proofsPoolMock,
-			RequestHandler:     commonArgs.RequestHandler,
-			BlockDataRequester: commonArgs.BlockDataRequester,
-		}
-		mdr, _ := NewMissingDataResolver(args)
-
-		go func() {
-			time.Sleep(50 * time.Millisecond)
-			headerReceivedHandler(&block.HeaderV2{}, metaHeaderHash)
-			proofReceivedHandler(&processMocks.HeaderProofHandlerStub{
-				GetHeaderHashCalled: func() []byte {
-					return metaHeaderHash
-				},
-			})
-		}()
-
-		wg := sync.WaitGroup{}
-		wg.Add(1)
-		go func() {
-			err := mdr.RequestMissingShardHeadersBlocking(metaHeader, 200*time.Millisecond)
-			require.Nil(t, err)
-			require.True(t, mdr.allHeadersReceived())
-			require.True(t, mdr.allProofsReceived())
-			wg.Done()
-		}()
-		wg.Wait()
+		testRequestMissingHeaderAndProofsAllReceived(t, requestShardHdrFunc, shardHeaderHash)
 	})
 }
 
