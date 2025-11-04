@@ -1089,6 +1089,11 @@ func (sp *shardProcessor) CommitBlock(
 		return err
 	}
 
+	err = sp.cleanExecutionResultsFromTracker(header)
+	if err != nil {
+		return err
+	}
+
 	saveMetricsForCommittedShardBlock(
 		sp.nodesCoordinator,
 		sp.appStatusHandler,

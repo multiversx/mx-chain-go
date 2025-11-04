@@ -172,6 +172,7 @@ func createMockMetaArguments(
 
 	executionResultsTracker := executionTrack.NewExecutionResultsTracker()
 	execResultsVerifier, _ := blproc.NewExecutionResultsVerifier(dataComponents.BlockChain, executionResultsTracker)
+	_ = executionResultsTracker.SetLastNotarizedResult(&block.ExecutionResult{})
 	inclusionEstimator := estimator.NewExecutionResultInclusionEstimator(
 		config.ExecutionResultInclusionEstimatorConfig{
 			SafetyMargin:       110,
