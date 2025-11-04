@@ -292,7 +292,7 @@ func (r *Resolver) requestNonceGapsIfNeeded(shardDataFinalizedNonces, shardDataP
 	for shardID, proposedNonce := range shardDataProposedNonces {
 		lastFinalizedNonce, found := shardDataFinalizedNonces[shardID]
 		if !found {
-			log.Warn("Resolver.requestNonceGapsIfNeeded: shard found in shardDataFinalizedNonces", "shard", shardID)
+			log.Warn("Resolver.requestNonceGapsIfNeeded: shard not found in shardDataFinalizedNonces", "shard", shardID)
 			continue
 		}
 
