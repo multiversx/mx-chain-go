@@ -2632,7 +2632,7 @@ func (bp *baseProcessor) saveReceiptsForHeader(header data.HeaderHandler, header
 	errNotCritical := bp.receiptsRepository.SaveReceipts(receiptsHolder, header, headerHash)
 	if errNotCritical != nil {
 		logging.LogErrAsWarnExceptAsDebugIfClosingError(log, errNotCritical,
-			"saveBody(), error on receiptsRepository.SaveReceipts()",
+			"saveReceiptsForHeader(), error on receiptsRepository.SaveReceipts()",
 			"err", errNotCritical)
 	}
 }
