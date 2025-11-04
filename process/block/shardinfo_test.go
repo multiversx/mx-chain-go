@@ -130,11 +130,9 @@ func TestShardInfoCreateData_CreateShardInfoV3(t *testing.T) {
 	header1 := getShardHeaderForShard(uint32(1))
 	header2 := getShardHeaderForShard(uint32(2))
 	header3 := getHeaderV3ForShard(uint32(2), hdrHash3)
-	headers := make([]data.HeaderHandler, 0)
-	headers = append(headers, []data.HeaderHandler{header0, header1, header2, header3}...)
+	headers := []data.HeaderHandler{header0, header1, header2, header3}
 
-	headerHashes := make([][]byte, 0)
-	headerHashes = append(headerHashes, [][]byte{hdrHash0, hdrHash1, hdrHash2, hdrHash3}...)
+	headerHashes := [][]byte{hdrHash0, hdrHash1, hdrHash2, hdrHash3}
 
 	pool := dataRetrieverMock.NewPoolsHolderMock()
 	pool.Headers().AddHeader(hdrHash0, header0)
@@ -248,17 +246,9 @@ func TestShardInfoCreateData_CreateShardInfoFromLegacyMeta(t *testing.T) {
 	miniBlockHeader2 := block.MiniBlockHeader{Hash: mbHash2}
 	miniBlockHeader3 := block.MiniBlockHeader{Hash: mbHash3}
 
-	miniBlockHeaders1 := make([]block.MiniBlockHeader, 0)
-	miniBlockHeaders1 = append(miniBlockHeaders1, miniBlockHeader1)
-	miniBlockHeaders1 = append(miniBlockHeaders1, miniBlockHeader2)
-	miniBlockHeaders1 = append(miniBlockHeaders1, miniBlockHeader3)
-
-	miniBlockHeaders2 := make([]block.MiniBlockHeader, 0)
-	miniBlockHeaders2 = append(miniBlockHeaders2, miniBlockHeader1)
-	miniBlockHeaders2 = append(miniBlockHeaders2, miniBlockHeader2)
-
-	miniBlockHeaders3 := make([]block.MiniBlockHeader, 0)
-	miniBlockHeaders3 = append(miniBlockHeaders3, miniBlockHeader1)
+	miniBlockHeaders1 := []block.MiniBlockHeader{miniBlockHeader1, miniBlockHeader2, miniBlockHeader3}
+	miniBlockHeaders2 := []block.MiniBlockHeader{miniBlockHeader1, miniBlockHeader2}
+	miniBlockHeaders3 := []block.MiniBlockHeader{miniBlockHeader1}
 
 	header1 := &block.Header{
 		Round:            1,
@@ -280,10 +270,8 @@ func TestShardInfoCreateData_CreateShardInfoFromLegacyMeta(t *testing.T) {
 	pool.Headers().AddHeader(hdrHash2, header2)
 	pool.Headers().AddHeader(hdrHash3, header3)
 
-	headerHashes := make([][]byte, 0)
-	headers := make([]data.ShardHeaderHandler, 0)
-	headers = append(headers, []data.ShardHeaderHandler{header1, header2, header3}...)
-	headerHashes = append(headerHashes, [][]byte{hdrHash1, hdrHash2, hdrHash3}...)
+	headerHashes := [][]byte{hdrHash1, hdrHash2, hdrHash3}
+	headers := []data.ShardHeaderHandler{header1, header2, header3}
 	round := uint64(10)
 	metaHdr := &block.MetaBlock{Round: round}
 
@@ -301,9 +289,8 @@ func TestShardInfoCreateData_CreateShardInfoFromLegacyMeta(t *testing.T) {
 		)
 		require.Nil(t, err)
 		shardInfo, err := sic.CreateShardInfoFromLegacyMeta(metaHdrV3, headers, headerHashes)
-		require.NotNil(t, err)
+		require.Equal(t, process.ErrInvalidHeader, err)
 		require.Nil(t, shardInfo)
-		assert.Equal(t, process.ErrInvalidHeader, err)
 	})
 	t.Run("should fail with inconsistent headers and hashes", func(t *testing.T) {
 		t.Parallel()
@@ -318,18 +305,20 @@ func TestShardInfoCreateData_CreateShardInfoFromLegacyMeta(t *testing.T) {
 		)
 		require.Nil(t, err)
 		shardInfo, err := sic.CreateShardInfoFromLegacyMeta(metaHdr, headers, headerHashes[:1])
-		require.NotNil(t, err)
+		require.Equal(t, process.ErrInconsistentShardHeadersAndHashes, err)
 		require.Nil(t, shardInfo)
-		assert.Equal(t, process.ErrInconsistentShardHeadersAndHashes, err)
+
 	})
 	t.Run("should fail when createShardDataFromLegacyHeader errors", func(t *testing.T) {
 		t.Parallel()
+
+		errExpected := fmt.Errorf("GetLastSelfNotarizedHeader error")
 		args := createDefaultShardInfoCreateDataArgs()
 		args.pendingMiniBlocksHandler.GetPendingMiniBlocksCalled = func(shardID uint32) [][]byte {
 			return [][]byte{[]byte("hash1"), []byte("hash2")}
 		}
 		args.blockTracker.GetLastSelfNotarizedHeaderCalled = func(shardID uint32) (data.HeaderHandler, []byte, error) {
-			return nil, nil, fmt.Errorf("GetLastSelfNotarizedHeader error")
+			return nil, nil, errExpected
 		}
 		args.enableEpochsHandler.IsFlagEnabledInEpochCalled = func(flag core.EnableEpochFlag, epoch uint32) bool {
 			return true
@@ -348,6 +337,7 @@ func TestShardInfoCreateData_CreateShardInfoFromLegacyMeta(t *testing.T) {
 		shardInfo, err := sic.CreateShardInfoFromLegacyMeta(metaHdr, headers, headerHashes)
 		require.NotNil(t, err)
 		require.Nil(t, shardInfo)
+		require.Equal(t, errExpected, err)
 	})
 	t.Run("should work", func(t *testing.T) {
 		t.Parallel()
@@ -763,9 +753,8 @@ func TestShardInfoCreateData_createShardDataFromExecutionResult(t *testing.T) {
 		)
 		require.Nil(t, err)
 		shardData, err := sic.createShardDataFromExecutionResult(nil)
-		require.NotNil(t, err)
-		require.Nil(t, shardData)
 		require.ErrorIs(t, err, process.ErrNilExecutionResultHandler)
+		require.Nil(t, shardData)
 	})
 
 	t.Run("should fail with wrong type of execution result", func(t *testing.T) {
@@ -781,9 +770,8 @@ func TestShardInfoCreateData_createShardDataFromExecutionResult(t *testing.T) {
 		require.Nil(t, err)
 		var execResult data.BaseExecutionResultHandler = &block.BaseExecutionResult{}
 		shardData, err := sic.createShardDataFromExecutionResult(execResult)
-		require.NotNil(t, err)
-		require.Nil(t, shardData)
 		require.ErrorIs(t, err, process.ErrWrongTypeAssertion)
+		require.Nil(t, shardData)
 	})
 
 	t.Run("should fail when GetHeaderByHash errors", func(t *testing.T) {
@@ -803,9 +791,8 @@ func TestShardInfoCreateData_createShardDataFromExecutionResult(t *testing.T) {
 		require.Nil(t, err)
 		execResult := getExecutionResultForShard(uint32(1), []byte("header hash for shard 1"))
 		shardData, err := sic.createShardDataFromExecutionResult(execResult)
-		require.NotNil(t, err)
-		require.Nil(t, shardData)
 		require.Equal(t, fmt.Errorf("GetHeaderByHash error"), err)
+		require.Nil(t, shardData)
 	})
 
 	t.Run("should fail when updateShardDataWithCrossShardInfo fails", func(t *testing.T) {
@@ -825,9 +812,8 @@ func TestShardInfoCreateData_createShardDataFromExecutionResult(t *testing.T) {
 		require.Nil(t, err)
 		execResult := getExecutionResultForShard(uint32(1), []byte("header hash for shard 1"))
 		shardData, err := sic.createShardDataFromExecutionResult(execResult)
-		require.NotNil(t, err)
-		require.Nil(t, shardData)
 		require.Equal(t, fmt.Errorf("notarized headers slice is nil"), err)
+		require.Nil(t, shardData)
 	})
 
 	t.Run("should work", func(t *testing.T) {
@@ -1040,10 +1026,7 @@ func getMiniBlockHeadersForShard(shardID uint32) []block.MiniBlockHeader {
 		ReceiverShardID: 0,
 	}
 
-	miniBlockHeaders := make([]block.MiniBlockHeader, 0)
-	miniBlockHeaders = append(miniBlockHeaders, miniBlockHeader1)
-	miniBlockHeaders = append(miniBlockHeaders, miniBlockHeader2)
-	miniBlockHeaders = append(miniBlockHeaders, miniBlockHeader3)
+	miniBlockHeaders := []block.MiniBlockHeader{miniBlockHeader1, miniBlockHeader2, miniBlockHeader3}
 	return miniBlockHeaders
 }
 
