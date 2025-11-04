@@ -618,7 +618,7 @@ func CreateGenesisBlocks(
 	genesisBlocks := make(map[uint32]data.HeaderHandler)
 	for shardId := uint32(0); shardId < shardCoordinator.NumberOfShards(); shardId++ {
 		rootHash, err := accounts.RootHash()
-		log.Error("CreateGenesisBlocks", "err", err)
+		log.Debug("CreateGenesisBlocks", "err", err)
 		genesisBlocks[shardId] = CreateSimpleGenesisBlock(shardId, rootHash)
 	}
 
@@ -946,24 +946,34 @@ func SetRootHashOfGenesisBlocks(nodes []*TestProcessorNode) {
 	for _, tpn := range nodes {
 		rootHash, err := tpn.Node.GetStateComponents().AccountsAdapter().RootHash()
 		if err != nil {
-			log.Error("tpn.setRootHashOfGenesisBlocks", "err", err)
+			log.Error("SetRootHashOfGenesisBlocks", "err", err)
 		}
 
 		shardID := tpn.ShardCoordinator.SelfId()
 		genesisBlock := tpn.GenesisBlocks[shardID]
-		_ = genesisBlock.SetRootHash(rootHash)
+		err = genesisBlock.SetRootHash(rootHash)
+		if err != nil {
+			log.Error("SetRootHashOfGenesisBlocks", "err", err)
+		}
 
-		_ = tpn.Node.GetDataComponents().Blockchain().SetGenesisHeader(genesisBlock)
+		err = tpn.Node.GetDataComponents().Blockchain().SetGenesisHeader(genesisBlock)
+		if err != nil {
+			log.Error("SetRootHashOfGenesisBlocks", "err", err)
+		}
 
-		OnExecutedBlock(tpn)
+		err = OnExecutedBlock(tpn)
+		if err != nil {
+			log.Error("SetRootHashOfGenesisBlocks", "err", err)
+		}
 	}
 }
 
-func OnExecutedBlock(node *TestProcessorNode) {
+func OnExecutedBlock(node *TestProcessorNode) error {
 	shardID := node.ShardCoordinator.SelfId()
 	genesisBlock := node.GenesisBlocks[shardID]
 	node.DataPool.Transactions().ResetTracker()
-	_ = node.DataPool.Transactions().OnExecutedBlock(genesisBlock, genesisBlock.GetRootHash())
+
+	return node.DataPool.Transactions().OnExecutedBlock(genesisBlock, genesisBlock.GetRootHash())
 }
 
 // CreateRandomAddress creates a random byte array with fixed size

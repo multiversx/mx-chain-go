@@ -113,7 +113,12 @@ func getAllPubKeysFromConfig(nodesCfg nodesConfig) [][]byte {
 	return allPubKeys
 }
 
-func unStake(t *testing.T, owner []byte, accountsDB state.AccountsAdapter, marshaller marshal.Marshalizer, stake *big.Int,
+func unStake(
+	t *testing.T,
+	owner []byte,
+	accountsDB state.AccountsAdapter,
+	marshaller marshal.Marshalizer,
+	stake *big.Int,
 	txPool dataRetriever.ShardedDataCacherNotifier,
 	blockchain chainData.ChainHandler,
 ) {
@@ -135,13 +140,20 @@ func unStake(t *testing.T, owner []byte, accountsDB state.AccountsAdapter, marsh
 	_, err = accountsDB.Commit()
 	require.Nil(t, err)
 
+}
+
+func updateRootHash(
+	t *testing.T,
+	accountsDB state.AccountsAdapter,
+	txPool dataRetriever.ShardedDataCacherNotifier,
+	blockchain chainData.ChainHandler,
+) {
 	newRootHash, err := accountsDB.RootHash()
 	require.Nil(t, err)
 
 	block := blockchain.GetCurrentBlockHeader()
 	if block == nil {
 		block = blockchain.GetGenesisHeader()
-
 		err = block.SetRootHash(newRootHash)
 		require.Nil(t, err)
 
@@ -505,7 +517,12 @@ func TestStakingV4_UnStakeNodesWithNotEnoughFunds(t *testing.T) {
 	requireSliceContainsNumOfElements(t, getAllPubKeys(currNodesConfig.leaving), getAllPubKeys(owner2Stats.WaitingBlsKeys), 1)
 
 	// Owner1 will unStake some EGLD => at the end of next epoch, he should not be able to reStake all the nodes
-	unStake(t, []byte(owner1), node.AccountsAdapter, node.Marshaller, big.NewInt(0.1*nodePrice),
+	unStake(
+		t,
+		[]byte(owner1),
+		node.AccountsAdapter,
+		node.Marshaller,
+		big.NewInt(0.1*nodePrice),
 		node.DataPool.Transactions(),
 		node.BlockChainHandler,
 	)
