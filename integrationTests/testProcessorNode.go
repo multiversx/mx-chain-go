@@ -1637,6 +1637,8 @@ func (tpn *TestProcessorNode) initInnerProcessors(gasMap map[string]map[string]u
 		tpn.AccntState,
 		TestAddressPubkeyConverter,
 		tpn.ShardCoordinator,
+		TestMarshalizer,
+		TestHasher,
 	)
 
 	mapDNSAddresses := make(map[string]struct{})
@@ -2284,6 +2286,7 @@ func (tpn *TestProcessorNode) initBlockProcessor() {
 		BlockProcessingCutoffHandler: &testscommon.BlockProcessingCutoffStub{},
 		ManagedPeersHolder:           &testscommon.ManagedPeersHolderStub{},
 		SentSignaturesTracker:        &testscommon.SentSignatureTrackerStub{},
+		StateAccessesCollector:       &stateMock.StateAccessesCollectorStub{},
 	}
 
 	if check.IfNil(tpn.EpochStartNotifier) {
@@ -3697,6 +3700,7 @@ func GetDefaultEnableEpochsConfig() *config.EnableEpochs {
 		StakingV4Step2EnableEpoch:                       UnreachableEpoch,
 		StakingV4Step3EnableEpoch:                       UnreachableEpoch,
 		AndromedaEnableEpoch:                            UnreachableEpoch,
+		RelayedTransactionsV1V2DisableEpoch:             UnreachableEpoch,
 	}
 }
 

@@ -13,6 +13,7 @@ import (
 	"github.com/multiversx/mx-chain-go/process/coordinator"
 	"github.com/multiversx/mx-chain-go/process/factory/shard"
 	"github.com/multiversx/mx-chain-go/process/smartContract"
+	"github.com/multiversx/mx-chain-go/process/smartContract/processProxy"
 	"github.com/multiversx/mx-chain-go/process/smartContract/scrCommon"
 	"github.com/multiversx/mx-chain-go/process/transaction"
 	"github.com/multiversx/mx-chain-go/process/transactionEvaluator"
@@ -47,7 +48,7 @@ func (pcf *processComponentsFactory) createAPITransactionEvaluator(epochStartTri
 		return nil, nil, err
 	}
 
-	txSimulatorProcessorArgs, vmContainerFactory, txTypeHandler, err := pcf.createArgsTxSimulatorProcessor(simulationAccountsDB, vmOutputCacher, txLogsProcessor, epochStartTrigger)
+	txSimulatorProcessorArgs, vmContainerFactory, txTypeHandler, scrProcessor, err := pcf.createArgsTxSimulatorProcessor(simulationAccountsDB, vmOutputCacher, txLogsProcessor, epochStartTrigger)
 	if err != nil {
 		return nil, nil, err
 	}
@@ -66,6 +67,7 @@ func (pcf *processComponentsFactory) createAPITransactionEvaluator(epochStartTri
 	txSimulatorProcessorArgs.Hasher = pcf.coreData.Hasher()
 	txSimulatorProcessorArgs.Marshalizer = pcf.coreData.InternalMarshalizer()
 	txSimulatorProcessorArgs.DataFieldParser = dataFieldParser
+	txSimulatorProcessorArgs.SCRProcessor = scrProcessor
 
 	txSimulator, err := transactionEvaluator.NewTransactionSimulator(txSimulatorProcessorArgs)
 	if err != nil {
@@ -90,7 +92,7 @@ func (pcf *processComponentsFactory) createArgsTxSimulatorProcessor(
 	vmOutputCacher storage.Cacher,
 	txLogsProcessor process.TransactionLogProcessor,
 	epochStartTrigger process.EpochStartTriggerHandler,
-) (transactionEvaluator.ArgsTxSimulator, process.VirtualMachinesContainerFactory, process.TxTypeHandler, error) {
+) (transactionEvaluator.ArgsTxSimulator, process.VirtualMachinesContainerFactory, process.TxTypeHandler, process.SmartContractResultProcessor, error) {
 	shardID := pcf.bootstrapComponents.ShardCoordinator().SelfId()
 	if shardID == core.MetachainShardId {
 		return pcf.createArgsTxSimulatorProcessorForMeta(accountsAdapter, vmOutputCacher, txLogsProcessor, epochStartTrigger)
@@ -104,7 +106,7 @@ func (pcf *processComponentsFactory) createArgsTxSimulatorProcessorForMeta(
 	vmOutputCacher storage.Cacher,
 	txLogsProcessor process.TransactionLogProcessor,
 	epochStartTrigger process.EpochStartTriggerHandler,
-) (transactionEvaluator.ArgsTxSimulator, process.VirtualMachinesContainerFactory, process.TxTypeHandler, error) {
+) (transactionEvaluator.ArgsTxSimulator, process.VirtualMachinesContainerFactory, process.TxTypeHandler, process.SmartContractResultProcessor, error) {
 	args := transactionEvaluator.ArgsTxSimulator{}
 
 	argsFactory := shard.ArgsNewIntermediateProcessorsContainerFactory{
@@ -120,17 +122,17 @@ func (pcf *processComponentsFactory) createArgsTxSimulatorProcessorForMeta(
 	}
 	intermediateProcessorsFactory, err := shard.NewIntermediateProcessorsContainerFactory(argsFactory)
 	if err != nil {
-		return args, nil, nil, err
+		return args, nil, nil, nil, err
 	}
 
 	intermediateProcessorsContainer, err := intermediateProcessorsFactory.Create()
 	if err != nil {
-		return args, nil, nil, err
+		return args, nil, nil, nil, err
 	}
 
 	builtInFuncFactory, err := pcf.createBuiltInFunctionContainer(accountsAdapter, make(map[string]struct{}))
 	if err != nil {
-		return args, nil, nil, err
+		return args, nil, nil, nil, err
 	}
 
 	vmContainerFactory, err := pcf.createVMFactoryMeta(
@@ -142,19 +144,19 @@ func (pcf *processComponentsFactory) createArgsTxSimulatorProcessorForMeta(
 		epochStartTrigger,
 	)
 	if err != nil {
-		return args, nil, nil, err
+		return args, nil, nil, nil, err
 	}
 
 	args.BlockChainHook = vmContainerFactory.BlockChainHookImpl()
 
 	vmContainer, err := vmContainerFactory.Create()
 	if err != nil {
-		return args, nil, nil, err
+		return args, nil, nil, nil, err
 	}
 
 	txTypeHandler, err := pcf.createTxTypeHandler(builtInFuncFactory)
 	if err != nil {
-		return args, nil, nil, err
+		return args, nil, nil, nil, err
 	}
 
 	gasHandler, err := preprocess.NewGasComputation(
@@ -163,16 +165,16 @@ func (pcf *processComponentsFactory) createArgsTxSimulatorProcessorForMeta(
 		pcf.coreData.EnableEpochsHandler(),
 	)
 	if err != nil {
-		return args, nil, nil, err
+		return args, nil, nil, nil, err
 	}
 
 	scForwarder, err := intermediateProcessorsContainer.Get(dataBlock.SmartContractResultBlock)
 	if err != nil {
-		return args, nil, nil, err
+		return args, nil, nil, nil, err
 	}
 	badTxInterim, err := intermediateProcessorsContainer.Get(dataBlock.InvalidBlock)
 	if err != nil {
-		return args, nil, nil, err
+		return args, nil, nil, nil, err
 	}
 
 	scProcArgs := scrCommon.ArgsNewSmartContractProcessor{
@@ -202,7 +204,7 @@ func (pcf *processComponentsFactory) createArgsTxSimulatorProcessorForMeta(
 
 	scProcessor, err := smartContract.NewSmartContractProcessor(scProcArgs)
 	if err != nil {
-		return args, nil, nil, err
+		return args, nil, nil, nil, err
 	}
 
 	argsTxProcessor := transaction.ArgsNewMetaTxProcessor{
@@ -221,13 +223,13 @@ func (pcf *processComponentsFactory) createArgsTxSimulatorProcessorForMeta(
 
 	txProcessor, err := transaction.NewMetaTxProcessor(argsTxProcessor)
 	if err != nil {
-		return args, nil, nil, err
+		return args, nil, nil, nil, err
 	}
 
 	args.TransactionProcessor = txProcessor
 	args.IntermediateProcContainer = intermediateProcessorsContainer
 
-	return args, vmContainerFactory, txTypeHandler, nil
+	return args, vmContainerFactory, txTypeHandler, scProcessor, nil
 }
 
 func (pcf *processComponentsFactory) createTxTypeHandler(builtInFuncFactory vmcommon.BuiltInFunctionFactory) (process.TxTypeHandler, error) {
@@ -253,7 +255,7 @@ func (pcf *processComponentsFactory) createArgsTxSimulatorProcessorShard(
 	vmOutputCacher storage.Cacher,
 	txLogsProcessor process.TransactionLogProcessor,
 	epochStartTrigger process.EpochStartTriggerHandler,
-) (transactionEvaluator.ArgsTxSimulator, process.VirtualMachinesContainerFactory, process.TxTypeHandler, error) {
+) (transactionEvaluator.ArgsTxSimulator, process.VirtualMachinesContainerFactory, process.TxTypeHandler, process.SmartContractResultProcessor, error) {
 	args := transactionEvaluator.ArgsTxSimulator{}
 
 	argsFactory := shard.ArgsNewIntermediateProcessorsContainerFactory{
@@ -270,28 +272,28 @@ func (pcf *processComponentsFactory) createArgsTxSimulatorProcessorShard(
 
 	intermediateProcessorsFactory, err := shard.NewIntermediateProcessorsContainerFactory(argsFactory)
 	if err != nil {
-		return args, nil, nil, err
+		return args, nil, nil, nil, err
 	}
 
 	intermediateProcessorsContainer, err := intermediateProcessorsFactory.Create()
 	if err != nil {
-		return args, nil, nil, err
+		return args, nil, nil, nil, err
 	}
 
 	mapDNSAddresses, err := pcf.smartContractParser.GetDeployedSCAddresses(genesis.DNSType)
 	if err != nil {
-		return args, nil, nil, err
+		return args, nil, nil, nil, err
 	}
 
 	builtInFuncFactory, err := pcf.createBuiltInFunctionContainer(accountsAdapter, mapDNSAddresses)
 	if err != nil {
-		return args, nil, nil, err
+		return args, nil, nil, nil, err
 	}
 
 	smartContractStorageSimulate := pcf.config.SmartContractsStorageSimulate
 	esdtTransferParser, err := parsers.NewESDTTransferParser(pcf.coreData.InternalMarshalizer())
 	if err != nil {
-		return args, nil, nil, err
+		return args, nil, nil, nil, err
 	}
 
 	vmContainerFactory, err := pcf.createVMFactoryShard(
@@ -306,24 +308,24 @@ func (pcf *processComponentsFactory) createArgsTxSimulatorProcessorShard(
 		epochStartTrigger,
 	)
 	if err != nil {
-		return args, nil, nil, err
+		return args, nil, nil, nil, err
 	}
 
 	args.BlockChainHook = vmContainerFactory.BlockChainHookImpl()
 
 	err = builtInFuncFactory.SetPayableHandler(vmContainerFactory.BlockChainHookImpl())
 	if err != nil {
-		return args, nil, nil, err
+		return args, nil, nil, nil, err
 	}
 
 	vmContainer, err := vmContainerFactory.Create()
 	if err != nil {
-		return args, nil, nil, err
+		return args, nil, nil, nil, err
 	}
 
 	txTypeHandler, err := pcf.createTxTypeHandler(builtInFuncFactory)
 	if err != nil {
-		return args, nil, nil, err
+		return args, nil, nil, nil, err
 	}
 	txFeeHandler := &processDisabled.FeeHandler{}
 
@@ -333,20 +335,20 @@ func (pcf *processComponentsFactory) createArgsTxSimulatorProcessorShard(
 		pcf.coreData.EnableEpochsHandler(),
 	)
 	if err != nil {
-		return args, nil, nil, err
+		return args, nil, nil, nil, err
 	}
 
 	scForwarder, err := intermediateProcessorsContainer.Get(dataBlock.SmartContractResultBlock)
 	if err != nil {
-		return args, nil, nil, err
+		return args, nil, nil, nil, err
 	}
 	badTxInterim, err := intermediateProcessorsContainer.Get(dataBlock.InvalidBlock)
 	if err != nil {
-		return args, nil, nil, err
+		return args, nil, nil, nil, err
 	}
 	receiptTxInterim, err := intermediateProcessorsContainer.Get(dataBlock.ReceiptBlock)
 	if err != nil {
-		return args, nil, nil, err
+		return args, nil, nil, nil, err
 	}
 
 	argsParser := smartContract.NewArgumentParser()
@@ -376,9 +378,9 @@ func (pcf *processComponentsFactory) createArgsTxSimulatorProcessorShard(
 		IsGenesisProcessing: false,
 	}
 
-	scProcessor, err := smartContract.NewSmartContractProcessor(scProcArgs)
+	scProcessorProxy, err := processProxy.NewSmartContractProcessorProxy(scProcArgs, pcf.coreData.EpochNotifier())
 	if err != nil {
-		return args, nil, nil, err
+		return args, nil, nil, nil, err
 	}
 
 	argsTxProcessor := transaction.ArgsNewTxProcessor{
@@ -388,7 +390,7 @@ func (pcf *processComponentsFactory) createArgsTxSimulatorProcessorShard(
 		Marshalizer:         pcf.coreData.InternalMarshalizer(),
 		SignMarshalizer:     pcf.coreData.TxMarshalizer(),
 		ShardCoordinator:    pcf.bootstrapComponents.ShardCoordinator(),
-		ScProcessor:         scProcessor,
+		ScProcessor:         scProcessorProxy,
 		TxFeeHandler:        txFeeHandler,
 		TxTypeHandler:       txTypeHandler,
 		EconomicsFee:        pcf.coreData.EconomicsData(),
@@ -405,11 +407,11 @@ func (pcf *processComponentsFactory) createArgsTxSimulatorProcessorShard(
 
 	txProcessor, err := transaction.NewTxProcessor(argsTxProcessor)
 	if err != nil {
-		return args, nil, nil, err
+		return args, nil, nil, nil, err
 	}
 
 	args.TransactionProcessor = txProcessor
 	args.IntermediateProcContainer = intermediateProcessorsContainer
 
-	return args, vmContainerFactory, txTypeHandler, nil
+	return args, vmContainerFactory, txTypeHandler, scProcessorProxy, nil
 }
