@@ -9,6 +9,7 @@ import (
 	"github.com/multiversx/mx-chain-core-go/data"
 	"github.com/multiversx/mx-chain-logger-go"
 
+	"github.com/multiversx/mx-chain-go/common"
 	"github.com/multiversx/mx-chain-go/process"
 )
 
@@ -30,16 +31,8 @@ func NewPendingMiniBlocks() (*pendingMiniBlocks, error) {
 	}, nil
 }
 
-func (p *pendingMiniBlocks) getAllCrossShardMiniBlocksHashes(metaBlock data.MetaHeaderHandler) map[string]uint32 {
+func (p *pendingMiniBlocks) getMiniBlocksHashesReadyForCrossShardExecution(metaBlock data.MetaHeaderHandler) (map[string]uint32, error) {
 	crossShardMiniBlocks := make(map[string]uint32)
-
-	for _, mbHeader := range metaBlock.GetMiniBlockHeaderHandlers() {
-		if !shouldConsiderCrossShardMiniBlock(mbHeader.GetSenderShardID(), mbHeader.GetReceiverShardID()) {
-			continue
-		}
-
-		crossShardMiniBlocks[string(mbHeader.GetHash())] = mbHeader.GetReceiverShardID()
-	}
 
 	shardInfoHandlers := metaBlock.GetShardInfoHandlers()
 	for _, shardData := range shardInfoHandlers {
@@ -53,7 +46,38 @@ func (p *pendingMiniBlocks) getAllCrossShardMiniBlocksHashes(metaBlock data.Meta
 		}
 	}
 
-	return crossShardMiniBlocks
+	miniBlocks, err := getMiniBlocksFromHeaderReadyForCrossShardExecution(metaBlock)
+	if err != nil {
+		return nil, err
+	}
+	for _, mbHeader := range miniBlocks {
+		if !shouldConsiderCrossShardMiniBlock(mbHeader.GetSenderShardID(), mbHeader.GetReceiverShardID()) {
+			continue
+		}
+
+		crossShardMiniBlocks[string(mbHeader.GetHash())] = mbHeader.GetReceiverShardID()
+	}
+
+	return crossShardMiniBlocks, nil
+}
+
+func getMiniBlocksFromHeaderReadyForCrossShardExecution(header data.MetaHeaderHandler) ([]data.MiniBlockHeaderHandler, error) {
+	if !header.IsHeaderV3() {
+		return header.GetMiniBlockHeaderHandlers(), nil
+	}
+
+	miniBlocks := make([]data.MiniBlockHeaderHandler, 0)
+	execResultHandlers := header.GetExecutionResultsHandlers()
+	for _, execResult := range execResultHandlers {
+		mbs, errGetMbs := common.GetMiniBlocksHeaderHandlersFromExecResult(execResult)
+		if errGetMbs != nil {
+			return nil, errGetMbs
+		}
+
+		miniBlocks = append(miniBlocks, mbs...)
+	}
+
+	return miniBlocks, nil
 }
 
 func shouldConsiderCrossShardMiniBlock(senderShardID uint32, receiverShardID uint32) bool {
@@ -122,7 +146,10 @@ func (p *pendingMiniBlocks) RevertHeader(headerHandler data.HeaderHandler) error
 }
 
 func (p *pendingMiniBlocks) processHeader(metaHandler data.MetaHeaderHandler) error {
-	crossShardMiniBlocksHashes := p.getAllCrossShardMiniBlocksHashes(metaHandler)
+	crossShardMiniBlocksHashes, err := p.getMiniBlocksHashesReadyForCrossShardExecution(metaHandler)
+	if err != nil {
+		return err
+	}
 
 	p.mutPendingMbShard.Lock()
 	defer p.mutPendingMbShard.Unlock()

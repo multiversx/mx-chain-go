@@ -1538,7 +1538,6 @@ type GasComputation interface {
 		txHashes [][]byte,
 		transactions []data.TransactionHandler,
 	) (addedTxHashes [][]byte, pendingMiniBlocksAdded []data.MiniBlockHeaderHandler, err error)
-	RevertIncomingMiniBlocks(miniBlockHashes [][]byte)
 	GetBandwidthForTransactions() uint64
 	RevertIncomingMiniBlocks(miniBlockHashes [][]byte)
 	TotalGasConsumed() uint64
@@ -1589,7 +1588,7 @@ type InclusionEstimator interface {
 
 // ShardInfoCreator defines the functionality to create shard info
 type ShardInfoCreator interface {
-	CreateShardInfoV3(metaHeader data.MetaHeaderHandler, shardHeaders []data.HeaderHandler, shardHeaderHashes [][]byte) ([]data.ShardDataHandler, error)
+	CreateShardInfoV3(metaHeader data.MetaHeaderHandler, shardHeaders []data.HeaderHandler, shardHeaderHashes [][]byte) ([]data.ShardDataProposalHandler, []data.ShardDataHandler, error)
 	CreateShardInfoFromLegacyMeta(metaHeader data.MetaHeaderHandler, shardHeaders []data.ShardHeaderHandler, shardHeaderHashes [][]byte) ([]data.ShardDataHandler, error)
 	IsInterfaceNil() bool
 }

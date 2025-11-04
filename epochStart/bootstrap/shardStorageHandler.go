@@ -10,13 +10,14 @@ import (
 	"github.com/multiversx/mx-chain-core-go/core/check"
 	"github.com/multiversx/mx-chain-core-go/data"
 	"github.com/multiversx/mx-chain-core-go/data/block"
+	logger "github.com/multiversx/mx-chain-logger-go"
+
 	"github.com/multiversx/mx-chain-go/common"
 	"github.com/multiversx/mx-chain-go/dataRetriever"
 	"github.com/multiversx/mx-chain-go/epochStart"
 	"github.com/multiversx/mx-chain-go/epochStart/bootstrap/disabled"
 	"github.com/multiversx/mx-chain-go/process/block/bootstrapStorage"
 	"github.com/multiversx/mx-chain-go/storage/factory"
-	logger "github.com/multiversx/mx-chain-logger-go"
 )
 
 type shardStorageHandler struct {
@@ -942,7 +943,7 @@ func getMetaHeaderMiniBlockHandlersFromExecutionResults(
 
 	execResultsMiniBlockHeaderHandlers := make([]data.MiniBlockHeaderHandler, 0)
 	for _, baseExecutionResult := range baseExecutionResults {
-		miniBlockHeaderHandlers, err := common.GetMiniBlocksHeaderHandlersFromExecResult(baseExecutionResult, metaBlock.GetShardID())
+		miniBlockHeaderHandlers, err := common.GetMiniBlocksHeaderHandlersFromExecResult(baseExecutionResult)
 		if err != nil {
 			log.Warn("failed to get mini blocks header handlers from execution result", "err", err)
 			return nil
