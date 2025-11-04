@@ -49,6 +49,8 @@ import (
 
 var log = logger.GetOrCreate("process/block")
 
+const postProcessMiniBlocksKeySuffix = "postProcessMiniBlocks"
+
 // CrossShardIncomingMbsCreationResult represents the result of creating cross-shard mini blocks
 type CrossShardIncomingMbsCreationResult struct {
 	HeaderFinished    bool
@@ -1598,13 +1600,7 @@ func (bp *baseProcessor) saveBody(body *block.Body, header data.HeaderHandler, h
 		log.Trace("saveBody.Put -> MiniBlockUnit", "time", time.Since(startTime), "hash", miniBlockHash)
 	}
 
-	receiptsHolder := holders.NewReceiptsHolder(bp.txCoordinator.GetCreatedInShardMiniBlocks())
-	errNotCritical = bp.receiptsRepository.SaveReceipts(receiptsHolder, header, headerHash)
-	if errNotCritical != nil {
-		logging.LogErrAsWarnExceptAsDebugIfClosingError(log, errNotCritical,
-			"saveBody(), error on receiptsRepository.SaveReceipts()",
-			"err", errNotCritical)
-	}
+	bp.saveReceiptsForHeader(header, headerHash)
 
 	bp.scheduledTxsExecutionHandler.SaveStateIfNeeded(headerHash)
 
@@ -2524,6 +2520,8 @@ func (bp *baseProcessor) saveExecutedData(header data.HeaderHandler, headerHash 
 		return err
 	}
 
+	bp.saveReceiptsForHeader(header, headerHash)
+
 	return bp.saveIntermediateTxs(headerHash)
 }
 
@@ -2600,6 +2598,67 @@ func (bp *baseProcessor) cacheIntraShardMiniBlocks(headerHash []byte, mbs []*blo
 	bp.dataPool.ExecutedMiniBlocks().Put(headerHash, marshalledMbs, len(marshalledMbs))
 
 	return nil
+}
+
+func (bp *baseProcessor) cachePostProcessMiniBlocksToMe(headerHash []byte, mbs []*block.MiniBlock) error {
+	postProcessMiniBlocksToMe := make([]*block.MiniBlock, 0)
+	for _, mb := range mbs {
+		if mb.ReceiverShardID == bp.shardCoordinator.SelfId() {
+			postProcessMiniBlocksToMe = append(postProcessMiniBlocksToMe, mb.Clone())
+		}
+	}
+
+	marshalledMbs, err := bp.marshalizer.Marshal(postProcessMiniBlocksToMe)
+	if err != nil {
+		return err
+	}
+
+	postProcessKey := append(headerHash, []byte(postProcessMiniBlocksKeySuffix)...)
+	bp.dataPool.ExecutedMiniBlocks().Put(postProcessKey, marshalledMbs, len(marshalledMbs))
+
+	return nil
+}
+
+func (bp *baseProcessor) saveReceiptsForHeader(header data.HeaderHandler, headerHash []byte) {
+	miniBlocks, err := bp.getMiniBlocksForReceipts(header, headerHash)
+	if err != nil {
+		logging.LogErrAsWarnExceptAsDebugIfClosingError(log, err,
+			"saveReceiptsForHeader: cannot get mini blocks for receipts",
+			"err", err)
+		return
+	}
+
+	receiptsHolder := holders.NewReceiptsHolder(miniBlocks)
+	errNotCritical := bp.receiptsRepository.SaveReceipts(receiptsHolder, header, headerHash)
+	if errNotCritical != nil {
+		logging.LogErrAsWarnExceptAsDebugIfClosingError(log, errNotCritical,
+			"saveBody(), error on receiptsRepository.SaveReceipts()",
+			"err", errNotCritical)
+	}
+}
+
+func (bp *baseProcessor) getMiniBlocksForReceipts(header data.HeaderHandler, headerHash []byte) ([]*block.MiniBlock, error) {
+	if !header.IsHeaderV3() {
+		return bp.txCoordinator.GetCreatedInShardMiniBlocks(), nil
+	}
+
+	intraShardMiniBlockKey := append(headerHash, []byte(postProcessMiniBlocksKeySuffix)...)
+	receiptsMiniBlocks, ok := bp.dataPool.ExecutedMiniBlocks().Get(intraShardMiniBlockKey)
+	if !ok {
+		return make([]*block.MiniBlock, 0), nil
+	}
+
+	marshalledMbs, ok := receiptsMiniBlocks.([]byte)
+	if !ok {
+		return nil, fmt.Errorf("%w for saveReceiptsForHeader", process.ErrWrongTypeAssertion)
+	}
+
+	postProcessMiniBlocksToMe := make([]*block.MiniBlock, 0)
+	err := bp.marshalizer.Unmarshal(&postProcessMiniBlocksToMe, marshalledMbs)
+	if err != nil {
+		return nil, err
+	}
+	return postProcessMiniBlocksToMe, nil
 }
 
 func (bp *baseProcessor) cacheLogEvents(headerHash []byte, logs []*data.LogData) error {

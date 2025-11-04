@@ -1,6 +1,7 @@
 package block
 
 import (
+	"bytes"
 	"errors"
 	"testing"
 
@@ -163,6 +164,11 @@ func TestBaseProcessor_saveExecutedData(t *testing.T) {
 		t.Parallel()
 
 		bp := &baseProcessor{
+			receiptsRepository: &testscommon.ReceiptsRepositoryStub{
+				SaveReceiptsCalled: func(holder common.ReceiptsHolder, header data.HeaderHandler, headerHash []byte) error {
+					return nil
+				},
+			},
 			txCoordinator: &testscommon.TransactionCoordinatorMock{
 				GetAllIntermediateTxsCalled: func() map[block.Type]map[string]data.TransactionHandler {
 					return make(map[block.Type]map[string]data.TransactionHandler)
@@ -174,6 +180,13 @@ func TestBaseProcessor_saveExecutedData(t *testing.T) {
 					return &cache.CacherStub{
 						GetCalled: func(key []byte) (value interface{}, ok bool) {
 							return []byte("marshalled map"), true
+						},
+					}
+				},
+				ExecutedMiniBlocksCalled: func() storage.Cacher {
+					return &cache.CacherStub{
+						GetCalled: func(key []byte) (value interface{}, ok bool) {
+							return nil, false
 						},
 					}
 				},
@@ -217,6 +230,11 @@ func TestBaseProcessor_saveExecutedData(t *testing.T) {
 			t.Parallel()
 
 			bp := &baseProcessor{
+				receiptsRepository: &testscommon.ReceiptsRepositoryStub{
+					SaveReceiptsCalled: func(holder common.ReceiptsHolder, header data.HeaderHandler, headerHash []byte) error {
+						return nil
+					},
+				},
 				store: &commonStorage.ChainStorerStub{
 					GetStorerCalled: func(unitType dataRetriever.UnitType) (storage.Storer, error) {
 						require.Fail(t, "should not be called")
@@ -228,6 +246,13 @@ func TestBaseProcessor_saveExecutedData(t *testing.T) {
 						return &cache.CacherStub{
 							GetCalled: func(key []byte) (value interface{}, ok bool) {
 								return []byte("marshalled map"), true
+							},
+						}
+					},
+					ExecutedMiniBlocksCalled: func() storage.Cacher {
+						return &cache.CacherStub{
+							GetCalled: func(key []byte) (value interface{}, ok bool) {
+								return nil, false
 							},
 						}
 					},
@@ -320,6 +345,11 @@ func TestBaseProcessor_saveExecutedData(t *testing.T) {
 			t.Parallel()
 
 			bp := &baseProcessor{
+				receiptsRepository: &testscommon.ReceiptsRepositoryStub{
+					SaveReceiptsCalled: func(holder common.ReceiptsHolder, header data.HeaderHandler, headerHash []byte) error {
+						return nil
+					},
+				},
 				store: &commonStorage.ChainStorerStub{
 					GetStorerCalled: func(unitType dataRetriever.UnitType) (storage.Storer, error) {
 						return &commonStorage.StorerStub{}, nil
@@ -329,6 +359,9 @@ func TestBaseProcessor_saveExecutedData(t *testing.T) {
 					ExecutedMiniBlocksCalled: func() storage.Cacher {
 						return &cache.CacherStub{
 							GetCalled: func(key []byte) (value interface{}, ok bool) {
+								if bytes.Contains(key, []byte("postProcessMiniBlocks")) {
+									return nil, false
+								}
 								require.Fail(t, "should not be called")
 								return nil, false
 							},
@@ -418,6 +451,11 @@ func TestBaseProcessor_saveExecutedData(t *testing.T) {
 			t.Parallel()
 
 			bp := &baseProcessor{
+				receiptsRepository: &testscommon.ReceiptsRepositoryStub{
+					SaveReceiptsCalled: func(holder common.ReceiptsHolder, header data.HeaderHandler, headerHash []byte) error {
+						return nil
+					},
+				},
 				store: &commonStorage.ChainStorerStub{
 					GetStorerCalled: func(unitType dataRetriever.UnitType) (storage.Storer, error) {
 						require.Fail(t, "should not be called")
@@ -426,6 +464,13 @@ func TestBaseProcessor_saveExecutedData(t *testing.T) {
 				},
 				dataPool: &dataRetrieverMock.PoolsHolderStub{
 					PostProcessTransactionsCalled: func() storage.Cacher {
+						return &cache.CacherStub{
+							GetCalled: func(key []byte) (value interface{}, ok bool) {
+								return nil, false
+							},
+						}
+					},
+					ExecutedMiniBlocksCalled: func() storage.Cacher {
 						return &cache.CacherStub{
 							GetCalled: func(key []byte) (value interface{}, ok bool) {
 								return nil, false
@@ -456,6 +501,11 @@ func TestBaseProcessor_saveExecutedData(t *testing.T) {
 			t.Parallel()
 
 			bp := &baseProcessor{
+				receiptsRepository: &testscommon.ReceiptsRepositoryStub{
+					SaveReceiptsCalled: func(holder common.ReceiptsHolder, header data.HeaderHandler, headerHash []byte) error {
+						return nil
+					},
+				},
 				store: &commonStorage.ChainStorerStub{
 					GetStorerCalled: func(unitType dataRetriever.UnitType) (storage.Storer, error) {
 						require.Fail(t, "should not be called")
@@ -469,6 +519,13 @@ func TestBaseProcessor_saveExecutedData(t *testing.T) {
 								txsMap := make(map[block.Type]map[string]data.TransactionHandler)
 								txsMap[block.PeerBlock] = map[string]data.TransactionHandler{} // should never have PeerBlock
 								return txsMap, true
+							},
+						}
+					},
+					ExecutedMiniBlocksCalled: func() storage.Cacher {
+						return &cache.CacherStub{
+							GetCalled: func(key []byte) (value interface{}, ok bool) {
+								return nil, false
 							},
 						}
 					},
@@ -496,6 +553,11 @@ func TestBaseProcessor_saveExecutedData(t *testing.T) {
 			t.Parallel()
 
 			bp := &baseProcessor{
+				receiptsRepository: &testscommon.ReceiptsRepositoryStub{
+					SaveReceiptsCalled: func(holder common.ReceiptsHolder, header data.HeaderHandler, headerHash []byte) error {
+						return nil
+					},
+				},
 				store: &commonStorage.ChainStorerStub{
 					GetStorerCalled: func(unitType dataRetriever.UnitType) (storage.Storer, error) {
 						if unitType == dataRetriever.TransactionUnit {
@@ -512,6 +574,13 @@ func TestBaseProcessor_saveExecutedData(t *testing.T) {
 								txsMap := make(map[block.Type]map[string]data.TransactionHandler)
 								txsMap[block.TxBlock] = map[string]data.TransactionHandler{} // force TransactionUnit
 								return txsMap, true
+							},
+						}
+					},
+					ExecutedMiniBlocksCalled: func() storage.Cacher {
+						return &cache.CacherStub{
+							GetCalled: func(key []byte) (value interface{}, ok bool) {
+								return nil, false
 							},
 						}
 					},
@@ -539,6 +608,11 @@ func TestBaseProcessor_saveExecutedData(t *testing.T) {
 			t.Parallel()
 
 			bp := &baseProcessor{
+				receiptsRepository: &testscommon.ReceiptsRepositoryStub{
+					SaveReceiptsCalled: func(holder common.ReceiptsHolder, header data.HeaderHandler, headerHash []byte) error {
+						return nil
+					},
+				},
 				store: &commonStorage.ChainStorerStub{
 					GetStorerCalled: func(unitType dataRetriever.UnitType) (storage.Storer, error) {
 						return &commonStorage.StorerStub{}, nil
@@ -553,6 +627,13 @@ func TestBaseProcessor_saveExecutedData(t *testing.T) {
 									"hash": nil,
 								}
 								return txsMap, true
+							},
+						}
+					},
+					ExecutedMiniBlocksCalled: func() storage.Cacher {
+						return &cache.CacherStub{
+							GetCalled: func(key []byte) (value interface{}, ok bool) {
+								return nil, false
 							},
 						}
 					},
@@ -580,6 +661,11 @@ func TestBaseProcessor_saveExecutedData(t *testing.T) {
 			t.Parallel()
 
 			bp := &baseProcessor{
+				receiptsRepository: &testscommon.ReceiptsRepositoryStub{
+					SaveReceiptsCalled: func(holder common.ReceiptsHolder, header data.HeaderHandler, headerHash []byte) error {
+						return nil
+					},
+				},
 				store: &commonStorage.ChainStorerStub{
 					GetStorerCalled: func(unitType dataRetriever.UnitType) (storage.Storer, error) {
 						return &commonStorage.StorerStub{}, nil
@@ -594,6 +680,13 @@ func TestBaseProcessor_saveExecutedData(t *testing.T) {
 									"hash": &transaction.Transaction{},
 								}
 								return txsMap, true
+							},
+						}
+					},
+					ExecutedMiniBlocksCalled: func() storage.Cacher {
+						return &cache.CacherStub{
+							GetCalled: func(key []byte) (value interface{}, ok bool) {
+								return nil, false
 							},
 						}
 					},

@@ -807,6 +807,11 @@ func (sp *shardProcessor) collectExecutionResults(headerHash []byte, header data
 		return nil, err
 	}
 
+	err = sp.cachePostProcessMiniBlocksToMe(headerHash, postProcessMiniBlocks)
+	if err != nil {
+		return nil, err
+	}
+
 	executionResult := &block.ExecutionResult{
 		BaseExecutionResult: &block.BaseExecutionResult{
 			HeaderHash:  headerHash,
