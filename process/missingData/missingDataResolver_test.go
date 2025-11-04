@@ -740,6 +740,13 @@ func TestResolver_RequestMissingShardHeadersBlocking(t *testing.T) {
 			GetHeaderByHashCalled: func(hash []byte) (data.HeaderHandler, error) {
 				return nil, headerNotFoundErr
 			},
+			GetHeaderByNonceAndShardIdCalled: func(hdrNonce uint64, shardId uint32) ([]data.HeaderHandler, [][]byte, error) {
+				if hdrNonce == 2 && shardId == 2 {
+					return []data.HeaderHandler{}, [][]byte{}, nil
+				}
+
+				return nil, nil, headerNotFoundErr
+			},
 		}
 
 		proofsPoolMock := &dataRetriever.ProofsPoolMock{
@@ -747,6 +754,10 @@ func TestResolver_RequestMissingShardHeadersBlocking(t *testing.T) {
 				return false
 			},
 			GetProofByNonceCalled: func(headerNonce uint64, shardID uint32) (data.HeaderProofHandler, error) {
+				if headerNonce == 2 && shardID == 2 {
+					return &processMocks.HeaderProofHandlerStub{}, nil
+				}
+
 				return nil, headerNotFoundErr
 			},
 		}
@@ -821,7 +832,7 @@ func TestResolver_RequestMissingShardHeadersBlocking(t *testing.T) {
 			},
 			// nonce gaps per shard:
 			// - shard1: 4
-			// - shard2: 3,4
+			// - shard2: 3,4 (nonce 2 will be found in pool)
 			ShardInfo: []block.ShardData{
 				{
 					Nonce:      3,
@@ -829,7 +840,7 @@ func TestResolver_RequestMissingShardHeadersBlocking(t *testing.T) {
 					HeaderHash: shard1HdrHashFinalized,
 				},
 				{
-					Nonce:      2,
+					Nonce:      1,
 					ShardID:    2,
 					HeaderHash: shard2HdrHashFinalized,
 				},
