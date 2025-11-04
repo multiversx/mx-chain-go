@@ -125,12 +125,17 @@ func (mp *metaProcessor) CreateBlockProposal(
 
 	// TODO: referenced shard headers should be also notarized, not only the headers corresponding to the execution results
 	// this will be needed for metachain to keep track of the already processed headers.
-	shardDataHandler, err := mp.shardInfoCreateData.CreateShardInfoV3(metaHdr, referencedShardHeaders, referencedShardHeaderHashes)
+	shardDataProposalHandlers, shardDataHandlers, err := mp.shardInfoCreateData.CreateShardInfoV3(metaHdr, referencedShardHeaders, referencedShardHeaderHashes)
 	if err != nil {
 		return nil, nil, err
 	}
 
-	err = metaHdr.SetShardInfoHandlers(shardDataHandler)
+	err = metaHdr.SetShardInfoHandlers(shardDataHandlers)
+	if err != nil {
+		return nil, nil, err
+	}
+
+	err = metaHdr.SetShardInfoProposalHandlers(shardDataProposalHandlers)
 	if err != nil {
 		return nil, nil, err
 	}
@@ -145,7 +150,7 @@ func (mp *metaProcessor) CreateBlockProposal(
 		return nil, nil, err
 	}
 
-	totalProcessedTxs := getTxCount(shardDataHandler) + txsInExecutionResults
+	totalProcessedTxs := getTxCount(shardDataHandlers) + txsInExecutionResults
 	// TODO: consider if tx count per metablock header is still needed
 	// as we still have it in the execution results
 	err = metaHdr.SetTxCount(totalProcessedTxs)
