@@ -608,7 +608,7 @@ func TestResolver_RequestMissingShardHeadersBlocking(t *testing.T) {
 		require.Equal(t, process.ErrNilMetaBlockHeader, err)
 	})
 
-	t.Run("requesting missing shard headers for start of epoch block", func(t *testing.T) {
+	t.Run("requesting missing shard headers with start of epoch block", func(t *testing.T) {
 		t.Parallel()
 
 		headersPoolMock := &pool.HeadersPoolStub{
@@ -663,12 +663,27 @@ func TestResolver_RequestMissingShardHeadersBlocking(t *testing.T) {
 		metaHeaderEpochStart := &block.MetaBlockV3{
 			ShardInfoProposal: []block.ShardDataProposal{
 				{
+					Nonce:      5,
 					ShardID:    1,
 					HeaderHash: shard1HdrHashProposal,
 				},
 				{
+					Nonce:      5,
 					ShardID:    2,
 					HeaderHash: shard2HdrHashProposal,
+				},
+			},
+			// no nonce gap, should not request these hashes
+			ShardInfo: []block.ShardData{
+				{
+					Nonce:      4,
+					ShardID:    1,
+					HeaderHash: []byte("hdrHash1"),
+				},
+				{
+					Nonce:      4,
+					ShardID:    2,
+					HeaderHash: []byte("hdrHash2"),
 				},
 			},
 			EpochStart: block.EpochStart{
@@ -698,6 +713,130 @@ func TestResolver_RequestMissingShardHeadersBlocking(t *testing.T) {
 		require.False(t, mdr.allProofsReceived())
 		require.ElementsMatch(t, expectedShardHeadersRequested, requestedShardHeaders)
 		require.ElementsMatch(t, expectedShardHeadersRequested, requestedShardProofs)
+	})
+
+	t.Run("requesting missing shard headers with nonce gaps", func(t *testing.T) {
+		t.Parallel()
+
+		headersPoolMock := &pool.HeadersPoolStub{
+			GetHeaderByHashCalled: func(hash []byte) (data.HeaderHandler, error) {
+				return nil, headerNotFoundErr
+			},
+		}
+
+		proofsPoolMock := &dataRetriever.ProofsPoolMock{
+			HasProofCalled: func(shardID uint32, headerHash []byte) bool {
+				return false
+			},
+			GetProofByNonceCalled: func(headerNonce uint64, shardID uint32) (data.HeaderProofHandler, error) {
+				return nil, headerNotFoundErr
+			},
+		}
+
+		requestedShardProofs := make([][]byte, 0)
+		mutRequestedProofs := sync.Mutex{}
+
+		requestedShardHeaders := make([][]byte, 0)
+		mutRequestedData := sync.Mutex{}
+
+		requestProofNonces := make(map[uint32][]uint64)
+		requestShardHeaderNonces := make(map[uint32][]uint64)
+
+		requestHandlerMock := &testscommon.RequestHandlerStub{
+			RequestShardHeaderCalled: func(shardID uint32, hash []byte) {
+				require.True(t, shardID == 1 || shardID == 2)
+
+				mutRequestedData.Lock()
+				requestedShardHeaders = append(requestedShardHeaders, hash)
+				mutRequestedData.Unlock()
+			},
+			RequestEquivalentProofByHashCalled: func(headerShard uint32, headerHash []byte) {
+				require.True(t, headerShard == 1 || headerShard == 2)
+
+				mutRequestedProofs.Lock()
+				requestedShardProofs = append(requestedShardProofs, headerHash)
+				mutRequestedProofs.Unlock()
+			},
+
+			RequestShardHeaderByNonceCalled: func(shardID uint32, nonce uint64) {
+				require.True(t, shardID == 1 || shardID == 2)
+
+				mutRequestedData.Lock()
+				requestShardHeaderNonces[shardID] = append(requestShardHeaderNonces[shardID], nonce)
+				mutRequestedData.Unlock()
+			},
+			RequestEquivalentProofByNonceCalled: func(headerShard uint32, headerNonce uint64) {
+				require.True(t, headerShard == 1 || headerShard == 2)
+
+				mutRequestedProofs.Lock()
+				requestProofNonces[headerShard] = append(requestProofNonces[headerShard], headerNonce)
+				mutRequestedProofs.Unlock()
+			},
+		}
+
+		args := ResolverArgs{
+			HeadersPool:        headersPoolMock,
+			ProofsPool:         proofsPoolMock,
+			RequestHandler:     requestHandlerMock,
+			BlockDataRequester: commonArgs.BlockDataRequester,
+		}
+		mdr, _ := NewMissingDataResolver(args)
+
+		shard1HdrHashFinalized := []byte("hdrHashFinalized1")
+		shard2HdrHashFinalized := []byte("hdrHashFinalized2")
+
+		shard1HdrHashProposal := []byte("hdrHashProposal1")
+		shard2HdrHashProposal := []byte("hdrHashProposal2")
+
+		metaHeaderEpochStart := &block.MetaBlockV3{
+			ShardInfoProposal: []block.ShardDataProposal{
+				{
+					Nonce:      5,
+					ShardID:    1,
+					HeaderHash: shard1HdrHashProposal,
+				},
+				{
+					Nonce:      5,
+					ShardID:    2,
+					HeaderHash: shard2HdrHashProposal,
+				},
+			},
+			// nonce gaps per shard:
+			// - shard1: 4
+			// - shard2: 3,4
+			ShardInfo: []block.ShardData{
+				{
+					Nonce:      3,
+					ShardID:    1,
+					HeaderHash: shard1HdrHashFinalized,
+				},
+				{
+					Nonce:      2,
+					ShardID:    2,
+					HeaderHash: shard2HdrHashFinalized,
+				},
+			},
+		}
+
+		expectedShardHeadersRequested := [][]byte{
+			shard1HdrHashProposal,
+			shard2HdrHashProposal,
+		}
+
+		err := mdr.RequestMissingShardHeadersBlocking(metaHeaderEpochStart, 50*time.Millisecond)
+		require.Equal(t, process.ErrTimeIsOut, err)
+		require.False(t, mdr.allHeadersReceived())
+		require.False(t, mdr.allProofsReceived())
+		require.ElementsMatch(t, expectedShardHeadersRequested, requestedShardHeaders)
+		require.ElementsMatch(t, expectedShardHeadersRequested, requestedShardProofs)
+
+		require.Len(t, requestProofNonces, 2)
+		require.ElementsMatch(t, requestProofNonces[1], []uint64{4})
+		require.ElementsMatch(t, requestProofNonces[2], []uint64{3, 4})
+
+		require.Len(t, requestShardHeaderNonces, 2)
+		require.ElementsMatch(t, requestShardHeaderNonces[1], []uint64{4})
+		require.ElementsMatch(t, requestShardHeaderNonces[2], []uint64{3, 4})
 	})
 
 	t.Run("request missing shard headers and proofs, all received", func(t *testing.T) {

@@ -300,19 +300,32 @@ func (r *Resolver) requestNonceGapsIfNeeded(shardDataFinalizedNonces, shardDataP
 			continue
 		}
 
-		r.requestShardHeadersByNonce(shardID, lastFinalizedNonce+1, proposedNonce)
+		r.requestShardHeadersAndProofsByNonce(shardID, lastFinalizedNonce+1, proposedNonce)
 	}
 }
 
-func (r *Resolver) requestShardHeadersByNonce(shardID uint32, startNonce, endNonce uint64) {
+// requestShardHeadersAndProofsByNonce will request shard headers and proofs if needed without blocking
+func (r *Resolver) requestShardHeadersAndProofsByNonce(shardID uint32, startNonce, endNonce uint64) {
 	for shardNonceToRequest := startNonce; shardNonceToRequest < endNonce; shardNonceToRequest++ {
-		_, _, err := r.headersPool.GetHeadersByNonceAndShardId(shardNonceToRequest, shardID)
-		if err == nil {
-			continue
-		}
-
-		go r.requestHandler.RequestShardHeaderByNonce(shardID, shardNonceToRequest)
+		r.requestShardHeaderByNonceIfNeeded(shardID, shardNonceToRequest)
+		r.requestShardProofByNonceIfNeeded(shardID, shardNonceToRequest)
 	}
+}
+
+func (r *Resolver) requestShardHeaderByNonceIfNeeded(shardID uint32, nonce uint64) {
+	if _, _, err := r.headersPool.GetHeadersByNonceAndShardId(nonce, shardID); err == nil {
+		return
+	}
+
+	go r.requestHandler.RequestShardHeaderByNonce(shardID, nonce)
+}
+
+func (r *Resolver) requestShardProofByNonceIfNeeded(shardID uint32, nonce uint64) {
+	if _, err := r.proofsPool.GetProofByNonce(nonce, shardID); err == nil {
+		return
+	}
+
+	go r.requestHandler.RequestEquivalentProofByNonce(shardID, nonce)
 }
 
 // RequestBlockTransactions requests the transactions for the given block body.
