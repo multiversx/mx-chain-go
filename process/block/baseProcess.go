@@ -1600,7 +1600,12 @@ func (bp *baseProcessor) saveBody(body *block.Body, header data.HeaderHandler, h
 		log.Trace("saveBody.Put -> MiniBlockUnit", "time", time.Since(startTime), "hash", miniBlockHash)
 	}
 
-	bp.saveReceiptsForHeader(header, headerHash)
+	if !header.IsHeaderV3() {
+		errNotCritical = bp.saveReceiptsForHeader(header, headerHash)
+		logging.LogErrAsWarnExceptAsDebugIfClosingError(log, errNotCritical,
+			"saveBody(), error on receiptsRepository.SaveReceipts()",
+			"err", errNotCritical)
+	}
 
 	bp.scheduledTxsExecutionHandler.SaveStateIfNeeded(headerHash)
 
@@ -2520,7 +2525,10 @@ func (bp *baseProcessor) saveExecutedData(header data.HeaderHandler, headerHash 
 		return err
 	}
 
-	bp.saveReceiptsForHeader(header, headerHash)
+	err = bp.saveReceiptsForHeader(header, headerHash)
+	if err != nil {
+		return err
+	}
 
 	return bp.saveIntermediateTxs(headerHash)
 }
@@ -2601,14 +2609,7 @@ func (bp *baseProcessor) cacheIntraShardMiniBlocks(headerHash []byte, mbs []*blo
 }
 
 func (bp *baseProcessor) cachePostProcessMiniBlocksToMe(headerHash []byte, mbs []*block.MiniBlock) error {
-	postProcessMiniBlocksToMe := make([]*block.MiniBlock, 0)
-	for _, mb := range mbs {
-		if mb.ReceiverShardID == bp.shardCoordinator.SelfId() {
-			postProcessMiniBlocksToMe = append(postProcessMiniBlocksToMe, mb.Clone())
-		}
-	}
-
-	marshalledMbs, err := bp.marshalizer.Marshal(postProcessMiniBlocksToMe)
+	marshalledMbs, err := bp.marshalizer.Marshal(mbs)
 	if err != nil {
 		return err
 	}
@@ -2619,22 +2620,14 @@ func (bp *baseProcessor) cachePostProcessMiniBlocksToMe(headerHash []byte, mbs [
 	return nil
 }
 
-func (bp *baseProcessor) saveReceiptsForHeader(header data.HeaderHandler, headerHash []byte) {
+func (bp *baseProcessor) saveReceiptsForHeader(header data.HeaderHandler, headerHash []byte) error {
 	miniBlocks, err := bp.getMiniBlocksForReceipts(header, headerHash)
 	if err != nil {
-		logging.LogErrAsWarnExceptAsDebugIfClosingError(log, err,
-			"saveReceiptsForHeader: cannot get mini blocks for receipts",
-			"err", err)
-		return
+		return err
 	}
 
 	receiptsHolder := holders.NewReceiptsHolder(miniBlocks)
-	errNotCritical := bp.receiptsRepository.SaveReceipts(receiptsHolder, header, headerHash)
-	if errNotCritical != nil {
-		logging.LogErrAsWarnExceptAsDebugIfClosingError(log, errNotCritical,
-			"saveReceiptsForHeader(), error on receiptsRepository.SaveReceipts()",
-			"err", errNotCritical)
-	}
+	return bp.receiptsRepository.SaveReceipts(receiptsHolder, header, headerHash)
 }
 
 func (bp *baseProcessor) getMiniBlocksForReceipts(header data.HeaderHandler, headerHash []byte) ([]*block.MiniBlock, error) {
