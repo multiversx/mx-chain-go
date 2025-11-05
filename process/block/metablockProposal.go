@@ -16,6 +16,13 @@ import (
 	"github.com/multiversx/mx-chain-go/process"
 )
 
+// UsedShardHeadersInfo holds the used shard headers information
+type UsedShardHeadersInfo struct {
+	HeadersPerShard          map[uint32][]ShardHeaderInfo
+	OrderedShardHeaders      []data.HeaderHandler
+	OrderedShardHeaderHashes [][]byte
+}
+
 // CreateNewHeaderProposal creates a new header
 func (mp *metaProcessor) CreateNewHeaderProposal(round uint64, nonce uint64) (data.HeaderHandler, error) {
 	// TODO: the trigger would need to be changed upon commit of a block with the epoch start results
@@ -161,30 +168,13 @@ func (mp *metaProcessor) CreateBlockProposal(
 		return nil, nil, err
 	}
 
-	marshalizedBody, err := mp.marshalizer.Marshal(body)
+	marshalledBody, err := mp.marshalizer.Marshal(body)
 	if err != nil {
 		return nil, nil, err
 	}
-	mp.blockSizeThrottler.Add(metaHdr.GetRound(), uint32(len(marshalizedBody)))
+	mp.blockSizeThrottler.Add(metaHdr.GetRound(), uint32(len(marshalledBody)))
 
 	return metaHdr, body, nil
-}
-
-func getTxCountExecutionResults(metaHeader data.MetaHeaderHandler) (uint32, error) {
-	if check.IfNil(metaHeader) {
-		return 0, nil
-	}
-
-	totalTxs := uint64(0)
-	execResults := metaHeader.GetExecutionResultsHandlers()
-	for _, execResult := range execResults {
-		execResultsMeta, ok := execResult.(data.MetaExecutionResultHandler)
-		if !ok {
-			return 0, process.ErrWrongTypeAssertion
-		}
-		totalTxs += execResultsMeta.GetExecutedTxCount()
-	}
-	return uint32(totalTxs), nil
 }
 
 // VerifyBlockProposal verifies the proposed block. It returns nil if all ok or the specific error
@@ -267,7 +257,7 @@ func (mp *metaProcessor) VerifyBlockProposal(
 		go mp.checkAndRequestIfShardHeadersMissing()
 	}()
 
-	err = mp.checkEpochCorrectness(header)
+	err = mp.checkEpochCorrectnessV3(header)
 	if err != nil {
 		return err
 	}
@@ -286,6 +276,23 @@ func (mp *metaProcessor) ProcessBlockProposal(
 	bodyHandler data.BodyHandler,
 ) (data.BaseExecutionResultHandler, error) {
 	return nil, nil
+}
+
+func getTxCountExecutionResults(metaHeader data.MetaHeaderHandler) (uint32, error) {
+	if check.IfNil(metaHeader) {
+		return 0, nil
+	}
+
+	totalTxs := uint64(0)
+	execResults := metaHeader.GetExecutionResultsHandlers()
+	for _, execResult := range execResults {
+		execResultsMeta, ok := execResult.(data.MetaExecutionResultHandler)
+		if !ok {
+			return 0, process.ErrWrongTypeAssertion
+		}
+		totalTxs += execResultsMeta.GetExecutedTxCount()
+	}
+	return uint32(totalTxs), nil
 }
 
 func (mp *metaProcessor) hasStartOfEpochExecutionResults(metaHeader data.MetaHeaderHandler) (bool, error) {
@@ -603,20 +610,62 @@ func (mp *metaProcessor) checkShardHeadersValidityAndFinalityProposal(
 		return fmt.Errorf("%w : checkShardHeadersValidityAndFinalityProposal -> verifyUsedShardHeadersValidity", err)
 	}
 
-	comparisonShardInfo, err := mp.shardInfoCreateData.CreateShardInfoV3(metaHeaderHandler, usedShardHeadersInfo.OrderedShardHeaders, usedShardHeadersInfo.OrderedShardHeaderHashes)
+	return mp.checkShardInfoValidity(metaHeaderHandler, usedShardHeadersInfo)
+}
+
+func (mp *metaProcessor) checkShardInfoValidity(metaHeaderHandler data.MetaHeaderHandler, usedShardHeadersInfo *UsedShardHeadersInfo) error {
+	sinfoProposal, sinfo, err := mp.shardInfoCreateData.CreateShardInfoV3(metaHeaderHandler, usedShardHeadersInfo.OrderedShardHeaders, usedShardHeadersInfo.OrderedShardHeaderHashes)
 	if err != nil {
-		return fmt.Errorf("%w : checkShardHeadersValidityAndFinalityProposal -> CreateShardInfoV3", err)
+		return fmt.Errorf("%w : checkShardInfoValidity -> CreateShardInfoV3", err)
 	}
 
-	// TODO: use the shard info for notarized proposals instead
-	shardInfoProposal := metaHeaderHandler.GetShardInfoHandlers()
-	for i, proposedShardInfo := range shardInfoProposal {
-		shardData, ok := proposedShardInfo.(*block.ShardData)
+	shardInfo := metaHeaderHandler.GetShardInfoHandlers()
+	shardInfoProposal := metaHeaderHandler.GetShardInfoProposalHandlers()
+	err = checkShardInfoVsConstructed(shardInfo, sinfo)
+	if err != nil {
+		return err
+	}
+
+	err = checkShardInfoProposalVsConstructed(shardInfoProposal, sinfoProposal)
+	if err != nil {
+		return err
+	}
+
+	return nil
+}
+
+func checkShardInfoVsConstructed(blockShardInfo, constructedShardInfo []data.ShardDataHandler) error {
+	if len(blockShardInfo) != len(constructedShardInfo) {
+		return fmt.Errorf("%w for shardInfo", process.ErrHeaderShardDataMismatch)
+	}
+	var sdataProposal *block.ShardData
+	var ok bool
+	for i, si := range blockShardInfo {
+		sdataProposal, ok = si.(*block.ShardData)
 		if !ok {
-			return process.ErrWrongTypeAssertion
+			return fmt.Errorf("%w for shardInfo item %d", process.ErrWrongTypeAssertion, i)
 		}
-		if !shardData.Equal(comparisonShardInfo[i]) {
-			return process.ErrShardInfoDoesNotMatch
+		if !sdataProposal.Equal(constructedShardInfo[i]) {
+			return fmt.Errorf("%w for shardInfo item %d", process.ErrHeaderShardDataMismatch, i)
+		}
+	}
+
+	return nil
+}
+
+func checkShardInfoProposalVsConstructed(blockShardInfoProposal, constructedShardInfoProposal []data.ShardDataProposalHandler) error {
+	if len(blockShardInfoProposal) != len(constructedShardInfoProposal) {
+		return fmt.Errorf("%w for shardInfoProposal", process.ErrHeaderShardDataMismatch)
+	}
+	var sdataProposal *block.ShardDataProposal
+	var ok bool
+	for i, sip := range blockShardInfoProposal {
+		sdataProposal, ok = sip.(*block.ShardDataProposal)
+		if !ok {
+			return fmt.Errorf("%w for shardInfoProposal item %d", process.ErrWrongTypeAssertion, i)
+		}
+		if !sdataProposal.Equal(constructedShardInfoProposal[i]) {
+			return fmt.Errorf("%w for shardInfoProposal item %d", process.ErrHeaderShardDataMismatch, i)
 		}
 	}
 
@@ -655,23 +704,16 @@ func (mp *metaProcessor) HasProofsForHeaders(headersPerShard map[uint32][]ShardH
 	return true
 }
 
-type UsedShardHeadersInfo struct {
-	HeadersPerShard          map[uint32][]ShardHeaderInfo
-	OrderedShardHeaders      []data.HeaderHandler
-	OrderedShardHeaderHashes [][]byte
-}
-
 func (mp *metaProcessor) getShardHeadersFromMetaHeader(
 	metaHeaderHandler data.MetaHeaderHandler,
 ) (*UsedShardHeadersInfo, error) {
-	// TODO: use the shard info for notarized proposals instead
-	shardInfoHandlers := metaHeaderHandler.GetShardInfoHandlers()
+	shardInfoProposalHandlers := metaHeaderHandler.GetShardInfoProposalHandlers()
 	usedShardHeaders := make(map[uint32][]ShardHeaderInfo)
 	var err error
 	var header data.HeaderHandler
-	orderedShardHeaders := make([]data.HeaderHandler, 0, len(shardInfoHandlers))
-	orderedShardHeaderHashes := make([][]byte, 0, len(shardInfoHandlers))
-	for _, shardInfoHandler := range shardInfoHandlers {
+	orderedShardHeaders := make([]data.HeaderHandler, 0, len(shardInfoProposalHandlers))
+	orderedShardHeaderHashes := make([][]byte, 0, len(shardInfoProposalHandlers))
+	for _, shardInfoHandler := range shardInfoProposalHandlers {
 		header, err = mp.dataPool.Headers().GetHeaderByHash(shardInfoHandler.GetHeaderHash())
 		if err != nil {
 			return nil, process.ErrMissingHeader
@@ -685,6 +727,7 @@ func (mp *metaProcessor) getShardHeadersFromMetaHeader(
 		orderedShardHeaders = append(orderedShardHeaders, header)
 		orderedShardHeaderHashes = append(orderedShardHeaderHashes, shardInfoHandler.GetHeaderHash())
 	}
+
 	return &UsedShardHeadersInfo{
 		HeadersPerShard:          usedShardHeaders,
 		OrderedShardHeaders:      orderedShardHeaders,

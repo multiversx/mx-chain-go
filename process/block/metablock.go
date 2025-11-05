@@ -437,10 +437,6 @@ func (mp *metaProcessor) SetNumProcessedObj(numObj uint64) {
 func (mp *metaProcessor) checkEpochCorrectness(
 	headerHandler data.MetaHeaderHandler,
 ) error {
-	if headerHandler.IsHeaderV3() {
-		return mp.checkEpochCorrectnessV3(headerHandler)
-	}
-
 	currentBlockHeader := mp.blockChain.GetCurrentBlockHeader()
 	if check.IfNil(currentBlockHeader) {
 		return nil
