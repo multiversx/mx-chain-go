@@ -1275,6 +1275,11 @@ func (mp *metaProcessor) CommitBlock(
 		mp.blockTracker.CleanupInvalidCrossHeaders(header.Epoch, header.Round)
 	}
 
+	err = mp.cleanExecutionResultsFromTracker(header)
+	if err != nil {
+		return err
+	}
+
 	// TODO: Should be sent also validatorInfoTxs alongside rewardsTxs -> mp.validatorInfoCreator.GetValidatorInfoTxs(body) ?
 	mp.indexBlock(header, headerHash, body, finalMetaBlock, notarizedHeadersHashes, rewardsTxs)
 	mp.stateAccessesCollector.Reset()
