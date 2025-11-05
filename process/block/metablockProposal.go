@@ -23,6 +23,12 @@ type UsedShardHeadersInfo struct {
 	OrderedShardHeaderHashes [][]byte
 }
 
+// Comparable defines an interface for comparing two objects
+type Comparable interface {
+	Equal(that interface{}) bool
+	IsInterfaceNil() bool
+}
+
 // CreateNewHeaderProposal creates a new header
 func (mp *metaProcessor) CreateNewHeaderProposal(round uint64, nonce uint64) (data.HeaderHandler, error) {
 	// TODO: the trigger would need to be changed upon commit of a block with the epoch start results
@@ -133,8 +139,6 @@ func (mp *metaProcessor) CreateBlockProposal(
 		go mp.checkAndRequestIfShardHeadersMissing()
 	}()
 
-	// TODO: referenced shard headers should be also notarized, not only the headers corresponding to the execution results
-	// this will be needed for metachain to keep track of the already processed headers.
 	shardDataProposalHandlers, shardDataHandlers, err := mp.shardInfoCreateData.CreateShardInfoV3(metaHdr, referencedShardHeaders, referencedShardHeaderHashes)
 	if err != nil {
 		return nil, nil, err
@@ -614,57 +618,24 @@ func (mp *metaProcessor) checkShardHeadersValidityAndFinalityProposal(
 }
 
 func (mp *metaProcessor) checkShardInfoValidity(metaHeaderHandler data.MetaHeaderHandler, usedShardHeadersInfo *UsedShardHeadersInfo) error {
-	sinfoProposal, sinfo, err := mp.shardInfoCreateData.CreateShardInfoV3(metaHeaderHandler, usedShardHeadersInfo.OrderedShardHeaders, usedShardHeadersInfo.OrderedShardHeaderHashes)
+	createdShardInfoProposal, createdShardInfo, err := mp.shardInfoCreateData.CreateShardInfoV3(metaHeaderHandler, usedShardHeadersInfo.OrderedShardHeaders, usedShardHeadersInfo.OrderedShardHeaderHashes)
 	if err != nil {
 		return fmt.Errorf("%w : checkShardInfoValidity -> CreateShardInfoV3", err)
 	}
 
-	shardInfo := metaHeaderHandler.GetShardInfoHandlers()
-	shardInfoProposal := metaHeaderHandler.GetShardInfoProposalHandlers()
-	err = checkShardInfoVsConstructed(shardInfo, sinfo)
-	if err != nil {
-		return err
+	headerShardInfo := metaHeaderHandler.GetShardInfoHandlers()
+	headerShardInfoProposal := metaHeaderHandler.GetShardInfoProposalHandlers()
+	if len(createdShardInfo) != len(headerShardInfo) || len(createdShardInfoProposal) != len(headerShardInfoProposal) {
+		return process.ErrHeaderShardDataMismatch
 	}
 
-	err = checkShardInfoProposalVsConstructed(shardInfoProposal, sinfoProposal)
-	if err != nil {
-		return err
-	}
-
-	return nil
-}
-
-func checkShardInfoVsConstructed(blockShardInfo, constructedShardInfo []data.ShardDataHandler) error {
-	if len(blockShardInfo) != len(constructedShardInfo) {
-		return fmt.Errorf("%w for shardInfo", process.ErrHeaderShardDataMismatch)
-	}
-	var sdataProposal *block.ShardData
-	var ok bool
-	for i, si := range blockShardInfo {
-		sdataProposal, ok = si.(*block.ShardData)
-		if !ok {
-			return fmt.Errorf("%w for shardInfo item %d", process.ErrWrongTypeAssertion, i)
-		}
-		if !sdataProposal.Equal(constructedShardInfo[i]) {
+	for i := 0; i < len(headerShardInfo); i++ {
+		if !headerShardInfo[i].Equal(createdShardInfo[i]) {
 			return fmt.Errorf("%w for shardInfo item %d", process.ErrHeaderShardDataMismatch, i)
 		}
 	}
-
-	return nil
-}
-
-func checkShardInfoProposalVsConstructed(blockShardInfoProposal, constructedShardInfoProposal []data.ShardDataProposalHandler) error {
-	if len(blockShardInfoProposal) != len(constructedShardInfoProposal) {
-		return fmt.Errorf("%w for shardInfoProposal", process.ErrHeaderShardDataMismatch)
-	}
-	var sdataProposal *block.ShardDataProposal
-	var ok bool
-	for i, sip := range blockShardInfoProposal {
-		sdataProposal, ok = sip.(*block.ShardDataProposal)
-		if !ok {
-			return fmt.Errorf("%w for shardInfoProposal item %d", process.ErrWrongTypeAssertion, i)
-		}
-		if !sdataProposal.Equal(constructedShardInfoProposal[i]) {
+	for i := 0; i < len(headerShardInfoProposal); i++ {
+		if !headerShardInfoProposal[i].Equal(createdShardInfoProposal[i]) {
 			return fmt.Errorf("%w for shardInfoProposal item %d", process.ErrHeaderShardDataMismatch, i)
 		}
 	}
