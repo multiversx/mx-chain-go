@@ -19,7 +19,7 @@
     GenesisMintingSenderAddress = "erd17rc0pu8s7rc0pu8s7rc0pu8s7rc0pu8s7rc0pu8s7rc0pu8s7rcqqkhty3"
 
     [GlobalSettings.TailInflation]
-        EnableEpoch        = 9999999
+        EnableEpoch        = 10
         StartYearInflation = 0.08757
         DecayPercentage    = 0.0025
         MinimumInflation   = 0.02
@@ -52,7 +52,7 @@
         TopUpFactor = 0.5 # fraction of value 0.5 - 50%
 
     [[RewardsSettings.RewardsConfigByEpoch]]
-        EpochEnable = 9999999
+        EpochEnable = 10
         LeaderPercentage = 0.1 #fraction of value 0.1 - 10%
         DeveloperPercentage = 0.3 #fraction of value 0.3 - 30%
         ProtocolSustainabilityPercentage = 0.1 #fraction of value 0.1 - 10%
