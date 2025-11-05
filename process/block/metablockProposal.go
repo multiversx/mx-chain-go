@@ -228,11 +228,6 @@ func (mp *metaProcessor) VerifyBlockProposal(
 
 	// TODO: check that no scheduled mini blocks are included
 
-	err = mp.checkHeaderBodyCorrelationProposal(header.GetMiniBlockHeaderHandlers(), body)
-	if err != nil {
-		return err
-	}
-
 	// TODO: analyse if it should be enforced that execution results on start of epoch block include only start of epoch execution results
 	err = mp.executionResultsVerifier.VerifyHeaderExecutionResults(header)
 	if err != nil {
@@ -583,6 +578,7 @@ func (mp *metaProcessor) hasExecutionResultsForProposedEpochChange(headerHandler
 			return false, process.ErrWrongTypeAssertion
 		}
 		if metaHeaderHandler.IsEpochChangeProposed() {
+			// TODO: check also that this execution result has start of epoch execution results, otherwise error
 			return true, nil
 		}
 	}
