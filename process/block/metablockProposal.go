@@ -226,13 +226,14 @@ func (mp *metaProcessor) VerifyBlockProposal(
 		return err
 	}
 
-	// todo check that no scheduled mini blocks are included
+	// TODO: check that no scheduled mini blocks are included
 
 	err = mp.checkHeaderBodyCorrelationProposal(header.GetMiniBlockHeaderHandlers(), body)
 	if err != nil {
 		return err
 	}
 
+	// TODO: analyse if it should be enforced that execution results on start of epoch block include only start of epoch execution results
 	err = mp.executionResultsVerifier.VerifyHeaderExecutionResults(header)
 	if err != nil {
 		return err
@@ -244,6 +245,7 @@ func (mp *metaProcessor) VerifyBlockProposal(
 	}
 
 	mp.updateMetrics(header)
+
 	mp.missingDataResolver.Reset()
 	mp.missingDataResolver.RequestBlockTransactions(body)
 	// the epoch start meta block and its proof is also requested here if missing
@@ -270,6 +272,9 @@ func (mp *metaProcessor) VerifyBlockProposal(
 	if err != nil {
 		return err
 	}
+
+	// TODO: move gas limit verification in baseProcessor
+	// return mp.verifyGasLimit(header)
 
 	return nil
 }
