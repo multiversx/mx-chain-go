@@ -93,7 +93,7 @@ func NewEconomicsData(args ArgsNewEconomicsData) (*economicsData, error) {
 		return nil, err
 	}
 
-	ed.globalSettingsHandler, err = newGlobalSettingsHandler(args.Economics, args.EnableEpochsHandler)
+	ed.globalSettingsHandler, err = newGlobalSettingsHandler(args.Economics)
 	if err != nil {
 		return nil, err
 	}
@@ -152,8 +152,13 @@ func (ed *economicsData) LeaderPercentageInEpoch(epoch uint32) float64 {
 }
 
 // MaxInflationRate returns the maximum inflation rate
-func (ed *economicsData) MaxInflationRate(year uint32) float64 {
-	return ed.globalSettingsHandler.maxInflationRate(year)
+func (ed *economicsData) MaxInflationRate(year uint32, epoch uint32) float64 {
+	return ed.globalSettingsHandler.maxInflationRate(year, epoch)
+}
+
+// IsTailInflationEnabled returns if the tail inflation is enabled
+func (ed *economicsData) IsTailInflationEnabled(epoch uint32) bool {
+	return ed.globalSettingsHandler.isTailInflationActive(epoch)
 }
 
 // GenesisTotalSupply returns the genesis total supply

@@ -9,7 +9,7 @@ import (
 
 // EconomicsHandlerMock -
 type EconomicsHandlerMock struct {
-	MaxInflationRateCalled                              func(year uint32) float64
+	MaxInflationRateCalled                              func(year uint32, epoch uint32) float64
 	LeaderPercentageCalled                              func() float64
 	ProtocolSustainabilityPercentageCalled              func() float64
 	ProtocolSustainabilityAddressCalled                 func() string
@@ -60,6 +60,7 @@ type EconomicsHandlerMock struct {
 	EcosystemGrowthAddressInEpochCalled                 func(epoch uint32) string
 	GrowthDividendPercentageInEpochCalled               func(epoch uint32) float64
 	GrowthDividendAddressInEpochCalled                  func(epoch uint32) string
+	IsTailInflationEnabledCalled                        func(epoch uint32) bool
 }
 
 // ComputeGasUnitsFromRefundValue -
@@ -83,8 +84,13 @@ func (ehm *EconomicsHandlerMock) ProtocolSustainabilityAddress() string {
 }
 
 // MaxInflationRate -
-func (ehm *EconomicsHandlerMock) MaxInflationRate(year uint32) float64 {
-	return ehm.MaxInflationRateCalled(year)
+func (ehm *EconomicsHandlerMock) MaxInflationRate(year uint32, epoch uint32) float64 {
+	return ehm.MaxInflationRateCalled(year, epoch)
+}
+
+// IsTailInflationEnabled -
+func (ehm *EconomicsHandlerMock) IsTailInflationEnabled(epoch uint32) bool {
+	return ehm.IsTailInflationEnabledCalled(epoch)
 }
 
 // MinGasPrice -

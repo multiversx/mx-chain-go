@@ -300,7 +300,7 @@ func TestEconomics_ComputeInflationRate(t *testing.T) {
 	lateYearInflation := 2.0
 
 	args.RewardsHandler = &mock.RewardsHandlerStub{
-		MaxInflationRateCalled: func(year uint32) float64 {
+		MaxInflationRateCalled: func(year uint32, _ uint32) float64 {
 			switch year {
 			case 0:
 				errFound = errNotGoodYear
@@ -316,23 +316,23 @@ func TestEconomics_ComputeInflationRate(t *testing.T) {
 	}
 	ec, _ := NewEndOfEpochEconomicsDataCreator(args)
 
-	rate := ec.computeInflationRate(1)
+	rate := ec.computeInflationRate(1, 1)
 	assert.Nil(t, errFound)
 	assert.Equal(t, rate, year1inflation)
 
-	rate = ec.computeInflationRate(50000)
+	rate = ec.computeInflationRate(50000, 1)
 	assert.Nil(t, errFound)
 	assert.Equal(t, rate, year1inflation)
 
-	rate = ec.computeInflationRate(7884000)
+	rate = ec.computeInflationRate(7884000, 1)
 	assert.Nil(t, errFound)
 	assert.Equal(t, rate, year2inflation)
 
-	rate = ec.computeInflationRate(8884000)
+	rate = ec.computeInflationRate(8884000, 1)
 	assert.Nil(t, errFound)
 	assert.Equal(t, rate, year2inflation)
 
-	rate = ec.computeInflationRate(38884000)
+	rate = ec.computeInflationRate(38884000, 1)
 	assert.Nil(t, errFound)
 	assert.Equal(t, rate, lateYearInflation)
 }
@@ -409,8 +409,10 @@ func TestEconomics_VerifyRewardsPerBlock_DifferentHitRates(t *testing.T) {
 	devFeesInEpoch := big.NewInt(0)
 	roundDur := 4
 	args := getArguments()
+	args.AccRewardsEnableEpoch = 9999999
+
 	args.RewardsHandler = &mock.RewardsHandlerStub{
-		MaxInflationRateCalled: func(_ uint32) float64 {
+		MaxInflationRateCalled: func(_ uint32, _ uint32) float64 {
 			return 0.1
 		},
 		ProtocolSustainabilityAddressInEpochCalled: func(epoch uint32) string {
@@ -418,6 +420,9 @@ func TestEconomics_VerifyRewardsPerBlock_DifferentHitRates(t *testing.T) {
 		},
 		ProtocolSustainabilityPercentageInEpochCalled: func(epoch uint32) float64 {
 			return 0.1
+		},
+		IsTailInflationEnabledCalled: func(epoch uint32) bool {
+			return epoch >= args.AccRewardsEnableEpoch
 		},
 	}
 	args.RoundTime = &mock.RoundTimeDurationHandler{
@@ -455,7 +460,7 @@ func TestEconomics_VerifyRewardsPerBlock_DifferentHitRates(t *testing.T) {
 		},
 	}
 	args.GenesisTotalSupply = totalSupply
-	args.AccRewardsEnableEpoch = 9999999
+
 	ec, _ := NewEndOfEpochEconomicsDataCreator(args)
 
 	expRwdPerBlock := 84 // based on 0.1 inflation
@@ -525,7 +530,7 @@ func TestEconomics_VerifyRewardsPerBlock_DifferentFees(t *testing.T) {
 	args := getArguments()
 	args.ShardCoordinator = mock.NewMultiShardsCoordinatorMock(3)
 	args.RewardsHandler = &mock.RewardsHandlerStub{
-		MaxInflationRateCalled: func(_ uint32) float64 {
+		MaxInflationRateCalled: func(_ uint32, _ uint32) float64 {
 			return 0.1
 		},
 		ProtocolSustainabilityAddressInEpochCalled: func(epoch uint32) string {
@@ -742,7 +747,7 @@ func TestEconomics_VerifyRewardsPerBlock_MoreFeesThanInflation(t *testing.T) {
 	args := getArguments()
 	args.ShardCoordinator = mock.NewMultiShardsCoordinatorMock(3)
 	args.RewardsHandler = &mock.RewardsHandlerStub{
-		MaxInflationRateCalled: func(_ uint32) float64 {
+		MaxInflationRateCalled: func(_ uint32, _ uint32) float64 {
 			return 0.1
 		},
 		ProtocolSustainabilityAddressInEpochCalled: func(epoch uint32) string {
@@ -940,7 +945,7 @@ func TestEconomics_VerifyRewardsPerBlock_InflationZero(t *testing.T) {
 	args := getArguments()
 	args.ShardCoordinator = mock.NewMultiShardsCoordinatorMock(3)
 	args.RewardsHandler = &mock.RewardsHandlerStub{
-		MaxInflationRateCalled: func(_ uint32) float64 {
+		MaxInflationRateCalled: func(_ uint32, _ uint32) float64 {
 			return 0.0
 		},
 		ProtocolSustainabilityAddressInEpochCalled: func(epoch uint32) string {
@@ -1583,7 +1588,7 @@ func createArgsForComputeEndOfEpochEconomics(
 	args := getArguments()
 	args.StakingV2EnableEpoch = stakingV2EnableEpoch
 	args.RewardsHandler = &mock.RewardsHandlerStub{
-		MaxInflationRateCalled: func(_ uint32) float64 {
+		MaxInflationRateCalled: func(_ uint32, _ uint32) float64 {
 			return 0.1
 		},
 		ProtocolSustainabilityAddressInEpochCalled: func(_ uint32) string {
@@ -1712,6 +1717,9 @@ func TestEconomics_ComputeRewardsForAccelerator(t *testing.T) {
 		GrowthDividendPercentageInEpochCalled: func(epoch uint32) float64 {
 			return growthDividendPercentage
 		},
+		IsTailInflationEnabledCalled: func(epoch uint32) bool {
+			return epoch >= accRewardsEnableEpoch
+		},
 	}
 	args.AccRewardsEnableEpoch = accRewardsEnableEpoch
 
@@ -1724,7 +1732,7 @@ func TestEconomics_ComputeRewardsForAccelerator(t *testing.T) {
 
 	// At accRewardsEnableEpoch
 	rewards = ec.computeRewardsForAccelerator(totalRewards, accRewardsEnableEpoch)
-	expectedRewards = big.NewInt(1000) // 10000 * 0.1
+	expectedRewards = big.NewInt(6000) // 10000 * (0.1 + 0.2 + 0.3)
 	assert.Equal(t, expectedRewards, rewards)
 
 	// After accRewardsEnableEpoch
@@ -1872,7 +1880,7 @@ func TestEconomics_ComputeEndOfEpochEconomicsWithPrevEpochTotalSupply(t *testing
 	require.NotNil(t, res)
 
 	// re-calculate expected values for verification
-	inflationRate := ec.computeInflationRate(mb.GetRound())
+	inflationRate := ec.computeInflationRate(mb.GetRound(), mb.GetEpoch())
 	roundsPassedInEpoch := mb.GetRound() - mbPrevStartEpoch.GetRound()
 	maxBlocksInEpoch := core.MaxUint64(1, roundsPassedInEpoch*uint64(args.ShardCoordinator.NumberOfShards()+1))
 
@@ -1921,6 +1929,9 @@ func TestEconomics_TotalSupplyCalculation(t *testing.T) {
 		},
 	}
 	args.AccRewardsEnableEpoch = 3 // future epoch
+	args.RewardsHandler = &mock.RewardsHandlerStub{IsTailInflationEnabledCalled: func(epoch uint32) bool {
+		return epoch >= args.AccRewardsEnableEpoch
+	}}
 	ec, _ := NewEndOfEpochEconomicsDataCreator(args)
 
 	mb := block.MetaBlock{
@@ -1941,7 +1952,7 @@ func TestEconomics_TotalSupplyCalculation(t *testing.T) {
 	require.NotNil(t, res)
 
 	// re-calculate expected values for verification
-	inflationRate := ec.computeInflationRate(mb.GetRound())
+	inflationRate := ec.computeInflationRate(mb.GetRound(), mb.GetEpoch())
 	roundsPassedInEpoch := mb.GetRound() - mbPrevStartEpoch.GetRound()
 	maxBlocksInEpoch := core.MaxUint64(1, roundsPassedInEpoch*uint64(args.ShardCoordinator.NumberOfShards()+1))
 

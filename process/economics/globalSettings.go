@@ -3,8 +3,6 @@ package economics
 import (
 	"sync"
 
-	"github.com/multiversx/mx-chain-core-go/core/check"
-	"github.com/multiversx/mx-chain-go/common"
 	"github.com/multiversx/mx-chain-go/config"
 	"github.com/multiversx/mx-chain-go/process"
 )
@@ -16,18 +14,12 @@ type globalSettingsHandler struct {
 	startYearInflation           float64
 	decayPercentage              float64
 	mutYearSettings              sync.RWMutex
-	enableEpochHandler           common.EnableEpochsHandler
 }
 
 // newGlobalSettingsHandler creates a new global settings provider
 func newGlobalSettingsHandler(
 	economics *config.EconomicsConfig,
-	enableEpochHandler common.EnableEpochsHandler,
 ) (*globalSettingsHandler, error) {
-	if check.IfNil(enableEpochHandler) {
-		return nil, process.ErrNilEpochHandler
-	}
-
 	g := &globalSettingsHandler{
 		minInflation:                 economics.GlobalSettings.MinimumInflation,
 		yearSettings:                 make(map[uint32]*config.YearSetting),
@@ -35,7 +27,6 @@ func newGlobalSettingsHandler(
 		startYearInflation:           economics.GlobalSettings.TailInflation.StartYearInflation,
 		decayPercentage:              economics.GlobalSettings.TailInflation.DecayPercentage,
 		mutYearSettings:              sync.RWMutex{},
-		enableEpochHandler:           enableEpochHandler,
 	}
 
 	g.yearSettings = make(map[uint32]*config.YearSetting)
@@ -56,11 +47,15 @@ func newGlobalSettingsHandler(
 }
 
 // TODO: implement decay, implement growth, calculations will change after supernova
-func (g *globalSettingsHandler) maxInflationRate(year uint32) float64 {
-	if g.tailInflationActivationEpoch < g.enableEpochHandler.GetCurrentEpoch() {
+func (g *globalSettingsHandler) maxInflationRate(year uint32, epoch uint32) float64 {
+	if g.isTailInflationActive(epoch) {
 		return g.startYearInflation
 	}
 
+	return g.yearSettingsInflation(year)
+}
+
+func (g *globalSettingsHandler) yearSettingsInflation(year uint32) float64 {
 	g.mutYearSettings.RLock()
 	yearSetting, ok := g.yearSettings[year]
 	g.mutYearSettings.RUnlock()
@@ -70,4 +65,8 @@ func (g *globalSettingsHandler) maxInflationRate(year uint32) float64 {
 	}
 
 	return yearSetting.MaximumInflation
+}
+
+func (g *globalSettingsHandler) isTailInflationActive(epoch uint32) bool {
+	return epoch >= g.tailInflationActivationEpoch
 }

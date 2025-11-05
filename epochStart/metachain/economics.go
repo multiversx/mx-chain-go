@@ -135,14 +135,14 @@ func (e *economics) ComputeEndOfEpochEconomics(
 	maxBlocksInEpoch := core.MaxUint64(1, roundsPassedInEpoch*uint64(e.shardCoordinator.NumberOfShards()+1))
 	totalNumBlocksInEpoch := e.computeNumOfTotalCreatedBlocks(noncesPerShardPrevEpoch, noncesPerShardCurrEpoch)
 
-	supplyToUseForRewardsperBlock := e.genesisTotalSupply
-	if metaBlock.Epoch >= e.accRewardsEnableEpoch {
-		supplyToUseForRewardsperBlock = prevEpochEconomics.TotalSupply
+	supplyToUseForRewardsPerBlock := e.genesisTotalSupply
+	if e.rewardsHandler.IsTailInflationEnabled(metaBlock.GetEpoch()) {
+		supplyToUseForRewardsPerBlock = prevEpochEconomics.TotalSupply
 	}
 
-	inflationRate := e.computeInflationRate(metaBlock.GetRound())
+	inflationRate := e.computeInflationRate(metaBlock.GetRound(), metaBlock.GetEpoch())
 	rwdPerBlock := e.computeRewardsPerBlock(
-		supplyToUseForRewardsperBlock,
+		supplyToUseForRewardsPerBlock,
 		maxBlocksInEpoch,
 		inflationRate,
 		metaBlock.Epoch,
@@ -294,7 +294,7 @@ func (e *economics) computeRewardsForProtocolSustainability(totalRewards *big.In
 }
 
 func (e *economics) computeRewardsForAccelerator(totalRewards *big.Int, epoch uint32) *big.Int {
-	if e.accRewardsEnableEpoch >= epoch {
+	if !e.rewardsHandler.IsTailInflationEnabled(epoch) {
 		return e.computeRewardsForProtocolSustainability(totalRewards, epoch)
 	}
 
@@ -354,14 +354,14 @@ func (e *economics) adjustRewardsPerBlockWithLeaderPercentage(
 }
 
 // compute inflation rate from genesisTotalSupply and economics settings for that year
-func (e *economics) computeInflationRate(currentRound uint64) float64 {
+func (e *economics) computeInflationRate(currentRound uint64, epoch uint32) float64 {
 	//TODO calculate according to new year start and give new years in when accelerator epoch is enabled
 
 	roundsPerDay := numberOfSecondsInDay / uint64(e.roundTime.TimeDuration().Seconds())
 	roundsPerYear := numberOfDaysInYear * roundsPerDay
 	yearsIndex := uint32(currentRound/roundsPerYear) + 1
 
-	return e.rewardsHandler.MaxInflationRate(yearsIndex)
+	return e.rewardsHandler.MaxInflationRate(yearsIndex, epoch)
 }
 
 // compute rewards per block from according to inflation rate and total supply from previous block and maxBlocksPerEpoch
@@ -481,7 +481,7 @@ func (e *economics) checkEconomicsInvariants(
 		return nil
 	}
 
-	maxAllowedInflation := e.rewardsHandler.MaxInflationRate(1)
+	maxAllowedInflation := e.rewardsHandler.MaxInflationRate(1, epoch)
 	if !core.IsInRangeInclusiveFloat64(inflationRate, 0, maxAllowedInflation) {
 		return fmt.Errorf("%w, computed inflation %s, max allowed %s",
 			epochStart.ErrInvalidInflationRate,

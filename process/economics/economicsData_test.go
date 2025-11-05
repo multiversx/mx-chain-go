@@ -1486,10 +1486,10 @@ func TestEconomicsData_MaxInflationRate(t *testing.T) {
 	args.Economics.GlobalSettings.TailInflation.EnableEpoch = 100
 	economicsData, _ := economics.NewEconomicsData(args)
 
-	value := economicsData.MaxInflationRate(0)
+	value := economicsData.MaxInflationRate(0, 0)
 	assert.Equal(t, maxInflationRate, value)
 
-	value = economicsData.MaxInflationRate(1) // missing from GlobalSettings
+	value = economicsData.MaxInflationRate(1, 1) // missing from GlobalSettings
 	assert.Equal(t, minInflationRate, value)
 }
 
