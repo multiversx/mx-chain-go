@@ -9,7 +9,6 @@ import (
 	"github.com/multiversx/mx-chain-core-go/data"
 	"github.com/multiversx/mx-chain-logger-go"
 
-	"github.com/multiversx/mx-chain-go/common"
 	"github.com/multiversx/mx-chain-go/process"
 )
 
@@ -18,14 +17,20 @@ var _ process.PendingMiniBlocksHandler = (*pendingMiniBlocks)(nil)
 var log = logger.GetOrCreate("process/block/pendingMb")
 
 type pendingMiniBlocks struct {
+	headersPool                HeadersPool
 	mutPendingMbShard          sync.RWMutex
 	mapPendingMbShard          map[string]uint32
 	beforeRevertPendingMbShard map[string]uint32
 }
 
 // NewPendingMiniBlocks will create a new pendingMiniBlocks object
-func NewPendingMiniBlocks() (*pendingMiniBlocks, error) {
+func NewPendingMiniBlocks(headersPool HeadersPool) (*pendingMiniBlocks, error) {
+	if check.IfNil(headersPool) {
+		return nil, process.ErrNilHeadersDataPool
+	}
+
 	return &pendingMiniBlocks{
+		headersPool:                headersPool,
 		mapPendingMbShard:          make(map[string]uint32),
 		beforeRevertPendingMbShard: make(map[string]uint32),
 	}, nil
@@ -34,23 +39,20 @@ func NewPendingMiniBlocks() (*pendingMiniBlocks, error) {
 func (p *pendingMiniBlocks) getMiniBlocksHashesReadyForCrossShardExecution(metaBlock data.MetaHeaderHandler) (map[string]uint32, error) {
 	crossShardMiniBlocks := make(map[string]uint32)
 
-	shardInfoHandlers := metaBlock.GetShardInfoHandlers()
-	for _, shardData := range shardInfoHandlers {
-		miniblockHandlers := shardData.GetShardMiniBlockHeaderHandlers()
-		for _, mbHeader := range miniblockHandlers {
-			if !shouldConsiderCrossShardMiniBlock(mbHeader.GetSenderShardID(), mbHeader.GetReceiverShardID()) {
-				continue
-			}
-
-			crossShardMiniBlocks[string(mbHeader.GetHash())] = mbHeader.GetReceiverShardID()
-		}
-	}
-
-	miniBlocks, err := getMiniBlocksFromHeaderReadyForCrossShardExecution(metaBlock)
+	miniBlocksFromShards, err := p.getMiniBlockHandlersFromShardData(metaBlock)
 	if err != nil {
 		return nil, err
 	}
-	for _, mbHeader := range miniBlocks {
+
+	for _, mbHeader := range miniBlocksFromShards {
+		if !shouldConsiderCrossShardMiniBlock(mbHeader.GetSenderShardID(), mbHeader.GetReceiverShardID()) {
+			continue
+		}
+
+		crossShardMiniBlocks[string(mbHeader.GetHash())] = mbHeader.GetReceiverShardID()
+	}
+
+	for _, mbHeader := range metaBlock.GetMiniBlockHeaderHandlers() {
 		if !shouldConsiderCrossShardMiniBlock(mbHeader.GetSenderShardID(), mbHeader.GetReceiverShardID()) {
 			continue
 		}
@@ -61,20 +63,25 @@ func (p *pendingMiniBlocks) getMiniBlocksHashesReadyForCrossShardExecution(metaB
 	return crossShardMiniBlocks, nil
 }
 
-func getMiniBlocksFromHeaderReadyForCrossShardExecution(header data.MetaHeaderHandler) ([]data.MiniBlockHeaderHandler, error) {
-	if !header.IsHeaderV3() {
-		return header.GetMiniBlockHeaderHandlers(), nil
-	}
-
+func (p *pendingMiniBlocks) getMiniBlockHandlersFromShardData(metaBlock data.MetaHeaderHandler) ([]data.MiniBlockHeaderHandler, error) {
 	miniBlocks := make([]data.MiniBlockHeaderHandler, 0)
-	execResultHandlers := header.GetExecutionResultsHandlers()
-	for _, execResult := range execResultHandlers {
-		mbs, errGetMbs := common.GetMiniBlocksHeaderHandlersFromExecResult(execResult)
-		if errGetMbs != nil {
-			return nil, errGetMbs
+	if !metaBlock.IsHeaderV3() {
+		for _, shardData := range metaBlock.GetShardInfoHandlers() {
+			miniblockHandlers := shardData.GetShardMiniBlockHeaderHandlers()
+			miniBlocks = append(miniBlocks, miniblockHandlers...)
 		}
 
-		miniBlocks = append(miniBlocks, mbs...)
+		return miniBlocks, nil
+	}
+
+	shardDataProposalHandlers := metaBlock.GetShardInfoProposalHandlers()
+	for _, shardData := range shardDataProposalHandlers {
+		shardHeader, err := p.headersPool.GetHeaderByHash(shardData.GetHeaderHash())
+		if err != nil {
+			return nil, err
+		}
+
+		miniBlocks = append(miniBlocks, shardHeader.GetMiniBlockHeaderHandlers()...)
 	}
 
 	return miniBlocks, nil

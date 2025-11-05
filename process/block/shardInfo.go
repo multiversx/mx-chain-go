@@ -285,7 +285,6 @@ func miniBlockHeaderFromMiniBlockHeaderHandler(miniBlockHeaderHandler data.MiniB
 }
 
 func (sic *ShardInfoCreateData) updateShardDataWithCrossShardInfo(shardData *block.ShardData, header data.HeaderHandler) error {
-	// TODO: pendingMiniBlocksHandler should be updated
 	if !header.IsHeaderV3() {
 		shardData.NumPendingMiniBlocks = uint32(len(sic.pendingMiniBlocksHandler.GetPendingMiniBlocks(header.GetShardID())))
 	}
