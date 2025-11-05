@@ -34,7 +34,7 @@ func createMockHistoryRepoArgs(epoch uint32) HistoryRepositoryArguments {
 		GetCalled: func(key []byte) ([]byte, error) {
 			return nil, storage.ErrKeyNotFound
 		},
-	}, &storageStubs.StorerStub{})
+	}, &storageStubs.StorerStub{}, &storageStubs.StorerStub{})
 
 	args := HistoryRepositoryArguments{
 		SelfShardID:                 0,
@@ -1092,7 +1092,7 @@ func TestHistoryRepository_RevertBlockShouldError(t *testing.T) {
 			GetCalled: func(key []byte) ([]byte, error) {
 				return nil, storage.ErrKeyNotFound
 			},
-		}, &storageStubs.StorerStub{})
+		}, &storageStubs.StorerStub{}, &storageStubs.StorerStub{})
 
 		args := createMockHistoryRepoArgs(42)
 		args.ESDTSuppliesHandler = sp
@@ -1122,7 +1122,7 @@ func TestHistoryRepository_GetESDTSupply(t *testing.T) {
 			GetCalled: func(key []byte) ([]byte, error) {
 				return nil, expectedError
 			},
-		}, &storageStubs.StorerStub{})
+		}, &storageStubs.StorerStub{}, &storageStubs.StorerStub{})
 
 		args.ESDTSuppliesHandler = sp
 		repo, err := NewHistoryRepository(args)

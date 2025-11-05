@@ -71,6 +71,8 @@ type HeaderHandlerStub struct {
 	SetRoundCalled                         func(round uint64) error
 	SetNonceCalled                         func(nonce uint64) error
 	SetShardInfoHandlersCalled             func(shardInfo []data.ShardDataHandler) error
+	GetShardInfoProposalHandlersCalled     func() []data.ShardDataProposalHandler
+	SetShardInfoProposalHandlersCalled     func(shardInfo []data.ShardDataProposalHandler) error
 }
 
 // SetEpochStartHandler -
@@ -565,4 +567,20 @@ func (hhs *HeaderHandlerStub) GetGasLimit() uint32 {
 	}
 
 	return 0
+}
+
+// GetShardInfoProposalHandlers -
+func (hhs *HeaderHandlerStub) GetShardInfoProposalHandlers() []data.ShardDataProposalHandler {
+	if hhs.GetShardInfoProposalHandlersCalled != nil {
+		return hhs.GetShardInfoProposalHandlersCalled()
+	}
+	return nil
+}
+
+// SetShardInfoProposalHandlers -
+func (hhs *HeaderHandlerStub) SetShardInfoProposalHandlers(shardInfo []data.ShardDataProposalHandler) error {
+	if hhs.SetShardInfoProposalHandlersCalled != nil {
+		return hhs.SetShardInfoProposalHandlersCalled(shardInfo)
+	}
+	return nil
 }
