@@ -13,9 +13,17 @@ import (
 	dataRetrieverMock "github.com/multiversx/mx-chain-go/testscommon/dataRetriever"
 	"github.com/multiversx/mx-chain-go/testscommon/enableEpochsHandlerMock"
 	"github.com/multiversx/mx-chain-go/testscommon/pool"
-	"github.com/stretchr/testify/assert"
+
 	"github.com/stretchr/testify/require"
 )
+
+func TestShardInfo_IsInterfaceNil(t *testing.T) {
+	t.Parallel()
+	var si *ShardInfoCreateData
+	require.True(t, si.IsInterfaceNil())
+	si = &ShardInfoCreateData{}
+	require.False(t, si.IsInterfaceNil())
+}
 
 func TestShardInfo_NewShardInfoCreateData(t *testing.T) {
 	t.Parallel()
@@ -31,9 +39,8 @@ func TestShardInfo_NewShardInfoCreateData(t *testing.T) {
 			args.pendingMiniBlocksHandler,
 			args.blockTracker,
 		)
-		assert.Nil(t, sicd)
-		assert.True(t, sicd.IsInterfaceNil())
-		assert.Equal(t, process.ErrNilEnableEpochsHandler, err)
+		require.Nil(t, sicd)
+		require.Equal(t, process.ErrNilEnableEpochsHandler, err)
 	})
 
 	t.Run("nil headersPool", func(t *testing.T) {
@@ -46,9 +53,8 @@ func TestShardInfo_NewShardInfoCreateData(t *testing.T) {
 			args.pendingMiniBlocksHandler,
 			args.blockTracker,
 		)
-		assert.Nil(t, sicd)
-		assert.True(t, sicd.IsInterfaceNil())
-		assert.Equal(t, process.ErrNilHeadersDataPool, err)
+		require.Nil(t, sicd)
+		require.Equal(t, process.ErrNilHeadersDataPool, err)
 	})
 
 	t.Run("nil proofsPool", func(t *testing.T) {
@@ -63,9 +69,8 @@ func TestShardInfo_NewShardInfoCreateData(t *testing.T) {
 			args.pendingMiniBlocksHandler,
 			args.blockTracker,
 		)
-		assert.Nil(t, sicd)
-		assert.True(t, sicd.IsInterfaceNil())
-		assert.Equal(t, process.ErrNilProofsPool, err)
+		require.Nil(t, sicd)
+		require.Equal(t, process.ErrNilProofsPool, err)
 	})
 
 	t.Run("nil pendingMiniBlocksHandler", func(t *testing.T) {
@@ -80,9 +85,8 @@ func TestShardInfo_NewShardInfoCreateData(t *testing.T) {
 			nil,
 			args.blockTracker,
 		)
-		assert.Nil(t, sicd)
-		assert.True(t, sicd.IsInterfaceNil())
-		assert.Equal(t, process.ErrNilPendingMiniBlocksHandler, err)
+		require.Nil(t, sicd)
+		require.Equal(t, process.ErrNilPendingMiniBlocksHandler, err)
 	})
 
 	t.Run("nil blockTracker", func(t *testing.T) {
@@ -96,9 +100,8 @@ func TestShardInfo_NewShardInfoCreateData(t *testing.T) {
 			args.pendingMiniBlocksHandler,
 			nil,
 		)
-		assert.Nil(t, sicd)
-		assert.True(t, sicd.IsInterfaceNil())
-		assert.Equal(t, process.ErrNilBlockTracker, err)
+		require.Nil(t, sicd)
+		require.Equal(t, process.ErrNilBlockTracker, err)
 	})
 	t.Run("should work", func(t *testing.T) {
 		t.Parallel()
@@ -112,9 +115,8 @@ func TestShardInfo_NewShardInfoCreateData(t *testing.T) {
 			args.pendingMiniBlocksHandler,
 			args.blockTracker,
 		)
-		assert.NotNil(t, sicd)
-		assert.False(t, sicd.IsInterfaceNil())
-		assert.Nil(t, err)
+		require.NotNil(t, sicd)
+		require.Nil(t, err)
 	})
 }
 
@@ -416,7 +418,6 @@ func TestShardInfoCreateData_createShardInfoFromHeader(t *testing.T) {
 		require.Nil(t, err)
 
 		shardDataProposalHandlers, shardDataHandlers, err := sic.createShardInfoFromHeader(nil, nil)
-		require.NotNil(t, err)
 		require.Nil(t, shardDataProposalHandlers)
 		require.Nil(t, shardDataHandlers)
 		require.ErrorIs(t, err, process.ErrNilHeaderHandler)
@@ -434,7 +435,6 @@ func TestShardInfoCreateData_createShardInfoFromHeader(t *testing.T) {
 		require.Nil(t, err)
 
 		shardDataProposalHandlers, shardDataHandlers, err := sic.createShardInfoFromHeader(&block.Header{}, []byte{})
-		require.NotNil(t, err)
 		require.Nil(t, shardDataProposalHandlers)
 		require.Nil(t, shardDataHandlers)
 		require.ErrorIs(t, err, process.ErrInvalidHash)
@@ -456,7 +456,6 @@ func TestShardInfoCreateData_createShardInfoFromHeader(t *testing.T) {
 		require.Nil(t, err)
 
 		shardDataProposalHandlers, shardDataHandlers, err := sic.createShardInfoFromHeader(&block.Header{Nonce: 1}, []byte("hash"))
-		require.NotNil(t, err)
 		require.Nil(t, shardDataProposalHandlers)
 		require.Nil(t, shardDataHandlers)
 		require.ErrorIs(t, err, process.ErrMissingHeaderProof)
@@ -618,7 +617,7 @@ func TestShardInfoCreateData_createShardDataFromLegacyHeader(t *testing.T) {
 		)
 		require.Nil(t, err)
 		shardDataList, err := sic.createShardDataFromLegacyHeader(header, []byte("headerHash"))
-		require.NotNil(t, err)
+		require.Contains(t, err.Error(), "GetLastSelfNotarizedHeader error")
 		require.Nil(t, shardDataList)
 	})
 
@@ -694,7 +693,6 @@ func TestShardInfoCreateData_createShardDataFromV3Header(t *testing.T) {
 		)
 		require.Nil(t, err)
 		shardDataProposalHandler, shardDataHandlers, err := sic.createShardDataFromV3Header(nil, nil)
-		require.NotNil(t, err)
 		require.Nil(t, shardDataHandlers)
 		require.Nil(t, shardDataProposalHandler)
 		require.ErrorIs(t, err, process.ErrNilHeaderHandler)
@@ -744,7 +742,6 @@ func TestShardInfoCreateData_createShardDataFromV3Header(t *testing.T) {
 		)
 		require.Nil(t, err)
 		shardDataProposalHandler, shardDataHandlers, err := sic.createShardDataFromV3Header(header, []byte("headerHash"))
-		require.NotNil(t, err)
 		require.Nil(t, shardDataHandlers)
 		require.Nil(t, shardDataProposalHandler)
 		require.Equal(t, fmt.Errorf("GetHeaderByHash error"), err)
@@ -886,18 +883,18 @@ func TestShardInfoCreateData_createShardDataFromExecutionResult(t *testing.T) {
 		shardData, err := sic.createShardDataFromExecutionResult(execResult)
 		require.Nil(t, err)
 		require.NotNil(t, shardData)
-		assert.Equal(t, uint32(2), shardData.GetNumPendingMiniBlocks())
-		assert.Equal(t, uint32(execResult.GetExecutedTxCount()), shardData.GetTxCount())
-		assert.Equal(t, uint32(1), shardData.GetShardID())
-		assert.Equal(t, execResult.GetAccumulatedFees(), shardData.GetAccumulatedFees())
-		assert.Equal(t, execResult.GetHeaderHash(), shardData.GetHeaderHash())
-		assert.Equal(t, execResult.GetHeaderRound(), shardData.GetRound())
-		assert.Equal(t, header.GetPrevHash(), shardData.GetPrevHash())
-		assert.Equal(t, execResult.GetHeaderNonce(), shardData.GetNonce())
-		assert.Equal(t, header.GetPrevRandSeed(), shardData.GetPrevRandSeed())
-		assert.Equal(t, header.GetPubKeysBitmap(), shardData.GetPubKeysBitmap())
-		assert.Equal(t, execResult.GetAccumulatedFees(), shardData.GetAccumulatedFees())
-		assert.Equal(t, execResult.GetDeveloperFees(), shardData.GetDeveloperFees())
+		require.Equal(t, uint32(2), shardData.GetNumPendingMiniBlocks())
+		require.Equal(t, uint32(execResult.GetExecutedTxCount()), shardData.GetTxCount())
+		require.Equal(t, uint32(1), shardData.GetShardID())
+		require.Equal(t, execResult.GetAccumulatedFees(), shardData.GetAccumulatedFees())
+		require.Equal(t, execResult.GetHeaderHash(), shardData.GetHeaderHash())
+		require.Equal(t, execResult.GetHeaderRound(), shardData.GetRound())
+		require.Equal(t, header.GetPrevHash(), shardData.GetPrevHash())
+		require.Equal(t, execResult.GetHeaderNonce(), shardData.GetNonce())
+		require.Equal(t, header.GetPrevRandSeed(), shardData.GetPrevRandSeed())
+		require.Equal(t, header.GetPubKeysBitmap(), shardData.GetPubKeysBitmap())
+		require.Equal(t, execResult.GetAccumulatedFees(), shardData.GetAccumulatedFees())
+		require.Equal(t, execResult.GetDeveloperFees(), shardData.GetDeveloperFees())
 		require.Equal(t, header.GetEpoch(), shardData.(*block.ShardData).GetEpoch())
 	})
 }
@@ -966,11 +963,11 @@ func TestShardInfoCreateData_createShardMiniBlockHeaderFromExecutionResultHandle
 	require.NotNil(t, shardMiniBlockHeaders)
 	require.Equal(t, 3, len(shardMiniBlockHeaders))
 	for i := 0; i < len(shardMiniBlockHeaders); i++ {
-		assert.Equal(t, execResultHandler.MiniBlockHeaders[i].Hash, shardMiniBlockHeaders[i].Hash)
-		assert.Equal(t, execResultHandler.MiniBlockHeaders[i].Type, shardMiniBlockHeaders[i].Type)
-		assert.Equal(t, execResultHandler.MiniBlockHeaders[i].TxCount, shardMiniBlockHeaders[i].TxCount)
-		assert.Equal(t, execResultHandler.MiniBlockHeaders[i].SenderShardID, shardMiniBlockHeaders[i].SenderShardID)
-		assert.Equal(t, execResultHandler.MiniBlockHeaders[i].ReceiverShardID, shardMiniBlockHeaders[i].ReceiverShardID)
+		require.Equal(t, execResultHandler.MiniBlockHeaders[i].Hash, shardMiniBlockHeaders[i].Hash)
+		require.Equal(t, execResultHandler.MiniBlockHeaders[i].Type, shardMiniBlockHeaders[i].Type)
+		require.Equal(t, execResultHandler.MiniBlockHeaders[i].TxCount, shardMiniBlockHeaders[i].TxCount)
+		require.Equal(t, execResultHandler.MiniBlockHeaders[i].SenderShardID, shardMiniBlockHeaders[i].SenderShardID)
+		require.Equal(t, execResultHandler.MiniBlockHeaders[i].ReceiverShardID, shardMiniBlockHeaders[i].ReceiverShardID)
 	}
 }
 
@@ -995,7 +992,7 @@ func TestShardInfoCreateData_updateShardDataWithCrossShardInfo(t *testing.T) {
 		)
 		require.Nil(t, err)
 		err = sic.updateShardDataWithCrossShardInfo(shardData, &header)
-		assert.Error(t, err)
+		require.Contains(t, err.Error(), "GetLastSelfNotarizedHeader error")
 	})
 
 	t.Run("should work with no data", func(t *testing.T) {
@@ -1017,10 +1014,10 @@ func TestShardInfoCreateData_updateShardDataWithCrossShardInfo(t *testing.T) {
 		)
 		require.Nil(t, err)
 		err = sic.updateShardDataWithCrossShardInfo(shardData, &header)
-		assert.NotNil(t, shardData)
+		require.NotNil(t, shardData)
 		require.Nil(t, err)
-		assert.Equal(t, uint32(2), shardData.NumPendingMiniBlocks)
-		assert.Equal(t, uint64(expectedNonce), shardData.LastIncludedMetaNonce)
+		require.Equal(t, uint32(2), shardData.NumPendingMiniBlocks)
+		require.Equal(t, uint64(expectedNonce), shardData.LastIncludedMetaNonce)
 	})
 
 }
