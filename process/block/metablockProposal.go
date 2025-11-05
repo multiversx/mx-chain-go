@@ -243,7 +243,6 @@ func (mp *metaProcessor) VerifyBlockProposal(
 
 	mp.missingDataResolver.Reset()
 	mp.missingDataResolver.RequestBlockTransactions(body)
-	// the epoch start meta block and its proof is also requested here if missing
 	err = mp.missingDataResolver.RequestMissingShardHeaders(header)
 	if err != nil {
 		return err

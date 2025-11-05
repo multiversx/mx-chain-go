@@ -2548,7 +2548,9 @@ func TestShardProcessor_ProcessBlockProposal(t *testing.T) {
 		}
 		sp, _ := blproc.NewShardProcessor(args)
 
-		header := &block.HeaderV3{}
+		header := &block.HeaderV3{
+			Nonce: 1,
+		}
 		body := &block.Body{}
 		_, err := sp.ProcessBlockProposal(header, body)
 
@@ -2565,7 +2567,9 @@ func TestShardProcessor_ProcessBlockProposal(t *testing.T) {
 		}
 		sp, _ := blproc.NewShardProcessor(args)
 
-		header := &block.HeaderV3{}
+		header := &block.HeaderV3{
+			Nonce: 1,
+		}
 		body := &block.Body{}
 		_, err := sp.ProcessBlockProposal(header, body)
 
@@ -2596,6 +2600,7 @@ func TestShardProcessor_ProcessBlockProposal(t *testing.T) {
 		sp, _ := blproc.NewShardProcessor(args)
 
 		header := &block.HeaderV3{
+			Nonce:              1,
 			Epoch:              10,
 			EpochStartMetaHash: []byte("epochStartHash"),
 		}
@@ -2616,7 +2621,9 @@ func TestShardProcessor_ProcessBlockProposal(t *testing.T) {
 		}
 		sp, _ := blproc.NewShardProcessor(args)
 
-		header := &block.HeaderV3{}
+		header := &block.HeaderV3{
+			Nonce: 1,
+		}
 		body := &block.Body{}
 		_, err := sp.ProcessBlockProposal(header, body)
 		require.Equal(t, expectedErr, err)
@@ -2632,7 +2639,9 @@ func TestShardProcessor_ProcessBlockProposal(t *testing.T) {
 		}
 		sp, _ := blproc.NewShardProcessor(args)
 
-		header := &block.HeaderV3{}
+		header := &block.HeaderV3{
+			Nonce: 1,
+		}
 		body := &block.Body{}
 		_, err := sp.ProcessBlockProposal(header, body)
 		require.Equal(t, expectedErr, err)
@@ -2654,7 +2663,9 @@ func TestShardProcessor_ProcessBlockProposal(t *testing.T) {
 		}
 		sp, _ := blproc.NewShardProcessor(args)
 
-		header := &block.HeaderV3{}
+		header := &block.HeaderV3{
+			Nonce: 1,
+		}
 		body := &block.Body{}
 		_, err := sp.ProcessBlockProposal(header, body)
 		require.Equal(t, expectedErr, err)
@@ -2671,7 +2682,9 @@ func TestShardProcessor_ProcessBlockProposal(t *testing.T) {
 		}
 		sp, _ := blproc.NewShardProcessor(args)
 
-		header := &block.HeaderV3{}
+		header := &block.HeaderV3{
+			Nonce: 1,
+		}
 		body := &block.Body{}
 		_, err := sp.ProcessBlockProposal(header, body)
 		require.Equal(t, expectedErr, err)
@@ -2688,7 +2701,9 @@ func TestShardProcessor_ProcessBlockProposal(t *testing.T) {
 		args := CreateMockArguments(coreComponents, dataComponents, bootstrapComponents, statusComponents)
 		sp, _ := blproc.NewShardProcessor(args)
 
-		header := &block.HeaderV3{}
+		header := &block.HeaderV3{
+			Nonce: 1,
+		}
 		body := &block.Body{}
 		_, err := sp.ProcessBlockProposal(header, body)
 		require.Equal(t, expectedErr, err)
@@ -2704,7 +2719,9 @@ func TestShardProcessor_ProcessBlockProposal(t *testing.T) {
 		}
 		sp, _ := blproc.NewShardProcessor(args)
 
-		header := &block.HeaderV3{}
+		header := &block.HeaderV3{
+			Nonce: 1,
+		}
 		body := &block.Body{}
 		_, err := sp.ProcessBlockProposal(header, body)
 		require.Equal(t, expectedErr, err)
@@ -2720,7 +2737,9 @@ func TestShardProcessor_ProcessBlockProposal(t *testing.T) {
 		}
 		sp, _ := blproc.NewShardProcessor(args)
 
-		header := &block.HeaderV3{}
+		header := &block.HeaderV3{
+			Nonce: 1,
+		}
 		body := &block.Body{}
 		_, err := sp.ProcessBlockProposal(header, body)
 		require.Equal(t, expectedErr, err)
@@ -2730,7 +2749,9 @@ func TestShardProcessor_ProcessBlockProposal(t *testing.T) {
 
 		sp, _ := blproc.NewShardProcessor(arguments)
 
-		header := &block.HeaderV3{}
+		header := &block.HeaderV3{
+			Nonce: 1,
+		}
 		body := &block.Body{}
 		_, err := sp.ProcessBlockProposal(header, body)
 
