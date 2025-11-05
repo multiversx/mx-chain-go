@@ -392,6 +392,16 @@ func (boot *baseBootstrap) getCurrentBlock() data.HeaderHandler {
 	return boot.chainHandler.GetGenesisHeader()
 }
 
+// getCurrentRootHash will get the current root hash
+func (boot *baseBootstrap) getCurrentRootHash() []byte {
+	currentRootHash := boot.chainHandler.GetCurrentBlockRootHash()
+	if len(currentRootHash) != 0 {
+		return currentRootHash
+	}
+	genesisHeader := boot.chainHandler.GetGenesisHeader()
+	return genesisHeader.GetRootHash()
+}
+
 // getCurrentBlockHash will get the current block hash
 func (boot *baseBootstrap) getCurrentBlockHash() []byte {
 	currentHash := boot.chainHandler.GetCurrentBlockHeaderHash()
@@ -833,6 +843,11 @@ func (boot *baseBootstrap) syncBlock() error {
 // These methods will execute the block and its transactions. Finally, if everything works, the block will be committed
 // in the blockchain, and all this mechanism will be reiterated for the next block.
 func (boot *baseBootstrap) syncBlockLegacy(body data.BodyHandler, header data.HeaderHandler) error {
+	err := boot.prepareForLegacySyncIfNeeded()
+	if err != nil {
+		return err
+	}
+
 	startTime := time.Now()
 	waitTime := boot.getProcessWaitTime(header.GetRound())
 	haveTime := func() time.Duration {
@@ -840,7 +855,7 @@ func (boot *baseBootstrap) syncBlockLegacy(body data.BodyHandler, header data.He
 	}
 
 	startProcessBlockTime := time.Now()
-	err := boot.blockProcessor.ProcessBlock(header, body, haveTime)
+	err = boot.blockProcessor.ProcessBlock(header, body, haveTime)
 	elapsedTime := time.Since(startProcessBlockTime)
 	log.Debug("elapsed time to process block",
 		"time [s]", elapsedTime,
@@ -879,6 +894,25 @@ func (boot *baseBootstrap) syncBlockLegacy(body data.BodyHandler, header data.He
 
 	boot.cleanNoncesSyncedWithErrorsBehindFinal()
 	boot.cleanProofsBehindFinal(header)
+
+	return nil
+}
+
+func (boot *baseBootstrap) prepareForLegacySyncIfNeeded() error {
+	if boot.preparedForSync {
+		return nil
+	}
+
+	currentHeader := boot.getCurrentBlock()
+	currentRootHash := boot.getCurrentRootHash()
+	txPool := boot.poolsHolder.Transactions()
+	err := txPool.OnExecutedBlock(currentHeader, currentRootHash)
+	if err != nil {
+		txPool.ResetTracker()
+		return err
+	}
+
+	boot.preparedForSync = true
 
 	return nil
 }
@@ -966,10 +1000,12 @@ func (boot *baseBootstrap) prepareForSyncIfNeeded(syncingNonce uint64) error {
 		return err
 	}
 
+	rootHash := lastExecResultsHandler.GetRootHash()
+
 	txPool := boot.poolsHolder.Transactions()
-	err = txPool.OnExecutedBlock(lastExecutedHeader)
+	err = txPool.OnExecutedBlock(lastExecutedHeader, rootHash)
 	if err != nil {
-		// TODO: reset the txPool context in case of error, once this will be implemented
+		txPool.ResetTracker()
 		return err
 	}
 

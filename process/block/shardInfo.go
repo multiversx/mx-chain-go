@@ -60,25 +60,30 @@ func (sic *ShardInfoCreateData) CreateShardInfoV3(
 	metaHeader data.MetaHeaderHandler,
 	shardHeaders []data.HeaderHandler,
 	shardHeaderHashes [][]byte,
-) ([]data.ShardDataHandler, error) {
+) ([]data.ShardDataProposalHandler, []data.ShardDataHandler, error) {
+	if check.IfNil(metaHeader) {
+		return nil, nil, process.ErrNilHeaderHandler
+	}
 	if !metaHeader.IsHeaderV3() {
-		return nil, process.ErrInvalidHeader
+		return nil, nil, process.ErrInvalidHeader
 	}
 
 	var shardInfo []data.ShardDataHandler
+	var shardInfoProposal []data.ShardDataProposalHandler
 	if len(shardHeaders) != len(shardHeaderHashes) {
-		return nil, process.ErrInconsistentShardHeadersAndHashes
+		return nil, nil, process.ErrInconsistentShardHeadersAndHashes
 	}
 
 	for i := 0; i < len(shardHeaders); i++ {
-		shardData, err := sic.createShardInfoFromHeader(shardHeaders[i], shardHeaderHashes[i])
+		shardDataProposal, shardData, err := sic.createShardInfoFromHeader(shardHeaders[i], shardHeaderHashes[i])
 		if err != nil {
-			return nil, err
+			return nil, nil, err
 		}
 		shardInfo = append(shardInfo, shardData...)
+		shardInfoProposal = append(shardInfoProposal, shardDataProposal)
 	}
 
-	return shardInfo, nil
+	return shardInfoProposal, shardInfo, nil
 }
 
 // CreateShardInfoFromLegacyMeta creates shard info for legacy meta header
@@ -87,6 +92,9 @@ func (sic *ShardInfoCreateData) CreateShardInfoFromLegacyMeta(
 	shardHeaders []data.ShardHeaderHandler,
 	shardHeaderHashes [][]byte,
 ) ([]data.ShardDataHandler, error) {
+	if check.IfNil(metaHeader) {
+		return nil, process.ErrNilHeaderHandler
+	}
 	if metaHeader.IsHeaderV3() {
 		return nil, process.ErrInvalidHeader
 	}
@@ -107,24 +115,28 @@ func (sic *ShardInfoCreateData) CreateShardInfoFromLegacyMeta(
 	return shardInfo, nil
 }
 
-func (sic *ShardInfoCreateData) createShardInfoFromHeader(shardHeader data.HeaderHandler, hdrHash []byte) ([]data.ShardDataHandler, error) {
+func (sic *ShardInfoCreateData) createShardInfoFromHeader(
+	shardHeader data.HeaderHandler,
+	hdrHash []byte,
+) (data.ShardDataProposalHandler, []data.ShardDataHandler, error) {
 	if check.IfNil(shardHeader) {
-		return nil, process.ErrNilHeaderHandler
+		return nil, nil, process.ErrNilHeaderHandler
 	}
 	if len(hdrHash) == 0 {
-		return nil, process.ErrInvalidHash
+		return nil, nil, process.ErrInvalidHash
 	}
 
 	hasMissingShardHdrProof := shardHeader.GetNonce() >= 1 && !sic.proofsPool.HasProof(shardHeader.GetShardID(), hdrHash)
 	if hasMissingShardHdrProof {
-		return nil, fmt.Errorf("%w for shard header with hash %s", process.ErrMissingHeaderProof, hex.EncodeToString(hdrHash))
+		return nil, nil, fmt.Errorf("%w for shard header with hash %s", process.ErrMissingHeaderProof, hex.EncodeToString(hdrHash))
 	}
 
 	if !shardHeader.IsHeaderV3() {
-		return sic.createShardDataFromLegacyHeader(shardHeader, hdrHash)
+		shardData, err := sic.createShardDataFromLegacyHeader(shardHeader, hdrHash)
+		return createShardDataProposalFromHeader(shardHeader, hdrHash), shardData, err
 	}
 
-	return sic.createShardDataFromV3Header(shardHeader)
+	return sic.createShardDataFromV3Header(shardHeader, hdrHash)
 }
 
 func (sic *ShardInfoCreateData) createShardDataFromLegacyHeader(shardHdr data.HeaderHandler, hdrHash []byte) ([]data.ShardDataHandler, error) {
@@ -151,25 +163,43 @@ func (sic *ShardInfoCreateData) createShardDataFromLegacyHeader(shardHdr data.He
 	return []data.ShardDataHandler{shardData}, nil
 }
 
-func (sic *ShardInfoCreateData) createShardDataFromV3Header(shardHeader data.HeaderHandler) ([]data.ShardDataHandler, error) {
+func (sic *ShardInfoCreateData) createShardDataFromV3Header(
+	shardHeader data.HeaderHandler,
+	hdrHash []byte,
+) (data.ShardDataProposalHandler, []data.ShardDataHandler, error) {
 	if check.IfNil(shardHeader) {
-		return nil, process.ErrNilHeaderHandler
+		return nil, nil, process.ErrNilHeaderHandler
 	}
+	shardDataProposal := createShardDataProposalFromHeader(shardHeader, hdrHash)
 	executionResults := shardHeader.GetExecutionResultsHandlers()
 	if len(executionResults) == 0 {
-		return []data.ShardDataHandler{}, nil
+		// return shard data proposal even though the shard header does not hold any execution result
+		return shardDataProposal, []data.ShardDataHandler{}, nil
 	}
 
 	shardDataHandlers := make([]data.ShardDataHandler, len(executionResults))
 	for i, execResult := range executionResults {
 		shardData, err := sic.createShardDataFromExecutionResult(execResult)
 		if err != nil {
-			return nil, err
+			return nil, nil, err
 		}
 		shardDataHandlers[i] = shardData
 	}
 
-	return shardDataHandlers, nil
+	return shardDataProposal, shardDataHandlers, nil
+}
+
+func createShardDataProposalFromHeader(
+	header data.HeaderHandler,
+	hdrHash []byte,
+) data.ShardDataProposalHandler {
+	return &block.ShardDataProposal{
+		HeaderHash: hdrHash,
+		Round:      header.GetRound(),
+		Nonce:      header.GetNonce(),
+		ShardID:    header.GetShardID(),
+		Epoch:      header.GetEpoch(),
+	}
 }
 
 func (sic *ShardInfoCreateData) createShardDataFromExecutionResult(
@@ -184,7 +214,6 @@ func (sic *ShardInfoCreateData) createShardDataFromExecutionResult(
 		return nil, process.ErrWrongTypeAssertion
 	}
 
-	execResultHandler.GetMiniBlockHeadersHandlers()
 	header, err := sic.headersPool.GetHeaderByHash(execResultHandler.GetHeaderHash())
 	if err != nil {
 		return nil, err
@@ -235,7 +264,7 @@ func createShardMiniBlockHeaderFromExecutionResultHandler(
 	execResultHandler data.ExecutionResultHandler,
 ) []block.MiniBlockHeader {
 	mbHeaderHandlers := execResultHandler.GetMiniBlockHeadersHandlers()
-	shardMiniBlockHeaders := make([]block.MiniBlockHeader, 0)
+	shardMiniBlockHeaders := make([]block.MiniBlockHeader, 0, len(mbHeaderHandlers))
 	for i := 0; i < len(mbHeaderHandlers); i++ {
 		shardMiniBlockHeader := miniBlockHeaderFromMiniBlockHeaderHandler(mbHeaderHandlers[i])
 		shardMiniBlockHeaders = append(shardMiniBlockHeaders, shardMiniBlockHeader)

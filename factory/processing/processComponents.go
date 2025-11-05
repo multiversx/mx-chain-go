@@ -16,6 +16,7 @@ import (
 	dataBlock "github.com/multiversx/mx-chain-core-go/data/block"
 	"github.com/multiversx/mx-chain-core-go/data/outport"
 	"github.com/multiversx/mx-chain-core-go/data/receipt"
+	"github.com/multiversx/mx-chain-go/process/asyncExecution/executionTrack"
 	"github.com/multiversx/mx-chain-go/process/asyncExecution/queue"
 	vmcommon "github.com/multiversx/mx-chain-vm-common-go"
 	vmcommonBuiltInFunctions "github.com/multiversx/mx-chain-vm-common-go/builtInFunctions"
@@ -623,6 +624,10 @@ func (pcf *processComponentsFactory) Create() (*processComponents, error) {
 		return nil, fmt.Errorf("%w when assembling components for the sent signatures tracker", err)
 	}
 
+	executionResultsTracker := executionTrack.NewExecutionResultsTracker()
+	blocksQueue := queue.NewBlocksQueue()
+	blocksQueue.RegisterEvictionSubscriber(executionResultsTracker)
+
 	blockProcessorComponents, err := pcf.newBlockProcessor(
 		requestHandler,
 		forkDetector,
@@ -639,6 +644,8 @@ func (pcf *processComponentsFactory) Create() (*processComponents, error) {
 		blockCutoffProcessingHandler,
 		pcf.state.MissingTrieNodesNotifier(),
 		sentSignaturesTracker,
+		blocksQueue,
+		executionResultsTracker,
 	)
 	if err != nil {
 		return nil, err
@@ -743,7 +750,7 @@ func (pcf *processComponentsFactory) Create() (*processComponents, error) {
 		roundHandler:                     pcf.coreData.RoundHandler(),
 		forkDetector:                     forkDetector,
 		blockProcessor:                   blockProcessorComponents.blockProcessor,
-		blocksQueue:                      queue.NewBlocksQueue(),
+		blocksQueue:                      blocksQueue,
 		epochStartTrigger:                epochStartTrigger,
 		epochStartNotifier:               pcf.coreData.EpochStartNotifierWithConfirm(),
 		blackListHandler:                 blackListHandler,
@@ -1712,7 +1719,7 @@ func (pcf *processComponentsFactory) newShardInterceptorContainerFactory(
 	shardInterceptorsContainerFactoryArgs := interceptorscontainer.CommonInterceptorsContainerFactoryArgs{
 		CoreComponents:                 pcf.coreData,
 		CryptoComponents:               pcf.crypto,
-		Accounts:                       pcf.state.AccountsAdapter(),
+		Accounts:                       pcf.state.AccountsAdapterAPI(),
 		ShardCoordinator:               pcf.bootstrapComponents.ShardCoordinator(),
 		NodesCoordinator:               pcf.nodesCoordinator,
 		MainMessenger:                  pcf.network.NetworkMessenger(),
@@ -1773,7 +1780,7 @@ func (pcf *processComponentsFactory) newMetaInterceptorContainerFactory(
 		FullArchiveMessenger:           pcf.network.FullArchiveNetworkMessenger(),
 		Store:                          pcf.data.StorageService(),
 		DataPool:                       pcf.data.Datapool(),
-		Accounts:                       pcf.state.AccountsAdapter(),
+		Accounts:                       pcf.state.AccountsAdapterAPI(),
 		MaxTxNonceDeltaAllowed:         common.MaxTxNonceDeltaAllowed,
 		TxFeeHandler:                   pcf.coreData.EconomicsData(),
 		BlockBlackList:                 headerBlackList,

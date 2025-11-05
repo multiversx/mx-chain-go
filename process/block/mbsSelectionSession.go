@@ -20,15 +20,16 @@ type miniBlocksSelectionConfig struct {
 }
 
 type miniBlocksSelectionResult struct {
-	miniBlockHeaderHandlers []data.MiniBlockHeaderHandler
-	miniBlocks              block.MiniBlockSlice
-	miniBlockHashes         [][]byte
-	referencedHeaderHashes  [][]byte
-	referencedHeader        []data.HeaderHandler
-	lastHeader              data.HeaderHandler
-	gasProvided             uint64
-	numTxsAdded             uint32
-	mut                     sync.RWMutex
+	miniBlockHeaderHandlers     []data.MiniBlockHeaderHandler
+	miniBlocks                  block.MiniBlockSlice
+	miniBlockHashes             [][]byte
+	miniBlockHashesUnique       map[string]struct{}
+	referenceHeaderHashesUnique map[string]struct{}
+	referencedHeaderHashes      [][]byte
+	referencedHeader            []data.HeaderHandler
+	lastHeader                  data.HeaderHandler
+	numTxsAdded                 uint32
+	mut                         sync.RWMutex
 }
 
 type miniBlocksSelectionSession struct {
@@ -54,14 +55,15 @@ func NewMiniBlocksSelectionSession(shardID uint32, marshaller marshal.Marshalize
 			hasher:     hasher,
 		},
 		miniBlocksSelectionResult: &miniBlocksSelectionResult{
-			miniBlockHeaderHandlers: make([]data.MiniBlockHeaderHandler, 0, defaultCapacity),
-			miniBlocks:              make(block.MiniBlockSlice, 0, defaultCapacity),
-			miniBlockHashes:         make([][]byte, 0, defaultCapacity),
-			referencedHeaderHashes:  make([][]byte, 0, defaultCapacity),
-			referencedHeader:        make([]data.HeaderHandler, 0, defaultCapacity),
-			lastHeader:              nil,
-			gasProvided:             0,
-			numTxsAdded:             0,
+			miniBlockHeaderHandlers:     make([]data.MiniBlockHeaderHandler, 0, defaultCapacity),
+			miniBlocks:                  make(block.MiniBlockSlice, 0, defaultCapacity),
+			miniBlockHashes:             make([][]byte, 0, defaultCapacity),
+			miniBlockHashesUnique:       make(map[string]struct{}),
+			referenceHeaderHashesUnique: make(map[string]struct{}),
+			referencedHeaderHashes:      make([][]byte, 0, defaultCapacity),
+			referencedHeader:            make([]data.HeaderHandler, 0, defaultCapacity),
+			lastHeader:                  nil,
+			numTxsAdded:                 0,
 		},
 	}, nil
 }
@@ -74,10 +76,11 @@ func (s *miniBlocksSelectionSession) ResetSelectionSession() {
 	s.miniBlockHeaderHandlers = make([]data.MiniBlockHeaderHandler, 0, defaultCapacity)
 	s.miniBlocks = make(block.MiniBlockSlice, 0, defaultCapacity)
 	s.miniBlockHashes = make([][]byte, 0, defaultCapacity)
+	s.miniBlockHashesUnique = make(map[string]struct{})
+	s.referenceHeaderHashesUnique = make(map[string]struct{})
 	s.referencedHeaderHashes = make([][]byte, 0, defaultCapacity)
 	s.referencedHeader = make([]data.HeaderHandler, 0, defaultCapacity)
 	s.lastHeader = nil
-	s.gasProvided = 0
 	s.numTxsAdded = 0
 }
 
@@ -135,9 +138,13 @@ func (s *miniBlocksSelectionSession) AddReferencedHeader(header data.HeaderHandl
 		return
 	}
 
-	s.referencedHeader = append(s.referencedHeader, header)
-	s.referencedHeaderHashes = append(s.referencedHeaderHashes, headerHash)
-	s.lastHeader = header
+	_, ok := s.referenceHeaderHashesUnique[string(headerHash)]
+	if !ok {
+		s.referenceHeaderHashesUnique[string(headerHash)] = struct{}{}
+		s.referencedHeader = append(s.referencedHeader, header)
+		s.referencedHeaderHashes = append(s.referencedHeaderHashes, headerHash)
+		s.lastHeader = header
+	}
 }
 
 // GetReferencedHeaderHashes returns the hashes of the referenced headers
@@ -178,14 +185,6 @@ func (s *miniBlocksSelectionSession) GetLastHeader() data.HeaderHandler {
 	return s.lastHeader
 }
 
-// GetGasProvided returns the gas provided for the mini blocks
-func (s *miniBlocksSelectionSession) GetGasProvided() uint64 {
-	s.mut.RLock()
-	defer s.mut.RUnlock()
-
-	return s.gasProvided
-}
-
 // GetNumTxsAdded returns the number of transactions added to the mini blocks
 func (s *miniBlocksSelectionSession) GetNumTxsAdded() uint32 {
 	s.mut.RLock()
@@ -202,7 +201,17 @@ func (s *miniBlocksSelectionSession) AddMiniBlocksAndHashes(miniBlocksAndHashes 
 	miniBlockHashes := make([][]byte, 0, len(miniBlocksAndHashes))
 	numTxsAdded := 0
 
+	s.mut.Lock()
+	defer s.mut.Unlock()
+
 	for _, miniBlockInfo := range miniBlocksAndHashes {
+		_, ok := s.miniBlockHashesUnique[string(miniBlockInfo.Hash)]
+		if ok {
+			continue
+		}
+
+		s.miniBlockHashesUnique[string(miniBlockInfo.Hash)] = struct{}{}
+
 		txCount := len(miniBlockInfo.Miniblock.GetTxHashes())
 
 		mbHeader := &block.MiniBlockHeader{
@@ -223,8 +232,6 @@ func (s *miniBlocksSelectionSession) AddMiniBlocksAndHashes(miniBlocksAndHashes 
 		numTxsAdded += txCount
 	}
 
-	s.mut.Lock()
-	defer s.mut.Unlock()
 	s.miniBlocks = append(s.miniBlocks, miniBlocks...)
 	s.miniBlockHeaderHandlers = append(s.miniBlockHeaderHandlers, miniBlockHeaderHandlers...)
 	s.miniBlockHashes = append(s.miniBlockHashes, miniBlockHashes...)

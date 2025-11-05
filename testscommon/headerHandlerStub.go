@@ -71,28 +71,14 @@ type HeaderHandlerStub struct {
 	SetRoundCalled                         func(round uint64) error
 	SetNonceCalled                         func(nonce uint64) error
 	SetShardInfoHandlersCalled             func(shardInfo []data.ShardDataHandler) error
+	GetShardInfoProposalHandlersCalled     func() []data.ShardDataProposalHandler
+	SetShardInfoProposalHandlersCalled     func(shardInfo []data.ShardDataProposalHandler) error
 }
 
 // SetEpochStartHandler -
 func (hhs *HeaderHandlerStub) SetEpochStartHandler(epochStartHandler data.EpochStartHandler) error {
 	if hhs.SetEpochStartHandlerCalled != nil {
 		return hhs.SetEpochStartHandlerCalled(epochStartHandler)
-	}
-	return nil
-}
-
-// SetLastExecutionResultHandler -
-func (hhs *HeaderHandlerStub) SetLastExecutionResultHandler(resultHandler data.LastExecutionResultHandler) error {
-	if hhs.SetLastExecutionResultHandlerCalled != nil {
-		return hhs.SetLastExecutionResultHandlerCalled(resultHandler)
-	}
-	return nil
-}
-
-// SetExecutionResultsHandlers -
-func (hhs *HeaderHandlerStub) SetExecutionResultsHandlers(resultHandlers []data.BaseExecutionResultHandler) error {
-	if hhs.SetExecutionResultsHandlersCalled != nil {
-		return hhs.SetExecutionResultsHandlersCalled(resultHandlers)
 	}
 	return nil
 }
@@ -526,19 +512,12 @@ func (hhs *HeaderHandlerStub) SetBlockBodyTypeInt32(blockBodyType int32) error {
 	return nil
 }
 
-// GetGasLimit -
-func (hhs *HeaderHandlerStub) GetGasLimit() uint32 {
-	if hhs.GetGasLimitCalled != nil {
-		return hhs.GetGasLimitCalled()
-	}
-	return 0
-}
-
 // GetLastExecutionResultHandler -
 func (hhs *HeaderHandlerStub) GetLastExecutionResultHandler() data.LastExecutionResultHandler {
 	if hhs.GetLastExecutionResultHandlerCalled != nil {
 		return hhs.GetLastExecutionResultHandlerCalled()
 	}
+
 	return nil
 }
 
@@ -547,6 +526,24 @@ func (hhs *HeaderHandlerStub) GetExecutionResultsHandlers() []data.BaseExecution
 	if hhs.GetExecutionResultsHandlersCalled != nil {
 		return hhs.GetExecutionResultsHandlersCalled()
 	}
+
+	return nil
+}
+
+// SetLastExecutionResultHandler -
+func (hhs *HeaderHandlerStub) SetLastExecutionResultHandler(resultHandler data.LastExecutionResultHandler) error {
+	if hhs.SetLastExecutionResultHandlerCalled != nil {
+		return hhs.SetLastExecutionResultHandlerCalled(resultHandler)
+	}
+	return nil
+}
+
+// SetExecutionResultsHandlers -
+func (hhs *HeaderHandlerStub) SetExecutionResultsHandlers(resultHandlers []data.BaseExecutionResultHandler) error {
+	if hhs.SetExecutionResultsHandlersCalled != nil {
+		return hhs.SetExecutionResultsHandlersCalled(resultHandlers)
+	}
+
 	return nil
 }
 
@@ -561,4 +558,29 @@ func (hhs *HeaderHandlerStub) SetEpochChangeProposed(_ bool) {}
 // IsEpochChangeProposed -
 func (hhs *HeaderHandlerStub) IsEpochChangeProposed() bool {
 	return false
+}
+
+// GetGasLimit -
+func (hhs *HeaderHandlerStub) GetGasLimit() uint32 {
+	if hhs.GetGasLimitCalled != nil {
+		return hhs.GetGasLimitCalled()
+	}
+
+	return 0
+}
+
+// GetShardInfoProposalHandlers -
+func (hhs *HeaderHandlerStub) GetShardInfoProposalHandlers() []data.ShardDataProposalHandler {
+	if hhs.GetShardInfoProposalHandlersCalled != nil {
+		return hhs.GetShardInfoProposalHandlersCalled()
+	}
+	return nil
+}
+
+// SetShardInfoProposalHandlers -
+func (hhs *HeaderHandlerStub) SetShardInfoProposalHandlers(shardInfo []data.ShardDataProposalHandler) error {
+	if hhs.SetShardInfoProposalHandlersCalled != nil {
+		return hhs.SetShardInfoProposalHandlersCalled(shardInfo)
+	}
+	return nil
 }

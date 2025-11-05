@@ -1240,10 +1240,11 @@ func createDefaultEconomicsConfig() *config.EconomicsConfig {
 					MaxGasHigherFactorAccepted:  "10",
 				},
 			},
-			MinGasPrice:            minGasPrice,
-			GasPerDataByte:         "1",
-			GasPriceModifier:       0.01,
-			MaxGasPriceSetGuardian: "2000000000",
+			MinGasPrice:                       minGasPrice,
+			GasPerDataByte:                    "1",
+			GasPriceModifier:                  0.01,
+			MaxGasPriceSetGuardian:            "2000000000",
+			BlockCapacityOverestimationFactor: 200,
 		},
 	}
 }
@@ -1709,6 +1710,8 @@ func (tpn *TestProcessorNode) initInnerProcessors(gasMap map[string]map[string]u
 		tpn.AccntState,
 		TestAddressPubkeyConverter,
 		tpn.ShardCoordinator,
+		TestMarshalizer,
+		TestHasher,
 	)
 
 	mapDNSAddresses := make(map[string]struct{})
@@ -2524,6 +2527,9 @@ func (tpn *TestProcessorNode) initBlockProcessor() {
 		log.LogIfError(err)
 	}
 
+	tpn.BlocksQueue = queue.NewBlocksQueue()
+	tpn.BlocksQueue.RegisterEvictionSubscriber(executionResultsTracker)
+
 	argumentsBase := block.ArgBaseProcessor{
 		CoreComponents:       coreComponents,
 		DataComponents:       dataComponents,
@@ -2532,6 +2538,7 @@ func (tpn *TestProcessorNode) initBlockProcessor() {
 		StatusCoreComponents: statusCoreComponents,
 		Config:               config.Config{},
 		AccountsDB:           accountsDb,
+		AccountsProposal:     tpn.AccntStateProposal,
 		ForkDetector:         tpn.ForkDetector,
 		NodesCoordinator:     tpn.NodesCoordinator,
 		FeeHandler:           tpn.FeeAccumulator,
@@ -2554,6 +2561,7 @@ func (tpn *TestProcessorNode) initBlockProcessor() {
 		BlockProcessingCutoffHandler:       &testscommon.BlockProcessingCutoffStub{},
 		ManagedPeersHolder:                 &testscommon.ManagedPeersHolderStub{},
 		SentSignaturesTracker:              &testscommon.SentSignatureTrackerStub{},
+		StateAccessesCollector:             &stateMock.StateAccessesCollectorStub{},
 		HeadersForBlock:                    hdrsForBlock,
 		MiniBlocksSelectionSession:         mbSelectionSession,
 		ExecutionResultsVerifier:           execResultsVerifier,
@@ -2561,13 +2569,12 @@ func (tpn *TestProcessorNode) initBlockProcessor() {
 		ExecutionResultsInclusionEstimator: inclusionEstimator,
 		ExecutionResultsTracker:            executionResultsTracker,
 		GasComputation:                     gasConsumption,
+		BlocksQueue:                        tpn.BlocksQueue,
 	}
 
 	if check.IfNil(tpn.EpochStartNotifier) {
 		tpn.EpochStartNotifier = notifier.NewEpochStartSubscriptionHandler()
 	}
-
-	tpn.BlocksQueue = queue.NewBlocksQueue()
 
 	if tpn.ShardCoordinator.SelfId() == core.MetachainShardId {
 		if check.IfNil(tpn.EpochStartTrigger) {
@@ -3822,6 +3829,7 @@ func GetDefaultStateComponents() *testFactory.StateComponentsMock {
 			dataRetriever.PeerAccountsUnit.String(): &storageManager.StorageManagerStub{},
 		},
 		MissingNodesNotifier: &testscommon.MissingTrieNodesNotifierStub{},
+		ChangesCollector:     &stateMock.StateAccessesCollectorStub{},
 	}
 }
 

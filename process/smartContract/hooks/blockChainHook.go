@@ -290,6 +290,7 @@ func (bh *BlockChainHookImpl) GetStorageData(accountAddress []byte, index []byte
 	}
 
 	value, trieDepth, err := userAcc.AccountDataHandler().RetrieveValue(index)
+
 	messages := []interface{}{
 		"address", accountAddress,
 		"rootHash", userAcc.GetRootHash(),
@@ -456,12 +457,22 @@ func (bh *BlockChainHookImpl) EpochStartBlockRound() uint64 {
 
 // GetStateRootHash returns the state root hash from the last committed block
 func (bh *BlockChainHookImpl) GetStateRootHash() []byte {
-	rootHash := bh.blockChain.GetCurrentBlockRootHash()
+	rootHash := bh.getCurrentRootHash()
 	if len(rootHash) > 0 {
 		return rootHash
 	}
 
 	return make([]byte, 0)
+}
+
+func (bh *BlockChainHookImpl) getCurrentRootHash() []byte {
+	currentHeader := bh.blockChain.GetCurrentBlockHeader()
+	if currentHeader != nil && !currentHeader.IsHeaderV3() {
+		return bh.blockChain.GetCurrentBlockRootHash()
+	}
+
+	_, _, lastExecutedRootHash := bh.blockChain.GetLastExecutedBlockInfo()
+	return lastExecutedRootHash
 }
 
 // CurrentNonce returns the nonce from the current block

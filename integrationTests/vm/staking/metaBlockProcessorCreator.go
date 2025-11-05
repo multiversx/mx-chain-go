@@ -11,6 +11,7 @@ import (
 	"github.com/multiversx/mx-chain-go/process/asyncExecution/executionTrack"
 	"github.com/multiversx/mx-chain-go/process/estimator"
 	"github.com/multiversx/mx-chain-go/process/missingData"
+	"github.com/multiversx/mx-chain-go/testscommon/processMocks"
 
 	"github.com/multiversx/mx-chain-go/process/block/headerForBlock"
 	"github.com/multiversx/mx-chain-go/process/coordinator"
@@ -32,6 +33,7 @@ import (
 	"github.com/multiversx/mx-chain-go/sharding"
 	"github.com/multiversx/mx-chain-go/sharding/nodesCoordinator"
 	"github.com/multiversx/mx-chain-go/state"
+	"github.com/multiversx/mx-chain-go/state/disabled"
 	"github.com/multiversx/mx-chain-go/testscommon"
 	"github.com/multiversx/mx-chain-go/testscommon/dblookupext"
 	testsFactory "github.com/multiversx/mx-chain-go/testscommon/factory"
@@ -146,6 +148,7 @@ func createMetaBlockProcessor(
 				AppStatusHandlerField: &statusHandlerMock.AppStatusHandlerStub{},
 			},
 			AccountsDB:                         accountsDb,
+			AccountsProposal:                   stateComponents.AccountsAdapterProposal(),
 			ForkDetector:                       &integrationMocks.ForkDetectorStub{},
 			NodesCoordinator:                   nc,
 			FeeHandler:                         postprocess.NewFeeAccumulator(),
@@ -169,6 +172,7 @@ func createMetaBlockProcessor(
 			ManagedPeersHolder:                 &testscommon.ManagedPeersHolderStub{},
 			BlockProcessingCutoffHandler:       &testscommon.BlockProcessingCutoffStub{},
 			SentSignaturesTracker:              &testscommon.SentSignatureTrackerStub{},
+			StateAccessesCollector:             disabled.NewDisabledStateAccessesCollector(),
 			HeadersForBlock:                    headersForBlock,
 			MiniBlocksSelectionSession:         mbSelectionSession,
 			ExecutionResultsVerifier:           execResultsVerifier,
@@ -176,6 +180,7 @@ func createMetaBlockProcessor(
 			ExecutionResultsInclusionEstimator: inclusionEstimator,
 			ExecutionResultsTracker:            executionResultsTracker,
 			GasComputation:                     &testscommon.GasComputationMock{},
+			BlocksQueue:                        &processMocks.BlocksQueueMock{},
 		},
 		SCToProtocol:             stakingToPeer,
 		PendingMiniBlocksHandler: &mock.PendingMiniBlocksHandlerStub{},

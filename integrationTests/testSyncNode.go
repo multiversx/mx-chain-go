@@ -25,6 +25,7 @@ import (
 	"github.com/multiversx/mx-chain-go/process/block/bootstrapStorage"
 	"github.com/multiversx/mx-chain-go/process/sync"
 	"github.com/multiversx/mx-chain-go/state"
+	stateDisabled "github.com/multiversx/mx-chain-go/state/disabled"
 	"github.com/multiversx/mx-chain-go/testscommon"
 	"github.com/multiversx/mx-chain-go/testscommon/dblookupext"
 	"github.com/multiversx/mx-chain-go/testscommon/enableEpochsHandlerMock"
@@ -163,6 +164,9 @@ func (tpn *TestProcessorNode) initBlockProcessorWithSync() {
 		log.LogIfError(err)
 	}
 
+	tpn.BlocksQueue = queue.NewBlocksQueue()
+	tpn.BlocksQueue.RegisterEvictionSubscriber(executionResultsTracker)
+
 	argumentsBase := block.ArgBaseProcessor{
 		CoreComponents:       coreComponents,
 		DataComponents:       dataComponents,
@@ -171,6 +175,7 @@ func (tpn *TestProcessorNode) initBlockProcessorWithSync() {
 		StatusCoreComponents: statusCoreComponents,
 		Config:               config.Config{},
 		AccountsDB:           accountsDb,
+		AccountsProposal:     tpn.AccntStateProposal,
 		ForkDetector:         nil,
 		NodesCoordinator:     tpn.NodesCoordinator,
 		FeeHandler:           tpn.FeeAccumulator,
@@ -194,6 +199,7 @@ func (tpn *TestProcessorNode) initBlockProcessorWithSync() {
 		BlockProcessingCutoffHandler:       &testscommon.BlockProcessingCutoffStub{},
 		ManagedPeersHolder:                 &testscommon.ManagedPeersHolderStub{},
 		SentSignaturesTracker:              &testscommon.SentSignatureTrackerStub{},
+		StateAccessesCollector:             stateDisabled.NewDisabledStateAccessesCollector(),
 		HeadersForBlock:                    hdrsForBlock,
 		MiniBlocksSelectionSession:         mbSelectionSession,
 		ExecutionResultsVerifier:           execResultsVerifier,
@@ -201,9 +207,8 @@ func (tpn *TestProcessorNode) initBlockProcessorWithSync() {
 		ExecutionResultsInclusionEstimator: inclusionEstimator,
 		ExecutionResultsTracker:            executionResultsTracker,
 		GasComputation:                     gasConsumption,
+		BlocksQueue:                        tpn.BlocksQueue,
 	}
-
-	tpn.BlocksQueue = queue.NewBlocksQueue()
 
 	if tpn.ShardCoordinator.SelfId() == core.MetachainShardId {
 		tpn.ForkDetector, _ = sync.NewMetaForkDetector(

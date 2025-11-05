@@ -10,9 +10,6 @@ import (
 	"github.com/multiversx/mx-chain-core-go/core/check"
 	"github.com/multiversx/mx-chain-core-go/data"
 	dataBlock "github.com/multiversx/mx-chain-core-go/data/block"
-	logger "github.com/multiversx/mx-chain-logger-go"
-	"github.com/multiversx/mx-chain-vm-common-go/parsers"
-
 	"github.com/multiversx/mx-chain-go/common"
 	disabledCommon "github.com/multiversx/mx-chain-go/common/disabled"
 	"github.com/multiversx/mx-chain-go/common/enablers"
@@ -45,6 +42,8 @@ import (
 	"github.com/multiversx/mx-chain-go/txcache"
 	"github.com/multiversx/mx-chain-go/update"
 	hardForkProcess "github.com/multiversx/mx-chain-go/update/process"
+	logger "github.com/multiversx/mx-chain-logger-go"
+	"github.com/multiversx/mx-chain-vm-common-go/parsers"
 )
 
 const unreachableEpoch = ^uint32(0)
@@ -543,6 +542,8 @@ func createProcessorsForShardGenesisBlock(arg ArgsGenesisBlockCreator, enableEpo
 		arg.Accounts,
 		arg.Core.AddressPubKeyConverter(),
 		arg.ShardCoordinator,
+		arg.Core.InternalMarshalizer(),
+		arg.Core.Hasher(),
 	)
 	if err != nil {
 		return nil, err

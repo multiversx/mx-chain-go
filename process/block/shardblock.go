@@ -222,7 +222,7 @@ func (sp *shardProcessor) ProcessBlock(
 
 	defer func() {
 		if err != nil {
-			sp.RevertCurrentBlock()
+			sp.RevertCurrentBlock(header)
 		}
 	}()
 
@@ -916,7 +916,7 @@ func (sp *shardProcessor) CommitBlock(
 	sp.processStatusHandler.SetBusy("shardProcessor.CommitBlock")
 	defer func() {
 		if err != nil {
-			sp.RevertCurrentBlock()
+			sp.RevertCurrentBlock(headerHandler)
 		}
 		sp.processStatusHandler.SetIdle()
 	}()
@@ -989,12 +989,6 @@ func (sp *shardProcessor) CommitBlock(
 
 	err = sp.saveLastNotarizedHeader(core.MetachainShardId, processedMetaHdrs)
 	if err != nil {
-		return err
-	}
-
-	err = sp.dataPool.Transactions().OnExecutedBlock(headerHandler)
-	if err != nil {
-		log.Debug("dataPool.Transactions().OnExecutedBlock()", "error", err)
 		return err
 	}
 
@@ -1073,8 +1067,21 @@ func (sp *shardProcessor) CommitBlock(
 		return err
 	}
 
+	rootHash := getLastExecutionResultsRootHash(header, committedRootHash)
+	lastExecutionResultHeader, err := sp.getLastExecutionResultHeader(header)
+	if err != nil {
+		return err
+	}
+
+	err = sp.dataPool.Transactions().OnExecutedBlock(lastExecutionResultHeader, rootHash)
+	if err != nil {
+		log.Debug("dataPool.Transactions().OnExecutedBlock()", "error", err)
+		return err
+	}
+
 	sp.blockChain.SetCurrentBlockHeaderHash(headerHash)
 	sp.indexBlockIfNeeded(bodyHandler, headerHash, headerHandler, lastBlockHeader)
+	sp.stateAccessesCollector.Reset()
 	sp.recordBlockInHistory(headerHash, headerHandler, bodyHandler)
 
 	lastCrossNotarizedHeader, _, err := sp.blockTracker.GetLastCrossNotarizedHeader(core.MetachainShardId)
@@ -1148,6 +1155,45 @@ func (sp *shardProcessor) CommitBlock(
 	sp.blockProcessingCutoffHandler.HandlePauseCutoff(header)
 
 	return nil
+}
+
+func getLastExecutionResultsRootHash(
+	header data.HeaderHandler,
+	committedRootHash []byte,
+) []byte {
+	if !header.IsHeaderV3() {
+		return committedRootHash
+	}
+
+	lastExecutionResult, err := common.GetLastBaseExecutionResultHandler(header)
+	if err != nil {
+		log.Warn("failed to get last execution result for header", "err", err)
+		return committedRootHash
+	}
+
+	return lastExecutionResult.GetRootHash()
+}
+
+func (sp *shardProcessor) getLastExecutionResultHeader(
+	currentHeader data.HeaderHandler,
+) (data.HeaderHandler, error) {
+	if !currentHeader.IsHeaderV3() {
+		return currentHeader, nil
+	}
+
+	lastExecutionResult, err := common.GetLastBaseExecutionResultHandler(currentHeader)
+	if err != nil {
+		return nil, err
+	}
+
+	headersPool := sp.dataPool.Headers()
+
+	header, err := headersPool.GetHeaderByHash(lastExecutionResult.GetHeaderHash())
+	if err != nil {
+		return nil, err
+	}
+
+	return header, nil
 }
 
 func (sp *shardProcessor) notifyFinalMetaHdrs(processedMetaHeaders []data.HeaderHandler) {
@@ -1280,6 +1326,7 @@ func (sp *shardProcessor) updateState(headers []data.HeaderHandler, currentHeade
 		return
 	}
 
+	// TODO: set proper finalized header in outport
 	sp.setFinalizedHeaderHashInIndexer(currentHeaderHash)
 
 	scheduledHeaderRootHash, _ := sp.scheduledTxsExecutionHandler.GetScheduledRootHashForHeader(currentHeaderHash)
@@ -1291,11 +1338,17 @@ func (sp *shardProcessor) setFinalBlockInfo(
 	headerHash []byte,
 	scheduledHeaderRootHash []byte,
 ) {
+	if header.IsHeaderV3() {
+		// final block info is set in async mode on header executor
+		return
+	}
+
 	finalRootHash := scheduledHeaderRootHash
 	if len(finalRootHash) == 0 {
 		finalRootHash = header.GetRootHash()
 	}
 
+	// TODO: maybe rename this to reflect last execution results
 	sp.blockChain.SetFinalBlockInfo(header.GetNonce(), headerHash, finalRootHash)
 }
 
@@ -1805,7 +1858,8 @@ func (sp *shardProcessor) getAllMiniBlockDstMeFromMeta(header data.ShardHeaderHa
 	for _, metaBlockHash := range header.GetMetaBlockHashes() {
 		headerInfo, ok := sp.hdrsForCurrBlock.GetHeaderInfo(string(metaBlockHash))
 		if !ok {
-			return nil, err
+			return nil, fmt.Errorf("%w for metaBlockHash %s",
+				process.ErrMissingHeader, hex.EncodeToString(metaBlockHash))
 		}
 
 		err = sp.addCrossShardMiniBlocksDstMeToMap(header, metaBlockHash, headerInfo.GetHeader(), lastCrossNotarizedHeader, miniBlockMetaHashes)

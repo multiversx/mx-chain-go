@@ -1230,9 +1230,15 @@ func CreateDataForInclusionEstimation(
 	var notarizedInRound uint64
 	switch lastExecutionResult := handler.(type) {
 	case *block.ExecutionResultInfo:
+		if check.IfNil(lastExecutionResult.GetExecutionResult()) {
+			return nil, ErrNilBaseExecutionResult
+		}
 		notarizedInRound = lastExecutionResult.GetNotarizedInRound()
 		proposedInRound = lastExecutionResult.GetExecutionResult().HeaderRound
 	case *block.MetaExecutionResultInfo:
+		if check.IfNil(lastExecutionResult.GetExecutionResult()) {
+			return nil, ErrNilBaseExecutionResult
+		}
 		notarizedInRound = lastExecutionResult.GetNotarizedInRound()
 		proposedInRound = lastExecutionResult.GetExecutionResult().GetHeaderRound()
 	default:

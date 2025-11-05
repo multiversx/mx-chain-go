@@ -212,7 +212,7 @@ func (mp *metaProcessor) ProcessBlock(
 
 	defer func() {
 		if err != nil {
-			mp.RevertCurrentBlock()
+			mp.RevertCurrentBlock(headerHandler)
 		}
 	}()
 
@@ -482,11 +482,13 @@ func (mp *metaProcessor) getAllMiniBlockDstMeFromShards(metaHdr *block.MetaBlock
 	for _, shardInfo := range metaHdr.ShardInfo {
 		headerInfo, ok := mp.hdrsForCurrBlock.GetHeaderInfo(string(shardInfo.HeaderHash))
 		if !ok {
-			continue
+			return nil, fmt.Errorf("%w for shard info with hash = %s",
+				process.ErrMissingHeader, hex.EncodeToString(shardInfo.HeaderHash))
 		}
 		shardHeader, ok := headerInfo.GetHeader().(data.ShardHeaderHandler)
 		if !ok {
-			continue
+			return nil, fmt.Errorf("%w : for shardInfo.HeaderHash = %s",
+				process.ErrWrongTypeAssertion, hex.EncodeToString(shardInfo.HeaderHash))
 		}
 
 		lastCrossNotarizedHeader, _, err := mp.blockTracker.GetLastCrossNotarizedHeader(shardInfo.ShardID)
@@ -495,13 +497,28 @@ func (mp *metaProcessor) getAllMiniBlockDstMeFromShards(metaHdr *block.MetaBlock
 		}
 
 		if shardHeader.GetRound() > metaHdr.Round {
-			continue
+			return nil, fmt.Errorf("%w : for shard info with hash = %s",
+				process.ErrHigherRoundInBlock, hex.EncodeToString(shardInfo.HeaderHash))
 		}
-		if shardHeader.GetRound() <= lastCrossNotarizedHeader.GetRound() {
-			continue
+
+		isGenesisNotarization := metaHdr.GetNonce() == 1
+
+		if isGenesisNotarization && shardHeader.GetRound() != 0 {
+			return nil, fmt.Errorf("%w : for shard info with hash = %s",
+				process.ErrLowerRoundInBlock, hex.EncodeToString(shardInfo.HeaderHash))
 		}
-		if shardHeader.GetNonce() <= lastCrossNotarizedHeader.GetNonce() {
-			continue
+		if isGenesisNotarization && shardHeader.GetNonce() != 0 {
+			return nil, fmt.Errorf("%w : for shard info with hash = %s",
+				process.ErrLowerNonceInBlock, hex.EncodeToString(shardInfo.HeaderHash))
+		}
+
+		if !isGenesisNotarization && shardHeader.GetRound() <= lastCrossNotarizedHeader.GetRound() {
+			return nil, fmt.Errorf("%w : for shard info with hash = %s",
+				process.ErrLowerRoundInBlock, hex.EncodeToString(shardInfo.HeaderHash))
+		}
+		if !isGenesisNotarization && shardHeader.GetNonce() <= lastCrossNotarizedHeader.GetNonce() {
+			return nil, fmt.Errorf("%w : for shard info with hash = %s",
+				process.ErrLowerNonceInBlock, hex.EncodeToString(shardInfo.HeaderHash))
 		}
 
 		finalCrossMiniBlockHashes := mp.getFinalCrossMiniBlockHashes(shardHeader)
@@ -1129,7 +1146,7 @@ func (mp *metaProcessor) CommitBlock(
 	var err error
 	defer func() {
 		if err != nil {
-			mp.RevertCurrentBlock()
+			mp.RevertCurrentBlock(headerHandler)
 		}
 		mp.processStatusHandler.SetIdle()
 	}()
@@ -1266,6 +1283,7 @@ func (mp *metaProcessor) CommitBlock(
 
 	// TODO: Should be sent also validatorInfoTxs alongside rewardsTxs -> mp.validatorInfoCreator.GetValidatorInfoTxs(body) ?
 	mp.indexBlock(header, headerHash, body, finalMetaBlock, notarizedHeadersHashes, rewardsTxs)
+	mp.stateAccessesCollector.Reset()
 	mp.recordBlockInHistory(headerHash, headerHandler, bodyHandler)
 
 	highestFinalBlockNonce := mp.forkDetector.GetHighestFinalBlockNonce()

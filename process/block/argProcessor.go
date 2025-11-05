@@ -73,6 +73,7 @@ type ArgBaseProcessor struct {
 	Config                             config.Config
 	PrefsConfig                        config.Preferences
 	AccountsDB                         map[state.AccountsDbIdentifier]state.AccountsAdapter
+	AccountsProposal                   state.AccountsAdapter
 	ForkDetector                       process.ForkDetector
 	NodesCoordinator                   nodesCoordinator.NodesCoordinator
 	FeeHandler                         process.TransactionFeeHandler
@@ -97,6 +98,7 @@ type ArgBaseProcessor struct {
 	BlockProcessingCutoffHandler       cutoff.BlockProcessingCutoffHandler
 	ManagedPeersHolder                 common.ManagedPeersHolder
 	SentSignaturesTracker              process.SentSignaturesTracker
+	StateAccessesCollector             state.StateAccessesCollector
 	HeadersForBlock                    HeadersForBlock
 	ExecutionResultsInclusionEstimator process.InclusionEstimator
 	ExecutionResultsTracker            process.ExecutionResultsTracker
@@ -104,6 +106,7 @@ type ArgBaseProcessor struct {
 	ExecutionResultsVerifier           ExecutionResultsVerifier
 	MissingDataResolver                MissingDataResolver
 	GasComputation                     process.GasComputation
+	BlocksQueue                        process.BlocksQueue
 }
 
 // ArgShardProcessor holds all dependencies required by the process data factory in order to create

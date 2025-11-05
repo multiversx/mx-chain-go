@@ -469,6 +469,14 @@ func TestNode_GetTransactionFromStorage(t *testing.T) {
 	tx, err = n.GetTransaction(hex.EncodeToString([]byte("badly-serialized")), false)
 	require.NotNil(t, err)
 	require.Nil(t, tx)
+
+	// relayed after it is disabled
+	relayedTx := &transaction.Transaction{Nonce: 10, SndAddr: []byte("bob"), RcvAddr: []byte("alice"), Data: []byte("relayed@test")}
+	_ = chainStorer.Transactions.PutWithMarshalizer([]byte("relayed"), relayedTx, internalMarshalizer)
+	tx, err = n.GetTransaction(hex.EncodeToString([]byte("relayed")), false)
+	require.NoError(t, err)
+	require.NotNil(t, tx)
+	require.False(t, tx.IsRelayed)
 }
 
 func TestNode_GetTransactionWithResultsFromStorageMissingStorer(t *testing.T) {
@@ -1576,34 +1584,6 @@ func TestApiTransactionProcessor_GetVirtualNonce(t *testing.T) {
 		require.ErrorContains(t, err, expectedErr.Error())
 		require.Nil(t, virtualNonce)
 	})
-
-	t.Run("should return nil latest commited block hash", func(t *testing.T) {
-		t.Parallel()
-
-		args := createMockArgAPITransactionProcessor()
-		args.DataPool = &dataRetrieverMock.PoolsHolderStub{
-			TransactionsCalled: func() dataRetriever.ShardedDataCacherNotifier {
-				return &testscommon.ShardedDataStub{
-					ShardDataStoreCalled: func(cacheID string) storage.Cacher {
-						return cache
-					},
-				}
-			},
-		}
-		args.AddressPubKeyConverter = &testscommon.PubkeyConverterMock{
-			DecodeCalled: func(humanReadable string) ([]byte, error) {
-				return []byte("alice"), nil
-			},
-		}
-
-		atp, err := NewAPITransactionProcessor(args)
-		require.NoError(t, err)
-		require.NotNil(t, atp)
-
-		virtualNonce, err := atp.GetVirtualNonce("alice")
-		require.ErrorContains(t, err, "nil latest committed block hash")
-		require.Nil(t, virtualNonce)
-	})
 }
 
 func createAPITransactionProc(t *testing.T, epoch uint32, withDbLookupExt bool) (*apiTransactionProcessor, *genericMocks.ChainStorerMock, *dataRetrieverMock.PoolsHolderMock, *dblookupextMock.HistoryRepositoryStub) {
@@ -1617,6 +1597,11 @@ func createAPITransactionProc(t *testing.T, epoch uint32, withDbLookupExt bool) 
 	}
 	dataFieldParser := &testscommon.DataFieldParserStub{
 		ParseCalled: func(dataField []byte, sender, receiver []byte, _ uint32) *datafield.ResponseParseData {
+			if strings.Contains(string(dataField), "relayed") {
+				return &datafield.ResponseParseData{
+					IsRelayed: true,
+				}
+			}
 			return &datafield.ResponseParseData{}
 		},
 	}
@@ -1636,7 +1621,11 @@ func createAPITransactionProc(t *testing.T, epoch uint32, withDbLookupExt bool) 
 		LogsFacade:               &testscommon.LogsFacadeStub{},
 		DataFieldParser:          dataFieldParser,
 		TxMarshaller:             &marshallerMock.MarshalizerMock{},
-		EnableEpochsHandler:      enableEpochsHandlerMock.NewEnableEpochsHandlerStub(),
+		EnableEpochsHandler: &enableEpochsHandlerMock.EnableEpochsHandlerStub{
+			IsFlagEnabledInEpochCalled: func(flag core.EnableEpochFlag, epoch uint32) bool {
+				return flag == common.RelayedTransactionsV1V2DisableFlag
+			},
+		},
 	}
 	apiTransactionProc, err := NewAPITransactionProcessor(args)
 	require.Nil(t, err)
@@ -1798,7 +1787,7 @@ func TestApiTransactionProcessor_GetTransactionPopulatesComputedFields(t *testin
 	})
 
 	t.Run("ProcessingType", func(t *testing.T) {
-		txTypeHandler.ComputeTransactionTypeCalled = func(data.TransactionHandler) (process.TransactionType, process.TransactionType, bool) {
+		txTypeHandler.ComputeTransactionTypeInEpochCalled = func(data.TransactionHandler, uint32) (process.TransactionType, process.TransactionType, bool) {
 			return process.MoveBalance, process.SCDeployment, false
 		}
 
@@ -1811,7 +1800,7 @@ func TestApiTransactionProcessor_GetTransactionPopulatesComputedFields(t *testin
 	})
 
 	t.Run("ProcessingType (with relayed v3)", func(t *testing.T) {
-		txTypeHandler.ComputeTransactionTypeCalled = func(data.TransactionHandler) (process.TransactionType, process.TransactionType, bool) {
+		txTypeHandler.ComputeTransactionTypeInEpochCalled = func(data.TransactionHandler, uint32) (process.TransactionType, process.TransactionType, bool) {
 			return process.MoveBalance, process.SCDeployment, true
 		}
 
@@ -1855,7 +1844,7 @@ func TestApiTransactionProcessor_PopulateComputedFields(t *testing.T) {
 	require.Nil(t, err)
 	require.NotNil(t, processor)
 
-	txTypeHandler.ComputeTransactionTypeCalled = func(data.TransactionHandler) (process.TransactionType, process.TransactionType, bool) {
+	txTypeHandler.ComputeTransactionTypeInEpochCalled = func(data.TransactionHandler, uint32) (process.TransactionType, process.TransactionType, bool) {
 		return process.MoveBalance, process.SCDeployment, false
 	}
 
@@ -1869,4 +1858,141 @@ func TestApiTransactionProcessor_PopulateComputedFields(t *testing.T) {
 	require.Equal(t, "MoveBalance", apiTx.ProcessingTypeOnSource)
 	require.Equal(t, "SCDeployment", apiTx.ProcessingTypeOnDestination)
 	require.Equal(t, "1000", apiTx.InitiallyPaidFee)
+}
+
+func Test_GetCurrentRootHash(t *testing.T) {
+	t.Parallel()
+
+	t.Run("should fail if nil current header", func(t *testing.T) {
+		t.Parallel()
+
+		arguments := createMockArgAPITransactionProcessor()
+
+		processor, _ := NewAPITransactionProcessor(arguments)
+
+		chainHandler := &testscommon.ChainHandlerStub{
+			GetCurrentBlockHeaderCalled: func() data.HeaderHandler {
+				return nil
+			},
+		}
+
+		retRootHash, err := processor.getCurrentRootHash(chainHandler)
+		require.Equal(t, ErrNilBlockHeader, err)
+		require.Nil(t, retRootHash)
+	})
+
+	t.Run("before header v3, should fail if not able to get current root hash", func(t *testing.T) {
+		t.Parallel()
+
+		arguments := createMockArgAPITransactionProcessor()
+
+		processor, _ := NewAPITransactionProcessor(arguments)
+
+		header := &block.HeaderV2{}
+
+		chainHandler := &testscommon.ChainHandlerStub{
+			GetCurrentBlockRootHashCalled: func() []byte {
+				return nil
+			},
+			GetCurrentBlockHeaderCalled: func() data.HeaderHandler {
+				return header
+			},
+		}
+
+		retRootHash, err := processor.getCurrentRootHash(chainHandler)
+		require.Equal(t, ErrNilCurrentRootHash, err)
+		require.Nil(t, retRootHash)
+	})
+
+	t.Run("before header v3 should get root hash from current chain handler root hash", func(t *testing.T) {
+		t.Parallel()
+
+		arguments := createMockArgAPITransactionProcessor()
+
+		processor, _ := NewAPITransactionProcessor(arguments)
+
+		expRootHash := []byte("expRootHash")
+
+		header := &block.HeaderV2{}
+
+		chainHandler := &testscommon.ChainHandlerStub{
+			GetCurrentBlockRootHashCalled: func() []byte {
+				return expRootHash
+			},
+			GetCurrentBlockHeaderCalled: func() data.HeaderHandler {
+				return header
+			},
+			GetLastExecutedBlockInfoCalled: func() (uint64, []byte, []byte) {
+				return 0, []byte{}, []byte{}
+			},
+		}
+
+		retRootHash, err := processor.getCurrentRootHash(chainHandler)
+		require.Nil(t, err)
+		require.Equal(t, expRootHash, retRootHash)
+	})
+
+	t.Run("on header v3 should get root hash from last executed block info", func(t *testing.T) {
+		t.Parallel()
+
+		arguments := createMockArgAPITransactionProcessor()
+
+		processor, _ := NewAPITransactionProcessor(arguments)
+
+		expRootHash := []byte("expRootHash")
+
+		header := &block.HeaderV3{
+			LastExecutionResult: &block.ExecutionResultInfo{
+				ExecutionResult: &block.BaseExecutionResult{
+					HeaderHash: []byte("headerHash1"),
+					RootHash:   []byte("rootHash1"),
+				},
+			},
+		}
+
+		chainHandler := &testscommon.ChainHandlerStub{
+			GetCurrentBlockHeaderCalled: func() data.HeaderHandler {
+				return header
+			},
+			GetLastExecutedBlockInfoCalled: func() (uint64, []byte, []byte) {
+				return 0, []byte{}, expRootHash
+			},
+		}
+
+		retRootHash, err := processor.getCurrentRootHash(chainHandler)
+		require.Nil(t, err)
+		require.Equal(t, expRootHash, retRootHash)
+	})
+
+	t.Run("on first header v3 should get root hash from last execution result", func(t *testing.T) {
+		t.Parallel()
+
+		arguments := createMockArgAPITransactionProcessor()
+
+		processor, _ := NewAPITransactionProcessor(arguments)
+
+		expRootHash := []byte("rootHash1")
+
+		header := &block.HeaderV3{
+			LastExecutionResult: &block.ExecutionResultInfo{
+				ExecutionResult: &block.BaseExecutionResult{
+					HeaderHash: []byte("headerHash1"),
+					RootHash:   expRootHash,
+				},
+			},
+		}
+
+		chainHandler := &testscommon.ChainHandlerStub{
+			GetLastExecutedBlockInfoCalled: func() (uint64, []byte, []byte) {
+				return 0, []byte{}, []byte{} // root hash not set
+			},
+			GetCurrentBlockHeaderCalled: func() data.HeaderHandler {
+				return header
+			},
+		}
+
+		retRootHash, err := processor.getCurrentRootHash(chainHandler)
+		require.Nil(t, err)
+		require.Equal(t, expRootHash, retRootHash)
+	})
 }

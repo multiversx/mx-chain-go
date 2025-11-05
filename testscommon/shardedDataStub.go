@@ -28,14 +28,15 @@ type ShardedDataStub struct {
 	GetCountsCalled                        func() counting.CountsWithSize
 	KeysCalled                             func() [][]byte
 	CleanupSelfShardTxCacheCalled          func(session interface{}, randomness uint64, maxNum int, cleanupLoopMaximumDuration time.Duration)
-	OnExecutedBlockCalled                  func(blockHeader data.HeaderHandler) error
+	OnExecutedBlockCalled                  func(blockHeader data.HeaderHandler, rootHash []byte) error
 	OnProposedBlockCalled                  func(
 		blockHash []byte,
 		blockBody *block.Body,
 		blockHeader data.HeaderHandler,
 		accountsProvider common.AccountNonceAndBalanceProvider,
-		blockchainInfo common.BlockchainInfo,
+		latestExecutedHash []byte,
 	) error
+	ResetTrackerCalled func()
 }
 
 // NewShardedDataStub -
@@ -148,9 +149,9 @@ func (sd *ShardedDataStub) CleanupSelfShardTxCache(accountsProvider common.Accou
 }
 
 // OnExecutedBlock -
-func (sd *ShardedDataStub) OnExecutedBlock(blockHeader data.HeaderHandler) error {
+func (sd *ShardedDataStub) OnExecutedBlock(blockHeader data.HeaderHandler, rootHash []byte) error {
 	if sd.OnExecutedBlockCalled != nil {
-		return sd.OnExecutedBlockCalled(blockHeader)
+		return sd.OnExecutedBlockCalled(blockHeader, rootHash)
 	}
 
 	return nil
@@ -162,12 +163,19 @@ func (sd *ShardedDataStub) OnProposedBlock(
 	blockBody *block.Body,
 	blockHeader data.HeaderHandler,
 	accountsProvider common.AccountNonceAndBalanceProvider,
-	blockchainInfo common.BlockchainInfo,
+	latestExecutedHash []byte,
 ) error {
 	if sd.OnProposedBlockCalled != nil {
-		return sd.OnProposedBlockCalled(blockHash, blockBody, blockHeader, accountsProvider, blockchainInfo)
+		return sd.OnProposedBlockCalled(blockHash, blockBody, blockHeader, accountsProvider, latestExecutedHash)
 	}
 	return nil
+}
+
+// ResetTracker -
+func (sd *ShardedDataStub) ResetTracker() {
+	if sd.ResetTrackerCalled != nil {
+		sd.ResetTrackerCalled()
+	}
 }
 
 // IsInterfaceNil -

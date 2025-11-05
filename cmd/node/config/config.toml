@@ -398,6 +398,19 @@
         ShardIDProviderType = "BinarySplit"
         NumShards = 4
 
+[StateAccessesStorage]
+    [StateAccessesStorage.Cache]
+        Name = "StateAccessesStorage"
+        Capacity = 5000
+        Type = "SizeLRU"
+        SizeInBytes = 10485760 #10MB
+    [StateAccessesStorage.DB]
+        FilePath = "StateAccesses"
+        Type = "LvlDBSerial"
+        BatchDelaySeconds = 2
+        MaxBatchSize = 100
+        MaxOpenFiles = 10
+
 [PeerAccountsTrieStorage]
     [PeerAccountsTrieStorage.Cache]
         Name = "PeerAccountsTrieStorage"
@@ -764,6 +777,11 @@
 [TrieLeavesRetrieverConfig]
     Enabled = false
     MaxSizeInBytes = 10485760 #10MB
+
+[StateAccessesCollectorConfig]
+    TypesToCollect = []          # These can be "READ","WRITE".
+    SaveToStorage = false
+    WithAccountChanges = false
 
 [BlockSizeThrottleConfig]
     MinSizeInBytes = 104857 # 104857 is 10% from 1MB

@@ -87,6 +87,7 @@ type SmartContractProcessorFacade interface {
 // TxTypeHandler is an interface to calculate the transaction type
 type TxTypeHandler interface {
 	ComputeTransactionType(tx data.TransactionHandler) (TransactionType, TransactionType, bool)
+	ComputeTransactionTypeInEpoch(tx data.TransactionHandler, epoch uint32) (TransactionType, TransactionType, bool)
 	IsInterfaceNil() bool
 }
 
@@ -283,7 +284,7 @@ type BlockProcessor interface {
 	ProcessBlock(header data.HeaderHandler, body data.BodyHandler, haveTime func() time.Duration) error
 	ProcessScheduledBlock(header data.HeaderHandler, body data.BodyHandler, haveTime func() time.Duration) error
 	CommitBlock(header data.HeaderHandler, body data.BodyHandler) error
-	RevertCurrentBlock()
+	RevertCurrentBlock(header data.HeaderHandler)
 	PruneStateOnRollback(currHeader data.HeaderHandler, currHeaderHash []byte, prevHeader data.HeaderHandler, prevHeaderHash []byte)
 	RevertStateToBlock(header data.HeaderHandler, rootHash []byte) error
 	CreateNewHeader(round uint64, nonce uint64) (data.HeaderHandler, error)
@@ -314,6 +315,8 @@ type BlocksQueue interface {
 	AddOrReplace(pair queue.HeaderBodyPair) error
 	Pop() (queue.HeaderBodyPair, bool)
 	Peek() (queue.HeaderBodyPair, bool)
+	RemoveAtNonceAndHigher(nonce uint64)
+	RegisterEvictionSubscriber(subscriber queue.BlocksQueueEvictionSubscriber)
 	IsInterfaceNil() bool
 	Close()
 }
@@ -764,10 +767,13 @@ type feeHandler interface {
 	DeveloperPercentage() float64
 	GasPerDataByte() uint64
 	MaxGasLimitPerBlock(shardID uint32) uint64
+	MaxGasLimitPerBlockInEpoch(shardID uint32, epoch uint32) uint64
 	MaxGasLimitPerMiniBlock(shardID uint32) uint64
 	MaxGasLimitPerBlockForSafeCrossShard() uint64
+	MaxGasLimitPerBlockForSafeCrossShardInEpoch(epoch uint32) uint64
 	MaxGasLimitPerMiniBlockForSafeCrossShard() uint64
 	MaxGasLimitPerTx() uint64
+	MaxGasLimitPerTxInEpoch(epoch uint32) uint64
 	ComputeGasLimit(tx data.TransactionWithFeeHandler) uint64
 	ComputeMoveBalanceFee(tx data.TransactionWithFeeHandler) *big.Int
 	ComputeTxFee(tx data.TransactionWithFeeHandler) *big.Int
@@ -775,6 +781,7 @@ type feeHandler interface {
 	ComputeFeeForProcessing(tx data.TransactionWithFeeHandler, gasToUse uint64) *big.Int
 	MinGasPrice() uint64
 	MaxGasPriceSetGuardian() uint64
+	BlockCapacityOverestimationFactor() uint64
 	GasPriceModifier() float64
 	MinGasLimit() uint64
 	ExtraGasLimitGuardedTx() uint64
@@ -1559,6 +1566,7 @@ type ExecutionResultsTracker interface {
 	GetPendingExecutionResultByNonce(nonce uint64) (data.BaseExecutionResultHandler, error)
 	GetLastNotarizedExecutionResult() (data.BaseExecutionResultHandler, error)
 	SetLastNotarizedResult(executionResult data.BaseExecutionResultHandler) error
+	RemoveFromNonce(nonce uint64) error
 	IsInterfaceNil() bool
 }
 
@@ -1580,7 +1588,7 @@ type InclusionEstimator interface {
 
 // ShardInfoCreator defines the functionality to create shard info
 type ShardInfoCreator interface {
-	CreateShardInfoV3(metaHeader data.MetaHeaderHandler, shardHeaders []data.HeaderHandler, shardHeaderHashes [][]byte) ([]data.ShardDataHandler, error)
+	CreateShardInfoV3(metaHeader data.MetaHeaderHandler, shardHeaders []data.HeaderHandler, shardHeaderHashes [][]byte) ([]data.ShardDataProposalHandler, []data.ShardDataHandler, error)
 	CreateShardInfoFromLegacyMeta(metaHeader data.MetaHeaderHandler, shardHeaders []data.ShardHeaderHandler, shardHeaderHashes [][]byte) ([]data.ShardDataHandler, error)
 	IsInterfaceNil() bool
 }

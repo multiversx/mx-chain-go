@@ -8,6 +8,7 @@ import (
 	"github.com/multiversx/mx-chain-core-go/core"
 	"github.com/multiversx/mx-chain-core-go/hashing"
 	"github.com/multiversx/mx-chain-core-go/marshal"
+	"github.com/multiversx/mx-chain-go/testscommon/executionTrack"
 	vmcommon "github.com/multiversx/mx-chain-vm-common-go"
 	"github.com/stretchr/testify/require"
 
@@ -58,6 +59,8 @@ func Test_newBlockProcessorCreatorForShard(t *testing.T) {
 		&testscommon.BlockProcessingCutoffStub{},
 		&testscommon.MissingTrieNodesNotifierStub{},
 		&testscommon.SentSignatureTrackerStub{},
+		&processMocks.BlocksQueueMock{},
+		&executionTrack.ExecutionResultsTrackerStub{},
 	)
 
 	require.NoError(t, err)
@@ -103,9 +106,10 @@ func Test_newBlockProcessorCreatorForMeta(t *testing.T) {
 	trieStorageManagers[dataRetriever.PeerAccountsUnit.String()] = storageManagerPeer
 
 	argsAccCreator := factoryState.ArgsAccountCreator{
-		Hasher:              coreComponents.Hasher(),
-		Marshaller:          coreComponents.InternalMarshalizer(),
-		EnableEpochsHandler: coreComponents.EnableEpochsHandler(),
+		Hasher:                 coreComponents.Hasher(),
+		Marshaller:             coreComponents.InternalMarshalizer(),
+		EnableEpochsHandler:    coreComponents.EnableEpochsHandler(),
+		StateAccessesCollector: &stateMock.StateAccessesCollectorStub{},
 	}
 	accCreator, _ := factoryState.NewAccountCreator(argsAccCreator)
 
@@ -154,6 +158,9 @@ func Test_newBlockProcessorCreatorForMeta(t *testing.T) {
 		TrieStorageManagersCalled: func() map[string]common.StorageManager {
 			return trieStorageManagers
 		},
+		StateAccessesCollectorCalled: func() state.StateAccessesCollector {
+			return &stateMock.StateAccessesCollectorStub{}
+		},
 	}
 	args := componentsMock.GetProcessArgs(
 		shardC,
@@ -189,6 +196,8 @@ func Test_newBlockProcessorCreatorForMeta(t *testing.T) {
 		&testscommon.BlockProcessingCutoffStub{},
 		&testscommon.MissingTrieNodesNotifierStub{},
 		&testscommon.SentSignatureTrackerStub{},
+		&processMocks.BlocksQueueMock{},
+		&executionTrack.ExecutionResultsTrackerStub{},
 	)
 
 	require.NoError(t, err)
@@ -209,13 +218,14 @@ func createAccountAdapter(
 	}
 
 	args := state.ArgsAccountsDB{
-		Trie:                  tr,
-		Hasher:                hasher,
-		Marshaller:            marshaller,
-		AccountFactory:        accountFactory,
-		StoragePruningManager: disabled.NewDisabledStoragePruningManager(),
-		AddressConverter:      &testscommon.PubkeyConverterMock{},
-		SnapshotsManager:      disabledState.NewDisabledSnapshotsManager(),
+		Trie:                   tr,
+		Hasher:                 hasher,
+		Marshaller:             marshaller,
+		AccountFactory:         accountFactory,
+		StoragePruningManager:  disabled.NewDisabledStoragePruningManager(),
+		AddressConverter:       &testscommon.PubkeyConverterMock{},
+		SnapshotsManager:       disabledState.NewDisabledSnapshotsManager(),
+		StateAccessesCollector: disabledState.NewDisabledStateAccessesCollector(),
 	}
 	adb, err := state.NewAccountsDB(args)
 	if err != nil {

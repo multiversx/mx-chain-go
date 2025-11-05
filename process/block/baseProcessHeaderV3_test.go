@@ -202,7 +202,7 @@ func TestBaseProcessor_saveExecutedData(t *testing.T) {
 				},
 				GetExecutionResultsHandlersCalled: func() []data.BaseExecutionResultHandler {
 					return []data.BaseExecutionResultHandler{
-						&block.ExecutionResult{}, // shard execution result
+						&block.BaseExecutionResult{}, // shard execution result
 					}
 				},
 				GetShardIDCalled: func() uint32 {
@@ -452,48 +452,6 @@ func TestBaseProcessor_saveExecutedData(t *testing.T) {
 			err := bp.saveExecutedData(header, headerHash)
 			require.True(t, errors.Is(err, process.ErrMissingHeader))
 		})
-		t.Run("unmarshall error", func(t *testing.T) {
-			t.Parallel()
-
-			bp := &baseProcessor{
-				store: &commonStorage.ChainStorerStub{
-					GetStorerCalled: func(unitType dataRetriever.UnitType) (storage.Storer, error) {
-						require.Fail(t, "should not be called")
-						return nil, nil
-					},
-				},
-				dataPool: &dataRetrieverMock.PoolsHolderStub{
-					PostProcessTransactionsCalled: func() storage.Cacher {
-						return &cache.CacherStub{
-							GetCalled: func(key []byte) (value interface{}, ok bool) {
-								return []byte("marshalled map"), true
-							},
-						}
-					},
-				},
-				marshalizer: &marshallerMock.MarshalizerStub{
-					UnmarshalCalled: func(obj interface{}, buff []byte) error {
-						return errExpected
-					},
-				},
-				shardCoordinator: &testscommon.ShardsCoordinatorMock{},
-			}
-			header := &testscommon.HeaderHandlerStub{
-				IsHeaderV3Called: func() bool {
-					return true
-				},
-				GetExecutionResultsHandlersCalled: func() []data.BaseExecutionResultHandler {
-					return []data.BaseExecutionResultHandler{
-						&block.ExecutionResult{
-							MiniBlockHeaders: []block.MiniBlockHeader{},
-						},
-					}
-				},
-			}
-
-			err := bp.saveExecutedData(header, headerHash)
-			require.Equal(t, errExpected, err)
-		})
 		t.Run("putTransactionsIntoStorage fails due to invalid block type", func(t *testing.T) {
 			t.Parallel()
 
@@ -508,18 +466,14 @@ func TestBaseProcessor_saveExecutedData(t *testing.T) {
 					PostProcessTransactionsCalled: func() storage.Cacher {
 						return &cache.CacherStub{
 							GetCalled: func(key []byte) (value interface{}, ok bool) {
-								return []byte("marshalled map"), true
+								txsMap := make(map[block.Type]map[string]data.TransactionHandler)
+								txsMap[block.PeerBlock] = map[string]data.TransactionHandler{} // should never have PeerBlock
+								return txsMap, true
 							},
 						}
 					},
 				},
-				marshalizer: &marshallerMock.MarshalizerStub{
-					UnmarshalCalled: func(obj interface{}, buff []byte) error {
-						txsMap := obj.(map[block.Type]map[string]data.TransactionHandler)
-						txsMap[block.PeerBlock] = map[string]data.TransactionHandler{} // should never have PeerBlock
-						return nil
-					},
-				},
+				marshalizer:      &marshallerMock.MarshalizerMock{},
 				shardCoordinator: &testscommon.ShardsCoordinatorMock{},
 			}
 			header := &testscommon.HeaderHandlerStub{
@@ -555,18 +509,14 @@ func TestBaseProcessor_saveExecutedData(t *testing.T) {
 					PostProcessTransactionsCalled: func() storage.Cacher {
 						return &cache.CacherStub{
 							GetCalled: func(key []byte) (value interface{}, ok bool) {
-								return []byte("marshalled map"), true
+								txsMap := make(map[block.Type]map[string]data.TransactionHandler)
+								txsMap[block.TxBlock] = map[string]data.TransactionHandler{} // force TransactionUnit
+								return txsMap, true
 							},
 						}
 					},
 				},
-				marshalizer: &marshallerMock.MarshalizerStub{
-					UnmarshalCalled: func(obj interface{}, buff []byte) error {
-						txsMap := obj.(map[block.Type]map[string]data.TransactionHandler)
-						txsMap[block.TxBlock] = map[string]data.TransactionHandler{} // force TransactionUnit
-						return nil
-					},
-				},
+				marshalizer:      &marshallerMock.MarshalizerMock{},
 				shardCoordinator: &testscommon.ShardsCoordinatorMock{},
 			}
 			header := &testscommon.HeaderHandlerStub{
@@ -598,20 +548,16 @@ func TestBaseProcessor_saveExecutedData(t *testing.T) {
 					PostProcessTransactionsCalled: func() storage.Cacher {
 						return &cache.CacherStub{
 							GetCalled: func(key []byte) (value interface{}, ok bool) {
-								return []byte("marshalled map"), true
+								txsMap := make(map[block.Type]map[string]data.TransactionHandler)
+								txsMap[block.TxBlock] = map[string]data.TransactionHandler{
+									"hash": nil,
+								}
+								return txsMap, true
 							},
 						}
 					},
 				},
-				marshalizer: &marshallerMock.MarshalizerStub{
-					UnmarshalCalled: func(obj interface{}, buff []byte) error {
-						txsMap := obj.(map[block.Type]map[string]data.TransactionHandler)
-						txsMap[block.TxBlock] = map[string]data.TransactionHandler{
-							"hash": nil,
-						}
-						return nil
-					},
-				},
+				marshalizer:      &marshallerMock.MarshalizerMock{},
 				shardCoordinator: &testscommon.ShardsCoordinatorMock{},
 			}
 			header := &testscommon.HeaderHandlerStub{
@@ -643,19 +589,16 @@ func TestBaseProcessor_saveExecutedData(t *testing.T) {
 					PostProcessTransactionsCalled: func() storage.Cacher {
 						return &cache.CacherStub{
 							GetCalled: func(key []byte) (value interface{}, ok bool) {
-								return []byte("marshalled map"), true
+								txsMap := make(map[block.Type]map[string]data.TransactionHandler)
+								txsMap[block.TxBlock] = map[string]data.TransactionHandler{
+									"hash": &transaction.Transaction{},
+								}
+								return txsMap, true
 							},
 						}
 					},
 				},
 				marshalizer: &marshallerMock.MarshalizerStub{
-					UnmarshalCalled: func(obj interface{}, buff []byte) error {
-						txsMap := obj.(map[block.Type]map[string]data.TransactionHandler)
-						txsMap[block.TxBlock] = map[string]data.TransactionHandler{
-							"hash": &transaction.Transaction{},
-						}
-						return nil
-					},
 					MarshalCalled: func(obj interface{}) ([]byte, error) {
 						return nil, errExpected
 					},
@@ -700,7 +643,17 @@ func TestBaseProcessor_saveExecutedData(t *testing.T) {
 				PostProcessTransactionsCalled: func() storage.Cacher {
 					return &cache.CacherStub{
 						GetCalled: func(key []byte) (value interface{}, ok bool) {
-							return []byte("marshalled map"), true
+							txsMap := make(map[block.Type]map[string]data.TransactionHandler)
+							txsMap[block.SmartContractResultBlock] = map[string]data.TransactionHandler{
+								"hashSCR": &transaction.Transaction{},
+							}
+							txsMap[block.RewardsBlock] = map[string]data.TransactionHandler{
+								"hashReward": &transaction.Transaction{}, // for coverage
+							}
+							txsMap[block.ReceiptBlock] = map[string]data.TransactionHandler{
+								"hashReward": &transaction.Transaction{}, // for coverage
+							}
+							return txsMap, true
 						},
 						RemoveCalled: func(key []byte) {
 							wasRemoveCalledForTxs = true
@@ -718,21 +671,7 @@ func TestBaseProcessor_saveExecutedData(t *testing.T) {
 					}
 				},
 			},
-			marshalizer: &marshallerMock.MarshalizerStub{
-				UnmarshalCalled: func(obj interface{}, buff []byte) error {
-					txsMap := obj.(map[block.Type]map[string]data.TransactionHandler)
-					txsMap[block.SmartContractResultBlock] = map[string]data.TransactionHandler{
-						"hashSCR": &transaction.Transaction{},
-					}
-					txsMap[block.RewardsBlock] = map[string]data.TransactionHandler{
-						"hashReward": &transaction.Transaction{}, // for coverage
-					}
-					txsMap[block.ReceiptBlock] = map[string]data.TransactionHandler{
-						"hashReward": &transaction.Transaction{}, // for coverage
-					}
-					return nil
-				},
-			},
+			marshalizer:      &marshallerMock.MarshalizerMock{},
 			shardCoordinator: &testscommon.ShardsCoordinatorMock{},
 		}
 		header := &testscommon.HeaderHandlerStub{
