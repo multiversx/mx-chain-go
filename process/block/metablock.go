@@ -949,16 +949,8 @@ func (mp *metaProcessor) createMiniBlocks(
 		)
 	}
 
-	rootHash := mp.blockChain.GetCurrentBlockRootHash()
-	if len(rootHash) == 0 {
-		genesisBlock := mp.blockChain.GetGenesisHeader()
-		rootHash = genesisBlock.GetRootHash()
-	}
-
-	rh := holders.NewDefaultRootHashesHolder(rootHash)
-	err = mp.accountsProposal.RecreateTrieIfNeeded(rh)
+	err = mp.RecreateTrieIfNeeded()
 	if err != nil {
-		log.Error("metaProcessor.createMiniBlocks", "err", err)
 		return nil, err
 	}
 
@@ -1284,7 +1276,7 @@ func (mp *metaProcessor) CommitBlock(
 
 	mp.blockChain.SetCurrentBlockHeaderHash(headerHash)
 
-	err = mp.dataPool.Transactions().OnExecutedBlock(headerHandler, committedRootHash)
+	err = mp.OnExecutedBlock(headerHandler, committedRootHash)
 	if err != nil {
 		return err
 	}

@@ -1073,9 +1073,8 @@ func (sp *shardProcessor) CommitBlock(
 		return err
 	}
 
-	err = sp.dataPool.Transactions().OnExecutedBlock(lastExecutionResultHeader, rootHash)
+	err = sp.OnExecutedBlock(lastExecutionResultHeader, rootHash)
 	if err != nil {
-		log.Debug("dataPool.Transactions().OnExecutedBlock()", "error", err)
 		return err
 	}
 
@@ -2168,16 +2167,8 @@ func (sp *shardProcessor) createMiniBlocks(haveTime func() bool, randomness []by
 		return &block.Body{MiniBlocks: miniBlocks}, processedMiniBlocksDestMeInfo, nil
 	}
 
-	rootHash := sp.blockChain.GetCurrentBlockRootHash()
-	if len(rootHash) == 0 {
-		genesisBlock := sp.blockChain.GetGenesisHeader()
-		rootHash = genesisBlock.GetRootHash()
-	}
-
-	rh := holders.NewDefaultRootHashesHolder(rootHash)
-	err = sp.accountsProposal.RecreateTrieIfNeeded(rh)
+	err = sp.RecreateTrieIfNeeded()
 	if err != nil {
-		log.Error("shardProcessor.createMiniBlocks", "err", err)
 		return nil, nil, err
 	}
 
