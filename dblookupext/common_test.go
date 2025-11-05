@@ -5,7 +5,6 @@ import (
 	"strings"
 	"testing"
 
-	"github.com/multiversx/mx-chain-core-go/core"
 	"github.com/multiversx/mx-chain-core-go/data"
 	"github.com/multiversx/mx-chain-core-go/data/block"
 	"github.com/multiversx/mx-chain-core-go/data/receipt"
@@ -175,50 +174,6 @@ func TestGetIntraMbs(t *testing.T) {
 		require.Equal(t, expectedMbs, intraMBs)
 	})
 
-}
-
-func TestExtractMiniBlocksHeaderHandlersFromExecResult(t *testing.T) {
-	t.Run("wrong type shard", func(t *testing.T) {
-		t.Parallel()
-
-		executionResult := &block.BaseExecutionResult{}
-
-		_, err := extractMiniBlocksHeaderHandlersFromExecResult(executionResult, 0)
-		require.Equal(t, process.ErrWrongTypeAssertion, err)
-	})
-	t.Run("should work shard", func(t *testing.T) {
-		executionResult := &block.ExecutionResult{
-			MiniBlockHeaders: []block.MiniBlockHeader{
-				{SenderShardID: 1},
-				{SenderShardID: 0},
-			},
-		}
-
-		res, err := extractMiniBlocksHeaderHandlersFromExecResult(executionResult, 0)
-		require.Nil(t, err)
-		require.Len(t, res, 2)
-	})
-	t.Run("wrong type meta", func(t *testing.T) {
-		t.Parallel()
-
-		executionResult := &block.BaseExecutionResult{}
-		_, err := extractMiniBlocksHeaderHandlersFromExecResult(executionResult, core.MetachainShardId)
-		require.Equal(t, process.ErrWrongTypeAssertion, err)
-	})
-	t.Run("should work meta", func(t *testing.T) {
-		t.Parallel()
-
-		executionResult := &block.MetaExecutionResult{
-			MiniBlockHeaders: []block.MiniBlockHeader{
-				{SenderShardID: 0},
-				{SenderShardID: 1},
-			},
-		}
-
-		res, err := extractMiniBlocksHeaderHandlersFromExecResult(executionResult, core.MetachainShardId)
-		require.Nil(t, err)
-		require.Len(t, res, 2)
-	})
 }
 
 func TestGetBody(t *testing.T) {

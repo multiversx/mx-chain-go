@@ -8,7 +8,9 @@ import (
 	"github.com/multiversx/mx-chain-core-go/core"
 	"github.com/multiversx/mx-chain-core-go/core/check"
 	"github.com/multiversx/mx-chain-core-go/data"
+	"github.com/multiversx/mx-chain-core-go/data/block"
 	"github.com/multiversx/mx-chain-core-go/marshal"
+	"github.com/multiversx/mx-chain-go/common"
 	"github.com/multiversx/mx-chain-go/storage"
 	logger "github.com/multiversx/mx-chain-logger-go"
 )
@@ -16,18 +18,21 @@ import (
 var log = logger.GetOrCreate("dblookupext/esdtSupply")
 
 type suppliesProcessor struct {
-	logsProc *logsProcessor
-	logsGet  *logsGetter
-	mutex    sync.Mutex
+	logsProc   *logsProcessor
+	logsGet    *logsGetter
+	mbsStorer  storage.Storer
+	marshaller marshal.Marshalizer
+	mutex      sync.Mutex
 }
 
 // NewSuppliesProcessor will create a new instance of the supplies processor
 func NewSuppliesProcessor(
-	marshalizer marshal.Marshalizer,
+	marshaller marshal.Marshalizer,
 	suppliesStorer storage.Storer,
 	logsStorer storage.Storer,
+	mbsStorer storage.Storer,
 ) (*suppliesProcessor, error) {
-	if check.IfNil(marshalizer) {
+	if check.IfNil(marshaller) {
 		return nil, core.ErrNilMarshalizer
 	}
 	if check.IfNil(suppliesStorer) {
@@ -36,13 +41,18 @@ func NewSuppliesProcessor(
 	if check.IfNil(logsStorer) {
 		return nil, core.ErrNilStore
 	}
+	if check.IfNil(mbsStorer) {
+		return nil, core.ErrNilStore
+	}
 
-	logsGet := newLogsGetter(marshalizer, logsStorer)
-	logsProc := newLogsProcessor(marshalizer, suppliesStorer)
+	logsGet := newLogsGetter(marshaller, logsStorer)
+	logsProc := newLogsProcessor(marshaller, suppliesStorer)
 
 	return &suppliesProcessor{
-		logsProc: logsProc,
-		logsGet:  logsGet,
+		logsProc:   logsProc,
+		logsGet:    logsGet,
+		mbsStorer:  mbsStorer,
+		marshaller: marshaller,
 	}, nil
 }
 
@@ -70,12 +80,59 @@ func (sp *suppliesProcessor) RevertChanges(header data.HeaderHandler, body data.
 	sp.mutex.Lock()
 	defer sp.mutex.Unlock()
 
+	if header.IsHeaderV3() {
+		return sp.revertChangesBasedOnExecutionResults(header)
+	}
+
+	return sp.revertChanges(header.GetNonce(), body)
+}
+
+func (sp *suppliesProcessor) revertChangesBasedOnExecutionResults(header data.HeaderHandler) error {
+	for _, executionResult := range header.GetExecutionResultsHandlers() {
+		mbHeaders, err := common.GetMiniBlocksHeaderHandlersFromExecResult(executionResult, header.GetShardID())
+		if err != nil {
+			return err
+		}
+
+		body := &block.Body{MiniBlocks: make([]*block.MiniBlock, 0, len(mbHeaders))}
+		for _, mbHeader := range mbHeaders {
+			mb, errG := sp.getMbByHash(mbHeader.GetHash(), executionResult.GetHeaderEpoch())
+			if errG != nil {
+				return errG
+			}
+			body.MiniBlocks = append(body.MiniBlocks, mb)
+		}
+
+		err = sp.revertChanges(executionResult.GetHeaderNonce(), body)
+		if err != nil {
+			return err
+		}
+	}
+	return nil
+}
+
+func (sp *suppliesProcessor) getMbByHash(hash []byte, epoch uint32) (*block.MiniBlock, error) {
+	mbBytes, err := sp.mbsStorer.GetFromEpoch(hash, epoch)
+	if err != nil {
+		return nil, err
+	}
+
+	mb := &block.MiniBlock{}
+	err = sp.marshaller.Unmarshal(mb, mbBytes)
+	if err != nil {
+		return nil, err
+	}
+
+	return mb, nil
+}
+
+func (sp *suppliesProcessor) revertChanges(nonce uint64, body data.BodyHandler) error {
 	logsFromDB, err := sp.logsGet.getLogsBasedOnBody(body)
 	if err != nil {
 		return err
 	}
 
-	return sp.logsProc.processLogs(header.GetNonce(), logsFromDB, true)
+	return sp.logsProc.processLogs(nonce, logsFromDB, true)
 }
 
 // GetESDTSupply will return the supply from the storage for the given token

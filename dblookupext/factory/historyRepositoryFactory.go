@@ -81,10 +81,16 @@ func (hpf *historyRepositoryFactory) Create() (dblookupext.HistoryRepository, er
 		return nil, err
 	}
 
+	mbsStorer, err := hpf.store.GetStorer(dataRetriever.MetaBlockUnit)
+	if err != nil {
+		return nil, err
+	}
+
 	esdtSuppliesHandler, err := esdtSupply.NewSuppliesProcessor(
 		hpf.marshalizer,
 		esdtSuppliesStorer,
 		txLogsStorer,
+		mbsStorer,
 	)
 	if err != nil {
 		return nil, err
