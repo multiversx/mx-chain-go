@@ -143,6 +143,23 @@ func TestShardInfoCreateData_CreateShardInfoV3(t *testing.T) {
 	round := uint64(10)
 	metaHdrV3 := &block.MetaBlockV3{Round: round}
 
+	t.Run("should fail with nil meta header", func(t *testing.T) {
+		t.Parallel()
+		args := createDefaultShardInfoCreateDataArgs()
+		sic, err := NewShardInfoCreateData(
+			args.enableEpochsHandler,
+			pool.Headers(),
+			args.proofsPool,
+			args.pendingMiniBlocksHandler,
+			args.blockTracker,
+		)
+		require.Nil(t, err)
+		shardDataProposalHandlers, shardDataHandlers, err := sic.CreateShardInfoV3(nil, headers, headerHashes)
+		require.ErrorIs(t, err, process.ErrNilHeaderHandler)
+		require.Nil(t, shardDataProposalHandlers)
+		require.Nil(t, shardDataHandlers)
+	})
+
 	t.Run("should fail with Legacy meta header", func(t *testing.T) {
 		t.Parallel()
 
@@ -156,10 +173,10 @@ func TestShardInfoCreateData_CreateShardInfoV3(t *testing.T) {
 			args.blockTracker,
 		)
 		require.Nil(t, err)
-		shardInfo, err := sic.CreateShardInfoV3(metaHdr, headers, headerHashes[:2])
-		require.NotNil(t, err)
-		require.Nil(t, shardInfo)
-		assert.Equal(t, process.ErrInvalidHeader, err)
+		shardDataProposalHandlers, shardDataHandlers, err := sic.CreateShardInfoV3(metaHdr, headers, headerHashes)
+		require.Equal(t, process.ErrInvalidHeader, err)
+		require.Nil(t, shardDataProposalHandlers)
+		require.Nil(t, shardDataHandlers)
 	})
 	t.Run("should fail with inconsistent headers and hashes", func(t *testing.T) {
 		t.Parallel()
@@ -173,10 +190,10 @@ func TestShardInfoCreateData_CreateShardInfoV3(t *testing.T) {
 			args.blockTracker,
 		)
 		require.Nil(t, err)
-		shardInfo, err := sic.CreateShardInfoV3(metaHdrV3, headers, headerHashes[:2])
-		require.NotNil(t, err)
-		require.Nil(t, shardInfo)
-		assert.Equal(t, process.ErrInconsistentShardHeadersAndHashes, err)
+		shardDataProposalHandlers, shardDataHandlers, err := sic.CreateShardInfoV3(metaHdrV3, headers, headerHashes[:2])
+		require.Equal(t, process.ErrInconsistentShardHeadersAndHashes, err)
+		require.Nil(t, shardDataProposalHandlers)
+		require.Nil(t, shardDataHandlers)
 	})
 	t.Run("should fail when createShardInfoFromHeader errors", func(t *testing.T) {
 		t.Parallel()
@@ -190,12 +207,10 @@ func TestShardInfoCreateData_CreateShardInfoV3(t *testing.T) {
 			args.blockTracker,
 		)
 		require.Nil(t, err)
-		invalidHashes := make([][]byte, len(headerHashes))
-		invalidHashes[0] = []byte("")
-		shardInfo, err := sic.CreateShardInfoV3(metaHdrV3, headers, invalidHashes)
-		require.NotNil(t, err)
-		require.Nil(t, shardInfo)
-		assert.Equal(t, process.ErrInvalidHash, err)
+		shardDataProposalHandlers, shardDataHandlers, err := sic.CreateShardInfoV3(metaHdrV3, headers, headerHashes)
+		require.Contains(t, err.Error(), process.ErrMissingHeaderProof.Error())
+		require.Nil(t, shardDataProposalHandlers)
+		require.Nil(t, shardDataHandlers)
 	})
 	t.Run("should work", func(t *testing.T) {
 		t.Parallel()
@@ -222,10 +237,12 @@ func TestShardInfoCreateData_CreateShardInfoV3(t *testing.T) {
 			args.blockTracker,
 		)
 		require.Nil(t, err)
-		shardInfo, err := sic.CreateShardInfoV3(metaHdrV3, headers, headerHashes)
+		shardDataProposalHandlers, shardDataHandlers, err := sic.CreateShardInfoV3(metaHdrV3, headers, headerHashes)
 		require.Nil(t, err)
-		require.NotNil(t, shardInfo)
-		require.Equal(t, 4, len(shardInfo))
+		require.NotNil(t, shardDataHandlers)
+		require.NotNil(t, shardDataProposalHandlers)
+		require.Equal(t, 4, len(shardDataHandlers))
+		require.Equal(t, 4, len(shardDataProposalHandlers))
 	})
 }
 
@@ -275,6 +292,21 @@ func TestShardInfoCreateData_CreateShardInfoFromLegacyMeta(t *testing.T) {
 	round := uint64(10)
 	metaHdr := &block.MetaBlock{Round: round}
 
+	t.Run("should fail with nil meta header", func(t *testing.T) {
+		t.Parallel()
+		args := createDefaultShardInfoCreateDataArgs()
+		sic, err := NewShardInfoCreateData(
+			args.enableEpochsHandler,
+			args.headersPool,
+			args.proofsPool,
+			args.pendingMiniBlocksHandler,
+			args.blockTracker,
+		)
+		require.Nil(t, err)
+		shardInfo, err := sic.CreateShardInfoFromLegacyMeta(nil, headers, headerHashes)
+		require.Equal(t, process.ErrNilHeaderHandler, err)
+		require.Nil(t, shardInfo)
+	})
 	t.Run("should fail with V3 meta header", func(t *testing.T) {
 		t.Parallel()
 
@@ -383,9 +415,10 @@ func TestShardInfoCreateData_createShardInfoFromHeader(t *testing.T) {
 		)
 		require.Nil(t, err)
 
-		shardData, err := sic.createShardInfoFromHeader(nil, nil)
+		shardDataProposalHandlers, shardDataHandlers, err := sic.createShardInfoFromHeader(nil, nil)
 		require.NotNil(t, err)
-		require.Nil(t, shardData)
+		require.Nil(t, shardDataProposalHandlers)
+		require.Nil(t, shardDataHandlers)
 		require.ErrorIs(t, err, process.ErrNilHeaderHandler)
 	})
 	t.Run("should fail with invalid hash", func(t *testing.T) {
@@ -400,9 +433,10 @@ func TestShardInfoCreateData_createShardInfoFromHeader(t *testing.T) {
 		)
 		require.Nil(t, err)
 
-		shardData, err := sic.createShardInfoFromHeader(&block.Header{}, []byte{})
+		shardDataProposalHandlers, shardDataHandlers, err := sic.createShardInfoFromHeader(&block.Header{}, []byte{})
 		require.NotNil(t, err)
-		require.Nil(t, shardData)
+		require.Nil(t, shardDataProposalHandlers)
+		require.Nil(t, shardDataHandlers)
 		require.ErrorIs(t, err, process.ErrInvalidHash)
 	})
 
@@ -421,9 +455,10 @@ func TestShardInfoCreateData_createShardInfoFromHeader(t *testing.T) {
 		)
 		require.Nil(t, err)
 
-		shardData, err := sic.createShardInfoFromHeader(&block.Header{Nonce: 1}, []byte("hash"))
+		shardDataProposalHandlers, shardDataHandlers, err := sic.createShardInfoFromHeader(&block.Header{Nonce: 1}, []byte("hash"))
 		require.NotNil(t, err)
-		require.Nil(t, shardData)
+		require.Nil(t, shardDataProposalHandlers)
+		require.Nil(t, shardDataHandlers)
 		require.ErrorIs(t, err, process.ErrMissingHeaderProof)
 	})
 	t.Run("should work with Legacy", func(t *testing.T) {
@@ -451,9 +486,10 @@ func TestShardInfoCreateData_createShardInfoFromHeader(t *testing.T) {
 		)
 		require.Nil(t, err)
 
-		shardData, err := sic.createShardInfoFromHeader(header, []byte("hash"))
+		shardDataProposalHandlers, shardDataHandlers, err := sic.createShardInfoFromHeader(header, []byte("hash"))
 		require.Nil(t, err)
-		require.NotNil(t, shardData)
+		require.NotNil(t, shardDataProposalHandlers)
+		require.NotNil(t, shardDataHandlers)
 	})
 	t.Run("should work with Legacy no proof for epoch < 1", func(t *testing.T) {
 		t.Parallel()
@@ -481,9 +517,10 @@ func TestShardInfoCreateData_createShardInfoFromHeader(t *testing.T) {
 		)
 		require.Nil(t, err)
 
-		shardData, err := sic.createShardInfoFromHeader(header, []byte("hash"))
+		shardDataProposalHandlers, shardDataHandlers, err := sic.createShardInfoFromHeader(header, []byte("hash"))
 		require.Nil(t, err)
-		require.NotNil(t, shardData)
+		require.NotNil(t, shardDataProposalHandlers)
+		require.NotNil(t, shardDataHandlers)
 	})
 	t.Run("should work with V3", func(t *testing.T) {
 		t.Parallel()
@@ -514,9 +551,10 @@ func TestShardInfoCreateData_createShardInfoFromHeader(t *testing.T) {
 		)
 		require.Nil(t, err)
 
-		shardData, err := sic.createShardInfoFromHeader(header, []byte("hash"))
+		shardDataProposalHandlers, shardDataHandlers, err := sic.createShardInfoFromHeader(header, []byte("hash"))
 		require.Nil(t, err)
-		require.NotNil(t, shardData)
+		require.NotNil(t, shardDataProposalHandlers)
+		require.NotNil(t, shardDataHandlers)
 	})
 	t.Run("should work with V3 no proof for nonce < 1", func(t *testing.T) {
 		t.Parallel()
@@ -548,9 +586,10 @@ func TestShardInfoCreateData_createShardInfoFromHeader(t *testing.T) {
 		)
 		require.Nil(t, err)
 
-		shardData, err := sic.createShardInfoFromHeader(header, []byte("hash"))
+		shardDataProposalHandlers, shardDataHandlers, err := sic.createShardInfoFromHeader(header, []byte("hash"))
 		require.Nil(t, err)
-		require.NotNil(t, shardData)
+		require.NotNil(t, shardDataProposalHandlers)
+		require.NotNil(t, shardDataHandlers)
 	})
 }
 
@@ -654,9 +693,10 @@ func TestShardInfoCreateData_createShardDataFromV3Header(t *testing.T) {
 			args.blockTracker,
 		)
 		require.Nil(t, err)
-		shardDataList, err := sic.createShardDataFromV3Header(nil)
+		shardDataProposalHandler, shardDataHandlers, err := sic.createShardDataFromV3Header(nil, nil)
 		require.NotNil(t, err)
-		require.Nil(t, shardDataList)
+		require.Nil(t, shardDataHandlers)
+		require.Nil(t, shardDataProposalHandler)
 		require.ErrorIs(t, err, process.ErrNilHeaderHandler)
 	})
 	t.Run("should return early if no execution results", func(t *testing.T) {
@@ -673,10 +713,11 @@ func TestShardInfoCreateData_createShardDataFromV3Header(t *testing.T) {
 			args.blockTracker,
 		)
 		require.Nil(t, err)
-		shardDataList, err := sic.createShardDataFromV3Header(header)
+		shardDataProposalHandler, shardDataHandlers, err := sic.createShardDataFromV3Header(header, []byte("headerHash"))
 		require.Nil(t, err)
-		require.NotNil(t, shardDataList)
-		require.Equal(t, 0, len(shardDataList))
+		require.NotNil(t, shardDataHandlers)
+		require.NotNil(t, shardDataProposalHandler)
+		require.Equal(t, 0, len(shardDataHandlers))
 	})
 	t.Run("should fail with createShardDataFromExecutionResult error", func(t *testing.T) {
 		t.Parallel()
@@ -702,9 +743,10 @@ func TestShardInfoCreateData_createShardDataFromV3Header(t *testing.T) {
 			args.blockTracker,
 		)
 		require.Nil(t, err)
-		shardDataList, err := sic.createShardDataFromV3Header(header)
+		shardDataProposalHandler, shardDataHandlers, err := sic.createShardDataFromV3Header(header, []byte("headerHash"))
 		require.NotNil(t, err)
-		require.Nil(t, shardDataList)
+		require.Nil(t, shardDataHandlers)
+		require.Nil(t, shardDataProposalHandler)
 		require.Equal(t, fmt.Errorf("GetHeaderByHash error"), err)
 	})
 
@@ -730,11 +772,13 @@ func TestShardInfoCreateData_createShardDataFromV3Header(t *testing.T) {
 			args.blockTracker,
 		)
 		require.Nil(t, err)
-		shardDataList, err := sic.createShardDataFromV3Header(header)
+		shardDataProposalHandler, shardDataHandlers, err := sic.createShardDataFromV3Header(header, []byte("headerHash"))
 		require.Nil(t, err)
-		require.NotNil(t, shardDataList)
-		require.Equal(t, 1, len(shardDataList))
-		require.Equal(t, expectedNonce, shardDataList[0].GetNonce())
+		require.NotNil(t, shardDataHandlers)
+		require.Equal(t, 1, len(shardDataHandlers))
+		require.Equal(t, expectedNonce, shardDataHandlers[0].GetNonce())
+		require.NotNil(t, shardDataProposalHandler)
+		require.Equal(t, int(header.GetNonce()), int(shardDataProposalHandler.GetNonce()))
 	})
 }
 
