@@ -123,17 +123,6 @@ func createValidHeaderV3ToTest() *block.HeaderV3 {
 	}
 }
 
-func createValidHeaderV3ToTestForGenesisRound() *block.HeaderV3 {
-	return &block.HeaderV3{
-		Nonce:           0,
-		Round:           0,
-		Epoch:           0,
-		RandSeed:        []byte("rand seed for genesis"),
-		LeaderSignature: []byte("leader signature for genesis"),
-		SoftwareVersion: []byte("v1.0.0"),
-	}
-}
-
 // -------- checkBlockHeaderArgument
 
 func TestCheckBlockHeaderArgument_NilArgumentShouldErr(t *testing.T) {
@@ -449,12 +438,6 @@ func TestCheckHeaderHandler_HeaderV3_CheckFieldsIntegrityErrors(t *testing.T) {
 		err := checkHeaderHandler(hv3, enableEpochsHandler)
 		assert.Error(t, err)
 		assert.ErrorIs(t, err, data.ErrNotNilValue)
-	})
-	t.Run("genesis round should work", func(t *testing.T) {
-		t.Parallel()
-		hv3 := createValidHeaderV3ToTestForGenesisRound()
-		err := checkHeaderHandler(hv3, enableEpochsHandler)
-		assert.NoError(t, err)
 	})
 	t.Run("nil last execution result", func(t *testing.T) {
 		t.Parallel()

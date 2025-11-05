@@ -164,8 +164,7 @@ func (inHdr *InterceptedHeader) integrity() error {
 		return err
 	}
 
-	if inHdr.hdr.IsHeaderV3() && len(inHdr.hdr.GetExecutionResultsHandlers()) > 0 {
-		log.Debug("integrity: checking execution results mini blocks headers")
+	if inHdr.hdr.IsHeaderV3() {
 		for i, result := range inHdr.hdr.GetExecutionResultsHandlers() {
 			executionResult, ok := result.(*block.ExecutionResult)
 			if !ok {

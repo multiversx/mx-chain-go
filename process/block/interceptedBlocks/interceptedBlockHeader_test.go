@@ -424,6 +424,8 @@ func TestInterceptedHeader_CheckValidityExecutionResultIsEpochCorrectMetaChain(t
 	t.Parallel()
 
 	t.Run("should work with epoch start round >= epoch finality attesting round", func(t *testing.T) {
+		t.Parallel()
+
 		arg := createDefaultShardArgumentWithV3Support()
 		arg.ShardCoordinator = &mock.CoordinatorStub{
 			NumberOfShardsCalled: func() uint32 {
@@ -449,6 +451,8 @@ func TestInterceptedHeader_CheckValidityExecutionResultIsEpochCorrectMetaChain(t
 	})
 
 	t.Run("should work with header epoch < epoch start trigger epoch", func(t *testing.T) {
+		t.Parallel()
+
 		arg := createDefaultShardArgumentWithV3Support()
 		arg.ShardCoordinator = &mock.CoordinatorStub{
 			NumberOfShardsCalled: func() uint32 {
@@ -477,6 +481,8 @@ func TestInterceptedHeader_CheckValidityExecutionResultIsEpochCorrectMetaChain(t
 	})
 
 	t.Run("should work with header round <= epoch start round", func(t *testing.T) {
+		t.Parallel()
+
 		arg := createDefaultShardArgumentWithV3Support()
 		arg.ShardCoordinator = &mock.CoordinatorStub{
 			NumberOfShardsCalled: func() uint32 {
@@ -504,6 +510,8 @@ func TestInterceptedHeader_CheckValidityExecutionResultIsEpochCorrectMetaChain(t
 		assert.Nil(t, err)
 	})
 	t.Run("should work with header round <= epoch finality attesting round + grace period", func(t *testing.T) {
+		t.Parallel()
+
 		arg := createDefaultShardArgumentWithV3Support()
 		arg.ShardCoordinator = &mock.CoordinatorStub{
 			NumberOfShardsCalled: func() uint32 {
@@ -534,6 +542,8 @@ func TestInterceptedHeader_CheckValidityExecutionResultIsEpochCorrectMetaChain(t
 	})
 
 	t.Run("should fail with grace period for epoch error", func(t *testing.T) {
+		t.Parallel()
+
 		arg := createDefaultShardArgumentWithV3Support()
 		arg.ShardCoordinator = &mock.CoordinatorStub{
 			NumberOfShardsCalled: func() uint32 {
@@ -563,6 +573,8 @@ func TestInterceptedHeader_CheckValidityExecutionResultIsEpochCorrectMetaChain(t
 		assert.Error(t, err)
 	})
 	t.Run("should fail with header round > epoch finality attesting round + grace period", func(t *testing.T) {
+		t.Parallel()
+
 		arg := createDefaultShardArgumentWithV3Support()
 		arg.ShardCoordinator = &mock.CoordinatorStub{
 			NumberOfShardsCalled: func() uint32 {

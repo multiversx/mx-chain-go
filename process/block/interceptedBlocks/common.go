@@ -4,7 +4,6 @@ import (
 	"github.com/multiversx/mx-chain-core-go/core"
 	"github.com/multiversx/mx-chain-core-go/core/check"
 	"github.com/multiversx/mx-chain-core-go/data"
-	"github.com/multiversx/mx-chain-core-go/data/block"
 
 	"github.com/multiversx/mx-chain-go/common"
 	"github.com/multiversx/mx-chain-go/process"
@@ -81,9 +80,7 @@ func checkHeaderHandler(
 	if !hdr.IsHeaderV3() && len(hdr.GetPubKeysBitmap()) == 0 && !equivalentMessagesEnabled {
 		return process.ErrNilPubKeysBitmap
 	}
-
-	isGenesis := hdr.GetNonce() == 0
-	if !isGenesis && len(hdr.GetPrevHash()) == 0 {
+	if len(hdr.GetPrevHash()) == 0 {
 		return process.ErrNilPreviousBlockHash
 	}
 	if len(hdr.GetSignature()) == 0 && !equivalentMessagesEnabled {
@@ -95,7 +92,7 @@ func checkHeaderHandler(
 	if len(hdr.GetRandSeed()) == 0 {
 		return process.ErrNilRandSeed
 	}
-	if !isGenesis && len(hdr.GetPrevRandSeed()) == 0 {
+	if len(hdr.GetPrevRandSeed()) == 0 {
 		return process.ErrNilPrevRandSeed
 	}
 
@@ -103,11 +100,7 @@ func checkHeaderHandler(
 	if err != nil {
 		return err
 	}
-	if hdr.IsHeaderV3() {
-		return hdr.(*block.HeaderV3).CheckFieldsIntegrity()
-	}
-
-	return nil
+	return hdr.CheckFieldsIntegrity()
 }
 
 func checkMetaShardInfo(
