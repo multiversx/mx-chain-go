@@ -6,6 +6,7 @@ import (
 	"github.com/multiversx/mx-chain-core-go/core"
 	"github.com/multiversx/mx-chain-core-go/core/check"
 	"github.com/multiversx/mx-chain-core-go/data"
+	"github.com/multiversx/mx-chain-go/common"
 )
 
 type baseBlockChain struct {
@@ -123,4 +124,13 @@ func (bbc *baseBlockChain) GetLastExecutedBlockInfo() (uint64, []byte, []byte) {
 	rootHash := bbc.lastExecutedBlockInfo.committedRootHash
 
 	return nonce, hash, rootHash
+}
+
+func (bbc *baseBlockChain) setCurrentHeaderMetrics(
+	header data.HeaderHandler,
+) {
+	bbc.appStatusHandler.SetUInt64Value(common.MetricNonce, header.GetNonce())
+	bbc.appStatusHandler.SetUInt64Value(common.MetricSynchronizedRound, header.GetRound())
+	bbc.appStatusHandler.SetUInt64Value(common.MetricBlockTimestamp, header.GetTimeStamp())
+	bbc.appStatusHandler.SetUInt64Value(common.MetricBlockTimestampMs, header.GetTimeStamp())
 }

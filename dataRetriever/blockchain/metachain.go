@@ -5,7 +5,6 @@ import (
 	"github.com/multiversx/mx-chain-core-go/core/check"
 	"github.com/multiversx/mx-chain-core-go/data"
 	"github.com/multiversx/mx-chain-core-go/data/block"
-	"github.com/multiversx/mx-chain-go/common"
 )
 
 var _ data.ChainHandler = (*metaChain)(nil)
@@ -52,29 +51,42 @@ func (mc *metaChain) SetGenesisHeader(header data.HeaderHandler) error {
 	return nil
 }
 
-// SetCurrentBlockHeaderAndRootHash sets current block header pointer and the root hash
-func (mc *metaChain) SetCurrentBlockHeaderAndRootHash(header data.HeaderHandler, rootHash []byte) error {
+// SetCurrentBlockHeader sets current block header pointer
+func (mc *metaChain) SetCurrentBlockHeader(header data.HeaderHandler) error {
+	return mc.SetCurrentBlockHeader(header)
+}
+
+func (mc *metaChain) setCurrentBlockHeader(header data.HeaderHandler) error {
 	if check.IfNil(header) {
 		mc.mut.Lock()
 		mc.currentBlockHeader = nil
-		mc.currentBlockRootHash = nil
 		mc.mut.Unlock()
 
 		return nil
 	}
 
-	currHead, ok := header.(*block.MetaBlock)
+	currHead, ok := header.(data.MetaHeaderHandler)
 	if !ok {
 		return ErrWrongTypeInSet
 	}
 
-	mc.appStatusHandler.SetUInt64Value(common.MetricNonce, currHead.Nonce)
-	mc.appStatusHandler.SetUInt64Value(common.MetricSynchronizedRound, currHead.Round)
-	mc.appStatusHandler.SetUInt64Value(common.MetricBlockTimestamp, currHead.GetTimeStamp())
-	mc.appStatusHandler.SetUInt64Value(common.MetricBlockTimestampMs, currHead.GetTimeStamp()) // do not handle transition for metric
-
 	mc.mut.Lock()
 	mc.currentBlockHeader = currHead.ShallowClone()
+	mc.mut.Unlock()
+
+	mc.setCurrentHeaderMetrics(header)
+
+	return nil
+}
+
+// SetCurrentBlockHeaderAndRootHash sets current block header pointer and the root hash
+func (mc *metaChain) SetCurrentBlockHeaderAndRootHash(header data.HeaderHandler, rootHash []byte) error {
+	err := mc.setCurrentBlockHeader(header)
+	if err != nil {
+		return err
+	}
+
+	mc.mut.Lock()
 	mc.currentBlockRootHash = make([]byte, len(rootHash))
 	copy(mc.currentBlockRootHash, rootHash)
 	mc.mut.Unlock()

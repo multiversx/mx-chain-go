@@ -94,6 +94,12 @@ func (mock *ChainHandlerMock) GetLastExecutedBlockInfo() (nonce uint64, blockHas
 	return mock.lastExecutedBlockNonce, mock.lastExecutedBlockHash, mock.lastExecutedBlockRootHash
 }
 
+// SetCurrentBlockHeader -
+func (mock *ChainHandlerMock) SetCurrentBlockHeader(header data.HeaderHandler) error {
+	mock.currentBlockHeader = header
+	return nil
+}
+
 // IsInterfaceNil -
 func (mock *ChainHandlerMock) IsInterfaceNil() bool {
 	return mock == nil

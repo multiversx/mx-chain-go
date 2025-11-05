@@ -279,12 +279,11 @@ func (st *storageBootstrapper) applyHeaderInfo(hdrInfo bootstrapStorage.Bootstra
 		return process.ErrInvalidChainID
 	}
 
-	rootHash := headerFromStorage.GetRootHash()
-	scheduledRootHash, err := st.scheduledTxsExecutionHandler.GetScheduledRootHashForHeader(headerHash)
-	if err == nil {
-		rootHash = scheduledRootHash
+	rootHash, err := st.getRootHashForBlock(headerFromStorage, headerHash)
+	if err != nil {
+		log.Debug("cannot get rootHash for header", "nonce", headerFromStorage.GetNonce(), "error", err.Error())
+		return err
 	}
-	log.Debug("storageBootstrapper.applyHeaderInfo", "rootHash", rootHash, "scheduledRootHash", scheduledRootHash)
 
 	err = st.blkExecutor.RevertStateToBlock(headerFromStorage, rootHash)
 	if err != nil {
@@ -294,17 +293,42 @@ func (st *storageBootstrapper) applyHeaderInfo(hdrInfo bootstrapStorage.Bootstra
 
 	err = st.applyBlock(headerHash, headerFromStorage, rootHash)
 	if err != nil {
-		log.Debug("cannot apply block for header ", "nonce", headerFromStorage.GetNonce(), "error", err.Error())
+		log.Debug("cannot apply block for header", "nonce", headerFromStorage.GetNonce(), "error", err.Error())
 		return err
 	}
 
 	err = st.getAndApplyProofForHeader(headerHash, headerFromStorage)
 	if err != nil {
-		log.Debug("cannot apply proof for header ", "nonce", headerFromStorage.GetNonce(), "error", err.Error())
+		log.Debug("cannot apply proof for header", "nonce", headerFromStorage.GetNonce(), "error", err.Error())
 		return err
 	}
 
 	return nil
+}
+
+func (st *storageBootstrapper) getRootHashForBlock(
+	header data.HeaderHandler,
+	headerHash []byte,
+) ([]byte, error) {
+	if header.IsHeaderV3() {
+		lastExecutionResult, err := common.ExtractBaseExecutionResultHandler(header.GetLastExecutionResultHandler())
+		if err != nil {
+			return nil, err
+		}
+		rootHash := lastExecutionResult.GetRootHash()
+		log.Debug("storageBootstrapper.getRootHashForBlock", "rootHash", rootHash)
+
+		return lastExecutionResult.GetRootHash(), nil
+	}
+
+	rootHash := header.GetRootHash()
+	scheduledRootHash, err := st.scheduledTxsExecutionHandler.GetScheduledRootHashForHeader(headerHash)
+	if err == nil {
+		rootHash = scheduledRootHash
+	}
+	log.Debug("storageBootstrapper.getRootHashForBlock", "rootHash", rootHash, "scheduledRootHash", scheduledRootHash)
+
+	return rootHash, nil
 }
 
 func (st *storageBootstrapper) getBootInfos(hdrInfo bootstrapStorage.BootstrapData) ([]bootstrapStorage.BootstrapData, error) {
@@ -457,12 +481,10 @@ func (st *storageBootstrapper) cleanupStorage(headerInfo bootstrapStorage.Bootst
 }
 
 func (st *storageBootstrapper) applyBlock(headerHash []byte, header data.HeaderHandler, rootHash []byte) error {
-	err := st.blkc.SetCurrentBlockHeaderAndRootHash(header, rootHash)
+	err := st.setCurrentBlockInfo(header, headerHash, rootHash)
 	if err != nil {
 		return err
 	}
-
-	st.blkc.SetCurrentBlockHeaderHash(headerHash)
 
 	if !st.enableEpochsHandler.IsFlagEnabledInEpoch(common.AndromedaFlag, header.GetEpoch()) {
 		return nil
@@ -477,6 +499,45 @@ func (st *storageBootstrapper) applyBlock(headerHash []byte, header data.HeaderH
 	}
 
 	return nil
+}
+
+func (st *storageBootstrapper) setCurrentBlockInfo(
+	header data.HeaderHandler,
+	headerHash []byte,
+	rootHash []byte,
+) error {
+	if header.IsHeaderV3() {
+		return st.setCurrentBlockInfoV3(header, headerHash)
+	}
+
+	err := st.blkc.SetCurrentBlockHeaderAndRootHash(header, rootHash)
+	if err != nil {
+		return err
+	}
+
+	st.blkc.SetCurrentBlockHeaderHash(headerHash)
+
+	return nil
+}
+
+func (st *storageBootstrapper) setCurrentBlockInfoV3(
+	header data.HeaderHandler,
+	headerHash []byte,
+) error {
+	lastExecutionResult, err := common.ExtractBaseExecutionResultHandler(header.GetLastExecutionResultHandler())
+	if err != nil {
+		return err
+	}
+
+	st.blkc.SetLastExecutedBlockInfo(
+		lastExecutionResult.GetHeaderNonce(),
+		lastExecutionResult.GetHeaderHash(),
+		lastExecutionResult.GetRootHash(),
+	)
+
+	st.blkc.SetCurrentBlockHeaderHash(headerHash)
+
+	return st.blkc.SetCurrentBlockHeader(header)
 }
 
 func (st *storageBootstrapper) getAndApplyProofForHeader(headerHash []byte, header data.HeaderHandler) error {
