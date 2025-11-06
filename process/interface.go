@@ -519,8 +519,7 @@ type VirtualMachinesContainerFactory interface {
 // EpochStartTriggerHandler defines that actions which are needed by processor for start of epoch
 type EpochStartTriggerHandler interface {
 	Update(round uint64, nonce uint64)
-	UpdateRound(round uint64)
-	SetEpochChange()
+	SetEpochChange(round uint64)
 	ShouldProposeEpochChange(round uint64, nonce uint64) bool
 	IsEpochStart() bool
 	Epoch() uint32
@@ -1539,8 +1538,8 @@ type GasComputation interface {
 		txHashes [][]byte,
 		transactions []data.TransactionHandler,
 	) (addedTxHashes [][]byte, pendingMiniBlocksAdded []data.MiniBlockHeaderHandler, err error)
-	RevertIncomingMiniBlocks(miniBlockHashes [][]byte)
 	GetBandwidthForTransactions() uint64
+	RevertIncomingMiniBlocks(miniBlockHashes [][]byte)
 	TotalGasConsumed() uint64
 	DecreaseIncomingLimit()
 	DecreaseOutgoingLimit()
@@ -1585,5 +1584,12 @@ type BlockDataRequester interface {
 // InclusionEstimator decides how many execution results can be included in the next block
 type InclusionEstimator interface {
 	Decide(lastNotarised *estimator.LastExecutionResultForInclusion, pending []data.BaseExecutionResultHandler, currentHeaderRound uint64) (allowed int)
+	IsInterfaceNil() bool
+}
+
+// ShardInfoCreator defines the functionality to create shard info
+type ShardInfoCreator interface {
+	CreateShardInfoV3(metaHeader data.MetaHeaderHandler, shardHeaders []data.HeaderHandler, shardHeaderHashes [][]byte) ([]data.ShardDataProposalHandler, []data.ShardDataHandler, error)
+	CreateShardInfoFromLegacyMeta(metaHeader data.MetaHeaderHandler, shardHeaders []data.ShardHeaderHandler, shardHeaderHashes [][]byte) ([]data.ShardDataHandler, error)
 	IsInterfaceNil() bool
 }

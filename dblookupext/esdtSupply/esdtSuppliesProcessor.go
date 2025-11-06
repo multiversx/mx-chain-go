@@ -10,9 +10,10 @@ import (
 	"github.com/multiversx/mx-chain-core-go/data"
 	"github.com/multiversx/mx-chain-core-go/data/block"
 	"github.com/multiversx/mx-chain-core-go/marshal"
+	logger "github.com/multiversx/mx-chain-logger-go"
+
 	"github.com/multiversx/mx-chain-go/common"
 	"github.com/multiversx/mx-chain-go/storage"
-	logger "github.com/multiversx/mx-chain-logger-go"
 )
 
 var log = logger.GetOrCreate("dblookupext/esdtSupply")
@@ -89,7 +90,7 @@ func (sp *suppliesProcessor) RevertChanges(header data.HeaderHandler, body data.
 
 func (sp *suppliesProcessor) revertChangesBasedOnExecutionResults(header data.HeaderHandler) error {
 	for _, executionResult := range header.GetExecutionResultsHandlers() {
-		mbHeaders, err := common.GetMiniBlocksHeaderHandlersFromExecResult(executionResult, header.GetShardID())
+		mbHeaders, err := common.GetMiniBlocksHeaderHandlersFromExecResult(executionResult)
 		if err != nil {
 			return err
 		}

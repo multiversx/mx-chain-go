@@ -280,8 +280,8 @@ func (mp *metaProcessor) IsHdrMissing(hdrHash []byte) bool {
 }
 
 // CreateShardInfo -
-func (mp *metaProcessor) CreateShardInfo() ([]data.ShardDataHandler, error) {
-	return mp.createShardInfo()
+func (mp *metaProcessor) CreateShardInfo(metaHeader data.MetaHeaderHandler) ([]data.ShardDataHandler, error) {
+	return mp.createShardInfo(metaHeader)
 }
 
 // SaveMetricCrossCheckBlockHeight -
@@ -843,4 +843,47 @@ func ConstructPartialShardBlockProcessorForTest(subcomponents map[string]interfa
 		return nil, err
 	}
 	return sp, err
+}
+
+// SetEpochStartData -
+func (mp *metaProcessor) SetEpochStartData(epochStartData *block.EpochStart) {
+	mp.epochStartData = epochStartData
+}
+
+// GetTxCountExecutionResults -
+func GetTxCountExecutionResults(metaHeader data.MetaHeaderHandler) (uint32, error) {
+	return getTxCountExecutionResults(metaHeader)
+}
+
+// HasStartOfEpochExecutionResults -
+func (mp *metaProcessor) HasStartOfEpochExecutionResults(metaHeader data.MetaHeaderHandler) (bool, error) {
+	return mp.hasStartOfEpochExecutionResults(metaHeader)
+}
+
+// HasRewardOrPeerMiniBlocksFromMeta -
+func HasRewardOrPeerMiniBlocksFromMeta(miniBlockHeaders []data.MiniBlockHeaderHandler) bool {
+	return hasRewardOrPeerMiniBlocksFromMeta(miniBlockHeaders)
+}
+
+// CreateProposalMiniBlocks -
+func (mp *metaProcessor) CreateProposalMiniBlocks(haveTime func() bool) error {
+	return mp.createProposalMiniBlocks(haveTime)
+}
+
+// SelectIncomingMiniBlocksForProposal -
+func (mp *metaProcessor) SelectIncomingMiniBlocksForProposal(
+	haveTime func() bool,
+) error {
+	return mp.selectIncomingMiniBlocksForProposal(haveTime)
+}
+
+// SelectIncomingMiniBlocks -
+func (mp *metaProcessor) SelectIncomingMiniBlocks(
+	lastShardHdr map[uint32]ShardHeaderInfo,
+	orderedHdrs []data.HeaderHandler,
+	orderedHdrsHashes [][]byte,
+	maxNumHeadersFromSameShard uint32,
+	haveTime func() bool,
+) error {
+	return mp.selectIncomingMiniBlocks(lastShardHdr, orderedHdrs, orderedHdrsHashes, maxNumHeadersFromSameShard, haveTime)
 }
