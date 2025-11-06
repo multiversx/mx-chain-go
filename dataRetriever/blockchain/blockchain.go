@@ -53,15 +53,15 @@ func (bc *blockChain) SetGenesisHeader(genesisBlock data.HeaderHandler) error {
 
 // SetCurrentBlockHeader sets current block header pointer
 func (bc *blockChain) SetCurrentBlockHeader(header data.HeaderHandler) error {
-	return bc.setCurrentBlockHeader(header)
+	bc.mut.Lock()
+	defer bc.mut.Unlock()
+
+	return bc.setCurrentBlockHeaderUnprotected(header)
 }
 
-func (bc *blockChain) setCurrentBlockHeader(header data.HeaderHandler) error {
+func (bc *blockChain) setCurrentBlockHeaderUnprotected(header data.HeaderHandler) error {
 	if check.IfNil(header) {
-		bc.mut.Lock()
 		bc.currentBlockHeader = nil
-		bc.mut.Unlock()
-
 		return nil
 	}
 
@@ -70,9 +70,7 @@ func (bc *blockChain) setCurrentBlockHeader(header data.HeaderHandler) error {
 		return data.ErrInvalidHeaderType
 	}
 
-	bc.mut.Lock()
 	bc.currentBlockHeader = h.ShallowClone()
-	bc.mut.Unlock()
 
 	bc.setCurrentHeaderMetrics(header)
 
@@ -81,15 +79,16 @@ func (bc *blockChain) setCurrentBlockHeader(header data.HeaderHandler) error {
 
 // SetCurrentBlockHeaderAndRootHash sets current block header pointer and the root hash
 func (bc *blockChain) SetCurrentBlockHeaderAndRootHash(header data.HeaderHandler, rootHash []byte) error {
-	err := bc.setCurrentBlockHeader(header)
+	bc.mut.Lock()
+	defer bc.mut.Unlock()
+
+	err := bc.setCurrentBlockHeaderUnprotected(header)
 	if err != nil {
 		return err
 	}
 
-	bc.mut.Lock()
 	bc.currentBlockRootHash = make([]byte, len(rootHash))
 	copy(bc.currentBlockRootHash, rootHash)
-	bc.mut.Unlock()
 
 	return nil
 }

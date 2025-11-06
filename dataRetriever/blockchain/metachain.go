@@ -53,15 +53,15 @@ func (mc *metaChain) SetGenesisHeader(header data.HeaderHandler) error {
 
 // SetCurrentBlockHeader sets current block header pointer
 func (mc *metaChain) SetCurrentBlockHeader(header data.HeaderHandler) error {
-	return mc.setCurrentBlockHeader(header)
+	mc.mut.Lock()
+	defer mc.mut.Unlock()
+
+	return mc.setCurrentBlockHeaderUnprotected(header)
 }
 
-func (mc *metaChain) setCurrentBlockHeader(header data.HeaderHandler) error {
+func (mc *metaChain) setCurrentBlockHeaderUnprotected(header data.HeaderHandler) error {
 	if check.IfNil(header) {
-		mc.mut.Lock()
 		mc.currentBlockHeader = nil
-		mc.mut.Unlock()
-
 		return nil
 	}
 
@@ -70,9 +70,7 @@ func (mc *metaChain) setCurrentBlockHeader(header data.HeaderHandler) error {
 		return ErrWrongTypeInSet
 	}
 
-	mc.mut.Lock()
 	mc.currentBlockHeader = currHead.ShallowClone()
-	mc.mut.Unlock()
 
 	mc.setCurrentHeaderMetrics(header)
 
@@ -81,15 +79,16 @@ func (mc *metaChain) setCurrentBlockHeader(header data.HeaderHandler) error {
 
 // SetCurrentBlockHeaderAndRootHash sets current block header pointer and the root hash
 func (mc *metaChain) SetCurrentBlockHeaderAndRootHash(header data.HeaderHandler, rootHash []byte) error {
-	err := mc.setCurrentBlockHeader(header)
+	mc.mut.Lock()
+	defer mc.mut.Unlock()
+
+	err := mc.setCurrentBlockHeaderUnprotected(header)
 	if err != nil {
 		return err
 	}
 
-	mc.mut.Lock()
 	mc.currentBlockRootHash = make([]byte, len(rootHash))
 	copy(mc.currentBlockRootHash, rootHash)
-	mc.mut.Unlock()
 
 	return nil
 }

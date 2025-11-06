@@ -1,6 +1,7 @@
 package blockchain
 
 import (
+	"sync"
 	"testing"
 
 	"github.com/multiversx/mx-chain-core-go/data/block"
@@ -133,4 +134,57 @@ func TestBaseBlockchain_SetAndGetLastExecutedBlockHeader(t *testing.T) {
 
 		require.Equal(t, nonce, retHeader.GetNonce())
 	})
+}
+
+func TestBaseBlockchain_Concurrency(t *testing.T) {
+	t.Parallel()
+
+	bc := &baseBlockChain{
+		appStatusHandler:      &mock.AppStatusHandlerStub{},
+		finalBlockInfo:        &blockInfo{},
+		lastExecutedBlockInfo: &blockInfo{},
+	}
+
+	numCalls := 100
+
+	header := &block.HeaderV3{}
+	headerHash := []byte("headerHash")
+	rootHash := []byte("rootHash")
+
+	var wg sync.WaitGroup
+	wg.Add(numCalls)
+
+	for i := range numCalls {
+		go func(i int) {
+			switch i % 11 {
+			case 0:
+				_ = bc.GetCurrentBlockHeaderHash()
+			case 1:
+				_ = bc.GetGenesisHeader()
+			case 2:
+				_ = bc.GetGenesisHeaderHash()
+			case 3:
+				_ = bc.GetLastExecutedBlockHeader()
+			case 4:
+				_, _, _ = bc.GetFinalBlockInfo()
+			case 5:
+				_, _, _ = bc.GetLastExecutedBlockInfo()
+			case 6:
+				_ = bc.SetLastExecutedBlockHeader(header)
+			case 7:
+				bc.SetCurrentBlockHeaderHash(headerHash)
+			case 8:
+				bc.SetFinalBlockInfo(0, headerHash, rootHash)
+			case 9:
+				bc.SetGenesisHeaderHash(headerHash)
+			case 10:
+				bc.SetLastExecutedBlockInfo(0, headerHash, rootHash)
+			default:
+				require.Fail(t, "should have not been called")
+			}
+			wg.Done()
+		}(i)
+	}
+
+	wg.Wait()
 }

@@ -2,12 +2,14 @@ package blockchain
 
 import (
 	"fmt"
+	"sync"
 	"testing"
 
 	"github.com/multiversx/mx-chain-core-go/core/check"
 	"github.com/multiversx/mx-chain-core-go/data/block"
 	"github.com/multiversx/mx-chain-core-go/data/mock"
 	"github.com/stretchr/testify/assert"
+	"github.com/stretchr/testify/require"
 )
 
 func TestNewMetaChain_ShouldWork(t *testing.T) {
@@ -136,4 +138,38 @@ func TestMetaChain_SetCurrentBlockHeader(t *testing.T) {
 
 		assert.Equal(t, hdrHash, bc.GetCurrentBlockHeaderHash())
 	})
+}
+
+func TestMetaChain_Concurrency(t *testing.T) {
+	t.Parallel()
+
+	bc, _ := NewMetaChain(&mock.AppStatusHandlerStub{})
+
+	numCalls := 100
+
+	header := &block.MetaBlockV3{}
+	rootHash := []byte("rootHash")
+
+	var wg sync.WaitGroup
+	wg.Add(numCalls)
+
+	for i := range numCalls {
+		go func(i int) {
+			switch i % 4 {
+			case 0:
+				_ = bc.GetCurrentBlockRootHash()
+			case 1:
+				_ = bc.SetCurrentBlockHeader(header)
+			case 2:
+				_ = bc.SetCurrentBlockHeaderAndRootHash(header, rootHash)
+			case 3:
+				_ = bc.SetGenesisHeader(header)
+			default:
+				require.Fail(t, "should have not been called")
+			}
+			wg.Done()
+		}(i)
+	}
+
+	wg.Wait()
 }
