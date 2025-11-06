@@ -279,7 +279,7 @@ func (mp *metaProcessor) selectIncomingMiniBlocksForProposal(
 		"num shard headers", len(orderedHdrs),
 	)
 
-	lastShardHdr, err := mp.getLastCrossNotarizedShardHdrs()
+	lastShardHdr, err := mp.getLastCrossNotarizedShardHeaders()
 	if err != nil {
 		return err
 	}
@@ -399,6 +399,9 @@ func (mp *metaProcessor) selectIncomingMiniBlocks(
 		hdrsAddedForShard[currHdr.GetShardID()]++
 		hdrsAdded++
 	}
+
+	// TODO: wold need to request in advance new shard headers and proofs if last added headers are old (on an old epoch)
+	// maybe move this logic in processing a block, so it is common for all nodes in shard.
 
 	return nil
 }

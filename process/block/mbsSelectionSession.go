@@ -131,12 +131,12 @@ func (s *miniBlocksSelectionSession) GetMiniBlockHashes() [][]byte {
 
 // AddReferencedHeader adds a header and its hash to the session
 func (s *miniBlocksSelectionSession) AddReferencedHeader(header data.HeaderHandler, headerHash []byte) {
-	s.mut.Lock()
-	defer s.mut.Unlock()
-
 	if check.IfNil(header) || len(headerHash) == 0 {
 		return
 	}
+
+	s.mut.Lock()
+	defer s.mut.Unlock()
 
 	_, ok := s.referenceHeaderHashesUnique[string(headerHash)]
 	if !ok {
