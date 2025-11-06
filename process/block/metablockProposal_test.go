@@ -1111,7 +1111,7 @@ func TestMetaProcessor_selectIncomingMiniBlocksForProposal(t *testing.T) {
 		err = mp.SelectIncomingMiniBlocksForProposal(haveTimeTrue)
 		require.Equal(t, expectedErr, err)
 	})
-	t.Run("error from getLastCrossNotarizedShardHdrs", func(t *testing.T) {
+	t.Run("error from getLastCrossNotarizedShardHeaders", func(t *testing.T) {
 		t.Parallel()
 
 		coreComponents, dataComponents, bootstrapComponents, statusComponents := createMockComponentHolders()

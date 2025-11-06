@@ -243,7 +243,6 @@ func (mp *metaProcessor) VerifyBlockProposal(
 
 	mp.missingDataResolver.Reset()
 	mp.missingDataResolver.RequestBlockTransactions(body)
-	// the epoch start meta block and its proof is also requested here if missing
 	err = mp.missingDataResolver.RequestMissingShardHeaders(header)
 	if err != nil {
 		return err
@@ -386,7 +385,7 @@ func (mp *metaProcessor) selectIncomingMiniBlocksForProposal(
 		"num shard headers", len(orderedHdrs),
 	)
 
-	lastShardHdr, err := mp.getLastCrossNotarizedShardHdrs()
+	lastShardHdr, err := mp.getLastCrossNotarizedShardHeaders()
 	if err != nil {
 		return err
 	}
@@ -507,6 +506,9 @@ func (mp *metaProcessor) selectIncomingMiniBlocks(
 		hdrsAdded++
 	}
 
+	// TODO: wold need to request in advance new shard headers and proofs if last added headers are old (on an old epoch)
+	// maybe move this logic in processing a block, so it is common for all nodes in shard.
+
 	return nil
 }
 
@@ -608,7 +610,7 @@ func (mp *metaProcessor) hasExecutionResultsForProposedEpochChange(headerHandler
 func (mp *metaProcessor) checkShardHeadersValidityAndFinalityProposal(
 	metaHeaderHandler data.MetaHeaderHandler,
 ) error {
-	lastCrossNotarizedHeader, err := mp.getLastCrossNotarizedShardHdrs()
+	lastCrossNotarizedHeader, err := mp.getLastCrossNotarizedShardHeaders()
 	if err != nil {
 		return err
 	}

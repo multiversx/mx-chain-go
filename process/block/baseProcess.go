@@ -2802,16 +2802,10 @@ func (bp *baseProcessor) createMbsCrossShardDstMe(
 			"hash", currentBlockHash,
 			"num mbs added", len(currMiniBlocksAdded),
 			"num txs added", currNumTxsAdded)
-
-		return &CrossShardIncomingMbsCreationResult{
-			HeaderFinished:    false,
-			PendingMiniBlocks: pendingMiniBlocks,
-			AddedMiniBlocks:   currMiniBlocksAdded,
-		}, nil
 	}
 
 	return &CrossShardIncomingMbsCreationResult{
-		HeaderFinished:    true,
+		HeaderFinished:    hdrFinished,
 		PendingMiniBlocks: pendingMiniBlocks,
 		AddedMiniBlocks:   currMiniBlocksAdded,
 	}, nil

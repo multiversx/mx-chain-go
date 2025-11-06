@@ -30,6 +30,9 @@ func (sp *shardProcessor) CreateNewHeaderProposal(round uint64, nonce uint64) (d
 	if !ok {
 		return nil, process.ErrWrongTypeAssertion
 	}
+	if !shardHeader.IsHeaderV3() {
+		return nil, process.ErrInvalidHeader
+	}
 
 	err := shardHeader.SetRound(round)
 	if err != nil {
@@ -426,6 +429,8 @@ func (sp *shardProcessor) checkContextBeforeExecution(header data.HeaderHandler)
 		return err
 	}
 
+	// TODO: the GetLastExecutedBlockInfo should return also the LastCommittedBlockInfo (in case the committed block was V2)
+	// this is done on another PR
 	lastExecutedNonce, lastExecutedHash, lastExecutedRootHash := sp.blockChain.GetLastExecutedBlockInfo()
 	if !bytes.Equal(header.GetPrevHash(), lastExecutedHash) {
 		return process.ErrBlockHashDoesNotMatch
