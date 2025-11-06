@@ -57,6 +57,7 @@ type baseBlockTrack struct {
 	epochChangeGracePeriodHandler         common.EpochChangeGracePeriodHandler
 	processConfigsHandler                 common.ProcessConfigsHandler
 	ownShardTracker                       OwnShardTrackerHandler
+	requestHandler                        process.RequestHandler
 
 	mutHeaders                  sync.RWMutex
 	headers                     map[uint32]map[uint64][]*HeaderInfo
@@ -135,6 +136,7 @@ func createBaseBlockTrack(arguments ArgBaseTracker) (*baseBlockTrack, error) {
 		epochChangeGracePeriodHandler:         arguments.EpochChangeGracePeriodHandler,
 		processConfigsHandler:                 arguments.ProcessConfigsHandler,
 		ownShardTracker:                       tracker,
+		requestHandler:                        arguments.RequestHandler,
 	}
 
 	return bbt, nil
@@ -148,7 +150,8 @@ func (bbt *baseBlockTrack) receivedProof(proof data.HeaderProofHandler) {
 	headerHash := proof.GetHeaderHash()
 	header, err := bbt.getHeaderForProof(proof)
 	if err != nil {
-		log.Debug("baseBlockTrack.receivedProof with missing header", "headerHash", headerHash)
+		log.Debug("baseBlockTrack.receivedProof with missing header, requesting it", "headerHash", headerHash)
+		bbt.requestHeaderForProof(proof)
 		return
 	}
 	log.Debug("received proof from network in block tracker",
@@ -160,6 +163,15 @@ func (bbt *baseBlockTrack) receivedProof(proof data.HeaderProofHandler) {
 	)
 
 	bbt.receivedHeader(header, headerHash)
+}
+
+func (bbt *baseBlockTrack) requestHeaderForProof(proof data.HeaderProofHandler) {
+	if proof.GetHeaderShardId() == common.MetachainShardId {
+		bbt.requestHandler.RequestMetaHeader(proof.GetHeaderHash())
+		return
+	}
+
+	bbt.requestHandler.RequestShardHeader(proof.GetHeaderShardId(), proof.GetHeaderHash())
 }
 
 func (bbt *baseBlockTrack) getHeaderForProof(proof data.HeaderProofHandler) (data.HeaderHandler, error) {
