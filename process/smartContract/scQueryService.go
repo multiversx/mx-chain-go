@@ -278,12 +278,7 @@ func (service *SCQueryService) setCurrentBlockInfo(
 		return service.setCurrentBlockInfoV3(header)
 	}
 
-	err := service.apiBlockChain.SetCurrentBlockHeaderAndRootHash(header, rootHash)
-	if err != nil {
-		return err
-	}
-
-	return nil
+	return service.apiBlockChain.SetCurrentBlockHeaderAndRootHash(header, rootHash)
 }
 
 func (service *SCQueryService) getCurrentBlockRootHash(
