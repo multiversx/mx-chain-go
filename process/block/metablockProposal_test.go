@@ -1,17 +1,19 @@
 package block_test
 
 import (
+	"bytes"
 	"testing"
 
 	"github.com/multiversx/mx-chain-core-go/core"
 	"github.com/multiversx/mx-chain-core-go/data"
 	"github.com/multiversx/mx-chain-core-go/data/block"
+	blproc "github.com/multiversx/mx-chain-go/process/block"
+	"github.com/multiversx/mx-chain-go/testscommon/pool"
 	"github.com/stretchr/testify/require"
 
 	"github.com/multiversx/mx-chain-go/common"
 	retriever "github.com/multiversx/mx-chain-go/dataRetriever"
 	"github.com/multiversx/mx-chain-go/process"
-	blproc "github.com/multiversx/mx-chain-go/process/block"
 	"github.com/multiversx/mx-chain-go/process/block/processedMb"
 	"github.com/multiversx/mx-chain-go/process/mock"
 	"github.com/multiversx/mx-chain-go/testscommon"
@@ -1542,6 +1544,536 @@ func TestMetaProcessor_selectIncomingMiniBlocks_GapsAndDuplicates(t *testing.T) 
 		// last shard header updated to second hash and used
 		require.True(t, lastShardHeaders[0].UsedInBlock)
 		require.Equal(t, []byte("h2"), lastShardHeaders[0].Hash)
+	})
+}
+
+func TestMetaProcessor_hasExecutionResultsForProposedEpochChange(t *testing.T) {
+	t.Parallel()
+
+	t.Run("should error because of GetHeaderByHash", func(t *testing.T) {
+		t.Parallel()
+
+		metaHeader := &block.MetaBlockV3{
+			ExecutionResults: []*block.MetaExecutionResult{
+				{
+					ExecutionResult: &block.BaseMetaExecutionResult{
+						BaseExecutionResult: &block.BaseExecutionResult{
+							HeaderHash: []byte("headerHash1"),
+						},
+					},
+				},
+			},
+		}
+
+		headersPoolMock := &pool.HeadersPoolStub{
+			GetHeaderByHashCalled: func(hash []byte) (data.HeaderHandler, error) {
+				return nil, expectedErr
+			},
+		}
+		dataPoolMock := &dataRetrieverMock.PoolsHolderMock{}
+		dataPoolMock.SetHeadersPool(headersPoolMock)
+
+		mp, err := blproc.ConstructPartialMetaBlockProcessorForTest(map[string]interface{}{
+			"dataPool": dataPoolMock,
+		})
+		require.Nil(t, err)
+
+		_, err = mp.HasExecutionResultsForProposedEpochChange(metaHeader)
+		require.Equal(t, expectedErr, err)
+	})
+
+	t.Run("should error ErrWrongTypeAssertion", func(t *testing.T) {
+		t.Parallel()
+
+		metaHeader := &block.MetaBlockV3{
+			ExecutionResults: []*block.MetaExecutionResult{
+				{
+					ExecutionResult: &block.BaseMetaExecutionResult{
+						BaseExecutionResult: &block.BaseExecutionResult{
+							HeaderHash: []byte("headerHash1"),
+						},
+					},
+				},
+			},
+		}
+
+		headersPoolMock := &pool.HeadersPoolStub{
+			GetHeaderByHashCalled: func(hash []byte) (data.HeaderHandler, error) {
+				return nil, nil
+			},
+		}
+		dataPoolMock := &dataRetrieverMock.PoolsHolderMock{}
+		dataPoolMock.SetHeadersPool(headersPoolMock)
+
+		mp, err := blproc.ConstructPartialMetaBlockProcessorForTest(map[string]interface{}{
+			"dataPool": dataPoolMock,
+		})
+		require.Nil(t, err)
+
+		_, err = mp.HasExecutionResultsForProposedEpochChange(metaHeader)
+		require.Equal(t, process.ErrWrongTypeAssertion, err)
+	})
+
+	t.Run("should return ErrStartOfEpochExecutionResultsDoesNotExist", func(t *testing.T) {
+		t.Parallel()
+
+		metaHeader := &block.MetaBlockV3{
+			ExecutionResults: []*block.MetaExecutionResult{
+				{
+					ExecutionResult: &block.BaseMetaExecutionResult{
+						BaseExecutionResult: &block.BaseExecutionResult{
+							HeaderHash: []byte("headerHash0"),
+						},
+					},
+				},
+				{
+					ExecutionResult: &block.BaseMetaExecutionResult{
+						BaseExecutionResult: &block.BaseExecutionResult{
+							HeaderHash: []byte("headerHash1"),
+						},
+					},
+				},
+			},
+		}
+
+		headersPoolMock := &pool.HeadersPoolStub{
+			GetHeaderByHashCalled: func(hash []byte) (data.HeaderHandler, error) {
+				if bytes.Equal(hash, []byte("headerHash1")) {
+					return &block.MetaBlockV3{
+						EpochChangeProposed: true,
+					}, nil
+				}
+				return &block.MetaBlockV3{
+					EpochChangeProposed: false,
+				}, nil
+			},
+		}
+		dataPoolMock := &dataRetrieverMock.PoolsHolderMock{}
+		dataPoolMock.SetHeadersPool(headersPoolMock)
+
+		mp, err := blproc.ConstructPartialMetaBlockProcessorForTest(map[string]interface{}{
+			"dataPool": dataPoolMock,
+		})
+		require.Nil(t, err)
+
+		_, err = mp.HasExecutionResultsForProposedEpochChange(metaHeader)
+		require.Equal(t, process.ErrStartOfEpochExecutionResultsDoesNotExist, err)
+	})
+
+	t.Run("should find header with epoch change proposal", func(t *testing.T) {
+		t.Parallel()
+
+		metaHeader := &block.MetaBlockV3{
+			ExecutionResults: []*block.MetaExecutionResult{
+				{
+					ExecutionResult: &block.BaseMetaExecutionResult{
+						BaseExecutionResult: &block.BaseExecutionResult{
+							HeaderHash: []byte("headerHash0"),
+						},
+					},
+				},
+				{
+					ExecutionResult: &block.BaseMetaExecutionResult{
+						BaseExecutionResult: &block.BaseExecutionResult{
+							HeaderHash: []byte("headerHash1"),
+						},
+					},
+					MiniBlockHeaders: []block.MiniBlockHeader{
+						{
+							SenderShardID: common.MetachainShardId,
+							Type:          block.RewardsBlock,
+						},
+					},
+				},
+			},
+		}
+
+		headersPoolMock := &pool.HeadersPoolStub{
+			GetHeaderByHashCalled: func(hash []byte) (data.HeaderHandler, error) {
+				if bytes.Equal(hash, []byte("headerHash1")) {
+					return &block.MetaBlockV3{
+						EpochChangeProposed: true,
+					}, nil
+				}
+				return &block.MetaBlockV3{
+					EpochChangeProposed: false,
+				}, nil
+			},
+		}
+		dataPoolMock := &dataRetrieverMock.PoolsHolderMock{}
+		dataPoolMock.SetHeadersPool(headersPoolMock)
+
+		mp, err := blproc.ConstructPartialMetaBlockProcessorForTest(map[string]interface{}{
+			"dataPool": dataPoolMock,
+		})
+		require.Nil(t, err)
+
+		proposedChange, err := mp.HasExecutionResultsForProposedEpochChange(metaHeader)
+		require.Nil(t, err)
+		require.True(t, proposedChange)
+	})
+}
+
+func TestMetaProcessor_checkEpochCorrectnessV3(t *testing.T) {
+	t.Parallel()
+
+	t.Run("should return nil current header", func(t *testing.T) {
+		t.Parallel()
+
+		metaHeader := &block.MetaBlockV3{
+			ExecutionResults: []*block.MetaExecutionResult{
+				{
+					ExecutionResult: &block.BaseMetaExecutionResult{
+						BaseExecutionResult: &block.BaseExecutionResult{
+							HeaderHash: []byte("headerHash1"),
+						},
+					},
+				},
+			},
+		}
+
+		mp, err := blproc.ConstructPartialMetaBlockProcessorForTest(map[string]interface{}{
+			"blockChain": &testscommon.ChainHandlerStub{
+				GetCurrentBlockHeaderCalled: func() data.HeaderHandler {
+					return nil
+				},
+			},
+		})
+		require.Nil(t, err)
+
+		err = mp.CheckEpochCorrectnessV3(metaHeader)
+		require.Nil(t, err)
+	})
+
+	t.Run("should error ErrNilHeaderHandler", func(t *testing.T) {
+		t.Parallel()
+
+		mp, err := blproc.ConstructPartialMetaBlockProcessorForTest(map[string]interface{}{
+			"blockChain": &testscommon.ChainHandlerStub{
+				GetCurrentBlockHeaderCalled: func() data.HeaderHandler {
+					return &block.MetaBlockV3{}
+				},
+			},
+		})
+		require.Nil(t, err)
+
+		err = mp.CheckEpochCorrectnessV3(nil)
+		require.Equal(t, process.ErrNilHeaderHandler, err)
+	})
+
+	t.Run("should return error ErrEpochDoesNotMatch because of incomplete data", func(t *testing.T) {
+		t.Parallel()
+
+		metaHeader := &block.MetaBlockV3{
+			ExecutionResults: []*block.MetaExecutionResult{
+				{
+					ExecutionResult: &block.BaseMetaExecutionResult{
+						BaseExecutionResult: &block.BaseExecutionResult{
+							HeaderHash: []byte("headerHash0"),
+						},
+					},
+				},
+				{
+					ExecutionResult: &block.BaseMetaExecutionResult{
+						BaseExecutionResult: &block.BaseExecutionResult{
+							HeaderHash: []byte("headerHash1"),
+						},
+					},
+					MiniBlockHeaders: []block.MiniBlockHeader{
+						{
+							SenderShardID: common.MetachainShardId,
+							Type:          block.RewardsBlock,
+						},
+					},
+				},
+			},
+		}
+
+		headersPoolMock := &pool.HeadersPoolStub{
+			GetHeaderByHashCalled: func(hash []byte) (data.HeaderHandler, error) {
+				if bytes.Equal(hash, []byte("headerHash1")) {
+					return &block.MetaBlockV3{
+						EpochChangeProposed: true,
+					}, nil
+				}
+				return &block.MetaBlockV3{
+					EpochChangeProposed: false,
+				}, nil
+			},
+		}
+		dataPoolMock := &dataRetrieverMock.PoolsHolderMock{}
+		dataPoolMock.SetHeadersPool(headersPoolMock)
+
+		mp, err := blproc.ConstructPartialMetaBlockProcessorForTest(map[string]interface{}{
+			"dataPool": dataPoolMock,
+			"blockChain": &testscommon.ChainHandlerStub{
+				GetCurrentBlockHeaderCalled: func() data.HeaderHandler {
+					return &block.MetaBlockV3{}
+				},
+			},
+			"epochStartTrigger": &testscommon.EpochStartTriggerStub{EpochCalled: func() uint32 {
+				return 1
+			}},
+		})
+		require.Nil(t, err)
+
+		err = mp.CheckEpochCorrectnessV3(metaHeader)
+		require.Equal(t, process.ErrEpochDoesNotMatch, err)
+	})
+
+	t.Run("should return error ErrEpochDoesNotMatch because of no epoch start results", func(t *testing.T) {
+		t.Parallel()
+
+		metaHeader := &block.MetaBlockV3{
+			Epoch:      2,
+			EpochStart: block.EpochStart{},
+			ExecutionResults: []*block.MetaExecutionResult{
+				{
+					ExecutionResult: &block.BaseMetaExecutionResult{
+						BaseExecutionResult: &block.BaseExecutionResult{
+							HeaderHash: []byte("headerHash0"),
+						},
+					},
+				},
+			},
+		}
+
+		headersPoolMock := &pool.HeadersPoolStub{
+			GetHeaderByHashCalled: func(hash []byte) (data.HeaderHandler, error) {
+				if bytes.Equal(hash, []byte("headerHash1")) {
+					return &block.MetaBlockV3{
+						EpochChangeProposed: true,
+					}, nil
+				}
+				return &block.MetaBlockV3{
+					EpochChangeProposed: false,
+				}, nil
+			},
+		}
+		dataPoolMock := &dataRetrieverMock.PoolsHolderMock{}
+		dataPoolMock.SetHeadersPool(headersPoolMock)
+
+		mp, err := blproc.ConstructPartialMetaBlockProcessorForTest(map[string]interface{}{
+			"dataPool": dataPoolMock,
+			"blockChain": &testscommon.ChainHandlerStub{
+				GetCurrentBlockHeaderCalled: func() data.HeaderHandler {
+					return &block.MetaBlockV3{
+						Epoch: 1,
+					}
+				},
+			},
+			"epochStartTrigger": &testscommon.EpochStartTriggerStub{EpochCalled: func() uint32 {
+				return 1
+			}},
+		})
+		require.Nil(t, err)
+
+		err = mp.CheckEpochCorrectnessV3(metaHeader)
+		require.Equal(t, process.ErrEpochDoesNotMatch, err)
+	})
+
+	t.Run("should return error ErrEpochDoesNotMatch because of epoch not changed", func(t *testing.T) {
+		t.Parallel()
+
+		metaHeader := &block.MetaBlockV3{
+			Epoch: 1,
+			EpochStart: block.EpochStart{
+				LastFinalizedHeaders: []block.EpochStartShardData{
+					{}, {},
+				},
+			},
+			ExecutionResults: []*block.MetaExecutionResult{
+				{
+					ExecutionResult: &block.BaseMetaExecutionResult{
+						BaseExecutionResult: &block.BaseExecutionResult{
+							HeaderHash: []byte("headerHash0"),
+						},
+					},
+				},
+				{
+					ExecutionResult: &block.BaseMetaExecutionResult{
+						BaseExecutionResult: &block.BaseExecutionResult{
+							HeaderHash: []byte("headerHash1"),
+						},
+					},
+					MiniBlockHeaders: []block.MiniBlockHeader{
+						{
+							SenderShardID: common.MetachainShardId,
+							Type:          block.RewardsBlock,
+						},
+					},
+				},
+			},
+		}
+
+		headersPoolMock := &pool.HeadersPoolStub{
+			GetHeaderByHashCalled: func(hash []byte) (data.HeaderHandler, error) {
+				if bytes.Equal(hash, []byte("headerHash1")) {
+					return &block.MetaBlockV3{
+						EpochChangeProposed: true,
+					}, nil
+				}
+				return &block.MetaBlockV3{
+					EpochChangeProposed: false,
+				}, nil
+			},
+		}
+		dataPoolMock := &dataRetrieverMock.PoolsHolderMock{}
+		dataPoolMock.SetHeadersPool(headersPoolMock)
+
+		mp, err := blproc.ConstructPartialMetaBlockProcessorForTest(map[string]interface{}{
+			"dataPool": dataPoolMock,
+			"blockChain": &testscommon.ChainHandlerStub{
+				GetCurrentBlockHeaderCalled: func() data.HeaderHandler {
+					return &block.MetaBlockV3{
+						Epoch: 1,
+					}
+				},
+			},
+			"epochStartTrigger": &testscommon.EpochStartTriggerStub{EpochCalled: func() uint32 {
+				return 1
+			}},
+		})
+		require.Nil(t, err)
+
+		err = mp.CheckEpochCorrectnessV3(metaHeader)
+		require.Equal(t, process.ErrEpochDoesNotMatch, err)
+	})
+
+	t.Run("should return error ErrEpochDoesNotMatch because of epoch is discontinuous", func(t *testing.T) {
+		t.Parallel()
+
+		metaHeader := &block.MetaBlockV3{
+			Epoch: 3,
+			EpochStart: block.EpochStart{
+				LastFinalizedHeaders: []block.EpochStartShardData{
+					{}, {},
+				},
+			},
+			ExecutionResults: []*block.MetaExecutionResult{
+				{
+					ExecutionResult: &block.BaseMetaExecutionResult{
+						BaseExecutionResult: &block.BaseExecutionResult{
+							HeaderHash: []byte("headerHash0"),
+						},
+					},
+				},
+				{
+					ExecutionResult: &block.BaseMetaExecutionResult{
+						BaseExecutionResult: &block.BaseExecutionResult{
+							HeaderHash: []byte("headerHash1"),
+						},
+					},
+					MiniBlockHeaders: []block.MiniBlockHeader{
+						{
+							SenderShardID: common.MetachainShardId,
+							Type:          block.RewardsBlock,
+						},
+					},
+				},
+			},
+		}
+
+		headersPoolMock := &pool.HeadersPoolStub{
+			GetHeaderByHashCalled: func(hash []byte) (data.HeaderHandler, error) {
+				if bytes.Equal(hash, []byte("headerHash1")) {
+					return &block.MetaBlockV3{
+						EpochChangeProposed: true,
+					}, nil
+				}
+				return &block.MetaBlockV3{
+					EpochChangeProposed: false,
+				}, nil
+			},
+		}
+		dataPoolMock := &dataRetrieverMock.PoolsHolderMock{}
+		dataPoolMock.SetHeadersPool(headersPoolMock)
+
+		mp, err := blproc.ConstructPartialMetaBlockProcessorForTest(map[string]interface{}{
+			"dataPool": dataPoolMock,
+			"blockChain": &testscommon.ChainHandlerStub{
+				GetCurrentBlockHeaderCalled: func() data.HeaderHandler {
+					return &block.MetaBlockV3{
+						Epoch: 1,
+					}
+				},
+			},
+			"epochStartTrigger": &testscommon.EpochStartTriggerStub{EpochCalled: func() uint32 {
+				return 1
+			}},
+		})
+		require.Nil(t, err)
+
+		err = mp.CheckEpochCorrectnessV3(metaHeader)
+		require.Equal(t, process.ErrEpochDoesNotMatch, err)
+	})
+
+	t.Run("should work", func(t *testing.T) {
+		t.Parallel()
+
+		metaHeader := &block.MetaBlockV3{
+			Epoch: 2,
+			EpochStart: block.EpochStart{
+				LastFinalizedHeaders: []block.EpochStartShardData{
+					{}, {},
+				},
+			},
+			ExecutionResults: []*block.MetaExecutionResult{
+				{
+					ExecutionResult: &block.BaseMetaExecutionResult{
+						BaseExecutionResult: &block.BaseExecutionResult{
+							HeaderHash: []byte("headerHash0"),
+						},
+					},
+				},
+				{
+					ExecutionResult: &block.BaseMetaExecutionResult{
+						BaseExecutionResult: &block.BaseExecutionResult{
+							HeaderHash: []byte("headerHash1"),
+						},
+					},
+					MiniBlockHeaders: []block.MiniBlockHeader{
+						{
+							SenderShardID: common.MetachainShardId,
+							Type:          block.RewardsBlock,
+						},
+					},
+				},
+			},
+		}
+
+		headersPoolMock := &pool.HeadersPoolStub{
+			GetHeaderByHashCalled: func(hash []byte) (data.HeaderHandler, error) {
+				if bytes.Equal(hash, []byte("headerHash1")) {
+					return &block.MetaBlockV3{
+						EpochChangeProposed: true,
+					}, nil
+				}
+				return &block.MetaBlockV3{
+					EpochChangeProposed: false,
+				}, nil
+			},
+		}
+		dataPoolMock := &dataRetrieverMock.PoolsHolderMock{}
+		dataPoolMock.SetHeadersPool(headersPoolMock)
+
+		mp, err := blproc.ConstructPartialMetaBlockProcessorForTest(map[string]interface{}{
+			"dataPool": dataPoolMock,
+			"blockChain": &testscommon.ChainHandlerStub{
+				GetCurrentBlockHeaderCalled: func() data.HeaderHandler {
+					return &block.MetaBlockV3{
+						Epoch: 1,
+					}
+				},
+			},
+			"epochStartTrigger": &testscommon.EpochStartTriggerStub{EpochCalled: func() uint32 {
+				return 1
+			}},
+		})
+		require.Nil(t, err)
+
+		err = mp.CheckEpochCorrectnessV3(metaHeader)
+		require.Nil(t, err)
 	})
 }
 

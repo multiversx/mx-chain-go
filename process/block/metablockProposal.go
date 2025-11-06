@@ -305,15 +305,24 @@ func (mp *metaProcessor) hasStartOfEpochExecutionResults(metaHeader data.MetaHea
 	}
 	execResults := metaHeader.GetExecutionResultsHandlers()
 	for _, execResult := range execResults {
-		mbHeaders, err := common.GetMiniBlocksHeaderHandlersFromExecResult(execResult)
+		ok, err := mp.hasRewardOrPeerMiniBlocksOnExecResult(execResult)
 		if err != nil {
 			return false, err
 		}
-		if hasRewardOrPeerMiniBlocksFromMeta(mbHeaders) {
+		if ok {
 			return true, nil
 		}
 	}
 	return false, nil
+}
+
+func (mp *metaProcessor) hasRewardOrPeerMiniBlocksOnExecResult(execResult data.BaseExecutionResultHandler) (bool, error) {
+	mbHeaders, err := common.GetMiniBlocksHeaderHandlersFromExecResult(execResult)
+	if err != nil {
+		return false, err
+	}
+
+	return hasRewardOrPeerMiniBlocksFromMeta(mbHeaders), nil
 }
 
 func hasRewardOrPeerMiniBlocksFromMeta(miniBlockHeaders []data.MiniBlockHeaderHandler) bool {
@@ -577,8 +586,18 @@ func (mp *metaProcessor) hasExecutionResultsForProposedEpochChange(headerHandler
 		if !ok {
 			return false, process.ErrWrongTypeAssertion
 		}
-		if metaHeaderHandler.IsEpochChangeProposed() {
-			// TODO: check also that this execution result has start of epoch execution results, otherwise error
+
+		isEpochChangeProposed := metaHeaderHandler.IsEpochChangeProposed()
+		hasStartOfEpochOnExecutionResult, err := mp.hasRewardOrPeerMiniBlocksOnExecResult(execResult)
+		if err != nil {
+			return false, err
+		}
+
+		if isEpochChangeProposed && !hasStartOfEpochOnExecutionResult {
+			return false, process.ErrStartOfEpochExecutionResultsDoesNotExist
+		}
+
+		if isEpochChangeProposed {
 			return true, nil
 		}
 	}
