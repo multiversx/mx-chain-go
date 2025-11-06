@@ -1198,6 +1198,9 @@ func TestApiTransactionProcessor_GetSelectedTransactions(t *testing.T) {
 
 	require.Equal(t, uint64(4), cache.CountTx())
 
+	err = cache.OnExecutedBlock(&block.Header{}, []byte("rootHash"))
+	require.NoError(t, err)
+
 	t.Run("should work", func(t *testing.T) {
 		t.Parallel()
 
@@ -1220,7 +1223,7 @@ func TestApiTransactionProcessor_GetSelectedTransactions(t *testing.T) {
 
 		accountsAdapter := &stateMock.AccountsStub{
 			RootHashCalled: func() ([]byte, error) {
-				return nil, nil
+				return []byte("rootHash"), nil
 			},
 			GetExistingAccountCalled: func(addressContainer []byte) (vmcommon.AccountHandler, error) {
 				if bytes.Equal(addressContainer, []byte("alice")) {
@@ -1290,7 +1293,7 @@ func TestApiTransactionProcessor_GetSelectedTransactions(t *testing.T) {
 
 		accountsAdapter := &stateMock.AccountsStub{
 			RootHashCalled: func() ([]byte, error) {
-				return nil, nil
+				return []byte("rootHash"), nil
 			},
 			GetExistingAccountCalled: func(addressContainer []byte) (vmcommon.AccountHandler, error) {
 				if bytes.Equal(addressContainer, []byte("alice")) {

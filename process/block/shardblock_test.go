@@ -3260,7 +3260,7 @@ func TestShardProcessor_CreateMiniBlocksShouldWorkWithIntraShardTxs(t *testing.T
 	shardCoordinator := mock.NewMultiShardsCoordinatorMock(3)
 	accntAdapter := &stateMock.AccountsStub{
 		RootHashCalled: func() ([]byte, error) {
-			return nil, nil
+			return []byte("rootHash1"), nil
 		},
 		RevertToSnapshotCalled: func(snapshot int) error {
 			assert.Fail(t, "revert should have not been called")
@@ -3351,6 +3351,9 @@ func TestShardProcessor_CreateMiniBlocksShouldWorkWithIntraShardTxs(t *testing.T
 	arguments.AccountsProposal = accntAdapter
 	arguments.TxCoordinator = tc
 	bp, err := blproc.NewShardProcessor(arguments)
+	require.Nil(t, err)
+
+	err = bp.OnExecutedBlock(&block.Header{}, []byte("rootHash1"))
 	require.Nil(t, err)
 
 	blockBody, _, err := bp.CreateMiniBlocks(func() bool { return true })

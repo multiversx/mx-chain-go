@@ -253,7 +253,7 @@ func TestAccountsDBApi_RecreateTrie(t *testing.T) {
 		currentHash := []byte("hash1")
 		accountsApi, _ := state.NewAccountsDBApi(&mockState.AccountsStub{
 			RecreateTrieIfNeededCalled: func(options common.RootHashHolder) error {
-				assert.Fail(t, "should have not called accountsApi.recreateTrieIfNeeded")
+				assert.Fail(t, "should have not called accountsApi.RecreateTrieIfNeeded")
 
 				return nil
 			},
@@ -287,7 +287,7 @@ func TestAccountsDB_RecreateTrieIfNeeded(t *testing.T) {
 		t.Parallel()
 		accountsApi, _ := state.NewAccountsDBApi(&mockState.AccountsStub{
 			RecreateTrieIfNeededCalled: func(options common.RootHashHolder) error {
-				assert.Fail(t, "should have not called accountsApi.recreateTrieIfNeeded")
+				assert.Fail(t, "should have not called accountsApi.RecreateTrieIfNeeded")
 
 				return nil
 			},
@@ -297,7 +297,7 @@ func TestAccountsDB_RecreateTrieIfNeeded(t *testing.T) {
 		assert.Equal(t, trie.ErrNilRootHashHolder, err)
 	})
 
-	t.Run("should error if the inner account recreateTrieIfNeeded errors", func(t *testing.T) {
+	t.Run("should error if the inner account RecreateTrieIfNeeded errors", func(t *testing.T) {
 		t.Parallel()
 		expectedErr := errors.New("root hash err")
 		trieStub := &testTrie.TrieStub{

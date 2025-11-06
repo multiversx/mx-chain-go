@@ -1395,7 +1395,7 @@ func TestTransactionCoordinator_CreateMbsAndProcessTransactionsFromMe(t *testing
 	argsTransactionCoordinator := createMockTransactionCoordinatorArguments()
 	argsTransactionCoordinator.Accounts = &stateMock.AccountsStub{
 		RootHashCalled: func() ([]byte, error) {
-			return nil, nil
+			return []byte("rootHash"), nil
 		},
 		GetExistingAccountCalled: func(_ []byte) (vmcommon.AccountHandler, error) {
 			return &stateMock.UserAccountStub{
@@ -1426,6 +1426,9 @@ func TestTransactionCoordinator_CreateMbsAndProcessTransactionsFromMe(t *testing
 		txPool.AddData(computedTxHash, newTx, newTx.Size(), strCache)
 	}
 
+	err = txPool.OnExecutedBlock(&block.Header{}, []byte("rootHash"))
+	require.Nil(t, err)
+
 	// we have one tx per shard.
 	mbs := tc.CreateMbsAndProcessTransactionsFromMe(haveTime, []byte("randomness"))
 
@@ -1445,7 +1448,7 @@ func TestTransactionCoordinator_CreateMbsAndProcessTransactionsFromMeMultipleMin
 	argsTransactionCoordinator := createMockTransactionCoordinatorArguments()
 	argsTransactionCoordinator.Accounts = &stateMock.AccountsStub{
 		RootHashCalled: func() ([]byte, error) {
-			return nil, nil
+			return []byte("rootHash"), nil
 		},
 		GetExistingAccountCalled: func(_ []byte) (vmcommon.AccountHandler, error) {
 			return &stateMock.UserAccountStub{
@@ -1485,6 +1488,8 @@ func TestTransactionCoordinator_CreateMbsAndProcessTransactionsFromMeMultipleMin
 		txPool.AddData(computedTxHash, newTx, newTx.Size(), strCache)
 	}
 
+	err = txPool.OnExecutedBlock(&block.Header{}, []byte("rootHash"))
+	require.Nil(t, err)
 	// we have one tx per shard.
 	mbs := tc.CreateMbsAndProcessTransactionsFromMe(haveTime, []byte("randomness"))
 
@@ -1509,7 +1514,7 @@ func TestTransactionCoordinator_CreateMbsAndProcessTransactionsFromMeMultipleMin
 	argsTransactionCoordinator := createMockTransactionCoordinatorArguments()
 	argsTransactionCoordinator.Accounts = &stateMock.AccountsStub{
 		RootHashCalled: func() ([]byte, error) {
-			return nil, nil
+			return []byte("rootHash"), nil
 		},
 		GetExistingAccountCalled: func(_ []byte) (vmcommon.AccountHandler, error) {
 			return &stateMock.UserAccountStub{
@@ -1560,6 +1565,9 @@ func TestTransactionCoordinator_CreateMbsAndProcessTransactionsFromMeMultipleMin
 		txPool.AddData(computedTxHash, newTx, newTx.Size(), strCache)
 	}
 
+	err = txPool.OnExecutedBlock(&block.Header{}, []byte("rootHash"))
+	require.Nil(t, err)
+
 	// we have one tx per shard.
 	mbs := tc.CreateMbsAndProcessTransactionsFromMe(haveTime, []byte("randomness"))
 
@@ -1583,7 +1591,7 @@ func TestTransactionCoordinator_CompactAndExpandMiniblocksShouldWork(t *testing.
 	argsTransactionCoordinator := createMockTransactionCoordinatorArguments()
 	argsTransactionCoordinator.Accounts = &stateMock.AccountsStub{
 		RootHashCalled: func() ([]byte, error) {
-			return nil, nil
+			return []byte("rootHash"), nil
 		},
 		GetExistingAccountCalled: func(_ []byte) (vmcommon.AccountHandler, error) {
 			return &stateMock.UserAccountStub{
@@ -1640,6 +1648,9 @@ func TestTransactionCoordinator_CompactAndExpandMiniblocksShouldWork(t *testing.
 		}
 	}
 
+	err = txPool.OnExecutedBlock(&block.Header{}, []byte("rootHash"))
+	require.Nil(t, err)
+
 	mbs := tc.CreateMbsAndProcessTransactionsFromMe(haveTime, []byte("randomness"))
 
 	assert.Equal(t, 1, len(mbs))
@@ -1658,7 +1669,7 @@ func TestTransactionCoordinator_GetAllCurrentUsedTxs(t *testing.T) {
 	argsTransactionCoordinator := createMockTransactionCoordinatorArguments()
 	argsTransactionCoordinator.Accounts = &stateMock.AccountsStub{
 		RootHashCalled: func() ([]byte, error) {
-			return nil, nil
+			return []byte("rootHash"), nil
 		},
 		GetExistingAccountCalled: func(_ []byte) (vmcommon.AccountHandler, error) {
 			return &stateMock.UserAccountStub{
@@ -1696,6 +1707,9 @@ func TestTransactionCoordinator_GetAllCurrentUsedTxs(t *testing.T) {
 		computedTxHash, _ := core.CalculateHash(marshalizer, hasher, newTx)
 		txPool.AddData(computedTxHash, newTx, newTx.Size(), strCache)
 	}
+
+	err = txPool.OnExecutedBlock(&block.Header{}, []byte("rootHash"))
+	require.Nil(t, err)
 
 	mbs := tc.CreateMbsAndProcessTransactionsFromMe(haveTime, []byte("randomness"))
 	require.Equal(t, 5, len(mbs))

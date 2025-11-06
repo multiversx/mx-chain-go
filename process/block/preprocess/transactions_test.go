@@ -820,7 +820,7 @@ func createArgsForCleanupSelfShardTxCachePreprocessor() ArgsTransactionPreProces
 
 	accounts := &stateMock.AccountsStub{
 		RootHashCalled: func() ([]byte, error) {
-			return nil, nil
+			return []byte("rootHash"), nil
 		},
 		GetExistingAccountCalled: func(sender []byte) (vmcommon.AccountHandler, error) {
 			var nonce uint64
@@ -865,6 +865,9 @@ func TestCleanupSelfShardTxCache_NoTransactionToSelect(t *testing.T) {
 	args := createArgsForCleanupSelfShardTxCachePreprocessor()
 	txs, _ := NewTransactionPreprocessor(args)
 	assert.NotNil(t, txs)
+
+	err := txs.txPool.OnExecutedBlock(&block.Header{}, []byte("rootHash"))
+	require.NoError(t, err)
 
 	sndShardId := uint32(0)
 	dstShardId := uint32(0)
@@ -934,6 +937,9 @@ func TestCleanupSelfShardTxCache(t *testing.T) {
 	args := createArgsForCleanupSelfShardTxCachePreprocessor()
 	txs, _ := NewTransactionPreprocessor(args)
 	assert.NotNil(t, txs)
+
+	err := txs.txPool.OnExecutedBlock(&block.Header{}, []byte("rootHash"))
+	require.NoError(t, err)
 
 	sndShardId := uint32(0)
 	dstShardId := uint32(0)
@@ -1027,7 +1033,7 @@ func TestTransactions_CreateAndProcessMiniBlockCrossShardGasLimitAddAll(t *testi
 	}
 	accounts := &stateMock.AccountsStub{
 		RootHashCalled: func() ([]byte, error) {
-			return nil, nil
+			return []byte("rootHash"), nil
 		},
 		GetExistingAccountCalled: func(_ []byte) (vmcommon.AccountHandler, error) {
 			return &stateMock.UserAccountStub{
@@ -1041,6 +1047,9 @@ func TestTransactions_CreateAndProcessMiniBlockCrossShardGasLimitAddAll(t *testi
 
 	txs, _ := NewTransactionPreprocessor(args)
 	assert.NotNil(t, txs)
+
+	err := txs.txPool.OnExecutedBlock(&block.Header{}, []byte("rootHash"))
+	require.NoError(t, err)
 
 	sndShardId := uint32(0)
 	dstShardId := uint32(0)
@@ -1094,7 +1103,7 @@ func TestTransactions_CreateAndProcessMiniBlockCrossShardGasLimitAddAllAsNoSCCal
 	}
 	accounts := &stateMock.AccountsStub{
 		RootHashCalled: func() ([]byte, error) {
-			return nil, nil
+			return []byte("rootHash"), nil
 		},
 		GetExistingAccountCalled: func(_ []byte) (vmcommon.AccountHandler, error) {
 			return &stateMock.UserAccountStub{
@@ -1112,6 +1121,9 @@ func TestTransactions_CreateAndProcessMiniBlockCrossShardGasLimitAddAllAsNoSCCal
 	args.DataPool, _ = dataRetrieverMock.CreateTxPool(2, 0)
 	txs, _ := NewTransactionPreprocessor(args)
 	assert.NotNil(t, txs)
+
+	err := txs.txPool.OnExecutedBlock(&block.Header{}, []byte("rootHash"))
+	require.NoError(t, err)
 
 	sndShardId := uint32(0)
 	dstShardId := uint32(1)
@@ -1176,7 +1188,7 @@ func TestTransactions_CreateAndProcessMiniBlockCrossShardGasLimitAddOnly5asSCCal
 	}
 	accounts := &stateMock.AccountsStub{
 		RootHashCalled: func() ([]byte, error) {
-			return nil, nil
+			return []byte("rootHash"), nil
 		},
 		GetExistingAccountCalled: func(_ []byte) (vmcommon.AccountHandler, error) {
 			return &stateMock.UserAccountStub{
@@ -1191,6 +1203,9 @@ func TestTransactions_CreateAndProcessMiniBlockCrossShardGasLimitAddOnly5asSCCal
 	txs, _ := NewTransactionPreprocessor(args)
 
 	assert.NotNil(t, txs)
+
+	err := txs.txPool.OnExecutedBlock(&block.Header{}, []byte("rootHash"))
+	require.NoError(t, err)
 
 	sndShardId := uint32(0)
 	dstShardId := uint32(1)

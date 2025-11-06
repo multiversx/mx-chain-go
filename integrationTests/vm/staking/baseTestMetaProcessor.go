@@ -187,15 +187,15 @@ func newTestMetaProcessor(
 		StakingDataProvider: stakingDataProvider,
 	}
 
-	updateRootHash(tmp, stateComponents)
+	updateRootHash(tmp.BlockChainHandler, tmp.AccountsAdapter)
 	return tmp
 }
 
-func updateRootHash(tmp *TestMetaProcessor, stateComponents factory.StateComponentsHandler) {
-	rootHash, _ := stateComponents.AccountsAdapter().RootHash()
-	genesisBlock := tmp.BlockChainHandler.GetGenesisHeader()
+func updateRootHash(blockChainHandler data.ChainHandler, accountsAdapter state.AccountsAdapter) {
+	rootHash, _ := accountsAdapter.RootHash()
+	genesisBlock := blockChainHandler.GetGenesisHeader()
 	_ = genesisBlock.SetRootHash(rootHash)
-	_ = tmp.BlockChainHandler.SetGenesisHeader(genesisBlock)
+	_ = blockChainHandler.SetGenesisHeader(genesisBlock)
 }
 
 func saveNodesConfig(

@@ -1244,7 +1244,7 @@ func TestAccountsDB_RecreateTrieOkValsShouldWork(t *testing.T) {
 	assert.True(t, wasCalled)
 }
 
-// ------- recreateTrieIfNeeded
+// ------- RecreateTrieIfNeeded
 
 func TestAccountsDB_RecreateTrieIfNeededShouldRecreate(t *testing.T) {
 	t.Parallel()
