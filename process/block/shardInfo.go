@@ -133,7 +133,7 @@ func (sic *ShardInfoCreateData) createShardInfoFromHeader(
 
 	if !shardHeader.IsHeaderV3() {
 		shardData, err := sic.createShardDataFromLegacyHeader(shardHeader, hdrHash)
-		return createShardDataProposalFromHeader(shardHeader, hdrHash), shardData, err
+		return sic.createShardDataProposalFromHeader(shardHeader, hdrHash), shardData, err
 	}
 
 	return sic.createShardDataFromV3Header(shardHeader, hdrHash)
@@ -170,7 +170,7 @@ func (sic *ShardInfoCreateData) createShardDataFromV3Header(
 	if check.IfNil(shardHeader) {
 		return nil, nil, process.ErrNilHeaderHandler
 	}
-	shardDataProposal := createShardDataProposalFromHeader(shardHeader, hdrHash)
+	shardDataProposal := sic.createShardDataProposalFromHeader(shardHeader, hdrHash)
 	executionResults := shardHeader.GetExecutionResultsHandlers()
 	if len(executionResults) == 0 {
 		// return shard data proposal even though the shard header does not hold any execution result
@@ -189,16 +189,17 @@ func (sic *ShardInfoCreateData) createShardDataFromV3Header(
 	return shardDataProposal, shardDataHandlers, nil
 }
 
-func createShardDataProposalFromHeader(
+func (sic *ShardInfoCreateData) createShardDataProposalFromHeader(
 	header data.HeaderHandler,
 	hdrHash []byte,
 ) data.ShardDataProposalHandler {
 	return &block.ShardDataProposal{
-		HeaderHash: hdrHash,
-		Round:      header.GetRound(),
-		Nonce:      header.GetNonce(),
-		ShardID:    header.GetShardID(),
-		Epoch:      header.GetEpoch(),
+		HeaderHash:           hdrHash,
+		Round:                header.GetRound(),
+		Nonce:                header.GetNonce(),
+		ShardID:              header.GetShardID(),
+		Epoch:                header.GetEpoch(),
+		NumPendingMiniBlocks: uint32(len(sic.pendingMiniBlocksHandler.GetPendingMiniBlocks(header.GetShardID()))),
 	}
 }
 
@@ -284,8 +285,9 @@ func miniBlockHeaderFromMiniBlockHeaderHandler(miniBlockHeaderHandler data.MiniB
 }
 
 func (sic *ShardInfoCreateData) updateShardDataWithCrossShardInfo(shardData *block.ShardData, header data.HeaderHandler) error {
-	// TODO: pendingMiniBlocksHandler should be updated
-	shardData.NumPendingMiniBlocks = uint32(len(sic.pendingMiniBlocksHandler.GetPendingMiniBlocks(header.GetShardID())))
+	if !header.IsHeaderV3() {
+		shardData.NumPendingMiniBlocks = uint32(len(sic.pendingMiniBlocksHandler.GetPendingMiniBlocks(header.GetShardID())))
+	}
 
 	// TODO: the last self notarized header should be fetched based on the nonce from the execution result
 	metaHeader, _, err := sic.blockTracker.GetLastSelfNotarizedHeader(header.GetShardID())
