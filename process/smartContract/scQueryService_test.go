@@ -1283,6 +1283,9 @@ func TestSCQueryService_ShouldFailIfStateChanged(t *testing.T) {
 		rootHashCalledCounter := 0
 		args.MainBlockChain = &testscommon.ChainHandlerStub{
 			GetCurrentBlockHeaderCalled: func() data.HeaderHandler {
+				return &block.HeaderV3{}
+			},
+			GetLastExecutedBlockHeaderCalled: func() data.HeaderHandler {
 				return &block.HeaderV3{
 					LastExecutionResult: &block.ExecutionResultInfo{
 						ExecutionResult: &block.BaseExecutionResult{

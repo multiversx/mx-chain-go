@@ -93,3 +93,24 @@ func TestBlockChain_SettersInvalidValues(t *testing.T) {
 	err = bc.SetCurrentBlockHeaderAndRootHash(&block.MetaBlock{}, []byte("root hash"))
 	assert.Equal(t, err, data.ErrInvalidHeaderType)
 }
+
+func TestBlockChain_SetCurrentBlockHeader(t *testing.T) {
+	t.Parallel()
+
+	bc, _ := NewBlockChain(&mock.AppStatusHandlerStub{})
+
+	hdr := &block.Header{
+		Nonce: 4,
+	}
+	hdrHash := []byte("hash")
+
+	bc.SetCurrentBlockHeaderHash(hdrHash)
+
+	err := bc.SetCurrentBlockHeader(hdr)
+	assert.Nil(t, err)
+
+	assert.Equal(t, hdr, bc.GetCurrentBlockHeader())
+	assert.False(t, hdr == bc.GetCurrentBlockHeader())
+
+	assert.Equal(t, hdrHash, bc.GetCurrentBlockHeaderHash())
+}

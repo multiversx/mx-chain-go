@@ -93,3 +93,47 @@ func TestMetaChain_SettersInvalidValues(t *testing.T) {
 	err = bc.SetCurrentBlockHeaderAndRootHash(&block.Header{}, []byte("root hash"))
 	assert.Equal(t, err, ErrWrongTypeInSet)
 }
+
+func TestMetaChain_SetCurrentBlockHeader(t *testing.T) {
+	t.Parallel()
+
+	bc, _ := NewMetaChain(&mock.AppStatusHandlerStub{})
+
+	t.Run("metablock v1", func(t *testing.T) {
+		t.Parallel()
+
+		hdr := &block.MetaBlock{
+			Nonce: 4,
+		}
+		hdrHash := []byte("hash")
+
+		bc.SetCurrentBlockHeaderHash(hdrHash)
+
+		err := bc.SetCurrentBlockHeader(hdr)
+		assert.Nil(t, err)
+
+		assert.Equal(t, hdr, bc.GetCurrentBlockHeader())
+		assert.False(t, hdr == bc.GetCurrentBlockHeader())
+
+		assert.Equal(t, hdrHash, bc.GetCurrentBlockHeaderHash())
+	})
+
+	t.Run("metablock v3", func(t *testing.T) {
+		t.Parallel()
+
+		hdr := &block.MetaBlockV3{
+			Nonce: 4,
+		}
+		hdrHash := []byte("hash")
+
+		bc.SetCurrentBlockHeaderHash(hdrHash)
+
+		err := bc.SetCurrentBlockHeader(hdr)
+		assert.Nil(t, err)
+
+		assert.Equal(t, hdr, bc.GetCurrentBlockHeader())
+		assert.False(t, hdr == bc.GetCurrentBlockHeader())
+
+		assert.Equal(t, hdrHash, bc.GetCurrentBlockHeaderHash())
+	})
+}
