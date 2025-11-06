@@ -591,7 +591,7 @@ func (mp *metaProcessor) hasExecutionResultsForProposedEpochChange(headerHandler
 func (mp *metaProcessor) checkShardHeadersValidityAndFinalityProposal(
 	metaHeaderHandler data.MetaHeaderHandler,
 ) error {
-	lastCrossNotarizedHeader, err := mp.getLastCrossNotarizedShardHdrs()
+	lastCrossNotarizedHeader, err := mp.getLastCrossNotarizedShardHeaders()
 	if err != nil {
 		return err
 	}
