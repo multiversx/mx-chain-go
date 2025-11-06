@@ -30,6 +30,9 @@ func (sp *shardProcessor) CreateNewHeaderProposal(round uint64, nonce uint64) (d
 	if !ok {
 		return nil, process.ErrWrongTypeAssertion
 	}
+	if !shardHeader.IsHeaderV3() {
+		return nil, process.ErrInvalidHeader
+	}
 
 	err := shardHeader.SetRound(round)
 	if err != nil {

@@ -156,36 +156,23 @@ func (ert *executionResultsTracker) getPendingExecutionResultsByNonce(nonce uint
 }
 
 // CleanConfirmedExecutionResults will clean the confirmed execution results
-func (ert *executionResultsTracker) CleanConfirmedExecutionResults(header HeaderWithExecutionResults) (*CleanInfo, error) {
+func (ert *executionResultsTracker) CleanConfirmedExecutionResults(header data.HeaderHandler) error {
 	ert.mutex.Lock()
 	defer ert.mutex.Unlock()
 
-	headerExecutionResults := header.GetExecutionResults()
-	headerBaseExecutionResults := executionHandlersToBaseExecutionHandlers(headerExecutionResults)
+	headerExecutionResults := header.GetExecutionResultsHandlers()
 
-	return ert.cleanConfirmedExecutionResults(headerBaseExecutionResults)
+	return ert.cleanConfirmedExecutionResults(headerExecutionResults)
 }
 
-func executionHandlersToBaseExecutionHandlers(execHandlers []data.ExecutionResultHandler) []data.BaseExecutionResultHandler {
-	baseExecHandlers := make([]data.BaseExecutionResultHandler, len(execHandlers))
-	for i, execHandler := range execHandlers {
-		baseExecHandlers[i] = execHandler
-	}
-
-	return baseExecHandlers
-}
-
-func (ert *executionResultsTracker) cleanConfirmedExecutionResults(headerExecutionResults []data.BaseExecutionResultHandler) (*CleanInfo, error) {
+func (ert *executionResultsTracker) cleanConfirmedExecutionResults(headerExecutionResults []data.BaseExecutionResultHandler) error {
 	if len(headerExecutionResults) == 0 {
-		return &CleanInfo{
-			CleanResult:             CleanResultOK,
-			LastMatchingResultNonce: ert.lastNotarizedResult.GetHeaderNonce(),
-		}, nil
+		return nil
 	}
 
 	pendingExecutionResult, err := ert.getPendingExecutionResults()
 	if err != nil {
-		return nil, err
+		return err
 	}
 
 	lastMatchingResultNonce := ert.lastNotarizedResult.GetHeaderNonce()
@@ -193,10 +180,7 @@ func (ert *executionResultsTracker) cleanConfirmedExecutionResults(headerExecuti
 	for idx, executionResultFromHeader := range headerExecutionResults {
 		if idx >= len(pendingExecutionResult) {
 			// missing execution result
-			return &CleanInfo{
-				CleanResult:             CleanResultNotFound,
-				LastMatchingResultNonce: lastMatchingResultNonce,
-			}, nil
+			return fmt.Errorf("%w, executon result nod found in peding executon results, last matching result nonce: %d", ErrCannotFindExecutionResult, lastMatchingResultNonce)
 		}
 
 		executionResultFromTracker := pendingExecutionResult[idx]
@@ -211,10 +195,7 @@ func (ert *executionResultsTracker) cleanConfirmedExecutionResults(headerExecuti
 			// different execution result should clean everything starting from this execution result and return CleanResultMismatch
 			ert.cleanExecutionResults(pendingExecutionResult[idx:])
 
-			return &CleanInfo{
-				CleanResult:             CleanResultMismatch,
-				LastMatchingResultNonce: lastMatchingResultNonce,
-			}, nil
+			return fmt.Errorf("%w, last matching result nonce: %d", ErrExecutionResultMismatch, lastMatchingResultNonce)
 		}
 
 		lastMatchingResultNonce = executionResultFromHeader.GetHeaderNonce()
@@ -224,10 +205,7 @@ func (ert *executionResultsTracker) cleanConfirmedExecutionResults(headerExecuti
 	ert.cleanExecutionResults(headerExecutionResults)
 	ert.lastNotarizedResult = headerExecutionResults[len(headerExecutionResults)-1]
 
-	return &CleanInfo{
-		CleanResult:             CleanResultOK,
-		LastMatchingResultNonce: ert.lastNotarizedResult.GetHeaderNonce(),
-	}, nil
+	return nil
 }
 
 func (ert *executionResultsTracker) cleanExecutionResults(executionResult []data.BaseExecutionResultHandler) {
