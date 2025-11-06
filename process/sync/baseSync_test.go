@@ -356,4 +356,16 @@ func TestBaseSync_shouldAllowRollback(t *testing.T) {
 		require.False(t, boot.shouldAllowRollback(header, finalBlockHash))
 		require.False(t, boot.shouldAllowRollback(header, notFinalBlockHash))
 	})
+
+	t.Run("should not allow rollback of a header v3", func(t *testing.T) {
+		header := &testscommon.HeaderHandlerStub{
+			GetNonceCalled: func() uint64 {
+				return 11
+			},
+			IsHeaderV3Called: func() bool {
+				return true
+			},
+		}
+		require.False(t, boot.shouldAllowRollback(header, finalBlockHash))
+	})
 }

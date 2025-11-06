@@ -31,10 +31,11 @@ import (
 	ed25519SingleSig "github.com/multiversx/mx-chain-crypto-go/signing/ed25519/singlesig"
 	"github.com/multiversx/mx-chain-crypto-go/signing/mcl"
 	mclsig "github.com/multiversx/mx-chain-crypto-go/signing/mcl/singlesig"
-	"github.com/multiversx/mx-chain-go/process/asyncExecution/queue"
 	vmcommon "github.com/multiversx/mx-chain-vm-common-go"
 	"github.com/multiversx/mx-chain-vm-common-go/parsers"
 	wasmConfig "github.com/multiversx/mx-chain-vm-go/config"
+
+	"github.com/multiversx/mx-chain-go/process/asyncExecution/queue"
 
 	"github.com/multiversx/mx-chain-go/process/asyncExecution/executionTrack"
 	"github.com/multiversx/mx-chain-go/process/estimator"
@@ -2752,6 +2753,15 @@ func (tpn *TestProcessorNode) initBlockProcessor() {
 		epochStartSystemSCProcessor, _ := metachain.NewSystemSCProcessor(argsEpochSystemSC)
 		tpn.EpochStartSystemSCProcessor = epochStartSystemSCProcessor
 
+		shardInfoCreator, errShardInfoCreator := block.NewShardInfoCreateData(
+			tpn.EnableEpochsHandler,
+			tpn.DataPool.Headers(),
+			tpn.DataPool.Proofs(),
+			&mock.PendingMiniBlocksHandlerStub{},
+			argumentsBase.BlockTracker,
+		)
+		log.LogIfError(errShardInfoCreator)
+
 		arguments := block.ArgMetaProcessor{
 			ArgBaseProcessor:             argumentsBase,
 			SCToProtocol:                 scToProtocolInstance,
@@ -2762,6 +2772,7 @@ func (tpn *TestProcessorNode) initBlockProcessor() {
 			EpochValidatorInfoCreator:    epochStartValidatorInfo,
 			ValidatorStatisticsProcessor: tpn.ValidatorStatisticsProcessor,
 			EpochSystemSCProcessor:       epochStartSystemSCProcessor,
+			ShardInfoCreator:             shardInfoCreator,
 		}
 
 		tpn.BlockProcessor, err = block.NewMetaProcessor(arguments)

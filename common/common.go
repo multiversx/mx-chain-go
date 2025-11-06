@@ -416,7 +416,6 @@ func ExtractBaseExecutionResultHandler(lastExecResultsHandler data.LastExecution
 // GetMiniBlocksHeaderHandlersFromExecResult returns miniblock handlers based on execution result
 func GetMiniBlocksHeaderHandlersFromExecResult(
 	baseExecResult data.BaseExecutionResultHandler,
-	headerShard uint32,
 ) ([]data.MiniBlockHeaderHandler, error) {
 	if check.IfNil(baseExecResult) {
 		return nil, ErrNilBaseExecutionResult

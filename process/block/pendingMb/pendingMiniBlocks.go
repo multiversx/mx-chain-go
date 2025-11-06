@@ -7,9 +7,10 @@ import (
 	"github.com/multiversx/mx-chain-core-go/core"
 	"github.com/multiversx/mx-chain-core-go/core/check"
 	"github.com/multiversx/mx-chain-core-go/data"
+	"github.com/multiversx/mx-chain-logger-go"
+
 	"github.com/multiversx/mx-chain-go/common"
 	"github.com/multiversx/mx-chain-go/process"
-	"github.com/multiversx/mx-chain-logger-go"
 )
 
 var _ process.PendingMiniBlocksHandler = (*pendingMiniBlocks)(nil)
@@ -68,7 +69,7 @@ func getMiniBlocksFromHeaderReadyForCrossShardExecution(header data.MetaHeaderHa
 	miniBlocks := make([]data.MiniBlockHeaderHandler, 0)
 	execResultHandlers := header.GetExecutionResultsHandlers()
 	for _, execResult := range execResultHandlers {
-		mbs, errGetMbs := common.GetMiniBlocksHeaderHandlersFromExecResult(execResult, common.MetachainShardId)
+		mbs, errGetMbs := common.GetMiniBlocksHeaderHandlersFromExecResult(execResult)
 		if errGetMbs != nil {
 			return nil, errGetMbs
 		}

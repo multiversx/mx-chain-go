@@ -7,9 +7,10 @@ import (
 	"github.com/multiversx/mx-chain-core-go/core/check"
 	"github.com/multiversx/mx-chain-core-go/data"
 	"github.com/multiversx/mx-chain-core-go/data/block"
-	"github.com/multiversx/mx-chain-go/common"
 	logger "github.com/multiversx/mx-chain-logger-go"
 	"golang.org/x/exp/slices"
+
+	"github.com/multiversx/mx-chain-go/common"
 )
 
 type selectionTracker struct {

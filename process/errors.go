@@ -1412,3 +1412,12 @@ var ErrZeroLimit = errors.New("zero limit")
 
 // ErrInvalidBlockType signals that an invalid block type has been provided
 var ErrInvalidBlockType = errors.New("invalid block type")
+
+// ErrNilEpochStartData signals that nil epoch start data has been provided
+var ErrNilEpochStartData = errors.New("nil epoch start data")
+
+// ErrInconsistentShardHeadersAndHashes signals that shard headers are inconsistent with their hashes
+var ErrInconsistentShardHeadersAndHashes = errors.New("inconsistent shard headers and hashes")
+
+// ErrNilShardInfoCreator signals that a nil shard info creator has been provided
+var ErrNilShardInfoCreator = errors.New("nil shard info creator")
