@@ -266,9 +266,7 @@ func (mp *metaProcessor) VerifyBlockProposal(
 	}
 
 	// TODO: move gas limit verification in baseProcessor
-	// return mp.verifyGasLimit(header)
-
-	return nil
+	return mp.verifyGasLimit(header)
 }
 
 // ProcessBlockProposal processes the proposed block. It returns nil if all ok or the specific error

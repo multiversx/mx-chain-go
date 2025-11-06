@@ -256,33 +256,6 @@ func (sp *shardProcessor) updateMetrics(header data.HeaderHandler, body *block.B
 	go getMetricsFromHeader(header, uint64(txCounts.GetTotal()), sp.marshalizer, sp.appStatusHandler)
 }
 
-func (sp *shardProcessor) verifyGasLimit(header data.ShardHeaderHandler) error {
-	incomingMiniBlocks, incomingTransactions, outgoingTransactionHashes, outgoingTransactions, err := sp.splitTransactionsForHeader(header)
-	if err != nil {
-		return err
-	}
-
-	sp.gasComputation.Reset()
-	_, numPendingMiniBlocks, err := sp.gasComputation.CheckIncomingMiniBlocks(incomingMiniBlocks, incomingTransactions)
-	if err != nil {
-		return err
-	}
-
-	addedTxHashes, pendingMiniBlocksAdded, err := sp.gasComputation.CheckOutgoingTransactions(outgoingTransactionHashes, outgoingTransactions)
-	if err != nil {
-		return err
-	}
-	if len(addedTxHashes) != len(outgoingTransactionHashes) {
-		return fmt.Errorf("%w, outgoing transactions exceeded the limit", process.ErrInvalidMaxGasLimitPerMiniBlock)
-	}
-
-	if numPendingMiniBlocks != len(pendingMiniBlocksAdded) {
-		return fmt.Errorf("%w, incoming mini blocks exceeded the limit", process.ErrInvalidMaxGasLimitPerMiniBlock)
-	}
-
-	return nil
-}
-
 func getHaveTimeForProposal(startTime time.Time, maxDuration time.Duration) func() time.Duration {
 	timeOut := startTime.Add(maxDuration)
 	haveTime := func() time.Duration {
@@ -440,66 +413,6 @@ func (sp *shardProcessor) checkContextBeforeExecution(header data.HeaderHandler)
 	}
 
 	return nil
-}
-
-func (sp *shardProcessor) splitTransactionsForHeader(header data.HeaderHandler) (
-	incomingMiniBlocks []data.MiniBlockHeaderHandler,
-	incomingTransactions map[string][]data.TransactionHandler,
-	outgoingTransactionHashes [][]byte,
-	outgoingTransactions []data.TransactionHandler,
-	err error,
-) {
-	incomingTransactions = make(map[string][]data.TransactionHandler)
-	var txsForMb []data.TransactionHandler
-	var txHashes [][]byte
-	for _, mb := range header.GetMiniBlockHeaderHandlers() {
-		txHashes, txsForMb, err = sp.getTransactionsForMiniBlock(mb)
-		if err != nil {
-			return nil, nil, nil, nil, err
-		}
-
-		if mb.GetSenderShardID() == sp.shardCoordinator.SelfId() {
-			outgoingTransactionHashes = append(outgoingTransactionHashes, txHashes...)
-			outgoingTransactions = append(outgoingTransactions, txsForMb...)
-			continue
-		}
-
-		incomingMiniBlocks = append(incomingMiniBlocks, mb)
-		incomingTransactions[string(mb.GetHash())] = txsForMb
-	}
-
-	return incomingMiniBlocks, incomingTransactions, outgoingTransactionHashes, outgoingTransactions, nil
-}
-
-func (sp *shardProcessor) getTransactionsForMiniBlock(
-	miniBlock data.MiniBlockHeaderHandler,
-) ([][]byte, []data.TransactionHandler, error) {
-	obj, hashInPool := sp.dataPool.MiniBlocks().Get(miniBlock.GetHash())
-	if !hashInPool {
-		return nil, nil, process.ErrMissingMiniBlock
-	}
-
-	mbForHeaderPtr, typeOk := obj.(*block.MiniBlock)
-	if !typeOk {
-		return nil, nil, process.ErrWrongTypeAssertion
-	}
-
-	txs := make([]data.TransactionHandler, len(mbForHeaderPtr.TxHashes))
-	var err error
-	for idx, txHash := range mbForHeaderPtr.TxHashes {
-		txs[idx], err = process.GetTransactionHandlerFromPool(
-			miniBlock.GetSenderShardID(),
-			miniBlock.GetReceiverShardID(),
-			txHash,
-			sp.dataPool.Transactions(),
-			process.SearchMethodSearchFirst,
-		)
-		if err != nil {
-			return nil, nil, err
-		}
-	}
-
-	return mbForHeaderPtr.TxHashes, txs, nil
 }
 
 func computeTxTotalTxCount(miniBlockHeaders []data.MiniBlockHeaderHandler) uint32 {

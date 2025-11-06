@@ -2828,3 +2828,90 @@ func (bp *baseProcessor) revertGasForCrossShardDstMeMiniBlocks(added, pending []
 
 	bp.gasComputation.RevertIncomingMiniBlocks(miniBlockHashesToRevert)
 }
+
+func (bp *baseProcessor) verifyGasLimit(header data.HeaderHandler) error {
+	incomingMiniBlocks, incomingTransactions, outgoingTransactionHashes, outgoingTransactions, err := bp.splitTransactionsForHeader(header)
+	if err != nil {
+		return err
+	}
+
+	bp.gasComputation.Reset()
+	_, numPendingMiniBlocks, err := bp.gasComputation.CheckIncomingMiniBlocks(incomingMiniBlocks, incomingTransactions)
+	if err != nil {
+		return err
+	}
+
+	addedTxHashes, pendingMiniBlocksAdded, err := bp.gasComputation.CheckOutgoingTransactions(outgoingTransactionHashes, outgoingTransactions)
+	if err != nil {
+		return err
+	}
+	if len(addedTxHashes) != len(outgoingTransactionHashes) {
+		return fmt.Errorf("%w, outgoing transactions exceeded the limit", process.ErrInvalidMaxGasLimitPerMiniBlock)
+	}
+
+	if numPendingMiniBlocks != len(pendingMiniBlocksAdded) {
+		return fmt.Errorf("%w, incoming mini blocks exceeded the limit", process.ErrInvalidMaxGasLimitPerMiniBlock)
+	}
+
+	return nil
+}
+
+func (bp *baseProcessor) splitTransactionsForHeader(header data.HeaderHandler) (
+	incomingMiniBlocks []data.MiniBlockHeaderHandler,
+	incomingTransactions map[string][]data.TransactionHandler,
+	outgoingTransactionHashes [][]byte,
+	outgoingTransactions []data.TransactionHandler,
+	err error,
+) {
+	incomingTransactions = make(map[string][]data.TransactionHandler)
+	var txsForMb []data.TransactionHandler
+	var txHashes [][]byte
+	for _, mb := range header.GetMiniBlockHeaderHandlers() {
+		txHashes, txsForMb, err = bp.getTransactionsForMiniBlock(mb)
+		if err != nil {
+			return nil, nil, nil, nil, err
+		}
+
+		if mb.GetSenderShardID() == bp.shardCoordinator.SelfId() {
+			outgoingTransactionHashes = append(outgoingTransactionHashes, txHashes...)
+			outgoingTransactions = append(outgoingTransactions, txsForMb...)
+			continue
+		}
+
+		incomingMiniBlocks = append(incomingMiniBlocks, mb)
+		incomingTransactions[string(mb.GetHash())] = txsForMb
+	}
+
+	return incomingMiniBlocks, incomingTransactions, outgoingTransactionHashes, outgoingTransactions, nil
+}
+
+func (bp *baseProcessor) getTransactionsForMiniBlock(
+	miniBlock data.MiniBlockHeaderHandler,
+) ([][]byte, []data.TransactionHandler, error) {
+	obj, hashInPool := bp.dataPool.MiniBlocks().Get(miniBlock.GetHash())
+	if !hashInPool {
+		return nil, nil, process.ErrMissingMiniBlock
+	}
+
+	mbForHeaderPtr, typeOk := obj.(*block.MiniBlock)
+	if !typeOk {
+		return nil, nil, process.ErrWrongTypeAssertion
+	}
+
+	txs := make([]data.TransactionHandler, len(mbForHeaderPtr.TxHashes))
+	var err error
+	for idx, txHash := range mbForHeaderPtr.TxHashes {
+		txs[idx], err = process.GetTransactionHandlerFromPool(
+			miniBlock.GetSenderShardID(),
+			miniBlock.GetReceiverShardID(),
+			txHash,
+			bp.dataPool.Transactions(),
+			process.SearchMethodSearchFirst,
+		)
+		if err != nil {
+			return nil, nil, err
+		}
+	}
+
+	return mbForHeaderPtr.TxHashes, txs, nil
+}
