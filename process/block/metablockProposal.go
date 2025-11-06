@@ -3,7 +3,6 @@ package block
 import (
 	"errors"
 	"fmt"
-	"sort"
 	"time"
 
 	"github.com/multiversx/mx-chain-core-go/core"
@@ -16,11 +15,11 @@ import (
 	"github.com/multiversx/mx-chain-go/process"
 )
 
-// UsedShardHeadersInfo holds the used shard headers information
-type UsedShardHeadersInfo struct {
-	HeadersPerShard          map[uint32][]ShardHeaderInfo
-	OrderedShardHeaders      []data.HeaderHandler
-	OrderedShardHeaderHashes [][]byte
+// usedShardHeadersInfo holds the used shard headers information
+type usedShardHeadersInfo struct {
+	headersPerShard          map[uint32][]ShardHeaderInfo
+	orderedShardHeaders      []data.HeaderHandler
+	orderedShardHeaderHashes [][]byte
 }
 
 // Comparable defines an interface for comparing two objects
@@ -522,7 +521,8 @@ func (mp *metaProcessor) checkEpochCorrectnessV3(
 	}
 
 	isEpochStartBlock := headerHandler.IsStartOfEpochBlock()
-	hasAllEpochStartData := hasEpochStartExecutionResults && isEpochStartBlock && wasEpochStartProposed
+	epochStartDataMatches := mp.epochStartData.Equal(headerHandler.GetEpochStartHandler())
+	hasAllEpochStartData := hasEpochStartExecutionResults && isEpochStartBlock && wasEpochStartProposed && epochStartDataMatches
 	hasAnyEpochStartData := hasEpochStartExecutionResults || isEpochStartBlock || wasEpochStartProposed
 	hasIncompleteEpochStartData := hasAnyEpochStartData && !hasAllEpochStartData
 
@@ -596,32 +596,26 @@ func (mp *metaProcessor) checkShardHeadersValidityAndFinalityProposal(
 		return err
 	}
 
-	usedShardHeadersInfo, err := mp.getShardHeadersFromMetaHeader(metaHeaderHandler)
+	usedShardHeaders, err := mp.getShardHeadersFromMetaHeader(metaHeaderHandler)
 	if err != nil {
 		return fmt.Errorf("%w : checkShardHeadersValidityAndFinalityProposal -> getShardHeadersFromMetaHeader", err)
 	}
 
-	for _, headers := range usedShardHeadersInfo.HeadersPerShard {
-		sort.Slice(headers, func(i, j int) bool {
-			return headers[i].Header.GetNonce() < headers[j].Header.GetNonce()
-		})
-	}
-
-	ok := mp.HasProofsForHeaders(usedShardHeadersInfo.HeadersPerShard)
+	ok := mp.HasProofsForHeaders(usedShardHeaders.headersPerShard)
 	if !ok {
 		return process.ErrMissingHeaderProof
 	}
 
-	err = mp.verifyUsedShardHeadersValidity(usedShardHeadersInfo.HeadersPerShard, lastCrossNotarizedHeader)
+	err = mp.verifyUsedShardHeadersValidity(usedShardHeaders.headersPerShard, lastCrossNotarizedHeader)
 	if err != nil {
 		return fmt.Errorf("%w : checkShardHeadersValidityAndFinalityProposal -> verifyUsedShardHeadersValidity", err)
 	}
 
-	return mp.checkShardInfoValidity(metaHeaderHandler, usedShardHeadersInfo)
+	return mp.checkShardInfoValidity(metaHeaderHandler, usedShardHeaders)
 }
 
-func (mp *metaProcessor) checkShardInfoValidity(metaHeaderHandler data.MetaHeaderHandler, usedShardHeadersInfo *UsedShardHeadersInfo) error {
-	createdShardInfoProposal, createdShardInfo, err := mp.shardInfoCreateData.CreateShardInfoV3(metaHeaderHandler, usedShardHeadersInfo.OrderedShardHeaders, usedShardHeadersInfo.OrderedShardHeaderHashes)
+func (mp *metaProcessor) checkShardInfoValidity(metaHeaderHandler data.MetaHeaderHandler, usedShardHeadersInfo *usedShardHeadersInfo) error {
+	createdShardInfoProposal, createdShardInfo, err := mp.shardInfoCreateData.CreateShardInfoV3(metaHeaderHandler, usedShardHeadersInfo.orderedShardHeaders, usedShardHeadersInfo.orderedShardHeaderHashes)
 	if err != nil {
 		return fmt.Errorf("%w : checkShardInfoValidity -> CreateShardInfoV3", err)
 	}
@@ -652,18 +646,29 @@ func (mp *metaProcessor) verifyUsedShardHeadersValidity(
 ) error {
 	var err error
 	for shardID, hdrsForShard := range usedShardHeaders {
-		lastNotarizedHeaderInfoForShard := lastCrossNotarizedHeader[shardID]
-		for _, shardHdrInfo := range hdrsForShard {
-			if !mp.isGenesisShardBlockAndFirstMeta(shardHdrInfo.Header.GetNonce()) {
-				err = mp.headerValidator.IsHeaderConstructionValid(shardHdrInfo.Header, lastNotarizedHeaderInfoForShard.Header)
-				if err != nil {
-					return err
-				}
-			}
-
-			lastNotarizedHeaderInfoForShard = shardHdrInfo
+		err = mp.checkHeadersSequenceCorrectness(hdrsForShard, lastCrossNotarizedHeader[shardID])
+		if err != nil {
+			return err
 		}
 	}
+	return nil
+}
+
+func (mp *metaProcessor) checkHeadersSequenceCorrectness(hdrsForShard []ShardHeaderInfo, lastNotarizedHeaderInfoForShard ShardHeaderInfo) error {
+	var err error
+	for _, shardHdrInfo := range hdrsForShard {
+		if mp.isGenesisShardBlockAndFirstMeta(shardHdrInfo.Header.GetNonce()) {
+			continue
+		}
+
+		err = mp.headerValidator.IsHeaderConstructionValid(shardHdrInfo.Header, lastNotarizedHeaderInfoForShard.Header)
+		if err != nil {
+			return err
+		}
+
+		lastNotarizedHeaderInfoForShard = shardHdrInfo
+	}
+
 	return nil
 }
 
@@ -671,6 +676,7 @@ func (mp *metaProcessor) HasProofsForHeaders(headersPerShard map[uint32][]ShardH
 	for _, headersForShard := range headersPerShard {
 		for _, headerInfo := range headersForShard {
 			if !mp.proofsPool.HasProof(headerInfo.Header.GetShardID(), headerInfo.Hash) {
+				log.Debug("missing proof for shard header", "shard", headerInfo.Header.GetShardID(), "headerHash", headerInfo.Hash)
 				return false
 			}
 		}
@@ -680,7 +686,7 @@ func (mp *metaProcessor) HasProofsForHeaders(headersPerShard map[uint32][]ShardH
 
 func (mp *metaProcessor) getShardHeadersFromMetaHeader(
 	metaHeaderHandler data.MetaHeaderHandler,
-) (*UsedShardHeadersInfo, error) {
+) (*usedShardHeadersInfo, error) {
 	shardInfoProposalHandlers := metaHeaderHandler.GetShardInfoProposalHandlers()
 	usedShardHeaders := make(map[uint32][]ShardHeaderInfo)
 	var err error
@@ -702,9 +708,9 @@ func (mp *metaProcessor) getShardHeadersFromMetaHeader(
 		orderedShardHeaderHashes = append(orderedShardHeaderHashes, shardInfoHandler.GetHeaderHash())
 	}
 
-	return &UsedShardHeadersInfo{
-		HeadersPerShard:          usedShardHeaders,
-		OrderedShardHeaders:      orderedShardHeaders,
-		OrderedShardHeaderHashes: orderedShardHeaderHashes,
+	return &usedShardHeadersInfo{
+		headersPerShard:          usedShardHeaders,
+		orderedShardHeaders:      orderedShardHeaders,
+		orderedShardHeaderHashes: orderedShardHeaderHashes,
 	}, nil
 }
