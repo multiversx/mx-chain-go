@@ -76,9 +76,9 @@ func (provider *AccountsEphemeralProvider) GetUserAccount(address []byte) (UserA
 	account, err := provider.getExistingAccountTypedAsUserAccount(address)
 
 	var errAccountNotFoundAtBlock *ErrAccountNotFoundAtBlock
-	ok = errors.As(err, &errAccountNotFoundAtBlock)
+	isAccountNotFoundError := errors.Is(err, ErrAccNotFound) || errors.As(err, &errAccountNotFoundAtBlock)
 
-	if err != nil && !errors.Is(err, ErrAccNotFound) && !ok {
+	if err != nil && !isAccountNotFoundError {
 		// Unexpected failure (error different from "ErrAccNotFound").
 		// Account won't be cached.
 		return nil, err

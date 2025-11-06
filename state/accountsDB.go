@@ -1070,7 +1070,7 @@ func (adb *AccountsDB) recreateTrieIfNeeded(options common.RootHashHolder) error
 	}
 
 	if bytes.Equal(currentRootHash, options.GetRootHash()) {
-		log.Trace("accountsDB.RecreateTrieIfNeeded - no need to recreate", "root hash", currentRootHash)
+		log.Trace("accountsDB.recreateTrieIfNeeded - no need to recreate", "root hash", currentRootHash)
 		return nil
 	}
 

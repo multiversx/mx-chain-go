@@ -1072,13 +1072,13 @@ func (sp *shardProcessor) CommitBlock(
 	if err != nil {
 		return err
 	}
+	sp.blockChain.SetCurrentBlockHeaderHash(headerHash)
 
-	err = sp.OnExecutedBlock(lastExecutionResultHeader, rootHash)
+	err = sp.onExecutedBlock(lastExecutionResultHeader, rootHash)
 	if err != nil {
 		return err
 	}
 
-	sp.blockChain.SetCurrentBlockHeaderHash(headerHash)
 	sp.indexBlockIfNeeded(bodyHandler, headerHash, headerHandler, lastBlockHeader)
 	sp.stateAccessesCollector.Reset()
 	sp.recordBlockInHistory(headerHash, headerHandler, bodyHandler)
@@ -2167,7 +2167,7 @@ func (sp *shardProcessor) createMiniBlocks(haveTime func() bool, randomness []by
 		return &block.Body{MiniBlocks: miniBlocks}, processedMiniBlocksDestMeInfo, nil
 	}
 
-	err = sp.RecreateTrieIfNeeded()
+	err = sp.recreateTrieIfNeeded()
 	if err != nil {
 		return nil, nil, err
 	}

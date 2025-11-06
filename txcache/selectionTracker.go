@@ -73,7 +73,7 @@ func (st *selectionTracker) OnProposedBlock(
 	defer st.mutTracker.Unlock()
 
 	if !bytes.Equal(st.latestRootHash, accountsRootHash) {
-		// TODO when the right information will be passed on the OnExecutedBlock flow, the error must be returned here.
+		// TODO when the right information will be passed on the onExecutedBlock flow, the error must be returned here.
 		log.Error("selectionTracker.OnProposedBlock",
 			"err", errRootHashMismatch,
 			"latestRootHash", st.latestRootHash,
@@ -87,7 +87,7 @@ func (st *selectionTracker) OnProposedBlock(
 
 	// analyze if we should have this check
 	if !bytes.Equal(st.latestRootHash, rootHash) {
-		// TODO when the right information will be passed on the OnExecutedBlock flow, the error must be returned here.
+		// TODO when the right information will be passed on the onExecutedBlock flow, the error must be returned here.
 		log.Error("selectionTracker.OnProposedBlock",
 			"err", errRootHashMismatch,
 			"latestRootHash", st.latestRootHash,
@@ -324,7 +324,7 @@ func (st *selectionTracker) OnExecutedBlock(blockHeader data.HeaderHandler, root
 	nonce := blockHeader.GetNonce()
 	prevHash := blockHeader.GetPrevHash()
 
-	log.Debug("selectionTracker.OnExecutedBlock",
+	log.Debug("selectionTracker.onExecutedBlock",
 		"nonce", nonce,
 		"rootHash", rootHash,
 		"prevHash", prevHash,
@@ -437,7 +437,7 @@ func (st *selectionTracker) deriveVirtualSelectionSession(
 	}
 
 	if !bytes.Equal(st.latestRootHash, rootHash) {
-		// TODO when the right information will be passed on the OnExecutedBlock flow, the error must be returned here.
+		// TODO when the right information will be passed on the onExecutedBlock flow, the error must be returned here.
 		log.Error("selectionTracker.deriveVirtualSelectionSession",
 			"err", errRootHashMismatch,
 			"latestRootHash", st.latestRootHash,

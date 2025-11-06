@@ -62,7 +62,7 @@ func (gab *globalAccountBreadcrumb) extendRightNonceRange(receivedBreadcrumb *ac
 	gab.lastNonce.HasValue = true
 }
 
-// updateOnRemovedBreadcrumbWithSameNonceOrBelow updates the global account breadcrumb when a block is removed on the OnExecutedBlock notification
+// updateOnRemovedBreadcrumbWithSameNonceOrBelow updates the global account breadcrumb when a block is removed on the onExecutedBlock notification
 func (gab *globalAccountBreadcrumb) updateOnRemovedBreadcrumbWithSameNonceOrBelow(receivedBreadcrumb *accountBreadcrumb) (bool, error) {
 	err := gab.reduceConsumedBalance(receivedBreadcrumb)
 	if err != nil {

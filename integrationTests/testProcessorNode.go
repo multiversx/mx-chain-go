@@ -773,9 +773,9 @@ func (tpn *TestProcessorNode) initGenesisBlocks(args ArgTestProcessorNode) {
 			tpn.EnableEpochs,
 		)
 
-		err := OnExecutedBlock(tpn)
+		err := OnGenesisExecutedBlock(tpn)
 		if err != nil {
-			log.Error("tpn.initGenesisBlocks", "err", err)
+			log.Error("tpn.initGenesisBlocks: OnGenesisExecutedBlock(tpn)", "err", err)
 		}
 
 		return
@@ -784,7 +784,7 @@ func (tpn *TestProcessorNode) initGenesisBlocks(args ArgTestProcessorNode) {
 	if args.WithSync {
 		rootHash, err := tpn.AccntState.RootHash()
 		if err != nil {
-			log.Error("tpn.initGenesisBlocks", "err", err)
+			log.Error("tpn.initGenesisBlocks: AccntState.RootHash()", "err", err)
 		}
 
 		tpn.GenesisBlocks = CreateSimpleGenesisBlocks(tpn.ShardCoordinator, rootHash)
@@ -809,9 +809,9 @@ func (tpn *TestProcessorNode) initGenesisBlocks(args ArgTestProcessorNode) {
 		tpn.ChainParametersHandler,
 	)
 
-	err := OnExecutedBlock(tpn)
+	err := OnGenesisExecutedBlock(tpn)
 	if err != nil {
-		log.Error("tpn.initGenesisBlocks", "err", err)
+		log.Error("tpn.initGenesisBlocks: OnGenesisExecutedBlock(tpn)", "err", err)
 	}
 }
 

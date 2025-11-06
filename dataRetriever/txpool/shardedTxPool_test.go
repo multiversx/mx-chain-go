@@ -583,7 +583,7 @@ func TestShardedTxPool_OnProposedBlock_And_OnExecutedBlock(t *testing.T) {
 		require.Nil(t, err)
 	})
 
-	t.Run("OnExecutedBlock calls TxCache.OnExecutedBlock", func(t *testing.T) {
+	t.Run("onExecutedBlock calls TxCache.onExecutedBlock", func(t *testing.T) {
 		t.Parallel()
 
 		err := pool.OnExecutedBlock(nil, []byte{})

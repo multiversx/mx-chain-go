@@ -2457,17 +2457,17 @@ func (bp *baseProcessor) OnProposedBlock(
 	return bp.dataPool.Transactions().OnProposedBlock(proposedHash, proposedBodyPtr, proposedHeader, accountsProvider, lastExecResHandler.GetHeaderHash())
 }
 
-func (bp *baseProcessor) OnExecutedBlock(header data.HeaderHandler, rootHash []byte) error {
+func (bp *baseProcessor) onExecutedBlock(header data.HeaderHandler, rootHash []byte) error {
 	err := bp.dataPool.Transactions().OnExecutedBlock(header, rootHash)
 	if err != nil {
-		log.Error("baseProcessor.OnExecutedBlock", "err", err)
+		log.Error("baseProcessor.onExecutedBlock", "err", err)
 		return err
 	}
 
 	return nil
 }
 
-func (bp *baseProcessor) RecreateTrieIfNeeded() error {
+func (bp *baseProcessor) recreateTrieIfNeeded() error {
 	rootHash := bp.blockChain.GetCurrentBlockRootHash()
 	if len(rootHash) == 0 {
 		genesisBlock := bp.blockChain.GetGenesisHeader()
@@ -2477,7 +2477,7 @@ func (bp *baseProcessor) RecreateTrieIfNeeded() error {
 	rh := holders.NewDefaultRootHashesHolder(rootHash)
 	err := bp.accountsProposal.RecreateTrieIfNeeded(rh)
 	if err != nil {
-		log.Error("baseProcessor.RecreateTrieIfNeeded", "err", err)
+		log.Error("baseProcessor.recreateTrieIfNeeded", "err", err)
 		return err
 	}
 

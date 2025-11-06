@@ -2805,7 +2805,7 @@ func TestShardBootstrap_SyncBlockV3(t *testing.T) {
 		assert.Equal(t, errExpected, err)
 	})
 
-	t.Run("should error when OnExecutedBlock fails on the ideal case", func(t *testing.T) {
+	t.Run("should error when onExecutedBlock fails on the ideal case", func(t *testing.T) {
 		t.Parallel()
 
 		args := createSyncBlockV3Args()
@@ -2850,7 +2850,7 @@ func TestShardBootstrap_SyncBlockV3(t *testing.T) {
 		assert.Equal(t, errExpected, err)
 	})
 
-	t.Run("should error when OnExecutedBlock fails on the bigger gap case", func(t *testing.T) {
+	t.Run("should error when onExecutedBlock fails on the bigger gap case", func(t *testing.T) {
 		t.Parallel()
 
 		// test details:
@@ -3388,7 +3388,7 @@ func TestShardBootstrap_SyncBlockLegacy(t *testing.T) {
 		assert.Nil(t, err)
 	})
 
-	t.Run("should error when OnExecutedBlock fails", func(t *testing.T) {
+	t.Run("should error when onExecutedBlock fails", func(t *testing.T) {
 		t.Parallel()
 
 		args := createSyncBlockLegacyArgs()

@@ -618,7 +618,7 @@ func CreateGenesisBlocks(
 	genesisBlocks := make(map[uint32]data.HeaderHandler)
 	for shardId := uint32(0); shardId < shardCoordinator.NumberOfShards(); shardId++ {
 		rootHash, err := accounts.RootHash()
-		log.Debug("CreateGenesisBlocks", "err", err)
+		log.Error("CreateGenesisBlocks", "err", err)
 		genesisBlocks[shardId] = CreateSimpleGenesisBlock(shardId, rootHash)
 	}
 
@@ -942,6 +942,7 @@ func CreateGenesisMetaBlock(
 	return metaHdr
 }
 
+// SetRootHashOfGenesisBlocks updates the root hash of the genesis block of each node and calls the OnGenesisExecutedBlock method
 func SetRootHashOfGenesisBlocks(nodes []*TestProcessorNode) {
 	for _, tpn := range nodes {
 		rootHash, err := tpn.Node.GetStateComponents().AccountsAdapter().RootHash()
@@ -961,14 +962,15 @@ func SetRootHashOfGenesisBlocks(nodes []*TestProcessorNode) {
 			log.Error("SetRootHashOfGenesisBlocks", "err", err)
 		}
 
-		err = OnExecutedBlock(tpn)
+		err = OnGenesisExecutedBlock(tpn)
 		if err != nil {
 			log.Error("SetRootHashOfGenesisBlocks", "err", err)
 		}
 	}
 }
 
-func OnExecutedBlock(node *TestProcessorNode) error {
+// OnGenesisExecutedBlock resets the tracker and calls the OnGenesisExecutedBlock with the genesis block
+func OnGenesisExecutedBlock(node *TestProcessorNode) error {
 	shardID := node.ShardCoordinator.SelfId()
 	genesisBlock := node.GenesisBlocks[shardID]
 	node.DataPool.Transactions().ResetTracker()

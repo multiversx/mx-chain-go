@@ -955,7 +955,7 @@ func (mp *metaProcessor) createMiniBlocks(
 		)
 	}
 
-	err = mp.RecreateTrieIfNeeded()
+	err = mp.recreateTrieIfNeeded()
 	if err != nil {
 		return nil, err
 	}
@@ -1282,7 +1282,7 @@ func (mp *metaProcessor) CommitBlock(
 
 	mp.blockChain.SetCurrentBlockHeaderHash(headerHash)
 
-	err = mp.OnExecutedBlock(headerHandler, committedRootHash)
+	err = mp.onExecutedBlock(headerHandler, committedRootHash)
 	if err != nil {
 		return err
 	}
