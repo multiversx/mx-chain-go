@@ -1062,7 +1062,7 @@ func (sp *shardProcessor) CommitBlock(
 		return err
 	}
 
-	err = sp.blockChain.SetCurrentBlockHeaderAndRootHash(header, committedRootHash)
+	err = sp.setCurrentBlockInfo(header, headerHash, committedRootHash)
 	if err != nil {
 		return err
 	}
