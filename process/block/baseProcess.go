@@ -2626,6 +2626,10 @@ func (bp *baseProcessor) saveReceiptsForHeader(header data.HeaderHandler, header
 		return err
 	}
 
+	if len(miniBlocks) == 0 {
+		return nil
+	}
+
 	receiptsHolder := holders.NewReceiptsHolder(miniBlocks)
 	return bp.receiptsRepository.SaveReceipts(receiptsHolder, header, headerHash)
 }
@@ -2651,6 +2655,9 @@ func (bp *baseProcessor) getMiniBlocksForReceipts(header data.HeaderHandler, hea
 	if err != nil {
 		return nil, err
 	}
+
+	bp.dataPool.ExecutedMiniBlocks().Remove(intraShardMiniBlockKey)
+
 	return postProcessMiniBlocksToMe, nil
 }
 
