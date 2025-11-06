@@ -2609,6 +2609,10 @@ func (bp *baseProcessor) cacheIntraShardMiniBlocks(headerHash []byte, mbs []*blo
 }
 
 func (bp *baseProcessor) cachePostProcessMiniBlocksToMe(headerHash []byte, mbs []*block.MiniBlock) error {
+	if len(mbs) == 0 {
+		return nil
+	}
+
 	marshalledMbs, err := bp.marshalizer.Marshal(mbs)
 	if err != nil {
 		return err
