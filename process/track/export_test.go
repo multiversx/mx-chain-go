@@ -50,6 +50,11 @@ func (bbt *baseBlockTrack) ReceivedHeader(headerHandler data.HeaderHandler, head
 	bbt.receivedHeader(headerHandler, headerHash)
 }
 
+// ReceivedProof -
+func (bbt *baseBlockTrack) ReceivedProof(proof data.HeaderProofHandler) {
+	bbt.receivedProof(proof)
+}
+
 // CheckTrackerNilParameters -
 func CheckTrackerNilParameters(arguments ArgBaseTracker) error {
 	return checkTrackerNilParameters(arguments)
