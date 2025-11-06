@@ -10,6 +10,8 @@ import (
 	outportcore "github.com/multiversx/mx-chain-core-go/data/outport"
 	"github.com/multiversx/mx-chain-core-go/data/smartContractResult"
 	"github.com/multiversx/mx-chain-core-go/data/transaction"
+	"github.com/stretchr/testify/require"
+
 	"github.com/multiversx/mx-chain-go/common"
 	"github.com/multiversx/mx-chain-go/outport/mock"
 	"github.com/multiversx/mx-chain-go/process"
@@ -19,8 +21,6 @@ import (
 	"github.com/multiversx/mx-chain-go/testscommon/epochNotifier"
 	"github.com/multiversx/mx-chain-go/testscommon/genericMocks"
 	"github.com/multiversx/mx-chain-go/testscommon/marshallerMock"
-	logger "github.com/multiversx/mx-chain-logger-go"
-	"github.com/stretchr/testify/require"
 )
 
 var pubKeyConverter, _ = pubkeyConverter.NewBech32PubkeyConverter(32, "erd")
@@ -465,8 +465,6 @@ func silentDecodeAddress(address string) []byte {
 func TestPutFeeAndGasUsedScrWithRefundNoTx(t *testing.T) {
 	t.Parallel()
 
-	_ = logger.SetLogLevel("*:TRACE")
-
 	txHash := []byte("relayedTx")
 	scrWithRefund := []byte("scrWithRefund")
 
@@ -495,6 +493,8 @@ func TestPutFeeAndGasUsedScrWithRefundNoTx(t *testing.T) {
 
 	wasCalled := false
 	txsFeeProc, err := NewTransactionsFeeProcessor(arg)
+	require.Nil(t, err)
+
 	txsFeeProc.log = &testscommon.LoggerStub{
 		TraceCalled: func(message string, args ...interface{}) {
 			wasCalled = true

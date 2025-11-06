@@ -198,6 +198,14 @@ func createMockMetaArguments(
 	}
 	gasComputation, _ := blproc.NewGasConsumption(argsGasConsumption)
 
+	shardInfoCreator, _ := blproc.NewShardInfoCreateData(
+		coreComponents.EnableEpochsHandler(),
+		dataComponents.Datapool().Headers(),
+		dataComponents.Datapool().Proofs(),
+		&mock.PendingMiniBlocksHandlerStub{},
+		blockTracker,
+	)
+
 	arguments := blproc.ArgMetaProcessor{
 		ArgBaseProcessor: blproc.ArgBaseProcessor{
 			CoreComponents:       coreComponents,
@@ -249,6 +257,7 @@ func createMockMetaArguments(
 		EpochValidatorInfoCreator:    &testscommon.EpochValidatorInfoCreatorStub{},
 		ValidatorStatisticsProcessor: &testscommon.ValidatorStatisticsProcessorStub{},
 		EpochSystemSCProcessor:       &testscommon.EpochStartSystemSCStub{},
+		ShardInfoCreator:             shardInfoCreator,
 	}
 	return arguments
 }
@@ -1403,16 +1412,16 @@ func TestMetaProcessor_CreateShardInfoShouldWorkNoHdrAddataRetrieverMockdedNotVa
 	mp, _ := blproc.NewMetaProcessor(arguments)
 
 	round := uint64(10)
-	shardInfo, err := mp.CreateShardInfo()
+	metaHdr := &block.MetaBlock{Round: round}
+	shardInfo, err := mp.CreateShardInfo(metaHdr)
 	assert.Nil(t, err)
 	assert.Equal(t, 0, len(shardInfo))
 
-	metaHdr := &block.MetaBlock{Round: round}
 	_, err = mp.CreateBlockBody(metaHdr, func() bool {
 		return true
 	})
 	assert.Nil(t, err)
-	shardInfo, err = mp.CreateShardInfo()
+	shardInfo, err = mp.CreateShardInfo(metaHdr)
 	assert.Nil(t, err)
 	assert.Equal(t, 1, len(shardInfo))
 }
@@ -1508,14 +1517,14 @@ func TestMetaProcessor_CreateShardInfoShouldWorkNoHdrAddedNotFinal(t *testing.T)
 
 	mp.SetShardBlockFinality(0)
 	round := uint64(40)
-	shardInfo, err := mp.CreateShardInfo()
+	metaHdr := &block.MetaBlock{Round: round}
+	shardInfo, err := mp.CreateShardInfo(metaHdr)
 	assert.Nil(t, err)
 	assert.Equal(t, 0, len(shardInfo))
 
-	metaHdr := &block.MetaBlock{Round: round}
 	_, err = mp.CreateBlockBody(metaHdr, haveTimeHandler)
 	assert.Nil(t, err)
-	shardInfo, err = mp.CreateShardInfo()
+	shardInfo, err = mp.CreateShardInfo(metaHdr)
 	assert.Nil(t, err)
 	assert.Equal(t, 3, len(shardInfo))
 }
@@ -1660,14 +1669,14 @@ func TestMetaProcessor_CreateShardInfoShouldWorkHdrsAdded(t *testing.T) {
 
 	mp.SetShardBlockFinality(1)
 	round := uint64(15)
-	shardInfo, err := mp.CreateShardInfo()
+	metaHdr := &block.MetaBlock{Round: round}
+	shardInfo, err := mp.CreateShardInfo(metaHdr)
 	assert.Nil(t, err)
 	assert.Equal(t, 0, len(shardInfo))
 
-	metaHdr := &block.MetaBlock{Round: round}
 	_, err = mp.CreateBlockBody(metaHdr, haveTimeHandler)
 	assert.Nil(t, err)
-	shardInfo, err = mp.CreateShardInfo()
+	shardInfo, err = mp.CreateShardInfo(metaHdr)
 	assert.Nil(t, err)
 	assert.Equal(t, 3, len(shardInfo))
 }
@@ -1813,14 +1822,14 @@ func TestMetaProcessor_CreateShardInfoEmptyBlockHDRRoundTooHigh(t *testing.T) {
 
 	mp.SetShardBlockFinality(1)
 	round := uint64(20)
-	shardInfo, err := mp.CreateShardInfo()
+	metaHdr := &block.MetaBlock{Round: round}
+	shardInfo, err := mp.CreateShardInfo(metaHdr)
 	assert.Nil(t, err)
 	assert.Equal(t, 0, len(shardInfo))
 
-	metaHdr := &block.MetaBlock{Round: round}
 	_, err = mp.CreateBlockBody(metaHdr, haveTimeHandler)
 	assert.Nil(t, err)
-	shardInfo, err = mp.CreateShardInfo()
+	shardInfo, err = mp.CreateShardInfo(metaHdr)
 	assert.Nil(t, err)
 	assert.Equal(t, 3, len(shardInfo))
 }
@@ -3194,7 +3203,7 @@ func TestMetaProcessor_CreateNewHeaderValsOK(t *testing.T) {
 	assert.Equal(t, zeroInt, metaHeader.DevFeesInEpoch)
 }
 
-func TestCreateNewHeaderV3(t *testing.T) {
+func TestCreateNewHeaderProposal(t *testing.T) {
 	t.Parallel()
 
 	rootHash := []byte("root")
@@ -3228,14 +3237,41 @@ func TestCreateNewHeaderV3(t *testing.T) {
 	}
 
 	arguments := createMockMetaArguments(coreComponents, dataComponents, boostrapComponents, statusComponents)
+	dataComponents = &mock.DataComponentsMock{
+		BlockChain: &testscommon.ChainHandlerStub{
+			GetCurrentBlockHeaderCalled: func() data.HeaderHandler {
+				return &block.MetaBlockV3{
+					Epoch: epoch,
+					LastExecutionResult: &block.MetaExecutionResultInfo{
+						NotarizedInRound: 10,
+						ExecutionResult: &block.BaseMetaExecutionResult{
+							BaseExecutionResult: &block.BaseExecutionResult{
+								HeaderHash:  []byte("hash2"),
+								HeaderNonce: 9,
+								HeaderRound: 9,
+								HeaderEpoch: epoch,
+								RootHash:    []byte("root hash"),
+								GasUsed:     1000,
+							},
+						},
+					},
+				}
+			},
+			GetCurrentBlockHeaderHashCalled: func() []byte {
+				return []byte("hash")
+			},
+		},
+		DataPool: arguments.DataComponents.Datapool(),
+		Storage:  arguments.DataComponents.StorageService(),
+	}
 
+	arguments.DataComponents = dataComponents
 	arguments.AccountsDB[state.UserAccountsState] = &stateMock.AccountsStub{
 		RootHashCalled: func() ([]byte, error) {
 			return rootHash, nil
 		},
 	}
 
-	updateRoundCalled := false
 	arguments.EpochStartTrigger = &mock.EpochStartTriggerStub{
 		EpochCalled: func() uint32 {
 			return epoch
@@ -3243,19 +3279,15 @@ func TestCreateNewHeaderV3(t *testing.T) {
 		ShouldProposeEpochChangeCalled: func(round uint64, nonce uint64) bool {
 			return true
 		},
-		UpdateRoundCalled: func(round uint64) {
-			updateRoundCalled = true
-		},
 	}
 
 	mp, err := blproc.NewMetaProcessor(arguments)
 	assert.Nil(t, err)
 
-	newHeader, err := mp.CreateNewHeader(round, nonce)
+	newHeader, err := mp.CreateNewHeaderProposal(round, nonce)
 	require.Nil(t, err)
 	require.IsType(t, &block.MetaBlockV3{}, newHeader)
 	require.Equal(t, epoch, newHeader.GetEpoch())
-	require.True(t, updateRoundCalled)
 }
 
 func TestMetaProcessor_ProcessEpochStartMetaBlock(t *testing.T) {
