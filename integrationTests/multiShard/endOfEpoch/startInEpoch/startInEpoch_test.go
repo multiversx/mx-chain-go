@@ -2,6 +2,8 @@ package startInEpoch
 
 import (
 	"github.com/multiversx/mx-chain-go/testscommon/chainParameters"
+	"github.com/multiversx/mx-chain-go/testscommon/pool"
+
 	"math/big"
 	"os"
 	"testing"
@@ -383,7 +385,7 @@ func testNodeStartsInEpoch(t *testing.T, shardID uint32, expectedHighestRound ui
 
 func getBootstrapper(shardID uint32, baseArgs storageBootstrap.ArgsBaseStorageBootstrapper) (process.BootstrapperFromStorage, error) {
 	if shardID == core.MetachainShardId {
-		pendingMiniBlocksHandler, _ := pendingMb.NewPendingMiniBlocks()
+		pendingMiniBlocksHandler, _ := pendingMb.NewPendingMiniBlocks(&pool.HeadersPoolStub{})
 		bootstrapperArgs := storageBootstrap.ArgsMetaStorageBootstrapper{
 			ArgsBaseStorageBootstrapper: baseArgs,
 			PendingMiniBlocksHandler:    pendingMiniBlocksHandler,
