@@ -544,9 +544,7 @@ func (st *storageBootstrapper) setCurrentBlockInfoV3(
 	st.blkc.SetLastExecutedBlockHeaderAndRootHash(lastExecutedHeader, lastExecutionResult.GetHeaderHash(), lastExecutionResult.GetRootHash())
 
 	st.blkc.SetCurrentBlockHeaderHash(headerHash)
-	st.blkc.SetCurrentBlockHeader(header)
-
-	return nil
+	return st.blkc.SetCurrentBlockHeader(header)
 }
 
 func (st *storageBootstrapper) getAndApplyProofForHeader(headerHash []byte, header data.HeaderHandler) error {
