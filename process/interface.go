@@ -1567,6 +1567,7 @@ type ExecutionResultsTracker interface {
 	GetLastNotarizedExecutionResult() (data.BaseExecutionResultHandler, error)
 	SetLastNotarizedResult(executionResult data.BaseExecutionResultHandler) error
 	RemoveFromNonce(nonce uint64) error
+	CleanConfirmedExecutionResults(header data.HeaderHandler) error
 	IsInterfaceNil() bool
 }
 

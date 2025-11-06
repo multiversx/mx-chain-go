@@ -1281,6 +1281,11 @@ func (mp *metaProcessor) CommitBlock(
 		mp.blockTracker.CleanupInvalidCrossHeaders(header.Epoch, header.Round)
 	}
 
+	err = mp.cleanExecutionResultsFromTracker(header)
+	if err != nil {
+		return err
+	}
+
 	// TODO: Should be sent also validatorInfoTxs alongside rewardsTxs -> mp.validatorInfoCreator.GetValidatorInfoTxs(body) ?
 	mp.indexBlock(header, headerHash, body, finalMetaBlock, notarizedHeadersHashes, rewardsTxs)
 	mp.stateAccessesCollector.Reset()
@@ -1720,7 +1725,7 @@ func (mp *metaProcessor) saveLastNotarizedHeader(header *block.MetaBlock) error 
 }
 
 func (mp *metaProcessor) getLastCrossNotarizedShardHdrsAndAddToCurrentBlock() (map[uint32]data.HeaderHandler, error) {
-	lastCrossNotarizedHeader, err := mp.getLastCrossNotarizedShardHdrs()
+	lastCrossNotarizedHeader, err := mp.getLastCrossNotarizedShardHeaders()
 	if err != nil {
 		return nil, err
 	}
@@ -1734,7 +1739,7 @@ func (mp *metaProcessor) getLastCrossNotarizedShardHdrsAndAddToCurrentBlock() (m
 	return headers, nil
 }
 
-func (mp *metaProcessor) getLastCrossNotarizedShardHdrs() (map[uint32]ShardHeaderInfo, error) {
+func (mp *metaProcessor) getLastCrossNotarizedShardHeaders() (map[uint32]ShardHeaderInfo, error) {
 	lastCrossNotarizedHeader := make(map[uint32]ShardHeaderInfo, mp.shardCoordinator.NumberOfShards())
 	for shardID := uint32(0); shardID < mp.shardCoordinator.NumberOfShards(); shardID++ {
 		lastCrossNotarizedHeaderForShard, hash, err := mp.blockTracker.GetLastCrossNotarizedHeader(shardID)
