@@ -1119,6 +1119,10 @@ func (bp *baseProcessor) requestHeaderByShardAndNonce(shardID uint32, nonce uint
 	}
 }
 
+func (bp *baseProcessor) cleanExecutionResultsFromTracker(header data.HeaderHandler) error {
+	return bp.executionResultsTracker.CleanConfirmedExecutionResults(header)
+}
+
 func (bp *baseProcessor) cleanupPools(headerHandler data.HeaderHandler) {
 	noncesToPrevFinal := bp.getNoncesToFinal(headerHandler) + 1
 	bp.cleanupBlockTrackerPools(noncesToPrevFinal)
@@ -2798,16 +2802,10 @@ func (bp *baseProcessor) createMbsCrossShardDstMe(
 			"hash", currentBlockHash,
 			"num mbs added", len(currMiniBlocksAdded),
 			"num txs added", currNumTxsAdded)
-
-		return &CrossShardIncomingMbsCreationResult{
-			HeaderFinished:    false,
-			PendingMiniBlocks: pendingMiniBlocks,
-			AddedMiniBlocks:   currMiniBlocksAdded,
-		}, nil
 	}
 
 	return &CrossShardIncomingMbsCreationResult{
-		HeaderFinished:    true,
+		HeaderFinished:    hdrFinished,
 		PendingMiniBlocks: pendingMiniBlocks,
 		AddedMiniBlocks:   currMiniBlocksAdded,
 	}, nil
