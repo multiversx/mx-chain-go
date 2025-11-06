@@ -701,3 +701,34 @@ func (mp *metaProcessor) getShardHeadersFromMetaHeader(
 		OrderedShardHeaderHashes: orderedShardHeaderHashes,
 	}, nil
 }
+
+func (mp *metaProcessor) verifyGasLimit(header data.HeaderHandler) error {
+	err := checkMetaMBHeaders(header.GetMiniBlockHeaderHandlers())
+	if err != nil {
+		return err
+	}
+
+	incomingMiniBlocks, incomingTransactions, outgoingTransactionHashes, outgoingTransactions, err := mp.splitTransactionsForHeader(header)
+	if err != nil {
+		return err
+	}
+
+	if !(len(outgoingTransactions) == 0 && len(outgoingTransactionHashes) == 0) {
+		return fmt.Errorf("%w in metaProcessor.verifyGasLimit", process.ErrInvalidMetaTransaction)
+	}
+
+	mp.gasComputation.Reset()
+	_, _, err = mp.gasComputation.CheckIncomingMiniBlocks(incomingMiniBlocks, incomingTransactions)
+	return err
+}
+
+func checkMetaMBHeaders(mbs []data.MiniBlockHeaderHandler) error {
+	for _, mb := range mbs {
+		if !(mb.GetTypeInt32() == int32(block.PeerBlock) || mb.GetTypeInt32() == int32(block.RewardsBlock)) {
+			return fmt.Errorf("%w in checkMetaMbHeaders, type: %s, hash:% x",
+				process.ErrInvalidMiniBlockType, block.Type(mb.GetTypeInt32()).String(), mb.GetHash())
+		}
+	}
+
+	return nil
+}

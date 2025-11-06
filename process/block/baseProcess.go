@@ -2829,33 +2829,6 @@ func (bp *baseProcessor) revertGasForCrossShardDstMeMiniBlocks(added, pending []
 	bp.gasComputation.RevertIncomingMiniBlocks(miniBlockHashesToRevert)
 }
 
-func (bp *baseProcessor) verifyGasLimit(header data.HeaderHandler) error {
-	incomingMiniBlocks, incomingTransactions, outgoingTransactionHashes, outgoingTransactions, err := bp.splitTransactionsForHeader(header)
-	if err != nil {
-		return err
-	}
-
-	bp.gasComputation.Reset()
-	_, numPendingMiniBlocks, err := bp.gasComputation.CheckIncomingMiniBlocks(incomingMiniBlocks, incomingTransactions)
-	if err != nil {
-		return err
-	}
-
-	addedTxHashes, pendingMiniBlocksAdded, err := bp.gasComputation.CheckOutgoingTransactions(outgoingTransactionHashes, outgoingTransactions)
-	if err != nil {
-		return err
-	}
-	if len(addedTxHashes) != len(outgoingTransactionHashes) {
-		return fmt.Errorf("%w, outgoing transactions exceeded the limit", process.ErrInvalidMaxGasLimitPerMiniBlock)
-	}
-
-	if numPendingMiniBlocks != len(pendingMiniBlocksAdded) {
-		return fmt.Errorf("%w, incoming mini blocks exceeded the limit", process.ErrInvalidMaxGasLimitPerMiniBlock)
-	}
-
-	return nil
-}
-
 func (bp *baseProcessor) splitTransactionsForHeader(header data.HeaderHandler) (
 	incomingMiniBlocks []data.MiniBlockHeaderHandler,
 	incomingTransactions map[string][]data.TransactionHandler,
