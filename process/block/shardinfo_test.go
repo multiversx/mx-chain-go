@@ -1,7 +1,6 @@
 package block
 
 import (
-	"bytes"
 	"fmt"
 	"testing"
 
@@ -460,7 +459,7 @@ func TestShardInfoCreateData_createShardInfoFromHeader(t *testing.T) {
 	t.Run("should work with Legacy no proof for nonce < 1", func(t *testing.T) {
 		t.Parallel()
 		header := getShardHeaderForShard(uint32(1))
-		header.SetNonce(0)
+		_ = header.SetNonce(0)
 		args := createDefaultShardInfoCreateDataArgs()
 		args.pendingMiniBlocksHandler.GetPendingMiniBlocksCalled = func(shardID uint32) [][]byte {
 			return [][]byte{[]byte("hash1"), []byte("hash2")}
@@ -900,9 +899,9 @@ func TestShardInfoCreateData_miniBlockHeaderFromMiniBlockHeader(t *testing.T) {
 		miniblockHeaders := createShardMiniBlockHeaderFromHeader(headerHandler, enableEpochsHandler)
 		require.NotNil(t, miniblockHeaders)
 		require.Equal(t, 3, len(miniblockHeaders))
-		require.True(t, isMiniBlockHeaderComparable(headerHandler.GetMiniBlockHeaderHandlers()[0], miniblockHeaders[0]))
-		require.True(t, isMiniBlockHeaderComparable(headerHandler.GetMiniBlockHeaderHandlers()[1], miniblockHeaders[1]))
-		require.True(t, isMiniBlockHeaderComparable(headerHandler.GetMiniBlockHeaderHandlers()[2], miniblockHeaders[2]))
+		checkMiniBlockHeadersComparable(t, headerHandler.GetMiniBlockHeaderHandlers()[0], miniblockHeaders[0])
+		checkMiniBlockHeadersComparable(t, headerHandler.GetMiniBlockHeaderHandlers()[1], miniblockHeaders[1])
+		checkMiniBlockHeadersComparable(t, headerHandler.GetMiniBlockHeaderHandlers()[2], miniblockHeaders[2])
 	})
 	t.Run("ScheduledMiniBlocksFlag enabled, all miniblocks final", func(t *testing.T) {
 		t.Parallel()
@@ -915,9 +914,9 @@ func TestShardInfoCreateData_miniBlockHeaderFromMiniBlockHeader(t *testing.T) {
 		miniblockHeaders := createShardMiniBlockHeaderFromHeader(headerHandler, enableEpochsHandler)
 		require.NotNil(t, miniblockHeaders)
 		require.Equal(t, 3, len(miniblockHeaders))
-		require.True(t, isMiniBlockHeaderComparable(headerHandler.GetMiniBlockHeaderHandlers()[0], miniblockHeaders[0]))
-		require.True(t, isMiniBlockHeaderComparable(headerHandler.GetMiniBlockHeaderHandlers()[1], miniblockHeaders[1]))
-		require.True(t, isMiniBlockHeaderComparable(headerHandler.GetMiniBlockHeaderHandlers()[2], miniblockHeaders[2]))
+		checkMiniBlockHeadersComparable(t, headerHandler.GetMiniBlockHeaderHandlers()[0], miniblockHeaders[0])
+		checkMiniBlockHeadersComparable(t, headerHandler.GetMiniBlockHeaderHandlers()[1], miniblockHeaders[1])
+		checkMiniBlockHeadersComparable(t, headerHandler.GetMiniBlockHeaderHandlers()[2], miniblockHeaders[2])
 	})
 	t.Run("ScheduledMiniBlocksFlag enabled, not all miniblocks final", func(t *testing.T) {
 		t.Parallel()
@@ -932,8 +931,8 @@ func TestShardInfoCreateData_miniBlockHeaderFromMiniBlockHeader(t *testing.T) {
 		miniblockHeaders := createShardMiniBlockHeaderFromHeader(headerHandler, enableEpochsHandler)
 		require.NotNil(t, miniblockHeaders)
 		require.Equal(t, 2, len(miniblockHeaders))
-		require.True(t, isMiniBlockHeaderComparable(headerHandler.GetMiniBlockHeaderHandlers()[0], miniblockHeaders[0]))
-		require.True(t, isMiniBlockHeaderComparable(headerHandler.GetMiniBlockHeaderHandlers()[2], miniblockHeaders[1]))
+		checkMiniBlockHeadersComparable(t, headerHandler.GetMiniBlockHeaderHandlers()[0], miniblockHeaders[0])
+		checkMiniBlockHeadersComparable(t, headerHandler.GetMiniBlockHeaderHandlers()[2], miniblockHeaders[1])
 	})
 	t.Run("ScheduledMiniBlocksFlag enabled, no final miniblocks", func(t *testing.T) {
 		t.Parallel()
@@ -1015,7 +1014,7 @@ func TestShardInfoCreateData_updateShardDataWithCrossShardInfo(t *testing.T) {
 		require.NotNil(t, shardData)
 		require.Nil(t, err)
 		require.Equal(t, uint32(2), shardData.NumPendingMiniBlocks)
-		require.Equal(t, uint64(expectedNonce), shardData.LastIncludedMetaNonce)
+		require.Equal(t, expectedNonce, shardData.LastIncludedMetaNonce)
 	})
 }
 
@@ -1118,21 +1117,10 @@ func getExecutionResultForShard(shardID uint32, hash []byte) *block.ExecutionRes
 }
 
 // compares only the fields that are set in createShardMiniBlockHeaderFromExecutionResultHandler
-func isMiniBlockHeaderComparable(mbHeader1 data.MiniBlockHeaderHandler, mbHeader2 block.MiniBlockHeader) bool {
-	if !bytes.Equal(mbHeader1.GetHash(), mbHeader2.Hash) {
-		return false
-	}
-	if block.Type(mbHeader1.GetTypeInt32()) != mbHeader2.Type {
-		return false
-	}
-	if mbHeader1.GetTxCount() != mbHeader2.TxCount {
-		return false
-	}
-	if mbHeader1.GetSenderShardID() != mbHeader2.SenderShardID {
-		return false
-	}
-	if mbHeader1.GetReceiverShardID() != mbHeader2.ReceiverShardID {
-		return false
-	}
-	return true
+func checkMiniBlockHeadersComparable(t *testing.T, mbHeader1 data.MiniBlockHeaderHandler, mbHeader2 block.MiniBlockHeader) {
+	require.Equal(t, mbHeader1.GetHash(), mbHeader2.Hash)
+	require.Equal(t, block.Type(mbHeader1.GetTypeInt32()), mbHeader2.Type)
+	require.Equal(t, mbHeader1.GetTxCount(), mbHeader2.TxCount)
+	require.Equal(t, mbHeader1.GetSenderShardID(), mbHeader2.SenderShardID)
+	require.Equal(t, mbHeader1.GetReceiverShardID(), mbHeader2.ReceiverShardID)
 }
