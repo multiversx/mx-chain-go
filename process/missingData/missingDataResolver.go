@@ -261,7 +261,7 @@ func (r *Resolver) RequestMissingShardHeaders(
 	shardDataProposedNonces := make(map[uint32]uint64)
 	for _, shardProposalData := range metaHeader.GetShardInfoProposalHandlers() {
 		shardID := shardProposalData.GetShardID()
-		shardDataProposedNonces[shardID] = shardProposalData.GetNonce()
+		storeNonceToShardDataIfGreater(shardDataProposedNonces, shardProposalData.GetNonce(), shardID)
 
 		r.requestHeaderIfNeeded(shardID, shardProposalData.GetHeaderHash())
 		r.requestProofIfNeeded(shardID, shardProposalData.GetHeaderHash())
@@ -280,6 +280,12 @@ func (r *Resolver) requestEpochStartLastFinalizedHeaders(epochStartHandler data.
 	}
 }
 
+func storeNonceToShardDataIfGreater(shardDataProposedNonces map[uint32]uint64, nonce uint64, shardID uint32) {
+	if nonce > shardDataProposedNonces[shardID] {
+		shardDataProposedNonces[shardID] = nonce
+	}
+}
+
 func getShardDataFinalizedNonces(shardInfoHandlers []data.ShardDataHandler) map[uint32]uint64 {
 	shardDataFinalizedNonces := make(map[uint32]uint64)
 	for _, shardData := range shardInfoHandlers {
@@ -292,7 +298,6 @@ func (r *Resolver) requestNonceGapsIfNeeded(shardDataFinalizedNonces, shardDataP
 	for shardID, proposedNonce := range shardDataProposedNonces {
 		lastFinalizedNonce, found := shardDataFinalizedNonces[shardID]
 		if !found {
-			log.Warn("Resolver.requestNonceGapsIfNeeded: shard not found in shardDataFinalizedNonces", "shard", shardID)
 			continue
 		}
 

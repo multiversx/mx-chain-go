@@ -815,7 +815,8 @@ func TestResolver_RequestMissingShardHeadersBlocking(t *testing.T) {
 		shard2HdrHashFinalized := []byte("hdrHashFinalized2")
 
 		shard1HdrHashProposal := []byte("hdrHashProposal1")
-		shard2HdrHashProposal := []byte("hdrHashProposal2")
+		shard2HdrHashProposal1 := []byte("hdrHashProposal2")
+		shard2HdrHashProposal2 := []byte("hdrHashProposal3")
 
 		metaHeaderEpochStart := &block.MetaBlockV3{
 			ShardInfoProposal: []block.ShardDataProposal{
@@ -824,10 +825,16 @@ func TestResolver_RequestMissingShardHeadersBlocking(t *testing.T) {
 					ShardID:    1,
 					HeaderHash: shard1HdrHashProposal,
 				},
+				// two proposals for shard 2, should request gaps from max nonce = 5
 				{
 					Nonce:      5,
 					ShardID:    2,
-					HeaderHash: shard2HdrHashProposal,
+					HeaderHash: shard2HdrHashProposal1,
+				},
+				{
+					Nonce:      4,
+					ShardID:    2,
+					HeaderHash: shard2HdrHashProposal2,
 				},
 			},
 			// nonce gaps per shard:
@@ -849,7 +856,8 @@ func TestResolver_RequestMissingShardHeadersBlocking(t *testing.T) {
 
 		expectedShardHeadersRequested := [][]byte{
 			shard1HdrHashProposal,
-			shard2HdrHashProposal,
+			shard2HdrHashProposal1,
+			shard2HdrHashProposal2,
 		}
 
 		err := mdr.RequestMissingShardHeadersBlocking(metaHeaderEpochStart, 50*time.Millisecond)
