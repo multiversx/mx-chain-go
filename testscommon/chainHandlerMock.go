@@ -20,6 +20,7 @@ type ChainHandlerMock struct {
 	lastExecutedBlockNonce    uint64
 	lastExecutedBlockHash     []byte
 	lastExecutedBlockRootHash []byte
+	lastExecutedBlockHeader   data.HeaderHandler
 }
 
 // GetGenesisHeader -
@@ -97,6 +98,17 @@ func (mock *ChainHandlerMock) GetLastExecutedBlockInfo() (nonce uint64, blockHas
 // SetCurrentBlockHeader -
 func (mock *ChainHandlerMock) SetCurrentBlockHeader(header data.HeaderHandler) error {
 	mock.currentBlockHeader = header
+	return nil
+}
+
+// GetLastExecutedBlockHeader -
+func (mock *ChainHandlerMock) GetLastExecutedBlockHeader() data.HeaderHandler {
+	return mock.lastExecutedBlockHeader
+}
+
+// SetLastExecutedBlockHeader -
+func (mock *ChainHandlerMock) SetLastExecutedBlockHeader(header data.HeaderHandler) error {
+	mock.lastExecutedBlockHeader = header
 	return nil
 }
 

@@ -145,6 +145,7 @@ func (he *headersExecutor) process(pair queue.HeaderBodyPair) error {
 		executionResult.GetHeaderHash(),
 		executionResult.GetRootHash(),
 	)
+	he.blockChain.SetLastExecutedBlockHeader(pair.Header)
 
 	return nil
 }

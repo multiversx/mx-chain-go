@@ -53,7 +53,7 @@ func (mc *metaChain) SetGenesisHeader(header data.HeaderHandler) error {
 
 // SetCurrentBlockHeader sets current block header pointer
 func (mc *metaChain) SetCurrentBlockHeader(header data.HeaderHandler) error {
-	return mc.SetCurrentBlockHeader(header)
+	return mc.setCurrentBlockHeader(header)
 }
 
 func (mc *metaChain) setCurrentBlockHeader(header data.HeaderHandler) error {

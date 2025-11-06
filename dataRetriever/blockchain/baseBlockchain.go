@@ -10,14 +10,15 @@ import (
 )
 
 type baseBlockChain struct {
-	mut                    sync.RWMutex
-	appStatusHandler       core.AppStatusHandler
-	genesisHeader          data.HeaderHandler
-	genesisHeaderHash      []byte
-	currentBlockHeader     data.HeaderHandler
-	currentBlockHeaderHash []byte
-	finalBlockInfo         *blockInfo
-	lastExecutedBlockInfo  *blockInfo
+	mut                     sync.RWMutex
+	appStatusHandler        core.AppStatusHandler
+	genesisHeader           data.HeaderHandler
+	genesisHeaderHash       []byte
+	currentBlockHeader      data.HeaderHandler
+	currentBlockHeaderHash  []byte
+	finalBlockInfo          *blockInfo
+	lastExecutedBlockInfo   *blockInfo
+	lastExecutedBlockHeader data.HeaderHandler
 }
 
 type blockInfo struct {
@@ -124,6 +125,39 @@ func (bbc *baseBlockChain) GetLastExecutedBlockInfo() (uint64, []byte, []byte) {
 	rootHash := bbc.lastExecutedBlockInfo.committedRootHash
 
 	return nonce, hash, rootHash
+}
+
+// GetLastExecutedBlockHeader returns last executed block header pointer
+func (bbc *baseBlockChain) GetLastExecutedBlockHeader() data.HeaderHandler {
+	bbc.mut.RLock()
+	defer bbc.mut.RUnlock()
+
+	if check.IfNil(bbc.lastExecutedBlockHeader) {
+		return nil
+	}
+
+	return bbc.lastExecutedBlockHeader.ShallowClone()
+}
+
+func (bbc *baseBlockChain) SetLastExecutedBlockHeader(header data.HeaderHandler) error {
+	if check.IfNil(header) {
+		bbc.mut.Lock()
+		bbc.lastExecutedBlockHeader = nil
+		bbc.mut.Unlock()
+
+		return nil
+	}
+
+	bbc.mut.Lock()
+	defer bbc.mut.Unlock()
+
+	if header.GetNonce() != bbc.lastExecutedBlockInfo.nonce {
+		return ErrNonceDoesNotMatch
+	}
+
+	bbc.lastExecutedBlockHeader = header.ShallowClone()
+
+	return nil
 }
 
 func (bbc *baseBlockChain) setCurrentHeaderMetrics(

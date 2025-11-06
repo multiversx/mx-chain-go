@@ -305,13 +305,16 @@ func (service *SCQueryService) setCurrentBlockInfoV3(
 		return err
 	}
 
+	// for header v3, the context here will be created based on last executed block
+	// so here current block header (in apiBlockChain) is not set anymore)
+
 	service.apiBlockChain.SetLastExecutedBlockInfo(
 		lastExecutionResult.GetHeaderNonce(),
 		lastExecutionResult.GetHeaderHash(),
 		lastExecutionResult.GetRootHash(),
 	)
 
-	return service.apiBlockChain.SetCurrentBlockHeader(header)
+	return service.apiBlockChain.SetLastExecutedBlockHeader(header)
 }
 
 func (service *SCQueryService) recreateTrie(blockRootHash []byte, blockHeader data.HeaderHandler) error {
@@ -331,6 +334,7 @@ func (service *SCQueryService) recreateTrie(blockRootHash []byte, blockHeader da
 }
 
 // TODO: extract duplicated code with nodeBlocks.go
+// for header v3 current block is considered the last executed block
 func (service *SCQueryService) extractBlockHeaderAndRootHash(query *process.SCQuery) (data.HeaderHandler, []byte, error) {
 	if len(query.BlockHash) > 0 {
 		currentHeader, err := service.getBlockHeaderByHash(query.BlockHash)
@@ -356,11 +360,19 @@ func (service *SCQueryService) extractBlockHeaderAndRootHash(query *process.SCQu
 func (service *SCQueryService) getCurrentBlockHeaderAndRootHash() (data.HeaderHandler, []byte, error) {
 	currentHeader := service.mainBlockChain.GetCurrentBlockHeader()
 	if currentHeader != nil && currentHeader.IsHeaderV3() {
-		_, _, rootHash := service.mainBlockChain.GetLastExecutedBlockInfo()
-		return currentHeader, rootHash, nil
+		return service.getCurrentBlockHeaderAndRootHashV3()
 	}
 
 	return service.mainBlockChain.GetCurrentBlockHeader(), service.mainBlockChain.GetCurrentBlockRootHash(), nil
+}
+
+func (service *SCQueryService) getCurrentBlockHeaderAndRootHashV3() (data.HeaderHandler, []byte, error) {
+	_, _, rootHash := service.mainBlockChain.GetLastExecutedBlockInfo()
+
+	// current header will now be last executed header
+	lastExecutedHeader := service.mainBlockChain.GetLastExecutedBlockHeader()
+
+	return lastExecutedHeader, rootHash, nil
 }
 
 func (service *SCQueryService) getRootHashForBlock(currentHeader data.HeaderHandler) (data.HeaderHandler, []byte, error) {
@@ -387,7 +399,9 @@ func (service *SCQueryService) getRootHashForBlockV3(currentHeader data.HeaderHa
 		return nil, nil, err
 	}
 
-	return currentHeader, lastExecutionResult.GetRootHash(), nil
+	lastExecutedHeader := service.mainBlockChain.GetLastExecutedBlockHeader()
+
+	return lastExecutedHeader, lastExecutionResult.GetRootHash(), nil
 }
 
 func (service *SCQueryService) getBlockHeaderByHash(headerHash []byte) (data.HeaderHandler, error) {

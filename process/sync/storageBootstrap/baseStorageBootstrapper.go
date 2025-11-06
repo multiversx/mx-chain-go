@@ -517,6 +517,19 @@ func (st *storageBootstrapper) setCurrentBlockInfo(
 
 	st.blkc.SetCurrentBlockHeaderHash(headerHash)
 
+	// set also last executed block info and header
+	// this will be useful at transition to Supernova with headers v3
+	st.blkc.SetLastExecutedBlockInfo(
+		header.GetNonce(),
+		headerHash,
+		header.GetRootHash(),
+	)
+
+	err = st.blkc.SetLastExecutedBlockHeader(header)
+	if err != nil {
+		return err
+	}
+
 	return nil
 }
 
@@ -536,6 +549,19 @@ func (st *storageBootstrapper) setCurrentBlockInfoV3(
 	)
 
 	st.blkc.SetCurrentBlockHeaderHash(headerHash)
+
+	// at this point, last executed header reference by current header should be available in storage
+	// it was synced in epoch start bootstrap for header v3
+	lastExecutedHeader, err := st.bootstrapper.getHeader(lastExecutionResult.GetHeaderHash())
+	if err != nil {
+		log.Debug("storageBootstrapper: cannot get header from storage", "nonce", lastExecutionResult.GetHeaderNonce, "error", err.Error())
+		return err
+	}
+
+	err = st.blkc.SetLastExecutedBlockHeader(lastExecutedHeader)
+	if err != nil {
+		return err
+	}
 
 	return st.blkc.SetCurrentBlockHeader(header)
 }
