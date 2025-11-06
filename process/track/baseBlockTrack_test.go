@@ -2896,3 +2896,94 @@ func TestBaseBlockTrack_OwnShardStuck(t *testing.T) {
 	sbt.ComputeOwnShardStuck(lastExecResult, currentNonce)
 	require.True(t, sbt.IsOwnShardStuck())
 }
+
+func TestBaseBlockTrack_receivedProof(t *testing.T) {
+	t.Parallel()
+
+	t.Run("missing meta header should request it", func(t *testing.T) {
+		t.Parallel()
+
+		providedMetaProof := &block.HeaderProof{
+			HeaderHash:    []byte("header hash"),
+			HeaderShardId: core.MetachainShardId,
+		}
+		args := CreateShardTrackerMockArguments()
+		wasRequestCalled := false
+		args.RequestHandler = &testscommon.RequestHandlerStub{
+			RequestMetaHeaderCalled: func(hash []byte) {
+				require.Equal(t, string(providedMetaProof.HeaderHash), string(hash))
+				wasRequestCalled = true
+			},
+		}
+
+		sbt, _ := track.NewShardBlockTrack(args)
+		require.NotNil(t, sbt)
+
+		sbt.ReceivedProof(nil) // coverage only
+		sbt.ReceivedProof(providedMetaProof)
+		require.True(t, wasRequestCalled)
+	})
+	t.Run("missing shard header should request it", func(t *testing.T) {
+		t.Parallel()
+
+		providedShardProof := &block.HeaderProof{
+			HeaderHash:    []byte("header hash"),
+			HeaderShardId: 0,
+		}
+		args := CreateShardTrackerMockArguments()
+		wasRequestCalled := false
+		args.RequestHandler = &testscommon.RequestHandlerStub{
+			RequestShardHeaderCalled: func(shardID uint32, hash []byte) {
+				require.Equal(t, string(providedShardProof.HeaderHash), string(hash))
+				wasRequestCalled = true
+			},
+		}
+
+		sbt, _ := track.NewShardBlockTrack(args)
+		require.NotNil(t, sbt)
+
+		sbt.ReceivedProof(providedShardProof)
+		require.True(t, wasRequestCalled)
+	})
+	t.Run("should work and call received header", func(t *testing.T) {
+		t.Parallel()
+
+		providedShardProof := &block.HeaderProof{
+			HeaderHash:    []byte("header hash"),
+			HeaderShardId: 0,
+			HeaderNonce:   1,
+		}
+		args := CreateShardTrackerMockArguments()
+		wasHasProofCalled := false
+		args.PoolsHolder = &dataRetrieverMock.PoolsHolderStub{
+			HeadersCalled: func() dataRetriever.HeadersPool {
+				return &mock.HeadersCacherStub{
+					GetHeaderByHashCalled: func(hash []byte) (data.HeaderHandler, error) {
+						return &block.Header{
+							Nonce: 1,
+						}, nil
+					},
+				}
+			},
+			ProofsCalled: func() dataRetriever.ProofsPool {
+				return &dataRetrieverMock.ProofsPoolMock{
+					HasProofCalled: func(shardID uint32, headerHash []byte) bool {
+						wasHasProofCalled = true
+						return true
+					},
+				}
+			},
+		}
+		args.EnableEpochsHandler = &enableEpochsHandlerMock.EnableEpochsHandlerStub{
+			IsFlagEnabledInEpochCalled: func(flag core.EnableEpochFlag, epoch uint32) bool {
+				return true
+			},
+		}
+
+		sbt, _ := track.NewShardBlockTrack(args)
+		require.NotNil(t, sbt)
+
+		sbt.ReceivedProof(providedShardProof)
+		require.True(t, wasHasProofCalled)
+	})
+}
