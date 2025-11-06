@@ -22,6 +22,7 @@ func TestNewPendingMiniBlocks(t *testing.T) {
 	t.Parallel()
 
 	pmb, err := pendingMb.NewPendingMiniBlocks(nil)
+	require.Nil(t, pmb)
 	require.Equal(t, process.ErrNilHeadersDataPool, err)
 
 	pmb, err = pendingMb.NewPendingMiniBlocks(&pool.HeadersPoolStub{})
