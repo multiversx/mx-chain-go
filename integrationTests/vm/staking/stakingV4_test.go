@@ -140,10 +140,10 @@ func unStake(
 	_, err = accountsDB.Commit()
 	require.Nil(t, err)
 
-	updateRootHash(t, accountsDB, txPool, blockchain)
+	updateRootHashAndCallOnExecutedBlock(t, accountsDB, txPool, blockchain)
 }
 
-func updateRootHash(
+func updateRootHashAndCallOnExecutedBlock(
 	t *testing.T,
 	accountsDB state.AccountsAdapter,
 	txPool dataRetriever.ShardedDataCacherNotifier,
