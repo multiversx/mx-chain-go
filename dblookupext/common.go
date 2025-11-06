@@ -7,6 +7,7 @@ import (
 	"github.com/multiversx/mx-chain-core-go/data"
 	"github.com/multiversx/mx-chain-core-go/data/block"
 	"github.com/multiversx/mx-chain-core-go/marshal"
+
 	"github.com/multiversx/mx-chain-go/common"
 	"github.com/multiversx/mx-chain-go/process"
 	"github.com/multiversx/mx-chain-go/storage"
@@ -61,7 +62,7 @@ func getIntraMbs(cache storage.Cacher, marshaller marshal.Marshalizer, headerHas
 }
 
 func getBody(cache storage.Cacher, marshaller marshal.Marshalizer, baseExecResult data.BaseExecutionResultHandler, shardID uint32) (*block.Body, error) {
-	miniBlockHeaderHandlers, err := extractMiniBlocksHeaderHandlersFromExecResult(baseExecResult, shardID)
+	miniBlockHeaderHandlers, err := common.GetMiniBlocksHeaderHandlersFromExecResult(baseExecResult)
 	if err != nil {
 		return nil, err
 	}
@@ -88,28 +89,4 @@ func getBody(cache storage.Cacher, marshaller marshal.Marshalizer, baseExecResul
 	}
 
 	return &block.Body{MiniBlocks: miniBlocks}, nil
-}
-
-// TODO  reuse the method that was moved into common after PR #7337 is merged
-func extractMiniBlocksHeaderHandlersFromExecResult(
-	baseExecResult data.BaseExecutionResultHandler,
-	headerShard uint32,
-) ([]data.MiniBlockHeaderHandler, error) {
-	if headerShard == common.MetachainShardId {
-		metaExecResult, ok := baseExecResult.(data.MetaExecutionResultHandler)
-		if !ok {
-			log.Warn("extractMiniBlocksHeaderHandlersFromExecResult assert failed to MetaExecutionResultHandler")
-			return nil, process.ErrWrongTypeAssertion
-		}
-
-		return metaExecResult.GetMiniBlockHeadersHandlers(), nil
-	}
-
-	execResult, ok := baseExecResult.(data.ExecutionResultHandler)
-	if !ok {
-		log.Warn("extractMiniBlocksHeaderHandlersFromExecResult assert failed to ExecutionResultHandler")
-		return nil, process.ErrWrongTypeAssertion
-	}
-
-	return execResult.GetMiniBlockHeadersHandlers(), nil
 }
