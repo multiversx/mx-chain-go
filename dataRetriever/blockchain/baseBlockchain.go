@@ -92,17 +92,6 @@ func (bbc *baseBlockChain) SetFinalBlockInfo(nonce uint64, headerHash []byte, ro
 	bbc.mut.Unlock()
 }
 
-// SetLastExecutedBlockInfo sets the nonce, hash and rootHash associated with the last executed results
-func (bbc *baseBlockChain) SetLastExecutedBlockInfo(nonce uint64, headerHash []byte, rootHash []byte) {
-	bbc.mut.Lock()
-
-	bbc.lastExecutedBlockInfo.nonce = nonce
-	bbc.lastExecutedBlockInfo.hash = headerHash
-	bbc.lastExecutedBlockInfo.committedRootHash = rootHash
-
-	bbc.mut.Unlock()
-}
-
 // GetFinalBlockInfo returns the nonce, hash and rootHash associated with the previous-to-final block
 func (bbc *baseBlockChain) GetFinalBlockInfo() (uint64, []byte, []byte) {
 	bbc.mut.RLock()
@@ -139,25 +128,27 @@ func (bbc *baseBlockChain) GetLastExecutedBlockHeader() data.HeaderHandler {
 	return bbc.lastExecutedBlockHeader.ShallowClone()
 }
 
-func (bbc *baseBlockChain) SetLastExecutedBlockHeader(header data.HeaderHandler) error {
-	if check.IfNil(header) {
-		bbc.mut.Lock()
-		bbc.lastExecutedBlockHeader = nil
-		bbc.mut.Unlock()
-
-		return nil
-	}
-
+func (bbc *baseBlockChain) SetLastExecutedBlockHeaderAndRootHash(
+	header data.HeaderHandler,
+	headerHash []byte,
+	rootHash []byte,
+) {
 	bbc.mut.Lock()
 	defer bbc.mut.Unlock()
 
-	if header.GetNonce() != bbc.lastExecutedBlockInfo.nonce {
-		return ErrNonceDoesNotMatch
+	if check.IfNil(header) {
+		bbc.lastExecutedBlockHeader = nil
+		bbc.lastExecutedBlockInfo.nonce = 0
+		bbc.lastExecutedBlockInfo.hash = nil
+		bbc.lastExecutedBlockInfo.committedRootHash = nil
+		return
 	}
 
-	bbc.lastExecutedBlockHeader = header.ShallowClone()
+	bbc.lastExecutedBlockInfo.nonce = header.GetNonce()
+	bbc.lastExecutedBlockInfo.hash = headerHash
+	bbc.lastExecutedBlockInfo.committedRootHash = rootHash
 
-	return nil
+	bbc.lastExecutedBlockHeader = header.ShallowClone()
 }
 
 func (bbc *baseBlockChain) setCurrentHeaderMetrics(

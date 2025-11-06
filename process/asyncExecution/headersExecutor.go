@@ -140,16 +140,7 @@ func (he *headersExecutor) process(pair queue.HeaderBodyPair) error {
 		executionResult.GetRootHash(),
 	)
 
-	he.blockChain.SetLastExecutedBlockInfo(
-		executionResult.GetHeaderNonce(),
-		executionResult.GetHeaderHash(),
-		executionResult.GetRootHash(),
-	)
-	err = he.blockChain.SetLastExecutedBlockHeader(pair.Header)
-	if err != nil {
-		log.Warn("headersExecutor.process set last executed header failed", "err", err)
-		return nil
-	}
+	he.blockChain.SetLastExecutedBlockHeaderAndRootHash(pair.Header, executionResult.GetHeaderHash(), executionResult.GetRootHash())
 
 	return nil
 }

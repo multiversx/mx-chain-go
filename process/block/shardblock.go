@@ -1180,16 +1180,7 @@ func (sp *shardProcessor) setCurrentBlockInfo(
 
 	// set also last executed block info and header
 	// this will be useful at transition to Supernova with headers v3
-	sp.blockChain.SetLastExecutedBlockInfo(
-		header.GetNonce(),
-		headerHash,
-		header.GetRootHash(),
-	)
-
-	err = sp.blockChain.SetLastExecutedBlockHeader(header)
-	if err != nil {
-		return err
-	}
+	sp.blockChain.SetLastExecutedBlockHeaderAndRootHash(header, headerHash, header.GetRootHash())
 
 	return nil
 }

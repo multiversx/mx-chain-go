@@ -50,54 +50,31 @@ func TestBaseBlockchain_SetAndGetSetFinalBlockInfoWorksWithNilValues(t *testing.
 	require.Nil(t, actualRootHash)
 }
 
-func TestBaseBlockchain_SetAndGetLastExecutedBlockInfo(t *testing.T) {
+func TestBaseBlockchain_SetAndGetLastExecutedBlockHeaderAndRootHash(t *testing.T) {
 	t.Parallel()
 
-	base := &baseBlockChain{
-		appStatusHandler:      &mock.AppStatusHandlerStub{},
-		finalBlockInfo:        &blockInfo{},
-		lastExecutedBlockInfo: &blockInfo{},
-	}
-
-	nonce := uint64(10)
-	hash := []byte("hash")
-	rootHash := []byte("root-hash")
-
-	base.SetLastExecutedBlockInfo(nonce, hash, rootHash)
-	actualNonce, actualHash, actualRootHash := base.GetLastExecutedBlockInfo()
-
-	require.Equal(t, nonce, actualNonce)
-	require.Equal(t, hash, actualHash)
-	require.Equal(t, rootHash, actualRootHash)
-}
-
-func TestBaseBlockchain_SetAndGetLastExecutedBlockHeader(t *testing.T) {
-	t.Parallel()
-
-	t.Run("should fail if nonce does not match with last executed info", func(t *testing.T) {
+	t.Run("should set nil if header nil provided", func(t *testing.T) {
 		t.Parallel()
 
 		base := &baseBlockChain{
 			appStatusHandler:      &mock.AppStatusHandlerStub{},
 			finalBlockInfo:        &blockInfo{},
 			lastExecutedBlockInfo: &blockInfo{},
-			lastExecutedBlockHeader: &block.HeaderV3{
-				Nonce: uint64(1),
-			},
 		}
 
-		nonce := uint64(10)
 		hash := []byte("hash")
 		rootHash := []byte("root-hash")
 
-		base.SetLastExecutedBlockInfo(nonce, hash, rootHash)
+		base.SetLastExecutedBlockHeaderAndRootHash(nil, hash, rootHash)
 
-		header1 := &block.HeaderV3{
-			Nonce: uint64(11),
-		}
+		retHeader := base.GetLastExecutedBlockHeader()
 
-		err := base.SetLastExecutedBlockHeader(header1)
-		require.Equal(t, ErrNonceDoesNotMatch, err)
+		require.Nil(t, retHeader)
+
+		retNonce, retHeaderHash, retRootHash := base.GetLastExecutedBlockInfo()
+		require.Zero(t, retNonce)
+		require.Nil(t, retHeaderHash)
+		require.Nil(t, retRootHash)
 	})
 
 	t.Run("should work", func(t *testing.T) {
@@ -113,26 +90,20 @@ func TestBaseBlockchain_SetAndGetLastExecutedBlockHeader(t *testing.T) {
 		hash := []byte("hash")
 		rootHash := []byte("root-hash")
 
-		base.SetLastExecutedBlockInfo(nonce, hash, rootHash)
-
-		// should set nil header if nil provided
-		err := base.SetLastExecutedBlockHeader(nil)
-		require.Nil(t, err)
-
-		// should return nil if not set
-		retHeader := base.GetLastExecutedBlockHeader()
-		require.Nil(t, retHeader)
-
 		header1 := &block.HeaderV3{
 			Nonce: nonce,
 		}
 
-		err = base.SetLastExecutedBlockHeader(header1)
-		require.Nil(t, err)
+		base.SetLastExecutedBlockHeaderAndRootHash(header1, hash, rootHash)
 
-		retHeader = base.GetLastExecutedBlockHeader()
+		retHeader := base.GetLastExecutedBlockHeader()
 
 		require.Equal(t, nonce, retHeader.GetNonce())
+
+		retNonce, retHeaderHash, retRootHash := base.GetLastExecutedBlockInfo()
+		require.Equal(t, nonce, retNonce)
+		require.Equal(t, hash, retHeaderHash)
+		require.Equal(t, rootHash, retRootHash)
 	})
 }
 
@@ -156,7 +127,7 @@ func TestBaseBlockchain_Concurrency(t *testing.T) {
 
 	for i := range numCalls {
 		go func(i int) {
-			switch i % 11 {
+			switch i % 10 {
 			case 0:
 				_ = bc.GetCurrentBlockHeaderHash()
 			case 1:
@@ -170,15 +141,13 @@ func TestBaseBlockchain_Concurrency(t *testing.T) {
 			case 5:
 				_, _, _ = bc.GetLastExecutedBlockInfo()
 			case 6:
-				_ = bc.SetLastExecutedBlockHeader(header)
+				bc.SetLastExecutedBlockHeaderAndRootHash(header, headerHash, rootHash)
 			case 7:
 				bc.SetCurrentBlockHeaderHash(headerHash)
 			case 8:
 				bc.SetFinalBlockInfo(0, headerHash, rootHash)
 			case 9:
 				bc.SetGenesisHeaderHash(headerHash)
-			case 10:
-				bc.SetLastExecutedBlockInfo(0, headerHash, rootHash)
 			default:
 				require.Fail(t, "should have not been called")
 			}

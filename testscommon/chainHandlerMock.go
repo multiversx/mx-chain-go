@@ -78,13 +78,6 @@ func (mock *ChainHandlerMock) SetFinalBlockInfo(nonce uint64, headerHash []byte,
 	mock.finalBlockRootHash = rootHash
 }
 
-// SetLastExecutedBlockInfo -
-func (mock *ChainHandlerMock) SetLastExecutedBlockInfo(nonce uint64, headerHash []byte, rootHash []byte) {
-	mock.lastExecutedBlockNonce = nonce
-	mock.lastExecutedBlockHash = headerHash
-	mock.lastExecutedBlockRootHash = rootHash
-}
-
 // GetFinalBlockInfo -
 func (mock *ChainHandlerMock) GetFinalBlockInfo() (nonce uint64, blockHash []byte, rootHash []byte) {
 	return mock.finalBlockNonce, mock.finalBlockHash, mock.finalBlockRootHash
@@ -106,10 +99,12 @@ func (mock *ChainHandlerMock) GetLastExecutedBlockHeader() data.HeaderHandler {
 	return mock.lastExecutedBlockHeader
 }
 
-// SetLastExecutedBlockHeader -
-func (mock *ChainHandlerMock) SetLastExecutedBlockHeader(header data.HeaderHandler) error {
+// SetLastExecutedBlockHeaderAndRootHash -
+func (mock *ChainHandlerMock) SetLastExecutedBlockHeaderAndRootHash(header data.HeaderHandler, blockHash []byte, rootHash []byte) {
 	mock.lastExecutedBlockHeader = header
-	return nil
+	mock.lastExecutedBlockNonce = header.GetNonce()
+	mock.lastExecutedBlockHash = blockHash
+	mock.lastExecutedBlockRootHash = rootHash
 }
 
 // IsInterfaceNil -

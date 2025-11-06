@@ -275,7 +275,7 @@ func (service *SCQueryService) setCurrentBlockInfo(
 	rootHash []byte,
 ) error {
 	if header.IsHeaderV3() {
-		return service.setCurrentBlockInfoV3(header)
+		return service.setCurrentBlockInfoV3(header, rootHash)
 	}
 
 	return service.apiBlockChain.SetCurrentBlockHeaderAndRootHash(header, rootHash)
@@ -294,22 +294,14 @@ func (service *SCQueryService) getCurrentBlockRootHash(
 
 func (service *SCQueryService) setCurrentBlockInfoV3(
 	header data.HeaderHandler,
+	rootHash []byte,
 ) error {
-	lastExecutionResult, err := common.ExtractBaseExecutionResultHandler(header.GetLastExecutionResultHandler())
-	if err != nil {
-		return err
-	}
-
 	// for header v3, the context here will be created based on last executed block
 	// so here current block header (in apiBlockChain) is not set anymore)
 
-	service.apiBlockChain.SetLastExecutedBlockInfo(
-		lastExecutionResult.GetHeaderNonce(),
-		lastExecutionResult.GetHeaderHash(),
-		lastExecutionResult.GetRootHash(),
-	)
+	service.apiBlockChain.SetLastExecutedBlockHeaderAndRootHash(header, []byte{}, rootHash) // header hash not needed in this context
 
-	return service.apiBlockChain.SetLastExecutedBlockHeader(header)
+	return nil
 }
 
 func (service *SCQueryService) recreateTrie(blockRootHash []byte, blockHeader data.HeaderHandler) error {
