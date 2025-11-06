@@ -594,7 +594,7 @@ func (mp *metaProcessor) hasExecutionResultsForProposedEpochChange(headerHandler
 		}
 
 		if isEpochChangeProposed && !hasStartOfEpochOnExecutionResult {
-			return false, process.ErrStartOfEpochExecutionResultsDoesNotExist
+			return false, process.ErrStartOfEpochExecutionResultsDoNotExist
 		}
 
 		if isEpochChangeProposed {

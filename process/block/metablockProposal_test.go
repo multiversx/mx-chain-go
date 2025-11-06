@@ -1614,7 +1614,7 @@ func TestMetaProcessor_hasExecutionResultsForProposedEpochChange(t *testing.T) {
 		require.Equal(t, process.ErrWrongTypeAssertion, err)
 	})
 
-	t.Run("should return ErrStartOfEpochExecutionResultsDoesNotExist", func(t *testing.T) {
+	t.Run("should return ErrStartOfEpochExecutionResultsDoNotExist", func(t *testing.T) {
 		t.Parallel()
 
 		metaHeader := &block.MetaBlockV3{
@@ -1657,7 +1657,7 @@ func TestMetaProcessor_hasExecutionResultsForProposedEpochChange(t *testing.T) {
 		require.Nil(t, err)
 
 		_, err = mp.HasExecutionResultsForProposedEpochChange(metaHeader)
-		require.Equal(t, process.ErrStartOfEpochExecutionResultsDoesNotExist, err)
+		require.Equal(t, process.ErrStartOfEpochExecutionResultsDoNotExist, err)
 	})
 
 	t.Run("should find header with epoch change proposal", func(t *testing.T) {
