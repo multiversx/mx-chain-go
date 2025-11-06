@@ -145,7 +145,11 @@ func (he *headersExecutor) process(pair queue.HeaderBodyPair) error {
 		executionResult.GetHeaderHash(),
 		executionResult.GetRootHash(),
 	)
-	he.blockChain.SetLastExecutedBlockHeader(pair.Header)
+	err = he.blockChain.SetLastExecutedBlockHeader(pair.Header)
+	if err != nil {
+		log.Warn("headersExecutor.process set last executed header failed", "err", err)
+		return nil
+	}
 
 	return nil
 }
