@@ -2822,3 +2822,25 @@ func (bp *baseProcessor) revertGasForCrossShardDstMeMiniBlocks(added, pending []
 
 	bp.gasComputation.RevertIncomingMiniBlocks(miniBlockHashesToRevert)
 }
+
+func (bp *baseProcessor) checkContextBeforeExecution(header data.HeaderHandler) error {
+	lastCommittedRootHash, err := bp.accountsDB[state.UserAccountsState].RootHash()
+	if err != nil {
+		return err
+	}
+
+	// TODO: the GetLastExecutedBlockInfo should return also the LastCommittedBlockInfo (in case the committed block was V2)
+	// this is done on another PR
+	lastExecutedNonce, lastExecutedHash, lastExecutedRootHash := bp.blockChain.GetLastExecutedBlockInfo()
+	if !bytes.Equal(header.GetPrevHash(), lastExecutedHash) {
+		return process.ErrBlockHashDoesNotMatch
+	}
+	if header.GetNonce() != lastExecutedNonce+1 {
+		return process.ErrWrongNonceInBlock
+	}
+	if !bytes.Equal(lastCommittedRootHash, lastExecutedRootHash) {
+		return process.ErrRootStateDoesNotMatch
+	}
+
+	return nil
+}

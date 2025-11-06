@@ -1,7 +1,6 @@
 package block
 
 import (
-	"bytes"
 	"errors"
 	"fmt"
 	"time"
@@ -338,7 +337,6 @@ func (sp *shardProcessor) ProcessBlockProposal(
 		return nil, process.ErrAccountStateDirty
 	}
 
-	// TODO: add check also for meta
 	err := sp.checkContextBeforeExecution(header)
 	if err != nil {
 		return nil, err
@@ -421,28 +419,6 @@ func (sp *shardProcessor) ProcessBlockProposal(
 	}
 
 	return executionResult, nil
-}
-
-func (sp *shardProcessor) checkContextBeforeExecution(header data.HeaderHandler) error {
-	lastCommittedRootHash, err := sp.accountsDB[state.UserAccountsState].RootHash()
-	if err != nil {
-		return err
-	}
-
-	// TODO: the GetLastExecutedBlockInfo should return also the LastCommittedBlockInfo (in case the committed block was V2)
-	// this is done on another PR
-	lastExecutedNonce, lastExecutedHash, lastExecutedRootHash := sp.blockChain.GetLastExecutedBlockInfo()
-	if !bytes.Equal(header.GetPrevHash(), lastExecutedHash) {
-		return process.ErrBlockHashDoesNotMatch
-	}
-	if header.GetNonce() != lastExecutedNonce+1 {
-		return process.ErrWrongNonceInBlock
-	}
-	if !bytes.Equal(lastCommittedRootHash, lastExecutedRootHash) {
-		return process.ErrRootStateDoesNotMatch
-	}
-
-	return nil
 }
 
 func (sp *shardProcessor) splitTransactionsForHeader(header data.HeaderHandler) (
