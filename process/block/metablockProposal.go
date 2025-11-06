@@ -13,6 +13,7 @@ import (
 
 	"github.com/multiversx/mx-chain-go/common"
 	"github.com/multiversx/mx-chain-go/process"
+	"github.com/multiversx/mx-chain-go/state"
 )
 
 // usedShardHeadersInfo holds the used shard headers information
@@ -277,6 +278,164 @@ func (mp *metaProcessor) ProcessBlockProposal(
 	headerHandler data.HeaderHandler,
 	bodyHandler data.BodyHandler,
 ) (data.BaseExecutionResultHandler, error) {
+	if check.IfNil(headerHandler) {
+		return nil, process.ErrNilBlockHeader
+	}
+	if check.IfNil(bodyHandler) {
+		return nil, process.ErrNilBlockBody
+	}
+	if !headerHandler.IsHeaderV3() {
+		return nil, process.ErrInvalidHeader
+	}
+
+	mp.processStatusHandler.SetBusy("shardProcessor.ProcessBlockProposal")
+	defer mp.processStatusHandler.SetIdle()
+
+	mp.roundNotifier.CheckRound(headerHandler)
+	mp.epochNotifier.CheckEpoch(headerHandler)
+	mp.requestHandler.SetEpoch(headerHandler.GetEpoch())
+
+	header, ok := headerHandler.(data.MetaHeaderHandler)
+	if !ok {
+		return nil, process.ErrWrongTypeAssertion
+	}
+
+	body, ok := bodyHandler.(*block.Body)
+	if !ok {
+		return nil, process.ErrWrongTypeAssertion
+	}
+
+	log.Debug("started processing block",
+		"epoch", headerHandler.GetEpoch(),
+		"shard", headerHandler.GetShardID(),
+		"round", headerHandler.GetRound(),
+		"nonce", headerHandler.GetNonce(),
+	)
+
+	if mp.accountsDB[state.UserAccountsState].JournalLen() != 0 {
+		log.Error("shardProcessor.ProcessBlockProposal first entry", "stack", string(mp.accountsDB[state.UserAccountsState].GetStackDebugFirstEntry()))
+		return nil, process.ErrAccountStateDirty
+	}
+
+	err := mp.checkContextBeforeExecution(header)
+	if err != nil {
+		return nil, err
+	}
+
+	// defer func() {
+	// 	if err != nil {
+	// 		mp.RevertCurrentBlock(headerHandler)
+	// 	}
+	// }()
+
+	err = mp.createBlockStarted()
+	if err != nil {
+		return nil, err
+	}
+
+	// mp.epochStartTrigger.Update(header.GetRound(), header.GetNonce())
+	err = mp.blockChainHook.SetCurrentHeader(header)
+	if err != nil {
+		return nil, err
+	}
+
+	// err = mp.processIfFirstBlockAfterEpochStart()
+	// if err != nil {
+	// 	return nil, err
+	// }
+	//
+	// if header.IsStartOfEpochBlock() {
+	// 	err = mp.processEpochStartMetaBlock(header, body)
+	// 	return nil, err
+	// }
+	//
+	// mp.txCoordinator.RequestBlockTransactions(body)
+	// mp.hdrsForCurrBlock.RequestShardHeaders(header)
+	//
+	// // although we can have a long time for processing, it being decoupled from consensus,
+	// // we still give some reasonable timeout
+	// proposalStartTime := time.Now()
+	// haveTime := getHaveTimeForProposal(proposalStartTime, maxBlockProcessingTime)
+	//
+	// err = mp.txCoordinator.IsDataPreparedForProcessing(haveTime)
+	// if err != nil {
+	// 	return nil, err
+	// }
+	//
+	// err = mp.hdrsForCurrBlock.WaitForHeadersIfNeeded(haveTime)
+	// if err != nil {
+	// 	return nil, err
+	// }
+	//
+	// defer func() {
+	// 	go mp.checkAndRequestIfShardHeadersMissing()
+	// }()
+	//
+	// highestNonceHdrs, err := mp.checkShardHeadersValidity(header)
+	// if err != nil {
+	// 	return nil, err
+	// }
+	//
+	// err = mp.checkShardHeadersFinality(highestNonceHdrs)
+	// if err != nil {
+	// 	return nil, err
+	// }
+	//
+	// err = mp.verifyCrossShardMiniBlockDstMe(header)
+	// if err != nil {
+	// 	return nil, err
+	// }
+	//
+	// err = mp.verifyTotalAccumulatedFeesInEpoch(header)
+	// if err != nil {
+	// 	return nil, err
+	// }
+	//
+	// mbIndex := mp.getIndexOfFirstMiniBlockToBeExecuted(header)
+	// miniBlocks := body.MiniBlocks[mbIndex:]
+	//
+	// startTime := time.Now()
+	// err = mp.txCoordinator.ProcessBlockTransaction(header, &block.Body{MiniBlocks: miniBlocks}, haveTime)
+	// elapsedTime := time.Since(startTime)
+	// log.Debug("elapsed time to process block transaction",
+	// 	"time [s]", elapsedTime,
+	// )
+	// if err != nil {
+	// 	return nil, err
+	// }
+	//
+	// err = mp.txCoordinator.VerifyCreatedBlockTransactions(header, &block.Body{MiniBlocks: miniBlocks})
+	// if err != nil {
+	// 	return nil, err
+	// }
+	//
+	// err = mp.scToProtocol.UpdateProtocol(&block.Body{MiniBlocks: miniBlocks}, header.GetNonce())
+	// if err != nil {
+	// 	return nil, err
+	// }
+	//
+	// err = mp.verifyFees(header)
+	// if err != nil {
+	// 	return nil, err
+	// }
+	//
+	// if !mp.verifyStateRoot(header.GetRootHash()) {
+	// 	err = process.ErrRootStateDoesNotMatch
+	// 	return nil, err
+	// }
+	//
+	// err = mp.verifyValidatorStatisticsRootHash(header)
+	// if err != nil {
+	// 	return nil, err
+	// }
+
+	err = mp.blockProcessingCutoffHandler.HandleProcessErrorCutoff(header)
+	if err != nil {
+		return nil, err
+	}
+
+	_ = body // TODO: use body after implementing the processing
+
 	return nil, nil
 }
 
