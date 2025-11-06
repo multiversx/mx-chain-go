@@ -444,11 +444,12 @@ func TestShardInfoCreateData_createShardInfoFromHeader(t *testing.T) {
 		)
 		require.Nil(t, err)
 		expectedProposalHandler := &block.ShardDataProposal{
-			HeaderHash: []byte("hash"),
-			Round:      10,
-			Nonce:      45,
-			ShardID:    1,
-			Epoch:      0,
+			HeaderHash:           []byte("hash"),
+			Round:                10,
+			Nonce:                45,
+			ShardID:              1,
+			Epoch:                0,
+			NumPendingMiniBlocks: 2,
 		}
 
 		shardDataProposalHandler, shardDataHandlers, err := sic.createShardInfoFromHeader(header, []byte("hash"))
@@ -483,11 +484,12 @@ func TestShardInfoCreateData_createShardInfoFromHeader(t *testing.T) {
 		)
 		require.Nil(t, err)
 		expectedProposalHandler := &block.ShardDataProposal{
-			HeaderHash: []byte("hash"),
-			Round:      10,
-			Nonce:      0,
-			ShardID:    1,
-			Epoch:      0,
+			HeaderHash:           []byte("hash"),
+			Round:                10,
+			Nonce:                0,
+			ShardID:              1,
+			Epoch:                0,
+			NumPendingMiniBlocks: 2,
 		}
 
 		shardDataProposalHandler, shardDataHandlers, err := sic.createShardInfoFromHeader(header, []byte("hash"))
@@ -525,11 +527,12 @@ func TestShardInfoCreateData_createShardInfoFromHeader(t *testing.T) {
 		)
 		require.Nil(t, err)
 		expectedProposalHandler := &block.ShardDataProposal{
-			HeaderHash: []byte("hash"),
-			Round:      10,
-			Nonce:      45,
-			ShardID:    1,
-			Epoch:      7,
+			HeaderHash:           []byte("hash"),
+			Round:                10,
+			Nonce:                45,
+			ShardID:              1,
+			Epoch:                7,
+			NumPendingMiniBlocks: 2,
 		}
 
 		shardDataProposalHandler, shardDataHandlers, err := sic.createShardInfoFromHeader(header, []byte("hash"))
@@ -568,11 +571,12 @@ func TestShardInfoCreateData_createShardInfoFromHeader(t *testing.T) {
 		)
 		require.Nil(t, err)
 		expectedProposalHandler := &block.ShardDataProposal{
-			HeaderHash: []byte("hash"),
-			Round:      10,
-			Nonce:      0,
-			ShardID:    1,
-			Epoch:      7,
+			HeaderHash:           []byte("hash"),
+			Round:                10,
+			Nonce:                0,
+			ShardID:              1,
+			Epoch:                7,
+			NumPendingMiniBlocks: 2,
 		}
 
 		shardDataProposalHandler, shardDataHandlers, err := sic.createShardInfoFromHeader(header, []byte("hash"))
