@@ -225,8 +225,6 @@ func (mp *metaProcessor) VerifyBlockProposal(
 		return err
 	}
 
-	// TODO: check that no scheduled mini blocks are included
-
 	// TODO: analyse if it should be enforced that execution results on start of epoch block include only start of epoch execution results
 	err = mp.executionResultsVerifier.VerifyHeaderExecutionResults(header)
 	if err != nil {
@@ -266,10 +264,7 @@ func (mp *metaProcessor) VerifyBlockProposal(
 		return err
 	}
 
-	// TODO: move gas limit verification in baseProcessor
-	// return mp.verifyGasLimit(header)
-
-	return nil
+	return mp.verifyGasLimit(header)
 }
 
 // ProcessBlockProposal processes the proposed block. It returns nil if all ok or the specific error
@@ -732,4 +727,32 @@ func (mp *metaProcessor) getShardHeadersFromMetaHeader(
 		orderedShardHeaders:      orderedShardHeaders,
 		orderedShardHeaderHashes: orderedShardHeaderHashes,
 	}, nil
+}
+
+func (mp *metaProcessor) verifyGasLimit(header data.HeaderHandler) error {
+	splitRes, err := mp.splitTransactionsForHeader(header)
+	if err != nil {
+		return err
+	}
+
+	numOutGoingMBs := len(splitRes.outGoingMiniBlocks)
+	if numOutGoingMBs != 0 {
+		return fmt.Errorf("%w, received: %d", errInvalidNumOutGoingMBInMetaHdrProposal, numOutGoingMBs)
+	}
+
+	numOutGoingTxs := len(splitRes.outgoingTransactions)
+	if numOutGoingTxs != 0 {
+		return fmt.Errorf("%w in metaProcessor.verifyGasLimit, received: %d",
+			errInvalidNumOutGoingTxsInMetaHdrProposal,
+			numOutGoingTxs,
+		)
+	}
+
+	mp.gasComputation.Reset()
+	_, numPendingMiniBlocks, err := mp.gasComputation.CheckIncomingMiniBlocks(splitRes.incomingMiniBlocks, splitRes.incomingTransactions)
+	if numPendingMiniBlocks != 0 {
+		return errInvalidNumPendingMiniBlocksInMetaHdrProposal
+	}
+
+	return err
 }
