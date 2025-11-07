@@ -103,7 +103,7 @@ func TestExecutionManager_StartExecution(t *testing.T) {
 	em, _ := executionManager.NewExecutionManager(args)
 
 	startCalled := false
-	mockExecutor := &processMocks.HeadersExecutorStub{
+	mockExecutor := &processMocks.HeadersExecutorMock{
 		StartExecutionCalled: func() {
 			startCalled = true
 		},
@@ -133,7 +133,7 @@ func TestExecutionManager_SetHeadersExecutor(t *testing.T) {
 		args := createMockArgs()
 		em, _ := executionManager.NewExecutionManager(args)
 
-		mockExecutor := &processMocks.HeadersExecutorStub{}
+		mockExecutor := &processMocks.HeadersExecutorMock{}
 		err := em.SetHeadersExecutor(mockExecutor)
 		require.NoError(t, err)
 	})
@@ -260,7 +260,7 @@ func TestExecutionManager_RemoveAtNonceAndHigher(t *testing.T) {
 			},
 		}
 		em, _ := executionManager.NewExecutionManager(args)
-		mockExecutor := &processMocks.HeadersExecutorStub{
+		mockExecutor := &processMocks.HeadersExecutorMock{
 			PauseExecutionCalled: func() {
 				pauseCalled = true
 			},
@@ -303,7 +303,7 @@ func TestExecutionManager_RemoveAtNonceAndHigher(t *testing.T) {
 			},
 		}
 		em, _ := executionManager.NewExecutionManager(args)
-		mockExecutor := &processMocks.HeadersExecutorStub{
+		mockExecutor := &processMocks.HeadersExecutorMock{
 			PauseExecutionCalled: func() {
 				pauseCalled = true
 			},
@@ -362,7 +362,7 @@ func TestExecutionManager_RemoveAtNonceAndHigher(t *testing.T) {
 		args.BlockChain = chainMock
 
 		em, _ := executionManager.NewExecutionManager(args)
-		mockExecutor := &processMocks.HeadersExecutorStub{
+		mockExecutor := &processMocks.HeadersExecutorMock{
 			PauseExecutionCalled: func() {
 				pauseCalled = true
 			},
@@ -549,7 +549,7 @@ func TestExecutionManager_Close(t *testing.T) {
 		executorCloseCalled := false
 		queueCloseCalled := false
 
-		mockExecutor := &processMocks.HeadersExecutorStub{
+		mockExecutor := &processMocks.HeadersExecutorMock{
 			CloseCalled: func() error {
 				executorCloseCalled = true
 				return nil
@@ -573,7 +573,7 @@ func TestExecutionManager_Close(t *testing.T) {
 		t.Parallel()
 
 		args := createMockArgs()
-		mockExecutor := &processMocks.HeadersExecutorStub{
+		mockExecutor := &processMocks.HeadersExecutorMock{
 			CloseCalled: func() error {
 				return errExpected
 			},
