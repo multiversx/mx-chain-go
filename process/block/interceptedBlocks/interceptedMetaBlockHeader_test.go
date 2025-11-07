@@ -29,8 +29,14 @@ func createDefaultMetaArgument() *interceptedBlocks.ArgInterceptedBlockHeader {
 }
 
 func createDefaultMetaV3Argument() *interceptedBlocks.ArgInterceptedBlockHeader {
-	shardCoordinator := mock.NewOneShardCoordinatorMock()
-	return createMetaV3ArgumentWithShardCoordinator(shardCoordinator)
+	shardCoordinator := mock.NewMultiShardsCoordinatorMock(3)
+	arg := createMetaV3ArgumentWithShardCoordinator(shardCoordinator)
+	arg.EnableEpochsHandler = &enableEpochsHandlerMock.EnableEpochsHandlerStub{
+		IsFlagEnabledInEpochCalled: func(flag core.EnableEpochFlag, epoch uint32) bool {
+			return true
+		},
+	}
+	return arg
 }
 
 func createMetaArgumentWithShardCoordinatorAndHeader(shardCoordinator sharding.Coordinator, hdr data.MetaHeaderHandler) *interceptedBlocks.ArgInterceptedBlockHeader {
@@ -106,6 +112,7 @@ func createMockMetaHeaderV3() *dataBlock.MetaBlockV3 {
 		RandSeed:        []byte("new_seed"),
 		ChainID:         []byte("chain-id"),
 		SoftwareVersion: []byte("v1.0.0"),
+		LeaderSignature: []byte("leader_signature"),
 
 		MiniBlockHeaders: []dataBlock.MiniBlockHeader{
 			{Hash: []byte("meta-to-s0"), SenderShardID: core.MetachainShardId, ReceiverShardID: 0},
@@ -351,9 +358,9 @@ func TestInterceptedMetaHeader_CheckValidityLeaderSignatureNotCorrectShouldErr(t
 func TestInterceptedMetaHeader_CheckValidityErrorInMiniBlockShouldErr(t *testing.T) {
 	t.Parallel()
 
-	meta := createMockMetaHeader()
+	hdr := createMockMetaHeader()
 	badShardId := uint32(2)
-	meta.MiniBlockHeaders = []dataBlock.MiniBlockHeader{
+	hdr.MiniBlockHeaders = []dataBlock.MiniBlockHeader{
 		{
 			Hash:            make([]byte, 0),
 			SenderShardID:   badShardId,
@@ -365,7 +372,7 @@ func TestInterceptedMetaHeader_CheckValidityErrorInMiniBlockShouldErr(t *testing
 
 	arg := createDefaultMetaArgument()
 	marshaller := arg.Marshalizer
-	buff, _ := marshaller.Marshal(meta)
+	buff, _ := marshaller.Marshal(hdr)
 	arg.HdrBuff = buff
 	inHdr, err := interceptedBlocks.NewInterceptedMetaHeader(arg)
 	require.Nil(t, err)
@@ -391,6 +398,37 @@ func TestInterceptedMetaHeader_CheckValidityLeaderSignatureOkShouldWork(t *testi
 
 	err := inHdr.CheckValidity()
 	assert.Nil(t, err)
+}
+
+func TestInterceptedMetaHeader_CheckValidityExecutionResultMiniblockErrorInHeaderV3ShouldErr(t *testing.T) {
+	t.Parallel()
+
+	arg := createDefaultMetaV3Argument()
+	inHdr, err := interceptedBlocks.NewInterceptedMetaHeader(arg)
+	assert.Nil(t, err)
+	assert.NotNil(t, inHdr)
+
+	assert.True(t, inHdr.HeaderHandler().IsHeaderV3())
+	badShardId := uint32(28)
+	mbs := []dataBlock.MiniBlockHeader{
+		{
+			Hash:            make([]byte, 0),
+			SenderShardID:   badShardId,
+			ReceiverShardID: 0,
+			TxCount:         0,
+			Type:            0,
+		},
+	}
+	mbHandlers := make([]data.MiniBlockHeaderHandler, len(mbs))
+	for i := range mbs {
+		tmp := mbs[i]
+		mbHandlers[i] = &tmp
+	}
+	_ = inHdr.HeaderHandler().(*dataBlock.MetaBlockV3).ExecutionResults[1].SetMiniBlockHeadersHandlers(mbHandlers)
+	err = inHdr.CheckValidity()
+
+	assert.Error(t, err)
+	assert.Equal(t, process.ErrInvalidShardId, err)
 }
 
 func TestInterceptedMetaHeader_CheckValidityShouldWorkV3(t *testing.T) {

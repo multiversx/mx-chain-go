@@ -40,7 +40,7 @@ func NewInterceptedMetaHeader(arg *ArgInterceptedBlockHeader) (*InterceptedMetaH
 		return nil, err
 	}
 
-	hdr, err := createMetaHdr(arg.Marshalizer, arg.HdrBuff)
+	hdr, err := process.UnmarshalMetaHeader(arg.Marshalizer, arg.HdrBuff)
 	if err != nil {
 		return nil, err
 	}
@@ -157,7 +157,23 @@ func (imh *InterceptedMetaHeader) integrity() error {
 	if err != nil {
 		return err
 	}
+	err = checkMiniBlocksHeaders(imh.hdr.GetMiniBlockHeaderHandlers(), imh.shardCoordinator)
+	if err != nil {
+		return err
+	}
 
+	if imh.hdr.IsHeaderV3() {
+		for i, result := range imh.hdr.GetExecutionResultsHandlers() {
+			executionResult, ok := result.(*block.MetaExecutionResult)
+			if !ok {
+				return fmt.Errorf("failed to cast execution result at index %d to block.ExecutionResult", i)
+			}
+			err = checkMiniBlocksHeaders(executionResult.GetMiniBlockHeadersHandlers(), imh.shardCoordinator)
+			if err != nil {
+				return err
+			}
+		}
+	}
 	return nil
 }
 
