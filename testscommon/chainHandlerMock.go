@@ -20,6 +20,7 @@ type ChainHandlerMock struct {
 	lastExecutedBlockNonce    uint64
 	lastExecutedBlockHash     []byte
 	lastExecutedBlockRootHash []byte
+	lastExecutedBlockHeader   data.HeaderHandler
 }
 
 // GetGenesisHeader -
@@ -77,13 +78,6 @@ func (mock *ChainHandlerMock) SetFinalBlockInfo(nonce uint64, headerHash []byte,
 	mock.finalBlockRootHash = rootHash
 }
 
-// SetLastExecutedBlockInfo -
-func (mock *ChainHandlerMock) SetLastExecutedBlockInfo(nonce uint64, headerHash []byte, rootHash []byte) {
-	mock.lastExecutedBlockNonce = nonce
-	mock.lastExecutedBlockHash = headerHash
-	mock.lastExecutedBlockRootHash = rootHash
-}
-
 // GetFinalBlockInfo -
 func (mock *ChainHandlerMock) GetFinalBlockInfo() (nonce uint64, blockHash []byte, rootHash []byte) {
 	return mock.finalBlockNonce, mock.finalBlockHash, mock.finalBlockRootHash
@@ -92,6 +86,25 @@ func (mock *ChainHandlerMock) GetFinalBlockInfo() (nonce uint64, blockHash []byt
 // GetLastExecutedBlockInfo -
 func (mock *ChainHandlerMock) GetLastExecutedBlockInfo() (nonce uint64, blockHash []byte, rootHash []byte) {
 	return mock.lastExecutedBlockNonce, mock.lastExecutedBlockHash, mock.lastExecutedBlockRootHash
+}
+
+// SetCurrentBlockHeader -
+func (mock *ChainHandlerMock) SetCurrentBlockHeader(header data.HeaderHandler) error {
+	mock.currentBlockHeader = header
+	return nil
+}
+
+// GetLastExecutedBlockHeader -
+func (mock *ChainHandlerMock) GetLastExecutedBlockHeader() data.HeaderHandler {
+	return mock.lastExecutedBlockHeader
+}
+
+// SetLastExecutedBlockHeaderAndRootHash -
+func (mock *ChainHandlerMock) SetLastExecutedBlockHeaderAndRootHash(header data.HeaderHandler, blockHash []byte, rootHash []byte) {
+	mock.lastExecutedBlockHeader = header
+	mock.lastExecutedBlockNonce = header.GetNonce()
+	mock.lastExecutedBlockHash = blockHash
+	mock.lastExecutedBlockRootHash = rootHash
 }
 
 // IsInterfaceNil -
