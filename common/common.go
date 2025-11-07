@@ -27,10 +27,19 @@ const (
 	nonceIndex     = 0
 )
 
+type executionResultHandler interface {
+	GetMiniBlockHeadersHandlers() []data.MiniBlockHeaderHandler
+}
+
 type chainParametersHandler interface {
 	CurrentChainParameters() config.ChainParametersByEpochConfig
 	ChainParametersForEpoch(epoch uint32) (config.ChainParametersByEpochConfig, error)
 	IsInterfaceNil() bool
+}
+
+// PrepareLogEventsKey will prepare logs key for cacher
+func PrepareLogEventsKey(headerHash []byte) []byte {
+	return append([]byte("logs"), headerHash...)
 }
 
 // IsValidRelayedTxV3 returns true if the provided transaction is a valid transaction of type relayed v3
@@ -402,6 +411,22 @@ func ExtractBaseExecutionResultHandler(lastExecResultsHandler data.LastExecution
 	}
 
 	return baseExecutionResultsHandler, nil
+}
+
+// GetMiniBlocksHeaderHandlersFromExecResult returns miniblock handlers based on execution result
+func GetMiniBlocksHeaderHandlersFromExecResult(
+	baseExecResult data.BaseExecutionResultHandler,
+) ([]data.MiniBlockHeaderHandler, error) {
+	if check.IfNil(baseExecResult) {
+		return nil, ErrNilBaseExecutionResult
+	}
+
+	execResult, ok := baseExecResult.(executionResultHandler)
+	if !ok {
+		return nil, ErrWrongTypeAssertion
+	}
+
+	return execResult.GetMiniBlockHeadersHandlers(), nil
 }
 
 // GetLastExecutionResultNonce returns last execution result nonce if header v3 enable, otherwise it returns provided header nonce

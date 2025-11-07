@@ -23,6 +23,7 @@ type GasComputationMock struct {
 	ResetIncomingLimitCalled          func()
 	ResetOutgoingLimitCalled          func()
 	ResetCalled                       func()
+	RevertIncomingMiniBlocksCalled    func(miniBlockHashes [][]byte)
 }
 
 // CheckIncomingMiniBlocks -
@@ -45,6 +46,13 @@ func (mock *GasComputationMock) CheckOutgoingTransactions(
 		return mock.CheckOutgoingTransactionsCalled(txHashes, transactions)
 	}
 	return nil, nil, nil
+}
+
+// RevertIncomingMiniBlocks -
+func (mock *GasComputationMock) RevertIncomingMiniBlocks(miniBlockHashes [][]byte) {
+	if mock.RevertIncomingMiniBlocksCalled != nil {
+		mock.RevertIncomingMiniBlocksCalled(miniBlockHashes)
+	}
 }
 
 // GetBandwidthForTransactions -

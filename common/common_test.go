@@ -11,13 +11,14 @@ import (
 	"github.com/multiversx/mx-chain-core-go/data/block"
 	"github.com/multiversx/mx-chain-core-go/data/smartContractResult"
 	"github.com/multiversx/mx-chain-core-go/data/transaction"
+	"github.com/stretchr/testify/require"
+
 	"github.com/multiversx/mx-chain-go/common"
 	"github.com/multiversx/mx-chain-go/config"
 	commonErrors "github.com/multiversx/mx-chain-go/errors"
 	"github.com/multiversx/mx-chain-go/testscommon"
 	"github.com/multiversx/mx-chain-go/testscommon/chainParameters"
 	"github.com/multiversx/mx-chain-go/testscommon/enableEpochsHandlerMock"
-	"github.com/stretchr/testify/require"
 )
 
 var testFlag = core.EnableEpochFlag("test flag")
@@ -576,4 +577,91 @@ func TestGetLastBaseExecutionResultHandler(t *testing.T) {
 		require.Nil(t, result)
 		require.Equal(t, common.ErrNilBaseExecutionResult, err)
 	})
+}
+
+func TestGetMiniBlockHeaderHandlersFromExecResults(t *testing.T) {
+	t.Parallel()
+
+	t.Run("should fail if nil base execution result", func(t *testing.T) {
+		t.Parallel()
+
+		retExecResult, err := common.GetMiniBlocksHeaderHandlersFromExecResult(nil)
+		require.Equal(t, common.ErrNilBaseExecutionResult, err)
+		require.Nil(t, retExecResult)
+	})
+
+	t.Run("should fail if wrong type for shard", func(t *testing.T) {
+		t.Parallel()
+
+		execResult := &block.BaseExecutionResult{}
+
+		retExecResult, err := common.GetMiniBlocksHeaderHandlersFromExecResult(execResult)
+		require.Equal(t, common.ErrWrongTypeAssertion, err)
+		require.Nil(t, retExecResult)
+	})
+
+	t.Run("should work for shard", func(t *testing.T) {
+		t.Parallel()
+
+		mbh1 := block.MiniBlockHeader{
+			Hash: []byte("hash1"),
+		}
+		mbh2 := block.MiniBlockHeader{
+			Hash: []byte("hash1"),
+		}
+
+		miniBlockHeaders := []block.MiniBlockHeader{
+			mbh1,
+			mbh2,
+		}
+
+		execResult := &block.ExecutionResult{
+			MiniBlockHeaders: miniBlockHeaders,
+		}
+
+		expMiniBlockHandlers := []data.MiniBlockHeaderHandler{
+			&mbh1,
+			&mbh2,
+		}
+
+		retExecResult, err := common.GetMiniBlocksHeaderHandlersFromExecResult(execResult)
+		require.Nil(t, err)
+		require.Equal(t, expMiniBlockHandlers, retExecResult)
+	})
+
+	t.Run("should work for meta", func(t *testing.T) {
+		t.Parallel()
+
+		mbh1 := block.MiniBlockHeader{
+			Hash: []byte("hash1"),
+		}
+		mbh2 := block.MiniBlockHeader{
+			Hash: []byte("hash1"),
+		}
+
+		miniBlockHeaders := []block.MiniBlockHeader{
+			mbh1,
+			mbh2,
+		}
+
+		execResult := &block.MetaExecutionResult{
+			MiniBlockHeaders: miniBlockHeaders,
+		}
+
+		expMiniBlockHandlers := []data.MiniBlockHeaderHandler{
+			&mbh1,
+			&mbh2,
+		}
+
+		retExecResult, err := common.GetMiniBlocksHeaderHandlersFromExecResult(execResult)
+		require.Nil(t, err)
+		require.Equal(t, expMiniBlockHandlers, retExecResult)
+	})
+}
+
+func TestPrepareLogEventsKey(t *testing.T) {
+	t.Parallel()
+
+	logs := common.PrepareLogEventsKey([]byte("LogsX"))
+	require.Equal(t, "logsLogsX", string(logs))
 }

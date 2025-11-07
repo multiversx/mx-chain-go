@@ -337,6 +337,10 @@ func (sd *shardedData) OnProposedBlock(
 	return nil
 }
 
+// ResetTracker does nothing (only to satisfy the interface dataRetriever.ShardedDataCacherNotifier)
+func (sd *shardedData) ResetTracker() {
+}
+
 // IsInterfaceNil returns true if there is no value under the interface
 func (sd *shardedData) IsInterfaceNil() bool {
 	return sd == nil

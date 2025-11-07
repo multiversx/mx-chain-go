@@ -36,6 +36,7 @@ type ShardedDataStub struct {
 		accountsProvider common.AccountNonceAndBalanceProvider,
 		latestExecutedHash []byte,
 	) error
+	ResetTrackerCalled func()
 }
 
 // NewShardedDataStub -
@@ -168,6 +169,13 @@ func (sd *ShardedDataStub) OnProposedBlock(
 		return sd.OnProposedBlockCalled(blockHash, blockBody, blockHeader, accountsProvider, latestExecutedHash)
 	}
 	return nil
+}
+
+// ResetTracker -
+func (sd *ShardedDataStub) ResetTracker() {
+	if sd.ResetTrackerCalled != nil {
+		sd.ResetTrackerCalled()
+	}
 }
 
 // IsInterfaceNil -
