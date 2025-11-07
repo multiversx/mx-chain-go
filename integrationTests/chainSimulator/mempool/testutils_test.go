@@ -31,7 +31,7 @@ var (
 	oneQuarterOfEGLD             = big.NewInt(250000000000000000)
 	durationWaitAfterSendMany    = 7500 * time.Millisecond
 	durationWaitAfterSendSome    = 1000 * time.Millisecond
-	selectionLoopMaximumDuration = 1000 * time.Millisecond
+	selectionLoopMaximumDuration = 2000 * time.Millisecond
 	defaultLatestExecutedHash    = []byte("blockHash0")
 	gasLimit                     = 50_000
 	gasPrice                     = 1_000_000_000

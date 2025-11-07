@@ -780,6 +780,7 @@ func (sp *shardProcessor) collectExecutionResults(headerHash []byte, header data
 	crossShardIncomingMiniBlocks := sp.getCrossShardIncomingMiniBlocksFromBody(body)
 	miniBlocksFromSelf := sp.txCoordinator.GetCreatedMiniBlocksFromMe()
 	postProcessMiniBlocks := sp.txCoordinator.CreatePostProcessMiniBlocks()
+	postProcessMiniBlocksToMe := sp.txCoordinator.GetCreatedInShardMiniBlocks()
 
 	allMiniBlocks := make([]*block.MiniBlock, 0, len(crossShardIncomingMiniBlocks)+len(miniBlocksFromSelf)+len(postProcessMiniBlocks))
 	allMiniBlocks = append(allMiniBlocks, crossShardIncomingMiniBlocks...)
@@ -818,6 +819,11 @@ func (sp *shardProcessor) collectExecutionResults(headerHash []byte, header data
 	}
 
 	err = sp.cacheExecutedMiniBlocks(sanitizedBodyAfterExecution, miniBlockHeaderHandlers)
+	if err != nil {
+		return nil, err
+	}
+
+	err = sp.cachePostProcessMiniBlocksToMe(headerHash, postProcessMiniBlocksToMe)
 	if err != nil {
 		return nil, err
 	}
