@@ -44,6 +44,7 @@ type HeaderHandlerStub struct {
 	HasScheduledMiniBlocksCalled           func() bool
 	GetNonceCalled                         func() uint64
 	CheckFieldsForNilCalled                func() error
+	CheckFieldsIntegrityCalled             func() error
 	SetShardIDCalled                       func(shardID uint32) error
 	SetPrevHashCalled                      func(hash []byte) error
 	SetPrevRandSeedCalled                  func(seed []byte) error
@@ -73,7 +74,6 @@ type HeaderHandlerStub struct {
 	SetShardInfoHandlersCalled             func(shardInfo []data.ShardDataHandler) error
 	GetShardInfoProposalHandlersCalled     func() []data.ShardDataProposalHandler
 	SetShardInfoProposalHandlersCalled     func(shardInfo []data.ShardDataProposalHandler) error
-	CheckFieldsIntegrityCalled             func() error
 }
 
 // SetEpochStartHandler -
@@ -498,6 +498,15 @@ func (hhs *HeaderHandlerStub) CheckFieldsForNil() error {
 	return nil
 }
 
+// CheckFieldsIntegrity -
+func (hhs *HeaderHandlerStub) CheckFieldsIntegrity() error {
+	if hhs.CheckFieldsIntegrityCalled != nil {
+		return hhs.CheckFieldsIntegrityCalled()
+	}
+
+	return nil
+}
+
 // HasScheduledMiniBlocks -
 func (hhs *HeaderHandlerStub) HasScheduledMiniBlocks() bool {
 	if hhs.HasScheduledMiniBlocksCalled != nil {
@@ -583,14 +592,5 @@ func (hhs *HeaderHandlerStub) SetShardInfoProposalHandlers(shardInfo []data.Shar
 	if hhs.SetShardInfoProposalHandlersCalled != nil {
 		return hhs.SetShardInfoProposalHandlersCalled(shardInfo)
 	}
-	return nil
-}
-
-// CheckFieldsIntegrity -
-func (hhs *HeaderHandlerStub) CheckFieldsIntegrity() error {
-	if hhs.CheckFieldsIntegrityCalled != nil {
-		return hhs.CheckFieldsIntegrityCalled()
-	}
-
 	return nil
 }
