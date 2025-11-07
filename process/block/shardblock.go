@@ -1072,14 +1072,13 @@ func (sp *shardProcessor) CommitBlock(
 	if err != nil {
 		return err
 	}
+	sp.blockChain.SetCurrentBlockHeaderHash(headerHash)
 
-	err = sp.dataPool.Transactions().OnExecutedBlock(lastExecutionResultHeader, rootHash)
+	err = sp.onExecutedBlock(lastExecutionResultHeader, rootHash)
 	if err != nil {
-		log.Debug("dataPool.Transactions().OnExecutedBlock()", "error", err)
 		return err
 	}
 
-	sp.blockChain.SetCurrentBlockHeaderHash(headerHash)
 	sp.indexBlockIfNeeded(bodyHandler, headerHash, headerHandler, lastBlockHeader)
 	sp.stateAccessesCollector.Reset()
 	sp.recordBlockInHistory(headerHash, headerHandler, bodyHandler)
@@ -2192,7 +2191,13 @@ func (sp *shardProcessor) createMiniBlocks(haveTime func() bool, randomness []by
 		return &block.Body{MiniBlocks: miniBlocks}, processedMiniBlocksDestMeInfo, nil
 	}
 
+	err = sp.recreateTrieIfNeeded()
+	if err != nil {
+		return nil, nil, err
+	}
+
 	startTime = time.Now()
+
 	mbsFromMe := sp.txCoordinator.CreateMbsAndProcessTransactionsFromMe(haveTime, randomness)
 	elapsedTime = time.Since(startTime)
 	log.Debug("elapsed time to create mbs from me", "time", elapsedTime)

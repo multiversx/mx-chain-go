@@ -1198,6 +1198,9 @@ func TestApiTransactionProcessor_GetSelectedTransactions(t *testing.T) {
 
 	require.Equal(t, uint64(4), cache.CountTx())
 
+	err = cache.OnExecutedBlock(&block.Header{}, []byte("rootHash"))
+	require.NoError(t, err)
+
 	t.Run("should work", func(t *testing.T) {
 		t.Parallel()
 
@@ -1214,7 +1217,6 @@ func TestApiTransactionProcessor_GetSelectedTransactions(t *testing.T) {
 				}
 			},
 		}
-
 		atp, err := NewAPITransactionProcessor(args)
 		require.NoError(t, err)
 		require.NotNil(t, atp)

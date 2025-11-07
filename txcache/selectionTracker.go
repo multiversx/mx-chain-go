@@ -375,8 +375,11 @@ func (st *selectionTracker) removeUpToBlockNoLock(searchedBlock *trackedBlock) e
 
 func (st *selectionTracker) updateLatestRootHashNoLock(receivedNonce uint64, receivedRootHash []byte) {
 	log.Debug("selectionTracker.updateLatestRootHashNoLock",
+		"latest root hash", st.latestRootHash,
 		"received root hash", receivedRootHash,
-		"received nonce", receivedNonce)
+		"latest nonce", st.latestNonce,
+		"received nonce", receivedNonce,
+	)
 
 	if st.latestRootHash == nil {
 		st.latestRootHash = receivedRootHash
@@ -384,10 +387,13 @@ func (st *selectionTracker) updateLatestRootHashNoLock(receivedNonce uint64, rec
 		return
 	}
 
-	if receivedNonce > st.latestNonce {
-		st.latestRootHash = receivedRootHash
-		st.latestNonce = receivedNonce
+	if st.latestNonce >= receivedNonce {
+		log.Debug("selectionTracker.updateLatestRootHashNoLock received a lower or equal nonce than the latest nonce")
+		return
 	}
+
+	st.latestRootHash = receivedRootHash
+	st.latestNonce = receivedNonce
 }
 
 // ResetTrackedBlocks resets the tracked blocks, the global account breadcrumbs and the state saved on the OnExecutedBlock.
@@ -431,12 +437,12 @@ func (st *selectionTracker) deriveVirtualSelectionSession(
 	}
 
 	if !bytes.Equal(st.latestRootHash, rootHash) {
-		// TODO when the right information will be passed on the OnExecutedBlock flow, the error must be returned here.
 		log.Error("selectionTracker.deriveVirtualSelectionSession",
 			"err", errRootHashMismatch,
 			"latestRootHash", st.latestRootHash,
 			"session rootHash", rootHash,
 		)
+		return nil, errRootHashMismatch
 	}
 
 	log.Debug("selectionTracker.deriveVirtualSelectionSession",

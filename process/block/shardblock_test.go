@@ -3275,6 +3275,9 @@ func TestShardProcessor_CreateMiniBlocksShouldWorkWithIntraShardTxs(t *testing.T
 				Balance: big.NewInt(1000000000000000000),
 			}, nil
 		},
+		RecreateTrieIfNeededCalled: func(options common.RootHashHolder) error {
+			return nil
+		},
 	}
 
 	totalGasProvided := uint64(0)
@@ -3345,8 +3348,12 @@ func TestShardProcessor_CreateMiniBlocksShouldWorkWithIntraShardTxs(t *testing.T
 	coreComponents.IntMarsh = marshalizer
 	arguments := CreateMockArguments(coreComponents, dataComponents, bootstrapComponents, statusComponents)
 	arguments.AccountsDB[state.UserAccountsState] = accntAdapter
+	arguments.AccountsProposal = accntAdapter
 	arguments.TxCoordinator = tc
 	bp, err := blproc.NewShardProcessor(arguments)
+	require.Nil(t, err)
+
+	err = bp.OnExecutedBlock(&block.Header{}, []byte("rootHash1"))
 	require.Nil(t, err)
 
 	blockBody, _, err := bp.CreateMiniBlocks(func() bool { return true })
