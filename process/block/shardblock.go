@@ -1162,6 +1162,7 @@ func (sp *shardProcessor) CommitBlock(
 	return nil
 }
 
+// TODO: handle chain handler info on revert
 func (sp *shardProcessor) setCurrentBlockInfo(
 	header data.HeaderHandler,
 	headerHash []byte,

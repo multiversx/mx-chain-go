@@ -128,6 +128,7 @@ func (bbc *baseBlockChain) GetLastExecutedBlockHeader() data.HeaderHandler {
 	return bbc.lastExecutedBlockHeader.ShallowClone()
 }
 
+// SetLastExecutedBlockHeaderAndRootHash sets header, hash and rootHash for last executed block
 func (bbc *baseBlockChain) SetLastExecutedBlockHeaderAndRootHash(
 	header data.HeaderHandler,
 	headerHash []byte,
