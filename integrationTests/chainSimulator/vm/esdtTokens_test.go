@@ -42,6 +42,7 @@ func TestChainSimulator_Api_TokenType(t *testing.T) {
 		TempDir:                        t.TempDir(),
 		PathToInitialConfig:            defaultPathToInitialConfig,
 		NumOfShards:                    numOfShards,
+		RoundDurationInMillis:          roundDurationInMillis,
 		SupernovaRoundDurationInMillis: supernovaRoundDurationInMillis,
 		RoundsPerEpoch:                 roundsPerEpoch,
 		SupernovaRoundsPerEpoch:        supernovaRoundsPerEpoch,
