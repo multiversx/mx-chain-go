@@ -959,6 +959,11 @@ func (mp *metaProcessor) createMiniBlocks(
 		)
 	}
 
+	err = mp.recreateTrieIfNeeded()
+	if err != nil {
+		return nil, err
+	}
+
 	mbsFromMe := mp.txCoordinator.CreateMbsAndProcessTransactionsFromMe(haveTime, randomness)
 	if len(mbsFromMe) > 0 {
 		miniBlocks = append(miniBlocks, mbsFromMe...)
@@ -1280,6 +1285,11 @@ func (mp *metaProcessor) CommitBlock(
 	}
 
 	mp.blockChain.SetCurrentBlockHeaderHash(headerHash)
+
+	err = mp.onExecutedBlock(headerHandler, committedRootHash)
+	if err != nil {
+		return err
+	}
 
 	if !check.IfNil(finalMetaBlock) && finalMetaBlock.IsStartOfEpochBlock() {
 		mp.blockTracker.CleanupInvalidCrossHeaders(header.Epoch, header.Round)

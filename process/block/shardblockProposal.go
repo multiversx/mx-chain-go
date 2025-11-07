@@ -258,23 +258,23 @@ func (sp *shardProcessor) updateMetrics(header data.HeaderHandler, body *block.B
 	go getMetricsFromHeader(header, uint64(txCounts.GetTotal()), sp.marshalizer, sp.appStatusHandler)
 }
 
-func (sp *shardProcessor) verifyGasLimit(header data.ShardHeaderHandler) error {
-	incomingMiniBlocks, incomingTransactions, outgoingTransactionHashes, outgoingTransactions, err := sp.splitTransactionsForHeader(header)
+func (sp *shardProcessor) verifyGasLimit(header data.HeaderHandler) error {
+	splitRes, err := sp.splitTransactionsForHeader(header)
 	if err != nil {
 		return err
 	}
 
 	sp.gasComputation.Reset()
-	_, numPendingMiniBlocks, err := sp.gasComputation.CheckIncomingMiniBlocks(incomingMiniBlocks, incomingTransactions)
+	_, numPendingMiniBlocks, err := sp.gasComputation.CheckIncomingMiniBlocks(splitRes.incomingMiniBlocks, splitRes.incomingTransactions)
 	if err != nil {
 		return err
 	}
 
-	addedTxHashes, pendingMiniBlocksAdded, err := sp.gasComputation.CheckOutgoingTransactions(outgoingTransactionHashes, outgoingTransactions)
+	addedTxHashes, pendingMiniBlocksAdded, err := sp.gasComputation.CheckOutgoingTransactions(splitRes.outgoingTransactionHashes, splitRes.outgoingTransactions)
 	if err != nil {
 		return err
 	}
-	if len(addedTxHashes) != len(outgoingTransactionHashes) {
+	if len(addedTxHashes) != len(splitRes.outgoingTransactionHashes) {
 		return fmt.Errorf("%w, outgoing transactions exceeded the limit", process.ErrInvalidMaxGasLimitPerMiniBlock)
 	}
 
@@ -419,66 +419,6 @@ func (sp *shardProcessor) ProcessBlockProposal(
 	}
 
 	return executionResult, nil
-}
-
-func (sp *shardProcessor) splitTransactionsForHeader(header data.HeaderHandler) (
-	incomingMiniBlocks []data.MiniBlockHeaderHandler,
-	incomingTransactions map[string][]data.TransactionHandler,
-	outgoingTransactionHashes [][]byte,
-	outgoingTransactions []data.TransactionHandler,
-	err error,
-) {
-	incomingTransactions = make(map[string][]data.TransactionHandler)
-	var txsForMb []data.TransactionHandler
-	var txHashes [][]byte
-	for _, mb := range header.GetMiniBlockHeaderHandlers() {
-		txHashes, txsForMb, err = sp.getTransactionsForMiniBlock(mb)
-		if err != nil {
-			return nil, nil, nil, nil, err
-		}
-
-		if mb.GetSenderShardID() == sp.shardCoordinator.SelfId() {
-			outgoingTransactionHashes = append(outgoingTransactionHashes, txHashes...)
-			outgoingTransactions = append(outgoingTransactions, txsForMb...)
-			continue
-		}
-
-		incomingMiniBlocks = append(incomingMiniBlocks, mb)
-		incomingTransactions[string(mb.GetHash())] = txsForMb
-	}
-
-	return incomingMiniBlocks, incomingTransactions, outgoingTransactionHashes, outgoingTransactions, nil
-}
-
-func (sp *shardProcessor) getTransactionsForMiniBlock(
-	miniBlock data.MiniBlockHeaderHandler,
-) ([][]byte, []data.TransactionHandler, error) {
-	obj, hashInPool := sp.dataPool.MiniBlocks().Get(miniBlock.GetHash())
-	if !hashInPool {
-		return nil, nil, process.ErrMissingMiniBlock
-	}
-
-	mbForHeaderPtr, typeOk := obj.(*block.MiniBlock)
-	if !typeOk {
-		return nil, nil, process.ErrWrongTypeAssertion
-	}
-
-	txs := make([]data.TransactionHandler, len(mbForHeaderPtr.TxHashes))
-	var err error
-	for idx, txHash := range mbForHeaderPtr.TxHashes {
-		txs[idx], err = process.GetTransactionHandlerFromPool(
-			miniBlock.GetSenderShardID(),
-			miniBlock.GetReceiverShardID(),
-			txHash,
-			sp.dataPool.Transactions(),
-			process.SearchMethodSearchFirst,
-		)
-		if err != nil {
-			return nil, nil, err
-		}
-	}
-
-	return mbForHeaderPtr.TxHashes, txs, nil
 }
 
 func computeTxTotalTxCount(miniBlockHeaders []data.MiniBlockHeaderHandler) uint32 {
@@ -756,6 +696,7 @@ func (sp *shardProcessor) collectExecutionResults(headerHash []byte, header data
 	crossShardIncomingMiniBlocks := sp.getCrossShardIncomingMiniBlocksFromBody(body)
 	miniBlocksFromSelf := sp.txCoordinator.GetCreatedMiniBlocksFromMe()
 	postProcessMiniBlocks := sp.txCoordinator.CreatePostProcessMiniBlocks()
+	postProcessMiniBlocksToMe := sp.txCoordinator.GetCreatedInShardMiniBlocks()
 
 	allMiniBlocks := make([]*block.MiniBlock, 0, len(crossShardIncomingMiniBlocks)+len(miniBlocksFromSelf)+len(postProcessMiniBlocks))
 	allMiniBlocks = append(allMiniBlocks, crossShardIncomingMiniBlocks...)
@@ -794,6 +735,11 @@ func (sp *shardProcessor) collectExecutionResults(headerHash []byte, header data
 	}
 
 	err = sp.cacheExecutedMiniBlocks(sanitizedBodyAfterExecution, miniBlockHeaderHandlers)
+	if err != nil {
+		return nil, err
+	}
+
+	err = sp.cachePostProcessMiniBlocksToMe(headerHash, postProcessMiniBlocksToMe)
 	if err != nil {
 		return nil, err
 	}

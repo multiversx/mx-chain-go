@@ -231,6 +231,107 @@ func (r *Resolver) WaitForMissingData(timeout time.Duration) error {
 	}
 }
 
+// RequestMissingShardHeadersBlocking requests the missing shard headers and proofs for the given meta header and waits for results.
+func (r *Resolver) RequestMissingShardHeadersBlocking(
+	metaHeader data.MetaHeaderHandler,
+	timeout time.Duration,
+) error {
+	err := r.RequestMissingShardHeaders(metaHeader)
+	if err != nil {
+		return err
+	}
+
+	return r.WaitForMissingData(timeout)
+}
+
+// RequestMissingShardHeaders requests the missing shard headers and proofs for the given meta header.
+func (r *Resolver) RequestMissingShardHeaders(
+	metaHeader data.MetaHeaderHandler,
+) error {
+	if check.IfNil(metaHeader) {
+		return process.ErrNilMetaBlockHeader
+	}
+
+	if metaHeader.IsStartOfEpochBlock() && metaHeader.GetEpochStartHandler() != nil {
+		r.requestEpochStartLastFinalizedHeaders(metaHeader.GetEpochStartHandler())
+	}
+
+	shardDataProposedNonces := make(map[uint32]uint64)
+	for _, shardProposalData := range metaHeader.GetShardInfoProposalHandlers() {
+		shardID := shardProposalData.GetShardID()
+		storeNonceToShardDataIfGreater(shardDataProposedNonces, shardProposalData.GetNonce(), shardID)
+
+		r.requestHeaderIfNeeded(shardID, shardProposalData.GetHeaderHash())
+		r.requestProofIfNeeded(shardID, shardProposalData.GetHeaderHash())
+	}
+
+	shardDataFinalizedNonces := getShardDataFinalizedNonces(metaHeader.GetShardInfoHandlers())
+	r.requestNonceGapsIfNeeded(shardDataFinalizedNonces, shardDataProposedNonces)
+
+	return nil
+}
+
+func (r *Resolver) requestEpochStartLastFinalizedHeaders(epochStartHandler data.EpochStartHandler) {
+	for _, finalizedHdr := range epochStartHandler.GetLastFinalizedHeaderHandlers() {
+		r.requestHeaderIfNeeded(finalizedHdr.GetShardID(), finalizedHdr.GetHeaderHash())
+		r.requestProofIfNeeded(finalizedHdr.GetShardID(), finalizedHdr.GetHeaderHash())
+	}
+}
+
+func storeNonceToShardDataIfGreater(shardDataProposedNonces map[uint32]uint64, nonce uint64, shardID uint32) {
+	if nonce > shardDataProposedNonces[shardID] {
+		shardDataProposedNonces[shardID] = nonce
+	}
+}
+
+func getShardDataFinalizedNonces(shardInfoHandlers []data.ShardDataHandler) map[uint32]uint64 {
+	shardDataFinalizedNonces := make(map[uint32]uint64)
+	for _, shardData := range shardInfoHandlers {
+		shardDataFinalizedNonces[shardData.GetShardID()] = shardData.GetNonce()
+	}
+	return shardDataFinalizedNonces
+}
+
+func (r *Resolver) requestNonceGapsIfNeeded(shardDataFinalizedNonces, shardDataProposedNonces map[uint32]uint64) {
+	for shardID, proposedNonce := range shardDataProposedNonces {
+		lastFinalizedNonce, found := shardDataFinalizedNonces[shardID]
+		if !found {
+			continue
+		}
+
+		nonceGaps := proposedNonce - lastFinalizedNonce
+		if nonceGaps < 2 {
+			continue
+		}
+
+		r.requestShardHeadersAndProofsByNonce(shardID, lastFinalizedNonce+1, proposedNonce)
+	}
+}
+
+// requestShardHeadersAndProofsByNonce will request shard headers and proofs if needed without blocking
+func (r *Resolver) requestShardHeadersAndProofsByNonce(shardID uint32, startNonce, endNonce uint64) {
+	for shardNonceToRequest := startNonce; shardNonceToRequest < endNonce; shardNonceToRequest++ {
+		r.requestShardHeaderByNonceIfNeeded(shardID, shardNonceToRequest)
+		r.requestShardProofByNonceIfNeeded(shardID, shardNonceToRequest)
+	}
+}
+
+func (r *Resolver) requestShardHeaderByNonceIfNeeded(shardID uint32, nonce uint64) {
+	if _, _, err := r.headersPool.GetHeadersByNonceAndShardId(nonce, shardID); err == nil {
+		return
+	}
+
+	go r.requestHandler.RequestShardHeaderByNonce(shardID, nonce)
+}
+
+func (r *Resolver) requestShardProofByNonceIfNeeded(shardID uint32, nonce uint64) {
+	if _, err := r.proofsPool.GetProofByNonce(nonce, shardID); err == nil {
+		return
+	}
+
+	go r.requestHandler.RequestEquivalentProofByNonce(shardID, nonce)
+}
+
 // RequestBlockTransactions requests the transactions for the given block body.
 func (r *Resolver) RequestBlockTransactions(body *block.Body) {
 	r.blockDataRequester.RequestBlockTransactions(body)
@@ -257,12 +358,6 @@ func (r *Resolver) Reset() {
 	r.mutProofs.Unlock()
 
 	r.blockDataRequester.Reset()
-}
-
-// RequestMissingShardHeaders requests missing shard headers for the given meta header.
-func (r *Resolver) RequestMissingShardHeaders(metaHeader data.MetaHeaderHandler) error {
-	// TODO: implement this
-	return nil
 }
 
 // IsInterfaceNil returns true if there is no value under the interface

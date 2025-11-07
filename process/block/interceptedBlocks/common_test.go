@@ -70,6 +70,59 @@ func createDefaultHeaderHandler() *testscommon.HeaderHandlerStub {
 	}
 }
 
+func createValidHeaderV3ToTest() *block.HeaderV3 {
+	return &block.HeaderV3{
+		Nonce:           101,
+		Round:           1200,
+		Epoch:           1,
+		PrevHash:        []byte("prev hash"),
+		PrevRandSeed:    []byte("prev rand seed"),
+		RandSeed:        []byte("rand seed"),
+		LeaderSignature: []byte("leader signature"),
+		SoftwareVersion: []byte("v1.0.0"),
+
+		ExecutionResults: []*block.ExecutionResult{
+			&block.ExecutionResult{
+				BaseExecutionResult: &block.BaseExecutionResult{
+					HeaderHash:  []byte("header hash"),
+					HeaderNonce: 98,
+					HeaderRound: 1001,
+					HeaderEpoch: 0,
+					RootHash:    []byte("root hash"),
+				},
+			},
+			&block.ExecutionResult{
+				BaseExecutionResult: &block.BaseExecutionResult{
+					HeaderHash:  []byte("header hash"),
+					HeaderNonce: 99,
+					HeaderRound: 1020,
+					HeaderEpoch: 0,
+					RootHash:    []byte("root hash"),
+				},
+			},
+			&block.ExecutionResult{
+				BaseExecutionResult: &block.BaseExecutionResult{
+					HeaderHash:  []byte("header hash"),
+					HeaderNonce: 100,
+					HeaderRound: 1100,
+					HeaderEpoch: 1,
+					RootHash:    []byte("root hash"),
+				},
+			},
+		},
+		LastExecutionResult: &block.ExecutionResultInfo{
+			ExecutionResult: &block.BaseExecutionResult{
+				HeaderHash:  []byte("header hash"),
+				HeaderNonce: 100,
+				HeaderRound: 1100,
+				HeaderEpoch: 1,
+				RootHash:    []byte("root hash"),
+			},
+			NotarizedInRound: 1199,
+		},
+	}
+}
+
 // -------- checkBlockHeaderArgument
 
 func TestCheckBlockHeaderArgument_NilArgumentShouldErr(t *testing.T) {
@@ -353,6 +406,79 @@ func TestCheckHeaderHandler_ShouldWork(t *testing.T) {
 
 	err := checkHeaderHandler(hdr, enableEpochsHandlerMock.NewEnableEpochsHandlerStub())
 
+	assert.Nil(t, err)
+}
+
+func TestCheckHeaderHandler_HeaderV3_CheckFieldsIntegrityErrors(t *testing.T) {
+	t.Parallel()
+
+	enableEpochsHandler := enableEpochsHandlerMock.NewEnableEpochsHandlerStub()
+	enableEpochsHandler.IsFlagEnabledInEpochCalled = func(flag core.EnableEpochFlag, epoch uint32) bool {
+		return true
+	}
+	t.Run("nil header", func(t *testing.T) {
+		t.Parallel()
+		var hv3 *block.HeaderV3
+		err := checkHeaderHandler(hv3, enableEpochsHandler)
+		assert.Error(t, err)
+	})
+	t.Run("not nil receipt hash field", func(t *testing.T) {
+		t.Parallel()
+		hv3 := createValidHeaderV3ToTest()
+		hv3.ReceiptsHash = []byte("not nil receipts hash")
+		err := checkHeaderHandler(hv3, enableEpochsHandler)
+		assert.True(t, hv3.IsHeaderV3())
+		assert.Error(t, err)
+		assert.ErrorIs(t, err, data.ErrNotNilValue)
+	})
+	t.Run("not nil reserved field", func(t *testing.T) {
+		t.Parallel()
+		hv3 := createValidHeaderV3ToTest()
+		hv3.Reserved = []byte("not nil reserved")
+		err := checkHeaderHandler(hv3, enableEpochsHandler)
+		assert.Error(t, err)
+		assert.ErrorIs(t, err, data.ErrNotNilValue)
+	})
+	t.Run("nil last execution result", func(t *testing.T) {
+		t.Parallel()
+		hv3 := &block.HeaderV3{
+			Nonce: 2,
+			Round: 2,
+			Epoch: 2,
+		}
+		err := checkHeaderHandler(hv3, enableEpochsHandler)
+		assert.Error(t, err)
+	})
+	t.Run("invalid execution results", func(t *testing.T) {
+		t.Parallel()
+		hv3 := createValidHeaderV3ToTest()
+		hv3.ExecutionResults[0].BaseExecutionResult = nil
+		err := checkHeaderHandler(hv3, enableEpochsHandler)
+		assert.Error(t, err)
+	})
+	t.Run("invalid last execution result", func(t *testing.T) {
+		t.Parallel()
+		hv3 := createValidHeaderV3ToTest()
+		hv3.LastExecutionResult.ExecutionResult = nil
+		err := checkHeaderHandler(hv3, enableEpochsHandler)
+		assert.Error(t, err)
+	})
+	t.Run("invalid round in last execution result", func(t *testing.T) {
+		t.Parallel()
+		hv3 := createValidHeaderV3ToTest()
+		hv3.LastExecutionResult.NotarizedInRound = 1300
+		err := checkHeaderHandler(hv3, enableEpochsHandler)
+		assert.Error(t, err)
+	})
+}
+func TestCheckHeaderHandler_HeaderV3_CheckFieldsIntegrityWorks(t *testing.T) {
+	t.Parallel()
+	hdr := createValidHeaderV3ToTest()
+	enableEpochsHandler := enableEpochsHandlerMock.NewEnableEpochsHandlerStub()
+	enableEpochsHandler.IsFlagEnabledInEpochCalled = func(flag core.EnableEpochFlag, epoch uint32) bool {
+		return true
+	}
+	err := checkHeaderHandler(hdr, enableEpochsHandler)
 	assert.Nil(t, err)
 }
 

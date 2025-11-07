@@ -44,6 +44,7 @@ type HeaderHandlerStub struct {
 	HasScheduledMiniBlocksCalled           func() bool
 	GetNonceCalled                         func() uint64
 	CheckFieldsForNilCalled                func() error
+	CheckFieldsIntegrityCalled             func() error
 	SetShardIDCalled                       func(shardID uint32) error
 	SetPrevHashCalled                      func(hash []byte) error
 	SetPrevRandSeedCalled                  func(seed []byte) error
@@ -492,6 +493,15 @@ func (hhs *HeaderHandlerStub) MapMiniBlockHashesToShards() map[string]uint32 {
 func (hhs *HeaderHandlerStub) CheckFieldsForNil() error {
 	if hhs.CheckFieldsForNilCalled != nil {
 		return hhs.CheckFieldsForNilCalled()
+	}
+
+	return nil
+}
+
+// CheckFieldsIntegrity -
+func (hhs *HeaderHandlerStub) CheckFieldsIntegrity() error {
+	if hhs.CheckFieldsIntegrityCalled != nil {
+		return hhs.CheckFieldsIntegrityCalled()
 	}
 
 	return nil

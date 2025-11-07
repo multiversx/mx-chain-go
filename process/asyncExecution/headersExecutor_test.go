@@ -430,7 +430,7 @@ func TestHeadersExecutor_Process(t *testing.T) {
 			SetFinalBlockInfoCalled: func(nonce uint64, headerHash, rootHash []byte) {
 				setFinalBlockInfoCalled = true
 			},
-			SetLastExecutedBlockInfoCalled: func(nonce uint64, headerHash, rootHash []byte) {
+			SetLastExecutedBlockHeaderAndRootHashCalled: func(header data.HeaderHandler, headerHash, rootHash []byte) {
 				setLastExecutedBlockInfoCalled = true
 			},
 		}

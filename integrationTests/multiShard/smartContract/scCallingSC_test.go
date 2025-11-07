@@ -76,6 +76,8 @@ func TestSCCallingIntraShard(t *testing.T) {
 	mintPubKey(firstSCOwner, initialVal, nodes)
 	mintPubKey(secondSCOwner, initialVal, nodes)
 
+	integrationTests.SetRootHashOfGenesisBlocks(nodes)
+
 	// deploy the smart contracts
 	firstSCAddress := putDeploySCToDataPool(
 		"./testdata/first/output/first.wasm",
@@ -158,6 +160,8 @@ func TestScDeployAndChangeScOwner(t *testing.T) {
 
 	initialVal := big.NewInt(1000000000)
 	integrationTests.MintAllNodes(nodes, initialVal)
+
+	integrationTests.SetRootHashOfGenesisBlocks(nodes)
 
 	firstSCOwner := nodes[0].OwnAccount.Address
 
@@ -412,6 +416,8 @@ func TestSCCallingInCrossShard(t *testing.T) {
 	mintPubKey(firstSCOwner, initialVal, nodes)
 	mintPubKey(secondSCOwner, initialVal, nodes)
 
+	integrationTests.SetRootHashOfGenesisBlocks(nodes)
+
 	// deploy the smart contracts
 	firstSCAddress := putDeploySCToDataPool(
 		"./testdata/first/output/first.wasm",
@@ -638,6 +644,8 @@ func TestSCCallingInCrossShardDelegationMock(t *testing.T) {
 	stakerBLSKey, _ := hex.DecodeString(strings.Repeat("a", 256))
 
 	mintPubKey(delegateSCOwner, initialVal, nodes)
+
+	integrationTests.SetRootHashOfGenesisBlocks(nodes)
 
 	// deploy the smart contracts
 	delegateSCAddress := putDeploySCToDataPool(

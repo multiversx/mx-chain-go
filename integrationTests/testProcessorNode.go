@@ -772,11 +772,22 @@ func (tpn *TestProcessorNode) initGenesisBlocks(args ArgTestProcessorNode) {
 			tpn.SmartContractParser,
 			tpn.EnableEpochs,
 		)
+
+		err := OnGenesisExecutedBlock(tpn)
+		if err != nil {
+			log.Error("tpn.initGenesisBlocks: OnGenesisExecutedBlock(tpn)", "err", err)
+		}
+
 		return
 	}
 
 	if args.WithSync {
-		tpn.GenesisBlocks = CreateSimpleGenesisBlocks(tpn.ShardCoordinator)
+		rootHash, err := tpn.AccntState.RootHash()
+		if err != nil {
+			log.Error("tpn.initGenesisBlocks: AccntState.RootHash()", "err", err)
+		}
+
+		tpn.GenesisBlocks = CreateSimpleGenesisBlocks(tpn.ShardCoordinator, rootHash)
 		return
 	}
 
@@ -797,6 +808,11 @@ func (tpn *TestProcessorNode) initGenesisBlocks(args ArgTestProcessorNode) {
 		tpn.EnableEpochs,
 		tpn.ChainParametersHandler,
 	)
+
+	err := OnGenesisExecutedBlock(tpn)
+	if err != nil {
+		log.Error("tpn.initGenesisBlocks: OnGenesisExecutedBlock(tpn)", "err", err)
+	}
 }
 
 func (tpn *TestProcessorNode) initTestNodeWithArgs(args ArgTestProcessorNode) {

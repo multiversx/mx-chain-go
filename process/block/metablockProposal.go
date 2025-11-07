@@ -226,8 +226,6 @@ func (mp *metaProcessor) VerifyBlockProposal(
 		return err
 	}
 
-	// TODO: check that no scheduled mini blocks are included
-
 	// TODO: analyse if it should be enforced that execution results on start of epoch block include only start of epoch execution results
 	err = mp.executionResultsVerifier.VerifyHeaderExecutionResults(header)
 	if err != nil {
@@ -267,10 +265,7 @@ func (mp *metaProcessor) VerifyBlockProposal(
 		return err
 	}
 
-	// TODO: move gas limit verification in baseProcessor
-	// return mp.verifyGasLimit(header)
-
-	return nil
+	return mp.verifyGasLimit(header)
 }
 
 // ProcessBlockProposal processes the proposed block. It returns nil if all ok or the specific error
@@ -462,15 +457,24 @@ func (mp *metaProcessor) hasStartOfEpochExecutionResults(metaHeader data.MetaHea
 	}
 	execResults := metaHeader.GetExecutionResultsHandlers()
 	for _, execResult := range execResults {
-		mbHeaders, err := common.GetMiniBlocksHeaderHandlersFromExecResult(execResult)
+		ok, err := mp.hasRewardOrPeerMiniBlocksOnExecResult(execResult)
 		if err != nil {
 			return false, err
 		}
-		if hasRewardOrPeerMiniBlocksFromMeta(mbHeaders) {
+		if ok {
 			return true, nil
 		}
 	}
 	return false, nil
+}
+
+func (mp *metaProcessor) hasRewardOrPeerMiniBlocksOnExecResult(execResult data.BaseExecutionResultHandler) (bool, error) {
+	mbHeaders, err := common.GetMiniBlocksHeaderHandlersFromExecResult(execResult)
+	if err != nil {
+		return false, err
+	}
+
+	return hasRewardOrPeerMiniBlocksFromMeta(mbHeaders), nil
 }
 
 func hasRewardOrPeerMiniBlocksFromMeta(miniBlockHeaders []data.MiniBlockHeaderHandler) bool {
@@ -738,8 +742,18 @@ func (mp *metaProcessor) hasExecutionResultsForProposedEpochChange(headerHandler
 		if !ok {
 			return false, process.ErrWrongTypeAssertion
 		}
-		if metaHeaderHandler.IsEpochChangeProposed() {
-			// TODO: check also that this execution result has start of epoch execution results, otherwise error
+
+		isEpochChangeProposed := metaHeaderHandler.IsEpochChangeProposed()
+		hasStartOfEpochOnExecutionResult, err := mp.hasRewardOrPeerMiniBlocksOnExecResult(execResult)
+		if err != nil {
+			return false, err
+		}
+
+		if isEpochChangeProposed && !hasStartOfEpochOnExecutionResult {
+			return false, process.ErrStartOfEpochExecutionResultsDoNotExist
+		}
+
+		if isEpochChangeProposed {
 			return true, nil
 		}
 	}
@@ -760,7 +774,7 @@ func (mp *metaProcessor) checkShardHeadersValidityAndFinalityProposal(
 		return fmt.Errorf("%w : checkShardHeadersValidityAndFinalityProposal -> getShardHeadersFromMetaHeader", err)
 	}
 
-	ok := mp.HasProofsForHeaders(usedShardHeaders.headersPerShard)
+	ok := mp.hasProofsForHeaders(usedShardHeaders.headersPerShard)
 	if !ok {
 		return process.ErrMissingHeaderProof
 	}
@@ -831,7 +845,7 @@ func (mp *metaProcessor) checkHeadersSequenceCorrectness(hdrsForShard []ShardHea
 	return nil
 }
 
-func (mp *metaProcessor) HasProofsForHeaders(headersPerShard map[uint32][]ShardHeaderInfo) bool {
+func (mp *metaProcessor) hasProofsForHeaders(headersPerShard map[uint32][]ShardHeaderInfo) bool {
 	for _, headersForShard := range headersPerShard {
 		for _, headerInfo := range headersForShard {
 			if !mp.proofsPool.HasProof(headerInfo.Header.GetShardID(), headerInfo.Hash) {
@@ -872,4 +886,32 @@ func (mp *metaProcessor) getShardHeadersFromMetaHeader(
 		orderedShardHeaders:      orderedShardHeaders,
 		orderedShardHeaderHashes: orderedShardHeaderHashes,
 	}, nil
+}
+
+func (mp *metaProcessor) verifyGasLimit(header data.HeaderHandler) error {
+	splitRes, err := mp.splitTransactionsForHeader(header)
+	if err != nil {
+		return err
+	}
+
+	numOutGoingMBs := len(splitRes.outGoingMiniBlocks)
+	if numOutGoingMBs != 0 {
+		return fmt.Errorf("%w, received: %d", errInvalidNumOutGoingMBInMetaHdrProposal, numOutGoingMBs)
+	}
+
+	numOutGoingTxs := len(splitRes.outgoingTransactions)
+	if numOutGoingTxs != 0 {
+		return fmt.Errorf("%w in metaProcessor.verifyGasLimit, received: %d",
+			errInvalidNumOutGoingTxsInMetaHdrProposal,
+			numOutGoingTxs,
+		)
+	}
+
+	mp.gasComputation.Reset()
+	_, numPendingMiniBlocks, err := mp.gasComputation.CheckIncomingMiniBlocks(splitRes.incomingMiniBlocks, splitRes.incomingTransactions)
+	if numPendingMiniBlocks != 0 {
+		return errInvalidNumPendingMiniBlocksInMetaHdrProposal
+	}
+
+	return err
 }
