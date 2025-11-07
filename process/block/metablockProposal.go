@@ -721,6 +721,10 @@ func (mp *metaProcessor) verifyGasLimit(header data.HeaderHandler) error {
 	}
 
 	mp.gasComputation.Reset()
-	_, _, err = mp.gasComputation.CheckIncomingMiniBlocks(splitRes.incomingMiniBlocks, splitRes.incomingTransactions)
+	_, numPendingMiniBlocks, err := mp.gasComputation.CheckIncomingMiniBlocks(splitRes.incomingMiniBlocks, splitRes.incomingTransactions)
+	if numPendingMiniBlocks != 0 {
+		return errInvalidNumPendingMiniBlocksInMetaHdrProposal
+	}
+
 	return err
 }
