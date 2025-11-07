@@ -265,7 +265,6 @@ func (mp *metaProcessor) VerifyBlockProposal(
 		return err
 	}
 
-	// TODO: move gas limit verification in baseProcessor
 	return mp.verifyGasLimit(header)
 }
 
