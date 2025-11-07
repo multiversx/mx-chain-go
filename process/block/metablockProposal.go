@@ -703,32 +703,25 @@ func (mp *metaProcessor) getShardHeadersFromMetaHeader(
 }
 
 func (mp *metaProcessor) verifyGasLimit(header data.HeaderHandler) error {
-	err := checkMetaMBHeaders(header.GetMiniBlockHeaderHandlers())
+	splitRes, err := mp.splitTransactionsForHeader(header)
 	if err != nil {
 		return err
 	}
 
-	incomingMiniBlocks, incomingTransactions, outgoingTransactionHashes, outgoingTransactions, err := mp.splitTransactionsForHeader(header)
-	if err != nil {
-		return err
+	numOutGoingMBs := len(splitRes.outGoingMiniBlocks)
+	if numOutGoingMBs != 0 {
+		return fmt.Errorf("%w, received: %d", errInvalidNumOutGoingMBInMetaHdrProposal, numOutGoingMBs)
 	}
 
-	if !(len(outgoingTransactions) == 0 && len(outgoingTransactionHashes) == 0) {
-		return fmt.Errorf("%w in metaProcessor.verifyGasLimit", process.ErrInvalidMetaTransaction)
+	numOutGoingTxs := len(splitRes.outgoingTransactions)
+	if numOutGoingTxs != 0 {
+		return fmt.Errorf("%w in metaProcessor.verifyGasLimit, received: %d",
+			errInvalidNumOutGoingTxsInMetaHdrProposal,
+			numOutGoingTxs,
+		)
 	}
 
 	mp.gasComputation.Reset()
-	_, _, err = mp.gasComputation.CheckIncomingMiniBlocks(incomingMiniBlocks, incomingTransactions)
+	_, _, err = mp.gasComputation.CheckIncomingMiniBlocks(splitRes.incomingMiniBlocks, splitRes.incomingTransactions)
 	return err
-}
-
-func checkMetaMBHeaders(mbs []data.MiniBlockHeaderHandler) error {
-	for _, mb := range mbs {
-		if !(mb.GetTypeInt32() == int32(block.PeerBlock) || mb.GetTypeInt32() == int32(block.RewardsBlock)) {
-			return fmt.Errorf("%w in checkMetaMbHeaders, type: %s, hash:% x",
-				process.ErrInvalidMiniBlockType, block.Type(mb.GetTypeInt32()).String(), mb.GetHash())
-		}
-	}
-
-	return nil
 }

@@ -257,22 +257,22 @@ func (sp *shardProcessor) updateMetrics(header data.HeaderHandler, body *block.B
 }
 
 func (sp *shardProcessor) verifyGasLimit(header data.HeaderHandler) error {
-	incomingMiniBlocks, incomingTransactions, outgoingTransactionHashes, outgoingTransactions, err := sp.splitTransactionsForHeader(header)
+	splitRes, err := sp.splitTransactionsForHeader(header)
 	if err != nil {
 		return err
 	}
 
 	sp.gasComputation.Reset()
-	_, numPendingMiniBlocks, err := sp.gasComputation.CheckIncomingMiniBlocks(incomingMiniBlocks, incomingTransactions)
+	_, numPendingMiniBlocks, err := sp.gasComputation.CheckIncomingMiniBlocks(splitRes.incomingMiniBlocks, splitRes.incomingTransactions)
 	if err != nil {
 		return err
 	}
 
-	addedTxHashes, pendingMiniBlocksAdded, err := sp.gasComputation.CheckOutgoingTransactions(outgoingTransactionHashes, outgoingTransactions)
+	addedTxHashes, pendingMiniBlocksAdded, err := sp.gasComputation.CheckOutgoingTransactions(splitRes.outgoingTransactionHashes, splitRes.outgoingTransactions)
 	if err != nil {
 		return err
 	}
-	if len(addedTxHashes) != len(outgoingTransactionHashes) {
+	if len(addedTxHashes) != len(splitRes.outgoingTransactionHashes) {
 		return fmt.Errorf("%w, outgoing transactions exceeded the limit", process.ErrInvalidMaxGasLimitPerMiniBlock)
 	}
 

@@ -61,6 +61,14 @@ type hashAndHdr struct {
 	hash []byte
 }
 
+type splitTxsResult struct {
+	incomingMiniBlocks        []data.MiniBlockHeaderHandler
+	outGoingMiniBlocks        []data.MiniBlockHeaderHandler
+	incomingTransactions      map[string][]data.TransactionHandler
+	outgoingTransactionHashes [][]byte
+	outgoingTransactions      []data.TransactionHandler
+}
+
 type baseProcessor struct {
 	shardCoordinator        sharding.Coordinator
 	nodesCoordinator        nodesCoordinator.NodesCoordinator
@@ -2829,25 +2837,22 @@ func (bp *baseProcessor) revertGasForCrossShardDstMeMiniBlocks(added, pending []
 	bp.gasComputation.RevertIncomingMiniBlocks(miniBlockHashesToRevert)
 }
 
-func (bp *baseProcessor) splitTransactionsForHeader(header data.HeaderHandler) (
-	incomingMiniBlocks []data.MiniBlockHeaderHandler,
-	incomingTransactions map[string][]data.TransactionHandler,
-	outgoingTransactionHashes [][]byte,
-	outgoingTransactions []data.TransactionHandler,
-	err error,
-) {
-	incomingTransactions = make(map[string][]data.TransactionHandler)
-	var txsForMb []data.TransactionHandler
-	var txHashes [][]byte
+func (bp *baseProcessor) splitTransactionsForHeader(header data.HeaderHandler) (*splitTxsResult, error) {
+	incomingMiniBlocks := make([]data.MiniBlockHeaderHandler, 0)
+	outGoingMiniBlocks := make([]data.MiniBlockHeaderHandler, 0)
+	outgoingTransactionHashes := make([][]byte, 0)
+	incomingTransactions := make(map[string][]data.TransactionHandler)
+	outgoingTransactions := make([]data.TransactionHandler, 0)
 	for _, mb := range header.GetMiniBlockHeaderHandlers() {
-		txHashes, txsForMb, err = bp.getTransactionsForMiniBlock(mb)
+		txHashes, txsForMb, err := bp.getTransactionsForMiniBlock(mb)
 		if err != nil {
-			return nil, nil, nil, nil, err
+			return nil, err
 		}
 
 		if mb.GetSenderShardID() == bp.shardCoordinator.SelfId() {
 			outgoingTransactionHashes = append(outgoingTransactionHashes, txHashes...)
 			outgoingTransactions = append(outgoingTransactions, txsForMb...)
+			outGoingMiniBlocks = append(outGoingMiniBlocks, mb)
 			continue
 		}
 
@@ -2855,7 +2860,13 @@ func (bp *baseProcessor) splitTransactionsForHeader(header data.HeaderHandler) (
 		incomingTransactions[string(mb.GetHash())] = txsForMb
 	}
 
-	return incomingMiniBlocks, incomingTransactions, outgoingTransactionHashes, outgoingTransactions, nil
+	return &splitTxsResult{
+		incomingMiniBlocks:        incomingMiniBlocks,
+		outGoingMiniBlocks:        outGoingMiniBlocks,
+		incomingTransactions:      incomingTransactions,
+		outgoingTransactionHashes: outgoingTransactionHashes,
+		outgoingTransactions:      outgoingTransactions,
+	}, nil
 }
 
 func (bp *baseProcessor) getTransactionsForMiniBlock(
