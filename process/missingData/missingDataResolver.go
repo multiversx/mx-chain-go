@@ -8,6 +8,7 @@ import (
 	"github.com/multiversx/mx-chain-core-go/core/check"
 	"github.com/multiversx/mx-chain-core-go/data"
 	"github.com/multiversx/mx-chain-core-go/data/block"
+
 	"github.com/multiversx/mx-chain-go/dataRetriever"
 	"github.com/multiversx/mx-chain-go/process"
 )
@@ -357,12 +358,6 @@ func (r *Resolver) Reset() {
 	r.mutProofs.Unlock()
 
 	r.blockDataRequester.Reset()
-}
-
-// RequestMissingShardHeaders requests missing shard headers for the given meta header.
-func (r *Resolver) RequestMissingShardHeaders(metaHeader data.MetaHeaderHandler) error {
-	// TODO: implement this
-	return nil
 }
 
 // IsInterfaceNil returns true if there is no value under the interface
