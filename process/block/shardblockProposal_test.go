@@ -1554,7 +1554,6 @@ func TestShardProcessor_VerifyBlockProposal(t *testing.T) {
 
 		coreComponents.IntMarsh = &mock.MarshalizerStub{
 			MarshalCalled: func(obj interface{}) ([]byte, error) {
-				t.Log("called IntMarsh.Marshal on ", obj)
 				return nil, expectedErr
 			},
 		}
