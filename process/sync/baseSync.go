@@ -392,8 +392,8 @@ func (boot *baseBootstrap) getCurrentBlock() data.HeaderHandler {
 	return boot.chainHandler.GetGenesisHeader()
 }
 
-// getCurrentRootHash will get the current root hash
-func (boot *baseBootstrap) getCurrentRootHash() []byte {
+// getCurrentRootHashLegacy will get the current root hash
+func (boot *baseBootstrap) getCurrentRootHashLegacy() []byte {
 	currentRootHash := boot.chainHandler.GetCurrentBlockRootHash()
 	if len(currentRootHash) != 0 {
 		return currentRootHash
@@ -904,7 +904,7 @@ func (boot *baseBootstrap) prepareForLegacySyncIfNeeded() error {
 	}
 
 	currentHeader := boot.getCurrentBlock()
-	currentRootHash := boot.getCurrentRootHash()
+	currentRootHash := boot.getCurrentRootHashLegacy()
 	txPool := boot.poolsHolder.Transactions()
 	err := txPool.OnExecutedBlock(currentHeader, currentRootHash)
 	if err != nil {

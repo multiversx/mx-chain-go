@@ -73,6 +73,7 @@ type HeaderHandlerStub struct {
 	SetShardInfoHandlersCalled             func(shardInfo []data.ShardDataHandler) error
 	GetShardInfoProposalHandlersCalled     func() []data.ShardDataProposalHandler
 	SetShardInfoProposalHandlersCalled     func(shardInfo []data.ShardDataProposalHandler) error
+	CheckFieldsIntegrityCalled             func() error
 }
 
 // SetEpochStartHandler -
@@ -582,5 +583,14 @@ func (hhs *HeaderHandlerStub) SetShardInfoProposalHandlers(shardInfo []data.Shar
 	if hhs.SetShardInfoProposalHandlersCalled != nil {
 		return hhs.SetShardInfoProposalHandlersCalled(shardInfo)
 	}
+	return nil
+}
+
+// CheckFieldsIntegrity -
+func (hhs *HeaderHandlerStub) CheckFieldsIntegrity() error {
+	if hhs.CheckFieldsIntegrityCalled != nil {
+		return hhs.CheckFieldsIntegrityCalled()
+	}
+
 	return nil
 }

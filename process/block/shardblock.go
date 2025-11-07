@@ -1062,7 +1062,7 @@ func (sp *shardProcessor) CommitBlock(
 		return err
 	}
 
-	err = sp.blockChain.SetCurrentBlockHeaderAndRootHash(header, committedRootHash)
+	err = sp.setCurrentBlockInfo(header, headerHash, committedRootHash)
 	if err != nil {
 		return err
 	}
@@ -1157,6 +1157,30 @@ func (sp *shardProcessor) CommitBlock(
 	}
 
 	sp.blockProcessingCutoffHandler.HandlePauseCutoff(header)
+
+	return nil
+}
+
+// TODO: handle chain handler info on revert
+func (sp *shardProcessor) setCurrentBlockInfo(
+	header data.HeaderHandler,
+	headerHash []byte,
+	rootHash []byte,
+) error {
+	if header.IsHeaderV3() {
+		// last executed info and header will be set on headers executor in async mode
+
+		return sp.blockChain.SetCurrentBlockHeader(header)
+	}
+
+	err := sp.blockChain.SetCurrentBlockHeaderAndRootHash(header, rootHash)
+	if err != nil {
+		return err
+	}
+
+	// set also last executed block info and header
+	// this will be useful at transition to Supernova with headers v3
+	sp.blockChain.SetLastExecutedBlockHeaderAndRootHash(header, headerHash, header.GetRootHash())
 
 	return nil
 }

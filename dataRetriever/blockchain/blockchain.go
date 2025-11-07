@@ -4,7 +4,6 @@ import (
 	"github.com/multiversx/mx-chain-core-go/core"
 	"github.com/multiversx/mx-chain-core-go/core/check"
 	"github.com/multiversx/mx-chain-core-go/data"
-	"github.com/multiversx/mx-chain-go/common"
 )
 
 var _ data.ChainHandler = (*blockChain)(nil)
@@ -52,14 +51,17 @@ func (bc *blockChain) SetGenesisHeader(genesisBlock data.HeaderHandler) error {
 	return nil
 }
 
-// SetCurrentBlockHeaderAndRootHash sets current block header pointer and the root hash
-func (bc *blockChain) SetCurrentBlockHeaderAndRootHash(header data.HeaderHandler, rootHash []byte) error {
-	if check.IfNil(header) {
-		bc.mut.Lock()
-		bc.currentBlockHeader = nil
-		bc.currentBlockRootHash = nil
-		bc.mut.Unlock()
+// SetCurrentBlockHeader sets current block header pointer
+func (bc *blockChain) SetCurrentBlockHeader(header data.HeaderHandler) error {
+	bc.mut.Lock()
+	defer bc.mut.Unlock()
 
+	return bc.setCurrentBlockHeaderUnprotected(header)
+}
+
+func (bc *blockChain) setCurrentBlockHeaderUnprotected(header data.HeaderHandler) error {
+	if check.IfNil(header) {
+		bc.currentBlockHeader = nil
 		return nil
 	}
 
@@ -68,16 +70,25 @@ func (bc *blockChain) SetCurrentBlockHeaderAndRootHash(header data.HeaderHandler
 		return data.ErrInvalidHeaderType
 	}
 
-	bc.appStatusHandler.SetUInt64Value(common.MetricNonce, h.GetNonce())
-	bc.appStatusHandler.SetUInt64Value(common.MetricSynchronizedRound, h.GetRound())
-	bc.appStatusHandler.SetUInt64Value(common.MetricBlockTimestamp, h.GetTimeStamp())
-	bc.appStatusHandler.SetUInt64Value(common.MetricBlockTimestampMs, h.GetTimeStamp()) // do not handle transition for metric
-
-	bc.mut.Lock()
 	bc.currentBlockHeader = h.ShallowClone()
+
+	bc.setCurrentHeaderMetrics(header)
+
+	return nil
+}
+
+// SetCurrentBlockHeaderAndRootHash sets current block header pointer and the root hash
+func (bc *blockChain) SetCurrentBlockHeaderAndRootHash(header data.HeaderHandler, rootHash []byte) error {
+	bc.mut.Lock()
+	defer bc.mut.Unlock()
+
+	err := bc.setCurrentBlockHeaderUnprotected(header)
+	if err != nil {
+		return err
+	}
+
 	bc.currentBlockRootHash = make([]byte, len(rootHash))
 	copy(bc.currentBlockRootHash, rootHash)
-	bc.mut.Unlock()
 
 	return nil
 }

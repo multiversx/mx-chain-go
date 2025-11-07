@@ -140,11 +140,7 @@ func (he *headersExecutor) process(pair queue.HeaderBodyPair) error {
 		executionResult.GetRootHash(),
 	)
 
-	he.blockChain.SetLastExecutedBlockInfo(
-		executionResult.GetHeaderNonce(),
-		executionResult.GetHeaderHash(),
-		executionResult.GetRootHash(),
-	)
+	he.blockChain.SetLastExecutedBlockHeaderAndRootHash(pair.Header, executionResult.GetHeaderHash(), executionResult.GetRootHash())
 
 	return nil
 }

@@ -1243,29 +1243,81 @@ func TestSCQueryService_ShouldWorkIfNodeIsSynced(t *testing.T) {
 func TestSCQueryService_ShouldFailIfStateChanged(t *testing.T) {
 	t.Parallel()
 
-	args := createMockArgumentsForSCQuery()
-	rootHashCalledCounter := 0
-	args.APIBlockChain = &testscommon.ChainHandlerStub{
-		GetCurrentBlockRootHashCalled: func() []byte {
-			rootHashCalledCounter++
-			println(rootHashCalledCounter)
-			if rootHashCalledCounter < 2 { // first call is during root hash extraction for recreate trie
-				return []byte("first root hash")
-			}
+	t.Run("header v2", func(t *testing.T) {
+		t.Parallel()
 
-			return []byte("second root hash")
-		},
-	}
+		args := createMockArgumentsForSCQuery()
+		rootHashCalledCounter := 0
+		args.MainBlockChain = &testscommon.ChainHandlerStub{
+			GetCurrentBlockHeaderCalled: func() data.HeaderHandler {
+				return &block.HeaderV2{}
+			},
+		}
+		args.APIBlockChain = &testscommon.ChainHandlerStub{
+			GetCurrentBlockRootHashCalled: func() []byte {
+				rootHashCalledCounter++
+				println(rootHashCalledCounter)
+				if rootHashCalledCounter < 2 { // first call is during root hash extraction for recreate trie
+					return []byte("first root hash")
+				}
 
-	qs, _ := NewSCQueryService(args)
+				return []byte("second root hash")
+			},
+		}
 
-	res, _, err := qs.ExecuteQuery(&process.SCQuery{
-		SameScState: true,
-		ScAddress:   []byte(DummyScAddress),
-		FuncName:    "function",
+		qs, _ := NewSCQueryService(args)
+
+		res, _, err := qs.ExecuteQuery(&process.SCQuery{
+			SameScState: true,
+			ScAddress:   []byte(DummyScAddress),
+			FuncName:    "function",
+		})
+		require.Nil(t, res)
+		require.ErrorIs(t, err, process.ErrStateChangedWhileExecutingVmQuery)
 	})
-	require.Nil(t, res)
-	require.ErrorIs(t, err, process.ErrStateChangedWhileExecutingVmQuery)
+
+	t.Run("header v3", func(t *testing.T) {
+		t.Parallel()
+
+		args := createMockArgumentsForSCQuery()
+		rootHashCalledCounter := 0
+		args.MainBlockChain = &testscommon.ChainHandlerStub{
+			GetCurrentBlockHeaderCalled: func() data.HeaderHandler {
+				return &block.HeaderV3{}
+			},
+			GetLastExecutedBlockHeaderCalled: func() data.HeaderHandler {
+				return &block.HeaderV3{
+					LastExecutionResult: &block.ExecutionResultInfo{
+						ExecutionResult: &block.BaseExecutionResult{
+							RootHash: []byte("references block root hash"),
+						},
+					},
+				}
+			},
+		}
+		args.APIBlockChain = &testscommon.ChainHandlerStub{
+			GetLastExecutedBlockInfoCalled: func() (uint64, []byte, []byte) {
+				rootHashCalledCounter++
+				println(rootHashCalledCounter)
+				if rootHashCalledCounter < 2 { // first call is during root hash extraction for recreate trie
+					return 0, []byte{}, []byte("first root hash")
+				}
+
+				return 0, []byte{}, []byte("second root hash")
+			},
+		}
+
+		qs, _ := NewSCQueryService(args)
+
+		res, _, err := qs.ExecuteQuery(&process.SCQuery{
+			SameScState: true,
+			ScAddress:   []byte(DummyScAddress),
+			FuncName:    "function",
+		})
+		require.Nil(t, res)
+
+		require.ErrorIs(t, err, process.ErrStateChangedWhileExecutingVmQuery)
+	})
 }
 
 func TestSCQueryService_ShouldWorkIfStateDidntChange(t *testing.T) {
