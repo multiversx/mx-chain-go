@@ -615,7 +615,7 @@ func (mp *metaProcessor) checkShardHeadersValidityAndFinalityProposal(
 		return fmt.Errorf("%w : checkShardHeadersValidityAndFinalityProposal -> getShardHeadersFromMetaHeader", err)
 	}
 
-	ok := mp.HasProofsForHeaders(usedShardHeaders.headersPerShard)
+	ok := mp.hasProofsForHeaders(usedShardHeaders.headersPerShard)
 	if !ok {
 		return process.ErrMissingHeaderProof
 	}
@@ -686,7 +686,7 @@ func (mp *metaProcessor) checkHeadersSequenceCorrectness(hdrsForShard []ShardHea
 	return nil
 }
 
-func (mp *metaProcessor) HasProofsForHeaders(headersPerShard map[uint32][]ShardHeaderInfo) bool {
+func (mp *metaProcessor) hasProofsForHeaders(headersPerShard map[uint32][]ShardHeaderInfo) bool {
 	for _, headersForShard := range headersPerShard {
 		for _, headerInfo := range headersForShard {
 			if !mp.proofsPool.HasProof(headerInfo.Header.GetShardID(), headerInfo.Hash) {
