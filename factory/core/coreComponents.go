@@ -349,10 +349,9 @@ func (ccf *coreComponentsFactory) Create() (*coreComponents, error) {
 
 	log.Trace("creating ratings data")
 	ratingDataArgs := rating.RatingsDataArg{
-		Config:                    ccf.ratingsConfig,
-		ChainParametersHolder:     chainParametersHandler,
-		RoundDurationMilliseconds: genesisNodesConfig.RoundDuration,
-		EpochNotifier:             epochNotifier,
+		Config:                ccf.ratingsConfig,
+		ChainParametersHolder: chainParametersHandler,
+		EpochNotifier:         epochNotifier,
 	}
 	ratingsData, err := rating.NewRatingsData(ratingDataArgs)
 	if err != nil {
