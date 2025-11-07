@@ -162,7 +162,6 @@ func CreateChainSimulatorConfigs(args ArgsChainSimulatorConfigs) (*ArgsConfigsSi
 func updateSupernovaConfigs(configs *config.Configs, args ArgsChainSimulatorConfigs) {
 	supernovaEpoch := configs.EpochConfig.EnableEpochs.SupernovaEnableEpoch // may be altered by AlterConfigFunction
 	configs.GeneralConfig.GeneralSettings.ChainParametersByEpoch[2].EnableEpoch = supernovaEpoch
-	configs.GeneralConfig.GeneralSettings.ChainParametersByEpoch[2].RoundDuration = args.SupernovaRoundDurationInMillis
 
 	if args.SupernovaRoundsPerEpoch.HasValue {
 		configs.GeneralConfig.GeneralSettings.ChainParametersByEpoch[2].RoundsPerEpoch = int64(args.SupernovaRoundsPerEpoch.Value)
@@ -170,7 +169,10 @@ func updateSupernovaConfigs(configs *config.Configs, args ArgsChainSimulatorConf
 
 	// update supernova round duration
 	configs.GeneralConfig.GeneralSettings.ChainParametersByEpoch[2].EnableEpoch = configs.EpochConfig.EnableEpochs.SupernovaEnableEpoch
-	configs.GeneralConfig.GeneralSettings.ChainParametersByEpoch[2].RoundDuration = args.SupernovaRoundDurationInMillis
+
+	if args.SupernovaRoundDurationInMillis > 0 {
+		configs.GeneralConfig.GeneralSettings.ChainParametersByEpoch[2].RoundDuration = args.SupernovaRoundDurationInMillis
+	}
 	isSupernovaFromGenesis := configs.EpochConfig.EnableEpochs.SupernovaEnableEpoch == 0
 	if isSupernovaFromGenesis {
 		// if supernova is from genesis, remove other ChainParametersByEpoch entries

@@ -14,14 +14,15 @@ func TestNewProcessorRunnerChainArguments(t *testing.T) {
 	}
 
 	outputConfig, err := CreateChainSimulatorConfigs(ArgsChainSimulatorConfigs{
-		NumOfShards:                 3,
-		OriginalConfigsPath:         "../../../cmd/node/config",
-		RoundDurationInMillis:       6000,
-		TempDir:                     t.TempDir(),
-		MetaChainMinNodes:           1,
-		MinNodesPerShard:            1,
-		ConsensusGroupSize:          1,
-		MetaChainConsensusGroupSize: 1,
+		NumOfShards:                    3,
+		OriginalConfigsPath:            "../../../cmd/node/config",
+		RoundDurationInMillis:          6000,
+		SupernovaRoundDurationInMillis: 600,
+		TempDir:                        t.TempDir(),
+		MetaChainMinNodes:              1,
+		MinNodesPerShard:               1,
+		ConsensusGroupSize:             1,
+		MetaChainConsensusGroupSize:    1,
 	})
 	require.Nil(t, err)
 
