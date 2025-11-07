@@ -976,11 +976,13 @@ func TestShardInfoCreateData_createShardMiniBlockHeaderFromExecutionResultHandle
 // TODO modify when the function is updated
 func TestShardInfoCreateData_updateShardDataWithCrossShardInfo(t *testing.T) {
 	t.Parallel()
-	header := block.Header{ShardID: 1}
-	shardData := &block.ShardData{}
 
 	t.Run("should fail with GetLastSelfNotarizedHeader error", func(t *testing.T) {
 		t.Parallel()
+
+		header := block.Header{ShardID: 1}
+		shardData := &block.ShardData{}
+
 		args := createDefaultShardInfoCreateDataArgs()
 		args.blockTracker.GetLastSelfNotarizedHeaderCalled = func(shardID uint32) (data.HeaderHandler, []byte, error) {
 			return nil, nil, fmt.Errorf("GetLastSelfNotarizedHeader error")
@@ -999,6 +1001,10 @@ func TestShardInfoCreateData_updateShardDataWithCrossShardInfo(t *testing.T) {
 
 	t.Run("should work with no data", func(t *testing.T) {
 		t.Parallel()
+
+		header := block.Header{ShardID: 1}
+		shardData := &block.ShardData{}
+
 		expectedNonce := uint64(12345)
 		args := createDefaultShardInfoCreateDataArgs()
 		args.pendingMiniBlocksHandler.GetPendingMiniBlocksCalled = func(shardID uint32) [][]byte {
