@@ -5,6 +5,7 @@ import (
 
 	"github.com/multiversx/mx-chain-core-go/core"
 	"github.com/multiversx/mx-chain-core-go/data"
+
 	"github.com/multiversx/mx-chain-go/process"
 	"github.com/multiversx/mx-chain-go/process/asyncExecution/executionTrack"
 	"github.com/multiversx/mx-chain-go/process/asyncExecution/queue"
@@ -163,6 +164,9 @@ func (tpn *TestProcessorNode) initBlockProcessorWithSync() {
 		log.LogIfError(err)
 	}
 
+	tpn.BlocksQueue = queue.NewBlocksQueue()
+	tpn.BlocksQueue.RegisterEvictionSubscriber(executionResultsTracker)
+
 	argumentsBase := block.ArgBaseProcessor{
 		CoreComponents:       coreComponents,
 		DataComponents:       dataComponents,
@@ -203,9 +207,8 @@ func (tpn *TestProcessorNode) initBlockProcessorWithSync() {
 		ExecutionResultsInclusionEstimator: inclusionEstimator,
 		ExecutionResultsTracker:            executionResultsTracker,
 		GasComputation:                     gasConsumption,
+		BlocksQueue:                        tpn.BlocksQueue,
 	}
-
-	tpn.BlocksQueue = queue.NewBlocksQueue()
 
 	if tpn.ShardCoordinator.SelfId() == core.MetachainShardId {
 		tpn.ForkDetector, _ = sync.NewMetaForkDetector(
@@ -222,6 +225,15 @@ func (tpn *TestProcessorNode) initBlockProcessorWithSync() {
 		)
 		argumentsBase.ForkDetector = tpn.ForkDetector
 		argumentsBase.TxCoordinator = &mock.TransactionCoordinatorMock{}
+		shardInfoCreator, errShardInfoCreator := block.NewShardInfoCreateData(
+			tpn.EnableEpochsHandler,
+			tpn.DataPool.Headers(),
+			tpn.DataPool.Proofs(),
+			&mock.PendingMiniBlocksHandlerStub{},
+			argumentsBase.BlockTracker,
+		)
+		log.LogIfError(errShardInfoCreator)
+
 		arguments := block.ArgMetaProcessor{
 			ArgBaseProcessor:          argumentsBase,
 			SCToProtocol:              &mock.SCToProtocolStub{},
@@ -236,6 +248,7 @@ func (tpn *TestProcessorNode) initBlockProcessorWithSync() {
 				},
 			},
 			EpochSystemSCProcessor: &testscommon.EpochStartSystemSCStub{},
+			ShardInfoCreator:       shardInfoCreator,
 		}
 
 		tpn.BlockProcessor, err = block.NewMetaProcessor(arguments)

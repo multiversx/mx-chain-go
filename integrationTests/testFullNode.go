@@ -984,6 +984,9 @@ func (tpn *TestFullNode) initBlockProcessor(
 		log.LogIfError(err)
 	}
 
+	tpn.BlocksQueue = queue.NewBlocksQueue()
+	tpn.BlocksQueue.RegisterEvictionSubscriber(executionResultsTracker)
+
 	argumentsBase := block.ArgBaseProcessor{
 		CoreComponents:       coreComponents,
 		DataComponents:       dataComponents,
@@ -1023,13 +1026,12 @@ func (tpn *TestFullNode) initBlockProcessor(
 		ExecutionResultsInclusionEstimator: inclusionEstimator,
 		ExecutionResultsTracker:            executionResultsTracker,
 		GasComputation:                     gasConsumption,
+		BlocksQueue:                        tpn.BlocksQueue,
 	}
 
 	if check.IfNil(tpn.EpochStartNotifier) {
 		tpn.EpochStartNotifier = notifier.NewEpochStartSubscriptionHandler()
 	}
-
-	tpn.BlocksQueue = queue.NewBlocksQueue()
 
 	if tpn.ShardCoordinator.SelfId() == core.MetachainShardId {
 		argumentsBase.EpochStartTrigger = tpn.EpochStartTrigger
@@ -1173,6 +1175,15 @@ func (tpn *TestFullNode) initBlockProcessor(
 		epochStartSystemSCProcessor, _ := metachain.NewSystemSCProcessor(argsEpochSystemSC)
 		tpn.EpochStartSystemSCProcessor = epochStartSystemSCProcessor
 
+		shardInfoCreator, errShardInfoCreate := block.NewShardInfoCreateData(
+			tpn.EnableEpochsHandler,
+			tpn.DataPool.Headers(),
+			tpn.DataPool.Proofs(),
+			&mock.PendingMiniBlocksHandlerStub{},
+			argumentsBase.BlockTracker,
+		)
+		log.LogIfError(errShardInfoCreate)
+
 		arguments := block.ArgMetaProcessor{
 			ArgBaseProcessor:             argumentsBase,
 			SCToProtocol:                 scToProtocolInstance,
@@ -1183,6 +1194,7 @@ func (tpn *TestFullNode) initBlockProcessor(
 			EpochValidatorInfoCreator:    epochStartValidatorInfo,
 			ValidatorStatisticsProcessor: tpn.ValidatorStatisticsProcessor,
 			EpochSystemSCProcessor:       epochStartSystemSCProcessor,
+			ShardInfoCreator:             shardInfoCreator,
 		}
 
 		tpn.BlockProcessor, err = block.NewMetaProcessor(arguments)
@@ -1314,6 +1326,9 @@ func (tpn *TestFullNode) initBlockProcessorWithSync(
 		log.LogIfError(err)
 	}
 
+	tpn.BlocksQueue = queue.NewBlocksQueue()
+	tpn.BlocksQueue.RegisterEvictionSubscriber(executionResultsTracker)
+
 	argumentsBase := block.ArgBaseProcessor{
 		CoreComponents:       coreComponents,
 		DataComponents:       dataComponents,
@@ -1354,13 +1369,22 @@ func (tpn *TestFullNode) initBlockProcessorWithSync(
 		ExecutionResultsInclusionEstimator: inclusionEstimator,
 		ExecutionResultsTracker:            executionResultsTracker,
 		GasComputation:                     gasConsumption,
+		BlocksQueue:                        tpn.BlocksQueue,
 	}
-
-	tpn.BlocksQueue = queue.NewBlocksQueue()
 
 	if tpn.ShardCoordinator.SelfId() == core.MetachainShardId {
 		argumentsBase.ForkDetector = tpn.ForkDetector
 		argumentsBase.TxCoordinator = &mock.TransactionCoordinatorMock{}
+
+		shardInfoCreator, errShardInfoCreate := block.NewShardInfoCreateData(
+			coreComponents.EnableEpochsHandler(),
+			dataComponents.DataPool.Headers(),
+			dataComponents.DataPool.Proofs(),
+			&mock.PendingMiniBlocksHandlerStub{},
+			argumentsBase.BlockTracker,
+		)
+		log.LogIfError(errShardInfoCreate)
+
 		arguments := block.ArgMetaProcessor{
 			ArgBaseProcessor:          argumentsBase,
 			SCToProtocol:              &mock.SCToProtocolStub{},
@@ -1375,6 +1399,7 @@ func (tpn *TestFullNode) initBlockProcessorWithSync(
 				},
 			},
 			EpochSystemSCProcessor: &testscommon.EpochStartSystemSCStub{},
+			ShardInfoCreator:       shardInfoCreator,
 		}
 
 		tpn.BlockProcessor, err = block.NewMetaProcessor(arguments)

@@ -222,7 +222,7 @@ func (sp *shardProcessor) ProcessBlock(
 
 	defer func() {
 		if err != nil {
-			sp.RevertCurrentBlock()
+			sp.RevertCurrentBlock(header)
 		}
 	}()
 
@@ -916,7 +916,7 @@ func (sp *shardProcessor) CommitBlock(
 	sp.processStatusHandler.SetBusy("shardProcessor.CommitBlock")
 	defer func() {
 		if err != nil {
-			sp.RevertCurrentBlock()
+			sp.RevertCurrentBlock(headerHandler)
 		}
 		sp.processStatusHandler.SetIdle()
 	}()
@@ -1062,9 +1062,7 @@ func (sp *shardProcessor) CommitBlock(
 		return err
 	}
 
-	// TODO: make sure to set current header and rootHash in blockChain properly
-
-	err = sp.blockChain.SetCurrentBlockHeaderAndRootHash(header, committedRootHash)
+	err = sp.setCurrentBlockInfo(header, headerHash, committedRootHash)
 	if err != nil {
 		return err
 	}
@@ -1087,6 +1085,11 @@ func (sp *shardProcessor) CommitBlock(
 	sp.recordBlockInHistory(headerHash, headerHandler, bodyHandler)
 
 	lastCrossNotarizedHeader, _, err := sp.blockTracker.GetLastCrossNotarizedHeader(core.MetachainShardId)
+	if err != nil {
+		return err
+	}
+
+	err = sp.cleanExecutionResultsFromTracker(header)
 	if err != nil {
 		return err
 	}
@@ -1155,6 +1158,30 @@ func (sp *shardProcessor) CommitBlock(
 	}
 
 	sp.blockProcessingCutoffHandler.HandlePauseCutoff(header)
+
+	return nil
+}
+
+// TODO: handle chain handler info on revert
+func (sp *shardProcessor) setCurrentBlockInfo(
+	header data.HeaderHandler,
+	headerHash []byte,
+	rootHash []byte,
+) error {
+	if header.IsHeaderV3() {
+		// last executed info and header will be set on headers executor in async mode
+
+		return sp.blockChain.SetCurrentBlockHeader(header)
+	}
+
+	err := sp.blockChain.SetCurrentBlockHeaderAndRootHash(header, rootHash)
+	if err != nil {
+		return err
+	}
+
+	// set also last executed block info and header
+	// this will be useful at transition to Supernova with headers v3
+	sp.blockChain.SetLastExecutedBlockHeaderAndRootHash(header, headerHash, header.GetRootHash())
 
 	return nil
 }
@@ -1328,6 +1355,7 @@ func (sp *shardProcessor) updateState(headers []data.HeaderHandler, currentHeade
 		return
 	}
 
+	// TODO: set proper finalized header in outport
 	sp.setFinalizedHeaderHashInIndexer(currentHeaderHash)
 
 	scheduledHeaderRootHash, _ := sp.scheduledTxsExecutionHandler.GetScheduledRootHashForHeader(currentHeaderHash)
@@ -1339,11 +1367,17 @@ func (sp *shardProcessor) setFinalBlockInfo(
 	headerHash []byte,
 	scheduledHeaderRootHash []byte,
 ) {
+	if header.IsHeaderV3() {
+		// final block info is set in async mode on header executor
+		return
+	}
+
 	finalRootHash := scheduledHeaderRootHash
 	if len(finalRootHash) == 0 {
 		finalRootHash = header.GetRootHash()
 	}
 
+	// TODO: maybe rename this to reflect last execution results
 	sp.blockChain.SetFinalBlockInfo(header.GetNonce(), headerHash, finalRootHash)
 }
 

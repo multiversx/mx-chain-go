@@ -11,6 +11,9 @@ import (
 	"github.com/multiversx/mx-chain-core-go/core/check"
 	"github.com/multiversx/mx-chain-core-go/data"
 	"github.com/multiversx/mx-chain-core-go/data/block"
+	"github.com/stretchr/testify/assert"
+	"github.com/stretchr/testify/require"
+
 	"github.com/multiversx/mx-chain-go/config"
 	"github.com/multiversx/mx-chain-go/dataRetriever"
 	"github.com/multiversx/mx-chain-go/epochStart"
@@ -23,8 +26,6 @@ import (
 	statusHandlerMock "github.com/multiversx/mx-chain-go/testscommon/statusHandler"
 	storageStubs "github.com/multiversx/mx-chain-go/testscommon/storage"
 	vic "github.com/multiversx/mx-chain-go/testscommon/validatorInfoCacher"
-	"github.com/stretchr/testify/assert"
-	"github.com/stretchr/testify/require"
 )
 
 func createMockEpochStartTriggerArguments() *ArgsNewMetaEpochStartTrigger {
@@ -168,18 +169,13 @@ func TestNewEpochStartTrigger_UpdateRoundAndSetEpochChange(t *testing.T) {
 	require.Nil(t, err)
 
 	epoch := uint32(0)
-	round := uint64(0)
+	round := uint64(2)
 	nonce := uint64(100)
-	epochStartTrigger.UpdateRound(round)
-	round++
-	epochStartTrigger.UpdateRound(round)
-	round++
-	epochStartTrigger.UpdateRound(round)
 
 	shouldProposeEpochChange := epochStartTrigger.ShouldProposeEpochChange(round, nonce)
 	require.True(t, shouldProposeEpochChange)
 
-	epochStartTrigger.SetEpochChange()
+	epochStartTrigger.SetEpochChange(round)
 	currentEpoch := epochStartTrigger.Epoch()
 	require.Equal(t, epoch+1, currentEpoch)
 	require.True(t, epochStartTrigger.IsEpochStart())
@@ -228,7 +224,6 @@ func TestTrigger_ForceEpochStartCloseToNormalEpochStartShouldNotForce(t *testing
 
 	arguments := createMockEpochStartTriggerArguments()
 	epochStartTrigger, _ := NewEpochStartTrigger(arguments)
-	epochStartTrigger.currentRound = 20
 
 	epochStartTrigger.ForceEpochStart(201)
 	assert.Equal(t, uint64(math.MaxUint64), epochStartTrigger.nextEpochStartRound)
@@ -247,7 +242,6 @@ func TestTrigger_ForceEpochStartUnderMinimumBetweenEpochs(t *testing.T) {
 		},
 	}
 	epochStartTrigger, _ := NewEpochStartTrigger(arguments)
-	epochStartTrigger.currentRound = 1
 
 	epochStartTrigger.ForceEpochStart(10)
 	assert.Equal(t, uint64(20), epochStartTrigger.nextEpochStartRound)
@@ -270,8 +264,6 @@ func TestTrigger_ForceEpochStartShouldOk(t *testing.T) {
 	arguments.Epoch = epoch
 	epochStartTrigger, err := NewEpochStartTrigger(arguments)
 	require.Nil(t, err)
-
-	epochStartTrigger.currentRound = 50
 
 	expectedRound := uint64(60)
 	epochStartTrigger.ForceEpochStart(60)

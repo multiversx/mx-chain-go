@@ -16,6 +16,7 @@ import (
 	dataBlock "github.com/multiversx/mx-chain-core-go/data/block"
 	"github.com/multiversx/mx-chain-core-go/data/outport"
 	"github.com/multiversx/mx-chain-core-go/data/receipt"
+	"github.com/multiversx/mx-chain-go/process/asyncExecution/executionTrack"
 	"github.com/multiversx/mx-chain-go/process/asyncExecution/queue"
 	vmcommon "github.com/multiversx/mx-chain-vm-common-go"
 	vmcommonBuiltInFunctions "github.com/multiversx/mx-chain-vm-common-go/builtInFunctions"
@@ -579,7 +580,7 @@ func (pcf *processComponentsFactory) Create() (*processComponents, error) {
 		return nil, err
 	}
 	if pcf.bootstrapComponents.ShardCoordinator().SelfId() == core.MetachainShardId {
-		pendingMiniBlocksHandler, err = pendingMb.NewPendingMiniBlocks()
+		pendingMiniBlocksHandler, err = pendingMb.NewPendingMiniBlocks(pcf.data.Datapool().Headers())
 		if err != nil {
 			return nil, err
 		}
@@ -623,6 +624,10 @@ func (pcf *processComponentsFactory) Create() (*processComponents, error) {
 		return nil, fmt.Errorf("%w when assembling components for the sent signatures tracker", err)
 	}
 
+	executionResultsTracker := executionTrack.NewExecutionResultsTracker()
+	blocksQueue := queue.NewBlocksQueue()
+	blocksQueue.RegisterEvictionSubscriber(executionResultsTracker)
+
 	blockProcessorComponents, err := pcf.newBlockProcessor(
 		requestHandler,
 		forkDetector,
@@ -639,6 +644,8 @@ func (pcf *processComponentsFactory) Create() (*processComponents, error) {
 		blockCutoffProcessingHandler,
 		pcf.state.MissingTrieNodesNotifier(),
 		sentSignaturesTracker,
+		blocksQueue,
+		executionResultsTracker,
 	)
 	if err != nil {
 		return nil, err
@@ -743,7 +750,7 @@ func (pcf *processComponentsFactory) Create() (*processComponents, error) {
 		roundHandler:                     pcf.coreData.RoundHandler(),
 		forkDetector:                     forkDetector,
 		blockProcessor:                   blockProcessorComponents.blockProcessor,
-		blocksQueue:                      queue.NewBlocksQueue(),
+		blocksQueue:                      blocksQueue,
 		epochStartTrigger:                epochStartTrigger,
 		epochStartNotifier:               pcf.coreData.EpochStartNotifierWithConfirm(),
 		blackListHandler:                 blackListHandler,

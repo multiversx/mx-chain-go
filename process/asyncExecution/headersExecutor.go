@@ -2,10 +2,13 @@ package asyncExecution
 
 import (
 	"context"
+	"sync"
 
 	"github.com/multiversx/mx-chain-core-go/core/check"
+	"github.com/multiversx/mx-chain-core-go/data"
 	logger "github.com/multiversx/mx-chain-logger-go"
 
+	"github.com/multiversx/mx-chain-go/process"
 	"github.com/multiversx/mx-chain-go/process/asyncExecution/queue"
 )
 
@@ -16,13 +19,16 @@ type ArgsHeadersExecutor struct {
 	BlocksQueue      BlocksQueue
 	ExecutionTracker ExecutionResultsHandler
 	BlockProcessor   BlockProcessor
+	BlockChain       data.ChainHandler
 }
 
 type headersExecutor struct {
 	blocksQueue      BlocksQueue
 	executionTracker ExecutionResultsHandler
 	blockProcessor   BlockProcessor
+	blockChain       data.ChainHandler
 	cancelFunc       context.CancelFunc
+	evictedNonces    sync.Map
 }
 
 // NewHeadersExecutor will create a new instance of *headersExecutor
@@ -36,12 +42,21 @@ func NewHeadersExecutor(args ArgsHeadersExecutor) (*headersExecutor, error) {
 	if check.IfNil(args.BlockProcessor) {
 		return nil, ErrNilBlockProcessor
 	}
+	if check.IfNil(args.BlockChain) {
+		return nil, process.ErrNilBlockChain
+	}
 
-	return &headersExecutor{
+	instance := &headersExecutor{
 		blocksQueue:      args.BlocksQueue,
 		executionTracker: args.ExecutionTracker,
 		blockProcessor:   args.BlockProcessor,
-	}, nil
+		blockChain:       args.BlockChain,
+		evictedNonces:    sync.Map{},
+	}
+
+	instance.blocksQueue.RegisterEvictionSubscriber(instance)
+
+	return instance, nil
 }
 
 // StartExecution starts a goroutine to continuously process blocks from the queue
@@ -95,10 +110,22 @@ func (he *headersExecutor) handleProcessError(ctx context.Context, pair queue.He
 }
 
 func (he *headersExecutor) process(pair queue.HeaderBodyPair) error {
+	_, wasEvicted := he.evictedNonces.Load(pair.Header.GetNonce())
+	if wasEvicted {
+		he.evictedNonces.Delete(pair.Header.GetNonce())
+		return nil
+	}
+
 	executionResult, err := he.blockProcessor.ProcessBlockProposal(pair.Header, pair.Body)
 	if err != nil {
 		log.Warn("headersExecutor.process process block failed", "err", err)
 		return err
+	}
+
+	_, wasEvicted = he.evictedNonces.Load(pair.Header.GetNonce())
+	if wasEvicted {
+		he.evictedNonces.Delete(pair.Header.GetNonce())
+		return nil
 	}
 
 	err = he.executionTracker.AddExecutionResult(executionResult)
@@ -107,9 +134,20 @@ func (he *headersExecutor) process(pair queue.HeaderBodyPair) error {
 		return nil
 	}
 
-	// TODO?: set rootHash in blockchain hook
+	he.blockChain.SetFinalBlockInfo(
+		executionResult.GetHeaderNonce(),
+		executionResult.GetHeaderHash(),
+		executionResult.GetRootHash(),
+	)
+
+	he.blockChain.SetLastExecutedBlockHeaderAndRootHash(pair.Header, executionResult.GetHeaderHash(), executionResult.GetRootHash())
 
 	return nil
+}
+
+// OnHeaderEvicted is a callback called when a header is removed from the execution queue
+func (he *headersExecutor) OnHeaderEvicted(headerNonce uint64) {
+	he.evictedNonces.Store(headerNonce, struct{}{})
 }
 
 // Close will close the blocks execution loop

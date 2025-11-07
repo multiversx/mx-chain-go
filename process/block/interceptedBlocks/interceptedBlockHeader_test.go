@@ -444,7 +444,7 @@ func TestInterceptedHeader_CheckValidityExecutionResultIsEpochCorrectMetaChain(t
 			},
 		}
 		inHdr, _ := interceptedBlocks.NewInterceptedHeader(arg)
-		inHdr.HeaderHandler().SetShardID(1)
+		_ = inHdr.HeaderHandler().SetShardID(1)
 
 		err := inHdr.CheckValidity()
 		assert.Nil(t, err)
@@ -474,7 +474,7 @@ func TestInterceptedHeader_CheckValidityExecutionResultIsEpochCorrectMetaChain(t
 			},
 		}
 		inHdr, _ := interceptedBlocks.NewInterceptedHeader(arg)
-		inHdr.HeaderHandler().SetShardID(1)
+		_ = inHdr.HeaderHandler().SetShardID(1)
 
 		err := inHdr.CheckValidity()
 		assert.Nil(t, err)
@@ -504,7 +504,7 @@ func TestInterceptedHeader_CheckValidityExecutionResultIsEpochCorrectMetaChain(t
 			},
 		}
 		inHdr, _ := interceptedBlocks.NewInterceptedHeader(arg)
-		inHdr.HeaderHandler().SetShardID(1)
+		_ = inHdr.HeaderHandler().SetShardID(1)
 
 		err := inHdr.CheckValidity()
 		assert.Nil(t, err)
@@ -535,7 +535,7 @@ func TestInterceptedHeader_CheckValidityExecutionResultIsEpochCorrectMetaChain(t
 		gracePeriod, _ := graceperiod.NewEpochChangeGracePeriod([]config.EpochChangeGracePeriodByEpoch{{EnableEpoch: 0, GracePeriodInRounds: 1}})
 		arg.EpochChangeGracePeriodHandler = gracePeriod
 		inHdr, _ := interceptedBlocks.NewInterceptedHeader(arg)
-		inHdr.HeaderHandler().SetShardID(1)
+		_ = inHdr.HeaderHandler().SetShardID(1)
 
 		err := inHdr.CheckValidity()
 		assert.Nil(t, err)
@@ -567,7 +567,7 @@ func TestInterceptedHeader_CheckValidityExecutionResultIsEpochCorrectMetaChain(t
 
 		arg.EpochChangeGracePeriodHandler = &processMocks.GracePeriodErrStub{}
 		inHdr, _ := interceptedBlocks.NewInterceptedHeader(arg)
-		inHdr.HeaderHandler().SetShardID(1)
+		_ = inHdr.HeaderHandler().SetShardID(1)
 
 		err := inHdr.CheckValidity()
 		assert.Error(t, err)
@@ -598,7 +598,7 @@ func TestInterceptedHeader_CheckValidityExecutionResultIsEpochCorrectMetaChain(t
 		gracePeriod, _ := graceperiod.NewEpochChangeGracePeriod([]config.EpochChangeGracePeriodByEpoch{{EnableEpoch: 0, GracePeriodInRounds: 0}})
 		arg.EpochChangeGracePeriodHandler = gracePeriod
 		inHdr, _ := interceptedBlocks.NewInterceptedHeader(arg)
-		inHdr.HeaderHandler().SetShardID(1)
+		_ = inHdr.HeaderHandler().SetShardID(1)
 
 		err := inHdr.CheckValidity()
 		assert.Error(t, err)

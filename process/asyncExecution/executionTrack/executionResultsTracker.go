@@ -19,7 +19,6 @@ type executionResultsTracker struct {
 	executionResultsByHash map[string]data.BaseExecutionResultHandler
 	nonceHash              *nonceHash
 	lastExecutedResultHash []byte
-	hashToRemoveOnAdd      []byte
 }
 
 // NewExecutionResultsTracker will create a new instance of *executionResultsTracker
@@ -41,13 +40,6 @@ func (ert *executionResultsTracker) AddExecutionResult(executionResult data.Base
 	defer ert.mutex.Unlock()
 	if ert.lastNotarizedResult == nil {
 		return ErrNilLastNotarizedExecutionResult
-	}
-
-	shouldIgnoreExecutionResult := bytes.Equal(ert.hashToRemoveOnAdd, executionResult.GetHeaderHash())
-	if shouldIgnoreExecutionResult {
-		ert.hashToRemoveOnAdd = nil
-		log.Debug("ert.AddExecutionResult ignored execution result", "hash", executionResult.GetHeaderHash())
-		return nil
 	}
 
 	if ert.lastNotarizedResult.GetHeaderNonce() >= executionResult.GetHeaderNonce() {
@@ -164,36 +156,23 @@ func (ert *executionResultsTracker) getPendingExecutionResultsByNonce(nonce uint
 }
 
 // CleanConfirmedExecutionResults will clean the confirmed execution results
-func (ert *executionResultsTracker) CleanConfirmedExecutionResults(header HeaderWithExecutionResults) (*CleanInfo, error) {
+func (ert *executionResultsTracker) CleanConfirmedExecutionResults(header data.HeaderHandler) error {
 	ert.mutex.Lock()
 	defer ert.mutex.Unlock()
 
-	headerExecutionResults := header.GetExecutionResults()
-	headerBaseExecutionResults := executionHandlersToBaseExecutionHandlers(headerExecutionResults)
+	headerExecutionResults := header.GetExecutionResultsHandlers()
 
-	return ert.cleanConfirmedExecutionResults(headerBaseExecutionResults)
+	return ert.cleanConfirmedExecutionResults(headerExecutionResults)
 }
 
-func executionHandlersToBaseExecutionHandlers(execHandlers []data.ExecutionResultHandler) []data.BaseExecutionResultHandler {
-	baseExecHandlers := make([]data.BaseExecutionResultHandler, len(execHandlers))
-	for i, execHandler := range execHandlers {
-		baseExecHandlers[i] = execHandler
-	}
-
-	return baseExecHandlers
-}
-
-func (ert *executionResultsTracker) cleanConfirmedExecutionResults(headerExecutionResults []data.BaseExecutionResultHandler) (*CleanInfo, error) {
+func (ert *executionResultsTracker) cleanConfirmedExecutionResults(headerExecutionResults []data.BaseExecutionResultHandler) error {
 	if len(headerExecutionResults) == 0 {
-		return &CleanInfo{
-			CleanResult:             CleanResultOK,
-			LastMatchingResultNonce: ert.lastNotarizedResult.GetHeaderNonce(),
-		}, nil
+		return nil
 	}
 
 	pendingExecutionResult, err := ert.getPendingExecutionResults()
 	if err != nil {
-		return nil, err
+		return err
 	}
 
 	lastMatchingResultNonce := ert.lastNotarizedResult.GetHeaderNonce()
@@ -201,10 +180,7 @@ func (ert *executionResultsTracker) cleanConfirmedExecutionResults(headerExecuti
 	for idx, executionResultFromHeader := range headerExecutionResults {
 		if idx >= len(pendingExecutionResult) {
 			// missing execution result
-			return &CleanInfo{
-				CleanResult:             CleanResultNotFound,
-				LastMatchingResultNonce: lastMatchingResultNonce,
-			}, nil
+			return fmt.Errorf("%w, executon result nod found in peding executon results, last matching result nonce: %d", ErrCannotFindExecutionResult, lastMatchingResultNonce)
 		}
 
 		executionResultFromTracker := pendingExecutionResult[idx]
@@ -219,10 +195,7 @@ func (ert *executionResultsTracker) cleanConfirmedExecutionResults(headerExecuti
 			// different execution result should clean everything starting from this execution result and return CleanResultMismatch
 			ert.cleanExecutionResults(pendingExecutionResult[idx:])
 
-			return &CleanInfo{
-				CleanResult:             CleanResultMismatch,
-				LastMatchingResultNonce: lastMatchingResultNonce,
-			}, nil
+			return fmt.Errorf("%w, last matching result nonce: %d", ErrExecutionResultMismatch, lastMatchingResultNonce)
 		}
 
 		lastMatchingResultNonce = executionResultFromHeader.GetHeaderNonce()
@@ -232,10 +205,7 @@ func (ert *executionResultsTracker) cleanConfirmedExecutionResults(headerExecuti
 	ert.cleanExecutionResults(headerExecutionResults)
 	ert.lastNotarizedResult = headerExecutionResults[len(headerExecutionResults)-1]
 
-	return &CleanInfo{
-		CleanResult:             CleanResultOK,
-		LastMatchingResultNonce: ert.lastNotarizedResult.GetHeaderNonce(),
-	}, nil
+	return nil
 }
 
 func (ert *executionResultsTracker) cleanExecutionResults(executionResult []data.BaseExecutionResultHandler) {
@@ -270,42 +240,59 @@ func (ert *executionResultsTracker) SetLastNotarizedResult(executionResult data.
 	return nil
 }
 
-// RemoveByHash will remove the execution result by header hash
-func (ert *executionResultsTracker) RemoveByHash(hash []byte) error {
+// RemoveFromNonce will remove the execution result with the provided nonce and all execution results with higher nonces
+func (ert *executionResultsTracker) RemoveFromNonce(nonce uint64) error {
 	ert.mutex.Lock()
 	defer ert.mutex.Unlock()
 
-	executionResult, found := ert.executionResultsByHash[string(hash)]
-	if !found {
-		ert.hashToRemoveOnAdd = hash
-		return nil
-	}
+	return ert.removePendingFromNonceUnprotected(nonce)
+}
 
+func (ert *executionResultsTracker) removePendingFromNonceUnprotected(nonce uint64) error {
 	pendingExecutionResult, err := ert.getPendingExecutionResults()
 	if err != nil {
 		return err
 	}
 
-	// check that the provided is the last execution result
-	lastElement := pendingExecutionResult[len(pendingExecutionResult)-1]
-	if !bytes.Equal(lastElement.GetHeaderHash(), hash) {
-		return fmt.Errorf("%w between last pending execution result hash and the provided hash", ErrHashMismatch)
+	// find all execution results with nonce >= nonceToRemove
+	var resultsToRemove []data.BaseExecutionResultHandler
+	for _, result := range pendingExecutionResult {
+		resultNonce := result.GetHeaderNonce()
+		if resultNonce < nonce {
+			continue
+		}
+
+		resultsToRemove = append(resultsToRemove, result)
 	}
 
-	delete(ert.executionResultsByHash, string(hash))
-	ert.nonceHash.removeByNonce(executionResult.GetHeaderNonce())
+	if len(resultsToRemove) == 0 {
+		return nil
+	}
 
-	// remove the last element
-	pendingExecutionResult = pendingExecutionResult[:len(pendingExecutionResult)-1]
+	ert.cleanExecutionResults(resultsToRemove)
 
-	if len(pendingExecutionResult) == 0 {
-		// set last execution result with last notarized
+	// update lastExecutedResultHash
+	remainingResults, err := ert.getPendingExecutionResults()
+	if err != nil || len(remainingResults) == 0 {
+		// set last execution result to last notarized if no pending results remain
 		ert.lastExecutedResultHash = ert.lastNotarizedResult.GetHeaderHash()
 		return nil
 	}
 
-	ert.lastExecutedResultHash = pendingExecutionResult[len(pendingExecutionResult)-1].GetHeaderHash()
+	ert.lastExecutedResultHash = remainingResults[len(remainingResults)-1].GetHeaderHash()
 	return nil
+}
+
+// OnHeaderEvicted is a callback called when a header is removed from the execution queue
+func (ert *executionResultsTracker) OnHeaderEvicted(headerNonce uint64) {
+	ert.mutex.Lock()
+	defer ert.mutex.Unlock()
+
+	// search through pending execution results and remove it if already processed
+	err := ert.removePendingFromNonceUnprotected(headerNonce)
+	if err != nil {
+		log.Debug("OnHeaderEvicted failed", "nonce", headerNonce, "error", err)
+	}
 }
 
 // IsInterfaceNil returns true if there is no value under the interface
