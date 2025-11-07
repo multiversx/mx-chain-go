@@ -6,6 +6,9 @@ var (
 	// ErrNilExecutionResult signals that a nil execution results has been provided
 	ErrNilExecutionResult = errors.New("nil execution result")
 
+	// ErrEmptyHash signals that an empty hash has been provided
+	ErrEmptyHash = errors.New("empty hash")
+
 	// ErrDifferentNoncesConfirmedExecutionResults signals that the confirmed execution results have different nonces
 	ErrDifferentNoncesConfirmedExecutionResults = errors.New("confirmed execution results have different nonces")
 

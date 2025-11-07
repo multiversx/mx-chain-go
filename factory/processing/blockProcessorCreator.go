@@ -74,8 +74,7 @@ func (pcf *processComponentsFactory) newBlockProcessor(
 	blockCutoffProcessingHandler cutoff.BlockProcessingCutoffHandler,
 	missingTrieNodesNotifier common.MissingTrieNodesNotifier,
 	sentSignaturesTracker process.SentSignaturesTracker,
-	blocksQueue process.BlocksQueue,
-	executionResultsTracker process.ExecutionResultsTracker,
+	executionManager process.ExecutionManager,
 ) (*blockProcessorAndVmFactories, error) {
 	shardCoordinator := pcf.bootstrapComponents.ShardCoordinator()
 	if shardCoordinator.SelfId() < shardCoordinator.NumberOfShards() {
@@ -94,8 +93,7 @@ func (pcf *processComponentsFactory) newBlockProcessor(
 			blockCutoffProcessingHandler,
 			missingTrieNodesNotifier,
 			sentSignaturesTracker,
-			blocksQueue,
-			executionResultsTracker,
+			executionManager,
 		)
 	}
 	if shardCoordinator.SelfId() == core.MetachainShardId {
@@ -114,8 +112,7 @@ func (pcf *processComponentsFactory) newBlockProcessor(
 			receiptsRepository,
 			blockCutoffProcessingHandler,
 			sentSignaturesTracker,
-			blocksQueue,
-			executionResultsTracker,
+			executionManager,
 		)
 	}
 
@@ -139,8 +136,7 @@ func (pcf *processComponentsFactory) newShardBlockProcessor(
 	blockProcessingCutoffHandler cutoff.BlockProcessingCutoffHandler,
 	missingTrieNodesNotifier common.MissingTrieNodesNotifier,
 	sentSignaturesTracker process.SentSignaturesTracker,
-	blocksQueue process.BlocksQueue,
-	executionResultsTracker process.ExecutionResultsTracker,
+	executionManager process.ExecutionManager,
 ) (*blockProcessorAndVmFactories, error) {
 	argsParser := smartContract.NewArgumentParser()
 
@@ -500,12 +496,12 @@ func (pcf *processComponentsFactory) newShardBlockProcessor(
 		return nil, err
 	}
 
-	err = process.SetBaseExecutionResult(executionResultsTracker, pcf.data.Blockchain())
+	err = process.SetBaseExecutionResult(executionManager, pcf.data.Blockchain())
 	if err != nil {
 		return nil, err
 	}
 
-	execResultsVerifier, err := block.NewExecutionResultsVerifier(pcf.data.Blockchain(), executionResultsTracker)
+	execResultsVerifier, err := block.NewExecutionResultsVerifier(pcf.data.Blockchain(), executionManager)
 	if err != nil {
 		return nil, err
 	}
@@ -565,9 +561,8 @@ func (pcf *processComponentsFactory) newShardBlockProcessor(
 		ExecutionResultsVerifier:           execResultsVerifier,
 		MissingDataResolver:                missingDataResolver,
 		ExecutionResultsInclusionEstimator: inclusionEstimator,
-		ExecutionResultsTracker:            executionResultsTracker,
 		GasComputation:                     gasConsumption,
-		BlocksQueue:                        blocksQueue,
+		ExecutionManager:                   executionManager,
 	}
 	arguments := block.ArgShardProcessor{
 		ArgBaseProcessor: argumentsBaseProcessor,
@@ -610,8 +605,7 @@ func (pcf *processComponentsFactory) newMetaBlockProcessor(
 	receiptsRepository mainFactory.ReceiptsRepository,
 	blockProcessingCutoffhandler cutoff.BlockProcessingCutoffHandler,
 	sentSignaturesTracker process.SentSignaturesTracker,
-	blocksQueue process.BlocksQueue,
-	executionResultsTracker process.ExecutionResultsTracker,
+	executionManager process.ExecutionManager,
 ) (*blockProcessorAndVmFactories, error) {
 	builtInFuncFactory, err := pcf.createBuiltInFunctionContainer(pcf.state.AccountsAdapter(), make(map[string]struct{}))
 	if err != nil {
@@ -1051,12 +1045,12 @@ func (pcf *processComponentsFactory) newMetaBlockProcessor(
 		return nil, err
 	}
 
-	err = process.SetBaseExecutionResult(executionResultsTracker, pcf.data.Blockchain())
+	err = process.SetBaseExecutionResult(executionManager, pcf.data.Blockchain())
 	if err != nil {
 		return nil, err
 	}
 
-	execResultsVerifier, err := block.NewExecutionResultsVerifier(pcf.data.Blockchain(), executionResultsTracker)
+	execResultsVerifier, err := block.NewExecutionResultsVerifier(pcf.data.Blockchain(), executionManager)
 	if err != nil {
 		return nil, err
 	}
@@ -1116,9 +1110,8 @@ func (pcf *processComponentsFactory) newMetaBlockProcessor(
 		ExecutionResultsVerifier:           execResultsVerifier,
 		MissingDataResolver:                missingDataResolver,
 		ExecutionResultsInclusionEstimator: inclusionEstimator,
-		ExecutionResultsTracker:            executionResultsTracker,
 		GasComputation:                     gasConsumption,
-		BlocksQueue:                        blocksQueue,
+		ExecutionManager:                   executionManager,
 	}
 
 	esdtOwnerAddress, err := pcf.coreData.AddressPubKeyConverter().Decode(pcf.systemSCConfig.ESDTSystemSCConfig.OwnerAddress)

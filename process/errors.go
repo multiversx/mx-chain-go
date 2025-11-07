@@ -152,6 +152,9 @@ var ErrNilBlockProcessor = errors.New("nil block processor")
 // ErrNilBlocksQueue signals that a nil blocks queue has been provided
 var ErrNilBlocksQueue = errors.New("nil blocks queue")
 
+// ErrNilExecutionManager signals that a nil execution manager has been provided
+var ErrNilExecutionManager = errors.New("nil execution manager")
+
 // ErrNilMarshalizer signals that an operation has been attempted to or with a nil Marshalizer implementation
 var ErrNilMarshalizer = errors.New("nil Marshalizer")
 
