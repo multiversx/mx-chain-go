@@ -43,7 +43,7 @@ func TestRewardsAfterAndromedaWithTxs(t *testing.T) {
 	}
 	supernovaRoundsPerEpochOpt := core.OptionalUint64{
 		HasValue: true,
-		Value:    400,
+		Value:    200,
 	}
 
 	numOfShards := uint32(3)
@@ -55,7 +55,7 @@ func TestRewardsAfterAndromedaWithTxs(t *testing.T) {
 		PathToInitialConfig:            defaultPathToInitialConfig,
 		NumOfShards:                    numOfShards,
 		RoundDurationInMillis:          roundDurationInMillis,
-		SupernovaRoundDurationInMillis: roundDurationInMillis / 10,
+		SupernovaRoundDurationInMillis: roundDurationInMillis,
 		RoundsPerEpoch:                 roundsPerEpoch,
 		SupernovaRoundsPerEpoch:        supernovaRoundsPerEpochOpt,
 		ApiInterface:                   api.NewNoApiInterface(),

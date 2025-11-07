@@ -332,6 +332,7 @@ func testStakeUnStakeUnBond(t *testing.T, targetEpoch int32) {
 		MetaChainMinNodes:              3,
 		AlterConfigsFunction: func(cfg *config.Configs) {
 			cfg.SystemSCConfig.StakingSystemSCConfig.UnBondPeriod = 1
+			cfg.SystemSCConfig.StakingSystemSCConfig.UnBondPeriodSupernova = 1 // TODO: add custom tests for supernova
 			cfg.SystemSCConfig.StakingSystemSCConfig.UnBondPeriodInEpochs = 1
 			newNumNodes := cfg.SystemSCConfig.StakingSystemSCConfig.MaxNumberOfNodesForStake + 10
 			configs.SetMaxNumberOfNodesInConfigs(cfg, uint32(newNumNodes), 0, numOfShards)
@@ -766,17 +767,18 @@ func TestChainSimulator_DirectStakingNodes_UnstakeFundsWithDeactivation(t *testi
 
 	t.Run("staking ph 4 step 3 is active", func(t *testing.T) {
 		cs, err := chainSimulator.NewChainSimulator(chainSimulator.ArgsChainSimulator{
-			BypassTxSignatureCheck:   true,
-			TempDir:                  t.TempDir(),
-			PathToInitialConfig:      defaultPathToInitialConfig,
-			NumOfShards:              3,
-			RoundDurationInMillis:    roundDurationInMillis,
-			RoundsPerEpoch:           roundsPerEpoch,
-			ApiInterface:             api.NewNoApiInterface(),
-			MinNodesPerShard:         3,
-			MetaChainMinNodes:        3,
-			NumNodesWaitingListMeta:  3,
-			NumNodesWaitingListShard: 3,
+			BypassTxSignatureCheck:         true,
+			TempDir:                        t.TempDir(),
+			PathToInitialConfig:            defaultPathToInitialConfig,
+			NumOfShards:                    3,
+			RoundDurationInMillis:          roundDurationInMillis,
+			SupernovaRoundDurationInMillis: supernovaRoundDurationInMillis,
+			RoundsPerEpoch:                 roundsPerEpoch,
+			ApiInterface:                   api.NewNoApiInterface(),
+			MinNodesPerShard:               3,
+			MetaChainMinNodes:              3,
+			NumNodesWaitingListMeta:        3,
+			NumNodesWaitingListShard:       3,
 			AlterConfigsFunction: func(cfg *config.Configs) {
 				cfg.EpochConfig.EnableEpochs.StakeLimitsEnableEpoch = 2
 				cfg.EpochConfig.EnableEpochs.StakingV4Step1EnableEpoch = 2
