@@ -149,9 +149,6 @@ var ErrMissingBody = errors.New("missing body")
 // ErrNilBlockProcessor signals that an operation has been attempted to or with a nil BlockProcessor implementation
 var ErrNilBlockProcessor = errors.New("nil block processor")
 
-// ErrNilBlocksQueue signals that a nil blocks queue has been provided
-var ErrNilBlocksQueue = errors.New("nil blocks queue")
-
 // ErrNilExecutionManager signals that a nil execution manager has been provided
 var ErrNilExecutionManager = errors.New("nil execution manager")
 
@@ -1358,9 +1355,6 @@ var ErrExecutionResultDoesNotMatch = errors.New("execution result does not match
 
 // ErrExecutionResultsNumberMismatch signals that the number of execution results does not match the expected one
 var ErrExecutionResultsNumberMismatch = errors.New("execution results number mismatch")
-
-// ErrNilExecutionResultsTracker signals that a nil execution results tracker has been provided
-var ErrNilExecutionResultsTracker = errors.New("nil execution results tracker")
 
 // ErrInvalidHash signals that an invalid hash has been provided
 var ErrInvalidHash = errors.New("invalid hash")

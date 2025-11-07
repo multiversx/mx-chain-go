@@ -34,7 +34,6 @@ import (
 	"github.com/multiversx/mx-chain-go/testscommon/cache"
 	"github.com/multiversx/mx-chain-go/testscommon/dataRetriever"
 	"github.com/multiversx/mx-chain-go/testscommon/enableEpochsHandlerMock"
-	testscommonExecutionTrack "github.com/multiversx/mx-chain-go/testscommon/executionTrack"
 	"github.com/multiversx/mx-chain-go/testscommon/hashingMocks"
 	"github.com/multiversx/mx-chain-go/testscommon/mbSelection"
 	"github.com/multiversx/mx-chain-go/testscommon/pool"
@@ -629,7 +628,7 @@ func Test_addExecutionResultsOnHeader(t *testing.T) {
 		t.Parallel()
 
 		sp, _ := blproc.ConstructPartialShardBlockProcessorForTest(map[string]interface{}{
-			"executionResultsTracker": &testscommonExecutionTrack.ExecutionResultsTrackerStub{
+			"executionManager": &processMocks.ExecutionManagerMock{
 				GetPendingExecutionResultsCalled: func() ([]data.BaseExecutionResultHandler, error) {
 					return nil, expectedErr
 				},
@@ -642,7 +641,7 @@ func Test_addExecutionResultsOnHeader(t *testing.T) {
 	t.Run("GetPrevBlockLastExecutionResult returns error should error", func(t *testing.T) {
 		t.Parallel()
 		sp, _ := blproc.ConstructPartialShardBlockProcessorForTest(map[string]interface{}{
-			"executionResultsTracker": &testscommonExecutionTrack.ExecutionResultsTrackerStub{
+			"executionManager": &processMocks.ExecutionManagerMock{
 				GetPendingExecutionResultsCalled: func() ([]data.BaseExecutionResultHandler, error) {
 					return []data.BaseExecutionResultHandler{
 						&block.ExecutionResult{
@@ -659,7 +658,7 @@ func Test_addExecutionResultsOnHeader(t *testing.T) {
 	t.Run("CreateDataForInclusionEstimation returns error should error", func(t *testing.T) {
 		t.Parallel()
 		sp, _ := blproc.ConstructPartialShardBlockProcessorForTest(map[string]interface{}{
-			"executionResultsTracker": &testscommonExecutionTrack.ExecutionResultsTrackerStub{
+			"executionManager": &processMocks.ExecutionManagerMock{
 				GetPendingExecutionResultsCalled: func() ([]data.BaseExecutionResultHandler, error) {
 					return []data.BaseExecutionResultHandler{
 						&block.ExecutionResult{
@@ -703,7 +702,7 @@ func Test_addExecutionResultsOnHeader(t *testing.T) {
 		}
 
 		sp, _ := blproc.ConstructPartialShardBlockProcessorForTest(map[string]interface{}{
-			"executionResultsTracker": &testscommonExecutionTrack.ExecutionResultsTrackerStub{
+			"executionManager": &processMocks.ExecutionManagerMock{
 				GetPendingExecutionResultsCalled: func() ([]data.BaseExecutionResultHandler, error) {
 					// return one meta execution result (so Decide can include it)
 					meta := &block.MetaExecutionResult{
@@ -786,7 +785,7 @@ func Test_addExecutionResultsOnHeader(t *testing.T) {
 			BaseExecutionResult: &block.BaseExecutionResult{HeaderHash: []byte("hash2"), HeaderNonce: 2, HeaderRound: 2, GasUsed: 999_000_000},
 		}
 		sp, _ := blproc.ConstructPartialShardBlockProcessorForTest(map[string]interface{}{
-			"executionResultsTracker": &testscommonExecutionTrack.ExecutionResultsTrackerStub{
+			"executionManager": &processMocks.ExecutionManagerMock{
 				GetPendingExecutionResultsCalled: func() ([]data.BaseExecutionResultHandler, error) {
 					return []data.BaseExecutionResultHandler{
 						executionResult1,

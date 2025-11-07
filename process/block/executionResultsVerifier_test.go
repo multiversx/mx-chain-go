@@ -26,10 +26,10 @@ func TestNewExecutionResultsVerifier(t *testing.T) {
 		require.Equal(t, process.ErrNilBlockChain, err)
 		require.Nil(t, erv)
 	})
-	t.Run("nil execution results tracker", func(t *testing.T) {
+	t.Run("nil execution manager", func(t *testing.T) {
 		t.Parallel()
 		erv, err := NewExecutionResultsVerifier(blockchain, nil)
-		require.Equal(t, process.ErrNilExecutionResultsTracker, err)
+		require.Equal(t, process.ErrNilExecutionManager, err)
 		require.Nil(t, erv)
 	})
 	t.Run("valid parameters", func(t *testing.T) {

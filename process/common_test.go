@@ -2384,10 +2384,10 @@ func TestShardedCacheSearchMethod_ToString(t *testing.T) {
 func Test_SetBaseExecutionResult(t *testing.T) {
 	t.Parallel()
 
-	t.Run("nil tracker should error", func(t *testing.T) {
+	t.Run("nil execution manager should error", func(t *testing.T) {
 		t.Parallel()
 		err := process.SetBaseExecutionResult(nil, &testscommon.ChainHandlerStub{})
-		require.Equal(t, process.ErrNilExecutionResultsTracker, err)
+		require.Equal(t, process.ErrNilExecutionManager, err)
 	})
 
 	t.Run("nil chain handler should error", func(t *testing.T) {
@@ -2396,10 +2396,10 @@ func Test_SetBaseExecutionResult(t *testing.T) {
 		require.Equal(t, process.ErrNilBlockChain, err)
 	})
 
-	t.Run("tracker error should error", func(t *testing.T) {
+	t.Run("execution manager error should error", func(t *testing.T) {
 		t.Parallel()
 
-		expectedErr := errors.New("tracker error")
+		expectedErr := errors.New("execution manager error")
 		executionManager := &processMocks.ExecutionManagerMock{
 			SetLastNotarizedResultCalled: func(data.BaseExecutionResultHandler) error {
 				return expectedErr
