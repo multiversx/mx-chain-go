@@ -100,11 +100,15 @@ func createArgBaseProcessor(
 	startHeaders := createGenesisBlocks(mock.NewOneShardCoordinatorMock())
 
 	accountsDb := make(map[state.AccountsDbIdentifier]state.AccountsAdapter)
-	accountsDb[state.UserAccountsState] = &stateMock.AccountsStub{
+	accounts := &stateMock.AccountsStub{
 		RootHashCalled: func() ([]byte, error) {
 			return nil, nil
 		},
+		RecreateTrieIfNeededCalled: func(options common.RootHashHolder) error {
+			return nil
+		},
 	}
+	accountsDb[state.UserAccountsState] = accounts
 
 	statusCoreComponents := &factory.StatusCoreComponentsStub{
 		AppStatusHandlerField: &statusHandlerMock.AppStatusHandlerStub{},
@@ -183,7 +187,7 @@ func createArgBaseProcessor(
 		StatusCoreComponents: statusCoreComponents,
 		Config:               config.Config{},
 		AccountsDB:           accountsDb,
-		AccountsProposal:     &stateMock.AccountsStub{},
+		AccountsProposal:     accounts,
 		ForkDetector:         &mock.ForkDetectorMock{},
 		NodesCoordinator:     nodesCoordinatorInstance,
 		FeeHandler:           &mock.FeeAccumulatorStub{},
@@ -4052,5 +4056,107 @@ func TestBaseProcessor_GetFinalBlockNonce(t *testing.T) {
 
 		retNoncesToFinal := bp.GetFinalBlockNonce(header)
 		require.Equal(t, finalExecResNonce, retNoncesToFinal)
+	})
+}
+
+func TestBaseProcessor_RecreateTrieIfNeeded(t *testing.T) {
+	t.Parallel()
+
+	t.Run("should work", func(t *testing.T) {
+		t.Parallel()
+
+		coreComponents, dataComponents, bootstrapComponents, statusComponents := createComponentHolderMocks()
+		dataComponents.BlockChain = &testscommon.ChainHandlerStub{
+			GetCurrentBlockRootHashCalled: func() []byte {
+				return []byte("rootHash")
+			},
+		}
+		arguments := CreateMockArguments(coreComponents, dataComponents, bootstrapComponents, statusComponents)
+		accounts := &stateMock.AccountsStub{
+			RecreateTrieIfNeededCalled: func(options common.RootHashHolder) error {
+				if bytes.Equal(options.GetRootHash(), []byte("rootHash")) {
+					return nil
+				}
+				return expectedErr
+			},
+		}
+		arguments.AccountsProposal = accounts
+		bp, err := blproc.NewShardProcessor(arguments)
+
+		require.NoError(t, err)
+
+		err = bp.RecreateTrieIfNeeded()
+		require.NoError(t, err)
+	})
+
+	t.Run("should return error from accounts proposal", func(t *testing.T) {
+		t.Parallel()
+
+		coreComponents, dataComponents, bootstrapComponents, statusComponents := createComponentHolderMocks()
+
+		arguments := CreateMockArguments(coreComponents, dataComponents, bootstrapComponents, statusComponents)
+		accounts := &stateMock.AccountsStub{
+			RecreateTrieIfNeededCalled: func(options common.RootHashHolder) error {
+				return expectedErr
+			},
+		}
+		arguments.AccountsProposal = accounts
+		bp, err := blproc.NewShardProcessor(arguments)
+
+		require.NoError(t, err)
+
+		err = bp.RecreateTrieIfNeeded()
+		require.Equal(t, expectedErr, err)
+	})
+}
+
+func TestBaseProcessor_OnExecutedBlock(t *testing.T) {
+	t.Parallel()
+
+	t.Run("should work", func(t *testing.T) {
+		t.Parallel()
+
+		coreComponents, dataComponents, bootstrapComponents, statusComponents := createComponentHolderMocks()
+		dataPool := initDataPool()
+		dataPool.TransactionsCalled = func() dataRetriever.ShardedDataCacherNotifier {
+			return &testscommon.ShardedDataCacheNotifierMock{
+				OnExecutedBlockCalled: func(blockHeader data.HeaderHandler, rootHash []byte) error {
+					if bytes.Equal(rootHash, []byte("rootHash")) {
+						return nil
+					}
+					return expectedErr
+				},
+			}
+		}
+		dataComponents.DataPool = dataPool
+
+		arguments := CreateMockArguments(coreComponents, dataComponents, bootstrapComponents, statusComponents)
+		bp, err := blproc.NewShardProcessor(arguments)
+		require.NoError(t, err)
+
+		err = bp.OnExecutedBlock(&block.Header{}, []byte("rootHash"))
+		require.NoError(t, err)
+	})
+
+	t.Run("should error", func(t *testing.T) {
+		t.Parallel()
+
+		coreComponents, dataComponents, bootstrapComponents, statusComponents := createComponentHolderMocks()
+		dataPool := initDataPool()
+		dataPool.TransactionsCalled = func() dataRetriever.ShardedDataCacherNotifier {
+			return &testscommon.ShardedDataCacheNotifierMock{
+				OnExecutedBlockCalled: func(blockHeader data.HeaderHandler, rootHash []byte) error {
+					return expectedErr
+				},
+			}
+		}
+		dataComponents.DataPool = dataPool
+
+		arguments := CreateMockArguments(coreComponents, dataComponents, bootstrapComponents, statusComponents)
+		bp, err := blproc.NewShardProcessor(arguments)
+		require.NoError(t, err)
+
+		err = bp.OnExecutedBlock(nil, []byte("hash"))
+		require.Equal(t, expectedErr, err)
 	})
 }

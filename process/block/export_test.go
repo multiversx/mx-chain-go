@@ -909,3 +909,13 @@ func (mp *metaProcessor) SelectIncomingMiniBlocks(
 ) error {
 	return mp.selectIncomingMiniBlocks(lastShardHdr, orderedHdrs, orderedHdrsHashes, maxNumHeadersFromSameShard, haveTime)
 }
+
+// OnExecutedBlock -
+func (bp *baseProcessor) OnExecutedBlock(header data.HeaderHandler, rootHash []byte) error {
+	return bp.onExecutedBlock(header, rootHash)
+}
+
+// RecreateTrieIfNeeded -
+func (bp *baseProcessor) RecreateTrieIfNeeded() error {
+	return bp.recreateTrieIfNeeded()
+}

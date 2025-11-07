@@ -249,11 +249,18 @@ func initAccountsMock() *stateMock.AccountsStub {
 }
 
 func createMockTransactionCoordinatorArguments() ArgTransactionCoordinator {
+	accounts := &stateMock.AccountsStub{}
+	accounts.RecreateTrieIfNeededCalled = func(options common.RootHashHolder) error {
+		return nil
+	}
+	accounts.RootHashCalled = func() ([]byte, error) {
+		return nil, nil
+	}
 	argsTransactionCoordinator := ArgTransactionCoordinator{
 		Hasher:                       &hashingMocks.HasherMock{},
 		Marshalizer:                  &mock.MarshalizerMock{},
 		ShardCoordinator:             mock.NewMultiShardsCoordinatorMock(5),
-		Accounts:                     &stateMock.AccountsStub{},
+		Accounts:                     accounts,
 		MiniBlockPool:                dataRetrieverMock.NewPoolsHolderMock().MiniBlocks(),
 		PreProcessors:                &preprocMocks.PreProcessorContainerMock{},
 		PreProcessorsProposal:        &preprocMocks.PreProcessorContainerMock{},
@@ -1419,6 +1426,9 @@ func TestTransactionCoordinator_CreateMbsAndProcessTransactionsFromMe(t *testing
 		txPool.AddData(computedTxHash, newTx, newTx.Size(), strCache)
 	}
 
+	err = txPool.OnExecutedBlock(&block.Header{}, []byte("rootHash"))
+	require.Nil(t, err)
+
 	// we have one tx per shard.
 	mbs := tc.CreateMbsAndProcessTransactionsFromMe(haveTime, []byte("randomness"))
 
@@ -1478,6 +1488,8 @@ func TestTransactionCoordinator_CreateMbsAndProcessTransactionsFromMeMultipleMin
 		txPool.AddData(computedTxHash, newTx, newTx.Size(), strCache)
 	}
 
+	err = txPool.OnExecutedBlock(&block.Header{}, []byte("rootHash"))
+	require.Nil(t, err)
 	// we have one tx per shard.
 	mbs := tc.CreateMbsAndProcessTransactionsFromMe(haveTime, []byte("randomness"))
 
@@ -1552,6 +1564,9 @@ func TestTransactionCoordinator_CreateMbsAndProcessTransactionsFromMeMultipleMin
 		computedTxHash, _ := core.CalculateHash(marshalizer, hasher, newTx)
 		txPool.AddData(computedTxHash, newTx, newTx.Size(), strCache)
 	}
+
+	err = txPool.OnExecutedBlock(&block.Header{}, []byte("rootHash"))
+	require.Nil(t, err)
 
 	// we have one tx per shard.
 	mbs := tc.CreateMbsAndProcessTransactionsFromMe(haveTime, []byte("randomness"))
@@ -1633,6 +1648,9 @@ func TestTransactionCoordinator_CompactAndExpandMiniblocksShouldWork(t *testing.
 		}
 	}
 
+	err = txPool.OnExecutedBlock(&block.Header{}, []byte("rootHash"))
+	require.Nil(t, err)
+
 	mbs := tc.CreateMbsAndProcessTransactionsFromMe(haveTime, []byte("randomness"))
 
 	assert.Equal(t, 1, len(mbs))
@@ -1689,6 +1707,9 @@ func TestTransactionCoordinator_GetAllCurrentUsedTxs(t *testing.T) {
 		computedTxHash, _ := core.CalculateHash(marshalizer, hasher, newTx)
 		txPool.AddData(computedTxHash, newTx, newTx.Size(), strCache)
 	}
+
+	err = txPool.OnExecutedBlock(&block.Header{}, []byte("rootHash"))
+	require.Nil(t, err)
 
 	mbs := tc.CreateMbsAndProcessTransactionsFromMe(haveTime, []byte("randomness"))
 	require.Equal(t, 5, len(mbs))
