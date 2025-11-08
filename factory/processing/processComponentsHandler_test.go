@@ -59,7 +59,7 @@ func TestManagedProcessComponents_Create(t *testing.T) {
 		require.True(t, check.IfNil(managedProcessComponents.RoundHandler()))
 		require.True(t, check.IfNil(managedProcessComponents.ForkDetector()))
 		require.True(t, check.IfNil(managedProcessComponents.ExecutionManager()))
-		require.True(t, check.IfNil(managedProcessComponents.ExecutionManager()))
+		require.True(t, check.IfNil(managedProcessComponents.BlockProcessor()))
 		require.True(t, check.IfNil(managedProcessComponents.BlockchainHook()))
 		require.True(t, check.IfNil(managedProcessComponents.EpochStartTrigger()))
 		require.True(t, check.IfNil(managedProcessComponents.EpochStartNotifier()))
