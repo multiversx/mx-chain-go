@@ -272,7 +272,7 @@ func CreateCoreComponents(args ArgsCoreComponentsHolder) (*coreComponentsHolder,
 		return nil, err
 	}
 
-	instance.rater, err = rating.NewBlockSigningRater(instance.ratingsData)
+	instance.rater, err = rating.NewBlockSigningRater(instance.ratingsData, instance.enableEpochsHandler)
 	if err != nil {
 		return nil, err
 	}

@@ -32,27 +32,27 @@ func (rm *RaterStub) GetSignedBlocksThreshold() float32 {
 }
 
 // ComputeIncreaseProposer -
-func (rm *RaterStub) ComputeIncreaseProposer(shardId uint32, currentRating uint32) uint32 {
+func (rm *RaterStub) ComputeIncreaseProposer(shardId uint32, currentRating uint32, epoch uint32) uint32 {
 	return rm.ComputeIncreaseProposerCalled(shardId, currentRating)
 }
 
 // ComputeDecreaseProposer -
-func (rm *RaterStub) ComputeDecreaseProposer(shardId uint32, currentRating uint32, consecutiveMisses uint32) uint32 {
+func (rm *RaterStub) ComputeDecreaseProposer(shardId uint32, currentRating uint32, consecutiveMisses uint32, epoch uint32) uint32 {
 	return rm.ComputeDecreaseProposerCalled(shardId, currentRating, consecutiveMisses)
 }
 
 // RevertIncreaseValidator -
-func (rm *RaterStub) RevertIncreaseValidator(shardId uint32, currentRating uint32, nrReverts uint32) uint32 {
+func (rm *RaterStub) RevertIncreaseValidator(shardId uint32, currentRating uint32, nrReverts uint32, epoch uint32) uint32 {
 	return rm.RevertIncreaseProposerCalled(shardId, currentRating, nrReverts)
 }
 
 // ComputeIncreaseValidator -
-func (rm *RaterStub) ComputeIncreaseValidator(shardId uint32, currentRating uint32) uint32 {
+func (rm *RaterStub) ComputeIncreaseValidator(shardId uint32, currentRating uint32, epoch uint32) uint32 {
 	return rm.ComputeIncreaseValidatorCalled(shardId, currentRating)
 }
 
 // ComputeDecreaseValidator -
-func (rm *RaterStub) ComputeDecreaseValidator(shardId uint32, currentRating uint32) uint32 {
+func (rm *RaterStub) ComputeDecreaseValidator(shardId uint32, currentRating uint32, epoch uint32) uint32 {
 	return rm.ComputeDecreaseValidatorCalled(shardId, currentRating)
 }
 

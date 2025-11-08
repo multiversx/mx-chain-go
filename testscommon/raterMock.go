@@ -129,7 +129,7 @@ func (rm *RaterMock) GetSignedBlocksThreshold() float32 {
 }
 
 // ComputeIncreaseProposer -
-func (rm *RaterMock) ComputeIncreaseProposer(shardId uint32, currentRating uint32) uint32 {
+func (rm *RaterMock) ComputeIncreaseProposer(shardId uint32, currentRating uint32, epoch uint32) uint32 {
 	if rm.ComputeIncreaseProposerCalled != nil {
 		return rm.ComputeIncreaseProposerCalled(shardId, currentRating)
 	}
@@ -137,7 +137,7 @@ func (rm *RaterMock) ComputeIncreaseProposer(shardId uint32, currentRating uint3
 }
 
 // ComputeDecreaseProposer -
-func (rm *RaterMock) ComputeDecreaseProposer(shardId uint32, currentRating uint32, consecutiveMisses uint32) uint32 {
+func (rm *RaterMock) ComputeDecreaseProposer(shardId uint32, currentRating uint32, consecutiveMisses uint32, epoch uint32) uint32 {
 	if rm.ComputeDecreaseProposerCalled != nil {
 		return rm.ComputeDecreaseProposerCalled(shardId, currentRating, consecutiveMisses)
 	}
@@ -145,7 +145,7 @@ func (rm *RaterMock) ComputeDecreaseProposer(shardId uint32, currentRating uint3
 }
 
 // RevertIncreaseValidator -
-func (rm *RaterMock) RevertIncreaseValidator(shardId uint32, currentRating uint32, nrReverts uint32) uint32 {
+func (rm *RaterMock) RevertIncreaseValidator(shardId uint32, currentRating uint32, nrReverts uint32, epoch uint32) uint32 {
 	if rm.RevertIncreaseValidatorCalled != nil {
 		return rm.RevertIncreaseProposerCalled(shardId, currentRating, nrReverts)
 	}
@@ -153,7 +153,7 @@ func (rm *RaterMock) RevertIncreaseValidator(shardId uint32, currentRating uint3
 }
 
 // ComputeIncreaseValidator -
-func (rm *RaterMock) ComputeIncreaseValidator(shardId uint32, currentRating uint32) uint32 {
+func (rm *RaterMock) ComputeIncreaseValidator(shardId uint32, currentRating uint32, epoch uint32) uint32 {
 	if rm.ComputeIncreaseValidatorCalled != nil {
 		return rm.ComputeIncreaseValidatorCalled(shardId, currentRating)
 	}
@@ -161,7 +161,7 @@ func (rm *RaterMock) ComputeIncreaseValidator(shardId uint32, currentRating uint
 }
 
 // ComputeDecreaseValidator -
-func (rm *RaterMock) ComputeDecreaseValidator(shardId uint32, currentRating uint32) uint32 {
+func (rm *RaterMock) ComputeDecreaseValidator(shardId uint32, currentRating uint32, epoch uint32) uint32 {
 	if rm.ComputeDecreaseValidatorCalled != nil {
 		return rm.ComputeDecreaseValidatorCalled(shardId, currentRating)
 	}
