@@ -49,7 +49,7 @@ func (bpm *BlockProcessorMock) ProcessBlock(header data.HeaderHandler, body data
 
 // ProcessBlockProposal mocks processing a block
 func (bpm *BlockProcessorMock) ProcessBlockProposal(header data.HeaderHandler, body data.BodyHandler) (data.BaseExecutionResultHandler, error) {
-	if bpm.ProcessBlockCalled != nil {
+	if bpm.ProcessBlockProposalCalled != nil {
 		return bpm.ProcessBlockProposalCalled(header, body)
 	}
 
