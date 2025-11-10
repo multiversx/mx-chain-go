@@ -850,7 +850,7 @@ func TestMetaProcessor_VerifyBlockProposal(t *testing.T) {
 		err = mp.VerifyBlockProposal(header, body, haveTime)
 		require.ErrorIs(t, err, process.ErrWrongTypeAssertion)
 	})
-	t.Run("body missmatch, should error", func(t *testing.T) {
+	t.Run("body mismatch, should error", func(t *testing.T) {
 		t.Parallel()
 
 		prevBlockHash := []byte("prev header hash")
