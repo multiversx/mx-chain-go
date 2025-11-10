@@ -1200,11 +1200,6 @@ func (mp *metaProcessor) CommitBlock(
 	mp.saveMetaHeader(header, headerHash, marshalizedHeader)
 	mp.saveBody(body, header, headerHash)
 
-	err = mp.saveExecutedData(header, headerHash)
-	if err != nil {
-		return err
-	}
-
 	err = mp.commitAll(headerHandler)
 	if err != nil {
 		return err
@@ -1275,7 +1270,7 @@ func (mp *metaProcessor) CommitBlock(
 		return err
 	}
 
-	err = mp.blockChain.SetCurrentBlockHeaderAndRootHash(header, committedRootHash)
+	err = mp.setCurrentBlockInfo(header, headerHash, committedRootHash)
 	if err != nil {
 		return err
 	}
@@ -1356,6 +1351,12 @@ func (mp *metaProcessor) CommitBlock(
 	}
 
 	mp.cleanupPools(headerHandler)
+
+	// TODO: evaluate removing executed miniblocks from cache explictly, not inside saveExecutedData
+	err = mp.saveExecutedData(header, headerHash)
+	if err != nil {
+		return err
+	}
 
 	mp.blockProcessingCutoffHandler.HandlePauseCutoff(header)
 
