@@ -298,10 +298,6 @@ func (gc *gasConsumption) CheckOutgoingTransactions(
 	txHashes [][]byte,
 	transactions []data.TransactionHandler,
 ) (addedTxHashes [][]byte, pendingMiniBlocksAdded []data.MiniBlockHeaderHandler, err error) {
-	if len(transactions) == 0 || len(txHashes) == 0 {
-		return nil, nil, nil
-	}
-
 	if len(transactions) != len(txHashes) {
 		return nil, nil, process.ErrInvalidValue
 	}

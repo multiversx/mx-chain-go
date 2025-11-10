@@ -289,15 +289,6 @@ func TestGasConsumption_CheckIncomingMiniBlocks(t *testing.T) {
 func TestGasConsumption_CheckOutgoingTransactions(t *testing.T) {
 	t.Parallel()
 
-	t.Run("no transactions should early exit", func(t *testing.T) {
-		t.Parallel()
-
-		gc, _ := block.NewGasConsumption(getMockArgsGasConsumption())
-		require.NotNil(t, gc)
-
-		_, _, err := gc.CheckOutgoingTransactions(nil, nil)
-		require.NoError(t, err)
-	})
 	t.Run("different lengths should error", func(t *testing.T) {
 		t.Parallel()
 
@@ -391,6 +382,38 @@ func TestGasConsumption_CheckOutgoingTransactions(t *testing.T) {
 		require.Equal(t, 2, len(addedPendingMbs)) // added all pending mbs
 
 		require.Equal(t, maxGasLimitPerBlock*2, gc.TotalGasConsumed()) // *2 due to the 200% factor
+
+		pending = gc.GetPendingMiniBlocks()
+		require.Len(t, pending, 0)
+	})
+	t.Run("should work with empty transactions and continue adding pending mini blocks to fill the block", func(t *testing.T) {
+		t.Parallel()
+
+		gc, _ := block.NewGasConsumption(getMockArgsGasConsumption())
+		require.NotNil(t, gc)
+
+		// maxGasLimitPerBlock = 400
+		// half of it * factor (200% by default) will be used for mini blocks
+		// thus 400 is the total max limit for mini blocks
+		// 5 txs in each mb with a gas limit of 10 => gasLimitPerMb = 50
+		// adding 10 mbs will lead to adding 8 and saving 2 as pending
+		mbs := generateMiniBlocks(10, 5)
+		txsInMBs := generateTxsForMiniBlocks(mbs)
+		lastMbIndex, pendingMbs, err := gc.CheckIncomingMiniBlocks(mbs, txsInMBs)
+		require.NoError(t, err)
+		require.Equal(t, 2, pendingMbs)  // 2 pending mini blocks
+		require.Equal(t, 7, lastMbIndex) // last index saved 7
+
+		pending := gc.GetPendingMiniBlocks()
+		require.Len(t, pending, 2)
+
+		addedTxs, addedPendingMbs, err := gc.CheckOutgoingTransactions(nil, nil)
+		require.NoError(t, err)
+		require.Zero(t, len(addedTxs))
+		require.Equal(t, 2, len(addedPendingMbs)) // added the 2 pending mini blocks
+
+		expectedTotalConsumed := 5 * 10 * maxGasLimitPerTx // initial 10 blocks of 5 txs
+		require.Equal(t, expectedTotalConsumed, gc.TotalGasConsumed())
 
 		pending = gc.GetPendingMiniBlocks()
 		require.Len(t, pending, 0)
