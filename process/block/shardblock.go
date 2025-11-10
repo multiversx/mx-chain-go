@@ -1055,30 +1055,25 @@ func (sp *shardProcessor) CommitBlock(
 		"nonce", highestFinalBlockNonce,
 	)
 
-	lastBlockHeader := sp.blockChain.GetCurrentBlockHeader()
+	rootHash := sp.getLastExecutedRootHash(header)
 
-	committedRootHash, err := sp.accountsDB[state.UserAccountsState].RootHash()
-	if err != nil {
-		return err
-	}
-
-	err = sp.setCurrentBlockInfo(header, headerHash, committedRootHash)
-	if err != nil {
-		return err
-	}
-
-	rootHash := getLastExecutionResultsRootHash(header, committedRootHash)
-	lastExecutionResultHeader, err := sp.getLastExecutionResultHeader(header)
+	err = sp.setCurrentBlockInfo(header, headerHash, rootHash)
 	if err != nil {
 		return err
 	}
 	sp.blockChain.SetCurrentBlockHeaderHash(headerHash)
+
+	lastExecutionResultHeader, err := sp.getLastExecutionResultHeader(header)
+	if err != nil {
+		return err
+	}
 
 	err = sp.onExecutedBlock(lastExecutionResultHeader, rootHash)
 	if err != nil {
 		return err
 	}
 
+	lastBlockHeader := sp.blockChain.GetCurrentBlockHeader()
 	sp.indexBlockIfNeeded(bodyHandler, headerHash, headerHandler, lastBlockHeader)
 	sp.stateAccessesCollector.Reset()
 	sp.recordBlockInHistory(headerHash, headerHandler, bodyHandler)
