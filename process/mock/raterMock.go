@@ -22,11 +22,11 @@ type RaterMock struct {
 	GetRatingCalled                func(string) uint32
 	GetStartRatingCalled           func() uint32
 	GetSignedBlocksThresholdCalled func() float32
-	ComputeIncreaseProposerCalled  func(shardId uint32, rating uint32) uint32
-	ComputeDecreaseProposerCalled  func(shardId uint32, rating uint32, consecutiveMissedBlocks uint32) uint32
-	RevertIncreaseProposerCalled   func(shardId uint32, rating uint32, nrReverts uint32) uint32
-	ComputeIncreaseValidatorCalled func(shardId uint32, rating uint32) uint32
-	ComputeDecreaseValidatorCalled func(shardId uint32, rating uint32) uint32
+	ComputeIncreaseProposerCalled  func(shardId uint32, rating uint32, epoch uint32) uint32
+	ComputeDecreaseProposerCalled  func(shardId uint32, rating uint32, consecutiveMissedBlocks uint32, epoch uint32) uint32
+	RevertIncreaseValidatorCalled  func(shardId uint32, rating uint32, nrReverts uint32, epoch uint32) uint32
+	ComputeIncreaseValidatorCalled func(shardId uint32, rating uint32, epoch uint32) uint32
+	ComputeDecreaseValidatorCalled func(shardId uint32, rating uint32, epoch uint32) uint32
 	GetChancesCalled               func(val uint32) uint32
 }
 
@@ -39,7 +39,7 @@ func GetNewMockRater() *RaterMock {
 	raterMock.GetStartRatingCalled = func() uint32 {
 		return raterMock.StartRating
 	}
-	raterMock.ComputeIncreaseProposerCalled = func(shardId uint32, rating uint32) uint32 {
+	raterMock.ComputeIncreaseProposerCalled = func(shardId uint32, rating uint32, epoch uint32) uint32 {
 		var ratingStep int32
 		if shardId == core.MetachainShardId {
 			ratingStep = raterMock.MetaIncreaseProposer
@@ -48,7 +48,7 @@ func GetNewMockRater() *RaterMock {
 		}
 		return raterMock.computeRating(rating, ratingStep)
 	}
-	raterMock.RevertIncreaseProposerCalled = func(shardId uint32, rating uint32, nrReverts uint32) uint32 {
+	raterMock.RevertIncreaseValidatorCalled = func(shardId uint32, rating uint32, nrReverts uint32, epoch uint32) uint32 {
 		var ratingStep int32
 		if shardId == core.MetachainShardId {
 			ratingStep = raterMock.MetaIncreaseValidator
@@ -58,7 +58,7 @@ func GetNewMockRater() *RaterMock {
 		computedStep := -ratingStep * int32(nrReverts)
 		return raterMock.computeRating(rating, computedStep)
 	}
-	raterMock.ComputeDecreaseProposerCalled = func(shardId uint32, rating uint32, consecutiveMissedBlocks uint32) uint32 {
+	raterMock.ComputeDecreaseProposerCalled = func(shardId uint32, rating uint32, consecutiveMissedBlocks uint32, epoch uint32) uint32 {
 		var ratingStep int32
 		if shardId == core.MetachainShardId {
 			ratingStep = raterMock.MetaDecreaseProposer
@@ -67,7 +67,7 @@ func GetNewMockRater() *RaterMock {
 		}
 		return raterMock.computeRating(rating, ratingStep)
 	}
-	raterMock.ComputeIncreaseValidatorCalled = func(shardId uint32, rating uint32) uint32 {
+	raterMock.ComputeIncreaseValidatorCalled = func(shardId uint32, rating uint32, epoch uint32) uint32 {
 		var ratingStep int32
 		if shardId == core.MetachainShardId {
 			ratingStep = raterMock.MetaIncreaseValidator
@@ -76,7 +76,7 @@ func GetNewMockRater() *RaterMock {
 		}
 		return raterMock.computeRating(rating, ratingStep)
 	}
-	raterMock.ComputeDecreaseValidatorCalled = func(shardId uint32, rating uint32) uint32 {
+	raterMock.ComputeDecreaseValidatorCalled = func(shardId uint32, rating uint32, epoch uint32) uint32 {
 		var ratingStep int32
 		if shardId == core.MetachainShardId {
 			ratingStep = raterMock.MetaDecreaseValidator
@@ -126,27 +126,27 @@ func (rm *RaterMock) GetSignedBlocksThreshold() float32 {
 
 // ComputeIncreaseProposer -
 func (rm *RaterMock) ComputeIncreaseProposer(shardId uint32, currentRating uint32, epoch uint32) uint32 {
-	return rm.ComputeIncreaseProposerCalled(shardId, currentRating)
+	return rm.ComputeIncreaseProposerCalled(shardId, currentRating, epoch)
 }
 
 // ComputeDecreaseProposer -
 func (rm *RaterMock) ComputeDecreaseProposer(shardId uint32, currentRating uint32, consecutiveMisses uint32, epoch uint32) uint32 {
-	return rm.ComputeDecreaseProposerCalled(shardId, currentRating, consecutiveMisses)
+	return rm.ComputeDecreaseProposerCalled(shardId, currentRating, consecutiveMisses, epoch)
 }
 
 // RevertIncreaseValidator -
 func (rm *RaterMock) RevertIncreaseValidator(shardId uint32, currentRating uint32, nrReverts uint32, epoch uint32) uint32 {
-	return rm.RevertIncreaseProposerCalled(shardId, currentRating, nrReverts)
+	return rm.RevertIncreaseValidatorCalled(shardId, currentRating, nrReverts, epoch)
 }
 
 // ComputeIncreaseValidator -
 func (rm *RaterMock) ComputeIncreaseValidator(shardId uint32, currentRating uint32, epoch uint32) uint32 {
-	return rm.ComputeIncreaseValidatorCalled(shardId, currentRating)
+	return rm.ComputeIncreaseValidatorCalled(shardId, currentRating, epoch)
 }
 
 // ComputeDecreaseValidator -
 func (rm *RaterMock) ComputeDecreaseValidator(shardId uint32, currentRating uint32, epoch uint32) uint32 {
-	return rm.ComputeDecreaseValidatorCalled(shardId, currentRating)
+	return rm.ComputeDecreaseValidatorCalled(shardId, currentRating, epoch)
 }
 
 // GetChance -
