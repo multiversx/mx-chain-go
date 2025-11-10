@@ -32,9 +32,9 @@
         ProtocolSustainabilityPercentage = 0.1 #fraction of value 0.1 - 10%
         ProtocolSustainabilityAddress = "erd1j25xk97yf820rgdp3mj5scavhjkn6tjyn0t63pmv5qyjj7wxlcfqqe2rw5"
         EcosystemGrowthPercentage = 0.0
-        EcosystemGrowthAddress = "erd1j25xk97yf820rgdp3mj5scavhjkn6tjyn0t63pmv5qyjj7wxlcfqqe2rw5"
+        EcosystemGrowthAddress = "erd1k8d58eve7aa64wjad35sx6z8ckgr738wl7jyz54pez0t4zr98fuqz6hxvs"
         GrowthDividendPercentage = 0.0
-        GrowthDividendAddress = "erd1j25xk97yf820rgdp3mj5scavhjkn6tjyn0t63pmv5qyjj7wxlcfqqe2rw5"
+        GrowthDividendAddress = "erd1enva49yfy9ja0e4ttncfmzr0vjv9k9rawuyg2h2g8nepqwmz8ltssvkglr"
         TopUpGradientPoint = "3000000000000000000000000" # 3MIL eGLD (eligible topUp)
         TopUpFactor = 0.25 # fraction of value 0.25 - 25%
 
@@ -45,9 +45,9 @@
         ProtocolSustainabilityPercentage = 0.1 #fraction of value 0.1 - 10%
         ProtocolSustainabilityAddress = "erd1e5cw5pegj9w2zfpzeq94wf3d5tp6g943xuhgnyysdwyr63rlkspqr0u05s"
         EcosystemGrowthPercentage = 0.0
-        EcosystemGrowthAddress = "erd1j25xk97yf820rgdp3mj5scavhjkn6tjyn0t63pmv5qyjj7wxlcfqqe2rw5"
+        EcosystemGrowthAddress = "erd1k8d58eve7aa64wjad35sx6z8ckgr738wl7jyz54pez0t4zr98fuqz6hxvs"
         GrowthDividendPercentage = 0.0
-        GrowthDividendAddress = "erd1j25xk97yf820rgdp3mj5scavhjkn6tjyn0t63pmv5qyjj7wxlcfqqe2rw5"
+        GrowthDividendAddress = "erd1enva49yfy9ja0e4ttncfmzr0vjv9k9rawuyg2h2g8nepqwmz8ltssvkglr"
         TopUpGradientPoint = "2000000000000000000000000" # 2MIL eGLD (eligible topUp)
         TopUpFactor = 0.5 # fraction of value 0.5 - 50%
 
@@ -58,9 +58,9 @@
         ProtocolSustainabilityPercentage = 0.1 #fraction of value 0.1 - 10%
         ProtocolSustainabilityAddress = "erd1e5cw5pegj9w2zfpzeq94wf3d5tp6g943xuhgnyysdwyr63rlkspqr0u05s"
         EcosystemGrowthPercentage = 0.2 #fraction of value 0.2 - 20%
-        EcosystemGrowthAddress = "erd1j25xk97yf820rgdp3mj5scavhjkn6tjyn0t63pmv5qyjj7wxlcfqqe2rw5"
+        EcosystemGrowthAddress = "erd1k8d58eve7aa64wjad35sx6z8ckgr738wl7jyz54pez0t4zr98fuqz6hxvs"
         GrowthDividendPercentage = 0.2 #fraction of value 0.2 - 20%
-        GrowthDividendAddress = "erd1e5cw5pegj9w2zfpzeq94wf3d5tp6g943xuhgnyysdwyr63rlkspqr0u05s"
+        GrowthDividendAddress = "erd1enva49yfy9ja0e4ttncfmzr0vjv9k9rawuyg2h2g8nepqwmz8ltssvkglr"
         TopUpGradientPoint = "2000000000000000000000000" # 2MIL eGLD (eligible topUp)
         TopUpFactor = 0.5 # fraction of value 0.5 - 50%
 
