@@ -1057,22 +1057,18 @@ func (sp *shardProcessor) CommitBlock(
 
 	lastBlockHeader := sp.blockChain.GetCurrentBlockHeader()
 
-	committedRootHash, err := sp.accountsDB[state.UserAccountsState].RootHash()
-	if err != nil {
-		return err
-	}
+	rootHash := sp.getLastExecutedRootHash(header)
 
-	err = sp.setCurrentBlockInfo(header, headerHash, committedRootHash)
-	if err != nil {
-		return err
-	}
-
-	rootHash := getLastExecutionResultsRootHash(header, committedRootHash)
-	lastExecutionResultHeader, err := sp.getLastExecutionResultHeader(header)
+	err = sp.setCurrentBlockInfo(header, headerHash, rootHash)
 	if err != nil {
 		return err
 	}
 	sp.blockChain.SetCurrentBlockHeaderHash(headerHash)
+
+	lastExecutionResultHeader, err := sp.getLastExecutionResultHeader(header)
+	if err != nil {
+		return err
+	}
 
 	err = sp.onExecutedBlock(lastExecutionResultHeader, rootHash)
 	if err != nil {
@@ -1159,47 +1155,6 @@ func (sp *shardProcessor) CommitBlock(
 	sp.blockProcessingCutoffHandler.HandlePauseCutoff(header)
 
 	return nil
-}
-
-// TODO: handle chain handler info on revert
-func (sp *shardProcessor) setCurrentBlockInfo(
-	header data.HeaderHandler,
-	headerHash []byte,
-	rootHash []byte,
-) error {
-	if header.IsHeaderV3() {
-		// last executed info and header will be set on headers executor in async mode
-
-		return sp.blockChain.SetCurrentBlockHeader(header)
-	}
-
-	err := sp.blockChain.SetCurrentBlockHeaderAndRootHash(header, rootHash)
-	if err != nil {
-		return err
-	}
-
-	// set also last executed block info and header
-	// this will be useful at transition to Supernova with headers v3
-	sp.blockChain.SetLastExecutedBlockHeaderAndRootHash(header, headerHash, header.GetRootHash())
-
-	return nil
-}
-
-func getLastExecutionResultsRootHash(
-	header data.HeaderHandler,
-	committedRootHash []byte,
-) []byte {
-	if !header.IsHeaderV3() {
-		return committedRootHash
-	}
-
-	lastExecutionResult, err := common.GetLastBaseExecutionResultHandler(header)
-	if err != nil {
-		log.Warn("failed to get last execution result for header", "err", err)
-		return committedRootHash
-	}
-
-	return lastExecutionResult.GetRootHash()
 }
 
 func (sp *shardProcessor) getLastExecutionResultHeader(
