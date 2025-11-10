@@ -259,33 +259,6 @@ func (sp *shardProcessor) updateMetrics(header data.HeaderHandler, body *block.B
 	go getMetricsFromHeader(header, uint64(txCounts.GetTotal()), sp.marshalizer, sp.appStatusHandler)
 }
 
-func (sp *shardProcessor) verifyGasLimit(header data.HeaderHandler) error {
-	splitRes, err := sp.splitTransactionsForHeader(header)
-	if err != nil {
-		return err
-	}
-
-	sp.gasComputation.Reset()
-	_, numPendingMiniBlocks, err := sp.gasComputation.CheckIncomingMiniBlocks(splitRes.incomingMiniBlocks, splitRes.incomingTransactions)
-	if err != nil {
-		return err
-	}
-
-	addedTxHashes, pendingMiniBlocksAdded, err := sp.gasComputation.CheckOutgoingTransactions(splitRes.outgoingTransactionHashes, splitRes.outgoingTransactions)
-	if err != nil {
-		return err
-	}
-	if len(addedTxHashes) != len(splitRes.outgoingTransactionHashes) {
-		return fmt.Errorf("%w, outgoing transactions exceeded the limit", process.ErrInvalidMaxGasLimitPerMiniBlock)
-	}
-
-	if numPendingMiniBlocks != len(pendingMiniBlocksAdded) {
-		return fmt.Errorf("%w, incoming mini blocks exceeded the limit", process.ErrInvalidMaxGasLimitPerMiniBlock)
-	}
-
-	return nil
-}
-
 func getHaveTimeForProposal(startTime time.Time, maxDuration time.Duration) func() time.Duration {
 	timeOut := startTime.Add(maxDuration)
 	haveTime := func() time.Duration {
