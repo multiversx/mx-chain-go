@@ -2933,13 +2933,13 @@ func (bp *baseProcessor) verifyGasLimit(header data.HeaderHandler) error {
 	}
 
 	bp.gasComputation.Reset()
-	_, numPendingMiniBlocks, err := bp.gasComputation.CheckIncomingMiniBlocks(splitRes.incomingMiniBlocks, splitRes.incomingTransactions)
+	_, numPendingMiniBlocks, err := bp.gasComputation.AddIncomingMiniBlocks(splitRes.incomingMiniBlocks, splitRes.incomingTransactions)
 	if err != nil {
 		return err
 	}
 
 	// for meta, both splitRes.outgoingTransactionHashes and splitRes.outgoingTransactions should be empty, checked on checkMetaOutgoingResults
-	addedTxHashes, pendingMiniBlocksAdded, err := bp.gasComputation.CheckOutgoingTransactions(splitRes.outgoingTransactionHashes, splitRes.outgoingTransactions)
+	addedTxHashes, pendingMiniBlocksAdded, err := bp.gasComputation.AddOutgoingTransactions(splitRes.outgoingTransactionHashes, splitRes.outgoingTransactions)
 	if err != nil {
 		return err
 	}

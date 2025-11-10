@@ -90,10 +90,10 @@ func NewGasConsumption(args ArgsGasConsumption) (*gasConsumption, error) {
 	}, nil
 }
 
-// CheckIncomingMiniBlocks verifies if an incoming mini block and its transactions can be included within gas limits
+// AddIncomingMiniBlocks verifies if an incoming mini block and its transactions can be included within gas limits.
 // returns the last mini block index included, the number of pending mini blocks left and error if needed
-// This must be called first, before CheckOutgoingTransactions!
-func (gc *gasConsumption) CheckIncomingMiniBlocks(
+// This must be called first, before AddOutgoingTransactions!
+func (gc *gasConsumption) AddIncomingMiniBlocks(
 	miniBlocks []data.MiniBlockHeaderHandler,
 	transactions map[string][]data.TransactionHandler,
 ) (lastMiniBlockIndex int, pendingMiniBlocks int, err error) {
@@ -113,7 +113,7 @@ func (gc *gasConsumption) CheckIncomingMiniBlocks(
 	lastMiniBlockIndex = initialLastIndex
 	shouldSavePending := false
 	for i := 0; i < len(miniBlocks); i++ {
-		shouldSavePending, err = gc.checkIncomingMiniBlock(miniBlocks[i], transactions, bandwidthForIncomingMiniBlocks)
+		shouldSavePending, err = gc.addIncomingMiniBlock(miniBlocks[i], transactions, bandwidthForIncomingMiniBlocks)
 		if shouldSavePending {
 			// saving pending starting with idx i, as it was not included either
 			gc.pendingMiniBlocks = append(gc.pendingMiniBlocks, miniBlocks[i:]...)
@@ -175,7 +175,7 @@ func (gc *gasConsumption) revertPendingMiniBlock(miniBlockHash []byte, idxInPend
 	gc.pendingMiniBlocks = slices.Delete(gc.pendingMiniBlocks, idxInPendingSlice, idxInPendingSlice+1)
 }
 
-func (gc *gasConsumption) checkIncomingMiniBlock(
+func (gc *gasConsumption) addIncomingMiniBlock(
 	mb data.MiniBlockHeaderHandler,
 	transactions map[string][]data.TransactionHandler,
 	bandwidthForIncomingMiniBlocks uint64,
@@ -254,7 +254,7 @@ func (gc *gasConsumption) checkGasConsumedByMiniBlock(mb data.MiniBlockHeaderHan
 	return gasConsumedByMB, nil
 }
 
-func (gc *gasConsumption) checkPendingIncomingMiniBlocks() ([]data.MiniBlockHeaderHandler, error) {
+func (gc *gasConsumption) addPendingIncomingMiniBlocks() ([]data.MiniBlockHeaderHandler, error) {
 	addedMiniBlocks := make([]data.MiniBlockHeaderHandler, 0)
 	// checking if any pending mini blocks are left to fill the block
 	hasPendingMiniBlocks := len(gc.pendingMiniBlocks) > 0
@@ -273,7 +273,7 @@ func (gc *gasConsumption) checkPendingIncomingMiniBlocks() ([]data.MiniBlockHead
 	lastIndexAdded := 0
 	for i := 0; i < len(gc.pendingMiniBlocks); i++ {
 		mb := gc.pendingMiniBlocks[i]
-		_, err := gc.checkIncomingMiniBlock(mb, gc.transactionsForPendingMiniBlocks, bandwidthForIncomingMiniBlocks)
+		_, err := gc.addIncomingMiniBlock(mb, gc.transactionsForPendingMiniBlocks, bandwidthForIncomingMiniBlocks)
 		if err != nil {
 			return nil, err
 		}
@@ -287,14 +287,14 @@ func (gc *gasConsumption) checkPendingIncomingMiniBlocks() ([]data.MiniBlockHead
 	return addedMiniBlocks, nil
 }
 
-// CheckOutgoingTransactions verifies the outgoing transactions and returns:
+// AddOutgoingTransactions verifies the outgoing transactions and returns:
 //   - the index of the last valid transaction
 //   - the pending mini blocks added if any
 //   - error if so
 //
 // only returns error if a transaction is invalid, with too much gas
 // This method assumes that incoming mini blocks were already handled, trying to add any remaining pending ones at the end
-func (gc *gasConsumption) CheckOutgoingTransactions(
+func (gc *gasConsumption) AddOutgoingTransactions(
 	txHashes [][]byte,
 	transactions []data.TransactionHandler,
 ) (addedTxHashes [][]byte, pendingMiniBlocksAdded []data.MiniBlockHeaderHandler, err error) {
@@ -317,7 +317,7 @@ func (gc *gasConsumption) CheckOutgoingTransactions(
 			continue
 		}
 
-		shouldSkipSender = gc.checkOutgoingTransaction(transactions[i])
+		shouldSkipSender = gc.addOutgoingTransaction(transactions[i])
 		if shouldSkipSender {
 			skippedSenders[string(transactions[i].GetSndAddr())] = struct{}{}
 			continue
@@ -327,12 +327,12 @@ func (gc *gasConsumption) CheckOutgoingTransactions(
 	}
 
 	// reaching this point means that transactions were added and the limit for outgoing was not reached
-	pendingMiniBlocksAdded, err = gc.checkPendingIncomingMiniBlocks()
+	pendingMiniBlocksAdded, err = gc.addPendingIncomingMiniBlocks()
 	return addedHashes, pendingMiniBlocksAdded, err
 }
 
 // must be called under mutex protection
-func (gc *gasConsumption) checkOutgoingTransaction(
+func (gc *gasConsumption) addOutgoingTransaction(
 	tx data.TransactionHandler,
 ) bool {
 	if check.IfNil(tx) {
@@ -343,7 +343,7 @@ func (gc *gasConsumption) checkOutgoingTransaction(
 	receiverShard := gc.shardCoordinator.ComputeId(tx.GetRcvAddr())
 	gasConsumedInSenderShard, gasConsumedInReceiverShard, err := gc.checkGasConsumedByTx(senderShard, receiverShard, tx)
 	if err != nil {
-		log.Warn("checkOutgoingTransaction.checkGasConsumedByTx failed", "error", err)
+		log.Warn("addOutgoingTransaction.checkGasConsumedByTx failed", "error", err)
 		return true
 	}
 
