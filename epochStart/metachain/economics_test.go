@@ -409,7 +409,7 @@ func TestEconomics_VerifyRewardsPerBlock_DifferentHitRates(t *testing.T) {
 	devFeesInEpoch := big.NewInt(0)
 	roundDur := 4
 	args := getArguments()
-	args.AccRewardsEnableEpoch = 9999999
+	accRewardsEnableEpoch := uint32(9999999)
 
 	args.RewardsHandler = &mock.RewardsHandlerStub{
 		MaxInflationRateCalled: func(_ uint32, _ uint32) float64 {
@@ -422,7 +422,7 @@ func TestEconomics_VerifyRewardsPerBlock_DifferentHitRates(t *testing.T) {
 			return 0.1
 		},
 		IsTailInflationEnabledCalled: func(epoch uint32) bool {
-			return epoch >= args.AccRewardsEnableEpoch
+			return epoch >= accRewardsEnableEpoch
 		},
 	}
 	args.RoundTime = &mock.RoundTimeDurationHandler{
@@ -1721,22 +1721,21 @@ func TestEconomics_ComputeRewardsForAccelerator(t *testing.T) {
 			return epoch >= accRewardsEnableEpoch
 		},
 	}
-	args.AccRewardsEnableEpoch = accRewardsEnableEpoch
 
 	ec, _ := NewEndOfEpochEconomicsDataCreator(args)
 
 	// Before accRewardsEnableEpoch
-	rewards := ec.computeRewardsForAccelerator(totalRewards, accRewardsEnableEpoch-1)
+	rewards, _ := ec.computeRewardsForAccelerator(totalRewards, accRewardsEnableEpoch-1)
 	expectedRewards := big.NewInt(1000) // 10000 * 0.1
 	assert.Equal(t, expectedRewards, rewards)
 
 	// At accRewardsEnableEpoch
-	rewards = ec.computeRewardsForAccelerator(totalRewards, accRewardsEnableEpoch)
+	rewards, _ = ec.computeRewardsForAccelerator(totalRewards, accRewardsEnableEpoch)
 	expectedRewards = big.NewInt(6000) // 10000 * (0.1 + 0.2 + 0.3)
 	assert.Equal(t, expectedRewards, rewards)
 
 	// After accRewardsEnableEpoch
-	rewards = ec.computeRewardsForAccelerator(totalRewards, accRewardsEnableEpoch+1)
+	rewards, _ = ec.computeRewardsForAccelerator(totalRewards, accRewardsEnableEpoch+1)
 	expectedRewards = big.NewInt(6000) // 10000 * (0.1 + 0.2 + 0.3)
 	assert.Equal(t, expectedRewards, rewards)
 }
@@ -1801,7 +1800,6 @@ func TestEconomics_ComputeEndOfEpochEconomicsWithTailInflation(t *testing.T) {
 			}}, nil
 		},
 	}
-	args.AccRewardsEnableEpoch = 1
 	ec, _ := NewEndOfEpochEconomicsDataCreator(args)
 
 	mb := block.MetaBlock{
@@ -1859,7 +1857,6 @@ func TestEconomics_ComputeEndOfEpochEconomicsWithPrevEpochTotalSupply(t *testing
 			}}, nil
 		},
 	}
-	args.AccRewardsEnableEpoch = 2
 	ec, _ := NewEndOfEpochEconomicsDataCreator(args)
 
 	mb := block.MetaBlock{
@@ -1928,9 +1925,9 @@ func TestEconomics_TotalSupplyCalculation(t *testing.T) {
 			}}, nil
 		},
 	}
-	args.AccRewardsEnableEpoch = 3 // future epoch
+
 	args.RewardsHandler = &mock.RewardsHandlerStub{IsTailInflationEnabledCalled: func(epoch uint32) bool {
-		return epoch >= args.AccRewardsEnableEpoch
+		return epoch >= 3 // future epoch
 	}}
 	ec, _ := NewEndOfEpochEconomicsDataCreator(args)
 

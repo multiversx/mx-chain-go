@@ -36,7 +36,6 @@ type economics struct {
 	genesisTotalSupply    *big.Int
 	economicsDataNotified epochStart.EpochEconomicsDataProvider
 	stakingV2EnableEpoch  uint32
-	accRewardsEnableEpoch uint32
 }
 
 // ArgsNewEpochEconomics is the argument for the economics constructor
@@ -52,7 +51,6 @@ type ArgsNewEpochEconomics struct {
 	GenesisTotalSupply    *big.Int
 	EconomicsDataNotified epochStart.EpochEconomicsDataProvider
 	StakingV2EnableEpoch  uint32
-	AccRewardsEnableEpoch uint32
 }
 
 // NewEndOfEpochEconomicsDataCreator creates a new end of epoch economics data creator object
@@ -94,7 +92,6 @@ func NewEndOfEpochEconomicsDataCreator(args ArgsNewEpochEconomics) (*economics, 
 		genesisTotalSupply:    big.NewInt(0).Set(args.GenesisTotalSupply),
 		economicsDataNotified: args.EconomicsDataNotified,
 		stakingV2EnableEpoch:  args.StakingV2EnableEpoch,
-		accRewardsEnableEpoch: args.AccRewardsEnableEpoch,
 	}
 	log.Debug("economics: enable epoch for staking v2", "epoch", e.stakingV2EnableEpoch)
 
@@ -160,7 +157,11 @@ func (e *economics) ComputeEndOfEpochEconomics(
 	e.adjustRewardsPerBlockWithDeveloperFees(rwdPerBlock, metaBlock.DevFeesInEpoch, totalNumBlocksInEpoch)
 	rewardsForLeaders := e.adjustRewardsPerBlockWithLeaderPercentage(rwdPerBlock, metaBlock.AccumulatedFeesInEpoch, metaBlock.DevFeesInEpoch, totalNumBlocksInEpoch, metaBlock.Epoch)
 	remainingToBeDistributed = big.NewInt(0).Sub(remainingToBeDistributed, rewardsForLeaders)
-	rewardsForAccelerator := e.computeRewardsForAccelerator(totalRewardsToBeDistributed, metaBlock.Epoch)
+	rewardsForAccelerator, err := e.computeRewardsForAccelerator(totalRewardsToBeDistributed, metaBlock.Epoch)
+	if err != nil {
+		return nil, err
+	}
+
 	remainingToBeDistributed = big.NewInt(0).Sub(remainingToBeDistributed, rewardsForAccelerator)
 	// adjust rewards per block taking into consideration protocol sustainability rewards
 	e.adjustRewardsPerBlockWithAcceleratorRewards(rwdPerBlock, rewardsForAccelerator, totalNumBlocksInEpoch)
@@ -293,9 +294,9 @@ func (e *economics) computeRewardsForProtocolSustainability(totalRewards *big.In
 	return core.GetApproximatePercentageOfValue(totalRewards, e.rewardsHandler.ProtocolSustainabilityPercentageInEpoch(epoch))
 }
 
-func (e *economics) computeRewardsForAccelerator(totalRewards *big.Int, epoch uint32) *big.Int {
+func (e *economics) computeRewardsForAccelerator(totalRewards *big.Int, epoch uint32) (*big.Int, error) {
 	if !e.rewardsHandler.IsTailInflationEnabled(epoch) {
-		return e.computeRewardsForProtocolSustainability(totalRewards, epoch)
+		return e.computeRewardsForProtocolSustainability(totalRewards, epoch), nil
 	}
 
 	protocolSustainability := core.GetIntTrimmedPercentageOfValue(totalRewards, e.rewardsHandler.ProtocolSustainabilityPercentageInEpoch(epoch))
@@ -308,7 +309,12 @@ func (e *economics) computeRewardsForAccelerator(totalRewards *big.Int, epoch ui
 
 	acceleratorRewards := big.NewInt(0).Add(protocolSustainability, ecosystemGrowth)
 	acceleratorRewards = big.NewInt(0).Add(acceleratorRewards, growthDividend)
-	return acceleratorRewards
+
+	if acceleratorRewards.Cmp(totalRewards) > 0 {
+		return nil, errAcceleratorRewardsMoreThanTotalRewards
+	}
+
+	return acceleratorRewards, nil
 }
 
 // adjustment for rewards given for each proposed block taking protocol sustainability rewards into consideration

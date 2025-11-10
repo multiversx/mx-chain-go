@@ -241,6 +241,11 @@ func checkRewardConfig(rewardsCfg config.EpochRewardSettings) error {
 		return process.ErrInvalidRewardsPercentages
 	}
 
+	accPercentage := rewardsCfg.ProtocolSustainabilityPercentage + rewardsCfg.GrowthDividendPercentage + rewardsCfg.EcosystemGrowthPercentage
+	if isPercentageInvalid(accPercentage) {
+		return process.ErrInvalidRewardsPercentages
+	}
+
 	if len(rewardsCfg.ProtocolSustainabilityAddress) == 0 {
 		return process.ErrNilProtocolSustainabilityAddress
 	}

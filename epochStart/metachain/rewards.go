@@ -25,6 +25,7 @@ type ArgsNewRewardsCreator struct {
 
 type rewardsCreator struct {
 	*baseRewardsCreator
+	protocolSustainabilityValue *big.Int
 }
 
 type rewardInfoData struct {
@@ -41,10 +42,16 @@ func NewRewardsCreator(args ArgsNewRewardsCreator) (*rewardsCreator, error) {
 	}
 
 	rc := &rewardsCreator{
-		baseRewardsCreator: brc,
+		baseRewardsCreator:          brc,
+		protocolSustainabilityValue: big.NewInt(0),
 	}
 
 	return rc, nil
+}
+
+func (rc *rewardsCreator) clean() {
+	rc.protocolSustainabilityValue = big.NewInt(0)
+	rc.baseRewardsCreator.clean()
 }
 
 // GetAcceleratorRewards returns the sum of all rewards
@@ -96,7 +103,7 @@ func (rc *rewardsCreator) CreateRewardsMiniBlocks(
 	log.Debug("arithmetic difference in end of epoch rewards economics", "epoch", metaBlock.GetEpoch(), "value", difference)
 	rc.adjustProtocolSustainabilityRewards(protSustRwdTx, difference)
 
-	err = rc.addProtocolRewardToMiniBlocks(protSustRwdTx, miniBlocks, protSustShardId)
+	err = rc.addAcceleratorRewardToMiniBlocks(protSustRwdTx, miniBlocks, protSustShardId)
 	if err != nil {
 		return nil, err
 	}

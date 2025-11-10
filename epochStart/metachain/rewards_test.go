@@ -241,11 +241,12 @@ func TestRewardsCreator_adjustProtocolSustainabilityRewardsPositiveValue(t *test
 
 	protRwShard := args.ShardCoordinator.ComputeId(protRwAddr)
 	mbSlice := createDefaultMiniBlocksSlice()
-	_ = rwd.addProtocolRewardToMiniBlocks(protRwTx, mbSlice, protRwShard)
+	_ = rwd.addAcceleratorRewardToMiniBlocks(protRwTx, mbSlice, protRwShard)
 
 	dust := big.NewInt(1000)
 	rwd1 := rewardsCreator{
-		baseRewardsCreator: rwd,
+		baseRewardsCreator:          rwd,
+		protocolSustainabilityValue: big.NewInt(0),
 	}
 	rwd1.adjustProtocolSustainabilityRewards(protRwTx, dust)
 	require.Zero(t, protRwTx.Value.Cmp(big.NewInt(0).Add(dust, initialProtRewardValue)))
@@ -272,10 +273,11 @@ func TestRewardsCreator_adjustProtocolSustainabilityRewardsNegValueShouldWork(t 
 
 	protRwShard := args.ShardCoordinator.ComputeId(protRwAddr)
 	mbSlice := createDefaultMiniBlocksSlice()
-	_ = rwd.addProtocolRewardToMiniBlocks(protRwTx, mbSlice, protRwShard)
+	_ = rwd.addAcceleratorRewardToMiniBlocks(protRwTx, mbSlice, protRwShard)
 
 	rwd1 := rewardsCreator{
-		baseRewardsCreator: rwd,
+		baseRewardsCreator:          rwd,
+		protocolSustainabilityValue: big.NewInt(0),
 	}
 
 	dust := big.NewInt(-10)
@@ -305,10 +307,11 @@ func TestRewardsCreator_adjustProtocolSustainabilityRewardsInitialNegativeValue(
 
 	protRwShard := args.ShardCoordinator.ComputeId(protRwAddr)
 	mbSlice := createDefaultMiniBlocksSlice()
-	_ = rwd.addProtocolRewardToMiniBlocks(protRwTx, mbSlice, protRwShard)
+	_ = rwd.addAcceleratorRewardToMiniBlocks(protRwTx, mbSlice, protRwShard)
 
 	rwd1 := rewardsCreator{
-		baseRewardsCreator: rwd,
+		baseRewardsCreator:          rwd,
+		protocolSustainabilityValue: big.NewInt(0),
 	}
 
 	dust := big.NewInt(0)

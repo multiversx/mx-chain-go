@@ -218,7 +218,7 @@ func TestBaseRewardsCreator_GetLocalTxCache(t *testing.T) {
 	require.False(t, check.IfNil(txCache))
 }
 
-func TestBaseRewardsCreator_addProtocolRewardToMiniblocks(t *testing.T) {
+func TestBaseRewardsCreator_addAcceleratorRewardToMiniBlocks(t *testing.T) {
 	t.Parallel()
 
 	args := getBaseRewardsArguments()
@@ -242,7 +242,7 @@ func TestBaseRewardsCreator_addProtocolRewardToMiniblocks(t *testing.T) {
 
 	protRwShard := args.ShardCoordinator.ComputeId(protRwAddr)
 	mbSlice := createDefaultMiniBlocksSlice()
-	err = rwd.addProtocolRewardToMiniBlocks(protRwTx, mbSlice, protRwShard)
+	err = rwd.addAcceleratorRewardToMiniBlocks(protRwTx, mbSlice, protRwShard)
 	require.Nil(t, err)
 
 	found := false

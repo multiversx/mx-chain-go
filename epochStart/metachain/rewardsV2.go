@@ -124,7 +124,7 @@ func (rc *rewardsCreatorV2) CreateRewardsMiniBlocks(
 	log.Debug("accumulated dust for protocol sustainability", "value", dust)
 
 	rc.adjustProtocolSustainabilityRewards(protRwdTx, dust)
-	err = rc.addProtocolRewardToMiniBlocks(protRwdTx, miniBlocks, protRwdShardId)
+	err = rc.addAcceleratorRewardToMiniBlocks(protRwdTx, miniBlocks, protRwdShardId)
 	if err != nil {
 		return nil, err
 	}
@@ -137,11 +137,11 @@ func (rc *rewardsCreatorV2) CreateRewardsMiniBlocks(
 	if err != nil {
 		return nil, err
 	}
-	err = rc.addProtocolRewardToMiniBlocks(ecoGrowthRwdTx, miniBlocks, ecoGrowthShardId)
+	err = rc.addAcceleratorRewardToMiniBlocks(ecoGrowthRwdTx, miniBlocks, ecoGrowthShardId)
 	if err != nil {
 		return nil, err
 	}
-	err = rc.addProtocolRewardToMiniBlocks(growthDivRwdTx, miniBlocks, growthDivShardId)
+	err = rc.addAcceleratorRewardToMiniBlocks(growthDivRwdTx, miniBlocks, growthDivShardId)
 	if err != nil {
 		return nil, err
 	}

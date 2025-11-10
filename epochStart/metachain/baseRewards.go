@@ -57,7 +57,6 @@ type baseRewardsCreator struct {
 	dataPool                           dataRetriever.PoolsHolder
 	mapBaseRewardsPerBlockPerValidator map[uint32]*big.Int
 	accumulatedRewards                 *big.Int
-	protocolSustainabilityValue        *big.Int
 	flagDelegationSystemSCEnabled      atomic.Flag // nolint
 	userAccountsDB                     state.AccountsAdapter
 	enableEpochsHandler                common.EnableEpochsHandler
@@ -85,7 +84,6 @@ func NewBaseRewardsCreator(args BaseRewardsCreatorArgs) (*baseRewardsCreator, er
 		dataPool:                           args.DataPool,
 		nodesConfigProvider:                args.NodesConfigProvider,
 		accumulatedRewards:                 big.NewInt(0),
-		protocolSustainabilityValue:        big.NewInt(0),
 		userAccountsDB:                     args.UserAccountsDB,
 		mapBaseRewardsPerBlockPerValidator: make(map[uint32]*big.Int),
 		enableEpochsHandler:                args.EnableEpochsHandler,
@@ -314,7 +312,6 @@ func (brc *baseRewardsCreator) clean() {
 	brc.mapBaseRewardsPerBlockPerValidator = make(map[uint32]*big.Int)
 	brc.currTxs.Clean()
 	brc.accumulatedRewards = big.NewInt(0)
-	brc.protocolSustainabilityValue = big.NewInt(0)
 }
 
 func (brc *baseRewardsCreator) isSystemDelegationSC(address []byte) bool {
@@ -395,7 +392,7 @@ func (brc *baseRewardsCreator) initializeRewardsMiniBlocks() block.MiniBlockSlic
 	return miniBlocks
 }
 
-func (brc *baseRewardsCreator) addProtocolRewardToMiniBlocks(
+func (brc *baseRewardsCreator) addAcceleratorRewardToMiniBlocks(
 	protocolSustainabilityRwdTx *rewardTx.RewardTx,
 	miniBlocks block.MiniBlockSlice,
 	protocolSustainabilityShardId uint32,
@@ -404,7 +401,11 @@ func (brc *baseRewardsCreator) addProtocolRewardToMiniBlocks(
 	if errHash != nil {
 		return errHash
 	}
-	if protocolSustainabilityRwdTx.Value.Cmp(zero) <= 0 {
+	if protocolSustainabilityRwdTx.Value.Cmp(zero) < 0 {
+		return errNegativeAcceleratorReward
+	}
+	if protocolSustainabilityRwdTx.Value.Cmp(zero) == 0 {
+		// do not add to the miniblock
 		return nil
 	}
 

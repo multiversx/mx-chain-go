@@ -144,6 +144,14 @@ func TestRewardsCreatorProxy_CreateRewardsMiniBlocksWithSwitchToRewardsCreatorV1
 	}
 
 	metaBlock.Epoch = 3
+	metaBlock.EpochStart.Economics = block.Economics{
+		TotalSupply:                      big.NewInt(10000),
+		TotalToDistribute:                big.NewInt(1000000),
+		TotalNewlyMinted:                 big.NewInt(1000000),
+		RewardsPerBlock:                  big.NewInt(1),
+		NodePrice:                        big.NewInt(10000),
+		RewardsForProtocolSustainability: big.NewInt(50),
+	}
 	economics := &metaBlock.EpochStart.Economics
 
 	miniBlocks, err := rewardsCreatorProxy.CreateRewardsMiniBlocks(metaBlock, vInfo, economics)
