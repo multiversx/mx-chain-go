@@ -1055,6 +1055,8 @@ func (sp *shardProcessor) CommitBlock(
 		"nonce", highestFinalBlockNonce,
 	)
 
+	lastBlockHeader := sp.blockChain.GetCurrentBlockHeader()
+
 	rootHash := sp.getLastExecutedRootHash(header)
 
 	err = sp.setCurrentBlockInfo(header, headerHash, rootHash)
@@ -1073,7 +1075,6 @@ func (sp *shardProcessor) CommitBlock(
 		return err
 	}
 
-	lastBlockHeader := sp.blockChain.GetCurrentBlockHeader()
 	sp.indexBlockIfNeeded(bodyHandler, headerHash, headerHandler, lastBlockHeader)
 	sp.stateAccessesCollector.Reset()
 	sp.recordBlockInHistory(headerHash, headerHandler, bodyHandler)

@@ -2913,7 +2913,6 @@ func (bp *baseProcessor) revertGasForCrossShardDstMeMiniBlocks(added, pending []
 	bp.gasComputation.RevertIncomingMiniBlocks(miniBlockHashesToRevert)
 }
 
-// TODO: handle chain handler info on revert
 func (bp *baseProcessor) setCurrentBlockInfo(
 	header data.HeaderHandler,
 	headerHash []byte,
