@@ -17,6 +17,7 @@ type AccountNonceAndBalanceProviderMock struct {
 	NumCallsGetAccountNonceAndBalance int
 	GetAccountNonceCalled             func(address []byte) (uint64, bool, error)
 	GetAccountNonceAndBalanceCalled   func(address []byte) (uint64, *big.Int, bool, error)
+	GetRootHashCalled                 func() ([]byte, error)
 }
 
 // NewAccountNonceAndBalanceProviderMock -
@@ -109,6 +110,15 @@ func (mock *AccountNonceAndBalanceProviderMock) GetAccountNonceAndBalance(addres
 
 	account = newDefaultAccount()
 	return account.Nonce, account.Balance, true, nil
+}
+
+// GetRootHash -
+func (mock *AccountNonceAndBalanceProviderMock) GetRootHash() ([]byte, error) {
+	if mock.GetRootHashCalled != nil {
+		return mock.GetRootHashCalled()
+	}
+
+	return nil, nil
 }
 
 // IsInterfaceNil -

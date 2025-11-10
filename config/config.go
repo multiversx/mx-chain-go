@@ -178,18 +178,20 @@ type Config struct {
 	SmartContractsStorageForSCQuery StorageConfig
 	TrieEpochRootHashStorage        StorageConfig
 	SmartContractsStorageSimulate   StorageConfig
+	StateAccessesStorage            StorageConfig
 
 	BootstrapStorage StorageConfig
 	MetaBlockStorage StorageConfig
 	ProofsStorage    StorageConfig
 
-	AccountsTrieStorage       StorageConfig
-	PeerAccountsTrieStorage   StorageConfig
-	EvictionWaitingList       EvictionWaitingListConfig
-	StateTriesConfig          StateTriesConfig
-	TrieStorageManagerConfig  TrieStorageManagerConfig
+	AccountsTrieStorage      StorageConfig
+	PeerAccountsTrieStorage  StorageConfig
+	EvictionWaitingList      EvictionWaitingListConfig
+	StateTriesConfig         StateTriesConfig
+	StateAccessesCollectorConfig StateAccessesCollectorConfig
+	TrieStorageManagerConfig TrieStorageManagerConfig
 	TrieLeavesRetrieverConfig TrieLeavesRetrieverConfig
-	BadBlocksCache            CacheConfig
+	BadBlocksCache           CacheConfig
 
 	TxBlockBodyDataPool         CacheConfig
 	PeerBlockBodyDataPool       CacheConfig
@@ -413,6 +415,13 @@ type StateTriesConfig struct {
 	MaxStateTrieLevelInMemory   uint
 	MaxPeerTrieLevelInMemory    uint
 	StateStatisticsEnabled      bool
+}
+
+// StateAccessesCollectorConfig will hold information about state accesses collector
+type StateAccessesCollectorConfig struct {
+	TypesToCollect     []string
+	SaveToStorage      bool
+	WithAccountChanges bool
 }
 
 // TrieStorageManagerConfig will hold config information about trie storage manager
