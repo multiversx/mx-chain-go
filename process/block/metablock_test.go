@@ -3392,9 +3392,8 @@ func TestMetaProcessor_UpdateEpochStartHeader(t *testing.T) {
 	t.Run("fail to compute end of epoch economics", func(t *testing.T) {
 		arguments := createMockMetaArguments(coreComponents, dataComponents, bootstrapComponents, statusComponents)
 
-		expectedErr := errors.New("expected error")
 		arguments.EpochEconomics = &mock.EpochEconomicsStub{
-			ComputeEndOfEpochEconomicsCalled: func(metaBlock *block.MetaBlock) (*block.Economics, error) {
+			ComputeEndOfEpochEconomicsCalled: func(metaBlock data.MetaHeaderHandler) (*block.Economics, error) {
 				return nil, expectedErr
 			},
 		}
@@ -3424,7 +3423,7 @@ func TestMetaProcessor_UpdateEpochStartHeader(t *testing.T) {
 			PrevEpochStartHash:               []byte("prevEpochStartHash"),
 		}
 		arguments.EpochEconomics = &mock.EpochEconomicsStub{
-			ComputeEndOfEpochEconomicsCalled: func(metaBlock *block.MetaBlock) (*block.Economics, error) {
+			ComputeEndOfEpochEconomicsCalled: func(metaBlock data.MetaHeaderHandler) (*block.Economics, error) {
 				return expectedEconomics, nil
 			},
 		}

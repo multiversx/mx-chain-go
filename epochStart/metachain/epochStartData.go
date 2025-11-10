@@ -11,6 +11,7 @@ import (
 	"github.com/multiversx/mx-chain-core-go/data/block"
 	"github.com/multiversx/mx-chain-core-go/hashing"
 	"github.com/multiversx/mx-chain-core-go/marshal"
+
 	"github.com/multiversx/mx-chain-go/common"
 	"github.com/multiversx/mx-chain-go/dataRetriever"
 	"github.com/multiversx/mx-chain-go/epochStart"
@@ -97,7 +98,7 @@ func NewEpochStartData(args ArgsNewEpochStartData) (*epochStartData, error) {
 }
 
 // VerifyEpochStartDataForMetablock verifies if epoch start data given by leader is the same as the one should be created
-func (e *epochStartData) VerifyEpochStartDataForMetablock(metaBlock *block.MetaBlock) error {
+func (e *epochStartData) VerifyEpochStartDataForMetablock(metaBlock data.MetaHeaderHandler) error {
 	if !metaBlock.IsStartOfEpochBlock() {
 		return nil
 	}
@@ -107,9 +108,18 @@ func (e *epochStartData) VerifyEpochStartDataForMetablock(metaBlock *block.MetaB
 		return err
 	}
 
-	epochStartDataWithoutEconomics := metaBlock.EpochStart
-	epochStartDataWithoutEconomics.Economics = block.Economics{}
-	receivedEpochStartHash, err := core.CalculateHash(e.marshalizer, e.hasher, &epochStartDataWithoutEconomics)
+	blockEpochStartData := metaBlock.GetEpochStartHandler()
+	epochStartDataWithoutEconomics := &block.EpochStart{}
+	err = epochStartDataWithoutEconomics.SetLastFinalizedHeaders(blockEpochStartData.GetLastFinalizedHeaderHandlers())
+	if err != nil {
+		return err
+	}
+	esd := &block.Economics{}
+	err = epochStartDataWithoutEconomics.SetEconomics(esd)
+	if err != nil {
+		return err
+	}
+	receivedEpochStartHash, err := core.CalculateHash(e.marshalizer, e.hasher, epochStartDataWithoutEconomics)
 	if err != nil {
 		return err
 	}
@@ -120,7 +130,7 @@ func (e *epochStartData) VerifyEpochStartDataForMetablock(metaBlock *block.MetaB
 	}
 
 	if !bytes.Equal(receivedEpochStartHash, createdEpochStartHash) {
-		displayEpochStartData("received", receivedEpochStartHash, &metaBlock.EpochStart)
+		displayEpochStartData("received", receivedEpochStartHash, metaBlock.GetEpochStartHandler())
 		displayEpochStartData("created", createdEpochStartHash, startData)
 
 		return process.ErrEpochStartDataDoesNotMatch
@@ -129,18 +139,18 @@ func (e *epochStartData) VerifyEpochStartDataForMetablock(metaBlock *block.MetaB
 	return nil
 }
 
-func displayEpochStartData(mode string, hash []byte, startData *block.EpochStart) {
+func displayEpochStartData(mode string, hash []byte, startData data.EpochStartHandler) {
 	log.Warn(mode+" epoch start data",
 		"hash", hash, "startData", spew.Sdump(startData))
 
-	for _, shardData := range startData.LastFinalizedHeaders {
+	for _, shardData := range startData.GetLastFinalizedHeaderHandlers() {
 		log.Warn("epoch start shard data",
-			"shardID", shardData.ShardID,
-			"num pending miniblocks", len(shardData.PendingMiniBlockHeaders),
-			"first pending meta", shardData.FirstPendingMetaBlock,
-			"last finished meta", shardData.LastFinishedMetaBlock,
-			"rootHash", shardData.RootHash,
-			"headerHash", shardData.HeaderHash)
+			"shardID", shardData.GetShardID(),
+			"num pending miniblocks", len(shardData.GetPendingMiniBlockHeaderHandlers()),
+			"first pending meta", shardData.GetFirstPendingMetaBlock(),
+			"last finished meta", shardData.GetLastFinishedMetaBlock(),
+			"rootHash", shardData.GetRootHash(),
+			"headerHash", shardData.GetHeaderHash())
 	}
 }
 

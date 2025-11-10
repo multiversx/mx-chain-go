@@ -339,7 +339,7 @@ func (mp *metaProcessor) updateMetrics(header data.MetaHeaderHandler) {
 }
 
 func (mp *metaProcessor) processEpochStartMetaBlock(
-	header *block.MetaBlock,
+	header data.MetaHeaderHandler,
 	body *block.Body,
 ) error {
 	err := mp.epochStartDataCreator.VerifyEpochStartDataForMetablock(header)
@@ -357,7 +357,7 @@ func (mp *metaProcessor) processEpochStartMetaBlock(
 		return err
 	}
 
-	err = mp.validatorStatisticsProcessor.ProcessRatingsEndOfEpoch(allValidatorsInfo, header.Epoch)
+	err = mp.validatorStatisticsProcessor.ProcessRatingsEndOfEpoch(allValidatorsInfo, header.GetEpoch())
 	if err != nil {
 		return err
 	}
@@ -2216,7 +2216,7 @@ func (mp *metaProcessor) prepareBlockHeaderInternalMapForValidatorProcessor() {
 	mp.hdrsForCurrBlock.AddHeaderNotUsedInBlock(string(currentBlockHeaderHash), currentBlockHeader)
 }
 
-func (mp *metaProcessor) verifyValidatorStatisticsRootHash(header *block.MetaBlock) error {
+func (mp *metaProcessor) verifyValidatorStatisticsRootHash(header data.MetaHeaderHandler) error {
 	mp.prepareBlockHeaderInternalMapForValidatorProcessor()
 	validatorStatsRH, err := mp.validatorStatisticsProcessor.UpdatePeerState(header, mp.hdrsForCurrBlock.GetHeadersMap())
 	if err != nil {
@@ -2232,7 +2232,7 @@ func (mp *metaProcessor) verifyValidatorStatisticsRootHash(header *block.MetaBlo
 			process.ErrValidatorStatsRootHashDoesNotMatch,
 			logger.DisplayByteSlice(validatorStatsRH),
 			logger.DisplayByteSlice(header.GetValidatorStatsRootHash()),
-			header.Nonce,
+			header.GetNonce(),
 		)
 	}
 

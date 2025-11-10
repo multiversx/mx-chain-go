@@ -9,10 +9,12 @@ import (
 
 	"github.com/multiversx/mx-chain-core-go/core"
 	"github.com/multiversx/mx-chain-core-go/core/check"
+	"github.com/multiversx/mx-chain-core-go/data"
 	"github.com/multiversx/mx-chain-core-go/data/block"
 	"github.com/multiversx/mx-chain-core-go/display"
 	"github.com/multiversx/mx-chain-core-go/hashing"
 	"github.com/multiversx/mx-chain-core-go/marshal"
+
 	"github.com/multiversx/mx-chain-go/common"
 	"github.com/multiversx/mx-chain-go/dataRetriever"
 	"github.com/multiversx/mx-chain-go/epochStart"
@@ -108,28 +110,28 @@ func NewEndOfEpochEconomicsDataCreator(args ArgsNewEpochEconomics) (*economics, 
 
 // ComputeEndOfEpochEconomics calculates the rewards per block value for the current epoch
 func (e *economics) ComputeEndOfEpochEconomics(
-	metaBlock *block.MetaBlock,
+	metaBlock data.MetaHeaderHandler,
 ) (*block.Economics, error) {
 	if check.IfNil(metaBlock) {
 		return nil, epochStart.ErrNilHeaderHandler
 	}
-	if metaBlock.AccumulatedFeesInEpoch == nil {
+	if metaBlock.GetAccumulatedFeesInEpoch() == nil {
 		return nil, epochStart.ErrNilTotalAccumulatedFeesInEpoch
 	}
-	if metaBlock.DevFeesInEpoch == nil {
+	if metaBlock.GetDevFeesInEpoch() == nil {
 		return nil, epochStart.ErrNilTotalDevFeesInEpoch
 	}
-	if !metaBlock.IsStartOfEpochBlock() || metaBlock.Epoch < e.genesisEpoch+1 {
+	if !metaBlock.IsStartOfEpochBlock() || metaBlock.GetEpoch() < e.genesisEpoch+1 {
 		return nil, epochStart.ErrNotEpochStartBlock
 	}
 
-	noncesPerShardPrevEpoch, prevEpochStart, err := e.startNoncePerShardFromEpochStart(metaBlock.Epoch - 1)
+	noncesPerShardPrevEpoch, prevEpochStart, err := e.startNoncePerShardFromEpochStart(metaBlock.GetEpoch() - 1)
 	if err != nil {
 		return nil, err
 	}
 	prevEpochEconomics := prevEpochStart.EpochStart.Economics
 
-	noncesPerShardCurrEpoch, err := e.startNoncePerShardFromLastCrossNotarized(metaBlock.GetNonce(), metaBlock.EpochStart)
+	noncesPerShardCurrEpoch, err := e.startNoncePerShardFromLastCrossNotarized(metaBlock.GetNonce(), metaBlock.GetEpochStartHandler())
 	if err != nil {
 		return nil, err
 	}
@@ -139,21 +141,21 @@ func (e *economics) ComputeEndOfEpochEconomics(
 	totalNumBlocksInEpoch := e.computeNumOfTotalCreatedBlocks(noncesPerShardPrevEpoch, noncesPerShardCurrEpoch)
 
 	inflationRate := e.computeInflationRate(metaBlock.GetRound(), metaBlock.GetEpoch())
-	rwdPerBlock := e.computeRewardsPerBlock(e.genesisTotalSupply, maxBlocksInEpoch, inflationRate, metaBlock.Epoch)
+	rwdPerBlock := e.computeRewardsPerBlock(e.genesisTotalSupply, maxBlocksInEpoch, inflationRate, metaBlock.GetEpoch())
 	totalRewardsToBeDistributed := big.NewInt(0).Mul(rwdPerBlock, big.NewInt(0).SetUint64(totalNumBlocksInEpoch))
 
-	newTokens := big.NewInt(0).Sub(totalRewardsToBeDistributed, metaBlock.AccumulatedFeesInEpoch)
+	newTokens := big.NewInt(0).Sub(totalRewardsToBeDistributed, metaBlock.GetAccumulatedFeesInEpoch())
 	if newTokens.Cmp(big.NewInt(0)) < 0 {
 		newTokens = big.NewInt(0)
-		totalRewardsToBeDistributed = big.NewInt(0).Set(metaBlock.AccumulatedFeesInEpoch)
+		totalRewardsToBeDistributed = big.NewInt(0).Set(metaBlock.GetAccumulatedFeesInEpoch())
 		rwdPerBlock.Div(totalRewardsToBeDistributed, big.NewInt(0).SetUint64(totalNumBlocksInEpoch))
 	}
 
-	remainingToBeDistributed := big.NewInt(0).Sub(totalRewardsToBeDistributed, metaBlock.DevFeesInEpoch)
-	e.adjustRewardsPerBlockWithDeveloperFees(rwdPerBlock, metaBlock.DevFeesInEpoch, totalNumBlocksInEpoch)
-	rewardsForLeaders := e.adjustRewardsPerBlockWithLeaderPercentage(rwdPerBlock, metaBlock.AccumulatedFeesInEpoch, metaBlock.DevFeesInEpoch, totalNumBlocksInEpoch, metaBlock.Epoch)
+	remainingToBeDistributed := big.NewInt(0).Sub(totalRewardsToBeDistributed, metaBlock.GetDevFeesInEpoch())
+	e.adjustRewardsPerBlockWithDeveloperFees(rwdPerBlock, metaBlock.GetDevFeesInEpoch(), totalNumBlocksInEpoch)
+	rewardsForLeaders := e.adjustRewardsPerBlockWithLeaderPercentage(rwdPerBlock, metaBlock.GetAccumulatedFeesInEpoch(), metaBlock.GetDevFeesInEpoch(), totalNumBlocksInEpoch, metaBlock.GetEpoch())
 	remainingToBeDistributed = big.NewInt(0).Sub(remainingToBeDistributed, rewardsForLeaders)
-	rewardsForProtocolSustainability := e.computeRewardsForProtocolSustainability(totalRewardsToBeDistributed, metaBlock.Epoch)
+	rewardsForProtocolSustainability := e.computeRewardsForProtocolSustainability(totalRewardsToBeDistributed, metaBlock.GetEpoch())
 	remainingToBeDistributed = big.NewInt(0).Sub(remainingToBeDistributed, rewardsForProtocolSustainability)
 	// adjust rewards per block taking into consideration protocol sustainability rewards
 	e.adjustRewardsPerBlockWithProtocolSustainabilityRewards(rwdPerBlock, rewardsForProtocolSustainability, totalNumBlocksInEpoch)
@@ -195,8 +197,8 @@ func (e *economics) ComputeEndOfEpochEconomics(
 		rewardsForProtocolSustainability,
 	)
 
-	maxPossibleNotarizedBlocks := e.maxPossibleNotarizedBlocks(metaBlock.Round, prevEpochStart)
-	err = e.checkEconomicsInvariants(computedEconomics, inflationRate, maxBlocksInEpoch, totalNumBlocksInEpoch, metaBlock, metaBlock.Epoch, maxPossibleNotarizedBlocks)
+	maxPossibleNotarizedBlocks := e.maxPossibleNotarizedBlocks(metaBlock.GetRound(), prevEpochStart)
+	err = e.checkEconomicsInvariants(computedEconomics, inflationRate, maxBlocksInEpoch, totalNumBlocksInEpoch, metaBlock, metaBlock.GetEpoch(), maxPossibleNotarizedBlocks)
 	if err != nil {
 		log.Warn("ComputeEndOfEpochEconomics", "error", err.Error())
 
@@ -207,7 +209,7 @@ func (e *economics) ComputeEndOfEpochEconomics(
 }
 
 func (e *economics) printEconomicsData(
-	metaBlock *block.MetaBlock,
+	metaBlock data.MetaHeaderHandler,
 	prevEpochEconomics block.Economics,
 	inflationRate float64,
 	newTokens *big.Int,
@@ -220,16 +222,16 @@ func (e *economics) printEconomicsData(
 	header := []string{"identifier", "", "value"}
 
 	var rewardsForLeaders *big.Int
-	if metaBlock.Epoch > e.stakingV2EnableEpoch {
-		rewardsForLeaders = core.GetIntTrimmedPercentageOfValue(metaBlock.AccumulatedFeesInEpoch, e.rewardsHandler.LeaderPercentageInEpoch(metaBlock.GetEpoch()))
+	if metaBlock.GetEpoch() > e.stakingV2EnableEpoch {
+		rewardsForLeaders = core.GetIntTrimmedPercentageOfValue(metaBlock.GetAccumulatedFeesInEpoch(), e.rewardsHandler.LeaderPercentageInEpoch(metaBlock.GetEpoch()))
 	} else {
-		rewardsForLeaders = core.GetApproximatePercentageOfValue(metaBlock.AccumulatedFeesInEpoch, e.rewardsHandler.LeaderPercentageInEpoch(metaBlock.GetEpoch()))
+		rewardsForLeaders = core.GetApproximatePercentageOfValue(metaBlock.GetAccumulatedFeesInEpoch(), e.rewardsHandler.LeaderPercentageInEpoch(metaBlock.GetEpoch()))
 	}
 
 	maxSupplyLength := len(prevEpochEconomics.TotalSupply.String())
 	lines := []*display.LineData{
 		e.newDisplayLine("epoch", "",
-			e.alignRight(fmt.Sprintf("%d", metaBlock.Epoch), maxSupplyLength)),
+			e.alignRight(fmt.Sprintf("%d", metaBlock.GetEpoch()), maxSupplyLength)),
 		e.newDisplayLine("inflation rate", "",
 			e.alignRight(fmt.Sprintf("%.6f", inflationRate), maxSupplyLength)),
 		e.newDisplayLine("previous total supply", "(1)",
@@ -239,13 +241,13 @@ func (e *economics) printEconomicsData(
 		e.newDisplayLine("current total supply", "(1+2)",
 			e.alignRight(computedEconomics.TotalSupply.String(), maxSupplyLength)),
 		e.newDisplayLine("accumulated fees in epoch", "(3)",
-			e.alignRight(metaBlock.AccumulatedFeesInEpoch.String(), maxSupplyLength)),
+			e.alignRight(metaBlock.GetAccumulatedFeesInEpoch().String(), maxSupplyLength)),
 		e.newDisplayLine("total rewards to be distributed", "(4)",
 			e.alignRight(totalRewardsToBeDistributed.String(), maxSupplyLength)),
 		e.newDisplayLine("total num blocks in epoch", "(5)",
 			e.alignRight(fmt.Sprintf("%d", totalNumBlocksInEpoch), maxSupplyLength)),
 		e.newDisplayLine("dev fees in epoch", "(6)",
-			e.alignRight(metaBlock.DevFeesInEpoch.String(), maxSupplyLength)),
+			e.alignRight(metaBlock.GetDevFeesInEpoch().String(), maxSupplyLength)),
 		e.newDisplayLine("leader fees in epoch", "(7)",
 			e.alignRight(rewardsForLeaders.String(), maxSupplyLength)),
 		e.newDisplayLine("reward per block", "(8)",
@@ -431,15 +433,15 @@ func (e *economics) maxPossibleNotarizedBlocks(currentRound uint64, prev *block.
 	return maxBlocks
 }
 
-func (e *economics) startNoncePerShardFromLastCrossNotarized(metaNonce uint64, epochStart block.EpochStart) (map[uint32]uint64, error) {
+func (e *economics) startNoncePerShardFromLastCrossNotarized(metaNonce uint64, epochStart data.EpochStartHandler) (map[uint32]uint64, error) {
 	mapShardIdNonce := make(map[uint32]uint64, e.shardCoordinator.NumberOfShards()+1)
 	for i := uint32(0); i < e.shardCoordinator.NumberOfShards(); i++ {
 		mapShardIdNonce[i] = e.genesisNonce
 	}
 	mapShardIdNonce[core.MetachainShardId] = metaNonce
 
-	for _, shardData := range epochStart.LastFinalizedHeaders {
-		mapShardIdNonce[shardData.ShardID] = shardData.Nonce
+	for _, shardData := range epochStart.GetLastFinalizedHeaderHandlers() {
+		mapShardIdNonce[shardData.GetShardID()] = shardData.GetNonce()
 	}
 
 	return mapShardIdNonce, nil
@@ -450,7 +452,7 @@ func (e *economics) checkEconomicsInvariants(
 	inflationRate float64,
 	maxBlocksInEpoch uint64,
 	totalNumBlocksInEpoch uint64,
-	metaBlock *block.MetaBlock,
+	metaBlock data.MetaHeaderHandler,
 	epoch uint32,
 	maxPossibleNotarizedBlocks uint64,
 ) error {
@@ -467,10 +469,10 @@ func (e *economics) checkEconomicsInvariants(
 
 	}
 
-	if !core.IsInRangeInclusive(metaBlock.AccumulatedFeesInEpoch, zero, e.genesisTotalSupply) {
+	if !core.IsInRangeInclusive(metaBlock.GetAccumulatedFeesInEpoch(), zero, e.genesisTotalSupply) {
 		return fmt.Errorf("%w, computed accumulated fees %s, max allowed %s",
 			epochStart.ErrInvalidAccumulatedFees,
-			metaBlock.AccumulatedFeesInEpoch,
+			metaBlock.GetAccumulatedFeesInEpoch(),
 			e.genesisTotalSupply,
 		)
 	}
@@ -482,8 +484,8 @@ func (e *economics) checkEconomicsInvariants(
 
 	inflationPerEpoch := e.computeInflationForEpoch(inflationRate, actualMaxBlocks, epoch)
 	maxRewardsInEpoch := core.GetIntTrimmedPercentageOfValue(computedEconomics.TotalSupply, inflationPerEpoch)
-	if maxRewardsInEpoch.Cmp(metaBlock.AccumulatedFeesInEpoch) < 0 {
-		maxRewardsInEpoch.Set(metaBlock.AccumulatedFeesInEpoch)
+	if maxRewardsInEpoch.Cmp(metaBlock.GetAccumulatedFeesInEpoch()) < 0 {
+		maxRewardsInEpoch.Set(metaBlock.GetAccumulatedFeesInEpoch())
 	}
 
 	if !core.IsInRangeInclusive(computedEconomics.RewardsForProtocolSustainability, zero, maxRewardsInEpoch) {
@@ -523,9 +525,9 @@ func (e *economics) checkEconomicsInvariants(
 
 // VerifyRewardsPerBlock checks whether rewards per block value was correctly computed
 func (e *economics) VerifyRewardsPerBlock(
-	metaBlock *block.MetaBlock,
+	metaBlock data.MetaHeaderHandler,
 	correctedProtocolSustainability *big.Int,
-	computedEconomics *block.Economics,
+	computedEconomics data.EconomicsHandler,
 ) error {
 	if computedEconomics == nil {
 		return epochStart.ErrNilEconomicsData
@@ -534,20 +536,23 @@ func (e *economics) VerifyRewardsPerBlock(
 		return nil
 	}
 
-	computedEconomics.RewardsForProtocolSustainability.Set(correctedProtocolSustainability)
+	err := computedEconomics.SetRewardsForProtocolSustainability(correctedProtocolSustainability)
+	if err != nil {
+		return err
+	}
 	computedEconomicsHash, err := core.CalculateHash(e.marshalizer, e.hasher, computedEconomics)
 	if err != nil {
 		return err
 	}
 
-	receivedEconomics := metaBlock.EpochStart.Economics
-	receivedEconomicsHash, err := core.CalculateHash(e.marshalizer, e.hasher, &receivedEconomics)
+	receivedEconomics := metaBlock.GetEpochStartHandler().GetEconomicsHandler()
+	receivedEconomicsHash, err := core.CalculateHash(e.marshalizer, e.hasher, receivedEconomics)
 	if err != nil {
 		return err
 	}
 
 	if !bytes.Equal(receivedEconomicsHash, computedEconomicsHash) {
-		logEconomicsDifferences(computedEconomics, &receivedEconomics)
+		logEconomicsDifferences(computedEconomics, receivedEconomics)
 		return epochStart.ErrEndOfEpochEconomicsDataDoesNotMatch
 	}
 
@@ -559,19 +564,19 @@ func (e *economics) IsInterfaceNil() bool {
 	return e == nil
 }
 
-func logEconomicsDifferences(computed *block.Economics, received *block.Economics) {
+func logEconomicsDifferences(computed data.EconomicsHandler, received data.EconomicsHandler) {
 	log.Warn("VerifyRewardsPerBlock error",
-		"\ncomputed total to distribute", computed.TotalToDistribute,
-		"computed total newly minted", computed.TotalNewlyMinted,
-		"computed total supply", computed.TotalSupply,
-		"computed rewards per block per node", computed.RewardsPerBlock,
-		"computed rewards for protocol sustainability", computed.RewardsForProtocolSustainability,
-		"computed node price", computed.NodePrice,
-		"\nreceived total to distribute", received.TotalToDistribute,
-		"received total newly minted", received.TotalNewlyMinted,
-		"received total supply", received.TotalSupply,
-		"received rewards per block per node", received.RewardsPerBlock,
-		"received rewards for protocol sustainability", received.RewardsForProtocolSustainability,
-		"received node price", received.NodePrice,
+		"\ncomputed total to distribute", computed.GetTotalToDistribute(),
+		"computed total newly minted", computed.GetTotalNewlyMinted(),
+		"computed total supply", computed.GetTotalSupply(),
+		"computed rewards per block per node", computed.GetRewardsPerBlock(),
+		"computed rewards for protocol sustainability", computed.GetRewardsForProtocolSustainability(),
+		"computed node price", computed.GetNodePrice(),
+		"\nreceived total to distribute", received.GetTotalToDistribute(),
+		"received total newly minted", received.GetTotalNewlyMinted(),
+		"received total supply", received.GetTotalSupply(),
+		"received rewards per block per node", received.GetRewardsPerBlock(),
+		"received rewards for protocol sustainability", received.GetRewardsForProtocolSustainability(),
+		"received node price", received.GetNodePrice(),
 	)
 }

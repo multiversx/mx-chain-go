@@ -1,11 +1,14 @@
 package mock
 
-import "github.com/multiversx/mx-chain-core-go/data/block"
+import (
+	"github.com/multiversx/mx-chain-core-go/data"
+	"github.com/multiversx/mx-chain-core-go/data/block"
+)
 
 // EpochStartDataCreatorStub -
 type EpochStartDataCreatorStub struct {
 	CreateEpochStartDataCalled             func() (*block.EpochStart, error)
-	VerifyEpochStartDataForMetablockCalled func(metaBlock *block.MetaBlock) error
+	VerifyEpochStartDataForMetablockCalled func(metaBlock data.MetaHeaderHandler) error
 }
 
 // CreateEpochStartData -
@@ -17,7 +20,7 @@ func (e *EpochStartDataCreatorStub) CreateEpochStartData() (*block.EpochStart, e
 }
 
 // VerifyEpochStartDataForMetablock -
-func (e *EpochStartDataCreatorStub) VerifyEpochStartDataForMetablock(metaBlock *block.MetaBlock) error {
+func (e *EpochStartDataCreatorStub) VerifyEpochStartDataForMetablock(metaBlock data.MetaHeaderHandler) error {
 	if e.VerifyEpochStartDataForMetablockCalled != nil {
 		return e.VerifyEpochStartDataForMetablockCalled(metaBlock)
 	}

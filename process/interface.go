@@ -757,8 +757,8 @@ type RewardsHandler interface {
 
 // EndOfEpochEconomics defines the functionality that is needed to compute end of epoch economics data
 type EndOfEpochEconomics interface {
-	ComputeEndOfEpochEconomics(metaBlock *block.MetaBlock) (*block.Economics, error)
-	VerifyRewardsPerBlock(metaBlock *block.MetaBlock, correctedProtocolSustainability *big.Int, computedEconomics *block.Economics) error
+	ComputeEndOfEpochEconomics(metaBlock data.MetaHeaderHandler) (*block.Economics, error)
+	VerifyRewardsPerBlock(metaBlock data.MetaHeaderHandler, correctedProtocolSustainability *big.Int, computedEconomics data.EconomicsHandler) error
 	IsInterfaceNil() bool
 }
 
@@ -1050,7 +1050,7 @@ type SCQueryService interface {
 // EpochStartDataCreator defines the functionality for node to create epoch start data
 type EpochStartDataCreator interface {
 	CreateEpochStartData() (*block.EpochStart, error)
-	VerifyEpochStartDataForMetablock(metaBlock *block.MetaBlock) error
+	VerifyEpochStartDataForMetablock(metaBlock data.MetaHeaderHandler) error
 	IsInterfaceNil() bool
 }
 
