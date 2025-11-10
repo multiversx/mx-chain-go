@@ -1135,6 +1135,195 @@ func TestMetaProcessor_VerifyBlockProposal(t *testing.T) {
 	})
 }
 
+func Test_checkShardHeadersValidityAndFinalityProposal(t *testing.T) {
+	t.Parallel()
+
+	t.Run("error on getting last cross notarized header", func(t *testing.T) {
+		t.Parallel()
+
+		metaHeader := &block.MetaBlockV3{}
+
+		mp, err := blproc.ConstructPartialMetaBlockProcessorForTest(map[string]interface{}{
+			"shardCoordinator": mock.NewOneShardCoordinatorMock(),
+			"blockTracker": &mock.BlockTrackerMock{
+				GetLastCrossNotarizedHeaderCalled: func(_ uint32) (data.HeaderHandler, []byte, error) {
+					return nil, nil, expectedErr
+				},
+			},
+		})
+		require.Nil(t, err)
+
+		err = mp.CheckShardHeadersValidityAndFinalityProposal(metaHeader)
+		require.ErrorIs(t, err, expectedErr)
+	})
+	t.Run("error on getting shard headers from meta header", func(t *testing.T) {
+		t.Parallel()
+
+		metaHeader := &block.MetaBlockV3{
+			ShardInfoProposal: []block.ShardDataProposal{
+				{
+					HeaderHash: []byte("hash"),
+				},
+			},
+		}
+
+		headersPoolMock := &pool.HeadersPoolStub{
+			GetHeaderByHashCalled: func(_ []byte) (data.HeaderHandler, error) {
+				return nil, expectedErr
+			},
+		}
+		dataPoolMock := &dataRetrieverMock.PoolsHolderMock{}
+		dataPoolMock.SetHeadersPool(headersPoolMock)
+
+		mp, err := blproc.ConstructPartialMetaBlockProcessorForTest(map[string]interface{}{
+			"shardCoordinator": mock.NewOneShardCoordinatorMock(),
+			"blockTracker": &mock.BlockTrackerMock{
+				GetLastCrossNotarizedHeaderCalled: func(_ uint32) (data.HeaderHandler, []byte, error) {
+					return &testscommon.HeaderHandlerStub{}, nil, nil
+				},
+			},
+			"dataPool": dataPoolMock,
+		})
+		require.Nil(t, err)
+
+		err = mp.CheckShardHeadersValidityAndFinalityProposal(metaHeader)
+		require.ErrorIs(t, err, process.ErrMissingHeader)
+	})
+	t.Run("error on missing header proof", func(t *testing.T) {
+		t.Parallel()
+
+		metaHeader := &block.MetaBlockV3{
+			ShardInfoProposal: []block.ShardDataProposal{
+				{
+					HeaderHash: []byte("hash"),
+				},
+			},
+		}
+
+		headersPoolMock := &pool.HeadersPoolStub{
+			GetHeaderByHashCalled: func(_ []byte) (data.HeaderHandler, error) {
+				return &block.MetaBlockV3{}, nil
+			},
+		}
+		dataPoolMock := &dataRetrieverMock.PoolsHolderMock{}
+		dataPoolMock.SetHeadersPool(headersPoolMock)
+
+		mp, err := blproc.ConstructPartialMetaBlockProcessorForTest(map[string]interface{}{
+			"shardCoordinator": mock.NewOneShardCoordinatorMock(),
+			"blockTracker": &mock.BlockTrackerMock{
+				GetLastCrossNotarizedHeaderCalled: func(_ uint32) (data.HeaderHandler, []byte, error) {
+					return &testscommon.HeaderHandlerStub{}, nil, nil
+				},
+			},
+			"dataPool": dataPoolMock,
+			"proofsPool": &dataRetrieverMock.ProofsPoolMock{
+				HasProofCalled: func(_ uint32, _ []byte) bool {
+					return false
+				},
+			},
+		})
+		require.Nil(t, err)
+
+		err = mp.CheckShardHeadersValidityAndFinalityProposal(metaHeader)
+		require.ErrorIs(t, err, process.ErrMissingHeaderProof)
+	})
+	t.Run("invalid used shard headers, should error", func(t *testing.T) {
+		t.Parallel()
+
+		metaHeader := &block.MetaBlockV3{
+			ShardInfoProposal: []block.ShardDataProposal{
+				{
+					HeaderHash: []byte("hash"),
+				},
+			},
+		}
+
+		headersPoolMock := &pool.HeadersPoolStub{
+			GetHeaderByHashCalled: func(_ []byte) (data.HeaderHandler, error) {
+				return &block.MetaBlockV3{}, nil
+			},
+		}
+		dataPoolMock := &dataRetrieverMock.PoolsHolderMock{}
+		dataPoolMock.SetHeadersPool(headersPoolMock)
+
+		mp, err := blproc.ConstructPartialMetaBlockProcessorForTest(map[string]interface{}{
+			"shardCoordinator": mock.NewOneShardCoordinatorMock(),
+			"blockTracker": &mock.BlockTrackerMock{
+				GetLastCrossNotarizedHeaderCalled: func(_ uint32) (data.HeaderHandler, []byte, error) {
+					return &testscommon.HeaderHandlerStub{}, nil, nil
+				},
+			},
+			"dataPool": dataPoolMock,
+			"proofsPool": &dataRetrieverMock.ProofsPoolMock{
+				HasProofCalled: func(_ uint32, _ []byte) bool {
+					return true
+				},
+			},
+			"blockChain": &testscommon.ChainHandlerStub{
+				GetCurrentBlockHeaderCalled: func() data.HeaderHandler {
+					return &block.MetaBlockV3{}
+				},
+			},
+			"headerValidator": &integrationTestsMock.HeaderValidatorStub{
+				IsHeaderConstructionValidCalled: func(_, _ data.HeaderHandler) error {
+					return expectedErr
+				},
+			},
+		})
+		require.Nil(t, err)
+
+		err = mp.CheckShardHeadersValidityAndFinalityProposal(metaHeader)
+		require.ErrorIs(t, err, expectedErr)
+	})
+	t.Run("should work", func(t *testing.T) {
+		t.Parallel()
+
+		metaHeader := &block.MetaBlockV3{}
+
+		headersPoolMock := &pool.HeadersPoolStub{
+			GetHeaderByHashCalled: func(_ []byte) (data.HeaderHandler, error) {
+				return &block.MetaBlockV3{}, nil
+			},
+		}
+		dataPoolMock := &dataRetrieverMock.PoolsHolderMock{}
+		dataPoolMock.SetHeadersPool(headersPoolMock)
+
+		mp, err := blproc.ConstructPartialMetaBlockProcessorForTest(map[string]interface{}{
+			"shardCoordinator": mock.NewOneShardCoordinatorMock(),
+			"blockTracker": &mock.BlockTrackerMock{
+				GetLastCrossNotarizedHeaderCalled: func(_ uint32) (data.HeaderHandler, []byte, error) {
+					return &testscommon.HeaderHandlerStub{}, nil, nil
+				},
+			},
+			"dataPool": dataPoolMock,
+			"proofsPool": &dataRetrieverMock.ProofsPoolMock{
+				HasProofCalled: func(_ uint32, _ []byte) bool {
+					return true
+				},
+			},
+			"blockChain": &testscommon.ChainHandlerStub{
+				GetCurrentBlockHeaderCalled: func() data.HeaderHandler {
+					return &block.MetaBlockV3{}
+				},
+			},
+			"headerValidator": &integrationTestsMock.HeaderValidatorStub{
+				IsHeaderConstructionValidCalled: func(_, _ data.HeaderHandler) error {
+					return nil
+				},
+			},
+			"shardInfoCreateData": &processMocks.ShardInfoCreatorMock{
+				CreateShardInfoV3Called: func(_ data.MetaHeaderHandler, _ []data.HeaderHandler, _ [][]byte) ([]data.ShardDataProposalHandler, []data.ShardDataHandler, error) {
+					return []data.ShardDataProposalHandler{}, []data.ShardDataHandler{}, nil
+				},
+			},
+		})
+		require.Nil(t, err)
+
+		err = mp.CheckShardHeadersValidityAndFinalityProposal(metaHeader)
+		require.Nil(t, err)
+	})
+}
+
 func Test_getTxCountExecutionResults(t *testing.T) {
 	t.Parallel()
 
