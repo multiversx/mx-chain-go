@@ -980,7 +980,7 @@ func createPreProcessorContainerWithPoolsHolder(poolsHolder dataRetriever.PoolsH
 		Accounts:         &stateMock.AccountsStub{},
 		AccountsProposal: &stateMock.AccountsStub{
 			RootHashCalled: func() ([]byte, error) {
-				return []byte("root_hash"), nil
+				return nil, nil
 			},
 			GetExistingAccountCalled: func(addressContainer []byte) (vmcommon.AccountHandler, error) {
 				return nil, state.ErrAccNotFound // only new accounts
