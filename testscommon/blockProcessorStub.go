@@ -17,12 +17,14 @@ type BlockProcessorStub struct {
 	RevertCurrentBlockCalled         func(header data.HeaderHandler)
 	PruneStateOnRollbackCalled       func(currHeader data.HeaderHandler, currHeaderHash []byte, prevHeader data.HeaderHandler, prevHeaderHash []byte)
 	CreateBlockCalled                func(initialHdrData data.HeaderHandler, haveTime func() bool) (data.HeaderHandler, data.BodyHandler, error)
+	CreateBlockProposalCalled        func(initialHdr data.HeaderHandler, haveTime func() bool) (data.HeaderHandler, data.BodyHandler, error)
 	RestoreBlockIntoPoolsCalled      func(header data.HeaderHandler, body data.BodyHandler) error
 	RestoreBlockBodyIntoPoolsCalled  func(body data.BodyHandler) error
 	MarshalizedDataToBroadcastCalled func(header data.HeaderHandler, body data.BodyHandler) (map[uint32][]byte, map[string][][]byte, error)
 	DecodeBlockBodyCalled            func(dta []byte) data.BodyHandler
 	DecodeBlockHeaderCalled          func(dta []byte) data.HeaderHandler
 	CreateNewHeaderCalled            func(round uint64, nonce uint64) (data.HeaderHandler, error)
+	CreateNewHeaderProposalCalled    func(round uint64, nonce uint64) (data.HeaderHandler, error)
 	RevertStateToBlockCalled         func(header data.HeaderHandler, rootHash []byte) error
 	NonceOfFirstCommittedBlockCalled func() core.OptionalUint64
 	CloseCalled                      func() error
@@ -104,6 +106,15 @@ func (bps *BlockProcessorStub) CreateBlock(initialHdrData data.HeaderHandler, ha
 	return nil, nil, ErrNotImplemented
 }
 
+// CreateBlockProposal -
+func (bps *BlockProcessorStub) CreateBlockProposal(initialHdr data.HeaderHandler, haveTime func() bool) (data.HeaderHandler, data.BodyHandler, error) {
+	if bps.CreateBlockProposalCalled != nil {
+		return bps.CreateBlockProposalCalled(initialHdr, haveTime)
+	}
+
+	return nil, nil, ErrNotImplemented
+}
+
 // RestoreBlockIntoPools -
 func (bps *BlockProcessorStub) RestoreBlockIntoPools(header data.HeaderHandler, body data.BodyHandler) error {
 	if bps.RestoreBlockIntoPoolsCalled != nil {
@@ -151,6 +162,15 @@ func (bps *BlockProcessorStub) DecodeBlockHeader(dta []byte) data.HeaderHandler 
 
 // CreateNewHeader creates a new header
 func (bps *BlockProcessorStub) CreateNewHeader(round uint64, nonce uint64) (data.HeaderHandler, error) {
+	if bps.CreateNewHeaderCalled != nil {
+		return bps.CreateNewHeaderCalled(round, nonce)
+	}
+
+	return nil, ErrNotImplemented
+}
+
+// CreateNewHeaderProposal -
+func (bps *BlockProcessorStub) CreateNewHeaderProposal(round uint64, nonce uint64) (data.HeaderHandler, error) {
 	if bps.CreateNewHeaderCalled != nil {
 		return bps.CreateNewHeaderCalled(round, nonce)
 	}

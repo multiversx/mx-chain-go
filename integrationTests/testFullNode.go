@@ -509,7 +509,7 @@ func (tpn *TestFullNode) initNode(
 	dataComponents.DataPool = tpn.DataPool
 	dataComponents.Store = tpn.Storage
 
-	bootstrapComponents := getDefaultBootstrapComponents(tpn.ShardCoordinator, tpn.EnableEpochsHandler)
+	bootstrapComponents := getDefaultBootstrapComponents(tpn.ShardCoordinator, tpn.EnableEpochsHandler, tpn.EnableRoundsHandler)
 
 	tpn.BlockBlackListHandler = cache.NewTimeCache(TimeSpanForBadHeaders)
 	tpn.ForkDetector = tpn.createForkDetector(roundHandler)
@@ -897,7 +897,7 @@ func (tpn *TestFullNode) initBlockProcessor(
 		tpn.EnableEpochsHandler, _ = enablers.NewEnableEpochsHandler(CreateEnableEpochsConfig(), tpn.EpochNotifier)
 	}
 
-	bootstrapComponents := getDefaultBootstrapComponents(tpn.ShardCoordinator, tpn.EnableEpochsHandler)
+	bootstrapComponents := getDefaultBootstrapComponents(tpn.ShardCoordinator, tpn.EnableEpochsHandler, tpn.EnableRoundsHandler)
 	bootstrapComponents.HdrIntegrityVerifier = tpn.HeaderIntegrityVerifier
 
 	statusComponents := GetDefaultStatusComponents()
@@ -1259,7 +1259,7 @@ func (tpn *TestFullNode) initBlockProcessorWithSync(
 		tpn.EnableEpochsHandler, _ = enablers.NewEnableEpochsHandler(CreateEnableEpochsConfig(), tpn.EpochNotifier)
 	}
 
-	bootstrapComponents := getDefaultBootstrapComponents(tpn.ShardCoordinator, tpn.EnableEpochsHandler)
+	bootstrapComponents := getDefaultBootstrapComponents(tpn.ShardCoordinator, tpn.EnableEpochsHandler, tpn.EnableRoundsHandler)
 	bootstrapComponents.HdrIntegrityVerifier = tpn.HeaderIntegrityVerifier
 
 	statusComponents := GetDefaultStatusComponents()

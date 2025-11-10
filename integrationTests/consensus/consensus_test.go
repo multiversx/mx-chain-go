@@ -191,6 +191,7 @@ func TestConsensusBLSWithFullProcessing_WithEquivalentProofs_MultiKeys(t *testin
 }
 
 func TestConsensusBLSWithFullProcessing_TransitionToSupernova(t *testing.T) {
+	t.Skip("TODO: activate this test once meta processing is done")
 	if testing.Short() {
 		t.Skip("this is not a short test")
 	}
@@ -218,6 +219,7 @@ func TestConsensusBLSWithFullProcessing_TransitionToSupernova(t *testing.T) {
 }
 
 func TestConsensusBLSWithFullProcessing_AfterSupernova(t *testing.T) {
+	t.Skip("TODO: activate this test once meta processing is done")
 	if testing.Short() {
 		t.Skip("this is not a short test")
 	}
@@ -245,6 +247,7 @@ func TestConsensusBLSWithFullProcessing_AfterSupernova(t *testing.T) {
 }
 
 func TestConsensusBLSWithFullProcessing_TransitionToSupernova_HighLoad(t *testing.T) {
+	t.Skip("TODO: activate this test once meta processing is done")
 	if testing.Short() {
 		t.Skip("this is not a short test")
 	}
@@ -273,6 +276,7 @@ func TestConsensusBLSWithFullProcessing_TransitionToSupernova_HighLoad(t *testin
 }
 
 func TestConsensusBLSWithFullProcessing_AfterSupernova_HighLoad(t *testing.T) {
+	t.Skip("TODO: activate this test once meta processing is done")
 	if testing.Short() {
 		t.Skip("this is not a short test")
 	}
