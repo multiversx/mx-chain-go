@@ -1047,6 +1047,7 @@ func (tpn *TestProcessorNode) createFullSCQueryService(gasMap map[string]map[str
 			ChanceComputer:      tpn.NodesCoordinator,
 			ShardCoordinator:    tpn.ShardCoordinator,
 			EnableEpochsHandler: tpn.EnableEpochsHandler,
+			EnableRoundsHandler: tpn.EnableRoundsHandler,
 			NodesCoordinator:    tpn.NodesCoordinator,
 		}
 		tpn.EpochNotifier.CheckEpoch(&testscommon.HeaderHandlerStub{
@@ -1320,10 +1321,9 @@ func CreateRatingsData() *rating.RatingsData {
 	}
 
 	ratingDataArgs := rating.RatingsDataArg{
-		Config:                    ratingsConfig,
-		ChainParametersHolder:     &chainParameters.ChainParametersHolderMock{},
-		EpochNotifier:             &epochNotifier.EpochNotifierStub{},
-		RoundDurationMilliseconds: 5000,
+		Config:                ratingsConfig,
+		ChainParametersHolder: &chainParameters.ChainParametersHolderMock{},
+		EpochNotifier:         &epochNotifier.EpochNotifierStub{},
 	}
 
 	ratingsData, _ := rating.NewRatingsData(ratingDataArgs)
@@ -2068,6 +2068,7 @@ func (tpn *TestProcessorNode) initMetaInnerProcessors(gasMap map[string]map[stri
 		ChanceComputer:      &mock.RaterMock{},
 		ShardCoordinator:    tpn.ShardCoordinator,
 		EnableEpochsHandler: tpn.EnableEpochsHandler,
+		EnableRoundsHandler: tpn.EnableRoundsHandler,
 		NodesCoordinator:    tpn.NodesCoordinator,
 	}
 	vmFactory, _ := metaProcess.NewVMContainerFactory(argsVMContainerFactory)
