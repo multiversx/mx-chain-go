@@ -13,6 +13,8 @@ import (
 	"github.com/multiversx/mx-chain-go/process"
 )
 
+const numHeadersToRequestInAdvance = 2
+
 // CreateNewHeaderProposal creates a new header
 func (mp *metaProcessor) CreateNewHeaderProposal(round uint64, nonce uint64) (data.HeaderHandler, error) {
 	// TODO: the trigger would need to be changed upon commit of a block with the epoch start results
@@ -400,8 +402,15 @@ func (mp *metaProcessor) selectIncomingMiniBlocks(
 		hdrsAdded++
 	}
 
-	// TODO: wold need to request in advance new shard headers and proofs if last added headers are old (on an old epoch)
-	// maybe move this logic in processing a block, so it is common for all nodes in shard.
+	go mp.requestShardHeadersInAdvanceIfNeeded(lastShardHdr)
 
 	return nil
+}
+
+func (mp *metaProcessor) requestShardHeadersInAdvanceIfNeeded(
+	lastShardHdr map[uint32]ShardHeaderInfo,
+) {
+	for shardID := uint32(0); shardID < mp.shardCoordinator.NumberOfShards(); shardID++ {
+		mp.requestHeadersFromHeaderIfNeeded(lastShardHdr[shardID].Header)
+	}
 }

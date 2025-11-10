@@ -838,6 +838,13 @@ func (bp *baseProcessor) GetLastExecutedRootHash(
 	return bp.getLastExecutedRootHash(header)
 }
 
+// RequestHeadersForShardIfNeeded -
+func (bp *baseProcessor) RequestHeadersFromHeaderIfNeeded(
+	lastHeader data.HeaderHandler,
+) {
+	bp.requestHeadersFromHeaderIfNeeded(lastHeader)
+}
+
 // GetHaveTimeForProposal -
 func GetHaveTimeForProposal(startTime time.Time, maxDuration time.Duration) func() time.Duration {
 	return getHaveTimeForProposal(startTime, maxDuration)

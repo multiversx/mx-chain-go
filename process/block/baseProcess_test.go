@@ -4218,3 +4218,103 @@ func TestBaseProcessor_RequestProof(t *testing.T) {
 		require.True(t, requestCalled)
 	})
 }
+
+func TestBaseProcessor_RequestHeadersFromHeaderIfNeeded(t *testing.T) {
+	t.Parallel()
+
+	t.Run("header not already in pool, should request", func(t *testing.T) {
+		t.Parallel()
+
+		coreComponents, dataComponents, bootstrapComponents, statusComponents := createComponentHolderMocks()
+		coreComponents.RoundField = &testscommon.RoundHandlerMock{
+			IndexCalled: func() int64 {
+				return 20
+			},
+		}
+		coreComponents.ProcessConfigsHandlerField = &testscommon.ProcessConfigsHandlerStub{
+			GetMaxRoundsWithoutNewBlockReceivedByRoundCalled: func(round uint64) uint32 {
+				return 5
+			},
+		}
+
+		headersPool := &mock.HeadersCacherStub{
+			GetHeaderByNonceAndShardIdCalled: func(hdrNonce uint64, shardId uint32) ([]data.HeaderHandler, [][]byte, error) {
+				return make([]data.HeaderHandler, 0), [][]byte{}, errors.New("some err")
+			},
+		}
+		dataPool := initDataPool()
+		dataPool.HeadersCalled = func() dataRetriever.HeadersPool {
+			return headersPool
+		}
+		dataComponents.DataPool = dataPool
+
+		arguments := CreateMockArguments(coreComponents, dataComponents, bootstrapComponents, statusComponents)
+
+		numCalls := 0
+		arguments.RequestHandler = &testscommon.RequestHandlerStub{
+			RequestShardHeaderByNonceCalled: func(shardID uint32, nonce uint64) {
+				numCalls++
+			},
+		}
+
+		bp, err := blproc.NewShardProcessor(arguments)
+		require.NoError(t, err)
+
+		header := &block.HeaderV3{
+			Round:   10,
+			ShardID: 2,
+		}
+
+		bp.RequestHeadersFromHeaderIfNeeded(header)
+
+		require.Equal(t, 3, numCalls) // starting from next header + 2 given by constant
+	})
+
+	t.Run("header already in pool, should not request", func(t *testing.T) {
+		t.Parallel()
+
+		coreComponents, dataComponents, bootstrapComponents, statusComponents := createComponentHolderMocks()
+		coreComponents.RoundField = &testscommon.RoundHandlerMock{
+			IndexCalled: func() int64 {
+				return 20
+			},
+		}
+		coreComponents.ProcessConfigsHandlerField = &testscommon.ProcessConfigsHandlerStub{
+			GetMaxRoundsWithoutNewBlockReceivedByRoundCalled: func(round uint64) uint32 {
+				return 5
+			},
+		}
+
+		headersPool := &mock.HeadersCacherStub{
+			GetHeaderByNonceAndShardIdCalled: func(hdrNonce uint64, shardId uint32) ([]data.HeaderHandler, [][]byte, error) {
+				return make([]data.HeaderHandler, 0), [][]byte{}, nil
+			},
+		}
+		dataPool := initDataPool()
+		dataPool.HeadersCalled = func() dataRetriever.HeadersPool {
+			return headersPool
+		}
+		dataComponents.DataPool = dataPool
+
+		arguments := CreateMockArguments(coreComponents, dataComponents, bootstrapComponents, statusComponents)
+
+		requestCalled := false
+		arguments.RequestHandler = &testscommon.RequestHandlerStub{
+			RequestShardHeaderByNonceCalled: func(shardID uint32, nonce uint64) {
+				requestCalled = true
+			},
+		}
+
+		bp, err := blproc.NewShardProcessor(arguments)
+		require.NoError(t, err)
+
+		header := &block.HeaderV3{
+			Round:   10,
+			ShardID: 2,
+		}
+
+		bp.RequestHeadersFromHeaderIfNeeded(header)
+
+		require.False(t, requestCalled)
+	})
+}

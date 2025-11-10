@@ -2955,6 +2955,7 @@ func (bp *baseProcessor) getLastExecutedRootHash(
 // requestProof will request proof if Andromeda flag activated
 // it does not check in pool if it already exists, it assumes that proof does not exist in pool
 // it's used when requesting in advance
+// TODO: evaluate adapting proofs pool to fetch/check proof by nonce
 func (bp *baseProcessor) requestProof(
 	nonce uint64,
 	shardID uint32,
@@ -2967,4 +2968,39 @@ func (bp *baseProcessor) requestProof(
 	bp.requestHandler.RequestEquivalentProofByNonce(shardID, nonce)
 
 	return
+}
+
+func (bp *baseProcessor) requestHeadersFromHeaderIfNeeded(
+	lastHeader data.HeaderHandler,
+) {
+	lastRound := lastHeader.GetRound()
+	shardID := lastHeader.GetShardID()
+
+	shouldRequestCrossHeaders := bp.roundHandler.Index() > int64(lastRound+bp.getMaxRoundsWithoutBlockReceived(lastRound))
+
+	if !shouldRequestCrossHeaders {
+		return
+	}
+
+	fromNonce := lastHeader.GetNonce() + 1
+	toNonce := fromNonce + numHeadersToRequestInAdvance
+
+	for nonce := fromNonce; nonce <= toNonce; nonce++ {
+		bp.requestHeaderIfNeeded(nonce, shardID)
+		bp.requestProof(nonce, shardID, lastHeader.GetEpoch())
+	}
+}
+
+func (bp *baseProcessor) requestHeaderIfNeeded(
+	nonce uint64,
+	shardID uint32,
+) {
+	headersPool := bp.dataPool.Headers()
+	_, _, err := headersPool.GetHeadersByNonceAndShardId(nonce, shardID)
+	if err == nil {
+		// header already in pool, no need to request it
+		return
+	}
+
+	bp.requestHandler.RequestShardHeaderByNonce(shardID, nonce)
 }
