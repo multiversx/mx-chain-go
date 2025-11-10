@@ -2,7 +2,6 @@ package interceptedBlocks_test
 
 import (
 	"errors"
-	"fmt"
 	"math/big"
 	"testing"
 
@@ -57,10 +56,8 @@ func createMetaArgumentWithShardCoordinatorAndHeader(shardCoordinator sharding.C
 		EpochChangeGracePeriodHandler: gracePeriod,
 	}
 	if hdr.IsHeaderV3() {
-		fmt.Println("Header is V3")
 		arg.HdrBuff, _ = testMarshalizer.Marshal(hdr.(*dataBlock.MetaBlockV3))
 	} else {
-		fmt.Println("Header is V2")
 		arg.HdrBuff, _ = testMarshalizer.Marshal(hdr)
 	}
 
@@ -381,7 +378,6 @@ func TestInterceptedMetaHeader_CheckValidityErrorInMiniBlockShouldErr(t *testing
 	err = inHdr.CheckValidity()
 
 	assert.Equal(t, process.ErrInvalidShardId, err)
-
 }
 
 func TestInterceptedMetaHeader_CheckValidityLeaderSignatureOkShouldWork(t *testing.T) {
@@ -400,7 +396,7 @@ func TestInterceptedMetaHeader_CheckValidityLeaderSignatureOkShouldWork(t *testi
 	assert.Nil(t, err)
 }
 
-func TestInterceptedMetaHeader_CheckValidityExecutionResultMiniblockErrorInHeaderV3ShouldErr(t *testing.T) {
+func TestInterceptedMetaHeader_CheckValidityExecutionResultMiniblockErrorInMetaHeaderV3ShouldErr(t *testing.T) {
 	t.Parallel()
 
 	arg := createDefaultMetaV3Argument()

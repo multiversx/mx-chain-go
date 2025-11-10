@@ -7,7 +7,6 @@ import (
 	"github.com/multiversx/mx-chain-core-go/data"
 	"github.com/multiversx/mx-chain-core-go/data/block"
 	"github.com/multiversx/mx-chain-core-go/hashing"
-	"github.com/multiversx/mx-chain-core-go/marshal"
 	logger "github.com/multiversx/mx-chain-logger-go"
 
 	"github.com/multiversx/mx-chain-go/common"
@@ -44,6 +43,9 @@ func NewInterceptedMetaHeader(arg *ArgInterceptedBlockHeader) (*InterceptedMetaH
 	if err != nil {
 		return nil, err
 	}
+	if hdr.GetShardInfoHandlers() == nil {
+		hdr.(*block.MetaBlock).ShardInfo = make([]block.ShardData, 0)
+	}
 
 	inHdr := &InterceptedMetaHeader{
 		hdr:                 hdr,
@@ -58,18 +60,6 @@ func NewInterceptedMetaHeader(arg *ArgInterceptedBlockHeader) (*InterceptedMetaH
 	inHdr.processFields(arg.HdrBuff)
 
 	return inHdr, nil
-}
-
-func createMetaHdr(marshalizer marshal.Marshalizer, hdrBuff []byte) (*block.MetaBlock, error) {
-	hdr := &block.MetaBlock{
-		ShardInfo: make([]block.ShardData, 0),
-	}
-	err := marshalizer.Unmarshal(hdr, hdrBuff)
-	if err != nil {
-		return nil, err
-	}
-
-	return hdr, nil
 }
 
 func (imh *InterceptedMetaHeader) processFields(txBuff []byte) {
@@ -166,7 +156,7 @@ func (imh *InterceptedMetaHeader) integrity() error {
 		for i, result := range imh.hdr.GetExecutionResultsHandlers() {
 			executionResult, ok := result.(*block.MetaExecutionResult)
 			if !ok {
-				return fmt.Errorf("failed to cast execution result at index %d to block.ExecutionResult", i)
+				return fmt.Errorf("failed to cast execution result at index %d to block.MetaExecutionResult", i)
 			}
 			err = checkMiniBlocksHeaders(executionResult.GetMiniBlockHeadersHandlers(), imh.shardCoordinator)
 			if err != nil {
