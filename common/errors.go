@@ -46,3 +46,9 @@ var ErrNilBaseExecutionResult = errors.New("nil base execution result")
 
 // ErrNilLastExecutionResultHandler signals that a nil last execution result handler has been provided
 var ErrNilLastExecutionResultHandler = errors.New("nil last execution result handler")
+
+// ErrMissingHeader signals that header of the block is missing
+var ErrMissingHeader = errors.New("missing header")
+
+// ErrMissingMiniBlock signals that mini block is missing
+var ErrMissingMiniBlock = errors.New("missing mini block")

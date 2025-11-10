@@ -3,6 +3,7 @@ package factory
 import (
 	"testing"
 
+	dataRetrieverReal "github.com/multiversx/mx-chain-go/dataRetriever"
 	"github.com/multiversx/mx-chain-go/outport/process"
 	"github.com/multiversx/mx-chain-go/outport/process/alteredaccounts"
 	"github.com/multiversx/mx-chain-go/outport/process/transactionsfee"
@@ -35,7 +36,7 @@ func createArgOutportDataProviderFactory() ArgOutportDataProviderFactory {
 		MbsStorer:              &genericMocks.StorerMock{},
 		EnableEpochsHandler:    &enableEpochsHandlerMock.EnableEpochsHandlerStub{},
 		ExecutionOrderGetter:   &commonMocks.TxExecutionOrderHandlerStub{},
-		ProofsPool:             &dataRetriever.ProofsPoolMock{},
+		DataPool:               &dataRetriever.PoolsHolderMock{},
 	}
 }
 
@@ -87,8 +88,8 @@ func TestCheckArgCreateOutportDataProvider(t *testing.T) {
 	require.Equal(t, process.ErrNilHasher, checkArgOutportDataProviderFactory(arg))
 
 	arg = createArgOutportDataProviderFactory()
-	arg.ProofsPool = nil
-	require.Equal(t, process.ErrNilProofsPool, checkArgOutportDataProviderFactory(arg))
+	arg.DataPool = nil
+	require.Equal(t, dataRetrieverReal.ErrNilDataPoolHolder, checkArgOutportDataProviderFactory(arg))
 
 	arg = createArgOutportDataProviderFactory()
 	require.Nil(t, checkArgOutportDataProviderFactory(arg))

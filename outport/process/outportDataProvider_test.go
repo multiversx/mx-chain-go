@@ -48,7 +48,7 @@ func createArgOutportDataProvider() ArgOutportDataProvider {
 		ExecutionOrderHandler:    &commonMocks.TxExecutionOrderHandlerStub{},
 		Marshaller:               &marshallerMock.MarshalizerMock{},
 		Hasher:                   &hashingMocks.HasherMock{},
-		ProofsPool:               &dataRetriever.ProofsPoolMock{},
+		DataPool:                 &dataRetriever.PoolsHolderMock{},
 		EnableEpochsHandler:      enableEpochsHandlerMock.NewEnableEpochsHandlerStubWithNoFlagsDefined(),
 		StateAccessesCollector:   &state.StateAccessesCollectorStub{},
 	}

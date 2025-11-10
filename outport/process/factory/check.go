@@ -2,6 +2,7 @@ package factory
 
 import (
 	"github.com/multiversx/mx-chain-core-go/core/check"
+	"github.com/multiversx/mx-chain-go/dataRetriever"
 	"github.com/multiversx/mx-chain-go/outport/process"
 	"github.com/multiversx/mx-chain-go/outport/process/alteredaccounts"
 	"github.com/multiversx/mx-chain-go/outport/process/transactionsfee"
@@ -50,8 +51,8 @@ func checkArgOutportDataProviderFactory(arg ArgOutportDataProviderFactory) error
 	if check.IfNil(arg.ExecutionOrderGetter) {
 		return process.ErrNilExecutionOrderGetter
 	}
-	if check.IfNil(arg.ProofsPool) {
-		return process.ErrNilProofsPool
+	if check.IfNil(arg.DataPool) {
+		return dataRetriever.ErrNilDataPoolHolder
 	}
 
 	return nil
