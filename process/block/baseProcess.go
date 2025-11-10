@@ -2951,3 +2951,20 @@ func (bp *baseProcessor) getLastExecutedRootHash(
 
 	return lastExecutionResult.GetRootHash()
 }
+
+// requestProof will request proof if Andromeda flag activated
+// it does not check in pool if it already exists, it assumes that proof does not exist in pool
+// it's used when requesting in advance
+func (bp *baseProcessor) requestProof(
+	nonce uint64,
+	shardID uint32,
+	epoch uint32,
+) {
+	if !bp.enableEpochsHandler.IsFlagEnabledInEpoch(common.AndromedaFlag, epoch) {
+		return
+	}
+
+	bp.requestHandler.RequestEquivalentProofByNonce(shardID, nonce)
+
+	return
+}

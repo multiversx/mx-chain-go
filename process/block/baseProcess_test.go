@@ -4160,3 +4160,61 @@ func TestBaseProcessor_OnExecutedBlock(t *testing.T) {
 		require.Equal(t, expectedErr, err)
 	})
 }
+
+func TestBaseProcessor_RequestProof(t *testing.T) {
+	t.Parallel()
+
+	t.Run("should not request if flag not enabled", func(t *testing.T) {
+		t.Parallel()
+
+		coreComponents, dataComponents, bootstrapComponents, statusComponents := createComponentHolderMocks()
+		coreComponents.EnableEpochsHandlerField = &enableEpochsHandlerMock.EnableEpochsHandlerStub{
+			IsFlagEnabledInEpochCalled: func(flag core.EnableEpochFlag, epoch uint32) bool {
+				return flag != common.AndromedaFlag
+			},
+		}
+
+		arguments := CreateMockArguments(coreComponents, dataComponents, bootstrapComponents, statusComponents)
+
+		requestCalled := false
+		arguments.RequestHandler = &testscommon.RequestHandlerStub{
+			RequestEquivalentProofByNonceCalled: func(headerShard uint32, headerNonce uint64) {
+				requestCalled = true
+			},
+		}
+
+		bp, err := blproc.NewShardProcessor(arguments)
+		require.NoError(t, err)
+
+		bp.RequestProof(10, 1, 2)
+
+		require.False(t, requestCalled)
+	})
+
+	t.Run("should request if flag enabled", func(t *testing.T) {
+		t.Parallel()
+
+		coreComponents, dataComponents, bootstrapComponents, statusComponents := createComponentHolderMocks()
+		coreComponents.EnableEpochsHandlerField = &enableEpochsHandlerMock.EnableEpochsHandlerStub{
+			IsFlagEnabledInEpochCalled: func(flag core.EnableEpochFlag, epoch uint32) bool {
+				return flag == common.AndromedaFlag
+			},
+		}
+
+		arguments := CreateMockArguments(coreComponents, dataComponents, bootstrapComponents, statusComponents)
+
+		requestCalled := false
+		arguments.RequestHandler = &testscommon.RequestHandlerStub{
+			RequestEquivalentProofByNonceCalled: func(headerShard uint32, headerNonce uint64) {
+				requestCalled = true
+			},
+		}
+
+		bp, err := blproc.NewShardProcessor(arguments)
+		require.NoError(t, err)
+
+		bp.RequestProof(10, 1, 2)
+
+		require.True(t, requestCalled)
+	})
+}

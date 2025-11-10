@@ -739,6 +739,15 @@ func (bp *baseProcessor) GetFinalBlockNonce(headerHandler data.HeaderHandler) ui
 	return bp.getFinalBlockNonce(headerHandler)
 }
 
+// RequestProof -
+func (bp *baseProcessor) RequestProof(
+	nonce uint64,
+	shardID uint32,
+	epoch uint32,
+) {
+	bp.requestProof(nonce, shardID, epoch)
+}
+
 // VerifyCrossShardMiniBlockDstMe -
 func (sp *shardProcessor) VerifyCrossShardMiniBlockDstMe(header data.ShardHeaderHandler) error {
 	return sp.verifyCrossShardMiniBlockDstMe(header)
