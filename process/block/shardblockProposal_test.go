@@ -1525,7 +1525,7 @@ func TestShardProcessor_VerifyBlockProposal(t *testing.T) {
 			},
 		}
 		arguments.GasComputation = &testscommon.GasComputationMock{
-			CheckIncomingMiniBlocksCalled: func(miniBlocks []data.MiniBlockHeaderHandler, transactions map[string][]data.TransactionHandler) (int, int, error) {
+			AddIncomingMiniBlocksCalled: func(miniBlocks []data.MiniBlockHeaderHandler, transactions map[string][]data.TransactionHandler) (int, int, error) {
 				return 0, 0, expectedError
 			},
 		}
@@ -2292,7 +2292,7 @@ func TestShardProcessor_VerifyGasLimit(t *testing.T) {
 		err = sp.VerifyGasLimit(createHeaderFromMBs(outgoingMbh, incomingMbh))
 		require.Error(t, err)
 	})
-	t.Run("CheckIncomingMiniBlocks error", func(t *testing.T) {
+	t.Run("AddIncomingMiniBlocks error", func(t *testing.T) {
 		t.Parallel()
 
 		outgoingMbh, outgoingMb, incomingMbh, incomingMb := createMiniBlocks()
@@ -2301,7 +2301,7 @@ func TestShardProcessor_VerifyGasLimit(t *testing.T) {
 		dataComponents.DataPool = dataPool
 		arguments := CreateMockArguments(coreComponents, dataComponents, bootstrapComponents, statusComponents)
 		arguments.GasComputation = &testscommon.GasComputationMock{
-			CheckIncomingMiniBlocksCalled: func(miniBlocks []data.MiniBlockHeaderHandler, transactions map[string][]data.TransactionHandler) (int, int, error) {
+			AddIncomingMiniBlocksCalled: func(miniBlocks []data.MiniBlockHeaderHandler, transactions map[string][]data.TransactionHandler) (int, int, error) {
 				return 0, 0, expectedError
 			},
 		}
@@ -2311,7 +2311,7 @@ func TestShardProcessor_VerifyGasLimit(t *testing.T) {
 		err = sp.VerifyGasLimit(createHeaderFromMBs(outgoingMbh, incomingMbh))
 		require.Equal(t, expectedError, err)
 	})
-	t.Run("CheckOutgoingTransactions error", func(t *testing.T) {
+	t.Run("AddOutgoingTransactions error", func(t *testing.T) {
 		t.Parallel()
 
 		outgoingMbh, outgoingMb, incomingMbh, incomingMb := createMiniBlocks()
@@ -2320,10 +2320,10 @@ func TestShardProcessor_VerifyGasLimit(t *testing.T) {
 		dataComponents.DataPool = dataPool
 		arguments := CreateMockArguments(coreComponents, dataComponents, bootstrapComponents, statusComponents)
 		arguments.GasComputation = &testscommon.GasComputationMock{
-			CheckIncomingMiniBlocksCalled: func(miniBlocks []data.MiniBlockHeaderHandler, transactions map[string][]data.TransactionHandler) (int, int, error) {
+			AddIncomingMiniBlocksCalled: func(miniBlocks []data.MiniBlockHeaderHandler, transactions map[string][]data.TransactionHandler) (int, int, error) {
 				return len(miniBlocks), 0, nil
 			},
-			CheckOutgoingTransactionsCalled: func(txHashes [][]byte, transactions []data.TransactionHandler) ([][]byte, []data.MiniBlockHeaderHandler, error) {
+			AddOutgoingTransactionsCalled: func(txHashes [][]byte, transactions []data.TransactionHandler) ([][]byte, []data.MiniBlockHeaderHandler, error) {
 				return nil, nil, expectedError
 			},
 		}
@@ -2333,7 +2333,7 @@ func TestShardProcessor_VerifyGasLimit(t *testing.T) {
 		err = sp.VerifyGasLimit(createHeaderFromMBs(outgoingMbh, incomingMbh))
 		require.Equal(t, expectedError, err)
 	})
-	t.Run("CheckOutgoingTransactions results in limit exceeded", func(t *testing.T) {
+	t.Run("AddOutgoingTransactions results in limit exceeded", func(t *testing.T) {
 		t.Parallel()
 
 		outgoingMbh, outgoingMb, incomingMbh, incomingMb := createMiniBlocks()
@@ -2342,10 +2342,10 @@ func TestShardProcessor_VerifyGasLimit(t *testing.T) {
 		dataComponents.DataPool = dataPool
 		arguments := CreateMockArguments(coreComponents, dataComponents, bootstrapComponents, statusComponents)
 		arguments.GasComputation = &testscommon.GasComputationMock{
-			CheckIncomingMiniBlocksCalled: func(miniBlocks []data.MiniBlockHeaderHandler, transactions map[string][]data.TransactionHandler) (int, int, error) {
+			AddIncomingMiniBlocksCalled: func(miniBlocks []data.MiniBlockHeaderHandler, transactions map[string][]data.TransactionHandler) (int, int, error) {
 				return len(miniBlocks), 0, nil
 			},
-			CheckOutgoingTransactionsCalled: func(txHashes [][]byte, transactions []data.TransactionHandler) ([][]byte, []data.MiniBlockHeaderHandler, error) {
+			AddOutgoingTransactionsCalled: func(txHashes [][]byte, transactions []data.TransactionHandler) ([][]byte, []data.MiniBlockHeaderHandler, error) {
 				return txHashes[:len(txHashes)-1], nil, nil // one tx over the limit
 			},
 		}
@@ -2356,7 +2356,7 @@ func TestShardProcessor_VerifyGasLimit(t *testing.T) {
 		require.ErrorIs(t, err, process.ErrInvalidMaxGasLimitPerMiniBlock)
 		require.Contains(t, err.Error(), "outgoing transactions exceeded")
 	})
-	t.Run("CheckOutgoingTransactions adds extra pending mini blocks on CheckOutgoingTransactions", func(t *testing.T) {
+	t.Run("AddOutgoingTransactions adds extra pending mini blocks on AddOutgoingTransactions", func(t *testing.T) {
 		t.Parallel()
 
 		outgoingMbh, outgoingMb, incomingMbh, incomingMb := createMiniBlocks()
@@ -2365,10 +2365,10 @@ func TestShardProcessor_VerifyGasLimit(t *testing.T) {
 		dataComponents.DataPool = dataPool
 		arguments := CreateMockArguments(coreComponents, dataComponents, bootstrapComponents, statusComponents)
 		arguments.GasComputation = &testscommon.GasComputationMock{
-			CheckIncomingMiniBlocksCalled: func(miniBlocks []data.MiniBlockHeaderHandler, transactions map[string][]data.TransactionHandler) (int, int, error) {
+			AddIncomingMiniBlocksCalled: func(miniBlocks []data.MiniBlockHeaderHandler, transactions map[string][]data.TransactionHandler) (int, int, error) {
 				return len(miniBlocks), 0, nil // no pending mini blocks left
 			},
-			CheckOutgoingTransactionsCalled: func(txHashes [][]byte, transactions []data.TransactionHandler) ([][]byte, []data.MiniBlockHeaderHandler, error) {
+			AddOutgoingTransactionsCalled: func(txHashes [][]byte, transactions []data.TransactionHandler) ([][]byte, []data.MiniBlockHeaderHandler, error) {
 				return txHashes, []data.MiniBlockHeaderHandler{&block.MiniBlockHeader{}}, nil // one pending mini block added
 			},
 		}
@@ -3540,10 +3540,10 @@ func createSubComponentsForVerifyProposalTest() map[string]interface{} {
 			},
 		},
 		"gasComputation": &testscommon.GasComputationMock{
-			CheckIncomingMiniBlocksCalled: func(miniBlocks []data.MiniBlockHeaderHandler, transactions map[string][]data.TransactionHandler) (int, int, error) {
+			AddIncomingMiniBlocksCalled: func(miniBlocks []data.MiniBlockHeaderHandler, transactions map[string][]data.TransactionHandler) (int, int, error) {
 				return len(miniBlocks) - 1, 0, nil // no pending mini blocks left
 			},
-			CheckOutgoingTransactionsCalled: func(txHashes [][]byte, transactions []data.TransactionHandler) ([][]byte, []data.MiniBlockHeaderHandler, error) {
+			AddOutgoingTransactionsCalled: func(txHashes [][]byte, transactions []data.TransactionHandler) ([][]byte, []data.MiniBlockHeaderHandler, error) {
 				return txHashes, []data.MiniBlockHeaderHandler{&block.MiniBlockHeader{}}, nil // one pending mini block added
 			},
 		},

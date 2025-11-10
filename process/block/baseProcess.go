@@ -2921,6 +2921,64 @@ func (bp *baseProcessor) revertGasForCrossShardDstMeMiniBlocks(added, pending []
 	bp.gasComputation.RevertIncomingMiniBlocks(miniBlockHashesToRevert)
 }
 
+func (bp *baseProcessor) verifyGasLimit(header data.HeaderHandler) error {
+	splitRes, err := bp.splitTransactionsForHeader(header)
+	if err != nil {
+		return err
+	}
+
+	err = bp.checkMetaOutgoingResults(header, splitRes)
+	if err != nil {
+		return err
+	}
+
+	bp.gasComputation.Reset()
+	_, numPendingMiniBlocks, err := bp.gasComputation.AddIncomingMiniBlocks(splitRes.incomingMiniBlocks, splitRes.incomingTransactions)
+	if err != nil {
+		return err
+	}
+
+	// for meta, both splitRes.outgoingTransactionHashes and splitRes.outgoingTransactions should be empty, checked on checkMetaOutgoingResults
+	addedTxHashes, pendingMiniBlocksAdded, err := bp.gasComputation.AddOutgoingTransactions(splitRes.outgoingTransactionHashes, splitRes.outgoingTransactions)
+	if err != nil {
+		return err
+	}
+	if len(addedTxHashes) != len(splitRes.outgoingTransactionHashes) {
+		return fmt.Errorf("%w, outgoing transactions exceeded the limit", process.ErrInvalidMaxGasLimitPerMiniBlock)
+	}
+
+	if numPendingMiniBlocks != len(pendingMiniBlocksAdded) {
+		return fmt.Errorf("%w, incoming mini blocks exceeded the limit", process.ErrInvalidMaxGasLimitPerMiniBlock)
+	}
+
+	return nil
+}
+
+func (bp *baseProcessor) checkMetaOutgoingResults(
+	header data.HeaderHandler,
+	splitRes *splitTxsResult,
+) error {
+	_, ok := header.(data.MetaHeaderHandler)
+	if !ok {
+		return nil
+	}
+
+	numOutGoingMBs := len(splitRes.outGoingMiniBlocks)
+	if numOutGoingMBs != 0 {
+		return fmt.Errorf("%w, received: %d", errInvalidNumOutGoingMBInMetaHdrProposal, numOutGoingMBs)
+	}
+
+	numOutGoingTxs := len(splitRes.outgoingTransactions)
+	if numOutGoingTxs != 0 {
+		return fmt.Errorf("%w in metaProcessor.verifyGasLimit, received: %d",
+			errInvalidNumOutGoingTxsInMetaHdrProposal,
+			numOutGoingTxs,
+		)
+	}
+
+	return nil
+}
+
 func (bp *baseProcessor) splitTransactionsForHeader(header data.HeaderHandler) (*splitTxsResult, error) {
 	incomingMiniBlocks := make([]data.MiniBlockHeaderHandler, 0)
 	outGoingMiniBlocks := make([]data.MiniBlockHeaderHandler, 0)
