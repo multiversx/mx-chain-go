@@ -822,6 +822,18 @@ func (sp *shardProcessor) GetLastExecutionResultHeader(
 	return sp.getLastExecutionResultHeader(currentHeader)
 }
 
+// HasExecutionResultsForProposedEpochChange -
+func (mp *metaProcessor) HasExecutionResultsForProposedEpochChange(headerHandler data.MetaHeaderHandler) (bool, error) {
+	return mp.hasExecutionResultsForProposedEpochChange(headerHandler)
+}
+
+// CheckEpochCorrectnessV3 -
+func (mp *metaProcessor) CheckEpochCorrectnessV3(
+	headerHandler data.MetaHeaderHandler,
+) error {
+	return mp.checkEpochCorrectnessV3(headerHandler)
+}
+
 // GetLastExecutionResultsRootHash -
 func GetLastExecutionResultsRootHash(
 	header data.HeaderHandler,
@@ -843,6 +855,16 @@ func ConstructPartialShardBlockProcessorForTest(subcomponents map[string]interfa
 		return nil, err
 	}
 	return sp, err
+}
+
+// ConstructPartialMetaBlockProcessorForTest -
+func ConstructPartialMetaBlockProcessorForTest(subcomponents map[string]interface{}) (*metaProcessor, error) {
+	mp := &metaProcessor{}
+	err := factory.ConstructPartialComponentForTest(mp, subcomponents)
+	if err != nil {
+		return nil, err
+	}
+	return mp, err
 }
 
 // SetEpochStartData -

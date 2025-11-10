@@ -186,8 +186,6 @@ func (sp *shardProcessor) VerifyBlockProposal(
 		return err
 	}
 
-	go getMetricsFromBlockBody(body, sp.marshalizer, sp.appStatusHandler)
-
 	err = sp.executionResultsVerifier.VerifyHeaderExecutionResults(header)
 	if err != nil {
 		return err
@@ -198,12 +196,7 @@ func (sp *shardProcessor) VerifyBlockProposal(
 		return err
 	}
 
-	txCounts, rewardCounts, unsignedCounts := sp.txCounter.getPoolCounts(sp.dataPool)
-	log.Debug("total txs in pool", "counts", txCounts.String())
-	log.Debug("total txs in rewards pool", "counts", rewardCounts.String())
-	log.Debug("total txs in unsigned pool", "counts", unsignedCounts.String())
-
-	go getMetricsFromHeader(header, uint64(txCounts.GetTotal()), sp.marshalizer, sp.appStatusHandler)
+	sp.updateMetrics(header, body)
 
 	sp.missingDataResolver.Reset()
 	sp.missingDataResolver.RequestBlockTransactions(body)
@@ -255,23 +248,34 @@ func (sp *shardProcessor) VerifyBlockProposal(
 	return sp.OnProposedBlock(body, header, hash)
 }
 
-func (sp *shardProcessor) verifyGasLimit(header data.ShardHeaderHandler) error {
-	incomingMiniBlocks, incomingTransactions, outgoingTransactionHashes, outgoingTransactions, err := sp.splitTransactionsForHeader(header)
+func (sp *shardProcessor) updateMetrics(header data.HeaderHandler, body *block.Body) {
+	go getMetricsFromBlockBody(body, sp.marshalizer, sp.appStatusHandler)
+
+	txCounts, rewardCounts, unsignedCounts := sp.txCounter.getPoolCounts(sp.dataPool)
+	log.Debug("total txs in pool", "counts", txCounts.String())
+	log.Debug("total txs in rewards pool", "counts", rewardCounts.String())
+	log.Debug("total txs in unsigned pool", "counts", unsignedCounts.String())
+
+	go getMetricsFromHeader(header, uint64(txCounts.GetTotal()), sp.marshalizer, sp.appStatusHandler)
+}
+
+func (sp *shardProcessor) verifyGasLimit(header data.HeaderHandler) error {
+	splitRes, err := sp.splitTransactionsForHeader(header)
 	if err != nil {
 		return err
 	}
 
 	sp.gasComputation.Reset()
-	_, numPendingMiniBlocks, err := sp.gasComputation.CheckIncomingMiniBlocks(incomingMiniBlocks, incomingTransactions)
+	_, numPendingMiniBlocks, err := sp.gasComputation.CheckIncomingMiniBlocks(splitRes.incomingMiniBlocks, splitRes.incomingTransactions)
 	if err != nil {
 		return err
 	}
 
-	addedTxHashes, pendingMiniBlocksAdded, err := sp.gasComputation.CheckOutgoingTransactions(outgoingTransactionHashes, outgoingTransactions)
+	addedTxHashes, pendingMiniBlocksAdded, err := sp.gasComputation.CheckOutgoingTransactions(splitRes.outgoingTransactionHashes, splitRes.outgoingTransactions)
 	if err != nil {
 		return err
 	}
-	if len(addedTxHashes) != len(outgoingTransactionHashes) {
+	if len(addedTxHashes) != len(splitRes.outgoingTransactionHashes) {
 		return fmt.Errorf("%w, outgoing transactions exceeded the limit", process.ErrInvalidMaxGasLimitPerMiniBlock)
 	}
 
@@ -329,8 +333,19 @@ func (sp *shardProcessor) ProcessBlockProposal(
 		"nonce", headerHandler.GetNonce(),
 	)
 
+	if sp.accountsDB[state.UserAccountsState].JournalLen() != 0 {
+		log.Error("shardProcessor.ProcessBlockProposal first entry", "stack", string(sp.accountsDB[state.UserAccountsState].GetStackDebugFirstEntry()))
+		return nil, process.ErrAccountStateDirty
+	}
+
+	// TODO: add check also for meta
+	err := sp.checkContextBeforeExecution(header)
+	if err != nil {
+		return nil, err
+	}
+
 	// this is used now to reset the context for processing not creation of blocks
-	err := sp.createBlockStarted()
+	err = sp.createBlockStarted()
 	if err != nil {
 		return nil, err
 	}
@@ -356,20 +371,9 @@ func (sp *shardProcessor) ProcessBlockProposal(
 		return nil, err
 	}
 
-	// TODO: add check also for meta
-	err = sp.checkRootHashBeforeExecution()
-	if err != nil {
-		return nil, err
-	}
-
 	err = sp.hdrsForCurrBlock.WaitForHeadersIfNeeded(haveTime)
 	if err != nil {
 		return nil, err
-	}
-
-	if sp.accountsDB[state.UserAccountsState].JournalLen() != 0 {
-		log.Error("shardProcessor.ProcessBlockProposal first entry", "stack", string(sp.accountsDB[state.UserAccountsState].GetStackDebugFirstEntry()))
-		return nil, process.ErrAccountStateDirty
 	}
 
 	// TODO: check if the current processing is done on the proper context(prev header and root hash)
@@ -419,78 +423,26 @@ func (sp *shardProcessor) ProcessBlockProposal(
 	return executionResult, nil
 }
 
-func (sp *shardProcessor) checkRootHashBeforeExecution() error {
+func (sp *shardProcessor) checkContextBeforeExecution(header data.HeaderHandler) error {
 	lastCommittedRootHash, err := sp.accountsDB[state.UserAccountsState].RootHash()
 	if err != nil {
 		return err
 	}
 
-	currentRootHash := sp.blockChain.GetCurrentBlockRootHash()
-	if !bytes.Equal(lastCommittedRootHash, currentRootHash) {
+	// TODO: the GetLastExecutedBlockInfo should return also the LastCommittedBlockInfo (in case the committed block was V2)
+	// this is done on another PR
+	lastExecutedNonce, lastExecutedHash, lastExecutedRootHash := sp.blockChain.GetLastExecutedBlockInfo()
+	if !bytes.Equal(header.GetPrevHash(), lastExecutedHash) {
+		return process.ErrBlockHashDoesNotMatch
+	}
+	if header.GetNonce() != lastExecutedNonce+1 {
+		return process.ErrWrongNonceInBlock
+	}
+	if !bytes.Equal(lastCommittedRootHash, lastExecutedRootHash) {
 		return process.ErrRootStateDoesNotMatch
 	}
 
 	return nil
-}
-
-func (sp *shardProcessor) splitTransactionsForHeader(header data.HeaderHandler) (
-	incomingMiniBlocks []data.MiniBlockHeaderHandler,
-	incomingTransactions map[string][]data.TransactionHandler,
-	outgoingTransactionHashes [][]byte,
-	outgoingTransactions []data.TransactionHandler,
-	err error,
-) {
-	incomingTransactions = make(map[string][]data.TransactionHandler)
-	var txsForMb []data.TransactionHandler
-	var txHashes [][]byte
-	for _, mb := range header.GetMiniBlockHeaderHandlers() {
-		txHashes, txsForMb, err = sp.getTransactionsForMiniBlock(mb)
-		if err != nil {
-			return nil, nil, nil, nil, err
-		}
-
-		if mb.GetSenderShardID() == sp.shardCoordinator.SelfId() {
-			outgoingTransactionHashes = append(outgoingTransactionHashes, txHashes...)
-			outgoingTransactions = append(outgoingTransactions, txsForMb...)
-			continue
-		}
-
-		incomingMiniBlocks = append(incomingMiniBlocks, mb)
-		incomingTransactions[string(mb.GetHash())] = txsForMb
-	}
-
-	return incomingMiniBlocks, incomingTransactions, outgoingTransactionHashes, outgoingTransactions, nil
-}
-
-func (sp *shardProcessor) getTransactionsForMiniBlock(
-	miniBlock data.MiniBlockHeaderHandler,
-) ([][]byte, []data.TransactionHandler, error) {
-	obj, hashInPool := sp.dataPool.MiniBlocks().Get(miniBlock.GetHash())
-	if !hashInPool {
-		return nil, nil, process.ErrMissingMiniBlock
-	}
-
-	mbForHeaderPtr, typeOk := obj.(*block.MiniBlock)
-	if !typeOk {
-		return nil, nil, process.ErrWrongTypeAssertion
-	}
-
-	txs := make([]data.TransactionHandler, len(mbForHeaderPtr.TxHashes))
-	var err error
-	for idx, txHash := range mbForHeaderPtr.TxHashes {
-		txs[idx], err = process.GetTransactionHandlerFromPool(
-			miniBlock.GetSenderShardID(),
-			miniBlock.GetReceiverShardID(),
-			txHash,
-			sp.dataPool.Transactions(),
-			process.SearchMethodSearchFirst,
-		)
-		if err != nil {
-			return nil, nil, err
-		}
-	}
-
-	return mbForHeaderPtr.TxHashes, txs, nil
 }
 
 func computeTxTotalTxCount(miniBlockHeaders []data.MiniBlockHeaderHandler) uint32 {
