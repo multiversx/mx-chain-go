@@ -1156,23 +1156,6 @@ func (sp *shardProcessor) CommitBlock(
 	return nil
 }
 
-func getLastExecutionResultsRootHash(
-	header data.HeaderHandler,
-	committedRootHash []byte,
-) []byte {
-	if !header.IsHeaderV3() {
-		return committedRootHash
-	}
-
-	lastExecutionResult, err := common.GetLastBaseExecutionResultHandler(header)
-	if err != nil {
-		log.Warn("failed to get last execution result for header", "err", err)
-		return committedRootHash
-	}
-
-	return lastExecutionResult.GetRootHash()
-}
-
 func (sp *shardProcessor) getLastExecutionResultHeader(
 	currentHeader data.HeaderHandler,
 ) (data.HeaderHandler, error) {

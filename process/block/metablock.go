@@ -1349,7 +1349,7 @@ func (mp *metaProcessor) CommitBlock(
 
 	mp.cleanupPools(headerHandler)
 
-	// TODO: evaluate removing executed miniblocks from cache explictly, not inside saveExecutedData
+	// TODO: evaluate removing executed miniblocks from cache explicitly, not inside saveExecutedData
 	err = mp.saveExecutedData(header, headerHash)
 	if err != nil {
 		return err
