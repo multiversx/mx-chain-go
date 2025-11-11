@@ -96,9 +96,15 @@ func TestBlockSigningRater_UpdateRatingsShouldUpdateRatingWhenProposed(t *testin
 				return true
 			},
 		})
+
+		// after supernova, it should be fetched again on call from the ratingsData component, thus the following change should be visible
+		ratingsStepMock, ok := rd.ShardRatingsStepDataProperty.(*mock.RatingStepMock)
+		require.True(t, ok)
+		ratingsStepMock.ProposerIncreaseRatingStepProperty++
+
 		computedRating := bsr.ComputeIncreaseProposer(shardId, initialRatingValue, 0)
 
-		expectedValue := uint32(int32(initialRatingValue) + proposerIncreaseRatingStep)
+		expectedValue := uint32(int32(initialRatingValue) + proposerIncreaseRatingStep + 1)
 
 		assert.Equal(t, expectedValue, computedRating)
 	})
@@ -114,9 +120,15 @@ func TestBlockSigningRater_UpdateRatingsShouldUpdateRatingWhenProposed(t *testin
 				return true
 			},
 		})
+
+		// after supernova, it should be fetched again on call from the ratingsData component, thus the following change should be visible
+		ratingsStepMock, ok := rd.MetaRatingsStepDataProperty.(*mock.RatingStepMock)
+		require.True(t, ok)
+		ratingsStepMock.ProposerIncreaseRatingStepProperty++
+
 		computedRating := bsr.ComputeIncreaseProposer(shardId, initialRatingValue, 0)
 
-		expectedValue := uint32(int32(initialRatingValue) + metaProposerIncreaseRatingStep)
+		expectedValue := uint32(int32(initialRatingValue) + metaProposerIncreaseRatingStep + 1)
 
 		assert.Equal(t, expectedValue, computedRating)
 	})
