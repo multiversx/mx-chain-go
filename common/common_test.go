@@ -482,6 +482,38 @@ func TestPrettifyStruct(t *testing.T) {
 		t.Log("MetaBlock", prettified)
 
 	})
+
+	t.Run("with headers V3", func(t *testing.T) {
+		t.Parallel()
+
+		header := block.HeaderV3{}
+		var hdr data.HeaderHandler = &header
+		prettified, err := common.PrettifyStruct(hdr)
+		require.NoError(t, err)
+		t.Log("HeaderV3", prettified)
+
+		meta := block.MetaBlockV3{}
+		hdr = &meta
+		prettified, err = common.PrettifyStruct(meta)
+		require.NoError(t, err)
+		t.Log("MetaBlockV3", prettified)
+	})
+
+	t.Run("with complete headers V3", func(t *testing.T) {
+		t.Parallel()
+
+		header := createMockShardHeaderV3()
+		var hdr data.HeaderHandler = header
+		prettified, err := common.PrettifyStruct(hdr)
+		require.NoError(t, err)
+		t.Log("HeaderV3", prettified)
+
+		meta := createMockMetaHeaderV3()
+		hdr = meta
+		prettified, err = common.PrettifyStruct(meta)
+		require.NoError(t, err)
+		t.Log("MetaBlockV3", prettified)
+	})
 }
 
 func TestGetLastBaseExecutionResultHandler(t *testing.T) {
@@ -664,4 +696,184 @@ func TestPrepareLogEventsKey(t *testing.T) {
 
 	logs := common.PrepareLogEventsKey([]byte("LogsX"))
 	require.Equal(t, "logsLogsX", string(logs))
+}
+
+func createMockMetaHeaderV3() *block.MetaBlockV3 {
+	return &block.MetaBlockV3{
+		Nonce:           42,
+		Epoch:           2,
+		Round:           15,
+		TimestampMs:     123456789,
+		PrevHash:        []byte("prev_hash"),
+		PrevRandSeed:    []byte("prev_seed"),
+		RandSeed:        []byte("new_seed"),
+		ChainID:         []byte("chain-id"),
+		SoftwareVersion: []byte("v1.0.0"),
+		LeaderSignature: []byte("leader_signature"),
+
+		MiniBlockHeaders: []block.MiniBlockHeader{
+			{Hash: []byte("meta-to-s0"), SenderShardID: core.MetachainShardId, ReceiverShardID: 0},
+			{Hash: []byte("meta-to-s1"), SenderShardID: core.MetachainShardId, ReceiverShardID: 1},
+		},
+
+		ShardInfo: []block.ShardData{
+			{
+				ShardID:    0,
+				Round:      10,
+				Nonce:      41,
+				Epoch:      1,
+				HeaderHash: []byte("shard0-hash"),
+				ShardMiniBlockHeaders: []block.MiniBlockHeader{
+					{SenderShardID: 0, ReceiverShardID: 1, Hash: []byte("s0-to-s1")},
+				},
+			},
+			{
+				ShardID:    1,
+				Round:      11,
+				Nonce:      40,
+				Epoch:      1,
+				HeaderHash: []byte("shard1-hash"),
+				ShardMiniBlockHeaders: []block.MiniBlockHeader{
+					{SenderShardID: 1, ReceiverShardID: 0, Hash: []byte("s1-to-s0")},
+				},
+			},
+		},
+		ShardInfoProposal: []block.ShardDataProposal{
+			{ShardID: 0, HeaderHash: []byte("shard-0-hash"), Nonce: 41, Round: 10, Epoch: 1},
+			{ShardID: 1, HeaderHash: []byte("shard-1-hash"), Nonce: 40, Round: 11, Epoch: 1},
+		},
+		ExecutionResults: []*block.MetaExecutionResult{
+			{
+				ExecutionResult: &block.BaseMetaExecutionResult{
+					BaseExecutionResult: &block.BaseExecutionResult{
+						HeaderHash:  []byte("hdr-hash-10"),
+						HeaderNonce: 39,
+						HeaderRound: 10,
+						HeaderEpoch: 1,
+						RootHash:    []byte("root-hash-10"),
+					},
+					AccumulatedFeesInEpoch: big.NewInt(1000),
+					DevFeesInEpoch:         big.NewInt(100),
+					ValidatorStatsRootHash: []byte("validator-stats-root-hash"),
+				},
+				AccumulatedFees: big.NewInt(1000),
+				DeveloperFees:   big.NewInt(100),
+				ReceiptsHash:    []byte("receipts hash"),
+			},
+			{
+				ExecutionResult: &block.BaseMetaExecutionResult{
+					BaseExecutionResult: &block.BaseExecutionResult{
+						HeaderHash:  []byte("hdr-hash-11"),
+						HeaderNonce: 40,
+						HeaderRound: 11,
+						HeaderEpoch: 1,
+						RootHash:    []byte("root-hash-11"),
+					},
+					AccumulatedFeesInEpoch: big.NewInt(2000),
+					DevFeesInEpoch:         big.NewInt(200),
+					ValidatorStatsRootHash: []byte("validator-stats-root-hash-1"),
+				},
+				AccumulatedFees: big.NewInt(2000),
+				DeveloperFees:   big.NewInt(200),
+				ReceiptsHash:    []byte("receipts-hash-1"),
+			},
+			{
+				ExecutionResult: &block.BaseMetaExecutionResult{
+					BaseExecutionResult: &block.BaseExecutionResult{
+						HeaderHash:  []byte("hdr-hash-last"),
+						HeaderNonce: 41,
+						HeaderRound: 12,
+						HeaderEpoch: 2,
+						RootHash:    []byte("root-hash-last"),
+					},
+					AccumulatedFeesInEpoch: big.NewInt(3000),
+					DevFeesInEpoch:         big.NewInt(300),
+					ValidatorStatsRootHash: []byte("validator-stats-root-hash-2"),
+				},
+				AccumulatedFees: big.NewInt(3000),
+				DeveloperFees:   big.NewInt(300),
+				ReceiptsHash:    []byte("receipts-hash-2"),
+			},
+		},
+
+		LastExecutionResult: &block.MetaExecutionResultInfo{
+			NotarizedInRound: 14,
+			ExecutionResult: &block.BaseMetaExecutionResult{
+				BaseExecutionResult: &block.BaseExecutionResult{
+					HeaderHash:  []byte("hdr-hash-last"),
+					HeaderNonce: 41,
+					HeaderRound: 12,
+					HeaderEpoch: 2,
+					RootHash:    []byte("root-hash-last"),
+				},
+				AccumulatedFeesInEpoch: big.NewInt(3000),
+				DevFeesInEpoch:         big.NewInt(300),
+				ValidatorStatsRootHash: []byte("validator-stats-root-hash-2"),
+			},
+		},
+	}
+}
+
+func createMockShardHeaderV3() *block.HeaderV3 {
+	var hdrNonce = uint64(56)
+	var hdrShardId = uint32(1)
+	var hdrRound = uint64(67)
+	var hdrEpoch = uint32(78)
+	return &block.HeaderV3{
+		Nonce:            hdrNonce,
+		PrevHash:         []byte("prev hash"),
+		PrevRandSeed:     []byte("prev rand seed"),
+		RandSeed:         []byte("rand seed"),
+		ShardID:          hdrShardId,
+		TimestampMs:      0,
+		Round:            hdrRound,
+		Epoch:            hdrEpoch,
+		BlockBodyType:    block.TxBlock,
+		LeaderSignature:  []byte("signature"),
+		MiniBlockHeaders: nil,
+		PeerChanges:      nil,
+		MetaBlockHashes:  nil,
+		TxCount:          0,
+		ChainID:          []byte("chain ID"),
+		SoftwareVersion:  []byte("version"),
+		LastExecutionResult: &block.ExecutionResultInfo{
+			ExecutionResult: &block.BaseExecutionResult{
+				HeaderHash:  []byte("header hash"),
+				HeaderNonce: hdrNonce - 1,
+				HeaderRound: hdrRound - 1,
+				HeaderEpoch: hdrEpoch,
+				RootHash:    []byte("root hash"),
+			},
+			NotarizedInRound: hdrRound - 1,
+		},
+		ExecutionResults: []*block.ExecutionResult{
+			&block.ExecutionResult{
+				BaseExecutionResult: &block.BaseExecutionResult{
+					HeaderHash:  []byte("header hash"),
+					HeaderNonce: hdrNonce - 3,
+					HeaderRound: hdrRound - 3,
+					HeaderEpoch: hdrEpoch - 1,
+					RootHash:    []byte("root hash"),
+				},
+			},
+			&block.ExecutionResult{
+				BaseExecutionResult: &block.BaseExecutionResult{
+					HeaderHash:  []byte("header hash"),
+					HeaderNonce: hdrNonce - 2,
+					HeaderRound: hdrRound - 2,
+					HeaderEpoch: hdrEpoch - 1,
+					RootHash:    []byte("root hash"),
+				},
+			},
+			&block.ExecutionResult{
+				BaseExecutionResult: &block.BaseExecutionResult{
+					HeaderHash:  []byte("header hash"),
+					HeaderNonce: hdrNonce - 1,
+					HeaderRound: hdrRound - 1,
+					HeaderEpoch: hdrEpoch,
+					RootHash:    []byte("root hash"),
+				},
+			},
+		},
+	}
 }
