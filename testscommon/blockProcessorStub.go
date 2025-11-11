@@ -171,8 +171,8 @@ func (bps *BlockProcessorStub) CreateNewHeader(round uint64, nonce uint64) (data
 
 // CreateNewHeaderProposal -
 func (bps *BlockProcessorStub) CreateNewHeaderProposal(round uint64, nonce uint64) (data.HeaderHandler, error) {
-	if bps.CreateNewHeaderCalled != nil {
-		return bps.CreateNewHeaderCalled(round, nonce)
+	if bps.CreateNewHeaderProposalCalled != nil {
+		return bps.CreateNewHeaderProposalCalled(round, nonce)
 	}
 
 	return nil, ErrNotImplemented
