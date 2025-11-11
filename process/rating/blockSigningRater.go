@@ -184,7 +184,7 @@ func (bsr *BlockSigningRater) ComputeIncreaseProposer(shardId uint32, currentRat
 
 func (bsr *BlockSigningRater) getShardChainRatingsStepHandler(epoch uint32) process.RatingsStepHandler {
 	if bsr.enableEpochsHandler.IsFlagEnabledInEpoch(common.SupernovaFlag, epoch) {
-		return bsr.ratingsHandler.ShardChainRatingsStepHandler()
+		return bsr.ratingsHandler.ShardChainRatingsStepHandlerForEpoch(epoch)
 	}
 
 	return bsr.shardRatingsStepHandler
@@ -192,7 +192,7 @@ func (bsr *BlockSigningRater) getShardChainRatingsStepHandler(epoch uint32) proc
 
 func (bsr *BlockSigningRater) getMetaChainRatingsStepHandler(epoch uint32) process.RatingsStepHandler {
 	if bsr.enableEpochsHandler.IsFlagEnabledInEpoch(common.SupernovaFlag, epoch) {
-		return bsr.ratingsHandler.MetaChainRatingsStepHandler()
+		return bsr.ratingsHandler.MetaChainRatingsStepHandlerForEpoch(epoch)
 	}
 
 	return bsr.metaRatingsStepHandler

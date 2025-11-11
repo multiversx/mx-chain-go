@@ -1141,6 +1141,8 @@ type RatingsInfoHandler interface {
 	SignedBlocksThreshold() float32
 	MetaChainRatingsStepHandler() RatingsStepHandler
 	ShardChainRatingsStepHandler() RatingsStepHandler
+	MetaChainRatingsStepHandlerForEpoch(epoch uint32) RatingsStepHandler
+	ShardChainRatingsStepHandlerForEpoch(epoch uint32) RatingsStepHandler
 	SelectionChances() []SelectionChance
 	SetStatusHandler(handler core.AppStatusHandler) error
 	IsInterfaceNil() bool
