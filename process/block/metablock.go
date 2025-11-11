@@ -1536,7 +1536,7 @@ func (mp *metaProcessor) pruneTriesHeaderV3(metaBlock data.MetaHeaderHandler, pr
 			log.Warn("failed to assert current execution result for pruning",
 				"index", i,
 				"currentExecResType", fmt.Sprintf("%T", execResults[i]))
-			return
+			continue
 		}
 		prevExecRes, err := mp.getPreviousExecutionResult(i, execResults, prevMetaBlock)
 		if err != nil {
@@ -1544,7 +1544,7 @@ func (mp *metaProcessor) pruneTriesHeaderV3(metaBlock data.MetaHeaderHandler, pr
 				"err", err,
 				"index", i,
 				"currentExecResHeaderHash", currentExecRes.GetHeaderHash())
-			return
+			continue
 		}
 
 		currentRootHash := currentExecRes.GetRootHash()

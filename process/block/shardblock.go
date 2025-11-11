@@ -1265,7 +1265,7 @@ func (sp *shardProcessor) pruneTrieHeaderV3(executionResultsHandlers []data.Base
 				"err", err,
 				"index", i,
 				"currentExecResHeaderHash", currentExecRes.GetHeaderHash())
-			return
+			continue
 		}
 
 		currentRootHash := currentExecRes.GetRootHash()
@@ -1275,7 +1275,7 @@ func (sp *shardProcessor) pruneTrieHeaderV3(executionResultsHandlers []data.Base
 			"prevRootHash", prevRootHash,
 		)
 		if bytes.Equal(prevRootHash, currentRootHash) {
-			return
+			continue
 		}
 
 		accountsDb.CancelPrune(prevRootHash, state.NewRoot)
