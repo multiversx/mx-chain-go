@@ -109,6 +109,7 @@ func NewEndOfEpochEconomicsDataCreator(args ArgsNewEpochEconomics) (*economics, 
 }
 
 // ComputeEndOfEpochEconomics calculates the rewards per block value for the current epoch
+// TODO: For MetablockV3 the AccumulatedFeesInEpoch and DevFeesInEpoch should be taken from prev block execution results.
 func (e *economics) ComputeEndOfEpochEconomics(
 	metaBlock data.MetaHeaderHandler,
 ) (*block.Economics, error) {
