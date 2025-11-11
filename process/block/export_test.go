@@ -44,6 +44,7 @@ import (
 	storageStubs "github.com/multiversx/mx-chain-go/testscommon/storage"
 )
 
+// UsedShardHeadersInfo -
 type UsedShardHeadersInfo = usedShardHeadersInfo
 
 // ComputeHeaderHash -
