@@ -43,9 +43,6 @@ func NewInterceptedMetaHeader(arg *ArgInterceptedBlockHeader) (*InterceptedMetaH
 	if err != nil {
 		return nil, err
 	}
-	if hdr.GetShardInfoHandlers() == nil {
-		hdr.(*block.MetaBlock).ShardInfo = make([]block.ShardData, 0)
-	}
 
 	inHdr := &InterceptedMetaHeader{
 		hdr:                 hdr,

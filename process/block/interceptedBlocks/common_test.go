@@ -1,6 +1,7 @@
 package interceptedBlocks
 
 import (
+	"math/big"
 	"testing"
 
 	"github.com/multiversx/mx-chain-core-go/core"
@@ -177,7 +178,13 @@ func createValidMetaHeaderV3ToTest() *block.MetaBlockV3 {
 						HeaderEpoch: 1,
 						RootHash:    []byte("root-hash-10"),
 					},
+					AccumulatedFeesInEpoch: big.NewInt(1000),
+					DevFeesInEpoch:         big.NewInt(100),
+					ValidatorStatsRootHash: []byte("validator-stats-root-hash"),
 				},
+				AccumulatedFees: big.NewInt(1000),
+				DeveloperFees:   big.NewInt(100),
+				ReceiptsHash:    []byte("receipts hash"),
 			},
 			{
 				ExecutionResult: &block.BaseMetaExecutionResult{
@@ -188,7 +195,13 @@ func createValidMetaHeaderV3ToTest() *block.MetaBlockV3 {
 						HeaderEpoch: 1,
 						RootHash:    []byte("root-hash-11"),
 					},
+					AccumulatedFeesInEpoch: big.NewInt(2000),
+					DevFeesInEpoch:         big.NewInt(200),
+					ValidatorStatsRootHash: []byte("validator-stats-root-hash"),
 				},
+				AccumulatedFees: big.NewInt(2000),
+				DeveloperFees:   big.NewInt(200),
+				ReceiptsHash:    []byte("receipts hash"),
 			},
 			{
 				ExecutionResult: &block.BaseMetaExecutionResult{
@@ -199,7 +212,13 @@ func createValidMetaHeaderV3ToTest() *block.MetaBlockV3 {
 						HeaderEpoch: 2,
 						RootHash:    []byte("root-hash-last"),
 					},
+					AccumulatedFeesInEpoch: big.NewInt(3000),
+					DevFeesInEpoch:         big.NewInt(300),
+					ValidatorStatsRootHash: []byte("validator-stats-root-hash"),
 				},
+				AccumulatedFees: big.NewInt(3000),
+				DeveloperFees:   big.NewInt(300),
+				ReceiptsHash:    []byte("receipts hash"),
 			},
 		},
 
@@ -213,6 +232,9 @@ func createValidMetaHeaderV3ToTest() *block.MetaBlockV3 {
 					HeaderEpoch: 2,
 					RootHash:    []byte("root-hash-last"),
 				},
+				AccumulatedFeesInEpoch: big.NewInt(3000),
+				DevFeesInEpoch:         big.NewInt(300),
+				ValidatorStatsRootHash: []byte("validator-stats-root-hash"),
 			},
 		},
 	}
