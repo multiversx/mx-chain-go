@@ -107,6 +107,9 @@ func createArgBaseProcessor(
 		RecreateTrieIfNeededCalled: func(options common.RootHashHolder) error {
 			return nil
 		},
+		CommitCalled: func() ([]byte, error) {
+			return nil, nil
+		},
 	}
 	accountsDb[state.UserAccountsState] = accounts
 

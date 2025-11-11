@@ -400,6 +400,11 @@ func (sp *shardProcessor) ProcessBlockProposal(
 		return nil, err
 	}
 
+	err = sp.commitState(headerHandler)
+	if err != nil {
+		return nil, err
+	}
+
 	// TODO: should receive the header hash instead of re-computing it
 	headerHash, err := core.CalculateHash(sp.marshalizer, sp.hasher, header)
 	if err != nil {
