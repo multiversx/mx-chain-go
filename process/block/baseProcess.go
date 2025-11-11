@@ -2966,8 +2966,6 @@ func (bp *baseProcessor) requestProof(
 	}
 
 	bp.requestHandler.RequestEquivalentProofByNonce(shardID, nonce)
-
-	return
 }
 
 func (bp *baseProcessor) requestHeadersFromHeaderIfNeeded(
