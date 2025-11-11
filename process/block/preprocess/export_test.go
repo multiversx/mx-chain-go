@@ -178,3 +178,10 @@ func (ste *scheduledTxsExecution) GetMapScheduledIntermediateTxs() map[block.Typ
 
 	return newMap
 }
+
+func (gt *gasTracker) getEpochAndOverestimationFactorForGasLimits() (uint32, uint64) {
+	gt.mut.RLock()
+	defer gt.mut.RUnlock()
+
+	return gt.epochForLimits, gt.overEstimationFactor
+}
