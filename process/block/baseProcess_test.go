@@ -24,6 +24,7 @@ import (
 	"github.com/multiversx/mx-chain-core-go/hashing"
 	"github.com/multiversx/mx-chain-core-go/marshal"
 	"github.com/multiversx/mx-chain-go/process/asyncExecution/executionManager"
+	"github.com/multiversx/mx-chain-go/process/asyncExecution/queue"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 
@@ -160,10 +161,11 @@ func createArgBaseProcessor(
 			coreComponents.Hasher(),
 		)
 
+		blocksQueue := queue.NewBlocksQueue()
 		executionResultsTracker := executionTrack.NewExecutionResultsTracker()
 		_ = executionResultsTracker.SetLastNotarizedResult(&block.ExecutionResult{})
 		execManager, _ = executionManager.NewExecutionManager(executionManager.ArgsExecutionManager{
-			BlocksQueue:             &processMocks.BlocksQueueMock{},
+			BlocksQueue:             blocksQueue,
 			ExecutionResultsTracker: executionResultsTracker,
 			BlockChain:              dataComponents.BlockChain,
 			Headers:                 dataComponents.DataPool.Headers(),

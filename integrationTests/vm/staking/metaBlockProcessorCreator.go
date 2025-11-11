@@ -6,17 +6,17 @@ import (
 	"github.com/multiversx/mx-chain-core-go/core"
 	"github.com/multiversx/mx-chain-core-go/data"
 	"github.com/multiversx/mx-chain-core-go/data/block"
+	"github.com/multiversx/mx-chain-go/process/asyncExecution"
 	"github.com/multiversx/mx-chain-go/process/asyncExecution/executionManager"
+	"github.com/multiversx/mx-chain-go/process/asyncExecution/queue"
 
 	"github.com/multiversx/mx-chain-go/config"
 	"github.com/multiversx/mx-chain-go/process/asyncExecution/executionTrack"
-	"github.com/multiversx/mx-chain-go/process/estimator"
-	"github.com/multiversx/mx-chain-go/process/missingData"
-	"github.com/multiversx/mx-chain-go/testscommon/processMocks"
-
 	"github.com/multiversx/mx-chain-go/process/block/headerForBlock"
 	"github.com/multiversx/mx-chain-go/process/coordinator"
+	"github.com/multiversx/mx-chain-go/process/estimator"
 	"github.com/multiversx/mx-chain-go/process/factory/containers"
+	"github.com/multiversx/mx-chain-go/process/missingData"
 
 	"github.com/multiversx/mx-chain-go/dataRetriever"
 	"github.com/multiversx/mx-chain-go/epochStart"
@@ -113,9 +113,10 @@ func createMetaBlockProcessor(
 		coreComponents.Hasher(),
 	)
 
+	blocksQueue := queue.NewBlocksQueue()
 	executionResultsTracker := executionTrack.NewExecutionResultsTracker()
 	execManager, _ := executionManager.NewExecutionManager(executionManager.ArgsExecutionManager{
-		BlocksQueue:             &processMocks.BlocksQueueMock{},
+		BlocksQueue:             blocksQueue,
 		ExecutionResultsTracker: executionResultsTracker,
 		BlockChain:              dataComponents.Blockchain(),
 		Headers:                 dataComponents.Datapool().Headers(),
@@ -204,6 +205,16 @@ func createMetaBlockProcessor(
 	}
 
 	metaProc, _ := blproc.NewMetaProcessor(args)
+
+	argHeadersExecutor := asyncExecution.ArgsHeadersExecutor{
+		BlocksQueue:      blocksQueue,
+		ExecutionTracker: executionResultsTracker,
+		BlockProcessor:   metaProc,
+		BlockChain:       dataComponents.Blockchain(),
+	}
+	headersExecutor, _ := asyncExecution.NewHeadersExecutor(argHeadersExecutor)
+	_ = execManager.SetHeadersExecutor(headersExecutor)
+
 	return metaProc
 }
 

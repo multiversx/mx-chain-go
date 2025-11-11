@@ -1234,11 +1234,11 @@ func (tpn *TestFullNode) initBlockProcessor(
 		BlockProcessor:   tpn.BlockProcessor,
 		BlockChain:       tpn.BlockChain,
 	}
-	_, err = asyncExecution.NewHeadersExecutor(argsHeadersExecutor)
+	headerExecutor, err := asyncExecution.NewHeadersExecutor(argsHeadersExecutor)
 	log.LogIfError(err)
 
-	// TODO: uncomment this
-	// tpn.ExecutionManager.SetHeadersExecutor(headerExecutor)
+	err = tpn.ExecutionManager.SetHeadersExecutor(headerExecutor)
+	log.LogIfError(err)
 }
 
 func (tpn *TestFullNode) initBlockProcessorWithSync(

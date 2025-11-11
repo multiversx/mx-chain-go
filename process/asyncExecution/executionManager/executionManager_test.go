@@ -569,7 +569,7 @@ func TestExecutionManager_Close(t *testing.T) {
 		require.True(t, queueCloseCalled)
 	})
 
-	t.Run("error closing headers executor should error", func(t *testing.T) {
+	t.Run("error closing headers executor", func(t *testing.T) {
 		t.Parallel()
 
 		args := createMockArgs()
@@ -582,7 +582,7 @@ func TestExecutionManager_Close(t *testing.T) {
 		_ = em.SetHeadersExecutor(mockExecutor)
 
 		err := em.Close()
-		require.Equal(t, errExpected, err)
+		require.NoError(t, err)
 	})
 }
 
@@ -610,15 +610,25 @@ func TestExecutionManager_Concurrency(t *testing.T) {
 			go func(idx int) {
 				defer wg.Done()
 
-				switch idx % 2 {
+				switch idx % 6 {
 				case 0:
 					pair := queue.HeaderBodyPair{
-						Header: &block.Header{Nonce: uint64(idx)},
+						Header: &block.HeaderV3{Nonce: uint64(idx)},
 						Body:   &block.Body{},
 					}
 					_ = em.AddPairForExecution(pair)
 				case 1:
 					_ = em.RemoveAtNonceAndHigher(uint64(idx))
+				case 2:
+					_, _ = em.GetPendingExecutionResults()
+				case 3:
+					_ = em.SetHeadersExecutor(&processMocks.HeadersExecutorMock{})
+				case 4:
+					_ = em.SetLastNotarizedResult(&block.BaseExecutionResult{})
+				case 5:
+					_ = em.CleanConfirmedExecutionResults(&block.HeaderV3{Nonce: uint64(idx)})
+				case 6:
+					require.Fail(t, "should not happen")
 				}
 			}(i)
 		}

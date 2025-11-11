@@ -204,7 +204,6 @@ func (em *executionManager) Close() error {
 	err := em.headersExecutor.Close()
 	if err != nil {
 		log.Warn("executionManager.Close - failed to close headers executor", "error", err)
-		return err
 	}
 
 	em.blocksQueue.Close()
