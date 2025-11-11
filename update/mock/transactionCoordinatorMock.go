@@ -20,7 +20,7 @@ type TransactionCoordinatorMock struct {
 	SaveTxsToStorageCalled                               func(body *block.Body)
 	RestoreBlockDataFromStorageCalled                    func(body *block.Body) (int, error)
 	RemoveBlockDataFromPoolCalled                        func(body *block.Body) error
-	RemoveTxsFromPoolCalled                              func(body *block.Body) error
+	RemoveTxsFromPoolCalled                              func(body *block.Body, rootHashHolder common.RootHashHolder) error
 	ProcessBlockTransactionCalled                        func(header data.HeaderHandler, body *block.Body, haveTime func() time.Duration) error
 	GetCreatedMiniBlocksFromMeCalled                     func() block.MiniBlockSlice
 	CreateBlockStartedCalled                             func()
@@ -118,7 +118,7 @@ func (tcm *TransactionCoordinatorMock) RemoveTxsFromPool(body *block.Body, rootH
 		return nil
 	}
 
-	return tcm.RemoveTxsFromPoolCalled(body)
+	return tcm.RemoveTxsFromPoolCalled(body, rootHashHolder)
 }
 
 // ProcessBlockTransaction -

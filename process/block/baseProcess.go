@@ -1272,15 +1272,11 @@ func (bp *baseProcessor) removeTxsFromPools(header data.HeaderHandler, body *blo
 		return err
 	}
 
-	var rootHash []byte
-	if header.IsHeaderV3() {
-		latestExecutionResult, _ := common.GetLastBaseExecutionResultHandler(header)
-		rootHash = latestExecutionResult.GetRootHash()
-	} else {
-		rootHash = header.GetRootHash()
+	rootHashHolder, err := bp.extractRootHashForCleanup(header)
+	if err != nil {
+		return err
 	}
 
-	rootHashHolder := holders.NewDefaultRootHashesHolder(rootHash)
 	return bp.txCoordinator.RemoveTxsFromPool(newBody, rootHashHolder)
 }
 
@@ -2492,6 +2488,22 @@ func (bp *baseProcessor) recreateTrieIfNeeded() error {
 	}
 
 	return nil
+}
+
+func (bp *baseProcessor) extractRootHashForCleanup(header data.HeaderHandler) (common.RootHashHolder, error) {
+	var rootHash []byte
+	if header.IsHeaderV3() {
+		latestExecutionResult, err := common.GetLastBaseExecutionResultHandler(header)
+		if err != nil {
+			return nil, err
+		}
+
+		rootHash = latestExecutionResult.GetRootHash()
+	} else {
+		rootHash = header.GetRootHash()
+	}
+
+	return holders.NewDefaultRootHashesHolder(rootHash), nil
 }
 
 func (bp *baseProcessor) checkSentSignaturesAtCommitTime(header data.HeaderHandler) error {
