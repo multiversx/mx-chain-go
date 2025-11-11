@@ -1,6 +1,7 @@
 package economics
 
 import (
+	"math"
 	"sync"
 
 	"github.com/multiversx/mx-chain-go/config"
@@ -12,9 +13,12 @@ type globalSettingsHandler struct {
 	yearSettings                 map[uint32]*config.YearSetting
 	tailInflationActivationEpoch uint32
 	startYearInflation           float64
+	inflationForEpochCompound    float64
 	decayPercentage              float64
 	mutYearSettings              sync.RWMutex
 }
+
+const numberOfDaysInYear = 365.0
 
 // newGlobalSettingsHandler creates a new global settings provider
 func newGlobalSettingsHandler(
@@ -37,19 +41,26 @@ func newGlobalSettingsHandler(
 		}
 	}
 
+	g.calculateInflationForEpochCompound()
+
 	if isPercentageInvalid(g.minInflation) ||
 		isPercentageInvalid(g.startYearInflation) ||
-		isPercentageInvalid(g.decayPercentage) {
+		isPercentageInvalid(g.decayPercentage) ||
+		isPercentageInvalid(g.inflationForEpochCompound) {
 		return nil, process.ErrInvalidInflationPercentages
 	}
 
 	return g, nil
 }
 
+func (g *globalSettingsHandler) calculateInflationForEpochCompound() {
+	g.inflationForEpochCompound = numberOfDaysInYear * (math.Pow(1.0+g.startYearInflation, 1.0/numberOfDaysInYear) - 1)
+}
+
 // TODO: implement decay, implement growth, calculations will change after supernova
 func (g *globalSettingsHandler) maxInflationRate(year uint32, epoch uint32) float64 {
 	if g.isTailInflationActive(epoch) {
-		return g.startYearInflation
+		return g.inflationForEpochCompound
 	}
 
 	return g.yearSettingsInflation(year)
