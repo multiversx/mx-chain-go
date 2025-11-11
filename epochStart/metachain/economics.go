@@ -34,6 +34,29 @@ type metaBlockData struct {
 	devFeesInEpoch         *big.Int
 }
 
+type metaBlockHandler interface {
+	GetEpoch() uint32
+	GetRound() uint64
+	GetDevFeesInEpoch() *big.Int
+	GetAccumulatedFeesInEpoch() *big.Int
+}
+
+func (m *metaBlockData) GetEpoch() uint32 {
+	return m.epoch
+}
+
+func (m *metaBlockData) GetRound() uint64 {
+	return m.round
+}
+
+func (m *metaBlockData) GetDevFeesInEpoch() *big.Int {
+	return m.devFeesInEpoch
+}
+
+func (m *metaBlockData) GetAccumulatedFeesInEpoch() *big.Int {
+	return m.accumulatedFeesInEpoch
+}
+
 type argsComputeEconomics struct {
 	metaBlock               metaBlockData
 	prevEpochStart          data.MetaHeaderHandler
@@ -225,7 +248,7 @@ func (e *economics) baseComputeEconomics(args *argsComputeEconomics) (*block.Eco
 	)
 
 	maxPossibleNotarizedBlocks := e.maxPossibleNotarizedBlocks(args.metaBlock.round, args.prevEpochStart)
-	err = e.checkEconomicsInvariants(computedEconomics, inflationRate, maxBlocksInEpoch, totalNumBlocksInEpoch, args.metaBlock, args.metaBlock.epoch, maxPossibleNotarizedBlocks)
+	err = e.checkEconomicsInvariants(computedEconomics, inflationRate, maxBlocksInEpoch, totalNumBlocksInEpoch, &args.metaBlock, args.metaBlock.epoch, maxPossibleNotarizedBlocks)
 	if err != nil {
 		log.Warn("ComputeEndOfEpochEconomics", "error", err.Error())
 
@@ -540,7 +563,7 @@ func (e *economics) checkEconomicsInvariants(
 	inflationRate float64,
 	maxBlocksInEpoch uint64,
 	totalNumBlocksInEpoch uint64,
-	metaBlock metaBlockData,
+	metaBlock metaBlockHandler,
 	epoch uint32,
 	maxPossibleNotarizedBlocks uint64,
 ) error {
@@ -557,10 +580,10 @@ func (e *economics) checkEconomicsInvariants(
 
 	}
 
-	if !core.IsInRangeInclusive(metaBlock.accumulatedFeesInEpoch, zero, e.genesisTotalSupply) {
+	if !core.IsInRangeInclusive(metaBlock.GetAccumulatedFeesInEpoch(), zero, e.genesisTotalSupply) {
 		return fmt.Errorf("%w, computed accumulated fees %s, max allowed %s",
 			epochStart.ErrInvalidAccumulatedFees,
-			metaBlock.accumulatedFeesInEpoch,
+			metaBlock.GetAccumulatedFeesInEpoch(),
 			e.genesisTotalSupply,
 		)
 	}
@@ -572,8 +595,8 @@ func (e *economics) checkEconomicsInvariants(
 
 	inflationPerEpoch := e.computeInflationForEpoch(inflationRate, actualMaxBlocks, epoch)
 	maxRewardsInEpoch := core.GetIntTrimmedPercentageOfValue(computedEconomics.TotalSupply, inflationPerEpoch)
-	if maxRewardsInEpoch.Cmp(metaBlock.accumulatedFeesInEpoch) < 0 {
-		maxRewardsInEpoch.Set(metaBlock.accumulatedFeesInEpoch)
+	if maxRewardsInEpoch.Cmp(metaBlock.GetAccumulatedFeesInEpoch()) < 0 {
+		maxRewardsInEpoch.Set(metaBlock.GetAccumulatedFeesInEpoch())
 	}
 
 	if !core.IsInRangeInclusive(computedEconomics.RewardsForProtocolSustainability, zero, maxRewardsInEpoch) {
