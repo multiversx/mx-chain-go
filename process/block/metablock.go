@@ -1200,9 +1200,12 @@ func (mp *metaProcessor) CommitBlock(
 	mp.saveMetaHeader(header, headerHash, marshalizedHeader)
 	mp.saveBody(body, header, headerHash)
 
-	err = mp.commitAll(headerHandler)
-	if err != nil {
-		return err
+	if !headerHandler.IsHeaderV3() {
+		// TODO commit state on ProcessBlockProposal for meta and header v3
+		err = mp.commitState(headerHandler)
+		if err != nil {
+			return err
+		}
 	}
 
 	mp.validatorStatisticsProcessor.DisplayRatings(header.GetEpoch())
