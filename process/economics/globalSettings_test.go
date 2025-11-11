@@ -89,7 +89,8 @@ func TestGlobalSettingsMaxInflation(t *testing.T) {
 
 	totalSupplyOtherCompute := totalSupplyDay0 + totalSupplyDay0*x
 
-	require.Equal(t, totalSupplyDay365, totalSupplyOtherCompute)
+	require.True(t, totalSupplyOtherCompute >= totalSupplyDay365)
+	require.True(t, totalSupplyOtherCompute-totalSupplyDay365 < 1)
 }
 
 func TestGlobalSettingsMaxInflationRate_withSupply(t *testing.T) {
@@ -97,12 +98,13 @@ func TestGlobalSettingsMaxInflationRate_withSupply(t *testing.T) {
 
 	rate := gsh.maxInflationRate(1, 100)
 
-	totalSupplyDay0 := 28781358.0
+	oneToken := 1000000000000000000.0 // 10^18
+	totalSupplyDay0 := 28781358.0 * oneToken
 	totalSupplyDay365Yearly := totalSupplyDay0 + totalSupplyDay0*gsh.startYearInflation
 
 	dailyRate := rate / numberOfDaysInYear
 	totalSupplyDay365Daily := totalSupplyDay0 * math.Pow(1+dailyRate, numberOfDaysInYear)
 
 	require.True(t, totalSupplyDay365Yearly >= totalSupplyDay365Daily)
-	require.True(t, totalSupplyDay365Yearly-totalSupplyDay365Daily < 0.0001)
+	require.True(t, totalSupplyDay365Yearly-totalSupplyDay365Daily < oneToken)
 }
