@@ -191,8 +191,13 @@ func (txs *transactions) RemoveBlockDataFromPools(body *block.Body, miniBlockPoo
 
 // RemoveTxsFromPools removes transactions from associated pools
 // TODO CleanupSelfShardTxCache - Maybe find a solution to use block nonce instead of randomness
-func (txs *transactions) RemoveTxsFromPools(body *block.Body) error {
-	accountsProvider, err := state.NewAccountsEphemeralProvider(txs.accounts)
+func (txs *transactions) RemoveTxsFromPools(body *block.Body, rootHashHolder common.RootHashHolder) error {
+	err := txs.accountsProposal.RecreateTrieIfNeeded(rootHashHolder)
+	if err != nil {
+		return err
+	}
+
+	accountsProvider, err := state.NewAccountsEphemeralProvider(txs.accountsProposal)
 	if err != nil {
 		return err
 	}

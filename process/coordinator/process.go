@@ -281,7 +281,7 @@ func (tc *transactionCoordinator) RemoveBlockDataFromPool(body *block.Body) erro
 }
 
 // RemoveTxsFromPool deletes txs from pools
-func (tc *transactionCoordinator) RemoveTxsFromPool(body *block.Body) error {
+func (tc *transactionCoordinator) RemoveTxsFromPool(body *block.Body, rootHashHolder common.RootHashHolder) error {
 	if check.IfNil(body) {
 		return nil
 	}
@@ -302,7 +302,7 @@ func (tc *transactionCoordinator) RemoveTxsFromPool(body *block.Body) error {
 				return
 			}
 
-			err := preproc.RemoveTxsFromPools(blockBody)
+			err := preproc.RemoveTxsFromPools(blockBody, rootHashHolder)
 			if err != nil {
 				log.Trace("RemoveTxsFromPools", "error", err.Error())
 

@@ -5,6 +5,7 @@ import (
 
 	"github.com/multiversx/mx-chain-core-go/data"
 	"github.com/multiversx/mx-chain-core-go/data/block"
+	"github.com/multiversx/mx-chain-go/common"
 
 	"github.com/multiversx/mx-chain-go/process"
 	"github.com/multiversx/mx-chain-go/process/block/processedMb"
@@ -112,7 +113,7 @@ func (tcm *TransactionCoordinatorMock) RemoveBlockDataFromPool(body *block.Body)
 }
 
 // RemoveTxsFromPool -
-func (tcm *TransactionCoordinatorMock) RemoveTxsFromPool(body *block.Body) error {
+func (tcm *TransactionCoordinatorMock) RemoveTxsFromPool(body *block.Body, rootHashHolder common.RootHashHolder) error {
 	if tcm.RemoveTxsFromPoolCalled == nil {
 		return nil
 	}

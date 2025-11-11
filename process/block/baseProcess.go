@@ -1272,7 +1272,16 @@ func (bp *baseProcessor) removeTxsFromPools(header data.HeaderHandler, body *blo
 		return err
 	}
 
-	return bp.txCoordinator.RemoveTxsFromPool(newBody)
+	var rootHash []byte
+	if header.IsHeaderV3() {
+		latestExecutionResult, _ := common.GetLastBaseExecutionResultHandler(header)
+		rootHash = latestExecutionResult.GetRootHash()
+	} else {
+		rootHash = header.GetRootHash()
+	}
+
+	rootHashHolder := holders.NewDefaultRootHashesHolder(rootHash)
+	return bp.txCoordinator.RemoveTxsFromPool(newBody, rootHashHolder)
 }
 
 func (bp *baseProcessor) getFinalMiniBlocks(header data.HeaderHandler, body *block.Body) (*block.Body, error) {
