@@ -44,6 +44,8 @@ import (
 	storageStubs "github.com/multiversx/mx-chain-go/testscommon/storage"
 )
 
+type UsedShardHeadersInfo = usedShardHeadersInfo
+
 // ComputeHeaderHash -
 func (bp *baseProcessor) ComputeHeaderHash(hdr data.HeaderHandler) ([]byte, error) {
 	return core.CalculateHash(bp.marshalizer, bp.hasher, hdr)
@@ -832,6 +834,19 @@ func (mp *metaProcessor) CheckEpochCorrectnessV3(
 	headerHandler data.MetaHeaderHandler,
 ) error {
 	return mp.checkEpochCorrectnessV3(headerHandler)
+}
+
+// CheckShardInfoValidity -
+func (mp *metaProcessor) CheckShardInfoValidity(
+	metaHeaderHandler data.MetaHeaderHandler,
+	usedShardHeadersInfo *usedShardHeadersInfo,
+) error {
+	return mp.checkShardInfoValidity(metaHeaderHandler, usedShardHeadersInfo)
+}
+
+// CheckHeadersSequenceCorrectness -
+func (mp *metaProcessor) CheckHeadersSequenceCorrectness(hdrsForShard []ShardHeaderInfo, lastNotarizedHeaderInfoForShard ShardHeaderInfo) error {
+	return mp.checkHeadersSequenceCorrectness(hdrsForShard, lastNotarizedHeaderInfoForShard)
 }
 
 // CheckShardHeadersValidityAndFinalityProposal -
