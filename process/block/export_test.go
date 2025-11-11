@@ -12,8 +12,6 @@ import (
 	"github.com/multiversx/mx-chain-core-go/display"
 	"github.com/multiversx/mx-chain-core-go/hashing"
 	"github.com/multiversx/mx-chain-core-go/marshal"
-	"github.com/multiversx/mx-chain-go/state/disabled"
-	"github.com/multiversx/mx-chain-go/testscommon/processMocks"
 
 	"github.com/multiversx/mx-chain-go/common"
 	"github.com/multiversx/mx-chain-go/common/configs"
@@ -30,6 +28,7 @@ import (
 	"github.com/multiversx/mx-chain-go/process/missingData"
 	"github.com/multiversx/mx-chain-go/process/mock"
 	"github.com/multiversx/mx-chain-go/state"
+	"github.com/multiversx/mx-chain-go/state/disabled"
 	"github.com/multiversx/mx-chain-go/testscommon"
 	"github.com/multiversx/mx-chain-go/testscommon/dblookupext"
 	"github.com/multiversx/mx-chain-go/testscommon/economicsmocks"
@@ -38,6 +37,7 @@ import (
 	"github.com/multiversx/mx-chain-go/testscommon/factory"
 	"github.com/multiversx/mx-chain-go/testscommon/hashingMocks"
 	"github.com/multiversx/mx-chain-go/testscommon/outport"
+	"github.com/multiversx/mx-chain-go/testscommon/processMocks"
 	"github.com/multiversx/mx-chain-go/testscommon/shardingMocks"
 	stateMock "github.com/multiversx/mx-chain-go/testscommon/state"
 	statusHandlerMock "github.com/multiversx/mx-chain-go/testscommon/statusHandler"
@@ -832,6 +832,13 @@ func (mp *metaProcessor) CheckEpochCorrectnessV3(
 	headerHandler data.MetaHeaderHandler,
 ) error {
 	return mp.checkEpochCorrectnessV3(headerHandler)
+}
+
+// CheckShardHeadersValidityAndFinalityProposal -
+func (mp *metaProcessor) CheckShardHeadersValidityAndFinalityProposal(
+	metaHeaderHandler data.MetaHeaderHandler,
+) error {
+	return mp.checkShardHeadersValidityAndFinalityProposal(metaHeaderHandler)
 }
 
 // GetLastExecutionResultsRootHash -
