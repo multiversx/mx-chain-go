@@ -14,6 +14,8 @@ import (
 	apiCore "github.com/multiversx/mx-chain-core-go/data/api"
 	"github.com/multiversx/mx-chain-core-go/data/block"
 	"github.com/multiversx/mx-chain-core-go/data/transaction"
+	"github.com/stretchr/testify/require"
+
 	"github.com/multiversx/mx-chain-go/common"
 	"github.com/multiversx/mx-chain-go/config"
 	csUtils "github.com/multiversx/mx-chain-go/integrationTests/chainSimulator"
@@ -22,7 +24,6 @@ import (
 	"github.com/multiversx/mx-chain-go/node/chainSimulator/configs"
 	"github.com/multiversx/mx-chain-go/node/chainSimulator/dtos"
 	"github.com/multiversx/mx-chain-go/sharding/nodesCoordinator"
-	"github.com/stretchr/testify/require"
 )
 
 const (
@@ -56,12 +57,23 @@ func TestRewardsAfterAndromedaWithTxs(t *testing.T) {
 		PathToInitialConfig:            defaultPathToInitialConfig,
 		NumOfShards:                    numOfShards,
 		RoundDurationInMillis:          roundDurationInMillis,
-		SupernovaRoundDurationInMillis: roundDurationInMillis,
+		SupernovaRoundDurationInMillis: roundDurationInMillis / 10,
 		RoundsPerEpoch:                 roundsPerEpoch,
 		SupernovaRoundsPerEpoch:        supernovaRoundsPerEpochOpt,
 		ApiInterface:                   api.NewNoApiInterface(),
 		MinNodesPerShard:               3,
 		MetaChainMinNodes:              3,
+		AlterConfigsFunction: func(cfg *config.Configs) {
+			cfg.EpochConfig.EnableEpochs.SupernovaEnableEpoch = 10
+			cfg.RoundConfig.RoundActivations = map[string]config.ActivationRoundByName{
+				"DisableAsyncCallV1": {
+					Round: "9999999",
+				},
+				"SupernovaEnableRound": {
+					Round: "1000",
+				},
+			}
+		},
 	})
 	require.Nil(t, err)
 	require.NotNil(t, cs)

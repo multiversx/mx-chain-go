@@ -12,9 +12,10 @@ import (
 	"github.com/multiversx/mx-chain-core-go/core"
 	apiData "github.com/multiversx/mx-chain-core-go/data/api"
 	"github.com/multiversx/mx-chain-core-go/data/transaction"
-	"github.com/multiversx/mx-chain-go/integrationTests"
 	logger "github.com/multiversx/mx-chain-logger-go"
 	"github.com/stretchr/testify/require"
+
+	"github.com/multiversx/mx-chain-go/integrationTests"
 
 	"github.com/multiversx/mx-chain-go/common"
 	"github.com/multiversx/mx-chain-go/config"
@@ -111,13 +112,13 @@ func testRelayedV3MoveBalance(
 			cfg.EpochConfig.EnableEpochs.RelayedTransactionsV3EnableEpoch = providedActivationEpoch
 			cfg.EpochConfig.EnableEpochs.RelayedTransactionsV3FixESDTTransferEnableEpoch = providedActivationEpoch
 
-			cfg.EpochConfig.EnableEpochs.SupernovaEnableEpoch = 10
+			cfg.EpochConfig.EnableEpochs.SupernovaEnableEpoch = 0
 			cfg.RoundConfig.RoundActivations = map[string]config.ActivationRoundByName{
 				"DisableAsyncCallV1": {
-					Round: "0",
+					Round: "9999999",
 				},
 				"SupernovaEnableRound": {
-					Round: "10000",
+					Round: "0",
 				},
 			}
 		}
