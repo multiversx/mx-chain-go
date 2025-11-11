@@ -2921,3 +2921,42 @@ func (bp *baseProcessor) revertGasForCrossShardDstMeMiniBlocks(added, pending []
 
 	bp.gasComputation.RevertIncomingMiniBlocks(miniBlockHashesToRevert)
 }
+
+func (bp *baseProcessor) setCurrentBlockInfo(
+	header data.HeaderHandler,
+	headerHash []byte,
+	rootHash []byte,
+) error {
+	if header.IsHeaderV3() {
+		// last executed info and header will be set on headers executor in async mode
+		return bp.blockChain.SetCurrentBlockHeader(header)
+	}
+
+	err := bp.blockChain.SetCurrentBlockHeaderAndRootHash(header, rootHash)
+	if err != nil {
+		return err
+	}
+
+	// set also last executed block info and header
+	// this will be useful at transition to Supernova with headers v3
+	bp.blockChain.SetLastExecutedBlockHeaderAndRootHash(header, headerHash, rootHash)
+
+	return nil
+}
+
+func (bp *baseProcessor) getLastExecutedRootHash(
+	header data.HeaderHandler,
+) []byte {
+	rootHash := bp.getRootHash()
+	if !header.IsHeaderV3() {
+		return rootHash
+	}
+
+	lastExecutionResult, err := common.GetLastBaseExecutionResultHandler(header)
+	if err != nil {
+		log.Warn("failed to get last execution result for header", "err", err)
+		return rootHash
+	}
+
+	return lastExecutionResult.GetRootHash()
+}

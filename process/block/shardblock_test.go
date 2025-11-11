@@ -6663,17 +6663,38 @@ func TestShardProcessor_GetLastExecutionResultHeader(t *testing.T) {
 	})
 }
 
-func TestShardProcessor_GetLastExecutionResultsRootHash(t *testing.T) {
+func TestShardProcessor_GetLastExecutedRootHash(t *testing.T) {
 	t.Parallel()
 
-	t.Run("before header v3, should return provided root hash", func(t *testing.T) {
+	t.Run("before header v3, should return root hash from accounts db", func(t *testing.T) {
 		t.Parallel()
 
 		rootHash := []byte("rootHash1")
 
 		header := &block.HeaderV2{}
 
-		retRootHash := blproc.GetLastExecutionResultsRootHash(header, rootHash)
+		arguments := CreateMockArguments(createComponentHolderMocks())
+		arguments.DataComponents = &mock.DataComponentsMock{
+			Storage:    initStore(),
+			DataPool:   initDataPool(),
+			BlockChain: arguments.DataComponents.Blockchain(),
+		}
+
+		accountsDb := make(map[state.AccountsDbIdentifier]state.AccountsAdapter)
+		accounts := &stateMock.AccountsStub{
+			RootHashCalled: func() ([]byte, error) {
+				return rootHash, nil
+			},
+			RecreateTrieIfNeededCalled: func(options common.RootHashHolder) error {
+				return nil
+			},
+		}
+		accountsDb[state.UserAccountsState] = accounts
+
+		arguments.AccountsDB = accountsDb
+
+		sp, _ := blproc.NewShardProcessor(arguments)
+		retRootHash := sp.GetLastExecutedRootHash(header)
 		require.Equal(t, rootHash, retRootHash)
 	})
 
@@ -6691,7 +6712,26 @@ func TestShardProcessor_GetLastExecutionResultsRootHash(t *testing.T) {
 			},
 		}
 
-		retRootHash := blproc.GetLastExecutionResultsRootHash(header, rootHash1)
+		arguments := CreateMockArguments(createComponentHolderMocks())
+		arguments.DataComponents = &mock.DataComponentsMock{
+			Storage:    initStore(),
+			DataPool:   initDataPool(),
+			BlockChain: arguments.DataComponents.Blockchain(),
+		}
+
+		accountsDb := make(map[state.AccountsDbIdentifier]state.AccountsAdapter)
+		accounts := &stateMock.AccountsStub{
+			RootHashCalled: func() ([]byte, error) {
+				return rootHash1, nil
+			},
+			RecreateTrieIfNeededCalled: func(options common.RootHashHolder) error {
+				return nil
+			},
+		}
+		accountsDb[state.UserAccountsState] = accounts
+
+		sp, _ := blproc.NewShardProcessor(arguments)
+		retRootHash := sp.GetLastExecutedRootHash(header)
 		require.Equal(t, rootHash2, retRootHash)
 	})
 }
