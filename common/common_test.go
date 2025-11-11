@@ -486,15 +486,13 @@ func TestPrettifyStruct(t *testing.T) {
 	t.Run("with headers V3", func(t *testing.T) {
 		t.Parallel()
 
-		header := block.HeaderV3{}
-		var hdr data.HeaderHandler = &header
+		var hdr data.HeaderHandler = &block.HeaderV3{}
 		prettified, err := common.PrettifyStruct(hdr)
 		require.NoError(t, err)
 		t.Log("HeaderV3", prettified)
 
-		meta := block.MetaBlockV3{}
-		hdr = &meta
-		prettified, err = common.PrettifyStruct(meta)
+		hdr = &block.MetaBlockV3{}
+		prettified, err = common.PrettifyStruct(hdr)
 		require.NoError(t, err)
 		t.Log("MetaBlockV3", prettified)
 	})
