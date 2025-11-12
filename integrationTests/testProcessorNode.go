@@ -3728,8 +3728,6 @@ func CreateEnableEpochsConfig() config.EnableEpochs {
 		SCProcessorV2EnableEpoch:                          UnreachableEpoch,
 		FixRelayedBaseCostEnableEpoch:                     UnreachableEpoch,
 		FixRelayedMoveBalanceToNonPayableSCEnableEpoch:    UnreachableEpoch,
-		AndromedaEnableEpoch:                              UnreachableEpoch,
-		SupernovaEnableEpoch:                              UnreachableEpoch,
 	}
 }
 
