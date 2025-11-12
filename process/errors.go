@@ -477,6 +477,9 @@ var ErrInvalidCacheRefreshIntervalInSec = errors.New("invalid cacheRefreshInterv
 // ErrEpochDoesNotMatch signals that epoch does not match between headers
 var ErrEpochDoesNotMatch = errors.New("epoch does not match")
 
+// ErrStartOfEpochExecutionResultsDoNotExist signals that the start of epoch execution results do not exist
+var ErrStartOfEpochExecutionResultsDoNotExist = errors.New("start of epoch execution results do not exist")
+
 // ErrOverallBalanceChangeFromSC signals that all sumed balance changes are not zero
 var ErrOverallBalanceChangeFromSC = errors.New("SC output balance updates are wrong")
 
