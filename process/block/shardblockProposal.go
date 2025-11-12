@@ -575,6 +575,8 @@ func (sp *shardProcessor) selectIncomingMiniBlocks(
 		}
 	}
 
+	go sp.requestHeadersFromHeaderIfNeeded(lastMeta)
+
 	return pendingMiniBlocks, nil
 }
 
