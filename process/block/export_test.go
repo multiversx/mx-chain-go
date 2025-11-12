@@ -842,11 +842,10 @@ func (mp *metaProcessor) CheckShardHeadersValidityAndFinalityProposal(
 }
 
 // GetLastExecutionResultsRootHash -
-func GetLastExecutionResultsRootHash(
+func (bp *baseProcessor) GetLastExecutedRootHash(
 	header data.HeaderHandler,
-	committedRootHash []byte,
 ) []byte {
-	return getLastExecutionResultsRootHash(header, committedRootHash)
+	return bp.getLastExecutedRootHash(header)
 }
 
 // GetHaveTimeForProposal -
