@@ -22,12 +22,6 @@ type usedShardHeadersInfo struct {
 	orderedShardHeaderHashes [][]byte
 }
 
-// Comparable defines an interface for comparing two objects
-type Comparable interface {
-	Equal(that interface{}) bool
-	IsInterfaceNil() bool
-}
-
 // CreateNewHeaderProposal creates a new header
 func (mp *metaProcessor) CreateNewHeaderProposal(round uint64, nonce uint64) (data.HeaderHandler, error) {
 	// TODO: the trigger would need to be changed upon commit of a block with the epoch start results
