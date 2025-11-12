@@ -1562,8 +1562,8 @@ func (mp *metaProcessor) getLastSelfNotarizedHeaderByShard(
 				continue
 			}
 
-			if metaHeader.Nonce > maxNotarizedNonce {
-				maxNotarizedNonce = metaHeader.Nonce
+			if metaHeader.GetNonce() > maxNotarizedNonce {
+				maxNotarizedNonce = metaHeader.GetNonce()
 				lastNotarizedMetaHeader = metaHeader
 				lastNotarizedMetaHeaderHash = metaHash
 			}
