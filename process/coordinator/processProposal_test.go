@@ -252,7 +252,7 @@ func TestTransactionCoordinator_CreateMbsCrossShardDstMe_MiniBlockProcessing_Wit
 	}
 
 	tc.gasComputation = &testscommon.GasComputationMock{
-		CheckIncomingMiniBlocksCalled: func(miniBlocks []data.MiniBlockHeaderHandler, transactions map[string][]data.TransactionHandler) (int, int, error) {
+		AddIncomingMiniBlocksCalled: func(miniBlocks []data.MiniBlockHeaderHandler, transactions map[string][]data.TransactionHandler) (int, int, error) {
 			return 0, 0, errors.New("gas computation error")
 		},
 	}
@@ -316,7 +316,7 @@ func TestTransactionCoordinator_CreateMbsCrossShardDstMe_MiniBlockProcessing_Wit
 	}
 
 	tc.gasComputation = &testscommon.GasComputationMock{
-		CheckIncomingMiniBlocksCalled: func(miniBlocks []data.MiniBlockHeaderHandler, transactions map[string][]data.TransactionHandler) (int, int, error) {
+		AddIncomingMiniBlocksCalled: func(miniBlocks []data.MiniBlockHeaderHandler, transactions map[string][]data.TransactionHandler) (int, int, error) {
 			return 0, 1, nil // last mb added index is 0, so only first mini block is added, num pendings miniblocks is 1, so the second is pending
 		},
 	}
@@ -625,7 +625,7 @@ func TestTransactionCoordinator_SelectOutgoingTransactions_HandlesNilPreprocesso
 	require.Equal(t, 0, len(txHashes))
 }
 
-func TestTransactionCoordinator_SelectOutgoingTransactions_CheckOutgoingTransactionsError(t *testing.T) {
+func TestTransactionCoordinator_SelectOutgoingTransactions_AddOutgoingTransactionsError(t *testing.T) {
 	t.Parallel()
 
 	ph := dataRetrieverMock.NewPoolsHolderMock()
@@ -647,8 +647,8 @@ func TestTransactionCoordinator_SelectOutgoingTransactions_CheckOutgoingTransact
 	// Add both block types to the keys
 	tc.preProcProposal.keysTxPreProcs = []block.Type{block.TxBlock, block.SmartContractResultBlock}
 	tc.gasComputation = &testscommon.GasComputationMock{
-		CheckOutgoingTransactionsCalled: func(txHashes [][]byte, transactions []data.TransactionHandler) ([][]byte, []data.MiniBlockHeaderHandler, error) {
-			return nil, nil, errors.New("test error in CheckOutgoingTransactions")
+		AddOutgoingTransactionsCalled: func(txHashes [][]byte, transactions []data.TransactionHandler) ([][]byte, []data.MiniBlockHeaderHandler, error) {
+			return nil, nil, errors.New("test error in AddOutgoingTransactions")
 		},
 	}
 

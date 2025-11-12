@@ -12,8 +12,6 @@ import (
 	"github.com/multiversx/mx-chain-core-go/display"
 	"github.com/multiversx/mx-chain-core-go/hashing"
 	"github.com/multiversx/mx-chain-core-go/marshal"
-	"github.com/multiversx/mx-chain-go/state/disabled"
-	"github.com/multiversx/mx-chain-go/testscommon/processMocks"
 
 	"github.com/multiversx/mx-chain-go/common"
 	"github.com/multiversx/mx-chain-go/common/configs"
@@ -30,6 +28,7 @@ import (
 	"github.com/multiversx/mx-chain-go/process/missingData"
 	"github.com/multiversx/mx-chain-go/process/mock"
 	"github.com/multiversx/mx-chain-go/state"
+	"github.com/multiversx/mx-chain-go/state/disabled"
 	"github.com/multiversx/mx-chain-go/testscommon"
 	"github.com/multiversx/mx-chain-go/testscommon/dblookupext"
 	"github.com/multiversx/mx-chain-go/testscommon/economicsmocks"
@@ -38,11 +37,15 @@ import (
 	"github.com/multiversx/mx-chain-go/testscommon/factory"
 	"github.com/multiversx/mx-chain-go/testscommon/hashingMocks"
 	"github.com/multiversx/mx-chain-go/testscommon/outport"
+	"github.com/multiversx/mx-chain-go/testscommon/processMocks"
 	"github.com/multiversx/mx-chain-go/testscommon/shardingMocks"
 	stateMock "github.com/multiversx/mx-chain-go/testscommon/state"
 	statusHandlerMock "github.com/multiversx/mx-chain-go/testscommon/statusHandler"
 	storageStubs "github.com/multiversx/mx-chain-go/testscommon/storage"
 )
+
+// UsedShardHeadersInfo -
+type UsedShardHeadersInfo = usedShardHeadersInfo
 
 // ComputeHeaderHash -
 func (bp *baseProcessor) ComputeHeaderHash(hdr data.HeaderHandler) ([]byte, error) {
@@ -822,6 +825,38 @@ func (sp *shardProcessor) GetLastExecutionResultHeader(
 	return sp.getLastExecutionResultHeader(currentHeader)
 }
 
+// HasExecutionResultsForProposedEpochChange -
+func (mp *metaProcessor) HasExecutionResultsForProposedEpochChange(headerHandler data.MetaHeaderHandler) (bool, error) {
+	return mp.hasExecutionResultsForProposedEpochChange(headerHandler)
+}
+
+// CheckEpochCorrectnessV3 -
+func (mp *metaProcessor) CheckEpochCorrectnessV3(
+	headerHandler data.MetaHeaderHandler,
+) error {
+	return mp.checkEpochCorrectnessV3(headerHandler)
+}
+
+// CheckShardInfoValidity -
+func (mp *metaProcessor) CheckShardInfoValidity(
+	metaHeaderHandler data.MetaHeaderHandler,
+	usedShardHeadersInfo *usedShardHeadersInfo,
+) error {
+	return mp.checkShardInfoValidity(metaHeaderHandler, usedShardHeadersInfo)
+}
+
+// CheckHeadersSequenceCorrectness -
+func (mp *metaProcessor) CheckHeadersSequenceCorrectness(hdrsForShard []ShardHeaderInfo, lastNotarizedHeaderInfoForShard ShardHeaderInfo) error {
+	return mp.checkHeadersSequenceCorrectness(hdrsForShard, lastNotarizedHeaderInfoForShard)
+}
+
+// CheckShardHeadersValidityAndFinalityProposal -
+func (mp *metaProcessor) CheckShardHeadersValidityAndFinalityProposal(
+	metaHeaderHandler data.MetaHeaderHandler,
+) error {
+	return mp.checkShardHeadersValidityAndFinalityProposal(metaHeaderHandler)
+}
+
 // GetLastExecutionResultsRootHash -
 func (bp *baseProcessor) GetLastExecutedRootHash(
 	header data.HeaderHandler,
@@ -842,6 +877,16 @@ func ConstructPartialShardBlockProcessorForTest(subcomponents map[string]interfa
 		return nil, err
 	}
 	return sp, err
+}
+
+// ConstructPartialMetaBlockProcessorForTest -
+func ConstructPartialMetaBlockProcessorForTest(subcomponents map[string]interface{}) (*metaProcessor, error) {
+	mp := &metaProcessor{}
+	err := factory.ConstructPartialComponentForTest(mp, subcomponents)
+	if err != nil {
+		return nil, err
+	}
+	return mp, err
 }
 
 // SetEpochStartData -

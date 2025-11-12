@@ -78,6 +78,7 @@ type MissingDataResolver interface {
 	RequestBlockTransactions(body *block.Body)
 	RequestMiniBlocksAndTransactions(header data.HeaderHandler)
 	GetFinalCrossMiniBlockInfoAndRequestMissing(header data.HeaderHandler) []*data.MiniBlockInfo
+	RequestMissingShardHeaders(metaHeader data.MetaHeaderHandler) error
 	Reset()
 	IsInterfaceNil() bool
 }
