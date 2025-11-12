@@ -215,6 +215,7 @@ func CreateCoreComponents(args ArgsCoreComponentsHolder) (*coreComponentsHolder,
 		"startTime", instance.genesisNodesSetup.GetStartTime(),
 		"nodesSetup start time", nodesSetup.StartTime,
 	)
+	instance.genesisTime = time.Unix(instance.genesisNodesSetup.GetStartTime(), 0)
 
 	instance.roundNotifier = forking.NewGenericRoundNotifier()
 	instance.enableRoundsHandler, err = enablers.NewEnableRoundsHandler(args.RoundsConfig, instance.roundNotifier)
