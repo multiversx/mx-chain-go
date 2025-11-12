@@ -214,7 +214,11 @@ func (context *TestContext) initFeeHandlers() {
 	minGasPrice := strconv.FormatUint(1, 10)
 	minGasLimit := strconv.FormatUint(1, 10)
 	testProtocolSustainabilityAddress := "erd1932eft30w753xyvme8d49qejgkjc09n5e49w4mwdjtm0neld797su0dlxp"
+	cfg := &config.Config{EpochStartConfig: config.EpochStartConfig{RoundsPerEpoch: 14400}}
+	cfg.GeneralSettings.ChainParametersByEpoch = []config.ChainParametersByEpochConfig{{RoundDuration: 6000}}
+
 	argsNewEconomicsData := economics.ArgsNewEconomicsData{
+		GeneralConfig: cfg,
 		Economics: &config.EconomicsConfig{
 			GlobalSettings: config.GlobalSettings{
 				GenesisTotalSupply: "2000000000000000000000",

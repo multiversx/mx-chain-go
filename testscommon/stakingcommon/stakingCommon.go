@@ -232,8 +232,11 @@ func CreateEconomicsData() process.EconomicsDataHandler {
 	maxGasLimitPerBlock := strconv.FormatUint(1500000000, 10)
 	minGasPrice := strconv.FormatUint(10, 10)
 	minGasLimit := strconv.FormatUint(10, 10)
+	cfg := &config.Config{EpochStartConfig: config.EpochStartConfig{RoundsPerEpoch: 14400}}
+	cfg.GeneralSettings.ChainParametersByEpoch = []config.ChainParametersByEpochConfig{{RoundDuration: 6000}}
 
 	argsNewEconomicsData := economicsHandler.ArgsNewEconomicsData{
+		GeneralConfig: cfg,
 		Economics: &config.EconomicsConfig{
 			GlobalSettings: config.GlobalSettings{
 				GenesisTotalSupply: "2000000000000000000000",

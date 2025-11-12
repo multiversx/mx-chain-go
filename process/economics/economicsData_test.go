@@ -105,7 +105,10 @@ func createArgsForEconomicsData(gasModifier float64) economics.ArgsNewEconomicsD
 	feeSettings := feeSettingsDummy(gasModifier)
 	pkConv, _ := pubkeyConverter.NewBech32PubkeyConverter(32, "erd")
 	shardC, _ := sharding.NewMultiShardCoordinator(2, 0)
+	cfg := &config.Config{EpochStartConfig: config.EpochStartConfig{RoundsPerEpoch: 14400}}
+	cfg.GeneralSettings.ChainParametersByEpoch = []config.ChainParametersByEpochConfig{{RoundDuration: 6000}}
 	args := economics.ArgsNewEconomicsData{
+		GeneralConfig: cfg,
 		Economics:     createDummyEconomicsConfig(feeSettings),
 		EpochNotifier: &epochNotifier.EpochNotifierStub{},
 		EnableEpochsHandler: &enableEpochsHandlerMock.EnableEpochsHandlerStub{
@@ -124,7 +127,10 @@ func createArgsForEconomicsDataRealFees() economics.ArgsNewEconomicsData {
 	feeSettings := feeSettingsReal()
 	pkConv, _ := pubkeyConverter.NewBech32PubkeyConverter(32, "erd")
 	shardC, _ := sharding.NewMultiShardCoordinator(2, 0)
+	cfg := &config.Config{EpochStartConfig: config.EpochStartConfig{RoundsPerEpoch: 14400}}
+	cfg.GeneralSettings.ChainParametersByEpoch = []config.ChainParametersByEpochConfig{{RoundDuration: 6000}}
 	args := economics.ArgsNewEconomicsData{
+		GeneralConfig: cfg,
 		Economics:     createDummyEconomicsConfig(feeSettings),
 		EpochNotifier: &epochNotifier.EpochNotifierStub{},
 		EnableEpochsHandler: &enableEpochsHandlerMock.EnableEpochsHandlerStub{

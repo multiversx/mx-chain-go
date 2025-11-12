@@ -18,11 +18,16 @@ type globalSettingsHandler struct {
 	mutYearSettings              sync.RWMutex
 }
 
-const numberOfDaysInYear = 365.0
+var numMillisecondsPerSeconds = uint64(1000)
+var numSecondsPerMinute = uint64(60)
+var numMinutesPerHour = uint64(60)
+var numHoursPerDay = uint64(24)
+var numDaysInYear = uint64(365)
 
 // newGlobalSettingsHandler creates a new global settings provider
 func newGlobalSettingsHandler(
 	economics *config.EconomicsConfig,
+	generalConfig *config.Config,
 ) (*globalSettingsHandler, error) {
 	g := &globalSettingsHandler{
 		minInflation:                 economics.GlobalSettings.MinimumInflation,
@@ -41,7 +46,10 @@ func newGlobalSettingsHandler(
 		}
 	}
 
-	g.calculateInflationForEpochCompound()
+	err := g.calculateInflationForEpochCompound(generalConfig)
+	if err != nil {
+		return nil, err
+	}
 
 	if isPercentageInvalid(g.minInflation) ||
 		isPercentageInvalid(g.startYearInflation) ||
@@ -53,8 +61,25 @@ func newGlobalSettingsHandler(
 	return g, nil
 }
 
-func (g *globalSettingsHandler) calculateInflationForEpochCompound() {
-	g.inflationForEpochCompound = numberOfDaysInYear * (math.Pow(1.0+g.startYearInflation, 1.0/numberOfDaysInYear) - 1)
+// TODO integrate supernova components here to calculate correctly after the transition as the config changed
+func (g *globalSettingsHandler) calculateInflationForEpochCompound(generalConfig *config.Config) error {
+	roundsPerEpoch := uint64(generalConfig.EpochStartConfig.RoundsPerEpoch)
+	if len(generalConfig.GeneralSettings.ChainParametersByEpoch) == 0 {
+		return process.ErrInvalidChainParameters
+	}
+	roundDuration := generalConfig.GeneralSettings.ChainParametersByEpoch[0].RoundDuration
+
+	numberOfMillisecondsInYear := numMillisecondsPerSeconds * numSecondsPerMinute * numMinutesPerHour * numHoursPerDay * numDaysInYear
+	epochDurationInMilliseconds := roundDuration * roundsPerEpoch
+
+	if epochDurationInMilliseconds == 0 {
+		return process.ErrZeroDurationForEpoch
+	}
+
+	numberOfEpochsPerYear := float64(numberOfMillisecondsInYear) / float64(epochDurationInMilliseconds)
+
+	g.inflationForEpochCompound = numberOfEpochsPerYear * (math.Pow(1.0+g.startYearInflation, 1.0/numberOfEpochsPerYear) - 1)
+	return nil
 }
 
 // TODO: implement decay, implement growth, calculations will change after supernova

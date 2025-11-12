@@ -1298,3 +1298,9 @@ var ErrInvalidRatingsConfig = errors.New("invalid ratings config")
 
 // ErrNilKeyRWMutexHandler signals that a nil KeyRWMutexHandler has been provided
 var ErrNilKeyRWMutexHandler = errors.New("nil key rw mutex handler")
+
+// ErrZeroDurationForEpoch signals that duration for epoch is zero
+var ErrZeroDurationForEpoch = errors.New("zero duration for epoch")
+
+// ErrInvalidChainParameters signals that invalid chain parameters has been provided
+var ErrInvalidChainParameters = errors.New("invalid chain parameters")

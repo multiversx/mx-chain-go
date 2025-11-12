@@ -48,7 +48,13 @@ func createGlobalSettingsHandler() *globalSettingsHandler {
 		FeeSettings: config.FeeSettings{},
 	}
 
-	gsh, _ := newGlobalSettingsHandler(&economics)
+	cfg := &config.Config{EpochStartConfig: config.EpochStartConfig{RoundsPerEpoch: 14400}}
+	cfg.GeneralSettings.ChainParametersByEpoch = []config.ChainParametersByEpochConfig{
+		{
+			RoundDuration: 6000,
+		},
+	}
+	gsh, _ := newGlobalSettingsHandler(&economics, cfg)
 	return gsh
 }
 
@@ -102,8 +108,8 @@ func TestGlobalSettingsMaxInflationRate_withSupply(t *testing.T) {
 	totalSupplyDay0 := 28781358.0 * oneToken
 	totalSupplyDay365Yearly := totalSupplyDay0 + totalSupplyDay0*gsh.startYearInflation
 
-	dailyRate := rate / numberOfDaysInYear
-	totalSupplyDay365Daily := totalSupplyDay0 * math.Pow(1+dailyRate, numberOfDaysInYear)
+	dailyRate := rate / float64(numDaysInYear)
+	totalSupplyDay365Daily := totalSupplyDay0 * math.Pow(1+dailyRate, float64(numDaysInYear))
 
 	require.True(t, totalSupplyDay365Yearly >= totalSupplyDay365Daily)
 	require.True(t, totalSupplyDay365Yearly-totalSupplyDay365Daily < oneToken)
