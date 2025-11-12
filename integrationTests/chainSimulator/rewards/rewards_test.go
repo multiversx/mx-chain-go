@@ -14,14 +14,16 @@ import (
 	apiCore "github.com/multiversx/mx-chain-core-go/data/api"
 	"github.com/multiversx/mx-chain-core-go/data/block"
 	"github.com/multiversx/mx-chain-core-go/data/transaction"
+	"github.com/stretchr/testify/require"
+
 	"github.com/multiversx/mx-chain-go/common"
+	"github.com/multiversx/mx-chain-go/config"
 	csUtils "github.com/multiversx/mx-chain-go/integrationTests/chainSimulator"
 	"github.com/multiversx/mx-chain-go/node/chainSimulator"
 	"github.com/multiversx/mx-chain-go/node/chainSimulator/components/api"
 	"github.com/multiversx/mx-chain-go/node/chainSimulator/configs"
 	"github.com/multiversx/mx-chain-go/node/chainSimulator/dtos"
 	"github.com/multiversx/mx-chain-go/sharding/nodesCoordinator"
-	"github.com/stretchr/testify/require"
 )
 
 const (
@@ -32,6 +34,124 @@ const (
 )
 
 func TestRewardsAfterAndromedaWithTxs(t *testing.T) {
+	if testing.Short() {
+		t.Skip("this is not a short test")
+	}
+
+	roundDurationInMillis := uint64(6000)
+	roundsPerEpoch := core.OptionalUint64{
+		HasValue: true,
+		Value:    200,
+	}
+	supernovaRoundsPerEpochOpt := core.OptionalUint64{
+		HasValue: true,
+		Value:    200,
+	}
+
+	numOfShards := uint32(3)
+
+	tempDir := t.TempDir()
+	cs, err := chainSimulator.NewChainSimulator(chainSimulator.ArgsChainSimulator{
+		BypassTxSignatureCheck:         true,
+		TempDir:                        tempDir,
+		PathToInitialConfig:            defaultPathToInitialConfig,
+		NumOfShards:                    numOfShards,
+		RoundDurationInMillis:          roundDurationInMillis,
+		SupernovaRoundDurationInMillis: roundDurationInMillis / 10,
+		RoundsPerEpoch:                 roundsPerEpoch,
+		SupernovaRoundsPerEpoch:        supernovaRoundsPerEpochOpt,
+		ApiInterface:                   api.NewNoApiInterface(),
+		MinNodesPerShard:               3,
+		MetaChainMinNodes:              3,
+		AlterConfigsFunction: func(cfg *config.Configs) {
+			cfg.EpochConfig.EnableEpochs.SupernovaEnableEpoch = 10
+			cfg.RoundConfig.RoundActivations = map[string]config.ActivationRoundByName{
+				"DisableAsyncCallV1": {
+					Round: "9999999",
+				},
+				"SupernovaEnableRound": {
+					Round: "1000",
+				},
+			}
+		},
+	})
+	require.Nil(t, err)
+	require.NotNil(t, cs)
+	defer cs.Close()
+
+	targetEpoch := 9
+	for i := 0; i < targetEpoch; i++ {
+		err = cs.ForceChangeOfEpoch()
+		require.Nil(t, err)
+	}
+
+	err = cs.GenerateBlocks(1)
+	require.Nil(t, err)
+
+	targetShardID := uint32(0)
+	numTxs := 10_000
+	txs := generateMoveBalance(t, cs, numTxs, targetShardID, targetShardID)
+
+	results, err := cs.SendTxsAndGenerateBlocksTilAreExecuted(txs, 10)
+	require.Nil(t, err)
+
+	blockWithTxsHash := results[0].BlockHash
+	blocksWithTxs, err := cs.GetNodeHandler(targetShardID).GetFacadeHandler().GetBlockByHash(blockWithTxsHash, apiCore.BlockQueryOptions{})
+	require.Nil(t, err)
+
+	prevRandSeed, _ := hex.DecodeString(blocksWithTxs.PrevRandSeed)
+	leader, _, err := cs.GetNodeHandler(targetShardID).GetProcessComponents().NodesCoordinator().ComputeConsensusGroup(prevRandSeed, blocksWithTxs.Round, 0, blocksWithTxs.Epoch)
+	require.Nil(t, err)
+
+	nodesSetupFile := path.Join(tempDir, "config", "nodesSetup.json")
+	validators, err := readValidatorsAndOwners(nodesSetupFile)
+	require.Nil(t, err)
+
+	err = cs.GenerateBlocks(210)
+	require.Nil(t, err)
+
+	metaBlock := getLastStartOfEpochBlock(t, cs, core.MetachainShardId)
+	require.NotNil(t, metaBlock)
+
+	leaderEncoded, _ := cs.GetNodeHandler(0).GetCoreComponents().ValidatorPubKeyConverter().Encode(leader.PubKey())
+	leaderOwnerBlockWithTxs := validators[leaderEncoded]
+
+	var anotherOwner string
+	found := false
+	for _, address := range validators {
+		if address != leaderOwnerBlockWithTxs {
+			anotherOwner = address
+			found = true
+		}
+	}
+	require.True(t, found)
+
+	rewardTxForLeader := getRewardTxForAddress(metaBlock, leaderOwnerBlockWithTxs)
+	require.NotNil(t, rewardTxForLeader)
+	anotherRewardTx := getRewardTxForAddress(metaBlock, anotherOwner)
+	require.NotNil(t, anotherRewardTx)
+
+	rewardTxValueLeaderWithTxs, _ := big.NewInt(0).SetString(rewardTxForLeader.Value, 10)
+	rewardTxValueAnotherOwner, _ := big.NewInt(0).SetString(anotherRewardTx.Value, 10)
+
+	coordinator := cs.GetNodeHandler(0).GetProcessComponents().NodesCoordinator()
+
+	rewardsPerShard, err := computeRewardsForShards(metaBlock, coordinator, validators)
+	require.Nil(t, err)
+
+	// diff should be equal with 0.1 * moveBalanceCost * num transactions
+	// diff = 0.1 * move balance gas limit * gas price * num transactions
+	diff := big.NewInt(0).Mul(big.NewInt(moveBalanceGasLimit*0.1), big.NewInt(gasPrice))
+	diff.Mul(diff, big.NewInt(int64(numTxs)))
+
+	// check reward tx value
+	require.Equal(t, rewardTxValueLeaderWithTxs, big.NewInt(0).Add(rewardTxValueAnotherOwner, diff))
+
+	// rewards for target shard should be rewards for another shard + diff
+	require.Equal(t, rewardsPerShard[targetShardID], big.NewInt(0).Add(rewardsPerShard[core.MetachainShardId], diff))
+}
+
+func TestRewardsAfterSupernovaWithTxs(t *testing.T) {
 	if testing.Short() {
 		t.Skip("this is not a short test")
 	}
@@ -55,6 +175,17 @@ func TestRewardsAfterAndromedaWithTxs(t *testing.T) {
 		ApiInterface:           api.NewNoApiInterface(),
 		MinNodesPerShard:       3,
 		MetaChainMinNodes:      3,
+		AlterConfigsFunction: func(cfg *config.Configs) {
+			cfg.EpochConfig.EnableEpochs.SupernovaEnableEpoch = 0
+			cfg.RoundConfig.RoundActivations = map[string]config.ActivationRoundByName{
+				"DisableAsyncCallV1": {
+					Round: "9999999",
+				},
+				"SupernovaEnableRound": {
+					Round: "0",
+				},
+			}
+		},
 	})
 	require.Nil(t, err)
 	require.NotNil(t, cs)
@@ -212,20 +343,26 @@ func TestRewardsTxsAfterAndromeda(t *testing.T) {
 		HasValue: true,
 		Value:    200,
 	}
+	supernovaRoundsPerEpochOpt := core.OptionalUint64{
+		HasValue: true,
+		Value:    2000,
+	}
 
 	numOfShards := uint32(3)
 
 	tempDir := t.TempDir()
 	cs, err := chainSimulator.NewChainSimulator(chainSimulator.ArgsChainSimulator{
-		BypassTxSignatureCheck: true,
-		TempDir:                tempDir,
-		PathToInitialConfig:    defaultPathToInitialConfig,
-		NumOfShards:            numOfShards,
-		RoundDurationInMillis:  roundDurationInMillis,
-		RoundsPerEpoch:         roundsPerEpoch,
-		ApiInterface:           api.NewNoApiInterface(),
-		MinNodesPerShard:       3,
-		MetaChainMinNodes:      3,
+		BypassTxSignatureCheck:         true,
+		TempDir:                        tempDir,
+		PathToInitialConfig:            defaultPathToInitialConfig,
+		NumOfShards:                    numOfShards,
+		RoundDurationInMillis:          roundDurationInMillis,
+		SupernovaRoundDurationInMillis: roundDurationInMillis / 10,
+		RoundsPerEpoch:                 roundsPerEpoch,
+		SupernovaRoundsPerEpoch:        supernovaRoundsPerEpochOpt,
+		ApiInterface:                   api.NewNoApiInterface(),
+		MinNodesPerShard:               3,
+		MetaChainMinNodes:              3,
 	})
 	require.Nil(t, err)
 	require.NotNil(t, cs)
