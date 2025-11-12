@@ -2766,7 +2766,9 @@ func TestShardProcessor_ProcessBlockProposal(t *testing.T) {
 
 		sp, _ := blproc.NewShardProcessor(args)
 
-		header := &block.HeaderV3{}
+		header := &block.HeaderV3{
+			Nonce: 1,
+		}
 		body := &block.Body{}
 		_, err := sp.ProcessBlockProposal(header, body)
 		require.Nil(t, err)
