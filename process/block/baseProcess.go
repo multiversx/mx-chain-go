@@ -63,6 +63,14 @@ type hashAndHdr struct {
 	hash []byte
 }
 
+type splitTxsResult struct {
+	incomingMiniBlocks        []data.MiniBlockHeaderHandler
+	outGoingMiniBlocks        []data.MiniBlockHeaderHandler
+	incomingTransactions      map[string][]data.TransactionHandler
+	outgoingTransactionHashes [][]byte
+	outgoingTransactions      []data.TransactionHandler
+}
+
 type baseProcessor struct {
 	shardCoordinator        sharding.Coordinator
 	nodesCoordinator        nodesCoordinator.NodesCoordinator
@@ -3007,4 +3015,125 @@ func (bp *baseProcessor) requestHeaderIfNeeded(
 	}
 
 	bp.requestHeaderByShardAndNonce(shardID, nonce)
+}
+
+func (bp *baseProcessor) verifyGasLimit(header data.HeaderHandler) error {
+	splitRes, err := bp.splitTransactionsForHeader(header)
+	if err != nil {
+		return err
+	}
+
+	err = bp.checkMetaOutgoingResults(header, splitRes)
+	if err != nil {
+		return err
+	}
+
+	bp.gasComputation.Reset()
+	_, numPendingMiniBlocks, err := bp.gasComputation.AddIncomingMiniBlocks(splitRes.incomingMiniBlocks, splitRes.incomingTransactions)
+	if err != nil {
+		return err
+	}
+
+	// for meta, both splitRes.outgoingTransactionHashes and splitRes.outgoingTransactions should be empty, checked on checkMetaOutgoingResults
+	addedTxHashes, pendingMiniBlocksAdded, err := bp.gasComputation.AddOutgoingTransactions(splitRes.outgoingTransactionHashes, splitRes.outgoingTransactions)
+	if err != nil {
+		return err
+	}
+	if len(addedTxHashes) != len(splitRes.outgoingTransactionHashes) {
+		return fmt.Errorf("%w, outgoing transactions exceeded the limit", process.ErrInvalidMaxGasLimitPerMiniBlock)
+	}
+
+	if numPendingMiniBlocks != len(pendingMiniBlocksAdded) {
+		return fmt.Errorf("%w, incoming mini blocks exceeded the limit", process.ErrInvalidMaxGasLimitPerMiniBlock)
+	}
+
+	return nil
+}
+
+func (bp *baseProcessor) checkMetaOutgoingResults(
+	header data.HeaderHandler,
+	splitRes *splitTxsResult,
+) error {
+	_, ok := header.(data.MetaHeaderHandler)
+	if !ok {
+		return nil
+	}
+
+	numOutGoingMBs := len(splitRes.outGoingMiniBlocks)
+	if numOutGoingMBs != 0 {
+		return fmt.Errorf("%w, received: %d", errInvalidNumOutGoingMBInMetaHdrProposal, numOutGoingMBs)
+	}
+
+	numOutGoingTxs := len(splitRes.outgoingTransactions)
+	if numOutGoingTxs != 0 {
+		return fmt.Errorf("%w in metaProcessor.verifyGasLimit, received: %d",
+			errInvalidNumOutGoingTxsInMetaHdrProposal,
+			numOutGoingTxs,
+		)
+	}
+
+	return nil
+}
+
+func (bp *baseProcessor) splitTransactionsForHeader(header data.HeaderHandler) (*splitTxsResult, error) {
+	incomingMiniBlocks := make([]data.MiniBlockHeaderHandler, 0)
+	outGoingMiniBlocks := make([]data.MiniBlockHeaderHandler, 0)
+	outgoingTransactionHashes := make([][]byte, 0)
+	incomingTransactions := make(map[string][]data.TransactionHandler)
+	outgoingTransactions := make([]data.TransactionHandler, 0)
+	for _, mb := range header.GetMiniBlockHeaderHandlers() {
+		txHashes, txsForMb, err := bp.getTransactionsForMiniBlock(mb)
+		if err != nil {
+			return nil, err
+		}
+
+		if mb.GetSenderShardID() == bp.shardCoordinator.SelfId() {
+			outgoingTransactionHashes = append(outgoingTransactionHashes, txHashes...)
+			outgoingTransactions = append(outgoingTransactions, txsForMb...)
+			outGoingMiniBlocks = append(outGoingMiniBlocks, mb)
+			continue
+		}
+
+		incomingMiniBlocks = append(incomingMiniBlocks, mb)
+		incomingTransactions[string(mb.GetHash())] = txsForMb
+	}
+
+	return &splitTxsResult{
+		incomingMiniBlocks:        incomingMiniBlocks,
+		outGoingMiniBlocks:        outGoingMiniBlocks,
+		incomingTransactions:      incomingTransactions,
+		outgoingTransactionHashes: outgoingTransactionHashes,
+		outgoingTransactions:      outgoingTransactions,
+	}, nil
+}
+
+func (bp *baseProcessor) getTransactionsForMiniBlock(
+	miniBlock data.MiniBlockHeaderHandler,
+) ([][]byte, []data.TransactionHandler, error) {
+	obj, hashInPool := bp.dataPool.MiniBlocks().Get(miniBlock.GetHash())
+	if !hashInPool {
+		return nil, nil, process.ErrMissingMiniBlock
+	}
+
+	mbForHeaderPtr, typeOk := obj.(*block.MiniBlock)
+	if !typeOk {
+		return nil, nil, process.ErrWrongTypeAssertion
+	}
+
+	txs := make([]data.TransactionHandler, len(mbForHeaderPtr.TxHashes))
+	var err error
+	for idx, txHash := range mbForHeaderPtr.TxHashes {
+		txs[idx], err = process.GetTransactionHandlerFromPool(
+			miniBlock.GetSenderShardID(),
+			miniBlock.GetReceiverShardID(),
+			txHash,
+			bp.dataPool.Transactions(),
+			process.SearchMethodSearchFirst,
+		)
+		if err != nil {
+			return nil, nil, err
+		}
+	}
+
+	return mbForHeaderPtr.TxHashes, txs, nil
 }
