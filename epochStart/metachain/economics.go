@@ -27,36 +27,6 @@ var _ process.EndOfEpochEconomics = (*economics)(nil)
 const numberOfDaysInYear = 365.0
 const numberOfSecondsInDay = 86400
 
-type metaBlockData struct {
-	epoch                  uint32
-	round                  uint64
-	accumulatedFeesInEpoch *big.Int
-	devFeesInEpoch         *big.Int
-}
-
-type metaBlockHandler interface {
-	GetEpoch() uint32
-	GetRound() uint64
-	GetDevFeesInEpoch() *big.Int
-	GetAccumulatedFeesInEpoch() *big.Int
-}
-
-func (m *metaBlockData) GetEpoch() uint32 {
-	return m.epoch
-}
-
-func (m *metaBlockData) GetRound() uint64 {
-	return m.round
-}
-
-func (m *metaBlockData) GetDevFeesInEpoch() *big.Int {
-	return m.devFeesInEpoch
-}
-
-func (m *metaBlockData) GetAccumulatedFeesInEpoch() *big.Int {
-	return m.accumulatedFeesInEpoch
-}
-
 type argsComputeEconomics struct {
 	metaBlock               metaBlockData
 	prevEpochStart          data.MetaHeaderHandler
@@ -148,6 +118,15 @@ func NewEndOfEpochEconomicsDataCreator(args ArgsNewEpochEconomics) (*economics, 
 func (e *economics) ComputeEndOfEpochEconomics(
 	metaBlock *block.MetaBlock,
 ) (*block.Economics, error) {
+	args, err := e.createLegacyEconomicsArgs(metaBlock)
+	if err != nil {
+		return nil, err
+	}
+
+	return e.baseComputeEconomics(args)
+}
+
+func (e *economics) createLegacyEconomicsArgs(metaBlock *block.MetaBlock) (*argsComputeEconomics, error) {
 	if check.IfNil(metaBlock) {
 		return nil, epochStart.ErrNilHeaderHandler
 	}
@@ -171,7 +150,7 @@ func (e *economics) ComputeEndOfEpochEconomics(
 		return nil, err
 	}
 
-	return e.baseComputeEconomics(&argsComputeEconomics{
+	return &argsComputeEconomics{
 		metaBlock: metaBlockData{
 			epoch:                  metaBlock.Epoch,
 			round:                  metaBlock.Round,
@@ -181,7 +160,7 @@ func (e *economics) ComputeEndOfEpochEconomics(
 		prevEpochStart:          prevEpochStart,
 		noncesPerShardPrevEpoch: noncesPerShardPrevEpoch,
 		noncesPerShardCurrEpoch: noncesPerShardCurrEpoch,
-	})
+	}, nil
 }
 
 func (e *economics) baseComputeEconomics(args *argsComputeEconomics) (*block.Economics, error) {
@@ -261,9 +240,9 @@ func (e *economics) baseComputeEconomics(args *argsComputeEconomics) (*block.Eco
 func (e *economics) ComputeEndOfEpochEconomicsV3(
 	metaBlock data.MetaHeaderHandler,
 	execResults data.BaseMetaExecutionResultHandler,
-	processedEpochStartMetaBlock data.MetaHeaderHandler,
+	epochStartHandler data.EpochStartHandler,
 ) (*block.Economics, error) {
-	args, err := e.createEconomicsV3Args(metaBlock, execResults, processedEpochStartMetaBlock)
+	args, err := e.createEconomicsV3Args(metaBlock, execResults, epochStartHandler)
 	if err != nil {
 		return nil, err
 	}
@@ -274,13 +253,13 @@ func (e *economics) ComputeEndOfEpochEconomicsV3(
 func (e *economics) createEconomicsV3Args(
 	metaBlock data.MetaHeaderHandler,
 	execResults data.BaseMetaExecutionResultHandler,
-	processedEpochStartMetaBlock data.MetaHeaderHandler,
+	epochStartHandler data.EpochStartHandler,
 ) (*argsComputeEconomics, error) {
 	if check.IfNil(metaBlock) {
 		return nil, process.ErrNilMetaBlockHeader
 	}
-	if check.IfNil(processedEpochStartMetaBlock) {
-		return nil, process.ErrNilMetaBlockHeader
+	if epochStartHandler == nil {
+		return nil, process.ErrNilEpochStartData
 	}
 	if check.IfNil(execResults) {
 		return nil, process.ErrNilExecutionResultHandler
@@ -295,21 +274,26 @@ func (e *economics) createEconomicsV3Args(
 	if !metaBlock.IsEpochChangeProposed() || metaBlock.GetEpoch() < e.genesisEpoch {
 		return nil, epochStart.ErrNotEpochStartBlock
 	}
+	if !bytes.Equal(metaBlock.GetPrevHash(), execResults.GetHeaderHash()) {
+		return nil, fmt.Errorf("%w in createEconomicsV3Args, metaBlock.GetPrevHash():%x, execResults.GetHeaderHash(): %x",
+			errHashMismatch, metaBlock.GetPrevHash(), execResults.GetHeaderHash())
+	}
 
 	noncesPerShardPrevEpoch, prevEpochStart, err := e.startNoncePerShardFromEpochStart(metaBlock.GetEpoch())
 	if err != nil {
 		return nil, err
 	}
 
-	noncesPerShardCurrEpoch, err := e.startNoncePerShardFromLastCrossNotarized(metaBlock.GetNonce(), processedEpochStartMetaBlock.GetEpochStartHandler())
+	noncesPerShardCurrEpoch, err := e.startNoncePerShardFromLastCrossNotarized(metaBlock.GetNonce(), epochStartHandler)
 	if err != nil {
 		return nil, err
 	}
 
 	return &argsComputeEconomics{
 		metaBlock: metaBlockData{
-			epoch:                  metaBlock.GetEpoch() + 1,
-			round:                  metaBlock.GetRound(),
+			epoch: metaBlock.GetEpoch() + 1, // meta block with proposed epoch change is for current epoch
+			round: metaBlock.GetRound(),
+			// use accumulated fees up until proposed epoch change block
 			accumulatedFeesInEpoch: execResults.GetAccumulatedFeesInEpoch(),
 			devFeesInEpoch:         execResults.GetDevFeesInEpoch(),
 		},
