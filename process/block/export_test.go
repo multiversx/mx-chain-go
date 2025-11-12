@@ -742,6 +742,15 @@ func (bp *baseProcessor) GetFinalBlockNonce(headerHandler data.HeaderHandler) ui
 	return bp.getFinalBlockNonce(headerHandler)
 }
 
+// RequestProofIfNeeded -
+func (bp *baseProcessor) RequestProofIfNeeded(
+	nonce uint64,
+	shardID uint32,
+	epoch uint32,
+) {
+	bp.requestProofIfNeeded(nonce, shardID, epoch)
+}
+
 // VerifyCrossShardMiniBlockDstMe -
 func (sp *shardProcessor) VerifyCrossShardMiniBlockDstMe(header data.ShardHeaderHandler) error {
 	return sp.verifyCrossShardMiniBlockDstMe(header)
@@ -862,6 +871,13 @@ func (bp *baseProcessor) GetLastExecutedRootHash(
 	header data.HeaderHandler,
 ) []byte {
 	return bp.getLastExecutedRootHash(header)
+}
+
+// RequestHeadersForShardIfNeeded -
+func (bp *baseProcessor) RequestHeadersFromHeaderIfNeeded(
+	lastHeader data.HeaderHandler,
+) {
+	bp.requestHeadersFromHeaderIfNeeded(lastHeader)
 }
 
 // GetHaveTimeForProposal -
