@@ -2483,13 +2483,15 @@ func TestMetaProcessor_checkEpochCorrectnessV3(t *testing.T) {
 	t.Run("should return error ErrEpochDoesNotMatch because of epoch not changed", func(t *testing.T) {
 		t.Parallel()
 
-		metaHeader := &block.MetaBlockV3{
-			Epoch: 1,
-			EpochStart: block.EpochStart{
-				LastFinalizedHeaders: []block.EpochStartShardData{
-					{}, {},
-				},
+		epochStartData := block.EpochStart{
+			LastFinalizedHeaders: []block.EpochStartShardData{
+				{}, {},
 			},
+		}
+
+		metaHeader := &block.MetaBlockV3{
+			Epoch:            1,
+			EpochStart:       epochStartData,
 			ExecutionResults: executionResults,
 		}
 
@@ -2522,6 +2524,7 @@ func TestMetaProcessor_checkEpochCorrectnessV3(t *testing.T) {
 			}},
 		})
 		require.Nil(t, err)
+		mp.SetEpochStartData(&epochStartData)
 
 		err = mp.CheckEpochCorrectnessV3(metaHeader)
 		require.Equal(t, process.ErrEpochDoesNotMatch, err)
@@ -2530,13 +2533,15 @@ func TestMetaProcessor_checkEpochCorrectnessV3(t *testing.T) {
 	t.Run("should return error ErrEpochDoesNotMatch because of epoch is discontinuous", func(t *testing.T) {
 		t.Parallel()
 
-		metaHeader := &block.MetaBlockV3{
-			Epoch: 3,
-			EpochStart: block.EpochStart{
-				LastFinalizedHeaders: []block.EpochStartShardData{
-					{}, {},
-				},
+		epochStartData := block.EpochStart{
+			LastFinalizedHeaders: []block.EpochStartShardData{
+				{}, {},
 			},
+		}
+
+		metaHeader := &block.MetaBlockV3{
+			Epoch:            3,
+			EpochStart:       epochStartData,
 			ExecutionResults: executionResults,
 		}
 
@@ -2569,6 +2574,7 @@ func TestMetaProcessor_checkEpochCorrectnessV3(t *testing.T) {
 			}},
 		})
 		require.Nil(t, err)
+		mp.SetEpochStartData(&epochStartData)
 
 		err = mp.CheckEpochCorrectnessV3(metaHeader)
 		require.Equal(t, process.ErrEpochDoesNotMatch, err)
@@ -2674,6 +2680,164 @@ func TestMetaProcessor_checkEpochCorrectnessV3(t *testing.T) {
 		require.Nil(t, err)
 
 		err = mp.CheckEpochCorrectnessV3(metaHeader)
+		require.Nil(t, err)
+	})
+}
+
+func TestMetaProcessor_checkShardInfoValidity(t *testing.T) {
+	t.Parallel()
+
+	t.Run("should return error from CreateShardInfoV3", func(t *testing.T) {
+		t.Parallel()
+
+		mp, err := blproc.ConstructPartialMetaBlockProcessorForTest(map[string]interface{}{
+			"shardInfoCreateData": &processMocks.ShardInfoCreatorMock{
+				CreateShardInfoV3Called: func(metaHeader data.MetaHeaderHandler, shardHeaders []data.HeaderHandler, shardHeaderHashes [][]byte) ([]data.ShardDataProposalHandler, []data.ShardDataHandler, error) {
+					return nil, nil, expectedErr
+				},
+			},
+		})
+		require.Nil(t, err)
+
+		err = mp.CheckShardInfoValidity(nil, &blproc.UsedShardHeadersInfo{})
+		require.ErrorContains(t, err, expectedErr.Error())
+	})
+
+	t.Run("should return ErrHeaderShardDataMismatch error", func(t *testing.T) {
+		t.Parallel()
+
+		mp, err := blproc.ConstructPartialMetaBlockProcessorForTest(map[string]interface{}{
+			"shardInfoCreateData": &processMocks.ShardInfoCreatorMock{
+				CreateShardInfoV3Called: func(metaHeader data.MetaHeaderHandler, shardHeaders []data.HeaderHandler, shardHeaderHashes [][]byte) ([]data.ShardDataProposalHandler, []data.ShardDataHandler, error) {
+					return nil, []data.ShardDataHandler{
+						&block.ShardData{},
+					}, nil
+				},
+			},
+		})
+		require.Nil(t, err)
+
+		err = mp.CheckShardInfoValidity(&block.MetaBlockV3{
+			ShardInfo: []block.ShardData{},
+		}, &blproc.UsedShardHeadersInfo{})
+
+		require.Equal(t, process.ErrHeaderShardDataMismatch, err)
+	})
+
+	t.Run("should return ErrHeaderShardDataMismatch error because of createdShardInfo", func(t *testing.T) {
+		t.Parallel()
+
+		mp, err := blproc.ConstructPartialMetaBlockProcessorForTest(map[string]interface{}{
+			"shardInfoCreateData": &processMocks.ShardInfoCreatorMock{
+				CreateShardInfoV3Called: func(metaHeader data.MetaHeaderHandler, shardHeaders []data.HeaderHandler, shardHeaderHashes [][]byte) ([]data.ShardDataProposalHandler, []data.ShardDataHandler, error) {
+					return nil, []data.ShardDataHandler{
+						&block.ShardData{
+							Nonce: 0,
+						},
+					}, nil
+				},
+			},
+		})
+		require.Nil(t, err)
+
+		err = mp.CheckShardInfoValidity(&block.MetaBlockV3{
+			ShardInfo: []block.ShardData{
+				{
+					Nonce: 2,
+				},
+			},
+		}, &blproc.UsedShardHeadersInfo{})
+
+		require.ErrorContains(t, err, process.ErrHeaderShardDataMismatch.Error())
+	})
+
+	t.Run("should return ErrHeaderShardDataMismatch error because of createdShardInfoProposal", func(t *testing.T) {
+		t.Parallel()
+
+		mp, err := blproc.ConstructPartialMetaBlockProcessorForTest(map[string]interface{}{
+			"shardInfoCreateData": &processMocks.ShardInfoCreatorMock{
+				CreateShardInfoV3Called: func(metaHeader data.MetaHeaderHandler, shardHeaders []data.HeaderHandler, shardHeaderHashes [][]byte) ([]data.ShardDataProposalHandler, []data.ShardDataHandler, error) {
+					return []data.ShardDataProposalHandler{
+							&block.ShardDataProposal{
+								Nonce: 0,
+							},
+						}, []data.ShardDataHandler{
+							&block.ShardData{
+								Nonce: 0,
+							},
+						}, nil
+				},
+			},
+		})
+		require.Nil(t, err)
+
+		err = mp.CheckShardInfoValidity(&block.MetaBlockV3{
+			ShardInfo: []block.ShardData{
+				{
+					Nonce: 0,
+				},
+			},
+			ShardInfoProposal: []block.ShardDataProposal{
+				{
+					Nonce: 2,
+				},
+			},
+		}, &blproc.UsedShardHeadersInfo{})
+
+		require.ErrorContains(t, err, process.ErrHeaderShardDataMismatch.Error())
+	})
+}
+
+func TestMetaProcessor_checkHeadersSequenceCorrectness(t *testing.T) {
+	t.Parallel()
+
+	t.Run("should return error from IsHeaderConstructionValid", func(t *testing.T) {
+		t.Parallel()
+
+		mp, err := blproc.ConstructPartialMetaBlockProcessorForTest(map[string]interface{}{
+			"headerValidator": &processMocks.HeaderValidatorMock{
+				IsHeaderConstructionValidCalled: func(currHdr, prevHdr data.HeaderHandler) error {
+					return expectedErr
+				},
+			},
+		})
+		require.Nil(t, err)
+
+		err = mp.CheckHeadersSequenceCorrectness([]blproc.ShardHeaderInfo{
+			{
+				Header: &block.Header{Nonce: 2},
+			},
+		}, blproc.ShardHeaderInfo{})
+		require.Equal(t, expectedErr, err)
+	})
+
+	t.Run("should work", func(t *testing.T) {
+		t.Parallel()
+
+		mp, err := blproc.ConstructPartialMetaBlockProcessorForTest(map[string]interface{}{
+			"headerValidator": &processMocks.HeaderValidatorMock{
+				IsHeaderConstructionValidCalled: func(currHdr, prevHdr data.HeaderHandler) error {
+					return nil
+				},
+			},
+			"blockChain": &testscommon.ChainHandlerStub{
+				GetCurrentBlockHeaderCalled: func() data.HeaderHandler {
+					return nil
+				},
+			},
+		})
+		require.Nil(t, err)
+
+		err = mp.CheckHeadersSequenceCorrectness([]blproc.ShardHeaderInfo{
+			{
+				Header: &block.Header{Nonce: 0},
+			},
+			{
+				Header: &block.Header{Nonce: 1},
+			},
+		}, blproc.ShardHeaderInfo{
+			Header: &block.Header{Nonce: 0},
+		})
 		require.Nil(t, err)
 	})
 }
