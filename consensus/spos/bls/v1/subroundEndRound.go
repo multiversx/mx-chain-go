@@ -393,7 +393,9 @@ func (sr *subroundEndRound) doEndRoundJobByLeader() bool {
 
 	// log the header output for debugging purposes
 	headerOutput, err := common.PrettifyStruct(sr.GetHeader())
-	if err == nil {
+	if err != nil {
+		log.Error("Proposed header committed v1", "error", err)
+	} else {
 		log.Debug("Proposed header committed v1", "header", headerOutput)
 	}
 
@@ -715,7 +717,9 @@ func (sr *subroundEndRound) doEndRoundJobByParticipant(cnsDta *consensus.Message
 
 	// log the header output for debugging purposes
 	headerOutput, err := common.PrettifyStruct(sr.GetHeader())
-	if err == nil {
+	if err != nil {
+		log.Error("Proposed header committed v1", "error", err)
+	} else {
 		log.Debug("Proposed header committed v1", "header", headerOutput)
 	}
 

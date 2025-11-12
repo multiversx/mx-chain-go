@@ -291,7 +291,9 @@ func (sr *subroundBlock) sendBlockHeader(
 
 	// log the header output for debugging purposes
 	headerOutput, err := common.PrettifyStruct(headerHandler)
-	if err == nil {
+	if err != nil {
+		log.Error("Proposed header sent", "error", err)
+	} else {
 		log.Debug("Proposed header sent", "header", headerOutput)
 	}
 
@@ -572,7 +574,9 @@ func (sr *subroundBlock) receivedBlockHeader(headerHandler data.HeaderHandler) {
 
 	// log the header output for debugging purposes
 	headerOutput, err := common.PrettifyStruct(headerHandler)
-	if err == nil {
+	if err != nil {
+		log.Error("Proposed header received", "error", err)
+	} else {
 		log.Debug("Proposed header received", "header", headerOutput)
 	}
 }

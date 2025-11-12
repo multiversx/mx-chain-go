@@ -486,13 +486,13 @@ func TestPrettifyStruct(t *testing.T) {
 	t.Run("with headers V3", func(t *testing.T) {
 		t.Parallel()
 
-		var hdr data.HeaderHandler = &block.HeaderV3{}
-		prettified, err := common.PrettifyStruct(hdr)
+		header := &block.HeaderV3{}
+		prettified, err := common.PrettifyStruct(header)
 		require.NoError(t, err)
 		t.Log("HeaderV3", prettified)
 
-		hdr = &block.MetaBlockV3{}
-		prettified, err = common.PrettifyStruct(hdr)
+		meta := &block.MetaBlockV3{}
+		prettified, err = common.PrettifyStruct(meta)
 		require.NoError(t, err)
 		t.Log("MetaBlockV3", prettified)
 	})
@@ -501,13 +501,11 @@ func TestPrettifyStruct(t *testing.T) {
 		t.Parallel()
 
 		header := createMockShardHeaderV3()
-		var hdr data.HeaderHandler = header
-		prettified, err := common.PrettifyStruct(hdr)
+		prettified, err := common.PrettifyStruct(header)
 		require.NoError(t, err)
 		t.Log("HeaderV3", prettified)
 
 		meta := createMockMetaHeaderV3()
-		hdr = meta
 		prettified, err = common.PrettifyStruct(meta)
 		require.NoError(t, err)
 		t.Log("MetaBlockV3", prettified)
@@ -845,7 +843,7 @@ func createMockShardHeaderV3() *block.HeaderV3 {
 			NotarizedInRound: hdrRound - 1,
 		},
 		ExecutionResults: []*block.ExecutionResult{
-			&block.ExecutionResult{
+			{
 				BaseExecutionResult: &block.BaseExecutionResult{
 					HeaderHash:  []byte("header hash"),
 					HeaderNonce: hdrNonce - 3,
@@ -854,7 +852,7 @@ func createMockShardHeaderV3() *block.HeaderV3 {
 					RootHash:    []byte("root hash"),
 				},
 			},
-			&block.ExecutionResult{
+			{
 				BaseExecutionResult: &block.BaseExecutionResult{
 					HeaderHash:  []byte("header hash"),
 					HeaderNonce: hdrNonce - 2,
@@ -863,7 +861,7 @@ func createMockShardHeaderV3() *block.HeaderV3 {
 					RootHash:    []byte("root hash"),
 				},
 			},
-			&block.ExecutionResult{
+			{
 				BaseExecutionResult: &block.BaseExecutionResult{
 					HeaderHash:  []byte("header hash"),
 					HeaderNonce: hdrNonce - 1,

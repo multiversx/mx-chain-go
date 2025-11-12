@@ -343,7 +343,9 @@ func (sr *subroundEndRound) finalizeConfirmedBlock() bool {
 
 	// log the header output for debugging purposes
 	headerOutput, err := common.PrettifyStruct(sr.GetHeader())
-	if err == nil {
+	if err != nil {
+		log.Debug("Proposed header committed", "error", err)
+	} else {
 		log.Debug("Proposed header committed", "header", headerOutput)
 	}
 
