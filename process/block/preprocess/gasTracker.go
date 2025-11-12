@@ -83,7 +83,9 @@ func (gt *gasTracker) RoundConfirmed(round uint64, _ uint64) {
 
 	// new limits and overestimation should be enabled once the Supernova round is active
 	gt.overEstimationFactor = gt.economicsFee.BlockCapacityOverestimationFactor()
-	gt.epochForLimits = gt.epochForLimits + 1 // we save prev epoch until round is enabled too
+	// epoch was previously held at (currentEpoch - 1) until the Supernova round activated.
+	// now that the round is active, we advance epochForLimits to the real epoch.
+	gt.epochForLimits = gt.epochForLimits + 1
 }
 
 // IsInterfaceNil returns true if there is no value under the interface
