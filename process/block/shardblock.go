@@ -1294,14 +1294,19 @@ func (sp *shardProcessor) getPreviousExecutionResult(index int, executionResults
 		return executionResultsHandlers[index-1], nil
 	}
 
-	prevHeaderHash := sp.blockChain.GetCurrentBlockHeader().GetPrevHash()
+	prevHeaderHash := sp.getCurrentBlockHeader().GetPrevHash()
 	prevHeader, err := process.GetShardHeader(prevHeaderHash, sp.dataPool.Headers(), sp.marshalizer, sp.store)
 	if err != nil {
 		return nil, err
 	}
 
 	if prevHeader.IsHeaderV3() {
-		lastShardExecRes, ok := prevHeader.GetLastExecutionResultHandler().(data.LastShardExecutionResultHandler)
+		lastExecRes := prevHeader.GetLastExecutionResultHandler()
+		if check.IfNil(lastExecRes) {
+			return nil, fmt.Errorf("previous header last execution result is nil")
+		}
+
+		lastShardExecRes, ok := lastExecRes.(data.LastShardExecutionResultHandler)
 		if !ok {
 			return nil, process.ErrWrongTypeAssertion
 		}

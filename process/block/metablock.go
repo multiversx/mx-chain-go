@@ -1596,7 +1596,12 @@ func (mp *metaProcessor) getPreviousExecutionResult(
 	}
 
 	if prevMetaBlock.IsHeaderV3() {
-		lastMetaExecRes, ok := prevMetaBlock.GetLastExecutionResultHandler().(data.LastMetaExecutionResultHandler)
+		lastExecRes := prevMetaBlock.GetLastExecutionResultHandler()
+		if check.IfNil(lastExecRes) {
+			return nil, fmt.Errorf("previous meta block has nil last execution result")
+		}
+
+		lastMetaExecRes, ok := lastExecRes.(data.LastMetaExecutionResultHandler)
 		if !ok {
 			return nil, process.ErrWrongTypeAssertion
 		}

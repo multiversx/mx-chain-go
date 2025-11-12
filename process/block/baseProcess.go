@@ -2960,3 +2960,13 @@ func (bp *baseProcessor) getLastExecutedRootHash(
 
 	return lastExecutionResult.GetRootHash()
 }
+
+// getCurrentBlockHeader returns the current block header from blockchain.
+func (bp *baseProcessor) getCurrentBlockHeader() data.HeaderHandler {
+	currentBlockHeader := bp.blockChain.GetCurrentBlockHeader()
+	if !check.IfNil(currentBlockHeader) {
+		return currentBlockHeader
+	}
+
+	return bp.blockChain.GetGenesisHeader()
+}
