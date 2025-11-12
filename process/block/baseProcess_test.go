@@ -2063,7 +2063,10 @@ func TestBlockProcessor_RequestHeadersIfMissingShouldAddHeaderIntoTrackerPool(t 
 	_ = sp.RequestHeadersIfMissing(sortedHeaders, core.MetachainShardId)
 
 	expectedAddedNonces := []uint64{6, 7, 9}
+
+	mutRequestedNonces.Lock()
 	assert.Equal(t, expectedAddedNonces, addedNonces)
+	mutRequestedNonces.Unlock()
 }
 
 func TestAddHeaderIntoTrackerPool_ShouldWork(t *testing.T) {
