@@ -2500,7 +2500,13 @@ func (bp *baseProcessor) extractRootHashForCleanup(header data.HeaderHandler) (c
 		return holders.NewDefaultRootHashesHolder(latestExecutionResult.GetRootHash()), nil
 	}
 
-	return holders.NewDefaultRootHashesHolder(header.GetRootHash()), nil
+	additionalData := header.GetAdditionalData()
+	if additionalData == nil {
+		rootHash := bp.blockChain.GetCurrentBlockRootHash()
+		return holders.NewDefaultRootHashesHolder(rootHash), nil
+	}
+
+	return holders.NewDefaultRootHashesHolder(additionalData.GetScheduledRootHash()), nil
 }
 
 func (bp *baseProcessor) checkSentSignaturesAtCommitTime(header data.HeaderHandler) error {

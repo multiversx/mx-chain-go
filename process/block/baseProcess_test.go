@@ -4199,7 +4199,7 @@ func TestBaseProcessor_extractRootHashForCleanup(t *testing.T) {
 		require.Equal(t, expectedRootHash, rootHashHolder)
 	})
 
-	t.Run("should work for other headers", func(t *testing.T) {
+	t.Run("should work for other HeaderV2", func(t *testing.T) {
 		t.Parallel()
 
 		coreComponents, dataComponents, bootstrapComponents, statusComponents := createComponentHolderMocks()
@@ -4209,9 +4209,32 @@ func TestBaseProcessor_extractRootHashForCleanup(t *testing.T) {
 
 		expectedRootHash := holders.NewDefaultRootHashesHolder([]byte("rootHash"))
 
-		rootHashHolder, err := bp.ExtractRootHashForCleanup(&block.Header{
-			RootHash: []byte("rootHash"),
+		rootHashHolder, err := bp.ExtractRootHashForCleanup(&block.HeaderV2{
+			ScheduledRootHash: []byte("rootHash"),
 		})
+		require.Nil(t, err)
+		require.Equal(t, expectedRootHash, rootHashHolder)
+	})
+
+	t.Run("should work for other HeaderV1", func(t *testing.T) {
+		t.Parallel()
+
+		coreComponents, dataComponents, bootstrapComponents, statusComponents := createComponentHolderMocks()
+
+		blkc, _ := blockchain.NewBlockChain(&statusHandlerMock.AppStatusHandlerStub{})
+		err := blkc.SetGenesisHeader(&block.Header{Nonce: 0})
+		require.Nil(t, err)
+
+		err = blkc.SetCurrentBlockHeaderAndRootHash(&block.Header{}, []byte("rootHash"))
+		require.Nil(t, err)
+
+		dataComponents.BlockChain = blkc
+		arguments := CreateMockArguments(coreComponents, dataComponents, bootstrapComponents, statusComponents)
+		bp, err := blproc.NewShardProcessor(arguments)
+		require.NoError(t, err)
+
+		expectedRootHash := holders.NewDefaultRootHashesHolder([]byte("rootHash"))
+		rootHashHolder, err := bp.ExtractRootHashForCleanup(&block.Header{})
 		require.Nil(t, err)
 		require.Equal(t, expectedRootHash, rootHashHolder)
 	})
