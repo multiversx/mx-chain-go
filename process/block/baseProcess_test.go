@@ -230,10 +230,10 @@ func createArgBaseProcessor(
 		MissingDataResolver:                missingDataResolver,
 		ExecutionResultsInclusionEstimator: inclusionEstimator,
 		GasComputation: &testscommon.GasComputationMock{
-			CheckIncomingMiniBlocksCalled: func(miniBlocks []data.MiniBlockHeaderHandler, transactions map[string][]data.TransactionHandler) (int, int, error) {
+			AddIncomingMiniBlocksCalled: func(miniBlocks []data.MiniBlockHeaderHandler, transactions map[string][]data.TransactionHandler) (int, int, error) {
 				return len(miniBlocks), 0, nil
 			},
-			CheckOutgoingTransactionsCalled: func(txHashes [][]byte, transactions []data.TransactionHandler) ([][]byte, []data.MiniBlockHeaderHandler, error) {
+			AddOutgoingTransactionsCalled: func(txHashes [][]byte, transactions []data.TransactionHandler) ([][]byte, []data.MiniBlockHeaderHandler, error) {
 				return txHashes, nil, nil
 			},
 		},
@@ -500,10 +500,10 @@ func createMockTransactionCoordinatorArguments(
 		BlockDataRequester:           blockDataRequester,
 		BlockDataRequesterProposal:   blockDataRequesterProposal,
 		GasComputation: &testscommon.GasComputationMock{
-			CheckIncomingMiniBlocksCalled: func(miniBlocks []data.MiniBlockHeaderHandler, transactions map[string][]data.TransactionHandler) (int, int, error) {
+			AddIncomingMiniBlocksCalled: func(miniBlocks []data.MiniBlockHeaderHandler, transactions map[string][]data.TransactionHandler) (int, int, error) {
 				return len(miniBlocks), 0, nil
 			},
-			CheckOutgoingTransactionsCalled: func(txHashes [][]byte, transactions []data.TransactionHandler) ([][]byte, []data.MiniBlockHeaderHandler, error) {
+			AddOutgoingTransactionsCalled: func(txHashes [][]byte, transactions []data.TransactionHandler) ([][]byte, []data.MiniBlockHeaderHandler, error) {
 				return txHashes, nil, nil
 			},
 		},

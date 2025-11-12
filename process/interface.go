@@ -1552,11 +1552,11 @@ type ProofsPool interface {
 // GasComputation defines a component able to select the maximum number of outgoing transactions and incoming mini blocks
 // to fill the block with respect to the gas limits
 type GasComputation interface {
-	CheckIncomingMiniBlocks(
+	AddIncomingMiniBlocks(
 		miniBlocks []data.MiniBlockHeaderHandler,
 		transactions map[string][]data.TransactionHandler,
 	) (lastMiniBlockIndex int, pendingMiniBlocks int, err error)
-	CheckOutgoingTransactions(
+	AddOutgoingTransactions(
 		txHashes [][]byte,
 		transactions []data.TransactionHandler,
 	) (addedTxHashes [][]byte, pendingMiniBlocksAdded []data.MiniBlockHeaderHandler, err error)
