@@ -24,56 +24,57 @@ func (hh *HeaderHandlerWithExecutionResultsStub) GetExecutionResults() []data.Ex
 
 // HeaderHandlerStub -
 type HeaderHandlerStub struct {
-	EpochField                             uint32
-	RoundField                             uint64
-	TimestampField                         uint64
-	BlockBodyTypeInt32Field                int32
-	GetMiniBlockHeadersWithDstCalled       func(destId uint32) map[string]uint32
-	GetOrderedCrossMiniblocksWithDstCalled func(destId uint32) []*data.MiniBlockInfo
-	GetPubKeysBitmapCalled                 func() []byte
-	GetSignatureCalled                     func() []byte
-	GetRootHashCalled                      func() []byte
-	GetRandSeedCalled                      func() []byte
-	GetPrevRandSeedCalled                  func() []byte
-	GetPrevHashCalled                      func() []byte
-	CloneCalled                            func() data.HeaderHandler
-	GetChainIDCalled                       func() []byte
-	CheckChainIDCalled                     func(reference []byte) error
-	GetReservedCalled                      func() []byte
-	IsStartOfEpochBlockCalled              func() bool
-	HasScheduledMiniBlocksCalled           func() bool
-	GetNonceCalled                         func() uint64
-	CheckFieldsForNilCalled                func() error
-	CheckFieldsIntegrityCalled             func() error
-	SetShardIDCalled                       func(shardID uint32) error
-	SetPrevHashCalled                      func(hash []byte) error
-	SetPrevRandSeedCalled                  func(seed []byte) error
-	SetPubKeysBitmapCalled                 func(bitmap []byte) error
-	SetChainIDCalled                       func(chainID []byte) error
-	SetTimeStampCalled                     func(timestamp uint64) error
-	SetRandSeedCalled                      func(seed []byte) error
-	SetSignatureCalled                     func(signature []byte) error
-	SetLeaderSignatureCalled               func(signature []byte) error
-	GetShardIDCalled                       func() uint32
-	SetRootHashCalled                      func(hash []byte) error
-	GetGasLimitCalled                      func() uint32
-	GetLastExecutionResultHandlerCalled    func() data.LastExecutionResultHandler
-	GetExecutionResultsHandlersCalled      func() []data.BaseExecutionResultHandler
-	IsHeaderV3Called                       func() bool
-	GetMiniBlockHeaderHandlersCalled       func() []data.MiniBlockHeaderHandler
-	SetEpochStartMetaHashCalled            func(hash []byte) error
-	SetLastExecutionResultHandlerCalled    func(resultHandler data.LastExecutionResultHandler) error
-	SetExecutionResultsHandlersCalled      func(resultHandlers []data.BaseExecutionResultHandler) error
-	SetEpochCalled                         func(epoch uint32) error
-	SetMiniBlockHeaderHandlersCalled       func(mbsHandlers []data.MiniBlockHeaderHandler) error
-	SetTxCountCalled                       func(count uint32) error
-	SetMetaBlockHashesCalled               func(hashes [][]byte) error
-	SetEpochStartHandlerCalled             func(epochStartHandler data.EpochStartHandler) error
-	SetRoundCalled                         func(round uint64) error
-	SetNonceCalled                         func(nonce uint64) error
-	SetShardInfoHandlersCalled             func(shardInfo []data.ShardDataHandler) error
-	GetShardInfoProposalHandlersCalled     func() []data.ShardDataProposalHandler
-	SetShardInfoProposalHandlersCalled     func(shardInfo []data.ShardDataProposalHandler) error
+	EpochField                               uint32
+	RoundField                               uint64
+	TimestampField                           uint64
+	BlockBodyTypeInt32Field                  int32
+	GetMiniBlockHeadersWithDstCalled         func(destId uint32) map[string]uint32
+	GetProposedMiniBlockHeadersWithDstCalled func(destId uint32) map[string]uint32
+	GetOrderedCrossMiniblocksWithDstCalled   func(destId uint32) []*data.MiniBlockInfo
+	GetPubKeysBitmapCalled                   func() []byte
+	GetSignatureCalled                       func() []byte
+	GetRootHashCalled                        func() []byte
+	GetRandSeedCalled                        func() []byte
+	GetPrevRandSeedCalled                    func() []byte
+	GetPrevHashCalled                        func() []byte
+	CloneCalled                              func() data.HeaderHandler
+	GetChainIDCalled                         func() []byte
+	CheckChainIDCalled                       func(reference []byte) error
+	GetReservedCalled                        func() []byte
+	IsStartOfEpochBlockCalled                func() bool
+	HasScheduledMiniBlocksCalled             func() bool
+	GetNonceCalled                           func() uint64
+	CheckFieldsForNilCalled                  func() error
+	CheckFieldsIntegrityCalled               func() error
+	SetShardIDCalled                         func(shardID uint32) error
+	SetPrevHashCalled                        func(hash []byte) error
+	SetPrevRandSeedCalled                    func(seed []byte) error
+	SetPubKeysBitmapCalled                   func(bitmap []byte) error
+	SetChainIDCalled                         func(chainID []byte) error
+	SetTimeStampCalled                       func(timestamp uint64) error
+	SetRandSeedCalled                        func(seed []byte) error
+	SetSignatureCalled                       func(signature []byte) error
+	SetLeaderSignatureCalled                 func(signature []byte) error
+	GetShardIDCalled                         func() uint32
+	SetRootHashCalled                        func(hash []byte) error
+	GetGasLimitCalled                        func() uint32
+	GetLastExecutionResultHandlerCalled      func() data.LastExecutionResultHandler
+	GetExecutionResultsHandlersCalled        func() []data.BaseExecutionResultHandler
+	IsHeaderV3Called                         func() bool
+	GetMiniBlockHeaderHandlersCalled         func() []data.MiniBlockHeaderHandler
+	SetEpochStartMetaHashCalled              func(hash []byte) error
+	SetLastExecutionResultHandlerCalled      func(resultHandler data.LastExecutionResultHandler) error
+	SetExecutionResultsHandlersCalled        func(resultHandlers []data.BaseExecutionResultHandler) error
+	SetEpochCalled                           func(epoch uint32) error
+	SetMiniBlockHeaderHandlersCalled         func(mbsHandlers []data.MiniBlockHeaderHandler) error
+	SetTxCountCalled                         func(count uint32) error
+	SetMetaBlockHashesCalled                 func(hashes [][]byte) error
+	SetEpochStartHandlerCalled               func(epochStartHandler data.EpochStartHandler) error
+	SetRoundCalled                           func(round uint64) error
+	SetNonceCalled                           func(nonce uint64) error
+	SetShardInfoHandlersCalled               func(shardInfo []data.ShardDataHandler) error
+	GetShardInfoProposalHandlersCalled       func() []data.ShardDataProposalHandler
+	SetShardInfoProposalHandlersCalled       func(shardInfo []data.ShardDataProposalHandler) error
 }
 
 // SetEpochStartHandler -
@@ -336,7 +337,20 @@ func (hhs *HeaderHandlerStub) SetTxCount(count uint32) error {
 
 // GetMiniBlockHeadersWithDst -
 func (hhs *HeaderHandlerStub) GetMiniBlockHeadersWithDst(destId uint32) map[string]uint32 {
-	return hhs.GetMiniBlockHeadersWithDstCalled(destId)
+	if hhs.GetMiniBlockHeadersWithDstCalled(destId) != nil {
+		return hhs.GetMiniBlockHeadersWithDstCalled(destId)
+	}
+
+	return make(map[string]uint32)
+}
+
+// GetProposedMiniBlockHeadersWithDst -
+func (hhs *HeaderHandlerStub) GetProposedMiniBlockHeadersWithDst(destId uint32) map[string]uint32 {
+	if hhs.GetProposedMiniBlockHeadersWithDstCalled != nil {
+		return hhs.GetProposedMiniBlockHeadersWithDstCalled(destId)
+	}
+
+	return make(map[string]uint32)
 }
 
 // GetOrderedCrossMiniblocksWithDst -
