@@ -378,6 +378,7 @@ func (bp *baseProcessor) requestHeadersIfMissing(
 		return err
 	}
 
+	lastNotarizedHdrEpoch := prevHdr.GetEpoch()
 	lastNotarizedHdrRound := prevHdr.GetRound()
 	lastNotarizedHdrNonce := prevHdr.GetNonce()
 
@@ -415,7 +416,8 @@ func (bp *baseProcessor) requestHeadersIfMissing(
 
 	for _, nonce := range missingNonces {
 		bp.addHeaderIntoTrackerPool(nonce, shardId)
-		go bp.requestHeaderByShardAndNonce(shardId, nonce)
+		go bp.requestHeaderIfNeeded(nonce, shardId)
+		go bp.requestProofIfNeeded(nonce, shardId, lastNotarizedHdrEpoch)
 	}
 
 	return nil
@@ -2955,6 +2957,61 @@ func (bp *baseProcessor) getLastExecutedRootHash(
 	}
 
 	return lastExecutionResult.GetRootHash()
+}
+
+// requestProofIfNeeded will request proof if Andromeda flag activated and not already in pool
+func (bp *baseProcessor) requestProofIfNeeded(
+	nonce uint64,
+	shardID uint32,
+	epoch uint32,
+) {
+	if !bp.enableEpochsHandler.IsFlagEnabledInEpoch(common.AndromedaFlag, epoch) {
+		return
+	}
+
+	proofsPool := bp.dataPool.Proofs()
+	_, err := proofsPool.GetProofByNonce(nonce, shardID)
+	if err == nil {
+		// proof already in pool, no need to request it
+		return
+	}
+
+	bp.requestHandler.RequestEquivalentProofByNonce(shardID, nonce)
+}
+
+func (bp *baseProcessor) requestHeadersFromHeaderIfNeeded(
+	lastHeader data.HeaderHandler,
+) {
+	lastRound := lastHeader.GetRound()
+	shardID := lastHeader.GetShardID()
+
+	shouldRequestCrossHeaders := bp.roundHandler.Index() > int64(lastRound+bp.getMaxRoundsWithoutBlockReceived(lastRound))
+
+	if !shouldRequestCrossHeaders {
+		return
+	}
+
+	fromNonce := lastHeader.GetNonce() + 1
+	toNonce := fromNonce + numHeadersToRequestInAdvance
+
+	for nonce := fromNonce; nonce <= toNonce; nonce++ {
+		bp.requestHeaderIfNeeded(nonce, shardID)
+		bp.requestProofIfNeeded(nonce, shardID, lastHeader.GetEpoch())
+	}
+}
+
+func (bp *baseProcessor) requestHeaderIfNeeded(
+	nonce uint64,
+	shardID uint32,
+) {
+	headersPool := bp.dataPool.Headers()
+	_, _, err := headersPool.GetHeadersByNonceAndShardId(nonce, shardID)
+	if err == nil {
+		// header already in pool, no need to request it
+		return
+	}
+
+	bp.requestHeaderByShardAndNonce(shardID, nonce)
 }
 
 func (bp *baseProcessor) verifyGasLimit(header data.HeaderHandler) error {
