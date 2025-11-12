@@ -2491,19 +2491,16 @@ func (bp *baseProcessor) recreateTrieIfNeeded() error {
 }
 
 func (bp *baseProcessor) extractRootHashForCleanup(header data.HeaderHandler) (common.RootHashHolder, error) {
-	var rootHash []byte
 	if header.IsHeaderV3() {
 		latestExecutionResult, err := common.GetLastBaseExecutionResultHandler(header)
 		if err != nil {
 			return nil, err
 		}
 
-		rootHash = latestExecutionResult.GetRootHash()
-	} else {
-		rootHash = header.GetRootHash()
+		return holders.NewDefaultRootHashesHolder(latestExecutionResult.GetRootHash()), nil
 	}
 
-	return holders.NewDefaultRootHashesHolder(rootHash), nil
+	return holders.NewDefaultRootHashesHolder(header.GetRootHash()), nil
 }
 
 func (bp *baseProcessor) checkSentSignaturesAtCommitTime(header data.HeaderHandler) error {
