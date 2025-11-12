@@ -2952,16 +2952,20 @@ func (bp *baseProcessor) getLastExecutedRootHash(
 	return lastExecutionResult.GetRootHash()
 }
 
-// requestProof will request proof if Andromeda flag activated
-// it does not check in pool if it already exists, it assumes that proof does not exist in pool
-// it's used when requesting in advance
-// TODO: evaluate adapting proofs pool to fetch/check proof by nonce
-func (bp *baseProcessor) requestProof(
+// requestProofIfNeeded will request proof if Andromeda flag activated and not already in pool
+func (bp *baseProcessor) requestProofIfNeeded(
 	nonce uint64,
 	shardID uint32,
 	epoch uint32,
 ) {
 	if !bp.enableEpochsHandler.IsFlagEnabledInEpoch(common.AndromedaFlag, epoch) {
+		return
+	}
+
+	proofsPool := bp.dataPool.Proofs()
+	_, err := proofsPool.GetProofByNonce(nonce, shardID)
+	if err == nil {
+		// proof already in pool, no need to request it
 		return
 	}
 
@@ -2985,7 +2989,7 @@ func (bp *baseProcessor) requestHeadersFromHeaderIfNeeded(
 
 	for nonce := fromNonce; nonce <= toNonce; nonce++ {
 		bp.requestHeaderIfNeeded(nonce, shardID)
-		bp.requestProof(nonce, shardID, lastHeader.GetEpoch())
+		bp.requestProofIfNeeded(nonce, shardID, lastHeader.GetEpoch())
 	}
 }
 

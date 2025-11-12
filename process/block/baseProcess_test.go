@@ -4186,15 +4186,25 @@ func TestBaseProcessor_RequestProof(t *testing.T) {
 		bp, err := blproc.NewShardProcessor(arguments)
 		require.NoError(t, err)
 
-		bp.RequestProof(10, 1, 2)
+		bp.RequestProofIfNeeded(10, 1, 2)
 
 		require.False(t, requestCalled)
 	})
 
-	t.Run("should request if flag enabled", func(t *testing.T) {
+	t.Run("should not request if proof already in pool", func(t *testing.T) {
 		t.Parallel()
 
 		coreComponents, dataComponents, bootstrapComponents, statusComponents := createComponentHolderMocks()
+		dataPool := initDataPool()
+		dataPool.ProofsCalled = func() dataRetriever.ProofsPool {
+			return &dataRetrieverMock.ProofsPoolMock{
+				GetProofByNonceCalled: func(headerNonce uint64, shardID uint32) (data.HeaderProofHandler, error) {
+					return &block.HeaderProof{}, nil
+				},
+			}
+		}
+		dataComponents.DataPool = dataPool
+
 		coreComponents.EnableEpochsHandlerField = &enableEpochsHandlerMock.EnableEpochsHandlerStub{
 			IsFlagEnabledInEpochCalled: func(flag core.EnableEpochFlag, epoch uint32) bool {
 				return flag == common.AndromedaFlag
@@ -4213,7 +4223,44 @@ func TestBaseProcessor_RequestProof(t *testing.T) {
 		bp, err := blproc.NewShardProcessor(arguments)
 		require.NoError(t, err)
 
-		bp.RequestProof(10, 1, 2)
+		bp.RequestProofIfNeeded(10, 1, 2)
+
+		require.False(t, requestCalled)
+	})
+
+	t.Run("should request if flag enabled and proof not already in pool", func(t *testing.T) {
+		t.Parallel()
+
+		coreComponents, dataComponents, bootstrapComponents, statusComponents := createComponentHolderMocks()
+		coreComponents.EnableEpochsHandlerField = &enableEpochsHandlerMock.EnableEpochsHandlerStub{
+			IsFlagEnabledInEpochCalled: func(flag core.EnableEpochFlag, epoch uint32) bool {
+				return flag == common.AndromedaFlag
+			},
+		}
+
+		dataPool := initDataPool()
+		dataPool.ProofsCalled = func() dataRetriever.ProofsPool {
+			return &dataRetrieverMock.ProofsPoolMock{
+				GetProofByNonceCalled: func(headerNonce uint64, shardID uint32) (data.HeaderProofHandler, error) {
+					return nil, errors.New("fetch err")
+				},
+			}
+		}
+		dataComponents.DataPool = dataPool
+
+		arguments := CreateMockArguments(coreComponents, dataComponents, bootstrapComponents, statusComponents)
+
+		requestCalled := false
+		arguments.RequestHandler = &testscommon.RequestHandlerStub{
+			RequestEquivalentProofByNonceCalled: func(headerShard uint32, headerNonce uint64) {
+				requestCalled = true
+			},
+		}
+
+		bp, err := blproc.NewShardProcessor(arguments)
+		require.NoError(t, err)
+
+		bp.RequestProofIfNeeded(10, 1, 2)
 
 		require.True(t, requestCalled)
 	})
@@ -4267,7 +4314,7 @@ func TestBaseProcessor_RequestHeadersFromHeaderIfNeeded(t *testing.T) {
 
 		bp.RequestHeadersFromHeaderIfNeeded(header)
 
-		require.Equal(t, 3, numCalls) // starting from next header + 2 given by constant
+		require.Equal(t, 11, numCalls) // starting from next header + 10 given by constant
 	})
 
 	t.Run("header already in pool, should not request", func(t *testing.T) {

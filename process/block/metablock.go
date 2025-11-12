@@ -1137,7 +1137,7 @@ func (mp *metaProcessor) requestShardHeadersIfNeeded(
 			for nonce := fromNonce; nonce <= toNonce; nonce++ {
 				mp.addHeaderIntoTrackerPool(nonce, shardID)
 				mp.requestHandler.RequestShardHeaderByNonce(shardID, nonce)
-				mp.requestProof(nonce, shardID, lastShardHdr[shardID].GetEpoch())
+				mp.requestProofIfNeeded(nonce, shardID, lastShardHdr[shardID].GetEpoch())
 			}
 		}
 	}

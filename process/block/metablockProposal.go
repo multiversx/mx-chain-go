@@ -13,7 +13,7 @@ import (
 	"github.com/multiversx/mx-chain-go/process"
 )
 
-const numHeadersToRequestInAdvance = 2
+const numHeadersToRequestInAdvance = 10
 
 // CreateNewHeaderProposal creates a new header
 func (mp *metaProcessor) CreateNewHeaderProposal(round uint64, nonce uint64) (data.HeaderHandler, error) {
