@@ -1819,84 +1819,205 @@ func TestBlockProcessor_RequestHeadersIfMissingShouldWorkWhenSortedHeadersListIs
 func TestBlockProcessor_RequestHeadersIfMissingShouldWork(t *testing.T) {
 	t.Parallel()
 
-	var requestedNonces []uint64
-	var mutRequestedNonces sync.Mutex
+	t.Run("without andromeda activated, should request only headers", func(t *testing.T) {
+		t.Parallel()
 
-	coreComponents, dataComponents, bootstrapComponents, statusComponents := createComponentHolderMocks()
-	roundHandler := &mock.RoundHandlerMock{}
-	coreComponents.RoundField = roundHandler
-	arguments := CreateMockArguments(coreComponents, dataComponents, bootstrapComponents, statusComponents)
+		var requestedNonces []uint64
+		var mutRequestedNonces sync.Mutex
 
-	requestHandlerStub := &testscommon.RequestHandlerStub{
-		RequestMetaHeaderByNonceCalled: func(nonce uint64) {
-			mutRequestedNonces.Lock()
-			requestedNonces = append(requestedNonces, nonce)
-			mutRequestedNonces.Unlock()
-		},
-	}
-	arguments.RequestHandler = requestHandlerStub
-	sp, _ := blproc.NewShardProcessor(arguments)
+		coreComponents, dataComponents, bootstrapComponents, statusComponents := createComponentHolderMocks()
 
-	sortedHeaders := make([]data.HeaderHandler, 0)
+		coreComponents.EnableEpochsHandlerField = &enableEpochsHandlerMock.EnableEpochsHandlerStub{
+			IsFlagEnabledInEpochCalled: func(flag core.EnableEpochFlag, epoch uint32) bool {
+				return flag != common.AndromedaFlag
+			},
+		}
 
-	crossNotarizedHeader := &block.MetaBlock{
-		Nonce: 5,
-		Round: 5,
-	}
-	arguments.BlockTracker.AddCrossNotarizedHeader(core.MetachainShardId, crossNotarizedHeader, []byte("hash"))
+		roundHandler := &mock.RoundHandlerMock{}
+		coreComponents.RoundField = roundHandler
+		arguments := CreateMockArguments(coreComponents, dataComponents, bootstrapComponents, statusComponents)
 
-	hdr1 := &block.MetaBlock{
-		Nonce: 1,
-		Round: 1,
-	}
-	sortedHeaders = append(sortedHeaders, hdr1)
+		requestProofCalls := 0
+		requestHandlerStub := &testscommon.RequestHandlerStub{
+			RequestMetaHeaderByNonceCalled: func(nonce uint64) {
+				mutRequestedNonces.Lock()
+				requestedNonces = append(requestedNonces, nonce)
+				mutRequestedNonces.Unlock()
+			},
+			RequestEquivalentProofByNonceCalled: func(headerShard uint32, headerNonce uint64) {
+				mutRequestedNonces.Lock()
+				requestProofCalls++
+				mutRequestedNonces.Unlock()
+			},
+		}
+		arguments.RequestHandler = requestHandlerStub
+		sp, _ := blproc.NewShardProcessor(arguments)
 
-	hdr2 := &block.MetaBlock{
-		Nonce: 8,
-		Round: 8,
-	}
-	sortedHeaders = append(sortedHeaders, hdr2)
+		sortedHeaders := make([]data.HeaderHandler, 0)
 
-	hdr3 := &block.MetaBlock{
-		Nonce: 10,
-		Round: 10,
-	}
-	sortedHeaders = append(sortedHeaders, hdr3)
+		crossNotarizedHeader := &block.MetaBlock{
+			Nonce: 5,
+			Round: 5,
+		}
+		arguments.BlockTracker.AddCrossNotarizedHeader(core.MetachainShardId, crossNotarizedHeader, []byte("hash"))
 
-	requestedNonces = make([]uint64, 0)
-	roundHandler.RoundIndex = 15
-	_ = sp.RequestHeadersIfMissing(sortedHeaders, core.MetachainShardId)
-	time.Sleep(100 * time.Millisecond)
-	mutRequestedNonces.Lock()
-	sort.Slice(requestedNonces, func(i, j int) bool {
-		return requestedNonces[i] < requestedNonces[j]
+		hdr1 := &block.MetaBlock{
+			Nonce: 1,
+			Round: 1,
+		}
+		sortedHeaders = append(sortedHeaders, hdr1)
+
+		hdr2 := &block.MetaBlock{
+			Nonce: 8,
+			Round: 8,
+		}
+		sortedHeaders = append(sortedHeaders, hdr2)
+
+		hdr3 := &block.MetaBlock{
+			Nonce: 10,
+			Round: 10,
+		}
+		sortedHeaders = append(sortedHeaders, hdr3)
+
+		requestedNonces = make([]uint64, 0)
+		roundHandler.RoundIndex = 15
+		_ = sp.RequestHeadersIfMissing(sortedHeaders, core.MetachainShardId)
+		time.Sleep(100 * time.Millisecond)
+		mutRequestedNonces.Lock()
+		sort.Slice(requestedNonces, func(i, j int) bool {
+			return requestedNonces[i] < requestedNonces[j]
+		})
+		mutRequestedNonces.Unlock()
+		expectedNonces := []uint64{6, 7, 9, 11, 12, 13}
+		assert.Equal(t, expectedNonces, requestedNonces)
+		assert.Equal(t, 0, requestProofCalls)
+
+		requestedNonces = make([]uint64, 0)
+		roundHandler.RoundIndex = process.MaxHeaderRequestsAllowed + 10
+		_ = sp.RequestHeadersIfMissing(sortedHeaders, core.MetachainShardId)
+		time.Sleep(100 * time.Millisecond)
+		mutRequestedNonces.Lock()
+		sort.Slice(requestedNonces, func(i, j int) bool {
+			return requestedNonces[i] < requestedNonces[j]
+		})
+		mutRequestedNonces.Unlock()
+		expectedNonces = []uint64{6, 7, 9, 11, 12, 13, 14, 15, 16, 17, 18, 19, 20, 21, 22, 23, 24, 25}
+		assert.Equal(t, expectedNonces, requestedNonces)
+		assert.Equal(t, 0, requestProofCalls)
 	})
-	mutRequestedNonces.Unlock()
-	expectedNonces := []uint64{6, 7, 9, 11, 12, 13}
-	assert.Equal(t, expectedNonces, requestedNonces)
 
-	requestedNonces = make([]uint64, 0)
-	roundHandler.RoundIndex = process.MaxHeaderRequestsAllowed + 10
-	_ = sp.RequestHeadersIfMissing(sortedHeaders, core.MetachainShardId)
-	time.Sleep(100 * time.Millisecond)
-	mutRequestedNonces.Lock()
-	sort.Slice(requestedNonces, func(i, j int) bool {
-		return requestedNonces[i] < requestedNonces[j]
+	t.Run("with andromeda activated, should request also proofs if needed", func(t *testing.T) {
+		t.Parallel()
+
+		var requestedNonces []uint64
+		var mutRequestedNonces sync.Mutex
+
+		coreComponents, dataComponents, bootstrapComponents, statusComponents := createComponentHolderMocks()
+
+		dataPool := initDataPool()
+		dataPool.ProofsCalled = func() dataRetriever.ProofsPool {
+			return &dataRetrieverMock.ProofsPoolMock{
+				GetProofByNonceCalled: func(headerNonce uint64, shardID uint32) (data.HeaderProofHandler, error) {
+					return nil, errors.New("err")
+				},
+			}
+		}
+		dataComponents.DataPool = dataPool
+
+		coreComponents.EnableEpochsHandlerField = &enableEpochsHandlerMock.EnableEpochsHandlerStub{
+			IsFlagEnabledInEpochCalled: func(flag core.EnableEpochFlag, epoch uint32) bool {
+				return flag == common.AndromedaFlag
+			},
+		}
+
+		roundHandler := &mock.RoundHandlerMock{}
+		coreComponents.RoundField = roundHandler
+		arguments := CreateMockArguments(coreComponents, dataComponents, bootstrapComponents, statusComponents)
+
+		requestProofCalls := 0
+		requestHandlerStub := &testscommon.RequestHandlerStub{
+			RequestMetaHeaderByNonceCalled: func(nonce uint64) {
+				mutRequestedNonces.Lock()
+				requestedNonces = append(requestedNonces, nonce)
+				mutRequestedNonces.Unlock()
+			},
+			RequestEquivalentProofByNonceCalled: func(headerShard uint32, headerNonce uint64) {
+				mutRequestedNonces.Lock()
+				requestProofCalls++
+				mutRequestedNonces.Unlock()
+			},
+		}
+		arguments.RequestHandler = requestHandlerStub
+		sp, _ := blproc.NewShardProcessor(arguments)
+
+		sortedHeaders := make([]data.HeaderHandler, 0)
+
+		crossNotarizedHeader := &block.MetaBlock{
+			Nonce: 5,
+			Round: 5,
+		}
+		arguments.BlockTracker.AddCrossNotarizedHeader(core.MetachainShardId, crossNotarizedHeader, []byte("hash"))
+
+		hdr1 := &block.MetaBlock{
+			Nonce: 1,
+			Round: 1,
+		}
+		sortedHeaders = append(sortedHeaders, hdr1)
+
+		hdr2 := &block.MetaBlock{
+			Nonce: 8,
+			Round: 8,
+		}
+		sortedHeaders = append(sortedHeaders, hdr2)
+
+		hdr3 := &block.MetaBlock{
+			Nonce: 10,
+			Round: 10,
+		}
+		sortedHeaders = append(sortedHeaders, hdr3)
+
+		requestedNonces = make([]uint64, 0)
+		roundHandler.RoundIndex = 15
+		_ = sp.RequestHeadersIfMissing(sortedHeaders, core.MetachainShardId)
+		time.Sleep(100 * time.Millisecond)
+		mutRequestedNonces.Lock()
+		sort.Slice(requestedNonces, func(i, j int) bool {
+			return requestedNonces[i] < requestedNonces[j]
+		})
+		mutRequestedNonces.Unlock()
+		expectedNonces := []uint64{6, 7, 9, 11, 12, 13}
+		assert.Equal(t, expectedNonces, requestedNonces)
+		assert.Equal(t, len(expectedNonces), requestProofCalls)
+
+		requestProofCalls = 0
+		requestedNonces = make([]uint64, 0)
+		roundHandler.RoundIndex = process.MaxHeaderRequestsAllowed + 10
+		_ = sp.RequestHeadersIfMissing(sortedHeaders, core.MetachainShardId)
+		time.Sleep(100 * time.Millisecond)
+		mutRequestedNonces.Lock()
+		sort.Slice(requestedNonces, func(i, j int) bool {
+			return requestedNonces[i] < requestedNonces[j]
+		})
+		mutRequestedNonces.Unlock()
+		expectedNonces = []uint64{6, 7, 9, 11, 12, 13, 14, 15, 16, 17, 18, 19, 20, 21, 22, 23, 24, 25}
+		assert.Equal(t, expectedNonces, requestedNonces)
+		assert.Equal(t, len(expectedNonces), requestProofCalls)
 	})
-	mutRequestedNonces.Unlock()
-	expectedNonces = []uint64{6, 7, 9, 11, 12, 13, 14, 15, 16, 17, 18, 19, 20, 21, 22, 23, 24, 25}
-	assert.Equal(t, expectedNonces, requestedNonces)
 }
 
 func TestBlockProcessor_RequestHeadersIfMissingShouldAddHeaderIntoTrackerPool(t *testing.T) {
 	t.Parallel()
+
+	var mutRequestedNonces sync.Mutex
 
 	var addedNonces []uint64
 	poolsHolderStub := initDataPool()
 	poolsHolderStub.HeadersCalled = func() dataRetriever.HeadersPool {
 		return &mock.HeadersCacherStub{
 			GetHeaderByNonceAndShardIdCalled: func(hdrNonce uint64, shardId uint32) ([]data.HeaderHandler, [][]byte, error) {
+				mutRequestedNonces.Lock()
 				addedNonces = append(addedNonces, hdrNonce)
+				mutRequestedNonces.Unlock()
 				return []data.HeaderHandler{&block.MetaBlock{Nonce: 1}}, [][]byte{[]byte("hash")}, nil
 			},
 		}

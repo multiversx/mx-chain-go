@@ -373,6 +373,7 @@ func (bp *baseProcessor) requestHeadersIfMissing(
 		return err
 	}
 
+	lastNotarizedHdrEpoch := prevHdr.GetEpoch()
 	lastNotarizedHdrRound := prevHdr.GetRound()
 	lastNotarizedHdrNonce := prevHdr.GetNonce()
 
@@ -410,7 +411,8 @@ func (bp *baseProcessor) requestHeadersIfMissing(
 
 	for _, nonce := range missingNonces {
 		bp.addHeaderIntoTrackerPool(nonce, shardId)
-		go bp.requestHeaderByShardAndNonce(shardId, nonce)
+		go bp.requestHeaderIfNeeded(nonce, shardId)
+		go bp.requestProofIfNeeded(nonce, shardId, lastNotarizedHdrEpoch)
 	}
 
 	return nil
@@ -3004,5 +3006,5 @@ func (bp *baseProcessor) requestHeaderIfNeeded(
 		return
 	}
 
-	bp.requestHandler.RequestShardHeaderByNonce(shardID, nonce)
+	bp.requestHeaderByShardAndNonce(shardID, nonce)
 }
