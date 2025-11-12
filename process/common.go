@@ -90,7 +90,7 @@ func GetMetaHeader(
 	headersCacher dataRetriever.HeadersPool,
 	marshalizer marshal.Marshalizer,
 	storageService dataRetriever.StorageService,
-) (*block.MetaBlock, error) {
+) (data.MetaHeaderHandler, error) {
 
 	err := checkGetHeaderParamsForNil(headersCacher, marshalizer, storageService)
 	if err != nil {
@@ -131,14 +131,14 @@ func GetShardHeaderFromPool(
 func GetMetaHeaderFromPool(
 	hash []byte,
 	headersCacher dataRetriever.HeadersPool,
-) (*block.MetaBlock, error) {
+) (data.MetaHeaderHandler, error) {
 
 	obj, err := getHeaderFromPool(hash, headersCacher)
 	if err != nil {
 		return nil, err
 	}
 
-	hdr, ok := obj.(*block.MetaBlock)
+	hdr, ok := obj.(data.MetaHeaderHandler)
 	if !ok {
 		return nil, ErrWrongTypeAssertion
 	}

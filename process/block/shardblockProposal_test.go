@@ -2724,6 +2724,35 @@ func TestShardProcessor_ProcessBlockProposal(t *testing.T) {
 		_, err := sp.ProcessBlockProposal(header, body)
 		require.Equal(t, expectedErr, err)
 	})
+	t.Run("commit state is called", func(t *testing.T) {
+		t.Parallel()
+
+		commitCalled := false
+
+		args := CreateMockArguments(createComponentHolderMocks())
+		args.AccountsDB = map[state.AccountsDbIdentifier]state.AccountsAdapter{
+			state.UserAccountsState: &stateMock.AccountsStub{
+				CommitCalled: func() ([]byte, error) {
+					commitCalled = true
+					return []byte("stateRoot"), nil
+				},
+				RootHashCalled: func() ([]byte, error) {
+					return nil, nil
+				},
+				RecreateTrieIfNeededCalled: func(options common.RootHashHolder) error {
+					return nil
+				},
+			},
+		}
+
+		sp, _ := blproc.NewShardProcessor(args)
+
+		header := &block.HeaderV3{}
+		body := &block.Body{}
+		_, err := sp.ProcessBlockProposal(header, body)
+		require.Nil(t, err)
+		require.True(t, commitCalled)
+	})
 	t.Run("should work, no transactions", func(t *testing.T) {
 		t.Parallel()
 

@@ -1309,7 +1309,7 @@ func (sp *shardProcessor) getPreviousExecutionResult(index int, executionResults
 		return lastShardExecRes.GetExecutionResultHandler(), nil
 	}
 
-	lastExecRes, err := process.GetPrevBlockLastExecutionResult(sp.blockChain)
+	lastExecRes, err := process.CreateLastExecutionResultFromPrevHeader(prevHeader, prevHeaderHash)
 	if err != nil {
 		return nil, err
 	}

@@ -1090,6 +1090,7 @@ func TestMetaProcessor_CommitBlockNoTxInPoolShouldErr(t *testing.T) {
 func TestMetaProcessor_CommitBlockOkValsShouldWork(t *testing.T) {
 	t.Parallel()
 
+	commitCalled := false
 	mdp := initDataPool()
 	rootHash := []byte("rootHash")
 	hdr := createMetaBlockHeader()
@@ -1097,6 +1098,7 @@ func TestMetaProcessor_CommitBlockOkValsShouldWork(t *testing.T) {
 	body := &block.Body{}
 	accounts := &stateMock.AccountsStub{
 		CommitCalled: func() (i []byte, e error) {
+			commitCalled = true
 			return rootHash, nil
 		},
 		RootHashCalled: func() ([]byte, error) {
@@ -1194,6 +1196,7 @@ func TestMetaProcessor_CommitBlockOkValsShouldWork(t *testing.T) {
 	assert.True(t, forkDetectorAddCalled)
 	assert.True(t, debuggerMethodWasCalled)
 	assert.True(t, resetCountersForManagedBlockSignerCalled)
+	assert.True(t, commitCalled)
 	// this should sleep as there is an async call to display current header and block in CommitBlock
 	time.Sleep(time.Second)
 }
@@ -3864,4 +3867,212 @@ func TestMetaProcessor_CrossChecksBlockHeightsMetrics(t *testing.T) {
 	requireInstance.Equal(uint64(37), savedMetrics["erd_cross_check_block_height_0"])
 	requireInstance.Equal(uint64(38), savedMetrics["erd_cross_check_block_height_1"])
 	requireInstance.Equal(uint64(39), savedMetrics["erd_cross_check_block_height_2"])
+}
+
+func TestMetaProcessor_UpdateState(t *testing.T) {
+	t.Parallel()
+
+	t.Run("trigger updateStateStorage for metaBlock", func(t *testing.T) {
+		t.Parallel()
+
+		pruneCalledForUserAccounts := false
+		pruneCalledForPeerAccounts := false
+		cancelPruneCalledForUserAccounts := false
+		cancelPruneCalledForPeerAccounts := false
+
+		prevHeader := &block.MetaBlock{
+			RootHash:               []byte("prev state root hash"),
+			ValidatorStatsRootHash: []byte("prev validator stats root hash"),
+		}
+		coreComponents, dataComponents, boostrapComponents, statusComponents := createMockComponentHolders()
+		dataPool := initDataPool()
+		dataPool.HeadersCalled = func() dataRetriever.HeadersPool {
+			return &mock.HeadersCacherStub{
+				GetHeaderByHashCalled: func(hash []byte) (data.HeaderHandler, error) {
+					return prevHeader, nil
+				},
+			}
+		}
+		dataComponents.DataPool = dataPool
+		arguments := createMockMetaArguments(coreComponents, dataComponents, boostrapComponents, statusComponents)
+		arguments.AccountsDB = map[state.AccountsDbIdentifier]state.AccountsAdapter{
+			state.UserAccountsState: &stateMock.AccountsStub{
+				IsPruningEnabledCalled: func() bool {
+					return true
+				},
+				CancelPruneCalled: func(rootHash []byte, identifier state.TriePruningIdentifier) {
+					cancelPruneCalledForUserAccounts = true
+				},
+				PruneTrieCalled: func(rootHash []byte, identifier state.TriePruningIdentifier, handler state.PruningHandler) {
+					pruneCalledForUserAccounts = true
+				},
+			},
+			state.PeerAccountsState: &stateMock.AccountsStub{
+				IsPruningEnabledCalled: func() bool {
+					return true
+				},
+				CancelPruneCalled: func(rootHash []byte, identifier state.TriePruningIdentifier) {
+					cancelPruneCalledForPeerAccounts = true
+				},
+				PruneTrieCalled: func(rootHash []byte, identifier state.TriePruningIdentifier, handler state.PruningHandler) {
+					pruneCalledForPeerAccounts = true
+				},
+			},
+		}
+
+		mp, _ := blproc.NewMetaProcessor(arguments)
+
+		metaBlockHash := []byte("meta block hash")
+		metaBlock := &block.MetaBlock{
+			RootHash:               []byte("state root hash"),
+			ValidatorStatsRootHash: []byte("validator stats root hash"),
+		}
+
+		mp.UpdateState(metaBlock, metaBlockHash)
+
+		assert.True(t, pruneCalledForUserAccounts)
+		assert.True(t, pruneCalledForPeerAccounts)
+		assert.True(t, cancelPruneCalledForUserAccounts)
+		assert.True(t, cancelPruneCalledForPeerAccounts)
+	})
+	t.Run("prune trie for headerV3, prev header is headerV2", func(t *testing.T) {
+		t.Parallel()
+
+		rootHash1 := []byte("state root hash 1")
+		validatorStatsRootHash1 := []byte("validator stats root hash 1")
+
+		prevHeader := &block.MetaBlock{
+			RootHash:               rootHash1,
+			ValidatorStatsRootHash: validatorStatsRootHash1,
+		}
+		pruneTrieForHeaderV3Test(t, prevHeader, rootHash1, validatorStatsRootHash1)
+
+	})
+	t.Run("prune trie for headerV3, prev header is headerV3", func(t *testing.T) {
+		t.Parallel()
+
+		rootHash1 := []byte("state root hash 1")
+		validatorStatsRootHash1 := []byte("validator stats root hash 1")
+		prevHeader := &block.MetaBlockV3{
+			LastExecutionResult: &block.MetaExecutionResultInfo{
+				ExecutionResult: &block.BaseMetaExecutionResult{
+					BaseExecutionResult: &block.BaseExecutionResult{
+						RootHash: rootHash1,
+					},
+					ValidatorStatsRootHash: validatorStatsRootHash1,
+				},
+			},
+		}
+		pruneTrieForHeaderV3Test(t, prevHeader, rootHash1, validatorStatsRootHash1)
+	})
+}
+
+func pruneTrieForHeaderV3Test(t *testing.T, prevHeader data.HeaderHandler, rootHash1 []byte, validatorStatsRootHash1 []byte) {
+	pruneCalledForUserAccounts := 0
+	pruneCalledForPeerAccounts := 0
+	cancelPruneCalledForUserAccounts := 0
+	cancelPruneCalledForPeerAccounts := 0
+
+	rootHash2 := []byte("state root hash 2")
+	validatorStatsRootHash2 := []byte("validator stats root hash 2")
+
+	coreComponents, dataComponents, boostrapComponents, statusComponents := createMockComponentHolders()
+	dataPool := initDataPool()
+	dataPool.HeadersCalled = func() dataRetriever.HeadersPool {
+		return &mock.HeadersCacherStub{
+			GetHeaderByHashCalled: func(hash []byte) (data.HeaderHandler, error) {
+				return prevHeader, nil
+			},
+		}
+	}
+	dataComponents.DataPool = dataPool
+	arguments := createMockMetaArguments(coreComponents, dataComponents, boostrapComponents, statusComponents)
+	arguments.AccountsDB = map[state.AccountsDbIdentifier]state.AccountsAdapter{
+		state.UserAccountsState: &stateMock.AccountsStub{
+			IsPruningEnabledCalled: func() bool {
+				return true
+			},
+			CancelPruneCalled: func(rootHash []byte, identifier state.TriePruningIdentifier) {
+				if bytes.Equal(rootHash, rootHash1) {
+					cancelPruneCalledForUserAccounts++
+					return
+				}
+				if bytes.Equal(rootHash, rootHash2) {
+					cancelPruneCalledForUserAccounts++
+					return
+				}
+				assert.Fail(t, "unexpected root hash in CancelPruneCalled for user accounts")
+			},
+			PruneTrieCalled: func(rootHash []byte, identifier state.TriePruningIdentifier, handler state.PruningHandler) {
+				if bytes.Equal(rootHash, rootHash1) {
+					pruneCalledForUserAccounts++
+					return
+				}
+				if bytes.Equal(rootHash, rootHash2) {
+					pruneCalledForUserAccounts++
+					return
+				}
+				assert.Fail(t, "unexpected root hash in PruneTrieCalled for user accounts")
+			},
+		},
+		state.PeerAccountsState: &stateMock.AccountsStub{
+			IsPruningEnabledCalled: func() bool {
+				return true
+			},
+			CancelPruneCalled: func(rootHash []byte, identifier state.TriePruningIdentifier) {
+				if bytes.Equal(rootHash, validatorStatsRootHash1) {
+					cancelPruneCalledForPeerAccounts++
+					return
+				}
+				if bytes.Equal(rootHash, validatorStatsRootHash2) {
+					cancelPruneCalledForPeerAccounts++
+					return
+				}
+				assert.Fail(t, "unexpected root hash in CancelPruneCalled for peer accounts")
+			},
+			PruneTrieCalled: func(rootHash []byte, identifier state.TriePruningIdentifier, handler state.PruningHandler) {
+				if bytes.Equal(rootHash, validatorStatsRootHash1) {
+					pruneCalledForPeerAccounts++
+					return
+				}
+				if bytes.Equal(rootHash, validatorStatsRootHash2) {
+					pruneCalledForPeerAccounts++
+					return
+				}
+				assert.Fail(t, "unexpected root hash in PruneTrieCalled for peer accounts")
+			},
+		},
+	}
+
+	mp, _ := blproc.NewMetaProcessor(arguments)
+
+	metaBlockHash := []byte("meta block hash")
+	metaBlock := &block.MetaBlockV3{
+		PrevHash: []byte("hash"),
+		ExecutionResults: []*block.MetaExecutionResult{
+			{
+				ExecutionResult: &block.BaseMetaExecutionResult{
+					BaseExecutionResult: &block.BaseExecutionResult{
+						RootHash: rootHash2,
+					},
+					ValidatorStatsRootHash: validatorStatsRootHash2,
+				},
+			},
+			{
+				ExecutionResult: &block.BaseMetaExecutionResult{
+					BaseExecutionResult: &block.BaseExecutionResult{
+						RootHash: []byte("state root hash 3"),
+					},
+					ValidatorStatsRootHash: []byte("validator stats root hash 3"),
+				},
+			},
+		},
+	}
+
+	mp.UpdateState(metaBlock, metaBlockHash)
+
+	assert.Equal(t, 2, pruneCalledForUserAccounts)
+	assert.Equal(t, 2, pruneCalledForPeerAccounts)
+	assert.Equal(t, 2, cancelPruneCalledForUserAccounts)
+	assert.Equal(t, 2, cancelPruneCalledForPeerAccounts)
 }

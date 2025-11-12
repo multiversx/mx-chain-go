@@ -1510,7 +1510,7 @@ func (mp *metaProcessor) updateState(metaBlock data.MetaHeaderHandler, metaBlock
 			mp.accountsDB[state.PeerAccountsState],
 		)
 	} else {
-		mp.pruneTriesHeaderV3(metaBlock, prevMetaBlock)
+		mp.pruneTriesHeaderV3(metaBlock, prevMetaBlock, prevMetaBlockHash)
 	}
 
 	outportFinalizedHeaderHash := metaBlockHash
@@ -1522,7 +1522,11 @@ func (mp *metaProcessor) updateState(metaBlock data.MetaHeaderHandler, metaBlock
 	mp.blockChain.SetFinalBlockInfo(metaBlock.GetNonce(), metaBlockHash, metaBlock.GetRootHash())
 }
 
-func (mp *metaProcessor) pruneTriesHeaderV3(metaBlock data.MetaHeaderHandler, prevMetaBlock data.MetaHeaderHandler) {
+func (mp *metaProcessor) pruneTriesHeaderV3(
+	metaBlock data.MetaHeaderHandler,
+	prevMetaBlock data.MetaHeaderHandler,
+	prevMetaBlockHash []byte,
+) {
 	accountsDb := mp.accountsDB[state.UserAccountsState]
 	peerAccountsDb := mp.accountsDB[state.PeerAccountsState]
 	if !accountsDb.IsPruningEnabled() && !peerAccountsDb.IsPruningEnabled() {
@@ -1538,7 +1542,7 @@ func (mp *metaProcessor) pruneTriesHeaderV3(metaBlock data.MetaHeaderHandler, pr
 				"currentExecResType", fmt.Sprintf("%T", execResults[i]))
 			continue
 		}
-		prevExecRes, err := mp.getPreviousExecutionResult(i, execResults, prevMetaBlock)
+		prevExecRes, err := mp.getPreviousExecutionResult(i, execResults, prevMetaBlock, prevMetaBlockHash)
 		if err != nil {
 			log.Warn("failed to get previous execution result for pruning",
 				"err", err,
@@ -1581,6 +1585,7 @@ func (mp *metaProcessor) getPreviousExecutionResult(
 	index int,
 	executionResultsHandlers []data.BaseExecutionResultHandler,
 	prevMetaBlock data.MetaHeaderHandler,
+	prevMetaBlockHash []byte,
 ) (data.BaseMetaExecutionResultHandler, error) {
 	if index > 0 {
 		metaExecRes, ok := executionResultsHandlers[index-1].(data.BaseMetaExecutionResultHandler)
@@ -1599,7 +1604,7 @@ func (mp *metaProcessor) getPreviousExecutionResult(
 		return lastMetaExecRes.GetExecutionResultHandler(), nil
 	}
 
-	lastExecRes, err := process.GetPrevBlockLastExecutionResult(mp.blockChain)
+	lastExecRes, err := process.CreateLastExecutionResultFromPrevHeader(prevMetaBlock, prevMetaBlockHash)
 	if err != nil {
 		return nil, err
 	}
@@ -1659,8 +1664,8 @@ func (mp *metaProcessor) getLastSelfNotarizedHeaderByShard(
 				continue
 			}
 
-			if metaHeader.Nonce > maxNotarizedNonce {
-				maxNotarizedNonce = metaHeader.Nonce
+			if metaHeader.GetNonce() > maxNotarizedNonce {
+				maxNotarizedNonce = metaHeader.GetNonce()
 				lastNotarizedMetaHeader = metaHeader
 				lastNotarizedMetaHeaderHash = metaHash
 			}
