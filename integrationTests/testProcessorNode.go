@@ -788,6 +788,11 @@ func (tpn *TestProcessorNode) initGenesisBlocks(args ArgTestProcessorNode) {
 		}
 
 		tpn.GenesisBlocks = CreateSimpleGenesisBlocks(tpn.ShardCoordinator, rootHash)
+		err = OnGenesisExecutedBlock(tpn)
+		if err != nil {
+			log.Error("tpn.initGenesisBlocks: OnGenesisExecutedBlock(tpn)", "err", err)
+		}
+
 		return
 	}
 

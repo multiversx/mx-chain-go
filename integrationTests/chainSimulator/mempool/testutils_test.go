@@ -334,13 +334,22 @@ func testOnProposed(t *testing.T, sw *core.StopWatch, numTxs int, numAddresses i
 		GetAccountNonceAndBalanceCalled: func(address []byte) (uint64, *big.Int, bool, error) {
 			return 0, initialAmount, true, nil
 		},
+		GetRootHashCalled: func() ([]byte, error) {
+			return []byte("rootHash0"), nil
+		},
 	}
 
 	accountsAdapter := &txcachemocks.AccountNonceAndBalanceProviderMock{
 		GetAccountNonceAndBalanceCalled: func(address []byte) (uint64, *big.Int, bool, error) {
 			return 0, initialAmount, true, nil
 		},
+		GetRootHashCalled: func() ([]byte, error) {
+			return []byte("rootHash0"), nil
+		},
 	}
+
+	err = txpool.OnExecutedBlock(&block.Header{}, []byte("rootHash0"))
+	require.Nil(t, err)
 
 	options := holders.NewTxSelectionOptions(
 		10_000_000_000,
@@ -395,7 +404,13 @@ func testFirstSelection(t *testing.T, sw *core.StopWatch, numTxs int, numTxsToBe
 		GetAccountNonceAndBalanceCalled: func(address []byte) (uint64, *big.Int, bool, error) {
 			return 0, initialAmount, true, nil
 		},
+		GetRootHashCalled: func() ([]byte, error) {
+			return []byte("rootHash0"), nil
+		},
 	}
+
+	err = txpool.OnExecutedBlock(&block.Header{}, []byte("rootHash0"))
+	require.Nil(t, err)
 
 	options := holders.NewTxSelectionOptions(
 		10_000_000_000*10, // in case of 1_000_000 txs
@@ -438,13 +453,22 @@ func testSecondSelection(t *testing.T, sw *core.StopWatch, numTxs int, numTxsToB
 		GetAccountNonceAndBalanceCalled: func(address []byte) (uint64, *big.Int, bool, error) {
 			return 0, initialAmount, true, nil
 		},
+		GetRootHashCalled: func() ([]byte, error) {
+			return []byte("rootHash0"), nil
+		},
 	}
 
 	accountsAdapter := &txcachemocks.AccountNonceAndBalanceProviderMock{
 		GetAccountNonceAndBalanceCalled: func(address []byte) (uint64, *big.Int, bool, error) {
 			return 0, initialAmount, true, nil
 		},
+		GetRootHashCalled: func() ([]byte, error) {
+			return []byte("rootHash0"), nil
+		},
 	}
+
+	err = txpool.OnExecutedBlock(&block.Header{}, []byte("rootHash0"))
+	require.Nil(t, err)
 
 	options := holders.NewTxSelectionOptions(
 		10_000_000_000*10,
@@ -520,13 +544,22 @@ func testSecondSelectionWithManyTxsInPool(t *testing.T, sw *core.StopWatch, numT
 		GetAccountNonceAndBalanceCalled: func(address []byte) (uint64, *big.Int, bool, error) {
 			return 0, initialAmount, true, nil
 		},
+		GetRootHashCalled: func() ([]byte, error) {
+			return []byte("rootHash0"), nil
+		},
 	}
 
 	accountsAdapter := &txcachemocks.AccountNonceAndBalanceProviderMock{
 		GetAccountNonceAndBalanceCalled: func(address []byte) (uint64, *big.Int, bool, error) {
 			return 0, initialAmount, true, nil
 		},
+		GetRootHashCalled: func() ([]byte, error) {
+			return []byte("rootHash0"), nil
+		},
 	}
+
+	err = txpool.OnExecutedBlock(&block.Header{}, []byte("rootHash0"))
+	require.Nil(t, err)
 
 	options := holders.NewTxSelectionOptions(
 		10_000_000_000,
