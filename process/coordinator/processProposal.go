@@ -127,7 +127,7 @@ func (tc *transactionCoordinator) CreateMbsCrossShardDstMe(
 		})
 	}
 
-	lastMBIndex, _, err := tc.gasComputation.CheckIncomingMiniBlocks(mbsSlice, txsForMbs)
+	lastMBIndex, _, err := tc.gasComputation.AddIncomingMiniBlocks(mbsSlice, txsForMbs)
 	if err != nil {
 		return nil, nil, 0, false, err
 	}
@@ -165,9 +165,9 @@ func (tc *transactionCoordinator) SelectOutgoingTransactions() (selectedTxHashes
 		selectedTxs = append(selectedTxs, txs...)
 	}
 
-	selectedTxHashes, pendingMiniBlocksAdded, err := tc.gasComputation.CheckOutgoingTransactions(selectedTxHashes, selectedTxs)
+	selectedTxHashes, pendingMiniBlocksAdded, err := tc.gasComputation.AddOutgoingTransactions(selectedTxHashes, selectedTxs)
 	if err != nil {
-		log.Warn("transactionCoordinator.CheckOutgoingTransactions: CheckOutgoingTransactions returned error", "error", err)
+		log.Warn("transactionCoordinator.AddOutgoingTransactions: AddOutgoingTransactions returned error", "error", err)
 	}
 
 	return selectedTxHashes, pendingMiniBlocksAdded
