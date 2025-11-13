@@ -393,24 +393,24 @@ func (brc *baseRewardsCreator) initializeRewardsMiniBlocks() block.MiniBlockSlic
 }
 
 func (brc *baseRewardsCreator) addAcceleratorRewardToMiniBlocks(
-	acceleratorRewardRwdTx *rewardTx.RewardTx,
+	acceleratorRewardTx *rewardTx.RewardTx,
 	miniBlocks block.MiniBlockSlice,
-	protocolSustainabilityShardId uint32,
+	shardID uint32,
 ) error {
-	protocolSustainabilityRwdHash, errHash := core.CalculateHash(brc.marshalizer, brc.hasher, acceleratorRewardRwdTx)
+	protocolSustainabilityRwdHash, errHash := core.CalculateHash(brc.marshalizer, brc.hasher, acceleratorRewardTx)
 	if errHash != nil {
 		return errHash
 	}
-	if acceleratorRewardRwdTx.Value.Cmp(zero) < 0 {
+	if acceleratorRewardTx.Value.Cmp(zero) < 0 {
 		return errNegativeAcceleratorReward
 	}
-	if acceleratorRewardRwdTx.Value.Cmp(zero) == 0 {
+	if acceleratorRewardTx.Value.Cmp(zero) == 0 {
 		// do not add to the miniblock
 		return nil
 	}
 
-	brc.currTxs.AddTx(protocolSustainabilityRwdHash, acceleratorRewardRwdTx)
-	miniBlocks[protocolSustainabilityShardId].TxHashes = append(miniBlocks[protocolSustainabilityShardId].TxHashes, protocolSustainabilityRwdHash)
+	brc.currTxs.AddTx(protocolSustainabilityRwdHash, acceleratorRewardTx)
+	miniBlocks[shardID].TxHashes = append(miniBlocks[shardID].TxHashes, protocolSustainabilityRwdHash)
 
 	return nil
 }
