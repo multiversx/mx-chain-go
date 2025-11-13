@@ -1159,7 +1159,7 @@ func computeRewardsPerBlock(
 	}
 }
 
-func TestComputeEndOfEpochEconomicsV2(t *testing.T) {
+func TestComputeEndOfEpochEconomicsV2AndV3(t *testing.T) {
 	t.Parallel()
 
 	totalSupply, _ := big.NewInt(0).SetString("20000000000000000000000000", 10) // 20 Million EGLD
@@ -1213,8 +1213,31 @@ func TestComputeEndOfEpochEconomicsV2(t *testing.T) {
 
 		economicsBlock, err := ec.ComputeEndOfEpochEconomics(meta)
 		assert.Nil(t, err)
-
 		verifyEconomicsBlock(t, economicsBlock, input, rewardsPerBlock, nodePrice, totalSupply, roundsPerEpoch, args.RewardsHandler, isStakingV2)
+
+		metaHdrV3 := &block.MetaBlockV3{
+			Epoch:               metaEpoch,
+			Round:               roundsPerEpoch,
+			Nonce:               input.blockPerEpochOneShard,
+			LastExecutionResult: &block.MetaExecutionResultInfo{},
+			EpochChangeProposed: true,
+		}
+		execRes := &block.MetaExecutionResult{
+			ExecutionResult: &block.BaseMetaExecutionResult{
+				AccumulatedFeesInEpoch: input.accumulatedFeesInEpoch,
+				DevFeesInEpoch:         input.devFeesInEpoch,
+			},
+		}
+		blockEpochStart := &block.EpochStart{
+			LastFinalizedHeaders: []block.EpochStartShardData{
+				{ShardID: 0, Round: roundsPerEpoch, Nonce: input.blockPerEpochOneShard},
+				{ShardID: 1, Round: roundsPerEpoch, Nonce: input.blockPerEpochOneShard},
+			},
+		}
+
+		economicsBlockV3, err := ec.ComputeEndOfEpochEconomicsV3(metaHdrV3, execRes, blockEpochStart)
+		assert.Nil(t, err)
+		verifyEconomicsBlock(t, economicsBlockV3, input, rewardsPerBlock, nodePrice, totalSupply, roundsPerEpoch, args.RewardsHandler, isStakingV2)
 	}
 }
 
