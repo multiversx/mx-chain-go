@@ -16,13 +16,11 @@ var log = logger.GetOrCreate("process/asyncExecution/queue")
 // It provides methods to add headers at the end or beginning of the queue and retrieve them
 // for processing in a FIFO (First In, First Out) manner
 type blocksQueue struct {
-	mutex               *sync.Mutex
-	headerBodyPairs     []HeaderBodyPair
-	lastAddedNonce      uint64
-	closed              bool
-	notifyCh            chan struct{} // used only for blocking
-	mutEvictionHandlers sync.RWMutex
-	evictionHandlers    []BlocksQueueEvictionSubscriber
+	mutex           *sync.Mutex
+	headerBodyPairs []HeaderBodyPair
+	lastAddedNonce  uint64
+	closed          bool
+	notifyCh        chan struct{} // used only for blocking
 }
 
 // NewBlocksQueue creates and returns a new instance of blocksQueue
@@ -30,10 +28,9 @@ func NewBlocksQueue() *blocksQueue {
 	mutex := &sync.Mutex{}
 
 	return &blocksQueue{
-		mutex:            mutex,
-		headerBodyPairs:  make([]HeaderBodyPair, 0),
-		notifyCh:         make(chan struct{}, 1), // buffered so send won't block if not read yet
-		evictionHandlers: make([]BlocksQueueEvictionSubscriber, 0),
+		mutex:           mutex,
+		headerBodyPairs: make([]HeaderBodyPair, 0),
+		notifyCh:        make(chan struct{}, 1), // buffered so send won't block if not read yet
 	}
 }
 
@@ -103,22 +100,26 @@ func (bq *blocksQueue) getPairsFromNonce(nonce uint64) ([]HeaderBodyPair, int) {
 	return pairsToBeRemoved, firstIndex
 }
 
-func (bq *blocksQueue) removeFromNonce(nonce uint64) {
-	// first notify all subscribers, no matter this nonce still exists in queue or not
-	bq.notifyHeaderEvicted(nonce)
-
+func (bq *blocksQueue) removeFromNonce(nonce uint64) []uint64 {
+	removedNonces := make([]uint64, 0)
 	pairsToBeRemoved, firstIndex := bq.getPairsFromNonce(nonce)
 	if len(pairsToBeRemoved) == 0 {
 		bq.updateLastAddedNonceBasedOnRemovingNonce(nonce)
-		return
+		return removedNonces
+	}
+
+	for _, pair := range pairsToBeRemoved {
+		removedNonces = append(removedNonces, pair.Header.GetNonce())
 	}
 
 	bq.headerBodyPairs = bq.headerBodyPairs[:firstIndex]
 	bq.updateLastAddedNonceBasedOnRemovingNonce(nonce)
+
+	return removedNonces
 }
 
 func (bq *blocksQueue) replaceAndRemoveHigherNonces(pair HeaderBodyPair) error {
-	bq.removeFromNonce(pair.Header.GetNonce())
+	_ = bq.removeFromNonce(pair.Header.GetNonce())
 	return bq.add(pair)
 }
 
@@ -181,15 +182,15 @@ func (bq *blocksQueue) Peek() (HeaderBodyPair, bool) {
 
 // RemoveAtNonceAndHigher removes the header-body pair at the specified nonce
 // and all pairs with higher nonces from the queue
-func (bq *blocksQueue) RemoveAtNonceAndHigher(nonce uint64) {
+func (bq *blocksQueue) RemoveAtNonceAndHigher(nonce uint64) []uint64 {
 	bq.mutex.Lock()
 	defer bq.mutex.Unlock()
 
 	if bq.closed {
-		return
+		return make([]uint64, 0)
 	}
 
-	bq.removeFromNonce(nonce)
+	return bq.removeFromNonce(nonce)
 }
 
 func (bq *blocksQueue) updateLastAddedNonceBasedOnRemovingNonce(removingNonce uint64) {
@@ -198,11 +199,6 @@ func (bq *blocksQueue) updateLastAddedNonceBasedOnRemovingNonce(removingNonce ui
 		return
 	}
 
-	// TODO: consider adding new component that manages blocksQueue, executionResultsTracker and headersExecutor
-	// so they are always synchronized
-	// (bq.lastAddedNonce might get inconsistent with ert.lastNotarizedResult if RemoveAtNonceAndHigher is called for
-	// a nonce older than lastNotarizedResult)
-	// initial PR with discussions: https://github.com/multiversx/mx-chain-go/pull/7355
 	if removingNonce > 0 {
 		bq.lastAddedNonce = removingNonce - 1
 		return
@@ -211,41 +207,12 @@ func (bq *blocksQueue) updateLastAddedNonceBasedOnRemovingNonce(removingNonce ui
 	bq.lastAddedNonce = 0
 }
 
-// RegisterEvictionSubscriber registers a new eviction subscriber
-func (bq *blocksQueue) RegisterEvictionSubscriber(subscriber BlocksQueueEvictionSubscriber) {
-	if bq.closed || check.IfNil(subscriber) {
-		return
-	}
-
-	bq.mutEvictionHandlers.Lock()
-	defer bq.mutEvictionHandlers.Unlock()
-
-	bq.evictionHandlers = append(bq.evictionHandlers, subscriber)
-}
-
-func (bq *blocksQueue) notifyHeaderEvicted(headerNonce uint64) {
-	bq.mutEvictionHandlers.RLock()
-	defer bq.mutEvictionHandlers.RUnlock()
-
-	for _, subscriber := range bq.evictionHandlers {
-		subscriber.OnHeaderEvicted(headerNonce)
-	}
-}
-
 // Clean cleanup the queue and set the provided last added nonce
 func (bq *blocksQueue) Clean(lastAddedNonce uint64) {
 	bq.mutex.Lock()
 	defer bq.mutex.Unlock()
 
 	bq.headerBodyPairs = make([]HeaderBodyPair, 0)
-	bq.lastAddedNonce = lastAddedNonce
-}
-
-// SetLastAddedNonce will set the last added nonce
-func (bq *blocksQueue) SetLastAddedNonce(lastAddedNonce uint64) {
-	bq.mutex.Lock()
-	defer bq.mutex.Unlock()
-
 	bq.lastAddedNonce = lastAddedNonce
 }
 

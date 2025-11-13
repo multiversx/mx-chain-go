@@ -86,7 +86,22 @@ func TestMempoolWithChainSimulator_Selection_WhenUsersHaveZeroBalance_WithRelaye
 
 	shard := 0
 
-	simulator := startChainSimulator(t, func(cfg *config.Configs) {})
+	alterConfigsFunc := func(cfg *config.Configs) {
+		cfg.EpochConfig.EnableEpochs.FixRelayedBaseCostEnableEpoch = 2
+		cfg.EpochConfig.EnableEpochs.RelayedTransactionsV3EnableEpoch = 2
+		cfg.EpochConfig.EnableEpochs.RelayedTransactionsV3FixESDTTransferEnableEpoch = 2
+		cfg.EpochConfig.EnableEpochs.SupernovaEnableEpoch = 0
+		cfg.RoundConfig.RoundActivations = map[string]config.ActivationRoundByName{
+			"DisableAsyncCallV1": {
+				Round: "9999999",
+			},
+			"SupernovaEnableRound": {
+				Round: "0",
+			},
+		}
+	}
+
+	simulator := startChainSimulator(t, alterConfigsFunc)
 	defer simulator.Close()
 
 	err := simulator.GenerateBlocksUntilEpochIsReached(2)

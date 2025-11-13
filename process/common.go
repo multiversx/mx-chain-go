@@ -1042,12 +1042,12 @@ func CheckIfIndexesAreOutOfBound(
 }
 
 // SetBaseExecutionResult sets the last notarized base execution result in the execution results tracker
-func SetBaseExecutionResult(ert ExecutionResultsTracker, blockChain data.ChainHandler) error {
+func SetBaseExecutionResult(executionManager ExecutionManager, blockChain data.ChainHandler) error {
 	if check.IfNil(blockChain) {
 		return ErrNilBlockChain
 	}
-	if check.IfNil(ert) {
-		return ErrNilExecutionResultsTracker
+	if check.IfNil(executionManager) {
+		return ErrNilExecutionManager
 	}
 
 	currentBlock := blockChain.GetCurrentBlockHeader()
@@ -1074,7 +1074,7 @@ func SetBaseExecutionResult(ert ExecutionResultsTracker, blockChain data.ChainHa
 		return ErrNilBaseExecutionResult
 	}
 
-	return ert.SetLastNotarizedResult(lastBaseExecutionResult)
+	return executionManager.SetLastNotarizedResult(lastBaseExecutionResult)
 }
 
 // SeparateBodyByType creates a map of bodies according to type
