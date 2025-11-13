@@ -1294,6 +1294,7 @@ func (pcf *processComponentsFactory) createOutportDataProvider(
 		ExecutionOrderGetter:   pcf.txExecutionOrderHandler,
 		DataPool:               pcf.data.Datapool(),
 		StateAccessesCollector: pcf.state.StateAccessesCollector(),
+		RoundHandler:           pcf.coreData.RoundHandler(),
 	})
 }
 

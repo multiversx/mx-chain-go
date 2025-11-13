@@ -37,6 +37,7 @@ func createArgOutportDataProviderFactory() ArgOutportDataProviderFactory {
 		EnableEpochsHandler:    &enableEpochsHandlerMock.EnableEpochsHandlerStub{},
 		ExecutionOrderGetter:   &commonMocks.TxExecutionOrderHandlerStub{},
 		DataPool:               &dataRetriever.PoolsHolderMock{},
+		RoundHandler:           &testscommon.RoundHandlerMock{},
 	}
 }
 

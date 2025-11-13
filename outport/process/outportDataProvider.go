@@ -46,6 +46,7 @@ type ArgOutportDataProvider struct {
 	DataPool                 dataRetriever.PoolsHolder
 	EnableEpochsHandler      common.EnableEpochsHandler
 	StateAccessesCollector   state.StateAccessesCollector
+	RoundHandler             RoundHandler
 }
 
 // ArgPrepareOutportSaveBlockData holds the arguments needed for prepare outport save block data
@@ -77,6 +78,7 @@ type outportDataProvider struct {
 	dataPool                 dataRetriever.PoolsHolder
 	enableEpochsHandler      common.EnableEpochsHandler
 	StateAccessesCollector   state.StateAccessesCollector
+	roundHandler             RoundHandler
 }
 
 // NewOutportDataProvider will create a new instance of outportDataProvider
@@ -195,12 +197,12 @@ func (odp *outportDataProvider) PrepareOutportSaveBlockData(arg ArgPrepareOutpor
 	return outportBlock, nil
 }
 
-func (odp *outportDataProvider) prepareExecutionResultsData(args ArgPrepareOutportSaveBlockData) (map[string]*outportcore.ExecutionResultsData, error) {
+func (odp *outportDataProvider) prepareExecutionResultsData(args ArgPrepareOutportSaveBlockData) (map[string]*outportcore.ExecutionResultData, error) {
 	if !args.Header.IsHeaderV3() {
 		return nil, nil
 	}
 
-	results := make(map[string]*outportcore.ExecutionResultsData)
+	results := make(map[string]*outportcore.ExecutionResultData)
 	for _, executionResult := range args.Header.GetExecutionResultsHandlers() {
 		headerHash := executionResult.GetHeaderHash()
 
@@ -241,11 +243,12 @@ func (odp *outportDataProvider) prepareExecutionResultsData(args ArgPrepareOutpo
 		}
 
 		encodedHash := hex.EncodeToString(headerHash)
-		executionResultData := &outportcore.ExecutionResultsData{
+		executionResultData := &outportcore.ExecutionResultData{
 			Body:                 body,
 			IntraShardMiniBlocks: intraMbs,
 			TransactionPool:      pool,
 			AlteredAccounts:      alteredAccounts,
+			TimestampMs:          odp.roundHandler.GetTimeStampForRound(executionResult.GetHeaderRound()),
 		}
 
 		results[encodedHash] = executionResultData

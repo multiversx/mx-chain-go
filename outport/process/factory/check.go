@@ -54,6 +54,9 @@ func checkArgOutportDataProviderFactory(arg ArgOutportDataProviderFactory) error
 	if check.IfNil(arg.DataPool) {
 		return dataRetriever.ErrNilDataPoolHolder
 	}
+	if check.IfNil(arg.RoundHandler) {
+		return process.ErrNilRoundHandler
+	}
 
 	return nil
 }
