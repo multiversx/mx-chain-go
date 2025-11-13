@@ -287,11 +287,15 @@ func (e *economics) newDisplayLine(values ...string) *display.LineData {
 
 // compute the rewards for protocol sustainability - percentage from total rewards
 func (e *economics) computeRewardsForProtocolSustainability(totalRewards *big.Int, epoch uint32) *big.Int {
+	protocolSustainability := big.NewInt(0)
 	if epoch > e.stakingV2EnableEpoch {
-		return core.GetIntTrimmedPercentageOfValue(totalRewards, e.rewardsHandler.ProtocolSustainabilityPercentageInEpoch(epoch))
+		protocolSustainability = core.GetIntTrimmedPercentageOfValue(totalRewards, e.rewardsHandler.ProtocolSustainabilityPercentageInEpoch(epoch))
+	} else {
+		protocolSustainability = core.GetApproximatePercentageOfValue(totalRewards, e.rewardsHandler.ProtocolSustainabilityPercentageInEpoch(epoch))
 	}
 
-	return core.GetApproximatePercentageOfValue(totalRewards, e.rewardsHandler.ProtocolSustainabilityPercentageInEpoch(epoch))
+	e.economicsDataNotified.SetRewardsForProtocolSustainability(protocolSustainability)
+	return protocolSustainability
 }
 
 func (e *economics) computeRewardsForAccelerator(totalRewards *big.Int, epoch uint32) (*big.Int, error) {
