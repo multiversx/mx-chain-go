@@ -56,6 +56,7 @@ type ArgsChainSimulatorConfigs struct {
 	MetaChainConsensusGroupSize    uint32
 	Hysteresis                     float32
 	InitialEpoch                   uint32
+	InitialRound                   int64
 	RoundsPerEpoch                 core.OptionalUint64
 	SupernovaRoundsPerEpoch        core.OptionalUint64
 	NumNodesWaitingListShard       uint32
@@ -181,14 +182,33 @@ func updateSupernovaConfigs(configs *config.Configs, args ArgsChainSimulatorConf
 		}
 	}
 
-	if args.RoundsPerEpoch.HasValue {
-		// update supernova round for the new rounds per epoch config
-		newRoundsPerEpoch := args.RoundsPerEpoch.Value
-		newSupernovaRound := uint64(supernovaEpoch)*newRoundsPerEpoch + 5 // 5 rounds later
-		if isSupernovaFromGenesis {
-			// if supernova is from genesis, the round should be 0 as well
-			newSupernovaRound = 0
+	if !args.RoundsPerEpoch.HasValue {
+		return
+	}
+
+	hasCorrectActionRound := false
+	diff := int(supernovaEpoch) - int(args.InitialEpoch)
+	if diff >= 0 {
+		correctRoundActivationForSupernova := args.InitialRound + int64(diff)*int64(args.RoundsPerEpoch.Value) + 5 // 5 rounds later
+		supernovaActivationRound, _ := strconv.ParseInt(configs.RoundConfig.RoundActivations[string(common.SupernovaRoundFlag)].Round, 10, 64)
+		if supernovaActivationRound > correctRoundActivationForSupernova {
+			diffRounds := supernovaActivationRound - correctRoundActivationForSupernova
+			diffIsGreaterThanAnEpoch := diffRounds > int64(args.RoundsPerEpoch.Value)
+			if !diffIsGreaterThanAnEpoch {
+				hasCorrectActionRound = true
+			}
 		}
+	}
+
+	// update supernova round for the new rounds per epoch config
+	newRoundsPerEpoch := args.RoundsPerEpoch.Value
+	newSupernovaRound := uint64(supernovaEpoch)*newRoundsPerEpoch + 5 // 5 rounds later
+	if isSupernovaFromGenesis {
+		// if supernova is from genesis, the round should be 0 as well
+		newSupernovaRound = 0
+	}
+
+	if !hasCorrectActionRound || newSupernovaRound == 0 {
 		oldOptions := configs.RoundConfig.RoundActivations[string(common.SupernovaRoundFlag)].Options
 		configs.RoundConfig.RoundActivations[string(common.SupernovaRoundFlag)] = config.ActivationRoundByName{
 			Round:   fmt.Sprintf("%d", newSupernovaRound),

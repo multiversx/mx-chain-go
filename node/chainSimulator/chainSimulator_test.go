@@ -7,6 +7,7 @@ import (
 	"time"
 
 	"github.com/multiversx/mx-chain-core-go/core"
+	apiBlock "github.com/multiversx/mx-chain-core-go/data/api"
 	"github.com/multiversx/mx-chain-core-go/data/transaction"
 	"github.com/multiversx/mx-chain-go/common"
 	"github.com/multiversx/mx-chain-go/config"
@@ -117,6 +118,70 @@ func TestChainSimulator_GenerateBlocksShouldWork(t *testing.T) {
 	heartBeats, err := chainSimulator.GetNodeHandler(0).GetFacadeHandler().GetHeartbeats()
 	require.Nil(t, err)
 	require.Equal(t, 4, len(heartBeats))
+
+}
+
+func TestChainSimulator_VerifyBlockTimestampSupernova(t *testing.T) {
+	if testing.Short() {
+		t.Skip("this is not a short test")
+	}
+
+	chainSimulator, err := NewChainSimulator(ArgsChainSimulator{
+		BypassTxSignatureCheck:         true,
+		TempDir:                        t.TempDir(),
+		PathToInitialConfig:            defaultPathToInitialConfig,
+		NumOfShards:                    defaultNumOfShards,
+		RoundDurationInMillis:          defaultRoundDurationInMillis,
+		SupernovaRoundDurationInMillis: defaultSupernovaRoundDurationInMillis,
+		RoundsPerEpoch: core.OptionalUint64{
+			Value:    10,
+			HasValue: true,
+		},
+		SupernovaRoundsPerEpoch: defaultSupernovaRoundsPerEpoch,
+		ApiInterface:            api.NewNoApiInterface(),
+		MinNodesPerShard:        defaultMinNodesPerShard,
+		MetaChainMinNodes:       defaultMetaChainMinNodes,
+		InitialRound:            200,
+		InitialEpoch:            100,
+		InitialNonce:            100,
+		AlterConfigsFunction: func(cfg *config.Configs) {
+			// we need to enable this as this test skips a lot of epoch activations events, and it will fail otherwise
+			// because the owner of a BLS key coming from genesis is not set
+			// (the owner is not set at genesis anymore because we do not enable the staking v2 in that phase)
+			cfg.EpochConfig.EnableEpochs.StakingV2EnableEpoch = 0
+			cfg.EpochConfig.EnableEpochs.SupernovaEnableEpoch = 100
+			cfg.RoundConfig.RoundActivations[string(common.SupernovaRoundFlag)] = config.ActivationRoundByName{
+				Round: "220",
+			}
+		},
+	})
+	require.Nil(t, err)
+	require.NotNil(t, chainSimulator)
+	defer chainSimulator.Close()
+
+	time.Sleep(time.Second)
+
+	err = chainSimulator.GenerateBlocks(3)
+	require.Nil(t, err)
+
+	block1, err := chainSimulator.GetNodeHandler(0).GetFacadeHandler().GetBlockByNonce(102, apiBlock.BlockQueryOptions{})
+	require.Nil(t, err)
+	block2, err := chainSimulator.GetNodeHandler(0).GetFacadeHandler().GetBlockByNonce(103, apiBlock.BlockQueryOptions{})
+	require.Nil(t, err)
+
+	timestampDiff := block2.TimestampMs - block1.TimestampMs
+	require.Equal(t, uint64(timestampDiff), defaultRoundDurationInMillis)
+
+	err = chainSimulator.GenerateBlocks(30)
+	require.Nil(t, err)
+
+	block1, err = chainSimulator.GetNodeHandler(0).GetFacadeHandler().GetBlockByNonce(124, apiBlock.BlockQueryOptions{})
+	require.Nil(t, err)
+	block2, err = chainSimulator.GetNodeHandler(0).GetFacadeHandler().GetBlockByNonce(125, apiBlock.BlockQueryOptions{})
+	require.Nil(t, err)
+
+	timestampDiff = block2.TimestampMs - block1.TimestampMs
+	require.Equal(t, uint64(timestampDiff), defaultSupernovaRoundDurationInMillis)
 
 }
 
