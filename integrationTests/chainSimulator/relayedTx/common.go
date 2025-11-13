@@ -49,7 +49,7 @@ func StartChainSimulator(
 	t *testing.T,
 	alterConfigsFunction func(cfg *config.Configs),
 ) testsChainSimulator.ChainSimulator {
-	stake.RoundDurationInMillis := uint64(6000)
+	roundDurationInMillis := uint64(6000)
 	roundsPerEpochOpt := core.OptionalUint64{
 		HasValue: true,
 		Value:    RoundsPerEpoch,
@@ -60,20 +60,20 @@ func StartChainSimulator(
 	}
 
 	cs, err := chainSimulator.NewChainSimulator(chainSimulator.ArgsChainSimulator{
-		BypassTxSignatureCheck:               true,
-		TempDir:                              t.TempDir(),
-		PathToInitialConfig:                  DefaultPathToInitialConfig,
-		NumOfShards:                          3,
-		stake.RoundDurationInMillis:          stake.RoundDurationInMillis,
-		Supernovastake.RoundDurationInMillis: stake.RoundDurationInMillis / 10,
-		RoundsPerEpoch:                       roundsPerEpochOpt,
-		SupernovaRoundsPerEpoch:              supernovaRoundsPerEpochOpt,
-		ApiInterface:                         api.NewNoApiInterface(),
-		MinNodesPerShard:                     3,
-		MetaChainMinNodes:                    3,
-		NumNodesWaitingListMeta:              3,
-		NumNodesWaitingListShard:             3,
-		AlterConfigsFunction:                 alterConfigsFunction,
+		BypassTxSignatureCheck:         true,
+		TempDir:                        t.TempDir(),
+		PathToInitialConfig:            DefaultPathToInitialConfig,
+		NumOfShards:                    3,
+		RoundDurationInMillis:          roundDurationInMillis,
+		SupernovaRoundDurationInMillis: roundDurationInMillis / 10,
+		RoundsPerEpoch:                 roundsPerEpochOpt,
+		SupernovaRoundsPerEpoch:        supernovaRoundsPerEpochOpt,
+		ApiInterface:                   api.NewNoApiInterface(),
+		MinNodesPerShard:               3,
+		MetaChainMinNodes:              3,
+		NumNodesWaitingListMeta:        3,
+		NumNodesWaitingListShard:       3,
+		AlterConfigsFunction:           alterConfigsFunction,
 	})
 	require.NoError(t, err)
 	require.NotNil(t, cs)
