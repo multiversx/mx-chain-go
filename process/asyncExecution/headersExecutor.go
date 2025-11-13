@@ -15,7 +15,7 @@ import (
 
 var log = logger.GetOrCreate("process/asyncExecution")
 
-const timeToSleepWhilePaused = time.Millisecond * 20
+const timeToSleepWhilePaused = time.Millisecond * 5
 
 // ArgsHeadersExecutor holds all the components needed to create a new instance of *headersExecutor
 type ArgsHeadersExecutor struct {
