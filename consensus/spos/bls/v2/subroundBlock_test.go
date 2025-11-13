@@ -1379,6 +1379,38 @@ func TestSubroundBlock_ReceivedBlockHeader(t *testing.T) {
 		sr.SetStatus(bls.SrStartRound, spos.SsFinished)
 	}()
 
+	// old header after supernova
+	container.SetEnableEpochsHandler(&enableEpochsHandlerMock.EnableEpochsHandlerStub{
+		IsFlagEnabledCalled: func(flag core.EnableEpochFlag) bool {
+			return true
+		},
+	})
+	container.SetEnableRoundsHandler(&testscommon.EnableRoundsHandlerStub{
+		IsFlagEnabledCalled: func(flag common.EnableRoundFlag) bool {
+			return true
+		},
+	})
+	sr.ReceivedBlockHeader(&testscommon.HeaderHandlerStub{
+		IsHeaderV3Called: func() bool {
+			return false
+		},
+	})
+
+	// header v3 before supernova
+	container.SetEnableRoundsHandler(&testscommon.EnableRoundsHandlerStub{
+		IsFlagEnabledCalled: func(flag common.EnableRoundFlag) bool {
+			return false
+		},
+	})
+	sr.ReceivedBlockHeader(&testscommon.HeaderHandlerStub{
+		IsHeaderV3Called: func() bool {
+			return true
+		},
+	})
+
+	container.SetEnableEpochsHandler(&enableEpochsHandlerMock.EnableEpochsHandlerStub{})
+	container.SetEnableRoundsHandler(&testscommon.EnableRoundsHandlerStub{})
+
 	// header not for current consensus
 	sr.ReceivedBlockHeader(&testscommon.HeaderHandlerStub{})
 
@@ -1461,6 +1493,16 @@ func TestSubroundBlock_ReceivedBlockHeader(t *testing.T) {
 		VerifyBlockProposalCalled: func(headerHandler data.HeaderHandler, bodyHandler data.BodyHandler, haveTime func() time.Duration) error {
 			wasVerifyBlockProposalCalled = true
 			return nil
+		},
+	})
+	container.SetEnableEpochsHandler(&enableEpochsHandlerMock.EnableEpochsHandlerStub{
+		IsFlagEnabledCalled: func(flag core.EnableEpochFlag) bool {
+			return true
+		},
+	})
+	container.SetEnableRoundsHandler(&testscommon.EnableRoundsHandlerStub{
+		IsFlagEnabledCalled: func(flag common.EnableRoundFlag) bool {
+			return true
 		},
 	})
 	headerForCurrentConsensus.IsHeaderV3Called = func() bool {

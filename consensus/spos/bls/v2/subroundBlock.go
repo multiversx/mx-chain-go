@@ -513,6 +513,11 @@ func (sr *subroundBlock) receivedBlockHeader(headerHandler data.HeaderHandler) {
 		return
 	}
 
+	ok := sr.checkSupernovaHeader(headerHandler)
+	if !ok {
+		return
+	}
+
 	if !sr.waitForStartRoundToFinishBlocking() {
 		return
 	}
@@ -591,6 +596,23 @@ func (sr *subroundBlock) receivedBlockHeader(headerHandler data.HeaderHandler) {
 	if err == nil {
 		log.Debug("Proposed header received", "header", headerOutput)
 	}
+}
+
+func (sr *subroundBlock) checkSupernovaHeader(headerHandler data.HeaderHandler) bool {
+	isSupernovaActive := common.IsAsyncExecutionEnabled(sr.EnableEpochsHandler(), sr.EnableRoundsHandler())
+	isNotHeaderV3AfterSupernova := isSupernovaActive && !headerHandler.IsHeaderV3()
+	if isNotHeaderV3AfterSupernova {
+		log.Debug("checkSupernovaHeader received old header after supernova")
+		return false
+	}
+
+	isHeaderV3BeforeSupernova := !isSupernovaActive && headerHandler.IsHeaderV3()
+	if isHeaderV3BeforeSupernova {
+		log.Debug("checkSupernovaHeader received header v3 before supernova")
+		return false
+	}
+
+	return true
 }
 
 // CanProcessReceivedHeader method returns true if the received header can be processed and false otherwise
