@@ -549,6 +549,7 @@ func TestExecutionManager_RemoveAtNonceAndHigher(t *testing.T) {
 				wasResumeExecutionCalled = true
 			},
 		})
+		require.NoError(t, err)
 
 		err = em.RemoveAtNonceAndHigher(10)
 		require.Equal(t, errExpected, err)
@@ -598,6 +599,7 @@ func TestExecutionManager_RemoveAtNonceAndHigher(t *testing.T) {
 				wasResumeExecutionCalled = true
 			},
 		})
+		require.NoError(t, err)
 
 		err = em.RemoveAtNonceAndHigher(10)
 		require.Equal(t, errExpected, err)
