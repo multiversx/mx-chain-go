@@ -1515,7 +1515,7 @@ func (mp *metaProcessor) updateState(metaBlock data.MetaHeaderHandler, metaBlock
 			mp.accountsDB[state.PeerAccountsState],
 		)
 	} else {
-		mp.pruneTriesHeaderV3(metaBlock, prevMetaBlock, prevMetaBlockHash)
+		mp.pruneTriesHeaderV3(metaBlock, prevMetaBlock)
 	}
 
 	outportFinalizedHeaderHash := metaBlockHash
@@ -1530,7 +1530,6 @@ func (mp *metaProcessor) updateState(metaBlock data.MetaHeaderHandler, metaBlock
 func (mp *metaProcessor) pruneTriesHeaderV3(
 	metaBlock data.MetaHeaderHandler,
 	prevMetaBlock data.MetaHeaderHandler,
-	prevMetaBlockHash []byte,
 ) {
 	accountsDb := mp.accountsDB[state.UserAccountsState]
 	peerAccountsDb := mp.accountsDB[state.PeerAccountsState]
@@ -1538,6 +1537,7 @@ func (mp *metaProcessor) pruneTriesHeaderV3(
 		return
 	}
 
+	prevMetaBlockHash := metaBlock.GetPrevHash()
 	execResults := metaBlock.GetExecutionResultsHandlers()
 	for i := range execResults {
 		currentExecRes, ok := execResults[i].(data.BaseMetaExecutionResultHandler)
