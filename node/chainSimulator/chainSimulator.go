@@ -132,6 +132,7 @@ func (s *simulator) createChainHandlers(args ArgsBaseChainSimulator) error {
 		AlterConfigsFunction:           args.AlterConfigsFunction,
 		NumNodesWaitingListShard:       args.NumNodesWaitingListShard,
 		NumNodesWaitingListMeta:        args.NumNodesWaitingListMeta,
+		InitialRound:                   args.InitialRound,
 	})
 	if err != nil {
 		return err
