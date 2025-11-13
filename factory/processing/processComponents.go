@@ -16,6 +16,9 @@ import (
 	dataBlock "github.com/multiversx/mx-chain-core-go/data/block"
 	"github.com/multiversx/mx-chain-core-go/data/outport"
 	"github.com/multiversx/mx-chain-core-go/data/receipt"
+	"github.com/multiversx/mx-chain-go/process/asyncExecution"
+	"github.com/multiversx/mx-chain-go/process/asyncExecution/executionManager"
+	"github.com/multiversx/mx-chain-go/process/asyncExecution/executionTrack"
 	"github.com/multiversx/mx-chain-go/process/asyncExecution/queue"
 	vmcommon "github.com/multiversx/mx-chain-vm-common-go"
 	vmcommonBuiltInFunctions "github.com/multiversx/mx-chain-vm-common-go/builtInFunctions"
@@ -98,7 +101,7 @@ type processComponents struct {
 	epochStartNotifier               factory.EpochStartNotifier
 	forkDetector                     process.ForkDetector
 	blockProcessor                   process.BlockProcessor
-	blocksQueue                      process.BlocksQueue
+	executionManager                 process.ExecutionManager
 	blackListHandler                 process.TimeCacher
 	bootStorer                       process.BootStorer
 	headerSigVerifier                process.InterceptedHeaderSigVerifier
@@ -579,7 +582,7 @@ func (pcf *processComponentsFactory) Create() (*processComponents, error) {
 		return nil, err
 	}
 	if pcf.bootstrapComponents.ShardCoordinator().SelfId() == core.MetachainShardId {
-		pendingMiniBlocksHandler, err = pendingMb.NewPendingMiniBlocks()
+		pendingMiniBlocksHandler, err = pendingMb.NewPendingMiniBlocks(pcf.data.Datapool().Headers())
 		if err != nil {
 			return nil, err
 		}
@@ -623,6 +626,20 @@ func (pcf *processComponentsFactory) Create() (*processComponents, error) {
 		return nil, fmt.Errorf("%w when assembling components for the sent signatures tracker", err)
 	}
 
+	blocksQueue := queue.NewBlocksQueue()
+	executionResultsTracker := executionTrack.NewExecutionResultsTracker()
+
+	argExecManager := executionManager.ArgsExecutionManager{
+		BlocksQueue:             blocksQueue,
+		ExecutionResultsTracker: executionResultsTracker,
+		BlockChain:              pcf.data.Blockchain(),
+		Headers:                 pcf.data.Datapool().Headers(),
+	}
+	execManager, err := executionManager.NewExecutionManager(argExecManager)
+	if err != nil {
+		return nil, err
+	}
+
 	blockProcessorComponents, err := pcf.newBlockProcessor(
 		requestHandler,
 		forkDetector,
@@ -639,10 +656,30 @@ func (pcf *processComponentsFactory) Create() (*processComponents, error) {
 		blockCutoffProcessingHandler,
 		pcf.state.MissingTrieNodesNotifier(),
 		sentSignaturesTracker,
+		execManager,
 	)
 	if err != nil {
 		return nil, err
 	}
+
+	argsHeadersExecutor := asyncExecution.ArgsHeadersExecutor{
+		BlocksQueue:      blocksQueue,
+		ExecutionTracker: executionResultsTracker,
+		BlockProcessor:   blockProcessorComponents.blockProcessor,
+		BlockChain:       pcf.data.Blockchain(),
+	}
+	headersExecutor, err := asyncExecution.NewHeadersExecutor(argsHeadersExecutor)
+	if err != nil {
+		return nil, err
+	}
+
+	err = execManager.SetHeadersExecutor(headersExecutor)
+	if err != nil {
+		return nil, err
+	}
+
+	// TODO: uncomment this
+	// execManager.StartExecution()
 
 	startEpochNum := pcf.bootstrapComponents.EpochBootstrapParams().Epoch()
 	if startEpochNum == 0 {
@@ -743,7 +780,7 @@ func (pcf *processComponentsFactory) Create() (*processComponents, error) {
 		roundHandler:                     pcf.coreData.RoundHandler(),
 		forkDetector:                     forkDetector,
 		blockProcessor:                   blockProcessorComponents.blockProcessor,
-		blocksQueue:                      queue.NewBlocksQueue(),
+		executionManager:                 execManager,
 		epochStartTrigger:                epochStartTrigger,
 		epochStartNotifier:               pcf.coreData.EpochStartNotifierWithConfirm(),
 		blackListHandler:                 blackListHandler,
@@ -2090,8 +2127,8 @@ func (pc *processComponents) Close() error {
 	if !check.IfNil(pc.blockProcessor) {
 		log.LogIfError(pc.blockProcessor.Close())
 	}
-	if !check.IfNil(pc.blocksQueue) {
-		pc.blocksQueue.Close()
+	if !check.IfNil(pc.executionManager) {
+		log.LogIfError(pc.executionManager.Close())
 	}
 	if !check.IfNil(pc.validatorsProvider) {
 		log.LogIfError(pc.validatorsProvider.Close())

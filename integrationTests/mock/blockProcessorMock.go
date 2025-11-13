@@ -14,9 +14,10 @@ type BlockProcessorMock struct {
 	NumCommitBlockCalled             uint32
 	Marshalizer                      marshal.Marshalizer
 	ProcessBlockCalled               func(header data.HeaderHandler, body data.BodyHandler, haveTime func() time.Duration) error
+	ProcessBlockProposalCalled       func(header data.HeaderHandler, body data.BodyHandler) (data.BaseExecutionResultHandler, error)
 	ProcessScheduledBlockCalled      func(header data.HeaderHandler, body data.BodyHandler, haveTime func() time.Duration) error
 	CommitBlockCalled                func(header data.HeaderHandler, body data.BodyHandler) error
-	RevertCurrentBlockCalled         func()
+	RevertCurrentBlockCalled         func(header data.HeaderHandler)
 	CreateBlockCalled                func(initialHdrData data.HeaderHandler, haveTime func() bool) (data.HeaderHandler, data.BodyHandler, error)
 	RestoreBlockIntoPoolsCalled      func(header data.HeaderHandler, body data.BodyHandler) error
 	RestoreBlockBodyIntoPoolsCalled  func(body data.BodyHandler) error
@@ -46,6 +47,15 @@ func (bpm *BlockProcessorMock) ProcessBlock(header data.HeaderHandler, body data
 	return nil
 }
 
+// ProcessBlockProposal mocks processing a block
+func (bpm *BlockProcessorMock) ProcessBlockProposal(header data.HeaderHandler, body data.BodyHandler) (data.BaseExecutionResultHandler, error) {
+	if bpm.ProcessBlockProposalCalled != nil {
+		return bpm.ProcessBlockProposalCalled(header, body)
+	}
+
+	return nil, nil
+}
+
 // ProcessScheduledBlock mocks processing a scheduled block
 func (bpm *BlockProcessorMock) ProcessScheduledBlock(header data.HeaderHandler, body data.BodyHandler, haveTime func() time.Duration) error {
 	if bpm.ProcessScheduledBlockCalled != nil {
@@ -65,9 +75,9 @@ func (bpm *BlockProcessorMock) CommitBlock(header data.HeaderHandler, body data.
 }
 
 // RevertCurrentBlock mocks revert of the current block
-func (bpm *BlockProcessorMock) RevertCurrentBlock() {
+func (bpm *BlockProcessorMock) RevertCurrentBlock(header data.HeaderHandler) {
 	if bpm.RevertCurrentBlockCalled != nil {
-		bpm.RevertCurrentBlockCalled()
+		bpm.RevertCurrentBlockCalled(header)
 	}
 }
 

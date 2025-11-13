@@ -101,11 +101,11 @@ type ArgBaseProcessor struct {
 	StateAccessesCollector             state.StateAccessesCollector
 	HeadersForBlock                    HeadersForBlock
 	ExecutionResultsInclusionEstimator process.InclusionEstimator
-	ExecutionResultsTracker            process.ExecutionResultsTracker
 	MiniBlocksSelectionSession         MiniBlocksSelectionSession
 	ExecutionResultsVerifier           ExecutionResultsVerifier
 	MissingDataResolver                MissingDataResolver
 	GasComputation                     process.GasComputation
+	ExecutionManager                   process.ExecutionManager
 }
 
 // ArgShardProcessor holds all dependencies required by the process data factory in order to create

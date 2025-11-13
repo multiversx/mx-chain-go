@@ -282,9 +282,10 @@ type PreProcessor interface {
 // BlockProcessor is the main interface for block execution engine
 type BlockProcessor interface {
 	ProcessBlock(header data.HeaderHandler, body data.BodyHandler, haveTime func() time.Duration) error
+	ProcessBlockProposal(header data.HeaderHandler, body data.BodyHandler) (data.BaseExecutionResultHandler, error)
 	ProcessScheduledBlock(header data.HeaderHandler, body data.BodyHandler, haveTime func() time.Duration) error
 	CommitBlock(header data.HeaderHandler, body data.BodyHandler) error
-	RevertCurrentBlock()
+	RevertCurrentBlock(header data.HeaderHandler)
 	PruneStateOnRollback(currHeader data.HeaderHandler, currHeaderHash []byte, prevHeader data.HeaderHandler, prevHeaderHash []byte)
 	RevertStateToBlock(header data.HeaderHandler, rootHash []byte) error
 	CreateNewHeader(round uint64, nonce uint64) (data.HeaderHandler, error)
@@ -315,8 +316,31 @@ type BlocksQueue interface {
 	AddOrReplace(pair queue.HeaderBodyPair) error
 	Pop() (queue.HeaderBodyPair, bool)
 	Peek() (queue.HeaderBodyPair, bool)
+	RemoveAtNonceAndHigher(nonce uint64) []uint64
 	IsInterfaceNil() bool
 	Close()
+}
+
+// HeadersExecutor defines what a headers executor should be able to do
+type HeadersExecutor interface {
+	StartExecution()
+	PauseExecution()
+	ResumeExecution()
+	Close() error
+	IsInterfaceNil() bool
+}
+
+// ExecutionManager defines a component able to manage the components responsible for block execution
+type ExecutionManager interface {
+	StartExecution()
+	SetHeadersExecutor(executor HeadersExecutor) error
+	AddPairForExecution(pair queue.HeaderBodyPair) error
+	GetPendingExecutionResults() ([]data.BaseExecutionResultHandler, error)
+	CleanConfirmedExecutionResults(header data.HeaderHandler) error
+	SetLastNotarizedResult(executionResult data.BaseExecutionResultHandler) error
+	RemoveAtNonceAndHigher(nonce uint64) error
+	Close() error
+	IsInterfaceNil() bool
 }
 
 // SmartContractProcessorFull is the main interface for smart contract result execution engine
@@ -1528,11 +1552,11 @@ type ProofsPool interface {
 // GasComputation defines a component able to select the maximum number of outgoing transactions and incoming mini blocks
 // to fill the block with respect to the gas limits
 type GasComputation interface {
-	CheckIncomingMiniBlocks(
+	AddIncomingMiniBlocks(
 		miniBlocks []data.MiniBlockHeaderHandler,
 		transactions map[string][]data.TransactionHandler,
 	) (lastMiniBlockIndex int, pendingMiniBlocks int, err error)
-	CheckOutgoingTransactions(
+	AddOutgoingTransactions(
 		txHashes [][]byte,
 		transactions []data.TransactionHandler,
 	) (addedTxHashes [][]byte, pendingMiniBlocksAdded []data.MiniBlockHeaderHandler, err error)
@@ -1564,6 +1588,8 @@ type ExecutionResultsTracker interface {
 	GetPendingExecutionResultByNonce(nonce uint64) (data.BaseExecutionResultHandler, error)
 	GetLastNotarizedExecutionResult() (data.BaseExecutionResultHandler, error)
 	SetLastNotarizedResult(executionResult data.BaseExecutionResultHandler) error
+	RemoveFromNonce(nonce uint64) error
+	CleanConfirmedExecutionResults(header data.HeaderHandler) error
 	IsInterfaceNil() bool
 }
 
@@ -1585,7 +1611,7 @@ type InclusionEstimator interface {
 
 // ShardInfoCreator defines the functionality to create shard info
 type ShardInfoCreator interface {
-	CreateShardInfoV3(metaHeader data.MetaHeaderHandler, shardHeaders []data.HeaderHandler, shardHeaderHashes [][]byte) ([]data.ShardDataHandler, error)
+	CreateShardInfoV3(metaHeader data.MetaHeaderHandler, shardHeaders []data.HeaderHandler, shardHeaderHashes [][]byte) ([]data.ShardDataProposalHandler, []data.ShardDataHandler, error)
 	CreateShardInfoFromLegacyMeta(metaHeader data.MetaHeaderHandler, shardHeaders []data.ShardHeaderHandler, shardHeaderHashes [][]byte) ([]data.ShardDataHandler, error)
 	IsInterfaceNil() bool
 }

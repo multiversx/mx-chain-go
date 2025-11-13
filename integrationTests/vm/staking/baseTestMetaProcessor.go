@@ -66,6 +66,7 @@ type TestMetaProcessor struct {
 	NodesConfig         nodesConfig
 	AccountsAdapter     state.AccountsAdapter
 	Marshaller          marshal.Marshalizer
+	DataPool            dataRetriever.PoolsHolder
 	TxCacher            dataRetriever.TransactionCacher
 	TxCoordinator       process.TransactionCoordinator
 	SystemVM            vmcommon.VMExecutionHandler
@@ -148,7 +149,7 @@ func newTestMetaProcessor(
 	waiting, _ := nc.GetAllWaitingValidatorsPublicKeys(0)
 	shuffledOut, _ := nc.GetAllShuffledOutValidatorsPublicKeys(0)
 
-	return &TestMetaProcessor{
+	tmp := &TestMetaProcessor{
 		AccountsAdapter: stateComponents.AccountsAdapter(),
 		Marshaller:      coreComponents.InternalMarshalizer(),
 		NodesConfig: nodesConfig{
@@ -178,12 +179,23 @@ func newTestMetaProcessor(
 		ValidatorStatistics: validatorStatisticsProcessor,
 		EpochStartTrigger:   epochStartTrigger,
 		BlockChainHandler:   dataComponents.Blockchain(),
+		DataPool:            dataComponents.Datapool(),
 		TxCacher:            dataComponents.Datapool().CurrentBlockTxs(),
 		TxCoordinator:       txCoordinator,
 		SystemVM:            systemVM,
 		BlockChainHook:      blockChainHook,
 		StakingDataProvider: stakingDataProvider,
 	}
+
+	updateRootHash(tmp.BlockChainHandler, tmp.AccountsAdapter)
+	return tmp
+}
+
+func updateRootHash(blockChainHandler data.ChainHandler, accountsAdapter state.AccountsAdapter) {
+	rootHash, _ := accountsAdapter.RootHash()
+	genesisBlock := blockChainHandler.GetGenesisHeader()
+	_ = genesisBlock.SetRootHash(rootHash)
+	_ = blockChainHandler.SetGenesisHeader(genesisBlock)
 }
 
 func saveNodesConfig(

@@ -13,6 +13,7 @@ import (
 	"github.com/multiversx/mx-chain-core-go/data"
 	"github.com/multiversx/mx-chain-core-go/data/block"
 	"github.com/multiversx/mx-chain-core-go/data/transaction"
+	"github.com/multiversx/mx-chain-go/process/asyncExecution/executionManager"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 
@@ -33,7 +34,6 @@ import (
 	"github.com/multiversx/mx-chain-go/testscommon/cache"
 	"github.com/multiversx/mx-chain-go/testscommon/dataRetriever"
 	"github.com/multiversx/mx-chain-go/testscommon/enableEpochsHandlerMock"
-	testscommonExecutionTrack "github.com/multiversx/mx-chain-go/testscommon/executionTrack"
 	"github.com/multiversx/mx-chain-go/testscommon/hashingMocks"
 	"github.com/multiversx/mx-chain-go/testscommon/mbSelection"
 	"github.com/multiversx/mx-chain-go/testscommon/pool"
@@ -305,7 +305,7 @@ func TestShardProcessor_CreateBlockProposal(t *testing.T) {
 
 		coreComponents, dataComponents, bootstrapComponents, statusComponents := createComponentHolderMocks()
 		arguments := CreateMockArguments(coreComponents, dataComponents, bootstrapComponents, statusComponents)
-		arguments.ExecutionResultsTracker = &testscommonExecutionTrack.ExecutionResultsTrackerStub{
+		arguments.ExecutionManager = &processMocks.ExecutionManagerMock{
 			GetPendingExecutionResultsCalled: func() ([]data.BaseExecutionResultHandler, error) {
 				return nil, expectedErr
 			},
@@ -333,7 +333,7 @@ func TestShardProcessor_CreateBlockProposal(t *testing.T) {
 				return 1 // coverage only
 			},
 		}
-		arguments.ExecutionResultsTracker = &testscommonExecutionTrack.ExecutionResultsTrackerStub{
+		arguments.ExecutionManager = &processMocks.ExecutionManagerMock{
 			GetPendingExecutionResultsCalled: func() ([]data.BaseExecutionResultHandler, error) {
 				return []data.BaseExecutionResultHandler{
 					&block.ExecutionResult{
@@ -628,7 +628,7 @@ func Test_addExecutionResultsOnHeader(t *testing.T) {
 		t.Parallel()
 
 		sp, _ := blproc.ConstructPartialShardBlockProcessorForTest(map[string]interface{}{
-			"executionResultsTracker": &testscommonExecutionTrack.ExecutionResultsTrackerStub{
+			"executionManager": &processMocks.ExecutionManagerMock{
 				GetPendingExecutionResultsCalled: func() ([]data.BaseExecutionResultHandler, error) {
 					return nil, expectedErr
 				},
@@ -641,7 +641,7 @@ func Test_addExecutionResultsOnHeader(t *testing.T) {
 	t.Run("GetPrevBlockLastExecutionResult returns error should error", func(t *testing.T) {
 		t.Parallel()
 		sp, _ := blproc.ConstructPartialShardBlockProcessorForTest(map[string]interface{}{
-			"executionResultsTracker": &testscommonExecutionTrack.ExecutionResultsTrackerStub{
+			"executionManager": &processMocks.ExecutionManagerMock{
 				GetPendingExecutionResultsCalled: func() ([]data.BaseExecutionResultHandler, error) {
 					return []data.BaseExecutionResultHandler{
 						&block.ExecutionResult{
@@ -658,7 +658,7 @@ func Test_addExecutionResultsOnHeader(t *testing.T) {
 	t.Run("CreateDataForInclusionEstimation returns error should error", func(t *testing.T) {
 		t.Parallel()
 		sp, _ := blproc.ConstructPartialShardBlockProcessorForTest(map[string]interface{}{
-			"executionResultsTracker": &testscommonExecutionTrack.ExecutionResultsTrackerStub{
+			"executionManager": &processMocks.ExecutionManagerMock{
 				GetPendingExecutionResultsCalled: func() ([]data.BaseExecutionResultHandler, error) {
 					return []data.BaseExecutionResultHandler{
 						&block.ExecutionResult{
@@ -702,7 +702,7 @@ func Test_addExecutionResultsOnHeader(t *testing.T) {
 		}
 
 		sp, _ := blproc.ConstructPartialShardBlockProcessorForTest(map[string]interface{}{
-			"executionResultsTracker": &testscommonExecutionTrack.ExecutionResultsTrackerStub{
+			"executionManager": &processMocks.ExecutionManagerMock{
 				GetPendingExecutionResultsCalled: func() ([]data.BaseExecutionResultHandler, error) {
 					// return one meta execution result (so Decide can include it)
 					meta := &block.MetaExecutionResult{
@@ -785,7 +785,7 @@ func Test_addExecutionResultsOnHeader(t *testing.T) {
 			BaseExecutionResult: &block.BaseExecutionResult{HeaderHash: []byte("hash2"), HeaderNonce: 2, HeaderRound: 2, GasUsed: 999_000_000},
 		}
 		sp, _ := blproc.ConstructPartialShardBlockProcessorForTest(map[string]interface{}{
-			"executionResultsTracker": &testscommonExecutionTrack.ExecutionResultsTrackerStub{
+			"executionManager": &processMocks.ExecutionManagerMock{
 				GetPendingExecutionResultsCalled: func() ([]data.BaseExecutionResultHandler, error) {
 					return []data.BaseExecutionResultHandler{
 						executionResult1,
@@ -1525,7 +1525,7 @@ func TestShardProcessor_VerifyBlockProposal(t *testing.T) {
 			},
 		}
 		arguments.GasComputation = &testscommon.GasComputationMock{
-			CheckIncomingMiniBlocksCalled: func(miniBlocks []data.MiniBlockHeaderHandler, transactions map[string][]data.TransactionHandler) (int, int, error) {
+			AddIncomingMiniBlocksCalled: func(miniBlocks []data.MiniBlockHeaderHandler, transactions map[string][]data.TransactionHandler) (int, int, error) {
 				return 0, 0, expectedError
 			},
 		}
@@ -1554,7 +1554,6 @@ func TestShardProcessor_VerifyBlockProposal(t *testing.T) {
 
 		coreComponents.IntMarsh = &mock.MarshalizerStub{
 			MarshalCalled: func(obj interface{}) ([]byte, error) {
-				t.Log("called IntMarsh.Marshal on ", obj)
 				return nil, expectedErr
 			},
 		}
@@ -1994,9 +1993,15 @@ func TestShardBlockProposal_CreateAndVerifyProposal(t *testing.T) {
 	dataComponents.BlockChain = blkc
 
 	executionResultsTracker := executionTrack.NewExecutionResultsTracker()
-	execResultsVerifier, _ := blproc.NewExecutionResultsVerifier(dataComponents.BlockChain, executionResultsTracker)
+	execManager, _ := executionManager.NewExecutionManager(executionManager.ArgsExecutionManager{
+		BlocksQueue:             &processMocks.BlocksQueueMock{},
+		ExecutionResultsTracker: executionResultsTracker,
+		BlockChain:              blkc,
+		Headers:                 dataComponents.DataPool.Headers(),
+	})
+	execResultsVerifier, _ := blproc.NewExecutionResultsVerifier(dataComponents.BlockChain, execManager)
 
-	arguments.ArgBaseProcessor.ExecutionResultsTracker = executionResultsTracker
+	arguments.ArgBaseProcessor.ExecutionManager = execManager
 	arguments.ArgBaseProcessor.ExecutionResultsVerifier = execResultsVerifier
 
 	shardProcessor, err := blproc.NewShardProcessor(arguments)
@@ -2145,9 +2150,15 @@ func TestShardBlockProposal_CreateAndVerifyProposal_WithTransactions(t *testing.
 	dataComponents.BlockChain = blkc
 
 	executionResultsTracker := executionTrack.NewExecutionResultsTracker()
-	execResultsVerifier, _ := blproc.NewExecutionResultsVerifier(dataComponents.BlockChain, executionResultsTracker)
+	execManager, _ := executionManager.NewExecutionManager(executionManager.ArgsExecutionManager{
+		BlocksQueue:             &processMocks.BlocksQueueMock{},
+		ExecutionResultsTracker: executionResultsTracker,
+		BlockChain:              blkc,
+		Headers:                 dataComponents.DataPool.Headers(),
+	})
+	execResultsVerifier, _ := blproc.NewExecutionResultsVerifier(dataComponents.BlockChain, execManager)
 
-	arguments.ArgBaseProcessor.ExecutionResultsTracker = executionResultsTracker
+	arguments.ArgBaseProcessor.ExecutionManager = execManager
 	arguments.ArgBaseProcessor.ExecutionResultsVerifier = execResultsVerifier
 
 	arguments.MissingDataResolver = &processMocks.MissingDataResolverMock{
@@ -2293,7 +2304,7 @@ func TestShardProcessor_VerifyGasLimit(t *testing.T) {
 		err = sp.VerifyGasLimit(createHeaderFromMBs(outgoingMbh, incomingMbh))
 		require.Error(t, err)
 	})
-	t.Run("CheckIncomingMiniBlocks error", func(t *testing.T) {
+	t.Run("AddIncomingMiniBlocks error", func(t *testing.T) {
 		t.Parallel()
 
 		outgoingMbh, outgoingMb, incomingMbh, incomingMb := createMiniBlocks()
@@ -2302,7 +2313,7 @@ func TestShardProcessor_VerifyGasLimit(t *testing.T) {
 		dataComponents.DataPool = dataPool
 		arguments := CreateMockArguments(coreComponents, dataComponents, bootstrapComponents, statusComponents)
 		arguments.GasComputation = &testscommon.GasComputationMock{
-			CheckIncomingMiniBlocksCalled: func(miniBlocks []data.MiniBlockHeaderHandler, transactions map[string][]data.TransactionHandler) (int, int, error) {
+			AddIncomingMiniBlocksCalled: func(miniBlocks []data.MiniBlockHeaderHandler, transactions map[string][]data.TransactionHandler) (int, int, error) {
 				return 0, 0, expectedError
 			},
 		}
@@ -2312,7 +2323,7 @@ func TestShardProcessor_VerifyGasLimit(t *testing.T) {
 		err = sp.VerifyGasLimit(createHeaderFromMBs(outgoingMbh, incomingMbh))
 		require.Equal(t, expectedError, err)
 	})
-	t.Run("CheckOutgoingTransactions error", func(t *testing.T) {
+	t.Run("AddOutgoingTransactions error", func(t *testing.T) {
 		t.Parallel()
 
 		outgoingMbh, outgoingMb, incomingMbh, incomingMb := createMiniBlocks()
@@ -2321,10 +2332,10 @@ func TestShardProcessor_VerifyGasLimit(t *testing.T) {
 		dataComponents.DataPool = dataPool
 		arguments := CreateMockArguments(coreComponents, dataComponents, bootstrapComponents, statusComponents)
 		arguments.GasComputation = &testscommon.GasComputationMock{
-			CheckIncomingMiniBlocksCalled: func(miniBlocks []data.MiniBlockHeaderHandler, transactions map[string][]data.TransactionHandler) (int, int, error) {
+			AddIncomingMiniBlocksCalled: func(miniBlocks []data.MiniBlockHeaderHandler, transactions map[string][]data.TransactionHandler) (int, int, error) {
 				return len(miniBlocks), 0, nil
 			},
-			CheckOutgoingTransactionsCalled: func(txHashes [][]byte, transactions []data.TransactionHandler) ([][]byte, []data.MiniBlockHeaderHandler, error) {
+			AddOutgoingTransactionsCalled: func(txHashes [][]byte, transactions []data.TransactionHandler) ([][]byte, []data.MiniBlockHeaderHandler, error) {
 				return nil, nil, expectedError
 			},
 		}
@@ -2334,7 +2345,7 @@ func TestShardProcessor_VerifyGasLimit(t *testing.T) {
 		err = sp.VerifyGasLimit(createHeaderFromMBs(outgoingMbh, incomingMbh))
 		require.Equal(t, expectedError, err)
 	})
-	t.Run("CheckOutgoingTransactions results in limit exceeded", func(t *testing.T) {
+	t.Run("AddOutgoingTransactions results in limit exceeded", func(t *testing.T) {
 		t.Parallel()
 
 		outgoingMbh, outgoingMb, incomingMbh, incomingMb := createMiniBlocks()
@@ -2343,10 +2354,10 @@ func TestShardProcessor_VerifyGasLimit(t *testing.T) {
 		dataComponents.DataPool = dataPool
 		arguments := CreateMockArguments(coreComponents, dataComponents, bootstrapComponents, statusComponents)
 		arguments.GasComputation = &testscommon.GasComputationMock{
-			CheckIncomingMiniBlocksCalled: func(miniBlocks []data.MiniBlockHeaderHandler, transactions map[string][]data.TransactionHandler) (int, int, error) {
+			AddIncomingMiniBlocksCalled: func(miniBlocks []data.MiniBlockHeaderHandler, transactions map[string][]data.TransactionHandler) (int, int, error) {
 				return len(miniBlocks), 0, nil
 			},
-			CheckOutgoingTransactionsCalled: func(txHashes [][]byte, transactions []data.TransactionHandler) ([][]byte, []data.MiniBlockHeaderHandler, error) {
+			AddOutgoingTransactionsCalled: func(txHashes [][]byte, transactions []data.TransactionHandler) ([][]byte, []data.MiniBlockHeaderHandler, error) {
 				return txHashes[:len(txHashes)-1], nil, nil // one tx over the limit
 			},
 		}
@@ -2357,7 +2368,7 @@ func TestShardProcessor_VerifyGasLimit(t *testing.T) {
 		require.ErrorIs(t, err, process.ErrInvalidMaxGasLimitPerMiniBlock)
 		require.Contains(t, err.Error(), "outgoing transactions exceeded")
 	})
-	t.Run("CheckOutgoingTransactions adds extra pending mini blocks on CheckOutgoingTransactions", func(t *testing.T) {
+	t.Run("AddOutgoingTransactions adds extra pending mini blocks on AddOutgoingTransactions", func(t *testing.T) {
 		t.Parallel()
 
 		outgoingMbh, outgoingMb, incomingMbh, incomingMb := createMiniBlocks()
@@ -2366,10 +2377,10 @@ func TestShardProcessor_VerifyGasLimit(t *testing.T) {
 		dataComponents.DataPool = dataPool
 		arguments := CreateMockArguments(coreComponents, dataComponents, bootstrapComponents, statusComponents)
 		arguments.GasComputation = &testscommon.GasComputationMock{
-			CheckIncomingMiniBlocksCalled: func(miniBlocks []data.MiniBlockHeaderHandler, transactions map[string][]data.TransactionHandler) (int, int, error) {
+			AddIncomingMiniBlocksCalled: func(miniBlocks []data.MiniBlockHeaderHandler, transactions map[string][]data.TransactionHandler) (int, int, error) {
 				return len(miniBlocks), 0, nil // no pending mini blocks left
 			},
-			CheckOutgoingTransactionsCalled: func(txHashes [][]byte, transactions []data.TransactionHandler) ([][]byte, []data.MiniBlockHeaderHandler, error) {
+			AddOutgoingTransactionsCalled: func(txHashes [][]byte, transactions []data.TransactionHandler) ([][]byte, []data.MiniBlockHeaderHandler, error) {
 				return txHashes, []data.MiniBlockHeaderHandler{&block.MiniBlockHeader{}}, nil // one pending mini block added
 			},
 		}
@@ -2548,7 +2559,9 @@ func TestShardProcessor_ProcessBlockProposal(t *testing.T) {
 		}
 		sp, _ := blproc.NewShardProcessor(args)
 
-		header := &block.HeaderV3{}
+		header := &block.HeaderV3{
+			Nonce: 1,
+		}
 		body := &block.Body{}
 		_, err := sp.ProcessBlockProposal(header, body)
 
@@ -2565,7 +2578,9 @@ func TestShardProcessor_ProcessBlockProposal(t *testing.T) {
 		}
 		sp, _ := blproc.NewShardProcessor(args)
 
-		header := &block.HeaderV3{}
+		header := &block.HeaderV3{
+			Nonce: 1,
+		}
 		body := &block.Body{}
 		_, err := sp.ProcessBlockProposal(header, body)
 
@@ -2596,6 +2611,7 @@ func TestShardProcessor_ProcessBlockProposal(t *testing.T) {
 		sp, _ := blproc.NewShardProcessor(args)
 
 		header := &block.HeaderV3{
+			Nonce:              1,
 			Epoch:              10,
 			EpochStartMetaHash: []byte("epochStartHash"),
 		}
@@ -2616,7 +2632,9 @@ func TestShardProcessor_ProcessBlockProposal(t *testing.T) {
 		}
 		sp, _ := blproc.NewShardProcessor(args)
 
-		header := &block.HeaderV3{}
+		header := &block.HeaderV3{
+			Nonce: 1,
+		}
 		body := &block.Body{}
 		_, err := sp.ProcessBlockProposal(header, body)
 		require.Equal(t, expectedErr, err)
@@ -2632,7 +2650,9 @@ func TestShardProcessor_ProcessBlockProposal(t *testing.T) {
 		}
 		sp, _ := blproc.NewShardProcessor(args)
 
-		header := &block.HeaderV3{}
+		header := &block.HeaderV3{
+			Nonce: 1,
+		}
 		body := &block.Body{}
 		_, err := sp.ProcessBlockProposal(header, body)
 		require.Equal(t, expectedErr, err)
@@ -2641,6 +2661,13 @@ func TestShardProcessor_ProcessBlockProposal(t *testing.T) {
 		t.Parallel()
 
 		args := CreateMockArguments(createComponentHolderMocks())
+		wasRemoveAtNonceAndHigherCalled := false
+		args.ExecutionManager = &processMocks.ExecutionManagerMock{
+			RemoveAtNonceAndHigherCalled: func(nonce uint64) error {
+				wasRemoveAtNonceAndHigherCalled = true
+				return nil
+			},
+		}
 		args.TxCoordinator = &testscommon.TransactionCoordinatorMock{
 			ProcessBlockTransactionCalled: func(header data.HeaderHandler, body *block.Body, haveTime func() time.Duration) error {
 				return expectedErr
@@ -2648,10 +2675,13 @@ func TestShardProcessor_ProcessBlockProposal(t *testing.T) {
 		}
 		sp, _ := blproc.NewShardProcessor(args)
 
-		header := &block.HeaderV3{}
+		header := &block.HeaderV3{
+			Nonce: 1,
+		}
 		body := &block.Body{}
 		_, err := sp.ProcessBlockProposal(header, body)
 		require.Equal(t, expectedErr, err)
+		require.True(t, wasRemoveAtNonceAndHigherCalled)
 	})
 	t.Run("VerifyCreatedBlockTransactions fails should error", func(t *testing.T) {
 		t.Parallel()
@@ -2664,7 +2694,9 @@ func TestShardProcessor_ProcessBlockProposal(t *testing.T) {
 		}
 		sp, _ := blproc.NewShardProcessor(args)
 
-		header := &block.HeaderV3{}
+		header := &block.HeaderV3{
+			Nonce: 1,
+		}
 		body := &block.Body{}
 		_, err := sp.ProcessBlockProposal(header, body)
 		require.Equal(t, expectedErr, err)
@@ -2681,7 +2713,9 @@ func TestShardProcessor_ProcessBlockProposal(t *testing.T) {
 		args := CreateMockArguments(coreComponents, dataComponents, bootstrapComponents, statusComponents)
 		sp, _ := blproc.NewShardProcessor(args)
 
-		header := &block.HeaderV3{}
+		header := &block.HeaderV3{
+			Nonce: 1,
+		}
 		body := &block.Body{}
 		_, err := sp.ProcessBlockProposal(header, body)
 		require.Equal(t, expectedErr, err)
@@ -2697,7 +2731,9 @@ func TestShardProcessor_ProcessBlockProposal(t *testing.T) {
 		}
 		sp, _ := blproc.NewShardProcessor(args)
 
-		header := &block.HeaderV3{}
+		header := &block.HeaderV3{
+			Nonce: 1,
+		}
 		body := &block.Body{}
 		_, err := sp.ProcessBlockProposal(header, body)
 		require.Equal(t, expectedErr, err)
@@ -2713,7 +2749,9 @@ func TestShardProcessor_ProcessBlockProposal(t *testing.T) {
 		}
 		sp, _ := blproc.NewShardProcessor(args)
 
-		header := &block.HeaderV3{}
+		header := &block.HeaderV3{
+			Nonce: 1,
+		}
 		body := &block.Body{}
 		_, err := sp.ProcessBlockProposal(header, body)
 		require.Equal(t, expectedErr, err)
@@ -2723,7 +2761,9 @@ func TestShardProcessor_ProcessBlockProposal(t *testing.T) {
 
 		sp, _ := blproc.NewShardProcessor(arguments)
 
-		header := &block.HeaderV3{}
+		header := &block.HeaderV3{
+			Nonce: 1,
+		}
 		body := &block.Body{}
 		_, err := sp.ProcessBlockProposal(header, body)
 
@@ -3119,6 +3159,53 @@ func TestShardProcessor_collectExecutionResults(t *testing.T) {
 		assert.Equal(t, expectedErr, err)
 	})
 
+	t.Run("postProcessMiniBlocksToMe are cached", func(t *testing.T) {
+		t.Parallel()
+
+		putCalled := false
+		postProcessKey := []byte("postProcessMiniBlocks")
+		expected := []*block.MiniBlock{
+			{
+				SenderShardID:   0,
+				ReceiverShardID: 0,
+				Type:            block.InvalidBlock,
+				TxHashes: [][]byte{
+					[]byte("tx_self_1"),
+					[]byte("tx_self_2"),
+				},
+			},
+		}
+		subComponents, header, body := createSubComponentsForCollectExecutionResultsTest()
+		subComponents["txCoordinator"] = &testscommon.TransactionCoordinatorMock{
+			GetCreatedInShardMiniBlocksCalled: func() []*block.MiniBlock {
+				return expected
+			},
+		}
+		expectedBytes, err := subComponents["marshalizer"].(*mock.MarshalizerMock).Marshal(expected)
+		require.Nil(t, err)
+
+		subComponents["dataPool"].(*dataRetriever.PoolsHolderStub).ExecutedMiniBlocksCalled = func() storage.Cacher {
+			return &cache.CacherStub{
+				PutCalled: func(key []byte, value interface{}, sizeInBytes int) (evicted bool) {
+					if bytes.Contains(key, postProcessKey) {
+						putCalled = true
+						require.Equal(t, expectedBytes, value)
+					}
+					return false
+				},
+			}
+		}
+
+		sp, err := blproc.ConstructPartialShardBlockProcessorForTest(subComponents)
+		require.Nil(t, err)
+
+		headerHash := []byte("header hash to be tested")
+		_, err = sp.CollectExecutionResults(headerHash, header, body)
+		require.Nil(t, err)
+
+		require.True(t, putCalled, "postProcessMiniBlockstToMe should be cached")
+	})
+
 	t.Run("should work", func(t *testing.T) {
 		t.Parallel()
 
@@ -3466,10 +3553,10 @@ func createSubComponentsForVerifyProposalTest() map[string]interface{} {
 			},
 		},
 		"gasComputation": &testscommon.GasComputationMock{
-			CheckIncomingMiniBlocksCalled: func(miniBlocks []data.MiniBlockHeaderHandler, transactions map[string][]data.TransactionHandler) (int, int, error) {
+			AddIncomingMiniBlocksCalled: func(miniBlocks []data.MiniBlockHeaderHandler, transactions map[string][]data.TransactionHandler) (int, int, error) {
 				return len(miniBlocks) - 1, 0, nil // no pending mini blocks left
 			},
-			CheckOutgoingTransactionsCalled: func(txHashes [][]byte, transactions []data.TransactionHandler) ([][]byte, []data.MiniBlockHeaderHandler, error) {
+			AddOutgoingTransactionsCalled: func(txHashes [][]byte, transactions []data.TransactionHandler) ([][]byte, []data.MiniBlockHeaderHandler, error) {
 				return txHashes, []data.MiniBlockHeaderHandler{&block.MiniBlockHeader{}}, nil // one pending mini block added
 			},
 		},

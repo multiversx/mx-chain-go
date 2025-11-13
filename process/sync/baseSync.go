@@ -62,10 +62,10 @@ type baseBootstrap struct {
 	headers     dataRetriever.HeadersPool
 	proofs      dataRetriever.ProofsPool
 
-	chainHandler   data.ChainHandler
-	blockProcessor process.BlockProcessor
-	blocksQueue    process.BlocksQueue
-	store          dataRetriever.StorageService
+	chainHandler     data.ChainHandler
+	blockProcessor   process.BlockProcessor
+	executionManager process.ExecutionManager
+	store            dataRetriever.StorageService
 
 	roundHandler        consensus.RoundHandler
 	hasher              hashing.Hasher
@@ -392,8 +392,8 @@ func (boot *baseBootstrap) getCurrentBlock() data.HeaderHandler {
 	return boot.chainHandler.GetGenesisHeader()
 }
 
-// getCurrentRootHash will get the current root hash
-func (boot *baseBootstrap) getCurrentRootHash() []byte {
+// getCurrentRootHashLegacy will get the current root hash
+func (boot *baseBootstrap) getCurrentRootHashLegacy() []byte {
 	currentRootHash := boot.chainHandler.GetCurrentBlockRootHash()
 	if len(currentRootHash) != 0 {
 		return currentRootHash
@@ -615,8 +615,8 @@ func checkBaseBootstrapParameters(arguments ArgBaseBootstrapper) error {
 	if check.IfNil(arguments.BlockProcessor) {
 		return process.ErrNilBlockProcessor
 	}
-	if check.IfNil(arguments.BlocksQueue) {
-		return process.ErrNilBlocksQueue
+	if check.IfNil(arguments.ExecutionManager) {
+		return process.ErrNilExecutionManager
 	}
 	if check.IfNil(arguments.Hasher) {
 		return process.ErrNilHasher
@@ -904,7 +904,7 @@ func (boot *baseBootstrap) prepareForLegacySyncIfNeeded() error {
 	}
 
 	currentHeader := boot.getCurrentBlock()
-	currentRootHash := boot.getCurrentRootHash()
+	currentRootHash := boot.getCurrentRootHashLegacy()
 	txPool := boot.poolsHolder.Transactions()
 	err := txPool.OnExecutedBlock(currentHeader, currentRootHash)
 	if err != nil {
@@ -945,7 +945,7 @@ func (boot *baseBootstrap) syncBlockV3(body data.BodyHandler, header data.Header
 		return err
 	}
 
-	err = boot.blocksQueue.AddOrReplace(queue.HeaderBodyPair{
+	err = boot.executionManager.AddPairForExecution(queue.HeaderBodyPair{
 		Header: header,
 		Body:   body,
 	})
@@ -1031,7 +1031,7 @@ func (boot *baseBootstrap) prepareForSyncIfNeeded(syncingNonce uint64) error {
 
 		boot.preparedForSync = true
 
-		return boot.blocksQueue.AddOrReplace(queue.HeaderBodyPair{
+		return boot.executionManager.AddPairForExecution(queue.HeaderBodyPair{
 			Header: currentHeader,
 			Body:   currentBody,
 		})
@@ -1059,7 +1059,7 @@ func (boot *baseBootstrap) prepareForSyncIfNeeded(syncingNonce uint64) error {
 			return errOnProposedBlock
 		}
 
-		errAdd := boot.blocksQueue.AddOrReplace(queue.HeaderBodyPair{
+		errAdd := boot.executionManager.AddPairForExecution(queue.HeaderBodyPair{
 			Header: hdr,
 			Body:   body,
 		})
@@ -1243,6 +1243,10 @@ func (boot *baseBootstrap) rollBack(revertUsingForkNonce bool) error {
 }
 
 func (boot *baseBootstrap) shouldAllowRollback(currHeader data.HeaderHandler, currHeaderHash []byte) bool {
+	if currHeader.IsHeaderV3() {
+		return false
+	}
+
 	finalBlockNonce := boot.forkDetector.GetHighestFinalBlockNonce()
 	finalBlockHash := boot.forkDetector.GetHighestFinalBlockHash()
 	isRollBackBehindFinal := currHeader.GetNonce() <= finalBlockNonce

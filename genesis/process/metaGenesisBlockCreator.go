@@ -369,6 +369,7 @@ func createProcessorsForMetaGenesisBlock(arg ArgsGenesisBlockCreator, enableEpoc
 		ChanceComputer:      &disabled.Rater{},
 		ShardCoordinator:    arg.ShardCoordinator,
 		EnableEpochsHandler: enableEpochsHandler,
+		EnableRoundsHandler: enableRoundsHandler,
 		NodesCoordinator:    &disabled.NodesCoordinator{},
 	}
 	virtualMachineFactory, err := metachain.NewVMContainerFactory(argsNewVMContainerFactory)
@@ -527,7 +528,9 @@ func createProcessorsForMetaGenesisBlock(arg ArgsGenesisBlockCreator, enableEpoc
 		BlockSizeComputation:         disabledBlockSizeComputationHandler,
 		BalanceComputation:           disabledBalanceComputationHandler,
 		EnableEpochsHandler:          enableEpochsHandler,
+		EpochNotifier:                epochNotifier,
 		EnableRoundsHandler:          enableRoundsHandler,
+		RoundNotifier:                roundNotifier,
 		TxTypeHandler:                txTypeHandler,
 		ScheduledTxsExecutionHandler: disabledScheduledTxsExecutionHandler,
 		ProcessedMiniBlocksTracker:   disabledProcessedMiniBlocksTracker,

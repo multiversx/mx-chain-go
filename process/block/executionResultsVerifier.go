@@ -12,21 +12,21 @@ import (
 
 // executionResultsVerifier is a struct that checks the execution results of a shard header
 type executionResultsVerifier struct {
-	blockChain              data.ChainHandler
-	executionResultsTracker process.ExecutionResultsTracker
+	blockChain       data.ChainHandler
+	executionManager process.ExecutionManager
 }
 
 // NewExecutionResultsVerifier creates a new instance of executionResultsVerifier
-func NewExecutionResultsVerifier(blockChain data.ChainHandler, executionResultsTracker process.ExecutionResultsTracker) (*executionResultsVerifier, error) {
+func NewExecutionResultsVerifier(blockChain data.ChainHandler, executionManager process.ExecutionManager) (*executionResultsVerifier, error) {
 	if check.IfNil(blockChain) {
 		return nil, process.ErrNilBlockChain
 	}
-	if check.IfNil(executionResultsTracker) {
-		return nil, process.ErrNilExecutionResultsTracker
+	if check.IfNil(executionManager) {
+		return nil, process.ErrNilExecutionManager
 	}
 	return &executionResultsVerifier{
-		blockChain:              blockChain,
-		executionResultsTracker: executionResultsTracker,
+		blockChain:       blockChain,
+		executionManager: executionManager,
 	}, nil
 }
 
@@ -56,7 +56,7 @@ func (erc *executionResultsVerifier) verifyExecutionResults(
 	// if header is received, the notarized execution results should already be available in the tracker
 	// if not all present, then verify fails
 	executionResults := header.GetExecutionResultsHandlers()
-	pendingExecutionResults, err := erc.executionResultsTracker.GetPendingExecutionResults()
+	pendingExecutionResults, err := erc.executionManager.GetPendingExecutionResults()
 	if err != nil {
 		return err
 	}

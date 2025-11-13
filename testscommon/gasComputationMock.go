@@ -6,11 +6,11 @@ import (
 
 // GasComputationMock -
 type GasComputationMock struct {
-	CheckIncomingMiniBlocksCalled func(
+	AddIncomingMiniBlocksCalled func(
 		miniBlocks []data.MiniBlockHeaderHandler,
 		transactions map[string][]data.TransactionHandler,
 	) (int, int, error)
-	CheckOutgoingTransactionsCalled func(
+	AddOutgoingTransactionsCalled func(
 		txHashes [][]byte,
 		transactions []data.TransactionHandler,
 	) ([][]byte, []data.MiniBlockHeaderHandler, error)
@@ -26,26 +26,33 @@ type GasComputationMock struct {
 	RevertIncomingMiniBlocksCalled    func(miniBlockHashes [][]byte)
 }
 
-// CheckIncomingMiniBlocks -
-func (mock *GasComputationMock) CheckIncomingMiniBlocks(
+// AddIncomingMiniBlocks -
+func (mock *GasComputationMock) AddIncomingMiniBlocks(
 	miniBlocks []data.MiniBlockHeaderHandler,
 	transactions map[string][]data.TransactionHandler,
 ) (int, int, error) {
-	if mock.CheckIncomingMiniBlocksCalled != nil {
-		return mock.CheckIncomingMiniBlocksCalled(miniBlocks, transactions)
+	if mock.AddIncomingMiniBlocksCalled != nil {
+		return mock.AddIncomingMiniBlocksCalled(miniBlocks, transactions)
 	}
 	return 0, 0, nil
 }
 
-// CheckOutgoingTransactions -
-func (mock *GasComputationMock) CheckOutgoingTransactions(
+// AddOutgoingTransactions -
+func (mock *GasComputationMock) AddOutgoingTransactions(
 	txHashes [][]byte,
 	transactions []data.TransactionHandler,
 ) ([][]byte, []data.MiniBlockHeaderHandler, error) {
-	if mock.CheckOutgoingTransactionsCalled != nil {
-		return mock.CheckOutgoingTransactionsCalled(txHashes, transactions)
+	if mock.AddOutgoingTransactionsCalled != nil {
+		return mock.AddOutgoingTransactionsCalled(txHashes, transactions)
 	}
 	return nil, nil, nil
+}
+
+// RevertIncomingMiniBlocks -
+func (mock *GasComputationMock) RevertIncomingMiniBlocks(miniBlockHashes [][]byte) {
+	if mock.RevertIncomingMiniBlocksCalled != nil {
+		mock.RevertIncomingMiniBlocksCalled(miniBlockHashes)
+	}
 }
 
 // GetBandwidthForTransactions -
@@ -54,13 +61,6 @@ func (mock *GasComputationMock) GetBandwidthForTransactions() uint64 {
 		return mock.GetBandwidthForTransactionsCalled()
 	}
 	return 0
-}
-
-// RevertIncomingMiniBlocks -
-func (mock *GasComputationMock) RevertIncomingMiniBlocks(miniBlockHashes [][]byte) {
-	if mock.RevertIncomingMiniBlocksCalled != nil {
-		mock.RevertIncomingMiniBlocksCalled(miniBlockHashes)
-	}
 }
 
 // TotalGasConsumed -

@@ -35,7 +35,7 @@ func NewBlocksQueue() *blocksQueue {
 }
 
 // AddOrReplace appends a HeaderBodyPair to the end of the queue,
-// or replaces the last element if it has the same nonce.
+// or replaces the element with the same nonce, removing all higher nonces.
 func (bq *blocksQueue) AddOrReplace(pair HeaderBodyPair) error {
 	if check.IfNil(pair.Header) {
 		return common.ErrNilHeaderHandler
@@ -53,17 +53,15 @@ func (bq *blocksQueue) AddOrReplace(pair HeaderBodyPair) error {
 
 	nonce := pair.Header.GetNonce()
 	switch {
-	case nonce == bq.lastAddedNonce:
-		// replace last
-		if len(bq.headerBodyPairs) == 0 {
-			bq.headerBodyPairs = append(bq.headerBodyPairs, pair)
-		} else {
-			bq.headerBodyPairs[len(bq.headerBodyPairs)-1] = pair
+	case nonce == bq.lastAddedNonce+1 || len(bq.headerBodyPairs) == 0:
+		// safe to ignore error here, as the condition inside add method is the same as this one
+		_ = bq.add(pair)
+	case nonce <= bq.lastAddedNonce:
+		// remove all nonces starting with the new one, then add it
+		err := bq.replaceAndRemoveHigherNonces(pair)
+		if err != nil {
+			return err
 		}
-	case nonce == bq.lastAddedNonce+1:
-		// append next
-		bq.lastAddedNonce = nonce
-		bq.headerBodyPairs = append(bq.headerBodyPairs, pair)
 	default:
 		// mismatch
 		return fmt.Errorf("%w: last header nonce: %d, current header nonce %d",
@@ -82,6 +80,58 @@ func (bq *blocksQueue) AddOrReplace(pair HeaderBodyPair) error {
 	}
 
 	return nil
+}
+
+func (bq *blocksQueue) getPairsFromNonce(nonce uint64) ([]HeaderBodyPair, int) {
+	pairsToBeRemoved := make([]HeaderBodyPair, 0)
+	firstIndex := len(bq.headerBodyPairs)
+	for i, bp := range bq.headerBodyPairs {
+		if bp.Header.GetNonce() < nonce {
+			continue
+		}
+
+		if i < firstIndex {
+			firstIndex = i
+		}
+
+		pairsToBeRemoved = append(pairsToBeRemoved, bp)
+	}
+
+	return pairsToBeRemoved, firstIndex
+}
+
+func (bq *blocksQueue) removeFromNonce(nonce uint64) []uint64 {
+	removedNonces := make([]uint64, 0)
+	pairsToBeRemoved, firstIndex := bq.getPairsFromNonce(nonce)
+	if len(pairsToBeRemoved) == 0 {
+		bq.updateLastAddedNonceBasedOnRemovingNonce(nonce)
+		return removedNonces
+	}
+
+	for _, pair := range pairsToBeRemoved {
+		removedNonces = append(removedNonces, pair.Header.GetNonce())
+	}
+
+	bq.headerBodyPairs = bq.headerBodyPairs[:firstIndex]
+	bq.updateLastAddedNonceBasedOnRemovingNonce(nonce)
+
+	return removedNonces
+}
+
+func (bq *blocksQueue) replaceAndRemoveHigherNonces(pair HeaderBodyPair) error {
+	_ = bq.removeFromNonce(pair.Header.GetNonce())
+	return bq.add(pair)
+}
+
+func (bq *blocksQueue) add(pair HeaderBodyPair) error {
+	nonce := pair.Header.GetNonce()
+	if len(bq.headerBodyPairs) == 0 || nonce == bq.lastAddedNonce+1 {
+		bq.headerBodyPairs = append(bq.headerBodyPairs, pair)
+		bq.lastAddedNonce = nonce
+		return nil
+	}
+
+	return fmt.Errorf("%w for nonce %d (lastAddedNonce=%d)", ErrInvalidHeaderNonce, nonce, bq.lastAddedNonce)
 }
 
 // Pop removes and returns the first HeaderBodyPair from the queue.
@@ -130,20 +180,39 @@ func (bq *blocksQueue) Peek() (HeaderBodyPair, bool) {
 
 }
 
+// RemoveAtNonceAndHigher removes the header-body pair at the specified nonce
+// and all pairs with higher nonces from the queue
+func (bq *blocksQueue) RemoveAtNonceAndHigher(nonce uint64) []uint64 {
+	bq.mutex.Lock()
+	defer bq.mutex.Unlock()
+
+	if bq.closed {
+		return make([]uint64, 0)
+	}
+
+	return bq.removeFromNonce(nonce)
+}
+
+func (bq *blocksQueue) updateLastAddedNonceBasedOnRemovingNonce(removingNonce uint64) {
+	if len(bq.headerBodyPairs) > 0 {
+		bq.lastAddedNonce = bq.headerBodyPairs[len(bq.headerBodyPairs)-1].Header.GetNonce()
+		return
+	}
+
+	if removingNonce > 0 {
+		bq.lastAddedNonce = removingNonce - 1
+		return
+	}
+
+	bq.lastAddedNonce = 0
+}
+
 // Clean cleanup the queue and set the provided last added nonce
 func (bq *blocksQueue) Clean(lastAddedNonce uint64) {
 	bq.mutex.Lock()
 	defer bq.mutex.Unlock()
 
 	bq.headerBodyPairs = make([]HeaderBodyPair, 0)
-	bq.lastAddedNonce = lastAddedNonce
-}
-
-// SetLastAddedNonce will set the last added nonce
-func (bq *blocksQueue) SetLastAddedNonce(lastAddedNonce uint64) {
-	bq.mutex.Lock()
-	defer bq.mutex.Unlock()
-
 	bq.lastAddedNonce = lastAddedNonce
 }
 

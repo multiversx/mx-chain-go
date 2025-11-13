@@ -10,7 +10,6 @@ import (
 	vmcommon "github.com/multiversx/mx-chain-vm-common-go"
 	"github.com/multiversx/mx-chain-vm-common-go/parsers"
 
-	"github.com/multiversx/mx-chain-go/process/asyncExecution/executionTrack"
 	"github.com/multiversx/mx-chain-go/process/estimator"
 	"github.com/multiversx/mx-chain-go/process/missingData"
 
@@ -75,6 +74,7 @@ func (pcf *processComponentsFactory) newBlockProcessor(
 	blockCutoffProcessingHandler cutoff.BlockProcessingCutoffHandler,
 	missingTrieNodesNotifier common.MissingTrieNodesNotifier,
 	sentSignaturesTracker process.SentSignaturesTracker,
+	executionManager process.ExecutionManager,
 ) (*blockProcessorAndVmFactories, error) {
 	shardCoordinator := pcf.bootstrapComponents.ShardCoordinator()
 	if shardCoordinator.SelfId() < shardCoordinator.NumberOfShards() {
@@ -93,6 +93,7 @@ func (pcf *processComponentsFactory) newBlockProcessor(
 			blockCutoffProcessingHandler,
 			missingTrieNodesNotifier,
 			sentSignaturesTracker,
+			executionManager,
 		)
 	}
 	if shardCoordinator.SelfId() == core.MetachainShardId {
@@ -111,6 +112,7 @@ func (pcf *processComponentsFactory) newBlockProcessor(
 			receiptsRepository,
 			blockCutoffProcessingHandler,
 			sentSignaturesTracker,
+			executionManager,
 		)
 	}
 
@@ -134,6 +136,7 @@ func (pcf *processComponentsFactory) newShardBlockProcessor(
 	blockProcessingCutoffHandler cutoff.BlockProcessingCutoffHandler,
 	missingTrieNodesNotifier common.MissingTrieNodesNotifier,
 	sentSignaturesTracker process.SentSignaturesTracker,
+	executionManager process.ExecutionManager,
 ) (*blockProcessorAndVmFactories, error) {
 	argsParser := smartContract.NewArgumentParser()
 
@@ -369,7 +372,9 @@ func (pcf *processComponentsFactory) newShardBlockProcessor(
 		BlockSizeComputation:         blockSizeComputationHandler,
 		BalanceComputation:           balanceComputationHandler,
 		EnableEpochsHandler:          pcf.coreData.EnableEpochsHandler(),
+		EpochNotifier:                pcf.coreData.EpochNotifier(),
 		EnableRoundsHandler:          pcf.coreData.EnableRoundsHandler(),
+		RoundNotifier:                pcf.coreData.RoundNotifier(),
 		TxTypeHandler:                txTypeHandler,
 		ScheduledTxsExecutionHandler: scheduledTxsExecutionHandler,
 		ProcessedMiniBlocksTracker:   processedMiniBlocksTracker,
@@ -493,13 +498,12 @@ func (pcf *processComponentsFactory) newShardBlockProcessor(
 		return nil, err
 	}
 
-	executionResultsTracker := executionTrack.NewExecutionResultsTracker()
-	err = process.SetBaseExecutionResult(executionResultsTracker, pcf.data.Blockchain())
+	err = process.SetBaseExecutionResult(executionManager, pcf.data.Blockchain())
 	if err != nil {
 		return nil, err
 	}
 
-	execResultsVerifier, err := block.NewExecutionResultsVerifier(pcf.data.Blockchain(), executionResultsTracker)
+	execResultsVerifier, err := block.NewExecutionResultsVerifier(pcf.data.Blockchain(), executionManager)
 	if err != nil {
 		return nil, err
 	}
@@ -559,8 +563,8 @@ func (pcf *processComponentsFactory) newShardBlockProcessor(
 		ExecutionResultsVerifier:           execResultsVerifier,
 		MissingDataResolver:                missingDataResolver,
 		ExecutionResultsInclusionEstimator: inclusionEstimator,
-		ExecutionResultsTracker:            executionResultsTracker,
 		GasComputation:                     gasConsumption,
+		ExecutionManager:                   executionManager,
 	}
 	arguments := block.ArgShardProcessor{
 		ArgBaseProcessor: argumentsBaseProcessor,
@@ -603,6 +607,7 @@ func (pcf *processComponentsFactory) newMetaBlockProcessor(
 	receiptsRepository mainFactory.ReceiptsRepository,
 	blockProcessingCutoffhandler cutoff.BlockProcessingCutoffHandler,
 	sentSignaturesTracker process.SentSignaturesTracker,
+	executionManager process.ExecutionManager,
 ) (*blockProcessorAndVmFactories, error) {
 	builtInFuncFactory, err := pcf.createBuiltInFunctionContainer(pcf.state.AccountsAdapter(), make(map[string]struct{}))
 	if err != nil {
@@ -789,7 +794,9 @@ func (pcf *processComponentsFactory) newMetaBlockProcessor(
 		BlockSizeComputation:         blockSizeComputationHandler,
 		BalanceComputation:           balanceComputationHandler,
 		EnableEpochsHandler:          pcf.coreData.EnableEpochsHandler(),
+		EpochNotifier:                pcf.coreData.EpochNotifier(),
 		EnableRoundsHandler:          pcf.coreData.EnableRoundsHandler(),
+		RoundNotifier:                pcf.coreData.RoundNotifier(),
 		TxTypeHandler:                txTypeHandler,
 		ScheduledTxsExecutionHandler: scheduledTxsExecutionHandler,
 		ProcessedMiniBlocksTracker:   processedMiniBlocksTracker,
@@ -923,10 +930,12 @@ func (pcf *processComponentsFactory) newMetaBlockProcessor(
 		RoundTime:             pcf.coreData.RoundHandler(),
 		GenesisNonce:          genesisHdr.GetNonce(),
 		GenesisEpoch:          genesisHdr.GetEpoch(),
+		GenesisTimestamp:      genesisHdr.GetTimeStamp(),
 		GenesisTotalSupply:    pcf.coreData.EconomicsData().GenesisTotalSupply(),
 		EconomicsDataNotified: economicsDataProvider,
 		StakingV2EnableEpoch:  pcf.coreData.EnableEpochsHandler().GetActivationEpoch(common.StakingV2Flag),
 		EnableEpochsHandler:   pcf.coreData.EnableEpochsHandler(),
+		ChainParamsHandler:    pcf.coreData.ChainParametersHandler(),
 	}
 	epochEconomics, err := metachainEpochStart.NewEndOfEpochEconomicsDataCreator(argsEpochEconomics)
 	if err != nil {
@@ -1042,13 +1051,12 @@ func (pcf *processComponentsFactory) newMetaBlockProcessor(
 		return nil, err
 	}
 
-	executionResultsTracker := executionTrack.NewExecutionResultsTracker()
-	err = process.SetBaseExecutionResult(executionResultsTracker, pcf.data.Blockchain())
+	err = process.SetBaseExecutionResult(executionManager, pcf.data.Blockchain())
 	if err != nil {
 		return nil, err
 	}
 
-	execResultsVerifier, err := block.NewExecutionResultsVerifier(pcf.data.Blockchain(), executionResultsTracker)
+	execResultsVerifier, err := block.NewExecutionResultsVerifier(pcf.data.Blockchain(), executionManager)
 	if err != nil {
 		return nil, err
 	}
@@ -1108,8 +1116,8 @@ func (pcf *processComponentsFactory) newMetaBlockProcessor(
 		ExecutionResultsVerifier:           execResultsVerifier,
 		MissingDataResolver:                missingDataResolver,
 		ExecutionResultsInclusionEstimator: inclusionEstimator,
-		ExecutionResultsTracker:            executionResultsTracker,
 		GasComputation:                     gasConsumption,
+		ExecutionManager:                   executionManager,
 	}
 
 	esdtOwnerAddress, err := pcf.coreData.AddressPubKeyConverter().Decode(pcf.systemSCConfig.ESDTSystemSCConfig.OwnerAddress)
@@ -1402,6 +1410,7 @@ func (pcf *processComponentsFactory) createVMFactoryMeta(
 		ChanceComputer:      pcf.coreData.Rater(),
 		ShardCoordinator:    pcf.bootstrapComponents.ShardCoordinator(),
 		EnableEpochsHandler: pcf.coreData.EnableEpochsHandler(),
+		EnableRoundsHandler: pcf.coreData.EnableRoundsHandler(),
 		NodesCoordinator:    pcf.nodesCoordinator,
 	}
 	return metachain.NewVMContainerFactory(argsNewVMContainer)

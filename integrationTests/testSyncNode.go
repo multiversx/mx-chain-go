@@ -5,6 +5,8 @@ import (
 
 	"github.com/multiversx/mx-chain-core-go/core"
 	"github.com/multiversx/mx-chain-core-go/data"
+	"github.com/multiversx/mx-chain-go/process/asyncExecution"
+	"github.com/multiversx/mx-chain-go/process/asyncExecution/executionManager"
 
 	"github.com/multiversx/mx-chain-go/process"
 	"github.com/multiversx/mx-chain-go/process/asyncExecution/executionTrack"
@@ -122,12 +124,24 @@ func (tpn *TestProcessorNode) initBlockProcessorWithSync() {
 	}
 
 	executionResultsTracker := executionTrack.NewExecutionResultsTracker()
-	err = process.SetBaseExecutionResult(executionResultsTracker, tpn.BlockChain)
+	tpn.BlocksQueue = queue.NewBlocksQueue()
+
+	argsExecutionManager := executionManager.ArgsExecutionManager{
+		BlocksQueue:             tpn.BlocksQueue,
+		ExecutionResultsTracker: executionResultsTracker,
+		BlockChain:              tpn.BlockChain,
+		Headers:                 tpn.DataPool.Headers(),
+	}
+	tpn.ExecutionManager, err = executionManager.NewExecutionManager(argsExecutionManager)
+	if err != nil {
+		log.LogIfError(err)
+	}
+	err = process.SetBaseExecutionResult(tpn.ExecutionManager, tpn.BlockChain)
 	if err != nil {
 		log.LogIfError(err)
 	}
 
-	execResultsVerifier, err := block.NewExecutionResultsVerifier(tpn.BlockChain, executionResultsTracker)
+	execResultsVerifier, err := block.NewExecutionResultsVerifier(tpn.BlockChain, tpn.ExecutionManager)
 	if err != nil {
 		log.LogIfError(err)
 	}
@@ -202,11 +216,9 @@ func (tpn *TestProcessorNode) initBlockProcessorWithSync() {
 		ExecutionResultsVerifier:           execResultsVerifier,
 		MissingDataResolver:                missingDataResolver,
 		ExecutionResultsInclusionEstimator: inclusionEstimator,
-		ExecutionResultsTracker:            executionResultsTracker,
 		GasComputation:                     gasConsumption,
+		ExecutionManager:                   tpn.ExecutionManager,
 	}
-
-	tpn.BlocksQueue = queue.NewBlocksQueue()
 
 	if tpn.ShardCoordinator.SelfId() == core.MetachainShardId {
 		tpn.ForkDetector, _ = sync.NewMetaForkDetector(
@@ -277,6 +289,18 @@ func (tpn *TestProcessorNode) initBlockProcessorWithSync() {
 	if err != nil {
 		panic(fmt.Sprintf("Error creating blockprocessor: %s", err.Error()))
 	}
+
+	argsHeadersExecutor := asyncExecution.ArgsHeadersExecutor{
+		BlocksQueue:      tpn.BlocksQueue,
+		ExecutionTracker: executionResultsTracker,
+		BlockProcessor:   tpn.BlockProcessor,
+		BlockChain:       tpn.BlockChain,
+	}
+	headerExecutor, err := asyncExecution.NewHeadersExecutor(argsHeadersExecutor)
+	log.LogIfError(err)
+
+	err = tpn.ExecutionManager.SetHeadersExecutor(headerExecutor)
+	log.LogIfError(err)
 }
 
 func (tpn *TestProcessorNode) createShardBootstrapper() (TestBootstrapper, error) {
@@ -286,7 +310,7 @@ func (tpn *TestProcessorNode) createShardBootstrapper() (TestBootstrapper, error
 		ChainHandler:                 tpn.BlockChain,
 		RoundHandler:                 tpn.RoundHandler,
 		BlockProcessor:               tpn.BlockProcessor,
-		BlocksQueue:                  tpn.BlocksQueue,
+		ExecutionManager:             tpn.ExecutionManager,
 		Hasher:                       TestHasher,
 		Marshalizer:                  TestMarshalizer,
 		ForkDetector:                 tpn.ForkDetector,
@@ -336,7 +360,7 @@ func (tpn *TestProcessorNode) createMetaChainBootstrapper() (TestBootstrapper, e
 		ChainHandler:                 tpn.BlockChain,
 		RoundHandler:                 tpn.RoundHandler,
 		BlockProcessor:               tpn.BlockProcessor,
-		BlocksQueue:                  tpn.BlocksQueue,
+		ExecutionManager:             tpn.ExecutionManager,
 		Hasher:                       TestHasher,
 		Marshalizer:                  TestMarshalizer,
 		ForkDetector:                 tpn.ForkDetector,

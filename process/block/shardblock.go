@@ -222,7 +222,7 @@ func (sp *shardProcessor) ProcessBlock(
 
 	defer func() {
 		if err != nil {
-			sp.RevertCurrentBlock()
+			sp.RevertCurrentBlock(header)
 		}
 	}()
 
@@ -916,7 +916,7 @@ func (sp *shardProcessor) CommitBlock(
 	sp.processStatusHandler.SetBusy("shardProcessor.CommitBlock")
 	defer func() {
 		if err != nil {
-			sp.RevertCurrentBlock()
+			sp.RevertCurrentBlock(headerHandler)
 		}
 		sp.processStatusHandler.SetIdle()
 	}()
@@ -1057,36 +1057,34 @@ func (sp *shardProcessor) CommitBlock(
 
 	lastBlockHeader := sp.blockChain.GetCurrentBlockHeader()
 
-	committedRootHash, err := sp.accountsDB[state.UserAccountsState].RootHash()
+	rootHash := sp.getLastExecutedRootHash(header)
+
+	err = sp.setCurrentBlockInfo(header, headerHash, rootHash)
 	if err != nil {
 		return err
 	}
+	sp.blockChain.SetCurrentBlockHeaderHash(headerHash)
 
-	// TODO: make sure to set current header and rootHash in blockChain properly
-
-	err = sp.blockChain.SetCurrentBlockHeaderAndRootHash(header, committedRootHash)
-	if err != nil {
-		return err
-	}
-
-	rootHash := getLastExecutionResultsRootHash(header, committedRootHash)
 	lastExecutionResultHeader, err := sp.getLastExecutionResultHeader(header)
 	if err != nil {
 		return err
 	}
 
-	err = sp.dataPool.Transactions().OnExecutedBlock(lastExecutionResultHeader, rootHash)
+	err = sp.onExecutedBlock(lastExecutionResultHeader, rootHash)
 	if err != nil {
-		log.Debug("dataPool.Transactions().OnExecutedBlock()", "error", err)
 		return err
 	}
 
-	sp.blockChain.SetCurrentBlockHeaderHash(headerHash)
 	sp.indexBlockIfNeeded(bodyHandler, headerHash, headerHandler, lastBlockHeader)
 	sp.stateAccessesCollector.Reset()
 	sp.recordBlockInHistory(headerHash, headerHandler, bodyHandler)
 
 	lastCrossNotarizedHeader, _, err := sp.blockTracker.GetLastCrossNotarizedHeader(core.MetachainShardId)
+	if err != nil {
+		return err
+	}
+
+	err = sp.cleanExecutionResultsFromTracker(header)
 	if err != nil {
 		return err
 	}
@@ -1157,23 +1155,6 @@ func (sp *shardProcessor) CommitBlock(
 	sp.blockProcessingCutoffHandler.HandlePauseCutoff(header)
 
 	return nil
-}
-
-func getLastExecutionResultsRootHash(
-	header data.HeaderHandler,
-	committedRootHash []byte,
-) []byte {
-	if !header.IsHeaderV3() {
-		return committedRootHash
-	}
-
-	lastExecutionResult, err := common.GetLastBaseExecutionResultHandler(header)
-	if err != nil {
-		log.Warn("failed to get last execution result for header", "err", err)
-		return committedRootHash
-	}
-
-	return lastExecutionResult.GetRootHash()
 }
 
 func (sp *shardProcessor) getLastExecutionResultHeader(
@@ -1328,6 +1309,7 @@ func (sp *shardProcessor) updateState(headers []data.HeaderHandler, currentHeade
 		return
 	}
 
+	// TODO: set proper finalized header in outport
 	sp.setFinalizedHeaderHashInIndexer(currentHeaderHash)
 
 	scheduledHeaderRootHash, _ := sp.scheduledTxsExecutionHandler.GetScheduledRootHashForHeader(currentHeaderHash)
@@ -1339,11 +1321,17 @@ func (sp *shardProcessor) setFinalBlockInfo(
 	headerHash []byte,
 	scheduledHeaderRootHash []byte,
 ) {
+	if header.IsHeaderV3() {
+		// final block info is set in async mode on header executor
+		return
+	}
+
 	finalRootHash := scheduledHeaderRootHash
 	if len(finalRootHash) == 0 {
 		finalRootHash = header.GetRootHash()
 	}
 
+	// TODO: maybe rename this to reflect last execution results
 	sp.blockChain.SetFinalBlockInfo(header.GetNonce(), headerHash, finalRootHash)
 }
 
@@ -2071,6 +2059,7 @@ func (sp *shardProcessor) requestMetaHeadersIfNeeded(hdrsAdded uint32, lastMetaH
 		for nonce := fromNonce; nonce <= toNonce; nonce++ {
 			sp.addHeaderIntoTrackerPool(nonce, core.MetachainShardId)
 			sp.requestHandler.RequestMetaHeaderByNonce(nonce)
+			sp.requestProofIfNeeded(nonce, core.MetachainShardId, lastMetaHdr.GetEpoch())
 		}
 	}
 }
@@ -2158,7 +2147,13 @@ func (sp *shardProcessor) createMiniBlocks(haveTime func() bool, randomness []by
 		return &block.Body{MiniBlocks: miniBlocks}, processedMiniBlocksDestMeInfo, nil
 	}
 
+	err = sp.recreateTrieIfNeeded()
+	if err != nil {
+		return nil, nil, err
+	}
+
 	startTime = time.Now()
+
 	mbsFromMe := sp.txCoordinator.CreateMbsAndProcessTransactionsFromMe(haveTime, randomness)
 	elapsedTime = time.Since(startTime)
 	log.Debug("elapsed time to create mbs from me", "time", elapsedTime)

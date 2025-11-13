@@ -46,7 +46,7 @@ func createMetaBlockProcessor(blk data.ChainHandler) *testscommon.BlockProcessor
 			_ = blk.SetCurrentBlockHeaderAndRootHash(hdr.(*block.MetaBlock), hdr.GetRootHash())
 			return nil
 		},
-		RevertCurrentBlockCalled: func() {
+		RevertCurrentBlockCalled: func(_ data.HeaderHandler) {
 		},
 		CommitBlockCalled: func(header data.HeaderHandler, body data.BodyHandler) error {
 			return nil
@@ -69,7 +69,7 @@ func CreateMetaBootstrapMockArguments() sync.ArgMetaBootstrapper {
 		ChainHandler:                 initBlockchain(),
 		RoundHandler:                 &mock.RoundHandlerMock{},
 		BlockProcessor:               &testscommon.BlockProcessorStub{},
-		BlocksQueue:                  &processMocks.BlocksQueueMock{},
+		ExecutionManager:             &processMocks.ExecutionManagerMock{},
 		Hasher:                       &hashingMocks.HasherMock{},
 		Marshalizer:                  &mock.MarshalizerMock{},
 		ForkDetector:                 &mock.ForkDetectorMock{},

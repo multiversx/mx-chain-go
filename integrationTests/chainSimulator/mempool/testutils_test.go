@@ -31,7 +31,7 @@ var (
 	oneQuarterOfEGLD             = big.NewInt(250000000000000000)
 	durationWaitAfterSendMany    = 7500 * time.Millisecond
 	durationWaitAfterSendSome    = 1000 * time.Millisecond
-	selectionLoopMaximumDuration = 1000 * time.Millisecond
+	selectionLoopMaximumDuration = 2000 * time.Millisecond
 	defaultLatestExecutedHash    = []byte("blockHash0")
 	gasLimit                     = 50_000
 	gasPrice                     = 1_000_000_000
@@ -43,14 +43,19 @@ const maxTrackedBlocks = 100
 
 func startChainSimulator(t *testing.T, alterConfigsFunction func(cfg *config.Configs)) testsChainSimulator.ChainSimulator {
 	simulator, err := chainSimulator.NewChainSimulator(chainSimulator.ArgsChainSimulator{
-		BypassTxSignatureCheck: true,
-		TempDir:                t.TempDir(),
-		PathToInitialConfig:    "../../../cmd/node/config/",
-		NumOfShards:            1,
-		RoundDurationInMillis:  uint64(4000),
+		BypassTxSignatureCheck:         true,
+		TempDir:                        t.TempDir(),
+		PathToInitialConfig:            "../../../cmd/node/config/",
+		NumOfShards:                    1,
+		RoundDurationInMillis:          uint64(4000),
+		SupernovaRoundDurationInMillis: uint64(400),
 		RoundsPerEpoch: core.OptionalUint64{
 			HasValue: true,
 			Value:    10,
+		},
+		SupernovaRoundsPerEpoch: core.OptionalUint64{
+			HasValue: true,
+			Value:    100,
 		},
 		ApiInterface:             api.NewNoApiInterface(),
 		MinNodesPerShard:         1,

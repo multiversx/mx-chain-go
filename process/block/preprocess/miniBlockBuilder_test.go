@@ -531,8 +531,9 @@ func Test_MiniBlocksBuilderAccountGasForTxComputeGasProvidedOK(t *testing.T) {
 				return gasProvidedByTxInSenderShard, gasProvidedByTxInReceiverShard, nil
 			},
 		},
-		enableEpochsHandler: &enableEpochsHandlerMock.EnableEpochsHandlerStub{},
-		enableRoundsHandler: &testscommon.EnableRoundsHandlerStub{},
+		enableEpochsHandler:  &enableEpochsHandlerMock.EnableEpochsHandlerStub{},
+		enableRoundsHandler:  &testscommon.EnableRoundsHandlerStub{},
+		overEstimationFactor: noOverestimationFactor,
 	}
 	mbb, _ := newMiniBlockBuilder(args)
 	sender, _ := hex.DecodeString("aaaaaaaaaa" + suffixShard0)

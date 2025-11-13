@@ -14,7 +14,9 @@ import (
 	"github.com/multiversx/mx-chain-core-go/core/check"
 	"github.com/multiversx/mx-chain-core-go/data"
 	"github.com/multiversx/mx-chain-core-go/data/block"
+	"github.com/multiversx/mx-chain-go/process/asyncExecution/executionManager"
 	"github.com/multiversx/mx-chain-go/state/disabled"
+	"github.com/multiversx/mx-chain-go/testscommon/processMocks"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 
@@ -115,23 +117,19 @@ func createMockMetaArguments(
 
 	startHeaders := createGenesisBlocks(bootstrapComponents.ShardCoordinator())
 	accountsDb := make(map[state.AccountsDbIdentifier]state.AccountsAdapter)
-	accountsDb[state.UserAccountsState] = &stateMock.AccountsStub{
+	accounts := &stateMock.AccountsStub{
 		CommitCalled: func() ([]byte, error) {
 			return nil, nil
 		},
 		RootHashCalled: func() ([]byte, error) {
 			return nil, nil
 		},
-	}
-	accountsDb[state.PeerAccountsState] = &stateMock.AccountsStub{
-		CommitCalled: func() ([]byte, error) {
-			return nil, nil
-		},
-		RootHashCalled: func() ([]byte, error) {
-			return nil, nil
+		RecreateTrieIfNeededCalled: func(options common.RootHashHolder) error {
+			return nil
 		},
 	}
-
+	accountsDb[state.UserAccountsState] = accounts
+	accountsDb[state.PeerAccountsState] = accounts
 	statusCoreComponents := &factory.StatusCoreComponentsStub{
 		AppStatusHandlerField: &statusHandlerMock.AppStatusHandlerStub{},
 	}
@@ -170,7 +168,14 @@ func createMockMetaArguments(
 	)
 
 	executionResultsTracker := executionTrack.NewExecutionResultsTracker()
-	execResultsVerifier, _ := blproc.NewExecutionResultsVerifier(dataComponents.BlockChain, executionResultsTracker)
+	execManager, _ := executionManager.NewExecutionManager(executionManager.ArgsExecutionManager{
+		BlocksQueue:             &processMocks.BlocksQueueMock{},
+		ExecutionResultsTracker: executionResultsTracker,
+		BlockChain:              dataComponents.BlockChain,
+		Headers:                 dataComponents.DataPool.Headers(),
+	})
+	execResultsVerifier, _ := blproc.NewExecutionResultsVerifier(dataComponents.BlockChain, execManager)
+	_ = executionResultsTracker.SetLastNotarizedResult(&block.ExecutionResult{})
 	inclusionEstimator := estimator.NewExecutionResultInclusionEstimator(
 		config.ExecutionResultInclusionEstimatorConfig{
 			SafetyMargin:       110,
@@ -212,7 +217,7 @@ func createMockMetaArguments(
 			StatusComponents:     statusComponents,
 			StatusCoreComponents: statusCoreComponents,
 			AccountsDB:           accountsDb,
-			AccountsProposal:     &stateMock.AccountsStub{},
+			AccountsProposal:     accounts,
 			ForkDetector:         &mock.ForkDetectorMock{},
 			NodesCoordinator:     shardingMocks.NewNodesCoordinatorMock(),
 			FeeHandler:           &mock.FeeAccumulatorStub{},
@@ -243,8 +248,8 @@ func createMockMetaArguments(
 			ExecutionResultsVerifier:           execResultsVerifier,
 			MissingDataResolver:                missingDataResolver,
 			ExecutionResultsInclusionEstimator: inclusionEstimator,
-			ExecutionResultsTracker:            executionResultsTracker,
 			GasComputation:                     gasComputation,
+			ExecutionManager:                   execManager,
 		},
 		SCToProtocol:                 &mock.SCToProtocolStub{},
 		PendingMiniBlocksHandler:     &mock.PendingMiniBlocksHandlerStub{},

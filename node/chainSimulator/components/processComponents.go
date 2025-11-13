@@ -71,7 +71,7 @@ type processComponentsHolder struct {
 	epochStartNotifier               factory.EpochStartNotifier
 	forkDetector                     process.ForkDetector
 	blockProcessor                   process.BlockProcessor
-	blocksQueue                      process.BlocksQueue
+	executionManager                 process.ExecutionManager
 	blackListHandler                 process.TimeCacher
 	bootStorer                       process.BootStorer
 	headerSigVerifier                process.InterceptedHeaderSigVerifier
@@ -378,9 +378,9 @@ func (p *processComponentsHolder) BlockProcessor() process.BlockProcessor {
 	return p.blockProcessor
 }
 
-// BlocksQueue will return the blocks queue
-func (p *processComponentsHolder) BlocksQueue() process.BlocksQueue {
-	return p.blocksQueue
+// ExecutionManager will return the execution manager
+func (p *processComponentsHolder) ExecutionManager() process.ExecutionManager {
+	return p.executionManager
 }
 
 // BlackListHandler will return the black list handler

@@ -1089,7 +1089,9 @@ func (vs *validatorStatistics) updateValidatorInfoOnSuccessfulBlock(
 			log.Debug("updateValidatorInfoOnSuccessfulBlock",
 				"leaderAccumulatedFees in current block", leaderAccumulatedFees.String(),
 				"leader fees in Epoch", peerAcc.GetAccumulatedFees().String(),
-				"leader", core.GetTrimmedPk(string(peerAcc.AddressBytes())))
+				"newRating", newRating,
+				"leader", core.GetTrimmedPk(string(peerAcc.AddressBytes())),
+			)
 		case validatorSuccess:
 			peerAcc.IncreaseValidatorSuccessRate(1)
 			newRating = vs.rater.ComputeIncreaseValidator(shardId, peerAcc.GetTempRating())

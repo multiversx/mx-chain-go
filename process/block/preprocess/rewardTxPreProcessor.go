@@ -45,13 +45,13 @@ func NewRewardTxPreprocessor(args RewardsPreProcessorArgs) (*rewardTxPreprocesso
 	bpp := &basePreProcess{
 		hasher:      args.Hasher,
 		marshalizer: args.Marshalizer,
-		gasTracker: gasTracker{
-			shardCoordinator:    args.ShardCoordinator,
-			gasHandler:          args.GasHandler,
-			economicsFee:        args.EconomicsFee,
-			enableEpochsHandler: args.EnableEpochsHandler,
-			enableRoundsHandler: args.EnableRoundsHandler,
-		},
+		gasTracker: newGasTracker(
+			args.ShardCoordinator,
+			args.GasHandler,
+			args.EconomicsFee,
+			args.EnableEpochsHandler,
+			args.EnableRoundsHandler,
+		),
 		blockSizeComputation:       args.BlockSizeComputation,
 		balanceComputation:         args.BalanceComputation,
 		accounts:                   args.Accounts,
@@ -62,6 +62,9 @@ func NewRewardTxPreprocessor(args RewardsPreProcessorArgs) (*rewardTxPreprocesso
 		enableEpochsHandler:        args.EnableEpochsHandler,
 		enableRoundsHandler:        args.EnableRoundsHandler,
 	}
+
+	args.EpochNotifier.RegisterNotifyHandler(bpp)
+	args.RoundNotifier.RegisterNotifyHandler(bpp)
 
 	rtp := &rewardTxPreprocessor{
 		basePreProcess:    bpp,

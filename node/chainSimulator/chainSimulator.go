@@ -6,7 +6,6 @@ import (
 	"encoding/hex"
 	"errors"
 	"fmt"
-
 	"math/big"
 	"sync"
 	"time"
@@ -45,24 +44,26 @@ type transactionWithResult struct {
 
 // ArgsChainSimulator holds the arguments needed to create a new instance of simulator
 type ArgsChainSimulator struct {
-	BypassTxSignatureCheck     bool
-	TempDir                    string
-	PathToInitialConfig        string
-	NumOfShards                uint32
-	MinNodesPerShard           uint32
-	MetaChainMinNodes          uint32
-	Hysteresis                 float32
-	NumNodesWaitingListShard   uint32
-	NumNodesWaitingListMeta    uint32
-	GenesisTimestamp           int64
-	InitialRound               int64
-	InitialEpoch               uint32
-	InitialNonce               uint64
-	RoundDurationInMillis      uint64
-	RoundsPerEpoch             core.OptionalUint64
-	ApiInterface               components.APIConfigurator
-	AlterConfigsFunction       func(cfg *config.Configs)
-	VmQueryDelayAfterStartInMs uint64
+	BypassTxSignatureCheck         bool
+	TempDir                        string
+	PathToInitialConfig            string
+	NumOfShards                    uint32
+	MinNodesPerShard               uint32
+	MetaChainMinNodes              uint32
+	Hysteresis                     float32
+	NumNodesWaitingListShard       uint32
+	NumNodesWaitingListMeta        uint32
+	GenesisTimestamp               int64
+	InitialRound                   int64
+	InitialEpoch                   uint32
+	InitialNonce                   uint64
+	RoundDurationInMillis          uint64
+	SupernovaRoundDurationInMillis uint64
+	RoundsPerEpoch                 core.OptionalUint64
+	SupernovaRoundsPerEpoch        core.OptionalUint64
+	ApiInterface                   components.APIConfigurator
+	AlterConfigsFunction           func(cfg *config.Configs)
+	VmQueryDelayAfterStartInMs     uint64
 }
 
 // ArgsBaseChainSimulator holds the arguments needed to create a new instance of simulator
@@ -115,20 +116,22 @@ func NewBaseChainSimulator(args ArgsBaseChainSimulator) (*simulator, error) {
 
 func (s *simulator) createChainHandlers(args ArgsBaseChainSimulator) error {
 	outputConfigs, err := configs.CreateChainSimulatorConfigs(configs.ArgsChainSimulatorConfigs{
-		NumOfShards:                 args.NumOfShards,
-		OriginalConfigsPath:         args.PathToInitialConfig,
-		RoundDurationInMillis:       args.RoundDurationInMillis,
-		TempDir:                     args.TempDir,
-		MinNodesPerShard:            args.MinNodesPerShard,
-		ConsensusGroupSize:          args.ConsensusGroupSize,
-		MetaChainMinNodes:           args.MetaChainMinNodes,
-		MetaChainConsensusGroupSize: args.MetaChainConsensusGroupSize,
-		Hysteresis:                  args.Hysteresis,
-		RoundsPerEpoch:              args.RoundsPerEpoch,
-		InitialEpoch:                args.InitialEpoch,
-		AlterConfigsFunction:        args.AlterConfigsFunction,
-		NumNodesWaitingListShard:    args.NumNodesWaitingListShard,
-		NumNodesWaitingListMeta:     args.NumNodesWaitingListMeta,
+		NumOfShards:                    args.NumOfShards,
+		OriginalConfigsPath:            args.PathToInitialConfig,
+		RoundDurationInMillis:          args.RoundDurationInMillis,
+		SupernovaRoundDurationInMillis: args.SupernovaRoundDurationInMillis,
+		TempDir:                        args.TempDir,
+		MinNodesPerShard:               args.MinNodesPerShard,
+		ConsensusGroupSize:             args.ConsensusGroupSize,
+		MetaChainMinNodes:              args.MetaChainMinNodes,
+		MetaChainConsensusGroupSize:    args.MetaChainConsensusGroupSize,
+		Hysteresis:                     args.Hysteresis,
+		RoundsPerEpoch:                 args.RoundsPerEpoch,
+		SupernovaRoundsPerEpoch:        args.SupernovaRoundsPerEpoch,
+		InitialEpoch:                   args.InitialEpoch,
+		AlterConfigsFunction:           args.AlterConfigsFunction,
+		NumNodesWaitingListShard:       args.NumNodesWaitingListShard,
+		NumNodesWaitingListMeta:        args.NumNodesWaitingListMeta,
 	})
 	if err != nil {
 		return err
@@ -198,6 +201,12 @@ func (s *simulator) createChainHandlers(args ArgsBaseChainSimulator) error {
 					TimeStamp: uint64(node.GetCoreComponents().RoundHandler().TimeStamp().Unix()),
 				},
 			}
+		}
+
+		genesisBlock := node.GetDataComponents().Blockchain().GetGenesisHeader()
+		err = node.GetDataComponents().Datapool().Transactions().OnExecutedBlock(genesisBlock, genesisBlock.GetRootHash())
+		if err != nil {
+			return err
 		}
 
 		err = node.GetProcessComponents().BlockchainHook().SetEpochStartHeader(epochStartBlockHeader)

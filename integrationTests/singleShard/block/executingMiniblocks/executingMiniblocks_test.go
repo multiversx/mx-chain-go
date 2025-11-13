@@ -129,6 +129,8 @@ func TestShardShouldProposeBlockContainingInvalidTransactions(t *testing.T) {
 	transferValue := uint64(1000000)
 	mintAllNodes(nodes, transferValue)
 
+	integrationTests.SetRootHashOfGenesisBlocks(nodes)
+
 	txs, hashes := generateTransferTxs(transferValue, leader.OwnAccount.SkTxSign, nodes[1].OwnAccount.PkTxSign)
 	addTxsInDataPool(leader, txs, hashes)
 
