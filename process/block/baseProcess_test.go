@@ -2009,27 +2009,7 @@ func TestBlockProcessor_RequestHeadersIfMissingShouldAddHeaderIntoTrackerPool(t 
 	t.Parallel()
 
 	var mutRequestedNonces sync.Mutex
-
-	var addedNonces []uint64
-	poolsHolderStub := initDataPool()
-	poolsHolderStub.HeadersCalled = func() dataRetriever.HeadersPool {
-		return &mock.HeadersCacherStub{
-			GetHeaderByNonceAndShardIdCalled: func(hdrNonce uint64, shardId uint32) ([]data.HeaderHandler, [][]byte, error) {
-				mutRequestedNonces.Lock()
-				addedNonces = append(addedNonces, hdrNonce)
-				mutRequestedNonces.Unlock()
-				return []data.HeaderHandler{&block.MetaBlock{Nonce: 1}}, [][]byte{[]byte("hash")}, nil
-			},
-		}
-	}
-
-	coreComponents, dataComponents, bootstrapComponents, statusComponents := createComponentHolderMocks()
-	dataComponents.DataPool = poolsHolderStub
-	roundHandler := &mock.RoundHandlerMock{}
-	coreComponents.RoundField = roundHandler
-	arguments := CreateMockArguments(coreComponents, dataComponents, bootstrapComponents, statusComponents)
-
-	sp, _ := blproc.NewShardProcessor(arguments)
+	var addedNonces map[uint64]struct{}
 
 	sortedHeaders := make([]data.HeaderHandler, 0)
 
@@ -2037,7 +2017,6 @@ func TestBlockProcessor_RequestHeadersIfMissingShouldAddHeaderIntoTrackerPool(t 
 		Nonce: 5,
 		Round: 5,
 	}
-	arguments.BlockTracker.AddCrossNotarizedHeader(core.MetachainShardId, crossNotarizedHeader, []byte("hash"))
 
 	hdr1 := &block.MetaBlock{
 		Nonce: 1,
@@ -2057,15 +2036,47 @@ func TestBlockProcessor_RequestHeadersIfMissingShouldAddHeaderIntoTrackerPool(t 
 	}
 	sortedHeaders = append(sortedHeaders, hdr3)
 
-	addedNonces = make([]uint64, 0)
-
-	roundHandler.RoundIndex = 12
-	_ = sp.RequestHeadersIfMissing(sortedHeaders, core.MetachainShardId)
-
 	expectedAddedNonces := []uint64{6, 7, 9}
 
+	addedNonces = make(map[uint64]struct{})
+
+	coreComponents, dataComponents, bootstrapComponents, statusComponents := createComponentHolderMocks()
+	roundHandler := &mock.RoundHandlerMock{}
+	coreComponents.RoundField = roundHandler
+
+	arguments := CreateMockArguments(coreComponents, dataComponents, bootstrapComponents, statusComponents)
+
+	arguments.BlockTracker.AddCrossNotarizedHeader(core.MetachainShardId, crossNotarizedHeader, []byte("hash"))
+
+	wg := &sync.WaitGroup{}
+	wg.Add(len(expectedAddedNonces))
+
+	requestHandlerStub := &testscommon.RequestHandlerStub{
+		RequestMetaHeaderByNonceCalled: func(nonce uint64) {
+			mutRequestedNonces.Lock()
+			addedNonces[nonce] = struct{}{}
+			mutRequestedNonces.Unlock()
+
+			wg.Done()
+		},
+	}
+	arguments.RequestHandler = requestHandlerStub
+
+	roundHandler.RoundIndex = 12
+
+	sp, _ := blproc.NewShardProcessor(arguments)
+
+	_ = sp.RequestHeadersIfMissing(sortedHeaders, core.MetachainShardId)
+
+	wg.Wait()
+
+	// check if nonces were requested
+	// requests are not necessarily in order
 	mutRequestedNonces.Lock()
-	assert.Equal(t, expectedAddedNonces, addedNonces)
+	for _, nonce := range expectedAddedNonces {
+		_, ok := addedNonces[nonce]
+		assert.True(t, ok)
+	}
 	mutRequestedNonces.Unlock()
 }
 
