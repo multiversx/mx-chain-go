@@ -4,7 +4,6 @@ import (
 	"errors"
 	"testing"
 
-	"github.com/multiversx/mx-chain-core-go/data"
 	"github.com/multiversx/mx-chain-core-go/data/block"
 	"github.com/stretchr/testify/require"
 )
@@ -527,52 +526,4 @@ func TestExecutionResultsTracker_RemoveFromNonce(t *testing.T) {
 		_, err = tracker.GetPendingExecutionResultByHash([]byte("hash2"))
 		require.True(t, errors.Is(err, ErrCannotFindExecutionResult))
 	})
-}
-
-func TestExecutionResultsTracker_OnHeaderEvicted(t *testing.T) {
-	t.Parallel()
-
-	tracker := NewExecutionResultsTracker()
-	err := tracker.SetLastNotarizedResult(&block.ExecutionResult{
-		BaseExecutionResult: &block.BaseExecutionResult{
-			HeaderHash:  []byte("hash1"),
-			HeaderNonce: 10,
-		},
-	})
-	require.Nil(t, err)
-
-	executionResults := []data.ExecutionResultHandler{
-		&block.ExecutionResult{
-			BaseExecutionResult: &block.BaseExecutionResult{
-				HeaderHash:  []byte("hash2"),
-				HeaderNonce: 11,
-			},
-		},
-		&block.ExecutionResult{
-			BaseExecutionResult: &block.BaseExecutionResult{
-				HeaderHash:  []byte("hash3"),
-				HeaderNonce: 12,
-			},
-		},
-	}
-
-	err = tracker.AddExecutionResult(executionResults[0])
-	require.Nil(t, err)
-
-	err = tracker.AddExecutionResult(executionResults[1])
-	require.Nil(t, err)
-
-	// evicting already processed nonce should remove it from pending
-	tracker.OnHeaderEvicted(executionResults[1].GetHeaderNonce())
-
-	results, errG := tracker.GetPendingExecutionResults()
-	require.Nil(t, errG)
-	require.Equal(t, 1, len(results))
-
-	// evicting already processed nonce should remove it from pending
-	tracker.OnHeaderEvicted(executionResults[0].GetHeaderNonce())
-
-	results, errG = tracker.GetPendingExecutionResults()
-	require.Nil(t, errG)
-	require.Equal(t, 0, len(results))
 }

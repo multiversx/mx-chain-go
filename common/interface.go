@@ -417,6 +417,7 @@ type ChainParametersSubscriptionHandler interface {
 // HeadersPool defines what a headers pool structure can perform
 type HeadersPool interface {
 	GetHeaderByHash(hash []byte) (data.HeaderHandler, error)
+	IsInterfaceNil() bool
 }
 
 // FieldsSizeChecker defines the behavior of a fields size checker common component
