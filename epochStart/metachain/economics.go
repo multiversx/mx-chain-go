@@ -287,7 +287,7 @@ func (e *economics) newDisplayLine(values ...string) *display.LineData {
 
 // compute the rewards for protocol sustainability - percentage from total rewards
 func (e *economics) computeRewardsForProtocolSustainability(totalRewards *big.Int, epoch uint32) *big.Int {
-	protocolSustainability := big.NewInt(0)
+	var protocolSustainability *big.Int
 	if epoch > e.stakingV2EnableEpoch {
 		protocolSustainability = core.GetIntTrimmedPercentageOfValue(totalRewards, e.rewardsHandler.ProtocolSustainabilityPercentageInEpoch(epoch))
 	} else {
