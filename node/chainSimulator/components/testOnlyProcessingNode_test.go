@@ -76,6 +76,21 @@ func TestNewTestOnlyProcessingNode(t *testing.T) {
 		newHeader, err := node.ProcessComponentsHolder.BlockProcessor().CreateNewHeader(1, 1)
 		assert.Nil(t, err)
 
+		rootHash, err := node.GetStateComponents().AccountsAdapter().RootHash()
+		if err != nil {
+			log.Error("SetRootHashOfGenesisBlocks", "err", err)
+		}
+
+		genesisHeader := node.GetDataComponents().Blockchain().GetGenesisHeader()
+		err = genesisHeader.SetRootHash(rootHash)
+		require.Nil(t, err)
+
+		err = node.GetDataComponents().Blockchain().SetGenesisHeader(genesisHeader)
+		require.Nil(t, err)
+
+		err = node.GetDataComponents().Datapool().Transactions().OnExecutedBlock(genesisHeader, rootHash)
+		require.Nil(t, err)
+
 		err = newHeader.SetPrevHash(node.ChainHandler.GetGenesisHeaderHash())
 		assert.Nil(t, err)
 

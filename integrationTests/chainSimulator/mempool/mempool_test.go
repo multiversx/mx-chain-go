@@ -536,6 +536,7 @@ func Test_Selection_ShouldNotSelectSameTransactionsWithSameSender(t *testing.T) 
 	}
 
 	err = txpool.OnExecutedBlock(&block.Header{}, []byte("rootHash0"))
+	require.Nil(t, err)
 
 	maxNumTxs := 2
 	options := holders.NewTxSelectionOptions(
