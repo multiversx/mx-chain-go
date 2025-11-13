@@ -1992,34 +1992,11 @@ func TestComputeEndOfEpochEconomicsV2AndV3(t *testing.T) {
 				},
 			}
 
-		economicsBlock, err := ec.ComputeEndOfEpochEconomics(meta)
-		assert.Nil(t, err)
-		verifyEconomicsBlock(t, economicsBlock, input, rewardsPerBlock, nodePrice, totalSupply, roundsPerEpoch, args.RewardsHandler, isStakingV2)
-
-		metaHdrV3 := &block.MetaBlockV3{
-			Epoch:               metaEpoch,
-			Round:               roundsPerEpoch,
-			Nonce:               input.blockPerEpochOneShard,
-			LastExecutionResult: &block.MetaExecutionResultInfo{},
-			EpochChangeProposed: true,
+			economicsBlock, err := ec.ComputeEndOfEpochEconomics(meta)
+			assert.Nil(t, err)
+			verifyEconomicsBlock(t, economicsBlock, input, rewardsPerBlock, nodePrice, totalSupply, roundsPerEpoch, args.RewardsHandler, isStakingV2)
 		}
-		execRes := &block.MetaExecutionResult{
-			ExecutionResult: &block.BaseMetaExecutionResult{
-				AccumulatedFeesInEpoch: input.accumulatedFeesInEpoch,
-				DevFeesInEpoch:         input.devFeesInEpoch,
-			},
-		}
-		blockEpochStart := &block.EpochStart{
-			LastFinalizedHeaders: []block.EpochStartShardData{
-				{ShardID: 0, Round: roundsPerEpoch, Nonce: input.blockPerEpochOneShard},
-				{ShardID: 1, Round: roundsPerEpoch, Nonce: input.blockPerEpochOneShard},
-			},
-		}
-
-		economicsBlockV3, err := ec.ComputeEndOfEpochEconomicsV3(metaHdrV3, execRes, blockEpochStart)
-		assert.Nil(t, err)
-		verifyEconomicsBlock(t, economicsBlockV3, input, rewardsPerBlock, nodePrice, totalSupply, roundsPerEpoch, args.RewardsHandler, isStakingV2)
-	}})
+	})
 
 	t.Run("after supernova", func(t *testing.T) {
 		t.Parallel()
@@ -2074,21 +2051,27 @@ func TestComputeEndOfEpochEconomicsV2AndV3(t *testing.T) {
 		)
 
 		for _, input := range testInputs {
-			meta := &block.MetaBlock{
-				AccumulatedFeesInEpoch: input.accumulatedFeesInEpoch,
-				DevFeesInEpoch:         input.devFeesInEpoch,
-				Epoch:                  metaEpoch,
-				Round:                  roundsPerEpoch,
-				Nonce:                  input.blockPerEpochOneShard,
-				EpochStart: block.EpochStart{
-					LastFinalizedHeaders: []block.EpochStartShardData{
-						{ShardID: 0, Round: roundsPerEpoch, Nonce: input.blockPerEpochOneShard},
-						{ShardID: 1, Round: roundsPerEpoch, Nonce: input.blockPerEpochOneShard},
-					},
+			meta := &block.MetaBlockV3{
+				Epoch:               metaEpoch,
+				Round:               roundsPerEpoch,
+				Nonce:               input.blockPerEpochOneShard,
+				LastExecutionResult: &block.MetaExecutionResultInfo{},
+				EpochChangeProposed: true,
+			}
+			execRes := &block.MetaExecutionResult{
+				ExecutionResult: &block.BaseMetaExecutionResult{
+					AccumulatedFeesInEpoch: input.accumulatedFeesInEpoch,
+					DevFeesInEpoch:         input.devFeesInEpoch,
+				},
+			}
+			blockEpochStart := &block.EpochStart{
+				LastFinalizedHeaders: []block.EpochStartShardData{
+					{ShardID: 0, Round: roundsPerEpoch, Nonce: input.blockPerEpochOneShard},
+					{ShardID: 1, Round: roundsPerEpoch, Nonce: input.blockPerEpochOneShard},
 				},
 			}
 
-			economicsBlock, err := ec.ComputeEndOfEpochEconomics(meta)
+			economicsBlock, err := ec.ComputeEndOfEpochEconomicsV3(meta, execRes, blockEpochStart)
 			assert.Nil(t, err)
 
 			verifyEconomicsBlock(t, economicsBlock, input, rewardsPerBlock, nodePrice, totalSupply, roundsPerEpoch, args.RewardsHandler, isStakingV2)

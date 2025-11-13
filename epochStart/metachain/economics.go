@@ -163,6 +163,7 @@ func (e *economics) createLegacyEconomicsArgs(metaBlock *block.MetaBlock) (*args
 		metaBlock: metaBlockData{
 			epoch:                  metaBlock.Epoch,
 			round:                  metaBlock.Round,
+			timeStamp:              metaBlock.GetTimeStamp(),
 			accumulatedFeesInEpoch: metaBlock.GetAccumulatedFeesInEpoch(),
 			devFeesInEpoch:         metaBlock.GetDevFeesInEpoch(),
 		},
@@ -177,7 +178,7 @@ func (e *economics) baseComputeEconomics(args *argsComputeEconomics) (*block.Eco
 	maxBlocksInEpoch := core.MaxUint64(1, roundsPassedInEpoch*uint64(e.shardCoordinator.NumberOfShards()+1))
 	totalNumBlocksInEpoch := e.computeNumOfTotalCreatedBlocks(args.noncesPerShardPrevEpoch, args.noncesPerShardCurrEpoch)
 
-	inflationRate := e.computeInflationRate(args.metaBlock.round)
+	inflationRate := e.computeInflationRate(&args.metaBlock)
 	rwdPerBlock := e.computeRewardsPerBlock(e.genesisTotalSupply, maxBlocksInEpoch, inflationRate, args.metaBlock.epoch)
 	totalRewardsToBeDistributed := big.NewInt(0).Mul(rwdPerBlock, big.NewInt(0).SetUint64(totalNumBlocksInEpoch))
 
@@ -301,8 +302,9 @@ func (e *economics) createEconomicsV3Args(
 
 	return &argsComputeEconomics{
 		metaBlock: metaBlockData{
-			epoch: metaBlock.GetEpoch() + 1, // meta block with proposed epoch change is for current epoch
-			round: metaBlock.GetRound(),
+			epoch:     metaBlock.GetEpoch() + 1, // meta block with proposed epoch change is for current epoch
+			round:     metaBlock.GetRound(),
+			timeStamp: metaBlock.GetTimeStamp(),
 			// use accumulated fees up until proposed epoch change block
 			accumulatedFeesInEpoch: execResults.GetAccumulatedFeesInEpoch(),
 			devFeesInEpoch:         execResults.GetDevFeesInEpoch(),
@@ -446,7 +448,7 @@ func (e *economics) computeInflationBeforeSupernova(currentRound uint64, epoch u
 }
 
 func (e *economics) computeInflationRate(
-	metaBlock data.HeaderHandler,
+	metaBlock metaBlockHandler,
 ) float64 {
 	prevEpoch := e.getPreviousEpoch(metaBlock.GetEpoch())
 	supernovaInEpochActivated := e.enableEpochsHandler.IsFlagEnabledInEpoch(common.SupernovaFlag, prevEpoch)

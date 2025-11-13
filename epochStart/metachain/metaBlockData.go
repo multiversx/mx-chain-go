@@ -5,6 +5,7 @@ import "math/big"
 type metaBlockHandler interface {
 	GetEpoch() uint32
 	GetRound() uint64
+	GetTimeStamp() uint64
 	GetDevFeesInEpoch() *big.Int
 	GetAccumulatedFeesInEpoch() *big.Int
 }
@@ -12,6 +13,7 @@ type metaBlockHandler interface {
 type metaBlockData struct {
 	epoch                  uint32
 	round                  uint64
+	timeStamp              uint64
 	accumulatedFeesInEpoch *big.Int
 	devFeesInEpoch         *big.Int
 }
@@ -24,6 +26,11 @@ func (m *metaBlockData) GetEpoch() uint32 {
 // GetRound returns round field
 func (m *metaBlockData) GetRound() uint64 {
 	return m.round
+}
+
+// GetTimeStamp returns time stamp field
+func (m *metaBlockData) GetTimeStamp() uint64 {
+	return m.timeStamp
 }
 
 // GetDevFeesInEpoch returns dev fees in epoch field
