@@ -63,6 +63,14 @@ type hashAndHdr struct {
 	hash []byte
 }
 
+type splitTxsResult struct {
+	incomingMiniBlocks        []data.MiniBlockHeaderHandler
+	outGoingMiniBlocks        []data.MiniBlockHeaderHandler
+	incomingTransactions      map[string][]data.TransactionHandler
+	outgoingTransactionHashes [][]byte
+	outgoingTransactions      []data.TransactionHandler
+}
+
 type baseProcessor struct {
 	shardCoordinator        sharding.Coordinator
 	nodesCoordinator        nodesCoordinator.NodesCoordinator
@@ -129,12 +137,11 @@ type baseProcessor struct {
 
 	proofsPool                         dataRetriever.ProofsPool
 	executionResultsInclusionEstimator process.InclusionEstimator
-	executionResultsTracker            process.ExecutionResultsTracker
 	miniBlocksSelectionSession         MiniBlocksSelectionSession
 	executionResultsVerifier           ExecutionResultsVerifier
 	missingDataResolver                MissingDataResolver
 	gasComputation                     process.GasComputation
-	blocksQueue                        process.BlocksQueue
+	executionManager                   process.ExecutionManager
 }
 
 type bootStorerDataArgs struct {
@@ -166,65 +173,63 @@ func NewBaseProcessor(arguments ArgBaseProcessor) (*baseProcessor, error) {
 	}
 
 	base := &baseProcessor{
-		accountsDB:                    arguments.AccountsDB,
-		accountsProposal:              arguments.AccountsProposal,
-		blockSizeThrottler:            arguments.BlockSizeThrottler,
-		forkDetector:                  arguments.ForkDetector,
-		hasher:                        arguments.CoreComponents.Hasher(),
-		marshalizer:                   arguments.CoreComponents.InternalMarshalizer(),
-		store:                         arguments.DataComponents.StorageService(),
-		shardCoordinator:              arguments.BootstrapComponents.ShardCoordinator(),
-		feeHandler:                    arguments.FeeHandler,
-		nodesCoordinator:              arguments.NodesCoordinator,
-		uint64Converter:               arguments.CoreComponents.Uint64ByteSliceConverter(),
-		requestHandler:                arguments.RequestHandler,
-		appStatusHandler:              arguments.StatusCoreComponents.AppStatusHandler(),
-		blockChainHook:                arguments.BlockChainHook,
-		txCoordinator:                 arguments.TxCoordinator,
-		epochStartTrigger:             arguments.EpochStartTrigger,
-		headerValidator:               arguments.HeaderValidator,
-		roundHandler:                  arguments.CoreComponents.RoundHandler(),
-		bootStorer:                    arguments.BootStorer,
-		blockTracker:                  arguments.BlockTracker,
-		dataPool:                      arguments.DataComponents.Datapool(),
-		blockChain:                    arguments.DataComponents.Blockchain(),
-		outportHandler:                arguments.StatusComponents.OutportHandler(),
-		genesisNonce:                  genesisHdr.GetNonce(),
-		versionedHeaderFactory:        arguments.BootstrapComponents.VersionedHeaderFactory(),
-		headerIntegrityVerifier:       arguments.BootstrapComponents.HeaderIntegrityVerifier(),
-		historyRepo:                   arguments.HistoryRepository,
-		epochNotifier:                 arguments.CoreComponents.EpochNotifier(),
-		enableEpochsHandler:           arguments.CoreComponents.EnableEpochsHandler(),
-		roundNotifier:                 arguments.CoreComponents.RoundNotifier(),
-		enableRoundsHandler:           arguments.CoreComponents.EnableRoundsHandler(),
-		epochChangeGracePeriodHandler: arguments.CoreComponents.EpochChangeGracePeriodHandler(),
-		vmContainerFactory:            arguments.VMContainersFactory,
-		vmContainer:                   arguments.VmContainer,
-		processDataTriesOnCommitEpoch: arguments.Config.Debug.EpochStart.ProcessDataTrieOnCommitEpoch,
-		gasConsumedProvider:           arguments.GasHandler,
-		economicsData:                 arguments.CoreComponents.EconomicsData(),
-		scheduledTxsExecutionHandler:  arguments.ScheduledTxsExecutionHandler,
-		pruningDelay:                  pruningDelay,
-		processedMiniBlocksTracker:    arguments.ProcessedMiniBlocksTracker,
-		receiptsRepository:            arguments.ReceiptsRepository,
-		processDebugger:               processDebugger,
-		outportDataProvider:           arguments.OutportDataProvider,
-		processStatusHandler:          arguments.CoreComponents.ProcessStatusHandler(),
-		blockProcessingCutoffHandler:  arguments.BlockProcessingCutoffHandler,
-		managedPeersHolder:            arguments.ManagedPeersHolder,
-		sentSignaturesTracker:         arguments.SentSignaturesTracker,
-		stateAccessesCollector:        arguments.StateAccessesCollector,
-		proofsPool:                    arguments.DataComponents.Datapool().Proofs(),
-		hdrsForCurrBlock:              arguments.HeadersForBlock,
-		processConfigsHandler:         arguments.CoreComponents.ProcessConfigsHandler(),
-
-		executionResultsTracker:            arguments.ExecutionResultsTracker,
+		accountsDB:                         arguments.AccountsDB,
+		accountsProposal:                   arguments.AccountsProposal,
+		blockSizeThrottler:                 arguments.BlockSizeThrottler,
+		forkDetector:                       arguments.ForkDetector,
+		hasher:                             arguments.CoreComponents.Hasher(),
+		marshalizer:                        arguments.CoreComponents.InternalMarshalizer(),
+		store:                              arguments.DataComponents.StorageService(),
+		shardCoordinator:                   arguments.BootstrapComponents.ShardCoordinator(),
+		feeHandler:                         arguments.FeeHandler,
+		nodesCoordinator:                   arguments.NodesCoordinator,
+		uint64Converter:                    arguments.CoreComponents.Uint64ByteSliceConverter(),
+		requestHandler:                     arguments.RequestHandler,
+		appStatusHandler:                   arguments.StatusCoreComponents.AppStatusHandler(),
+		blockChainHook:                     arguments.BlockChainHook,
+		txCoordinator:                      arguments.TxCoordinator,
+		epochStartTrigger:                  arguments.EpochStartTrigger,
+		headerValidator:                    arguments.HeaderValidator,
+		roundHandler:                       arguments.CoreComponents.RoundHandler(),
+		bootStorer:                         arguments.BootStorer,
+		blockTracker:                       arguments.BlockTracker,
+		dataPool:                           arguments.DataComponents.Datapool(),
+		blockChain:                         arguments.DataComponents.Blockchain(),
+		outportHandler:                     arguments.StatusComponents.OutportHandler(),
+		genesisNonce:                       genesisHdr.GetNonce(),
+		versionedHeaderFactory:             arguments.BootstrapComponents.VersionedHeaderFactory(),
+		headerIntegrityVerifier:            arguments.BootstrapComponents.HeaderIntegrityVerifier(),
+		historyRepo:                        arguments.HistoryRepository,
+		epochNotifier:                      arguments.CoreComponents.EpochNotifier(),
+		enableEpochsHandler:                arguments.CoreComponents.EnableEpochsHandler(),
+		roundNotifier:                      arguments.CoreComponents.RoundNotifier(),
+		enableRoundsHandler:                arguments.CoreComponents.EnableRoundsHandler(),
+		epochChangeGracePeriodHandler:      arguments.CoreComponents.EpochChangeGracePeriodHandler(),
+		vmContainerFactory:                 arguments.VMContainersFactory,
+		vmContainer:                        arguments.VmContainer,
+		processDataTriesOnCommitEpoch:      arguments.Config.Debug.EpochStart.ProcessDataTrieOnCommitEpoch,
+		gasConsumedProvider:                arguments.GasHandler,
+		economicsData:                      arguments.CoreComponents.EconomicsData(),
+		scheduledTxsExecutionHandler:       arguments.ScheduledTxsExecutionHandler,
+		pruningDelay:                       pruningDelay,
+		processedMiniBlocksTracker:         arguments.ProcessedMiniBlocksTracker,
+		receiptsRepository:                 arguments.ReceiptsRepository,
+		processDebugger:                    processDebugger,
+		outportDataProvider:                arguments.OutportDataProvider,
+		processStatusHandler:               arguments.CoreComponents.ProcessStatusHandler(),
+		blockProcessingCutoffHandler:       arguments.BlockProcessingCutoffHandler,
+		managedPeersHolder:                 arguments.ManagedPeersHolder,
+		sentSignaturesTracker:              arguments.SentSignaturesTracker,
+		stateAccessesCollector:             arguments.StateAccessesCollector,
+		proofsPool:                         arguments.DataComponents.Datapool().Proofs(),
+		hdrsForCurrBlock:                   arguments.HeadersForBlock,
+		processConfigsHandler:              arguments.CoreComponents.ProcessConfigsHandler(),
 		executionResultsInclusionEstimator: arguments.ExecutionResultsInclusionEstimator,
 		miniBlocksSelectionSession:         arguments.MiniBlocksSelectionSession,
 		executionResultsVerifier:           arguments.ExecutionResultsVerifier,
 		missingDataResolver:                arguments.MissingDataResolver,
 		gasComputation:                     arguments.GasComputation,
-		blocksQueue:                        arguments.BlocksQueue,
+		executionManager:                   arguments.ExecutionManager,
 	}
 
 	return base, nil
@@ -373,6 +378,7 @@ func (bp *baseProcessor) requestHeadersIfMissing(
 		return err
 	}
 
+	lastNotarizedHdrEpoch := prevHdr.GetEpoch()
 	lastNotarizedHdrRound := prevHdr.GetRound()
 	lastNotarizedHdrNonce := prevHdr.GetNonce()
 
@@ -410,7 +416,8 @@ func (bp *baseProcessor) requestHeadersIfMissing(
 
 	for _, nonce := range missingNonces {
 		bp.addHeaderIntoTrackerPool(nonce, shardId)
-		go bp.requestHeaderByShardAndNonce(shardId, nonce)
+		go bp.requestHeaderIfNeeded(nonce, shardId)
+		go bp.requestProofIfNeeded(nonce, shardId, lastNotarizedHdrEpoch)
 	}
 
 	return nil
@@ -734,9 +741,6 @@ func checkProcessorParameters(arguments ArgBaseProcessor) error {
 	if check.IfNil(arguments.ExecutionResultsInclusionEstimator) {
 		return process.ErrNilExecutionResultsInclusionEstimator
 	}
-	if check.IfNil(arguments.ExecutionResultsTracker) {
-		return process.ErrNilExecutionResultsTracker
-	}
 	if check.IfNil(arguments.MiniBlocksSelectionSession) {
 		return process.ErrNilMiniBlocksSelectionSession
 	}
@@ -749,8 +753,8 @@ func checkProcessorParameters(arguments ArgBaseProcessor) error {
 	if check.IfNil(arguments.GasComputation) {
 		return process.ErrNilGasComputation
 	}
-	if check.IfNil(arguments.BlocksQueue) {
-		return process.ErrNilBlocksQueue
+	if check.IfNil(arguments.ExecutionManager) {
+		return process.ErrNilExecutionManager
 	}
 
 	return nil
@@ -1122,7 +1126,7 @@ func (bp *baseProcessor) requestHeaderByShardAndNonce(shardID uint32, nonce uint
 }
 
 func (bp *baseProcessor) cleanExecutionResultsFromTracker(header data.HeaderHandler) error {
-	return bp.executionResultsTracker.CleanConfirmedExecutionResults(header)
+	return bp.executionManager.CleanConfirmedExecutionResults(header)
 }
 
 func (bp *baseProcessor) cleanupPools(headerHandler data.HeaderHandler) {
@@ -1756,7 +1760,10 @@ func (bp *baseProcessor) revertCurrentBlockV3(headerHandler data.HeaderHandler) 
 	}
 
 	headerNonce := headerHandler.GetNonce()
-	bp.blocksQueue.RemoveAtNonceAndHigher(headerNonce)
+	err := bp.executionManager.RemoveAtNonceAndHigher(headerNonce)
+	if err != nil {
+		log.Debug("baseProcessor.revertCurrentBlockV3", "err", err)
+	}
 }
 
 func (bp *baseProcessor) revertAccountState() {
@@ -2836,7 +2843,7 @@ func (bp *baseProcessor) checkInclusionEstimationForExecutionResults(header data
 }
 
 func (bp *baseProcessor) addExecutionResultsOnHeader(header data.HeaderHandler) error {
-	pendingExecutionResults, err := bp.executionResultsTracker.GetPendingExecutionResults()
+	pendingExecutionResults, err := bp.executionManager.GetPendingExecutionResults()
 	if err != nil {
 		return err
 	}
@@ -2950,4 +2957,180 @@ func (bp *baseProcessor) getLastExecutedRootHash(
 	}
 
 	return lastExecutionResult.GetRootHash()
+}
+
+// requestProofIfNeeded will request proof if Andromeda flag activated and not already in pool
+func (bp *baseProcessor) requestProofIfNeeded(
+	nonce uint64,
+	shardID uint32,
+	epoch uint32,
+) {
+	if !bp.enableEpochsHandler.IsFlagEnabledInEpoch(common.AndromedaFlag, epoch) {
+		return
+	}
+
+	proofsPool := bp.dataPool.Proofs()
+	_, err := proofsPool.GetProofByNonce(nonce, shardID)
+	if err == nil {
+		// proof already in pool, no need to request it
+		return
+	}
+
+	bp.requestHandler.RequestEquivalentProofByNonce(shardID, nonce)
+}
+
+func (bp *baseProcessor) requestHeadersFromHeaderIfNeeded(
+	lastHeader data.HeaderHandler,
+) {
+	lastRound := lastHeader.GetRound()
+	shardID := lastHeader.GetShardID()
+
+	shouldRequestCrossHeaders := bp.roundHandler.Index() > int64(lastRound+bp.getMaxRoundsWithoutBlockReceived(lastRound))
+
+	if !shouldRequestCrossHeaders {
+		return
+	}
+
+	fromNonce := lastHeader.GetNonce() + 1
+	toNonce := fromNonce + numHeadersToRequestInAdvance
+
+	for nonce := fromNonce; nonce <= toNonce; nonce++ {
+		bp.requestHeaderIfNeeded(nonce, shardID)
+		bp.requestProofIfNeeded(nonce, shardID, lastHeader.GetEpoch())
+	}
+}
+
+func (bp *baseProcessor) requestHeaderIfNeeded(
+	nonce uint64,
+	shardID uint32,
+) {
+	headersPool := bp.dataPool.Headers()
+	_, _, err := headersPool.GetHeadersByNonceAndShardId(nonce, shardID)
+	if err == nil {
+		// header already in pool, no need to request it
+		return
+	}
+
+	bp.requestHeaderByShardAndNonce(shardID, nonce)
+}
+
+func (bp *baseProcessor) verifyGasLimit(header data.HeaderHandler) error {
+	splitRes, err := bp.splitTransactionsForHeader(header)
+	if err != nil {
+		return err
+	}
+
+	err = bp.checkMetaOutgoingResults(header, splitRes)
+	if err != nil {
+		return err
+	}
+
+	bp.gasComputation.Reset()
+	_, numPendingMiniBlocks, err := bp.gasComputation.AddIncomingMiniBlocks(splitRes.incomingMiniBlocks, splitRes.incomingTransactions)
+	if err != nil {
+		return err
+	}
+
+	// for meta, both splitRes.outgoingTransactionHashes and splitRes.outgoingTransactions should be empty, checked on checkMetaOutgoingResults
+	addedTxHashes, pendingMiniBlocksAdded, err := bp.gasComputation.AddOutgoingTransactions(splitRes.outgoingTransactionHashes, splitRes.outgoingTransactions)
+	if err != nil {
+		return err
+	}
+	if len(addedTxHashes) != len(splitRes.outgoingTransactionHashes) {
+		return fmt.Errorf("%w, outgoing transactions exceeded the limit", process.ErrInvalidMaxGasLimitPerMiniBlock)
+	}
+
+	if numPendingMiniBlocks != len(pendingMiniBlocksAdded) {
+		return fmt.Errorf("%w, incoming mini blocks exceeded the limit", process.ErrInvalidMaxGasLimitPerMiniBlock)
+	}
+
+	return nil
+}
+
+func (bp *baseProcessor) checkMetaOutgoingResults(
+	header data.HeaderHandler,
+	splitRes *splitTxsResult,
+) error {
+	_, ok := header.(data.MetaHeaderHandler)
+	if !ok {
+		return nil
+	}
+
+	numOutGoingMBs := len(splitRes.outGoingMiniBlocks)
+	if numOutGoingMBs != 0 {
+		return fmt.Errorf("%w, received: %d", errInvalidNumOutGoingMBInMetaHdrProposal, numOutGoingMBs)
+	}
+
+	numOutGoingTxs := len(splitRes.outgoingTransactions)
+	if numOutGoingTxs != 0 {
+		return fmt.Errorf("%w in metaProcessor.verifyGasLimit, received: %d",
+			errInvalidNumOutGoingTxsInMetaHdrProposal,
+			numOutGoingTxs,
+		)
+	}
+
+	return nil
+}
+
+func (bp *baseProcessor) splitTransactionsForHeader(header data.HeaderHandler) (*splitTxsResult, error) {
+	incomingMiniBlocks := make([]data.MiniBlockHeaderHandler, 0)
+	outGoingMiniBlocks := make([]data.MiniBlockHeaderHandler, 0)
+	outgoingTransactionHashes := make([][]byte, 0)
+	incomingTransactions := make(map[string][]data.TransactionHandler)
+	outgoingTransactions := make([]data.TransactionHandler, 0)
+	for _, mb := range header.GetMiniBlockHeaderHandlers() {
+		txHashes, txsForMb, err := bp.getTransactionsForMiniBlock(mb)
+		if err != nil {
+			return nil, err
+		}
+
+		if mb.GetSenderShardID() == bp.shardCoordinator.SelfId() {
+			outgoingTransactionHashes = append(outgoingTransactionHashes, txHashes...)
+			outgoingTransactions = append(outgoingTransactions, txsForMb...)
+			outGoingMiniBlocks = append(outGoingMiniBlocks, mb)
+			continue
+		}
+
+		incomingMiniBlocks = append(incomingMiniBlocks, mb)
+		incomingTransactions[string(mb.GetHash())] = txsForMb
+	}
+
+	return &splitTxsResult{
+		incomingMiniBlocks:        incomingMiniBlocks,
+		outGoingMiniBlocks:        outGoingMiniBlocks,
+		incomingTransactions:      incomingTransactions,
+		outgoingTransactionHashes: outgoingTransactionHashes,
+		outgoingTransactions:      outgoingTransactions,
+	}, nil
+}
+
+func (bp *baseProcessor) getTransactionsForMiniBlock(
+	miniBlock data.MiniBlockHeaderHandler,
+) ([][]byte, []data.TransactionHandler, error) {
+	obj, hashInPool := bp.dataPool.MiniBlocks().Get(miniBlock.GetHash())
+	if !hashInPool {
+		return nil, nil, process.ErrMissingMiniBlock
+	}
+
+	mbForHeaderPtr, typeOk := obj.(*block.MiniBlock)
+	if !typeOk {
+		return nil, nil, process.ErrWrongTypeAssertion
+	}
+
+	txs := make([]data.TransactionHandler, len(mbForHeaderPtr.TxHashes))
+	var err error
+	for idx, txHash := range mbForHeaderPtr.TxHashes {
+		txs[idx], err = process.GetTransactionHandlerFromPool(
+			miniBlock.GetSenderShardID(),
+			miniBlock.GetReceiverShardID(),
+			txHash,
+			bp.dataPool.Transactions(),
+			process.SearchMethodSearchFirst,
+		)
+		if err != nil {
+			return nil, nil, err
+		}
+	}
+
+	return mbForHeaderPtr.TxHashes, txs, nil
 }

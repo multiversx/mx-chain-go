@@ -14,6 +14,8 @@ import (
 	crypto "github.com/multiversx/mx-chain-crypto-go"
 	mclMultiSig "github.com/multiversx/mx-chain-crypto-go/signing/mcl/multisig"
 	"github.com/multiversx/mx-chain-crypto-go/signing/multisig"
+	"github.com/multiversx/mx-chain-go/process/asyncExecution"
+	"github.com/multiversx/mx-chain-go/process/asyncExecution/executionManager"
 	"github.com/multiversx/mx-chain-go/state/disabled"
 	wasmConfig "github.com/multiversx/mx-chain-vm-go/config"
 
@@ -589,7 +591,7 @@ func (tpn *TestFullNode) initNode(
 	processComponents.ScheduledTxsExecutionHandlerInternal = &testscommon.ScheduledTxsExecutionStub{}
 	processComponents.ProcessedMiniBlocksTrackerInternal = &testscommon.ProcessedMiniBlocksTrackerStub{}
 	processComponents.SentSignaturesTrackerInternal = &testscommon.SentSignatureTrackerStub{}
-	processComponents.BlocksQueueField = tpn.BlocksQueue
+	processComponents.ExecManager = tpn.ExecutionManager
 
 	processComponents.RoundHandlerField = roundHandler
 	processComponents.EpochNotifier = tpn.EpochStartNotifier
@@ -943,12 +945,25 @@ func (tpn *TestFullNode) initBlockProcessor(
 	}
 
 	executionResultsTracker := executionTrack.NewExecutionResultsTracker()
-	err = process.SetBaseExecutionResult(executionResultsTracker, tpn.BlockChain)
+	tpn.BlocksQueue = queue.NewBlocksQueue()
+
+	argsExecutionManager := executionManager.ArgsExecutionManager{
+		BlocksQueue:             tpn.BlocksQueue,
+		ExecutionResultsTracker: executionResultsTracker,
+		BlockChain:              tpn.BlockChain,
+		Headers:                 tpn.DataPool.Headers(),
+	}
+	tpn.ExecutionManager, err = executionManager.NewExecutionManager(argsExecutionManager)
 	if err != nil {
 		log.LogIfError(err)
 	}
 
-	execResultsVerifier, err := block.NewExecutionResultsVerifier(tpn.BlockChain, executionResultsTracker)
+	err = process.SetBaseExecutionResult(tpn.ExecutionManager, tpn.BlockChain)
+	if err != nil {
+		log.LogIfError(err)
+	}
+
+	execResultsVerifier, err := block.NewExecutionResultsVerifier(tpn.BlockChain, tpn.ExecutionManager)
 	if err != nil {
 		log.LogIfError(err)
 	}
@@ -983,9 +998,6 @@ func (tpn *TestFullNode) initBlockProcessor(
 	if err != nil {
 		log.LogIfError(err)
 	}
-
-	tpn.BlocksQueue = queue.NewBlocksQueue()
-	tpn.BlocksQueue.RegisterEvictionSubscriber(executionResultsTracker)
 
 	argumentsBase := block.ArgBaseProcessor{
 		CoreComponents:       coreComponents,
@@ -1024,9 +1036,8 @@ func (tpn *TestFullNode) initBlockProcessor(
 		ExecutionResultsVerifier:           execResultsVerifier,
 		MissingDataResolver:                missingDataResolver,
 		ExecutionResultsInclusionEstimator: inclusionEstimator,
-		ExecutionResultsTracker:            executionResultsTracker,
 		GasComputation:                     gasConsumption,
-		BlocksQueue:                        tpn.BlocksQueue,
+		ExecutionManager:                   tpn.ExecutionManager,
 	}
 
 	if check.IfNil(tpn.EpochStartNotifier) {
@@ -1075,6 +1086,7 @@ func (tpn *TestFullNode) initBlockProcessor(
 			EconomicsDataNotified: economicsDataProvider,
 			StakingV2EnableEpoch:  tpn.EnableEpochs.StakingV2EnableEpoch,
 			EnableEpochsHandler:   tpn.EnableEpochsHandler,
+			ChainParamsHandler:    tpn.ChainParametersHandler,
 		}
 		epochEconomics, _ := metachain.NewEndOfEpochEconomicsDataCreator(argsEpochEconomics)
 
@@ -1217,6 +1229,17 @@ func (tpn *TestFullNode) initBlockProcessor(
 		}
 	}
 
+	argsHeadersExecutor := asyncExecution.ArgsHeadersExecutor{
+		BlocksQueue:      tpn.BlocksQueue,
+		ExecutionTracker: executionResultsTracker,
+		BlockProcessor:   tpn.BlockProcessor,
+		BlockChain:       tpn.BlockChain,
+	}
+	headerExecutor, err := asyncExecution.NewHeadersExecutor(argsHeadersExecutor)
+	log.LogIfError(err)
+
+	err = tpn.ExecutionManager.SetHeadersExecutor(headerExecutor)
+	log.LogIfError(err)
 }
 
 func (tpn *TestFullNode) initBlockProcessorWithSync(
@@ -1285,12 +1308,25 @@ func (tpn *TestFullNode) initBlockProcessorWithSync(
 	}
 
 	executionResultsTracker := executionTrack.NewExecutionResultsTracker()
-	err = process.SetBaseExecutionResult(executionResultsTracker, tpn.BlockChain)
+	tpn.BlocksQueue = queue.NewBlocksQueue()
+
+	argsExecutionManager := executionManager.ArgsExecutionManager{
+		BlocksQueue:             tpn.BlocksQueue,
+		ExecutionResultsTracker: executionResultsTracker,
+		BlockChain:              tpn.BlockChain,
+		Headers:                 tpn.DataPool.Headers(),
+	}
+	tpn.ExecutionManager, err = executionManager.NewExecutionManager(argsExecutionManager)
 	if err != nil {
 		log.LogIfError(err)
 	}
 
-	execResultsVerifier, err := block.NewExecutionResultsVerifier(tpn.BlockChain, executionResultsTracker)
+	err = process.SetBaseExecutionResult(tpn.ExecutionManager, tpn.BlockChain)
+	if err != nil {
+		log.LogIfError(err)
+	}
+
+	execResultsVerifier, err := block.NewExecutionResultsVerifier(tpn.BlockChain, tpn.ExecutionManager)
 	if err != nil {
 		log.LogIfError(err)
 	}
@@ -1325,9 +1361,6 @@ func (tpn *TestFullNode) initBlockProcessorWithSync(
 	if err != nil {
 		log.LogIfError(err)
 	}
-
-	tpn.BlocksQueue = queue.NewBlocksQueue()
-	tpn.BlocksQueue.RegisterEvictionSubscriber(executionResultsTracker)
 
 	argumentsBase := block.ArgBaseProcessor{
 		CoreComponents:       coreComponents,
@@ -1367,9 +1400,8 @@ func (tpn *TestFullNode) initBlockProcessorWithSync(
 		ExecutionResultsVerifier:           execResultsVerifier,
 		MissingDataResolver:                missingDataResolver,
 		ExecutionResultsInclusionEstimator: inclusionEstimator,
-		ExecutionResultsTracker:            executionResultsTracker,
 		GasComputation:                     gasConsumption,
-		BlocksQueue:                        tpn.BlocksQueue,
+		ExecutionManager:                   tpn.ExecutionManager,
 	}
 
 	if tpn.ShardCoordinator.SelfId() == core.MetachainShardId {

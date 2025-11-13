@@ -151,7 +151,7 @@ func createMockConsensusComponentsFactoryArgs() consensusComp.ConsensusComponent
 			FallbackHdrValidator:                 &testscommon.FallBackHeaderValidatorStub{},
 			SentSignaturesTrackerInternal:        &testscommon.SentSignatureTrackerStub{},
 			BlockchainHookField:                  &testscommon.BlockChainHookStub{},
-			BlocksQueueField:                     &processMocks.BlocksQueueMock{},
+			ExecManager:                          &processMocks.ExecutionManagerMock{},
 		},
 		StateComponents: &factoryMocks.StateComponentsMock{
 			StorageManagers: map[string]common.StorageManager{

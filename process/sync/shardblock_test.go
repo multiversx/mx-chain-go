@@ -306,7 +306,7 @@ func CreateShardBootstrapMockArguments() sync.ArgShardBootstrapper {
 		ChainHandler:                 initBlockchain(),
 		RoundHandler:                 &mock.RoundHandlerMock{},
 		BlockProcessor:               &testscommon.BlockProcessorStub{},
-		BlocksQueue:                  &processMocks.BlocksQueueMock{},
+		ExecutionManager:             &processMocks.ExecutionManagerMock{},
 		Hasher:                       &hashingMocks.HasherMock{},
 		Marshalizer:                  &mock.MarshalizerMock{},
 		ForkDetector:                 &mock.ForkDetectorMock{},
@@ -2642,8 +2642,8 @@ func TestShardBootstrap_SyncBlockV3(t *testing.T) {
 		}
 
 		addToQueueCalled := false
-		args.BlocksQueue = &processMocks.BlocksQueueMock{
-			AddOrReplaceCalled: func(pair queue.HeaderBodyPair) error {
+		args.ExecutionManager = &processMocks.ExecutionManagerMock{
+			AddPairForExecutionCalled: func(pair queue.HeaderBodyPair) error {
 				addToQueueCalled = true
 				return nil
 			},
@@ -2753,8 +2753,8 @@ func TestShardBootstrap_SyncBlockV3(t *testing.T) {
 		}
 
 		cntAddToQueue := 0
-		args.BlocksQueue = &processMocks.BlocksQueueMock{
-			AddOrReplaceCalled: func(pair queue.HeaderBodyPair) error {
+		args.ExecutionManager = &processMocks.ExecutionManagerMock{
+			AddPairForExecutionCalled: func(pair queue.HeaderBodyPair) error {
 				cntAddToQueue++
 				return nil
 			},
@@ -2928,8 +2928,8 @@ func TestShardBootstrap_SyncBlockV3(t *testing.T) {
 		args.Store = setupStore(args.Marshalizer, header2, nil)
 		args.ForkDetector = setupForkDetector(5)
 
-		args.BlocksQueue = &processMocks.BlocksQueueMock{
-			AddOrReplaceCalled: func(pair queue.HeaderBodyPair) error {
+		args.ExecutionManager = &processMocks.ExecutionManagerMock{
+			AddPairForExecutionCalled: func(pair queue.HeaderBodyPair) error {
 				return errExpected
 			},
 		}
@@ -3020,8 +3020,8 @@ func TestShardBootstrap_SyncBlockV3(t *testing.T) {
 		args.Store = setupStore(args.Marshalizer, header2, nil)
 		args.ForkDetector = setupForkDetector(5)
 
-		args.BlocksQueue = &processMocks.BlocksQueueMock{
-			AddOrReplaceCalled: func(pair queue.HeaderBodyPair) error {
+		args.ExecutionManager = &processMocks.ExecutionManagerMock{
+			AddPairForExecutionCalled: func(pair queue.HeaderBodyPair) error {
 				return errExpected
 			},
 		}
@@ -3249,8 +3249,8 @@ func TestShardBootstrap_SyncBlockV3(t *testing.T) {
 		t.Parallel()
 
 		args := createSyncBlockV3Args()
-		args.BlocksQueue = &processMocks.BlocksQueueMock{
-			AddOrReplaceCalled: func(pair queue.HeaderBodyPair) error {
+		args.ExecutionManager = &processMocks.ExecutionManagerMock{
+			AddPairForExecutionCalled: func(pair queue.HeaderBodyPair) error {
 				return errExpected
 			},
 		}

@@ -517,7 +517,7 @@ func (ccf *consensusComponentsFactory) createShardBootstrapper() (process.Bootst
 		ProcessWaitTimeSupernova:     time.Duration(ccf.config.GeneralSettings.SyncProcessTimeSupernovaInMillis) * time.Millisecond,
 		RepopulateTokensSupplies:     ccf.flagsConfig.RepopulateTokensSupplies,
 		EnableEpochsHandler:          ccf.coreComponents.EnableEpochsHandler(),
-		BlocksQueue:                  ccf.processComponents.BlocksQueue(),
+		ExecutionManager:             ccf.processComponents.ExecutionManager(),
 		EnableRoundsHandler:          ccf.coreComponents.EnableRoundsHandler(),
 		ProcessConfigsHandler:        ccf.coreComponents.ProcessConfigsHandler(),
 	}
@@ -629,7 +629,7 @@ func (ccf *consensusComponentsFactory) createMetaChainBootstrapper() (process.Bo
 		ChainHandler:                 ccf.dataComponents.Blockchain(),
 		RoundHandler:                 ccf.processComponents.RoundHandler(),
 		BlockProcessor:               ccf.processComponents.BlockProcessor(),
-		BlocksQueue:                  ccf.processComponents.BlocksQueue(),
+		ExecutionManager:             ccf.processComponents.ExecutionManager(),
 		Hasher:                       ccf.coreComponents.Hasher(),
 		Marshalizer:                  ccf.coreComponents.InternalMarshalizer(),
 		ForkDetector:                 ccf.processComponents.ForkDetector(),
