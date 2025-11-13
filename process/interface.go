@@ -282,6 +282,7 @@ type PreProcessor interface {
 // BlockProcessor is the main interface for block execution engine
 type BlockProcessor interface {
 	ProcessBlock(header data.HeaderHandler, body data.BodyHandler, haveTime func() time.Duration) error
+	ProcessBlockProposal(header data.HeaderHandler, body data.BodyHandler) (data.BaseExecutionResultHandler, error)
 	ProcessScheduledBlock(header data.HeaderHandler, body data.BodyHandler, haveTime func() time.Duration) error
 	CommitBlock(header data.HeaderHandler, body data.BodyHandler) error
 	RevertCurrentBlock(header data.HeaderHandler)
@@ -315,10 +316,31 @@ type BlocksQueue interface {
 	AddOrReplace(pair queue.HeaderBodyPair) error
 	Pop() (queue.HeaderBodyPair, bool)
 	Peek() (queue.HeaderBodyPair, bool)
-	RemoveAtNonceAndHigher(nonce uint64)
-	RegisterEvictionSubscriber(subscriber queue.BlocksQueueEvictionSubscriber)
+	RemoveAtNonceAndHigher(nonce uint64) []uint64
 	IsInterfaceNil() bool
 	Close()
+}
+
+// HeadersExecutor defines what a headers executor should be able to do
+type HeadersExecutor interface {
+	StartExecution()
+	PauseExecution()
+	ResumeExecution()
+	Close() error
+	IsInterfaceNil() bool
+}
+
+// ExecutionManager defines a component able to manage the components responsible for block execution
+type ExecutionManager interface {
+	StartExecution()
+	SetHeadersExecutor(executor HeadersExecutor) error
+	AddPairForExecution(pair queue.HeaderBodyPair) error
+	GetPendingExecutionResults() ([]data.BaseExecutionResultHandler, error)
+	CleanConfirmedExecutionResults(header data.HeaderHandler) error
+	SetLastNotarizedResult(executionResult data.BaseExecutionResultHandler) error
+	RemoveAtNonceAndHigher(nonce uint64) error
+	Close() error
+	IsInterfaceNil() bool
 }
 
 // SmartContractProcessorFull is the main interface for smart contract result execution engine

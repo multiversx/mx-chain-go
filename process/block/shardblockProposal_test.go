@@ -13,6 +13,7 @@ import (
 	"github.com/multiversx/mx-chain-core-go/data"
 	"github.com/multiversx/mx-chain-core-go/data/block"
 	"github.com/multiversx/mx-chain-core-go/data/transaction"
+	"github.com/multiversx/mx-chain-go/process/asyncExecution/executionManager"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 
@@ -33,7 +34,6 @@ import (
 	"github.com/multiversx/mx-chain-go/testscommon/cache"
 	"github.com/multiversx/mx-chain-go/testscommon/dataRetriever"
 	"github.com/multiversx/mx-chain-go/testscommon/enableEpochsHandlerMock"
-	testscommonExecutionTrack "github.com/multiversx/mx-chain-go/testscommon/executionTrack"
 	"github.com/multiversx/mx-chain-go/testscommon/hashingMocks"
 	"github.com/multiversx/mx-chain-go/testscommon/mbSelection"
 	"github.com/multiversx/mx-chain-go/testscommon/pool"
@@ -305,7 +305,7 @@ func TestShardProcessor_CreateBlockProposal(t *testing.T) {
 
 		coreComponents, dataComponents, bootstrapComponents, statusComponents := createComponentHolderMocks()
 		arguments := CreateMockArguments(coreComponents, dataComponents, bootstrapComponents, statusComponents)
-		arguments.ExecutionResultsTracker = &testscommonExecutionTrack.ExecutionResultsTrackerStub{
+		arguments.ExecutionManager = &processMocks.ExecutionManagerMock{
 			GetPendingExecutionResultsCalled: func() ([]data.BaseExecutionResultHandler, error) {
 				return nil, expectedErr
 			},
@@ -333,7 +333,7 @@ func TestShardProcessor_CreateBlockProposal(t *testing.T) {
 				return 1 // coverage only
 			},
 		}
-		arguments.ExecutionResultsTracker = &testscommonExecutionTrack.ExecutionResultsTrackerStub{
+		arguments.ExecutionManager = &processMocks.ExecutionManagerMock{
 			GetPendingExecutionResultsCalled: func() ([]data.BaseExecutionResultHandler, error) {
 				return []data.BaseExecutionResultHandler{
 					&block.ExecutionResult{
@@ -628,7 +628,7 @@ func Test_addExecutionResultsOnHeader(t *testing.T) {
 		t.Parallel()
 
 		sp, _ := blproc.ConstructPartialShardBlockProcessorForTest(map[string]interface{}{
-			"executionResultsTracker": &testscommonExecutionTrack.ExecutionResultsTrackerStub{
+			"executionManager": &processMocks.ExecutionManagerMock{
 				GetPendingExecutionResultsCalled: func() ([]data.BaseExecutionResultHandler, error) {
 					return nil, expectedErr
 				},
@@ -641,7 +641,7 @@ func Test_addExecutionResultsOnHeader(t *testing.T) {
 	t.Run("GetPrevBlockLastExecutionResult returns error should error", func(t *testing.T) {
 		t.Parallel()
 		sp, _ := blproc.ConstructPartialShardBlockProcessorForTest(map[string]interface{}{
-			"executionResultsTracker": &testscommonExecutionTrack.ExecutionResultsTrackerStub{
+			"executionManager": &processMocks.ExecutionManagerMock{
 				GetPendingExecutionResultsCalled: func() ([]data.BaseExecutionResultHandler, error) {
 					return []data.BaseExecutionResultHandler{
 						&block.ExecutionResult{
@@ -658,7 +658,7 @@ func Test_addExecutionResultsOnHeader(t *testing.T) {
 	t.Run("CreateDataForInclusionEstimation returns error should error", func(t *testing.T) {
 		t.Parallel()
 		sp, _ := blproc.ConstructPartialShardBlockProcessorForTest(map[string]interface{}{
-			"executionResultsTracker": &testscommonExecutionTrack.ExecutionResultsTrackerStub{
+			"executionManager": &processMocks.ExecutionManagerMock{
 				GetPendingExecutionResultsCalled: func() ([]data.BaseExecutionResultHandler, error) {
 					return []data.BaseExecutionResultHandler{
 						&block.ExecutionResult{
@@ -702,7 +702,7 @@ func Test_addExecutionResultsOnHeader(t *testing.T) {
 		}
 
 		sp, _ := blproc.ConstructPartialShardBlockProcessorForTest(map[string]interface{}{
-			"executionResultsTracker": &testscommonExecutionTrack.ExecutionResultsTrackerStub{
+			"executionManager": &processMocks.ExecutionManagerMock{
 				GetPendingExecutionResultsCalled: func() ([]data.BaseExecutionResultHandler, error) {
 					// return one meta execution result (so Decide can include it)
 					meta := &block.MetaExecutionResult{
@@ -785,7 +785,7 @@ func Test_addExecutionResultsOnHeader(t *testing.T) {
 			BaseExecutionResult: &block.BaseExecutionResult{HeaderHash: []byte("hash2"), HeaderNonce: 2, HeaderRound: 2, GasUsed: 999_000_000},
 		}
 		sp, _ := blproc.ConstructPartialShardBlockProcessorForTest(map[string]interface{}{
-			"executionResultsTracker": &testscommonExecutionTrack.ExecutionResultsTrackerStub{
+			"executionManager": &processMocks.ExecutionManagerMock{
 				GetPendingExecutionResultsCalled: func() ([]data.BaseExecutionResultHandler, error) {
 					return []data.BaseExecutionResultHandler{
 						executionResult1,
@@ -1993,9 +1993,15 @@ func TestShardBlockProposal_CreateAndVerifyProposal(t *testing.T) {
 	dataComponents.BlockChain = blkc
 
 	executionResultsTracker := executionTrack.NewExecutionResultsTracker()
-	execResultsVerifier, _ := blproc.NewExecutionResultsVerifier(dataComponents.BlockChain, executionResultsTracker)
+	execManager, _ := executionManager.NewExecutionManager(executionManager.ArgsExecutionManager{
+		BlocksQueue:             &processMocks.BlocksQueueMock{},
+		ExecutionResultsTracker: executionResultsTracker,
+		BlockChain:              blkc,
+		Headers:                 dataComponents.DataPool.Headers(),
+	})
+	execResultsVerifier, _ := blproc.NewExecutionResultsVerifier(dataComponents.BlockChain, execManager)
 
-	arguments.ArgBaseProcessor.ExecutionResultsTracker = executionResultsTracker
+	arguments.ArgBaseProcessor.ExecutionManager = execManager
 	arguments.ArgBaseProcessor.ExecutionResultsVerifier = execResultsVerifier
 
 	shardProcessor, err := blproc.NewShardProcessor(arguments)
@@ -2144,9 +2150,15 @@ func TestShardBlockProposal_CreateAndVerifyProposal_WithTransactions(t *testing.
 	dataComponents.BlockChain = blkc
 
 	executionResultsTracker := executionTrack.NewExecutionResultsTracker()
-	execResultsVerifier, _ := blproc.NewExecutionResultsVerifier(dataComponents.BlockChain, executionResultsTracker)
+	execManager, _ := executionManager.NewExecutionManager(executionManager.ArgsExecutionManager{
+		BlocksQueue:             &processMocks.BlocksQueueMock{},
+		ExecutionResultsTracker: executionResultsTracker,
+		BlockChain:              blkc,
+		Headers:                 dataComponents.DataPool.Headers(),
+	})
+	execResultsVerifier, _ := blproc.NewExecutionResultsVerifier(dataComponents.BlockChain, execManager)
 
-	arguments.ArgBaseProcessor.ExecutionResultsTracker = executionResultsTracker
+	arguments.ArgBaseProcessor.ExecutionManager = execManager
 	arguments.ArgBaseProcessor.ExecutionResultsVerifier = execResultsVerifier
 
 	arguments.MissingDataResolver = &processMocks.MissingDataResolverMock{
@@ -2650,9 +2662,10 @@ func TestShardProcessor_ProcessBlockProposal(t *testing.T) {
 
 		args := CreateMockArguments(createComponentHolderMocks())
 		wasRemoveAtNonceAndHigherCalled := false
-		args.BlocksQueue = &processMocks.BlocksQueueMock{
-			RemoveAtNonceAndHigherCalled: func(nonce uint64) {
+		args.ExecutionManager = &processMocks.ExecutionManagerMock{
+			RemoveAtNonceAndHigherCalled: func(nonce uint64) error {
 				wasRemoveAtNonceAndHigherCalled = true
+				return nil
 			},
 		}
 		args.TxCoordinator = &testscommon.TransactionCoordinatorMock{
