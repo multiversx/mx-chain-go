@@ -155,6 +155,8 @@ func (em *executionManager) RemoveAtNonceAndHigher(nonce uint64) error {
 	// update blockchain with the last executed header, similar to headersExecution
 	err = em.updateBlockchainAfterRemoval(lastNotarizedResult)
 	if err != nil {
+		// TODO: consider adding a reset method that completely resets all sub-components
+		// context: https://github.com/multiversx/mx-chain-go/pull/7402#discussion_r2519131059
 		return err
 	}
 
