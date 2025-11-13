@@ -23,6 +23,8 @@ import (
 	"github.com/multiversx/mx-chain-core-go/data/typeConverters/uint64ByteSlice"
 	"github.com/multiversx/mx-chain-core-go/hashing"
 	"github.com/multiversx/mx-chain-core-go/marshal"
+	"github.com/multiversx/mx-chain-go/process/asyncExecution/executionManager"
+	"github.com/multiversx/mx-chain-go/process/asyncExecution/queue"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 
@@ -132,7 +134,7 @@ func createArgBaseProcessor(
 
 	var blockDataRequester process.BlockDataRequester
 	var inclusionEstimator process.InclusionEstimator
-	var executionResultsTracker process.ExecutionResultsTracker
+	var execManager process.ExecutionManager
 	var mbSelectionSession blproc.MiniBlocksSelectionSession
 	var execResultsVerifier blproc.ExecutionResultsVerifier
 	var missingDataResolver blproc.MissingDataResolver
@@ -159,9 +161,16 @@ func createArgBaseProcessor(
 			coreComponents.Hasher(),
 		)
 
-		executionResultsTracker = executionTrack.NewExecutionResultsTracker()
+		blocksQueue := queue.NewBlocksQueue()
+		executionResultsTracker := executionTrack.NewExecutionResultsTracker()
 		_ = executionResultsTracker.SetLastNotarizedResult(&block.ExecutionResult{})
-		execResultsVerifier, _ = blproc.NewExecutionResultsVerifier(dataComponents.BlockChain, executionResultsTracker)
+		execManager, _ = executionManager.NewExecutionManager(executionManager.ArgsExecutionManager{
+			BlocksQueue:             blocksQueue,
+			ExecutionResultsTracker: executionResultsTracker,
+			BlockChain:              dataComponents.BlockChain,
+			Headers:                 dataComponents.DataPool.Headers(),
+		})
+		execResultsVerifier, _ = blproc.NewExecutionResultsVerifier(dataComponents.BlockChain, execManager)
 		inclusionEstimator = estimator.NewExecutionResultInclusionEstimator(
 			config.ExecutionResultInclusionEstimatorConfig{
 				SafetyMargin:       110,
@@ -220,7 +229,6 @@ func createArgBaseProcessor(
 		ExecutionResultsVerifier:           execResultsVerifier,
 		MissingDataResolver:                missingDataResolver,
 		ExecutionResultsInclusionEstimator: inclusionEstimator,
-		ExecutionResultsTracker:            executionResultsTracker,
 		GasComputation: &testscommon.GasComputationMock{
 			AddIncomingMiniBlocksCalled: func(miniBlocks []data.MiniBlockHeaderHandler, transactions map[string][]data.TransactionHandler) (int, int, error) {
 				return len(miniBlocks), 0, nil
@@ -229,7 +237,7 @@ func createArgBaseProcessor(
 				return txHashes, nil, nil
 			},
 		},
-		BlocksQueue: &processMocks.BlocksQueueMock{},
+		ExecutionManager: execManager,
 	}
 }
 
@@ -863,18 +871,10 @@ func TestCheckProcessorNilParameters(t *testing.T) {
 		{
 			args: func() blproc.ArgBaseProcessor {
 				args := createArgBaseProcessor(coreComponents, dataComponents, bootstrapComponents, statusComponents)
-				args.ExecutionResultsTracker = nil
+				args.ExecutionManager = nil
 				return args
 			},
-			expectedErr: process.ErrNilExecutionResultsTracker,
-		},
-		{
-			args: func() blproc.ArgBaseProcessor {
-				args := createArgBaseProcessor(coreComponents, dataComponents, bootstrapComponents, statusComponents)
-				args.BlocksQueue = nil
-				return args
-			},
-			expectedErr: process.ErrNilBlocksQueue,
+			expectedErr: process.ErrNilExecutionManager,
 		},
 		{
 			args: func() blproc.ArgBaseProcessor {

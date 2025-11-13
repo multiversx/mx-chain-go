@@ -13,6 +13,7 @@ import (
 	"github.com/multiversx/mx-chain-core-go/data/block"
 	"github.com/multiversx/mx-chain-core-go/data/transaction"
 	"github.com/multiversx/mx-chain-core-go/data/typeConverters"
+	"github.com/multiversx/mx-chain-go/testscommon/processMocks"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 
@@ -24,7 +25,6 @@ import (
 	"github.com/multiversx/mx-chain-go/storage"
 	"github.com/multiversx/mx-chain-go/testscommon"
 	"github.com/multiversx/mx-chain-go/testscommon/cache"
-	"github.com/multiversx/mx-chain-go/testscommon/executionTrack"
 	storageStubs "github.com/multiversx/mx-chain-go/testscommon/storage"
 )
 
@@ -2384,23 +2384,23 @@ func TestShardedCacheSearchMethod_ToString(t *testing.T) {
 func Test_SetBaseExecutionResult(t *testing.T) {
 	t.Parallel()
 
-	t.Run("nil tracker should error", func(t *testing.T) {
+	t.Run("nil execution manager should error", func(t *testing.T) {
 		t.Parallel()
 		err := process.SetBaseExecutionResult(nil, &testscommon.ChainHandlerStub{})
-		require.Equal(t, process.ErrNilExecutionResultsTracker, err)
+		require.Equal(t, process.ErrNilExecutionManager, err)
 	})
 
 	t.Run("nil chain handler should error", func(t *testing.T) {
 		t.Parallel()
-		err := process.SetBaseExecutionResult(&executionTrack.ExecutionResultsTrackerStub{}, nil)
+		err := process.SetBaseExecutionResult(&processMocks.ExecutionManagerMock{}, nil)
 		require.Equal(t, process.ErrNilBlockChain, err)
 	})
 
-	t.Run("tracker error should error", func(t *testing.T) {
+	t.Run("execution manager error should error", func(t *testing.T) {
 		t.Parallel()
 
-		expectedErr := errors.New("tracker error")
-		tracker := &executionTrack.ExecutionResultsTrackerStub{
+		expectedErr := errors.New("execution manager error")
+		executionManager := &processMocks.ExecutionManagerMock{
 			SetLastNotarizedResultCalled: func(data.BaseExecutionResultHandler) error {
 				return expectedErr
 			},
@@ -2426,7 +2426,7 @@ func Test_SetBaseExecutionResult(t *testing.T) {
 			},
 		}
 
-		err := process.SetBaseExecutionResult(tracker, chainHandler)
+		err := process.SetBaseExecutionResult(executionManager, chainHandler)
 		require.Equal(t, expectedErr, err)
 	})
 
@@ -2438,14 +2438,14 @@ func Test_SetBaseExecutionResult(t *testing.T) {
 				return nil
 			},
 		}
-		tracker := &executionTrack.ExecutionResultsTrackerStub{
+		executionManager := &processMocks.ExecutionManagerMock{
 			SetLastNotarizedResultCalled: func(data.BaseExecutionResultHandler) error {
 				require.Fail(t, "should not be called")
 				return nil
 			},
 		}
 
-		err := process.SetBaseExecutionResult(tracker, chainHandler)
+		err := process.SetBaseExecutionResult(executionManager, chainHandler)
 		require.Nil(t, err)
 	})
 
@@ -2457,14 +2457,14 @@ func Test_SetBaseExecutionResult(t *testing.T) {
 				return &block.Header{}
 			},
 		}
-		tracker := &executionTrack.ExecutionResultsTrackerStub{
+		executionManager := &processMocks.ExecutionManagerMock{
 			SetLastNotarizedResultCalled: func(data.BaseExecutionResultHandler) error {
 				require.Fail(t, "should not be called")
 				return nil
 			},
 		}
 
-		err := process.SetBaseExecutionResult(tracker, chainHandler)
+		err := process.SetBaseExecutionResult(executionManager, chainHandler)
 		require.Nil(t, err)
 	})
 	t.Run("chain handler returning header without execution result should not set", func(t *testing.T) {
@@ -2476,14 +2476,14 @@ func Test_SetBaseExecutionResult(t *testing.T) {
 				return header
 			},
 		}
-		tracker := &executionTrack.ExecutionResultsTrackerStub{
+		executionManager := &processMocks.ExecutionManagerMock{
 			SetLastNotarizedResultCalled: func(data.BaseExecutionResultHandler) error {
 				require.Fail(t, "should not be called")
 				return nil
 			},
 		}
 
-		err := process.SetBaseExecutionResult(tracker, chainHandler)
+		err := process.SetBaseExecutionResult(executionManager, chainHandler)
 		require.Equal(t, process.ErrNilLastExecutionResultHandler, err)
 	})
 
@@ -2498,14 +2498,14 @@ func Test_SetBaseExecutionResult(t *testing.T) {
 				return header
 			},
 		}
-		tracker := &executionTrack.ExecutionResultsTrackerStub{
+		executionManager := &processMocks.ExecutionManagerMock{
 			SetLastNotarizedResultCalled: func(data.BaseExecutionResultHandler) error {
 				require.Fail(t, "should not be called")
 				return nil
 			},
 		}
 
-		err := process.SetBaseExecutionResult(tracker, chainHandler)
+		err := process.SetBaseExecutionResult(executionManager, chainHandler)
 		require.Equal(t, process.ErrNilBaseExecutionResult, err)
 	})
 
@@ -2528,7 +2528,7 @@ func Test_SetBaseExecutionResult(t *testing.T) {
 		}
 
 		called := false
-		tracker := &executionTrack.ExecutionResultsTrackerStub{
+		executionManager := &processMocks.ExecutionManagerMock{
 			SetLastNotarizedResultCalled: func(result data.BaseExecutionResultHandler) error {
 				require.Equal(t, executionResultsInfo.ExecutionResult, result)
 				called = true
@@ -2541,7 +2541,7 @@ func Test_SetBaseExecutionResult(t *testing.T) {
 			},
 		}
 
-		err := process.SetBaseExecutionResult(tracker, chainHandler)
+		err := process.SetBaseExecutionResult(executionManager, chainHandler)
 		require.Nil(t, err)
 		require.True(t, called)
 	})
@@ -2567,7 +2567,7 @@ func Test_SetBaseExecutionResult(t *testing.T) {
 		}
 
 		called := false
-		tracker := &executionTrack.ExecutionResultsTrackerStub{
+		executionManager := &processMocks.ExecutionManagerMock{
 			SetLastNotarizedResultCalled: func(result data.BaseExecutionResultHandler) error {
 				require.Equal(t, executionResultsInfo.ExecutionResult, result)
 				called = true
@@ -2580,7 +2580,7 @@ func Test_SetBaseExecutionResult(t *testing.T) {
 			},
 		}
 
-		err := process.SetBaseExecutionResult(tracker, chainHandler)
+		err := process.SetBaseExecutionResult(executionManager, chainHandler)
 		require.Nil(t, err)
 		require.True(t, called)
 	})
