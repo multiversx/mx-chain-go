@@ -1575,6 +1575,16 @@ func TestEconomics_checkEconomicsInvariantsV2ExtraBlocksNotarized(t *testing.T) 
 	require.Nil(t, err)
 }
 
+func TestEconomics_ComputeEndOfEpochEconomicsV3NilInputShouldError(t *testing.T) {
+	t.Parallel()
+
+	args := getArguments()
+	ec, _ := NewEndOfEpochEconomicsDataCreator(args)
+	res, err := ec.ComputeEndOfEpochEconomicsV3(nil, createMetaExecRes(), &block.EpochStart{})
+	require.Nil(t, res)
+	require.Equal(t, process.ErrNilMetaBlockHeader, err)
+}
+
 func TestEconomics_createEconomicsV3Args(t *testing.T) {
 	t.Parallel()
 
