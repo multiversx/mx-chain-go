@@ -191,24 +191,7 @@ func (mp *metaProcessor) ProcessBlock(
 		return err
 	}
 
-	headersPool := mp.dataPool.Headers()
-	numShardHeadersFromPool := 0
-	for shardID := uint32(0); shardID < mp.shardCoordinator.NumberOfShards(); shardID++ {
-		numShardHeadersFromPool += headersPool.GetNumHeaders(shardID)
-	}
-
-	txCounts, rewardCounts, unsignedCounts := mp.txCounter.getPoolCounts(mp.dataPool)
-	log.Debug("total txs in pool", "counts", txCounts.String())
-	log.Debug("total txs in rewards pool", "counts", rewardCounts.String())
-	log.Debug("total txs in unsigned pool", "counts", unsignedCounts.String())
-
-	go getMetricsFromMetaHeader(
-		header,
-		mp.marshalizer,
-		mp.appStatusHandler,
-		numShardHeadersFromPool,
-		mp.headersCounter.getNumShardMBHeadersTotalProcessed(),
-	)
+	mp.updateMetrics(header)
 
 	defer func() {
 		if err != nil {
@@ -334,6 +317,27 @@ func (mp *metaProcessor) ProcessBlock(
 	return nil
 }
 
+func (mp *metaProcessor) updateMetrics(header data.MetaHeaderHandler) {
+	headersPool := mp.dataPool.Headers()
+	numShardHeadersFromPool := 0
+	for shardID := uint32(0); shardID < mp.shardCoordinator.NumberOfShards(); shardID++ {
+		numShardHeadersFromPool += headersPool.GetNumHeaders(shardID)
+	}
+
+	txCounts, rewardCounts, unsignedCounts := mp.txCounter.getPoolCounts(mp.dataPool)
+	log.Debug("total txs in pool", "counts", txCounts.String())
+	log.Debug("total txs in rewards pool", "counts", rewardCounts.String())
+	log.Debug("total txs in unsigned pool", "counts", unsignedCounts.String())
+
+	go getMetricsFromMetaHeader(
+		header,
+		mp.marshalizer,
+		mp.appStatusHandler,
+		numShardHeadersFromPool,
+		mp.headersCounter.getNumShardMBHeadersTotalProcessed(),
+	)
+}
+
 func (mp *metaProcessor) processEpochStartMetaBlock(
 	header *block.MetaBlock,
 	body *block.Body,
@@ -431,7 +435,7 @@ func (mp *metaProcessor) SetNumProcessedObj(numObj uint64) {
 }
 
 func (mp *metaProcessor) checkEpochCorrectness(
-	headerHandler data.HeaderHandler,
+	headerHandler data.MetaHeaderHandler,
 ) error {
 	currentBlockHeader := mp.blockChain.GetCurrentBlockHeader()
 	if check.IfNil(currentBlockHeader) {
@@ -1137,6 +1141,7 @@ func (mp *metaProcessor) requestShardHeadersIfNeeded(
 			for nonce := fromNonce; nonce <= toNonce; nonce++ {
 				mp.addHeaderIntoTrackerPool(nonce, shardID)
 				mp.requestHandler.RequestShardHeaderByNonce(shardID, nonce)
+				mp.requestProofIfNeeded(nonce, shardID, lastShardHdr[shardID].GetEpoch())
 			}
 		}
 	}
@@ -1199,11 +1204,6 @@ func (mp *metaProcessor) CommitBlock(
 	headerHash := mp.hasher.Compute(string(marshalizedHeader))
 	mp.saveMetaHeader(header, headerHash, marshalizedHeader)
 	mp.saveBody(body, header, headerHash)
-
-	err = mp.saveExecutedData(header, headerHash)
-	if err != nil {
-		return err
-	}
 
 	err = mp.commitAll(headerHandler)
 	if err != nil {
@@ -1270,19 +1270,16 @@ func (mp *metaProcessor) CommitBlock(
 	finalMetaBlock, finalMetaBlockHash := mp.computeFinalMetaBlock(header, headerHash)
 	mp.updateState(finalMetaBlock, finalMetaBlockHash)
 
-	committedRootHash, err := mp.accountsDB[state.UserAccountsState].RootHash()
-	if err != nil {
-		return err
-	}
+	rootHash := mp.getLastExecutedRootHash(header)
 
-	err = mp.blockChain.SetCurrentBlockHeaderAndRootHash(header, committedRootHash)
+	err = mp.setCurrentBlockInfo(header, headerHash, rootHash)
 	if err != nil {
 		return err
 	}
 
 	mp.blockChain.SetCurrentBlockHeaderHash(headerHash)
 
-	err = mp.onExecutedBlock(headerHandler, committedRootHash)
+	err = mp.onExecutedBlock(headerHandler, rootHash)
 	if err != nil {
 		return err
 	}
@@ -1356,6 +1353,12 @@ func (mp *metaProcessor) CommitBlock(
 	}
 
 	mp.cleanupPools(headerHandler)
+
+	// TODO: evaluate removing executed miniblocks from cache explicitly, not inside saveExecutedData
+	err = mp.saveExecutedData(header, headerHash)
+	if err != nil {
+		return err
+	}
 
 	mp.blockProcessingCutoffHandler.HandlePauseCutoff(header)
 

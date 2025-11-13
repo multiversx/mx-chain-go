@@ -32,29 +32,25 @@ func TestChainSimulator_Api_TokenType(t *testing.T) {
 		t.Skip("this is not a short test")
 	}
 
-	roundDurationInMillis := uint64(6000)
-	roundsPerEpoch := core.OptionalUint64{
-		HasValue: true,
-		Value:    20,
-	}
-
 	activationEpoch := uint32(2)
 
 	baseIssuingCost := "1000"
 
 	numOfShards := uint32(3)
 	cs, err := chainSimulator.NewChainSimulator(chainSimulator.ArgsChainSimulator{
-		BypassTxSignatureCheck:   true,
-		TempDir:                  t.TempDir(),
-		PathToInitialConfig:      defaultPathToInitialConfig,
-		NumOfShards:              numOfShards,
-		RoundDurationInMillis:    roundDurationInMillis,
-		RoundsPerEpoch:           roundsPerEpoch,
-		ApiInterface:             api.NewFreePortAPIConfigurator("localhost"),
-		MinNodesPerShard:         3,
-		MetaChainMinNodes:        3,
-		NumNodesWaitingListMeta:  0,
-		NumNodesWaitingListShard: 0,
+		BypassTxSignatureCheck:         true,
+		TempDir:                        t.TempDir(),
+		PathToInitialConfig:            defaultPathToInitialConfig,
+		NumOfShards:                    numOfShards,
+		RoundDurationInMillis:          roundDurationInMillis,
+		SupernovaRoundDurationInMillis: supernovaRoundDurationInMillis,
+		RoundsPerEpoch:                 roundsPerEpoch,
+		SupernovaRoundsPerEpoch:        supernovaRoundsPerEpoch,
+		ApiInterface:                   api.NewFreePortAPIConfigurator("localhost"),
+		MinNodesPerShard:               3,
+		MetaChainMinNodes:              3,
+		NumNodesWaitingListMeta:        0,
+		NumNodesWaitingListShard:       0,
 		AlterConfigsFunction: func(cfg *config.Configs) {
 			cfg.EpochConfig.EnableEpochs.DynamicESDTEnableEpoch = activationEpoch
 			cfg.SystemSCConfig.ESDTSystemSCConfig.BaseIssuingCost = baseIssuingCost
@@ -203,29 +199,25 @@ func TestChainSimulator_Api_NFTToken(t *testing.T) {
 		t.Skip("this is not a short test")
 	}
 
-	roundDurationInMillis := uint64(6000)
-	roundsPerEpoch := core.OptionalUint64{
-		HasValue: true,
-		Value:    20,
-	}
-
 	activationEpoch := uint32(2)
 
 	baseIssuingCost := "1000"
 
 	numOfShards := uint32(3)
 	cs, err := chainSimulator.NewChainSimulator(chainSimulator.ArgsChainSimulator{
-		BypassTxSignatureCheck:   true,
-		TempDir:                  t.TempDir(),
-		PathToInitialConfig:      defaultPathToInitialConfig,
-		NumOfShards:              numOfShards,
-		RoundDurationInMillis:    roundDurationInMillis,
-		RoundsPerEpoch:           roundsPerEpoch,
-		ApiInterface:             api.NewFreePortAPIConfigurator("localhost"),
-		MinNodesPerShard:         3,
-		MetaChainMinNodes:        3,
-		NumNodesWaitingListMeta:  0,
-		NumNodesWaitingListShard: 0,
+		BypassTxSignatureCheck:         true,
+		TempDir:                        t.TempDir(),
+		PathToInitialConfig:            defaultPathToInitialConfig,
+		NumOfShards:                    numOfShards,
+		RoundDurationInMillis:          roundDurationInMillis,
+		SupernovaRoundDurationInMillis: supernovaRoundDurationInMillis,
+		RoundsPerEpoch:                 roundsPerEpoch,
+		SupernovaRoundsPerEpoch:        supernovaRoundsPerEpoch,
+		ApiInterface:                   api.NewFreePortAPIConfigurator("localhost"),
+		MinNodesPerShard:               3,
+		MetaChainMinNodes:              3,
+		NumNodesWaitingListMeta:        0,
+		NumNodesWaitingListShard:       0,
 		AlterConfigsFunction: func(cfg *config.Configs) {
 			cfg.EpochConfig.EnableEpochs.DynamicESDTEnableEpoch = activationEpoch
 			cfg.SystemSCConfig.ESDTSystemSCConfig.BaseIssuingCost = baseIssuingCost

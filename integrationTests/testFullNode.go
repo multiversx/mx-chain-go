@@ -1086,6 +1086,7 @@ func (tpn *TestFullNode) initBlockProcessor(
 			EconomicsDataNotified: economicsDataProvider,
 			StakingV2EnableEpoch:  tpn.EnableEpochs.StakingV2EnableEpoch,
 			EnableEpochsHandler:   tpn.EnableEpochsHandler,
+			ChainParamsHandler:    tpn.ChainParametersHandler,
 		}
 		epochEconomics, _ := metachain.NewEndOfEpochEconomicsDataCreator(argsEpochEconomics)
 
@@ -1234,11 +1235,11 @@ func (tpn *TestFullNode) initBlockProcessor(
 		BlockProcessor:   tpn.BlockProcessor,
 		BlockChain:       tpn.BlockChain,
 	}
-	_, err = asyncExecution.NewHeadersExecutor(argsHeadersExecutor)
+	headerExecutor, err := asyncExecution.NewHeadersExecutor(argsHeadersExecutor)
 	log.LogIfError(err)
 
-	// TODO: uncomment this
-	// tpn.ExecutionManager.SetHeadersExecutor(headerExecutor)
+	err = tpn.ExecutionManager.SetHeadersExecutor(headerExecutor)
+	log.LogIfError(err)
 }
 
 func (tpn *TestFullNode) initBlockProcessorWithSync(

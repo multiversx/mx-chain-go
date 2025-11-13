@@ -2,6 +2,7 @@ package asyncExecution
 
 import (
 	"context"
+	"time"
 
 	"github.com/multiversx/mx-chain-core-go/core/atomic"
 	"github.com/multiversx/mx-chain-core-go/core/check"
@@ -13,6 +14,8 @@ import (
 )
 
 var log = logger.GetOrCreate("process/asyncExecution")
+
+const timeToSleepWhilePaused = time.Millisecond * 20
 
 // ArgsHeadersExecutor holds all the components needed to create a new instance of *headersExecutor
 type ArgsHeadersExecutor struct {
@@ -82,6 +85,7 @@ func (he *headersExecutor) start(ctx context.Context) {
 			return
 		default:
 			if he.isPaused.IsSet() {
+				time.Sleep(timeToSleepWhilePaused)
 				continue
 			}
 

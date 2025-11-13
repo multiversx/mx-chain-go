@@ -724,7 +724,6 @@ func runConsensusWithNotEnoughValidators(t *testing.T, consensusType string) {
 	numNodes := uint32(4)
 	consensusSize := uint32(4)
 	numInvalid := uint32(2)
-	roundTime := uint64(1000)
 	enableEpochsConfig := integrationTests.CreateEnableEpochsConfig()
 
 	nodes := initNodesAndTest(numMetaNodes, numNodes, consensusSize, numInvalid, roundTime, consensusType, 1, enableEpochsConfig)

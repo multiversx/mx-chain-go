@@ -1080,6 +1080,7 @@ func (tpn *TestProcessorNode) createFullSCQueryService(gasMap map[string]map[str
 			ChanceComputer:      tpn.NodesCoordinator,
 			ShardCoordinator:    tpn.ShardCoordinator,
 			EnableEpochsHandler: tpn.EnableEpochsHandler,
+			EnableRoundsHandler: tpn.EnableRoundsHandler,
 			NodesCoordinator:    tpn.NodesCoordinator,
 		}
 		tpn.EpochNotifier.CheckEpoch(&testscommon.HeaderHandlerStub{
@@ -2147,6 +2148,7 @@ func (tpn *TestProcessorNode) initMetaInnerProcessors(gasMap map[string]map[stri
 		ChanceComputer:      &mock.RaterMock{},
 		ShardCoordinator:    tpn.ShardCoordinator,
 		EnableEpochsHandler: tpn.EnableEpochsHandler,
+		EnableRoundsHandler: tpn.EnableRoundsHandler,
 		NodesCoordinator:    tpn.NodesCoordinator,
 	}
 	vmFactory, _ := metaProcess.NewVMContainerFactory(argsVMContainerFactory)
@@ -2662,6 +2664,7 @@ func (tpn *TestProcessorNode) initBlockProcessor() {
 			EconomicsDataNotified: economicsDataProvider,
 			StakingV2EnableEpoch:  tpn.EnableEpochs.StakingV2EnableEpoch,
 			EnableEpochsHandler:   tpn.EnableEpochsHandler,
+			ChainParamsHandler:    tpn.ChainParametersHandler,
 		}
 		epochEconomics, _ := metachain.NewEndOfEpochEconomicsDataCreator(argsEpochEconomics)
 
@@ -2839,11 +2842,11 @@ func (tpn *TestProcessorNode) initBlockProcessor() {
 		BlockProcessor:   tpn.BlockProcessor,
 		BlockChain:       tpn.BlockChain,
 	}
-	_, err = asyncExecution.NewHeadersExecutor(argsHeadersExecutor)
+	headerExecutor, err := asyncExecution.NewHeadersExecutor(argsHeadersExecutor)
 	log.LogIfError(err)
 
-	// TODO: uncomment this
-	// tpn.ExecutionManager.SetHeadersExecutor(headerExecutor)
+	err = tpn.ExecutionManager.SetHeadersExecutor(headerExecutor)
+	log.LogIfError(err)
 }
 
 func (tpn *TestProcessorNode) setGenesisBlock() {
