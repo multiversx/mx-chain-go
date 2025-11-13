@@ -340,7 +340,7 @@ type ExecutionManager interface {
 	CleanConfirmedExecutionResults(header data.HeaderHandler) error
 	SetLastNotarizedResult(executionResult data.BaseExecutionResultHandler) error
 	RemoveAtNonceAndHigher(nonce uint64) error
-	ResetAndResumeExecution() error
+	ResetAndResumeExecution(lastNotarizedResult data.BaseExecutionResultHandler) error
 	Close() error
 	IsInterfaceNil() bool
 }

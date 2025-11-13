@@ -15,7 +15,7 @@ type ExecutionManagerMock struct {
 	CleanConfirmedExecutionResultsCalled func(header data.HeaderHandler) error
 	SetLastNotarizedResultCalled         func(executionResult data.BaseExecutionResultHandler) error
 	RemoveAtNonceAndHigherCalled         func(nonce uint64) error
-	ResetAndResumeExecutionCalled        func() error
+	ResetAndResumeExecutionCalled        func(lastNotarizedResult data.BaseExecutionResultHandler) error
 	CloseCalled                          func() error
 }
 
@@ -75,9 +75,9 @@ func (emm *ExecutionManagerMock) RemoveAtNonceAndHigher(nonce uint64) error {
 }
 
 // ResetAndResumeExecution -
-func (emm *ExecutionManagerMock) ResetAndResumeExecution() error {
+func (emm *ExecutionManagerMock) ResetAndResumeExecution(lastNotarizedResult data.BaseExecutionResultHandler) error {
 	if emm.ResetAndResumeExecutionCalled != nil {
-		return emm.ResetAndResumeExecutionCalled()
+		return emm.ResetAndResumeExecutionCalled(lastNotarizedResult)
 	}
 	return nil
 }
