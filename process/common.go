@@ -190,7 +190,12 @@ func GetMetaHeaderFromStorage(
 		return nil, err
 	}
 
-	return UnmarshalMetaHeader(marshalizer, buffHdr)
+	hdr, err := UnmarshalMetaHeader(marshalizer, buffHdr)
+	if err != nil {
+		return nil, ErrUnmarshalWithoutSuccess
+	}
+
+	return hdr, nil
 }
 
 // GetMarshalizedHeaderFromStorage gets the marshalized header, which is associated with the given hash, from storage
