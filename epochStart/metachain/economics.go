@@ -145,10 +145,7 @@ func (e *economics) createLegacyEconomicsArgs(metaBlock *block.MetaBlock) (*args
 		return nil, err
 	}
 
-	noncesPerShardCurrEpoch, err := e.startNoncePerShardFromLastCrossNotarized(metaBlock.GetNonce(), metaBlock.GetEpochStartHandler())
-	if err != nil {
-		return nil, err
-	}
+	noncesPerShardCurrEpoch := e.startNoncePerShardFromLastCrossNotarized(metaBlock.GetNonce(), metaBlock.GetEpochStartHandler())
 
 	return &argsComputeEconomics{
 		metaBlock: metaBlockData{
@@ -258,11 +255,11 @@ func (e *economics) createEconomicsV3Args(
 	if check.IfNil(metaBlock) {
 		return nil, process.ErrNilMetaBlockHeader
 	}
-	if epochStartHandler == nil {
-		return nil, process.ErrNilEpochStartData
-	}
 	if check.IfNil(execResults) {
 		return nil, process.ErrNilExecutionResultHandler
+	}
+	if epochStartHandler == nil {
+		return nil, process.ErrNilEpochStartData
 	}
 
 	if execResults.GetAccumulatedFeesInEpoch() == nil {
@@ -271,7 +268,11 @@ func (e *economics) createEconomicsV3Args(
 	if execResults.GetDevFeesInEpoch() == nil {
 		return nil, epochStart.ErrNilTotalDevFeesInEpoch
 	}
-	if !metaBlock.IsEpochChangeProposed() || metaBlock.GetEpoch() < e.genesisEpoch {
+
+	if !metaBlock.IsHeaderV3() {
+		return nil, fmt.Errorf("%w in createEconomicsV3Args", data.ErrInvalidHeaderType)
+	}
+	if !metaBlock.IsEpochChangeProposed() {
 		return nil, epochStart.ErrNotEpochStartBlock
 	}
 	if !bytes.Equal(metaBlock.GetPrevHash(), execResults.GetHeaderHash()) {
@@ -284,10 +285,7 @@ func (e *economics) createEconomicsV3Args(
 		return nil, err
 	}
 
-	noncesPerShardCurrEpoch, err := e.startNoncePerShardFromLastCrossNotarized(metaBlock.GetNonce(), epochStartHandler)
-	if err != nil {
-		return nil, err
-	}
+	noncesPerShardCurrEpoch := e.startNoncePerShardFromLastCrossNotarized(metaBlock.GetNonce(), epochStartHandler)
 
 	return &argsComputeEconomics{
 		metaBlock: metaBlockData{
@@ -492,7 +490,7 @@ func (e *economics) computeNumOfTotalCreatedBlocks(
 	return core.MaxUint64(1, totalNumBlocks)
 }
 
-func (e *economics) startNoncePerShardFromEpochStart(epoch uint32) (map[uint32]uint64, *block.MetaBlock, error) {
+func (e *economics) startNoncePerShardFromEpochStart(epoch uint32) (map[uint32]uint64, data.MetaHeaderHandler, error) {
 	mapShardIdNonce := make(map[uint32]uint64, e.shardCoordinator.NumberOfShards()+1)
 	for i := uint32(0); i < e.shardCoordinator.NumberOfShards(); i++ {
 		mapShardIdNonce[i] = e.genesisNonce
@@ -510,8 +508,8 @@ func (e *economics) startNoncePerShardFromEpochStart(epoch uint32) (map[uint32]u
 	}
 
 	mapShardIdNonce[core.MetachainShardId] = previousEpochStartMeta.GetNonce()
-	for _, shardData := range previousEpochStartMeta.EpochStart.LastFinalizedHeaders {
-		mapShardIdNonce[shardData.ShardID] = shardData.Nonce
+	for _, shardData := range previousEpochStartMeta.GetEpochStartHandler().GetLastFinalizedHeaderHandlers() {
+		mapShardIdNonce[shardData.GetShardID()] = shardData.GetNonce()
 	}
 
 	return mapShardIdNonce, previousEpochStartMeta, nil
@@ -528,7 +526,7 @@ func (e *economics) maxPossibleNotarizedBlocks(currentRound uint64, prev data.Me
 	return maxBlocks
 }
 
-func (e *economics) startNoncePerShardFromLastCrossNotarized(metaNonce uint64, epochStart data.EpochStartHandler) (map[uint32]uint64, error) {
+func (e *economics) startNoncePerShardFromLastCrossNotarized(metaNonce uint64, epochStart data.EpochStartHandler) map[uint32]uint64 {
 	mapShardIdNonce := make(map[uint32]uint64, e.shardCoordinator.NumberOfShards()+1)
 	for i := uint32(0); i < e.shardCoordinator.NumberOfShards(); i++ {
 		mapShardIdNonce[i] = e.genesisNonce
@@ -539,7 +537,7 @@ func (e *economics) startNoncePerShardFromLastCrossNotarized(metaNonce uint64, e
 		mapShardIdNonce[shardData.GetShardID()] = shardData.GetNonce()
 	}
 
-	return mapShardIdNonce, nil
+	return mapShardIdNonce
 }
 
 func (e *economics) checkEconomicsInvariants(
