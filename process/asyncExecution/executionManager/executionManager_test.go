@@ -509,60 +509,10 @@ func TestExecutionManager_RemoveAtNonceAndHigher(t *testing.T) {
 		require.Equal(t, header, lastExecHeader)
 	})
 
-	t.Run("error getting pending execution results should reset and resume", func(t *testing.T) {
+	t.Run("error getting pending execution results should error", func(t *testing.T) {
 		t.Parallel()
 
 		args := createMockArgs()
-		lastNotarizedNonce := uint64(5)
-		args.ExecutionResultsTracker = &processMocks.ExecutionTrackerStub{
-			GetLastNotarizedExecutionResultCalled: func() (data.BaseExecutionResultHandler, error) {
-				return &block.ExecutionResult{
-					BaseExecutionResult: &block.BaseExecutionResult{
-						HeaderNonce: lastNotarizedNonce,
-						HeaderHash:  []byte("hash5"),
-					},
-				}, nil
-			},
-			GetPendingExecutionResultsCalled: func() ([]data.BaseExecutionResultHandler, error) {
-				return nil, errExpected
-			},
-		}
-		wasCleanCalled := false
-		args.BlocksQueue = &processMocks.BlocksQueueMock{
-			RemoveAtNonceAndHigherCalled: func(nonce uint64) []uint64 {
-				// First removed nonce does NOT match
-				return []uint64{11, 12}
-			},
-			CleanCalled: func(lastAddedNonce uint64) {
-				wasCleanCalled = true
-				require.Equal(t, lastNotarizedNonce+1, lastAddedNonce)
-			},
-		}
-		em, _ := executionManager.NewExecutionManager(args)
-		wasPauseExecutionCalled := false
-		wasResumeExecutionCalled := false
-		err := em.SetHeadersExecutor(&processMocks.HeadersExecutorMock{
-			PauseExecutionCalled: func() {
-				wasPauseExecutionCalled = true
-			},
-			ResumeExecutionCalled: func() {
-				wasResumeExecutionCalled = true
-			},
-		})
-		require.NoError(t, err)
-
-		err = em.RemoveAtNonceAndHigher(10)
-		require.Equal(t, errExpected, err)
-		require.True(t, wasPauseExecutionCalled)
-		require.True(t, wasResumeExecutionCalled)
-		require.True(t, wasCleanCalled)
-	})
-
-	t.Run("error removing from nonce after updateBlockchainAfterRemoval failure should error", func(t *testing.T) {
-		t.Parallel()
-
-		args := createMockArgs()
-		cntRemoveFromNonceCalled := 0
 		args.ExecutionResultsTracker = &processMocks.ExecutionTrackerStub{
 			GetLastNotarizedExecutionResultCalled: func() (data.BaseExecutionResultHandler, error) {
 				return &block.ExecutionResult{
@@ -573,18 +523,12 @@ func TestExecutionManager_RemoveAtNonceAndHigher(t *testing.T) {
 				}, nil
 			},
 			GetPendingExecutionResultsCalled: func() ([]data.BaseExecutionResultHandler, error) {
-				return nil, errExpected // force updateBlockchainAfterRemoval to fail
-			},
-			RemoveFromNonceCalled: func(nonce uint64) error {
-				cntRemoveFromNonceCalled++
-				if cntRemoveFromNonceCalled > 1 {
-					return errExpected
-				}
-				return nil
+				return nil, errExpected
 			},
 		}
 		args.BlocksQueue = &processMocks.BlocksQueueMock{
 			RemoveAtNonceAndHigherCalled: func(nonce uint64) []uint64 {
+				// First removed nonce does NOT match
 				return []uint64{11, 12}
 			},
 		}
@@ -604,7 +548,86 @@ func TestExecutionManager_RemoveAtNonceAndHigher(t *testing.T) {
 		err = em.RemoveAtNonceAndHigher(10)
 		require.Equal(t, errExpected, err)
 		require.True(t, wasPauseExecutionCalled)
-		require.False(t, wasResumeExecutionCalled) // should not be called
+		require.False(t, wasResumeExecutionCalled)
+	})
+}
+
+func TestExecutionManager_ResetAndResumeExecution(t *testing.T) {
+	t.Parallel()
+
+	t.Run("GetLastNotarizedExecutionResult failure should error", func(t *testing.T) {
+		t.Parallel()
+
+		args := createMockArgs()
+		args.ExecutionResultsTracker = &processMocks.ExecutionTrackerStub{
+			GetLastNotarizedExecutionResultCalled: func() (data.BaseExecutionResultHandler, error) {
+				return nil, errExpected
+			},
+			RemoveFromNonceCalled: func(nonce uint64) error {
+				require.Fail(t, "should have not been called")
+				return nil
+			},
+		}
+		em, _ := executionManager.NewExecutionManager(args)
+		require.NotNil(t, em)
+
+		err := em.ResetAndResumeExecution()
+		require.Equal(t, errExpected, err)
+	})
+	t.Run("RemoveFromNonce failure should error", func(t *testing.T) {
+		t.Parallel()
+
+		args := createMockArgs()
+		args.ExecutionResultsTracker = &processMocks.ExecutionTrackerStub{
+			GetLastNotarizedExecutionResultCalled: func() (data.BaseExecutionResultHandler, error) {
+				return &block.ExecutionResult{
+					BaseExecutionResult: &block.BaseExecutionResult{
+						HeaderNonce: 5,
+						HeaderHash:  []byte("hash5"),
+					},
+				}, nil
+			},
+			RemoveFromNonceCalled: func(nonce uint64) error {
+				return errExpected
+			},
+		}
+		args.BlocksQueue = &processMocks.BlocksQueueMock{
+			CleanCalled: func(lastAddedNonce uint64) {
+				require.Fail(t, "should have not been called")
+			},
+		}
+		em, _ := executionManager.NewExecutionManager(args)
+		require.NotNil(t, em)
+
+		err := em.ResetAndResumeExecution()
+		require.Equal(t, errExpected, err)
+	})
+	t.Run("should work", func(t *testing.T) {
+		t.Parallel()
+
+		args := createMockArgs()
+		args.ExecutionResultsTracker = &processMocks.ExecutionTrackerStub{
+			GetLastNotarizedExecutionResultCalled: func() (data.BaseExecutionResultHandler, error) {
+				return &block.ExecutionResult{
+					BaseExecutionResult: &block.BaseExecutionResult{
+						HeaderNonce: 5,
+						HeaderHash:  []byte("hash5"),
+					},
+				}, nil
+			},
+		}
+		em, _ := executionManager.NewExecutionManager(args)
+		wasResumeExecutionCalled := false
+		err := em.SetHeadersExecutor(&processMocks.HeadersExecutorMock{
+			ResumeExecutionCalled: func() {
+				wasResumeExecutionCalled = true
+			},
+		})
+		require.NoError(t, err)
+
+		err = em.ResetAndResumeExecution()
+		require.NoError(t, err)
+		require.True(t, wasResumeExecutionCalled)
 	})
 }
 

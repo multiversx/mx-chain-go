@@ -155,15 +155,6 @@ func (em *executionManager) RemoveAtNonceAndHigher(nonce uint64) error {
 	// update blockchain with the last executed header, similar to headersExecution
 	err = em.updateBlockchainAfterRemoval(lastNotarizedResult)
 	if err != nil {
-		// reset executionResultsTracker and blocksQueue to the last notarized header.
-		// although the blockchain will have a different state, it should be updated after
-		// the first block will be executed
-		// if nothing fails, resume execution
-		errReset := em.resetAndResumeExecution(lastNotarizedResult)
-		if errReset != nil {
-			log.Error("failed to reset managed components", "reset error", errReset, "initial error", err)
-		}
-
 		return err
 	}
 
@@ -173,9 +164,18 @@ func (em *executionManager) RemoveAtNonceAndHigher(nonce uint64) error {
 	return nil
 }
 
-func (em *executionManager) resetAndResumeExecution(lastNotarizedResult data.BaseExecutionResultHandler) error {
+// ResetAndResumeExecution resets the managed components to the last notarized result and resumes execution
+func (em *executionManager) ResetAndResumeExecution() error {
+	em.mut.Lock()
+	defer em.mut.Unlock()
+
+	lastNotarizedResult, err := em.executionResultsTracker.GetLastNotarizedExecutionResult()
+	if err != nil {
+		return err
+	}
+
 	lastNotarizedNonce := lastNotarizedResult.GetHeaderNonce()
-	err := em.executionResultsTracker.RemoveFromNonce(lastNotarizedNonce + 1)
+	err = em.executionResultsTracker.RemoveFromNonce(lastNotarizedNonce + 1)
 	if err != nil {
 		return err
 	}
