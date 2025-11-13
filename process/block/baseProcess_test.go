@@ -23,6 +23,8 @@ import (
 	"github.com/multiversx/mx-chain-core-go/data/typeConverters/uint64ByteSlice"
 	"github.com/multiversx/mx-chain-core-go/hashing"
 	"github.com/multiversx/mx-chain-core-go/marshal"
+	"github.com/multiversx/mx-chain-go/process/asyncExecution/executionManager"
+	"github.com/multiversx/mx-chain-go/process/asyncExecution/queue"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 
@@ -107,6 +109,9 @@ func createArgBaseProcessor(
 		RecreateTrieIfNeededCalled: func(options common.RootHashHolder) error {
 			return nil
 		},
+		CommitCalled: func() ([]byte, error) {
+			return nil, nil
+		},
 	}
 	accountsDb[state.UserAccountsState] = accounts
 
@@ -132,7 +137,7 @@ func createArgBaseProcessor(
 
 	var blockDataRequester process.BlockDataRequester
 	var inclusionEstimator process.InclusionEstimator
-	var executionResultsTracker process.ExecutionResultsTracker
+	var execManager process.ExecutionManager
 	var mbSelectionSession blproc.MiniBlocksSelectionSession
 	var execResultsVerifier blproc.ExecutionResultsVerifier
 	var missingDataResolver blproc.MissingDataResolver
@@ -159,9 +164,16 @@ func createArgBaseProcessor(
 			coreComponents.Hasher(),
 		)
 
-		executionResultsTracker = executionTrack.NewExecutionResultsTracker()
+		blocksQueue := queue.NewBlocksQueue()
+		executionResultsTracker := executionTrack.NewExecutionResultsTracker()
 		_ = executionResultsTracker.SetLastNotarizedResult(&block.ExecutionResult{})
-		execResultsVerifier, _ = blproc.NewExecutionResultsVerifier(dataComponents.BlockChain, executionResultsTracker)
+		execManager, _ = executionManager.NewExecutionManager(executionManager.ArgsExecutionManager{
+			BlocksQueue:             blocksQueue,
+			ExecutionResultsTracker: executionResultsTracker,
+			BlockChain:              dataComponents.BlockChain,
+			Headers:                 dataComponents.DataPool.Headers(),
+		})
+		execResultsVerifier, _ = blproc.NewExecutionResultsVerifier(dataComponents.BlockChain, execManager)
 		inclusionEstimator = estimator.NewExecutionResultInclusionEstimator(
 			config.ExecutionResultInclusionEstimatorConfig{
 				SafetyMargin:       110,
@@ -220,7 +232,6 @@ func createArgBaseProcessor(
 		ExecutionResultsVerifier:           execResultsVerifier,
 		MissingDataResolver:                missingDataResolver,
 		ExecutionResultsInclusionEstimator: inclusionEstimator,
-		ExecutionResultsTracker:            executionResultsTracker,
 		GasComputation: &testscommon.GasComputationMock{
 			AddIncomingMiniBlocksCalled: func(miniBlocks []data.MiniBlockHeaderHandler, transactions map[string][]data.TransactionHandler) (int, int, error) {
 				return len(miniBlocks), 0, nil
@@ -229,7 +240,7 @@ func createArgBaseProcessor(
 				return txHashes, nil, nil
 			},
 		},
-		BlocksQueue: &processMocks.BlocksQueueMock{},
+		ExecutionManager: execManager,
 	}
 }
 
@@ -863,18 +874,10 @@ func TestCheckProcessorNilParameters(t *testing.T) {
 		{
 			args: func() blproc.ArgBaseProcessor {
 				args := createArgBaseProcessor(coreComponents, dataComponents, bootstrapComponents, statusComponents)
-				args.ExecutionResultsTracker = nil
+				args.ExecutionManager = nil
 				return args
 			},
-			expectedErr: process.ErrNilExecutionResultsTracker,
-		},
-		{
-			args: func() blproc.ArgBaseProcessor {
-				args := createArgBaseProcessor(coreComponents, dataComponents, bootstrapComponents, statusComponents)
-				args.BlocksQueue = nil
-				return args
-			},
-			expectedErr: process.ErrNilBlocksQueue,
+			expectedErr: process.ErrNilExecutionManager,
 		},
 		{
 			args: func() blproc.ArgBaseProcessor {
@@ -2009,27 +2012,7 @@ func TestBlockProcessor_RequestHeadersIfMissingShouldAddHeaderIntoTrackerPool(t 
 	t.Parallel()
 
 	var mutRequestedNonces sync.Mutex
-
-	var addedNonces []uint64
-	poolsHolderStub := initDataPool()
-	poolsHolderStub.HeadersCalled = func() dataRetriever.HeadersPool {
-		return &mock.HeadersCacherStub{
-			GetHeaderByNonceAndShardIdCalled: func(hdrNonce uint64, shardId uint32) ([]data.HeaderHandler, [][]byte, error) {
-				mutRequestedNonces.Lock()
-				addedNonces = append(addedNonces, hdrNonce)
-				mutRequestedNonces.Unlock()
-				return []data.HeaderHandler{&block.MetaBlock{Nonce: 1}}, [][]byte{[]byte("hash")}, nil
-			},
-		}
-	}
-
-	coreComponents, dataComponents, bootstrapComponents, statusComponents := createComponentHolderMocks()
-	dataComponents.DataPool = poolsHolderStub
-	roundHandler := &mock.RoundHandlerMock{}
-	coreComponents.RoundField = roundHandler
-	arguments := CreateMockArguments(coreComponents, dataComponents, bootstrapComponents, statusComponents)
-
-	sp, _ := blproc.NewShardProcessor(arguments)
+	var addedNonces map[uint64]struct{}
 
 	sortedHeaders := make([]data.HeaderHandler, 0)
 
@@ -2037,7 +2020,6 @@ func TestBlockProcessor_RequestHeadersIfMissingShouldAddHeaderIntoTrackerPool(t 
 		Nonce: 5,
 		Round: 5,
 	}
-	arguments.BlockTracker.AddCrossNotarizedHeader(core.MetachainShardId, crossNotarizedHeader, []byte("hash"))
 
 	hdr1 := &block.MetaBlock{
 		Nonce: 1,
@@ -2057,15 +2039,47 @@ func TestBlockProcessor_RequestHeadersIfMissingShouldAddHeaderIntoTrackerPool(t 
 	}
 	sortedHeaders = append(sortedHeaders, hdr3)
 
-	addedNonces = make([]uint64, 0)
-
-	roundHandler.RoundIndex = 12
-	_ = sp.RequestHeadersIfMissing(sortedHeaders, core.MetachainShardId)
-
 	expectedAddedNonces := []uint64{6, 7, 9}
 
+	addedNonces = make(map[uint64]struct{})
+
+	coreComponents, dataComponents, bootstrapComponents, statusComponents := createComponentHolderMocks()
+	roundHandler := &mock.RoundHandlerMock{}
+	coreComponents.RoundField = roundHandler
+
+	arguments := CreateMockArguments(coreComponents, dataComponents, bootstrapComponents, statusComponents)
+
+	arguments.BlockTracker.AddCrossNotarizedHeader(core.MetachainShardId, crossNotarizedHeader, []byte("hash"))
+
+	wg := &sync.WaitGroup{}
+	wg.Add(len(expectedAddedNonces))
+
+	requestHandlerStub := &testscommon.RequestHandlerStub{
+		RequestMetaHeaderByNonceCalled: func(nonce uint64) {
+			mutRequestedNonces.Lock()
+			addedNonces[nonce] = struct{}{}
+			mutRequestedNonces.Unlock()
+
+			wg.Done()
+		},
+	}
+	arguments.RequestHandler = requestHandlerStub
+
+	roundHandler.RoundIndex = 12
+
+	sp, _ := blproc.NewShardProcessor(arguments)
+
+	_ = sp.RequestHeadersIfMissing(sortedHeaders, core.MetachainShardId)
+
+	wg.Wait()
+
+	// check if nonces were requested
+	// requests are not necessarily in order
 	mutRequestedNonces.Lock()
-	assert.Equal(t, expectedAddedNonces, addedNonces)
+	for _, nonce := range expectedAddedNonces {
+		_, ok := addedNonces[nonce]
+		assert.True(t, ok)
+	}
 	mutRequestedNonces.Unlock()
 }
 

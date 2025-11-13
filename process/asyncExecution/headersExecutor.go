@@ -2,8 +2,9 @@ package asyncExecution
 
 import (
 	"context"
-	"sync"
+	"time"
 
+	"github.com/multiversx/mx-chain-core-go/core/atomic"
 	"github.com/multiversx/mx-chain-core-go/core/check"
 	"github.com/multiversx/mx-chain-core-go/data"
 	logger "github.com/multiversx/mx-chain-logger-go"
@@ -13,6 +14,8 @@ import (
 )
 
 var log = logger.GetOrCreate("process/asyncExecution")
+
+const timeToSleepWhilePaused = time.Millisecond * 20
 
 // ArgsHeadersExecutor holds all the components needed to create a new instance of *headersExecutor
 type ArgsHeadersExecutor struct {
@@ -28,7 +31,7 @@ type headersExecutor struct {
 	blockProcessor   BlockProcessor
 	blockChain       data.ChainHandler
 	cancelFunc       context.CancelFunc
-	evictedNonces    sync.Map
+	isPaused         atomic.Flag
 }
 
 // NewHeadersExecutor will create a new instance of *headersExecutor
@@ -51,10 +54,7 @@ func NewHeadersExecutor(args ArgsHeadersExecutor) (*headersExecutor, error) {
 		executionTracker: args.ExecutionTracker,
 		blockProcessor:   args.BlockProcessor,
 		blockChain:       args.BlockChain,
-		evictedNonces:    sync.Map{},
 	}
-
-	instance.blocksQueue.RegisterEvictionSubscriber(instance)
 
 	return instance, nil
 }
@@ -68,12 +68,27 @@ func (he *headersExecutor) StartExecution() {
 	go he.start(ctx)
 }
 
+// PauseExecution pauses the execution
+func (he *headersExecutor) PauseExecution() {
+	he.isPaused.SetValue(true)
+}
+
+// ResumeExecution resumes the execution
+func (he *headersExecutor) ResumeExecution() {
+	he.isPaused.SetValue(false)
+}
+
 func (he *headersExecutor) start(ctx context.Context) {
 	for {
 		select {
 		case <-ctx.Done():
 			return
 		default:
+			if he.isPaused.IsSet() {
+				time.Sleep(timeToSleepWhilePaused)
+				continue
+			}
+
 			// blocking operation
 			headerBodyPair, ok := he.blocksQueue.Pop()
 			if !ok {
@@ -110,22 +125,10 @@ func (he *headersExecutor) handleProcessError(ctx context.Context, pair queue.He
 }
 
 func (he *headersExecutor) process(pair queue.HeaderBodyPair) error {
-	_, wasEvicted := he.evictedNonces.Load(pair.Header.GetNonce())
-	if wasEvicted {
-		he.evictedNonces.Delete(pair.Header.GetNonce())
-		return nil
-	}
-
 	executionResult, err := he.blockProcessor.ProcessBlockProposal(pair.Header, pair.Body)
 	if err != nil {
 		log.Warn("headersExecutor.process process block failed", "err", err)
 		return err
-	}
-
-	_, wasEvicted = he.evictedNonces.Load(pair.Header.GetNonce())
-	if wasEvicted {
-		he.evictedNonces.Delete(pair.Header.GetNonce())
-		return nil
 	}
 
 	err = he.executionTracker.AddExecutionResult(executionResult)
@@ -145,14 +148,8 @@ func (he *headersExecutor) process(pair queue.HeaderBodyPair) error {
 	return nil
 }
 
-// OnHeaderEvicted is a callback called when a header is removed from the execution queue
-func (he *headersExecutor) OnHeaderEvicted(headerNonce uint64) {
-	he.evictedNonces.Store(headerNonce, struct{}{})
-}
-
 // Close will close the blocks execution loop
 func (he *headersExecutor) Close() error {
-	he.blocksQueue.Close()
 	if he.cancelFunc != nil {
 		he.cancelFunc()
 	}

@@ -137,12 +137,11 @@ type baseProcessor struct {
 
 	proofsPool                         dataRetriever.ProofsPool
 	executionResultsInclusionEstimator process.InclusionEstimator
-	executionResultsTracker            process.ExecutionResultsTracker
 	miniBlocksSelectionSession         MiniBlocksSelectionSession
 	executionResultsVerifier           ExecutionResultsVerifier
 	missingDataResolver                MissingDataResolver
 	gasComputation                     process.GasComputation
-	blocksQueue                        process.BlocksQueue
+	executionManager                   process.ExecutionManager
 }
 
 type bootStorerDataArgs struct {
@@ -174,65 +173,63 @@ func NewBaseProcessor(arguments ArgBaseProcessor) (*baseProcessor, error) {
 	}
 
 	base := &baseProcessor{
-		accountsDB:                    arguments.AccountsDB,
-		accountsProposal:              arguments.AccountsProposal,
-		blockSizeThrottler:            arguments.BlockSizeThrottler,
-		forkDetector:                  arguments.ForkDetector,
-		hasher:                        arguments.CoreComponents.Hasher(),
-		marshalizer:                   arguments.CoreComponents.InternalMarshalizer(),
-		store:                         arguments.DataComponents.StorageService(),
-		shardCoordinator:              arguments.BootstrapComponents.ShardCoordinator(),
-		feeHandler:                    arguments.FeeHandler,
-		nodesCoordinator:              arguments.NodesCoordinator,
-		uint64Converter:               arguments.CoreComponents.Uint64ByteSliceConverter(),
-		requestHandler:                arguments.RequestHandler,
-		appStatusHandler:              arguments.StatusCoreComponents.AppStatusHandler(),
-		blockChainHook:                arguments.BlockChainHook,
-		txCoordinator:                 arguments.TxCoordinator,
-		epochStartTrigger:             arguments.EpochStartTrigger,
-		headerValidator:               arguments.HeaderValidator,
-		roundHandler:                  arguments.CoreComponents.RoundHandler(),
-		bootStorer:                    arguments.BootStorer,
-		blockTracker:                  arguments.BlockTracker,
-		dataPool:                      arguments.DataComponents.Datapool(),
-		blockChain:                    arguments.DataComponents.Blockchain(),
-		outportHandler:                arguments.StatusComponents.OutportHandler(),
-		genesisNonce:                  genesisHdr.GetNonce(),
-		versionedHeaderFactory:        arguments.BootstrapComponents.VersionedHeaderFactory(),
-		headerIntegrityVerifier:       arguments.BootstrapComponents.HeaderIntegrityVerifier(),
-		historyRepo:                   arguments.HistoryRepository,
-		epochNotifier:                 arguments.CoreComponents.EpochNotifier(),
-		enableEpochsHandler:           arguments.CoreComponents.EnableEpochsHandler(),
-		roundNotifier:                 arguments.CoreComponents.RoundNotifier(),
-		enableRoundsHandler:           arguments.CoreComponents.EnableRoundsHandler(),
-		epochChangeGracePeriodHandler: arguments.CoreComponents.EpochChangeGracePeriodHandler(),
-		vmContainerFactory:            arguments.VMContainersFactory,
-		vmContainer:                   arguments.VmContainer,
-		processDataTriesOnCommitEpoch: arguments.Config.Debug.EpochStart.ProcessDataTrieOnCommitEpoch,
-		gasConsumedProvider:           arguments.GasHandler,
-		economicsData:                 arguments.CoreComponents.EconomicsData(),
-		scheduledTxsExecutionHandler:  arguments.ScheduledTxsExecutionHandler,
-		pruningDelay:                  pruningDelay,
-		processedMiniBlocksTracker:    arguments.ProcessedMiniBlocksTracker,
-		receiptsRepository:            arguments.ReceiptsRepository,
-		processDebugger:               processDebugger,
-		outportDataProvider:           arguments.OutportDataProvider,
-		processStatusHandler:          arguments.CoreComponents.ProcessStatusHandler(),
-		blockProcessingCutoffHandler:  arguments.BlockProcessingCutoffHandler,
-		managedPeersHolder:            arguments.ManagedPeersHolder,
-		sentSignaturesTracker:         arguments.SentSignaturesTracker,
-		stateAccessesCollector:        arguments.StateAccessesCollector,
-		proofsPool:                    arguments.DataComponents.Datapool().Proofs(),
-		hdrsForCurrBlock:              arguments.HeadersForBlock,
-		processConfigsHandler:         arguments.CoreComponents.ProcessConfigsHandler(),
-
-		executionResultsTracker:            arguments.ExecutionResultsTracker,
+		accountsDB:                         arguments.AccountsDB,
+		accountsProposal:                   arguments.AccountsProposal,
+		blockSizeThrottler:                 arguments.BlockSizeThrottler,
+		forkDetector:                       arguments.ForkDetector,
+		hasher:                             arguments.CoreComponents.Hasher(),
+		marshalizer:                        arguments.CoreComponents.InternalMarshalizer(),
+		store:                              arguments.DataComponents.StorageService(),
+		shardCoordinator:                   arguments.BootstrapComponents.ShardCoordinator(),
+		feeHandler:                         arguments.FeeHandler,
+		nodesCoordinator:                   arguments.NodesCoordinator,
+		uint64Converter:                    arguments.CoreComponents.Uint64ByteSliceConverter(),
+		requestHandler:                     arguments.RequestHandler,
+		appStatusHandler:                   arguments.StatusCoreComponents.AppStatusHandler(),
+		blockChainHook:                     arguments.BlockChainHook,
+		txCoordinator:                      arguments.TxCoordinator,
+		epochStartTrigger:                  arguments.EpochStartTrigger,
+		headerValidator:                    arguments.HeaderValidator,
+		roundHandler:                       arguments.CoreComponents.RoundHandler(),
+		bootStorer:                         arguments.BootStorer,
+		blockTracker:                       arguments.BlockTracker,
+		dataPool:                           arguments.DataComponents.Datapool(),
+		blockChain:                         arguments.DataComponents.Blockchain(),
+		outportHandler:                     arguments.StatusComponents.OutportHandler(),
+		genesisNonce:                       genesisHdr.GetNonce(),
+		versionedHeaderFactory:             arguments.BootstrapComponents.VersionedHeaderFactory(),
+		headerIntegrityVerifier:            arguments.BootstrapComponents.HeaderIntegrityVerifier(),
+		historyRepo:                        arguments.HistoryRepository,
+		epochNotifier:                      arguments.CoreComponents.EpochNotifier(),
+		enableEpochsHandler:                arguments.CoreComponents.EnableEpochsHandler(),
+		roundNotifier:                      arguments.CoreComponents.RoundNotifier(),
+		enableRoundsHandler:                arguments.CoreComponents.EnableRoundsHandler(),
+		epochChangeGracePeriodHandler:      arguments.CoreComponents.EpochChangeGracePeriodHandler(),
+		vmContainerFactory:                 arguments.VMContainersFactory,
+		vmContainer:                        arguments.VmContainer,
+		processDataTriesOnCommitEpoch:      arguments.Config.Debug.EpochStart.ProcessDataTrieOnCommitEpoch,
+		gasConsumedProvider:                arguments.GasHandler,
+		economicsData:                      arguments.CoreComponents.EconomicsData(),
+		scheduledTxsExecutionHandler:       arguments.ScheduledTxsExecutionHandler,
+		pruningDelay:                       pruningDelay,
+		processedMiniBlocksTracker:         arguments.ProcessedMiniBlocksTracker,
+		receiptsRepository:                 arguments.ReceiptsRepository,
+		processDebugger:                    processDebugger,
+		outportDataProvider:                arguments.OutportDataProvider,
+		processStatusHandler:               arguments.CoreComponents.ProcessStatusHandler(),
+		blockProcessingCutoffHandler:       arguments.BlockProcessingCutoffHandler,
+		managedPeersHolder:                 arguments.ManagedPeersHolder,
+		sentSignaturesTracker:              arguments.SentSignaturesTracker,
+		stateAccessesCollector:             arguments.StateAccessesCollector,
+		proofsPool:                         arguments.DataComponents.Datapool().Proofs(),
+		hdrsForCurrBlock:                   arguments.HeadersForBlock,
+		processConfigsHandler:              arguments.CoreComponents.ProcessConfigsHandler(),
 		executionResultsInclusionEstimator: arguments.ExecutionResultsInclusionEstimator,
 		miniBlocksSelectionSession:         arguments.MiniBlocksSelectionSession,
 		executionResultsVerifier:           arguments.ExecutionResultsVerifier,
 		missingDataResolver:                arguments.MissingDataResolver,
 		gasComputation:                     arguments.GasComputation,
-		blocksQueue:                        arguments.BlocksQueue,
+		executionManager:                   arguments.ExecutionManager,
 	}
 
 	return base, nil
@@ -744,9 +741,6 @@ func checkProcessorParameters(arguments ArgBaseProcessor) error {
 	if check.IfNil(arguments.ExecutionResultsInclusionEstimator) {
 		return process.ErrNilExecutionResultsInclusionEstimator
 	}
-	if check.IfNil(arguments.ExecutionResultsTracker) {
-		return process.ErrNilExecutionResultsTracker
-	}
 	if check.IfNil(arguments.MiniBlocksSelectionSession) {
 		return process.ErrNilMiniBlocksSelectionSession
 	}
@@ -759,8 +753,8 @@ func checkProcessorParameters(arguments ArgBaseProcessor) error {
 	if check.IfNil(arguments.GasComputation) {
 		return process.ErrNilGasComputation
 	}
-	if check.IfNil(arguments.BlocksQueue) {
-		return process.ErrNilBlocksQueue
+	if check.IfNil(arguments.ExecutionManager) {
+		return process.ErrNilExecutionManager
 	}
 
 	return nil
@@ -1132,7 +1126,7 @@ func (bp *baseProcessor) requestHeaderByShardAndNonce(shardID uint32, nonce uint
 }
 
 func (bp *baseProcessor) cleanExecutionResultsFromTracker(header data.HeaderHandler) error {
-	return bp.executionResultsTracker.CleanConfirmedExecutionResults(header)
+	return bp.executionManager.CleanConfirmedExecutionResults(header)
 }
 
 func (bp *baseProcessor) cleanupPools(headerHandler data.HeaderHandler) {
@@ -1736,7 +1730,7 @@ func (bp *baseProcessor) setFinalizedHeaderHashInIndexer(hdrHash []byte) {
 }
 
 func (bp *baseProcessor) updateStateStorage(
-	finalHeader data.HeaderHandler,
+	finalHeaderNonce uint64,
 	currRootHash []byte,
 	prevRootHash []byte,
 	accounts state.AccountsAdapter,
@@ -1750,7 +1744,7 @@ func (bp *baseProcessor) updateStateStorage(
 	}
 
 	accounts.CancelPrune(prevRootHash, state.NewRoot)
-	accounts.PruneTrie(prevRootHash, state.OldRoot, bp.getPruningHandler(finalHeader.GetNonce()))
+	accounts.PruneTrie(prevRootHash, state.OldRoot, bp.getPruningHandler(finalHeaderNonce))
 }
 
 // RevertCurrentBlock reverts the current block for cleanup failed process
@@ -1766,7 +1760,10 @@ func (bp *baseProcessor) revertCurrentBlockV3(headerHandler data.HeaderHandler) 
 	}
 
 	headerNonce := headerHandler.GetNonce()
-	bp.blocksQueue.RemoveAtNonceAndHigher(headerNonce)
+	err := bp.executionManager.RemoveAtNonceAndHigher(headerNonce)
+	if err != nil {
+		log.Debug("baseProcessor.revertCurrentBlockV3", "err", err)
+	}
 }
 
 func (bp *baseProcessor) revertAccountState() {
@@ -1829,7 +1826,16 @@ func (bp *baseProcessor) RevertAccountsDBToSnapshot(accountsSnapshot map[state.A
 	}
 }
 
-func (bp *baseProcessor) commitAll(headerHandler data.HeaderHandler) error {
+func (bp *baseProcessor) commitState(headerHandler data.HeaderHandler) error {
+	startTime := time.Now()
+	defer func() {
+		elapsedTime := time.Since(startTime)
+		log.Debug("elapsed time to commit accounts state",
+			"time [s]", elapsedTime,
+			"header nonce", headerHandler.GetNonce(),
+		)
+	}()
+
 	if headerHandler.IsStartOfEpochBlock() {
 		return bp.commitInLastEpoch(headerHandler.GetEpoch())
 	}
@@ -2846,7 +2852,7 @@ func (bp *baseProcessor) checkInclusionEstimationForExecutionResults(header data
 }
 
 func (bp *baseProcessor) addExecutionResultsOnHeader(header data.HeaderHandler) error {
-	pendingExecutionResults, err := bp.executionResultsTracker.GetPendingExecutionResults()
+	pendingExecutionResults, err := bp.executionManager.GetPendingExecutionResults()
 	if err != nil {
 		return err
 	}
@@ -3136,4 +3142,14 @@ func (bp *baseProcessor) getTransactionsForMiniBlock(
 	}
 
 	return mbForHeaderPtr.TxHashes, txs, nil
+}
+
+// getCurrentBlockHeader returns the current block header from blockchain.
+func (bp *baseProcessor) getCurrentBlockHeader() data.HeaderHandler {
+	currentBlockHeader := bp.blockChain.GetCurrentBlockHeader()
+	if !check.IfNil(currentBlockHeader) {
+		return currentBlockHeader
+	}
+
+	return bp.blockChain.GetGenesisHeader()
 }

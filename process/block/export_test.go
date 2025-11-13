@@ -19,7 +19,10 @@ import (
 	"github.com/multiversx/mx-chain-go/config"
 	"github.com/multiversx/mx-chain-go/dataRetriever"
 	"github.com/multiversx/mx-chain-go/process"
+	"github.com/multiversx/mx-chain-go/process/asyncExecution"
+	"github.com/multiversx/mx-chain-go/process/asyncExecution/executionManager"
 	"github.com/multiversx/mx-chain-go/process/asyncExecution/executionTrack"
+	"github.com/multiversx/mx-chain-go/process/asyncExecution/queue"
 	"github.com/multiversx/mx-chain-go/process/block/bootstrapStorage"
 	"github.com/multiversx/mx-chain-go/process/block/processedMb"
 	"github.com/multiversx/mx-chain-go/process/coordinator"
@@ -37,7 +40,6 @@ import (
 	"github.com/multiversx/mx-chain-go/testscommon/factory"
 	"github.com/multiversx/mx-chain-go/testscommon/hashingMocks"
 	"github.com/multiversx/mx-chain-go/testscommon/outport"
-	"github.com/multiversx/mx-chain-go/testscommon/processMocks"
 	"github.com/multiversx/mx-chain-go/testscommon/shardingMocks"
 	stateMock "github.com/multiversx/mx-chain-go/testscommon/state"
 	statusHandlerMock "github.com/multiversx/mx-chain-go/testscommon/statusHandler"
@@ -111,6 +113,11 @@ func (sp *shardProcessor) UpdateStateStorage(finalHeaders []data.HeaderHandler, 
 		return
 	}
 	sp.updateState(finalHeaders, currShardHeader, currentHeaderHash)
+}
+
+// PruneTrieHeaderV3 -
+func (sp *shardProcessor) PruneTrieHeaderV3(executionResultsHandlers []data.BaseExecutionResultHandler) {
+	sp.pruneTrieHeaderV3(executionResultsHandlers)
 }
 
 // NewShardProcessorEmptyWith3shards -
@@ -191,8 +198,15 @@ func NewShardProcessorEmptyWith3shards(
 		coreComponents.Hasher(),
 	)
 
+	blocksQueue := queue.NewBlocksQueue()
 	executionResultsTracker := executionTrack.NewExecutionResultsTracker()
-	execResultsVerifier, _ := NewExecutionResultsVerifier(dataComponents.BlockChain, executionResultsTracker)
+	execManager, _ := executionManager.NewExecutionManager(executionManager.ArgsExecutionManager{
+		BlocksQueue:             blocksQueue,
+		ExecutionResultsTracker: executionResultsTracker,
+		BlockChain:              dataComponents.BlockChain,
+		Headers:                 dataComponents.Datapool().Headers(),
+	})
+	execResultsVerifier, _ := NewExecutionResultsVerifier(dataComponents.BlockChain, execManager)
 	inclusionEstimator := estimator.NewExecutionResultInclusionEstimator(
 		config.ExecutionResultInclusionEstimatorConfig{
 			SafetyMargin:       110,
@@ -258,13 +272,31 @@ func NewShardProcessorEmptyWith3shards(
 			ExecutionResultsVerifier:           execResultsVerifier,
 			MissingDataResolver:                missingDataResolver,
 			ExecutionResultsInclusionEstimator: inclusionEstimator,
-			ExecutionResultsTracker:            executionResultsTracker,
 			GasComputation:                     gasComputation,
-			BlocksQueue:                        &processMocks.BlocksQueueMock{},
+			ExecutionManager:                   execManager,
 		},
 	}
 	shardProc, err := NewShardProcessor(arguments)
-	return shardProc, err
+	if err != nil {
+		return nil, err
+	}
+
+	argsHeaderExecutor := asyncExecution.ArgsHeadersExecutor{
+		BlocksQueue:      blocksQueue,
+		ExecutionTracker: executionResultsTracker,
+		BlockProcessor:   shardProc,
+		BlockChain:       dataComponents.BlockChain,
+	}
+	headersExecutor, err := asyncExecution.NewHeadersExecutor(argsHeaderExecutor)
+	if err != nil {
+		return nil, err
+	}
+	err = execManager.SetHeadersExecutor(headersExecutor)
+	if err != nil {
+		return nil, err
+	}
+
+	return shardProc, nil
 }
 
 // GetDataPool -
@@ -526,7 +558,12 @@ func (bp *baseProcessor) UpdateState(
 	prevRootHash []byte,
 	accounts state.AccountsAdapter,
 ) {
-	bp.updateStateStorage(finalHeader, rootHash, prevRootHash, accounts)
+	bp.updateStateStorage(finalHeader.GetNonce(), rootHash, prevRootHash, accounts)
+}
+
+// UpdateState -
+func (mp *metaProcessor) UpdateState(metaBlock data.MetaHeaderHandler, metaBlockHash []byte) {
+	mp.updateState(metaBlock, metaBlockHash)
 }
 
 // GasAndFeesDelta -

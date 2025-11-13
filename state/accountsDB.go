@@ -1205,14 +1205,20 @@ func (adb *AccountsDB) GetStackDebugFirstEntry() []byte {
 func (adb *AccountsDB) PruneTrie(rootHash []byte, identifier TriePruningIdentifier, handler PruningHandler) {
 	log.Trace("accountsDB.PruneTrie", "root hash", rootHash)
 
-	adb.storagePruningManager.PruneTrie(rootHash, identifier, adb.getMainTrie().GetStorageManager(), handler)
+	adb.mutOp.Lock()
+	defer adb.mutOp.Unlock()
+
+	adb.storagePruningManager.PruneTrie(rootHash, identifier, adb.mainTrie.GetStorageManager(), handler)
 }
 
 // CancelPrune clears the trie's evictionWaitingList
 func (adb *AccountsDB) CancelPrune(rootHash []byte, identifier TriePruningIdentifier) {
 	log.Trace("accountsDB.CancelPrune", "root hash", rootHash)
 
-	adb.storagePruningManager.CancelPrune(rootHash, identifier, adb.getMainTrie().GetStorageManager())
+	adb.mutOp.Lock()
+	defer adb.mutOp.Unlock()
+
+	adb.storagePruningManager.CancelPrune(rootHash, identifier, adb.mainTrie.GetStorageManager())
 }
 
 // SnapshotState triggers the snapshotting process of the state trie

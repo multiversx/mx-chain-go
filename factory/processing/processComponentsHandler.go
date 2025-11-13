@@ -114,8 +114,8 @@ func (m *managedProcessComponents) CheckSubcomponents() error {
 	if check.IfNil(m.processComponents.blockProcessor) {
 		return errors.ErrNilBlockProcessor
 	}
-	if check.IfNil(m.processComponents.blocksQueue) {
-		return errors.ErrNilBlocksQueue
+	if check.IfNil(m.processComponents.executionManager) {
+		return errors.ErrNilExecutionManager
 	}
 	if check.IfNil(m.processComponents.blackListHandler) {
 		return errors.ErrNilBlackListHandler
@@ -319,8 +319,8 @@ func (m *managedProcessComponents) BlockProcessor() process.BlockProcessor {
 	return m.processComponents.blockProcessor
 }
 
-// BlocksQueue returns the blocks queue
-func (m *managedProcessComponents) BlocksQueue() process.BlocksQueue {
+// ExecutionManager returns the execution manager
+func (m *managedProcessComponents) ExecutionManager() process.ExecutionManager {
 	m.mutProcessComponents.RLock()
 	defer m.mutProcessComponents.RUnlock()
 
@@ -328,7 +328,7 @@ func (m *managedProcessComponents) BlocksQueue() process.BlocksQueue {
 		return nil
 	}
 
-	return m.processComponents.blocksQueue
+	return m.processComponents.executionManager
 }
 
 // BlockchainHook returns the block chain hook
