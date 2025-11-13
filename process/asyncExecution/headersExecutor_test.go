@@ -158,6 +158,8 @@ func TestHeadersExecutor_ProcessBlock(t *testing.T) {
 		time.Sleep(time.Millisecond * 20) // allow current processing to finish
 		cntWasPopCalledAtPause := atomic.LoadUint32(&cntWasPopCalled)
 
+		executor.PauseExecution() // coverage, already paused
+
 		// wait a bit more
 		time.Sleep(time.Millisecond * 200)
 
@@ -173,6 +175,47 @@ func TestHeadersExecutor_ProcessBlock(t *testing.T) {
 
 		err = executor.Close()
 		require.NoError(t, err)
+	})
+
+	t.Run("concurrent pause/resume should work", func(t *testing.T) {
+		t.Parallel()
+
+		require.NotPanics(t, func() {
+			args := createMockArgs()
+			args.BlockProcessor = &processMocks.BlockProcessorStub{
+				ProcessBlockProposalCalled: func(handler data.HeaderHandler, body data.BodyHandler) (data.BaseExecutionResultHandler, error) {
+					return &block.BaseExecutionResult{}, nil
+				},
+			}
+
+			executor, err := NewHeadersExecutor(args)
+			require.NoError(t, err)
+
+			executor.StartExecution()
+
+			wg := sync.WaitGroup{}
+			numCalls := 100
+			wg.Add(numCalls)
+			for i := 0; i < numCalls; i++ {
+				go func(idx int) {
+					defer wg.Done()
+
+					switch idx % 2 {
+					case 0:
+						executor.PauseExecution()
+					case 1:
+						executor.ResumeExecution()
+					default:
+						require.Fail(t, "should not happen")
+					}
+				}(i)
+			}
+
+			wg.Wait()
+
+			err = executor.Close()
+			require.NoError(t, err)
+		})
 	})
 
 	t.Run("add execution result error", func(t *testing.T) {

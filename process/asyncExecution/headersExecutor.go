@@ -2,7 +2,6 @@ package asyncExecution
 
 import (
 	"context"
-	"sync"
 	"time"
 
 	"github.com/multiversx/mx-chain-core-go/core/atomic"
@@ -16,7 +15,7 @@ import (
 
 var log = logger.GetOrCreate("process/asyncExecution")
 
-const timeToSleepWhilePaused = time.Millisecond * 20
+const timeToSleep = time.Millisecond * 5
 
 // ArgsHeadersExecutor holds all the components needed to create a new instance of *headersExecutor
 type ArgsHeadersExecutor struct {
@@ -33,7 +32,7 @@ type headersExecutor struct {
 	blockChain       data.ChainHandler
 	cancelFunc       context.CancelFunc
 	isPaused         atomic.Flag
-	processingWait   sync.WaitGroup
+	isProcessing     atomic.Flag
 }
 
 // NewHeadersExecutor will create a new instance of *headersExecutor
@@ -72,8 +71,14 @@ func (he *headersExecutor) StartExecution() {
 
 // PauseExecution pauses the execution
 func (he *headersExecutor) PauseExecution() {
+	if he.isPaused.IsSet() {
+		return
+	}
+
 	he.isPaused.SetValue(true)
-	he.processingWait.Wait() // wait for any possible execution in progress to finish
+	for he.isProcessing.IsSet() {
+		time.Sleep(timeToSleep)
+	}
 }
 
 // ResumeExecution resumes the execution
@@ -88,16 +93,16 @@ func (he *headersExecutor) start(ctx context.Context) {
 			return
 		default:
 			if he.isPaused.IsSet() {
-				time.Sleep(timeToSleepWhilePaused)
+				time.Sleep(timeToSleep)
 				continue
 			}
 
-			he.processingWait.Add(1)
+			he.isProcessing.SetValue(true)
 
 			// blocking operation
 			headerBodyPair, ok := he.blocksQueue.Pop()
 			if !ok {
-				he.processingWait.Done()
+				he.isProcessing.SetValue(false)
 				// close event
 				return
 			}
@@ -107,7 +112,7 @@ func (he *headersExecutor) start(ctx context.Context) {
 				he.handleProcessError(ctx, headerBodyPair)
 			}
 
-			he.processingWait.Done()
+			he.isProcessing.SetValue(false)
 		}
 	}
 }

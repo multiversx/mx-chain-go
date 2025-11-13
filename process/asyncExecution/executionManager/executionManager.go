@@ -165,21 +165,23 @@ func (em *executionManager) RemoveAtNonceAndHigher(nonce uint64) error {
 }
 
 // ResetAndResumeExecution resets the managed components to the last notarized result and resumes execution
-func (em *executionManager) ResetAndResumeExecution() error {
+func (em *executionManager) ResetAndResumeExecution(lastNotarizedResult data.BaseExecutionResultHandler) error {
+	if check.IfNil(lastNotarizedResult) {
+		return process.ErrNilLastExecutionResultHandler
+	}
+
 	em.mut.Lock()
 	defer em.mut.Unlock()
 
-	lastNotarizedResult, err := em.executionResultsTracker.GetLastNotarizedExecutionResult()
+	// even though the headers executor might already be paused, safe to try it one more time
+	em.headersExecutor.PauseExecution()
+
+	err := em.executionResultsTracker.Clean(lastNotarizedResult)
 	if err != nil {
 		return err
 	}
 
 	lastNotarizedNonce := lastNotarizedResult.GetHeaderNonce()
-	err = em.executionResultsTracker.RemoveFromNonce(lastNotarizedNonce + 1)
-	if err != nil {
-		return err
-	}
-
 	em.blocksQueue.Clean(lastNotarizedNonce + 1)
 
 	em.headersExecutor.ResumeExecution()

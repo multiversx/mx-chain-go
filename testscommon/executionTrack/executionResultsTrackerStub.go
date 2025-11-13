@@ -13,6 +13,7 @@ type ExecutionResultsTrackerStub struct {
 	GetLastNotarizedExecutionResultCalled  func() (data.BaseExecutionResultHandler, error)
 	SetLastNotarizedResultCalled           func(executionResult data.BaseExecutionResultHandler) error
 	RemoveFromNonceCalled                  func(nonce uint64) error
+	CleanCalled                            func(lastNotarizedResult data.BaseExecutionResultHandler) error
 	CleanConfirmedExecutionResultsCalled   func(header data.HeaderHandler) error
 }
 
@@ -68,6 +69,14 @@ func (ets *ExecutionResultsTrackerStub) SetLastNotarizedResult(executionResult d
 func (ets *ExecutionResultsTrackerStub) RemoveFromNonce(nonce uint64) error {
 	if ets.RemoveFromNonceCalled != nil {
 		return ets.RemoveFromNonceCalled(nonce)
+	}
+	return nil
+}
+
+// Clean -
+func (ets *ExecutionResultsTrackerStub) Clean(lastNotarizedResult data.BaseExecutionResultHandler) error {
+	if ets.CleanCalled != nil {
+		return ets.CleanCalled(lastNotarizedResult)
 	}
 	return nil
 }

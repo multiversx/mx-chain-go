@@ -7,6 +7,7 @@ import (
 
 	"github.com/multiversx/mx-chain-core-go/data"
 	"github.com/multiversx/mx-chain-core-go/data/block"
+	"github.com/multiversx/mx-chain-go/process"
 	"github.com/multiversx/mx-chain-go/process/asyncExecution/executionManager"
 	"github.com/multiversx/mx-chain-go/process/asyncExecution/queue"
 	"github.com/multiversx/mx-chain-go/testscommon"
@@ -555,26 +556,17 @@ func TestExecutionManager_RemoveAtNonceAndHigher(t *testing.T) {
 func TestExecutionManager_ResetAndResumeExecution(t *testing.T) {
 	t.Parallel()
 
-	t.Run("GetLastNotarizedExecutionResult failure should error", func(t *testing.T) {
+	t.Run("nil last execution result should error", func(t *testing.T) {
 		t.Parallel()
 
 		args := createMockArgs()
-		args.ExecutionResultsTracker = &processMocks.ExecutionTrackerStub{
-			GetLastNotarizedExecutionResultCalled: func() (data.BaseExecutionResultHandler, error) {
-				return nil, errExpected
-			},
-			RemoveFromNonceCalled: func(nonce uint64) error {
-				require.Fail(t, "should have not been called")
-				return nil
-			},
-		}
 		em, _ := executionManager.NewExecutionManager(args)
 		require.NotNil(t, em)
 
-		err := em.ResetAndResumeExecution()
-		require.Equal(t, errExpected, err)
+		err := em.ResetAndResumeExecution(nil)
+		require.Equal(t, process.ErrNilLastExecutionResultHandler, err)
 	})
-	t.Run("RemoveFromNonce failure should error", func(t *testing.T) {
+	t.Run("Clean failure should error", func(t *testing.T) {
 		t.Parallel()
 
 		args := createMockArgs()
@@ -587,7 +579,7 @@ func TestExecutionManager_ResetAndResumeExecution(t *testing.T) {
 					},
 				}, nil
 			},
-			RemoveFromNonceCalled: func(nonce uint64) error {
+			CleanCalled: func(lastNotarizedResult data.BaseExecutionResultHandler) error {
 				return errExpected
 			},
 		}
@@ -599,7 +591,7 @@ func TestExecutionManager_ResetAndResumeExecution(t *testing.T) {
 		em, _ := executionManager.NewExecutionManager(args)
 		require.NotNil(t, em)
 
-		err := em.ResetAndResumeExecution()
+		err := em.ResetAndResumeExecution(&block.BaseExecutionResult{})
 		require.Equal(t, errExpected, err)
 	})
 	t.Run("should work", func(t *testing.T) {
@@ -625,7 +617,7 @@ func TestExecutionManager_ResetAndResumeExecution(t *testing.T) {
 		})
 		require.NoError(t, err)
 
-		err = em.ResetAndResumeExecution()
+		err = em.ResetAndResumeExecution(&block.BaseExecutionResult{})
 		require.NoError(t, err)
 		require.True(t, wasResumeExecutionCalled)
 	})
