@@ -822,6 +822,12 @@ var ErrNilDnsAddresses = errors.New("nil dns addresses map")
 // ErrNilProtocolSustainabilityAddress signals that a nil protocol sustainability address was provided
 var ErrNilProtocolSustainabilityAddress = errors.New("nil protocol sustainability address")
 
+// ErrNilEcosystemGrowthAddress signals that a nil ecosystem growth address was provided
+var ErrNilEcosystemGrowthAddress = errors.New("nil ecosystem growth address")
+
+// ErrNilGrowthDividendAddress signals that a nil growth dividend address was provided
+var ErrNilGrowthDividendAddress = errors.New("nil growth dividend address")
+
 // ErrUserNameDoesNotMatch signals that username does not match
 var ErrUserNameDoesNotMatch = errors.New("user name does not match")
 

@@ -310,6 +310,12 @@ func (e *economics) computeRewardsForAccelerator(totalRewards *big.Int, epoch ui
 	acceleratorRewards := big.NewInt(0).Add(protocolSustainability, ecosystemGrowth)
 	acceleratorRewards = big.NewInt(0).Add(acceleratorRewards, growthDividend)
 
+	if protocolSustainability.Cmp(zero) < 0 ||
+		ecosystemGrowth.Cmp(zero) < 0 ||
+		growthDividend.Cmp(zero) < 0 {
+		return nil, errNegativeAcceleratorReward
+	}
+
 	if acceleratorRewards.Cmp(totalRewards) > 0 {
 		return nil, errAcceleratorRewardsMoreThanTotalRewards
 	}

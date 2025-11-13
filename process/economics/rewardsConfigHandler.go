@@ -250,10 +250,10 @@ func checkRewardConfig(rewardsCfg config.EpochRewardSettings) error {
 		return process.ErrNilProtocolSustainabilityAddress
 	}
 	if len(rewardsCfg.EcosystemGrowthAddress) == 0 {
-		return process.ErrNilProtocolSustainabilityAddress
+		return process.ErrNilEcosystemGrowthAddress
 	}
 	if len(rewardsCfg.GrowthDividendAddress) == 0 {
-		return process.ErrNilProtocolSustainabilityAddress
+		return process.ErrNilGrowthDividendAddress
 	}
 
 	_, ok := big.NewInt(0).SetString(rewardsCfg.TopUpGradientPoint, 10)

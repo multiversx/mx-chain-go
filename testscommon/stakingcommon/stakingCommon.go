@@ -289,8 +289,8 @@ func CreateEconomicsData() process.EconomicsDataHandler {
 		PubkeyConverter:     &testscommon.PubkeyConverterStub{},
 		ShardCoordinator:    &testscommon.ShardsCoordinatorMock{},
 	}
-	economicsData, err := economicsHandler.NewEconomicsData(argsNewEconomicsData)
-	log.LogIfError(err, "something")
+	economicsData, _ := economicsHandler.NewEconomicsData(argsNewEconomicsData)
+
 	return economicsData
 }
 
