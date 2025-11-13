@@ -3,6 +3,7 @@ package asyncExecution
 import (
 	"errors"
 	"sync"
+	"sync/atomic"
 	"testing"
 	"time"
 
@@ -118,87 +119,57 @@ func TestHeadersExecutor_StartAndClose(t *testing.T) {
 
 }
 
-func TestHeadersExecutor_ProcessBlockError(t *testing.T) {
+func TestHeadersExecutor_ProcessBlock(t *testing.T) {
 	t.Parallel()
 
-	t.Run("header marked for deletion before processing should be skipped", func(t *testing.T) {
+	t.Run("pause/resume should work", func(t *testing.T) {
 		t.Parallel()
 
 		args := createMockArgs()
-		blocksQueue := queue.NewBlocksQueue()
-		args.BlocksQueue = blocksQueue
-		args.BlockProcessor = &processMocks.BlockProcessorStub{
-			ProcessBlockProposalCalled: func(handler data.HeaderHandler, body data.BodyHandler) (data.BaseExecutionResultHandler, error) {
-				require.Fail(t, "should not be called")
-				return nil, nil
+		cntWasPopCalled := uint32(0)
+		args.BlocksQueue = &processMocks.BlocksQueueMock{
+			PopCalled: func() (queue.HeaderBodyPair, bool) {
+				atomic.AddUint32(&cntWasPopCalled, 1)
+
+				return queue.HeaderBodyPair{
+					Header: &block.Header{
+						Nonce: 1,
+					},
+					Body: &block.Body{},
+				}, true
 			},
 		}
-		args.ExecutionTracker = &processMocks.ExecutionTrackerStub{
-			AddExecutionResultCalled: func(executionResult data.BaseExecutionResultHandler) error {
-				require.Fail(t, "should not be called")
-				return nil
-			},
-		}
 
-		executor, err := NewHeadersExecutor(args)
-		require.NoError(t, err)
-
-		err = blocksQueue.AddOrReplace(queue.HeaderBodyPair{
-			Header: &block.Header{
-				Nonce: 1,
-			},
-			Body: &block.Body{},
-		})
-		require.NoError(t, err)
-
-		// mark the popped header as evicted
-		executor.OnHeaderEvicted(1)
-
-		executor.StartExecution()
-
-		// allow Pop operation
-		time.Sleep(time.Millisecond * 100)
-
-		err = executor.Close()
-		require.NoError(t, err)
-	})
-
-	t.Run("header marked for deletion during processing should be skipped", func(t *testing.T) {
-		t.Parallel()
-
-		args := createMockArgs()
-		blocksQueue := queue.NewBlocksQueue()
-		args.BlocksQueue = blocksQueue
 		args.BlockProcessor = &processMocks.BlockProcessorStub{
 			ProcessBlockProposalCalled: func(handler data.HeaderHandler, body data.BodyHandler) (data.BaseExecutionResultHandler, error) {
-				// this should trigger the notification
-				blocksQueue.RemoveAtNonceAndHigher(1)
-
 				return &block.BaseExecutionResult{}, nil
 			},
 		}
-		args.ExecutionTracker = &processMocks.ExecutionTrackerStub{
-			AddExecutionResultCalled: func(executionResult data.BaseExecutionResultHandler) error {
-				require.Fail(t, "should not be called")
-				return nil
-			},
-		}
 
 		executor, err := NewHeadersExecutor(args)
 		require.NoError(t, err)
 
 		executor.StartExecution()
 
-		err = blocksQueue.AddOrReplace(queue.HeaderBodyPair{
-			Header: &block.Header{
-				Nonce: 1,
-			},
-			Body: &block.Body{},
-		})
-		require.NoError(t, err)
+		// allow some Pop operations
+		time.Sleep(time.Millisecond * 200)
 
-		// allow Pop operation
-		time.Sleep(time.Millisecond * 100)
+		executor.PauseExecution()
+		time.Sleep(time.Millisecond * 20) // allow current processing to finish
+		cntWasPopCalledAtPause := atomic.LoadUint32(&cntWasPopCalled)
+
+		// wait a bit more
+		time.Sleep(time.Millisecond * 200)
+
+		cntWasPopCalledBeforeResume := atomic.LoadUint32(&cntWasPopCalled)
+		require.Equal(t, cntWasPopCalledAtPause, cntWasPopCalledBeforeResume)
+
+		executor.ResumeExecution()
+
+		time.Sleep(time.Millisecond * 200)
+
+		cntWasPopCalledAfterResume := atomic.LoadUint32(&cntWasPopCalled)
+		require.Greater(t, cntWasPopCalledAfterResume, cntWasPopCalledBeforeResume)
 
 		err = executor.Close()
 		require.NoError(t, err)

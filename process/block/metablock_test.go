@@ -14,6 +14,7 @@ import (
 	"github.com/multiversx/mx-chain-core-go/core/check"
 	"github.com/multiversx/mx-chain-core-go/data"
 	"github.com/multiversx/mx-chain-core-go/data/block"
+	"github.com/multiversx/mx-chain-go/process/asyncExecution/executionManager"
 	"github.com/multiversx/mx-chain-go/state/disabled"
 	"github.com/multiversx/mx-chain-go/testscommon/processMocks"
 	"github.com/stretchr/testify/assert"
@@ -167,7 +168,13 @@ func createMockMetaArguments(
 	)
 
 	executionResultsTracker := executionTrack.NewExecutionResultsTracker()
-	execResultsVerifier, _ := blproc.NewExecutionResultsVerifier(dataComponents.BlockChain, executionResultsTracker)
+	execManager, _ := executionManager.NewExecutionManager(executionManager.ArgsExecutionManager{
+		BlocksQueue:             &processMocks.BlocksQueueMock{},
+		ExecutionResultsTracker: executionResultsTracker,
+		BlockChain:              dataComponents.BlockChain,
+		Headers:                 dataComponents.DataPool.Headers(),
+	})
+	execResultsVerifier, _ := blproc.NewExecutionResultsVerifier(dataComponents.BlockChain, execManager)
 	_ = executionResultsTracker.SetLastNotarizedResult(&block.ExecutionResult{})
 	inclusionEstimator := estimator.NewExecutionResultInclusionEstimator(
 		config.ExecutionResultInclusionEstimatorConfig{
@@ -241,9 +248,8 @@ func createMockMetaArguments(
 			ExecutionResultsVerifier:           execResultsVerifier,
 			MissingDataResolver:                missingDataResolver,
 			ExecutionResultsInclusionEstimator: inclusionEstimator,
-			ExecutionResultsTracker:            executionResultsTracker,
 			GasComputation:                     gasComputation,
-			BlocksQueue:                        &processMocks.BlocksQueueMock{},
+			ExecutionManager:                   execManager,
 		},
 		SCToProtocol:                 &mock.SCToProtocolStub{},
 		PendingMiniBlocksHandler:     &mock.PendingMiniBlocksHandlerStub{},
