@@ -526,7 +526,17 @@ func Test_Selection_ShouldNotSelectSameTransactionsWithSameSender(t *testing.T) 
 	}
 
 	selectionSession := txcachemocks.NewSelectionSessionMockWithAccounts(accounts)
+	selectionSession.GetRootHashCalled = func() ([]byte, error) {
+		return []byte(testRootHash), nil
+	}
+
 	accountsProvider := txcachemocks.NewAccountNonceAndBalanceProviderMockWithAccounts(accounts)
+	accountsProvider.GetRootHashCalled = func() ([]byte, error) {
+		return []byte(testRootHash), nil
+	}
+
+	err = txpool.OnExecutedBlock(&block.Header{}, []byte(testRootHash))
+	require.Nil(t, err)
 
 	maxNumTxs := 2
 	options := holders.NewTxSelectionOptions(
@@ -581,10 +591,10 @@ func Test_Selection_ShouldNotSelectSameTransactionsWithSameSender(t *testing.T) 
 	require.Equal(t, "txHash1", string(selectedTransactions[1].TxHash))
 
 	// propose the block
-	err = txpool.OnProposedBlock([]byte("blockHash1"), &blockBody, &block.Header{
+	err = txpool.OnProposedBlock([]byte(testBlockHash1), &blockBody, &block.Header{
 		Nonce:    1,
-		PrevHash: []byte("blockHash0"),
-		RootHash: []byte(fmt.Sprintf("rootHash%d", 0)),
+		PrevHash: []byte(testBlockHash0),
+		RootHash: []byte(testRootHash),
 	},
 		accountsProvider,
 		defaultLatestExecutedHash,
@@ -626,7 +636,17 @@ func Test_Selection_ShouldNotSelectSameTransactionsWithDifferentSenders(t *testi
 	}
 
 	selectionSession := txcachemocks.NewSelectionSessionMockWithAccounts(accounts)
+	selectionSession.GetRootHashCalled = func() ([]byte, error) {
+		return []byte(testRootHash), nil
+	}
+
 	accountsProvider := txcachemocks.NewAccountNonceAndBalanceProviderMockWithAccounts(accounts)
+	accountsProvider.GetRootHashCalled = func() ([]byte, error) {
+		return []byte(testRootHash), nil
+	}
+
+	err = txpool.OnExecutedBlock(&block.Header{}, []byte(testRootHash))
+	require.Nil(t, err)
 
 	options := holders.NewTxSelectionOptions(
 		10_000_000_000,
@@ -714,11 +734,11 @@ func Test_Selection_ShouldNotSelectSameTransactionsWithDifferentSenders(t *testi
 	require.Equal(t, "txHash1", string(selectedTransactions[1].TxHash))
 
 	// propose the selected transactions
-	err = txpool.OnProposedBlock([]byte("blockHash1"), &blockBody,
+	err = txpool.OnProposedBlock([]byte(testBlockHash1), &blockBody,
 		&block.Header{
 			Nonce:    1,
-			PrevHash: []byte("blockHash0"),
-			RootHash: []byte(fmt.Sprintf("rootHash%d", 0)),
+			PrevHash: []byte(testBlockHash0),
+			RootHash: []byte(testRootHash),
 		},
 		accountsProvider,
 		defaultLatestExecutedHash,
@@ -763,7 +783,17 @@ func Test_Selection_ShouldNotSelectSameTransactionsWithManyTransactions(t *testi
 	}
 
 	selectionSession := txcachemocks.NewSelectionSessionMockWithAccounts(accounts)
+	selectionSession.GetRootHashCalled = func() ([]byte, error) {
+		return []byte(testRootHash), nil
+	}
+
 	accountsProvider := txcachemocks.NewAccountNonceAndBalanceProviderMockWithAccounts(accounts)
+	accountsProvider.GetRootHashCalled = func() ([]byte, error) {
+		return []byte(testRootHash), nil
+	}
+
+	err = txpool.OnExecutedBlock(&block.Header{}, []byte(testRootHash))
+	require.Nil(t, err)
 
 	options := holders.NewTxSelectionOptions(
 		10_000_000_000,
@@ -786,10 +816,10 @@ func Test_Selection_ShouldNotSelectSameTransactionsWithManyTransactions(t *testi
 
 	// propose those txs in order to track them (create the breadcrumbs used for the virtual records)
 	proposedBlock1 := createProposedBlock(selectedTransactions)
-	err = txpool.OnProposedBlock([]byte("blockHash1"), proposedBlock1, &block.Header{
+	err = txpool.OnProposedBlock([]byte(testBlockHash1), proposedBlock1, &block.Header{
 		Nonce:    1,
-		PrevHash: []byte("blockHash0"),
-		RootHash: []byte(fmt.Sprintf("rootHash%d", 0)),
+		PrevHash: []byte(testBlockHash0),
+		RootHash: []byte(testRootHash),
 	},
 		accountsProvider,
 		defaultLatestExecutedHash,
@@ -804,11 +834,11 @@ func Test_Selection_ShouldNotSelectSameTransactionsWithManyTransactions(t *testi
 
 	// propose the second block
 	proposedBlock2 := createProposedBlock(selectedTransactions)
-	err = txpool.OnProposedBlock([]byte("blockHash2"), proposedBlock2,
+	err = txpool.OnProposedBlock([]byte(testBlockHash2), proposedBlock2,
 		&block.Header{
 			Nonce:    2,
-			PrevHash: []byte("blockHash1"),
-			RootHash: []byte(fmt.Sprintf("rootHash%d", 1)),
+			PrevHash: []byte(testBlockHash1),
+			RootHash: []byte(testRootHash),
 		},
 		accountsProvider,
 		defaultLatestExecutedHash,
@@ -851,6 +881,17 @@ func Test_Selection_ProposeEmptyBlocks(t *testing.T) {
 	}
 
 	selectionSession := txcachemocks.NewSelectionSessionMockWithAccounts(accounts)
+	selectionSession.GetRootHashCalled = func() ([]byte, error) {
+		return []byte(testRootHash), nil
+	}
+
+	accountsProvider := txcachemocks.NewAccountNonceAndBalanceProviderMockWithAccounts(accounts)
+	accountsProvider.GetRootHashCalled = func() ([]byte, error) {
+		return []byte(testRootHash), nil
+	}
+
+	err = txpool.OnExecutedBlock(&block.Header{}, []byte(testRootHash))
+	require.Nil(t, err)
 
 	options := holders.NewTxSelectionOptions(
 		10_000_000_000,
@@ -873,10 +914,10 @@ func Test_Selection_ProposeEmptyBlocks(t *testing.T) {
 
 	// propose those txs in order to track them (create the breadcrumbs used for the virtual records)
 	proposedBlock1 := createProposedBlock(selectedTransactions)
-	err = txpool.OnProposedBlock([]byte("blockHash1"), proposedBlock1, &block.Header{
+	err = txpool.OnProposedBlock([]byte(testBlockHash1), proposedBlock1, &block.Header{
 		Nonce:    1,
-		PrevHash: []byte("blockHash0"),
-		RootHash: []byte(fmt.Sprintf("rootHash%d", 0)),
+		PrevHash: []byte(testBlockHash0),
+		RootHash: []byte(testRootHash),
 	},
 		selectionSession,
 		defaultLatestExecutedHash,
@@ -884,11 +925,11 @@ func Test_Selection_ProposeEmptyBlocks(t *testing.T) {
 	require.Nil(t, err)
 
 	// propose some empty blocks
-	err = txpool.OnProposedBlock([]byte("blockHash2"), &block.Body{},
+	err = txpool.OnProposedBlock([]byte(testBlockHash2), &block.Body{},
 		&block.Header{
 			Nonce:    2,
-			PrevHash: []byte("blockHash1"),
-			RootHash: []byte(fmt.Sprintf("rootHash%d", 1)),
+			PrevHash: []byte(testBlockHash1),
+			RootHash: []byte(testRootHash),
 		},
 		selectionSession,
 		defaultLatestExecutedHash,
@@ -898,8 +939,8 @@ func Test_Selection_ProposeEmptyBlocks(t *testing.T) {
 	err = txpool.OnProposedBlock([]byte("blockHash3"), &block.Body{},
 		&block.Header{
 			Nonce:    3,
-			PrevHash: []byte("blockHash2"),
-			RootHash: []byte(fmt.Sprintf("rootHash%d", 1)),
+			PrevHash: []byte(testBlockHash2),
+			RootHash: []byte(testRootHash),
 		},
 		selectionSession,
 		defaultLatestExecutedHash,
@@ -918,7 +959,7 @@ func Test_Selection_ProposeEmptyBlocks(t *testing.T) {
 		&block.Header{
 			Nonce:    4,
 			PrevHash: []byte("blockHash3"),
-			RootHash: []byte(fmt.Sprintf("rootHash%d", 1)),
+			RootHash: []byte(testRootHash),
 		},
 		selectionSession,
 		defaultLatestExecutedHash,
@@ -962,6 +1003,17 @@ func Test_Selection_ProposeBlocksWithSameNonceToTriggerForkScenarios(t *testing.
 		}
 
 		selectionSession := txcachemocks.NewSelectionSessionMockWithAccounts(accounts)
+		selectionSession.GetRootHashCalled = func() ([]byte, error) {
+			return []byte(testRootHash), nil
+		}
+
+		accountsProvider := txcachemocks.NewAccountNonceAndBalanceProviderMockWithAccounts(accounts)
+		accountsProvider.GetRootHashCalled = func() ([]byte, error) {
+			return []byte(testRootHash), nil
+		}
+
+		err = txpool.OnExecutedBlock(&block.Header{}, []byte(testRootHash))
+		require.Nil(t, err)
 
 		options := holders.NewTxSelectionOptions(
 			10_000_000_000,
@@ -984,10 +1036,10 @@ func Test_Selection_ProposeBlocksWithSameNonceToTriggerForkScenarios(t *testing.
 
 		// propose those txs in order to track them (create the breadcrumbs used for the virtual records)
 		proposedBlock1 := createProposedBlock(selectedTransactions)
-		err = txpool.OnProposedBlock([]byte("blockHash1"), proposedBlock1, &block.Header{
+		err = txpool.OnProposedBlock([]byte(testBlockHash1), proposedBlock1, &block.Header{
 			Nonce:    1,
-			PrevHash: []byte("blockHash0"),
-			RootHash: []byte(fmt.Sprintf("rootHash%d", 0)),
+			PrevHash: []byte(testBlockHash0),
+			RootHash: []byte(testRootHash),
 		},
 			selectionSession,
 			defaultLatestExecutedHash,
@@ -995,11 +1047,11 @@ func Test_Selection_ProposeBlocksWithSameNonceToTriggerForkScenarios(t *testing.
 		require.Nil(t, err)
 
 		// propose an empty block with same nonce as the previous one
-		err = txpool.OnProposedBlock([]byte("blockHash1"), &block.Body{},
+		err = txpool.OnProposedBlock([]byte(testBlockHash1), &block.Body{},
 			&block.Header{
 				Nonce:    1,
-				PrevHash: []byte("blockHash0"),
-				RootHash: []byte(fmt.Sprintf("rootHash%d", 0)),
+				PrevHash: []byte(testBlockHash0),
+				RootHash: []byte(testRootHash),
 			},
 			selectionSession,
 			defaultLatestExecutedHash,
@@ -1014,10 +1066,10 @@ func Test_Selection_ProposeBlocksWithSameNonceToTriggerForkScenarios(t *testing.
 
 		// propose those txs in order to track them (create the breadcrumbs used for the virtual records)
 		proposedBlock2 := createProposedBlock(selectedTransactions)
-		err = txpool.OnProposedBlock([]byte("blockHash2"), proposedBlock2, &block.Header{
+		err = txpool.OnProposedBlock([]byte(testBlockHash2), proposedBlock2, &block.Header{
 			Nonce:    2,
-			PrevHash: []byte("blockHash1"),
-			RootHash: []byte(fmt.Sprintf("rootHash%d", 0)),
+			PrevHash: []byte(testBlockHash1),
+			RootHash: []byte(testRootHash),
 		},
 			selectionSession,
 			defaultLatestExecutedHash,
@@ -1035,8 +1087,8 @@ func Test_Selection_ProposeBlocksWithSameNonceToTriggerForkScenarios(t *testing.
 		err = txpool.OnProposedBlock([]byte("blockHash3"), proposedBlock3,
 			&block.Header{
 				Nonce:    3,
-				PrevHash: []byte("blockHash2"),
-				RootHash: []byte(fmt.Sprintf("rootHash%d", 1)),
+				PrevHash: []byte(testBlockHash2),
+				RootHash: []byte(testRootHash),
 			},
 			selectionSession,
 			defaultLatestExecutedHash,
@@ -1081,6 +1133,17 @@ func Test_Selection_ProposeBlocksWithSameNonceToTriggerForkScenarios(t *testing.
 		}
 
 		selectionSession := txcachemocks.NewSelectionSessionMockWithAccounts(accounts)
+		selectionSession.GetRootHashCalled = func() ([]byte, error) {
+			return []byte(testRootHash), nil
+		}
+
+		accountsProvider := txcachemocks.NewAccountNonceAndBalanceProviderMockWithAccounts(accounts)
+		accountsProvider.GetRootHashCalled = func() ([]byte, error) {
+			return []byte(testRootHash), nil
+		}
+
+		err = txpool.OnExecutedBlock(&block.Header{}, []byte(testRootHash))
+		require.Nil(t, err)
 
 		options := holders.NewTxSelectionOptions(
 			10_000_000_000,
@@ -1103,10 +1166,10 @@ func Test_Selection_ProposeBlocksWithSameNonceToTriggerForkScenarios(t *testing.
 
 		// propose those txs in order to track them (create the breadcrumbs used for the virtual records)
 		proposedBlock1 := createProposedBlock(selectedTransactions)
-		err = txpool.OnProposedBlock([]byte("blockHash1"), proposedBlock1, &block.Header{
+		err = txpool.OnProposedBlock([]byte(testBlockHash1), proposedBlock1, &block.Header{
 			Nonce:    1,
-			PrevHash: []byte("blockHash0"),
-			RootHash: []byte(fmt.Sprintf("rootHash%d", 0)),
+			PrevHash: []byte(testBlockHash0),
+			RootHash: []byte(testRootHash),
 		},
 			selectionSession,
 			defaultLatestExecutedHash,
@@ -1121,10 +1184,10 @@ func Test_Selection_ProposeBlocksWithSameNonceToTriggerForkScenarios(t *testing.
 
 		// propose those txs in order to track them (create the breadcrumbs used for the virtual records)
 		proposedBlock2 := createProposedBlock(selectedTransactions)
-		err = txpool.OnProposedBlock([]byte("blockHash2"), proposedBlock2, &block.Header{
+		err = txpool.OnProposedBlock([]byte(testBlockHash2), proposedBlock2, &block.Header{
 			Nonce:    2,
-			PrevHash: []byte("blockHash1"),
-			RootHash: []byte(fmt.Sprintf("rootHash%d", 0)),
+			PrevHash: []byte(testBlockHash1),
+			RootHash: []byte(testRootHash),
 		},
 			selectionSession,
 			defaultLatestExecutedHash,
@@ -1142,8 +1205,8 @@ func Test_Selection_ProposeBlocksWithSameNonceToTriggerForkScenarios(t *testing.
 		err = txpool.OnProposedBlock([]byte("blockHash3"), proposedBlock3,
 			&block.Header{
 				Nonce:    3,
-				PrevHash: []byte("blockHash2"),
-				RootHash: []byte(fmt.Sprintf("rootHash%d", 1)),
+				PrevHash: []byte(testBlockHash2),
+				RootHash: []byte(testRootHash),
 			},
 			selectionSession,
 			defaultLatestExecutedHash,
@@ -1159,8 +1222,8 @@ func Test_Selection_ProposeBlocksWithSameNonceToTriggerForkScenarios(t *testing.
 		// now, generate a fork by replacing the block with nonce 2
 		err = txpool.OnProposedBlock([]byte("blockHashF1"), &block.Body{}, &block.Header{
 			Nonce:    2,
-			PrevHash: []byte("blockHash1"),
-			RootHash: []byte(fmt.Sprintf("rootHash%d", 0)),
+			PrevHash: []byte(testBlockHash1),
+			RootHash: []byte(testRootHash),
 		},
 			selectionSession,
 			defaultLatestExecutedHash,
@@ -1179,7 +1242,7 @@ func Test_Selection_ProposeBlocksWithSameNonceToTriggerForkScenarios(t *testing.
 			&block.Header{
 				Nonce:    3,
 				PrevHash: []byte("blockHashF1"),
-				RootHash: []byte(fmt.Sprintf("rootHash%d", 1)),
+				RootHash: []byte(testRootHash),
 			},
 			selectionSession,
 			defaultLatestExecutedHash,
@@ -1198,7 +1261,7 @@ func Test_Selection_ProposeBlocksWithSameNonceToTriggerForkScenarios(t *testing.
 			&block.Header{
 				Nonce:    4,
 				PrevHash: []byte("blockHashF2"),
-				RootHash: []byte(fmt.Sprintf("rootHash%d", 1)),
+				RootHash: []byte(testRootHash),
 			},
 			selectionSession,
 			defaultLatestExecutedHash,
@@ -1240,7 +1303,17 @@ func Test_Selection_ShouldNotSelectSameTransactionsWithManyTransactionsAndExecut
 	}
 
 	selectionSession := txcachemocks.NewSelectionSessionMockWithAccounts(accounts)
+	selectionSession.GetRootHashCalled = func() ([]byte, error) {
+		return []byte(testRootHash), nil
+	}
+
 	accountsProvider := txcachemocks.NewAccountNonceAndBalanceProviderMockWithAccounts(accounts)
+	accountsProvider.GetRootHashCalled = func() ([]byte, error) {
+		return []byte(testRootHash), nil
+	}
+
+	err = txpool.OnExecutedBlock(&block.Header{}, []byte(testRootHash))
+	require.Nil(t, err)
 
 	options := holders.NewTxSelectionOptions(
 		10_000_000_000,
@@ -1263,11 +1336,11 @@ func Test_Selection_ShouldNotSelectSameTransactionsWithManyTransactionsAndExecut
 
 	// propose those txs in order to track them (create the breadcrumbs used for the virtual records)
 	proposedBlock1 := createProposedBlock(selectedTransactions)
-	err = txpool.OnProposedBlock([]byte("blockHash1"), proposedBlock1,
+	err = txpool.OnProposedBlock([]byte(testBlockHash1), proposedBlock1,
 		&block.Header{
 			Nonce:    1,
-			PrevHash: []byte("blockHash0"),
-			RootHash: []byte(fmt.Sprintf("rootHash%d", 0)),
+			PrevHash: []byte(testBlockHash0),
+			RootHash: []byte(testRootHash),
 		},
 		accountsProvider,
 		defaultLatestExecutedHash,
@@ -1283,8 +1356,8 @@ func Test_Selection_ShouldNotSelectSameTransactionsWithManyTransactionsAndExecut
 	// execute the first proposed block
 	err = txpool.OnExecutedBlock(&block.Header{
 		Nonce:    1,
-		PrevHash: []byte("blockHash0"),
-	}, []byte(fmt.Sprintf("rootHash%d", 0)))
+		PrevHash: []byte(testBlockHash0),
+	}, []byte(fmt.Sprintf("rootHash%d", 1)))
 	require.Nil(t, err)
 
 	// remove the executed txs from the pool
@@ -1295,19 +1368,22 @@ func Test_Selection_ShouldNotSelectSameTransactionsWithManyTransactionsAndExecut
 	// update the state of the account on the blockchain
 	selectionSession.SetNonce([]byte("alice"), 30_000)
 	selectionSession.GetRootHashCalled = func() ([]byte, error) {
-		return []byte("rootHash0"), nil
+		return []byte("rootHash1"), nil
+	}
+	accountsProvider.GetRootHashCalled = func() ([]byte, error) {
+		return []byte("rootHash1"), nil
 	}
 
 	// propose the second block
 	proposedBlock2 := createProposedBlock(selectedTransactions)
-	err = txpool.OnProposedBlock([]byte("blockHash2"), proposedBlock2,
+	err = txpool.OnProposedBlock([]byte(testBlockHash2), proposedBlock2,
 		&block.Header{
 			Nonce:    2,
-			PrevHash: []byte("blockHash1"),
+			PrevHash: []byte(testBlockHash1),
 			RootHash: []byte(fmt.Sprintf("rootHash%d", 1)),
 		},
 		accountsProvider,
-		[]byte("blockHash1"),
+		[]byte(testBlockHash1),
 	)
 	require.Nil(t, err)
 
@@ -1346,6 +1422,17 @@ func Test_Selection_ProposeEmptyBlocksAndExecutedBlockNotification(t *testing.T)
 	}
 
 	selectionSession := txcachemocks.NewSelectionSessionMockWithAccounts(accounts)
+	selectionSession.GetRootHashCalled = func() ([]byte, error) {
+		return []byte(testRootHash), nil
+	}
+
+	accountsProvider := txcachemocks.NewAccountNonceAndBalanceProviderMockWithAccounts(accounts)
+	accountsProvider.GetRootHashCalled = func() ([]byte, error) {
+		return []byte(testRootHash), nil
+	}
+
+	err = txpool.OnExecutedBlock(&block.Header{}, []byte(testRootHash))
+	require.Nil(t, err)
 
 	options := holders.NewTxSelectionOptions(
 		10_000_000_000,
@@ -1368,11 +1455,11 @@ func Test_Selection_ProposeEmptyBlocksAndExecutedBlockNotification(t *testing.T)
 
 	// propose those txs in order to track them (create the breadcrumbs used for the virtual records)
 	proposedBlock1 := createProposedBlock(selectedTransactions)
-	err = txpool.OnProposedBlock([]byte("blockHash1"), proposedBlock1,
+	err = txpool.OnProposedBlock([]byte(testBlockHash1), proposedBlock1,
 		&block.Header{
 			Nonce:    1,
-			PrevHash: []byte("blockHash0"),
-			RootHash: []byte(fmt.Sprintf("rootHash%d", 0)),
+			PrevHash: []byte(testBlockHash0),
+			RootHash: []byte(testRootHash),
 		},
 		selectionSession,
 		defaultLatestExecutedHash,
@@ -1380,11 +1467,11 @@ func Test_Selection_ProposeEmptyBlocksAndExecutedBlockNotification(t *testing.T)
 	require.Nil(t, err)
 
 	// propose empty blocks
-	err = txpool.OnProposedBlock([]byte("blockHash2"), &block.Body{},
+	err = txpool.OnProposedBlock([]byte(testBlockHash2), &block.Body{},
 		&block.Header{
 			Nonce:    2,
-			PrevHash: []byte("blockHash1"),
-			RootHash: []byte(fmt.Sprintf("rootHash%d", 0)),
+			PrevHash: []byte(testBlockHash1),
+			RootHash: []byte(testRootHash),
 		},
 		selectionSession,
 		defaultLatestExecutedHash,
@@ -1394,8 +1481,8 @@ func Test_Selection_ProposeEmptyBlocksAndExecutedBlockNotification(t *testing.T)
 	err = txpool.OnProposedBlock([]byte("blockHash3"), &block.Body{},
 		&block.Header{
 			Nonce:    3,
-			PrevHash: []byte("blockHash2"),
-			RootHash: []byte(fmt.Sprintf("rootHash%d", 0)),
+			PrevHash: []byte(testBlockHash2),
+			RootHash: []byte(testRootHash),
 		},
 		selectionSession,
 		defaultLatestExecutedHash,
@@ -1411,8 +1498,8 @@ func Test_Selection_ProposeEmptyBlocksAndExecutedBlockNotification(t *testing.T)
 	// execute the first proposed block
 	err = txpool.OnExecutedBlock(&block.Header{
 		Nonce:    1,
-		PrevHash: []byte("blockHash0"),
-	}, []byte(fmt.Sprintf("rootHash%d", 0)))
+		PrevHash: []byte(testBlockHash0),
+	}, []byte(fmt.Sprintf("rootHash%d", 1)))
 	require.Nil(t, err)
 
 	// remove the executed txs from the pool
@@ -1423,7 +1510,7 @@ func Test_Selection_ProposeEmptyBlocksAndExecutedBlockNotification(t *testing.T)
 	// update the state of the account on the blockchain
 	selectionSession.SetNonce([]byte("alice"), 30_000)
 	selectionSession.GetRootHashCalled = func() ([]byte, error) {
-		return []byte("rootHash0"), nil
+		return []byte("rootHash1"), nil
 	}
 
 	// propose the second block
@@ -1435,21 +1522,21 @@ func Test_Selection_ProposeEmptyBlocksAndExecutedBlockNotification(t *testing.T)
 			RootHash: []byte(fmt.Sprintf("rootHash%d", 1)),
 		},
 		selectionSession,
-		[]byte("blockHash1"),
+		[]byte(testBlockHash1),
 	)
 	require.Nil(t, err)
 
 	// execute the empty proposed blocks
 	err = txpool.OnExecutedBlock(&block.Header{
 		Nonce:    2,
-		PrevHash: []byte("blockHash1"),
+		PrevHash: []byte(testBlockHash1),
 	}, []byte(fmt.Sprintf("rootHash%d", 1)))
 	require.Nil(t, err)
 
 	// execute the empty proposed blocks
 	err = txpool.OnExecutedBlock(&block.Header{
 		Nonce:    3,
-		PrevHash: []byte("blockHash2"),
+		PrevHash: []byte(testBlockHash2),
 	}, []byte(fmt.Sprintf("rootHash%d", 1)))
 	require.Nil(t, err)
 
@@ -1501,6 +1588,17 @@ func Test_Selection_WithRemovingProposedBlocks(t *testing.T) {
 	}
 
 	selectionSession := txcachemocks.NewSelectionSessionMockWithAccounts(accounts)
+	selectionSession.GetRootHashCalled = func() ([]byte, error) {
+		return []byte(testRootHash), nil
+	}
+
+	accountsProvider := txcachemocks.NewAccountNonceAndBalanceProviderMockWithAccounts(accounts)
+	accountsProvider.GetRootHashCalled = func() ([]byte, error) {
+		return []byte(testRootHash), nil
+	}
+
+	err = txpool.OnExecutedBlock(&block.Header{}, []byte(testRootHash))
+	require.Nil(t, err)
 
 	options := holders.NewTxSelectionOptions(
 		10_000_000_000,
@@ -1523,10 +1621,10 @@ func Test_Selection_WithRemovingProposedBlocks(t *testing.T) {
 
 	// propose those txs in order to track them (create the breadcrumbs used for the virtual records)
 	proposedBlock1 := createProposedBlock(selectedTransactions)
-	err = txpool.OnProposedBlock([]byte("blockHash1"), proposedBlock1, &block.Header{
+	err = txpool.OnProposedBlock([]byte(testBlockHash1), proposedBlock1, &block.Header{
 		Nonce:    1,
-		PrevHash: []byte("blockHash0"),
-		RootHash: []byte(fmt.Sprintf("rootHash%d", 0)),
+		PrevHash: []byte(testBlockHash0),
+		RootHash: []byte(testRootHash),
 	},
 		selectionSession,
 		defaultLatestExecutedHash,
@@ -1540,10 +1638,10 @@ func Test_Selection_WithRemovingProposedBlocks(t *testing.T) {
 
 	// propose those txs in order to track them (create the breadcrumbs used for the virtual records)
 	proposedBlock2 := createProposedBlock(selectedTransactions)
-	err = txpool.OnProposedBlock([]byte("blockHash2"), proposedBlock2, &block.Header{
+	err = txpool.OnProposedBlock([]byte(testBlockHash2), proposedBlock2, &block.Header{
 		Nonce:    2,
-		PrevHash: []byte("blockHash1"),
-		RootHash: []byte(fmt.Sprintf("rootHash%d", 0)),
+		PrevHash: []byte(testBlockHash1),
+		RootHash: []byte(testRootHash),
 	},
 		selectionSession,
 		defaultLatestExecutedHash,
@@ -1561,8 +1659,8 @@ func Test_Selection_WithRemovingProposedBlocks(t *testing.T) {
 	proposedBlock2 = createProposedBlock(selectedTransactions)
 	err = txpool.OnProposedBlock([]byte("blockHash3"), proposedBlock2, &block.Header{
 		Nonce:    2,
-		PrevHash: []byte("blockHash1"),
-		RootHash: []byte(fmt.Sprintf("rootHash%d", 0)),
+		PrevHash: []byte(testBlockHash1),
+		RootHash: []byte(testRootHash),
 	},
 		selectionSession,
 		defaultLatestExecutedHash,
@@ -1579,7 +1677,7 @@ func Test_Selection_WithRemovingProposedBlocks(t *testing.T) {
 	err = txpool.OnProposedBlock([]byte("blockHash4"), proposedBlock2, &block.Header{
 		Nonce:    3,
 		PrevHash: []byte("blockHash3"),
-		RootHash: []byte(fmt.Sprintf("rootHash%d", 0)),
+		RootHash: []byte(testRootHash),
 	},
 		selectionSession,
 		defaultLatestExecutedHash,
@@ -1625,6 +1723,17 @@ func Test_SimulateSelection_ShouldNotRemoveProposedBlocks(t *testing.T) {
 	}
 
 	selectionSession := txcachemocks.NewSelectionSessionMockWithAccounts(accounts)
+	selectionSession.GetRootHashCalled = func() ([]byte, error) {
+		return []byte(testRootHash), nil
+	}
+
+	accountsProvider := txcachemocks.NewAccountNonceAndBalanceProviderMockWithAccounts(accounts)
+	accountsProvider.GetRootHashCalled = func() ([]byte, error) {
+		return []byte(testRootHash), nil
+	}
+
+	err = txpool.OnExecutedBlock(&block.Header{}, []byte(testRootHash))
+	require.Nil(t, err)
 
 	options := holders.NewTxSelectionOptions(
 		10_000_000_000,
@@ -1647,10 +1756,10 @@ func Test_SimulateSelection_ShouldNotRemoveProposedBlocks(t *testing.T) {
 
 	// propose those txs in order to track them (create the breadcrumbs used for the virtual records)
 	proposedBlock1 := createProposedBlock(selectedTransactions)
-	err = txpool.OnProposedBlock([]byte("blockHash1"), proposedBlock1, &block.Header{
+	err = txpool.OnProposedBlock([]byte(testBlockHash1), proposedBlock1, &block.Header{
 		Nonce:    1,
-		PrevHash: []byte("blockHash0"),
-		RootHash: []byte(fmt.Sprintf("rootHash%d", 0)),
+		PrevHash: []byte(testBlockHash0),
+		RootHash: []byte(testRootHash),
 	},
 		selectionSession,
 		defaultLatestExecutedHash,
@@ -1664,10 +1773,10 @@ func Test_SimulateSelection_ShouldNotRemoveProposedBlocks(t *testing.T) {
 
 	// propose those txs in order to track them (create the breadcrumbs used for the virtual records)
 	proposedBlock2 := createProposedBlock(selectedTransactions)
-	err = txpool.OnProposedBlock([]byte("blockHash2"), proposedBlock2, &block.Header{
+	err = txpool.OnProposedBlock([]byte(testBlockHash2), proposedBlock2, &block.Header{
 		Nonce:    2,
-		PrevHash: []byte("blockHash1"),
-		RootHash: []byte(fmt.Sprintf("rootHash%d", 0)),
+		PrevHash: []byte(testBlockHash1),
+		RootHash: []byte(testRootHash),
 	},
 		selectionSession,
 		defaultLatestExecutedHash,
@@ -1683,8 +1792,8 @@ func Test_SimulateSelection_ShouldNotRemoveProposedBlocks(t *testing.T) {
 	proposedBlock2 = createProposedBlock(selectedTransactions)
 	err = txpool.OnProposedBlock([]byte("blockHash3"), proposedBlock2, &block.Header{
 		Nonce:    3,
-		PrevHash: []byte("blockHash2"),
-		RootHash: []byte(fmt.Sprintf("rootHash%d", 0)),
+		PrevHash: []byte(testBlockHash2),
+		RootHash: []byte(testRootHash),
 	},
 		selectionSession,
 		defaultLatestExecutedHash,
@@ -1740,6 +1849,17 @@ func Test_Selection_MaxTrackedBlocksReached(t *testing.T) {
 	}
 
 	selectionSession := txcachemocks.NewSelectionSessionMockWithAccounts(accounts)
+	selectionSession.GetRootHashCalled = func() ([]byte, error) {
+		return []byte(testRootHash), nil
+	}
+
+	accountsProvider := txcachemocks.NewAccountNonceAndBalanceProviderMockWithAccounts(accounts)
+	accountsProvider.GetRootHashCalled = func() ([]byte, error) {
+		return []byte(testRootHash), nil
+	}
+
+	err = txpool.OnExecutedBlock(&block.Header{}, []byte(testRootHash))
+	require.Nil(t, err)
 
 	options := holders.NewTxSelectionOptions(
 		10_000_000_000,
@@ -1761,10 +1881,10 @@ func Test_Selection_MaxTrackedBlocksReached(t *testing.T) {
 
 	// propose those txs in order to track them (create the breadcrumbs used for the virtual records)
 	proposedBlock1 := createProposedBlock(selectedTransactions)
-	err = txpool.OnProposedBlock([]byte("blockHash1"), proposedBlock1, &block.Header{
+	err = txpool.OnProposedBlock([]byte(testBlockHash1), proposedBlock1, &block.Header{
 		Nonce:    1,
-		PrevHash: []byte("blockHash0"),
-		RootHash: []byte(fmt.Sprintf("rootHash%d", 0)),
+		PrevHash: []byte(testBlockHash0),
+		RootHash: []byte(testRootHash),
 	},
 		selectionSession,
 		defaultLatestExecutedHash,
@@ -1779,11 +1899,11 @@ func Test_Selection_MaxTrackedBlocksReached(t *testing.T) {
 
 	// propose the second block
 	proposedBlock2 := createProposedBlock(selectedTransactions)
-	err = txpool.OnProposedBlock([]byte("blockHash2"), proposedBlock2,
+	err = txpool.OnProposedBlock([]byte(testBlockHash2), proposedBlock2,
 		&block.Header{
 			Nonce:    2,
-			PrevHash: []byte("blockHash1"),
-			RootHash: []byte(fmt.Sprintf("rootHash%d", 1)),
+			PrevHash: []byte(testBlockHash1),
+			RootHash: []byte(testRootHash),
 		},
 		selectionSession,
 		defaultLatestExecutedHash,
@@ -1800,8 +1920,8 @@ func Test_Selection_MaxTrackedBlocksReached(t *testing.T) {
 	err = txpool.OnProposedBlock([]byte("blockHash3"), &block.Body{},
 		&block.Header{
 			Nonce:    3,
-			PrevHash: []byte("blockHash2"),
-			RootHash: []byte(fmt.Sprintf("rootHash%d", 1)),
+			PrevHash: []byte(testBlockHash2),
+			RootHash: []byte(testRootHash),
 		},
 		selectionSession,
 		defaultLatestExecutedHash,
@@ -1813,7 +1933,7 @@ func Test_Selection_MaxTrackedBlocksReached(t *testing.T) {
 		&block.Header{
 			Nonce:    4,
 			PrevHash: []byte("blockHash3"),
-			RootHash: []byte(fmt.Sprintf("rootHash%d", 1)),
+			RootHash: []byte(testRootHash),
 		},
 		selectionSession,
 		defaultLatestExecutedHash,
@@ -1829,7 +1949,7 @@ func Test_Selection_MaxTrackedBlocksReached(t *testing.T) {
 		&block.Header{
 			Nonce:    4,
 			PrevHash: []byte("blockHash3"),
-			RootHash: []byte(fmt.Sprintf("rootHash%d", 1)),
+			RootHash: []byte(testRootHash),
 		},
 		selectionSession,
 		defaultLatestExecutedHash,
@@ -1888,7 +2008,17 @@ func Test_SelectionWhenFeeExceedsBalanceWithMax3TxsSelected(t *testing.T) {
 	}
 
 	selectionSession := txcachemocks.NewSelectionSessionMockWithAccounts(accounts)
+	selectionSession.GetRootHashCalled = func() ([]byte, error) {
+		return []byte(testRootHash), nil
+	}
+
 	accountsProvider := txcachemocks.NewAccountNonceAndBalanceProviderMockWithAccounts(accounts)
+	accountsProvider.GetRootHashCalled = func() ([]byte, error) {
+		return []byte(testRootHash), nil
+	}
+
+	err = txpool.OnExecutedBlock(&block.Header{}, []byte(testRootHash))
+	require.Nil(t, err)
 
 	options := holders.NewTxSelectionOptions(
 		10_000_000_000,
@@ -1985,11 +2115,11 @@ func Test_SelectionWhenFeeExceedsBalanceWithMax3TxsSelected(t *testing.T) {
 
 	// propose those txs in order to track them (create the breadcrumbs used for the virtual records)
 	proposedBlock1 := createProposedBlock(selectedTransactions)
-	err = txpool.OnProposedBlock([]byte("blockHash1"), proposedBlock1,
+	err = txpool.OnProposedBlock([]byte(testBlockHash1), proposedBlock1,
 		&block.Header{
 			Nonce:    1,
-			PrevHash: []byte("blockHash0"),
-			RootHash: []byte(fmt.Sprintf("rootHash%d", 0)),
+			PrevHash: []byte(testBlockHash0),
+			RootHash: []byte(testRootHash),
 		},
 		accountsProvider,
 		defaultLatestExecutedHash,
@@ -2036,7 +2166,17 @@ func Test_SelectionWhenFeeExceedsBalanceWithMax2TxsSelected(t *testing.T) {
 	}
 
 	selectionSession := txcachemocks.NewSelectionSessionMockWithAccounts(accounts)
+	selectionSession.GetRootHashCalled = func() ([]byte, error) {
+		return []byte(testRootHash), nil
+	}
+
 	accountsProvider := txcachemocks.NewAccountNonceAndBalanceProviderMockWithAccounts(accounts)
+	accountsProvider.GetRootHashCalled = func() ([]byte, error) {
+		return []byte(testRootHash), nil
+	}
+
+	err = txpool.OnExecutedBlock(&block.Header{}, []byte(testRootHash))
+	require.Nil(t, err)
 
 	options := holders.NewTxSelectionOptions(
 		10_000_000_000,
@@ -2132,11 +2272,11 @@ func Test_SelectionWhenFeeExceedsBalanceWithMax2TxsSelected(t *testing.T) {
 
 	// propose those txs in order to track them (create the breadcrumbs used for the virtual records)
 	proposedBlock1 := createProposedBlock(selectedTransactions)
-	err = txpool.OnProposedBlock([]byte("blockHash1"), proposedBlock1,
+	err = txpool.OnProposedBlock([]byte(testBlockHash1), proposedBlock1,
 		&block.Header{
 			Nonce:    1,
-			PrevHash: []byte("blockHash0"),
-			RootHash: []byte(fmt.Sprintf("rootHash%d", 0)),
+			PrevHash: []byte(testBlockHash0),
+			RootHash: []byte(testRootHash),
 		},
 		accountsProvider,
 		defaultLatestExecutedHash,
