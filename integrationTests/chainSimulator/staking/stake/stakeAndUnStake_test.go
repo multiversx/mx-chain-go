@@ -2316,19 +2316,19 @@ func TestChainSimulator_UnStakeOneActiveNodeAndCheckAPIAuctionList(t *testing.T)
 
 	metachainNode := cs.GetNodeHandler(core.MetachainShardId)
 
-	qualified, unQualified := getQualifiedAndUnqualifiedNodes(t, metachainNode)
+	qualified, unQualified := GetQualifiedAndUnqualifiedNodes(t, metachainNode)
 	require.Equal(t, 8, len(qualified))
 	require.Equal(t, 0, len(unQualified))
 
 	stakeOneNode(t, cs)
 
-	qualified, unQualified = getQualifiedAndUnqualifiedNodes(t, metachainNode)
+	qualified, unQualified = GetQualifiedAndUnqualifiedNodes(t, metachainNode)
 	require.Equal(t, 8, len(qualified))
 	require.Equal(t, 1, len(unQualified))
 
 	unStakeOneActiveNode(t, cs)
 
-	qualified, unQualified = getQualifiedAndUnqualifiedNodes(t, metachainNode)
+	qualified, unQualified = GetQualifiedAndUnqualifiedNodes(t, metachainNode)
 	require.Equal(t, 8, len(qualified))
 	require.Equal(t, 1, len(unQualified))
 }
@@ -2388,7 +2388,7 @@ func TestChainSimulator_EdgeCaseLowWaitingList(t *testing.T) {
 	require.Nil(t, err)
 
 	metachainNode := cs.GetNodeHandler(core.MetachainShardId)
-	qualified, unQualified := getQualifiedAndUnqualifiedNodes(t, metachainNode)
+	qualified, unQualified := GetQualifiedAndUnqualifiedNodes(t, metachainNode)
 	require.Equal(t, 0, len(qualified))
 	require.Equal(t, 0, len(unQualified))
 
@@ -2397,7 +2397,7 @@ func TestChainSimulator_EdgeCaseLowWaitingList(t *testing.T) {
 	err = cs.GenerateBlocksUntilEpochIsReached(epochToCheck)
 	require.Nil(t, err)
 
-	qualified, unQualified = getQualifiedAndUnqualifiedNodes(t, metachainNode)
+	qualified, unQualified = GetQualifiedAndUnqualifiedNodes(t, metachainNode)
 	require.Equal(t, 0, len(qualified))
 	require.Equal(t, 0, len(unQualified))
 
@@ -2408,7 +2408,7 @@ func TestChainSimulator_EdgeCaseLowWaitingList(t *testing.T) {
 	err = cs.GenerateBlocksUntilEpochIsReached(epochToCheck)
 	require.Nil(t, err)
 
-	qualified, unQualified = getQualifiedAndUnqualifiedNodes(t, metachainNode)
+	qualified, unQualified = GetQualifiedAndUnqualifiedNodes(t, metachainNode)
 	// all the previously registered will be selected, as we have 24 nodes in eligible+waiting, 8 will shuffle out,
 	// but this time there will be not be lowWaitingList, as there are enough in auction, so we will end up with
 	// 24-8 = 16 nodes remaining + 16 from auction, to fill up all 32 positions
