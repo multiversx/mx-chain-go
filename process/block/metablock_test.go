@@ -16,6 +16,7 @@ import (
 	"github.com/multiversx/mx-chain-core-go/data/block"
 	"github.com/multiversx/mx-chain-go/process/asyncExecution/executionManager"
 	"github.com/multiversx/mx-chain-go/state/disabled"
+	"github.com/multiversx/mx-chain-go/testscommon/cache"
 	"github.com/multiversx/mx-chain-go/testscommon/processMocks"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
@@ -1337,15 +1338,128 @@ func TestMetaProcessor_RevertStateShouldWork(t *testing.T) {
 func TestMetaProcessor_MarshalizedDataToBroadcastShouldWork(t *testing.T) {
 	t.Parallel()
 
-	coreComponents, dataComponents, bootstrapComponents, statusComponents := createMockComponentHolders()
-	dataComponents.Storage = initStore()
-	arguments := createMockMetaArguments(coreComponents, dataComponents, bootstrapComponents, statusComponents)
-	mp, _ := blproc.NewMetaProcessor(arguments)
+	t.Run("should work before header v3", func(t *testing.T) {
+		t.Parallel()
 
-	msh, mstx, err := mp.MarshalizedDataToBroadcast(&block.MetaBlock{}, &block.Body{})
-	assert.Nil(t, err)
-	assert.NotNil(t, msh)
-	assert.NotNil(t, mstx)
+		marshaller := &mock.MarshalizerMock{
+			Fail: false,
+		}
+
+		selfShardID := uint32(1)
+		shardCoordinator := testscommon.NewMultiShardsCoordinatorMock(3)
+		shardCoordinator.CurrentShard = selfShardID
+		otherShardID := uint32(2)
+
+		mb1 := &block.MiniBlock{
+			TxHashes:        [][]byte{[]byte("txHash1")},
+			ReceiverShardID: otherShardID,
+			SenderShardID:   selfShardID,
+		}
+		marshalledMb, _ := marshaller.Marshal(mb1)
+
+		expectedBody := &block.Body{MiniBlocks: []*block.MiniBlock{mb1}}
+		expectedBodyMarshalled, _ := marshaller.Marshal(expectedBody)
+
+		executedMBs := &cache.CacherStub{
+			GetCalled: func(key []byte) (value interface{}, ok bool) {
+				return marshalledMb, true
+			},
+		}
+		dataPool := initDataPool()
+		dataPool.ExecutedMiniBlocksCalled = func() storage.Cacher {
+			return executedMBs
+		}
+
+		coreComponents, dataComponents, bootstrapComponents, statusComponents := createComponentHolderMocks()
+		bootstrapComponents.Coordinator = shardCoordinator
+		dataComponents.DataPool = dataPool
+		coreComponents.IntMarsh = marshaller
+
+		arguments := createMockMetaArguments(coreComponents, dataComponents, bootstrapComponents, statusComponents)
+
+		mp, _ := blproc.NewMetaProcessor(arguments)
+
+		body := &block.Body{
+			MiniBlocks: []*block.MiniBlock{
+				{
+					ReceiverShardID: otherShardID,
+					SenderShardID:   selfShardID,
+				},
+			},
+		}
+		header := &block.MetaBlock{}
+
+		msh, mstx, err := mp.MarshalizedDataToBroadcast(header, body)
+		require.Nil(t, err)
+
+		require.Nil(t, msh[selfShardID])
+		require.Equal(t, marshalledMb, msh[otherShardID])
+		require.NotNil(t, mstx)
+	})
+
+	t.Run("should work with header v3", func(t *testing.T) {
+		t.Parallel()
+
+		marshaller := &mock.MarshalizerMock{
+			Fail: false,
+		}
+
+		selfShardID := uint32(1)
+		shardCoordinator := testscommon.NewMultiShardsCoordinatorMock(3)
+		shardCoordinator.CurrentShard = selfShardID
+		otherShardID := uint32(2)
+
+		mb1 := &block.MiniBlock{
+			TxHashes:        [][]byte{[]byte("txHash1")},
+			ReceiverShardID: otherShardID,
+			SenderShardID:   selfShardID,
+		}
+		marshalledMb, _ := marshaller.Marshal(mb1)
+
+		expectedBody := &block.Body{MiniBlocks: []*block.MiniBlock{mb1}}
+		expectedBodyMarshalled, _ := marshaller.Marshal(expectedBody)
+
+		executedMBs := &cache.CacherStub{
+			GetCalled: func(key []byte) (value interface{}, ok bool) {
+				return marshalledMb, true
+			},
+		}
+		dataPool := initDataPool()
+		dataPool.ExecutedMiniBlocksCalled = func() storage.Cacher {
+			return executedMBs
+		}
+
+		coreComponents, dataComponents, bootstrapComponents, statusComponents := createComponentHolderMocks()
+		bootstrapComponents.Coordinator = shardCoordinator
+		dataComponents.DataPool = dataPool
+		coreComponents.IntMarsh = marshaller
+
+		arguments := createMockMetaArguments(coreComponents, dataComponents, bootstrapComponents, statusComponents)
+
+		mp, _ := blproc.NewMetaProcessor(arguments)
+
+		executionResults := []*block.MetaExecutionResult{
+			{
+				MiniBlockHeaders: []block.MiniBlockHeader{
+					{
+						Hash:            []byte("mbHash1"),
+						ReceiverShardID: otherShardID,
+						SenderShardID:   selfShardID,
+					},
+				},
+			},
+		}
+		header := &block.MetaBlockV3{
+			ExecutionResults: executionResults,
+		}
+
+		msh, mstx, err := mp.MarshalizedDataToBroadcast(header, &block.Body{})
+		require.Nil(t, err)
+
+		require.Nil(t, msh[selfShardID])
+		require.Equal(t, expectedBodyMarshalled, msh[otherShardID])
+		require.NotNil(t, mstx)
+	})
 }
 
 // ------- createShardInfo

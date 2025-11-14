@@ -2439,10 +2439,10 @@ func (mp *metaProcessor) setHeaderVersionData(metaHeader data.MetaHeaderHandler)
 
 // MarshalizedDataToBroadcast prepares underlying data into a marshalized object according to destination
 func (mp *metaProcessor) MarshalizedDataToBroadcast(
-	hdr data.HeaderHandler,
+	header data.HeaderHandler,
 	bodyHandler data.BodyHandler,
 ) (map[uint32][]byte, map[string][][]byte, error) {
-	if check.IfNil(hdr) {
+	if check.IfNil(header) {
 		return nil, nil, process.ErrNilMetaBlockHeader
 	}
 	if check.IfNil(bodyHandler) {
@@ -2454,16 +2454,30 @@ func (mp *metaProcessor) MarshalizedDataToBroadcast(
 		return nil, nil, process.ErrWrongTypeAssertion
 	}
 
-	var mrsTxs map[string][][]byte
-	if hdr.IsStartOfEpochBlock() {
-		mrsTxs = mp.getAllMarshalledTxs(body)
-	} else {
-		mrsTxs = mp.txCoordinator.CreateMarshalizedData(body)
+	bodyToBroadcast, err := mp.getFinalMiniBlocks(header, body)
+	if err != nil {
+		return nil, nil, err
 	}
 
-	mrsData := mp.marshalledBodyToBroadcast(body)
+	var mrsTxs map[string][][]byte
+	if header.IsStartOfEpochBlock() {
+		// TODO: handler rewards and validators info txs for header v3
+		mrsTxs = mp.getAllMarshalledTxs(bodyToBroadcast)
+	} else {
+		mrsTxs = mp.txCoordinator.CreateMarshalizedData(bodyToBroadcast)
+	}
+
+	mrsData := mp.marshalledBodyToBroadcast(bodyToBroadcast)
 
 	return mrsData, mrsTxs, nil
+}
+
+func (mp *metaProcessor) getFinalMiniBlocks(header data.HeaderHandler, body *block.Body) (*block.Body, error) {
+	if header.IsHeaderV3() {
+		return mp.getFinalMiniBlocksFromExecutionResults(header)
+	}
+
+	return body, nil
 }
 
 func (mp *metaProcessor) getAllMarshalledTxs(body *block.Body) map[string][][]byte {
