@@ -897,3 +897,8 @@ func (bp *baseProcessor) OnExecutedBlock(header data.HeaderHandler, rootHash []b
 func (bp *baseProcessor) RecreateTrieIfNeeded() error {
 	return bp.recreateTrieIfNeeded()
 }
+
+// SaveProposedTxsToStorage -
+func (bp *baseProcessor) SaveProposedTxsToStorage(header data.HeaderHandler, body *block.Body) error {
+	return bp.saveProposedTxsToStorage(header, body)
+}

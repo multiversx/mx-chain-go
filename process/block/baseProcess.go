@@ -1581,8 +1581,10 @@ func (bp *baseProcessor) DecodeBlockBody(dta []byte) data.BodyHandler {
 
 func (bp *baseProcessor) saveBody(body *block.Body, header data.HeaderHandler, headerHash []byte) {
 	startTime := time.Now()
-
-	bp.txCoordinator.SaveTxsToStorage(body)
+	err := bp.saveProposedTxsToStorage(header, body)
+	if err != nil {
+		log.Error("saveBody.saveProposedTxsToStorage", "error", err.Error())
+	}
 	log.Trace("saveBody.SaveTxsToStorage", "time", time.Since(startTime))
 
 	var errNotCritical error
@@ -1617,6 +1619,98 @@ func (bp *baseProcessor) saveBody(body *block.Body, header data.HeaderHandler, h
 	if elapsedTime >= common.PutInStorerMaxTime {
 		log.Warn("saveBody", "elapsed time", elapsedTime)
 	}
+}
+
+func (bp *baseProcessor) saveProposedTxsToStorage(header data.HeaderHandler, body *block.Body) error {
+	if !header.IsHeaderV3() {
+		bp.txCoordinator.SaveTxsToStorage(body)
+		return nil
+	}
+
+	separatedBodies := process.SeparateBodyByType(body)
+	for blockType, blockBody := range separatedBodies {
+		dataPool, err := bp.getDataPoolByBlockType(blockType)
+		if err != nil {
+			return err
+		}
+
+		unit, err := getStorageForProposedTxsFromBlockType(blockType)
+		if err != nil {
+			return err
+		}
+
+		storer, err := bp.store.GetStorer(unit)
+		if err != nil {
+			return err
+		}
+
+		for i := 0; i < len(blockBody.MiniBlocks); i++ {
+			miniBlock := blockBody.MiniBlocks[i]
+			err = bp.saveTxsToStorage(dataPool, storer, miniBlock)
+			if err != nil {
+				return err
+			}
+		}
+	}
+
+	return nil
+}
+
+func (bp *baseProcessor) saveTxsToStorage(dataPool dataRetriever.ShardedDataCacherNotifier, storer storage.Storer, miniBlock *block.MiniBlock) error {
+	txHashes := miniBlock.TxHashes
+	senderShardID := miniBlock.SenderShardID
+	receiverShardID := miniBlock.ReceiverShardID
+	method := process.SearchMethodPeekWithFallbackSearchFirst
+
+	for _, txHash := range txHashes {
+		tx, err := process.GetTransactionHandlerFromPool(senderShardID, receiverShardID, txHash, dataPool, method)
+		if err != nil {
+			return err
+		}
+
+		marshalledTx, err := bp.marshalizer.Marshal(tx)
+		if err != nil {
+			return err
+		}
+
+		err = storer.Put(txHash, marshalledTx)
+		if err != nil {
+			return err
+		}
+	}
+
+	return nil
+}
+
+func (bp *baseProcessor) getDataPoolByBlockType(blockType block.Type) (dataRetriever.ShardedDataCacherNotifier, error) {
+	switch blockType {
+	case block.TxBlock, block.InvalidBlock:
+		return bp.dataPool.Transactions(), nil
+	case block.SmartContractResultBlock:
+		return bp.dataPool.UnsignedTransactions(), nil
+	case block.RewardsBlock:
+		return bp.dataPool.RewardTransactions(), nil
+	case block.PeerBlock:
+		return bp.dataPool.ValidatorsInfo(), nil
+	default:
+		return nil, fmt.Errorf("unsupported block type for dataPool: %d", blockType)
+	}
+}
+
+func getStorageForProposedTxsFromBlockType(blockType block.Type) (dataRetriever.UnitType, error) {
+	switch blockType {
+	case block.TxBlock, block.InvalidBlock:
+		return dataRetriever.TransactionUnit, nil
+	case block.SmartContractResultBlock:
+		return dataRetriever.UnsignedTransactionUnit, nil
+	case block.ReceiptBlock:
+		return dataRetriever.ReceiptsUnit, nil
+	case block.RewardsBlock:
+		return dataRetriever.RewardTransactionUnit, nil
+	case block.PeerBlock:
+		return dataRetriever.UnsignedTransactionUnit, nil
+	}
+	return 0, process.ErrInvalidBlockType
 }
 
 func (bp *baseProcessor) saveShardHeader(header data.HeaderHandler, headerHash []byte, marshalizedHeader []byte) {
