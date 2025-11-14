@@ -1338,41 +1338,37 @@ func TestMetaProcessor_RevertStateShouldWork(t *testing.T) {
 func TestMetaProcessor_MarshalizedDataToBroadcastShouldWork(t *testing.T) {
 	t.Parallel()
 
+	marshaller := &mock.MarshalizerMock{
+		Fail: false,
+	}
+
+	selfShardID := uint32(1)
+	otherShardID := uint32(2)
+
+	mb1 := &block.MiniBlock{
+		TxHashes:        [][]byte{[]byte("txHash1")},
+		ReceiverShardID: otherShardID,
+		SenderShardID:   selfShardID,
+	}
+	marshalledMb, _ := marshaller.Marshal(mb1)
+
 	t.Run("should work before header v3", func(t *testing.T) {
 		t.Parallel()
 
-		marshaller := &mock.MarshalizerMock{
-			Fail: false,
-		}
-
-		selfShardID := uint32(1)
 		shardCoordinator := testscommon.NewMultiShardsCoordinatorMock(3)
 		shardCoordinator.CurrentShard = selfShardID
-		otherShardID := uint32(2)
 
 		mb1 := &block.MiniBlock{
 			TxHashes:        [][]byte{[]byte("txHash1")},
 			ReceiverShardID: otherShardID,
 			SenderShardID:   selfShardID,
 		}
-		marshalledMb, _ := marshaller.Marshal(mb1)
 
 		expectedBody := &block.Body{MiniBlocks: []*block.MiniBlock{mb1}}
 		expectedBodyMarshalled, _ := marshaller.Marshal(expectedBody)
 
-		executedMBs := &cache.CacherStub{
-			GetCalled: func(key []byte) (value interface{}, ok bool) {
-				return marshalledMb, true
-			},
-		}
-		dataPool := initDataPool()
-		dataPool.ExecutedMiniBlocksCalled = func() storage.Cacher {
-			return executedMBs
-		}
-
 		coreComponents, dataComponents, bootstrapComponents, statusComponents := createComponentHolderMocks()
 		bootstrapComponents.Coordinator = shardCoordinator
-		dataComponents.DataPool = dataPool
 		coreComponents.IntMarsh = marshaller
 
 		arguments := createMockMetaArguments(coreComponents, dataComponents, bootstrapComponents, statusComponents)
@@ -1382,6 +1378,7 @@ func TestMetaProcessor_MarshalizedDataToBroadcastShouldWork(t *testing.T) {
 		body := &block.Body{
 			MiniBlocks: []*block.MiniBlock{
 				{
+					TxHashes:        [][]byte{[]byte("txHash1")},
 					ReceiverShardID: otherShardID,
 					SenderShardID:   selfShardID,
 				},
@@ -1393,28 +1390,15 @@ func TestMetaProcessor_MarshalizedDataToBroadcastShouldWork(t *testing.T) {
 		require.Nil(t, err)
 
 		require.Nil(t, msh[selfShardID])
-		require.Equal(t, marshalledMb, msh[otherShardID])
+		require.Equal(t, expectedBodyMarshalled, msh[otherShardID])
 		require.NotNil(t, mstx)
 	})
 
 	t.Run("should work with header v3", func(t *testing.T) {
 		t.Parallel()
 
-		marshaller := &mock.MarshalizerMock{
-			Fail: false,
-		}
-
-		selfShardID := uint32(1)
 		shardCoordinator := testscommon.NewMultiShardsCoordinatorMock(3)
 		shardCoordinator.CurrentShard = selfShardID
-		otherShardID := uint32(2)
-
-		mb1 := &block.MiniBlock{
-			TxHashes:        [][]byte{[]byte("txHash1")},
-			ReceiverShardID: otherShardID,
-			SenderShardID:   selfShardID,
-		}
-		marshalledMb, _ := marshaller.Marshal(mb1)
 
 		expectedBody := &block.Body{MiniBlocks: []*block.MiniBlock{mb1}}
 		expectedBodyMarshalled, _ := marshaller.Marshal(expectedBody)
