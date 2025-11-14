@@ -2461,7 +2461,6 @@ func (mp *metaProcessor) MarshalizedDataToBroadcast(
 
 	var mrsTxs map[string][][]byte
 	if header.IsStartOfEpochBlock() {
-		// TODO: handler rewards and validators info txs for header v3
 		mrsTxs = mp.getAllMarshalledTxs(bodyToBroadcast)
 	} else {
 		mrsTxs = mp.txCoordinator.CreateMarshalizedData(bodyToBroadcast)
