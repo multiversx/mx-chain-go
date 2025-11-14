@@ -724,7 +724,7 @@ func (tpn *TestProcessorNode) initAccountDBs(store storage.Storer) {
 }
 
 func (tpn *TestProcessorNode) initValidatorStatistics() {
-	rater, _ := rating.NewBlockSigningRater(tpn.RatingsData)
+	rater, _ := rating.NewBlockSigningRater(tpn.RatingsData, tpn.EnableEpochsHandler)
 
 	if check.IfNil(tpn.NodesSetup) {
 		tpn.NodesSetup = &genesisMocks.NodesSetupStub{
