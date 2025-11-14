@@ -398,11 +398,11 @@ func (cmv *consensusMessageValidator) checkMessageWithSignatureValidity(cnsMsg *
 			logger.DisplayByteSlice(cnsMsg.PubKey))
 	}
 
-	if len(cnsMsg.SignatureShare) != cmv.signatureSize {
-		return fmt.Errorf("%w : received signature share from consensus topic has an invalid size: %d",
-			ErrInvalidSignatureSize,
-			len(cnsMsg.SignatureShare))
-	}
+	//if len(cnsMsg.SignatureShare) != cmv.signatureSize {
+	//	return fmt.Errorf("%w : received signature share from consensus topic has an invalid size: %d",
+	//		ErrInvalidSignatureSize,
+	//		len(cnsMsg.SignatureShare))
+	//}
 
 	return nil
 }
