@@ -9,9 +9,10 @@ import (
 	"github.com/multiversx/mx-chain-core-go/data"
 	"github.com/multiversx/mx-chain-core-go/data/block"
 	"github.com/multiversx/mx-chain-core-go/display"
+	"github.com/multiversx/mx-chain-logger-go"
+
 	"github.com/multiversx/mx-chain-go/dataRetriever"
 	"github.com/multiversx/mx-chain-go/process"
-	"github.com/multiversx/mx-chain-logger-go"
 )
 
 type transactionCountersProvider interface {
@@ -54,20 +55,19 @@ func (hc *headersCounter) countShardMBHeaders(numShardMBHeaders int) {
 	hc.shardMBHeaderCounterMutex.Unlock()
 }
 
-func (hc *headersCounter) calculateNumOfShardMBHeaders(header *block.MetaBlock) {
+func (hc *headersCounter) calculateNumOfShardMBHeaders(header data.MetaHeaderHandler) {
 	hc.shardMBHeaderCounterMutex.Lock()
 	hc.shardMBHeadersCurrentBlockProcessed = 0
 	hc.shardMBHeaderCounterMutex.Unlock()
 
-	for i := 0; i < len(header.ShardInfo); i++ {
-		shardData := header.ShardInfo[i]
-		hc.countShardMBHeaders(len(shardData.ShardMiniBlockHeaders))
+	for _, shardData := range header.GetShardInfoHandlers() {
+		hc.countShardMBHeaders(len(shardData.GetShardMiniBlockHeaderHandlers()))
 	}
 }
 
 func (hc *headersCounter) displayLogInfo(
 	countersProvider transactionCountersProvider,
-	header *block.MetaBlock,
+	header data.MetaHeaderHandler,
 	body *block.Body,
 	headerHash []byte,
 	numShardHeadersFromPool int,
@@ -112,7 +112,7 @@ func (hc *headersCounter) displayLogInfo(
 }
 
 func (hc *headersCounter) createDisplayableMetaHeader(
-	header *block.MetaBlock,
+	header data.MetaHeaderHandler,
 	headerProof data.HeaderProofHandler,
 ) ([]string, []*display.LineData) {
 
@@ -141,29 +141,27 @@ func (hc *headersCounter) createDisplayableMetaHeader(
 	return tableHeader, metaLines
 }
 
-func (hc *headersCounter) displayShardInfo(lines []*display.LineData, header *block.MetaBlock) []*display.LineData {
-	for i := 0; i < len(header.ShardInfo); i++ {
-		shardData := header.ShardInfo[i]
-
+func (hc *headersCounter) displayShardInfo(lines []*display.LineData, header data.MetaHeaderHandler) []*display.LineData {
+	for _, shardData := range header.GetShardInfoHandlers() {
 		lines = append(lines, display.NewLineData(false, []string{
-			fmt.Sprintf("ShardData_%d", shardData.ShardID),
+			fmt.Sprintf("ShardData_%d", shardData.GetShardID()),
 			"Header hash",
-			logger.DisplayByteSlice(shardData.HeaderHash)}))
+			logger.DisplayByteSlice(shardData.GetHeaderHash())}))
 
-		if len(shardData.ShardMiniBlockHeaders) == 0 {
+		if len(shardData.GetShardMiniBlockHeaderHandlers()) == 0 {
 			lines = append(lines, display.NewLineData(false, []string{
 				"", "ShardMiniBlockHeaders", "<EMPTY>"}))
 		}
 
-		for j := 0; j < len(shardData.ShardMiniBlockHeaders); j++ {
-			if j == 0 || j >= len(shardData.ShardMiniBlockHeaders)-1 {
-				senderShard := shardData.ShardMiniBlockHeaders[j].SenderShardID
-				receiverShard := shardData.ShardMiniBlockHeaders[j].ReceiverShardID
+		for j := 0; j < len(shardData.GetShardMiniBlockHeaderHandlers()); j++ {
+			if j == 0 || j >= len(shardData.GetShardMiniBlockHeaderHandlers())-1 {
+				senderShard := shardData.GetShardMiniBlockHeaderHandlers()[j].GetSenderShardID()
+				receiverShard := shardData.GetShardMiniBlockHeaderHandlers()[j].GetReceiverShardID()
 
 				lines = append(lines, display.NewLineData(false, []string{
 					"",
 					fmt.Sprintf("%d ShardMiniBlockHeaderHash_%d_%d", j+1, senderShard, receiverShard),
-					logger.DisplayByteSlice(shardData.ShardMiniBlockHeaders[j].Hash)}))
+					logger.DisplayByteSlice(shardData.GetShardMiniBlockHeaderHandlers()[j].GetHash())}))
 			} else if j == 1 {
 				lines = append(lines, display.NewLineData(false, []string{
 					"",
@@ -246,14 +244,14 @@ func (hc *headersCounter) getNumShardMBHeadersTotalProcessed() uint64 {
 }
 
 func displayEpochStartMetaBlock(
-	block *block.MetaBlock,
+	block data.MetaHeaderHandler,
 	headerProof data.HeaderProofHandler,
 ) []*display.LineData {
 	lines := displayHeader(block, headerProof)
-	economicsLines := displayEconomicsData(block.EpochStart.Economics)
+	economicsLines := displayEconomicsData(block.GetEpochStartHandler().GetEconomicsHandler())
 	lines = append(lines, economicsLines...)
 
-	for _, shardData := range block.EpochStart.LastFinalizedHeaders {
+	for _, shardData := range block.GetEpochStartHandler().GetLastFinalizedHeaderHandlers() {
 		shardDataLines := displayEpochStartShardData(shardData)
 		lines = append(lines, shardDataLines...)
 	}
@@ -261,36 +259,36 @@ func displayEpochStartMetaBlock(
 	return lines
 }
 
-func displayEpochStartShardData(shardData block.EpochStartShardData) []*display.LineData {
+func displayEpochStartShardData(shardData data.EpochStartShardDataHandler) []*display.LineData {
 	lines := []*display.LineData{
 		display.NewLineData(false, []string{
-			fmt.Sprintf("EpochStartShardData - Shard %d", shardData.ShardID),
+			fmt.Sprintf("EpochStartShardData - Shard %d", shardData.GetShardID()),
 			"Round",
-			fmt.Sprintf("%d", shardData.Round)}),
+			fmt.Sprintf("%d", shardData.GetRound())}),
 		display.NewLineData(false, []string{
 			"",
 			"Nonce",
-			fmt.Sprintf("%d", shardData.Nonce)}),
+			fmt.Sprintf("%d", shardData.GetNonce())}),
 		display.NewLineData(false, []string{
 			"",
 			"FirstPendingMetaBlock",
-			logger.DisplayByteSlice(shardData.FirstPendingMetaBlock)}),
+			logger.DisplayByteSlice(shardData.GetFirstPendingMetaBlock())}),
 		display.NewLineData(false, []string{
 			"",
 			"LastFinishedMetaBlock",
-			logger.DisplayByteSlice(shardData.LastFinishedMetaBlock)}),
+			logger.DisplayByteSlice(shardData.GetLastFinishedMetaBlock())}),
 		display.NewLineData(false, []string{
 			"",
 			"HeaderHash",
-			logger.DisplayByteSlice(shardData.HeaderHash)}),
+			logger.DisplayByteSlice(shardData.GetHeaderHash())}),
 		display.NewLineData(false, []string{
 			"",
 			"RootHash",
-			logger.DisplayByteSlice(shardData.RootHash)}),
+			logger.DisplayByteSlice(shardData.GetRootHash())}),
 		display.NewLineData(false, []string{
 			"",
 			"PendingMiniBlockHeaders count",
-			fmt.Sprintf("%d", len(shardData.PendingMiniBlockHeaders))}),
+			fmt.Sprintf("%d", len(shardData.GetPendingMiniBlockHeaderHandlers()))}),
 	}
 
 	lines[len(lines)-1].HorizontalRuleAfter = true
@@ -298,35 +296,35 @@ func displayEpochStartShardData(shardData block.EpochStartShardData) []*display.
 	return lines
 }
 
-func displayEconomicsData(economics block.Economics) []*display.LineData {
+func displayEconomicsData(economics data.EconomicsHandler) []*display.LineData {
 	return []*display.LineData{
 		display.NewLineData(false, []string{
 			"Epoch Start - Economics",
 			"PrevEpochStartHash",
-			logger.DisplayByteSlice(economics.PrevEpochStartHash)}),
+			logger.DisplayByteSlice(economics.GetPrevEpochStartHash())}),
 		display.NewLineData(false, []string{
 			"",
 			"NodePrice",
-			economics.NodePrice.String()}),
+			economics.GetNodePrice().String()}),
 		display.NewLineData(false, []string{
 			"",
 			"RewardsPerBlock",
-			economics.RewardsPerBlock.String()}),
+			economics.GetRewardsPerBlock().String()}),
 		display.NewLineData(false, []string{
 			"",
 			"GenesisTotalSupply",
-			economics.TotalSupply.String()}),
+			economics.GetTotalSupply().String()}),
 		display.NewLineData(false, []string{
 			"",
 			"TotalNewlyMinted",
-			economics.TotalNewlyMinted.String()}),
+			economics.GetTotalNewlyMinted().String()}),
 		display.NewLineData(false, []string{
 			"",
 			"TotalToDistribute",
-			economics.TotalToDistribute.String()}),
+			economics.GetTotalToDistribute().String()}),
 		display.NewLineData(true, []string{
 			"",
 			"PrevEpochStartRound",
-			fmt.Sprintf("%d", economics.PrevEpochStartRound)}),
+			fmt.Sprintf("%d", economics.GetPrevEpochStartRound())}),
 	}
 }
