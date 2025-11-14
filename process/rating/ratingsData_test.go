@@ -42,7 +42,7 @@ func createDummyRatingsData() RatingsDataArg {
 		ChainParametersHolder: &chainParameters.ChainParametersHandlerStub{
 			CurrentChainParametersCalled: func() config.ChainParametersByEpochConfig {
 				return config.ChainParametersByEpochConfig{
-					RoundDuration:               4000,
+					RoundDuration:               roundDurationMilliseconds,
 					Hysteresis:                  0.2,
 					EnableEpoch:                 0,
 					ShardConsensusGroupSize:     shardConsensusSize,
@@ -55,7 +55,7 @@ func createDummyRatingsData() RatingsDataArg {
 			AllChainParametersCalled: func() []config.ChainParametersByEpochConfig {
 				return []config.ChainParametersByEpochConfig{
 					{
-						RoundDuration:               4000,
+						RoundDuration:               roundDurationMilliseconds,
 						Hysteresis:                  0.2,
 						EnableEpoch:                 0,
 						ShardConsensusGroupSize:     shardConsensusSize,
@@ -67,8 +67,7 @@ func createDummyRatingsData() RatingsDataArg {
 				}
 			},
 		},
-		RoundDurationMilliseconds: roundDurationMilliseconds,
-		EpochNotifier:             &epochNotifier.EpochNotifierStub{},
+		EpochNotifier: &epochNotifier.EpochNotifierStub{},
 	}
 }
 
@@ -423,7 +422,7 @@ func TestRatingsData_EpochConfirmed(t *testing.T) {
 	chainParams := make([]config.ChainParametersByEpochConfig, 0)
 	for i := uint32(0); i <= 15; i += 5 {
 		newChainParams := config.ChainParametersByEpochConfig{
-			RoundDuration:               4000,
+			RoundDuration:               roundDurationMilliseconds,
 			Hysteresis:                  0.2,
 			EnableEpoch:                 i,
 			ShardConsensusGroupSize:     shardConsensusSize,

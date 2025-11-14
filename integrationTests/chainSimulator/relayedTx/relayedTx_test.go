@@ -40,7 +40,7 @@ const (
 	mockTxSignature                         = "ssig"
 	mockRelayerTxSignature                  = "rsig"
 	maxNumOfBlocksToGenerateWhenExecutingTx = 10
-	roundsPerEpoch                          = 30
+	roundsPerEpoch                          = 40
 	guardAccountCost                        = 250_000
 	extraGasLimitForGuarded                 = minGasLimit
 	extraGasESDTTransfer                    = 250000
@@ -1334,20 +1334,26 @@ func startChainSimulator(
 		HasValue: true,
 		Value:    roundsPerEpoch,
 	}
+	supernovaRoundsPerEpochOpt := core.OptionalUint64{
+		HasValue: true,
+		Value:    roundsPerEpoch * 10,
+	}
 
 	cs, err := chainSimulator.NewChainSimulator(chainSimulator.ArgsChainSimulator{
-		BypassTxSignatureCheck:   true,
-		TempDir:                  t.TempDir(),
-		PathToInitialConfig:      defaultPathToInitialConfig,
-		NumOfShards:              3,
-		RoundDurationInMillis:    roundDurationInMillis,
-		RoundsPerEpoch:           roundsPerEpochOpt,
-		ApiInterface:             api.NewNoApiInterface(),
-		MinNodesPerShard:         3,
-		MetaChainMinNodes:        3,
-		NumNodesWaitingListMeta:  3,
-		NumNodesWaitingListShard: 3,
-		AlterConfigsFunction:     alterConfigsFunction,
+		BypassTxSignatureCheck:         true,
+		TempDir:                        t.TempDir(),
+		PathToInitialConfig:            defaultPathToInitialConfig,
+		NumOfShards:                    3,
+		RoundDurationInMillis:          roundDurationInMillis,
+		SupernovaRoundDurationInMillis: roundDurationInMillis / 10,
+		RoundsPerEpoch:                 roundsPerEpochOpt,
+		SupernovaRoundsPerEpoch:        supernovaRoundsPerEpochOpt,
+		ApiInterface:                   api.NewNoApiInterface(),
+		MinNodesPerShard:               3,
+		MetaChainMinNodes:              3,
+		NumNodesWaitingListMeta:        3,
+		NumNodesWaitingListShard:       3,
+		AlterConfigsFunction:           alterConfigsFunction,
 	})
 	require.NoError(t, err)
 	require.NotNil(t, cs)
