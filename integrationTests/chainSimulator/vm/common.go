@@ -11,7 +11,7 @@ import (
 	"github.com/multiversx/mx-chain-core-go/data/transaction"
 	"github.com/multiversx/mx-chain-go/config"
 	"github.com/multiversx/mx-chain-go/integrationTests"
-	chainSimulator2 "github.com/multiversx/mx-chain-go/integrationTests/chainSimulator"
+	chainSimulatorIntegrationTests "github.com/multiversx/mx-chain-go/integrationTests/chainSimulator"
 	"github.com/multiversx/mx-chain-go/integrationTests/vm/txsFee"
 	"github.com/multiversx/mx-chain-go/integrationTests/vm/txsFee/utils"
 	"github.com/multiversx/mx-chain-go/node/chainSimulator"
@@ -19,7 +19,7 @@ import (
 	"github.com/multiversx/mx-chain-go/node/chainSimulator/configs"
 	"github.com/multiversx/mx-chain-go/node/chainSimulator/dtos"
 	"github.com/multiversx/mx-chain-go/state"
-	vm2 "github.com/multiversx/mx-chain-go/vm"
+	"github.com/multiversx/mx-chain-go/vm"
 	"github.com/multiversx/mx-chain-logger-go"
 	"github.com/stretchr/testify/require"
 )
@@ -320,7 +320,7 @@ func TransferAndCheckTokensMetaData(t *testing.T, isCrossShard bool, isMultiTran
 
 func CreateAddresses(
 	t *testing.T,
-	cs chainSimulator2.ChainSimulator,
+	cs chainSimulatorIntegrationTests.ChainSimulator,
 	isCrossShard bool,
 ) []dtos.WalletAddress {
 	var shardIDs []uint32
@@ -350,7 +350,7 @@ func CreateAddresses(
 
 func CheckMetaData(
 	t *testing.T,
-	cs chainSimulator2.ChainSimulator,
+	cs chainSimulatorIntegrationTests.ChainSimulator,
 	addressBytes []byte,
 	token []byte,
 	shardID uint32,
@@ -370,7 +370,7 @@ func CheckMetaData(
 
 func CheckReservedField(
 	t *testing.T,
-	cs chainSimulator2.ChainSimulator,
+	cs chainSimulatorIntegrationTests.ChainSimulator,
 	addressBytes []byte,
 	tokenID []byte,
 	shardID uint32,
@@ -382,7 +382,7 @@ func CheckReservedField(
 
 func CheckMetaDataNotInAcc(
 	t *testing.T,
-	cs chainSimulator2.ChainSimulator,
+	cs chainSimulatorIntegrationTests.ChainSimulator,
 	addressBytes []byte,
 	token []byte,
 	shardID uint32,
@@ -550,7 +550,7 @@ func ChangeToDynamicTx(nonce uint64, sndAdr []byte, tokenID []byte) *transaction
 	return &transaction.Transaction{
 		Nonce:     nonce,
 		SndAddr:   sndAdr,
-		RcvAddr:   vm2.ESDTSCAddress,
+		RcvAddr:   vm.ESDTSCAddress,
 		GasLimit:  100_000_000,
 		GasPrice:  MinGasPrice,
 		Signature: []byte("dummySig"),
@@ -567,7 +567,7 @@ func UpdateTokenIDTx(nonce uint64, sndAdr []byte, tokenID []byte) *transaction.T
 	return &transaction.Transaction{
 		Nonce:     nonce,
 		SndAddr:   sndAdr,
-		RcvAddr:   vm2.ESDTSCAddress,
+		RcvAddr:   vm.ESDTSCAddress,
 		GasLimit:  100_000_000,
 		GasPrice:  MinGasPrice,
 		Signature: []byte("dummySig"),
@@ -645,7 +645,7 @@ func ModifyCreatorTx(
 
 func GetESDTDataFromAcc(
 	t *testing.T,
-	cs chainSimulator2.ChainSimulator,
+	cs chainSimulatorIntegrationTests.ChainSimulator,
 	addressBytes []byte,
 	token []byte,
 	shardID uint32,
@@ -671,7 +671,7 @@ func GetESDTDataFromAcc(
 
 func GetMetaDataFromAcc(
 	t *testing.T,
-	cs chainSimulator2.ChainSimulator,
+	cs chainSimulatorIntegrationTests.ChainSimulator,
 	addressBytes []byte,
 	token []byte,
 	shardID uint32,
@@ -708,7 +708,7 @@ func SetSpecialRoleTx(
 	return &transaction.Transaction{
 		Nonce:     nonce,
 		SndAddr:   sndAddr,
-		RcvAddr:   vm2.ESDTSCAddress,
+		RcvAddr:   vm.ESDTSCAddress,
 		GasLimit:  60_000_000,
 		GasPrice:  MinGasPrice,
 		Signature: []byte("dummySig"),
@@ -721,7 +721,7 @@ func SetSpecialRoleTx(
 
 func SetAddressEsdtRoles(
 	t *testing.T,
-	cs chainSimulator2.ChainSimulator,
+	cs chainSimulatorIntegrationTests.ChainSimulator,
 	nonce uint64,
 	address dtos.WalletAddress,
 	token []byte,
@@ -888,7 +888,7 @@ func CheckTokenRoles(t *testing.T, returnData [][]byte, expectedRoles [][]byte) 
 	}
 }
 
-func GetTestChainSimulatorWithDynamicNFTEnabled(t *testing.T, baseIssuingCost string) (chainSimulator2.ChainSimulator, int32) {
+func GetTestChainSimulatorWithDynamicNFTEnabled(t *testing.T, baseIssuingCost string) (chainSimulatorIntegrationTests.ChainSimulator, int32) {
 	activationEpochForDynamicNFT := uint32(2)
 
 	numOfShards := uint32(3)
@@ -921,7 +921,7 @@ func GetTestChainSimulatorWithDynamicNFTEnabled(t *testing.T, baseIssuingCost st
 	return cs, int32(activationEpochForDynamicNFT)
 }
 
-func GetTestChainSimulatorWithSaveToSystemAccountDisabled(t *testing.T, baseIssuingCost string) (chainSimulator2.ChainSimulator, int32) {
+func GetTestChainSimulatorWithSaveToSystemAccountDisabled(t *testing.T, baseIssuingCost string) (chainSimulatorIntegrationTests.ChainSimulator, int32) {
 	activationEpochForSaveToSystemAccount := uint32(4)
 	activationEpochForDynamicNFT := uint32(6)
 
@@ -957,7 +957,7 @@ func GetTestChainSimulatorWithSaveToSystemAccountDisabled(t *testing.T, baseIssu
 
 func CreateTokenUpdateTokenIDAndTransfer(
 	t *testing.T,
-	cs chainSimulator2.ChainSimulator,
+	cs chainSimulatorIntegrationTests.ChainSimulator,
 	originAddress []byte,
 	targetAddress []byte,
 	tokenID []byte,
@@ -1030,7 +1030,7 @@ func UnsetSpecialRole(
 	return &transaction.Transaction{
 		Nonce:     nonce,
 		SndAddr:   sndAddr,
-		RcvAddr:   vm2.ESDTSCAddress,
+		RcvAddr:   vm.ESDTSCAddress,
 		GasLimit:  60_000_000,
 		GasPrice:  MinGasPrice,
 		Signature: []byte("dummySig"),
@@ -1080,7 +1080,7 @@ func EsdtMetaDataUpdateTx(tokenID []byte, metaData *txsFee.MetaData, nonce uint6
 
 func TransferSpecialRoleToAddr(
 	t *testing.T,
-	cs chainSimulator2.ChainSimulator,
+	cs chainSimulatorIntegrationTests.ChainSimulator,
 	nonce uint64,
 	tokenID []byte,
 	sndAddr []byte,
