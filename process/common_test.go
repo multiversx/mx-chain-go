@@ -156,9 +156,12 @@ func TestGetMetaHeaderShouldErrNilStorage(t *testing.T) {
 func TestGetMetaHeaderShouldGetHeaderFromPool(t *testing.T) {
 	t.Parallel()
 
-	hash := []byte("X")
+	testGetMetaHeader(t, &block.MetaBlock{Nonce: 1})
+	testGetMetaHeader(t, &block.MetaBlockV3{Nonce: 2})
+}
 
-	hdr := &block.MetaBlock{Nonce: 1}
+func testGetMetaHeader(t *testing.T, hdr data.MetaHeaderHandler) {
+	hash := []byte("X")
 	cacher := &mock.HeadersCacherStub{
 		GetHeaderByHashCalled: func(hash []byte) (handler data.HeaderHandler, e error) {
 			return hdr, nil
@@ -303,9 +306,12 @@ func TestGetMetaHeaderFromPoolShouldErrWrongTypeAssertion(t *testing.T) {
 func TestGetMetaHeaderFromPoolShouldWork(t *testing.T) {
 	t.Parallel()
 
-	hash := []byte("X")
+	testGetMetaHeaderFromPool(t, &block.MetaBlock{Nonce: 10})
+	testGetMetaHeaderFromPool(t, &block.MetaBlockV3{Nonce: 11})
+}
 
-	hdr := &block.MetaBlock{Nonce: 10}
+func testGetMetaHeaderFromPool(t *testing.T, hdr data.MetaHeaderHandler) {
+	hash := []byte("X")
 	cacher := &mock.HeadersCacherStub{
 		GetHeaderByHashCalled: func(hash []byte) (handler data.HeaderHandler, e error) {
 			return hdr, nil
@@ -542,9 +548,13 @@ func TestGetMetaHeaderFromStorageShouldErrUnmarshalWithoutSuccess(t *testing.T) 
 func TestGetMetaHeaderFromStorageShouldWork(t *testing.T) {
 	t.Parallel()
 
+	testGetMetaHeaderFromStorage(t, &block.MetaBlock{Nonce: 1})
+	testGetMetaHeaderFromStorage(t, &block.MetaBlockV3{Nonce: 2, LastExecutionResult: &block.MetaExecutionResultInfo{}})
+}
+
+func testGetMetaHeaderFromStorage(t *testing.T, hdr data.MetaHeaderHandler) {
 	hash := []byte("X")
 
-	hdr := &block.MetaBlock{}
 	marshalizer := &mock.MarshalizerMock{}
 	storageService := &storageStubs.ChainStorerStub{
 		GetStorerCalled: func(unitType dataRetriever.UnitType) (storage.Storer, error) {
@@ -938,11 +948,14 @@ func TestGetMetaHeaderWithNonceShouldGetHeaderFromPool(t *testing.T) {
 func TestGetMetaHeaderWithNonceShouldGetHeaderFromStorage(t *testing.T) {
 	t.Parallel()
 
+	testGetMetaHeaderWithNonceShouldGetHeaderFromStorage(t, &block.MetaBlock{Nonce: 1})
+	testGetMetaHeaderWithNonceShouldGetHeaderFromStorage(t, &block.MetaBlockV3{Nonce: 2})
+}
+
+func testGetMetaHeaderWithNonceShouldGetHeaderFromStorage(t *testing.T, hdr data.MetaHeaderHandler) {
 	hash := []byte("X")
-	nonce := uint64(1)
 	nonceToByte := []byte("1")
 
-	hdr := &block.MetaBlock{Nonce: nonce}
 	cacher := &mock.HeadersCacherStub{
 		GetHeaderByNonceAndShardIdCalled: func(hdrNonce uint64, shardId uint32) (handlers []data.HeaderHandler, i [][]byte, e error) {
 			return []data.HeaderHandler{hdr}, [][]byte{hash}, nil
@@ -967,7 +980,7 @@ func TestGetMetaHeaderWithNonceShouldGetHeaderFromStorage(t *testing.T) {
 	}
 	uint64Converter := &mock.Uint64ByteSliceConverterMock{
 		ToByteSliceCalled: func(n uint64) []byte {
-			if n == nonce {
+			if n == hdr.GetNonce() {
 				return nonceToByte
 			}
 
@@ -976,7 +989,7 @@ func TestGetMetaHeaderWithNonceShouldGetHeaderFromStorage(t *testing.T) {
 	}
 
 	header, _, _ := process.GetMetaHeaderWithNonce(
-		nonce,
+		hdr.GetNonce(),
 		cacher,
 		marshalizer,
 		storageService,
@@ -1156,17 +1169,20 @@ func TestGetMetaHeaderFromPoolWithNonceShouldErrWrongTypeAssertion(t *testing.T)
 func TestGetMetaHeaderFromPoolWithNonceShouldWork(t *testing.T) {
 	t.Parallel()
 
-	hash := []byte("X")
-	nonce := uint64(1)
+	testGetMetaHeaderFromPoolWithNonce(t, &block.MetaBlock{Nonce: 1})
+	testGetMetaHeaderFromPoolWithNonce(t, &block.MetaBlockV3{Nonce: 2})
+}
 
-	hdr := &block.MetaBlock{Nonce: nonce}
+func testGetMetaHeaderFromPoolWithNonce(t *testing.T, hdr data.MetaHeaderHandler) {
+	hash := []byte("X")
+
 	cacher := &mock.HeadersCacherStub{
 		GetHeaderByNonceAndShardIdCalled: func(hdrNonce uint64, shardId uint32) (handlers []data.HeaderHandler, i [][]byte, e error) {
 			return []data.HeaderHandler{hdr}, [][]byte{hash}, nil
 		},
 	}
 
-	header, headerHash, err := process.GetMetaHeaderFromPoolWithNonce(nonce, cacher)
+	header, headerHash, err := process.GetMetaHeaderFromPoolWithNonce(hdr.GetNonce(), cacher)
 	assert.Nil(t, err)
 	assert.Equal(t, hash, headerHash)
 	assert.Equal(t, hdr, header)
@@ -1653,10 +1669,13 @@ func TestGetMetaHeaderFromStorageWithNonceShouldErrUnmarshalWithoutSuccess(t *te
 func TestGetMetaHeaderFromStorageWithNonceShouldWork(t *testing.T) {
 	t.Parallel()
 
-	nonce := uint64(1)
+	testGetMetaHeaderFromStorageWithNonce(t, &block.MetaBlock{Nonce: 1})
+	testGetMetaHeaderFromStorageWithNonce(t, &block.MetaBlockV3{Nonce: 2, LastExecutionResult: &block.MetaExecutionResultInfo{}})
+}
+
+func testGetMetaHeaderFromStorageWithNonce(t *testing.T, hdr data.MetaHeaderHandler) {
 	hash := []byte("X")
 	nonceToByte := []byte("1")
-	hdr := &block.MetaBlock{Nonce: nonce}
 	marshalizer := &mock.MarshalizerMock{}
 	marshHdr, _ := marshalizer.Marshal(hdr)
 	storageService := &storageStubs.ChainStorerStub{
@@ -1676,7 +1695,7 @@ func TestGetMetaHeaderFromStorageWithNonceShouldWork(t *testing.T) {
 	}
 	uint64Converter := &mock.Uint64ByteSliceConverterMock{
 		ToByteSliceCalled: func(n uint64) []byte {
-			if n == nonce {
+			if n == hdr.GetNonce() {
 				return nonceToByte
 			}
 
@@ -1685,7 +1704,7 @@ func TestGetMetaHeaderFromStorageWithNonceShouldWork(t *testing.T) {
 	}
 
 	header, headerHash, err := process.GetMetaHeaderFromStorageWithNonce(
-		nonce,
+		hdr.GetNonce(),
 		storageService,
 		uint64Converter,
 		marshalizer)
