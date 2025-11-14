@@ -137,6 +137,7 @@ func (hc *headersCounter) createDisplayableMetaHeader(
 	metaLines = append(metaLines, lines...)
 
 	metaLines = hc.displayShardInfo(metaLines, header)
+	metaLines = hc.displayShardInfoProposal(metaLines, header)
 
 	return tableHeader, metaLines
 }
@@ -170,6 +171,32 @@ func (hc *headersCounter) displayShardInfo(lines []*display.LineData, header dat
 				}))
 			}
 		}
+
+		lines[len(lines)-1].HorizontalRuleAfter = true
+	}
+
+	return lines
+}
+
+func (hc *headersCounter) displayShardInfoProposal(lines []*display.LineData, header data.MetaHeaderHandler) []*display.LineData {
+	for _, shardDataProposal := range header.GetShardInfoProposalHandlers() {
+		lines = append(lines, []*display.LineData{
+			display.NewLineData(false, []string{
+				fmt.Sprintf("ShardDataProposal_%d", shardDataProposal.GetShardID()),
+				"Hash",
+				logger.DisplayByteSlice(shardDataProposal.GetHeaderHash()),
+			}),
+			display.NewLineData(false, []string{
+				"",
+				"Epoch",
+				fmt.Sprintf("%d", shardDataProposal.GetEpoch()),
+			}),
+			display.NewLineData(false, []string{
+				"",
+				"Nonce",
+				fmt.Sprintf("%d", shardDataProposal.GetNonce()),
+			}),
+		}...)
 
 		lines[len(lines)-1].HorizontalRuleAfter = true
 	}
