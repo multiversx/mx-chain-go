@@ -14,22 +14,9 @@ import (
 	"github.com/multiversx/mx-chain-core-go/core/check"
 	"github.com/multiversx/mx-chain-core-go/data"
 	"github.com/multiversx/mx-chain-core-go/data/block"
-	"github.com/multiversx/mx-chain-go/process/asyncExecution/executionManager"
-	"github.com/multiversx/mx-chain-go/state/disabled"
 	"github.com/multiversx/mx-chain-go/testscommon/cache"
-	"github.com/multiversx/mx-chain-go/testscommon/processMocks"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
-
-	"github.com/multiversx/mx-chain-go/process/asyncExecution/executionTrack"
-	"github.com/multiversx/mx-chain-go/process/estimator"
-	"github.com/multiversx/mx-chain-go/process/missingData"
-	"github.com/multiversx/mx-chain-go/testscommon/economicsmocks"
-
-	"github.com/multiversx/mx-chain-go/process/block/headerForBlock"
-	"github.com/multiversx/mx-chain-go/process/coordinator"
-	"github.com/multiversx/mx-chain-go/process/factory/containers"
-	"github.com/multiversx/mx-chain-go/testscommon/hashingMocks"
 
 	"github.com/multiversx/mx-chain-go/common"
 	"github.com/multiversx/mx-chain-go/common/graceperiod"
@@ -37,20 +24,32 @@ import (
 	"github.com/multiversx/mx-chain-go/dataRetriever"
 	"github.com/multiversx/mx-chain-go/dataRetriever/blockchain"
 	"github.com/multiversx/mx-chain-go/process"
+	"github.com/multiversx/mx-chain-go/process/asyncExecution/executionManager"
+	"github.com/multiversx/mx-chain-go/process/asyncExecution/executionTrack"
 	blproc "github.com/multiversx/mx-chain-go/process/block"
 	"github.com/multiversx/mx-chain-go/process/block/bootstrapStorage"
+	"github.com/multiversx/mx-chain-go/process/block/headerForBlock"
 	"github.com/multiversx/mx-chain-go/process/block/processedMb"
+	"github.com/multiversx/mx-chain-go/process/coordinator"
+	"github.com/multiversx/mx-chain-go/process/estimator"
+	"github.com/multiversx/mx-chain-go/process/factory/containers"
+	"github.com/multiversx/mx-chain-go/process/missingData"
 	"github.com/multiversx/mx-chain-go/process/mock"
 	"github.com/multiversx/mx-chain-go/sharding"
 	"github.com/multiversx/mx-chain-go/state"
+	"github.com/multiversx/mx-chain-go/state/disabled"
 	"github.com/multiversx/mx-chain-go/storage"
 	"github.com/multiversx/mx-chain-go/testscommon"
 	dataRetrieverMock "github.com/multiversx/mx-chain-go/testscommon/dataRetriever"
 	"github.com/multiversx/mx-chain-go/testscommon/dblookupext"
+	"github.com/multiversx/mx-chain-go/testscommon/economicsmocks"
 	"github.com/multiversx/mx-chain-go/testscommon/enableEpochsHandlerMock"
 	"github.com/multiversx/mx-chain-go/testscommon/epochNotifier"
 	"github.com/multiversx/mx-chain-go/testscommon/factory"
+	"github.com/multiversx/mx-chain-go/testscommon/hashingMocks"
 	"github.com/multiversx/mx-chain-go/testscommon/outport"
+	poolMock "github.com/multiversx/mx-chain-go/testscommon/pool"
+	"github.com/multiversx/mx-chain-go/testscommon/processMocks"
 	"github.com/multiversx/mx-chain-go/testscommon/shardingMocks"
 	stateMock "github.com/multiversx/mx-chain-go/testscommon/state"
 	statusHandlerMock "github.com/multiversx/mx-chain-go/testscommon/statusHandler"
@@ -2076,6 +2075,76 @@ func TestMetaProcessor_CreateLastNotarizedHdrs(t *testing.T) {
 	err = mp.SaveLastNotarizedHeader(metaHdr)
 	assert.Nil(t, err)
 	assert.Equal(t, currHdr, mp.LastNotarizedHdrForShard(currHdr.ShardID))
+}
+
+func TestMetaProcessor_saveLastNotarizedHeader(t *testing.T) {
+	t.Parallel()
+
+	t.Run("get headerV3 by hash error case", func(t *testing.T) {
+		t.Parallel()
+
+		headersPool := &poolMock.HeadersPoolStub{
+			GetHeaderByHashCalled: func(hash []byte) (data.HeaderHandler, error) {
+				return nil, expectedErr
+			},
+		}
+		pool := dataRetrieverMock.NewPoolsHolderMock()
+		pool.SetHeadersPool(headersPool)
+
+		coreComponents, dataComponents, bootstrapComponents, statusComponents := createMockComponentHolders()
+		dataComponents.DataPool = pool
+		arguments := createMockMetaArguments(coreComponents, dataComponents, bootstrapComponents, statusComponents)
+		mp, _ := blproc.NewMetaProcessor(arguments)
+
+		metaHdr := &block.MetaBlockV3{}
+		shDataCurr := block.ShardData{HeaderHash: []byte("hash")}
+		metaHdr.ShardInfo = make([]block.ShardData, 0)
+		metaHdr.ShardInfo = append(metaHdr.ShardInfo, shDataCurr)
+
+		err := mp.SaveLastNotarizedHeader(metaHdr)
+		require.Error(t, err, expectedErr)
+	})
+	t.Run("get headerV3 by hash from headers pool, should work", func(t *testing.T) {
+		t.Parallel()
+
+		hdr := &block.Header{}
+		hdrHash := []byte("hash")
+
+		wasCalledGetHeaderFromPool := false
+		headersPool := &poolMock.HeadersPoolStub{
+			GetHeaderByHashCalled: func(hash []byte) (data.HeaderHandler, error) {
+				wasCalledGetHeaderFromPool = true
+				require.Equal(t, hdrHash, hash)
+				return hdr, nil
+			},
+		}
+		pool := dataRetrieverMock.NewPoolsHolderMock()
+		pool.SetHeadersPool(headersPool)
+
+		hdrsForCurrBlock := &testscommon.HeadersForBlockMock{
+			GetHeaderInfoCalled: func(_ string) (headerForBlock.HeaderInfo, bool) {
+				require.Fail(t, "should not be called for headerV3")
+				return nil, false
+			},
+		}
+
+		coreComponents, dataComponents, bootstrapComponents, statusComponents := createMockComponentHolders()
+		dataComponents.DataPool = pool
+		arguments := createMockMetaArguments(coreComponents, dataComponents, bootstrapComponents, statusComponents)
+		arguments.HeadersForBlock = hdrsForCurrBlock
+		mp, _ := blproc.NewMetaProcessor(arguments)
+
+		pool.Headers().AddHeader(hdrHash, hdr)
+
+		metaHdr := &block.MetaBlockV3{}
+		shDataCurr := block.ShardData{HeaderHash: hdrHash}
+		metaHdr.ShardInfo = make([]block.ShardData, 0)
+		metaHdr.ShardInfo = append(metaHdr.ShardInfo, shDataCurr)
+
+		err := mp.SaveLastNotarizedHeader(metaHdr)
+		require.NoError(t, err)
+		require.True(t, wasCalledGetHeaderFromPool)
+	})
 }
 
 func TestMetaProcessor_CheckShardHeadersValidity(t *testing.T) {
