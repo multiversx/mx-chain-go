@@ -8,6 +8,7 @@ import (
 	"github.com/multiversx/mx-chain-core-go/data"
 	"github.com/multiversx/mx-chain-core-go/data/block"
 	"github.com/multiversx/mx-chain-core-go/data/rewardTx"
+	"github.com/multiversx/mx-chain-go/common"
 
 	"github.com/multiversx/mx-chain-go/dataRetriever"
 	"github.com/multiversx/mx-chain-go/process"
@@ -103,7 +104,7 @@ func (rtp *rewardTxPreprocessor) RemoveBlockDataFromPools(body *block.Body, mini
 }
 
 // RemoveTxsFromPools removes reward transactions from associated pools
-func (rtp *rewardTxPreprocessor) RemoveTxsFromPools(body *block.Body) error {
+func (rtp *rewardTxPreprocessor) RemoveTxsFromPools(body *block.Body, _ common.RootHashHolder) error {
 	return rtp.removeTxsFromPools(body, rtp.rewardTxPool, rtp.isMiniBlockCorrect)
 }
 

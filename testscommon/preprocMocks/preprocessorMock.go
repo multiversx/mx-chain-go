@@ -5,6 +5,7 @@ import (
 
 	"github.com/multiversx/mx-chain-core-go/data"
 	"github.com/multiversx/mx-chain-core-go/data/block"
+	"github.com/multiversx/mx-chain-go/common"
 
 	"github.com/multiversx/mx-chain-go/process"
 	"github.com/multiversx/mx-chain-go/storage"
@@ -15,7 +16,7 @@ type PreProcessorMock struct {
 	CreateBlockStartedCalled                           func()
 	IsDataPreparedCalled                               func(requestedTxs int, haveTime func() time.Duration) error
 	RemoveBlockDataFromPoolsCalled                     func(body *block.Body, miniBlockPool storage.Cacher) error
-	RemoveTxsFromPoolsCalled                           func(body *block.Body) error
+	RemoveTxsFromPoolsCalled                           func(body *block.Body, rootHashHolder common.RootHashHolder) error
 	RestoreBlockDataIntoPoolsCalled                    func(body *block.Body, miniBlockPool storage.Cacher) (int, error)
 	SaveTxsToStorageCalled                             func(body *block.Body) error
 	ProcessBlockTransactionsCalled                     func(header data.HeaderHandler, body *block.Body, haveTime func() bool) error
@@ -57,11 +58,11 @@ func (ppm *PreProcessorMock) RemoveBlockDataFromPools(body *block.Body, miniBloc
 }
 
 // RemoveTxsFromPools -
-func (ppm *PreProcessorMock) RemoveTxsFromPools(body *block.Body) error {
+func (ppm *PreProcessorMock) RemoveTxsFromPools(body *block.Body, rootHashHolder common.RootHashHolder) error {
 	if ppm.RemoveTxsFromPoolsCalled == nil {
 		return nil
 	}
-	return ppm.RemoveTxsFromPoolsCalled(body)
+	return ppm.RemoveTxsFromPoolsCalled(body, rootHashHolder)
 }
 
 // RestoreBlockDataIntoPools -

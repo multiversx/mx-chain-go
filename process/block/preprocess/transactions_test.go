@@ -21,6 +21,7 @@ import (
 	"github.com/multiversx/mx-chain-core-go/hashing/blake2b"
 	"github.com/multiversx/mx-chain-core-go/hashing/sha256"
 	"github.com/multiversx/mx-chain-core-go/marshal"
+	"github.com/multiversx/mx-chain-go/common/holders"
 	"github.com/multiversx/mx-chain-go/config"
 	"github.com/multiversx/mx-chain-go/txcache"
 	vmcommon "github.com/multiversx/mx-chain-vm-common-go"
@@ -786,8 +787,20 @@ func TestCleanupSelfShardTxCacheTriggered(t *testing.T) {
 
 	txs, err := NewTransactionPreprocessor(args)
 	require.NoError(t, err)
+	txs.accountsProposal = &stateMock.AccountsStub{
+		RootHashCalled: func() ([]byte, error) {
+			return []byte("rootHash"), nil
+		},
+		RecreateTrieIfNeededCalled: func(options common.RootHashHolder) error {
+			return nil
+		},
+	}
 
-	_ = txs.RemoveTxsFromPools(body)
+	rootHash, err := txs.accountsProposal.RootHash()
+	require.NoError(t, err)
+
+	rootHashHolder := holders.NewDefaultRootHashesHolder(rootHash)
+	_ = txs.RemoveTxsFromPools(body, rootHashHolder)
 
 	assert.True(t, mockCalled)
 	assert.Equal(t, uint64(0), gotNonce)
@@ -843,6 +856,9 @@ func createArgsForCleanupSelfShardTxCachePreprocessor() ArgsTransactionPreProces
 				Nonce:   nonce,
 				Balance: big.NewInt(1_000_000_000_000_000_000),
 			}, nil
+		},
+		RecreateTrieIfNeededCalled: func(options common.RootHashHolder) error {
+			return nil
 		},
 	}
 	args.Accounts = accounts
@@ -907,8 +923,13 @@ func TestCleanupSelfShardTxCache_NoTransactionToSelect(t *testing.T) {
 	body := &block.Body{
 		MiniBlocks: miniBlocks,
 	}
-	_ = txs.RemoveTxsFromPools(body)
 
+	rootHash, err := txs.accountsProposal.RootHash()
+	require.NoError(t, err)
+	rootHashHolder := holders.NewDefaultRootHashesHolder(rootHash)
+
+	err = txs.RemoveTxsFromPools(body, rootHashHolder)
+	require.NoError(t, err)
 	expectEvicted := 3
 	actual := int(txs.txPool.GetCounts().GetTotal())
 	t.Logf("expected %d evicted, remaining pool size: %d", expectEvicted, actual)
@@ -990,8 +1011,12 @@ func TestCleanupSelfShardTxCache(t *testing.T) {
 	}
 
 	assert.Equal(t, 15, int(txs.txPool.GetCounts().GetTotal()))
-	_ = txs.RemoveTxsFromPools(body)
 
+	rootHash, err := txs.accountsProposal.RootHash()
+	require.NoError(t, err)
+
+	rootHashHolder := holders.NewDefaultRootHashesHolder(rootHash)
+	_ = txs.RemoveTxsFromPools(body, rootHashHolder)
 	for _, hash := range txs.txPool.ShardDataStore(strCache).Keys() {
 		txRemained, _ := txs.txPool.ShardDataStore(strCache).Peek(hash)
 		log.Debug("txs left in pool after RemoveTxsFromPools",

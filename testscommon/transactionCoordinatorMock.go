@@ -5,6 +5,7 @@ import (
 
 	"github.com/multiversx/mx-chain-core-go/data"
 	"github.com/multiversx/mx-chain-core-go/data/block"
+	"github.com/multiversx/mx-chain-go/common"
 
 	"github.com/multiversx/mx-chain-go/process"
 	"github.com/multiversx/mx-chain-go/process/block/processedMb"
@@ -19,7 +20,7 @@ type TransactionCoordinatorMock struct {
 	SaveTxsToStorageCalled                               func(body *block.Body)
 	RestoreBlockDataFromStorageCalled                    func(body *block.Body) (int, error)
 	RemoveBlockDataFromPoolCalled                        func(body *block.Body) error
-	RemoveTxsFromPoolCalled                              func(body *block.Body) error
+	RemoveTxsFromPoolCalled                              func(body *block.Body, rootHashHolder common.RootHashHolder) error
 	ProcessBlockTransactionCalled                        func(header data.HeaderHandler, body *block.Body, haveTime func() time.Duration) error
 	GetCreatedMiniBlocksFromMeCalled                     func() block.MiniBlockSlice
 	CreateBlockStartedCalled                             func()
@@ -137,12 +138,12 @@ func (tcm *TransactionCoordinatorMock) RemoveBlockDataFromPool(body *block.Body)
 }
 
 // RemoveTxsFromPool -
-func (tcm *TransactionCoordinatorMock) RemoveTxsFromPool(body *block.Body) error {
+func (tcm *TransactionCoordinatorMock) RemoveTxsFromPool(body *block.Body, rootHashHolder common.RootHashHolder) error {
 	if tcm.RemoveTxsFromPoolCalled == nil {
 		return nil
 	}
 
-	return tcm.RemoveTxsFromPoolCalled(body)
+	return tcm.RemoveTxsFromPoolCalled(body, rootHashHolder)
 }
 
 // ProcessBlockTransaction -
