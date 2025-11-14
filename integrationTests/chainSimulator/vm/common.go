@@ -31,9 +31,22 @@ const (
 	MaxNumOfBlockToGenerateWhenExecutingTx = 7
 )
 
-var OneEGLD = big.NewInt(1000000000000000000)
+var (
+	RoundDurationInMillis          = uint64(6000)
+	SupernovaRoundDurationInMillis = uint64(600)
+	RoundsPerEpoch                 = core.OptionalUint64{
+		HasValue: true,
+		Value:    20,
+	}
+	SupernovaRoundsPerEpoch = core.OptionalUint64{
+		HasValue: true,
+		Value:    200,
+	}
 
-var Log = logger.GetOrCreate("integrationTests/chainSimulator/vm")
+	OneEGLD = big.NewInt(1000000000000000000)
+
+	Log = logger.GetOrCreate("integrationTests/chainSimulator/vm")
+)
 
 func TransferAndCheckTokensMetaData(t *testing.T, isCrossShard bool, isMultiTransfer bool) {
 	activationEpoch := uint32(4)
@@ -1090,16 +1103,3 @@ func TransferSpecialRoleToAddr(
 
 	return nonce
 }
-
-var (
-	RoundDurationInMillis          = uint64(6000)
-	SupernovaRoundDurationInMillis = uint64(600)
-	RoundsPerEpoch                 = core.OptionalUint64{
-		HasValue: true,
-		Value:    20,
-	}
-	SupernovaRoundsPerEpoch = core.OptionalUint64{
-		HasValue: true,
-		Value:    200,
-	}
-)

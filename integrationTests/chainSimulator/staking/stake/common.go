@@ -31,9 +31,9 @@ var (
 		HasValue: true,
 		Value:    200,
 	}
-)
 
-var Log = logger.GetOrCreate("integrationTests/chainSimulator")
+	Log = logger.GetOrCreate("integrationTests/chainSimulator")
+)
 
 func TestBLSKeyStaked(t *testing.T,
 	metachainNode process.NodeHandler,
