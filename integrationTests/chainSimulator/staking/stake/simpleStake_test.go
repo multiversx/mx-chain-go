@@ -70,7 +70,7 @@ func testChainSimulatorSimpleStake(t *testing.T, targetEpoch int32, nodesStatus 
 	cs, err := chainSimulator.NewChainSimulator(chainSimulator.ArgsChainSimulator{
 		BypassTxSignatureCheck:         true,
 		TempDir:                        t.TempDir(),
-		PathToInitialConfig:            defaultPathToInitialConfig,
+		PathToInitialConfig:            DefaultPathToInitialConfig,
 		NumOfShards:                    numOfShards,
 		RoundDurationInMillis:          roundDurationInMillis,
 		SupernovaRoundDurationInMillis: roundDurationInMillis / 10,
@@ -167,7 +167,7 @@ func TestChainSimulator_StakingV4Step2APICalls(t *testing.T) {
 	cs, err := chainSimulator.NewChainSimulator(chainSimulator.ArgsChainSimulator{
 		BypassTxSignatureCheck:         true,
 		TempDir:                        t.TempDir(),
-		PathToInitialConfig:            defaultPathToInitialConfig,
+		PathToInitialConfig:            DefaultPathToInitialConfig,
 		NumOfShards:                    3,
 		RoundDurationInMillis:          uint64(6000),
 		SupernovaRoundDurationInMillis: uint64(600),

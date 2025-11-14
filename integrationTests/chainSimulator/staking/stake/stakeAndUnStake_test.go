@@ -23,28 +23,8 @@ import (
 	coreAPI "github.com/multiversx/mx-chain-core-go/data/api"
 	"github.com/multiversx/mx-chain-core-go/data/transaction"
 	"github.com/multiversx/mx-chain-core-go/data/validator"
-	logger "github.com/multiversx/mx-chain-logger-go"
 	"github.com/stretchr/testify/require"
 )
-
-const (
-	defaultPathToInitialConfig = "../../../../cmd/node/config/"
-)
-
-var (
-	roundDurationInMillis          = uint64(6000)
-	supernovaRoundDurationInMillis = uint64(600)
-	roundsPerEpoch                 = core.OptionalUint64{
-		HasValue: true,
-		Value:    20,
-	}
-	supernovaRoundsPerEpoch = core.OptionalUint64{
-		HasValue: true,
-		Value:    200,
-	}
-)
-
-var log = logger.GetOrCreate("integrationTests/chainSimulator")
 
 // TODO scenarios
 // Make a staking provider with max num of nodes
@@ -64,12 +44,12 @@ func TestChainSimulator_AddValidatorKey(t *testing.T) {
 	cs, err := chainSimulator.NewChainSimulator(chainSimulator.ArgsChainSimulator{
 		BypassTxSignatureCheck:         true,
 		TempDir:                        t.TempDir(),
-		PathToInitialConfig:            defaultPathToInitialConfig,
+		PathToInitialConfig:            DefaultPathToInitialConfig,
 		NumOfShards:                    numOfShards,
-		RoundDurationInMillis:          roundDurationInMillis,
-		SupernovaRoundDurationInMillis: supernovaRoundDurationInMillis,
-		RoundsPerEpoch:                 roundsPerEpoch,
-		SupernovaRoundsPerEpoch:        supernovaRoundsPerEpoch,
+		RoundDurationInMillis:          RoundDurationInMillis,
+		SupernovaRoundDurationInMillis: SupernovaRoundDurationInMillis,
+		RoundsPerEpoch:                 RoundsPerEpoch,
+		SupernovaRoundsPerEpoch:        SupernovaRoundsPerEpoch,
 		ApiInterface:                   api.NewNoApiInterface(),
 		MinNodesPerShard:               3,
 		MetaChainMinNodes:              3,
@@ -173,13 +153,13 @@ func TestChainSimulator_AddValidatorKey(t *testing.T) {
 	require.Nil(t, err)
 	balanceAfterActiveValidator := accountValidatorOwner.Balance
 
-	log.Info("balance before validator", "value", balanceBeforeActiveValidator)
-	log.Info("balance after validator", "value", balanceAfterActiveValidator)
+	Log.Info("balance before validator", "value", balanceBeforeActiveValidator)
+	Log.Info("balance after validator", "value", balanceAfterActiveValidator)
 
 	balanceBeforeBig, _ := big.NewInt(0).SetString(balanceBeforeActiveValidator, 10)
 	balanceAfterBig, _ := big.NewInt(0).SetString(balanceAfterActiveValidator, 10)
 	diff := balanceAfterBig.Sub(balanceAfterBig, balanceBeforeBig)
-	log.Info("difference", "value", diff.String())
+	Log.Info("difference", "value", diff.String())
 
 	// Step 7 --- check the balance of the validator owner has been increased
 	require.True(t, diff.Cmp(big.NewInt(0)) > 0)
@@ -194,12 +174,12 @@ func TestChainSimulator_AddANewValidatorAfterStakingV4(t *testing.T) {
 	cs, err := chainSimulator.NewChainSimulator(chainSimulator.ArgsChainSimulator{
 		BypassTxSignatureCheck:         true,
 		TempDir:                        t.TempDir(),
-		PathToInitialConfig:            defaultPathToInitialConfig,
+		PathToInitialConfig:            DefaultPathToInitialConfig,
 		NumOfShards:                    numOfShards,
-		RoundDurationInMillis:          roundDurationInMillis,
-		SupernovaRoundDurationInMillis: supernovaRoundDurationInMillis,
-		RoundsPerEpoch:                 roundsPerEpoch,
-		SupernovaRoundsPerEpoch:        supernovaRoundsPerEpoch,
+		RoundDurationInMillis:          RoundDurationInMillis,
+		SupernovaRoundDurationInMillis: SupernovaRoundDurationInMillis,
+		RoundsPerEpoch:                 RoundsPerEpoch,
+		SupernovaRoundsPerEpoch:        SupernovaRoundsPerEpoch,
 		ApiInterface:                   api.NewNoApiInterface(),
 		MinNodesPerShard:               100,
 		MetaChainMinNodes:              100,
@@ -321,12 +301,12 @@ func testStakeUnStakeUnBond(t *testing.T, targetEpoch int32) {
 	cs, err := chainSimulator.NewChainSimulator(chainSimulator.ArgsChainSimulator{
 		BypassTxSignatureCheck:         true,
 		TempDir:                        t.TempDir(),
-		PathToInitialConfig:            defaultPathToInitialConfig,
+		PathToInitialConfig:            DefaultPathToInitialConfig,
 		NumOfShards:                    numOfShards,
-		RoundDurationInMillis:          roundDurationInMillis,
-		SupernovaRoundDurationInMillis: supernovaRoundDurationInMillis,
-		RoundsPerEpoch:                 roundsPerEpoch,
-		SupernovaRoundsPerEpoch:        supernovaRoundsPerEpoch,
+		RoundDurationInMillis:          RoundDurationInMillis,
+		SupernovaRoundDurationInMillis: SupernovaRoundDurationInMillis,
+		RoundsPerEpoch:                 RoundsPerEpoch,
+		SupernovaRoundsPerEpoch:        SupernovaRoundsPerEpoch,
 		ApiInterface:                   api.NewNoApiInterface(),
 		MinNodesPerShard:               3,
 		MetaChainMinNodes:              3,
@@ -448,12 +428,12 @@ func TestChainSimulator_DirectStakingNodes_StakeFunds(t *testing.T) {
 		cs, err := chainSimulator.NewChainSimulator(chainSimulator.ArgsChainSimulator{
 			BypassTxSignatureCheck:         true,
 			TempDir:                        t.TempDir(),
-			PathToInitialConfig:            defaultPathToInitialConfig,
+			PathToInitialConfig:            DefaultPathToInitialConfig,
 			NumOfShards:                    3,
-			RoundDurationInMillis:          roundDurationInMillis,
-			SupernovaRoundDurationInMillis: supernovaRoundDurationInMillis,
-			RoundsPerEpoch:                 roundsPerEpoch,
-			SupernovaRoundsPerEpoch:        supernovaRoundsPerEpoch,
+			RoundDurationInMillis:          RoundDurationInMillis,
+			SupernovaRoundDurationInMillis: SupernovaRoundDurationInMillis,
+			RoundsPerEpoch:                 RoundsPerEpoch,
+			SupernovaRoundsPerEpoch:        SupernovaRoundsPerEpoch,
 			ApiInterface:                   api.NewNoApiInterface(),
 			MinNodesPerShard:               3,
 			MetaChainMinNodes:              3,
@@ -479,12 +459,12 @@ func TestChainSimulator_DirectStakingNodes_StakeFunds(t *testing.T) {
 		cs, err := chainSimulator.NewChainSimulator(chainSimulator.ArgsChainSimulator{
 			BypassTxSignatureCheck:         true,
 			TempDir:                        t.TempDir(),
-			PathToInitialConfig:            defaultPathToInitialConfig,
+			PathToInitialConfig:            DefaultPathToInitialConfig,
 			NumOfShards:                    3,
-			RoundDurationInMillis:          roundDurationInMillis,
-			SupernovaRoundDurationInMillis: supernovaRoundDurationInMillis,
-			RoundsPerEpoch:                 roundsPerEpoch,
-			SupernovaRoundsPerEpoch:        supernovaRoundsPerEpoch,
+			RoundDurationInMillis:          RoundDurationInMillis,
+			SupernovaRoundDurationInMillis: SupernovaRoundDurationInMillis,
+			RoundsPerEpoch:                 RoundsPerEpoch,
+			SupernovaRoundsPerEpoch:        SupernovaRoundsPerEpoch,
 			ApiInterface:                   api.NewNoApiInterface(),
 			MinNodesPerShard:               3,
 			MetaChainMinNodes:              3,
@@ -510,12 +490,12 @@ func TestChainSimulator_DirectStakingNodes_StakeFunds(t *testing.T) {
 		cs, err := chainSimulator.NewChainSimulator(chainSimulator.ArgsChainSimulator{
 			BypassTxSignatureCheck:         true,
 			TempDir:                        t.TempDir(),
-			PathToInitialConfig:            defaultPathToInitialConfig,
+			PathToInitialConfig:            DefaultPathToInitialConfig,
 			NumOfShards:                    3,
-			RoundDurationInMillis:          roundDurationInMillis,
-			SupernovaRoundDurationInMillis: supernovaRoundDurationInMillis,
-			RoundsPerEpoch:                 roundsPerEpoch,
-			SupernovaRoundsPerEpoch:        supernovaRoundsPerEpoch,
+			RoundDurationInMillis:          RoundDurationInMillis,
+			SupernovaRoundDurationInMillis: SupernovaRoundDurationInMillis,
+			RoundsPerEpoch:                 RoundsPerEpoch,
+			SupernovaRoundsPerEpoch:        SupernovaRoundsPerEpoch,
 			ApiInterface:                   api.NewNoApiInterface(),
 			MinNodesPerShard:               3,
 			MetaChainMinNodes:              3,
@@ -541,12 +521,12 @@ func TestChainSimulator_DirectStakingNodes_StakeFunds(t *testing.T) {
 		cs, err := chainSimulator.NewChainSimulator(chainSimulator.ArgsChainSimulator{
 			BypassTxSignatureCheck:         true,
 			TempDir:                        t.TempDir(),
-			PathToInitialConfig:            defaultPathToInitialConfig,
+			PathToInitialConfig:            DefaultPathToInitialConfig,
 			NumOfShards:                    3,
-			RoundDurationInMillis:          roundDurationInMillis,
-			SupernovaRoundDurationInMillis: supernovaRoundDurationInMillis,
-			RoundsPerEpoch:                 roundsPerEpoch,
-			SupernovaRoundsPerEpoch:        supernovaRoundsPerEpoch,
+			RoundDurationInMillis:          RoundDurationInMillis,
+			SupernovaRoundDurationInMillis: SupernovaRoundDurationInMillis,
+			RoundsPerEpoch:                 RoundsPerEpoch,
+			SupernovaRoundsPerEpoch:        SupernovaRoundsPerEpoch,
 			ApiInterface:                   api.NewNoApiInterface(),
 			MinNodesPerShard:               3,
 			MetaChainMinNodes:              3,
@@ -573,7 +553,7 @@ func testChainSimulatorDirectStakedNodesStakingFunds(t *testing.T, cs chainSimul
 	err := cs.GenerateBlocksUntilEpochIsReached(targetEpoch)
 	require.Nil(t, err)
 
-	log.Info("Preconditions. Have an account with 2 staked nodes")
+	Log.Info("Preconditions. Have an account with 2 staked nodes")
 	privateKeys, blsKeys, err := chainSimulator.GenerateBlsPrivateKeys(2)
 	require.Nil(t, err)
 
@@ -610,10 +590,10 @@ func testChainSimulatorDirectStakedNodesStakingFunds(t *testing.T, cs chainSimul
 	err = cs.GenerateBlocks(2) // allow the metachain to finalize the block that contains the staking of the node
 	require.Nil(t, err)
 
-	log.Info("Step 1. Check the stake amount for the owner of the staked nodes")
-	checkExpectedStakedValue(t, metachainNode, validatorOwner.Bytes, 5000)
+	Log.Info("Step 1. Check the stake amount for the owner of the staked nodes")
+	CheckExpectedStakedValue(t, metachainNode, validatorOwner.Bytes, 5000)
 
-	log.Info("Step 2. Create from the owner of the staked nodes a tx to stake 1 EGLD")
+	Log.Info("Step 2. Create from the owner of the staked nodes a tx to stake 1 EGLD")
 
 	stakeValue = big.NewInt(0).Mul(chainSimulatorIntegrationTests.OneEGLD, big.NewInt(1))
 	txDataField = fmt.Sprintf("stake@01@%s@%s", blsKeys[0], staking.MockBLSSignature)
@@ -625,31 +605,8 @@ func testChainSimulatorDirectStakedNodesStakingFunds(t *testing.T, cs chainSimul
 	err = cs.GenerateBlocks(2) // allow the metachain to finalize the block that contains the staking of the node
 	require.Nil(t, err)
 
-	log.Info("Step 3. Check the stake amount for the owner of the staked nodes")
-	checkExpectedStakedValue(t, metachainNode, validatorOwner.Bytes, 5001)
-}
-
-func checkExpectedStakedValue(t *testing.T, metachainNode chainSimulatorProcess.NodeHandler, blsKey []byte, expectedValue int64) {
-	totalStaked := getTotalStaked(t, metachainNode, blsKey)
-
-	expectedStaked := big.NewInt(expectedValue)
-	expectedStaked = expectedStaked.Mul(chainSimulatorIntegrationTests.OneEGLD, expectedStaked)
-	require.Equal(t, expectedStaked.String(), string(totalStaked))
-}
-
-func getTotalStaked(t *testing.T, metachainNode chainSimulatorProcess.NodeHandler, blsKey []byte) []byte {
-	scQuery := &process.SCQuery{
-		ScAddress:  vm.ValidatorSCAddress,
-		FuncName:   "getTotalStaked",
-		CallerAddr: vm.ValidatorSCAddress,
-		CallValue:  big.NewInt(0),
-		Arguments:  [][]byte{blsKey},
-	}
-	result, _, err := metachainNode.GetFacadeHandler().ExecuteSCQuery(scQuery)
-	require.Nil(t, err)
-	require.Equal(t, chainSimulatorIntegrationTests.OkReturnCode, result.ReturnCode)
-
-	return result.ReturnData[0]
+	Log.Info("Step 3. Check the stake amount for the owner of the staked nodes")
+	CheckExpectedStakedValue(t, metachainNode, validatorOwner.Bytes, 5001)
 }
 
 // Test description:
@@ -671,12 +628,12 @@ func TestChainSimulator_DirectStakingNodes_UnstakeFundsWithDeactivation(t *testi
 		cs, err := chainSimulator.NewChainSimulator(chainSimulator.ArgsChainSimulator{
 			BypassTxSignatureCheck:         true,
 			TempDir:                        t.TempDir(),
-			PathToInitialConfig:            defaultPathToInitialConfig,
+			PathToInitialConfig:            DefaultPathToInitialConfig,
 			NumOfShards:                    3,
-			RoundDurationInMillis:          roundDurationInMillis,
-			SupernovaRoundDurationInMillis: supernovaRoundDurationInMillis,
-			RoundsPerEpoch:                 roundsPerEpoch,
-			SupernovaRoundsPerEpoch:        supernovaRoundsPerEpoch,
+			RoundDurationInMillis:          RoundDurationInMillis,
+			SupernovaRoundDurationInMillis: SupernovaRoundDurationInMillis,
+			RoundsPerEpoch:                 RoundsPerEpoch,
+			SupernovaRoundsPerEpoch:        SupernovaRoundsPerEpoch,
 			ApiInterface:                   api.NewNoApiInterface(),
 			MinNodesPerShard:               3,
 			MetaChainMinNodes:              3,
@@ -703,12 +660,12 @@ func TestChainSimulator_DirectStakingNodes_UnstakeFundsWithDeactivation(t *testi
 		cs, err := chainSimulator.NewChainSimulator(chainSimulator.ArgsChainSimulator{
 			BypassTxSignatureCheck:         true,
 			TempDir:                        t.TempDir(),
-			PathToInitialConfig:            defaultPathToInitialConfig,
+			PathToInitialConfig:            DefaultPathToInitialConfig,
 			NumOfShards:                    3,
-			RoundDurationInMillis:          roundDurationInMillis,
-			SupernovaRoundDurationInMillis: supernovaRoundDurationInMillis,
-			RoundsPerEpoch:                 roundsPerEpoch,
-			SupernovaRoundsPerEpoch:        supernovaRoundsPerEpoch,
+			RoundDurationInMillis:          RoundDurationInMillis,
+			SupernovaRoundDurationInMillis: SupernovaRoundDurationInMillis,
+			RoundsPerEpoch:                 RoundsPerEpoch,
+			SupernovaRoundsPerEpoch:        SupernovaRoundsPerEpoch,
 			ApiInterface:                   api.NewNoApiInterface(),
 			MinNodesPerShard:               3,
 			MetaChainMinNodes:              3,
@@ -736,12 +693,12 @@ func TestChainSimulator_DirectStakingNodes_UnstakeFundsWithDeactivation(t *testi
 		cs, err := chainSimulator.NewChainSimulator(chainSimulator.ArgsChainSimulator{
 			BypassTxSignatureCheck:         true,
 			TempDir:                        t.TempDir(),
-			PathToInitialConfig:            defaultPathToInitialConfig,
+			PathToInitialConfig:            DefaultPathToInitialConfig,
 			NumOfShards:                    3,
-			RoundDurationInMillis:          roundDurationInMillis,
-			SupernovaRoundDurationInMillis: supernovaRoundDurationInMillis,
-			RoundsPerEpoch:                 roundsPerEpoch,
-			SupernovaRoundsPerEpoch:        supernovaRoundsPerEpoch,
+			RoundDurationInMillis:          RoundDurationInMillis,
+			SupernovaRoundDurationInMillis: SupernovaRoundDurationInMillis,
+			RoundsPerEpoch:                 RoundsPerEpoch,
+			SupernovaRoundsPerEpoch:        SupernovaRoundsPerEpoch,
 			ApiInterface:                   api.NewNoApiInterface(),
 			MinNodesPerShard:               3,
 			MetaChainMinNodes:              3,
@@ -769,11 +726,11 @@ func TestChainSimulator_DirectStakingNodes_UnstakeFundsWithDeactivation(t *testi
 		cs, err := chainSimulator.NewChainSimulator(chainSimulator.ArgsChainSimulator{
 			BypassTxSignatureCheck:         true,
 			TempDir:                        t.TempDir(),
-			PathToInitialConfig:            defaultPathToInitialConfig,
+			PathToInitialConfig:            DefaultPathToInitialConfig,
 			NumOfShards:                    3,
-			RoundDurationInMillis:          roundDurationInMillis,
-			SupernovaRoundDurationInMillis: supernovaRoundDurationInMillis,
-			RoundsPerEpoch:                 roundsPerEpoch,
+			RoundDurationInMillis:          RoundDurationInMillis,
+			SupernovaRoundDurationInMillis: SupernovaRoundDurationInMillis,
+			RoundsPerEpoch:                 RoundsPerEpoch,
 			ApiInterface:                   api.NewNoApiInterface(),
 			MinNodesPerShard:               3,
 			MetaChainMinNodes:              3,
@@ -828,7 +785,7 @@ func testChainSimulatorDirectStakedUnstakeFundsWithDeactivation(t *testing.T, cs
 	err = cs.GenerateBlocks(2) // allow the metachain to finalize the block that contains the staking of the node
 	require.Nil(t, err)
 
-	testBLSKeyStaked(t, metachainNode, blsKeys[0])
+	TestBLSKeyStaked(t, metachainNode, blsKeys[0])
 
 	stakeValue = big.NewInt(0).Set(chainSimulatorIntegrationTests.MinimumStakeValue)
 	txDataField = fmt.Sprintf("stake@01@%s@%s", blsKeys[1], staking.MockBLSSignature)
@@ -840,12 +797,12 @@ func testChainSimulatorDirectStakedUnstakeFundsWithDeactivation(t *testing.T, cs
 	err = cs.GenerateBlocks(2) // allow the metachain to finalize the block that contains the staking of the node
 	require.Nil(t, err)
 
-	testBLSKeyStaked(t, metachainNode, blsKeys[1])
+	TestBLSKeyStaked(t, metachainNode, blsKeys[1])
 
-	log.Info("Step 1. Check the stake amount for the owner of the staked nodes")
-	checkExpectedStakedValue(t, metachainNode, validatorOwner.Bytes, 5000)
+	Log.Info("Step 1. Check the stake amount for the owner of the staked nodes")
+	CheckExpectedStakedValue(t, metachainNode, validatorOwner.Bytes, 5000)
 
-	log.Info("Step 2. Create from the owner of staked nodes a transaction to unstake 10 EGLD and send it to the network")
+	Log.Info("Step 2. Create from the owner of staked nodes a transaction to unstake 10 EGLD and send it to the network")
 
 	unStakeValue := big.NewInt(10)
 	unStakeValue = unStakeValue.Mul(chainSimulatorIntegrationTests.OneEGLD, unStakeValue)
@@ -858,8 +815,8 @@ func testChainSimulatorDirectStakedUnstakeFundsWithDeactivation(t *testing.T, cs
 	err = cs.GenerateBlocks(2)
 	require.Nil(t, err)
 
-	log.Info("Step 3. Check the outcome of the TX & verify new stake state with vmquery getTotalStaked and getUnStakedTokensList")
-	checkExpectedStakedValue(t, metachainNode, validatorOwner.Bytes, 4990)
+	Log.Info("Step 3. Check the outcome of the TX & verify new stake state with vmquery getTotalStaked and getUnStakedTokensList")
+	CheckExpectedStakedValue(t, metachainNode, validatorOwner.Bytes, 4990)
 
 	unStakedTokensAmount := getUnStakedTokensList(t, metachainNode, validatorOwner.Bytes)
 
@@ -867,7 +824,7 @@ func testChainSimulatorDirectStakedUnstakeFundsWithDeactivation(t *testing.T, cs
 	expectedUnStaked = expectedUnStaked.Mul(chainSimulatorIntegrationTests.OneEGLD, expectedUnStaked)
 	require.Equal(t, expectedUnStaked.String(), big.NewInt(0).SetBytes(unStakedTokensAmount).String())
 
-	log.Info("Step 4. Wait for change of epoch and check the outcome")
+	Log.Info("Step 4. Wait for change of epoch and check the outcome")
 	err = cs.GenerateBlocksUntilEpochIsReached(targetEpoch + 1)
 	require.Nil(t, err)
 
@@ -895,40 +852,17 @@ func checkOneOfTheNodesIsUnstaked(t *testing.T,
 ) {
 	decodedBLSKey0, _ := hex.DecodeString(blsKeys[0])
 	keyStatus0 := staking.GetBLSKeyStatus(t, metachainNode, decodedBLSKey0)
-	log.Info("Key info", "key", blsKeys[0], "status", keyStatus0)
+	Log.Info("Key info", "key", blsKeys[0], "status", keyStatus0)
 
 	isNotStaked0 := keyStatus0 == staking.UnStakedStatus
 
 	decodedBLSKey1, _ := hex.DecodeString(blsKeys[1])
 	keyStatus1 := staking.GetBLSKeyStatus(t, metachainNode, decodedBLSKey1)
-	log.Info("Key info", "key", blsKeys[1], "status", keyStatus1)
+	Log.Info("Key info", "key", blsKeys[1], "status", keyStatus1)
 
 	isNotStaked1 := keyStatus1 == staking.UnStakedStatus
 
 	require.True(t, isNotStaked0 != isNotStaked1)
-}
-
-func testBLSKeyStaked(t *testing.T,
-	metachainNode chainSimulatorProcess.NodeHandler,
-	blsKey string,
-) {
-	decodedBLSKey, _ := hex.DecodeString(blsKey)
-	err := metachainNode.GetProcessComponents().ValidatorsProvider().ForceUpdate()
-	require.Nil(t, err)
-
-	validatorStatistics, err := metachainNode.GetFacadeHandler().ValidatorStatisticsApi()
-	require.Nil(t, err)
-
-	activationEpoch := metachainNode.GetCoreComponents().EnableEpochsHandler().GetActivationEpoch(common.StakingV4Step1Flag)
-	if activationEpoch <= metachainNode.GetCoreComponents().EnableEpochsHandler().GetCurrentEpoch() {
-		require.Equal(t, staking.StakedStatus, staking.GetBLSKeyStatus(t, metachainNode, decodedBLSKey))
-		return
-	}
-
-	// in staking ph 2/3.5 we do not find the bls key on the validator statistics
-	_, found := validatorStatistics[blsKey]
-	require.False(t, found)
-	require.Equal(t, staking.QueuedStatus, staking.GetBLSKeyStatus(t, metachainNode, decodedBLSKey))
 }
 
 // Test description:
@@ -952,12 +886,12 @@ func TestChainSimulator_DirectStakingNodes_UnstakeFundsWithDeactivation_WithReac
 		cs, err := chainSimulator.NewChainSimulator(chainSimulator.ArgsChainSimulator{
 			BypassTxSignatureCheck:         true,
 			TempDir:                        t.TempDir(),
-			PathToInitialConfig:            defaultPathToInitialConfig,
+			PathToInitialConfig:            DefaultPathToInitialConfig,
 			NumOfShards:                    3,
-			RoundDurationInMillis:          roundDurationInMillis,
-			SupernovaRoundDurationInMillis: supernovaRoundDurationInMillis,
-			RoundsPerEpoch:                 roundsPerEpoch,
-			SupernovaRoundsPerEpoch:        supernovaRoundsPerEpoch,
+			RoundDurationInMillis:          RoundDurationInMillis,
+			SupernovaRoundDurationInMillis: SupernovaRoundDurationInMillis,
+			RoundsPerEpoch:                 RoundsPerEpoch,
+			SupernovaRoundsPerEpoch:        SupernovaRoundsPerEpoch,
 			ApiInterface:                   api.NewNoApiInterface(),
 			MinNodesPerShard:               3,
 			MetaChainMinNodes:              3,
@@ -984,12 +918,12 @@ func TestChainSimulator_DirectStakingNodes_UnstakeFundsWithDeactivation_WithReac
 		cs, err := chainSimulator.NewChainSimulator(chainSimulator.ArgsChainSimulator{
 			BypassTxSignatureCheck:         true,
 			TempDir:                        t.TempDir(),
-			PathToInitialConfig:            defaultPathToInitialConfig,
+			PathToInitialConfig:            DefaultPathToInitialConfig,
 			NumOfShards:                    3,
-			RoundDurationInMillis:          roundDurationInMillis,
-			SupernovaRoundDurationInMillis: supernovaRoundDurationInMillis,
-			RoundsPerEpoch:                 roundsPerEpoch,
-			SupernovaRoundsPerEpoch:        supernovaRoundsPerEpoch,
+			RoundDurationInMillis:          RoundDurationInMillis,
+			SupernovaRoundDurationInMillis: SupernovaRoundDurationInMillis,
+			RoundsPerEpoch:                 RoundsPerEpoch,
+			SupernovaRoundsPerEpoch:        SupernovaRoundsPerEpoch,
 			ApiInterface:                   api.NewNoApiInterface(),
 			MinNodesPerShard:               3,
 			MetaChainMinNodes:              3,
@@ -1017,12 +951,12 @@ func TestChainSimulator_DirectStakingNodes_UnstakeFundsWithDeactivation_WithReac
 		cs, err := chainSimulator.NewChainSimulator(chainSimulator.ArgsChainSimulator{
 			BypassTxSignatureCheck:         true,
 			TempDir:                        t.TempDir(),
-			PathToInitialConfig:            defaultPathToInitialConfig,
+			PathToInitialConfig:            DefaultPathToInitialConfig,
 			NumOfShards:                    3,
-			RoundDurationInMillis:          roundDurationInMillis,
-			SupernovaRoundDurationInMillis: supernovaRoundDurationInMillis,
-			RoundsPerEpoch:                 roundsPerEpoch,
-			SupernovaRoundsPerEpoch:        supernovaRoundsPerEpoch,
+			RoundDurationInMillis:          RoundDurationInMillis,
+			SupernovaRoundDurationInMillis: SupernovaRoundDurationInMillis,
+			RoundsPerEpoch:                 RoundsPerEpoch,
+			SupernovaRoundsPerEpoch:        SupernovaRoundsPerEpoch,
 			ApiInterface:                   api.NewNoApiInterface(),
 			MinNodesPerShard:               3,
 			MetaChainMinNodes:              3,
@@ -1050,12 +984,12 @@ func TestChainSimulator_DirectStakingNodes_UnstakeFundsWithDeactivation_WithReac
 		cs, err := chainSimulator.NewChainSimulator(chainSimulator.ArgsChainSimulator{
 			BypassTxSignatureCheck:         true,
 			TempDir:                        t.TempDir(),
-			PathToInitialConfig:            defaultPathToInitialConfig,
+			PathToInitialConfig:            DefaultPathToInitialConfig,
 			NumOfShards:                    3,
-			RoundDurationInMillis:          roundDurationInMillis,
-			SupernovaRoundDurationInMillis: supernovaRoundDurationInMillis,
-			RoundsPerEpoch:                 roundsPerEpoch,
-			SupernovaRoundsPerEpoch:        supernovaRoundsPerEpoch,
+			RoundDurationInMillis:          RoundDurationInMillis,
+			SupernovaRoundDurationInMillis: SupernovaRoundDurationInMillis,
+			RoundsPerEpoch:                 RoundsPerEpoch,
+			SupernovaRoundsPerEpoch:        SupernovaRoundsPerEpoch,
 			ApiInterface:                   api.NewNoApiInterface(),
 			MinNodesPerShard:               3,
 			MetaChainMinNodes:              3,
@@ -1110,7 +1044,7 @@ func testChainSimulatorDirectStakedUnstakeFundsWithDeactivationAndReactivation(t
 	err = cs.GenerateBlocks(2) // allow the metachain to finalize the block that contains the staking of the node
 	require.Nil(t, err)
 
-	testBLSKeyStaked(t, metachainNode, blsKeys[0])
+	TestBLSKeyStaked(t, metachainNode, blsKeys[0])
 
 	stakeValue = big.NewInt(0).Set(chainSimulatorIntegrationTests.MinimumStakeValue)
 	txDataField = fmt.Sprintf("stake@01@%s@%s", blsKeys[1], staking.MockBLSSignature)
@@ -1122,12 +1056,12 @@ func testChainSimulatorDirectStakedUnstakeFundsWithDeactivationAndReactivation(t
 	err = cs.GenerateBlocks(2) // allow the metachain to finalize the block that contains the staking of the node
 	require.Nil(t, err)
 
-	testBLSKeyStaked(t, metachainNode, blsKeys[1])
+	TestBLSKeyStaked(t, metachainNode, blsKeys[1])
 
-	log.Info("Step 1. Check the stake amount for the owner of the staked nodes")
-	checkExpectedStakedValue(t, metachainNode, validatorOwner.Bytes, 5000)
+	Log.Info("Step 1. Check the stake amount for the owner of the staked nodes")
+	CheckExpectedStakedValue(t, metachainNode, validatorOwner.Bytes, 5000)
 
-	log.Info("Step 2. Create from the owner of staked nodes a transaction to unstake 10 EGLD and send it to the network")
+	Log.Info("Step 2. Create from the owner of staked nodes a transaction to unstake 10 EGLD and send it to the network")
 
 	unStakeValue := big.NewInt(10)
 	unStakeValue = unStakeValue.Mul(chainSimulatorIntegrationTests.OneEGLD, unStakeValue)
@@ -1140,8 +1074,8 @@ func testChainSimulatorDirectStakedUnstakeFundsWithDeactivationAndReactivation(t
 	err = cs.GenerateBlocks(2)
 	require.Nil(t, err)
 
-	log.Info("Step 3. Check the outcome of the TX & verify new stake state with vmquery getTotalStaked and getUnStakedTokensList")
-	checkExpectedStakedValue(t, metachainNode, validatorOwner.Bytes, 4990)
+	Log.Info("Step 3. Check the outcome of the TX & verify new stake state with vmquery getTotalStaked and getUnStakedTokensList")
+	CheckExpectedStakedValue(t, metachainNode, validatorOwner.Bytes, 4990)
 
 	unStakedTokensAmount := getUnStakedTokensList(t, metachainNode, validatorOwner.Bytes)
 
@@ -1149,7 +1083,7 @@ func testChainSimulatorDirectStakedUnstakeFundsWithDeactivationAndReactivation(t
 	expectedUnStaked = expectedUnStaked.Mul(chainSimulatorIntegrationTests.OneEGLD, expectedUnStaked)
 	require.Equal(t, expectedUnStaked.String(), big.NewInt(0).SetBytes(unStakedTokensAmount).String())
 
-	log.Info("Step 4. Create from the owner of staked nodes a transaction to stake 10 EGLD and send it to the network")
+	Log.Info("Step 4. Create from the owner of staked nodes a transaction to stake 10 EGLD and send it to the network")
 
 	newStakeValue := big.NewInt(10)
 	newStakeValue = newStakeValue.Mul(chainSimulatorIntegrationTests.OneEGLD, newStakeValue)
@@ -1162,15 +1096,15 @@ func testChainSimulatorDirectStakedUnstakeFundsWithDeactivationAndReactivation(t
 	err = cs.GenerateBlocks(2)
 	require.Nil(t, err)
 
-	log.Info("5. Check the outcome of the TX & verify new stake state with vmquery")
-	checkExpectedStakedValue(t, metachainNode, validatorOwner.Bytes, 5000)
+	Log.Info("5. Check the outcome of the TX & verify new stake state with vmquery")
+	CheckExpectedStakedValue(t, metachainNode, validatorOwner.Bytes, 5000)
 
-	log.Info("Step 6. Wait for change of epoch and check the outcome")
+	Log.Info("Step 6. Wait for change of epoch and check the outcome")
 	err = cs.GenerateBlocksUntilEpochIsReached(targetEpoch + 1)
 	require.Nil(t, err)
 
-	testBLSKeyStaked(t, metachainNode, blsKeys[0])
-	testBLSKeyStaked(t, metachainNode, blsKeys[1])
+	TestBLSKeyStaked(t, metachainNode, blsKeys[0])
+	TestBLSKeyStaked(t, metachainNode, blsKeys[1])
 }
 
 // Test description:
@@ -1190,12 +1124,12 @@ func TestChainSimulator_DirectStakingNodes_WithdrawUnstakedFundsBeforeUnbonding(
 		cs, err := chainSimulator.NewChainSimulator(chainSimulator.ArgsChainSimulator{
 			BypassTxSignatureCheck:         true,
 			TempDir:                        t.TempDir(),
-			PathToInitialConfig:            defaultPathToInitialConfig,
+			PathToInitialConfig:            DefaultPathToInitialConfig,
 			NumOfShards:                    3,
-			RoundDurationInMillis:          roundDurationInMillis,
-			SupernovaRoundDurationInMillis: supernovaRoundDurationInMillis,
-			RoundsPerEpoch:                 roundsPerEpoch,
-			SupernovaRoundsPerEpoch:        supernovaRoundsPerEpoch,
+			RoundDurationInMillis:          RoundDurationInMillis,
+			SupernovaRoundDurationInMillis: SupernovaRoundDurationInMillis,
+			RoundsPerEpoch:                 RoundsPerEpoch,
+			SupernovaRoundsPerEpoch:        SupernovaRoundsPerEpoch,
 			ApiInterface:                   api.NewNoApiInterface(),
 			MinNodesPerShard:               3,
 			MetaChainMinNodes:              3,
@@ -1221,12 +1155,12 @@ func TestChainSimulator_DirectStakingNodes_WithdrawUnstakedFundsBeforeUnbonding(
 		cs, err := chainSimulator.NewChainSimulator(chainSimulator.ArgsChainSimulator{
 			BypassTxSignatureCheck:         true,
 			TempDir:                        t.TempDir(),
-			PathToInitialConfig:            defaultPathToInitialConfig,
+			PathToInitialConfig:            DefaultPathToInitialConfig,
 			NumOfShards:                    3,
-			RoundDurationInMillis:          roundDurationInMillis,
-			SupernovaRoundDurationInMillis: supernovaRoundDurationInMillis,
-			RoundsPerEpoch:                 roundsPerEpoch,
-			SupernovaRoundsPerEpoch:        supernovaRoundsPerEpoch,
+			RoundDurationInMillis:          RoundDurationInMillis,
+			SupernovaRoundDurationInMillis: SupernovaRoundDurationInMillis,
+			RoundsPerEpoch:                 RoundsPerEpoch,
+			SupernovaRoundsPerEpoch:        SupernovaRoundsPerEpoch,
 			ApiInterface:                   api.NewNoApiInterface(),
 			MinNodesPerShard:               3,
 			MetaChainMinNodes:              3,
@@ -1252,12 +1186,12 @@ func TestChainSimulator_DirectStakingNodes_WithdrawUnstakedFundsBeforeUnbonding(
 		cs, err := chainSimulator.NewChainSimulator(chainSimulator.ArgsChainSimulator{
 			BypassTxSignatureCheck:         true,
 			TempDir:                        t.TempDir(),
-			PathToInitialConfig:            defaultPathToInitialConfig,
+			PathToInitialConfig:            DefaultPathToInitialConfig,
 			NumOfShards:                    3,
-			RoundDurationInMillis:          roundDurationInMillis,
-			SupernovaRoundDurationInMillis: supernovaRoundDurationInMillis,
-			RoundsPerEpoch:                 roundsPerEpoch,
-			SupernovaRoundsPerEpoch:        supernovaRoundsPerEpoch,
+			RoundDurationInMillis:          RoundDurationInMillis,
+			SupernovaRoundDurationInMillis: SupernovaRoundDurationInMillis,
+			RoundsPerEpoch:                 RoundsPerEpoch,
+			SupernovaRoundsPerEpoch:        SupernovaRoundsPerEpoch,
 			ApiInterface:                   api.NewNoApiInterface(),
 			MinNodesPerShard:               3,
 			MetaChainMinNodes:              3,
@@ -1283,12 +1217,12 @@ func TestChainSimulator_DirectStakingNodes_WithdrawUnstakedFundsBeforeUnbonding(
 		cs, err := chainSimulator.NewChainSimulator(chainSimulator.ArgsChainSimulator{
 			BypassTxSignatureCheck:         true,
 			TempDir:                        t.TempDir(),
-			PathToInitialConfig:            defaultPathToInitialConfig,
+			PathToInitialConfig:            DefaultPathToInitialConfig,
 			NumOfShards:                    3,
-			RoundDurationInMillis:          roundDurationInMillis,
-			SupernovaRoundDurationInMillis: supernovaRoundDurationInMillis,
-			RoundsPerEpoch:                 roundsPerEpoch,
-			SupernovaRoundsPerEpoch:        supernovaRoundsPerEpoch,
+			RoundDurationInMillis:          RoundDurationInMillis,
+			SupernovaRoundDurationInMillis: SupernovaRoundDurationInMillis,
+			RoundsPerEpoch:                 RoundsPerEpoch,
+			SupernovaRoundsPerEpoch:        SupernovaRoundsPerEpoch,
 			ApiInterface:                   api.NewNoApiInterface(),
 			MinNodesPerShard:               3,
 			MetaChainMinNodes:              3,
@@ -1341,14 +1275,14 @@ func testChainSimulatorDirectStakedWithdrawUnstakedFundsBeforeUnbonding(t *testi
 	err = cs.GenerateBlocks(2) // allow the metachain to finalize the block that contains the staking of the node
 	require.Nil(t, err)
 
-	testBLSKeyStaked(t, metachainNode, blsKeys[0])
+	TestBLSKeyStaked(t, metachainNode, blsKeys[0])
 
 	shardIDValidatorOwner := cs.GetNodeHandler(0).GetShardCoordinator().ComputeId(validatorOwner.Bytes)
 	accountValidatorOwner, _, err := cs.GetNodeHandler(shardIDValidatorOwner).GetFacadeHandler().GetAccount(validatorOwner.Bech32, coreAPI.AccountQueryOptions{})
 	require.Nil(t, err)
 	balanceBeforeUnbonding, _ := big.NewInt(0).SetString(accountValidatorOwner.Balance, 10)
 
-	log.Info("Step 1. Create from the owner of staked nodes a transaction to withdraw the unstaked funds")
+	Log.Info("Step 1. Create from the owner of staked nodes a transaction to withdraw the unstaked funds")
 
 	unStakeValue := big.NewInt(10)
 	unStakeValue = unStakeValue.Mul(chainSimulatorIntegrationTests.OneEGLD, unStakeValue)
@@ -1362,7 +1296,7 @@ func testChainSimulatorDirectStakedWithdrawUnstakedFundsBeforeUnbonding(t *testi
 	require.Nil(t, err)
 
 	// check bls key is still staked
-	testBLSKeyStaked(t, metachainNode, blsKeys[0])
+	TestBLSKeyStaked(t, metachainNode, blsKeys[0])
 
 	txDataField = fmt.Sprintf("unBondTokens@%s", blsKeys[0])
 	txUnBond := chainSimulatorIntegrationTests.GenerateTransaction(validatorOwner.Bytes, 2, vm.ValidatorSCAddress, chainSimulatorIntegrationTests.ZeroValue, txDataField, staking.GasLimitForUnBond)
@@ -1373,7 +1307,7 @@ func testChainSimulatorDirectStakedWithdrawUnstakedFundsBeforeUnbonding(t *testi
 	err = cs.GenerateBlocks(2)
 	require.Nil(t, err)
 
-	log.Info("Step 2. Check the outcome of the TX & verify new stake state with vmquery (`getUnStakedTokensList`)")
+	Log.Info("Step 2. Check the outcome of the TX & verify new stake state with vmquery (`getUnStakedTokensList`)")
 
 	scQuery := &process.SCQuery{
 		ScAddress:  vm.ValidatorSCAddress,
@@ -1425,12 +1359,12 @@ func TestChainSimulator_DirectStakingNodes_WithdrawUnstakedInWithdrawEpoch(t *te
 		cs, err := chainSimulator.NewChainSimulator(chainSimulator.ArgsChainSimulator{
 			BypassTxSignatureCheck:         true,
 			TempDir:                        t.TempDir(),
-			PathToInitialConfig:            defaultPathToInitialConfig,
+			PathToInitialConfig:            DefaultPathToInitialConfig,
 			NumOfShards:                    3,
-			RoundDurationInMillis:          roundDurationInMillis,
-			SupernovaRoundDurationInMillis: supernovaRoundDurationInMillis,
-			RoundsPerEpoch:                 roundsPerEpoch,
-			SupernovaRoundsPerEpoch:        supernovaRoundsPerEpoch,
+			RoundDurationInMillis:          RoundDurationInMillis,
+			SupernovaRoundDurationInMillis: SupernovaRoundDurationInMillis,
+			RoundsPerEpoch:                 RoundsPerEpoch,
+			SupernovaRoundsPerEpoch:        SupernovaRoundsPerEpoch,
 			ApiInterface:                   api.NewNoApiInterface(),
 			MinNodesPerShard:               3,
 			MetaChainMinNodes:              3,
@@ -1457,12 +1391,12 @@ func TestChainSimulator_DirectStakingNodes_WithdrawUnstakedInWithdrawEpoch(t *te
 		cs, err := chainSimulator.NewChainSimulator(chainSimulator.ArgsChainSimulator{
 			BypassTxSignatureCheck:         true,
 			TempDir:                        t.TempDir(),
-			PathToInitialConfig:            defaultPathToInitialConfig,
+			PathToInitialConfig:            DefaultPathToInitialConfig,
 			NumOfShards:                    3,
-			RoundDurationInMillis:          roundDurationInMillis,
-			SupernovaRoundDurationInMillis: supernovaRoundDurationInMillis,
-			RoundsPerEpoch:                 roundsPerEpoch,
-			SupernovaRoundsPerEpoch:        supernovaRoundsPerEpoch,
+			RoundDurationInMillis:          RoundDurationInMillis,
+			SupernovaRoundDurationInMillis: SupernovaRoundDurationInMillis,
+			RoundsPerEpoch:                 RoundsPerEpoch,
+			SupernovaRoundsPerEpoch:        SupernovaRoundsPerEpoch,
 			ApiInterface:                   api.NewNoApiInterface(),
 			MinNodesPerShard:               3,
 			MetaChainMinNodes:              3,
@@ -1489,12 +1423,12 @@ func TestChainSimulator_DirectStakingNodes_WithdrawUnstakedInWithdrawEpoch(t *te
 		cs, err := chainSimulator.NewChainSimulator(chainSimulator.ArgsChainSimulator{
 			BypassTxSignatureCheck:         true,
 			TempDir:                        t.TempDir(),
-			PathToInitialConfig:            defaultPathToInitialConfig,
+			PathToInitialConfig:            DefaultPathToInitialConfig,
 			NumOfShards:                    3,
-			RoundDurationInMillis:          roundDurationInMillis,
-			SupernovaRoundDurationInMillis: supernovaRoundDurationInMillis,
-			RoundsPerEpoch:                 roundsPerEpoch,
-			SupernovaRoundsPerEpoch:        supernovaRoundsPerEpoch,
+			RoundDurationInMillis:          RoundDurationInMillis,
+			SupernovaRoundDurationInMillis: SupernovaRoundDurationInMillis,
+			RoundsPerEpoch:                 RoundsPerEpoch,
+			SupernovaRoundsPerEpoch:        SupernovaRoundsPerEpoch,
 			ApiInterface:                   api.NewNoApiInterface(),
 			MinNodesPerShard:               3,
 			MetaChainMinNodes:              3,
@@ -1521,12 +1455,12 @@ func TestChainSimulator_DirectStakingNodes_WithdrawUnstakedInWithdrawEpoch(t *te
 		cs, err := chainSimulator.NewChainSimulator(chainSimulator.ArgsChainSimulator{
 			BypassTxSignatureCheck:         true,
 			TempDir:                        t.TempDir(),
-			PathToInitialConfig:            defaultPathToInitialConfig,
+			PathToInitialConfig:            DefaultPathToInitialConfig,
 			NumOfShards:                    3,
-			RoundDurationInMillis:          roundDurationInMillis,
-			SupernovaRoundDurationInMillis: supernovaRoundDurationInMillis,
-			RoundsPerEpoch:                 roundsPerEpoch,
-			SupernovaRoundsPerEpoch:        supernovaRoundsPerEpoch,
+			RoundDurationInMillis:          RoundDurationInMillis,
+			SupernovaRoundDurationInMillis: SupernovaRoundDurationInMillis,
+			RoundsPerEpoch:                 RoundsPerEpoch,
+			SupernovaRoundsPerEpoch:        SupernovaRoundsPerEpoch,
 			ApiInterface:                   api.NewNoApiInterface(),
 			MinNodesPerShard:               3,
 			MetaChainMinNodes:              3,
@@ -1580,7 +1514,7 @@ func testChainSimulatorDirectStakedWithdrawUnstakedFundsInFirstEpoch(t *testing.
 	err = cs.GenerateBlocks(2) // allow the metachain to finalize the block that contains the staking of the node
 	require.Nil(t, err)
 
-	testBLSKeyStaked(t, metachainNode, blsKeys[0])
+	TestBLSKeyStaked(t, metachainNode, blsKeys[0])
 
 	shardIDValidatorOwner := cs.GetNodeHandler(0).GetShardCoordinator().ComputeId(validatorOwner.Bytes)
 	accountValidatorOwner, _, err := cs.GetNodeHandler(shardIDValidatorOwner).GetFacadeHandler().GetAccount(validatorOwner.Bech32, coreAPI.AccountQueryOptions{})
@@ -1599,7 +1533,7 @@ func testChainSimulatorDirectStakedWithdrawUnstakedFundsInFirstEpoch(t *testing.
 	require.Nil(t, err)
 
 	// check bls key is still staked
-	testBLSKeyStaked(t, metachainNode, blsKeys[0])
+	TestBLSKeyStaked(t, metachainNode, blsKeys[0])
 
 	scQuery := &process.SCQuery{
 		ScAddress:  vm.ValidatorSCAddress,
@@ -1616,12 +1550,12 @@ func testChainSimulatorDirectStakedWithdrawUnstakedFundsInFirstEpoch(t *testing.
 	expectedUnStaked = expectedUnStaked.Mul(chainSimulatorIntegrationTests.OneEGLD, expectedUnStaked)
 	require.Equal(t, expectedUnStaked.String(), big.NewInt(0).SetBytes(result.ReturnData[0]).String())
 
-	log.Info("Step 1. Wait for the unbonding epoch to start")
+	Log.Info("Step 1. Wait for the unbonding epoch to start")
 
 	err = cs.GenerateBlocksUntilEpochIsReached(targetEpoch + 1)
 	require.Nil(t, err)
 
-	log.Info("Step 2. Create from the owner of staked nodes a transaction to withdraw the unstaked funds")
+	Log.Info("Step 2. Create from the owner of staked nodes a transaction to withdraw the unstaked funds")
 
 	txDataField = fmt.Sprintf("unBondTokens@%s", blsKeys[0])
 	txUnBond := chainSimulatorIntegrationTests.GenerateTransaction(validatorOwner.Bytes, 2, vm.ValidatorSCAddress, chainSimulatorIntegrationTests.ZeroValue, txDataField, staking.GasLimitForUnBond)
@@ -1632,7 +1566,7 @@ func testChainSimulatorDirectStakedWithdrawUnstakedFundsInFirstEpoch(t *testing.
 	err = cs.GenerateBlocks(2)
 	require.Nil(t, err)
 
-	log.Info("Step 3. Check the outcome of the TX & verify new stake state with vmquery (`getUnStakedTokensList`)")
+	Log.Info("Step 3. Check the outcome of the TX & verify new stake state with vmquery (`getUnStakedTokensList`)")
 
 	scQuery = &process.SCQuery{
 		ScAddress:  vm.ValidatorSCAddress,
@@ -1693,12 +1627,12 @@ func TestChainSimulator_DirectStakingNodes_WithdrawUnstakedInBatches(t *testing.
 		cs, err := chainSimulator.NewChainSimulator(chainSimulator.ArgsChainSimulator{
 			BypassTxSignatureCheck:         true,
 			TempDir:                        t.TempDir(),
-			PathToInitialConfig:            defaultPathToInitialConfig,
+			PathToInitialConfig:            DefaultPathToInitialConfig,
 			NumOfShards:                    3,
-			RoundDurationInMillis:          roundDurationInMillis,
-			SupernovaRoundDurationInMillis: supernovaRoundDurationInMillis,
-			RoundsPerEpoch:                 roundsPerEpoch,
-			SupernovaRoundsPerEpoch:        supernovaRoundsPerEpoch,
+			RoundDurationInMillis:          RoundDurationInMillis,
+			SupernovaRoundDurationInMillis: SupernovaRoundDurationInMillis,
+			RoundsPerEpoch:                 RoundsPerEpoch,
+			SupernovaRoundsPerEpoch:        SupernovaRoundsPerEpoch,
 			ApiInterface:                   api.NewNoApiInterface(),
 			MinNodesPerShard:               3,
 			MetaChainMinNodes:              3,
@@ -1726,12 +1660,12 @@ func TestChainSimulator_DirectStakingNodes_WithdrawUnstakedInBatches(t *testing.
 		cs, err := chainSimulator.NewChainSimulator(chainSimulator.ArgsChainSimulator{
 			BypassTxSignatureCheck:         true,
 			TempDir:                        t.TempDir(),
-			PathToInitialConfig:            defaultPathToInitialConfig,
+			PathToInitialConfig:            DefaultPathToInitialConfig,
 			NumOfShards:                    3,
-			RoundDurationInMillis:          roundDurationInMillis,
-			SupernovaRoundDurationInMillis: supernovaRoundDurationInMillis,
-			RoundsPerEpoch:                 roundsPerEpoch,
-			SupernovaRoundsPerEpoch:        supernovaRoundsPerEpoch,
+			RoundDurationInMillis:          RoundDurationInMillis,
+			SupernovaRoundDurationInMillis: SupernovaRoundDurationInMillis,
+			RoundsPerEpoch:                 RoundsPerEpoch,
+			SupernovaRoundsPerEpoch:        SupernovaRoundsPerEpoch,
 			ApiInterface:                   api.NewNoApiInterface(),
 			MinNodesPerShard:               3,
 			MetaChainMinNodes:              3,
@@ -1759,12 +1693,12 @@ func TestChainSimulator_DirectStakingNodes_WithdrawUnstakedInBatches(t *testing.
 		cs, err := chainSimulator.NewChainSimulator(chainSimulator.ArgsChainSimulator{
 			BypassTxSignatureCheck:         true,
 			TempDir:                        t.TempDir(),
-			PathToInitialConfig:            defaultPathToInitialConfig,
+			PathToInitialConfig:            DefaultPathToInitialConfig,
 			NumOfShards:                    3,
-			RoundDurationInMillis:          roundDurationInMillis,
-			SupernovaRoundDurationInMillis: supernovaRoundDurationInMillis,
-			RoundsPerEpoch:                 roundsPerEpoch,
-			SupernovaRoundsPerEpoch:        supernovaRoundsPerEpoch,
+			RoundDurationInMillis:          RoundDurationInMillis,
+			SupernovaRoundDurationInMillis: SupernovaRoundDurationInMillis,
+			RoundsPerEpoch:                 RoundsPerEpoch,
+			SupernovaRoundsPerEpoch:        SupernovaRoundsPerEpoch,
 			ApiInterface:                   api.NewNoApiInterface(),
 			MinNodesPerShard:               3,
 			MetaChainMinNodes:              3,
@@ -1792,12 +1726,12 @@ func TestChainSimulator_DirectStakingNodes_WithdrawUnstakedInBatches(t *testing.
 		cs, err := chainSimulator.NewChainSimulator(chainSimulator.ArgsChainSimulator{
 			BypassTxSignatureCheck:         true,
 			TempDir:                        t.TempDir(),
-			PathToInitialConfig:            defaultPathToInitialConfig,
+			PathToInitialConfig:            DefaultPathToInitialConfig,
 			NumOfShards:                    3,
-			RoundDurationInMillis:          roundDurationInMillis,
-			SupernovaRoundDurationInMillis: supernovaRoundDurationInMillis,
-			RoundsPerEpoch:                 roundsPerEpoch,
-			SupernovaRoundsPerEpoch:        supernovaRoundsPerEpoch,
+			RoundDurationInMillis:          RoundDurationInMillis,
+			SupernovaRoundDurationInMillis: SupernovaRoundDurationInMillis,
+			RoundsPerEpoch:                 RoundsPerEpoch,
+			SupernovaRoundsPerEpoch:        SupernovaRoundsPerEpoch,
 			ApiInterface:                   api.NewNoApiInterface(),
 			MinNodesPerShard:               3,
 			MetaChainMinNodes:              3,
@@ -1854,15 +1788,15 @@ func testChainSimulatorDirectStakedWithdrawUnstakedFundsInBatches(t *testing.T, 
 	err = cs.GenerateBlocks(2)
 	require.Nil(t, err)
 
-	testBLSKeyStaked(t, metachainNode, blsKeys[0])
+	TestBLSKeyStaked(t, metachainNode, blsKeys[0])
 
 	shardIDValidatorOwner := cs.GetNodeHandler(0).GetShardCoordinator().ComputeId(validatorOwner.Bytes)
 	accountValidatorOwner, _, err := cs.GetNodeHandler(shardIDValidatorOwner).GetFacadeHandler().GetAccount(validatorOwner.Bech32, coreAPI.AccountQueryOptions{})
 	require.Nil(t, err)
 	balanceBeforeUnbonding, _ := big.NewInt(0).SetString(accountValidatorOwner.Balance, 10)
 
-	log.Info("Step 1. Create 3 transactions for unstaking: first one unstaking 11 egld, second one unstaking 12 egld and third one unstaking 13 egld.")
-	log.Info("Step 2. Send the transactions in consecutive epochs, one TX in each epoch.")
+	Log.Info("Step 1. Create 3 transactions for unstaking: first one unstaking 11 egld, second one unstaking 12 egld and third one unstaking 13 egld.")
+	Log.Info("Step 2. Send the transactions in consecutive epochs, one TX in each epoch.")
 
 	unStakeValue1 := big.NewInt(11)
 	unStakeValue1 = unStakeValue1.Mul(chainSimulatorIntegrationTests.OneEGLD, unStakeValue1)
@@ -1907,7 +1841,7 @@ func testChainSimulatorDirectStakedWithdrawUnstakedFundsInBatches(t *testing.T, 
 	require.Nil(t, err)
 
 	// check bls key is still staked
-	testBLSKeyStaked(t, metachainNode, blsKeys[0])
+	TestBLSKeyStaked(t, metachainNode, blsKeys[0])
 
 	scQuery := &process.SCQuery{
 		ScAddress:  vm.ValidatorSCAddress,
@@ -1939,13 +1873,13 @@ func testChainSimulatorDirectStakedWithdrawUnstakedFundsInBatches(t *testing.T, 
 	expectedStaked = expectedStaked.Mul(chainSimulatorIntegrationTests.OneEGLD, expectedStaked)
 	require.Equal(t, expectedStaked.String(), string(result.ReturnData[0]))
 
-	log.Info("Step 3. Wait for the unbonding epoch to start")
+	Log.Info("Step 3. Wait for the unbonding epoch to start")
 
 	testEpoch += 3
 	err = cs.GenerateBlocksUntilEpochIsReached(testEpoch)
 	require.Nil(t, err)
 
-	log.Info("Step 4.1. Create from the owner of staked nodes a transaction to withdraw the unstaked funds")
+	Log.Info("Step 4.1. Create from the owner of staked nodes a transaction to withdraw the unstaked funds")
 
 	txDataField = fmt.Sprintf("unBondTokens@%s", blsKeys[0])
 	txUnBond := chainSimulatorIntegrationTests.GenerateTransaction(validatorOwner.Bytes, 4, vm.ValidatorSCAddress, chainSimulatorIntegrationTests.ZeroValue, txDataField, staking.GasLimitForUnBond)
@@ -1977,7 +1911,7 @@ func testChainSimulatorDirectStakedWithdrawUnstakedFundsInBatches(t *testing.T, 
 
 	require.Equal(t, 1, balanceAfterUnbonding.Cmp(balanceBeforeUnbonding))
 
-	log.Info("Step 4.2. Create from the owner of staked nodes a transaction to withdraw the unstaked funds")
+	Log.Info("Step 4.2. Create from the owner of staked nodes a transaction to withdraw the unstaked funds")
 
 	testEpoch++
 	err = cs.GenerateBlocksUntilEpochIsReached(testEpoch)
@@ -2005,7 +1939,7 @@ func testChainSimulatorDirectStakedWithdrawUnstakedFundsInBatches(t *testing.T, 
 
 	require.Equal(t, 1, balanceAfterUnbonding.Cmp(balanceBeforeUnbonding))
 
-	log.Info("Step 4.3. Create from the owner of staked nodes a transaction to withdraw the unstaked funds")
+	Log.Info("Step 4.3. Create from the owner of staked nodes a transaction to withdraw the unstaked funds")
 
 	testEpoch++
 	err = cs.GenerateBlocksUntilEpochIsReached(testEpoch)
@@ -2054,12 +1988,12 @@ func TestChainSimulator_DirectStakingNodes_WithdrawUnstakedInEpoch(t *testing.T)
 		cs, err := chainSimulator.NewChainSimulator(chainSimulator.ArgsChainSimulator{
 			BypassTxSignatureCheck:         true,
 			TempDir:                        t.TempDir(),
-			PathToInitialConfig:            defaultPathToInitialConfig,
+			PathToInitialConfig:            DefaultPathToInitialConfig,
 			NumOfShards:                    3,
-			RoundDurationInMillis:          roundDurationInMillis,
-			SupernovaRoundDurationInMillis: supernovaRoundDurationInMillis,
-			RoundsPerEpoch:                 roundsPerEpoch,
-			SupernovaRoundsPerEpoch:        supernovaRoundsPerEpoch,
+			RoundDurationInMillis:          RoundDurationInMillis,
+			SupernovaRoundDurationInMillis: SupernovaRoundDurationInMillis,
+			RoundsPerEpoch:                 RoundsPerEpoch,
+			SupernovaRoundsPerEpoch:        SupernovaRoundsPerEpoch,
 			ApiInterface:                   api.NewNoApiInterface(),
 			MinNodesPerShard:               3,
 			MetaChainMinNodes:              3,
@@ -2087,12 +2021,12 @@ func TestChainSimulator_DirectStakingNodes_WithdrawUnstakedInEpoch(t *testing.T)
 		cs, err := chainSimulator.NewChainSimulator(chainSimulator.ArgsChainSimulator{
 			BypassTxSignatureCheck:         true,
 			TempDir:                        t.TempDir(),
-			PathToInitialConfig:            defaultPathToInitialConfig,
+			PathToInitialConfig:            DefaultPathToInitialConfig,
 			NumOfShards:                    3,
-			RoundDurationInMillis:          roundDurationInMillis,
-			SupernovaRoundDurationInMillis: supernovaRoundDurationInMillis,
-			RoundsPerEpoch:                 roundsPerEpoch,
-			SupernovaRoundsPerEpoch:        supernovaRoundsPerEpoch,
+			RoundDurationInMillis:          RoundDurationInMillis,
+			SupernovaRoundDurationInMillis: SupernovaRoundDurationInMillis,
+			RoundsPerEpoch:                 RoundsPerEpoch,
+			SupernovaRoundsPerEpoch:        SupernovaRoundsPerEpoch,
 			ApiInterface:                   api.NewNoApiInterface(),
 			MinNodesPerShard:               3,
 			MetaChainMinNodes:              3,
@@ -2120,12 +2054,12 @@ func TestChainSimulator_DirectStakingNodes_WithdrawUnstakedInEpoch(t *testing.T)
 		cs, err := chainSimulator.NewChainSimulator(chainSimulator.ArgsChainSimulator{
 			BypassTxSignatureCheck:         true,
 			TempDir:                        t.TempDir(),
-			PathToInitialConfig:            defaultPathToInitialConfig,
+			PathToInitialConfig:            DefaultPathToInitialConfig,
 			NumOfShards:                    3,
-			RoundDurationInMillis:          roundDurationInMillis,
-			SupernovaRoundDurationInMillis: supernovaRoundDurationInMillis,
-			RoundsPerEpoch:                 roundsPerEpoch,
-			SupernovaRoundsPerEpoch:        supernovaRoundsPerEpoch,
+			RoundDurationInMillis:          RoundDurationInMillis,
+			SupernovaRoundDurationInMillis: SupernovaRoundDurationInMillis,
+			RoundsPerEpoch:                 RoundsPerEpoch,
+			SupernovaRoundsPerEpoch:        SupernovaRoundsPerEpoch,
 			ApiInterface:                   api.NewNoApiInterface(),
 			MinNodesPerShard:               3,
 			MetaChainMinNodes:              3,
@@ -2153,12 +2087,12 @@ func TestChainSimulator_DirectStakingNodes_WithdrawUnstakedInEpoch(t *testing.T)
 		cs, err := chainSimulator.NewChainSimulator(chainSimulator.ArgsChainSimulator{
 			BypassTxSignatureCheck:         true,
 			TempDir:                        t.TempDir(),
-			PathToInitialConfig:            defaultPathToInitialConfig,
+			PathToInitialConfig:            DefaultPathToInitialConfig,
 			NumOfShards:                    3,
-			RoundDurationInMillis:          roundDurationInMillis,
-			SupernovaRoundDurationInMillis: supernovaRoundDurationInMillis,
-			RoundsPerEpoch:                 roundsPerEpoch,
-			SupernovaRoundsPerEpoch:        supernovaRoundsPerEpoch,
+			RoundDurationInMillis:          RoundDurationInMillis,
+			SupernovaRoundDurationInMillis: SupernovaRoundDurationInMillis,
+			RoundsPerEpoch:                 RoundsPerEpoch,
+			SupernovaRoundsPerEpoch:        SupernovaRoundsPerEpoch,
 			ApiInterface:                   api.NewNoApiInterface(),
 			MinNodesPerShard:               3,
 			MetaChainMinNodes:              3,
@@ -2215,15 +2149,15 @@ func testChainSimulatorDirectStakedWithdrawUnstakedFundsInEpoch(t *testing.T, cs
 	err = cs.GenerateBlocks(2)
 	require.Nil(t, err)
 
-	testBLSKeyStaked(t, metachainNode, blsKeys[0])
+	TestBLSKeyStaked(t, metachainNode, blsKeys[0])
 
 	shardIDValidatorOwner := cs.GetNodeHandler(0).GetShardCoordinator().ComputeId(validatorOwner.Bytes)
 	accountValidatorOwner, _, err := cs.GetNodeHandler(shardIDValidatorOwner).GetFacadeHandler().GetAccount(validatorOwner.Bech32, coreAPI.AccountQueryOptions{})
 	require.Nil(t, err)
 	balanceBeforeUnbonding, _ := big.NewInt(0).SetString(accountValidatorOwner.Balance, 10)
 
-	log.Info("Step 1. Create 3 transactions for unstaking: first one unstaking 11 egld each, second one unstaking 12 egld and third one unstaking 13 egld.")
-	log.Info("Step 2. Send the transactions in consecutively in same epoch.")
+	Log.Info("Step 1. Create 3 transactions for unstaking: first one unstaking 11 egld each, second one unstaking 12 egld and third one unstaking 13 egld.")
+	Log.Info("Step 2. Send the transactions in consecutively in same epoch.")
 
 	unStakeValue1 := big.NewInt(11)
 	unStakeValue1 = unStakeValue1.Mul(chainSimulatorIntegrationTests.OneEGLD, unStakeValue1)
@@ -2252,7 +2186,7 @@ func testChainSimulatorDirectStakedWithdrawUnstakedFundsInEpoch(t *testing.T, cs
 	require.NotNil(t, unStakeTx)
 
 	// check bls key is still staked
-	testBLSKeyStaked(t, metachainNode, blsKeys[0])
+	TestBLSKeyStaked(t, metachainNode, blsKeys[0])
 
 	scQuery := &process.SCQuery{
 		ScAddress:  vm.ValidatorSCAddress,
@@ -2284,13 +2218,13 @@ func testChainSimulatorDirectStakedWithdrawUnstakedFundsInEpoch(t *testing.T, cs
 	expectedStaked = expectedStaked.Mul(chainSimulatorIntegrationTests.OneEGLD, expectedStaked)
 	require.Equal(t, expectedStaked.String(), string(result.ReturnData[0]))
 
-	log.Info("Step 3. Wait for the unbonding epoch to start")
+	Log.Info("Step 3. Wait for the unbonding epoch to start")
 
 	testEpoch := targetEpoch + 3
 	err = cs.GenerateBlocksUntilEpochIsReached(testEpoch)
 	require.Nil(t, err)
 
-	log.Info("Step 4.1. Create from the owner of staked nodes a transaction to withdraw the unstaked funds")
+	Log.Info("Step 4.1. Create from the owner of staked nodes a transaction to withdraw the unstaked funds")
 
 	txDataField = fmt.Sprintf("unBondTokens@%s", blsKeys[0])
 	txUnBond := chainSimulatorIntegrationTests.GenerateTransaction(validatorOwner.Bytes, 4, vm.ValidatorSCAddress, chainSimulatorIntegrationTests.ZeroValue, txDataField, staking.GasLimitForUnBond)
@@ -2347,12 +2281,12 @@ func TestChainSimulator_UnStakeOneActiveNodeAndCheckAPIAuctionList(t *testing.T)
 	cs, err := chainSimulator.NewChainSimulator(chainSimulator.ArgsChainSimulator{
 		BypassTxSignatureCheck:         true,
 		TempDir:                        t.TempDir(),
-		PathToInitialConfig:            defaultPathToInitialConfig,
+		PathToInitialConfig:            DefaultPathToInitialConfig,
 		NumOfShards:                    numOfShards,
-		RoundDurationInMillis:          roundDurationInMillis,
-		SupernovaRoundDurationInMillis: supernovaRoundDurationInMillis,
-		RoundsPerEpoch:                 roundsPerEpoch,
-		SupernovaRoundsPerEpoch:        supernovaRoundsPerEpoch,
+		RoundDurationInMillis:          RoundDurationInMillis,
+		SupernovaRoundDurationInMillis: SupernovaRoundDurationInMillis,
+		RoundsPerEpoch:                 RoundsPerEpoch,
+		SupernovaRoundsPerEpoch:        SupernovaRoundsPerEpoch,
 		ApiInterface:                   api.NewNoApiInterface(),
 		MinNodesPerShard:               4,
 		MetaChainMinNodes:              4,
@@ -2420,12 +2354,12 @@ func TestChainSimulator_EdgeCaseLowWaitingList(t *testing.T) {
 	cs, err := chainSimulator.NewChainSimulator(chainSimulator.ArgsChainSimulator{
 		BypassTxSignatureCheck:         true,
 		TempDir:                        t.TempDir(),
-		PathToInitialConfig:            defaultPathToInitialConfig,
+		PathToInitialConfig:            DefaultPathToInitialConfig,
 		NumOfShards:                    numOfShards,
-		RoundDurationInMillis:          roundDurationInMillis,
-		SupernovaRoundDurationInMillis: supernovaRoundDurationInMillis,
-		RoundsPerEpoch:                 roundsPerEpoch,
-		SupernovaRoundsPerEpoch:        supernovaRoundsPerEpoch,
+		RoundDurationInMillis:          RoundDurationInMillis,
+		SupernovaRoundDurationInMillis: SupernovaRoundDurationInMillis,
+		RoundsPerEpoch:                 RoundsPerEpoch,
+		SupernovaRoundsPerEpoch:        SupernovaRoundsPerEpoch,
 		ApiInterface:                   api.NewNoApiInterface(),
 		MinNodesPerShard:               4,
 		MetaChainMinNodes:              4,
@@ -2558,7 +2492,7 @@ func unStakeOneActiveNode(t *testing.T, cs chainSimulatorIntegrationTests.ChainS
 
 		validatorStatus := apiValidator.ValidatorStatus
 		if validatorStatus == "waiting" || validatorStatus == "eligible" {
-			log.Info("found active key to unStake", "index", idx, "bls key", keyToUnStake, "list", validatorStatus)
+			Log.Info("found active key to unStake", "index", idx, "bls key", keyToUnStake, "list", validatorStatus)
 			break
 		}
 
