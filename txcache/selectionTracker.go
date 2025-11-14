@@ -90,6 +90,7 @@ func (st *selectionTracker) OnProposedBlock(
 		"nonce", nonce,
 		"blockHash", blockHash,
 		"prevHash", prevHash,
+		"latestRootHash", st.latestRootHash,
 	)
 
 	err = st.checkReceivedBlockNoLock(blockBody, blockHeader)

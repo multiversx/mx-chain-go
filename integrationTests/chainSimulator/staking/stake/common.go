@@ -103,8 +103,8 @@ func GetQualifiedAndUnqualifiedNodes(t *testing.T, metachainNode processChainSim
 	return qualified, unQualified
 }
 
-func GetUnStakedTokensList(t *testing.T, metachainNode process.NodeHandler, blsKey []byte) []byte {
-	scQuery := &process2.SCQuery{
+func GetUnStakedTokensList(t *testing.T, metachainNode processChainSimulator.NodeHandler, blsKey []byte) []byte {
+	scQuery := &process.SCQuery{
 		ScAddress:  vm.ValidatorSCAddress,
 		FuncName:   "getUnStakedTokensList",
 		CallerAddr: vm.ValidatorSCAddress,
@@ -119,7 +119,7 @@ func GetUnStakedTokensList(t *testing.T, metachainNode process.NodeHandler, blsK
 }
 
 func CheckOneOfTheNodesIsUnstaked(t *testing.T,
-	metachainNode process.NodeHandler,
+	metachainNode processChainSimulator.NodeHandler,
 	blsKeys []string,
 ) {
 	decodedBLSKey0, _ := hex.DecodeString(blsKeys[0])

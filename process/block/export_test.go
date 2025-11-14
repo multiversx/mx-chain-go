@@ -378,7 +378,7 @@ func (mp *metaProcessor) SetShardBlockFinality(val uint32) {
 }
 
 // SaveLastNotarizedHeader -
-func (mp *metaProcessor) SaveLastNotarizedHeader(header *block.MetaBlock) error {
+func (mp *metaProcessor) SaveLastNotarizedHeader(header data.MetaHeaderHandler) error {
 	return mp.saveLastNotarizedHeader(header)
 }
 
@@ -993,4 +993,9 @@ func (bp *baseProcessor) OnExecutedBlock(header data.HeaderHandler, rootHash []b
 // RecreateTrieIfNeeded -
 func (bp *baseProcessor) RecreateTrieIfNeeded() error {
 	return bp.recreateTrieIfNeeded()
+}
+
+// ExtractRootHashForCleanup -
+func (bp *baseProcessor) ExtractRootHashForCleanup(header data.HeaderHandler) (common.RootHashHolder, error) {
+	return bp.extractRootHashForCleanup(header)
 }

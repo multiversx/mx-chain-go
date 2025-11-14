@@ -30,6 +30,13 @@ const numberOfSecondsInDay = 86400
 const numberOfMillisecondsInDay = numberOfSecondsInDay * 1000
 const numberOfMillisecondsInYear = numberOfDaysInYear * numberOfMillisecondsInDay
 
+type argsComputeEconomics struct {
+	computationData             economicsComputationData
+	prevEpochStart              data.MetaHeaderHandler
+	lastNoncesPerShardPrevEpoch map[uint32]uint64
+	lastNoncesPerShardCurrEpoch map[uint32]uint64
+}
+
 type economics struct {
 	marshalizer           marshal.Marshalizer
 	hasher                hashing.Hasher
@@ -123,6 +130,15 @@ func NewEndOfEpochEconomicsDataCreator(args ArgsNewEpochEconomics) (*economics, 
 func (e *economics) ComputeEndOfEpochEconomics(
 	metaBlock *block.MetaBlock,
 ) (*block.Economics, error) {
+	args, err := e.createLegacyEconomicsArgs(metaBlock)
+	if err != nil {
+		return nil, err
+	}
+
+	return e.baseComputeEconomics(args)
+}
+
+func (e *economics) createLegacyEconomicsArgs(metaBlock *block.MetaBlock) (*argsComputeEconomics, error) {
 	if check.IfNil(metaBlock) {
 		return nil, epochStart.ErrNilHeaderHandler
 	}
@@ -140,33 +156,44 @@ func (e *economics) ComputeEndOfEpochEconomics(
 	if err != nil {
 		return nil, err
 	}
-	prevEpochEconomics := prevEpochStart.EpochStart.Economics
 
-	noncesPerShardCurrEpoch, err := e.startNoncePerShardFromLastCrossNotarized(metaBlock.GetNonce(), metaBlock.EpochStart)
-	if err != nil {
-		return nil, err
-	}
+	noncesPerShardCurrEpoch := e.startNoncePerShardFromLastCrossNotarized(metaBlock.GetNonce(), metaBlock.GetEpochStartHandler())
 
-	roundsPassedInEpoch := metaBlock.GetRound() - prevEpochStart.GetRound()
+	return &argsComputeEconomics{
+		computationData: economicsComputationData{
+			newEpoch:               metaBlock.Epoch,
+			round:                  metaBlock.Round,
+			timeStamp:              metaBlock.GetTimeStamp(),
+			accumulatedFeesInEpoch: metaBlock.GetAccumulatedFeesInEpoch(),
+			devFeesInEpoch:         metaBlock.GetDevFeesInEpoch(),
+		},
+		prevEpochStart:              prevEpochStart,
+		lastNoncesPerShardPrevEpoch: noncesPerShardPrevEpoch,
+		lastNoncesPerShardCurrEpoch: noncesPerShardCurrEpoch,
+	}, nil
+}
+
+func (e *economics) baseComputeEconomics(args *argsComputeEconomics) (*block.Economics, error) {
+	roundsPassedInEpoch := args.computationData.round - args.prevEpochStart.GetRound()
 	maxBlocksInEpoch := core.MaxUint64(1, roundsPassedInEpoch*uint64(e.shardCoordinator.NumberOfShards()+1))
-	totalNumBlocksInEpoch := e.computeNumOfTotalCreatedBlocks(noncesPerShardPrevEpoch, noncesPerShardCurrEpoch)
+	totalNumBlocksInEpoch := e.computeNumOfTotalCreatedBlocks(args.lastNoncesPerShardPrevEpoch, args.lastNoncesPerShardCurrEpoch)
 
-	inflationRate := e.computeInflationRate(metaBlock)
-	rwdPerBlock := e.computeRewardsPerBlock(e.genesisTotalSupply, maxBlocksInEpoch, inflationRate, metaBlock.Epoch)
+	inflationRate := e.computeInflationRate(&args.computationData)
+	rwdPerBlock := e.computeRewardsPerBlock(e.genesisTotalSupply, maxBlocksInEpoch, inflationRate, args.computationData.newEpoch)
 	totalRewardsToBeDistributed := big.NewInt(0).Mul(rwdPerBlock, big.NewInt(0).SetUint64(totalNumBlocksInEpoch))
 
-	newTokens := big.NewInt(0).Sub(totalRewardsToBeDistributed, metaBlock.AccumulatedFeesInEpoch)
+	newTokens := big.NewInt(0).Sub(totalRewardsToBeDistributed, args.computationData.accumulatedFeesInEpoch)
 	if newTokens.Cmp(big.NewInt(0)) < 0 {
 		newTokens = big.NewInt(0)
-		totalRewardsToBeDistributed = big.NewInt(0).Set(metaBlock.AccumulatedFeesInEpoch)
+		totalRewardsToBeDistributed = big.NewInt(0).Set(args.computationData.accumulatedFeesInEpoch)
 		rwdPerBlock.Div(totalRewardsToBeDistributed, big.NewInt(0).SetUint64(totalNumBlocksInEpoch))
 	}
 
-	remainingToBeDistributed := big.NewInt(0).Sub(totalRewardsToBeDistributed, metaBlock.DevFeesInEpoch)
-	e.adjustRewardsPerBlockWithDeveloperFees(rwdPerBlock, metaBlock.DevFeesInEpoch, totalNumBlocksInEpoch)
-	rewardsForLeaders := e.adjustRewardsPerBlockWithLeaderPercentage(rwdPerBlock, metaBlock.AccumulatedFeesInEpoch, metaBlock.DevFeesInEpoch, totalNumBlocksInEpoch, metaBlock.Epoch)
+	remainingToBeDistributed := big.NewInt(0).Sub(totalRewardsToBeDistributed, args.computationData.devFeesInEpoch)
+	e.adjustRewardsPerBlockWithDeveloperFees(rwdPerBlock, args.computationData.devFeesInEpoch, totalNumBlocksInEpoch)
+	rewardsForLeaders := e.adjustRewardsPerBlockWithLeaderPercentage(rwdPerBlock, args.computationData.accumulatedFeesInEpoch, args.computationData.devFeesInEpoch, totalNumBlocksInEpoch, args.computationData.newEpoch)
 	remainingToBeDistributed = big.NewInt(0).Sub(remainingToBeDistributed, rewardsForLeaders)
-	rewardsForProtocolSustainability := e.computeRewardsForProtocolSustainability(totalRewardsToBeDistributed, metaBlock.Epoch)
+	rewardsForProtocolSustainability := e.computeRewardsForProtocolSustainability(totalRewardsToBeDistributed, args.computationData.newEpoch)
 	remainingToBeDistributed = big.NewInt(0).Sub(remainingToBeDistributed, rewardsForProtocolSustainability)
 	// adjust rewards per block taking into consideration protocol sustainability rewards
 	e.adjustRewardsPerBlockWithProtocolSustainabilityRewards(rwdPerBlock, rewardsForProtocolSustainability, totalNumBlocksInEpoch)
@@ -180,24 +207,25 @@ func (e *economics) ComputeEndOfEpochEconomics(
 	e.economicsDataNotified.SetRewardsToBeDistributed(totalRewardsToBeDistributed)
 	e.economicsDataNotified.SetRewardsToBeDistributedForBlocks(remainingToBeDistributed)
 
-	prevEpochStartHash, err := core.CalculateHash(e.marshalizer, e.hasher, prevEpochStart)
+	prevEpochStartHash, err := core.CalculateHash(e.marshalizer, e.hasher, args.prevEpochStart)
 	if err != nil {
 		return nil, err
 	}
 
+	prevEpochEconomics := args.prevEpochStart.GetEpochStartHandler().GetEconomicsHandler()
 	computedEconomics := block.Economics{
-		TotalSupply:                      big.NewInt(0).Add(prevEpochEconomics.TotalSupply, newTokens),
+		TotalSupply:                      big.NewInt(0).Add(prevEpochEconomics.GetTotalSupply(), newTokens),
 		TotalToDistribute:                big.NewInt(0).Set(totalRewardsToBeDistributed),
 		TotalNewlyMinted:                 big.NewInt(0).Set(newTokens),
 		RewardsPerBlock:                  rwdPerBlock,
 		RewardsForProtocolSustainability: rewardsForProtocolSustainability,
-		NodePrice:                        big.NewInt(0).Set(prevEpochEconomics.NodePrice),
-		PrevEpochStartRound:              prevEpochStart.GetRound(),
+		NodePrice:                        big.NewInt(0).Set(prevEpochEconomics.GetNodePrice()),
+		PrevEpochStartRound:              args.prevEpochStart.GetRound(),
 		PrevEpochStartHash:               prevEpochStartHash,
 	}
 
 	e.printEconomicsData(
-		metaBlock,
+		args.computationData,
 		prevEpochEconomics,
 		inflationRate,
 		newTokens,
@@ -208,8 +236,8 @@ func (e *economics) ComputeEndOfEpochEconomics(
 		rewardsForProtocolSustainability,
 	)
 
-	maxPossibleNotarizedBlocks := e.maxPossibleNotarizedBlocks(metaBlock.Round, prevEpochStart)
-	err = e.checkEconomicsInvariants(computedEconomics, inflationRate, maxBlocksInEpoch, totalNumBlocksInEpoch, metaBlock, metaBlock.Epoch, maxPossibleNotarizedBlocks)
+	maxPossibleNotarizedBlocks := e.maxPossibleNotarizedBlocks(args.computationData.round, args.prevEpochStart)
+	err = e.checkEconomicsInvariants(computedEconomics, inflationRate, maxBlocksInEpoch, totalNumBlocksInEpoch, &args.computationData, args.computationData.newEpoch, maxPossibleNotarizedBlocks)
 	if err != nil {
 		log.Warn("ComputeEndOfEpochEconomics", "error", err.Error())
 
@@ -219,9 +247,78 @@ func (e *economics) ComputeEndOfEpochEconomics(
 	return &computedEconomics, nil
 }
 
+// ComputeEndOfEpochEconomicsV3 will compute end of epoch economics using data from meta header v3
+func (e *economics) ComputeEndOfEpochEconomicsV3(
+	metaBlock data.MetaHeaderHandler,
+	prevBlockExecutionResults data.BaseMetaExecutionResultHandler,
+	epochStartHandler data.EpochStartHandler,
+) (*block.Economics, error) {
+	args, err := e.createEconomicsV3Args(metaBlock, prevBlockExecutionResults, epochStartHandler)
+	if err != nil {
+		return nil, err
+	}
+
+	return e.baseComputeEconomics(args)
+}
+
+func (e *economics) createEconomicsV3Args(
+	metaBlock data.MetaHeaderHandler,
+	prevBlockExecutionResults data.BaseMetaExecutionResultHandler,
+	epochStartHandler data.EpochStartHandler,
+) (*argsComputeEconomics, error) {
+	if check.IfNil(metaBlock) {
+		return nil, process.ErrNilMetaBlockHeader
+	}
+	if check.IfNil(prevBlockExecutionResults) {
+		return nil, process.ErrNilExecutionResultHandler
+	}
+	if epochStartHandler == nil {
+		return nil, process.ErrNilEpochStartData
+	}
+
+	if prevBlockExecutionResults.GetAccumulatedFeesInEpoch() == nil {
+		return nil, epochStart.ErrNilTotalAccumulatedFeesInEpoch
+	}
+	if prevBlockExecutionResults.GetDevFeesInEpoch() == nil {
+		return nil, epochStart.ErrNilTotalDevFeesInEpoch
+	}
+
+	if !metaBlock.IsHeaderV3() {
+		return nil, fmt.Errorf("%w in createEconomicsV3Args", data.ErrInvalidHeaderType)
+	}
+	if !metaBlock.IsEpochChangeProposed() {
+		return nil, epochStart.ErrNotEpochStartBlock
+	}
+	if !bytes.Equal(metaBlock.GetPrevHash(), prevBlockExecutionResults.GetHeaderHash()) {
+		return nil, fmt.Errorf("%w in createEconomicsV3Args, metaBlock.GetPrevHash():%x, execResults.GetHeaderHash(): %x",
+			errHashMismatch, metaBlock.GetPrevHash(), prevBlockExecutionResults.GetHeaderHash())
+	}
+
+	lastNoncesPerShardPrevEpoch, prevEpochStart, err := e.startNoncePerShardFromEpochStart(metaBlock.GetEpoch())
+	if err != nil {
+		return nil, err
+	}
+
+	lastNoncesPerShardCurrEpoch := e.startNoncePerShardFromLastCrossNotarized(metaBlock.GetNonce(), epochStartHandler)
+
+	return &argsComputeEconomics{
+		computationData: economicsComputationData{
+			newEpoch:  metaBlock.GetEpoch() + 1, // meta block with proposed epoch change is for current epoch
+			round:     metaBlock.GetRound(),
+			timeStamp: metaBlock.GetTimeStamp(),
+			// use accumulated fees up until proposed epoch change block
+			accumulatedFeesInEpoch: prevBlockExecutionResults.GetAccumulatedFeesInEpoch(),
+			devFeesInEpoch:         prevBlockExecutionResults.GetDevFeesInEpoch(),
+		},
+		prevEpochStart:              prevEpochStart,
+		lastNoncesPerShardPrevEpoch: lastNoncesPerShardPrevEpoch,
+		lastNoncesPerShardCurrEpoch: lastNoncesPerShardCurrEpoch,
+	}, nil
+}
+
 func (e *economics) printEconomicsData(
-	metaBlock *block.MetaBlock,
-	prevEpochEconomics block.Economics,
+	computationData economicsComputationData,
+	prevEpochEconomics data.EconomicsHandler,
 	inflationRate float64,
 	newTokens *big.Int,
 	computedEconomics block.Economics,
@@ -233,38 +330,38 @@ func (e *economics) printEconomicsData(
 	header := []string{"identifier", "", "value"}
 
 	var rewardsForLeaders *big.Int
-	if metaBlock.Epoch > e.stakingV2EnableEpoch {
-		rewardsForLeaders = core.GetIntTrimmedPercentageOfValue(metaBlock.AccumulatedFeesInEpoch, e.rewardsHandler.LeaderPercentageInEpoch(metaBlock.GetEpoch()))
+	if computationData.newEpoch > e.stakingV2EnableEpoch {
+		rewardsForLeaders = core.GetIntTrimmedPercentageOfValue(computationData.accumulatedFeesInEpoch, e.rewardsHandler.LeaderPercentageInEpoch(computationData.newEpoch))
 	} else {
-		rewardsForLeaders = core.GetApproximatePercentageOfValue(metaBlock.AccumulatedFeesInEpoch, e.rewardsHandler.LeaderPercentageInEpoch(metaBlock.GetEpoch()))
+		rewardsForLeaders = core.GetApproximatePercentageOfValue(computationData.accumulatedFeesInEpoch, e.rewardsHandler.LeaderPercentageInEpoch(computationData.newEpoch))
 	}
 
-	maxSupplyLength := len(prevEpochEconomics.TotalSupply.String())
+	maxSupplyLength := len(prevEpochEconomics.GetTotalSupply().String())
 	lines := []*display.LineData{
 		e.newDisplayLine("epoch", "",
-			e.alignRight(fmt.Sprintf("%d", metaBlock.Epoch), maxSupplyLength)),
+			e.alignRight(fmt.Sprintf("%d", computationData.newEpoch), maxSupplyLength)),
 		e.newDisplayLine("inflation rate", "",
 			e.alignRight(fmt.Sprintf("%.6f", inflationRate), maxSupplyLength)),
 		e.newDisplayLine("previous total supply", "(1)",
-			e.alignRight(prevEpochEconomics.TotalSupply.String(), maxSupplyLength)),
+			e.alignRight(prevEpochEconomics.GetTotalSupply().String(), maxSupplyLength)),
 		e.newDisplayLine("new tokens", "(2)",
 			e.alignRight(newTokens.String(), maxSupplyLength)),
 		e.newDisplayLine("current total supply", "(1+2)",
 			e.alignRight(computedEconomics.TotalSupply.String(), maxSupplyLength)),
 		e.newDisplayLine("accumulated fees in epoch", "(3)",
-			e.alignRight(metaBlock.AccumulatedFeesInEpoch.String(), maxSupplyLength)),
+			e.alignRight(computationData.accumulatedFeesInEpoch.String(), maxSupplyLength)),
 		e.newDisplayLine("total rewards to be distributed", "(4)",
 			e.alignRight(totalRewardsToBeDistributed.String(), maxSupplyLength)),
 		e.newDisplayLine("total num blocks in epoch", "(5)",
 			e.alignRight(fmt.Sprintf("%d", totalNumBlocksInEpoch), maxSupplyLength)),
 		e.newDisplayLine("dev fees in epoch", "(6)",
-			e.alignRight(metaBlock.DevFeesInEpoch.String(), maxSupplyLength)),
+			e.alignRight(computationData.devFeesInEpoch.String(), maxSupplyLength)),
 		e.newDisplayLine("leader fees in epoch", "(7)",
 			e.alignRight(rewardsForLeaders.String(), maxSupplyLength)),
 		e.newDisplayLine("reward per block", "(8)",
 			e.alignRight(rwdPerBlock.String(), maxSupplyLength)),
 		e.newDisplayLine("percent for protocol sustainability", "(9)",
-			e.alignRight(fmt.Sprintf("%.6f", e.rewardsHandler.ProtocolSustainabilityPercentageInEpoch(metaBlock.GetEpoch())), maxSupplyLength)),
+			e.alignRight(fmt.Sprintf("%.6f", e.rewardsHandler.ProtocolSustainabilityPercentageInEpoch(computationData.newEpoch)), maxSupplyLength)),
 		e.newDisplayLine("reward for protocol sustainability", "(4 * 9)",
 			e.alignRight(rewardsForProtocolSustainability.String(), maxSupplyLength)),
 	}
@@ -352,16 +449,16 @@ func (e *economics) computeInflationBeforeSupernova(currentRound uint64, epoch u
 }
 
 func (e *economics) computeInflationRate(
-	metaBlock data.HeaderHandler,
+	computationData economicsComputationDataHandler,
 ) float64 {
-	prevEpoch := e.getPreviousEpoch(metaBlock.GetEpoch())
+	prevEpoch := e.getPreviousEpoch(computationData.GetEpoch())
 	supernovaInEpochActivated := e.enableEpochsHandler.IsFlagEnabledInEpoch(common.SupernovaFlag, prevEpoch)
 
 	if !supernovaInEpochActivated {
-		return e.computeInflationBeforeSupernova(metaBlock.GetRound(), prevEpoch)
+		return e.computeInflationBeforeSupernova(computationData.GetRound(), prevEpoch)
 	}
 
-	return e.computeInflationRateAfterSupernova(metaBlock.GetTimeStamp())
+	return e.computeInflationRateAfterSupernova(computationData.GetTimeStamp())
 }
 
 // currentTimestamp is defined as unix milliseconds after supernova is activated
@@ -462,7 +559,7 @@ func (e *economics) computeNumOfTotalCreatedBlocks(
 	return core.MaxUint64(1, totalNumBlocks)
 }
 
-func (e *economics) startNoncePerShardFromEpochStart(epoch uint32) (map[uint32]uint64, *block.MetaBlock, error) {
+func (e *economics) startNoncePerShardFromEpochStart(epoch uint32) (map[uint32]uint64, data.MetaHeaderHandler, error) {
 	mapShardIdNonce := make(map[uint32]uint64, e.shardCoordinator.NumberOfShards()+1)
 	for i := uint32(0); i < e.shardCoordinator.NumberOfShards(); i++ {
 		mapShardIdNonce[i] = e.genesisNonce
@@ -480,36 +577,36 @@ func (e *economics) startNoncePerShardFromEpochStart(epoch uint32) (map[uint32]u
 	}
 
 	mapShardIdNonce[core.MetachainShardId] = previousEpochStartMeta.GetNonce()
-	for _, shardData := range previousEpochStartMeta.EpochStart.LastFinalizedHeaders {
-		mapShardIdNonce[shardData.ShardID] = shardData.Nonce
+	for _, shardData := range previousEpochStartMeta.GetEpochStartHandler().GetLastFinalizedHeaderHandlers() {
+		mapShardIdNonce[shardData.GetShardID()] = shardData.GetNonce()
 	}
 
 	return mapShardIdNonce, previousEpochStartMeta, nil
 }
 
-func (e *economics) maxPossibleNotarizedBlocks(currentRound uint64, prev *block.MetaBlock) uint64 {
+func (e *economics) maxPossibleNotarizedBlocks(currentRound uint64, prev data.MetaHeaderHandler) uint64 {
 	maxBlocks := uint64(0)
-	for _, shardData := range prev.EpochStart.LastFinalizedHeaders {
-		maxBlocks += currentRound - shardData.Round
+	for _, shardData := range prev.GetEpochStartHandler().GetLastFinalizedHeaderHandlers() {
+		maxBlocks += currentRound - shardData.GetRound()
 	}
 	// For metaChain blocks
-	maxBlocks += currentRound - prev.Round
+	maxBlocks += currentRound - prev.GetRound()
 
 	return maxBlocks
 }
 
-func (e *economics) startNoncePerShardFromLastCrossNotarized(metaNonce uint64, epochStart block.EpochStart) (map[uint32]uint64, error) {
+func (e *economics) startNoncePerShardFromLastCrossNotarized(metaNonce uint64, epochStart data.EpochStartHandler) map[uint32]uint64 {
 	mapShardIdNonce := make(map[uint32]uint64, e.shardCoordinator.NumberOfShards()+1)
 	for i := uint32(0); i < e.shardCoordinator.NumberOfShards(); i++ {
 		mapShardIdNonce[i] = e.genesisNonce
 	}
 	mapShardIdNonce[core.MetachainShardId] = metaNonce
 
-	for _, shardData := range epochStart.LastFinalizedHeaders {
-		mapShardIdNonce[shardData.ShardID] = shardData.Nonce
+	for _, shardData := range epochStart.GetLastFinalizedHeaderHandlers() {
+		mapShardIdNonce[shardData.GetShardID()] = shardData.GetNonce()
 	}
 
-	return mapShardIdNonce, nil
+	return mapShardIdNonce
 }
 
 func (e *economics) checkEconomicsInvariants(
@@ -517,7 +614,7 @@ func (e *economics) checkEconomicsInvariants(
 	inflationRate float64,
 	maxBlocksInEpoch uint64,
 	totalNumBlocksInEpoch uint64,
-	metaBlock *block.MetaBlock,
+	computationData economicsComputationDataHandler,
 	epoch uint32,
 	maxPossibleNotarizedBlocks uint64,
 ) error {
@@ -534,10 +631,10 @@ func (e *economics) checkEconomicsInvariants(
 
 	}
 
-	if !core.IsInRangeInclusive(metaBlock.AccumulatedFeesInEpoch, zero, e.genesisTotalSupply) {
+	if !core.IsInRangeInclusive(computationData.GetAccumulatedFeesInEpoch(), zero, e.genesisTotalSupply) {
 		return fmt.Errorf("%w, computed accumulated fees %s, max allowed %s",
 			epochStart.ErrInvalidAccumulatedFees,
-			metaBlock.AccumulatedFeesInEpoch,
+			computationData.GetAccumulatedFeesInEpoch(),
 			e.genesisTotalSupply,
 		)
 	}
@@ -549,8 +646,8 @@ func (e *economics) checkEconomicsInvariants(
 
 	inflationPerEpoch := e.computeInflationForEpoch(inflationRate, actualMaxBlocks, epoch)
 	maxRewardsInEpoch := core.GetIntTrimmedPercentageOfValue(computedEconomics.TotalSupply, inflationPerEpoch)
-	if maxRewardsInEpoch.Cmp(metaBlock.AccumulatedFeesInEpoch) < 0 {
-		maxRewardsInEpoch.Set(metaBlock.AccumulatedFeesInEpoch)
+	if maxRewardsInEpoch.Cmp(computationData.GetAccumulatedFeesInEpoch()) < 0 {
+		maxRewardsInEpoch.Set(computationData.GetAccumulatedFeesInEpoch())
 	}
 
 	if !core.IsInRangeInclusive(computedEconomics.RewardsForProtocolSustainability, zero, maxRewardsInEpoch) {

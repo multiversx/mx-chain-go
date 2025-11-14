@@ -686,7 +686,7 @@ func (vs *validatorStatistics) verifySignaturesBelowSignedThreshold(
 			increasedRatingTimes = validator.GetValidatorSuccess() + validator.GetValidatorIgnoredSignatures()
 		}
 
-		newTempRating := vs.rater.RevertIncreaseValidator(shardId, validator.GetTempRating(), increasedRatingTimes)
+		newTempRating := vs.rater.RevertIncreaseValidator(shardId, validator.GetTempRating(), increasedRatingTimes, epoch)
 		pa, err := vs.loadPeerAccount(validator.GetPublicKey())
 		if err != nil {
 			return err
@@ -837,10 +837,7 @@ func (vs *validatorStatistics) computeDecrease(
 		vs.mutValidatorStatistics.Unlock()
 
 		swInner.Start("ComputeDecreaseProposer")
-		newRating := vs.rater.ComputeDecreaseProposer(
-			shardID,
-			leaderPeerAcc.GetTempRating(),
-			leaderPeerAcc.GetConsecutiveProposerMisses())
+		newRating := vs.rater.ComputeDecreaseProposer(shardID, leaderPeerAcc.GetTempRating(), leaderPeerAcc.GetConsecutiveProposerMisses(), epoch)
 		swInner.Stop("ComputeDecreaseProposer")
 
 		swInner.Start("SetConsecutiveProposerMisses")
@@ -892,7 +889,7 @@ func (vs *validatorStatistics) decreaseForConsensusValidators(
 		}
 		vs.missedBlocksCounters.decreaseValidator(consensusGroup[j].PubKey())
 
-		newRating := vs.rater.ComputeDecreaseValidator(shardId, validatorPeerAccount.GetTempRating())
+		newRating := vs.rater.ComputeDecreaseValidator(shardId, validatorPeerAccount.GetTempRating(), epoch)
 		validatorPeerAccount.SetTempRating(newRating)
 		vs.jailValidatorIfBadRatingAndInactive(validatorPeerAccount)
 		err := vs.peerAdapter.SaveAccount(validatorPeerAccount)
@@ -1077,7 +1074,7 @@ func (vs *validatorStatistics) updateValidatorInfoOnSuccessfulBlock(
 		case leaderSuccess:
 			peerAcc.IncreaseLeaderSuccessRate(1)
 			peerAcc.SetConsecutiveProposerMisses(0)
-			newRating = vs.rater.ComputeIncreaseProposer(shardId, peerAcc.GetTempRating())
+			newRating = vs.rater.ComputeIncreaseProposer(shardId, peerAcc.GetTempRating(), epoch)
 			var leaderAccumulatedFees *big.Int
 			if vs.enableEpochsHandler.IsFlagEnabled(common.StakingV2FlagAfterEpoch) {
 				leaderAccumulatedFees = core.GetIntTrimmedPercentageOfValue(accumulatedFees, vs.rewardsHandler.LeaderPercentageInEpoch(epoch))
@@ -1094,10 +1091,10 @@ func (vs *validatorStatistics) updateValidatorInfoOnSuccessfulBlock(
 			)
 		case validatorSuccess:
 			peerAcc.IncreaseValidatorSuccessRate(1)
-			newRating = vs.rater.ComputeIncreaseValidator(shardId, peerAcc.GetTempRating())
+			newRating = vs.rater.ComputeIncreaseValidator(shardId, peerAcc.GetTempRating(), epoch)
 		case validatorIgnoredSignature:
 			peerAcc.IncreaseValidatorIgnoredSignaturesRate(1)
-			newRating = vs.rater.ComputeIncreaseValidator(shardId, peerAcc.GetTempRating())
+			newRating = vs.rater.ComputeIncreaseValidator(shardId, peerAcc.GetTempRating(), epoch)
 		}
 
 		peerAcc.SetTempRating(newRating)
@@ -1259,11 +1256,11 @@ func (vs *validatorStatistics) decreaseAll(
 
 		currentTempRating := validatorPeerAccount.GetTempRating()
 		for ct := uint32(0); ct < leaderAppearances; ct++ {
-			currentTempRating = vs.rater.ComputeDecreaseProposer(shardID, currentTempRating, 0)
+			currentTempRating = vs.rater.ComputeDecreaseProposer(shardID, currentTempRating, 0, epoch)
 		}
 
 		for ct := uint32(0); ct < consensusGroupAppearances; ct++ {
-			currentTempRating = vs.rater.ComputeDecreaseValidator(shardID, currentTempRating)
+			currentTempRating = vs.rater.ComputeDecreaseValidator(shardID, currentTempRating, epoch)
 		}
 
 		if i == 0 {

@@ -358,7 +358,7 @@ func (ccf *coreComponentsFactory) Create() (*coreComponents, error) {
 		return nil, err
 	}
 
-	rater, err := rating.NewBlockSigningRater(ratingsData)
+	rater, err := rating.NewBlockSigningRater(ratingsData, enableEpochsHandler)
 	if err != nil {
 		return nil, err
 	}

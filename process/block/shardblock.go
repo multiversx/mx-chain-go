@@ -665,7 +665,7 @@ func (sp *shardProcessor) restoreMetaBlockIntoPool(
 	headersPool := sp.dataPool.Headers()
 
 	mapMetaHashMiniBlockHashes := make(map[string][][]byte)
-	mapMetaHashMetaBlock := make(map[string]*block.MetaBlock)
+	mapMetaHashMetaBlock := make(map[string]data.MetaHeaderHandler)
 
 	for _, metaBlockHash := range metaBlockHashes {
 		metaBlock, errNotCritical := process.GetMetaHeaderFromStorage(metaBlockHash, sp.marshalizer, sp.store)
@@ -713,8 +713,8 @@ func (sp *shardProcessor) restoreMetaBlockIntoPool(
 		}
 
 		log.Trace("meta block has been restored successfully",
-			"round", metaBlock.Round,
-			"nonce", metaBlock.Nonce,
+			"round", metaBlock.GetRound(),
+			"nonce", metaBlock.GetNonce(),
 			"hash", metaBlockHash)
 	}
 
@@ -727,7 +727,7 @@ func (sp *shardProcessor) restoreMetaBlockIntoPool(
 	return nil
 }
 
-func (sp *shardProcessor) setProcessedMiniBlocksInfo(miniBlockHashes [][]byte, metaBlockHash string, metaBlock *block.MetaBlock) {
+func (sp *shardProcessor) setProcessedMiniBlocksInfo(miniBlockHashes [][]byte, metaBlockHash string, metaBlock data.MetaHeaderHandler) {
 	for _, miniBlockHash := range miniBlockHashes {
 		indexOfLastTxProcessed := getIndexOfLastTxProcessedInMiniBlock(miniBlockHash, metaBlock)
 		sp.processedMiniBlocksTracker.SetProcessedMiniBlockInfo([]byte(metaBlockHash), miniBlockHash, &processedMb.ProcessedMiniBlockInfo{
@@ -737,25 +737,25 @@ func (sp *shardProcessor) setProcessedMiniBlocksInfo(miniBlockHashes [][]byte, m
 	}
 }
 
-func getIndexOfLastTxProcessedInMiniBlock(miniBlockHash []byte, metaBlock *block.MetaBlock) int32 {
-	for _, mbh := range metaBlock.MiniBlockHeaders {
-		if bytes.Equal(mbh.Hash, miniBlockHash) {
-			return int32(mbh.TxCount) - 1
+func getIndexOfLastTxProcessedInMiniBlock(miniBlockHash []byte, metaBlock data.MetaHeaderHandler) int32 {
+	for _, mbh := range metaBlock.GetMiniBlockHeaderHandlers() {
+		if bytes.Equal(mbh.GetHash(), miniBlockHash) {
+			return int32(mbh.GetTxCount()) - 1
 		}
 	}
 
-	for _, shardData := range metaBlock.ShardInfo {
-		for _, mbh := range shardData.ShardMiniBlockHeaders {
-			if bytes.Equal(mbh.Hash, miniBlockHash) {
-				return int32(mbh.TxCount) - 1
+	for _, shardData := range metaBlock.GetShardInfoHandlers() {
+		for _, mbh := range shardData.GetShardMiniBlockHeaderHandlers() {
+			if bytes.Equal(mbh.GetHash(), miniBlockHash) {
+				return int32(mbh.GetTxCount()) - 1
 			}
 		}
 	}
 
 	log.Warn("shardProcessor.getIndexOfLastTxProcessedInMiniBlock",
 		"miniBlock hash", miniBlockHash,
-		"metaBlock round", metaBlock.Round,
-		"metaBlock nonce", metaBlock.Nonce,
+		"metaBlock round", metaBlock.GetRound(),
+		"metaBlock nonce", metaBlock.GetNonce(),
 		"error", process.ErrMissingMiniBlock)
 
 	return common.MaxIndexOfTxInMiniBlock
@@ -1429,11 +1429,11 @@ func (sp *shardProcessor) snapShotEpochStartFromMeta(header data.ShardHeaderHand
 	accounts := sp.accountsDB[state.UserAccountsState]
 
 	for _, metaHash := range header.GetMetaBlockHashes() {
-		metaHdrInfo, ok := sp.hdrsForCurrBlock.GetHeaderInfo(string(metaHash))
-		if !ok {
+		hdr, err := getHeaderFromHash(sp.dataPool.Headers(), sp.hdrsForCurrBlock, header.IsHeaderV3(), metaHash)
+		if err != nil {
 			continue
 		}
-		metaHdr, ok := metaHdrInfo.GetHeader().(*block.MetaBlock)
+		metaHdr, ok := hdr.(*block.MetaBlock)
 		if !ok {
 			continue
 		}
@@ -1749,13 +1749,12 @@ func (sp *shardProcessor) addProcessedCrossMiniBlocksFromHeader(headerHandler da
 	}
 
 	for _, metaBlockHash := range shardHeader.GetMetaBlockHashes() {
-		headerInfo, found := sp.hdrsForCurrBlock.GetHeaderInfo(string(metaBlockHash))
-		if !found {
+		hdr, err := getHeaderFromHash(sp.dataPool.Headers(), sp.hdrsForCurrBlock, shardHeader.IsHeaderV3(), metaBlockHash)
+		if err != nil {
 			return fmt.Errorf("%w : addProcessedCrossMiniBlocksFromHeader metaBlockHash = %s",
-				process.ErrMissingHeader, logger.DisplayByteSlice(metaBlockHash))
+				err, logger.DisplayByteSlice(metaBlockHash))
 		}
-
-		metaBlock, isMetaBlock := headerInfo.GetHeader().(*block.MetaBlock)
+		metaBlock, isMetaBlock := hdr.(*block.MetaBlock)
 		if !isMetaBlock {
 			return process.ErrWrongTypeAssertion
 		}

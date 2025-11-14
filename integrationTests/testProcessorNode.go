@@ -724,7 +724,7 @@ func (tpn *TestProcessorNode) initAccountDBs(store storage.Storer) {
 }
 
 func (tpn *TestProcessorNode) initValidatorStatistics() {
-	rater, _ := rating.NewBlockSigningRater(tpn.RatingsData)
+	rater, _ := rating.NewBlockSigningRater(tpn.RatingsData, tpn.EnableEpochsHandler)
 
 	if check.IfNil(tpn.NodesSetup) {
 		tpn.NodesSetup = &genesisMocks.NodesSetupStub{
@@ -1931,7 +1931,9 @@ func (tpn *TestProcessorNode) initInnerProcessors(gasMap map[string]map[string]u
 		BlockSizeComputation:         TestBlockSizeComputationHandler,
 		BalanceComputation:           TestBalanceComputationHandler,
 		EnableEpochsHandler:          tpn.EnableEpochsHandler,
+		EpochNotifier:                tpn.EpochNotifier,
 		EnableRoundsHandler:          tpn.EnableRoundsHandler,
+		RoundNotifier:                tpn.RoundNotifier,
 		TxTypeHandler:                txTypeHandler,
 		ScheduledTxsExecutionHandler: scheduledTxsExecutionHandler,
 		ProcessedMiniBlocksTracker:   processedMiniBlocksTracker,
@@ -2260,7 +2262,9 @@ func (tpn *TestProcessorNode) initMetaInnerProcessors(gasMap map[string]map[stri
 		BlockSizeComputation:         TestBlockSizeComputationHandler,
 		BalanceComputation:           TestBalanceComputationHandler,
 		EnableEpochsHandler:          tpn.EnableEpochsHandler,
+		EpochNotifier:                tpn.EpochNotifier,
 		EnableRoundsHandler:          tpn.EnableRoundsHandler,
+		RoundNotifier:                tpn.RoundNotifier,
 		TxTypeHandler:                txTypeHandler,
 		ScheduledTxsExecutionHandler: scheduledTxsExecutionHandler,
 		ProcessedMiniBlocksTracker:   processedMiniBlocksTracker,
@@ -2463,7 +2467,7 @@ func (tpn *TestProcessorNode) initBlockProcessor() {
 		)
 	}
 
-	bootstrapComponents := getDefaultBootstrapComponents(tpn.ShardCoordinator, tpn.EnableEpochsHandler)
+	bootstrapComponents := getDefaultBootstrapComponents(tpn.ShardCoordinator, tpn.EnableEpochsHandler, tpn.EnableRoundsHandler)
 	bootstrapComponents.HdrIntegrityVerifier = tpn.HeaderIntegrityVerifier
 
 	statusComponents := GetDefaultStatusComponents()
@@ -2910,7 +2914,7 @@ func (tpn *TestProcessorNode) initNode() {
 	dataComponents.DataPool = tpn.DataPool
 	dataComponents.Store = tpn.Storage
 
-	bootstrapComponents := getDefaultBootstrapComponents(tpn.ShardCoordinator, tpn.EnableEpochsHandler)
+	bootstrapComponents := getDefaultBootstrapComponents(tpn.ShardCoordinator, tpn.EnableEpochsHandler, tpn.EnableRoundsHandler)
 
 	processComponents := GetDefaultProcessComponents()
 	processComponents.BlockProcess = tpn.BlockProcessor
@@ -3736,8 +3740,6 @@ func CreateEnableEpochsConfig() config.EnableEpochs {
 		SCProcessorV2EnableEpoch:                          UnreachableEpoch,
 		FixRelayedBaseCostEnableEpoch:                     UnreachableEpoch,
 		FixRelayedMoveBalanceToNonPayableSCEnableEpoch:    UnreachableEpoch,
-		AndromedaEnableEpoch:                              UnreachableEpoch,
-		SupernovaEnableEpoch:                              UnreachableEpoch,
 	}
 }
 
@@ -3903,11 +3905,15 @@ func GetDefaultStatusComponents() *mock.StatusComponentsStub {
 }
 
 // getDefaultBootstrapComponents -
-func getDefaultBootstrapComponents(shardCoordinator sharding.Coordinator, handler common.EnableEpochsHandler) *mainFactoryMocks.BootstrapComponentsStub {
+func getDefaultBootstrapComponents(shardCoordinator sharding.Coordinator, handler common.EnableEpochsHandler, roundsHandler common.EnableRoundsHandler) *mainFactoryMocks.BootstrapComponentsStub {
 	var versionedHeaderFactory nodeFactory.VersionedHeaderFactory
 
 	headerVersionHandler := &testscommon.HeaderVersionHandlerStub{
-		GetVersionCalled: func(epoch uint32, _ uint64) string {
+		GetVersionCalled: func(epoch uint32, round uint64) string {
+			if handler.IsFlagEnabledInEpoch(common.SupernovaFlag, epoch) &&
+				roundsHandler.IsFlagEnabledInRound(common.SupernovaRoundFlag, round) {
+				return "3"
+			}
 			if handler.IsFlagEnabledInEpoch(common.AndromedaFlag, epoch) {
 				return "2"
 			}

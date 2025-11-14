@@ -1177,8 +1177,8 @@ func TestDelayedBlockBroadcaster_ScheduleValidatorBroadcastDifferentHeaderRoundS
 	require.Equal(t, 1, len(vbd))
 
 	hdfv := &broadcast.HeaderDataForValidator{
-		Round:        vArgs.header.GetRound() + 1,
-		PrevRandSeed: vArgs.header.GetPrevRandSeed(),
+		Round:      vArgs.header.GetRound() + 1,
+		HeaderHash: vArgs.headerHash,
 	}
 
 	dbb.ScheduleValidatorBroadcast([]*broadcast.HeaderDataForValidator{hdfv})
@@ -1236,12 +1236,12 @@ func TestDelayedBlockBroadcaster_ScheduleValidatorBroadcastDifferentPrevRandShou
 	vbd := dbb.GetValidatorBroadcastData()
 	require.Equal(t, 1, len(vbd))
 
-	differentPrevRandSeed := make([]byte, len(vArgs.header.GetPrevRandSeed()))
-	copy(differentPrevRandSeed, vArgs.header.GetPrevRandSeed())
-	differentPrevRandSeed[0] = ^differentPrevRandSeed[0]
+	differentHeaderHash := make([]byte, len(vArgs.header.GetPrevRandSeed()))
+	copy(differentHeaderHash, vArgs.header.GetPrevRandSeed())
+	differentHeaderHash[0] = ^differentHeaderHash[0]
 	hdfv := &broadcast.HeaderDataForValidator{
-		Round:        vArgs.header.GetRound(),
-		PrevRandSeed: differentPrevRandSeed,
+		Round:      vArgs.header.GetRound(),
+		HeaderHash: differentHeaderHash,
 	}
 
 	dbb.ScheduleValidatorBroadcast([]*broadcast.HeaderDataForValidator{hdfv})
@@ -1300,8 +1300,8 @@ func TestDelayedBlockBroadcaster_ScheduleValidatorBroadcastSameRoundAndPrevRandS
 	require.Equal(t, 1, len(vbd))
 
 	hdfv := &broadcast.HeaderDataForValidator{
-		Round:        vArgs.header.GetRound(),
-		PrevRandSeed: vArgs.header.GetPrevRandSeed(),
+		Round:      vArgs.header.GetRound(),
+		HeaderHash: vArgs.headerHash,
 	}
 
 	dbb.ScheduleValidatorBroadcast([]*broadcast.HeaderDataForValidator{hdfv})
@@ -1595,36 +1595,151 @@ func TestDelayedBlockBroadcaster_BroadcastBlockDataFailedBroadcast(t *testing.T)
 	require.Contains(t, logOutputStr, errTxs)
 }
 
-func TestDelayedBlockBroadcaster_GetShardDataFromMetaChainBlockInvalidMetaHandler(t *testing.T) {
-	shardID := uint32(0)
-
-	_, _, err := broadcast.GetShardDataFromMetaChainBlock(nil, shardID)
-	require.NotNil(t, err)
-	require.Equal(t, spos.ErrInvalidMetaHeader, err)
-}
-
 func TestDelayedBlockBroadcaster_GetShardDataFromMetaChainBlock(t *testing.T) {
-	metaHeader := createMetaBlock()
+	t.Parallel()
+
 	shardID := uint32(0)
 
-	expHeaderHashes := make([][]byte, 0)
-	valData := make([]*broadcast.HeaderDataForValidator, 0)
+	t.Run("nil header", func(t *testing.T) {
+		t.Parallel()
 
-	for _, shInfo := range metaHeader.ShardInfo {
-		if shInfo.ShardID != shardID {
-			continue
+		headerHashes, dataForValidators, err := broadcast.GetShardDataFromMetaChainBlock(nil, shardID)
+		require.NotNil(t, err)
+		require.Nil(t, headerHashes)
+		require.Empty(t, dataForValidators)
+
+		require.Equal(t, spos.ErrNilHeader, err)
+	})
+
+	t.Run("shard header, should fail", func(t *testing.T) {
+		t.Parallel()
+
+		headerHashes, dataForValidators, err := broadcast.GetShardDataFromMetaChainBlock(&block.HeaderV3{}, shardID)
+		require.NotNil(t, err)
+		require.Nil(t, headerHashes)
+		require.Empty(t, dataForValidators)
+
+		require.Equal(t, spos.ErrInvalidMetaHeader, err)
+	})
+
+	t.Run("should work before header v3", func(t *testing.T) {
+		t.Parallel()
+
+		headerHash0 := []byte("headerHash0")
+		headerRound0 := uint64(2)
+		shardID := uint32(1)
+
+		metaHeader := &block.MetaBlock{
+			Nonce: 5,
+			Round: 1,
+			ShardInfo: []block.ShardData{
+				{
+					HeaderHash: headerHash0,
+					ShardMiniBlockHeaders: []block.MiniBlockHeader{
+						{
+							Hash:            []byte("miniblock hash"),
+							ReceiverShardID: 1,
+							SenderShardID:   0,
+							TxCount:         2,
+						},
+					},
+					Round:   headerRound0,
+					ShardID: shardID,
+				},
+			},
 		}
-		valData = append(valData, &broadcast.HeaderDataForValidator{
-			Round:        shInfo.Round,
-			PrevRandSeed: shInfo.PrevRandSeed,
-		})
-		expHeaderHashes = append(expHeaderHashes, shInfo.HeaderHash)
-	}
 
-	headerHashes, dfv, err := broadcast.GetShardDataFromMetaChainBlock(metaHeader, shardID)
-	require.Nil(t, err)
-	require.Equal(t, expHeaderHashes, headerHashes)
-	require.Equal(t, valData, dfv)
+		expHeaderHashes := [][]byte{
+			headerHash0,
+		}
+
+		expValData := []*broadcast.HeaderDataForValidator{
+			{
+				Round:      headerRound0,
+				HeaderHash: headerHash0,
+			},
+		}
+
+		headerHashes, dfv, err := broadcast.GetShardDataFromMetaChainBlock(metaHeader, shardID)
+		require.Nil(t, err)
+		require.Equal(t, expHeaderHashes, headerHashes)
+		require.Equal(t, expValData, dfv)
+	})
+
+	t.Run("should work with meta header v3", func(t *testing.T) {
+		t.Parallel()
+
+		headerHashP0 := []byte("headerHashP0")
+		headerRoundP0 := uint64(2)
+		headerHashP1 := []byte("headerHashP1")
+		headerRoundP1 := uint64(3)
+		headerHashP2 := []byte("headerHashP2")
+		headerRoundP2 := uint64(4)
+
+		shardID := uint32(1)
+
+		metaHeader := &block.MetaBlockV3{
+			Nonce: 5,
+			Round: 1,
+			ShardInfo: []block.ShardData{
+				{
+					HeaderHash: []byte("headerHash"), // this should not be referenced
+					ShardMiniBlockHeaders: []block.MiniBlockHeader{
+						{
+							Hash:            []byte("miniblock hash"),
+							ReceiverShardID: 1,
+							SenderShardID:   0,
+							TxCount:         2,
+						},
+					},
+				},
+			},
+			ShardInfoProposal: []block.ShardDataProposal{
+				{
+					HeaderHash: headerHashP0,
+					Round:      headerRoundP0,
+					ShardID:    shardID,
+				},
+				{
+					HeaderHash: headerHashP1,
+					Round:      headerRoundP1,
+					ShardID:    shardID,
+				},
+				{
+					HeaderHash: headerHashP2,
+					Round:      headerRoundP2,
+					ShardID:    shardID,
+				},
+			},
+		}
+
+		expHeaderHashes := [][]byte{
+			headerHashP0,
+			headerHashP1,
+			headerHashP2,
+		}
+
+		expValData := []*broadcast.HeaderDataForValidator{
+			{
+				Round:      headerRoundP0,
+				HeaderHash: headerHashP0,
+			},
+			{
+				Round:      headerRoundP1,
+				HeaderHash: headerHashP1,
+			},
+			{
+				Round:      headerRoundP2,
+				HeaderHash: headerHashP2,
+			},
+		}
+
+		headerHashes, dfv, err := broadcast.GetShardDataFromMetaChainBlock(metaHeader, shardID)
+		require.Nil(t, err)
+
+		require.Equal(t, expHeaderHashes, headerHashes)
+		require.Equal(t, expValData, dfv)
+	})
 }
 
 func TestDelayedBlockBroadcaster_InterceptedMiniBlockForNotSetValDataShouldBroadcast(t *testing.T) {
@@ -1670,8 +1785,8 @@ func TestDelayedBlockBroadcaster_InterceptedMiniBlockForNotSetValDataShouldBroad
 	vbd := dbb.GetValidatorBroadcastData()
 	require.Equal(t, 1, len(vbd))
 	hdfv := &broadcast.HeaderDataForValidator{
-		Round:        vArgs.header.GetRound(),
-		PrevRandSeed: vArgs.header.GetPrevRandSeed(),
+		Round:      vArgs.header.GetRound(),
+		HeaderHash: vArgs.headerHash,
 	}
 
 	dbb.InterceptedMiniBlockData("txBlockBodies_0_1", []byte("some other miniBlock hash"), &block.MiniBlock{})
@@ -1740,8 +1855,8 @@ func TestDelayedBlockBroadcaster_InterceptedMiniBlockOutOfManyForSetValDataShoul
 	require.Equal(t, 1, len(vbd))
 
 	hdfv := &broadcast.HeaderDataForValidator{
-		Round:        vArgs.header.GetRound(),
-		PrevRandSeed: vArgs.header.GetPrevRandSeed(),
+		Round:      vArgs.header.GetRound(),
+		HeaderHash: vArgs.headerHash,
 	}
 
 	dbb.ScheduleValidatorBroadcast([]*broadcast.HeaderDataForValidator{hdfv})
@@ -1805,8 +1920,8 @@ func TestDelayedBlockBroadcaster_InterceptedMiniBlockFinalForSetValDataShouldNot
 	require.Equal(t, 1, len(vbd))
 
 	hdfv := &broadcast.HeaderDataForValidator{
-		Round:        vArgs.header.GetRound(),
-		PrevRandSeed: vArgs.header.GetPrevRandSeed(),
+		Round:      vArgs.header.GetRound(),
+		HeaderHash: vArgs.headerHash,
 	}
 
 	dbb.ScheduleValidatorBroadcast([]*broadcast.HeaderDataForValidator{hdfv})
@@ -1871,8 +1986,8 @@ func TestDelayedBlockBroadcaster_Close(t *testing.T) {
 	require.Equal(t, 1, len(vbd))
 
 	hdfv := &broadcast.HeaderDataForValidator{
-		Round:        vArgs.header.GetRound(),
-		PrevRandSeed: vArgs.header.GetPrevRandSeed(),
+		Round:      vArgs.header.GetRound(),
+		HeaderHash: vArgs.headerHash,
 	}
 
 	dbb.ScheduleValidatorBroadcast([]*broadcast.HeaderDataForValidator{hdfv})
