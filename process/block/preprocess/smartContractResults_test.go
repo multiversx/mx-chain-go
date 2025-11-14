@@ -13,6 +13,7 @@ import (
 	"github.com/multiversx/mx-chain-core-go/data"
 	"github.com/multiversx/mx-chain-core-go/data/block"
 	"github.com/multiversx/mx-chain-core-go/data/smartContractResult"
+	"github.com/multiversx/mx-chain-go/testscommon/epochNotifier"
 	vmcommon "github.com/multiversx/mx-chain-vm-common-go"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
@@ -1094,6 +1095,8 @@ func createDefaultSmartContractProcessorArgs(tdp dataRetriever.PoolsHolder) Smar
 			EconomicsFee:               feeHandlerMock(),
 			EnableEpochsHandler:        enableEpochsHandlerMock.NewEnableEpochsHandlerStub(),
 			EnableRoundsHandler:        &testscommon.EnableRoundsHandlerStub{},
+			EpochNotifier:              &epochNotifier.EpochNotifierStub{},
+			RoundNotifier:              &epochNotifier.RoundNotifierStub{},
 		},
 		ScrProcessor: &testscommon.TxProcessorMock{},
 	}
