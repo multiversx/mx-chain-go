@@ -2,9 +2,9 @@ package asyncExecution
 
 import (
 	"context"
+	"sync"
 	"time"
 
-	"github.com/multiversx/mx-chain-core-go/core/atomic"
 	"github.com/multiversx/mx-chain-core-go/core/check"
 	"github.com/multiversx/mx-chain-core-go/data"
 	logger "github.com/multiversx/mx-chain-logger-go"
@@ -15,7 +15,7 @@ import (
 
 var log = logger.GetOrCreate("process/asyncExecution")
 
-const timeToSleepWhilePaused = time.Millisecond * 5
+const timeToSleep = time.Millisecond * 5
 
 // ArgsHeadersExecutor holds all the components needed to create a new instance of *headersExecutor
 type ArgsHeadersExecutor struct {
@@ -31,7 +31,8 @@ type headersExecutor struct {
 	blockProcessor   BlockProcessor
 	blockChain       data.ChainHandler
 	cancelFunc       context.CancelFunc
-	isPaused         atomic.Flag
+	mutPaused        sync.RWMutex
+	isPaused         bool
 }
 
 // NewHeadersExecutor will create a new instance of *headersExecutor
@@ -70,12 +71,22 @@ func (he *headersExecutor) StartExecution() {
 
 // PauseExecution pauses the execution
 func (he *headersExecutor) PauseExecution() {
-	he.isPaused.SetValue(true)
+	he.mutPaused.Lock()
+	defer he.mutPaused.Unlock()
+
+	if he.isPaused {
+		return
+	}
+
+	he.isPaused = true
 }
 
 // ResumeExecution resumes the execution
 func (he *headersExecutor) ResumeExecution() {
-	he.isPaused.SetValue(false)
+	he.mutPaused.Lock()
+	defer he.mutPaused.Unlock()
+
+	he.isPaused = false
 }
 
 func (he *headersExecutor) start(ctx context.Context) {
@@ -84,8 +95,12 @@ func (he *headersExecutor) start(ctx context.Context) {
 		case <-ctx.Done():
 			return
 		default:
-			if he.isPaused.IsSet() {
-				time.Sleep(timeToSleepWhilePaused)
+			he.mutPaused.RLock()
+			isPaused := he.isPaused
+			he.mutPaused.RUnlock()
+
+			if isPaused {
+				time.Sleep(timeToSleep)
 				continue
 			}
 
