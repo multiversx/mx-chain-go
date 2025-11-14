@@ -378,7 +378,7 @@ func (mp *metaProcessor) SetShardBlockFinality(val uint32) {
 }
 
 // SaveLastNotarizedHeader -
-func (mp *metaProcessor) SaveLastNotarizedHeader(header *block.MetaBlock) error {
+func (mp *metaProcessor) SaveLastNotarizedHeader(header data.MetaHeaderHandler) error {
 	return mp.saveLastNotarizedHeader(header)
 }
 
