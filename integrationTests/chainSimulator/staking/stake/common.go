@@ -80,3 +80,25 @@ func GetTotalStaked(t *testing.T, metachainNode process.NodeHandler, blsKey []by
 
 	return result.ReturnData[0]
 }
+
+func GetQualifiedAndUnqualifiedNodes(t *testing.T, metachainNode process.NodeHandler) ([]string, []string) {
+	err := metachainNode.GetProcessComponents().ValidatorsProvider().ForceUpdate()
+	require.Nil(t, err)
+	auctionList, err := metachainNode.GetProcessComponents().ValidatorsProvider().GetAuctionList()
+	require.Nil(t, err)
+
+	qualified := make([]string, 0)
+	unQualified := make([]string, 0)
+
+	for _, auctionOwnerData := range auctionList {
+		for _, auctionNode := range auctionOwnerData.Nodes {
+			if auctionNode.Qualified {
+				qualified = append(qualified, auctionNode.BlsKey)
+			} else {
+				unQualified = append(unQualified, auctionNode.BlsKey)
+			}
+		}
+	}
+
+	return qualified, unQualified
+}
