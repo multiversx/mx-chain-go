@@ -317,7 +317,7 @@ func (e *economics) createEconomicsV3Args(
 }
 
 func (e *economics) printEconomicsData(
-	metaBlock economicsComputationData,
+	computationData economicsComputationData,
 	prevEpochEconomics data.EconomicsHandler,
 	inflationRate float64,
 	newTokens *big.Int,
@@ -330,16 +330,16 @@ func (e *economics) printEconomicsData(
 	header := []string{"identifier", "", "value"}
 
 	var rewardsForLeaders *big.Int
-	if metaBlock.newEpoch > e.stakingV2EnableEpoch {
-		rewardsForLeaders = core.GetIntTrimmedPercentageOfValue(metaBlock.accumulatedFeesInEpoch, e.rewardsHandler.LeaderPercentageInEpoch(metaBlock.newEpoch))
+	if computationData.newEpoch > e.stakingV2EnableEpoch {
+		rewardsForLeaders = core.GetIntTrimmedPercentageOfValue(computationData.accumulatedFeesInEpoch, e.rewardsHandler.LeaderPercentageInEpoch(computationData.newEpoch))
 	} else {
-		rewardsForLeaders = core.GetApproximatePercentageOfValue(metaBlock.accumulatedFeesInEpoch, e.rewardsHandler.LeaderPercentageInEpoch(metaBlock.newEpoch))
+		rewardsForLeaders = core.GetApproximatePercentageOfValue(computationData.accumulatedFeesInEpoch, e.rewardsHandler.LeaderPercentageInEpoch(computationData.newEpoch))
 	}
 
 	maxSupplyLength := len(prevEpochEconomics.GetTotalSupply().String())
 	lines := []*display.LineData{
 		e.newDisplayLine("epoch", "",
-			e.alignRight(fmt.Sprintf("%d", metaBlock.newEpoch), maxSupplyLength)),
+			e.alignRight(fmt.Sprintf("%d", computationData.newEpoch), maxSupplyLength)),
 		e.newDisplayLine("inflation rate", "",
 			e.alignRight(fmt.Sprintf("%.6f", inflationRate), maxSupplyLength)),
 		e.newDisplayLine("previous total supply", "(1)",
@@ -349,19 +349,19 @@ func (e *economics) printEconomicsData(
 		e.newDisplayLine("current total supply", "(1+2)",
 			e.alignRight(computedEconomics.TotalSupply.String(), maxSupplyLength)),
 		e.newDisplayLine("accumulated fees in epoch", "(3)",
-			e.alignRight(metaBlock.accumulatedFeesInEpoch.String(), maxSupplyLength)),
+			e.alignRight(computationData.accumulatedFeesInEpoch.String(), maxSupplyLength)),
 		e.newDisplayLine("total rewards to be distributed", "(4)",
 			e.alignRight(totalRewardsToBeDistributed.String(), maxSupplyLength)),
 		e.newDisplayLine("total num blocks in epoch", "(5)",
 			e.alignRight(fmt.Sprintf("%d", totalNumBlocksInEpoch), maxSupplyLength)),
 		e.newDisplayLine("dev fees in epoch", "(6)",
-			e.alignRight(metaBlock.devFeesInEpoch.String(), maxSupplyLength)),
+			e.alignRight(computationData.devFeesInEpoch.String(), maxSupplyLength)),
 		e.newDisplayLine("leader fees in epoch", "(7)",
 			e.alignRight(rewardsForLeaders.String(), maxSupplyLength)),
 		e.newDisplayLine("reward per block", "(8)",
 			e.alignRight(rwdPerBlock.String(), maxSupplyLength)),
 		e.newDisplayLine("percent for protocol sustainability", "(9)",
-			e.alignRight(fmt.Sprintf("%.6f", e.rewardsHandler.ProtocolSustainabilityPercentageInEpoch(metaBlock.newEpoch)), maxSupplyLength)),
+			e.alignRight(fmt.Sprintf("%.6f", e.rewardsHandler.ProtocolSustainabilityPercentageInEpoch(computationData.newEpoch)), maxSupplyLength)),
 		e.newDisplayLine("reward for protocol sustainability", "(4 * 9)",
 			e.alignRight(rewardsForProtocolSustainability.String(), maxSupplyLength)),
 	}
@@ -449,16 +449,16 @@ func (e *economics) computeInflationBeforeSupernova(currentRound uint64, epoch u
 }
 
 func (e *economics) computeInflationRate(
-	metaBlock economicsComputationDataHandler,
+	computationData economicsComputationDataHandler,
 ) float64 {
-	prevEpoch := e.getPreviousEpoch(metaBlock.GetEpoch())
+	prevEpoch := e.getPreviousEpoch(computationData.GetEpoch())
 	supernovaInEpochActivated := e.enableEpochsHandler.IsFlagEnabledInEpoch(common.SupernovaFlag, prevEpoch)
 
 	if !supernovaInEpochActivated {
-		return e.computeInflationBeforeSupernova(metaBlock.GetRound(), prevEpoch)
+		return e.computeInflationBeforeSupernova(computationData.GetRound(), prevEpoch)
 	}
 
-	return e.computeInflationRateAfterSupernova(metaBlock.GetTimeStamp())
+	return e.computeInflationRateAfterSupernova(computationData.GetTimeStamp())
 }
 
 // currentTimestamp is defined as unix milliseconds after supernova is activated
@@ -614,7 +614,7 @@ func (e *economics) checkEconomicsInvariants(
 	inflationRate float64,
 	maxBlocksInEpoch uint64,
 	totalNumBlocksInEpoch uint64,
-	metaBlock economicsComputationDataHandler,
+	computationData economicsComputationDataHandler,
 	epoch uint32,
 	maxPossibleNotarizedBlocks uint64,
 ) error {
@@ -631,10 +631,10 @@ func (e *economics) checkEconomicsInvariants(
 
 	}
 
-	if !core.IsInRangeInclusive(metaBlock.GetAccumulatedFeesInEpoch(), zero, e.genesisTotalSupply) {
+	if !core.IsInRangeInclusive(computationData.GetAccumulatedFeesInEpoch(), zero, e.genesisTotalSupply) {
 		return fmt.Errorf("%w, computed accumulated fees %s, max allowed %s",
 			epochStart.ErrInvalidAccumulatedFees,
-			metaBlock.GetAccumulatedFeesInEpoch(),
+			computationData.GetAccumulatedFeesInEpoch(),
 			e.genesisTotalSupply,
 		)
 	}
@@ -646,8 +646,8 @@ func (e *economics) checkEconomicsInvariants(
 
 	inflationPerEpoch := e.computeInflationForEpoch(inflationRate, actualMaxBlocks, epoch)
 	maxRewardsInEpoch := core.GetIntTrimmedPercentageOfValue(computedEconomics.TotalSupply, inflationPerEpoch)
-	if maxRewardsInEpoch.Cmp(metaBlock.GetAccumulatedFeesInEpoch()) < 0 {
-		maxRewardsInEpoch.Set(metaBlock.GetAccumulatedFeesInEpoch())
+	if maxRewardsInEpoch.Cmp(computationData.GetAccumulatedFeesInEpoch()) < 0 {
+		maxRewardsInEpoch.Set(computationData.GetAccumulatedFeesInEpoch())
 	}
 
 	if !core.IsInRangeInclusive(computedEconomics.RewardsForProtocolSustainability, zero, maxRewardsInEpoch) {
