@@ -2,7 +2,7 @@ package metachain
 
 import "math/big"
 
-type metaBlockHandler interface {
+type economicsComputationDataHandler interface {
 	GetEpoch() uint32
 	GetRound() uint64
 	GetTimeStamp() uint64
@@ -10,8 +10,8 @@ type metaBlockHandler interface {
 	GetAccumulatedFeesInEpoch() *big.Int
 }
 
-type metaBlockData struct {
-	epoch                  uint32
+type economicsComputationData struct {
+	newEpoch               uint32
 	round                  uint64
 	timeStamp              uint64
 	accumulatedFeesInEpoch *big.Int
@@ -19,26 +19,26 @@ type metaBlockData struct {
 }
 
 // GetEpoch returns epoch field
-func (m *metaBlockData) GetEpoch() uint32 {
-	return m.epoch
+func (m *economicsComputationData) GetEpoch() uint32 {
+	return m.newEpoch
 }
 
 // GetRound returns round field
-func (m *metaBlockData) GetRound() uint64 {
+func (m *economicsComputationData) GetRound() uint64 {
 	return m.round
 }
 
 // GetTimeStamp returns time stamp field
-func (m *metaBlockData) GetTimeStamp() uint64 {
+func (m *economicsComputationData) GetTimeStamp() uint64 {
 	return m.timeStamp
 }
 
 // GetDevFeesInEpoch returns dev fees in epoch field
-func (m *metaBlockData) GetDevFeesInEpoch() *big.Int {
+func (m *economicsComputationData) GetDevFeesInEpoch() *big.Int {
 	return m.devFeesInEpoch
 }
 
 // GetAccumulatedFeesInEpoch returns accumulated fees in epoch field
-func (m *metaBlockData) GetAccumulatedFeesInEpoch() *big.Int {
+func (m *economicsComputationData) GetAccumulatedFeesInEpoch() *big.Int {
 	return m.accumulatedFeesInEpoch
 }

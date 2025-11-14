@@ -390,7 +390,7 @@ func addMBHeaderToMapIfPossible(mbHdrHandler data.MiniBlockHeaderHandler, destMa
 		return
 	}
 
-	destMap[string(mbHdr.GetHash())] = *mbHdrHandler.(*block.MiniBlockHeader)
+	destMap[string(mbHdr.GetHash())] = *mbHdr
 }
 
 func (e *epochStartData) computeStillPending(

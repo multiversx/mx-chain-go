@@ -2543,20 +2543,20 @@ func TestEconomics_createEconomicsV3Args(t *testing.T) {
 		res, err := economicsCreator.createEconomicsV3Args(&metaBlockCopy, metaExecRes, epochStartDta)
 		require.Nil(t, err)
 		require.Equal(t, &argsComputeEconomics{
-			metaBlock: metaBlockData{
-				epoch:                  metaBlockCopy.Epoch + 1,
+			computationData: economicsComputationData{
+				newEpoch:               metaBlockCopy.Epoch + 1,
 				round:                  metaBlockCopy.Round,
 				accumulatedFeesInEpoch: metaExecRes.GetAccumulatedFeesInEpoch(),
 				devFeesInEpoch:         metaExecRes.GetDevFeesInEpoch(),
 			},
 			prevEpochStart: &metaBlockCopy,
-			noncesPerShardPrevEpoch: map[uint32]uint64{
+			lastNoncesPerShardPrevEpoch: map[uint32]uint64{
 				0:                     3,
 				1:                     0,
 				2:                     0,
 				core.MetachainShardId: 4,
 			},
-			noncesPerShardCurrEpoch: map[uint32]uint64{
+			lastNoncesPerShardCurrEpoch: map[uint32]uint64{
 				0:                     0,
 				1:                     1,
 				2:                     2,
