@@ -175,7 +175,7 @@ type TransactionCoordinator interface {
 	SaveTxsToStorage(body *block.Body)
 	RestoreBlockDataFromStorage(body *block.Body) (int, error)
 	RemoveBlockDataFromPool(body *block.Body) error
-	RemoveTxsFromPool(body *block.Body) error
+	RemoveTxsFromPool(body *block.Body, rootHashHolder common.RootHashHolder) error
 
 	ProcessBlockTransaction(header data.HeaderHandler, body *block.Body, haveTime func() time.Duration) error
 	GetCreatedMiniBlocksFromMe() block.MiniBlockSlice
@@ -258,7 +258,7 @@ type PreProcessor interface {
 	IsDataPrepared(requestedTxs int, haveTime func() time.Duration) error
 
 	RemoveBlockDataFromPools(body *block.Body, miniBlockPool storage.Cacher) error
-	RemoveTxsFromPools(body *block.Body) error
+	RemoveTxsFromPools(body *block.Body, rootHashHolder common.RootHashHolder) error
 	RestoreBlockDataIntoPools(body *block.Body, miniBlockPool storage.Cacher) (int, error)
 	SaveTxsToStorage(body *block.Body) error
 
@@ -1163,6 +1163,8 @@ type RatingsInfoHandler interface {
 	SignedBlocksThreshold() float32
 	MetaChainRatingsStepHandler() RatingsStepHandler
 	ShardChainRatingsStepHandler() RatingsStepHandler
+	MetaChainRatingsStepHandlerForEpoch(epoch uint32) RatingsStepHandler
+	ShardChainRatingsStepHandlerForEpoch(epoch uint32) RatingsStepHandler
 	SelectionChances() []SelectionChance
 	SetStatusHandler(handler core.AppStatusHandler) error
 	IsInterfaceNil() bool
