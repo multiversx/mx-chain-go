@@ -28,12 +28,18 @@ func (cache *TxCache) RemoveSweepableTxs(accountsProvider common.AccountNoncePro
 	cache.mutTxOperation.Lock()
 	defer cache.mutTxOperation.Unlock()
 
+	rootHash, err := accountsProvider.GetRootHash()
+	if err != nil {
+		log.Debug("TxCache.RemoveSweepableTxs: failed to get root hash", "err", err)
+	}
+
 	cleanupLoopStartTime := time.Now()
 
 	logRemove.Debug("TxCache.RemoveSweepableTxs start",
 		"randomness", randomness,
 		"maxNum", maxNum,
 		"cleanupLoopMaximumDuration", cleanupLoopMaximumDurationMs,
+		"rootHash", rootHash,
 	)
 
 	evicted := make([][]byte, 0, cache.txByHash.counter.Get())

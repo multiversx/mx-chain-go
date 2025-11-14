@@ -245,6 +245,7 @@ func (ccf *consensusComponentsFactory) Create() (*consensusComponents, error) {
 	consensusArgs := &spos.ConsensusCoreArgs{
 		BlockChain:                    ccf.dataComponents.Blockchain(),
 		BlockProcessor:                ccf.processComponents.BlockProcessor(),
+		ExecutionManager:              ccf.processComponents.ExecutionManager(),
 		Bootstrapper:                  cc.bootstrapper,
 		BroadcastMessenger:            cc.broadcastMessenger,
 		ChronologyHandler:             cc.chronology,
@@ -266,6 +267,7 @@ func (ccf *consensusComponentsFactory) Create() (*consensusComponents, error) {
 		PeerBlacklistHandler:          cc.peerBlacklistHandler,
 		SigningHandler:                ccf.cryptoComponents.ConsensusSigningHandler(),
 		EnableEpochsHandler:           ccf.coreComponents.EnableEpochsHandler(),
+		EnableRoundsHandler:           ccf.coreComponents.EnableRoundsHandler(),
 		EquivalentProofsPool:          ccf.dataComponents.Datapool().Proofs(),
 		EpochNotifier:                 ccf.coreComponents.EpochNotifier(),
 		InvalidSignersCache:           invalidSignersCache,
