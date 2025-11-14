@@ -1276,7 +1276,12 @@ func (bp *baseProcessor) removeTxsFromPools(header data.HeaderHandler, body *blo
 		return err
 	}
 
-	return bp.txCoordinator.RemoveTxsFromPool(newBody)
+	rootHashHolder, err := bp.extractRootHashForCleanup(header)
+	if err != nil {
+		return err
+	}
+
+	return bp.txCoordinator.RemoveTxsFromPool(newBody, rootHashHolder)
 }
 
 func (bp *baseProcessor) getFinalMiniBlocks(header data.HeaderHandler, body *block.Body) (*block.Body, error) {
@@ -1730,7 +1735,7 @@ func (bp *baseProcessor) setFinalizedHeaderHashInIndexer(hdrHash []byte) {
 }
 
 func (bp *baseProcessor) updateStateStorage(
-	finalHeader data.HeaderHandler,
+	finalHeaderNonce uint64,
 	currRootHash []byte,
 	prevRootHash []byte,
 	accounts state.AccountsAdapter,
@@ -1744,7 +1749,7 @@ func (bp *baseProcessor) updateStateStorage(
 	}
 
 	accounts.CancelPrune(prevRootHash, state.NewRoot)
-	accounts.PruneTrie(prevRootHash, state.OldRoot, bp.getPruningHandler(finalHeader.GetNonce()))
+	accounts.PruneTrie(prevRootHash, state.OldRoot, bp.getPruningHandler(finalHeaderNonce))
 }
 
 // RevertCurrentBlock reverts the current block for cleanup failed process
@@ -1763,6 +1768,15 @@ func (bp *baseProcessor) revertCurrentBlockV3(headerHandler data.HeaderHandler) 
 	err := bp.executionManager.RemoveAtNonceAndHigher(headerNonce)
 	if err != nil {
 		log.Debug("baseProcessor.revertCurrentBlockV3", "err", err)
+		lastExecResult, errGet := common.GetLastBaseExecutionResultHandler(headerHandler)
+		if errGet != nil {
+			log.Error("baseProcessor.revertCurrentBlockV3.GetLastBaseExecutionResultHandler", "err", errGet)
+			return
+		}
+		errReset := bp.executionManager.ResetAndResumeExecution(lastExecResult)
+		if errReset != nil {
+			log.Debug("baseProcessor.revertCurrentBlockV3.ResetAndResumeExecution", "err", errReset)
+		}
 	}
 }
 
@@ -1826,7 +1840,16 @@ func (bp *baseProcessor) RevertAccountsDBToSnapshot(accountsSnapshot map[state.A
 	}
 }
 
-func (bp *baseProcessor) commitAll(headerHandler data.HeaderHandler) error {
+func (bp *baseProcessor) commitState(headerHandler data.HeaderHandler) error {
+	startTime := time.Now()
+	defer func() {
+		elapsedTime := time.Since(startTime)
+		log.Debug("elapsed time to commit accounts state",
+			"time [s]", elapsedTime,
+			"header nonce", headerHandler.GetNonce(),
+		)
+	}()
+
 	if headerHandler.IsStartOfEpochBlock() {
 		return bp.commitInLastEpoch(headerHandler.GetEpoch())
 	}
@@ -2492,6 +2515,25 @@ func (bp *baseProcessor) recreateTrieIfNeeded() error {
 	return nil
 }
 
+func (bp *baseProcessor) extractRootHashForCleanup(header data.HeaderHandler) (common.RootHashHolder, error) {
+	if header.IsHeaderV3() {
+		latestExecutionResult, err := common.GetLastBaseExecutionResultHandler(header)
+		if err != nil {
+			return nil, err
+		}
+
+		return holders.NewDefaultRootHashesHolder(latestExecutionResult.GetRootHash()), nil
+	}
+
+	additionalData := header.GetAdditionalData()
+	if additionalData == nil {
+		rootHash := bp.blockChain.GetCurrentBlockRootHash()
+		return holders.NewDefaultRootHashesHolder(rootHash), nil
+	}
+
+	return holders.NewDefaultRootHashesHolder(additionalData.GetScheduledRootHash()), nil
+}
+
 func (bp *baseProcessor) checkSentSignaturesAtCommitTime(header data.HeaderHandler) error {
 	_, validatorsGroup, err := headerCheck.ComputeConsensusGroup(header, bp.nodesCoordinator)
 	if err != nil {
@@ -3133,4 +3175,14 @@ func (bp *baseProcessor) getTransactionsForMiniBlock(
 	}
 
 	return mbForHeaderPtr.TxHashes, txs, nil
+}
+
+// getCurrentBlockHeader returns the current block header from blockchain.
+func (bp *baseProcessor) getCurrentBlockHeader() data.HeaderHandler {
+	currentBlockHeader := bp.blockChain.GetCurrentBlockHeader()
+	if !check.IfNil(currentBlockHeader) {
+		return currentBlockHeader
+	}
+
+	return bp.blockChain.GetGenesisHeader()
 }

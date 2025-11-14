@@ -23,6 +23,7 @@ import (
 	"github.com/multiversx/mx-chain-core-go/data/typeConverters/uint64ByteSlice"
 	"github.com/multiversx/mx-chain-core-go/hashing"
 	"github.com/multiversx/mx-chain-core-go/marshal"
+	"github.com/multiversx/mx-chain-go/common/holders"
 	"github.com/multiversx/mx-chain-go/process/asyncExecution/executionManager"
 	"github.com/multiversx/mx-chain-go/process/asyncExecution/queue"
 	"github.com/stretchr/testify/assert"
@@ -108,6 +109,9 @@ func createArgBaseProcessor(
 		},
 		RecreateTrieIfNeededCalled: func(options common.RootHashHolder) error {
 			return nil
+		},
+		CommitCalled: func() ([]byte, error) {
+			return nil, nil
 		},
 	}
 	accountsDb[state.UserAccountsState] = accounts
@@ -4498,5 +4502,83 @@ func TestBaseProcessor_RequestHeadersFromHeaderIfNeeded(t *testing.T) {
 		bp.RequestHeadersFromHeaderIfNeeded(header)
 
 		require.False(t, requestCalled)
+	})
+}
+
+func TestBaseProcessor_extractRootHashForCleanup(t *testing.T) {
+	t.Parallel()
+
+	t.Run("should return ErrNilLastExecutionResultHandler error", func(t *testing.T) {
+		t.Parallel()
+
+		coreComponents, dataComponents, bootstrapComponents, statusComponents := createComponentHolderMocks()
+		arguments := CreateMockArguments(coreComponents, dataComponents, bootstrapComponents, statusComponents)
+		bp, err := blproc.NewShardProcessor(arguments)
+		require.NoError(t, err)
+
+		rootHashHolder, err := bp.ExtractRootHashForCleanup(&block.HeaderV3{})
+		require.Nil(t, rootHashHolder)
+		require.Equal(t, process.ErrNilLastExecutionResultHandler, err)
+	})
+
+	t.Run("should work for HeaderV3", func(t *testing.T) {
+		t.Parallel()
+
+		coreComponents, dataComponents, bootstrapComponents, statusComponents := createComponentHolderMocks()
+		arguments := CreateMockArguments(coreComponents, dataComponents, bootstrapComponents, statusComponents)
+		bp, err := blproc.NewShardProcessor(arguments)
+		require.NoError(t, err)
+
+		expectedRootHash := holders.NewDefaultRootHashesHolder([]byte("rootHash"))
+
+		rootHashHolder, err := bp.ExtractRootHashForCleanup(&block.HeaderV3{
+			LastExecutionResult: &block.ExecutionResultInfo{
+				ExecutionResult: &block.BaseExecutionResult{
+					RootHash: []byte("rootHash"),
+				},
+			},
+		})
+		require.Nil(t, err)
+		require.Equal(t, expectedRootHash, rootHashHolder)
+	})
+
+	t.Run("should work for other HeaderV2", func(t *testing.T) {
+		t.Parallel()
+
+		coreComponents, dataComponents, bootstrapComponents, statusComponents := createComponentHolderMocks()
+		arguments := CreateMockArguments(coreComponents, dataComponents, bootstrapComponents, statusComponents)
+		bp, err := blproc.NewShardProcessor(arguments)
+		require.NoError(t, err)
+
+		expectedRootHash := holders.NewDefaultRootHashesHolder([]byte("rootHash"))
+
+		rootHashHolder, err := bp.ExtractRootHashForCleanup(&block.HeaderV2{
+			ScheduledRootHash: []byte("rootHash"),
+		})
+		require.Nil(t, err)
+		require.Equal(t, expectedRootHash, rootHashHolder)
+	})
+
+	t.Run("should work for other HeaderV1", func(t *testing.T) {
+		t.Parallel()
+
+		coreComponents, dataComponents, bootstrapComponents, statusComponents := createComponentHolderMocks()
+
+		blkc, _ := blockchain.NewBlockChain(&statusHandlerMock.AppStatusHandlerStub{})
+		err := blkc.SetGenesisHeader(&block.Header{Nonce: 0})
+		require.Nil(t, err)
+
+		err = blkc.SetCurrentBlockHeaderAndRootHash(&block.Header{}, []byte("rootHash"))
+		require.Nil(t, err)
+
+		dataComponents.BlockChain = blkc
+		arguments := CreateMockArguments(coreComponents, dataComponents, bootstrapComponents, statusComponents)
+		bp, err := blproc.NewShardProcessor(arguments)
+		require.NoError(t, err)
+
+		expectedRootHash := holders.NewDefaultRootHashesHolder([]byte("rootHash"))
+		rootHashHolder, err := bp.ExtractRootHashForCleanup(&block.Header{})
+		require.Nil(t, err)
+		require.Equal(t, expectedRootHash, rootHashHolder)
 	})
 }

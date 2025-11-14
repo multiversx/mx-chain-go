@@ -1205,9 +1205,12 @@ func (mp *metaProcessor) CommitBlock(
 	mp.saveMetaHeader(header, headerHash, marshalizedHeader)
 	mp.saveBody(body, header, headerHash)
 
-	err = mp.commitAll(headerHandler)
-	if err != nil {
-		return err
+	if !headerHandler.IsHeaderV3() {
+		// TODO commit state on ProcessBlockProposal for meta and header v3
+		err = mp.commitState(headerHandler)
+		if err != nil {
+			return err
+		}
 	}
 
 	mp.validatorStatisticsProcessor.DisplayRatings(header.GetEpoch())
@@ -1497,19 +1500,23 @@ func (mp *metaProcessor) updateState(metaBlock data.MetaHeaderHandler, metaBlock
 		}()
 	}
 
-	mp.updateStateStorage(
-		metaBlock,
-		metaBlock.GetRootHash(),
-		prevMetaBlock.GetRootHash(),
-		mp.accountsDB[state.UserAccountsState],
-	)
+	if !metaBlock.IsHeaderV3() {
+		mp.updateStateStorage(
+			metaBlock.GetNonce(),
+			metaBlock.GetRootHash(),
+			prevMetaBlock.GetRootHash(),
+			mp.accountsDB[state.UserAccountsState],
+		)
 
-	mp.updateStateStorage(
-		metaBlock,
-		metaBlock.GetValidatorStatsRootHash(),
-		prevMetaBlock.GetValidatorStatsRootHash(),
-		mp.accountsDB[state.PeerAccountsState],
-	)
+		mp.updateStateStorage(
+			metaBlock.GetNonce(),
+			metaBlock.GetValidatorStatsRootHash(),
+			prevMetaBlock.GetValidatorStatsRootHash(),
+			mp.accountsDB[state.PeerAccountsState],
+		)
+	} else {
+		mp.pruneTriesHeaderV3(metaBlock, prevMetaBlock)
+	}
 
 	outportFinalizedHeaderHash := metaBlockHash
 	if !common.IsFlagEnabledAfterEpochsStartBlock(metaBlock, mp.enableEpochsHandler, common.AndromedaFlag) {
@@ -1518,6 +1525,106 @@ func (mp *metaProcessor) updateState(metaBlock data.MetaHeaderHandler, metaBlock
 	mp.setFinalizedHeaderHashInIndexer(outportFinalizedHeaderHash)
 
 	mp.blockChain.SetFinalBlockInfo(metaBlock.GetNonce(), metaBlockHash, metaBlock.GetRootHash())
+}
+
+func (mp *metaProcessor) pruneTriesHeaderV3(
+	metaBlock data.MetaHeaderHandler,
+	prevMetaBlock data.MetaHeaderHandler,
+) {
+	accountsDb := mp.accountsDB[state.UserAccountsState]
+	peerAccountsDb := mp.accountsDB[state.PeerAccountsState]
+	if !accountsDb.IsPruningEnabled() && !peerAccountsDb.IsPruningEnabled() {
+		return
+	}
+
+	prevMetaBlockHash := metaBlock.GetPrevHash()
+	execResults := metaBlock.GetExecutionResultsHandlers()
+	for i := range execResults {
+		currentExecRes, ok := execResults[i].(data.BaseMetaExecutionResultHandler)
+		if !ok {
+			log.Warn("failed to assert current execution result for pruning",
+				"index", i,
+				"currentExecResType", fmt.Sprintf("%T", execResults[i]))
+			continue
+		}
+		prevExecRes, err := mp.getPreviousExecutionResult(i, execResults, prevMetaBlock, prevMetaBlockHash)
+		if err != nil {
+			log.Warn("failed to get previous execution result for pruning",
+				"err", err,
+				"index", i,
+				"currentExecResHeaderHash", currentExecRes.GetHeaderHash())
+			continue
+		}
+
+		currentRootHash := currentExecRes.GetRootHash()
+		prevRootHash := prevExecRes.GetRootHash()
+		log.Trace("pruneUserTrieHeaderV3",
+			"currentRootHash", currentRootHash,
+			"prevRootHash", prevRootHash,
+		)
+
+		mp.updateStateStorage(
+			currentExecRes.GetHeaderNonce(),
+			currentRootHash,
+			prevRootHash,
+			accountsDb,
+		)
+
+		currentValidatorRootHash := currentExecRes.GetValidatorStatsRootHash()
+		prevValidatorRootHash := prevExecRes.GetValidatorStatsRootHash()
+		log.Trace("prunePeerTrieHeaderV3",
+			"currentValidatorRootHash", currentValidatorRootHash,
+			"prevValidatorRootHash", prevValidatorRootHash,
+		)
+
+		mp.updateStateStorage(
+			currentExecRes.GetHeaderNonce(),
+			currentValidatorRootHash,
+			prevValidatorRootHash,
+			peerAccountsDb,
+		)
+	}
+}
+
+func (mp *metaProcessor) getPreviousExecutionResult(
+	index int,
+	executionResultsHandlers []data.BaseExecutionResultHandler,
+	prevMetaBlock data.MetaHeaderHandler,
+	prevMetaBlockHash []byte,
+) (data.BaseMetaExecutionResultHandler, error) {
+	if index > 0 {
+		metaExecRes, ok := executionResultsHandlers[index-1].(data.BaseMetaExecutionResultHandler)
+		if !ok {
+			return nil, process.ErrWrongTypeAssertion
+		}
+		return metaExecRes, nil
+	}
+
+	if prevMetaBlock.IsHeaderV3() {
+		lastExecRes := prevMetaBlock.GetLastExecutionResultHandler()
+		if check.IfNil(lastExecRes) {
+			return nil, fmt.Errorf("previous meta block has nil last execution result")
+		}
+
+		lastMetaExecRes, ok := lastExecRes.(data.LastMetaExecutionResultHandler)
+		if !ok {
+			return nil, process.ErrWrongTypeAssertion
+		}
+
+		return lastMetaExecRes.GetExecutionResultHandler(), nil
+	}
+
+	lastExecRes, err := process.CreateLastExecutionResultFromPrevHeader(prevMetaBlock, prevMetaBlockHash)
+	if err != nil {
+		return nil, err
+	}
+
+	lastMetaExecRes, ok := lastExecRes.(data.LastMetaExecutionResultHandler)
+	if !ok {
+		return nil, process.ErrWrongTypeAssertion
+	}
+
+	return lastMetaExecRes.GetExecutionResultHandler(), nil
 }
 
 func (mp *metaProcessor) getLastSelfNotarizedHeaderByShard(
