@@ -17,7 +17,7 @@ import (
 )
 
 const (
-	DefaultPathToInitialConfig = "../../../../cmd/node/config/"
+	DefaultPathToInitialConfig = "../../../../../cmd/node/config/"
 )
 
 var (
@@ -101,4 +101,38 @@ func GetQualifiedAndUnqualifiedNodes(t *testing.T, metachainNode process.NodeHan
 	}
 
 	return qualified, unQualified
+}
+
+func GetUnStakedTokensList(t *testing.T, metachainNode process.NodeHandler, blsKey []byte) []byte {
+	scQuery := &process2.SCQuery{
+		ScAddress:  vm.ValidatorSCAddress,
+		FuncName:   "getUnStakedTokensList",
+		CallerAddr: vm.ValidatorSCAddress,
+		CallValue:  big.NewInt(0),
+		Arguments:  [][]byte{blsKey},
+	}
+	result, _, err := metachainNode.GetFacadeHandler().ExecuteSCQuery(scQuery)
+	require.Nil(t, err)
+	require.Equal(t, chainSimulator.OkReturnCode, result.ReturnCode)
+
+	return result.ReturnData[0]
+}
+
+func CheckOneOfTheNodesIsUnstaked(t *testing.T,
+	metachainNode process.NodeHandler,
+	blsKeys []string,
+) {
+	decodedBLSKey0, _ := hex.DecodeString(blsKeys[0])
+	keyStatus0 := staking.GetBLSKeyStatus(t, metachainNode, decodedBLSKey0)
+	Log.Info("Key info", "key", blsKeys[0], "status", keyStatus0)
+
+	isNotStaked0 := keyStatus0 == staking.UnStakedStatus
+
+	decodedBLSKey1, _ := hex.DecodeString(blsKeys[1])
+	keyStatus1 := staking.GetBLSKeyStatus(t, metachainNode, decodedBLSKey1)
+	Log.Info("Key info", "key", blsKeys[1], "status", keyStatus1)
+
+	isNotStaked1 := keyStatus1 == staking.UnStakedStatus
+
+	require.True(t, isNotStaked0 != isNotStaked1)
 }
