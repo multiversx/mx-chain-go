@@ -25,7 +25,7 @@ import (
 )
 
 const (
-	DefaultPathToInitialConfig = "../../../cmd/node/config/"
+	DefaultPathToInitialConfig = "../../../../cmd/node/config/"
 
 	MinGasPrice                            = 1000000000
 	MaxNumOfBlockToGenerateWhenExecutingTx = 7
