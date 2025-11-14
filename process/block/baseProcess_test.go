@@ -4608,18 +4608,18 @@ func TestBaseProcessor_saveProposedTxsToStorage(t *testing.T) {
 
 		err = bp.SaveProposedTxsToStorage(&block.HeaderV2{}, &block.Body{})
 		require.Nil(t, err)
-
 		require.Equal(t, 1, saveTxsToStorageCalled)
 
 		err = bp.SaveProposedTxsToStorage(&block.MetaBlock{}, &block.Body{})
+		require.Nil(t, err)
 		require.Equal(t, 2, saveTxsToStorageCalled)
 
 		err = bp.SaveProposedTxsToStorage(&block.HeaderV3{}, &block.Body{})
 		require.Nil(t, err)
-
 		require.Equal(t, 2, saveTxsToStorageCalled)
 
 		err = bp.SaveProposedTxsToStorage(&block.MetaBlockV3{}, &block.Body{})
+		require.Nil(t, err)
 		require.Equal(t, 2, saveTxsToStorageCalled)
 	})
 
