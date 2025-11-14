@@ -313,11 +313,11 @@ func (mp *metaProcessor) ProcessBlockProposal(
 		return nil, err
 	}
 
-	// defer func() {
-	// 	if err != nil {
-	// 		mp.RevertCurrentBlock(headerHandler)
-	// 	}
-	// }()
+	defer func() {
+		if err != nil {
+			mp.RevertCurrentBlock(headerHandler)
+		}
+	}()
 
 	err = mp.createBlockStarted()
 	if err != nil {
@@ -330,19 +330,19 @@ func (mp *metaProcessor) ProcessBlockProposal(
 		return nil, err
 	}
 
-	// err = mp.processIfFirstBlockAfterEpochStart()
-	// if err != nil {
-	// 	return nil, err
-	// }
-	//
-	// if header.IsStartOfEpochBlock() {
-	// 	err = mp.processEpochStartMetaBlock(header, body)
-	// 	return nil, err
-	// }
-	//
-	// mp.txCoordinator.RequestBlockTransactions(body)
-	// mp.hdrsForCurrBlock.RequestShardHeaders(header)
-	//
+	err = mp.processIfFirstBlockAfterEpochStartBlockV3()
+	if err != nil {
+		return nil, err
+	}
+
+	if header.IsStartOfEpochBlock() {
+		err = mp.processEpochStartMetaBlock(header, body)
+		return nil, err
+	}
+
+	mp.txCoordinator.RequestBlockTransactions(body)
+	mp.hdrsForCurrBlock.RequestShardHeaders(header)
+
 	// // although we can have a long time for processing, it being decoupled from consensus,
 	// // we still give some reasonable timeout
 	// proposalStartTime := time.Now()
@@ -889,4 +889,36 @@ func (mp *metaProcessor) getShardHeadersFromMetaHeader(
 		orderedShardHeaders:      orderedShardHeaders,
 		orderedShardHeaderHashes: orderedShardHeaderHashes,
 	}, nil
+}
+
+func (mp *metaProcessor) processIfFirstBlockAfterEpochStartBlockV3() error {
+	prevExecutedBlock := mp.getPreviousExecutedBlock()
+	prevExecutedMetaHeader, ok := prevExecutedBlock.(data.MetaHeaderHandler)
+	if !ok {
+		return process.ErrWrongTypeAssertion
+	}
+
+	if !prevExecutedMetaHeader.IsStartOfEpochBlock() {
+		return nil
+	}
+
+	nodesForcedToStay, err := mp.validatorStatisticsProcessor.SaveNodesCoordinatorUpdates(prevExecutedMetaHeader.GetEpoch())
+	if err != nil {
+		return err
+	}
+
+	err = mp.epochSystemSCProcessor.ToggleUnStakeUnBond(nodesForcedToStay)
+	if err != nil {
+		return err
+	}
+
+	return nil
+}
+
+func (mp *metaProcessor) getPreviousExecutedBlock() data.HeaderHandler {
+	blockHeader := mp.blockChain.GetLastExecutedBlockHeader()
+	if check.IfNil(blockHeader) {
+		return mp.blockChain.GetGenesisHeader()
+	}
+	return blockHeader
 }
