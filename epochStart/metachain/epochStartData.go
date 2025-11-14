@@ -312,16 +312,16 @@ func (e *epochStartData) getShardDataFromEpochStartData(
 		return nil, nil, process.ErrNotEpochStartBlock
 	}
 
-	for _, shardData := range previousEpochStartMeta.EpochStart.LastFinalizedHeaders {
-		if shardData.ShardID != shId {
+	for _, shardData := range previousEpochStartMeta.GetEpochStartHandler().GetLastFinalizedHeaderHandlers() {
+		if shardData.GetShardID() != shId {
 			continue
 		}
 
-		if len(lastMetaHash) == 0 || bytes.Equal(lastMetaHash, shardData.FirstPendingMetaBlock) {
-			return shardData.FirstPendingMetaBlock, shardData.LastFinishedMetaBlock, nil
+		if len(lastMetaHash) == 0 || bytes.Equal(lastMetaHash, shardData.GetFirstPendingMetaBlock()) {
+			return shardData.GetFirstPendingMetaBlock(), shardData.GetLastFinishedMetaBlock(), nil
 		}
 
-		return lastMetaHash, shardData.FirstPendingMetaBlock, nil
+		return lastMetaHash, shardData.GetFirstPendingMetaBlock(), nil
 	}
 
 	return nil, nil, process.ErrGettingShardDataFromEpochStartData
@@ -371,25 +371,36 @@ func (e *epochStartData) computePendingMiniBlockList(
 	return allPending, nil
 }
 
-func getEpochStartDataForShard(epochStartMetaHdr *block.MetaBlock, shardID uint32) ([]byte, map[string]block.MiniBlockHeader) {
+func getEpochStartDataForShard(epochStartMetaHdr data.MetaHeaderHandler, shardID uint32) ([]byte, map[string]block.MiniBlockHeader) {
 	if check.IfNil(epochStartMetaHdr) {
 		return nil, nil
 	}
 
-	for _, header := range epochStartMetaHdr.EpochStart.LastFinalizedHeaders {
-		if header.ShardID != shardID {
+	for _, header := range epochStartMetaHdr.GetEpochStartHandler().GetLastFinalizedHeaderHandlers() {
+		if header.GetShardID() != shardID {
 			continue
 		}
 
-		mapPendingMiniBlocks := make(map[string]block.MiniBlockHeader, len(header.PendingMiniBlockHeaders))
-		for _, mbHdr := range header.PendingMiniBlockHeaders {
-			mapPendingMiniBlocks[string(mbHdr.Hash)] = mbHdr
+		mapPendingMiniBlocks := make(map[string]block.MiniBlockHeader, len(header.GetPendingMiniBlockHeaderHandlers()))
+		for _, mbHdrHandler := range header.GetPendingMiniBlockHeaderHandlers() {
+			addMBHeaderToMapIfPossible(mbHdrHandler, mapPendingMiniBlocks)
 		}
 
-		return header.FirstPendingMetaBlock, mapPendingMiniBlocks
+		return header.GetFirstPendingMetaBlock(), mapPendingMiniBlocks
 	}
 
 	return nil, nil
+}
+
+func addMBHeaderToMapIfPossible(mbHdrHandler data.MiniBlockHeaderHandler, destMap map[string]block.MiniBlockHeader) {
+	mbHdr, castOk := mbHdrHandler.(*block.MiniBlockHeader)
+	if !castOk {
+		// this should never happen
+		log.Error("addMBHeaderToMapIfPossible: invalid type assertion for mini block header")
+		return
+	}
+
+	destMap[string(mbHdr.GetHash())] = *mbHdr
 }
 
 func (e *epochStartData) computeStillPending(
@@ -511,23 +522,23 @@ func (e *epochStartData) setIndexOfFirstAndLastTxProcessed(mbHeader *block.MiniB
 	}
 }
 
-func getAllMiniBlocksWithDst(m *block.MetaBlock, destId uint32) map[string]block.MiniBlockHeader {
+func getAllMiniBlocksWithDst(m data.MetaHeaderHandler, destId uint32) map[string]block.MiniBlockHeader {
 	hashDst := make(map[string]block.MiniBlockHeader)
-	for i := 0; i < len(m.ShardInfo); i++ {
-		if m.ShardInfo[i].ShardID == destId {
+	for i := 0; i < len(m.GetShardInfoHandlers()); i++ {
+		if m.GetShardInfoHandlers()[i].GetShardID() == destId {
 			continue
 		}
 
-		for _, val := range m.ShardInfo[i].ShardMiniBlockHeaders {
-			if val.ReceiverShardID == destId && val.SenderShardID != destId {
-				hashDst[string(val.Hash)] = val
+		for _, val := range m.GetShardInfoHandlers()[i].GetShardMiniBlockHeaderHandlers() {
+			if val.GetReceiverShardID() == destId && val.GetSenderShardID() != destId {
+				addMBHeaderToMapIfPossible(val, hashDst)
 			}
 		}
 	}
 
-	for _, val := range m.MiniBlockHeaders {
-		if val.ReceiverShardID == destId && val.SenderShardID != destId {
-			hashDst[string(val.Hash)] = val
+	for _, val := range m.GetMiniBlockHeaderHandlers() {
+		if val.GetReceiverShardID() == destId && val.GetSenderShardID() != destId {
+			addMBHeaderToMapIfPossible(val, hashDst)
 		}
 	}
 
@@ -535,7 +546,7 @@ func getAllMiniBlocksWithDst(m *block.MetaBlock, destId uint32) map[string]block
 }
 
 // TODO refactor this to return data.MetaHeaderHandler instead of *block.MetaBlock
-func (e *epochStartData) getMetaBlockByHash(metaHash []byte) (*block.MetaBlock, error) {
+func (e *epochStartData) getMetaBlockByHash(metaHash []byte) (data.MetaHeaderHandler, error) {
 	metaHeaderHandler, err := process.GetMetaHeader(metaHash, e.dataPool.Headers(), e.marshalizer, e.store)
 	if err != nil {
 		return &block.MetaBlock{}, err

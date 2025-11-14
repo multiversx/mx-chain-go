@@ -1768,6 +1768,15 @@ func (bp *baseProcessor) revertCurrentBlockV3(headerHandler data.HeaderHandler) 
 	err := bp.executionManager.RemoveAtNonceAndHigher(headerNonce)
 	if err != nil {
 		log.Debug("baseProcessor.revertCurrentBlockV3", "err", err)
+		lastExecResult, errGet := common.GetLastBaseExecutionResultHandler(headerHandler)
+		if errGet != nil {
+			log.Error("baseProcessor.revertCurrentBlockV3.GetLastBaseExecutionResultHandler", "err", errGet)
+			return
+		}
+		errReset := bp.executionManager.ResetAndResumeExecution(lastExecResult)
+		if errReset != nil {
+			log.Debug("baseProcessor.revertCurrentBlockV3.ResetAndResumeExecution", "err", errReset)
+		}
 	}
 }
 

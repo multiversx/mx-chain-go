@@ -289,8 +289,10 @@ type BlockProcessor interface {
 	PruneStateOnRollback(currHeader data.HeaderHandler, currHeaderHash []byte, prevHeader data.HeaderHandler, prevHeaderHash []byte)
 	RevertStateToBlock(header data.HeaderHandler, rootHash []byte) error
 	CreateNewHeader(round uint64, nonce uint64) (data.HeaderHandler, error)
+	CreateNewHeaderProposal(round uint64, nonce uint64) (data.HeaderHandler, error)
 	RestoreBlockIntoPools(header data.HeaderHandler, body data.BodyHandler) error
 	CreateBlock(initialHdr data.HeaderHandler, haveTime func() bool) (data.HeaderHandler, data.BodyHandler, error)
+	CreateBlockProposal(initialHdr data.HeaderHandler, haveTime func() bool) (data.HeaderHandler, data.BodyHandler, error)
 	MarshalizedDataToBroadcast(header data.HeaderHandler, body data.BodyHandler) (map[uint32][]byte, map[string][][]byte, error)
 	DecodeBlockBody(dta []byte) data.BodyHandler
 	DecodeBlockHeader(dta []byte) data.HeaderHandler
@@ -317,6 +319,7 @@ type BlocksQueue interface {
 	Pop() (queue.HeaderBodyPair, bool)
 	Peek() (queue.HeaderBodyPair, bool)
 	RemoveAtNonceAndHigher(nonce uint64) []uint64
+	Clean(lastAddedNonce uint64)
 	IsInterfaceNil() bool
 	Close()
 }
@@ -339,6 +342,7 @@ type ExecutionManager interface {
 	CleanConfirmedExecutionResults(header data.HeaderHandler) error
 	SetLastNotarizedResult(executionResult data.BaseExecutionResultHandler) error
 	RemoveAtNonceAndHigher(nonce uint64) error
+	ResetAndResumeExecution(lastNotarizedResult data.BaseExecutionResultHandler) error
 	Close() error
 	IsInterfaceNil() bool
 }
@@ -1591,6 +1595,7 @@ type ExecutionResultsTracker interface {
 	GetLastNotarizedExecutionResult() (data.BaseExecutionResultHandler, error)
 	SetLastNotarizedResult(executionResult data.BaseExecutionResultHandler) error
 	RemoveFromNonce(nonce uint64) error
+	Clean(lastNotarizedResult data.BaseExecutionResultHandler)
 	CleanConfirmedExecutionResults(header data.HeaderHandler) error
 	IsInterfaceNil() bool
 }
