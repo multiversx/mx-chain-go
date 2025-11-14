@@ -5,6 +5,7 @@ import (
 
 	"github.com/multiversx/mx-chain-core-go/data"
 	"github.com/multiversx/mx-chain-core-go/data/block"
+	"github.com/multiversx/mx-chain-go/common"
 
 	"github.com/multiversx/mx-chain-go/process"
 	"github.com/multiversx/mx-chain-go/process/block/processedMb"
@@ -62,7 +63,7 @@ func (txCoordinator *TxCoordinator) RemoveBlockDataFromPool(_ *block.Body) error
 }
 
 // RemoveTxsFromPool does nothing as it is disabled
-func (txCoordinator *TxCoordinator) RemoveTxsFromPool(_ *block.Body) error {
+func (txCoordinator *TxCoordinator) RemoveTxsFromPool(_ *block.Body, _ common.RootHashHolder) error {
 	return nil
 }
 

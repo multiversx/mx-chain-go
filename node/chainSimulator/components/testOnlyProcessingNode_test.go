@@ -78,7 +78,7 @@ func TestNewTestOnlyProcessingNode(t *testing.T) {
 
 		rootHash, err := node.GetStateComponents().AccountsAdapter().RootHash()
 		if err != nil {
-			log.Error("SetRootHashOfGenesisBlocks", "err", err)
+			log.Error("node.GetStateComponents().AccountsAdapter().RootHash()", "err", err)
 		}
 
 		genesisHeader := node.GetDataComponents().Blockchain().GetGenesisHeader()

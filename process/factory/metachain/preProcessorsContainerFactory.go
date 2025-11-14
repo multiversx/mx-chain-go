@@ -39,7 +39,9 @@ type ArgsPreProcessorsContainerFactory struct {
 	BlockSizeComputation         preprocess.BlockSizeComputationHandler
 	BalanceComputation           preprocess.BalanceComputationHandler
 	EnableEpochsHandler          common.EnableEpochsHandler
+	EpochNotifier                process.EpochNotifier
 	EnableRoundsHandler          common.EnableRoundsHandler
+	RoundNotifier                process.RoundNotifier
 	TxTypeHandler                process.TxTypeHandler
 	ScheduledTxsExecutionHandler process.ScheduledTxsExecutionHandler
 	ProcessedMiniBlocksTracker   process.ProcessedMiniBlocksTracker
@@ -65,7 +67,9 @@ type preProcessorsContainerFactory struct {
 	blockSizeComputation         preprocess.BlockSizeComputationHandler
 	balanceComputation           preprocess.BalanceComputationHandler
 	enableEpochsHandler          common.EnableEpochsHandler
+	epochNotifier                process.EpochNotifier
 	enableRoundsHandler          common.EnableRoundsHandler
+	roundNotifier                process.RoundNotifier
 	txTypeHandler                process.TxTypeHandler
 	scheduledTxsExecutionHandler process.ScheduledTxsExecutionHandler
 	processedMiniBlocksTracker   process.ProcessedMiniBlocksTracker
@@ -161,7 +165,9 @@ func NewPreProcessorsContainerFactory(args ArgsPreProcessorsContainerFactory) (*
 		blockSizeComputation:         args.BlockSizeComputation,
 		balanceComputation:           args.BalanceComputation,
 		enableEpochsHandler:          args.EnableEpochsHandler,
+		epochNotifier:                args.EpochNotifier,
 		enableRoundsHandler:          args.EnableRoundsHandler,
+		roundNotifier:                args.RoundNotifier,
 		txTypeHandler:                args.TxTypeHandler,
 		scheduledTxsExecutionHandler: args.ScheduledTxsExecutionHandler,
 		processedMiniBlocksTracker:   args.ProcessedMiniBlocksTracker,
@@ -216,7 +222,9 @@ func (ppcm *preProcessorsContainerFactory) createTxPreProcessor() (process.PrePr
 			TxExecutionOrderHandler:    ppcm.txExecutionOrderHandler,
 			EconomicsFee:               ppcm.economicsFee,
 			EnableEpochsHandler:        ppcm.enableEpochsHandler,
+			EpochNotifier:              ppcm.epochNotifier,
 			EnableRoundsHandler:        ppcm.enableRoundsHandler,
+			RoundNotifier:              ppcm.roundNotifier,
 		},
 		TxProcessor:                  ppcm.txProcessor,
 		BlockTracker:                 ppcm.blockTracker,
@@ -247,7 +255,9 @@ func (ppcm *preProcessorsContainerFactory) createSmartContractResultPreProcessor
 			TxExecutionOrderHandler:    ppcm.txExecutionOrderHandler,
 			EconomicsFee:               ppcm.economicsFee,
 			EnableEpochsHandler:        ppcm.enableEpochsHandler,
+			EpochNotifier:              ppcm.epochNotifier,
 			EnableRoundsHandler:        ppcm.enableRoundsHandler,
+			RoundNotifier:              ppcm.roundNotifier,
 		},
 		ScrProcessor: ppcm.scResultProcessor,
 	}

@@ -117,16 +117,16 @@ func NewTransactionPreprocessor(
 	if args.TxCacheSelectionConfig.SelectionLoopDurationCheckInterval == 0 {
 		return nil, process.ErrBadTxCacheSelectionLoopDurationCheckInterval
 	}
-	bpp := basePreProcess{
+	bpp := &basePreProcess{
 		hasher:      args.Hasher,
 		marshalizer: args.Marshalizer,
-		gasTracker: gasTracker{
-			shardCoordinator:    args.ShardCoordinator,
-			gasHandler:          args.GasHandler,
-			economicsFee:        args.EconomicsFee,
-			enableEpochsHandler: args.EnableEpochsHandler,
-			enableRoundsHandler: args.EnableRoundsHandler,
-		},
+		gasTracker: newGasTracker(
+			args.ShardCoordinator,
+			args.GasHandler,
+			args.EconomicsFee,
+			args.EnableEpochsHandler,
+			args.EnableRoundsHandler,
+		),
 		blockSizeComputation:       args.BlockSizeComputation,
 		balanceComputation:         args.BalanceComputation,
 		accounts:                   args.Accounts,
@@ -138,8 +138,11 @@ func NewTransactionPreprocessor(
 		txExecutionOrderHandler:    args.TxExecutionOrderHandler,
 	}
 
+	args.EpochNotifier.RegisterNotifyHandler(bpp)
+	args.RoundNotifier.RegisterNotifyHandler(bpp)
+
 	txs := &transactions{
-		basePreProcess:               &bpp,
+		basePreProcess:               bpp,
 		storage:                      args.Store,
 		txPool:                       args.DataPool,
 		onRequestTransaction:         args.OnRequestTransaction,
@@ -191,8 +194,13 @@ func (txs *transactions) RemoveBlockDataFromPools(body *block.Body, miniBlockPoo
 
 // RemoveTxsFromPools removes transactions from associated pools
 // TODO CleanupSelfShardTxCache - Maybe find a solution to use block nonce instead of randomness
-func (txs *transactions) RemoveTxsFromPools(body *block.Body) error {
-	accountsProvider, err := state.NewAccountsEphemeralProvider(txs.accounts)
+func (txs *transactions) RemoveTxsFromPools(body *block.Body, rootHashHolder common.RootHashHolder) error {
+	err := txs.accountsProposal.RecreateTrieIfNeeded(rootHashHolder)
+	if err != nil {
+		return err
+	}
+
+	accountsProvider, err := state.NewAccountsEphemeralProvider(txs.accountsProposal)
 	if err != nil {
 		return err
 	}

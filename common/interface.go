@@ -465,6 +465,7 @@ type AccountNonceAndBalanceProvider interface {
 // AccountNonceProvider provides the nonce of accounts
 type AccountNonceProvider interface {
 	GetAccountNonce(accountKey []byte) (uint64, bool, error)
+	GetRootHash() ([]byte, error)
 	IsInterfaceNil() bool
 }
 

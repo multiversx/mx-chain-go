@@ -8,6 +8,7 @@ import (
 	"github.com/multiversx/mx-chain-core-go/data"
 	"github.com/multiversx/mx-chain-core-go/data/block"
 	"github.com/multiversx/mx-chain-core-go/data/rewardTx"
+	"github.com/multiversx/mx-chain-go/common"
 
 	"github.com/multiversx/mx-chain-go/dataRetriever"
 	"github.com/multiversx/mx-chain-go/process"
@@ -45,13 +46,13 @@ func NewRewardTxPreprocessor(args RewardsPreProcessorArgs) (*rewardTxPreprocesso
 	bpp := &basePreProcess{
 		hasher:      args.Hasher,
 		marshalizer: args.Marshalizer,
-		gasTracker: gasTracker{
-			shardCoordinator:    args.ShardCoordinator,
-			gasHandler:          args.GasHandler,
-			economicsFee:        args.EconomicsFee,
-			enableEpochsHandler: args.EnableEpochsHandler,
-			enableRoundsHandler: args.EnableRoundsHandler,
-		},
+		gasTracker: newGasTracker(
+			args.ShardCoordinator,
+			args.GasHandler,
+			args.EconomicsFee,
+			args.EnableEpochsHandler,
+			args.EnableRoundsHandler,
+		),
 		blockSizeComputation:       args.BlockSizeComputation,
 		balanceComputation:         args.BalanceComputation,
 		accounts:                   args.Accounts,
@@ -62,6 +63,9 @@ func NewRewardTxPreprocessor(args RewardsPreProcessorArgs) (*rewardTxPreprocesso
 		enableEpochsHandler:        args.EnableEpochsHandler,
 		enableRoundsHandler:        args.EnableRoundsHandler,
 	}
+
+	args.EpochNotifier.RegisterNotifyHandler(bpp)
+	args.RoundNotifier.RegisterNotifyHandler(bpp)
 
 	rtp := &rewardTxPreprocessor{
 		basePreProcess:    bpp,
@@ -103,7 +107,7 @@ func (rtp *rewardTxPreprocessor) RemoveBlockDataFromPools(body *block.Body, mini
 }
 
 // RemoveTxsFromPools removes reward transactions from associated pools
-func (rtp *rewardTxPreprocessor) RemoveTxsFromPools(body *block.Body) error {
+func (rtp *rewardTxPreprocessor) RemoveTxsFromPools(body *block.Body, _ common.RootHashHolder) error {
 	return rtp.removeTxsFromPools(body, rtp.rewardTxPool, rtp.isMiniBlockCorrect)
 }
 

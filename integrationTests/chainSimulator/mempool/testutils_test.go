@@ -40,6 +40,10 @@ var (
 const maxNumBytesUpperBound = 1_073_741_824           // one GB
 const maxNumBytesPerSenderUpperBoundTest = 33_554_432 // 32 MB
 const maxTrackedBlocks = 100
+const testRootHash = "rootHash0"
+const testBlockHash0 = "blockHash0"
+const testBlockHash1 = "blockHash1"
+const testBlockHash2 = "blockHash2"
 
 func startChainSimulator(t *testing.T, alterConfigsFunction func(cfg *config.Configs)) testsChainSimulator.ChainSimulator {
 	simulator, err := chainSimulator.NewChainSimulator(chainSimulator.ArgsChainSimulator{
@@ -335,7 +339,7 @@ func testOnProposed(t *testing.T, sw *core.StopWatch, numTxs int, numAddresses i
 			return 0, initialAmount, true, nil
 		},
 		GetRootHashCalled: func() ([]byte, error) {
-			return []byte("rootHash0"), nil
+			return []byte(testRootHash), nil
 		},
 	}
 
@@ -344,11 +348,11 @@ func testOnProposed(t *testing.T, sw *core.StopWatch, numTxs int, numAddresses i
 			return 0, initialAmount, true, nil
 		},
 		GetRootHashCalled: func() ([]byte, error) {
-			return []byte("rootHash0"), nil
+			return []byte(testRootHash), nil
 		},
 	}
 
-	err = txpool.OnExecutedBlock(&block.Header{}, []byte("rootHash0"))
+	err = txpool.OnExecutedBlock(&block.Header{}, []byte(testRootHash))
 	require.Nil(t, err)
 
 	options := holders.NewTxSelectionOptions(
@@ -374,7 +378,7 @@ func testOnProposed(t *testing.T, sw *core.StopWatch, numTxs int, numAddresses i
 	err = txpool.OnProposedBlock([]byte("blockHash1"), proposedBlock1, &block.Header{
 		Nonce:    0,
 		PrevHash: []byte("blockHash0"),
-		RootHash: []byte(fmt.Sprintf("rootHash%d", 0)),
+		RootHash: []byte(testRootHash),
 	},
 		accountsAdapter,
 		defaultLatestExecutedHash,
@@ -405,11 +409,11 @@ func testFirstSelection(t *testing.T, sw *core.StopWatch, numTxs int, numTxsToBe
 			return 0, initialAmount, true, nil
 		},
 		GetRootHashCalled: func() ([]byte, error) {
-			return []byte("rootHash0"), nil
+			return []byte(testRootHash), nil
 		},
 	}
 
-	err = txpool.OnExecutedBlock(&block.Header{}, []byte("rootHash0"))
+	err = txpool.OnExecutedBlock(&block.Header{}, []byte(testRootHash))
 	require.Nil(t, err)
 
 	options := holders.NewTxSelectionOptions(
@@ -454,7 +458,7 @@ func testSecondSelection(t *testing.T, sw *core.StopWatch, numTxs int, numTxsToB
 			return 0, initialAmount, true, nil
 		},
 		GetRootHashCalled: func() ([]byte, error) {
-			return []byte("rootHash0"), nil
+			return []byte(testRootHash), nil
 		},
 	}
 
@@ -463,11 +467,11 @@ func testSecondSelection(t *testing.T, sw *core.StopWatch, numTxs int, numTxsToB
 			return 0, initialAmount, true, nil
 		},
 		GetRootHashCalled: func() ([]byte, error) {
-			return []byte("rootHash0"), nil
+			return []byte(testRootHash), nil
 		},
 	}
 
-	err = txpool.OnExecutedBlock(&block.Header{}, []byte("rootHash0"))
+	err = txpool.OnExecutedBlock(&block.Header{}, []byte(testRootHash))
 	require.Nil(t, err)
 
 	options := holders.NewTxSelectionOptions(
@@ -492,7 +496,7 @@ func testSecondSelection(t *testing.T, sw *core.StopWatch, numTxs int, numTxsToB
 	err = txpool.OnProposedBlock([]byte("blockHash1"), proposedBlock, &block.Header{
 		Nonce:    1,
 		PrevHash: []byte("blockHash0"),
-		RootHash: []byte(fmt.Sprintf("rootHash%d", 0)),
+		RootHash: []byte(testRootHash),
 	},
 		accountsAdapter,
 		defaultLatestExecutedHash,
@@ -512,7 +516,7 @@ func testSecondSelection(t *testing.T, sw *core.StopWatch, numTxs int, numTxsToB
 	err = txpool.OnProposedBlock([]byte("blockHash2"), proposedBlock, &block.Header{
 		Nonce:    2,
 		PrevHash: []byte("blockHash1"),
-		RootHash: []byte(fmt.Sprintf("rootHash%d", 0)),
+		RootHash: []byte(testRootHash),
 	},
 		selectionSession,
 		defaultLatestExecutedHash,
@@ -545,7 +549,7 @@ func testSecondSelectionWithManyTxsInPool(t *testing.T, sw *core.StopWatch, numT
 			return 0, initialAmount, true, nil
 		},
 		GetRootHashCalled: func() ([]byte, error) {
-			return []byte("rootHash0"), nil
+			return []byte(testRootHash), nil
 		},
 	}
 
@@ -554,11 +558,11 @@ func testSecondSelectionWithManyTxsInPool(t *testing.T, sw *core.StopWatch, numT
 			return 0, initialAmount, true, nil
 		},
 		GetRootHashCalled: func() ([]byte, error) {
-			return []byte("rootHash0"), nil
+			return []byte(testRootHash), nil
 		},
 	}
 
-	err = txpool.OnExecutedBlock(&block.Header{}, []byte("rootHash0"))
+	err = txpool.OnExecutedBlock(&block.Header{}, []byte(testRootHash))
 	require.Nil(t, err)
 
 	options := holders.NewTxSelectionOptions(
@@ -582,7 +586,7 @@ func testSecondSelectionWithManyTxsInPool(t *testing.T, sw *core.StopWatch, numT
 	err = txpool.OnProposedBlock([]byte("blockHash1"), proposedBlock, &block.Header{
 		Nonce:    1,
 		PrevHash: []byte("blockHash0"),
-		RootHash: []byte(fmt.Sprintf("rootHash%d", 0)),
+		RootHash: []byte(testRootHash),
 	},
 		accountsAdapter,
 		defaultLatestExecutedHash,
