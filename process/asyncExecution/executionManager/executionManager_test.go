@@ -566,34 +566,6 @@ func TestExecutionManager_ResetAndResumeExecution(t *testing.T) {
 		err := em.ResetAndResumeExecution(nil)
 		require.Equal(t, process.ErrNilLastExecutionResultHandler, err)
 	})
-	t.Run("Clean failure should error", func(t *testing.T) {
-		t.Parallel()
-
-		args := createMockArgs()
-		args.ExecutionResultsTracker = &processMocks.ExecutionTrackerStub{
-			GetLastNotarizedExecutionResultCalled: func() (data.BaseExecutionResultHandler, error) {
-				return &block.ExecutionResult{
-					BaseExecutionResult: &block.BaseExecutionResult{
-						HeaderNonce: 5,
-						HeaderHash:  []byte("hash5"),
-					},
-				}, nil
-			},
-			CleanCalled: func(lastNotarizedResult data.BaseExecutionResultHandler) error {
-				return errExpected
-			},
-		}
-		args.BlocksQueue = &processMocks.BlocksQueueMock{
-			CleanCalled: func(lastAddedNonce uint64) {
-				require.Fail(t, "should have not been called")
-			},
-		}
-		em, _ := executionManager.NewExecutionManager(args)
-		require.NotNil(t, em)
-
-		err := em.ResetAndResumeExecution(&block.BaseExecutionResult{})
-		require.Equal(t, errExpected, err)
-	})
 	t.Run("should work", func(t *testing.T) {
 		t.Parallel()
 

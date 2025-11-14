@@ -176,13 +176,10 @@ func (em *executionManager) ResetAndResumeExecution(lastNotarizedResult data.Bas
 	// even though the headers executor might already be paused, safe to try it one more time
 	em.headersExecutor.PauseExecution()
 
-	err := em.executionResultsTracker.Clean(lastNotarizedResult)
-	if err != nil {
-		return err
-	}
+	em.executionResultsTracker.Clean(lastNotarizedResult)
 
 	lastNotarizedNonce := lastNotarizedResult.GetHeaderNonce()
-	em.blocksQueue.Clean(lastNotarizedNonce + 1)
+	em.blocksQueue.Clean(lastNotarizedNonce)
 
 	em.headersExecutor.ResumeExecution()
 

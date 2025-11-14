@@ -247,25 +247,19 @@ func (ert *executionResultsTracker) RemoveFromNonce(nonce uint64) error {
 }
 
 // Clean cleans the execution results tracker and sets its state to the last notarized result provided
-func (ert *executionResultsTracker) Clean(lastNotarizedResult data.BaseExecutionResultHandler) error {
+func (ert *executionResultsTracker) Clean(lastNotarizedResult data.BaseExecutionResultHandler) {
 	if check.IfNil(lastNotarizedResult) {
-		return ErrNilLastNotarizedExecutionResult
+		return
 	}
 
 	ert.mutex.Lock()
 	defer ert.mutex.Unlock()
-	pendingExecutionResults, err := ert.getPendingExecutionResults()
-	if err != nil {
-		return err
-	}
 
-	ert.cleanExecutionResults(pendingExecutionResults)
+	ert.executionResultsByHash = make(map[string]data.BaseExecutionResultHandler)
+	ert.nonceHash = newNonceHash()
 
 	ert.lastNotarizedResult = lastNotarizedResult
 	ert.lastExecutedResultHash = lastNotarizedResult.GetHeaderHash()
-
-	return nil
-
 }
 
 func (ert *executionResultsTracker) removePendingFromNonceUnprotected(nonce uint64) error {

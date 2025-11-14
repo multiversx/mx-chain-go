@@ -208,6 +208,8 @@ func TestHeadersExecutor_ProcessBlock(t *testing.T) {
 					default:
 						require.Fail(t, "should not happen")
 					}
+
+					time.Sleep(time.Millisecond * 3)
 				}(i)
 			}
 
