@@ -120,7 +120,7 @@ func (scr *smartContractResults) RemoveBlockDataFromPools(body *block.Body, mini
 }
 
 // RemoveTxsFromPools removes smart contract results from associated pools
-func (scr *smartContractResults) RemoveTxsFromPools(body *block.Body) error {
+func (scr *smartContractResults) RemoveTxsFromPools(body *block.Body, _ common.RootHashHolder) error {
 	return scr.removeTxsFromPools(body, scr.scrPool, scr.isMiniBlockCorrect)
 }
 

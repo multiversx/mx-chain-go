@@ -6749,3 +6749,107 @@ func TestShardProcessor_GetLastExecutedRootHash(t *testing.T) {
 		require.Equal(t, rootHash2, retRootHash)
 	})
 }
+
+func TestShardProcessor_PruneTrieHeaderV3(t *testing.T) {
+	t.Parallel()
+
+	t.Run("pruneTrieHeaderV3 with headerV2 as previous header", func(t *testing.T) {
+		t.Parallel()
+
+		rootHash1 := []byte("rootHash1")
+		prevHeader := &block.HeaderV2{
+			Header: &block.Header{
+				RootHash: rootHash1,
+			},
+		}
+
+		pruneTrieHeaderV3Test(t, prevHeader, rootHash1)
+	})
+	t.Run("pruneTrieHeaderV3 with headerV3 as previous header", func(t *testing.T) {
+		t.Parallel()
+
+		rootHash1 := []byte("rootHash1")
+		prevHeader := &block.HeaderV3{
+			LastExecutionResult: &block.ExecutionResultInfo{
+				ExecutionResult: &block.BaseExecutionResult{
+					RootHash: rootHash1,
+				},
+			},
+		}
+
+		pruneTrieHeaderV3Test(t, prevHeader, rootHash1)
+	})
+}
+
+func pruneTrieHeaderV3Test(t *testing.T, prevHeader data.HeaderHandler, rootHash1 []byte) {
+	pruneCalled := 0
+	cancelPruneCalled := 0
+	prevHeaderHash := []byte("prevHeaderHash")
+	rootHash2 := []byte("rootHash2")
+
+	coreComponents, dataComponents, boostrapComponents, statusComponents := createComponentHolderMocks()
+	dataPool := initDataPool()
+	dataPool.HeadersCalled = func() dataRetriever.HeadersPool {
+		return &mock.HeadersCacherStub{
+			GetHeaderByHashCalled: func(hash []byte) (data.HeaderHandler, error) {
+				if !bytes.Equal(hash, prevHeaderHash) {
+					assert.Fail(t, "unexpected hash in GetHeaderByHashCalled")
+					return nil, expectedError
+				}
+				return prevHeader, nil
+			},
+		}
+	}
+	dataComponents.DataPool = dataPool
+	_ = dataComponents.BlockChain.SetCurrentBlockHeader(&block.Header{PrevHash: prevHeaderHash})
+	arguments := CreateMockArguments(coreComponents, dataComponents, boostrapComponents, statusComponents)
+	arguments.AccountsDB = map[state.AccountsDbIdentifier]state.AccountsAdapter{
+		state.UserAccountsState: &stateMock.AccountsStub{
+			IsPruningEnabledCalled: func() bool {
+				return true
+			},
+			CancelPruneCalled: func(rootHash []byte, identifier state.TriePruningIdentifier) {
+				if bytes.Equal(rootHash, rootHash1) {
+					cancelPruneCalled++
+					return
+				}
+				if bytes.Equal(rootHash, rootHash2) {
+					cancelPruneCalled++
+					return
+				}
+				assert.Fail(t, "unexpected root hash in CancelPruneCalled for user accounts")
+			},
+			PruneTrieCalled: func(rootHash []byte, identifier state.TriePruningIdentifier, handler state.PruningHandler) {
+				if bytes.Equal(rootHash, rootHash1) {
+					pruneCalled++
+					return
+				}
+				if bytes.Equal(rootHash, rootHash2) {
+					pruneCalled++
+					return
+				}
+				assert.Fail(t, "unexpected root hash in PruneTrieCalled for user accounts")
+			},
+		},
+	}
+
+	sp, _ := blproc.NewShardProcessor(arguments)
+
+	executionResultsHandlers := []data.BaseExecutionResultHandler{
+		&block.ExecutionResult{
+			BaseExecutionResult: &block.BaseExecutionResult{
+				RootHash: rootHash2,
+			},
+		},
+		&block.ExecutionResult{
+			BaseExecutionResult: &block.BaseExecutionResult{
+				RootHash: []byte("some other root hash"),
+			},
+		},
+	}
+
+	sp.PruneTrieHeaderV3(executionResultsHandlers)
+
+	assert.Equal(t, 2, pruneCalled)
+	assert.Equal(t, 2, cancelPruneCalled)
+}

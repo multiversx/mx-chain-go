@@ -115,6 +115,11 @@ func (sp *shardProcessor) UpdateStateStorage(finalHeaders []data.HeaderHandler, 
 	sp.updateState(finalHeaders, currShardHeader, currentHeaderHash)
 }
 
+// PruneTrieHeaderV3 -
+func (sp *shardProcessor) PruneTrieHeaderV3(executionResultsHandlers []data.BaseExecutionResultHandler) {
+	sp.pruneTrieHeaderV3(executionResultsHandlers)
+}
+
 // NewShardProcessorEmptyWith3shards -
 func NewShardProcessorEmptyWith3shards(
 	tdp dataRetriever.PoolsHolder,
@@ -553,7 +558,12 @@ func (bp *baseProcessor) UpdateState(
 	prevRootHash []byte,
 	accounts state.AccountsAdapter,
 ) {
-	bp.updateStateStorage(finalHeader, rootHash, prevRootHash, accounts)
+	bp.updateStateStorage(finalHeader.GetNonce(), rootHash, prevRootHash, accounts)
+}
+
+// UpdateState -
+func (mp *metaProcessor) UpdateState(metaBlock data.MetaHeaderHandler, metaBlockHash []byte) {
+	mp.updateState(metaBlock, metaBlockHash)
 }
 
 // GasAndFeesDelta -
@@ -983,4 +993,9 @@ func (bp *baseProcessor) OnExecutedBlock(header data.HeaderHandler, rootHash []b
 // RecreateTrieIfNeeded -
 func (bp *baseProcessor) RecreateTrieIfNeeded() error {
 	return bp.recreateTrieIfNeeded()
+}
+
+// ExtractRootHashForCleanup -
+func (bp *baseProcessor) ExtractRootHashForCleanup(header data.HeaderHandler) (common.RootHashHolder, error) {
+	return bp.extractRootHashForCleanup(header)
 }
