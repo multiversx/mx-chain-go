@@ -3,6 +3,7 @@ package spos_test
 import (
 	"testing"
 
+	"github.com/multiversx/mx-chain-go/testscommon/processMocks"
 	"github.com/stretchr/testify/assert"
 
 	"github.com/multiversx/mx-chain-go/consensus/mock"
@@ -24,6 +25,7 @@ func initConsensusDataContainer() *spos.ConsensusCore {
 	marshalizerMock := mock.MarshalizerMock{}
 	blockChain := &testscommon.ChainHandlerStub{}
 	blockProcessorMock := consensusMocks.InitBlockProcessorMock(marshalizerMock)
+	executionManager := &processMocks.ExecutionManagerMock{}
 	bootstrapperMock := &bootstrapperStubs.BootstrapperStub{}
 	broadcastMessengerMock := &consensusMocks.BroadcastMessengerMock{}
 	chronologyHandlerMock := consensusMocks.InitChronologyHandlerMock()
@@ -45,6 +47,7 @@ func initConsensusDataContainer() *spos.ConsensusCore {
 	multiSignerContainer := cryptoMocks.NewMultiSignerContainerMock(multiSignerMock)
 	signingHandler := &consensusMocks.SigningHandlerStub{}
 	enableEpochsHandler := &enableEpochsHandlerMock.EnableEpochsHandlerStub{}
+	enableRoundsHandler := &testscommon.EnableRoundsHandlerStub{}
 	proofsPool := &dataRetriever.ProofsPoolMock{}
 	epochNotifier := &epochNotifierMock.EpochNotifierStub{}
 	invalidSignersCache := &consensusMocks.InvalidSignersCacheMock{}
@@ -52,6 +55,7 @@ func initConsensusDataContainer() *spos.ConsensusCore {
 	consensusCore, _ := spos.NewConsensusCore(&spos.ConsensusCoreArgs{
 		BlockChain:                    blockChain,
 		BlockProcessor:                blockProcessorMock,
+		ExecutionManager:              executionManager,
 		Bootstrapper:                  bootstrapperMock,
 		BroadcastMessenger:            broadcastMessengerMock,
 		ChronologyHandler:             chronologyHandlerMock,
@@ -73,6 +77,7 @@ func initConsensusDataContainer() *spos.ConsensusCore {
 		PeerBlacklistHandler:          peerBlacklistHandler,
 		SigningHandler:                signingHandler,
 		EnableEpochsHandler:           enableEpochsHandler,
+		EnableRoundsHandler:           enableRoundsHandler,
 		EquivalentProofsPool:          proofsPool,
 		EpochNotifier:                 epochNotifier,
 		InvalidSignersCache:           invalidSignersCache,
@@ -109,6 +114,17 @@ func TestConsensusContainerValidator_ValidateNilProcessorShouldFail(t *testing.T
 	err := spos.ValidateConsensusCore(container)
 
 	assert.Equal(t, spos.ErrNilBlockProcessor, err)
+}
+
+func TestConsensusContainerValidator_ValidateNilExecutionManagerShouldFail(t *testing.T) {
+	t.Parallel()
+
+	container := initConsensusDataContainer()
+	container.SetExecutionManager(nil)
+
+	err := spos.ValidateConsensusCore(container)
+
+	assert.Equal(t, spos.ErrNilExecutionManager, err)
 }
 
 func TestConsensusContainerValidator_ValidateNilBootstrapperShouldFail(t *testing.T) {
@@ -296,6 +312,17 @@ func TestConsensusContainerValidator_ValidateNilEnableEpochsHandlerShouldFail(t 
 	err := spos.ValidateConsensusCore(container)
 
 	assert.Equal(t, spos.ErrNilEnableEpochsHandler, err)
+}
+
+func TestConsensusContainerValidator_ValidateNilEnableRoundsHandlerShouldFail(t *testing.T) {
+	t.Parallel()
+
+	container := initConsensusDataContainer()
+	container.SetEnableRoundsHandler(nil)
+
+	err := spos.ValidateConsensusCore(container)
+
+	assert.Equal(t, spos.ErrNilEnableRoundsHandler, err)
 }
 
 func TestConsensusContainerValidator_ValidateNilBroadcastMessengerShouldFail(t *testing.T) {
