@@ -3,12 +3,14 @@ package block_test
 import (
 	"bytes"
 	"testing"
+	"time"
 
 	"github.com/multiversx/mx-chain-core-go/core"
 	"github.com/multiversx/mx-chain-core-go/data"
 	"github.com/multiversx/mx-chain-core-go/data/block"
 	"github.com/stretchr/testify/require"
 
+	integrationTestsMock "github.com/multiversx/mx-chain-go/integrationTests/mock"
 	blproc "github.com/multiversx/mx-chain-go/process/block"
 	"github.com/multiversx/mx-chain-go/testscommon/pool"
 
@@ -19,7 +21,6 @@ import (
 	"github.com/multiversx/mx-chain-go/process/mock"
 	"github.com/multiversx/mx-chain-go/testscommon"
 	dataRetrieverMock "github.com/multiversx/mx-chain-go/testscommon/dataRetriever"
-	"github.com/multiversx/mx-chain-go/testscommon/executionTrack"
 	"github.com/multiversx/mx-chain-go/testscommon/mbSelection"
 	"github.com/multiversx/mx-chain-go/testscommon/processMocks"
 )
@@ -191,7 +192,7 @@ func TestMetaProcessor_CreateNewHeaderProposal(t *testing.T) {
 
 		coreComponents, dataComponents, bootstrapComponents, statusComponents := createMockComponentHolders()
 		arguments := createMockMetaArguments(coreComponents, dataComponents, bootstrapComponents, statusComponents)
-		arguments.ExecutionResultsTracker = &executionTrack.ExecutionResultsTrackerStub{
+		arguments.ExecutionManager = &processMocks.ExecutionManagerMock{
 			GetPendingExecutionResultsCalled: func() ([]data.BaseExecutionResultHandler, error) {
 				return nil, expectedErr
 			},
@@ -217,7 +218,7 @@ func TestMetaProcessor_CreateNewHeaderProposal(t *testing.T) {
 
 		coreComponents, dataComponents, bootstrapComponents, statusComponents := createMockComponentHolders()
 		arguments := createMockMetaArguments(coreComponents, dataComponents, bootstrapComponents, statusComponents)
-		arguments.ExecutionResultsTracker = &executionTrack.ExecutionResultsTrackerStub{
+		arguments.ExecutionManager = &processMocks.ExecutionManagerMock{
 			GetPendingExecutionResultsCalled: func() ([]data.BaseExecutionResultHandler, error) {
 				return nil, nil
 			},
@@ -260,7 +261,7 @@ func TestMetaProcessor_CreateNewHeaderProposal(t *testing.T) {
 
 		coreComponents, dataComponents, bootstrapComponents, statusComponents := createMockComponentHolders()
 		arguments := createMockMetaArguments(coreComponents, dataComponents, bootstrapComponents, statusComponents)
-		arguments.ExecutionResultsTracker = &executionTrack.ExecutionResultsTrackerStub{
+		arguments.ExecutionManager = &processMocks.ExecutionManagerMock{
 			GetPendingExecutionResultsCalled: func() ([]data.BaseExecutionResultHandler, error) {
 				return nil, nil
 			},
@@ -312,7 +313,7 @@ func TestMetaProcessor_CreateNewHeaderProposal(t *testing.T) {
 
 		coreComponents, dataComponents, bootstrapComponents, statusComponents := createMockComponentHolders()
 		arguments := createMockMetaArguments(coreComponents, dataComponents, bootstrapComponents, statusComponents)
-		arguments.ExecutionResultsTracker = &executionTrack.ExecutionResultsTrackerStub{
+		arguments.ExecutionManager = &processMocks.ExecutionManagerMock{
 			GetPendingExecutionResultsCalled: func() ([]data.BaseExecutionResultHandler, error) {
 				return nil, nil
 			},
@@ -361,7 +362,7 @@ func TestMetaProcessor_CreateNewHeaderProposal(t *testing.T) {
 
 		coreComponents, dataComponents, bootstrapComponents, statusComponents := createMockComponentHolders()
 		arguments := createMockMetaArguments(coreComponents, dataComponents, bootstrapComponents, statusComponents)
-		arguments.ExecutionResultsTracker = &executionTrack.ExecutionResultsTrackerStub{
+		arguments.ExecutionManager = &processMocks.ExecutionManagerMock{
 			GetPendingExecutionResultsCalled: func() ([]data.BaseExecutionResultHandler, error) {
 				return nil, nil
 			},
@@ -409,7 +410,7 @@ func TestMetaProcessor_CreateNewHeaderProposal(t *testing.T) {
 
 		coreComponents, dataComponents, bootstrapComponents, statusComponents := createMockComponentHolders()
 		arguments := createMockMetaArguments(coreComponents, dataComponents, bootstrapComponents, statusComponents)
-		arguments.ExecutionResultsTracker = &executionTrack.ExecutionResultsTrackerStub{
+		arguments.ExecutionManager = &processMocks.ExecutionManagerMock{
 			GetPendingExecutionResultsCalled: func() ([]data.BaseExecutionResultHandler, error) {
 				return nil, nil
 			},
@@ -454,7 +455,7 @@ func TestMetaProcessor_CreateNewHeaderProposal(t *testing.T) {
 
 		coreComponents, dataComponents, bootstrapComponents, statusComponents := createMockComponentHolders()
 		arguments := createMockMetaArguments(coreComponents, dataComponents, bootstrapComponents, statusComponents)
-		arguments.ExecutionResultsTracker = &executionTrack.ExecutionResultsTrackerStub{
+		arguments.ExecutionManager = &processMocks.ExecutionManagerMock{
 			GetPendingExecutionResultsCalled: func() ([]data.BaseExecutionResultHandler, error) {
 				return nil, nil
 			},
@@ -730,43 +731,596 @@ func TestMetaProcessor_CreateBlockProposal(t *testing.T) {
 }
 
 func TestMetaProcessor_VerifyBlockProposal(t *testing.T) {
+	t.Run("invalid body handler, should error", func(t *testing.T) {
+		t.Parallel()
+
+		coreComponents, dataComponents, bootstrapComponents, statusComponents := createMockComponentHolders()
+		arguments := createMockMetaArguments(coreComponents, dataComponents, bootstrapComponents, statusComponents)
+		mp, err := blproc.NewMetaProcessor(arguments)
+		require.Nil(t, err)
+
+		err = mp.VerifyBlockProposal(&block.MetaBlockV3{}, nil, haveTime)
+		require.ErrorIs(t, err, process.ErrNilBlockBody)
+	})
+	t.Run("block hash does not match, should error", func(t *testing.T) {
+		t.Parallel()
+
+		coreComponents, dataComponents, bootstrapComponents, statusComponents := createMockComponentHolders()
+		dataComponents.BlockChain = createTestBlockchain()
+		arguments := createMockMetaArguments(coreComponents, dataComponents, bootstrapComponents, statusComponents)
+		mp, err := blproc.NewMetaProcessor(arguments)
+		require.Nil(t, err)
+
+		header := &block.MetaBlockV3{
+			PrevHash: []byte("prevHash"),
+			Nonce:    1,
+		}
+		body := &block.Body{}
+		err = mp.VerifyBlockProposal(header, body, haveTime)
+		require.ErrorIs(t, err, process.ErrBlockHashDoesNotMatch)
+	})
+	t.Run("invalid header handler, should error", func(t *testing.T) {
+		t.Parallel()
+
+		prevBlockHash := []byte("prev header hash")
+		coreComponents, dataComponents, bootstrapComponents, statusComponents := createMockComponentHolders()
+		dataComponents = &mock.DataComponentsMock{
+			Storage:  dataComponents.Storage,
+			DataPool: dataComponents.DataPool,
+			BlockChain: &testscommon.ChainHandlerStub{
+				GetCurrentBlockHeaderHashCalled: func() []byte {
+					return prevBlockHash
+				},
+				GetCurrentBlockHeaderCalled: func() data.HeaderHandler {
+					return &block.MetaBlockV3{}
+				},
+			},
+		}
+		arguments := createMockMetaArguments(coreComponents, dataComponents, bootstrapComponents, statusComponents)
+		mp, err := blproc.NewMetaProcessor(arguments)
+		require.Nil(t, err)
+
+		header := &block.MetaBlock{
+			PrevHash: prevBlockHash,
+			Nonce:    1,
+			Round:    1,
+		}
+		body := &block.Body{}
+		err = mp.VerifyBlockProposal(header, body, haveTime)
+		require.ErrorIs(t, err, process.ErrWrongTypeAssertion)
+	})
+	t.Run("header handler of type MetaBlock, should error", func(t *testing.T) {
+		t.Parallel()
+
+		prevBlockHash := []byte("prev header hash")
+		coreComponents, dataComponents, bootstrapComponents, statusComponents := createMockComponentHolders()
+		dataComponents = &mock.DataComponentsMock{
+			Storage:  dataComponents.Storage,
+			DataPool: dataComponents.DataPool,
+			BlockChain: &testscommon.ChainHandlerStub{
+				GetCurrentBlockHeaderHashCalled: func() []byte {
+					return prevBlockHash
+				},
+				GetCurrentBlockHeaderCalled: func() data.HeaderHandler {
+					return &block.MetaBlockV3{}
+				},
+			},
+		}
+		arguments := createMockMetaArguments(coreComponents, dataComponents, bootstrapComponents, statusComponents)
+		mp, err := blproc.NewMetaProcessor(arguments)
+		require.Nil(t, err)
+
+		header := &block.MetaBlock{
+			PrevHash: prevBlockHash,
+			Nonce:    1,
+			Round:    1,
+		}
+		body := &block.Body{}
+		err = mp.VerifyBlockProposal(header, body, haveTime)
+		require.ErrorIs(t, err, process.ErrWrongTypeAssertion)
+	})
+	t.Run("body handler of type BodyV3, should error", func(t *testing.T) {
+		t.Parallel()
+
+		prevBlockHash := []byte("prev header hash")
+		coreComponents, dataComponents, bootstrapComponents, statusComponents := createMockComponentHolders()
+		dataComponents = &mock.DataComponentsMock{
+			Storage:  dataComponents.Storage,
+			DataPool: dataComponents.DataPool,
+			BlockChain: &testscommon.ChainHandlerStub{
+				GetCurrentBlockHeaderHashCalled: func() []byte {
+					return prevBlockHash
+				},
+				GetCurrentBlockHeaderCalled: func() data.HeaderHandler {
+					return &block.MetaBlockV3{}
+				},
+			},
+		}
+		arguments := createMockMetaArguments(coreComponents, dataComponents, bootstrapComponents, statusComponents)
+		mp, err := blproc.NewMetaProcessor(arguments)
+		require.Nil(t, err)
+
+		header := &block.MetaBlockV3{
+			PrevHash: prevBlockHash,
+			Nonce:    1,
+			Round:    1,
+		}
+		body := &wrongBody{}
+		err = mp.VerifyBlockProposal(header, body, haveTime)
+		require.ErrorIs(t, err, process.ErrWrongTypeAssertion)
+	})
+	t.Run("body mismatch, should error", func(t *testing.T) {
+		t.Parallel()
+
+		prevBlockHash := []byte("prev header hash")
+		coreComponents, dataComponents, bootstrapComponents, statusComponents := createMockComponentHolders()
+		dataComponents = &mock.DataComponentsMock{
+			Storage:  dataComponents.Storage,
+			DataPool: dataComponents.DataPool,
+			BlockChain: &testscommon.ChainHandlerStub{
+				GetCurrentBlockHeaderHashCalled: func() []byte {
+					return prevBlockHash
+				},
+				GetCurrentBlockHeaderCalled: func() data.HeaderHandler {
+					return &block.MetaBlockV3{}
+				},
+			},
+		}
+		arguments := createMockMetaArguments(coreComponents, dataComponents, bootstrapComponents, statusComponents)
+		mp, err := blproc.NewMetaProcessor(arguments)
+		require.Nil(t, err)
+
+		header := &block.MetaBlockV3{
+			PrevHash: prevBlockHash,
+			Nonce:    1,
+			Round:    1,
+		}
+		body := &block.Body{MiniBlocks: []*block.MiniBlock{
+			{SenderShardID: 0},
+		}}
+		err = mp.VerifyBlockProposal(header, body, haveTime)
+		require.ErrorIs(t, err, process.ErrHeaderBodyMismatch)
+	})
+	t.Run("invalid header execution results, should error", func(t *testing.T) {
+		t.Parallel()
+
+		prevBlockHash := []byte("prev header hash")
+		coreComponents, dataComponents, bootstrapComponents, statusComponents := createMockComponentHolders()
+		dataComponents = &mock.DataComponentsMock{
+			Storage:  dataComponents.Storage,
+			DataPool: dataComponents.DataPool,
+			BlockChain: &testscommon.ChainHandlerStub{
+				GetCurrentBlockHeaderHashCalled: func() []byte {
+					return prevBlockHash
+				},
+				GetCurrentBlockHeaderCalled: func() data.HeaderHandler {
+					return &block.MetaBlockV3{}
+				},
+			},
+		}
+		arguments := createMockMetaArguments(coreComponents, dataComponents, bootstrapComponents, statusComponents)
+		arguments.ExecutionResultsVerifier = &processMocks.ExecutionResultsVerifierMock{
+			VerifyHeaderExecutionResultsCalled: func(header data.HeaderHandler) error {
+				return expectedErr
+			},
+		}
+		mp, err := blproc.NewMetaProcessor(arguments)
+		require.Nil(t, err)
+
+		header := &block.MetaBlockV3{
+			PrevHash: prevBlockHash,
+			Nonce:    1,
+			Round:    1,
+		}
+		body := &block.Body{}
+		err = mp.VerifyBlockProposal(header, body, haveTime)
+		require.ErrorIs(t, err, expectedErr)
+	})
+	t.Run("error on request missing shard header", func(t *testing.T) {
+		t.Parallel()
+
+		prevBlockHash := []byte("prev header hash")
+		prevLastMetaExecutionResult := &block.MetaExecutionResultInfo{
+			ExecutionResult: &block.BaseMetaExecutionResult{
+				BaseExecutionResult: &block.BaseExecutionResult{},
+			},
+		}
+		coreComponents, dataComponents, bootstrapComponents, statusComponents := createMockComponentHolders()
+		dataComponents = &mock.DataComponentsMock{
+			Storage:  dataComponents.Storage,
+			DataPool: dataComponents.DataPool,
+			BlockChain: &testscommon.ChainHandlerStub{
+				GetCurrentBlockHeaderHashCalled: func() []byte {
+					return prevBlockHash
+				},
+				GetCurrentBlockHeaderCalled: func() data.HeaderHandler {
+					return &block.MetaBlockV3{
+						LastExecutionResult: prevLastMetaExecutionResult,
+					}
+				},
+			},
+		}
+		arguments := createMockMetaArguments(coreComponents, dataComponents, bootstrapComponents, statusComponents)
+		arguments.MissingDataResolver = &processMocks.MissingDataResolverMock{
+			RequestMissingShardHeadersCalled: func(_ data.MetaHeaderHandler) error {
+				return expectedErr
+			},
+		}
+		mp, err := blproc.NewMetaProcessor(arguments)
+		require.Nil(t, err)
+
+		header := &block.MetaBlockV3{
+			PrevHash:            prevBlockHash,
+			Nonce:               1,
+			Round:               1,
+			LastExecutionResult: prevLastMetaExecutionResult,
+		}
+		body := &block.Body{}
+		err = mp.VerifyBlockProposal(header, body, haveTime)
+		require.ErrorIs(t, err, expectedErr)
+	})
+	t.Run("error on wait for missing data", func(t *testing.T) {
+		t.Parallel()
+
+		prevBlockHash := []byte("prev header hash")
+		prevLastMetaExecutionResult := &block.MetaExecutionResultInfo{
+			ExecutionResult: &block.BaseMetaExecutionResult{
+				BaseExecutionResult: &block.BaseExecutionResult{},
+			},
+		}
+		coreComponents, dataComponents, bootstrapComponents, statusComponents := createMockComponentHolders()
+		dataComponents = &mock.DataComponentsMock{
+			Storage:  dataComponents.Storage,
+			DataPool: dataComponents.DataPool,
+			BlockChain: &testscommon.ChainHandlerStub{
+				GetCurrentBlockHeaderHashCalled: func() []byte {
+					return prevBlockHash
+				},
+				GetCurrentBlockHeaderCalled: func() data.HeaderHandler {
+					return &block.MetaBlockV3{
+						LastExecutionResult: prevLastMetaExecutionResult,
+					}
+				},
+			},
+		}
+		arguments := createMockMetaArguments(coreComponents, dataComponents, bootstrapComponents, statusComponents)
+		arguments.MissingDataResolver = &processMocks.MissingDataResolverMock{
+			WaitForMissingDataCalled: func(_ time.Duration) error {
+				return expectedErr
+			},
+		}
+		mp, err := blproc.NewMetaProcessor(arguments)
+		require.Nil(t, err)
+
+		header := &block.MetaBlockV3{
+			PrevHash:            prevBlockHash,
+			Nonce:               1,
+			Round:               1,
+			LastExecutionResult: prevLastMetaExecutionResult,
+		}
+		body := &block.Body{}
+		err = mp.VerifyBlockProposal(header, body, haveTime)
+		require.ErrorIs(t, err, expectedErr)
+	})
+	t.Run("error on check epoch correctness v3", func(t *testing.T) {
+		t.Parallel()
+
+		prevBlockHash := []byte("prev header hash")
+		prevLastMetaExecutionResult := &block.MetaExecutionResultInfo{
+			ExecutionResult: &block.BaseMetaExecutionResult{
+				BaseExecutionResult: &block.BaseExecutionResult{},
+			},
+		}
+		coreComponents, dataComponents, bootstrapComponents, statusComponents := createMockComponentHolders()
+		dataComponents = &mock.DataComponentsMock{
+			Storage:  dataComponents.Storage,
+			DataPool: dataComponents.DataPool,
+			BlockChain: &testscommon.ChainHandlerStub{
+				GetCurrentBlockHeaderHashCalled: func() []byte {
+					return prevBlockHash
+				},
+				GetCurrentBlockHeaderCalled: func() data.HeaderHandler {
+					return &block.MetaBlockV3{
+						LastExecutionResult: prevLastMetaExecutionResult,
+					}
+				},
+			},
+		}
+		arguments := createMockMetaArguments(coreComponents, dataComponents, bootstrapComponents, statusComponents)
+		arguments.MissingDataResolver = &processMocks.MissingDataResolverMock{
+			WaitForMissingDataCalled: func(_ time.Duration) error {
+				return nil
+			},
+		}
+		mp, err := blproc.NewMetaProcessor(arguments)
+		require.Nil(t, err)
+
+		header := &block.MetaBlockV3{
+			PrevHash:            prevBlockHash,
+			Nonce:               1,
+			Round:               1,
+			LastExecutionResult: prevLastMetaExecutionResult,
+			EpochStart: block.EpochStart{
+				LastFinalizedHeaders: []block.EpochStartShardData{
+					{}, {},
+				},
+			},
+		}
+		body := &block.Body{}
+		err = mp.VerifyBlockProposal(header, body, haveTime)
+		require.ErrorIs(t, err, process.ErrEpochDoesNotMatch)
+	})
+	t.Run("error on check shard headers validity and finality proposal", func(t *testing.T) {
+		t.Parallel()
+
+		prevBlockHash := []byte("prev header hash")
+		prevLastMetaExecutionResult := &block.MetaExecutionResultInfo{
+			ExecutionResult: &block.BaseMetaExecutionResult{
+				BaseExecutionResult: &block.BaseExecutionResult{},
+			},
+		}
+		coreComponents, dataComponents, bootstrapComponents, statusComponents := createMockComponentHolders()
+		dataComponents = &mock.DataComponentsMock{
+			Storage:  dataComponents.Storage,
+			DataPool: dataComponents.DataPool,
+			BlockChain: &testscommon.ChainHandlerStub{
+				GetCurrentBlockHeaderHashCalled: func() []byte {
+					return prevBlockHash
+				},
+				GetCurrentBlockHeaderCalled: func() data.HeaderHandler {
+					return &block.MetaBlockV3{
+						LastExecutionResult: prevLastMetaExecutionResult,
+					}
+				},
+			},
+		}
+		arguments := createMockMetaArguments(coreComponents, dataComponents, bootstrapComponents, statusComponents)
+		arguments.BlockTracker = &integrationTestsMock.BlockTrackerStub{
+			GetLastCrossNotarizedHeaderCalled: func(_ uint32) (data.HeaderHandler, []byte, error) {
+				return nil, make([]byte, 0), expectedErr
+			},
+		}
+		mp, err := blproc.NewMetaProcessor(arguments)
+		require.Nil(t, err)
+
+		header := &block.MetaBlockV3{
+			PrevHash:            prevBlockHash,
+			Nonce:               1,
+			Round:               1,
+			LastExecutionResult: prevLastMetaExecutionResult,
+		}
+		body := &block.Body{}
+		err = mp.VerifyBlockProposal(header, body, haveTime)
+		require.ErrorIs(t, err, expectedErr)
+	})
+	t.Run("verify block proposal, should work", func(t *testing.T) {
+		t.Parallel()
+
+		prevBlockHash := []byte("prev header hash")
+		prevLastMetaExecutionResult := &block.MetaExecutionResultInfo{
+			ExecutionResult: &block.BaseMetaExecutionResult{
+				BaseExecutionResult: &block.BaseExecutionResult{},
+			},
+		}
+		coreComponents, dataComponents, bootstrapComponents, statusComponents := createMockComponentHolders()
+		dataComponents = &mock.DataComponentsMock{
+			Storage:  dataComponents.Storage,
+			DataPool: dataComponents.DataPool,
+			BlockChain: &testscommon.ChainHandlerStub{
+				GetCurrentBlockHeaderHashCalled: func() []byte {
+					return prevBlockHash
+				},
+				GetCurrentBlockHeaderCalled: func() data.HeaderHandler {
+					return &block.MetaBlockV3{
+						LastExecutionResult: prevLastMetaExecutionResult,
+					}
+				},
+			},
+		}
+		arguments := createMockMetaArguments(coreComponents, dataComponents, bootstrapComponents, statusComponents)
+		mp, err := blproc.NewMetaProcessor(arguments)
+		require.Nil(t, err)
+
+		header := &block.MetaBlockV3{
+			PrevHash:            prevBlockHash,
+			Nonce:               1,
+			Round:               1,
+			LastExecutionResult: prevLastMetaExecutionResult,
+		}
+		body := &block.Body{}
+
+		err = mp.VerifyBlockProposal(header, body, haveTime)
+		require.NoError(t, err)
+	})
+}
+
+func Test_checkShardHeadersValidityAndFinalityProposal(t *testing.T) {
 	t.Parallel()
 
-	prevBlockHash := []byte("prev header hash")
-	prevLastMetaExecutionResult := &block.MetaExecutionResultInfo{
-		ExecutionResult: &block.BaseMetaExecutionResult{
-			BaseExecutionResult: &block.BaseExecutionResult{},
-		},
-	}
-	coreComponents, dataComponents, bootstrapComponents, statusComponents := createMockComponentHolders()
-	dataComponents = &mock.DataComponentsMock{
-		Storage:  dataComponents.Storage,
-		DataPool: dataComponents.DataPool,
-		BlockChain: &testscommon.ChainHandlerStub{
-			GetCurrentBlockHeaderHashCalled: func() []byte {
-				return prevBlockHash
-			},
-			GetCurrentBlockHeaderCalled: func() data.HeaderHandler {
-				return &block.MetaBlockV3{
-					LastExecutionResult: prevLastMetaExecutionResult,
-				}
-			},
-		},
-	}
-	arguments := createMockMetaArguments(coreComponents, dataComponents, bootstrapComponents, statusComponents)
-	mp, err := blproc.NewMetaProcessor(arguments)
-	require.Nil(t, err)
+	t.Run("error on getting last cross notarized header", func(t *testing.T) {
+		t.Parallel()
 
-	header := &block.MetaBlockV3{
-		PrevHash:            prevBlockHash,
-		Nonce:               1,
-		Round:               1,
-		LastExecutionResult: prevLastMetaExecutionResult,
-	}
-	body := &block.Body{}
+		metaHeader := &block.MetaBlockV3{}
 
-	err = mp.VerifyBlockProposal(header, body, haveTime)
-	require.NoError(t, err)
+		mp, err := blproc.ConstructPartialMetaBlockProcessorForTest(map[string]interface{}{
+			"shardCoordinator": mock.NewOneShardCoordinatorMock(),
+			"blockTracker": &mock.BlockTrackerMock{
+				GetLastCrossNotarizedHeaderCalled: func(_ uint32) (data.HeaderHandler, []byte, error) {
+					return nil, nil, expectedErr
+				},
+			},
+		})
+		require.Nil(t, err)
+
+		err = mp.CheckShardHeadersValidityAndFinalityProposal(metaHeader)
+		require.ErrorIs(t, err, expectedErr)
+	})
+	t.Run("error on getting shard headers from meta header", func(t *testing.T) {
+		t.Parallel()
+
+		metaHeader := &block.MetaBlockV3{
+			ShardInfoProposal: []block.ShardDataProposal{
+				{
+					HeaderHash: []byte("hash"),
+				},
+			},
+		}
+
+		headersPoolMock := &pool.HeadersPoolStub{
+			GetHeaderByHashCalled: func(_ []byte) (data.HeaderHandler, error) {
+				return nil, expectedErr
+			},
+		}
+		dataPoolMock := &dataRetrieverMock.PoolsHolderMock{}
+		dataPoolMock.SetHeadersPool(headersPoolMock)
+
+		mp, err := blproc.ConstructPartialMetaBlockProcessorForTest(map[string]interface{}{
+			"shardCoordinator": mock.NewOneShardCoordinatorMock(),
+			"blockTracker": &mock.BlockTrackerMock{
+				GetLastCrossNotarizedHeaderCalled: func(_ uint32) (data.HeaderHandler, []byte, error) {
+					return &testscommon.HeaderHandlerStub{}, nil, nil
+				},
+			},
+			"dataPool": dataPoolMock,
+		})
+		require.Nil(t, err)
+
+		err = mp.CheckShardHeadersValidityAndFinalityProposal(metaHeader)
+		require.ErrorIs(t, err, process.ErrMissingHeader)
+	})
+	t.Run("error on missing header proof", func(t *testing.T) {
+		t.Parallel()
+
+		metaHeader := &block.MetaBlockV3{
+			ShardInfoProposal: []block.ShardDataProposal{
+				{
+					HeaderHash: []byte("hash"),
+				},
+			},
+		}
+
+		headersPoolMock := &pool.HeadersPoolStub{
+			GetHeaderByHashCalled: func(_ []byte) (data.HeaderHandler, error) {
+				return &block.MetaBlockV3{}, nil
+			},
+		}
+		dataPoolMock := &dataRetrieverMock.PoolsHolderMock{}
+		dataPoolMock.SetHeadersPool(headersPoolMock)
+
+		mp, err := blproc.ConstructPartialMetaBlockProcessorForTest(map[string]interface{}{
+			"shardCoordinator": mock.NewOneShardCoordinatorMock(),
+			"blockTracker": &mock.BlockTrackerMock{
+				GetLastCrossNotarizedHeaderCalled: func(_ uint32) (data.HeaderHandler, []byte, error) {
+					return &testscommon.HeaderHandlerStub{}, nil, nil
+				},
+			},
+			"dataPool": dataPoolMock,
+			"proofsPool": &dataRetrieverMock.ProofsPoolMock{
+				HasProofCalled: func(_ uint32, _ []byte) bool {
+					return false
+				},
+			},
+		})
+		require.Nil(t, err)
+
+		err = mp.CheckShardHeadersValidityAndFinalityProposal(metaHeader)
+		require.ErrorIs(t, err, process.ErrMissingHeaderProof)
+	})
+	t.Run("invalid used shard headers, should error", func(t *testing.T) {
+		t.Parallel()
+
+		metaHeader := &block.MetaBlockV3{
+			ShardInfoProposal: []block.ShardDataProposal{
+				{
+					HeaderHash: []byte("hash"),
+				},
+			},
+		}
+
+		headersPoolMock := &pool.HeadersPoolStub{
+			GetHeaderByHashCalled: func(_ []byte) (data.HeaderHandler, error) {
+				return &block.MetaBlockV3{}, nil
+			},
+		}
+		dataPoolMock := &dataRetrieverMock.PoolsHolderMock{}
+		dataPoolMock.SetHeadersPool(headersPoolMock)
+
+		mp, err := blproc.ConstructPartialMetaBlockProcessorForTest(map[string]interface{}{
+			"shardCoordinator": mock.NewOneShardCoordinatorMock(),
+			"blockTracker": &mock.BlockTrackerMock{
+				GetLastCrossNotarizedHeaderCalled: func(_ uint32) (data.HeaderHandler, []byte, error) {
+					return &testscommon.HeaderHandlerStub{}, nil, nil
+				},
+			},
+			"dataPool": dataPoolMock,
+			"proofsPool": &dataRetrieverMock.ProofsPoolMock{
+				HasProofCalled: func(_ uint32, _ []byte) bool {
+					return true
+				},
+			},
+			"blockChain": &testscommon.ChainHandlerStub{
+				GetCurrentBlockHeaderCalled: func() data.HeaderHandler {
+					return &block.MetaBlockV3{}
+				},
+			},
+			"headerValidator": &integrationTestsMock.HeaderValidatorStub{
+				IsHeaderConstructionValidCalled: func(_, _ data.HeaderHandler) error {
+					return expectedErr
+				},
+			},
+		})
+		require.Nil(t, err)
+
+		err = mp.CheckShardHeadersValidityAndFinalityProposal(metaHeader)
+		require.ErrorIs(t, err, expectedErr)
+	})
+	t.Run("should work", func(t *testing.T) {
+		t.Parallel()
+
+		metaHeader := &block.MetaBlockV3{}
+
+		headersPoolMock := &pool.HeadersPoolStub{
+			GetHeaderByHashCalled: func(_ []byte) (data.HeaderHandler, error) {
+				return &block.MetaBlockV3{}, nil
+			},
+		}
+		dataPoolMock := &dataRetrieverMock.PoolsHolderMock{}
+		dataPoolMock.SetHeadersPool(headersPoolMock)
+
+		mp, err := blproc.ConstructPartialMetaBlockProcessorForTest(map[string]interface{}{
+			"shardCoordinator": mock.NewOneShardCoordinatorMock(),
+			"blockTracker": &mock.BlockTrackerMock{
+				GetLastCrossNotarizedHeaderCalled: func(_ uint32) (data.HeaderHandler, []byte, error) {
+					return &testscommon.HeaderHandlerStub{}, nil, nil
+				},
+			},
+			"dataPool": dataPoolMock,
+			"proofsPool": &dataRetrieverMock.ProofsPoolMock{
+				HasProofCalled: func(_ uint32, _ []byte) bool {
+					return true
+				},
+			},
+			"blockChain": &testscommon.ChainHandlerStub{
+				GetCurrentBlockHeaderCalled: func() data.HeaderHandler {
+					return &block.MetaBlockV3{}
+				},
+			},
+			"headerValidator": &integrationTestsMock.HeaderValidatorStub{
+				IsHeaderConstructionValidCalled: func(_, _ data.HeaderHandler) error {
+					return nil
+				},
+			},
+			"shardInfoCreateData": &processMocks.ShardInfoCreatorMock{
+				CreateShardInfoV3Called: func(_ data.MetaHeaderHandler, _ []data.HeaderHandler, _ [][]byte) ([]data.ShardDataProposalHandler, []data.ShardDataHandler, error) {
+					return []data.ShardDataProposalHandler{}, []data.ShardDataHandler{}, nil
+				},
+			},
+		})
+		require.Nil(t, err)
+
+		err = mp.CheckShardHeadersValidityAndFinalityProposal(metaHeader)
+		require.Nil(t, err)
+	})
 }
 
 func Test_getTxCountExecutionResults(t *testing.T) {
@@ -1785,6 +2339,56 @@ func TestMetaProcessor_checkEpochCorrectnessV3(t *testing.T) {
 		require.Equal(t, process.ErrNilHeaderHandler, err)
 	})
 
+	t.Run("should return error hasExecutionResultsForProposedEpochChange", func(t *testing.T) {
+		t.Parallel()
+
+		metaHeader := &block.MetaBlockV3{
+			ExecutionResults: []*block.MetaExecutionResult{
+				{
+					ExecutionResult: &block.BaseMetaExecutionResult{
+						BaseExecutionResult: &block.BaseExecutionResult{
+							HeaderHash: []byte("headerHash0"),
+						},
+					},
+				},
+				{
+					ExecutionResult: &block.BaseMetaExecutionResult{
+						BaseExecutionResult: &block.BaseExecutionResult{
+							HeaderHash: []byte("headerHash1"),
+						},
+					},
+					MiniBlockHeaders: []block.MiniBlockHeader{
+						{
+							SenderShardID: common.MetachainShardId,
+							Type:          block.RewardsBlock,
+						},
+					},
+				},
+			},
+		}
+
+		headersPoolMock := &pool.HeadersPoolStub{
+			GetHeaderByHashCalled: func(hash []byte) (data.HeaderHandler, error) {
+				return nil, expectedErr
+			},
+		}
+		dataPoolMock := &dataRetrieverMock.PoolsHolderMock{}
+		dataPoolMock.SetHeadersPool(headersPoolMock)
+
+		mp, err := blproc.ConstructPartialMetaBlockProcessorForTest(map[string]interface{}{
+			"dataPool": dataPoolMock,
+			"blockChain": &testscommon.ChainHandlerStub{
+				GetCurrentBlockHeaderCalled: func() data.HeaderHandler {
+					return &block.MetaBlockV3{}
+				},
+			},
+		})
+		require.Nil(t, err)
+
+		err = mp.CheckEpochCorrectnessV3(metaHeader)
+		require.ErrorIs(t, err, expectedErr)
+	})
+
 	t.Run("should return error ErrEpochDoesNotMatch because of incomplete data", func(t *testing.T) {
 		t.Parallel()
 
@@ -1878,13 +2482,15 @@ func TestMetaProcessor_checkEpochCorrectnessV3(t *testing.T) {
 	t.Run("should return error ErrEpochDoesNotMatch because of epoch not changed", func(t *testing.T) {
 		t.Parallel()
 
-		metaHeader := &block.MetaBlockV3{
-			Epoch: 1,
-			EpochStart: block.EpochStart{
-				LastFinalizedHeaders: []block.EpochStartShardData{
-					{}, {},
-				},
+		epochStartData := block.EpochStart{
+			LastFinalizedHeaders: []block.EpochStartShardData{
+				{}, {},
 			},
+		}
+
+		metaHeader := &block.MetaBlockV3{
+			Epoch:            1,
+			EpochStart:       epochStartData,
 			ExecutionResults: executionResults,
 		}
 
@@ -1917,6 +2523,7 @@ func TestMetaProcessor_checkEpochCorrectnessV3(t *testing.T) {
 			}},
 		})
 		require.Nil(t, err)
+		mp.SetEpochStartData(&epochStartData)
 
 		err = mp.CheckEpochCorrectnessV3(metaHeader)
 		require.Equal(t, process.ErrEpochDoesNotMatch, err)
@@ -1925,13 +2532,15 @@ func TestMetaProcessor_checkEpochCorrectnessV3(t *testing.T) {
 	t.Run("should return error ErrEpochDoesNotMatch because of epoch is discontinuous", func(t *testing.T) {
 		t.Parallel()
 
-		metaHeader := &block.MetaBlockV3{
-			Epoch: 3,
-			EpochStart: block.EpochStart{
-				LastFinalizedHeaders: []block.EpochStartShardData{
-					{}, {},
-				},
+		epochStartData := block.EpochStart{
+			LastFinalizedHeaders: []block.EpochStartShardData{
+				{}, {},
 			},
+		}
+
+		metaHeader := &block.MetaBlockV3{
+			Epoch:            3,
+			EpochStart:       epochStartData,
 			ExecutionResults: executionResults,
 		}
 
@@ -1964,6 +2573,7 @@ func TestMetaProcessor_checkEpochCorrectnessV3(t *testing.T) {
 			}},
 		})
 		require.Nil(t, err)
+		mp.SetEpochStartData(&epochStartData)
 
 		err = mp.CheckEpochCorrectnessV3(metaHeader)
 		require.Equal(t, process.ErrEpochDoesNotMatch, err)
@@ -2069,6 +2679,164 @@ func TestMetaProcessor_checkEpochCorrectnessV3(t *testing.T) {
 		require.Nil(t, err)
 
 		err = mp.CheckEpochCorrectnessV3(metaHeader)
+		require.Nil(t, err)
+	})
+}
+
+func TestMetaProcessor_checkShardInfoValidity(t *testing.T) {
+	t.Parallel()
+
+	t.Run("should return error from CreateShardInfoV3", func(t *testing.T) {
+		t.Parallel()
+
+		mp, err := blproc.ConstructPartialMetaBlockProcessorForTest(map[string]interface{}{
+			"shardInfoCreateData": &processMocks.ShardInfoCreatorMock{
+				CreateShardInfoV3Called: func(metaHeader data.MetaHeaderHandler, shardHeaders []data.HeaderHandler, shardHeaderHashes [][]byte) ([]data.ShardDataProposalHandler, []data.ShardDataHandler, error) {
+					return nil, nil, expectedErr
+				},
+			},
+		})
+		require.Nil(t, err)
+
+		err = mp.CheckShardInfoValidity(nil, &blproc.UsedShardHeadersInfo{})
+		require.ErrorContains(t, err, expectedErr.Error())
+	})
+
+	t.Run("should return ErrHeaderShardDataMismatch error", func(t *testing.T) {
+		t.Parallel()
+
+		mp, err := blproc.ConstructPartialMetaBlockProcessorForTest(map[string]interface{}{
+			"shardInfoCreateData": &processMocks.ShardInfoCreatorMock{
+				CreateShardInfoV3Called: func(metaHeader data.MetaHeaderHandler, shardHeaders []data.HeaderHandler, shardHeaderHashes [][]byte) ([]data.ShardDataProposalHandler, []data.ShardDataHandler, error) {
+					return nil, []data.ShardDataHandler{
+						&block.ShardData{},
+					}, nil
+				},
+			},
+		})
+		require.Nil(t, err)
+
+		err = mp.CheckShardInfoValidity(&block.MetaBlockV3{
+			ShardInfo: []block.ShardData{},
+		}, &blproc.UsedShardHeadersInfo{})
+
+		require.Equal(t, process.ErrHeaderShardDataMismatch, err)
+	})
+
+	t.Run("should return ErrHeaderShardDataMismatch error because of createdShardInfo", func(t *testing.T) {
+		t.Parallel()
+
+		mp, err := blproc.ConstructPartialMetaBlockProcessorForTest(map[string]interface{}{
+			"shardInfoCreateData": &processMocks.ShardInfoCreatorMock{
+				CreateShardInfoV3Called: func(metaHeader data.MetaHeaderHandler, shardHeaders []data.HeaderHandler, shardHeaderHashes [][]byte) ([]data.ShardDataProposalHandler, []data.ShardDataHandler, error) {
+					return nil, []data.ShardDataHandler{
+						&block.ShardData{
+							Nonce: 0,
+						},
+					}, nil
+				},
+			},
+		})
+		require.Nil(t, err)
+
+		err = mp.CheckShardInfoValidity(&block.MetaBlockV3{
+			ShardInfo: []block.ShardData{
+				{
+					Nonce: 2,
+				},
+			},
+		}, &blproc.UsedShardHeadersInfo{})
+
+		require.ErrorContains(t, err, process.ErrHeaderShardDataMismatch.Error())
+	})
+
+	t.Run("should return ErrHeaderShardDataMismatch error because of createdShardInfoProposal", func(t *testing.T) {
+		t.Parallel()
+
+		mp, err := blproc.ConstructPartialMetaBlockProcessorForTest(map[string]interface{}{
+			"shardInfoCreateData": &processMocks.ShardInfoCreatorMock{
+				CreateShardInfoV3Called: func(metaHeader data.MetaHeaderHandler, shardHeaders []data.HeaderHandler, shardHeaderHashes [][]byte) ([]data.ShardDataProposalHandler, []data.ShardDataHandler, error) {
+					return []data.ShardDataProposalHandler{
+							&block.ShardDataProposal{
+								Nonce: 0,
+							},
+						}, []data.ShardDataHandler{
+							&block.ShardData{
+								Nonce: 0,
+							},
+						}, nil
+				},
+			},
+		})
+		require.Nil(t, err)
+
+		err = mp.CheckShardInfoValidity(&block.MetaBlockV3{
+			ShardInfo: []block.ShardData{
+				{
+					Nonce: 0,
+				},
+			},
+			ShardInfoProposal: []block.ShardDataProposal{
+				{
+					Nonce: 2,
+				},
+			},
+		}, &blproc.UsedShardHeadersInfo{})
+
+		require.ErrorContains(t, err, process.ErrHeaderShardDataMismatch.Error())
+	})
+}
+
+func TestMetaProcessor_checkHeadersSequenceCorrectness(t *testing.T) {
+	t.Parallel()
+
+	t.Run("should return error from IsHeaderConstructionValid", func(t *testing.T) {
+		t.Parallel()
+
+		mp, err := blproc.ConstructPartialMetaBlockProcessorForTest(map[string]interface{}{
+			"headerValidator": &processMocks.HeaderValidatorMock{
+				IsHeaderConstructionValidCalled: func(currHdr, prevHdr data.HeaderHandler) error {
+					return expectedErr
+				},
+			},
+		})
+		require.Nil(t, err)
+
+		err = mp.CheckHeadersSequenceCorrectness([]blproc.ShardHeaderInfo{
+			{
+				Header: &block.Header{Nonce: 2},
+			},
+		}, blproc.ShardHeaderInfo{})
+		require.Equal(t, expectedErr, err)
+	})
+
+	t.Run("should work", func(t *testing.T) {
+		t.Parallel()
+
+		mp, err := blproc.ConstructPartialMetaBlockProcessorForTest(map[string]interface{}{
+			"headerValidator": &processMocks.HeaderValidatorMock{
+				IsHeaderConstructionValidCalled: func(currHdr, prevHdr data.HeaderHandler) error {
+					return nil
+				},
+			},
+			"blockChain": &testscommon.ChainHandlerStub{
+				GetCurrentBlockHeaderCalled: func() data.HeaderHandler {
+					return nil
+				},
+			},
+		})
+		require.Nil(t, err)
+
+		err = mp.CheckHeadersSequenceCorrectness([]blproc.ShardHeaderInfo{
+			{
+				Header: &block.Header{Nonce: 0},
+			},
+			{
+				Header: &block.Header{Nonce: 1},
+			},
+		}, blproc.ShardHeaderInfo{
+			Header: &block.Header{Nonce: 0},
+		})
 		require.Nil(t, err)
 	})
 }

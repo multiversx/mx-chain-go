@@ -534,8 +534,19 @@ func getAllMiniBlocksWithDst(m *block.MetaBlock, destId uint32) map[string]block
 	return hashDst
 }
 
+// TODO refactor this to return data.MetaHeaderHandler instead of *block.MetaBlock
 func (e *epochStartData) getMetaBlockByHash(metaHash []byte) (*block.MetaBlock, error) {
-	return process.GetMetaHeader(metaHash, e.dataPool.Headers(), e.marshalizer, e.store)
+	metaHeaderHandler, err := process.GetMetaHeader(metaHash, e.dataPool.Headers(), e.marshalizer, e.store)
+	if err != nil {
+		return &block.MetaBlock{}, err
+	}
+
+	metaHeader, ok := metaHeaderHandler.(*block.MetaBlock)
+	if !ok {
+		log.Warn("epochStartData.getMetaBlockByHash wrong type assertion", "metaHash", metaHash)
+		return nil, process.ErrWrongTypeAssertion
+	}
+	return metaHeader, nil
 }
 
 // IsInterfaceNil returns true if underlying object is nil

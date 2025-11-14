@@ -992,9 +992,11 @@ func (sp *shardProcessor) CommitBlock(
 		return err
 	}
 
-	err = sp.commitAll(headerHandler)
-	if err != nil {
-		return err
+	if !headerHandler.IsHeaderV3() {
+		err = sp.commitState(headerHandler)
+		if err != nil {
+			return err
+		}
 	}
 
 	log.Info("shard block has been committed successfully",
@@ -1057,22 +1059,18 @@ func (sp *shardProcessor) CommitBlock(
 
 	lastBlockHeader := sp.blockChain.GetCurrentBlockHeader()
 
-	committedRootHash, err := sp.accountsDB[state.UserAccountsState].RootHash()
-	if err != nil {
-		return err
-	}
+	rootHash := sp.getLastExecutedRootHash(header)
 
-	err = sp.setCurrentBlockInfo(header, headerHash, committedRootHash)
-	if err != nil {
-		return err
-	}
-
-	rootHash := getLastExecutionResultsRootHash(header, committedRootHash)
-	lastExecutionResultHeader, err := sp.getLastExecutionResultHeader(header)
+	err = sp.setCurrentBlockInfo(header, headerHash, rootHash)
 	if err != nil {
 		return err
 	}
 	sp.blockChain.SetCurrentBlockHeaderHash(headerHash)
+
+	lastExecutionResultHeader, err := sp.getLastExecutionResultHeader(header)
+	if err != nil {
+		return err
+	}
 
 	err = sp.onExecutedBlock(lastExecutionResultHeader, rootHash)
 	if err != nil {
@@ -1161,47 +1159,6 @@ func (sp *shardProcessor) CommitBlock(
 	return nil
 }
 
-// TODO: handle chain handler info on revert
-func (sp *shardProcessor) setCurrentBlockInfo(
-	header data.HeaderHandler,
-	headerHash []byte,
-	rootHash []byte,
-) error {
-	if header.IsHeaderV3() {
-		// last executed info and header will be set on headers executor in async mode
-
-		return sp.blockChain.SetCurrentBlockHeader(header)
-	}
-
-	err := sp.blockChain.SetCurrentBlockHeaderAndRootHash(header, rootHash)
-	if err != nil {
-		return err
-	}
-
-	// set also last executed block info and header
-	// this will be useful at transition to Supernova with headers v3
-	sp.blockChain.SetLastExecutedBlockHeaderAndRootHash(header, headerHash, header.GetRootHash())
-
-	return nil
-}
-
-func getLastExecutionResultsRootHash(
-	header data.HeaderHandler,
-	committedRootHash []byte,
-) []byte {
-	if !header.IsHeaderV3() {
-		return committedRootHash
-	}
-
-	lastExecutionResult, err := common.GetLastBaseExecutionResultHandler(header)
-	if err != nil {
-		log.Warn("failed to get last execution result for header", "err", err)
-		return committedRootHash
-	}
-
-	return lastExecutionResult.GetRootHash()
-}
-
 func (sp *shardProcessor) getLastExecutionResultHeader(
 	currentHeader data.HeaderHandler,
 ) (data.HeaderHandler, error) {
@@ -1273,6 +1230,104 @@ func (sp *shardProcessor) displayPoolsInfo() {
 func (sp *shardProcessor) updateState(headers []data.HeaderHandler, currentHeader data.ShardHeaderHandler, currentHeaderHash []byte) {
 	sp.snapShotEpochStartFromMeta(currentHeader)
 
+	if !currentHeader.IsHeaderV3() {
+		sp.pruneTrieLegacy(headers)
+	} else {
+		sp.pruneTrieHeaderV3(currentHeader.GetExecutionResultsHandlers())
+
+		if currentHeader.IsStartOfEpochBlock() {
+			sp.nodesCoordinator.ShuffleOutForEpoch(currentHeader.GetEpoch())
+		}
+	}
+
+	if !sp.enableEpochsHandler.IsFlagEnabledInEpoch(common.AndromedaFlag, currentHeader.GetEpoch()) {
+		return
+	}
+
+	// TODO: set proper finalized header in outport
+	sp.setFinalizedHeaderHashInIndexer(currentHeaderHash)
+
+	scheduledHeaderRootHash, _ := sp.scheduledTxsExecutionHandler.GetScheduledRootHashForHeader(currentHeaderHash)
+	sp.setFinalBlockInfo(currentHeader, currentHeaderHash, scheduledHeaderRootHash)
+}
+
+func (sp *shardProcessor) pruneTrieHeaderV3(executionResultsHandlers []data.BaseExecutionResultHandler) {
+	accountsDb := sp.accountsDB[state.UserAccountsState]
+	if !accountsDb.IsPruningEnabled() {
+		return
+	}
+
+	for i := range executionResultsHandlers {
+		currentExecRes := executionResultsHandlers[i]
+		prevExecRes, err := sp.getPreviousExecutionResult(i, executionResultsHandlers)
+		if err != nil {
+			log.Warn("failed to get previous execution result for pruning",
+				"err", err,
+				"index", i,
+				"currentExecResHeaderHash", currentExecRes.GetHeaderHash())
+			continue
+		}
+
+		currentRootHash := currentExecRes.GetRootHash()
+		prevRootHash := prevExecRes.GetRootHash()
+		log.Trace("pruneTrieHeaderV3",
+			"currentRootHash", currentRootHash,
+			"prevRootHash", prevRootHash,
+		)
+		if bytes.Equal(prevRootHash, currentRootHash) {
+			continue
+		}
+
+		accountsDb.CancelPrune(prevRootHash, state.NewRoot)
+		accountsDb.PruneTrie(prevRootHash, state.OldRoot, sp.getPruningHandler(currentExecRes.GetHeaderNonce()))
+
+		if sp.enableEpochsHandler.IsFlagEnabledInEpoch(common.AndromedaFlag, currentExecRes.GetHeaderEpoch()) {
+			continue
+		}
+
+		sp.setFinalizedHeaderHashInIndexer(currentExecRes.GetHeaderHash())
+	}
+}
+
+func (sp *shardProcessor) getPreviousExecutionResult(index int, executionResultsHandlers []data.BaseExecutionResultHandler) (data.BaseExecutionResultHandler, error) {
+	if index > 0 {
+		return executionResultsHandlers[index-1], nil
+	}
+
+	prevHeaderHash := sp.getCurrentBlockHeader().GetPrevHash()
+	prevHeader, err := process.GetShardHeader(prevHeaderHash, sp.dataPool.Headers(), sp.marshalizer, sp.store)
+	if err != nil {
+		return nil, err
+	}
+
+	if prevHeader.IsHeaderV3() {
+		lastExecRes := prevHeader.GetLastExecutionResultHandler()
+		if check.IfNil(lastExecRes) {
+			return nil, fmt.Errorf("previous header last execution result is nil")
+		}
+
+		lastShardExecRes, ok := lastExecRes.(data.LastShardExecutionResultHandler)
+		if !ok {
+			return nil, process.ErrWrongTypeAssertion
+		}
+
+		return lastShardExecRes.GetExecutionResultHandler(), nil
+	}
+
+	lastExecRes, err := process.CreateLastExecutionResultFromPrevHeader(prevHeader, prevHeaderHash)
+	if err != nil {
+		return nil, err
+	}
+
+	lastShardExecRes, ok := lastExecRes.(data.LastShardExecutionResultHandler)
+	if !ok {
+		return nil, process.ErrWrongTypeAssertion
+	}
+
+	return lastShardExecRes.GetExecutionResultHandler(), nil
+}
+
+func (sp *shardProcessor) pruneTrieLegacy(headers []data.HeaderHandler) {
 	for _, header := range headers {
 		if sp.forkDetector.GetHighestFinalBlockNonce() < header.GetNonce() {
 			break
@@ -1335,7 +1390,7 @@ func (sp *shardProcessor) updateState(headers []data.HeaderHandler, currentHeade
 		)
 
 		sp.updateStateStorage(
-			header,
+			header.GetNonce(),
 			headerRootHashForPruning,
 			prevHeaderRootHashForPruning,
 			sp.accountsDB[state.UserAccountsState],
@@ -1349,16 +1404,6 @@ func (sp *shardProcessor) updateState(headers []data.HeaderHandler, currentHeade
 
 		sp.setFinalBlockInfo(header, headerHash, scheduledHeaderRootHash)
 	}
-
-	if !sp.enableEpochsHandler.IsFlagEnabledInEpoch(common.AndromedaFlag, currentHeader.GetEpoch()) {
-		return
-	}
-
-	// TODO: set proper finalized header in outport
-	sp.setFinalizedHeaderHashInIndexer(currentHeaderHash)
-
-	scheduledHeaderRootHash, _ := sp.scheduledTxsExecutionHandler.GetScheduledRootHashForHeader(currentHeaderHash)
-	sp.setFinalBlockInfo(currentHeader, currentHeaderHash, scheduledHeaderRootHash)
 }
 
 func (sp *shardProcessor) setFinalBlockInfo(
@@ -2104,6 +2149,7 @@ func (sp *shardProcessor) requestMetaHeadersIfNeeded(hdrsAdded uint32, lastMetaH
 		for nonce := fromNonce; nonce <= toNonce; nonce++ {
 			sp.addHeaderIntoTrackerPool(nonce, core.MetachainShardId)
 			sp.requestHandler.RequestMetaHeaderByNonce(nonce)
+			sp.requestProofIfNeeded(nonce, core.MetachainShardId, lastMetaHdr.GetEpoch())
 		}
 	}
 }

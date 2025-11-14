@@ -12,8 +12,6 @@ import (
 	"github.com/multiversx/mx-chain-core-go/display"
 	"github.com/multiversx/mx-chain-core-go/hashing"
 	"github.com/multiversx/mx-chain-core-go/marshal"
-	"github.com/multiversx/mx-chain-go/state/disabled"
-	"github.com/multiversx/mx-chain-go/testscommon/processMocks"
 
 	"github.com/multiversx/mx-chain-go/common"
 	"github.com/multiversx/mx-chain-go/common/configs"
@@ -21,7 +19,10 @@ import (
 	"github.com/multiversx/mx-chain-go/config"
 	"github.com/multiversx/mx-chain-go/dataRetriever"
 	"github.com/multiversx/mx-chain-go/process"
+	"github.com/multiversx/mx-chain-go/process/asyncExecution"
+	"github.com/multiversx/mx-chain-go/process/asyncExecution/executionManager"
 	"github.com/multiversx/mx-chain-go/process/asyncExecution/executionTrack"
+	"github.com/multiversx/mx-chain-go/process/asyncExecution/queue"
 	"github.com/multiversx/mx-chain-go/process/block/bootstrapStorage"
 	"github.com/multiversx/mx-chain-go/process/block/processedMb"
 	"github.com/multiversx/mx-chain-go/process/coordinator"
@@ -30,6 +31,7 @@ import (
 	"github.com/multiversx/mx-chain-go/process/missingData"
 	"github.com/multiversx/mx-chain-go/process/mock"
 	"github.com/multiversx/mx-chain-go/state"
+	"github.com/multiversx/mx-chain-go/state/disabled"
 	"github.com/multiversx/mx-chain-go/testscommon"
 	"github.com/multiversx/mx-chain-go/testscommon/dblookupext"
 	"github.com/multiversx/mx-chain-go/testscommon/economicsmocks"
@@ -43,6 +45,9 @@ import (
 	statusHandlerMock "github.com/multiversx/mx-chain-go/testscommon/statusHandler"
 	storageStubs "github.com/multiversx/mx-chain-go/testscommon/storage"
 )
+
+// UsedShardHeadersInfo -
+type UsedShardHeadersInfo = usedShardHeadersInfo
 
 // ComputeHeaderHash -
 func (bp *baseProcessor) ComputeHeaderHash(hdr data.HeaderHandler) ([]byte, error) {
@@ -108,6 +113,11 @@ func (sp *shardProcessor) UpdateStateStorage(finalHeaders []data.HeaderHandler, 
 		return
 	}
 	sp.updateState(finalHeaders, currShardHeader, currentHeaderHash)
+}
+
+// PruneTrieHeaderV3 -
+func (sp *shardProcessor) PruneTrieHeaderV3(executionResultsHandlers []data.BaseExecutionResultHandler) {
+	sp.pruneTrieHeaderV3(executionResultsHandlers)
 }
 
 // NewShardProcessorEmptyWith3shards -
@@ -188,8 +198,15 @@ func NewShardProcessorEmptyWith3shards(
 		coreComponents.Hasher(),
 	)
 
+	blocksQueue := queue.NewBlocksQueue()
 	executionResultsTracker := executionTrack.NewExecutionResultsTracker()
-	execResultsVerifier, _ := NewExecutionResultsVerifier(dataComponents.BlockChain, executionResultsTracker)
+	execManager, _ := executionManager.NewExecutionManager(executionManager.ArgsExecutionManager{
+		BlocksQueue:             blocksQueue,
+		ExecutionResultsTracker: executionResultsTracker,
+		BlockChain:              dataComponents.BlockChain,
+		Headers:                 dataComponents.Datapool().Headers(),
+	})
+	execResultsVerifier, _ := NewExecutionResultsVerifier(dataComponents.BlockChain, execManager)
 	inclusionEstimator := estimator.NewExecutionResultInclusionEstimator(
 		config.ExecutionResultInclusionEstimatorConfig{
 			SafetyMargin:       110,
@@ -255,13 +272,31 @@ func NewShardProcessorEmptyWith3shards(
 			ExecutionResultsVerifier:           execResultsVerifier,
 			MissingDataResolver:                missingDataResolver,
 			ExecutionResultsInclusionEstimator: inclusionEstimator,
-			ExecutionResultsTracker:            executionResultsTracker,
 			GasComputation:                     gasComputation,
-			BlocksQueue:                        &processMocks.BlocksQueueMock{},
+			ExecutionManager:                   execManager,
 		},
 	}
 	shardProc, err := NewShardProcessor(arguments)
-	return shardProc, err
+	if err != nil {
+		return nil, err
+	}
+
+	argsHeaderExecutor := asyncExecution.ArgsHeadersExecutor{
+		BlocksQueue:      blocksQueue,
+		ExecutionTracker: executionResultsTracker,
+		BlockProcessor:   shardProc,
+		BlockChain:       dataComponents.BlockChain,
+	}
+	headersExecutor, err := asyncExecution.NewHeadersExecutor(argsHeaderExecutor)
+	if err != nil {
+		return nil, err
+	}
+	err = execManager.SetHeadersExecutor(headersExecutor)
+	if err != nil {
+		return nil, err
+	}
+
+	return shardProc, nil
 }
 
 // GetDataPool -
@@ -523,7 +558,12 @@ func (bp *baseProcessor) UpdateState(
 	prevRootHash []byte,
 	accounts state.AccountsAdapter,
 ) {
-	bp.updateStateStorage(finalHeader, rootHash, prevRootHash, accounts)
+	bp.updateStateStorage(finalHeader.GetNonce(), rootHash, prevRootHash, accounts)
+}
+
+// UpdateState -
+func (mp *metaProcessor) UpdateState(metaBlock data.MetaHeaderHandler, metaBlockHash []byte) {
+	mp.updateState(metaBlock, metaBlockHash)
 }
 
 // GasAndFeesDelta -
@@ -739,6 +779,15 @@ func (bp *baseProcessor) GetFinalBlockNonce(headerHandler data.HeaderHandler) ui
 	return bp.getFinalBlockNonce(headerHandler)
 }
 
+// RequestProofIfNeeded -
+func (bp *baseProcessor) RequestProofIfNeeded(
+	nonce uint64,
+	shardID uint32,
+	epoch uint32,
+) {
+	bp.requestProofIfNeeded(nonce, shardID, epoch)
+}
+
 // VerifyCrossShardMiniBlockDstMe -
 func (sp *shardProcessor) VerifyCrossShardMiniBlockDstMe(header data.ShardHeaderHandler) error {
 	return sp.verifyCrossShardMiniBlockDstMe(header)
@@ -834,12 +883,38 @@ func (mp *metaProcessor) CheckEpochCorrectnessV3(
 	return mp.checkEpochCorrectnessV3(headerHandler)
 }
 
+// CheckShardInfoValidity -
+func (mp *metaProcessor) CheckShardInfoValidity(
+	metaHeaderHandler data.MetaHeaderHandler,
+	usedShardHeadersInfo *usedShardHeadersInfo,
+) error {
+	return mp.checkShardInfoValidity(metaHeaderHandler, usedShardHeadersInfo)
+}
+
+// CheckHeadersSequenceCorrectness -
+func (mp *metaProcessor) CheckHeadersSequenceCorrectness(hdrsForShard []ShardHeaderInfo, lastNotarizedHeaderInfoForShard ShardHeaderInfo) error {
+	return mp.checkHeadersSequenceCorrectness(hdrsForShard, lastNotarizedHeaderInfoForShard)
+}
+
+// CheckShardHeadersValidityAndFinalityProposal -
+func (mp *metaProcessor) CheckShardHeadersValidityAndFinalityProposal(
+	metaHeaderHandler data.MetaHeaderHandler,
+) error {
+	return mp.checkShardHeadersValidityAndFinalityProposal(metaHeaderHandler)
+}
+
 // GetLastExecutionResultsRootHash -
-func GetLastExecutionResultsRootHash(
+func (bp *baseProcessor) GetLastExecutedRootHash(
 	header data.HeaderHandler,
-	committedRootHash []byte,
 ) []byte {
-	return getLastExecutionResultsRootHash(header, committedRootHash)
+	return bp.getLastExecutedRootHash(header)
+}
+
+// RequestHeadersForShardIfNeeded -
+func (bp *baseProcessor) RequestHeadersFromHeaderIfNeeded(
+	lastHeader data.HeaderHandler,
+) {
+	bp.requestHeadersFromHeaderIfNeeded(lastHeader)
 }
 
 // GetHaveTimeForProposal -

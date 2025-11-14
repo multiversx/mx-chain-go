@@ -16,17 +16,13 @@ import (
 	"github.com/multiversx/mx-chain-go/state"
 )
 
+const numHeadersToRequestInAdvance = 10
+
 // usedShardHeadersInfo holds the used shard headers information
 type usedShardHeadersInfo struct {
 	headersPerShard          map[uint32][]ShardHeaderInfo
 	orderedShardHeaders      []data.HeaderHandler
 	orderedShardHeaderHashes [][]byte
-}
-
-// Comparable defines an interface for comparing two objects
-type Comparable interface {
-	Equal(that interface{}) bool
-	IsInterfaceNil() bool
 }
 
 // CreateNewHeaderProposal creates a new header
@@ -659,10 +655,17 @@ func (mp *metaProcessor) selectIncomingMiniBlocks(
 		hdrsAdded++
 	}
 
-	// TODO: wold need to request in advance new shard headers and proofs if last added headers are old (on an old epoch)
-	// maybe move this logic in processing a block, so it is common for all nodes in shard.
+	go mp.requestShardHeadersInAdvanceIfNeeded(lastShardHdr)
 
 	return nil
+}
+
+func (mp *metaProcessor) requestShardHeadersInAdvanceIfNeeded(
+	lastShardHdr map[uint32]ShardHeaderInfo,
+) {
+	for shardID := uint32(0); shardID < mp.shardCoordinator.NumberOfShards(); shardID++ {
+		mp.requestHeadersFromHeaderIfNeeded(lastShardHdr[shardID].Header)
+	}
 }
 
 func (mp *metaProcessor) checkEpochCorrectnessV3(
@@ -886,32 +889,4 @@ func (mp *metaProcessor) getShardHeadersFromMetaHeader(
 		orderedShardHeaders:      orderedShardHeaders,
 		orderedShardHeaderHashes: orderedShardHeaderHashes,
 	}, nil
-}
-
-func (mp *metaProcessor) verifyGasLimit(header data.HeaderHandler) error {
-	splitRes, err := mp.splitTransactionsForHeader(header)
-	if err != nil {
-		return err
-	}
-
-	numOutGoingMBs := len(splitRes.outGoingMiniBlocks)
-	if numOutGoingMBs != 0 {
-		return fmt.Errorf("%w, received: %d", errInvalidNumOutGoingMBInMetaHdrProposal, numOutGoingMBs)
-	}
-
-	numOutGoingTxs := len(splitRes.outgoingTransactions)
-	if numOutGoingTxs != 0 {
-		return fmt.Errorf("%w in metaProcessor.verifyGasLimit, received: %d",
-			errInvalidNumOutGoingTxsInMetaHdrProposal,
-			numOutGoingTxs,
-		)
-	}
-
-	mp.gasComputation.Reset()
-	_, numPendingMiniBlocks, err := mp.gasComputation.CheckIncomingMiniBlocks(splitRes.incomingMiniBlocks, splitRes.incomingTransactions)
-	if numPendingMiniBlocks != 0 {
-		return errInvalidNumPendingMiniBlocksInMetaHdrProposal
-	}
-
-	return err
 }

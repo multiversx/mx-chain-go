@@ -8,10 +8,7 @@ import (
 	"sync"
 
 	"github.com/multiversx/mx-chain-core-go/data"
-	logger "github.com/multiversx/mx-chain-logger-go"
 )
-
-var log = logger.GetOrCreate("process/asyncExecution/executionTrack")
 
 type executionResultsTracker struct {
 	lastNotarizedResult    data.BaseExecutionResultHandler
@@ -271,28 +268,22 @@ func (ert *executionResultsTracker) removePendingFromNonceUnprotected(nonce uint
 
 	ert.cleanExecutionResults(resultsToRemove)
 
-	// update lastExecutedResultHash
-	remainingResults, err := ert.getPendingExecutionResults()
-	if err != nil || len(remainingResults) == 0 {
-		// set last execution result to last notarized if no pending results remain
-		ert.lastExecutedResultHash = ert.lastNotarizedResult.GetHeaderHash()
+	pendingExecutionResults, err := ert.getPendingExecutionResults()
+	if err != nil {
+		return err
+	}
+
+	if len(pendingExecutionResults) > 0 {
+		lastPendingExecResult := pendingExecutionResults[len(pendingExecutionResults)-1]
+		ert.lastExecutedResultHash = lastPendingExecResult.GetHeaderHash()
+
 		return nil
 	}
 
-	ert.lastExecutedResultHash = remainingResults[len(remainingResults)-1].GetHeaderHash()
+	// if no pending left, set the last executed as the last notarized
+	ert.lastExecutedResultHash = ert.lastNotarizedResult.GetHeaderHash()
+
 	return nil
-}
-
-// OnHeaderEvicted is a callback called when a header is removed from the execution queue
-func (ert *executionResultsTracker) OnHeaderEvicted(headerNonce uint64) {
-	ert.mutex.Lock()
-	defer ert.mutex.Unlock()
-
-	// search through pending execution results and remove it if already processed
-	err := ert.removePendingFromNonceUnprotected(headerNonce)
-	if err != nil {
-		log.Debug("OnHeaderEvicted failed", "nonce", headerNonce, "error", err)
-	}
 }
 
 // IsInterfaceNil returns true if there is no value under the interface
