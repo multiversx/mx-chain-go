@@ -2413,7 +2413,7 @@ func TestValidatorStatistics_ProcessRatingsEndOfEpochAfterEquivalentProofsShould
 	rater.GetSignedBlocksThresholdCalled = func() float32 {
 		return 0.025 // would have passed the `if computedThreshold <= signedThreshold` condition
 	}
-	rater.RevertIncreaseProposerCalled = func(shardId uint32, rating uint32, nrReverts uint32) uint32 {
+	rater.RevertIncreaseValidatorCalled = func(shardId uint32, rating uint32, nrReverts uint32, epoch uint32) uint32 {
 		require.Fail(t, "should have not been called")
 		return 0
 	}
