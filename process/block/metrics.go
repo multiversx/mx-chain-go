@@ -104,14 +104,14 @@ func saveMetricsForCommittedShardBlock(
 
 func saveMetricsForCommitMetachainBlock(
 	appStatusHandler core.AppStatusHandler,
-	header *block.MetaBlock,
+	header data.MetaHeaderHandler,
 	headerHash []byte,
 	nodesCoordinator nodesCoordinator.NodesCoordinator,
 	highestFinalBlockNonce uint64,
 	managedPeersHolder common.ManagedPeersHolder,
 ) {
 	appStatusHandler.SetStringValue(common.MetricCurrentBlockHash, logger.DisplayByteSlice(headerHash))
-	appStatusHandler.SetUInt64Value(common.MetricEpochNumber, uint64(header.Epoch))
+	appStatusHandler.SetUInt64Value(common.MetricEpochNumber, uint64(header.GetEpoch()))
 	appStatusHandler.SetUInt64Value(common.MetricHighestFinalBlock, highestFinalBlockNonce)
 
 	// TODO: remove if epoch start block needs to be validated by the new epoch nodes
