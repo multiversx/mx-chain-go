@@ -261,6 +261,11 @@ func (mp *metaProcessor) VerifyBlockProposal(
 		return err
 	}
 
+	err = mp.verifyCrossShardMiniBlockDstMe(header)
+	if err != nil {
+		return err
+	}
+
 	return mp.verifyGasLimit(header)
 }
 
@@ -336,6 +341,7 @@ func (mp *metaProcessor) ProcessBlockProposal(
 	}
 
 	if header.IsStartOfEpochBlock() {
+		// TODO: this needs to be updated
 		err = mp.processEpochStartMetaBlock(header, body)
 		return nil, err
 	}
@@ -343,68 +349,41 @@ func (mp *metaProcessor) ProcessBlockProposal(
 	mp.txCoordinator.RequestBlockTransactions(body)
 	mp.hdrsForCurrBlock.RequestShardHeaders(header)
 
-	// // although we can have a long time for processing, it being decoupled from consensus,
-	// // we still give some reasonable timeout
-	// proposalStartTime := time.Now()
-	// haveTime := getHaveTimeForProposal(proposalStartTime, maxBlockProcessingTime)
-	//
-	// err = mp.txCoordinator.IsDataPreparedForProcessing(haveTime)
-	// if err != nil {
-	// 	return nil, err
-	// }
-	//
-	// err = mp.hdrsForCurrBlock.WaitForHeadersIfNeeded(haveTime)
-	// if err != nil {
-	// 	return nil, err
-	// }
-	//
-	// defer func() {
-	// 	go mp.checkAndRequestIfShardHeadersMissing()
-	// }()
-	//
-	// highestNonceHdrs, err := mp.checkShardHeadersValidity(header)
-	// if err != nil {
-	// 	return nil, err
-	// }
-	//
-	// err = mp.checkShardHeadersFinality(highestNonceHdrs)
-	// if err != nil {
-	// 	return nil, err
-	// }
-	//
-	// err = mp.verifyCrossShardMiniBlockDstMe(header)
-	// if err != nil {
-	// 	return nil, err
-	// }
-	//
-	// err = mp.verifyTotalAccumulatedFeesInEpoch(header)
-	// if err != nil {
-	// 	return nil, err
-	// }
-	//
-	// mbIndex := mp.getIndexOfFirstMiniBlockToBeExecuted(header)
-	// miniBlocks := body.MiniBlocks[mbIndex:]
-	//
-	// startTime := time.Now()
-	// err = mp.txCoordinator.ProcessBlockTransaction(header, &block.Body{MiniBlocks: miniBlocks}, haveTime)
-	// elapsedTime := time.Since(startTime)
-	// log.Debug("elapsed time to process block transaction",
-	// 	"time [s]", elapsedTime,
-	// )
-	// if err != nil {
-	// 	return nil, err
-	// }
-	//
-	// err = mp.txCoordinator.VerifyCreatedBlockTransactions(header, &block.Body{MiniBlocks: miniBlocks})
-	// if err != nil {
-	// 	return nil, err
-	// }
-	//
-	// err = mp.scToProtocol.UpdateProtocol(&block.Body{MiniBlocks: miniBlocks}, header.GetNonce())
-	// if err != nil {
-	// 	return nil, err
-	// }
-	//
+	// although we can have a long time for processing, it being decoupled from consensus,
+	// we still give some reasonable timeout
+	proposalStartTime := time.Now()
+	haveTime := getHaveTimeForProposal(proposalStartTime, maxBlockProcessingTime)
+
+	err = mp.txCoordinator.IsDataPreparedForProcessing(haveTime)
+	if err != nil {
+		return nil, err
+	}
+
+	err = mp.hdrsForCurrBlock.WaitForHeadersIfNeeded(haveTime)
+	if err != nil {
+		return nil, err
+	}
+
+	startTime := time.Now()
+	err = mp.txCoordinator.ProcessBlockTransaction(header, body, haveTime)
+	elapsedTime := time.Since(startTime)
+	log.Debug("elapsed time to process block transaction",
+		"time [s]", elapsedTime,
+	)
+	if err != nil {
+		return nil, err
+	}
+
+	err = mp.txCoordinator.VerifyCreatedBlockTransactions(header, body)
+	if err != nil {
+		return nil, err
+	}
+
+	err = mp.scToProtocol.UpdateProtocol(body, header.GetNonce())
+	if err != nil {
+		return nil, err
+	}
+
 	// err = mp.verifyFees(header)
 	// if err != nil {
 	// 	return nil, err
@@ -419,13 +398,15 @@ func (mp *metaProcessor) ProcessBlockProposal(
 	// if err != nil {
 	// 	return nil, err
 	// }
+	err = mp.commitState(headerHandler)
+	if err != nil {
+		return nil, err
+	}
 
 	err = mp.blockProcessingCutoffHandler.HandleProcessErrorCutoff(header)
 	if err != nil {
 		return nil, err
 	}
-
-	_ = body // TODO: use body after implementing the processing
 
 	return nil, nil
 }
