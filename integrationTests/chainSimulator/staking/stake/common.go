@@ -102,3 +102,37 @@ func GetQualifiedAndUnqualifiedNodes(t *testing.T, metachainNode processChainSim
 
 	return qualified, unQualified
 }
+
+func GetUnStakedTokensList(t *testing.T, metachainNode processChainSimulator.NodeHandler, blsKey []byte) []byte {
+	scQuery := &process.SCQuery{
+		ScAddress:  vm.ValidatorSCAddress,
+		FuncName:   "getUnStakedTokensList",
+		CallerAddr: vm.ValidatorSCAddress,
+		CallValue:  big.NewInt(0),
+		Arguments:  [][]byte{blsKey},
+	}
+	result, _, err := metachainNode.GetFacadeHandler().ExecuteSCQuery(scQuery)
+	require.Nil(t, err)
+	require.Equal(t, chainSimulator.OkReturnCode, result.ReturnCode)
+
+	return result.ReturnData[0]
+}
+
+func CheckOneOfTheNodesIsUnstaked(t *testing.T,
+	metachainNode processChainSimulator.NodeHandler,
+	blsKeys []string,
+) {
+	decodedBLSKey0, _ := hex.DecodeString(blsKeys[0])
+	keyStatus0 := staking.GetBLSKeyStatus(t, metachainNode, decodedBLSKey0)
+	Log.Info("Key info", "key", blsKeys[0], "status", keyStatus0)
+
+	isNotStaked0 := keyStatus0 == staking.UnStakedStatus
+
+	decodedBLSKey1, _ := hex.DecodeString(blsKeys[1])
+	keyStatus1 := staking.GetBLSKeyStatus(t, metachainNode, decodedBLSKey1)
+	Log.Info("Key info", "key", blsKeys[1], "status", keyStatus1)
+
+	isNotStaked1 := keyStatus1 == staking.UnStakedStatus
+
+	require.True(t, isNotStaked0 != isNotStaked1)
+}

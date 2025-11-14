@@ -15,7 +15,6 @@ import (
 	"github.com/multiversx/mx-chain-go/node/chainSimulator/components/api"
 	"github.com/multiversx/mx-chain-go/node/chainSimulator/configs"
 	"github.com/multiversx/mx-chain-go/node/chainSimulator/dtos"
-	chainSimulatorProcess "github.com/multiversx/mx-chain-go/node/chainSimulator/process"
 	"github.com/multiversx/mx-chain-go/process"
 	"github.com/multiversx/mx-chain-go/vm"
 
@@ -818,7 +817,7 @@ func testChainSimulatorDirectStakedUnstakeFundsWithDeactivation(t *testing.T, cs
 	Log.Info("Step 3. Check the outcome of the TX & verify new stake state with vmquery getTotalStaked and getUnStakedTokensList")
 	CheckExpectedStakedValue(t, metachainNode, validatorOwner.Bytes, 4990)
 
-	unStakedTokensAmount := getUnStakedTokensList(t, metachainNode, validatorOwner.Bytes)
+	unStakedTokensAmount := GetUnStakedTokensList(t, metachainNode, validatorOwner.Bytes)
 
 	expectedUnStaked := big.NewInt(10)
 	expectedUnStaked = expectedUnStaked.Mul(chainSimulatorIntegrationTests.OneEGLD, expectedUnStaked)
@@ -828,41 +827,7 @@ func testChainSimulatorDirectStakedUnstakeFundsWithDeactivation(t *testing.T, cs
 	err = cs.GenerateBlocksUntilEpochIsReached(targetEpoch + 1)
 	require.Nil(t, err)
 
-	checkOneOfTheNodesIsUnstaked(t, metachainNode, blsKeys[:2])
-}
-
-func getUnStakedTokensList(t *testing.T, metachainNode chainSimulatorProcess.NodeHandler, blsKey []byte) []byte {
-	scQuery := &process.SCQuery{
-		ScAddress:  vm.ValidatorSCAddress,
-		FuncName:   "getUnStakedTokensList",
-		CallerAddr: vm.ValidatorSCAddress,
-		CallValue:  big.NewInt(0),
-		Arguments:  [][]byte{blsKey},
-	}
-	result, _, err := metachainNode.GetFacadeHandler().ExecuteSCQuery(scQuery)
-	require.Nil(t, err)
-	require.Equal(t, chainSimulatorIntegrationTests.OkReturnCode, result.ReturnCode)
-
-	return result.ReturnData[0]
-}
-
-func checkOneOfTheNodesIsUnstaked(t *testing.T,
-	metachainNode chainSimulatorProcess.NodeHandler,
-	blsKeys []string,
-) {
-	decodedBLSKey0, _ := hex.DecodeString(blsKeys[0])
-	keyStatus0 := staking.GetBLSKeyStatus(t, metachainNode, decodedBLSKey0)
-	Log.Info("Key info", "key", blsKeys[0], "status", keyStatus0)
-
-	isNotStaked0 := keyStatus0 == staking.UnStakedStatus
-
-	decodedBLSKey1, _ := hex.DecodeString(blsKeys[1])
-	keyStatus1 := staking.GetBLSKeyStatus(t, metachainNode, decodedBLSKey1)
-	Log.Info("Key info", "key", blsKeys[1], "status", keyStatus1)
-
-	isNotStaked1 := keyStatus1 == staking.UnStakedStatus
-
-	require.True(t, isNotStaked0 != isNotStaked1)
+	CheckOneOfTheNodesIsUnstaked(t, metachainNode, blsKeys[:2])
 }
 
 // Test description:
@@ -1077,7 +1042,7 @@ func testChainSimulatorDirectStakedUnstakeFundsWithDeactivationAndReactivation(t
 	Log.Info("Step 3. Check the outcome of the TX & verify new stake state with vmquery getTotalStaked and getUnStakedTokensList")
 	CheckExpectedStakedValue(t, metachainNode, validatorOwner.Bytes, 4990)
 
-	unStakedTokensAmount := getUnStakedTokensList(t, metachainNode, validatorOwner.Bytes)
+	unStakedTokensAmount := GetUnStakedTokensList(t, metachainNode, validatorOwner.Bytes)
 
 	expectedUnStaked := big.NewInt(10)
 	expectedUnStaked = expectedUnStaked.Mul(chainSimulatorIntegrationTests.OneEGLD, expectedUnStaked)
