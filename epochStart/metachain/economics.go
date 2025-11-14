@@ -162,8 +162,8 @@ func (e *economics) createLegacyEconomicsArgs(metaBlock data.MetaHeaderHandler) 
 
 	return &argsComputeEconomics{
 		computationData: economicsComputationData{
-			newEpoch:               metaBlock.Epoch,
-			round:                  metaBlock.Round,
+			newEpoch:               metaBlock.GetEpoch(),
+			round:                  metaBlock.GetRound(),
 			timeStamp:              metaBlock.GetTimeStamp(),
 			accumulatedFeesInEpoch: metaBlock.GetAccumulatedFeesInEpoch(),
 			devFeesInEpoch:         metaBlock.GetDevFeesInEpoch(),
