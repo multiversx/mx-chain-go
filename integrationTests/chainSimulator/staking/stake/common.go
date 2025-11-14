@@ -9,8 +9,8 @@ import (
 	"github.com/multiversx/mx-chain-go/common"
 	"github.com/multiversx/mx-chain-go/integrationTests/chainSimulator"
 	"github.com/multiversx/mx-chain-go/integrationTests/chainSimulator/staking"
-	"github.com/multiversx/mx-chain-go/node/chainSimulator/process"
-	process2 "github.com/multiversx/mx-chain-go/process"
+	processChainSimulator "github.com/multiversx/mx-chain-go/node/chainSimulator/process"
+	"github.com/multiversx/mx-chain-go/process"
 	"github.com/multiversx/mx-chain-go/vm"
 	"github.com/multiversx/mx-chain-logger-go"
 	"github.com/stretchr/testify/require"
@@ -36,7 +36,7 @@ var (
 )
 
 func TestBLSKeyStaked(t *testing.T,
-	metachainNode process.NodeHandler,
+	metachainNode processChainSimulator.NodeHandler,
 	blsKey string,
 ) {
 	decodedBLSKey, _ := hex.DecodeString(blsKey)
@@ -58,7 +58,7 @@ func TestBLSKeyStaked(t *testing.T,
 	require.Equal(t, staking.QueuedStatus, staking.GetBLSKeyStatus(t, metachainNode, decodedBLSKey))
 }
 
-func CheckExpectedStakedValue(t *testing.T, metachainNode process.NodeHandler, blsKey []byte, expectedValue int64) {
+func CheckExpectedStakedValue(t *testing.T, metachainNode processChainSimulator.NodeHandler, blsKey []byte, expectedValue int64) {
 	totalStaked := GetTotalStaked(t, metachainNode, blsKey)
 
 	expectedStaked := big.NewInt(expectedValue)
@@ -66,8 +66,8 @@ func CheckExpectedStakedValue(t *testing.T, metachainNode process.NodeHandler, b
 	require.Equal(t, expectedStaked.String(), string(totalStaked))
 }
 
-func GetTotalStaked(t *testing.T, metachainNode process.NodeHandler, blsKey []byte) []byte {
-	scQuery := &process2.SCQuery{
+func GetTotalStaked(t *testing.T, metachainNode processChainSimulator.NodeHandler, blsKey []byte) []byte {
+	scQuery := &process.SCQuery{
 		ScAddress:  vm.ValidatorSCAddress,
 		FuncName:   "getTotalStaked",
 		CallerAddr: vm.ValidatorSCAddress,
@@ -81,7 +81,7 @@ func GetTotalStaked(t *testing.T, metachainNode process.NodeHandler, blsKey []by
 	return result.ReturnData[0]
 }
 
-func GetQualifiedAndUnqualifiedNodes(t *testing.T, metachainNode process.NodeHandler) ([]string, []string) {
+func GetQualifiedAndUnqualifiedNodes(t *testing.T, metachainNode processChainSimulator.NodeHandler) ([]string, []string) {
 	err := metachainNode.GetProcessComponents().ValidatorsProvider().ForceUpdate()
 	require.Nil(t, err)
 	auctionList, err := metachainNode.GetProcessComponents().ValidatorsProvider().GetAuctionList()
