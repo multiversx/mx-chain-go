@@ -1284,6 +1284,30 @@ func (bp *baseProcessor) removeTxsFromPools(header data.HeaderHandler, body *blo
 	return bp.txCoordinator.RemoveTxsFromPool(newBody, rootHashHolder)
 }
 
+func (bp *baseProcessor) marshalledBodyToBroadcast(body *block.Body) map[uint32][]byte {
+	bodies := make(map[uint32]block.MiniBlockSlice)
+
+	for _, miniBlock := range body.MiniBlocks {
+		if miniBlock.SenderShardID != bp.shardCoordinator.SelfId() ||
+			miniBlock.ReceiverShardID == bp.shardCoordinator.SelfId() {
+			continue
+		}
+		bodies[miniBlock.ReceiverShardID] = append(bodies[miniBlock.ReceiverShardID], miniBlock)
+	}
+
+	marshalledData := make(map[uint32][]byte, len(bodies))
+	for shardId, subsetBlockBody := range bodies {
+		buff, err := bp.marshalizer.Marshal(&block.Body{MiniBlocks: subsetBlockBody})
+		if err != nil {
+			log.Error("metaProcessor.MarshalizedDataToBroadcast.Marshal", "error", err.Error())
+			continue
+		}
+		marshalledData[shardId] = buff
+	}
+
+	return marshalledData
+}
+
 func (bp *baseProcessor) getFinalMiniBlocks(header data.HeaderHandler, body *block.Body) (*block.Body, error) {
 	if header.IsHeaderV3() {
 		return bp.getFinalMiniBlocksFromExecutionResults(header)
