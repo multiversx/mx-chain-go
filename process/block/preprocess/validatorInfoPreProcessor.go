@@ -85,7 +85,7 @@ func (vip *validatorInfoPreprocessor) RemoveBlockDataFromPools(body *block.Body,
 }
 
 // RemoveTxsFromPools removes validators info from associated pools
-func (vip *validatorInfoPreprocessor) RemoveTxsFromPools(body *block.Body) error {
+func (vip *validatorInfoPreprocessor) RemoveTxsFromPools(body *block.Body, _ common.RootHashHolder) error {
 	return vip.removeTxsFromPools(body, vip.validatorsInfoPool, vip.isMiniBlockCorrect)
 }
 
