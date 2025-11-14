@@ -321,10 +321,12 @@ func (sr *subroundEndRound) finalizeConfirmedBlock() bool {
 
 	sr.updateConsensusMetricsProof()
 
-	ok := sr.ScheduledProcessor().IsProcessedOKWithTimeout()
-	// placeholder for subroundEndRound.doEndRoundJobByLeader script
-	if !ok {
-		return false
+	if !sr.GetHeader().IsHeaderV3() {
+		ok := sr.ScheduledProcessor().IsProcessedOKWithTimeout()
+		// placeholder for subroundEndRound.doEndRoundJobByLeader script
+		if !ok {
+			return false
+		}
 	}
 
 	err := sr.commitBlock()

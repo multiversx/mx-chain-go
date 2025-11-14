@@ -25,6 +25,7 @@ import (
 type ConsensusCoreHandler interface {
 	Blockchain() data.ChainHandler
 	BlockProcessor() process.BlockProcessor
+	ExecutionManager() process.ExecutionManager
 	BootStrapper() process.Bootstrapper
 	BroadcastMessenger() consensus.BroadcastMessenger
 	Chronology() consensus.ChronologyHandler
@@ -46,6 +47,7 @@ type ConsensusCoreHandler interface {
 	PeerBlacklistHandler() consensus.PeerBlacklistHandler
 	SigningHandler() consensus.SigningHandler
 	EnableEpochsHandler() common.EnableEpochsHandler
+	EnableRoundsHandler() common.EnableRoundsHandler
 	EquivalentProofsPool() consensus.EquivalentProofsPool
 	EpochNotifier() process.EpochNotifier
 	InvalidSignersCache() InvalidSignersCache

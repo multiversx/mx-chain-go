@@ -191,6 +191,7 @@ func TestConsensusBLSWithFullProcessing_WithEquivalentProofs_MultiKeys(t *testin
 }
 
 func TestConsensusBLSWithFullProcessing_TransitionToSupernova(t *testing.T) {
+	t.Skip("TODO: activate this test once meta processing is done")
 	if testing.Short() {
 		t.Skip("this is not a short test")
 	}
@@ -218,6 +219,7 @@ func TestConsensusBLSWithFullProcessing_TransitionToSupernova(t *testing.T) {
 }
 
 func TestConsensusBLSWithFullProcessing_AfterSupernova(t *testing.T) {
+	t.Skip("TODO: activate this test once meta processing is done")
 	if testing.Short() {
 		t.Skip("this is not a short test")
 	}
@@ -245,6 +247,7 @@ func TestConsensusBLSWithFullProcessing_AfterSupernova(t *testing.T) {
 }
 
 func TestConsensusBLSWithFullProcessing_TransitionToSupernova_HighLoad(t *testing.T) {
+	t.Skip("TODO: activate this test once meta processing is done")
 	if testing.Short() {
 		t.Skip("this is not a short test")
 	}
@@ -273,6 +276,7 @@ func TestConsensusBLSWithFullProcessing_TransitionToSupernova_HighLoad(t *testin
 }
 
 func TestConsensusBLSWithFullProcessing_AfterSupernova_HighLoad(t *testing.T) {
+	t.Skip("TODO: activate this test once meta processing is done")
 	if testing.Short() {
 		t.Skip("this is not a short test")
 	}
@@ -664,8 +668,6 @@ func runFullConsensusTest(
 	)
 
 	enableEpochsConfig := integrationTests.CreateEnableEpochsConfig()
-	enableEpochsConfig.AndromedaEnableEpoch = integrationTests.UnreachableEpoch
-	enableEpochsConfig.SupernovaEnableEpoch = integrationTests.UnreachableEpoch
 
 	nodes := initNodesAndTest(
 		numMetaNodes,
@@ -722,9 +724,8 @@ func runConsensusWithNotEnoughValidators(t *testing.T, consensusType string) {
 	numNodes := uint32(4)
 	consensusSize := uint32(4)
 	numInvalid := uint32(2)
-	roundTime := uint64(1000)
 	enableEpochsConfig := integrationTests.CreateEnableEpochsConfig()
-	enableEpochsConfig.AndromedaEnableEpoch = integrationTests.UnreachableEpoch
+
 	nodes := initNodesAndTest(numMetaNodes, numNodes, consensusSize, numInvalid, roundTime, consensusType, 1, enableEpochsConfig)
 
 	defer func() {

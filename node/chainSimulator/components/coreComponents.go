@@ -215,6 +215,7 @@ func CreateCoreComponents(args ArgsCoreComponentsHolder) (*coreComponentsHolder,
 		"startTime", instance.genesisNodesSetup.GetStartTime(),
 		"nodesSetup start time", nodesSetup.StartTime,
 	)
+	instance.genesisTime = time.Unix(instance.genesisNodesSetup.GetStartTime(), 0)
 
 	instance.roundNotifier = forking.NewGenericRoundNotifier()
 	instance.enableRoundsHandler, err = enablers.NewEnableRoundsHandler(args.RoundsConfig, instance.roundNotifier)
@@ -272,7 +273,7 @@ func CreateCoreComponents(args ArgsCoreComponentsHolder) (*coreComponentsHolder,
 		return nil, err
 	}
 
-	instance.rater, err = rating.NewBlockSigningRater(instance.ratingsData)
+	instance.rater, err = rating.NewBlockSigningRater(instance.ratingsData, instance.enableEpochsHandler)
 	if err != nil {
 		return nil, err
 	}

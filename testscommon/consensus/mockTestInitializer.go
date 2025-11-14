@@ -7,6 +7,7 @@ import (
 	"github.com/multiversx/mx-chain-core-go/data/block"
 	"github.com/multiversx/mx-chain-core-go/marshal"
 	crypto "github.com/multiversx/mx-chain-crypto-go"
+	"github.com/multiversx/mx-chain-go/testscommon/processMocks"
 
 	"github.com/multiversx/mx-chain-go/consensus"
 	"github.com/multiversx/mx-chain-go/consensus/mock"
@@ -176,6 +177,7 @@ func InitConsensusCoreWithMultiSigner(multiSigner crypto.MultiSigner) *spos.Cons
 	}
 	marshalizerMock := mock.MarshalizerMock{}
 	blockProcessorMock := InitBlockProcessorMock(marshalizerMock)
+	executionManager := &processMocks.ExecutionManagerMock{}
 	bootstrapperMock := &bootstrapperStubs.BootstrapperStub{}
 	broadcastMessengerMock := &BroadcastMessengerMock{
 		BroadcastConsensusMessageCalled: func(message *consensus.Message) error {
@@ -217,12 +219,14 @@ func InitConsensusCoreWithMultiSigner(multiSigner crypto.MultiSigner) *spos.Cons
 	multiSignerContainer := cryptoMocks.NewMultiSignerContainerMock(multiSigner)
 	signingHandler := &SigningHandlerStub{}
 	enableEpochsHandler := &enableEpochsHandlerMock.EnableEpochsHandlerStub{}
+	enableRoundsHandler := &testscommon.EnableRoundsHandlerStub{}
 	equivalentProofsPool := &dataRetriever.ProofsPoolMock{}
 	epochNotifier := &epochNotifierMock.EpochNotifierStub{}
 
 	container, _ := spos.NewConsensusCore(&spos.ConsensusCoreArgs{
 		BlockChain:                    blockChain,
 		BlockProcessor:                blockProcessorMock,
+		ExecutionManager:              executionManager,
 		Bootstrapper:                  bootstrapperMock,
 		BroadcastMessenger:            broadcastMessengerMock,
 		ChronologyHandler:             chronologyHandlerMock,
@@ -244,6 +248,7 @@ func InitConsensusCoreWithMultiSigner(multiSigner crypto.MultiSigner) *spos.Cons
 		PeerBlacklistHandler:          peerBlacklistHandler,
 		SigningHandler:                signingHandler,
 		EnableEpochsHandler:           enableEpochsHandler,
+		EnableRoundsHandler:           enableRoundsHandler,
 		EquivalentProofsPool:          equivalentProofsPool,
 		EpochNotifier:                 epochNotifier,
 		InvalidSignersCache:           &InvalidSignersCacheMock{},

@@ -15,6 +15,7 @@ type MissingDataResolverMock struct {
 	RequestBlockTransactionsCalled                    func(body *block.Body)
 	RequestMiniBlocksAndTransactionsCalled            func(header data.HeaderHandler)
 	GetFinalCrossMiniBlockInfoAndRequestMissingCalled func(header data.HeaderHandler) []*data.MiniBlockInfo
+	RequestMissingShardHeadersCalled                  func(header data.MetaHeaderHandler) error
 	ResetCalled                                       func()
 }
 
@@ -62,6 +63,14 @@ func (mock *MissingDataResolverMock) GetFinalCrossMiniBlockInfoAndRequestMissing
 		return mock.GetFinalCrossMiniBlockInfoAndRequestMissingCalled(header)
 	}
 	return make([]*data.MiniBlockInfo, 0)
+}
+
+// RequestMissingShardHeaders -
+func (mock *MissingDataResolverMock) RequestMissingShardHeaders(header data.MetaHeaderHandler) error {
+	if mock.RequestMissingShardHeadersCalled != nil {
+		return mock.RequestMissingShardHeadersCalled(header)
+	}
+	return nil
 }
 
 // Reset -
