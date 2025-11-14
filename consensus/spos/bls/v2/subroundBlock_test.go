@@ -1367,11 +1367,15 @@ func TestSubroundBlock_ReceivedBlockHeader(t *testing.T) {
 	}
 	container.SetBlockchain(blockchain)
 
+	sr.SetData(nil)
+
 	// nil header
 	sr.ReceivedBlockHeader(nil)
+	require.Nil(t, sr.GetData())
 
 	// start round is not finished
 	sr.ReceivedBlockHeader(&testscommon.HeaderHandlerStub{})
+	require.Nil(t, sr.GetData())
 
 	// set start round finished on go routine for extra coverage
 	go func() {
@@ -1395,6 +1399,7 @@ func TestSubroundBlock_ReceivedBlockHeader(t *testing.T) {
 			return false
 		},
 	})
+	require.Nil(t, sr.GetData())
 
 	// header v3 before supernova
 	container.SetEnableRoundsHandler(&testscommon.EnableRoundsHandlerStub{
@@ -1407,12 +1412,14 @@ func TestSubroundBlock_ReceivedBlockHeader(t *testing.T) {
 			return true
 		},
 	})
+	require.Nil(t, sr.GetData())
 
 	container.SetEnableEpochsHandler(&enableEpochsHandlerMock.EnableEpochsHandlerStub{})
 	container.SetEnableRoundsHandler(&testscommon.EnableRoundsHandlerStub{})
 
 	// header not for current consensus
 	sr.ReceivedBlockHeader(&testscommon.HeaderHandlerStub{})
+	require.Nil(t, sr.GetData())
 
 	// nil fields on header
 	sr.ReceivedBlockHeader(&testscommon.HeaderHandlerStub{
@@ -1420,9 +1427,11 @@ func TestSubroundBlock_ReceivedBlockHeader(t *testing.T) {
 			return expectedErr
 		},
 	})
+	require.Nil(t, sr.GetData())
 
 	// header not for current consensus
 	sr.ReceivedBlockHeader(&testscommon.HeaderHandlerStub{})
+	require.Nil(t, sr.GetData())
 
 	headerForCurrentConsensus := &testscommon.HeaderHandlerStub{
 		GetShardIDCalled: func() uint32 {
@@ -1444,6 +1453,7 @@ func TestSubroundBlock_ReceivedBlockHeader(t *testing.T) {
 	defaultLeader := sr.Leader()
 	sr.SetLeader(sr.SelfPubKey())
 	sr.ReceivedBlockHeader(headerForCurrentConsensus)
+	require.Nil(t, sr.GetData())
 	sr.SetLeader(defaultLeader)
 
 	// consensus data already set
@@ -1454,21 +1464,25 @@ func TestSubroundBlock_ReceivedBlockHeader(t *testing.T) {
 	// header leader is not the current one
 	sr.SetLeader("X")
 	sr.ReceivedBlockHeader(headerForCurrentConsensus)
+	require.Nil(t, sr.GetData())
 	sr.SetLeader(defaultLeader)
 
 	// header already received
 	sr.SetHeader(&testscommon.HeaderHandlerStub{})
 	sr.ReceivedBlockHeader(headerForCurrentConsensus)
+	require.Nil(t, sr.GetData())
 	sr.SetHeader(nil)
 
 	// self job already done
 	_ = sr.SetJobDone(sr.SelfPubKey(), sr.Current(), true)
 	sr.ReceivedBlockHeader(headerForCurrentConsensus)
+	require.Nil(t, sr.GetData())
 	_ = sr.SetJobDone(sr.SelfPubKey(), sr.Current(), false)
 
 	// subround already finished
 	sr.SetStatus(sr.Current(), spos.SsFinished)
 	sr.ReceivedBlockHeader(headerForCurrentConsensus)
+	require.Nil(t, sr.GetData())
 	sr.SetStatus(sr.Current(), spos.SsNotFinished)
 
 	// marshal error
@@ -1478,6 +1492,7 @@ func TestSubroundBlock_ReceivedBlockHeader(t *testing.T) {
 		},
 	})
 	sr.ReceivedBlockHeader(headerForCurrentConsensus)
+	require.Nil(t, sr.GetData())
 	container.SetMarshalizer(&testscommon.MarshallerStub{})
 
 	// should work
