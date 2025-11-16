@@ -28,6 +28,7 @@ type BlockProcessorMock struct {
 	PruneStateOnRollbackCalled       func(currHeader data.HeaderHandler, currHeaderHash []byte, prevHeader data.HeaderHandler, prevHeaderHash []byte)
 	RevertStateToBlockCalled         func(header data.HeaderHandler, rootHash []byte) error
 	DecodeBlockHeaderCalled          func(dta []byte) data.HeaderHandler
+	RemoveHeaderFromPoolCalled       func(headerHash []byte)
 	VerifyBlockProposalCalled        func(
 		headerHandler data.HeaderHandler,
 		bodyHandler data.BodyHandler,
@@ -200,6 +201,13 @@ func (bpm *BlockProcessorMock) DecodeBlockHeader(dta []byte) data.HeaderHandler 
 func (bpm *BlockProcessorMock) NonceOfFirstCommittedBlock() core.OptionalUint64 {
 	return core.OptionalUint64{
 		HasValue: false,
+	}
+}
+
+// RemoveHeaderFromPool -
+func (bpm *BlockProcessorMock) RemoveHeaderFromPool(headerHash []byte) {
+	if bpm.RemoveHeaderFromPoolCalled != nil {
+		bpm.RemoveHeaderFromPoolCalled(headerHash)
 	}
 }
 
