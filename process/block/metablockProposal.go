@@ -923,13 +923,26 @@ func (mp *metaProcessor) getPreviousExecutedBlock() data.HeaderHandler {
 }
 
 func (mp *metaProcessor) getEpochStartDataForHeader(metaHeader data.MetaHeaderHandler) (*block.EpochStart, error) {
+	err := mp.computeAndUpdateLastEpochStartShardData(metaHeader)
+	if err != nil {
+		return nil, err
+	}
+
+	mp.mutEpochStartData.RLock()
+	defer mp.mutEpochStartData.RUnlock()
+	epochStartData := *mp.epochStartDataWrapper.EpochStartData
+
+	return &epochStartData, nil
+}
+
+func (mp *metaProcessor) computeAndUpdateLastEpochStartShardData(metaHeader data.MetaHeaderHandler) error {
 	mp.mutEpochStartData.Lock()
 	defer mp.mutEpochStartData.Unlock()
 
 	if mp.epochStartDataWrapper == nil ||
 		mp.epochStartDataWrapper.Epoch != metaHeader.GetEpoch() ||
 		mp.epochStartDataWrapper.EpochStartData == nil {
-		return nil, process.ErrNilEpochStartData
+		return process.ErrNilEpochStartData
 	}
 
 	// Last finalized data for each shard, needs to be created on the Stat of epoch block
@@ -938,10 +951,8 @@ func (mp *metaProcessor) getEpochStartDataForHeader(metaHeader data.MetaHeaderHa
 	// as the economic changes are results of the epoch change proposal execution
 	lastFinalizedData, err := mp.epochStartDataCreator.CreateEpochStartShardDataMetablockV3(metaHeader)
 	if err != nil {
-		return nil, err
+		return err
 	}
 	mp.epochStartDataWrapper.EpochStartData.LastFinalizedHeaders = lastFinalizedData
-	epochStartData := *mp.epochStartDataWrapper.EpochStartData
-
-	return &epochStartData, nil
+	return nil
 }
