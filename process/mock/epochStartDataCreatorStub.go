@@ -9,8 +9,9 @@ import (
 
 // EpochStartDataCreatorStub -
 type EpochStartDataCreatorStub struct {
-	CreateEpochStartDataCalled             func() (*block.EpochStart, error)
-	VerifyEpochStartDataForMetablockCalled func(metaBlock data.MetaHeaderHandler) error
+	CreateEpochStartDataCalled                 func() (*block.EpochStart, error)
+	CreateEpochStartShardDataMetablockV3Called func(metablock data.MetaHeaderHandler) ([]block.EpochStartShardData, error)
+	VerifyEpochStartDataForMetablockCalled     func(metaBlock data.MetaHeaderHandler) error
 }
 
 // CreateEpochStartData -
@@ -23,6 +24,14 @@ func (e *EpochStartDataCreatorStub) CreateEpochStartData() (*block.EpochStart, e
 		Economics: block.Economics{
 			RewardsForProtocolSustainability: big.NewInt(0)},
 	}, nil
+}
+
+// CreateEpochStartShardDataMetablockV3 -
+func (e *EpochStartDataCreatorStub) CreateEpochStartShardDataMetablockV3(metablock data.MetaHeaderHandler) ([]block.EpochStartShardData, error) {
+	if e.CreateEpochStartShardDataMetablockV3Called != nil {
+		return e.CreateEpochStartShardDataMetablockV3Called(metablock)
+	}
+	return []block.EpochStartShardData{{}}, nil
 }
 
 // VerifyEpochStartDataForMetablock -

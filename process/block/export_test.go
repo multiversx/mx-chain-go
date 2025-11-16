@@ -944,7 +944,7 @@ func ConstructPartialMetaBlockProcessorForTest(subcomponents map[string]interfac
 
 // SetEpochStartData -
 func (mp *metaProcessor) SetEpochStartData(epochStartData *block.EpochStart) {
-	mp.epochStartData = epochStartData
+	mp.epochStartDataWrapper = epochStartData
 }
 
 // GetTxCountExecutionResults -

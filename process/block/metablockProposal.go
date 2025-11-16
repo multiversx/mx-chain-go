@@ -69,12 +69,14 @@ func (mp *metaProcessor) CreateNewHeaderProposal(round uint64, nonce uint64) (da
 	if err != nil {
 		return nil, err
 	}
-	if mp.epochStartData == nil {
-		return nil, process.ErrNilEpochStartData
+
+	epochStartData, err := mp.getEpochStartDataForHeader(metaHeader)
+	if err != nil {
+		return nil, err
 	}
 
 	// TODO: clean up the epoch start data upon commit
-	err = metaHeader.SetEpochStartHandler(mp.epochStartData)
+	err = metaHeader.SetEpochStartHandler(epochStartData)
 	if err != nil {
 		return nil, err
 	}
@@ -384,20 +386,26 @@ func (mp *metaProcessor) ProcessBlockProposal(
 		return nil, err
 	}
 
-	// err = mp.verifyFees(header)
-	// if err != nil {
-	// 	return nil, err
-	// }
-	//
-	// if !mp.verifyStateRoot(header.GetRootHash()) {
-	// 	err = process.ErrRootStateDoesNotMatch
-	// 	return nil, err
-	// }
-	//
-	// err = mp.verifyValidatorStatisticsRootHash(header)
-	// if err != nil {
-	// 	return nil, err
-	// }
+	sw := core.NewStopWatch()
+	sw.Start("UpdatePeerState")
+	// TODO: this needs to be updated to V3
+	mp.prepareBlockHeaderInternalMapForValidatorProcessor()
+	valStatRootHash, err := mp.validatorStatisticsProcessor.UpdatePeerState(header, mp.hdrsForCurrBlock.GetHeadersMap())
+	sw.Stop("UpdatePeerState")
+	if err != nil {
+		return nil, err
+	}
+
+	err = mp.commitState(headerHandler)
+	if err != nil {
+		return nil, err
+	}
+
+	err = mp.verifyValidatorStatisticsRootHash(header)
+	if err != nil {
+		return nil, err
+	}
+
 	err = mp.commitState(headerHandler)
 	if err != nil {
 		return nil, err
@@ -668,7 +676,17 @@ func (mp *metaProcessor) checkEpochCorrectnessV3(
 	}
 
 	isEpochStartBlock := headerHandler.IsStartOfEpochBlock()
-	epochStartDataMatches := mp.epochStartData.Equal(headerHandler.GetEpochStartHandler())
+
+	mp.mutEpochStartData.RLock()
+	defer mp.mutEpochStartData.RUnlock()
+	var savedEpochStartData *block.EpochStart
+	if mp.epochStartDataWrapper != nil {
+		savedEpochStartData = mp.epochStartDataWrapper.EpochStartData
+	} else {
+		savedEpochStartData = &block.EpochStart{}
+	}
+
+	epochStartDataMatches := savedEpochStartData.Equal(headerHandler.GetEpochStartHandler())
 	hasAllEpochStartData := hasEpochStartExecutionResults && isEpochStartBlock && wasEpochStartProposed && epochStartDataMatches
 	hasAnyEpochStartData := hasEpochStartExecutionResults || isEpochStartBlock || wasEpochStartProposed
 	hasIncompleteEpochStartData := hasAnyEpochStartData && !hasAllEpochStartData
@@ -902,4 +920,28 @@ func (mp *metaProcessor) getPreviousExecutedBlock() data.HeaderHandler {
 		return mp.blockChain.GetGenesisHeader()
 	}
 	return blockHeader
+}
+
+func (mp *metaProcessor) getEpochStartDataForHeader(metaHeader data.MetaHeaderHandler) (*block.EpochStart, error) {
+	mp.mutEpochStartData.Lock()
+	defer mp.mutEpochStartData.Unlock()
+
+	if mp.epochStartDataWrapper == nil ||
+		mp.epochStartDataWrapper.Epoch != metaHeader.GetEpoch() ||
+		mp.epochStartDataWrapper.EpochStartData == nil {
+		return nil, process.ErrNilEpochStartData
+	}
+
+	// Last finalized data for each shard, needs to be created on the Stat of epoch block
+	// not on the proposal of the epoch change block, as the tracker is updated upon commit not on execution
+	// The economic changes will need in this case to be decoupled from the last finalized data creation
+	// as the economic changes are results of the epoch change proposal execution
+	lastFinalizedData, err := mp.epochStartDataCreator.CreateEpochStartShardDataMetablockV3(metaHeader)
+	if err != nil {
+		return nil, err
+	}
+	mp.epochStartDataWrapper.EpochStartData.LastFinalizedHeaders = lastFinalizedData
+	epochStartData := *mp.epochStartDataWrapper.EpochStartData
+
+	return &epochStartData, nil
 }

@@ -160,6 +160,22 @@ func (e *epochStartData) CreateEpochStartData() (*block.EpochStart, error) {
 		return &block.EpochStart{}, nil
 	}
 
+	return e.createEpochStartData()
+}
+
+// CreateEpochStartShardDataMetablockV3 creates epoch start data for metablock v3 if it is needed
+func (e *epochStartData) CreateEpochStartShardDataMetablockV3(metablock data.MetaHeaderHandler) ([]block.EpochStartShardData, error) {
+	if !metablock.IsStartOfEpochBlock() {
+		return nil, nil
+	}
+	esd, err := e.createEpochStartData()
+	if err != nil {
+		return nil, err
+	}
+	return esd.LastFinalizedHeaders, nil
+}
+
+func (e *epochStartData) createEpochStartData() (*block.EpochStart, error) {
 	startData, allShardHdrList, err := e.createShardStartDataAndLastProcessedHeaders()
 	if err != nil {
 		return nil, err

@@ -40,6 +40,10 @@ type ShardHeaderInfo struct {
 	UsedInBlock bool
 }
 
+type epochStartDataWrapper struct {
+	Epoch          uint32
+	EpochStartData *block.EpochStart
+}
 type metaProcessor struct {
 	*baseProcessor
 	scToProtocol                 process.SmartContractToProtocolHandler
@@ -54,9 +58,9 @@ type metaProcessor struct {
 	shardBlockFinality           uint32
 	headersCounter               *headersCounter
 	// TODO: fill this up on execution of epoch start
-	epochStartData *block.EpochStart
-	// TODO: initialize this
-	shardInfoCreateData process.ShardInfoCreator
+	epochStartDataWrapper *epochStartDataWrapper
+	mutEpochStartData     sync.RWMutex
+	shardInfoCreateData   process.ShardInfoCreator
 }
 
 // NewMetaProcessor creates a new metaProcessor object

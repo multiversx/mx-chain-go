@@ -1076,6 +1076,7 @@ type SCQueryService interface {
 // EpochStartDataCreator defines the functionality for node to create epoch start data
 type EpochStartDataCreator interface {
 	CreateEpochStartData() (*block.EpochStart, error)
+	CreateEpochStartShardDataMetablockV3(metablock data.MetaHeaderHandler) ([]block.EpochStartShardData, error)
 	VerifyEpochStartDataForMetablock(metaBlock data.MetaHeaderHandler) error
 	IsInterfaceNil() bool
 }

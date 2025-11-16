@@ -8,6 +8,7 @@ import (
 // EpochStartDataCreatorStub -
 type EpochStartDataCreatorStub struct {
 	CreateEpochStartDataCalled             func() (*block.EpochStart, error)
+	CreateEpochStartDataMetablockV3Called  func(metablock data.MetaHeaderHandler) ([]block.EpochStartShardData, error)
 	VerifyEpochStartDataForMetablockCalled func(metaBlock data.MetaHeaderHandler) error
 }
 
@@ -17,6 +18,14 @@ func (e *EpochStartDataCreatorStub) CreateEpochStartData() (*block.EpochStart, e
 		return e.CreateEpochStartDataCalled()
 	}
 	return &block.EpochStart{}, nil
+}
+
+// CreateEpochStartShardDataMetablockV3 -
+func (e *EpochStartDataCreatorStub) CreateEpochStartShardDataMetablockV3(metablock data.MetaHeaderHandler) ([]block.EpochStartShardData, error) {
+	if e.CreateEpochStartDataMetablockV3Called != nil {
+		return e.CreateEpochStartDataMetablockV3Called(metablock)
+	}
+	return nil, nil
 }
 
 // VerifyEpochStartDataForMetablock -
