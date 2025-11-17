@@ -342,7 +342,7 @@ func (mp *metaProcessor) ProcessBlockProposal(
 		return nil, err
 	}
 
-	if header.IsStartOfEpochBlock() {
+	if header.IsEpochChangeProposed() {
 		// TODO: this needs to be updated
 		err = mp.processEpochStartMetaBlock(header, body)
 		return nil, err
@@ -396,25 +396,25 @@ func (mp *metaProcessor) ProcessBlockProposal(
 		return nil, err
 	}
 
+	// TODO: this needs to be done also on the processing of the epoch start block
+	// which has an early return above
 	err = mp.commitState(headerHandler)
 	if err != nil {
 		return nil, err
 	}
 
-	err = mp.verifyValidatorStatisticsRootHash(header)
-	if err != nil {
-		return nil, err
-	}
-
-	err = mp.commitState(headerHandler)
-	if err != nil {
-		return nil, err
-	}
+	// err = mp.verifyValidatorStatisticsRootHash(header)
+	// if err != nil {
+	// 	return nil, err
+	// }
 
 	err = mp.blockProcessingCutoffHandler.HandleProcessErrorCutoff(header)
 	if err != nil {
 		return nil, err
 	}
+
+	// TODO: make sure the execution results are collected and cached as with
+	// func (sp *shardProcessor) collectExecutionResults(headerHash []byte, header data.HeaderHandler, body *block.Body) (data.BaseExecutionResultHandler, error)
 
 	return nil, nil
 }

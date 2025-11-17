@@ -406,6 +406,8 @@ func (vs *validatorStatistics) UpdatePeerState(header data.MetaHeaderHandler, ca
 	log.Debug("UpdatePeerState - registering meta previous leader fees", "metaNonce", previousHeader.GetNonce())
 
 	bitmap := vs.getBitmapForHeader(previousHeader)
+	// TODO: on v3 headers we don't have accumulated fees on the header directly but on the execution results.
+	// this method then needs to be called in case of v3 headers for all the execution results notarized.
 	err = vs.updateValidatorInfoOnSuccessfulBlock(
 		leader,
 		consensusGroup,
@@ -955,6 +957,7 @@ func (vs *validatorStatistics) updateShardDataPeerState(
 		if vs.enableEpochsHandler.IsFlagEnabledInEpoch(common.AndromedaFlag, h.Epoch) {
 			bitmap = vs.getBitmapForFullConsensus(h.ShardID, h.Epoch)
 		}
+
 		shardInfoErr = vs.updateValidatorInfoOnSuccessfulBlock(
 			leader,
 			shardConsensus,

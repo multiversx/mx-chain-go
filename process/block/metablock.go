@@ -2313,6 +2313,8 @@ func (mp *metaProcessor) applyBodyToHeader(metaHdr data.MetaHeaderHandler, bodyH
 }
 
 func (mp *metaProcessor) prepareBlockHeaderInternalMapForValidatorProcessor() {
+	mp.blockChain.GetLastExecutedBlockHeader()
+	mp.blockChain.GetLastExecutedBlockInfo()
 	currentBlockHeader := mp.blockChain.GetCurrentBlockHeader()
 	currentBlockHeaderHash := mp.blockChain.GetCurrentBlockHeaderHash()
 
