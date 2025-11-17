@@ -1298,6 +1298,7 @@ func (mp *metaProcessor) CommitBlock(
 
 	// TODO: Should be sent also validatorInfoTxs alongside rewardsTxs -> mp.validatorInfoCreator.GetValidatorInfoTxs(body) ?
 	mp.indexBlock(header, headerHash, body, finalMetaBlock, notarizedHeadersHashes, rewardsTxs)
+	//TODO refactor stateAccessesCollector to reset here for executed res block hashes but collect right after commit
 	mp.stateAccessesCollector.Reset()
 	mp.recordBlockInHistory(headerHash, headerHandler, bodyHandler)
 
@@ -2437,10 +2438,10 @@ func (mp *metaProcessor) setHeaderVersionData(metaHeader data.MetaHeaderHandler)
 
 // MarshalizedDataToBroadcast prepares underlying data into a marshalized object according to destination
 func (mp *metaProcessor) MarshalizedDataToBroadcast(
-	hdr data.HeaderHandler,
+	header data.HeaderHandler,
 	bodyHandler data.BodyHandler,
 ) (map[uint32][]byte, map[string][][]byte, error) {
-	if check.IfNil(hdr) {
+	if check.IfNil(header) {
 		return nil, nil, process.ErrNilMetaBlockHeader
 	}
 	if check.IfNil(bodyHandler) {
@@ -2452,33 +2453,29 @@ func (mp *metaProcessor) MarshalizedDataToBroadcast(
 		return nil, nil, process.ErrWrongTypeAssertion
 	}
 
+	bodyToBroadcast, err := mp.getFinalMiniBlocks(header, body)
+	if err != nil {
+		return nil, nil, err
+	}
+
 	var mrsTxs map[string][][]byte
-	if hdr.IsStartOfEpochBlock() {
-		mrsTxs = mp.getAllMarshalledTxs(body)
+	if header.IsStartOfEpochBlock() {
+		mrsTxs = mp.getAllMarshalledTxs(bodyToBroadcast)
 	} else {
-		mrsTxs = mp.txCoordinator.CreateMarshalizedData(body)
+		mrsTxs = mp.txCoordinator.CreateMarshalizedData(bodyToBroadcast)
 	}
 
-	bodies := make(map[uint32]block.MiniBlockSlice)
-	for _, miniBlock := range body.MiniBlocks {
-		if miniBlock.SenderShardID != mp.shardCoordinator.SelfId() ||
-			miniBlock.ReceiverShardID == mp.shardCoordinator.SelfId() {
-			continue
-		}
-		bodies[miniBlock.ReceiverShardID] = append(bodies[miniBlock.ReceiverShardID], miniBlock)
-	}
-
-	mrsData := make(map[uint32][]byte, len(bodies))
-	for shardId, subsetBlockBody := range bodies {
-		buff, err := mp.marshalizer.Marshal(&block.Body{MiniBlocks: subsetBlockBody})
-		if err != nil {
-			log.Error("metaProcessor.MarshalizedDataToBroadcast.Marshal", "error", err.Error())
-			continue
-		}
-		mrsData[shardId] = buff
-	}
+	mrsData := mp.marshalledBodyToBroadcast(bodyToBroadcast)
 
 	return mrsData, mrsTxs, nil
+}
+
+func (mp *metaProcessor) getFinalMiniBlocks(header data.HeaderHandler, body *block.Body) (*block.Body, error) {
+	if header.IsHeaderV3() {
+		return mp.getFinalMiniBlocksFromExecutionResults(header)
+	}
+
+	return body, nil
 }
 
 func (mp *metaProcessor) getAllMarshalledTxs(body *block.Body) map[string][][]byte {

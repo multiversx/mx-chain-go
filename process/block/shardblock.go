@@ -1078,6 +1078,7 @@ func (sp *shardProcessor) CommitBlock(
 	}
 
 	sp.indexBlockIfNeeded(bodyHandler, headerHash, headerHandler, lastBlockHeader)
+	//TODO refactor stateAccessesCollector to reset here for executed res block hashes but collect right after commit
 	sp.stateAccessesCollector.Reset()
 	sp.recordBlockInHistory(headerHash, headerHandler, bodyHandler)
 
@@ -2396,25 +2397,7 @@ func (sp *shardProcessor) MarshalizedDataToBroadcast(
 
 	mrsTxs := sp.txCoordinator.CreateMarshalizedData(newBodyToBroadcast)
 
-	bodies := make(map[uint32]block.MiniBlockSlice)
-	for _, miniBlock := range newBodyToBroadcast.MiniBlocks {
-		if miniBlock.SenderShardID != sp.shardCoordinator.SelfId() ||
-			miniBlock.ReceiverShardID == sp.shardCoordinator.SelfId() {
-			continue
-		}
-		bodies[miniBlock.ReceiverShardID] = append(bodies[miniBlock.ReceiverShardID], miniBlock)
-	}
-
-	mrsData := make(map[uint32][]byte, len(bodies))
-	for shardId, subsetBlockBody := range bodies {
-		bodyForShard := block.Body{MiniBlocks: subsetBlockBody}
-		buff, errMarshal := sp.marshalizer.Marshal(&bodyForShard)
-		if errMarshal != nil {
-			log.Error("shardProcessor.MarshalizedDataToBroadcast.Marshal", "error", errMarshal.Error())
-			continue
-		}
-		mrsData[shardId] = buff
-	}
+	mrsData := sp.marshalledBodyToBroadcast(newBodyToBroadcast)
 
 	return mrsData, mrsTxs, nil
 }
