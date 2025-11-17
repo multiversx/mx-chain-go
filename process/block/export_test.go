@@ -999,3 +999,8 @@ func (bp *baseProcessor) RecreateTrieIfNeeded() error {
 func (bp *baseProcessor) ExtractRootHashForCleanup(header data.HeaderHandler) (common.RootHashHolder, error) {
 	return bp.extractRootHashForCleanup(header)
 }
+
+// SaveProposedTxsToStorage -
+func (bp *baseProcessor) SaveProposedTxsToStorage(header data.HeaderHandler, body *block.Body) error {
+	return bp.saveProposedTxsToStorage(header, body)
+}

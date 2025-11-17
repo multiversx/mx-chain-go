@@ -1078,6 +1078,7 @@ func (sp *shardProcessor) CommitBlock(
 	}
 
 	sp.indexBlockIfNeeded(bodyHandler, headerHash, headerHandler, lastBlockHeader)
+	//TODO refactor stateAccessesCollector to reset here for executed res block hashes but collect right after commit
 	sp.stateAccessesCollector.Reset()
 	sp.recordBlockInHistory(headerHash, headerHandler, bodyHandler)
 
