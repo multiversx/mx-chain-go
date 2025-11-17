@@ -108,9 +108,37 @@ func (e *epochStartData) VerifyEpochStartDataForMetablock(metaBlock data.MetaHea
 		return err
 	}
 
+	return e.verifyEpochStartDataForMetablock(metaBlock, startData)
+}
+
+// VerifyEpochStartDataForMetablock verifies if epoch start data given by leader is the same as the one should be created
+func (e *epochStartData) VerifyEpochStartDataForMetablockV3(metaBlock data.MetaHeaderHandler) error {
+	if !metaBlock.IsStartOfEpochBlock() {
+		return nil
+	}
+
+	lastFinalizedData, err := e.CreateEpochStartShardDataMetablockV3(metaBlock)
+	if err != nil {
+		return err
+	}
+	startData := &block.EpochStart{
+		LastFinalizedHeaders: lastFinalizedData,
+	}
+
+	return e.verifyEpochStartDataForMetablock(metaBlock, startData)
+}
+
+func (e *epochStartData) verifyEpochStartDataForMetablock(
+	metaBlock data.MetaHeaderHandler,
+	startData *block.EpochStart,
+) error {
+	if !metaBlock.IsStartOfEpochBlock() {
+		return nil
+	}
+
 	blockEpochStartData := metaBlock.GetEpochStartHandler()
 	epochStartDataWithoutEconomics := &block.EpochStart{}
-	err = epochStartDataWithoutEconomics.SetLastFinalizedHeaders(blockEpochStartData.GetLastFinalizedHeaderHandlers())
+	err := epochStartDataWithoutEconomics.SetLastFinalizedHeaders(blockEpochStartData.GetLastFinalizedHeaderHandlers())
 	if err != nil {
 		return err
 	}
