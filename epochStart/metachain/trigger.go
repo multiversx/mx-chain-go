@@ -292,7 +292,10 @@ func (t *trigger) SetProcessed(header data.HeaderHandler, body data.BodyHandler)
 	t.epochStartMeta = metaBlock
 	t.epochStartMetaHash = metaHash
 
-	t.epochStartNotifier.NotifyAllPrepare(metaBlock, body)
+	if !metaBlock.IsHeaderV3() {
+		t.epochStartNotifier.NotifyAllPrepare(metaBlock, body)
+	}
+
 	t.epochStartNotifier.NotifyAll(metaBlock)
 
 	t.saveCurrentState(metaBlock.Round)
@@ -310,6 +313,68 @@ func (t *trigger) SetProcessed(header data.HeaderHandler, body data.BodyHandler)
 		log.Warn("SetProcessed put into metaHdrStorage", "error", errNotCritical.Error())
 	}
 }
+
+func (t *trigger) SetProposedV3(header data.HeaderHandler, body data.BodyHandler) {
+	t.mutTrigger.Lock()
+	defer t.mutTrigger.Unlock()
+
+	metaBlock, ok := header.(*block.MetaBlock)
+	if !ok {
+		return
+	}
+	if !metaBlock.IsEpochChangeProposed() {
+		return
+	}
+
+	// TODO: Check if this is needed here:
+	// t.epoch = metaBlock.Epoch
+	t.isEpochStart = true
+
+	t.epochStartNotifier.NotifyAllPrepare(metaBlock, body)
+
+	t.saveCurrentState(metaBlock.Round)
+}
+
+/*
+func (t *trigger) SetProcessedV3(header data.HeaderHandler, body data.BodyHandler) {
+	t.mutTrigger.Lock()
+	defer t.mutTrigger.Unlock()
+
+	metaBlock, ok := header.(*block.MetaBlock)
+	if !ok {
+		return
+	}
+	if !metaBlock.IsStartOfEpochBlock() {
+		return
+	}
+
+	t.currEpochStartRound = metaBlock.Round
+	t.epoch = metaBlock.Epoch
+	t.isEpochStart = false
+
+	metaBuff, errNotCritical := t.marshaller.Marshal(metaBlock)
+	if errNotCritical != nil {
+		log.Debug("SetProcessed marshal", "error", errNotCritical.Error())
+	}
+
+	t.appStatusHandler.SetUInt64Value(common.MetricRoundAtEpochStart, metaBlock.Round)
+	t.appStatusHandler.SetUInt64Value(common.MetricNonceAtEpochStart, metaBlock.Nonce)
+
+	metaHash := t.hasher.Compute(string(metaBuff))
+
+	t.currEpochStartRound = metaBlock.Round
+	t.epoch = metaBlock.Epoch
+	t.isEpochStart = false
+	t.epochStartMeta = metaBlock
+	t.epochStartMetaHash = metaHash
+
+	t.epochStartNotifier.NotifyAll(metaBlock)
+
+	t.saveCurrentState(metaBlock.Round)
+	//...
+}
+
+*/
 
 // SetFinalityAttestingRound sets the round which finalized the start of epoch block
 func (t *trigger) SetFinalityAttestingRound(round uint64) {
