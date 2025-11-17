@@ -944,7 +944,9 @@ func ConstructPartialMetaBlockProcessorForTest(subcomponents map[string]interfac
 
 // SetEpochStartData -
 func (mp *metaProcessor) SetEpochStartData(epochStartData *block.EpochStart) {
-	mp.epochStartDataWrapper = epochStartData
+	if mp.epochStartDataWrapper != nil {
+		mp.epochStartDataWrapper.EpochStartData = epochStartData
+	}
 }
 
 // GetTxCountExecutionResults -
@@ -983,6 +985,13 @@ func (mp *metaProcessor) SelectIncomingMiniBlocks(
 	haveTime func() bool,
 ) error {
 	return mp.selectIncomingMiniBlocks(lastShardHdr, orderedHdrs, orderedHdrsHashes, maxNumHeadersFromSameShard, haveTime)
+}
+
+// VerifyEpochStartData -
+func (mp *metaProcessor) VerifyEpochStartData(
+	headerHandler data.MetaHeaderHandler,
+) bool {
+	return mp.verifyEpochStartData(headerHandler)
 }
 
 // OnExecutedBlock -

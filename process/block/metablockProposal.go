@@ -390,7 +390,7 @@ func (mp *metaProcessor) ProcessBlockProposal(
 	sw.Start("UpdatePeerState")
 	// TODO: this needs to be updated to V3
 	mp.prepareBlockHeaderInternalMapForValidatorProcessor()
-	valStatRootHash, err := mp.validatorStatisticsProcessor.UpdatePeerState(header, mp.hdrsForCurrBlock.GetHeadersMap())
+	_, err = mp.validatorStatisticsProcessor.UpdatePeerState(header, mp.hdrsForCurrBlock.GetHeadersMap())
 	sw.Stop("UpdatePeerState")
 	if err != nil {
 		return nil, err
@@ -657,6 +657,18 @@ func (mp *metaProcessor) requestShardHeadersInAdvanceIfNeeded(
 	}
 }
 
+func (mp *metaProcessor) verifyEpochStartData(
+	headerHandler data.MetaHeaderHandler,
+) bool {
+	epochStartData, err := mp.getEpochStartDataForHeader(headerHandler)
+	if err != nil {
+		log.Error("verifyEpochStartData: failed to get epoch start data", "error", err)
+		return false
+	}
+
+	return epochStartData.Equal(headerHandler.GetEpochStartHandler())
+}
+
 func (mp *metaProcessor) checkEpochCorrectnessV3(
 	headerHandler data.MetaHeaderHandler,
 ) error {
@@ -677,16 +689,7 @@ func (mp *metaProcessor) checkEpochCorrectnessV3(
 
 	isEpochStartBlock := headerHandler.IsStartOfEpochBlock()
 
-	mp.mutEpochStartData.RLock()
-	defer mp.mutEpochStartData.RUnlock()
-	var savedEpochStartData *block.EpochStart
-	if mp.epochStartDataWrapper != nil {
-		savedEpochStartData = mp.epochStartDataWrapper.EpochStartData
-	} else {
-		savedEpochStartData = &block.EpochStart{}
-	}
-
-	epochStartDataMatches := savedEpochStartData.Equal(headerHandler.GetEpochStartHandler())
+	epochStartDataMatches := mp.verifyEpochStartData(headerHandler)
 	hasAllEpochStartData := hasEpochStartExecutionResults && isEpochStartBlock && wasEpochStartProposed && epochStartDataMatches
 	hasAnyEpochStartData := hasEpochStartExecutionResults || isEpochStartBlock || wasEpochStartProposed
 	hasIncompleteEpochStartData := hasAnyEpochStartData && !hasAllEpochStartData
