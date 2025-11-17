@@ -791,6 +791,11 @@ func (tpn *TestProcessorNode) initGenesisBlocks(args ArgTestProcessorNode) {
 		}
 
 		tpn.GenesisBlocks = CreateSimpleGenesisBlocks(tpn.ShardCoordinator, rootHash)
+		err = OnGenesisExecutedBlock(tpn)
+		if err != nil {
+			log.Error("tpn.initGenesisBlocks: OnGenesisExecutedBlock(tpn)", "err", err)
+		}
+
 		return
 	}
 
@@ -1926,7 +1931,9 @@ func (tpn *TestProcessorNode) initInnerProcessors(gasMap map[string]map[string]u
 		BlockSizeComputation:         TestBlockSizeComputationHandler,
 		BalanceComputation:           TestBalanceComputationHandler,
 		EnableEpochsHandler:          tpn.EnableEpochsHandler,
+		EpochNotifier:                tpn.EpochNotifier,
 		EnableRoundsHandler:          tpn.EnableRoundsHandler,
+		RoundNotifier:                tpn.RoundNotifier,
 		TxTypeHandler:                txTypeHandler,
 		ScheduledTxsExecutionHandler: scheduledTxsExecutionHandler,
 		ProcessedMiniBlocksTracker:   processedMiniBlocksTracker,
@@ -2255,7 +2262,9 @@ func (tpn *TestProcessorNode) initMetaInnerProcessors(gasMap map[string]map[stri
 		BlockSizeComputation:         TestBlockSizeComputationHandler,
 		BalanceComputation:           TestBalanceComputationHandler,
 		EnableEpochsHandler:          tpn.EnableEpochsHandler,
+		EpochNotifier:                tpn.EpochNotifier,
 		EnableRoundsHandler:          tpn.EnableRoundsHandler,
+		RoundNotifier:                tpn.RoundNotifier,
 		TxTypeHandler:                txTypeHandler,
 		ScheduledTxsExecutionHandler: scheduledTxsExecutionHandler,
 		ProcessedMiniBlocksTracker:   processedMiniBlocksTracker,

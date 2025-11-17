@@ -381,6 +381,7 @@ func testConsensusBLSWithFullProcessing(
 		nodesList = append(nodesList, n.TestProcessorNode)
 	}
 	integrationTests.MintAllNodes(nodesList, big.NewInt(100000000000))
+	integrationTests.SetRootHashOfGenesisBlocks(nodesList)
 
 	maxRounds := uint64(roundsPerEpoch)*uint64(enableEpochsConfig.SCDeployEnableEpoch) + uint64(roundsPerEpoch)
 	timeoutSeconds := (maxRounds * roundTime) / 1000

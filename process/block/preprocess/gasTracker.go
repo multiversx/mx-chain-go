@@ -1,6 +1,8 @@
 package preprocess
 
 import (
+	"sync"
+
 	"github.com/multiversx/mx-chain-core-go/core"
 	"github.com/multiversx/mx-chain-core-go/data"
 	"github.com/multiversx/mx-chain-go/common"
@@ -11,11 +13,84 @@ import (
 const noOverestimationFactor = uint64(100)
 
 type gasTracker struct {
-	shardCoordinator    sharding.Coordinator
-	economicsFee        process.FeeHandler
-	gasHandler          process.GasHandler
-	enableEpochsHandler common.EnableEpochsHandler
-	enableRoundsHandler common.EnableRoundsHandler
+	shardCoordinator     sharding.Coordinator
+	economicsFee         process.FeeHandler
+	gasHandler           process.GasHandler
+	enableEpochsHandler  common.EnableEpochsHandler
+	enableRoundsHandler  common.EnableRoundsHandler
+	mut                  sync.RWMutex
+	overEstimationFactor uint64
+	epochForLimits       uint32
+	roundForLimits       uint64
+}
+
+func newGasTracker(
+	shardCoordinator sharding.Coordinator,
+	gasHandler process.GasHandler,
+	economicsFee process.FeeHandler,
+	enableEpochsHandler common.EnableEpochsHandler,
+	enableRoundsHandler common.EnableRoundsHandler,
+) gasTracker {
+	return gasTracker{
+		shardCoordinator:     shardCoordinator,
+		economicsFee:         economicsFee,
+		gasHandler:           gasHandler,
+		enableEpochsHandler:  enableEpochsHandler,
+		enableRoundsHandler:  enableRoundsHandler,
+		overEstimationFactor: noOverestimationFactor,
+	}
+}
+
+// EpochConfirmed is called whenever a new epoch is confirmed
+func (gt *gasTracker) EpochConfirmed(epoch uint32, _ uint64) {
+	gt.mut.Lock()
+	defer gt.mut.Unlock()
+
+	gt.epochForLimits = epoch
+
+	// if already computed, only store the new epoch
+	if gt.overEstimationFactor != noOverestimationFactor {
+		return
+	}
+
+	isEpochFlagEnabled := gt.enableEpochsHandler.IsFlagEnabledInEpoch(common.SupernovaFlag, gt.epochForLimits)
+	if !isEpochFlagEnabled {
+		return
+	}
+
+	isRoundFlagEnabled := gt.enableRoundsHandler.IsFlagEnabledInRound(common.SupernovaRoundFlag, gt.roundForLimits)
+	if !isRoundFlagEnabled && epoch > 0 {
+		gt.epochForLimits = epoch - 1 // use the previous epoch until activation round
+	}
+}
+
+// RoundConfirmed is called whenever a new round is confirmed
+func (gt *gasTracker) RoundConfirmed(round uint64, _ uint64) {
+	gt.mut.Lock()
+	defer gt.mut.Unlock()
+
+	gt.roundForLimits = round
+
+	// if already computed, only store the new round
+	if gt.overEstimationFactor != noOverestimationFactor {
+		return
+	}
+
+	isRoundFlagEnabled := gt.enableRoundsHandler.IsFlagEnabledInRound(common.SupernovaRoundFlag, gt.roundForLimits)
+	if !isRoundFlagEnabled {
+		return
+	}
+
+	// new limits and overestimation should be enabled once the Supernova round is active
+	gt.overEstimationFactor = gt.economicsFee.BlockCapacityOverestimationFactor()
+	// epoch was previously held at (currentEpoch - 1) until the Supernova round activated.
+	// now that the round is active, we advance epochForLimits to the real epoch.
+	gt.epochForLimits = gt.epochForLimits + 1
+}
+
+// IsInterfaceNil returns true if there is no value under the interface
+func (gt *gasTracker) IsInterfaceNil() bool {
+	return gt == nil
 }
 
 func (gt *gasTracker) computeGasProvided(
@@ -34,7 +109,10 @@ func (gt *gasTracker) computeGasProvided(
 		return 0, err
 	}
 
-	epoch, overEstimationFactor := gt.getEpochAndOverestimationFactorForGasLimits()
+	gt.mut.RLock()
+	epoch := gt.epochForLimits
+	overEstimationFactor := gt.overEstimationFactor
+	gt.mut.RUnlock()
 
 	gasProvidedByTxInSelfShard := uint64(0)
 	if gt.shardCoordinator.SelfId() == senderShardId {
@@ -60,33 +138,6 @@ func (gt *gasTracker) computeGasProvided(
 	gasInfo.totalGasConsumedInSelfShard += gasProvidedByTxInSelfShard
 
 	return gasProvidedByTxInSelfShard, nil
-}
-
-func (gt *gasTracker) getEpochAndOverestimationFactorForGasLimits() (epoch uint32, overestimationFactor uint64) {
-	epoch = gt.enableEpochsHandler.GetCurrentEpoch()
-	overestimationFactor = noOverestimationFactor
-
-	// TODO: optimize this to be called once per epoch, not once per tx
-	isSupernovaEpochEnabled := gt.enableEpochsHandler.IsFlagEnabled(common.SupernovaFlag)
-	if !isSupernovaEpochEnabled {
-		return
-	}
-
-	isSupernovaRoundEnabled := gt.enableRoundsHandler.IsFlagEnabled(common.SupernovaRoundFlag)
-	if !isSupernovaRoundEnabled {
-		// if Supernova epoch is active, but round not yet,
-		// use the limits from previous epoch with no overestimation factor
-		if epoch > 0 {
-			epoch = epoch - 1
-		}
-
-		return
-	}
-
-	// new limits and overestimation should be enabled once the Supernova round is active
-	overestimationFactor = gt.economicsFee.BlockCapacityOverestimationFactor()
-
-	return
 }
 
 func (gt *gasTracker) getMaxGasLimitPerTx(epoch uint32) uint64 {

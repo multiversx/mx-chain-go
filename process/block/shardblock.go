@@ -1430,11 +1430,11 @@ func (sp *shardProcessor) snapShotEpochStartFromMeta(header data.ShardHeaderHand
 	accounts := sp.accountsDB[state.UserAccountsState]
 
 	for _, metaHash := range header.GetMetaBlockHashes() {
-		metaHdrInfo, ok := sp.hdrsForCurrBlock.GetHeaderInfo(string(metaHash))
-		if !ok {
+		hdr, err := getHeaderFromHash(sp.dataPool.Headers(), sp.hdrsForCurrBlock, header.IsHeaderV3(), metaHash)
+		if err != nil {
 			continue
 		}
-		metaHdr, ok := metaHdrInfo.GetHeader().(*block.MetaBlock)
+		metaHdr, ok := hdr.(*block.MetaBlock)
 		if !ok {
 			continue
 		}
@@ -1750,13 +1750,12 @@ func (sp *shardProcessor) addProcessedCrossMiniBlocksFromHeader(headerHandler da
 	}
 
 	for _, metaBlockHash := range shardHeader.GetMetaBlockHashes() {
-		headerInfo, found := sp.hdrsForCurrBlock.GetHeaderInfo(string(metaBlockHash))
-		if !found {
+		hdr, err := getHeaderFromHash(sp.dataPool.Headers(), sp.hdrsForCurrBlock, shardHeader.IsHeaderV3(), metaBlockHash)
+		if err != nil {
 			return fmt.Errorf("%w : addProcessedCrossMiniBlocksFromHeader metaBlockHash = %s",
-				process.ErrMissingHeader, logger.DisplayByteSlice(metaBlockHash))
+				err, logger.DisplayByteSlice(metaBlockHash))
 		}
-
-		metaBlock, isMetaBlock := headerInfo.GetHeader().(*block.MetaBlock)
+		metaBlock, isMetaBlock := hdr.(*block.MetaBlock)
 		if !isMetaBlock {
 			return process.ErrWrongTypeAssertion
 		}
@@ -2398,25 +2397,7 @@ func (sp *shardProcessor) MarshalizedDataToBroadcast(
 
 	mrsTxs := sp.txCoordinator.CreateMarshalizedData(newBodyToBroadcast)
 
-	bodies := make(map[uint32]block.MiniBlockSlice)
-	for _, miniBlock := range newBodyToBroadcast.MiniBlocks {
-		if miniBlock.SenderShardID != sp.shardCoordinator.SelfId() ||
-			miniBlock.ReceiverShardID == sp.shardCoordinator.SelfId() {
-			continue
-		}
-		bodies[miniBlock.ReceiverShardID] = append(bodies[miniBlock.ReceiverShardID], miniBlock)
-	}
-
-	mrsData := make(map[uint32][]byte, len(bodies))
-	for shardId, subsetBlockBody := range bodies {
-		bodyForShard := block.Body{MiniBlocks: subsetBlockBody}
-		buff, errMarshal := sp.marshalizer.Marshal(&bodyForShard)
-		if errMarshal != nil {
-			log.Error("shardProcessor.MarshalizedDataToBroadcast.Marshal", "error", errMarshal.Error())
-			continue
-		}
-		mrsData[shardId] = buff
-	}
+	mrsData := sp.marshalledBodyToBroadcast(newBodyToBroadcast)
 
 	return mrsData, mrsTxs, nil
 }
