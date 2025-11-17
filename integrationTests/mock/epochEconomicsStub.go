@@ -9,8 +9,12 @@ import (
 
 // EpochEconomicsStub -
 type EpochEconomicsStub struct {
-	ComputeEndOfEpochEconomicsCalled func(metaBlock data.MetaHeaderHandler) (*block.Economics, error)
-	VerifyRewardsPerBlockCalled      func(
+	ComputeEndOfEpochEconomicsCalled   func(metaBlock data.MetaHeaderHandler) (*block.Economics, error)
+	ComputeEndOfEpochEconomicsV3Called func(
+		metaBlock data.MetaHeaderHandler,
+		prevBlockExecutionResults data.BaseMetaExecutionResultHandler,
+	) (*block.Economics, error)
+	VerifyRewardsPerBlockCalled func(
 		metaBlock data.MetaHeaderHandler, correctedProtocolSustainability *big.Int, computedEconomics data.EconomicsHandler,
 	) error
 }
@@ -19,6 +23,17 @@ type EpochEconomicsStub struct {
 func (e *EpochEconomicsStub) ComputeEndOfEpochEconomics(metaBlock data.MetaHeaderHandler) (*block.Economics, error) {
 	if e.ComputeEndOfEpochEconomicsCalled != nil {
 		return e.ComputeEndOfEpochEconomicsCalled(metaBlock)
+	}
+	return &block.Economics{}, nil
+}
+
+// ComputeEndOfEpochEconomicsV3 -
+func (e *EpochEconomicsStub) ComputeEndOfEpochEconomicsV3(
+	metaBlock data.MetaHeaderHandler,
+	prevBlockExecutionResults data.BaseMetaExecutionResultHandler,
+) (*block.Economics, error) {
+	if e.ComputeEndOfEpochEconomicsV3Called != nil {
+		return e.ComputeEndOfEpochEconomicsV3Called(metaBlock, prevBlockExecutionResults)
 	}
 	return &block.Economics{}, nil
 }
