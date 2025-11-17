@@ -349,9 +349,11 @@ func TestMetaProcessor_CreateNewHeaderProposal(t *testing.T) {
 		mp, err := blproc.NewMetaProcessor(arguments)
 		require.Nil(t, err)
 
-		mp.SetEpochStartData(&block.EpochStart{
-			LastFinalizedHeaders: make([]block.EpochStartShardData, 3),
-			Economics:            block.Economics{},
+		mp.SetEpochStartData(&blproc.EpochStartDataWrapper{
+			EpochStartData: &block.EpochStart{
+				LastFinalizedHeaders: make([]block.EpochStartShardData, 3),
+				Economics:            block.Economics{},
+			},
 		})
 		header, err := mp.CreateNewHeaderProposal(1, 1)
 		require.Equal(t, expectedErr, err)
@@ -397,9 +399,11 @@ func TestMetaProcessor_CreateNewHeaderProposal(t *testing.T) {
 		mp, err := blproc.NewMetaProcessor(arguments)
 		require.Nil(t, err)
 
-		mp.SetEpochStartData(&block.EpochStart{
-			LastFinalizedHeaders: make([]block.EpochStartShardData, 3),
-			Economics:            block.Economics{},
+		mp.SetEpochStartData(&blproc.EpochStartDataWrapper{
+			EpochStartData: &block.EpochStart{
+				LastFinalizedHeaders: make([]block.EpochStartShardData, 3),
+				Economics:            block.Economics{},
+			},
 		})
 		header, err := mp.CreateNewHeaderProposal(1, 1)
 		require.Equal(t, expectedErr, err)
@@ -491,9 +495,11 @@ func TestMetaProcessor_CreateNewHeaderProposal(t *testing.T) {
 		mp, err := blproc.NewMetaProcessor(arguments)
 		require.Nil(t, err)
 
-		mp.SetEpochStartData(&block.EpochStart{
-			LastFinalizedHeaders: make([]block.EpochStartShardData, 3),
-			Economics:            block.Economics{},
+		mp.SetEpochStartData(&blproc.EpochStartDataWrapper{
+			EpochStartData: &block.EpochStart{
+				LastFinalizedHeaders: make([]block.EpochStartShardData, 3),
+				Economics:            block.Economics{},
+			},
 		})
 		header, err := mp.CreateNewHeaderProposal(1, 1)
 		require.Nil(t, err)
@@ -2523,7 +2529,9 @@ func TestMetaProcessor_checkEpochCorrectnessV3(t *testing.T) {
 			}},
 		})
 		require.Nil(t, err)
-		mp.SetEpochStartData(&epochStartData)
+		mp.SetEpochStartData(&blproc.EpochStartDataWrapper{
+			EpochStartData: &epochStartData,
+		})
 
 		err = mp.CheckEpochCorrectnessV3(metaHeader)
 		require.Equal(t, process.ErrEpochDoesNotMatch, err)
@@ -2573,7 +2581,9 @@ func TestMetaProcessor_checkEpochCorrectnessV3(t *testing.T) {
 			}},
 		})
 		require.Nil(t, err)
-		mp.SetEpochStartData(&epochStartData)
+		mp.SetEpochStartData(&blproc.EpochStartDataWrapper{
+			EpochStartData: &epochStartData,
+		})
 
 		err = mp.CheckEpochCorrectnessV3(metaHeader)
 		require.Equal(t, process.ErrEpochDoesNotMatch, err)
@@ -2626,7 +2636,9 @@ func TestMetaProcessor_checkEpochCorrectnessV3(t *testing.T) {
 				return 1
 			}},
 		})
-		mp.SetEpochStartData(&epochStartDataFromMetaProcessor)
+		mp.SetEpochStartData(&blproc.EpochStartDataWrapper{
+			EpochStartData: &epochStartDataFromMetaProcessor,
+		})
 		require.Nil(t, err)
 
 		err = mp.CheckEpochCorrectnessV3(metaHeader)
@@ -2675,7 +2687,9 @@ func TestMetaProcessor_checkEpochCorrectnessV3(t *testing.T) {
 				return 1
 			}},
 		})
-		mp.SetEpochStartData(&epochStartData)
+		mp.SetEpochStartData(&blproc.EpochStartDataWrapper{
+			EpochStartData: &epochStartData,
+		})
 		require.Nil(t, err)
 
 		err = mp.CheckEpochCorrectnessV3(metaHeader)
