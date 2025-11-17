@@ -1,4 +1,4 @@
-package stake
+package simpleStake
 
 import (
 	"encoding/hex"
@@ -10,6 +10,7 @@ import (
 	"github.com/multiversx/mx-chain-go/config"
 	chainSimulatorIntegrationTests "github.com/multiversx/mx-chain-go/integrationTests/chainSimulator"
 	"github.com/multiversx/mx-chain-go/integrationTests/chainSimulator/staking"
+	"github.com/multiversx/mx-chain-go/integrationTests/chainSimulator/staking/stake"
 	"github.com/multiversx/mx-chain-go/node/chainSimulator"
 	"github.com/multiversx/mx-chain-go/node/chainSimulator/components/api"
 	"github.com/multiversx/mx-chain-go/node/chainSimulator/configs"
@@ -69,7 +70,7 @@ func testChainSimulatorSimpleStake(t *testing.T, targetEpoch int32, nodesStatus 
 	cs, err := chainSimulator.NewChainSimulator(chainSimulator.ArgsChainSimulator{
 		BypassTxSignatureCheck:         true,
 		TempDir:                        t.TempDir(),
-		PathToInitialConfig:            DefaultPathToInitialConfig,
+		PathToInitialConfig:            stake.DefaultPathToInitialConfig,
 		NumOfShards:                    numOfShards,
 		RoundDurationInMillis:          roundDurationInMillis,
 		SupernovaRoundDurationInMillis: roundDurationInMillis / 10,
@@ -166,7 +167,7 @@ func TestChainSimulator_StakingV4Step2APICalls(t *testing.T) {
 	cs, err := chainSimulator.NewChainSimulator(chainSimulator.ArgsChainSimulator{
 		BypassTxSignatureCheck:         true,
 		TempDir:                        t.TempDir(),
-		PathToInitialConfig:            DefaultPathToInitialConfig,
+		PathToInitialConfig:            stake.DefaultPathToInitialConfig,
 		NumOfShards:                    3,
 		RoundDurationInMillis:          uint64(6000),
 		SupernovaRoundDurationInMillis: uint64(600),
@@ -277,7 +278,7 @@ func TestChainSimulator_StakingV4Step2APICalls(t *testing.T) {
 		err = cs.GenerateBlocks(2)
 		require.Nil(t, err)
 
-		qualified, unQualified := GetQualifiedAndUnqualifiedNodes(t, metachainNode)
+		qualified, unQualified := stake.GetQualifiedAndUnqualifiedNodes(t, metachainNode)
 		require.Equal(t, 8, len(qualified))
 		require.Equal(t, 1, len(unQualified))
 	}

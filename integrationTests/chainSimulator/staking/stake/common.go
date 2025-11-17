@@ -17,7 +17,7 @@ import (
 )
 
 const (
-	DefaultPathToInitialConfig = "../../../../cmd/node/config/"
+	DefaultPathToInitialConfig = "../../../../../cmd/node/config/"
 )
 
 var (
