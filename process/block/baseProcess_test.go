@@ -3964,7 +3964,7 @@ func TestBaseProcessor_GetFinalMiniBlocksFromExecutionResult(t *testing.T) {
 		require.Nil(t, body)
 	})
 
-	t.Run("should work", func(t *testing.T) {
+	t.Run("should work for shard header", func(t *testing.T) {
 		t.Parallel()
 
 		marshalizer := &mock.MarshalizerMock{
@@ -4012,6 +4012,60 @@ func TestBaseProcessor_GetFinalMiniBlocksFromExecutionResult(t *testing.T) {
 		}
 
 		body, err := bp.GetFinalMiniBlocksFromExecutionResults(header)
+		require.Nil(t, err)
+		require.Equal(t, &block.Body{
+			MiniBlocks: []*block.MiniBlock{mb1},
+		}, body)
+	})
+
+	t.Run("should work for meta block", func(t *testing.T) {
+		t.Parallel()
+
+		marshalizer := &mock.MarshalizerMock{
+			Fail: false,
+		}
+
+		mb1 := &block.MiniBlock{
+			TxHashes:        [][]byte{[]byte("txHash1")},
+			ReceiverShardID: 1,
+			SenderShardID:   2,
+		}
+
+		executedMBs := &cache.CacherStub{
+			GetCalled: func(key []byte) (value interface{}, ok bool) {
+				marshalledMb, _ := marshalizer.Marshal(mb1)
+				return marshalledMb, true
+			},
+		}
+		dataPool := initDataPool()
+		dataPool.ExecutedMiniBlocksCalled = func() storage.Cacher {
+			return executedMBs
+		}
+
+		coreComponents, dataComponents, bootstrapComponents, statusComponents := createComponentHolderMocks()
+		dataComponents.DataPool = dataPool
+		coreComponents.IntMarsh = marshalizer
+
+		arguments := createMockMetaArguments(coreComponents, dataComponents, bootstrapComponents, statusComponents)
+
+		mp, _ := blproc.NewMetaProcessor(arguments)
+
+		executionResults := []*block.MetaExecutionResult{
+			{
+				MiniBlockHeaders: []block.MiniBlockHeader{
+					{
+						Hash:            []byte("mbHash1"),
+						ReceiverShardID: 1,
+						SenderShardID:   0,
+					},
+				},
+			},
+		}
+		header := &block.MetaBlockV3{
+			ExecutionResults: executionResults,
+		}
+
+		body, err := mp.GetFinalMiniBlocksFromExecutionResults(header)
 		require.Nil(t, err)
 		require.Equal(t, &block.Body{
 			MiniBlocks: []*block.MiniBlock{mb1},
