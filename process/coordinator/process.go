@@ -291,30 +291,30 @@ func (tc *transactionCoordinator) RemoveTxsFromPool(body *block.Body, rootHashHo
 	var errFound error
 	errMutex := sync.Mutex{}
 
-	wg := sync.WaitGroup{}
-	wg.Add(len(separatedBodies))
+	//wg := sync.WaitGroup{}
+	//wg.Add(len(separatedBodies))
 
 	for key, value := range separatedBodies {
-		go func(blockType block.Type, blockBody *block.Body) {
-			preproc := tc.preProcExecution.getPreProcessor(blockType)
-			if check.IfNil(preproc) {
-				wg.Done()
-				return
-			}
+		//go func(blockType block.Type, blockBody *block.Body) {
+		preproc := tc.preProcExecution.getPreProcessor(key)
+		if check.IfNil(preproc) {
+			//wg.Done()
+			continue
+		}
 
-			err := preproc.RemoveTxsFromPools(blockBody, rootHashHolder)
-			if err != nil {
-				log.Trace("RemoveTxsFromPools", "error", err.Error())
+		err := preproc.RemoveTxsFromPools(value, rootHashHolder)
+		if err != nil {
+			log.Trace("RemoveTxsFromPools", "error", err.Error())
 
-				errMutex.Lock()
-				errFound = err
-				errMutex.Unlock()
-			}
-			wg.Done()
-		}(key, value)
+			errMutex.Lock()
+			errFound = err
+			errMutex.Unlock()
+		}
+		//wg.Done()
+		//}(key, value)
 	}
 
-	wg.Wait()
+	//wg.Wait()
 
 	return errFound
 }
