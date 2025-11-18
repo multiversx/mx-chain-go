@@ -343,10 +343,7 @@ func (mp *metaProcessor) ProcessBlockProposal(
 	}
 
 	if header.IsEpochChangeProposed() {
-		// TODO: this needs to be updated
-		err = mp.processEpochStartProposeBlock(header, body)
-		// TODO: collectExecutionResultsStartOfEpoch()
-		return nil, err
+		return mp.processEpochStartProposeBlock(header, body)
 	}
 
 	mp.txCoordinator.RequestBlockTransactions(body)
@@ -1023,15 +1020,15 @@ func (mp *metaProcessor) computeAndUpdateLastEpochStartShardData(metaHeader data
 func (mp *metaProcessor) processEpochStartProposeBlock(
 	metaHeader data.MetaHeaderHandler,
 	body *block.Body,
-) error {
+) (data.BaseExecutionResultHandler, error) {
 	if check.IfNil(metaHeader) {
-		return process.ErrNilBlockHeader
+		return nil, process.ErrNilBlockHeader
 	}
 	if body == nil {
-		return process.ErrNilBlockBody
+		return nil, process.ErrNilBlockBody
 	}
 	if len(body.MiniBlocks) != 0 {
-		return process.ErrEpochStartProposeBlockHasMiniBlocks
+		return nil, process.ErrEpochStartProposeBlockHasMiniBlocks
 	}
 
 	log.Debug("processing epoch start propose block",
@@ -1041,17 +1038,33 @@ func (mp *metaProcessor) processEpochStartProposeBlock(
 		"nonce", metaHeader.GetNonce(),
 	)
 
-	err := mp.computeEndOfEpochRatingsV3(metaHeader)
+	err := mp.processEconomicsDataForEpochStartProposeBlock(metaHeader)
 	if err != nil {
-		return err
+		return nil, err
 	}
 
-	err = mp.processEconomicsDataForEpochStartProposeBlock(metaHeader)
+	computedEconomics, err := mp.getComputedEconomics(metaHeader.GetEpoch() + 1)
 	if err != nil {
-		return err
+		return nil, err
 	}
 
-	return nil
+	constructedBody, err := mp.processEpochStartMiniBlocks(metaHeader, computedEconomics)
+	if err != nil {
+		return nil, err
+	}
+
+	headerHash, err := core.CalculateHash(mp.marshalizer, mp.hasher, metaHeader)
+	if err != nil {
+		return nil, err
+	}
+
+	currentRootHash, err := mp.validatorStatisticsProcessor.RootHash()
+	if err != nil {
+		return nil, err
+	}
+
+	// TODO: collectExecutionResultsStartOfEpoch()  - needs to handle differently the execution results for epoch start propose block
+	return mp.collectExecutionResults(headerHash, metaHeader, constructedBody, currentRootHash)
 }
 
 func (mp *metaProcessor) processEconomicsDataForEpochStartProposeBlock(metaHeader data.MetaHeaderHandler) error {
@@ -1087,40 +1100,15 @@ func (mp *metaProcessor) processEconomicsDataForEpochStartProposeBlock(metaHeade
 	return nil
 }
 
-func (mp *metaProcessor) computeEndOfEpochRatingsV3(metaHeader data.MetaHeaderHandler) error {
-	currentRootHash, err := mp.validatorStatisticsProcessor.RootHash()
-	if err != nil {
-		return err
-	}
-
-	allValidatorsInfo, err := mp.validatorStatisticsProcessor.GetValidatorInfoForRootHash(currentRootHash)
-	if err != nil {
-		return err
-	}
-
-	err = mp.validatorStatisticsProcessor.ProcessRatingsEndOfEpoch(allValidatorsInfo, metaHeader.GetEpoch()+1)
-	if err != nil {
-		return err
-	}
-
-	err = mp.epochSystemSCProcessor.ProcessSystemSmartContract(allValidatorsInfo, metaHeader)
-	if err != nil {
-		return err
-	}
-
+func (mp *metaProcessor) getComputedEconomics(epoch uint32) (*block.Economics, error) {
 	mp.mutEpochStartData.RLock()
-	if mp.epochStartDataWrapper == nil || mp.epochStartDataWrapper.EpochStartData == nil || mp.epochStartDataWrapper.Epoch != metaHeader.GetEpoch()+1 {
-		mp.mutEpochStartData.RUnlock()
-		return process.ErrNilEpochStartData
+	defer mp.mutEpochStartData.RUnlock()
+	if mp.epochStartDataWrapper == nil ||
+		mp.epochStartDataWrapper.EpochStartData == nil ||
+		mp.epochStartDataWrapper.Epoch != epoch {
+		return nil, process.ErrNilEpochStartData
 	}
 	computedEconomics := &mp.epochStartDataWrapper.EpochStartData.Economics
-	mp.mutEpochStartData.RUnlock()
 
-	// TODO: this needs to be updated to V3
-	err = mp.epochRewardsCreator.VerifyRewardsMiniBlocks(metaHeader, allValidatorsInfo, computedEconomics)
-	if err != nil {
-		return err
-	}
-
-	return nil
+	return computedEconomics, nil
 }

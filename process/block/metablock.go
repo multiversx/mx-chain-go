@@ -833,6 +833,19 @@ func (mp *metaProcessor) createEpochStartBody(metaBlock *block.MetaBlock) (data.
 		"nonce", metaBlock.GetNonce(),
 	)
 
+	return mp.processEpochStartMiniBlocks(metaBlock, &metaBlock.EpochStart.Economics)
+}
+
+func (mp *metaProcessor) processEpochStartMiniBlocks(
+	metaBlock data.MetaHeaderHandler,
+	computedEconomics *block.Economics,
+) (*block.Body, error) {
+
+	epochToUse := metaBlock.GetEpoch()
+	if metaBlock.IsHeaderV3() {
+		epochToUse = metaBlock.GetEpoch() + 1
+	}
+
 	currentRootHash, err := mp.validatorStatisticsProcessor.RootHash()
 	if err != nil {
 		return nil, err
@@ -843,35 +856,17 @@ func (mp *metaProcessor) createEpochStartBody(metaBlock *block.MetaBlock) (data.
 		return nil, err
 	}
 
-	err = mp.validatorStatisticsProcessor.ProcessRatingsEndOfEpoch(allValidatorsInfo, metaBlock.Epoch)
+	err = mp.validatorStatisticsProcessor.ProcessRatingsEndOfEpoch(allValidatorsInfo, epochToUse)
 	if err != nil {
 		return nil, err
 	}
 
-	var rewardMiniBlocks block.MiniBlockSlice
-	if mp.isRewardsV2Enabled(metaBlock) {
-		err = mp.epochSystemSCProcessor.ProcessSystemSmartContract(allValidatorsInfo, metaBlock)
-		if err != nil {
-			return nil, err
-		}
-
-		rewardMiniBlocks, err = mp.epochRewardsCreator.CreateRewardsMiniBlocks(metaBlock, allValidatorsInfo, &metaBlock.EpochStart.Economics)
-		if err != nil {
-			return nil, err
-		}
-	} else {
-		rewardMiniBlocks, err = mp.epochRewardsCreator.CreateRewardsMiniBlocks(metaBlock, allValidatorsInfo, &metaBlock.EpochStart.Economics)
-		if err != nil {
-			return nil, err
-		}
-
-		err = mp.epochSystemSCProcessor.ProcessSystemSmartContract(allValidatorsInfo, metaBlock)
-		if err != nil {
-			return nil, err
-		}
+	rewardMiniBlocks, err := mp.createRewardsMiniBlocksAndProcessSystemSCs(metaBlock, allValidatorsInfo, computedEconomics)
+	if err != nil {
+		return nil, err
 	}
 
-	metaBlock.EpochStart.Economics.RewardsForProtocolSustainability.Set(mp.epochRewardsCreator.GetProtocolSustainabilityRewards())
+	computedEconomics.RewardsForProtocolSustainability.Set(mp.epochRewardsCreator.GetProtocolSustainabilityRewards())
 
 	err = mp.epochSystemSCProcessor.ProcessDelegationRewards(rewardMiniBlocks, mp.epochRewardsCreator.GetLocalTxCache())
 	if err != nil {
@@ -893,6 +888,66 @@ func (mp *metaProcessor) createEpochStartBody(metaBlock *block.MetaBlock) (data.
 	finalMiniBlocks = append(finalMiniBlocks, validatorMiniBlocks...)
 
 	return &block.Body{MiniBlocks: finalMiniBlocks}, nil
+}
+
+func (mp *metaProcessor) createRewardsMiniBlocksAndProcessSystemSCs(
+	metaBlock data.MetaHeaderHandler,
+	allValidatorsInfo state.ShardValidatorsInfoMapHandler,
+	computedEconomics *block.Economics,
+) (block.MiniBlockSlice, error) {
+
+	var rewardMiniBlocks block.MiniBlockSlice
+	var err error
+	if mp.isRewardsV2Enabled(metaBlock) {
+		err = mp.epochSystemSCProcessor.ProcessSystemSmartContract(allValidatorsInfo, metaBlock)
+		if err != nil {
+			return nil, err
+		}
+
+		rewardMiniBlocks, err = mp.epochRewardsCreator.CreateRewardsMiniBlocks(metaBlock, allValidatorsInfo, computedEconomics)
+		if err != nil {
+			return nil, err
+		}
+	} else {
+		rewardMiniBlocks, err = mp.epochRewardsCreator.CreateRewardsMiniBlocks(metaBlock, allValidatorsInfo, computedEconomics)
+		if err != nil {
+			return nil, err
+		}
+
+		err = mp.epochSystemSCProcessor.ProcessSystemSmartContract(allValidatorsInfo, metaBlock)
+		if err != nil {
+			return nil, err
+		}
+	}
+
+	return rewardMiniBlocks, nil
+}
+
+func (mp *metaProcessor) createRewardsMiniBlocks(
+	metaHeader data.MetaHeaderHandler,
+	allValidatorsInfo state.ShardValidatorsInfoMapHandler,
+	computedEconomics *block.Economics,
+) (block.MiniBlockSlice, error) {
+	if !metaHeader.IsHeaderV3() {
+		return mp.epochRewardsCreator.CreateRewardsMiniBlocks(metaHeader, allValidatorsInfo, computedEconomics)
+	}
+
+	epochRewardsCreatorV3, ok := mp.epochRewardsCreator.(process.RewardsCreatorHeaderV3)
+	if !ok {
+		return nil, fmt.Errorf("%w to RewardsCreatorHeaderV3", process.ErrWrongTypeAssertion)
+	}
+
+	prevBlockExecutionResult := mp.blockChain.GetLastExecutionResult()
+	if check.IfNil(prevBlockExecutionResult) {
+		return nil, fmt.Errorf("%w for blockchain.GetLastExecutionResult", process.ErrNilBaseExecutionResult)
+	}
+
+	prevMetaExecResult, ok := prevBlockExecutionResult.(data.MetaExecutionResultHandler)
+	if !ok {
+		return nil, fmt.Errorf("%w to MetaExecutionResultHandler", process.ErrWrongTypeAssertion)
+	}
+
+	return epochRewardsCreatorV3.CreateRewardsMiniBlocksHeaderV3(metaHeader, allValidatorsInfo, computedEconomics, prevMetaExecResult)
 }
 
 // createBlockBody creates block body of metachain

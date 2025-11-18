@@ -1104,6 +1104,17 @@ type RewardsCreator interface {
 	IsInterfaceNil() bool
 }
 
+// RewardsCreatorHeaderV3 defines the functionality for the metachain to create rewards at end of epoch for V3 headers
+type RewardsCreatorHeaderV3 interface {
+	CreateRewardsMiniBlocksHeaderV3(
+		metaBlock data.MetaHeaderHandler,
+		validatorsInfo state.ShardValidatorsInfoMapHandler,
+		computedEconomics *block.Economics,
+		prevBlockExecutionResults data.BaseMetaExecutionResultHandler,
+	) (block.MiniBlockSlice, error)
+	RewardsCreator
+}
+
 // EpochStartValidatorInfoCreator defines the functionality for the metachain to create validator statistics at end of epoch
 type EpochStartValidatorInfoCreator interface {
 	CreateValidatorInfoMiniBlocks(validatorInfo state.ShardValidatorsInfoMapHandler) (block.MiniBlockSlice, error)

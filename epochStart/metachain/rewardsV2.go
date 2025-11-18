@@ -9,6 +9,7 @@ import (
 	"github.com/multiversx/mx-chain-core-go/data"
 	"github.com/multiversx/mx-chain-core-go/data/block"
 	"github.com/multiversx/mx-chain-core-go/data/rewardTx"
+
 	"github.com/multiversx/mx-chain-go/common"
 	"github.com/multiversx/mx-chain-go/common/validatorInfo"
 	"github.com/multiversx/mx-chain-go/epochStart"
@@ -41,6 +42,15 @@ type rewardsCreatorV2 struct {
 	stakingDataProvider   epochStart.StakingDataProvider
 	economicsDataProvider epochStart.EpochEconomicsDataProvider
 	rewardsHandler        process.RewardsHandler
+}
+
+type argsRewardsMiniBlocksCreation struct {
+	newEpoch               uint32
+	round                  uint64
+	devFeesInEpoch         *big.Int
+	accumulatedFeesInEpoch *big.Int
+	validatorsInfo         state.ShardValidatorsInfoMapHandler
+	computedEconomics      *block.Economics
 }
 
 // NewRewardsCreatorV2 creates a new rewards creator object
@@ -81,7 +91,51 @@ func (rc *rewardsCreatorV2) CreateRewardsMiniBlocks(
 	if check.IfNil(metaBlock) {
 		return nil, epochStart.ErrNilHeaderHandler
 	}
-	if computedEconomics == nil {
+
+	args := argsRewardsMiniBlocksCreation{
+		newEpoch:               metaBlock.GetEpoch(),
+		round:                  metaBlock.GetRound(),
+		devFeesInEpoch:         metaBlock.GetDevFeesInEpoch(),
+		accumulatedFeesInEpoch: metaBlock.GetAccumulatedFeesInEpoch(),
+		validatorsInfo:         validatorsInfo,
+		computedEconomics:      computedEconomics,
+	}
+	return rc.createRewardsMiniBlocks(args)
+}
+
+// CreateRewardsMiniBlocksHeaderV3 creates the rewards miniblocks according to economics data and validator info.
+func (rc *rewardsCreatorV2) CreateRewardsMiniBlocksHeaderV3(
+	metaBlock data.MetaHeaderHandler,
+	validatorsInfo state.ShardValidatorsInfoMapHandler,
+	computedEconomics *block.Economics,
+	prevBlockExecutionResults data.BaseMetaExecutionResultHandler,
+) (block.MiniBlockSlice, error) {
+	if check.IfNil(metaBlock) {
+		return nil, epochStart.ErrNilHeaderHandler
+	}
+	if check.IfNil(prevBlockExecutionResults) {
+		return nil, epochStart.ErrNilPrevBlockExecutionResults
+	}
+	if !metaBlock.IsHeaderV3() {
+		return nil, epochStart.ErrInvalidHeader
+	}
+
+	epoch := metaBlock.GetEpoch() + 1
+	args := argsRewardsMiniBlocksCreation{
+		newEpoch:               epoch,
+		round:                  metaBlock.GetRound(),
+		devFeesInEpoch:         prevBlockExecutionResults.GetDevFeesInEpoch(),
+		accumulatedFeesInEpoch: prevBlockExecutionResults.GetAccumulatedFeesInEpoch(),
+		validatorsInfo:         validatorsInfo,
+		computedEconomics:      computedEconomics,
+	}
+	return rc.createRewardsMiniBlocks(args)
+}
+
+func (rc *rewardsCreatorV2) createRewardsMiniBlocks(
+	args argsRewardsMiniBlocksCreation,
+) (block.MiniBlockSlice, error) {
+	if args.computedEconomics == nil {
 		return nil, epochStart.ErrNilEconomicsData
 	}
 
@@ -89,10 +143,10 @@ func (rc *rewardsCreatorV2) CreateRewardsMiniBlocks(
 	defer rc.mutRewardsData.Unlock()
 
 	log.Debug("rewardsCreatorV2.CreateRewardsMiniBlocks",
-		"totalToDistribute", computedEconomics.TotalToDistribute,
-		"rewardsForProtocolSustainability", computedEconomics.RewardsForProtocolSustainability,
-		"rewardsPerBlock", computedEconomics.RewardsPerBlock,
-		"devFeesInEpoch", metaBlock.GetDevFeesInEpoch(),
+		"totalToDistribute", args.computedEconomics.TotalToDistribute,
+		"rewardsForProtocolSustainability", args.computedEconomics.RewardsForProtocolSustainability,
+		"rewardsPerBlock", args.computedEconomics.RewardsPerBlock,
+		"devFeesInEpoch", args.devFeesInEpoch,
 		"rewardsForBlocks no fees", rc.economicsDataProvider.RewardsToBeDistributedForBlocks(),
 		"numberOfBlocks", rc.economicsDataProvider.NumberOfBlocks(),
 		"numberOfBlocksPerShard", rc.economicsDataProvider.NumberOfBlocksPerShard(),
@@ -100,17 +154,17 @@ func (rc *rewardsCreatorV2) CreateRewardsMiniBlocks(
 
 	miniBlocks := rc.initializeRewardsMiniBlocks()
 	rc.clean()
-	rc.flagDelegationSystemSCEnabled.SetValue(metaBlock.GetEpoch() >= rc.enableEpochsHandler.GetActivationEpoch(common.StakingV2Flag))
+	rc.flagDelegationSystemSCEnabled.SetValue(args.newEpoch >= rc.enableEpochsHandler.GetActivationEpoch(common.StakingV2Flag))
 
-	protRwdTx, protRwdShardId, err := rc.createProtocolSustainabilityRewardTransaction(metaBlock, computedEconomics)
+	protRwdTx, protRwdShardId, err := rc.createProtocolSustainabilityRewardTransaction(args.newEpoch, args.round, args.computedEconomics)
 	if err != nil {
 		return nil, err
 	}
 
-	nodesRewardInfo, dustFromRewardsPerNode := rc.computeRewardsPerNode(validatorsInfo, metaBlock.GetEpoch())
+	nodesRewardInfo, dustFromRewardsPerNode := rc.computeRewardsPerNode(args.validatorsInfo, args.newEpoch)
 	log.Debug("arithmetic difference from dust rewards per node", "value", dustFromRewardsPerNode)
 
-	dust, err := rc.addValidatorRewardsToMiniBlocks(metaBlock, miniBlocks, nodesRewardInfo)
+	dust, err := rc.addValidatorRewardsToMiniBlocks(args.newEpoch, args.round, miniBlocks, nodesRewardInfo)
 	if err != nil {
 		return nil, err
 	}
@@ -167,14 +221,15 @@ func (rc *rewardsCreatorV2) VerifyRewardsMiniBlocks(
 }
 
 func (rc *rewardsCreatorV2) addValidatorRewardsToMiniBlocks(
-	metaBlock data.HeaderHandler,
+	epoch uint32,
+	round uint64,
 	miniBlocks block.MiniBlockSlice,
 	nodesRewardInfo map[uint32][]*nodeRewardsData,
 ) (*big.Int, error) {
 	rwdAddrValidatorInfo, accumulatedDust := rc.computeValidatorInfoPerRewardAddress(nodesRewardInfo)
 
 	for _, rwdInfo := range rwdAddrValidatorInfo {
-		rwdTx, rwdTxHash, err := rc.createRewardFromRwdInfo(rwdInfo, metaBlock)
+		rwdTx, rwdTxHash, err := rc.createRewardFromRwdInfo(rwdInfo, epoch, round)
 		if err != nil {
 			return nil, err
 		}
