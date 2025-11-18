@@ -159,6 +159,7 @@ func (he *headersExecutor) process(pair queue.HeaderBodyPair) error {
 	)
 
 	he.blockChain.SetLastExecutedBlockHeaderAndRootHash(pair.Header, executionResult.GetHeaderHash(), executionResult.GetRootHash())
+	he.blockChain.SetLastExecutionResult(executionResult)
 
 	return nil
 }

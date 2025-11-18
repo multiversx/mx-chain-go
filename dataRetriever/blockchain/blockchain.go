@@ -16,18 +16,6 @@ type blockChain struct {
 	currentBlockRootHash []byte
 }
 
-// GetLastExecutionResult returns the last execution result
-func (bc *blockChain) GetLastExecutionResult() data.BaseExecutionResultHandler {
-	// TODO implement me
-	panic("implement me")
-}
-
-// SetLastExecutionResult sets the last execution result
-func (bc *blockChain) SetLastExecutionResult(result data.BaseExecutionResultHandler) {
-	// TODO implement me
-	panic("implement me")
-}
-
 // NewBlockChain returns an initialized blockchain
 func NewBlockChain(appStatusHandler core.AppStatusHandler) (*blockChain, error) {
 	if check.IfNil(appStatusHandler) {

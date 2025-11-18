@@ -424,7 +424,7 @@ func TestHeadersExecutor_Process(t *testing.T) {
 		require.Nil(t, err)
 	})
 
-	t.Run("should add execution result to blockchain handler", func(t *testing.T) {
+	t.Run("should add execution result info to blockchain handler", func(t *testing.T) {
 		t.Parallel()
 
 		args := createMockArgs()
@@ -442,12 +442,16 @@ func TestHeadersExecutor_Process(t *testing.T) {
 
 		setFinalBlockInfoCalled := false
 		setLastExecutedBlockInfoCalled := false
+		setLastExecutionResultCalled := false
 		args.BlockChain = &testscommon.ChainHandlerStub{
 			SetFinalBlockInfoCalled: func(nonce uint64, headerHash, rootHash []byte) {
 				setFinalBlockInfoCalled = true
 			},
 			SetLastExecutedBlockHeaderAndRootHashCalled: func(header data.HeaderHandler, headerHash, rootHash []byte) {
 				setLastExecutedBlockInfoCalled = true
+			},
+			SetLastExecutionResultCalled: func(result data.BaseExecutionResultHandler) {
+				setLastExecutionResultCalled = true
 			},
 		}
 
@@ -465,5 +469,6 @@ func TestHeadersExecutor_Process(t *testing.T) {
 
 		require.True(t, setFinalBlockInfoCalled)
 		require.True(t, setLastExecutedBlockInfoCalled)
+		require.True(t, setLastExecutionResultCalled)
 	})
 }
