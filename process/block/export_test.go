@@ -49,6 +49,8 @@ import (
 // UsedShardHeadersInfo -
 type UsedShardHeadersInfo = usedShardHeadersInfo
 
+type EpochStartDataWrapper = epochStartDataWrapper
+
 // ComputeHeaderHash -
 func (bp *baseProcessor) ComputeHeaderHash(hdr data.HeaderHandler) ([]byte, error) {
 	return core.CalculateHash(bp.marshalizer, bp.hasher, hdr)
@@ -943,10 +945,8 @@ func ConstructPartialMetaBlockProcessorForTest(subcomponents map[string]interfac
 }
 
 // SetEpochStartData -
-func (mp *metaProcessor) SetEpochStartData(epochStartData *block.EpochStart) {
-	if mp.epochStartDataWrapper != nil {
-		mp.epochStartDataWrapper.EpochStartData = epochStartData
-	}
+func (mp *metaProcessor) SetEpochStartData(epochStartData *EpochStartDataWrapper) {
+	mp.epochStartDataWrapper = epochStartData
 }
 
 // GetTxCountExecutionResults -

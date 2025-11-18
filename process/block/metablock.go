@@ -1369,6 +1369,10 @@ func (mp *metaProcessor) CommitBlock(
 
 	mp.blockProcessingCutoffHandler.HandlePauseCutoff(header)
 
+	if header.IsHeaderV3() && header.IsStartOfEpochBlock() {
+		saveEpochStartEconomicsMetrics(mp.appStatusHandler, header)
+	}
+
 	return nil
 }
 
@@ -2313,6 +2317,8 @@ func (mp *metaProcessor) applyBodyToHeader(metaHdr data.MetaHeaderHandler, bodyH
 }
 
 func (mp *metaProcessor) prepareBlockHeaderInternalMapForValidatorProcessor() {
+	mp.blockChain.GetLastExecutedBlockHeader()
+	mp.blockChain.GetLastExecutedBlockInfo()
 	currentBlockHeader := mp.blockChain.GetCurrentBlockHeader()
 	currentBlockHeaderHash := mp.blockChain.GetCurrentBlockHeaderHash()
 
