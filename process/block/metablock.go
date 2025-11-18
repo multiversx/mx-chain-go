@@ -1711,6 +1711,7 @@ func (mp *metaProcessor) getRewardsTxs(header data.MetaHeaderHandler, body *bloc
 func (mp *metaProcessor) commitEpochStart(header data.MetaHeaderHandler, body *block.Body) {
 	if header.IsStartOfEpochBlock() {
 		// todo: here, take body from cache
+
 		mp.epochStartTrigger.SetProcessed(header, body)
 		go mp.epochRewardsCreator.SaveBlockDataToStorage(header, body)
 		go mp.validatorInfoCreator.SaveBlockDataToStorage(header, body)
@@ -1721,6 +1722,37 @@ func (mp *metaProcessor) commitEpochStart(header data.MetaHeaderHandler, body *b
 			mp.nodesCoordinator.ShuffleOutForEpoch(currentHeader.GetEpoch())
 		}
 	}
+}
+
+func (mp *metaProcessor) prepareEpochStartBodyForTrigger(header data.MetaHeaderHandler) (*block.Body, error) {
+	allMiniBlocks := make([]*block.MiniBlock, 0)
+	for _, execResult := range header.GetExecutionResultsHandlers() {
+		metaExecRes, castOk := execResult.(data.MetaExecutionResultHandler)
+		if !castOk {
+
+		}
+
+		postProcessKey := append(metaExecRes.GetHeaderHash(), []byte(postProcessMiniBlocksKeySuffix)...)
+		retrievedObj, found := mp.dataPool.ExecutedMiniBlocks().Get(postProcessKey)
+		if !found {
+
+		}
+
+		marshalledMbs, castOk := retrievedObj.([]byte)
+		if !castOk {
+
+		}
+
+		var currMBs []*block.MiniBlock
+		err := mp.marshalizer.Unmarshal(currMBs, marshalledMbs)
+		if err != nil {
+			return nil, err
+		}
+
+		allMiniBlocks = append(allMiniBlocks, currMBs...)
+	}
+
+	return &block.Body{MiniBlocks: allMiniBlocks}, nil
 }
 
 // RevertStateToBlock recreates the state tries to the root hashes indicated by the provided root hash and header

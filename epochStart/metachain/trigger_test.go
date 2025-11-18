@@ -71,12 +71,6 @@ func createMockEpochStartTriggerArguments() *ArgsNewMetaEpochStartTrigger {
 	}
 }
 
-func requireFlags(t *testing.T, expectedVal bool, flags ...*bool) {
-	for _, flag := range flags {
-		require.Equal(t, expectedVal, *flag)
-	}
-}
-
 func TestNewEpochStartTrigger_NilArgumentsShouldErr(t *testing.T) {
 	t.Parallel()
 
