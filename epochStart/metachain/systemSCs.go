@@ -102,14 +102,14 @@ func (s *systemSCProcessor) ProcessSystemSmartContract(
 	validatorsInfoMap state.ShardValidatorsInfoMapHandler,
 	header data.HeaderHandler,
 ) error {
-	epochToUse := header.GetEpoch()
-	if header.IsHeaderV3() {
-		epochToUse = header.GetEpoch() + 1
-	}
-
 	err := checkNilInputValues(validatorsInfoMap, header)
 	if err != nil {
 		return err
+	}
+
+	epochToUse := header.GetEpoch()
+	if header.IsHeaderV3() {
+		epochToUse = header.GetEpoch() + 1
 	}
 
 	err = s.processLegacy(validatorsInfoMap, header.GetNonce(), epochToUse)

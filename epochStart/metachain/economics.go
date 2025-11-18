@@ -252,8 +252,9 @@ func (e *economics) baseComputeEconomics(args *argsComputeEconomics) (*block.Eco
 func (e *economics) ComputeEndOfEpochEconomicsV3(
 	metaBlock data.MetaHeaderHandler,
 	prevBlockExecutionResults data.BaseMetaExecutionResultHandler,
+	epochStartHandler data.EpochStartHandler,
 ) (*block.Economics, error) {
-	args, err := e.createEconomicsV3Args(metaBlock, prevBlockExecutionResults)
+	args, err := e.createEconomicsV3Args(metaBlock, prevBlockExecutionResults, epochStartHandler)
 	if err != nil {
 		return nil, err
 	}
@@ -264,6 +265,7 @@ func (e *economics) ComputeEndOfEpochEconomicsV3(
 func (e *economics) createEconomicsV3Args(
 	metaBlock data.MetaHeaderHandler,
 	prevBlockExecutionResults data.BaseMetaExecutionResultHandler,
+	epochStartHandler data.EpochStartHandler,
 ) (*argsComputeEconomics, error) {
 	if check.IfNil(metaBlock) {
 		return nil, process.ErrNilMetaBlockHeader
@@ -271,7 +273,9 @@ func (e *economics) createEconomicsV3Args(
 	if check.IfNil(prevBlockExecutionResults) {
 		return nil, process.ErrNilExecutionResultHandler
 	}
-
+	if epochStartHandler == nil {
+		return nil, process.ErrNilEpochStartData
+	}
 	if prevBlockExecutionResults.GetAccumulatedFeesInEpoch() == nil {
 		return nil, epochStart.ErrNilTotalAccumulatedFeesInEpoch
 	}
@@ -295,7 +299,7 @@ func (e *economics) createEconomicsV3Args(
 		return nil, err
 	}
 
-	lastNoncesPerShardCurrEpoch := e.computeLastNoncePerShardCurrentEpoch(metaBlock)
+	lastNoncesPerShardCurrEpoch := e.startNoncePerShardFromLastCrossNotarized(metaBlock.GetNonce(), epochStartHandler)
 
 	return &argsComputeEconomics{
 		computationData: economicsComputationData{
@@ -310,13 +314,6 @@ func (e *economics) createEconomicsV3Args(
 		lastNoncesPerShardPrevEpoch: lastNoncesPerShardPrevEpoch,
 		lastNoncesPerShardCurrEpoch: lastNoncesPerShardCurrEpoch,
 	}, nil
-}
-
-func (e *economics) computeLastNoncePerShardCurrentEpoch(metaHeader data.MetaHeaderHandler) map[uint32]uint64 {
-	// todo: implement this:
-	// 1. get the referenced shard headers from prevMetaBlock (maximum nonce for each shard)
-	// 2. if not all shards have nonce, go to the prevMetaBlock-> prevMetaBlock and repeat step 1 until all shards have nonce or genesis is reached
-	return nil
 }
 
 func (e *economics) printEconomicsData(

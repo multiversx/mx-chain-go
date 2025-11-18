@@ -787,6 +787,7 @@ type EndOfEpochEconomics interface {
 	ComputeEndOfEpochEconomicsV3(
 		metaBlock data.MetaHeaderHandler,
 		prevBlockExecutionResults data.BaseMetaExecutionResultHandler,
+		epochStartHandler data.EpochStartHandler,
 	) (*block.Economics, error)
 	VerifyRewardsPerBlock(metaBlock data.MetaHeaderHandler, correctedProtocolSustainability *big.Int, computedEconomics data.EconomicsHandler) error
 	IsInterfaceNil() bool

@@ -404,11 +404,6 @@ func (mp *metaProcessor) ProcessBlockProposal(
 		return nil, err
 	}
 
-	// err = mp.verifyValidatorStatisticsRootHash(header)
-	// if err != nil {
-	// 	return nil, err
-	// }
-
 	err = mp.blockProcessingCutoffHandler.HandleProcessErrorCutoff(header)
 	if err != nil {
 		return nil, err
@@ -946,10 +941,8 @@ func (mp *metaProcessor) computeAndUpdateLastEpochStartShardData(metaHeader data
 		return process.ErrNilEpochStartData
 	}
 
-	// Last finalized data for each shard, needs to be created on the Stat of epoch block
-	// not on the proposal of the epoch change block, as the tracker is updated upon commit not on execution
-	// The economic changes will need in this case to be decoupled from the last finalized data creation
-	// as the economic changes are results of the epoch change proposal execution
+	// since there are no shard headers finalized between the epoch start proposal and the epoch start block,
+	// the last finalized data is the same as the one created at epoch start block proposal time
 	lastFinalizedData, err := mp.epochStartDataCreator.CreateEpochStartShardDataMetablockV3(metaHeader)
 	if err != nil {
 		return err
@@ -1002,7 +995,17 @@ func (mp *metaProcessor) processEconomicsDataForEpochStartProposeBlock(metaHeade
 		return process.ErrWrongTypeAssertion
 	}
 
-	economicsData, err := mp.epochEconomics.ComputeEndOfEpochEconomicsV3(metaHeader, prevExecutionResult)
+	// since there are no shard headers finalized between the epoch start proposal and the epoch start block,
+	// the last finalized data is the same as the one created at epoch start block proposal time
+	lastFinalizedData, err := mp.epochStartDataCreator.CreateEpochStartShardDataMetablockV3(metaHeader)
+	if err != nil {
+		return err
+	}
+	lastShardData := &block.EpochStart{
+		LastFinalizedHeaders: lastFinalizedData,
+	}
+
+	economicsData, err := mp.epochEconomics.ComputeEndOfEpochEconomicsV3(metaHeader, prevExecutionResult, lastShardData)
 	if err != nil {
 		return err
 	}

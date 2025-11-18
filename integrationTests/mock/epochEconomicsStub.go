@@ -13,6 +13,7 @@ type EpochEconomicsStub struct {
 	ComputeEndOfEpochEconomicsV3Called func(
 		metaBlock data.MetaHeaderHandler,
 		prevBlockExecutionResults data.BaseMetaExecutionResultHandler,
+		epochStartHandler data.EpochStartHandler,
 	) (*block.Economics, error)
 	VerifyRewardsPerBlockCalled func(
 		metaBlock data.MetaHeaderHandler, correctedProtocolSustainability *big.Int, computedEconomics data.EconomicsHandler,
@@ -31,9 +32,10 @@ func (e *EpochEconomicsStub) ComputeEndOfEpochEconomics(metaBlock data.MetaHeade
 func (e *EpochEconomicsStub) ComputeEndOfEpochEconomicsV3(
 	metaBlock data.MetaHeaderHandler,
 	prevBlockExecutionResults data.BaseMetaExecutionResultHandler,
+	epochStartHandler data.EpochStartHandler,
 ) (*block.Economics, error) {
 	if e.ComputeEndOfEpochEconomicsV3Called != nil {
-		return e.ComputeEndOfEpochEconomicsV3Called(metaBlock, prevBlockExecutionResults)
+		return e.ComputeEndOfEpochEconomicsV3Called(metaBlock, prevBlockExecutionResults, epochStartHandler)
 	}
 	return &block.Economics{}, nil
 }
