@@ -292,10 +292,7 @@ func (t *trigger) SetProcessed(header data.HeaderHandler, body data.BodyHandler)
 	t.epochStartMeta = metaBlock
 	t.epochStartMetaHash = metaHash
 
-	if !metaBlock.IsHeaderV3() {
-		t.epochStartNotifier.NotifyAllPrepare(metaBlock, body)
-	}
-
+	t.epochStartNotifier.NotifyAllPrepare(metaBlock, body)
 	t.epochStartNotifier.NotifyAll(metaBlock)
 
 	t.saveCurrentState(metaBlock.GetRound())
@@ -312,33 +309,6 @@ func (t *trigger) SetProcessed(header data.HeaderHandler, body data.BodyHandler)
 	if errNotCritical != nil {
 		log.Warn("SetProcessed put into metaHdrStorage", "error", errNotCritical.Error())
 	}
-}
-
-// SetProposed sets internal data for epoch change proposed header
-func (t *trigger) SetProposed(header data.HeaderHandler, body data.BodyHandler) {
-	t.mutTrigger.Lock()
-	defer t.mutTrigger.Unlock()
-
-	metaBlock, ok := header.(data.MetaHeaderHandler)
-	if !ok {
-		return
-	}
-
-	if !metaBlock.IsHeaderV3() {
-		return
-	}
-
-	if !metaBlock.IsEpochChangeProposed() {
-		return
-	}
-
-	// TODO: Check if this is needed here, maybe in case of reverts:
-	// t.epoch = metaBlock.Epoch
-	t.isEpochStart = true
-	t.epochStartNotifier.NotifyAllPrepare(metaBlock, body)
-	t.saveCurrentState(metaBlock.GetRound())
-
-	log.Debug("trigger.SetProposed", "isEpochStart", t.isEpochStart)
 }
 
 // SetFinalityAttestingRound sets the round which finalized the start of epoch block

@@ -201,7 +201,7 @@ func (s *syncValidatorStatus) processValidatorChangesFor(metaBlock data.HeaderHa
 
 func findPeerMiniBlockHeaders(metaBlock data.HeaderHandler) []data.MiniBlockHeaderHandler {
 	shardMBHeaderHandlers := make([]data.MiniBlockHeaderHandler, 0)
-	mbHeaderHandlers := metaBlock.GetMiniBlockHeaderHandlers()
+	mbHeaderHandlers := getMiniBlockHeaders(metaBlock)
 	for i, mbHeader := range mbHeaderHandlers {
 		if mbHeader.GetTypeInt32() != int32(block.PeerBlock) {
 			continue
@@ -210,6 +210,24 @@ func findPeerMiniBlockHeaders(metaBlock data.HeaderHandler) []data.MiniBlockHead
 		shardMBHeaderHandlers = append(shardMBHeaderHandlers, mbHeaderHandlers[i])
 	}
 	return shardMBHeaderHandlers
+}
+
+func getMiniBlockHeaders(metaBlock data.HeaderHandler) []data.MiniBlockHeaderHandler {
+	if !metaBlock.IsHeaderV3() {
+		return metaBlock.GetMiniBlockHeaderHandlers()
+	}
+
+	mbHeaderHandlers := make([]data.MiniBlockHeaderHandler, 0)
+	for _, execResult := range metaBlock.GetExecutionResultsHandlers() {
+		metaExecResults, castOk := execResult.(data.MetaExecutionResultHandler)
+		if !castOk {
+
+		}
+
+		mbHeaderHandlers = append(mbHeaderHandlers, metaExecResults.GetMiniBlockHeadersHandlers()...)
+	}
+
+	return mbHeaderHandlers
 }
 
 func (s *syncValidatorStatus) getPeerBlockBodyForMeta(

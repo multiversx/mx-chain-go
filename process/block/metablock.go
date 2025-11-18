@@ -1710,6 +1710,7 @@ func (mp *metaProcessor) getRewardsTxs(header data.MetaHeaderHandler, body *bloc
 
 func (mp *metaProcessor) commitEpochStart(header data.MetaHeaderHandler, body *block.Body) {
 	if header.IsStartOfEpochBlock() {
+		// todo: here, take body from cache
 		mp.epochStartTrigger.SetProcessed(header, body)
 		go mp.epochRewardsCreator.SaveBlockDataToStorage(header, body)
 		go mp.validatorInfoCreator.SaveBlockDataToStorage(header, body)
