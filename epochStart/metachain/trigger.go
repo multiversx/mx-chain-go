@@ -332,7 +332,7 @@ func (t *trigger) SetProposed(header data.HeaderHandler, body data.BodyHandler) 
 		return
 	}
 
-	// TODO: Check if this is needed here:
+	// TODO: Check if this is needed here, maybe in case of reverts:
 	// t.epoch = metaBlock.Epoch
 	t.isEpochStart = true
 	t.epochStartNotifier.NotifyAllPrepare(metaBlock, body)
