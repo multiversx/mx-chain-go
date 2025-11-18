@@ -518,7 +518,7 @@ func TestBaseProcessor_FilterHeadersWithoutProofs(t *testing.T) {
 func TestHeadersForBlock_requestMissingAndUpdateBasedOnCrossShardData(t *testing.T) {
 	t.Parallel()
 
-	t.Run("could not found last notarized on genesis nonce", func(t *testing.T) {
+	t.Run("could not find last notarized on genesis nonce", func(t *testing.T) {
 		t.Parallel()
 
 		args := createMockArgs()
@@ -732,6 +732,8 @@ func TestHeadersForBlock_computeExistingAndRequestMissingShardHeaders(t *testing
 	})
 
 	t.Run("should work for other headers", func(t *testing.T) {
+		t.Parallel()
+
 		shardInfoHandlers := []block.ShardData{
 			{
 				HeaderHash: []byte("hash1"),
