@@ -327,15 +327,17 @@ func TestExecutionManager_RemoveAtNonceAndHigher(t *testing.T) {
 		pauseCalled := false
 		resumeCalled := false
 		removeFromNonceCalled := false
+
+		lastNotarizedExecResult := &block.ExecutionResult{
+			BaseExecutionResult: &block.BaseExecutionResult{
+				HeaderNonce: 5,
+				HeaderHash:  []byte("hash5"),
+				RootHash:    []byte("root5"),
+			},
+		}
 		args.ExecutionResultsTracker = &processMocks.ExecutionTrackerStub{
 			GetLastNotarizedExecutionResultCalled: func() (data.BaseExecutionResultHandler, error) {
-				return &block.ExecutionResult{
-					BaseExecutionResult: &block.BaseExecutionResult{
-						HeaderNonce: 5,
-						HeaderHash:  []byte("hash5"),
-						RootHash:    []byte("root5"),
-					},
-				}, nil
+				return lastNotarizedExecResult, nil
 			},
 			RemoveFromNonceCalled: func(nonce uint64) error {
 				removeFromNonceCalled = true
@@ -384,6 +386,9 @@ func TestExecutionManager_RemoveAtNonceAndHigher(t *testing.T) {
 		require.Equal(t, uint64(5), nonce)
 		require.Equal(t, []byte("hash5"), hash)
 		require.Equal(t, []byte("root5"), rootHash)
+
+		retLastExecutionResult := chainMock.GetLastExecutionResult()
+		require.Equal(t, lastNotarizedExecResult, retLastExecutionResult)
 	})
 
 	t.Run("error from tracker remove should error", func(t *testing.T) {
@@ -451,6 +456,14 @@ func TestExecutionManager_RemoveAtNonceAndHigher(t *testing.T) {
 		t.Parallel()
 
 		args := createMockArgs()
+
+		lastExecutionResult := &block.ExecutionResult{
+			BaseExecutionResult: &block.BaseExecutionResult{
+				HeaderNonce: 7,
+				HeaderHash:  []byte("hash7"),
+				RootHash:    []byte("root7"),
+			},
+		}
 		args.ExecutionResultsTracker = &processMocks.ExecutionTrackerStub{
 			GetLastNotarizedExecutionResultCalled: func() (data.BaseExecutionResultHandler, error) {
 				return &block.ExecutionResult{
@@ -470,13 +483,7 @@ func TestExecutionManager_RemoveAtNonceAndHigher(t *testing.T) {
 							RootHash:    []byte("root6"),
 						},
 					},
-					&block.ExecutionResult{
-						BaseExecutionResult: &block.BaseExecutionResult{
-							HeaderNonce: 7,
-							HeaderHash:  []byte("hash7"),
-							RootHash:    []byte("root7"),
-						},
-					},
+					lastExecutionResult,
 				}, nil
 			},
 		}
@@ -508,6 +515,9 @@ func TestExecutionManager_RemoveAtNonceAndHigher(t *testing.T) {
 
 		lastExecHeader := chainMock.GetLastExecutedBlockHeader()
 		require.Equal(t, header, lastExecHeader)
+
+		retLastExecutionResult := chainMock.GetLastExecutionResult()
+		require.Equal(t, lastExecutionResult, retLastExecutionResult)
 	})
 
 	t.Run("error getting pending execution results should error", func(t *testing.T) {
