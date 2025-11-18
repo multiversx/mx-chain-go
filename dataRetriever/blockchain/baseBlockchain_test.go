@@ -157,7 +157,7 @@ func TestBaseBlockchain_Concurrency(t *testing.T) {
 
 	for i := range numCalls {
 		go func(i int) {
-			switch i % 10 {
+			switch i % 12 {
 			case 0:
 				_ = bc.GetCurrentBlockHeaderHash()
 			case 1:
