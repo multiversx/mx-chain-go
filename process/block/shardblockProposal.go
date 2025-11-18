@@ -13,7 +13,6 @@ import (
 
 	"github.com/multiversx/mx-chain-go/common"
 	"github.com/multiversx/mx-chain-go/process"
-	"github.com/multiversx/mx-chain-go/process/block/processedMb"
 	"github.com/multiversx/mx-chain-go/state"
 )
 
@@ -672,17 +671,7 @@ func (sp *shardProcessor) checkMetaHeadersValidityAndFinalityProposal(header dat
 
 // collectExecutionResults collects the execution results after processing the block
 func (sp *shardProcessor) collectExecutionResults(headerHash []byte, header data.HeaderHandler, body *block.Body) (data.BaseExecutionResultHandler, error) {
-	crossShardIncomingMiniBlocks := sp.getCrossShardIncomingMiniBlocksFromBody(body)
-	miniBlocksFromSelf := sp.txCoordinator.GetCreatedMiniBlocksFromMe()
-	postProcessMiniBlocks := sp.txCoordinator.CreatePostProcessMiniBlocks()
-	postProcessMiniBlocksToMe := sp.txCoordinator.GetCreatedInShardMiniBlocks()
-
-	allMiniBlocks := make([]*block.MiniBlock, 0, len(crossShardIncomingMiniBlocks)+len(miniBlocksFromSelf)+len(postProcessMiniBlocks))
-	allMiniBlocks = append(allMiniBlocks, crossShardIncomingMiniBlocks...)
-	allMiniBlocks = append(allMiniBlocks, miniBlocksFromSelf...)
-	allMiniBlocks = append(allMiniBlocks, postProcessMiniBlocks...)
-
-	receiptHash, err := sp.txCoordinator.CreateReceiptsHash()
+	miniBlockHeaderHandlers, totalTxCount, receiptHash, err := sp.collectMiniBlocks(headerHash, body)
 	if err != nil {
 		return nil, err
 	}
@@ -694,34 +683,6 @@ func (sp *shardProcessor) collectExecutionResults(headerHash []byte, header data
 	}
 
 	gasUsed := gasAndFees.GetGasProvided() - gasNotUsedForProcessing // needed for inclusion estimation
-
-	bodyAfterExecution := &block.Body{MiniBlocks: allMiniBlocks}
-	// remove the self-receipts and self smart contract results mini blocks - similar to Pre-Supernova
-	sanitizedBodyAfterExecution := deleteSelfReceiptsMiniBlocks(bodyAfterExecution)
-
-	// giving an empty processedMiniBlockInfo would cause all miniBlockHeaders to be created as fully processed.
-	processedMiniBlockInfo := make(map[string]*processedMb.ProcessedMiniBlockInfo)
-
-	totalTxCount, miniBlockHeaderHandlers, err := sp.createMiniBlockHeaderHandlers(sanitizedBodyAfterExecution, processedMiniBlockInfo)
-	if err != nil {
-		return nil, err
-	}
-
-	intraMiniBlocks := sp.txCoordinator.GetCreatedInShardMiniBlocks()
-	err = sp.cacheIntraShardMiniBlocks(headerHash, intraMiniBlocks)
-	if err != nil {
-		return nil, err
-	}
-
-	err = sp.cacheExecutedMiniBlocks(sanitizedBodyAfterExecution, miniBlockHeaderHandlers)
-	if err != nil {
-		return nil, err
-	}
-
-	err = sp.cachePostProcessMiniBlocksToMe(headerHash, postProcessMiniBlocksToMe)
-	if err != nil {
-		return nil, err
-	}
 
 	executionResult := &block.ExecutionResult{
 		BaseExecutionResult: &block.BaseExecutionResult{
