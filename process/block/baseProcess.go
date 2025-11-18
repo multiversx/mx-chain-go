@@ -3208,3 +3208,63 @@ func (bp *baseProcessor) checkContextBeforeExecution(header data.HeaderHandler) 
 
 	return nil
 }
+
+func (bp *baseProcessor) getCrossShardIncomingMiniBlocksFromBody(body *block.Body) []*block.MiniBlock {
+	miniBlocks := make([]*block.MiniBlock, 0)
+	for _, mb := range body.MiniBlocks {
+		if mb.ReceiverShardID == bp.shardCoordinator.SelfId() && mb.SenderShardID != bp.shardCoordinator.SelfId() {
+			miniBlocks = append(miniBlocks, mb)
+		}
+	}
+	return miniBlocks
+}
+
+func (bp *baseProcessor) collectMiniBlocks(
+	headerHash []byte,
+	body *block.Body,
+) ([]data.MiniBlockHeaderHandler, int, []byte, error) {
+	crossShardIncomingMiniBlocks := bp.getCrossShardIncomingMiniBlocksFromBody(body)
+	miniBlocksFromSelf := bp.txCoordinator.GetCreatedMiniBlocksFromMe()
+	postProcessMiniBlocks := bp.txCoordinator.CreatePostProcessMiniBlocks()
+	postProcessMiniBlocksToMe := bp.txCoordinator.GetCreatedInShardMiniBlocks()
+
+	allMiniBlocks := make([]*block.MiniBlock, 0, len(crossShardIncomingMiniBlocks)+len(miniBlocksFromSelf)+len(postProcessMiniBlocks))
+	allMiniBlocks = append(allMiniBlocks, crossShardIncomingMiniBlocks...)
+	allMiniBlocks = append(allMiniBlocks, miniBlocksFromSelf...)
+	allMiniBlocks = append(allMiniBlocks, postProcessMiniBlocks...)
+
+	receiptHash, err := bp.txCoordinator.CreateReceiptsHash()
+	if err != nil {
+		return nil, 0, nil, err
+	}
+
+	bodyAfterExecution := &block.Body{MiniBlocks: allMiniBlocks}
+	// remove the self-receipts and self smart contract results mini blocks - similar to Pre-Supernova
+	sanitizedBodyAfterExecution := deleteSelfReceiptsMiniBlocks(bodyAfterExecution)
+
+	// giving an empty processedMiniBlockInfo would cause all miniBlockHeaders to be created as fully processed.
+	processedMiniBlockInfo := make(map[string]*processedMb.ProcessedMiniBlockInfo)
+
+	totalTxCount, miniBlockHeaderHandlers, err := bp.createMiniBlockHeaderHandlers(sanitizedBodyAfterExecution, processedMiniBlockInfo)
+	if err != nil {
+		return nil, 0, nil, err
+	}
+
+	intraMiniBlocks := bp.txCoordinator.GetCreatedInShardMiniBlocks()
+	err = bp.cacheIntraShardMiniBlocks(headerHash, intraMiniBlocks)
+	if err != nil {
+		return nil, 0, nil, err
+	}
+
+	err = bp.cacheExecutedMiniBlocks(sanitizedBodyAfterExecution, miniBlockHeaderHandlers)
+	if err != nil {
+		return nil, 0, nil, err
+	}
+
+	err = bp.cachePostProcessMiniBlocksToMe(headerHash, postProcessMiniBlocksToMe)
+	if err != nil {
+		return nil, 0, nil, err
+	}
+
+	return miniBlockHeaderHandlers, totalTxCount, receiptHash, nil
+}

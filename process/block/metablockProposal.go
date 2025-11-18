@@ -70,7 +70,7 @@ func (mp *metaProcessor) CreateNewHeaderProposal(round uint64, nonce uint64) (da
 		return nil, err
 	}
 
-	epochStartData, err := mp.getEpochStartDataForHeader(metaHeader)
+	epochStartData, err := mp.computeEpochStartDataForHeader(metaHeader)
 	if err != nil {
 		return nil, err
 	}
@@ -391,7 +391,7 @@ func (mp *metaProcessor) ProcessBlockProposal(
 	sw.Start("UpdatePeerState")
 	// TODO: this needs to be updated to V3
 	mp.prepareBlockHeaderInternalMapForValidatorProcessor()
-	// valStatRootHash, err := mp.validatorStatisticsProcessor.UpdatePeerState(header, mp.hdrsForCurrBlock.GetHeadersMap())
+	valStatRootHash, err := mp.validatorStatisticsProcessor.UpdatePeerState(header, mp.hdrsForCurrBlock.GetHeadersMap())
 	sw.Stop("UpdatePeerState")
 	if err != nil {
 		return nil, err
@@ -409,10 +409,76 @@ func (mp *metaProcessor) ProcessBlockProposal(
 		return nil, err
 	}
 
-	// TODO: make sure the execution results are collected and cached as with
-	// func (sp *shardProcessor) collectExecutionResults(headerHash []byte, header data.HeaderHandler, body *block.Body) (data.BaseExecutionResultHandler, error)
+	headerHash, err := core.CalculateHash(mp.marshalizer, mp.hasher, header)
+	if err != nil {
+		return nil, err
+	}
 
-	return nil, nil
+	return mp.collectExecutionResults(headerHash, header, body, valStatRootHash)
+}
+
+// collectExecutionResults collects the execution results after processing the block
+func (mp *metaProcessor) collectExecutionResults(
+	headerHash []byte,
+	header data.MetaHeaderHandler,
+	body *block.Body,
+	valStatRootHash []byte,
+) (data.BaseExecutionResultHandler, error) {
+	miniBlockHeaderHandlers, totalTxCount, receiptHash, err := mp.collectMiniBlocks(headerHash, body)
+	if err != nil {
+		return nil, err
+	}
+
+	gasAndFees := mp.getGasAndFees()
+	gasNotUsedForProcessing := gasAndFees.GetGasPenalized() + gasAndFees.GetGasRefunded()
+	if gasAndFees.GetGasProvided() < gasNotUsedForProcessing {
+		return nil, process.ErrGasUsedExceedsGasProvided
+	}
+
+	gasUsed := gasAndFees.GetGasProvided() - gasNotUsedForProcessing // needed for inclusion estimation
+
+	accumulatedFeesInEpoch, devFeesInEpoch, err := mp.computeAccumulatedFeesInEpoch(header)
+	if err != nil {
+		return nil, err
+	}
+
+	executionResult := &block.MetaExecutionResult{
+		ExecutionResult: &block.BaseMetaExecutionResult{
+			BaseExecutionResult: &block.BaseExecutionResult{
+				HeaderHash:  headerHash,
+				HeaderNonce: header.GetNonce(),
+				HeaderRound: header.GetRound(),
+				HeaderEpoch: header.GetEpoch(),
+				RootHash:    mp.getRootHash(),
+				GasUsed:     gasUsed,
+			},
+			ValidatorStatsRootHash: valStatRootHash,
+			AccumulatedFeesInEpoch: accumulatedFeesInEpoch,
+			DevFeesInEpoch:         devFeesInEpoch,
+		},
+		ReceiptsHash:    receiptHash,
+		DeveloperFees:   gasAndFees.GetDeveloperFees(),
+		AccumulatedFees: gasAndFees.GetAccumulatedFees(),
+		ExecutedTxCount: uint64(totalTxCount),
+	}
+
+	err = executionResult.SetMiniBlockHeadersHandlers(miniBlockHeaderHandlers)
+	if err != nil {
+		return nil, err
+	}
+
+	logs := mp.txCoordinator.GetAllCurrentLogs()
+	err = mp.cacheLogEvents(headerHash, logs)
+	if err != nil {
+		return nil, err
+	}
+
+	err = mp.cacheIntermediateTxsForHeader(headerHash)
+	if err != nil {
+		return nil, err
+	}
+
+	return executionResult, nil
 }
 
 func getTxCountExecutionResults(metaHeader data.MetaHeaderHandler) (uint32, error) {
@@ -653,6 +719,18 @@ func (mp *metaProcessor) requestShardHeadersInAdvanceIfNeeded(
 	}
 }
 
+func (mp *metaProcessor) verifyEpochStartData(
+	headerHandler data.MetaHeaderHandler,
+) bool {
+	epochStartData, err := mp.computeEpochStartDataForHeader(headerHandler)
+	if err != nil {
+		log.Error("verifyEpochStartData: failed to get epoch start data", "error", err)
+		return false
+	}
+
+	return epochStartData.Equal(headerHandler.GetEpochStartHandler())
+}
+
 func (mp *metaProcessor) checkEpochCorrectnessV3(
 	headerHandler data.MetaHeaderHandler,
 ) error {
@@ -673,16 +751,7 @@ func (mp *metaProcessor) checkEpochCorrectnessV3(
 
 	isEpochStartBlock := headerHandler.IsStartOfEpochBlock()
 
-	mp.mutEpochStartData.RLock()
-	defer mp.mutEpochStartData.RUnlock()
-	var savedEpochStartData *block.EpochStart
-	if mp.epochStartDataWrapper != nil {
-		savedEpochStartData = mp.epochStartDataWrapper.EpochStartData
-	} else {
-		savedEpochStartData = &block.EpochStart{}
-	}
-
-	epochStartDataMatches := savedEpochStartData.Equal(headerHandler.GetEpochStartHandler())
+	epochStartDataMatches := mp.verifyEpochStartData(headerHandler)
 	hasAllEpochStartData := hasEpochStartExecutionResults && isEpochStartBlock && wasEpochStartProposed && epochStartDataMatches
 	hasAnyEpochStartData := hasEpochStartExecutionResults || isEpochStartBlock || wasEpochStartProposed
 	hasIncompleteEpochStartData := hasAnyEpochStartData && !hasAllEpochStartData
@@ -918,7 +987,7 @@ func (mp *metaProcessor) getPreviousExecutedBlock() data.HeaderHandler {
 	return blockHeader
 }
 
-func (mp *metaProcessor) getEpochStartDataForHeader(metaHeader data.MetaHeaderHandler) (*block.EpochStart, error) {
+func (mp *metaProcessor) computeEpochStartDataForHeader(metaHeader data.MetaHeaderHandler) (*block.EpochStart, error) {
 	err := mp.computeAndUpdateLastEpochStartShardData(metaHeader)
 	if err != nil {
 		return nil, err

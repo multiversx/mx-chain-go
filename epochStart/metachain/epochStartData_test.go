@@ -23,6 +23,8 @@ import (
 	"github.com/stretchr/testify/require"
 )
 
+var errExpected = errors.New("expected error")
+
 func createGenesisBlocks(shardCoordinator sharding.Coordinator) map[uint32]data.HeaderHandler {
 	genesisBlocks := make(map[uint32]data.HeaderHandler)
 	for shardId := uint32(0); shardId < shardCoordinator.NumberOfShards(); shardId++ {
@@ -760,4 +762,69 @@ func Test_setIndexOfFirstAndLastTxProcessedShouldSetReserved(t *testing.T) {
 	epoch.setIndexOfFirstAndLastTxProcessed(mbHeader, 1, 2)
 
 	require.NotNil(t, mbHeader.GetReserved())
+}
+
+func Test_CreateEpochStartShardDataMetablockV3(t *testing.T) {
+	t.Parallel()
+
+	t.Run("should return nil when start data is not needed", func(t *testing.T) {
+		t.Parallel()
+
+		arguments := createMockEpochStartCreatorArguments()
+		epoch, err := NewEpochStartData(arguments)
+		require.Nil(t, err)
+
+		res, err := epoch.CreateEpochStartShardDataMetablockV3(&block.MetaBlockV3{})
+		require.Nil(t, res)
+		require.Nil(t, err)
+	})
+
+	t.Run("should error", func(t *testing.T) {
+		t.Parallel()
+
+		arguments := createMockEpochStartCreatorArguments()
+		arguments.BlockTracker = &mock.BlockTrackerMock{
+			GetLastCrossNotarizedHeaderCalled: func(shardID uint32) (data.HeaderHandler, []byte, error) {
+				return nil, nil, errExpected
+			},
+		}
+		epoch, err := NewEpochStartData(arguments)
+		require.Nil(t, err)
+
+		_, err = epoch.CreateEpochStartShardDataMetablockV3(&block.MetaBlockV3{
+			EpochStart: block.EpochStart{
+				LastFinalizedHeaders: []block.EpochStartShardData{
+					{},
+				},
+			},
+		})
+		require.Equal(t, errExpected, err)
+	})
+
+	t.Run("should work", func(t *testing.T) {
+		t.Parallel()
+
+		arguments := createMockEpochStartCreatorArguments()
+		arguments.BlockTracker = &mock.BlockTrackerMock{
+			GetLastCrossNotarizedHeaderCalled: func(shardID uint32) (data.HeaderHandler, []byte, error) {
+				return &block.HeaderV3{
+					PrevHash: []byte("hash"),
+					Nonce:    2,
+				}, nil, nil
+			},
+		}
+		epoch, err := NewEpochStartData(arguments)
+		require.Nil(t, err)
+
+		startData, err := epoch.CreateEpochStartShardDataMetablockV3(&block.MetaBlockV3{
+			EpochStart: block.EpochStart{
+				LastFinalizedHeaders: []block.EpochStartShardData{
+					{},
+				},
+			},
+		})
+
+		require.Nil(t, err)
+		require.Len(t, startData, 1)
+	})
 }

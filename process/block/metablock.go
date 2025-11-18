@@ -2143,30 +2143,68 @@ func (mp *metaProcessor) verifyTotalAccumulatedFeesInEpoch(metaHdr *block.MetaBl
 	return nil
 }
 
-func (mp *metaProcessor) computeAccumulatedFeesInEpoch(metaHdr data.MetaHeaderHandler) (*big.Int, *big.Int, error) {
-	currentlyAccumulatedFeesInEpoch := big.NewInt(0)
-	currentDevFeesInEpoch := big.NewInt(0)
+func (mp *metaProcessor) getCurrentlyAccumulatedFees(metaHdr data.MetaHeaderHandler) (*big.Int, *big.Int, error) {
+	if metaHdr.IsHeaderV3() {
+		if metaHdr.IsEpochChangeProposed() {
+			return big.NewInt(0), big.NewInt(0), nil
+		}
 
-	lastHdr := mp.blockChain.GetCurrentBlockHeader()
-	if !check.IfNil(lastHdr) {
-		lastMeta, ok := lastHdr.(*block.MetaBlock)
+		lastExecResult, err := common.GetLastBaseExecutionResultHandler(metaHdr)
+		if err != nil {
+			return nil, nil, err
+		}
+
+		lastMetaExecResult, ok := lastExecResult.(data.BaseMetaExecutionResultHandler)
 		if !ok {
 			return nil, nil, process.ErrWrongTypeAssertion
 		}
 
-		if !lastHdr.IsStartOfEpochBlock() {
-			currentlyAccumulatedFeesInEpoch = big.NewInt(0).Set(lastMeta.AccumulatedFeesInEpoch)
-			currentDevFeesInEpoch = big.NewInt(0).Set(lastMeta.DevFeesInEpoch)
-		}
+		return lastMetaExecResult.GetAccumulatedFeesInEpoch(), lastMetaExecResult.GetDevFeesInEpoch(), nil
 	}
 
-	currentlyAccumulatedFeesInEpoch.Add(currentlyAccumulatedFeesInEpoch, metaHdr.GetAccumulatedFees())
-	currentDevFeesInEpoch.Add(currentDevFeesInEpoch, metaHdr.GetDeveloperFees())
+	lastHdr := mp.blockChain.GetCurrentBlockHeader()
+	if check.IfNil(lastHdr) {
+		return big.NewInt(0), big.NewInt(0), nil
+	}
+
+	lastMeta, ok := lastHdr.(*block.MetaBlock)
+	if !ok {
+		return nil, nil, process.ErrWrongTypeAssertion
+	}
+
+	if lastHdr.IsStartOfEpochBlock() {
+		return big.NewInt(0), big.NewInt(0), nil
+	}
+	currentlyAccumulatedFeesInEpoch := big.NewInt(0).Set(lastMeta.AccumulatedFeesInEpoch)
+	currentDevFeesInEpoch := big.NewInt(0).Set(lastMeta.DevFeesInEpoch)
+
+	return currentlyAccumulatedFeesInEpoch, currentDevFeesInEpoch, nil
+}
+
+func (mp *metaProcessor) getHeaderAccumulatedFees(metaHdr data.MetaHeaderHandler) (*big.Int, *big.Int) {
+	if metaHdr.IsHeaderV3() {
+		gasAndFees := mp.getGasAndFees()
+		return gasAndFees.GetAccumulatedFees(), gasAndFees.GetDeveloperFees()
+	}
+
+	return metaHdr.GetAccumulatedFees(), metaHdr.GetDeveloperFees()
+}
+
+func (mp *metaProcessor) computeAccumulatedFeesInEpoch(metaHdr data.MetaHeaderHandler) (*big.Int, *big.Int, error) {
+	currentlyAccumulatedFeesInEpoch, currentDevFeesInEpoch, err := mp.getCurrentlyAccumulatedFees(metaHdr)
+	if err != nil {
+		return nil, nil, err
+	}
+
+	accumulatedFees, developerFees := mp.getHeaderAccumulatedFees(metaHdr)
+
+	currentlyAccumulatedFeesInEpoch.Add(currentlyAccumulatedFeesInEpoch, accumulatedFees)
+	currentDevFeesInEpoch.Add(currentDevFeesInEpoch, developerFees)
 	log.Debug("computeAccumulatedFeesInEpoch - meta block fees",
 		"meta nonce", metaHdr.GetNonce(),
-		"accumulatedFees", metaHdr.GetAccumulatedFees().String(),
-		"devFees", metaHdr.GetDeveloperFees().String(),
-		"meta leader fees", core.GetIntTrimmedPercentageOfValue(big.NewInt(0).Sub(metaHdr.GetAccumulatedFees(), metaHdr.GetDeveloperFees()), mp.economicsData.LeaderPercentageInEpoch(metaHdr.GetEpoch())).String())
+		"accumulatedFees", accumulatedFees.String(),
+		"devFees", developerFees.String(),
+		"meta leader fees", core.GetIntTrimmedPercentageOfValue(big.NewInt(0).Sub(accumulatedFees, developerFees), mp.economicsData.LeaderPercentageInEpoch(metaHdr.GetEpoch())).String())
 
 	for _, shardData := range metaHdr.GetShardInfoHandlers() {
 		log.Debug("computeAccumulatedFeesInEpoch - adding shard data fees",

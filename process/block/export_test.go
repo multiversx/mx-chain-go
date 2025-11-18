@@ -987,6 +987,13 @@ func (mp *metaProcessor) SelectIncomingMiniBlocks(
 	return mp.selectIncomingMiniBlocks(lastShardHdr, orderedHdrs, orderedHdrsHashes, maxNumHeadersFromSameShard, haveTime)
 }
 
+// VerifyEpochStartData -
+func (mp *metaProcessor) VerifyEpochStartData(
+	headerHandler data.MetaHeaderHandler,
+) bool {
+	return mp.verifyEpochStartData(headerHandler)
+}
+
 // OnExecutedBlock -
 func (bp *baseProcessor) OnExecutedBlock(header data.HeaderHandler, rootHash []byte) error {
 	return bp.onExecutedBlock(header, rootHash)
@@ -1000,4 +1007,9 @@ func (bp *baseProcessor) RecreateTrieIfNeeded() error {
 // ExtractRootHashForCleanup -
 func (bp *baseProcessor) ExtractRootHashForCleanup(header data.HeaderHandler) (common.RootHashHolder, error) {
 	return bp.extractRootHashForCleanup(header)
+}
+
+// CheckContextBeforeExecution -
+func (bp *baseProcessor) CheckContextBeforeExecution(header data.HeaderHandler) error {
+	return bp.checkContextBeforeExecution(header)
 }

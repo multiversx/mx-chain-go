@@ -108,9 +108,20 @@ func (e *epochStartData) VerifyEpochStartDataForMetablock(metaBlock data.MetaHea
 		return err
 	}
 
+	return e.verifyEpochStartDataForMetablock(metaBlock, startData)
+}
+
+func (e *epochStartData) verifyEpochStartDataForMetablock(
+	metaBlock data.MetaHeaderHandler,
+	startData *block.EpochStart,
+) error {
+	if !metaBlock.IsStartOfEpochBlock() {
+		return nil
+	}
+
 	blockEpochStartData := metaBlock.GetEpochStartHandler()
 	epochStartDataWithoutEconomics := &block.EpochStart{}
-	err = epochStartDataWithoutEconomics.SetLastFinalizedHeaders(blockEpochStartData.GetLastFinalizedHeaderHandlers())
+	err := epochStartDataWithoutEconomics.SetLastFinalizedHeaders(blockEpochStartData.GetLastFinalizedHeaderHandlers())
 	if err != nil {
 		return err
 	}
