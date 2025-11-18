@@ -70,7 +70,7 @@ func (mp *metaProcessor) CreateNewHeaderProposal(round uint64, nonce uint64) (da
 		return nil, err
 	}
 
-	epochStartData, err := mp.getEpochStartDataForHeader(metaHeader)
+	epochStartData, err := mp.computeEpochStartDataForHeader(metaHeader)
 	if err != nil {
 		return nil, err
 	}
@@ -661,7 +661,7 @@ func (mp *metaProcessor) requestShardHeadersInAdvanceIfNeeded(
 func (mp *metaProcessor) verifyEpochStartData(
 	headerHandler data.MetaHeaderHandler,
 ) bool {
-	epochStartData, err := mp.getEpochStartDataForHeader(headerHandler)
+	epochStartData, err := mp.computeEpochStartDataForHeader(headerHandler)
 	if err != nil {
 		log.Error("verifyEpochStartData: failed to get epoch start data", "error", err)
 		return false
@@ -926,7 +926,7 @@ func (mp *metaProcessor) getPreviousExecutedBlock() data.HeaderHandler {
 	return blockHeader
 }
 
-func (mp *metaProcessor) getEpochStartDataForHeader(metaHeader data.MetaHeaderHandler) (*block.EpochStart, error) {
+func (mp *metaProcessor) computeEpochStartDataForHeader(metaHeader data.MetaHeaderHandler) (*block.EpochStart, error) {
 	err := mp.computeAndUpdateLastEpochStartShardData(metaHeader)
 	if err != nil {
 		return nil, err
