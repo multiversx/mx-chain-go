@@ -1313,3 +1313,158 @@ func BenchmarkAdaptStructureValueBasedOnPath(b *testing.B) {
 		_ = AdaptStructureValueBasedOnPath(testObject, "InnerStruct.YetAnotherInnerStruct.Value", "new")
 	}
 }
+
+func TestAdaptStructureValueBasedOnPath_Pointers(t *testing.T) {
+	t.Parallel()
+
+	t.Run("should work and set nil pointer to non-nil int pointer", func(t *testing.T) {
+		t.Parallel()
+
+		type simpleStruct struct {
+			Value *int
+		}
+		obj := &simpleStruct{Value: nil}
+		path := "Value"
+		expectedNewValue := 42
+
+		err := AdaptStructureValueBasedOnPath(obj, path, expectedNewValue)
+		require.NoError(t, err)
+		require.NotNil(t, obj.Value)
+		require.Equal(t, expectedNewValue, *obj.Value)
+	})
+
+	t.Run("should work and set non-nil pointer to different value", func(t *testing.T) {
+		t.Parallel()
+
+		type simpleStruct struct {
+			Value *string
+		}
+		original := "original"
+		obj := &simpleStruct{Value: &original}
+		path := "Value"
+		expectedNewValue := "new value"
+
+		err := AdaptStructureValueBasedOnPath(obj, path, expectedNewValue)
+		require.NoError(t, err)
+		require.NotNil(t, obj.Value)
+		require.Equal(t, expectedNewValue, *obj.Value)
+	})
+
+	t.Run("should work and set pointer to nil", func(t *testing.T) {
+		t.Parallel()
+
+		type simpleStruct struct {
+			Value *int
+		}
+		val := 42
+		obj := &simpleStruct{Value: &val}
+		path := "Value"
+
+		err := AdaptStructureValueBasedOnPath(obj, path, (*int)(nil))
+		require.NoError(t, err)
+		require.Nil(t, obj.Value)
+	})
+
+	t.Run("should work with pointer to pointer", func(t *testing.T) {
+		t.Parallel()
+
+		type simpleStruct struct {
+			Value *int
+		}
+		obj := &simpleStruct{Value: nil}
+		path := "Value"
+		newVal := 99
+		expectedNewValue := &newVal
+
+		err := AdaptStructureValueBasedOnPath(obj, path, expectedNewValue)
+		require.NoError(t, err)
+		require.NotNil(t, obj.Value)
+		require.Equal(t, *expectedNewValue, *obj.Value)
+	})
+
+	t.Run("should work with pointer to struct", func(t *testing.T) {
+		t.Parallel()
+
+		type innerStruct struct {
+			Name string
+			Age  int
+		}
+		type outerStruct struct {
+			Inner *innerStruct
+		}
+		obj := &outerStruct{Inner: nil}
+		path := "Inner"
+		expectedNewValue := innerStruct{Name: "John", Age: 30}
+
+		err := AdaptStructureValueBasedOnPath(obj, path, expectedNewValue)
+		require.NoError(t, err)
+		require.NotNil(t, obj.Inner)
+		require.Equal(t, expectedNewValue.Name, obj.Inner.Name)
+		require.Equal(t, expectedNewValue.Age, obj.Inner.Age)
+	})
+
+	t.Run("should work with nested pointer fields", func(t *testing.T) {
+		t.Parallel()
+
+		type innerStruct struct {
+			Value *int
+		}
+		type outerStruct struct {
+			Inner innerStruct
+		}
+		obj := &outerStruct{Inner: innerStruct{Value: nil}}
+		path := "Inner.Value"
+		expectedNewValue := 123
+
+		err := AdaptStructureValueBasedOnPath(obj, path, expectedNewValue)
+		require.NoError(t, err)
+		require.NotNil(t, obj.Inner.Value)
+		require.Equal(t, expectedNewValue, *obj.Inner.Value)
+	})
+
+	t.Run("should work with pointer to bool", func(t *testing.T) {
+		t.Parallel()
+
+		type simpleStruct struct {
+			Flag *bool
+		}
+		obj := &simpleStruct{Flag: nil}
+		path := "Flag"
+		expectedNewValue := true
+
+		err := AdaptStructureValueBasedOnPath(obj, path, expectedNewValue)
+		require.NoError(t, err)
+		require.NotNil(t, obj.Flag)
+		require.Equal(t, expectedNewValue, *obj.Flag)
+	})
+
+	t.Run("should work with pointer to uint64", func(t *testing.T) {
+		t.Parallel()
+
+		type simpleStruct struct {
+			Count *uint64
+		}
+		obj := &simpleStruct{Count: nil}
+		path := "Count"
+		expectedNewValue := uint64(9999)
+
+		err := AdaptStructureValueBasedOnPath(obj, path, expectedNewValue)
+		require.NoError(t, err)
+		require.NotNil(t, obj.Count)
+		require.Equal(t, expectedNewValue, *obj.Count)
+	})
+
+	t.Run("should error when types don't match", func(t *testing.T) {
+		t.Parallel()
+
+		type simpleStruct struct {
+			Value *int
+		}
+		obj := &simpleStruct{Value: nil}
+		path := "Value"
+		expectedNewValue := "not an int"
+
+		err := AdaptStructureValueBasedOnPath(obj, path, expectedNewValue)
+		require.Error(t, err)
+	})
+}

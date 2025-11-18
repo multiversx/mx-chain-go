@@ -4,7 +4,7 @@ package config
 type GlobalSettings struct {
 	GenesisTotalSupply          string
 	MinimumInflation            float64
-	YearSettings                []*YearSetting
+	YearSettings                []YearSetting
 	Denomination                int
 	GenesisMintingSenderAddress string
 	TailInflation               TailInflationSettings

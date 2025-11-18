@@ -32,7 +32,8 @@ func getReflectValue(original reflect.Value, fieldName string) (value reflect.Va
 // AdaptStructureValueBasedOnPath will try to update the value specified at the given path in any structure
 // the structure must be of type pointer, otherwise an error will be returned. All the fields or inner structures MUST be exported
 // the path must be in the form of InnerStruct.InnerStruct2.Field
-// newValue must have the same type as the old value, otherwise an error will be returned. Currently, this function does not support slices or maps
+// newValue must have the same type as the old value, otherwise an error will be returned.
+// Supported types: bool, int, int8, int16, int32, int64, uint, uint8, uint16, uint32, uint64, float32, float64, string, slice, struct, map, and pointers to these types
 func AdaptStructureValueBasedOnPath(structure interface{}, path string, newValue interface{}) (err error) {
 	defer func() {
 		r := recover()
@@ -127,6 +128,8 @@ func trySetTheNewValue(value *reflect.Value, newValue interface{}) error {
 		mapValue := reflect.ValueOf(newValue)
 
 		return trySetMapValue(value, mapValue)
+	case reflect.Ptr:
+		return trySetPointerValue(value, newValue)
 	default:
 		return fmt.Errorf("unsupported type <%s> when trying to set the value '%v' of type <%s>", valueKind, newValue, reflect.TypeOf(newValue))
 	}
@@ -189,6 +192,53 @@ func trySetMapValue(value *reflect.Value, newValue reflect.Value) error {
 		return fmt.Errorf("unsupported type <%s> when trying to add value in type <%s>", newValue.Kind(), value.Kind())
 	}
 
+	return nil
+}
+
+func trySetPointerValue(value *reflect.Value, newValue interface{}) error {
+	newValueReflect := reflect.ValueOf(newValue)
+
+	// Handle nil pointer case
+	if check.IfNilReflect(newValue) {
+		if value.CanSet() {
+			value.Set(reflect.Zero(value.Type()))
+		}
+		return nil
+	}
+
+	// If the new value is also a pointer
+	if newValueReflect.Kind() == reflect.Ptr {
+		// Check if the types are compatible
+		if !newValueReflect.Type().AssignableTo(value.Type()) {
+			return fmt.Errorf("unable to cast value '%v' of type <%s> to type <%s>", newValue, newValueReflect.Type(), value.Type())
+		}
+		value.Set(newValueReflect)
+		return nil
+	}
+
+	// If the new value is not a pointer but the field is, we need to create a pointer to the new value
+	// First check if the dereferenced type of the field matches the new value type
+	if value.Type().Elem() == newValueReflect.Type() {
+		newPtr := reflect.New(value.Type().Elem())
+		newPtr.Elem().Set(newValueReflect)
+		value.Set(newPtr)
+		return nil
+	}
+
+	// Try to set the underlying element if the field pointer is already initialized
+	if !value.IsNil() {
+		elemValue := value.Elem()
+		return trySetTheNewValue(&elemValue, newValue)
+	}
+
+	// Create a new pointer and set its value
+	newPtr := reflect.New(value.Type().Elem())
+	elemValue := newPtr.Elem()
+	err := trySetTheNewValue(&elemValue, newValue)
+	if err != nil {
+		return err
+	}
+	value.Set(newPtr)
 	return nil
 }
 
