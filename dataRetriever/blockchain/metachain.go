@@ -15,6 +15,18 @@ type metaChain struct {
 	currentBlockRootHash []byte
 }
 
+// GetLastExecutionResult returns the last execution result
+func (mc *metaChain) GetLastExecutionResult() data.BaseExecutionResultHandler {
+	// TODO implement me
+	panic("implement me")
+}
+
+// SetLastExecutionResult sets the last execution result
+func (mc *metaChain) SetLastExecutionResult(result data.BaseExecutionResultHandler) {
+	// TODO implement me
+	panic("implement me")
+}
+
 // NewMetaChain will initialize a new metachain instance
 func NewMetaChain(appStatusHandler core.AppStatusHandler) (*metaChain, error) {
 	if check.IfNil(appStatusHandler) {

@@ -21,6 +21,15 @@ type ChainHandlerMock struct {
 	lastExecutedBlockHash     []byte
 	lastExecutedBlockRootHash []byte
 	lastExecutedBlockHeader   data.HeaderHandler
+	lastExecutedResult        data.BaseExecutionResultHandler
+}
+
+func (mock *ChainHandlerMock) GetLastExecutionResult() data.BaseExecutionResultHandler {
+	return mock.lastExecutedResult
+}
+
+func (mock *ChainHandlerMock) SetLastExecutionResult(result data.BaseExecutionResultHandler) {
+	mock.lastExecutedResult = result
 }
 
 // GetGenesisHeader -
