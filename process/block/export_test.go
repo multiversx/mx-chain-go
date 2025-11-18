@@ -1001,3 +1001,8 @@ func (bp *baseProcessor) RecreateTrieIfNeeded() error {
 func (bp *baseProcessor) ExtractRootHashForCleanup(header data.HeaderHandler) (common.RootHashHolder, error) {
 	return bp.extractRootHashForCleanup(header)
 }
+
+// CheckContextBeforeExecution -
+func (bp *baseProcessor) CheckContextBeforeExecution(header data.HeaderHandler) error {
+	return bp.checkContextBeforeExecution(header)
+}

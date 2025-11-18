@@ -4582,3 +4582,172 @@ func TestBaseProcessor_extractRootHashForCleanup(t *testing.T) {
 		require.Equal(t, expectedRootHash, rootHashHolder)
 	})
 }
+
+func TestBaseProcessor_checkContextBeforeExecution(t *testing.T) {
+	t.Parallel()
+
+	t.Run("should return error from getting the accountsDB root hash", func(t *testing.T) {
+		t.Parallel()
+
+		coreComponents, dataComponents, bootstrapComponents, statusComponents := createComponentHolderMocks()
+		arguments := CreateMockArguments(coreComponents, dataComponents, bootstrapComponents, statusComponents)
+
+		accounts := &stateMock.AccountsStub{
+			RootHashCalled: func() ([]byte, error) {
+				return nil, expectedErr
+			},
+		}
+
+		arguments.AccountsDB[state.UserAccountsState] = accounts
+		bp, err := blproc.NewShardProcessor(arguments)
+		require.NoError(t, err)
+
+		err = bp.CheckContextBeforeExecution(&block.HeaderV3{})
+		require.Equal(t, expectedErr, err)
+	})
+
+	t.Run("should return ErrBlockHashDoesNotMatch error", func(t *testing.T) {
+		t.Parallel()
+
+		coreComponents, dataComponents, bootstrapComponents, statusComponents := createComponentHolderMocks()
+
+		blkc, _ := blockchain.NewBlockChain(&statusHandlerMock.AppStatusHandlerStub{})
+		err := blkc.SetGenesisHeader(&block.Header{})
+		require.NoError(t, err)
+
+		blkc.SetLastExecutedBlockHeaderAndRootHash(
+			&block.HeaderV3{},
+			[]byte("hashX"),
+			[]byte("rootHash"),
+		)
+
+		dataComponents.BlockChain = blkc
+		arguments := CreateMockArguments(coreComponents, dataComponents, bootstrapComponents, statusComponents)
+
+		accounts := &stateMock.AccountsStub{
+			RootHashCalled: func() ([]byte, error) {
+				return []byte("rootHash"), nil
+			},
+		}
+		arguments.AccountsDB[state.UserAccountsState] = accounts
+
+		bp, err := blproc.NewShardProcessor(arguments)
+		require.NoError(t, err)
+
+		err = bp.CheckContextBeforeExecution(&block.HeaderV3{
+			PrevHash: []byte("hash"),
+		})
+		require.Equal(t, process.ErrBlockHashDoesNotMatch, err)
+	})
+
+	t.Run("should return ErrWrongNonceInBlock error", func(t *testing.T) {
+		t.Parallel()
+
+		coreComponents, dataComponents, bootstrapComponents, statusComponents := createComponentHolderMocks()
+
+		blkc, _ := blockchain.NewBlockChain(&statusHandlerMock.AppStatusHandlerStub{})
+		err := blkc.SetGenesisHeader(&block.Header{})
+		require.NoError(t, err)
+
+		blkc.SetLastExecutedBlockHeaderAndRootHash(
+			&block.HeaderV3{
+				Nonce: 0,
+			},
+			[]byte("hash"),
+			[]byte("rootHash"),
+		)
+
+		dataComponents.BlockChain = blkc
+		arguments := CreateMockArguments(coreComponents, dataComponents, bootstrapComponents, statusComponents)
+
+		accounts := &stateMock.AccountsStub{
+			RootHashCalled: func() ([]byte, error) {
+				return []byte("rootHash"), nil
+			},
+		}
+		arguments.AccountsDB[state.UserAccountsState] = accounts
+
+		bp, err := blproc.NewShardProcessor(arguments)
+		require.NoError(t, err)
+
+		err = bp.CheckContextBeforeExecution(&block.HeaderV3{
+			PrevHash: []byte("hash"),
+			Nonce:    2,
+		})
+		require.Equal(t, process.ErrWrongNonceInBlock, err)
+	})
+
+	t.Run("should return ErrRootStateDoesNotMatch error", func(t *testing.T) {
+		t.Parallel()
+
+		coreComponents, dataComponents, bootstrapComponents, statusComponents := createComponentHolderMocks()
+
+		blkc, _ := blockchain.NewBlockChain(&statusHandlerMock.AppStatusHandlerStub{})
+		err := blkc.SetGenesisHeader(&block.Header{})
+		require.NoError(t, err)
+
+		blkc.SetLastExecutedBlockHeaderAndRootHash(
+			&block.HeaderV3{
+				Nonce: 1,
+			},
+			[]byte("hash"),
+			[]byte("rootHash"),
+		)
+
+		dataComponents.BlockChain = blkc
+		arguments := CreateMockArguments(coreComponents, dataComponents, bootstrapComponents, statusComponents)
+
+		accounts := &stateMock.AccountsStub{
+			RootHashCalled: func() ([]byte, error) {
+				return []byte("rootHashX"), nil
+			},
+		}
+		arguments.AccountsDB[state.UserAccountsState] = accounts
+
+		bp, err := blproc.NewShardProcessor(arguments)
+		require.NoError(t, err)
+
+		err = bp.CheckContextBeforeExecution(&block.HeaderV3{
+			PrevHash: []byte("hash"),
+			Nonce:    2,
+		})
+		require.Equal(t, process.ErrRootStateDoesNotMatch, err)
+	})
+
+	t.Run("should work", func(t *testing.T) {
+		t.Parallel()
+
+		coreComponents, dataComponents, bootstrapComponents, statusComponents := createComponentHolderMocks()
+
+		blkc, _ := blockchain.NewBlockChain(&statusHandlerMock.AppStatusHandlerStub{})
+		err := blkc.SetGenesisHeader(&block.Header{})
+		require.NoError(t, err)
+
+		blkc.SetLastExecutedBlockHeaderAndRootHash(
+			&block.HeaderV3{
+				Nonce: 1,
+			},
+			[]byte("hash"),
+			[]byte("rootHash"),
+		)
+
+		dataComponents.BlockChain = blkc
+		arguments := CreateMockArguments(coreComponents, dataComponents, bootstrapComponents, statusComponents)
+
+		accounts := &stateMock.AccountsStub{
+			RootHashCalled: func() ([]byte, error) {
+				return []byte("rootHash"), nil
+			},
+		}
+		arguments.AccountsDB[state.UserAccountsState] = accounts
+
+		bp, err := blproc.NewShardProcessor(arguments)
+		require.NoError(t, err)
+
+		err = bp.CheckContextBeforeExecution(&block.HeaderV3{
+			PrevHash: []byte("hash"),
+			Nonce:    2,
+		})
+		require.Nil(t, err)
+	})
+}

@@ -22,6 +22,8 @@ import (
 	"github.com/stretchr/testify/require"
 )
 
+var errorExpected = errors.New("expected error")
+
 func createMockArgs() headerForBlock.ArgHeadersForBlock {
 	return headerForBlock.ArgHeadersForBlock{
 		DataPool:            dataRetriever.NewPoolsHolderMock(),
@@ -573,8 +575,6 @@ func TestHeadersForBlock_requestMissingAndUpdateBasedOnCrossShardData(t *testing
 		var wg sync.WaitGroup
 		wg.Add(1)
 
-		errorExpected := errors.New("expected error")
-
 		args := createMockArgs()
 		args.RequestHandler = &testscommon.RequestHandlerStub{
 			RequestShardHeaderCalled: func(shardID uint32, hash []byte) {
@@ -664,6 +664,131 @@ func TestHeadersForBlock_requestMissingAndUpdateBasedOnCrossShardData(t *testing
 		require.Equal(t, 1, counterExpected)
 		mut.Unlock()
 	})
+}
+
+func TestHeadersForBlock_computeExistingAndRequestMissingShardHeaders(t *testing.T) {
+	t.Parallel()
+
+	t.Run("should work for headerV3", func(t *testing.T) {
+		t.Parallel()
+
+		shardInfoHandlers := []block.ShardDataProposal{
+			{
+				HeaderHash: []byte("hash1"),
+				Nonce:      1,
+			},
+			{
+				HeaderHash: []byte("hash2"),
+				Nonce:      2,
+			},
+			{
+				HeaderHash: []byte("hash3"),
+				Nonce:      3,
+			},
+		}
+
+		counterExpected := 0
+		var mut sync.Mutex
+		var wg sync.WaitGroup
+		wg.Add(len(shardInfoHandlers))
+
+		args := createMockArgs()
+		args.RequestHandler = &testscommon.RequestHandlerStub{
+			RequestShardHeaderCalled: func(shardID uint32, hash []byte) {
+				mut.Lock()
+				counterExpected++
+				mut.Unlock()
+
+				wg.Done()
+			},
+		}
+		args.DataPool = &dataRetriever.PoolsHolderStub{
+			HeadersCalled: func() retriever.HeadersPool {
+				return &pool.HeadersPoolStub{GetHeaderByHashCalled: func(hash []byte) (data.HeaderHandler, error) {
+					return nil, errorExpected
+				}}
+			},
+			ProofsCalled: func() retriever.ProofsPool {
+				return &dataRetriever.ProofsPoolMock{}
+			},
+		}
+
+		hfb, err := headerForBlock.NewHeadersForBlock(args)
+		require.NoError(t, err)
+
+		metaBlockV3 := &block.MetaBlockV3{
+			ShardInfoProposal: shardInfoHandlers,
+		}
+		hfb.ComputeExistingAndRequestMissingShardHeaders(metaBlockV3)
+
+		wg.Wait()
+
+		mut.Lock()
+		require.Equal(t, 3, counterExpected)
+		mut.Unlock()
+	})
+
+	t.Run("should work for other headers", func(t *testing.T) {
+		shardInfoHandlers := []block.ShardData{
+			{
+				HeaderHash: []byte("hash1"),
+				Nonce:      1,
+			},
+			{
+				HeaderHash: []byte("hash2"),
+				Nonce:      2,
+			},
+			{
+				HeaderHash: []byte("hash3"),
+				Nonce:      3,
+			},
+		}
+
+		counterExpected := 0
+		var mut sync.Mutex
+		var wg sync.WaitGroup
+		wg.Add(len(shardInfoHandlers))
+
+		args := createMockArgs()
+		args.RequestHandler = &testscommon.RequestHandlerStub{
+			RequestShardHeaderCalled: func(shardID uint32, hash []byte) {
+				mut.Lock()
+				counterExpected++
+				mut.Unlock()
+
+				wg.Done()
+			},
+		}
+		args.DataPool = &dataRetriever.PoolsHolderStub{
+			HeadersCalled: func() retriever.HeadersPool {
+				return &pool.HeadersPoolStub{GetHeaderByHashCalled: func(hash []byte) (data.HeaderHandler, error) {
+					return nil, errorExpected
+				}}
+			},
+			ProofsCalled: func() retriever.ProofsPool {
+				return &dataRetriever.ProofsPoolMock{}
+			},
+		}
+
+		hfb, err := headerForBlock.NewHeadersForBlock(args)
+		require.NoError(t, err)
+
+		metaBlock := &block.MetaBlock{
+			ShardInfo: shardInfoHandlers,
+		}
+		hfb.ComputeExistingAndRequestMissingShardHeaders(metaBlock)
+
+		wg.Wait()
+
+		mut.Lock()
+		require.Equal(t, 3, counterExpected)
+		mut.Unlock()
+	})
+}
+
+func TestHeadersForBlock_computeExistingAndRequestMissingBasedOnShardDataProposal(t *testing.T) {
+	t.Parallel()
+
 }
 
 type headerData struct {

@@ -39,6 +39,11 @@ func (hfb *headersForBlock) RequestMissingAndUpdateBasedOnCrossShardData(cd cros
 	hfb.requestMissingAndUpdateBasedOnCrossShardData(cd)
 }
 
+// ComputeExistingAndRequestMissingShardHeaders -
+func (hfb *headersForBlock) ComputeExistingAndRequestMissingShardHeaders(metaBlock data.MetaHeaderHandler) {
+	hfb.computeExistingAndRequestMissingShardHeaders(metaBlock)
+}
+
 // UpdateLastNotarizedBlockForShard -
 func (hfb *headersForBlock) UpdateLastNotarizedBlockForShard(hdr data.ShardHeaderHandler, headerHash []byte) {
 	hfb.updateLastNotarizedBlockForShard(hdr, headerHash)
