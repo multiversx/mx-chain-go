@@ -475,3 +475,87 @@ func TestTrigger_RevertBehindEpochStartBlock(t *testing.T) {
 	ret = epochStartTrigger.IsEpochStart()
 	assert.False(t, ret)
 }
+
+func TestTrigger_SetProcessedHeaderV3(t *testing.T) {
+	t.Parallel()
+
+	args := createMockEpochStartTriggerArguments()
+
+	wasNotifyAllCalled := false
+	wasNotifyAllPrepareCalled := false
+	args.EpochStartNotifier = &mock.EpochStartNotifierStub{
+		NotifyAllCalled: func(hdr data.HeaderHandler) {
+			wasNotifyAllCalled = true
+		},
+		NotifyAllPrepareCalled: func(hdr data.HeaderHandler, body data.BodyHandler) {
+			wasNotifyAllPrepareCalled = true
+		},
+	}
+
+	epochStartTrigger, _ := NewEpochStartTrigger(args)
+
+	header := &block.MetaBlockV3{Nonce: 4, EpochStart: block.EpochStart{LastFinalizedHeaders: make([]block.EpochStartShardData, 1)}}
+	epochStartTrigger.SetProcessed(header, &block.Body{})
+
+	require.True(t, wasNotifyAllCalled)
+	require.False(t, wasNotifyAllPrepareCalled)
+	require.False(t, epochStartTrigger.isEpochStart)
+}
+
+func TestTrigger_SetProposed(t *testing.T) {
+
+	args := createMockEpochStartTriggerArguments()
+
+	wasNotifyAllCalled := false
+	wasNotifyAllPrepareCalled := false
+	args.EpochStartNotifier = &mock.EpochStartNotifierStub{
+		NotifyAllCalled: func(hdr data.HeaderHandler) {
+			wasNotifyAllCalled = true
+		},
+		NotifyAllPrepareCalled: func(hdr data.HeaderHandler, body data.BodyHandler) {
+			wasNotifyAllPrepareCalled = true
+		},
+	}
+
+	var wasStateSaved bool
+	storer := &storageStubs.StorerStub{
+		PutCalled: func(key, data []byte) error {
+			wasStateSaved = true
+			return nil
+		},
+	}
+	args.Storage = &storageStubs.ChainStorerStub{
+		GetStorerCalled: func(unitType dataRetriever.UnitType) (storage.Storer, error) {
+			return storer, nil
+		},
+	}
+
+	epochStartTrigger, _ := NewEpochStartTrigger(args)
+	wasStateSaved = false
+
+	allFlags := []*bool{&wasNotifyAllCalled, &wasStateSaved, &wasNotifyAllPrepareCalled, &epochStartTrigger.isEpochStart}
+	t.Run("not meta block", func(t *testing.T) {
+		epochStartTrigger.SetProposed(&block.HeaderV3{Nonce: 4}, &block.Body{})
+		requireFlags(t, false, allFlags...)
+	})
+	t.Run("not meta header v3", func(t *testing.T) {
+		epochStartTrigger.SetProposed(&block.MetaBlock{Nonce: 4}, &block.Body{})
+		requireFlags(t, false, allFlags...)
+	})
+	t.Run("not epoch change proposed", func(t *testing.T) {
+		epochStartTrigger.SetProposed(&block.MetaBlockV3{Nonce: 4, EpochChangeProposed: false}, &block.Body{})
+		requireFlags(t, false, allFlags...)
+	})
+	t.Run("should work", func(t *testing.T) {
+		epochStartTrigger.SetProposed(&block.MetaBlockV3{Nonce: 4, EpochChangeProposed: true}, &block.Body{})
+		allFlags = allFlags[1:] // remove wasNotifyAllCalled flag
+		requireFlags(t, true, allFlags...)
+		require.False(t, wasNotifyAllCalled)
+	})
+}
+
+func requireFlags(t *testing.T, expectedVal bool, flags ...*bool) {
+	for _, flag := range flags {
+		require.Equal(t, expectedVal, *flag)
+	}
+}

@@ -314,6 +314,7 @@ func (t *trigger) SetProcessed(header data.HeaderHandler, body data.BodyHandler)
 	}
 }
 
+// SetProposed sets internal data for epoch change proposed header
 func (t *trigger) SetProposed(header data.HeaderHandler, body data.BodyHandler) {
 	t.mutTrigger.Lock()
 	defer t.mutTrigger.Unlock()
@@ -322,6 +323,11 @@ func (t *trigger) SetProposed(header data.HeaderHandler, body data.BodyHandler) 
 	if !ok {
 		return
 	}
+
+	if !metaBlock.IsHeaderV3() {
+		return
+	}
+
 	if !metaBlock.IsEpochChangeProposed() {
 		return
 	}
