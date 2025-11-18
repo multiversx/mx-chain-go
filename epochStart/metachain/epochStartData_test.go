@@ -767,11 +767,12 @@ func Test_setIndexOfFirstAndLastTxProcessedShouldSetReserved(t *testing.T) {
 func Test_CreateEpochStartShardDataMetablockV3(t *testing.T) {
 	t.Parallel()
 
-	t.Run("should return nil, nil when it is not needed", func(t *testing.T) {
+	t.Run("should return nil when start data is not needed", func(t *testing.T) {
 		t.Parallel()
 
 		arguments := createMockEpochStartCreatorArguments()
-		epoch, _ := NewEpochStartData(arguments)
+		epoch, err := NewEpochStartData(arguments)
+		require.Nil(t, err)
 
 		res, err := epoch.CreateEpochStartShardDataMetablockV3(&block.MetaBlockV3{})
 		require.Nil(t, res)
@@ -787,9 +788,10 @@ func Test_CreateEpochStartShardDataMetablockV3(t *testing.T) {
 				return nil, nil, errExpected
 			},
 		}
-		epoch, _ := NewEpochStartData(arguments)
+		epoch, err := NewEpochStartData(arguments)
+		require.Nil(t, err)
 
-		_, err := epoch.CreateEpochStartShardDataMetablockV3(&block.MetaBlockV3{
+		_, err = epoch.CreateEpochStartShardDataMetablockV3(&block.MetaBlockV3{
 			EpochStart: block.EpochStart{
 				LastFinalizedHeaders: []block.EpochStartShardData{
 					{},
@@ -811,7 +813,8 @@ func Test_CreateEpochStartShardDataMetablockV3(t *testing.T) {
 				}, nil, nil
 			},
 		}
-		epoch, _ := NewEpochStartData(arguments)
+		epoch, err := NewEpochStartData(arguments)
+		require.Nil(t, err)
 
 		startData, err := epoch.CreateEpochStartShardDataMetablockV3(&block.MetaBlockV3{
 			EpochStart: block.EpochStart{

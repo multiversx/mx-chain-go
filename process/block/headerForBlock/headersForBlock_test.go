@@ -536,6 +536,7 @@ func TestHeadersForBlock_requestMissingAndUpdateBasedOnCrossShardData(t *testing
 			},
 		)
 
+		// GetShardIdCalled should be called twice on this flow
 		require.Equal(t, 2, counterExpected)
 	})
 
@@ -564,6 +565,7 @@ func TestHeadersForBlock_requestMissingAndUpdateBasedOnCrossShardData(t *testing
 			},
 		)
 
+		// GetHeaderHashCalled should be called twice on this flow
 		require.Equal(t, 2, counterExpected)
 	})
 
@@ -571,16 +573,16 @@ func TestHeadersForBlock_requestMissingAndUpdateBasedOnCrossShardData(t *testing
 		t.Parallel()
 
 		counterExpected := 0
-		var mut sync.Mutex
-		var wg sync.WaitGroup
+		var mutRequestShardHeader sync.Mutex
+		wg := &sync.WaitGroup{}
 		wg.Add(1)
 
 		args := createMockArgs()
 		args.RequestHandler = &testscommon.RequestHandlerStub{
 			RequestShardHeaderCalled: func(shardID uint32, hash []byte) {
-				mut.Lock()
+				mutRequestShardHeader.Lock()
 				counterExpected++
-				mut.Unlock()
+				mutRequestShardHeader.Unlock()
 
 				wg.Done()
 			},
@@ -606,25 +608,25 @@ func TestHeadersForBlock_requestMissingAndUpdateBasedOnCrossShardData(t *testing
 
 		wg.Wait()
 
-		mut.Lock()
+		mutRequestShardHeader.Lock()
 		require.Equal(t, 1, counterExpected)
-		mut.Unlock()
+		mutRequestShardHeader.Unlock()
 	})
 
 	t.Run("should request proofs", func(t *testing.T) {
 		t.Parallel()
 
 		counterExpected := 0
-		var mut sync.Mutex
-		var wg sync.WaitGroup
+		var mutRequestEquivalentProof sync.Mutex
+		wg := &sync.WaitGroup{}
 		wg.Add(1)
 
 		args := createMockArgs()
 		args.RequestHandler = &testscommon.RequestHandlerStub{
 			RequestEquivalentProofByHashCalled: func(shardID uint32, hash []byte) {
-				mut.Lock()
+				mutRequestEquivalentProof.Lock()
 				counterExpected++
-				mut.Unlock()
+				mutRequestEquivalentProof.Unlock()
 
 				wg.Done()
 			},
@@ -660,9 +662,9 @@ func TestHeadersForBlock_requestMissingAndUpdateBasedOnCrossShardData(t *testing
 
 		wg.Wait()
 
-		mut.Lock()
+		mutRequestEquivalentProof.Lock()
 		require.Equal(t, 1, counterExpected)
-		mut.Unlock()
+		mutRequestEquivalentProof.Unlock()
 	})
 }
 
@@ -688,16 +690,16 @@ func TestHeadersForBlock_computeExistingAndRequestMissingShardHeaders(t *testing
 		}
 
 		counterExpected := 0
-		var mut sync.Mutex
-		var wg sync.WaitGroup
+		var mutRequestShardHeader sync.Mutex
+		wg := &sync.WaitGroup{}
 		wg.Add(len(shardInfoHandlers))
 
 		args := createMockArgs()
 		args.RequestHandler = &testscommon.RequestHandlerStub{
 			RequestShardHeaderCalled: func(shardID uint32, hash []byte) {
-				mut.Lock()
+				mutRequestShardHeader.Lock()
 				counterExpected++
-				mut.Unlock()
+				mutRequestShardHeader.Unlock()
 
 				wg.Done()
 			},
@@ -723,9 +725,10 @@ func TestHeadersForBlock_computeExistingAndRequestMissingShardHeaders(t *testing
 
 		wg.Wait()
 
-		mut.Lock()
+		mutRequestShardHeader.Lock()
+		// counterExpected should be incremented on the RequestShardHeader call for each shard info handler
 		require.Equal(t, 3, counterExpected)
-		mut.Unlock()
+		mutRequestShardHeader.Unlock()
 	})
 
 	t.Run("should work for other headers", func(t *testing.T) {
@@ -745,16 +748,16 @@ func TestHeadersForBlock_computeExistingAndRequestMissingShardHeaders(t *testing
 		}
 
 		counterExpected := 0
-		var mut sync.Mutex
-		var wg sync.WaitGroup
+		var mutRequestShardHeader sync.Mutex
+		wg := &sync.WaitGroup{}
 		wg.Add(len(shardInfoHandlers))
 
 		args := createMockArgs()
 		args.RequestHandler = &testscommon.RequestHandlerStub{
 			RequestShardHeaderCalled: func(shardID uint32, hash []byte) {
-				mut.Lock()
+				mutRequestShardHeader.Lock()
 				counterExpected++
-				mut.Unlock()
+				mutRequestShardHeader.Unlock()
 
 				wg.Done()
 			},
@@ -780,15 +783,11 @@ func TestHeadersForBlock_computeExistingAndRequestMissingShardHeaders(t *testing
 
 		wg.Wait()
 
-		mut.Lock()
+		mutRequestShardHeader.Lock()
+		// counterExpected should be incremented on the RequestShardHeader call for each shard info handler
 		require.Equal(t, 3, counterExpected)
-		mut.Unlock()
+		mutRequestShardHeader.Unlock()
 	})
-}
-
-func TestHeadersForBlock_computeExistingAndRequestMissingBasedOnShardDataProposal(t *testing.T) {
-	t.Parallel()
-
 }
 
 type headerData struct {
