@@ -2141,6 +2141,10 @@ func (mp *metaProcessor) verifyTotalAccumulatedFeesInEpoch(metaHdr *block.MetaBl
 
 func (mp *metaProcessor) getCurrentlyAccumulatedFees(metaHdr data.MetaHeaderHandler) (*big.Int, *big.Int, error) {
 	if metaHdr.IsHeaderV3() {
+		if metaHdr.IsEpochChangeProposed() {
+			return big.NewInt(0), big.NewInt(0), nil
+		}
+
 		lastExecResult, err := common.GetLastBaseExecutionResultHandler(metaHdr)
 		if err != nil {
 			return nil, nil, err
