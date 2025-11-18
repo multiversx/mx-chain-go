@@ -987,6 +987,13 @@ func (mp *metaProcessor) SelectIncomingMiniBlocks(
 	return mp.selectIncomingMiniBlocks(lastShardHdr, orderedHdrs, orderedHdrsHashes, maxNumHeadersFromSameShard, haveTime)
 }
 
+// VerifyEpochStartData -
+func (mp *metaProcessor) VerifyEpochStartData(
+	headerHandler data.MetaHeaderHandler,
+) bool {
+	return mp.verifyEpochStartData(headerHandler)
+}
+
 // OnExecutedBlock -
 func (bp *baseProcessor) OnExecutedBlock(header data.HeaderHandler, rootHash []byte) error {
 	return bp.onExecutedBlock(header, rootHash)

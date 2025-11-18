@@ -2855,6 +2855,84 @@ func TestMetaProcessor_checkHeadersSequenceCorrectness(t *testing.T) {
 	})
 }
 
+func TestMetaProcessor_VerifyEpochStartData(t *testing.T) {
+	t.Parallel()
+
+	t.Run("same epoch start data, should return true", func(t *testing.T) {
+		t.Parallel()
+
+		lastFinalizedData := []block.EpochStartShardData{
+			{
+				ShardID:    1,
+				Epoch:      1,
+				Nonce:      1,
+				HeaderHash: []byte("headerHash1"),
+			},
+		}
+
+		coreComponents, dataComponents, boostrapComponents, statusComponents := createMockComponentHolders()
+		arguments := createMockMetaArguments(coreComponents, dataComponents, boostrapComponents, statusComponents)
+		arguments.EpochStartDataCreator = &mock.EpochStartDataCreatorStub{
+			CreateEpochStartShardDataMetablockV3Called: func(metablock data.MetaHeaderHandler) ([]block.EpochStartShardData, error) {
+				return lastFinalizedData, nil
+			},
+		}
+
+		mp, _ := blproc.NewMetaProcessor(arguments)
+
+		epochStartData := &block.EpochStart{
+			LastFinalizedHeaders: lastFinalizedData,
+		}
+		metaHeader := &block.MetaBlockV3{
+			EpochStart: *epochStartData,
+		}
+
+		ok := mp.VerifyEpochStartData(metaHeader)
+		require.True(t, ok)
+	})
+
+	t.Run("different epoch start data, should return false", func(t *testing.T) {
+		t.Parallel()
+
+		lastFinalizedData := []block.EpochStartShardData{
+			{
+				ShardID:    1,
+				Epoch:      1,
+				Nonce:      1,
+				HeaderHash: []byte("headerHash1"),
+			},
+		}
+
+		coreComponents, dataComponents, boostrapComponents, statusComponents := createMockComponentHolders()
+		arguments := createMockMetaArguments(coreComponents, dataComponents, boostrapComponents, statusComponents)
+		arguments.EpochStartDataCreator = &mock.EpochStartDataCreatorStub{
+			CreateEpochStartShardDataMetablockV3Called: func(metablock data.MetaHeaderHandler) ([]block.EpochStartShardData, error) {
+				return lastFinalizedData, nil
+			},
+		}
+
+		mp, _ := blproc.NewMetaProcessor(arguments)
+
+		lastFinalizedData2 := []block.EpochStartShardData{
+			{
+				ShardID:    2,
+				Epoch:      2,
+				Nonce:      2,
+				HeaderHash: []byte("headerHash2"),
+			},
+		}
+		epochStartData := &block.EpochStart{
+			LastFinalizedHeaders: lastFinalizedData2,
+		}
+		metaHeader := &block.MetaBlockV3{
+			EpochStart: *epochStartData,
+		}
+
+		ok := mp.VerifyEpochStartData(metaHeader)
+		require.False(t, ok)
+	})
+}
+
 func createLastShardHeadersNotGenesis() map[uint32]blproc.ShardHeaderInfo {
 	shard0 := uint32(0)
 	shard1 := uint32(1)
