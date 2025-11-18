@@ -1369,6 +1369,10 @@ func (mp *metaProcessor) CommitBlock(
 
 	mp.blockProcessingCutoffHandler.HandlePauseCutoff(header)
 
+	if header.IsHeaderV3() && header.IsStartOfEpochBlock() {
+		saveEpochStartEconomicsMetrics(mp.appStatusHandler, header)
+	}
+
 	return nil
 }
 
