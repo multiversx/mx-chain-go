@@ -12,6 +12,9 @@ import (
 	"github.com/multiversx/mx-chain-core-go/core/check"
 	"github.com/multiversx/mx-chain-core-go/data"
 	"github.com/multiversx/mx-chain-core-go/data/block"
+	"github.com/stretchr/testify/assert"
+	"github.com/stretchr/testify/require"
+
 	"github.com/multiversx/mx-chain-go/common"
 	"github.com/multiversx/mx-chain-go/config"
 	"github.com/multiversx/mx-chain-go/dataRetriever"
@@ -27,8 +30,6 @@ import (
 	"github.com/multiversx/mx-chain-go/testscommon/epochNotifier"
 	"github.com/multiversx/mx-chain-go/testscommon/hashingMocks"
 	storageStubs "github.com/multiversx/mx-chain-go/testscommon/storage"
-	"github.com/stretchr/testify/assert"
-	"github.com/stretchr/testify/require"
 )
 
 func createMockEpochEconomicsArguments() ArgsNewEpochEconomics {
@@ -2064,14 +2065,16 @@ func TestComputeEndOfEpochEconomicsV2AndV3(t *testing.T) {
 					DevFeesInEpoch:         input.devFeesInEpoch,
 				},
 			}
-			blockEpochStart := &block.EpochStart{
-				LastFinalizedHeaders: []block.EpochStartShardData{
-					{ShardID: 0, Round: roundsPerEpoch, Nonce: input.blockPerEpochOneShard},
-					{ShardID: 1, Round: roundsPerEpoch, Nonce: input.blockPerEpochOneShard},
-				},
-			}
+			// TODO: add in the storage unit the correct data for shards
+			//
+			// blockEpochStart := &block.EpochStart{
+			// 	LastFinalizedHeaders: []block.EpochStartShardData{
+			// 		{ShardID: 0, Round: roundsPerEpoch, Nonce: input.blockPerEpochOneShard},
+			// 		{ShardID: 1, Round: roundsPerEpoch, Nonce: input.blockPerEpochOneShard},
+			// 	},
+			// }
 
-			economicsBlock, err := ec.ComputeEndOfEpochEconomicsV3(meta, execRes, blockEpochStart)
+			economicsBlock, err := ec.ComputeEndOfEpochEconomicsV3(meta, execRes)
 			assert.Nil(t, err)
 
 			verifyEconomicsBlock(t, economicsBlock, input, rewardsPerBlock, nodePrice, totalSupply, roundsPerEpoch, args.RewardsHandler, isStakingV2)
@@ -2418,7 +2421,7 @@ func TestEconomics_ComputeEndOfEpochEconomicsV3NilInputShouldError(t *testing.T)
 
 	args := getArguments()
 	ec, _ := NewEndOfEpochEconomicsDataCreator(args)
-	res, err := ec.ComputeEndOfEpochEconomicsV3(nil, createMetaExecRes(), &block.EpochStart{})
+	res, err := ec.ComputeEndOfEpochEconomicsV3(nil, createMetaExecRes())
 	require.Nil(t, res)
 	require.Equal(t, process.ErrNilMetaBlockHeader, err)
 }
@@ -2439,50 +2442,45 @@ func TestEconomics_createEconomicsV3Args(t *testing.T) {
 	}
 
 	t.Run("nil meta block", func(t *testing.T) {
-		res, err := ec.createEconomicsV3Args(nil, metaExecRes, &block.EpochStart{})
+		res, err := ec.createEconomicsV3Args(nil, metaExecRes)
 		require.Nil(t, res)
 		require.Equal(t, process.ErrNilMetaBlockHeader, err)
 	})
 	t.Run("nil exec results", func(t *testing.T) {
-		res, err := ec.createEconomicsV3Args(metaBlock, nil, &block.EpochStart{})
+		res, err := ec.createEconomicsV3Args(metaBlock, nil)
 		require.Nil(t, res)
 		require.Equal(t, process.ErrNilExecutionResultHandler, err)
-	})
-	t.Run("nil epoch start handler", func(t *testing.T) {
-		res, err := ec.createEconomicsV3Args(metaBlock, metaExecRes, nil)
-		require.Nil(t, res)
-		require.Equal(t, process.ErrNilEpochStartData, err)
 	})
 	t.Run("nil acc fees in epoch", func(t *testing.T) {
 		metaExecResInvalid := createMetaExecRes()
 		metaExecResInvalid.ExecutionResult.AccumulatedFeesInEpoch = nil
-		res, err := ec.createEconomicsV3Args(metaBlock, metaExecResInvalid, &block.EpochStart{})
+		res, err := ec.createEconomicsV3Args(metaBlock, metaExecResInvalid)
 		require.Nil(t, res)
 		require.Equal(t, epochStart.ErrNilTotalAccumulatedFeesInEpoch, err)
 	})
 	t.Run("nil dev fees in epoch", func(t *testing.T) {
 		metaExecResInvalid := createMetaExecRes()
 		metaExecResInvalid.ExecutionResult.DevFeesInEpoch = nil
-		res, err := ec.createEconomicsV3Args(metaBlock, metaExecResInvalid, &block.EpochStart{})
+		res, err := ec.createEconomicsV3Args(metaBlock, metaExecResInvalid)
 		require.Nil(t, res)
 		require.Equal(t, epochStart.ErrNilTotalDevFeesInEpoch, err)
 	})
 	t.Run("not meta v3 header", func(t *testing.T) {
-		res, err := ec.createEconomicsV3Args(&block.MetaBlock{}, metaExecRes, &block.EpochStart{})
+		res, err := ec.createEconomicsV3Args(&block.MetaBlock{}, metaExecRes)
 		require.Nil(t, res)
 		require.ErrorIs(t, err, data.ErrInvalidHeaderType)
 	})
 	t.Run("not epoch change proposed", func(t *testing.T) {
 		metaBlockCopy := *metaBlock
 		metaBlockCopy.EpochChangeProposed = false
-		res, err := ec.createEconomicsV3Args(&metaBlockCopy, metaExecRes, &block.EpochStart{})
+		res, err := ec.createEconomicsV3Args(&metaBlockCopy, metaExecRes)
 		require.Nil(t, res)
 		require.ErrorIs(t, err, epochStart.ErrNotEpochStartBlock)
 	})
 	t.Run("exec result header hash does not match prev meta block header hash", func(t *testing.T) {
 		metaBlockCopy := *metaBlock
 		metaBlockCopy.PrevHash = []byte("another hash")
-		res, err := ec.createEconomicsV3Args(&metaBlockCopy, metaExecRes, &block.EpochStart{})
+		res, err := ec.createEconomicsV3Args(&metaBlockCopy, metaExecRes)
 		require.Nil(t, res)
 		require.ErrorIs(t, err, errHashMismatch)
 	})
@@ -2496,7 +2494,7 @@ func TestEconomics_createEconomicsV3Args(t *testing.T) {
 			},
 		}
 		economicsCreator, _ := NewEndOfEpochEconomicsDataCreator(arguments)
-		res, err := economicsCreator.createEconomicsV3Args(metaBlock, metaExecRes, &block.EpochStart{})
+		res, err := economicsCreator.createEconomicsV3Args(metaBlock, metaExecRes)
 		require.Nil(t, res)
 		require.Equal(t, localErr, err)
 	})
@@ -2524,23 +2522,24 @@ func TestEconomics_createEconomicsV3Args(t *testing.T) {
 				return storer, nil
 			},
 		}
-		epochStartDta := &block.EpochStart{
-			LastFinalizedHeaders: []block.EpochStartShardData{
-				{
-					Nonce:      1,
-					ShardID:    1,
-					HeaderHash: []byte("hash1"),
-				},
-				{
-					Nonce:      2,
-					ShardID:    2,
-					HeaderHash: []byte("hash2"),
-				},
-			},
-		}
+		// TODO: update in the storage unit the correct data for shard
+		// epochStartDta := &block.EpochStart{
+		// 	LastFinalizedHeaders: []block.EpochStartShardData{
+		// 		{
+		// 			Nonce:      1,
+		// 			ShardID:    1,
+		// 			HeaderHash: []byte("hash1"),
+		// 		},
+		// 		{
+		// 			Nonce:      2,
+		// 			ShardID:    2,
+		// 			HeaderHash: []byte("hash2"),
+		// 		},
+		// 	},
+		// }
 
 		economicsCreator, _ := NewEndOfEpochEconomicsDataCreator(arguments)
-		res, err := economicsCreator.createEconomicsV3Args(&metaBlockCopy, metaExecRes, epochStartDta)
+		res, err := economicsCreator.createEconomicsV3Args(&metaBlockCopy, metaExecRes)
 		require.Nil(t, err)
 		require.Equal(t, &argsComputeEconomics{
 			computationData: economicsComputationData{
