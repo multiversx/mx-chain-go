@@ -1013,6 +1013,7 @@ func (mp *metaProcessor) computeAndUpdateLastEpochStartShardData(metaHeader data
 	if err != nil {
 		return err
 	}
+
 	mp.epochStartDataWrapper.EpochStartData.LastFinalizedHeaders = lastFinalizedData
 	return nil
 }
