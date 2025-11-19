@@ -10,18 +10,17 @@ import (
 	"github.com/multiversx/mx-chain-core-go/data/block"
 	"github.com/stretchr/testify/require"
 
-	integrationTestsMock "github.com/multiversx/mx-chain-go/integrationTests/mock"
-	blproc "github.com/multiversx/mx-chain-go/process/block"
-	"github.com/multiversx/mx-chain-go/testscommon/pool"
-
 	"github.com/multiversx/mx-chain-go/common"
 	retriever "github.com/multiversx/mx-chain-go/dataRetriever"
+	integrationTestsMock "github.com/multiversx/mx-chain-go/integrationTests/mock"
 	"github.com/multiversx/mx-chain-go/process"
+	blproc "github.com/multiversx/mx-chain-go/process/block"
 	"github.com/multiversx/mx-chain-go/process/block/processedMb"
 	"github.com/multiversx/mx-chain-go/process/mock"
 	"github.com/multiversx/mx-chain-go/testscommon"
 	dataRetrieverMock "github.com/multiversx/mx-chain-go/testscommon/dataRetriever"
 	"github.com/multiversx/mx-chain-go/testscommon/mbSelection"
+	"github.com/multiversx/mx-chain-go/testscommon/pool"
 	"github.com/multiversx/mx-chain-go/testscommon/processMocks"
 )
 
@@ -2885,12 +2884,18 @@ func TestMetaProcessor_VerifyEpochStartData(t *testing.T) {
 		}
 
 		mp, _ := blproc.NewMetaProcessor(arguments)
-		mp.SetEpochStartData(&blproc.EpochStartDataWrapper{Epoch: 3})
+		mp.SetEpochStartData(&blproc.EpochStartDataWrapper{
+			Epoch: 1,
+			EpochStartData: &block.EpochStart{
+				Economics: block.Economics{},
+			},
+		})
 
 		epochStartData := &block.EpochStart{
 			LastFinalizedHeaders: lastFinalizedData,
 		}
 		metaHeader := &block.MetaBlockV3{
+			Epoch:      1,
 			EpochStart: *epochStartData,
 		}
 
