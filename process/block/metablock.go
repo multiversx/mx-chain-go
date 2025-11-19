@@ -14,8 +14,9 @@ import (
 	"github.com/multiversx/mx-chain-core-go/data"
 	"github.com/multiversx/mx-chain-core-go/data/block"
 	"github.com/multiversx/mx-chain-core-go/data/headerVersionData"
-	"github.com/multiversx/mx-chain-go/trie"
 	logger "github.com/multiversx/mx-chain-logger-go"
+
+	"github.com/multiversx/mx-chain-go/trie"
 
 	"github.com/multiversx/mx-chain-go/common"
 	"github.com/multiversx/mx-chain-go/common/holders"
@@ -905,12 +906,12 @@ func (mp *metaProcessor) createRewardsMiniBlocksAndProcessSystemSCs(
 			return nil, err
 		}
 
-		rewardMiniBlocks, err = mp.epochRewardsCreator.CreateRewardsMiniBlocks(metaBlock, allValidatorsInfo, computedEconomics)
+		rewardMiniBlocks, err = mp.createRewardsMiniBlocks(metaBlock, allValidatorsInfo, computedEconomics)
 		if err != nil {
 			return nil, err
 		}
 	} else {
-		rewardMiniBlocks, err = mp.epochRewardsCreator.CreateRewardsMiniBlocks(metaBlock, allValidatorsInfo, computedEconomics)
+		rewardMiniBlocks, err = mp.createRewardsMiniBlocks(metaBlock, allValidatorsInfo, computedEconomics)
 		if err != nil {
 			return nil, err
 		}
@@ -1358,7 +1359,7 @@ func (mp *metaProcessor) CommitBlock(
 
 	// TODO: Should be sent also validatorInfoTxs alongside rewardsTxs -> mp.validatorInfoCreator.GetValidatorInfoTxs(body) ?
 	mp.indexBlock(header, headerHash, body, finalMetaBlock, notarizedHeadersHashes, rewardsTxs)
-	//TODO refactor stateAccessesCollector to reset here for executed res block hashes but collect right after commit
+	// TODO refactor stateAccessesCollector to reset here for executed res block hashes but collect right after commit
 	mp.stateAccessesCollector.Reset()
 	mp.recordBlockInHistory(headerHash, headerHandler, bodyHandler)
 
