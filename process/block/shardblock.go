@@ -1433,7 +1433,7 @@ func (sp *shardProcessor) snapShotEpochStartFromMeta(header data.ShardHeaderHand
 		if err != nil {
 			continue
 		}
-		metaHdr, ok := hdr.(*block.MetaBlock)
+		metaHdr, ok := hdr.(data.MetaHeaderHandler)
 		if !ok {
 			continue
 		}
@@ -1441,12 +1441,12 @@ func (sp *shardProcessor) snapShotEpochStartFromMeta(header data.ShardHeaderHand
 			continue
 		}
 
-		for _, epochStartShData := range metaHdr.EpochStart.LastFinalizedHeaders {
-			if epochStartShData.ShardID != header.GetShardID() {
+		for _, epochStartShData := range metaHdr.GetEpochStartHandler().GetLastFinalizedHeaderHandlers() {
+			if epochStartShData.GetShardID() != header.GetShardID() {
 				continue
 			}
 
-			rootHash := epochStartShData.RootHash
+			rootHash := epochStartShData.GetRootHash()
 			schRootHash := epochStartShData.GetScheduledRootHash()
 			if schRootHash != nil {
 				log.Debug("using scheduled root hash for snapshotting", "schRootHash", schRootHash)
@@ -1665,11 +1665,13 @@ func (sp *shardProcessor) getHighestHdrForOwnShardFromMetachain(
 	ownShIdHdrs := make([]data.HeaderHandler, 0, len(processedHdrs))
 
 	for i := 0; i < len(processedHdrs); i++ {
-		hdr, ok := processedHdrs[i].(*block.MetaBlock)
+		hdr, ok := processedHdrs[i].(data.MetaHeaderHandler)
 		if !ok {
 			return nil, nil, process.ErrWrongTypeAssertion
 		}
 
+		// since we are getting shard info data for own shard, it is safe to fetch it based on
+		// shard info proposed
 		hdrs := sp.getHighestHdrForShardFromMetachain(sp.shardCoordinator.SelfId(), hdr)
 		ownShIdHdrs = append(ownShIdHdrs, hdrs...)
 	}
@@ -1685,21 +1687,27 @@ func (sp *shardProcessor) getHighestHdrForOwnShardFromMetachain(
 	return ownShIdHdrs, ownShIdHdrsHashes, nil
 }
 
-func (sp *shardProcessor) getHighestHdrForShardFromMetachain(shardId uint32, hdr *block.MetaBlock) []data.HeaderHandler {
-	ownShIdHdr := make([]data.HeaderHandler, 0, len(hdr.ShardInfo))
+type shardInfoHandler interface {
+	GetHeaderHash() []byte
+	GetShardID() uint32
+}
 
-	for _, shardInfo := range hdr.ShardInfo {
-		if shardInfo.ShardID != shardId {
+// it will fetch based on proposed shard info data
+func (sp *shardProcessor) getHighestHdrForShardFromMetachain(shardId uint32, hdr data.MetaHeaderHandler) []data.HeaderHandler {
+	ownShIdHdr := make([]data.HeaderHandler, 0, len(hdr.GetShardInfoHandlers()))
+
+	for _, shardInfo := range getShardInfoHandlers(hdr) {
+		if shardInfo.GetShardID() != shardId {
 			continue
 		}
 
-		ownHdr, err := process.GetShardHeader(shardInfo.HeaderHash, sp.dataPool.Headers(), sp.marshalizer, sp.store)
+		ownHdr, err := process.GetShardHeader(shardInfo.GetHeaderHash(), sp.dataPool.Headers(), sp.marshalizer, sp.store)
 		if err != nil {
-			go sp.requestHandler.RequestShardHeader(shardInfo.ShardID, shardInfo.HeaderHash)
+			go sp.requestHandler.RequestShardHeader(shardInfo.GetShardID(), shardInfo.GetHeaderHash())
 
 			log.Debug("requested missing shard header",
-				"hash", shardInfo.HeaderHash,
-				"shard", shardInfo.ShardID,
+				"hash", shardInfo.GetHeaderHash(),
+				"shard", shardInfo.GetShardID(),
 			)
 			continue
 		}
@@ -1708,6 +1716,26 @@ func (sp *shardProcessor) getHighestHdrForShardFromMetachain(shardId uint32, hdr
 	}
 
 	return data.TrimHeaderHandlerSlice(ownShIdHdr)
+}
+
+func getShardInfoHandlers(
+	header data.MetaHeaderHandler,
+) []shardInfoHandler {
+	var shardInfoHandlers []shardInfoHandler
+
+	if header.IsHeaderV3() {
+		for _, shardInfo := range header.GetShardInfoProposalHandlers() {
+			shardInfoHandlers = append(shardInfoHandlers, shardInfo)
+		}
+
+		return shardInfoHandlers
+	}
+
+	for _, shardInfo := range header.GetShardInfoHandlers() {
+		shardInfoHandlers = append(shardInfoHandlers, shardInfo)
+	}
+
+	return shardInfoHandlers
 }
 
 // getOrderedProcessedMetaBlocksFromHeader returns all the meta blocks fully processed
@@ -1754,7 +1782,7 @@ func (sp *shardProcessor) addProcessedCrossMiniBlocksFromHeader(headerHandler da
 			return fmt.Errorf("%w : addProcessedCrossMiniBlocksFromHeader metaBlockHash = %s",
 				err, logger.DisplayByteSlice(metaBlockHash))
 		}
-		metaBlock, isMetaBlock := hdr.(*block.MetaBlock)
+		metaBlock, isMetaBlock := hdr.(data.MetaHeaderHandler)
 		if !isMetaBlock {
 			return process.ErrWrongTypeAssertion
 		}
@@ -1797,13 +1825,13 @@ func (sp *shardProcessor) getOrderedProcessedMetaBlocksFromMiniBlockHashes(
 			continue
 		}
 
-		metaBlock, ok := headerInfo.GetHeader().(*block.MetaBlock)
+		metaBlock, ok := headerInfo.GetHeader().(data.MetaHeaderHandler)
 		if !ok {
 			return nil, process.ErrWrongTypeAssertion
 		}
 
 		log.Trace("meta header",
-			"nonce", metaBlock.Nonce,
+			"nonce", metaBlock.GetNonce(),
 		)
 
 		crossMiniBlockHashes := metaBlock.GetMiniBlockHeadersWithDst(sp.shardCoordinator.SelfId())
