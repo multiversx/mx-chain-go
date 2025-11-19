@@ -213,6 +213,7 @@ func CreateCoreComponents(args ArgsCoreComponentsHolder) (*coreComponentsHolder,
 		"startTime", instance.genesisNodesSetup.GetStartTime(),
 		"nodesSetup start time", nodesSetup.StartTime,
 	)
+	instance.genesisTime = time.Unix(instance.genesisNodesSetup.GetStartTime(), 0)
 
 	instance.roundNotifier = forking.NewGenericRoundNotifier()
 	instance.enableRoundsHandler, err = enablers.NewEnableRoundsHandler(args.RoundsConfig, instance.roundNotifier)
@@ -262,10 +263,9 @@ func CreateCoreComponents(args ArgsCoreComponentsHolder) (*coreComponentsHolder,
 	instance.apiEconomicsData = instance.economicsData
 
 	instance.ratingsData, err = rating.NewRatingsData(rating.RatingsDataArg{
-		EpochNotifier:             instance.epochNotifier,
-		Config:                    args.RatingConfig,
-		ChainParametersHolder:     instance.chainParametersHandler,
-		RoundDurationMilliseconds: args.RoundDurationInMs,
+		EpochNotifier:         instance.epochNotifier,
+		Config:                args.RatingConfig,
+		ChainParametersHolder: instance.chainParametersHandler,
 	})
 	if err != nil {
 		return nil, err
@@ -287,7 +287,6 @@ func CreateCoreComponents(args ArgsCoreComponentsHolder) (*coreComponentsHolder,
 	}
 
 	instance.chanStopNodeProcess = args.ChanStopNodeProcess
-	instance.genesisTime = time.Unix(instance.genesisNodesSetup.GetStartTime(), 0)
 	instance.chainID = args.Config.GeneralSettings.ChainID
 	instance.minTransactionVersion = args.Config.GeneralSettings.MinTransactionVersion
 	instance.encodedAddressLen, err = computeEncodedAddressLen(instance.addressPubKeyConverter)
