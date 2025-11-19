@@ -90,7 +90,7 @@ func GetMetaHeader(
 	headersCacher dataRetriever.HeadersPool,
 	marshalizer marshal.Marshalizer,
 	storageService dataRetriever.StorageService,
-) (*block.MetaBlock, error) {
+) (data.MetaHeaderHandler, error) {
 
 	err := checkGetHeaderParamsForNil(headersCacher, marshalizer, storageService)
 	if err != nil {
@@ -131,14 +131,14 @@ func GetShardHeaderFromPool(
 func GetMetaHeaderFromPool(
 	hash []byte,
 	headersCacher dataRetriever.HeadersPool,
-) (*block.MetaBlock, error) {
+) (data.MetaHeaderHandler, error) {
 
 	obj, err := getHeaderFromPool(hash, headersCacher)
 	if err != nil {
 		return nil, err
 	}
 
-	hdr, ok := obj.(*block.MetaBlock)
+	hdr, ok := obj.(data.MetaHeaderHandler)
 	if !ok {
 		return nil, ErrWrongTypeAssertion
 	}
@@ -184,15 +184,13 @@ func GetMetaHeaderFromStorage(
 	hash []byte,
 	marshalizer marshal.Marshalizer,
 	storageService dataRetriever.StorageService,
-) (*block.MetaBlock, error) {
-
+) (data.MetaHeaderHandler, error) {
 	buffHdr, err := GetMarshalizedHeaderFromStorage(dataRetriever.MetaBlockUnit, hash, marshalizer, storageService)
 	if err != nil {
 		return nil, err
 	}
 
-	hdr := &block.MetaBlock{}
-	err = marshalizer.Unmarshal(hdr, buffHdr)
+	hdr, err := UnmarshalMetaHeader(marshalizer, buffHdr)
 	if err != nil {
 		return nil, ErrUnmarshalWithoutSuccess
 	}
@@ -262,7 +260,7 @@ func GetMetaHeaderWithNonce(
 	marshalizer marshal.Marshalizer,
 	storageService dataRetriever.StorageService,
 	uint64Converter typeConverters.Uint64ByteSliceConverter,
-) (*block.MetaBlock, []byte, error) {
+) (data.MetaHeaderHandler, []byte, error) {
 
 	err := checkGetHeaderWithNonceParamsForNil(headersCacher, marshalizer, storageService, uint64Converter)
 	if err != nil {
@@ -304,14 +302,14 @@ func GetShardHeaderFromPoolWithNonce(
 func GetMetaHeaderFromPoolWithNonce(
 	nonce uint64,
 	headersCacher dataRetriever.HeadersPool,
-) (*block.MetaBlock, []byte, error) {
+) (data.MetaHeaderHandler, []byte, error) {
 
 	obj, hash, err := getHeaderFromPoolWithNonce(nonce, core.MetachainShardId, headersCacher)
 	if err != nil {
 		return nil, nil, err
 	}
 
-	hdr, ok := obj.(*block.MetaBlock)
+	hdr, ok := obj.(data.MetaHeaderHandler)
 	if !ok {
 		return nil, nil, ErrWrongTypeAssertion
 	}
@@ -367,8 +365,7 @@ func GetMetaHeaderFromStorageWithNonce(
 	storageService dataRetriever.StorageService,
 	uint64Converter typeConverters.Uint64ByteSliceConverter,
 	marshalizer marshal.Marshalizer,
-) (*block.MetaBlock, []byte, error) {
-
+) (data.MetaHeaderHandler, []byte, error) {
 	hash, err := GetHeaderHashFromStorageWithNonce(
 		nonce,
 		storageService,
@@ -1045,12 +1042,12 @@ func CheckIfIndexesAreOutOfBound(
 }
 
 // SetBaseExecutionResult sets the last notarized base execution result in the execution results tracker
-func SetBaseExecutionResult(ert ExecutionResultsTracker, blockChain data.ChainHandler) error {
+func SetBaseExecutionResult(executionManager ExecutionManager, blockChain data.ChainHandler) error {
 	if check.IfNil(blockChain) {
 		return ErrNilBlockChain
 	}
-	if check.IfNil(ert) {
-		return ErrNilExecutionResultsTracker
+	if check.IfNil(executionManager) {
+		return ErrNilExecutionManager
 	}
 
 	currentBlock := blockChain.GetCurrentBlockHeader()
@@ -1077,7 +1074,7 @@ func SetBaseExecutionResult(ert ExecutionResultsTracker, blockChain data.ChainHa
 		return ErrNilBaseExecutionResult
 	}
 
-	return ert.SetLastNotarizedResult(lastBaseExecutionResult)
+	return executionManager.SetLastNotarizedResult(lastBaseExecutionResult)
 }
 
 // SeparateBodyByType creates a map of bodies according to type

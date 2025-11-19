@@ -13,6 +13,7 @@ import (
 	"github.com/multiversx/mx-chain-core-go/data/block"
 	"github.com/multiversx/mx-chain-core-go/data/transaction"
 	"github.com/multiversx/mx-chain-core-go/data/typeConverters"
+	"github.com/multiversx/mx-chain-go/testscommon/processMocks"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 
@@ -24,7 +25,6 @@ import (
 	"github.com/multiversx/mx-chain-go/storage"
 	"github.com/multiversx/mx-chain-go/testscommon"
 	"github.com/multiversx/mx-chain-go/testscommon/cache"
-	"github.com/multiversx/mx-chain-go/testscommon/executionTrack"
 	storageStubs "github.com/multiversx/mx-chain-go/testscommon/storage"
 )
 
@@ -156,9 +156,12 @@ func TestGetMetaHeaderShouldErrNilStorage(t *testing.T) {
 func TestGetMetaHeaderShouldGetHeaderFromPool(t *testing.T) {
 	t.Parallel()
 
-	hash := []byte("X")
+	testGetMetaHeader(t, &block.MetaBlock{Nonce: 1})
+	testGetMetaHeader(t, &block.MetaBlockV3{Nonce: 2})
+}
 
-	hdr := &block.MetaBlock{Nonce: 1}
+func testGetMetaHeader(t *testing.T, hdr data.MetaHeaderHandler) {
+	hash := []byte("X")
 	cacher := &mock.HeadersCacherStub{
 		GetHeaderByHashCalled: func(hash []byte) (handler data.HeaderHandler, e error) {
 			return hdr, nil
@@ -303,9 +306,12 @@ func TestGetMetaHeaderFromPoolShouldErrWrongTypeAssertion(t *testing.T) {
 func TestGetMetaHeaderFromPoolShouldWork(t *testing.T) {
 	t.Parallel()
 
-	hash := []byte("X")
+	testGetMetaHeaderFromPool(t, &block.MetaBlock{Nonce: 10})
+	testGetMetaHeaderFromPool(t, &block.MetaBlockV3{Nonce: 11})
+}
 
-	hdr := &block.MetaBlock{Nonce: 10}
+func testGetMetaHeaderFromPool(t *testing.T, hdr data.MetaHeaderHandler) {
+	hash := []byte("X")
 	cacher := &mock.HeadersCacherStub{
 		GetHeaderByHashCalled: func(hash []byte) (handler data.HeaderHandler, e error) {
 			return hdr, nil
@@ -542,9 +548,13 @@ func TestGetMetaHeaderFromStorageShouldErrUnmarshalWithoutSuccess(t *testing.T) 
 func TestGetMetaHeaderFromStorageShouldWork(t *testing.T) {
 	t.Parallel()
 
+	testGetMetaHeaderFromStorage(t, &block.MetaBlock{Nonce: 1})
+	testGetMetaHeaderFromStorage(t, &block.MetaBlockV3{Nonce: 2, LastExecutionResult: &block.MetaExecutionResultInfo{}})
+}
+
+func testGetMetaHeaderFromStorage(t *testing.T, hdr data.MetaHeaderHandler) {
 	hash := []byte("X")
 
-	hdr := &block.MetaBlock{}
 	marshalizer := &mock.MarshalizerMock{}
 	storageService := &storageStubs.ChainStorerStub{
 		GetStorerCalled: func(unitType dataRetriever.UnitType) (storage.Storer, error) {
@@ -938,11 +948,14 @@ func TestGetMetaHeaderWithNonceShouldGetHeaderFromPool(t *testing.T) {
 func TestGetMetaHeaderWithNonceShouldGetHeaderFromStorage(t *testing.T) {
 	t.Parallel()
 
+	testGetMetaHeaderWithNonceShouldGetHeaderFromStorage(t, &block.MetaBlock{Nonce: 1})
+	testGetMetaHeaderWithNonceShouldGetHeaderFromStorage(t, &block.MetaBlockV3{Nonce: 2})
+}
+
+func testGetMetaHeaderWithNonceShouldGetHeaderFromStorage(t *testing.T, hdr data.MetaHeaderHandler) {
 	hash := []byte("X")
-	nonce := uint64(1)
 	nonceToByte := []byte("1")
 
-	hdr := &block.MetaBlock{Nonce: nonce}
 	cacher := &mock.HeadersCacherStub{
 		GetHeaderByNonceAndShardIdCalled: func(hdrNonce uint64, shardId uint32) (handlers []data.HeaderHandler, i [][]byte, e error) {
 			return []data.HeaderHandler{hdr}, [][]byte{hash}, nil
@@ -967,7 +980,7 @@ func TestGetMetaHeaderWithNonceShouldGetHeaderFromStorage(t *testing.T) {
 	}
 	uint64Converter := &mock.Uint64ByteSliceConverterMock{
 		ToByteSliceCalled: func(n uint64) []byte {
-			if n == nonce {
+			if n == hdr.GetNonce() {
 				return nonceToByte
 			}
 
@@ -976,7 +989,7 @@ func TestGetMetaHeaderWithNonceShouldGetHeaderFromStorage(t *testing.T) {
 	}
 
 	header, _, _ := process.GetMetaHeaderWithNonce(
-		nonce,
+		hdr.GetNonce(),
 		cacher,
 		marshalizer,
 		storageService,
@@ -1156,17 +1169,20 @@ func TestGetMetaHeaderFromPoolWithNonceShouldErrWrongTypeAssertion(t *testing.T)
 func TestGetMetaHeaderFromPoolWithNonceShouldWork(t *testing.T) {
 	t.Parallel()
 
-	hash := []byte("X")
-	nonce := uint64(1)
+	testGetMetaHeaderFromPoolWithNonce(t, &block.MetaBlock{Nonce: 1})
+	testGetMetaHeaderFromPoolWithNonce(t, &block.MetaBlockV3{Nonce: 2})
+}
 
-	hdr := &block.MetaBlock{Nonce: nonce}
+func testGetMetaHeaderFromPoolWithNonce(t *testing.T, hdr data.MetaHeaderHandler) {
+	hash := []byte("X")
+
 	cacher := &mock.HeadersCacherStub{
 		GetHeaderByNonceAndShardIdCalled: func(hdrNonce uint64, shardId uint32) (handlers []data.HeaderHandler, i [][]byte, e error) {
 			return []data.HeaderHandler{hdr}, [][]byte{hash}, nil
 		},
 	}
 
-	header, headerHash, err := process.GetMetaHeaderFromPoolWithNonce(nonce, cacher)
+	header, headerHash, err := process.GetMetaHeaderFromPoolWithNonce(hdr.GetNonce(), cacher)
 	assert.Nil(t, err)
 	assert.Equal(t, hash, headerHash)
 	assert.Equal(t, hdr, header)
@@ -1653,10 +1669,13 @@ func TestGetMetaHeaderFromStorageWithNonceShouldErrUnmarshalWithoutSuccess(t *te
 func TestGetMetaHeaderFromStorageWithNonceShouldWork(t *testing.T) {
 	t.Parallel()
 
-	nonce := uint64(1)
+	testGetMetaHeaderFromStorageWithNonce(t, &block.MetaBlock{Nonce: 1})
+	testGetMetaHeaderFromStorageWithNonce(t, &block.MetaBlockV3{Nonce: 2, LastExecutionResult: &block.MetaExecutionResultInfo{}})
+}
+
+func testGetMetaHeaderFromStorageWithNonce(t *testing.T, hdr data.MetaHeaderHandler) {
 	hash := []byte("X")
 	nonceToByte := []byte("1")
-	hdr := &block.MetaBlock{Nonce: nonce}
 	marshalizer := &mock.MarshalizerMock{}
 	marshHdr, _ := marshalizer.Marshal(hdr)
 	storageService := &storageStubs.ChainStorerStub{
@@ -1676,7 +1695,7 @@ func TestGetMetaHeaderFromStorageWithNonceShouldWork(t *testing.T) {
 	}
 	uint64Converter := &mock.Uint64ByteSliceConverterMock{
 		ToByteSliceCalled: func(n uint64) []byte {
-			if n == nonce {
+			if n == hdr.GetNonce() {
 				return nonceToByte
 			}
 
@@ -1685,7 +1704,7 @@ func TestGetMetaHeaderFromStorageWithNonceShouldWork(t *testing.T) {
 	}
 
 	header, headerHash, err := process.GetMetaHeaderFromStorageWithNonce(
-		nonce,
+		hdr.GetNonce(),
 		storageService,
 		uint64Converter,
 		marshalizer)
@@ -2384,23 +2403,23 @@ func TestShardedCacheSearchMethod_ToString(t *testing.T) {
 func Test_SetBaseExecutionResult(t *testing.T) {
 	t.Parallel()
 
-	t.Run("nil tracker should error", func(t *testing.T) {
+	t.Run("nil execution manager should error", func(t *testing.T) {
 		t.Parallel()
 		err := process.SetBaseExecutionResult(nil, &testscommon.ChainHandlerStub{})
-		require.Equal(t, process.ErrNilExecutionResultsTracker, err)
+		require.Equal(t, process.ErrNilExecutionManager, err)
 	})
 
 	t.Run("nil chain handler should error", func(t *testing.T) {
 		t.Parallel()
-		err := process.SetBaseExecutionResult(&executionTrack.ExecutionResultsTrackerStub{}, nil)
+		err := process.SetBaseExecutionResult(&processMocks.ExecutionManagerMock{}, nil)
 		require.Equal(t, process.ErrNilBlockChain, err)
 	})
 
-	t.Run("tracker error should error", func(t *testing.T) {
+	t.Run("execution manager error should error", func(t *testing.T) {
 		t.Parallel()
 
-		expectedErr := errors.New("tracker error")
-		tracker := &executionTrack.ExecutionResultsTrackerStub{
+		expectedErr := errors.New("execution manager error")
+		executionManager := &processMocks.ExecutionManagerMock{
 			SetLastNotarizedResultCalled: func(data.BaseExecutionResultHandler) error {
 				return expectedErr
 			},
@@ -2426,7 +2445,7 @@ func Test_SetBaseExecutionResult(t *testing.T) {
 			},
 		}
 
-		err := process.SetBaseExecutionResult(tracker, chainHandler)
+		err := process.SetBaseExecutionResult(executionManager, chainHandler)
 		require.Equal(t, expectedErr, err)
 	})
 
@@ -2438,14 +2457,14 @@ func Test_SetBaseExecutionResult(t *testing.T) {
 				return nil
 			},
 		}
-		tracker := &executionTrack.ExecutionResultsTrackerStub{
+		executionManager := &processMocks.ExecutionManagerMock{
 			SetLastNotarizedResultCalled: func(data.BaseExecutionResultHandler) error {
 				require.Fail(t, "should not be called")
 				return nil
 			},
 		}
 
-		err := process.SetBaseExecutionResult(tracker, chainHandler)
+		err := process.SetBaseExecutionResult(executionManager, chainHandler)
 		require.Nil(t, err)
 	})
 
@@ -2457,14 +2476,14 @@ func Test_SetBaseExecutionResult(t *testing.T) {
 				return &block.Header{}
 			},
 		}
-		tracker := &executionTrack.ExecutionResultsTrackerStub{
+		executionManager := &processMocks.ExecutionManagerMock{
 			SetLastNotarizedResultCalled: func(data.BaseExecutionResultHandler) error {
 				require.Fail(t, "should not be called")
 				return nil
 			},
 		}
 
-		err := process.SetBaseExecutionResult(tracker, chainHandler)
+		err := process.SetBaseExecutionResult(executionManager, chainHandler)
 		require.Nil(t, err)
 	})
 	t.Run("chain handler returning header without execution result should not set", func(t *testing.T) {
@@ -2476,14 +2495,14 @@ func Test_SetBaseExecutionResult(t *testing.T) {
 				return header
 			},
 		}
-		tracker := &executionTrack.ExecutionResultsTrackerStub{
+		executionManager := &processMocks.ExecutionManagerMock{
 			SetLastNotarizedResultCalled: func(data.BaseExecutionResultHandler) error {
 				require.Fail(t, "should not be called")
 				return nil
 			},
 		}
 
-		err := process.SetBaseExecutionResult(tracker, chainHandler)
+		err := process.SetBaseExecutionResult(executionManager, chainHandler)
 		require.Equal(t, process.ErrNilLastExecutionResultHandler, err)
 	})
 
@@ -2498,14 +2517,14 @@ func Test_SetBaseExecutionResult(t *testing.T) {
 				return header
 			},
 		}
-		tracker := &executionTrack.ExecutionResultsTrackerStub{
+		executionManager := &processMocks.ExecutionManagerMock{
 			SetLastNotarizedResultCalled: func(data.BaseExecutionResultHandler) error {
 				require.Fail(t, "should not be called")
 				return nil
 			},
 		}
 
-		err := process.SetBaseExecutionResult(tracker, chainHandler)
+		err := process.SetBaseExecutionResult(executionManager, chainHandler)
 		require.Equal(t, process.ErrNilBaseExecutionResult, err)
 	})
 
@@ -2528,7 +2547,7 @@ func Test_SetBaseExecutionResult(t *testing.T) {
 		}
 
 		called := false
-		tracker := &executionTrack.ExecutionResultsTrackerStub{
+		executionManager := &processMocks.ExecutionManagerMock{
 			SetLastNotarizedResultCalled: func(result data.BaseExecutionResultHandler) error {
 				require.Equal(t, executionResultsInfo.ExecutionResult, result)
 				called = true
@@ -2541,7 +2560,7 @@ func Test_SetBaseExecutionResult(t *testing.T) {
 			},
 		}
 
-		err := process.SetBaseExecutionResult(tracker, chainHandler)
+		err := process.SetBaseExecutionResult(executionManager, chainHandler)
 		require.Nil(t, err)
 		require.True(t, called)
 	})
@@ -2567,7 +2586,7 @@ func Test_SetBaseExecutionResult(t *testing.T) {
 		}
 
 		called := false
-		tracker := &executionTrack.ExecutionResultsTrackerStub{
+		executionManager := &processMocks.ExecutionManagerMock{
 			SetLastNotarizedResultCalled: func(result data.BaseExecutionResultHandler) error {
 				require.Equal(t, executionResultsInfo.ExecutionResult, result)
 				called = true
@@ -2580,7 +2599,7 @@ func Test_SetBaseExecutionResult(t *testing.T) {
 			},
 		}
 
-		err := process.SetBaseExecutionResult(tracker, chainHandler)
+		err := process.SetBaseExecutionResult(executionManager, chainHandler)
 		require.Nil(t, err)
 		require.True(t, called)
 	})

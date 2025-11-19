@@ -9,7 +9,6 @@ import (
 	"github.com/multiversx/mx-chain-core-go/data"
 	"github.com/multiversx/mx-chain-core-go/data/block"
 	"github.com/multiversx/mx-chain-go/common"
-	"github.com/multiversx/mx-chain-go/testscommon/processMocks/queue"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 )
@@ -379,7 +378,8 @@ func TestBlocksQueue_RemoveAtNonceAndHigher(t *testing.T) {
 		t.Parallel()
 
 		hq := NewBlocksQueue()
-		hq.RemoveAtNonceAndHigher(5)
+		removedNonces := hq.RemoveAtNonceAndHigher(5)
+		require.Zero(t, len(removedNonces))
 		require.Equal(t, 0, len(hq.headerBodyPairs))
 	})
 
@@ -387,16 +387,6 @@ func TestBlocksQueue_RemoveAtNonceAndHigher(t *testing.T) {
 		t.Parallel()
 
 		hq := NewBlocksQueue()
-
-		// register a mocked subscriber to check if the callback is called for each nonce
-		evictedNonces := make(map[uint64]struct{})
-		subscriber := &queue.BlocksQueueEvictionSubscriberMock{
-			OnHeaderEvictedCalled: func(headerNonce uint64) {
-				evictedNonces[headerNonce] = struct{}{}
-			},
-		}
-		hq.RegisterEvictionSubscriber(subscriber)
-		hq.RegisterEvictionSubscriber(nil) // coverage only
 
 		// Add blocks with nonces 1, 2, 3, 4, 5
 		for i := uint64(1); i <= 5; i++ {
@@ -410,10 +400,13 @@ func TestBlocksQueue_RemoveAtNonceAndHigher(t *testing.T) {
 
 		require.Equal(t, 5, len(hq.headerBodyPairs))
 		require.Equal(t, uint64(5), hq.lastAddedNonce)
-		require.Zero(t, len(evictedNonces))
 
 		// Remove from nonce 3 onwards
-		hq.RemoveAtNonceAndHigher(3)
+		removedNonces := hq.RemoveAtNonceAndHigher(3)
+		require.Equal(t, 3, len(removedNonces))
+		require.Equal(t, uint64(3), removedNonces[0])
+		require.Equal(t, uint64(4), removedNonces[1])
+		require.Equal(t, uint64(5), removedNonces[2])
 
 		// Should have only 2 elements now (nonces 1, 2)
 		require.Equal(t, 2, len(hq.headerBodyPairs))
@@ -422,10 +415,6 @@ func TestBlocksQueue_RemoveAtNonceAndHigher(t *testing.T) {
 		// Verify remaining elements
 		require.Equal(t, uint64(1), hq.headerBodyPairs[0].Header.GetNonce())
 		require.Equal(t, uint64(2), hq.headerBodyPairs[1].Header.GetNonce())
-
-		// Check evicted nonces, should only be the provided one
-		require.Len(t, evictedNonces, 1)
-		require.Contains(t, evictedNonces, uint64(3))
 	})
 
 	t.Run("remove from first nonce clears entire queue", func(t *testing.T) {
@@ -446,7 +435,11 @@ func TestBlocksQueue_RemoveAtNonceAndHigher(t *testing.T) {
 		require.Equal(t, uint64(4), hq.lastAddedNonce)
 
 		// Remove all
-		hq.RemoveAtNonceAndHigher(1)
+		removedNonces := hq.RemoveAtNonceAndHigher(1)
+		require.Equal(t, 4, len(removedNonces))
+		for i := uint64(1); i <= 4; i++ {
+			require.Equal(t, i, removedNonces[i-1])
+		}
 
 		// Queue should be empty
 		require.Equal(t, 0, len(hq.headerBodyPairs))
@@ -471,7 +464,9 @@ func TestBlocksQueue_RemoveAtNonceAndHigher(t *testing.T) {
 		require.Equal(t, uint64(4), hq.lastAddedNonce)
 
 		// Remove from nonce 4 (last element)
-		hq.RemoveAtNonceAndHigher(4)
+		removedNonces := hq.RemoveAtNonceAndHigher(4)
+		require.Equal(t, 1, len(removedNonces))
+		require.Equal(t, uint64(4), removedNonces[0])
 
 		// Should have 3 elements now
 		require.Equal(t, 3, len(hq.headerBodyPairs))
@@ -503,9 +498,10 @@ func TestBlocksQueue_RemoveAtNonceAndHigher(t *testing.T) {
 		require.Equal(t, uint64(13), hq.lastAddedNonce)
 
 		// Try to remove at nonce 5 (which doesn't exist)
-		hq.RemoveAtNonceAndHigher(5)
+		removedNonces := hq.RemoveAtNonceAndHigher(5)
+		require.Equal(t, 3, len(removedNonces))
 
-		// Queue should remain unchanged
+		// Queue should be empty
 		require.Equal(t, 0, len(hq.headerBodyPairs))
 		require.Equal(t, uint64(4), hq.lastAddedNonce)
 	})
@@ -526,7 +522,8 @@ func TestBlocksQueue_RemoveAtNonceAndHigher(t *testing.T) {
 		require.Equal(t, uint64(0), hq.lastAddedNonce)
 
 		// Remove from nonce 0
-		hq.RemoveAtNonceAndHigher(0)
+		removedNonces := hq.RemoveAtNonceAndHigher(0)
+		require.Equal(t, 1, len(removedNonces))
 
 		// Queue should be empty, lastAddedNonce should be 0
 		require.Equal(t, 0, len(hq.headerBodyPairs))

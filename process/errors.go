@@ -149,8 +149,8 @@ var ErrMissingBody = errors.New("missing body")
 // ErrNilBlockProcessor signals that an operation has been attempted to or with a nil BlockProcessor implementation
 var ErrNilBlockProcessor = errors.New("nil block processor")
 
-// ErrNilBlocksQueue signals that a nil blocks queue has been provided
-var ErrNilBlocksQueue = errors.New("nil blocks queue")
+// ErrNilExecutionManager signals that a nil execution manager has been provided
+var ErrNilExecutionManager = errors.New("nil execution manager")
 
 // ErrNilMarshalizer signals that an operation has been attempted to or with a nil Marshalizer implementation
 var ErrNilMarshalizer = errors.New("nil Marshalizer")
@@ -476,6 +476,9 @@ var ErrInvalidCacheRefreshIntervalInSec = errors.New("invalid cacheRefreshInterv
 
 // ErrEpochDoesNotMatch signals that epoch does not match between headers
 var ErrEpochDoesNotMatch = errors.New("epoch does not match")
+
+// ErrStartOfEpochExecutionResultsDoNotExist signals that the start of epoch execution results do not exist
+var ErrStartOfEpochExecutionResultsDoNotExist = errors.New("start of epoch execution results do not exist")
 
 // ErrOverallBalanceChangeFromSC signals that all sumed balance changes are not zero
 var ErrOverallBalanceChangeFromSC = errors.New("SC output balance updates are wrong")
@@ -1355,9 +1358,6 @@ var ErrExecutionResultDoesNotMatch = errors.New("execution result does not match
 
 // ErrExecutionResultsNumberMismatch signals that the number of execution results does not match the expected one
 var ErrExecutionResultsNumberMismatch = errors.New("execution results number mismatch")
-
-// ErrNilExecutionResultsTracker signals that a nil execution results tracker has been provided
-var ErrNilExecutionResultsTracker = errors.New("nil execution results tracker")
 
 // ErrInvalidHash signals that an invalid hash has been provided
 var ErrInvalidHash = errors.New("invalid hash")

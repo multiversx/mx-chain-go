@@ -4,7 +4,6 @@ import (
 	"errors"
 	"testing"
 
-	"github.com/multiversx/mx-chain-core-go/data"
 	"github.com/multiversx/mx-chain-core-go/data/block"
 	"github.com/stretchr/testify/require"
 )
@@ -529,50 +528,50 @@ func TestExecutionResultsTracker_RemoveFromNonce(t *testing.T) {
 	})
 }
 
-func TestExecutionResultsTracker_OnHeaderEvicted(t *testing.T) {
+func TestExecutionResultsTracker_Clean(t *testing.T) {
 	t.Parallel()
 
-	tracker := NewExecutionResultsTracker()
-	err := tracker.SetLastNotarizedResult(&block.ExecutionResult{
-		BaseExecutionResult: &block.BaseExecutionResult{
-			HeaderHash:  []byte("hash1"),
-			HeaderNonce: 10,
-		},
-	})
-	require.Nil(t, err)
+	t.Run("nil last notarized result should early exit", func(t *testing.T) {
+		t.Parallel()
 
-	executionResults := []data.ExecutionResultHandler{
-		&block.ExecutionResult{
+		tracker := NewExecutionResultsTracker()
+		tracker.Clean(nil)
+	})
+	t.Run("should work", func(t *testing.T) {
+		t.Parallel()
+
+		tracker := NewExecutionResultsTracker()
+		_ = tracker.SetLastNotarizedResult(&block.ExecutionResult{
 			BaseExecutionResult: &block.BaseExecutionResult{
-				HeaderHash:  []byte("hash2"),
+				HeaderHash:  []byte("hash0"),
+				HeaderNonce: 10,
+			},
+		})
+		_ = tracker.AddExecutionResult(&block.ExecutionResult{
+			BaseExecutionResult: &block.BaseExecutionResult{
+				HeaderHash:  []byte("hash1"),
 				HeaderNonce: 11,
 			},
-		},
-		&block.ExecutionResult{
+		})
+		_ = tracker.AddExecutionResult(&block.ExecutionResult{
 			BaseExecutionResult: &block.BaseExecutionResult{
-				HeaderHash:  []byte("hash3"),
+				HeaderHash:  []byte("hash2"),
 				HeaderNonce: 12,
 			},
-		},
-	}
+		})
 
-	err = tracker.AddExecutionResult(executionResults[0])
-	require.Nil(t, err)
+		newLast := &block.BaseExecutionResult{
+			HeaderHash:  []byte("hash_new"),
+			HeaderNonce: 2,
+		}
+		tracker.Clean(newLast)
 
-	err = tracker.AddExecutionResult(executionResults[1])
-	require.Nil(t, err)
+		pending, err := tracker.GetPendingExecutionResults()
+		require.NoError(t, err)
+		require.Equal(t, 0, len(pending))
 
-	// evicting already processed nonce should remove it from pending
-	tracker.OnHeaderEvicted(executionResults[1].GetHeaderNonce())
-
-	results, errG := tracker.GetPendingExecutionResults()
-	require.Nil(t, errG)
-	require.Equal(t, 1, len(results))
-
-	// evicting already processed nonce should remove it from pending
-	tracker.OnHeaderEvicted(executionResults[0].GetHeaderNonce())
-
-	results, errG = tracker.GetPendingExecutionResults()
-	require.Nil(t, errG)
-	require.Equal(t, 0, len(results))
+		lastExec, err := tracker.GetLastNotarizedExecutionResult()
+		require.NoError(t, err)
+		require.Equal(t, newLast, lastExec)
+	})
 }

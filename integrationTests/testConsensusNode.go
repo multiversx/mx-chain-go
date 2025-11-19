@@ -429,7 +429,7 @@ func (tcn *TestConsensusNode) initNode(args ArgsTestConsensusNode) {
 	processComponents.ScheduledTxsExecutionHandlerInternal = &testscommon.ScheduledTxsExecutionStub{}
 	processComponents.ProcessedMiniBlocksTrackerInternal = &testscommon.ProcessedMiniBlocksTrackerStub{}
 	processComponents.SentSignaturesTrackerInternal = &testscommon.SentSignatureTrackerStub{}
-	processComponents.BlocksQueueField = &processMocks.BlocksQueueMock{}
+	processComponents.ExecManager = &processMocks.ExecutionManagerMock{}
 
 	tcn.initInterceptors(coreComponents, cryptoComponents, roundHandler, enableEpochsHandler, store, epochTrigger)
 	processComponents.IntContainer = tcn.MainInterceptorsContainer

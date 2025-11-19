@@ -665,7 +665,7 @@ func (sp *shardProcessor) restoreMetaBlockIntoPool(
 	headersPool := sp.dataPool.Headers()
 
 	mapMetaHashMiniBlockHashes := make(map[string][][]byte)
-	mapMetaHashMetaBlock := make(map[string]*block.MetaBlock)
+	mapMetaHashMetaBlock := make(map[string]data.MetaHeaderHandler)
 
 	for _, metaBlockHash := range metaBlockHashes {
 		metaBlock, errNotCritical := process.GetMetaHeaderFromStorage(metaBlockHash, sp.marshalizer, sp.store)
@@ -713,8 +713,8 @@ func (sp *shardProcessor) restoreMetaBlockIntoPool(
 		}
 
 		log.Trace("meta block has been restored successfully",
-			"round", metaBlock.Round,
-			"nonce", metaBlock.Nonce,
+			"round", metaBlock.GetRound(),
+			"nonce", metaBlock.GetNonce(),
 			"hash", metaBlockHash)
 	}
 
@@ -727,7 +727,7 @@ func (sp *shardProcessor) restoreMetaBlockIntoPool(
 	return nil
 }
 
-func (sp *shardProcessor) setProcessedMiniBlocksInfo(miniBlockHashes [][]byte, metaBlockHash string, metaBlock *block.MetaBlock) {
+func (sp *shardProcessor) setProcessedMiniBlocksInfo(miniBlockHashes [][]byte, metaBlockHash string, metaBlock data.MetaHeaderHandler) {
 	for _, miniBlockHash := range miniBlockHashes {
 		indexOfLastTxProcessed := getIndexOfLastTxProcessedInMiniBlock(miniBlockHash, metaBlock)
 		sp.processedMiniBlocksTracker.SetProcessedMiniBlockInfo([]byte(metaBlockHash), miniBlockHash, &processedMb.ProcessedMiniBlockInfo{
@@ -737,25 +737,25 @@ func (sp *shardProcessor) setProcessedMiniBlocksInfo(miniBlockHashes [][]byte, m
 	}
 }
 
-func getIndexOfLastTxProcessedInMiniBlock(miniBlockHash []byte, metaBlock *block.MetaBlock) int32 {
-	for _, mbh := range metaBlock.MiniBlockHeaders {
-		if bytes.Equal(mbh.Hash, miniBlockHash) {
-			return int32(mbh.TxCount) - 1
+func getIndexOfLastTxProcessedInMiniBlock(miniBlockHash []byte, metaBlock data.MetaHeaderHandler) int32 {
+	for _, mbh := range metaBlock.GetMiniBlockHeaderHandlers() {
+		if bytes.Equal(mbh.GetHash(), miniBlockHash) {
+			return int32(mbh.GetTxCount()) - 1
 		}
 	}
 
-	for _, shardData := range metaBlock.ShardInfo {
-		for _, mbh := range shardData.ShardMiniBlockHeaders {
-			if bytes.Equal(mbh.Hash, miniBlockHash) {
-				return int32(mbh.TxCount) - 1
+	for _, shardData := range metaBlock.GetShardInfoHandlers() {
+		for _, mbh := range shardData.GetShardMiniBlockHeaderHandlers() {
+			if bytes.Equal(mbh.GetHash(), miniBlockHash) {
+				return int32(mbh.GetTxCount()) - 1
 			}
 		}
 	}
 
 	log.Warn("shardProcessor.getIndexOfLastTxProcessedInMiniBlock",
 		"miniBlock hash", miniBlockHash,
-		"metaBlock round", metaBlock.Round,
-		"metaBlock nonce", metaBlock.Nonce,
+		"metaBlock round", metaBlock.GetRound(),
+		"metaBlock nonce", metaBlock.GetNonce(),
 		"error", process.ErrMissingMiniBlock)
 
 	return common.MaxIndexOfTxInMiniBlock
@@ -992,9 +992,11 @@ func (sp *shardProcessor) CommitBlock(
 		return err
 	}
 
-	err = sp.commitAll(headerHandler)
-	if err != nil {
-		return err
+	if !headerHandler.IsHeaderV3() {
+		err = sp.commitState(headerHandler)
+		if err != nil {
+			return err
+		}
 	}
 
 	log.Info("shard block has been committed successfully",
@@ -1076,6 +1078,7 @@ func (sp *shardProcessor) CommitBlock(
 	}
 
 	sp.indexBlockIfNeeded(bodyHandler, headerHash, headerHandler, lastBlockHeader)
+	//TODO refactor stateAccessesCollector to reset here for executed res block hashes but collect right after commit
 	sp.stateAccessesCollector.Reset()
 	sp.recordBlockInHistory(headerHash, headerHandler, bodyHandler)
 
@@ -1228,6 +1231,104 @@ func (sp *shardProcessor) displayPoolsInfo() {
 func (sp *shardProcessor) updateState(headers []data.HeaderHandler, currentHeader data.ShardHeaderHandler, currentHeaderHash []byte) {
 	sp.snapShotEpochStartFromMeta(currentHeader)
 
+	if !currentHeader.IsHeaderV3() {
+		sp.pruneTrieLegacy(headers)
+	} else {
+		sp.pruneTrieHeaderV3(currentHeader.GetExecutionResultsHandlers())
+
+		if currentHeader.IsStartOfEpochBlock() {
+			sp.nodesCoordinator.ShuffleOutForEpoch(currentHeader.GetEpoch())
+		}
+	}
+
+	if !sp.enableEpochsHandler.IsFlagEnabledInEpoch(common.AndromedaFlag, currentHeader.GetEpoch()) {
+		return
+	}
+
+	// TODO: set proper finalized header in outport
+	sp.setFinalizedHeaderHashInIndexer(currentHeaderHash)
+
+	scheduledHeaderRootHash, _ := sp.scheduledTxsExecutionHandler.GetScheduledRootHashForHeader(currentHeaderHash)
+	sp.setFinalBlockInfo(currentHeader, currentHeaderHash, scheduledHeaderRootHash)
+}
+
+func (sp *shardProcessor) pruneTrieHeaderV3(executionResultsHandlers []data.BaseExecutionResultHandler) {
+	accountsDb := sp.accountsDB[state.UserAccountsState]
+	if !accountsDb.IsPruningEnabled() {
+		return
+	}
+
+	for i := range executionResultsHandlers {
+		currentExecRes := executionResultsHandlers[i]
+		prevExecRes, err := sp.getPreviousExecutionResult(i, executionResultsHandlers)
+		if err != nil {
+			log.Warn("failed to get previous execution result for pruning",
+				"err", err,
+				"index", i,
+				"currentExecResHeaderHash", currentExecRes.GetHeaderHash())
+			continue
+		}
+
+		currentRootHash := currentExecRes.GetRootHash()
+		prevRootHash := prevExecRes.GetRootHash()
+		log.Trace("pruneTrieHeaderV3",
+			"currentRootHash", currentRootHash,
+			"prevRootHash", prevRootHash,
+		)
+		if bytes.Equal(prevRootHash, currentRootHash) {
+			continue
+		}
+
+		accountsDb.CancelPrune(prevRootHash, state.NewRoot)
+		accountsDb.PruneTrie(prevRootHash, state.OldRoot, sp.getPruningHandler(currentExecRes.GetHeaderNonce()))
+
+		if sp.enableEpochsHandler.IsFlagEnabledInEpoch(common.AndromedaFlag, currentExecRes.GetHeaderEpoch()) {
+			continue
+		}
+
+		sp.setFinalizedHeaderHashInIndexer(currentExecRes.GetHeaderHash())
+	}
+}
+
+func (sp *shardProcessor) getPreviousExecutionResult(index int, executionResultsHandlers []data.BaseExecutionResultHandler) (data.BaseExecutionResultHandler, error) {
+	if index > 0 {
+		return executionResultsHandlers[index-1], nil
+	}
+
+	prevHeaderHash := sp.getCurrentBlockHeader().GetPrevHash()
+	prevHeader, err := process.GetShardHeader(prevHeaderHash, sp.dataPool.Headers(), sp.marshalizer, sp.store)
+	if err != nil {
+		return nil, err
+	}
+
+	if prevHeader.IsHeaderV3() {
+		lastExecRes := prevHeader.GetLastExecutionResultHandler()
+		if check.IfNil(lastExecRes) {
+			return nil, fmt.Errorf("previous header last execution result is nil")
+		}
+
+		lastShardExecRes, ok := lastExecRes.(data.LastShardExecutionResultHandler)
+		if !ok {
+			return nil, process.ErrWrongTypeAssertion
+		}
+
+		return lastShardExecRes.GetExecutionResultHandler(), nil
+	}
+
+	lastExecRes, err := process.CreateLastExecutionResultFromPrevHeader(prevHeader, prevHeaderHash)
+	if err != nil {
+		return nil, err
+	}
+
+	lastShardExecRes, ok := lastExecRes.(data.LastShardExecutionResultHandler)
+	if !ok {
+		return nil, process.ErrWrongTypeAssertion
+	}
+
+	return lastShardExecRes.GetExecutionResultHandler(), nil
+}
+
+func (sp *shardProcessor) pruneTrieLegacy(headers []data.HeaderHandler) {
 	for _, header := range headers {
 		if sp.forkDetector.GetHighestFinalBlockNonce() < header.GetNonce() {
 			break
@@ -1290,7 +1391,7 @@ func (sp *shardProcessor) updateState(headers []data.HeaderHandler, currentHeade
 		)
 
 		sp.updateStateStorage(
-			header,
+			header.GetNonce(),
 			headerRootHashForPruning,
 			prevHeaderRootHashForPruning,
 			sp.accountsDB[state.UserAccountsState],
@@ -1304,16 +1405,6 @@ func (sp *shardProcessor) updateState(headers []data.HeaderHandler, currentHeade
 
 		sp.setFinalBlockInfo(header, headerHash, scheduledHeaderRootHash)
 	}
-
-	if !sp.enableEpochsHandler.IsFlagEnabledInEpoch(common.AndromedaFlag, currentHeader.GetEpoch()) {
-		return
-	}
-
-	// TODO: set proper finalized header in outport
-	sp.setFinalizedHeaderHashInIndexer(currentHeaderHash)
-
-	scheduledHeaderRootHash, _ := sp.scheduledTxsExecutionHandler.GetScheduledRootHashForHeader(currentHeaderHash)
-	sp.setFinalBlockInfo(currentHeader, currentHeaderHash, scheduledHeaderRootHash)
 }
 
 func (sp *shardProcessor) setFinalBlockInfo(
@@ -1339,11 +1430,11 @@ func (sp *shardProcessor) snapShotEpochStartFromMeta(header data.ShardHeaderHand
 	accounts := sp.accountsDB[state.UserAccountsState]
 
 	for _, metaHash := range header.GetMetaBlockHashes() {
-		metaHdrInfo, ok := sp.hdrsForCurrBlock.GetHeaderInfo(string(metaHash))
-		if !ok {
+		hdr, err := getHeaderFromHash(sp.dataPool.Headers(), sp.hdrsForCurrBlock, header.IsHeaderV3(), metaHash)
+		if err != nil {
 			continue
 		}
-		metaHdr, ok := metaHdrInfo.GetHeader().(*block.MetaBlock)
+		metaHdr, ok := hdr.(*block.MetaBlock)
 		if !ok {
 			continue
 		}
@@ -1659,13 +1750,12 @@ func (sp *shardProcessor) addProcessedCrossMiniBlocksFromHeader(headerHandler da
 	}
 
 	for _, metaBlockHash := range shardHeader.GetMetaBlockHashes() {
-		headerInfo, found := sp.hdrsForCurrBlock.GetHeaderInfo(string(metaBlockHash))
-		if !found {
+		hdr, err := getHeaderFromHash(sp.dataPool.Headers(), sp.hdrsForCurrBlock, shardHeader.IsHeaderV3(), metaBlockHash)
+		if err != nil {
 			return fmt.Errorf("%w : addProcessedCrossMiniBlocksFromHeader metaBlockHash = %s",
-				process.ErrMissingHeader, logger.DisplayByteSlice(metaBlockHash))
+				err, logger.DisplayByteSlice(metaBlockHash))
 		}
-
-		metaBlock, isMetaBlock := headerInfo.GetHeader().(*block.MetaBlock)
+		metaBlock, isMetaBlock := hdr.(*block.MetaBlock)
 		if !isMetaBlock {
 			return process.ErrWrongTypeAssertion
 		}
@@ -2059,6 +2149,7 @@ func (sp *shardProcessor) requestMetaHeadersIfNeeded(hdrsAdded uint32, lastMetaH
 		for nonce := fromNonce; nonce <= toNonce; nonce++ {
 			sp.addHeaderIntoTrackerPool(nonce, core.MetachainShardId)
 			sp.requestHandler.RequestMetaHeaderByNonce(nonce)
+			sp.requestProofIfNeeded(nonce, core.MetachainShardId, lastMetaHdr.GetEpoch())
 		}
 	}
 }
@@ -2306,25 +2397,7 @@ func (sp *shardProcessor) MarshalizedDataToBroadcast(
 
 	mrsTxs := sp.txCoordinator.CreateMarshalizedData(newBodyToBroadcast)
 
-	bodies := make(map[uint32]block.MiniBlockSlice)
-	for _, miniBlock := range newBodyToBroadcast.MiniBlocks {
-		if miniBlock.SenderShardID != sp.shardCoordinator.SelfId() ||
-			miniBlock.ReceiverShardID == sp.shardCoordinator.SelfId() {
-			continue
-		}
-		bodies[miniBlock.ReceiverShardID] = append(bodies[miniBlock.ReceiverShardID], miniBlock)
-	}
-
-	mrsData := make(map[uint32][]byte, len(bodies))
-	for shardId, subsetBlockBody := range bodies {
-		bodyForShard := block.Body{MiniBlocks: subsetBlockBody}
-		buff, errMarshal := sp.marshalizer.Marshal(&bodyForShard)
-		if errMarshal != nil {
-			log.Error("shardProcessor.MarshalizedDataToBroadcast.Marshal", "error", errMarshal.Error())
-			continue
-		}
-		mrsData[shardId] = buff
-	}
+	mrsData := sp.marshalledBodyToBroadcast(newBodyToBroadcast)
 
 	return mrsData, mrsTxs, nil
 }

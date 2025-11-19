@@ -113,9 +113,9 @@ func (msb *metaStorageBootstrapper) cleanupNotarizedStorage(metaBlockHash []byte
 		return
 	}
 
-	shardHeaderHashes := make([][]byte, len(metaBlock.ShardInfo))
-	for i := 0; i < len(metaBlock.ShardInfo); i++ {
-		shardHeaderHashes[i] = metaBlock.ShardInfo[i].HeaderHash
+	shardHeaderHashes := make([][]byte, len(metaBlock.GetShardInfoHandlers()))
+	for i := 0; i < len(metaBlock.GetShardInfoHandlers()); i++ {
+		shardHeaderHashes[i] = metaBlock.GetShardInfoHandlers()[i].GetHeaderHash()
 	}
 
 	for _, shardHeaderHash := range shardHeaderHashes {

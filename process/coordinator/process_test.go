@@ -22,6 +22,7 @@ import (
 	"github.com/multiversx/mx-chain-core-go/data/smartContractResult"
 	"github.com/multiversx/mx-chain-core-go/data/transaction"
 	"github.com/multiversx/mx-chain-go/config"
+	"github.com/multiversx/mx-chain-go/testscommon/epochNotifier"
 	vmcommon "github.com/multiversx/mx-chain-vm-common-go"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
@@ -280,10 +281,10 @@ func createMockTransactionCoordinatorArguments() ArgTransactionCoordinator {
 		BlockDataRequester:           &preprocMocks.BlockDataRequesterStub{},
 		BlockDataRequesterProposal:   &preprocMocks.BlockDataRequesterStub{},
 		GasComputation: &testscommon.GasComputationMock{
-			CheckOutgoingTransactionsCalled: func(txHashes [][]byte, transactions []data.TransactionHandler) ([][]byte, []data.MiniBlockHeaderHandler, error) {
+			AddOutgoingTransactionsCalled: func(txHashes [][]byte, transactions []data.TransactionHandler) ([][]byte, []data.MiniBlockHeaderHandler, error) {
 				return txHashes, nil, nil
 			},
-			CheckIncomingMiniBlocksCalled: func(miniBlocks []data.MiniBlockHeaderHandler, transactions map[string][]data.TransactionHandler) (int, int, error) {
+			AddIncomingMiniBlocksCalled: func(miniBlocks []data.MiniBlockHeaderHandler, transactions map[string][]data.TransactionHandler) (int, int, error) {
 				return len(miniBlocks) - 1, 0, nil
 			},
 		},
@@ -632,6 +633,8 @@ func createPreProcessorContainer() process.PreProcessorsContainer {
 		BalanceComputation:           &testscommon.BalanceComputationStub{},
 		EnableEpochsHandler:          enableEpochsHandlerMock.NewEnableEpochsHandlerStub(),
 		EnableRoundsHandler:          &testscommon.EnableRoundsHandlerStub{},
+		EpochNotifier:                &epochNotifier.EpochNotifierStub{},
+		RoundNotifier:                &epochNotifier.RoundNotifierStub{},
 		TxTypeHandler:                &testscommon.TxTypeHandlerMock{},
 		ScheduledTxsExecutionHandler: &testscommon.ScheduledTxsExecutionStub{},
 		ProcessedMiniBlocksTracker:   &testscommon.ProcessedMiniBlocksTrackerStub{},
@@ -736,6 +739,8 @@ func createPreProcessorContainerWithDataPool(
 		BalanceComputation:           &testscommon.BalanceComputationStub{},
 		EnableEpochsHandler:          enableEpochsHandlerMock.NewEnableEpochsHandlerStub(),
 		EnableRoundsHandler:          &testscommon.EnableRoundsHandlerStub{},
+		EpochNotifier:                &epochNotifier.EpochNotifierStub{},
+		RoundNotifier:                &epochNotifier.RoundNotifierStub{},
 		TxTypeHandler:                &testscommon.TxTypeHandlerMock{},
 		ScheduledTxsExecutionHandler: &testscommon.ScheduledTxsExecutionStub{},
 		ProcessedMiniBlocksTracker:   &testscommon.ProcessedMiniBlocksTrackerStub{},
@@ -1011,6 +1016,8 @@ func TestTransactionCoordinator_CreateMbsAndProcessCrossShardTransactions(t *tes
 		BalanceComputation:           &testscommon.BalanceComputationStub{},
 		EnableEpochsHandler:          enableEpochsHandlerMock.NewEnableEpochsHandlerStub(),
 		EnableRoundsHandler:          &testscommon.EnableRoundsHandlerStub{},
+		EpochNotifier:                &epochNotifier.EpochNotifierStub{},
+		RoundNotifier:                &epochNotifier.RoundNotifierStub{},
 		TxTypeHandler:                &testscommon.TxTypeHandlerMock{},
 		ScheduledTxsExecutionHandler: &testscommon.ScheduledTxsExecutionStub{},
 		ProcessedMiniBlocksTracker:   &testscommon.ProcessedMiniBlocksTrackerStub{},
@@ -1203,6 +1210,8 @@ func TestTransactionCoordinator_CreateMbsAndProcessCrossShardTransactionsNilPreP
 		BalanceComputation:           &testscommon.BalanceComputationStub{},
 		EnableEpochsHandler:          enableEpochsHandlerMock.NewEnableEpochsHandlerStub(),
 		EnableRoundsHandler:          &testscommon.EnableRoundsHandlerStub{},
+		EpochNotifier:                &epochNotifier.EpochNotifierStub{},
+		RoundNotifier:                &epochNotifier.RoundNotifierStub{},
 		TxTypeHandler:                &testscommon.TxTypeHandlerMock{},
 		ScheduledTxsExecutionHandler: &testscommon.ScheduledTxsExecutionStub{},
 		ProcessedMiniBlocksTracker:   &testscommon.ProcessedMiniBlocksTrackerStub{},
@@ -1316,6 +1325,8 @@ func TestTransactionCoordinator_CreateMbsAndProcessTransactionsFromMeNothingToPr
 		BalanceComputation:           &testscommon.BalanceComputationStub{},
 		EnableEpochsHandler:          enableEpochsHandlerMock.NewEnableEpochsHandlerStub(),
 		EnableRoundsHandler:          &testscommon.EnableRoundsHandlerStub{},
+		EpochNotifier:                &epochNotifier.EpochNotifierStub{},
+		RoundNotifier:                &epochNotifier.RoundNotifierStub{},
 		TxTypeHandler:                &testscommon.TxTypeHandlerMock{},
 		ScheduledTxsExecutionHandler: &testscommon.ScheduledTxsExecutionStub{},
 		ProcessedMiniBlocksTracker:   &testscommon.ProcessedMiniBlocksTrackerStub{},
@@ -1907,6 +1918,8 @@ func TestTransactionCoordinator_ProcessBlockTransactionProcessTxError(t *testing
 		BalanceComputation:           &testscommon.BalanceComputationStub{},
 		EnableEpochsHandler:          enableEpochsHandlerMock.NewEnableEpochsHandlerStub(),
 		EnableRoundsHandler:          &testscommon.EnableRoundsHandlerStub{},
+		EpochNotifier:                &epochNotifier.EpochNotifierStub{},
+		RoundNotifier:                &epochNotifier.RoundNotifierStub{},
 		TxTypeHandler:                &testscommon.TxTypeHandlerMock{},
 		ScheduledTxsExecutionHandler: &testscommon.ScheduledTxsExecutionStub{},
 		ProcessedMiniBlocksTracker:   &testscommon.ProcessedMiniBlocksTrackerStub{},
@@ -2031,6 +2044,8 @@ func TestTransactionCoordinator_RequestMiniblocks(t *testing.T) {
 		BalanceComputation:           &testscommon.BalanceComputationStub{},
 		EnableEpochsHandler:          enableEpochsHandlerMock.NewEnableEpochsHandlerStub(),
 		EnableRoundsHandler:          &testscommon.EnableRoundsHandlerStub{},
+		EpochNotifier:                &epochNotifier.EpochNotifierStub{},
+		RoundNotifier:                &epochNotifier.RoundNotifierStub{},
 		TxTypeHandler:                &testscommon.TxTypeHandlerMock{},
 		ScheduledTxsExecutionHandler: &testscommon.ScheduledTxsExecutionStub{},
 		ProcessedMiniBlocksTracker:   &testscommon.ProcessedMiniBlocksTrackerStub{},
@@ -2176,6 +2191,8 @@ func TestShardProcessor_ProcessMiniBlockCompleteWithOkTxsShouldExecuteThemAndNot
 		BalanceComputation:           &testscommon.BalanceComputationStub{},
 		EnableEpochsHandler:          enableEpochsHandlerMock.NewEnableEpochsHandlerStub(),
 		EnableRoundsHandler:          &testscommon.EnableRoundsHandlerStub{},
+		EpochNotifier:                &epochNotifier.EpochNotifierStub{},
+		RoundNotifier:                &epochNotifier.RoundNotifierStub{},
 		TxTypeHandler:                &testscommon.TxTypeHandlerMock{},
 		ScheduledTxsExecutionHandler: &testscommon.ScheduledTxsExecutionStub{},
 		ProcessedMiniBlocksTracker:   &testscommon.ProcessedMiniBlocksTrackerStub{},
@@ -2325,6 +2342,8 @@ func TestShardProcessor_ProcessMiniBlockCompleteWithErrorWhileProcessShouldCallR
 		BalanceComputation:           &testscommon.BalanceComputationStub{},
 		EnableEpochsHandler:          enableEpochsHandlerMock.NewEnableEpochsHandlerStub(),
 		EnableRoundsHandler:          &testscommon.EnableRoundsHandlerStub{},
+		EpochNotifier:                &epochNotifier.EpochNotifierStub{},
+		RoundNotifier:                &epochNotifier.RoundNotifierStub{},
 		TxTypeHandler:                &testscommon.TxTypeHandlerMock{},
 		ScheduledTxsExecutionHandler: &testscommon.ScheduledTxsExecutionStub{},
 		ProcessedMiniBlocksTracker:   &testscommon.ProcessedMiniBlocksTrackerStub{},

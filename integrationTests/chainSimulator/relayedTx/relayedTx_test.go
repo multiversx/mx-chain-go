@@ -54,6 +54,8 @@ var (
 )
 
 func TestRelayedV3WithChainSimulator(t *testing.T) {
+	t.Parallel()
+
 	if testing.Short() {
 		t.Skip("this is not a short test")
 	}
@@ -1024,6 +1026,8 @@ func testRelayedV3MetaInteraction() func(t *testing.T) {
 }
 
 func TestFixRelayedMoveBalanceWithChainSimulator(t *testing.T) {
+	t.Parallel()
+
 	if testing.Short() {
 		t.Skip("this is not a short test")
 	}

@@ -23,7 +23,7 @@ import (
 const leaderIndex = 0
 
 func getMetricsFromMetaHeader(
-	header *block.MetaBlock,
+	header data.MetaHeaderHandler,
 	marshalizer marshal.Marshalizer,
 	appStatusHandler core.AppStatusHandler,
 	numShardHeadersFromPool int,
@@ -32,8 +32,8 @@ func getMetricsFromMetaHeader(
 	numMiniBlocksMetaBlock := uint64(0)
 	headerSize := uint64(0)
 
-	for _, shardInfo := range header.ShardInfo {
-		numMiniBlocksMetaBlock += uint64(len(shardInfo.ShardMiniBlockHeaders))
+	for _, shardInfo := range header.GetShardInfoHandlers() {
+		numMiniBlocksMetaBlock += uint64(len(shardInfo.GetShardMiniBlockHeaderHandlers()))
 	}
 
 	marshalizedHeader, err := marshalizer.Marshal(header)
@@ -42,7 +42,7 @@ func getMetricsFromMetaHeader(
 	}
 
 	appStatusHandler.SetUInt64Value(common.MetricHeaderSize, headerSize)
-	appStatusHandler.SetUInt64Value(common.MetricNumTxInBlock, uint64(header.TxCount))
+	appStatusHandler.SetUInt64Value(common.MetricNumTxInBlock, uint64(header.GetTxCount()))
 	appStatusHandler.SetUInt64Value(common.MetricNumMiniBlocks, numMiniBlocksMetaBlock)
 	appStatusHandler.SetUInt64Value(common.MetricNumShardHeadersProcessed, numShardHeadersProcessed)
 	appStatusHandler.SetUInt64Value(common.MetricNumShardHeadersFromPool, uint64(numShardHeadersFromPool))
@@ -104,14 +104,14 @@ func saveMetricsForCommittedShardBlock(
 
 func saveMetricsForCommitMetachainBlock(
 	appStatusHandler core.AppStatusHandler,
-	header *block.MetaBlock,
+	header data.MetaHeaderHandler,
 	headerHash []byte,
 	nodesCoordinator nodesCoordinator.NodesCoordinator,
 	highestFinalBlockNonce uint64,
 	managedPeersHolder common.ManagedPeersHolder,
 ) {
 	appStatusHandler.SetStringValue(common.MetricCurrentBlockHash, logger.DisplayByteSlice(headerHash))
-	appStatusHandler.SetUInt64Value(common.MetricEpochNumber, uint64(header.Epoch))
+	appStatusHandler.SetUInt64Value(common.MetricEpochNumber, uint64(header.GetEpoch()))
 	appStatusHandler.SetUInt64Value(common.MetricHighestFinalBlock, highestFinalBlockNonce)
 
 	// TODO: remove if epoch start block needs to be validated by the new epoch nodes
