@@ -215,8 +215,8 @@ func (t *trigger) getMinRoundsBetweenEpochs(epoch uint32) uint64 {
 
 // ShouldProposeEpochChange will return true if an epoch change event should be trigger
 func (t *trigger) ShouldProposeEpochChange(currentRound uint64, currentNonce uint64) bool {
-	t.mutTrigger.RLock()
-	defer t.mutTrigger.RUnlock()
+	t.mutTrigger.Lock()
+	defer t.mutTrigger.Unlock()
 
 	shouldTriggerEpochStart := t.shouldTriggerEpochStart(currentRound, currentNonce)
 	if shouldTriggerEpochStart {
