@@ -100,7 +100,8 @@ func (mp *metaProcessor) CreateBlockProposal(
 
 	metaHdr.SoftwareVersion = []byte(mp.headerIntegrityVerifier.GetVersion(metaHdr.Epoch, metaHdr.Round))
 
-	if metaHdr.IsStartOfEpochBlock() || metaHdr.GetEpochChangeProposed() {
+	mp.epochStartTrigger.Update(metaHdr.Round, metaHdr.Nonce)
+	if metaHdr.IsStartOfEpochBlock() || metaHdr.GetEpochChangeProposed() || mp.epochStartTrigger.IsEpochStart() {
 		// no new transactions in start of epoch block
 		// to simplify bootstrapping
 		return metaHdr, &block.Body{}, nil
@@ -211,6 +212,7 @@ func (mp *metaProcessor) VerifyBlockProposal(
 		return process.ErrInvalidHeader
 	}
 
+	mp.epochStartTrigger.Update(header.Round, header.Nonce)
 	body, ok := bodyHandler.(*block.Body)
 	if !ok {
 		return process.ErrWrongTypeAssertion

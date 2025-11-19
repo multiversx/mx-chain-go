@@ -71,6 +71,7 @@ type trigger struct {
 	appStatusHandler            core.AppStatusHandler
 	validatorInfoPool           epochStart.ValidatorInfoCacher
 	chainParametersHandler      process.ChainParametersHandler
+	lastEpochProposedNonce      uint64
 }
 
 // NewEpochStartTrigger creates a trigger for start of epoch
@@ -214,10 +215,18 @@ func (t *trigger) getMinRoundsBetweenEpochs(epoch uint32) uint64 {
 
 // ShouldProposeEpochChange will return true if an epoch change event should be trigger
 func (t *trigger) ShouldProposeEpochChange(currentRound uint64, currentNonce uint64) bool {
-	t.mutTrigger.RLock()
-	defer t.mutTrigger.RUnlock()
+	t.mutTrigger.Lock()
+	defer t.mutTrigger.Unlock()
 
-	return t.shouldTriggerEpochStart(currentRound, currentNonce)
+	shouldTriggerEpochStart := t.shouldTriggerEpochStart(currentRound, currentNonce)
+	if shouldTriggerEpochStart {
+		t.lastEpochProposedNonce = currentNonce
+	}
+	if currentNonce == t.lastEpochProposedNonce && t.lastEpochProposedNonce >= minimumNonceToStartEpoch {
+		return true
+	}
+
+	return shouldTriggerEpochStart
 }
 
 func (t *trigger) shouldTriggerEpochStart(currentRound uint64, currentNonce uint64) bool {
