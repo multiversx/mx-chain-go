@@ -669,6 +669,7 @@ func runFullConsensusTest(
 	)
 
 	enableEpochsConfig := integrationTests.CreateEnableEpochsConfig()
+	enableEpochsConfig.SupernovaEnableEpoch = integrationTests.UnreachableEpoch
 
 	nodes := initNodesAndTest(
 		numMetaNodes,
@@ -726,6 +727,7 @@ func runConsensusWithNotEnoughValidators(t *testing.T, consensusType string) {
 	consensusSize := uint32(4)
 	numInvalid := uint32(2)
 	enableEpochsConfig := integrationTests.CreateEnableEpochsConfig()
+	enableEpochsConfig.SupernovaEnableEpoch = integrationTests.UnreachableEpoch
 
 	nodes := initNodesAndTest(numMetaNodes, numNodes, consensusSize, numInvalid, roundTime, consensusType, 1, enableEpochsConfig)
 
