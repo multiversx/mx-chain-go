@@ -361,7 +361,17 @@ func testConsensusBLSWithFullProcessing(
 	defer func() {
 		for _, nodesList := range nodes {
 			for _, n := range nodesList {
-				n.Close()
+				err := n.MainMessenger.Close()
+				require.NoError(t, err)
+
+				err = n.FullArchiveMessenger.Close()
+				require.NoError(t, err)
+
+				err = n.VMContainer.Close()
+				require.NoError(t, err)
+
+				err = n.Node.Close()
+				require.NoError(t, err)
 			}
 		}
 	}()
@@ -685,8 +695,14 @@ func runFullConsensusTest(
 	defer func() {
 		for shardID := range nodes {
 			for _, n := range nodes[shardID] {
-				_ = n.MainMessenger.Close()
-				_ = n.FullArchiveMessenger.Close()
+				err := n.MainMessenger.Close()
+				require.NoError(t, err)
+
+				err = n.FullArchiveMessenger.Close()
+				require.NoError(t, err)
+
+				err = n.Node.Close()
+				require.NoError(t, err)
 			}
 		}
 	}()
@@ -734,8 +750,14 @@ func runConsensusWithNotEnoughValidators(t *testing.T, consensusType string) {
 	defer func() {
 		for shardID := range nodes {
 			for _, n := range nodes[shardID] {
-				_ = n.MainMessenger.Close()
-				_ = n.FullArchiveMessenger.Close()
+				err := n.MainMessenger.Close()
+				require.NoError(t, err)
+
+				err = n.FullArchiveMessenger.Close()
+				require.NoError(t, err)
+
+				err = n.Node.Close()
+				require.NoError(t, err)
 			}
 		}
 	}()

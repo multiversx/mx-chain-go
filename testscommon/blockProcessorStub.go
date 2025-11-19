@@ -231,6 +231,11 @@ func (bps *BlockProcessorStub) OnProposedBlock(
 	return nil
 }
 
+// RemoveHeaderFromPool -
+func (bps *BlockProcessorStub) RemoveHeaderFromPool(headerHash []byte) {
+
+}
+
 // IsInterfaceNil returns true if there is no value under the interface
 func (bps *BlockProcessorStub) IsInterfaceNil() bool {
 	return bps == nil
