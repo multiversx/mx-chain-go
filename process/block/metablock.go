@@ -2455,21 +2455,21 @@ func (mp *metaProcessor) updatePeerState(
 	header data.MetaHeaderHandler,
 	cache map[string]data.HeaderHandler,
 ) ([]byte, error) {
-	if header.IsHeaderV3() {
-		lastExecutionResult := mp.blockChain.GetLastExecutionResult()
-		if check.IfNil(lastExecutionResult) {
-			return nil, fmt.Errorf("missing last execution result in blockchain in metaProcessor.updatePeerState")
-		}
-
-		metaExecutionResult, castOk := lastExecutionResult.(data.MetaExecutionResultHandler)
-		if !castOk {
-			return nil, fmt.Errorf("%w in metaProcessor.updatePeerState ", process.ErrWrongTypeAssertion)
-		}
-
-		return mp.validatorStatisticsProcessor.UpdatePeerStateV3(header, cache, metaExecutionResult)
+	if !header.IsHeaderV3() {
+		return mp.validatorStatisticsProcessor.UpdatePeerState(header, cache)
 	}
 
-	return mp.validatorStatisticsProcessor.UpdatePeerState(header, cache)
+	lastExecutionResult := mp.blockChain.GetLastExecutionResult()
+	if check.IfNil(lastExecutionResult) {
+		return nil, fmt.Errorf("missing last execution result in blockchain in metaProcessor.updatePeerState")
+	}
+
+	metaExecutionResult, castOk := lastExecutionResult.(data.MetaExecutionResultHandler)
+	if !castOk {
+		return nil, fmt.Errorf("%w in metaProcessor.updatePeerState ", process.ErrWrongTypeAssertion)
+	}
+
+	return mp.validatorStatisticsProcessor.UpdatePeerStateV3(header, cache, metaExecutionResult)
 }
 
 // CreateNewHeader creates a new header
