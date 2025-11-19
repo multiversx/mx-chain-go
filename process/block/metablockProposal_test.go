@@ -666,6 +666,31 @@ func TestMetaProcessor_CreateBlockProposal(t *testing.T) {
 		require.NotNil(t, header)
 		require.NotNil(t, body)
 	})
+	t.Run("no mini blocks added if isEpochStart", func(t *testing.T) {
+		t.Parallel()
+
+		coreComponents, dataComponents, bootstrapComponents, statusComponents := createMockComponentHolders()
+		arguments := createMockMetaArguments(coreComponents, dataComponents, bootstrapComponents, statusComponents)
+		arguments.MiniBlocksSelectionSession = &mbSelection.MiniBlockSelectionSessionStub{
+			GetMiniBlockHeaderHandlersCalled: func() []data.MiniBlockHeaderHandler {
+				require.Fail(t, "should not be called")
+				return nil
+			},
+		}
+		arguments.EpochStartTrigger = &testscommon.EpochStartTriggerStub{
+			IsEpochStartCalled: func() bool {
+				return true
+			},
+		}
+		mp, err := blproc.NewMetaProcessor(arguments)
+		require.Nil(t, err)
+
+		validMetaHeaderV3 := &block.MetaBlockV3{}
+		header, body, err := mp.CreateBlockProposal(validMetaHeaderV3, haveTimeTrue)
+		require.Nil(t, err)
+		require.NotNil(t, header)
+		require.NotNil(t, body)
+	})
 	t.Run("successful creation, start of epoch block with empy body", func(t *testing.T) {
 		t.Parallel()
 
