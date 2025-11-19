@@ -2451,18 +2451,19 @@ func (mp *metaProcessor) updatePeerState(
 	cache map[string]data.HeaderHandler,
 ) ([]byte, error) {
 	if header.IsHeaderV3() {
-		lastExecResult := mp.blockChain.GetLastExecutionResult()
-		if lastExecResult == nil || lastExecResult.IsInterfaceNil() {
+		lastExecutionResult := mp.blockChain.GetLastExecutionResult()
+		if lastExecutionResult == nil || lastExecutionResult.IsInterfaceNil() {
 			return nil, fmt.Errorf("missing last execution result in blockchain in metaProcessor.updatePeerState")
 		}
 
-		metaExecutionResult, castOk := lastExecResult.(data.MetaExecutionResultHandler)
+		metaExecutionResult, castOk := lastExecutionResult.(data.MetaExecutionResultHandler)
 		if !castOk {
 			return nil, fmt.Errorf("%w in metaProcessor.updatePeerState ", process.ErrWrongTypeAssertion)
 		}
 
 		return mp.validatorStatisticsProcessor.UpdatePeerStateV3(header, cache, metaExecutionResult)
 	}
+
 	return mp.validatorStatisticsProcessor.UpdatePeerState(header, cache)
 }
 
