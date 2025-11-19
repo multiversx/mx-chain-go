@@ -446,3 +446,22 @@ func GetLastExecutionResultNonce(
 
 	return lastExecutionResult.GetHeaderNonce()
 }
+
+// GetMiniBlockHeadersFromExecResult returns mb headers from meta header if v3, otherwise, returns mini block headers
+func GetMiniBlockHeadersFromExecResult(metaBlock data.HeaderHandler) ([]data.MiniBlockHeaderHandler, error) {
+	if !metaBlock.IsHeaderV3() {
+		return metaBlock.GetMiniBlockHeaderHandlers(), nil
+	}
+
+	mbHeaderHandlers := make([]data.MiniBlockHeaderHandler, 0)
+	for _, execResult := range metaBlock.GetExecutionResultsHandlers() {
+		mbHeaders, err := GetMiniBlocksHeaderHandlersFromExecResult(execResult)
+		if err != nil {
+			return nil, fmt.Errorf("%w in GetMiniBlockHeadersFromExecResult.GetMiniBlocksHeaderHandlersFromExecResult", err)
+		}
+
+		mbHeaderHandlers = append(mbHeaderHandlers, mbHeaders...)
+	}
+
+	return mbHeaderHandlers, nil
+}

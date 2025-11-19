@@ -2,7 +2,6 @@ package bootstrap
 
 import (
 	"context"
-	"fmt"
 	"time"
 
 	"github.com/multiversx/mx-chain-core-go/data"
@@ -203,7 +202,7 @@ func (s *syncValidatorStatus) processValidatorChangesFor(metaBlock data.HeaderHa
 
 func findPeerMiniBlockHeaders(metaBlock data.HeaderHandler) ([]data.MiniBlockHeaderHandler, error) {
 	shardMBHeaderHandlers := make([]data.MiniBlockHeaderHandler, 0)
-	mbHeaderHandlers, err := getMiniBlockHeaders(metaBlock)
+	mbHeaderHandlers, err := common.GetMiniBlockHeadersFromExecResult(metaBlock)
 	if err != nil {
 		return nil, err
 	}
@@ -216,24 +215,6 @@ func findPeerMiniBlockHeaders(metaBlock data.HeaderHandler) ([]data.MiniBlockHea
 		shardMBHeaderHandlers = append(shardMBHeaderHandlers, mbHeaderHandlers[i])
 	}
 	return shardMBHeaderHandlers, nil
-}
-
-func getMiniBlockHeaders(metaBlock data.HeaderHandler) ([]data.MiniBlockHeaderHandler, error) {
-	if !metaBlock.IsHeaderV3() {
-		return metaBlock.GetMiniBlockHeaderHandlers(), nil
-	}
-
-	mbHeaderHandlers := make([]data.MiniBlockHeaderHandler, 0)
-	for _, execResult := range metaBlock.GetExecutionResultsHandlers() {
-		metaExecResults, castOk := execResult.(data.MetaExecutionResultHandler)
-		if !castOk {
-			return nil, fmt.Errorf("%w in getMiniBlockHeaders for metaExecResults", process.ErrWrongTypeAssertion)
-		}
-
-		mbHeaderHandlers = append(mbHeaderHandlers, metaExecResults.GetMiniBlockHeadersHandlers()...)
-	}
-
-	return mbHeaderHandlers, nil
 }
 
 func (s *syncValidatorStatus) getPeerBlockBodyForMeta(
