@@ -389,8 +389,6 @@ func (mp *metaProcessor) ProcessBlockProposal(
 		return nil, err
 	}
 
-	// TODO: this needs to be done also on the processing of the epoch start block
-	// which has an early return above
 	err = mp.commitState(headerHandler)
 	if err != nil {
 		return nil, err
