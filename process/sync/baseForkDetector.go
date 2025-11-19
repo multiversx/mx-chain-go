@@ -758,14 +758,12 @@ func (bfd *baseForkDetector) checkGenesisTimeForHeaderAfterSupernovaWithoutRound
 	roundDuration := int64(chainParams.RoundDuration)
 	roundDifference := int64(headerHandler.GetRound() - bfd.genesisRound)
 	genesisTime := int64(headerHandler.GetTimeStamp()) - roundDifference*roundDuration
-	//genesisTime2 := int64(headerHandler.GetTimeStamp()) - roundDifference*(roundDuration*10)
 
 	log.Trace("getGenesisTimeForHeaderAfterSupernovaWithoutRoundActivation",
 		"roundDuration", roundDuration,
 		"roundDifference", roundDifference,
 		"calculated genesisTime", genesisTime,
 		"genesisTime", bfd.genesisTime,
-		//"genesisTime", genesisTime2,
 	)
 
 	// if supernova is activated from genesis (epoch zero) this reduction is not needed since
