@@ -480,3 +480,29 @@ func TestTrigger_RevertBehindEpochStartBlock(t *testing.T) {
 	ret = epochStartTrigger.IsEpochStart()
 	assert.False(t, ret)
 }
+
+func TestTrigger_SetProcessedHeaderV3(t *testing.T) {
+	t.Parallel()
+
+	args := createMockEpochStartTriggerArguments()
+
+	wasNotifyAllCalled := false
+	wasNotifyAllPrepareCalled := false
+	args.EpochStartNotifier = &mock.EpochStartNotifierStub{
+		NotifyAllCalled: func(hdr data.HeaderHandler) {
+			wasNotifyAllCalled = true
+		},
+		NotifyAllPrepareCalled: func(hdr data.HeaderHandler, body data.BodyHandler) {
+			wasNotifyAllPrepareCalled = true
+		},
+	}
+
+	epochStartTrigger, _ := NewEpochStartTrigger(args)
+
+	header := &block.MetaBlockV3{Nonce: 4, EpochStart: block.EpochStart{LastFinalizedHeaders: make([]block.EpochStartShardData, 1)}}
+	epochStartTrigger.SetProcessed(header, &block.Body{})
+
+	require.True(t, wasNotifyAllCalled)
+	require.True(t, wasNotifyAllPrepareCalled)
+	require.False(t, epochStartTrigger.isEpochStart)
+}

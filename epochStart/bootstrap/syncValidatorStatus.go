@@ -2,6 +2,7 @@ package bootstrap
 
 import (
 	"context"
+	"fmt"
 	"time"
 
 	"github.com/multiversx/mx-chain-core-go/data"
@@ -199,9 +200,13 @@ func (s *syncValidatorStatus) processValidatorChangesFor(metaBlock data.HeaderHa
 	return miniBlocks, nil
 }
 
-func findPeerMiniBlockHeaders(metaBlock data.HeaderHandler) []data.MiniBlockHeaderHandler {
+func findPeerMiniBlockHeaders(metaBlock data.HeaderHandler) ([]data.MiniBlockHeaderHandler, error) {
 	shardMBHeaderHandlers := make([]data.MiniBlockHeaderHandler, 0)
-	mbHeaderHandlers := metaBlock.GetMiniBlockHeaderHandlers()
+	mbHeaderHandlers, err := getMiniBlockHeaders(metaBlock)
+	if err != nil {
+		return nil, err
+	}
+
 	for i, mbHeader := range mbHeaderHandlers {
 		if mbHeader.GetTypeInt32() != int32(block.PeerBlock) {
 			continue
@@ -209,17 +214,38 @@ func findPeerMiniBlockHeaders(metaBlock data.HeaderHandler) []data.MiniBlockHead
 
 		shardMBHeaderHandlers = append(shardMBHeaderHandlers, mbHeaderHandlers[i])
 	}
-	return shardMBHeaderHandlers
+	return shardMBHeaderHandlers, nil
+}
+
+func getMiniBlockHeaders(metaBlock data.HeaderHandler) ([]data.MiniBlockHeaderHandler, error) {
+	if !metaBlock.IsHeaderV3() {
+		return metaBlock.GetMiniBlockHeaderHandlers(), nil
+	}
+
+	mbHeaderHandlers := make([]data.MiniBlockHeaderHandler, 0)
+	for _, execResult := range metaBlock.GetExecutionResultsHandlers() {
+		metaExecResults, castOk := execResult.(data.MetaExecutionResultHandler)
+		if !castOk {
+			return nil, fmt.Errorf("%w in getMiniBlockHeaders for metaExecResults", process.ErrWrongTypeAssertion)
+		}
+
+		mbHeaderHandlers = append(mbHeaderHandlers, metaExecResults.GetMiniBlockHeadersHandlers()...)
+	}
+
+	return mbHeaderHandlers, nil
 }
 
 func (s *syncValidatorStatus) getPeerBlockBodyForMeta(
 	metaBlock data.HeaderHandler,
 ) (data.BodyHandler, []*block.MiniBlock, error) {
-	shardMBHeaders := findPeerMiniBlockHeaders(metaBlock)
+	shardMBHeaders, err := findPeerMiniBlockHeaders(metaBlock)
+	if err != nil {
+		return nil, nil, err
+	}
 
 	s.miniBlocksSyncer.ClearFields()
 	ctx, cancel := context.WithTimeout(context.Background(), time.Minute)
-	err := s.miniBlocksSyncer.SyncPendingMiniBlocks(shardMBHeaders, ctx)
+	err = s.miniBlocksSyncer.SyncPendingMiniBlocks(shardMBHeaders, ctx)
 	cancel()
 	if err != nil {
 		return nil, nil, err
