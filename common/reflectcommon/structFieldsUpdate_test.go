@@ -1277,6 +1277,48 @@ func TestAdaptStructureValueBasedOnPath(t *testing.T) {
 		require.Equal(t, expectedIntsArray, testConfig.TestArray.Ints)
 	})
 
+	t.Run("should work and override array of ptr struct from toml", func(t *testing.T) {
+		t.Parallel()
+
+		testConfig, err := loadTestConfig("../../testscommon/toml/config.toml")
+		require.NoError(t, err)
+
+		overrideConfig, err := loadOverrideConfig("../../testscommon/toml/overwrite.toml")
+		require.NoError(t, err)
+		expectedValue := []*toml.TestPtrArray{
+			{
+				Int:   1,
+				Float: 0.99,
+			},
+		}
+
+		err = AdaptStructureValueBasedOnPath(testConfig, overrideConfig.OverridableConfigTomlValues[41].Path, overrideConfig.OverridableConfigTomlValues[41].Value)
+		require.NoError(t, err)
+		require.Equal(t, expectedValue, testConfig.TestPtr.PtrArray)
+	})
+
+	t.Run("should work and override struct containing array of ptr struct from toml", func(t *testing.T) {
+		t.Parallel()
+
+		testConfig, err := loadTestConfig("../../testscommon/toml/config.toml")
+		require.NoError(t, err)
+
+		overrideConfig, err := loadOverrideConfig("../../testscommon/toml/overwrite.toml")
+		require.NoError(t, err)
+		expectedValue := toml.TestPtr{
+			String: "x",
+			PtrArray: []*toml.TestPtrArray{
+				{
+					Int:   1,
+					Float: 0.99,
+				},
+			},
+		}
+
+		err = AdaptStructureValueBasedOnPath(testConfig, overrideConfig.OverridableConfigTomlValues[42].Path, overrideConfig.OverridableConfigTomlValues[42].Value)
+		require.NoError(t, err)
+		require.Equal(t, expectedValue, testConfig.TestPtr)
+	})
 }
 
 func loadTestConfig(filepath string) (*toml.Config, error) {
