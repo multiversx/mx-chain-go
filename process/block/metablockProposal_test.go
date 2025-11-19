@@ -2685,15 +2685,12 @@ func TestMetaProcessor_checkEpochCorrectnessV3(t *testing.T) {
 			"epochStartTrigger": &testscommon.EpochStartTriggerStub{EpochCalled: func() uint32 {
 				return 1
 			}},
-			"epochStartDataCreator": &mock.EpochStartDataCreatorStub{
-				CreateEpochStartShardDataMetablockV3Called: func(metablock data.MetaHeaderHandler) ([]block.EpochStartShardData, error) {
-					return epochStartData.LastFinalizedHeaders, nil
-				},
-			},
 		})
 		mp.SetEpochStartData(&blproc.EpochStartDataWrapper{
-			Epoch:          2,
-			EpochStartData: &block.EpochStart{},
+			Epoch: 2,
+			EpochStartData: &block.EpochStart{
+				LastFinalizedHeaders: epochStartData.LastFinalizedHeaders,
+			},
 		})
 		require.Nil(t, err)
 
@@ -2887,7 +2884,8 @@ func TestMetaProcessor_VerifyEpochStartData(t *testing.T) {
 		mp.SetEpochStartData(&blproc.EpochStartDataWrapper{
 			Epoch: 1,
 			EpochStartData: &block.EpochStart{
-				Economics: block.Economics{},
+				LastFinalizedHeaders: lastFinalizedData,
+				Economics:            block.Economics{},
 			},
 		})
 

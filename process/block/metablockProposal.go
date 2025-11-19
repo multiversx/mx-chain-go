@@ -985,37 +985,18 @@ func (mp *metaProcessor) getPreviousExecutedBlock() data.HeaderHandler {
 }
 
 func (mp *metaProcessor) computeEpochStartDataForHeader(metaHeader data.MetaHeaderHandler) (*block.EpochStart, error) {
-	err := mp.computeAndUpdateLastEpochStartShardData(metaHeader)
-	if err != nil {
-		return nil, err
-	}
-
 	mp.mutEpochStartData.RLock()
 	defer mp.mutEpochStartData.RUnlock()
+
+	if mp.epochStartDataWrapper == nil ||
+		mp.epochStartDataWrapper.EpochStartData == nil ||
+		mp.epochStartDataWrapper.Epoch != metaHeader.GetEpoch() {
+		return nil, process.ErrNilEpochStartData
+	}
+
 	epochStartData := *mp.epochStartDataWrapper.EpochStartData
 
 	return &epochStartData, nil
-}
-
-func (mp *metaProcessor) computeAndUpdateLastEpochStartShardData(metaHeader data.MetaHeaderHandler) error {
-	mp.mutEpochStartData.Lock()
-	defer mp.mutEpochStartData.Unlock()
-
-	if mp.epochStartDataWrapper == nil ||
-		mp.epochStartDataWrapper.Epoch != metaHeader.GetEpoch() ||
-		mp.epochStartDataWrapper.EpochStartData == nil {
-		return process.ErrNilEpochStartData
-	}
-
-	// since there are no shard headers finalized between the epoch start proposal and the epoch start block,
-	// the last finalized data is the same as the one created at epoch start block proposal time
-	lastFinalizedData, err := mp.epochStartDataCreator.CreateEpochStartShardDataMetablockV3(metaHeader)
-	if err != nil {
-		return err
-	}
-
-	mp.epochStartDataWrapper.EpochStartData.LastFinalizedHeaders = lastFinalizedData
-	return nil
 }
 
 func (mp *metaProcessor) processEpochStartProposeBlock(
@@ -1093,10 +1074,12 @@ func (mp *metaProcessor) processEconomicsDataForEpochStartProposeBlock(metaHeade
 		return err
 	}
 
+	lastShardData.Economics = *economicsData
+
 	mp.mutEpochStartData.Lock()
 	defer mp.mutEpochStartData.Unlock()
 	mp.epochStartDataWrapper.Epoch = metaHeader.GetEpoch() + 1
-	mp.epochStartDataWrapper.EpochStartData.Economics = *economicsData
+	mp.epochStartDataWrapper.EpochStartData = lastShardData
 
 	return nil
 }

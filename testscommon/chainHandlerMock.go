@@ -24,10 +24,12 @@ type ChainHandlerMock struct {
 	lastExecutedResult        data.BaseExecutionResultHandler
 }
 
+// GetLastExecutionResult -
 func (mock *ChainHandlerMock) GetLastExecutionResult() data.BaseExecutionResultHandler {
 	return mock.lastExecutedResult
 }
 
+// SetLastExecutionResult -
 func (mock *ChainHandlerMock) SetLastExecutionResult(result data.BaseExecutionResultHandler) {
 	mock.lastExecutedResult = result
 }
