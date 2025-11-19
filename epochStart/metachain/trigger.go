@@ -71,6 +71,7 @@ type trigger struct {
 	appStatusHandler            core.AppStatusHandler
 	validatorInfoPool           epochStart.ValidatorInfoCacher
 	chainParametersHandler      process.ChainParametersHandler
+	lastEpochProposedNonce      uint64
 }
 
 // NewEpochStartTrigger creates a trigger for start of epoch
@@ -214,10 +215,18 @@ func (t *trigger) getMinRoundsBetweenEpochs(epoch uint32) uint64 {
 
 // ShouldProposeEpochChange will return true if an epoch change event should be trigger
 func (t *trigger) ShouldProposeEpochChange(currentRound uint64, currentNonce uint64) bool {
-	t.mutTrigger.RLock()
-	defer t.mutTrigger.RUnlock()
+	t.mutTrigger.Lock()
+	defer t.mutTrigger.Unlock()
 
-	return t.shouldTriggerEpochStart(currentRound, currentNonce)
+	shouldTriggerEpochStart := t.shouldTriggerEpochStart(currentRound, currentNonce)
+	if shouldTriggerEpochStart {
+		t.lastEpochProposedNonce = currentNonce
+	}
+	if currentNonce == t.lastEpochProposedNonce && t.lastEpochProposedNonce >= minimumNonceToStartEpoch {
+		return true
+	}
+
+	return shouldTriggerEpochStart
 }
 
 func (t *trigger) shouldTriggerEpochStart(currentRound uint64, currentNonce uint64) bool {
@@ -268,7 +277,7 @@ func (t *trigger) SetProcessed(header data.HeaderHandler, body data.BodyHandler)
 	t.mutTrigger.Lock()
 	defer t.mutTrigger.Unlock()
 
-	metaBlock, ok := header.(*block.MetaBlock)
+	metaBlock, ok := header.(data.MetaHeaderHandler)
 	if !ok {
 		return
 	}
@@ -281,13 +290,13 @@ func (t *trigger) SetProcessed(header data.HeaderHandler, body data.BodyHandler)
 		log.Debug("SetProcessed marshal", "error", errNotCritical.Error())
 	}
 
-	t.appStatusHandler.SetUInt64Value(common.MetricRoundAtEpochStart, metaBlock.Round)
-	t.appStatusHandler.SetUInt64Value(common.MetricNonceAtEpochStart, metaBlock.Nonce)
+	t.appStatusHandler.SetUInt64Value(common.MetricRoundAtEpochStart, metaBlock.GetRound())
+	t.appStatusHandler.SetUInt64Value(common.MetricNonceAtEpochStart, metaBlock.GetNonce())
 
 	metaHash := t.hasher.Compute(string(metaBuff))
 
-	t.currEpochStartRound = metaBlock.Round
-	t.epoch = metaBlock.Epoch
+	t.currEpochStartRound = metaBlock.GetRound()
+	t.epoch = metaBlock.GetEpoch()
 	t.isEpochStart = false
 	t.epochStartMeta = metaBlock
 	t.epochStartMetaHash = metaHash
@@ -295,11 +304,11 @@ func (t *trigger) SetProcessed(header data.HeaderHandler, body data.BodyHandler)
 	t.epochStartNotifier.NotifyAllPrepare(metaBlock, body)
 	t.epochStartNotifier.NotifyAll(metaBlock)
 
-	t.saveCurrentState(metaBlock.Round)
+	t.saveCurrentState(metaBlock.GetRound())
 
 	log.Debug("trigger.SetProcessed", "isEpochStart", t.isEpochStart)
 
-	epochStartIdentifier := core.EpochStartIdentifier(metaBlock.Epoch)
+	epochStartIdentifier := core.EpochStartIdentifier(metaBlock.GetEpoch())
 	errNotCritical = t.triggerStorage.Put([]byte(epochStartIdentifier), metaBuff)
 	if errNotCritical != nil {
 		log.Warn("SetProcessed put into triggerStorage", "error", errNotCritical.Error())

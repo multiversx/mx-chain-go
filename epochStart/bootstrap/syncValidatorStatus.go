@@ -199,9 +199,13 @@ func (s *syncValidatorStatus) processValidatorChangesFor(metaBlock data.HeaderHa
 	return miniBlocks, nil
 }
 
-func findPeerMiniBlockHeaders(metaBlock data.HeaderHandler) []data.MiniBlockHeaderHandler {
+func findPeerMiniBlockHeaders(metaBlock data.HeaderHandler) ([]data.MiniBlockHeaderHandler, error) {
 	shardMBHeaderHandlers := make([]data.MiniBlockHeaderHandler, 0)
-	mbHeaderHandlers := metaBlock.GetMiniBlockHeaderHandlers()
+	mbHeaderHandlers, err := common.GetMiniBlockHeadersFromExecResult(metaBlock)
+	if err != nil {
+		return nil, err
+	}
+
 	for i, mbHeader := range mbHeaderHandlers {
 		if mbHeader.GetTypeInt32() != int32(block.PeerBlock) {
 			continue
@@ -209,17 +213,20 @@ func findPeerMiniBlockHeaders(metaBlock data.HeaderHandler) []data.MiniBlockHead
 
 		shardMBHeaderHandlers = append(shardMBHeaderHandlers, mbHeaderHandlers[i])
 	}
-	return shardMBHeaderHandlers
+	return shardMBHeaderHandlers, nil
 }
 
 func (s *syncValidatorStatus) getPeerBlockBodyForMeta(
 	metaBlock data.HeaderHandler,
 ) (data.BodyHandler, []*block.MiniBlock, error) {
-	shardMBHeaders := findPeerMiniBlockHeaders(metaBlock)
+	shardMBHeaders, err := findPeerMiniBlockHeaders(metaBlock)
+	if err != nil {
+		return nil, nil, err
+	}
 
 	s.miniBlocksSyncer.ClearFields()
 	ctx, cancel := context.WithTimeout(context.Background(), time.Minute)
-	err := s.miniBlocksSyncer.SyncPendingMiniBlocks(shardMBHeaders, ctx)
+	err = s.miniBlocksSyncer.SyncPendingMiniBlocks(shardMBHeaders, ctx)
 	cancel()
 	if err != nil {
 		return nil, nil, err
