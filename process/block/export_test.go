@@ -985,6 +985,11 @@ func (mp *metaProcessor) SelectIncomingMiniBlocks(
 	return mp.selectIncomingMiniBlocks(lastShardHdr, orderedHdrs, orderedHdrsHashes, maxNumHeadersFromSameShard, haveTime)
 }
 
+// PrepareEpochStartBodyForTrigger -
+func (mp *metaProcessor) PrepareEpochStartBodyForTrigger(header data.MetaHeaderHandler, body *block.Body) (*block.Body, error) {
+	return mp.prepareEpochStartBodyForTrigger(header, body)
+}
+
 // OnExecutedBlock -
 func (bp *baseProcessor) OnExecutedBlock(header data.HeaderHandler, rootHash []byte) error {
 	return bp.onExecutedBlock(header, rootHash)

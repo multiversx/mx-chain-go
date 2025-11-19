@@ -15,6 +15,8 @@ import (
 	"github.com/multiversx/mx-chain-core-go/data"
 	"github.com/multiversx/mx-chain-core-go/data/block"
 	"github.com/multiversx/mx-chain-go/testscommon/cache"
+	"github.com/multiversx/mx-chain-go/testscommon/marshallerMock"
+	"github.com/multiversx/mx-chain-go/trie"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 
@@ -4248,4 +4250,141 @@ func pruneTrieForHeaderV3Test(t *testing.T, prevHeader data.HeaderHandler, rootH
 	assert.Equal(t, 2, pruneCalledForPeerAccounts)
 	assert.Equal(t, 2, cancelPruneCalledForUserAccounts)
 	assert.Equal(t, 2, cancelPruneCalledForPeerAccounts)
+}
+
+func TestMetaProcessor_prepareEpochStartBodyForTrigger(t *testing.T) {
+	t.Parallel()
+
+	hdrHash1 := []byte("hdrHash1")
+	hdrHash2 := []byte("hdrHash2")
+	metaBlockV3 := &block.MetaBlockV3{
+		ExecutionResults: []*block.MetaExecutionResult{
+			{
+				ExecutionResult: &block.BaseMetaExecutionResult{
+					BaseExecutionResult: &block.BaseExecutionResult{
+						HeaderHash: hdrHash1,
+					},
+				},
+			},
+			{
+				ExecutionResult: &block.BaseMetaExecutionResult{
+					BaseExecutionResult: &block.BaseExecutionResult{
+						HeaderHash: hdrHash2,
+					},
+				},
+			},
+		},
+	}
+	t.Run("meta header v1", func(t *testing.T) {
+		args := createMockMetaArguments(createMockComponentHolders())
+		mp, _ := blproc.NewMetaProcessor(args)
+
+		body := &block.Body{MiniBlocks: []*block.MiniBlock{{ReceiverShardID: 1}}}
+		res, err := mp.PrepareEpochStartBodyForTrigger(&block.MetaBlock{}, body)
+		require.Nil(t, err)
+		require.Equal(t, body, res)
+	})
+
+	t.Run("cannot get executed mbs from data pool", func(t *testing.T) {
+		coreComponents, dataComponents, bootstrapComponents, statusComponents := createMockComponentHolders()
+		dataPoolMock := initDataPool()
+		dataPoolMock.ExecutedMiniBlocksCalled = func() storage.Cacher {
+			return &cache.CacherStub{
+				GetCalled: func(key []byte) (value interface{}, ok bool) {
+					return nil, false
+				},
+			}
+		}
+
+		dataComponents.DataPool = dataPoolMock
+		args := createMockMetaArguments(coreComponents, dataComponents, bootstrapComponents, statusComponents)
+		mp, _ := blproc.NewMetaProcessor(args)
+		res, err := mp.PrepareEpochStartBodyForTrigger(metaBlockV3, nil)
+		require.Nil(t, res)
+		require.ErrorIs(t, err, trie.ErrKeyNotFound)
+	})
+
+	t.Run("retrieved data from pool is not byte array", func(t *testing.T) {
+		coreComponents, dataComponents, bootstrapComponents, statusComponents := createMockComponentHolders()
+		dataPoolMock := initDataPool()
+		dataPoolMock.ExecutedMiniBlocksCalled = func() storage.Cacher {
+			return &cache.CacherStub{
+				GetCalled: func(key []byte) (value interface{}, ok bool) {
+					return "data as string", true
+				},
+			}
+		}
+
+		dataComponents.DataPool = dataPoolMock
+		args := createMockMetaArguments(coreComponents, dataComponents, bootstrapComponents, statusComponents)
+		mp, _ := blproc.NewMetaProcessor(args)
+		res, err := mp.PrepareEpochStartBodyForTrigger(metaBlockV3, nil)
+		require.Nil(t, res)
+		require.ErrorIs(t, err, process.ErrWrongTypeAssertion)
+	})
+
+	t.Run("cannot unmarshall retrieved obj", func(t *testing.T) {
+		coreComponents, dataComponents, bootstrapComponents, statusComponents := createMockComponentHolders()
+		dataPoolMock := initDataPool()
+		dataPoolMock.ExecutedMiniBlocksCalled = func() storage.Cacher {
+			return &cache.CacherStub{
+				GetCalled: func(key []byte) (value interface{}, ok bool) {
+					return []byte("data"), true
+				},
+			}
+		}
+
+		coreComponents.IntMarsh = &marshallerMock.MarshalizerStub{
+			UnmarshalCalled: func(obj interface{}, buff []byte) error {
+				return expectedErr
+			},
+		}
+
+		dataComponents.DataPool = dataPoolMock
+		args := createMockMetaArguments(coreComponents, dataComponents, bootstrapComponents, statusComponents)
+		mp, _ := blproc.NewMetaProcessor(args)
+		res, err := mp.PrepareEpochStartBodyForTrigger(metaBlockV3, nil)
+		require.Nil(t, res)
+		require.Equal(t, err, expectedErr)
+	})
+	t.Run("should work", func(t *testing.T) {
+		coreComponents, dataComponents, bootstrapComponents, statusComponents := createMockComponentHolders()
+		dataPoolMock := initDataPool()
+		dataPoolMock.ExecutedMiniBlocksCalled = func() storage.Cacher {
+			return &cache.CacherStub{
+				GetCalled: func(key []byte) (value interface{}, ok bool) {
+					return []byte("data"), true
+				},
+			}
+		}
+
+		unmarshallCt := 0
+		mbs := []*block.MiniBlock{
+			{
+				Type: block.PeerBlock,
+			},
+			{
+				Type: block.RewardsBlock,
+			},
+		}
+		coreComponents.IntMarsh = &marshallerMock.MarshalizerStub{
+			UnmarshalCalled: func(obj interface{}, buff []byte) error {
+				require.LessOrEqual(t, unmarshallCt, 1)
+
+				currMbsPtr, castOk := obj.(*[]*block.MiniBlock)
+				require.True(t, castOk)
+
+				*currMbsPtr = append(*currMbsPtr, mbs[unmarshallCt])
+				unmarshallCt++
+				return nil
+			},
+		}
+
+		dataComponents.DataPool = dataPoolMock
+		args := createMockMetaArguments(coreComponents, dataComponents, bootstrapComponents, statusComponents)
+		mp, _ := blproc.NewMetaProcessor(args)
+		res, err := mp.PrepareEpochStartBodyForTrigger(metaBlockV3, nil)
+		require.Nil(t, err)
+		require.Equal(t, &block.Body{MiniBlocks: mbs}, res)
+	})
 }

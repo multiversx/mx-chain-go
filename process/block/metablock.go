@@ -1755,7 +1755,7 @@ func (mp *metaProcessor) prepareEpochStartBodyForTrigger(header data.MetaHeaderH
 		}
 
 		var currMBs []*block.MiniBlock
-		err := mp.marshalizer.Unmarshal(currMBs, marshalledMbs)
+		err := mp.marshalizer.Unmarshal(&currMBs, marshalledMbs)
 		if err != nil {
 			return nil, err
 		}
