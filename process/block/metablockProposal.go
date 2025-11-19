@@ -13,6 +13,7 @@ import (
 
 	"github.com/multiversx/mx-chain-go/common"
 	"github.com/multiversx/mx-chain-go/process"
+	"github.com/multiversx/mx-chain-go/process/block/processedMb"
 	"github.com/multiversx/mx-chain-go/state"
 )
 
@@ -465,7 +466,7 @@ func (mp *metaProcessor) processEpochStartProposeBlock(
 		return nil, err
 	}
 
-	return mp.collectExecutionResults(headerHash, metaHeader, constructedBody, valStatRootHash)
+	return mp.collectExecutionResultsEpochStartProposal(headerHash, metaHeader, constructedBody, valStatRootHash)
 }
 
 func (mp *metaProcessor) updateValidatorStatistics(header data.MetaHeaderHandler) ([]byte, error) {
@@ -475,6 +476,33 @@ func (mp *metaProcessor) updateValidatorStatistics(header data.MetaHeaderHandler
 	valStatRootHash, err := mp.updatePeerState(header, mp.hdrsForCurrBlock.GetHeadersMap())
 	sw.Stop("UpdatePeerState")
 	return valStatRootHash, err
+}
+
+func (mp *metaProcessor) collectExecutionResultsEpochStartProposal(
+	headerHash []byte,
+	header data.MetaHeaderHandler,
+	constructedBody *block.Body,
+	valStatRootHash []byte,
+) (data.BaseExecutionResultHandler, error) {
+	// giving an empty processedMiniBlockInfo would cause all miniBlockHeaders to be created as fully processed.
+	processedMiniBlockInfo := make(map[string]*processedMb.ProcessedMiniBlockInfo)
+	totalTxCount, miniBlockHeaderHandlers, err := mp.createMiniBlockHeaderHandlers(constructedBody, processedMiniBlockInfo)
+	if err != nil {
+		return nil, err
+	}
+
+	receiptHash, err := mp.txCoordinator.CreateReceiptsHash()
+	if err != nil {
+		return nil, err
+	}
+
+	// we consider the rewards and peer mini blocks as post process mbs (post execution of start of epoch proposed block)
+	err = mp.cachePostProcessMiniBlocksToMe(headerHash, constructedBody.MiniBlocks)
+	if err != nil {
+		return nil, err
+	}
+
+	return mp.createExecutionResult(miniBlockHeaderHandlers, header, headerHash, receiptHash, valStatRootHash, totalTxCount)
 }
 
 // collectExecutionResults collects the execution results after processing the block
@@ -489,6 +517,17 @@ func (mp *metaProcessor) collectExecutionResults(
 		return nil, err
 	}
 
+	return mp.createExecutionResult(miniBlockHeaderHandlers, header, headerHash, receiptHash, valStatRootHash, totalTxCount)
+}
+
+func (mp *metaProcessor) createExecutionResult(
+	miniBlockHeaderHandlers []data.MiniBlockHeaderHandler,
+	header data.MetaHeaderHandler,
+	headerHash []byte,
+	receiptHash []byte,
+	valStatRootHash []byte,
+	totalTxCount int,
+) (data.BaseExecutionResultHandler, error) {
 	gasAndFees := mp.getGasAndFees()
 	gasNotUsedForProcessing := gasAndFees.GetGasPenalized() + gasAndFees.GetGasRefunded()
 	if gasAndFees.GetGasProvided() < gasNotUsedForProcessing {

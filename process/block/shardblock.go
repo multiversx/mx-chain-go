@@ -1078,7 +1078,7 @@ func (sp *shardProcessor) CommitBlock(
 	}
 
 	sp.indexBlockIfNeeded(bodyHandler, headerHash, headerHandler, lastBlockHeader)
-	//TODO refactor stateAccessesCollector to reset here for executed res block hashes but collect right after commit
+	// TODO refactor stateAccessesCollector to reset here for executed res block hashes but collect right after commit
 	sp.stateAccessesCollector.Reset()
 	sp.recordBlockInHistory(headerHash, headerHandler, bodyHandler)
 
@@ -1697,7 +1697,7 @@ type shardInfoHandler interface {
 func (sp *shardProcessor) getHighestHdrForShardFromMetachain(shardId uint32, hdr data.MetaHeaderHandler) []data.HeaderHandler {
 	ownShIdHdr := make([]data.HeaderHandler, 0, len(hdr.GetShardInfoHandlers()))
 
-	for _, shardInfo := range getShardInfoHandlers(hdr) {
+	for _, shardInfo := range getShardHeadersReferencedByMeta(hdr) {
 		if shardInfo.GetShardID() != shardId {
 			continue
 		}
@@ -1719,7 +1719,7 @@ func (sp *shardProcessor) getHighestHdrForShardFromMetachain(shardId uint32, hdr
 	return data.TrimHeaderHandlerSlice(ownShIdHdr)
 }
 
-func getShardInfoHandlers(
+func getShardHeadersReferencedByMeta(
 	header data.MetaHeaderHandler,
 ) []shardInfoHandler {
 	var shardInfoHandlers []shardInfoHandler
