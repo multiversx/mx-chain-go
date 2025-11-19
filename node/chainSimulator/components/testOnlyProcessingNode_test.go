@@ -109,6 +109,7 @@ func TestNewTestOnlyProcessingNode(t *testing.T) {
 		assert.Nil(t, err)
 
 		err = header.SetTimeStamp(uint64(genesisTime.Add(time.Millisecond * 6000).Unix()))
+		assert.Nil(t, err)
 
 		err = node.ProcessComponentsHolder.BlockProcessor().CommitBlock(header, block)
 		assert.Nil(t, err)
