@@ -2420,6 +2420,11 @@ func (mp *metaProcessor) prepareBlockHeaderInternalMapForValidatorProcessor(meta
 		blockHeaderHash = mp.blockChain.GetCurrentBlockHeaderHash()
 	}
 
+	if check.IfNil(blockHeader) {
+		blockHeader = mp.blockChain.GetGenesisHeader()
+		blockHeaderHash = mp.blockChain.GetGenesisHeaderHash()
+	}
+
 	mp.hdrsForCurrBlock.AddHeaderNotUsedInBlock(string(blockHeaderHash), blockHeader)
 }
 
