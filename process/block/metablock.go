@@ -2457,7 +2457,7 @@ func (mp *metaProcessor) updatePeerState(
 ) ([]byte, error) {
 	if header.IsHeaderV3() {
 		lastExecutionResult := mp.blockChain.GetLastExecutionResult()
-		if lastExecutionResult == nil || lastExecutionResult.IsInterfaceNil() {
+		if check.IfNil(lastExecutionResult) {
 			return nil, fmt.Errorf("missing last execution result in blockchain in metaProcessor.updatePeerState")
 		}
 
