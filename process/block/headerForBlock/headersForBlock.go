@@ -463,7 +463,7 @@ func (hfb *headersForBlock) requestMissingAndUpdateBasedOnCrossShardData(cd cros
 	if cd.GetNonce() == hfb.genesisNonce {
 		lastCrossNotarizedHeaderForShard, found := hfb.lastNotarizedShardHeaders[cd.GetShardID()]
 		if !found {
-			log.Warn("computeExistingAndRequestMissingShardHeaders.GetLastCrossNotarizedHeader could not find last notarized", "shard", cd.GetShardID())
+			log.Warn("requestMissingAndUpdateBasedOnCrossShardData could not find last notarized", "shard", cd.GetShardID())
 			return
 		}
 		if !bytes.Equal(lastCrossNotarizedHeaderForShard.GetHash(), cd.GetHeaderHash()) {

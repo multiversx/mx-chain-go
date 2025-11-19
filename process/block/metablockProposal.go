@@ -384,11 +384,7 @@ func (mp *metaProcessor) ProcessBlockProposal(
 		return nil, err
 	}
 
-	sw := core.NewStopWatch()
-	sw.Start("UpdatePeerState")
-	mp.prepareBlockHeaderInternalMapForValidatorProcessor(header)
-	valStatRootHash, err := mp.updatePeerState(header, mp.hdrsForCurrBlock.GetHeadersMap())
-	sw.Stop("UpdatePeerState")
+	valStatRootHash, err := mp.updateValidatorStatistics(header)
 	if err != nil {
 		return nil, err
 	}
@@ -411,6 +407,75 @@ func (mp *metaProcessor) ProcessBlockProposal(
 	}
 
 	return mp.collectExecutionResults(headerHash, header, body, valStatRootHash)
+}
+
+func (mp *metaProcessor) processEpochStartProposeBlock(
+	metaHeader data.MetaHeaderHandler,
+	body *block.Body,
+) (data.BaseExecutionResultHandler, error) {
+	if check.IfNil(metaHeader) {
+		return nil, process.ErrNilBlockHeader
+	}
+	if body == nil {
+		return nil, process.ErrNilBlockBody
+	}
+	if len(body.MiniBlocks) != 0 {
+		return nil, process.ErrEpochStartProposeBlockHasMiniBlocks
+	}
+
+	log.Debug("processing epoch start propose block",
+		"block epoch", metaHeader.GetEpoch(),
+		"for epoch", metaHeader.GetEpoch()+1,
+		"round", metaHeader.GetRound(),
+		"nonce", metaHeader.GetNonce(),
+	)
+
+	err := mp.processEconomicsDataForEpochStartProposeBlock(metaHeader)
+	if err != nil {
+		return nil, err
+	}
+
+	computedEconomics, err := mp.getComputedEconomics(metaHeader.GetEpoch() + 1)
+	if err != nil {
+		return nil, err
+	}
+
+	constructedBody, err := mp.processEpochStartMiniBlocks(metaHeader, computedEconomics)
+	if err != nil {
+		return nil, err
+	}
+
+	valStatRootHash, err := mp.updateValidatorStatistics(metaHeader)
+	if err != nil {
+		return nil, err
+	}
+
+	err = mp.commitState(metaHeader)
+	if err != nil {
+		return nil, err
+	}
+
+	err = mp.blockProcessingCutoffHandler.HandleProcessErrorCutoff(metaHeader)
+	if err != nil {
+		return nil, err
+	}
+
+	headerHash, err := core.CalculateHash(mp.marshalizer, mp.hasher, metaHeader)
+	if err != nil {
+		return nil, err
+	}
+
+	return mp.collectExecutionResults(headerHash, metaHeader, constructedBody, valStatRootHash)
+}
+
+func (mp *metaProcessor) updateValidatorStatistics(header data.MetaHeaderHandler) ([]byte, error) {
+	sw := core.NewStopWatch()
+	sw.Start("UpdatePeerState")
+	// TODO: this needs to be updated to V3
+	mp.prepareBlockHeaderInternalMapForValidatorProcessor(header)
+	valStatRootHash, err := mp.updatePeerState(header, mp.hdrsForCurrBlock.GetHeadersMap())
+	sw.Stop("UpdatePeerState")
+	return valStatRootHash, err
 }
 
 // collectExecutionResults collects the execution results after processing the block
@@ -984,87 +1049,18 @@ func (mp *metaProcessor) getPreviousExecutedBlock() data.HeaderHandler {
 }
 
 func (mp *metaProcessor) computeEpochStartDataForHeader(metaHeader data.MetaHeaderHandler) (*block.EpochStart, error) {
-	err := mp.computeAndUpdateLastEpochStartShardData(metaHeader)
-	if err != nil {
-		return nil, err
-	}
-
 	mp.mutEpochStartData.RLock()
 	defer mp.mutEpochStartData.RUnlock()
+
+	if mp.epochStartDataWrapper == nil ||
+		mp.epochStartDataWrapper.EpochStartData == nil ||
+		mp.epochStartDataWrapper.Epoch != metaHeader.GetEpoch() {
+		return nil, process.ErrNilEpochStartData
+	}
+
 	epochStartData := *mp.epochStartDataWrapper.EpochStartData
 
 	return &epochStartData, nil
-}
-
-func (mp *metaProcessor) computeAndUpdateLastEpochStartShardData(metaHeader data.MetaHeaderHandler) error {
-	mp.mutEpochStartData.Lock()
-	defer mp.mutEpochStartData.Unlock()
-
-	if mp.epochStartDataWrapper == nil ||
-		mp.epochStartDataWrapper.Epoch != metaHeader.GetEpoch() ||
-		mp.epochStartDataWrapper.EpochStartData == nil {
-		return process.ErrNilEpochStartData
-	}
-
-	// since there are no shard headers finalized between the epoch start proposal and the epoch start block,
-	// the last finalized data is the same as the one created at epoch start block proposal time
-	lastFinalizedData, err := mp.epochStartDataCreator.CreateEpochStartShardDataMetablockV3(metaHeader)
-	if err != nil {
-		return err
-	}
-
-	mp.epochStartDataWrapper.EpochStartData.LastFinalizedHeaders = lastFinalizedData
-	return nil
-}
-
-func (mp *metaProcessor) processEpochStartProposeBlock(
-	metaHeader data.MetaHeaderHandler,
-	body *block.Body,
-) (data.BaseExecutionResultHandler, error) {
-	if check.IfNil(metaHeader) {
-		return nil, process.ErrNilBlockHeader
-	}
-	if body == nil {
-		return nil, process.ErrNilBlockBody
-	}
-	if len(body.MiniBlocks) != 0 {
-		return nil, process.ErrEpochStartProposeBlockHasMiniBlocks
-	}
-
-	log.Debug("processing epoch start propose block",
-		"block epoch", metaHeader.GetEpoch(),
-		"for epoch", metaHeader.GetEpoch()+1,
-		"round", metaHeader.GetRound(),
-		"nonce", metaHeader.GetNonce(),
-	)
-
-	err := mp.processEconomicsDataForEpochStartProposeBlock(metaHeader)
-	if err != nil {
-		return nil, err
-	}
-
-	computedEconomics, err := mp.getComputedEconomics(metaHeader.GetEpoch() + 1)
-	if err != nil {
-		return nil, err
-	}
-
-	constructedBody, err := mp.processEpochStartMiniBlocks(metaHeader, computedEconomics)
-	if err != nil {
-		return nil, err
-	}
-
-	headerHash, err := core.CalculateHash(mp.marshalizer, mp.hasher, metaHeader)
-	if err != nil {
-		return nil, err
-	}
-
-	currentRootHash, err := mp.validatorStatisticsProcessor.RootHash()
-	if err != nil {
-		return nil, err
-	}
-
-	// TODO: collectExecutionResultsStartOfEpoch()  - needs to handle differently the execution results for epoch start propose block
-	return mp.collectExecutionResults(headerHash, metaHeader, constructedBody, currentRootHash)
 }
 
 func (mp *metaProcessor) processEconomicsDataForEpochStartProposeBlock(metaHeader data.MetaHeaderHandler) error {
@@ -1092,10 +1088,12 @@ func (mp *metaProcessor) processEconomicsDataForEpochStartProposeBlock(metaHeade
 		return err
 	}
 
+	lastShardData.Economics = *economicsData
+
 	mp.mutEpochStartData.Lock()
 	defer mp.mutEpochStartData.Unlock()
 	mp.epochStartDataWrapper.Epoch = metaHeader.GetEpoch() + 1
-	mp.epochStartDataWrapper.EpochStartData.Economics = *economicsData
+	mp.epochStartDataWrapper.EpochStartData = lastShardData
 
 	return nil
 }
