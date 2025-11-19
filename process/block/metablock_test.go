@@ -4150,3 +4150,158 @@ func pruneTrieForHeaderV3Test(t *testing.T, prevHeader data.HeaderHandler, rootH
 	assert.Equal(t, 2, cancelPruneCalledForUserAccounts)
 	assert.Equal(t, 2, cancelPruneCalledForPeerAccounts)
 }
+
+func TestPrepareBlockHeaderInternalMapForValidatorProcessor(t *testing.T) {
+	t.Parallel()
+
+	t.Run("get current block header should work", func(t *testing.T) {
+		t.Parallel()
+
+		metaHdr := &block.MetaBlock{}
+		metaHdrHash := []byte("hash")
+		wasAddHeaderNotUsedInBlockCalled := false
+
+		coreComponents, dataComponents, bootstrapComponents, statusComponents := createMockComponentHolders()
+		dataComponents.BlockChain = &testscommon.ChainHandlerStub{
+			GetCurrentBlockHeaderCalled: func() data.HeaderHandler {
+				return metaHdr
+			},
+			GetCurrentBlockHeaderHashCalled: func() []byte {
+				return metaHdrHash
+			},
+		}
+		arguments := createMockMetaArguments(coreComponents, dataComponents, bootstrapComponents, statusComponents)
+		hdrsForCurrBlock := &testscommon.HeadersForBlockMock{
+			AddHeaderNotUsedInBlockCalled: func(hash string, header data.HeaderHandler) {
+				require.Equal(t, string(metaHdrHash), hash)
+				require.Equal(t, metaHdr, header)
+				wasAddHeaderNotUsedInBlockCalled = true
+			},
+		}
+		arguments.HeadersForBlock = hdrsForCurrBlock
+
+		mp, _ := blproc.NewMetaProcessor(arguments)
+		mp.PrepareBlockHeaderInternalMapForValidatorProcessor(&block.MetaBlock{})
+		require.True(t, wasAddHeaderNotUsedInBlockCalled)
+	})
+	t.Run("get last executed block for headerV3 should work", func(t *testing.T) {
+		t.Parallel()
+
+		metaHdr := &block.MetaBlockV3{}
+		metaHdrHash := []byte("hash")
+		wasAddHeaderNotUsedInBlockCalled := false
+
+		coreComponents, dataComponents, bootstrapComponents, statusComponents := createMockComponentHolders()
+		dataComponents.BlockChain = &testscommon.ChainHandlerStub{
+			GetLastExecutedBlockHeaderCalled: func() data.HeaderHandler {
+				return metaHdr
+			},
+			GetLastExecutedBlockInfoCalled: func() (uint64, []byte, []byte) {
+				return 0, metaHdrHash, nil
+			},
+		}
+		arguments := createMockMetaArguments(coreComponents, dataComponents, bootstrapComponents, statusComponents)
+		hdrsForCurrBlock := &testscommon.HeadersForBlockMock{
+			AddHeaderNotUsedInBlockCalled: func(hash string, header data.HeaderHandler) {
+				require.Equal(t, string(metaHdrHash), hash)
+				require.Equal(t, metaHdr, header)
+				wasAddHeaderNotUsedInBlockCalled = true
+			},
+		}
+		arguments.HeadersForBlock = hdrsForCurrBlock
+
+		mp, _ := blproc.NewMetaProcessor(arguments)
+		mp.PrepareBlockHeaderInternalMapForValidatorProcessor(&block.MetaBlockV3{})
+		require.True(t, wasAddHeaderNotUsedInBlockCalled)
+	})
+}
+
+func TestUpdatePeerState(t *testing.T) {
+	t.Parallel()
+
+	t.Run("update peer state should work", func(t *testing.T) {
+		t.Parallel()
+
+		hdr := &block.MetaBlock{}
+		expectedRootHash := []byte("rootHash")
+		wasUpdatePeerStateCalled := false
+
+		arguments := createMockMetaArguments(createMockComponentHolders())
+		arguments.ValidatorStatisticsProcessor = &testscommon.ValidatorStatisticsProcessorStub{
+			UpdatePeerStateCalled: func(header data.MetaHeaderHandler) ([]byte, error) {
+				require.Equal(t, hdr, header)
+				wasUpdatePeerStateCalled = true
+				return expectedRootHash, nil
+			},
+		}
+
+		mp, _ := blproc.NewMetaProcessor(arguments)
+		rootHash, err := mp.UpdatePeerState(hdr, make(map[string]data.HeaderHandler))
+		require.NoError(t, err)
+		require.Equal(t, expectedRootHash, rootHash)
+		require.True(t, wasUpdatePeerStateCalled)
+	})
+	t.Run("update peer state v3 missing last execution result, should error", func(t *testing.T) {
+		t.Parallel()
+
+		hdr := &block.MetaBlockV3{}
+		coreComponents, dataComponents, bootstrapComponents, statusComponents := createMockComponentHolders()
+		dataComponents.BlockChain = &testscommon.ChainHandlerStub{
+			GetLastExecutionResultCalled: func() data.BaseExecutionResultHandler {
+				return nil
+			},
+		}
+		arguments := createMockMetaArguments(coreComponents, dataComponents, bootstrapComponents, statusComponents)
+
+		mp, _ := blproc.NewMetaProcessor(arguments)
+		rootHash, err := mp.UpdatePeerState(hdr, make(map[string]data.HeaderHandler))
+		require.ErrorContains(t, err, "missing last execution result")
+		require.Nil(t, rootHash)
+	})
+	t.Run("update peer state v3 invalid last execution result, should error", func(t *testing.T) {
+		t.Parallel()
+
+		hdr := &block.MetaBlockV3{}
+		coreComponents, dataComponents, bootstrapComponents, statusComponents := createMockComponentHolders()
+		dataComponents.BlockChain = &testscommon.ChainHandlerStub{
+			GetLastExecutionResultCalled: func() data.BaseExecutionResultHandler {
+				return &block.ExecutionResult{}
+			},
+		}
+		arguments := createMockMetaArguments(coreComponents, dataComponents, bootstrapComponents, statusComponents)
+
+		mp, _ := blproc.NewMetaProcessor(arguments)
+		rootHash, err := mp.UpdatePeerState(hdr, make(map[string]data.HeaderHandler))
+		require.ErrorIs(t, err, process.ErrWrongTypeAssertion)
+		require.Nil(t, rootHash)
+	})
+	t.Run("update peer state v3 should work", func(t *testing.T) {
+		t.Parallel()
+
+		hdr := &block.MetaBlockV3{}
+		metaExecResult := &block.MetaExecutionResult{}
+		wasUpdatePeerStateCalled := false
+
+		coreComponents, dataComponents, bootstrapComponents, statusComponents := createMockComponentHolders()
+		dataComponents.BlockChain = &testscommon.ChainHandlerStub{
+			GetLastExecutionResultCalled: func() data.BaseExecutionResultHandler {
+				return metaExecResult
+			},
+		}
+		arguments := createMockMetaArguments(coreComponents, dataComponents, bootstrapComponents, statusComponents)
+		arguments.ValidatorStatisticsProcessor = &testscommon.ValidatorStatisticsProcessorStub{
+			UpdatePeerStateV3Called: func(header data.MetaHeaderHandler, metaExecutionResult data.MetaExecutionResultHandler) ([]byte, error) {
+				require.Equal(t, hdr, header)
+				require.Equal(t, metaExecResult, metaExecutionResult)
+				wasUpdatePeerStateCalled = true
+
+				return make([]byte, 0), nil
+			},
+		}
+
+		mp, _ := blproc.NewMetaProcessor(arguments)
+		_, err := mp.UpdatePeerState(hdr, make(map[string]data.HeaderHandler))
+		require.NoError(t, err)
+		require.True(t, wasUpdatePeerStateCalled)
+	})
+}

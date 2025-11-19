@@ -340,9 +340,31 @@ func (vs *validatorStatistics) SaveNodesCoordinatorUpdates(epoch uint32) (bool, 
 	return nodeForcedToRemain, nil
 }
 
+type feeCalculator func(previousHeader data.HeaderHandler) *big.Int
+
 // UpdatePeerState takes a header, updates the peer state for all of the
 // consensus members and returns the new root hash
 func (vs *validatorStatistics) UpdatePeerState(header data.MetaHeaderHandler, cache map[string]data.HeaderHandler) ([]byte, error) {
+	feeCaculatorFunc := func(prevHeader data.HeaderHandler) *big.Int {
+		return big.NewInt(0).Sub(prevHeader.GetAccumulatedFees(), prevHeader.GetDeveloperFees())
+	}
+	return vs.baseUpdatePeerState(header, cache, feeCaculatorFunc)
+}
+
+// UpdatePeerStateV3 takes a headerV3, updates the peer state for all of the
+// consensus members and returns the new root hash
+func (vs *validatorStatistics) UpdatePeerStateV3(header data.MetaHeaderHandler, cache map[string]data.HeaderHandler, metaExecutionResult data.MetaExecutionResultHandler) ([]byte, error) {
+	feeCaculatorFunc := func(_ data.HeaderHandler) *big.Int {
+		return big.NewInt(0).Sub(metaExecutionResult.GetAccumulatedFees(), metaExecutionResult.GetDeveloperFees())
+	}
+	return vs.baseUpdatePeerState(header, cache, feeCaculatorFunc)
+}
+
+func (vs *validatorStatistics) baseUpdatePeerState(
+	header data.MetaHeaderHandler,
+	cache map[string]data.HeaderHandler,
+	calculateFees feeCalculator,
+) ([]byte, error) {
 	if header.GetNonce() == vs.genesisNonce {
 		return vs.peerAdapter.RootHash()
 	}
@@ -406,13 +428,12 @@ func (vs *validatorStatistics) UpdatePeerState(header data.MetaHeaderHandler, ca
 	log.Debug("UpdatePeerState - registering meta previous leader fees", "metaNonce", previousHeader.GetNonce())
 
 	bitmap := vs.getBitmapForHeader(previousHeader)
-	// TODO: on v3 headers we don't have accumulated fees on the header directly but on the execution results.
-	// this method then needs to be called in case of v3 headers for all the execution results notarized.
+
 	err = vs.updateValidatorInfoOnSuccessfulBlock(
 		leader,
 		consensusGroup,
 		bitmap,
-		big.NewInt(0).Sub(previousHeader.GetAccumulatedFees(), previousHeader.GetDeveloperFees()),
+		calculateFees(previousHeader),
 		previousHeader.GetShardID(),
 		previousHeader.GetEpoch(),
 	)

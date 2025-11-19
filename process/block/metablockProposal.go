@@ -386,9 +386,8 @@ func (mp *metaProcessor) ProcessBlockProposal(
 
 	sw := core.NewStopWatch()
 	sw.Start("UpdatePeerState")
-	// TODO: this needs to be updated to V3
-	mp.prepareBlockHeaderInternalMapForValidatorProcessor()
-	valStatRootHash, err := mp.validatorStatisticsProcessor.UpdatePeerState(header, mp.hdrsForCurrBlock.GetHeadersMap())
+	mp.prepareBlockHeaderInternalMapForValidatorProcessor(header)
+	valStatRootHash, err := mp.updatePeerState(header, mp.hdrsForCurrBlock.GetHeadersMap())
 	sw.Stop("UpdatePeerState")
 	if err != nil {
 		return nil, err

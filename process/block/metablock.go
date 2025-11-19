@@ -2387,8 +2387,8 @@ func (mp *metaProcessor) applyBodyToHeader(metaHdr data.MetaHeaderHandler, bodyH
 	}
 
 	sw.Start("UpdatePeerState")
-	mp.prepareBlockHeaderInternalMapForValidatorProcessor()
-	valStatRootHash, err := mp.validatorStatisticsProcessor.UpdatePeerState(metaHdr, mp.hdrsForCurrBlock.GetHeadersMap())
+	mp.prepareBlockHeaderInternalMapForValidatorProcessor(metaHdr)
+	valStatRootHash, err := mp.updatePeerState(metaHdr, mp.hdrsForCurrBlock.GetHeadersMap())
 	sw.Stop("UpdatePeerState")
 	if err != nil {
 		return nil, err
@@ -2409,23 +2409,23 @@ func (mp *metaProcessor) applyBodyToHeader(metaHdr data.MetaHeaderHandler, bodyH
 	return body, nil
 }
 
-func (mp *metaProcessor) prepareBlockHeaderInternalMapForValidatorProcessor() {
-	mp.blockChain.GetLastExecutedBlockHeader()
-	mp.blockChain.GetLastExecutedBlockInfo()
-	currentBlockHeader := mp.blockChain.GetCurrentBlockHeader()
-	currentBlockHeaderHash := mp.blockChain.GetCurrentBlockHeaderHash()
-
-	if check.IfNil(currentBlockHeader) {
-		currentBlockHeader = mp.blockChain.GetGenesisHeader()
-		currentBlockHeaderHash = mp.blockChain.GetGenesisHeaderHash()
+func (mp *metaProcessor) prepareBlockHeaderInternalMapForValidatorProcessor(metaHeader data.MetaHeaderHandler) {
+	var blockHeader data.HeaderHandler
+	var blockHeaderHash []byte
+	if metaHeader.IsHeaderV3() {
+		blockHeader = mp.blockChain.GetLastExecutedBlockHeader()
+		_, blockHeaderHash, _ = mp.blockChain.GetLastExecutedBlockInfo()
+	} else {
+		blockHeader = mp.blockChain.GetCurrentBlockHeader()
+		blockHeaderHash = mp.blockChain.GetCurrentBlockHeaderHash()
 	}
 
-	mp.hdrsForCurrBlock.AddHeaderNotUsedInBlock(string(currentBlockHeaderHash), currentBlockHeader)
+	mp.hdrsForCurrBlock.AddHeaderNotUsedInBlock(string(blockHeaderHash), blockHeader)
 }
 
 func (mp *metaProcessor) verifyValidatorStatisticsRootHash(header data.MetaHeaderHandler) error {
-	mp.prepareBlockHeaderInternalMapForValidatorProcessor()
-	validatorStatsRH, err := mp.validatorStatisticsProcessor.UpdatePeerState(header, mp.hdrsForCurrBlock.GetHeadersMap())
+	mp.prepareBlockHeaderInternalMapForValidatorProcessor(header)
+	validatorStatsRH, err := mp.updatePeerState(header, mp.hdrsForCurrBlock.GetHeadersMap())
 	if err != nil {
 		return err
 	}
@@ -2444,6 +2444,26 @@ func (mp *metaProcessor) verifyValidatorStatisticsRootHash(header data.MetaHeade
 	}
 
 	return nil
+}
+
+func (mp *metaProcessor) updatePeerState(
+	header data.MetaHeaderHandler,
+	cache map[string]data.HeaderHandler,
+) ([]byte, error) {
+	if header.IsHeaderV3() {
+		lastExecResult := mp.blockChain.GetLastExecutionResult()
+		if lastExecResult == nil || lastExecResult.IsInterfaceNil() {
+			return nil, fmt.Errorf("missing last execution result in blockchain in metaProcessor.updatePeerState")
+		}
+
+		metaExecutionResult, castOk := lastExecResult.(data.MetaExecutionResultHandler)
+		if !castOk {
+			return nil, fmt.Errorf("%w in metaProcessor.updatePeerState ", process.ErrWrongTypeAssertion)
+		}
+
+		return mp.validatorStatisticsProcessor.UpdatePeerStateV3(header, cache, metaExecutionResult)
+	}
+	return mp.validatorStatisticsProcessor.UpdatePeerState(header, cache)
 }
 
 // CreateNewHeader creates a new header
