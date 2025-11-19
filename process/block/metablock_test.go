@@ -4276,6 +4276,8 @@ func TestMetaProcessor_prepareEpochStartBodyForTrigger(t *testing.T) {
 	}
 
 	t.Run("meta header v1", func(t *testing.T) {
+		t.Parallel()
+
 		args := createMockMetaArguments(createMockComponentHolders())
 		mp, _ := blproc.NewMetaProcessor(args)
 
@@ -4286,6 +4288,8 @@ func TestMetaProcessor_prepareEpochStartBodyForTrigger(t *testing.T) {
 	})
 
 	t.Run("cannot get executed mbs from data pool", func(t *testing.T) {
+		t.Parallel()
+
 		coreComponents, dataComponents, bootstrapComponents, statusComponents := createMockComponentHolders()
 		dataPoolMock := initDataPool()
 		dataPoolMock.ExecutedMiniBlocksCalled = func() storage.Cacher {
@@ -4305,6 +4309,8 @@ func TestMetaProcessor_prepareEpochStartBodyForTrigger(t *testing.T) {
 	})
 
 	t.Run("retrieved data from pool is not byte array", func(t *testing.T) {
+		t.Parallel()
+
 		coreComponents, dataComponents, bootstrapComponents, statusComponents := createMockComponentHolders()
 		dataPoolMock := initDataPool()
 		dataPoolMock.ExecutedMiniBlocksCalled = func() storage.Cacher {
@@ -4324,6 +4330,8 @@ func TestMetaProcessor_prepareEpochStartBodyForTrigger(t *testing.T) {
 	})
 
 	t.Run("cannot unmarshall retrieved obj", func(t *testing.T) {
+		t.Parallel()
+
 		coreComponents, dataComponents, bootstrapComponents, statusComponents := createMockComponentHolders()
 		dataPoolMock := initDataPool()
 		dataPoolMock.ExecutedMiniBlocksCalled = func() storage.Cacher {
@@ -4349,6 +4357,8 @@ func TestMetaProcessor_prepareEpochStartBodyForTrigger(t *testing.T) {
 	})
 
 	t.Run("should work", func(t *testing.T) {
+		t.Parallel()
+
 		coreComponents, dataComponents, bootstrapComponents, statusComponents := createMockComponentHolders()
 		dataPoolMock := initDataPool()
 
@@ -4400,7 +4410,7 @@ func TestMetaProcessor_prepareEpochStartBodyForTrigger(t *testing.T) {
 	})
 }
 
-func TestMetaProcessor_commitEpochStart(t *testing.T) {
+func TestMetaProcessor_commitEpochStartMetaBlockV3(t *testing.T) {
 	t.Parallel()
 
 	metaBlockV3 := &block.MetaBlockV3{
