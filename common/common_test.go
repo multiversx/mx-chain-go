@@ -665,3 +665,55 @@ func TestPrepareLogEventsKey(t *testing.T) {
 	logs := common.PrepareLogEventsKey([]byte("LogsX"))
 	require.Equal(t, "logsLogsX", string(logs))
 }
+
+func TestGetMiniBlockHeadersFromExecResult(t *testing.T) {
+	t.Parallel()
+
+	t.Run("meta header v1", func(t *testing.T) {
+		mbHeaders := []block.MiniBlockHeader{
+			{
+				Hash: []byte("hash1"),
+			},
+		}
+		metaBlock := &block.MetaBlock{
+			MiniBlockHeaders: mbHeaders,
+		}
+
+		res, err := common.GetMiniBlockHeadersFromExecResult(metaBlock)
+		require.Nil(t, err)
+		require.Equal(t, []data.MiniBlockHeaderHandler{&mbHeaders[0]}, res)
+	})
+	t.Run("meta header v3", func(t *testing.T) {
+		metaBlock := &block.MetaBlockV3{
+			MiniBlockHeaders: []block.MiniBlockHeader{
+				{
+					Hash: []byte("hash1"),
+				},
+			},
+			ExecutionResults: []*block.MetaExecutionResult{
+				{
+					MiniBlockHeaders: []block.MiniBlockHeader{
+						{
+							Hash: []byte("hash2"),
+						},
+					},
+				},
+				{
+					MiniBlockHeaders: []block.MiniBlockHeader{
+						{
+							Hash: []byte("hash3"),
+						},
+					},
+				},
+			},
+		}
+
+		expectedRes := []data.MiniBlockHeaderHandler{
+			&metaBlock.ExecutionResults[0].MiniBlockHeaders[0],
+			&metaBlock.ExecutionResults[1].MiniBlockHeaders[0],
+		}
+		res, err := common.GetMiniBlockHeadersFromExecResult(metaBlock)
+		require.Nil(t, err)
+		require.Equal(t, expectedRes, res)
+	})
+}

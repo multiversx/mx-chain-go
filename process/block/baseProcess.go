@@ -2184,7 +2184,7 @@ func (bp *baseProcessor) addHeaderIntoTrackerPool(nonce uint64, shardID uint32) 
 	}
 }
 
-func (bp *baseProcessor) commitTrieEpochRootHashIfNeeded(metaBlock *block.MetaBlock, rootHash []byte) error {
+func (bp *baseProcessor) commitTrieEpochRootHashIfNeeded(metaBlock data.MetaHeaderHandler, rootHash []byte) error {
 	trieEpochRootHashStorageUnit, err := bp.store.GetStorer(dataRetriever.TrieEpochRootHashUnit)
 	if err != nil {
 		return err
@@ -2203,7 +2203,7 @@ func (bp *baseProcessor) commitTrieEpochRootHashIfNeeded(metaBlock *block.MetaBl
 		return fmt.Errorf("%w for user accounts state", process.ErrNilAccountsAdapter)
 	}
 
-	epochBytes := bp.uint64Converter.ToByteSlice(uint64(metaBlock.Epoch))
+	epochBytes := bp.uint64Converter.ToByteSlice(uint64(metaBlock.GetEpoch()))
 
 	err = trieEpochRootHashStorageUnit.Put(epochBytes, rootHash)
 	if err != nil {
@@ -2290,7 +2290,7 @@ func (bp *baseProcessor) commitTrieEpochRootHashIfNeeded(metaBlock *block.MetaBl
 
 	stats := []interface{}{
 		"shard", bp.shardCoordinator.SelfId(),
-		"epoch", metaBlock.Epoch,
+		"epoch", metaBlock.GetEpoch(),
 		"sum", balanceSum.String(),
 		"processDataTries", processDataTries,
 		"numCodeLeaves", numCodeLeaves,
