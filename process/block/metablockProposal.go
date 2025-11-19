@@ -469,9 +469,8 @@ func (mp *metaProcessor) processEpochStartProposeBlock(
 func (mp *metaProcessor) updateValidatorStatistics(header data.MetaHeaderHandler) ([]byte, error) {
 	sw := core.NewStopWatch()
 	sw.Start("UpdatePeerState")
-	// TODO: this needs to be updated to V3
-	mp.prepareBlockHeaderInternalMapForValidatorProcessor()
-	valStatRootHash, err := mp.validatorStatisticsProcessor.UpdatePeerState(header, mp.hdrsForCurrBlock.GetHeadersMap())
+	mp.prepareBlockHeaderInternalMapForValidatorProcessor(header)
+	valStatRootHash, err := mp.updatePeerState(header, mp.hdrsForCurrBlock.GetHeadersMap())
 	sw.Stop("UpdatePeerState")
 	return valStatRootHash, err
 }

@@ -340,9 +340,31 @@ func (vs *validatorStatistics) SaveNodesCoordinatorUpdates(epoch uint32) (bool, 
 	return nodeForcedToRemain, nil
 }
 
+type feeCalculator func(previousHeader data.HeaderHandler) *big.Int
+
 // UpdatePeerState takes a header, updates the peer state for all of the
 // consensus members and returns the new root hash
 func (vs *validatorStatistics) UpdatePeerState(header data.MetaHeaderHandler, cache map[string]data.HeaderHandler) ([]byte, error) {
+	feeCaculatorFunc := func(prevHeader data.HeaderHandler) *big.Int {
+		return big.NewInt(0).Sub(prevHeader.GetAccumulatedFees(), prevHeader.GetDeveloperFees())
+	}
+	return vs.baseUpdatePeerState(header, cache, feeCaculatorFunc)
+}
+
+// UpdatePeerStateV3 takes a headerV3, updates the peer state for all of the
+// consensus members and returns the new root hash
+func (vs *validatorStatistics) UpdatePeerStateV3(header data.MetaHeaderHandler, cache map[string]data.HeaderHandler, metaExecutionResult data.MetaExecutionResultHandler) ([]byte, error) {
+	feeCaculatorFunc := func(_ data.HeaderHandler) *big.Int {
+		return big.NewInt(0).Sub(metaExecutionResult.GetAccumulatedFees(), metaExecutionResult.GetDeveloperFees())
+	}
+	return vs.baseUpdatePeerState(header, cache, feeCaculatorFunc)
+}
+
+func (vs *validatorStatistics) baseUpdatePeerState(
+	header data.MetaHeaderHandler,
+	cache map[string]data.HeaderHandler,
+	calculateFees feeCalculator,
+) ([]byte, error) {
 	if header.GetNonce() == vs.genesisNonce {
 		return vs.peerAdapter.RootHash()
 	}
@@ -406,13 +428,12 @@ func (vs *validatorStatistics) UpdatePeerState(header data.MetaHeaderHandler, ca
 	log.Debug("UpdatePeerState - registering meta previous leader fees", "metaNonce", previousHeader.GetNonce())
 
 	bitmap := vs.getBitmapForHeader(previousHeader)
-	// TODO: on v3 headers we don't have accumulated fees on the header directly but on the execution results.
-	// this method then needs to be called in case of v3 headers for all the execution results notarized.
+
 	err = vs.updateValidatorInfoOnSuccessfulBlock(
 		leader,
 		consensusGroup,
 		bitmap,
-		big.NewInt(0).Sub(previousHeader.GetAccumulatedFees(), previousHeader.GetDeveloperFees()),
+		calculateFees(previousHeader),
 		previousHeader.GetShardID(),
 		previousHeader.GetEpoch(),
 	)
@@ -925,65 +946,65 @@ func (vs *validatorStatistics) updateShardDataPeerState(
 	header data.HeaderHandler,
 	cacheMap map[string]data.HeaderHandler,
 ) error {
-	metaHeader, ok := header.(*block.MetaBlock)
+	metaHeader, ok := header.(data.MetaHeaderHandler)
 	if !ok {
 		return process.ErrInvalidMetaHeader
 	}
 
 	var currentHeader data.HeaderHandler
-	for _, h := range metaHeader.ShardInfo {
-		if h.Nonce == vs.genesisNonce {
+	for _, h := range metaHeader.GetShardInfoHandlers() {
+		if h.GetNonce() == vs.genesisNonce {
 			continue
 		}
 
-		currentHeader, ok = cacheMap[string(h.HeaderHash)]
+		currentHeader, ok = cacheMap[string(h.GetHeaderHash())]
 		if !ok {
 			return fmt.Errorf("%w - updateShardDataPeerState header from cache - hash: %s, round: %v, nonce: %v",
 				process.ErrMissingHeader,
-				hex.EncodeToString(h.HeaderHash),
+				hex.EncodeToString(h.GetHeaderHash()),
 				h.GetRound(),
 				h.GetNonce())
 		}
 
 		epoch := computeEpoch(currentHeader)
 
-		leader, shardConsensus, shardInfoErr := vs.nodesCoordinator.ComputeConsensusGroup(h.PrevRandSeed, h.Round, h.ShardID, epoch)
+		leader, shardConsensus, shardInfoErr := vs.nodesCoordinator.ComputeConsensusGroup(h.GetPrevRandSeed(), h.GetRound(), h.GetShardID(), epoch)
 		if shardInfoErr != nil {
 			return shardInfoErr
 		}
 
-		log.Debug("updateShardDataPeerState - registering shard leader fees", "shard headerHash", h.HeaderHash, "accumulatedFees", h.AccumulatedFees.String(), "developerFees", h.DeveloperFees.String())
-		bitmap := h.PubKeysBitmap
-		if vs.enableEpochsHandler.IsFlagEnabledInEpoch(common.AndromedaFlag, h.Epoch) {
-			bitmap = vs.getBitmapForFullConsensus(h.ShardID, h.Epoch)
+		log.Debug("updateShardDataPeerState - registering shard leader fees", "shard headerHash", h.GetHeaderHash(), "accumulatedFees", h.GetAccumulatedFees().String(), "developerFees", h.GetDeveloperFees().String())
+		bitmap := h.GetPubKeysBitmap()
+		if vs.enableEpochsHandler.IsFlagEnabledInEpoch(common.AndromedaFlag, h.GetEpoch()) {
+			bitmap = vs.getBitmapForFullConsensus(h.GetShardID(), h.GetEpoch())
 		}
 
 		shardInfoErr = vs.updateValidatorInfoOnSuccessfulBlock(
 			leader,
 			shardConsensus,
 			bitmap,
-			big.NewInt(0).Sub(h.AccumulatedFees, h.DeveloperFees),
-			h.ShardID,
+			big.NewInt(0).Sub(h.GetAccumulatedFees(), h.GetDeveloperFees()),
+			h.GetShardID(),
 			currentHeader.GetEpoch(),
 		)
 		if shardInfoErr != nil {
 			return shardInfoErr
 		}
 
-		if h.Nonce == vs.genesisNonce+1 {
+		if h.GetNonce() == vs.genesisNonce+1 {
 			continue
 		}
 
-		prevShardData, shardInfoErr := vs.searchInMap(h.PrevHash, cacheMap)
+		prevShardData, shardInfoErr := vs.searchInMap(h.GetPrevHash(), cacheMap)
 		if shardInfoErr != nil {
 			return shardInfoErr
 		}
 
 		shardInfoErr = vs.checkForMissedBlocks(
-			h.Round,
+			h.GetRound(),
 			prevShardData.GetRound(),
 			prevShardData.GetRandSeed(),
-			h.ShardID,
+			h.GetShardID(),
 			epoch,
 		)
 		if shardInfoErr != nil {

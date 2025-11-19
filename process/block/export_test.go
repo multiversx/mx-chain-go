@@ -954,6 +954,19 @@ func GetTxCountExecutionResults(metaHeader data.MetaHeaderHandler) (uint32, erro
 	return getTxCountExecutionResults(metaHeader)
 }
 
+// PrepareBlockHeaderInternalMapForValidatorProcessor -
+func (mp *metaProcessor) PrepareBlockHeaderInternalMapForValidatorProcessor(metaHeader data.MetaHeaderHandler) {
+	mp.prepareBlockHeaderInternalMapForValidatorProcessor(metaHeader)
+}
+
+// UpdatePeerState -
+func (mp *metaProcessor) UpdatePeerState(
+	header data.MetaHeaderHandler,
+	cache map[string]data.HeaderHandler,
+) ([]byte, error) {
+	return mp.updatePeerState(header, cache)
+}
+
 // HasStartOfEpochExecutionResults -
 func (mp *metaProcessor) HasStartOfEpochExecutionResults(metaHeader data.MetaHeaderHandler) (bool, error) {
 	return mp.hasStartOfEpochExecutionResults(metaHeader)
