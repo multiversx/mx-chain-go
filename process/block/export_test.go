@@ -1007,6 +1007,16 @@ func (mp *metaProcessor) VerifyEpochStartData(
 	return mp.verifyEpochStartData(headerHandler)
 }
 
+// PrepareEpochStartBodyForTrigger -
+func (mp *metaProcessor) PrepareEpochStartBodyForTrigger(header data.MetaHeaderHandler, body *block.Body) (*block.Body, error) {
+	return mp.prepareEpochStartBodyForTrigger(header, body)
+}
+
+// CommitEpochStart -
+func (mp *metaProcessor) CommitEpochStart(header data.MetaHeaderHandler, body *block.Body) error {
+	return mp.commitEpochStart(header, body)
+}
+
 // OnExecutedBlock -
 func (bp *baseProcessor) OnExecutedBlock(header data.HeaderHandler, rootHash []byte) error {
 	return bp.onExecutedBlock(header, rootHash)
@@ -1025,4 +1035,9 @@ func (bp *baseProcessor) ExtractRootHashForCleanup(header data.HeaderHandler) (c
 // CheckContextBeforeExecution -
 func (bp *baseProcessor) CheckContextBeforeExecution(header data.HeaderHandler) error {
 	return bp.checkContextBeforeExecution(header)
+}
+
+// SaveProposedTxsToStorage -
+func (bp *baseProcessor) SaveProposedTxsToStorage(header data.HeaderHandler, body *block.Body) error {
+	return bp.saveProposedTxsToStorage(header, body)
 }

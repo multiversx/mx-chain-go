@@ -14,6 +14,7 @@ import (
 	"github.com/multiversx/mx-chain-core-go/data"
 	"github.com/multiversx/mx-chain-core-go/data/block"
 	"github.com/multiversx/mx-chain-core-go/data/headerVersionData"
+	"github.com/multiversx/mx-chain-go/trie"
 	logger "github.com/multiversx/mx-chain-logger-go"
 
 	"github.com/multiversx/mx-chain-go/common"
@@ -1357,6 +1358,7 @@ func (mp *metaProcessor) CommitBlock(
 
 	// TODO: Should be sent also validatorInfoTxs alongside rewardsTxs -> mp.validatorInfoCreator.GetValidatorInfoTxs(body) ?
 	mp.indexBlock(header, headerHash, body, finalMetaBlock, notarizedHeadersHashes, rewardsTxs)
+	//TODO refactor stateAccessesCollector to reset here for executed res block hashes but collect right after commit
 	mp.stateAccessesCollector.Reset()
 	mp.recordBlockInHistory(headerHash, headerHandler, bodyHandler)
 
@@ -1770,11 +1772,16 @@ func (mp *metaProcessor) getRewardsTxs(header data.MetaHeaderHandler, body *bloc
 	return rewardsTx
 }
 
-func (mp *metaProcessor) commitEpochStart(header data.MetaHeaderHandler, body *block.Body) {
+func (mp *metaProcessor) commitEpochStart(header data.MetaHeaderHandler, body *block.Body) error {
 	if header.IsStartOfEpochBlock() {
-		mp.epochStartTrigger.SetProcessed(header, body)
-		go mp.epochRewardsCreator.SaveBlockDataToStorage(header, body)
-		go mp.validatorInfoCreator.SaveBlockDataToStorage(header, body)
+		processedBody, err := mp.prepareEpochStartBodyForTrigger(header, body)
+		if err != nil {
+			return err
+		}
+
+		mp.epochStartTrigger.SetProcessed(header, processedBody)
+		go mp.epochRewardsCreator.SaveBlockDataToStorage(header, processedBody)
+		go mp.validatorInfoCreator.SaveBlockDataToStorage(header, processedBody)
 	} else {
 		currentHeader := mp.blockChain.GetCurrentBlockHeader()
 		if !check.IfNil(currentHeader) && currentHeader.IsStartOfEpochBlock() {
@@ -1782,6 +1789,44 @@ func (mp *metaProcessor) commitEpochStart(header data.MetaHeaderHandler, body *b
 			mp.nodesCoordinator.ShuffleOutForEpoch(currentHeader.GetEpoch())
 		}
 	}
+
+	return nil
+}
+
+func (mp *metaProcessor) prepareEpochStartBodyForTrigger(header data.MetaHeaderHandler, body *block.Body) (*block.Body, error) {
+	if !header.IsHeaderV3() {
+		return body, nil
+	}
+
+	allMiniBlocks := make([]*block.MiniBlock, 0)
+	for _, execResult := range header.GetExecutionResultsHandlers() {
+		metaExecRes, castOk := execResult.(data.MetaExecutionResultHandler)
+		if !castOk {
+			return nil, fmt.Errorf("%w in prepareEpochStartBodyForTrigger for metaExecRes", process.ErrWrongTypeAssertion)
+		}
+
+		// TODO: here, check actual key to be used
+		postProcessKey := append(metaExecRes.GetHeaderHash(), []byte(postProcessMiniBlocksKeySuffix)...)
+		retrievedObj, found := mp.dataPool.ExecutedMiniBlocks().Get(postProcessKey)
+		if !found {
+			return nil, fmt.Errorf("%w in prepareEpochStartBodyForTrigger for key: %s", trie.ErrKeyNotFound, postProcessMiniBlocksKeySuffix)
+		}
+
+		marshalledMbs, castOk := retrievedObj.([]byte)
+		if !castOk {
+			return nil, fmt.Errorf("%w in prepareEpochStartBodyForTrigger for marshalledMbs", process.ErrWrongTypeAssertion)
+		}
+
+		var currMBs []*block.MiniBlock
+		err := mp.marshalizer.Unmarshal(&currMBs, marshalledMbs)
+		if err != nil {
+			return nil, err
+		}
+
+		allMiniBlocks = append(allMiniBlocks, currMBs...)
+	}
+
+	return &block.Body{MiniBlocks: allMiniBlocks}, nil
 }
 
 // RevertStateToBlock recreates the state tries to the root hashes indicated by the provided root hash and header
@@ -2566,10 +2611,10 @@ func (mp *metaProcessor) setHeaderVersionData(metaHeader data.MetaHeaderHandler)
 
 // MarshalizedDataToBroadcast prepares underlying data into a marshalized object according to destination
 func (mp *metaProcessor) MarshalizedDataToBroadcast(
-	hdr data.HeaderHandler,
+	header data.HeaderHandler,
 	bodyHandler data.BodyHandler,
 ) (map[uint32][]byte, map[string][][]byte, error) {
-	if check.IfNil(hdr) {
+	if check.IfNil(header) {
 		return nil, nil, process.ErrNilMetaBlockHeader
 	}
 	if check.IfNil(bodyHandler) {
@@ -2581,33 +2626,29 @@ func (mp *metaProcessor) MarshalizedDataToBroadcast(
 		return nil, nil, process.ErrWrongTypeAssertion
 	}
 
+	bodyToBroadcast, err := mp.getFinalMiniBlocks(header, body)
+	if err != nil {
+		return nil, nil, err
+	}
+
 	var mrsTxs map[string][][]byte
-	if hdr.IsStartOfEpochBlock() {
-		mrsTxs = mp.getAllMarshalledTxs(body)
+	if header.IsStartOfEpochBlock() {
+		mrsTxs = mp.getAllMarshalledTxs(bodyToBroadcast)
 	} else {
-		mrsTxs = mp.txCoordinator.CreateMarshalizedData(body)
+		mrsTxs = mp.txCoordinator.CreateMarshalizedData(bodyToBroadcast)
 	}
 
-	bodies := make(map[uint32]block.MiniBlockSlice)
-	for _, miniBlock := range body.MiniBlocks {
-		if miniBlock.SenderShardID != mp.shardCoordinator.SelfId() ||
-			miniBlock.ReceiverShardID == mp.shardCoordinator.SelfId() {
-			continue
-		}
-		bodies[miniBlock.ReceiverShardID] = append(bodies[miniBlock.ReceiverShardID], miniBlock)
-	}
-
-	mrsData := make(map[uint32][]byte, len(bodies))
-	for shardId, subsetBlockBody := range bodies {
-		buff, err := mp.marshalizer.Marshal(&block.Body{MiniBlocks: subsetBlockBody})
-		if err != nil {
-			log.Error("metaProcessor.MarshalizedDataToBroadcast.Marshal", "error", err.Error())
-			continue
-		}
-		mrsData[shardId] = buff
-	}
+	mrsData := mp.marshalledBodyToBroadcast(bodyToBroadcast)
 
 	return mrsData, mrsTxs, nil
+}
+
+func (mp *metaProcessor) getFinalMiniBlocks(header data.HeaderHandler, body *block.Body) (*block.Body, error) {
+	if header.IsHeaderV3() {
+		return mp.getFinalMiniBlocksFromExecutionResults(header)
+	}
+
+	return body, nil
 }
 
 func (mp *metaProcessor) getAllMarshalledTxs(body *block.Body) map[string][][]byte {

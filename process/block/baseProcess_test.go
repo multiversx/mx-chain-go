@@ -19,7 +19,10 @@ import (
 	"github.com/multiversx/mx-chain-core-go/core/keyValStorage"
 	"github.com/multiversx/mx-chain-core-go/data"
 	"github.com/multiversx/mx-chain-core-go/data/block"
+	"github.com/multiversx/mx-chain-core-go/data/rewardTx"
 	"github.com/multiversx/mx-chain-core-go/data/scheduled"
+	"github.com/multiversx/mx-chain-core-go/data/smartContractResult"
+	"github.com/multiversx/mx-chain-core-go/data/transaction"
 	"github.com/multiversx/mx-chain-core-go/data/typeConverters/uint64ByteSlice"
 	"github.com/multiversx/mx-chain-core-go/hashing"
 	"github.com/multiversx/mx-chain-core-go/marshal"
@@ -271,6 +274,7 @@ func initDataPool() *dataRetrieverMock.PoolsHolderStub {
 	transactionsPool := testscommon.NewShardedDataCacheNotifierMock()
 	unsignedTransactionsPool := testscommon.NewShardedDataCacheNotifierMock()
 	rewardTransactionsPool := testscommon.NewShardedDataCacheNotifierMock()
+	validatorsInfoPool := testscommon.NewShardedDataCacheNotifierMock()
 
 	metablocksPool := cache.NewCacherStub()
 	miniblocksPool := cache.NewCacherStub()
@@ -283,6 +287,7 @@ func initDataPool() *dataRetrieverMock.PoolsHolderStub {
 		TransactionsCalled:         func() dataRetriever.ShardedDataCacherNotifier { return transactionsPool },
 		UnsignedTransactionsCalled: func() dataRetriever.ShardedDataCacherNotifier { return unsignedTransactionsPool },
 		RewardTransactionsCalled:   func() dataRetriever.ShardedDataCacherNotifier { return rewardTransactionsPool },
+		ValidatorsInfoCalled:       func() dataRetriever.ShardedDataCacherNotifier { return validatorsInfoPool },
 		MetaBlocksCalled: func() storage.Cacher {
 			return metablocksPool
 		},
@@ -309,6 +314,7 @@ func initDataPool() *dataRetrieverMock.PoolsHolderStub {
 func initStore() *dataRetriever.ChainStorer {
 	store := dataRetriever.NewChainStorer()
 	store.AddStorer(dataRetriever.TransactionUnit, generateTestUnit())
+	store.AddStorer(dataRetriever.UnsignedTransactionUnit, generateTestUnit())
 	store.AddStorer(dataRetriever.MiniBlockUnit, generateTestUnit())
 	store.AddStorer(dataRetriever.RewardTransactionUnit, generateTestUnit())
 	store.AddStorer(dataRetriever.MetaBlockUnit, generateTestUnit())
@@ -3964,7 +3970,7 @@ func TestBaseProcessor_GetFinalMiniBlocksFromExecutionResult(t *testing.T) {
 		require.Nil(t, body)
 	})
 
-	t.Run("should work", func(t *testing.T) {
+	t.Run("should work for shard header", func(t *testing.T) {
 		t.Parallel()
 
 		marshalizer := &mock.MarshalizerMock{
@@ -4012,6 +4018,60 @@ func TestBaseProcessor_GetFinalMiniBlocksFromExecutionResult(t *testing.T) {
 		}
 
 		body, err := bp.GetFinalMiniBlocksFromExecutionResults(header)
+		require.Nil(t, err)
+		require.Equal(t, &block.Body{
+			MiniBlocks: []*block.MiniBlock{mb1},
+		}, body)
+	})
+
+	t.Run("should work for meta block", func(t *testing.T) {
+		t.Parallel()
+
+		marshalizer := &mock.MarshalizerMock{
+			Fail: false,
+		}
+
+		mb1 := &block.MiniBlock{
+			TxHashes:        [][]byte{[]byte("txHash1")},
+			ReceiverShardID: 1,
+			SenderShardID:   2,
+		}
+
+		executedMBs := &cache.CacherStub{
+			GetCalled: func(key []byte) (value interface{}, ok bool) {
+				marshalledMb, _ := marshalizer.Marshal(mb1)
+				return marshalledMb, true
+			},
+		}
+		dataPool := initDataPool()
+		dataPool.ExecutedMiniBlocksCalled = func() storage.Cacher {
+			return executedMBs
+		}
+
+		coreComponents, dataComponents, bootstrapComponents, statusComponents := createComponentHolderMocks()
+		dataComponents.DataPool = dataPool
+		coreComponents.IntMarsh = marshalizer
+
+		arguments := createMockMetaArguments(coreComponents, dataComponents, bootstrapComponents, statusComponents)
+
+		mp, _ := blproc.NewMetaProcessor(arguments)
+
+		executionResults := []*block.MetaExecutionResult{
+			{
+				MiniBlockHeaders: []block.MiniBlockHeader{
+					{
+						Hash:            []byte("mbHash1"),
+						ReceiverShardID: 1,
+						SenderShardID:   0,
+					},
+				},
+			},
+		}
+		header := &block.MetaBlockV3{
+			ExecutionResults: executionResults,
+		}
+
+		body, err := mp.GetFinalMiniBlocksFromExecutionResults(header)
 		require.Nil(t, err)
 		require.Equal(t, &block.Body{
 			MiniBlocks: []*block.MiniBlock{mb1},
@@ -4580,6 +4640,118 @@ func TestBaseProcessor_extractRootHashForCleanup(t *testing.T) {
 		rootHashHolder, err := bp.ExtractRootHashForCleanup(&block.Header{})
 		require.Nil(t, err)
 		require.Equal(t, expectedRootHash, rootHashHolder)
+	})
+}
+
+func TestBaseProcessor_saveProposedTxsToStorage(t *testing.T) {
+	t.Parallel()
+
+	t.Run("should call tx coordinator if not header/metaBlock v3", func(t *testing.T) {
+		t.Parallel()
+
+		saveTxsToStorageCalled := 0
+		coreComponents, dataComponents, bootstrapComponents, statusComponents := createComponentHolderMocks()
+		arguments := CreateMockArguments(coreComponents, dataComponents, bootstrapComponents, statusComponents)
+		arguments.TxCoordinator = &testscommon.TransactionCoordinatorMock{
+			SaveTxsToStorageCalled: func(body *block.Body) {
+				saveTxsToStorageCalled++
+			},
+		}
+		bp, err := blproc.NewShardProcessor(arguments)
+		require.NoError(t, err)
+
+		err = bp.SaveProposedTxsToStorage(&block.HeaderV2{}, &block.Body{})
+		require.Nil(t, err)
+		require.Equal(t, 1, saveTxsToStorageCalled)
+
+		err = bp.SaveProposedTxsToStorage(&block.MetaBlock{}, &block.Body{})
+		require.Nil(t, err)
+		require.Equal(t, 2, saveTxsToStorageCalled)
+
+		err = bp.SaveProposedTxsToStorage(&block.HeaderV3{}, &block.Body{})
+		require.Nil(t, err)
+		require.Equal(t, 2, saveTxsToStorageCalled)
+
+		err = bp.SaveProposedTxsToStorage(&block.MetaBlockV3{}, &block.Body{})
+		require.Nil(t, err)
+		require.Equal(t, 2, saveTxsToStorageCalled)
+	})
+
+	t.Run("headerV3 should save txs from cache to storage", func(t *testing.T) {
+		t.Parallel()
+
+		coreComponents, dataComponents, bootstrapComponents, statusComponents := createComponentHolderMocks()
+		arguments := CreateMockArguments(coreComponents, dataComponents, bootstrapComponents, statusComponents)
+		bp, err := blproc.NewShardProcessor(arguments)
+		require.NoError(t, err)
+
+		keys := [][]byte{[]byte("tx1"), []byte("tx2"), []byte("tx3"), []byte("tx4"), []byte("tx5")}
+		txs := map[string]data.TransactionHandler{
+			string(keys[0]): &transaction.Transaction{},
+			string(keys[1]): &transaction.Transaction{},
+			string(keys[2]): &transaction.Transaction{},
+			string(keys[3]): &rewardTx.RewardTx{},
+			string(keys[4]): &smartContractResult.SmartContractResult{},
+		}
+		marshalledTxs := make(map[string][]byte)
+		for k, v := range txs {
+			txsBytes, err := coreComponents.IntMarsh.Marshal(v)
+			require.NoError(t, err)
+			marshalledTxs[k] = txsBytes
+		}
+
+		dataPools := dataComponents.DataPool
+		dataPools.Transactions().AddData(keys[0], txs[string(keys[0])], 100, "0")
+		dataPools.Transactions().AddData(keys[1], txs[string(keys[1])], 100, "0")
+		dataPools.Transactions().AddData(keys[2], txs[string(keys[2])], 100, "0")
+		dataPools.RewardTransactions().AddData(keys[3], txs[string(keys[3])], 100, "0")
+		dataPools.UnsignedTransactions().AddData(keys[4], txs[string(keys[4])], 100, "0")
+		storer := dataComponents.Storage
+
+		blockBody := &block.Body{
+			MiniBlocks: []*block.MiniBlock{
+				{
+					TxHashes: [][]byte{keys[0], keys[1]},
+					Type:     block.TxBlock,
+				},
+				{
+					TxHashes: [][]byte{keys[2]},
+					Type:     block.InvalidBlock,
+				},
+				{
+					TxHashes: [][]byte{keys[3]},
+					Type:     block.RewardsBlock,
+				},
+				{
+					TxHashes: [][]byte{keys[4]},
+					Type:     block.SmartContractResultBlock,
+				},
+			},
+		}
+		header := &block.HeaderV3{}
+
+		err = bp.SaveProposedTxsToStorage(header, blockBody)
+		require.Nil(t, err)
+
+		val, err := storer.Get(dataRetriever.TransactionUnit, keys[0])
+		require.NoError(t, err)
+		require.Equal(t, marshalledTxs[string(keys[0])], val)
+
+		val, err = storer.Get(dataRetriever.TransactionUnit, keys[1])
+		require.NoError(t, err)
+		require.Equal(t, marshalledTxs[string(keys[1])], val)
+
+		val, err = storer.Get(dataRetriever.TransactionUnit, keys[2])
+		require.NoError(t, err)
+		require.Equal(t, marshalledTxs[string(keys[2])], val)
+
+		val, err = storer.Get(dataRetriever.RewardTransactionUnit, keys[3])
+		require.NoError(t, err)
+		require.Equal(t, marshalledTxs[string(keys[3])], val)
+
+		val, err = storer.Get(dataRetriever.UnsignedTransactionUnit, keys[4])
+		require.NoError(t, err)
+		require.Equal(t, marshalledTxs[string(keys[4])], val)
 	})
 }
 
