@@ -14,6 +14,7 @@ import (
 	"github.com/multiversx/mx-chain-core-go/data"
 	"github.com/multiversx/mx-chain-core-go/data/block"
 	"github.com/multiversx/mx-chain-core-go/data/headerVersionData"
+	"github.com/multiversx/mx-chain-go/trie"
 	logger "github.com/multiversx/mx-chain-logger-go"
 
 	"github.com/multiversx/mx-chain-go/common"
@@ -1708,13 +1709,16 @@ func (mp *metaProcessor) getRewardsTxs(header data.MetaHeaderHandler, body *bloc
 	return rewardsTx
 }
 
-func (mp *metaProcessor) commitEpochStart(header data.MetaHeaderHandler, body *block.Body) {
+func (mp *metaProcessor) commitEpochStart(header data.MetaHeaderHandler, body *block.Body) error {
 	if header.IsStartOfEpochBlock() {
-		// todo: here, take body from cache
+		processedBody, err := mp.prepareEpochStartBodyForTrigger(header, body)
+		if err != nil {
+			return err
+		}
 
-		mp.epochStartTrigger.SetProcessed(header, body)
-		go mp.epochRewardsCreator.SaveBlockDataToStorage(header, body)
-		go mp.validatorInfoCreator.SaveBlockDataToStorage(header, body)
+		mp.epochStartTrigger.SetProcessed(header, processedBody)
+		go mp.epochRewardsCreator.SaveBlockDataToStorage(header, processedBody)
+		go mp.validatorInfoCreator.SaveBlockDataToStorage(header, processedBody)
 	} else {
 		currentHeader := mp.blockChain.GetCurrentBlockHeader()
 		if !check.IfNil(currentHeader) && currentHeader.IsStartOfEpochBlock() {
@@ -1722,25 +1726,32 @@ func (mp *metaProcessor) commitEpochStart(header data.MetaHeaderHandler, body *b
 			mp.nodesCoordinator.ShuffleOutForEpoch(currentHeader.GetEpoch())
 		}
 	}
+
+	return nil
 }
 
-func (mp *metaProcessor) prepareEpochStartBodyForTrigger(header data.MetaHeaderHandler) (*block.Body, error) {
+func (mp *metaProcessor) prepareEpochStartBodyForTrigger(header data.MetaHeaderHandler, body *block.Body) (*block.Body, error) {
+	if !header.IsHeaderV3() {
+		return body, nil
+	}
+
 	allMiniBlocks := make([]*block.MiniBlock, 0)
 	for _, execResult := range header.GetExecutionResultsHandlers() {
 		metaExecRes, castOk := execResult.(data.MetaExecutionResultHandler)
 		if !castOk {
-
+			return nil, fmt.Errorf("%w in prepareEpochStartBodyForTrigger for metaExecRes", process.ErrWrongTypeAssertion)
 		}
 
+		// TODO: here, check actual key to be used
 		postProcessKey := append(metaExecRes.GetHeaderHash(), []byte(postProcessMiniBlocksKeySuffix)...)
 		retrievedObj, found := mp.dataPool.ExecutedMiniBlocks().Get(postProcessKey)
 		if !found {
-
+			return nil, fmt.Errorf("%w in prepareEpochStartBodyForTrigger for key: %s", trie.ErrKeyNotFound, postProcessMiniBlocksKeySuffix)
 		}
 
 		marshalledMbs, castOk := retrievedObj.([]byte)
 		if !castOk {
-
+			return nil, fmt.Errorf("%w in prepareEpochStartBodyForTrigger for marshalledMbs", process.ErrWrongTypeAssertion)
 		}
 
 		var currMBs []*block.MiniBlock
