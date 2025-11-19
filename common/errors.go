@@ -52,3 +52,9 @@ var ErrMissingHeader = errors.New("missing header")
 
 // ErrMissingMiniBlock signals that mini block is missing
 var ErrMissingMiniBlock = errors.New("missing mini block")
+
+// ErrMissingCachedTransactions signals that cached transactions are missing
+var ErrMissingCachedTransactions = errors.New("missing cached transactions")
+
+// ErrMissingCachedLogs signals that cached logs events are missing
+var ErrMissingCachedLogs = errors.New("missing cached logs")

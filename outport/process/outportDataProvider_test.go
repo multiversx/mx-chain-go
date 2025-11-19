@@ -7,11 +7,15 @@ import (
 	"fmt"
 	"testing"
 
+	"github.com/multiversx/mx-chain-core-go/data"
+	"github.com/multiversx/mx-chain-core-go/data/alteredAccount"
 	"github.com/multiversx/mx-chain-core-go/data/block"
 	outportcore "github.com/multiversx/mx-chain-core-go/data/outport"
 	"github.com/multiversx/mx-chain-core-go/data/rewardTx"
 	"github.com/multiversx/mx-chain-core-go/data/smartContractResult"
 	"github.com/multiversx/mx-chain-core-go/data/transaction"
+	"github.com/multiversx/mx-chain-go/common"
+	"github.com/multiversx/mx-chain-go/outport/process/alteredaccounts/shared"
 	"github.com/stretchr/testify/require"
 
 	"github.com/multiversx/mx-chain-go/outport/mock"
@@ -51,6 +55,7 @@ func createArgOutportDataProvider() ArgOutportDataProvider {
 		DataPool:                 &dataRetriever.PoolsHolderMock{},
 		EnableEpochsHandler:      enableEpochsHandlerMock.NewEnableEpochsHandlerStubWithNoFlagsDefined(),
 		StateAccessesCollector:   &state.StateAccessesCollectorStub{},
+		RoundHandler:             &testscommon.RoundHandlerMock{},
 	}
 }
 
@@ -633,4 +638,289 @@ func createRandTxHashes(numTxHashes int) [][]byte {
 	}
 
 	return txHashes
+}
+
+func TestPrepareExecutionResultsData(t *testing.T) {
+	t.Parallel()
+
+	t.Run("should return no execution result data header v1", func(t *testing.T) {
+		t.Parallel()
+
+		arg := createArgOutportDataProvider()
+		outportDataP, _ := NewOutportDataProvider(arg)
+
+		results, err := outportDataP.prepareExecutionResultsData(ArgPrepareOutportSaveBlockData{
+			Header: &block.Header{},
+		})
+		require.Nil(t, err)
+		require.Len(t, results, 0)
+	})
+
+	t.Run("should return no execution result data header v3 without execution results", func(t *testing.T) {
+		t.Parallel()
+
+		arg := createArgOutportDataProvider()
+		outportDataP, _ := NewOutportDataProvider(arg)
+
+		results, err := outportDataP.prepareExecutionResultsData(ArgPrepareOutportSaveBlockData{
+			Header: &block.HeaderV3{},
+		})
+		require.Nil(t, err)
+		require.Len(t, results, 0)
+	})
+
+	t.Run("cannot get cached body should error", func(t *testing.T) {
+		t.Parallel()
+
+		arg := createArgOutportDataProvider()
+		arg.DataPool = dataRetriever.NewPoolsHolderMock()
+		outportDataP, _ := NewOutportDataProvider(arg)
+
+		results, err := outportDataP.prepareExecutionResultsData(ArgPrepareOutportSaveBlockData{
+			Header: &block.HeaderV3{
+				ExecutionResults: []*block.ExecutionResult{
+					nil,
+				},
+			},
+		})
+		require.Equal(t, common.ErrNilBaseExecutionResult, err)
+		require.Len(t, results, 0)
+	})
+
+	t.Run("cannot get cached intra shard mbs", func(t *testing.T) {
+		arg := createArgOutportDataProvider()
+		arg.DataPool = dataRetriever.NewPoolsHolderMock()
+		outportDataP, _ := NewOutportDataProvider(arg)
+
+		results, err := outportDataP.prepareExecutionResultsData(ArgPrepareOutportSaveBlockData{
+			Header: &block.HeaderV3{
+				ExecutionResults: []*block.ExecutionResult{
+					{
+						BaseExecutionResult: &block.BaseExecutionResult{
+							HeaderHash: []byte("hash"),
+						},
+					},
+				},
+			},
+		})
+		require.True(t, errors.Is(err, common.ErrMissingMiniBlock))
+		require.Len(t, results, 0)
+	})
+
+	t.Run("cannot get cached transactions", func(t *testing.T) {
+		arg := createArgOutportDataProvider()
+		arg.DataPool = dataRetriever.NewPoolsHolderMock()
+
+		headerHash := []byte("hash")
+		intraMbs := make([]*block.MiniBlock, 0)
+		intraMbsBytes, _ := arg.Marshaller.Marshal(intraMbs)
+
+		arg.DataPool.ExecutedMiniBlocks().Put(headerHash, intraMbsBytes, 0)
+		outportDataP, _ := NewOutportDataProvider(arg)
+
+		results, err := outportDataP.prepareExecutionResultsData(ArgPrepareOutportSaveBlockData{
+			Header: &block.HeaderV3{
+				ExecutionResults: []*block.ExecutionResult{
+					{
+						BaseExecutionResult: &block.BaseExecutionResult{
+							HeaderHash: headerHash,
+						},
+					},
+				},
+			},
+		})
+		require.True(t, errors.Is(err, common.ErrMissingCachedTransactions))
+		require.Len(t, results, 0)
+	})
+
+	t.Run("cannot get cached logs", func(t *testing.T) {
+		arg := createArgOutportDataProvider()
+		arg.DataPool = dataRetriever.NewPoolsHolderMock()
+
+		headerHash := []byte("hash")
+		intraMbs := make([]*block.MiniBlock, 0)
+		intraMbsBytes, _ := arg.Marshaller.Marshal(intraMbs)
+		arg.DataPool.ExecutedMiniBlocks().Put(headerHash, intraMbsBytes, 0)
+
+		cachedTxs := make(map[block.Type]map[string]data.TransactionHandler)
+		arg.DataPool.PostProcessTransactions().Put(headerHash, cachedTxs, 1)
+
+		outportDataP, _ := NewOutportDataProvider(arg)
+
+		results, err := outportDataP.prepareExecutionResultsData(ArgPrepareOutportSaveBlockData{
+			Header: &block.HeaderV3{
+				ExecutionResults: []*block.ExecutionResult{
+					{
+						BaseExecutionResult: &block.BaseExecutionResult{
+							HeaderHash: headerHash,
+						},
+					},
+				},
+			},
+		})
+		require.True(t, errors.Is(err, common.ErrMissingCachedLogs))
+		require.Len(t, results, 0)
+	})
+
+	t.Run("cannot create pool", func(t *testing.T) {
+		arg := createArgOutportDataProvider()
+		arg.DataPool = dataRetriever.NewPoolsHolderMock()
+
+		headerHash := []byte("hash")
+		intraMbs := make([]*block.MiniBlock, 0)
+		intraMbsBytes, _ := arg.Marshaller.Marshal(intraMbs)
+		arg.DataPool.ExecutedMiniBlocks().Put(headerHash, intraMbsBytes, 0)
+
+		logsKey := common.PrepareLogEventsKey(headerHash)
+		logsSlice := make([]*data.LogData, 0)
+		arg.DataPool.PostProcessTransactions().Put(logsKey, logsSlice, 0)
+
+		cachedTxs := make(map[block.Type]map[string]data.TransactionHandler)
+		cachedTxs[block.TxBlock] = make(map[string]data.TransactionHandler)
+		// wrong type
+		cachedTxs[block.TxBlock]["hash"] = &smartContractResult.SmartContractResult{}
+		arg.DataPool.PostProcessTransactions().Put(headerHash, cachedTxs, 1)
+
+		outportDataP, _ := NewOutportDataProvider(arg)
+
+		results, err := outportDataP.prepareExecutionResultsData(ArgPrepareOutportSaveBlockData{
+			Header: &block.HeaderV3{
+				ExecutionResults: []*block.ExecutionResult{
+					{
+						BaseExecutionResult: &block.BaseExecutionResult{
+							HeaderHash: headerHash,
+						},
+					},
+				},
+			},
+		})
+		require.True(t, errors.Is(err, errCannotCastTransaction))
+		require.Len(t, results, 0)
+	})
+
+	t.Run("cannot put gas used and fee", func(t *testing.T) {
+		arg := createArgOutportDataProvider()
+		localError := errors.New("local error")
+		arg.TransactionsFeeProcessor = &mock.TransactionsFeeHandlerMock{
+			PutFeeAndGasUsedCalled: func(pool *outportcore.TransactionPool, epoch uint32) error {
+				return localError
+			},
+		}
+		arg.DataPool = dataRetriever.NewPoolsHolderMock()
+
+		headerHash := []byte("hash")
+		intraMbs := make([]*block.MiniBlock, 0)
+		intraMbsBytes, _ := arg.Marshaller.Marshal(intraMbs)
+		arg.DataPool.ExecutedMiniBlocks().Put(headerHash, intraMbsBytes, 0)
+
+		logsKey := common.PrepareLogEventsKey(headerHash)
+		logsSlice := make([]*data.LogData, 0)
+		arg.DataPool.PostProcessTransactions().Put(logsKey, logsSlice, 0)
+
+		cachedTxs := make(map[block.Type]map[string]data.TransactionHandler)
+		cachedTxs[block.TxBlock] = make(map[string]data.TransactionHandler)
+		arg.DataPool.PostProcessTransactions().Put(headerHash, cachedTxs, 1)
+
+		outportDataP, _ := NewOutportDataProvider(arg)
+
+		results, err := outportDataP.prepareExecutionResultsData(ArgPrepareOutportSaveBlockData{
+			Header: &block.HeaderV3{
+				ExecutionResults: []*block.ExecutionResult{
+					{
+						BaseExecutionResult: &block.BaseExecutionResult{
+							HeaderHash: headerHash,
+						},
+					},
+				},
+			},
+		})
+		require.True(t, errors.Is(err, localError))
+		require.Len(t, results, 0)
+	})
+
+	t.Run("cannot extract altered accounts", func(t *testing.T) {
+		arg := createArgOutportDataProvider()
+		localError := errors.New("local error")
+		arg.AlteredAccountsProvider = &testscommon.AlteredAccountsProviderStub{
+			ExtractAlteredAccountsFromPoolCalled: func(txPool *outportcore.TransactionPool, options shared.AlteredAccountsOptions) (map[string]*alteredAccount.AlteredAccount, error) {
+				return nil, localError
+			},
+		}
+		arg.DataPool = dataRetriever.NewPoolsHolderMock()
+
+		headerHash := []byte("hash")
+		intraMbs := make([]*block.MiniBlock, 0)
+		intraMbsBytes, _ := arg.Marshaller.Marshal(intraMbs)
+		arg.DataPool.ExecutedMiniBlocks().Put(headerHash, intraMbsBytes, 0)
+
+		logsKey := common.PrepareLogEventsKey(headerHash)
+		logsSlice := make([]*data.LogData, 0)
+		arg.DataPool.PostProcessTransactions().Put(logsKey, logsSlice, 0)
+
+		cachedTxs := make(map[block.Type]map[string]data.TransactionHandler)
+		cachedTxs[block.TxBlock] = make(map[string]data.TransactionHandler)
+		arg.DataPool.PostProcessTransactions().Put(headerHash, cachedTxs, 1)
+
+		outportDataP, _ := NewOutportDataProvider(arg)
+
+		results, err := outportDataP.prepareExecutionResultsData(ArgPrepareOutportSaveBlockData{
+			Header: &block.HeaderV3{
+				ExecutionResults: []*block.ExecutionResult{
+					{
+						BaseExecutionResult: &block.BaseExecutionResult{
+							HeaderHash: headerHash,
+						},
+					},
+				},
+			},
+		})
+		require.True(t, errors.Is(err, localError))
+		require.Len(t, results, 0)
+	})
+
+	t.Run("should work", func(t *testing.T) {
+		arg := createArgOutportDataProvider()
+		arg.DataPool = dataRetriever.NewPoolsHolderMock()
+		arg.AlteredAccountsProvider = &testscommon.AlteredAccountsProviderStub{
+			ExtractAlteredAccountsFromPoolCalled: func(txPool *outportcore.TransactionPool, options shared.AlteredAccountsOptions) (map[string]*alteredAccount.AlteredAccount, error) {
+				return map[string]*alteredAccount.AlteredAccount{
+					"s": {},
+				}, nil
+			},
+		}
+
+		headerHash := []byte("hash")
+		intraMbs := make([]*block.MiniBlock, 0)
+		intraMbs = append(intraMbs, &block.MiniBlock{})
+		intraMbsBytes, _ := arg.Marshaller.Marshal(intraMbs)
+		arg.DataPool.ExecutedMiniBlocks().Put(headerHash, intraMbsBytes, 0)
+
+		logsKey := common.PrepareLogEventsKey(headerHash)
+		logsSlice := make([]*data.LogData, 0)
+		arg.DataPool.PostProcessTransactions().Put(logsKey, logsSlice, 0)
+
+		cachedTxs := make(map[block.Type]map[string]data.TransactionHandler)
+		cachedTxs[block.TxBlock] = make(map[string]data.TransactionHandler)
+		arg.DataPool.PostProcessTransactions().Put(headerHash, cachedTxs, 1)
+
+		outportDataP, _ := NewOutportDataProvider(arg)
+
+		results, err := outportDataP.prepareExecutionResultsData(ArgPrepareOutportSaveBlockData{
+			Header: &block.HeaderV3{
+				ExecutionResults: []*block.ExecutionResult{
+					{
+						BaseExecutionResult: &block.BaseExecutionResult{
+							HeaderHash:  headerHash,
+							HeaderNonce: 10,
+						},
+					},
+				},
+			},
+		})
+		require.Nil(t, err)
+		require.Len(t, results, 1)
+		require.Len(t, results[hex.EncodeToString(headerHash)].IntraShardMiniBlocks, 1)
+		require.Len(t, results[hex.EncodeToString(headerHash)].AlteredAccounts, 1)
+		require.Equal(t, uint64(10), results[hex.EncodeToString(headerHash)].HeaderNonce)
+	})
 }

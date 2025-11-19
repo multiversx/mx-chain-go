@@ -98,6 +98,7 @@ func NewOutportDataProvider(arg ArgOutportDataProvider) (*outportDataProvider, e
 		dataPool:                 arg.DataPool,
 		enableEpochsHandler:      arg.EnableEpochsHandler,
 		StateAccessesCollector:   arg.StateAccessesCollector,
+		roundHandler:             arg.RoundHandler,
 	}, nil
 }
 
@@ -198,11 +199,11 @@ func (odp *outportDataProvider) PrepareOutportSaveBlockData(arg ArgPrepareOutpor
 }
 
 func (odp *outportDataProvider) prepareExecutionResultsData(args ArgPrepareOutportSaveBlockData) (map[string]*outportcore.ExecutionResultData, error) {
+	results := make(map[string]*outportcore.ExecutionResultData)
 	if !args.Header.IsHeaderV3() {
-		return nil, nil
+		return results, nil
 	}
 
-	results := make(map[string]*outportcore.ExecutionResultData)
 	for _, executionResult := range args.Header.GetExecutionResultsHandlers() {
 		headerHash := executionResult.GetHeaderHash()
 
@@ -239,11 +240,12 @@ func (odp *outportDataProvider) prepareExecutionResultsData(args ArgPrepareOutpo
 			WithAdditionalOutportData: true,
 		})
 		if err != nil {
-			return nil, fmt.Errorf("alteredAccountsProvider.ExtractAlteredAccountsFromPool %s", err)
+			return nil, fmt.Errorf("alteredAccountsProvider.ExtractAlteredAccountsFromPool %w", err)
 		}
 
 		encodedHash := hex.EncodeToString(headerHash)
 		executionResultData := &outportcore.ExecutionResultData{
+			HeaderNonce:          executionResult.GetHeaderNonce(),
 			Body:                 body,
 			IntraShardMiniBlocks: intraMbs,
 			TransactionPool:      pool,

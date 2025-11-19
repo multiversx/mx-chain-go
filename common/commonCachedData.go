@@ -19,7 +19,7 @@ func GetCachedIntermediateTxs(cache storage.Cacher, headerHash []byte) (map[bloc
 	cachedIntermediateTxs, ok := cache.Get(headerHash)
 	if !ok {
 		log.Warn("intermediateTxs not found in dataPool", "hash", headerHash)
-		return nil, fmt.Errorf("%w for header %s", ErrMissingHeader, hex.EncodeToString(headerHash))
+		return nil, fmt.Errorf("%w for header %s", ErrMissingCachedTransactions, hex.EncodeToString(headerHash))
 	}
 
 	cachedIntermediateTxsMap, ok := cachedIntermediateTxs.(map[block.Type]map[string]data.TransactionHandler)
@@ -36,7 +36,7 @@ func GetCachedLogs(cache storage.Cacher, headerHash []byte) ([]*data.LogData, er
 	cachedLogs, ok := cache.Get(logsKey)
 	if !ok {
 		log.Warn("logs not found in dataPool", "hash", headerHash)
-		return nil, fmt.Errorf("%w for header %s", ErrMissingHeader, hex.EncodeToString(headerHash))
+		return nil, fmt.Errorf("%w for header %s", ErrMissingCachedLogs, hex.EncodeToString(headerHash))
 	}
 	cachedLogsSlice, ok := cachedLogs.([]*data.LogData)
 	if !ok {
@@ -50,7 +50,7 @@ func GetCachedIntraMbs(cache storage.Cacher, marshaller marshal.Marshalizer, hea
 	cachedIntraMBs, ok := cache.Get(headerHash)
 	if !ok {
 		log.Warn("intra miniblocks not found in dataPool", "hash", headerHash)
-		return nil, fmt.Errorf("%w for header %s", ErrMissingHeader, hex.EncodeToString(headerHash))
+		return nil, fmt.Errorf("%w for header %s", ErrMissingMiniBlock, hex.EncodeToString(headerHash))
 	}
 	cachedLogsBuff := cachedIntraMBs.([]byte)
 	var intraMBs []*block.MiniBlock

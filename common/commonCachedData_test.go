@@ -26,7 +26,7 @@ func TestGetIntermediateTxs(t *testing.T) {
 		headerHash := []byte("h")
 
 		_, err := GetCachedIntermediateTxs(cacher, headerHash)
-		require.True(t, errors.Is(err, ErrMissingHeader))
+		require.True(t, errors.Is(err, ErrMissingCachedTransactions))
 	})
 
 	t.Run("getIntermediateTxs wrong type in cache should return empty maps", func(t *testing.T) {
@@ -78,7 +78,7 @@ func TestGetLogs(t *testing.T) {
 		headerHash := []byte("h")
 
 		_, err := GetCachedLogs(cacher, headerHash)
-		require.True(t, errors.Is(err, ErrMissingHeader))
+		require.True(t, errors.Is(err, ErrMissingCachedLogs))
 	})
 
 	t.Run("getLogs wrong type in cache should return empty slice", func(t *testing.T) {
@@ -134,7 +134,7 @@ func TestGetIntraMbs(t *testing.T) {
 		headerHash := []byte("h")
 
 		_, err := GetCachedIntraMbs(cacher, marshaller, headerHash)
-		require.True(t, errors.Is(err, ErrMissingHeader))
+		require.True(t, errors.Is(err, ErrMissingMiniBlock))
 	})
 
 	t.Run("getIntraMbs wrong type should error", func(t *testing.T) {
