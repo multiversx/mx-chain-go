@@ -179,6 +179,11 @@ func TestNewEpochStartTrigger_UpdateRoundAndSetEpochChange(t *testing.T) {
 	currentEpoch := epochStartTrigger.Epoch()
 	require.Equal(t, epoch+1, currentEpoch)
 	require.True(t, epochStartTrigger.IsEpochStart())
+
+	shouldProposeEpochChange = epochStartTrigger.ShouldProposeEpochChange(round, nonce)
+	require.True(t, shouldProposeEpochChange)
+	require.Equal(t, epoch+1, currentEpoch)
+	require.True(t, epochStartTrigger.IsEpochStart())
 }
 
 func TestTrigger_Update(t *testing.T) {
