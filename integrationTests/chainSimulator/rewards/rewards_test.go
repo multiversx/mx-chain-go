@@ -350,6 +350,18 @@ func TestRewardsTxsAfterAndromeda(t *testing.T) {
 
 	numOfShards := uint32(3)
 
+	alterConfigsFunc := func(cfg *config.Configs) {
+		cfg.EpochConfig.EnableEpochs.SupernovaEnableEpoch = 999999
+		cfg.RoundConfig.RoundActivations = map[string]config.ActivationRoundByName{
+			"DisableAsyncCallV1": {
+				Round: "9999999",
+			},
+			"SupernovaEnableRound": {
+				Round: "9999999",
+			},
+		}
+	}
+
 	tempDir := t.TempDir()
 	cs, err := chainSimulator.NewChainSimulator(chainSimulator.ArgsChainSimulator{
 		BypassTxSignatureCheck:         true,
@@ -363,6 +375,7 @@ func TestRewardsTxsAfterAndromeda(t *testing.T) {
 		ApiInterface:                   api.NewNoApiInterface(),
 		MinNodesPerShard:               3,
 		MetaChainMinNodes:              3,
+		AlterConfigsFunction:           alterConfigsFunc,
 	})
 	require.Nil(t, err)
 	require.NotNil(t, cs)
