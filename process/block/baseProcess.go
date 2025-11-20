@@ -49,8 +49,6 @@ import (
 
 var log = logger.GetOrCreate("process/block")
 
-const postProcessMiniBlocksKeySuffix = "postProcessMiniBlocks"
-
 // CrossShardIncomingMbsCreationResult represents the result of creating cross-shard mini blocks
 type CrossShardIncomingMbsCreationResult struct {
 	HeaderFinished    bool
@@ -2718,12 +2716,12 @@ func (bp *baseProcessor) saveExecutedData(header data.HeaderHandler, headerHash 
 		return nil
 	}
 
-	err := bp.saveMiniBlocksFromExecutionResults(header)
+	err := bp.saveReceiptsForHeader(header, headerHash)
 	if err != nil {
 		return err
 	}
 
-	err = bp.saveReceiptsForHeader(header, headerHash)
+	err = bp.saveMiniBlocksFromExecutionResults(header)
 	if err != nil {
 		return err
 	}
@@ -2806,22 +2804,6 @@ func (bp *baseProcessor) cacheIntraShardMiniBlocks(headerHash []byte, mbs []*blo
 	return nil
 }
 
-func (bp *baseProcessor) cachePostProcessMiniBlocksToMe(headerHash []byte, mbs []*block.MiniBlock) error {
-	if len(mbs) == 0 {
-		return nil
-	}
-
-	marshalledMbs, err := bp.marshalizer.Marshal(mbs)
-	if err != nil {
-		return err
-	}
-
-	postProcessKey := append(headerHash, []byte(postProcessMiniBlocksKeySuffix)...)
-	bp.dataPool.ExecutedMiniBlocks().Put(postProcessKey, marshalledMbs, len(marshalledMbs))
-
-	return nil
-}
-
 func (bp *baseProcessor) saveReceiptsForHeader(header data.HeaderHandler, headerHash []byte) error {
 	miniBlocks, err := bp.getMiniBlocksForReceipts(header, headerHash)
 	if err != nil {
@@ -2841,8 +2823,7 @@ func (bp *baseProcessor) getMiniBlocksForReceipts(header data.HeaderHandler, hea
 		return bp.txCoordinator.GetCreatedInShardMiniBlocks(), nil
 	}
 
-	intraShardMiniBlockKey := append(headerHash, []byte(postProcessMiniBlocksKeySuffix)...)
-	receiptsMiniBlocks, ok := bp.dataPool.ExecutedMiniBlocks().Get(intraShardMiniBlockKey)
+	receiptsMiniBlocks, ok := bp.dataPool.ExecutedMiniBlocks().Get(headerHash)
 	if !ok {
 		return make([]*block.MiniBlock, 0), nil
 	}
@@ -2857,8 +2838,6 @@ func (bp *baseProcessor) getMiniBlocksForReceipts(header data.HeaderHandler, hea
 	if err != nil {
 		return nil, err
 	}
-
-	bp.dataPool.ExecutedMiniBlocks().Remove(intraShardMiniBlockKey)
 
 	return postProcessMiniBlocksToMe, nil
 }
@@ -3344,7 +3323,6 @@ func (bp *baseProcessor) collectMiniBlocks(
 	crossShardIncomingMiniBlocks := bp.getCrossShardIncomingMiniBlocksFromBody(body)
 	miniBlocksFromSelf := bp.txCoordinator.GetCreatedMiniBlocksFromMe()
 	postProcessMiniBlocks := bp.txCoordinator.CreatePostProcessMiniBlocks()
-	postProcessMiniBlocksToMe := bp.txCoordinator.GetCreatedInShardMiniBlocks()
 
 	allMiniBlocks := make([]*block.MiniBlock, 0, len(crossShardIncomingMiniBlocks)+len(miniBlocksFromSelf)+len(postProcessMiniBlocks))
 	allMiniBlocks = append(allMiniBlocks, crossShardIncomingMiniBlocks...)
@@ -3375,11 +3353,6 @@ func (bp *baseProcessor) collectMiniBlocks(
 	}
 
 	err = bp.cacheExecutedMiniBlocks(sanitizedBodyAfterExecution, miniBlockHeaderHandlers)
-	if err != nil {
-		return nil, 0, nil, err
-	}
-
-	err = bp.cachePostProcessMiniBlocksToMe(headerHash, postProcessMiniBlocksToMe)
 	if err != nil {
 		return nil, 0, nil, err
 	}
