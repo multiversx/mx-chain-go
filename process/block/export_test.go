@@ -1078,3 +1078,13 @@ func (mp *metaProcessor) CollectExecutionResults(
 ) (data.BaseExecutionResultHandler, error) {
 	return mp.collectExecutionResults(headerHash, header, body, valStatRootHash)
 }
+
+// CollectExecutionResultsEpochStartProposal -
+func (mp *metaProcessor) CollectExecutionResultsEpochStartProposal(
+	headerHash []byte,
+	header data.MetaHeaderHandler,
+	constructedBody *block.Body,
+	valStatRootHash []byte,
+) (data.BaseExecutionResultHandler, error) {
+	return mp.collectExecutionResultsEpochStartProposal(headerHash, header, constructedBody, valStatRootHash)
+}
