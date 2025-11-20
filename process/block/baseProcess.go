@@ -1243,7 +1243,7 @@ func (bp *baseProcessor) removeBlocksBody(nonce uint64, shardId uint32) {
 }
 
 func (bp *baseProcessor) removeBlockBodyOfHeader(headerHandler data.HeaderHandler) error {
-	bodyHandler, err := bp.requestBlockBodyHandler.GetBlockBodyFromPool(headerHandler)
+	bodyHandler, err := bp.requestBlockBodyHandler.GetAllMiniBlocksBodyFromPool(headerHandler)
 	if err != nil {
 		return err
 	}
@@ -3385,4 +3385,64 @@ func (bp *baseProcessor) collectMiniBlocks(
 	}
 
 	return miniBlockHeaderHandlers, totalTxCount, receiptHash, nil
+}
+
+func (bp *baseProcessor) getBlockBodyFromPool(
+	header data.HeaderHandler,
+	miniBlockHeaderHandlers []data.MiniBlockHeaderHandler,
+) (data.BodyHandler, error) {
+	miniBlocksPool := bp.dataPool.MiniBlocks()
+	var miniBlocks block.MiniBlockSlice
+
+	for _, mbHeader := range miniBlockHeaderHandlers {
+		obj, hashInPool := miniBlocksPool.Get(mbHeader.GetHash())
+		if !hashInPool {
+			continue
+		}
+
+		miniBlock, typeOk := obj.(*block.MiniBlock)
+		if !typeOk {
+			return nil, process.ErrWrongTypeAssertion
+		}
+
+		miniBlocks = append(miniBlocks, miniBlock)
+	}
+
+	return &block.Body{MiniBlocks: miniBlocks}, nil
+}
+
+func getAllMiniBlockHeaders(
+	header data.HeaderHandler,
+) []data.MiniBlockHeaderHandler {
+	if !header.IsHeaderV3() {
+		return header.GetMiniBlockHeaderHandlers()
+	}
+
+	execResultsMiniBlockHeaders := getExecutedMiniBlockHeaders(header)
+
+	miniBlockHeaders := header.GetMiniBlockHeaderHandlers()
+	miniBlockHeaders = append(miniBlockHeaders, execResultsMiniBlockHeaders...)
+
+	return miniBlockHeaders
+}
+
+func getExecutedMiniBlockHeaders(
+	header data.HeaderHandler,
+) []data.MiniBlockHeaderHandler {
+	if !header.IsHeaderV3() {
+		return header.GetMiniBlockHeaderHandlers()
+	}
+
+	var miniBlockHeaders []data.MiniBlockHeaderHandler
+
+	for _, execResult := range header.GetExecutionResultsHandlers() {
+		execResMiniBlockHeaders, err := common.GetMiniBlocksHeaderHandlersFromExecResult(execResult)
+		if err != nil {
+			return nil
+		}
+
+		miniBlockHeaders = append(miniBlockHeaders, execResMiniBlockHeaders...)
+	}
+
+	return miniBlockHeaders
 }

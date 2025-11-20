@@ -971,6 +971,7 @@ type BootstrapperFromStorage interface {
 // RequestBlockBodyHandler is the interface needed by process block
 type RequestBlockBodyHandler interface {
 	GetBlockBodyFromPool(headerHandler data.HeaderHandler) (data.BodyHandler, error)
+	GetAllMiniBlocksBodyFromPool(headerHandler data.HeaderHandler) (data.BodyHandler, error)
 }
 
 // InterceptedHeaderSigVerifier is the interface needed at interceptors level to check that a header's signature is correct

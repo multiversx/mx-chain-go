@@ -2695,45 +2695,21 @@ func (mp *metaProcessor) GetBlockBodyFromPool(headerHandler data.HeaderHandler) 
 		return nil, process.ErrWrongTypeAssertion
 	}
 
-	miniBlocksPool := mp.dataPool.MiniBlocks()
-	var miniBlocks block.MiniBlockSlice
+	miniBlockHeaderHandlers := getExecutedMiniBlockHeaders(metaBlock)
 
-	for _, mbHeader := range getMiniBlockHeaders(metaBlock) {
-		obj, hashInPool := miniBlocksPool.Get(mbHeader.GetHash())
-		if !hashInPool {
-			continue
-		}
-
-		miniBlock, typeOk := obj.(*block.MiniBlock)
-		if !typeOk {
-			return nil, process.ErrWrongTypeAssertion
-		}
-
-		miniBlocks = append(miniBlocks, miniBlock)
-	}
-
-	return &block.Body{MiniBlocks: miniBlocks}, nil
+	return mp.getBlockBodyFromPool(metaBlock, miniBlockHeaderHandlers)
 }
 
-func getMiniBlockHeaders(
-	header data.HeaderHandler,
-) []data.MiniBlockHeaderHandler {
-	if !header.IsHeaderV3() {
-		return header.GetMiniBlockHeaderHandlers()
+// GetAllMiniBlocksBodyFromPool returns block body from pool with proposed and executed miniblocks
+func (mp *metaProcessor) GetAllMiniBlocksBodyFromPool(headerHandler data.HeaderHandler) (data.BodyHandler, error) {
+	metaBlock, ok := headerHandler.(data.MetaHeaderHandler)
+	if !ok {
+		return nil, process.ErrWrongTypeAssertion
 	}
 
-	var miniBlockHeaders []data.MiniBlockHeaderHandler
+	miniBlockHeaderHandlers := getAllMiniBlockHeaders(metaBlock)
 
-	for _, execResult := range header.GetExecutionResultsHandlers() {
-		execResMiniBlockHeaders, err := common.GetMiniBlocksHeaderHandlersFromExecResult(execResult)
-		if err != nil {
-			return nil
-		}
-
-		miniBlockHeaders = append(miniBlockHeaders, execResMiniBlockHeaders...)
-	}
-
-	return miniBlockHeaders
+	return mp.getBlockBodyFromPool(metaBlock, miniBlockHeaderHandlers)
 }
 
 func (mp *metaProcessor) getPendingMiniBlocks() []bootstrapStorage.PendingMiniBlocksInfo {
