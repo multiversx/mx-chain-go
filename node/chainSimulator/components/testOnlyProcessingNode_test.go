@@ -69,6 +69,8 @@ func TestNewTestOnlyProcessingNode(t *testing.T) {
 	})
 	t.Run("try commit a block", func(t *testing.T) {
 		args := createMockArgsTestOnlyProcessingNode(t)
+		genesisTime := time.Now()
+		args.GenesisTime = genesisTime
 		node, err := NewTestOnlyProcessingNode(args)
 		assert.Nil(t, err)
 		assert.NotNil(t, node)
@@ -104,6 +106,9 @@ func TestNewTestOnlyProcessingNode(t *testing.T) {
 		err = node.ProcessComponentsHolder.BlockProcessor().ProcessBlock(header, block, func() time.Duration {
 			return 1000
 		})
+		assert.Nil(t, err)
+
+		err = header.SetTimeStamp(uint64(genesisTime.Add(time.Millisecond * 6000).Unix()))
 		assert.Nil(t, err)
 
 		err = node.ProcessComponentsHolder.BlockProcessor().CommitBlock(header, block)
