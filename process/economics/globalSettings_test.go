@@ -74,7 +74,7 @@ func TestGlobalSettingsHandler_maxInflationRate(t *testing.T) {
 
 	// Test at tail inflation activation
 	rate = gsh.maxInflationRate(1, tailInflationActivationEpoch)
-	require.Equal(t, 0.08395550376084304, rate)
+	require.Equal(t, year1Inflation, rate)
 
 	// Test after tail inflation activation
 	rate = gsh.maxInflationRate(1, tailInflationActivationEpoch+1)
@@ -102,7 +102,7 @@ func TestGlobalSettingsMaxInflation(t *testing.T) {
 func TestGlobalSettingsMaxInflationRate_withSupply(t *testing.T) {
 	gsh := createGlobalSettingsHandler()
 
-	rate := gsh.maxInflationRate(1, 100)
+	rate := gsh.maxInflationRate(1, 101)
 
 	oneToken := 1000000000000000000.0 // 10^18
 	totalSupplyDay0 := 28781358.0 * oneToken

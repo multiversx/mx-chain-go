@@ -104,5 +104,5 @@ func (g *globalSettingsHandler) yearSettingsInflation(year uint32) float64 {
 }
 
 func (g *globalSettingsHandler) isTailInflationActive(epoch uint32) bool {
-	return epoch >= g.tailInflationActivationEpoch
+	return epoch > g.tailInflationActivationEpoch
 }
