@@ -151,3 +151,13 @@ func (sd *ShardedDataCacheNotifierMock) OnExecutedBlock(blockHeader data.HeaderH
 func (mock *ShardedDataCacheNotifierMock) IsInterfaceNil() bool {
 	return mock == nil
 }
+
+// GetNumTrackedBlocks -
+func (sd *ShardedDataCacheNotifierMock) GetNumTrackedBlocks() uint64 {
+	return 0
+}
+
+// GetNumTrackedAccounts -
+func (sd *ShardedDataCacheNotifierMock) GetNumTrackedAccounts() uint64 {
+	return 0
+}
