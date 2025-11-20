@@ -1243,7 +1243,7 @@ func (bp *baseProcessor) removeBlocksBody(nonce uint64, shardId uint32) {
 }
 
 func (bp *baseProcessor) removeBlockBodyOfHeader(headerHandler data.HeaderHandler) error {
-	bodyHandler, err := bp.requestBlockBodyHandler.GetAllMiniBlocksBodyFromPool(headerHandler)
+	bodyHandler, err := bp.requestBlockBodyHandler.GetProposedAndExecutedMiniBlockHeaders(headerHandler)
 	if err != nil {
 		return err
 	}
@@ -3411,7 +3411,7 @@ func (bp *baseProcessor) getBlockBodyFromPool(
 	return &block.Body{MiniBlocks: miniBlocks}, nil
 }
 
-func getAllMiniBlockHeaders(
+func getProposedAndExecutedMiniBlockHeaders(
 	header data.HeaderHandler,
 ) []data.MiniBlockHeaderHandler {
 	if !header.IsHeaderV3() {

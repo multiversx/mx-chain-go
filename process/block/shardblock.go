@@ -2447,14 +2447,14 @@ func (sp *shardProcessor) GetBlockBodyFromPool(headerHandler data.HeaderHandler)
 	return sp.getBlockBodyFromPool(header, miniBlockHeaderHandlers)
 }
 
-// GetAllMiniBlocksBodyFromPool returns block body from pool with proposed and executed miniblocks
-func (sp *shardProcessor) GetAllMiniBlocksBodyFromPool(headerHandler data.HeaderHandler) (data.BodyHandler, error) {
+// GetProposedAndExecutedMiniBlockHeaders returns block body from pool with proposed and executed miniblocks
+func (sp *shardProcessor) GetProposedAndExecutedMiniBlockHeaders(headerHandler data.HeaderHandler) (data.BodyHandler, error) {
 	header, ok := headerHandler.(data.ShardHeaderHandler)
 	if !ok {
 		return nil, process.ErrWrongTypeAssertion
 	}
 
-	miniBlockHeaderHandlers := getAllMiniBlockHeaders(header)
+	miniBlockHeaderHandlers := getProposedAndExecutedMiniBlockHeaders(header)
 
 	return sp.getBlockBodyFromPool(header, miniBlockHeaderHandlers)
 }

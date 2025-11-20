@@ -2700,14 +2700,14 @@ func (mp *metaProcessor) GetBlockBodyFromPool(headerHandler data.HeaderHandler) 
 	return mp.getBlockBodyFromPool(metaBlock, miniBlockHeaderHandlers)
 }
 
-// GetAllMiniBlocksBodyFromPool returns block body from pool with proposed and executed miniblocks
-func (mp *metaProcessor) GetAllMiniBlocksBodyFromPool(headerHandler data.HeaderHandler) (data.BodyHandler, error) {
+// GetProposedAndExecutedMiniBlockHeaders returns block body from pool with proposed and executed miniblocks
+func (mp *metaProcessor) GetProposedAndExecutedMiniBlockHeaders(headerHandler data.HeaderHandler) (data.BodyHandler, error) {
 	metaBlock, ok := headerHandler.(data.MetaHeaderHandler)
 	if !ok {
 		return nil, process.ErrWrongTypeAssertion
 	}
 
-	miniBlockHeaderHandlers := getAllMiniBlockHeaders(metaBlock)
+	miniBlockHeaderHandlers := getProposedAndExecutedMiniBlockHeaders(metaBlock)
 
 	return mp.getBlockBodyFromPool(metaBlock, miniBlockHeaderHandlers)
 }
