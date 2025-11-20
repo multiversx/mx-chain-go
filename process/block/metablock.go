@@ -1261,7 +1261,10 @@ func (mp *metaProcessor) CommitBlock(
 	// must be called before commitEpochStart
 	rewardsTxs := mp.getRewardsTxs(header, body)
 
-	mp.commitEpochStart(header, body)
+	err = mp.commitEpochStart(header, body)
+	if err != nil {
+		return err
+	}
 	headerHash := mp.hasher.Compute(string(marshalizedHeader))
 	mp.saveMetaHeader(header, headerHash, marshalizedHeader)
 	mp.saveBody(body, header, headerHash)

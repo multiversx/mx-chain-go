@@ -345,19 +345,19 @@ type feeCalculator func(previousHeader data.HeaderHandler) *big.Int
 // UpdatePeerState takes a header, updates the peer state for all of the
 // consensus members and returns the new root hash
 func (vs *validatorStatistics) UpdatePeerState(header data.MetaHeaderHandler, cache map[string]data.HeaderHandler) ([]byte, error) {
-	feeCaculatorFunc := func(prevHeader data.HeaderHandler) *big.Int {
+	feeCalculatorFunc := func(prevHeader data.HeaderHandler) *big.Int {
 		return big.NewInt(0).Sub(prevHeader.GetAccumulatedFees(), prevHeader.GetDeveloperFees())
 	}
-	return vs.baseUpdatePeerState(header, cache, feeCaculatorFunc)
+	return vs.baseUpdatePeerState(header, cache, feeCalculatorFunc)
 }
 
 // UpdatePeerStateV3 takes a headerV3, updates the peer state for all of the
 // consensus members and returns the new root hash
 func (vs *validatorStatistics) UpdatePeerStateV3(header data.MetaHeaderHandler, cache map[string]data.HeaderHandler, metaExecutionResult data.MetaExecutionResultHandler) ([]byte, error) {
-	feeCaculatorFunc := func(_ data.HeaderHandler) *big.Int {
+	feeCalculatorFunc := func(_ data.HeaderHandler) *big.Int {
 		return big.NewInt(0).Sub(metaExecutionResult.GetAccumulatedFees(), metaExecutionResult.GetDeveloperFees())
 	}
-	return vs.baseUpdatePeerState(header, cache, feeCaculatorFunc)
+	return vs.baseUpdatePeerState(header, cache, feeCalculatorFunc)
 }
 
 func (vs *validatorStatistics) baseUpdatePeerState(
