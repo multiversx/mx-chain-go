@@ -9,6 +9,7 @@ import (
 	"github.com/multiversx/mx-chain-core-go/core"
 	"github.com/multiversx/mx-chain-core-go/data"
 	"github.com/multiversx/mx-chain-core-go/data/block"
+	"github.com/multiversx/mx-chain-go/testscommon/marshallerMock"
 	"github.com/stretchr/testify/require"
 
 	"github.com/multiversx/mx-chain-go/common"
@@ -3245,9 +3246,6 @@ func TestMetaProcessor_createExecutionResult(t *testing.T) {
 				},
 			},
 			"gasConsumedProvider": &testscommon.GasHandlerStub{
-				TotalGasProvidedCalled: func() uint64 {
-					return 10
-				},
 				TotalGasPenalizedCalled: func() uint64 {
 					return 10
 				},
@@ -3280,21 +3278,21 @@ func TestMetaProcessor_createExecutionResult(t *testing.T) {
 			TotalGasProvidedCalled: func() uint64 {
 				return 10
 			},
-			TotalGasPenalizedCalled: func() uint64 {
-				return 0
-			},
-			TotalGasRefundedCalled: func() uint64 {
-				return 0
-			},
 		}
 
 		mp, err := blproc.NewMetaProcessor(arguments)
 		require.Nil(t, err)
 
-		_, err = mp.CreateExecutionResult(nil, &block.MetaBlockV3{
+		execResult, err := mp.CreateExecutionResult(nil, &block.MetaBlockV3{
 			EpochChangeProposed: true,
-		}, nil, nil, nil, 0)
+		}, []byte("headerHash"), []byte("receiptHash"), []byte("valStatRootHash"), 5)
 		require.Nil(t, err)
+
+		metaExecResult, ok := execResult.(*block.MetaExecutionResult)
+		require.True(t, ok)
+		require.Equal(t, metaExecResult.ExecutedTxCount, uint64(5))
+		require.Equal(t, metaExecResult.ReceiptsHash, []byte("receiptHash"))
+		require.Equal(t, metaExecResult.GetValidatorStatsRootHash(), []byte("valStatRootHash"))
 	})
 }
 
@@ -3340,6 +3338,66 @@ func TestMetaProcessor_collectExecutionResults(t *testing.T) {
 			},
 			CreateReceiptsHashCalled: func() ([]byte, error) {
 				return nil, expectedErr
+			},
+		}
+
+		mp, err := blproc.NewMetaProcessor(arguments)
+		require.Nil(t, err)
+
+		_, err = mp.CollectExecutionResults([]byte("headerHash"), &block.MetaBlockV3{
+			LastExecutionResult: &block.MetaExecutionResultInfo{
+				ExecutionResult: &block.BaseMetaExecutionResult{
+					AccumulatedFeesInEpoch: big.NewInt(0),
+					DevFeesInEpoch:         big.NewInt(0),
+				},
+			},
+		}, &block.Body{}, []byte("valStatRootHash"))
+		require.Equal(t, expectedErr, err)
+	})
+
+	t.Run("should fail because of marshal error", func(t *testing.T) {
+		t.Parallel()
+
+		coreComponents, dataComponents, boostrapComponents, statusComponents := createMockComponentHolders()
+		err := coreComponents.SetInternalMarshalizer(&marshallerMock.MarshalizerStub{
+			MarshalCalled: func(obj interface{}) ([]byte, error) {
+				return nil, expectedErr
+			},
+		})
+		require.Nil(t, err)
+
+		arguments := createMockMetaArguments(coreComponents, dataComponents, boostrapComponents, statusComponents)
+
+		arguments.TxCoordinator = &testscommon.TransactionCoordinatorMock{
+			GetCreatedMiniBlocksFromMeCalled: func() block.MiniBlockSlice {
+				return []*block.MiniBlock{
+					{
+						TxHashes: [][]byte{
+							[]byte("hash1"),
+							[]byte("hash2"),
+						},
+					},
+				}
+			},
+			CreatePostProcessMiniBlocksCalled: func() block.MiniBlockSlice {
+				return []*block.MiniBlock{
+					{
+						TxHashes: [][]byte{
+							[]byte("hash3"),
+							[]byte("hash4"),
+						},
+					},
+				}
+			},
+			GetCreatedInShardMiniBlocksCalled: func() []*block.MiniBlock {
+				return []*block.MiniBlock{
+					{
+						TxHashes: [][]byte{
+							[]byte("hash5"),
+							[]byte("hash6"),
+						},
+					},
+				}
 			},
 		}
 
