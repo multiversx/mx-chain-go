@@ -2969,7 +2969,7 @@ func TestMetaProcessor_VerifyEpochStartData(t *testing.T) {
 	})
 }
 
-func TestMetaProcessor_ProcessIfFirstBlockAfterEpochStartBlockV3(t *testing.T) {
+func TestMetaProcessor_processIfFirstBlockAfterEpochStartBlockV3(t *testing.T) {
 	t.Parallel()
 
 	t.Run("should return ErrWrongTypeAssertion error", func(t *testing.T) {
@@ -3093,6 +3093,138 @@ func TestMetaProcessor_ProcessIfFirstBlockAfterEpochStartBlockV3(t *testing.T) {
 
 		err = mp.ProcessIfFirstBlockAfterEpochStartBlockV3()
 		require.Nil(t, err)
+	})
+}
+
+func TestMetaProcessor_processEpochStartProposeBlock(t *testing.T) {
+	t.Parallel()
+
+	t.Run("should return ErrNilBlockHeader", func(t *testing.T) {
+		t.Parallel()
+
+		coreComponents, dataComponents, boostrapComponents, statusComponents := createMockComponentHolders()
+		arguments := createMockMetaArguments(coreComponents, dataComponents, boostrapComponents, statusComponents)
+
+		mp, err := blproc.NewMetaProcessor(arguments)
+		require.Nil(t, err)
+
+		_, err = mp.ProcessEpochStartProposeBlock(nil, nil)
+		require.Equal(t, process.ErrNilBlockHeader, err)
+	})
+
+	t.Run("should return ErrNilBody", func(t *testing.T) {
+		t.Parallel()
+
+		coreComponents, dataComponents, boostrapComponents, statusComponents := createMockComponentHolders()
+		arguments := createMockMetaArguments(coreComponents, dataComponents, boostrapComponents, statusComponents)
+
+		mp, err := blproc.NewMetaProcessor(arguments)
+		require.Nil(t, err)
+
+		_, err = mp.ProcessEpochStartProposeBlock(&block.MetaBlockV3{}, nil)
+		require.Equal(t, process.ErrNilBlockBody, err)
+	})
+
+	t.Run("should return ErrEpochStartProposeBlockHasMiniBlocks", func(t *testing.T) {
+		t.Parallel()
+
+		coreComponents, dataComponents, boostrapComponents, statusComponents := createMockComponentHolders()
+		arguments := createMockMetaArguments(coreComponents, dataComponents, boostrapComponents, statusComponents)
+
+		mp, err := blproc.NewMetaProcessor(arguments)
+		require.Nil(t, err)
+
+		_, err = mp.ProcessEpochStartProposeBlock(&block.MetaBlockV3{}, &block.Body{
+			MiniBlocks: []*block.MiniBlock{
+				{},
+			},
+		})
+		require.Equal(t, process.ErrEpochStartProposeBlockHasMiniBlocks, err)
+	})
+}
+
+func TestMetaProcessor_processEconomicsDataForEpochStartProposeBlock(t *testing.T) {
+	t.Parallel()
+
+	t.Run("should return ErrNilBaseExecutionResult error", func(t *testing.T) {
+		t.Parallel()
+
+		mp, err := blproc.ConstructPartialMetaBlockProcessorForTest(map[string]interface{}{
+			"blockChain": &testscommon.ChainHandlerStub{
+				GetLastExecutionResultCalled: func() data.BaseExecutionResultHandler {
+					return nil
+				},
+			},
+		})
+		require.Nil(t, err)
+
+		err = mp.ProcessEconomicsDataForEpochStartProposeBlock(nil)
+		require.ErrorContains(t, err, process.ErrNilBaseExecutionResult.Error())
+	})
+
+	t.Run("should return ErrWrongTypeAssertion error", func(t *testing.T) {
+		t.Parallel()
+
+		mp, err := blproc.ConstructPartialMetaBlockProcessorForTest(map[string]interface{}{
+			"blockChain": &testscommon.ChainHandlerStub{
+				GetLastExecutionResultCalled: func() data.BaseExecutionResultHandler {
+					return &block.ExecutionResult{}
+				},
+			},
+		})
+		require.Nil(t, err)
+
+		err = mp.ProcessEconomicsDataForEpochStartProposeBlock(nil)
+		require.Equal(t, common.ErrWrongTypeAssertion, err)
+	})
+
+	t.Run("should return error from CreateEpochStartShardDataMetablockV3", func(t *testing.T) {
+		t.Parallel()
+
+		mp, err := blproc.ConstructPartialMetaBlockProcessorForTest(map[string]interface{}{
+			"blockChain": &testscommon.ChainHandlerStub{
+				GetLastExecutionResultCalled: func() data.BaseExecutionResultHandler {
+					return &block.MetaExecutionResult{}
+				},
+			},
+			"epochStartDataCreator": &mock.EpochStartDataCreatorStub{
+				CreateEpochStartShardDataMetablockV3Called: func(metaBlock data.MetaHeaderHandler) ([]block.EpochStartShardData, error) {
+					return nil, expectedErr
+				},
+			},
+		})
+		require.Nil(t, err)
+
+		err = mp.ProcessEconomicsDataForEpochStartProposeBlock(&block.MetaBlockV3{})
+		require.Equal(t, expectedErr, err)
+	})
+
+	t.Run("should return error from ComputeEndOfEpochEconomicsV3", func(t *testing.T) {
+		t.Parallel()
+
+		mp, err := blproc.ConstructPartialMetaBlockProcessorForTest(map[string]interface{}{
+			"blockChain": &testscommon.ChainHandlerStub{
+				GetLastExecutionResultCalled: func() data.BaseExecutionResultHandler {
+					return &block.MetaExecutionResult{}
+				},
+			},
+			"epochStartDataCreator": &mock.EpochStartDataCreatorStub{
+				CreateEpochStartShardDataMetablockV3Called: func(metaBlock data.MetaHeaderHandler) ([]block.EpochStartShardData, error) {
+					return []block.EpochStartShardData{
+						{},
+					}, nil
+				},
+			},
+			"epochEconomics": &mock.EpochEconomicsStub{
+				ComputeEndOfEpochEconomicsV3Called: func(metaBlock data.MetaHeaderHandler, prevBlockExecutionResults data.BaseMetaExecutionResultHandler, epochStartHandler data.EpochStartHandler) (*block.Economics, error) {
+					return nil, expectedErr
+				},
+			},
+		})
+		require.Nil(t, err)
+
+		err = mp.ProcessEconomicsDataForEpochStartProposeBlock(&block.MetaBlockV3{})
+		require.Equal(t, expectedErr, err)
 	})
 }
 

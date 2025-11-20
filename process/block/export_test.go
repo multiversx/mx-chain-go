@@ -1046,3 +1046,13 @@ func (bp *baseProcessor) SaveProposedTxsToStorage(header data.HeaderHandler, bod
 func (mp *metaProcessor) ProcessIfFirstBlockAfterEpochStartBlockV3() error {
 	return mp.processIfFirstBlockAfterEpochStartBlockV3()
 }
+
+// ProcessEpochStartProposeBlock -
+func (mp *metaProcessor) ProcessEpochStartProposeBlock(metaHeader data.MetaHeaderHandler, body *block.Body) (data.BaseExecutionResultHandler, error) {
+	return mp.processEpochStartProposeBlock(metaHeader, body)
+}
+
+// ProcessEconomicsDataForEpochStartProposeBlock -
+func (mp *metaProcessor) ProcessEconomicsDataForEpochStartProposeBlock(metaHeader data.MetaHeaderHandler) error {
+	return mp.processEconomicsDataForEpochStartProposeBlock(metaHeader)
+}
