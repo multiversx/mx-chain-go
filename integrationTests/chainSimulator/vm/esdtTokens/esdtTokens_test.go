@@ -7,14 +7,17 @@ import (
 	"math/big"
 	"net/http"
 	"testing"
+	"time"
 
 	"github.com/multiversx/mx-chain-core-go/core"
+	"github.com/multiversx/mx-chain-core-go/data/transaction"
 	"github.com/multiversx/mx-chain-go/api/groups"
 	"github.com/multiversx/mx-chain-go/config"
 	"github.com/multiversx/mx-chain-go/integrationTests/chainSimulator/vm"
 	"github.com/multiversx/mx-chain-go/integrationTests/vm/txsFee"
 	"github.com/multiversx/mx-chain-go/node/chainSimulator"
 	"github.com/multiversx/mx-chain-go/node/chainSimulator/components/api"
+	logger "github.com/multiversx/mx-chain-logger-go"
 	"github.com/stretchr/testify/require"
 )
 
@@ -26,6 +29,87 @@ type esdtTokensCompleteResponse struct {
 	Data  esdtTokensCompleteResponseData `json:"data"`
 	Error string                         `json:"error"`
 	Code  string
+}
+
+func TestBlockWithScheduledTxs(t *testing.T) {
+	if testing.Short() {
+		t.Skip("this is not a short test")
+	}
+
+	activationEpoch := uint32(2)
+
+	baseIssuingCost := "1000"
+
+	numOfShards := uint32(3)
+	cs, err := chainSimulator.NewChainSimulator(chainSimulator.ArgsChainSimulator{
+		BypassTxSignatureCheck:         true,
+		TempDir:                        t.TempDir(),
+		PathToInitialConfig:            vm.DefaultPathToInitialConfig,
+		NumOfShards:                    numOfShards,
+		RoundDurationInMillis:          vm.RoundDurationInMillis,
+		SupernovaRoundDurationInMillis: vm.SupernovaRoundDurationInMillis,
+		RoundsPerEpoch:                 vm.RoundsPerEpoch,
+		SupernovaRoundsPerEpoch:        vm.SupernovaRoundsPerEpoch,
+		ApiInterface:                   api.NewFreePortAPIConfigurator("localhost"),
+		MinNodesPerShard:               3,
+		MetaChainMinNodes:              3,
+		NumNodesWaitingListMeta:        0,
+		NumNodesWaitingListShard:       0,
+		AlterConfigsFunction: func(cfg *config.Configs) {
+			cfg.EpochConfig.EnableEpochs.DynamicESDTEnableEpoch = activationEpoch
+			cfg.SystemSCConfig.ESDTSystemSCConfig.BaseIssuingCost = baseIssuingCost
+			cfg.EpochConfig.EnableEpochs.SupernovaEnableEpoch = 200
+		},
+	})
+	require.Nil(t, err)
+	require.NotNil(t, cs)
+
+	defer cs.Close()
+
+	err = cs.GenerateBlocksUntilEpochIsReached(int32(activationEpoch))
+	require.Nil(t, err)
+
+	vm.Log.Info("Initial setup: Create tokens")
+
+	addrs1 := vm.CreateAddresses(t, cs, false)
+	addrs2 := vm.CreateAddresses(t, cs, false)
+
+	fungibleTicker := []byte("FUNTICKER")
+	nonce := uint64(0)
+
+	const numTxs = 500
+	txs := make([]*transaction.Transaction, 0)
+	for i := 0; i < numTxs; i++ {
+		txs = append(txs, vm.IssueTx(nonce, addrs1[0].Bytes, fungibleTicker, baseIssuingCost))
+		txs = append(txs, vm.IssueTx(nonce, addrs1[1].Bytes, fungibleTicker, baseIssuingCost))
+		txs = append(txs, vm.IssueTx(nonce, addrs1[2].Bytes, fungibleTicker, baseIssuingCost))
+
+		txs = append(txs, vm.IssueTx(nonce, addrs2[0].Bytes, fungibleTicker, baseIssuingCost))
+		txs = append(txs, vm.IssueTx(nonce, addrs2[1].Bytes, fungibleTicker, baseIssuingCost))
+		txs = append(txs, vm.IssueTx(nonce, addrs2[2].Bytes, fungibleTicker, baseIssuingCost))
+		nonce++
+	}
+
+	_ = logger.SetLogLevel("*:DEBUG")
+
+	res, err := cs.GetNodeHandler(1).GetFacadeHandler().SendBulkTransactions(txs)
+	require.Nil(t, err)
+	require.Equal(t, uint64(2*3*numTxs), res)
+
+	time.Sleep(1 * time.Second)
+
+	err = cs.GenerateBlocks(1)
+	require.Nil(t, err)
+
+	time.Sleep(1 * time.Second)
+
+	err = cs.GenerateBlocks(2)
+	require.Nil(t, err)
+
+	time.Sleep(1 * time.Second)
+
+	err = cs.GenerateBlocks(5)
+	require.Nil(t, err)
 }
 
 func TestChainSimulator_Api_TokenType(t *testing.T) {

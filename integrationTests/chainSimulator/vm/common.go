@@ -455,7 +455,7 @@ func IssueTx(nonce uint64, sndAdr []byte, ticker []byte, baseIssuingCost string)
 		Nonce:     nonce,
 		SndAddr:   sndAdr,
 		RcvAddr:   core.ESDTSCAddress,
-		GasLimit:  100_000_000,
+		GasLimit:  50_000_000,
 		GasPrice:  MinGasPrice,
 		Signature: []byte("dummySig"),
 		Data:      txDataField,
