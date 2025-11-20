@@ -2969,6 +2969,133 @@ func TestMetaProcessor_VerifyEpochStartData(t *testing.T) {
 	})
 }
 
+func TestMetaProcessor_ProcessIfFirstBlockAfterEpochStartBlockV3(t *testing.T) {
+	t.Parallel()
+
+	t.Run("should return ErrWrongTypeAssertion error", func(t *testing.T) {
+		t.Parallel()
+
+		coreComponents, dataComponents, boostrapComponents, statusComponents := createMockComponentHolders()
+		arguments := createMockMetaArguments(coreComponents, dataComponents, boostrapComponents, statusComponents)
+
+		mp, err := blproc.NewMetaProcessor(arguments)
+		require.Nil(t, err)
+
+		err = mp.ProcessIfFirstBlockAfterEpochStartBlockV3()
+		require.Equal(t, common.ErrWrongTypeAssertion, err)
+	})
+
+	t.Run("should return nil because is not start of epoch block", func(t *testing.T) {
+		t.Parallel()
+
+		mp, err := blproc.ConstructPartialMetaBlockProcessorForTest(map[string]interface{}{
+			"blockChain": &testscommon.ChainHandlerStub{
+				GetLastExecutedBlockHeaderCalled: func() data.HeaderHandler {
+					return &block.MetaBlockV3{}
+				},
+			},
+		})
+		require.Nil(t, err)
+
+		err = mp.ProcessIfFirstBlockAfterEpochStartBlockV3()
+		require.Nil(t, err)
+	})
+
+	t.Run("should return err from SaveNodesCoordinatorUpdates", func(t *testing.T) {
+		t.Parallel()
+
+		mp, err := blproc.ConstructPartialMetaBlockProcessorForTest(map[string]interface{}{
+			"blockChain": &testscommon.ChainHandlerStub{
+				GetLastExecutedBlockHeaderCalled: func() data.HeaderHandler {
+					return &block.MetaBlockV3{
+						Epoch: 2,
+						EpochStart: block.EpochStart{
+							LastFinalizedHeaders: []block.EpochStartShardData{
+								{},
+							},
+						},
+					}
+				},
+			},
+			"validatorStatisticsProcessor": &testscommon.ValidatorStatisticsProcessorStub{
+				SaveNodesCoordinatorUpdatesCalled: func(epoch uint32) (bool, error) {
+					return false, expectedErr
+				},
+			},
+		})
+		require.Nil(t, err)
+
+		err = mp.ProcessIfFirstBlockAfterEpochStartBlockV3()
+		require.Equal(t, expectedErr, err)
+	})
+
+	t.Run("should return err from ToggleUnStakeUnBond", func(t *testing.T) {
+		t.Parallel()
+
+		mp, err := blproc.ConstructPartialMetaBlockProcessorForTest(map[string]interface{}{
+			"blockChain": &testscommon.ChainHandlerStub{
+				GetLastExecutedBlockHeaderCalled: func() data.HeaderHandler {
+					return &block.MetaBlockV3{
+						Epoch: 2,
+						EpochStart: block.EpochStart{
+							LastFinalizedHeaders: []block.EpochStartShardData{
+								{},
+							},
+						},
+					}
+				},
+			},
+			"validatorStatisticsProcessor": &testscommon.ValidatorStatisticsProcessorStub{
+				SaveNodesCoordinatorUpdatesCalled: func(epoch uint32) (bool, error) {
+					return true, nil
+				},
+			},
+			"epochSystemSCProcessor": &testscommon.EpochStartSystemSCStub{
+				ToggleUnStakeUnBondCalled: func(value bool) error {
+					return expectedErr
+				},
+			},
+		})
+		require.Nil(t, err)
+
+		err = mp.ProcessIfFirstBlockAfterEpochStartBlockV3()
+		require.Equal(t, expectedErr, err)
+	})
+
+	t.Run("should return work", func(t *testing.T) {
+		t.Parallel()
+
+		mp, err := blproc.ConstructPartialMetaBlockProcessorForTest(map[string]interface{}{
+			"blockChain": &testscommon.ChainHandlerStub{
+				GetLastExecutedBlockHeaderCalled: func() data.HeaderHandler {
+					return &block.MetaBlockV3{
+						Epoch: 2,
+						EpochStart: block.EpochStart{
+							LastFinalizedHeaders: []block.EpochStartShardData{
+								{},
+							},
+						},
+					}
+				},
+			},
+			"validatorStatisticsProcessor": &testscommon.ValidatorStatisticsProcessorStub{
+				SaveNodesCoordinatorUpdatesCalled: func(epoch uint32) (bool, error) {
+					return true, nil
+				},
+			},
+			"epochSystemSCProcessor": &testscommon.EpochStartSystemSCStub{
+				ToggleUnStakeUnBondCalled: func(value bool) error {
+					return nil
+				},
+			},
+		})
+		require.Nil(t, err)
+
+		err = mp.ProcessIfFirstBlockAfterEpochStartBlockV3()
+		require.Nil(t, err)
+	})
+}
+
 func createLastShardHeadersNotGenesis() map[uint32]blproc.ShardHeaderInfo {
 	shard0 := uint32(0)
 	shard1 := uint32(1)

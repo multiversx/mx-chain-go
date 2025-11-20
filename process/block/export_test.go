@@ -1041,3 +1041,8 @@ func (bp *baseProcessor) CheckContextBeforeExecution(header data.HeaderHandler) 
 func (bp *baseProcessor) SaveProposedTxsToStorage(header data.HeaderHandler, body *block.Body) error {
 	return bp.saveProposedTxsToStorage(header, body)
 }
+
+// ProcessIfFirstBlockAfterEpochStartBlockV3 -
+func (mp *metaProcessor) ProcessIfFirstBlockAfterEpochStartBlockV3() error {
+	return mp.processIfFirstBlockAfterEpochStartBlockV3()
+}
