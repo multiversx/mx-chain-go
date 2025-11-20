@@ -2695,7 +2695,10 @@ func (mp *metaProcessor) GetBlockBodyFromPool(headerHandler data.HeaderHandler) 
 		return nil, process.ErrWrongTypeAssertion
 	}
 
-	miniBlockHeaderHandlers := getExecutedMiniBlockHeaders(metaBlock)
+	miniBlockHeaderHandlers, err := common.GetMiniBlockHeadersFromExecResult(metaBlock)
+	if err != nil {
+		return nil, err
+	}
 
 	return mp.getBlockBodyFromPool(metaBlock, miniBlockHeaderHandlers)
 }
@@ -2707,7 +2710,10 @@ func (mp *metaProcessor) GetProposedAndExecutedMiniBlockHeaders(headerHandler da
 		return nil, process.ErrWrongTypeAssertion
 	}
 
-	miniBlockHeaderHandlers := getProposedAndExecutedMiniBlockHeaders(metaBlock)
+	miniBlockHeaderHandlers, err := getProposedAndExecutedMiniBlockHeaders(metaBlock)
+	if err != nil {
+		return nil, err
+	}
 
 	return mp.getBlockBodyFromPool(metaBlock, miniBlockHeaderHandlers)
 }

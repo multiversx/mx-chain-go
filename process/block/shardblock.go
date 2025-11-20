@@ -2442,7 +2442,10 @@ func (sp *shardProcessor) GetBlockBodyFromPool(headerHandler data.HeaderHandler)
 		return nil, process.ErrWrongTypeAssertion
 	}
 
-	miniBlockHeaderHandlers := getExecutedMiniBlockHeaders(header)
+	miniBlockHeaderHandlers, err := common.GetMiniBlockHeadersFromExecResult(header)
+	if err != nil {
+		return nil, err
+	}
 
 	return sp.getBlockBodyFromPool(header, miniBlockHeaderHandlers)
 }
@@ -2454,7 +2457,10 @@ func (sp *shardProcessor) GetProposedAndExecutedMiniBlockHeaders(headerHandler d
 		return nil, process.ErrWrongTypeAssertion
 	}
 
-	miniBlockHeaderHandlers := getProposedAndExecutedMiniBlockHeaders(header)
+	miniBlockHeaderHandlers, err := getProposedAndExecutedMiniBlockHeaders(header)
+	if err != nil {
+		return nil, err
+	}
 
 	return sp.getBlockBodyFromPool(header, miniBlockHeaderHandlers)
 }

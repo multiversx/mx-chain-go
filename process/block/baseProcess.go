@@ -3413,36 +3413,18 @@ func (bp *baseProcessor) getBlockBodyFromPool(
 
 func getProposedAndExecutedMiniBlockHeaders(
 	header data.HeaderHandler,
-) []data.MiniBlockHeaderHandler {
+) ([]data.MiniBlockHeaderHandler, error) {
 	if !header.IsHeaderV3() {
-		return header.GetMiniBlockHeaderHandlers()
+		return header.GetMiniBlockHeaderHandlers(), nil
 	}
 
-	execResultsMiniBlockHeaders := getExecutedMiniBlockHeaders(header)
+	execResultsMiniBlockHeaders, err := common.GetMiniBlockHeadersFromExecResult(header)
+	if err != nil {
+		return nil, err
+	}
 
 	miniBlockHeaders := header.GetMiniBlockHeaderHandlers()
 	miniBlockHeaders = append(miniBlockHeaders, execResultsMiniBlockHeaders...)
 
-	return miniBlockHeaders
-}
-
-func getExecutedMiniBlockHeaders(
-	header data.HeaderHandler,
-) []data.MiniBlockHeaderHandler {
-	if !header.IsHeaderV3() {
-		return header.GetMiniBlockHeaderHandlers()
-	}
-
-	var miniBlockHeaders []data.MiniBlockHeaderHandler
-
-	for _, execResult := range header.GetExecutionResultsHandlers() {
-		execResMiniBlockHeaders, err := common.GetMiniBlocksHeaderHandlersFromExecResult(execResult)
-		if err != nil {
-			return nil
-		}
-
-		miniBlockHeaders = append(miniBlockHeaders, execResMiniBlockHeaders...)
-	}
-
-	return miniBlockHeaders
+	return miniBlockHeaders, nil
 }
