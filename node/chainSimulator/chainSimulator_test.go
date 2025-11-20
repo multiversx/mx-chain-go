@@ -179,7 +179,6 @@ func TestChainSimulator_VerifyBlockTimestampSupernova(t *testing.T) {
 
 	timestampDiff = block2.TimestampMs - block1.TimestampMs
 	require.Equal(t, uint64(timestampDiff), defaultSupernovaRoundDurationInMillis)
-
 }
 
 func TestChainSimulator_GenerateBlocksAndEpochChangeShouldWork(t *testing.T) {
