@@ -497,7 +497,7 @@ func (mp *metaProcessor) collectExecutionResultsEpochStartProposal(
 	}
 
 	// we consider the rewards and peer mini blocks as post process mbs (post execution of start of epoch proposed block)
-	err = mp.cachePostProcessMiniBlocksToMe(headerHash, constructedBody.MiniBlocks)
+	err = mp.cacheIntraShardMiniBlocks(headerHash, constructedBody.MiniBlocks)
 	if err != nil {
 		return nil, err
 	}

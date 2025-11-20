@@ -13,9 +13,10 @@ import (
 	"github.com/multiversx/mx-chain-core-go/data"
 	"github.com/multiversx/mx-chain-core-go/data/block"
 	"github.com/multiversx/mx-chain-core-go/data/transaction"
-	"github.com/multiversx/mx-chain-go/process/asyncExecution/executionManager"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
+
+	"github.com/multiversx/mx-chain-go/process/asyncExecution/executionManager"
 
 	"github.com/multiversx/mx-chain-go/common"
 	"github.com/multiversx/mx-chain-go/common/graceperiod"
@@ -3189,54 +3190,6 @@ func TestShardProcessor_collectExecutionResults(t *testing.T) {
 		assert.Error(t, err)
 		assert.Equal(t, expectedErr, err)
 	})
-
-	t.Run("postProcessMiniBlocksToMe are cached", func(t *testing.T) {
-		t.Parallel()
-
-		putCalled := false
-		postProcessKey := []byte("postProcessMiniBlocks")
-		expected := []*block.MiniBlock{
-			{
-				SenderShardID:   0,
-				ReceiverShardID: 0,
-				Type:            block.InvalidBlock,
-				TxHashes: [][]byte{
-					[]byte("tx_self_1"),
-					[]byte("tx_self_2"),
-				},
-			},
-		}
-		subComponents, header, body := createSubComponentsForCollectExecutionResultsTest()
-		subComponents["txCoordinator"] = &testscommon.TransactionCoordinatorMock{
-			GetCreatedInShardMiniBlocksCalled: func() []*block.MiniBlock {
-				return expected
-			},
-		}
-		expectedBytes, err := subComponents["marshalizer"].(*mock.MarshalizerMock).Marshal(expected)
-		require.Nil(t, err)
-
-		subComponents["dataPool"].(*dataRetriever.PoolsHolderStub).ExecutedMiniBlocksCalled = func() storage.Cacher {
-			return &cache.CacherStub{
-				PutCalled: func(key []byte, value interface{}, sizeInBytes int) (evicted bool) {
-					if bytes.Contains(key, postProcessKey) {
-						putCalled = true
-						require.Equal(t, expectedBytes, value)
-					}
-					return false
-				},
-			}
-		}
-
-		sp, err := blproc.ConstructPartialShardBlockProcessorForTest(subComponents)
-		require.Nil(t, err)
-
-		headerHash := []byte("header hash to be tested")
-		_, err = sp.CollectExecutionResults(headerHash, header, body)
-		require.Nil(t, err)
-
-		require.True(t, putCalled, "postProcessMiniBlockstToMe should be cached")
-	})
-
 	t.Run("should work", func(t *testing.T) {
 		t.Parallel()
 

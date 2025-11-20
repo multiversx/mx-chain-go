@@ -1809,11 +1809,9 @@ func (mp *metaProcessor) prepareEpochStartBodyForTrigger(header data.MetaHeaderH
 			return nil, fmt.Errorf("%w in prepareEpochStartBodyForTrigger for metaExecRes", process.ErrWrongTypeAssertion)
 		}
 
-		// TODO: here, check actual key to be used
-		postProcessKey := append(metaExecRes.GetHeaderHash(), []byte(postProcessMiniBlocksKeySuffix)...)
-		retrievedObj, found := mp.dataPool.ExecutedMiniBlocks().Get(postProcessKey)
+		retrievedObj, found := mp.dataPool.ExecutedMiniBlocks().Get(metaExecRes.GetHeaderHash())
 		if !found {
-			return nil, fmt.Errorf("%w in prepareEpochStartBodyForTrigger for key: %s", trie.ErrKeyNotFound, postProcessMiniBlocksKeySuffix)
+			return nil, fmt.Errorf("%w in prepareEpochStartBodyForTrigger for key: %s", trie.ErrKeyNotFound, metaExecRes.GetHeaderHash())
 		}
 
 		marshalledMbs, castOk := retrievedObj.([]byte)
