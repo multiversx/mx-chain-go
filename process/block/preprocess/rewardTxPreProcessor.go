@@ -43,6 +43,15 @@ func NewRewardTxPreprocessor(args RewardsPreProcessorArgs) (*rewardTxPreprocesso
 		return nil, process.ErrNilRewardsTxProcessor
 	}
 
+	ges, err := newGasEpochState(
+		args.EconomicsFee,
+		args.EnableEpochsHandler,
+		args.EnableRoundsHandler,
+	)
+	if err != nil {
+		return nil, err
+	}
+
 	bpp := &basePreProcess{
 		hasher:      args.Hasher,
 		marshalizer: args.Marshalizer,
@@ -50,8 +59,7 @@ func NewRewardTxPreprocessor(args RewardsPreProcessorArgs) (*rewardTxPreprocesso
 			args.ShardCoordinator,
 			args.GasHandler,
 			args.EconomicsFee,
-			args.EnableEpochsHandler,
-			args.EnableRoundsHandler,
+			ges,
 		),
 		blockSizeComputation:       args.BlockSizeComputation,
 		balanceComputation:         args.BalanceComputation,

@@ -81,3 +81,10 @@ type TxsForBlockHandler interface {
 	) int
 	IsInterfaceNil() bool
 }
+
+type GasEpochStateHandler interface {
+	EpochConfirmed(epoch uint32)
+	RoundConfirmed(round uint64)
+	GetEpochForLimitsAndOverEstimationFactor() (uint32, uint64)
+	IsInterfaceNil() bool
+}
