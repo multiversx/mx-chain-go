@@ -115,7 +115,7 @@ func TestGasEpochState_RoundConfirmed(t *testing.T) {
 	assert.Equal(t, uint32(1), ges.epochForLimits)
 	assert.Equal(t, uint64(3), ges.overEstimationFactor)
 
-	epoch, overEstimatorFactor := ges.GetEpochForLimitsAndOverEstimationFactor()
+	epoch, overEstimationFactor := ges.GetEpochForLimitsAndOverEstimationFactor()
 	assert.Equal(t, uint32(1), epoch)
-	assert.Equal(t, uint64(3), overEstimatorFactor)
+	assert.Equal(t, uint64(3), overEstimationFactor)
 }

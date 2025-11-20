@@ -82,6 +82,7 @@ type TxsForBlockHandler interface {
 	IsInterfaceNil() bool
 }
 
+// GasEpochStateHandler defines the functionality for handling gas limits and overestimation factor based on epochs and rounds
 type GasEpochStateHandler interface {
 	EpochConfirmed(epoch uint32)
 	RoundConfirmed(round uint64)
