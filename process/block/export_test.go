@@ -1057,6 +1057,7 @@ func (mp *metaProcessor) ProcessEconomicsDataForEpochStartProposeBlock(metaHeade
 	return mp.processEconomicsDataForEpochStartProposeBlock(metaHeader)
 }
 
+// CreateExecutionResult -
 func (mp *metaProcessor) CreateExecutionResult(
 	miniBlockHeaderHandlers []data.MiniBlockHeaderHandler,
 	header data.MetaHeaderHandler,
@@ -1066,4 +1067,14 @@ func (mp *metaProcessor) CreateExecutionResult(
 	totalTxCount int,
 ) (data.BaseExecutionResultHandler, error) {
 	return mp.createExecutionResult(miniBlockHeaderHandlers, header, headerHash, receiptHash, valStatRootHash, totalTxCount)
+}
+
+// CollectExecutionResults -
+func (mp *metaProcessor) CollectExecutionResults(
+	headerHash []byte,
+	header data.MetaHeaderHandler,
+	body *block.Body,
+	valStatRootHash []byte,
+) (data.BaseExecutionResultHandler, error) {
+	return mp.collectExecutionResults(headerHash, header, body, valStatRootHash)
 }

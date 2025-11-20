@@ -3229,7 +3229,7 @@ func TestMetaProcessor_processEconomicsDataForEpochStartProposeBlock(t *testing.
 	})
 }
 
-func TestMetaProcessor_CreateExecutionResult(t *testing.T) {
+func TestMetaProcessor_createExecutionResult(t *testing.T) {
 	t.Parallel()
 
 	t.Run("should return ErrGasUsedExceedsGasProvided error", func(t *testing.T) {
@@ -3295,6 +3295,125 @@ func TestMetaProcessor_CreateExecutionResult(t *testing.T) {
 			EpochChangeProposed: true,
 		}, nil, nil, nil, 0)
 		require.Nil(t, err)
+	})
+}
+
+func TestMetaProcessor_collectExecutionResults(t *testing.T) {
+	t.Parallel()
+
+	t.Run("should work", func(t *testing.T) {
+		t.Parallel()
+
+		coreComponents, dataComponents, boostrapComponents, statusComponents := createMockComponentHolders()
+		arguments := createMockMetaArguments(coreComponents, dataComponents, boostrapComponents, statusComponents)
+
+		arguments.TxCoordinator = &testscommon.TransactionCoordinatorMock{
+			GetCreatedMiniBlocksFromMeCalled: func() block.MiniBlockSlice {
+				return []*block.MiniBlock{
+					{
+						TxHashes: [][]byte{
+							[]byte("hash1"),
+							[]byte("hash2"),
+						},
+					},
+				}
+			},
+			CreatePostProcessMiniBlocksCalled: func() block.MiniBlockSlice {
+				return []*block.MiniBlock{
+					{
+						TxHashes: [][]byte{
+							[]byte("hash3"),
+							[]byte("hash4"),
+						},
+					},
+				}
+			},
+			GetCreatedInShardMiniBlocksCalled: func() []*block.MiniBlock {
+				return []*block.MiniBlock{
+					{
+						TxHashes: [][]byte{
+							[]byte("hash5"),
+							[]byte("hash6"),
+						},
+					},
+				}
+			},
+		}
+
+		mp, err := blproc.NewMetaProcessor(arguments)
+		require.Nil(t, err)
+
+		execResult, err := mp.CollectExecutionResults([]byte("headerHash"), &block.MetaBlockV3{
+			LastExecutionResult: &block.MetaExecutionResultInfo{
+				ExecutionResult: &block.BaseMetaExecutionResult{
+					AccumulatedFeesInEpoch: big.NewInt(0),
+					DevFeesInEpoch:         big.NewInt(0),
+				},
+			},
+		}, &block.Body{}, []byte("valStatRootHash"))
+		require.Nil(t, err)
+
+		metaExecResult, ok := execResult.(*block.MetaExecutionResult)
+		require.True(t, ok)
+		require.Equal(t, metaExecResult.ExecutedTxCount, uint64(4))
+		require.Equal(t, metaExecResult.ReceiptsHash, []byte("receiptHash"))
+		require.Equal(t, metaExecResult.GetValidatorStatsRootHash(), []byte("valStatRootHash"))
+	})
+
+	t.Run("should fail", func(t *testing.T) {
+		t.Parallel()
+
+		coreComponents, dataComponents, boostrapComponents, statusComponents := createMockComponentHolders()
+		arguments := createMockMetaArguments(coreComponents, dataComponents, boostrapComponents, statusComponents)
+
+		arguments.TxCoordinator = &testscommon.TransactionCoordinatorMock{
+			GetCreatedMiniBlocksFromMeCalled: func() block.MiniBlockSlice {
+				return []*block.MiniBlock{
+					{
+						TxHashes: [][]byte{
+							[]byte("hash1"),
+							[]byte("hash2"),
+						},
+					},
+				}
+			},
+			CreatePostProcessMiniBlocksCalled: func() block.MiniBlockSlice {
+				return []*block.MiniBlock{
+					{
+						TxHashes: [][]byte{
+							[]byte("hash3"),
+							[]byte("hash4"),
+						},
+					},
+				}
+			},
+			GetCreatedInShardMiniBlocksCalled: func() []*block.MiniBlock {
+				return []*block.MiniBlock{
+					{
+						TxHashes: [][]byte{
+							[]byte("hash5"),
+							[]byte("hash6"),
+						},
+					},
+				}
+			},
+			CreateReceiptsHashCalled: func() ([]byte, error) {
+				return nil, expectedErr
+			},
+		}
+
+		mp, err := blproc.NewMetaProcessor(arguments)
+		require.Nil(t, err)
+
+		_, err = mp.CollectExecutionResults([]byte("headerHash"), &block.MetaBlockV3{
+			LastExecutionResult: &block.MetaExecutionResultInfo{
+				ExecutionResult: &block.BaseMetaExecutionResult{
+					AccumulatedFeesInEpoch: big.NewInt(0),
+					DevFeesInEpoch:         big.NewInt(0),
+				},
+			},
+		}, &block.Body{}, []byte("valStatRootHash"))
+		require.Equal(t, expectedErr, err)
 	})
 }
 
