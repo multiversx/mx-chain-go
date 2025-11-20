@@ -1046,6 +1046,8 @@ func (adb *AccountsDB) recreateTrie(options common.RootHashHolder) error {
 		log.Trace("accountsDB.RecreateTrie ended")
 	}()
 
+	log.Debug("AccountsDB.recreateTrie", "rootHash", options.GetRootHash())
+
 	adb.obsoleteDataTrieHashes = make(map[string][][]byte)
 	adb.dataTries.Reset()
 	adb.entries = make([]JournalEntry, 0)
