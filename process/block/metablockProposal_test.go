@@ -2,6 +2,7 @@ package block_test
 
 import (
 	"bytes"
+	"math/big"
 	"testing"
 	"time"
 
@@ -3225,6 +3226,75 @@ func TestMetaProcessor_processEconomicsDataForEpochStartProposeBlock(t *testing.
 
 		err = mp.ProcessEconomicsDataForEpochStartProposeBlock(&block.MetaBlockV3{})
 		require.Equal(t, expectedErr, err)
+	})
+}
+
+func TestMetaProcessor_CreateExecutionResult(t *testing.T) {
+	t.Parallel()
+
+	t.Run("should return ErrGasUsedExceedsGasProvided error", func(t *testing.T) {
+		t.Parallel()
+
+		mp, err := blproc.ConstructPartialMetaBlockProcessorForTest(map[string]interface{}{
+			"feeHandler": &mock.FeeAccumulatorStub{
+				GetAccumulatedFeesCalled: func() *big.Int {
+					return big.NewInt(5)
+				},
+				GetDeveloperFeesCalled: func() *big.Int {
+					return big.NewInt(5)
+				},
+			},
+			"gasConsumedProvider": &testscommon.GasHandlerStub{
+				TotalGasProvidedCalled: func() uint64 {
+					return 10
+				},
+				TotalGasPenalizedCalled: func() uint64 {
+					return 10
+				},
+				TotalGasRefundedCalled: func() uint64 {
+					return 10
+				},
+			},
+		})
+		require.Nil(t, err)
+
+		_, err = mp.CreateExecutionResult(nil, nil, nil, nil, nil, 0)
+		require.Equal(t, process.ErrGasUsedExceedsGasProvided, err)
+	})
+
+	t.Run("should work", func(t *testing.T) {
+		t.Parallel()
+
+		coreComponents, dataComponents, boostrapComponents, statusComponents := createMockComponentHolders()
+		arguments := createMockMetaArguments(coreComponents, dataComponents, boostrapComponents, statusComponents)
+
+		arguments.FeeHandler = &mock.FeeAccumulatorStub{
+			GetAccumulatedFeesCalled: func() *big.Int {
+				return big.NewInt(5)
+			},
+			GetDeveloperFeesCalled: func() *big.Int {
+				return big.NewInt(5)
+			},
+		}
+		arguments.GasHandler = &testscommon.GasHandlerStub{
+			TotalGasProvidedCalled: func() uint64 {
+				return 10
+			},
+			TotalGasPenalizedCalled: func() uint64 {
+				return 0
+			},
+			TotalGasRefundedCalled: func() uint64 {
+				return 0
+			},
+		}
+
+		mp, err := blproc.NewMetaProcessor(arguments)
+		require.Nil(t, err)
+
+		_, err = mp.CreateExecutionResult(nil, &block.MetaBlockV3{
+			EpochChangeProposed: true,
+		}, nil, nil, nil, 0)
+		require.Nil(t, err)
 	})
 }
 
