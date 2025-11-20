@@ -2974,7 +2974,7 @@ func TestMetaProcessor_VerifyEpochStartData(t *testing.T) {
 func TestMetaProcessor_processIfFirstBlockAfterEpochStartBlockV3(t *testing.T) {
 	t.Parallel()
 
-	t.Run("should return ErrWrongTypeAssertion error", func(t *testing.T) {
+	t.Run("should return ErrWrongTypeAssertion error because of nil previous executed block", func(t *testing.T) {
 		t.Parallel()
 
 		coreComponents, dataComponents, boostrapComponents, statusComponents := createMockComponentHolders()
@@ -2987,7 +2987,7 @@ func TestMetaProcessor_processIfFirstBlockAfterEpochStartBlockV3(t *testing.T) {
 		require.Equal(t, common.ErrWrongTypeAssertion, err)
 	})
 
-	t.Run("should return nil because is not start of epoch block", func(t *testing.T) {
+	t.Run("should return nil because it is not start of epoch block", func(t *testing.T) {
 		t.Parallel()
 
 		mp, err := blproc.ConstructPartialMetaBlockProcessorForTest(map[string]interface{}{
@@ -3064,7 +3064,7 @@ func TestMetaProcessor_processIfFirstBlockAfterEpochStartBlockV3(t *testing.T) {
 		require.Equal(t, expectedErr, err)
 	})
 
-	t.Run("should return work", func(t *testing.T) {
+	t.Run("should work", func(t *testing.T) {
 		t.Parallel()
 
 		mp, err := blproc.ConstructPartialMetaBlockProcessorForTest(map[string]interface{}{
@@ -3164,7 +3164,7 @@ func TestMetaProcessor_processEconomicsDataForEpochStartProposeBlock(t *testing.
 		require.ErrorContains(t, err, process.ErrNilBaseExecutionResult.Error())
 	})
 
-	t.Run("should return ErrWrongTypeAssertion error", func(t *testing.T) {
+	t.Run("should return ErrWrongTypeAssertion error because of wrong type of last execution result", func(t *testing.T) {
 		t.Parallel()
 
 		mp, err := blproc.ConstructPartialMetaBlockProcessorForTest(map[string]interface{}{
@@ -3299,7 +3299,7 @@ func TestMetaProcessor_createExecutionResult(t *testing.T) {
 func TestMetaProcessor_collectExecutionResults(t *testing.T) {
 	t.Parallel()
 
-	t.Run("should fail", func(t *testing.T) {
+	t.Run("should fail because of error on CreateReceiptsHash", func(t *testing.T) {
 		t.Parallel()
 
 		coreComponents, dataComponents, boostrapComponents, statusComponents := createMockComponentHolders()
@@ -3478,7 +3478,7 @@ func TestMetaProcessor_collectExecutionResults(t *testing.T) {
 func TestMetaProcessor_collectExecutionResultsEpochStartProposal(t *testing.T) {
 	t.Parallel()
 
-	t.Run("should fail", func(t *testing.T) {
+	t.Run("should fail because of error on CreateReceiptsHash", func(t *testing.T) {
 		t.Parallel()
 
 		coreComponents, dataComponents, boostrapComponents, statusComponents := createMockComponentHolders()
