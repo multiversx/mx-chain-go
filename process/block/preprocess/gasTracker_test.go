@@ -110,12 +110,17 @@ func createDefaultGasTracker(
 		},
 	}
 
+	ges, _ := newGasEpochState(
+		economicsFee,
+		enableEpochsHandler,
+		enableRoundsHandler,
+	)
+
 	gt := newGasTracker(
 		shardCoordinator,
 		gasHandler,
 		economicsFee,
-		enableEpochsHandler,
-		enableRoundsHandler,
+		ges,
 	)
 
 	return &gt
@@ -586,6 +591,25 @@ func Test_getEpochAndOverestimationFactorForGasLimits(t *testing.T) {
 	providedCurrentEpoch := uint32(10)
 	providedCurrentRound := uint64(150)
 	providedOverestimationFactor := uint64(200)
+
+	enableEpochsHandler := &enableEpochsHandlerMock.EnableEpochsHandlerStub{
+		IsFlagEnabledInEpochCalled: func(flag core.EnableEpochFlag, epoch uint32) bool {
+			return epoch >= providedCurrentEpoch
+		},
+	}
+	enableRoundsHandler := &testscommon.EnableRoundsHandlerStub{
+		IsFlagEnabledInRoundCalled: func(flag common.EnableRoundFlag, round uint64) bool {
+			return round >= providedCurrentRound
+		},
+	}
+	economicsFee := &economicsmocks.EconomicsHandlerMock{
+		BlockCapacityOverestimationFactorCalled: func() uint64 {
+			return providedOverestimationFactor
+		},
+	}
+
+	ges, _ := newGasEpochState(economicsFee, enableEpochsHandler, enableRoundsHandler)
+
 	gt := &gasTracker{
 		shardCoordinator: &testscommon.ShardsCoordinatorMock{},
 		economicsFee: &economicsmocks.EconomicsHandlerMock{
@@ -593,18 +617,8 @@ func Test_getEpochAndOverestimationFactorForGasLimits(t *testing.T) {
 				return providedOverestimationFactor
 			},
 		},
-		gasHandler: &testscommon.GasHandlerStub{},
-		enableEpochsHandler: &enableEpochsHandlerMock.EnableEpochsHandlerStub{
-			IsFlagEnabledInEpochCalled: func(flag core.EnableEpochFlag, epoch uint32) bool {
-				return epoch >= providedCurrentEpoch
-			},
-		},
-		enableRoundsHandler: &testscommon.EnableRoundsHandlerStub{
-			IsFlagEnabledInRoundCalled: func(flag common.EnableRoundFlag, round uint64) bool {
-				return round >= providedCurrentRound
-			},
-		},
-		overEstimationFactor: noOverestimationFactor,
+		gasHandler:    &testscommon.GasHandlerStub{},
+		gasEpochState: ges,
 	}
 
 	// before supernova

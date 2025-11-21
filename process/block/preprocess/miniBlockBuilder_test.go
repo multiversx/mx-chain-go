@@ -497,8 +497,7 @@ func Test_MiniBlocksBuilderAccountGasForTxComputeGasProvidedWithErr(t *testing.T
 				return 0, 0, expectedErr
 			},
 		},
-		enableEpochsHandler: &enableEpochsHandlerMock.EnableEpochsHandlerStub{},
-		enableRoundsHandler: &testscommon.EnableRoundsHandlerStub{},
+		gasEpochState: &testscommon.GasEpochStateHandlerStub{},
 	}
 	mbb, _ := newMiniBlockBuilder(args)
 	sender, _ := hex.DecodeString("aaaaaaaaaa" + suffixShard0)
@@ -521,6 +520,7 @@ func Test_MiniBlocksBuilderAccountGasForTxComputeGasProvidedOK(t *testing.T) {
 	args := createDefaultMiniBlockBuilderArgs()
 	gasProvidedByTxInReceiverShard := uint64(20)
 	gasProvidedByTxInSenderShard := uint64(10)
+	ges, _ := newGasEpochState(args.gasTracker.economicsFee, &enableEpochsHandlerMock.EnableEpochsHandlerStub{}, &testscommon.EnableRoundsHandlerStub{})
 	args.gasTracker = gasTracker{
 		shardCoordinator: args.gasTracker.shardCoordinator,
 		economicsFee:     args.gasTracker.economicsFee,
@@ -531,9 +531,7 @@ func Test_MiniBlocksBuilderAccountGasForTxComputeGasProvidedOK(t *testing.T) {
 				return gasProvidedByTxInSenderShard, gasProvidedByTxInReceiverShard, nil
 			},
 		},
-		enableEpochsHandler:  &enableEpochsHandlerMock.EnableEpochsHandlerStub{},
-		enableRoundsHandler:  &testscommon.EnableRoundsHandlerStub{},
-		overEstimationFactor: noOverestimationFactor,
+		gasEpochState: ges,
 	}
 	mbb, _ := newMiniBlockBuilder(args)
 	sender, _ := hex.DecodeString("aaaaaaaaaa" + suffixShard0)
@@ -802,8 +800,7 @@ func Test_MiniBlocksBuilderCheckAddTransactionGasAccountingError(t *testing.T) {
 				return 0, 0, expectedErr
 			},
 		},
-		enableEpochsHandler: &enableEpochsHandlerMock.EnableEpochsHandlerStub{},
-		enableRoundsHandler: &testscommon.EnableRoundsHandlerStub{},
+		gasEpochState: &testscommon.GasEpochStateHandlerStub{},
 	}
 	mbb, _ := newMiniBlockBuilder(args)
 
@@ -864,8 +861,7 @@ func createDefaultMiniBlockBuilderArgs() miniBlocksBuilderArgs {
 				RemoveGasPenalizedCalled: func(hashes [][]byte) {
 				},
 			},
-			enableEpochsHandler: &enableEpochsHandlerMock.EnableEpochsHandlerStub{},
-			enableRoundsHandler: &testscommon.EnableRoundsHandlerStub{},
+			gasEpochState: &testscommon.GasEpochStateHandlerStub{},
 		},
 		accounts:                  &stateMock.AccountsStub{},
 		blockSizeComputation:      &testscommon.BlockSizeComputationStub{},

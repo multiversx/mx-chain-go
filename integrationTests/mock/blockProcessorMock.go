@@ -39,6 +39,7 @@ type BlockProcessorMock struct {
 		proposedHeader data.HeaderHandler,
 		proposedHash []byte,
 	) error
+	RemoveHeaderFromPoolCalled func(headerHash []byte)
 }
 
 // ProcessBlock mocks processing a block
@@ -233,6 +234,13 @@ func (bpm *BlockProcessorMock) OnProposedBlock(
 		return bpm.OnProposedBlockCalled(proposedBody, proposedHeader, proposedHash)
 	}
 	return nil
+}
+
+// RemoveHeaderFromPool -
+func (bpm *BlockProcessorMock) RemoveHeaderFromPool(headerHash []byte) {
+	if bpm.RemoveHeaderFromPoolCalled != nil {
+		bpm.RemoveHeaderFromPoolCalled(headerHash)
+	}
 }
 
 // Close -

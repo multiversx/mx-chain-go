@@ -117,6 +117,16 @@ func NewTransactionPreprocessor(
 	if args.TxCacheSelectionConfig.SelectionLoopDurationCheckInterval == 0 {
 		return nil, process.ErrBadTxCacheSelectionLoopDurationCheckInterval
 	}
+
+	ges, err := newGasEpochState(
+		args.EconomicsFee,
+		args.EnableEpochsHandler,
+		args.EnableRoundsHandler,
+	)
+	if err != nil {
+		return nil, err
+	}
+
 	bpp := &basePreProcess{
 		hasher:      args.Hasher,
 		marshalizer: args.Marshalizer,
@@ -124,8 +134,7 @@ func NewTransactionPreprocessor(
 			args.ShardCoordinator,
 			args.GasHandler,
 			args.EconomicsFee,
-			args.EnableEpochsHandler,
-			args.EnableRoundsHandler,
+			ges,
 		),
 		blockSizeComputation:       args.BlockSizeComputation,
 		balanceComputation:         args.BalanceComputation,

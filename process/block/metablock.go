@@ -1339,7 +1339,12 @@ func (mp *metaProcessor) CommitBlock(
 
 	mp.blockChain.SetCurrentBlockHeaderHash(headerHash)
 
-	err = mp.onExecutedBlock(headerHandler, rootHash)
+	lastExecutionResultHeader, err := mp.getLastExecutionResultHeader(header)
+	if err != nil {
+		return err
+	}
+
+	err = mp.onExecutedBlock(lastExecutionResultHeader, rootHash)
 	if err != nil {
 		return err
 	}
