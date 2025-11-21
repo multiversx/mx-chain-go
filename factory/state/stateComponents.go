@@ -315,16 +315,15 @@ func (scf *stateComponentsFactory) createAccountsAdapters(triesContainer common.
 		return nil, fmt.Errorf("accountsRepository: %w", err)
 	}
 
-	// TODO: this account adapter may be required to be changed as the roothash should be the last execution result roothash
-	accountsAdapterProposal, err := factoryState.CreateAccountsAdapterAPIOnCurrent(argsAPIAccountsDB, scf.chainHandler)
+	accountsProposal, err := state.NewAccountsDB(argsAPIAccountsDB)
 	if err != nil {
-		return nil, fmt.Errorf("accounts adapter for proposal: %w: %s", errors.ErrAccountsAdapterCreation, err)
+		return nil, fmt.Errorf("%w in state.NewAccountsDB", err)
 	}
 
 	response := &accountsAdapterCreationResult{
 		accountsAdapter:         accountsAdapter,
 		accountsAdapterAPI:      accountsRepository.GetCurrentStateAccountsWrapper(),
-		accountsAdapterProposal: accountsAdapterProposal,
+		accountsAdapterProposal: accountsProposal,
 		accountsRepository:      accountsRepository,
 	}
 
