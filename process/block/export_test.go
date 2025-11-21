@@ -1041,3 +1041,11 @@ func (bp *baseProcessor) CheckContextBeforeExecution(header data.HeaderHandler) 
 func (bp *baseProcessor) SaveProposedTxsToStorage(header data.HeaderHandler, body *block.Body) error {
 	return bp.saveProposedTxsToStorage(header, body)
 }
+
+// CollectMiniBlocks -
+func (bp *baseProcessor) CollectMiniBlocks(
+	headerHash []byte,
+	body *block.Body,
+) ([]data.MiniBlockHeaderHandler, int, []byte, error) {
+	return bp.collectMiniBlocks(headerHash, body)
+}

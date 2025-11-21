@@ -4923,3 +4923,37 @@ func TestBaseProcessor_checkContextBeforeExecution(t *testing.T) {
 		require.Nil(t, err)
 	})
 }
+
+func TestBaseProcess_collectMiniBlocks(t *testing.T) {
+	t.Parallel()
+
+	t.Run("if creating receipts hash fails, the error should be propagated", func(t *testing.T) {
+		t.Parallel()
+
+		coreComponents, dataComponents, bootstrapComponents, statusComponents := createComponentHolderMocks()
+		arguments := CreateMockArguments(coreComponents, dataComponents, bootstrapComponents, statusComponents)
+
+		bp, err := blproc.NewShardProcessor(arguments)
+		require.NoError(t, err)
+
+		_, _, _, err = bp.CollectMiniBlocks([]byte("hash"), &block.Body{})
+		require.NoError(t, err)
+
+	})
+
+	t.Run("should work", func(t *testing.T) {
+		t.Parallel()
+
+		coreComponents, dataComponents, bootstrapComponents, statusComponents := createComponentHolderMocks()
+		arguments := CreateMockArguments(coreComponents, dataComponents, bootstrapComponents, statusComponents)
+
+		bp, err := blproc.NewShardProcessor(arguments)
+		require.NoError(t, err)
+
+		miniBlockHeaderHandlers, totalTxCount, receiptHash, err := bp.CollectMiniBlocks([]byte("hash"), &block.Body{})
+		require.NoError(t, err)
+		require.Equal(t, 0, totalTxCount)
+		require.Equal(t, []byte("receiptHash"), receiptHash)
+		require.Nil(t, miniBlockHeaderHandlers)
+	})
+}
