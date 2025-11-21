@@ -3045,9 +3045,9 @@ func TestGetStartOfEpochRootHashFromExecutionResults(t *testing.T) {
 				ExecutionResult: &block.BaseMetaExecutionResult{
 					BaseExecutionResult: &block.BaseExecutionResult{
 						HeaderHash:  []byte("headerHash1"),
-						HeaderNonce: 1,
-						HeaderRound: 1,
-						RootHash:    []byte("rootHash1"),
+						HeaderNonce: 3,
+						HeaderRound: 3,
+						RootHash:    expRootHash,
 					},
 				},
 			},
