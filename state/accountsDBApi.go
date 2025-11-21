@@ -200,7 +200,7 @@ func (accountsDB *accountsDBApi) RecreateTrieIfNeeded(options common.RootHashHol
 	accountsDB.mutRecreatedTrieBlockInfo.Lock()
 	defer accountsDB.mutRecreatedTrieBlockInfo.Unlock()
 
-	log.Debug("accountsDBApi.RecreateTrieIfNeeded", "rootHash", accountsDB.blockInfo.GetRootHash())
+	log.Debug("accountsDBApi.RecreateTrieIfNeeded", "rootHash", options.GetRootHash())
 
 	newBlockInfo := holders.NewBlockInfo([]byte{}, 0, options.GetRootHash())
 	if newBlockInfo.Equal(accountsDB.blockInfo) {
