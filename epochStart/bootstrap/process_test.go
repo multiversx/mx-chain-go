@@ -2939,7 +2939,7 @@ func TestGetStartOfEpochRootHashFromExecutionResults(t *testing.T) {
 			},
 		}
 
-		retRootHash, err := getStartOfEpochRootHashFromExecutionResults(metaBlock)
+		retRootHash, err := getRootHashFromLastExecutionResult(metaBlock)
 		require.Error(t, err)
 		require.Nil(t, retRootHash)
 	})
@@ -3005,7 +3005,7 @@ func TestGetStartOfEpochRootHashFromExecutionResults(t *testing.T) {
 			},
 		}
 
-		retRootHash, err := getStartOfEpochRootHashFromExecutionResults(metaBlock)
+		retRootHash, err := getRootHashFromLastExecutionResult(metaBlock)
 		require.Equal(t, ErrGetEpochStartRootHash, err)
 		require.Nil(t, retRootHash)
 	})
@@ -3082,7 +3082,7 @@ func TestGetStartOfEpochRootHashFromExecutionResults(t *testing.T) {
 			},
 		}
 
-		retRootHash, err := getStartOfEpochRootHashFromExecutionResults(metaBlock)
+		retRootHash, err := getRootHashFromLastExecutionResult(metaBlock)
 		require.Nil(t, err)
 		require.Equal(t, expRootHash, retRootHash)
 	})

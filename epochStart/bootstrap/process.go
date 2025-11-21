@@ -1346,10 +1346,10 @@ func (e *epochStartBootstrap) getRootHashToSync(
 		return rootHashToSync, nil
 	}
 
-	return getStartOfEpochRootHashFromExecutionResults(header)
+	return getRootHashFromLastExecutionResult(header)
 }
 
-func getStartOfEpochRootHashFromExecutionResults(
+func getRootHashFromLastExecutionResult(
 	header data.HeaderHandler,
 ) ([]byte, error) {
 	lastExecutionResult, err := common.GetLastBaseExecutionResultHandler(header)
