@@ -5,6 +5,7 @@ import (
 
 	"github.com/multiversx/mx-chain-core-go/data"
 	"github.com/multiversx/mx-chain-core-go/data/block"
+
 	"github.com/multiversx/mx-chain-go/epochStart"
 	"github.com/multiversx/mx-chain-go/state"
 )
@@ -17,6 +18,12 @@ type RewardsCreatorStub struct {
 	VerifyRewardsMiniBlocksCalled func(
 		metaBlock data.MetaHeaderHandler, validatorsInfo state.ShardValidatorsInfoMapHandler, computedEconomics *block.Economics,
 	) error
+	CreateRewardsMiniBlocksV3called func(
+		metaBlock data.MetaHeaderHandler,
+		validatorsInfo state.ShardValidatorsInfoMapHandler,
+		computedEconomics *block.Economics,
+		prevBlockExecutionResults data.BaseMetaExecutionResultHandler,
+	) (block.MiniBlockSlice, error)
 	GetProtocolSustainabilityRewardsCalled func() *big.Int
 	GetLocalTxCacheCalled                  func() epochStart.TransactionCacher
 	CreateMarshalledDataCalled             func(body *block.Body) map[string][][]byte
@@ -36,6 +43,19 @@ func (rcs *RewardsCreatorStub) CreateRewardsMiniBlocks(
 		return rcs.CreateRewardsMiniBlocksCalled(metaBlock, validatorsInfo, computedEconomics)
 	}
 
+	return nil, nil
+}
+
+// CreateRewardsMiniBlocksV3 -
+func (rcs *RewardsCreatorStub) CreateRewardsMiniBlocksV3(
+	metaBlock data.MetaHeaderHandler,
+	validatorsInfo state.ShardValidatorsInfoMapHandler,
+	computedEconomics *block.Economics,
+	prevBlockExecutionResults data.BaseMetaExecutionResultHandler,
+) (block.MiniBlockSlice, error) {
+	if rcs.CreateRewardsMiniBlocksV3called != nil {
+		return rcs.CreateRewardsMiniBlocksV3called(metaBlock, validatorsInfo, computedEconomics, prevBlockExecutionResults)
+	}
 	return nil, nil
 }
 

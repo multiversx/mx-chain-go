@@ -103,8 +103,8 @@ func (rc *rewardsCreatorV2) CreateRewardsMiniBlocks(
 	return rc.createRewardsMiniBlocks(args)
 }
 
-// CreateRewardsMiniBlocksHeaderV3 creates the rewards miniblocks according to economics data and validator info.
-func (rc *rewardsCreatorV2) CreateRewardsMiniBlocksHeaderV3(
+// CreateRewardsMiniBlocksV3 creates the rewards miniblocks according to economics data and validator info.
+func (rc *rewardsCreatorV2) CreateRewardsMiniBlocksV3(
 	metaBlock data.MetaHeaderHandler,
 	validatorsInfo state.ShardValidatorsInfoMapHandler,
 	computedEconomics *block.Economics,

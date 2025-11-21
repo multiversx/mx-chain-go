@@ -11,3 +11,5 @@ var errNilAuctionListDisplayHandler = errors.New("nil auction list display handl
 var errNilTableDisplayHandler = errors.New("nil table display handler provided")
 
 var errHashMismatch = errors.New("hash mismatch")
+
+var errMethodNotSupported = errors.New("method not supported")

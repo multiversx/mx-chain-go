@@ -107,10 +107,7 @@ func (s *systemSCProcessor) ProcessSystemSmartContract(
 		return err
 	}
 
-	epochToUse := header.GetEpoch()
-	if header.IsHeaderV3() {
-		epochToUse = header.GetEpoch() + 1
-	}
+	epochToUse := GetEpochToUseEpochStartData(header)
 
 	err = s.processLegacy(validatorsInfoMap, header.GetNonce(), epochToUse)
 	if err != nil {

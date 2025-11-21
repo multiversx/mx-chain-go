@@ -11,6 +11,8 @@ import (
 	"github.com/multiversx/mx-chain-core-go/core"
 	"github.com/multiversx/mx-chain-core-go/data"
 	"github.com/multiversx/mx-chain-core-go/data/block"
+	"github.com/stretchr/testify/require"
+
 	retriever "github.com/multiversx/mx-chain-go/dataRetriever"
 	"github.com/multiversx/mx-chain-go/integrationTests/mock"
 	"github.com/multiversx/mx-chain-go/process"
@@ -18,8 +20,8 @@ import (
 	"github.com/multiversx/mx-chain-go/testscommon"
 	"github.com/multiversx/mx-chain-go/testscommon/dataRetriever"
 	"github.com/multiversx/mx-chain-go/testscommon/enableEpochsHandlerMock"
+	"github.com/multiversx/mx-chain-go/testscommon/headersForBlockMocks"
 	"github.com/multiversx/mx-chain-go/testscommon/pool"
-	"github.com/stretchr/testify/require"
 )
 
 var errorExpected = errors.New("expected error")
@@ -526,18 +528,18 @@ func TestHeadersForBlock_requestMissingAndUpdateBasedOnCrossShardData(t *testing
 		hfb, err := headerForBlock.NewHeadersForBlock(args)
 		require.NoError(t, err)
 
-		counterExpected := 0
+		counter := 0
 		hfb.RequestMissingAndUpdateBasedOnCrossShardData(
-			&headerForBlock.CrossShardMetaDataMock{
+			&headersForBlockMocks.CrossShardMetaDataMock{
 				GetShardIdCalled: func() uint32 {
-					counterExpected++
+					counter++
 					return 0
 				},
 			},
 		)
 
 		// GetShardIdCalled should be called twice on this flow
-		require.Equal(t, 2, counterExpected)
+		require.Equal(t, 2, counter)
 	})
 
 	t.Run("found it, but with different hashes", func(t *testing.T) {
@@ -552,27 +554,27 @@ func TestHeadersForBlock_requestMissingAndUpdateBasedOnCrossShardData(t *testing
 			ShardID: 1,
 		}, []byte("hash"))
 
-		counterExpected := 0
+		counter := 0
 		hfb.RequestMissingAndUpdateBasedOnCrossShardData(
-			&headerForBlock.CrossShardMetaDataMock{
+			&headersForBlockMocks.CrossShardMetaDataMock{
 				GetShardIdCalled: func() uint32 {
 					return 1
 				},
 				GetHeaderHashCalled: func() []byte {
-					counterExpected++
+					counter++
 					return []byte("wrongHash")
 				},
 			},
 		)
 
 		// GetHeaderHashCalled should be called twice on this flow
-		require.Equal(t, 2, counterExpected)
+		require.Equal(t, 2, counter)
 	})
 
 	t.Run("should increase missing headers and call RequestShardHeader", func(t *testing.T) {
 		t.Parallel()
 
-		counterExpected := 0
+		counter := 0
 		var mutRequestShardHeader sync.Mutex
 		wg := &sync.WaitGroup{}
 		wg.Add(1)
@@ -581,7 +583,7 @@ func TestHeadersForBlock_requestMissingAndUpdateBasedOnCrossShardData(t *testing
 		args.RequestHandler = &testscommon.RequestHandlerStub{
 			RequestShardHeaderCalled: func(shardID uint32, hash []byte) {
 				mutRequestShardHeader.Lock()
-				counterExpected++
+				counter++
 				mutRequestShardHeader.Unlock()
 
 				wg.Done()
@@ -609,14 +611,14 @@ func TestHeadersForBlock_requestMissingAndUpdateBasedOnCrossShardData(t *testing
 		wg.Wait()
 
 		mutRequestShardHeader.Lock()
-		require.Equal(t, 1, counterExpected)
+		require.Equal(t, 1, counter)
 		mutRequestShardHeader.Unlock()
 	})
 
 	t.Run("should request proofs", func(t *testing.T) {
 		t.Parallel()
 
-		counterExpected := 0
+		counter := 0
 		var mutRequestEquivalentProof sync.Mutex
 		wg := &sync.WaitGroup{}
 		wg.Add(1)
@@ -625,7 +627,7 @@ func TestHeadersForBlock_requestMissingAndUpdateBasedOnCrossShardData(t *testing
 		args.RequestHandler = &testscommon.RequestHandlerStub{
 			RequestEquivalentProofByHashCalled: func(shardID uint32, hash []byte) {
 				mutRequestEquivalentProof.Lock()
-				counterExpected++
+				counter++
 				mutRequestEquivalentProof.Unlock()
 
 				wg.Done()
@@ -663,7 +665,7 @@ func TestHeadersForBlock_requestMissingAndUpdateBasedOnCrossShardData(t *testing
 		wg.Wait()
 
 		mutRequestEquivalentProof.Lock()
-		require.Equal(t, 1, counterExpected)
+		require.Equal(t, 1, counter)
 		mutRequestEquivalentProof.Unlock()
 	})
 }
@@ -689,7 +691,7 @@ func TestHeadersForBlock_computeExistingAndRequestMissingShardHeaders(t *testing
 			},
 		}
 
-		counterExpected := 0
+		counter := 0
 		var mutRequestShardHeader sync.Mutex
 		wg := &sync.WaitGroup{}
 		wg.Add(len(shardInfoHandlers))
@@ -698,7 +700,7 @@ func TestHeadersForBlock_computeExistingAndRequestMissingShardHeaders(t *testing
 		args.RequestHandler = &testscommon.RequestHandlerStub{
 			RequestShardHeaderCalled: func(shardID uint32, hash []byte) {
 				mutRequestShardHeader.Lock()
-				counterExpected++
+				counter++
 				mutRequestShardHeader.Unlock()
 
 				wg.Done()
@@ -726,8 +728,8 @@ func TestHeadersForBlock_computeExistingAndRequestMissingShardHeaders(t *testing
 		wg.Wait()
 
 		mutRequestShardHeader.Lock()
-		// counterExpected should be incremented on the RequestShardHeader call for each shard info handler
-		require.Equal(t, 3, counterExpected)
+		// counter should be incremented on the RequestShardHeader call for each shard info handler
+		require.Equal(t, 3, counter)
 		mutRequestShardHeader.Unlock()
 	})
 
@@ -749,7 +751,7 @@ func TestHeadersForBlock_computeExistingAndRequestMissingShardHeaders(t *testing
 			},
 		}
 
-		counterExpected := 0
+		counter := 0
 		var mutRequestShardHeader sync.Mutex
 		wg := &sync.WaitGroup{}
 		wg.Add(len(shardInfoHandlers))
@@ -758,7 +760,7 @@ func TestHeadersForBlock_computeExistingAndRequestMissingShardHeaders(t *testing
 		args.RequestHandler = &testscommon.RequestHandlerStub{
 			RequestShardHeaderCalled: func(shardID uint32, hash []byte) {
 				mutRequestShardHeader.Lock()
-				counterExpected++
+				counter++
 				mutRequestShardHeader.Unlock()
 
 				wg.Done()
@@ -786,8 +788,8 @@ func TestHeadersForBlock_computeExistingAndRequestMissingShardHeaders(t *testing
 		wg.Wait()
 
 		mutRequestShardHeader.Lock()
-		// counterExpected should be incremented on the RequestShardHeader call for each shard info handler
-		require.Equal(t, 3, counterExpected)
+		// counter should be incremented on the RequestShardHeader call for each shard info handler
+		require.Equal(t, 3, counter)
 		mutRequestShardHeader.Unlock()
 	})
 }

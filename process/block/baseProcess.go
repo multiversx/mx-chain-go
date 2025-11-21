@@ -3290,8 +3290,6 @@ func (bp *baseProcessor) checkContextBeforeExecution(header data.HeaderHandler) 
 		return err
 	}
 
-	// TODO: the GetLastExecutedBlockInfo should return also the LastCommittedBlockInfo (in case the committed block was V2)
-	// this is done on another PR
 	lastExecutedNonce, lastExecutedHash, lastExecutedRootHash := bp.blockChain.GetLastExecutedBlockInfo()
 	if !bytes.Equal(header.GetPrevHash(), lastExecutedHash) {
 		return process.ErrBlockHashDoesNotMatch
@@ -3308,8 +3306,11 @@ func (bp *baseProcessor) checkContextBeforeExecution(header data.HeaderHandler) 
 
 func (bp *baseProcessor) getCrossShardIncomingMiniBlocksFromBody(body *block.Body) []*block.MiniBlock {
 	miniBlocks := make([]*block.MiniBlock, 0)
+
+	isReceiverCurrentShard := false
 	for _, mb := range body.MiniBlocks {
-		if mb.ReceiverShardID == bp.shardCoordinator.SelfId() && mb.SenderShardID != bp.shardCoordinator.SelfId() {
+		isReceiverCurrentShard = mb.ReceiverShardID == bp.shardCoordinator.SelfId() || mb.ReceiverShardID == core.AllShardId
+		if isReceiverCurrentShard && mb.SenderShardID != bp.shardCoordinator.SelfId() {
 			miniBlocks = append(miniBlocks, mb)
 		}
 	}
