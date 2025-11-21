@@ -11,7 +11,7 @@ import (
 	"github.com/multiversx/mx-chain-core-go/data/block"
 	"github.com/multiversx/mx-chain-go/state"
 	"github.com/multiversx/mx-chain-go/testscommon/marshallerMock"
-	state2 "github.com/multiversx/mx-chain-go/testscommon/state"
+	testscommonState "github.com/multiversx/mx-chain-go/testscommon/state"
 	"github.com/stretchr/testify/require"
 
 	"github.com/multiversx/mx-chain-go/common"
@@ -3010,7 +3010,7 @@ func TestMetaProcessor_processIfFirstBlockAfterEpochStartBlockV3(t *testing.T) {
 		require.Nil(t, err)
 	})
 
-	t.Run("should return err from SaveNodesCoordinatorUpdates", func(t *testing.T) {
+	t.Run("if SaveNodesCoordinatorUpdates fails, the error should be propagated", func(t *testing.T) {
 		t.Parallel()
 
 		mp, err := blproc.ConstructPartialMetaBlockProcessorForTest(map[string]interface{}{
@@ -3038,7 +3038,7 @@ func TestMetaProcessor_processIfFirstBlockAfterEpochStartBlockV3(t *testing.T) {
 		require.Equal(t, expectedErr, err)
 	})
 
-	t.Run("should return err from ToggleUnStakeUnBond", func(t *testing.T) {
+	t.Run("if ToggleUnStakeUnBondCalled fails, the error should be propagated", func(t *testing.T) {
 		t.Parallel()
 
 		mp, err := blproc.ConstructPartialMetaBlockProcessorForTest(map[string]interface{}{
@@ -3151,7 +3151,7 @@ func TestMetaProcessor_processEpochStartProposeBlock(t *testing.T) {
 		require.Equal(t, process.ErrEpochStartProposeBlockHasMiniBlocks, err)
 	})
 
-	t.Run("should return error on processEconomicsDataForEpochStartProposeBlock from CreateEpochStartShardDataMetablockV3", func(t *testing.T) {
+	t.Run("if processEconomicsDataForEpochStartProposeBlock fails, the error should be propagated", func(t *testing.T) {
 		t.Parallel()
 
 		mp, err := blproc.ConstructPartialMetaBlockProcessorForTest(map[string]interface{}{
@@ -3172,7 +3172,7 @@ func TestMetaProcessor_processEpochStartProposeBlock(t *testing.T) {
 		require.Equal(t, expectedErr, err)
 	})
 
-	t.Run("should return error on processing epoch start mini blocks, when getting the validator statistics root hash", func(t *testing.T) {
+	t.Run("if processing epoch start mini blocks fails, the error should be propagated", func(t *testing.T) {
 		t.Parallel()
 
 		coreComponents, dataComponents, boostrapComponents, statusComponents := createMockComponentHolders()
@@ -3197,7 +3197,7 @@ func TestMetaProcessor_processEpochStartProposeBlock(t *testing.T) {
 		require.Equal(t, expectedErr, err)
 	})
 
-	t.Run("should return error when updating validator statistics", func(t *testing.T) {
+	t.Run("if updating validator statistics fails, the error should be propagated", func(t *testing.T) {
 		t.Parallel()
 
 		coreComponents, dataComponents, boostrapComponents, statusComponents := createMockComponentHolders()
@@ -3232,7 +3232,7 @@ func TestMetaProcessor_processEpochStartProposeBlock(t *testing.T) {
 		require.Equal(t, expectedErr, err)
 	})
 
-	t.Run("should return error when committing the state", func(t *testing.T) {
+	t.Run("if committing the state fails, the error should be propagated", func(t *testing.T) {
 		t.Parallel()
 
 		coreComponents, dataComponents, boostrapComponents, statusComponents := createMockComponentHolders()
@@ -3253,7 +3253,7 @@ func TestMetaProcessor_processEpochStartProposeBlock(t *testing.T) {
 		}
 
 		accountsDb := make(map[state.AccountsDbIdentifier]state.AccountsAdapter)
-		accounts := &state2.AccountsStub{
+		accounts := &testscommonState.AccountsStub{
 			CommitCalled: func() ([]byte, error) {
 				return nil, expectedErr
 			},
@@ -3271,7 +3271,7 @@ func TestMetaProcessor_processEpochStartProposeBlock(t *testing.T) {
 		require.Equal(t, expectedErr, err)
 	})
 
-	t.Run("should return error from HandleProcessErrorCutoff", func(t *testing.T) {
+	t.Run("if HandleProcessErrorCutoff fails, the error should be propagated", func(t *testing.T) {
 		t.Parallel()
 
 		coreComponents, dataComponents, boostrapComponents, statusComponents := createMockComponentHolders()
@@ -3306,7 +3306,7 @@ func TestMetaProcessor_processEpochStartProposeBlock(t *testing.T) {
 		require.Equal(t, expectedErr, err)
 	})
 
-	t.Run("should return error when calculating the hash", func(t *testing.T) {
+	t.Run("if calculating the hash fails, the error should be propagated", func(t *testing.T) {
 		t.Parallel()
 
 		coreComponents, dataComponents, boostrapComponents, statusComponents := createMockComponentHolders()
@@ -3387,7 +3387,7 @@ func TestMetaProcessor_processEpochStartProposeBlock(t *testing.T) {
 func TestMetaProcessor_processEconomicsDataForEpochStartProposeBlock(t *testing.T) {
 	t.Parallel()
 
-	t.Run("should return ErrNilBaseExecutionResult error", func(t *testing.T) {
+	t.Run("should return ErrNilBaseExecutionResult error on nil last execution result", func(t *testing.T) {
 		t.Parallel()
 
 		mp, err := blproc.ConstructPartialMetaBlockProcessorForTest(map[string]interface{}{
@@ -3403,7 +3403,7 @@ func TestMetaProcessor_processEconomicsDataForEpochStartProposeBlock(t *testing.
 		require.ErrorContains(t, err, process.ErrNilBaseExecutionResult.Error())
 	})
 
-	t.Run("should return ErrWrongTypeAssertion error because of wrong type of last execution result", func(t *testing.T) {
+	t.Run("should return ErrWrongTypeAssertion error on wrong type of last execution result", func(t *testing.T) {
 		t.Parallel()
 
 		mp, err := blproc.ConstructPartialMetaBlockProcessorForTest(map[string]interface{}{
@@ -3419,7 +3419,7 @@ func TestMetaProcessor_processEconomicsDataForEpochStartProposeBlock(t *testing.
 		require.Equal(t, common.ErrWrongTypeAssertion, err)
 	})
 
-	t.Run("should return error from CreateEpochStartShardDataMetablockV3", func(t *testing.T) {
+	t.Run("if CreateEpochStartShardDataMetablockV3 fails, the error should be propagated", func(t *testing.T) {
 		t.Parallel()
 
 		mp, err := blproc.ConstructPartialMetaBlockProcessorForTest(map[string]interface{}{
@@ -3440,7 +3440,7 @@ func TestMetaProcessor_processEconomicsDataForEpochStartProposeBlock(t *testing.
 		require.Equal(t, expectedErr, err)
 	})
 
-	t.Run("should return error from ComputeEndOfEpochEconomicsV3", func(t *testing.T) {
+	t.Run("if ComputeEndOfEpochEconomicsV3 fails, the error should be propagated", func(t *testing.T) {
 		t.Parallel()
 
 		mp, err := blproc.ConstructPartialMetaBlockProcessorForTest(map[string]interface{}{
@@ -3501,7 +3501,7 @@ func TestMetaProcessor_processEconomicsDataForEpochStartProposeBlock(t *testing.
 func TestMetaProcessor_createExecutionResult(t *testing.T) {
 	t.Parallel()
 
-	t.Run("should return ErrGasUsedExceedsGasProvided error", func(t *testing.T) {
+	t.Run("if computing the gas used fails, the error should be propagated", func(t *testing.T) {
 		t.Parallel()
 
 		mp, err := blproc.ConstructPartialMetaBlockProcessorForTest(map[string]interface{}{
@@ -3575,7 +3575,7 @@ func TestMetaProcessor_createExecutionResult(t *testing.T) {
 func TestMetaProcessor_collectExecutionResults(t *testing.T) {
 	t.Parallel()
 
-	t.Run("should fail because of error on CreateReceiptsHash", func(t *testing.T) {
+	t.Run("if CreateReceiptsHash fails, the error should be propagated", func(t *testing.T) {
 		t.Parallel()
 
 		coreComponents, dataComponents, boostrapComponents, statusComponents := createMockComponentHolders()
@@ -3601,7 +3601,7 @@ func TestMetaProcessor_collectExecutionResults(t *testing.T) {
 		require.Equal(t, expectedErr, err)
 	})
 
-	t.Run("should fail because of marshal error", func(t *testing.T) {
+	t.Run("if marshal fails, the error should be propagated", func(t *testing.T) {
 		t.Parallel()
 
 		coreComponents, dataComponents, boostrapComponents, statusComponents := createMockComponentHolders()

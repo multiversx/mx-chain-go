@@ -111,6 +111,7 @@ func (rcs *RewardsCreatorStub) RemoveBlockDataFromPools(metaBlock data.MetaHeade
 	}
 }
 
+// CreateRewardsMiniBlocksHeaderV3 -
 func (rcs *RewardsCreatorStub) CreateRewardsMiniBlocksHeaderV3(
 	metaBlock data.MetaHeaderHandler,
 	validatorsInfo state.ShardValidatorsInfoMapHandler,
