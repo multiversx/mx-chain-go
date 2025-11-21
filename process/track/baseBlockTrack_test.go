@@ -2844,7 +2844,7 @@ func TestMetaBlockTrack_GetTrackedMetaBlockWithHashShouldWork(t *testing.T) {
 
 	metaBlock, err = mbt.GetTrackedMetaBlockWithHash(hash)
 	assert.Nil(t, err)
-	assert.Equal(t, nonce+1, metaBlock.Nonce)
+	assert.Equal(t, nonce+1, metaBlock.GetNonce())
 }
 
 func TestShardBlockTrack_GetTrackedShardHeaderWithNonceAndHashShouldWork(t *testing.T) {

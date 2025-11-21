@@ -1743,6 +1743,21 @@ func (boot *baseBootstrap) getMiniBlocksRequestingIfMissing(hashes [][]byte) (bl
 	return getOrderedMiniBlocks(hashes, miniBlocksAndHashes)
 }
 
+func (boot *baseBootstrap) getHeaderMiniBlocksRequestingIfMissing(
+	header data.HeaderHandler,
+) (block.MiniBlockSlice, error) {
+	miniBlockHeaderHandlers := header.GetMiniBlockHeaderHandlers()
+
+	hashes := make([][]byte, len(miniBlockHeaderHandlers))
+	for i, miniBlockHeaderHandler := range miniBlockHeaderHandlers {
+		hashes[i] = miniBlockHeaderHandler.GetHash()
+	}
+
+	boot.setRequestedMiniBlocks(nil)
+
+	return boot.getMiniBlocksRequestingIfMissing(hashes)
+}
+
 func getOrderedMiniBlocks(
 	hashes [][]byte,
 	miniBlocksAndHashes []*block.MiniblockAndHash,
@@ -1908,6 +1923,29 @@ func (boot *baseBootstrap) cleanChannels() {
 
 	nrReads = core.EmptyChannel(boot.chRcvMiniBlocks)
 	log.Debug("close baseSync: emptied channel", "chRcvMiniBlocks nrReads", nrReads)
+}
+
+func (boot *baseBootstrap) getHeaderMiniBlocks(
+	header data.HeaderHandler,
+) (block.MiniBlockSlice, error) {
+	miniBlockHeaders := header.GetMiniBlockHeaderHandlers()
+
+	hashes := make([][]byte, len(miniBlockHeaders))
+	for i, miniBlockHeader := range miniBlockHeaders {
+		hashes[i] = miniBlockHeader.GetHash()
+	}
+
+	miniBlocksAndHashes, missingMiniBlocksHashes := boot.miniBlocksProvider.GetMiniBlocks(hashes)
+	if len(missingMiniBlocksHashes) > 0 {
+		return nil, process.ErrMissingBody
+	}
+
+	miniBlocks := make([]*block.MiniBlock, len(miniBlocksAndHashes))
+	for index, miniBlockAndHash := range miniBlocksAndHashes {
+		miniBlocks[index] = miniBlockAndHash.Miniblock
+	}
+
+	return miniBlocks, nil
 }
 
 // IsInterfaceNil returns true if there is no value under the interface
