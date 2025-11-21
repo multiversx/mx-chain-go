@@ -2980,9 +2980,7 @@ func TestMetaProcessor_processIfFirstBlockAfterEpochStartBlockV3(t *testing.T) {
 		t.Parallel()
 
 		coreComponents, dataComponents, boostrapComponents, statusComponents := createMockComponentHolders()
-		dataComponents.BlockChain.SetLastExecutedBlockHeaderAndRootHash(nil, nil, nil)
-		err := dataComponents.BlockChain.SetGenesisHeader(nil)
-		require.Nil(t, err)
+		dataComponents.BlockChain.SetLastExecutedBlockHeaderAndRootHash(&block.HeaderV3{}, nil, nil)
 		arguments := createMockMetaArguments(coreComponents, dataComponents, boostrapComponents, statusComponents)
 
 		mp, err := blproc.NewMetaProcessor(arguments)
