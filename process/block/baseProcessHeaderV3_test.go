@@ -1,13 +1,14 @@
 package block
 
 import (
-	"bytes"
 	"errors"
 	"testing"
 
 	"github.com/multiversx/mx-chain-core-go/data"
 	"github.com/multiversx/mx-chain-core-go/data/block"
 	"github.com/multiversx/mx-chain-core-go/data/transaction"
+	"github.com/stretchr/testify/require"
+
 	"github.com/multiversx/mx-chain-go/common"
 	"github.com/multiversx/mx-chain-go/dataRetriever"
 	"github.com/multiversx/mx-chain-go/process"
@@ -18,7 +19,6 @@ import (
 	"github.com/multiversx/mx-chain-go/testscommon/enableEpochsHandlerMock"
 	"github.com/multiversx/mx-chain-go/testscommon/marshallerMock"
 	commonStorage "github.com/multiversx/mx-chain-go/testscommon/storage"
-	"github.com/stretchr/testify/require"
 )
 
 var (
@@ -234,7 +234,7 @@ func TestBaseProcessor_saveExecutedData(t *testing.T) {
 		t.Run("extractMiniBlocksHeaderHandlersFromExecResult cast failure for meta execution result", func(t *testing.T) {
 			t.Parallel()
 
-			bp := &baseProcessor{}
+			bp := getDefaultBaseProcessor()
 			header := &testscommon.HeaderHandlerStub{
 				IsHeaderV3Called: func() bool {
 					return true
@@ -270,11 +270,10 @@ func TestBaseProcessor_saveExecutedData(t *testing.T) {
 		t.Run("putMiniBlocksIntoStorage returns error on GetStorer", func(t *testing.T) {
 			t.Parallel()
 
-			bp := &baseProcessor{
-				store: &commonStorage.ChainStorerStub{
-					GetStorerCalled: func(unitType dataRetriever.UnitType) (storage.Storer, error) {
-						return nil, errExpected
-					},
+			bp := getDefaultBaseProcessor()
+			bp.store = &commonStorage.ChainStorerStub{
+				GetStorerCalled: func(unitType dataRetriever.UnitType) (storage.Storer, error) {
+					return nil, errExpected
 				},
 			}
 			header := getHeaderHandlerWithMiniBlocksHeaders([]block.MiniBlockHeader{{}})
@@ -294,15 +293,17 @@ func TestBaseProcessor_saveExecutedData(t *testing.T) {
 		t.Run("putMiniBlocksIntoStorage cross-shard incoming should delete only", func(t *testing.T) {
 			t.Parallel()
 
+			getCalls := 0
 			bp := getDefaultBaseProcessor()
 			bp.dataPool = &dataRetrieverMock.PoolsHolderStub{
 				ExecutedMiniBlocksCalled: func() storage.Cacher {
 					return &cache.CacherStub{
 						GetCalled: func(key []byte) (value interface{}, ok bool) {
-							if bytes.Contains(key, postProcessMiniBlocksKey) {
-								return nil, false
+							getCalls++
+							if getCalls > 1 {
+								// only called once for receipts saving
+								require.Fail(t, "should not be called")
 							}
-							require.Fail(t, "should not be called")
 							return nil, false
 						},
 					}
@@ -344,27 +345,26 @@ func TestBaseProcessor_saveExecutedData(t *testing.T) {
 		t.Run("putMiniBlocksIntoStorage fails to add into storer", func(t *testing.T) {
 			t.Parallel()
 
-			bp := &baseProcessor{
-				store: &commonStorage.ChainStorerStub{
-					GetStorerCalled: func(unitType dataRetriever.UnitType) (storage.Storer, error) {
-						return &commonStorage.StorerStub{
-							PutCalled: func(key, data []byte) error {
-								return errExpected
-							},
-						}, nil
-					},
+			bp := getDefaultBaseProcessor()
+			bp.store = &commonStorage.ChainStorerStub{
+				GetStorerCalled: func(unitType dataRetriever.UnitType) (storage.Storer, error) {
+					return &commonStorage.StorerStub{
+						PutCalled: func(key, data []byte) error {
+							return errExpected
+						},
+					}, nil
 				},
-				dataPool: &dataRetrieverMock.PoolsHolderStub{
-					ExecutedMiniBlocksCalled: func() storage.Cacher {
-						return &cache.CacherStub{
-							GetCalled: func(key []byte) (value interface{}, ok bool) {
-								return []byte("marshalled mb"), true
-							},
-						}
-					},
-				},
-				shardCoordinator: &testscommon.ShardsCoordinatorMock{},
 			}
+			bp.dataPool = &dataRetrieverMock.PoolsHolderStub{
+				ExecutedMiniBlocksCalled: func() storage.Cacher {
+					return &cache.CacherStub{
+						GetCalled: func(key []byte) (value interface{}, ok bool) {
+							return []byte("marshalled mb"), true
+						},
+					}
+				},
+			}
+
 			header := getHeaderHandlerWithMiniBlocksHeaders([]block.MiniBlockHeader{{}})
 
 			err := bp.saveExecutedData(header, headerHash)
@@ -375,7 +375,7 @@ func TestBaseProcessor_saveExecutedData(t *testing.T) {
 		t.Run("miniBlocksToSelf not found in cache do not save receipts", func(t *testing.T) {
 			t.Parallel()
 
-			getCalled := false
+			getCalls := 0
 			bp := getDefaultBaseProcessor()
 			bp.receiptsRepository = &testscommon.ReceiptsRepositoryStub{
 				SaveReceiptsCalled: func(holder common.ReceiptsHolder, header data.HeaderHandler, headerHash []byte) error {
@@ -387,9 +387,7 @@ func TestBaseProcessor_saveExecutedData(t *testing.T) {
 				ExecutedMiniBlocksCalled: func() storage.Cacher {
 					return &cache.CacherStub{
 						GetCalled: func(key []byte) (value interface{}, ok bool) {
-							if bytes.Contains(key, postProcessMiniBlocksKey) {
-								getCalled = true
-							}
+							getCalls++
 							return nil, false
 						},
 					}
@@ -399,12 +397,12 @@ func TestBaseProcessor_saveExecutedData(t *testing.T) {
 
 			err := bp.saveReceiptsForHeader(header, headerHash)
 			require.Nil(t, err)
-			require.True(t, getCalled)
+			require.Equal(t, 1, getCalls) // one for receipts, one for saving mini blocks
 		})
 		t.Run("miniBlocksToSelf unmarshall error", func(t *testing.T) {
 			t.Parallel()
 
-			getCalled := false
+			getCalls := 0
 			bp := getDefaultBaseProcessor()
 			bp.receiptsRepository = &testscommon.ReceiptsRepositoryStub{
 				SaveReceiptsCalled: func(holder common.ReceiptsHolder, header data.HeaderHandler, headerHash []byte) error {
@@ -416,11 +414,8 @@ func TestBaseProcessor_saveExecutedData(t *testing.T) {
 				ExecutedMiniBlocksCalled: func() storage.Cacher {
 					return &cache.CacherStub{
 						GetCalled: func(key []byte) (value interface{}, ok bool) {
-							if bytes.Contains(key, postProcessMiniBlocksKey) {
-								getCalled = true
-								return []byte("marshalled mb"), true
-							}
-							return nil, false
+							getCalls++
+							return []byte("marshalled mb"), true
 						},
 					}
 				},
@@ -434,9 +429,10 @@ func TestBaseProcessor_saveExecutedData(t *testing.T) {
 
 			err := bp.saveReceiptsForHeader(header, headerHash)
 			require.Equal(t, errExpected, err)
-			require.True(t, getCalled)
+			require.Equal(t, 1, getCalls)
 		})
-		t.Run("saves receipts and removes cached data", func(t *testing.T) {
+		// removal is done on save mini blocks
+		t.Run("saves receipts and without removing cached data", func(t *testing.T) {
 			t.Parallel()
 
 			savedCalled := false
@@ -465,10 +461,7 @@ func TestBaseProcessor_saveExecutedData(t *testing.T) {
 				ExecutedMiniBlocksCalled: func() storage.Cacher {
 					return &cache.CacherStub{
 						GetCalled: func(key []byte) (value interface{}, ok bool) {
-							if bytes.Contains(key, postProcessMiniBlocksKey) {
-								return miniBlocksBytes, true
-							}
-							return nil, false
+							return miniBlocksBytes, true
 						},
 						RemoveCalled: func(key []byte) {
 							removeCalled = true
@@ -481,7 +474,7 @@ func TestBaseProcessor_saveExecutedData(t *testing.T) {
 			err := bp.saveReceiptsForHeader(header, headerHash)
 			require.Nil(t, err)
 			require.True(t, savedCalled)
-			require.True(t, removeCalled)
+			require.False(t, removeCalled)
 		})
 	})
 	t.Run("saveIntermediateTxs path", func(t *testing.T) {
@@ -655,6 +648,7 @@ func TestBaseProcessor_saveExecutedData(t *testing.T) {
 		cntPutCalled := 0
 		wasRemoveCalledForTxs := false
 		wasRemoveCalledForMbs := false
+		getCalls := 0
 		bp := &baseProcessor{
 			receiptsRepository: &testscommon.ReceiptsRepositoryStub{
 				SaveReceiptsCalled: func(holder common.ReceiptsHolder, header data.HeaderHandler, headerHash []byte) error {
@@ -695,7 +689,8 @@ func TestBaseProcessor_saveExecutedData(t *testing.T) {
 				ExecutedMiniBlocksCalled: func() storage.Cacher {
 					return &cache.CacherStub{
 						GetCalled: func(key []byte) (value interface{}, ok bool) {
-							if bytes.Contains(key, []byte("postProcessMiniBlocks")) {
+							getCalls++
+							if getCalls == 1 {
 								return nil, false
 							}
 							return []byte("marshalled mb"), true
