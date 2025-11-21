@@ -1,6 +1,7 @@
 package chainSimulator
 
 import (
+	"fmt"
 	"math/big"
 	"strings"
 	"testing"
@@ -123,6 +124,8 @@ func TestChainSimulator_VerifyBlockTimestampSupernova(t *testing.T) {
 		t.Skip("this is not a short test")
 	}
 
+	supernovaActivationRound := uint64(220)
+
 	chainSimulator, err := NewChainSimulator(ArgsChainSimulator{
 		BypassTxSignatureCheck:         true,
 		TempDir:                        t.TempDir(),
@@ -131,7 +134,7 @@ func TestChainSimulator_VerifyBlockTimestampSupernova(t *testing.T) {
 		RoundDurationInMillis:          defaultRoundDurationInMillis,
 		SupernovaRoundDurationInMillis: defaultSupernovaRoundDurationInMillis,
 		RoundsPerEpoch: core.OptionalUint64{
-			Value:    10,
+			Value:    20,
 			HasValue: true,
 		},
 		SupernovaRoundsPerEpoch: defaultSupernovaRoundsPerEpoch,
@@ -148,7 +151,7 @@ func TestChainSimulator_VerifyBlockTimestampSupernova(t *testing.T) {
 			cfg.EpochConfig.EnableEpochs.StakingV2EnableEpoch = 0
 			cfg.EpochConfig.EnableEpochs.SupernovaEnableEpoch = 100
 			cfg.RoundConfig.RoundActivations[string(common.SupernovaRoundFlag)] = config.ActivationRoundByName{
-				Round: "220",
+				Round: fmt.Sprintf("%d", supernovaActivationRound),
 			}
 		},
 	})
@@ -158,27 +161,22 @@ func TestChainSimulator_VerifyBlockTimestampSupernova(t *testing.T) {
 
 	time.Sleep(time.Second)
 
-	err = chainSimulator.GenerateBlocks(3)
-	require.Nil(t, err)
-
-	block1, err := chainSimulator.GetNodeHandler(0).GetFacadeHandler().GetBlockByNonce(102, apiBlock.BlockQueryOptions{})
-	require.Nil(t, err)
-	block2, err := chainSimulator.GetNodeHandler(0).GetFacadeHandler().GetBlockByNonce(103, apiBlock.BlockQueryOptions{})
-	require.Nil(t, err)
-
-	timestampDiff := block2.TimestampMs - block1.TimestampMs
-	require.Equal(t, uint64(timestampDiff), defaultRoundDurationInMillis)
-
 	err = chainSimulator.GenerateBlocks(30)
 	require.Nil(t, err)
 
-	block1, err = chainSimulator.GetNodeHandler(0).GetFacadeHandler().GetBlockByNonce(124, apiBlock.BlockQueryOptions{})
-	require.Nil(t, err)
-	block2, err = chainSimulator.GetNodeHandler(0).GetFacadeHandler().GetBlockByNonce(125, apiBlock.BlockQueryOptions{})
+	blockBeforeSupernovaRound, err := chainSimulator.GetNodeHandler(0).GetFacadeHandler().GetBlockByRound(supernovaActivationRound-1, apiBlock.BlockQueryOptions{})
 	require.Nil(t, err)
 
-	timestampDiff = block2.TimestampMs - block1.TimestampMs
-	require.Equal(t, uint64(timestampDiff), defaultSupernovaRoundDurationInMillis)
+	blockS, err := chainSimulator.GetNodeHandler(0).GetFacadeHandler().GetBlockByRound(supernovaActivationRound, apiBlock.BlockQueryOptions{})
+	require.Nil(t, err)
+
+	blockAfterSupernovaRound, err := chainSimulator.GetNodeHandler(0).GetFacadeHandler().GetBlockByRound(supernovaActivationRound+1, apiBlock.BlockQueryOptions{})
+	require.Nil(t, err)
+
+	diff := blockS.Timestamp - blockBeforeSupernovaRound.Timestamp
+	require.Equal(t, uint64(6), uint64(diff))
+	diff = blockAfterSupernovaRound.TimestampMs - blockS.TimestampMs
+	require.Equal(t, defaultSupernovaRoundDurationInMillis, uint64(diff))
 }
 
 func TestChainSimulator_GenerateBlocksAndEpochChangeShouldWork(t *testing.T) {

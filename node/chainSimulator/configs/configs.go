@@ -41,6 +41,8 @@ const (
 	// ChainSimulatorConsensusGroupSize defines the size of the consensus group for chain simulator
 	ChainSimulatorConsensusGroupSize = 1
 	allValidatorsPemFileName         = "allValidatorsKeys.pem"
+
+	numRoundsAfterSupernovaEnableEpoch = 5
 )
 
 // ArgsChainSimulatorConfigs holds all the components needed to create the chain simulator configs
@@ -189,11 +191,12 @@ func updateSupernovaConfigs(configs *config.Configs, args ArgsChainSimulatorConf
 	hasCorrectActionRound := false
 	diff := int(supernovaEpoch) - int(args.InitialEpoch)
 	if diff >= 0 {
-		correctRoundActivationForSupernova := args.InitialRound + int64(diff)*int64(args.RoundsPerEpoch.Value) + 5 // 5 rounds later
+
+		correctRoundActivationForSupernova := args.InitialRound + int64(diff)*int64(args.RoundsPerEpoch.Value) + numRoundsAfterSupernovaEnableEpoch
 		supernovaActivationRound, _ := strconv.ParseInt(configs.RoundConfig.RoundActivations[string(common.SupernovaRoundFlag)].Round, 10, 64)
 		if supernovaActivationRound > correctRoundActivationForSupernova {
 			diffRounds := supernovaActivationRound - correctRoundActivationForSupernova
-			diffIsGreaterThanAnEpoch := diffRounds > int64(args.RoundsPerEpoch.Value)
+			diffIsGreaterThanAnEpoch := diffRounds > int64(args.RoundsPerEpoch.Value)-numRoundsAfterSupernovaEnableEpoch
 			if !diffIsGreaterThanAnEpoch {
 				hasCorrectActionRound = true
 			}
@@ -202,7 +205,7 @@ func updateSupernovaConfigs(configs *config.Configs, args ArgsChainSimulatorConf
 
 	// update supernova round for the new rounds per epoch config
 	newRoundsPerEpoch := args.RoundsPerEpoch.Value
-	newSupernovaRound := uint64(supernovaEpoch)*newRoundsPerEpoch + 5 // 5 rounds later
+	newSupernovaRound := uint64(supernovaEpoch)*newRoundsPerEpoch + numRoundsAfterSupernovaEnableEpoch
 	if isSupernovaFromGenesis {
 		// if supernova is from genesis, the round should be 0 as well
 		newSupernovaRound = 0
