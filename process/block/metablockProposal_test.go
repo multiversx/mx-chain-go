@@ -9,7 +9,9 @@ import (
 	"github.com/multiversx/mx-chain-core-go/core"
 	"github.com/multiversx/mx-chain-core-go/data"
 	"github.com/multiversx/mx-chain-core-go/data/block"
+	"github.com/multiversx/mx-chain-go/state"
 	"github.com/multiversx/mx-chain-go/testscommon/marshallerMock"
+	state2 "github.com/multiversx/mx-chain-go/testscommon/state"
 	"github.com/stretchr/testify/require"
 
 	"github.com/multiversx/mx-chain-go/common"
@@ -3143,6 +3145,238 @@ func TestMetaProcessor_processEpochStartProposeBlock(t *testing.T) {
 		})
 		require.Equal(t, process.ErrEpochStartProposeBlockHasMiniBlocks, err)
 	})
+
+	t.Run("should return error from CreateEpochStartShardDataMetablockV3", func(t *testing.T) {
+		t.Parallel()
+
+		mp, err := blproc.ConstructPartialMetaBlockProcessorForTest(map[string]interface{}{
+			"blockChain": &testscommon.ChainHandlerStub{
+				GetLastExecutionResultCalled: func() data.BaseExecutionResultHandler {
+					return &block.MetaExecutionResult{}
+				},
+			},
+			"epochStartDataCreator": &mock.EpochStartDataCreatorStub{
+				CreateEpochStartShardDataMetablockV3Called: func(metaBlock data.MetaHeaderHandler) ([]block.EpochStartShardData, error) {
+					return nil, expectedErr
+				},
+			},
+		})
+		require.Nil(t, err)
+
+		_, err = mp.ProcessEpochStartProposeBlock(&block.MetaBlockV3{}, &block.Body{})
+		require.Equal(t, expectedErr, err)
+	})
+
+	t.Run("should return error when processing epoch start mini blocks", func(t *testing.T) {
+		t.Parallel()
+
+		coreComponents, dataComponents, boostrapComponents, statusComponents := createMockComponentHolders()
+		blockchainMock := &testscommon.ChainHandlerMock{}
+		err := blockchainMock.SetGenesisHeader(&block.Header{})
+		require.Nil(t, err)
+		blockchainMock.SetLastExecutionResult(&block.MetaExecutionResult{})
+		dataComponents.BlockChain = blockchainMock
+
+		arguments := createMockMetaArguments(coreComponents, dataComponents, boostrapComponents, statusComponents)
+		arguments.ValidatorStatisticsProcessor = &testscommon.ValidatorStatisticsProcessorStub{
+			RootHashCalled: func() ([]byte, error) {
+				return nil, expectedErr
+			},
+		}
+
+		mp, err := blproc.NewMetaProcessor(arguments)
+		require.Nil(t, err)
+
+		mp.SetEpochStartData(&blproc.EpochStartDataWrapper{})
+		_, err = mp.ProcessEpochStartProposeBlock(&block.MetaBlockV3{}, &block.Body{})
+		require.Equal(t, expectedErr, err)
+	})
+
+	t.Run("should return error when updating validator statistics", func(t *testing.T) {
+		t.Parallel()
+
+		coreComponents, dataComponents, boostrapComponents, statusComponents := createMockComponentHolders()
+		blockchainMock := &testscommon.ChainHandlerMock{}
+		err := blockchainMock.SetGenesisHeader(&block.Header{})
+		require.Nil(t, err)
+		blockchainMock.SetLastExecutionResult(&block.MetaExecutionResult{})
+		dataComponents.BlockChain = blockchainMock
+
+		arguments := createMockMetaArguments(coreComponents, dataComponents, boostrapComponents, statusComponents)
+		arguments.EpochEconomics = &mock.EpochEconomicsStub{
+			ComputeEndOfEpochEconomicsV3Called: func(metaBlock data.MetaHeaderHandler, prevBlockExecutionResults data.BaseMetaExecutionResultHandler, epochStartHandler data.EpochStartHandler) (*block.Economics, error) {
+				return &block.Economics{
+					RewardsForProtocolSustainability: big.NewInt(0),
+					PrevEpochStartRound:              1,
+				}, nil
+			},
+		}
+
+		arguments.ValidatorStatisticsProcessor = &testscommon.ValidatorStatisticsProcessorStub{
+			UpdatePeerStateV3Called: func(header data.MetaHeaderHandler, metaExecutionResult data.MetaExecutionResultHandler) ([]byte, error) {
+				return nil, expectedErr
+			},
+		}
+
+		mp, err := blproc.NewMetaProcessor(arguments)
+		require.Nil(t, err)
+
+		mp.SetEpochStartData(&blproc.EpochStartDataWrapper{})
+
+		_, err = mp.ProcessEpochStartProposeBlock(&block.MetaBlockV3{}, &block.Body{})
+		require.Equal(t, expectedErr, err)
+	})
+
+	t.Run("should return error when committing the state", func(t *testing.T) {
+		t.Parallel()
+
+		coreComponents, dataComponents, boostrapComponents, statusComponents := createMockComponentHolders()
+		blockchainMock := &testscommon.ChainHandlerMock{}
+		err := blockchainMock.SetGenesisHeader(&block.Header{})
+		require.Nil(t, err)
+		blockchainMock.SetLastExecutionResult(&block.MetaExecutionResult{})
+		dataComponents.BlockChain = blockchainMock
+
+		arguments := createMockMetaArguments(coreComponents, dataComponents, boostrapComponents, statusComponents)
+		arguments.EpochEconomics = &mock.EpochEconomicsStub{
+			ComputeEndOfEpochEconomicsV3Called: func(metaBlock data.MetaHeaderHandler, prevBlockExecutionResults data.BaseMetaExecutionResultHandler, epochStartHandler data.EpochStartHandler) (*block.Economics, error) {
+				return &block.Economics{
+					RewardsForProtocolSustainability: big.NewInt(0),
+					PrevEpochStartRound:              1,
+				}, nil
+			},
+		}
+
+		accountsDb := make(map[state.AccountsDbIdentifier]state.AccountsAdapter)
+		accounts := &state2.AccountsStub{
+			CommitCalled: func() ([]byte, error) {
+				return nil, expectedErr
+			},
+		}
+		accountsDb[state.UserAccountsState] = accounts
+		accountsDb[state.PeerAccountsState] = accounts
+		arguments.AccountsDB = accountsDb
+
+		mp, err := blproc.NewMetaProcessor(arguments)
+		require.Nil(t, err)
+
+		mp.SetEpochStartData(&blproc.EpochStartDataWrapper{})
+
+		_, err = mp.ProcessEpochStartProposeBlock(&block.MetaBlockV3{}, &block.Body{})
+		require.Equal(t, expectedErr, err)
+	})
+
+	t.Run("should return error from HandleProcessErrorCutoff", func(t *testing.T) {
+		t.Parallel()
+
+		coreComponents, dataComponents, boostrapComponents, statusComponents := createMockComponentHolders()
+		blockchainMock := &testscommon.ChainHandlerMock{}
+		err := blockchainMock.SetGenesisHeader(&block.Header{})
+		require.Nil(t, err)
+		blockchainMock.SetLastExecutionResult(&block.MetaExecutionResult{})
+		dataComponents.BlockChain = blockchainMock
+
+		arguments := createMockMetaArguments(coreComponents, dataComponents, boostrapComponents, statusComponents)
+		arguments.EpochEconomics = &mock.EpochEconomicsStub{
+			ComputeEndOfEpochEconomicsV3Called: func(metaBlock data.MetaHeaderHandler, prevBlockExecutionResults data.BaseMetaExecutionResultHandler, epochStartHandler data.EpochStartHandler) (*block.Economics, error) {
+				return &block.Economics{
+					RewardsForProtocolSustainability: big.NewInt(0),
+					PrevEpochStartRound:              1,
+				}, nil
+			},
+		}
+
+		arguments.BlockProcessingCutoffHandler = &testscommon.BlockProcessingCutoffStub{
+			HandleProcessErrorCutoffCalled: func(header data.HeaderHandler) error {
+				return expectedErr
+			},
+		}
+
+		mp, err := blproc.NewMetaProcessor(arguments)
+		require.Nil(t, err)
+
+		mp.SetEpochStartData(&blproc.EpochStartDataWrapper{})
+
+		_, err = mp.ProcessEpochStartProposeBlock(&block.MetaBlockV3{}, &block.Body{})
+		require.Equal(t, expectedErr, err)
+	})
+
+	t.Run("should return error when calculating the hash", func(t *testing.T) {
+		t.Parallel()
+
+		coreComponents, dataComponents, boostrapComponents, statusComponents := createMockComponentHolders()
+		err := coreComponents.SetInternalMarshalizer(&marshallerMock.MarshalizerStub{
+			MarshalCalled: func(obj interface{}) ([]byte, error) {
+				return nil, expectedErr
+			},
+		})
+		require.Nil(t, err)
+
+		blockchainMock := &testscommon.ChainHandlerMock{}
+		err = blockchainMock.SetGenesisHeader(&block.Header{})
+		require.Nil(t, err)
+		blockchainMock.SetLastExecutionResult(&block.MetaExecutionResult{})
+		dataComponents.BlockChain = blockchainMock
+
+		arguments := createMockMetaArguments(coreComponents, dataComponents, boostrapComponents, statusComponents)
+		arguments.EpochEconomics = &mock.EpochEconomicsStub{
+			ComputeEndOfEpochEconomicsV3Called: func(metaBlock data.MetaHeaderHandler, prevBlockExecutionResults data.BaseMetaExecutionResultHandler, epochStartHandler data.EpochStartHandler) (*block.Economics, error) {
+				return &block.Economics{
+					RewardsForProtocolSustainability: big.NewInt(0),
+					PrevEpochStartRound:              1,
+				}, nil
+			},
+		}
+
+		mp, err := blproc.NewMetaProcessor(arguments)
+		require.Nil(t, err)
+
+		mp.SetEpochStartData(&blproc.EpochStartDataWrapper{})
+
+		_, err = mp.ProcessEpochStartProposeBlock(&block.MetaBlockV3{}, &block.Body{})
+		require.Equal(t, expectedErr, err)
+	})
+
+	t.Run("should work", func(t *testing.T) {
+		t.Parallel()
+
+		coreComponents, dataComponents, boostrapComponents, statusComponents := createMockComponentHolders()
+		blockchainMock := &testscommon.ChainHandlerMock{}
+		err := blockchainMock.SetGenesisHeader(&block.Header{})
+		require.Nil(t, err)
+		blockchainMock.SetLastExecutionResult(&block.MetaExecutionResult{})
+		dataComponents.BlockChain = blockchainMock
+
+		arguments := createMockMetaArguments(coreComponents, dataComponents, boostrapComponents, statusComponents)
+		arguments.EpochEconomics = &mock.EpochEconomicsStub{
+			ComputeEndOfEpochEconomicsV3Called: func(metaBlock data.MetaHeaderHandler, prevBlockExecutionResults data.BaseMetaExecutionResultHandler, epochStartHandler data.EpochStartHandler) (*block.Economics, error) {
+				return &block.Economics{
+					RewardsForProtocolSustainability: big.NewInt(0),
+					PrevEpochStartRound:              1,
+				}, nil
+			},
+		}
+		mp, err := blproc.NewMetaProcessor(arguments)
+		require.Nil(t, err)
+
+		mp.SetEpochStartData(&blproc.EpochStartDataWrapper{
+			Epoch: 1,
+			EpochStartData: &block.EpochStart{
+				LastFinalizedHeaders: []block.EpochStartShardData{},
+				Economics:            block.Economics{},
+			},
+		})
+
+		_, err = mp.ProcessEpochStartProposeBlock(&block.MetaBlockV3{
+			LastExecutionResult: &block.MetaExecutionResultInfo{
+				ExecutionResult: &block.BaseMetaExecutionResult{
+					AccumulatedFeesInEpoch: big.NewInt(0),
+					DevFeesInEpoch:         big.NewInt(0),
+				},
+			},
+		}, &block.Body{})
+		require.Nil(t, err)
+	})
 }
 
 func TestMetaProcessor_processEconomicsDataForEpochStartProposeBlock(t *testing.T) {
@@ -3227,6 +3461,35 @@ func TestMetaProcessor_processEconomicsDataForEpochStartProposeBlock(t *testing.
 
 		err = mp.ProcessEconomicsDataForEpochStartProposeBlock(&block.MetaBlockV3{})
 		require.Equal(t, expectedErr, err)
+	})
+
+	t.Run("should work", func(t *testing.T) {
+		t.Parallel()
+
+		mp, err := blproc.ConstructPartialMetaBlockProcessorForTest(map[string]interface{}{
+			"blockChain": &testscommon.ChainHandlerStub{
+				GetLastExecutionResultCalled: func() data.BaseExecutionResultHandler {
+					return &block.MetaExecutionResult{}
+				},
+			},
+			"epochStartDataCreator": &mock.EpochStartDataCreatorStub{
+				CreateEpochStartShardDataMetablockV3Called: func(metaBlock data.MetaHeaderHandler) ([]block.EpochStartShardData, error) {
+					return []block.EpochStartShardData{
+						{},
+					}, nil
+				},
+			},
+			"epochEconomics": &mock.EpochEconomicsStub{
+				ComputeEndOfEpochEconomicsV3Called: func(metaBlock data.MetaHeaderHandler, prevBlockExecutionResults data.BaseMetaExecutionResultHandler, epochStartHandler data.EpochStartHandler) (*block.Economics, error) {
+					return &block.Economics{}, nil
+				},
+			},
+		})
+		require.Nil(t, err)
+
+		mp.SetEpochStartData(&blproc.EpochStartDataWrapper{})
+		err = mp.ProcessEconomicsDataForEpochStartProposeBlock(&block.MetaBlockV3{})
+		require.Nil(t, err)
 	})
 }
 
