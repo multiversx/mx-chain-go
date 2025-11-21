@@ -1,6 +1,7 @@
 package block
 
 import (
+	"math/big"
 	"sync"
 	"time"
 
@@ -1095,4 +1096,9 @@ func (bp *baseProcessor) CollectMiniBlocks(
 	body *block.Body,
 ) ([]data.MiniBlockHeaderHandler, int, []byte, error) {
 	return bp.collectMiniBlocks(headerHash, body)
+}
+
+// GetCurrentlyAccumulatedFees -
+func (mp *metaProcessor) GetCurrentlyAccumulatedFees(metaHdr data.MetaHeaderHandler) (*big.Int, *big.Int, error) {
+	return mp.getCurrentlyAccumulatedFees(metaHdr)
 }
