@@ -93,5 +93,9 @@ func TestCheckArgCreateOutportDataProvider(t *testing.T) {
 	require.Equal(t, dataRetrieverReal.ErrNilDataPoolHolder, checkArgOutportDataProviderFactory(arg))
 
 	arg = createArgOutportDataProviderFactory()
+	arg.RoundHandler = nil
+	require.Equal(t, process.ErrNilRoundHandler, checkArgOutportDataProviderFactory(arg))
+
+	arg = createArgOutportDataProviderFactory()
 	require.Nil(t, checkArgOutportDataProviderFactory(arg))
 }
