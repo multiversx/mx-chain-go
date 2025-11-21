@@ -92,6 +92,18 @@ func TestSimulateIntraShardTxWithGuardian(t *testing.T) {
 		t.Skip("this is not a short test")
 	}
 
+	alterConfigsFunc := func(cfg *config.Configs) {
+		cfg.EpochConfig.EnableEpochs.SupernovaEnableEpoch = 999999
+		cfg.RoundConfig.RoundActivations = map[string]config.ActivationRoundByName{
+			"DisableAsyncCallV1": {
+				Round: "9999999",
+			},
+			"SupernovaEnableRound": {
+				Round: "9999999",
+			},
+		}
+	}
+
 	roundDurationInMillis := uint64(6000)
 	roundsPerEpochOpt := core.OptionalUint64{
 		HasValue: true,
@@ -117,9 +129,7 @@ func TestSimulateIntraShardTxWithGuardian(t *testing.T) {
 		MetaChainMinNodes:              3,
 		NumNodesWaitingListMeta:        3,
 		NumNodesWaitingListShard:       3,
-		AlterConfigsFunction: func(cfg *config.Configs) {
-
-		},
+		AlterConfigsFunction:           alterConfigsFunc,
 	})
 	require.NoError(t, err)
 	require.NotNil(t, cs)

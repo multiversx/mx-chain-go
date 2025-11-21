@@ -3304,3 +3304,25 @@ func (bp *baseProcessor) getCurrentBlockHeader() data.HeaderHandler {
 
 	return bp.blockChain.GetGenesisHeader()
 }
+
+func (bp *baseProcessor) getLastExecutionResultHeader(
+	currentHeader data.HeaderHandler,
+) (data.HeaderHandler, error) {
+	if !currentHeader.IsHeaderV3() {
+		return currentHeader, nil
+	}
+
+	lastExecutionResult, err := common.GetLastBaseExecutionResultHandler(currentHeader)
+	if err != nil {
+		return nil, err
+	}
+
+	headersPool := bp.dataPool.Headers()
+
+	header, err := headersPool.GetHeaderByHash(lastExecutionResult.GetHeaderHash())
+	if err != nil {
+		return nil, err
+	}
+
+	return header, nil
+}

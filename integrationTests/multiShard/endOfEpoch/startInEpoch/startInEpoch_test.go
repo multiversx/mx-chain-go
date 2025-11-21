@@ -81,6 +81,7 @@ func testNodeStartsInEpoch(t *testing.T, shardID uint32, expectedHighestRound ui
 		StakingV4Step2EnableEpoch:            integrationTests.UnreachableEpoch,
 		StakingV4Step3EnableEpoch:            integrationTests.UnreachableEpoch,
 		AndromedaEnableEpoch:                 integrationTests.UnreachableEpoch,
+		SupernovaEnableEpoch:                 integrationTests.UnreachableEpoch,
 	}
 
 	nodes := integrationTests.CreateNodesWithEnableEpochs(
