@@ -15,6 +15,12 @@ type RewardsCreatorStub struct {
 	CreateRewardsMiniBlocksCalled func(
 		metaBlock data.MetaHeaderHandler, validatorsInfo state.ShardValidatorsInfoMapHandler, computedEconomics *block.Economics,
 	) (block.MiniBlockSlice, error)
+	CreateRewardsMiniBlocksHeaderV3Called func(
+		metaBlock data.MetaHeaderHandler,
+		validatorsInfo state.ShardValidatorsInfoMapHandler,
+		computedEconomics *block.Economics,
+		prevBlockExecutionResults data.BaseMetaExecutionResultHandler,
+	) (block.MiniBlockSlice, error)
 	VerifyRewardsMiniBlocksCalled func(
 		metaBlock data.MetaHeaderHandler, validatorsInfo state.ShardValidatorsInfoMapHandler, computedEconomics *block.Economics,
 	) error
@@ -123,6 +129,19 @@ func (rcs *RewardsCreatorStub) RemoveBlockDataFromPools(metaBlock data.MetaHeade
 	if rcs.RemoveBlockDataFromPoolsCalled != nil {
 		rcs.RemoveBlockDataFromPoolsCalled(metaBlock, body)
 	}
+}
+
+// CreateRewardsMiniBlocksHeaderV3 -
+func (rcs *RewardsCreatorStub) CreateRewardsMiniBlocksHeaderV3(
+	metaBlock data.MetaHeaderHandler,
+	validatorsInfo state.ShardValidatorsInfoMapHandler,
+	computedEconomics *block.Economics,
+	prevBlockExecutionResults data.BaseMetaExecutionResultHandler,
+) (block.MiniBlockSlice, error) {
+	if rcs.CreateRewardsMiniBlocksHeaderV3Called != nil {
+		return rcs.CreateRewardsMiniBlocksHeaderV3Called(metaBlock, validatorsInfo, computedEconomics, prevBlockExecutionResults)
+	}
+	return nil, nil
 }
 
 // IsInterfaceNil -

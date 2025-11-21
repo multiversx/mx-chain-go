@@ -2442,24 +2442,27 @@ func (sp *shardProcessor) GetBlockBodyFromPool(headerHandler data.HeaderHandler)
 		return nil, process.ErrWrongTypeAssertion
 	}
 
-	miniBlocksPool := sp.dataPool.MiniBlocks()
-	var miniBlocks block.MiniBlockSlice
-
-	for _, mbHeader := range header.GetMiniBlockHeaderHandlers() {
-		obj, hashInPool := miniBlocksPool.Get(mbHeader.GetHash())
-		if !hashInPool {
-			continue
-		}
-
-		miniBlock, typeOk := obj.(*block.MiniBlock)
-		if !typeOk {
-			return nil, process.ErrWrongTypeAssertion
-		}
-
-		miniBlocks = append(miniBlocks, miniBlock)
+	miniBlockHeaderHandlers, err := common.GetMiniBlockHeadersFromExecResult(header)
+	if err != nil {
+		return nil, err
 	}
 
-	return &block.Body{MiniBlocks: miniBlocks}, nil
+	return sp.getBlockBodyFromPool(header, miniBlockHeaderHandlers)
+}
+
+// GetProposedAndExecutedMiniBlockHeaders returns block body from pool with proposed and executed miniblocks
+func (sp *shardProcessor) GetProposedAndExecutedMiniBlockHeaders(headerHandler data.HeaderHandler) (data.BodyHandler, error) {
+	header, ok := headerHandler.(data.ShardHeaderHandler)
+	if !ok {
+		return nil, process.ErrWrongTypeAssertion
+	}
+
+	miniBlockHeaderHandlers, err := getProposedAndExecutedMiniBlockHeaders(header)
+	if err != nil {
+		return nil, err
+	}
+
+	return sp.getBlockBodyFromPool(header, miniBlockHeaderHandlers)
 }
 
 func (sp *shardProcessor) getBootstrapHeadersInfo(
