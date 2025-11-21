@@ -543,6 +543,11 @@ func getShardInfoHandlers(
 	}
 
 	if metaBlock.IsHeaderV3() {
+		// the alarm was registered with the header hash keys based on the proposal block
+		// but the data to be broadcasted was set based on execution results.
+		// here, we fetch the shard info proposal only for header hash key, so we have to
+		// fetch based on shard infos proposal (which was associated with the data to broadcast)
+		// and not based on shard infos for execution
 		return getShardInfoProposalHandlers(metaBlock)
 	}
 
