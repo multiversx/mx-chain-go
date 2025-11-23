@@ -60,10 +60,9 @@ type metaProcessor struct {
 	shardsHeadersNonce           *sync.Map
 	shardBlockFinality           uint32
 	headersCounter               *headersCounter
-	// TODO: fill this up on execution of epoch start
-	epochStartDataWrapper *epochStartDataWrapper
-	mutEpochStartData     sync.RWMutex
-	shardInfoCreateData   process.ShardInfoCreator
+	epochStartDataWrapper        *epochStartDataWrapper
+	mutEpochStartData            sync.RWMutex
+	shardInfoCreateData          process.ShardInfoCreator
 }
 
 // NewMetaProcessor creates a new metaProcessor object
@@ -114,6 +113,10 @@ func NewMetaProcessor(arguments ArgMetaProcessor) (*metaProcessor, error) {
 		validatorInfoCreator:         arguments.EpochValidatorInfoCreator,
 		epochSystemSCProcessor:       arguments.EpochSystemSCProcessor,
 		shardInfoCreateData:          arguments.ShardInfoCreator,
+		epochStartDataWrapper: &epochStartDataWrapper{
+			Epoch:          arguments.EpochStartTrigger.Epoch(),
+			EpochStartData: &block.EpochStart{},
+		},
 	}
 
 	argsTransactionCounter := ArgsTransactionCounter{
@@ -490,13 +493,16 @@ func (mp *metaProcessor) verifyCrossShardMiniBlockDstMe(metaBlock data.MetaHeade
 func (mp *metaProcessor) getAllMiniBlockDstMeFromShards(metaHdr data.MetaHeaderHandler) (map[string][]byte, error) {
 	miniBlockShardsHashes := make(map[string][]byte)
 
+	var shardHeaderHandler data.HeaderHandler
+	var err error
 	for _, shardInfo := range metaHdr.GetShardInfoHandlers() {
-		headerInfo, ok := mp.hdrsForCurrBlock.GetHeaderInfo(string(shardInfo.GetHeaderHash()))
-		if !ok {
-			return nil, fmt.Errorf("%w for shard info with hash = %s",
+		shardHeaderHandler, err = getHeaderFromHash(mp.dataPool.Headers(), mp.hdrsForCurrBlock, metaHdr.IsHeaderV3(), shardInfo.GetHeaderHash())
+		if err != nil {
+			return nil, fmt.Errorf("%w : for shardInfo.HeaderHash = %s",
 				process.ErrMissingHeader, hex.EncodeToString(shardInfo.GetHeaderHash()))
 		}
-		shardHeader, ok := headerInfo.GetHeader().(data.ShardHeaderHandler)
+
+		shardHeader, ok := shardHeaderHandler.(data.ShardHeaderHandler)
 		if !ok {
 			return nil, fmt.Errorf("%w : for shardInfo.HeaderHash = %s",
 				process.ErrWrongTypeAssertion, hex.EncodeToString(shardInfo.GetHeaderHash()))
@@ -1257,6 +1263,12 @@ func (mp *metaProcessor) CommitBlock(
 	err = mp.commitEpochStart(header, body)
 	if err != nil {
 		return err
+	}
+	if header.IsStartOfEpochBlock() {
+		mp.epochStartDataWrapper = &epochStartDataWrapper{
+			Epoch:          header.GetEpoch(),
+			EpochStartData: &block.EpochStart{},
+		}
 	}
 	headerHash := mp.hasher.Compute(string(marshalizedHeader))
 	mp.saveMetaHeader(header, headerHash, marshalizedHeader)

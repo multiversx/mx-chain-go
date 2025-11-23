@@ -58,6 +58,10 @@ func (mp *metaProcessor) CreateNewHeaderProposal(round uint64, nonce uint64) (da
 		return nil, err
 	}
 
+	err = metaHeader.SetEpochStartHandler(&block.EpochStart{})
+	if err != nil {
+		return nil, err
+	}
 	hasEpochStartResults, err := mp.hasStartOfEpochExecutionResults(metaHeader)
 	if err != nil {
 		return nil, err
@@ -1090,9 +1094,11 @@ func (mp *metaProcessor) computeEpochStartDataForHeader(metaHeader data.MetaHead
 	defer mp.mutEpochStartData.RUnlock()
 
 	if mp.epochStartDataWrapper == nil ||
-		mp.epochStartDataWrapper.EpochStartData == nil ||
-		mp.epochStartDataWrapper.Epoch != metaHeader.GetEpoch() {
+		mp.epochStartDataWrapper.EpochStartData == nil {
 		return nil, process.ErrNilEpochStartData
+	}
+	if metaHeader.IsStartOfEpochBlock() && mp.epochStartDataWrapper.Epoch != metaHeader.GetEpoch() {
+		return nil, process.ErrEpochDoesNotMatch
 	}
 
 	epochStartData := *mp.epochStartDataWrapper.EpochStartData
