@@ -9,10 +9,11 @@ import (
 	"github.com/multiversx/mx-chain-core-go/core"
 	"github.com/multiversx/mx-chain-core-go/data"
 	"github.com/multiversx/mx-chain-core-go/data/block"
+	"github.com/stretchr/testify/require"
+
 	"github.com/multiversx/mx-chain-go/state"
 	"github.com/multiversx/mx-chain-go/testscommon/marshallerMock"
 	testscommonState "github.com/multiversx/mx-chain-go/testscommon/state"
-	"github.com/stretchr/testify/require"
 
 	"github.com/multiversx/mx-chain-go/common"
 	retriever "github.com/multiversx/mx-chain-go/dataRetriever"
@@ -3727,6 +3728,7 @@ func TestMetaProcessor_collectExecutionResultsEpochStartProposal(t *testing.T) {
 				},
 			},
 		}, []byte("valStatRootHash"))
+		require.Nil(t, err)
 
 		metaExecResult, ok := execResult.(*block.MetaExecutionResult)
 		require.True(t, ok)
