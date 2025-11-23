@@ -65,6 +65,17 @@ func IsRelayedTxV3(tx data.TransactionHandler) bool {
 	return hasRelayer || hasRelayerSignature
 }
 
+// IsAsyncExecutionEnabledForEpochAndRound returns true if both Supernova epochs and Supernova rounds are enabled for the provided epoch and round
+func IsAsyncExecutionEnabledForEpochAndRound(
+	enableEpochsHandler EnableEpochsHandler,
+	enableRoundsHandler EnableRoundsHandler,
+	epoch uint32,
+	round uint64,
+) bool {
+	return enableEpochsHandler.IsFlagEnabledInEpoch(SupernovaFlag, epoch) &&
+		enableRoundsHandler.IsFlagEnabledInRound(SupernovaRoundFlag, round)
+}
+
 // IsAsyncExecutionEnabled returns true if both Supernova epochs and Supernova rounds are enabled
 func IsAsyncExecutionEnabled(enableEpochsHandler EnableEpochsHandler, enableRoundsHandler EnableRoundsHandler) bool {
 	return enableEpochsHandler.IsFlagEnabled(SupernovaFlag) &&
