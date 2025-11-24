@@ -417,6 +417,18 @@ func (txPool *shardedTxPool) CleanupSelfShardTxCache(accountsProvider common.Acc
 	)
 }
 
+// GetNumTrackedBlocks returns the number of blocks being tracked by the underlying TxCache
+func (txPool *shardedTxPool) GetNumTrackedBlocks() uint64 {
+	cache := txPool.getSelfShardTxCache()
+	return cache.GetTrackerDiagnosis().GetNumTrackedBlocks()
+}
+
+// GetNumTrackedAccounts returns the number of accounts being tracked by the underlying TxCache
+func (txPool *shardedTxPool) GetNumTrackedAccounts() uint64 {
+	cache := txPool.getSelfShardTxCache()
+	return cache.GetTrackerDiagnosis().GetNumTrackedAccounts()
+}
+
 // OnProposedBlock notifies the underlying TxCache
 func (txPool *shardedTxPool) OnProposedBlock(blockHash []byte, blockBody *block.Body, blockHeader data.HeaderHandler, accountsProvider common.AccountNonceAndBalanceProvider, latestExecutedHash []byte) error {
 	cache := txPool.getSelfShardTxCache()
