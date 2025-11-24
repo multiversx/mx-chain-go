@@ -106,7 +106,7 @@ func TestChainSimulator_GenerateBlocksShouldWork(t *testing.T) {
 		ApiInterface:                   api.NewNoApiInterface(),
 		MinNodesPerShard:               defaultMinNodesPerShard,
 		MetaChainMinNodes:              defaultMetaChainMinNodes,
-		InitialRound:                   200000000,
+		InitialRound:                   20000,
 		InitialEpoch:                   100,
 		InitialNonce:                   100,
 		AlterConfigsFunction: func(cfg *config.Configs) {

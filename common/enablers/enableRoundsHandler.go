@@ -115,7 +115,7 @@ func (handler *enableRoundsHandler) GetCurrentRound() uint64 {
 	return currentRound
 }
 
-// IsFlagEnabled returns true if the provided flag is enabled in the current round
+// IsFlagDefined returns true if the provided flag is enabled in the current round
 func (handler *enableRoundsHandler) IsFlagDefined(flag common.EnableRoundFlag) bool {
 	_, found := handler.allFlagsDefined[flag]
 	if found {
