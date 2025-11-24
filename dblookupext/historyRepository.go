@@ -416,14 +416,20 @@ func (hr *historyRepository) OnNotarizedBlocks(shardID uint32, headers []data.He
 
 		log.Trace("onNotarizedBlocks():", "shardID", shardID, "nonce", headerHandler.GetNonce(), "headerHash", headerHash, "type", fmt.Sprintf("%T", headerHandler))
 
-		metaBlock, isMetaBlock := headerHandler.(*block.MetaBlock)
+		metaBlock, isMetaBlock := headerHandler.(data.MetaHeaderHandler)
 		if isMetaBlock {
-			for _, miniBlock := range metaBlock.MiniBlockHeaders {
+			for _, miniBlock := range metaBlock.GetMiniBlockHeaderHandlers() {
 				hr.onNotarizedMiniblock(headerHandler.GetNonce(), headerHash, headerHandler.GetShardID(), miniBlock)
 			}
 
-			for _, shardData := range metaBlock.ShardInfo {
-				shardDataCopy := shardData
+			for _, shardDataI := range metaBlock.GetShardInfoHandlers() {
+				shardData, ok := shardDataI.(*block.ShardData)
+				if !ok {
+					log.Warn("historyRepository.OnNotarizedBlocks cannot cast shardData")
+					continue
+				}
+
+				shardDataCopy := *shardData
 				hr.onNotarizedInMetaBlock(headerHandler.GetNonce(), headerHash, &shardDataCopy)
 			}
 		} else {
@@ -440,21 +446,21 @@ func (hr *historyRepository) onNotarizedInMetaBlock(metaBlockNonce uint64, metaB
 	}
 
 	for _, miniblockHeader := range shardData.GetShardMiniBlockHeaders() {
-		hr.onNotarizedMiniblock(metaBlockNonce, metaBlockHash, shardData.GetShardID(), miniblockHeader)
+		hr.onNotarizedMiniblock(metaBlockNonce, metaBlockHash, shardData.GetShardID(), &miniblockHeader)
 	}
 }
 
-func (hr *historyRepository) onNotarizedMiniblock(metaBlockNonce uint64, metaBlockHash []byte, shardOfContainingBlock uint32, miniblockHeader block.MiniBlockHeader) {
-	miniblockHash := miniblockHeader.Hash
-	isIntra := miniblockHeader.SenderShardID == miniblockHeader.ReceiverShardID
-	isToMeta := miniblockHeader.ReceiverShardID == core.MetachainShardId
-	isNotarizedAtSource := miniblockHeader.SenderShardID == shardOfContainingBlock
-	isNotarizedAtDestination := miniblockHeader.ReceiverShardID == shardOfContainingBlock
+func (hr *historyRepository) onNotarizedMiniblock(metaBlockNonce uint64, metaBlockHash []byte, shardOfContainingBlock uint32, miniblockHeader data.MiniBlockHeaderHandler) {
+	miniblockHash := miniblockHeader.GetHash()
+	isIntra := miniblockHeader.GetSenderShardID() == miniblockHeader.GetReceiverShardID()
+	isToMeta := miniblockHeader.GetReceiverShardID() == core.MetachainShardId
+	isNotarizedAtSource := miniblockHeader.GetSenderShardID() == shardOfContainingBlock
+	isNotarizedAtDestination := miniblockHeader.GetReceiverShardID() == shardOfContainingBlock
 	isNotarizedAtBoth := isIntra || isToMeta
 
-	notFromMe := miniblockHeader.SenderShardID != hr.selfShardID
-	notToMe := miniblockHeader.ReceiverShardID != hr.selfShardID
-	isPeerMiniblock := miniblockHeader.Type == block.PeerBlock
+	notFromMe := miniblockHeader.GetSenderShardID() != hr.selfShardID
+	notToMe := miniblockHeader.GetReceiverShardID() != hr.selfShardID
+	isPeerMiniblock := block.Type(miniblockHeader.GetTypeInt32()) == block.PeerBlock
 	iDontCare := (notFromMe && notToMe) || isPeerMiniblock
 	if iDontCare {
 		return
@@ -465,7 +471,7 @@ func (hr *historyRepository) onNotarizedMiniblock(metaBlockNonce uint64, metaBlo
 		"metaBlockHash", metaBlockHash,
 		"shardOfContainingBlock", shardOfContainingBlock,
 		"miniblock", miniblockHash,
-		"direction", fmt.Sprintf("[%d -> %d]", miniblockHeader.SenderShardID, miniblockHeader.ReceiverShardID),
+		"direction", fmt.Sprintf("[%d -> %d]", miniblockHeader.GetSenderShardID(), miniblockHeader.GetReceiverShardID()),
 	)
 
 	if isNotarizedAtBoth {
