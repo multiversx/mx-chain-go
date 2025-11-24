@@ -10,7 +10,10 @@ import (
 	"github.com/multiversx/mx-chain-core-go/core"
 	"github.com/multiversx/mx-chain-core-go/data/esdt"
 	"github.com/multiversx/mx-chain-core-go/data/transaction"
+	"github.com/stretchr/testify/require"
+
 	"github.com/multiversx/mx-chain-go/config"
+	"github.com/multiversx/mx-chain-go/integrationTests"
 	testsChainSimulator "github.com/multiversx/mx-chain-go/integrationTests/chainSimulator"
 	vm2 "github.com/multiversx/mx-chain-go/integrationTests/chainSimulator/vm"
 	"github.com/multiversx/mx-chain-go/integrationTests/vm/txsFee"
@@ -19,7 +22,6 @@ import (
 	"github.com/multiversx/mx-chain-go/node/chainSimulator/configs"
 	"github.com/multiversx/mx-chain-go/process"
 	"github.com/multiversx/mx-chain-go/vm"
-	"github.com/stretchr/testify/require"
 )
 
 func TestChainSimulator_MetaESDT_RegisterAndSetAllRolesDynamic(t *testing.T) {
@@ -442,6 +444,7 @@ func TestChainSimulator_CreateAndPause_NFT(t *testing.T) {
 		AlterConfigsFunction: func(cfg *config.Configs) {
 			cfg.EpochConfig.EnableEpochs.DynamicESDTEnableEpoch = activationEpoch
 			cfg.SystemSCConfig.ESDTSystemSCConfig.BaseIssuingCost = baseIssuingCost
+			integrationTests.DeactivateSupernovaInConfig(cfg)
 		},
 	})
 	require.Nil(t, err)
@@ -607,6 +610,7 @@ func TestChainSimulator_CreateAndPauseTokens_DynamicNFT(t *testing.T) {
 		AlterConfigsFunction: func(cfg *config.Configs) {
 			cfg.EpochConfig.EnableEpochs.DynamicESDTEnableEpoch = activationEpoch
 			cfg.SystemSCConfig.ESDTSystemSCConfig.BaseIssuingCost = baseIssuingCost
+			integrationTests.DeactivateSupernovaInConfig(cfg)
 		},
 	})
 	require.Nil(t, err)

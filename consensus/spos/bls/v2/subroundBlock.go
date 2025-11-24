@@ -9,6 +9,7 @@ import (
 	"github.com/multiversx/mx-chain-core-go/core"
 	"github.com/multiversx/mx-chain-core-go/core/check"
 	"github.com/multiversx/mx-chain-core-go/data"
+
 	"github.com/multiversx/mx-chain-go/common"
 	"github.com/multiversx/mx-chain-go/consensus"
 	"github.com/multiversx/mx-chain-go/consensus/spos"
@@ -599,7 +600,7 @@ func (sr *subroundBlock) receivedBlockHeader(headerHandler data.HeaderHandler) {
 }
 
 func (sr *subroundBlock) checkSupernovaHeader(headerHandler data.HeaderHandler) bool {
-	isSupernovaActive := common.IsAsyncExecutionEnabled(sr.EnableEpochsHandler(), sr.EnableRoundsHandler())
+	isSupernovaActive := common.IsAsyncExecutionEnabledForEpochAndRound(sr.EnableEpochsHandler(), sr.EnableRoundsHandler(), headerHandler.GetEpoch(), headerHandler.GetRound())
 	isNotHeaderV3AfterSupernova := isSupernovaActive && !headerHandler.IsHeaderV3()
 	if isNotHeaderV3AfterSupernova {
 		log.Debug("checkSupernovaHeader received old header after supernova")

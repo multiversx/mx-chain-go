@@ -220,7 +220,7 @@ func (rc *rewardsCreator) VerifyRewardsMiniBlocks(
 	return rc.verifyCreatedRewardMiniBlocksWithMetaBlock(metaBlock, createdMiniBlocks)
 }
 
-// CreateRewardsMiniBlocksV3 creates the rewards miniblocks according to economics data and validator info for V3 headers
+// CreateRewardsMiniBlocksV3 is not supported
 func (rcp *rewardsCreator) CreateRewardsMiniBlocksV3(
 	_ data.MetaHeaderHandler,
 	_ state.ShardValidatorsInfoMapHandler,

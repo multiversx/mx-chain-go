@@ -294,7 +294,6 @@ func TestMetaProcessor_CreateNewHeaderProposal(t *testing.T) {
 				return &metaBlockWithValidExecutionResult
 			},
 		}
-
 		arguments.BootstrapComponents = &bc
 		dataComponentsModified := *dataComponents
 		dataComponentsModified.BlockChain = &testscommon.ChainHandlerStub{
