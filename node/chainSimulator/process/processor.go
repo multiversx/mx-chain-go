@@ -1,6 +1,7 @@
 package process
 
 import (
+	"fmt"
 	"time"
 
 	"github.com/multiversx/mx-chain-core-go/core"
@@ -46,6 +47,30 @@ func (creator *blocksCreator) IncrementRound() {
 	creator.nodeHandler.GetStatusCoreComponents().AppStatusHandler().SetUInt64Value(common.MetricCurrentRound, uint64(roundHandler.Index()))
 }
 
+func (creator *blocksCreator) createHeaderBasedOnRound(round uint64, nonce uint64) (data.HeaderHandler, error) {
+	coreComponents := creator.nodeHandler.GetCoreComponents()
+	processComponents := creator.nodeHandler.GetProcessComponents()
+
+	if coreComponents.EnableRoundsHandler().IsFlagEnabledInRound(common.SupernovaRoundFlag, round) {
+		return processComponents.BlockProcessor().CreateNewHeaderProposal(round, nonce)
+	}
+
+	return processComponents.BlockProcessor().CreateNewHeader(round, nonce)
+}
+
+func (creator *blocksCreator) createBlock(header data.HeaderHandler) (data.HeaderHandler, data.BodyHandler, error) {
+	processComponents := creator.nodeHandler.GetProcessComponents()
+	if header.IsHeaderV3() {
+		return processComponents.BlockProcessor().CreateBlockProposal(header, func() bool {
+			return true
+		})
+	}
+
+	return processComponents.BlockProcessor().CreateBlock(header, func() bool {
+		return true
+	})
+}
+
 // CreateNewBlock creates and process a new block
 func (creator *blocksCreator) CreateNewBlock() error {
 	processComponents := creator.nodeHandler.GetProcessComponents()
@@ -55,7 +80,8 @@ func (creator *blocksCreator) CreateNewBlock() error {
 
 	nonce, _, prevHash, prevRandSeed, epoch, prevHeader := creator.getPreviousHeaderData()
 	round := coreComponents.RoundHandler().Index()
-	newHeader, err := bp.CreateNewHeader(uint64(round), nonce+1)
+
+	newHeader, err := creator.createHeaderBasedOnRound(uint64(round), nonce+1)
 	if err != nil {
 		return err
 	}
@@ -111,9 +137,11 @@ func (creator *blocksCreator) CreateNewBlock() error {
 		}
 	}
 
-	err = newHeader.SetPubKeysBitmap(pubKeyBitmap)
-	if err != nil {
-		return err
+	if !newHeader.IsHeaderV3() {
+		err = newHeader.SetPubKeysBitmap(pubKeyBitmap)
+		if err != nil {
+			return err
+		}
 	}
 
 	isManaged := cryptoComponents.KeysHandler().IsKeyManagedByCurrentNode(leader.PubKey())
@@ -136,9 +164,10 @@ func (creator *blocksCreator) CreateNewBlock() error {
 
 	enableEpochHandler := coreComponents.EnableEpochsHandler()
 
-	header, block, err := bp.CreateBlock(newHeader, func() bool {
-		return true
-	})
+	if round == 45 && shardID == 0 {
+		fmt.Println("here")
+	}
+	header, block, err := creator.createBlock(newHeader)
 	if err != nil {
 		return err
 	}
@@ -227,7 +256,11 @@ func (creator *blocksCreator) ApplySignaturesAndGetProof(
 ) (*dataBlock.HeaderProof, error) {
 	nilPrevHeader := check.IfNil(prevHeader)
 
-	err := creator.setHeaderSignatures(header, leader.PubKey(), validators)
+	correctPubKeyBitmap := header.GetPubKeysBitmap()
+	if header.IsHeaderV3() {
+		correctPubKeyBitmap = pubKeyBitmap
+	}
+	err := creator.setHeaderSignatures(header, leader.PubKey(), validators, correctPubKeyBitmap)
 	if err != nil {
 		return nil, err
 	}
@@ -241,7 +274,8 @@ func (creator *blocksCreator) ApplySignaturesAndGetProof(
 	}
 
 	pubKeys := extractValidatorPubKeys(validators)
-	newHeaderSig, err := creator.generateAggregatedSignature(headerHash, header.GetEpoch(), header.GetPubKeysBitmap(), pubKeys)
+
+	newHeaderSig, err := creator.generateAggregatedSignature(headerHash, header.GetEpoch(), correctPubKeyBitmap, pubKeys)
 	if err != nil {
 		return nil, err
 	}
@@ -328,6 +362,7 @@ func (creator *blocksCreator) setHeaderSignatures(
 	header data.HeaderHandler,
 	blsKeyBytes []byte,
 	validators []nodesCoordinator.Validator,
+	correctPubKeyBitmap []byte,
 ) error {
 	headerClone := header.ShallowClone()
 	_ = headerClone.SetPubKeysBitmap(nil)
@@ -341,7 +376,7 @@ func (creator *blocksCreator) setHeaderSignatures(
 	headerHash := creator.nodeHandler.GetCoreComponents().Hasher().Compute(string(marshalizedHdr))
 	pubKeys := extractValidatorPubKeys(validators)
 
-	sig, err := creator.generateAggregatedSignature(headerHash, header.GetEpoch(), header.GetPubKeysBitmap(), pubKeys)
+	sig, err := creator.generateAggregatedSignature(headerHash, header.GetEpoch(), correctPubKeyBitmap, pubKeys)
 	if err != nil {
 		return err
 	}

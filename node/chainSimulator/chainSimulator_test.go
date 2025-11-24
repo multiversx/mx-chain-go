@@ -42,6 +42,34 @@ var (
 	}
 )
 
+func TestChainSimulatorCheckSupernova(t *testing.T) {
+	chainSimulator, err := NewChainSimulator(ArgsChainSimulator{
+		BypassTxSignatureCheck:         true,
+		TempDir:                        t.TempDir(),
+		PathToInitialConfig:            defaultPathToInitialConfig,
+		NumOfShards:                    defaultNumOfShards,
+		RoundDurationInMillis:          defaultRoundDurationInMillis,
+		SupernovaRoundDurationInMillis: defaultSupernovaRoundDurationInMillis,
+		RoundsPerEpoch:                 defaultRoundsPerEpoch,
+		SupernovaRoundsPerEpoch:        defaultSupernovaRoundsPerEpoch,
+		ApiInterface:                   api.NewNoApiInterface(),
+		MinNodesPerShard:               3,
+		MetaChainMinNodes:              3,
+		AlterConfigsFunction: func(cfg *config.Configs) {
+
+		},
+	})
+	require.Nil(t, err)
+	require.NotNil(t, chainSimulator)
+
+	err = chainSimulator.GenerateBlocks(50)
+	require.Nil(t, err)
+
+	time.Sleep(time.Second)
+
+	chainSimulator.Close()
+}
+
 func TestNewChainSimulator(t *testing.T) {
 	if testing.Short() {
 		t.Skip("this is not a short test")
