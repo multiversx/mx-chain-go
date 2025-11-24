@@ -485,7 +485,7 @@ func (scr *smartContractResults) getAllScrsFromMiniBlock(
 }
 
 // SelectOutgoingTransactions returns an empty slice of byte slices, as this preprocessor does not handle outgoing transactions
-func (scr *smartContractResults) SelectOutgoingTransactions(_ uint64) ([][]byte, []data.TransactionHandler, error) {
+func (scr *smartContractResults) SelectOutgoingTransactions(_ uint64, _ uint64) ([][]byte, []data.TransactionHandler, error) {
 	return make([][]byte, 0), make([]data.TransactionHandler, 0), nil
 }
 
