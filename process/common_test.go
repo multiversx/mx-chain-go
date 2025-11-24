@@ -13,10 +13,11 @@ import (
 	"github.com/multiversx/mx-chain-core-go/data/block"
 	"github.com/multiversx/mx-chain-core-go/data/transaction"
 	"github.com/multiversx/mx-chain-core-go/data/typeConverters"
-	"github.com/multiversx/mx-chain-go/common"
-	"github.com/multiversx/mx-chain-go/testscommon/processMocks"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
+
+	"github.com/multiversx/mx-chain-go/common"
+	"github.com/multiversx/mx-chain-go/testscommon/processMocks"
 
 	"github.com/multiversx/mx-chain-go/process/estimator"
 
@@ -2927,16 +2928,6 @@ func createDummyPrevShardHeaderV2() *block.HeaderV2 {
 			Nonce:    1,
 			Round:    2,
 			RootHash: []byte("prevRootHash"),
-		},
-	}
-}
-func createDummyInvalidMetaHeader() data.HeaderHandler {
-	return &block.HeaderV2{
-		Header: &block.Header{
-			Nonce:    1,
-			Round:    2,
-			RootHash: []byte("prevRootHash"),
-			ShardID:  core.MetachainShardId,
 		},
 	}
 }
