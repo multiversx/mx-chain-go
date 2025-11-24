@@ -266,6 +266,7 @@ func TestMetaProcessor_CreateNewHeaderProposal(t *testing.T) {
 
 		mapForMetaProcessor := createMetaProcessorMapForCreatingEpochStart()
 		mp, err := blproc.ConstructPartialMetaBlockProcessorForTest(mapForMetaProcessor)
+		require.Nil(t, err)
 
 		header, err := mp.CreateNewHeaderProposal(1, 1)
 		require.Equal(t, process.ErrNilEpochStartData, err)
@@ -432,6 +433,7 @@ func TestMetaProcessor_CreateNewHeaderProposal(t *testing.T) {
 		mapForMetaProcessor := createMetaProcessorMapForCreatingEpochStart()
 		mapForMetaProcessor["dataPool"] = dataPoolMock
 		mp, err := blproc.ConstructPartialMetaBlockProcessorForTest(mapForMetaProcessor)
+		require.Nil(t, err)
 
 		mp.SetEpochStartData(&blproc.EpochStartDataWrapper{
 			Epoch: 1,
