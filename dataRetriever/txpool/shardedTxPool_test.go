@@ -630,7 +630,7 @@ func TestShardedTxPool_GetNumTrackedAccounts(t *testing.T) {
 	}
 
 	execHdr := &block.Header{Nonce: 1, RootHash: []byte("rootHash0")}
-	_ = txCache.OnExecutedBlock(execHdr)
+	_ = txCache.OnExecutedBlock(execHdr, []byte("rootHash0"))
 
 	err := txCache.OnProposedBlock(
 		[]byte("hash0"),
