@@ -10,6 +10,7 @@ import (
 
 	"github.com/multiversx/mx-chain-go/common"
 	"github.com/multiversx/mx-chain-go/config"
+	"github.com/multiversx/mx-chain-go/integrationTests"
 	chainSimulatorIntegrationTests "github.com/multiversx/mx-chain-go/integrationTests/chainSimulator"
 	"github.com/multiversx/mx-chain-go/integrationTests/chainSimulator/staking"
 	"github.com/multiversx/mx-chain-go/node/chainSimulator"
@@ -1583,6 +1584,7 @@ func TestChainSimulator_MaxDelegationCap(t *testing.T) {
 				cfg.EpochConfig.EnableEpochs.StakingV4Step3EnableEpoch = 4
 
 				cfg.EpochConfig.EnableEpochs.MaxNodesChangeEnableEpoch[2].EpochEnable = 4
+				integrationTests.DeactivateSupernovaInConfig(cfg)
 			},
 		})
 		require.Nil(t, err)
@@ -1968,6 +1970,7 @@ func TestChainSimulator_MergeDelegation(t *testing.T) {
 
 				cfg.EpochConfig.EnableEpochs.MaxNodesChangeEnableEpoch[2].EpochEnable = 4
 				cfg.SystemSCConfig.StakingSystemSCConfig.NodeLimitPercentage = 1
+				integrationTests.DeactivateSupernovaInConfig(cfg)
 			},
 		})
 		require.Nil(t, err)
