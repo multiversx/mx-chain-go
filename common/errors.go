@@ -23,6 +23,9 @@ var ErrAlreadyExistingEquivalentProof = errors.New("already existing equivalent 
 // ErrNilHeaderHandler signals that a nil header handler has been provided
 var ErrNilHeaderHandler = errors.New("nil header handler")
 
+// ErrInvalidHeaderHash signals that an invalid header hash has been provided
+var ErrInvalidHeaderHash = errors.New("invalid header hash")
+
 // ErrNotEnoughSignatures defines the error for not enough signatures
 var ErrNotEnoughSignatures = errors.New("not enough signatures")
 
@@ -58,3 +61,6 @@ var ErrMissingCachedTransactions = errors.New("missing cached transactions")
 
 // ErrMissingCachedLogs signals that cached logs events are missing
 var ErrMissingCachedLogs = errors.New("missing cached logs")
+
+// ErrInvalidHeader signals that an invalid header has been provided
+var ErrInvalidHeader = errors.New("invalid header")
