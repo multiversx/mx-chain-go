@@ -133,7 +133,7 @@ func TestGetIntraMbs(t *testing.T) {
 
 		headerHash := []byte("h")
 
-		_, err := GetCachedIntraMbs(cacher, marshaller, headerHash)
+		_, err := GetCachedMbs(cacher, marshaller, headerHash)
 		require.True(t, errors.Is(err, ErrMissingMiniBlock))
 	})
 
@@ -146,7 +146,7 @@ func TestGetIntraMbs(t *testing.T) {
 		headerHash := []byte("h")
 		cacher.Put(headerHash, []byte("wrong type"), 0)
 
-		intraMBs, err := GetCachedIntraMbs(cacher, marshaller, headerHash)
+		intraMBs, err := GetCachedMbs(cacher, marshaller, headerHash)
 		require.Nil(t, intraMBs)
 		require.NotNil(t, err)
 		require.True(t, strings.Contains(err.Error(), "getIntraMbs: cannot unmarshall"))
@@ -167,7 +167,7 @@ func TestGetIntraMbs(t *testing.T) {
 
 		cacher.Put(headerHash, intraMbsBytes, 0)
 
-		intraMBs, err := GetCachedIntraMbs(cacher, marshaller, headerHash)
+		intraMBs, err := GetCachedMbs(cacher, marshaller, headerHash)
 		require.Nil(t, err)
 		require.Equal(t, expectedMbs, intraMBs)
 	})

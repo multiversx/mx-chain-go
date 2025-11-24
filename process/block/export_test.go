@@ -919,6 +919,11 @@ func (bp *baseProcessor) RequestHeadersFromHeaderIfNeeded(
 	bp.requestHeadersFromHeaderIfNeeded(lastHeader)
 }
 
+// CacheIntraShardMiniBlocks -
+func (bp *baseProcessor) CacheIntraShardMiniBlocks(headerHash []byte, mbs block.MiniBlockSlice) error {
+	return bp.cacheIntraShardMiniBlocks(headerHash, mbs)
+}
+
 // GetHaveTimeForProposal -
 func GetHaveTimeForProposal(startTime time.Time, maxDuration time.Duration) func() time.Duration {
 	return getHaveTimeForProposal(startTime, maxDuration)

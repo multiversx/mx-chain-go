@@ -2790,8 +2790,8 @@ func (bp *baseProcessor) putMiniBlocksIntoStorage(miniBlockHeaderHandlers []data
 	return nil
 }
 
-func (bp *baseProcessor) cacheIntraShardMiniBlocks(headerHash []byte, mbs []*block.MiniBlock) error {
-	marshalledMbs, err := bp.marshalizer.Marshal(mbs)
+func (bp *baseProcessor) cacheIntraShardMiniBlocks(headerHash []byte, mbs block.MiniBlockSlice) error {
+	marshalledMbs, err := bp.marshalizer.Marshal(&block.Body{MiniBlocks: mbs})
 	if err != nil {
 		return err
 	}
@@ -2829,23 +2829,14 @@ func (bp *baseProcessor) saveReceiptsForExecutionResult(
 
 func (bp *baseProcessor) getMiniBlocksForReceiptsV3(execResult data.BaseExecutionResultHandler) ([]*block.MiniBlock, error) {
 	headerHash := execResult.GetHeaderHash()
-	receiptsMiniBlocks, ok := bp.dataPool.ExecutedMiniBlocks().Get(headerHash)
-	if !ok {
-		return make([]*block.MiniBlock, 0), nil
-	}
 
-	marshalledMbs, ok := receiptsMiniBlocks.([]byte)
-	if !ok {
-		return nil, fmt.Errorf("%w for getMiniBlocksForReceiptsV3", process.ErrWrongTypeAssertion)
-	}
-
-	postProcessMiniBlocksToMe := make([]*block.MiniBlock, 0)
-	err := bp.marshalizer.Unmarshal(&postProcessMiniBlocksToMe, marshalledMbs)
+	executedMiniBlocksCache := bp.dataPool.ExecutedMiniBlocks()
+	receiptsMiniBlocks, err := common.GetCachedMbs(executedMiniBlocksCache, bp.marshalizer, headerHash)
 	if err != nil {
-		return nil, err
+		return make([]*block.MiniBlock, 0), err
 	}
 
-	return postProcessMiniBlocksToMe, nil
+	return receiptsMiniBlocks, nil
 }
 
 func (bp *baseProcessor) cacheLogEvents(headerHash []byte, logs []*data.LogData) error {
