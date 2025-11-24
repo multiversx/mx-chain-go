@@ -540,6 +540,7 @@ func TestChainSimulator_DirectStakingNodes_StakeFunds(t *testing.T) {
 				cfg.EpochConfig.EnableEpochs.StakingV4Step3EnableEpoch = 4
 
 				cfg.EpochConfig.EnableEpochs.MaxNodesChangeEnableEpoch[2].EpochEnable = 4
+				integrationTests.DeactivateSupernovaInConfig(cfg)
 			},
 		})
 		require.Nil(t, err)
