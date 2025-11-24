@@ -1025,8 +1025,11 @@ func (txs *transactions) getRemainingGasPerBlockAsScheduled() uint64 {
 }
 
 // SelectOutgoingTransactions selects outgoing transactions from the transaction pool
-func (txs *transactions) SelectOutgoingTransactions(bandwidth uint64) ([][]byte, []data.TransactionHandler, error) {
-	wrappedTxs, err := txs.selectTransactionsFromTxPoolForProposal(txs.shardCoordinator.SelfId(), txs.shardCoordinator.SelfId(), bandwidth)
+func (txs *transactions) SelectOutgoingTransactions(
+	bandwidth uint64,
+	nonce uint64,
+) ([][]byte, []data.TransactionHandler, error) {
+	wrappedTxs, err := txs.selectTransactionsFromTxPoolForProposal(txs.shardCoordinator.SelfId(), txs.shardCoordinator.SelfId(), bandwidth, nonce)
 	if err != nil {
 		return nil, nil, err
 	}
@@ -1440,6 +1443,7 @@ func (txs *transactions) selectTransactionsFromTxPoolForProposal(
 	sndShardId uint32,
 	dstShardId uint32,
 	gasBandwidth uint64,
+	nonce uint64,
 ) ([]*txcache.WrappedTransaction, error) {
 	strCache := process.ShardCacherIdentifier(sndShardId, dstShardId)
 	txShardPool := txs.txPool.ShardDataStore(strCache)
@@ -1466,7 +1470,7 @@ func (txs *transactions) selectTransactionsFromTxPoolForProposal(
 		txs.txCacheSelectionConfig.SelectionLoopMaximumDuration,
 		txs.txCacheSelectionConfig.SelectionLoopDurationCheckInterval,
 	)
-	selectedTransactions, _, err := txCache.SelectTransactions(session, selectionOptions, 0)
+	selectedTransactions, _, err := txCache.SelectTransactions(session, selectionOptions, nonce)
 	if err != nil {
 		// TODO re-brainstorm if this error should be propagated or just logged
 		return nil, err

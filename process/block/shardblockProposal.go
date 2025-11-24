@@ -427,7 +427,7 @@ func (sp *shardProcessor) createBlockBodyProposal(
 		"nonce", shardHdr.GetNonce(),
 	)
 
-	return sp.createProposalMiniBlocks(haveTime)
+	return sp.createProposalMiniBlocks(haveTime, shardHdr.GetNonce())
 }
 
 func (sp *shardProcessor) selectIncomingMiniBlocksForProposal(
@@ -554,7 +554,10 @@ func (sp *shardProcessor) selectIncomingMiniBlocks(
 	return pendingMiniBlocks, nil
 }
 
-func (sp *shardProcessor) createProposalMiniBlocks(haveTime func() bool) error {
+func (sp *shardProcessor) createProposalMiniBlocks(
+	haveTime func() bool,
+	nonce uint64,
+) error {
 	if !haveTime() {
 		log.Debug("shardProcessor.createProposalMiniBlocks", "error", process.ErrTimeIsOut)
 		return nil
@@ -567,7 +570,7 @@ func (sp *shardProcessor) createProposalMiniBlocks(haveTime func() bool) error {
 	elapsedTime := time.Since(startTime)
 	log.Debug("elapsed time to create mbs to me", "time", elapsedTime)
 
-	outgoingTransactions, pendingIncomingMiniBlocksAdded := sp.selectOutgoingTransactions()
+	outgoingTransactions, pendingIncomingMiniBlocksAdded := sp.selectOutgoingTransactions(nonce)
 
 	err = sp.appendPendingMiniBlocksAddedAfterSelectingOutgoingTransactions(pendingMiniBlocksLeft, pendingIncomingMiniBlocksAdded)
 	if err != nil {
@@ -617,7 +620,9 @@ func miniBlocksAndHashesSliceToMap(providedSlice []block.MiniblockAndHash) map[s
 	return result
 }
 
-func (sp *shardProcessor) selectOutgoingTransactions() ([][]byte, []data.MiniBlockHeaderHandler) {
+func (sp *shardProcessor) selectOutgoingTransactions(
+	nonce uint64,
+) ([][]byte, []data.MiniBlockHeaderHandler) {
 	log.Debug("selectOutgoingTransactions has been started")
 
 	sw := core.NewStopWatch()
@@ -627,7 +632,7 @@ func (sp *shardProcessor) selectOutgoingTransactions() ([][]byte, []data.MiniBlo
 		log.Debug("measurements", sw.GetMeasurements()...)
 	}()
 
-	outgoingTransactions, pendingIncomingMiniBlocksAdded := sp.txCoordinator.SelectOutgoingTransactions()
+	outgoingTransactions, pendingIncomingMiniBlocksAdded := sp.txCoordinator.SelectOutgoingTransactions(nonce)
 	log.Debug("selectOutgoingTransactions has been finished",
 		"num txs", len(outgoingTransactions),
 		"num pending mini blocks added", len(pendingIncomingMiniBlocksAdded))

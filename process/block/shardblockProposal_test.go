@@ -602,7 +602,7 @@ func TestShardProcessor_CreateBlockProposal(t *testing.T) {
 						},
 					}, 0, true, nil
 			},
-			SelectOutgoingTransactionsCalled: func() ([][]byte, []data.MiniBlockHeaderHandler) {
+			SelectOutgoingTransactionsCalled: func(nonce uint64) ([][]byte, []data.MiniBlockHeaderHandler) {
 				return [][]byte{}, []data.MiniBlockHeaderHandler{&block.MiniBlockHeader{Hash: []byte("providedPendingMB")}}
 			},
 		}
