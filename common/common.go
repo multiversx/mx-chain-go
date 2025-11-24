@@ -65,6 +65,17 @@ func IsRelayedTxV3(tx data.TransactionHandler) bool {
 	return hasRelayer || hasRelayerSignature
 }
 
+// IsAsyncExecutionEnabledForEpochAndRound returns true if both Supernova epochs and Supernova rounds are enabled for the provided epoch and round
+func IsAsyncExecutionEnabledForEpochAndRound(
+	enableEpochsHandler EnableEpochsHandler,
+	enableRoundsHandler EnableRoundsHandler,
+	epoch uint32,
+	round uint64,
+) bool {
+	return enableEpochsHandler.IsFlagEnabledInEpoch(SupernovaFlag, epoch) &&
+		enableRoundsHandler.IsFlagEnabledInRound(SupernovaRoundFlag, round)
+}
+
 // IsAsyncExecutionEnabled returns true if both Supernova epochs and Supernova rounds are enabled
 func IsAsyncExecutionEnabled(enableEpochsHandler EnableEpochsHandler, enableRoundsHandler EnableRoundsHandler) bool {
 	return enableEpochsHandler.IsFlagEnabled(SupernovaFlag) &&
@@ -445,4 +456,23 @@ func GetLastExecutionResultNonce(
 	}
 
 	return lastExecutionResult.GetHeaderNonce()
+}
+
+// GetMiniBlockHeadersFromExecResult returns mb headers from meta header if v3, otherwise, returns mini block headers
+func GetMiniBlockHeadersFromExecResult(metaBlock data.HeaderHandler) ([]data.MiniBlockHeaderHandler, error) {
+	if !metaBlock.IsHeaderV3() {
+		return metaBlock.GetMiniBlockHeaderHandlers(), nil
+	}
+
+	mbHeaderHandlers := make([]data.MiniBlockHeaderHandler, 0)
+	for _, execResult := range metaBlock.GetExecutionResultsHandlers() {
+		mbHeaders, err := GetMiniBlocksHeaderHandlersFromExecResult(execResult)
+		if err != nil {
+			return nil, fmt.Errorf("%w in GetMiniBlockHeadersFromExecResult.GetMiniBlocksHeaderHandlersFromExecResult", err)
+		}
+
+		mbHeaderHandlers = append(mbHeaderHandlers, mbHeaders...)
+	}
+
+	return mbHeaderHandlers, nil
 }

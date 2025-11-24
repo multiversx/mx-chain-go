@@ -19,6 +19,8 @@ type BlockProcessorMock struct {
 	CommitBlockCalled                func(header data.HeaderHandler, body data.BodyHandler) error
 	RevertCurrentBlockCalled         func(header data.HeaderHandler)
 	CreateBlockCalled                func(initialHdrData data.HeaderHandler, haveTime func() bool) (data.HeaderHandler, data.BodyHandler, error)
+	CreateBlockProposalCalled        func(initialHdr data.HeaderHandler, haveTime func() bool) (data.HeaderHandler, data.BodyHandler, error)
+	CreateNewHeaderProposalCalled    func(round uint64, nonce uint64) (data.HeaderHandler, error)
 	RestoreBlockIntoPoolsCalled      func(header data.HeaderHandler, body data.BodyHandler) error
 	RestoreBlockBodyIntoPoolsCalled  func(body data.BodyHandler) error
 	MarshalizedDataToBroadcastCalled func(header data.HeaderHandler, body data.BodyHandler) (map[uint32][]byte, map[string][][]byte, error)
@@ -26,6 +28,7 @@ type BlockProcessorMock struct {
 	PruneStateOnRollbackCalled       func(currHeader data.HeaderHandler, currHeaderHash []byte, prevHeader data.HeaderHandler, prevHeaderHash []byte)
 	RevertStateToBlockCalled         func(header data.HeaderHandler, rootHash []byte) error
 	DecodeBlockHeaderCalled          func(dta []byte) data.HeaderHandler
+	RemoveHeaderFromPoolCalled       func(headerHash []byte)
 	VerifyBlockProposalCalled        func(
 		headerHandler data.HeaderHandler,
 		bodyHandler data.BodyHandler,
@@ -90,10 +93,28 @@ func (bpm *BlockProcessorMock) CreateNewHeader(round uint64, nonce uint64) (data
 	return nil, nil
 }
 
+// CreateNewHeaderProposal -
+func (bpm *BlockProcessorMock) CreateNewHeaderProposal(round uint64, nonce uint64) (data.HeaderHandler, error) {
+	if bpm.CreateNewHeaderProposalCalled != nil {
+		return bpm.CreateNewHeaderProposalCalled(round, nonce)
+	}
+
+	return nil, nil
+}
+
 // CreateBlock -
 func (bpm *BlockProcessorMock) CreateBlock(initialHdrData data.HeaderHandler, haveTime func() bool) (data.HeaderHandler, data.BodyHandler, error) {
 	if bpm.CreateBlockCalled != nil {
 		return bpm.CreateBlockCalled(initialHdrData, haveTime)
+	}
+
+	return nil, nil, nil
+}
+
+// CreateBlockProposal -
+func (bpm *BlockProcessorMock) CreateBlockProposal(initialHdr data.HeaderHandler, haveTime func() bool) (data.HeaderHandler, data.BodyHandler, error) {
+	if bpm.CreateBlockProposalCalled != nil {
+		return bpm.CreateBlockProposalCalled(initialHdr, haveTime)
 	}
 
 	return nil, nil, nil
@@ -180,6 +201,13 @@ func (bpm *BlockProcessorMock) DecodeBlockHeader(dta []byte) data.HeaderHandler 
 func (bpm *BlockProcessorMock) NonceOfFirstCommittedBlock() core.OptionalUint64 {
 	return core.OptionalUint64{
 		HasValue: false,
+	}
+}
+
+// RemoveHeaderFromPool -
+func (bpm *BlockProcessorMock) RemoveHeaderFromPool(headerHash []byte) {
+	if bpm.RemoveHeaderFromPoolCalled != nil {
+		bpm.RemoveHeaderFromPoolCalled(headerHash)
 	}
 }
 

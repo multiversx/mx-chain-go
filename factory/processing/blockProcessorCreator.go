@@ -1289,8 +1289,9 @@ func (pcf *processComponentsFactory) createOutportDataProvider(
 		MbsStorer:              mbsStorer,
 		EnableEpochsHandler:    pcf.coreData.EnableEpochsHandler(),
 		ExecutionOrderGetter:   pcf.txExecutionOrderHandler,
-		ProofsPool:             pcf.data.Datapool().Proofs(),
+		DataPool:               pcf.data.Datapool(),
 		StateAccessesCollector: pcf.state.StateAccessesCollector(),
+		RoundHandler:           pcf.coreData.RoundHandler(),
 	})
 }
 

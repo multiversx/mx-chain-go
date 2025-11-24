@@ -6,6 +6,7 @@ import (
 
 	"github.com/multiversx/mx-chain-core-go/data"
 	"github.com/multiversx/mx-chain-core-go/data/block"
+
 	"github.com/multiversx/mx-chain-go/common"
 	"github.com/multiversx/mx-chain-go/epochStart"
 	"github.com/multiversx/mx-chain-go/process"
@@ -71,6 +72,20 @@ func (rcp *rewardsCreatorProxy) CreateRewardsMiniBlocks(
 		return nil, err
 	}
 	return rcp.rc.CreateRewardsMiniBlocks(metaBlock, validatorsInfo, computedEconomics)
+}
+
+// CreateRewardsMiniBlocksV3 proxies the CreateRewardsMiniBlocksV3 method of the configured rewardsCreator instance
+func (rcp *rewardsCreatorProxy) CreateRewardsMiniBlocksV3(
+	metaBlock data.MetaHeaderHandler,
+	validatorsInfo state.ShardValidatorsInfoMapHandler,
+	computedEconomics *block.Economics,
+	prevBlockExecutionResults data.BaseMetaExecutionResultHandler,
+) (block.MiniBlockSlice, error) {
+	err := rcp.changeRewardCreatorIfNeeded(metaBlock.GetEpoch())
+	if err != nil {
+		return nil, err
+	}
+	return rcp.rc.CreateRewardsMiniBlocksV3(metaBlock, validatorsInfo, computedEconomics, prevBlockExecutionResults)
 }
 
 // VerifyRewardsMiniBlocks proxies the same method of the configured rewardsCreator instance

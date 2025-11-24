@@ -11,10 +11,11 @@ import (
 	"github.com/multiversx/mx-chain-core-go/data/batch"
 	"github.com/multiversx/mx-chain-core-go/hashing"
 	"github.com/multiversx/mx-chain-core-go/marshal"
+	logger "github.com/multiversx/mx-chain-logger-go"
+
 	"github.com/multiversx/mx-chain-go/common"
 	"github.com/multiversx/mx-chain-go/dataRetriever"
 	"github.com/multiversx/mx-chain-go/storage"
-	logger "github.com/multiversx/mx-chain-logger-go"
 )
 
 var log = logger.GetOrCreate("process/receipts")
@@ -69,10 +70,15 @@ func (repository *receiptsRepository) SaveReceipts(holder common.ReceiptsHolder,
 		return errEmptyBlockHash
 	}
 
-	storageKey := repository.decideStorageKey(header.GetReceiptsHash(), headerHash)
-
+	receiptHash := header.GetReceiptsHash()
+	storageKey := repository.decideStorageKey(receiptHash, headerHash)
 	log.Debug("receiptsRepository.SaveReceipts()", "headerNonce", header.GetNonce(), "storageKey", storageKey)
 
+	return repository.saveReceipts(storageKey, holder)
+
+}
+
+func (repository *receiptsRepository) saveReceipts(storageKey []byte, holder common.ReceiptsHolder) error {
 	receiptsBytes, err := marshalReceiptsHolder(holder, repository.marshaller)
 	if err != nil {
 		return err
@@ -89,6 +95,43 @@ func (repository *receiptsRepository) SaveReceipts(holder common.ReceiptsHolder,
 	}
 
 	return nil
+}
+
+// SaveReceiptsForExecResult saves the receipts in the storer (receipts unit) for a given execution result
+func (repository *receiptsRepository) SaveReceiptsForExecResult(holder common.ReceiptsHolder, execResult data.BaseExecutionResultHandler) error {
+	if check.IfNil(holder) {
+		return errNilReceiptsHolder
+	}
+	if check.IfNil(execResult) {
+		return errNilExecutionResult
+	}
+
+	receiptHash, err := getReceiptHashFromBaseExecutionResult(execResult)
+	if err != nil {
+		return err
+	}
+
+	storageKey := repository.decideStorageKey(receiptHash, execResult.GetHeaderHash())
+	log.Debug("receiptsRepository.SaveReceiptsForExecResult()", "executionResult nonce", execResult.GetHeaderNonce(), "storageKey", storageKey)
+
+	return repository.saveReceipts(storageKey, holder)
+}
+
+// TODO: maybe move to common
+func getReceiptHashFromBaseExecutionResult(execResult data.BaseExecutionResultHandler) ([]byte, error) {
+	if check.IfNil(execResult) {
+		return nil, errNilExecutionResult
+	}
+
+	switch er := execResult.(type) {
+	case data.ExecutionResultHandler:
+		return er.GetReceiptsHash(), nil
+	case data.MetaExecutionResultHandler:
+		return er.GetReceiptsHash(), nil
+	default:
+		return nil, errNilInvalidExecutionResultType
+
+	}
 }
 
 // LoadReceipts loads the receipts, given a block header

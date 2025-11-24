@@ -10,6 +10,9 @@ import (
 	"github.com/multiversx/mx-chain-core-go/core/check"
 	"github.com/multiversx/mx-chain-core-go/data"
 	"github.com/multiversx/mx-chain-core-go/data/block"
+	"github.com/stretchr/testify/assert"
+	"github.com/stretchr/testify/require"
+
 	"github.com/multiversx/mx-chain-go/common"
 	"github.com/multiversx/mx-chain-go/dataRetriever"
 	"github.com/multiversx/mx-chain-go/process"
@@ -19,9 +22,9 @@ import (
 	dataRetrieverMock "github.com/multiversx/mx-chain-go/testscommon/dataRetriever"
 	"github.com/multiversx/mx-chain-go/testscommon/enableEpochsHandlerMock"
 	"github.com/multiversx/mx-chain-go/testscommon/hashingMocks"
-	"github.com/stretchr/testify/assert"
-	"github.com/stretchr/testify/require"
 )
+
+var errExpected = errors.New("expected error")
 
 func createGenesisBlocks(shardCoordinator sharding.Coordinator) map[uint32]data.HeaderHandler {
 	genesisBlocks := make(map[uint32]data.HeaderHandler)
@@ -760,4 +763,90 @@ func Test_setIndexOfFirstAndLastTxProcessedShouldSetReserved(t *testing.T) {
 	epoch.setIndexOfFirstAndLastTxProcessed(mbHeader, 1, 2)
 
 	require.NotNil(t, mbHeader.GetReserved())
+}
+
+func Test_CreateEpochStartShardDataMetablockV3(t *testing.T) {
+	t.Parallel()
+
+	t.Run("should return nil when start data is not needed", func(t *testing.T) {
+		t.Parallel()
+
+		arguments := createMockEpochStartCreatorArguments()
+		epoch, err := NewEpochStartData(arguments)
+		require.Nil(t, err)
+
+		res, err := epoch.CreateEpochStartShardDataMetablockV3(&block.MetaBlockV3{})
+		require.Nil(t, res)
+		require.Nil(t, err)
+	})
+
+	t.Run("should error", func(t *testing.T) {
+		t.Parallel()
+
+		arguments := createMockEpochStartCreatorArguments()
+		arguments.BlockTracker = &mock.BlockTrackerMock{
+			GetLastCrossNotarizedHeaderCalled: func(shardID uint32) (data.HeaderHandler, []byte, error) {
+				return nil, nil, errExpected
+			},
+		}
+		epoch, err := NewEpochStartData(arguments)
+		require.Nil(t, err)
+
+		_, err = epoch.CreateEpochStartShardDataMetablockV3(
+			&block.MetaBlockV3{
+				EpochChangeProposed: true,
+			})
+		require.Equal(t, errExpected, err)
+	})
+
+	t.Run("should work in transition from epoch 0 to 1", func(t *testing.T) {
+		t.Parallel()
+
+		lastExecutionResultRootHash := []byte("lastExecutionResultRootHash")
+		shardHeaderHash := []byte("shardHeaderHash")
+		lastHeaderShard0 := &block.HeaderV3{
+			ShardID:  0,
+			PrevHash: []byte("hash"),
+			Nonce:    99,
+			Round:    100,
+			LastExecutionResult: &block.ExecutionResultInfo{
+				NotarizedInRound: 100,
+				ExecutionResult: &block.BaseExecutionResult{
+					RootHash: lastExecutionResultRootHash,
+				},
+			},
+		}
+		arguments := createMockEpochStartCreatorArguments()
+
+		// there is only one shard configured in the mock coordinator
+		arguments.BlockTracker = &mock.BlockTrackerMock{
+			GetLastCrossNotarizedHeaderCalled: func(_ uint32) (data.HeaderHandler, []byte, error) {
+				return lastHeaderShard0, shardHeaderHash, nil
+			},
+		}
+		epoch, err := NewEpochStartData(arguments)
+		require.Nil(t, err)
+
+		startData, err := epoch.CreateEpochStartShardDataMetablockV3(&block.MetaBlockV3{
+			Nonce:               101,
+			Round:               101,
+			EpochChangeProposed: true,
+		})
+
+		expectedShardData := []block.EpochStartShardData{
+			{
+				ShardID:               0,
+				Epoch:                 0,
+				Round:                 100,
+				Nonce:                 99,
+				HeaderHash:            shardHeaderHash,
+				RootHash:              lastExecutionResultRootHash,
+				ScheduledRootHash:     nil,
+				LastFinishedMetaBlock: []byte(core.EpochStartIdentifier(0)), // for genesis the prevEpochStart block used
+			},
+		}
+
+		require.Nil(t, err)
+		require.Equal(t, expectedShardData, startData)
+	})
 }

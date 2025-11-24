@@ -8,6 +8,8 @@ import (
 	"github.com/multiversx/mx-chain-core-go/core/check"
 	"github.com/multiversx/mx-chain-core-go/data"
 	"github.com/multiversx/mx-chain-core-go/marshal"
+	vmcommon "github.com/multiversx/mx-chain-vm-common-go"
+
 	"github.com/multiversx/mx-chain-go/common"
 	"github.com/multiversx/mx-chain-go/epochStart"
 	"github.com/multiversx/mx-chain-go/process"
@@ -15,7 +17,6 @@ import (
 	"github.com/multiversx/mx-chain-go/sharding/nodesCoordinator"
 	"github.com/multiversx/mx-chain-go/state"
 	"github.com/multiversx/mx-chain-go/vm"
-	vmcommon "github.com/multiversx/mx-chain-vm-common-go"
 )
 
 // ArgsNewEpochStartSystemSCProcessing defines the arguments structure for the end of epoch system sc processor
@@ -106,7 +107,9 @@ func (s *systemSCProcessor) ProcessSystemSmartContract(
 		return err
 	}
 
-	err = s.processLegacy(validatorsInfoMap, header.GetNonce(), header.GetEpoch())
+	epochToUse := GetEpochToUseEpochStartData(header)
+
+	err = s.processLegacy(validatorsInfoMap, header.GetNonce(), epochToUse)
 	if err != nil {
 		return err
 	}
@@ -129,6 +132,11 @@ func (s *systemSCProcessor) processWithNewFlags(
 	validatorsInfoMap state.ShardValidatorsInfoMapHandler,
 	header data.HeaderHandler,
 ) error {
+	epochToUse := header.GetEpoch()
+	if header.IsHeaderV3() {
+		epochToUse = header.GetEpoch() + 1
+	}
+
 	if s.enableEpochsHandler.IsFlagEnabled(common.GovernanceFlagInSpecificEpochOnly) {
 		err := s.updateToGovernanceV2()
 		if err != nil {
@@ -154,7 +162,7 @@ func (s *systemSCProcessor) processWithNewFlags(
 			return err
 		}
 
-		err = s.unStakeNodesWithNotEnoughFundsWithStakingV4(validatorsInfoMap, header.GetEpoch())
+		err = s.unStakeNodesWithNotEnoughFundsWithStakingV4(validatorsInfoMap, epochToUse)
 		if err != nil {
 			return err
 		}

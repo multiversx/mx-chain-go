@@ -43,9 +43,10 @@ type ArgOutportDataProvider struct {
 	Marshaller               marshal.Marshalizer
 	Hasher                   hashing.Hasher
 	ExecutionOrderHandler    common.ExecutionOrderGetter
-	ProofsPool               dataRetriever.ProofsPool
+	DataPool                 dataRetriever.PoolsHolder
 	EnableEpochsHandler      common.EnableEpochsHandler
 	StateAccessesCollector   state.StateAccessesCollector
+	RoundHandler             RoundHandler
 }
 
 // ArgPrepareOutportSaveBlockData holds the arguments needed for prepare outport save block data
@@ -74,9 +75,10 @@ type outportDataProvider struct {
 	executionOrderHandler    common.ExecutionOrderGetter
 	marshaller               marshal.Marshalizer
 	hasher                   hashing.Hasher
-	proofsPool               dataRetriever.ProofsPool
+	dataPool                 dataRetriever.PoolsHolder
 	enableEpochsHandler      common.EnableEpochsHandler
 	StateAccessesCollector   state.StateAccessesCollector
+	roundHandler             RoundHandler
 }
 
 // NewOutportDataProvider will create a new instance of outportDataProvider
@@ -93,9 +95,10 @@ func NewOutportDataProvider(arg ArgOutportDataProvider) (*outportDataProvider, e
 		executionOrderHandler:    arg.ExecutionOrderHandler,
 		marshaller:               arg.Marshaller,
 		hasher:                   arg.Hasher,
-		proofsPool:               arg.ProofsPool,
+		dataPool:                 arg.DataPool,
 		enableEpochsHandler:      arg.EnableEpochsHandler,
 		StateAccessesCollector:   arg.StateAccessesCollector,
+		roundHandler:             arg.RoundHandler,
 	}, nil
 }
 
@@ -147,6 +150,11 @@ func (odp *outportDataProvider) PrepareOutportSaveBlockData(arg ArgPrepareOutpor
 		return nil, err
 	}
 
+	results, err := odp.prepareExecutionResultsData(arg)
+	if err != nil {
+		return nil, err
+	}
+
 	outportBlock := &outportcore.OutportBlockWithHeaderAndBody{
 		OutportBlock: &outportcore.OutportBlock{
 			ShardID:         odp.shardID,
@@ -174,19 +182,81 @@ func (odp *outportDataProvider) PrepareOutportSaveBlockData(arg ArgPrepareOutpor
 			Header:               arg.Header,
 			HeaderHash:           arg.HeaderHash,
 			IntraShardMiniBlocks: intraMiniBlocks,
+			Results:              results,
 		},
 	}
 
 	if odp.enableEpochsHandler.IsFlagEnabledInEpoch(common.AndromedaFlag, arg.Header.GetEpoch()) {
-		headerProof, err := odp.proofsPool.GetProof(arg.Header.GetShardID(), arg.HeaderHash)
-		if err != nil {
-			return nil, err
+		headerProof, errG := odp.dataPool.Proofs().GetProof(arg.Header.GetShardID(), arg.HeaderHash)
+		if errG != nil {
+			return nil, errG
 		}
 
 		outportBlock.HeaderDataWithBody.HeaderProof = headerProof
 	}
 
 	return outportBlock, nil
+}
+
+func (odp *outportDataProvider) prepareExecutionResultsData(args ArgPrepareOutportSaveBlockData) (map[string]*outportcore.ExecutionResultData, error) {
+	results := make(map[string]*outportcore.ExecutionResultData)
+	if !args.Header.IsHeaderV3() {
+		return results, nil
+	}
+
+	for _, executionResult := range args.Header.GetExecutionResultsHandlers() {
+		headerHash := executionResult.GetHeaderHash()
+
+		body, err := common.GetCachedBody(odp.dataPool.ExecutedMiniBlocks(), odp.marshaller, executionResult)
+		if err != nil {
+			return nil, err
+		}
+		intraMbs, err := common.GetCachedIntraMbs(odp.dataPool.ExecutedMiniBlocks(), odp.marshaller, headerHash)
+		if err != nil {
+			return nil, err
+		}
+
+		cachedTxs, err := common.GetCachedIntermediateTxs(odp.dataPool.PostProcessTransactions(), headerHash)
+		if err != nil {
+			return nil, err
+		}
+		cachedLogs, err := common.GetCachedLogs(odp.dataPool.PostProcessTransactions(), headerHash)
+		if err != nil {
+			return nil, err
+		}
+		pool, err := odp.createPoolWithWrappedTxs(cachedTxs, cachedLogs)
+		if err != nil {
+			return nil, err
+		}
+
+		err = odp.transactionsFeeProcessor.PutFeeAndGasUsed(pool, executionResult.GetHeaderEpoch())
+		if err != nil {
+			return nil, fmt.Errorf("transactionsFeeProcessor.PutFeeAndGasUsed %w", err)
+		}
+
+		_, _ = odp.setExecutionOrderInTransactionPool(pool)
+
+		alteredAccounts, err := odp.alteredAccountsProvider.ExtractAlteredAccountsFromPool(pool, shared.AlteredAccountsOptions{
+			WithAdditionalOutportData: true,
+		})
+		if err != nil {
+			return nil, fmt.Errorf("alteredAccountsProvider.ExtractAlteredAccountsFromPool %w", err)
+		}
+
+		encodedHash := hex.EncodeToString(headerHash)
+		executionResultData := &outportcore.ExecutionResultData{
+			HeaderNonce:          executionResult.GetHeaderNonce(),
+			Body:                 body,
+			IntraShardMiniBlocks: intraMbs,
+			TransactionPool:      pool,
+			AlteredAccounts:      alteredAccounts,
+			TimestampMs:          odp.roundHandler.GetTimeStampForRound(executionResult.GetHeaderRound()),
+		}
+
+		results[encodedHash] = executionResultData
+	}
+
+	return results, nil
 }
 
 func collectExecutedTxHashes(bodyHandler data.BodyHandler, headerHandler data.HeaderHandler) (map[string]struct{}, error) {
@@ -355,40 +425,52 @@ func findLeaderIndex(blsKeys []string, leaderBlsKey string) uint64 {
 }
 
 func (odp *outportDataProvider) createPool(rewardsTxs map[string]data.TransactionHandler) (*outportcore.TransactionPool, error) {
-	if odp.shardID == core.MetachainShardId {
-		return odp.createPoolForMeta(rewardsTxs)
+	grouped := map[block.Type]map[string]data.TransactionHandler{
+		block.TxBlock:                  odp.txCoordinator.GetAllCurrentUsedTxs(block.TxBlock),
+		block.SmartContractResultBlock: odp.txCoordinator.GetAllCurrentUsedTxs(block.SmartContractResultBlock),
 	}
 
-	return odp.createPoolForShard()
+	logs := odp.txCoordinator.GetAllCurrentLogs()
+
+	if odp.shardID == core.MetachainShardId {
+		grouped[block.RewardsBlock] = rewardsTxs
+		return odp.createPoolWithWrappedTxs(grouped, logs)
+	}
+
+	grouped[block.ReceiptBlock] = odp.txCoordinator.GetAllCurrentUsedTxs(block.ReceiptBlock)
+	grouped[block.InvalidBlock] = odp.txCoordinator.GetAllCurrentUsedTxs(block.InvalidBlock)
+	grouped[block.RewardsBlock] = odp.txCoordinator.GetAllCurrentUsedTxs(block.RewardsBlock)
+
+	return odp.createPoolWithWrappedTxs(grouped, logs)
 }
 
-func (odp *outportDataProvider) createPoolForShard() (*outportcore.TransactionPool, error) {
-	txs, err := getTxs(odp.txCoordinator.GetAllCurrentUsedTxs(block.TxBlock))
+func (odp *outportDataProvider) createPoolWithWrappedTxs(groupedTxs map[block.Type]map[string]data.TransactionHandler, logsData []*data.LogData) (*outportcore.TransactionPool, error) {
+	txs, err := getTxs(groupedTxs[block.TxBlock])
 	if err != nil {
 		return nil, err
 	}
 
-	scrs, err := getScrs(odp.txCoordinator.GetAllCurrentUsedTxs(block.SmartContractResultBlock))
+	scrs, err := getScrs(groupedTxs[block.SmartContractResultBlock])
 	if err != nil {
 		return nil, err
 	}
 
-	rewards, err := getRewards(odp.txCoordinator.GetAllCurrentUsedTxs(block.RewardsBlock))
+	rewards, err := getRewards(groupedTxs[block.RewardsBlock])
 	if err != nil {
 		return nil, err
 	}
 
-	invalidTxs, err := getTxs(odp.txCoordinator.GetAllCurrentUsedTxs(block.InvalidBlock))
+	invalidTxs, err := getTxs(groupedTxs[block.InvalidBlock])
 	if err != nil {
 		return nil, err
 	}
 
-	receipts, err := getReceipts(odp.txCoordinator.GetAllCurrentUsedTxs(block.ReceiptBlock))
+	receipts, err := getReceipts(groupedTxs[block.ReceiptBlock])
 	if err != nil {
 		return nil, err
 	}
 
-	logs, err := getLogs(odp.txCoordinator.GetAllCurrentLogs())
+	logs, err := getLogs(logsData)
 	if err != nil {
 		return nil, err
 	}
@@ -399,35 +481,6 @@ func (odp *outportDataProvider) createPoolForShard() (*outportcore.TransactionPo
 		Rewards:              rewards,
 		InvalidTxs:           invalidTxs,
 		Receipts:             receipts,
-		Logs:                 logs,
-	}, nil
-}
-
-func (odp *outportDataProvider) createPoolForMeta(rewardsTxs map[string]data.TransactionHandler) (*outportcore.TransactionPool, error) {
-	txs, err := getTxs(odp.txCoordinator.GetAllCurrentUsedTxs(block.TxBlock))
-	if err != nil {
-		return nil, err
-	}
-
-	scrs, err := getScrs(odp.txCoordinator.GetAllCurrentUsedTxs(block.SmartContractResultBlock))
-	if err != nil {
-		return nil, err
-	}
-
-	rewards, err := getRewards(rewardsTxs)
-	if err != nil {
-		return nil, err
-	}
-
-	logs, err := getLogs(odp.txCoordinator.GetAllCurrentLogs())
-	if err != nil {
-		return nil, err
-	}
-
-	return &outportcore.TransactionPool{
-		Transactions:         txs,
-		SmartContractResults: scrs,
-		Rewards:              rewards,
 		Logs:                 logs,
 	}, nil
 }

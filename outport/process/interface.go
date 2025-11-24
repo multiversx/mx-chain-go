@@ -30,6 +30,12 @@ type GasConsumedProvider interface {
 	IsInterfaceNil() bool
 }
 
+// RoundHandler defines the actions which should be handled by a round implementation
+type RoundHandler interface {
+	GetTimeStampForRound(round uint64) uint64
+	IsInterfaceNil() bool
+}
+
 // EconomicsDataHandler defines the functionality needed for economics data
 type EconomicsDataHandler interface {
 	ComputeGasUnitsFromRefundValue(tx data.TransactionWithFeeHandler, refundValue *big.Int, epoch uint32) uint64
