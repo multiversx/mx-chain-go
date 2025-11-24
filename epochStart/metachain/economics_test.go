@@ -12,6 +12,9 @@ import (
 	"github.com/multiversx/mx-chain-core-go/core/check"
 	"github.com/multiversx/mx-chain-core-go/data"
 	"github.com/multiversx/mx-chain-core-go/data/block"
+	"github.com/stretchr/testify/assert"
+	"github.com/stretchr/testify/require"
+
 	"github.com/multiversx/mx-chain-go/common"
 	"github.com/multiversx/mx-chain-go/config"
 	"github.com/multiversx/mx-chain-go/dataRetriever"
@@ -27,8 +30,6 @@ import (
 	"github.com/multiversx/mx-chain-go/testscommon/epochNotifier"
 	"github.com/multiversx/mx-chain-go/testscommon/hashingMocks"
 	storageStubs "github.com/multiversx/mx-chain-go/testscommon/storage"
-	"github.com/stretchr/testify/assert"
-	"github.com/stretchr/testify/require"
 )
 
 func createMockEpochEconomicsArguments() ArgsNewEpochEconomics {
@@ -2064,13 +2065,13 @@ func TestComputeEndOfEpochEconomicsV2AndV3(t *testing.T) {
 					DevFeesInEpoch:         input.devFeesInEpoch,
 				},
 			}
+
 			blockEpochStart := &block.EpochStart{
 				LastFinalizedHeaders: []block.EpochStartShardData{
 					{ShardID: 0, Round: roundsPerEpoch, Nonce: input.blockPerEpochOneShard},
 					{ShardID: 1, Round: roundsPerEpoch, Nonce: input.blockPerEpochOneShard},
 				},
 			}
-
 			economicsBlock, err := ec.ComputeEndOfEpochEconomicsV3(meta, execRes, blockEpochStart)
 			assert.Nil(t, err)
 
@@ -2448,7 +2449,7 @@ func TestEconomics_createEconomicsV3Args(t *testing.T) {
 		require.Nil(t, res)
 		require.Equal(t, process.ErrNilExecutionResultHandler, err)
 	})
-	t.Run("nil epoch start handler", func(t *testing.T) {
+	t.Run("nil nonces per shard map", func(t *testing.T) {
 		res, err := ec.createEconomicsV3Args(metaBlock, metaExecRes, nil)
 		require.Nil(t, res)
 		require.Equal(t, process.ErrNilEpochStartData, err)

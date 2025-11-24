@@ -13,6 +13,8 @@ import (
 	"github.com/multiversx/mx-chain-core-go/data"
 	"github.com/multiversx/mx-chain-core-go/data/block"
 	"github.com/multiversx/mx-chain-core-go/data/rewardTx"
+	"github.com/stretchr/testify/require"
+
 	"github.com/multiversx/mx-chain-go/common"
 	"github.com/multiversx/mx-chain-go/epochStart"
 	"github.com/multiversx/mx-chain-go/epochStart/mock"
@@ -20,7 +22,6 @@ import (
 	"github.com/multiversx/mx-chain-go/state"
 	"github.com/multiversx/mx-chain-go/testscommon/economicsmocks"
 	"github.com/multiversx/mx-chain-go/testscommon/stakingcommon"
-	"github.com/stretchr/testify/require"
 )
 
 const (
@@ -1213,7 +1214,7 @@ func setupNodeRewardInfo(
 
 	nrValidatorsToRemoveTopup := big.NewInt(0).Div(validatorTopupStake, topupStakePerNode)
 
-	//remove the newly added topup from some other nodes
+	// remove the newly added topup from some other nodes
 	for i := int64(1); i < nrValidatorsToRemoveTopup.Int64(); i++ {
 		nodesRewardInfo[0][i].topUpStake = big.NewInt(0)
 	}
@@ -1505,7 +1506,7 @@ func TestNewRewardsCreatorV2_addValidatorRewardsToMiniBlocks(t *testing.T) {
 		sumFees.Add(sumFees, vInfo.GetAccumulatedFees())
 	}
 
-	accumulatedDust, err := rwd.addValidatorRewardsToMiniBlocks(metaBlock, miniBlocks, nodesRewardInfo)
+	accumulatedDust, err := rwd.addValidatorRewardsToMiniBlocks(metaBlock.GetEpoch(), metaBlock.GetRound(), miniBlocks, nodesRewardInfo)
 	require.Nil(t, err)
 	require.Equal(t, big.NewInt(0), accumulatedDust)
 
@@ -1556,7 +1557,7 @@ func TestNewRewardsCreatorV2_addValidatorRewardsToMiniBlocksAddressInMetaChainDe
 		}
 	}
 
-	accumulatedDust, err := rwd.addValidatorRewardsToMiniBlocks(metaBlock, miniBlocks, nodesRewardInfo)
+	accumulatedDust, err := rwd.addValidatorRewardsToMiniBlocks(metaBlock.GetEpoch(), metaBlock.GetRound(), miniBlocks, nodesRewardInfo)
 	require.Nil(t, err)
 	require.True(t, big.NewInt(0).Cmp(accumulatedDust) < 0)
 

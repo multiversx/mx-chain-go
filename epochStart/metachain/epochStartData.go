@@ -11,6 +11,7 @@ import (
 	"github.com/multiversx/mx-chain-core-go/data/block"
 	"github.com/multiversx/mx-chain-core-go/hashing"
 	"github.com/multiversx/mx-chain-core-go/marshal"
+
 	"github.com/multiversx/mx-chain-go/common"
 	"github.com/multiversx/mx-chain-go/dataRetriever"
 	"github.com/multiversx/mx-chain-go/epochStart"
@@ -45,6 +46,11 @@ type ArgsNewEpochStartData struct {
 	RequestHandler      epochStart.RequestHandler
 	GenesisEpoch        uint32
 	EnableEpochsHandler common.EnableEpochsHandler
+}
+
+type rootHashData struct {
+	rootHash          []byte
+	scheduledRootHash []byte
 }
 
 // NewEpochStartData creates a new epoch start creator
@@ -97,7 +103,7 @@ func NewEpochStartData(args ArgsNewEpochStartData) (*epochStartData, error) {
 }
 
 // VerifyEpochStartDataForMetablock verifies if epoch start data given by leader is the same as the one should be created
-func (e *epochStartData) VerifyEpochStartDataForMetablock(metaBlock *block.MetaBlock) error {
+func (e *epochStartData) VerifyEpochStartDataForMetablock(metaBlock data.MetaHeaderHandler) error {
 	if !metaBlock.IsStartOfEpochBlock() {
 		return nil
 	}
@@ -107,9 +113,29 @@ func (e *epochStartData) VerifyEpochStartDataForMetablock(metaBlock *block.MetaB
 		return err
 	}
 
-	epochStartDataWithoutEconomics := metaBlock.EpochStart
-	epochStartDataWithoutEconomics.Economics = block.Economics{}
-	receivedEpochStartHash, err := core.CalculateHash(e.marshalizer, e.hasher, &epochStartDataWithoutEconomics)
+	return e.verifyEpochStartDataForMetablock(metaBlock, startData)
+}
+
+func (e *epochStartData) verifyEpochStartDataForMetablock(
+	metaBlock data.MetaHeaderHandler,
+	startData *block.EpochStart,
+) error {
+	if !metaBlock.IsStartOfEpochBlock() {
+		return nil
+	}
+
+	blockEpochStartData := metaBlock.GetEpochStartHandler()
+	epochStartDataWithoutEconomics := &block.EpochStart{}
+	err := epochStartDataWithoutEconomics.SetLastFinalizedHeaders(blockEpochStartData.GetLastFinalizedHeaderHandlers())
+	if err != nil {
+		return err
+	}
+	esd := &block.Economics{}
+	err = epochStartDataWithoutEconomics.SetEconomics(esd)
+	if err != nil {
+		return err
+	}
+	receivedEpochStartHash, err := core.CalculateHash(e.marshalizer, e.hasher, epochStartDataWithoutEconomics)
 	if err != nil {
 		return err
 	}
@@ -120,7 +146,7 @@ func (e *epochStartData) VerifyEpochStartDataForMetablock(metaBlock *block.MetaB
 	}
 
 	if !bytes.Equal(receivedEpochStartHash, createdEpochStartHash) {
-		displayEpochStartData("received", receivedEpochStartHash, &metaBlock.EpochStart)
+		displayEpochStartData("received", receivedEpochStartHash, metaBlock.GetEpochStartHandler())
 		displayEpochStartData("created", createdEpochStartHash, startData)
 
 		return process.ErrEpochStartDataDoesNotMatch
@@ -129,18 +155,18 @@ func (e *epochStartData) VerifyEpochStartDataForMetablock(metaBlock *block.MetaB
 	return nil
 }
 
-func displayEpochStartData(mode string, hash []byte, startData *block.EpochStart) {
+func displayEpochStartData(mode string, hash []byte, startData data.EpochStartHandler) {
 	log.Warn(mode+" epoch start data",
 		"hash", hash, "startData", spew.Sdump(startData))
 
-	for _, shardData := range startData.LastFinalizedHeaders {
+	for _, shardData := range startData.GetLastFinalizedHeaderHandlers() {
 		log.Warn("epoch start shard data",
-			"shardID", shardData.ShardID,
-			"num pending miniblocks", len(shardData.PendingMiniBlockHeaders),
-			"first pending meta", shardData.FirstPendingMetaBlock,
-			"last finished meta", shardData.LastFinishedMetaBlock,
-			"rootHash", shardData.RootHash,
-			"headerHash", shardData.HeaderHash)
+			"shardID", shardData.GetShardID(),
+			"num pending miniblocks", len(shardData.GetPendingMiniBlockHeaderHandlers()),
+			"first pending meta", shardData.GetFirstPendingMetaBlock(),
+			"last finished meta", shardData.GetLastFinishedMetaBlock(),
+			"rootHash", shardData.GetRootHash(),
+			"headerHash", shardData.GetHeaderHash())
 	}
 }
 
@@ -150,6 +176,27 @@ func (e *epochStartData) CreateEpochStartData() (*block.EpochStart, error) {
 		return &block.EpochStart{}, nil
 	}
 
+	return e.createEpochStartData()
+}
+
+// CreateEpochStartShardDataMetablockV3 creates epoch start data for metablock v3 if it is needed
+func (e *epochStartData) CreateEpochStartShardDataMetablockV3(metablock data.MetaHeaderHandler) ([]block.EpochStartShardData, error) {
+	log.Debug("CreateEpochStartShardDataMetablockV3",
+		"metablock epoch", metablock.GetEpoch(),
+		"isEpochChangeProposed", metablock.IsEpochChangeProposed(),
+		"trigger epoch", e.epochStartTrigger.Epoch())
+
+	if !metablock.IsEpochChangeProposed() {
+		return nil, nil
+	}
+	esd, err := e.createEpochStartData()
+	if err != nil {
+		return nil, err
+	}
+	return esd.LastFinalizedHeaders, nil
+}
+
+func (e *epochStartData) createEpochStartData() (*block.EpochStart, error) {
 	startData, allShardHdrList, err := e.createShardStartDataAndLastProcessedHeaders()
 	if err != nil {
 		return nil, err
@@ -198,20 +245,46 @@ func (e *epochStartData) createShardStartDataAndLastProcessedHeaders() (*block.E
 			Round:                 lastCrossNotarizedHeaderForShard.GetRound(),
 			Nonce:                 lastCrossNotarizedHeaderForShard.GetNonce(),
 			HeaderHash:            hdrHash,
-			RootHash:              lastCrossNotarizedHeaderForShard.GetRootHash(),
 			FirstPendingMetaBlock: firstPendingMetaHash,
 			LastFinishedMetaBlock: lastFinalizedMetaHash,
 		}
-		additionalData := lastCrossNotarizedHeaderForShard.GetAdditionalData()
-		if additionalData != nil {
-			finalHeader.ScheduledRootHash = additionalData.GetScheduledRootHash()
+
+		rhd, err := getRootHashForLastCrossNotarizedHeader(lastCrossNotarizedHeaderForShard)
+		if err != nil {
+			return nil, nil, err
 		}
+
+		finalHeader.RootHash = rhd.rootHash
+		finalHeader.ScheduledRootHash = rhd.scheduledRootHash
 
 		startData.LastFinalizedHeaders = append(startData.LastFinalizedHeaders, finalHeader)
 		allShardHdrList[shardID] = currShardHdrList
 	}
 
 	return startData, allShardHdrList, nil
+}
+
+func getRootHashForLastCrossNotarizedHeader(lastCrossNotarizedHeaderForShard data.HeaderHandler) (*rootHashData, error) {
+	rhd := &rootHashData{}
+	rhd.rootHash = lastCrossNotarizedHeaderForShard.GetRootHash()
+
+	additionalData := lastCrossNotarizedHeaderForShard.GetAdditionalData()
+	if additionalData != nil {
+		rhd.scheduledRootHash = additionalData.GetScheduledRootHash()
+	}
+
+	if !lastCrossNotarizedHeaderForShard.IsHeaderV3() {
+		return rhd, nil
+	}
+
+	lastExecutionResultHandler := lastCrossNotarizedHeaderForShard.GetLastExecutionResultHandler()
+	lastExecutionOnHeader, ok := lastExecutionResultHandler.(data.LastShardExecutionResultHandler)
+	if !ok || check.IfNil(lastExecutionOnHeader.GetExecutionResultHandler()) {
+		return nil, process.ErrWrongTypeAssertion
+	}
+
+	rhd.rootHash = lastExecutionOnHeader.GetExecutionResultHandler().GetRootHash()
+	return rhd, nil
 }
 
 func (e *epochStartData) lastFinalizedFirstPendingListHeadersForShard(shardHdr data.ShardHeaderHandler) ([]byte, []byte, []data.HeaderHandler, error) {

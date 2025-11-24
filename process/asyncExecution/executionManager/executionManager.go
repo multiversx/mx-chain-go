@@ -5,10 +5,11 @@ import (
 
 	"github.com/multiversx/mx-chain-core-go/core/check"
 	"github.com/multiversx/mx-chain-core-go/data"
+	logger "github.com/multiversx/mx-chain-logger-go"
+
 	"github.com/multiversx/mx-chain-go/common"
 	"github.com/multiversx/mx-chain-go/process"
 	"github.com/multiversx/mx-chain-go/process/asyncExecution/disabled"
-	logger "github.com/multiversx/mx-chain-logger-go"
 
 	"github.com/multiversx/mx-chain-go/process/asyncExecution/queue"
 )
@@ -194,12 +195,16 @@ func (em *executionManager) updateBlockchainAfterRemoval(lastNotarizedResult dat
 	if err != nil {
 		return err
 	}
+
 	// if there are still pending execution results, use the last one that was executed
+	lastExecutionResult := lastNotarizedResult
 	if len(pendingExecutionResults) > 0 {
 		lastPending := pendingExecutionResults[len(pendingExecutionResults)-1]
 		lastExecutedHeaderHash = lastPending.GetHeaderHash()
 		lastExecutedHeaderNonce = lastPending.GetHeaderNonce()
 		lastExecutedHeaderRootHash = lastPending.GetRootHash()
+
+		lastExecutionResult = lastPending
 	}
 
 	header, err := em.headers.GetHeaderByHash(lastExecutedHeaderHash)
@@ -215,6 +220,7 @@ func (em *executionManager) updateBlockchainAfterRemoval(lastNotarizedResult dat
 	)
 
 	em.blockChain.SetLastExecutedBlockHeaderAndRootHash(header, lastExecutedHeaderHash, lastExecutedHeaderRootHash)
+	em.blockChain.SetLastExecutionResult(lastExecutionResult)
 
 	return nil
 }

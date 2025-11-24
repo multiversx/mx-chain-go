@@ -49,6 +49,8 @@ import (
 // UsedShardHeadersInfo -
 type UsedShardHeadersInfo = usedShardHeadersInfo
 
+type EpochStartDataWrapper = epochStartDataWrapper
+
 // ComputeHeaderHash -
 func (bp *baseProcessor) ComputeHeaderHash(hdr data.HeaderHandler) ([]byte, error) {
 	return core.CalculateHash(bp.marshalizer, bp.hasher, hdr)
@@ -943,13 +945,26 @@ func ConstructPartialMetaBlockProcessorForTest(subcomponents map[string]interfac
 }
 
 // SetEpochStartData -
-func (mp *metaProcessor) SetEpochStartData(epochStartData *block.EpochStart) {
-	mp.epochStartData = epochStartData
+func (mp *metaProcessor) SetEpochStartData(epochStartData *EpochStartDataWrapper) {
+	mp.epochStartDataWrapper = epochStartData
 }
 
 // GetTxCountExecutionResults -
 func GetTxCountExecutionResults(metaHeader data.MetaHeaderHandler) (uint32, error) {
 	return getTxCountExecutionResults(metaHeader)
+}
+
+// PrepareBlockHeaderInternalMapForValidatorProcessor -
+func (mp *metaProcessor) PrepareBlockHeaderInternalMapForValidatorProcessor(metaHeader data.MetaHeaderHandler) {
+	mp.prepareBlockHeaderInternalMapForValidatorProcessor(metaHeader)
+}
+
+// UpdatePeerState -
+func (mp *metaProcessor) UpdatePeerState(
+	header data.MetaHeaderHandler,
+	cache map[string]data.HeaderHandler,
+) ([]byte, error) {
+	return mp.updatePeerState(header, cache)
 }
 
 // HasStartOfEpochExecutionResults -
@@ -985,6 +1000,13 @@ func (mp *metaProcessor) SelectIncomingMiniBlocks(
 	return mp.selectIncomingMiniBlocks(lastShardHdr, orderedHdrs, orderedHdrsHashes, maxNumHeadersFromSameShard, haveTime)
 }
 
+// VerifyEpochStartData -
+func (mp *metaProcessor) VerifyEpochStartData(
+	headerHandler data.MetaHeaderHandler,
+) bool {
+	return mp.verifyEpochStartData(headerHandler)
+}
+
 // PrepareEpochStartBodyForTrigger -
 func (mp *metaProcessor) PrepareEpochStartBodyForTrigger(header data.MetaHeaderHandler, body *block.Body) (*block.Body, error) {
 	return mp.prepareEpochStartBodyForTrigger(header, body)
@@ -1010,7 +1032,59 @@ func (bp *baseProcessor) ExtractRootHashForCleanup(header data.HeaderHandler) (c
 	return bp.extractRootHashForCleanup(header)
 }
 
+// CheckContextBeforeExecution -
+func (bp *baseProcessor) CheckContextBeforeExecution(header data.HeaderHandler) error {
+	return bp.checkContextBeforeExecution(header)
+}
+
 // SaveProposedTxsToStorage -
 func (bp *baseProcessor) SaveProposedTxsToStorage(header data.HeaderHandler, body *block.Body) error {
 	return bp.saveProposedTxsToStorage(header, body)
+}
+
+// ProcessIfFirstBlockAfterEpochStartBlockV3 -
+func (mp *metaProcessor) ProcessIfFirstBlockAfterEpochStartBlockV3() error {
+	return mp.processIfFirstBlockAfterEpochStartBlockV3()
+}
+
+// ProcessEpochStartProposeBlock -
+func (mp *metaProcessor) ProcessEpochStartProposeBlock(metaHeader data.MetaHeaderHandler, body *block.Body) (data.BaseExecutionResultHandler, error) {
+	return mp.processEpochStartProposeBlock(metaHeader, body)
+}
+
+// ProcessEconomicsDataForEpochStartProposeBlock -
+func (mp *metaProcessor) ProcessEconomicsDataForEpochStartProposeBlock(metaHeader data.MetaHeaderHandler) error {
+	return mp.processEconomicsDataForEpochStartProposeBlock(metaHeader)
+}
+
+// CreateExecutionResult -
+func (mp *metaProcessor) CreateExecutionResult(
+	miniBlockHeaderHandlers []data.MiniBlockHeaderHandler,
+	header data.MetaHeaderHandler,
+	headerHash []byte,
+	receiptHash []byte,
+	valStatRootHash []byte,
+	totalTxCount int,
+) (data.BaseExecutionResultHandler, error) {
+	return mp.createExecutionResult(miniBlockHeaderHandlers, header, headerHash, receiptHash, valStatRootHash, totalTxCount)
+}
+
+// CollectExecutionResults -
+func (mp *metaProcessor) CollectExecutionResults(
+	headerHash []byte,
+	header data.MetaHeaderHandler,
+	body *block.Body,
+	valStatRootHash []byte,
+) (data.BaseExecutionResultHandler, error) {
+	return mp.collectExecutionResults(headerHash, header, body, valStatRootHash)
+}
+
+// CollectExecutionResultsEpochStartProposal -
+func (mp *metaProcessor) CollectExecutionResultsEpochStartProposal(
+	headerHash []byte,
+	header data.MetaHeaderHandler,
+	constructedBody *block.Body,
+	valStatRootHash []byte,
+) (data.BaseExecutionResultHandler, error) {
+	return mp.collectExecutionResultsEpochStartProposal(headerHash, header, constructedBody, valStatRootHash)
 }

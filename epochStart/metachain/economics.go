@@ -15,6 +15,7 @@ import (
 	"github.com/multiversx/mx-chain-core-go/display"
 	"github.com/multiversx/mx-chain-core-go/hashing"
 	"github.com/multiversx/mx-chain-core-go/marshal"
+
 	"github.com/multiversx/mx-chain-go/common"
 	"github.com/multiversx/mx-chain-go/dataRetriever"
 	"github.com/multiversx/mx-chain-go/epochStart"
@@ -128,7 +129,7 @@ func NewEndOfEpochEconomicsDataCreator(args ArgsNewEpochEconomics) (*economics, 
 
 // ComputeEndOfEpochEconomics calculates the rewards per block value for the current epoch
 func (e *economics) ComputeEndOfEpochEconomics(
-	metaBlock *block.MetaBlock,
+	metaBlock data.MetaHeaderHandler,
 ) (*block.Economics, error) {
 	args, err := e.createLegacyEconomicsArgs(metaBlock)
 	if err != nil {
@@ -138,21 +139,21 @@ func (e *economics) ComputeEndOfEpochEconomics(
 	return e.baseComputeEconomics(args)
 }
 
-func (e *economics) createLegacyEconomicsArgs(metaBlock *block.MetaBlock) (*argsComputeEconomics, error) {
+func (e *economics) createLegacyEconomicsArgs(metaBlock data.MetaHeaderHandler) (*argsComputeEconomics, error) {
 	if check.IfNil(metaBlock) {
 		return nil, epochStart.ErrNilHeaderHandler
 	}
-	if metaBlock.AccumulatedFeesInEpoch == nil {
+	if metaBlock.GetAccumulatedFeesInEpoch() == nil {
 		return nil, epochStart.ErrNilTotalAccumulatedFeesInEpoch
 	}
-	if metaBlock.DevFeesInEpoch == nil {
+	if metaBlock.GetDevFeesInEpoch() == nil {
 		return nil, epochStart.ErrNilTotalDevFeesInEpoch
 	}
-	if !metaBlock.IsStartOfEpochBlock() || metaBlock.Epoch < e.genesisEpoch+1 {
+	if !metaBlock.IsStartOfEpochBlock() || metaBlock.GetEpoch() < e.genesisEpoch+1 {
 		return nil, epochStart.ErrNotEpochStartBlock
 	}
 
-	noncesPerShardPrevEpoch, prevEpochStart, err := e.startNoncePerShardFromEpochStart(metaBlock.Epoch - 1)
+	noncesPerShardPrevEpoch, prevEpochStart, err := e.startNoncePerShardFromEpochStart(metaBlock.GetEpoch() - 1)
 	if err != nil {
 		return nil, err
 	}
@@ -161,8 +162,8 @@ func (e *economics) createLegacyEconomicsArgs(metaBlock *block.MetaBlock) (*args
 
 	return &argsComputeEconomics{
 		computationData: economicsComputationData{
-			newEpoch:               metaBlock.Epoch,
-			round:                  metaBlock.Round,
+			newEpoch:               metaBlock.GetEpoch(),
+			round:                  metaBlock.GetRound(),
 			timeStamp:              metaBlock.GetTimeStamp(),
 			accumulatedFeesInEpoch: metaBlock.GetAccumulatedFeesInEpoch(),
 			devFeesInEpoch:         metaBlock.GetDevFeesInEpoch(),
@@ -275,7 +276,6 @@ func (e *economics) createEconomicsV3Args(
 	if epochStartHandler == nil {
 		return nil, process.ErrNilEpochStartData
 	}
-
 	if prevBlockExecutionResults.GetAccumulatedFeesInEpoch() == nil {
 		return nil, epochStart.ErrNilTotalAccumulatedFeesInEpoch
 	}
@@ -687,9 +687,9 @@ func (e *economics) checkEconomicsInvariants(
 
 // VerifyRewardsPerBlock checks whether rewards per block value was correctly computed
 func (e *economics) VerifyRewardsPerBlock(
-	metaBlock *block.MetaBlock,
+	metaBlock data.MetaHeaderHandler,
 	correctedProtocolSustainability *big.Int,
-	computedEconomics *block.Economics,
+	computedEconomics data.EconomicsHandler,
 ) error {
 	if computedEconomics == nil {
 		return epochStart.ErrNilEconomicsData
@@ -698,20 +698,23 @@ func (e *economics) VerifyRewardsPerBlock(
 		return nil
 	}
 
-	computedEconomics.RewardsForProtocolSustainability.Set(correctedProtocolSustainability)
+	err := computedEconomics.SetRewardsForProtocolSustainability(correctedProtocolSustainability)
+	if err != nil {
+		return err
+	}
 	computedEconomicsHash, err := core.CalculateHash(e.marshalizer, e.hasher, computedEconomics)
 	if err != nil {
 		return err
 	}
 
-	receivedEconomics := metaBlock.EpochStart.Economics
-	receivedEconomicsHash, err := core.CalculateHash(e.marshalizer, e.hasher, &receivedEconomics)
+	receivedEconomics := metaBlock.GetEpochStartHandler().GetEconomicsHandler()
+	receivedEconomicsHash, err := core.CalculateHash(e.marshalizer, e.hasher, receivedEconomics)
 	if err != nil {
 		return err
 	}
 
 	if !bytes.Equal(receivedEconomicsHash, computedEconomicsHash) {
-		logEconomicsDifferences(computedEconomics, &receivedEconomics)
+		logEconomicsDifferences(computedEconomics, receivedEconomics)
 		return epochStart.ErrEndOfEpochEconomicsDataDoesNotMatch
 	}
 
@@ -723,19 +726,19 @@ func (e *economics) IsInterfaceNil() bool {
 	return e == nil
 }
 
-func logEconomicsDifferences(computed *block.Economics, received *block.Economics) {
+func logEconomicsDifferences(computed data.EconomicsHandler, received data.EconomicsHandler) {
 	log.Warn("VerifyRewardsPerBlock error",
-		"\ncomputed total to distribute", computed.TotalToDistribute,
-		"computed total newly minted", computed.TotalNewlyMinted,
-		"computed total supply", computed.TotalSupply,
-		"computed rewards per block per node", computed.RewardsPerBlock,
-		"computed rewards for protocol sustainability", computed.RewardsForProtocolSustainability,
-		"computed node price", computed.NodePrice,
-		"\nreceived total to distribute", received.TotalToDistribute,
-		"received total newly minted", received.TotalNewlyMinted,
-		"received total supply", received.TotalSupply,
-		"received rewards per block per node", received.RewardsPerBlock,
-		"received rewards for protocol sustainability", received.RewardsForProtocolSustainability,
-		"received node price", received.NodePrice,
+		"\ncomputed total to distribute", computed.GetTotalToDistribute(),
+		"computed total newly minted", computed.GetTotalNewlyMinted(),
+		"computed total supply", computed.GetTotalSupply(),
+		"computed rewards per block per node", computed.GetRewardsPerBlock(),
+		"computed rewards for protocol sustainability", computed.GetRewardsForProtocolSustainability(),
+		"computed node price", computed.GetNodePrice(),
+		"\nreceived total to distribute", received.GetTotalToDistribute(),
+		"received total newly minted", received.GetTotalNewlyMinted(),
+		"received total supply", received.GetTotalSupply(),
+		"received rewards per block per node", received.GetRewardsPerBlock(),
+		"received rewards for protocol sustainability", received.GetRewardsForProtocolSustainability(),
+		"received node price", received.GetNodePrice(),
 	)
 }
