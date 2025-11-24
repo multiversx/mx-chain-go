@@ -481,7 +481,7 @@ func TestTransactionCoordinator_SelectOutgoingTransactions_EmptyResult(t *testin
 	// Mock proposal preprocessors to return empty transactions
 	proposalPreprocessorCalled := false
 	tc.preProcProposal.txPreProcessors[block.TxBlock] = &preprocMocks.PreProcessorMock{
-		SelectOutgoingTransactionsCalled: func(_ uint64) ([][]byte, []data.TransactionHandler, error) {
+		SelectOutgoingTransactionsCalled: func(_ uint64, _ uint64) ([][]byte, []data.TransactionHandler, error) {
 			proposalPreprocessorCalled = true
 			return [][]byte{}, []data.TransactionHandler{}, nil
 		},
@@ -490,13 +490,13 @@ func TestTransactionCoordinator_SelectOutgoingTransactions_EmptyResult(t *testin
 	// Mock execution preprocessor to ensure it's not called
 	executionPreprocessorCalled := false
 	tc.preProcExecution.txPreProcessors[block.TxBlock] = &preprocMocks.PreProcessorMock{
-		SelectOutgoingTransactionsCalled: func(_ uint64) ([][]byte, []data.TransactionHandler, error) {
+		SelectOutgoingTransactionsCalled: func(_ uint64, _ uint64) ([][]byte, []data.TransactionHandler, error) {
 			executionPreprocessorCalled = true
 			return [][]byte{}, []data.TransactionHandler{}, nil
 		},
 	}
 
-	txHashes, _ := tc.SelectOutgoingTransactions()
+	txHashes, _ := tc.SelectOutgoingTransactions(0)
 
 	require.Equal(t, 0, len(txHashes))
 
@@ -519,7 +519,7 @@ func TestTransactionCoordinator_SelectOutgoingTransactions_ReturnsTransactions(t
 	// Mock proposal preprocessor to return transactions
 	proposalPreprocessorCalled := false
 	tc.preProcProposal.txPreProcessors[block.TxBlock] = &preprocMocks.PreProcessorMock{
-		SelectOutgoingTransactionsCalled: func(_ uint64) ([][]byte, []data.TransactionHandler, error) {
+		SelectOutgoingTransactionsCalled: func(_ uint64, _ uint64) ([][]byte, []data.TransactionHandler, error) {
 			proposalPreprocessorCalled = true
 			return expectedTxHashes, expectedTxs, nil
 		},
@@ -528,13 +528,13 @@ func TestTransactionCoordinator_SelectOutgoingTransactions_ReturnsTransactions(t
 	// Mock execution preprocessor to ensure it's not called
 	executionPreprocessorCalled := false
 	tc.preProcExecution.txPreProcessors[block.TxBlock] = &preprocMocks.PreProcessorMock{
-		SelectOutgoingTransactionsCalled: func(_ uint64) ([][]byte, []data.TransactionHandler, error) {
+		SelectOutgoingTransactionsCalled: func(_ uint64, _ uint64) ([][]byte, []data.TransactionHandler, error) {
 			executionPreprocessorCalled = true
 			return [][]byte{}, []data.TransactionHandler{}, nil
 		},
 	}
 
-	txHashes, _ := tc.SelectOutgoingTransactions()
+	txHashes, _ := tc.SelectOutgoingTransactions(0)
 
 	require.Equal(t, len(expectedTxHashes), len(txHashes))
 	for i, expectedHash := range expectedTxHashes {
@@ -569,7 +569,7 @@ func TestTransactionCoordinator_SelectOutgoingTransactions_MultipleBlockTypes(t 
 	// Add both block types to the keys
 	tc.preProcProposal.keysTxPreProcs = []block.Type{block.TxBlock, block.SmartContractResultBlock}
 
-	txHashes, _ := tc.SelectOutgoingTransactions()
+	txHashes, _ := tc.SelectOutgoingTransactions(0)
 
 	// Should contain hashes from TxBlock type, for SmartContractsResultsBlock type the selection returns empty
 	expectedTotal := len(txHashesType1)
@@ -598,12 +598,12 @@ func TestTransactionCoordinator_SelectOutgoingTransactions_HandlesErrors(t *test
 
 	// Mock proposal preprocessor to return error
 	tc.preProcProposal.txPreProcessors[block.TxBlock] = &preprocMocks.PreProcessorMock{
-		SelectOutgoingTransactionsCalled: func(_ uint64) ([][]byte, []data.TransactionHandler, error) {
+		SelectOutgoingTransactionsCalled: func(_ uint64, _ uint64) ([][]byte, []data.TransactionHandler, error) {
 			return nil, nil, errors.New("test error")
 		},
 	}
 
-	txHashes, _ := tc.SelectOutgoingTransactions()
+	txHashes, _ := tc.SelectOutgoingTransactions(0)
 
 	// Function should continue and return empty slice despite error
 	require.Equal(t, 0, len(txHashes))
@@ -620,7 +620,7 @@ func TestTransactionCoordinator_SelectOutgoingTransactions_HandlesNilPreprocesso
 	// Set proposal preprocessor to nil
 	tc.preProcProposal.txPreProcessors[block.TxBlock] = nil
 
-	txHashes, _ := tc.SelectOutgoingTransactions()
+	txHashes, _ := tc.SelectOutgoingTransactions(0)
 
 	// Function should handle nil preprocessor gracefully
 	require.Equal(t, 0, len(txHashes))
@@ -654,7 +654,7 @@ func TestTransactionCoordinator_SelectOutgoingTransactions_AddOutgoingTransactio
 	}
 
 	require.NotPanics(t, func() {
-		selectedTxHashes, selectedPendingIncomingMiniBlocks := tc.SelectOutgoingTransactions()
+		selectedTxHashes, selectedPendingIncomingMiniBlocks := tc.SelectOutgoingTransactions(0)
 		// Function should continue and return empty slice despite error
 		require.Nil(t, selectedTxHashes)
 		require.Nil(t, selectedPendingIncomingMiniBlocks)
