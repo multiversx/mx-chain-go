@@ -1773,14 +1773,10 @@ func TestRewardsCreatorV2_CreateRewardsMiniBlocksHeaderV3(t *testing.T) {
 		rwd, err := NewRewardsCreatorV2(args)
 		require.Nil(t, err)
 
-		nbEligiblePerShard := uint32(400)
-		vInfo := createDefaultValidatorInfo(nbEligiblePerShard, args.ShardCoordinator, args.NodesConfigProvider, 100, defaultBlocksPerShard)
-		metaBlock := &block.MetaBlockV3{}
-		prevBlockExecResults := block.BaseMetaExecutionResult{
-			BaseExecutionResult: &block.BaseExecutionResult{},
-		}
+		vInfo := state.NewShardValidatorsInfoMap()
+		prevBlockExecResults := block.BaseMetaExecutionResult{}
 
-		_, err = rwd.CreateRewardsMiniBlocksV3(nil, vInfo, &metaBlock.EpochStart.Economics, &prevBlockExecResults)
+		_, err = rwd.CreateRewardsMiniBlocksV3(nil, vInfo, &block.Economics{}, &prevBlockExecResults)
 		require.Equal(t, common.ErrNilHeaderHandler, err)
 	})
 
@@ -1791,11 +1787,10 @@ func TestRewardsCreatorV2_CreateRewardsMiniBlocksHeaderV3(t *testing.T) {
 		rwd, err := NewRewardsCreatorV2(args)
 		require.Nil(t, err)
 
-		nbEligiblePerShard := uint32(400)
-		vInfo := createDefaultValidatorInfo(nbEligiblePerShard, args.ShardCoordinator, args.NodesConfigProvider, 100, defaultBlocksPerShard)
+		vInfo := state.NewShardValidatorsInfoMap()
 		metaBlock := &block.MetaBlockV3{}
 
-		_, err = rwd.CreateRewardsMiniBlocksV3(metaBlock, vInfo, &metaBlock.EpochStart.Economics, nil)
+		_, err = rwd.CreateRewardsMiniBlocksV3(metaBlock, vInfo, &block.Economics{}, nil)
 		require.Equal(t, epochStart.ErrNilPrevBlockExecutionResults, err)
 	})
 
@@ -1806,15 +1801,12 @@ func TestRewardsCreatorV2_CreateRewardsMiniBlocksHeaderV3(t *testing.T) {
 		rwd, err := NewRewardsCreatorV2(args)
 		require.Nil(t, err)
 
-		nbEligiblePerShard := uint32(400)
-		vInfo := createDefaultValidatorInfo(nbEligiblePerShard, args.ShardCoordinator, args.NodesConfigProvider, 100, defaultBlocksPerShard)
+		vInfo := state.NewShardValidatorsInfoMap()
 		metaBlock := &block.MetaBlock{}
 
-		prevBlockExecResults := block.BaseMetaExecutionResult{
-			BaseExecutionResult: &block.BaseExecutionResult{},
-		}
+		prevBlockExecResults := block.BaseMetaExecutionResult{}
 
-		_, err = rwd.CreateRewardsMiniBlocksV3(metaBlock, vInfo, &metaBlock.EpochStart.Economics, &prevBlockExecResults)
+		_, err = rwd.CreateRewardsMiniBlocksV3(metaBlock, vInfo, &block.Economics{}, &prevBlockExecResults)
 		require.Equal(t, epochStart.ErrInvalidHeader, err)
 	})
 
