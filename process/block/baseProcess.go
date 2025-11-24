@@ -2596,7 +2596,7 @@ func (bp *baseProcessor) OnProposedBlock(
 		return err
 	}
 
-	lastExecResHandler, err := common.GetLastBaseExecutionResultHandler(lastCommittedHeader)
+	lastExecResHandler, err := common.GetOrCreateLastExecutionResultForPrevHeader(lastCommittedHeader, proposedHeader.GetPrevHash())
 	if err != nil {
 		return err
 	}
