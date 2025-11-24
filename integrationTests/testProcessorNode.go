@@ -31,11 +31,12 @@ import (
 	ed25519SingleSig "github.com/multiversx/mx-chain-crypto-go/signing/ed25519/singlesig"
 	"github.com/multiversx/mx-chain-crypto-go/signing/mcl"
 	mclsig "github.com/multiversx/mx-chain-crypto-go/signing/mcl/singlesig"
-	"github.com/multiversx/mx-chain-go/process/asyncExecution"
-	"github.com/multiversx/mx-chain-go/process/asyncExecution/executionManager"
 	vmcommon "github.com/multiversx/mx-chain-vm-common-go"
 	"github.com/multiversx/mx-chain-vm-common-go/parsers"
 	wasmConfig "github.com/multiversx/mx-chain-vm-go/config"
+
+	"github.com/multiversx/mx-chain-go/process/asyncExecution"
+	"github.com/multiversx/mx-chain-go/process/asyncExecution/executionManager"
 
 	"github.com/multiversx/mx-chain-go/process/asyncExecution/queue"
 
@@ -4075,11 +4076,23 @@ func GetDefaultRoundsConfig() config.RoundConfig {
 	return config.RoundConfig{
 		RoundActivations: map[string]config.ActivationRoundByName{
 			"DisableAsyncCallV1": {
-				Round: "18446744073709551615",
+				Round: "9999999",
 			},
 			"SupernovaEnableRound": {
 				Round: "9999999",
 			},
 		},
+	}
+}
+
+// DeactivateSupernovaInConfig -
+func DeactivateSupernovaInConfig(cfg *config.Configs) {
+	cfg.EpochConfig.EnableEpochs.SupernovaEnableEpoch = UnreachableEpoch
+	defaultRoundConfig := GetDefaultRoundsConfig()
+	cfg.RoundConfig = &defaultRoundConfig
+	cfg.GeneralConfig.Versions.VersionsByEpochs = []config.VersionByEpochs{
+		{StartEpoch: 0, StartRound: 0, Version: "*"},
+		{StartEpoch: 1, StartRound: 0, Version: "2"},
+		{StartEpoch: UnreachableEpoch, StartRound: 0, Version: "3"},
 	}
 }

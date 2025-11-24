@@ -1511,12 +1511,12 @@ func TestSubroundBlock_ReceivedBlockHeader(t *testing.T) {
 		},
 	})
 	container.SetEnableEpochsHandler(&enableEpochsHandlerMock.EnableEpochsHandlerStub{
-		IsFlagEnabledCalled: func(flag core.EnableEpochFlag) bool {
+		IsFlagEnabledInEpochCalled: func(flag core.EnableEpochFlag, epoch uint32) bool {
 			return true
 		},
 	})
 	container.SetEnableRoundsHandler(&testscommon.EnableRoundsHandlerStub{
-		IsFlagEnabledCalled: func(flag common.EnableRoundFlag) bool {
+		IsFlagEnabledInRoundCalled: func(flag common.EnableRoundFlag, round uint64) bool {
 			return true
 		},
 	})

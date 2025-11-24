@@ -1150,7 +1150,7 @@ func (sp *shardProcessor) CommitBlock(
 
 	sp.cleanupPools(headerHandler)
 
-	err = sp.saveExecutedData(header, headerHash)
+	err = sp.saveExecutedData(header)
 	if err != nil {
 		return err
 	}
