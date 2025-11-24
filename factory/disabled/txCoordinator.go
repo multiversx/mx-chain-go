@@ -101,7 +101,7 @@ func (txCoordinator *TxCoordinator) CreateMbsAndProcessCrossShardTransactionsDst
 }
 
 // SelectOutgoingTransactions does nothing as it is disabled
-func (txCoordinator *TxCoordinator) SelectOutgoingTransactions() ([][]byte, []data.MiniBlockHeaderHandler) {
+func (txCoordinator *TxCoordinator) SelectOutgoingTransactions(nonce uint64) ([][]byte, []data.MiniBlockHeaderHandler) {
 	return make([][]byte, 0), make([]data.MiniBlockHeaderHandler, 0)
 }
 
