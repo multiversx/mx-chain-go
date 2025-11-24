@@ -14,6 +14,7 @@ import (
 	"github.com/multiversx/mx-chain-core-go/data/typeConverters"
 	"github.com/multiversx/mx-chain-core-go/hashing"
 	"github.com/multiversx/mx-chain-core-go/marshal"
+	"github.com/multiversx/mx-chain-go/common"
 	"github.com/multiversx/mx-chain-go/common/logging"
 	"github.com/multiversx/mx-chain-go/dataRetriever"
 	"github.com/multiversx/mx-chain-go/dblookupext/esdtSupply"
@@ -195,19 +196,19 @@ func (hr *historyRepository) recordDataBasedOnExecutionResults(blockHeader data.
 	for _, executionResult := range blockHeader.GetExecutionResultsHandlers() {
 		headerHash := executionResult.GetHeaderHash()
 
-		scrResultsFromPool, receiptsFromPool, err := getIntermediateTxs(hr.dataPool.PostProcessTransactions(), headerHash)
+		pool, err := common.GetCachedIntermediateTxs(hr.dataPool.PostProcessTransactions(), headerHash)
 		if err != nil {
 			return err
 		}
-		logs, err := getLogs(hr.dataPool.PostProcessTransactions(), headerHash)
+		logs, err := common.GetCachedLogs(hr.dataPool.PostProcessTransactions(), headerHash)
 		if err != nil {
 			return err
 		}
-		body, err := getBody(hr.dataPool.ExecutedMiniBlocks(), hr.marshalizer, executionResult, hr.selfShardID)
+		body, err := common.GetCachedBody(hr.dataPool.ExecutedMiniBlocks(), hr.marshalizer, executionResult)
 		if err != nil {
 			return err
 		}
-		intraMbs, err := getIntraMbs(hr.dataPool.ExecutedMiniBlocks(), hr.marshalizer, headerHash)
+		intraMbs, err := common.GetCachedIntraMbs(hr.dataPool.ExecutedMiniBlocks(), hr.marshalizer, headerHash)
 		if err != nil {
 			return err
 		}
@@ -220,7 +221,7 @@ func (hr *historyRepository) recordDataBasedOnExecutionResults(blockHeader data.
 			return err
 		}
 
-		err = hr.recordExecutionData(headerHash, headerEpoch, headerNonce, headerRound, scrResultsFromPool, receiptsFromPool, intraMbs, logs)
+		err = hr.recordExecutionData(headerHash, headerEpoch, headerNonce, headerRound, pool[block.SmartContractResultBlock], pool[block.ReceiptBlock], intraMbs, logs)
 		if err != nil {
 			return err
 		}

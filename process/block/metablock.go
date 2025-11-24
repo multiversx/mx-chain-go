@@ -16,6 +16,7 @@ import (
 	"github.com/multiversx/mx-chain-core-go/data/headerVersionData"
 	logger "github.com/multiversx/mx-chain-logger-go"
 
+	epochStartMetaCommmon "github.com/multiversx/mx-chain-go/epochStart/metachain"
 	"github.com/multiversx/mx-chain-go/trie"
 
 	"github.com/multiversx/mx-chain-go/common"
@@ -843,10 +844,7 @@ func (mp *metaProcessor) processEpochStartMiniBlocks(
 	computedEconomics *block.Economics,
 ) (*block.Body, error) {
 
-	epochToUse := metaBlock.GetEpoch()
-	if metaBlock.IsHeaderV3() {
-		epochToUse = metaBlock.GetEpoch() + 1
-	}
+	epochToUse := epochStartMetaCommmon.GetEpochToUseEpochStartData(metaBlock)
 
 	currentRootHash, err := mp.validatorStatisticsProcessor.RootHash()
 	if err != nil {
@@ -934,11 +932,6 @@ func (mp *metaProcessor) createRewardsMiniBlocks(
 		return mp.epochRewardsCreator.CreateRewardsMiniBlocks(metaHeader, allValidatorsInfo, computedEconomics)
 	}
 
-	epochRewardsCreatorV3, ok := mp.epochRewardsCreator.(process.RewardsCreatorHeaderV3)
-	if !ok {
-		return nil, fmt.Errorf("%w to RewardsCreatorHeaderV3", process.ErrWrongTypeAssertion)
-	}
-
 	prevBlockExecutionResult := mp.blockChain.GetLastExecutionResult()
 	if check.IfNil(prevBlockExecutionResult) {
 		return nil, fmt.Errorf("%w for blockchain.GetLastExecutionResult", process.ErrNilBaseExecutionResult)
@@ -949,7 +942,7 @@ func (mp *metaProcessor) createRewardsMiniBlocks(
 		return nil, fmt.Errorf("%w to MetaExecutionResultHandler", process.ErrWrongTypeAssertion)
 	}
 
-	return epochRewardsCreatorV3.CreateRewardsMiniBlocksHeaderV3(metaHeader, allValidatorsInfo, computedEconomics, prevMetaExecResult)
+	return mp.epochRewardsCreator.CreateRewardsMiniBlocksV3(metaHeader, allValidatorsInfo, computedEconomics, prevMetaExecResult)
 }
 
 // createBlockBody creates block body of metachain
@@ -1346,7 +1339,12 @@ func (mp *metaProcessor) CommitBlock(
 
 	mp.blockChain.SetCurrentBlockHeaderHash(headerHash)
 
-	err = mp.onExecutedBlock(headerHandler, rootHash)
+	lastExecutionResultHeader, err := mp.getLastExecutionResultHeader(header)
+	if err != nil {
+		return err
+	}
+
+	err = mp.onExecutedBlock(lastExecutionResultHeader, rootHash)
 	if err != nil {
 		return err
 	}

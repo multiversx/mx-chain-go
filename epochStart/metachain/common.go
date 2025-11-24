@@ -1,16 +1,15 @@
 package metachain
 
-import "github.com/multiversx/mx-chain-go/state"
+import (
+	"github.com/multiversx/mx-chain-core-go/data"
+)
 
-// GetAllNodeKeys returns all <shard,pubKeys> from the provided map
-func GetAllNodeKeys(validatorsInfo state.ShardValidatorsInfoMapHandler) map[uint32][][]byte {
-	nodeKeys := make(map[uint32][][]byte)
-	for shardID, validatorsInfoSlice := range validatorsInfo.GetShardValidatorsInfoMap() {
-		nodeKeys[shardID] = make([][]byte, 0)
-		for _, validatorInfo := range validatorsInfoSlice {
-			nodeKeys[shardID] = append(nodeKeys[shardID], validatorInfo.GetPublicKey())
-		}
+// GetEpochToUseEpochStartData returns the epoch to use for epoch start data computation
+func GetEpochToUseEpochStartData(header data.HeaderHandler) uint32 {
+	epochToUse := header.GetEpoch()
+	if header.IsHeaderV3() {
+		// for meta headers v3 on the epoch change proposed block, the epoch is not yet updated
+		epochToUse = header.GetEpoch() + 1
 	}
-
-	return nodeKeys
+	return epochToUse
 }

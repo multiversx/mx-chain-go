@@ -1096,6 +1096,12 @@ type RewardsCreator interface {
 	VerifyRewardsMiniBlocks(
 		metaBlock data.MetaHeaderHandler, validatorsInfo state.ShardValidatorsInfoMapHandler, computedEconomics *block.Economics,
 	) error
+	CreateRewardsMiniBlocksV3(
+		metaBlock data.MetaHeaderHandler,
+		validatorsInfo state.ShardValidatorsInfoMapHandler,
+		computedEconomics *block.Economics,
+		prevBlockExecutionResults data.BaseMetaExecutionResultHandler,
+	) (block.MiniBlockSlice, error)
 	GetProtocolSustainabilityRewards() *big.Int
 	GetLocalTxCache() epochStart.TransactionCacher
 	CreateMarshalledData(body *block.Body) map[string][][]byte
@@ -1104,17 +1110,6 @@ type RewardsCreator interface {
 	DeleteBlockDataFromStorage(metaBlock data.MetaHeaderHandler, body *block.Body)
 	RemoveBlockDataFromPools(metaBlock data.MetaHeaderHandler, body *block.Body)
 	IsInterfaceNil() bool
-}
-
-// RewardsCreatorHeaderV3 defines the functionality for the metachain to create rewards at end of epoch for V3 headers
-type RewardsCreatorHeaderV3 interface {
-	CreateRewardsMiniBlocksHeaderV3(
-		metaBlock data.MetaHeaderHandler,
-		validatorsInfo state.ShardValidatorsInfoMapHandler,
-		computedEconomics *block.Economics,
-		prevBlockExecutionResults data.BaseMetaExecutionResultHandler,
-	) (block.MiniBlockSlice, error)
-	RewardsCreator
 }
 
 // EpochStartValidatorInfoCreator defines the functionality for the metachain to create validator statistics at end of epoch

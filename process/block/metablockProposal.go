@@ -334,7 +334,6 @@ func (mp *metaProcessor) ProcessBlockProposal(
 		return nil, err
 	}
 
-	// mp.epochStartTrigger.Update(header.GetRound(), header.GetNonce())
 	err = mp.blockChainHook.SetCurrentHeader(header)
 	if err != nil {
 		return nil, err

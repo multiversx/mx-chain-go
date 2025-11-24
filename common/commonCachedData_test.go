@@ -1,4 +1,4 @@
-package dblookupext
+package common
 
 import (
 	"errors"
@@ -10,8 +10,6 @@ import (
 	"github.com/multiversx/mx-chain-core-go/data/receipt"
 	"github.com/multiversx/mx-chain-core-go/data/smartContractResult"
 	"github.com/multiversx/mx-chain-core-go/data/transaction"
-	"github.com/multiversx/mx-chain-go/common"
-	"github.com/multiversx/mx-chain-go/process"
 	"github.com/multiversx/mx-chain-go/testscommon/cache"
 	"github.com/multiversx/mx-chain-go/testscommon/marshallerMock"
 	"github.com/stretchr/testify/require"
@@ -27,8 +25,8 @@ func TestGetIntermediateTxs(t *testing.T) {
 
 		headerHash := []byte("h")
 
-		_, _, err := getIntermediateTxs(cacher, headerHash)
-		require.True(t, errors.Is(err, process.ErrMissingHeader))
+		_, err := GetCachedIntermediateTxs(cacher, headerHash)
+		require.True(t, errors.Is(err, ErrMissingCachedTransactions))
 	})
 
 	t.Run("getIntermediateTxs wrong type in cache should return empty maps", func(t *testing.T) {
@@ -39,8 +37,8 @@ func TestGetIntermediateTxs(t *testing.T) {
 		headerHash := []byte("h")
 		cacher.Put(headerHash, []byte("wrong"), 0)
 
-		_, _, err := getIntermediateTxs(cacher, headerHash)
-		require.True(t, errors.Is(err, process.ErrWrongTypeAssertion))
+		_, err := GetCachedIntermediateTxs(cacher, headerHash)
+		require.True(t, errors.Is(err, ErrWrongTypeAssertion))
 	})
 
 	t.Run("getIntermediateTxs should work", func(t *testing.T) {
@@ -59,12 +57,12 @@ func TestGetIntermediateTxs(t *testing.T) {
 		headerHash := []byte("h")
 		cacher.Put(headerHash, cachedIntermediateTxsMap, 0)
 
-		scrs, receipts, err := getIntermediateTxs(cacher, headerHash)
+		results, err := GetCachedIntermediateTxs(cacher, headerHash)
 		require.NoError(t, err)
-		require.Len(t, scrs, 1)
-		require.Len(t, receipts, 1)
-		require.Equal(t, cachedIntermediateTxsMap[block.SmartContractResultBlock], scrs)
-		require.Equal(t, cachedIntermediateTxsMap[block.ReceiptBlock], receipts)
+		require.Len(t, results[block.SmartContractResultBlock], 1)
+		require.Len(t, results[block.ReceiptBlock], 1)
+		require.Equal(t, cachedIntermediateTxsMap[block.SmartContractResultBlock], results[block.SmartContractResultBlock])
+		require.Equal(t, cachedIntermediateTxsMap[block.ReceiptBlock], results[block.ReceiptBlock])
 	})
 
 }
@@ -79,8 +77,8 @@ func TestGetLogs(t *testing.T) {
 
 		headerHash := []byte("h")
 
-		_, err := getLogs(cacher, headerHash)
-		require.True(t, errors.Is(err, process.ErrMissingHeader))
+		_, err := GetCachedLogs(cacher, headerHash)
+		require.True(t, errors.Is(err, ErrMissingCachedLogs))
 	})
 
 	t.Run("getLogs wrong type in cache should return empty slice", func(t *testing.T) {
@@ -89,11 +87,11 @@ func TestGetLogs(t *testing.T) {
 		cacher := cache.NewCacherMock()
 
 		headerHash := []byte("h")
-		logsKey := common.PrepareLogEventsKey(headerHash)
+		logsKey := PrepareLogEventsKey(headerHash)
 		cacher.Put(logsKey, "wrong type", 0)
 
-		_, err := getLogs(cacher, headerHash)
-		require.True(t, errors.Is(err, process.ErrWrongTypeAssertion))
+		_, err := GetCachedLogs(cacher, headerHash)
+		require.True(t, errors.Is(err, ErrWrongTypeAssertion))
 	})
 
 	t.Run("getLogs should work", func(t *testing.T) {
@@ -112,11 +110,11 @@ func TestGetLogs(t *testing.T) {
 				TxHash:     "t2",
 			},
 		}
-		logsKey := common.PrepareLogEventsKey(headerHash)
+		logsKey := PrepareLogEventsKey(headerHash)
 
 		cacher.Put(logsKey, expectedLogs, 0)
 
-		logs, err := getLogs(cacher, headerHash)
+		logs, err := GetCachedLogs(cacher, headerHash)
 		require.Nil(t, err)
 		require.Len(t, logs, 2)
 		require.Equal(t, expectedLogs, logs)
@@ -135,8 +133,8 @@ func TestGetIntraMbs(t *testing.T) {
 
 		headerHash := []byte("h")
 
-		_, err := getIntraMbs(cacher, marshaller, headerHash)
-		require.True(t, errors.Is(err, process.ErrMissingHeader))
+		_, err := GetCachedIntraMbs(cacher, marshaller, headerHash)
+		require.True(t, errors.Is(err, ErrMissingMiniBlock))
 	})
 
 	t.Run("getIntraMbs wrong type should error", func(t *testing.T) {
@@ -148,7 +146,7 @@ func TestGetIntraMbs(t *testing.T) {
 		headerHash := []byte("h")
 		cacher.Put(headerHash, []byte("wrong type"), 0)
 
-		intraMBs, err := getIntraMbs(cacher, marshaller, headerHash)
+		intraMBs, err := GetCachedIntraMbs(cacher, marshaller, headerHash)
 		require.Nil(t, intraMBs)
 		require.NotNil(t, err)
 		require.True(t, strings.Contains(err.Error(), "getIntraMbs: cannot unmarshall"))
@@ -169,7 +167,7 @@ func TestGetIntraMbs(t *testing.T) {
 
 		cacher.Put(headerHash, intraMbsBytes, 0)
 
-		intraMBs, err := getIntraMbs(cacher, marshaller, headerHash)
+		intraMBs, err := GetCachedIntraMbs(cacher, marshaller, headerHash)
 		require.Nil(t, err)
 		require.Equal(t, expectedMbs, intraMBs)
 	})
@@ -187,7 +185,7 @@ func TestGetBody(t *testing.T) {
 		marshaller := &marshallerMock.MarshalizerMock{}
 		cacher := cache.NewCacherMock()
 
-		_, err := getBody(cacher, marshaller, executionResult, 0)
+		_, err := GetCachedBody(cacher, marshaller, executionResult)
 		require.NotNil(t, err)
 	})
 
@@ -217,8 +215,8 @@ func TestGetBody(t *testing.T) {
 		cacher := cache.NewCacherMock()
 		cacher.Put(h1, mb1Bytes, 0)
 
-		_, err := getBody(cacher, marshaller, executionResult, 0)
-		require.Equal(t, process.ErrMissingMiniBlock, err)
+		_, err := GetCachedBody(cacher, marshaller, executionResult)
+		require.Equal(t, ErrMissingMiniBlock, err)
 	})
 
 	t.Run("marshaller error", func(t *testing.T) {
@@ -243,7 +241,7 @@ func TestGetBody(t *testing.T) {
 		cacher := cache.NewCacherMock()
 		cacher.Put(h1, []byte("wrong"), 0)
 
-		_, err := getBody(cacher, marshaller, executionResult, 0)
+		_, err := GetCachedBody(cacher, marshaller, executionResult)
 		require.NotNil(t, err)
 	})
 
@@ -278,7 +276,7 @@ func TestGetBody(t *testing.T) {
 		cacher.Put(h1, mb1Bytes, 0)
 		cacher.Put(h2, mb2Bytes, 0)
 
-		res, err := getBody(cacher, marshaller, executionResult, 0)
+		res, err := GetCachedBody(cacher, marshaller, executionResult)
 		require.Nil(t, err)
 		require.Equal(t, &block.Body{MiniBlocks: []*block.MiniBlock{mb1, mb2}}, res)
 	})

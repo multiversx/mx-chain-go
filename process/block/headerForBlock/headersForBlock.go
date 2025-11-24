@@ -502,15 +502,15 @@ func (hfb *headersForBlock) requestMissingAndUpdateBasedOnCrossShardData(cd cros
 	hfb.updateLastNotarizedBlockForShard(hdr, cd.GetHeaderHash())
 }
 
-func (hfb *headersForBlock) computeExistingAndRequestMissingBasedOnShardData(metaBlock data.MetaHeaderHandler) {
-	for _, shardData := range metaBlock.GetShardInfoHandlers() {
-		hfb.requestMissingAndUpdateBasedOnCrossShardData(shardData)
+func (hfb *headersForBlock) computeExistingAndRequestMissingBasedOnShardData(shardData []data.ShardDataHandler) {
+	for _, sd := range shardData {
+		hfb.requestMissingAndUpdateBasedOnCrossShardData(sd)
 	}
 }
 
-func (hfb *headersForBlock) computeExistingAndRequestMissingBasedOnShardDataProposal(metaBlock data.MetaHeaderHandler) {
-	for _, shardDataProposal := range metaBlock.GetShardInfoProposalHandlers() {
-		hfb.requestMissingAndUpdateBasedOnCrossShardData(shardDataProposal)
+func (hfb *headersForBlock) computeExistingAndRequestMissingBasedOnShardDataProposal(shardDataProposal []data.ShardDataProposalHandler) {
+	for _, sdp := range shardDataProposal {
+		hfb.requestMissingAndUpdateBasedOnCrossShardData(sdp)
 	}
 }
 
@@ -519,11 +519,11 @@ func (hfb *headersForBlock) computeExistingAndRequestMissingShardHeaders(metaBlo
 	defer hfb.mutHdrsForBlock.Unlock()
 
 	if metaBlock.IsHeaderV3() {
-		hfb.computeExistingAndRequestMissingBasedOnShardDataProposal(metaBlock)
+		hfb.computeExistingAndRequestMissingBasedOnShardDataProposal(metaBlock.GetShardInfoProposalHandlers())
 		return
 	}
 
-	hfb.computeExistingAndRequestMissingBasedOnShardData(metaBlock)
+	hfb.computeExistingAndRequestMissingBasedOnShardData(metaBlock.GetShardInfoHandlers())
 	if hfb.missingHdrs == 0 {
 		hfb.missingFinalityAttestingHdrs = hfb.requestMissingFinalityAttestingShardHeaders()
 	}

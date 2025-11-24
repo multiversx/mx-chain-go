@@ -46,6 +46,18 @@ func TestNewChainSimulator(t *testing.T) {
 		t.Skip("this is not a short test")
 	}
 
+	alterConfigsFunc := func(cfg *config.Configs) {
+		cfg.EpochConfig.EnableEpochs.SupernovaEnableEpoch = 999999
+		cfg.RoundConfig.RoundActivations = map[string]config.ActivationRoundByName{
+			"DisableAsyncCallV1": {
+				Round: "9999999",
+			},
+			"SupernovaEnableRound": {
+				Round: "9999999",
+			},
+		}
+	}
+
 	chainSimulator, err := NewChainSimulator(ArgsChainSimulator{
 		BypassTxSignatureCheck:         true,
 		TempDir:                        t.TempDir(),
@@ -58,6 +70,7 @@ func TestNewChainSimulator(t *testing.T) {
 		ApiInterface:                   api.NewNoApiInterface(),
 		MinNodesPerShard:               3,
 		MetaChainMinNodes:              3,
+		AlterConfigsFunction:           alterConfigsFunc,
 	})
 	require.Nil(t, err)
 	require.NotNil(t, chainSimulator)
@@ -185,6 +198,18 @@ func TestSimulator_TriggerChangeOfEpoch(t *testing.T) {
 		HasValue: true,
 		Value:    150000,
 	}
+	alterConfigsFunc := func(cfg *config.Configs) {
+		cfg.EpochConfig.EnableEpochs.SupernovaEnableEpoch = 999999
+		cfg.RoundConfig.RoundActivations = map[string]config.ActivationRoundByName{
+			"DisableAsyncCallV1": {
+				Round: "9999999",
+			},
+			"SupernovaEnableRound": {
+				Round: "9999999",
+			},
+		}
+	}
+
 	chainSimulator, err := NewChainSimulator(ArgsChainSimulator{
 		BypassTxSignatureCheck:         true,
 		TempDir:                        t.TempDir(),
@@ -197,6 +222,7 @@ func TestSimulator_TriggerChangeOfEpoch(t *testing.T) {
 		ApiInterface:                   api.NewNoApiInterface(),
 		MinNodesPerShard:               100,
 		MetaChainMinNodes:              100,
+		AlterConfigsFunction:           alterConfigsFunc,
 	})
 	require.Nil(t, err)
 	require.NotNil(t, chainSimulator)

@@ -107,10 +107,7 @@ func (s *systemSCProcessor) ProcessSystemSmartContract(
 		return err
 	}
 
-	epochToUse := header.GetEpoch()
-	if header.IsHeaderV3() {
-		epochToUse = header.GetEpoch() + 1
-	}
+	epochToUse := GetEpochToUseEpochStartData(header)
 
 	err = s.processLegacy(validatorsInfoMap, header.GetNonce(), epochToUse)
 	if err != nil {
@@ -135,10 +132,7 @@ func (s *systemSCProcessor) processWithNewFlags(
 	validatorsInfoMap state.ShardValidatorsInfoMapHandler,
 	header data.HeaderHandler,
 ) error {
-	epochToUse := header.GetEpoch()
-	if header.IsHeaderV3() {
-		epochToUse = header.GetEpoch() + 1
-	}
+	epochToUse := GetEpochToUseEpochStartData(header)
 
 	if s.enableEpochsHandler.IsFlagEnabled(common.GovernanceFlagInSpecificEpochOnly) {
 		err := s.updateToGovernanceV2()
