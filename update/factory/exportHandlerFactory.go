@@ -64,13 +64,13 @@ type ArgsExporter struct {
 	HeaderIntegrityVerifier          process.HeaderIntegrityVerifier
 	ValidityAttester                 process.ValidityAttester
 	RoundHandler                     process.RoundHandler
-	InterceptorDebugConfig           config.InterceptorResolverDebugConfig
 	MaxHardCapForMissingNodes        int
 	NumConcurrentTrieSyncers         int
 	TrieSyncerVersion                int
 	CheckNodesOnDisk                 bool
 	NodeOperationMode                common.NodeOperation
 	InterceptedDataVerifierFactory   process.InterceptedDataVerifierFactory
+	Config                           config.Config
 }
 
 type exportHandlerFactory struct {
@@ -104,13 +104,13 @@ type exportHandlerFactory struct {
 	resolverContainer                dataRetriever.ResolversContainer
 	requestersContainer              dataRetriever.RequestersContainer
 	roundHandler                     process.RoundHandler
-	interceptorDebugConfig           config.InterceptorResolverDebugConfig
 	maxHardCapForMissingNodes        int
 	numConcurrentTrieSyncers         int
 	trieSyncerVersion                int
 	checkNodesOnDisk                 bool
 	nodeOperationMode                common.NodeOperation
 	interceptedDataVerifierFactory   process.InterceptedDataVerifierFactory
+	config                           config.Config
 }
 
 // NewExportHandlerFactory creates an exporter factory
@@ -262,7 +262,6 @@ func NewExportHandlerFactory(args ArgsExporter) (*exportHandlerFactory, error) {
 		validityAttester:                 args.ValidityAttester,
 		maxTrieLevelInMemory:             args.MaxTrieLevelInMemory,
 		roundHandler:                     args.RoundHandler,
-		interceptorDebugConfig:           args.InterceptorDebugConfig,
 		maxHardCapForMissingNodes:        args.MaxHardCapForMissingNodes,
 		numConcurrentTrieSyncers:         args.NumConcurrentTrieSyncers,
 		trieSyncerVersion:                args.TrieSyncerVersion,
@@ -270,6 +269,7 @@ func NewExportHandlerFactory(args ArgsExporter) (*exportHandlerFactory, error) {
 		statusCoreComponents:             args.StatusCoreComponents,
 		nodeOperationMode:                args.NodeOperationMode,
 		interceptedDataVerifierFactory:   args.InterceptedDataVerifierFactory,
+		config:                           args.Config,
 	}
 
 	return e, nil
@@ -283,7 +283,7 @@ func (e *exportHandlerFactory) Create() (update.ExportHandler, error) {
 	}
 
 	// TODO reuse the debugger when the one used for regular resolvers & interceptors will be moved inside the status components
-	debugger, errNotCritical := factory.NewInterceptorDebuggerFactory(e.interceptorDebugConfig, e.coreComponents.SyncTimer())
+	debugger, errNotCritical := factory.NewInterceptorDebuggerFactory(e.config.Debug.InterceptorResolver, e.coreComponents.SyncTimer())
 	if errNotCritical != nil {
 		log.Warn("error creating hardfork debugger", "error", errNotCritical)
 	}
@@ -313,6 +313,7 @@ func (e *exportHandlerFactory) Create() (update.ExportHandler, error) {
 		RoundHandler:         e.roundHandler,
 		AppStatusHandler:     e.statusCoreComponents.AppStatusHandler(),
 		EnableEpochsHandler:  e.coreComponents.EnableEpochsHandler(),
+		CommonConfigsHandler: e.coreComponents.CommonConfigsHandler(),
 	}
 	epochHandler, err := shardchain.NewEpochStartTrigger(&argsEpochTrigger)
 	if err != nil {
@@ -593,6 +594,7 @@ func (e *exportHandlerFactory) createInterceptors() error {
 		AntifloodHandler:                 e.networkComponents.InputAntiFloodHandler(),
 		NodeOperationMode:                e.nodeOperationMode,
 		InterceptedDataVerifierFactory:   e.interceptedDataVerifierFactory,
+		Config:                           e.config,
 	}
 	fullSyncInterceptors, err := NewFullSyncInterceptorsContainerFactory(argsInterceptors)
 	if err != nil {

@@ -28,8 +28,9 @@ type coreComponentsHolder interface {
 	EpochNotifier() process.EpochNotifier
 	EnableEpochsHandler() common.EnableEpochsHandler
 	RoundNotifier() process.RoundNotifier
-	EnableRoundsHandler() process.EnableRoundsHandler
+	EnableRoundsHandler() common.EnableRoundsHandler
 	EpochChangeGracePeriodHandler() common.EpochChangeGracePeriodHandler
+	ProcessConfigsHandler() common.ProcessConfigsHandler
 	RoundHandler() consensus.RoundHandler
 	EconomicsData() process.EconomicsDataHandler
 	ProcessStatusHandler() common.ProcessStatusHandler
@@ -96,6 +97,7 @@ type ArgBaseProcessor struct {
 	BlockProcessingCutoffHandler   cutoff.BlockProcessingCutoffHandler
 	ManagedPeersHolder             common.ManagedPeersHolder
 	SentSignaturesTracker          process.SentSignaturesTracker
+	StateAccessesCollector         state.StateAccessesCollector
 }
 
 // ArgShardProcessor holds all dependencies required by the process data factory in order to create

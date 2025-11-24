@@ -73,7 +73,7 @@ VERSION:
 	fetchIntervalInMilliseconds = cli.IntFlag{
 		Name:        "interval",
 		Usage:       "This flag specifies the duration in milliseconds until new data is fetched from the node",
-		Value:       1000,
+		Value:       100,
 		Destination: &argsConfig.interval,
 	}
 

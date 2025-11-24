@@ -40,27 +40,25 @@ type computeRatingStepArg struct {
 
 // RatingsData will store information about ratingsComputation
 type RatingsData struct {
-	startRating                 uint32
-	maxRating                   uint32
-	minRating                   uint32
-	signedBlocksThreshold       float32
-	currentRatingsStepData      ratingsStepsData
-	ratingsStepsConfig          []ratingsStepsData
-	selectionChances            []process.SelectionChance
-	chainParametersHandler      process.ChainParametersHandler
-	ratingsSetup                config.RatingsConfig
-	roundDurationInMilliseconds uint64
-	mutConfiguration            sync.RWMutex
-	statusHandler               core.AppStatusHandler
-	mutStatusHandler            sync.RWMutex
+	startRating            uint32
+	maxRating              uint32
+	minRating              uint32
+	signedBlocksThreshold  float32
+	currentRatingsStepData ratingsStepsData
+	ratingsStepsConfig     []ratingsStepsData
+	selectionChances       []process.SelectionChance
+	chainParametersHandler process.ChainParametersHandler
+	ratingsSetup           config.RatingsConfig
+	mutConfiguration       sync.RWMutex
+	statusHandler          core.AppStatusHandler
+	mutStatusHandler       sync.RWMutex
 }
 
 // RatingsDataArg contains information for the creation of the new ratingsData
 type RatingsDataArg struct {
-	EpochNotifier             process.EpochNotifier
-	Config                    config.RatingsConfig
-	ChainParametersHolder     process.ChainParametersHandler
-	RoundDurationMilliseconds uint64
+	EpochNotifier         process.EpochNotifier
+	Config                config.RatingsConfig
+	ChainParametersHolder process.ChainParametersHandler
 }
 
 // NewRatingsData creates a new RatingsData instance
@@ -102,7 +100,7 @@ func NewRatingsData(args RatingsDataArg) (*RatingsData, error) {
 	arg := computeRatingStepArg{
 		shardSize:                       currentChainParameters.ShardMinNumNodes,
 		consensusSize:                   currentChainParameters.ShardConsensusGroupSize,
-		roundTimeMillis:                 args.RoundDurationMilliseconds,
+		roundTimeMillis:                 currentChainParameters.RoundDuration,
 		startRating:                     ratingsConfig.General.StartRating,
 		maxRating:                       ratingsConfig.General.MaxRating,
 		hoursToMaxRatingFromStartRating: shardChainRatingSteps.HoursToMaxRatingFromStartRating,
@@ -120,7 +118,7 @@ func NewRatingsData(args RatingsDataArg) (*RatingsData, error) {
 	arg = computeRatingStepArg{
 		shardSize:                       currentChainParameters.MetachainMinNumNodes,
 		consensusSize:                   currentChainParameters.MetachainConsensusGroupSize,
-		roundTimeMillis:                 args.RoundDurationMilliseconds,
+		roundTimeMillis:                 currentChainParameters.RoundDuration,
 		startRating:                     ratingsConfig.General.StartRating,
 		maxRating:                       ratingsConfig.General.MaxRating,
 		hoursToMaxRatingFromStartRating: metaChainRatingSteps.HoursToMaxRatingFromStartRating,
@@ -141,16 +139,15 @@ func NewRatingsData(args RatingsDataArg) (*RatingsData, error) {
 	}
 
 	ratingData := &RatingsData{
-		startRating:                 ratingsConfig.General.StartRating,
-		maxRating:                   ratingsConfig.General.MaxRating,
-		minRating:                   ratingsConfig.General.MinRating,
-		signedBlocksThreshold:       ratingsConfig.General.SignedBlocksThreshold,
-		currentRatingsStepData:      ratingsConfigValue,
-		selectionChances:            chances,
-		chainParametersHandler:      args.ChainParametersHolder,
-		ratingsSetup:                ratingsConfig,
-		roundDurationInMilliseconds: args.RoundDurationMilliseconds,
-		statusHandler:               statusHandler.NewNilStatusHandler(),
+		startRating:            ratingsConfig.General.StartRating,
+		maxRating:              ratingsConfig.General.MaxRating,
+		minRating:              ratingsConfig.General.MinRating,
+		signedBlocksThreshold:  ratingsConfig.General.SignedBlocksThreshold,
+		currentRatingsStepData: ratingsConfigValue,
+		selectionChances:       chances,
+		chainParametersHandler: args.ChainParametersHolder,
+		ratingsSetup:           ratingsConfig,
+		statusHandler:          statusHandler.NewNilStatusHandler(),
 	}
 
 	err = ratingData.computeRatingStepsConfig(args.ChainParametersHolder.AllChainParameters())
@@ -229,7 +226,7 @@ func (rd *RatingsData) computeRatingStepsConfigForEpoch(
 	shardRatingsStepsArgs := computeRatingStepArg{
 		shardSize:                       chainParams.ShardMinNumNodes,
 		consensusSize:                   chainParams.ShardConsensusGroupSize,
-		roundTimeMillis:                 rd.roundDurationInMilliseconds,
+		roundTimeMillis:                 chainParams.RoundDuration,
 		startRating:                     rd.ratingsSetup.General.StartRating,
 		maxRating:                       rd.ratingsSetup.General.MaxRating,
 		hoursToMaxRatingFromStartRating: shardChainRatingSteps.HoursToMaxRatingFromStartRating,
@@ -247,7 +244,7 @@ func (rd *RatingsData) computeRatingStepsConfigForEpoch(
 	metaRatingsStepsArgs := computeRatingStepArg{
 		shardSize:                       chainParams.MetachainMinNumNodes,
 		consensusSize:                   chainParams.MetachainConsensusGroupSize,
-		roundTimeMillis:                 rd.roundDurationInMilliseconds,
+		roundTimeMillis:                 chainParams.RoundDuration,
 		startRating:                     rd.ratingsSetup.General.StartRating,
 		maxRating:                       rd.ratingsSetup.General.MaxRating,
 		hoursToMaxRatingFromStartRating: metaChainRatingSteps.HoursToMaxRatingFromStartRating,

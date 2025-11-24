@@ -4,12 +4,15 @@ import (
 	"errors"
 	"fmt"
 	"math"
+	"math/big"
 	"sort"
 	"sync"
 	"testing"
 
 	"github.com/multiversx/mx-chain-core-go/core"
 	"github.com/multiversx/mx-chain-core-go/core/check"
+	"github.com/multiversx/mx-chain-core-go/data/block"
+	"github.com/multiversx/mx-chain-go/config"
 	"github.com/multiversx/mx-chain-go/testscommon/txcachemocks"
 	"github.com/multiversx/mx-chain-storage-go/common"
 	"github.com/multiversx/mx-chain-storage-go/types"
@@ -21,11 +24,12 @@ func Test_NewTxCache(t *testing.T) {
 		Name:                        "test",
 		NumChunks:                   16,
 		NumBytesThreshold:           maxNumBytesUpperBound,
-		NumBytesPerSenderThreshold:  maxNumBytesPerSenderUpperBound,
+		NumBytesPerSenderThreshold:  maxNumBytesPerSenderUpperBoundTest,
 		CountThreshold:              math.MaxUint32,
 		CountPerSenderThreshold:     math.MaxUint32,
 		EvictionEnabled:             true,
 		NumItemsToPreemptivelyEvict: 1,
+		TxCacheBoundsConfig:         createMockTxBoundsConfig(),
 	}
 
 	host := txcachemocks.NewMempoolHostMock()
@@ -62,6 +66,10 @@ func Test_NewTxCache(t *testing.T) {
 	badConfig = config
 	badConfig.CountThreshold = 0
 	requireErrorOnNewTxCache(t, badConfig, common.ErrInvalidConfig, "config.CountThreshold", host)
+
+	badConfig = config
+	badConfig.TxCacheBoundsConfig.MaxTrackedBlocks = 0
+	requireErrorOnNewTxCache(t, badConfig, errInvalidMaxTrackedBlocks, "bad max tracked blocks", host)
 }
 
 func requireErrorOnNewTxCache(t *testing.T, config ConfigSourceMe, errExpected error, errPartialMessage string, host MempoolHost) {
@@ -72,7 +80,8 @@ func requireErrorOnNewTxCache(t *testing.T, config ConfigSourceMe, errExpected e
 }
 
 func Test_AddTx(t *testing.T) {
-	cache := newUnconstrainedCacheToTest()
+	boundsConfig := createMockTxBoundsConfig()
+	cache := newUnconstrainedCacheToTest(boundsConfig)
 
 	tx := createTx([]byte("hash-1"), "alice", 1)
 
@@ -93,7 +102,8 @@ func Test_AddTx(t *testing.T) {
 }
 
 func Test_AddNilTx_DoesNothing(t *testing.T) {
-	cache := newUnconstrainedCacheToTest()
+	boundsConfig := createMockTxBoundsConfig()
+	cache := newUnconstrainedCacheToTest(boundsConfig)
 
 	txHash := []byte("hash-1")
 
@@ -107,21 +117,81 @@ func Test_AddNilTx_DoesNothing(t *testing.T) {
 }
 
 func Test_AddTx_AppliesSizeConstraintsPerSenderForNumTransactions(t *testing.T) {
-	cache := newCacheToTest(maxNumBytesPerSenderUpperBound, 3)
+	t.Run("with untracked txs", func(t *testing.T) {
+		t.Parallel()
 
-	cache.AddTx(createTx([]byte("tx-alice-1"), "alice", 1))
-	cache.AddTx(createTx([]byte("tx-alice-2"), "alice", 2))
-	cache.AddTx(createTx([]byte("tx-alice-4"), "alice", 4))
-	cache.AddTx(createTx([]byte("tx-bob-1"), "bob", 1))
-	cache.AddTx(createTx([]byte("tx-bob-2"), "bob", 2))
-	require.Equal(t, []string{"tx-alice-1", "tx-alice-2", "tx-alice-4"}, cache.getHashesForSender("alice"))
-	require.Equal(t, []string{"tx-bob-1", "tx-bob-2"}, cache.getHashesForSender("bob"))
-	require.True(t, cache.areInternalMapsConsistent())
+		cache := newCacheToTest(maxNumBytesPerSenderUpperBoundTest, 3)
 
-	cache.AddTx(createTx([]byte("tx-alice-3"), "alice", 3))
-	require.Equal(t, []string{"tx-alice-1", "tx-alice-2", "tx-alice-3"}, cache.getHashesForSender("alice"))
-	require.Equal(t, []string{"tx-bob-1", "tx-bob-2"}, cache.getHashesForSender("bob"))
-	require.True(t, cache.areInternalMapsConsistent())
+		cache.AddTx(createTx([]byte("tx-alice-1"), "alice", 1))
+		cache.AddTx(createTx([]byte("tx-alice-2"), "alice", 2))
+		cache.AddTx(createTx([]byte("tx-alice-4"), "alice", 4))
+		cache.AddTx(createTx([]byte("tx-bob-1"), "bob", 1))
+		cache.AddTx(createTx([]byte("tx-bob-2"), "bob", 2))
+		require.Equal(t, []string{"tx-alice-1", "tx-alice-2", "tx-alice-4"}, cache.getHashesForSender("alice"))
+		require.Equal(t, []string{"tx-bob-1", "tx-bob-2"}, cache.getHashesForSender("bob"))
+		require.True(t, cache.areInternalMapsConsistent())
+
+		cache.AddTx(createTx([]byte("tx-alice-3"), "alice", 3))
+		require.Equal(t, []string{"tx-alice-1", "tx-alice-2", "tx-alice-3"}, cache.getHashesForSender("alice"))
+		require.Equal(t, []string{"tx-bob-1", "tx-bob-2"}, cache.getHashesForSender("bob"))
+		require.True(t, cache.areInternalMapsConsistent())
+	})
+
+	t.Run("with tracked txs", func(t *testing.T) {
+		t.Parallel()
+
+		cache := newCacheToTest(maxNumBytesPerSenderUpperBoundTest, 3)
+
+		accountsProvider := &txcachemocks.AccountNonceAndBalanceProviderMock{
+			GetAccountNonceAndBalanceCalled: func(address []byte) (uint64, *big.Int, bool, error) {
+				return 1, big.NewInt(3 * 1500000 * oneBillion), true, nil
+			},
+		}
+
+		cache.AddTx(createTx([]byte("tx-alice-1"), "alice", 1).withGasLimit(50000))
+		cache.AddTx(createTx([]byte("tx-alice-2"), "alice", 2).withGasLimit(1500000))
+		cache.AddTx(createTx([]byte("tx-alice-4"), "alice", 3).withGasLimit(1500000))
+		require.Equal(t, []string{"tx-alice-1", "tx-alice-2", "tx-alice-4"}, cache.getHashesForSender("alice"))
+		require.True(t, cache.areInternalMapsConsistent())
+
+		err := cache.OnProposedBlock(
+			[]byte("blockHash1"),
+			&block.Body{
+				MiniBlocks: []*block.MiniBlock{
+					{
+						TxHashes: [][]byte{
+							[]byte("tx-alice-1"),
+							[]byte("tx-alice-2"),
+							[]byte("tx-alice-4"),
+						},
+					},
+				},
+			},
+			&block.Header{
+				Nonce:    1,
+				PrevHash: []byte("blockHash0"),
+			},
+			accountsProvider,
+			[]byte("blockHash0"),
+		)
+		require.Nil(t, err)
+
+		// TODO analyze if this behaviour is ok. Even if the limit of txs per sender is exceeded, no tx is removed because the specific nonce is tracked.
+		cache.AddTx(createTx([]byte("tx-alice-3"), "alice", 3).withGasLimit(1500000))
+		require.Equal(t, []string{"tx-alice-1", "tx-alice-2", "tx-alice-3", "tx-alice-4"}, cache.getHashesForSender("alice"))
+		require.True(t, cache.areInternalMapsConsistent())
+
+		err = cache.OnExecutedBlock(
+			&block.Header{
+				Nonce:    1,
+				PrevHash: []byte("blockHash0"),
+			})
+		require.Nil(t, err)
+
+		cache.AddTx(createTx([]byte("tx-alice-5"), "alice", 3).withGasLimit(1500000))
+		require.Equal(t, []string{"tx-alice-1", "tx-alice-2", "tx-alice-3"}, cache.getHashesForSender("alice"))
+		require.True(t, cache.areInternalMapsConsistent())
+	})
 }
 
 func Test_AddTx_AppliesSizeConstraintsPerSenderForNumBytes(t *testing.T) {
@@ -145,7 +215,8 @@ func Test_AddTx_AppliesSizeConstraintsPerSenderForNumBytes(t *testing.T) {
 }
 
 func Test_RemoveByTxHash(t *testing.T) {
-	cache := newUnconstrainedCacheToTest()
+	boundsConfig := createMockTxBoundsConfig()
+	cache := newUnconstrainedCacheToTest(boundsConfig)
 
 	cache.AddTx(createTx([]byte("hash-1"), "alice", 1))
 	cache.AddTx(createTx([]byte("hash-2"), "alice", 2))
@@ -171,7 +242,8 @@ func Test_RemoveByTxHash(t *testing.T) {
 }
 
 func Test_CountTx_And_Len(t *testing.T) {
-	cache := newUnconstrainedCacheToTest()
+	boundsConfig := createMockTxBoundsConfig()
+	cache := newUnconstrainedCacheToTest(boundsConfig)
 
 	cache.AddTx(createTx([]byte("hash-1"), "alice", 1))
 	cache.AddTx(createTx([]byte("hash-2"), "alice", 2))
@@ -182,7 +254,8 @@ func Test_CountTx_And_Len(t *testing.T) {
 }
 
 func Test_GetByTxHash_And_Peek_And_Get(t *testing.T) {
-	cache := newUnconstrainedCacheToTest()
+	boundsConfig := createMockTxBoundsConfig()
+	cache := newUnconstrainedCacheToTest(boundsConfig)
 
 	txHash := []byte("hash-1")
 	tx := createTx(txHash, "alice", 1)
@@ -210,13 +283,16 @@ func Test_GetByTxHash_And_Peek_And_Get(t *testing.T) {
 }
 
 func Test_RemoveByTxHash_WhenMissing(t *testing.T) {
-	cache := newUnconstrainedCacheToTest()
+	boundsConfig := createMockTxBoundsConfig()
+	cache := newUnconstrainedCacheToTest(boundsConfig)
+
 	removed := cache.RemoveTxByHash([]byte("missing"))
 	require.False(t, removed)
 }
 
 func Test_RemoveByTxHash_RemovesFromByHash_WhenMapsInconsistency(t *testing.T) {
-	cache := newUnconstrainedCacheToTest()
+	boundsConfig := createMockTxBoundsConfig()
+	cache := newUnconstrainedCacheToTest(boundsConfig)
 
 	txHash := []byte("hash-1")
 	tx := createTx(txHash, "alice", 1)
@@ -230,7 +306,8 @@ func Test_RemoveByTxHash_RemovesFromByHash_WhenMapsInconsistency(t *testing.T) {
 }
 
 func Test_Clear(t *testing.T) {
-	cache := newUnconstrainedCacheToTest()
+	boundsConfig := createMockTxBoundsConfig()
+	cache := newUnconstrainedCacheToTest(boundsConfig)
 
 	cache.AddTx(createTx([]byte("hash-alice-1"), "alice", 1))
 	cache.AddTx(createTx([]byte("hash-bob-7"), "bob", 7))
@@ -242,7 +319,8 @@ func Test_Clear(t *testing.T) {
 }
 
 func Test_ForEachTransaction(t *testing.T) {
-	cache := newUnconstrainedCacheToTest()
+	boundsConfig := createMockTxBoundsConfig()
+	cache := newUnconstrainedCacheToTest(boundsConfig)
 
 	cache.AddTx(createTx([]byte("hash-alice-1"), "alice", 1))
 	cache.AddTx(createTx([]byte("hash-bob-7"), "bob", 7))
@@ -255,7 +333,8 @@ func Test_ForEachTransaction(t *testing.T) {
 }
 
 func Test_GetTransactionsPoolForSender(t *testing.T) {
-	cache := newUnconstrainedCacheToTest()
+	boundsConfig := createMockTxBoundsConfig()
+	cache := newUnconstrainedCacheToTest(boundsConfig)
 
 	txHashes1 := [][]byte{[]byte("hash-1"), []byte("hash-2")}
 	txSender1 := "alice"
@@ -295,7 +374,8 @@ func Test_GetTransactionsPoolForSender(t *testing.T) {
 }
 
 func Test_Keys(t *testing.T) {
-	cache := newUnconstrainedCacheToTest()
+	boundsConfig := createMockTxBoundsConfig()
+	cache := newUnconstrainedCacheToTest(boundsConfig)
 
 	cache.AddTx(createTx([]byte("alice-x"), "alice", 42))
 	cache.AddTx(createTx([]byte("alice-y"), "alice", 43))
@@ -319,10 +399,11 @@ func Test_AddWithEviction_UniformDistributionOfTxsPerSender(t *testing.T) {
 			NumChunks:                   16,
 			EvictionEnabled:             true,
 			NumBytesThreshold:           maxNumBytesUpperBound,
-			NumBytesPerSenderThreshold:  maxNumBytesPerSenderUpperBound,
+			NumBytesPerSenderThreshold:  maxNumBytesPerSenderUpperBoundTest,
 			CountThreshold:              100,
 			CountPerSenderThreshold:     math.MaxUint32,
 			NumItemsToPreemptivelyEvict: 1,
+			TxCacheBoundsConfig:         createMockTxBoundsConfig(),
 		}
 
 		cache, err := NewTxCache(config, host)
@@ -343,10 +424,11 @@ func Test_AddWithEviction_UniformDistributionOfTxsPerSender(t *testing.T) {
 			NumChunks:                   16,
 			EvictionEnabled:             true,
 			NumBytesThreshold:           maxNumBytesUpperBound,
-			NumBytesPerSenderThreshold:  maxNumBytesPerSenderUpperBound,
+			NumBytesPerSenderThreshold:  maxNumBytesPerSenderUpperBoundTest,
 			CountThreshold:              4,
 			CountPerSenderThreshold:     math.MaxUint32,
 			NumItemsToPreemptivelyEvict: 3,
+			TxCacheBoundsConfig:         createMockTxBoundsConfig(),
 		}
 
 		cache, err := NewTxCache(config, host)
@@ -363,10 +445,11 @@ func Test_AddWithEviction_UniformDistributionOfTxsPerSender(t *testing.T) {
 			NumChunks:                   16,
 			EvictionEnabled:             true,
 			NumBytesThreshold:           maxNumBytesUpperBound,
-			NumBytesPerSenderThreshold:  maxNumBytesPerSenderUpperBound,
+			NumBytesPerSenderThreshold:  maxNumBytesPerSenderUpperBoundTest,
 			CountThreshold:              100,
 			CountPerSenderThreshold:     math.MaxUint32,
 			NumItemsToPreemptivelyEvict: 2,
+			TxCacheBoundsConfig:         createMockTxBoundsConfig(),
 		}
 
 		cache, err := NewTxCache(config, host)
@@ -383,10 +466,11 @@ func Test_AddWithEviction_UniformDistributionOfTxsPerSender(t *testing.T) {
 			NumChunks:                   16,
 			EvictionEnabled:             true,
 			NumBytesThreshold:           maxNumBytesUpperBound,
-			NumBytesPerSenderThreshold:  maxNumBytesPerSenderUpperBound,
+			NumBytesPerSenderThreshold:  maxNumBytesPerSenderUpperBoundTest,
 			CountThreshold:              250000,
 			CountPerSenderThreshold:     math.MaxUint32,
 			NumItemsToPreemptivelyEvict: 1,
+			TxCacheBoundsConfig:         createMockTxBoundsConfig(),
 		}
 
 		cache, err := NewTxCache(config, host)
@@ -403,10 +487,11 @@ func Test_AddWithEviction_UniformDistributionOfTxsPerSender(t *testing.T) {
 			NumChunks:                   16,
 			EvictionEnabled:             true,
 			NumBytesThreshold:           maxNumBytesUpperBound,
-			NumBytesPerSenderThreshold:  maxNumBytesPerSenderUpperBound,
+			NumBytesPerSenderThreshold:  maxNumBytesPerSenderUpperBoundTest,
 			CountThreshold:              250000,
 			CountPerSenderThreshold:     math.MaxUint32,
 			NumItemsToPreemptivelyEvict: 10000,
+			TxCacheBoundsConfig:         createMockTxBoundsConfig(),
 		}
 
 		cache, err := NewTxCache(config, host)
@@ -419,7 +504,8 @@ func Test_AddWithEviction_UniformDistributionOfTxsPerSender(t *testing.T) {
 }
 
 func Test_NotImplementedFunctions(t *testing.T) {
-	cache := newUnconstrainedCacheToTest()
+	boundsConfig := createMockTxBoundsConfig()
+	cache := newUnconstrainedCacheToTest(boundsConfig)
 
 	evicted := cache.Put(nil, nil, 0)
 	require.False(t, evicted)
@@ -435,7 +521,8 @@ func Test_NotImplementedFunctions(t *testing.T) {
 }
 
 func Test_IsInterfaceNil(t *testing.T) {
-	cache := newUnconstrainedCacheToTest()
+	boundsConfig := createMockTxBoundsConfig()
+	cache := newUnconstrainedCacheToTest(boundsConfig)
 	require.False(t, check.IfNil(cache))
 
 	makeNil := func() types.Cacher {
@@ -447,7 +534,8 @@ func Test_IsInterfaceNil(t *testing.T) {
 }
 
 func TestTxCache_TransactionIsAdded_EvenWhenInternalMapsAreInconsistent(t *testing.T) {
-	cache := newUnconstrainedCacheToTest()
+	boundsConfig := createMockTxBoundsConfig()
+	cache := newUnconstrainedCacheToTest(boundsConfig)
 
 	// Setup inconsistency: transaction already exists in map by hash, but not in map by sender
 	cache.txByHash.addTx(createTx([]byte("alice-x"), "alice", 42))
@@ -462,7 +550,7 @@ func TestTxCache_TransactionIsAdded_EvenWhenInternalMapsAreInconsistent(t *testi
 	cache.Clear()
 
 	// Setup inconsistency: transaction already exists in map by sender, but not in map by hash
-	cache.txListBySender.addTxReturnEvicted(createTx([]byte("alice-x"), "alice", 42))
+	cache.txListBySender.addTxReturnEvicted(createTx([]byte("alice-x"), "alice", 42), cache.tracker)
 
 	require.False(t, cache.Has([]byte("alice-x")))
 	ok, added = cache.AddTx(createTx([]byte("alice-x"), "alice", 42))
@@ -473,8 +561,51 @@ func TestTxCache_TransactionIsAdded_EvenWhenInternalMapsAreInconsistent(t *testi
 	cache.Clear()
 }
 
+func TestTxCache_GetDimensionOfTrackedBlocks(t *testing.T) {
+	t.Parallel()
+
+	txCache := newCacheToTest(maxNumBytesPerSenderUpperBoundTest, 3)
+	tracker, err := NewSelectionTracker(txCache, maxTrackedBlocks)
+	require.Nil(t, err)
+	txCache.tracker = tracker
+
+	accountsProvider := txcachemocks.NewAccountNonceAndBalanceProviderMock()
+
+	err = txCache.OnProposedBlock(
+		[]byte("hash1"),
+		&block.Body{},
+		&block.Header{
+			Nonce:    uint64(1),
+			PrevHash: []byte("hash0"),
+			RootHash: []byte("rootHash0"),
+		},
+		accountsProvider,
+		defaultLatestExecutedHash,
+	)
+	require.Nil(t, err)
+
+	require.Equal(t, len(tracker.blocks), 1)
+
+	// replacing the block with nonce 1
+	err = txCache.OnProposedBlock(
+		[]byte("hash2"),
+		&block.Body{},
+		&block.Header{
+			Nonce:    uint64(1),
+			PrevHash: []byte("hash0"),
+			RootHash: []byte("rootHash0"),
+		},
+		accountsProvider,
+		defaultLatestExecutedHash,
+	)
+	require.Nil(t, err)
+
+	require.Equal(t, len(tracker.blocks), 1)
+}
+
 func TestTxCache_NoCriticalInconsistency_WhenConcurrentAdditionsAndRemovals(t *testing.T) {
-	cache := newUnconstrainedCacheToTest()
+	boundsConfig := createMockTxBoundsConfig()
+	cache := newUnconstrainedCacheToTest(boundsConfig)
 
 	// A lot of routines concur to add & remove a transaction
 	for try := 0; try < 100; try++ {
@@ -524,6 +655,7 @@ func TestBenchmarkTxCache_addManyTransactionsWithSameNonce(t *testing.T) {
 		CountPerSenderThreshold:     5_000,
 		EvictionEnabled:             true,
 		NumItemsToPreemptivelyEvict: 50_000,
+		TxCacheBoundsConfig:         createMockTxBoundsConfig(),
 	}
 
 	host := txcachemocks.NewMempoolHostMock()
@@ -598,18 +730,87 @@ func TestBenchmarkTxCache_addManyTransactionsWithSameNonce(t *testing.T) {
 	// 0.062260s (TestBenchmarkTxCache_addManyTransactionsWithSameNonce/numTransactions_=_5_000_(worst_case))
 }
 
-func newUnconstrainedCacheToTest() *TxCache {
+func Test_ResetTracker(t *testing.T) {
+	t.Parallel()
+
+	accountsProvider := &txcachemocks.AccountNonceAndBalanceProviderMock{
+		GetAccountNonceAndBalanceCalled: func(address []byte) (uint64, *big.Int, bool, error) {
+			return 11, big.NewInt(6 * 100000 * oneBillion), true, nil
+		},
+	}
+
+	config := ConfigSourceMe{
+		Name:                        "test",
+		NumChunks:                   16,
+		NumBytesThreshold:           maxNumBytesUpperBound,
+		NumBytesPerSenderThreshold:  maxNumBytesPerSenderUpperBoundTest,
+		CountThreshold:              math.MaxUint32,
+		CountPerSenderThreshold:     math.MaxUint32,
+		EvictionEnabled:             true,
+		NumItemsToPreemptivelyEvict: 1,
+		TxCacheBoundsConfig:         createMockTxBoundsConfig(),
+	}
+
+	host := txcachemocks.NewMempoolHostMock()
+
+	cache, err := NewTxCache(config, host)
+	require.Nil(t, err)
+
+	txs := []*WrappedTransaction{
+		createTx([]byte("txHash1"), "bob", 11),
+		createTx([]byte("txHash2"), "alice", 11).withRelayer([]byte("bob")).withGasLimit(100_000),
+		createTx([]byte("txHash3"), "alice", 12),
+		createTx([]byte("txHash4"), "alice", 13),
+	}
+	for _, tx := range txs {
+		cache.AddTx(tx)
+	}
+
+	err = cache.OnProposedBlock(
+		[]byte("hash1"),
+		&block.Body{
+			MiniBlocks: []*block.MiniBlock{
+				{
+					TxHashes: [][]byte{
+						[]byte("txHash1"),
+						[]byte("txHash2"),
+						[]byte("txHash3"),
+						[]byte("txHash4"),
+					},
+				},
+			},
+		},
+		&block.Header{
+			Nonce:    uint64(0),
+			PrevHash: []byte("hash0"),
+			RootHash: []byte("rootHash0"),
+		},
+		accountsProvider,
+		defaultLatestExecutedHash,
+	)
+	require.Nil(t, err)
+
+	require.Equal(t, 1, len(cache.tracker.blocks))
+	require.Equal(t, 2, len(cache.tracker.getGlobalAccountsBreadcrumbs()))
+
+	cache.ResetTracker()
+	require.Equal(t, 0, len(cache.tracker.blocks))
+	require.Equal(t, 0, len(cache.tracker.getGlobalAccountsBreadcrumbs()))
+}
+
+func newUnconstrainedCacheToTest(boundsConfig config.TxCacheBoundsConfig) *TxCache {
 	host := txcachemocks.NewMempoolHostMock()
 
 	cache, err := NewTxCache(ConfigSourceMe{
 		Name:                        "test",
 		NumChunks:                   16,
 		NumBytesThreshold:           maxNumBytesUpperBound,
-		NumBytesPerSenderThreshold:  maxNumBytesPerSenderUpperBound,
+		NumBytesPerSenderThreshold:  maxNumBytesPerSenderUpperBoundTest,
 		CountThreshold:              math.MaxUint32,
 		CountPerSenderThreshold:     math.MaxUint32,
 		EvictionEnabled:             false,
 		NumItemsToPreemptivelyEvict: 1,
+		TxCacheBoundsConfig:         boundsConfig,
 	}, host)
 	if err != nil {
 		panic(fmt.Sprintf("newUnconstrainedCacheToTest(): %s", err))
@@ -630,6 +831,7 @@ func newCacheToTest(numBytesPerSenderThreshold uint32, countPerSenderThreshold u
 		CountPerSenderThreshold:     countPerSenderThreshold,
 		EvictionEnabled:             false,
 		NumItemsToPreemptivelyEvict: 1,
+		TxCacheBoundsConfig:         createMockTxBoundsConfig(),
 	}, host)
 	if err != nil {
 		panic(fmt.Sprintf("newCacheToTest(): %s", err))

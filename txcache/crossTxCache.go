@@ -1,6 +1,10 @@
 package txcache
 
 import (
+	"time"
+
+	"github.com/multiversx/mx-chain-core-go/data"
+	"github.com/multiversx/mx-chain-go/common"
 	"github.com/multiversx/mx-chain-storage-go/immunitycache"
 	"github.com/multiversx/mx-chain-storage-go/types"
 )
@@ -115,6 +119,29 @@ func (cache *CrossTxCache) ForEachTransaction(function ForEachTransaction) {
 // thus does not handle nonces, nonce gaps etc.
 func (cache *CrossTxCache) GetTransactionsPoolForSender(_ string) []*WrappedTransaction {
 	return make([]*WrappedTransaction, 0)
+}
+
+// OnProposedBlock does nothing (only to satisfy the interface)
+func (cache *CrossTxCache) OnProposedBlock(_ []byte, _ data.BodyHandler, _ data.HeaderHandler, _ common.AccountNonceAndBalanceProvider, _ []byte) error {
+	return nil
+}
+
+// OnExecutedBlock does nothing (only to satisfy the interface)
+func (cache *CrossTxCache) OnExecutedBlock(data.HeaderHandler) error {
+	return nil
+}
+
+// ResetTracker does nothing (only to satisfy the interface)
+func (cache *CrossTxCache) ResetTracker() {}
+
+// GetTrackerDiagnosis returns nil (only to satisfy the interface)
+func (cache *CrossTxCache) GetTrackerDiagnosis() TrackerDiagnosis {
+	return nil
+}
+
+// Cleanup does nothing (only to satisfy the interface)
+func (cache *CrossTxCache) Cleanup(_ common.AccountNonceProvider, _ uint64, _ int, _ time.Duration) uint64 {
+	return 0
 }
 
 // IsInterfaceNil returns true if there is no value under the interface

@@ -6,20 +6,26 @@ import (
 	"testing"
 
 	"github.com/multiversx/mx-chain-core-go/core"
+	"github.com/multiversx/mx-chain-core-go/data/block"
 	"github.com/multiversx/mx-chain-go/testscommon/txcachemocks"
 	"github.com/stretchr/testify/require"
 )
+
+// maxNumBytesPerSenderUpperBoundTest is used for setting the MaxNumBytesPerSenderUpperBoundTest from ConfigSourceMe in tests
+const maxNumBytesPerSenderUpperBoundTest = 33_554_432 // 32 MB
+const maxTrackedBlocks = 100
 
 func TestTxCache_DoEviction_BecauseOfCount(t *testing.T) {
 	config := ConfigSourceMe{
 		Name:                        "untitled",
 		NumChunks:                   16,
 		NumBytesThreshold:           maxNumBytesUpperBound,
-		NumBytesPerSenderThreshold:  maxNumBytesPerSenderUpperBound,
+		NumBytesPerSenderThreshold:  maxNumBytesPerSenderUpperBoundTest,
 		CountThreshold:              4,
 		CountPerSenderThreshold:     math.MaxUint32,
 		EvictionEnabled:             true,
 		NumItemsToPreemptivelyEvict: 1,
+		TxCacheBoundsConfig:         createMockTxBoundsConfig(),
 	}
 
 	host := txcachemocks.NewMempoolHostMock()
@@ -50,11 +56,12 @@ func TestTxCache_DoEviction_BecauseOfSize(t *testing.T) {
 		Name:                        "untitled",
 		NumChunks:                   16,
 		NumBytesThreshold:           1000,
-		NumBytesPerSenderThreshold:  maxNumBytesPerSenderUpperBound,
+		NumBytesPerSenderThreshold:  maxNumBytesPerSenderUpperBoundTest,
 		CountThreshold:              math.MaxUint32,
 		CountPerSenderThreshold:     math.MaxUint32,
 		EvictionEnabled:             true,
 		NumItemsToPreemptivelyEvict: 1,
+		TxCacheBoundsConfig:         createMockTxBoundsConfig(),
 	}
 
 	host := txcachemocks.NewMempoolHostMock()
@@ -81,16 +88,81 @@ func TestTxCache_DoEviction_BecauseOfSize(t *testing.T) {
 	require.Equal(t, uint64(3), cache.CountTx())
 }
 
+func TestTxCache_DoEviction_WithTrackedTxs(t *testing.T) {
+	config := ConfigSourceMe{
+		Name:                        "untitled",
+		NumChunks:                   16,
+		NumBytesThreshold:           maxNumBytesUpperBound,
+		NumBytesPerSenderThreshold:  maxNumBytesPerSenderUpperBoundTest,
+		CountThreshold:              4,
+		CountPerSenderThreshold:     math.MaxUint32,
+		EvictionEnabled:             true,
+		NumItemsToPreemptivelyEvict: 1,
+		TxCacheBoundsConfig:         createMockTxBoundsConfig(),
+	}
+
+	host := txcachemocks.NewMempoolHostMock()
+
+	cache, err := NewTxCache(config, host)
+	require.Nil(t, err)
+	require.NotNil(t, cache)
+
+	accountsProvider := txcachemocks.NewAccountNonceAndBalanceProviderMock()
+	accountsProvider.SetNonce([]byte("alice"), 1)
+	accountsProvider.SetNonce([]byte("bob"), 1)
+	accountsProvider.SetNonce([]byte("carol"), 1)
+	accountsProvider.SetNonce([]byte("eve"), 1)
+	accountsProvider.SetNonce([]byte("dan"), 1)
+
+	cache.AddTx(createTx([]byte("hash-alice"), "alice", 1).withGasPrice(1 * oneBillion))
+	cache.AddTx(createTx([]byte("hash-bob"), "bob", 1).withGasPrice(2 * oneBillion))
+	cache.AddTx(createTx([]byte("hash-carol"), "carol", 1).withGasPrice(3 * oneBillion))
+	cache.AddTx(createTx([]byte("hash-eve"), "eve", 1).withGasPrice(4 * oneBillion))
+	cache.AddTx(createTx([]byte("hash-dan"), "dan", 1).withGasPrice(5 * oneBillion))
+
+	// propose those txs
+	err = cache.OnProposedBlock(
+		[]byte("blockHash1"),
+		&block.Body{
+			MiniBlocks: []*block.MiniBlock{
+				{
+					TxHashes: [][]byte{
+						[]byte("hash-alice"),
+						[]byte("hash-bob"),
+						[]byte("hash-carol"),
+						[]byte("hash-dan"),
+						[]byte("hash-eve"),
+					},
+				},
+			},
+		},
+		&block.Header{
+			Nonce:    1,
+			PrevHash: []byte("blockHash0"),
+		},
+		accountsProvider,
+		[]byte("blockHash0"),
+	)
+	require.Nil(t, err)
+
+	// Because all txs are tracked, nothing is evicted.
+	journal := cache.doEviction()
+	require.Equal(t, 0, journal.numEvicted)
+	require.Nil(t, journal.numEvictedByPass)
+	require.True(t, cache.areInternalMapsConsistent())
+}
+
 func TestTxCache_DoEviction_DoesNothingWhenAlreadyInProgress(t *testing.T) {
 	config := ConfigSourceMe{
 		Name:                        "untitled",
 		NumChunks:                   1,
 		NumBytesThreshold:           maxNumBytesUpperBound,
-		NumBytesPerSenderThreshold:  maxNumBytesPerSenderUpperBound,
+		NumBytesPerSenderThreshold:  maxNumBytesPerSenderUpperBoundTest,
 		CountThreshold:              4,
 		CountPerSenderThreshold:     math.MaxUint32,
 		EvictionEnabled:             true,
 		NumItemsToPreemptivelyEvict: 1,
+		TxCacheBoundsConfig:         createMockTxBoundsConfig(),
 	}
 
 	host := txcachemocks.NewMempoolHostMock()
@@ -126,10 +198,11 @@ func TestBenchmarkTxCache_DoEviction(t *testing.T) {
 		Name:                        "untitled",
 		NumChunks:                   16,
 		NumBytesThreshold:           1000000000,
-		NumBytesPerSenderThreshold:  maxNumBytesPerSenderUpperBound,
+		NumBytesPerSenderThreshold:  maxNumBytesPerSenderUpperBoundTest,
 		CountThreshold:              300000,
 		CountPerSenderThreshold:     math.MaxUint32,
 		NumItemsToPreemptivelyEvict: 50000,
+		TxCacheBoundsConfig:         createMockTxBoundsConfig(),
 	}
 
 	host := txcachemocks.NewMempoolHostMock()

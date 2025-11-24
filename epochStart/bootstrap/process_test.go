@@ -114,6 +114,8 @@ func createComponentsForEpochStart() (*mock.CoreComponentsMock, *mock.CryptoComp
 			},
 			EpochChangeGracePeriodHandlerField: gracePeriod,
 			ChainParametersHandlerField:        chainParams,
+			ProcessConfigsHandlerField:         &testscommon.ProcessConfigsHandlerStub{},
+			CommonConfigsHandlerField:      testscommon.GetDefaultCommonConfigsHandler(),
 		},
 		&mock.CryptoComponentsMock{
 			PubKey:          &cryptoMocks.PublicKeyStub{},
@@ -228,6 +230,10 @@ func createMockEpochStartBootstrapArgs(
 				Shards:   10,
 			},
 			Requesters: generalCfg.Requesters,
+			InterceptedDataVerifier: config.InterceptedDataVerifierConfig{
+				CacheSpanInSec:   1,
+				CacheExpiryInSec: 1,
+			},
 		},
 		EconomicsData: &economicsmocks.EconomicsHandlerMock{
 			MinGasPriceCalled: func() uint64 {
@@ -739,22 +745,37 @@ func TestEpochStartBootstrap_Boostrap(t *testing.T) {
 	t.Run("bootstrap from local storage with StartInEpoch not enabled, should work", func(t *testing.T) {
 		t.Parallel()
 
-		testBoostrapByStartInEpochFlag(t, false)
+		testBoostrapByStartInEpochFlag(t, false, false)
 	})
 
 	t.Run("bootstrap from saved epoch, should work", func(t *testing.T) {
 		t.Parallel()
 
-		testBoostrapByStartInEpochFlag(t, true)
+		testBoostrapByStartInEpochFlag(t, true, false)
+	})
+
+	t.Run("bootstrap from saved epoch, with supernova, should work", func(t *testing.T) {
+		t.Parallel()
+
+		testBoostrapByStartInEpochFlag(t, true, true)
 	})
 }
 
-func testBoostrapByStartInEpochFlag(t *testing.T, startInEpochEnabled bool) {
+func testBoostrapByStartInEpochFlag(
+	t *testing.T,
+	startInEpochEnabled bool,
+	withSupernovaActivated bool,
+) {
 	coreComp, cryptoComp := createComponentsForEpochStart()
 
 	args := createMockEpochStartBootstrapArgs(coreComp, cryptoComp)
 	args.GeneralConfig = testscommon.GetGeneralConfig()
 	args.GeneralConfig.GeneralSettings.StartInEpochEnabled = startInEpochEnabled
+	args.EnableEpochsHandler = &enableEpochsHandlerMock.EnableEpochsHandlerStub{
+		IsFlagEnabledInEpochCalled: func(flag core.EnableEpochFlag, epoch uint32) bool {
+			return flag == common.SupernovaFlag && withSupernovaActivated
+		},
+	}
 
 	epoch := uint32(1)
 	shardId := uint32(0)
@@ -857,7 +878,6 @@ func TestEpochStartBootstrap_BootstrapStartInEpochNotEnabled(t *testing.T) {
 }
 
 func TestEpochStartBootstrap_BootstrapShouldStartBootstrapProcess(t *testing.T) {
-	roundsPerEpoch := int64(100)
 	roundDuration := uint64(60000)
 	coreComp, cryptoComp := createComponentsForEpochStart()
 	args := createMockEpochStartBootstrapArgs(coreComp, cryptoComp)
@@ -867,7 +887,6 @@ func TestEpochStartBootstrap_BootstrapShouldStartBootstrapProcess(t *testing.T) 
 		},
 	}
 	args.GeneralConfig = testscommon.GetGeneralConfig()
-	args.GeneralConfig.EpochStartConfig.RoundsPerEpoch = roundsPerEpoch
 	epochStartProvider, err := NewEpochStartBootstrap(args)
 	require.Nil(t, err)
 

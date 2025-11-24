@@ -162,6 +162,18 @@ func TestTomlParser(t *testing.T) {
 		Redundancy: RedundancyConfig{
 			MaxRoundsOfInactivityAccepted: 3,
 		},
+		TxCacheBounds: TxCacheBoundsConfig{
+			MaxNumBytesPerSenderUpperBound: 33_554_432,
+			MaxTrackedBlocks:               100,
+		},
+		TxCacheSelection: TxCacheSelectionConfig{
+			SelectionGasBandwidthIncreasePercent:          400,
+			SelectionGasBandwidthIncreaseScheduledPercent: 260,
+			SelectionGasRequested:                         10_000_000_000,
+			SelectionMaxNumTxs:                            30000,
+			SelectionLoopMaximumDuration:                  250,
+			SelectionLoopDurationCheckInterval:            10,
+		},
 	}
 	testString := `
 [GeneralSettings]
@@ -213,6 +225,18 @@ func TestTomlParser(t *testing.T) {
 
 [Consensus]
     Type = "` + consensusType + `"
+
+[TxCacheBounds]
+	MaxNumBytesPerSenderUpperBound = 33_554_432
+	MaxTrackedBlocks = 100
+
+[TxCacheSelection]
+	SelectionMaxNumTxs = 30000
+	SelectionLoopMaximumDuration = 250
+	SelectionGasRequested = 10_000_000_000
+	SelectionGasBandwidthIncreasePercent = 400
+	SelectionGasBandwidthIncreaseScheduledPercent = 260
+	SelectionLoopDurationCheckInterval = 10
 
 [VirtualMachine]
     [VirtualMachine.Execution]
@@ -959,11 +983,14 @@ func TestEnableEpochConfig(t *testing.T) {
     # AutomaticActivationOfNodesDisableEpoch represents the epoch when automatic activation of nodes for validators is disabled
     AutomaticActivationOfNodesDisableEpoch = 111
 
-    # FixGetBalanceEnableEpoch represents the epoch when Barnard opcodes will be enabled
+    # FixGetBalanceEnableEpoch represents the epoch when get balance opcode fix is enabled
     FixGetBalanceEnableEpoch = 112
 
+    # RelayedTransactionsV1V2DisableEpoch represents the epoch when relayed transactions v1 and v2 are disabled
+    RelayedTransactionsV1V2DisableEpoch = 113
+
     # SupernovaEnableEpoch represents the epoch when sub-second finality will be enabled
-    SupernovaEnableEpoch = 113
+    SupernovaEnableEpoch = 114
 
     # MaxNodesChangeEnableEpoch holds configuration for changing the maximum number of nodes and the enabling epoch
     MaxNodesChangeEnableEpoch = [
@@ -1097,7 +1124,8 @@ func TestEnableEpochConfig(t *testing.T) {
 			BarnardOpcodesEnableEpoch:                                110,
 			AutomaticActivationOfNodesDisableEpoch:                   111,
 			FixGetBalanceEnableEpoch:                                 112,
-			SupernovaEnableEpoch:                                     113,
+			RelayedTransactionsV1V2DisableEpoch:                      113,
+			SupernovaEnableEpoch:                                     114,
 			MaxNodesChangeEnableEpoch: []MaxNodesChangeConfig{
 				{
 					EpochEnable:            44,
@@ -1138,6 +1166,38 @@ func TestEnableEpochConfig(t *testing.T) {
 		},
 	}
 	cfg := EpochConfig{}
+
+	err := toml.Unmarshal([]byte(testString), &cfg)
+
+	assert.Nil(t, err)
+	assert.Equal(t, expectedCfg, cfg)
+}
+
+func TestEnableRoundsConfig(t *testing.T) {
+	testString := `
+[RoundActivations]
+    [RoundActivations.DisableAsyncCallV1]
+        Options = []
+        Round = "0"
+
+    [RoundActivations.SupernovaEnableRound]
+        Options = []
+        Round = "75"
+`
+
+	expectedCfg := RoundConfig{
+		RoundActivations: map[string]ActivationRoundByName{
+			"DisableAsyncCallV1": {
+				Round:   "0",
+				Options: []string{},
+			},
+			"SupernovaEnableRound": {
+				Round:   "75",
+				Options: []string{},
+			},
+		},
+	}
+	cfg := RoundConfig{}
 
 	err := toml.Unmarshal([]byte(testString), &cfg)
 

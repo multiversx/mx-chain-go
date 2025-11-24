@@ -52,7 +52,6 @@ import (
 	"github.com/multiversx/mx-chain-go/state"
 	"github.com/multiversx/mx-chain-go/storage"
 	"github.com/multiversx/mx-chain-go/storage/storageunit"
-	"github.com/multiversx/mx-chain-go/storage/txcache"
 	"github.com/multiversx/mx-chain-go/testscommon"
 	commonMocks "github.com/multiversx/mx-chain-go/testscommon/common"
 	dataRetrieverMock "github.com/multiversx/mx-chain-go/testscommon/dataRetriever"
@@ -65,6 +64,7 @@ import (
 	"github.com/multiversx/mx-chain-go/testscommon/shardingMocks"
 	storageStubs "github.com/multiversx/mx-chain-go/testscommon/storage"
 	"github.com/multiversx/mx-chain-go/testscommon/txDataBuilder"
+	"github.com/multiversx/mx-chain-go/txcache"
 	"github.com/multiversx/mx-chain-go/vm/systemSmartContracts/defaults"
 	logger "github.com/multiversx/mx-chain-logger-go"
 	vmcommon "github.com/multiversx/mx-chain-vm-common-go"
@@ -720,6 +720,7 @@ func CreateVMAndBlockchainHookMeta(
 		ChanceComputer:      &shardingMocks.NodesCoordinatorMock{},
 		ShardCoordinator:    mock.NewMultiShardsCoordinatorMock(1),
 		EnableEpochsHandler: enableEpochsHandler,
+		EnableRoundsHandler: &testscommon.EnableRoundsHandlerStub{},
 		NodesCoordinator:    &shardingMocks.NodesCoordinatorMock{},
 	}
 	vmFactory, err := metachain.NewVMContainerFactory(argVMContainer)

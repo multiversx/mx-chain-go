@@ -500,6 +500,7 @@ func createMetaVmContainerFactory(args scQueryElementArgs, argsHook hooks.ArgBlo
 		ChanceComputer:      args.coreComponents.Rater(),
 		ShardCoordinator:    args.processComponents.ShardCoordinator(),
 		EnableEpochsHandler: args.coreComponents.EnableEpochsHandler(),
+		EnableRoundsHandler: args.coreComponents.EnableRoundsHandler(),
 		NodesCoordinator:    args.processComponents.NodesCoordinator(),
 	}
 	vmFactory, err := metachain.NewVMContainerFactory(argsNewVmFactory)
@@ -550,9 +551,10 @@ func createShardVmContainerFactory(args scQueryElementArgs, argsHook hooks.ArgBl
 
 func createNewAccountsAdapterApi(args scQueryElementArgs, chainHandler data.ChainHandler) (state.AccountsAdapterAPI, common.StorageManager, error) {
 	argsAccCreator := factoryState.ArgsAccountCreator{
-		Hasher:              args.coreComponents.Hasher(),
-		Marshaller:          args.coreComponents.InternalMarshalizer(),
-		EnableEpochsHandler: args.coreComponents.EnableEpochsHandler(),
+		Hasher:                 args.coreComponents.Hasher(),
+		Marshaller:             args.coreComponents.InternalMarshalizer(),
+		EnableEpochsHandler:    args.coreComponents.EnableEpochsHandler(),
+		StateAccessesCollector: args.stateComponents.StateAccessesCollector(),
 	}
 	accountFactory, err := factoryState.NewAccountCreator(argsAccCreator)
 	if err != nil {
@@ -596,13 +598,14 @@ func createNewAccountsAdapterApi(args scQueryElementArgs, chainHandler data.Chai
 	}
 
 	argsAPIAccountsDB := state.ArgsAccountsDB{
-		Trie:                  merkleTrie,
-		Hasher:                args.coreComponents.Hasher(),
-		Marshaller:            args.coreComponents.InternalMarshalizer(),
-		AccountFactory:        accountFactory,
-		StoragePruningManager: storagePruning,
-		AddressConverter:      args.coreComponents.AddressPubKeyConverter(),
-		SnapshotsManager:      disabledState.NewDisabledSnapshotsManager(),
+		Trie:                   merkleTrie,
+		Hasher:                 args.coreComponents.Hasher(),
+		Marshaller:             args.coreComponents.InternalMarshalizer(),
+		AccountFactory:         accountFactory,
+		StoragePruningManager:  storagePruning,
+		AddressConverter:       args.coreComponents.AddressPubKeyConverter(),
+		SnapshotsManager:       disabledState.NewDisabledSnapshotsManager(),
+		StateAccessesCollector: disabledState.NewDisabledStateAccessesCollector(),
 	}
 
 	provider, err := blockInfoProviders.NewCurrentBlockInfo(chainHandler)

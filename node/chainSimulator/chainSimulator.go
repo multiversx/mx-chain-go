@@ -6,7 +6,6 @@ import (
 	"encoding/hex"
 	"errors"
 	"fmt"
-
 	"math/big"
 	"sync"
 	"time"
@@ -45,24 +44,26 @@ type transactionWithResult struct {
 
 // ArgsChainSimulator holds the arguments needed to create a new instance of simulator
 type ArgsChainSimulator struct {
-	BypassTxSignatureCheck     bool
-	TempDir                    string
-	PathToInitialConfig        string
-	NumOfShards                uint32
-	MinNodesPerShard           uint32
-	MetaChainMinNodes          uint32
-	Hysteresis                 float32
-	NumNodesWaitingListShard   uint32
-	NumNodesWaitingListMeta    uint32
-	GenesisTimestamp           int64
-	InitialRound               int64
-	InitialEpoch               uint32
-	InitialNonce               uint64
-	RoundDurationInMillis      uint64
-	RoundsPerEpoch             core.OptionalUint64
-	ApiInterface               components.APIConfigurator
-	AlterConfigsFunction       func(cfg *config.Configs)
-	VmQueryDelayAfterStartInMs uint64
+	BypassTxSignatureCheck         bool
+	TempDir                        string
+	PathToInitialConfig            string
+	NumOfShards                    uint32
+	MinNodesPerShard               uint32
+	MetaChainMinNodes              uint32
+	Hysteresis                     float32
+	NumNodesWaitingListShard       uint32
+	NumNodesWaitingListMeta        uint32
+	GenesisTimestamp               int64
+	InitialRound                   int64
+	InitialEpoch                   uint32
+	InitialNonce                   uint64
+	RoundDurationInMillis          uint64
+	SupernovaRoundDurationInMillis uint64
+	RoundsPerEpoch                 core.OptionalUint64
+	SupernovaRoundsPerEpoch        core.OptionalUint64
+	ApiInterface                   components.APIConfigurator
+	AlterConfigsFunction           func(cfg *config.Configs)
+	VmQueryDelayAfterStartInMs     uint64
 }
 
 // ArgsBaseChainSimulator holds the arguments needed to create a new instance of simulator
@@ -115,26 +116,28 @@ func NewBaseChainSimulator(args ArgsBaseChainSimulator) (*simulator, error) {
 
 func (s *simulator) createChainHandlers(args ArgsBaseChainSimulator) error {
 	outputConfigs, err := configs.CreateChainSimulatorConfigs(configs.ArgsChainSimulatorConfigs{
-		NumOfShards:                 args.NumOfShards,
-		OriginalConfigsPath:         args.PathToInitialConfig,
-		GenesisTimeStamp:            computeStartTimeBaseOnInitialRound(args.ArgsChainSimulator),
-		RoundDurationInMillis:       args.RoundDurationInMillis,
-		TempDir:                     args.TempDir,
-		MinNodesPerShard:            args.MinNodesPerShard,
-		ConsensusGroupSize:          args.ConsensusGroupSize,
-		MetaChainMinNodes:           args.MetaChainMinNodes,
-		MetaChainConsensusGroupSize: args.MetaChainConsensusGroupSize,
-		Hysteresis:                  args.Hysteresis,
-		RoundsPerEpoch:              args.RoundsPerEpoch,
-		InitialEpoch:                args.InitialEpoch,
-		AlterConfigsFunction:        args.AlterConfigsFunction,
-		NumNodesWaitingListShard:    args.NumNodesWaitingListShard,
-		NumNodesWaitingListMeta:     args.NumNodesWaitingListMeta,
+		NumOfShards:                    args.NumOfShards,
+		OriginalConfigsPath:            args.PathToInitialConfig,
+		RoundDurationInMillis:          args.RoundDurationInMillis,
+		SupernovaRoundDurationInMillis: args.SupernovaRoundDurationInMillis,
+		TempDir:                        args.TempDir,
+		MinNodesPerShard:               args.MinNodesPerShard,
+		ConsensusGroupSize:             args.ConsensusGroupSize,
+		MetaChainMinNodes:              args.MetaChainMinNodes,
+		MetaChainConsensusGroupSize:    args.MetaChainConsensusGroupSize,
+		Hysteresis:                     args.Hysteresis,
+		RoundsPerEpoch:                 args.RoundsPerEpoch,
+		SupernovaRoundsPerEpoch:        args.SupernovaRoundsPerEpoch,
+		InitialEpoch:                   args.InitialEpoch,
+		AlterConfigsFunction:           args.AlterConfigsFunction,
+		NumNodesWaitingListShard:       args.NumNodesWaitingListShard,
+		NumNodesWaitingListMeta:        args.NumNodesWaitingListMeta,
 	})
 	if err != nil {
 		return err
 	}
 
+	genesisTime := time.Now()
 	monitor := heartbeat.NewHeartbeatMonitor()
 
 	for idx := -1; idx < int(args.NumOfShards); idx++ {
@@ -143,7 +146,7 @@ func (s *simulator) createChainHandlers(args ArgsBaseChainSimulator) error {
 			shardIDStr = "metachain"
 		}
 
-		node, errCreate := s.createTestNode(*outputConfigs, args, shardIDStr, monitor)
+		node, errCreate := s.createTestNode(*outputConfigs, args, shardIDStr, genesisTime, monitor)
 		if errCreate != nil {
 			return errCreate
 		}
@@ -214,9 +217,6 @@ func (s *simulator) createChainHandlers(args ArgsBaseChainSimulator) error {
 
 	log.Info("running the chain simulator with the following parameters",
 		"number of shards (including meta)", args.NumOfShards+1,
-		"round per epoch", outputConfigs.Configs.GeneralConfig.EpochStartConfig.RoundsPerEpoch,
-		"round duration", time.Millisecond*time.Duration(args.RoundDurationInMillis),
-		"genesis timestamp", args.GenesisTimestamp,
 		"original config path", args.PathToInitialConfig,
 		"temporary path", args.TempDir)
 
@@ -256,12 +256,12 @@ func (s *simulator) addProofs() {
 	}
 }
 
-func computeStartTimeBaseOnInitialRound(args ArgsChainSimulator) int64 {
-	return args.GenesisTimestamp + int64(args.RoundDurationInMillis/1000)*args.InitialRound
-}
-
 func (s *simulator) createTestNode(
-	outputConfigs configs.ArgsConfigsSimulator, args ArgsBaseChainSimulator, shardIDStr string, monitor factory.HeartbeatV2Monitor,
+	outputConfigs configs.ArgsConfigsSimulator,
+	args ArgsBaseChainSimulator,
+	shardIDStr string,
+	genesisTime time.Time,
+	monitor factory.HeartbeatV2Monitor,
 ) (process.NodeHandler, error) {
 	argsTestOnlyProcessorNode := components.ArgsTestOnlyProcessingNode{
 		Configs:                     outputConfigs.Configs,
@@ -280,6 +280,7 @@ func (s *simulator) createTestNode(
 		MetaChainConsensusGroupSize: args.MetaChainConsensusGroupSize,
 		RoundDurationInMillis:       args.RoundDurationInMillis,
 		VmQueryDelayAfterStartInMs:  args.VmQueryDelayAfterStartInMs,
+		GenesisTime:                 genesisTime,
 		Monitor:                     monitor,
 	}
 

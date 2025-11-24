@@ -6,8 +6,9 @@ import (
 	"math"
 	"math/big"
 	"math/rand"
-	"time"
+	"strconv"
 
+	"github.com/multiversx/mx-chain-core-go/core"
 	"github.com/multiversx/mx-chain-core-go/data/transaction"
 	"github.com/multiversx/mx-chain-go/testscommon/txcachemocks"
 )
@@ -21,11 +22,14 @@ const addressLength = 32
 
 var oneQuintillionBig = big.NewInt(oneQuintillion)
 
-// The GitHub Actions runners are (extremely) slow.
-const selectionLoopMaximumDuration = 30 * time.Second
+// The GitHub Actions runners are (extremely) slow. The variable is expressed in milliseconds.
+const selectionLoopMaximumDuration = 30_000
+const cleanupLoopMaximumDuration = 30_000
 
 var randomHashes = newRandomData(math.MaxUint16, hashLength)
 var randomAddresses = newRandomData(math.MaxUint16, addressLength)
+
+var defaultLatestExecutedHash = []byte("hash0")
 
 type randomData struct {
 	randomBytes []byte
@@ -50,12 +54,6 @@ func newRandomData(numItems int, itemSize int) *randomData {
 
 func (data *randomData) getItem(index int) []byte {
 	start := index * data.itemSize
-	end := start + data.itemSize
-	return data.randomBytes[start:end]
-}
-
-func (data *randomData) getTailItem(index int) []byte {
-	start := (data.numItems - 1 - index) * data.itemSize
 	end := start + data.itemSize
 	return data.randomBytes[start:end]
 }
@@ -190,6 +188,24 @@ func createTx(hash []byte, sender string, nonce uint64) *WrappedTransaction {
 	}
 }
 
+func createSliceMockWrappedTxs(txHashes [][]byte) []*WrappedTransaction {
+	wrappedTxs := make([]*WrappedTransaction, len(txHashes))
+	for i, txHash := range txHashes {
+		wrappedTxs[i] = createTx(txHash, "sender"+strconv.Itoa(i), uint64(i))
+	}
+
+	return wrappedTxs
+}
+
+func createMockTxHashes(numberOfTxs int) [][]byte {
+	txHashes := make([][]byte, numberOfTxs)
+	for i := 0; i < numberOfTxs; i++ {
+		txHashes[i] = []byte("txHash" + strconv.Itoa(i))
+	}
+
+	return txHashes
+}
+
 func (wrappedTx *WrappedTransaction) withSize(size uint64) *WrappedTransaction {
 	dataLength := size - estimatedSizeOfBoundedTxFields
 	tx := wrappedTx.Tx.(*transaction.Transaction)
@@ -230,7 +246,18 @@ func (wrappedTx *WrappedTransaction) withValue(value *big.Int) *WrappedTransacti
 	return wrappedTx
 }
 
+func (wrappedTx *WrappedTransaction) withTransferredValue(value *big.Int) *WrappedTransaction {
+	wrappedTx.TransferredValue = value
+	return wrappedTx
+}
+
+func (wrappedTx *WrappedTransaction) withFee(value *big.Int) *WrappedTransaction {
+	wrappedTx.Fee = value
+	return wrappedTx
+}
+
 func (wrappedTx *WrappedTransaction) withRelayer(relayer []byte) *WrappedTransaction {
+	wrappedTx.FeePayer = relayer
 	tx := wrappedTx.Tx.(*transaction.Transaction)
 	tx.RelayerAddr = relayer
 	return wrappedTx
@@ -249,4 +276,31 @@ func createFakeTxHash(fakeSenderAddress []byte, nonce int) []byte {
 	binary.LittleEndian.PutUint64(bytes[8:], uint64(nonce))
 	binary.LittleEndian.PutUint64(bytes[16:], uint64(nonce))
 	return bytes
+}
+
+func createExpectedBreadcrumb(isSender bool, firstNonce uint64, lastNonce uint64, consumedBalance *big.Int) *accountBreadcrumb {
+	return &accountBreadcrumb{
+		firstNonce: core.OptionalUint64{
+			Value:    firstNonce,
+			HasValue: isSender,
+		},
+		lastNonce: core.OptionalUint64{
+			Value:    lastNonce,
+			HasValue: isSender,
+		},
+		consumedBalance: consumedBalance,
+	}
+}
+
+func createExpectedVirtualRecord(isSender bool, initialNonce uint64, initialBalance *big.Int, consumedBalance *big.Int) *virtualAccountRecord {
+	return &virtualAccountRecord{
+		initialNonce: core.OptionalUint64{
+			Value:    initialNonce,
+			HasValue: isSender,
+		},
+		virtualBalance: &virtualAccountBalance{
+			initialBalance:  initialBalance,
+			consumedBalance: consumedBalance,
+		},
+	}
 }

@@ -5,7 +5,6 @@ import (
 	"fmt"
 	"math/big"
 	"testing"
-	"time"
 
 	"github.com/multiversx/mx-chain-go/common"
 	"github.com/multiversx/mx-chain-go/config"
@@ -56,28 +55,32 @@ func testChainSimulatorSimpleStake(t *testing.T, targetEpoch int32, nodesStatus 
 	if testing.Short() {
 		t.Skip("this is not a short test")
 	}
-	startTime := time.Now().Unix()
 	roundDurationInMillis := uint64(6000)
 	roundsPerEpoch := core.OptionalUint64{
 		HasValue: true,
 		Value:    20,
 	}
+	supernovaRoundsPerEpochOpt := core.OptionalUint64{
+		HasValue: true,
+		Value:    200,
+	}
 
 	numOfShards := uint32(3)
 
 	cs, err := chainSimulator.NewChainSimulator(chainSimulator.ArgsChainSimulator{
-		BypassTxSignatureCheck:   true,
-		TempDir:                  t.TempDir(),
-		PathToInitialConfig:      defaultPathToInitialConfig,
-		NumOfShards:              numOfShards,
-		GenesisTimestamp:         startTime,
-		RoundDurationInMillis:    roundDurationInMillis,
-		RoundsPerEpoch:           roundsPerEpoch,
-		ApiInterface:             api.NewNoApiInterface(),
-		MinNodesPerShard:         3,
-		MetaChainMinNodes:        3,
-		NumNodesWaitingListMeta:  3,
-		NumNodesWaitingListShard: 3,
+		BypassTxSignatureCheck:         true,
+		TempDir:                        t.TempDir(),
+		PathToInitialConfig:            defaultPathToInitialConfig,
+		NumOfShards:                    numOfShards,
+		RoundDurationInMillis:          roundDurationInMillis,
+		SupernovaRoundDurationInMillis: roundDurationInMillis / 10,
+		RoundsPerEpoch:                 roundsPerEpoch,
+		SupernovaRoundsPerEpoch:        supernovaRoundsPerEpochOpt,
+		ApiInterface:                   api.NewNoApiInterface(),
+		MinNodesPerShard:               3,
+		MetaChainMinNodes:              3,
+		NumNodesWaitingListMeta:        3,
+		NumNodesWaitingListShard:       3,
 		AlterConfigsFunction: func(cfg *config.Configs) {
 			configs.SetStakingV4ActivationEpochs(cfg, 2)
 		},
@@ -162,15 +165,19 @@ func TestChainSimulator_StakingV4Step2APICalls(t *testing.T) {
 	stakingV4Step3Epoch := uint32(4)
 
 	cs, err := chainSimulator.NewChainSimulator(chainSimulator.ArgsChainSimulator{
-		BypassTxSignatureCheck: true,
-		TempDir:                t.TempDir(),
-		PathToInitialConfig:    defaultPathToInitialConfig,
-		NumOfShards:            3,
-		GenesisTimestamp:       time.Now().Unix(),
-		RoundDurationInMillis:  uint64(6000),
+		BypassTxSignatureCheck:         true,
+		TempDir:                        t.TempDir(),
+		PathToInitialConfig:            defaultPathToInitialConfig,
+		NumOfShards:                    3,
+		RoundDurationInMillis:          uint64(6000),
+		SupernovaRoundDurationInMillis: uint64(600),
 		RoundsPerEpoch: core.OptionalUint64{
 			HasValue: true,
 			Value:    30,
+		},
+		SupernovaRoundsPerEpoch: core.OptionalUint64{
+			HasValue: true,
+			Value:    300,
 		},
 		ApiInterface:             api.NewNoApiInterface(),
 		MinNodesPerShard:         4,

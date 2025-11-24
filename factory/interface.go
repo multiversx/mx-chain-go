@@ -22,6 +22,7 @@ import (
 	cryptoCommon "github.com/multiversx/mx-chain-go/common/crypto"
 	"github.com/multiversx/mx-chain-go/common/statistics"
 	"github.com/multiversx/mx-chain-go/consensus"
+	"github.com/multiversx/mx-chain-go/consensus/spos"
 	"github.com/multiversx/mx-chain-go/dataRetriever"
 	"github.com/multiversx/mx-chain-go/dblookupext"
 	"github.com/multiversx/mx-chain-go/epochStart"
@@ -123,11 +124,12 @@ type CoreComponentsHolder interface {
 	NodesShuffler() nodesCoordinator.NodesShuffler
 	EpochNotifier() process.EpochNotifier
 	ChainParametersSubscriber() process.ChainParametersSubscriber
-	EnableRoundsHandler() process.EnableRoundsHandler
+	EnableRoundsHandler() common.EnableRoundsHandler
 	RoundNotifier() process.RoundNotifier
 	EpochStartNotifierWithConfirm() EpochStartNotifierWithConfirm
 	ChanStopNodeProcess() chan endProcess.ArgEndProcess
 	GenesisTime() time.Time
+	SupernovaGenesisTime() time.Time
 	ChainID() string
 	MinTransactionVersion() uint32
 	TxVersionChecker() process.TxVersionCheckerHandler
@@ -140,6 +142,8 @@ type CoreComponentsHolder interface {
 	ChainParametersHandler() process.ChainParametersHandler
 	FieldsSizeChecker() common.FieldsSizeChecker
 	EpochChangeGracePeriodHandler() common.EpochChangeGracePeriodHandler
+	ProcessConfigsHandler() common.ProcessConfigsHandler
+	CommonConfigsHandler() common.CommonConfigsHandler
 	IsInterfaceNil() bool
 }
 
@@ -344,6 +348,7 @@ type StateComponentsHolder interface {
 	TrieStorageManagers() map[string]common.StorageManager
 	MissingTrieNodesNotifier() common.MissingTrieNodesNotifier
 	TrieLeavesRetriever() common.TrieLeavesRetriever
+	StateAccessesCollector() state.StateAccessesCollector
 	Close() error
 	IsInterfaceNil() bool
 }
@@ -420,6 +425,7 @@ type ConsensusWorker interface {
 	ReceivedProof(proofHandler consensus.ProofHandler)
 	// IsInterfaceNil returns true if there is no value under the interface
 	IsInterfaceNil() bool
+	ConsensusMetrics() spos.ConsensusMetricsHandler
 }
 
 // HardforkTrigger defines the hard-fork trigger functionality

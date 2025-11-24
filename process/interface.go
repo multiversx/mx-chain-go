@@ -1,9 +1,10 @@
 package process
 
 import (
-	"github.com/multiversx/mx-chain-go/ntp"
 	"math/big"
 	"time"
+
+	"github.com/multiversx/mx-chain-go/ntp"
 
 	"github.com/multiversx/mx-chain-core-go/core"
 	"github.com/multiversx/mx-chain-core-go/data"
@@ -72,6 +73,7 @@ type SmartContractProcessorFacade interface {
 // TxTypeHandler is an interface to calculate the transaction type
 type TxTypeHandler interface {
 	ComputeTransactionType(tx data.TransactionHandler) (TransactionType, TransactionType, bool)
+	ComputeTransactionTypeInEpoch(tx data.TransactionHandler, epoch uint32) (TransactionType, TransactionType, bool)
 	IsInterfaceNil() bool
 }
 
@@ -125,6 +127,7 @@ type InterceptedDataFactory interface {
 // InterceptedData represents the interceptor's view of the received data
 type InterceptedData interface {
 	CheckValidity() error
+	ShouldAllowDuplicates() bool
 	IsForCurrentShard() bool
 	IsInterfaceNil() bool
 	Hash() []byte
@@ -136,7 +139,7 @@ type InterceptedData interface {
 // InterceptorProcessor further validates and saves received data
 type InterceptorProcessor interface {
 	Validate(data InterceptedData, fromConnectedPeer core.PeerID) error
-	Save(data InterceptedData, fromConnectedPeer core.PeerID, topic string) error
+	Save(data InterceptedData, fromConnectedPeer core.PeerID, topic string) (dataSaved bool, err error)
 	RegisterHandler(handler func(topic string, hash []byte, data interface{}))
 	IsInterfaceNil() bool
 }
@@ -1203,12 +1206,6 @@ type RoundNotifier interface {
 	IsInterfaceNil() bool
 }
 
-// EnableRoundsHandler is an interface which can be queried to check for round activation features/fixes
-type EnableRoundsHandler interface {
-	IsDisableAsyncCallV1Enabled() bool
-	IsInterfaceNil() bool
-}
-
 // ESDTPauseHandler provides IsPaused function for an ESDT token
 type ESDTPauseHandler interface {
 	IsPaused(token []byte) bool
@@ -1259,6 +1256,8 @@ type CoreComponentsHolder interface {
 	ChainParametersHandler() ChainParametersHandler
 	FieldsSizeChecker() common.FieldsSizeChecker
 	EpochChangeGracePeriodHandler() common.EpochChangeGracePeriodHandler
+	ProcessConfigsHandler() common.ProcessConfigsHandler
+	CommonConfigsHandler() common.CommonConfigsHandler
 	SyncTimer() ntp.SyncTimer
 	IsInterfaceNil() bool
 }
@@ -1302,7 +1301,8 @@ type CheckedChunkResult struct {
 
 // InterceptedChunksProcessor defines the component that is able to process chunks of intercepted data
 type InterceptedChunksProcessor interface {
-	CheckBatch(b *batch.Batch, whiteListHandler WhiteListHandler) (CheckedChunkResult, error)
+	CheckBatch(b *batch.Batch, whiteListHandler WhiteListHandler, broadcastMethod p2p.BroadcastMethod) (CheckedChunkResult, error)
+	MarkVerified(b *batch.Batch, broadcastMethod p2p.BroadcastMethod)
 	Close() error
 	IsInterfaceNil() bool
 }
@@ -1433,7 +1433,8 @@ type SentSignaturesTracker interface {
 
 // InterceptedDataVerifier defines a component able to verify intercepted data validity
 type InterceptedDataVerifier interface {
-	Verify(interceptedData InterceptedData) error
+	Verify(interceptedData InterceptedData, topic string, broadcastMethod p2p.BroadcastMethod) error
+	MarkVerified(interceptedData InterceptedData, broadcastMethod p2p.BroadcastMethod)
 	IsInterfaceNil() bool
 }
 

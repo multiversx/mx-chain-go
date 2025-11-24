@@ -12,6 +12,8 @@ import (
 
 	"github.com/multiversx/mx-chain-core-go/core/check"
 	"github.com/multiversx/mx-chain-core-go/data/endProcess"
+	"github.com/multiversx/mx-chain-go/common"
+	"github.com/multiversx/mx-chain-go/errors"
 	"github.com/multiversx/mx-chain-go/facade"
 	"github.com/multiversx/mx-chain-go/process"
 	"github.com/multiversx/mx-chain-go/update"
@@ -24,7 +26,10 @@ const hardforkGracePeriod = time.Minute * 5
 const epochGracePeriod = 4
 const minTimeToWaitAfterHardforkInMinutes = 2
 const minimumEpochForHarfork = 1
+
+// TODO: add constants to config
 const deltaRoundsForForcedEpoch = uint64(10)
+const supernovaDeltaRoundsForForcedEpoch = uint64(100)
 const disabledRoundForForceEpochStart = uint64(math.MaxUint64)
 
 var _ facade.HardforkTrigger = (*trigger)(nil)
@@ -44,6 +49,8 @@ type ArgHardforkTrigger struct {
 	EpochConfirmedNotifier    update.EpochChangeConfirmedNotifier
 	ImportStartHandler        update.ImportStartHandler
 	RoundHandler              update.RoundHandler
+	EnableEpochsHandler       common.EnableEpochsHandler
+	EnableRoundsHandler       common.EnableRoundsHandler
 }
 
 // trigger implements a hardfork trigger that is able to notify a set list of handlers if this instance gets triggered
@@ -73,6 +80,8 @@ type trigger struct {
 	importStartHandler           update.ImportStartHandler
 	isWithEarlyEndOfEpoch        bool
 	roundHandler                 update.RoundHandler
+	enableEpochsHandler          common.EnableEpochsHandler
+	enableRoundsHandler          common.EnableRoundsHandler
 }
 
 // NewTrigger returns the trigger instance
@@ -110,6 +119,12 @@ func NewTrigger(arg ArgHardforkTrigger) (*trigger, error) {
 	if check.IfNil(arg.RoundHandler) {
 		return nil, fmt.Errorf("%w in update.NewTrigger", update.ErrNilRoundHandler)
 	}
+	if check.IfNil(arg.EnableEpochsHandler) {
+		return nil, errors.ErrNilEnableEpochsHandler
+	}
+	if check.IfNil(arg.EnableRoundsHandler) {
+		return nil, errors.ErrNilEnableRoundsHandler
+	}
 
 	t := &trigger{
 		enabled:               arg.Enabled,
@@ -127,6 +142,8 @@ func NewTrigger(arg ArgHardforkTrigger) (*trigger, error) {
 		chanTriggerReceivedV2: make(chan struct{}, 1), // buffer with one value as there might be async calls
 		importStartHandler:    arg.ImportStartHandler,
 		roundHandler:          arg.RoundHandler,
+		enableEpochsHandler:   arg.EnableEpochsHandler,
+		enableRoundsHandler:   arg.EnableRoundsHandler,
 	}
 
 	t.isTriggerSelf = bytes.Equal(arg.TriggerPubKeyBytes, arg.SelfPubKeyBytes)
@@ -137,6 +154,10 @@ func NewTrigger(arg ArgHardforkTrigger) (*trigger, error) {
 }
 
 func (t *trigger) getCurrentUnixTime() int64 {
+	if t.enableEpochsHandler.IsFlagEnabled(common.SupernovaFlag) {
+		return time.Now().UnixMilli()
+	}
+
 	return time.Now().Unix()
 }
 
@@ -231,7 +252,15 @@ func (t *trigger) computeHardforkRound(withEarlyEndOfEpoch bool) uint64 {
 		return deltaRoundsForForcedEpoch
 	}
 
-	return uint64(currentRound) + deltaRoundsForForcedEpoch
+	return uint64(currentRound) + t.getDeltaRoundsForForceEpoch(uint64(currentRound))
+}
+
+func (t *trigger) getDeltaRoundsForForceEpoch(round uint64) uint64 {
+	if t.enableRoundsHandler.IsFlagEnabledInRound(common.SupernovaRoundFlag, round) {
+		return supernovaDeltaRoundsForForcedEpoch
+	}
+
+	return deltaRoundsForForcedEpoch
 }
 
 // computeAndSetTrigger needs to do 2 things atomically: set the original payload and epoch and determine if the trigger

@@ -2,21 +2,75 @@ package txcache
 
 import (
 	"bytes"
+	"errors"
 	"fmt"
 	"math"
 	"math/big"
 	"testing"
-	"time"
 
 	"github.com/multiversx/mx-chain-core-go/core"
 	"github.com/multiversx/mx-chain-core-go/data"
+	"github.com/multiversx/mx-chain-go/common"
+	"github.com/multiversx/mx-chain-go/common/holders"
+	"github.com/multiversx/mx-chain-go/config"
 	"github.com/multiversx/mx-chain-go/testscommon/txcachemocks"
 	"github.com/stretchr/testify/require"
 )
 
+var expectedError = errors.New("expected error")
+
+func createMockTxSelectionOptions(gasRequested uint64, maxNumTxs int, loopMaximumDuration int) common.TxSelectionOptions {
+	return holders.NewTxSelectionOptions(
+		gasRequested,
+		maxNumTxs,
+		loopMaximumDuration,
+		10,
+	)
+}
+
+func createMockTxBoundsConfig() config.TxCacheBoundsConfig {
+	return config.TxCacheBoundsConfig{
+		MaxNumBytesPerSenderUpperBound: maxNumBytesPerSenderUpperBoundTest,
+		MaxTrackedBlocks:               maxTrackedBlocks,
+	}
+}
+
+func TestTxCache_SelectTransactions(t *testing.T) {
+	t.Parallel()
+
+	t.Run("should return errNilSelectionSession error", func(t *testing.T) {
+		t.Parallel()
+
+		options := createMockTxSelectionOptions(math.MaxUint64, math.MaxInt, selectionLoopMaximumDuration)
+		boundsConfig := createMockTxBoundsConfig()
+		cache := newUnconstrainedCacheToTest(boundsConfig)
+
+		_, _, err := cache.SelectTransactions(nil, options, 0)
+		require.Equal(t, errNilSelectionSession, err)
+	})
+
+	t.Run("should return the error from GetRootHash", func(t *testing.T) {
+		t.Parallel()
+
+		options := createMockTxSelectionOptions(math.MaxUint64, math.MaxInt, selectionLoopMaximumDuration)
+		boundsConfig := createMockTxBoundsConfig()
+		cache := newUnconstrainedCacheToTest(boundsConfig)
+		session := &txcachemocks.SelectionSessionMock{
+			GetRootHashCalled: func() ([]byte, error) {
+				return nil, expectedError
+			},
+		}
+
+		_, _, err := cache.SelectTransactions(session, options, 0)
+		require.Equal(t, expectedError, err)
+	})
+}
+
 func TestTxCache_SelectTransactions_Dummy(t *testing.T) {
 	t.Run("all having same PPU", func(t *testing.T) {
-		cache := newUnconstrainedCacheToTest()
+		options := createMockTxSelectionOptions(math.MaxUint64, math.MaxInt, selectionLoopMaximumDuration)
+		boundsConfig := createMockTxBoundsConfig()
+		cache := newUnconstrainedCacheToTest(boundsConfig)
 		session := txcachemocks.NewSelectionSessionMock()
 		session.SetNonce([]byte("alice"), 1)
 		session.SetNonce([]byte("bob"), 5)
@@ -31,7 +85,8 @@ func TestTxCache_SelectTransactions_Dummy(t *testing.T) {
 		cache.AddTx(createTx([]byte("hash-bob-5"), "bob", 5))
 		cache.AddTx(createTx([]byte("hash-carol-1"), "carol", 1))
 
-		selected, accumulatedGas := cache.SelectTransactions(session, math.MaxUint64, math.MaxInt, selectionLoopMaximumDuration)
+		selected, accumulatedGas, err := cache.SelectTransactions(session, options, 0)
+		require.NoError(t, err)
 		require.Len(t, selected, 8)
 		require.Equal(t, 400000, int(accumulatedGas))
 
@@ -47,7 +102,10 @@ func TestTxCache_SelectTransactions_Dummy(t *testing.T) {
 	})
 
 	t.Run("alice > carol > bob", func(t *testing.T) {
-		cache := newUnconstrainedCacheToTest()
+		options := createMockTxSelectionOptions(math.MaxUint64, math.MaxInt, selectionLoopMaximumDuration)
+		boundsConfig := createMockTxBoundsConfig()
+		cache := newUnconstrainedCacheToTest(boundsConfig)
+
 		session := txcachemocks.NewSelectionSessionMock()
 		session.SetNonce([]byte("alice"), 1)
 		session.SetNonce([]byte("bob"), 5)
@@ -57,7 +115,8 @@ func TestTxCache_SelectTransactions_Dummy(t *testing.T) {
 		cache.AddTx(createTx([]byte("hash-bob-5"), "bob", 5).withGasPrice(50))
 		cache.AddTx(createTx([]byte("hash-carol-3"), "carol", 3).withGasPrice(75))
 
-		selected, accumulatedGas := cache.SelectTransactions(session, math.MaxUint64, math.MaxInt, selectionLoopMaximumDuration)
+		selected, accumulatedGas, err := cache.SelectTransactions(session, options, 0)
+		require.NoError(t, err)
 		require.Len(t, selected, 3)
 		require.Equal(t, 150000, int(accumulatedGas))
 
@@ -70,7 +129,10 @@ func TestTxCache_SelectTransactions_Dummy(t *testing.T) {
 
 func TestTxCache_SelectTransactionsWithBandwidth_Dummy(t *testing.T) {
 	t.Run("transactions with no data field", func(t *testing.T) {
-		cache := newUnconstrainedCacheToTest()
+		options := createMockTxSelectionOptions(760000, math.MaxInt, selectionLoopMaximumDuration)
+		boundsConfig := createMockTxBoundsConfig()
+		cache := newUnconstrainedCacheToTest(boundsConfig)
+
 		session := txcachemocks.NewSelectionSessionMock()
 		session.SetNonce([]byte("alice"), 1)
 		session.SetNonce([]byte("bob"), 5)
@@ -85,7 +147,8 @@ func TestTxCache_SelectTransactionsWithBandwidth_Dummy(t *testing.T) {
 		cache.AddTx(createTx([]byte("hash-bob-5"), "bob", 5).withGasLimit(50000))
 		cache.AddTx(createTx([]byte("hash-carol-1"), "carol", 1).withGasLimit(50000))
 
-		selected, accumulatedGas := cache.SelectTransactions(session, 760000, math.MaxInt, selectionLoopMaximumDuration)
+		selected, accumulatedGas, err := cache.SelectTransactions(session, options, 0)
+		require.NoError(t, err)
 		require.Len(t, selected, 5)
 		require.Equal(t, 750000, int(accumulatedGas))
 
@@ -100,7 +163,10 @@ func TestTxCache_SelectTransactionsWithBandwidth_Dummy(t *testing.T) {
 
 func TestTxCache_SelectTransactions_HandlesNotExecutableTransactions(t *testing.T) {
 	t.Run("with middle gaps", func(t *testing.T) {
-		cache := newUnconstrainedCacheToTest()
+		options := createMockTxSelectionOptions(math.MaxUint64, math.MaxInt, selectionLoopMaximumDuration)
+		boundsConfig := createMockTxBoundsConfig()
+		cache := newUnconstrainedCacheToTest(boundsConfig)
+
 		session := txcachemocks.NewSelectionSessionMock()
 		session.SetNonce([]byte("alice"), 1)
 		session.SetNonce([]byte("bob"), 42)
@@ -118,14 +184,19 @@ func TestTxCache_SelectTransactions_HandlesNotExecutableTransactions(t *testing.
 		cache.AddTx(createTx([]byte("hash-carol-10"), "carol", 10)) // gap
 		cache.AddTx(createTx([]byte("hash-carol-11"), "carol", 11))
 
-		sorted, accumulatedGas := cache.SelectTransactions(session, math.MaxUint64, math.MaxInt, selectionLoopMaximumDuration)
+		sorted, accumulatedGas, err := cache.SelectTransactions(session, options, 0)
+		require.NoError(t, err)
+
 		expectedNumSelected := 3 + 1 + 2 // 3 alice + 1 bob + 2 carol
 		require.Len(t, sorted, expectedNumSelected)
 		require.Equal(t, 300000, int(accumulatedGas))
 	})
 
 	t.Run("with initial gaps", func(t *testing.T) {
-		cache := newUnconstrainedCacheToTest()
+		options := createMockTxSelectionOptions(math.MaxUint64, math.MaxInt, selectionLoopMaximumDuration)
+		boundsConfig := createMockTxBoundsConfig()
+		cache := newUnconstrainedCacheToTest(boundsConfig)
+
 		session := txcachemocks.NewSelectionSessionMock()
 		session.SetNonce([]byte("alice"), 1)
 		session.SetNonce([]byte("bob"), 42)
@@ -145,14 +216,19 @@ func TestTxCache_SelectTransactions_HandlesNotExecutableTransactions(t *testing.
 		cache.AddTx(createTx([]byte("hash-carol-7"), "carol", 7))
 		cache.AddTx(createTx([]byte("hash-carol-8"), "carol", 8))
 
-		sorted, accumulatedGas := cache.SelectTransactions(session, math.MaxUint64, math.MaxInt, selectionLoopMaximumDuration)
+		sorted, accumulatedGas, err := cache.SelectTransactions(session, options, 0)
+		require.NoError(t, err)
+
 		expectedNumSelected := 3 + 0 + 2 // 3 alice + 0 bob + 2 carol
 		require.Len(t, sorted, expectedNumSelected)
 		require.Equal(t, 250000, int(accumulatedGas))
 	})
 
 	t.Run("with lower nonces", func(t *testing.T) {
-		cache := newUnconstrainedCacheToTest()
+		options := createMockTxSelectionOptions(math.MaxUint64, math.MaxInt, selectionLoopMaximumDuration)
+		boundsConfig := createMockTxBoundsConfig()
+		cache := newUnconstrainedCacheToTest(boundsConfig)
+
 		session := txcachemocks.NewSelectionSessionMock()
 		session.SetNonce([]byte("alice"), 1)
 		session.SetNonce([]byte("bob"), 42)
@@ -172,14 +248,19 @@ func TestTxCache_SelectTransactions_HandlesNotExecutableTransactions(t *testing.
 		cache.AddTx(createTx([]byte("hash-carol-7"), "carol", 7))
 		cache.AddTx(createTx([]byte("hash-carol-8"), "carol", 8))
 
-		sorted, accumulatedGas := cache.SelectTransactions(session, math.MaxUint64, math.MaxInt, selectionLoopMaximumDuration)
+		sorted, accumulatedGas, err := cache.SelectTransactions(session, options, 0)
+		require.NoError(t, err)
+
 		expectedNumSelected := 3 + 1 + 2 // 3 alice + 1 bob + 2 carol
 		require.Len(t, sorted, expectedNumSelected)
 		require.Equal(t, 300000, int(accumulatedGas))
 	})
 
 	t.Run("with duplicated nonces", func(t *testing.T) {
-		cache := newUnconstrainedCacheToTest()
+		options := createMockTxSelectionOptions(math.MaxUint64, math.MaxInt, selectionLoopMaximumDuration)
+		boundsConfig := createMockTxBoundsConfig()
+		cache := newUnconstrainedCacheToTest(boundsConfig)
+
 		session := txcachemocks.NewSelectionSessionMock()
 		session.SetNonce([]byte("alice"), 1)
 
@@ -190,7 +271,8 @@ func TestTxCache_SelectTransactions_HandlesNotExecutableTransactions(t *testing.
 		cache.AddTx(createTx([]byte("hash-alice-3c"), "alice", 3))
 		cache.AddTx(createTx([]byte("hash-alice-4"), "alice", 4))
 
-		sorted, accumulatedGas := cache.SelectTransactions(session, math.MaxUint64, math.MaxInt, selectionLoopMaximumDuration)
+		sorted, accumulatedGas, err := cache.SelectTransactions(session, options, 0)
+		require.NoError(t, err)
 		require.Len(t, sorted, 4)
 		require.Equal(t, 200000, int(accumulatedGas))
 
@@ -201,7 +283,10 @@ func TestTxCache_SelectTransactions_HandlesNotExecutableTransactions(t *testing.
 	})
 
 	t.Run("with fee exceeding balance", func(t *testing.T) {
-		cache := newUnconstrainedCacheToTest()
+		options := createMockTxSelectionOptions(math.MaxUint64, math.MaxInt, selectionLoopMaximumDuration)
+		boundsConfig := createMockTxBoundsConfig()
+		cache := newUnconstrainedCacheToTest(boundsConfig)
+
 		session := txcachemocks.NewSelectionSessionMock()
 		session.SetNonce([]byte("alice"), 1)
 		session.SetBalance([]byte("alice"), big.NewInt(150000000000000))
@@ -218,14 +303,19 @@ func TestTxCache_SelectTransactions_HandlesNotExecutableTransactions(t *testing.
 		cache.AddTx(createTx([]byte("hash-bob-43"), "bob", 41))
 		cache.AddTx(createTx([]byte("hash-bob-44"), "bob", 42))
 
-		sorted, accumulatedGas := cache.SelectTransactions(session, math.MaxUint64, math.MaxInt, selectionLoopMaximumDuration)
+		sorted, accumulatedGas, err := cache.SelectTransactions(session, options, 0)
+		require.NoError(t, err)
+
 		expectedNumSelected := 3 + 1 // 3 alice + 1 bob
 		require.Len(t, sorted, expectedNumSelected)
 		require.Equal(t, 200000, int(accumulatedGas))
 	})
 
 	t.Run("with incorrectly guarded", func(t *testing.T) {
-		cache := newUnconstrainedCacheToTest()
+		options := createMockTxSelectionOptions(math.MaxUint64, math.MaxInt, selectionLoopMaximumDuration)
+		boundsConfig := createMockTxBoundsConfig()
+		cache := newUnconstrainedCacheToTest(boundsConfig)
+
 		session := txcachemocks.NewSelectionSessionMock()
 		session.SetNonce([]byte("alice"), 1)
 		session.SetNonce([]byte("bob"), 42)
@@ -239,7 +329,8 @@ func TestTxCache_SelectTransactions_HandlesNotExecutableTransactions(t *testing.
 		cache.AddTx(createTx([]byte("hash-bob-43a"), "bob", 43).withData([]byte("z")).withGasLimit(100000))
 		cache.AddTx(createTx([]byte("hash-bob-43b"), "bob", 43).withData([]byte("t")).withGasLimit(100000))
 
-		sorted, accumulatedGas := cache.SelectTransactions(session, math.MaxUint64, math.MaxInt, selectionLoopMaximumDuration)
+		sorted, accumulatedGas, err := cache.SelectTransactions(session, options, 0)
+		require.NoError(t, err)
 		require.Len(t, sorted, 3)
 		require.Equal(t, 300000, int(accumulatedGas))
 
@@ -250,7 +341,10 @@ func TestTxCache_SelectTransactions_HandlesNotExecutableTransactions(t *testing.
 }
 
 func TestTxCache_SelectTransactions_WhenTransactionsAddedInReversedNonceOrder(t *testing.T) {
-	cache := newUnconstrainedCacheToTest()
+	options := createMockTxSelectionOptions(math.MaxUint64, math.MaxInt, selectionLoopMaximumDuration)
+	boundsConfig := createMockTxBoundsConfig()
+	cache := newUnconstrainedCacheToTest(boundsConfig)
+
 	session := txcachemocks.NewSelectionSessionMock()
 
 	// Add "nSenders" * "nTransactionsPerSender" transactions in the cache (in reversed nonce order)
@@ -270,7 +364,8 @@ func TestTxCache_SelectTransactions_WhenTransactionsAddedInReversedNonceOrder(t 
 
 	require.Equal(t, uint64(nTotalTransactions), cache.CountTx())
 
-	sorted, accumulatedGas := cache.SelectTransactions(session, math.MaxUint64, math.MaxInt, selectionLoopMaximumDuration)
+	sorted, accumulatedGas, err := cache.SelectTransactions(session, options, 0)
+	require.NoError(t, err)
 	require.Len(t, sorted, nTotalTransactions)
 	require.Equal(t, 5_000_000_000, int(accumulatedGas))
 
@@ -290,7 +385,9 @@ func TestTxCache_SelectTransactions_WhenTransactionsAddedInReversedNonceOrder(t 
 func TestTxCache_selectTransactionsFromBunches(t *testing.T) {
 	t.Run("empty cache", func(t *testing.T) {
 		session := txcachemocks.NewSelectionSessionMock()
-		selected, accumulatedGas := selectTransactionsFromBunches(session, []bunchOfTransactions{}, 10_000_000_000, math.MaxInt, selectionLoopMaximumDuration)
+		virtualSession := newVirtualSelectionSession(session, make(map[string]*virtualAccountRecord))
+		options := createMockTxSelectionOptions(10_000_000_000, math.MaxInt, selectionLoopMaximumDuration)
+		selected, accumulatedGas := selectTransactionsFromBunches(virtualSession, []bunchOfTransactions{}, options)
 
 		require.Equal(t, 0, len(selected))
 		require.Equal(t, uint64(0), accumulatedGas)
@@ -302,11 +399,12 @@ func TestBenchmarkTxCache_acquireBunchesOfTransactions(t *testing.T) {
 		Name:                        "untitled",
 		NumChunks:                   16,
 		NumBytesThreshold:           1000000000,
-		NumBytesPerSenderThreshold:  maxNumBytesPerSenderUpperBound,
+		NumBytesPerSenderThreshold:  maxNumBytesPerSenderUpperBoundTest,
 		CountThreshold:              300001,
 		CountPerSenderThreshold:     math.MaxUint32,
 		EvictionEnabled:             false,
 		NumItemsToPreemptivelyEvict: 1,
+		TxCacheBoundsConfig:         createMockTxBoundsConfig(),
 	}
 
 	host := txcachemocks.NewMempoolHostMock()
@@ -403,11 +501,13 @@ func TestBenchmarkTxCache_selectTransactionsFromBunches(t *testing.T) {
 	sw := core.NewStopWatch()
 
 	t.Run("numSenders = 1000, numTransactions = 1000", func(t *testing.T) {
+		options := createMockTxSelectionOptions(10_000_000_000, math.MaxInt, selectionLoopMaximumDuration)
 		session := txcachemocks.NewSelectionSessionMock()
+		virtualSession := newVirtualSelectionSession(session, make(map[string]*virtualAccountRecord))
 		bunches := createBunchesOfTransactionsWithUniformDistribution(1000, 1000)
 
 		sw.Start(t.Name())
-		selected, accumulatedGas := selectTransactionsFromBunches(session, bunches, 10_000_000_000, math.MaxInt, selectionLoopMaximumDuration)
+		selected, accumulatedGas := selectTransactionsFromBunches(virtualSession, bunches, options)
 		sw.Stop(t.Name())
 
 		require.Equal(t, 200000, len(selected))
@@ -415,11 +515,13 @@ func TestBenchmarkTxCache_selectTransactionsFromBunches(t *testing.T) {
 	})
 
 	t.Run("numSenders = 10000, numTransactions = 100", func(t *testing.T) {
+		options := createMockTxSelectionOptions(10_000_000_000, math.MaxInt, selectionLoopMaximumDuration)
 		session := txcachemocks.NewSelectionSessionMock()
+		virtualSession := newVirtualSelectionSession(session, make(map[string]*virtualAccountRecord))
 		bunches := createBunchesOfTransactionsWithUniformDistribution(1000, 1000)
 
 		sw.Start(t.Name())
-		selected, accumulatedGas := selectTransactionsFromBunches(session, bunches, 10_000_000_000, math.MaxInt, selectionLoopMaximumDuration)
+		selected, accumulatedGas := selectTransactionsFromBunches(virtualSession, bunches, options)
 		sw.Stop(t.Name())
 
 		require.Equal(t, 200000, len(selected))
@@ -427,11 +529,13 @@ func TestBenchmarkTxCache_selectTransactionsFromBunches(t *testing.T) {
 	})
 
 	t.Run("numSenders = 100000, numTransactions = 3", func(t *testing.T) {
+		options := createMockTxSelectionOptions(10_000_000_000, math.MaxInt, selectionLoopMaximumDuration)
 		session := txcachemocks.NewSelectionSessionMock()
+		virtualSession := newVirtualSelectionSession(session, make(map[string]*virtualAccountRecord))
 		bunches := createBunchesOfTransactionsWithUniformDistribution(100000, 3)
 
 		sw.Start(t.Name())
-		selected, accumulatedGas := selectTransactionsFromBunches(session, bunches, 10_000_000_000, math.MaxInt, selectionLoopMaximumDuration)
+		selected, accumulatedGas := selectTransactionsFromBunches(virtualSession, bunches, options)
 		sw.Stop(t.Name())
 
 		require.Equal(t, 200000, len(selected))
@@ -439,11 +543,14 @@ func TestBenchmarkTxCache_selectTransactionsFromBunches(t *testing.T) {
 	})
 
 	t.Run("numSenders = 300000, numTransactions = 1", func(t *testing.T) {
+		options := createMockTxSelectionOptions(10_000_000_000, math.MaxInt, selectionLoopMaximumDuration)
 		session := txcachemocks.NewSelectionSessionMock()
+		virtualSession := newVirtualSelectionSession(session, make(map[string]*virtualAccountRecord))
+
 		bunches := createBunchesOfTransactionsWithUniformDistribution(300000, 1)
 
 		sw.Start(t.Name())
-		selected, accumulatedGas := selectTransactionsFromBunches(session, bunches, 10_000_000_000, math.MaxInt, selectionLoopMaximumDuration)
+		selected, accumulatedGas := selectTransactionsFromBunches(virtualSession, bunches, options)
 		sw.Stop(t.Name())
 
 		require.Equal(t, 200000, len(selected))
@@ -471,8 +578,10 @@ func TestBenchmarkTxCache_selectTransactionsFromBunches(t *testing.T) {
 func TestTxCache_selectTransactionsFromBunches_loopBreaks_whenTakesTooLong(t *testing.T) {
 	t.Run("numSenders = 300000, numTransactions = 1", func(t *testing.T) {
 		session := txcachemocks.NewSelectionSessionMock()
+		virtualSession := newVirtualSelectionSession(session, make(map[string]*virtualAccountRecord))
+		options := createMockTxSelectionOptions(10_000_000_000, 50_000, 1)
 		bunches := createBunchesOfTransactionsWithUniformDistribution(300000, 1)
-		selected, accumulatedGas := selectTransactionsFromBunches(session, bunches, 10_000_000_000, 50_000, 1*time.Millisecond)
+		selected, accumulatedGas := selectTransactionsFromBunches(virtualSession, bunches, options)
 
 		require.Less(t, len(selected), 50_000)
 		require.Less(t, int(accumulatedGas), 10_000_000_000)
@@ -480,15 +589,17 @@ func TestTxCache_selectTransactionsFromBunches_loopBreaks_whenTakesTooLong(t *te
 }
 
 func TestBenchmarkTxCache_doSelectTransactions(t *testing.T) {
+	options := createMockTxSelectionOptions(10_000_000_000, 30_000, selectionLoopMaximumDuration)
 	config := ConfigSourceMe{
 		Name:                        "untitled",
 		NumChunks:                   16,
 		NumBytesThreshold:           1000000000,
-		NumBytesPerSenderThreshold:  maxNumBytesPerSenderUpperBound,
+		NumBytesPerSenderThreshold:  maxNumBytesPerSenderUpperBoundTest,
 		CountThreshold:              300001,
 		CountPerSenderThreshold:     math.MaxUint32,
 		EvictionEnabled:             false,
 		NumItemsToPreemptivelyEvict: 1,
+		TxCacheBoundsConfig:         createMockTxBoundsConfig(),
 	}
 
 	host := txcachemocks.NewMempoolHostMock()
@@ -505,9 +616,10 @@ func TestBenchmarkTxCache_doSelectTransactions(t *testing.T) {
 		require.Equal(t, 1000000, int(cache.CountTx()))
 
 		sw.Start(t.Name())
-		selected, accumulatedGas := cache.SelectTransactions(session, 10_000_000_000, 30_000, selectionLoopMaximumDuration)
+		selected, accumulatedGas, err := cache.SelectTransactions(session, options, 0)
 		sw.Stop(t.Name())
 
+		require.NoError(t, err)
 		require.Equal(t, 30_000, len(selected))
 		require.Equal(t, uint64(1_500_000_000), accumulatedGas)
 	})
@@ -521,9 +633,10 @@ func TestBenchmarkTxCache_doSelectTransactions(t *testing.T) {
 		require.Equal(t, 100000, int(cache.CountTx()))
 
 		sw.Start(t.Name())
-		selected, accumulatedGas := cache.SelectTransactions(session, 10_000_000_000, 30_000, selectionLoopMaximumDuration)
+		selected, accumulatedGas, err := cache.SelectTransactions(session, options, 0)
 		sw.Stop(t.Name())
 
+		require.NoError(t, err)
 		require.Equal(t, 30_000, len(selected))
 		require.Equal(t, uint64(1_500_000_000), accumulatedGas)
 	})
@@ -537,9 +650,10 @@ func TestBenchmarkTxCache_doSelectTransactions(t *testing.T) {
 		require.Equal(t, 100000, int(cache.CountTx()))
 
 		sw.Start(t.Name())
-		selected, accumulatedGas := cache.SelectTransactions(session, 10_000_000_000, 30_000, selectionLoopMaximumDuration)
+		selected, accumulatedGas, err := cache.SelectTransactions(session, options, 0)
 		sw.Stop(t.Name())
 
+		require.NoError(t, err)
 		require.Equal(t, 30_000, len(selected))
 		require.Equal(t, uint64(1_500_000_000), accumulatedGas)
 	})
@@ -553,9 +667,10 @@ func TestBenchmarkTxCache_doSelectTransactions(t *testing.T) {
 		require.Equal(t, 300000, int(cache.CountTx()))
 
 		sw.Start(t.Name())
-		selected, accumulatedGas := cache.SelectTransactions(session, 10_000_000_000, 30_000, selectionLoopMaximumDuration)
+		selected, accumulatedGas, err := cache.SelectTransactions(session, options, 0)
 		sw.Stop(t.Name())
 
+		require.NoError(t, err)
 		require.Equal(t, 30_000, len(selected))
 		require.Equal(t, uint64(1_500_000_000), accumulatedGas)
 	})

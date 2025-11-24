@@ -193,6 +193,14 @@ func createMockArgument(
 				return &block.Header{}
 			},
 		},
+		TxCacheSelectionConfig: config.TxCacheSelectionConfig{
+			SelectionGasBandwidthIncreasePercent:          400,
+			SelectionGasBandwidthIncreaseScheduledPercent: 260,
+			SelectionGasRequested:                         10_000_000_000,
+			SelectionMaxNumTxs:                            30000,
+			SelectionLoopMaximumDuration:                  250,
+			SelectionLoopDurationCheckInterval:            10,
+		},
 	}
 
 	arg.ShardCoordinator = &mock.ShardCoordinatorMock{
@@ -201,9 +209,10 @@ func createMockArgument(
 	}
 
 	argsAccCreator := factoryState.ArgsAccountCreator{
-		Hasher:              &hashingMocks.HasherMock{},
-		Marshaller:          &mock.MarshalizerMock{},
-		EnableEpochsHandler: &enableEpochsHandlerMock.EnableEpochsHandlerStub{},
+		Hasher:                 &hashingMocks.HasherMock{},
+		Marshaller:             &mock.MarshalizerMock{},
+		EnableEpochsHandler:    &enableEpochsHandlerMock.EnableEpochsHandlerStub{},
+		StateAccessesCollector: &stateMock.StateAccessesCollectorStub{},
 	}
 	accCreator, err := factoryState.NewAccountCreator(argsAccCreator)
 	require.Nil(t, err)

@@ -5,12 +5,14 @@ import (
 	"encoding/hex"
 	"encoding/json"
 	"encoding/pem"
+	"fmt"
 	"math/big"
 	"os"
 	"path"
 	"strconv"
 	"strings"
 
+	"github.com/multiversx/mx-chain-go/common"
 	"github.com/multiversx/mx-chain-go/common/factory"
 	"github.com/multiversx/mx-chain-go/config"
 	"github.com/multiversx/mx-chain-go/genesis/data"
@@ -43,21 +45,22 @@ const (
 
 // ArgsChainSimulatorConfigs holds all the components needed to create the chain simulator configs
 type ArgsChainSimulatorConfigs struct {
-	NumOfShards                 uint32
-	OriginalConfigsPath         string
-	GenesisTimeStamp            int64
-	RoundDurationInMillis       uint64
-	TempDir                     string
-	MinNodesPerShard            uint32
-	ConsensusGroupSize          uint32
-	MetaChainMinNodes           uint32
-	MetaChainConsensusGroupSize uint32
-	Hysteresis                  float32
-	InitialEpoch                uint32
-	RoundsPerEpoch              core.OptionalUint64
-	NumNodesWaitingListShard    uint32
-	NumNodesWaitingListMeta     uint32
-	AlterConfigsFunction        func(cfg *config.Configs)
+	NumOfShards                    uint32
+	OriginalConfigsPath            string
+	RoundDurationInMillis          uint64
+	SupernovaRoundDurationInMillis uint64
+	TempDir                        string
+	MinNodesPerShard               uint32
+	ConsensusGroupSize             uint32
+	MetaChainMinNodes              uint32
+	MetaChainConsensusGroupSize    uint32
+	Hysteresis                     float32
+	InitialEpoch                   uint32
+	RoundsPerEpoch                 core.OptionalUint64
+	SupernovaRoundsPerEpoch        core.OptionalUint64
+	NumNodesWaitingListShard       uint32
+	NumNodesWaitingListMeta        uint32
+	AlterConfigsFunction           func(cfg *config.Configs)
 }
 
 // ArgsConfigsSimulator holds the configs for the chain simulator
@@ -121,16 +124,21 @@ func CreateChainSimulatorConfigs(args ArgsChainSimulatorConfigs) (*ArgsConfigsSi
 
 	configs.GeneralConfig.EpochStartConfig.ExtraDelayForRequestBlockInfoInMilliseconds = 1
 	configs.GeneralConfig.EpochStartConfig.GenesisEpoch = args.InitialEpoch
-	configs.GeneralConfig.EpochStartConfig.MinRoundsBetweenEpochs = 1
 
 	if args.RoundsPerEpoch.HasValue {
-		configs.GeneralConfig.EpochStartConfig.RoundsPerEpoch = int64(args.RoundsPerEpoch.Value)
+		for idx := 0; idx < len(configs.GeneralConfig.GeneralSettings.ChainParametersByEpoch); idx++ {
+			configs.GeneralConfig.GeneralSettings.ChainParametersByEpoch[idx].RoundsPerEpoch = int64(args.RoundsPerEpoch.Value)
+			configs.GeneralConfig.GeneralSettings.ChainParametersByEpoch[idx].MinRoundsBetweenEpochs = 1
+		}
 	}
 
 	gasScheduleName, err := GetLatestGasScheduleFilename(configs.ConfigurationPathsHolder.GasScheduleDirectoryName)
 	if err != nil {
 		return nil, err
 	}
+
+	// disable caching, as message deduplication will break the flow when blocks are generated very fast
+	configs.GeneralConfig.InterceptedDataVerifier.EnableCaching = false
 
 	updateConfigsChainParameters(args, configs)
 	node.ApplyArchCustomConfigs(configs)
@@ -141,12 +149,52 @@ func CreateChainSimulatorConfigs(args ArgsChainSimulatorConfigs) (*ArgsConfigsSi
 		configs.GeneralConfig.GeneralSettings.ChainParametersByEpoch[1].EnableEpoch = configs.EpochConfig.EnableEpochs.AndromedaEnableEpoch
 	}
 
+	updateSupernovaConfigs(configs, args)
+
 	return &ArgsConfigsSimulator{
 		Configs:               *configs,
 		ValidatorsPrivateKeys: privateKeys,
 		GasScheduleFilename:   gasScheduleName,
 		InitialWallets:        initialWallets,
 	}, nil
+}
+
+func updateSupernovaConfigs(configs *config.Configs, args ArgsChainSimulatorConfigs) {
+	supernovaEpoch := configs.EpochConfig.EnableEpochs.SupernovaEnableEpoch // may be altered by AlterConfigFunction
+	configs.GeneralConfig.GeneralSettings.ChainParametersByEpoch[2].EnableEpoch = supernovaEpoch
+
+	if args.SupernovaRoundsPerEpoch.HasValue {
+		configs.GeneralConfig.GeneralSettings.ChainParametersByEpoch[2].RoundsPerEpoch = int64(args.SupernovaRoundsPerEpoch.Value)
+	}
+
+	// update supernova round duration
+	configs.GeneralConfig.GeneralSettings.ChainParametersByEpoch[2].EnableEpoch = configs.EpochConfig.EnableEpochs.SupernovaEnableEpoch
+
+	if args.SupernovaRoundDurationInMillis > 0 {
+		configs.GeneralConfig.GeneralSettings.ChainParametersByEpoch[2].RoundDuration = args.SupernovaRoundDurationInMillis
+	}
+	isSupernovaFromGenesis := configs.EpochConfig.EnableEpochs.SupernovaEnableEpoch == 0
+	if isSupernovaFromGenesis {
+		// if supernova is from genesis, remove other ChainParametersByEpoch entries
+		configs.GeneralConfig.GeneralSettings.ChainParametersByEpoch = []config.ChainParametersByEpochConfig{
+			configs.GeneralConfig.GeneralSettings.ChainParametersByEpoch[2],
+		}
+	}
+
+	if args.RoundsPerEpoch.HasValue {
+		// update supernova round for the new rounds per epoch config
+		newRoundsPerEpoch := args.RoundsPerEpoch.Value
+		newSupernovaRound := uint64(supernovaEpoch)*newRoundsPerEpoch + 5 // 5 rounds later
+		if isSupernovaFromGenesis {
+			// if supernova is from genesis, the round should be 0 as well
+			newSupernovaRound = 0
+		}
+		oldOptions := configs.RoundConfig.RoundActivations[string(common.SupernovaRoundFlag)].Options
+		configs.RoundConfig.RoundActivations[string(common.SupernovaRoundFlag)] = config.ActivationRoundByName{
+			Round:   fmt.Sprintf("%d", newSupernovaRound),
+			Options: oldOptions,
+		}
+	}
 }
 
 func updateConfigsChainParameters(args ArgsChainSimulatorConfigs, configs *config.Configs) {
@@ -296,7 +344,6 @@ func generateValidatorsKeyAndUpdateFiles(
 	}
 
 	nodes.RoundDuration = args.RoundDurationInMillis
-	nodes.StartTime = args.GenesisTimeStamp
 
 	nodes.Hysteresis = 0
 

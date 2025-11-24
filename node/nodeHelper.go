@@ -2,7 +2,6 @@ package node
 
 import (
 	"errors"
-	"time"
 
 	"github.com/multiversx/mx-chain-core-go/core"
 	"github.com/multiversx/mx-chain-go/common"
@@ -62,7 +61,7 @@ func CreateNode(
 		return nil, err
 	}
 
-	genesisTime := time.Unix(coreComponents.GenesisNodesSetup().GetStartTime(), 0)
+	genesisTime := common.GetGenesisStartTimeFromUnixTimestamp(coreComponents.GenesisNodesSetup().GetStartTime(), coreComponents.EnableEpochsHandler())
 
 	var nd *Node
 	nd, err = NewNode(

@@ -18,9 +18,7 @@ import (
 	"github.com/multiversx/mx-chain-core-go/core/keyValStorage"
 	"github.com/multiversx/mx-chain-core-go/data"
 	"github.com/multiversx/mx-chain-core-go/data/block"
-	"github.com/multiversx/mx-chain-core-go/data/rewardTx"
 	"github.com/multiversx/mx-chain-core-go/data/scheduled"
-	"github.com/multiversx/mx-chain-core-go/data/transaction"
 	"github.com/multiversx/mx-chain-core-go/data/typeConverters/uint64ByteSlice"
 	"github.com/multiversx/mx-chain-core-go/hashing"
 	"github.com/multiversx/mx-chain-core-go/marshal"
@@ -42,6 +40,7 @@ import (
 	"github.com/multiversx/mx-chain-go/process/mock"
 	"github.com/multiversx/mx-chain-go/sharding/nodesCoordinator"
 	"github.com/multiversx/mx-chain-go/state"
+	"github.com/multiversx/mx-chain-go/state/disabled"
 	"github.com/multiversx/mx-chain-go/storage"
 	"github.com/multiversx/mx-chain-go/storage/database"
 	"github.com/multiversx/mx-chain-go/storage/storageunit"
@@ -136,6 +135,7 @@ func createArgBaseProcessor(
 		BlockProcessingCutoffHandler:   &testscommon.BlockProcessingCutoffStub{},
 		ManagedPeersHolder:             &testscommon.ManagedPeersHolderStub{},
 		SentSignaturesTracker:          &testscommon.SentSignatureTrackerStub{},
+		StateAccessesCollector:         disabled.NewDisabledStateAccessesCollector(),
 	}
 }
 
@@ -161,139 +161,31 @@ func generateTestUnit() storage.Storer {
 	return storer
 }
 
-func createShardedDataChacherNotifier(
-	handler data.TransactionHandler,
-	testHash []byte,
-) func() dataRetriever.ShardedDataCacherNotifier {
-	return func() dataRetriever.ShardedDataCacherNotifier {
-		return &testscommon.ShardedDataStub{
-			ShardDataStoreCalled: func(id string) (c storage.Cacher) {
-				return &cache.CacherStub{
-					PeekCalled: func(key []byte) (value interface{}, ok bool) {
-						if reflect.DeepEqual(key, testHash) {
-							return handler, true
-						}
-						return nil, false
-					},
-					KeysCalled: func() [][]byte {
-						return [][]byte{[]byte("key1"), []byte("key2")}
-					},
-					LenCalled: func() int {
-						return 0
-					},
-					MaxSizeCalled: func() int {
-						return 1000
-					},
-				}
-			},
-			RemoveSetOfDataFromPoolCalled: func(keys [][]byte, id string) {},
-			SearchFirstDataCalled: func(key []byte) (value interface{}, ok bool) {
-				if reflect.DeepEqual(key, []byte("tx1_hash")) {
-					return handler, true
-				}
-				return nil, false
-			},
-			AddDataCalled: func(key []byte, data interface{}, sizeInBytes int, cacheId string) {
-			},
-		}
-	}
-}
+func initDataPool() *dataRetrieverMock.PoolsHolderStub {
+	transactionsPool := testscommon.NewShardedDataCacheNotifierMock()
+	unsignedTransactionsPool := testscommon.NewShardedDataCacheNotifierMock()
+	rewardTransactionsPool := testscommon.NewShardedDataCacheNotifierMock()
 
-func initDataPool(testHash []byte) *dataRetrieverMock.PoolsHolderStub {
-	rwdTx := &rewardTx.RewardTx{
-		Round:   1,
-		Epoch:   0,
-		Value:   big.NewInt(10),
-		RcvAddr: []byte("receiver"),
-	}
-	txCalled := createShardedDataChacherNotifier(&transaction.Transaction{Nonce: 10}, testHash)
-	unsignedTxCalled := createShardedDataChacherNotifier(&transaction.Transaction{Nonce: 10}, testHash)
-	rewardTransactionsCalled := createShardedDataChacherNotifier(rwdTx, testHash)
+	metablocksPool := cache.NewCacherStub()
+	miniblocksPool := cache.NewCacherStub()
+	headersPool := &mock.HeadersCacherStub{}
+	proofsPool := proofscache.NewProofsPool(3, 100)
 
 	sdp := &dataRetrieverMock.PoolsHolderStub{
-		TransactionsCalled:         txCalled,
-		UnsignedTransactionsCalled: unsignedTxCalled,
-		RewardTransactionsCalled:   rewardTransactionsCalled,
+		TransactionsCalled:         func() dataRetriever.ShardedDataCacherNotifier { return transactionsPool },
+		UnsignedTransactionsCalled: func() dataRetriever.ShardedDataCacherNotifier { return unsignedTransactionsPool },
+		RewardTransactionsCalled:   func() dataRetriever.ShardedDataCacherNotifier { return rewardTransactionsPool },
 		MetaBlocksCalled: func() storage.Cacher {
-			return &cache.CacherStub{
-				GetCalled: func(key []byte) (value interface{}, ok bool) {
-					if reflect.DeepEqual(key, []byte("tx1_hash")) {
-						return &transaction.Transaction{Nonce: 10}, true
-					}
-					return nil, false
-				},
-				KeysCalled: func() [][]byte {
-					return nil
-				},
-				LenCalled: func() int {
-					return 0
-				},
-				MaxSizeCalled: func() int {
-					return 1000
-				},
-				PeekCalled: func(key []byte) (value interface{}, ok bool) {
-					if reflect.DeepEqual(key, []byte("tx1_hash")) {
-						return &transaction.Transaction{Nonce: 10}, true
-					}
-					return nil, false
-				},
-				RegisterHandlerCalled: func(i func(key []byte, value interface{})) {},
-				RemoveCalled:          func(key []byte) {},
-			}
+			return metablocksPool
 		},
 		MiniBlocksCalled: func() storage.Cacher {
-			cs := cache.NewCacherStub()
-			cs.RegisterHandlerCalled = func(i func(key []byte, value interface{})) {
-			}
-			cs.GetCalled = func(key []byte) (value interface{}, ok bool) {
-				if bytes.Equal([]byte("bbb"), key) {
-					return make(block.MiniBlockSlice, 0), true
-				}
-
-				return nil, false
-			}
-			cs.PeekCalled = func(key []byte) (value interface{}, ok bool) {
-				if bytes.Equal([]byte("bbb"), key) {
-					return make(block.MiniBlockSlice, 0), true
-				}
-
-				return nil, false
-			}
-			cs.RegisterHandlerCalled = func(i func(key []byte, value interface{})) {}
-			cs.RemoveCalled = func(key []byte) {}
-			cs.LenCalled = func() int {
-				return 0
-			}
-			cs.MaxSizeCalled = func() int {
-				return 300
-			}
-			cs.KeysCalled = func() [][]byte {
-				return nil
-			}
-			return cs
+			return miniblocksPool
 		},
 		HeadersCalled: func() dataRetriever.HeadersPool {
-			cs := &mock.HeadersCacherStub{}
-			cs.RegisterHandlerCalled = func(i func(header data.HeaderHandler, key []byte)) {
-			}
-			cs.GetHeaderByHashCalled = func(hash []byte) (data.HeaderHandler, error) {
-				return nil, process.ErrMissingHeader
-			}
-			cs.RemoveHeaderByHashCalled = func(key []byte) {
-			}
-			cs.LenCalled = func() int {
-				return 0
-			}
-			cs.MaxSizeCalled = func() int {
-				return 1000
-			}
-			cs.NoncesCalled = func(shardId uint32) []uint64 {
-				return nil
-			}
-			return cs
+			return headersPool
 		},
 		ProofsCalled: func() dataRetriever.ProofsPool {
-			return proofscache.NewProofsPool(3, 100)
+			return proofsPool
 		},
 	}
 
@@ -391,6 +283,7 @@ func createComponentHolderMocks() (
 	_ = blkc.SetGenesisHeader(&block.Header{Nonce: 0})
 
 	gracePeriod, _ := graceperiod.NewEpochChangeGracePeriod([]config.EpochChangeGracePeriodByEpoch{{EnableEpoch: 0, GracePeriodInRounds: 1}})
+
 	coreComponents := &mock.CoreComponentsMock{
 		IntMarsh:                           &mock.MarshalizerMock{},
 		Hash:                               &mock.HasherStub{},
@@ -403,11 +296,12 @@ func createComponentHolderMocks() (
 		RoundNotifierField:                 &epochNotifier.RoundNotifierStub{},
 		EnableRoundsHandlerField:           &testscommon.EnableRoundsHandlerStub{},
 		EpochChangeGracePeriodHandlerField: gracePeriod,
+		ProcessConfigsHandlerField:         testscommon.GetDefaultProcessConfigsHandler(),
 	}
 
 	dataComponents := &mock.DataComponentsMock{
 		Storage:    initStore(),
-		DataPool:   initDataPool([]byte("")),
+		DataPool:   initDataPool(),
 		BlockChain: blkc,
 	}
 
@@ -1097,7 +991,7 @@ func TestBaseProcessor_RemoveHeadersBehindNonceFromPools(t *testing.T) {
 	t.Parallel()
 
 	removeFromDataPoolWasCalled := false
-	dataPool := initDataPool([]byte(""))
+	dataPool := initDataPool()
 	dataPool.HeadersCalled = func() dataRetriever.HeadersPool {
 		cs := &mock.HeadersCacherStub{}
 		cs.RegisterHandlerCalled = func(i func(header data.HeaderHandler, key []byte)) {
@@ -1806,7 +1700,7 @@ func TestBlockProcessor_RequestHeadersIfMissingShouldAddHeaderIntoTrackerPool(t 
 	t.Parallel()
 
 	var addedNonces []uint64
-	poolsHolderStub := initDataPool([]byte(""))
+	poolsHolderStub := initDataPool()
 	poolsHolderStub.HeadersCalled = func() dataRetriever.HeadersPool {
 		return &mock.HeadersCacherStub{
 			GetHeaderByNonceAndShardIdCalled: func(hdrNonce uint64, shardId uint32) ([]data.HeaderHandler, [][]byte, error) {
@@ -1865,7 +1759,7 @@ func TestAddHeaderIntoTrackerPool_ShouldWork(t *testing.T) {
 	var wasCalled bool
 	shardID := core.MetachainShardId
 	nonce := uint64(1)
-	poolsHolderStub := initDataPool([]byte(""))
+	poolsHolderStub := initDataPool()
 	poolsHolderStub.HeadersCalled = func() dataRetriever.HeadersPool {
 		return &mock.HeadersCacherStub{
 			GetHeaderByNonceAndShardIdCalled: func(hdrNonce uint64, shardId uint32) ([]data.HeaderHandler, [][]byte, error) {
@@ -3266,7 +3160,7 @@ func TestBaseProcessor_FilterHeadersWithoutProofs(t *testing.T) {
 			return epoch == 12
 		},
 	}
-	dataPool := initDataPool([]byte(""))
+	dataPool := initDataPool()
 	dataPool.ProofsCalled = func() dataRetriever.ProofsPool {
 		return &dataRetrieverMock.ProofsPoolMock{
 			HasProofCalled: func(shardID uint32, headerHash []byte) bool {

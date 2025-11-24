@@ -6,9 +6,10 @@ import (
 	"sync"
 
 	"github.com/multiversx/mx-chain-core-go/core/check"
+	vmcommon "github.com/multiversx/mx-chain-vm-common-go"
+
 	"github.com/multiversx/mx-chain-go/common"
 	"github.com/multiversx/mx-chain-go/common/holders"
-	vmcommon "github.com/multiversx/mx-chain-vm-common-go"
 )
 
 type accountsDBApi struct {
@@ -165,7 +166,7 @@ func (accountsDB *accountsDBApi) RootHash() ([]byte, error) {
 	return blockInfo.GetRootHash(), nil
 }
 
-// RecreateTrie is a not permitted operation in this implementation and thus, will return an error
+// RecreateTrie is used to reload the trie based on the provided options
 func (accountsDB *accountsDBApi) RecreateTrie(options common.RootHashHolder) error {
 	accountsDB.mutRecreatedTrieBlockInfo.Lock()
 	defer accountsDB.mutRecreatedTrieBlockInfo.Unlock()
@@ -230,6 +231,11 @@ func (accountsDB *accountsDBApi) GetTrie(rootHash []byte) (common.Trie, error) {
 // GetStackDebugFirstEntry will call the inner accountsAdapter method
 func (accountsDB *accountsDBApi) GetStackDebugFirstEntry() []byte {
 	return accountsDB.innerAccountsAdapter.GetStackDebugFirstEntry()
+}
+
+// SetTxHashForLatestStateAccesses will call the inner accountsAdapter method
+func (accountsDB *accountsDBApi) SetTxHashForLatestStateAccesses(txHash []byte) {
+	accountsDB.innerAccountsAdapter.SetTxHashForLatestStateAccesses(txHash)
 }
 
 // Close will handle the closing of the underlying components

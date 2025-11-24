@@ -40,6 +40,12 @@ type HeaderHandlerStub struct {
 	SetLeaderSignatureCalled               func(signature []byte) error
 	GetShardIDCalled                       func() uint32
 	SetRootHashCalled                      func(hash []byte) error
+	GetLastExecutionResultHandlerCalled    func() data.LastExecutionResultHandler
+	GetExecutionResultsHandlersCalled      func() []data.BaseExecutionResultHandler
+	IsHeaderV3Called                       func() bool
+	GetGasLimitCalled                      func() uint32
+	SetLastExecutionResultHandlerCalled    func(resultHandler data.LastExecutionResultHandler) error
+	SetExecutionResultsHandlersCalled      func(resultHandlers []data.BaseExecutionResultHandler) error
 }
 
 // GetAccumulatedFees -
@@ -434,4 +440,57 @@ func (hhs *HeaderHandlerStub) SetBlockBodyTypeInt32(blockBodyType int32) error {
 	hhs.BlockBodyTypeInt32Field = blockBodyType
 
 	return nil
+}
+
+// GetLastExecutionResultHandler -
+func (hhs *HeaderHandlerStub) GetLastExecutionResultHandler() data.LastExecutionResultHandler {
+	if hhs.GetLastExecutionResultHandlerCalled != nil {
+		return hhs.GetLastExecutionResultHandlerCalled()
+	}
+
+	return nil
+}
+
+// GetExecutionResultsHandlers -
+func (hhs *HeaderHandlerStub) GetExecutionResultsHandlers() []data.BaseExecutionResultHandler {
+	if hhs.GetExecutionResultsHandlersCalled != nil {
+		return hhs.GetExecutionResultsHandlersCalled()
+	}
+
+	return nil
+}
+
+// SetLastExecutionResultHandler -
+func (hhs *HeaderHandlerStub) SetLastExecutionResultHandler(resultHandler data.LastExecutionResultHandler) error {
+	if hhs.SetLastExecutionResultHandlerCalled != nil {
+		return hhs.SetLastExecutionResultHandlerCalled(resultHandler)
+	}
+	return nil
+}
+
+// SetExecutionResultsHandlers -
+func (hhs *HeaderHandlerStub) SetExecutionResultsHandlers(resultHandlers []data.BaseExecutionResultHandler) error {
+	if hhs.SetExecutionResultsHandlersCalled != nil {
+		return hhs.SetExecutionResultsHandlersCalled(resultHandlers)
+	}
+
+	return nil
+}
+
+// IsHeaderV3 -
+func (hhs *HeaderHandlerStub) IsHeaderV3() bool {
+	if hhs.IsHeaderV3Called != nil {
+		return hhs.IsHeaderV3Called()
+	}
+
+	return false
+}
+
+// GetGasLimit -
+func (hhs *HeaderHandlerStub) GetGasLimit() uint32 {
+	if hhs.GetGasLimitCalled != nil {
+		return hhs.GetGasLimitCalled()
+	}
+
+	return 0
 }

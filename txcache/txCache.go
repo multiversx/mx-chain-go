@@ -2,11 +2,12 @@ package txcache
 
 import (
 	"sync"
-	"time"
 
 	"github.com/multiversx/mx-chain-core-go/core"
 	"github.com/multiversx/mx-chain-core-go/core/atomic"
 	"github.com/multiversx/mx-chain-core-go/core/check"
+	"github.com/multiversx/mx-chain-core-go/data"
+	"github.com/multiversx/mx-chain-go/common"
 	"github.com/multiversx/mx-chain-storage-go/monitoring"
 	"github.com/multiversx/mx-chain-storage-go/types"
 )
@@ -23,6 +24,7 @@ type TxCache struct {
 	evictionMutex        sync.Mutex
 	isEvictionInProgress atomic.Flag
 	mutTxOperation       sync.Mutex
+	tracker              *selectionTracker
 }
 
 // NewTxCache creates a new transaction cache
@@ -50,6 +52,12 @@ func NewTxCache(config ConfigSourceMe, host MempoolHost) (*TxCache, error) {
 		host:           host,
 	}
 
+	tracker, err := NewSelectionTracker(txCache, config.TxCacheBoundsConfig.MaxTrackedBlocks)
+	if err != nil {
+		return nil, err
+	}
+	txCache.tracker = tracker
+
 	return txCache, nil
 }
 
@@ -70,7 +78,7 @@ func (cache *TxCache) AddTx(tx *WrappedTransaction) (ok bool, added bool) {
 
 	cache.mutTxOperation.Lock()
 	addedInByHash := cache.txByHash.addTx(tx)
-	addedInBySender, evicted := cache.txListBySender.addTxReturnEvicted(tx)
+	addedInBySender, evicted := cache.txListBySender.addTxReturnEvicted(tx, cache.tracker)
 	cache.mutTxOperation.Unlock()
 	if addedInByHash != addedInBySender {
 		// This can happen  when two go-routines concur to add the same transaction:
@@ -83,7 +91,7 @@ func (cache *TxCache) AddTx(tx *WrappedTransaction) (ok bool, added bool) {
 
 	if len(evicted) > 0 {
 		logRemove.Trace("TxCache.AddTx with eviction", "sender", tx.Tx.GetSndAddr(), "num evicted txs", len(evicted))
-		cache.txByHash.RemoveTxsBulk(evicted)
+		_ = cache.txByHash.RemoveTxsBulk(evicted)
 	}
 
 	// The return value "added" is true even if transaction added, but then removed due to limits be sender.
@@ -98,11 +106,36 @@ func (cache *TxCache) GetByTxHash(txHash []byte) (*WrappedTransaction, bool) {
 }
 
 // SelectTransactions selects the best transactions to be included in the next miniblock.
-// It returns up to "maxNum" transactions, with total gas <= "gasRequested".
-func (cache *TxCache) SelectTransactions(session SelectionSession, gasRequested uint64, maxNum int, selectionLoopMaximumDuration time.Duration) ([]*WrappedTransaction, uint64) {
+// It returns up to "options.maxNumTxs" transactions, with total gas <= "options.gasRequested".
+// The selection takes into consideration the proposed blocks which were not yet executed.
+// The SelectTransactions should receive the nonce of the block on which the selection is built.
+// The blocks with a nonce greater than the given one will be removed.
+func (cache *TxCache) SelectTransactions(
+	session SelectionSession,
+	options common.TxSelectionOptions,
+	currentBlockNonce uint64,
+) ([]*WrappedTransaction, uint64, error) {
+	return cache.selectTransactions(session, options, currentBlockNonce, false)
+}
+
+// SimulateSelectTransactions simulates a selection of transaction and does not affect the internal state of the tracker
+func (cache *TxCache) SimulateSelectTransactions(
+	session SelectionSession,
+	options common.TxSelectionOptions,
+) ([]*WrappedTransaction, uint64, error) {
+	return cache.selectTransactions(session, options, 0, true)
+}
+
+// selectTransactions executes a real / simulated selection
+func (cache *TxCache) selectTransactions(
+	session SelectionSession,
+	options common.TxSelectionOptions,
+	nonce uint64,
+	isSimulation bool,
+) ([]*WrappedTransaction, uint64, error) {
 	if check.IfNil(session) {
 		log.Error("TxCache.SelectTransactions", "err", errNilSelectionSession)
-		return nil, 0
+		return nil, 0, errNilSelectionSession
 	}
 
 	stopWatch := core.NewStopWatch()
@@ -110,12 +143,17 @@ func (cache *TxCache) SelectTransactions(session SelectionSession, gasRequested 
 
 	logSelect.Debug(
 		"TxCache.SelectTransactions: begin",
-		"num bytes", cache.NumBytes(),
 		"num txs", cache.CountTx(),
 		"num senders", cache.CountSenders(),
+		"num bytes", cache.NumBytes(),
 	)
 
-	transactions, accumulatedGas := cache.doSelectTransactions(session, gasRequested, maxNum, selectionLoopMaximumDuration)
+	virtualSession, err := cache.tracker.deriveVirtualSelectionSession(session, nonce, isSimulation)
+	if err != nil {
+		log.Error("TxCache.SelectTransactions: could not derive virtual selection session", "err", err)
+		return nil, 0, err
+	}
+	transactions, accumulatedGas := cache.doSelectTransactions(virtualSession, options)
 
 	stopWatch.Stop("selection")
 
@@ -126,10 +164,41 @@ func (cache *TxCache) SelectTransactions(session SelectionSession, gasRequested 
 		"gas", accumulatedGas,
 	)
 
-	go cache.diagnoseCounters()
 	go displaySelectionOutcome(logSelect, "selection", transactions)
 
-	return transactions, accumulatedGas
+	return transactions, accumulatedGas, nil
+}
+
+// GetVirtualNonceAndRootHash returns the nonce of the virtual record of an account and the corresponding rootHash.
+func (cache *TxCache) GetVirtualNonceAndRootHash(
+	address []byte,
+) (uint64, []byte, error) {
+	virtualNonce, rootHash, err := cache.tracker.getVirtualNonceOfAccountWithRootHash(address)
+	if err != nil {
+		return 0, nil, err
+	}
+
+	return virtualNonce, rootHash, nil
+}
+
+// OnProposedBlock calls the OnProposedBlock method from SelectionTracker
+func (cache *TxCache) OnProposedBlock(
+	blockHash []byte,
+	blockBody data.BodyHandler,
+	blockHeader data.HeaderHandler,
+	accountsProvider common.AccountNonceAndBalanceProvider,
+	latestExecutedHash []byte) error {
+	return cache.tracker.OnProposedBlock(blockHash, blockBody, blockHeader, accountsProvider, latestExecutedHash)
+}
+
+// OnExecutedBlock calls the OnExecutedBlock method from SelectionTracker
+func (cache *TxCache) OnExecutedBlock(blockHeader data.HeaderHandler) error {
+	return cache.tracker.OnExecutedBlock(blockHeader)
+}
+
+// ResetTracker resets the SelectionTracker
+func (cache *TxCache) ResetTracker() {
+	cache.tracker.ResetTrackedBlocks()
 }
 
 func (cache *TxCache) getSenders() []*txListForSender {
@@ -264,7 +333,7 @@ func (cache *TxCache) Keys() [][]byte {
 }
 
 // MaxSize returns the maximum number of transactions that can be stored in the cache.
-// See: https://github.com/multiversx/mx-chain-go/blob/v1.8.4/dataRetriever/txpool/shardedTxPool.go#L55
+// See: https://github.com/multiversx/mx-chain-go/blob/v1.10.6/dataRetriever/txpool/shardedTxPool.go#L63
 func (cache *TxCache) MaxSize() int {
 	return int(cache.config.CountThreshold)
 }
