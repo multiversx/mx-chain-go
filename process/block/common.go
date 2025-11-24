@@ -14,7 +14,12 @@ func getHeaderFromHash(
 	shardHeaderHash []byte,
 ) (data.HeaderHandler, error) {
 	if isHeaderV3 {
-		return headersPool.GetHeaderByHash(shardHeaderHash)
+		header, err := headersPool.GetHeaderByHash(shardHeaderHash)
+		// TODO: debug only, remove after test
+		if err != nil {
+			log.Error("getHeaderFromHash - failed to get header from headers pool", "hash", shardHeaderHash, "error", err)
+		}
+		return header, err
 	}
 
 	headerInfo, ok := hdrsForCurrBlock.GetHeaderInfo(string(shardHeaderHash))

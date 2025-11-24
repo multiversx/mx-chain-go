@@ -130,7 +130,6 @@ func getReceiptHashFromBaseExecutionResult(execResult data.BaseExecutionResultHa
 		return er.GetReceiptsHash(), nil
 	default:
 		return nil, errNilInvalidExecutionResultType
-
 	}
 }
 

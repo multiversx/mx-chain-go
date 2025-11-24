@@ -2799,11 +2799,7 @@ func (bp *baseProcessor) cacheIntraShardMiniBlocks(headerHash []byte, mbs []*blo
 }
 
 func (bp *baseProcessor) saveReceiptsForHeader(header data.HeaderHandler, headerHash []byte) error {
-	miniBlocks, err := bp.getMiniBlocksForReceipts(header, headerHash)
-	if err != nil {
-		return err
-	}
-
+	miniBlocks := bp.txCoordinator.GetCreatedInShardMiniBlocks()
 	if len(miniBlocks) == 0 {
 		return nil
 	}
@@ -2826,10 +2822,6 @@ func (bp *baseProcessor) saveReceiptsForExecutionResult(
 
 	receiptsHolder := holders.NewReceiptsHolder(miniBlocks)
 	return bp.receiptsRepository.SaveReceiptsForExecResult(receiptsHolder, execResult)
-}
-
-func (bp *baseProcessor) getMiniBlocksForReceipts(header data.HeaderHandler, headerHash []byte) ([]*block.MiniBlock, error) {
-	return bp.txCoordinator.GetCreatedInShardMiniBlocks(), nil
 }
 
 func (bp *baseProcessor) getMiniBlocksForReceiptsV3(execResult data.BaseExecutionResultHandler) ([]*block.MiniBlock, error) {
