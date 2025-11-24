@@ -2833,7 +2833,7 @@ func (bp *baseProcessor) getMiniBlocksForReceiptsV3(execResult data.BaseExecutio
 
 	marshalledMbs, ok := receiptsMiniBlocks.([]byte)
 	if !ok {
-		return nil, fmt.Errorf("%w for saveReceiptsForHeader", process.ErrWrongTypeAssertion)
+		return nil, fmt.Errorf("%w for getMiniBlocksForReceiptsV3", process.ErrWrongTypeAssertion)
 	}
 
 	postProcessMiniBlocksToMe := make([]*block.MiniBlock, 0)
