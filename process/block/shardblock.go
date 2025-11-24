@@ -1293,7 +1293,7 @@ func (sp *shardProcessor) getPreviousExecutionResult(index int, executionResults
 		return lastShardExecRes.GetExecutionResultHandler(), nil
 	}
 
-	lastExecRes, err := process.CreateLastExecutionResultFromPrevHeader(prevHeader, prevHeaderHash)
+	lastExecRes, err := common.CreateLastExecutionResultFromPrevHeader(prevHeader, prevHeaderHash)
 	if err != nil {
 		return nil, err
 	}

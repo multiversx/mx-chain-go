@@ -717,3 +717,125 @@ func TestGetMiniBlockHeadersFromExecResult(t *testing.T) {
 		require.Equal(t, expectedRes, res)
 	})
 }
+
+func Test_CreateLastExecutionResultFromPrevHeader(t *testing.T) {
+	t.Parallel()
+
+	t.Run("nil prevHeader", func(t *testing.T) {
+		t.Parallel()
+
+		lastExecutionResult, err := common.CreateLastExecutionResultFromPrevHeader(nil, []byte("prevHeaderHash"))
+		require.Equal(t, common.ErrNilHeaderHandler, err)
+		require.Nil(t, lastExecutionResult)
+	})
+	t.Run("nil prevHeaderHash", func(t *testing.T) {
+		t.Parallel()
+
+		prevHeader := createDummyPrevShardHeaderV2()
+		lastExecutionResult, err := common.CreateLastExecutionResultFromPrevHeader(prevHeader, nil)
+		require.Equal(t, common.ErrInvalidHeaderHash, err)
+		require.Nil(t, lastExecutionResult)
+	})
+	t.Run("invalid shard prevHeader type", func(t *testing.T) {
+		t.Parallel()
+
+		prevHeaderHash := []byte("prevHeaderHash")
+		// the expected header type is HeaderV2
+		prevHeader := &block.Header{
+			Nonce:    1,
+			Round:    2,
+			RootHash: []byte("prevRootHash"),
+			ShardID:  0,
+		}
+		lastExecutionResult, err := common.CreateLastExecutionResultFromPrevHeader(prevHeader, prevHeaderHash)
+		require.Equal(t, common.ErrWrongTypeAssertion, err)
+		require.Nil(t, lastExecutionResult)
+	})
+	t.Run("valid shard prevHeader type", func(t *testing.T) {
+		t.Parallel()
+
+		prevHeaderHash := []byte("prevHeaderHash")
+		prevHeader := createDummyPrevShardHeaderV2()
+		expectedLastExecutionResult := &block.ExecutionResultInfo{
+			NotarizedInRound: prevHeader.GetRound(),
+			ExecutionResult: &block.BaseExecutionResult{
+				HeaderHash:  prevHeaderHash,
+				HeaderNonce: prevHeader.GetNonce(),
+				HeaderRound: prevHeader.GetRound(),
+				RootHash:    prevHeader.GetRootHash(),
+			},
+		}
+
+		lastExecutionResultHandler, err := common.CreateLastExecutionResultFromPrevHeader(prevHeader, prevHeaderHash)
+		lastExecutionResultInfo := lastExecutionResultHandler.(*block.ExecutionResultInfo)
+		require.NoError(t, err)
+		require.NotNil(t, lastExecutionResultInfo)
+		require.Equal(t, expectedLastExecutionResult, lastExecutionResultInfo)
+	})
+	t.Run("invalid metaChain prevHeader type", func(t *testing.T) {
+		t.Parallel()
+
+		prevHeaderHash := []byte("prevHeaderHash")
+		prevMetaHeader := createDummyInvalidMetaHeader()
+		lastExecutionResultHandler, err := common.CreateLastExecutionResultFromPrevHeader(prevMetaHeader, prevHeaderHash)
+		require.Equal(t, common.ErrWrongTypeAssertion, err)
+		require.Nil(t, lastExecutionResultHandler)
+	})
+	t.Run("valid metaChain prevHeader type", func(t *testing.T) {
+		t.Parallel()
+
+		prevHeaderHash := []byte("prevHeaderHash")
+		prevMetaHeader := createDummyPrevMetaHeader()
+		expectedLastExecutionResult := &block.MetaExecutionResultInfo{
+			NotarizedInRound: prevMetaHeader.GetRound(),
+			ExecutionResult: &block.BaseMetaExecutionResult{
+				BaseExecutionResult: &block.BaseExecutionResult{
+					HeaderHash:  prevHeaderHash,
+					HeaderNonce: prevMetaHeader.GetNonce(),
+					HeaderRound: prevMetaHeader.GetRound(),
+					RootHash:    prevMetaHeader.GetRootHash(),
+				},
+				ValidatorStatsRootHash: prevMetaHeader.GetValidatorStatsRootHash(),
+				AccumulatedFeesInEpoch: prevMetaHeader.GetAccumulatedFeesInEpoch(),
+				DevFeesInEpoch:         prevMetaHeader.GetDevFeesInEpoch(),
+			},
+		}
+
+		lastExecutionResultHandler, err := common.CreateLastExecutionResultFromPrevHeader(prevMetaHeader, prevHeaderHash)
+		lastExecutionResultInfo, ok := lastExecutionResultHandler.(*block.MetaExecutionResultInfo)
+		require.True(t, ok)
+		require.NoError(t, err)
+		require.NotNil(t, lastExecutionResultInfo)
+		require.Equal(t, expectedLastExecutionResult, lastExecutionResultInfo)
+	})
+}
+
+func createDummyPrevShardHeaderV2() *block.HeaderV2 {
+	return &block.HeaderV2{
+		Header: &block.Header{
+			Nonce:    1,
+			Round:    2,
+			RootHash: []byte("prevRootHash"),
+		},
+	}
+}
+func createDummyInvalidMetaHeader() data.HeaderHandler {
+	return &block.HeaderV2{
+		Header: &block.Header{
+			Nonce:    1,
+			Round:    2,
+			RootHash: []byte("prevRootHash"),
+			ShardID:  core.MetachainShardId,
+		},
+	}
+}
+func createDummyPrevMetaHeader() *block.MetaBlock {
+	return &block.MetaBlock{
+		Nonce:                  4,
+		Round:                  5,
+		RootHash:               []byte("prevRootHash"),
+		ValidatorStatsRootHash: []byte("prevValidatorStatsRootHash"),
+		DevFeesInEpoch:         big.NewInt(300),
+		AccumulatedFeesInEpoch: big.NewInt(400),
+	}
+}
