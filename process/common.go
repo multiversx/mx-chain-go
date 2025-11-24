@@ -22,6 +22,7 @@ import (
 	logger "github.com/multiversx/mx-chain-logger-go"
 	vmcommon "github.com/multiversx/mx-chain-vm-common-go"
 
+	"github.com/multiversx/mx-chain-go/common"
 	"github.com/multiversx/mx-chain-go/dataRetriever"
 	"github.com/multiversx/mx-chain-go/process/estimator"
 	"github.com/multiversx/mx-chain-go/state"
@@ -1119,55 +1120,7 @@ func GetPrevBlockLastExecutionResult(blockChain data.ChainHandler) (data.LastExe
 		return prevHeader.GetLastExecutionResultHandler(), nil
 	}
 
-	return CreateLastExecutionResultFromPrevHeader(prevHeader, prevHeaderHash)
-}
-
-// CreateLastExecutionResultFromPrevHeader creates a LastExecutionResultInfo object from the given previous header
-func CreateLastExecutionResultFromPrevHeader(prevHeader data.HeaderHandler, prevHeaderHash []byte) (data.LastExecutionResultHandler, error) {
-	if check.IfNil(prevHeader) {
-		return nil, ErrNilBlockHeader
-	}
-	if len(prevHeaderHash) == 0 {
-		return nil, ErrInvalidHash
-	}
-
-	if prevHeader.GetShardID() != core.MetachainShardId {
-		if _, ok := prevHeader.(*block.HeaderV2); !ok {
-			return nil, ErrWrongTypeAssertion
-		}
-
-		return &block.ExecutionResultInfo{
-			NotarizedInRound: prevHeader.GetRound(),
-			ExecutionResult: &block.BaseExecutionResult{
-				HeaderHash:  prevHeaderHash,
-				HeaderNonce: prevHeader.GetNonce(),
-				HeaderRound: prevHeader.GetRound(),
-				RootHash:    prevHeader.GetRootHash(),
-				GasUsed:     0, // we don't have this information in previous header
-			},
-		}, nil
-	}
-
-	prevMetaHeader, ok := prevHeader.(*block.MetaBlock)
-	if !ok {
-		return nil, ErrWrongTypeAssertion
-	}
-
-	return &block.MetaExecutionResultInfo{
-		NotarizedInRound: prevHeader.GetRound(),
-		ExecutionResult: &block.BaseMetaExecutionResult{
-			BaseExecutionResult: &block.BaseExecutionResult{
-				HeaderHash:  prevHeaderHash,
-				HeaderNonce: prevMetaHeader.GetNonce(),
-				HeaderRound: prevMetaHeader.GetRound(),
-				RootHash:    prevMetaHeader.GetRootHash(),
-				GasUsed:     0, // we don't have this information in previous header
-			},
-			ValidatorStatsRootHash: prevMetaHeader.GetValidatorStatsRootHash(),
-			AccumulatedFeesInEpoch: prevMetaHeader.GetAccumulatedFeesInEpoch(),
-			DevFeesInEpoch:         prevMetaHeader.GetDevFeesInEpoch(),
-		},
-	}, nil
+	return common.CreateLastExecutionResultFromPrevHeader(prevHeader, prevHeaderHash)
 }
 
 // CreateLastExecutionResultInfoFromExecutionResult creates a LastExecutionResultInfo object from the given execution result

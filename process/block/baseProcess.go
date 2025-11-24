@@ -2596,7 +2596,7 @@ func (bp *baseProcessor) OnProposedBlock(
 		return err
 	}
 
-	lastExecResHandler, err := common.GetLastBaseExecutionResultHandler(lastCommittedHeader)
+	lastExecResHandler, err := common.GetOrCreateLastExecutionResultForPrevHeader(lastCommittedHeader, proposedHeader.GetPrevHash())
 	if err != nil {
 		return err
 	}
@@ -2605,6 +2605,9 @@ func (bp *baseProcessor) OnProposedBlock(
 }
 
 func (bp *baseProcessor) onExecutedBlock(header data.HeaderHandler, rootHash []byte) error {
+	bp.appStatusHandler.SetUInt64Value(common.MetricNumTrackedBlocks, bp.dataPool.Transactions().GetNumTrackedBlocks())
+	bp.appStatusHandler.SetUInt64Value(common.MetricNumTrackedAccounts, bp.dataPool.Transactions().GetNumTrackedAccounts())
+
 	err := bp.dataPool.Transactions().OnExecutedBlock(header, rootHash)
 	if err != nil {
 		log.Error("baseProcessor.onExecutedBlock", "err", err)
