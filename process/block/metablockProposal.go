@@ -1100,8 +1100,11 @@ func (mp *metaProcessor) computeEpochStartDataForHeader(metaHeader data.MetaHead
 	if metaHeader.IsStartOfEpochBlock() && mp.epochStartDataWrapper.Epoch != metaHeader.GetEpoch() {
 		return nil, process.ErrEpochDoesNotMatch
 	}
-	if len(mp.epochStartDataWrapper.EpochStartData.LastFinalizedHeaders) == 0 {
+	if metaHeader.IsStartOfEpochBlock() && len(mp.epochStartDataWrapper.EpochStartData.LastFinalizedHeaders) == 0 {
 		return nil, process.ErrNilEpochStartData
+	}
+	if !metaHeader.IsStartOfEpochBlock() && len(mp.epochStartDataWrapper.EpochStartData.LastFinalizedHeaders) != 0 {
+		return nil, process.ErrEpochStartDataShouldBeEmpty
 	}
 
 	epochStartData := *mp.epochStartDataWrapper.EpochStartData
