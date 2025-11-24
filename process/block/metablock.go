@@ -1692,7 +1692,7 @@ func (mp *metaProcessor) getPreviousExecutionResult(
 		return lastMetaExecRes.GetExecutionResultHandler(), nil
 	}
 
-	lastExecRes, err := process.CreateLastExecutionResultFromPrevHeader(prevMetaBlock, prevMetaBlockHash)
+	lastExecRes, err := common.CreateLastExecutionResultFromPrevHeader(prevMetaBlock, prevMetaBlockHash)
 	if err != nil {
 		return nil, err
 	}
