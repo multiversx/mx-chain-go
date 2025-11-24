@@ -4993,6 +4993,7 @@ func TestBaseProcess_collectMiniBlocks(t *testing.T) {
 				return nil, expectedErr
 			},
 		})
+		require.Nil(t, err)
 		arguments := CreateMockArguments(coreComponents, dataComponents, bootstrapComponents, statusComponents)
 
 		txCoordinatorMock := testscommon.TransactionCoordinatorMock{}
