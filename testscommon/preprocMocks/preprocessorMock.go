@@ -27,7 +27,7 @@ type PreProcessorMock struct {
 	GetTransactionsAndRequestMissingForMiniBlockCalled func(miniBlock *block.MiniBlock) ([]data.TransactionHandler, int)
 	ProcessMiniBlockCalled                             func(miniBlock *block.MiniBlock, haveTime func() bool, haveAdditionalTime func() bool, scheduledMode bool, partialMbExecutionMode bool, indexOfLastTxProcessed int, preProcessorExecutionInfoHandler process.PreProcessorExecutionInfoHandler) ([][]byte, int, bool, error)
 	CreateAndProcessMiniBlocksCalled                   func(haveTime func() bool) (block.MiniBlockSlice, error)
-	SelectOutgoingTransactionsCalled                   func(bandwidth uint64) ([][]byte, []data.TransactionHandler, error)
+	SelectOutgoingTransactionsCalled                   func(bandwidth uint64, nonce uint64) ([][]byte, []data.TransactionHandler, error)
 	GetAllCurrentUsedTxsCalled                         func() map[string]data.TransactionHandler
 	AddTxsFromMiniBlocksCalled                         func(miniBlocks block.MiniBlockSlice)
 	AddTransactionsCalled                              func(txHandlers []data.TransactionHandler)
@@ -146,11 +146,11 @@ func (ppm *PreProcessorMock) ProcessMiniBlock(
 }
 
 // SelectOutgoingTransactions selects the outgoing transactions
-func (ppm *PreProcessorMock) SelectOutgoingTransactions(bandwidth uint64) ([][]byte, []data.TransactionHandler, error) {
+func (ppm *PreProcessorMock) SelectOutgoingTransactions(bandwidth uint64, nonce uint64) ([][]byte, []data.TransactionHandler, error) {
 	if ppm.SelectOutgoingTransactionsCalled == nil {
 		return nil, nil, nil
 	}
-	return ppm.SelectOutgoingTransactionsCalled(bandwidth)
+	return ppm.SelectOutgoingTransactionsCalled(bandwidth, nonce)
 }
 
 // CreateAndProcessMiniBlocks creates miniblocks from storage and processes the reward transactions added into the miniblocks

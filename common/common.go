@@ -13,6 +13,7 @@ import (
 	"github.com/multiversx/mx-chain-core-go/core"
 	"github.com/multiversx/mx-chain-core-go/core/check"
 	"github.com/multiversx/mx-chain-core-go/data"
+	"github.com/multiversx/mx-chain-core-go/data/block"
 	logger "github.com/multiversx/mx-chain-logger-go"
 
 	"github.com/multiversx/mx-chain-go/config"
@@ -389,13 +390,82 @@ func GetLastBaseExecutionResultHandler(header data.HeaderHandler) (data.BaseExec
 	if check.IfNil(header) {
 		return nil, ErrNilHeaderHandler
 	}
+
 	lastExecResultsHandler := header.GetLastExecutionResultHandler()
 	return ExtractBaseExecutionResultHandler(lastExecResultsHandler)
+}
+
+// GetOrCreateLastExecutionResultForPrevHeader extracts base execution result from
+// header if header v3. Otherwise, it will create last execution result based
+// on the provided header
+func GetOrCreateLastExecutionResultForPrevHeader(
+	prevHeader data.HeaderHandler,
+	prevHeaderHash []byte,
+) (data.BaseExecutionResultHandler, error) {
+	if prevHeader.IsHeaderV3() {
+		return ExtractBaseExecutionResultHandler(prevHeader.GetLastExecutionResultHandler())
+	}
+
+	lastExecResult, err := CreateLastExecutionResultFromPrevHeader(prevHeader, prevHeaderHash)
+	if err != nil {
+		return nil, err
+	}
+
+	return ExtractBaseExecutionResultHandler(lastExecResult)
+}
+
+// CreateLastExecutionResultFromPrevHeader creates a LastExecutionResultInfo object from the given previous header
+func CreateLastExecutionResultFromPrevHeader(prevHeader data.HeaderHandler, prevHeaderHash []byte) (data.LastExecutionResultHandler, error) {
+	if check.IfNil(prevHeader) {
+		return nil, ErrNilHeaderHandler
+	}
+	if len(prevHeaderHash) == 0 {
+		return nil, ErrInvalidHeaderHash
+	}
+
+	if prevHeader.GetShardID() != core.MetachainShardId {
+		if _, ok := prevHeader.(*block.HeaderV2); !ok {
+			return nil, ErrWrongTypeAssertion
+		}
+
+		return &block.ExecutionResultInfo{
+			NotarizedInRound: prevHeader.GetRound(),
+			ExecutionResult: &block.BaseExecutionResult{
+				HeaderHash:  prevHeaderHash,
+				HeaderNonce: prevHeader.GetNonce(),
+				HeaderRound: prevHeader.GetRound(),
+				RootHash:    prevHeader.GetRootHash(),
+				GasUsed:     0, // we don't have this information in previous header
+			},
+		}, nil
+	}
+
+	prevMetaHeader, ok := prevHeader.(*block.MetaBlock)
+	if !ok {
+		return nil, ErrWrongTypeAssertion
+	}
+
+	return &block.MetaExecutionResultInfo{
+		NotarizedInRound: prevHeader.GetRound(),
+		ExecutionResult: &block.BaseMetaExecutionResult{
+			BaseExecutionResult: &block.BaseExecutionResult{
+				HeaderHash:  prevHeaderHash,
+				HeaderNonce: prevMetaHeader.GetNonce(),
+				HeaderRound: prevMetaHeader.GetRound(),
+				RootHash:    prevMetaHeader.GetRootHash(),
+				GasUsed:     0, // we don't have this information in previous header
+			},
+			ValidatorStatsRootHash: prevMetaHeader.GetValidatorStatsRootHash(),
+			AccumulatedFeesInEpoch: prevMetaHeader.GetAccumulatedFeesInEpoch(),
+			DevFeesInEpoch:         prevMetaHeader.GetDevFeesInEpoch(),
+		},
+	}, nil
 }
 
 // ExtractBaseExecutionResultHandler extracts the base execution result handler from a last execution result handler
 func ExtractBaseExecutionResultHandler(lastExecResultsHandler data.LastExecutionResultHandler) (data.BaseExecutionResultHandler, error) {
 	if check.IfNil(lastExecResultsHandler) {
+		log.Error("ExtractBaseExecutionResultHandler: nil exec")
 		return nil, ErrNilLastExecutionResultHandler
 	}
 
