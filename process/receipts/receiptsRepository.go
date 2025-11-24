@@ -9,6 +9,7 @@ import (
 	"github.com/multiversx/mx-chain-core-go/core/check"
 	"github.com/multiversx/mx-chain-core-go/data"
 	"github.com/multiversx/mx-chain-core-go/data/batch"
+	"github.com/multiversx/mx-chain-core-go/data/block"
 	"github.com/multiversx/mx-chain-core-go/hashing"
 	"github.com/multiversx/mx-chain-core-go/marshal"
 	logger "github.com/multiversx/mx-chain-logger-go"
@@ -124,9 +125,9 @@ func getReceiptHashFromBaseExecutionResult(execResult data.BaseExecutionResultHa
 	}
 
 	switch er := execResult.(type) {
-	case data.ExecutionResultHandler:
+	case *block.ExecutionResult:
 		return er.GetReceiptsHash(), nil
-	case data.MetaExecutionResultHandler:
+	case *block.MetaExecutionResult:
 		return er.GetReceiptsHash(), nil
 	default:
 		return nil, errNilInvalidExecutionResultType
