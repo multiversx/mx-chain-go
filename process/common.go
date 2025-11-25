@@ -1226,7 +1226,7 @@ func GetMarshaledSliceSize[T any](items []T, marshaller marshal.Marshalizer) (in
     return size, nil
 }
 
-// GetMarshaledSliceSize will return marshalled slice size for any slice
+// GetMarshaledMapSize will return marshalled mpa size for any map
 func GetMarshaledMapSize[K comparable, V any](items map[K]V, marshaller marshal.Marshalizer) (int, error) {
     size := 0
 

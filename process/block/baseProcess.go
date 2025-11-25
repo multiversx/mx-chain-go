@@ -2899,11 +2899,13 @@ func (bp *baseProcessor) getAllIntermediateTxsSize(
 		oneTxSize := 0
 
 		var err error
-		if numTxs > 0 {
-			oneTxSize, err = getOneTxSizeFromMap(txs, bp.marshalizer)
-			if err != nil {
-				return 0, err
-			}
+		if numTxs == 0 {
+			continue
+		}
+
+		oneTxSize, err = getOneTxSizeFromMap(txs, bp.marshalizer)
+		if err != nil {
+			return 0, err
 		}
 
 		size += oneTxSize * numTxs
