@@ -4570,7 +4570,7 @@ func TestUpdatePeerState(t *testing.T) {
 		}
 
 		mp, _ := blproc.NewMetaProcessor(arguments)
-		rootHash, err := mp.UpdatePeerState(hdr, make(map[string]data.HeaderHandler))
+		rootHash, err := mp.UpdatePeerState(hdr, map[string]data.HeaderHandler{"": &block.MetaBlock{}})
 		require.NoError(t, err)
 		require.Equal(t, expectedRootHash, rootHash)
 		require.True(t, wasUpdatePeerStateCalled)
@@ -4588,7 +4588,7 @@ func TestUpdatePeerState(t *testing.T) {
 		arguments := createMockMetaArguments(coreComponents, dataComponents, bootstrapComponents, statusComponents)
 
 		mp, _ := blproc.NewMetaProcessor(arguments)
-		rootHash, err := mp.UpdatePeerState(hdr, make(map[string]data.HeaderHandler))
+		rootHash, err := mp.UpdatePeerState(hdr, map[string]data.HeaderHandler{"": &block.MetaBlockV3{}})
 		require.ErrorContains(t, err, "missing last execution result")
 		require.Nil(t, rootHash)
 	})
@@ -4605,7 +4605,7 @@ func TestUpdatePeerState(t *testing.T) {
 		arguments := createMockMetaArguments(coreComponents, dataComponents, bootstrapComponents, statusComponents)
 
 		mp, _ := blproc.NewMetaProcessor(arguments)
-		rootHash, err := mp.UpdatePeerState(hdr, make(map[string]data.HeaderHandler))
+		rootHash, err := mp.UpdatePeerState(hdr, map[string]data.HeaderHandler{"": &block.MetaBlockV3{}})
 		require.ErrorIs(t, err, process.ErrWrongTypeAssertion)
 		require.Nil(t, rootHash)
 	})
@@ -4634,7 +4634,7 @@ func TestUpdatePeerState(t *testing.T) {
 		}
 
 		mp, _ := blproc.NewMetaProcessor(arguments)
-		_, err := mp.UpdatePeerState(hdr, make(map[string]data.HeaderHandler))
+		_, err := mp.UpdatePeerState(hdr, map[string]data.HeaderHandler{"": &block.MetaBlockV3{}})
 		require.NoError(t, err)
 		require.True(t, wasUpdatePeerStateCalled)
 	})

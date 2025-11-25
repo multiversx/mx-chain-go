@@ -2528,8 +2528,17 @@ func (mp *metaProcessor) getLastExecutionResult(
 	header data.MetaHeaderHandler,
 	cache map[string]data.HeaderHandler,
 ) (data.MetaExecutionResultHandler, error) {
-	if mp.enableRoundsHandler.IsFlagEnabledInRound(common.SupernovaRoundFlag, header.GetRound()) {
-		return getLastExecutionResultInSupernovaEnableRound(header, cache)
+	prevHdr, err := getPrevHdrFromCache(header, cache)
+	if err != nil {
+		return nil, err
+	}
+
+	if !prevHdr.IsHeaderV3() {
+		// We only need these two fields for validatorStatisticsProcessor.UpdatePeerStateV3
+		return &block.MetaExecutionResult{
+			AccumulatedFees: prevHdr.GetAccumulatedFees(),
+			DeveloperFees:   prevHdr.GetDeveloperFees(),
+		}, nil
 	}
 
 	lastExecutionResult := mp.blockChain.GetLastExecutionResult()
@@ -2545,21 +2554,16 @@ func (mp *metaProcessor) getLastExecutionResult(
 	return metaExecutionResult, nil
 }
 
-func getLastExecutionResultInSupernovaEnableRound(
+func getPrevHdrFromCache(
 	header data.MetaHeaderHandler,
 	cache map[string]data.HeaderHandler,
-) (data.MetaExecutionResultHandler, error) {
+) (data.HeaderHandler, error) {
 	prevHash := header.GetPrevHash()
 	prevHdr, found := cache[string(prevHash)]
 	if !found {
-		return nil, fmt.Errorf("%w in getLastExecutionResultInSupernovaEnableRound", errNilPreviousHeader)
+		return nil, fmt.Errorf("%w in getPrevHdrFromCache", errNilPreviousHeader)
 	}
-
-	// We only need these two fields for validatorStatisticsProcessor.UpdatePeerStateV3
-	return &block.MetaExecutionResult{
-		AccumulatedFees: prevHdr.GetAccumulatedFees(),
-		DeveloperFees:   prevHdr.GetDeveloperFees(),
-	}, nil
+	return prevHdr, nil
 }
 
 // CreateNewHeader creates a new header
