@@ -9,6 +9,7 @@ import (
 	"github.com/multiversx/mx-chain-core-go/core"
 	"github.com/multiversx/mx-chain-core-go/data"
 	"github.com/multiversx/mx-chain-core-go/data/block"
+	"github.com/multiversx/mx-chain-go/testscommon/epochNotifier"
 	"github.com/stretchr/testify/require"
 
 	"github.com/multiversx/mx-chain-go/process/estimator"
@@ -3673,6 +3674,560 @@ func TestMetaProcessor_collectExecutionResultsEpochStartProposal(t *testing.T) {
 		require.Equal(t, metaExecResult.ExecutedTxCount, uint64(2))
 		require.Equal(t, metaExecResult.ReceiptsHash, []byte("receiptHash"))
 		require.Equal(t, metaExecResult.GetValidatorStatsRootHash(), []byte("valStatRootHash"))
+	})
+}
+
+func TestMetaProcessor_ProcessBlockProposal(t *testing.T) {
+	t.Parallel()
+
+	t.Run("should return ErrNilBlockHeader because of nil argument", func(t *testing.T) {
+		t.Parallel()
+
+		coreComponents, dataComponents, boostrapComponents, statusComponents := createMockComponentHolders()
+		arguments := createMockMetaArguments(coreComponents, dataComponents, boostrapComponents, statusComponents)
+
+		mp, err := blproc.NewMetaProcessor(arguments)
+		require.Nil(t, err)
+
+		_, err = mp.ProcessBlockProposal(nil, &block.Body{})
+		require.Equal(t, process.ErrNilBlockHeader, err)
+	})
+
+	t.Run("should return ErrNilBlockBody because of nil argument", func(t *testing.T) {
+		t.Parallel()
+
+		coreComponents, dataComponents, boostrapComponents, statusComponents := createMockComponentHolders()
+		arguments := createMockMetaArguments(coreComponents, dataComponents, boostrapComponents, statusComponents)
+
+		mp, err := blproc.NewMetaProcessor(arguments)
+		require.Nil(t, err)
+
+		_, err = mp.ProcessBlockProposal(&block.MetaBlockV3{}, nil)
+		require.Equal(t, process.ErrNilBlockBody, err)
+	})
+
+	t.Run("should return ErrInvalidHeader because of nil argument", func(t *testing.T) {
+		t.Parallel()
+
+		coreComponents, dataComponents, boostrapComponents, statusComponents := createMockComponentHolders()
+		arguments := createMockMetaArguments(coreComponents, dataComponents, boostrapComponents, statusComponents)
+
+		mp, err := blproc.NewMetaProcessor(arguments)
+		require.Nil(t, err)
+
+		_, err = mp.ProcessBlockProposal(&block.MetaBlock{}, &block.Body{})
+		require.Equal(t, process.ErrInvalidHeader, err)
+	})
+
+	t.Run("should return ErrWrongTypeAssertion in case of wrong header", func(t *testing.T) {
+		t.Parallel()
+
+		checkEpochCounter := 0
+		coreComponents, dataComponents, boostrapComponents, statusComponents := createMockComponentHolders()
+		coreComponents.EpochNotifierField = &epochNotifier.EpochNotifierStub{
+			CheckEpochCalled: func(header data.HeaderHandler) {
+				checkEpochCounter += 1
+			},
+		}
+
+		checkRoundCounter := 0
+		coreComponents.RoundNotifierField = &epochNotifier.RoundNotifierStub{
+			CheckRoundCalled: func(header data.HeaderHandler) {
+				checkRoundCounter += 1
+			},
+		}
+		arguments := createMockMetaArguments(coreComponents, dataComponents, boostrapComponents, statusComponents)
+
+		mp, err := blproc.NewMetaProcessor(arguments)
+		require.Nil(t, err)
+
+		_, err = mp.ProcessBlockProposal(&block.HeaderV3{
+			Round: 2,
+			Epoch: 2,
+		}, &block.Body{})
+		require.Equal(t, process.ErrWrongTypeAssertion, err)
+		require.Equal(t, 1, checkEpochCounter)
+	})
+
+	t.Run("should return ErrAccountStateDirty in case of dirty state", func(t *testing.T) {
+		t.Parallel()
+
+		coreComponents, dataComponents, boostrapComponents, statusComponents := createMockComponentHolders()
+		arguments := createMockMetaArguments(coreComponents, dataComponents, boostrapComponents, statusComponents)
+
+		accountsDb := make(map[state.AccountsDbIdentifier]state.AccountsAdapter)
+		accounts := &testscommonState.AccountsStub{
+			CommitCalled: func() ([]byte, error) {
+				return nil, nil
+			},
+			RootHashCalled: func() ([]byte, error) {
+				return nil, nil
+			},
+			RecreateTrieIfNeededCalled: func(options common.RootHashHolder) error {
+				return nil
+			},
+			JournalLenCalled: func() int {
+				return 1
+			},
+		}
+
+		accountsDb[state.UserAccountsState] = accounts
+		accountsDb[state.PeerAccountsState] = accounts
+
+		arguments.AccountsDB = accountsDb
+		mp, err := blproc.NewMetaProcessor(arguments)
+		require.Nil(t, err)
+
+		_, err = mp.ProcessBlockProposal(&block.MetaBlockV3{}, &block.Body{})
+		require.Equal(t, process.ErrAccountStateDirty, err)
+	})
+
+	t.Run("if checking context fails, the error should be propagated", func(t *testing.T) {
+		t.Parallel()
+
+		previousHash := []byte("hash")
+		coreComponents, dataComponents, boostrapComponents, statusComponents := createMockComponentHolders()
+		dataComponents.BlockChain = &testscommon.ChainHandlerStub{
+			GetLastExecutedBlockInfoCalled: func() (uint64, []byte, []byte) {
+				return 0, previousHash, nil
+			},
+		}
+		arguments := createMockMetaArguments(coreComponents, dataComponents, boostrapComponents, statusComponents)
+
+		mp, err := blproc.NewMetaProcessor(arguments)
+		require.Nil(t, err)
+
+		_, err = mp.ProcessBlockProposal(&block.MetaBlockV3{
+			PrevHash: []byte("wrongHash"),
+		}, &block.Body{})
+		require.Equal(t, process.ErrBlockHashDoesNotMatch, err)
+	})
+
+	t.Run("if creating block fails, the error should be propagated", func(t *testing.T) {
+		t.Parallel()
+
+		coreComponents, dataComponents, boostrapComponents, statusComponents := createMockComponentHolders()
+		arguments := createMockMetaArguments(coreComponents, dataComponents, boostrapComponents, statusComponents)
+
+		arguments.TxCoordinator = &testscommon.TransactionCoordinatorMock{
+			AddIntermediateTransactionsCalled: func(mapSCRs map[block.Type][]data.TransactionHandler, key []byte) error {
+				return expectedErr
+			},
+		}
+		mp, err := blproc.NewMetaProcessor(arguments)
+		require.Nil(t, err)
+
+		_, err = mp.ProcessBlockProposal(&block.MetaBlockV3{
+			Nonce: 1,
+		}, &block.Body{})
+		require.Equal(t, expectedErr, err)
+	})
+
+	t.Run("if setting the current header fails, the error should be propagated", func(t *testing.T) {
+		t.Parallel()
+
+		coreComponents, dataComponents, boostrapComponents, statusComponents := createMockComponentHolders()
+		arguments := createMockMetaArguments(coreComponents, dataComponents, boostrapComponents, statusComponents)
+
+		arguments.BlockChainHook = &testscommon.BlockChainHookStub{
+			SetCurrentHeaderCalled: func(hdr data.HeaderHandler) error {
+				return expectedErr
+			},
+		}
+
+		mp, err := blproc.NewMetaProcessor(arguments)
+		require.Nil(t, err)
+
+		_, err = mp.ProcessBlockProposal(&block.MetaBlockV3{
+			Nonce: 1,
+		}, &block.Body{})
+		require.Equal(t, expectedErr, err)
+	})
+
+	t.Run("if processing first block after epoch start fails, the error should be propagated", func(t *testing.T) {
+		t.Parallel()
+
+		coreComponents, dataComponents, boostrapComponents, statusComponents := createMockComponentHolders()
+		dataComponents.BlockChain = &testscommon.ChainHandlerStub{
+			GetLastExecutedBlockHeaderCalled: func() data.HeaderHandler {
+				return &block.MetaBlockV3{
+					EpochStart: block.EpochStart{
+						LastFinalizedHeaders: []block.EpochStartShardData{
+							{},
+						},
+					},
+				}
+			},
+		}
+
+		arguments := createMockMetaArguments(coreComponents, dataComponents, boostrapComponents, statusComponents)
+		arguments.EpochSystemSCProcessor = &testscommon.EpochStartSystemSCStub{
+			ToggleUnStakeUnBondCalled: func(value bool) error {
+				return expectedErr
+			},
+		}
+
+		mp, err := blproc.NewMetaProcessor(arguments)
+		require.Nil(t, err)
+
+		_, err = mp.ProcessBlockProposal(&block.MetaBlockV3{
+			Nonce: 1,
+		}, &block.Body{})
+		require.Equal(t, expectedErr, err)
+	})
+
+	t.Run("if processing epoch start proposal block fails, the error should be propagated", func(t *testing.T) {
+		t.Parallel()
+
+		coreComponents, dataComponents, boostrapComponents, statusComponents := createMockComponentHolders()
+		dataComponents.BlockChain = &testscommon.ChainHandlerStub{
+			GetLastExecutedBlockHeaderCalled: func() data.HeaderHandler {
+				return &block.MetaBlockV3{}
+			},
+		}
+
+		arguments := createMockMetaArguments(coreComponents, dataComponents, boostrapComponents, statusComponents)
+		mp, err := blproc.NewMetaProcessor(arguments)
+		require.Nil(t, err)
+
+		_, err = mp.ProcessBlockProposal(&block.MetaBlockV3{
+			Nonce:               1,
+			EpochChangeProposed: true,
+		}, &block.Body{
+			MiniBlocks: []*block.MiniBlock{
+				{}, {}, {},
+			},
+		})
+		require.Equal(t, process.ErrEpochStartProposeBlockHasMiniBlocks, err)
+	})
+
+	t.Run("if checking the data prepared for processing fails, the error should be propagated", func(t *testing.T) {
+		t.Parallel()
+
+		coreComponents, dataComponents, boostrapComponents, statusComponents := createMockComponentHolders()
+		dataComponents.BlockChain = &testscommon.ChainHandlerStub{
+			GetLastExecutedBlockHeaderCalled: func() data.HeaderHandler {
+				return &block.MetaBlockV3{}
+			},
+		}
+
+		arguments := createMockMetaArguments(coreComponents, dataComponents, boostrapComponents, statusComponents)
+		arguments.TxCoordinator = &testscommon.TransactionCoordinatorMock{
+			IsDataPreparedForProcessingCalled: func(haveTime func() time.Duration) error {
+				return expectedErr
+			},
+		}
+
+		mp, err := blproc.NewMetaProcessor(arguments)
+		require.Nil(t, err)
+
+		_, err = mp.ProcessBlockProposal(&block.MetaBlockV3{
+			Nonce: 1,
+		}, &block.Body{})
+		require.Equal(t, expectedErr, err)
+	})
+
+	t.Run("if waiting for failing headers fails, the error should be propagated", func(t *testing.T) {
+		t.Parallel()
+
+		coreComponents, dataComponents, boostrapComponents, statusComponents := createMockComponentHolders()
+		dataComponents.BlockChain = &testscommon.ChainHandlerStub{
+			GetLastExecutedBlockHeaderCalled: func() data.HeaderHandler {
+				return &block.MetaBlockV3{}
+			},
+		}
+
+		arguments := createMockMetaArguments(coreComponents, dataComponents, boostrapComponents, statusComponents)
+		arguments.HeadersForBlock = &testscommon.HeadersForBlockMock{
+			WaitForHeadersIfNeededCalled: func(haveTime func() time.Duration) error {
+				return expectedErr
+			},
+		}
+
+		mp, err := blproc.NewMetaProcessor(arguments)
+		require.Nil(t, err)
+
+		_, err = mp.ProcessBlockProposal(&block.MetaBlockV3{
+			Nonce: 1,
+		}, &block.Body{})
+		require.Equal(t, expectedErr, err)
+	})
+
+	t.Run("if processing the transaction block fails, the error should be propagated", func(t *testing.T) {
+		t.Parallel()
+
+		coreComponents, dataComponents, boostrapComponents, statusComponents := createMockComponentHolders()
+		dataComponents.BlockChain = &testscommon.ChainHandlerStub{
+			GetLastExecutedBlockHeaderCalled: func() data.HeaderHandler {
+				return &block.MetaBlockV3{}
+			},
+		}
+
+		arguments := createMockMetaArguments(coreComponents, dataComponents, boostrapComponents, statusComponents)
+		arguments.TxCoordinator = &testscommon.TransactionCoordinatorMock{
+			ProcessBlockTransactionCalled: func(header data.HeaderHandler, body *block.Body, haveTime func() time.Duration) error {
+				return expectedErr
+			},
+		}
+
+		mp, err := blproc.NewMetaProcessor(arguments)
+		require.Nil(t, err)
+
+		_, err = mp.ProcessBlockProposal(&block.MetaBlockV3{
+			Nonce: 1,
+		}, &block.Body{})
+		require.Equal(t, expectedErr, err)
+	})
+
+	t.Run("if verifying created created block fails, the error should be returned", func(t *testing.T) {
+		t.Parallel()
+
+		coreComponents, dataComponents, boostrapComponents, statusComponents := createMockComponentHolders()
+		dataComponents.BlockChain = &testscommon.ChainHandlerStub{
+			GetLastExecutedBlockHeaderCalled: func() data.HeaderHandler {
+				return &block.MetaBlockV3{}
+			},
+		}
+
+		arguments := createMockMetaArguments(coreComponents, dataComponents, boostrapComponents, statusComponents)
+		arguments.TxCoordinator = &testscommon.TransactionCoordinatorMock{
+			VerifyCreatedBlockTransactionsCalled: func(hdr data.HeaderHandler, body *block.Body) error {
+				return expectedErr
+			},
+		}
+
+		mp, err := blproc.NewMetaProcessor(arguments)
+		require.Nil(t, err)
+
+		_, err = mp.ProcessBlockProposal(&block.MetaBlockV3{
+			Nonce: 1,
+		}, &block.Body{})
+		require.Equal(t, expectedErr, err)
+	})
+
+	t.Run("if updating protocol fails, the error should be propagated", func(t *testing.T) {
+		t.Parallel()
+
+		coreComponents, dataComponents, boostrapComponents, statusComponents := createMockComponentHolders()
+		dataComponents.BlockChain = &testscommon.ChainHandlerStub{
+			GetLastExecutedBlockHeaderCalled: func() data.HeaderHandler {
+				return &block.MetaBlockV3{}
+			},
+		}
+		arguments := createMockMetaArguments(coreComponents, dataComponents, boostrapComponents, statusComponents)
+		arguments.SCToProtocol = &mock.SCToProtocolStub{
+			UpdateProtocolCalled: func(body *block.Body, nonce uint64) error {
+				return expectedErr
+			},
+		}
+
+		mp, err := blproc.NewMetaProcessor(arguments)
+		require.Nil(t, err)
+
+		_, err = mp.ProcessBlockProposal(&block.MetaBlockV3{
+			Nonce: 1,
+		}, &block.Body{})
+		require.Equal(t, expectedErr, err)
+	})
+
+	t.Run("if updating validator statistics fails, the error should be propagated", func(t *testing.T) {
+		t.Parallel()
+
+		coreComponents, dataComponents, boostrapComponents, statusComponents := createMockComponentHolders()
+		dataComponents.BlockChain = &testscommon.ChainHandlerStub{
+			GetLastExecutionResultCalled: func() data.BaseExecutionResultHandler {
+				return &block.MetaExecutionResult{}
+			},
+		}
+
+		arguments := createMockMetaArguments(coreComponents, dataComponents, boostrapComponents, statusComponents)
+		arguments.ValidatorStatisticsProcessor = &testscommon.ValidatorStatisticsProcessorStub{
+			UpdatePeerStateV3Called: func(header data.MetaHeaderHandler, metaExecutionResult data.MetaExecutionResultHandler) ([]byte, error) {
+				return nil, expectedErr
+			},
+		}
+
+		mp, err := blproc.NewMetaProcessor(arguments)
+		require.Nil(t, err)
+
+		_, err = mp.ProcessBlockProposal(&block.MetaBlockV3{
+			Nonce: 1,
+		}, &block.Body{})
+		require.Equal(t, expectedErr, err)
+	})
+
+	t.Run("if committing the state fails, the error should be propagated", func(t *testing.T) {
+		t.Parallel()
+
+		coreComponents, dataComponents, boostrapComponents, statusComponents := createMockComponentHolders()
+		dataComponents.BlockChain = &testscommon.ChainHandlerStub{
+			GetLastExecutionResultCalled: func() data.BaseExecutionResultHandler {
+				return &block.MetaExecutionResult{}
+			},
+		}
+
+		arguments := createMockMetaArguments(coreComponents, dataComponents, boostrapComponents, statusComponents)
+
+		accountsDb := make(map[state.AccountsDbIdentifier]state.AccountsAdapter)
+		accounts := &testscommonState.AccountsStub{
+			CommitCalled: func() ([]byte, error) {
+				return nil, expectedErr
+			},
+			RootHashCalled: func() ([]byte, error) {
+				return nil, nil
+			},
+			RecreateTrieIfNeededCalled: func(options common.RootHashHolder) error {
+				return nil
+			},
+		}
+
+		accountsDb[state.UserAccountsState] = accounts
+		accountsDb[state.PeerAccountsState] = accounts
+
+		arguments.AccountsDB = accountsDb
+		mp, err := blproc.NewMetaProcessor(arguments)
+		require.Nil(t, err)
+
+		_, err = mp.ProcessBlockProposal(&block.MetaBlockV3{
+			Nonce: 1,
+		}, &block.Body{})
+		require.Equal(t, expectedErr, err)
+	})
+
+	t.Run("if HandleProcessErrorCutoff fails, the error should be propagated", func(t *testing.T) {
+		t.Parallel()
+
+		coreComponents, dataComponents, boostrapComponents, statusComponents := createMockComponentHolders()
+		dataComponents.BlockChain = &testscommon.ChainHandlerStub{
+			GetLastExecutionResultCalled: func() data.BaseExecutionResultHandler {
+				return &block.MetaExecutionResult{}
+			},
+		}
+
+		arguments := createMockMetaArguments(coreComponents, dataComponents, boostrapComponents, statusComponents)
+		arguments.BlockProcessingCutoffHandler = &testscommon.BlockProcessingCutoffStub{
+			HandleProcessErrorCutoffCalled: func(header data.HeaderHandler) error {
+				return expectedErr
+			},
+		}
+		mp, err := blproc.NewMetaProcessor(arguments)
+		require.Nil(t, err)
+
+		_, err = mp.ProcessBlockProposal(&block.MetaBlockV3{
+			Nonce: 1,
+		}, &block.Body{})
+		require.Equal(t, expectedErr, err)
+	})
+
+	t.Run("if calculating the hash fails, the error should be propagated", func(t *testing.T) {
+		t.Parallel()
+
+		coreComponents, dataComponents, boostrapComponents, statusComponents := createMockComponentHolders()
+		err := coreComponents.SetInternalMarshalizer(&marshallerMock.MarshalizerStub{
+			MarshalCalled: func(obj interface{}) ([]byte, error) {
+				return nil, expectedErr
+			},
+		})
+		require.Nil(t, err)
+
+		dataComponents.BlockChain = &testscommon.ChainHandlerStub{
+			GetLastExecutionResultCalled: func() data.BaseExecutionResultHandler {
+				return &block.MetaExecutionResult{}
+			},
+		}
+
+		arguments := createMockMetaArguments(coreComponents, dataComponents, boostrapComponents, statusComponents)
+		mp, err := blproc.NewMetaProcessor(arguments)
+		require.Nil(t, err)
+
+		_, err = mp.ProcessBlockProposal(&block.MetaBlockV3{
+			Nonce: 1,
+		}, &block.Body{})
+		require.Equal(t, expectedErr, err)
+	})
+
+	t.Run("if creating the execution result fails, the error should be propagated", func(t *testing.T) {
+		t.Parallel()
+
+		coreComponents, dataComponents, boostrapComponents, statusComponents := createMockComponentHolders()
+
+		dataComponents.BlockChain = &testscommon.ChainHandlerStub{
+			GetLastExecutionResultCalled: func() data.BaseExecutionResultHandler {
+				return &block.MetaExecutionResult{}
+			},
+		}
+
+		arguments := createMockMetaArguments(coreComponents, dataComponents, boostrapComponents, statusComponents)
+		arguments.TxCoordinator = &testscommon.TransactionCoordinatorMock{
+			CreateReceiptsHashCalled: func() ([]byte, error) {
+				return nil, expectedErr
+			},
+		}
+		mp, err := blproc.NewMetaProcessor(arguments)
+		require.Nil(t, err)
+
+		_, err = mp.ProcessBlockProposal(&block.MetaBlockV3{
+			Nonce: 1,
+		}, &block.Body{})
+		require.Equal(t, expectedErr, err)
+	})
+
+	t.Run("should work", func(t *testing.T) {
+		t.Parallel()
+		coreComponents, dataComponents, boostrapComponents, statusComponents := createMockComponentHolders()
+		dataComponents.BlockChain = &testscommon.ChainHandlerStub{
+			GetLastExecutionResultCalled: func() data.BaseExecutionResultHandler {
+				return &block.MetaExecutionResult{
+					ExecutionResult: &block.BaseMetaExecutionResult{},
+				}
+			},
+		}
+
+		arguments := createMockMetaArguments(coreComponents, dataComponents, boostrapComponents, statusComponents)
+		arguments.ValidatorStatisticsProcessor = &testscommon.ValidatorStatisticsProcessorStub{
+			RootHashCalled: func() ([]byte, error) {
+				return nil, expectedErr
+			},
+		}
+
+		receiptHash := []byte("receiptHash")
+		arguments.TxCoordinator = &testscommon.TransactionCoordinatorMock{
+			CreateReceiptsHashCalled: func() ([]byte, error) {
+				return receiptHash, nil
+			},
+		}
+
+		mp, err := blproc.NewMetaProcessor(arguments)
+		require.Nil(t, err)
+
+		executionResult, err := mp.ProcessBlockProposal(&block.MetaBlockV3{
+			Nonce: 1,
+			LastExecutionResult: &block.MetaExecutionResultInfo{
+				ExecutionResult: &block.BaseMetaExecutionResult{
+					DevFeesInEpoch:         big.NewInt(1),
+					AccumulatedFeesInEpoch: big.NewInt(1),
+				},
+			},
+		}, &block.Body{
+			MiniBlocks: []*block.MiniBlock{
+				{
+					Type: block.ReceiptBlock,
+					TxHashes: [][]byte{
+						[]byte("txHash1"),
+					},
+				},
+			},
+		})
+		require.Nil(t, err)
+
+		metaExecutionResult, ok := executionResult.(*block.MetaExecutionResult)
+		require.True(t, ok)
+
+		require.Equal(t, receiptHash, metaExecutionResult.ReceiptsHash)
+		require.Equal(t, big.NewInt(1), metaExecutionResult.ExecutionResult.DevFeesInEpoch)
+		require.Equal(t, big.NewInt(1), metaExecutionResult.ExecutionResult.AccumulatedFeesInEpoch)
+		require.Equal(t, 0, len(metaExecutionResult.MiniBlockHeaders))
+		require.Equal(t, uint64(0), metaExecutionResult.GetExecutedTxCount())
 	})
 }
 
