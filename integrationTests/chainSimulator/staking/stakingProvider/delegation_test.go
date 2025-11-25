@@ -38,7 +38,7 @@ const gasLimitForConvertOperation = 510_000_000
 const gasLimitForDelegationContractCreationOperation = 100_000_000
 const gasLimitForAddNodesOperation = 500_000_000
 const gasLimitForUndelegateOperation = 500_000_000
-const gasLimitForMergeOperation = 600_000_000
+const gasLimitForMergeOperation = 510_000_000
 const gasLimitForDelegate = 12_000_000
 
 const maxCap = "00"          // no cap
