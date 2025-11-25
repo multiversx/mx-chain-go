@@ -4656,10 +4656,6 @@ func TestUpdatePeerState(t *testing.T) {
 			DeveloperFees:   devFees,
 		}
 
-		mapCache := map[string]data.HeaderHandler{
-			string(prevHash): prevHdr,
-		}
-
 		coreComponents, dataComponents, bootstrapComponents, statusComponents := createMockComponentHolders()
 		coreComponents.EnableRoundsHandlerField = &testscommon.EnableRoundsHandlerStub{
 			IsFlagEnabledInRoundCalled: func(flag common.EnableRoundFlag, round uint64) bool {
@@ -4673,22 +4669,33 @@ func TestUpdatePeerState(t *testing.T) {
 				return nil
 			},
 		}
-		arguments := createMockMetaArguments(coreComponents, dataComponents, bootstrapComponents, statusComponents)
 
+		arguments := createMockMetaArguments(coreComponents, dataComponents, bootstrapComponents, statusComponents)
 		wasUpdatePeerStateCalled := false
+		expectedRootHash := []byte("rootHash")
 		arguments.ValidatorStatisticsProcessor = &testscommon.ValidatorStatisticsProcessorStub{
 			UpdatePeerStateV3Called: func(header data.MetaHeaderHandler, metaExecutionResult data.MetaExecutionResultHandler) ([]byte, error) {
 				require.Equal(t, hdr, header)
 				require.Equal(t, expectedExecRes, metaExecutionResult)
 				wasUpdatePeerStateCalled = true
 
-				return make([]byte, 0), nil
+				return expectedRootHash, nil
 			},
 		}
 
 		mp, _ := blproc.NewMetaProcessor(arguments)
-		_, err := mp.UpdatePeerState(hdr, mapCache)
-		require.NoError(t, err)
+
+		// No previous header found in cache, should return error
+		mapCache := make(map[string]data.HeaderHandler)
+		rootHash, err := mp.UpdatePeerState(hdr, mapCache)
+		require.Nil(t, rootHash)
+		require.ErrorIs(t, err, blproc.ErrNilPreviousHdr)
+		require.False(t, wasUpdatePeerStateCalled)
+
+		mapCache[string(prevHash)] = prevHdr
+		rootHash, err = mp.UpdatePeerState(hdr, mapCache)
+		require.Nil(t, err)
+		require.Equal(t, expectedRootHash, rootHash)
 		require.True(t, wasUpdatePeerStateCalled)
 	})
 }

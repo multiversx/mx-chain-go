@@ -2529,7 +2529,7 @@ func (mp *metaProcessor) getLastExecutionResult(
 	cache map[string]data.HeaderHandler,
 ) (data.MetaExecutionResultHandler, error) {
 	if mp.enableRoundsHandler.IsFlagEnabledInRound(common.SupernovaRoundFlag, header.GetRound()) {
-		return getLastExecutionResultForSupernovaEnabledRound(header, cache)
+		return getLastExecutionResultInSupernovaEnableRound(header, cache)
 	}
 
 	lastExecutionResult := mp.blockChain.GetLastExecutionResult()
@@ -2545,16 +2545,17 @@ func (mp *metaProcessor) getLastExecutionResult(
 	return metaExecutionResult, nil
 }
 
-func getLastExecutionResultForSupernovaEnabledRound(
+func getLastExecutionResultInSupernovaEnableRound(
 	header data.MetaHeaderHandler,
 	cache map[string]data.HeaderHandler,
 ) (data.MetaExecutionResultHandler, error) {
 	prevHash := header.GetPrevHash()
 	prevHdr, found := cache[string(prevHash)]
 	if !found {
-		return nil, fmt.Errorf("%w in getLastExecutionResultForSupernovaEnabledRound", errNilPreviousHeader)
+		return nil, fmt.Errorf("%w in getLastExecutionResultInSupernovaEnableRound", errNilPreviousHeader)
 	}
 
+	// We only need these two fields for validatorStatisticsProcessor.UpdatePeerStateV3
 	return &block.MetaExecutionResult{
 		AccumulatedFees: prevHdr.GetAccumulatedFees(),
 		DeveloperFees:   prevHdr.GetDeveloperFees(),

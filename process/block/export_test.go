@@ -49,7 +49,11 @@ import (
 // UsedShardHeadersInfo -
 type UsedShardHeadersInfo = usedShardHeadersInfo
 
+// EpochStartDataWrapper -
 type EpochStartDataWrapper = epochStartDataWrapper
+
+// ErrNilPreviousHdr -
+var ErrNilPreviousHdr = errNilPreviousHeader
 
 // ComputeHeaderHash -
 func (bp *baseProcessor) ComputeHeaderHash(hdr data.HeaderHandler) ([]byte, error) {
