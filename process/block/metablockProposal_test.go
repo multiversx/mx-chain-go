@@ -11,6 +11,7 @@ import (
 	"github.com/multiversx/mx-chain-core-go/data/block"
 	"github.com/stretchr/testify/require"
 
+	"github.com/multiversx/mx-chain-go/process/estimator"
 	"github.com/multiversx/mx-chain-go/state"
 	"github.com/multiversx/mx-chain-go/testscommon/marshallerMock"
 	testscommonState "github.com/multiversx/mx-chain-go/testscommon/state"
@@ -263,48 +264,8 @@ func TestMetaProcessor_CreateNewHeaderProposal(t *testing.T) {
 	t.Run("with epoch start data in execution results, but missing epoch start data in meta block processor", func(t *testing.T) {
 		t.Parallel()
 
-		coreComponents, dataComponents, bootstrapComponents, statusComponents := createMockComponentHolders()
-		arguments := createMockMetaArguments(coreComponents, dataComponents, bootstrapComponents, statusComponents)
-		arguments.ExecutionManager = &processMocks.ExecutionManagerMock{
-			GetPendingExecutionResultsCalled: func() ([]data.BaseExecutionResultHandler, error) {
-				return nil, nil
-			},
-		}
-
-		metaBlockWithValidExecutionResult := validMetaHeaderV3
-		metaBlockWithValidExecutionResult.GetExecutionResultsHandlersCalled = func() []data.BaseExecutionResultHandler {
-			return []data.BaseExecutionResultHandler{
-				&block.MetaExecutionResult{
-					ExecutionResult: &block.BaseMetaExecutionResult{},
-					MiniBlockHeaders: []block.MiniBlockHeader{
-						{
-							Hash:          []byte("mb hash"),
-							SenderShardID: core.MetachainShardId,
-							Type:          block.RewardsBlock, // this miniBlock marks the epoch start
-						},
-					},
-				},
-			}
-		}
-
-		bc := *defaultBootstrapComponents
-		bc.VersionedHdrFactory = &testscommon.VersionedHeaderFactoryStub{
-			CreateCalled: func(epoch uint32, _ uint64) data.HeaderHandler {
-				return &metaBlockWithValidExecutionResult
-			},
-		}
-		arguments.BootstrapComponents = &bc
-		dataComponentsModified := *dataComponents
-		dataComponentsModified.BlockChain = &testscommon.ChainHandlerStub{
-			GetCurrentBlockHeaderCalled: func() data.HeaderHandler {
-				return &prevValidMetaBlockV3
-			},
-			GetCurrentBlockHeaderHashCalled: func() []byte {
-				return []byte("prev header hash")
-			},
-		}
-		arguments.DataComponents = &dataComponentsModified
-		mp, err := blproc.NewMetaProcessor(arguments)
+		mapForMetaProcessor := createMetaProcessorMapForCreatingEpochStart()
+		mp, err := blproc.ConstructPartialMetaBlockProcessorForTest(mapForMetaProcessor)
 		require.Nil(t, err)
 
 		header, err := mp.CreateNewHeaderProposal(1, 1)
@@ -460,50 +421,28 @@ func TestMetaProcessor_CreateNewHeaderProposal(t *testing.T) {
 	t.Run("with epoch start data in execution results and in meta block processor, should pass and change epoch", func(t *testing.T) {
 		t.Parallel()
 
-		coreComponents, dataComponents, bootstrapComponents, statusComponents := createMockComponentHolders()
-		arguments := createMockMetaArguments(coreComponents, dataComponents, bootstrapComponents, statusComponents)
-		arguments.ExecutionManager = &processMocks.ExecutionManagerMock{
-			GetPendingExecutionResultsCalled: func() ([]data.BaseExecutionResultHandler, error) {
-				return nil, nil
+		headersPoolMock := &pool.HeadersPoolStub{
+			GetHeaderByHashCalled: func(hash []byte) (data.HeaderHandler, error) {
+				return &block.MetaBlockV3{
+					EpochChangeProposed: true,
+				}, nil
 			},
 		}
-
-		metaBlockWithValidExecutionResult := validMetaHeaderV3
-		metaBlockWithValidExecutionResult.GetExecutionResultsHandlersCalled = func() []data.BaseExecutionResultHandler {
-			return validMetaExecutionResultsWithEpochChange
-		}
-		metaBlockWithValidExecutionResult.SetEpochCalled = func(epoch uint32) error {
-			require.Equal(t, uint32(1), epoch)
-			return nil
-		}
-
-		bc := *defaultBootstrapComponents
-		bc.VersionedHdrFactory = &testscommon.VersionedHeaderFactoryStub{
-			CreateCalled: func(epoch uint32, _ uint64) data.HeaderHandler {
-				return &metaBlockWithValidExecutionResult
-			},
-		}
-
-		arguments.BootstrapComponents = &bc
-		dataComponentsModified := *dataComponents
-		dataComponentsModified.BlockChain = &testscommon.ChainHandlerStub{
-			GetCurrentBlockHeaderCalled: func() data.HeaderHandler {
-				return &prevValidMetaBlockV3
-			},
-			GetCurrentBlockHeaderHashCalled: func() []byte {
-				return []byte("prev header hash")
-			},
-		}
-		arguments.DataComponents = &dataComponentsModified
-		mp, err := blproc.NewMetaProcessor(arguments)
+		dataPoolMock := &dataRetrieverMock.PoolsHolderMock{}
+		dataPoolMock.SetHeadersPool(headersPoolMock)
+		mapForMetaProcessor := createMetaProcessorMapForCreatingEpochStart()
+		mapForMetaProcessor["dataPool"] = dataPoolMock
+		mp, err := blproc.ConstructPartialMetaBlockProcessorForTest(mapForMetaProcessor)
 		require.Nil(t, err)
 
 		mp.SetEpochStartData(&blproc.EpochStartDataWrapper{
+			Epoch: 1,
 			EpochStartData: &block.EpochStart{
 				LastFinalizedHeaders: make([]block.EpochStartShardData, 3),
 				Economics:            block.Economics{},
 			},
 		})
+
 		header, err := mp.CreateNewHeaderProposal(1, 1)
 		require.Nil(t, err)
 		require.NotNil(t, header)
@@ -3801,6 +3740,73 @@ func createLastShardHeadersNotGenesis() map[uint32]blproc.ShardHeaderInfo {
 				Round:   10,
 			},
 			Hash: []byte("hash3"),
+		},
+	}
+}
+
+func createMetaProcessorMapForCreatingEpochStart() map[string]interface{} {
+	executionResultHeaderHash := []byte("exec result header hash")
+	executionResultsForEpochStart := block.MetaExecutionResult{
+		ExecutionResult: &block.BaseMetaExecutionResult{
+			BaseExecutionResult: &block.BaseExecutionResult{
+				HeaderHash: executionResultHeaderHash,
+			},
+		},
+		MiniBlockHeaders: []block.MiniBlockHeader{
+			{
+				Hash:          []byte("mb hash"),
+				SenderShardID: core.MetachainShardId,
+				Type:          block.RewardsBlock, // this miniBlock marks the epoch start
+			},
+		},
+	}
+	prevValidMetaBlockV3 := testscommon.HeaderHandlerStub{
+		IsHeaderV3Called: func() bool {
+			return true
+		},
+		GetLastExecutionResultHandlerCalled: func() data.LastExecutionResultHandler {
+			return &block.MetaExecutionResultInfo{
+				ExecutionResult: &block.BaseMetaExecutionResult{},
+			}
+		},
+	}
+
+	return map[string]interface{}{
+		"shardCoordinator": &mock.ShardCoordinatorStub{
+			SelfIdCalled: func() uint32 {
+				return common.MetachainShardId
+			},
+		},
+		"epochStartTrigger": &testscommon.EpochStartTriggerStub{
+			EpochCalled: func() uint32 {
+				return 0
+			},
+			ShouldProposeEpochChangeCalled: func(round uint64, nonce uint64) bool {
+				return false
+			},
+		},
+		"versionedHeaderFactory": &testscommon.VersionedHeaderFactoryStub{
+			CreateCalled: func(epoch uint32, _ uint64) data.HeaderHandler {
+				return &block.MetaBlockV3{}
+			},
+		},
+		"executionManager": &processMocks.ExecutionManagerMock{
+			GetPendingExecutionResultsCalled: func() ([]data.BaseExecutionResultHandler, error) {
+				return []data.BaseExecutionResultHandler{&executionResultsForEpochStart}, nil
+			},
+		},
+		"blockChain": &testscommon.ChainHandlerStub{
+			GetCurrentBlockHeaderCalled: func() data.HeaderHandler {
+				return &prevValidMetaBlockV3
+			},
+			GetCurrentBlockHeaderHashCalled: func() []byte {
+				return []byte("prev header hash")
+			},
+		},
+		"executionResultsInclusionEstimator": &processMocks.InclusionEstimatorMock{
+			DecideCalled: func(lastNotarised *estimator.LastExecutionResultForInclusion, pending []data.BaseExecutionResultHandler, currentHdrTsMs uint64) (allowed int) {
+				return 1 // allow the inclusion of the first execution result
+			},
 		},
 	}
 }
