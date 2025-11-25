@@ -28,7 +28,6 @@ func NewSelectionTracker(txCache txCacheForSelectionTracker, maxTrackedBlocks ui
 	if check.IfNil(txCache) {
 		return nil, errNilTxCache
 	}
-	// TODO compare with the maximum allowed offset between proposing a block and actually executing it
 	if maxTrackedBlocks == 0 {
 		return nil, errInvalidMaxTrackedBlocks
 	}
