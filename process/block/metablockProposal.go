@@ -75,15 +75,19 @@ func (mp *metaProcessor) CreateNewHeaderProposal(round uint64, nonce uint64) (da
 		return nil, err
 	}
 
-	epochStartData, err := mp.computeEpochStartDataForHeader(metaHeader)
+	epochStartData, err := mp.getComputedEpochStartData()
 	if err != nil {
 		return nil, err
 	}
 
-	// TODO: clean up the epoch start data upon commit
 	err = metaHeader.SetEpochStartHandler(epochStartData)
 	if err != nil {
 		return nil, err
+	}
+
+	err = mp.checkEpochCorrectnessV3(metaHeader)
+	if err != nil {
+		return nil, fmt.Errorf("created meta header with invalid epoch start data: %w", err)
 	}
 
 	return metaHeader, nil
@@ -824,7 +828,7 @@ func (mp *metaProcessor) requestShardHeadersInAdvanceIfNeeded(
 func (mp *metaProcessor) verifyEpochStartData(
 	headerHandler data.MetaHeaderHandler,
 ) bool {
-	epochStartData, err := mp.computeEpochStartDataForHeader(headerHandler)
+	epochStartData, err := mp.getComputedEpochStartData()
 	if err != nil {
 		log.Error("verifyEpochStartData: failed to get epoch start data", "error", err)
 		return false
@@ -1089,18 +1093,12 @@ func (mp *metaProcessor) getPreviousExecutedBlock() data.HeaderHandler {
 	return blockHeader
 }
 
-func (mp *metaProcessor) computeEpochStartDataForHeader(metaHeader data.MetaHeaderHandler) (*block.EpochStart, error) {
+func (mp *metaProcessor) getComputedEpochStartData() (*block.EpochStart, error) {
 	mp.mutEpochStartData.RLock()
 	defer mp.mutEpochStartData.RUnlock()
 
 	if mp.epochStartDataWrapper == nil ||
 		mp.epochStartDataWrapper.EpochStartData == nil {
-		return nil, process.ErrNilEpochStartData
-	}
-	if metaHeader.IsStartOfEpochBlock() && mp.epochStartDataWrapper.Epoch != metaHeader.GetEpoch() {
-		return nil, process.ErrEpochDoesNotMatch
-	}
-	if len(mp.epochStartDataWrapper.EpochStartData.LastFinalizedHeaders) == 0 {
 		return nil, process.ErrNilEpochStartData
 	}
 
