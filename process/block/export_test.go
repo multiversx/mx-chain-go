@@ -1,6 +1,7 @@
 package block
 
 import (
+	"math/big"
 	"sync"
 	"time"
 
@@ -1087,4 +1088,17 @@ func (mp *metaProcessor) CollectExecutionResultsEpochStartProposal(
 	valStatRootHash []byte,
 ) (data.BaseExecutionResultHandler, error) {
 	return mp.collectExecutionResultsEpochStartProposal(headerHash, header, constructedBody, valStatRootHash)
+}
+
+// CollectMiniBlocks -
+func (bp *baseProcessor) CollectMiniBlocks(
+	headerHash []byte,
+	body *block.Body,
+) ([]data.MiniBlockHeaderHandler, int, []byte, error) {
+	return bp.collectMiniBlocks(headerHash, body)
+}
+
+// GetCurrentlyAccumulatedFees -
+func (mp *metaProcessor) GetCurrentlyAccumulatedFees(metaHdr data.MetaHeaderHandler) (*big.Int, *big.Int, error) {
+	return mp.getCurrentlyAccumulatedFees(metaHdr)
 }
