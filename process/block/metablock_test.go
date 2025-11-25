@@ -4670,9 +4670,9 @@ func TestUpdatePeerState(t *testing.T) {
 			},
 		}
 
-		arguments := createMockMetaArguments(coreComponents, dataComponents, bootstrapComponents, statusComponents)
 		wasUpdatePeerStateCalled := false
 		expectedRootHash := []byte("rootHash")
+		arguments := createMockMetaArguments(coreComponents, dataComponents, bootstrapComponents, statusComponents)
 		arguments.ValidatorStatisticsProcessor = &testscommon.ValidatorStatisticsProcessorStub{
 			UpdatePeerStateV3Called: func(header data.MetaHeaderHandler, metaExecutionResult data.MetaExecutionResultHandler) ([]byte, error) {
 				require.Equal(t, hdr, header)
