@@ -1174,8 +1174,11 @@ func (tpn *TestProcessorNode) initChainHandler() {
 func (tpn *TestProcessorNode) initEconomicsData(economicsConfig *config.EconomicsConfig) {
 	tpn.EnableEpochs.PenalizedTooMuchGasEnableEpoch = 0
 	pubKeyConv, _ := pubkeyConverter.NewBech32PubkeyConverter(32, "erd")
+	cfg := &config.Config{EpochStartConfig: config.EpochStartConfig{RoundsPerEpoch: 14400}}
+	cfg.GeneralSettings.ChainParametersByEpoch = []config.ChainParametersByEpochConfig{{RoundDuration: 6000}}
 	argsNewEconomicsData := economics.ArgsNewEconomicsData{
 		Economics:           economicsConfig,
+		GeneralConfig:       cfg,
 		EpochNotifier:       tpn.EpochNotifier,
 		EnableEpochsHandler: tpn.EnableEpochsHandler,
 		TxVersionChecker:    &testscommon.TxVersionCheckerStub{},
@@ -1211,6 +1214,10 @@ func createDefaultEconomicsConfig() *config.EconomicsConfig {
 					TopUpFactor:                      0.25,
 					TopUpGradientPoint:               "300000000000000000000",
 					ProtocolSustainabilityPercentage: 0.1,
+					EcosystemGrowthPercentage:        0.0,
+					EcosystemGrowthAddress:           testProtocolSustainabilityAddress,
+					GrowthDividendPercentage:         0.0,
+					GrowthDividendAddress:            testProtocolSustainabilityAddress,
 				},
 			},
 		},
