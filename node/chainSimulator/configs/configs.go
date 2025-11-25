@@ -196,7 +196,7 @@ func updateSupernovaConfigs(configs *config.Configs, args ArgsChainSimulatorConf
 		supernovaActivationRound, _ := strconv.ParseInt(configs.RoundConfig.RoundActivations[string(common.SupernovaRoundFlag)].Round, 10, 64)
 		if supernovaActivationRound > correctRoundActivationForSupernova {
 			diffRounds := supernovaActivationRound - correctRoundActivationForSupernova
-			diffIsGreaterThanAnEpoch := diffRounds > int64(args.RoundsPerEpoch.Value)-numRoundsAfterSupernovaEnableEpoch
+			diffIsGreaterThanAnEpoch := diffRounds > int64(args.SupernovaRoundsPerEpoch.Value)-numRoundsAfterSupernovaEnableEpoch
 			if !diffIsGreaterThanAnEpoch {
 				hasCorrectActivationRound = true
 			}
