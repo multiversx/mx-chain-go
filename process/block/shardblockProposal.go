@@ -121,16 +121,6 @@ func (sp *shardProcessor) CreateBlockProposal(
 
 	sp.blockSizeThrottler.Add(shardHdr.GetRound(), uint32(len(marshalledBody)))
 
-	hash, err := sp.getHeaderHash(shardHdr)
-	if err != nil {
-		return nil, nil, err
-	}
-
-	err = sp.OnProposedBlock(body, shardHdr, hash)
-	if err != nil {
-		return nil, nil, err
-	}
-
 	defer func() {
 		go sp.checkAndRequestIfMetaHeadersMissing()
 	}()
