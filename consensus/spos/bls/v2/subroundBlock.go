@@ -143,8 +143,8 @@ func (sr *subroundBlock) doBlockJob(ctx context.Context) bool {
 	// placeholder for subroundBlock.doBlockJob script
 	if header.IsHeaderV3() {
 		err = sr.BlockProcessor().OnProposedBlock(body, header, sr.GetData())
-		log.Debug("doBlockJob.OnProposedBlock", "error", err)
 		if err != nil {
+			log.Debug("doBlockJob.OnProposedBlock", "error", err)
 			return false
 		}
 	}
