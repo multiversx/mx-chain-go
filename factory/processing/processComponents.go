@@ -663,10 +663,11 @@ func (pcf *processComponentsFactory) Create() (*processComponents, error) {
 	}
 
 	argsHeadersExecutor := asyncExecution.ArgsHeadersExecutor{
-		BlocksQueue:      blocksQueue,
-		ExecutionTracker: executionResultsTracker,
-		BlockProcessor:   blockProcessorComponents.blockProcessor,
-		BlockChain:       pcf.data.Blockchain(),
+		BlocksQueue:         blocksQueue,
+		ExecutionTracker:    executionResultsTracker,
+		BlockProcessor:      blockProcessorComponents.blockProcessor,
+		BlockChain:          pcf.data.Blockchain(),
+		EnableRoundsHandler: pcf.coreData.EnableRoundsHandler(),
 	}
 	headersExecutor, err := asyncExecution.NewHeadersExecutor(argsHeadersExecutor)
 	if err != nil {

@@ -1230,10 +1230,11 @@ func (tpn *TestFullNode) initBlockProcessor(
 	}
 
 	argsHeadersExecutor := asyncExecution.ArgsHeadersExecutor{
-		BlocksQueue:      tpn.BlocksQueue,
-		ExecutionTracker: executionResultsTracker,
-		BlockProcessor:   tpn.BlockProcessor,
-		BlockChain:       tpn.BlockChain,
+		BlocksQueue:         tpn.BlocksQueue,
+		ExecutionTracker:    executionResultsTracker,
+		BlockProcessor:      tpn.BlockProcessor,
+		BlockChain:          tpn.BlockChain,
+		EnableRoundsHandler: tpn.EnableRoundsHandler,
 	}
 	headerExecutor, err := asyncExecution.NewHeadersExecutor(argsHeadersExecutor)
 	log.LogIfError(err)

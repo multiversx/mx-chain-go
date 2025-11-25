@@ -207,10 +207,11 @@ func createMetaBlockProcessor(
 	metaProc, _ := blproc.NewMetaProcessor(args)
 
 	argHeadersExecutor := asyncExecution.ArgsHeadersExecutor{
-		BlocksQueue:      blocksQueue,
-		ExecutionTracker: executionResultsTracker,
-		BlockProcessor:   metaProc,
-		BlockChain:       dataComponents.Blockchain(),
+		BlocksQueue:         blocksQueue,
+		ExecutionTracker:    executionResultsTracker,
+		BlockProcessor:      metaProc,
+		BlockChain:          dataComponents.Blockchain(),
+		EnableRoundsHandler: coreComponents.EnableRoundsHandler(),
 	}
 	headersExecutor, _ := asyncExecution.NewHeadersExecutor(argHeadersExecutor)
 	_ = execManager.SetHeadersExecutor(headersExecutor)
