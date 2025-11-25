@@ -2521,18 +2521,13 @@ func (mp *metaProcessor) updatePeerState(
 		return nil, err
 	}
 
-	metaExecutionResult, castOk := lastExecutionResult.(data.MetaExecutionResultHandler)
-	if !castOk {
-		return nil, fmt.Errorf("%w in metaProcessor.updatePeerState ", process.ErrWrongTypeAssertion)
-	}
-
-	return mp.validatorStatisticsProcessor.UpdatePeerStateV3(header, cache, metaExecutionResult)
+	return mp.validatorStatisticsProcessor.UpdatePeerStateV3(header, cache, lastExecutionResult)
 }
 
 func (mp *metaProcessor) getLastExecutionResult(
 	header data.MetaHeaderHandler,
 	cache map[string]data.HeaderHandler,
-) (data.BaseExecutionResultHandler, error) {
+) (data.MetaExecutionResultHandler, error) {
 	if mp.enableRoundsHandler.IsFlagEnabledInRound(common.SupernovaRoundFlag, header.GetRound()) {
 		return getLastExecutionResultForSupernovaEnabledRound(header, cache)
 	}
@@ -2542,20 +2537,28 @@ func (mp *metaProcessor) getLastExecutionResult(
 		return nil, fmt.Errorf("missing last execution result in blockchain in metaProcessor.updatePeerState")
 	}
 
-	return lastExecutionResult, nil
+	metaExecutionResult, castOk := lastExecutionResult.(data.MetaExecutionResultHandler)
+	if !castOk {
+		return nil, fmt.Errorf("%w in metaProcessor.updatePeerState ", process.ErrWrongTypeAssertion)
+	}
+
+	return metaExecutionResult, nil
 }
 
 func getLastExecutionResultForSupernovaEnabledRound(
 	header data.MetaHeaderHandler,
 	cache map[string]data.HeaderHandler,
-) (data.BaseExecutionResultHandler, error) {
+) (data.MetaExecutionResultHandler, error) {
 	prevHash := header.GetPrevHash()
 	prevHdr, found := cache[string(prevHash)]
 	if !found {
-		return nil, errors.New("nil prev header")
+		return nil, fmt.Errorf("%w in getLastExecutionResultForSupernovaEnabledRound", errNilPreviousHeader)
 	}
 
-	return common.GetOrCreateLastExecutionResultForPrevHeader(prevHdr, prevHash)
+	return &block.MetaExecutionResult{
+		AccumulatedFees: prevHdr.GetAccumulatedFees(),
+		DeveloperFees:   prevHdr.GetDeveloperFees(),
+	}, nil
 }
 
 // CreateNewHeader creates a new header
