@@ -2516,9 +2516,9 @@ func (mp *metaProcessor) updatePeerState(
 		return mp.validatorStatisticsProcessor.UpdatePeerState(header, cache)
 	}
 
-	lastExecutionResult := mp.blockChain.GetLastExecutionResult()
-	if check.IfNil(lastExecutionResult) {
-		return nil, fmt.Errorf("missing last execution result in blockchain in metaProcessor.updatePeerState")
+	lastExecutionResult, err := mp.getLastExecutionResult(header, cache)
+	if err != nil {
+		return nil, err
 	}
 
 	metaExecutionResult, castOk := lastExecutionResult.(data.MetaExecutionResultHandler)
@@ -2527,6 +2527,35 @@ func (mp *metaProcessor) updatePeerState(
 	}
 
 	return mp.validatorStatisticsProcessor.UpdatePeerStateV3(header, cache, metaExecutionResult)
+}
+
+func (mp *metaProcessor) getLastExecutionResult(
+	header data.MetaHeaderHandler,
+	cache map[string]data.HeaderHandler,
+) (data.BaseExecutionResultHandler, error) {
+	if mp.enableRoundsHandler.IsFlagEnabledInRound(common.SupernovaRoundFlag, header.GetRound()) {
+		return getLastExecutionResultForSupernovaEnabledRound(header, cache)
+	}
+
+	lastExecutionResult := mp.blockChain.GetLastExecutionResult()
+	if check.IfNil(lastExecutionResult) {
+		return nil, fmt.Errorf("missing last execution result in blockchain in metaProcessor.updatePeerState")
+	}
+
+	return lastExecutionResult, nil
+}
+
+func getLastExecutionResultForSupernovaEnabledRound(
+	header data.MetaHeaderHandler,
+	cache map[string]data.HeaderHandler,
+) (data.BaseExecutionResultHandler, error) {
+	prevHash := header.GetPrevHash()
+	prevHdr, found := cache[string(prevHash)]
+	if !found {
+		return nil, errors.New("nil prev header")
+	}
+
+	return common.GetOrCreateLastExecutionResultForPrevHeader(prevHdr, prevHash)
 }
 
 // CreateNewHeader creates a new header
