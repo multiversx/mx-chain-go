@@ -1236,7 +1236,7 @@ func createDefaultEconomicsConfig() *config.EconomicsConfig {
 			MinimumInflation:   0,
 			YearSettings: []*config.YearSetting{
 				{
-					Year:             0,
+					Year:             1,
 					MaximumInflation: 0.01,
 				},
 			},

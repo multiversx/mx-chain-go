@@ -9,13 +9,14 @@ import (
 
 	"github.com/multiversx/mx-chain-core-go/core"
 	"github.com/multiversx/mx-chain-core-go/data/transaction"
+	"github.com/stretchr/testify/require"
+
 	"github.com/multiversx/mx-chain-go/config"
 	"github.com/multiversx/mx-chain-go/integrationTests/vm/wasm"
 	"github.com/multiversx/mx-chain-go/node/chainSimulator"
 	"github.com/multiversx/mx-chain-go/node/chainSimulator/components/api"
 	"github.com/multiversx/mx-chain-go/node/chainSimulator/configs"
 	"github.com/multiversx/mx-chain-go/node/chainSimulator/dtos"
-	"github.com/stretchr/testify/require"
 )
 
 const (
