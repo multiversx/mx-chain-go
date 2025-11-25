@@ -4932,7 +4932,7 @@ func TestBaseProcessor_CacheIntraShardMiniBlocks(t *testing.T) {
 
 		coreComponents, dataComponents, bootstrapComponents, statusComponents := createComponentHolderMocks()
 
-		coreComponents.SetInternalMarshalizer(&marshal.GogoProtoMarshalizer{})
+		_ = coreComponents.SetInternalMarshalizer(&marshal.GogoProtoMarshalizer{})
 
 		executedMBs := cache.NewCacherStub()
 

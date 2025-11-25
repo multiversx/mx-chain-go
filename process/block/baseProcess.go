@@ -2805,24 +2805,6 @@ func (bp *baseProcessor) cacheIntraShardMiniBlocks(headerHash []byte, miniBlocks
 	return nil
 }
 
-func getMiniBlocksSize(
-	miniBlocks block.MiniBlockSlice,
-	marshaller marshal.Marshalizer,
-) (int, error) {
-	size := 0
-
-	for _, miniBlock := range miniBlocks {
-		marshalledData, err := marshaller.Marshal(miniBlock)
-		if err != nil {
-			return 0, err
-		}
-
-		size += len(marshalledData)
-	}
-
-	return size, nil
-}
-
 func (bp *baseProcessor) saveReceiptsForHeader(header data.HeaderHandler, headerHash []byte) error {
 	miniBlocks := bp.txCoordinator.GetCreatedInShardMiniBlocks()
 	if len(miniBlocks) == 0 {
