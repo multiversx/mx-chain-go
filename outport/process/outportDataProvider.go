@@ -211,7 +211,7 @@ func (odp *outportDataProvider) prepareExecutionResultsData(args ArgPrepareOutpo
 		if err != nil {
 			return nil, err
 		}
-		intraMbs, err := common.GetCachedMbs(odp.dataPool.ExecutedMiniBlocks(), odp.marshaller, headerHash)
+		intraMbs, err := common.GetCachedIntraMbs(odp.dataPool.ExecutedMiniBlocks(), odp.marshaller, headerHash)
 		if err != nil {
 			return nil, err
 		}

@@ -1824,15 +1824,9 @@ func (mp *metaProcessor) prepareEpochStartBodyForTrigger(header data.MetaHeaderH
 			return nil, fmt.Errorf("%w in prepareEpochStartBodyForTrigger for key: %s", trie.ErrKeyNotFound, metaExecRes.GetHeaderHash())
 		}
 
-		marshalledMbs, castOk := retrievedObj.([]byte)
+		currMBs, castOk := retrievedObj.([]*block.MiniBlock)
 		if !castOk {
 			return nil, fmt.Errorf("%w in prepareEpochStartBodyForTrigger for marshalledMbs", process.ErrWrongTypeAssertion)
-		}
-
-		var currMBs []*block.MiniBlock
-		err := mp.marshalizer.Unmarshal(&currMBs, marshalledMbs)
-		if err != nil {
-			return nil, err
 		}
 
 		allMiniBlocks = append(allMiniBlocks, currMBs...)

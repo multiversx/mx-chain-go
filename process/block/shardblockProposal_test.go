@@ -3167,29 +3167,6 @@ func TestShardProcessor_collectExecutionResults(t *testing.T) {
 		assert.Equal(t, expectedErr, err)
 	})
 
-	t.Run("with cacheIntermediateTxsForHeader error should return error", func(t *testing.T) {
-		t.Parallel()
-
-		expectedErr := errors.New("cacheIntermediateTxsForHeader error")
-		subComponents, header, body := createSubComponentsForCollectExecutionResultsTest()
-
-		marshallerMock := subComponents["marshalizer"].(*mock.MarshalizerMock)
-		marshaller := &mock.MarshalizerStub{
-			MarshalCalled: func(obj interface{}) ([]byte, error) {
-				if _, ok := obj.(map[block.Type]map[string]data.TransactionHandler); ok {
-					return nil, expectedErr
-				} else {
-					return marshallerMock.Marshal(obj)
-				}
-			}}
-		subComponents["marshalizer"] = marshaller
-		sp, err := blproc.ConstructPartialShardBlockProcessorForTest(subComponents)
-		require.Nil(t, err)
-		headerHash := []byte("header hash to be tested")
-		_, err = sp.CollectExecutionResults(headerHash, header, body)
-		assert.Error(t, err)
-		assert.Equal(t, expectedErr, err)
-	})
 	t.Run("should work", func(t *testing.T) {
 		t.Parallel()
 

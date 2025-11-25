@@ -208,7 +208,7 @@ func (hr *historyRepository) recordDataBasedOnExecutionResults(blockHeader data.
 		if err != nil {
 			return err
 		}
-		intraMbs, err := common.GetCachedMbs(hr.dataPool.ExecutedMiniBlocks(), hr.marshalizer, headerHash)
+		intraMbs, err := common.GetCachedIntraMbs(hr.dataPool.ExecutedMiniBlocks(), hr.marshalizer, headerHash)
 		if err != nil {
 			return err
 		}
