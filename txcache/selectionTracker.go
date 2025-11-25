@@ -73,12 +73,12 @@ func (st *selectionTracker) OnProposedBlock(
 	defer st.mutTracker.Unlock()
 
 	if !bytes.Equal(st.latestRootHash, accountsRootHash) {
-		// TODO when the right information will be passed on the OnExecutedBlock flow, the error must be returned here.
 		log.Error("selectionTracker.OnProposedBlock",
 			"err", errRootHashMismatch,
 			"latestRootHash", st.latestRootHash,
 			"accountsRootHash", accountsRootHash,
 		)
+		return errRootHashMismatch
 	}
 
 	nonce := blockHeader.GetNonce()
