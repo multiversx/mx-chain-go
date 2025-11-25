@@ -17,6 +17,7 @@ type BlocksQueue interface {
 // ExecutionResultsHandler defines what an execution results handler should be able to do
 type ExecutionResultsHandler interface {
 	AddExecutionResult(executionResult data.BaseExecutionResultHandler) error
+	SetLastNotarizedResult(executionResult data.BaseExecutionResultHandler) error
 	IsInterfaceNil() bool
 }
 
