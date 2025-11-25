@@ -4699,3 +4699,153 @@ func TestUpdatePeerState(t *testing.T) {
 		require.True(t, wasUpdatePeerStateCalled)
 	})
 }
+
+func Test_getCurrentlyAccumulatedFees(t *testing.T) {
+	t.Parallel()
+
+	t.Run("should return reset fees for epoch start v3", func(t *testing.T) {
+		t.Parallel()
+
+		mp, err := blproc.ConstructPartialMetaBlockProcessorForTest(map[string]interface{}{})
+		require.NoError(t, err)
+
+		metaBlock := &block.MetaBlockV3{
+			EpochChangeProposed: true,
+		}
+		currentlyAccumulatedFeesInEpoch, currentDevFeesInEpoch, err := mp.GetCurrentlyAccumulatedFees(metaBlock)
+		require.Nil(t, err)
+		require.Equal(t, big.NewInt(0), currentDevFeesInEpoch)
+		require.Equal(t, big.NewInt(0), currentlyAccumulatedFeesInEpoch)
+	})
+
+	t.Run("should propagate the error in case of nil last execution result", func(t *testing.T) {
+		t.Parallel()
+
+		mp, err := blproc.ConstructPartialMetaBlockProcessorForTest(map[string]interface{}{})
+		require.NoError(t, err)
+
+		metaBlock := &block.MetaBlockV3{}
+		currentlyAccumulatedFeesInEpoch, currentDevFeesInEpoch, err := mp.GetCurrentlyAccumulatedFees(metaBlock)
+		require.Nil(t, currentlyAccumulatedFeesInEpoch)
+		require.Nil(t, currentDevFeesInEpoch)
+		require.Equal(t, common.ErrNilLastExecutionResultHandler, err)
+	})
+
+	t.Run("should propagate the error in case of nil base execution result", func(t *testing.T) {
+		t.Parallel()
+
+		mp, err := blproc.ConstructPartialMetaBlockProcessorForTest(map[string]interface{}{})
+		require.NoError(t, err)
+
+		metaBlock := &block.MetaBlockV3{
+			LastExecutionResult: &block.MetaExecutionResultInfo{},
+		}
+		currentlyAccumulatedFeesInEpoch, currentDevFeesInEpoch, err := mp.GetCurrentlyAccumulatedFees(metaBlock)
+		require.Nil(t, currentlyAccumulatedFeesInEpoch)
+		require.Nil(t, currentDevFeesInEpoch)
+		require.Equal(t, common.ErrNilBaseExecutionResult, err)
+	})
+
+	t.Run("should return accumulated fees for v3", func(t *testing.T) {
+		t.Parallel()
+
+		mp, err := blproc.ConstructPartialMetaBlockProcessorForTest(map[string]interface{}{})
+		require.NoError(t, err)
+
+		metaBlock := &block.MetaBlockV3{
+			LastExecutionResult: &block.MetaExecutionResultInfo{
+				ExecutionResult: &block.BaseMetaExecutionResult{
+					AccumulatedFeesInEpoch: big.NewInt(10),
+					DevFeesInEpoch:         big.NewInt(10),
+				},
+			},
+		}
+		currentlyAccumulatedFeesInEpoch, currentDevFeesInEpoch, err := mp.GetCurrentlyAccumulatedFees(metaBlock)
+		require.Nil(t, err)
+		require.Equal(t, big.NewInt(10), currentDevFeesInEpoch)
+		require.Equal(t, big.NewInt(10), currentlyAccumulatedFeesInEpoch)
+	})
+
+	t.Run("should return reset values in case of not v3 and nil current block header", func(t *testing.T) {
+		t.Parallel()
+
+		mp, err := blproc.ConstructPartialMetaBlockProcessorForTest(map[string]interface{}{
+			"blockChain": &testscommon.ChainHandlerStub{
+				GetCurrentBlockHeaderCalled: func() data.HeaderHandler {
+					return nil
+				},
+			},
+		})
+		require.NoError(t, err)
+
+		metaBlock := &block.MetaBlock{}
+		currentlyAccumulatedFeesInEpoch, currentDevFeesInEpoch, err := mp.GetCurrentlyAccumulatedFees(metaBlock)
+		require.Nil(t, err)
+		require.Equal(t, big.NewInt(0), currentDevFeesInEpoch)
+		require.Equal(t, big.NewInt(0), currentlyAccumulatedFeesInEpoch)
+	})
+
+	t.Run("should return ErrWrongTypeAssertion because of wrong type of last current block header", func(t *testing.T) {
+		t.Parallel()
+
+		mp, err := blproc.ConstructPartialMetaBlockProcessorForTest(map[string]interface{}{
+			"blockChain": &testscommon.ChainHandlerStub{
+				GetCurrentBlockHeaderCalled: func() data.HeaderHandler {
+					return &block.Header{}
+				},
+			},
+		})
+		require.NoError(t, err)
+
+		metaBlock := &block.MetaBlock{}
+		_, _, err = mp.GetCurrentlyAccumulatedFees(metaBlock)
+		require.Equal(t, common.ErrWrongTypeAssertion, err)
+	})
+
+	t.Run("should return reset values in case of not v3 and epoch start block", func(t *testing.T) {
+		t.Parallel()
+
+		mp, err := blproc.ConstructPartialMetaBlockProcessorForTest(map[string]interface{}{
+			"blockChain": &testscommon.ChainHandlerStub{
+				GetCurrentBlockHeaderCalled: func() data.HeaderHandler {
+					return &block.MetaBlock{
+						EpochStart: block.EpochStart{
+							LastFinalizedHeaders: []block.EpochStartShardData{
+								{}, {}, {},
+							},
+						},
+					}
+				},
+			},
+		})
+		require.NoError(t, err)
+
+		metaBlock := &block.MetaBlock{}
+		currentlyAccumulatedFeesInEpoch, currentDevFeesInEpoch, err := mp.GetCurrentlyAccumulatedFees(metaBlock)
+		require.Nil(t, err)
+		require.Equal(t, big.NewInt(0), currentDevFeesInEpoch)
+		require.Equal(t, big.NewInt(0), currentlyAccumulatedFeesInEpoch)
+	})
+
+	t.Run("should accumulate fees", func(t *testing.T) {
+		t.Parallel()
+
+		mp, err := blproc.ConstructPartialMetaBlockProcessorForTest(map[string]interface{}{
+			"blockChain": &testscommon.ChainHandlerStub{
+				GetCurrentBlockHeaderCalled: func() data.HeaderHandler {
+					return &block.MetaBlock{
+						AccumulatedFeesInEpoch: big.NewInt(5),
+						DevFeesInEpoch:         big.NewInt(5),
+					}
+				},
+			},
+		})
+		require.NoError(t, err)
+
+		metaBlock := &block.MetaBlock{}
+		currentlyAccumulatedFeesInEpoch, currentDevFeesInEpoch, err := mp.GetCurrentlyAccumulatedFees(metaBlock)
+		require.Nil(t, err)
+		require.Equal(t, big.NewInt(5), currentDevFeesInEpoch)
+		require.Equal(t, big.NewInt(5), currentlyAccumulatedFeesInEpoch)
+	})
+}
