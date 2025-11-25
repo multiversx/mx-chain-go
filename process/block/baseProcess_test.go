@@ -4924,6 +4924,203 @@ func TestBaseProcessor_checkContextBeforeExecution(t *testing.T) {
 	})
 }
 
+func TestBaseProcess_collectMiniBlocks(t *testing.T) {
+	t.Parallel()
+
+	t.Run("if creating receipts hash fails, the error should be propagated", func(t *testing.T) {
+		t.Parallel()
+
+		coreComponents, dataComponents, bootstrapComponents, statusComponents := createComponentHolderMocks()
+		arguments := CreateMockArguments(coreComponents, dataComponents, bootstrapComponents, statusComponents)
+
+		txCoordinatorMock := createTxCoordinatorMock()
+		txCoordinatorMock.CreateReceiptsHashCalled = func() ([]byte, error) {
+			return nil, expectedErr
+		}
+
+		arguments.TxCoordinator = &txCoordinatorMock
+		bp, err := blproc.NewShardProcessor(arguments)
+		require.NoError(t, err)
+
+		_, _, _, err = bp.CollectMiniBlocks([]byte("hash"), &block.Body{})
+		require.Equal(t, expectedErr, err)
+	})
+
+	t.Run("should remove self receipt mini blocks", func(t *testing.T) {
+		t.Parallel()
+
+		coreComponents, dataComponents, bootstrapComponents, statusComponents := createComponentHolderMocks()
+		arguments := CreateMockArguments(coreComponents, dataComponents, bootstrapComponents, statusComponents)
+
+		txCoordinatorMock := testscommon.TransactionCoordinatorMock{}
+		txCoordinatorMock.CreatePostProcessMiniBlocksCalled = func() block.MiniBlockSlice {
+			return block.MiniBlockSlice{
+				{
+					TxHashes: [][]byte{
+						[]byte("txHash1"),
+						[]byte("txHash2"),
+					},
+					Type:            block.ReceiptBlock, // this mini block should be removed
+					ReceiverShardID: uint32(0),
+					SenderShardID:   uint32(0),
+				},
+				{
+					TxHashes: [][]byte{
+						[]byte("txHash3"),
+						[]byte("txHash4"),
+					},
+				},
+			}
+		}
+
+		arguments.TxCoordinator = &txCoordinatorMock
+		bp, err := blproc.NewShardProcessor(arguments)
+		require.NoError(t, err)
+
+		miniBlockHeaderHandlers, totalTxCount, receiptHash, err := bp.CollectMiniBlocks([]byte("hash"), &block.Body{})
+		require.NoError(t, err)
+		require.Equal(t, 1, len(miniBlockHeaderHandlers))
+		require.Equal(t, 2, totalTxCount)
+		require.Equal(t, []byte("receiptHash"), receiptHash)
+	})
+
+	t.Run("if hashing fails, the error should be propagated", func(t *testing.T) {
+		t.Parallel()
+
+		coreComponents, dataComponents, bootstrapComponents, statusComponents := createComponentHolderMocks()
+		err := coreComponents.SetInternalMarshalizer(&marshallerMock.MarshalizerStub{
+			MarshalCalled: func(obj interface{}) ([]byte, error) {
+				return nil, expectedErr
+			},
+		})
+		require.Nil(t, err)
+		arguments := CreateMockArguments(coreComponents, dataComponents, bootstrapComponents, statusComponents)
+
+		txCoordinatorMock := testscommon.TransactionCoordinatorMock{}
+		txCoordinatorMock.CreatePostProcessMiniBlocksCalled = func() block.MiniBlockSlice {
+			return block.MiniBlockSlice{
+				{
+					TxHashes: [][]byte{
+						[]byte("txHash1"),
+						[]byte("txHash2"),
+					},
+					Type:            block.ReceiptBlock, // this mini block should be removed
+					ReceiverShardID: uint32(0),
+					SenderShardID:   uint32(0),
+				},
+				{
+					TxHashes: [][]byte{
+						[]byte("txHash3"),
+						[]byte("txHash4"),
+					},
+				},
+			}
+		}
+
+		arguments.TxCoordinator = &txCoordinatorMock
+		bp, err := blproc.NewShardProcessor(arguments)
+		require.NoError(t, err)
+
+		_, _, _, err = bp.CollectMiniBlocks([]byte("hash"), &block.Body{})
+		require.Equal(t, expectedErr, err)
+	})
+
+	t.Run("sanitized mini blocks should be cached", func(t *testing.T) {
+		t.Parallel()
+
+		expectedValue := 0
+
+		coreComponents, dataComponents, bootstrapComponents, statusComponents := createComponentHolderMocks()
+		dataPool := initDataPool()
+		dataPool.ExecutedMiniBlocksCalled = func() storage.Cacher {
+			return &cache.CacherStub{
+				PutCalled: func(key []byte, value interface{}, sizeInBytes int) (evicted bool) {
+					expectedValue++
+					return false
+				},
+			}
+		}
+		dataComponents.DataPool = dataPool
+
+		arguments := CreateMockArguments(coreComponents, dataComponents, bootstrapComponents, statusComponents)
+
+		txCoordinatorMock := testscommon.TransactionCoordinatorMock{}
+		txCoordinatorMock.CreatePostProcessMiniBlocksCalled = func() block.MiniBlockSlice {
+			return block.MiniBlockSlice{
+				{
+					TxHashes: [][]byte{
+						[]byte("txHash1"),
+						[]byte("txHash2"),
+					},
+					Type:            block.ReceiptBlock, // this mini block should be removed
+					ReceiverShardID: uint32(0),
+					SenderShardID:   uint32(0),
+				},
+				{
+					TxHashes: [][]byte{
+						[]byte("txHash3"),
+						[]byte("txHash4"),
+					},
+				},
+			}
+		}
+
+		arguments.TxCoordinator = &txCoordinatorMock
+		bp, err := blproc.NewShardProcessor(arguments)
+		require.NoError(t, err)
+
+		miniBlockHeaderHandlers, totalTxCount, receiptHash, err := bp.CollectMiniBlocks([]byte("hash"), &block.Body{})
+		require.NoError(t, err)
+		require.Equal(t, 1, len(miniBlockHeaderHandlers))
+		require.Equal(t, 2, totalTxCount)
+		require.Equal(t, []byte("receiptHash"), receiptHash)
+		require.Equal(t, 2, expectedValue)
+	})
+
+	t.Run("existing intra shard mini blocks should be cached", func(t *testing.T) {
+		t.Parallel()
+
+		expectedValue := 0
+		coreComponents, dataComponents, bootstrapComponents, statusComponents := createComponentHolderMocks()
+		dataPool := initDataPool()
+		dataPool.ExecutedMiniBlocksCalled = func() storage.Cacher {
+			return &cache.CacherStub{
+				PutCalled: func(key []byte, value interface{}, sizeInBytes int) (evicted bool) {
+					expectedValue++
+					return false
+				},
+			}
+		}
+		dataComponents.DataPool = dataPool
+
+		arguments := CreateMockArguments(coreComponents, dataComponents, bootstrapComponents, statusComponents)
+
+		txCoordinatorMock := testscommon.TransactionCoordinatorMock{}
+		txCoordinatorMock.GetCreatedInShardMiniBlocksCalled = func() []*block.MiniBlock {
+			return []*block.MiniBlock{
+				{
+					TxHashes: [][]byte{
+						[]byte("txHash1"),
+					},
+				},
+			}
+		}
+
+		arguments.TxCoordinator = &txCoordinatorMock
+		bp, err := blproc.NewShardProcessor(arguments)
+		require.NoError(t, err)
+
+		headerHash := []byte("headerHash")
+		miniBlockHeaderHandlers, totalTxCount, receiptHash, err := bp.CollectMiniBlocks(headerHash, &block.Body{})
+		require.NoError(t, err)
+		require.Equal(t, 0, len(miniBlockHeaderHandlers))
+		require.Equal(t, 0, totalTxCount)
+		require.Equal(t, []byte("receiptHash"), receiptHash)
+
+		require.Equal(t, 1, expectedValue)
+	})
+}
+
 func TestBaseProcessor_CacheIntraShardMiniBlocks(t *testing.T) {
 	t.Parallel()
 
