@@ -11,6 +11,7 @@ import (
 	"github.com/multiversx/mx-chain-core-go/data/block"
 	"github.com/stretchr/testify/require"
 
+	"github.com/multiversx/mx-chain-go/common"
 	"github.com/multiversx/mx-chain-go/process"
 	"github.com/multiversx/mx-chain-go/process/asyncExecution/queue"
 	"github.com/multiversx/mx-chain-go/testscommon"
@@ -23,10 +24,14 @@ func createMockArgs() ArgsHeadersExecutor {
 	headerQueue := queue.NewBlocksQueue()
 
 	return ArgsHeadersExecutor{
-		BlocksQueue:         headerQueue,
-		ExecutionTracker:    &processMocks.ExecutionTrackerStub{},
-		BlockProcessor:      &processMocks.BlockProcessorStub{},
-		BlockChain:          &testscommon.ChainHandlerStub{},
+		BlocksQueue:      headerQueue,
+		ExecutionTracker: &processMocks.ExecutionTrackerStub{},
+		BlockProcessor:   &processMocks.BlockProcessorStub{},
+		BlockChain: &testscommon.ChainHandlerStub{
+			GetCurrentBlockHeaderCalled: func() data.HeaderHandler {
+				return &block.HeaderV2{}
+			},
+		},
 		EnableRoundsHandler: &testscommon.EnableRoundsHandlerStub{},
 	}
 }
@@ -144,8 +149,11 @@ func TestHeadersExecutor_ProcessBlock(t *testing.T) {
 				atomic.AddUint32(&cntWasPopCalled, 1)
 
 				return queue.HeaderBodyPair{
-					Header: &block.Header{
+					Header: &block.HeaderV3{
 						Nonce: 1,
+						LastExecutionResult: &block.ExecutionResultInfo{
+							ExecutionResult: &block.BaseExecutionResult{},
+						},
 					},
 					Body: &block.Body{},
 				}, true
@@ -456,6 +464,13 @@ func TestHeadersExecutor_Process(t *testing.T) {
 		setLastExecutedBlockInfoCalled := false
 		setLastExecutionResultCalled := false
 		args.BlockChain = &testscommon.ChainHandlerStub{
+			GetCurrentBlockHeaderCalled: func() data.HeaderHandler {
+				return &block.HeaderV3{
+					LastExecutionResult: &block.ExecutionResultInfo{
+						ExecutionResult: &block.BaseExecutionResult{},
+					},
+				}
+			},
 			SetFinalBlockInfoCalled: func(nonce uint64, headerHash, rootHash []byte) {
 				setFinalBlockInfoCalled = true
 			},
@@ -467,20 +482,64 @@ func TestHeadersExecutor_Process(t *testing.T) {
 			},
 		}
 
-		executor, _ := NewHeadersExecutor(args)
+		executor, err := NewHeadersExecutor(args)
+		require.Nil(t, err)
 
 		pair := queue.HeaderBodyPair{
-			Header: &block.Header{
+			Header: &block.HeaderV3{
 				Nonce: 1,
+				LastExecutionResult: &block.ExecutionResultInfo{
+					ExecutionResult: &block.BaseExecutionResult{},
+				},
 			},
 			Body: &block.Body{},
 		}
 
-		err := executor.Process(pair)
+		err = executor.Process(pair)
 		require.Nil(t, err)
 
 		require.True(t, setFinalBlockInfoCalled)
 		require.True(t, setLastExecutedBlockInfoCalled)
 		require.True(t, setLastExecutionResultCalled)
 	})
+}
+
+func TestHeadersExecutor_SetLastNotarizedResultIfNeeded(t *testing.T) {
+	t.Parallel()
+
+	t.Run("should set in activation round", func(t *testing.T) {
+		t.Parallel()
+
+	})
+	args := createMockArgs()
+
+	wasCalled := false
+	args.ExecutionTracker = &processMocks.ExecutionTrackerStub{
+		SetLastNotarizedResultCalled: func(executionResult data.BaseExecutionResultHandler) error {
+			wasCalled = true
+			return nil
+		},
+	}
+
+	round := uint64(10)
+	args.EnableRoundsHandler = &testscommon.EnableRoundsHandlerStub{
+		GetActivationRoundCalled: func(flag common.EnableRoundFlag) uint64 {
+			return round
+		},
+	}
+
+	executor, err := NewHeadersExecutor(args)
+	require.Nil(t, err)
+
+	header := &block.HeaderV3{
+		Round: round,
+		LastExecutionResult: &block.ExecutionResultInfo{
+			ExecutionResult: &block.BaseExecutionResult{},
+		},
+	}
+
+	err = executor.SetLastNotarizedResultIfNeeded(header)
+	require.Nil(t, err)
+
+	require.True(t, wasCalled)
 }

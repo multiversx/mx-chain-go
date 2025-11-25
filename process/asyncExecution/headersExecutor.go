@@ -65,6 +65,11 @@ func NewHeadersExecutor(args ArgsHeadersExecutor) (*headersExecutor, error) {
 		enableRoundsHandler: args.EnableRoundsHandler,
 	}
 
+	err := instance.setLastNotarizedResultInTracker(args.BlockChain.GetCurrentBlockHeader())
+	if err != nil {
+		return nil, err
+	}
+
 	return instance, nil
 }
 
@@ -151,7 +156,24 @@ func (he *headersExecutor) handleProcessError(ctx context.Context, pair queue.He
 func (he *headersExecutor) setLastNotarizedResultIfNeeded(
 	header data.HeaderHandler,
 ) error {
+	if check.IfNil(header) {
+		return common.ErrNilHeaderHandler
+	}
 	if header.GetRound() != he.enableRoundsHandler.GetActivationRound(common.SupernovaRoundFlag) {
+		return nil
+	}
+
+	return he.setLastNotarizedResultInTracker(header)
+}
+
+func (he *headersExecutor) setLastNotarizedResultInTracker(
+	header data.HeaderHandler,
+) error {
+	if check.IfNil(header) {
+		return common.ErrNilHeaderHandler
+	}
+	if !header.IsHeaderV3() {
+		// no need to set last execution result
 		return nil
 	}
 

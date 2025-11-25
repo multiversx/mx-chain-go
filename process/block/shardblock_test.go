@@ -1855,17 +1855,21 @@ func TestShardProcessor_CheckMetaHeadersValidityAndFinalityShouldReturnNilWhenNo
 
 	tdp := dataRetrieverMock.NewPoolsHolderMock()
 	genesisBlocks := createGenesisBlocks(mock.NewMultiShardsCoordinatorMock(3))
-	sp, _ := blproc.NewShardProcessorEmptyWith3shards(
+	sp, err := blproc.NewShardProcessorEmptyWith3shards(
 		tdp,
 		genesisBlocks,
 		&testscommon.ChainHandlerStub{
 			GetGenesisHeaderCalled: func() data.HeaderHandler {
 				return &block.Header{Nonce: 0}
 			},
+			GetCurrentBlockHeaderCalled: func() data.HeaderHandler {
+				return &block.Header{Nonce: 0}
+			},
 		},
 	)
+	require.Nil(t, err)
 
-	err := sp.CheckMetaHeadersValidityAndFinality()
+	err = sp.CheckMetaHeadersValidityAndFinality()
 	assert.Nil(t, err)
 }
 
