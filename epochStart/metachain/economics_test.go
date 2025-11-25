@@ -706,6 +706,7 @@ func TestEconomics_ComputeInflationRate_WithRealConfigData(t *testing.T) {
 		ShardCoordinator:   &testscommon.ShardsCoordinatorMock{},
 		ChainParamsHandler: &chainParameters.ChainParametersHolderMock{},
 	}
+	argsNewEconomicsData.Economics.GlobalSettings.TailInflation.EnableEpoch = 999999
 	economicsData, _ := processEconomics.NewEconomicsData(argsNewEconomicsData)
 
 	args := getArguments()
@@ -768,7 +769,7 @@ func TestEconomics_ComputeInflationRate_WithRealConfigData(t *testing.T) {
 	}
 	rate = ec.computeInflationRate(header)
 	assert.Equal(t, cfg.EconomicsConfig.GlobalSettings.YearSettings[1].MaximumInflation, rate)
-	assert.Equal(t, economicsData.MaxInflationRate(2, 2), rate)
+	assert.Equal(t, economicsData.MaxInflationRate(2, 1), rate)
 
 	ec.SetRoundTimeHandler(
 		&mock.RoundTimeDurationHandler{
@@ -1154,6 +1155,7 @@ func TestEconomics_VerifyRewardsPerBlock_DifferentHitRates(t *testing.T) {
 		totalSupply := big.NewInt(20000000000) // 20B
 		accFeesInEpoch := big.NewInt(0)
 		devFeesInEpoch := big.NewInt(0)
+		accRewardsEnableEpoch := uint32(9999999)
 		roundDur := 4000
 		args := getArguments()
 
@@ -1180,6 +1182,9 @@ func TestEconomics_VerifyRewardsPerBlock_DifferentHitRates(t *testing.T) {
 			},
 			ProtocolSustainabilityPercentageInEpochCalled: func(epoch uint32) float64 {
 				return 0.1
+			},
+			IsTailInflationEnabledCalled: func(epoch uint32) bool {
+				return epoch >= accRewardsEnableEpoch
 			},
 		}
 		args.RoundTime = &mock.RoundTimeDurationHandler{
