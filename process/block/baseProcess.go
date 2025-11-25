@@ -2585,23 +2585,34 @@ func (bp *baseProcessor) OnProposedBlock(
 		return process.ErrWrongTypeAssertion
 	}
 
-	// TODO: call SetRootHashIfNeeded for accountsProposal which should recreate the trie if needed for
+	lastExecResHandler, err := bp.prepareAccountsForProposal()
+	if err != nil {
+		return err
+	}
+
 	accountsProvider, err := state.NewAccountsEphemeralProvider(bp.accountsProposal)
 	if err != nil {
 		return err
 	}
 
-	lastCommittedHeader, err := bp.dataPool.Headers().GetHeaderByHash(proposedHeader.GetPrevHash())
-	if err != nil {
-		return err
-	}
-
-	lastExecResHandler, err := common.GetOrCreateLastExecutionResultForPrevHeader(lastCommittedHeader, proposedHeader.GetPrevHash())
-	if err != nil {
-		return err
-	}
-
 	return bp.dataPool.Transactions().OnProposedBlock(proposedHash, proposedBodyPtr, proposedHeader, accountsProvider, lastExecResHandler.GetHeaderHash())
+}
+
+func (bp *baseProcessor) prepareAccountsForProposal() (data.BaseExecutionResultHandler, error) {
+	prevHeader := bp.blockChain.GetCurrentBlockHeader()
+	prevHeaderHash := bp.blockChain.GetCurrentBlockHeaderHash()
+	lastExecResHandler, err := common.GetOrCreateLastExecutionResultForPrevHeader(prevHeader, prevHeaderHash)
+	if err != nil {
+		return nil, err
+	}
+	rootHash := lastExecResHandler.GetRootHash()
+	rootHashHolder := holders.NewDefaultRootHashesHolder(rootHash)
+	err = bp.accountsProposal.RecreateTrieIfNeeded(rootHashHolder)
+	if err != nil {
+		return nil, err
+	}
+
+	return lastExecResHandler, nil
 }
 
 func (bp *baseProcessor) onExecutedBlock(header data.HeaderHandler, rootHash []byte) error {
