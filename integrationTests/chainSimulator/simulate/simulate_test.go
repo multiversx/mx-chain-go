@@ -266,6 +266,7 @@ func TestRelayedV3(t *testing.T) {
 	err = cs.ForceChangeOfEpoch()
 	require.NoError(t, err)
 
+	tx.GasLimit = 0 // reset GasLimit so it will be completed according to the new block limits for the updated epoch
 	cost, err = cs.GetNodeHandler(0).GetFacadeHandler().ComputeTransactionGasLimit(tx)
 	require.NoError(t, err)
 	require.Equal(t, uint64(855001), cost.GasUnits)
