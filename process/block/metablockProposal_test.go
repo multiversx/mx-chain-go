@@ -3882,14 +3882,7 @@ func TestMetaProcessor_ProcessBlockProposal(t *testing.T) {
 		coreComponents, dataComponents, boostrapComponents, statusComponents := createMockComponentHolders()
 		dataComponents.BlockChain = &testscommon.ChainHandlerStub{
 			GetLastExecutedBlockHeaderCalled: func() data.HeaderHandler {
-				return &block.MetaBlockV3{
-					EpochStart: block.EpochStart{
-						LastFinalizedHeaders: []block.EpochStartShardData{
-							{},
-						},
-					},
-					MiniBlockHeaders: []block.MiniBlockHeader{},
-				}
+				return &block.MetaBlockV3{}
 			},
 		}
 
@@ -3914,14 +3907,7 @@ func TestMetaProcessor_ProcessBlockProposal(t *testing.T) {
 		coreComponents, dataComponents, boostrapComponents, statusComponents := createMockComponentHolders()
 		dataComponents.BlockChain = &testscommon.ChainHandlerStub{
 			GetLastExecutedBlockHeaderCalled: func() data.HeaderHandler {
-				return &block.MetaBlockV3{
-					EpochStart: block.EpochStart{
-						LastFinalizedHeaders: []block.EpochStartShardData{
-							{},
-						},
-					},
-					MiniBlockHeaders: []block.MiniBlockHeader{},
-				}
+				return &block.MetaBlockV3{}
 			},
 		}
 
@@ -3937,11 +3923,7 @@ func TestMetaProcessor_ProcessBlockProposal(t *testing.T) {
 
 		_, err = mp.ProcessBlockProposal(&block.MetaBlockV3{
 			Nonce: 1,
-		}, &block.Body{
-			MiniBlocks: []*block.MiniBlock{
-				{}, {}, {},
-			},
-		})
+		}, &block.Body{})
 		require.Equal(t, expectedErr, err)
 	})
 
@@ -3951,14 +3933,7 @@ func TestMetaProcessor_ProcessBlockProposal(t *testing.T) {
 		coreComponents, dataComponents, boostrapComponents, statusComponents := createMockComponentHolders()
 		dataComponents.BlockChain = &testscommon.ChainHandlerStub{
 			GetLastExecutedBlockHeaderCalled: func() data.HeaderHandler {
-				return &block.MetaBlockV3{
-					EpochStart: block.EpochStart{
-						LastFinalizedHeaders: []block.EpochStartShardData{
-							{},
-						},
-					},
-					MiniBlockHeaders: []block.MiniBlockHeader{},
-				}
+				return &block.MetaBlockV3{}
 			},
 		}
 
@@ -3974,11 +3949,7 @@ func TestMetaProcessor_ProcessBlockProposal(t *testing.T) {
 
 		_, err = mp.ProcessBlockProposal(&block.MetaBlockV3{
 			Nonce: 1,
-		}, &block.Body{
-			MiniBlocks: []*block.MiniBlock{
-				{}, {}, {},
-			},
-		})
+		}, &block.Body{})
 		require.Equal(t, expectedErr, err)
 	})
 
@@ -3988,14 +3959,7 @@ func TestMetaProcessor_ProcessBlockProposal(t *testing.T) {
 		coreComponents, dataComponents, boostrapComponents, statusComponents := createMockComponentHolders()
 		dataComponents.BlockChain = &testscommon.ChainHandlerStub{
 			GetLastExecutedBlockHeaderCalled: func() data.HeaderHandler {
-				return &block.MetaBlockV3{
-					EpochStart: block.EpochStart{
-						LastFinalizedHeaders: []block.EpochStartShardData{
-							{},
-						},
-					},
-					MiniBlockHeaders: []block.MiniBlockHeader{},
-				}
+				return &block.MetaBlockV3{}
 			},
 		}
 
@@ -4011,11 +3975,7 @@ func TestMetaProcessor_ProcessBlockProposal(t *testing.T) {
 
 		_, err = mp.ProcessBlockProposal(&block.MetaBlockV3{
 			Nonce: 1,
-		}, &block.Body{
-			MiniBlocks: []*block.MiniBlock{
-				{}, {}, {},
-			},
-		})
+		}, &block.Body{})
 		require.Equal(t, expectedErr, err)
 	})
 
@@ -4025,14 +3985,7 @@ func TestMetaProcessor_ProcessBlockProposal(t *testing.T) {
 		coreComponents, dataComponents, boostrapComponents, statusComponents := createMockComponentHolders()
 		dataComponents.BlockChain = &testscommon.ChainHandlerStub{
 			GetLastExecutedBlockHeaderCalled: func() data.HeaderHandler {
-				return &block.MetaBlockV3{
-					EpochStart: block.EpochStart{
-						LastFinalizedHeaders: []block.EpochStartShardData{
-							{},
-						},
-					},
-					MiniBlockHeaders: []block.MiniBlockHeader{},
-				}
+				return &block.MetaBlockV3{}
 			},
 		}
 
@@ -4048,11 +4001,7 @@ func TestMetaProcessor_ProcessBlockProposal(t *testing.T) {
 
 		_, err = mp.ProcessBlockProposal(&block.MetaBlockV3{
 			Nonce: 1,
-		}, &block.Body{
-			MiniBlocks: []*block.MiniBlock{
-				{}, {}, {},
-			},
-		})
+		}, &block.Body{})
 		require.Equal(t, expectedErr, err)
 	})
 
@@ -4062,17 +4011,9 @@ func TestMetaProcessor_ProcessBlockProposal(t *testing.T) {
 		coreComponents, dataComponents, boostrapComponents, statusComponents := createMockComponentHolders()
 		dataComponents.BlockChain = &testscommon.ChainHandlerStub{
 			GetLastExecutedBlockHeaderCalled: func() data.HeaderHandler {
-				return &block.MetaBlockV3{
-					EpochStart: block.EpochStart{
-						LastFinalizedHeaders: []block.EpochStartShardData{
-							{},
-						},
-					},
-					MiniBlockHeaders: []block.MiniBlockHeader{},
-				}
+				return &block.MetaBlockV3{}
 			},
 		}
-
 		arguments := createMockMetaArguments(coreComponents, dataComponents, boostrapComponents, statusComponents)
 		arguments.SCToProtocol = &mock.SCToProtocolStub{
 			UpdateProtocolCalled: func(body *block.Body, nonce uint64) error {
@@ -4085,11 +4026,7 @@ func TestMetaProcessor_ProcessBlockProposal(t *testing.T) {
 
 		_, err = mp.ProcessBlockProposal(&block.MetaBlockV3{
 			Nonce: 1,
-		}, &block.Body{
-			MiniBlocks: []*block.MiniBlock{
-				{}, {}, {},
-			},
-		})
+		}, &block.Body{})
 		require.Equal(t, expectedErr, err)
 	})
 
@@ -4098,16 +4035,6 @@ func TestMetaProcessor_ProcessBlockProposal(t *testing.T) {
 
 		coreComponents, dataComponents, boostrapComponents, statusComponents := createMockComponentHolders()
 		dataComponents.BlockChain = &testscommon.ChainHandlerStub{
-			GetLastExecutedBlockHeaderCalled: func() data.HeaderHandler {
-				return &block.MetaBlockV3{
-					EpochStart: block.EpochStart{
-						LastFinalizedHeaders: []block.EpochStartShardData{
-							{},
-						},
-					},
-					MiniBlockHeaders: []block.MiniBlockHeader{},
-				}
-			},
 			GetLastExecutionResultCalled: func() data.BaseExecutionResultHandler {
 				return &block.MetaExecutionResult{}
 			},
@@ -4125,11 +4052,7 @@ func TestMetaProcessor_ProcessBlockProposal(t *testing.T) {
 
 		_, err = mp.ProcessBlockProposal(&block.MetaBlockV3{
 			Nonce: 1,
-		}, &block.Body{
-			MiniBlocks: []*block.MiniBlock{
-				{}, {}, {},
-			},
-		})
+		}, &block.Body{})
 		require.Equal(t, expectedErr, err)
 	})
 
@@ -4138,16 +4061,6 @@ func TestMetaProcessor_ProcessBlockProposal(t *testing.T) {
 
 		coreComponents, dataComponents, boostrapComponents, statusComponents := createMockComponentHolders()
 		dataComponents.BlockChain = &testscommon.ChainHandlerStub{
-			GetLastExecutedBlockHeaderCalled: func() data.HeaderHandler {
-				return &block.MetaBlockV3{
-					EpochStart: block.EpochStart{
-						LastFinalizedHeaders: []block.EpochStartShardData{
-							{},
-						},
-					},
-					MiniBlockHeaders: []block.MiniBlockHeader{},
-				}
-			},
 			GetLastExecutionResultCalled: func() data.BaseExecutionResultHandler {
 				return &block.MetaExecutionResult{}
 			},
@@ -4177,11 +4090,7 @@ func TestMetaProcessor_ProcessBlockProposal(t *testing.T) {
 
 		_, err = mp.ProcessBlockProposal(&block.MetaBlockV3{
 			Nonce: 1,
-		}, &block.Body{
-			MiniBlocks: []*block.MiniBlock{
-				{}, {}, {},
-			},
-		})
+		}, &block.Body{})
 		require.Equal(t, expectedErr, err)
 	})
 
@@ -4190,16 +4099,6 @@ func TestMetaProcessor_ProcessBlockProposal(t *testing.T) {
 
 		coreComponents, dataComponents, boostrapComponents, statusComponents := createMockComponentHolders()
 		dataComponents.BlockChain = &testscommon.ChainHandlerStub{
-			GetLastExecutedBlockHeaderCalled: func() data.HeaderHandler {
-				return &block.MetaBlockV3{
-					EpochStart: block.EpochStart{
-						LastFinalizedHeaders: []block.EpochStartShardData{
-							{},
-						},
-					},
-					MiniBlockHeaders: []block.MiniBlockHeader{},
-				}
-			},
 			GetLastExecutionResultCalled: func() data.BaseExecutionResultHandler {
 				return &block.MetaExecutionResult{}
 			},
@@ -4216,11 +4115,7 @@ func TestMetaProcessor_ProcessBlockProposal(t *testing.T) {
 
 		_, err = mp.ProcessBlockProposal(&block.MetaBlockV3{
 			Nonce: 1,
-		}, &block.Body{
-			MiniBlocks: []*block.MiniBlock{
-				{}, {}, {},
-			},
-		})
+		}, &block.Body{})
 		require.Equal(t, expectedErr, err)
 	})
 
@@ -4236,16 +4131,6 @@ func TestMetaProcessor_ProcessBlockProposal(t *testing.T) {
 		require.Nil(t, err)
 
 		dataComponents.BlockChain = &testscommon.ChainHandlerStub{
-			GetLastExecutedBlockHeaderCalled: func() data.HeaderHandler {
-				return &block.MetaBlockV3{
-					EpochStart: block.EpochStart{
-						LastFinalizedHeaders: []block.EpochStartShardData{
-							{},
-						},
-					},
-					MiniBlockHeaders: []block.MiniBlockHeader{},
-				}
-			},
 			GetLastExecutionResultCalled: func() data.BaseExecutionResultHandler {
 				return &block.MetaExecutionResult{}
 			},
@@ -4257,11 +4142,7 @@ func TestMetaProcessor_ProcessBlockProposal(t *testing.T) {
 
 		_, err = mp.ProcessBlockProposal(&block.MetaBlockV3{
 			Nonce: 1,
-		}, &block.Body{
-			MiniBlocks: []*block.MiniBlock{
-				{}, {}, {},
-			},
-		})
+		}, &block.Body{})
 		require.Equal(t, expectedErr, err)
 	})
 
@@ -4271,16 +4152,6 @@ func TestMetaProcessor_ProcessBlockProposal(t *testing.T) {
 		coreComponents, dataComponents, boostrapComponents, statusComponents := createMockComponentHolders()
 
 		dataComponents.BlockChain = &testscommon.ChainHandlerStub{
-			GetLastExecutedBlockHeaderCalled: func() data.HeaderHandler {
-				return &block.MetaBlockV3{
-					EpochStart: block.EpochStart{
-						LastFinalizedHeaders: []block.EpochStartShardData{
-							{},
-						},
-					},
-					MiniBlockHeaders: []block.MiniBlockHeader{},
-				}
-			},
 			GetLastExecutionResultCalled: func() data.BaseExecutionResultHandler {
 				return &block.MetaExecutionResult{}
 			},
@@ -4297,12 +4168,66 @@ func TestMetaProcessor_ProcessBlockProposal(t *testing.T) {
 
 		_, err = mp.ProcessBlockProposal(&block.MetaBlockV3{
 			Nonce: 1,
+		}, &block.Body{})
+		require.Equal(t, expectedErr, err)
+	})
+
+	t.Run("should work", func(t *testing.T) {
+		t.Parallel()
+		coreComponents, dataComponents, boostrapComponents, statusComponents := createMockComponentHolders()
+		dataComponents.BlockChain = &testscommon.ChainHandlerStub{
+			GetLastExecutionResultCalled: func() data.BaseExecutionResultHandler {
+				return &block.MetaExecutionResult{
+					ExecutionResult: &block.BaseMetaExecutionResult{},
+				}
+			},
+		}
+
+		arguments := createMockMetaArguments(coreComponents, dataComponents, boostrapComponents, statusComponents)
+		arguments.ValidatorStatisticsProcessor = &testscommon.ValidatorStatisticsProcessorStub{
+			RootHashCalled: func() ([]byte, error) {
+				return nil, expectedErr
+			},
+		}
+
+		receiptHash := []byte("receiptHash")
+		arguments.TxCoordinator = &testscommon.TransactionCoordinatorMock{
+			CreateReceiptsHashCalled: func() ([]byte, error) {
+				return receiptHash, nil
+			},
+		}
+
+		mp, err := blproc.NewMetaProcessor(arguments)
+		require.Nil(t, err)
+
+		executionResult, err := mp.ProcessBlockProposal(&block.MetaBlockV3{
+			Nonce: 1,
+			LastExecutionResult: &block.MetaExecutionResultInfo{
+				ExecutionResult: &block.BaseMetaExecutionResult{
+					DevFeesInEpoch:         big.NewInt(1),
+					AccumulatedFeesInEpoch: big.NewInt(1),
+				},
+			},
 		}, &block.Body{
 			MiniBlocks: []*block.MiniBlock{
-				{}, {}, {},
+				{
+					Type: block.ReceiptBlock,
+					TxHashes: [][]byte{
+						[]byte("txHash1"),
+					},
+				},
 			},
 		})
-		require.Equal(t, expectedErr, err)
+		require.Nil(t, err)
+
+		metaExecutionResult, ok := executionResult.(*block.MetaExecutionResult)
+		require.True(t, ok)
+
+		require.Equal(t, receiptHash, metaExecutionResult.ReceiptsHash)
+		require.Equal(t, big.NewInt(1), metaExecutionResult.ExecutionResult.DevFeesInEpoch)
+		require.Equal(t, big.NewInt(1), metaExecutionResult.ExecutionResult.AccumulatedFeesInEpoch)
+		require.Equal(t, 0, len(metaExecutionResult.MiniBlockHeaders))
+		require.Equal(t, uint64(0), metaExecutionResult.GetExecutedTxCount())
 	})
 }
 
