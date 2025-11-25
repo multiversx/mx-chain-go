@@ -48,6 +48,10 @@ func createDummyEconomicsConfig(feeSettings config.FeeSettings) *config.Economic
 					TopUpGradientPoint:               "300000000000000000000",
 					TopUpFactor:                      0.25,
 					EpochEnable:                      0,
+					EcosystemGrowthPercentage:        0.0,
+					EcosystemGrowthAddress:           "erd1932eft30w753xyvme8d49qejgkjc09n5e49w4mwdjtm0neld797su0dlxp",
+					GrowthDividendPercentage:         0.0,
+					GrowthDividendAddress:            "erd1932eft30w753xyvme8d49qejgkjc09n5e49w4mwdjtm0neld797su0dlxp",
 				},
 			},
 		},
@@ -101,7 +105,10 @@ func createArgsForEconomicsData(gasModifier float64) economics.ArgsNewEconomicsD
 	feeSettings := feeSettingsDummy(gasModifier)
 	pkConv, _ := pubkeyConverter.NewBech32PubkeyConverter(32, "erd")
 	shardC, _ := sharding.NewMultiShardCoordinator(2, 0)
+	cfg := &config.Config{EpochStartConfig: config.EpochStartConfig{RoundsPerEpoch: 14400}}
+	cfg.GeneralSettings.ChainParametersByEpoch = []config.ChainParametersByEpochConfig{{RoundDuration: 6000}}
 	args := economics.ArgsNewEconomicsData{
+		GeneralConfig: cfg,
 		Economics:     createDummyEconomicsConfig(feeSettings),
 		EpochNotifier: &epochNotifier.EpochNotifierStub{},
 		EnableEpochsHandler: &enableEpochsHandlerMock.EnableEpochsHandlerStub{
@@ -120,7 +127,10 @@ func createArgsForEconomicsDataRealFees() economics.ArgsNewEconomicsData {
 	feeSettings := feeSettingsReal()
 	pkConv, _ := pubkeyConverter.NewBech32PubkeyConverter(32, "erd")
 	shardC, _ := sharding.NewMultiShardCoordinator(2, 0)
+	cfg := &config.Config{EpochStartConfig: config.EpochStartConfig{RoundsPerEpoch: 14400}}
+	cfg.GeneralSettings.ChainParametersByEpoch = []config.ChainParametersByEpochConfig{{RoundDuration: 6000}}
 	args := economics.ArgsNewEconomicsData{
+		GeneralConfig: cfg,
 		Economics:     createDummyEconomicsConfig(feeSettings),
 		EpochNotifier: &epochNotifier.EpochNotifierStub{},
 		EnableEpochsHandler: &enableEpochsHandlerMock.EnableEpochsHandlerStub{
@@ -769,6 +779,10 @@ func TestEconomicsData_ConfirmedEpochRewardsSettingsChangeOrderedConfigs(t *test
 			TopUpGradientPoint:               "300000000000000000000",
 			TopUpFactor:                      0.25,
 			EpochEnable:                      0,
+			EcosystemGrowthPercentage:        0.0,
+			EcosystemGrowthAddress:           "erd1932eft30w753xyvme8d49qejgkjc09n5e49w4mwdjtm0neld797su0dlxp",
+			GrowthDividendPercentage:         0.0,
+			GrowthDividendAddress:            "erd1932eft30w753xyvme8d49qejgkjc09n5e49w4mwdjtm0neld797su0dlxp",
 		},
 		{
 			LeaderPercentage:                 0.2,
@@ -778,6 +792,10 @@ func TestEconomicsData_ConfirmedEpochRewardsSettingsChangeOrderedConfigs(t *test
 			TopUpGradientPoint:               "200000000000000000000",
 			TopUpFactor:                      0.5,
 			EpochEnable:                      2,
+			EcosystemGrowthPercentage:        0.0,
+			EcosystemGrowthAddress:           "erd1932eft30w753xyvme8d49qejgkjc09n5e49w4mwdjtm0neld797su0dlxp",
+			GrowthDividendPercentage:         0.0,
+			GrowthDividendAddress:            "erd1932eft30w753xyvme8d49qejgkjc09n5e49w4mwdjtm0neld797su0dlxp",
 		},
 	}
 
@@ -857,6 +875,10 @@ func TestEconomicsData_ConfirmedEpochRewardsSettingsChangeUnOrderedConfigs(t *te
 			TopUpGradientPoint:               "200000000000000000000",
 			TopUpFactor:                      0.5,
 			EpochEnable:                      2,
+			EcosystemGrowthPercentage:        0.0,
+			EcosystemGrowthAddress:           "erd1932eft30w753xyvme8d49qejgkjc09n5e49w4mwdjtm0neld797su0dlxp",
+			GrowthDividendPercentage:         0.0,
+			GrowthDividendAddress:            "erd1932eft30w753xyvme8d49qejgkjc09n5e49w4mwdjtm0neld797su0dlxp",
 		},
 		{
 			LeaderPercentage:                 0.1,
@@ -866,6 +888,10 @@ func TestEconomicsData_ConfirmedEpochRewardsSettingsChangeUnOrderedConfigs(t *te
 			TopUpGradientPoint:               "300000000000000000000",
 			TopUpFactor:                      0.25,
 			EpochEnable:                      0,
+			EcosystemGrowthPercentage:        0.0,
+			EcosystemGrowthAddress:           "erd1932eft30w753xyvme8d49qejgkjc09n5e49w4mwdjtm0neld797su0dlxp",
+			GrowthDividendPercentage:         0.0,
+			GrowthDividendAddress:            "erd1932eft30w753xyvme8d49qejgkjc09n5e49w4mwdjtm0neld797su0dlxp",
 		},
 	}
 	expectedRS := getExpectedSettings(rs, args.PubkeyConverter)
@@ -1455,18 +1481,6 @@ func TestEconomicsData_SetStatusHandler(t *testing.T) {
 	})
 }
 
-func TestEconomicsData_MinInflationRate(t *testing.T) {
-	t.Parallel()
-
-	args := createArgsForEconomicsData(1)
-	minInflationRate := 0.40
-	args.Economics.GlobalSettings.MinimumInflation = minInflationRate
-	economicsData, _ := economics.NewEconomicsData(args)
-
-	value := economicsData.MinInflationRate()
-	assert.Equal(t, minInflationRate, value)
-}
-
 func TestEconomicsData_MaxInflationRate(t *testing.T) {
 	t.Parallel()
 
@@ -1475,12 +1489,13 @@ func TestEconomicsData_MaxInflationRate(t *testing.T) {
 	maxInflationRate := 0.99
 	args.Economics.GlobalSettings.MinimumInflation = minInflationRate
 	args.Economics.GlobalSettings.YearSettings[0].MaximumInflation = maxInflationRate
+	args.Economics.GlobalSettings.TailInflation.EnableEpoch = 100
 	economicsData, _ := economics.NewEconomicsData(args)
 
-	value := economicsData.MaxInflationRate(0)
+	value := economicsData.MaxInflationRate(0, 0)
 	assert.Equal(t, maxInflationRate, value)
 
-	value = economicsData.MaxInflationRate(1) // missing from GlobalSettings
+	value = economicsData.MaxInflationRate(1, 1) // missing from GlobalSettings
 	assert.Equal(t, minInflationRate, value)
 }
 
@@ -1722,6 +1737,22 @@ func TestEconomicsData_RewardsTopUpFactor(t *testing.T) {
 
 	value := economicsData.RewardsTopUpFactor()
 	assert.Equal(t, topUpFactor, value)
+}
+
+func TestEconomicsData_RewardsSettingsGetters(t *testing.T) {
+	t.Parallel()
+
+	args := createArgsForEconomicsData(1)
+	economicsData, _ := economics.NewEconomicsData(args)
+
+	pkConv, _ := pubkeyConverter.NewBech32PubkeyConverter(32, "erd")
+	expectedAddr, _ := pkConv.Decode("erd1932eft30w753xyvme8d49qejgkjc09n5e49w4mwdjtm0neld797su0dlxp")
+
+	// Test getters for epoch 0
+	assert.Equal(t, 0.0, economicsData.EcosystemGrowthPercentageInEpoch(0))
+	assert.Equal(t, string(expectedAddr), economicsData.EcosystemGrowthAddressInEpoch(0))
+	assert.Equal(t, 0.0, economicsData.GrowthDividendPercentageInEpoch(0))
+	assert.Equal(t, string(expectedAddr), economicsData.GrowthDividendAddressInEpoch(0))
 }
 
 func getExpectedSettings(rs []config.EpochRewardSettings, pkConv core.PubkeyConverter) []config.EpochRewardSettings {
