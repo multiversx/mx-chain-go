@@ -16,6 +16,7 @@ import (
 var log = logger.GetOrCreate("process/asyncExecution")
 
 const timeToSleep = time.Millisecond * 5
+const timeToSleepOnError = time.Millisecond * 300
 
 // ArgsHeadersExecutor holds all the components needed to create a new instance of *headersExecutor
 type ArgsHeadersExecutor struct {
@@ -135,6 +136,7 @@ func (he *headersExecutor) handleProcessError(ctx context.Context, pair queue.He
 			if err == nil {
 				return
 			}
+			time.Sleep(timeToSleepOnError)
 		}
 	}
 }

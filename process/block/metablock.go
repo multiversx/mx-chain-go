@@ -2516,6 +2516,31 @@ func (mp *metaProcessor) updatePeerState(
 		return mp.validatorStatisticsProcessor.UpdatePeerState(header, cache)
 	}
 
+	lastExecutionResult, err := mp.getLastExecutionResult(header, cache)
+	if err != nil {
+		return nil, err
+	}
+
+	return mp.validatorStatisticsProcessor.UpdatePeerStateV3(header, cache, lastExecutionResult)
+}
+
+func (mp *metaProcessor) getLastExecutionResult(
+	header data.MetaHeaderHandler,
+	cache map[string]data.HeaderHandler,
+) (data.MetaExecutionResultHandler, error) {
+	prevHdr, err := getPrevHdrFromCache(header, cache)
+	if err != nil {
+		return nil, err
+	}
+
+	if !prevHdr.IsHeaderV3() {
+		// We only need these two fields for validatorStatisticsProcessor.UpdatePeerStateV3
+		return &block.MetaExecutionResult{
+			AccumulatedFees: prevHdr.GetAccumulatedFees(),
+			DeveloperFees:   prevHdr.GetDeveloperFees(),
+		}, nil
+	}
+
 	lastExecutionResult := mp.blockChain.GetLastExecutionResult()
 	if check.IfNil(lastExecutionResult) {
 		return nil, fmt.Errorf("missing last execution result in blockchain in metaProcessor.updatePeerState")
@@ -2526,7 +2551,19 @@ func (mp *metaProcessor) updatePeerState(
 		return nil, fmt.Errorf("%w in metaProcessor.updatePeerState ", process.ErrWrongTypeAssertion)
 	}
 
-	return mp.validatorStatisticsProcessor.UpdatePeerStateV3(header, cache, metaExecutionResult)
+	return metaExecutionResult, nil
+}
+
+func getPrevHdrFromCache(
+	header data.MetaHeaderHandler,
+	cache map[string]data.HeaderHandler,
+) (data.HeaderHandler, error) {
+	prevHash := header.GetPrevHash()
+	prevHdr, found := cache[string(prevHash)]
+	if !found {
+		return nil, fmt.Errorf("%w in getPrevHdrFromCache", errNilPreviousHeader)
+	}
+	return prevHdr, nil
 }
 
 // CreateNewHeader creates a new header

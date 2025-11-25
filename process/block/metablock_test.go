@@ -4570,7 +4570,7 @@ func TestUpdatePeerState(t *testing.T) {
 		}
 
 		mp, _ := blproc.NewMetaProcessor(arguments)
-		rootHash, err := mp.UpdatePeerState(hdr, make(map[string]data.HeaderHandler))
+		rootHash, err := mp.UpdatePeerState(hdr, map[string]data.HeaderHandler{"": &block.MetaBlock{}})
 		require.NoError(t, err)
 		require.Equal(t, expectedRootHash, rootHash)
 		require.True(t, wasUpdatePeerStateCalled)
@@ -4588,7 +4588,7 @@ func TestUpdatePeerState(t *testing.T) {
 		arguments := createMockMetaArguments(coreComponents, dataComponents, bootstrapComponents, statusComponents)
 
 		mp, _ := blproc.NewMetaProcessor(arguments)
-		rootHash, err := mp.UpdatePeerState(hdr, make(map[string]data.HeaderHandler))
+		rootHash, err := mp.UpdatePeerState(hdr, map[string]data.HeaderHandler{"": &block.MetaBlockV3{}})
 		require.ErrorContains(t, err, "missing last execution result")
 		require.Nil(t, rootHash)
 	})
@@ -4605,7 +4605,7 @@ func TestUpdatePeerState(t *testing.T) {
 		arguments := createMockMetaArguments(coreComponents, dataComponents, bootstrapComponents, statusComponents)
 
 		mp, _ := blproc.NewMetaProcessor(arguments)
-		rootHash, err := mp.UpdatePeerState(hdr, make(map[string]data.HeaderHandler))
+		rootHash, err := mp.UpdatePeerState(hdr, map[string]data.HeaderHandler{"": &block.MetaBlockV3{}})
 		require.ErrorIs(t, err, process.ErrWrongTypeAssertion)
 		require.Nil(t, rootHash)
 	})
@@ -4634,8 +4634,68 @@ func TestUpdatePeerState(t *testing.T) {
 		}
 
 		mp, _ := blproc.NewMetaProcessor(arguments)
-		_, err := mp.UpdatePeerState(hdr, make(map[string]data.HeaderHandler))
+		_, err := mp.UpdatePeerState(hdr, map[string]data.HeaderHandler{"": &block.MetaBlockV3{}})
 		require.NoError(t, err)
+		require.True(t, wasUpdatePeerStateCalled)
+	})
+	t.Run("update peer state v3 in supernova enable round", func(t *testing.T) {
+		t.Parallel()
+
+		prevHash := []byte("prevHdr")
+		hdr := &block.MetaBlockV3{PrevHash: prevHash}
+
+		accFees := big.NewInt(1)
+		devFees := big.NewInt(2)
+
+		expectedExecRes := &block.MetaExecutionResult{
+			AccumulatedFees: accFees,
+			DeveloperFees:   devFees,
+		}
+		prevHdr := &block.MetaBlock{
+			AccumulatedFees: accFees,
+			DeveloperFees:   devFees,
+		}
+
+		coreComponents, dataComponents, bootstrapComponents, statusComponents := createMockComponentHolders()
+		coreComponents.EnableRoundsHandlerField = &testscommon.EnableRoundsHandlerStub{
+			IsFlagEnabledInRoundCalled: func(flag common.EnableRoundFlag, round uint64) bool {
+				return flag == common.SupernovaRoundFlag
+			},
+		}
+
+		dataComponents.BlockChain = &testscommon.ChainHandlerStub{
+			GetLastExecutionResultCalled: func() data.BaseExecutionResultHandler {
+				require.Fail(t, "should not get last execution result from blockchain hook")
+				return nil
+			},
+		}
+
+		wasUpdatePeerStateCalled := false
+		expectedRootHash := []byte("rootHash")
+		arguments := createMockMetaArguments(coreComponents, dataComponents, bootstrapComponents, statusComponents)
+		arguments.ValidatorStatisticsProcessor = &testscommon.ValidatorStatisticsProcessorStub{
+			UpdatePeerStateV3Called: func(header data.MetaHeaderHandler, metaExecutionResult data.MetaExecutionResultHandler) ([]byte, error) {
+				require.Equal(t, hdr, header)
+				require.Equal(t, expectedExecRes, metaExecutionResult)
+				wasUpdatePeerStateCalled = true
+
+				return expectedRootHash, nil
+			},
+		}
+
+		mp, _ := blproc.NewMetaProcessor(arguments)
+
+		// No previous header found in cache, should return error
+		mapCache := make(map[string]data.HeaderHandler)
+		rootHash, err := mp.UpdatePeerState(hdr, mapCache)
+		require.Nil(t, rootHash)
+		require.ErrorIs(t, err, blproc.ErrNilPreviousHdr)
+		require.False(t, wasUpdatePeerStateCalled)
+
+		mapCache[string(prevHash)] = prevHdr
+		rootHash, err = mp.UpdatePeerState(hdr, mapCache)
+		require.Nil(t, err)
+		require.Equal(t, expectedRootHash, rootHash)
 		require.True(t, wasUpdatePeerStateCalled)
 	})
 }
