@@ -9,7 +9,7 @@ import (
 
 // EconomicsHandlerMock -
 type EconomicsHandlerMock struct {
-	MaxInflationRateCalled                              func(year uint32, epoch uint32) float64
+	MaxInflationRateCalled                              func(year uint32, epoch uint32) (float64, error)
 	LeaderPercentageCalled                              func() float64
 	ProtocolSustainabilityPercentageCalled              func() float64
 	ProtocolSustainabilityAddressCalled                 func() string
@@ -84,7 +84,7 @@ func (ehm *EconomicsHandlerMock) ProtocolSustainabilityAddress() string {
 }
 
 // MaxInflationRate -
-func (ehm *EconomicsHandlerMock) MaxInflationRate(year uint32, epoch uint32) float64 {
+func (ehm *EconomicsHandlerMock) MaxInflationRate(year uint32, epoch uint32) (float64, error) {
 	return ehm.MaxInflationRateCalled(year, epoch)
 }
 

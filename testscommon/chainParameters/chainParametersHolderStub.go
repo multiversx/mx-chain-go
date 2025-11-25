@@ -1,12 +1,31 @@
 package chainParameters
 
-import "github.com/multiversx/mx-chain-go/config"
+import (
+	"errors"
+
+	"github.com/multiversx/mx-chain-go/config"
+)
 
 // ChainParametersHandlerStub -
 type ChainParametersHandlerStub struct {
 	CurrentChainParametersCalled  func() config.ChainParametersByEpochConfig
 	AllChainParametersCalled      func() []config.ChainParametersByEpochConfig
 	ChainParametersForEpochCalled func(epoch uint32) (config.ChainParametersByEpochConfig, error)
+}
+
+// NewChainParametersHandlerStubWithRealConfig -
+func NewChainParametersHandlerStubWithRealConfig(cfg []config.ChainParametersByEpochConfig) *ChainParametersHandlerStub {
+	return &ChainParametersHandlerStub{
+		ChainParametersForEpochCalled: func(epoch uint32) (config.ChainParametersByEpochConfig, error) {
+			for _, chainParams := range cfg {
+				if chainParams.EnableEpoch <= epoch {
+					return chainParams, nil
+				}
+			}
+
+			return config.ChainParametersByEpochConfig{}, errors.New("epoch not found")
+		},
+	}
 }
 
 // CurrentChainParameters -

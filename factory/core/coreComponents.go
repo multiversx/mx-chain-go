@@ -330,13 +330,13 @@ func (ccf *coreComponentsFactory) Create() (*coreComponents, error) {
 
 	log.Trace("creating economics data components")
 	argsNewEconomicsData := economics.ArgsNewEconomicsData{
-		Economics:           &ccf.economicsConfig,
-		GeneralConfig:       &ccf.config,
-		EpochNotifier:       epochNotifier,
-		EnableEpochsHandler: enableEpochsHandler,
-		TxVersionChecker:    txVersionChecker,
-		PubkeyConverter:     addressPubkeyConverter,
-		ShardCoordinator:    shardCoordinator,
+		Economics:              &ccf.economicsConfig,
+		EpochNotifier:          epochNotifier,
+		EnableEpochsHandler:    enableEpochsHandler,
+		TxVersionChecker:       txVersionChecker,
+		PubkeyConverter:        addressPubkeyConverter,
+		ShardCoordinator:       shardCoordinator,
+		ChainParametersHandler: chainParametersHandler,
 	}
 	economicsData, err := economics.NewEconomicsData(argsNewEconomicsData)
 	if err != nil {

@@ -14,6 +14,7 @@ import (
 	"github.com/multiversx/mx-chain-core-go/core/keyValStorage"
 	"github.com/multiversx/mx-chain-core-go/data"
 	"github.com/multiversx/mx-chain-core-go/data/block"
+	"github.com/multiversx/mx-chain-go/testscommon/chainParameters"
 	vmcommon "github.com/multiversx/mx-chain-vm-common-go"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
@@ -60,11 +61,16 @@ func createMockPubkeyConverter() *testscommon.PubkeyConverterMock {
 }
 
 func createMockArguments() peer.ArgValidatorStatisticsProcessor {
-	cfg := &config.Config{EpochStartConfig: config.EpochStartConfig{RoundsPerEpoch: 14400}}
-	cfg.GeneralSettings.ChainParametersByEpoch = []config.ChainParametersByEpochConfig{{RoundDuration: 6000}}
+	cfg := &config.Config{EpochStartConfig: config.EpochStartConfig{}}
+	cfg.GeneralSettings.ChainParametersByEpoch = []config.ChainParametersByEpochConfig{
+		{
+			RoundDuration:  6000,
+			RoundsPerEpoch: 14400,
+		},
+	}
 
 	argsNewEconomicsData := economics.ArgsNewEconomicsData{
-		GeneralConfig: cfg,
+		ChainParametersHandler: chainParameters.NewChainParametersHandlerStubWithRealConfig(cfg.GeneralSettings.ChainParametersByEpoch),
 		Economics: &config.EconomicsConfig{
 			GlobalSettings: config.GlobalSettings{
 				GenesisTotalSupply: "2000000000000000000000",

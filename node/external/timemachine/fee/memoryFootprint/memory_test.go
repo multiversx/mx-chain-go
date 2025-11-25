@@ -2,9 +2,11 @@ package memoryFootprint
 
 import (
 	"fmt"
-	"github.com/multiversx/mx-chain-go/config"
 	"runtime"
 	"testing"
+
+	"github.com/multiversx/mx-chain-go/config"
+	"github.com/multiversx/mx-chain-go/testscommon/chainParameters"
 
 	"github.com/multiversx/mx-chain-core-go/core"
 	"github.com/multiversx/mx-chain-core-go/data/transaction"
@@ -30,11 +32,16 @@ func TestFeeComputer_MemoryFootprint(t *testing.T) {
 	journal.before = getMemStats()
 
 	economicsConfig := testscommon.GetEconomicsConfig()
-	cfg := &config.Config{EpochStartConfig: config.EpochStartConfig{RoundsPerEpoch: 14400}}
-	cfg.GeneralSettings.ChainParametersByEpoch = []config.ChainParametersByEpochConfig{{RoundDuration: 6000}}
+	cfg := &config.Config{EpochStartConfig: config.EpochStartConfig{}}
+	cfg.GeneralSettings.ChainParametersByEpoch = []config.ChainParametersByEpochConfig{
+		{
+			RoundDuration:  6000,
+			RoundsPerEpoch: 14400,
+		},
+	}
 	economicsData, _ := economics.NewEconomicsData(economics.ArgsNewEconomicsData{
-		GeneralConfig: cfg,
-		Economics:     &economicsConfig,
+		ChainParametersHandler: chainParameters.NewChainParametersHandlerStubWithRealConfig(cfg.GeneralSettings.ChainParametersByEpoch),
+		Economics:              &economicsConfig,
 		EnableEpochsHandler: &enableEpochsHandlerMock.EnableEpochsHandlerStub{
 			IsFlagEnabledInEpochCalled: func(flag core.EnableEpochFlag, epoch uint32) bool {
 				if flag == common.PenalizedTooMuchGasFlag {

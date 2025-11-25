@@ -79,7 +79,7 @@ func createArgsCoreComponentsHolder() ArgsCoreComponentsHolder {
 			Hardfork: config.HardforkConfig{
 				PublicKeyToListenFrom: components.DummyPk,
 			},
-			EpochStartConfig: config.EpochStartConfig{RoundsPerEpoch: 14400},
+			EpochStartConfig: config.EpochStartConfig{},
 		},
 		EnableEpochsConfig: config.EnableEpochs{},
 		RoundsConfig: config.RoundConfig{

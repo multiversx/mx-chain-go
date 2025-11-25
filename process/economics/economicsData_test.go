@@ -19,6 +19,7 @@ import (
 	"github.com/multiversx/mx-chain-go/process/economics"
 	"github.com/multiversx/mx-chain-go/sharding"
 	"github.com/multiversx/mx-chain-go/testscommon"
+	"github.com/multiversx/mx-chain-go/testscommon/chainParameters"
 	"github.com/multiversx/mx-chain-go/testscommon/enableEpochsHandlerMock"
 	"github.com/multiversx/mx-chain-go/testscommon/epochNotifier"
 	"github.com/multiversx/mx-chain-go/testscommon/statusHandler"
@@ -105,12 +106,17 @@ func createArgsForEconomicsData(gasModifier float64) economics.ArgsNewEconomicsD
 	feeSettings := feeSettingsDummy(gasModifier)
 	pkConv, _ := pubkeyConverter.NewBech32PubkeyConverter(32, "erd")
 	shardC, _ := sharding.NewMultiShardCoordinator(2, 0)
-	cfg := &config.Config{EpochStartConfig: config.EpochStartConfig{RoundsPerEpoch: 14400}}
-	cfg.GeneralSettings.ChainParametersByEpoch = []config.ChainParametersByEpochConfig{{RoundDuration: 6000}}
+	cfg := &config.Config{EpochStartConfig: config.EpochStartConfig{}}
+	cfg.GeneralSettings.ChainParametersByEpoch = []config.ChainParametersByEpochConfig{
+		{
+			RoundDuration:  6000,
+			RoundsPerEpoch: 14400,
+		},
+	}
 	args := economics.ArgsNewEconomicsData{
-		GeneralConfig: cfg,
-		Economics:     createDummyEconomicsConfig(feeSettings),
-		EpochNotifier: &epochNotifier.EpochNotifierStub{},
+		ChainParametersHandler: chainParameters.NewChainParametersHandlerStubWithRealConfig(cfg.GeneralSettings.ChainParametersByEpoch),
+		Economics:              createDummyEconomicsConfig(feeSettings),
+		EpochNotifier:          &epochNotifier.EpochNotifierStub{},
 		EnableEpochsHandler: &enableEpochsHandlerMock.EnableEpochsHandlerStub{
 			IsFlagEnabledInEpochCalled: func(flag core.EnableEpochFlag, epoch uint32) bool {
 				return flag == common.GasPriceModifierFlag
@@ -127,12 +133,17 @@ func createArgsForEconomicsDataRealFees() economics.ArgsNewEconomicsData {
 	feeSettings := feeSettingsReal()
 	pkConv, _ := pubkeyConverter.NewBech32PubkeyConverter(32, "erd")
 	shardC, _ := sharding.NewMultiShardCoordinator(2, 0)
-	cfg := &config.Config{EpochStartConfig: config.EpochStartConfig{RoundsPerEpoch: 14400}}
-	cfg.GeneralSettings.ChainParametersByEpoch = []config.ChainParametersByEpochConfig{{RoundDuration: 6000}}
+	cfg := &config.Config{EpochStartConfig: config.EpochStartConfig{}}
+	cfg.GeneralSettings.ChainParametersByEpoch = []config.ChainParametersByEpochConfig{
+		{
+			RoundDuration:  6000,
+			RoundsPerEpoch: 14400,
+		},
+	}
 	args := economics.ArgsNewEconomicsData{
-		GeneralConfig: cfg,
-		Economics:     createDummyEconomicsConfig(feeSettings),
-		EpochNotifier: &epochNotifier.EpochNotifierStub{},
+		ChainParametersHandler: chainParameters.NewChainParametersHandlerStubWithRealConfig(cfg.GeneralSettings.ChainParametersByEpoch),
+		Economics:              createDummyEconomicsConfig(feeSettings),
+		EpochNotifier:          &epochNotifier.EpochNotifierStub{},
 		EnableEpochsHandler: &enableEpochsHandlerMock.EnableEpochsHandlerStub{
 			IsFlagEnabledInEpochCalled: func(flag core.EnableEpochFlag, epoch uint32) bool {
 				return flag == common.GasPriceModifierFlag
@@ -171,6 +182,16 @@ func TestNewEconomicsData_NilOrEmptyYearSettingsShouldErr(t *testing.T) {
 	args.Economics.GlobalSettings.YearSettings = make([]*config.YearSetting, 0)
 	_, err = economics.NewEconomicsData(args)
 	assert.Equal(t, process.ErrEmptyYearSettings, err)
+}
+
+func TestNewEconomicsData_NilChainParametersHandlerShouldErr(t *testing.T) {
+	t.Parallel()
+
+	args := createArgsForEconomicsData(1)
+	args.ChainParametersHandler = nil
+
+	_, err := economics.NewEconomicsData(args)
+	assert.Equal(t, process.ErrNilChainParametersHandler, err)
 }
 
 func TestNewEconomicsData_NilOrEmptyGasLimitSettingsShouldErr(t *testing.T) {
@@ -1492,10 +1513,12 @@ func TestEconomicsData_MaxInflationRate(t *testing.T) {
 	args.Economics.GlobalSettings.TailInflation.EnableEpoch = 100
 	economicsData, _ := economics.NewEconomicsData(args)
 
-	value := economicsData.MaxInflationRate(0, 0)
+	value, err := economicsData.MaxInflationRate(0, 0)
+	assert.NoError(t, err)
 	assert.Equal(t, maxInflationRate, value)
 
-	value = economicsData.MaxInflationRate(1, 1) // missing from GlobalSettings
+	value, err = economicsData.MaxInflationRate(1, 1) // missing from GlobalSettings
+	assert.NoError(t, err)
 	assert.Equal(t, minInflationRate, value)
 }
 

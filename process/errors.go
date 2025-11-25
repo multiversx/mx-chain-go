@@ -1293,9 +1293,6 @@ var ErrInvalidInterceptedData = errors.New("invalid intercepted data")
 // ErrMissingHeaderProof signals that the proof for the header is missing
 var ErrMissingHeaderProof = errors.New("missing header proof")
 
-// ErrInvalidHeaderProof signals that an invalid equivalent proof has been provided
-var ErrInvalidHeaderProof = errors.New("invalid equivalent proof")
-
 // ErrUnexpectedHeaderProof signals that a header proof has been provided unexpectedly
 var ErrUnexpectedHeaderProof = errors.New("unexpected header proof")
 
@@ -1310,9 +1307,6 @@ var ErrNilKeyRWMutexHandler = errors.New("nil key rw mutex handler")
 
 // ErrZeroDurationForEpoch signals that duration for epoch is zero
 var ErrZeroDurationForEpoch = errors.New("zero duration for epoch")
-
-// ErrInvalidChainParameters signals that invalid chain parameters has been provided
-var ErrInvalidChainParameters = errors.New("invalid chain parameters")
 
 // ErrBadSelectionGasBandwidthIncreasePercent signals a bad txcache config
 var ErrBadSelectionGasBandwidthIncreasePercent = errors.New("bad selection gas bandwidth increase percent")

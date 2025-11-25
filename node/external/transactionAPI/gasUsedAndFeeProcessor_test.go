@@ -2,9 +2,11 @@ package transactionAPI
 
 import (
 	"encoding/hex"
-	"github.com/multiversx/mx-chain-go/config"
 	"math/big"
 	"testing"
+
+	"github.com/multiversx/mx-chain-go/config"
+	"github.com/multiversx/mx-chain-go/testscommon/chainParameters"
 
 	"github.com/multiversx/mx-chain-core-go/core"
 	"github.com/multiversx/mx-chain-core-go/core/pubkeyConverter"
@@ -23,16 +25,21 @@ import (
 
 func createEconomicsData(enableEpochsHandler common.EnableEpochsHandler) process.EconomicsDataHandler {
 	economicsConfig := testscommon.GetEconomicsConfig()
-	cfg := &config.Config{EpochStartConfig: config.EpochStartConfig{RoundsPerEpoch: 14400}}
-	cfg.GeneralSettings.ChainParametersByEpoch = []config.ChainParametersByEpochConfig{{RoundDuration: 6000}}
+	cfg := &config.Config{EpochStartConfig: config.EpochStartConfig{}}
+	cfg.GeneralSettings.ChainParametersByEpoch = []config.ChainParametersByEpochConfig{
+		{
+			RoundDuration:  6000,
+			RoundsPerEpoch: 14400,
+		},
+	}
 	economicsData, _ := economics.NewEconomicsData(economics.ArgsNewEconomicsData{
-		GeneralConfig:       cfg,
-		Economics:           &economicsConfig,
-		EnableEpochsHandler: enableEpochsHandler,
-		TxVersionChecker:    &testscommon.TxVersionCheckerStub{},
-		EpochNotifier:       &epochNotifier.EpochNotifierStub{},
-		PubkeyConverter:     &testscommon.PubkeyConverterStub{},
-		ShardCoordinator:    &testscommon.ShardsCoordinatorMock{},
+		ChainParametersHandler: chainParameters.NewChainParametersHandlerStubWithRealConfig(cfg.GeneralSettings.ChainParametersByEpoch),
+		Economics:              &economicsConfig,
+		EnableEpochsHandler:    enableEpochsHandler,
+		TxVersionChecker:       &testscommon.TxVersionCheckerStub{},
+		EpochNotifier:          &epochNotifier.EpochNotifierStub{},
+		PubkeyConverter:        &testscommon.PubkeyConverterStub{},
+		ShardCoordinator:       &testscommon.ShardsCoordinatorMock{},
 	})
 
 	return economicsData

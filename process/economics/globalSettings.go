@@ -4,16 +4,17 @@ import (
 	"math"
 	"sync"
 
+	"github.com/multiversx/mx-chain-go/common"
 	"github.com/multiversx/mx-chain-go/config"
 	"github.com/multiversx/mx-chain-go/process"
 )
 
 type globalSettingsHandler struct {
+	chainParametersHandler       common.ChainParametersHandler
 	minInflation                 float64
 	yearSettings                 map[uint32]*config.YearSetting
 	tailInflationActivationEpoch uint32
 	startYearInflation           float64
-	inflationForEpochCompound    float64
 	decayPercentage              float64
 	mutYearSettings              sync.RWMutex
 }
@@ -27,9 +28,10 @@ var numDaysInYear = uint64(365)
 // newGlobalSettingsHandler creates a new global settings provider
 func newGlobalSettingsHandler(
 	economics *config.EconomicsConfig,
-	generalConfig *config.Config,
+	chainParametersHandler common.ChainParametersHandler,
 ) (*globalSettingsHandler, error) {
 	g := &globalSettingsHandler{
+		chainParametersHandler:       chainParametersHandler,
 		minInflation:                 economics.GlobalSettings.MinimumInflation,
 		yearSettings:                 make(map[uint32]*config.YearSetting),
 		tailInflationActivationEpoch: economics.GlobalSettings.TailInflation.EnableEpoch,
@@ -46,49 +48,46 @@ func newGlobalSettingsHandler(
 		}
 	}
 
-	err := g.calculateInflationForEpochCompound(generalConfig)
-	if err != nil {
-		return nil, err
-	}
-
 	if isPercentageInvalid(g.minInflation) ||
 		isPercentageInvalid(g.startYearInflation) ||
-		isPercentageInvalid(g.decayPercentage) ||
-		isPercentageInvalid(g.inflationForEpochCompound) {
+		isPercentageInvalid(g.decayPercentage) {
 		return nil, process.ErrInvalidInflationPercentages
 	}
 
 	return g, nil
 }
 
-// TODO integrate supernova components here to calculate correctly after the transition as the config changed
-func (g *globalSettingsHandler) calculateInflationForEpochCompound(generalConfig *config.Config) error {
-	roundsPerEpoch := uint64(generalConfig.EpochStartConfig.RoundsPerEpoch)
-	if len(generalConfig.GeneralSettings.ChainParametersByEpoch) == 0 {
-		return process.ErrInvalidChainParameters
+func (g *globalSettingsHandler) calculateInflationForEpochCompound(epoch uint32) (float64, error) {
+	chainParameters, err := g.chainParametersHandler.ChainParametersForEpoch(epoch)
+	if err != nil {
+		return 0, err
 	}
-	roundDuration := generalConfig.GeneralSettings.ChainParametersByEpoch[0].RoundDuration
 
 	numberOfMillisecondsInYear := numMillisecondsPerSeconds * numSecondsPerMinute * numMinutesPerHour * numHoursPerDay * numDaysInYear
-	epochDurationInMilliseconds := roundDuration * roundsPerEpoch
+	epochDurationInMilliseconds := chainParameters.RoundDuration * uint64(chainParameters.RoundsPerEpoch)
 
 	if epochDurationInMilliseconds == 0 {
-		return process.ErrZeroDurationForEpoch
+		return 0, process.ErrZeroDurationForEpoch
 	}
 
 	numberOfEpochsPerYear := float64(numberOfMillisecondsInYear) / float64(epochDurationInMilliseconds)
 
-	g.inflationForEpochCompound = numberOfEpochsPerYear * (math.Pow(1.0+g.startYearInflation, 1.0/numberOfEpochsPerYear) - 1)
-	return nil
+	inflationForEpochCompound := numberOfEpochsPerYear * (math.Pow(1.0+g.startYearInflation, 1.0/numberOfEpochsPerYear) - 1)
+
+	if isPercentageInvalid(inflationForEpochCompound) {
+		return 0, process.ErrInvalidInflationPercentages
+	}
+
+	return inflationForEpochCompound, nil
 }
 
 // TODO: implement decay, implement growth, calculations will change after supernova
-func (g *globalSettingsHandler) maxInflationRate(year uint32, epoch uint32) float64 {
+func (g *globalSettingsHandler) maxInflationRate(year uint32, epoch uint32) (float64, error) {
 	if g.isTailInflationActive(epoch) {
-		return g.inflationForEpochCompound
+		return g.calculateInflationForEpochCompound(epoch)
 	}
 
-	return g.yearSettingsInflation(year)
+	return g.yearSettingsInflation(year), nil
 }
 
 func (g *globalSettingsHandler) yearSettingsInflation(year uint32) float64 {

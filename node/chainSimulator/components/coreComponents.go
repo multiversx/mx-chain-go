@@ -248,13 +248,13 @@ func CreateCoreComponents(args ArgsCoreComponentsHolder) (*coreComponentsHolder,
 	instance.txVersionChecker = versioning.NewTxVersionChecker(args.Config.GeneralSettings.MinTransactionVersion)
 
 	argsEconomicsHandler := economics.ArgsNewEconomicsData{
-		GeneralConfig:       &args.Config,
-		TxVersionChecker:    instance.txVersionChecker,
-		Economics:           &args.EconomicsConfig,
-		EpochNotifier:       instance.epochNotifier,
-		EnableEpochsHandler: instance.enableEpochsHandler,
-		PubkeyConverter:     instance.addressPubKeyConverter,
-		ShardCoordinator:    testscommon.NewMultiShardsCoordinatorMock(instance.genesisNodesSetup.NumberOfShards()),
+		ChainParametersHandler: instance.chainParametersHandler,
+		TxVersionChecker:       instance.txVersionChecker,
+		Economics:              &args.EconomicsConfig,
+		EpochNotifier:          instance.epochNotifier,
+		EnableEpochsHandler:    instance.enableEpochsHandler,
+		PubkeyConverter:        instance.addressPubKeyConverter,
+		ShardCoordinator:       testscommon.NewMultiShardsCoordinatorMock(instance.genesisNodesSetup.NumberOfShards()),
 	}
 
 	instance.economicsData, err = economics.NewEconomicsData(argsEconomicsHandler)

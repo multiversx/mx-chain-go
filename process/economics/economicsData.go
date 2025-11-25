@@ -38,13 +38,13 @@ type economicsData struct {
 
 // ArgsNewEconomicsData defines the arguments needed for new economics economicsData
 type ArgsNewEconomicsData struct {
-	TxVersionChecker    process.TxVersionCheckerHandler
-	Economics           *config.EconomicsConfig
-	GeneralConfig       *config.Config
-	EpochNotifier       process.EpochNotifier
-	EnableEpochsHandler common.EnableEpochsHandler
-	PubkeyConverter     core.PubkeyConverter
-	ShardCoordinator    sharding.Coordinator
+	TxVersionChecker       process.TxVersionCheckerHandler
+	Economics              *config.EconomicsConfig
+	EpochNotifier          process.EpochNotifier
+	EnableEpochsHandler    common.EnableEpochsHandler
+	PubkeyConverter        core.PubkeyConverter
+	ShardCoordinator       sharding.Coordinator
+	ChainParametersHandler common.ChainParametersHandler
 }
 
 // NewEconomicsData will create an object with information about economics parameters
@@ -63,6 +63,9 @@ func NewEconomicsData(args ArgsNewEconomicsData) (*economicsData, error) {
 	}
 	if check.IfNil(args.ShardCoordinator) {
 		return nil, process.ErrNilShardCoordinator
+	}
+	if check.IfNil(args.ChainParametersHandler) {
+		return nil, process.ErrNilChainParametersHandler
 	}
 	err := core.CheckHandlerCompatibility(args.EnableEpochsHandler, []core.EnableEpochFlag{
 		common.GasPriceModifierFlag,
@@ -94,7 +97,7 @@ func NewEconomicsData(args ArgsNewEconomicsData) (*economicsData, error) {
 		return nil, err
 	}
 
-	ed.globalSettingsHandler, err = newGlobalSettingsHandler(args.Economics, args.GeneralConfig)
+	ed.globalSettingsHandler, err = newGlobalSettingsHandler(args.Economics, args.ChainParametersHandler)
 	if err != nil {
 		return nil, err
 	}
@@ -153,7 +156,7 @@ func (ed *economicsData) LeaderPercentageInEpoch(epoch uint32) float64 {
 }
 
 // MaxInflationRate returns the maximum inflation rate
-func (ed *economicsData) MaxInflationRate(year uint32, epoch uint32) float64 {
+func (ed *economicsData) MaxInflationRate(year uint32, epoch uint32) (float64, error) {
 	return ed.globalSettingsHandler.maxInflationRate(year, epoch)
 }
 

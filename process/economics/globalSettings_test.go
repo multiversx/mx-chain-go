@@ -1,10 +1,12 @@
 package economics
 
 import (
-	"github.com/multiversx/mx-chain-go/config"
-	"github.com/stretchr/testify/require"
 	"math"
 	"testing"
+
+	"github.com/multiversx/mx-chain-go/config"
+	"github.com/multiversx/mx-chain-go/testscommon/chainParameters"
+	"github.com/stretchr/testify/require"
 )
 
 func createGlobalSettingsHandler() *globalSettingsHandler {
@@ -48,13 +50,14 @@ func createGlobalSettingsHandler() *globalSettingsHandler {
 		FeeSettings: config.FeeSettings{},
 	}
 
-	cfg := &config.Config{EpochStartConfig: config.EpochStartConfig{RoundsPerEpoch: 14400}}
-	cfg.GeneralSettings.ChainParametersByEpoch = []config.ChainParametersByEpochConfig{
+	chainParams := chainParameters.NewChainParametersHandlerStubWithRealConfig([]config.ChainParametersByEpochConfig{
 		{
-			RoundDuration: 6000,
+			RoundDuration:  6000,
+			RoundsPerEpoch: 14400,
 		},
-	}
-	gsh, _ := newGlobalSettingsHandler(&economics, cfg)
+	})
+
+	gsh, _ := newGlobalSettingsHandler(&economics, chainParams)
 	return gsh
 }
 
@@ -69,19 +72,23 @@ func TestGlobalSettingsHandler_maxInflationRate(t *testing.T) {
 	gsh.yearSettings[1] = &config.YearSetting{Year: 1, MaximumInflation: year1Inflation}
 
 	// Test before tail inflation activation
-	rate := gsh.maxInflationRate(1, tailInflationActivationEpoch-1)
+	rate, err := gsh.maxInflationRate(1, tailInflationActivationEpoch-1)
+	require.NoError(t, err)
 	require.Equal(t, year1Inflation, rate)
 
 	// Test at tail inflation activation
-	rate = gsh.maxInflationRate(1, tailInflationActivationEpoch)
+	rate, err = gsh.maxInflationRate(1, tailInflationActivationEpoch)
+	require.NoError(t, err)
 	require.Equal(t, year1Inflation, rate)
 
 	// Test after tail inflation activation
-	rate = gsh.maxInflationRate(1, tailInflationActivationEpoch+1)
+	rate, err = gsh.maxInflationRate(1, tailInflationActivationEpoch+1)
+	require.NoError(t, err)
 	require.Equal(t, 0.08395550376084304, rate)
 
 	// Test with a year that is not in the map
-	rate = gsh.maxInflationRate(2, tailInflationActivationEpoch-1)
+	rate, err = gsh.maxInflationRate(2, tailInflationActivationEpoch-1)
+	require.NoError(t, err)
 	require.Equal(t, minInflation, rate)
 }
 
@@ -102,7 +109,8 @@ func TestGlobalSettingsMaxInflation(t *testing.T) {
 func TestGlobalSettingsMaxInflationRate_withSupply(t *testing.T) {
 	gsh := createGlobalSettingsHandler()
 
-	rate := gsh.maxInflationRate(1, 101)
+	rate, err := gsh.maxInflationRate(1, 101)
+	require.NoError(t, err)
 
 	oneToken := 1000000000000000000.0 // 10^18
 	totalSupplyDay0 := 28781358.0 * oneToken
