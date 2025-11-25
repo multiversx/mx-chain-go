@@ -1763,6 +1763,75 @@ func TestNewRewardsCreatorV2_CreateRewardsMiniBlocks2169Nodes(t *testing.T) {
 	require.Nil(t, err)
 }
 
+func TestRewardsCreatorV2_CreateRewardsMiniBlocksHeaderV3(t *testing.T) {
+	t.Parallel()
+
+	t.Run("should return ErrNilHeaderHandler because of nil header argument", func(t *testing.T) {
+		t.Parallel()
+
+		args := getRewardsCreatorV2Arguments()
+		rwd, err := NewRewardsCreatorV2(args)
+		require.Nil(t, err)
+
+		vInfo := state.NewShardValidatorsInfoMap()
+		prevBlockExecResults := block.BaseMetaExecutionResult{}
+
+		_, err = rwd.CreateRewardsMiniBlocksV3(nil, vInfo, &block.Economics{}, &prevBlockExecResults)
+		require.Equal(t, common.ErrNilHeaderHandler, err)
+	})
+
+	t.Run("should return ErrNilPrevBlockExecutionResults because of nil previous block execution results", func(t *testing.T) {
+		t.Parallel()
+
+		args := getRewardsCreatorV2Arguments()
+		rwd, err := NewRewardsCreatorV2(args)
+		require.Nil(t, err)
+
+		vInfo := state.NewShardValidatorsInfoMap()
+		metaBlock := &block.MetaBlockV3{}
+
+		_, err = rwd.CreateRewardsMiniBlocksV3(metaBlock, vInfo, &block.Economics{}, nil)
+		require.Equal(t, epochStart.ErrNilPrevBlockExecutionResults, err)
+	})
+
+	t.Run("should return ErrInvalidHeader because headers is not V3", func(t *testing.T) {
+		t.Parallel()
+
+		args := getRewardsCreatorV2Arguments()
+		rwd, err := NewRewardsCreatorV2(args)
+		require.Nil(t, err)
+
+		vInfo := state.NewShardValidatorsInfoMap()
+		metaBlock := &block.MetaBlock{}
+
+		prevBlockExecResults := block.BaseMetaExecutionResult{}
+
+		_, err = rwd.CreateRewardsMiniBlocksV3(metaBlock, vInfo, &block.Economics{}, &prevBlockExecResults)
+		require.Equal(t, epochStart.ErrInvalidHeader, err)
+	})
+
+	t.Run("should work", func(t *testing.T) {
+		t.Parallel()
+
+		args := getRewardsCreatorV2Arguments()
+		rwd, err := NewRewardsCreatorV2(args)
+		require.Nil(t, err)
+
+		nbEligiblePerShard := uint32(400)
+		vInfo := createDefaultValidatorInfo(nbEligiblePerShard, args.ShardCoordinator, args.NodesConfigProvider, 100, defaultBlocksPerShard)
+		metaBlock := &block.MetaBlockV3{
+			EpochStart: getDefaultEpochStart(),
+		}
+
+		prevBlockExecResults := block.BaseMetaExecutionResult{
+			BaseExecutionResult: &block.BaseExecutionResult{},
+		}
+
+		_, err = rwd.CreateRewardsMiniBlocksV3(metaBlock, vInfo, &metaBlock.EpochStart.Economics, &prevBlockExecResults)
+		require.Nil(t, err)
+	})
+}
+
 func getRewardsCreatorV2Arguments() RewardsCreatorArgsV2 {
 	rewardsTopUpGradientPoint, _ := big.NewInt(0).SetString("3000000000000000000000000", 10)
 	topUpRewardFactor := 0.25
