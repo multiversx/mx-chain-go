@@ -40,7 +40,7 @@ type economicsData struct {
 type ArgsNewEconomicsData struct {
 	TxVersionChecker    process.TxVersionCheckerHandler
 	Economics           *config.EconomicsConfig
-	GeneralConfig       *config.Config
+	ChainParamsHandler  process.ChainParametersHandler
 	EpochNotifier       process.EpochNotifier
 	EnableEpochsHandler common.EnableEpochsHandler
 	PubkeyConverter     core.PubkeyConverter
@@ -94,7 +94,7 @@ func NewEconomicsData(args ArgsNewEconomicsData) (*economicsData, error) {
 		return nil, err
 	}
 
-	ed.globalSettingsHandler, err = newGlobalSettingsHandler(args.Economics, args.GeneralConfig)
+	ed.globalSettingsHandler, err = newGlobalSettingsHandler(args.Economics, args.ChainParamsHandler)
 	if err != nil {
 		return nil, err
 	}

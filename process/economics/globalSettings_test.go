@@ -2,6 +2,7 @@ package economics
 
 import (
 	"github.com/multiversx/mx-chain-go/config"
+	"github.com/multiversx/mx-chain-go/testscommon/chainParameters"
 	"github.com/stretchr/testify/require"
 	"math"
 	"testing"
@@ -48,13 +49,20 @@ func createGlobalSettingsHandler() *globalSettingsHandler {
 		FeeSettings: config.FeeSettings{},
 	}
 
-	cfg := &config.Config{EpochStartConfig: config.EpochStartConfig{RoundsPerEpoch: 14400}}
-	cfg.GeneralSettings.ChainParametersByEpoch = []config.ChainParametersByEpochConfig{
-		{
-			RoundDuration: 6000,
+	chainParams := config.ChainParametersByEpochConfig{RoundsPerEpoch: 14400, RoundDuration: 6000}
+	chainParamsHolder := &chainParameters.ChainParametersHandlerStub{
+		ChainParametersForEpochCalled: func(epoch uint32) (config.ChainParametersByEpochConfig, error) {
+			return chainParams, nil
+		},
+		CurrentChainParametersCalled: func() config.ChainParametersByEpochConfig {
+			return chainParams
+		},
+		AllChainParametersCalled: func() []config.ChainParametersByEpochConfig {
+			return []config.ChainParametersByEpochConfig{chainParams}
 		},
 	}
-	gsh, _ := newGlobalSettingsHandler(&economics, cfg)
+
+	gsh, _ := newGlobalSettingsHandler(&economics, chainParamsHolder)
 	return gsh
 }
 

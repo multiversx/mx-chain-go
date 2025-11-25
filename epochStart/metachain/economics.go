@@ -158,7 +158,7 @@ func (e *economics) ComputeEndOfEpochEconomics(
 		supplyToUseForRewardsPerBlock = prevEpochEconomics.TotalSupply
 	}
 
-	inflationRate := e.computeInflationRate(metaBlock.GetRound(), metaBlock.GetEpoch())
+	inflationRate := e.computeInflationRate(metaBlock)
 	rwdPerBlock := e.computeRewardsPerBlock(
 		supplyToUseForRewardsPerBlock,
 		maxBlocksInEpoch,
@@ -410,11 +410,11 @@ func (e *economics) computeInflationRate(
 		return e.computeInflationBeforeSupernova(metaBlock.GetRound(), prevEpoch)
 	}
 
-	return e.computeInflationRateAfterSupernova(metaBlock.GetTimeStamp())
+	return e.computeInflationRateAfterSupernova(metaBlock.GetTimeStamp(), prevEpoch)
 }
 
 // currentTimestamp is defined as unix milliseconds after supernova is activated
-func (e *economics) computeInflationRateAfterSupernova(currentTimestampMs uint64) float64 {
+func (e *economics) computeInflationRateAfterSupernova(currentTimestampMs uint64, epoch uint32) float64 {
 	// genesisTimestamp has to be converted as unix milliseconds
 	genesisTimestamp := common.ConvertTimeStampSecToMs(e.genesisTimestamp)
 
@@ -428,7 +428,7 @@ func (e *economics) computeInflationRateAfterSupernova(currentTimestampMs uint64
 	}
 
 	yearsIndex := (currentTimestampMs-genesisTimestamp)/numberOfMillisecondsInYear + 1
-	return e.rewardsHandler.MaxInflationRate(uint32(yearsIndex))
+	return e.rewardsHandler.MaxInflationRate(uint32(yearsIndex), epoch)
 }
 
 func (e *economics) getPreviousEpoch(epoch uint32) uint32 {

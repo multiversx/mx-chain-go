@@ -331,7 +331,7 @@ func (ccf *coreComponentsFactory) Create() (*coreComponents, error) {
 	log.Trace("creating economics data components")
 	argsNewEconomicsData := economics.ArgsNewEconomicsData{
 		Economics:           &ccf.economicsConfig,
-		GeneralConfig:       &ccf.config,
+		ChainParamsHandler:  chainParametersHandler,
 		EpochNotifier:       epochNotifier,
 		EnableEpochsHandler: enableEpochsHandler,
 		TxVersionChecker:    txVersionChecker,

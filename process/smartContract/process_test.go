@@ -4,6 +4,7 @@ import (
 	"bytes"
 	"encoding/hex"
 	"fmt"
+	"github.com/multiversx/mx-chain-go/testscommon/chainParameters"
 	"math/big"
 	"sync"
 	"testing"
@@ -4200,11 +4201,9 @@ func TestProcess_createCompletedTxEvent(t *testing.T) {
 }
 
 func createRealEconomicsDataArgs() *economics.ArgsNewEconomicsData {
-	cfg := &config.Config{EpochStartConfig: config.EpochStartConfig{RoundsPerEpoch: 14400}}
-	cfg.GeneralSettings.ChainParametersByEpoch = []config.ChainParametersByEpochConfig{{RoundDuration: 6000}}
 
 	return &economics.ArgsNewEconomicsData{
-		GeneralConfig: cfg,
+		ChainParamsHandler: &chainParameters.ChainParametersHolderMock{},
 		Economics: &config.EconomicsConfig{
 			GlobalSettings: config.GlobalSettings{
 				GenesisTotalSupply: "20000000000000000000000000",
