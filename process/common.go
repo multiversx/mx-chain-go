@@ -1225,19 +1225,3 @@ func GetMarshaledSliceSize[T any](items []T, marshaller marshal.Marshalizer) (in
 
     return size, nil
 }
-
-// GetMarshaledMapSize will return marshalled mpa size for any map
-func GetMarshaledMapSize[K comparable, V any](items map[K]V, marshaller marshal.Marshalizer) (int, error) {
-    size := 0
-
-    for _, v := range items {
-        data, err := marshaller.Marshal(&v)
-        if err != nil {
-            return 0, err
-        }
-
-        size += len(data)
-    }
-
-    return size, nil
-}
