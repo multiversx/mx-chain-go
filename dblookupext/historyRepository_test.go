@@ -846,9 +846,8 @@ func TestRecordHeaderV3(t *testing.T) {
 		expectedMbs := []*block.MiniBlock{
 			{SenderShardID: 0},
 		}
-		intraMbsBytes, _ := repo.marshalizer.Marshal(expectedMbs)
 
-		args.DataPool.ExecutedMiniBlocks().Put(executionResultHeaderHash, intraMbsBytes, 0)
+		args.DataPool.ExecutedMiniBlocks().Put(executionResultHeaderHash, expectedMbs, 0)
 
 		body := &block.Body{}
 
