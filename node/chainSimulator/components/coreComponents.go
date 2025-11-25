@@ -222,7 +222,7 @@ func CreateCoreComponents(args ArgsCoreComponentsHolder) (*coreComponentsHolder,
 
 	roundDuration := time.Millisecond * time.Duration(instance.genesisNodesSetup.GetRoundDuration())
 	supernovaRound := instance.enableRoundsHandler.GetActivationRound(common.SupernovaRoundFlag)
-	instance.supernovaGenesisTime = instance.genesisTime.Add(time.Duration(supernovaRound-uint64(args.InitialRound)) * roundDuration)
+	instance.supernovaGenesisTime = startTime.Add(time.Duration(supernovaRound-uint64(args.InitialRound)) * roundDuration)
 
 	supernovaActivationEpoch := instance.enableEpochsHandler.GetActivationEpoch(common.SupernovaFlag)
 	chainParamsForSupernova, err := instance.chainParametersHandler.ChainParametersForEpoch(supernovaActivationEpoch)

@@ -5,6 +5,7 @@ import (
 	"encoding/hex"
 	"encoding/json"
 	"encoding/pem"
+	"errors"
 	"fmt"
 	"math/big"
 	"os"
@@ -154,6 +155,11 @@ func CreateChainSimulatorConfigs(args ArgsChainSimulatorConfigs) (*ArgsConfigsSi
 
 	updateSupernovaConfigs(configs, args)
 
+	supernovaActivationRound, _ := strconv.ParseInt(configs.RoundConfig.RoundActivations[string(common.SupernovaRoundFlag)].Round, 10, 64)
+	if args.InitialRound > supernovaActivationRound {
+		return nil, errors.New("supernova activation round should be greater than initial round")
+	}
+
 	return &ArgsConfigsSimulator{
 		Configs:               *configs,
 		ValidatorsPrivateKeys: privateKeys,
@@ -188,7 +194,7 @@ func updateSupernovaConfigs(configs *config.Configs, args ArgsChainSimulatorConf
 		return
 	}
 
-	hasCorrectActionRound := false
+	hasCorrectActivationRound := false
 	diff := int(supernovaEpoch) - int(args.InitialEpoch)
 	if diff >= 0 {
 
@@ -198,7 +204,7 @@ func updateSupernovaConfigs(configs *config.Configs, args ArgsChainSimulatorConf
 			diffRounds := supernovaActivationRound - correctRoundActivationForSupernova
 			diffIsGreaterThanAnEpoch := diffRounds > int64(args.RoundsPerEpoch.Value)-numRoundsAfterSupernovaEnableEpoch
 			if !diffIsGreaterThanAnEpoch {
-				hasCorrectActionRound = true
+				hasCorrectActivationRound = true
 			}
 		}
 	}
@@ -211,7 +217,7 @@ func updateSupernovaConfigs(configs *config.Configs, args ArgsChainSimulatorConf
 		newSupernovaRound = 0
 	}
 
-	if !hasCorrectActionRound || newSupernovaRound == 0 {
+	if !hasCorrectActivationRound || newSupernovaRound == 0 {
 		oldOptions := configs.RoundConfig.RoundActivations[string(common.SupernovaRoundFlag)].Options
 		configs.RoundConfig.RoundActivations[string(common.SupernovaRoundFlag)] = config.ActivationRoundByName{
 			Round:   fmt.Sprintf("%d", newSupernovaRound),

@@ -173,8 +173,8 @@ func TestChainSimulator_VerifyBlockTimestampSupernova(t *testing.T) {
 	blockAfterSupernovaRound, err := chainSimulator.GetNodeHandler(0).GetFacadeHandler().GetBlockByRound(supernovaActivationRound+1, apiBlock.BlockQueryOptions{})
 	require.Nil(t, err)
 
-	diff := blockS.Timestamp - blockBeforeSupernovaRound.Timestamp
-	require.Equal(t, uint64(6), uint64(diff))
+	diff := blockS.TimestampMs - blockBeforeSupernovaRound.TimestampMs
+	require.Equal(t, int64(6000), diff)
 	diff = blockAfterSupernovaRound.TimestampMs - blockS.TimestampMs
 	require.Equal(t, defaultSupernovaRoundDurationInMillis, uint64(diff))
 }
