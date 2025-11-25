@@ -5,7 +5,6 @@ import (
 	"encoding/hex"
 	"encoding/json"
 	"encoding/pem"
-	"errors"
 	"fmt"
 	"math/big"
 	"os"
@@ -154,11 +153,6 @@ func CreateChainSimulatorConfigs(args ArgsChainSimulatorConfigs) (*ArgsConfigsSi
 	}
 
 	updateSupernovaConfigs(configs, args)
-
-	supernovaActivationRound, _ := strconv.ParseInt(configs.RoundConfig.RoundActivations[string(common.SupernovaRoundFlag)].Round, 10, 64)
-	if args.InitialRound > supernovaActivationRound {
-		return nil, errors.New("supernova activation round should be greater than initial round")
-	}
 
 	return &ArgsConfigsSimulator{
 		Configs:               *configs,
