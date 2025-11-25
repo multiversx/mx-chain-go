@@ -42,4 +42,6 @@ OverridableConfigTomlValues = [
    { File = "config.toml", Path = "TestArray", Value = { Strings = ["x", "y", "z"], Ints = [10, 20, 30] } },
    { File = "config.toml", Path = "TestPtr.PtrArray", Value = [{ Int = 1, Float = 0.99 }] },
    { File = "config.toml", Path = "TestPtr", Value = { String = "x", PtrArray = [{ Int = 1, Float = 0.99 }] }},
+   { File = "config.toml", Path = "TestPtr", Value = { String = "x", PtrArray = [{ Int = "invalid uint32", Float = 0.99 }] }},
+   { File = "config.toml", Path = "TestPtr", Value = { String = "x", PtrArray = [1] }},
 ]
