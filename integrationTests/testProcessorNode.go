@@ -2847,11 +2847,10 @@ func (tpn *TestProcessorNode) initBlockProcessor() {
 	}
 
 	argsHeadersExecutor := asyncExecution.ArgsHeadersExecutor{
-		BlocksQueue:         tpn.BlocksQueue,
-		ExecutionTracker:    executionResultsTracker,
-		BlockProcessor:      tpn.BlockProcessor,
-		BlockChain:          tpn.BlockChain,
-		EnableRoundsHandler: tpn.EnableRoundsHandler,
+		BlocksQueue:      tpn.BlocksQueue,
+		ExecutionTracker: executionResultsTracker,
+		BlockProcessor:   tpn.BlockProcessor,
+		BlockChain:       tpn.BlockChain,
 	}
 	headerExecutor, err := asyncExecution.NewHeadersExecutor(argsHeadersExecutor)
 	log.LogIfError(err)

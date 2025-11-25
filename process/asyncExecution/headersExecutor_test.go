@@ -23,11 +23,10 @@ func createMockArgs() ArgsHeadersExecutor {
 	headerQueue := queue.NewBlocksQueue()
 
 	return ArgsHeadersExecutor{
-		BlocksQueue:         headerQueue,
-		ExecutionTracker:    &processMocks.ExecutionTrackerStub{},
-		BlockProcessor:      &processMocks.BlockProcessorStub{},
-		BlockChain:          &testscommon.ChainHandlerStub{},
-		EnableRoundsHandler: &testscommon.EnableRoundsHandlerStub{},
+		BlocksQueue:      headerQueue,
+		ExecutionTracker: &processMocks.ExecutionTrackerStub{},
+		BlockProcessor:   &processMocks.BlockProcessorStub{},
+		BlockChain:       &testscommon.ChainHandlerStub{},
 	}
 }
 
@@ -105,20 +104,9 @@ func TestHeadersExecutor_StartAndClose(t *testing.T) {
 
 	executor.StartExecution()
 
-	baseExecutionResult := &block.BaseExecutionResult{
-		HeaderHash:  []byte("hash"),
-		HeaderNonce: 100,
-		HeaderRound: 200,
-		RootHash:    []byte("rootHash"),
-	}
 	err = blocksQueue.AddOrReplace(queue.HeaderBodyPair{
-		Header: &block.HeaderV3{
-			LastExecutionResult: &block.ExecutionResultInfo{
-				NotarizedInRound: 201,
-				ExecutionResult:  baseExecutionResult,
-			},
-		},
-		Body: &block.Body{},
+		Header: &block.Header{},
+		Body:   &block.Body{},
 	})
 	require.NoError(t, err)
 

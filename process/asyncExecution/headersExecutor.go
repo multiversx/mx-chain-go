@@ -9,7 +9,6 @@ import (
 	"github.com/multiversx/mx-chain-core-go/data"
 	logger "github.com/multiversx/mx-chain-logger-go"
 
-	"github.com/multiversx/mx-chain-go/common"
 	"github.com/multiversx/mx-chain-go/process"
 	"github.com/multiversx/mx-chain-go/process/asyncExecution/queue"
 )
@@ -21,22 +20,20 @@ const timeToSleepOnError = time.Millisecond * 300
 
 // ArgsHeadersExecutor holds all the components needed to create a new instance of *headersExecutor
 type ArgsHeadersExecutor struct {
-	BlocksQueue         BlocksQueue
-	ExecutionTracker    ExecutionResultsHandler
-	BlockProcessor      BlockProcessor
-	BlockChain          data.ChainHandler
-	EnableRoundsHandler common.EnableRoundsHandler
+	BlocksQueue      BlocksQueue
+	ExecutionTracker ExecutionResultsHandler
+	BlockProcessor   BlockProcessor
+	BlockChain       data.ChainHandler
 }
 
 type headersExecutor struct {
-	blocksQueue         BlocksQueue
-	executionTracker    ExecutionResultsHandler
-	blockProcessor      BlockProcessor
-	blockChain          data.ChainHandler
-	enableRoundsHandler common.EnableRoundsHandler
-	cancelFunc          context.CancelFunc
-	mutPaused           sync.RWMutex
-	isPaused            bool
+	blocksQueue      BlocksQueue
+	executionTracker ExecutionResultsHandler
+	blockProcessor   BlockProcessor
+	blockChain       data.ChainHandler
+	cancelFunc       context.CancelFunc
+	mutPaused        sync.RWMutex
+	isPaused         bool
 }
 
 // NewHeadersExecutor will create a new instance of *headersExecutor
@@ -53,16 +50,12 @@ func NewHeadersExecutor(args ArgsHeadersExecutor) (*headersExecutor, error) {
 	if check.IfNil(args.BlockChain) {
 		return nil, process.ErrNilBlockChain
 	}
-	if check.IfNil(args.EnableRoundsHandler) {
-		return nil, process.ErrNilEnableRoundsHandler
-	}
 
 	instance := &headersExecutor{
-		blocksQueue:         args.BlocksQueue,
-		executionTracker:    args.ExecutionTracker,
-		blockProcessor:      args.BlockProcessor,
-		blockChain:          args.BlockChain,
-		enableRoundsHandler: args.EnableRoundsHandler,
+		blocksQueue:      args.BlocksQueue,
+		executionTracker: args.ExecutionTracker,
+		blockProcessor:   args.BlockProcessor,
+		blockChain:       args.BlockChain,
 	}
 
 	return instance, nil
@@ -148,35 +141,10 @@ func (he *headersExecutor) handleProcessError(ctx context.Context, pair queue.He
 	}
 }
 
-func (he *headersExecutor) setLastNotarizedResultIfNeeded(
-	header data.HeaderHandler,
-) error {
-	if header.GetRound() != he.enableRoundsHandler.GetActivationRound(common.SupernovaRoundFlag) {
-		return nil
-	}
-
-	lastExecutionResult := header.GetLastExecutionResultHandler()
-
-	baseExecResult, err := common.ExtractBaseExecutionResultHandler(lastExecutionResult)
-	if err != nil {
-		return err
-	}
-
-	he.executionTracker.SetLastNotarizedResult(baseExecResult)
-
-	return nil
-}
-
 func (he *headersExecutor) process(pair queue.HeaderBodyPair) error {
 	executionResult, err := he.blockProcessor.ProcessBlockProposal(pair.Header, pair.Body)
 	if err != nil {
 		log.Warn("headersExecutor.process process block failed", "err", err)
-		return err
-	}
-
-	err = he.setLastNotarizedResultIfNeeded(pair.Header)
-	if err != nil {
-		log.Warn("headersExecutor.process set last execution result at transition failed", "err", err)
 		return err
 	}
 

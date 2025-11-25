@@ -285,11 +285,10 @@ func NewShardProcessorEmptyWith3shards(
 	}
 
 	argsHeaderExecutor := asyncExecution.ArgsHeadersExecutor{
-		BlocksQueue:         blocksQueue,
-		ExecutionTracker:    executionResultsTracker,
-		BlockProcessor:      shardProc,
-		BlockChain:          dataComponents.BlockChain,
-		EnableRoundsHandler: coreComponents.EnableRoundsHandler(),
+		BlocksQueue:      blocksQueue,
+		ExecutionTracker: executionResultsTracker,
+		BlockProcessor:   shardProc,
+		BlockChain:       dataComponents.BlockChain,
 	}
 	headersExecutor, err := asyncExecution.NewHeadersExecutor(argsHeaderExecutor)
 	if err != nil {
