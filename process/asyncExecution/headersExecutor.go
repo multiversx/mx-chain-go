@@ -151,7 +151,7 @@ func (he *headersExecutor) handleProcessError(ctx context.Context, pair queue.He
 func (he *headersExecutor) setLastNotarizedResultIfNeeded(
 	header data.HeaderHandler,
 ) error {
-	if header.GetNonce() != he.enableRoundsHandler.GetActivationRound(common.SupernovaRoundFlag) {
+	if header.GetRound() != he.enableRoundsHandler.GetActivationRound(common.SupernovaRoundFlag) {
 		return nil
 	}
 
