@@ -2919,7 +2919,7 @@ func TestShardProcessor_OnProposedBlock(t *testing.T) {
 		require.Equal(t, process.ErrWrongTypeAssertion, err)
 	})
 
-	t.Run("GetCurrentHeader nil should return error", func(t *testing.T) {
+	t.Run("GetCurrentHeaderHash empty should return error", func(t *testing.T) {
 		t.Parallel()
 
 		coreComponents, dataComponents, bootstrapComponents, statusComponents := createComponentHolderMocks()
@@ -2932,6 +2932,9 @@ func TestShardProcessor_OnProposedBlock(t *testing.T) {
 						},
 					},
 				}
+			},
+			GetCurrentBlockHeaderHashCalled: func() []byte {
+				return nil
 			},
 		}
 
