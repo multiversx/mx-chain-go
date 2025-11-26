@@ -1016,10 +1016,14 @@ func (vs *validatorStatistics) updateShardDataPeerState(
 }
 
 func (vs *validatorStatistics) searchInMap(hash []byte, cacheMap map[string]data.HeaderHandler) (data.HeaderHandler, error) {
-	blkHandler := cacheMap[string(hash)]
-	if check.IfNil(blkHandler) {
-		return nil, fmt.Errorf("%w : searchInMap hash = %s",
-			process.ErrMissingHeader, logger.DisplayByteSlice(hash))
+	blkHandler, ok := cacheMap[string(hash)]
+	if !ok {
+		var err error
+		blkHandler, err = vs.dataPool.Headers().GetHeaderByHash(hash)
+		if err != nil {
+			return nil, fmt.Errorf("%w : searchInMap hash = %s, ok = %t",
+				process.ErrMissingHeader, logger.DisplayByteSlice(hash), ok)
+		}
 	}
 
 	blk, ok := blkHandler.(data.ShardHeaderHandler)
