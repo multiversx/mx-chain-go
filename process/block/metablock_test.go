@@ -1008,6 +1008,8 @@ func TestMetaProcessor_CommitBlockStorageFailsForHeaderShouldNotReturnError(t *t
 	_ = blkc.SetGenesisHeader(genesisHeader)
 
 	coreComponents, dataComponents, bootstrapComponents, statusComponents := createMockComponentHolders()
+	coreComponents.Hash = &hashingMocks.HasherMock{}
+
 	dataComponents.Storage = store
 	dataComponents.BlockChain = blkc
 	arguments := createMockMetaArguments(coreComponents, dataComponents, bootstrapComponents, statusComponents)
@@ -1126,7 +1128,6 @@ func TestMetaProcessor_CommitBlockOkValsShouldWork(t *testing.T) {
 			return 0
 		},
 	}
-	hasher := &mock.HasherStub{}
 	blockHeaderUnit := &storageStubs.StorerStub{
 		PutCalled: func(key, data []byte) error {
 			return nil
@@ -1144,7 +1145,7 @@ func TestMetaProcessor_CommitBlockOkValsShouldWork(t *testing.T) {
 		},
 	}
 
-	coreComponents.Hash = hasher
+	coreComponents.Hash = &hashingMocks.HasherMock{}
 	arguments := createMockMetaArguments(coreComponents, dataComponents, bootstrapComponents, statusComponents)
 	arguments.AccountsDB[state.UserAccountsState] = accounts
 	arguments.AccountsDB[state.PeerAccountsState] = accounts

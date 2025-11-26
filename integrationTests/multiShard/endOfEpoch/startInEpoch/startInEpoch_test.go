@@ -3,6 +3,7 @@ package startInEpoch
 import (
 	"github.com/multiversx/mx-chain-go/testscommon/chainParameters"
 	"github.com/multiversx/mx-chain-go/testscommon/pool"
+	"github.com/multiversx/mx-chain-go/testscommon/processMocks"
 
 	"math/big"
 	"os"
@@ -371,6 +372,7 @@ func testNodeStartsInEpoch(t *testing.T, shardID uint32, expectedHighestRound ui
 		AppStatusHandler:             &statusHandlerMock.AppStatusHandlerMock{},
 		EnableEpochsHandler:          enableEpochsHandler,
 		ProofsPool:                   &dataRetrieverMocks.ProofsPoolMock{},
+		ExecutionManager:             &processMocks.ExecutionManagerMock{},
 	}
 
 	bootstrapper, err := getBootstrapper(shardID, argsBaseBootstrapper)
