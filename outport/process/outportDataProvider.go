@@ -155,7 +155,7 @@ func (odp *outportDataProvider) PrepareOutportSaveBlockData(arg ArgPrepareOutpor
 		return nil, err
 	}
 
-	stateAccessesForBlock := odp.getStateAccessesForBlock(arg.Header.GetExecutionResultsHandlers())
+	stateAccessesForBlock := odp.getStateAccessesForBlock(arg.Header)
 
 	outportBlock := &outportcore.OutportBlockWithHeaderAndBody{
 		OutportBlock: &outportcore.OutportBlock{
@@ -200,18 +200,29 @@ func (odp *outportDataProvider) PrepareOutportSaveBlockData(arg ArgPrepareOutpor
 	return outportBlock, nil
 }
 
-func (odp *outportDataProvider) getStateAccessesForBlock(executionResults []data.BaseExecutionResultHandler) []*outportcore.StateAccessesForBlock {
+func (odp *outportDataProvider) getStateAccessesForBlock(header data.HeaderHandler) []*outportcore.StateAccessesForBlock {
 	stateAccessesForBlock := make([]*outportcore.StateAccessesForBlock, 0)
+	if !header.IsHeaderV3() {
+		stateAccesses := odp.getStateAccessForRootHash(header.GetRootHash())
+		stateAccessesForBlock = append(stateAccessesForBlock, stateAccesses)
+		return stateAccessesForBlock
+	}
+
+	executionResults := header.GetExecutionResultsHandlers()
 	for _, execResult := range executionResults {
-		rootHash := execResult.GetRootHash()
-		stateAccessesMap := odp.StateAccessesCollector.GetStateAccessesForRootHash(rootHash)
-		if len(stateAccessesMap) == 0 {
-			continue
-		}
-		stateAccessesForBlock = append(stateAccessesForBlock, &outportcore.StateAccessesForBlock{StateAccesses: stateAccessesMap})
-		odp.StateAccessesCollector.RemoveStateAccessesForRootHash(rootHash)
+		stateAccesses := odp.getStateAccessForRootHash(execResult.GetRootHash())
+		stateAccessesForBlock = append(stateAccessesForBlock, stateAccesses)
 	}
 	return stateAccessesForBlock
+}
+
+func (odp *outportDataProvider) getStateAccessForRootHash(rootHash []byte) *outportcore.StateAccessesForBlock {
+	stateAccessesMap := odp.StateAccessesCollector.GetStateAccessesForRootHash(rootHash)
+	if len(stateAccessesMap) == 0 {
+		return nil
+	}
+	odp.StateAccessesCollector.RemoveStateAccessesForRootHash(rootHash)
+	return &outportcore.StateAccessesForBlock{StateAccesses: stateAccessesMap}
 }
 
 func (odp *outportDataProvider) prepareExecutionResultsData(args ArgPrepareOutportSaveBlockData) (map[string]*outportcore.ExecutionResultData, error) {
