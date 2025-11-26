@@ -407,10 +407,10 @@ func (e *economics) computeInflationRate(
 	supernovaInEpochActivated := e.enableEpochsHandler.IsFlagEnabledInEpoch(common.SupernovaFlag, prevEpoch)
 
 	if !supernovaInEpochActivated {
-		return e.computeInflationBeforeSupernova(metaBlock.GetRound(), prevEpoch)
+		return e.computeInflationBeforeSupernova(metaBlock.GetRound(), metaBlock.GetEpoch())
 	}
 
-	return e.computeInflationRateAfterSupernova(metaBlock.GetTimeStamp(), prevEpoch)
+	return e.computeInflationRateAfterSupernova(metaBlock.GetTimeStamp(), metaBlock.GetEpoch())
 }
 
 // currentTimestamp is defined as unix milliseconds after supernova is activated
@@ -463,7 +463,11 @@ func (e *economics) computeInflationForEpoch(
 	epoch uint32,
 ) float64 {
 	prevEpoch := e.getPreviousEpoch(epoch)
-	chainParameters, _ := e.chainParamsHandler.ChainParametersForEpoch(prevEpoch)
+	chainParameters, err := e.chainParamsHandler.ChainParametersForEpoch(prevEpoch)
+	if err != nil {
+		log.Warn("could not get rounds per epoch for epoch, returned current chain paramters", "epoch", epoch, "error", err)
+		chainParameters = e.chainParamsHandler.CurrentChainParameters()
+	}
 	roundDuration := time.Duration(chainParameters.RoundDuration) * time.Millisecond
 
 	inflationRatePerDay := inflationRate / numberOfDaysInYear

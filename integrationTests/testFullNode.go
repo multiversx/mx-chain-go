@@ -287,24 +287,22 @@ func (tpn *TestFullNode) initTestNodeWithArgs(args ArgTestProcessorNode, fullArg
 		tpn.initAccountDBs(args.TrieStore)
 	}
 
+	chainParam := config.ChainParametersByEpochConfig{
+		RoundDuration:               uint64(roundDuration.Milliseconds()),
+		ShardConsensusGroupSize:     uint32(fullArgs.ConsensusSize),
+		MetachainConsensusGroupSize: uint32(fullArgs.ConsensusSize),
+		RoundsPerEpoch:              fullArgs.RoundsPerEpoch,
+		MinRoundsBetweenEpochs:      1,
+	}
 	tpn.ChainParametersHandler = &chainParameters.ChainParametersHandlerStub{
 		ChainParametersForEpochCalled: func(_ uint32) (config.ChainParametersByEpochConfig, error) {
-			return config.ChainParametersByEpochConfig{
-				RoundDuration:               uint64(roundDuration.Milliseconds()),
-				ShardConsensusGroupSize:     uint32(fullArgs.ConsensusSize),
-				MetachainConsensusGroupSize: uint32(fullArgs.ConsensusSize),
-				RoundsPerEpoch:              fullArgs.RoundsPerEpoch,
-				MinRoundsBetweenEpochs:      1,
-			}, nil
+			return chainParam, nil
 		},
 		CurrentChainParametersCalled: func() config.ChainParametersByEpochConfig {
-			return config.ChainParametersByEpochConfig{
-				RoundDuration:               uint64(roundDuration.Milliseconds()),
-				ShardConsensusGroupSize:     uint32(fullArgs.ConsensusSize),
-				MetachainConsensusGroupSize: uint32(fullArgs.ConsensusSize),
-				RoundsPerEpoch:              fullArgs.RoundsPerEpoch,
-				MinRoundsBetweenEpochs:      1,
-			}
+			return chainParam
+		},
+		AllChainParametersCalled: func() []config.ChainParametersByEpochConfig {
+			return []config.ChainParametersByEpochConfig{chainParam}
 		},
 	}
 

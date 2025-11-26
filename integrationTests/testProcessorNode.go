@@ -802,20 +802,20 @@ func (tpn *TestProcessorNode) initTestNodeWithArgs(args ArgTestProcessorNode) {
 	tpn.initHeaderValidator()
 	tpn.initRoundHandler(roundTime)
 
+	chainParam := config.ChainParametersByEpochConfig{
+		RoundDuration:          uint64(roundTime.Milliseconds()),
+		RoundsPerEpoch:         1000,
+		MinRoundsBetweenEpochs: 1,
+	}
 	tpn.ChainParametersHandler = &chainParameters.ChainParametersHandlerStub{
 		ChainParametersForEpochCalled: func(_ uint32) (config.ChainParametersByEpochConfig, error) {
-			return config.ChainParametersByEpochConfig{
-				RoundDuration:          uint64(roundTime.Milliseconds()),
-				RoundsPerEpoch:         1000,
-				MinRoundsBetweenEpochs: 1,
-			}, nil
+			return chainParam, nil
 		},
 		CurrentChainParametersCalled: func() config.ChainParametersByEpochConfig {
-			return config.ChainParametersByEpochConfig{
-				RoundDuration:          uint64(roundTime.Milliseconds()),
-				RoundsPerEpoch:         1000,
-				MinRoundsBetweenEpochs: 1,
-			}
+			return chainParam
+		},
+		AllChainParametersCalled: func() []config.ChainParametersByEpochConfig {
+			return []config.ChainParametersByEpochConfig{chainParam}
 		},
 	}
 
