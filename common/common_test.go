@@ -736,21 +736,6 @@ func Test_CreateLastExecutionResultFromPrevHeader(t *testing.T) {
 		require.Equal(t, common.ErrInvalidHeaderHash, err)
 		require.Nil(t, lastExecutionResult)
 	})
-	t.Run("invalid shard prevHeader type", func(t *testing.T) {
-		t.Parallel()
-
-		prevHeaderHash := []byte("prevHeaderHash")
-		// the expected header type is HeaderV2
-		prevHeader := &block.Header{
-			Nonce:    1,
-			Round:    2,
-			RootHash: []byte("prevRootHash"),
-			ShardID:  0,
-		}
-		lastExecutionResult, err := common.CreateLastExecutionResultFromPrevHeader(prevHeader, prevHeaderHash)
-		require.Equal(t, common.ErrWrongTypeAssertion, err)
-		require.Nil(t, lastExecutionResult)
-	})
 	t.Run("valid shard prevHeader type", func(t *testing.T) {
 		t.Parallel()
 
@@ -871,19 +856,24 @@ func TestGetOrCreateLastExecutionResultForPrevHeader(t *testing.T) {
 		require.Equal(t, expBaseExecResult, execResult)
 	})
 
-	t.Run("should fail for header v1", func(t *testing.T) {
+	t.Run("should work for header v1", func(t *testing.T) {
 		t.Parallel()
 
 		headerHash := []byte("headerHash1")
+
+		expBaseExecResult := &block.BaseExecutionResult{
+			HeaderNonce: 10,
+			HeaderHash:  headerHash,
+		}
 
 		header := &block.Header{
 			Nonce: 10,
 		}
 
 		execResult, err := common.GetOrCreateLastExecutionResultForPrevHeader(header, headerHash)
-		require.Equal(t, common.ErrWrongTypeAssertion, err)
+		require.Nil(t, err)
 
-		require.Nil(t, execResult)
+		require.Equal(t, expBaseExecResult, execResult)
 	})
 }
 
