@@ -1,6 +1,7 @@
 package block
 
 import (
+	"math/big"
 	"sync"
 	"time"
 
@@ -49,7 +50,11 @@ import (
 // UsedShardHeadersInfo -
 type UsedShardHeadersInfo = usedShardHeadersInfo
 
+// EpochStartDataWrapper -
 type EpochStartDataWrapper = epochStartDataWrapper
+
+// ErrNilPreviousHdr -
+var ErrNilPreviousHdr = errNilPreviousHeader
 
 // ComputeHeaderHash -
 func (bp *baseProcessor) ComputeHeaderHash(hdr data.HeaderHandler) ([]byte, error) {
@@ -919,6 +924,11 @@ func (bp *baseProcessor) RequestHeadersFromHeaderIfNeeded(
 	bp.requestHeadersFromHeaderIfNeeded(lastHeader)
 }
 
+// CacheIntraShardMiniBlocks -
+func (bp *baseProcessor) CacheIntraShardMiniBlocks(headerHash []byte, mbs block.MiniBlockSlice) error {
+	return bp.cacheIntraShardMiniBlocks(headerHash, mbs)
+}
+
 // GetHaveTimeForProposal -
 func GetHaveTimeForProposal(startTime time.Time, maxDuration time.Duration) func() time.Duration {
 	return getHaveTimeForProposal(startTime, maxDuration)
@@ -1087,4 +1097,17 @@ func (mp *metaProcessor) CollectExecutionResultsEpochStartProposal(
 	valStatRootHash []byte,
 ) (data.BaseExecutionResultHandler, error) {
 	return mp.collectExecutionResultsEpochStartProposal(headerHash, header, constructedBody, valStatRootHash)
+}
+
+// CollectMiniBlocks -
+func (bp *baseProcessor) CollectMiniBlocks(
+	headerHash []byte,
+	body *block.Body,
+) ([]data.MiniBlockHeaderHandler, int, []byte, error) {
+	return bp.collectMiniBlocks(headerHash, body)
+}
+
+// GetCurrentlyAccumulatedFees -
+func (mp *metaProcessor) GetCurrentlyAccumulatedFees(metaHdr data.MetaHeaderHandler) (*big.Int, *big.Int, error) {
+	return mp.getCurrentlyAccumulatedFees(metaHdr)
 }

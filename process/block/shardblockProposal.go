@@ -121,16 +121,6 @@ func (sp *shardProcessor) CreateBlockProposal(
 
 	sp.blockSizeThrottler.Add(shardHdr.GetRound(), uint32(len(marshalledBody)))
 
-	hash, err := sp.getHeaderHash(shardHdr)
-	if err != nil {
-		return nil, nil, err
-	}
-
-	err = sp.OnProposedBlock(body, shardHdr, hash)
-	if err != nil {
-		return nil, nil, err
-	}
-
 	defer func() {
 		go sp.checkAndRequestIfMetaHeadersMissing()
 	}()
@@ -426,6 +416,11 @@ func (sp *shardProcessor) createBlockBodyProposal(
 		"round", shardHdr.GetRound(),
 		"nonce", shardHdr.GetNonce(),
 	)
+
+	_, err := sp.prepareAccountsForProposal()
+	if err != nil {
+		return err
+	}
 
 	return sp.createProposalMiniBlocks(haveTime, shardHdr.GetNonce())
 }
