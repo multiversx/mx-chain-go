@@ -2,7 +2,6 @@ package common
 
 import (
 	"errors"
-	"strings"
 	"testing"
 
 	"github.com/multiversx/mx-chain-core-go/data"
@@ -133,23 +132,8 @@ func TestGetIntraMbs(t *testing.T) {
 
 		headerHash := []byte("h")
 
-		_, err := GetCachedIntraMbs(cacher, marshaller, headerHash)
+		_, err := GetCachedMbs(cacher, marshaller, headerHash)
 		require.True(t, errors.Is(err, ErrMissingMiniBlock))
-	})
-
-	t.Run("getIntraMbs wrong type should error", func(t *testing.T) {
-		t.Parallel()
-
-		cacher := cache.NewCacherMock()
-		marshaller := &marshallerMock.MarshalizerMock{}
-
-		headerHash := []byte("h")
-		cacher.Put(headerHash, []byte("wrong type"), 0)
-
-		intraMBs, err := GetCachedIntraMbs(cacher, marshaller, headerHash)
-		require.Nil(t, intraMBs)
-		require.NotNil(t, err)
-		require.True(t, strings.Contains(err.Error(), "getIntraMbs: cannot unmarshall"))
 	})
 
 	t.Run("getIntraMbs should work", func(t *testing.T) {
@@ -163,11 +147,10 @@ func TestGetIntraMbs(t *testing.T) {
 			{SenderShardID: 0},
 			{SenderShardID: 0},
 		}
-		intraMbsBytes, _ := marshaller.Marshal(expectedMbs)
 
-		cacher.Put(headerHash, intraMbsBytes, 0)
+		cacher.Put(headerHash, expectedMbs, 0)
 
-		intraMBs, err := GetCachedIntraMbs(cacher, marshaller, headerHash)
+		intraMBs, err := GetCachedMbs(cacher, marshaller, headerHash)
 		require.Nil(t, err)
 		require.Equal(t, expectedMbs, intraMBs)
 	})
