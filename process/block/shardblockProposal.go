@@ -417,6 +417,11 @@ func (sp *shardProcessor) createBlockBodyProposal(
 		"nonce", shardHdr.GetNonce(),
 	)
 
+	_, err := sp.prepareAccountsForProposal()
+	if err != nil {
+		return err
+	}
+
 	return sp.createProposalMiniBlocks(haveTime, shardHdr.GetNonce())
 }
 
