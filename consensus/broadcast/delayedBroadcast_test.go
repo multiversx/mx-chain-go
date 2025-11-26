@@ -333,7 +333,7 @@ func TestDelayedBlockBroadcaster_HeaderReceivedWithoutSignaturesForShardShouldNo
 	require.Nil(t, err)
 
 	originalLogPattern := logger.GetLogLevelPattern()
-	err = logger.SetLogLevel("*:TRACE")
+	err = logger.SetLogLevel("*:DEBUG")
 	require.Nil(t, err)
 
 	defer func() {
@@ -602,7 +602,7 @@ func TestDelayedBlockBroadcaster_SetHeaderForValidatorWithoutSignaturesShouldNot
 	require.Nil(t, err)
 
 	originalLogPattern := logger.GetLogLevelPattern()
-	err = logger.SetLogLevel("*:TRACE")
+	err = logger.SetLogLevel("*:DEBUG")
 	require.Nil(t, err)
 
 	defer func() {

@@ -467,7 +467,7 @@ func silentDecodeAddress(address string) []byte {
 func TestPutFeeAndGasUsedScrWithRefundNoTx(t *testing.T) {
 	t.Parallel()
 
-	_ = logger.SetLogLevel("*:TRACE")
+	_ = logger.SetLogLevel("*:DEBUG")
 
 	txHash := []byte("relayedTx")
 	scrWithRefund := []byte("scrWithRefund")
