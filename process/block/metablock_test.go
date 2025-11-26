@@ -942,6 +942,7 @@ func TestMetaProcessor_CommitBlockStorageFailsForHeaderShouldNotReturnError(t *t
 		return &block.Header{}, []byte("hash"), nil
 	}
 	arguments.BlockTracker = blockTrackerMock
+	arguments.StateAccessesCollector = &stateMock.StateAccessesCollectorStub{}
 	mp, _ := blproc.NewMetaProcessor(arguments)
 
 	processHandler := arguments.CoreComponents.ProcessStatusHandler()
@@ -1073,6 +1074,7 @@ func TestMetaProcessor_CommitBlockOkValsShouldWork(t *testing.T) {
 			resetCountersForManagedBlockSignerCalled = true
 		},
 	}
+	arguments.StateAccessesCollector = &stateMock.StateAccessesCollectorStub{}
 
 	mp, _ := blproc.NewMetaProcessor(arguments)
 
@@ -3475,7 +3477,7 @@ func TestMetaProcessor_CreateEpochStartBodyShouldWork(t *testing.T) {
 				assert.True(t, wasCalled)
 				return rewardMiniBlocks, nil
 			},
-			GetProtocolSustainabilityRewardsCalled: func() *big.Int {
+			GetAcceleratorRewardsCalled: func() *big.Int {
 				return expectedRewardsForProtocolSustain
 			},
 		}
@@ -3545,7 +3547,7 @@ func TestMetaProcessor_CreateEpochStartBodyShouldWork(t *testing.T) {
 				assert.Equal(t, mb, metaBlock)
 				return rewardMiniBlocks, nil
 			},
-			GetProtocolSustainabilityRewardsCalled: func() *big.Int {
+			GetAcceleratorRewardsCalled: func() *big.Int {
 				return expectedRewardsForProtocolSustain
 			},
 		}
