@@ -810,6 +810,83 @@ func Test_CreateLastExecutionResultFromPrevHeader(t *testing.T) {
 	})
 }
 
+func TestGetOrCreateLastExecutionResultForPrevHeader(t *testing.T) {
+	t.Parallel()
+
+	t.Run("should fail if nil base execution result", func(t *testing.T) {
+		t.Parallel()
+
+		header := &block.HeaderV3{
+			LastExecutionResult: &block.ExecutionResultInfo{},
+		}
+		headerHash := []byte("headerHash1")
+
+		execResult, err := common.GetOrCreateLastExecutionResultForPrevHeader(header, headerHash)
+		require.Equal(t, common.ErrNilBaseExecutionResult, err)
+
+		require.Equal(t, nil, execResult)
+	})
+
+	t.Run("should work for header v3", func(t *testing.T) {
+		t.Parallel()
+
+		baseExecResult := &block.BaseExecutionResult{
+			HeaderNonce: 1,
+			HeaderHash:  []byte("headerHash2"),
+		}
+		lastExecRes := &block.ExecutionResultInfo{
+			ExecutionResult: baseExecResult,
+		}
+
+		header := &block.HeaderV3{
+			LastExecutionResult: lastExecRes,
+		}
+		headerHash := []byte("headerHash1")
+
+		execResult, err := common.GetOrCreateLastExecutionResultForPrevHeader(header, headerHash)
+		require.Nil(t, err)
+
+		require.Equal(t, baseExecResult, execResult)
+	})
+
+	t.Run("should work for header v2", func(t *testing.T) {
+		t.Parallel()
+
+		headerHash := []byte("headerHash1")
+
+		expBaseExecResult := &block.BaseExecutionResult{
+			HeaderNonce: 10,
+			HeaderHash:  headerHash,
+		}
+
+		header := &block.HeaderV2{
+			Header: &block.Header{
+				Nonce: 10,
+			},
+		}
+
+		execResult, err := common.GetOrCreateLastExecutionResultForPrevHeader(header, headerHash)
+		require.Nil(t, err)
+
+		require.Equal(t, expBaseExecResult, execResult)
+	})
+
+	t.Run("should fail for header v1", func(t *testing.T) {
+		t.Parallel()
+
+		headerHash := []byte("headerHash1")
+
+		header := &block.Header{
+			Nonce: 10,
+		}
+
+		execResult, err := common.GetOrCreateLastExecutionResultForPrevHeader(header, headerHash)
+		require.Equal(t, common.ErrWrongTypeAssertion, err)
+
+		require.Nil(t, execResult)
+	})
+}
+
 func createDummyPrevShardHeaderV2() *block.HeaderV2 {
 	return &block.HeaderV2{
 		Header: &block.Header{
