@@ -155,6 +155,8 @@ func (odp *outportDataProvider) PrepareOutportSaveBlockData(arg ArgPrepareOutpor
 		return nil, err
 	}
 
+	stateAccessesForBlock := odp.getStateAccessesForBlock(arg.Header.GetExecutionResultsHandlers())
+
 	outportBlock := &outportcore.OutportBlockWithHeaderAndBody{
 		OutportBlock: &outportcore.OutportBlock{
 			ShardID:         odp.shardID,
@@ -166,7 +168,7 @@ func (odp *outportDataProvider) PrepareOutportSaveBlockData(arg ArgPrepareOutpor
 				GasPenalized:   odp.gasConsumedProvider.TotalGasPenalized(),
 				MaxGasPerBlock: odp.economicsData.MaxGasLimitPerBlock(odp.shardID),
 			},
-			StateAccesses:          odp.StateAccessesCollector.GetCollectedAccesses(),
+			StateAccessesForBlock:  stateAccessesForBlock,
 			AlteredAccounts:        alteredAccounts,
 			NotarizedHeadersHashes: arg.NotarizedHeadersHashes,
 			NumberOfShards:         odp.numOfShards,
@@ -196,6 +198,20 @@ func (odp *outportDataProvider) PrepareOutportSaveBlockData(arg ArgPrepareOutpor
 	}
 
 	return outportBlock, nil
+}
+
+func (odp *outportDataProvider) getStateAccessesForBlock(executionResults []data.BaseExecutionResultHandler) []*outportcore.StateAccessesForBlock {
+	stateAccessesForBlock := make([]*outportcore.StateAccessesForBlock, 0)
+	for _, execResult := range executionResults {
+		rootHash := execResult.GetRootHash()
+		stateAccessesMap := odp.StateAccessesCollector.GetStateAccessesForRootHash(rootHash)
+		if len(stateAccessesMap) == 0 {
+			continue
+		}
+		stateAccessesForBlock = append(stateAccessesForBlock, &outportcore.StateAccessesForBlock{StateAccesses: stateAccessesMap})
+		odp.StateAccessesCollector.RemoveStateAccessesForRootHash(rootHash)
+	}
+	return stateAccessesForBlock
 }
 
 func (odp *outportDataProvider) prepareExecutionResultsData(args ArgPrepareOutportSaveBlockData) (map[string]*outportcore.ExecutionResultData, error) {

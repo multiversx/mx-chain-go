@@ -362,8 +362,9 @@ type StateAccessesCollector interface {
 	AddStateAccess(stateAccess *data.StateAccess)
 	GetAccountChanges(oldAccount, account vmcommon.AccountHandler) uint32
 	Reset()
-	GetCollectedAccesses() map[string]*data.StateAccesses
-	Store() error
+	GetStateAccessesForRootHash(rootHash []byte) map[string]*data.StateAccesses
+	RemoveStateAccessesForRootHash(rootHash []byte)
+	CommitCollectedAccesses(rootHash []byte) error
 	AddTxHashToCollectedStateAccesses(txHash []byte)
 	SetIndexToLatestStateAccesses(index int) error
 	RevertToIndex(index int) error
