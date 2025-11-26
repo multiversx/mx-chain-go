@@ -532,10 +532,12 @@ func displayHeader(
 
 	if headerHandler.IsHeaderV3() {
 		lastExecResult, _ := common.GetLastBaseExecutionResultHandler(headerHandler)
-		logLines = append(logLines, display.NewLineData(false, []string{
-			"",
-			"Last execution result",
-			logger.DisplayByteSlice(lastExecResult.GetHeaderHash())}))
+		if !check.IfNil(lastExecResult) {
+			logLines = append(logLines, display.NewLineData(false, []string{
+				"",
+				"Last execution result",
+				logger.DisplayByteSlice(lastExecResult.GetHeaderHash())}))
+		}
 
 		for idx, execRes := range headerHandler.GetExecutionResultsHandlers() {
 			shouldAddHorizontalLine := idx == len(headerHandler.GetExecutionResultsHandlers())-1
