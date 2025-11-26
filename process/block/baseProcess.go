@@ -2601,6 +2601,9 @@ func (bp *baseProcessor) OnProposedBlock(
 func (bp *baseProcessor) prepareAccountsForProposal() (data.BaseExecutionResultHandler, error) {
 	prevHeader := bp.blockChain.GetCurrentBlockHeader()
 	prevHeaderHash := bp.blockChain.GetCurrentBlockHeaderHash()
+	if check.IfNil(prevHeader) || len(prevHeaderHash) == 0 {
+		return nil, process.ErrNilHeaderHandler
+	}
 	lastExecResHandler, err := common.GetOrCreateLastExecutionResultForPrevHeader(prevHeader, prevHeaderHash)
 	if err != nil {
 		return nil, err
