@@ -3140,7 +3140,13 @@ func (bp *baseProcessor) setCurrentBlockInfo(
 	// this will be useful at transition to Supernova with headers v3
 	bp.blockChain.SetLastExecutedBlockHeaderAndRootHash(header, headerHash, rootHash)
 
-	return nil
+	// before header v3, create and set execution result in tracker
+	lastExecResHandler, err := common.GetOrCreateLastExecutionResultForPrevHeader(header, headerHash)
+	if err != nil {
+		return err
+	}
+
+	return bp.executionManager.SetLastNotarizedResult(lastExecResHandler)
 }
 
 func (bp *baseProcessor) getLastExecutedRootHash(
