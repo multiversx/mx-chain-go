@@ -20,7 +20,6 @@ import (
 	"github.com/multiversx/mx-chain-go/testscommon/epochNotifier"
 	"github.com/multiversx/mx-chain-go/testscommon/genericMocks"
 	"github.com/multiversx/mx-chain-go/testscommon/marshallerMock"
-	logger "github.com/multiversx/mx-chain-logger-go"
 	"github.com/stretchr/testify/require"
 )
 
@@ -466,8 +465,6 @@ func silentDecodeAddress(address string) []byte {
 
 func TestPutFeeAndGasUsedScrWithRefundNoTx(t *testing.T) {
 	t.Parallel()
-
-	_ = logger.SetLogLevel("*:DEBUG")
 
 	txHash := []byte("relayedTx")
 	scrWithRefund := []byte("scrWithRefund")

@@ -333,7 +333,7 @@ func TestDelayedBlockBroadcaster_HeaderReceivedWithoutSignaturesForShardShouldNo
 	require.Nil(t, err)
 
 	originalLogPattern := logger.GetLogLevelPattern()
-	err = logger.SetLogLevel("*:DEBUG")
+	err = logger.SetLogLevel("*:TRACE")
 	require.Nil(t, err)
 
 	defer func() {
@@ -391,6 +391,7 @@ func TestDelayedBlockBroadcaster_HeaderReceivedWithoutSignaturesForShardShouldNo
 	require.Contains(t, logOutputStr, expectedLogMsg)
 	require.Contains(t, logOutputStr, fmt.Sprintf("headerHash = %s", hex.EncodeToString(headerHash)))
 
+	_ = logger.SetLogLevel("*:DEBUG")
 	assert.False(t, mbBroadcastCalled.IsSet())
 	assert.False(t, txBroadcastCalled.IsSet())
 }
@@ -602,7 +603,7 @@ func TestDelayedBlockBroadcaster_SetHeaderForValidatorWithoutSignaturesShouldNot
 	require.Nil(t, err)
 
 	originalLogPattern := logger.GetLogLevelPattern()
-	err = logger.SetLogLevel("*:DEBUG")
+	err = logger.SetLogLevel("*:TRACE")
 	require.Nil(t, err)
 
 	defer func() {
@@ -655,6 +656,7 @@ func TestDelayedBlockBroadcaster_SetHeaderForValidatorWithoutSignaturesShouldNot
 	expectedLogMsg := "delayedBlockBroadcaster.SetHeaderForValidator: header alarm has not been set"
 	require.Contains(t, logOutputStr, expectedLogMsg)
 	require.Contains(t, logOutputStr, fmt.Sprintf("validatorConsensusOrder = %d", vArgs.order))
+	_ = logger.SetLogLevel("*:DEBUG")
 
 	vbb := dbb.GetValidatorHeaderBroadcastData()
 	require.Equal(t, 0, len(vbb))
