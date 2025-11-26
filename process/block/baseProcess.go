@@ -510,24 +510,12 @@ func displayHeader(
 			logger.DisplayByteSlice(headerHandler.GetRandSeed())}),
 		display.NewLineData(false, []string{
 			"",
-			"Pub keys bitmap",
-			hex.EncodeToString(headerHandler.GetPubKeysBitmap())}),
-		display.NewLineData(false, []string{
-			"",
 			"Signature",
 			logger.DisplayByteSlice(headerHandler.GetSignature())}),
 		display.NewLineData(false, []string{
 			"",
 			"Leader's Signature",
 			logger.DisplayByteSlice(headerHandler.GetLeaderSignature())}),
-		display.NewLineData(false, []string{
-			"",
-			"Scheduled root hash",
-			logger.DisplayByteSlice(scheduledRootHash)}),
-		display.NewLineData(false, []string{
-			"",
-			"Root hash",
-			logger.DisplayByteSlice(headerHandler.GetRootHash())}),
 		display.NewLineData(false, []string{
 			"",
 			"Validator stats root hash",
@@ -556,6 +544,16 @@ func displayHeader(
 				fmt.Sprintf("Execution result %d", idx),
 				logger.DisplayByteSlice(execRes.GetHeaderHash())}))
 		}
+	} else {
+		logLines = append(logLines,
+			display.NewLineData(false, []string{
+				"",
+				"Scheduled root hash",
+				logger.DisplayByteSlice(scheduledRootHash)}),
+			display.NewLineData(false, []string{
+				"",
+				"Root hash",
+				logger.DisplayByteSlice(headerHandler.GetRootHash())}))
 	}
 
 	if hasProofInfo {
