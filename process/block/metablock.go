@@ -1310,6 +1310,17 @@ func (mp *metaProcessor) CommitBlock(
 		"round", headerHandler.GetRound(),
 		"nonce", headerHandler.GetNonce(),
 		"hash", headerHash)
+	meta, ok := headerHandler.(*block.MetaBlock)
+	if !ok {
+		log.Error("failed to cast meta headerHandler to MetaBlock")
+	}
+	if len(meta.PeerInfo) > 0 {
+		log.Debug("Commited meta block peer infos",
+			"peerInfosLen", len(meta.PeerInfo),
+		)
+	} else {
+		log.Debug("Commited meta block has no peer infos")
+	}
 	mp.setNonceOfFirstCommittedBlock(headerHandler.GetNonce())
 	mp.updateLastCommittedInDebugger(headerHandler.GetRound())
 
