@@ -2805,7 +2805,7 @@ func (bp *baseProcessor) putMiniBlocksIntoStorage(miniBlockHeaderHandlers []data
 	return nil
 }
 
-func (bp *baseProcessor) cacheIntraShardMiniBlocks(headerHash []byte, miniBlocks block.MiniBlockSlice) error {
+func (bp *baseProcessor) cacheIntraShardMiniBlocks(headerHash []byte, miniBlocks []*block.MiniBlock) error {
 	// TODO: analyse better ways to estimate cached data size, without marshalling
 	marshalledMbsSize, err := process.GetMarshaledSliceSize(miniBlocks, bp.marshalizer)
 	if err != nil {
