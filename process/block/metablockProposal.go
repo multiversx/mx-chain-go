@@ -141,6 +141,14 @@ func (mp *metaProcessor) CreateBlockProposal(
 			"num txs proposed", numTxs,
 			"num shard headers", len(referencedShardHeaderHashes),
 		)
+
+	}
+
+	for _, hdr := range referencedShardHeaders {
+		log.Debug("ssssd",
+			"shardID", hdr.GetShardID(),
+			"nonce", hdr.GetNonce(),
+		)
 	}
 
 	defer func() {
@@ -150,6 +158,21 @@ func (mp *metaProcessor) CreateBlockProposal(
 	shardDataProposalHandlers, shardDataHandlers, err := mp.shardInfoCreateData.CreateShardInfoV3(metaHdr, referencedShardHeaders, referencedShardHeaderHashes)
 	if err != nil {
 		return nil, nil, err
+	}
+
+	for _, sip := range shardDataProposalHandlers {
+		log.Debug("sip",
+			"headerHash", sip.GetHeaderHash(),
+			"shardID", sip.GetShardID(),
+			"nonce", sip.GetNonce(),
+		)
+	}
+	for _, sip := range shardDataHandlers {
+		log.Debug("si",
+			"headerHash", sip.GetHeaderHash(),
+			"shardID", sip.GetShardID(),
+			"nonce", sip.GetNonce(),
+		)
 	}
 
 	err = metaHdr.SetShardInfoHandlers(shardDataHandlers)
@@ -720,6 +743,20 @@ func (mp *metaProcessor) selectIncomingMiniBlocks(
 	hdrsAddedForShard := make(map[uint32]uint32)
 	var err error
 
+	for shardID, lastShardHdr := range lastShardHdrs {
+		log.Debug("lastShardHdr",
+			"shard", shardID,
+			"last shard hdr nonce", lastShardHdr.Header.GetNonce(),
+		)
+	}
+
+	for _, hdr := range orderedHdrs {
+		log.Debug("lastShardHdr",
+			"shard", hdr.GetShardID(),
+			"last shard hdr nonce", hdr.GetNonce(),
+		)
+	}
+
 	if len(orderedHdrs) != len(orderedHdrsHashes) {
 		return process.ErrInconsistentShardHeadersAndHashes
 	}
@@ -771,6 +808,11 @@ func (mp *metaProcessor) selectIncomingMiniBlocks(
 		}
 
 		if len(currHdr.GetMiniBlockHeadersWithDst(mp.shardCoordinator.SelfId())) == 0 {
+			log.Debug("SSS selecting",
+				"shard", currHdr.GetShardID(),
+				"last shard hdr nonce", lastShardHeaderInfo.Header.GetNonce(),
+				"curr shard hdr nonce", currHdr.GetNonce())
+
 			mp.miniBlocksSelectionSession.AddReferencedHeader(currHdr, currHdrHash)
 			lastShardHdrs[currHdr.GetShardID()] = ShardHeaderInfo{
 				Header:      currHdr,
@@ -801,6 +843,11 @@ func (mp *metaProcessor) selectIncomingMiniBlocks(
 				return err
 			}
 		}
+
+		log.Debug("SSS2 selecting",
+			"shard", currHdr.GetShardID(),
+			"last shard hdr nonce", lastShardHeaderInfo.Header.GetNonce(),
+			"curr shard hdr nonce", currHdr.GetNonce())
 
 		mp.miniBlocksSelectionSession.AddReferencedHeader(currHdr, currHdrHash)
 		lastShardHdrs[currHdr.GetShardID()] = ShardHeaderInfo{
