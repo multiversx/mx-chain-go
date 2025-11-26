@@ -8,6 +8,7 @@ import (
 	"github.com/multiversx/mx-chain-core-go/data"
 	"github.com/multiversx/mx-chain-core-go/data/block"
 	dataRetrieverMocks "github.com/multiversx/mx-chain-go/testscommon/dataRetriever"
+	"github.com/multiversx/mx-chain-go/testscommon/processMocks"
 	"github.com/stretchr/testify/assert"
 
 	"github.com/multiversx/mx-chain-go/dataRetriever"
@@ -49,6 +50,7 @@ func createMockShardStorageBootstrapperArgs() ArgsBaseStorageBootstrapper {
 		AppStatusHandler:             &statusHandler.AppStatusHandlerMock{},
 		EnableEpochsHandler:          &enableEpochsHandlerMock.EnableEpochsHandlerStub{},
 		ProofsPool:                   &dataRetrieverMocks.ProofsPoolMock{},
+		ExecutionManager:             &processMocks.ExecutionManagerMock{},
 	}
 
 	return argsBaseBootstrapper
@@ -200,6 +202,15 @@ func TestBaseStorageBootstrapper_CheckBaseStorageBootstrapperArguments(t *testin
 
 		err := checkBaseStorageBootstrapperArguments(args)
 		assert.Equal(t, process.ErrNilAppStatusHandler, err)
+	})
+	t.Run("nil execution manager - should error", func(t *testing.T) {
+		t.Parallel()
+
+		args := createMockShardStorageBootstrapperArgs()
+		args.ExecutionManager = nil
+
+		err := checkBaseStorageBootstrapperArguments(args)
+		assert.Equal(t, process.ErrNilExecutionManager, err)
 	})
 }
 

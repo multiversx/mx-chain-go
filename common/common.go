@@ -414,6 +414,20 @@ func GetOrCreateLastExecutionResultForPrevHeader(
 	return ExtractBaseExecutionResultHandler(lastExecResult)
 }
 
+func isValidHeaderBeforeV3(header data.HeaderHandler) error {
+	_, isHeaderV2 := header.(*block.HeaderV2)
+	if isHeaderV2 {
+		return nil
+	}
+
+	_, isHeaderV1 := header.(*block.Header)
+	if !isHeaderV1 {
+		return ErrWrongTypeAssertion
+	}
+
+	return nil
+}
+
 // CreateLastExecutionResultFromPrevHeader creates a LastExecutionResultInfo object from the given previous header
 func CreateLastExecutionResultFromPrevHeader(prevHeader data.HeaderHandler, prevHeaderHash []byte) (data.LastExecutionResultHandler, error) {
 	if check.IfNil(prevHeader) {
@@ -424,8 +438,9 @@ func CreateLastExecutionResultFromPrevHeader(prevHeader data.HeaderHandler, prev
 	}
 
 	if prevHeader.GetShardID() != core.MetachainShardId {
-		if _, ok := prevHeader.(*block.HeaderV2); !ok {
-			return nil, ErrWrongTypeAssertion
+		err := isValidHeaderBeforeV3(prevHeader)
+		if err != nil {
+			return nil, err
 		}
 
 		return &block.ExecutionResultInfo{

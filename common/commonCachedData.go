@@ -45,21 +45,20 @@ func GetCachedLogs(cache storage.Cacher, headerHash []byte) ([]*data.LogData, er
 	return cachedLogsSlice, nil
 }
 
-// GetCachedIntraMbs will return the cached intra shard miniblocks from provided cache
-func GetCachedIntraMbs(cache storage.Cacher, marshaller marshal.Marshalizer, headerHash []byte) ([]*block.MiniBlock, error) {
+// GetCachedMbs will return the cached miniblocks from provided cache
+func GetCachedMbs(cache storage.Cacher, marshaller marshal.Marshalizer, headerHash []byte) ([]*block.MiniBlock, error) {
 	cachedIntraMBs, ok := cache.Get(headerHash)
 	if !ok {
 		log.Warn("intra miniblocks not found in dataPool", "hash", headerHash)
 		return nil, fmt.Errorf("%w for header %s", ErrMissingMiniBlock, hex.EncodeToString(headerHash))
 	}
-	cachedLogsBuff := cachedIntraMBs.([]byte)
-	var intraMBs []*block.MiniBlock
-	errUnmarshal := marshaller.Unmarshal(&intraMBs, cachedLogsBuff)
-	if errUnmarshal != nil {
-		return nil, fmt.Errorf("%w getIntraMbs: cannot unmarshall", errUnmarshal)
+
+	miniBlocks, ok := cachedIntraMBs.([]*block.MiniBlock)
+	if !ok {
+		return nil, fmt.Errorf("%w for GetCachedMbs", ErrWrongTypeAssertion)
 	}
 
-	return intraMBs, nil
+	return miniBlocks, nil
 }
 
 // GetCachedBody will return the block body based from provided cache based on the execution result

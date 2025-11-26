@@ -50,7 +50,11 @@ import (
 // UsedShardHeadersInfo -
 type UsedShardHeadersInfo = usedShardHeadersInfo
 
+// EpochStartDataWrapper -
 type EpochStartDataWrapper = epochStartDataWrapper
+
+// ErrNilPreviousHdr -
+var ErrNilPreviousHdr = errNilPreviousHeader
 
 // ComputeHeaderHash -
 func (bp *baseProcessor) ComputeHeaderHash(hdr data.HeaderHandler) ([]byte, error) {
@@ -918,6 +922,11 @@ func (bp *baseProcessor) RequestHeadersFromHeaderIfNeeded(
 	lastHeader data.HeaderHandler,
 ) {
 	bp.requestHeadersFromHeaderIfNeeded(lastHeader)
+}
+
+// CacheIntraShardMiniBlocks -
+func (bp *baseProcessor) CacheIntraShardMiniBlocks(headerHash []byte, mbs block.MiniBlockSlice) error {
+	return bp.cacheIntraShardMiniBlocks(headerHash, mbs)
 }
 
 // GetHaveTimeForProposal -
