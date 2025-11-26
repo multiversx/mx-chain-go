@@ -2159,7 +2159,7 @@ func TestShardProcessor_CommitBlockOkValsShouldWork(t *testing.T) {
 	}
 	mbHdrs := make([]data.MiniBlockHeaderHandler, 0)
 	mbHdrs = append(mbHdrs, mbHdr)
-	hdr.SetMiniBlockHeaderHandlers(mbHdrs)
+	_ = hdr.SetMiniBlockHeaderHandlers(mbHdrs)
 
 	accounts := &stateMock.AccountsStub{
 		CommitCalled: func() (i []byte, e error) {
@@ -2385,7 +2385,7 @@ func TestShardProcessor_CommitBlockCallsIndexerMethods(t *testing.T) {
 	}
 	mbHdrs := make([]data.MiniBlockHeaderHandler, 0)
 	mbHdrs = append(mbHdrs, mbHdr)
-	hdr.SetMiniBlockHeaderHandlers(mbHdrs)
+	_ = hdr.SetMiniBlockHeaderHandlers(mbHdrs)
 
 	accounts := &stateMock.AccountsStub{
 		CommitCalled: func() (i []byte, e error) {
