@@ -315,6 +315,41 @@ func TestSelectionTracker_OnProposedBlockShouldErr(t *testing.T) {
 		}, accountsProvider, []byte("prevHash0"))
 		require.Equal(t, expectedErr, err)
 	})
+
+	t.Run("should return errRootHashMismatch in case of different root hashes", func(t *testing.T) {
+		t.Parallel()
+
+		txCache := newCacheToTest(maxNumBytesPerSenderUpperBoundTest, 3)
+		txCache.txByHash.addTx(createTx([]byte("txHash1"), "alice", 1))
+
+		tracker, err := NewSelectionTracker(txCache, maxTrackedBlocks)
+		require.Nil(t, err)
+
+		blockBody1 := block.Body{
+			MiniBlocks: []*block.MiniBlock{
+				{
+					TxHashes: [][]byte{
+						[]byte("txHash1"),
+					},
+				},
+			},
+		}
+
+		accountsProvider := &txcachemocks.AccountNonceAndBalanceProviderMock{
+			GetRootHashCalled: func() ([]byte, error) {
+				return []byte("rootHash1"), nil
+			},
+		}
+
+		tracker.latestRootHash = []byte("rootHashX")
+
+		err = tracker.OnProposedBlock([]byte("hash1"), &blockBody1, &block.Header{
+			Nonce:    uint64(0),
+			PrevHash: []byte(fmt.Sprintf("prevHash%d", 0)),
+			RootHash: []byte(fmt.Sprintf("rootHash%d", 0)),
+		}, accountsProvider, []byte("prevHash0"))
+		require.Equal(t, errRootHashMismatch, err)
+	})
 }
 
 func TestSelectionTracker_OnProposedBlockShouldWork(t *testing.T) {
