@@ -528,12 +528,7 @@ func (st *storageBootstrapper) setCurrentBlockInfo(
 		return err
 	}
 
-	err = st.executionManager.SetLastNotarizedResult(lastExecResHandler)
-	if err != nil {
-		return err
-	}
-
-	return nil
+	return st.executionManager.SetLastNotarizedResult(lastExecResHandler)
 }
 
 func (st *storageBootstrapper) setCurrentBlockInfoV3(

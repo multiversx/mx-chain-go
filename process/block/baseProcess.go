@@ -3135,12 +3135,7 @@ func (bp *baseProcessor) setCurrentBlockInfo(
 		return err
 	}
 
-	err = bp.executionManager.SetLastNotarizedResult(lastExecResHandler)
-	if err != nil {
-		return err
-	}
-
-	return nil
+	return bp.executionManager.SetLastNotarizedResult(lastExecResHandler)
 }
 
 func (bp *baseProcessor) getLastExecutedRootHash(
