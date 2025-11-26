@@ -11,6 +11,7 @@ import (
 	"github.com/multiversx/mx-chain-core-go/data/block"
 	"github.com/multiversx/mx-chain-core-go/data/transaction"
 	"github.com/multiversx/mx-chain-core-go/marshal"
+	"github.com/multiversx/mx-chain-go/config"
 	"github.com/multiversx/mx-chain-go/storage"
 	"github.com/multiversx/mx-chain-go/testscommon"
 	"github.com/multiversx/mx-chain-go/testscommon/genericMocks"
@@ -31,16 +32,16 @@ const (
 func TestNewSuppliesProcessor(t *testing.T) {
 	t.Parallel()
 
-	_, err := NewSuppliesProcessor(nil, &storageStubs.StorerStub{}, &storageStubs.StorerStub{})
+	_, err := NewSuppliesProcessor(nil, &storageStubs.StorerStub{}, &storageStubs.StorerStub{}, nil, 0)
 	require.Equal(t, core.ErrNilMarshalizer, err)
 
-	_, err = NewSuppliesProcessor(&marshallerMock.MarshalizerMock{}, nil, &storageStubs.StorerStub{})
+	_, err = NewSuppliesProcessor(&marshallerMock.MarshalizerMock{}, nil, &storageStubs.StorerStub{}, nil, 0)
 	require.Equal(t, core.ErrNilStore, err)
 
-	_, err = NewSuppliesProcessor(&marshallerMock.MarshalizerMock{}, &storageStubs.StorerStub{}, nil)
+	_, err = NewSuppliesProcessor(&marshallerMock.MarshalizerMock{}, &storageStubs.StorerStub{}, nil, nil, 0)
 	require.Equal(t, core.ErrNilStore, err)
 
-	proc, err := NewSuppliesProcessor(&marshallerMock.MarshalizerMock{}, &storageStubs.StorerStub{}, &storageStubs.StorerStub{})
+	proc, err := NewSuppliesProcessor(&marshallerMock.MarshalizerMock{}, &storageStubs.StorerStub{}, &storageStubs.StorerStub{}, nil, 0)
 	require.Nil(t, err)
 	require.NotNil(t, proc)
 	require.False(t, proc.IsInterfaceNil())
@@ -134,7 +135,7 @@ func TestProcessLogsSaveSupply(t *testing.T) {
 		},
 	}
 
-	suppliesProc, err := NewSuppliesProcessor(marshalizer, suppliesStorer, &storageStubs.StorerStub{})
+	suppliesProc, err := NewSuppliesProcessor(marshalizer, suppliesStorer, &storageStubs.StorerStub{}, nil, 0)
 	require.Nil(t, err)
 
 	err = suppliesProc.ProcessLogs(6, logs)
@@ -296,7 +297,7 @@ func TestProcessLogsSaveSupplyShouldUpdateSupplyMintedAndBurned(t *testing.T) {
 		},
 	}
 
-	suppliesProc, err := NewSuppliesProcessor(marshalizer, suppliesStorer, &storageStubs.StorerStub{})
+	suppliesProc, err := NewSuppliesProcessor(marshalizer, suppliesStorer, &storageStubs.StorerStub{}, nil, 0)
 	require.Nil(t, err)
 
 	err = suppliesProc.ProcessLogs(6, logsCreate)
@@ -372,7 +373,7 @@ func TestProcessLogs_RevertChangesShouldWorkForRevertingMinting(t *testing.T) {
 
 	suppliesStorer := genericMocks.NewStorerMockWithErrKeyNotFound(0)
 
-	suppliesProc, err := NewSuppliesProcessor(marshalizer, suppliesStorer, logsStorer)
+	suppliesProc, err := NewSuppliesProcessor(marshalizer, suppliesStorer, logsStorer, nil, 0)
 	require.Nil(t, err)
 
 	err = suppliesProc.ProcessLogs(6, logsMintNoRevert)
@@ -463,7 +464,7 @@ func TestProcessLogs_RevertChangesShouldWorkForRevertingBurning(t *testing.T) {
 
 	suppliesStorer := genericMocks.NewStorerMockWithErrKeyNotFound(0)
 
-	suppliesProc, err := NewSuppliesProcessor(marshalizer, suppliesStorer, logsStorer)
+	suppliesProc, err := NewSuppliesProcessor(marshalizer, suppliesStorer, logsStorer, nil, 0)
 	require.Nil(t, err)
 
 	err = suppliesProc.ProcessLogs(6, logsMintNoRevert)
@@ -535,7 +536,7 @@ func TestSupplyESDT_GetSupply(t *testing.T) {
 			}
 			return nil, errors.New("local err")
 		},
-	}, &storageStubs.StorerStub{})
+	}, &storageStubs.StorerStub{}, nil, 0)
 
 	res, err := proc.GetESDTSupply("my-token")
 	require.Nil(t, err)
@@ -546,4 +547,86 @@ func TestSupplyESDT_GetSupply(t *testing.T) {
 	}
 
 	require.Equal(t, expectedESDTSupply, res)
+}
+
+func TestSuppliesProcessorWithInitialAndLateCorrections(t *testing.T) {
+	t.Parallel()
+
+	// Define test tokens
+	token1 := []byte("TOKEN-0001")
+	token2 := []byte("TOKEN-0002")
+
+	// Initial supply corrections to be applied at processor creation
+	initialCorrections := []config.SupplyCorrection{
+		{
+			ID:         "corr1",
+			ShardID:    0,
+			BlockNonce: 1000,
+			Token:      string(token1),
+			Value:      "100",
+		},
+		{
+			ID:         "corr2",
+			ShardID:    0,
+			BlockNonce: 1000,
+			Token:      string(token2),
+			Value:      "-50",
+		},
+	}
+
+	marshalizer := &marshallerMock.MarshalizerMock{}
+	supplyStorer := &storageStubs.StorerStub{
+		GetCalled: func(key []byte) ([]byte, error) {
+			switch string(key) {
+			case processedBlockKey:
+				pb := &ProcessedBlockNonce{Nonce: 900}
+				pbBytes, _ := marshalizer.Marshal(pb)
+				return pbBytes, nil
+			case string(token1):
+				supply := &SupplyESDT{
+					Supply: big.NewInt(200),
+					Minted: big.NewInt(200),
+					Burned: big.NewInt(0),
+				}
+				return marshalizer.Marshal(supply)
+			case string(token2):
+				supply := &SupplyESDT{
+					Supply: big.NewInt(300),
+					Minted: big.NewInt(300),
+					Burned: big.NewInt(0),
+				}
+				return marshalizer.Marshal(supply)
+			}
+			return nil, storage.ErrKeyNotFound
+		},
+		PutCalled: func(key, data []byte) error {
+			switch string(key) {
+			case processedBlockKey:
+				return nil
+			case string(token1):
+				supply := &SupplyESDT{}
+				err := marshalizer.Unmarshal(supply, data)
+				require.Nil(t, err)
+				require.Equal(t, big.NewInt(300), supply.Supply)
+				require.Equal(t, big.NewInt(300), supply.Minted)
+				require.Equal(t, big.NewInt(0), supply.Burned)
+			case string(token2):
+				supply := &SupplyESDT{}
+				err := marshalizer.Unmarshal(supply, data)
+				require.Nil(t, err)
+				require.Equal(t, big.NewInt(250), supply.Supply)
+				require.Equal(t, big.NewInt(300), supply.Minted)
+				require.Equal(t, big.NewInt(50), supply.Burned)
+			}
+			return nil
+		},
+	}
+
+	// Create the supplies processor with initial corrections
+	suppliesProc, err := NewSuppliesProcessor(marshalizer, supplyStorer, &storageStubs.StorerStub{}, initialCorrections, 0)
+	require.Nil(t, err)
+
+	// Process logs with late corrections
+	err = suppliesProc.ProcessLogs(1100, nil)
+	require.Nil(t, err)
 }
