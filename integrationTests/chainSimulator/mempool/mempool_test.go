@@ -2288,3 +2288,88 @@ func Test_SelectionWhenFeeExceedsBalanceWithMax2TxsSelected(t *testing.T) {
 	require.Equal(t, 1, len(selectedTransactions))
 	require.Equal(t, "bob", string(selectedTransactions[0].Tx.GetSndAddr()))
 }
+
+func Test_SelectionWithRootHashMismatch(t *testing.T) {
+	t.Parallel()
+
+	host := txcachemocks.NewMempoolHostMock()
+	txpool, err := txcache.NewTxCache(txcache.ConfigSourceMe{
+		Name:                        "test",
+		NumChunks:                   16,
+		NumBytesThreshold:           maxNumBytesUpperBound,
+		NumBytesPerSenderThreshold:  maxNumBytesPerSenderUpperBoundTest,
+		CountThreshold:              math.MaxUint32,
+		CountPerSenderThreshold:     math.MaxUint32,
+		EvictionEnabled:             false,
+		NumItemsToPreemptivelyEvict: 1,
+		TxCacheBoundsConfig: config.TxCacheBoundsConfig{
+			MaxNumBytesPerSenderUpperBound: maxNumBytesPerSenderUpperBoundTest,
+			MaxTrackedBlocks:               3,
+		},
+	}, host)
+
+	require.Nil(t, err)
+	require.NotNil(t, txpool)
+
+	numTxsPerSender := 30_000
+	initialAmount := big.NewInt(int64(numTxsPerSender) * 50_000 * 1_000_000_000)
+
+	senders := []string{"alice", "bob"}
+	accounts := map[string]*stateMock.UserAccountStub{
+		"alice": {
+			Balance: initialAmount,
+			Nonce:   0,
+		},
+		"bob": {
+			Balance: initialAmount,
+			Nonce:   0,
+		},
+		"receiver": {
+			Balance: big.NewInt(0),
+			Nonce:   0,
+		},
+	}
+
+	selectionSession := txcachemocks.NewSelectionSessionMockWithAccounts(accounts)
+	// keep the same root hash with the one used on the OnExecutedBlock to avoid root hash mismatch on selection
+	selectionSession.GetRootHashCalled = func() ([]byte, error) {
+		return []byte(testRootHash), nil
+	}
+
+	err = txpool.OnExecutedBlock(&block.Header{}, []byte(testRootHash))
+	require.Nil(t, err)
+
+	options := holders.NewTxSelectionOptions(
+		10_000_000_000,
+		numTxsPerSender,
+		int(selectionLoopMaximumDuration.Milliseconds()),
+		10,
+	)
+
+	numTxs := numTxsPerSender * len(senders)
+	nonceTracker := newNoncesTracker()
+
+	addTransactionsToTxPool(txpool, nonceTracker, numTxsPerSender, senders)
+	require.Equal(t, txpool.CountTx(), uint64(numTxs))
+
+	// do the first selections
+	selectedTransactions, _, err := txpool.SelectTransactions(selectionSession, options, 0)
+	require.Nil(t, err)
+	require.Equal(t, numTxsPerSender, len(selectedTransactions))
+
+	// change the returned root hash on selection session to trigger root hash mismatch
+	selectionSession.GetRootHashCalled = func() ([]byte, error) {
+		return []byte("rootHashX"), nil
+	}
+	// propose those txs in order to track them (create the breadcrumbs used for the virtual records)
+	proposedBlock1 := createProposedBlock(selectedTransactions)
+	err = txpool.OnProposedBlock([]byte(testBlockHash1), proposedBlock1, &block.Header{
+		Nonce:    1,
+		PrevHash: []byte(testBlockHash0),
+		RootHash: []byte(testRootHash),
+	},
+		selectionSession,
+		defaultLatestExecutedHash,
+	)
+	require.ErrorContains(t, err, "root hash mismatch")
+}
