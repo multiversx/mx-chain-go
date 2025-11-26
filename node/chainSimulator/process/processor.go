@@ -1,7 +1,6 @@
 package process
 
 import (
-	"fmt"
 	"time"
 
 	"github.com/multiversx/mx-chain-core-go/core"
@@ -11,6 +10,7 @@ import (
 	"github.com/multiversx/mx-chain-go/common"
 	heartbeatData "github.com/multiversx/mx-chain-go/heartbeat/data"
 	"github.com/multiversx/mx-chain-go/node/chainSimulator/configs"
+	"github.com/multiversx/mx-chain-go/process/asyncExecution/queue"
 	"github.com/multiversx/mx-chain-go/sharding/nodesCoordinator"
 	logger "github.com/multiversx/mx-chain-logger-go"
 )
@@ -164,9 +164,6 @@ func (creator *blocksCreator) CreateNewBlock() error {
 
 	enableEpochHandler := coreComponents.EnableEpochsHandler()
 
-	if round == 45 && shardID == 0 {
-		fmt.Println("here")
-	}
 	header, block, err := creator.createBlock(newHeader)
 	if err != nil {
 		return err
@@ -179,6 +176,27 @@ func (creator *blocksCreator) CreateNewBlock() error {
 	if prevHeaderStartOfEpoch {
 		creator.updatePeerShardMapper(header.GetEpoch())
 	}
+
+	if newHeader.IsHeaderV3() {
+		err = creator.nodeHandler.GetProcessComponents().BlockProcessor().VerifyBlockProposal(header, block, func() time.Duration {
+			return time.Second
+		})
+		if err != nil {
+			return err
+		}
+
+		pair := queue.HeaderBodyPair{
+			Header: header,
+			Body:   block,
+		}
+		err = creator.nodeHandler.GetProcessComponents().ExecutionManager().AddPairForExecution(pair)
+		if err != nil {
+			return err
+		}
+	}
+
+	// Verify block
+	// Add pair in execution manager
 
 	headerProof, err := creator.ApplySignaturesAndGetProof(header, prevHeader, enableEpochHandler, validators, leader, pubKeyBitmap)
 	if err != nil {

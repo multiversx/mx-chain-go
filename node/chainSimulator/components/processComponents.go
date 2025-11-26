@@ -289,6 +289,7 @@ func CreateProcessComponents(args ArgsProcessComponentsHolder) (*processComponen
 		epochStartSystemSCProcessor:      managedProcessComponents.EpochSystemSCProcessor(),
 		blockchainHook:                   managedProcessComponents.BlockchainHook(),
 		managedProcessComponentsCloser:   managedProcessComponents,
+		executionManager:                 managedProcessComponents.ExecutionManager(),
 	}
 
 	return replaceWithCustomProcessSubComponents(instance, processArgs)
