@@ -5120,3 +5120,42 @@ func TestBaseProcess_collectMiniBlocks(t *testing.T) {
 		require.Equal(t, 1, expectedValue)
 	})
 }
+
+func TestBaseProcessor_CacheIntraShardMiniBlocks(t *testing.T) {
+	t.Parallel()
+
+	t.Run("should work with proto marshaller", func(t *testing.T) {
+		t.Parallel()
+
+		coreComponents, dataComponents, bootstrapComponents, statusComponents := createComponentHolderMocks()
+
+		_ = coreComponents.SetInternalMarshalizer(&marshal.GogoProtoMarshalizer{})
+
+		executedMBs := cache.NewCacherStub()
+
+		wasCalled := false
+		executedMBs.PutCalled = func(key []byte, value interface{}, sizeInBytes int) (evicted bool) {
+			wasCalled = true
+			return
+		}
+
+		dataPool := initDataPool()
+		dataPool.ExecutedMiniBlocksCalled = func() storage.Cacher {
+			return executedMBs
+		}
+		dataComponents.DataPool = dataPool
+
+		arguments := CreateMockArguments(coreComponents, dataComponents, bootstrapComponents, statusComponents)
+
+		bp, err := blproc.NewShardProcessor(arguments)
+		require.NoError(t, err)
+
+		headerHash := []byte("headerHash")
+		miniBlocks := []*block.MiniBlock{}
+
+		err = bp.CacheIntraShardMiniBlocks(headerHash, miniBlocks)
+		require.Nil(t, err)
+
+		require.True(t, wasCalled)
+	})
+}

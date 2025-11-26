@@ -713,9 +713,8 @@ func TestPrepareExecutionResultsData(t *testing.T) {
 
 		headerHash := []byte("hash")
 		intraMbs := make([]*block.MiniBlock, 0)
-		intraMbsBytes, _ := arg.Marshaller.Marshal(intraMbs)
 
-		arg.DataPool.ExecutedMiniBlocks().Put(headerHash, intraMbsBytes, 0)
+		arg.DataPool.ExecutedMiniBlocks().Put(headerHash, intraMbs, 0)
 		outportDataP, _ := NewOutportDataProvider(arg)
 
 		results, err := outportDataP.prepareExecutionResultsData(ArgPrepareOutportSaveBlockData{
@@ -739,8 +738,7 @@ func TestPrepareExecutionResultsData(t *testing.T) {
 
 		headerHash := []byte("hash")
 		intraMbs := make([]*block.MiniBlock, 0)
-		intraMbsBytes, _ := arg.Marshaller.Marshal(intraMbs)
-		arg.DataPool.ExecutedMiniBlocks().Put(headerHash, intraMbsBytes, 0)
+		arg.DataPool.ExecutedMiniBlocks().Put(headerHash, intraMbs, 0)
 
 		cachedTxs := make(map[block.Type]map[string]data.TransactionHandler)
 		arg.DataPool.PostProcessTransactions().Put(headerHash, cachedTxs, 1)
@@ -768,8 +766,7 @@ func TestPrepareExecutionResultsData(t *testing.T) {
 
 		headerHash := []byte("hash")
 		intraMbs := make([]*block.MiniBlock, 0)
-		intraMbsBytes, _ := arg.Marshaller.Marshal(intraMbs)
-		arg.DataPool.ExecutedMiniBlocks().Put(headerHash, intraMbsBytes, 0)
+		arg.DataPool.ExecutedMiniBlocks().Put(headerHash, intraMbs, 0)
 
 		logsKey := common.PrepareLogEventsKey(headerHash)
 		logsSlice := make([]*data.LogData, 0)
@@ -810,8 +807,7 @@ func TestPrepareExecutionResultsData(t *testing.T) {
 
 		headerHash := []byte("hash")
 		intraMbs := make([]*block.MiniBlock, 0)
-		intraMbsBytes, _ := arg.Marshaller.Marshal(intraMbs)
-		arg.DataPool.ExecutedMiniBlocks().Put(headerHash, intraMbsBytes, 0)
+		arg.DataPool.ExecutedMiniBlocks().Put(headerHash, intraMbs, 0)
 
 		logsKey := common.PrepareLogEventsKey(headerHash)
 		logsSlice := make([]*data.LogData, 0)
@@ -850,8 +846,7 @@ func TestPrepareExecutionResultsData(t *testing.T) {
 
 		headerHash := []byte("hash")
 		intraMbs := make([]*block.MiniBlock, 0)
-		intraMbsBytes, _ := arg.Marshaller.Marshal(intraMbs)
-		arg.DataPool.ExecutedMiniBlocks().Put(headerHash, intraMbsBytes, 0)
+		arg.DataPool.ExecutedMiniBlocks().Put(headerHash, intraMbs, 0)
 
 		logsKey := common.PrepareLogEventsKey(headerHash)
 		logsSlice := make([]*data.LogData, 0)
@@ -892,8 +887,7 @@ func TestPrepareExecutionResultsData(t *testing.T) {
 		headerHash := []byte("hash")
 		intraMbs := make([]*block.MiniBlock, 0)
 		intraMbs = append(intraMbs, &block.MiniBlock{})
-		intraMbsBytes, _ := arg.Marshaller.Marshal(intraMbs)
-		arg.DataPool.ExecutedMiniBlocks().Put(headerHash, intraMbsBytes, 0)
+		arg.DataPool.ExecutedMiniBlocks().Put(headerHash, intraMbs, 0)
 
 		logsKey := common.PrepareLogEventsKey(headerHash)
 		logsSlice := make([]*data.LogData, 0)
