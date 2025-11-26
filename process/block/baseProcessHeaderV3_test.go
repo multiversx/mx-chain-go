@@ -7,6 +7,7 @@ import (
 	"github.com/multiversx/mx-chain-core-go/data"
 	"github.com/multiversx/mx-chain-core-go/data/block"
 	"github.com/multiversx/mx-chain-core-go/data/transaction"
+	"github.com/multiversx/mx-chain-core-go/marshal"
 	"github.com/stretchr/testify/require"
 
 	"github.com/multiversx/mx-chain-go/common"
@@ -166,18 +167,52 @@ func TestBaseProcessor_cacheIntermediateTxsForHeader(t *testing.T) {
 					return nil, errExpected
 				},
 			},
-			txCoordinator: &testscommon.TransactionCoordinatorMock{},
+			txCoordinator: &testscommon.TransactionCoordinatorMock{
+				GetAllIntermediateTxsCalled: func() map[block.Type]map[string]data.TransactionHandler {
+					allTxs := make(map[block.Type]map[string]data.TransactionHandler)
+					allTxs[block.TxBlock] = map[string]data.TransactionHandler{
+						"txHash1": &transaction.Transaction{},
+					}
+
+					return allTxs
+				},
+			},
 		}
 
 		err := bp.cacheIntermediateTxsForHeader(headerHash)
 		require.Equal(t, errExpected, err)
 	})
+
 	t.Run("should work", func(t *testing.T) {
 		t.Parallel()
 
 		wasPutCalled := false
 		bp := &baseProcessor{
 			marshalizer:   &marshallerMock.MarshalizerStub{},
+			txCoordinator: &testscommon.TransactionCoordinatorMock{},
+			dataPool: &dataRetrieverMock.PoolsHolderStub{
+				PostProcessTransactionsCalled: func() storage.Cacher {
+					return &cache.CacherStub{
+						PutCalled: func(key []byte, value interface{}, sizeInBytes int) (evicted bool) {
+							wasPutCalled = true
+							return false
+						},
+					}
+				},
+			},
+		}
+
+		err := bp.cacheIntermediateTxsForHeader(headerHash)
+		require.NoError(t, err)
+		require.True(t, wasPutCalled)
+	})
+
+	t.Run("should work with proto marshaller", func(t *testing.T) {
+		t.Parallel()
+
+		wasPutCalled := false
+		bp := &baseProcessor{
+			marshalizer:   &marshal.GogoProtoMarshalizer{},
 			txCoordinator: &testscommon.TransactionCoordinatorMock{},
 			dataPool: &dataRetrieverMock.PoolsHolderStub{
 				PostProcessTransactionsCalled: func() storage.Cacher {
@@ -354,11 +389,17 @@ func TestBaseProcessor_saveExecutedData(t *testing.T) {
 					}, nil
 				},
 			}
+
+			numCalls := 0
 			bp.dataPool = &dataRetrieverMock.PoolsHolderStub{
 				ExecutedMiniBlocksCalled: func() storage.Cacher {
 					return &cache.CacherStub{
 						GetCalled: func(key []byte) (value interface{}, ok bool) {
-							return []byte("marshalled mb"), true
+							if numCalls == 0 {
+								numCalls++
+								return []*block.MiniBlock{}, true
+							}
+							return []byte("data"), true
 						},
 					}
 				},

@@ -2788,7 +2788,11 @@ func (bp *baseProcessor) putMiniBlocksIntoStorage(miniBlockHeaderHandlers []data
 			return process.ErrMissingMiniBlock
 		}
 
-		cachedMiniBlockBytes := cachedMiniBlock.([]byte)
+		cachedMiniBlockBytes, ok := cachedMiniBlock.([]byte)
+		if !ok {
+			return process.ErrWrongTypeAssertion
+		}
+
 		errPut := miniBlockStorer.Put(mbHash, cachedMiniBlockBytes)
 		if errPut != nil {
 			return errPut
@@ -2801,13 +2805,14 @@ func (bp *baseProcessor) putMiniBlocksIntoStorage(miniBlockHeaderHandlers []data
 	return nil
 }
 
-func (bp *baseProcessor) cacheIntraShardMiniBlocks(headerHash []byte, mbs []*block.MiniBlock) error {
-	marshalledMbs, err := bp.marshalizer.Marshal(mbs)
+func (bp *baseProcessor) cacheIntraShardMiniBlocks(headerHash []byte, miniBlocks block.MiniBlockSlice) error {
+	// TODO: analyse better ways to estimate cached data size, without marshalling
+	marshalledMbsSize, err := process.GetMarshaledSliceSize(miniBlocks, bp.marshalizer)
 	if err != nil {
 		return err
 	}
 
-	bp.dataPool.ExecutedMiniBlocks().Put(headerHash, marshalledMbs, len(marshalledMbs))
+	bp.dataPool.ExecutedMiniBlocks().Put(headerHash, miniBlocks, marshalledMbsSize)
 
 	return nil
 }
@@ -2840,33 +2845,30 @@ func (bp *baseProcessor) saveReceiptsForExecutionResult(
 
 func (bp *baseProcessor) getMiniBlocksForReceiptsV3(execResult data.BaseExecutionResultHandler) ([]*block.MiniBlock, error) {
 	headerHash := execResult.GetHeaderHash()
-	receiptsMiniBlocks, ok := bp.dataPool.ExecutedMiniBlocks().Get(headerHash)
+
+	executedMiniBlocksCache := bp.dataPool.ExecutedMiniBlocks()
+	miniBlocksBuff, ok := executedMiniBlocksCache.Get(headerHash)
 	if !ok {
+		log.Warn("miniblocks not found in dataPool", "hash", headerHash)
 		return make([]*block.MiniBlock, 0), nil
 	}
 
-	marshalledMbs, ok := receiptsMiniBlocks.([]byte)
+	receiptsMiniBlocks, ok := miniBlocksBuff.([]*block.MiniBlock)
 	if !ok {
-		return nil, fmt.Errorf("%w for getMiniBlocksForReceiptsV3", process.ErrWrongTypeAssertion)
+		return nil, fmt.Errorf("%w for GetCachedMbs", process.ErrWrongTypeAssertion)
 	}
 
-	postProcessMiniBlocksToMe := make([]*block.MiniBlock, 0)
-	err := bp.marshalizer.Unmarshal(&postProcessMiniBlocksToMe, marshalledMbs)
-	if err != nil {
-		return nil, err
-	}
-
-	return postProcessMiniBlocksToMe, nil
+	return receiptsMiniBlocks, nil
 }
 
 func (bp *baseProcessor) cacheLogEvents(headerHash []byte, logs []*data.LogData) error {
-	logsMarshalled, err := bp.marshalizer.Marshal(logs)
+	logsMarshalledSize, err := process.GetMarshaledSliceSize(logs, bp.marshalizer)
 	if err != nil {
 		return err
 	}
 
 	key := common.PrepareLogEventsKey(headerHash)
-	bp.dataPool.PostProcessTransactions().Put(key, logs, len(logsMarshalled))
+	bp.dataPool.PostProcessTransactions().Put(key, logs, logsMarshalledSize)
 
 	return nil
 }
@@ -2887,14 +2889,57 @@ func (bp *baseProcessor) cacheExecutedMiniBlocks(body *block.Body, miniBlockHead
 
 func (bp *baseProcessor) cacheIntermediateTxsForHeader(headerHash []byte) error {
 	intermediateTxs := bp.txCoordinator.GetAllIntermediateTxs()
-	buff, err := bp.marshalizer.Marshal(intermediateTxs)
+	intermediateTxsSize, err := bp.getAllIntermediateTxsSize(intermediateTxs)
 	if err != nil {
 		return err
 	}
 
-	bp.dataPool.PostProcessTransactions().Put(headerHash, intermediateTxs, len(buff))
+	bp.dataPool.PostProcessTransactions().Put(headerHash, intermediateTxs, intermediateTxsSize)
 
 	return nil
+}
+
+func (bp *baseProcessor) getAllIntermediateTxsSize(
+	allTxs map[block.Type]map[string]data.TransactionHandler,
+) (int, error) {
+	size := 0
+
+	for _, txs := range allTxs {
+		numTxs := len(txs)
+
+		oneTxSize := 0
+
+		var err error
+		if numTxs == 0 {
+			continue
+		}
+
+		oneTxSize, err = getOneTxSizeFromMap(txs, bp.marshalizer)
+		if err != nil {
+			return 0, err
+		}
+
+		size += oneTxSize * numTxs
+	}
+
+	return size, nil
+}
+
+func getOneTxSizeFromMap(
+	txs map[string]data.TransactionHandler,
+	marshaller marshal.Marshalizer,
+) (int, error) {
+	for _, tx := range txs {
+		// get size of first tx, if any
+		marshalledTx, err := marshaller.Marshal(tx)
+		if err != nil {
+			return 0, err
+		}
+
+		return len(marshalledTx), nil
+	}
+
+	return 0, nil
 }
 
 func (bp *baseProcessor) saveIntermediateTxs(headerHash []byte) error {
