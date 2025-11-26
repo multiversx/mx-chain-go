@@ -536,10 +536,26 @@ func displayHeader(
 			"",
 			"Receipts hash",
 			logger.DisplayByteSlice(headerHandler.GetReceiptsHash())}),
-		display.NewLineData(true, []string{
+		display.NewLineData(!headerHandler.IsHeaderV3(), []string{
 			"",
 			"Epoch start meta hash",
 			logger.DisplayByteSlice(epochStartMetaHash)}),
+	}
+
+	if headerHandler.IsHeaderV3() {
+		lastExecResult, _ := common.GetLastBaseExecutionResultHandler(headerHandler)
+		logLines = append(logLines, display.NewLineData(false, []string{
+			"",
+			"Last execution result",
+			logger.DisplayByteSlice(lastExecResult.GetHeaderHash())}))
+
+		for idx, execRes := range headerHandler.GetExecutionResultsHandlers() {
+			shouldAddHorizontalLine := idx == len(headerHandler.GetExecutionResultsHandlers())-1
+			logLines = append(logLines, display.NewLineData(shouldAddHorizontalLine, []string{
+				"",
+				fmt.Sprintf("Execution result %d", idx),
+				logger.DisplayByteSlice(execRes.GetHeaderHash())}))
+		}
 	}
 
 	if hasProofInfo {
