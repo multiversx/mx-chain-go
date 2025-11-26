@@ -184,6 +184,8 @@ type ShardedDataCacherNotifier interface {
 	Keys() [][]byte
 	IsInterfaceNil() bool
 	CleanupSelfShardTxCache(accountsProvider common.AccountNonceProvider, randomness uint64, maxNum int, cleanupLoopMaximumDuration time.Duration)
+	GetNumTrackedBlocks() uint64
+	GetNumTrackedAccounts() uint64
 	OnExecutedBlock(blockHeader data.HeaderHandler) error
 }
 
