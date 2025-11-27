@@ -543,3 +543,38 @@ func TestSimulator_SentMoveBalanceNoGasForFee(t *testing.T) {
 	_, err = chainSimulator.sendTx(ftx)
 	require.True(t, strings.Contains(err.Error(), errors.ErrInsufficientFunds.Error()))
 }
+
+func TestChainSimulatorCheckRoundDurationMetrics(t *testing.T) {
+	if testing.Short() {
+		t.Skip("this is not a short test")
+	}
+
+	chainSimulator, err := NewChainSimulator(ArgsChainSimulator{
+		BypassTxSignatureCheck:         true,
+		TempDir:                        t.TempDir(),
+		PathToInitialConfig:            defaultPathToInitialConfig,
+		NumOfShards:                    defaultNumOfShards,
+		RoundDurationInMillis:          defaultRoundDurationInMillis,
+		SupernovaRoundDurationInMillis: defaultSupernovaRoundDurationInMillis,
+		RoundsPerEpoch:                 defaultRoundsPerEpoch,
+		SupernovaRoundsPerEpoch:        defaultSupernovaRoundsPerEpoch,
+		ApiInterface:                   api.NewNoApiInterface(),
+		MinNodesPerShard:               defaultMinNodesPerShard,
+		MetaChainMinNodes:              defaultMetaChainMinNodes,
+	})
+	require.Nil(t, err)
+	require.NotNil(t, chainSimulator)
+
+	defer chainSimulator.Close()
+
+	err = chainSimulator.GenerateBlocks(43)
+	require.Nil(t, err)
+
+	result, err := chainSimulator.GetNodeHandler(0).GetFacadeHandler().StatusMetrics().StatusMetricsMapWithoutP2P()
+	require.Nil(t, err)
+
+	roundDuration := result[common.MetricRoundDuration].(uint64)
+	require.Equal(t, defaultSupernovaRoundDurationInMillis, roundDuration)
+	roundsPerEpoch := result[common.MetricRoundsPerEpoch].(uint64)
+	require.Equal(t, defaultSupernovaRoundsPerEpochValue, roundsPerEpoch)
+}
