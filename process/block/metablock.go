@@ -1794,9 +1794,14 @@ func (mp *metaProcessor) commitEpochStart(header data.MetaHeaderHandler, body *b
 		}
 
 		mp.epochStartTrigger.SetProcessed(header, processedBody)
+		mp.epochStartTrigger.SetEpochChangeProposed(false)
 		go mp.epochRewardsCreator.SaveBlockDataToStorage(header, processedBody)
 		go mp.validatorInfoCreator.SaveBlockDataToStorage(header, processedBody)
 	} else {
+		if header.IsEpochChangeProposed() {
+			mp.epochStartTrigger.SetEpochChangeProposed(true)
+		}
+
 		currentHeader := mp.blockChain.GetCurrentBlockHeader()
 		if !check.IfNil(currentHeader) && currentHeader.IsStartOfEpochBlock() {
 			mp.epochStartTrigger.SetFinalityAttestingRound(header.GetRound())

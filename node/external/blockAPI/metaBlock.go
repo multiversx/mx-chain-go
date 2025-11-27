@@ -94,8 +94,7 @@ func (mbp *metaAPIBlockProcessor) GetBlockByHash(hash []byte, options api.BlockQ
 		return nil, err
 	}
 
-	blockHeader := &block.MetaBlock{}
-	err = mbp.marshalizer.Unmarshal(blockHeader, blockBytes)
+	blockHeader, err := process.UnmarshalHeader(core.MetachainShardId, mbp.marshalizer, blockBytes)
 	if err != nil {
 		return nil, err
 	}

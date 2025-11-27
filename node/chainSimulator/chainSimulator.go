@@ -193,13 +193,11 @@ func (s *simulator) createChainHandlers(args ArgsBaseChainSimulator) error {
 				TimeStamp: uint64(node.GetCoreComponents().RoundHandler().TimeStamp().Unix()),
 			}
 		} else {
-			epochStartBlockHeader = &block.HeaderV2{
-				Header: &block.Header{
-					Nonce:     args.InitialNonce,
-					Epoch:     args.InitialEpoch,
-					Round:     uint64(args.InitialRound),
-					TimeStamp: uint64(node.GetCoreComponents().RoundHandler().TimeStamp().Unix()),
-				},
+			epochStartBlockHeader = &block.MetaBlockV3{
+				Nonce:       args.InitialNonce,
+				Epoch:       args.InitialEpoch,
+				Round:       uint64(args.InitialRound),
+				TimestampMs: uint64(node.GetCoreComponents().RoundHandler().TimeStamp().Unix()),
 			}
 		}
 

@@ -470,7 +470,7 @@ func getProcessedMiniBlockHashesForMetaBlockHash(
 			epochStart.ErrMissingHeader,
 			hex.EncodeToString(metaBlockHash))
 	}
-	neededMeta, ok := metaHeaderHandler.(*block.MetaBlock)
+	neededMeta, ok := metaHeaderHandler.(data.MetaHeaderHandler)
 	if !ok {
 		return nil, epochStart.ErrWrongTypeAssertion
 	}
@@ -610,7 +610,7 @@ func getEpochShardDataAndNeededMetaBlock(
 	shardID uint32,
 	meta data.MetaHeaderHandler,
 	headers map[string]data.HeaderHandler,
-) (data.EpochStartShardDataHandler, *block.MetaBlock, error) {
+) (data.EpochStartShardDataHandler, data.MetaHeaderHandler, error) {
 
 	epochShardData, err := getEpochStartShardData(meta, shardID)
 	if err != nil {
@@ -624,7 +624,7 @@ func getEpochShardDataAndNeededMetaBlock(
 			hex.EncodeToString(epochShardData.GetFirstPendingMetaBlock()))
 	}
 
-	neededMeta, ok := header.(*block.MetaBlock)
+	neededMeta, ok := header.(data.MetaHeaderHandler)
 	if !ok {
 		return nil, nil, epochStart.ErrWrongTypeAssertion
 	}
@@ -635,7 +635,7 @@ func getEpochShardDataAndNeededMetaBlock(
 	return epochShardData, neededMeta, nil
 }
 
-func getMiniBlocksInfo(epochShardData data.EpochStartShardDataHandler, neededMeta *block.MetaBlock, shardID uint32) *miniBlocksInfo {
+func getMiniBlocksInfo(epochShardData data.EpochStartShardDataHandler, neededMeta data.MetaHeaderHandler, shardID uint32) *miniBlocksInfo {
 	mbsInfo := &miniBlocksInfo{
 		miniBlockHashes:              make([][]byte, 0),
 		fullyProcessed:               make([]bool, 0),
@@ -673,7 +673,7 @@ func setMiniBlocksInfoWithPendingMiniBlocks(epochShardData data.EpochStartShardD
 	}
 }
 
-func setMiniBlocksInfoWithProcessedMiniBlocks(neededMeta *block.MetaBlock, shardID uint32, mbsInfo *miniBlocksInfo) {
+func setMiniBlocksInfoWithProcessedMiniBlocks(neededMeta data.MetaHeaderHandler, shardID uint32, mbsInfo *miniBlocksInfo) {
 	miniBlockHeaders := getProcessedMiniBlockHeaders(neededMeta, shardID, mbsInfo.pendingMiniBlocksMap)
 	for mbHash, mbHeader := range miniBlockHeaders {
 		log.Debug("shardStorageHandler.setMiniBlocksInfoWithProcessedMiniBlocks",
@@ -715,7 +715,7 @@ func createProcessedAndPendingMiniBlocks(
 	return processedMiniBlocks, pendingMiniBlocks
 }
 
-func getProcessedMiniBlockHeaders(metaBlock *block.MetaBlock, destShardID uint32, pendingMBsMap map[string]struct{}) map[string]block.MiniBlockHeader {
+func getProcessedMiniBlockHeaders(metaBlock data.MetaHeaderHandler, destShardID uint32, pendingMBsMap map[string]struct{}) map[string]block.MiniBlockHeader {
 	processedMiniBlockHeaders := make(map[string]block.MiniBlockHeader)
 	miniBlockHeadersDestMe := getMiniBlockHeadersForDest(metaBlock, destShardID)
 	for hash, mbh := range miniBlockHeadersDestMe {
@@ -762,7 +762,7 @@ func (ssh *shardStorageHandler) saveLastCrossNotarizedHeaders(
 			hex.EncodeToString(lastCrossMetaHdrHash))
 	}
 
-	neededMeta, ok := neededHdr.(*block.MetaBlock)
+	neededMeta, ok := neededHdr.(data.MetaHeaderHandler)
 	if !ok {
 		return nil, epochStart.ErrWrongTypeAssertion
 	}
