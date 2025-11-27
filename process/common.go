@@ -1212,16 +1212,16 @@ func IsNotExecutableTransactionError(err error) bool {
 
 // GetMarshaledSliceSize will return marshalled slice size for any slice
 func GetMarshaledSliceSize[T any](items []T, marshaller marshal.Marshalizer) (int, error) {
-    size := 0
+	size := 0
 
-    for i := range items {
-        data, err := marshaller.Marshal(&items[i])
-        if err != nil {
-            return 0, err
-        }
+	for i := range items {
+		d, err := marshaller.Marshal(items[i])
+		if err != nil {
+			return 0, err
+		}
 
-        size += len(data)
-    }
+		size += len(d)
+	}
 
-    return size, nil
+	return size, nil
 }
