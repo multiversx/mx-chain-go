@@ -939,3 +939,25 @@ func TestStateAccessToString(t *testing.T) {
 		" accountChanges: 3"
 	assert.Equal(t, expectedStr, strStateAccess)
 }
+
+func TestStateAccessesCollector_RemoveStateAccessesSForRootHash(t *testing.T) {
+	t.Parallel()
+
+	c, _ := NewCollector(disabled.NewDisabledStateAccessesStorer(), WithCollectWrite())
+	assert.Equal(t, 0, len(c.stateAccessesForBlock))
+
+	numStateAccesses := 10
+	for i := 0; i < numStateAccesses; i++ {
+		c.AddStateAccess(getWriteStateAccess())
+	}
+	c.AddTxHashToCollectedStateAccesses([]byte("txHash"))
+	assert.Equal(t, numStateAccesses, len(c.stateAccesses))
+	rootHash := []byte("rootHash")
+	err := c.CommitCollectedAccesses(rootHash)
+	assert.Nil(t, err)
+	assert.Equal(t, 1, len(c.GetStateAccessesForRootHash(rootHash)))
+	assert.Equal(t, 1, len(c.stateAccessesForBlock))
+
+	c.RemoveStateAccessesForRootHash(rootHash)
+	assert.Equal(t, 0, len(c.stateAccessesForBlock))
+}

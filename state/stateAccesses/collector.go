@@ -97,7 +97,7 @@ func (c *collector) GetStateAccessesForRootHash(rootHash []byte) map[string]*dat
 
 	stateAccessesForRootHash, ok := c.stateAccessesForBlock[string(rootHash)]
 	if !ok {
-		log.Warn("stateAccessesForRoot hash not found in stateAccessesForBlock", "rootHash", rootHash)
+		log.Warn("stateAccessesForRootHash not found in stateAccessesForBlock", "rootHash", rootHash)
 		return nil
 	}
 
@@ -109,7 +109,7 @@ func (c *collector) RemoveStateAccessesForRootHash(rootHash []byte) {
 	defer c.stateAccessesMut.Unlock()
 
 	delete(c.stateAccessesForBlock, string(rootHash))
-	log.Trace("removed stateAccessesForRoot hash from stateAccessesForBlock", "rootHash", rootHash)
+	log.Trace("removed stateAccessesForRootHash from stateAccessesForBlock", "rootHash", rootHash)
 }
 
 func (c *collector) getStateAccessesForTxs() map[string]*data.StateAccesses {
