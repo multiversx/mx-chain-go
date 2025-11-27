@@ -115,7 +115,7 @@ func (h *headersToSync) receivedMetaBlockFirstPending(headerHandler data.HeaderH
 		return
 	}
 
-	metaHeader, ok := headerHandler.(*block.MetaBlock)
+	metaHeader, ok := headerHandler.(data.MetaHeaderHandler)
 	if !ok {
 		h.mutMeta.Unlock()
 		return
@@ -145,7 +145,7 @@ func (h *headersToSync) receivedUnFinishedMetaBlocks(headerHandler data.HeaderHa
 		return
 	}
 
-	meta, ok := headerHandler.(*block.MetaBlock)
+	meta, ok := headerHandler.(data.MetaHeaderHandler)
 	if !ok {
 		h.mutMeta.Unlock()
 		return

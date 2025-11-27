@@ -10,7 +10,6 @@ import (
 	"github.com/multiversx/mx-chain-core-go/core"
 	"github.com/multiversx/mx-chain-core-go/core/check"
 	"github.com/multiversx/mx-chain-core-go/data"
-	"github.com/multiversx/mx-chain-core-go/data/block"
 	logger "github.com/multiversx/mx-chain-logger-go"
 
 	"github.com/multiversx/mx-chain-go/common"
@@ -723,14 +722,14 @@ func (hfb *headersForBlock) requestMissingFinalityAttestingShardHeaders() uint32
 // upon receiving, it parses the new metablock and requests miniblocks and transactions
 // which destination is the current shard
 func (hfb *headersForBlock) receivedMetaBlock(headerHandler data.HeaderHandler, metaBlockHash []byte) {
-	metaBlock, ok := headerHandler.(*block.MetaBlock)
+	metaBlock, ok := headerHandler.(data.MetaHeaderHandler)
 	if !ok {
 		return
 	}
 
 	log.Trace("received meta block from network",
-		"round", metaBlock.Round,
-		"nonce", metaBlock.Nonce,
+		"round", metaBlock.GetRound(),
+		"nonce", metaBlock.GetNonce(),
 		"hash", metaBlockHash,
 	)
 
@@ -749,8 +748,8 @@ func (hfb *headersForBlock) receivedMetaBlock(headerHandler data.HeaderHandler, 
 			hdrInfoForHash.SetHeader(metaBlock)
 			hfb.missingHdrs--
 
-			if metaBlock.Nonce > hfb.highestHdrNonce[core.MetachainShardId] {
-				hfb.highestHdrNonce[core.MetachainShardId] = metaBlock.Nonce
+			if metaBlock.GetNonce() > hfb.highestHdrNonce[core.MetachainShardId] {
+				hfb.highestHdrNonce[core.MetachainShardId] = metaBlock.GetNonce()
 			}
 
 			if !hasProof && !hasProofRequested {
@@ -782,8 +781,8 @@ func (hfb *headersForBlock) receivedMetaBlock(headerHandler data.HeaderHandler, 
 	go hfb.requestMiniBlocksIfNeeded(headerHandler)
 }
 
-func (hfb *headersForBlock) checkFinalityRequestingMissing(metaBlock *block.MetaBlock) {
-	shouldConsiderProofsForNotarization := hfb.enableEpochsHandler.IsFlagEnabledInEpoch(common.AndromedaFlag, metaBlock.Epoch)
+func (hfb *headersForBlock) checkFinalityRequestingMissing(metaBlock data.MetaHeaderHandler) {
+	shouldConsiderProofsForNotarization := hfb.enableEpochsHandler.IsFlagEnabledInEpoch(common.AndromedaFlag, metaBlock.GetEpoch())
 	if !shouldConsiderProofsForNotarization {
 		hfb.missingFinalityAttestingHdrs = hfb.requestMissingFinalityAttestingHeaders(
 			core.MetachainShardId,

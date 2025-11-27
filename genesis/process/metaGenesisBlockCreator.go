@@ -190,7 +190,7 @@ func createMetaGenesisBlockAfterHardFork(
 		return nil, nil, nil, err
 	}
 
-	metaHdr, ok := hdrHandler.(*block.MetaBlock)
+	metaHdr, ok := hdrHandler.(data.MetaHeaderHandler)
 	if !ok {
 		return nil, nil, nil, process.ErrWrongTypeAssertion
 	}

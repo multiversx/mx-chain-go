@@ -310,7 +310,7 @@ func (sesb *storageEpochStartBootstrap) requestAndProcessFromStorage() (Paramete
 	log.Debug("start in epoch bootstrap: got shard header and previous epoch start meta block")
 
 	prevEpochStartMetaHash := sesb.epochStartMeta.GetEpochStartHandler().GetEconomicsHandler().GetPrevEpochStartHash()
-	prevEpochStartMeta, ok := sesb.syncedHeaders[string(prevEpochStartMetaHash)].(*block.MetaBlock)
+	prevEpochStartMeta, ok := sesb.syncedHeaders[string(prevEpochStartMetaHash)].(data.MetaHeaderHandler)
 	if !ok {
 		return Parameters{}, epochStart.ErrWrongTypeAssertion
 	}
@@ -431,7 +431,7 @@ func (sesb *storageEpochStartBootstrap) processNodesConfig(pubKey []byte) error 
 	}
 
 	clonedHeader := sesb.epochStartMeta.ShallowClone()
-	clonedEpochStartMeta, ok := clonedHeader.(*block.MetaBlock)
+	clonedEpochStartMeta, ok := clonedHeader.(data.MetaHeaderHandler)
 	if !ok {
 		return fmt.Errorf("%w while trying to assert clonedHeader to *block.MetaBlock", epochStart.ErrWrongTypeAssertion)
 	}
@@ -441,7 +441,7 @@ func (sesb *storageEpochStartBootstrap) processNodesConfig(pubKey []byte) error 
 	}
 
 	clonedHeader = sesb.prevEpochStartMeta.ShallowClone()
-	clonedPrevEpochStartMeta, ok := clonedHeader.(*block.MetaBlock)
+	clonedPrevEpochStartMeta, ok := clonedHeader.(data.MetaHeaderHandler)
 	if !ok {
 		return fmt.Errorf("%w while trying to assert prevClonedHeader to *block.MetaBlock", epochStart.ErrWrongTypeAssertion)
 	}
