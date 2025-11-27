@@ -1001,13 +1001,13 @@ func (mp *metaProcessor) SelectIncomingMiniBlocksForProposal(
 
 // SelectIncomingMiniBlocks -
 func (mp *metaProcessor) SelectIncomingMiniBlocks(
-	lastShardHdr map[uint32]ShardHeaderInfo,
+	lastShardHdrs map[uint32]ShardHeaderInfo,
 	orderedHdrs []data.HeaderHandler,
 	orderedHdrsHashes [][]byte,
 	maxNumHeadersFromSameShard uint32,
 	haveTime func() bool,
 ) error {
-	return mp.selectIncomingMiniBlocks(lastShardHdr, orderedHdrs, orderedHdrsHashes, maxNumHeadersFromSameShard, haveTime)
+	return mp.selectIncomingMiniBlocks(lastShardHdrs, orderedHdrs, orderedHdrsHashes, maxNumHeadersFromSameShard, haveTime)
 }
 
 // VerifyEpochStartData -
