@@ -48,7 +48,7 @@ import (
 )
 
 const (
-	clenaupCrossShardHeadersDelta = 50
+	clenaupCrossShardHeadersDelta = 5
 )
 
 var log = logger.GetOrCreate("process/block")
@@ -1210,7 +1210,9 @@ func (bp *baseProcessor) cleanupPoolsForCrossShard(
 	}
 
 	crossNotarizedHeaderNonce := common.GetFirstExecutionResultNonce(crossNotarizedHeader)
-	crossNotarizedHeaderNonce -= clenaupCrossShardHeadersDelta
+	if crossNotarizedHeaderNonce > clenaupCrossShardHeadersDelta {
+		crossNotarizedHeaderNonce -= clenaupCrossShardHeadersDelta
+	}
 
 	bp.removeHeadersBehindNonceFromPools(
 		false,
