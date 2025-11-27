@@ -296,3 +296,16 @@ func TestCreateEmptyReceiptsHash(t *testing.T) {
 	require.Nil(t, err)
 	require.Equal(t, "0e5751c026e543b2e8ab2eb06099daa1d1e5df47778f7787faab45cdf12fe3a8", hex.EncodeToString(emptyReceiptsHash))
 }
+
+func Test_SaveReceiptsForExecResult(t *testing.T) {
+	t.Parallel()
+
+	t.Run("should return errNilReceiptsHolder in case of nil holder", func(t *testing.T) {
+		t.Parallel()
+
+		repository, _ := NewReceiptsRepository(ArgsNewReceiptsRepository{})
+
+		err := repository.SaveReceiptsForExecResult(nil, &block.BaseExecutionResult{})
+		require.Equal(t, errNilReceiptsHolder, err)
+	})
+}
