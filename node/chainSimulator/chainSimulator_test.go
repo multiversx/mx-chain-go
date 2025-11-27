@@ -574,7 +574,17 @@ func TestChainSimulatorCheckRoundDurationMetrics(t *testing.T) {
 	require.Nil(t, err)
 
 	roundDuration := result[common.MetricRoundDuration].(uint64)
-	require.Equal(t, defaultSupernovaRoundDurationInMillis, roundDuration)
+	require.Equal(t, defaultRoundDurationInMillis, roundDuration)
 	roundsPerEpoch := result[common.MetricRoundsPerEpoch].(uint64)
 	require.Equal(t, defaultSupernovaRoundsPerEpochValue, roundsPerEpoch)
+
+	// supernova round is activa
+	err = chainSimulator.GenerateBlocks(2)
+	require.Nil(t, err)
+
+	result, err = chainSimulator.GetNodeHandler(0).GetFacadeHandler().StatusMetrics().StatusMetricsMapWithoutP2P()
+	require.Nil(t, err)
+
+	roundDuration = result[common.MetricRoundDuration].(uint64)
+	require.Equal(t, defaultSupernovaRoundDurationInMillis, roundDuration)
 }
