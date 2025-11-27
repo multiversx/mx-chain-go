@@ -544,7 +544,7 @@ func GetLastExecutionResultNonce(
 }
 
 // GetFirstExecutionResultNonce returns first execution result nonce if header v3 enabled, otherwise it returns provided header nonce.
-// It returns first execution result if there are any, otherwise it returns last execution results on the header
+// For header v3, it returns first execution result if there are any, otherwise it returns last execution results on the header
 func GetFirstExecutionResultNonce(
 	header data.HeaderHandler,
 ) uint64 {

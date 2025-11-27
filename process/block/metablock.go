@@ -513,13 +513,6 @@ func (mp *metaProcessor) getAllMiniBlockDstMeFromShards(metaHdr data.MetaHeaderH
 			return nil, err
 		}
 
-		log.Debug("SSS getAllMiniBlockDstMeFromShards",
-			"shard", shardHeaderHandler.GetShardID(),
-			"curr", shardHeaderHandler.GetNonce(),
-			"last cross notarized", lastCrossNotarizedHeader.GetNonce(),
-			"last cross notarized shard", lastCrossNotarizedHeader.GetShardID(),
-		)
-
 		if shardHeader.GetRound() > metaHdr.GetRound() {
 			return nil, fmt.Errorf("%w : for shard info with hash = %s",
 				process.ErrHigherRoundInBlock, hex.EncodeToString(shardInfo.GetHeaderHash()))
