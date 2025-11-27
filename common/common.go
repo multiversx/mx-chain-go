@@ -455,7 +455,7 @@ func CreateLastExecutionResultFromPrevHeader(prevHeader data.HeaderHandler, prev
 		}, nil
 	}
 
-	prevMetaHeader, ok := prevHeader.(*block.MetaBlock)
+	prevMetaHeader, ok := prevHeader.(data.MetaHeaderHandler)
 	if !ok {
 		return nil, ErrWrongTypeAssertion
 	}

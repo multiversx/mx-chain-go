@@ -107,6 +107,7 @@ func unmarshalTriggerV1(marshaller marshal.Marshalizer, data []byte) (data.Trigg
 
 // saveState saves the trigger state. Needs to be called under mutex
 func (t *trigger) saveState(key []byte) error {
+	// TODO: add new structures for the new headers and update this component
 	registryV2 := &block.ShardTriggerRegistryV2{
 		EpochStartShardHeader: &block.HeaderV2{},
 	}

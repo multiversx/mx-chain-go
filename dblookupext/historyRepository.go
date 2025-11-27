@@ -14,8 +14,6 @@ import (
 	"github.com/multiversx/mx-chain-core-go/data/typeConverters"
 	"github.com/multiversx/mx-chain-core-go/hashing"
 	"github.com/multiversx/mx-chain-core-go/marshal"
-	logger "github.com/multiversx/mx-chain-logger-go"
-
 	"github.com/multiversx/mx-chain-go/common"
 	"github.com/multiversx/mx-chain-go/common/logging"
 	"github.com/multiversx/mx-chain-go/dataRetriever"
@@ -23,6 +21,7 @@ import (
 	"github.com/multiversx/mx-chain-go/process"
 	"github.com/multiversx/mx-chain-go/storage"
 	"github.com/multiversx/mx-chain-go/storage/cache"
+	logger "github.com/multiversx/mx-chain-logger-go"
 )
 
 var log = logger.GetOrCreate("dblookupext")
@@ -419,7 +418,13 @@ func (hr *historyRepository) OnNotarizedBlocks(shardID uint32, headers []data.He
 
 		metaBlock, isMetaBlock := headerHandler.(data.MetaHeaderHandler)
 		if isMetaBlock {
-			for _, miniBlock := range metaBlock.GetMiniBlockHeaderHandlers() {
+			mbs, err := common.GetMiniBlockHeadersFromExecResult(metaBlock)
+			if err != nil {
+				log.Error("OnNotarizedBlocks.GetMiniBlockHeadersFromExecResult:", "error", err)
+				continue
+			}
+
+			for _, miniBlock := range mbs {
 				hr.onNotarizedMiniblock(headerHandler.GetNonce(), headerHash, headerHandler.GetShardID(), miniBlock)
 			}
 
