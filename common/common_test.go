@@ -880,7 +880,7 @@ func TestGetOrCreateLastExecutionResultForPrevHeader(t *testing.T) {
 func Test_ExtractBaseExecutionResultHandler(t *testing.T) {
 	t.Parallel()
 
-	t.Run("should return ErrNilLastExecutionResultHandler", func(t *testing.T) {
+	t.Run("in case of nil lastExecResultsHandler should return ErrNilLastExecutionResultHandler", func(t *testing.T) {
 		t.Parallel()
 
 		baseExecRes, err := common.ExtractBaseExecutionResultHandler(nil)
@@ -888,7 +888,7 @@ func Test_ExtractBaseExecutionResultHandler(t *testing.T) {
 		require.Equal(t, common.ErrNilLastExecutionResultHandler, err)
 	})
 
-	t.Run("should work in case of LastMetaExecutionResultHandler", func(t *testing.T) {
+	t.Run("should work", func(t *testing.T) {
 		t.Parallel()
 
 		expectedBaseExecResult := &block.BaseMetaExecutionResult{}
@@ -899,7 +899,7 @@ func Test_ExtractBaseExecutionResultHandler(t *testing.T) {
 		require.Equal(t, expectedBaseExecResult, baseExecRes)
 	})
 
-	t.Run("should work in case of ErrNilBaseExecutionResult", func(t *testing.T) {
+	t.Run("in case of nil ExecutionResult on MetaExecutionResultInfo should return ErrNilBaseExecutionResult", func(t *testing.T) {
 		t.Parallel()
 
 		baseExecRes, err := common.ExtractBaseExecutionResultHandler(&block.MetaExecutionResultInfo{
@@ -909,18 +909,7 @@ func Test_ExtractBaseExecutionResultHandler(t *testing.T) {
 		require.Equal(t, common.ErrNilBaseExecutionResult, err)
 	})
 
-	t.Run("should work in case of LastShardExecutionResultHandler", func(t *testing.T) {
-		t.Parallel()
-
-		expectedBaseExecResult := &block.BaseExecutionResult{}
-		baseExecRes, err := common.ExtractBaseExecutionResultHandler(&block.ExecutionResultInfo{
-			ExecutionResult: expectedBaseExecResult,
-		})
-		require.Nil(t, err)
-		require.Equal(t, expectedBaseExecResult, baseExecRes)
-	})
-
-	t.Run("should return unsupported execution result handler type", func(t *testing.T) {
+	t.Run("in case of wrong base execution result should return unsupported execution result handler type", func(t *testing.T) {
 		t.Parallel()
 
 		expectedBaseExecResult := &block.BaseExecutionResult{}
@@ -931,7 +920,18 @@ func Test_ExtractBaseExecutionResultHandler(t *testing.T) {
 		require.Nil(t, baseExecRes)
 	})
 
-	t.Run("should return ErrNilBaseExecutionResult", func(t *testing.T) {
+	t.Run("should work in case of ExecutionResultInfo type", func(t *testing.T) {
+		t.Parallel()
+
+		expectedBaseExecResult := &block.BaseExecutionResult{}
+		baseExecRes, err := common.ExtractBaseExecutionResultHandler(&block.ExecutionResultInfo{
+			ExecutionResult: expectedBaseExecResult,
+		})
+		require.Nil(t, err)
+		require.Equal(t, expectedBaseExecResult, baseExecRes)
+	})
+
+	t.Run("should return ErrNilBaseExecutionResult in case of nil ExecutionResult on ExecutionResultInfo", func(t *testing.T) {
 		t.Parallel()
 
 		_, err := common.ExtractBaseExecutionResultHandler(&block.ExecutionResultInfo{
@@ -973,7 +973,7 @@ func Test_GetOrCreateLastExecutionResultForPrevHeader(t *testing.T) {
 		require.Equal(t, uint64(2), lastExecResult.GetHeaderNonce())
 	})
 
-	t.Run("propagate error in case that creating last execution result for prev header fails", func(t *testing.T) {
+	t.Run("propagate error in case creating last execution result for prev header fails", func(t *testing.T) {
 		t.Parallel()
 
 		prevHeader := block.HeaderV2{

@@ -2774,7 +2774,7 @@ func Test_SelectOutgoingTransactions(t *testing.T) {
 		require.Equal(t, process.ErrNilTxDataPool, err)
 	})
 
-	t.Run("if selectTransactionsFromTxPoolForProposal fails the error should be propagated", func(t *testing.T) {
+	t.Run("should work", func(t *testing.T) {
 		t.Parallel()
 
 		args := createArgsForCleanupSelfShardTxCachePreprocessor()

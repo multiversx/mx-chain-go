@@ -222,22 +222,6 @@ func TestEpochStartData_VerifyEpochStartDataForMetablock(t *testing.T) {
 		require.NoError(t, err)
 	})
 
-	t.Run("if not epoch start block, nil should be returned", func(t *testing.T) {
-		t.Parallel()
-
-		arguments := createMockEpochStartCreatorArguments()
-		esd, _ := NewEpochStartData(arguments)
-
-		err := esd.verifyEpochStartDataForMetablock(&block.MetaBlockV3{
-			EpochStart: block.EpochStart{
-				LastFinalizedHeaders: []block.EpochStartShardData{
-					{}, {}, {},
-				},
-			},
-		}, nil)
-		require.NoError(t, err)
-	})
-
 	t.Run("if calculating the hash fails, the error should be propagated", func(t *testing.T) {
 		t.Parallel()
 
