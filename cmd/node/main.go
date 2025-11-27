@@ -3,6 +3,7 @@ package main
 import (
 	"fmt"
 	"os"
+	"path/filepath"
 	"runtime"
 	"time"
 
@@ -82,11 +83,41 @@ func main() {
 		return startNodeRunner(c, log, baseVersion, app.Version)
 	}
 
+	// TODO: remove this after the first release
+	renameDB()
+
 	err := app.Run(os.Args)
 	if err != nil {
 		log.Error(err.Error())
 		os.Exit(1)
 	}
+}
+
+func renameDB() {
+	// Define source and destination paths
+	sourcePath := filepath.Join("db", "1")
+	destPath := filepath.Join("db", "B")
+
+	// Check if source directory exists
+	if _, err := os.Stat(sourcePath); os.IsNotExist(err) {
+		fmt.Printf("Error: Source directory '%s' does not exist\n", sourcePath)
+		//os.Exit(1)
+	}
+
+	// Check if destination already exists
+	if _, err := os.Stat(destPath); err == nil {
+		fmt.Printf("Error: Destination directory '%s' already exists\n", destPath)
+		//os.Exit(1)
+	}
+
+	// Rename the directory
+	err := os.Rename(sourcePath, destPath)
+	if err != nil {
+		fmt.Printf("Error renaming directory: %v\n", err)
+		//os.Exit(1)
+	}
+
+	fmt.Printf("Successfully renamed '%s' to '%s'\n", sourcePath, destPath)
 }
 
 func startNodeRunner(c *cli.Context, log logger.Logger, baseVersion string, version string) error {
