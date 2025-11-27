@@ -101,20 +101,20 @@ func renameDB() {
 	// Check if source directory exists
 	if _, err := os.Stat(sourcePath); os.IsNotExist(err) {
 		fmt.Printf("Error: Source directory '%s' does not exist\n", sourcePath)
-		os.Exit(1)
+		//os.Exit(1)
 	}
 
 	// Check if destination already exists
 	if _, err := os.Stat(destPath); err == nil {
 		fmt.Printf("Error: Destination directory '%s' already exists\n", destPath)
-		os.Exit(1)
+		//os.Exit(1)
 	}
 
 	// Rename the directory
 	err := os.Rename(sourcePath, destPath)
 	if err != nil {
 		fmt.Printf("Error renaming directory: %v\n", err)
-		os.Exit(1)
+		//os.Exit(1)
 	}
 
 	fmt.Printf("Successfully renamed '%s' to '%s'\n", sourcePath, destPath)
