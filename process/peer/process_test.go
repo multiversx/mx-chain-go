@@ -2962,9 +2962,7 @@ func TestValidatorStatistics_SearchInMap(t *testing.T) {
 		cache := createMockCache()
 
 		_, header := generateTestShardBlockHeaders(cache)
-
 		headerHash := []byte("headerHash")
-
 		cache[string(headerHash)] = header
 
 		arguments := createMockArguments()

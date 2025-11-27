@@ -1210,9 +1210,10 @@ func (bp *baseProcessor) cleanupPoolsForCrossShard(
 	}
 
 	crossNotarizedHeaderNonce := common.GetFirstExecutionResultNonce(crossNotarizedHeader)
-	if crossNotarizedHeaderNonce > clenaupCrossShardHeadersDelta {
-		crossNotarizedHeaderNonce -= clenaupCrossShardHeadersDelta
+	if crossNotarizedHeaderNonce <= clenaupCrossShardHeadersDelta {
+		return
 	}
+	crossNotarizedHeaderNonce -= clenaupCrossShardHeadersDelta
 
 	bp.removeHeadersBehindNonceFromPools(
 		false,
