@@ -611,7 +611,7 @@ func getAllMiniBlocksWithDst(m data.MetaHeaderHandler, destId uint32) map[string
 func (e *epochStartData) getMetaBlockByHash(metaHash []byte) (data.MetaHeaderHandler, error) {
 	metaHeaderHandler, err := process.GetMetaHeader(metaHash, e.dataPool.Headers(), e.marshalizer, e.store)
 	if err != nil {
-		return &block.MetaBlock{}, err
+		return nil, err
 	}
 
 	return metaHeaderHandler, nil

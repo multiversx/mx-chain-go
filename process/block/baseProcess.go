@@ -48,7 +48,7 @@ import (
 )
 
 const (
-	clenaupCrossShardHeadersDelta = 50
+	clenaupCrossShardHeadersDelta = 5
 )
 
 var log = logger.GetOrCreate("process/block")
@@ -514,10 +514,6 @@ func displayHeader(
 			logger.DisplayByteSlice(headerHandler.GetRandSeed())}),
 		display.NewLineData(false, []string{
 			"",
-			"Pub keys bitmap",
-			hex.EncodeToString(headerHandler.GetPubKeysBitmap())}),
-		display.NewLineData(false, []string{
-			"",
 			"Signature",
 			logger.DisplayByteSlice(headerHandler.GetSignature())}),
 		display.NewLineData(false, []string{
@@ -526,24 +522,51 @@ func displayHeader(
 			logger.DisplayByteSlice(headerHandler.GetLeaderSignature())}),
 		display.NewLineData(false, []string{
 			"",
-			"Scheduled root hash",
-			logger.DisplayByteSlice(scheduledRootHash)}),
-		display.NewLineData(false, []string{
-			"",
-			"Root hash",
-			logger.DisplayByteSlice(headerHandler.GetRootHash())}),
-		display.NewLineData(false, []string{
-			"",
 			"Validator stats root hash",
 			logger.DisplayByteSlice(valStatRootHash)}),
 		display.NewLineData(false, []string{
 			"",
 			"Receipts hash",
 			logger.DisplayByteSlice(headerHandler.GetReceiptsHash())}),
-		display.NewLineData(true, []string{
+		display.NewLineData(!headerHandler.IsHeaderV3(), []string{
 			"",
 			"Epoch start meta hash",
 			logger.DisplayByteSlice(epochStartMetaHash)}),
+	}
+
+	if headerHandler.IsHeaderV3() {
+		if isMetaHeader {
+			logLines = append(logLines, display.NewLineData(false, []string{
+				"",
+				"Is epoch change proposed",
+				fmt.Sprintf("%t", metaHeader.IsEpochChangeProposed())}))
+		}
+
+		lastExecResult, _ := common.GetLastBaseExecutionResultHandler(headerHandler)
+		if !check.IfNil(lastExecResult) {
+			logLines = append(logLines, display.NewLineData(false, []string{
+				"",
+				"Last execution result",
+				logger.DisplayByteSlice(lastExecResult.GetHeaderHash())}))
+		}
+
+		for idx, execRes := range headerHandler.GetExecutionResultsHandlers() {
+			shouldAddHorizontalLine := idx == len(headerHandler.GetExecutionResultsHandlers())-1
+			logLines = append(logLines, display.NewLineData(shouldAddHorizontalLine, []string{
+				"",
+				fmt.Sprintf("Execution result %d", idx),
+				logger.DisplayByteSlice(execRes.GetHeaderHash())}))
+		}
+	} else {
+		logLines = append(logLines,
+			display.NewLineData(false, []string{
+				"",
+				"Scheduled root hash",
+				logger.DisplayByteSlice(scheduledRootHash)}),
+			display.NewLineData(false, []string{
+				"",
+				"Root hash",
+				logger.DisplayByteSlice(headerHandler.GetRootHash())}))
 	}
 
 	if hasProofInfo {
@@ -1187,6 +1210,9 @@ func (bp *baseProcessor) cleanupPoolsForCrossShard(
 	}
 
 	crossNotarizedHeaderNonce := common.GetFirstExecutionResultNonce(crossNotarizedHeader)
+	if crossNotarizedHeaderNonce <= clenaupCrossShardHeadersDelta {
+		return
+	}
 	crossNotarizedHeaderNonce -= clenaupCrossShardHeadersDelta
 
 	bp.removeHeadersBehindNonceFromPools(
