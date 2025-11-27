@@ -14,4 +14,4 @@
 
     [RoundActivations.SupernovaEnableRound]
         Options = []
-        Round = "440"
+        Round = "100"
