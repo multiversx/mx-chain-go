@@ -531,6 +531,13 @@ func displayHeader(
 	}
 
 	if headerHandler.IsHeaderV3() {
+		if isMetaHeader {
+			logLines = append(logLines, display.NewLineData(false, []string{
+				"",
+				"Is epoch change proposed",
+				fmt.Sprintf("%t", metaHeader.IsEpochChangeProposed())}))
+		}
+
 		lastExecResult, _ := common.GetLastBaseExecutionResultHandler(headerHandler)
 		if !check.IfNil(lastExecResult) {
 			logLines = append(logLines, display.NewLineData(false, []string{
