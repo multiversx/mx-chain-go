@@ -819,10 +819,7 @@ func TestHeadersForBlock_ComputeHeadersForCurrentBlock(t *testing.T) {
 			ProofsCalled: func() retriever.ProofsPool {
 				return &dataRetriever.ProofsPoolMock{
 					HasProofCalled: func(shardID uint32, headerHash []byte) bool {
-						if string(headerHash) == "hash1" {
-							return true
-						}
-						return false
+						return string(headerHash) == "hash1"
 					},
 				}
 			},
