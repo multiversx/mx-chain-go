@@ -508,6 +508,8 @@ func (mp *metaProcessor) collectExecutionResultsEpochStartProposal(
 		return nil, err
 	}
 
+	err = mp.cacheExecutedMiniBlocks(&block.Body{MiniBlocks: constructedBody.MiniBlocks}, miniBlockHeaderHandlers)
+
 	return mp.createExecutionResult(miniBlockHeaderHandlers, header, headerHash, receiptHash, valStatRootHash, totalTxCount)
 }
 
