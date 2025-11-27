@@ -543,6 +543,23 @@ func GetLastExecutionResultNonce(
 	return lastExecutionResult.GetHeaderNonce()
 }
 
+func GetFirstExecutionResultNonce(
+	header data.HeaderHandler,
+) uint64 {
+	nonce := header.GetNonce()
+
+	if !header.IsHeaderV3() {
+		return nonce
+	}
+
+	if len(header.GetExecutionResultsHandlers()) > 0 {
+		firstExecResult := header.GetExecutionResultsHandlers()[0]
+		return firstExecResult.GetHeaderNonce()
+	}
+
+	return GetLastExecutionResultNonce(header)
+}
+
 // GetMiniBlockHeadersFromExecResult returns mb headers from meta header if v3, otherwise, returns mini block headers
 func GetMiniBlockHeadersFromExecResult(metaBlock data.HeaderHandler) ([]data.MiniBlockHeaderHandler, error) {
 	if !metaBlock.IsHeaderV3() {
