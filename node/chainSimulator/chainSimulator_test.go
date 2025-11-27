@@ -1,13 +1,16 @@
 package chainSimulator
 
 import (
+	"fmt"
 	"math/big"
 	"strings"
 	"testing"
 	"time"
 
 	"github.com/multiversx/mx-chain-core-go/core"
+	apiBlock "github.com/multiversx/mx-chain-core-go/data/api"
 	"github.com/multiversx/mx-chain-core-go/data/transaction"
+	"github.com/multiversx/mx-chain-go/common"
 	"github.com/multiversx/mx-chain-go/config"
 	"github.com/multiversx/mx-chain-go/errors"
 	chainSimulatorCommon "github.com/multiversx/mx-chain-go/integrationTests/chainSimulator"
@@ -114,6 +117,66 @@ func TestChainSimulator_GenerateBlocksShouldWork(t *testing.T) {
 	require.Nil(t, err)
 	require.Equal(t, 4, len(heartBeats))
 
+}
+
+func TestChainSimulator_VerifyBlockTimestampSupernova(t *testing.T) {
+	if testing.Short() {
+		t.Skip("this is not a short test")
+	}
+
+	supernovaActivationRound := uint64(220)
+
+	chainSimulator, err := NewChainSimulator(ArgsChainSimulator{
+		BypassTxSignatureCheck:         true,
+		TempDir:                        t.TempDir(),
+		PathToInitialConfig:            defaultPathToInitialConfig,
+		NumOfShards:                    defaultNumOfShards,
+		RoundDurationInMillis:          defaultRoundDurationInMillis,
+		SupernovaRoundDurationInMillis: defaultSupernovaRoundDurationInMillis,
+		RoundsPerEpoch: core.OptionalUint64{
+			Value:    20,
+			HasValue: true,
+		},
+		SupernovaRoundsPerEpoch: defaultSupernovaRoundsPerEpoch,
+		ApiInterface:            api.NewNoApiInterface(),
+		MinNodesPerShard:        defaultMinNodesPerShard,
+		MetaChainMinNodes:       defaultMetaChainMinNodes,
+		InitialRound:            200,
+		InitialEpoch:            100,
+		InitialNonce:            100,
+		AlterConfigsFunction: func(cfg *config.Configs) {
+			// we need to enable this as this test skips a lot of epoch activations events, and it will fail otherwise
+			// because the owner of a BLS key coming from genesis is not set
+			// (the owner is not set at genesis anymore because we do not enable the staking v2 in that phase)
+			cfg.EpochConfig.EnableEpochs.StakingV2EnableEpoch = 0
+			cfg.EpochConfig.EnableEpochs.SupernovaEnableEpoch = 100
+			cfg.RoundConfig.RoundActivations[string(common.SupernovaRoundFlag)] = config.ActivationRoundByName{
+				Round: fmt.Sprintf("%d", supernovaActivationRound),
+			}
+		},
+	})
+	require.Nil(t, err)
+	require.NotNil(t, chainSimulator)
+	defer chainSimulator.Close()
+
+	time.Sleep(time.Second)
+
+	err = chainSimulator.GenerateBlocks(30)
+	require.Nil(t, err)
+
+	blockBeforeSupernovaRound, err := chainSimulator.GetNodeHandler(0).GetFacadeHandler().GetBlockByRound(supernovaActivationRound-1, apiBlock.BlockQueryOptions{})
+	require.Nil(t, err)
+
+	blockS, err := chainSimulator.GetNodeHandler(0).GetFacadeHandler().GetBlockByRound(supernovaActivationRound, apiBlock.BlockQueryOptions{})
+	require.Nil(t, err)
+
+	blockAfterSupernovaRound, err := chainSimulator.GetNodeHandler(0).GetFacadeHandler().GetBlockByRound(supernovaActivationRound+1, apiBlock.BlockQueryOptions{})
+	require.Nil(t, err)
+
+	diff := blockS.TimestampMs - blockBeforeSupernovaRound.TimestampMs
+	require.Equal(t, int64(6000), diff)
+	diff = blockAfterSupernovaRound.TimestampMs - blockS.TimestampMs
+	require.Equal(t, defaultSupernovaRoundDurationInMillis, uint64(diff))
 }
 
 func TestChainSimulator_GenerateBlocksAndEpochChangeShouldWork(t *testing.T) {
