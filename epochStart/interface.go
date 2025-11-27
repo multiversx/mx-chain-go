@@ -21,6 +21,8 @@ type TriggerHandler interface {
 	Epoch() uint32
 	MetaEpoch() uint32
 	Update(round uint64, nonce uint64)
+	SetEpochChange(round uint64)
+	ShouldProposeEpochChange(round uint64, nonce uint64) bool
 	EpochStartRound() uint64
 	EpochStartMetaHdrHash() []byte
 	LastCommitedEpochStartHdr() (data.HeaderHandler, error)
@@ -199,6 +201,12 @@ type RewardsCreator interface {
 	VerifyRewardsMiniBlocks(
 		metaBlock data.MetaHeaderHandler, validatorsInfo state.ShardValidatorsInfoMapHandler, computedEconomics *block.Economics,
 	) error
+	CreateRewardsMiniBlocksV3(
+		metaBlock data.MetaHeaderHandler,
+		validatorsInfo state.ShardValidatorsInfoMapHandler,
+		computedEconomics *block.Economics,
+		prevBlockExecutionResults data.BaseMetaExecutionResultHandler,
+	) (block.MiniBlockSlice, error)
 	GetProtocolSustainabilityRewards() *big.Int
 	GetLocalTxCache() TransactionCacher
 	CreateMarshalledData(body *block.Body) map[string][][]byte

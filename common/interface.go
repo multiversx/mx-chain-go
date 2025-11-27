@@ -417,6 +417,7 @@ type ChainParametersSubscriptionHandler interface {
 // HeadersPool defines what a headers pool structure can perform
 type HeadersPool interface {
 	GetHeaderByHash(hash []byte) (data.HeaderHandler, error)
+	IsInterfaceNil() bool
 }
 
 // FieldsSizeChecker defines the behavior of a fields size checker common component
@@ -464,6 +465,7 @@ type AccountNonceAndBalanceProvider interface {
 // AccountNonceProvider provides the nonce of accounts
 type AccountNonceProvider interface {
 	GetAccountNonce(accountKey []byte) (uint64, bool, error)
+	GetRootHash() ([]byte, error)
 	IsInterfaceNil() bool
 }
 

@@ -11,6 +11,8 @@ import (
 	"github.com/multiversx/mx-chain-core-go/core/check"
 	"github.com/multiversx/mx-chain-core-go/data"
 	"github.com/multiversx/mx-chain-core-go/data/block"
+	vmcommonBuiltInFunctions "github.com/multiversx/mx-chain-vm-common-go/builtInFunctions"
+
 	"github.com/multiversx/mx-chain-go/common/enablers"
 	"github.com/multiversx/mx-chain-go/common/forking"
 	"github.com/multiversx/mx-chain-go/config"
@@ -36,7 +38,6 @@ import (
 	hardfork "github.com/multiversx/mx-chain-go/update/genesis"
 	hardForkProcess "github.com/multiversx/mx-chain-go/update/process"
 	"github.com/multiversx/mx-chain-go/update/storing"
-	vmcommonBuiltInFunctions "github.com/multiversx/mx-chain-vm-common-go/builtInFunctions"
 )
 
 const accountStartNonce = uint64(0)
@@ -154,6 +155,9 @@ func createStorer(storageConfig config.StorageConfig, folder string) (storage.St
 func checkArgumentsForBlockCreator(arg ArgsGenesisBlockCreator) error {
 	if check.IfNil(arg.Accounts) {
 		return process.ErrNilAccountsAdapter
+	}
+	if check.IfNil(arg.AccountsProposal) {
+		return fmt.Errorf("%w for proposal", process.ErrNilAccountsAdapter)
 	}
 	if check.IfNil(arg.Core) {
 		return process.ErrNilCoreComponentsHolder
@@ -521,6 +525,9 @@ func (gbc *genesisBlockCreator) getNewArgForShard(shardID uint32) (ArgsGenesisBl
 		return ArgsGenesisBlockCreator{}, fmt.Errorf("'%w' while generating an in-memory accounts adapter for shard %d",
 			err, shardID)
 	}
+	// for genesis we can reuse the same account adapter for proposal as first proposal needs to happen after genesis block execution
+	// and the proposal won't use the genesis block creator
+	newArgument.AccountsProposal = newArgument.Accounts
 
 	newArgument.ShardCoordinator, err = sharding.NewMultiShardCoordinator(
 		newArgument.ShardCoordinator.NumberOfShards(),
@@ -537,16 +544,9 @@ func (gbc *genesisBlockCreator) getNewArgForShard(shardID uint32) (ArgsGenesisBl
 }
 
 func (gbc *genesisBlockCreator) createVersionedHeaderFactory() (genesis.VersionedHeaderFactory, error) {
-	cacheConfig := factory.GetCacherFromConfig(gbc.arg.HeaderVersionConfigs.Cache)
-	cache, err := storageunit.NewCache(cacheConfig)
-	if err != nil {
-		return nil, err
-	}
-
 	headerVersionHandler, err := factoryBlock.NewHeaderVersionHandler(
 		gbc.arg.HeaderVersionConfigs.VersionsByEpochs,
 		gbc.arg.HeaderVersionConfigs.DefaultVersion,
-		cache,
 	)
 	if err != nil {
 		return nil, err

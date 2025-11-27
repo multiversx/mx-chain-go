@@ -15,11 +15,21 @@ type EpochStartTriggerStub struct {
 	ReceivedHeaderCalled              func(handler data.HeaderHandler)
 	UpdateCalled                      func(round uint64, nonce uint64)
 	ProcessedCalled                   func(header data.HeaderHandler)
+	SetProcessedCalled                func(header data.HeaderHandler, body data.BodyHandler)
 	EpochStartRoundCalled             func() uint64
 	LastCommitedEpochStartHdrCalled   func() (data.HeaderHandler, error)
 	GetEpochStartHdrFromStorageCalled func(epoch uint32) (data.HeaderHandler, error)
 	EpochFinalityAttestingRoundCalled func() uint64
 	EpochStartMetaHdrHashCalled       func() []byte
+	ShouldProposeEpochChangeCalled    func(round uint64, nonce uint64) bool
+	SetEpochChangeCalled              func(round uint64)
+}
+
+// SetEpochChange -
+func (e *EpochStartTriggerStub) SetEpochChange(round uint64) {
+	if e.SetEpochChangeCalled != nil {
+		e.SetEpochChangeCalled(round)
+	}
 }
 
 // RevertStateToBlock -
@@ -110,9 +120,9 @@ func (e *EpochStartTriggerStub) Update(round uint64, nonce uint64) {
 }
 
 // SetProcessed -
-func (e *EpochStartTriggerStub) SetProcessed(header data.HeaderHandler, _ data.BodyHandler) {
-	if e.ProcessedCalled != nil {
-		e.ProcessedCalled(header)
+func (e *EpochStartTriggerStub) SetProcessed(header data.HeaderHandler, body data.BodyHandler) {
+	if e.SetProcessedCalled != nil {
+		e.SetProcessedCalled(header, body)
 	}
 }
 
@@ -146,6 +156,14 @@ func (e *EpochStartTriggerStub) MetaEpoch() uint32 {
 		return e.MetaEpochCalled()
 	}
 	return 0
+}
+
+// ShouldProposeEpochChange -
+func (e *EpochStartTriggerStub) ShouldProposeEpochChange(round uint64, nonce uint64) bool {
+	if e.ShouldProposeEpochChangeCalled != nil {
+		return e.ShouldProposeEpochChangeCalled(round, nonce)
+	}
+	return false
 }
 
 // Close -

@@ -48,6 +48,7 @@ type ArgsBaseStorageBootstrapper struct {
 	AppStatusHandler             core.AppStatusHandler
 	EnableEpochsHandler          common.EnableEpochsHandler
 	ProofsPool                   process.ProofsPool
+	ExecutionManager             process.ExecutionManager
 }
 
 // ArgsShardStorageBootstrapper is structure used to create a new storage bootstrapper for shard
@@ -85,6 +86,7 @@ type storageBootstrapper struct {
 	appStatusHandler             core.AppStatusHandler
 	enableEpochsHandler          common.EnableEpochsHandler
 	proofsPool                   process.ProofsPool
+	executionManager             process.ExecutionManager
 }
 
 func (st *storageBootstrapper) loadBlocks() error {
@@ -279,12 +281,11 @@ func (st *storageBootstrapper) applyHeaderInfo(hdrInfo bootstrapStorage.Bootstra
 		return process.ErrInvalidChainID
 	}
 
-	rootHash := headerFromStorage.GetRootHash()
-	scheduledRootHash, err := st.scheduledTxsExecutionHandler.GetScheduledRootHashForHeader(headerHash)
-	if err == nil {
-		rootHash = scheduledRootHash
+	rootHash, err := st.getRootHashForBlock(headerFromStorage, headerHash)
+	if err != nil {
+		log.Debug("cannot get rootHash for header", "nonce", headerFromStorage.GetNonce(), "error", err.Error())
+		return err
 	}
-	log.Debug("storageBootstrapper.applyHeaderInfo", "rootHash", rootHash, "scheduledRootHash", scheduledRootHash)
 
 	err = st.blkExecutor.RevertStateToBlock(headerFromStorage, rootHash)
 	if err != nil {
@@ -294,17 +295,42 @@ func (st *storageBootstrapper) applyHeaderInfo(hdrInfo bootstrapStorage.Bootstra
 
 	err = st.applyBlock(headerHash, headerFromStorage, rootHash)
 	if err != nil {
-		log.Debug("cannot apply block for header ", "nonce", headerFromStorage.GetNonce(), "error", err.Error())
+		log.Debug("cannot apply block for header", "nonce", headerFromStorage.GetNonce(), "error", err.Error())
 		return err
 	}
 
 	err = st.getAndApplyProofForHeader(headerHash, headerFromStorage)
 	if err != nil {
-		log.Debug("cannot apply proof for header ", "nonce", headerFromStorage.GetNonce(), "error", err.Error())
+		log.Debug("cannot apply proof for header", "nonce", headerFromStorage.GetNonce(), "error", err.Error())
 		return err
 	}
 
 	return nil
+}
+
+func (st *storageBootstrapper) getRootHashForBlock(
+	header data.HeaderHandler,
+	headerHash []byte,
+) ([]byte, error) {
+	if header.IsHeaderV3() {
+		lastExecutionResult, err := common.ExtractBaseExecutionResultHandler(header.GetLastExecutionResultHandler())
+		if err != nil {
+			return nil, err
+		}
+		rootHash := lastExecutionResult.GetRootHash()
+		log.Debug("storageBootstrapper.getRootHashForBlock", "rootHash", rootHash)
+
+		return lastExecutionResult.GetRootHash(), nil
+	}
+
+	rootHash := header.GetRootHash()
+	scheduledRootHash, err := st.scheduledTxsExecutionHandler.GetScheduledRootHashForHeader(headerHash)
+	if err == nil {
+		rootHash = scheduledRootHash
+	}
+	log.Debug("storageBootstrapper.getRootHashForBlock", "rootHash", rootHash, "scheduledRootHash", scheduledRootHash)
+
+	return rootHash, nil
 }
 
 func (st *storageBootstrapper) getBootInfos(hdrInfo bootstrapStorage.BootstrapData) ([]bootstrapStorage.BootstrapData, error) {
@@ -457,12 +483,10 @@ func (st *storageBootstrapper) cleanupStorage(headerInfo bootstrapStorage.Bootst
 }
 
 func (st *storageBootstrapper) applyBlock(headerHash []byte, header data.HeaderHandler, rootHash []byte) error {
-	err := st.blkc.SetCurrentBlockHeaderAndRootHash(header, rootHash)
+	err := st.setCurrentBlockInfo(header, headerHash, rootHash)
 	if err != nil {
 		return err
 	}
-
-	st.blkc.SetCurrentBlockHeaderHash(headerHash)
 
 	if !st.enableEpochsHandler.IsFlagEnabledInEpoch(common.AndromedaFlag, header.GetEpoch()) {
 		return nil
@@ -477,6 +501,57 @@ func (st *storageBootstrapper) applyBlock(headerHash []byte, header data.HeaderH
 	}
 
 	return nil
+}
+
+func (st *storageBootstrapper) setCurrentBlockInfo(
+	header data.HeaderHandler,
+	headerHash []byte,
+	rootHash []byte,
+) error {
+	if header.IsHeaderV3() {
+		return st.setCurrentBlockInfoV3(header, headerHash)
+	}
+
+	err := st.blkc.SetCurrentBlockHeaderAndRootHash(header, rootHash)
+	if err != nil {
+		return err
+	}
+
+	st.blkc.SetCurrentBlockHeaderHash(headerHash)
+
+	// set also last executed block info and header
+	// this will be useful at transition to Supernova with headers v3
+	st.blkc.SetLastExecutedBlockHeaderAndRootHash(header, headerHash, header.GetRootHash())
+
+	lastExecResHandler, err := common.GetOrCreateLastExecutionResultForPrevHeader(header, headerHash)
+	if err != nil {
+		return err
+	}
+
+	return st.executionManager.SetLastNotarizedResult(lastExecResHandler)
+}
+
+func (st *storageBootstrapper) setCurrentBlockInfoV3(
+	header data.HeaderHandler,
+	headerHash []byte,
+) error {
+	lastExecutionResult, err := common.ExtractBaseExecutionResultHandler(header.GetLastExecutionResultHandler())
+	if err != nil {
+		return err
+	}
+
+	// at this point, last executed header reference by current header should be available in storage
+	// it was synced in epoch start bootstrap for header v3
+	lastExecutedHeader, err := st.bootstrapper.getHeader(lastExecutionResult.GetHeaderHash())
+	if err != nil {
+		log.Debug("storageBootstrapper: cannot get header from storage", "nonce", lastExecutionResult.GetHeaderNonce, "error", err.Error())
+		return err
+	}
+
+	st.blkc.SetLastExecutedBlockHeaderAndRootHash(lastExecutedHeader, lastExecutionResult.GetHeaderHash(), lastExecutionResult.GetRootHash())
+
+	st.blkc.SetCurrentBlockHeaderHash(headerHash)
+	return st.blkc.SetCurrentBlockHeader(header)
 }
 
 func (st *storageBootstrapper) getAndApplyProofForHeader(headerHash []byte, header data.HeaderHandler) error {
@@ -574,6 +649,9 @@ func checkBaseStorageBootstrapperArguments(args ArgsBaseStorageBootstrapper) err
 	}
 	if check.IfNil(args.ProofsPool) {
 		return process.ErrNilProofsPool
+	}
+	if check.IfNil(args.ExecutionManager) {
+		return process.ErrNilExecutionManager
 	}
 
 	return nil

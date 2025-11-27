@@ -102,7 +102,7 @@ func TestCrossTxCache_NotImplemented(t *testing.T) {
 	err := cache.OnProposedBlock(nil, nil, nil, nil, nil)
 	require.Nil(t, err)
 
-	err = cache.OnExecutedBlock(nil)
+	err = cache.OnExecutedBlock(nil, nil)
 	require.Nil(t, err)
 
 	diagnosis := cache.GetTrackerDiagnosis()

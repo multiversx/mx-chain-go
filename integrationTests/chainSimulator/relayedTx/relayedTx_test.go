@@ -12,9 +12,10 @@ import (
 	"github.com/multiversx/mx-chain-core-go/core"
 	apiData "github.com/multiversx/mx-chain-core-go/data/api"
 	"github.com/multiversx/mx-chain-core-go/data/transaction"
-	"github.com/multiversx/mx-chain-go/integrationTests"
 	logger "github.com/multiversx/mx-chain-logger-go"
 	"github.com/stretchr/testify/require"
+
+	"github.com/multiversx/mx-chain-go/integrationTests"
 
 	"github.com/multiversx/mx-chain-go/common"
 	"github.com/multiversx/mx-chain-go/config"
@@ -53,6 +54,8 @@ var (
 )
 
 func TestRelayedV3WithChainSimulator(t *testing.T) {
+	t.Parallel()
+
 	if testing.Short() {
 		t.Skip("this is not a short test")
 	}
@@ -110,16 +113,7 @@ func testRelayedV3MoveBalance(
 			cfg.EpochConfig.EnableEpochs.FixRelayedBaseCostEnableEpoch = providedActivationEpoch
 			cfg.EpochConfig.EnableEpochs.RelayedTransactionsV3EnableEpoch = providedActivationEpoch
 			cfg.EpochConfig.EnableEpochs.RelayedTransactionsV3FixESDTTransferEnableEpoch = providedActivationEpoch
-
-			cfg.EpochConfig.EnableEpochs.SupernovaEnableEpoch = 0
-			cfg.RoundConfig.RoundActivations = map[string]config.ActivationRoundByName{
-				"DisableAsyncCallV1": {
-					Round: "0",
-				},
-				"SupernovaEnableRound": {
-					Round: "0",
-				},
-			}
+			integrationTests.DeactivateSupernovaInConfig(cfg)
 		}
 
 		cs := startChainSimulator(t, alterConfigsFunc)
@@ -1023,6 +1017,8 @@ func testRelayedV3MetaInteraction() func(t *testing.T) {
 }
 
 func TestFixRelayedMoveBalanceWithChainSimulator(t *testing.T) {
+	t.Parallel()
+
 	if testing.Short() {
 		t.Skip("this is not a short test")
 	}
@@ -1046,6 +1042,7 @@ func testFixRelayedMoveBalanceWithChainSimulatorScCall(
 		alterConfigsFunc := func(cfg *config.Configs) {
 			cfg.EpochConfig.EnableEpochs.FixRelayedBaseCostEnableEpoch = providedActivationEpoch
 			cfg.EpochConfig.EnableEpochs.RelayedTransactionsV1V2DisableEpoch = integrationTests.UnreachableEpoch
+			integrationTests.DeactivateSupernovaInConfig(cfg)
 		}
 
 		cs := startChainSimulator(t, alterConfigsFunc)
@@ -1138,6 +1135,7 @@ func testFixRelayedMoveBalanceWithChainSimulatorMoveBalance(
 		alterConfigsFunc := func(cfg *config.Configs) {
 			cfg.EpochConfig.EnableEpochs.FixRelayedBaseCostEnableEpoch = providedActivationEpoch
 			cfg.EpochConfig.EnableEpochs.RelayedTransactionsV1V2DisableEpoch = integrationTests.UnreachableEpoch
+			integrationTests.DeactivateSupernovaInConfig(cfg)
 		}
 
 		cs := startChainSimulator(t, alterConfigsFunc)
@@ -1256,6 +1254,7 @@ func TestRelayedTxCheckTxProcessingTypeAfterRelayedV1Disabled(t *testing.T) {
 
 	cs := startChainSimulator(t, func(cfg *config.Configs) {
 		cfg.EpochConfig.EnableEpochs.RelayedTransactionsV1V2DisableEpoch = RelayedV1DisableEpoch
+		integrationTests.DeactivateSupernovaInConfig(cfg)
 	})
 	defer cs.Close()
 

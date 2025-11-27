@@ -127,7 +127,7 @@ func (cache *CrossTxCache) OnProposedBlock(_ []byte, _ data.BodyHandler, _ data.
 }
 
 // OnExecutedBlock does nothing (only to satisfy the interface)
-func (cache *CrossTxCache) OnExecutedBlock(data.HeaderHandler) error {
+func (cache *CrossTxCache) OnExecutedBlock(data.HeaderHandler, []byte) error {
 	return nil
 }
 

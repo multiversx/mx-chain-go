@@ -340,9 +340,31 @@ func (vs *validatorStatistics) SaveNodesCoordinatorUpdates(epoch uint32) (bool, 
 	return nodeForcedToRemain, nil
 }
 
+type feeCalculator func(previousHeader data.HeaderHandler) *big.Int
+
 // UpdatePeerState takes a header, updates the peer state for all of the
 // consensus members and returns the new root hash
 func (vs *validatorStatistics) UpdatePeerState(header data.MetaHeaderHandler, cache map[string]data.HeaderHandler) ([]byte, error) {
+	feeCalculatorFunc := func(prevHeader data.HeaderHandler) *big.Int {
+		return big.NewInt(0).Sub(prevHeader.GetAccumulatedFees(), prevHeader.GetDeveloperFees())
+	}
+	return vs.baseUpdatePeerState(header, cache, feeCalculatorFunc)
+}
+
+// UpdatePeerStateV3 takes a headerV3, updates the peer state for all of the
+// consensus members and returns the new root hash
+func (vs *validatorStatistics) UpdatePeerStateV3(header data.MetaHeaderHandler, cache map[string]data.HeaderHandler, metaExecutionResult data.MetaExecutionResultHandler) ([]byte, error) {
+	feeCalculatorFunc := func(_ data.HeaderHandler) *big.Int {
+		return big.NewInt(0).Sub(metaExecutionResult.GetAccumulatedFees(), metaExecutionResult.GetDeveloperFees())
+	}
+	return vs.baseUpdatePeerState(header, cache, feeCalculatorFunc)
+}
+
+func (vs *validatorStatistics) baseUpdatePeerState(
+	header data.MetaHeaderHandler,
+	cache map[string]data.HeaderHandler,
+	calculateFees feeCalculator,
+) ([]byte, error) {
 	if header.GetNonce() == vs.genesisNonce {
 		return vs.peerAdapter.RootHash()
 	}
@@ -406,11 +428,12 @@ func (vs *validatorStatistics) UpdatePeerState(header data.MetaHeaderHandler, ca
 	log.Debug("UpdatePeerState - registering meta previous leader fees", "metaNonce", previousHeader.GetNonce())
 
 	bitmap := vs.getBitmapForHeader(previousHeader)
+
 	err = vs.updateValidatorInfoOnSuccessfulBlock(
 		leader,
 		consensusGroup,
 		bitmap,
-		big.NewInt(0).Sub(previousHeader.GetAccumulatedFees(), previousHeader.GetDeveloperFees()),
+		calculateFees(previousHeader),
 		previousHeader.GetShardID(),
 		previousHeader.GetEpoch(),
 	)
@@ -686,7 +709,7 @@ func (vs *validatorStatistics) verifySignaturesBelowSignedThreshold(
 			increasedRatingTimes = validator.GetValidatorSuccess() + validator.GetValidatorIgnoredSignatures()
 		}
 
-		newTempRating := vs.rater.RevertIncreaseValidator(shardId, validator.GetTempRating(), increasedRatingTimes)
+		newTempRating := vs.rater.RevertIncreaseValidator(shardId, validator.GetTempRating(), increasedRatingTimes, epoch)
 		pa, err := vs.loadPeerAccount(validator.GetPublicKey())
 		if err != nil {
 			return err
@@ -837,10 +860,7 @@ func (vs *validatorStatistics) computeDecrease(
 		vs.mutValidatorStatistics.Unlock()
 
 		swInner.Start("ComputeDecreaseProposer")
-		newRating := vs.rater.ComputeDecreaseProposer(
-			shardID,
-			leaderPeerAcc.GetTempRating(),
-			leaderPeerAcc.GetConsecutiveProposerMisses())
+		newRating := vs.rater.ComputeDecreaseProposer(shardID, leaderPeerAcc.GetTempRating(), leaderPeerAcc.GetConsecutiveProposerMisses(), epoch)
 		swInner.Stop("ComputeDecreaseProposer")
 
 		swInner.Start("SetConsecutiveProposerMisses")
@@ -892,7 +912,7 @@ func (vs *validatorStatistics) decreaseForConsensusValidators(
 		}
 		vs.missedBlocksCounters.decreaseValidator(consensusGroup[j].PubKey())
 
-		newRating := vs.rater.ComputeDecreaseValidator(shardId, validatorPeerAccount.GetTempRating())
+		newRating := vs.rater.ComputeDecreaseValidator(shardId, validatorPeerAccount.GetTempRating(), epoch)
 		validatorPeerAccount.SetTempRating(newRating)
 		vs.jailValidatorIfBadRatingAndInactive(validatorPeerAccount)
 		err := vs.peerAdapter.SaveAccount(validatorPeerAccount)
@@ -926,64 +946,65 @@ func (vs *validatorStatistics) updateShardDataPeerState(
 	header data.HeaderHandler,
 	cacheMap map[string]data.HeaderHandler,
 ) error {
-	metaHeader, ok := header.(*block.MetaBlock)
+	metaHeader, ok := header.(data.MetaHeaderHandler)
 	if !ok {
 		return process.ErrInvalidMetaHeader
 	}
 
 	var currentHeader data.HeaderHandler
-	for _, h := range metaHeader.ShardInfo {
-		if h.Nonce == vs.genesisNonce {
+	for _, h := range metaHeader.GetShardInfoHandlers() {
+		if h.GetNonce() == vs.genesisNonce {
 			continue
 		}
 
-		currentHeader, ok = cacheMap[string(h.HeaderHash)]
+		currentHeader, ok = cacheMap[string(h.GetHeaderHash())]
 		if !ok {
 			return fmt.Errorf("%w - updateShardDataPeerState header from cache - hash: %s, round: %v, nonce: %v",
 				process.ErrMissingHeader,
-				hex.EncodeToString(h.HeaderHash),
+				hex.EncodeToString(h.GetHeaderHash()),
 				h.GetRound(),
 				h.GetNonce())
 		}
 
 		epoch := computeEpoch(currentHeader)
 
-		leader, shardConsensus, shardInfoErr := vs.nodesCoordinator.ComputeConsensusGroup(h.PrevRandSeed, h.Round, h.ShardID, epoch)
+		leader, shardConsensus, shardInfoErr := vs.nodesCoordinator.ComputeConsensusGroup(h.GetPrevRandSeed(), h.GetRound(), h.GetShardID(), epoch)
 		if shardInfoErr != nil {
 			return shardInfoErr
 		}
 
-		log.Debug("updateShardDataPeerState - registering shard leader fees", "shard headerHash", h.HeaderHash, "accumulatedFees", h.AccumulatedFees.String(), "developerFees", h.DeveloperFees.String())
-		bitmap := h.PubKeysBitmap
-		if vs.enableEpochsHandler.IsFlagEnabledInEpoch(common.AndromedaFlag, h.Epoch) {
-			bitmap = vs.getBitmapForFullConsensus(h.ShardID, h.Epoch)
+		log.Debug("updateShardDataPeerState - registering shard leader fees", "shard headerHash", h.GetHeaderHash(), "accumulatedFees", h.GetAccumulatedFees().String(), "developerFees", h.GetDeveloperFees().String())
+		bitmap := h.GetPubKeysBitmap()
+		if vs.enableEpochsHandler.IsFlagEnabledInEpoch(common.AndromedaFlag, h.GetEpoch()) {
+			bitmap = vs.getBitmapForFullConsensus(h.GetShardID(), h.GetEpoch())
 		}
+
 		shardInfoErr = vs.updateValidatorInfoOnSuccessfulBlock(
 			leader,
 			shardConsensus,
 			bitmap,
-			big.NewInt(0).Sub(h.AccumulatedFees, h.DeveloperFees),
-			h.ShardID,
+			big.NewInt(0).Sub(h.GetAccumulatedFees(), h.GetDeveloperFees()),
+			h.GetShardID(),
 			currentHeader.GetEpoch(),
 		)
 		if shardInfoErr != nil {
 			return shardInfoErr
 		}
 
-		if h.Nonce == vs.genesisNonce+1 {
+		if h.GetNonce() == vs.genesisNonce+1 {
 			continue
 		}
 
-		prevShardData, shardInfoErr := vs.searchInMap(h.PrevHash, cacheMap)
+		prevShardData, shardInfoErr := vs.searchInMap(h.GetPrevHash(), cacheMap)
 		if shardInfoErr != nil {
 			return shardInfoErr
 		}
 
 		shardInfoErr = vs.checkForMissedBlocks(
-			h.Round,
+			h.GetRound(),
 			prevShardData.GetRound(),
 			prevShardData.GetRandSeed(),
-			h.ShardID,
+			h.GetShardID(),
 			epoch,
 		)
 		if shardInfoErr != nil {
@@ -1077,7 +1098,7 @@ func (vs *validatorStatistics) updateValidatorInfoOnSuccessfulBlock(
 		case leaderSuccess:
 			peerAcc.IncreaseLeaderSuccessRate(1)
 			peerAcc.SetConsecutiveProposerMisses(0)
-			newRating = vs.rater.ComputeIncreaseProposer(shardId, peerAcc.GetTempRating())
+			newRating = vs.rater.ComputeIncreaseProposer(shardId, peerAcc.GetTempRating(), epoch)
 			var leaderAccumulatedFees *big.Int
 			if vs.enableEpochsHandler.IsFlagEnabled(common.StakingV2FlagAfterEpoch) {
 				leaderAccumulatedFees = core.GetIntTrimmedPercentageOfValue(accumulatedFees, vs.rewardsHandler.LeaderPercentageInEpoch(epoch))
@@ -1089,13 +1110,15 @@ func (vs *validatorStatistics) updateValidatorInfoOnSuccessfulBlock(
 			log.Debug("updateValidatorInfoOnSuccessfulBlock",
 				"leaderAccumulatedFees in current block", leaderAccumulatedFees.String(),
 				"leader fees in Epoch", peerAcc.GetAccumulatedFees().String(),
-				"leader", core.GetTrimmedPk(string(peerAcc.AddressBytes())))
+				"newRating", newRating,
+				"leader", core.GetTrimmedPk(string(peerAcc.AddressBytes())),
+			)
 		case validatorSuccess:
 			peerAcc.IncreaseValidatorSuccessRate(1)
-			newRating = vs.rater.ComputeIncreaseValidator(shardId, peerAcc.GetTempRating())
+			newRating = vs.rater.ComputeIncreaseValidator(shardId, peerAcc.GetTempRating(), epoch)
 		case validatorIgnoredSignature:
 			peerAcc.IncreaseValidatorIgnoredSignaturesRate(1)
-			newRating = vs.rater.ComputeIncreaseValidator(shardId, peerAcc.GetTempRating())
+			newRating = vs.rater.ComputeIncreaseValidator(shardId, peerAcc.GetTempRating(), epoch)
 		}
 
 		peerAcc.SetTempRating(newRating)
@@ -1257,11 +1280,11 @@ func (vs *validatorStatistics) decreaseAll(
 
 		currentTempRating := validatorPeerAccount.GetTempRating()
 		for ct := uint32(0); ct < leaderAppearances; ct++ {
-			currentTempRating = vs.rater.ComputeDecreaseProposer(shardID, currentTempRating, 0)
+			currentTempRating = vs.rater.ComputeDecreaseProposer(shardID, currentTempRating, 0, epoch)
 		}
 
 		for ct := uint32(0); ct < consensusGroupAppearances; ct++ {
-			currentTempRating = vs.rater.ComputeDecreaseValidator(shardID, currentTempRating)
+			currentTempRating = vs.rater.ComputeDecreaseValidator(shardID, currentTempRating, epoch)
 		}
 
 		if i == 0 {

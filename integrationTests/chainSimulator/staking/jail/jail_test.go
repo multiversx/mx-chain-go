@@ -194,7 +194,7 @@ func TestChainSimulator_FromQueueToAuctionList(t *testing.T) {
 			newNumNodes := cfg.SystemSCConfig.StakingSystemSCConfig.MaxNumberOfNodesForStake + 1
 			configs.SetMaxNumberOfNodesInConfigs(cfg, uint32(newNumNodes), 0, numOfShards)
 
-			cfg.EpochConfig.EnableEpochs.SupernovaEnableEpoch = 0
+			cfg.EpochConfig.EnableEpochs.SupernovaEnableEpoch = 100
 		},
 	})
 	require.Nil(t, err)
@@ -302,8 +302,9 @@ func TestJailNodes(t *testing.T) {
 				"DisableAsyncCallV1": {
 					Round: "9999999",
 				},
+				// TODO: Set to 0 when async execution is done
 				"SupernovaEnableRound": {
-					Round: "0",
+					Round: "8000",
 				},
 			}
 		},

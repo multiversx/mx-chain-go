@@ -192,7 +192,8 @@ func TestSyncValidatorStatus_findPeerMiniBlockHeaders(t *testing.T) {
 		&mbHeader2,
 	}
 
-	mbHeaderHandlers := findPeerMiniBlockHeaders(metaBlock)
+	mbHeaderHandlers, err := findPeerMiniBlockHeaders(metaBlock)
+	require.Nil(t, err)
 	require.Equal(t, expectedMbHeaders, mbHeaderHandlers)
 }
 

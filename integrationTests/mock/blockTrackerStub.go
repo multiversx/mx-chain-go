@@ -28,6 +28,7 @@ type BlockTrackerStub struct {
 	GetTrackedHeadersForAllShardsCalled                func() map[uint32][]data.HeaderHandler
 	GetTrackedHeadersWithNonceCalled                   func(shardID uint32, nonce uint64) ([]data.HeaderHandler, [][]byte)
 	IsShardStuckCalled                                 func(shardId uint32) bool
+	IsOwnShardStuckCalled                              func() bool
 	ShouldSkipMiniBlocksCreationFromSelfCalled         func() bool
 	RegisterCrossNotarizedHeadersHandlerCalled         func(handler func(shardID uint32, headers []data.HeaderHandler, headersHashes [][]byte))
 	RegisterSelfNotarizedFromCrossHeadersHandlerCalled func(handler func(shardID uint32, headers []data.HeaderHandler, headersHashes [][]byte))
@@ -36,6 +37,7 @@ type BlockTrackerStub struct {
 	RemoveLastNotarizedHeadersCalled                   func()
 	RestoreToGenesisCalled                             func()
 	ShouldAddHeaderCalled                              func(headerHandler data.HeaderHandler) bool
+	ComputeOwnShardStuckCalled                         func(lastExecutionResultsInfo data.BaseExecutionResultHandler, currentNonce uint64)
 }
 
 // AddTrackedHeader -
@@ -211,6 +213,15 @@ func (bts *BlockTrackerStub) IsShardStuck(shardId uint32) bool {
 	return false
 }
 
+// IsOwnShardStuck -
+func (bts *BlockTrackerStub) IsOwnShardStuck() bool {
+	if bts.IsOwnShardStuckCalled != nil {
+		return bts.IsOwnShardStuckCalled()
+	}
+
+	return false
+}
+
 // ShouldSkipMiniBlocksCreationFromSelf -
 func (bts *BlockTrackerStub) ShouldSkipMiniBlocksCreationFromSelf() bool {
 	if bts.ShouldSkipMiniBlocksCreationFromSelfCalled != nil {
@@ -268,6 +279,13 @@ func (bts *BlockTrackerStub) ShouldAddHeader(headerHandler data.HeaderHandler) b
 	}
 
 	return true
+}
+
+// ComputeOwnShardStuck -
+func (bts *BlockTrackerStub) ComputeOwnShardStuck(lastExecutionResultsInfo data.BaseExecutionResultHandler, currentNonce uint64) {
+	if bts.ComputeOwnShardStuckCalled != nil {
+		bts.ComputeOwnShardStuckCalled(lastExecutionResultsInfo, currentNonce)
+	}
 }
 
 // IsInterfaceNil -

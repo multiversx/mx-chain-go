@@ -305,7 +305,9 @@ func TestTxCache_Cleanup(t *testing.T) {
 			&block.Header{
 				Nonce:    1,
 				PrevHash: []byte("blockHash0"),
-			})
+			},
+			[]byte("rootHAsh"),
+		)
 		require.Nil(t, err)
 
 		cache.Remove([]byte("hash-alice-2"))

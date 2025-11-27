@@ -23,6 +23,9 @@ var ErrAlreadyExistingEquivalentProof = errors.New("already existing equivalent 
 // ErrNilHeaderHandler signals that a nil header handler has been provided
 var ErrNilHeaderHandler = errors.New("nil header handler")
 
+// ErrInvalidHeaderHash signals that an invalid header hash has been provided
+var ErrInvalidHeaderHash = errors.New("invalid header hash")
+
 // ErrNotEnoughSignatures defines the error for not enough signatures
 var ErrNotEnoughSignatures = errors.New("not enough signatures")
 
@@ -37,3 +40,27 @@ var ErrInvalidNonceShardKey = errors.New("invalid nonce shard key")
 
 // ErrNilCommonConfigsHandler signals that a nil common configs handler has been provided
 var ErrNilCommonConfigsHandler = errors.New("nil common configs handler")
+
+// ErrWrongTypeAssertion signals that a type assertion failed
+var ErrWrongTypeAssertion = errors.New("wrong type assertion")
+
+// ErrNilBaseExecutionResult signals that a nil base execution result has been provided
+var ErrNilBaseExecutionResult = errors.New("nil base execution result")
+
+// ErrNilLastExecutionResultHandler signals that a nil last execution result handler has been provided
+var ErrNilLastExecutionResultHandler = errors.New("nil last execution result handler")
+
+// ErrMissingHeader signals that header of the block is missing
+var ErrMissingHeader = errors.New("missing header")
+
+// ErrMissingMiniBlock signals that mini block is missing
+var ErrMissingMiniBlock = errors.New("missing mini block")
+
+// ErrMissingCachedTransactions signals that cached transactions are missing
+var ErrMissingCachedTransactions = errors.New("missing cached transactions")
+
+// ErrMissingCachedLogs signals that cached logs events are missing
+var ErrMissingCachedLogs = errors.New("missing cached logs")
+
+// ErrInvalidHeader signals that an invalid header has been provided
+var ErrInvalidHeader = errors.New("invalid header")

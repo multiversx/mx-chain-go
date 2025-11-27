@@ -6,11 +6,14 @@ import (
 	"math/big"
 	"testing"
 
+	"github.com/multiversx/mx-chain-core-go/core"
 	"github.com/multiversx/mx-chain-core-go/data"
 	"github.com/multiversx/mx-chain-core-go/data/transaction"
+	"github.com/multiversx/mx-chain-go/common"
 	"github.com/multiversx/mx-chain-go/process"
 	"github.com/multiversx/mx-chain-go/testscommon"
 	"github.com/multiversx/mx-chain-go/testscommon/economicsmocks"
+	"github.com/multiversx/mx-chain-go/testscommon/enableEpochsHandlerMock"
 	"github.com/multiversx/mx-chain-go/testscommon/hashingMocks"
 	"github.com/multiversx/mx-chain-go/testscommon/marshallerMock"
 	"github.com/stretchr/testify/require"
@@ -60,6 +63,7 @@ func createDefaultGasTracker(
 	selfShardID uint32,
 	gcr *gasConsumedResult,
 	gasRefunded uint64,
+	afterSupernova bool,
 ) *gasTracker {
 	shardCoordinator := &testscommon.ShardsCoordinatorMock{
 		CurrentShard: selfShardID,
@@ -68,14 +72,20 @@ func createDefaultGasTracker(
 		MaxGasLimitPerBlockCalled: func(shardID uint32) uint64 {
 			return 1500000000
 		},
-		ComputeGasLimitCalled: func(tx data.TransactionWithFeeHandler) uint64 {
+		MaxGasLimitPerBlockInEpochCalled: func(shardID uint32, epoch uint32) uint64 {
+			return 1500000000
+		},
+		ComputeGasLimitInEpochCalled: func(tx data.TransactionWithFeeHandler, epoch uint32) uint64 {
 			return moveBalanceGas(tx.GetData())
 		},
-		MaxGasLimitPerTxCalled: func() uint64 {
+		MaxGasLimitPerTxInEpochCalled: func(epoch uint32) uint64 {
 			return 1000000
 		},
-		MaxGasLimitPerBlockForSafeCrossShardCalled: func() uint64 {
+		MaxGasLimitPerBlockForSafeCrossShardInEpochCalled: func(epoch uint32) uint64 {
 			return 1000000
+		},
+		BlockCapacityOverestimationFactorCalled: func() uint64 {
+			return 200
 		},
 	}
 
@@ -88,13 +98,32 @@ func createDefaultGasTracker(
 		},
 	}
 
-	gt := &gasTracker{
-		shardCoordinator: shardCoordinator,
-		economicsFee:     economicsFee,
-		gasHandler:       gasHandler,
+	enableEpochsHandler := &enableEpochsHandlerMock.EnableEpochsHandlerStub{
+		IsFlagEnabledCalled: func(flag core.EnableEpochFlag) bool {
+			return afterSupernova
+		},
 	}
 
-	return gt
+	enableRoundsHandler := &testscommon.EnableRoundsHandlerStub{
+		IsFlagEnabledCalled: func(flag common.EnableRoundFlag) bool {
+			return afterSupernova
+		},
+	}
+
+	ges, _ := newGasEpochState(
+		economicsFee,
+		enableEpochsHandler,
+		enableRoundsHandler,
+	)
+
+	gt := newGasTracker(
+		shardCoordinator,
+		gasHandler,
+		economicsFee,
+		ges,
+	)
+
+	return &gt
 }
 
 func Test_computeGasProvidedSelfSenderMoveBalanceIntra(t *testing.T) {
@@ -113,7 +142,7 @@ func Test_computeGasProvidedSelfSenderMoveBalanceIntra(t *testing.T) {
 	}
 	gasRefund := uint64(25000)
 
-	gt := createDefaultGasTracker(senderShardID, gcr, gasRefund)
+	gt := createDefaultGasTracker(senderShardID, gcr, gasRefund, false)
 	gasLimit := computeGasLimitFromResultAndRefund(gcr, gasRefund)
 	tx := createDefaultTx(sndAddr, rcvAddr, gasLimit)
 
@@ -149,7 +178,7 @@ func Test_computeGasProvidedSelfSenderSCCallIntra(t *testing.T) {
 	gasRefund := uint64(25000)
 
 	gasLimit := computeGasLimitFromResultAndRefund(gcr, gasRefund)
-	gt := createDefaultGasTracker(senderShardID, gcr, gasRefund)
+	gt := createDefaultGasTracker(senderShardID, gcr, gasRefund, false)
 	tx := createDefaultTx(sndAddr, rcvAddr, gasLimit)
 	tx.Data = []byte("sc invoking data")
 
@@ -185,7 +214,7 @@ func Test_computeGasProvidedByTxSelfSenderMoveBalanceCross(t *testing.T) {
 	gasRefund := uint64(25000)
 
 	gasLimit := computeGasLimitFromResultAndRefund(gcr, gasRefund)
-	gt := createDefaultGasTracker(senderShardID, gcr, gasRefund)
+	gt := createDefaultGasTracker(senderShardID, gcr, gasRefund, false)
 	tx := createDefaultTx(sndAddr, rcvAddr, gasLimit)
 
 	txm, _ := marshaller.Marshal(tx)
@@ -220,7 +249,7 @@ func Test_computeGasProvidedByTxSelfSenderScCallCross(t *testing.T) {
 
 	gasRefund := uint64(25000)
 	gasLimit := computeGasLimitFromResultAndRefund(gcr, gasRefund)
-	gt := createDefaultGasTracker(senderShardID, gcr, gasRefund)
+	gt := createDefaultGasTracker(senderShardID, gcr, gasRefund, false)
 	tx := createDefaultTx(sndAddr, rcvAddr, gasLimit)
 	tx.Data = []byte("tx invoking data")
 
@@ -256,7 +285,7 @@ func Test_computeGasProvidedByTxGasHandlerComputeGasErrors(t *testing.T) {
 
 	gasRefund := uint64(25000)
 	gasLimit := computeGasLimitFromResultAndRefund(gcr, gasRefund)
-	gt := createDefaultGasTracker(senderShardID, gcr, gasRefund)
+	gt := createDefaultGasTracker(senderShardID, gcr, gasRefund, false)
 	tx := createDefaultTx(sndAddr, rcvAddr, gasLimit)
 	tx.Data = []byte("tx invoking data")
 
@@ -299,7 +328,7 @@ func Test_computeGasProvidedByTxGasHandlerRefundGasLargerThanLimit(t *testing.T)
 
 	gasRefund := uint64(25000)
 	gasLimit := computeGasLimitFromResultAndRefund(gcr, gasRefund)
-	gt := createDefaultGasTracker(senderShardID, gcr, gasRefund)
+	gt := createDefaultGasTracker(senderShardID, gcr, gasRefund, false)
 	tx := createDefaultTx(sndAddr, rcvAddr, gasLimit)
 	tx.Data = []byte("tx invoking data")
 
@@ -345,7 +374,7 @@ func Test_computeGasProvidedWithErrorForGasConsumedForTx(t *testing.T) {
 
 	gasRefund := uint64(25000)
 	gasLimit := computeGasLimitFromResultAndRefund(gcr, gasRefund)
-	gt := createDefaultGasTracker(senderShardID, gcr, gasRefund)
+	gt := createDefaultGasTracker(senderShardID, gcr, gasRefund, false)
 	tx := createDefaultTx(sndAddr, rcvAddr, gasLimit)
 	tx.Data = []byte("tx invoking data")
 
@@ -387,7 +416,7 @@ func Test_computeGasProvidedMaxGasLimitInSenderShardReached(t *testing.T) {
 
 	gasRefund := uint64(25000)
 	gasLimit := computeGasLimitFromResultAndRefund(gcr, gasRefund)
-	gt := createDefaultGasTracker(senderShardID, gcr, gasRefund)
+	gt := createDefaultGasTracker(senderShardID, gcr, gasRefund, false)
 	tx := createDefaultTx(sndAddr, rcvAddr, gasLimit)
 	tx.Data = []byte("tx invoking data")
 
@@ -424,7 +453,7 @@ func Test_computeGasProvidedMaxGasLimitInReceiverShardReached(t *testing.T) {
 
 	gasRefund := uint64(25000)
 	gasLimit := computeGasLimitFromResultAndRefund(gcr, gasRefund)
-	gt := createDefaultGasTracker(receiverShardID, gcr, gasRefund)
+	gt := createDefaultGasTracker(receiverShardID, gcr, gasRefund, false)
 	tx := createDefaultTx(sndAddr, rcvAddr, gasLimit)
 	tx.Data = []byte("tx invoking data")
 
@@ -444,6 +473,43 @@ func Test_computeGasProvidedMaxGasLimitInReceiverShardReached(t *testing.T) {
 	require.Equal(t, nil, err)
 }
 
+func Test_computeGasProvidedMaxGasLimitInReceiverShardReachedIntra(t *testing.T) {
+	t.Parallel()
+
+	senderShardID := uint32(0)
+	sndAddr, _ := hex.DecodeString("addrSender" + suffixShard0)
+	receiverShardID := uint32(0)
+	rcvAddr, _ := hex.DecodeString(smartContractAddressStart + suffixShard1)
+	hasher := &hashingMocks.HasherMock{}
+	marshaller := &marshallerMock.MarshalizerMock{}
+	gcr := &gasConsumedResult{
+		consumedSenderShard:   75000,
+		consumedReceiverShard: 2000000,
+		err:                   nil,
+	}
+
+	gasRefund := uint64(25000)
+	gasLimit := computeGasLimitFromResultAndRefund(gcr, gasRefund)
+	gt := createDefaultGasTracker(receiverShardID, gcr, gasRefund, false)
+	tx := createDefaultTx(sndAddr, rcvAddr, gasLimit)
+	tx.Data = []byte("tx invoking data")
+
+	txm, _ := marshaller.Marshal(tx)
+	txHash := hasher.Compute(string(txm))
+
+	gci := &gasConsumedInfo{
+		gasConsumedByMiniBlocksInSenderShard: gt.economicsFee.MaxGasLimitPerBlock(senderShardID) - gcr.consumedSenderShard/2,
+	}
+	_, err := gt.computeGasProvided(
+		senderShardID,
+		receiverShardID,
+		tx,
+		txHash,
+		gci,
+	)
+	require.Equal(t, process.ErrMaxGasLimitPerOneTxInReceiverShardIsReached, err)
+}
+
 func Test_computeGasProvidedMaxGasLimitPerBlockReached(t *testing.T) {
 	t.Parallel()
 
@@ -461,7 +527,7 @@ func Test_computeGasProvidedMaxGasLimitPerBlockReached(t *testing.T) {
 
 	gasRefund := uint64(25000)
 	gasLimit := computeGasLimitFromResultAndRefund(gcr, gasRefund)
-	gt := createDefaultGasTracker(senderShardID, gcr, gasRefund)
+	gt := createDefaultGasTracker(senderShardID, gcr, gasRefund, false)
 	tx := createDefaultTx(sndAddr, rcvAddr, gasLimit)
 	tx.Data = []byte("tx invoking data")
 
@@ -498,7 +564,7 @@ func Test_computeGasProvidedOK(t *testing.T) {
 
 	gasRefund := uint64(25000)
 	gasLimit := computeGasLimitFromResultAndRefund(gcr, gasRefund)
-	gt := createDefaultGasTracker(senderShardID, gcr, gasRefund)
+	gt := createDefaultGasTracker(senderShardID, gcr, gasRefund, true)
 	tx := createDefaultTx(sndAddr, rcvAddr, gasLimit)
 	tx.Data = []byte("tx invoking data")
 
@@ -517,4 +583,61 @@ func Test_computeGasProvidedOK(t *testing.T) {
 	require.Equal(t, gcr.consumedSenderShard, gci.gasConsumedByMiniBlocksInSenderShard)
 	require.Equal(t, gcr.consumedReceiverShard, gci.gasConsumedByMiniBlockInReceiverShard)
 	require.Equal(t, gcr.consumedSenderShard, gci.totalGasConsumedInSelfShard)
+}
+
+func Test_getEpochAndOverestimationFactorForGasLimits(t *testing.T) {
+	t.Parallel()
+
+	providedCurrentEpoch := uint32(10)
+	providedCurrentRound := uint64(150)
+	providedOverestimationFactor := uint64(200)
+
+	enableEpochsHandler := &enableEpochsHandlerMock.EnableEpochsHandlerStub{
+		IsFlagEnabledInEpochCalled: func(flag core.EnableEpochFlag, epoch uint32) bool {
+			return epoch >= providedCurrentEpoch
+		},
+	}
+	enableRoundsHandler := &testscommon.EnableRoundsHandlerStub{
+		IsFlagEnabledInRoundCalled: func(flag common.EnableRoundFlag, round uint64) bool {
+			return round >= providedCurrentRound
+		},
+	}
+	economicsFee := &economicsmocks.EconomicsHandlerMock{
+		BlockCapacityOverestimationFactorCalled: func() uint64 {
+			return providedOverestimationFactor
+		},
+	}
+
+	ges, _ := newGasEpochState(economicsFee, enableEpochsHandler, enableRoundsHandler)
+
+	gt := &gasTracker{
+		shardCoordinator: &testscommon.ShardsCoordinatorMock{},
+		economicsFee: &economicsmocks.EconomicsHandlerMock{
+			BlockCapacityOverestimationFactorCalled: func() uint64 {
+				return providedOverestimationFactor
+			},
+		},
+		gasHandler:    &testscommon.GasHandlerStub{},
+		gasEpochState: ges,
+	}
+
+	// before supernova
+	gt.EpochConfirmed(providedCurrentEpoch-1, 0)
+	gt.RoundConfirmed(0, 0)
+	epoch, overestimationFactor := gt.getEpochAndOverestimationFactorForGasLimits()
+	require.Equal(t, providedCurrentEpoch-1, epoch)
+	require.Equal(t, noOverestimationFactor, overestimationFactor)
+
+	// supernova epoch active
+	gt.EpochConfirmed(providedCurrentEpoch, 0)
+	gt.RoundConfirmed(providedCurrentRound-1, 0)
+	epoch, overestimationFactor = gt.getEpochAndOverestimationFactorForGasLimits()
+	require.Equal(t, providedCurrentEpoch-1, epoch)
+	require.Equal(t, noOverestimationFactor, overestimationFactor)
+
+	// supernova activation completed
+	gt.RoundConfirmed(providedCurrentRound, 0)
+	epoch, overestimationFactor = gt.getEpochAndOverestimationFactorForGasLimits()
+	require.Equal(t, providedCurrentEpoch, epoch)
+	require.Equal(t, providedOverestimationFactor, overestimationFactor)
 }

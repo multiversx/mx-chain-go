@@ -16,6 +16,10 @@ import (
 	dataBlock "github.com/multiversx/mx-chain-core-go/data/block"
 	"github.com/multiversx/mx-chain-core-go/data/outport"
 	"github.com/multiversx/mx-chain-core-go/data/receipt"
+	"github.com/multiversx/mx-chain-go/process/asyncExecution"
+	"github.com/multiversx/mx-chain-go/process/asyncExecution/executionManager"
+	"github.com/multiversx/mx-chain-go/process/asyncExecution/executionTrack"
+	"github.com/multiversx/mx-chain-go/process/asyncExecution/queue"
 	vmcommon "github.com/multiversx/mx-chain-vm-common-go"
 	vmcommonBuiltInFunctions "github.com/multiversx/mx-chain-vm-common-go/builtInFunctions"
 
@@ -39,7 +43,6 @@ import (
 	"github.com/multiversx/mx-chain-go/epochStart/shardchain"
 	errorsMx "github.com/multiversx/mx-chain-go/errors"
 	"github.com/multiversx/mx-chain-go/factory"
-	mainFactory "github.com/multiversx/mx-chain-go/factory"
 	"github.com/multiversx/mx-chain-go/factory/disabled"
 	"github.com/multiversx/mx-chain-go/fallback"
 	"github.com/multiversx/mx-chain-go/genesis"
@@ -98,6 +101,7 @@ type processComponents struct {
 	epochStartNotifier               factory.EpochStartNotifier
 	forkDetector                     process.ForkDetector
 	blockProcessor                   process.BlockProcessor
+	executionManager                 process.ExecutionManager
 	blackListHandler                 process.TimeCacher
 	bootStorer                       process.BootStorer
 	headerSigVerifier                process.InterceptedHeaderSigVerifier
@@ -131,7 +135,7 @@ type processComponents struct {
 	processedMiniBlocksTracker       process.ProcessedMiniBlocksTracker
 	esdtDataStorageForApi            vmcommon.ESDTNFTStorageHandler
 	accountsParser                   genesis.AccountsParser
-	receiptsRepository               mainFactory.ReceiptsRepository
+	receiptsRepository               factory.ReceiptsRepository
 	sentSignaturesTracker            process.SentSignaturesTracker
 	epochSystemSCProcessor           process.EpochStartSystemSCProcessor
 	interceptedDataVerifierFactory   process.InterceptedDataVerifierFactory
@@ -578,7 +582,7 @@ func (pcf *processComponentsFactory) Create() (*processComponents, error) {
 		return nil, err
 	}
 	if pcf.bootstrapComponents.ShardCoordinator().SelfId() == core.MetachainShardId {
-		pendingMiniBlocksHandler, err = pendingMb.NewPendingMiniBlocks()
+		pendingMiniBlocksHandler, err = pendingMb.NewPendingMiniBlocks(pcf.data.Datapool().Headers())
 		if err != nil {
 			return nil, err
 		}
@@ -622,6 +626,20 @@ func (pcf *processComponentsFactory) Create() (*processComponents, error) {
 		return nil, fmt.Errorf("%w when assembling components for the sent signatures tracker", err)
 	}
 
+	blocksQueue := queue.NewBlocksQueue()
+	executionResultsTracker := executionTrack.NewExecutionResultsTracker()
+
+	argExecManager := executionManager.ArgsExecutionManager{
+		BlocksQueue:             blocksQueue,
+		ExecutionResultsTracker: executionResultsTracker,
+		BlockChain:              pcf.data.Blockchain(),
+		Headers:                 pcf.data.Datapool().Headers(),
+	}
+	execManager, err := executionManager.NewExecutionManager(argExecManager)
+	if err != nil {
+		return nil, err
+	}
+
 	blockProcessorComponents, err := pcf.newBlockProcessor(
 		requestHandler,
 		forkDetector,
@@ -638,10 +656,29 @@ func (pcf *processComponentsFactory) Create() (*processComponents, error) {
 		blockCutoffProcessingHandler,
 		pcf.state.MissingTrieNodesNotifier(),
 		sentSignaturesTracker,
+		execManager,
 	)
 	if err != nil {
 		return nil, err
 	}
+
+	argsHeadersExecutor := asyncExecution.ArgsHeadersExecutor{
+		BlocksQueue:      blocksQueue,
+		ExecutionTracker: executionResultsTracker,
+		BlockProcessor:   blockProcessorComponents.blockProcessor,
+		BlockChain:       pcf.data.Blockchain(),
+	}
+	headersExecutor, err := asyncExecution.NewHeadersExecutor(argsHeadersExecutor)
+	if err != nil {
+		return nil, err
+	}
+
+	err = execManager.SetHeadersExecutor(headersExecutor)
+	if err != nil {
+		return nil, err
+	}
+
+	execManager.StartExecution()
 
 	startEpochNum := pcf.bootstrapComponents.EpochBootstrapParams().Epoch()
 	if startEpochNum == 0 {
@@ -742,6 +779,7 @@ func (pcf *processComponentsFactory) Create() (*processComponents, error) {
 		roundHandler:                     pcf.coreData.RoundHandler(),
 		forkDetector:                     forkDetector,
 		blockProcessor:                   blockProcessorComponents.blockProcessor,
+		executionManager:                 execManager,
 		epochStartTrigger:                epochStartTrigger,
 		epochStartNotifier:               pcf.coreData.EpochStartNotifierWithConfirm(),
 		blackListHandler:                 blackListHandler,
@@ -911,6 +949,7 @@ func (pcf *processComponentsFactory) generateGenesisHeadersAndApplyInitialBalanc
 		Data:                    pcf.data,
 		Core:                    pcf.coreData,
 		Accounts:                pcf.state.AccountsAdapter(),
+		AccountsProposal:        pcf.state.AccountsAdapterProposal(),
 		ValidatorAccounts:       pcf.state.PeerAccounts(),
 		InitialNodesSetup:       pcf.coreData.GenesisNodesSetup(),
 		Economics:               pcf.coreData.EconomicsData(),
@@ -925,6 +964,7 @@ func (pcf *processComponentsFactory) generateGenesisHeadersAndApplyInitialBalanc
 		SystemSCConfig:          *pcf.systemSCConfig,
 		RoundConfig:             pcf.roundConfig,
 		EpochConfig:             pcf.epochConfig,
+		FeeSettings:             pcf.economicsConfig.FeeSettings,
 		HeaderVersionConfigs:    pcf.config.Versions,
 		BlockSignKeyGen:         pcf.crypto.BlockSignKeyGen(),
 		HistoryRepository:       pcf.historyRepo,
@@ -2085,6 +2125,9 @@ func checkProcessComponentsArgs(args ProcessComponentsFactoryArgs) error {
 func (pc *processComponents) Close() error {
 	if !check.IfNil(pc.blockProcessor) {
 		log.LogIfError(pc.blockProcessor.Close())
+	}
+	if !check.IfNil(pc.executionManager) {
+		log.LogIfError(pc.executionManager.Close())
 	}
 	if !check.IfNil(pc.validatorsProvider) {
 		log.LogIfError(pc.validatorsProvider.Close())

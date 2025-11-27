@@ -955,6 +955,7 @@ func TestBlockChainHookImpl_GettersFromBlockchainCurrentHeader(t *testing.T) {
 		assert.Equal(t, []byte{}, bh.LastRandomSeed())
 		assert.Equal(t, []byte{}, bh.GetStateRootHash())
 	})
+
 	t.Run("custom header, expect correct values are returned", func(t *testing.T) {
 		t.Parallel()
 
@@ -991,6 +992,7 @@ func TestBlockChainHookImpl_GettersFromBlockchainCurrentHeader(t *testing.T) {
 		assert.Equal(t, randSeed, bh.LastRandomSeed())
 		assert.Equal(t, rootHash, bh.GetStateRootHash())
 	})
+
 	t.Run("custom header, do not return old block is set, expect default values", func(t *testing.T) {
 		t.Parallel()
 
@@ -1027,6 +1029,47 @@ func TestBlockChainHookImpl_GettersFromBlockchainCurrentHeader(t *testing.T) {
 		assert.Equal(t, randSeed, bh.LastRandomSeed())
 		assert.Equal(t, epoch, bh.LastEpoch())
 		assert.Equal(t, rootHash, bh.GetStateRootHash())
+	})
+
+	t.Run("custom header v3, expect correct values are returned", func(t *testing.T) {
+		t.Parallel()
+
+		nonce := uint64(37)
+		round := uint64(5)
+		timestamp := uint64(1234)
+		randSeed := []byte("a")
+		rootHash := []byte("b")
+		rootHash1 := []byte("c")
+		epoch := uint32(7)
+
+		hdrToRet := &block.HeaderV3{
+			Nonce:       nonce,
+			Round:       round,
+			TimestampMs: timestamp,
+			RandSeed:    randSeed,
+			Epoch:       epoch,
+		}
+
+		args := createMockBlockChainHookArgs()
+		args.BlockChain = &testscommon.ChainHandlerStub{
+			GetCurrentBlockHeaderCalled: func() data.HeaderHandler {
+				return hdrToRet
+			},
+			GetCurrentBlockRootHashCalled: func() []byte {
+				return rootHash
+			},
+			GetLastExecutedBlockInfoCalled: func() (uint64, []byte, []byte) {
+				return 0, []byte(""), rootHash1
+			},
+		}
+		bh, _ := hooks.NewBlockChainHookImpl(args)
+
+		assert.Equal(t, nonce, bh.LastNonce())
+		assert.Equal(t, round, bh.LastRound())
+		assert.Equal(t, timestamp, bh.LastTimeStamp())
+		assert.Equal(t, epoch, bh.LastEpoch())
+		assert.Equal(t, randSeed, bh.LastRandomSeed())
+		assert.Equal(t, rootHash1, bh.GetStateRootHash())
 	})
 }
 

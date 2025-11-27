@@ -18,6 +18,7 @@ import (
 	"github.com/multiversx/mx-chain-go/testscommon"
 	consensusMocks "github.com/multiversx/mx-chain-go/testscommon/consensus"
 	"github.com/multiversx/mx-chain-go/testscommon/enableEpochsHandlerMock"
+	"github.com/multiversx/mx-chain-go/testscommon/round"
 	statusHandlerMock "github.com/multiversx/mx-chain-go/testscommon/statusHandler"
 )
 
@@ -157,7 +158,7 @@ func TestChronology_StartRoundShouldReturnWhenRoundIndexIsNegative(t *testing.T)
 	t.Parallel()
 
 	arg := getDefaultChronologyArg()
-	roundHandlerMock := &consensusMocks.RoundHandlerMock{}
+	roundHandlerMock := &round.RoundHandlerMock{}
 	roundHandlerMock.IndexCalled = func() int64 {
 		return -1
 	}
@@ -191,7 +192,7 @@ func TestChronology_StartRoundShouldReturnWhenDoWorkReturnsFalse(t *testing.T) {
 	t.Parallel()
 
 	arg := getDefaultChronologyArg()
-	roundHandlerMock := &consensusMocks.RoundHandlerMock{}
+	roundHandlerMock := &round.RoundHandlerMock{}
 	roundHandlerMock.UpdateRound(roundHandlerMock.TimeStamp(), roundHandlerMock.TimeStamp().Add(roundHandlerMock.TimeDuration()))
 	arg.RoundHandler = roundHandlerMock
 	chr, _ := chronology.NewChronology(arg)
@@ -208,7 +209,7 @@ func TestChronology_StartRoundShouldWork(t *testing.T) {
 	t.Parallel()
 
 	arg := getDefaultChronologyArg()
-	roundHandlerMock := &consensusMocks.RoundHandlerMock{}
+	roundHandlerMock := &round.RoundHandlerMock{}
 	roundHandlerMock.UpdateRound(roundHandlerMock.TimeStamp(), roundHandlerMock.TimeStamp().Add(roundHandlerMock.TimeDuration()))
 	arg.RoundHandler = roundHandlerMock
 	chr, _ := chronology.NewChronology(arg)
@@ -284,7 +285,7 @@ func TestChronology_InitRoundShouldNotSetSubroundWhenRoundIndexIsNegative(t *tes
 	t.Parallel()
 
 	arg := getDefaultChronologyArg()
-	roundHandlerMock := &consensusMocks.RoundHandlerMock{}
+	roundHandlerMock := &round.RoundHandlerMock{}
 	arg.RoundHandler = roundHandlerMock
 	arg.GenesisTime = arg.SyncTimer.CurrentTime()
 	chr, _ := chronology.NewChronology(arg)
@@ -305,7 +306,7 @@ func TestChronology_InitRoundShouldSetSubroundWhenRoundIndexIsPositive(t *testin
 	t.Parallel()
 
 	arg := getDefaultChronologyArg()
-	roundHandlerMock := &consensusMocks.RoundHandlerMock{}
+	roundHandlerMock := &round.RoundHandlerMock{}
 	roundHandlerMock.UpdateRound(roundHandlerMock.TimeStamp(), roundHandlerMock.TimeStamp().Add(roundHandlerMock.TimeDuration()))
 	arg.RoundHandler = roundHandlerMock
 	arg.GenesisTime = arg.SyncTimer.CurrentTime()
@@ -322,7 +323,7 @@ func TestChronology_StartRoundShouldNotUpdateRoundWhenCurrentRoundIsNotFinished(
 	t.Parallel()
 
 	arg := getDefaultChronologyArg()
-	roundHandlerMock := &consensusMocks.RoundHandlerMock{}
+	roundHandlerMock := &round.RoundHandlerMock{}
 	arg.RoundHandler = roundHandlerMock
 	arg.GenesisTime = arg.SyncTimer.CurrentTime()
 	chr, _ := chronology.NewChronology(arg)
@@ -336,7 +337,7 @@ func TestChronology_StartRoundShouldNotUpdateRoundWhenCurrentRoundIsNotFinished(
 func TestChronology_StartRoundShouldUpdateRoundWhenCurrentRoundIsFinished(t *testing.T) {
 	t.Parallel()
 	arg := getDefaultChronologyArg()
-	roundHandlerMock := &consensusMocks.RoundHandlerMock{}
+	roundHandlerMock := &round.RoundHandlerMock{}
 	arg.RoundHandler = roundHandlerMock
 	arg.GenesisTime = arg.SyncTimer.CurrentTime()
 	chr, _ := chronology.NewChronology(arg)
@@ -380,7 +381,7 @@ func TestChronology_CheckIfStatusHandlerWorks(t *testing.T) {
 func getDefaultChronologyArg() chronology.ArgChronology {
 	return chronology.ArgChronology{
 		GenesisTime:         time.Now(),
-		RoundHandler:        &consensusMocks.RoundHandlerMock{},
+		RoundHandler:        &round.RoundHandlerMock{},
 		SyncTimer:           &consensusMocks.SyncTimerMock{},
 		AppStatusHandler:    statusHandlerMock.NewAppStatusHandlerMock(),
 		Watchdog:            &mock.WatchdogMock{},
@@ -472,7 +473,7 @@ func TestChronology_StartRounds(t *testing.T) {
 		updateRoundCalled := &atomic.Bool{}
 		updateRoundCalled.Store(false)
 
-		arg.RoundHandler = &consensusMocks.RoundHandlerMock{
+		arg.RoundHandler = &round.RoundHandlerMock{
 			UpdateRoundCalled: func(t1, t2 time.Time) {
 				updateRoundCalled.Store(true)
 			},
@@ -493,7 +494,7 @@ func TestChronology_StartRoundsShouldWork(t *testing.T) {
 	t.Parallel()
 
 	arg := getDefaultChronologyArg()
-	roundHandlerMock := &consensusMocks.RoundHandlerMock{}
+	roundHandlerMock := &round.RoundHandlerMock{}
 	roundHandlerMock.UpdateRound(roundHandlerMock.TimeStamp(), roundHandlerMock.TimeStamp().Add(roundHandlerMock.TimeDuration()))
 	arg.RoundHandler = roundHandlerMock
 	chr, _ := chronology.NewChronology(arg)

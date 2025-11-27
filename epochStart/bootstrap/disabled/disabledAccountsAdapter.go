@@ -90,6 +90,11 @@ func (a *accountsAdapter) RecreateTrie(_ common.RootHashHolder) error {
 	return nil
 }
 
+// RecreateTrieIfNeeded -
+func (a *accountsAdapter) RecreateTrieIfNeeded(_ common.RootHashHolder) error {
+	return nil
+}
+
 // CancelPrune -
 func (a *accountsAdapter) CancelPrune(_ []byte, _ state.TriePruningIdentifier) {
 }

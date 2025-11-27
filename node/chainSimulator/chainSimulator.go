@@ -203,6 +203,12 @@ func (s *simulator) createChainHandlers(args ArgsBaseChainSimulator) error {
 			}
 		}
 
+		genesisBlock := node.GetDataComponents().Blockchain().GetGenesisHeader()
+		err = node.GetDataComponents().Datapool().Transactions().OnExecutedBlock(genesisBlock, genesisBlock.GetRootHash())
+		if err != nil {
+			return err
+		}
+
 		err = node.GetProcessComponents().BlockchainHook().SetEpochStartHeader(epochStartBlockHeader)
 		if err != nil {
 			return err

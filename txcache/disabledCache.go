@@ -138,7 +138,7 @@ func (cache *DisabledCache) OnProposedBlock(_ []byte, _ data.BodyHandler, _ data
 }
 
 // OnExecutedBlock does nothing
-func (cache *DisabledCache) OnExecutedBlock(data.HeaderHandler) error {
+func (cache *DisabledCache) OnExecutedBlock(_ data.HeaderHandler, _ []byte) error {
 	return nil
 }
 

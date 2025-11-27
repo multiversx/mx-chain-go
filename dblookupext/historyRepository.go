@@ -14,7 +14,9 @@ import (
 	"github.com/multiversx/mx-chain-core-go/data/typeConverters"
 	"github.com/multiversx/mx-chain-core-go/hashing"
 	"github.com/multiversx/mx-chain-core-go/marshal"
+	"github.com/multiversx/mx-chain-go/common"
 	"github.com/multiversx/mx-chain-go/common/logging"
+	"github.com/multiversx/mx-chain-go/dataRetriever"
 	"github.com/multiversx/mx-chain-go/dblookupext/esdtSupply"
 	"github.com/multiversx/mx-chain-go/process"
 	"github.com/multiversx/mx-chain-go/storage"
@@ -35,9 +37,11 @@ type HistoryRepositoryArguments struct {
 	Uint64ByteSliceConverter    typeConverters.Uint64ByteSliceConverter
 	EpochByHashStorer           storage.Storer
 	EventsHashesByTxHashStorer  storage.Storer
+	ExecutionResultsStorer      storage.Storer
 	Marshalizer                 marshal.Marshalizer
 	Hasher                      hashing.Hasher
 	ESDTSuppliesHandler         SuppliesHandler
+	DataPool                    dataRetriever.PoolsHolder
 }
 
 type historyRepository struct {
@@ -48,9 +52,11 @@ type historyRepository struct {
 	uint64ByteSliceConverter   typeConverters.Uint64ByteSliceConverter
 	epochByHashIndex           *epochByHashIndex
 	eventsHashesByTxHashIndex  *eventsHashesByTxHash
+	executionResultsProcessor  *executionResultsProcessor
 	marshalizer                marshal.Marshalizer
 	hasher                     hashing.Hasher
 	esdtSuppliesHandler        SuppliesHandler
+	dataPool                   dataRetriever.PoolsHolder
 
 	// These maps temporarily hold notifications of "notarized at source or destination", to deal with unwanted concurrency effects
 	// The unwanted concurrency effects could be accentuated by the fast db-replay-validate mechanism.
@@ -97,11 +103,18 @@ func NewHistoryRepository(arguments HistoryRepositoryArguments) (*historyReposit
 	if check.IfNil(arguments.Uint64ByteSliceConverter) {
 		return nil, process.ErrNilUint64Converter
 	}
+	if check.IfNil(arguments.ExecutionResultsStorer) {
+		return nil, process.ErrNilStore
+	}
+	if check.IfNil(arguments.DataPool) {
+		return nil, process.ErrNilDataPoolHolder
+	}
 
 	hashToEpochIndex := newHashToEpochIndex(arguments.EpochByHashStorer, arguments.Marshalizer)
 	deduplicationCacheForInsertMiniblockMetadata, _ := cache.NewLRUCache(sizeOfDeduplicationCache)
 
 	eventsHashesToTxHashIndex := newEventsHashesByTxHash(arguments.EventsHashesByTxHashStorer, arguments.Marshalizer)
+	executionResultsProc := newExecutionResultsProcessor(arguments.ExecutionResultsStorer, arguments.Marshalizer)
 
 	return &historyRepository{
 		selfShardID:                           arguments.SelfShardID,
@@ -118,6 +131,8 @@ func NewHistoryRepository(arguments HistoryRepositoryArguments) (*historyReposit
 		eventsHashesByTxHashIndex:                    eventsHashesToTxHashIndex,
 		esdtSuppliesHandler:                          arguments.ESDTSuppliesHandler,
 		uint64ByteSliceConverter:                     arguments.Uint64ByteSliceConverter,
+		executionResultsProcessor:                    executionResultsProc,
+		dataPool:                                     arguments.DataPool,
 	}, nil
 }
 
@@ -129,51 +144,22 @@ func (hr *historyRepository) RecordBlock(blockHeaderHash []byte,
 	scrResultsFromPool map[string]data.TransactionHandler,
 	receiptsFromPool map[string]data.TransactionHandler,
 	createdIntraShardMiniBlocks []*block.MiniBlock,
-	logs []*data.LogData) error {
+	logs []*data.LogData,
+) error {
 	hr.recordBlockMutex.Lock()
 	defer hr.recordBlockMutex.Unlock()
-
-	log.Debug("RecordBlock()", "nonce", blockHeader.GetNonce(), "blockHeaderHash", blockHeaderHash, "header type", fmt.Sprintf("%T", blockHeader))
 
 	body, ok := blockBody.(*block.Body)
 	if !ok {
 		return errCannotCastToBlockBody
 	}
 
-	epoch := blockHeader.GetEpoch()
-
-	err := hr.epochByHashIndex.saveEpochByHash(blockHeaderHash, epoch)
-	if err != nil {
-		return newErrCannotSaveEpochByHash("block header", blockHeaderHash, err)
-	}
-
-	for _, miniblock := range body.MiniBlocks {
-		if miniblock.Type == block.PeerBlock {
-			continue
-		}
-
-		err = hr.recordMiniblock(blockHeaderHash, blockHeader, miniblock, epoch)
-		if err != nil {
-			logging.LogErrAsErrorExceptAsDebugIfClosingError(log, err, "cannot record miniblock",
-				"type", miniblock.Type, "error", err)
-			continue
-		}
-	}
-
-	for _, miniBlock := range createdIntraShardMiniBlocks {
-		err = hr.recordMiniblock(blockHeaderHash, blockHeader, miniBlock, epoch)
-		if err != nil {
-			logging.LogErrAsErrorExceptAsDebugIfClosingError(log, err, "cannot record in shard miniblock",
-				"type", miniBlock.Type, "error", err)
-		}
-	}
-
-	err = hr.eventsHashesByTxHashIndex.saveResultsHashes(epoch, scrResultsFromPool, receiptsFromPool)
+	err := hr.recordBlock(blockHeaderHash, blockHeader.GetEpoch(), blockHeader.GetNonce(), blockHeader.GetRound(), body.MiniBlocks)
 	if err != nil {
 		return err
 	}
 
-	err = hr.esdtSuppliesHandler.ProcessLogs(blockHeader.GetNonce(), logs)
+	err = hr.recordExtraData(blockHeaderHash, blockHeader, scrResultsFromPool, receiptsFromPool, createdIntraShardMiniBlocks, logs)
 	if err != nil {
 		return err
 	}
@@ -181,6 +167,120 @@ func (hr *historyRepository) RecordBlock(blockHeaderHash []byte,
 	err = hr.putHashByRound(blockHeaderHash, blockHeader)
 	if err != nil {
 		return err
+	}
+
+	err = hr.executionResultsProcessor.saveExecutionResultsFromHeader(blockHeader)
+	if err != nil {
+		return err
+	}
+
+	return nil
+}
+
+func (hr *historyRepository) recordExtraData(
+	blockHeaderHash []byte,
+	blockHeader data.HeaderHandler,
+	scrResultsFromPool map[string]data.TransactionHandler,
+	receiptsFromPool map[string]data.TransactionHandler,
+	createdIntraShardMiniBlocks []*block.MiniBlock,
+	logs []*data.LogData,
+) error {
+	if blockHeader.IsHeaderV3() {
+		return hr.recordDataBasedOnExecutionResults(blockHeader)
+	}
+
+	return hr.recordExecutionData(blockHeaderHash, blockHeader.GetEpoch(), blockHeader.GetNonce(), blockHeader.GetRound(), scrResultsFromPool, receiptsFromPool, createdIntraShardMiniBlocks, logs)
+}
+
+func (hr *historyRepository) recordDataBasedOnExecutionResults(blockHeader data.HeaderHandler) error {
+	for _, executionResult := range blockHeader.GetExecutionResultsHandlers() {
+		headerHash := executionResult.GetHeaderHash()
+
+		pool, err := common.GetCachedIntermediateTxs(hr.dataPool.PostProcessTransactions(), headerHash)
+		if err != nil {
+			return err
+		}
+		logs, err := common.GetCachedLogs(hr.dataPool.PostProcessTransactions(), headerHash)
+		if err != nil {
+			return err
+		}
+		body, err := common.GetCachedBody(hr.dataPool.ExecutedMiniBlocks(), hr.marshalizer, executionResult)
+		if err != nil {
+			return err
+		}
+		intraMbs, err := common.GetCachedMbs(hr.dataPool.ExecutedMiniBlocks(), hr.marshalizer, headerHash)
+		if err != nil {
+			return err
+		}
+
+		headerNonce := executionResult.GetHeaderNonce()
+		headerEpoch := executionResult.GetHeaderEpoch()
+		headerRound := executionResult.GetHeaderRound()
+		err = hr.recordBlock(headerHash, headerEpoch, headerNonce, headerRound, body.MiniBlocks)
+		if err != nil {
+			return err
+		}
+
+		err = hr.recordExecutionData(headerHash, headerEpoch, headerNonce, headerRound, pool[block.SmartContractResultBlock], pool[block.ReceiptBlock], intraMbs, logs)
+		if err != nil {
+			return err
+		}
+	}
+
+	return nil
+}
+
+func (hr *historyRepository) recordExecutionData(blockHeaderHash []byte,
+	epoch uint32,
+	nonce uint64,
+	round uint64,
+	scrResultsFromPool map[string]data.TransactionHandler,
+	receiptsFromPool map[string]data.TransactionHandler,
+	createdIntraShardMiniBlocks []*block.MiniBlock,
+	logs []*data.LogData,
+) error {
+
+	for _, miniBlock := range createdIntraShardMiniBlocks {
+		err := hr.recordMiniblock(blockHeaderHash, nonce, round, miniBlock, epoch)
+		if err != nil {
+			logging.LogErrAsErrorExceptAsDebugIfClosingError(log, err, "cannot record in shard miniblock",
+				"type", miniBlock.Type, "error", err)
+		}
+	}
+
+	err := hr.eventsHashesByTxHashIndex.saveResultsHashes(epoch, scrResultsFromPool, receiptsFromPool)
+	if err != nil {
+		return err
+	}
+
+	return hr.esdtSuppliesHandler.ProcessLogs(nonce, logs)
+}
+
+func (hr *historyRepository) recordBlock(
+	blockHeaderHash []byte,
+	epoch uint32,
+	nonce uint64,
+	round uint64,
+	miniBlocks []*block.MiniBlock,
+) error {
+	log.Debug("RecordBlock()", "nonce", nonce, "blockHeaderHash", blockHeaderHash)
+
+	err := hr.epochByHashIndex.saveEpochByHash(blockHeaderHash, epoch)
+	if err != nil {
+		return newErrCannotSaveEpochByHash("block header", blockHeaderHash, err)
+	}
+
+	for _, miniblock := range miniBlocks {
+		if miniblock.Type == block.PeerBlock {
+			continue
+		}
+
+		err = hr.recordMiniblock(blockHeaderHash, nonce, round, miniblock, epoch)
+		if err != nil {
+			logging.LogErrAsErrorExceptAsDebugIfClosingError(log, err, "cannot record miniblock",
+				"type", miniblock.Type, "error", err)
+			continue
+		}
 	}
 
 	return nil
@@ -191,7 +291,7 @@ func (hr *historyRepository) putHashByRound(blockHeaderHash []byte, header data.
 	return hr.blockHashByRound.Put(roundToByteSlice, blockHeaderHash)
 }
 
-func (hr *historyRepository) recordMiniblock(blockHeaderHash []byte, blockHeader data.HeaderHandler, miniblock *block.MiniBlock, epoch uint32) error {
+func (hr *historyRepository) recordMiniblock(blockHeaderHash []byte, nonce uint64, round uint64, miniblock *block.MiniBlock, epoch uint32) error {
 	miniblockHash, err := hr.computeMiniblockHash(miniblock)
 	if err != nil {
 		return err
@@ -211,8 +311,8 @@ func (hr *historyRepository) recordMiniblock(blockHeaderHash []byte, blockHeader
 		Epoch:              epoch,
 		HeaderHash:         blockHeaderHash,
 		MiniblockHash:      miniblockHash,
-		Round:              blockHeader.GetRound(),
-		HeaderNonce:        blockHeader.GetNonce(),
+		Round:              round,
+		HeaderNonce:        nonce,
 		SourceShardID:      miniblock.GetSenderShardID(),
 		DestinationShardID: miniblock.GetReceiverShardID(),
 	}

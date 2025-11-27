@@ -777,6 +777,21 @@ func generateTestMetaBlockHeaders(cache map[string]data.HeaderHandler) (*block.M
 	return prevHeader, header
 }
 
+func generateTestMetaBlockV3Headers(cache map[string]data.HeaderHandler) (*block.MetaBlockV3, *block.MetaBlockV3) {
+	prevHeader := &block.MetaBlockV3{
+		Round:        1,
+		Epoch:        1,
+		Nonce:        1,
+		PrevRandSeed: []byte("prevRandSeed"),
+	}
+
+	header := getMetaV3HeaderHandler([]byte("header"))
+	header.RandSeed = []byte{1}
+
+	cache[string(header.GetPrevHash())] = prevHeader
+	return prevHeader, header
+}
+
 func generateTestShardBlockHeaders(cache map[string]data.HeaderHandler) (*block.Header, *block.Header) {
 	prevHeader := &block.Header{
 		Round:           1,
@@ -1012,6 +1027,37 @@ func TestValidatorStatisticsProcessor_UpdatePeerState_DecreasesMissedMetaBlock_P
 
 	assert.Equal(t, uint32(1), missedLeader.DecreaseLeaderSuccessRateValue)
 	assert.Equal(t, uint32(1), missedValidator.DecreaseValidatorSuccessRateValue)
+}
+
+func TestValidatorStatisticsProcessor_UpdatePeerStateV3(t *testing.T) {
+	t.Parallel()
+
+	consensusGroup := make(map[string][]nodesCoordinator.Validator)
+
+	arguments := createUpdateTestArgs(consensusGroup)
+	arguments.EnableEpochsHandler = &enableEpochsHandlerMock.EnableEpochsHandlerStub{
+		IsFlagEnabledInEpochCalled: func(flag core.EnableEpochFlag, epoch uint32) bool {
+			return true
+		},
+	}
+	validator := shardingMocks.NewValidatorMock([]byte("pk1"), 1, 1)
+	arguments.NodesCoordinator = &shardingMocks.NodesCoordinatorStub{
+		ComputeConsensusGroupCalled: func(randomness []byte, round uint64, shardId uint32, epoch uint32) (leader nodesCoordinator.Validator, validatorsGroup []nodesCoordinator.Validator, err error) {
+			return validator, []nodesCoordinator.Validator{validator}, nil
+		},
+	}
+	validatorStatistics, _ := peer.NewValidatorStatisticsProcessor(arguments)
+
+	cache := createMockCache()
+	prevHeader, header := generateTestMetaBlockV3Headers(cache)
+	prevHeader.EpochStart.LastFinalizedHeaders = []block.EpochStartShardData{{ShardID: 0}}
+
+	metaExecResult := &block.MetaExecutionResult{
+		AccumulatedFees: big.NewInt(1),
+		DeveloperFees:   big.NewInt(1),
+	}
+	_, err := validatorStatistics.UpdatePeerStateV3(header, cache, metaExecResult)
+	require.Nil(t, err)
 }
 
 func TestValidatorStatisticsProcessor_UpdateShardDataPeerState_IncreasesConsensusCurrentShardBlock_SameEpoch(t *testing.T) {
@@ -1955,6 +2001,16 @@ func getMetaHeaderHandler(randSeed []byte) *block.MetaBlock {
 	}
 }
 
+func getMetaV3HeaderHandler(randSeed []byte) *block.MetaBlockV3 {
+	return &block.MetaBlockV3{
+		Round:        2,
+		Epoch:        1,
+		Nonce:        2,
+		PrevRandSeed: randSeed,
+		PrevHash:     randSeed,
+	}
+}
+
 func getShardHeaderHandler(randSeed []byte) *block.Header {
 	return &block.Header{
 		Nonce:           2,
@@ -2413,7 +2469,7 @@ func TestValidatorStatistics_ProcessRatingsEndOfEpochAfterEquivalentProofsShould
 	rater.GetSignedBlocksThresholdCalled = func() float32 {
 		return 0.025 // would have passed the `if computedThreshold <= signedThreshold` condition
 	}
-	rater.RevertIncreaseProposerCalled = func(shardId uint32, rating uint32, nrReverts uint32) uint32 {
+	rater.RevertIncreaseValidatorCalled = func(shardId uint32, rating uint32, nrReverts uint32, epoch uint32) uint32 {
 		require.Fail(t, "should have not been called")
 		return 0
 	}

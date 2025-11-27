@@ -8,6 +8,7 @@ import (
 	"github.com/multiversx/mx-chain-core-go/core"
 	"github.com/multiversx/mx-chain-crypto-go/signing"
 	ed255192 "github.com/multiversx/mx-chain-crypto-go/signing/ed25519"
+
 	"github.com/multiversx/mx-chain-go/common"
 	"github.com/multiversx/mx-chain-go/integrationTests"
 	"github.com/multiversx/mx-chain-go/integrationTests/resolvers"
@@ -78,7 +79,7 @@ func TestTransactionsRequestsShouldWorkForHigherMaxTxNonceDeltaAllowed(t *testin
 	_ = nRequester.AccntState.SaveAccount(account)
 	_, _ = nRequester.AccntState.Commit()
 
-	nRequester.RequestHandler.RequestTransaction(shardIdResolver, txHashes)
+	nRequester.RequestHandler.RequestTransactions(shardIdResolver, txHashes)
 
 	rm.WaitWithTimeout()
 }

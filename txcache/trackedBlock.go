@@ -9,7 +9,6 @@ import (
 type trackedBlock struct {
 	nonce                uint64
 	hash                 []byte
-	rootHash             []byte
 	prevHash             []byte
 	breadcrumbsByAddress map[string]*accountBreadcrumb
 }
@@ -17,13 +16,11 @@ type trackedBlock struct {
 func newTrackedBlock(
 	nonce uint64,
 	blockHash []byte,
-	rootHash []byte,
 	prevHash []byte,
 ) *trackedBlock {
 	return &trackedBlock{
 		nonce:                nonce,
 		hash:                 blockHash,
-		rootHash:             rootHash,
 		prevHash:             prevHash,
 		breadcrumbsByAddress: make(map[string]*accountBreadcrumb),
 	}

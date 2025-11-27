@@ -356,5 +356,8 @@ var ErrReceivedAuctionValidatorsBeforeStakingV4 = errors.New("auction node has b
 // ErrNilEquivalentProofsProcessor signals that a nil equivalent proofs processor was provided
 var ErrNilEquivalentProofsProcessor = errors.New("nil equivalent proofs processor")
 
-// ErrNilHeadersDataPool signals that a nil headers pool has been provided
-var ErrNilHeadersDataPool = errors.New("nil headers data pool")
+// ErrInvalidHeader signals that an invalid header was provided
+var ErrInvalidHeader = errors.New("invalid header")
+
+// ErrNilPrevBlockExecutionResults signals that nil previous block execution results were provided
+var ErrNilPrevBlockExecutionResults = errors.New("nil previous block execution results")

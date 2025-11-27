@@ -15,13 +15,14 @@ import (
 	"github.com/multiversx/mx-chain-core-go/display"
 	"github.com/multiversx/mx-chain-core-go/hashing"
 	"github.com/multiversx/mx-chain-core-go/marshal"
+	logger "github.com/multiversx/mx-chain-logger-go"
+
 	"github.com/multiversx/mx-chain-go/common"
 	"github.com/multiversx/mx-chain-go/config"
 	"github.com/multiversx/mx-chain-go/dataRetriever"
 	"github.com/multiversx/mx-chain-go/epochStart"
 	"github.com/multiversx/mx-chain-go/process"
 	"github.com/multiversx/mx-chain-go/storage"
-	logger "github.com/multiversx/mx-chain-logger-go"
 )
 
 var log = logger.GetOrCreate("epochStart/metachain")
@@ -54,7 +55,6 @@ type trigger struct {
 	isEpochStart                bool
 	epoch                       uint32
 	epochStartMeta              data.HeaderHandler
-	currentRound                uint64
 	epochFinalityAttestingRound uint64
 	currEpochStartRound         uint64
 	prevEpochStartRound         uint64
@@ -71,6 +71,7 @@ type trigger struct {
 	appStatusHandler            core.AppStatusHandler
 	validatorInfoPool           epochStart.ValidatorInfoCacher
 	chainParametersHandler      process.ChainParametersHandler
+	lastEpochProposedNonce      uint64
 }
 
 // NewEpochStartTrigger creates a trigger for start of epoch
@@ -212,33 +213,63 @@ func (t *trigger) getMinRoundsBetweenEpochs(epoch uint32) uint64 {
 	return uint64(chainParametersForEpoch.MinRoundsBetweenEpochs)
 }
 
+// ShouldProposeEpochChange will return true if an epoch change event should be trigger
+func (t *trigger) ShouldProposeEpochChange(currentRound uint64, currentNonce uint64) bool {
+	t.mutTrigger.Lock()
+	defer t.mutTrigger.Unlock()
+
+	shouldTriggerEpochStart := t.shouldTriggerEpochStart(currentRound, currentNonce)
+	if shouldTriggerEpochStart {
+		t.lastEpochProposedNonce = currentNonce
+	}
+	if currentNonce == t.lastEpochProposedNonce && t.lastEpochProposedNonce >= minimumNonceToStartEpoch {
+		return true
+	}
+
+	return shouldTriggerEpochStart
+}
+
+func (t *trigger) shouldTriggerEpochStart(currentRound uint64, currentNonce uint64) bool {
+	isZeroEpochEdgeCase := currentNonce < minimumNonceToStartEpoch
+	isNormalEpochStart := currentRound > t.currEpochStartRound+t.getRoundsPerEpoch(t.epoch)
+	isWithEarlyEndOfEpoch := currentRound >= t.nextEpochStartRound
+	shouldTriggerEpochStart := (isNormalEpochStart || isWithEarlyEndOfEpoch) && !isZeroEpochEdgeCase
+
+	return shouldTriggerEpochStart
+}
+
 // Update processes changes in the trigger
 func (t *trigger) Update(round uint64, nonce uint64) {
 	t.mutTrigger.Lock()
 	defer t.mutTrigger.Unlock()
-
-	t.currentRound = round
-
 	if t.isEpochStart {
 		return
 	}
 
-	isZeroEpochEdgeCase := nonce < minimumNonceToStartEpoch
-	isNormalEpochStart := t.currentRound > t.currEpochStartRound+t.getRoundsPerEpoch(t.epoch)
-	isWithEarlyEndOfEpoch := t.currentRound >= t.nextEpochStartRound
-	shouldTriggerEpochStart := (isNormalEpochStart || isWithEarlyEndOfEpoch) && !isZeroEpochEdgeCase
-	if shouldTriggerEpochStart {
-		t.epoch += 1
-		t.isEpochStart = true
-		t.prevEpochStartRound = t.currEpochStartRound
-		t.currEpochStartRound = t.currentRound
-
-		msg := fmt.Sprintf("EPOCH %d BEGINS IN ROUND (%d)", t.epoch, t.currentRound)
-		log.Debug(display.Headline(msg, "", "#"))
-		log.Debug("trigger.Update", "isEpochStart", t.isEpochStart)
-		logger.SetCorrelationEpoch(t.epoch)
-		t.nextEpochStartRound = disabledRoundForForceEpochStart
+	if t.shouldTriggerEpochStart(round, nonce) {
+		t.setEpochChange(round)
 	}
+}
+
+// SetEpochChange will increment the epoch field and all fields related with epoch change
+func (t *trigger) SetEpochChange(round uint64) {
+	t.mutTrigger.Lock()
+	defer t.mutTrigger.Unlock()
+
+	t.setEpochChange(round)
+}
+
+func (t *trigger) setEpochChange(round uint64) {
+	t.epoch += 1
+	t.isEpochStart = true
+	t.prevEpochStartRound = t.currEpochStartRound
+	t.currEpochStartRound = round
+
+	msg := fmt.Sprintf("EPOCH %d BEGINS IN ROUND (%d)", t.epoch, t.currEpochStartRound)
+	log.Debug(display.Headline(msg, "", "#"))
+	log.Debug("trigger.Update", "isEpochStart", t.isEpochStart)
+	logger.SetCorrelationEpoch(t.epoch)
+	t.nextEpochStartRound = disabledRoundForForceEpochStart
 }
 
 // SetProcessed sets start of epoch to false and cleans underlying structure
@@ -246,7 +277,7 @@ func (t *trigger) SetProcessed(header data.HeaderHandler, body data.BodyHandler)
 	t.mutTrigger.Lock()
 	defer t.mutTrigger.Unlock()
 
-	metaBlock, ok := header.(*block.MetaBlock)
+	metaBlock, ok := header.(data.MetaHeaderHandler)
 	if !ok {
 		return
 	}
@@ -259,26 +290,25 @@ func (t *trigger) SetProcessed(header data.HeaderHandler, body data.BodyHandler)
 		log.Debug("SetProcessed marshal", "error", errNotCritical.Error())
 	}
 
-	t.appStatusHandler.SetUInt64Value(common.MetricRoundAtEpochStart, metaBlock.Round)
-	t.appStatusHandler.SetUInt64Value(common.MetricNonceAtEpochStart, metaBlock.Nonce)
+	t.appStatusHandler.SetUInt64Value(common.MetricRoundAtEpochStart, metaBlock.GetRound())
+	t.appStatusHandler.SetUInt64Value(common.MetricNonceAtEpochStart, metaBlock.GetNonce())
 
 	metaHash := t.hasher.Compute(string(metaBuff))
 
-	t.currEpochStartRound = metaBlock.Round
-	t.epoch = metaBlock.Epoch
+	t.currEpochStartRound = metaBlock.GetRound()
+	t.epoch = metaBlock.GetEpoch()
 	t.isEpochStart = false
-	t.currentRound = metaBlock.Round
 	t.epochStartMeta = metaBlock
 	t.epochStartMetaHash = metaHash
 
 	t.epochStartNotifier.NotifyAllPrepare(metaBlock, body)
 	t.epochStartNotifier.NotifyAll(metaBlock)
 
-	t.saveCurrentState(metaBlock.Round)
+	t.saveCurrentState(metaBlock.GetRound())
 
 	log.Debug("trigger.SetProcessed", "isEpochStart", t.isEpochStart)
 
-	epochStartIdentifier := core.EpochStartIdentifier(metaBlock.Epoch)
+	epochStartIdentifier := core.EpochStartIdentifier(metaBlock.GetEpoch())
 	errNotCritical = t.triggerStorage.Put([]byte(epochStartIdentifier), metaBuff)
 	if errNotCritical != nil {
 		log.Warn("SetProcessed put into triggerStorage", "error", errNotCritical.Error())
@@ -333,10 +363,6 @@ func (t *trigger) RevertStateToBlock(header data.HeaderHandler) error {
 	if err != nil {
 		return err
 	}
-
-	t.mutTrigger.Lock()
-	t.currentRound = header.GetRound()
-	t.mutTrigger.Unlock()
 
 	return nil
 }
@@ -467,7 +493,6 @@ func (t *trigger) SetEpochStartMetaHdrHash(metaHdrHash []byte) {
 func (t *trigger) SetCurrentEpochStartRound(round uint64) {
 	t.mutTrigger.Lock()
 	t.currEpochStartRound = round
-	t.currentRound = round
 	t.saveCurrentState(round)
 	t.mutTrigger.Unlock()
 }

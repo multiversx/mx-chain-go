@@ -142,7 +142,7 @@ func createBootstrapComponents(
 		ShCoordinator:        shardCoordinator,
 		HdrIntegrityVerifier: &mock.HeaderIntegrityVerifierStub{},
 		VersionedHdrFactory: &testscommon.VersionedHeaderFactoryStub{
-			CreateCalled: func(epoch uint32) data.HeaderHandler {
+			CreateCalled: func(epoch uint32, _ uint64) data.HeaderHandler {
 				return &block.MetaBlock{Epoch: epoch}
 			},
 		},
@@ -179,8 +179,9 @@ func createStateComponents(coreComponents factory.CoreComponentsHolder) factory.
 	_ = peerAccountsDB.SetSyncer(&mock.AccountsDBSyncerStub{})
 
 	return &factoryTests.StateComponentsMock{
-		PeersAcc: peerAccountsDB,
-		Accounts: userAccountsDB,
+		PeersAcc:         peerAccountsDB,
+		Accounts:         userAccountsDB,
+		AccountsProposal: userAccountsDB,
 	}
 }
 

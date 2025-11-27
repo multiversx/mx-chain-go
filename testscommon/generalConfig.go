@@ -55,6 +55,7 @@ func GetGeneralConfig() config.Config {
 			MaxComputableRounds:                  1000,
 			MaxConsecutiveRoundsOfRatingDecrease: 2000,
 			SyncProcessTimeInMillis:              6000,
+			SyncProcessTimeSupernovaInMillis:     3000,
 			SetGuardianEpochsDelay:               20,
 			StatusPollingIntervalSec:             10,
 			ChainParametersByEpoch: []config.ChainParametersByEpochConfig{
@@ -251,6 +252,16 @@ func GetGeneralConfig() config.Config {
 				MaxOpenFiles:      10,
 			},
 		},
+		ExecutionResultsStorage: config.StorageConfig{
+			Cache: getLRUCacheConfig(),
+			DB: config.DBConfig{
+				FilePath:          AddTimestampSuffix("ExecutionResults"),
+				Type:              string(storageunit.MemoryDB),
+				BatchDelaySeconds: 30,
+				MaxBatchSize:      6,
+				MaxOpenFiles:      10,
+			},
+		},
 		MetaHdrNonceHashStorage: config.StorageConfig{
 			Cache: getLRUCacheConfig(),
 			DB: config.DBConfig{
@@ -393,11 +404,6 @@ func GetGeneralConfig() config.Config {
 			},
 		},
 		Versions: config.VersionsConfig{
-			Cache: config.CacheConfig{
-				Type:     "LRU",
-				Capacity: 1000,
-				Shards:   1,
-			},
 			DefaultVersion: "default",
 			VersionsByEpochs: []config.VersionByEpochs{
 				{
@@ -486,6 +492,8 @@ func GetGeneralConfig() config.Config {
 			CacheSpanInSec:   1,
 			CacheExpiryInSec: 1,
 		},
+		ExecutedMiniBlocksCache:      getLRUCacheConfig(),
+		PostProcessTransactionsCache: getLRUCacheConfig(),
 	}
 }
 

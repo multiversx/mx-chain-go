@@ -5,6 +5,7 @@ import (
 
 	"github.com/multiversx/mx-chain-core-go/data"
 	"github.com/multiversx/mx-chain-core-go/data/block"
+	"github.com/multiversx/mx-chain-go/common"
 
 	"github.com/multiversx/mx-chain-go/process"
 	"github.com/multiversx/mx-chain-go/process/block/processedMb"
@@ -62,7 +63,7 @@ func (txCoordinator *TxCoordinator) RemoveBlockDataFromPool(_ *block.Body) error
 }
 
 // RemoveTxsFromPool does nothing as it is disabled
-func (txCoordinator *TxCoordinator) RemoveTxsFromPool(_ *block.Body) error {
+func (txCoordinator *TxCoordinator) RemoveTxsFromPool(_ *block.Body, _ common.RootHashHolder) error {
 	return nil
 }
 
@@ -71,8 +72,21 @@ func (txCoordinator *TxCoordinator) ProcessBlockTransaction(_ data.HeaderHandler
 	return nil
 }
 
+// GetCreatedMiniBlocksFromMe does nothing as it is disabled
+func (txCoordinator *TxCoordinator) GetCreatedMiniBlocksFromMe() block.MiniBlockSlice {
+	return make(block.MiniBlockSlice, 0)
+}
+
 // CreateBlockStarted does nothing as it is disabled
 func (txCoordinator *TxCoordinator) CreateBlockStarted() {
+}
+
+// CreateMbsCrossShardDstMe does nothing as it is disabled
+func (txCoordinator *TxCoordinator) CreateMbsCrossShardDstMe(
+	_ data.HeaderHandler,
+	_ map[string]*processedMb.ProcessedMiniBlockInfo,
+) ([]block.MiniblockAndHash, []block.MiniblockAndHash, uint32, bool, error) {
+	return make([]block.MiniblockAndHash, 0), make([]block.MiniblockAndHash, 0), 0, false, nil
 }
 
 // CreateMbsAndProcessCrossShardTransactionsDstMe does nothing as it is disabled
@@ -84,6 +98,11 @@ func (txCoordinator *TxCoordinator) CreateMbsAndProcessCrossShardTransactionsDst
 	_ bool,
 ) (block.MiniBlockSlice, uint32, bool, error) {
 	return make(block.MiniBlockSlice, 0), 0, false, nil
+}
+
+// SelectOutgoingTransactions does nothing as it is disabled
+func (txCoordinator *TxCoordinator) SelectOutgoingTransactions(nonce uint64) ([][]byte, []data.MiniBlockHeaderHandler) {
+	return make([][]byte, 0), make([]data.MiniBlockHeaderHandler, 0)
 }
 
 // CreateMbsAndProcessTransactionsFromMe does nothing as it is disabled

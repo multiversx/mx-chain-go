@@ -2,17 +2,22 @@ package common
 
 import (
 	"encoding/hex"
+	"encoding/json"
 	"fmt"
+	"math/big"
 	"math/bits"
+	"reflect"
 	"strconv"
 	"strings"
 
 	"github.com/multiversx/mx-chain-core-go/core"
 	"github.com/multiversx/mx-chain-core-go/core/check"
 	"github.com/multiversx/mx-chain-core-go/data"
+	"github.com/multiversx/mx-chain-core-go/data/block"
+	logger "github.com/multiversx/mx-chain-logger-go"
+
 	"github.com/multiversx/mx-chain-go/config"
 	"github.com/multiversx/mx-chain-go/errors"
-	logger "github.com/multiversx/mx-chain-logger-go"
 )
 
 const (
@@ -23,10 +28,19 @@ const (
 	nonceIndex     = 0
 )
 
+type executionResultHandler interface {
+	GetMiniBlockHeadersHandlers() []data.MiniBlockHeaderHandler
+}
+
 type chainParametersHandler interface {
 	CurrentChainParameters() config.ChainParametersByEpochConfig
 	ChainParametersForEpoch(epoch uint32) (config.ChainParametersByEpochConfig, error)
 	IsInterfaceNil() bool
+}
+
+// PrepareLogEventsKey will prepare logs key for cacher
+func PrepareLogEventsKey(headerHash []byte) []byte {
+	return append([]byte("logs"), headerHash...)
 }
 
 // IsValidRelayedTxV3 returns true if the provided transaction is a valid transaction of type relayed v3
@@ -50,6 +64,23 @@ func IsRelayedTxV3(tx data.TransactionHandler) bool {
 	hasRelayer := len(relayedTx.GetRelayerAddr()) > 0
 	hasRelayerSignature := len(relayedTx.GetRelayerSignature()) > 0
 	return hasRelayer || hasRelayerSignature
+}
+
+// IsAsyncExecutionEnabledForEpochAndRound returns true if both Supernova epochs and Supernova rounds are enabled for the provided epoch and round
+func IsAsyncExecutionEnabledForEpochAndRound(
+	enableEpochsHandler EnableEpochsHandler,
+	enableRoundsHandler EnableRoundsHandler,
+	epoch uint32,
+	round uint64,
+) bool {
+	return enableEpochsHandler.IsFlagEnabledInEpoch(SupernovaFlag, epoch) &&
+		enableRoundsHandler.IsFlagEnabledInRound(SupernovaRoundFlag, round)
+}
+
+// IsAsyncExecutionEnabled returns true if both Supernova epochs and Supernova rounds are enabled
+func IsAsyncExecutionEnabled(enableEpochsHandler EnableEpochsHandler, enableRoundsHandler EnableRoundsHandler) bool {
+	return enableEpochsHandler.IsFlagEnabled(SupernovaFlag) &&
+		enableRoundsHandler.IsFlagEnabled(SupernovaRoundFlag)
 }
 
 // IsEpochChangeBlockForFlagActivation returns true if the provided header is the first one after the specified flag's activation
@@ -241,4 +272,292 @@ func GetHeaderTimestamps(
 	timestampSec = convertTimeStampMsToSec(headerTimestamp)
 
 	return timestampSec, timestampMs, nil
+}
+
+// PrettifyStruct returns a JSON string representation of a struct, converting byte slices to hex
+// and formatting big number values into readable strings. Useful for logging or debugging.
+func PrettifyStruct(x interface{}) (string, error) {
+	if x == nil {
+		return "nil", nil
+	}
+
+	val := reflect.ValueOf(x)
+	result := prettifyValue(val, val.Type())
+
+	jsonBytes, err := json.Marshal(result)
+	if err != nil {
+		return "", err
+	}
+	return string(jsonBytes), nil
+}
+
+// prettifyValue recursively converts a reflect.Value into a representation suitable for JSON serialization,
+// handling pointers, slices, structs, and special formatting for big numeric types.
+func prettifyValue(val reflect.Value, typ reflect.Type) interface{} {
+	if bigValue, isBig := prettifyBigNumbers(val); isBig {
+		return bigValue
+	}
+
+	if val.Kind() == reflect.Ptr {
+		if val.IsNil() {
+			return nil
+		}
+		val = val.Elem()
+		typ = val.Type()
+	}
+
+	switch val.Kind() {
+	case reflect.Struct:
+		return prettifyStructFields(val, typ)
+	case reflect.Slice, reflect.Array:
+		return prettifySliceOrArray(val)
+	default:
+		return val.Interface()
+	}
+}
+
+func prettifyStructFields(val reflect.Value, typ reflect.Type) map[string]interface{} {
+	out := make(map[string]interface{})
+	for i := 0; i < val.NumField(); i++ {
+		field := val.Field(i)
+		fieldType := typ.Field(i)
+
+		name := fieldType.Tag.Get("json")
+		if name == "" {
+			name = fieldType.Name
+		} else {
+			name = strings.Split(name, ",")[0]
+		}
+
+		if fieldType.PkgPath != "" {
+			out[name] = "<unexported>"
+			continue
+		}
+
+		if field.Kind() == reflect.Slice && field.Type() == reflect.TypeOf([]byte{}) {
+			out[name] = fmt.Sprintf("%x", field.Bytes())
+		} else {
+			out[name] = prettifyValue(field, field.Type())
+		}
+	}
+	return out
+}
+
+func prettifySliceOrArray(val reflect.Value) interface{} {
+	if val.Type().Elem().Kind() == reflect.Uint8 {
+		b := make([]byte, val.Len())
+		for i := 0; i < val.Len(); i++ {
+			b[i] = byte(val.Index(i).Uint())
+		}
+		return fmt.Sprintf("%x", b)
+	}
+
+	out := make([]interface{}, val.Len())
+	for i := 0; i < val.Len(); i++ {
+		out[i] = prettifyValue(val.Index(i), val.Index(i).Type())
+	}
+	return out
+}
+
+func prettifyBigNumbers(val reflect.Value) (string, bool) {
+	if val.CanInterface() {
+		switch v := val.Interface().(type) {
+		case *big.Int:
+			if v != nil {
+				return v.String(), true
+			}
+		case big.Int:
+			return v.String(), true
+		case *big.Float:
+			if v != nil {
+				return v.Text('g', -1), true
+			}
+		case big.Float:
+			return v.Text('g', -1), true
+		case *big.Rat:
+			if v != nil {
+				return v.RatString(), true
+			}
+		case big.Rat:
+			return v.RatString(), true
+		}
+	}
+	return "", false
+}
+
+// GetLastBaseExecutionResultHandler extracts the BaseExecutionResultHandler from the provided header, based on its type
+func GetLastBaseExecutionResultHandler(header data.HeaderHandler) (data.BaseExecutionResultHandler, error) {
+	if check.IfNil(header) {
+		return nil, ErrNilHeaderHandler
+	}
+
+	lastExecResultsHandler := header.GetLastExecutionResultHandler()
+	return ExtractBaseExecutionResultHandler(lastExecResultsHandler)
+}
+
+// GetOrCreateLastExecutionResultForPrevHeader extracts base execution result from
+// header if header v3. Otherwise, it will create last execution result based
+// on the provided header
+func GetOrCreateLastExecutionResultForPrevHeader(
+	prevHeader data.HeaderHandler,
+	prevHeaderHash []byte,
+) (data.BaseExecutionResultHandler, error) {
+	if prevHeader.IsHeaderV3() {
+		return ExtractBaseExecutionResultHandler(prevHeader.GetLastExecutionResultHandler())
+	}
+
+	lastExecResult, err := CreateLastExecutionResultFromPrevHeader(prevHeader, prevHeaderHash)
+	if err != nil {
+		return nil, err
+	}
+
+	return ExtractBaseExecutionResultHandler(lastExecResult)
+}
+
+func isValidHeaderBeforeV3(header data.HeaderHandler) error {
+	_, isHeaderV2 := header.(*block.HeaderV2)
+	if isHeaderV2 {
+		return nil
+	}
+
+	_, isHeaderV1 := header.(*block.Header)
+	if !isHeaderV1 {
+		return ErrWrongTypeAssertion
+	}
+
+	return nil
+}
+
+// CreateLastExecutionResultFromPrevHeader creates a LastExecutionResultInfo object from the given previous header
+func CreateLastExecutionResultFromPrevHeader(prevHeader data.HeaderHandler, prevHeaderHash []byte) (data.LastExecutionResultHandler, error) {
+	if check.IfNil(prevHeader) {
+		return nil, ErrNilHeaderHandler
+	}
+	if len(prevHeaderHash) == 0 {
+		return nil, ErrInvalidHeaderHash
+	}
+
+	if prevHeader.GetShardID() != core.MetachainShardId {
+		err := isValidHeaderBeforeV3(prevHeader)
+		if err != nil {
+			return nil, err
+		}
+
+		return &block.ExecutionResultInfo{
+			NotarizedInRound: prevHeader.GetRound(),
+			ExecutionResult: &block.BaseExecutionResult{
+				HeaderHash:  prevHeaderHash,
+				HeaderNonce: prevHeader.GetNonce(),
+				HeaderRound: prevHeader.GetRound(),
+				RootHash:    prevHeader.GetRootHash(),
+				GasUsed:     0, // we don't have this information in previous header
+			},
+		}, nil
+	}
+
+	prevMetaHeader, ok := prevHeader.(*block.MetaBlock)
+	if !ok {
+		return nil, ErrWrongTypeAssertion
+	}
+
+	return &block.MetaExecutionResultInfo{
+		NotarizedInRound: prevHeader.GetRound(),
+		ExecutionResult: &block.BaseMetaExecutionResult{
+			BaseExecutionResult: &block.BaseExecutionResult{
+				HeaderHash:  prevHeaderHash,
+				HeaderNonce: prevMetaHeader.GetNonce(),
+				HeaderRound: prevMetaHeader.GetRound(),
+				RootHash:    prevMetaHeader.GetRootHash(),
+				GasUsed:     0, // we don't have this information in previous header
+			},
+			ValidatorStatsRootHash: prevMetaHeader.GetValidatorStatsRootHash(),
+			AccumulatedFeesInEpoch: prevMetaHeader.GetAccumulatedFeesInEpoch(),
+			DevFeesInEpoch:         prevMetaHeader.GetDevFeesInEpoch(),
+		},
+	}, nil
+}
+
+// ExtractBaseExecutionResultHandler extracts the base execution result handler from a last execution result handler
+func ExtractBaseExecutionResultHandler(lastExecResultsHandler data.LastExecutionResultHandler) (data.BaseExecutionResultHandler, error) {
+	if check.IfNil(lastExecResultsHandler) {
+		log.Error("ExtractBaseExecutionResultHandler: nil exec")
+		return nil, ErrNilLastExecutionResultHandler
+	}
+
+	var baseExecutionResultsHandler data.BaseExecutionResultHandler
+	var ok bool
+	switch executionResultsHandlerType := lastExecResultsHandler.(type) {
+	case data.LastMetaExecutionResultHandler:
+		metaBaseExecutionResults := executionResultsHandlerType.GetExecutionResultHandler()
+		if check.IfNil(metaBaseExecutionResults) {
+			return nil, ErrNilBaseExecutionResult
+		}
+		baseExecutionResultsHandler, ok = metaBaseExecutionResults.(data.BaseExecutionResultHandler)
+		if !ok {
+			return nil, ErrWrongTypeAssertion
+		}
+	case data.LastShardExecutionResultHandler:
+		baseExecutionResultsHandler = executionResultsHandlerType.GetExecutionResultHandler()
+	default:
+		return nil, fmt.Errorf("%w: unsupported execution result handler type", ErrWrongTypeAssertion)
+	}
+
+	if check.IfNil(baseExecutionResultsHandler) {
+		return nil, ErrNilBaseExecutionResult
+	}
+
+	return baseExecutionResultsHandler, nil
+}
+
+// GetMiniBlocksHeaderHandlersFromExecResult returns miniblock handlers based on execution result
+func GetMiniBlocksHeaderHandlersFromExecResult(
+	baseExecResult data.BaseExecutionResultHandler,
+) ([]data.MiniBlockHeaderHandler, error) {
+	if check.IfNil(baseExecResult) {
+		return nil, ErrNilBaseExecutionResult
+	}
+
+	execResult, ok := baseExecResult.(executionResultHandler)
+	if !ok {
+		return nil, ErrWrongTypeAssertion
+	}
+
+	return execResult.GetMiniBlockHeadersHandlers(), nil
+}
+
+// GetLastExecutionResultNonce returns last execution result nonce if header v3 enable, otherwise it returns provided header nonce
+func GetLastExecutionResultNonce(
+	header data.HeaderHandler,
+) uint64 {
+	nonce := header.GetNonce()
+
+	if !header.IsHeaderV3() {
+		return nonce
+	}
+
+	lastExecutionResult, err := GetLastBaseExecutionResultHandler(header)
+	if err != nil {
+		return nonce
+	}
+
+	return lastExecutionResult.GetHeaderNonce()
+}
+
+// GetMiniBlockHeadersFromExecResult returns mb headers from meta header if v3, otherwise, returns mini block headers
+func GetMiniBlockHeadersFromExecResult(metaBlock data.HeaderHandler) ([]data.MiniBlockHeaderHandler, error) {
+	if !metaBlock.IsHeaderV3() {
+		return metaBlock.GetMiniBlockHeaderHandlers(), nil
+	}
+
+	mbHeaderHandlers := make([]data.MiniBlockHeaderHandler, 0)
+	for _, execResult := range metaBlock.GetExecutionResultsHandlers() {
+		mbHeaders, err := GetMiniBlocksHeaderHandlersFromExecResult(execResult)
+		if err != nil {
+			return nil, fmt.Errorf("%w in GetMiniBlockHeadersFromExecResult.GetMiniBlocksHeaderHandlersFromExecResult", err)
+		}
+
+		mbHeaderHandlers = append(mbHeaderHandlers, mbHeaders...)
+	}
+
+	return mbHeaderHandlers, nil
 }

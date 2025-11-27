@@ -11,20 +11,34 @@ import (
 type BlockProcessorStub struct {
 	SetNumProcessedObjCalled         func(numObj uint64)
 	ProcessBlockCalled               func(header data.HeaderHandler, body data.BodyHandler, haveTime func() time.Duration) error
+	ProcessBlockProposalCalled       func(header data.HeaderHandler, body data.BodyHandler) (data.BaseExecutionResultHandler, error)
 	ProcessScheduledBlockCalled      func(header data.HeaderHandler, body data.BodyHandler, haveTime func() time.Duration) error
 	CommitBlockCalled                func(header data.HeaderHandler, body data.BodyHandler) error
-	RevertCurrentBlockCalled         func()
+	RevertCurrentBlockCalled         func(header data.HeaderHandler)
 	PruneStateOnRollbackCalled       func(currHeader data.HeaderHandler, currHeaderHash []byte, prevHeader data.HeaderHandler, prevHeaderHash []byte)
 	CreateBlockCalled                func(initialHdrData data.HeaderHandler, haveTime func() bool) (data.HeaderHandler, data.BodyHandler, error)
+	CreateBlockProposalCalled        func(initialHdr data.HeaderHandler, haveTime func() bool) (data.HeaderHandler, data.BodyHandler, error)
 	RestoreBlockIntoPoolsCalled      func(header data.HeaderHandler, body data.BodyHandler) error
 	RestoreBlockBodyIntoPoolsCalled  func(body data.BodyHandler) error
 	MarshalizedDataToBroadcastCalled func(header data.HeaderHandler, body data.BodyHandler) (map[uint32][]byte, map[string][][]byte, error)
 	DecodeBlockBodyCalled            func(dta []byte) data.BodyHandler
 	DecodeBlockHeaderCalled          func(dta []byte) data.HeaderHandler
 	CreateNewHeaderCalled            func(round uint64, nonce uint64) (data.HeaderHandler, error)
+	CreateNewHeaderProposalCalled    func(round uint64, nonce uint64) (data.HeaderHandler, error)
 	RevertStateToBlockCalled         func(header data.HeaderHandler, rootHash []byte) error
 	NonceOfFirstCommittedBlockCalled func() core.OptionalUint64
 	CloseCalled                      func() error
+	VerifyBlockProposalCalled        func(
+		headerHandler data.HeaderHandler,
+		bodyHandler data.BodyHandler,
+		haveTime func() time.Duration,
+	) error
+	OnProposedBlockCalled func(
+		proposedBody data.BodyHandler,
+		proposedHeader data.HeaderHandler,
+		proposedHash []byte,
+	) error
+	RemoveHeaderFromPoolCalled func(headerHash []byte)
 }
 
 // SetNumProcessedObj -
@@ -41,6 +55,15 @@ func (bps *BlockProcessorStub) ProcessBlock(header data.HeaderHandler, body data
 	}
 
 	return nil
+}
+
+// ProcessBlockProposal mocks processing a block
+func (bps *BlockProcessorStub) ProcessBlockProposal(header data.HeaderHandler, body data.BodyHandler) (data.BaseExecutionResultHandler, error) {
+	if bps.ProcessBlockProposalCalled != nil {
+		return bps.ProcessBlockProposalCalled(header, body)
+	}
+
+	return nil, nil
 }
 
 // ProcessScheduledBlock mocks processing a scheduled block
@@ -62,9 +85,9 @@ func (bps *BlockProcessorStub) CommitBlock(header data.HeaderHandler, body data.
 }
 
 // RevertCurrentBlock mocks revert of the current block
-func (bps *BlockProcessorStub) RevertCurrentBlock() {
+func (bps *BlockProcessorStub) RevertCurrentBlock(header data.HeaderHandler) {
 	if bps.RevertCurrentBlockCalled != nil {
-		bps.RevertCurrentBlockCalled()
+		bps.RevertCurrentBlockCalled(header)
 	}
 }
 
@@ -79,6 +102,15 @@ func (bps *BlockProcessorStub) PruneStateOnRollback(currHeader data.HeaderHandle
 func (bps *BlockProcessorStub) CreateBlock(initialHdrData data.HeaderHandler, haveTime func() bool) (data.HeaderHandler, data.BodyHandler, error) {
 	if bps.CreateBlockCalled != nil {
 		return bps.CreateBlockCalled(initialHdrData, haveTime)
+	}
+
+	return nil, nil, ErrNotImplemented
+}
+
+// CreateBlockProposal -
+func (bps *BlockProcessorStub) CreateBlockProposal(initialHdr data.HeaderHandler, haveTime func() bool) (data.HeaderHandler, data.BodyHandler, error) {
+	if bps.CreateBlockProposalCalled != nil {
+		return bps.CreateBlockProposalCalled(initialHdr, haveTime)
 	}
 
 	return nil, nil, ErrNotImplemented
@@ -138,6 +170,15 @@ func (bps *BlockProcessorStub) CreateNewHeader(round uint64, nonce uint64) (data
 	return nil, ErrNotImplemented
 }
 
+// CreateNewHeaderProposal -
+func (bps *BlockProcessorStub) CreateNewHeaderProposal(round uint64, nonce uint64) (data.HeaderHandler, error) {
+	if bps.CreateNewHeaderProposalCalled != nil {
+		return bps.CreateNewHeaderProposalCalled(round, nonce)
+	}
+
+	return nil, ErrNotImplemented
+}
+
 // RevertStateToBlock recreates the state tries to the root hashes indicated by the provided header
 func (bps *BlockProcessorStub) RevertStateToBlock(header data.HeaderHandler, rootHash []byte) error {
 	if bps.RevertStateToBlockCalled != nil {
@@ -165,6 +206,37 @@ func (bps *BlockProcessorStub) Close() error {
 	}
 
 	return nil
+}
+
+// VerifyBlockProposal -
+func (bps *BlockProcessorStub) VerifyBlockProposal(
+	headerHandler data.HeaderHandler,
+	bodyHandler data.BodyHandler,
+	haveTime func() time.Duration,
+) error {
+	if bps.VerifyBlockProposalCalled != nil {
+		return bps.VerifyBlockProposalCalled(headerHandler, bodyHandler, haveTime)
+	}
+	return nil
+}
+
+// OnProposedBlock -
+func (bps *BlockProcessorStub) OnProposedBlock(
+	proposedBody data.BodyHandler,
+	proposedHeader data.HeaderHandler,
+	proposedHash []byte,
+) error {
+	if bps.OnProposedBlockCalled != nil {
+		return bps.OnProposedBlockCalled(proposedBody, proposedHeader, proposedHash)
+	}
+	return nil
+}
+
+// RemoveHeaderFromPool -
+func (bps *BlockProcessorStub) RemoveHeaderFromPool(headerHash []byte) {
+	if bps.RemoveHeaderFromPoolCalled != nil {
+		bps.RemoveHeaderFromPoolCalled(headerHash)
+	}
 }
 
 // IsInterfaceNil returns true if there is no value under the interface

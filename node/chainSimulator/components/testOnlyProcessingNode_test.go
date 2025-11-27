@@ -69,12 +69,29 @@ func TestNewTestOnlyProcessingNode(t *testing.T) {
 	})
 	t.Run("try commit a block", func(t *testing.T) {
 		args := createMockArgsTestOnlyProcessingNode(t)
+		genesisTime := time.Now()
+		args.GenesisTime = genesisTime
 		node, err := NewTestOnlyProcessingNode(args)
 		assert.Nil(t, err)
 		assert.NotNil(t, node)
 
 		newHeader, err := node.ProcessComponentsHolder.BlockProcessor().CreateNewHeader(1, 1)
 		assert.Nil(t, err)
+
+		rootHash, err := node.GetStateComponents().AccountsAdapter().RootHash()
+		if err != nil {
+			log.Error("node.GetStateComponents().AccountsAdapter().RootHash()", "err", err)
+		}
+
+		genesisHeader := node.GetDataComponents().Blockchain().GetGenesisHeader()
+		err = genesisHeader.SetRootHash(rootHash)
+		require.Nil(t, err)
+
+		err = node.GetDataComponents().Blockchain().SetGenesisHeader(genesisHeader)
+		require.Nil(t, err)
+
+		err = node.GetDataComponents().Datapool().Transactions().OnExecutedBlock(genesisHeader, rootHash)
+		require.Nil(t, err)
 
 		err = newHeader.SetPrevHash(node.ChainHandler.GetGenesisHeaderHash())
 		assert.Nil(t, err)
@@ -89,6 +106,9 @@ func TestNewTestOnlyProcessingNode(t *testing.T) {
 		err = node.ProcessComponentsHolder.BlockProcessor().ProcessBlock(header, block, func() time.Duration {
 			return 1000
 		})
+		assert.Nil(t, err)
+
+		err = header.SetTimeStamp(uint64(genesisTime.Add(time.Millisecond * 6000).Unix()))
 		assert.Nil(t, err)
 
 		err = node.ProcessComponentsHolder.BlockProcessor().CommitBlock(header, block)

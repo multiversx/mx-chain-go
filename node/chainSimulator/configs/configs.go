@@ -234,10 +234,14 @@ func SetMaxNumberOfNodesInConfigs(cfg *config.Configs, eligibleNodes uint32, wai
 
 // SetQuickJailRatingConfig will set the rating config in a way that leads to rapid jailing of a node
 func SetQuickJailRatingConfig(cfg *config.Configs) {
-	cfg.RatingsConfig.ShardChain.RatingStepsByEpoch[0].ConsecutiveMissedBlocksPenalty = 100
-	cfg.RatingsConfig.ShardChain.RatingStepsByEpoch[0].HoursToMaxRatingFromStartRating = 1
-	cfg.RatingsConfig.MetaChain.RatingStepsByEpoch[0].ConsecutiveMissedBlocksPenalty = 100
-	cfg.RatingsConfig.MetaChain.RatingStepsByEpoch[0].HoursToMaxRatingFromStartRating = 1
+	for i := range cfg.RatingsConfig.ShardChain.RatingStepsByEpoch {
+		cfg.RatingsConfig.ShardChain.RatingStepsByEpoch[i].ConsecutiveMissedBlocksPenalty = 100
+		cfg.RatingsConfig.ShardChain.RatingStepsByEpoch[i].HoursToMaxRatingFromStartRating = 1
+	}
+	for i := range cfg.RatingsConfig.MetaChain.RatingStepsByEpoch {
+		cfg.RatingsConfig.MetaChain.RatingStepsByEpoch[i].ConsecutiveMissedBlocksPenalty = 100
+		cfg.RatingsConfig.MetaChain.RatingStepsByEpoch[i].HoursToMaxRatingFromStartRating = 1
+	}
 }
 
 // SetStakingV4ActivationEpochs configures activation epochs for Staking V4.
@@ -254,6 +258,8 @@ func SetStakingV4ActivationEpochs(cfg *config.Configs, initialEpoch uint32) {
 	// Set the MaxNodesChange enable epoch for index 2
 	cfg.EpochConfig.EnableEpochs.MaxNodesChangeEnableEpoch[2].EpochEnable = initialEpoch + 2
 	cfg.SystemSCConfig.StakingSystemSCConfig.NodeLimitPercentage = 1
+
+	cfg.EpochConfig.EnableEpochs.SupernovaEnableEpoch = initialEpoch + 10
 }
 
 func generateGenesisFile(args ArgsChainSimulatorConfigs, configs *config.Configs) (*dtos.InitialWalletKeys, error) {

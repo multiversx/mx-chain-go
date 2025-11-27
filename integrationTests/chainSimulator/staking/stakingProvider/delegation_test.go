@@ -10,6 +10,7 @@ import (
 
 	"github.com/multiversx/mx-chain-go/common"
 	"github.com/multiversx/mx-chain-go/config"
+	"github.com/multiversx/mx-chain-go/integrationTests"
 	chainSimulatorIntegrationTests "github.com/multiversx/mx-chain-go/integrationTests/chainSimulator"
 	"github.com/multiversx/mx-chain-go/integrationTests/chainSimulator/staking"
 	"github.com/multiversx/mx-chain-go/node/chainSimulator"
@@ -37,7 +38,7 @@ const gasLimitForConvertOperation = 510_000_000
 const gasLimitForDelegationContractCreationOperation = 100_000_000
 const gasLimitForAddNodesOperation = 500_000_000
 const gasLimitForUndelegateOperation = 500_000_000
-const gasLimitForMergeOperation = 600_000_000
+const gasLimitForMergeOperation = 510_000_000
 const gasLimitForDelegate = 12_000_000
 
 const maxCap = "00"          // no cap
@@ -104,6 +105,7 @@ func TestChainSimulator_MakeNewContractFromValidatorData(t *testing.T) {
 				cfg.EpochConfig.EnableEpochs.MaxNodesChangeEnableEpoch[2].EpochEnable = 102
 
 				cfg.EpochConfig.EnableEpochs.AndromedaEnableEpoch = 1
+				cfg.EpochConfig.EnableEpochs.SupernovaEnableEpoch = 100
 			},
 		})
 		require.Nil(t, err)
@@ -152,6 +154,7 @@ func TestChainSimulator_MakeNewContractFromValidatorData(t *testing.T) {
 				cfg.EpochConfig.EnableEpochs.MaxNodesChangeEnableEpoch[2].EpochEnable = 102
 
 				cfg.EpochConfig.EnableEpochs.AndromedaEnableEpoch = 1
+				cfg.EpochConfig.EnableEpochs.SupernovaEnableEpoch = 100
 			},
 		})
 		require.Nil(t, err)
@@ -196,6 +199,8 @@ func TestChainSimulator_MakeNewContractFromValidatorData(t *testing.T) {
 				cfg.EpochConfig.EnableEpochs.StakingV4Step3EnableEpoch = 4
 
 				cfg.EpochConfig.EnableEpochs.MaxNodesChangeEnableEpoch[2].EpochEnable = 4
+
+				cfg.EpochConfig.EnableEpochs.SupernovaEnableEpoch = 100
 			},
 		})
 		require.Nil(t, err)
@@ -234,6 +239,8 @@ func TestChainSimulator_MakeNewContractFromValidatorData(t *testing.T) {
 				cfg.EpochConfig.EnableEpochs.StakingV4Step3EnableEpoch = 4
 
 				cfg.EpochConfig.EnableEpochs.MaxNodesChangeEnableEpoch[2].EpochEnable = 4
+
+				cfg.EpochConfig.EnableEpochs.SupernovaEnableEpoch = 100
 			},
 		})
 		require.Nil(t, err)
@@ -272,6 +279,8 @@ func TestChainSimulator_MakeNewContractFromValidatorData(t *testing.T) {
 				cfg.EpochConfig.EnableEpochs.StakingV4Step3EnableEpoch = 4
 
 				cfg.EpochConfig.EnableEpochs.MaxNodesChangeEnableEpoch[2].EpochEnable = 4
+
+				cfg.EpochConfig.EnableEpochs.SupernovaEnableEpoch = 100
 			},
 		})
 		require.Nil(t, err)
@@ -549,6 +558,8 @@ func TestChainSimulator_MakeNewContractFromValidatorDataWith2StakingContracts(t 
 				cfg.EpochConfig.EnableEpochs.StakingV4Step3EnableEpoch = 4
 
 				cfg.EpochConfig.EnableEpochs.MaxNodesChangeEnableEpoch[2].EpochEnable = 4
+
+				cfg.EpochConfig.EnableEpochs.SupernovaEnableEpoch = 100
 			},
 		})
 		require.Nil(t, err)
@@ -579,6 +590,8 @@ func TestChainSimulator_MakeNewContractFromValidatorDataWith2StakingContracts(t 
 				cfg.EpochConfig.EnableEpochs.StakingV4Step3EnableEpoch = 4
 
 				cfg.EpochConfig.EnableEpochs.MaxNodesChangeEnableEpoch[2].EpochEnable = 4
+
+				cfg.EpochConfig.EnableEpochs.SupernovaEnableEpoch = 100
 			},
 		})
 		require.Nil(t, err)
@@ -609,6 +622,8 @@ func TestChainSimulator_MakeNewContractFromValidatorDataWith2StakingContracts(t 
 				cfg.EpochConfig.EnableEpochs.StakingV4Step3EnableEpoch = 4
 
 				cfg.EpochConfig.EnableEpochs.MaxNodesChangeEnableEpoch[2].EpochEnable = 4
+
+				cfg.EpochConfig.EnableEpochs.SupernovaEnableEpoch = 100
 			},
 		})
 		require.Nil(t, err)
@@ -777,6 +792,7 @@ func TestChainSimulatorMakeNewContractFromValidatorDataWith1StakingContractUnsta
 				cfg.EpochConfig.EnableEpochs.StakingV4Step2EnableEpoch = 3
 				cfg.EpochConfig.EnableEpochs.StakingV4Step3EnableEpoch = 4
 				cfg.EpochConfig.EnableEpochs.AlwaysMergeContextsInEEIEnableEpoch = 1
+				cfg.EpochConfig.EnableEpochs.SupernovaEnableEpoch = 100
 
 				cfg.EpochConfig.EnableEpochs.MaxNodesChangeEnableEpoch[2].EpochEnable = 4
 				cfg.SystemSCConfig.StakingSystemSCConfig.NodeLimitPercentage = 1
@@ -810,6 +826,7 @@ func TestChainSimulatorMakeNewContractFromValidatorDataWith1StakingContractUnsta
 				cfg.EpochConfig.EnableEpochs.StakingV4Step2EnableEpoch = 3
 				cfg.EpochConfig.EnableEpochs.StakingV4Step3EnableEpoch = 4
 				cfg.EpochConfig.EnableEpochs.AlwaysMergeContextsInEEIEnableEpoch = 1
+				cfg.EpochConfig.EnableEpochs.SupernovaEnableEpoch = 100
 
 				cfg.EpochConfig.EnableEpochs.MaxNodesChangeEnableEpoch[2].EpochEnable = 4
 				cfg.SystemSCConfig.StakingSystemSCConfig.NodeLimitPercentage = 1
@@ -843,6 +860,7 @@ func TestChainSimulatorMakeNewContractFromValidatorDataWith1StakingContractUnsta
 				cfg.EpochConfig.EnableEpochs.StakingV4Step2EnableEpoch = 3
 				cfg.EpochConfig.EnableEpochs.StakingV4Step3EnableEpoch = 4
 				cfg.EpochConfig.EnableEpochs.AlwaysMergeContextsInEEIEnableEpoch = 1
+				cfg.EpochConfig.EnableEpochs.SupernovaEnableEpoch = 100
 
 				cfg.EpochConfig.EnableEpochs.MaxNodesChangeEnableEpoch[2].EpochEnable = 4
 				cfg.SystemSCConfig.StakingSystemSCConfig.NodeLimitPercentage = 1
@@ -1104,6 +1122,7 @@ func TestChainSimulator_CreateNewDelegationContract(t *testing.T) {
 				cfg.EpochConfig.EnableEpochs.StakingV4Step1EnableEpoch = 2
 				cfg.EpochConfig.EnableEpochs.StakingV4Step2EnableEpoch = 3
 				cfg.EpochConfig.EnableEpochs.StakingV4Step3EnableEpoch = 4
+				cfg.EpochConfig.EnableEpochs.SupernovaEnableEpoch = 100
 
 				cfg.EpochConfig.EnableEpochs.MaxNodesChangeEnableEpoch[2].EpochEnable = 4
 			},
@@ -1144,6 +1163,7 @@ func TestChainSimulator_CreateNewDelegationContract(t *testing.T) {
 				cfg.EpochConfig.EnableEpochs.StakingV4Step1EnableEpoch = 2
 				cfg.EpochConfig.EnableEpochs.StakingV4Step2EnableEpoch = 3
 				cfg.EpochConfig.EnableEpochs.StakingV4Step3EnableEpoch = 4
+				cfg.EpochConfig.EnableEpochs.SupernovaEnableEpoch = 100
 
 				cfg.EpochConfig.EnableEpochs.MaxNodesChangeEnableEpoch[2].EpochEnable = 4
 			},
@@ -1184,6 +1204,7 @@ func TestChainSimulator_CreateNewDelegationContract(t *testing.T) {
 				cfg.EpochConfig.EnableEpochs.StakingV4Step1EnableEpoch = 2
 				cfg.EpochConfig.EnableEpochs.StakingV4Step2EnableEpoch = 3
 				cfg.EpochConfig.EnableEpochs.StakingV4Step3EnableEpoch = 4
+				cfg.EpochConfig.EnableEpochs.SupernovaEnableEpoch = 100
 
 				cfg.EpochConfig.EnableEpochs.MaxNodesChangeEnableEpoch[2].EpochEnable = 4
 			},
@@ -1475,6 +1496,7 @@ func TestChainSimulator_MaxDelegationCap(t *testing.T) {
 				cfg.EpochConfig.EnableEpochs.StakingV4Step1EnableEpoch = 2
 				cfg.EpochConfig.EnableEpochs.StakingV4Step2EnableEpoch = 3
 				cfg.EpochConfig.EnableEpochs.StakingV4Step3EnableEpoch = 4
+				cfg.EpochConfig.EnableEpochs.SupernovaEnableEpoch = 100
 
 				cfg.EpochConfig.EnableEpochs.MaxNodesChangeEnableEpoch[2].EpochEnable = 4
 			},
@@ -1517,6 +1539,7 @@ func TestChainSimulator_MaxDelegationCap(t *testing.T) {
 				cfg.EpochConfig.EnableEpochs.StakingV4Step1EnableEpoch = 2
 				cfg.EpochConfig.EnableEpochs.StakingV4Step2EnableEpoch = 3
 				cfg.EpochConfig.EnableEpochs.StakingV4Step3EnableEpoch = 4
+				cfg.EpochConfig.EnableEpochs.SupernovaEnableEpoch = 100
 
 				cfg.EpochConfig.EnableEpochs.MaxNodesChangeEnableEpoch[2].EpochEnable = 4
 			},
@@ -1561,6 +1584,7 @@ func TestChainSimulator_MaxDelegationCap(t *testing.T) {
 				cfg.EpochConfig.EnableEpochs.StakingV4Step3EnableEpoch = 4
 
 				cfg.EpochConfig.EnableEpochs.MaxNodesChangeEnableEpoch[2].EpochEnable = 4
+				integrationTests.DeactivateSupernovaInConfig(cfg)
 			},
 		})
 		require.Nil(t, err)
@@ -1946,6 +1970,7 @@ func TestChainSimulator_MergeDelegation(t *testing.T) {
 
 				cfg.EpochConfig.EnableEpochs.MaxNodesChangeEnableEpoch[2].EpochEnable = 4
 				cfg.SystemSCConfig.StakingSystemSCConfig.NodeLimitPercentage = 1
+				integrationTests.DeactivateSupernovaInConfig(cfg)
 			},
 		})
 		require.Nil(t, err)

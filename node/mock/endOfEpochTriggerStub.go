@@ -18,6 +18,24 @@ type EpochStartTriggerStub struct {
 	UpdateCalled                      func(round uint64, nonce uint64)
 	ProcessedCalled                   func(header data.HeaderHandler)
 	EpochStartRoundCalled             func() uint64
+	ShouldProposeEpochChangeCalled    func(round uint64, nonce uint64) bool
+	SetEpochChangeCalled              func(round uint64)
+}
+
+// SetEpochChange -
+func (e *EpochStartTriggerStub) SetEpochChange(round uint64) {
+	if e.SetEpochChangeCalled != nil {
+		e.SetEpochChangeCalled(round)
+	}
+}
+
+// ShouldProposeEpochChange -
+func (e *EpochStartTriggerStub) ShouldProposeEpochChange(round uint64, nonce uint64) bool {
+	if e.ShouldProposeEpochChangeCalled != nil {
+		return e.ShouldProposeEpochChangeCalled(round, nonce)
+	}
+
+	return false
 }
 
 // RevertStateToBlock -

@@ -19,12 +19,13 @@ import (
 	"github.com/multiversx/mx-chain-core-go/display"
 	"github.com/multiversx/mx-chain-core-go/hashing"
 	"github.com/multiversx/mx-chain-core-go/marshal"
+	logger "github.com/multiversx/mx-chain-logger-go"
+
 	"github.com/multiversx/mx-chain-go/common"
 	"github.com/multiversx/mx-chain-go/dataRetriever"
 	"github.com/multiversx/mx-chain-go/epochStart"
 	"github.com/multiversx/mx-chain-go/process"
 	"github.com/multiversx/mx-chain-go/storage"
-	logger "github.com/multiversx/mx-chain-logger-go"
 )
 
 var log = logger.GetOrCreate("epochStart/shardchain")
@@ -46,14 +47,14 @@ type ArgsShardEpochStartTrigger struct {
 	HeaderValidator epochStart.HeaderValidator
 	Uint64Converter typeConverters.Uint64ByteSliceConverter
 
-	DataPool                 dataRetriever.PoolsHolder
-	Storage                  dataRetriever.StorageService
-	RequestHandler           epochStart.RequestHandler
-	EpochStartNotifier       epochStart.Notifier
-	PeerMiniBlocksSyncer     process.ValidatorInfoSyncer
-	RoundHandler             process.RoundHandler
-	AppStatusHandler         core.AppStatusHandler
-	EnableEpochsHandler      common.EnableEpochsHandler
+	DataPool             dataRetriever.PoolsHolder
+	Storage              dataRetriever.StorageService
+	RequestHandler       epochStart.RequestHandler
+	EpochStartNotifier   epochStart.Notifier
+	PeerMiniBlocksSyncer process.ValidatorInfoSyncer
+	RoundHandler         process.RoundHandler
+	AppStatusHandler     core.AppStatusHandler
+	EnableEpochsHandler  common.EnableEpochsHandler
 	CommonConfigsHandler common.CommonConfigsHandler
 
 	Epoch    uint32
@@ -1229,6 +1230,15 @@ func (t *trigger) GetSavedStateKey() []byte {
 
 // Update updates the end-of-epoch trigger
 func (t *trigger) Update(_ uint64, _ uint64) {
+}
+
+// SetEpochChange will do nothing
+func (t *trigger) SetEpochChange(_ uint64) {
+}
+
+// ShouldProposeEpochChange will always return false
+func (t *trigger) ShouldProposeEpochChange(_ uint64, _ uint64) bool {
+	return false
 }
 
 // SetFinalityAttestingRound sets the round which finalized the start of epoch block
