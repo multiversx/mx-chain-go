@@ -155,7 +155,7 @@ func (odp *outportDataProvider) PrepareOutportSaveBlockData(arg ArgPrepareOutpor
 		return nil, err
 	}
 
-	stateAccessesForBlock := odp.getStateAccessesForBlock(arg.Header)
+	stateAccessesForBlock := odp.getStateAccessesForBlock(arg.Header, arg.HeaderHash)
 
 	outportBlock := &outportcore.OutportBlockWithHeaderAndBody{
 		OutportBlock: &outportcore.OutportBlock{
@@ -200,18 +200,18 @@ func (odp *outportDataProvider) PrepareOutportSaveBlockData(arg ArgPrepareOutpor
 	return outportBlock, nil
 }
 
-func (odp *outportDataProvider) getStateAccessesForBlock(header data.HeaderHandler) []*outportcore.StateAccessesForBlock {
-	stateAccessesForBlock := make([]*outportcore.StateAccessesForBlock, 0)
+func (odp *outportDataProvider) getStateAccessesForBlock(header data.HeaderHandler, headerHash []byte) map[string]*outportcore.StateAccessesForBlock {
+	stateAccessesForBlock := make(map[string]*outportcore.StateAccessesForBlock)
 	if !header.IsHeaderV3() {
 		stateAccesses := odp.getStateAccessForRootHash(header.GetRootHash())
-		stateAccessesForBlock = append(stateAccessesForBlock, stateAccesses)
+		stateAccessesForBlock[hex.EncodeToString(headerHash)] = stateAccesses
 		return stateAccessesForBlock
 	}
 
 	executionResults := header.GetExecutionResultsHandlers()
 	for _, execResult := range executionResults {
 		stateAccesses := odp.getStateAccessForRootHash(execResult.GetRootHash())
-		stateAccessesForBlock = append(stateAccessesForBlock, stateAccesses)
+		stateAccessesForBlock[hex.EncodeToString(execResult.GetHeaderHash())] = stateAccesses
 	}
 	return stateAccessesForBlock
 }
