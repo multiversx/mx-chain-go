@@ -1241,6 +1241,11 @@ func (t *trigger) ShouldProposeEpochChange(_ uint64, _ uint64) bool {
 	return false
 }
 
+// SetEpochChangeProposed will do nothing
+func (t *trigger) SetEpochChangeProposed(_ bool) {
+	// no implementation needed
+}
+
 // SetFinalityAttestingRound sets the round which finalized the start of epoch block
 func (t *trigger) SetFinalityAttestingRound(_ uint64) {
 }

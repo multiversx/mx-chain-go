@@ -521,9 +521,6 @@ func (hfb *headersForBlock) computeExistingAndRequestMissingShardHeaders(metaBlo
 		hfb.computeExistingAndRequestMissingBasedOnShardDataProposal(metaBlock.GetShardInfoProposalHandlers())
 
 		hfb.computeExistingAndRequestMissingBasedOnShardData(metaBlock.GetShardInfoHandlers())
-		if hfb.missingHdrs == 0 {
-			hfb.missingFinalityAttestingHdrs = hfb.requestMissingFinalityAttestingShardHeaders()
-		}
 		return
 	}
 

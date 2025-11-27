@@ -71,7 +71,7 @@ type trigger struct {
 	appStatusHandler            core.AppStatusHandler
 	validatorInfoPool           epochStart.ValidatorInfoCacher
 	chainParametersHandler      process.ChainParametersHandler
-	lastEpochProposedNonce      uint64
+	epochChangeProposed         bool
 }
 
 // NewEpochStartTrigger creates a trigger for start of epoch
@@ -219,14 +219,18 @@ func (t *trigger) ShouldProposeEpochChange(currentRound uint64, currentNonce uin
 	defer t.mutTrigger.Unlock()
 
 	shouldTriggerEpochStart := t.shouldTriggerEpochStart(currentRound, currentNonce)
-	if shouldTriggerEpochStart {
-		t.lastEpochProposedNonce = currentNonce
-	}
-	if currentNonce == t.lastEpochProposedNonce && t.lastEpochProposedNonce >= minimumNonceToStartEpoch {
+	if shouldTriggerEpochStart && !t.epochChangeProposed {
 		return true
 	}
 
-	return shouldTriggerEpochStart
+	return false
+}
+
+// SetEpochChangeProposed sets the epoch change proposed flag to true
+func (t *trigger) SetEpochChangeProposed(value bool) {
+	t.mutTrigger.Lock()
+	defer t.mutTrigger.Unlock()
+	t.epochChangeProposed = value
 }
 
 func (t *trigger) shouldTriggerEpochStart(currentRound uint64, currentNonce uint64) bool {
@@ -283,6 +287,10 @@ func (t *trigger) SetProcessed(header data.HeaderHandler, body data.BodyHandler)
 	}
 	if !metaBlock.IsStartOfEpochBlock() {
 		return
+	}
+
+	if header.IsHeaderV3() {
+		t.setEpochChange(header.GetRound())
 	}
 
 	metaBuff, errNotCritical := t.marshaller.Marshal(metaBlock)
