@@ -525,7 +525,7 @@ func GetMiniBlocksHeaderHandlersFromExecResult(
 	return execResult.GetMiniBlockHeadersHandlers(), nil
 }
 
-// GetLastExecutionResultNonce returns last execution result nonce if header v3 enable, otherwise it returns provided header nonce
+// GetLastExecutionResultNonce returns last execution result nonce if header v3 enabled, otherwise it returns provided header nonce
 func GetLastExecutionResultNonce(
 	header data.HeaderHandler,
 ) uint64 {
@@ -543,6 +543,8 @@ func GetLastExecutionResultNonce(
 	return lastExecutionResult.GetHeaderNonce()
 }
 
+// GetFirstExecutionResultNonce returns first execution result nonce if header v3 enabled, otherwise it returns provided header nonce.
+// It returns first execution result if there are any, otherwise it returns last execution results on the header
 func GetFirstExecutionResultNonce(
 	header data.HeaderHandler,
 ) uint64 {
