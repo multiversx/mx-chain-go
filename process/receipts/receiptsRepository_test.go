@@ -308,4 +308,48 @@ func Test_SaveReceiptsForExecResult(t *testing.T) {
 		err := repository.SaveReceiptsForExecResult(nil, &block.BaseExecutionResult{})
 		require.Equal(t, errNilReceiptsHolder, err)
 	})
+
+	t.Run("should return errNilExecutionResult in case of nil execution result", func(t *testing.T) {
+		t.Parallel()
+
+		repository, _ := NewReceiptsRepository(ArgsNewReceiptsRepository{})
+
+		err := repository.SaveReceiptsForExecResult(holders.NewReceiptsHolder(nil), nil)
+		require.Equal(t, errNilExecutionResult, err)
+	})
+
+	t.Run("should return errNilInvalidExecutionResultType in case of wrong type of exec result", func(t *testing.T) {
+		t.Parallel()
+
+		repository, _ := NewReceiptsRepository(ArgsNewReceiptsRepository{})
+
+		err := repository.SaveReceiptsForExecResult(holders.NewReceiptsHolder(nil), &block.BaseMetaExecutionResult{})
+		require.Equal(t, errNilInvalidExecutionResultType, err)
+	})
+
+	t.Run("if saving receipts fails, the error should be propagated", func(t *testing.T) {
+		t.Parallel()
+
+		expectedError := errors.New("expected error")
+		repository, err := NewReceiptsRepository(ArgsNewReceiptsRepository{
+			Hasher:     &testscommon.HasherStub{},
+			Store:      genericMocks.NewChainStorerMock(0),
+			Marshaller: marshallerMock.MarshalizerMock{},
+		})
+		require.Nil(t, err)
+
+		repository.marshaller = &testscommon.MarshallerStub{
+			MarshalCalled: func(obj interface{}) ([]byte, error) {
+				return nil, expectedError
+			},
+		}
+		err = repository.SaveReceiptsForExecResult(
+			holders.NewReceiptsHolder([]*block.MiniBlock{
+				{},
+			}),
+			&block.ExecutionResult{
+				ReceiptsHash: []byte("receiptsHash"),
+			})
+		require.ErrorContains(t, err, expectedError.Error())
+	})
 }
