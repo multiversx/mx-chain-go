@@ -3482,6 +3482,52 @@ func TestBaseProcessor_DisplayHeader(t *testing.T) {
 		}
 
 		lines := blproc.DisplayHeader(header, proof)
+		require.Equal(t, 22, len(lines))
+	})
+	t.Run("shard header V3 with proof info", func(t *testing.T) {
+		t.Parallel()
+
+		header := &block.HeaderV3{
+			ChainID:         []byte("1"),
+			Epoch:           2,
+			Round:           3,
+			TimestampMs:     4,
+			Nonce:           5,
+			PrevHash:        []byte("prevHash"),
+			PrevRandSeed:    []byte("prevRandSeed"),
+			RandSeed:        []byte("randSeed"),
+			LeaderSignature: []byte("leaderSig"),
+			ReceiptsHash:    []byte("receiptsHash"),
+			LastExecutionResult: &block.ExecutionResultInfo{
+				ExecutionResult: &block.BaseExecutionResult{
+					HeaderHash: []byte("lastExecResult"),
+				},
+			},
+			ExecutionResults: []*block.ExecutionResult{
+				{
+					BaseExecutionResult: &block.BaseExecutionResult{
+						HeaderHash: []byte("execResult0"),
+					},
+				},
+				{
+					BaseExecutionResult: &block.BaseExecutionResult{
+						HeaderHash: []byte("execResult1"),
+					},
+				},
+			},
+		}
+		proof := &block.HeaderProof{
+			PubKeysBitmap:       []byte("bitmap"),
+			AggregatedSignature: []byte("sig"),
+			HeaderHash:          []byte("prevHash"),
+			HeaderEpoch:         2,
+			HeaderNonce:         4,
+			HeaderShardId:       0,
+			HeaderRound:         2,
+			IsStartOfEpoch:      false,
+		}
+
+		lines := blproc.DisplayHeader(header, proof)
 		require.Equal(t, 23, len(lines))
 	})
 	t.Run("meta header with proof info", func(t *testing.T) {
@@ -3513,7 +3559,7 @@ func TestBaseProcessor_DisplayHeader(t *testing.T) {
 		}
 
 		lines := blproc.DisplayHeader(header, proof)
-		require.Equal(t, 23, len(lines))
+		require.Equal(t, 22, len(lines))
 	})
 }
 
