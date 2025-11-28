@@ -2373,3 +2373,231 @@ func Test_SelectionWithRootHashMismatch(t *testing.T) {
 	)
 	require.ErrorContains(t, err, "root hash mismatch")
 }
+
+func Test_SelectionWithAliceRelayerAndSenderOnSameTxs(t *testing.T) {
+	t.Parallel()
+
+	host := txcachemocks.NewMempoolHostMock()
+	txpool, err := txcache.NewTxCache(configSourceMe, host)
+
+	require.Nil(t, err)
+	require.NotNil(t, txpool)
+
+	// calculate the fee for transfer
+	feeForTransfer := int64(50_000 * 1_000_000_000)
+	accounts := map[string]*stateMock.UserAccountStub{
+		"alice": {
+			// alice has enough balance for one transaction
+			Balance: big.NewInt(0).Add(oneEGLD, big.NewInt(feeForTransfer)),
+			Nonce:   0,
+		},
+	}
+
+	selectionSession := txcachemocks.NewSelectionSessionMockWithAccounts(accounts)
+	// keep the same root hash with the one used on the OnExecutedBlock to avoid root hash mismatch on selection
+	selectionSession.GetRootHashCalled = func() ([]byte, error) {
+		return []byte(testRootHash), nil
+	}
+
+	accountsProvider := txcachemocks.NewAccountNonceAndBalanceProviderMockWithAccounts(accounts)
+	accountsProvider.GetRootHashCalled = func() ([]byte, error) {
+		return []byte(testRootHash), nil
+	}
+
+	err = txpool.OnExecutedBlock(&block.Header{}, []byte(testRootHash))
+	require.Nil(t, err)
+
+	nonceTracker := newNoncesTracker()
+
+	// create two transactions.
+	// both transactions have alice as sender and relayer
+	// alice has enough balance only for this transaction
+	tx := &transaction.Transaction{
+		Nonce:     nonceTracker.getThenIncrementNonceByStringAddress("alice"),
+		Value:     oneEGLD,
+		SndAddr:   []byte("alice"),
+		RcvAddr:   []byte("receiver"),
+		Data:      []byte{},
+		GasLimit:  50_000,
+		GasPrice:  1_000_000_000,
+		ChainID:   []byte(configs.ChainID),
+		Version:   2,
+		Signature: []byte("signature"),
+	}
+
+	txpool.AddTx(&txcache.WrappedTransaction{
+		Tx:               tx,
+		TxHash:           []byte("txHash1"),
+		Fee:              big.NewInt(int64(tx.GasLimit * tx.GasPrice)),
+		TransferredValue: tx.Value,
+		FeePayer:         tx.SndAddr,
+	})
+
+	// the second transaction has alice as sender and as relayer.
+	// this transaction should not be selected
+	tx = &transaction.Transaction{
+		Nonce:     nonceTracker.getThenIncrementNonceByStringAddress("alice"),
+		Value:     big.NewInt(0),
+		SndAddr:   []byte("alice"),
+		RcvAddr:   []byte("receiver"),
+		Data:      []byte{},
+		GasLimit:  50_000,
+		GasPrice:  1_000_000_000,
+		ChainID:   []byte(configs.ChainID),
+		Version:   2,
+		Signature: []byte("signature"),
+	}
+
+	txpool.AddTx(&txcache.WrappedTransaction{
+		Tx:               tx,
+		TxHash:           []byte("txHash2"),
+		Fee:              big.NewInt(int64(tx.GasLimit * tx.GasPrice)),
+		TransferredValue: tx.Value,
+		FeePayer:         tx.RelayerAddr,
+	})
+
+	options := holders.NewTxSelectionOptions(
+		10_000_000_000,
+		1,
+		int(selectionLoopMaximumDuration.Milliseconds()),
+		10,
+	)
+
+	// do the first selection
+	selectedTransactions, _, err := txpool.SelectTransactions(selectionSession, options, 0)
+	require.Len(t, selectedTransactions, 1)
+	require.Equal(t, selectedTransactions[0].TxHash, []byte("txHash1"))
+
+	// propose the block
+	proposedBlock1 := createProposedBlock(selectedTransactions)
+	err = txpool.OnProposedBlock([]byte(testBlockHash1), proposedBlock1,
+		&block.Header{
+			Nonce:    1,
+			PrevHash: []byte(testBlockHash0),
+			RootHash: []byte(testRootHash),
+		},
+		accountsProvider,
+		defaultLatestExecutedHash,
+	)
+	require.Nil(t, err)
+
+	// the second tx should not be selected, because alice has insufficient funds
+	selectedTransactions, _, err = txpool.SelectTransactions(selectionSession, options, 1)
+	require.Len(t, selectedTransactions, 0)
+}
+
+func Test_SelectionWithAliceSenderAndThenRelayerOnDifferentTxs(t *testing.T) {
+	t.Parallel()
+
+	host := txcachemocks.NewMempoolHostMock()
+	txpool, err := txcache.NewTxCache(configSourceMe, host)
+
+	require.Nil(t, err)
+	require.NotNil(t, txpool)
+
+	// calculate the fee for transfer
+	feeForTransfer := int64(50_000 * 1_000_000_000)
+	accounts := map[string]*stateMock.UserAccountStub{
+		"alice": {
+			// alice has enough balance for one transaction
+			Balance: big.NewInt(feeForTransfer),
+			Nonce:   0,
+		},
+		"bob": {
+			Balance: big.NewInt(0),
+			Nonce:   0,
+		},
+	}
+
+	selectionSession := txcachemocks.NewSelectionSessionMockWithAccounts(accounts)
+	// keep the same root hash with the one used on the OnExecutedBlock to avoid root hash mismatch on selection
+	selectionSession.GetRootHashCalled = func() ([]byte, error) {
+		return []byte(testRootHash), nil
+	}
+
+	accountsProvider := txcachemocks.NewAccountNonceAndBalanceProviderMockWithAccounts(accounts)
+	accountsProvider.GetRootHashCalled = func() ([]byte, error) {
+		return []byte(testRootHash), nil
+	}
+
+	err = txpool.OnExecutedBlock(&block.Header{}, []byte(testRootHash))
+	require.Nil(t, err)
+
+	nonceTracker := newNoncesTracker()
+
+	// the first transaction has alice as sender and its own relayer
+	tx := &transaction.Transaction{
+		Nonce:     nonceTracker.getThenIncrementNonceByStringAddress("alice"),
+		Value:     big.NewInt(0),
+		SndAddr:   []byte("alice"),
+		RcvAddr:   []byte("receiver"),
+		Data:      []byte{},
+		GasLimit:  50_000,
+		GasPrice:  1_000_000_000,
+		ChainID:   []byte(configs.ChainID),
+		Version:   2,
+		Signature: []byte("signature"),
+	}
+
+	txpool.AddTx(&txcache.WrappedTransaction{
+		Tx:               tx,
+		TxHash:           []byte("txHash1"),
+		Fee:              big.NewInt(int64(tx.GasLimit * tx.GasPrice)),
+		TransferredValue: tx.Value,
+		FeePayer:         tx.SndAddr,
+	})
+
+	// the second transaction has bob as sender and alice as relayer.
+	// this transaction should not be selected
+	tx = &transaction.Transaction{
+		Nonce:     nonceTracker.getThenIncrementNonceByStringAddress("bob"),
+		Value:     big.NewInt(0),
+		SndAddr:   []byte("bob"),
+		RcvAddr:   []byte("receiver"),
+		Data:      []byte{},
+		GasLimit:  50_000,
+		GasPrice:  1_000_000_000,
+		ChainID:   []byte(configs.ChainID),
+		Version:   2,
+		Signature: []byte("signature"),
+	}
+
+	txpool.AddTx(&txcache.WrappedTransaction{
+		Tx:               tx,
+		TxHash:           []byte("txHash2"),
+		Fee:              big.NewInt(int64(tx.GasLimit * tx.GasPrice)),
+		TransferredValue: tx.Value,
+		FeePayer:         []byte("alice"),
+	})
+
+	options := holders.NewTxSelectionOptions(
+		10_000_000_000,
+		// select max 2 txs
+		2,
+		int(selectionLoopMaximumDuration.Milliseconds()),
+		10,
+	)
+
+	// do the first selection
+	// only one should be selected
+	selectedTransactions, _, err := txpool.SelectTransactions(selectionSession, options, 0)
+	require.Len(t, selectedTransactions, 1)
+	require.Equal(t, selectedTransactions[0].TxHash, []byte("txHash1"))
+
+	// propose the block
+	proposedBlock1 := createProposedBlock(selectedTransactions)
+	err = txpool.OnProposedBlock([]byte(testBlockHash1), proposedBlock1,
+		&block.Header{
+			Nonce:    1,
+			PrevHash: []byte(testBlockHash0),
+			RootHash: []byte(testRootHash),
+		},
+		accountsProvider,
+		defaultLatestExecutedHash,
+	)
+	require.Nil(t, err)
+
+	// the second tx should not be selected, because alice has insufficient funds
+	selectedTransactions, _, err = txpool.SelectTransactions(selectionSession, options, 1)
+	require.Len(t, selectedTransactions, 0)
+}
