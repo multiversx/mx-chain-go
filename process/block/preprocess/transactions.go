@@ -1472,7 +1472,6 @@ func (txs *transactions) selectTransactionsFromTxPoolForProposal(
 	)
 	selectedTransactions, _, err := txCache.SelectTransactions(session, selectionOptions, nonce)
 	if err != nil {
-		// TODO re-brainstorm if this error should be propagated or just logged
 		return nil, err
 	}
 
@@ -1510,10 +1509,8 @@ func (txs *transactions) selectTransactionsFromTxPool(
 		txs.txCacheSelectionConfig.SelectionLoopDurationCheckInterval,
 	)
 
-	// TODO should use the right information for the nonce
 	selectedTxs, _, err := txCache.SelectTransactions(session, selectionOptions, 0)
 	if err != nil {
-		// TODO re-brainstorm if this error should be propagated or just logged
 		return nil, err
 	}
 
