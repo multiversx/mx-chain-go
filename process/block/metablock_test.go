@@ -4241,6 +4241,14 @@ func pruneTrieForHeaderV3Test(t *testing.T, prevHeader data.HeaderHandler, rootH
 				},
 			},
 		},
+		LastExecutionResult: &block.MetaExecutionResultInfo{
+			ExecutionResult: &block.BaseMetaExecutionResult{
+				BaseExecutionResult: &block.BaseExecutionResult{
+					RootHash: []byte("state root hash 3"),
+				},
+				ValidatorStatsRootHash: []byte("validator stats root hash 3"),
+			},
+		},
 	}
 
 	mp.UpdateState(metaBlock, metaBlockHash)
