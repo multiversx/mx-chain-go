@@ -984,15 +984,23 @@ func (boot *baseBootstrap) prepareForSyncIfNeeded(syncingNonce uint64) error {
 
 	currentHeader := boot.getCurrentBlock()
 	currentHeaderHash := boot.getCurrentBlockHash()
-	lastExecResults, err := process.GetPrevBlockLastExecutionResult(boot.chainHandler)
+	lastExecResult, err := process.GetPrevBlockLastExecutionResult(boot.chainHandler)
 	if err != nil {
 		return err
 	}
 
-	lastExecResultsHandler, err := common.ExtractBaseExecutionResultHandler(lastExecResults)
+	lastExecResultsHandler, err := common.ExtractBaseExecutionResultHandler(lastExecResult)
 	if err != nil {
 		return err
 	}
+
+	log.Debug("prepareForSyncIfNeeded",
+		"currHeader nonce", currentHeader.GetNonce(),
+		"currHeader hash", currentHeaderHash,
+		"lastExecRes nonce", lastExecResultsHandler.GetHeaderNonce(),
+		"lastExecRes hash", lastExecResultsHandler.GetHeaderHash(),
+		"lastExecRes rootHash", lastExecResultsHandler.GetRootHash(),
+	)
 
 	lastExecutedHash := lastExecResultsHandler.GetHeaderHash()
 	lastExecutedHeader, err := boot.getHeader(lastExecutedHash)

@@ -12,13 +12,16 @@ import (
 	logger "github.com/multiversx/mx-chain-logger-go"
 
 	"github.com/multiversx/mx-chain-go/common"
+	"github.com/multiversx/mx-chain-go/common/holders"
 	"github.com/multiversx/mx-chain-go/dataRetriever"
 	"github.com/multiversx/mx-chain-go/process"
+	"github.com/multiversx/mx-chain-go/process/asyncExecution/queue"
 	"github.com/multiversx/mx-chain-go/process/block/bootstrapStorage"
 	"github.com/multiversx/mx-chain-go/process/sync"
 	"github.com/multiversx/mx-chain-go/process/sync/storageBootstrap/metricsLoader"
 	"github.com/multiversx/mx-chain-go/sharding"
 	"github.com/multiversx/mx-chain-go/sharding/nodesCoordinator"
+	"github.com/multiversx/mx-chain-go/state"
 	"github.com/multiversx/mx-chain-go/storage"
 )
 
@@ -49,6 +52,8 @@ type ArgsBaseStorageBootstrapper struct {
 	EnableEpochsHandler          common.EnableEpochsHandler
 	ProofsPool                   process.ProofsPool
 	ExecutionManager             process.ExecutionManager
+	TransactionsPool             dataRetriever.ShardedDataCacherNotifier
+	AccountsProposal             state.AccountsAdapter
 }
 
 // ArgsShardStorageBootstrapper is structure used to create a new storage bootstrapper for shard
@@ -87,6 +92,8 @@ type storageBootstrapper struct {
 	enableEpochsHandler          common.EnableEpochsHandler
 	proofsPool                   process.ProofsPool
 	executionManager             process.ExecutionManager
+	txPool                       dataRetriever.ShardedDataCacherNotifier
+	accountsProposal             state.AccountsAdapter
 }
 
 func (st *storageBootstrapper) loadBlocks() error {
@@ -551,7 +558,179 @@ func (st *storageBootstrapper) setCurrentBlockInfoV3(
 	st.blkc.SetLastExecutedBlockHeaderAndRootHash(lastExecutedHeader, lastExecutionResult.GetHeaderHash(), lastExecutionResult.GetRootHash())
 
 	st.blkc.SetCurrentBlockHeaderHash(headerHash)
-	return st.blkc.SetCurrentBlockHeader(header)
+	err = st.blkc.SetCurrentBlockHeader(header)
+	if err != nil {
+		return err
+	}
+
+	// TODO: apply context here the same way as on sync flow
+
+	// err = st.txPool.OnProposedBlock(
+	// 	headerHash,
+	// 	&block.Body{},
+	// 	header,
+	// 	&txcachemocks.AccountNonceAndBalanceProviderMock{},
+	// 	lastExecutionResult.GetRootHash(),
+	// )
+
+	err = st.executionManager.SetLastNotarizedResult(lastExecutionResult)
+	if err != nil {
+		return err
+	}
+
+	err = st.txPool.OnExecutedBlock(lastExecutedHeader, lastExecutionResult.GetRootHash())
+	if err != nil {
+		st.txPool.ResetTracker()
+		return err
+	}
+
+	err = st.prepareTxPoolContext(
+		header,
+		headerHash,
+		lastExecutedHeader,
+		lastExecutionResult.GetHeaderHash(),
+		lastExecutionResult,
+	)
+	if err != nil {
+		return err
+	}
+
+	return nil
+}
+
+func (st *storageBootstrapper) prepareTxPoolContext(
+	currentHeader data.HeaderHandler,
+	currentHeaderHash []byte,
+	lastExecutedHeader data.HeaderHandler,
+	lastExecutedHeaderHash []byte,
+	lastExecutionResult data.BaseExecutionResultHandler,
+) error {
+	lastExecutedNonce := lastExecutedHeader.GetNonce()
+	currentNonce := currentHeader.GetNonce()
+
+	if currentNonce == lastExecutedNonce+1 {
+		currentBody, err := st.getBlockBody(currentHeader)
+		if err != nil {
+			return err
+		}
+
+		rootHashHolder := holders.NewDefaultRootHashesHolder(lastExecutionResult.GetRootHash())
+		err = st.accountsProposal.RecreateTrieIfNeeded(rootHashHolder)
+		if err != nil {
+			return err
+		}
+
+		accountsProvider, err := state.NewAccountsEphemeralProvider(st.accountsProposal)
+		if err != nil {
+			return err
+		}
+
+		bodyPtr, ok := currentBody.(*block.Body)
+		if !ok {
+			return process.ErrWrongTypeAssertion
+		}
+
+		err = st.txPool.OnProposedBlock(
+			currentHeaderHash,
+			bodyPtr,
+			currentHeader,
+			accountsProvider,
+			lastExecutedHeaderHash,
+		)
+		if err != nil {
+			return err
+		}
+
+		// err = st.txPool.OnExecutedBlock(lastExecutedHeader, lastExecutionResult.GetRootHash())
+		// if err != nil {
+		// 	st.txPool.ResetTracker()
+		// 	return err
+		// }
+
+		log.Debug("preparedForSync done")
+
+		return st.executionManager.AddPairForExecution(queue.HeaderBodyPair{
+			Header: currentHeader,
+			Body:   currentBody,
+		})
+	}
+
+	// if there are multiple headers in between the syncing header and the last one executed,
+	// add them into the queue and pool
+
+	headersReverse := make([]data.HeaderHandler, 0)
+	bodiesReverse := make([]*block.Body, 0)
+	headerHashesReverse := make([][]byte, 0)
+
+	hdrHash := currentHeaderHash
+	hdrNonce := currentNonce
+	for hdrNonce > lastExecutedNonce {
+		hdr, err := st.bootstrapper.getHeader(hdrHash)
+		if err != nil {
+			return err
+		}
+
+		body, err := st.getBlockBody(hdr)
+		if err != nil {
+			return err
+		}
+
+		bodyPtr, ok := body.(*block.Body)
+		if !ok {
+			return process.ErrWrongTypeAssertion
+		}
+
+		headersReverse = append(headersReverse, hdr)
+		bodiesReverse = append(bodiesReverse, bodyPtr)
+		headerHashesReverse = append(headerHashesReverse, hdrHash)
+
+		hdrHash = hdr.GetPrevHash()
+		hdrNonce = hdr.GetNonce()
+	}
+
+	for i := len(headerHashesReverse) - 1; i >= 0; i++ {
+		hdrHash := headerHashesReverse[i]
+		hdr := headersReverse[i]
+		body := bodiesReverse[i]
+
+		rootHashHolder := holders.NewDefaultRootHashesHolder(lastExecutionResult.GetRootHash())
+		err := st.accountsProposal.RecreateTrieIfNeeded(rootHashHolder)
+		if err != nil {
+			return err
+		}
+
+		accountsProvider, err := state.NewAccountsEphemeralProvider(st.accountsProposal)
+		if err != nil {
+			return err
+		}
+
+		err = st.txPool.OnProposedBlock(
+			hdrHash,
+			body,
+			hdr,
+			accountsProvider,
+			lastExecutedHeaderHash,
+		)
+		if err != nil {
+			return err
+		}
+
+		// err = st.txPool.OnExecutedBlock(hdr, lastExecutionResult.GetRootHash()) // this was the last executed header, there is no other executed root hash in between
+		// if err != nil {
+		// 	st.txPool.ResetTracker()
+		// 	return err
+		// }
+
+		err = st.executionManager.AddPairForExecution(queue.HeaderBodyPair{
+			Header: hdr,
+			Body:   body,
+		})
+		if err != nil {
+			return err
+		}
+	}
+
+	return nil
 }
 
 func (st *storageBootstrapper) getAndApplyProofForHeader(headerHash []byte, header data.HeaderHandler) error {
@@ -652,6 +831,12 @@ func checkBaseStorageBootstrapperArguments(args ArgsBaseStorageBootstrapper) err
 	}
 	if check.IfNil(args.ExecutionManager) {
 		return process.ErrNilExecutionManager
+	}
+	if check.IfNil(args.TransactionsPool) {
+		return process.ErrNilTransactionPool
+	}
+	if check.IfNil(args.AccountsProposal) {
+		return process.ErrNilAccountsAdapter
 	}
 
 	return nil

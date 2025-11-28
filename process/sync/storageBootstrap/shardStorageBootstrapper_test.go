@@ -8,6 +8,7 @@ import (
 	"github.com/multiversx/mx-chain-core-go/core"
 	"github.com/multiversx/mx-chain-core-go/data"
 	"github.com/multiversx/mx-chain-core-go/data/block"
+	"github.com/multiversx/mx-chain-go/state"
 	dataRetrieverMocks "github.com/multiversx/mx-chain-go/testscommon/dataRetriever"
 	"github.com/multiversx/mx-chain-go/testscommon/processMocks"
 	"github.com/stretchr/testify/assert"
@@ -145,6 +146,8 @@ func TestShardStorageBootstrapper_LoadFromStorageShouldWork(t *testing.T) {
 			EnableEpochsHandler:        &enableEpochsHandlerMock.EnableEpochsHandlerStub{},
 			ProofsPool:                 &dataRetrieverMocks.ProofsPoolMock{},
 			ExecutionManager:           &processMocks.ExecutionManagerMock{},
+			TransactionsPool:           &testscommon.ShardedDataCacheNotifierMock{},
+			AccountsProposal:           &state.AccountsDB{},
 		},
 	}
 

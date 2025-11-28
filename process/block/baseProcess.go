@@ -554,7 +554,7 @@ func displayHeader(
 			shouldAddHorizontalLine := idx == len(headerHandler.GetExecutionResultsHandlers())-1
 			logLines = append(logLines, display.NewLineData(shouldAddHorizontalLine, []string{
 				"",
-				fmt.Sprintf("Execution result %d", idx),
+				fmt.Sprintf("Execution result %d", execRes.GetHeaderNonce()),
 				logger.DisplayByteSlice(execRes.GetHeaderHash())}))
 		}
 	} else {
@@ -3416,12 +3416,24 @@ func (bp *baseProcessor) checkContextBeforeExecution(header data.HeaderHandler) 
 
 	lastExecutedNonce, lastExecutedHash, lastExecutedRootHash := bp.blockChain.GetLastExecutedBlockInfo()
 	if !bytes.Equal(header.GetPrevHash(), lastExecutedHash) {
+		log.Debug("checkContextBeforeExecution: hash does not match",
+			"lastExecutedHash", lastExecutedHash,
+			"prevHash", header.GetPrevHash(),
+		)
 		return process.ErrBlockHashDoesNotMatch
 	}
 	if header.GetNonce() != lastExecutedNonce+1 {
+		log.Debug("checkContextBeforeExecution: nonce does not match",
+			"lastExecutedNonce+1", lastExecutedNonce+1,
+			"nonce", header.GetNonce(),
+		)
 		return process.ErrWrongNonceInBlock
 	}
 	if !bytes.Equal(lastCommittedRootHash, lastExecutedRootHash) {
+		log.Debug("checkContextBeforeExecution: rootHash does not match",
+			"lastExecutedRootHash", lastExecutedRootHash,
+			"lastCommittedRootHash", lastCommittedRootHash,
+		)
 		return process.ErrRootStateDoesNotMatch
 	}
 

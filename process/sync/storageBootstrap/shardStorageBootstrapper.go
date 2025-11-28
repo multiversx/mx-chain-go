@@ -44,6 +44,8 @@ func NewShardStorageBootstrapper(arguments ArgsShardStorageBootstrapper) (*shard
 		enableEpochsHandler:          arguments.EnableEpochsHandler,
 		proofsPool:                   arguments.ProofsPool,
 		executionManager:             arguments.ExecutionManager,
+		txPool:                       arguments.TransactionsPool,
+		accountsProposal:             arguments.AccountsProposal,
 	}
 
 	boot := shardStorageBootstrapper{

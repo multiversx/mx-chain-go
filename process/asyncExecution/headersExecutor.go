@@ -144,13 +144,20 @@ func (he *headersExecutor) handleProcessError(ctx context.Context, pair queue.He
 func (he *headersExecutor) process(pair queue.HeaderBodyPair) error {
 	executionResult, err := he.blockProcessor.ProcessBlockProposal(pair.Header, pair.Body)
 	if err != nil {
-		log.Warn("headersExecutor.process process block failed", "err", err)
+		log.Warn("headersExecutor.process process block failed",
+			"nonce", pair.Header.GetNonce(),
+			"err", err,
+		)
 		return err
 	}
 
 	err = he.executionTracker.AddExecutionResult(executionResult)
 	if err != nil {
-		log.Warn("headersExecutor.process add execution result failed", "err", err)
+		log.Warn("headersExecutor.process add execution result failed",
+			"nonce", pair.Header.GetNonce(),
+			"exec nonce", executionResult.GetHeaderNonce(),
+			"err", err,
+		)
 		return nil
 	}
 
@@ -162,6 +169,12 @@ func (he *headersExecutor) process(pair queue.HeaderBodyPair) error {
 
 	he.blockChain.SetLastExecutedBlockHeaderAndRootHash(pair.Header, executionResult.GetHeaderHash(), executionResult.GetRootHash())
 	he.blockChain.SetLastExecutionResult(executionResult)
+
+	log.Debug("headersExecutor.process completed",
+		"nonce", pair.Header.GetNonce(),
+		"exec nonce", executionResult.GetHeaderNonce(),
+		"exec rootHash", executionResult.GetRootHash(),
+	)
 
 	return nil
 }
