@@ -3,6 +3,7 @@ package metachain
 import (
 	"encoding/json"
 
+	"github.com/multiversx/mx-chain-core-go/data"
 	"github.com/multiversx/mx-chain-core-go/data/block"
 	"github.com/multiversx/mx-chain-core-go/marshal"
 
@@ -60,17 +61,20 @@ func UnmarshalTrigger(marshaller marshal.Marshalizer, data []byte) (*block.MetaT
 // saveState saves the trigger state. Needs to be called under mutex
 func (t *trigger) saveState(key []byte) error {
 	// TODO: add new structures for the new headers and update this component
-	metaHeader, ok := t.epochStartMeta.(*block.MetaBlock)
+	metaHeader, ok := t.epochStartMeta.(data.MetaHeaderHandler)
 	if !ok {
 		return epochStart.ErrWrongTypeAssertion
 	}
-	registry := &block.MetaTriggerRegistry{}
-	registry.EpochFinalityAttestingRound = t.epochFinalityAttestingRound
-	registry.CurrEpochStartRound = t.currEpochStartRound
-	registry.PrevEpochStartRound = t.prevEpochStartRound
-	registry.Epoch = t.epoch
-	registry.EpochStartMetaHash = t.epochStartMetaHash
-	registry.EpochStartMeta = metaHeader
+
+	registry := t.createRegistryHandler()
+	_ = registry.SetEpochFinalityAttestingRound(t.epochFinalityAttestingRound)
+	_ = registry.SetCurrEpochStartRound(t.currEpochStartRound)
+	_ = registry.SetPrevEpochStartRound(t.prevEpochStartRound)
+	_ = registry.SetEpoch(t.epoch)
+	_ = registry.SetEpochStartMetaHash(t.epochStartMetaHash)
+	_ = registry.SetEpochStartMetaHeaderHandler(metaHeader)
+	_ = registry.SetEpochChangeProposed(t.epochChangeProposed)
+
 	triggerData, err := t.marshaller.Marshal(registry)
 	if err != nil {
 		return err
@@ -80,4 +84,12 @@ func (t *trigger) saveState(key []byte) error {
 	log.Debug("saving start of epoch trigger state", "key", trigInternalKey)
 
 	return t.triggerStorage.Put(trigInternalKey, triggerData)
+}
+
+func (t *trigger) createRegistryHandler() data.MetaTriggerRegistryHandler {
+	if t.epochStartMeta.IsHeaderV3() {
+		return &block.MetaTriggerRegistryV3{}
+	}
+
+	return &block.MetaTriggerRegistry{}
 }
