@@ -912,7 +912,11 @@ func (sp *shardProcessor) CommitBlock(
 	headerHandler data.HeaderHandler,
 	bodyHandler data.BodyHandler,
 ) error {
-	var err error
+	err := checkForNils(headerHandler, bodyHandler)
+	if err != nil {
+		return err
+	}
+
 	if !headerHandler.IsHeaderV3() {
 		sp.processStatusHandler.SetBusy("shardProcessor.CommitBlock")
 		defer func() {
@@ -921,11 +925,6 @@ func (sp *shardProcessor) CommitBlock(
 			}
 			sp.processStatusHandler.SetIdle()
 		}()
-	}
-
-	err = checkForNils(headerHandler, bodyHandler)
-	if err != nil {
-		return err
 	}
 
 	sp.store.SetEpochForPutOperation(headerHandler.GetEpoch())
