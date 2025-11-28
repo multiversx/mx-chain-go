@@ -1538,13 +1538,34 @@ func (mp *metaProcessor) displayPoolsInfo() {
 	mp.displayMiniBlocksPool()
 }
 
+func (mp *metaProcessor) getRootHashAndValidatorRootHash(metaBlock data.MetaHeaderHandler) ([]byte, []byte, error) {
+	if !metaBlock.IsHeaderV3() {
+		return metaBlock.GetRootHash(), metaBlock.GetValidatorStatsRootHash(), nil
+	}
+
+	execResults := metaBlock.GetLastExecutionResultHandler()
+	baseMetaExecRes, ok := execResults.(data.LastMetaExecutionResultHandler)
+	if !ok {
+		return nil, nil, process.ErrWrongTypeAssertion
+	}
+	execRes := baseMetaExecRes.GetExecutionResultHandler()
+
+	return execRes.GetRootHash(), execRes.GetValidatorStatsRootHash(), nil
+}
+
 func (mp *metaProcessor) updateState(metaBlock data.MetaHeaderHandler, metaBlockHash []byte) {
 	if check.IfNil(metaBlock) {
 		log.Debug("updateState nil header")
 		return
 	}
 
-	mp.validatorStatisticsProcessor.SetLastFinalizedRootHash(metaBlock.GetValidatorStatsRootHash())
+	rootHash, validatorRootHash, err := mp.getRootHashAndValidatorRootHash(metaBlock)
+	if err != nil {
+		log.Warn("could not get root hashes from meta header", "error", err.Error())
+		return
+	}
+
+	mp.validatorStatisticsProcessor.SetLastFinalizedRootHash(validatorRootHash)
 
 	prevMetaBlockHash := metaBlock.GetPrevHash()
 	prevMetaBlock, errNotCritical := process.GetMetaHeader(
@@ -1559,21 +1580,22 @@ func (mp *metaProcessor) updateState(metaBlock data.MetaHeaderHandler, metaBlock
 	}
 
 	if metaBlock.IsStartOfEpochBlock() {
+		prevBlockRootHash, _, err := mp.getRootHashAndValidatorRootHash(prevMetaBlock)
+		if err != nil {
+			log.Warn("could not get root hashes from meta header", "error", err.Error())
+			return
+		}
+
 		log.Debug("trie snapshot",
-			"rootHash", metaBlock.GetRootHash(),
-			"prevRootHash", prevMetaBlock.GetRootHash(),
-			"validatorStatsRootHash", metaBlock.GetValidatorStatsRootHash())
-		mp.accountsDB[state.UserAccountsState].SnapshotState(metaBlock.GetRootHash(), metaBlock.GetEpoch())
-		mp.accountsDB[state.PeerAccountsState].SnapshotState(metaBlock.GetValidatorStatsRootHash(), metaBlock.GetEpoch())
+			"rootHash", rootHash,
+			"prevRootHash", prevBlockRootHash,
+			"validatorStatsRootHash", validatorRootHash)
+		mp.accountsDB[state.UserAccountsState].SnapshotState(rootHash, metaBlock.GetEpoch())
+		mp.accountsDB[state.PeerAccountsState].SnapshotState(validatorRootHash, metaBlock.GetEpoch())
 		go func() {
-			metaBlock, ok := metaBlock.(*block.MetaBlock)
-			if !ok {
-				log.Warn("cannot commit Trie Epoch Root Hash: metaBlock is not *block.MetaBlock")
-				return
-			}
-			err := mp.commitTrieEpochRootHashIfNeeded(metaBlock, metaBlock.GetRootHash())
+			err := mp.commitTrieEpochRootHashIfNeeded(metaBlock, rootHash)
 			if err != nil {
-				log.Warn("couldn't commit trie checkpoint", "epoch", metaBlock.Epoch, "error", err)
+				log.Warn("couldn't commit trie checkpoint", "epoch", metaBlock.GetEpoch(), "error", err)
 			}
 		}()
 	}
@@ -1602,7 +1624,7 @@ func (mp *metaProcessor) updateState(metaBlock data.MetaHeaderHandler, metaBlock
 	}
 	mp.setFinalizedHeaderHashInIndexer(outportFinalizedHeaderHash)
 
-	mp.blockChain.SetFinalBlockInfo(metaBlock.GetNonce(), metaBlockHash, metaBlock.GetRootHash())
+	mp.blockChain.SetFinalBlockInfo(metaBlock.GetNonce(), metaBlockHash, rootHash)
 }
 
 func (mp *metaProcessor) pruneTriesHeaderV3(
