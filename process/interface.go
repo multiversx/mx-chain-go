@@ -185,6 +185,7 @@ type TransactionCoordinator interface {
 	CreateMbsAndProcessTransactionsFromMe(haveTime func() bool, randomness []byte) block.MiniBlockSlice
 	CreatePostProcessMiniBlocks() block.MiniBlockSlice
 	CreateMarshalizedData(body *block.Body) map[string][][]byte
+	CreateMarshalledDataForHeader(headerHash []byte, header data.HeaderHandler, body *block.Body) map[string][][]byte
 	GetAllCurrentUsedTxs(blockType block.Type) map[string]data.TransactionHandler
 	GetAllCurrentLogs() []*data.LogData
 
@@ -293,7 +294,7 @@ type BlockProcessor interface {
 	RestoreBlockIntoPools(header data.HeaderHandler, body data.BodyHandler) error
 	CreateBlock(initialHdr data.HeaderHandler, haveTime func() bool) (data.HeaderHandler, data.BodyHandler, error)
 	CreateBlockProposal(initialHdr data.HeaderHandler, haveTime func() bool) (data.HeaderHandler, data.BodyHandler, error)
-	MarshalizedDataToBroadcast(header data.HeaderHandler, body data.BodyHandler) (map[uint32][]byte, map[string][][]byte, error)
+	MarshalizedDataToBroadcast(headerHash []byte, header data.HeaderHandler, body data.BodyHandler) (map[uint32][]byte, map[string][][]byte, error)
 	DecodeBlockBody(dta []byte) data.BodyHandler
 	DecodeBlockHeader(dta []byte) data.HeaderHandler
 	SetNumProcessedObj(numObj uint64)

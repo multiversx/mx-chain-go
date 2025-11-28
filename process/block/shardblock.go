@@ -2383,6 +2383,7 @@ func (sp *shardProcessor) applyBodyToHeader(
 
 // MarshalizedDataToBroadcast prepares underlying data into a marshalized object according to destination
 func (sp *shardProcessor) MarshalizedDataToBroadcast(
+	headerHash []byte,
 	header data.HeaderHandler,
 	bodyHandler data.BodyHandler,
 ) (map[uint32][]byte, map[string][][]byte, error) {
@@ -2402,7 +2403,7 @@ func (sp *shardProcessor) MarshalizedDataToBroadcast(
 		return nil, nil, err
 	}
 
-	mrsTxs := sp.txCoordinator.CreateMarshalizedData(newBodyToBroadcast)
+	mrsTxs := sp.txCoordinator.CreateMarshalledDataForHeader(headerHash, header, newBodyToBroadcast)
 
 	mrsData := sp.marshalledBodyToBroadcast(newBodyToBroadcast)
 

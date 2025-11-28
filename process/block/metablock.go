@@ -2682,6 +2682,7 @@ func (mp *metaProcessor) setHeaderVersionData(metaHeader data.MetaHeaderHandler)
 
 // MarshalizedDataToBroadcast prepares underlying data into a marshalized object according to destination
 func (mp *metaProcessor) MarshalizedDataToBroadcast(
+	headerHash []byte,
 	header data.HeaderHandler,
 	bodyHandler data.BodyHandler,
 ) (map[uint32][]byte, map[string][][]byte, error) {
@@ -2706,7 +2707,7 @@ func (mp *metaProcessor) MarshalizedDataToBroadcast(
 	if header.IsStartOfEpochBlock() {
 		mrsTxs = mp.getAllMarshalledTxs(bodyToBroadcast)
 	} else {
-		mrsTxs = mp.txCoordinator.CreateMarshalizedData(bodyToBroadcast)
+		mrsTxs = mp.txCoordinator.CreateMarshalledDataForHeader(headerHash, header, bodyToBroadcast)
 	}
 
 	mrsData := mp.marshalledBodyToBroadcast(bodyToBroadcast)

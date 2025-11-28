@@ -1389,7 +1389,7 @@ func TestMetaProcessor_MarshalizedDataToBroadcastShouldWork(t *testing.T) {
 		}
 		header := &block.MetaBlock{}
 
-		msh, mstx, err := mp.MarshalizedDataToBroadcast(header, body)
+		msh, mstx, err := mp.MarshalizedDataToBroadcast(nil, header, body)
 		require.Nil(t, err)
 
 		require.Nil(t, msh[selfShardID])
@@ -1440,7 +1440,7 @@ func TestMetaProcessor_MarshalizedDataToBroadcastShouldWork(t *testing.T) {
 			ExecutionResults: executionResults,
 		}
 
-		msh, mstx, err := mp.MarshalizedDataToBroadcast(header, &block.Body{})
+		msh, mstx, err := mp.MarshalizedDataToBroadcast([]byte("hash"), header, &block.Body{})
 		require.Nil(t, err)
 
 		require.Nil(t, msh[selfShardID])

@@ -577,6 +577,7 @@ func createProcessorsForMetaGenesisBlock(arg ArgsGenesisBlockCreator, enableEpoc
 		ShardCoordinator:             arg.ShardCoordinator,
 		Accounts:                     arg.Accounts,
 		MiniBlockPool:                arg.Data.Datapool().MiniBlocks(),
+		PostProcessTransactions:      arg.Data.Datapool().PostProcessTransactions(),
 		PreProcessors:                preProcContainer,
 		PreProcessorsProposal:        preProcContainer, // for genesis no need for separate one
 		InterProcessors:              interimProcContainer,
