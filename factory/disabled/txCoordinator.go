@@ -116,7 +116,7 @@ func (txCoordinator *TxCoordinator) CreateMarshalizedData(_ *block.Body) map[str
 }
 
 // CreateMarshalledDataForHeader does nothing as it is disabled
-func (txCoordinator *TxCoordinator) CreateMarshalledDataForHeader(headerHash []byte, header data.HeaderHandler, body *block.Body) map[string][][]byte {
+func (txCoordinator *TxCoordinator) CreateMarshalledDataForHeader(_ data.HeaderHandler, _ *block.Body, _ map[string]block.MiniBlockSlice) map[string][][]byte {
 	return make(map[string][][]byte)
 }
 

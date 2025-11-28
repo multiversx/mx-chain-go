@@ -185,7 +185,7 @@ type TransactionCoordinator interface {
 	CreateMbsAndProcessTransactionsFromMe(haveTime func() bool, randomness []byte) block.MiniBlockSlice
 	CreatePostProcessMiniBlocks() block.MiniBlockSlice
 	CreateMarshalizedData(body *block.Body) map[string][][]byte
-	CreateMarshalledDataForHeader(headerHash []byte, header data.HeaderHandler, body *block.Body) map[string][][]byte
+	CreateMarshalledDataForHeader(header data.HeaderHandler, body *block.Body, miniBlocksMap map[string]block.MiniBlockSlice) map[string][][]byte
 	GetAllCurrentUsedTxs(blockType block.Type) map[string]data.TransactionHandler
 	GetAllCurrentLogs() []*data.LogData
 

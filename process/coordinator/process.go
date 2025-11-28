@@ -897,7 +897,7 @@ func createBroadcastTopic(shardC sharding.Coordinator, destShId uint32, mbType b
 }
 
 // CreateMarshalledDataForHeader creates marshaled data for broadcasting based on header
-func (tc *transactionCoordinator) CreateMarshalledDataForHeader(headerHash []byte, header data.HeaderHandler, body *block.Body) map[string][][]byte {
+func (tc *transactionCoordinator) CreateMarshalledDataForHeader(header data.HeaderHandler, body *block.Body, miniBlocksMap map[string]block.MiniBlockSlice) map[string][][]byte {
 	mrsTxs := make(map[string][][]byte)
 
 	if check.IfNil(header) || check.IfNil(body) {
@@ -908,20 +908,31 @@ func (tc *transactionCoordinator) CreateMarshalledDataForHeader(headerHash []byt
 		return tc.CreateMarshalizedData(body)
 	}
 
-	return tc.createMarshalledDataV3(headerHash, body)
+	return tc.createMarshalledDataV3(miniBlocksMap)
 }
 
-func (tc *transactionCoordinator) createMarshalledDataV3(headerHash []byte, body *block.Body) map[string][][]byte {
+func (tc *transactionCoordinator) createMarshalledDataV3(miniBlocksMap map[string]block.MiniBlockSlice) map[string][][]byte {
 	// for header v3, the mini blocks are from execution results
 	mrsTxs := make(map[string][][]byte)
-	cachedIntermediateTxsMap, err := common.GetCachedIntermediateTxs(tc.postProcessTransactions, headerHash)
-	if err != nil {
-		log.Warn("createMarshalledDataV3.GetCachedIntermediateTxs", "error", err.Error())
-		return mrsTxs
+
+	for headerHash, miniBlocks := range miniBlocksMap {
+		cachedIntermediateTxsMap, err := common.GetCachedIntermediateTxs(tc.postProcessTransactions, []byte(headerHash))
+		if err != nil {
+			log.Warn("createMarshalledDataV3.GetCachedIntermediateTxs", "error", err.Error())
+			return mrsTxs
+		}
+
+		tc.appendMarshalledDataForMiniBlocks(miniBlocks, cachedIntermediateTxsMap, mrsTxs)
 	}
 
-	for i := 0; i < len(body.MiniBlocks); i++ {
-		miniBlock := body.MiniBlocks[i]
+	return mrsTxs
+}
+
+func (tc *transactionCoordinator) appendMarshalledDataForMiniBlocks(
+	miniBlocks block.MiniBlockSlice,
+	cachedIntermediateTxsMap map[block.Type]map[string]data.TransactionHandler,
+	mrsTxs map[string][][]byte) {
+	for _, miniBlock := range miniBlocks {
 		if miniBlock.SenderShardID != tc.shardCoordinator.SelfId() ||
 			miniBlock.ReceiverShardID == tc.shardCoordinator.SelfId() {
 			continue
@@ -929,28 +940,41 @@ func (tc *transactionCoordinator) createMarshalledDataV3(headerHash []byte, body
 
 		broadcastTopic, errCreate := createBroadcastTopic(tc.shardCoordinator, miniBlock.ReceiverShardID, miniBlock.Type)
 		if errCreate != nil {
-			log.Warn("createMarshalledDataV3.createBroadcastTopic", "error", errCreate.Error())
+			log.Warn("appendMarshalledDataForMiniBlocks.createBroadcastTopic", "error", errCreate.Error())
 			continue
 		}
 
-		for _, txHash := range miniBlock.TxHashes {
-			tx, ok := cachedIntermediateTxsMap[miniBlock.Type]
-			if !ok {
-				log.Warn("createMarshalledDataV3 could not find transaction in cache", "txHash", txHash)
-				continue
-			}
-
-			txBuff, errMarshal := tc.marshalizer.Marshal(tx)
-			if errMarshal != nil {
-				log.Warn("createMarshalledDataV3.Marshal", "error", errMarshal.Error())
-				continue
-			}
-
-			mrsTxs[broadcastTopic] = append(mrsTxs[broadcastTopic], txBuff)
+		transactionsForMiniBlock, ok := cachedIntermediateTxsMap[miniBlock.Type]
+		if !ok {
+			log.Warn("appendMarshalledDataForMiniBlocks could not find transactions for miniBlock", "type", miniBlock.Type)
+			continue
 		}
-	}
 
-	return mrsTxs
+		tc.appendMarshalledDataForTransactions(miniBlock.TxHashes, transactionsForMiniBlock, broadcastTopic, mrsTxs)
+	}
+}
+
+func (tc *transactionCoordinator) appendMarshalledDataForTransactions(
+	txHashes [][]byte,
+	transactionsForMiniBlock map[string]data.TransactionHandler,
+	broadcastTopic string,
+	mrsTxs map[string][][]byte,
+) {
+	for _, txHash := range txHashes {
+		tx, ok := transactionsForMiniBlock[string(txHash)]
+		if !ok {
+			log.Warn("appendMarshalledDataForTransactions.createBroadcastTopic", "txHash", txHash)
+			continue
+		}
+
+		txBuff, errMarshal := tc.marshalizer.Marshal(tx)
+		if errMarshal != nil {
+			log.Warn("appendMarshalledDataForTransactions.Marshal", "error", errMarshal.Error())
+			continue
+		}
+
+		mrsTxs[broadcastTopic] = append(mrsTxs[broadcastTopic], txBuff)
+	}
 }
 
 // CreateMarshalizedData creates marshalized data for broadcasting

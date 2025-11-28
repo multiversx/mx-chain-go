@@ -2826,7 +2826,7 @@ func TestBaseProcessor_getFinalMiniBlocks(t *testing.T) {
 		arguments := CreateMockArguments(createComponentHolderMocks())
 		bp, _ := blproc.NewShardProcessor(arguments)
 
-		body, err := bp.GetFinalMiniBlocks(&block.MetaBlock{}, &block.Body{})
+		body, _, err := bp.GetFinalMiniBlocks([]byte("hash"), &block.MetaBlock{}, &block.Body{})
 		assert.Nil(t, err)
 		assert.Equal(t, &block.Body{}, body)
 	})
@@ -2839,7 +2839,7 @@ func TestBaseProcessor_getFinalMiniBlocks(t *testing.T) {
 		arguments := CreateMockArguments(coreComponents, dataComponents, bootstrapComponents, statusComponents)
 		bp, _ := blproc.NewShardProcessor(arguments)
 
-		body, err := bp.GetFinalMiniBlocks(&block.MetaBlock{}, &block.Body{})
+		body, _, err := bp.GetFinalMiniBlocks([]byte("hash"), &block.MetaBlock{}, &block.Body{})
 		assert.Nil(t, err)
 		assert.Equal(t, &block.Body{}, body)
 	})
@@ -2882,7 +2882,7 @@ func TestBaseProcessor_getFinalMiniBlocks(t *testing.T) {
 
 		expectedBody := &block.Body{MiniBlocks: block.MiniBlockSlice{mb2}}
 
-		retBody, err := bp.GetFinalMiniBlocks(metaBlock, body)
+		retBody, _, err := bp.GetFinalMiniBlocks([]byte("hash"), metaBlock, body)
 		assert.Nil(t, err)
 		assert.Equal(t, expectedBody, retBody)
 	})
@@ -3927,7 +3927,7 @@ func TestBaseProcessor_GetFinalMiniBlocksFromExecutionResult(t *testing.T) {
 
 		header := &block.HeaderV3{}
 
-		body, err := bp.GetFinalMiniBlocksFromExecutionResults(header)
+		body, _, err := bp.GetFinalMiniBlocksFromExecutionResults(header)
 		require.Nil(t, err)
 		require.Equal(t, &block.Body{}, body)
 	})
@@ -3972,7 +3972,7 @@ func TestBaseProcessor_GetFinalMiniBlocksFromExecutionResult(t *testing.T) {
 			ExecutionResults: executionResults,
 		}
 
-		body, err := bp.GetFinalMiniBlocksFromExecutionResults(header)
+		body, _, err := bp.GetFinalMiniBlocksFromExecutionResults(header)
 		require.Equal(t, process.ErrMissingMiniBlock, err)
 		require.Nil(t, body)
 	})
@@ -4012,7 +4012,7 @@ func TestBaseProcessor_GetFinalMiniBlocksFromExecutionResult(t *testing.T) {
 			ExecutionResults: executionResults,
 		}
 
-		body, err := bp.GetFinalMiniBlocksFromExecutionResults(header)
+		body, _, err := bp.GetFinalMiniBlocksFromExecutionResults(header)
 		require.Error(t, err) // unmarshall err
 		require.Nil(t, body)
 	})
@@ -4064,7 +4064,7 @@ func TestBaseProcessor_GetFinalMiniBlocksFromExecutionResult(t *testing.T) {
 			ExecutionResults: executionResults,
 		}
 
-		body, err := bp.GetFinalMiniBlocksFromExecutionResults(header)
+		body, _, err := bp.GetFinalMiniBlocksFromExecutionResults(header)
 		require.Nil(t, err)
 		require.Equal(t, &block.Body{
 			MiniBlocks: []*block.MiniBlock{mb1},
@@ -4118,7 +4118,7 @@ func TestBaseProcessor_GetFinalMiniBlocksFromExecutionResult(t *testing.T) {
 			ExecutionResults: executionResults,
 		}
 
-		body, err := mp.GetFinalMiniBlocksFromExecutionResults(header)
+		body, _, err := mp.GetFinalMiniBlocksFromExecutionResults(header)
 		require.Nil(t, err)
 		require.Equal(t, &block.Body{
 			MiniBlocks: []*block.MiniBlock{mb1},
