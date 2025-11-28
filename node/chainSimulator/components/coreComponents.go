@@ -106,7 +106,6 @@ type ArgsCoreComponentsHolder struct {
 	MetaChainConsensusGroupSize uint32
 	RoundDurationInMs           uint64
 	GenesisTime                 time.Time
-	SupernovaGenesisTime        time.Time
 }
 
 // CreateCoreComponents will create a new instance of factory.CoreComponentsHolder
@@ -223,7 +222,11 @@ func CreateCoreComponents(args ArgsCoreComponentsHolder) (*coreComponentsHolder,
 
 	roundDuration := time.Millisecond * time.Duration(instance.genesisNodesSetup.GetRoundDuration())
 	supernovaRound := instance.enableRoundsHandler.GetActivationRound(common.SupernovaRoundFlag)
-	instance.supernovaGenesisTime = instance.genesisTime.Add(time.Duration(supernovaRound) * roundDuration)
+
+	instance.supernovaGenesisTime = startTime.Add(time.Duration(supernovaRound-uint64(args.InitialRound)) * roundDuration)
+	if instance.supernovaGenesisTime.Before(instance.genesisTime) {
+		instance.supernovaGenesisTime = instance.genesisTime
+	}
 
 	supernovaActivationEpoch := instance.enableEpochsHandler.GetActivationEpoch(common.SupernovaFlag)
 	chainParamsForSupernova, err := instance.chainParametersHandler.ChainParametersForEpoch(supernovaActivationEpoch)
