@@ -1212,18 +1212,19 @@ func (mp *metaProcessor) CommitBlock(
 	headerHandler data.HeaderHandler,
 	bodyHandler data.BodyHandler,
 ) error {
-	mp.processStatusHandler.SetBusy("metaProcessor.CommitBlock")
-	var err error
-	defer func() {
-		if err != nil {
-			mp.RevertCurrentBlock(headerHandler)
-		}
-		mp.processStatusHandler.SetIdle()
-	}()
-
-	err = checkForNils(headerHandler, bodyHandler)
+	err := checkForNils(headerHandler, bodyHandler)
 	if err != nil {
 		return err
+	}
+
+	if !headerHandler.IsHeaderV3() {
+		mp.processStatusHandler.SetBusy("metaProcessor.CommitBlock")
+		defer func() {
+			if err != nil {
+				mp.RevertCurrentBlock(headerHandler)
+			}
+			mp.processStatusHandler.SetIdle()
+		}()
 	}
 
 	log.Debug("started committing block",
