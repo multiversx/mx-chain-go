@@ -28,33 +28,70 @@ func (t *trigger) LoadState(key []byte) error {
 
 	t.mutTrigger.Lock()
 	t.triggerStateKey = key
-	t.epochFinalityAttestingRound = state.EpochFinalityAttestingRound
-	t.currEpochStartRound = state.CurrEpochStartRound
-	t.prevEpochStartRound = state.PrevEpochStartRound
-	t.epoch = state.Epoch
-	t.epochStartMetaHash = state.EpochStartMetaHash
-	t.epochStartMeta = state.EpochStartMeta
+	t.epochFinalityAttestingRound = state.GetEpochFinalityAttestingRound()
+	t.currEpochStartRound = state.GetCurrEpochStartRound()
+	t.prevEpochStartRound = state.GetPrevEpochStartRound()
+	t.epoch = state.GetEpoch()
+	t.epochStartMetaHash = state.GetEpochStartMetaHash()
+	t.epochStartMeta = state.GetEpochStartMetaHeaderHandler()
+	t.epochChangeProposed = state.GetEpochChangeProposed()
 	t.mutTrigger.Unlock()
 
 	return nil
 }
 
 // UnmarshalTrigger unmarshalls the trigger with json, for backwards compatibility
-func UnmarshalTrigger(marshaller marshal.Marshalizer, data []byte) (*block.MetaTriggerRegistry, error) {
+func UnmarshalTrigger(marshaller marshal.Marshalizer, data []byte) (data.MetaTriggerRegistryHandler, error) {
+	trig, err := unmarshallTriggerV3(marshaller, data)
+	if err == nil {
+		return trig, nil
+	}
+
+	trig, err = unmarshallTriggerV1(marshaller, data)
+	if err == nil {
+		return trig, nil
+	}
+
+	// for backwards compatibility
+	return unmarshallTriggerJson(data)
+}
+
+func unmarshallTriggerV3(marshaller marshal.Marshalizer, data []byte) (data.MetaTriggerRegistryHandler, error) {
+	state := &block.MetaTriggerRegistryV3{
+		EpochStartMeta: &block.MetaBlockV3{},
+	}
+
+	err := marshaller.Unmarshal(state, data)
+	if err != nil {
+		return nil, err
+	}
+
+	return state, nil
+}
+
+func unmarshallTriggerV1(marshaller marshal.Marshalizer, data []byte) (data.MetaTriggerRegistryHandler, error) {
 	state := &block.MetaTriggerRegistry{
 		EpochStartMeta: &block.MetaBlock{},
 	}
 
 	err := marshaller.Unmarshal(state, data)
-	if err == nil {
-		return state, nil
-	}
-
-	// for backwards compatibility
-	err = json.Unmarshal(data, state)
 	if err != nil {
 		return nil, err
 	}
+
+	return state, nil
+}
+
+func unmarshallTriggerJson(data []byte) (data.MetaTriggerRegistryHandler, error) {
+	state := &block.MetaTriggerRegistry{
+		EpochStartMeta: &block.MetaBlock{},
+	}
+
+	err := json.Unmarshal(data, state)
+	if err != nil {
+		return nil, err
+	}
+
 	return state, nil
 }
 
