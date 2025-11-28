@@ -2293,7 +2293,10 @@ func (mp *metaProcessor) getCurrentlyAccumulatedFees(metaHdr data.MetaHeaderHand
 			return nil, nil, process.ErrWrongTypeAssertion
 		}
 
-		return lastMetaExecResult.GetAccumulatedFeesInEpoch(), lastMetaExecResult.GetDevFeesInEpoch(), nil
+		currentlyAccumulatedFeesInEpoch := big.NewInt(0).Set(lastMetaExecResult.GetAccumulatedFeesInEpoch())
+		currentDevFeesInEpoch := big.NewInt(0).Set(lastMetaExecResult.GetDevFeesInEpoch())
+
+		return currentlyAccumulatedFeesInEpoch, currentDevFeesInEpoch, nil
 	}
 
 	lastHdr := mp.blockChain.GetCurrentBlockHeader()
