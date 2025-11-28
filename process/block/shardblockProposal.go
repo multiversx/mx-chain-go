@@ -106,7 +106,7 @@ func (sp *shardProcessor) CreateBlockProposal(
 
 	body := &block.Body{MiniBlocks: miniBlocks}
 
-	err = sp.verifyGasLimit(shardHdr)
+	err = sp.verifyGasLimit(shardHdr, miniBlocks)
 	if err != nil {
 		return nil, nil, err
 	}
@@ -223,7 +223,7 @@ func (sp *shardProcessor) VerifyBlockProposal(
 		return err
 	}
 
-	err = sp.verifyGasLimit(header)
+	err = sp.verifyGasLimit(header, body.MiniBlocks)
 	if err != nil {
 		return err
 	}

@@ -822,8 +822,8 @@ func (sp *shardProcessor) CheckMetaHeadersValidityAndFinalityProposal(header dat
 }
 
 // VerifyGasLimit -
-func (sp *shardProcessor) VerifyGasLimit(header data.ShardHeaderHandler) error {
-	return sp.verifyGasLimit(header)
+func (sp *shardProcessor) VerifyGasLimit(header data.ShardHeaderHandler, miniBlocks block.MiniBlockSlice) error {
+	return sp.verifyGasLimit(header, miniBlocks)
 }
 
 // CheckEpochStartInfoAvailableIfNeeded -

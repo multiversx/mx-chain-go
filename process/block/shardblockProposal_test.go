@@ -30,9 +30,7 @@ import (
 	"github.com/multiversx/mx-chain-go/process/estimator"
 	"github.com/multiversx/mx-chain-go/process/mock"
 	"github.com/multiversx/mx-chain-go/state"
-	"github.com/multiversx/mx-chain-go/storage"
 	"github.com/multiversx/mx-chain-go/testscommon"
-	"github.com/multiversx/mx-chain-go/testscommon/cache"
 	"github.com/multiversx/mx-chain-go/testscommon/dataRetriever"
 	"github.com/multiversx/mx-chain-go/testscommon/enableEpochsHandlerMock"
 	"github.com/multiversx/mx-chain-go/testscommon/hashingMocks"
@@ -472,6 +470,15 @@ func TestShardProcessor_CreateBlockProposal(t *testing.T) {
 					},
 				}
 			},
+			TransactionsCalled: func() retriever.ShardedDataCacherNotifier {
+				return &testscommon.ShardedDataStub{
+					SearchFirstDataCalled: func(key []byte) (value interface{}, ok bool) {
+						value = &transaction.Transaction{}
+						ok = true
+						return
+					},
+				}
+			},
 		}
 
 		arguments := CreateMockArguments(coreComponents, dataComponents, bootstrapComponents, statusComponents)
@@ -540,7 +547,14 @@ func TestShardProcessor_CreateBlockProposal(t *testing.T) {
 		sp, err := blproc.NewShardProcessor(arguments)
 		require.Nil(t, err)
 
-		hdr, body, err := sp.CreateBlockProposal(getSimpleHeaderV3Mock(), haveTimeTrue)
+		initialHdr := &block.HeaderV3{
+			LastExecutionResult: &block.ExecutionResultInfo{
+				ExecutionResult: &block.BaseExecutionResult{},
+			},
+			PrevHash:         []byte("prevHash"),
+			MiniBlockHeaders: []block.MiniBlockHeader{{}, {}}, // 2 mb headers to match the provided ones
+		}
+		hdr, body, err := sp.CreateBlockProposal(initialHdr, haveTimeTrue)
 		require.NoError(t, err)
 		require.NotNil(t, hdr)
 		require.NotNil(t, body)
@@ -2059,15 +2073,6 @@ func TestShardBlockProposal_CreateAndVerifyProposal_WithTransactions(t *testing.
 		HeadersCalled: func() retriever.HeadersPool {
 			return headers
 		},
-		MiniBlocksCalled: func() storage.Cacher {
-			return &cache.CacherStub{
-				GetCalled: func(key []byte) (value interface{}, ok bool) {
-					value = providedMb
-					ok = true
-					return
-				},
-			}
-		},
 		TransactionsCalled: func() retriever.ShardedDataCacherNotifier {
 			return &testscommon.ShardedDataStub{
 				SearchFirstDataCalled: func(key []byte) (value interface{}, ok bool) {
@@ -2167,58 +2172,27 @@ func TestShardBlockProposal_CreateAndVerifyProposal_WithTransactions(t *testing.
 func TestShardProcessor_VerifyGasLimit(t *testing.T) {
 	t.Parallel()
 
-	t.Run("getTransactionsForMiniBlock fails due to missing mini block", func(t *testing.T) {
+	t.Run("splitTransactionsForHeader fails due to invalid mini blocks", func(t *testing.T) {
 		t.Parallel()
 
-		outgoingMbh, outgoingMb, incomingMbh, incomingMb := createMiniBlocks()
+		outgoingMbh, outgoingMb, incomingMbh, _ := createMiniBlocks()
 		coreComponents, dataComponents, bootstrapComponents, statusComponents := createComponentHolderMocks()
-		dataPool := adaptDataPoolForVerifyGas(t, dataComponents.DataPool, outgoingMb, incomingMb)
-		dataPool.MiniBlocksCalled = func() storage.Cacher {
-			return &cache.CacherStub{
-				GetCalled: func(key []byte) (value interface{}, ok bool) {
-					return nil, false
-				},
-			}
-		}
+		dataPool := adaptDataPoolForVerifyGas(dataComponents.DataPool)
 		dataComponents.DataPool = dataPool
 		arguments := CreateMockArguments(coreComponents, dataComponents, bootstrapComponents, statusComponents)
 
 		sp, err := blproc.NewShardProcessor(arguments)
 		require.NoError(t, err)
 
-		err = sp.VerifyGasLimit(createHeaderFromMBs(outgoingMbh, incomingMbh))
-		require.Equal(t, process.ErrMissingMiniBlock, err)
-	})
-	t.Run("getTransactionsForMiniBlock fails due to mini block cast issue", func(t *testing.T) {
-		t.Parallel()
-
-		outgoingMbh, outgoingMb, incomingMbh, incomingMb := createMiniBlocks()
-		coreComponents, dataComponents, bootstrapComponents, statusComponents := createComponentHolderMocks()
-		dataPool := adaptDataPoolForVerifyGas(t, dataComponents.DataPool, outgoingMb, incomingMb)
-		dataPool.MiniBlocksCalled = func() storage.Cacher {
-			return &cache.CacherStub{
-				GetCalled: func(key []byte) (value interface{}, ok bool) {
-					value = "non mini block"
-					ok = true
-					return
-				},
-			}
-		}
-		dataComponents.DataPool = dataPool
-		arguments := CreateMockArguments(coreComponents, dataComponents, bootstrapComponents, statusComponents)
-
-		sp, err := blproc.NewShardProcessor(arguments)
-		require.NoError(t, err)
-
-		err = sp.VerifyGasLimit(createHeaderFromMBs(outgoingMbh, incomingMbh))
-		require.Equal(t, process.ErrWrongTypeAssertion, err)
+		err = sp.VerifyGasLimit(createHeaderFromMBs(outgoingMbh, incomingMbh), block.MiniBlockSlice{outgoingMb}) // less mbs in slice
+		require.Error(t, err)
 	})
 	t.Run("getTransactionsForMiniBlock fails due to error on GetTransactionHandlerFromPool", func(t *testing.T) {
 		t.Parallel()
 
 		outgoingMbh, outgoingMb, incomingMbh, incomingMb := createMiniBlocks()
 		coreComponents, dataComponents, bootstrapComponents, statusComponents := createComponentHolderMocks()
-		dataPool := adaptDataPoolForVerifyGas(t, dataComponents.DataPool, outgoingMb, incomingMb)
+		dataPool := adaptDataPoolForVerifyGas(dataComponents.DataPool)
 		dataPool.TransactionsCalled = func() retriever.ShardedDataCacherNotifier {
 			return &testscommon.ShardedDataStub{
 				SearchFirstDataCalled: func(key []byte) (value interface{}, ok bool) {
@@ -2232,7 +2206,7 @@ func TestShardProcessor_VerifyGasLimit(t *testing.T) {
 		sp, err := blproc.NewShardProcessor(arguments)
 		require.NoError(t, err)
 
-		err = sp.VerifyGasLimit(createHeaderFromMBs(outgoingMbh, incomingMbh))
+		err = sp.VerifyGasLimit(createHeaderFromMBs(outgoingMbh, incomingMbh), block.MiniBlockSlice{outgoingMb, incomingMb})
 		require.Error(t, err)
 	})
 	t.Run("AddIncomingMiniBlocks error", func(t *testing.T) {
@@ -2240,7 +2214,7 @@ func TestShardProcessor_VerifyGasLimit(t *testing.T) {
 
 		outgoingMbh, outgoingMb, incomingMbh, incomingMb := createMiniBlocks()
 		coreComponents, dataComponents, bootstrapComponents, statusComponents := createComponentHolderMocks()
-		dataPool := adaptDataPoolForVerifyGas(t, dataComponents.DataPool, outgoingMb, incomingMb)
+		dataPool := adaptDataPoolForVerifyGas(dataComponents.DataPool)
 		dataComponents.DataPool = dataPool
 		arguments := CreateMockArguments(coreComponents, dataComponents, bootstrapComponents, statusComponents)
 		arguments.GasComputation = &testscommon.GasComputationMock{
@@ -2251,7 +2225,7 @@ func TestShardProcessor_VerifyGasLimit(t *testing.T) {
 		sp, err := blproc.NewShardProcessor(arguments)
 		require.NoError(t, err)
 
-		err = sp.VerifyGasLimit(createHeaderFromMBs(outgoingMbh, incomingMbh))
+		err = sp.VerifyGasLimit(createHeaderFromMBs(outgoingMbh, incomingMbh), block.MiniBlockSlice{outgoingMb, incomingMb})
 		require.Equal(t, expectedError, err)
 	})
 	t.Run("AddOutgoingTransactions error", func(t *testing.T) {
@@ -2259,7 +2233,7 @@ func TestShardProcessor_VerifyGasLimit(t *testing.T) {
 
 		outgoingMbh, outgoingMb, incomingMbh, incomingMb := createMiniBlocks()
 		coreComponents, dataComponents, bootstrapComponents, statusComponents := createComponentHolderMocks()
-		dataPool := adaptDataPoolForVerifyGas(t, dataComponents.DataPool, outgoingMb, incomingMb)
+		dataPool := adaptDataPoolForVerifyGas(dataComponents.DataPool)
 		dataComponents.DataPool = dataPool
 		arguments := CreateMockArguments(coreComponents, dataComponents, bootstrapComponents, statusComponents)
 		arguments.GasComputation = &testscommon.GasComputationMock{
@@ -2273,7 +2247,7 @@ func TestShardProcessor_VerifyGasLimit(t *testing.T) {
 		sp, err := blproc.NewShardProcessor(arguments)
 		require.NoError(t, err)
 
-		err = sp.VerifyGasLimit(createHeaderFromMBs(outgoingMbh, incomingMbh))
+		err = sp.VerifyGasLimit(createHeaderFromMBs(outgoingMbh, incomingMbh), block.MiniBlockSlice{outgoingMb, incomingMb})
 		require.Equal(t, expectedError, err)
 	})
 	t.Run("AddOutgoingTransactions results in limit exceeded", func(t *testing.T) {
@@ -2281,7 +2255,7 @@ func TestShardProcessor_VerifyGasLimit(t *testing.T) {
 
 		outgoingMbh, outgoingMb, incomingMbh, incomingMb := createMiniBlocks()
 		coreComponents, dataComponents, bootstrapComponents, statusComponents := createComponentHolderMocks()
-		dataPool := adaptDataPoolForVerifyGas(t, dataComponents.DataPool, outgoingMb, incomingMb)
+		dataPool := adaptDataPoolForVerifyGas(dataComponents.DataPool)
 		dataComponents.DataPool = dataPool
 		arguments := CreateMockArguments(coreComponents, dataComponents, bootstrapComponents, statusComponents)
 		arguments.GasComputation = &testscommon.GasComputationMock{
@@ -2295,7 +2269,7 @@ func TestShardProcessor_VerifyGasLimit(t *testing.T) {
 		sp, err := blproc.NewShardProcessor(arguments)
 		require.NoError(t, err)
 
-		err = sp.VerifyGasLimit(createHeaderFromMBs(outgoingMbh, incomingMbh))
+		err = sp.VerifyGasLimit(createHeaderFromMBs(outgoingMbh, incomingMbh), block.MiniBlockSlice{outgoingMb, incomingMb})
 		require.ErrorIs(t, err, process.ErrInvalidMaxGasLimitPerMiniBlock)
 		require.Contains(t, err.Error(), "outgoing transactions exceeded")
 	})
@@ -2304,7 +2278,7 @@ func TestShardProcessor_VerifyGasLimit(t *testing.T) {
 
 		outgoingMbh, outgoingMb, incomingMbh, incomingMb := createMiniBlocks()
 		coreComponents, dataComponents, bootstrapComponents, statusComponents := createComponentHolderMocks()
-		dataPool := adaptDataPoolForVerifyGas(t, dataComponents.DataPool, outgoingMb, incomingMb)
+		dataPool := adaptDataPoolForVerifyGas(dataComponents.DataPool)
 		dataComponents.DataPool = dataPool
 		arguments := CreateMockArguments(coreComponents, dataComponents, bootstrapComponents, statusComponents)
 		arguments.GasComputation = &testscommon.GasComputationMock{
@@ -2318,7 +2292,7 @@ func TestShardProcessor_VerifyGasLimit(t *testing.T) {
 		sp, err := blproc.NewShardProcessor(arguments)
 		require.NoError(t, err)
 
-		err = sp.VerifyGasLimit(createHeaderFromMBs(outgoingMbh, incomingMbh))
+		err = sp.VerifyGasLimit(createHeaderFromMBs(outgoingMbh, incomingMbh), block.MiniBlockSlice{outgoingMb, incomingMb})
 		require.ErrorIs(t, err, process.ErrInvalidMaxGasLimitPerMiniBlock)
 		require.Contains(t, err.Error(), "incoming mini blocks exceeded the limit")
 	})
@@ -2327,7 +2301,7 @@ func TestShardProcessor_VerifyGasLimit(t *testing.T) {
 
 		outgoingMbh, outgoingMb, incomingMbh, incomingMb := createMiniBlocks()
 		coreComponents, dataComponents, bootstrapComponents, statusComponents := createComponentHolderMocks()
-		dataPool := adaptDataPoolForVerifyGas(t, dataComponents.DataPool, outgoingMb, incomingMb)
+		dataPool := adaptDataPoolForVerifyGas(dataComponents.DataPool)
 		dataComponents.DataPool = dataPool
 		arguments := CreateMockArguments(coreComponents, dataComponents, bootstrapComponents, statusComponents)
 
@@ -2340,16 +2314,13 @@ func TestShardProcessor_VerifyGasLimit(t *testing.T) {
 		headerV3.LastExecutionResult = &block.ExecutionResultInfo{
 			ExecutionResult: &block.BaseExecutionResult{},
 		}
-		err = sp.VerifyGasLimit(headerV3)
+		err = sp.VerifyGasLimit(headerV3, block.MiniBlockSlice{outgoingMb, incomingMb})
 		require.NoError(t, err)
 	})
 }
 
 func adaptDataPoolForVerifyGas(
-	t *testing.T,
 	initialPool retriever.PoolsHolder,
-	outgoingMb *block.MiniBlock,
-	incomingMb *block.MiniBlock,
 ) *dataRetriever.PoolsHolderStub {
 	headers := initialPool.Headers()
 	proofs := initialPool.Proofs()
@@ -2359,26 +2330,6 @@ func adaptDataPoolForVerifyGas(
 		},
 		ProofsCalled: func() retriever.ProofsPool {
 			return proofs
-		},
-		MiniBlocksCalled: func() storage.Cacher {
-			return &cache.CacherStub{
-				GetCalled: func(key []byte) (value interface{}, ok bool) {
-					switch string(key) {
-					case "outgoingMBHash":
-						value = outgoingMb
-						ok = true
-						return
-					case "incomingMBHash":
-						value = incomingMb
-						ok = true
-						return
-					default:
-						require.Fail(t, "unexpected key")
-					}
-
-					return
-				},
-			}
 		},
 		TransactionsCalled: func() retriever.ShardedDataCacherNotifier {
 			return &testscommon.ShardedDataStub{
