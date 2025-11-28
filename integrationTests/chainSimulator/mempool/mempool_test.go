@@ -2465,6 +2465,7 @@ func Test_SelectionWithAliceRelayerAndSenderOnSameTxs(t *testing.T) {
 
 	// do the first selection
 	selectedTransactions, _, err := txpool.SelectTransactions(selectionSession, options, 0)
+	require.Nil(t, err)
 	require.Len(t, selectedTransactions, 1)
 	require.Equal(t, selectedTransactions[0].TxHash, []byte("txHash1"))
 
@@ -2483,6 +2484,7 @@ func Test_SelectionWithAliceRelayerAndSenderOnSameTxs(t *testing.T) {
 
 	// the second tx should not be selected, because alice has insufficient funds
 	selectedTransactions, _, err = txpool.SelectTransactions(selectionSession, options, 1)
+	require.Nil(t, err)
 	require.Len(t, selectedTransactions, 0)
 }
 
@@ -2581,6 +2583,7 @@ func Test_SelectionWithAliceSenderAndThenRelayerOnDifferentTxs(t *testing.T) {
 	// do the first selection
 	// only one should be selected
 	selectedTransactions, _, err := txpool.SelectTransactions(selectionSession, options, 0)
+	require.Nil(t, err)
 	require.Len(t, selectedTransactions, 1)
 	require.Equal(t, selectedTransactions[0].TxHash, []byte("txHash1"))
 
@@ -2599,5 +2602,6 @@ func Test_SelectionWithAliceSenderAndThenRelayerOnDifferentTxs(t *testing.T) {
 
 	// the second tx should not be selected, because alice has insufficient funds
 	selectedTransactions, _, err = txpool.SelectTransactions(selectionSession, options, 1)
+	require.Nil(t, err)
 	require.Len(t, selectedTransactions, 0)
 }
