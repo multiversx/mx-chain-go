@@ -913,13 +913,15 @@ func (sp *shardProcessor) CommitBlock(
 	bodyHandler data.BodyHandler,
 ) error {
 	var err error
-	sp.processStatusHandler.SetBusy("shardProcessor.CommitBlock")
-	defer func() {
-		if err != nil {
-			sp.RevertCurrentBlock(headerHandler)
-		}
-		sp.processStatusHandler.SetIdle()
-	}()
+	if !headerHandler.IsHeaderV3() {
+		sp.processStatusHandler.SetBusy("shardProcessor.CommitBlock")
+		defer func() {
+			if err != nil {
+				sp.RevertCurrentBlock(headerHandler)
+			}
+			sp.processStatusHandler.SetIdle()
+		}()
+	}
 
 	err = checkForNils(headerHandler, bodyHandler)
 	if err != nil {
