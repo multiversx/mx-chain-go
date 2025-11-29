@@ -804,8 +804,9 @@ func TestHeadersForBlock_AddHeaderNotUsedInBlock(t *testing.T) {
 	require.NoError(t, err)
 
 	hfb.AddHeaderNotUsedInBlock("hash", &block.HeaderV3{})
-	_, found := hfb.GetHeaderInfo("hash")
+	header, found := hfb.GetHeaderInfo("hash")
 	require.True(t, found)
+	require.False(t, header.UsedInBlock())
 }
 
 func TestHeadersForBlock_ComputeHeadersForCurrentBlock(t *testing.T) {
@@ -852,9 +853,8 @@ func TestHeadersForBlock_ComputeHeadersForCurrentBlock(t *testing.T) {
 		_, err = hfb.ComputeHeadersForCurrentBlock(false)
 		require.ErrorContains(t, err, process.ErrMissingHeaderProof.Error())
 
-		_, err = hfb.ComputeHeadersForCurrentBlock(true)
-		require.ErrorContains(t, err, process.ErrMissingHeaderProof.Error())
-
+		_, err = hfb.ComputeHeadersForCurrentBlockInfo(true)
+		require.Nil(t, err)
 		_, err = hfb.ComputeHeadersForCurrentBlockInfo(false)
 		require.ErrorContains(t, err, process.ErrMissingHeaderProof.Error())
 	})

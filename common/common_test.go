@@ -891,7 +891,12 @@ func Test_ExtractBaseExecutionResultHandler(t *testing.T) {
 	t.Run("should work", func(t *testing.T) {
 		t.Parallel()
 
-		expectedBaseExecResult := &block.BaseMetaExecutionResult{}
+		expectedBaseExecResult := &block.BaseMetaExecutionResult{
+			BaseExecutionResult: &block.BaseExecutionResult{
+				RootHash: []byte("rootHash"),
+			},
+			ValidatorStatsRootHash: []byte("valStatsRootHash"),
+		}
 		baseExecRes, err := common.ExtractBaseExecutionResultHandler(&block.MetaExecutionResultInfo{
 			ExecutionResult: expectedBaseExecResult,
 		})
@@ -923,7 +928,11 @@ func Test_ExtractBaseExecutionResultHandler(t *testing.T) {
 	t.Run("should work in case of ExecutionResultInfo type", func(t *testing.T) {
 		t.Parallel()
 
-		expectedBaseExecResult := &block.BaseExecutionResult{}
+		expectedBaseExecResult := &block.BaseExecutionResult{
+			HeaderHash:  []byte("headerHash"),
+			HeaderNonce: 10,
+			HeaderEpoch: 2,
+		}
 		baseExecRes, err := common.ExtractBaseExecutionResultHandler(&block.ExecutionResultInfo{
 			ExecutionResult: expectedBaseExecResult,
 		})
@@ -947,7 +956,12 @@ func Test_GetOrCreateLastExecutionResultForPrevHeader(t *testing.T) {
 	t.Run("should work in case of headerV3", func(t *testing.T) {
 		t.Parallel()
 
-		baseExecResult := &block.BaseExecutionResult{}
+		baseExecResult := &block.BaseExecutionResult{
+			HeaderHash:  []byte("headerHash"),
+			RootHash:    []byte("rootHash"),
+			HeaderNonce: 10,
+			HeaderEpoch: 2,
+		}
 		prevHeader := block.HeaderV3{
 			LastExecutionResult: &block.ExecutionResultInfo{
 				ExecutionResult: baseExecResult,

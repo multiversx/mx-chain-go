@@ -303,28 +303,76 @@ func Test_SaveReceiptsForExecResult(t *testing.T) {
 	t.Run("should return errNilReceiptsHolder in case of nil holder", func(t *testing.T) {
 		t.Parallel()
 
-		repository, _ := NewReceiptsRepository(ArgsNewReceiptsRepository{})
+		counter := 0
+		repository, err := NewReceiptsRepository(ArgsNewReceiptsRepository{
+			Marshaller: marshallerMock.MarshalizerMock{},
+			Hasher:     &testscommon.HasherStub{},
+			Store: &testsCommonStorage.ChainStorerStub{
+				GetStorerCalled: func(unitType dataRetriever.UnitType) (storage.Storer, error) {
+					return &testsCommonStorage.StorerStub{
+						PutCalled: func(key, data []byte) error {
+							counter++
+							return nil
+						},
+					}, nil
+				},
+			},
+		})
+		require.Nil(t, err)
 
-		err := repository.SaveReceiptsForExecResult(nil, &block.BaseExecutionResult{})
+		err = repository.SaveReceiptsForExecResult(nil, &block.BaseExecutionResult{})
 		require.Equal(t, errNilReceiptsHolder, err)
+		require.Equal(t, 0, counter)
 	})
 
 	t.Run("should return errNilExecutionResult in case of nil execution result", func(t *testing.T) {
 		t.Parallel()
 
-		repository, _ := NewReceiptsRepository(ArgsNewReceiptsRepository{})
+		counter := 0
+		repository, err := NewReceiptsRepository(ArgsNewReceiptsRepository{
+			Marshaller: marshallerMock.MarshalizerMock{},
+			Hasher:     &testscommon.HasherStub{},
+			Store: &testsCommonStorage.ChainStorerStub{
+				GetStorerCalled: func(unitType dataRetriever.UnitType) (storage.Storer, error) {
+					return &testsCommonStorage.StorerStub{
+						PutCalled: func(key, data []byte) error {
+							counter++
+							return nil
+						},
+					}, nil
+				},
+			},
+		})
+		require.Nil(t, err)
 
-		err := repository.SaveReceiptsForExecResult(holders.NewReceiptsHolder(nil), nil)
+		err = repository.SaveReceiptsForExecResult(holders.NewReceiptsHolder(nil), nil)
 		require.Equal(t, errNilExecutionResult, err)
+		require.Equal(t, 0, counter)
 	})
 
 	t.Run("should return errNilInvalidExecutionResultType in case of wrong type of exec result", func(t *testing.T) {
 		t.Parallel()
 
-		repository, _ := NewReceiptsRepository(ArgsNewReceiptsRepository{})
+		counter := 0
+		repository, err := NewReceiptsRepository(ArgsNewReceiptsRepository{
+			Marshaller: marshallerMock.MarshalizerMock{},
+			Hasher:     &testscommon.HasherStub{},
+			Store: &testsCommonStorage.ChainStorerStub{
+				GetStorerCalled: func(unitType dataRetriever.UnitType) (storage.Storer, error) {
+					return &testsCommonStorage.StorerStub{
+						PutCalled: func(key, data []byte) error {
+							counter++
+							return nil
+						},
+					}, nil
+				},
+			},
+		})
+		require.Nil(t, err)
 
-		err := repository.SaveReceiptsForExecResult(holders.NewReceiptsHolder(nil), &block.BaseMetaExecutionResult{})
+		err = repository.SaveReceiptsForExecResult(holders.NewReceiptsHolder(nil), &block.BaseMetaExecutionResult{})
 		require.Equal(t, errNilInvalidExecutionResultType, err)
+		require.Equal(t, 0, counter)
 	})
 
 	t.Run("if saving receipts fails, the error should be propagated", func(t *testing.T) {
@@ -351,5 +399,35 @@ func Test_SaveReceiptsForExecResult(t *testing.T) {
 				ReceiptsHash: []byte("receiptsHash"),
 			})
 		require.ErrorContains(t, err, expectedError.Error())
+	})
+
+	t.Run("should work", func(t *testing.T) {
+		t.Parallel()
+
+		counter := 0
+		repository, err := NewReceiptsRepository(ArgsNewReceiptsRepository{
+			Hasher: &testscommon.HasherStub{},
+			Store: &testsCommonStorage.ChainStorerStub{
+				GetStorerCalled: func(unitType dataRetriever.UnitType) (storage.Storer, error) {
+					return &testsCommonStorage.StorerStub{
+						PutCalled: func(key, data []byte) error {
+							counter++
+							return nil
+						},
+					}, nil
+				},
+			}, Marshaller: marshallerMock.MarshalizerMock{},
+		})
+		require.Nil(t, err)
+
+		err = repository.SaveReceiptsForExecResult(
+			holders.NewReceiptsHolder([]*block.MiniBlock{
+				{},
+			}),
+			&block.ExecutionResult{
+				ReceiptsHash: []byte("receiptsHash"),
+			})
+		require.Nil(t, err)
+		require.Equal(t, 1, counter)
 	})
 }

@@ -213,11 +213,7 @@ func TestEpochStartData_VerifyEpochStartDataForMetablock(t *testing.T) {
 		esd, _ := NewEpochStartData(arguments)
 
 		err := esd.verifyEpochStartDataForMetablock(&block.MetaBlockV3{
-			EpochStart: block.EpochStart{
-				LastFinalizedHeaders: []block.EpochStartShardData{
-					{}, {}, {},
-				},
-			},
+			EpochStart: block.EpochStart{},
 		}, nil)
 		require.NoError(t, err)
 	})

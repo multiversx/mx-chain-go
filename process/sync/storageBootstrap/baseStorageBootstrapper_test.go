@@ -460,7 +460,20 @@ func TestBaseStorageBootstrapper_setCurrentBlockInfoV3(t *testing.T) {
 			ArgsBaseStorageBootstrapper: baseArgs,
 		}
 
+		counter := 0
 		ssb, _ := NewShardStorageBootstrapper(args)
+		ssb.blkc = &testscommon.ChainHandlerStub{
+			SetLastExecutedBlockHeaderAndRootHashCalled: func(header data.HeaderHandler, blockHash []byte, rootHash []byte) {
+				counter += 1
+			},
+			SetCurrentBlockHeaderHashCalled: func(bytes []byte) {
+				counter += 1
+			},
+			SetCurrentBlockHeaderCalled: func(header data.HeaderHandler) error {
+				counter += 1
+				return nil
+			},
+		}
 		err := ssb.setCurrentBlockInfoV3(&block.HeaderV3{
 			LastExecutionResult: &block.ExecutionResultInfo{
 				ExecutionResult: &block.BaseExecutionResult{
@@ -470,5 +483,6 @@ func TestBaseStorageBootstrapper_setCurrentBlockInfoV3(t *testing.T) {
 		}, []byte("hash"))
 
 		require.Nil(t, err)
+		require.Equal(t, 3, counter)
 	})
 }
