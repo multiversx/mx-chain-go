@@ -1044,7 +1044,7 @@ var ErrNotAllowedToWriteUnderProtectedKey = errors.New("not allowed to write und
 // ErrNilNFTStorageHandler signals that nil NFT storage handler has been provided
 var ErrNilNFTStorageHandler = errors.New("nil NFT storage handler")
 
-// ErrNilBootstrapper signals that a nil bootstraper has been provided
+// ErrNilBootstrapper signals that a nil bootstrapper has been provided
 var ErrNilBootstrapper = errors.New("nil bootstrapper")
 
 // ErrNodeIsNotSynced signals that the VM query cannot be executed because the node is not synced and the request required this

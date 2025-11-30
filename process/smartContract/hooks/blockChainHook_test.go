@@ -1210,7 +1210,7 @@ func TestBlockChainHookImpl_UpdateEpochStartHeaderFromCurrentHeader(t *testing.T
 		assert.Equal(t, genesisBlock.GetTimeStamp(), bh.EpochStartBlockTimeStampMs())
 	})
 
-	t.Run("get last commited epoch start block if not set", func(t *testing.T) {
+	t.Run("get last committed epoch start block if not set", func(t *testing.T) {
 		t.Parallel()
 
 		epoch := uint32(7)
