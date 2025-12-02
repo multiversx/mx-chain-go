@@ -198,6 +198,9 @@ func initDataPool(testHash []byte) *dataRetrieverMock.PoolsHolderStub {
 			}
 			return cs
 		},
+		PostProcessTransactionsCalled: func() storage.Cacher {
+			return cache.NewCacherStub()
+		},
 		HeadersCalled: func() dataRetriever.HeadersPool {
 			cs := &mock.HeadersCacherStub{}
 			cs.RegisterHandlerCalled = func(i func(header data.HeaderHandler, key []byte)) {
@@ -257,12 +260,14 @@ func createMockTransactionCoordinatorArguments() ArgTransactionCoordinator {
 	accounts.RootHashCalled = func() ([]byte, error) {
 		return nil, nil
 	}
+	poolsHolder := dataRetrieverMock.NewPoolsHolderMock()
 	argsTransactionCoordinator := ArgTransactionCoordinator{
 		Hasher:                       &hashingMocks.HasherMock{},
 		Marshalizer:                  &mock.MarshalizerMock{},
 		ShardCoordinator:             mock.NewMultiShardsCoordinatorMock(5),
 		Accounts:                     accounts,
-		MiniBlockPool:                dataRetrieverMock.NewPoolsHolderMock().MiniBlocks(),
+		MiniBlockPool:                poolsHolder.MiniBlocks(),
+		PostProcessTransactions:      poolsHolder.PostProcessTransactions(),
 		PreProcessors:                &preprocMocks.PreProcessorContainerMock{},
 		PreProcessorsProposal:        &preprocMocks.PreProcessorContainerMock{},
 		InterProcessors:              &mock.InterimProcessorContainerMock{},
@@ -315,6 +320,7 @@ func createAndAddBlockDataRequesters(
 	argsTransactionCoordinator.PreProcessors = preprocContainer
 	argsTransactionCoordinator.ShardCoordinator = mock.NewMultiShardsCoordinatorMock(nrShards)
 	argsTransactionCoordinator.MiniBlockPool = poolsHolder.MiniBlocks()
+	argsTransactionCoordinator.PostProcessTransactions = poolsHolder.PostProcessTransactions()
 	blockDataRequestArgs := BlockDataRequestArgs{
 		RequestHandler:      requestHandler,
 		MiniBlockPool:       argsTransactionCoordinator.MiniBlockPool,
@@ -394,7 +400,7 @@ func TestNewTransactionCoordinator_NilAccountsStub(t *testing.T) {
 	assert.Equal(t, process.ErrNilAccountsAdapter, err)
 }
 
-func TestNewTransactionCoordinator_NilDataPool(t *testing.T) {
+func TestNewTransactionCoordinator_NilMiniBlockPool(t *testing.T) {
 	t.Parallel()
 
 	argsTransactionCoordinator := createMockTransactionCoordinatorArguments()
@@ -403,6 +409,17 @@ func TestNewTransactionCoordinator_NilDataPool(t *testing.T) {
 
 	assert.Nil(t, tc)
 	assert.Equal(t, process.ErrNilMiniBlockPool, err)
+}
+
+func TestNewTransactionCoordinator_NilPostProcessTransactions(t *testing.T) {
+	t.Parallel()
+
+	argsTransactionCoordinator := createMockTransactionCoordinatorArguments()
+	argsTransactionCoordinator.PostProcessTransactions = nil
+	tc, err := NewTransactionCoordinator(argsTransactionCoordinator)
+
+	assert.Nil(t, tc)
+	assert.Equal(t, process.ErrNilPostProcessTransactionsCache, err)
 }
 
 func TestNewTransactionCoordinator_NilPreProcessor(t *testing.T) {
@@ -4253,6 +4270,7 @@ func createDefaultTxCoordinatorArgs() ArgTransactionCoordinator {
 	txCoordinatorArgs.ShardCoordinator = shardCoordinator
 	txCoordinatorArgs.Accounts = accounts
 	txCoordinatorArgs.MiniBlockPool = dataPool.MiniBlocks()
+	txCoordinatorArgs.PostProcessTransactions = dataPool.PostProcessTransactions()
 	txCoordinatorArgs.PreProcessors = preProcessors
 	txCoordinatorArgs.InterProcessors = createInterimProcessorContainer()
 	txCoordinatorArgs.EnableEpochsHandler = enableEpochsHandler

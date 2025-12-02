@@ -51,6 +51,7 @@ type ArgTransactionCoordinator struct {
 	ShardCoordinator             sharding.Coordinator
 	Accounts                     state.AccountsAdapter
 	MiniBlockPool                storage.Cacher
+	PostProcessTransactions      storage.Cacher
 	PreProcessors                process.PreProcessorsContainer
 	PreProcessorsProposal        process.PreProcessorsContainer
 	InterProcessors              process.IntermediateProcessorContainer
@@ -72,11 +73,12 @@ type ArgTransactionCoordinator struct {
 }
 
 type transactionCoordinator struct {
-	shardCoordinator sharding.Coordinator
-	accounts         state.AccountsAdapter
-	miniBlockPool    storage.Cacher
-	hasher           hashing.Hasher
-	marshalizer      marshal.Marshalizer
+	shardCoordinator        sharding.Coordinator
+	accounts                state.AccountsAdapter
+	miniBlockPool           storage.Cacher
+	postProcessTransactions storage.Cacher
+	hasher                  hashing.Hasher
+	marshalizer             marshal.Marshalizer
 
 	preProcExecution *preProcData
 	preProcProposal  *preProcData
@@ -132,6 +134,7 @@ func NewTransactionCoordinator(args ArgTransactionCoordinator) (*transactionCoor
 	}
 
 	tc.miniBlockPool = args.MiniBlockPool
+	tc.postProcessTransactions = args.PostProcessTransactions
 	tc.interimProcessors = make(map[block.Type]process.IntermediateTransactionHandler)
 
 	tc.preProcExecution, err = newPreProcData(args.PreProcessors)
@@ -893,6 +896,87 @@ func createBroadcastTopic(shardC sharding.Coordinator, destShId uint32, mbType b
 	return transactionTopic, nil
 }
 
+// CreateMarshalledDataForHeader creates marshaled data for broadcasting based on header
+func (tc *transactionCoordinator) CreateMarshalledDataForHeader(header data.HeaderHandler, body *block.Body, miniBlocksMap map[string]block.MiniBlockSlice) map[string][][]byte {
+	mrsTxs := make(map[string][][]byte)
+
+	if check.IfNil(header) || check.IfNil(body) {
+		return mrsTxs
+	}
+
+	if !header.IsHeaderV3() {
+		return tc.CreateMarshalizedData(body)
+	}
+
+	return tc.createMarshalledDataV3(miniBlocksMap)
+}
+
+func (tc *transactionCoordinator) createMarshalledDataV3(miniBlocksMap map[string]block.MiniBlockSlice) map[string][][]byte {
+	// for header v3, the mini blocks are from execution results
+	mrsTxs := make(map[string][][]byte)
+
+	for headerHash, miniBlocks := range miniBlocksMap {
+		cachedIntermediateTxsMap, err := common.GetCachedIntermediateTxs(tc.postProcessTransactions, []byte(headerHash))
+		if err != nil {
+			log.Warn("createMarshalledDataV3.GetCachedIntermediateTxs", "error", err.Error())
+			return mrsTxs
+		}
+
+		tc.appendMarshalledDataForMiniBlocks(miniBlocks, cachedIntermediateTxsMap, mrsTxs)
+	}
+
+	return mrsTxs
+}
+
+func (tc *transactionCoordinator) appendMarshalledDataForMiniBlocks(
+	miniBlocks block.MiniBlockSlice,
+	cachedIntermediateTxsMap map[block.Type]map[string]data.TransactionHandler,
+	mrsTxs map[string][][]byte) {
+	for _, miniBlock := range miniBlocks {
+		if miniBlock.SenderShardID != tc.shardCoordinator.SelfId() ||
+			miniBlock.ReceiverShardID == tc.shardCoordinator.SelfId() {
+			continue
+		}
+
+		broadcastTopic, errCreate := createBroadcastTopic(tc.shardCoordinator, miniBlock.ReceiverShardID, miniBlock.Type)
+		if errCreate != nil {
+			log.Warn("appendMarshalledDataForMiniBlocks.createBroadcastTopic", "error", errCreate.Error())
+			continue
+		}
+
+		transactionsForMiniBlock, ok := cachedIntermediateTxsMap[miniBlock.Type]
+		if !ok {
+			log.Warn("appendMarshalledDataForMiniBlocks could not find transactions for miniBlock", "type", miniBlock.Type)
+			continue
+		}
+
+		tc.appendMarshalledDataForTransactions(miniBlock.TxHashes, transactionsForMiniBlock, broadcastTopic, mrsTxs)
+	}
+}
+
+func (tc *transactionCoordinator) appendMarshalledDataForTransactions(
+	txHashes [][]byte,
+	transactionsForMiniBlock map[string]data.TransactionHandler,
+	broadcastTopic string,
+	mrsTxs map[string][][]byte,
+) {
+	for _, txHash := range txHashes {
+		tx, ok := transactionsForMiniBlock[string(txHash)]
+		if !ok {
+			log.Warn("appendMarshalledDataForTransactions.createBroadcastTopic", "txHash", txHash)
+			continue
+		}
+
+		txBuff, errMarshal := tc.marshalizer.Marshal(tx)
+		if errMarshal != nil {
+			log.Warn("appendMarshalledDataForTransactions.Marshal", "error", errMarshal.Error())
+			continue
+		}
+
+		mrsTxs[broadcastTopic] = append(mrsTxs[broadcastTopic], txBuff)
+	}
+}
+
 // CreateMarshalizedData creates marshalized data for broadcasting
 func (tc *transactionCoordinator) CreateMarshalizedData(body *block.Body) map[string][][]byte {
 	mrsTxs := make(map[string][][]byte)
@@ -1574,6 +1658,9 @@ func checkTransactionCoordinatorNilParameters(arguments ArgTransactionCoordinato
 	}
 	if check.IfNil(arguments.MiniBlockPool) {
 		return process.ErrNilMiniBlockPool
+	}
+	if check.IfNil(arguments.PostProcessTransactions) {
+		return process.ErrNilPostProcessTransactionsCache
 	}
 	if check.IfNil(arguments.InterProcessors) {
 		return process.ErrNilIntermediateProcessorContainer
