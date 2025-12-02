@@ -47,6 +47,7 @@ type ArgsTestOnlyProcessingNode struct {
 	NumShards                   uint32
 	ShardIDStr                  string
 	BypassTxSignatureCheck      bool
+	BypassBlockSignatureCheck   bool
 	MinNodesPerShard            uint32
 	ConsensusGroupSize          uint32
 	MinNodesMeta                uint32
@@ -127,6 +128,7 @@ func NewTestOnlyProcessingNode(args ArgsTestOnlyProcessingNode) (*testOnlyProces
 		Preferences:                 *args.Configs.PreferencesConfig,
 		CoreComponentsHolder:        instance.CoreComponentsHolder,
 		BypassTxSignatureCheck:      args.BypassTxSignatureCheck,
+		BypassBlockSignatureCheck:   args.BypassBlockSignatureCheck,
 		AllValidatorKeysPemFileName: args.Configs.ConfigurationPathsHolder.AllValidatorKeys,
 	})
 	if err != nil {

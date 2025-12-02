@@ -21,6 +21,8 @@ import (
 	crypto "github.com/multiversx/mx-chain-crypto-go"
 	"github.com/multiversx/mx-chain-crypto-go/signing"
 	"github.com/multiversx/mx-chain-crypto-go/signing/mcl"
+	logger "github.com/multiversx/mx-chain-logger-go"
+
 	"github.com/multiversx/mx-chain-go/config"
 	"github.com/multiversx/mx-chain-go/factory"
 	"github.com/multiversx/mx-chain-go/node/chainSimulator/components"
@@ -29,7 +31,6 @@ import (
 	"github.com/multiversx/mx-chain-go/node/chainSimulator/dtos"
 	chainSimulatorErrors "github.com/multiversx/mx-chain-go/node/chainSimulator/errors"
 	"github.com/multiversx/mx-chain-go/node/chainSimulator/process"
-	logger "github.com/multiversx/mx-chain-logger-go"
 )
 
 const delaySendTxs = time.Millisecond
@@ -45,6 +46,7 @@ type transactionWithResult struct {
 // ArgsChainSimulator holds the arguments needed to create a new instance of simulator
 type ArgsChainSimulator struct {
 	BypassTxSignatureCheck         bool
+	BypassBlockSignatureCheck      bool
 	TempDir                        string
 	PathToInitialConfig            string
 	NumOfShards                    uint32
@@ -87,6 +89,7 @@ type simulator struct {
 
 // NewChainSimulator will create a new instance of simulator
 func NewChainSimulator(args ArgsChainSimulator) (*simulator, error) {
+	args.BypassBlockSignatureCheck = true
 	return NewBaseChainSimulator(ArgsBaseChainSimulator{
 		ArgsChainSimulator:          args,
 		ConsensusGroupSize:          args.MinNodesPerShard,
@@ -273,6 +276,7 @@ func (s *simulator) createTestNode(
 		ShardIDStr:                  shardIDStr,
 		APIInterface:                args.ApiInterface,
 		BypassTxSignatureCheck:      args.BypassTxSignatureCheck,
+		BypassBlockSignatureCheck:   args.BypassBlockSignatureCheck,
 		InitialRound:                args.InitialRound,
 		InitialNonce:                args.InitialNonce,
 		MinNodesPerShard:            args.MinNodesPerShard,
