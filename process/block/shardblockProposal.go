@@ -640,15 +640,9 @@ func (sp *shardProcessor) checkMetaHeadersValidityAndFinalityProposal(header dat
 	if err != nil {
 		return err
 	}
-	usedMetaHdrHashes := header.GetMetaBlockHashes()
-	usedMetaHeaders := make([]data.HeaderHandler, 0, len(usedMetaHdrHashes))
-	var metaHdr data.HeaderHandler
-	for _, metaHdrHash := range usedMetaHdrHashes {
-		metaHdr, err = sp.dataPool.Headers().GetHeaderByHash(metaHdrHash)
-		if err != nil {
-			return fmt.Errorf("%w : checkMetaHeadersValidityAndFinalityProposal -> getHeaderByHash", err)
-		}
-		usedMetaHeaders = append(usedMetaHeaders, metaHdr)
+	usedMetaHeaders, err := sp.getReferencedMetaHeadersFromPool(header)
+	if err != nil {
+		return fmt.Errorf("%w : checkMetaHeadersValidityAndFinalityProposal -> getReferencedMetaHeadersFromPool", err)
 	}
 
 	process.SortHeadersByNonce(usedMetaHeaders)
@@ -667,6 +661,22 @@ func (sp *shardProcessor) checkMetaHeadersValidityAndFinalityProposal(header dat
 	}
 
 	return nil
+}
+
+func (sp *shardProcessor) getReferencedMetaHeadersFromPool(header data.ShardHeaderHandler) ([]data.HeaderHandler, error) {
+	usedMetaHdrHashes := header.GetMetaBlockHashes()
+	usedMetaHeaders := make([]data.HeaderHandler, 0, len(usedMetaHdrHashes))
+	var metaHdr data.HeaderHandler
+	var err error
+	for _, metaHdrHash := range usedMetaHdrHashes {
+		metaHdr, err = sp.dataPool.Headers().GetHeaderByHash(metaHdrHash)
+		if err != nil {
+			return nil, err
+		}
+		usedMetaHeaders = append(usedMetaHeaders, metaHdr)
+	}
+
+	return usedMetaHeaders, nil
 }
 
 // collectExecutionResults collects the execution results after processing the block
@@ -726,4 +736,48 @@ func (sp *shardProcessor) getCrossShardIncomingMiniBlocksFromBody(body *block.Bo
 		}
 	}
 	return miniBlocks
+}
+
+func (sp *shardProcessor) getOrderedProcessedMetaBlocksFromMiniBlockHashesV3(
+	header data.HeaderHandler,
+	miniBlockHashes map[int][]byte,
+) ([]data.HeaderHandler, error) {
+	shardHeader, ok := header.(data.ShardHeaderHandler)
+	if !ok {
+		return nil, process.ErrWrongTypeAssertion
+	}
+	metaHeaders, err := sp.getReferencedMetaHeadersFromPool(shardHeader)
+	if err != nil {
+		return nil, err
+	}
+
+	hashSet := make(map[string]struct{}, len(miniBlockHashes))
+	for _, b := range miniBlockHashes {
+		hashSet[string(b)] = struct{}{}
+	}
+
+	fullyReferencedMetaBlocks := make([]data.HeaderHandler, 0, len(metaHeaders))
+	var remaining int
+	for _, metaHeader := range metaHeaders {
+		crossMiniBlockHashes := metaHeader.GetMiniBlockHeadersWithDst(sp.shardCoordinator.SelfId())
+		if len(crossMiniBlockHashes) == 0 {
+			fullyReferencedMetaBlocks = append(fullyReferencedMetaBlocks, metaHeader)
+			continue
+		}
+
+		remaining = len(crossMiniBlockHashes)
+		for k := range crossMiniBlockHashes {
+			_, found := hashSet[k]
+			if found {
+				remaining--
+			}
+		}
+		if remaining == 0 {
+			fullyReferencedMetaBlocks = append(fullyReferencedMetaBlocks, metaHeader)
+		}
+	}
+
+	process.SortHeadersByNonce(fullyReferencedMetaBlocks)
+
+	return fullyReferencedMetaBlocks, nil
 }

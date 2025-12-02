@@ -1734,7 +1734,13 @@ func (sp *shardProcessor) getOrderedProcessedMetaBlocksFromHeader(header data.He
 		"num miniblocks", len(miniBlockHashes),
 	)
 
-	processedMetaBlocks, err := sp.getOrderedProcessedMetaBlocksFromMiniBlockHashes(miniBlockHeaders, miniBlockHashes)
+	var processedMetaBlocks []data.HeaderHandler
+	var err error
+	if !header.IsHeaderV3() {
+		processedMetaBlocks, err = sp.getOrderedProcessedMetaBlocksFromMiniBlockHashes(miniBlockHeaders, miniBlockHashes)
+	} else {
+		processedMetaBlocks, err = sp.getOrderedProcessedMetaBlocksFromMiniBlockHashesV3(header, miniBlockHashes)
+	}
 	if err != nil {
 		return nil, err
 	}
