@@ -483,14 +483,13 @@ func createMockTransactionCoordinatorArguments(
 	blockDataRequesterProposal, _ := coordinator.NewBlockDataRequester(blockDataRequesterArgsProposal)
 
 	argsTransactionCoordinator := coordinator.ArgTransactionCoordinator{
-		Hasher:                  &hashingMocks.HasherMock{},
-		Marshalizer:             &mock.MarshalizerMock{},
-		ShardCoordinator:        shardCoordinator,
-		Accounts:                accountAdapter,
-		MiniBlockPool:           poolsHolder.MiniBlocks(),
-		PostProcessTransactions: poolsHolder.PostProcessTransactions(),
-		PreProcessors:           preProcessorsContainer,
-		PreProcessorsProposal:   preProcessorsContainerProposal,
+		Hasher:                &hashingMocks.HasherMock{},
+		Marshalizer:           &mock.MarshalizerMock{},
+		ShardCoordinator:      shardCoordinator,
+		Accounts:              accountAdapter,
+		DataPool:              poolsHolder,
+		PreProcessors:         preProcessorsContainer,
+		PreProcessorsProposal: preProcessorsContainerProposal,
 		InterProcessors: &mock.InterimProcessorContainerMock{
 			KeysCalled: func() []block.Type {
 				return []block.Type{block.SmartContractResultBlock}
