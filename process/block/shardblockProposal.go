@@ -728,16 +728,6 @@ func (sp *shardProcessor) collectExecutionResults(headerHash []byte, header data
 	return executionResult, nil
 }
 
-func (sp *shardProcessor) getCrossShardIncomingMiniBlocksFromBody(body *block.Body) []*block.MiniBlock {
-	miniBlocks := make([]*block.MiniBlock, 0)
-	for _, mb := range body.MiniBlocks {
-		if mb.ReceiverShardID == sp.shardCoordinator.SelfId() && mb.SenderShardID != sp.shardCoordinator.SelfId() {
-			miniBlocks = append(miniBlocks, mb)
-		}
-	}
-	return miniBlocks
-}
-
 func (sp *shardProcessor) getOrderedProcessedMetaBlocksFromMiniBlockHashesV3(
 	header data.HeaderHandler,
 	miniBlockHashes map[int][]byte,
