@@ -1,14 +1,32 @@
 package txcache
 
-import "github.com/multiversx/mx-chain-core-go/data/block"
+import (
+	"github.com/multiversx/mx-chain-core-go/data/block"
+)
 
 // getTransactionsInBlock returns the transactions from a block body
-func getTransactionsInBlock(blockBody *block.Body, txCache txCacheForSelectionTracker) ([]*WrappedTransaction, error) {
+func getTransactionsInBlock(
+	blockBody *block.Body,
+	txCache txCacheForSelectionTracker,
+	selfShardId uint32,
+) ([]*WrappedTransaction, error) {
 	miniBlocks := blockBody.GetMiniBlocks()
 	numberOfTxs := computeNumberOfTxsInMiniBlocks(miniBlocks)
 	txs := make([]*WrappedTransaction, 0, numberOfTxs)
 
 	for _, miniBlock := range miniBlocks {
+
+		// sa fie txblock sau invalid altfel skip
+		isTxBlock := miniBlock.Type == block.TxBlock
+		isInvalidBlock := miniBlock.Type == block.InvalidBlock
+		if !isTxBlock && !isInvalidBlock {
+			continue
+		}
+
+		if miniBlock.SenderShardID != selfShardId {
+			continue
+		}
+
 		txHashes := miniBlock.GetTxHashes()
 
 		for _, txHash := range txHashes {
