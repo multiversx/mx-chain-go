@@ -354,6 +354,9 @@ func (e *economics) adjustRewardsPerBlockWithAcceleratorRewards(
 	acceleratorRewards *big.Int,
 	blocksInEpoch uint64,
 ) {
+	if blocksInEpoch == 0 {
+		return
+	}
 	acceleratorRewardsPerBlock := big.NewInt(0).Div(acceleratorRewards, big.NewInt(0).SetUint64(blocksInEpoch))
 	rwdPerBlock.Sub(rwdPerBlock, acceleratorRewardsPerBlock)
 }
@@ -465,7 +468,7 @@ func (e *economics) computeInflationForEpoch(
 	prevEpoch := e.getPreviousEpoch(epoch)
 	chainParameters, err := e.chainParamsHandler.ChainParametersForEpoch(prevEpoch)
 	if err != nil {
-		log.Warn("could not get rounds per epoch for epoch, returned current chain paramters", "epoch", epoch, "error", err)
+		log.Warn("could not get rounds per epoch for epoch, returned current chain paramters", "prevEpoch", prevEpoch, "error", err)
 		chainParameters = e.chainParamsHandler.CurrentChainParameters()
 	}
 	roundDuration := time.Duration(chainParameters.RoundDuration) * time.Millisecond

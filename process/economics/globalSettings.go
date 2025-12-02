@@ -52,7 +52,6 @@ func newGlobalSettingsHandler(
 		chainParameters:              chainParameters,
 	}
 
-	g.yearSettings = make(map[uint32]*config.YearSetting)
 	for _, yearSetting := range economics.GlobalSettings.YearSettings {
 		g.yearSettings[yearSetting.Year] = &config.YearSetting{
 			Year:             yearSetting.Year,
