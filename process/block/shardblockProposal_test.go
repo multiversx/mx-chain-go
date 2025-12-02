@@ -3201,6 +3201,237 @@ func TestShardProcessor_collectExecutionResults(t *testing.T) {
 	})
 }
 
+func Test_getOrderedProcessedMetaBlocksFromMiniBlockHashesV3(t *testing.T) {
+	t.Parallel()
+
+	t.Run("should return ErrWrongTypeAssertion in case of wrong header type", func(t *testing.T) {
+		t.Parallel()
+
+		sp, err := blproc.ConstructPartialShardBlockProcessorForTest(map[string]interface{}{})
+		require.Nil(t, err)
+
+		_, err = sp.GetOrderedProcessedMetaBlocksFromMiniBlockHashesV3(
+			&block.MetaBlockV3{},
+			nil,
+		)
+		require.Equal(t, process.ErrWrongTypeAssertion, err)
+	})
+
+	t.Run("if GetHeaderByHash from dataPool fails, the error should be propagated", func(t *testing.T) {
+		t.Parallel()
+
+		sp, err := blproc.ConstructPartialShardBlockProcessorForTest(map[string]interface{}{
+			"dataPool": &dataRetriever.PoolsHolderStub{
+				HeadersCalled: func() retriever.HeadersPool {
+					return &pool.HeadersPoolStub{
+						GetHeaderByHashCalled: func(hash []byte) (data.HeaderHandler, error) {
+							return nil, expectedErr
+						},
+					}
+				},
+			},
+		})
+		require.Nil(t, err)
+
+		header := &block.HeaderV3{
+			MetaBlockHashes: [][]byte{
+				[]byte("metaBlockHash"),
+			},
+		}
+		_, err = sp.GetOrderedProcessedMetaBlocksFromMiniBlockHashesV3(
+			header,
+			make(map[int][]byte),
+		)
+		require.Equal(t, expectedErr, err)
+	})
+
+	t.Run("should mark a meta block as fully referenced in case of no cross mini blocks with dst", func(t *testing.T) {
+		t.Parallel()
+
+		headersByHash := map[string]data.HeaderHandler{
+			"metaHeaderHash1": &block.MetaBlockV3{
+				ShardInfo: []block.ShardData{
+					{
+						ShardID: 0,
+						ShardMiniBlockHeaders: []block.MiniBlockHeader{
+							{
+								Hash: []byte("miniBlockHeaderHash1"),
+							},
+						},
+					},
+				},
+			},
+		}
+
+		sp, err := blproc.ConstructPartialShardBlockProcessorForTest(map[string]interface{}{
+			"dataPool": &dataRetriever.PoolsHolderStub{
+				HeadersCalled: func() retriever.HeadersPool {
+					return &pool.HeadersPoolStub{
+						GetHeaderByHashCalled: func(hash []byte) (data.HeaderHandler, error) {
+							return headersByHash[string(hash)], nil
+						},
+					}
+				},
+			},
+			"shardCoordinator": &mock.CoordinatorStub{SelfIdCalled: func() uint32 {
+				return 1
+			}},
+		})
+		require.Nil(t, err)
+
+		header := &block.HeaderV3{
+			MetaBlockHashes: [][]byte{
+				[]byte("metaHeaderHash1"),
+			},
+		}
+		fullyReferencedMetaBlocks, err := sp.GetOrderedProcessedMetaBlocksFromMiniBlockHashesV3(
+			header,
+			make(map[int][]byte),
+		)
+		require.Nil(t, err)
+		require.Equal(t, 1, len(fullyReferencedMetaBlocks))
+	})
+
+	t.Run("should mark a meta block as fully referenced in case of all hashes referenced on block", func(t *testing.T) {
+		t.Parallel()
+
+		metaHeader1 := &block.MetaBlockV3{
+			Nonce: 1,
+			ShardInfo: []block.ShardData{
+				{
+					ShardID: 0,
+					ShardMiniBlockHeaders: []block.MiniBlockHeader{
+						{
+							ReceiverShardID: 1,
+							Hash:            []byte("miniBlockHeaderHash1"),
+						},
+					},
+				},
+			},
+		}
+
+		metaHeader2 := &block.MetaBlockV3{
+			Nonce: 0,
+			ShardInfo: []block.ShardData{
+				{
+					ShardID: 0,
+					ShardMiniBlockHeaders: []block.MiniBlockHeader{
+						{
+							ReceiverShardID: 1,
+							Hash:            []byte("miniBlockHeaderHash2"),
+						},
+					},
+				},
+			},
+		}
+
+		headersByHash := map[string]data.HeaderHandler{
+			"metaHeaderHash1": metaHeader1,
+			"metaHeaderHash2": metaHeader2,
+		}
+
+		sp, err := blproc.ConstructPartialShardBlockProcessorForTest(map[string]interface{}{
+			"dataPool": &dataRetriever.PoolsHolderStub{
+				HeadersCalled: func() retriever.HeadersPool {
+					return &pool.HeadersPoolStub{
+						GetHeaderByHashCalled: func(hash []byte) (data.HeaderHandler, error) {
+							return headersByHash[string(hash)], nil
+						},
+					}
+				},
+			},
+			"shardCoordinator": &mock.CoordinatorStub{SelfIdCalled: func() uint32 {
+				return 1
+			}},
+		})
+		require.Nil(t, err)
+
+		header := &block.HeaderV3{
+			MetaBlockHashes: [][]byte{
+				[]byte("metaHeaderHash1"),
+				[]byte("metaHeaderHash2"),
+			},
+		}
+		fullyReferencedMetaBlocks, err := sp.GetOrderedProcessedMetaBlocksFromMiniBlockHashesV3(
+			header,
+			map[int][]byte{
+				0: []byte("miniBlockHeaderHash1"),
+				1: []byte("miniBlockHeaderHash2"),
+			},
+		)
+
+		expectedFullyReferencedMetaBlocks := []data.HeaderHandler{
+			// should be sorted by nonce
+			metaHeader2,
+			metaHeader1,
+		}
+		require.Nil(t, err)
+		require.Equal(t, 2, len(fullyReferencedMetaBlocks))
+		require.Equal(t, expectedFullyReferencedMetaBlocks, fullyReferencedMetaBlocks)
+	})
+
+	t.Run("shouldn't mark a meta block as fully referenced in case not all hashes are referenced on block", func(t *testing.T) {
+		t.Parallel()
+
+		headersByHash := map[string]data.HeaderHandler{
+			"metaHeaderHash1": &block.MetaBlockV3{
+				ShardInfo: []block.ShardData{
+					{
+						ShardID: 0,
+						ShardMiniBlockHeaders: []block.MiniBlockHeader{
+							{
+								ReceiverShardID: 1,
+								Hash:            []byte("miniBlockHeaderHash1"),
+							},
+						},
+					},
+				},
+			},
+			"metaHeaderHash2": &block.MetaBlockV3{
+				ShardInfo: []block.ShardData{
+					{
+						ShardID: 0,
+						ShardMiniBlockHeaders: []block.MiniBlockHeader{
+							{
+								ReceiverShardID: 1,
+								Hash:            []byte("miniBlockHeaderHash2"),
+							},
+						},
+					},
+				},
+			},
+		}
+		sp, err := blproc.ConstructPartialShardBlockProcessorForTest(map[string]interface{}{
+			"dataPool": &dataRetriever.PoolsHolderStub{
+				HeadersCalled: func() retriever.HeadersPool {
+					return &pool.HeadersPoolStub{
+						GetHeaderByHashCalled: func(hash []byte) (data.HeaderHandler, error) {
+							return headersByHash[string(hash)], nil
+						},
+					}
+				},
+			},
+			"shardCoordinator": &mock.CoordinatorStub{SelfIdCalled: func() uint32 {
+				return 1
+			}},
+		})
+		require.Nil(t, err)
+
+		header := &block.HeaderV3{
+			MetaBlockHashes: [][]byte{
+				[]byte("metaHeaderHash1"),
+				[]byte("metaHeaderHash2"),
+			},
+		}
+		fullyReferencedMetaBlocks, err := sp.GetOrderedProcessedMetaBlocksFromMiniBlockHashesV3(
+			header,
+			make(map[int][]byte),
+		)
+		require.Nil(t, err)
+		require.Equal(t, 0, len(fullyReferencedMetaBlocks))
+	})
+}
+
 func createSubComponentsForCollectExecutionResultsTest() (map[string]interface{}, data.HeaderHandler, *block.Body) {
 
 	txCoordinator := &testscommon.TransactionCoordinatorMock{
