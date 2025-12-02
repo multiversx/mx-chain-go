@@ -607,8 +607,8 @@ func (bp *baseProcessor) GetIndexOfFirstMiniBlockToBeExecuted(header data.Header
 }
 
 // GetFinalMiniBlocks -
-func (bp *baseProcessor) GetFinalMiniBlocks(header data.HeaderHandler, body *block.Body) (*block.Body, error) {
-	return bp.getFinalMiniBlocks(header, body)
+func (bp *baseProcessor) GetFinalMiniBlocks(headerHash []byte, header data.HeaderHandler, body *block.Body) (*block.Body, map[string]block.MiniBlockSlice, error) {
+	return bp.getFinalMiniBlocks(headerHash, header, body)
 }
 
 // GetScheduledMiniBlocksFromMe -
@@ -777,7 +777,7 @@ func (bp *baseProcessor) CheckHeaderBodyCorrelationProposal(miniBlockHeaders []d
 // GetFinalMiniBlocksFromExecutionResults -
 func (bp *baseProcessor) GetFinalMiniBlocksFromExecutionResults(
 	header data.HeaderHandler,
-) (*block.Body, error) {
+) (*block.Body, map[string]block.MiniBlockSlice, error) {
 	return bp.getFinalMiniBlocksFromExecutionResults(header)
 }
 
@@ -822,8 +822,8 @@ func (sp *shardProcessor) CheckMetaHeadersValidityAndFinalityProposal(header dat
 }
 
 // VerifyGasLimit -
-func (sp *shardProcessor) VerifyGasLimit(header data.ShardHeaderHandler) error {
-	return sp.verifyGasLimit(header)
+func (sp *shardProcessor) VerifyGasLimit(header data.ShardHeaderHandler, miniBlocks block.MiniBlockSlice) error {
+	return sp.verifyGasLimit(header, miniBlocks)
 }
 
 // CheckEpochStartInfoAvailableIfNeeded -
