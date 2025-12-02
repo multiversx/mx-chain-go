@@ -122,3 +122,61 @@ func TestGlobalSettingsMaxInflationRate_withSupply(t *testing.T) {
 	require.True(t, totalSupplyDay365Yearly >= totalSupplyDay365Daily)
 	require.True(t, totalSupplyDay365Yearly-totalSupplyDay365Daily < oneToken)
 }
+
+func TestNewGlobalSettingsHandler_ZeroEpochDuration(t *testing.T) {
+	t.Parallel()
+
+	economics := &config.EconomicsConfig{}
+	chainParams := config.ChainParametersByEpochConfig{RoundsPerEpoch: 100, RoundDuration: 0}
+	chainParamsHolder := &chainParameters.ChainParametersHandlerStub{
+		AllChainParametersCalled: func() []config.ChainParametersByEpochConfig {
+			return []config.ChainParametersByEpochConfig{chainParams}
+		},
+	}
+
+	_, err := newGlobalSettingsHandler(economics, chainParamsHolder)
+	require.Error(t, err)
+}
+
+func TestNewGlobalSettingsHandler_Sorting(t *testing.T) {
+	t.Parallel()
+
+	economics := &config.EconomicsConfig{}
+	chainParams1 := config.ChainParametersByEpochConfig{RoundsPerEpoch: 100, RoundDuration: 1000, EnableEpoch: 10}
+	chainParams2 := config.ChainParametersByEpochConfig{RoundsPerEpoch: 200, RoundDuration: 2000, EnableEpoch: 20}
+	chainParamsHolder := &chainParameters.ChainParametersHandlerStub{
+		AllChainParametersCalled: func() []config.ChainParametersByEpochConfig {
+			return []config.ChainParametersByEpochConfig{chainParams1, chainParams2}
+		},
+	}
+
+	gsh, err := newGlobalSettingsHandler(economics, chainParamsHolder)
+	require.NoError(t, err)
+
+	require.Equal(t, uint32(20), gsh.inflationForEpoch[0].enableEpoch)
+	require.Equal(t, uint32(10), gsh.inflationForEpoch[1].enableEpoch)
+}
+
+func TestNewGlobalSettingsHandler_MultipleChainParameters(t *testing.T) {
+	t.Parallel()
+
+	economics := &config.EconomicsConfig{}
+	economics.GlobalSettings.TailInflation.StartYearInflation = 0.1
+
+	chainParams1 := config.ChainParametersByEpochConfig{RoundsPerEpoch: 14400, RoundDuration: 6000, EnableEpoch: 10}
+	chainParams2 := config.ChainParametersByEpochConfig{RoundsPerEpoch: 7200, RoundDuration: 3000, EnableEpoch: 20}
+	chainParamsHolder := &chainParameters.ChainParametersHandlerStub{
+		AllChainParametersCalled: func() []config.ChainParametersByEpochConfig {
+			return []config.ChainParametersByEpochConfig{chainParams1, chainParams2}
+		},
+	}
+
+	gsh, err := newGlobalSettingsHandler(economics, chainParamsHolder)
+	require.NoError(t, err)
+
+	require.Equal(t, uint32(20), gsh.inflationForEpoch[0].enableEpoch)
+	require.InDelta(t, 0.0953137, gsh.inflationForEpoch[0].maxInflation, 0.000001)
+
+	require.Equal(t, uint32(10), gsh.inflationForEpoch[1].enableEpoch)
+	require.InDelta(t, 0.0953227, gsh.inflationForEpoch[1].maxInflation, 0.000001)
+}
