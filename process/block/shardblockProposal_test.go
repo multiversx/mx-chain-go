@@ -3250,12 +3250,14 @@ func Test_getOrderedProcessedMetaBlocksFromMiniBlockHashesV3(t *testing.T) {
 
 		headersByHash := map[string]data.HeaderHandler{
 			"metaHeaderHash1": &block.MetaBlockV3{
+				Nonce: 1,
 				ShardInfo: []block.ShardData{
 					{
 						ShardID: 0,
 						ShardMiniBlockHeaders: []block.MiniBlockHeader{
 							{
-								Hash: []byte("miniBlockHeaderHash1"),
+								ReceiverShardID: 0,
+								Hash:            []byte("miniBlockHeaderHash1"),
 							},
 						},
 					},
@@ -3425,10 +3427,12 @@ func Test_getOrderedProcessedMetaBlocksFromMiniBlockHashesV3(t *testing.T) {
 		}
 		fullyReferencedMetaBlocks, err := sp.GetOrderedProcessedMetaBlocksFromMiniBlockHashesV3(
 			header,
-			make(map[int][]byte),
+			map[int][]byte{
+				0: []byte("miniBlockHeaderHash1"),
+			},
 		)
 		require.Nil(t, err)
-		require.Equal(t, 0, len(fullyReferencedMetaBlocks))
+		require.Equal(t, 1, len(fullyReferencedMetaBlocks))
 	})
 }
 
