@@ -34,6 +34,7 @@ import (
 	"github.com/multiversx/mx-chain-go/testscommon/enableEpochsHandlerMock"
 	"github.com/multiversx/mx-chain-go/testscommon/epochNotifier"
 	"github.com/multiversx/mx-chain-go/testscommon/genesisMocks"
+	"github.com/multiversx/mx-chain-go/testscommon/pool"
 	"github.com/multiversx/mx-chain-go/testscommon/shardingMocks"
 	stateMock "github.com/multiversx/mx-chain-go/testscommon/state"
 	storageStubs "github.com/multiversx/mx-chain-go/testscommon/storage"
@@ -2950,4 +2951,84 @@ func TestValidatorStatisticsProcessor_getActualList(t *testing.T) {
 	}
 	computedJailedList := peer.GetActualList(jailedPeer)
 	assert.Equal(t, jailedList, computedJailedList)
+}
+
+func TestValidatorStatistics_SearchInMap(t *testing.T) {
+	t.Parallel()
+
+	t.Run("should work when found in cache", func(t *testing.T) {
+		t.Parallel()
+
+		cache := createMockCache()
+
+		_, header := generateTestShardBlockHeaders(cache)
+		headerHash := []byte("headerHash")
+		cache[string(headerHash)] = header
+
+		arguments := createMockArguments()
+
+		validatorStatistics, _ := peer.NewValidatorStatisticsProcessor(arguments)
+
+		retHeader, err := validatorStatistics.SearchInMap(headerHash, cache)
+		require.Nil(t, err)
+		require.Equal(t, header, retHeader)
+	})
+
+	t.Run("should work when found in headers pool", func(t *testing.T) {
+		t.Parallel()
+
+		cache := createMockCache()
+
+		_, header := generateTestShardBlockHeaders(cache)
+
+		headerHash := []byte("headerHash")
+
+		arguments := createMockArguments()
+
+		dataPool := &dataRetrieverMock.PoolsHolderStub{
+			HeadersCalled: func() dataRetriever.HeadersPool {
+				return &pool.HeadersPoolStub{
+					GetHeaderByHashCalled: func(hash []byte) (data.HeaderHandler, error) {
+						require.Equal(t, headerHash, hash)
+						return header, nil
+					},
+				}
+			},
+		}
+		arguments.DataPool = dataPool
+
+		validatorStatistics, _ := peer.NewValidatorStatisticsProcessor(arguments)
+
+		retHeader, err := validatorStatistics.SearchInMap(headerHash, cache)
+		require.Nil(t, err)
+		require.Equal(t, header, retHeader)
+	})
+
+	t.Run("should fail when not found in headers pool", func(t *testing.T) {
+		t.Parallel()
+
+		cache := createMockCache()
+
+		headerHash := []byte("headerHash")
+
+		arguments := createMockArguments()
+
+		expectedErr := errors.New("exp err")
+		dataPool := &dataRetrieverMock.PoolsHolderStub{
+			HeadersCalled: func() dataRetriever.HeadersPool {
+				return &pool.HeadersPoolStub{
+					GetHeaderByHashCalled: func(hash []byte) (data.HeaderHandler, error) {
+						return nil, expectedErr
+					},
+				}
+			},
+		}
+		arguments.DataPool = dataPool
+
+		validatorStatistics, _ := peer.NewValidatorStatisticsProcessor(arguments)
+
+		retHeader, err := validatorStatistics.SearchInMap(headerHash, cache)
+		require.ErrorIs(t, err, expectedErr)
+		require.Nil(t, retHeader)
+	})
 }
