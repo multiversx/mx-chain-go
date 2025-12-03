@@ -235,6 +235,10 @@ func (bpm *BlockProcessorMock) OnProposedBlock(
 	return nil
 }
 
+func (bpm *BlockProcessorMock) OnExecutedBlock(header data.HeaderHandler, rootHash []byte) error {
+	return nil
+}
+
 // Close -
 func (bpm *BlockProcessorMock) Close() error {
 	return nil

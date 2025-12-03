@@ -1072,7 +1072,7 @@ func (sp *shardProcessor) CommitBlock(
 		return err
 	}
 
-	err = sp.onExecutedBlock(lastExecutionResultHeader, rootHash)
+	err = sp.OnExecutedBlock(lastExecutionResultHeader, rootHash)
 	if err != nil {
 		return err
 	}

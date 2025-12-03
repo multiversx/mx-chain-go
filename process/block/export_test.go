@@ -1027,11 +1027,6 @@ func (mp *metaProcessor) CommitEpochStart(header data.MetaHeaderHandler, body *b
 	return mp.commitEpochStart(header, body)
 }
 
-// OnExecutedBlock -
-func (bp *baseProcessor) OnExecutedBlock(header data.HeaderHandler, rootHash []byte) error {
-	return bp.onExecutedBlock(header, rootHash)
-}
-
 // RecreateTrieIfNeeded -
 func (bp *baseProcessor) RecreateTrieIfNeeded() error {
 	return bp.recreateTrieIfNeeded()

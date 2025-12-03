@@ -232,6 +232,10 @@ func (bps *BlockProcessorStub) OnProposedBlock(
 	return nil
 }
 
+func (bps *BlockProcessorStub) OnExecutedBlock(header data.HeaderHandler, rootHash []byte) error {
+	return nil
+}
+
 // RemoveHeaderFromPool -
 func (bps *BlockProcessorStub) RemoveHeaderFromPool(headerHash []byte) {
 	if bps.RemoveHeaderFromPoolCalled != nil {
