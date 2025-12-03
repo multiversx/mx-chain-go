@@ -930,7 +930,7 @@ func (tc *transactionCoordinator) createMarshalledDataV3(miniBlocksMap map[strin
 				continue
 			}
 
-			if miniBlock.Type == block.TxBlock {
+			if miniBlock.Type == block.TxBlock || miniBlock.Type == block.InvalidBlock {
 				tc.appendTransactionsFromPoolForMiniBlock(tc.dataPool.Transactions(), miniBlock, broadcastTopic, mrsTxs)
 				continue
 			}
@@ -938,6 +938,10 @@ func (tc *transactionCoordinator) createMarshalledDataV3(miniBlocksMap map[strin
 			if miniBlock.Type == block.RewardsBlock {
 				tc.appendTransactionsFromPoolForMiniBlock(tc.dataPool.RewardTransactions(), miniBlock, broadcastTopic, mrsTxs)
 				continue
+			}
+
+			if miniBlock.Type == block.PeerBlock {
+				tc.appendTransactionsFromPoolForMiniBlock(tc.dataPool.ValidatorsInfo(), miniBlock, broadcastTopic, mrsTxs)
 			}
 
 			tc.appendPostProcessTransactionsForMiniBlocks(cachedIntermediateTxsMap, miniBlock, broadcastTopic, mrsTxs)
@@ -1707,6 +1711,9 @@ func checkTransactionCoordinatorNilParameters(arguments ArgTransactionCoordinato
 	}
 	if check.IfNil(arguments.DataPool.RewardTransactions()) {
 		return process.ErrNilRewardTxDataPool
+	}
+	if check.IfNil(arguments.DataPool.ValidatorsInfo()) {
+		return process.ErrNilValidatorInfoPool
 	}
 	if check.IfNil(arguments.InterProcessors) {
 		return process.ErrNilIntermediateProcessorContainer

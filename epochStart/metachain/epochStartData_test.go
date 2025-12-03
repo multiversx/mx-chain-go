@@ -203,6 +203,63 @@ func TestVerifyEpochStartDataForMetablock_NotEpochStartBlock(t *testing.T) {
 	require.NoError(t, err)
 }
 
+func TestEpochStartData_VerifyEpochStartDataForMetablock(t *testing.T) {
+	t.Parallel()
+
+	t.Run("if not epoch start block, nil should be returned", func(t *testing.T) {
+		t.Parallel()
+
+		arguments := createMockEpochStartCreatorArguments()
+		esd, _ := NewEpochStartData(arguments)
+
+		err := esd.verifyEpochStartDataForMetablock(&block.MetaBlockV3{
+			EpochStart: block.EpochStart{},
+		}, nil)
+		require.NoError(t, err)
+	})
+
+	t.Run("if calculating the hash fails, the error should be propagated", func(t *testing.T) {
+		t.Parallel()
+
+		arguments := createMockEpochStartCreatorArguments()
+		esd, _ := NewEpochStartData(arguments)
+		esd.marshalizer = &mock.MarshalizerStub{
+			MarshalCalled: func(obj interface{}) ([]byte, error) {
+				return nil, errExpected
+			},
+		}
+
+		err := esd.verifyEpochStartDataForMetablock(&block.MetaBlockV3{
+			EpochStart: block.EpochStart{
+				LastFinalizedHeaders: []block.EpochStartShardData{
+					{}, {}, {},
+				},
+			},
+		}, nil)
+		require.Equal(t, errExpected, err)
+	})
+}
+
+func TestEpochStartData_getRootHashForLastCrossNotarizedHeader(t *testing.T) {
+	t.Parallel()
+
+	t.Run("should set the scheduled root hash in case of headerV2", func(t *testing.T) {
+		t.Parallel()
+
+		rhd, err := getRootHashForLastCrossNotarizedHeader(
+			&block.HeaderV2{
+				Header: &block.Header{
+					RootHash: []byte("rootHash"),
+				},
+				ScheduledRootHash: []byte("scheduledRootHash"),
+			},
+		)
+		require.NoError(t, err)
+		require.Equal(t, rhd.rootHash, []byte("rootHash"))
+		require.Equal(t, rhd.scheduledRootHash, []byte("scheduledRootHash"))
+	})
+}
+
 func TestVerifyEpochStartDataForMetablock_DataDoesNotMatch(t *testing.T) {
 	t.Parallel()
 

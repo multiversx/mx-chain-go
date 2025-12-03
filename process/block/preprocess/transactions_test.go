@@ -832,6 +832,43 @@ func TestCleanupSelfShardTxCacheTriggered(t *testing.T) {
 	assert.Equal(t, 30000, gotMaxNum)
 }
 
+func Test_RemoveTxsFromPools(t *testing.T) {
+	t.Parallel()
+
+	t.Run("if recreating the trie fails, the error should be propagated", func(t *testing.T) {
+		t.Parallel()
+
+		errExpected := errors.New("expected error")
+		args := createDefaultTransactionsProcessorArgs()
+		args.AccountsProposal = &stateMock.AccountsStub{
+			RecreateTrieIfNeededCalled: func(options common.RootHashHolder) error {
+				return errExpected
+			},
+		}
+		txs, err := NewTransactionPreprocessor(args)
+		require.Nil(t, err)
+
+		err = txs.RemoveTxsFromPools(&block.Body{}, holders.NewDefaultRootHashesHolder([]byte("rootHash")))
+		require.Equal(t, errExpected, err)
+	})
+
+	t.Run("if removing txs from pool fails, the error should be propagated", func(t *testing.T) {
+		t.Parallel()
+
+		args := createDefaultTransactionsProcessorArgs()
+		args.AccountsProposal = &stateMock.AccountsStub{
+			RecreateTrieIfNeededCalled: func(options common.RootHashHolder) error {
+				return nil
+			},
+		}
+		txs, err := NewTransactionPreprocessor(args)
+		require.Nil(t, err)
+
+		err = txs.RemoveTxsFromPools(nil, holders.NewDefaultRootHashesHolder([]byte("rootHash")))
+		require.Equal(t, process.ErrNilTxBlockBody, err)
+	})
+}
+
 func createArgsForCleanupSelfShardTxCachePreprocessor() ArgsTransactionPreProcessor {
 	totalGasProvided := uint64(0)
 	args := createDefaultTransactionsProcessorArgs()
@@ -2716,5 +2753,63 @@ func TestTransactions_getIndexesOfLastTxProcessed(t *testing.T) {
 		assert.Nil(t, err)
 		assert.Equal(t, int32(-1), pi.indexOfLastTxProcessed)
 		assert.Equal(t, mbh.GetIndexOfLastTxProcessed(), pi.indexOfLastTxProcessedByProposer)
+	})
+}
+
+func Test_SelectOutgoingTransactions(t *testing.T) {
+	t.Parallel()
+
+	t.Run("if selectTransactionsFromTxPoolForProposal fails the error should be propagated", func(t *testing.T) {
+		t.Parallel()
+
+		args := createDefaultTransactionsProcessorArgs()
+		txs, _ := NewTransactionPreprocessor(args)
+		txs.txPool = &testscommon.ShardedDataStub{
+			ShardDataStoreCalled: func(cacheID string) storage.Cacher {
+				return nil
+			},
+		}
+
+		_, _, err := txs.SelectOutgoingTransactions(0, 0)
+		require.Equal(t, process.ErrNilTxDataPool, err)
+	})
+
+	t.Run("should work", func(t *testing.T) {
+		t.Parallel()
+
+		args := createArgsForCleanupSelfShardTxCachePreprocessor()
+		txs, _ := NewTransactionPreprocessor(args)
+
+		err := txs.txPool.OnExecutedBlock(&block.Header{}, []byte("rootHash"))
+		require.NoError(t, err)
+
+		sndShardId := uint32(0)
+		dstShardId := uint32(0)
+		strCache := process.ShardCacherIdentifier(sndShardId, dstShardId)
+
+		txsToAdd := []*transaction.Transaction{
+			{
+				SndAddr:  []byte("alice"),
+				Nonce:    2,
+				GasLimit: 1000,
+				GasPrice: 500,
+			},
+			{
+				SndAddr:  []byte("bob"),
+				Nonce:    42,
+				GasLimit: 1000,
+				GasPrice: 500,
+			},
+		}
+
+		for i, tx := range txsToAdd {
+			hash := fmt.Appendf(nil, "hash-%d", i)
+			args.DataPool.AddData(hash, tx, 0, strCache)
+		}
+
+		txHashes, txInstances, err := txs.SelectOutgoingTransactions(MaxGasLimitPerBlock, 0)
+		require.NoError(t, err)
+		require.Equal(t, 2, len(txHashes))
+		require.Equal(t, 2, len(txInstances))
 	})
 }

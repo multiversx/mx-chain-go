@@ -1111,3 +1111,11 @@ func (bp *baseProcessor) CollectMiniBlocks(
 func (mp *metaProcessor) GetCurrentlyAccumulatedFees(metaHdr data.MetaHeaderHandler) (*big.Int, *big.Int, error) {
 	return mp.getCurrentlyAccumulatedFees(metaHdr)
 }
+
+// GetOrderedProcessedMetaBlocksFromMiniBlockHashesV3 -
+func (sp *shardProcessor) GetOrderedProcessedMetaBlocksFromMiniBlockHashesV3(
+	header data.HeaderHandler,
+	miniBlockHashes map[int][]byte,
+) ([]data.HeaderHandler, error) {
+	return sp.getOrderedProcessedMetaBlocksFromMiniBlockHashesV3(header, miniBlockHashes)
+}

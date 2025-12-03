@@ -15,8 +15,6 @@ func getTransactionsInBlock(
 	txs := make([]*WrappedTransaction, 0, numberOfTxs)
 
 	for _, miniBlock := range miniBlocks {
-
-		// sa fie txblock sau invalid altfel skip
 		isTxBlock := miniBlock.Type == block.TxBlock
 		isInvalidBlock := miniBlock.Type == block.InvalidBlock
 		if !isTxBlock && !isInvalidBlock {
