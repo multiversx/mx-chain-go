@@ -3,6 +3,7 @@ package metachain
 import (
 	"encoding/json"
 
+	"github.com/multiversx/mx-chain-core-go/data"
 	"github.com/multiversx/mx-chain-core-go/data/block"
 	"github.com/multiversx/mx-chain-core-go/marshal"
 
@@ -27,50 +28,89 @@ func (t *trigger) LoadState(key []byte) error {
 
 	t.mutTrigger.Lock()
 	t.triggerStateKey = key
-	t.epochFinalityAttestingRound = state.EpochFinalityAttestingRound
-	t.currEpochStartRound = state.CurrEpochStartRound
-	t.prevEpochStartRound = state.PrevEpochStartRound
-	t.epoch = state.Epoch
-	t.epochStartMetaHash = state.EpochStartMetaHash
-	t.epochStartMeta = state.EpochStartMeta
+	t.epochFinalityAttestingRound = state.GetEpochFinalityAttestingRound()
+	t.currEpochStartRound = state.GetCurrEpochStartRound()
+	t.prevEpochStartRound = state.GetPrevEpochStartRound()
+	t.epoch = state.GetEpoch()
+	t.epochStartMetaHash = state.GetEpochStartMetaHash()
+	t.epochStartMeta = state.GetEpochStartMetaHeaderHandler()
+	t.epochChangeProposed = state.GetEpochChangeProposed()
 	t.mutTrigger.Unlock()
 
 	return nil
 }
 
 // UnmarshalTrigger unmarshalls the trigger with json, for backwards compatibility
-func UnmarshalTrigger(marshaller marshal.Marshalizer, data []byte) (*block.MetaTriggerRegistry, error) {
+func UnmarshalTrigger(marshaller marshal.Marshalizer, data []byte) (data.MetaTriggerRegistryHandler, error) {
+	trig, err := unmarshallTriggerV3(marshaller, data)
+	if err == nil {
+		return trig, nil
+	}
+
+	trig, err = unmarshallTriggerV1(marshaller, data)
+	if err == nil {
+		return trig, nil
+	}
+
+	// for backwards compatibility
+	return unmarshallTriggerJson(data)
+}
+
+func unmarshallTriggerV3(marshaller marshal.Marshalizer, data []byte) (data.MetaTriggerRegistryHandler, error) {
+	state := &block.MetaTriggerRegistryV3{
+		EpochStartMeta: &block.MetaBlockV3{},
+	}
+
+	err := marshaller.Unmarshal(state, data)
+	if err != nil {
+		return nil, err
+	}
+
+	return state, nil
+}
+
+func unmarshallTriggerV1(marshaller marshal.Marshalizer, data []byte) (data.MetaTriggerRegistryHandler, error) {
 	state := &block.MetaTriggerRegistry{
 		EpochStartMeta: &block.MetaBlock{},
 	}
 
 	err := marshaller.Unmarshal(state, data)
-	if err == nil {
-		return state, nil
-	}
-
-	// for backwards compatibility
-	err = json.Unmarshal(data, state)
 	if err != nil {
 		return nil, err
 	}
+
+	return state, nil
+}
+
+func unmarshallTriggerJson(data []byte) (data.MetaTriggerRegistryHandler, error) {
+	state := &block.MetaTriggerRegistry{
+		EpochStartMeta: &block.MetaBlock{},
+	}
+
+	err := json.Unmarshal(data, state)
+	if err != nil {
+		return nil, err
+	}
+
 	return state, nil
 }
 
 // saveState saves the trigger state. Needs to be called under mutex
 func (t *trigger) saveState(key []byte) error {
-	// TODO: add new structures for the new headers and update this component
-	metaHeader, ok := t.epochStartMeta.(*block.MetaBlock)
+	metaHeader, ok := t.epochStartMeta.(data.MetaHeaderHandler)
 	if !ok {
 		return epochStart.ErrWrongTypeAssertion
 	}
-	registry := &block.MetaTriggerRegistry{}
-	registry.EpochFinalityAttestingRound = t.epochFinalityAttestingRound
-	registry.CurrEpochStartRound = t.currEpochStartRound
-	registry.PrevEpochStartRound = t.prevEpochStartRound
-	registry.Epoch = t.epoch
-	registry.EpochStartMetaHash = t.epochStartMetaHash
-	registry.EpochStartMeta = metaHeader
+
+	registry := t.createRegistryHandler()
+	_ = registry.SetEpochFinalityAttestingRound(t.epochFinalityAttestingRound)
+	_ = registry.SetCurrEpochStartRound(t.currEpochStartRound)
+	_ = registry.SetPrevEpochStartRound(t.prevEpochStartRound)
+	_ = registry.SetEpoch(t.epoch)
+	_ = registry.SetEpochStartMetaHash(t.epochStartMetaHash)
+	_ = registry.SetEpochStartMetaHeaderHandler(metaHeader)
+	_ = registry.SetEpochChangeProposed(t.epochChangeProposed)
+
 	triggerData, err := t.marshaller.Marshal(registry)
 	if err != nil {
 		return err
@@ -80,4 +120,12 @@ func (t *trigger) saveState(key []byte) error {
 	log.Debug("saving start of epoch trigger state", "key", trigInternalKey)
 
 	return t.triggerStorage.Put(trigInternalKey, triggerData)
+}
+
+func (t *trigger) createRegistryHandler() data.MetaTriggerRegistryHandler {
+	if t.epochStartMeta.IsHeaderV3() {
+		return &block.MetaTriggerRegistryV3{}
+	}
+
+	return &block.MetaTriggerRegistry{}
 }
