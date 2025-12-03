@@ -188,8 +188,7 @@ func (ibp *internalBlockProcessor) GetInternalStartOfEpochValidatorsInfo(epoch u
 		return nil, err
 	}
 
-	metaBlock := &block.MetaBlock{}
-	err = ibp.marshalizer.Unmarshal(metaBlock, blockBytes)
+	metaBlock, err := process.UnmarshalHeader(core.MetachainShardId, ibp.marshalizer, blockBytes)
 	if err != nil {
 		return nil, err
 	}
@@ -279,9 +278,8 @@ func (ibp *internalBlockProcessor) getMiniBlockByHash(hash []byte, epoch uint32)
 	return miniBlock, nil
 }
 
-func (ibp *internalBlockProcessor) convertMetaBlockBytesToInternalBlock(blockBytes []byte) (*block.MetaBlock, error) {
-	blockHeader := &block.MetaBlock{}
-	err := ibp.marshalizer.Unmarshal(blockHeader, blockBytes)
+func (ibp *internalBlockProcessor) convertMetaBlockBytesToInternalBlock(blockBytes []byte) (data.HeaderHandler, error) {
+	blockHeader, err := process.UnmarshalHeader(core.MetachainShardId, ibp.marshalizer, blockBytes)
 	if err != nil {
 		return nil, err
 	}

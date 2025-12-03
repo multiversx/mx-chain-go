@@ -495,7 +495,7 @@ func (mp *metaProcessor) getAllMiniBlockDstMeFromShards(metaHdr data.MetaHeaderH
 
 	var shardHeaderHandler data.HeaderHandler
 	var err error
-	for _, shardInfo := range metaHdr.GetShardInfoHandlers() {
+	for _, shardInfo := range getShardHeadersReferencedByMeta(metaHdr) {
 		shardHeaderHandler, err = getHeaderFromHash(mp.dataPool.Headers(), mp.hdrsForCurrBlock, metaHdr.IsHeaderV3(), shardInfo.GetHeaderHash())
 		if err != nil {
 			return nil, fmt.Errorf("%w : for shardInfo.HeaderHash = %s",
@@ -1538,13 +1538,34 @@ func (mp *metaProcessor) displayPoolsInfo() {
 	mp.displayMiniBlocksPool()
 }
 
+func (mp *metaProcessor) getRootHashAndValidatorRootHash(metaBlock data.MetaHeaderHandler) ([]byte, []byte, error) {
+	if !metaBlock.IsHeaderV3() {
+		return metaBlock.GetRootHash(), metaBlock.GetValidatorStatsRootHash(), nil
+	}
+
+	execResults := metaBlock.GetLastExecutionResultHandler()
+	baseMetaExecRes, ok := execResults.(data.LastMetaExecutionResultHandler)
+	if !ok {
+		return nil, nil, process.ErrWrongTypeAssertion
+	}
+	execRes := baseMetaExecRes.GetExecutionResultHandler()
+
+	return execRes.GetRootHash(), execRes.GetValidatorStatsRootHash(), nil
+}
+
 func (mp *metaProcessor) updateState(metaBlock data.MetaHeaderHandler, metaBlockHash []byte) {
 	if check.IfNil(metaBlock) {
 		log.Debug("updateState nil header")
 		return
 	}
 
-	mp.validatorStatisticsProcessor.SetLastFinalizedRootHash(metaBlock.GetValidatorStatsRootHash())
+	rootHash, validatorRootHash, err := mp.getRootHashAndValidatorRootHash(metaBlock)
+	if err != nil {
+		log.Warn("could not get root hashes from meta header", "error", err.Error())
+		return
+	}
+
+	mp.validatorStatisticsProcessor.SetLastFinalizedRootHash(validatorRootHash)
 
 	prevMetaBlockHash := metaBlock.GetPrevHash()
 	prevMetaBlock, errNotCritical := process.GetMetaHeader(
@@ -1559,21 +1580,22 @@ func (mp *metaProcessor) updateState(metaBlock data.MetaHeaderHandler, metaBlock
 	}
 
 	if metaBlock.IsStartOfEpochBlock() {
+		prevBlockRootHash, _, err := mp.getRootHashAndValidatorRootHash(prevMetaBlock)
+		if err != nil {
+			log.Warn("could not get root hashes from meta header", "error", err.Error())
+			return
+		}
+
 		log.Debug("trie snapshot",
-			"rootHash", metaBlock.GetRootHash(),
-			"prevRootHash", prevMetaBlock.GetRootHash(),
-			"validatorStatsRootHash", metaBlock.GetValidatorStatsRootHash())
-		mp.accountsDB[state.UserAccountsState].SnapshotState(metaBlock.GetRootHash(), metaBlock.GetEpoch())
-		mp.accountsDB[state.PeerAccountsState].SnapshotState(metaBlock.GetValidatorStatsRootHash(), metaBlock.GetEpoch())
+			"rootHash", rootHash,
+			"prevRootHash", prevBlockRootHash,
+			"validatorStatsRootHash", validatorRootHash)
+		mp.accountsDB[state.UserAccountsState].SnapshotState(rootHash, metaBlock.GetEpoch())
+		mp.accountsDB[state.PeerAccountsState].SnapshotState(validatorRootHash, metaBlock.GetEpoch())
 		go func() {
-			metaBlock, ok := metaBlock.(*block.MetaBlock)
-			if !ok {
-				log.Warn("cannot commit Trie Epoch Root Hash: metaBlock is not *block.MetaBlock")
-				return
-			}
-			err := mp.commitTrieEpochRootHashIfNeeded(metaBlock, metaBlock.GetRootHash())
+			err := mp.commitTrieEpochRootHashIfNeeded(metaBlock, rootHash)
 			if err != nil {
-				log.Warn("couldn't commit trie checkpoint", "epoch", metaBlock.Epoch, "error", err)
+				log.Warn("couldn't commit trie checkpoint", "epoch", metaBlock.GetEpoch(), "error", err)
 			}
 		}()
 	}
@@ -1602,7 +1624,7 @@ func (mp *metaProcessor) updateState(metaBlock data.MetaHeaderHandler, metaBlock
 	}
 	mp.setFinalizedHeaderHashInIndexer(outportFinalizedHeaderHash)
 
-	mp.blockChain.SetFinalBlockInfo(metaBlock.GetNonce(), metaBlockHash, metaBlock.GetRootHash())
+	mp.blockChain.SetFinalBlockInfo(metaBlock.GetNonce(), metaBlockHash, rootHash)
 }
 
 func (mp *metaProcessor) pruneTriesHeaderV3(
@@ -1794,9 +1816,14 @@ func (mp *metaProcessor) commitEpochStart(header data.MetaHeaderHandler, body *b
 		}
 
 		mp.epochStartTrigger.SetProcessed(header, processedBody)
+		mp.epochStartTrigger.SetEpochChangeProposed(false)
 		go mp.epochRewardsCreator.SaveBlockDataToStorage(header, processedBody)
 		go mp.validatorInfoCreator.SaveBlockDataToStorage(header, processedBody)
 	} else {
+		if header.IsEpochChangeProposed() {
+			mp.epochStartTrigger.SetEpochChangeProposed(true)
+		}
+
 		currentHeader := mp.blockChain.GetCurrentBlockHeader()
 		if !check.IfNil(currentHeader) && currentHeader.IsStartOfEpochBlock() {
 			mp.epochStartTrigger.SetFinalityAttestingRound(header.GetRound())
@@ -1929,7 +1956,7 @@ func (mp *metaProcessor) saveLastNotarizedHeader(metaHeader data.MetaHeaderHandl
 		lastCrossNotarizedHeaderForShard[shardID] = &hashAndHdr{hdr: lastCrossNotarizedHeader, hash: lastCrossNotarizedHeaderHash}
 	}
 
-	for _, shardData := range metaHeader.GetShardInfoHandlers() {
+	for _, shardData := range getShardHeadersReferencedByMeta(metaHeader) {
 		header, err := getHeaderFromHash(mp.dataPool.Headers(), mp.hdrsForCurrBlock, metaHeader.IsHeaderV3(), shardData.GetHeaderHash())
 		if err != nil {
 			return fmt.Errorf("%w : saveLastNotarizedHeader shardHeaderHash = %s",
@@ -2809,8 +2836,7 @@ func (mp *metaProcessor) DecodeBlockHeader(dta []byte) data.HeaderHandler {
 		return nil
 	}
 
-	metaBlock := &block.MetaBlock{}
-	err := mp.marshalizer.Unmarshal(metaBlock, dta)
+	metaBlock, err := process.UnmarshalMetaHeader(mp.marshalizer, dta)
 	if err != nil {
 		log.Debug("DecodeBlockHeader.Unmarshal", "error", err.Error())
 		return nil

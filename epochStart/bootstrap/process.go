@@ -850,7 +850,7 @@ func (e *epochStartBootstrap) requestAndProcessing() (Parameters, error) {
 	log.Debug("start in epoch bootstrap: got shard headers and previous epoch start meta block")
 
 	prevEpochStartMetaHash := e.epochStartMeta.GetEpochStartHandler().GetEconomicsHandler().GetPrevEpochStartHash()
-	prevEpochStartMeta, ok := e.syncedHeaders[string(prevEpochStartMetaHash)].(*block.MetaBlock)
+	prevEpochStartMeta, ok := e.syncedHeaders[string(prevEpochStartMetaHash)].(data.MetaHeaderHandler)
 	if !ok {
 		return Parameters{}, epochStart.ErrWrongTypeAssertion
 	}

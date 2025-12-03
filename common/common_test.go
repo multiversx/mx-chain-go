@@ -877,6 +877,80 @@ func TestGetOrCreateLastExecutionResultForPrevHeader(t *testing.T) {
 	})
 }
 
+func TestGetFirstExecutionResultNonce(t *testing.T) {
+	t.Parallel()
+
+	t.Run("return header nonce if not header v3", func(t *testing.T) {
+		t.Parallel()
+
+		header := &block.Header{
+			Nonce: 2,
+		}
+
+		retNonce := common.GetFirstExecutionResultNonce(header)
+		require.Equal(t, uint64(2), retNonce)
+	})
+
+	t.Run("return first execution results on block", func(t *testing.T) {
+		t.Parallel()
+
+		lastExecRes := &block.ExecutionResultInfo{
+			ExecutionResult: &block.BaseExecutionResult{
+				HeaderNonce: 3,
+				HeaderHash:  []byte("headerHash2"),
+			},
+		}
+
+		execRes1 := &block.ExecutionResult{
+			BaseExecutionResult: &block.BaseExecutionResult{
+				HeaderNonce: 1,
+			},
+		}
+		execRes2 := &block.ExecutionResult{
+			BaseExecutionResult: &block.BaseExecutionResult{
+				HeaderNonce: 2,
+			},
+		}
+		execRes3 := &block.ExecutionResult{
+			BaseExecutionResult: &block.BaseExecutionResult{
+				HeaderNonce: 3,
+			},
+		}
+
+		header := &block.HeaderV3{
+			ExecutionResults: []*block.ExecutionResult{
+				execRes1,
+				execRes2,
+				execRes3,
+			},
+			LastExecutionResult: lastExecRes,
+		}
+
+		retNonce := common.GetFirstExecutionResultNonce(header)
+		require.Equal(t, uint64(1), retNonce)
+	})
+
+	t.Run("return from last execution result if not execution results on block", func(t *testing.T) {
+		t.Parallel()
+
+		nonce := uint64(1)
+		baseExecResult := &block.BaseExecutionResult{
+			HeaderNonce: nonce,
+			HeaderHash:  []byte("headerHash2"),
+		}
+		lastExecRes := &block.ExecutionResultInfo{
+			ExecutionResult: baseExecResult,
+		}
+
+		header := &block.HeaderV3{
+			LastExecutionResult: lastExecRes,
+		}
+
+		retNonce := common.GetFirstExecutionResultNonce(header)
+		require.Equal(t, nonce, retNonce)
+	})
+}
+
 func Test_ExtractBaseExecutionResultHandler(t *testing.T) {
 	t.Parallel()
 

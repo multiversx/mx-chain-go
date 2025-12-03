@@ -455,7 +455,7 @@ func CreateLastExecutionResultFromPrevHeader(prevHeader data.HeaderHandler, prev
 		}, nil
 	}
 
-	prevMetaHeader, ok := prevHeader.(*block.MetaBlock)
+	prevMetaHeader, ok := prevHeader.(data.MetaHeaderHandler)
 	if !ok {
 		return nil, ErrWrongTypeAssertion
 	}
@@ -525,7 +525,7 @@ func GetMiniBlocksHeaderHandlersFromExecResult(
 	return execResult.GetMiniBlockHeadersHandlers(), nil
 }
 
-// GetLastExecutionResultNonce returns last execution result nonce if header v3 enable, otherwise it returns provided header nonce
+// GetLastExecutionResultNonce returns last execution result nonce if header v3 enabled, otherwise it returns provided header nonce
 func GetLastExecutionResultNonce(
 	header data.HeaderHandler,
 ) uint64 {
@@ -541,6 +541,25 @@ func GetLastExecutionResultNonce(
 	}
 
 	return lastExecutionResult.GetHeaderNonce()
+}
+
+// GetFirstExecutionResultNonce returns first execution result nonce if header v3 enabled, otherwise it returns provided header nonce.
+// For header v3, it returns first execution result if there are any, otherwise it returns last execution results on the header
+func GetFirstExecutionResultNonce(
+	header data.HeaderHandler,
+) uint64 {
+	nonce := header.GetNonce()
+
+	if !header.IsHeaderV3() {
+		return nonce
+	}
+
+	if len(header.GetExecutionResultsHandlers()) > 0 {
+		firstExecResult := header.GetExecutionResultsHandlers()[0]
+		return firstExecResult.GetHeaderNonce()
+	}
+
+	return GetLastExecutionResultNonce(header)
 }
 
 // GetMiniBlockHeadersFromExecResult returns mb headers from meta header if v3, otherwise, returns mini block headers

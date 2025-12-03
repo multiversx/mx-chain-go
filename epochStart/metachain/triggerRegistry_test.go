@@ -5,7 +5,6 @@ import (
 	"testing"
 
 	"github.com/multiversx/mx-chain-core-go/data"
-	"github.com/multiversx/mx-chain-core-go/data/block"
 	"github.com/stretchr/testify/require"
 
 	"github.com/multiversx/mx-chain-go/common"
@@ -119,7 +118,7 @@ type legacyTriggerRegistry struct {
 }
 
 func createLegacyTriggerRegistryFromTrigger(t *trigger) *legacyTriggerRegistry {
-	metaBlock, _ := t.epochStartMeta.(*block.MetaBlock)
+	metaBlock, _ := t.epochStartMeta.(data.MetaHeaderHandler)
 	return &legacyTriggerRegistry{
 		Epoch:                       t.epoch,
 		EpochFinalityAttestingRound: t.epochFinalityAttestingRound,

@@ -59,6 +59,7 @@ func UnmarshalTrigger(marshaller marshal.Marshalizer, data []byte) (*block.MetaT
 
 // saveState saves the trigger state. Needs to be called under mutex
 func (t *trigger) saveState(key []byte) error {
+	// TODO: add new structures for the new headers and update this component
 	metaHeader, ok := t.epochStartMeta.(*block.MetaBlock)
 	if !ok {
 		return epochStart.ErrWrongTypeAssertion

@@ -548,6 +548,7 @@ type EpochStartTriggerHandler interface {
 	Update(round uint64, nonce uint64)
 	SetEpochChange(round uint64)
 	ShouldProposeEpochChange(round uint64, nonce uint64) bool
+	SetEpochChangeProposed(value bool)
 	IsEpochStart() bool
 	Epoch() uint32
 	MetaEpoch() uint32
