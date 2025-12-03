@@ -940,7 +940,7 @@ func (tc *transactionCoordinator) createMarshalledDataV3(miniBlocksMap map[strin
 				continue
 			}
 
-			if miniBlock.Type == block.PeerBlock && miniBlock.ReceiverShardID == core.AllShardId {
+			if miniBlock.Type == block.PeerBlock {
 				tc.appendTransactionsFromPoolForMiniBlock(tc.dataPool.ValidatorsInfo(), miniBlock, broadcastTopic, mrsTxs)
 			}
 
