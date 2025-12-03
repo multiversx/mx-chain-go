@@ -43,7 +43,7 @@ import (
 func createMetaBlockProcessor(blk data.ChainHandler) *testscommon.BlockProcessorStub {
 	blockProcessorMock := &testscommon.BlockProcessorStub{
 		ProcessBlockCalled: func(hdr data.HeaderHandler, bdy data.BodyHandler, haveTime func() time.Duration) error {
-			_ = blk.SetCurrentBlockHeaderAndRootHash(hdr.(*block.MetaBlock), hdr.GetRootHash())
+			_ = blk.SetCurrentBlockHeaderAndRootHash(hdr.(data.MetaHeaderHandler), hdr.GetRootHash())
 			return nil
 		},
 		RevertCurrentBlockCalled: func(_ data.HeaderHandler) {

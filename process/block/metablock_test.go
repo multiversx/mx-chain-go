@@ -2099,9 +2099,9 @@ func TestMetaProcessor_saveLastNotarizedHeader(t *testing.T) {
 		mp, _ := blproc.NewMetaProcessor(arguments)
 
 		metaHdr := &block.MetaBlockV3{}
-		shDataCurr := block.ShardData{HeaderHash: []byte("hash")}
-		metaHdr.ShardInfo = make([]block.ShardData, 0)
-		metaHdr.ShardInfo = append(metaHdr.ShardInfo, shDataCurr)
+		shDataCurr := block.ShardDataProposal{HeaderHash: []byte("hash")}
+		metaHdr.ShardInfoProposal = make([]block.ShardDataProposal, 0)
+		metaHdr.ShardInfoProposal = append(metaHdr.ShardInfoProposal, shDataCurr)
 
 		err := mp.SaveLastNotarizedHeader(metaHdr)
 		require.Error(t, err, expectedErr)
@@ -2139,9 +2139,9 @@ func TestMetaProcessor_saveLastNotarizedHeader(t *testing.T) {
 		pool.Headers().AddHeader(hdrHash, hdr)
 
 		metaHdr := &block.MetaBlockV3{}
-		shDataCurr := block.ShardData{HeaderHash: hdrHash}
-		metaHdr.ShardInfo = make([]block.ShardData, 0)
-		metaHdr.ShardInfo = append(metaHdr.ShardInfo, shDataCurr)
+		shDataCurr := block.ShardDataProposal{HeaderHash: hdrHash}
+		metaHdr.ShardInfoProposal = make([]block.ShardDataProposal, 0)
+		metaHdr.ShardInfoProposal = append(metaHdr.ShardInfoProposal, shDataCurr)
 
 		err := mp.SaveLastNotarizedHeader(metaHdr)
 		require.NoError(t, err)
@@ -4239,6 +4239,14 @@ func pruneTrieForHeaderV3Test(t *testing.T, prevHeader data.HeaderHandler, rootH
 					},
 					ValidatorStatsRootHash: []byte("validator stats root hash 3"),
 				},
+			},
+		},
+		LastExecutionResult: &block.MetaExecutionResultInfo{
+			ExecutionResult: &block.BaseMetaExecutionResult{
+				BaseExecutionResult: &block.BaseExecutionResult{
+					RootHash: []byte("state root hash 3"),
+				},
+				ValidatorStatsRootHash: []byte("validator stats root hash 3"),
 			},
 		},
 	}

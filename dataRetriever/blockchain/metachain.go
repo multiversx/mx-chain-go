@@ -4,7 +4,6 @@ import (
 	"github.com/multiversx/mx-chain-core-go/core"
 	"github.com/multiversx/mx-chain-core-go/core/check"
 	"github.com/multiversx/mx-chain-core-go/data"
-	"github.com/multiversx/mx-chain-core-go/data/block"
 )
 
 var _ data.ChainHandler = (*metaChain)(nil)
@@ -40,7 +39,7 @@ func (mc *metaChain) SetGenesisHeader(header data.HeaderHandler) error {
 		return nil
 	}
 
-	genBlock, ok := header.(*block.MetaBlock)
+	genBlock, ok := header.(data.MetaHeaderHandler)
 	if !ok {
 		return ErrWrongTypeInSet
 	}

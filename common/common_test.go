@@ -877,6 +877,236 @@ func TestGetOrCreateLastExecutionResultForPrevHeader(t *testing.T) {
 	})
 }
 
+func TestGetFirstExecutionResultNonce(t *testing.T) {
+	t.Parallel()
+
+	t.Run("return header nonce if not header v3", func(t *testing.T) {
+		t.Parallel()
+
+		header := &block.Header{
+			Nonce: 2,
+		}
+
+		retNonce := common.GetFirstExecutionResultNonce(header)
+		require.Equal(t, uint64(2), retNonce)
+	})
+
+	t.Run("return first execution results on block", func(t *testing.T) {
+		t.Parallel()
+
+		lastExecRes := &block.ExecutionResultInfo{
+			ExecutionResult: &block.BaseExecutionResult{
+				HeaderNonce: 3,
+				HeaderHash:  []byte("headerHash2"),
+			},
+		}
+
+		execRes1 := &block.ExecutionResult{
+			BaseExecutionResult: &block.BaseExecutionResult{
+				HeaderNonce: 1,
+			},
+		}
+		execRes2 := &block.ExecutionResult{
+			BaseExecutionResult: &block.BaseExecutionResult{
+				HeaderNonce: 2,
+			},
+		}
+		execRes3 := &block.ExecutionResult{
+			BaseExecutionResult: &block.BaseExecutionResult{
+				HeaderNonce: 3,
+			},
+		}
+
+		header := &block.HeaderV3{
+			ExecutionResults: []*block.ExecutionResult{
+				execRes1,
+				execRes2,
+				execRes3,
+			},
+			LastExecutionResult: lastExecRes,
+		}
+
+		retNonce := common.GetFirstExecutionResultNonce(header)
+		require.Equal(t, uint64(1), retNonce)
+	})
+
+	t.Run("return from last execution result if not execution results on block", func(t *testing.T) {
+		t.Parallel()
+
+		nonce := uint64(1)
+		baseExecResult := &block.BaseExecutionResult{
+			HeaderNonce: nonce,
+			HeaderHash:  []byte("headerHash2"),
+		}
+		lastExecRes := &block.ExecutionResultInfo{
+			ExecutionResult: baseExecResult,
+		}
+
+		header := &block.HeaderV3{
+			LastExecutionResult: lastExecRes,
+		}
+
+		retNonce := common.GetFirstExecutionResultNonce(header)
+		require.Equal(t, nonce, retNonce)
+	})
+}
+
+func Test_ExtractBaseExecutionResultHandler(t *testing.T) {
+	t.Parallel()
+
+	t.Run("in case of nil lastExecResultsHandler should return ErrNilLastExecutionResultHandler", func(t *testing.T) {
+		t.Parallel()
+
+		baseExecRes, err := common.ExtractBaseExecutionResultHandler(nil)
+		require.Nil(t, baseExecRes)
+		require.Equal(t, common.ErrNilLastExecutionResultHandler, err)
+	})
+
+	t.Run("should work", func(t *testing.T) {
+		t.Parallel()
+
+		expectedBaseExecResult := &block.BaseMetaExecutionResult{
+			BaseExecutionResult: &block.BaseExecutionResult{
+				RootHash: []byte("rootHash"),
+			},
+			ValidatorStatsRootHash: []byte("valStatsRootHash"),
+		}
+		baseExecRes, err := common.ExtractBaseExecutionResultHandler(&block.MetaExecutionResultInfo{
+			ExecutionResult: expectedBaseExecResult,
+		})
+		require.Nil(t, err)
+		require.Equal(t, expectedBaseExecResult, baseExecRes)
+	})
+
+	t.Run("in case of nil ExecutionResult on MetaExecutionResultInfo should return ErrNilBaseExecutionResult", func(t *testing.T) {
+		t.Parallel()
+
+		baseExecRes, err := common.ExtractBaseExecutionResultHandler(&block.MetaExecutionResultInfo{
+			ExecutionResult: nil,
+		})
+		require.Nil(t, baseExecRes)
+		require.Equal(t, common.ErrNilBaseExecutionResult, err)
+	})
+
+	t.Run("in case of wrong base execution result should return unsupported execution result handler type", func(t *testing.T) {
+		t.Parallel()
+
+		expectedBaseExecResult := &block.BaseExecutionResult{}
+		baseExecRes, err := common.ExtractBaseExecutionResultHandler(&block.ExecutionResult{
+			BaseExecutionResult: expectedBaseExecResult,
+		})
+		require.ErrorContains(t, err, "unsupported execution result handler type")
+		require.Nil(t, baseExecRes)
+	})
+
+	t.Run("should work in case of ExecutionResultInfo type", func(t *testing.T) {
+		t.Parallel()
+
+		expectedBaseExecResult := &block.BaseExecutionResult{
+			HeaderHash:  []byte("headerHash"),
+			HeaderNonce: 10,
+			HeaderEpoch: 2,
+		}
+		baseExecRes, err := common.ExtractBaseExecutionResultHandler(&block.ExecutionResultInfo{
+			ExecutionResult: expectedBaseExecResult,
+		})
+		require.Nil(t, err)
+		require.Equal(t, expectedBaseExecResult, baseExecRes)
+	})
+
+	t.Run("should return ErrNilBaseExecutionResult in case of nil ExecutionResult on ExecutionResultInfo", func(t *testing.T) {
+		t.Parallel()
+
+		_, err := common.ExtractBaseExecutionResultHandler(&block.ExecutionResultInfo{
+			ExecutionResult: nil,
+		})
+		require.Equal(t, common.ErrNilBaseExecutionResult, err)
+	})
+}
+
+func Test_GetOrCreateLastExecutionResultForPrevHeader(t *testing.T) {
+	t.Parallel()
+
+	t.Run("should work in case of headerV3", func(t *testing.T) {
+		t.Parallel()
+
+		baseExecResult := &block.BaseExecutionResult{
+			HeaderHash:  []byte("headerHash"),
+			RootHash:    []byte("rootHash"),
+			HeaderNonce: 10,
+			HeaderEpoch: 2,
+		}
+		prevHeader := block.HeaderV3{
+			LastExecutionResult: &block.ExecutionResultInfo{
+				ExecutionResult: baseExecResult,
+			},
+		}
+		lastExecResult, err := common.GetOrCreateLastExecutionResultForPrevHeader(&prevHeader, nil)
+		require.Nil(t, err)
+		require.Equal(t, baseExecResult, lastExecResult)
+	})
+
+	t.Run("should work in case of other header type", func(t *testing.T) {
+		t.Parallel()
+
+		prevHeader := block.HeaderV2{
+			Header: &block.Header{
+				Nonce:    2,
+				RootHash: []byte("rootHash"),
+			},
+		}
+		lastExecResult, err := common.GetOrCreateLastExecutionResultForPrevHeader(&prevHeader, []byte("prevHash"))
+		require.Nil(t, err)
+		require.Equal(t, []byte("rootHash"), lastExecResult.GetRootHash())
+		require.Equal(t, uint64(2), lastExecResult.GetHeaderNonce())
+	})
+
+	t.Run("propagate error in case creating last execution result for prev header fails", func(t *testing.T) {
+		t.Parallel()
+
+		prevHeader := block.HeaderV2{
+			Header: &block.Header{
+				Nonce:    2,
+				RootHash: []byte("rootHash"),
+			},
+		}
+		_, err := common.GetOrCreateLastExecutionResultForPrevHeader(&prevHeader, nil)
+		require.Equal(t, err, common.ErrInvalidHeaderHash)
+	})
+}
+
+func Test_GetLastExecutionResultNonce(t *testing.T) {
+	t.Parallel()
+
+	t.Run("should work in case it is not headerV3", func(t *testing.T) {
+		t.Parallel()
+
+		header := block.HeaderV2{
+			Header: &block.Header{
+				Nonce: 2,
+			},
+		}
+
+		nonce := common.GetLastExecutionResultNonce(&header)
+		require.Equal(t, uint64(2), nonce)
+	})
+
+	t.Run("should work in case of other header type", func(t *testing.T) {
+		t.Parallel()
+
+		header := block.HeaderV3{
+			LastExecutionResult: &block.ExecutionResultInfo{
+				ExecutionResult: &block.BaseExecutionResult{
+					HeaderNonce: 2,
+				},
+			},
+		}
+
+		nonce := common.GetLastExecutionResultNonce(&header)
+		require.Equal(t, uint64(2), nonce)
+	})
+}
+
 func createDummyPrevShardHeaderV2() *block.HeaderV2 {
 	return &block.HeaderV2{
 		Header: &block.Header{

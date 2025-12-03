@@ -107,7 +107,7 @@ func (handler *manualRoundHandler) RemainingTime(_ time.Time, maxTime time.Durat
 	return maxTime
 }
 
-// GetTimeStampForRound -
+// GetTimeStampForRound returns the timestamp for round
 func (handler *manualRoundHandler) GetTimeStampForRound(round uint64) uint64 {
 	timeFromGenesis := handler.roundDuration * time.Duration(round)
 	timestamp := time.Unix(handler.genesisTimeStamp, 0).Add(timeFromGenesis)
