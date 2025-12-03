@@ -480,9 +480,6 @@ func (st *selectionTracker) getChainOfTrackedPendingBlocks(
 	// it means that we do not have any tracked proposed block on top.
 	// The block found would be the actual executed block, but that one is not tracked anymore.
 	if bytes.Equal(latestExecutedBlockHash, previousHashToBeFound) {
-		log.Debug("getChainOfTrackedPendingBlocks: block already tracked",
-			"previousHashToBeFound", previousHashToBeFound,
-		)
 		return chain, nil
 	}
 
@@ -501,12 +498,6 @@ func (st *selectionTracker) getChainOfTrackedPendingBlocks(
 			log.Debug("getChainOfTrackedPendingBlocks: hash not found",
 				"previousHashToBeFound", previousHashToBeFound,
 			)
-			for _, bl := range st.blocks {
-				log.Debug("getChainOfTrackedPendingBlocks: block",
-					"hash", bl.hash, "nonce", bl.nonce,
-				)
-			}
-
 			return nil, errBlockNotFound
 		}
 
