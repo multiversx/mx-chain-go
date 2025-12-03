@@ -1892,17 +1892,19 @@ func (sp *shardProcessor) updateCrossShardInfo(processedMetaHdrs []data.HeaderHa
 
 func (sp *shardProcessor) verifyCrossShardMiniBlockDstMe(header data.ShardHeaderHandler) error {
 	var miniBlockMetaHashes map[string][]byte
+	var crossMiniBlockHashes map[string]uint32
 	var err error
 	if header.IsHeaderV3() {
 		miniBlockMetaHashes, err = sp.getAllMiniBlockDstMeFromMetaForProposal(header)
+		crossMiniBlockHashes = header.GetProposedMiniBlockHeadersWithDst(sp.shardCoordinator.SelfId())
 	} else {
 		miniBlockMetaHashes, err = sp.getAllMiniBlockDstMeFromMeta(header)
+		crossMiniBlockHashes = header.GetMiniBlockHeadersWithDst(sp.shardCoordinator.SelfId())
 	}
 	if err != nil {
 		return err
 	}
 
-	crossMiniBlockHashes := header.GetMiniBlockHeadersWithDst(sp.shardCoordinator.SelfId())
 	for hash := range crossMiniBlockHashes {
 		if _, ok := miniBlockMetaHashes[hash]; !ok {
 			return process.ErrCrossShardMBWithoutConfirmationFromMeta
