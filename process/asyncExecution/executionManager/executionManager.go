@@ -1,7 +1,6 @@
 package executionManager
 
 import (
-	"bytes"
 	"sync"
 
 	"github.com/multiversx/mx-chain-core-go/core/check"
@@ -90,13 +89,8 @@ func (em *executionManager) AddPairForExecution(pair queue.HeaderBodyPair) error
 	defer em.mut.Unlock()
 
 	lastExecutedBlock := em.blockChain.GetLastExecutedBlockHeader()
-	// TODO: analyze if we just need to re-execute instead of ignoring
-	if areSameHeaders(pair.Header, lastExecutedBlock) {
-		log.Warn("header already executed", "nonce", pair.Header.GetNonce(), "round", pair.Header.GetRound())
-		return nil
-	}
-
-	if lastExecutedBlock.GetNonce() >= pair.Header.GetNonce() {
+	if !check.IfNil(lastExecutedBlock) &&
+		lastExecutedBlock.GetNonce() >= pair.Header.GetNonce() {
 		err := em.updateContextForReplacedHeader(pair.Header)
 		if err != nil {
 			return err
@@ -137,18 +131,6 @@ func (em *executionManager) updateContextForReplacedHeader(header data.HeaderHan
 	em.blockChain.SetLastExecutionResult(executionResultToSet)
 
 	return nil
-}
-
-func areSameHeaders(header1, header2 data.HeaderHandler) bool {
-	if check.IfNil(header1) || check.IfNil(header2) {
-		return false
-	}
-
-	sameNonce := header1.GetNonce() == header2.GetNonce()
-	sameRound := header1.GetRound() == header2.GetRound()
-	samePreviousHash := bytes.Equal(header1.GetPrevHash(), header2.GetPrevHash())
-
-	return sameNonce && sameRound && samePreviousHash
 }
 
 // GetPendingExecutionResults calls the same method from executionResultsTracker
