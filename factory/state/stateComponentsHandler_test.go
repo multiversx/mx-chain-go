@@ -75,6 +75,7 @@ func TestManagedStateComponents_Create(t *testing.T) {
 		require.NotNil(t, managedStateComponents.TriesContainer())
 		require.NotNil(t, managedStateComponents.TrieStorageManagers())
 		require.NotNil(t, managedStateComponents.AccountsAdapterAPI())
+		require.NotNil(t, managedStateComponents.AccountsAdapterProposal())
 		require.NotNil(t, managedStateComponents.AccountsRepository())
 		require.NotNil(t, managedStateComponents.MissingTrieNodesNotifier())
 

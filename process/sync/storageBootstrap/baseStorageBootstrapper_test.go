@@ -8,21 +8,22 @@ import (
 	"github.com/multiversx/mx-chain-core-go/data"
 	"github.com/multiversx/mx-chain-core-go/data/block"
 	"github.com/multiversx/mx-chain-go/state"
-	dataRetrieverMocks "github.com/multiversx/mx-chain-go/testscommon/dataRetriever"
-	"github.com/multiversx/mx-chain-go/testscommon/processMocks"
-	"github.com/stretchr/testify/assert"
 
 	"github.com/multiversx/mx-chain-go/dataRetriever"
 	"github.com/multiversx/mx-chain-go/process"
 	"github.com/multiversx/mx-chain-go/process/mock"
 	"github.com/multiversx/mx-chain-go/storage"
 	"github.com/multiversx/mx-chain-go/testscommon"
+	dataRetrieverMocks "github.com/multiversx/mx-chain-go/testscommon/dataRetriever"
 	"github.com/multiversx/mx-chain-go/testscommon/enableEpochsHandlerMock"
 	epochNotifierMock "github.com/multiversx/mx-chain-go/testscommon/epochNotifier"
 	"github.com/multiversx/mx-chain-go/testscommon/genericMocks"
+	"github.com/multiversx/mx-chain-go/testscommon/processMocks"
 	"github.com/multiversx/mx-chain-go/testscommon/shardingMocks"
 	"github.com/multiversx/mx-chain-go/testscommon/statusHandler"
 	storageStubs "github.com/multiversx/mx-chain-go/testscommon/storage"
+	"github.com/stretchr/testify/assert"
+	"github.com/stretchr/testify/require"
 )
 
 func createMockShardStorageBootstrapperArgs() ArgsBaseStorageBootstrapper {
@@ -403,4 +404,89 @@ func TestBaseStorageBootstrapper_GetBlockBodyShouldWork(t *testing.T) {
 	body, err := ssb.getBlockBody(header)
 	assert.Nil(t, err)
 	assert.Equal(t, expectedBody, body)
+}
+
+func TestBaseStorageBootstrapper_setCurrentBlockInfoV3(t *testing.T) {
+	t.Parallel()
+
+	t.Run("in case of nil LastExecutionResult should fail", func(t *testing.T) {
+		t.Parallel()
+
+		baseArgs := createMockShardStorageBootstrapperArgs()
+		args := ArgsShardStorageBootstrapper{
+			ArgsBaseStorageBootstrapper: baseArgs,
+		}
+
+		ssb, _ := NewShardStorageBootstrapper(args)
+		err := ssb.setCurrentBlockInfoV3(&block.HeaderV3{
+			LastExecutionResult: nil,
+		}, nil)
+
+		require.Equal(t, process.ErrNilLastExecutionResultHandler, err)
+	})
+
+	t.Run("if getting the header fails, the error should be propagated", func(t *testing.T) {
+		t.Parallel()
+
+		errExpected := errors.New("expected error")
+		baseArgs := createMockShardStorageBootstrapperArgs()
+		baseArgs.Marshalizer = &testscommon.MarshallerStub{
+			UnmarshalCalled: func(obj interface{}, buff []byte) error {
+				return errExpected
+			},
+		}
+		args := ArgsShardStorageBootstrapper{
+			ArgsBaseStorageBootstrapper: baseArgs,
+		}
+
+		ssb, _ := NewShardStorageBootstrapper(args)
+		err := ssb.setCurrentBlockInfoV3(&block.HeaderV3{
+			LastExecutionResult: &block.ExecutionResultInfo{
+				ExecutionResult: &block.BaseExecutionResult{
+					HeaderHash: []byte("hashExecResult"),
+				},
+			},
+		}, []byte("hash"))
+
+		require.Equal(t, process.ErrUnmarshalWithoutSuccess, err)
+	})
+
+	t.Run("should work", func(t *testing.T) {
+		t.Parallel()
+
+		baseArgs := createMockShardStorageBootstrapperArgs()
+		baseArgs.Marshalizer = &testscommon.MarshallerStub{
+			UnmarshalCalled: func(obj interface{}, buff []byte) error {
+				return nil
+			},
+		}
+		args := ArgsShardStorageBootstrapper{
+			ArgsBaseStorageBootstrapper: baseArgs,
+		}
+
+		counter := 0
+		ssb, _ := NewShardStorageBootstrapper(args)
+		ssb.blkc = &testscommon.ChainHandlerStub{
+			SetLastExecutedBlockHeaderAndRootHashCalled: func(header data.HeaderHandler, blockHash []byte, rootHash []byte) {
+				counter += 1
+			},
+			SetCurrentBlockHeaderHashCalled: func(bytes []byte) {
+				counter += 1
+			},
+			SetCurrentBlockHeaderCalled: func(header data.HeaderHandler) error {
+				counter += 1
+				return nil
+			},
+		}
+		err := ssb.setCurrentBlockInfoV3(&block.HeaderV3{
+			LastExecutionResult: &block.ExecutionResultInfo{
+				ExecutionResult: &block.BaseExecutionResult{
+					HeaderHash: []byte("hashExecResult"),
+				},
+			},
+		}, []byte("hash"))
+
+		require.Nil(t, err)
+		require.Equal(t, 3, counter)
+	})
 }
