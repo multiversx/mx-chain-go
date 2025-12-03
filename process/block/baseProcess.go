@@ -47,6 +47,10 @@ import (
 	"github.com/multiversx/mx-chain-go/storage/storageunit"
 )
 
+const (
+	clenaupCrossShardHeadersDelta = 5
+)
+
 var log = logger.GetOrCreate("process/block")
 
 // CrossShardIncomingMbsCreationResult represents the result of creating cross-shard mini blocks
@@ -1213,7 +1217,11 @@ func (bp *baseProcessor) cleanupPoolsForCrossShard(
 		return
 	}
 
-	crossNotarizedHeaderNonce := common.GetLastExecutionResultNonce(crossNotarizedHeader)
+	crossNotarizedHeaderNonce := common.GetFirstExecutionResultNonce(crossNotarizedHeader)
+	if crossNotarizedHeaderNonce <= clenaupCrossShardHeadersDelta {
+		return
+	}
+	crossNotarizedHeaderNonce -= clenaupCrossShardHeadersDelta
 
 	bp.removeHeadersBehindNonceFromPools(
 		false,
@@ -1394,8 +1402,8 @@ func (bp *baseProcessor) getFinalMiniBlocksFromExecutionResults(
 
 			cachedMiniBlockBytes := cachedMiniBlock.([]byte)
 
-			var miniBlock *block.MiniBlock
-			err = bp.marshalizer.Unmarshal(&miniBlock, cachedMiniBlockBytes)
+			miniBlock := &block.MiniBlock{}
+			err = bp.marshalizer.Unmarshal(miniBlock, cachedMiniBlockBytes)
 			if err != nil {
 				return nil, err
 			}
