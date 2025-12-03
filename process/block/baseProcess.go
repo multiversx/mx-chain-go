@@ -2657,6 +2657,7 @@ func (bp *baseProcessor) prepareAccountsForProposal() (data.BaseExecutionResultH
 	return lastExecResHandler, nil
 }
 
+// OnExecutedBlock notifies the underlying TxCache
 func (bp *baseProcessor) OnExecutedBlock(header data.HeaderHandler, rootHash []byte) error {
 	bp.appStatusHandler.SetUInt64Value(common.MetricNumTrackedBlocks, bp.dataPool.Transactions().GetNumTrackedBlocks())
 	bp.appStatusHandler.SetUInt64Value(common.MetricNumTrackedAccounts, bp.dataPool.Transactions().GetNumTrackedAccounts())

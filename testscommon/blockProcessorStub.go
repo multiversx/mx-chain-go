@@ -38,6 +38,7 @@ type BlockProcessorStub struct {
 		proposedHeader data.HeaderHandler,
 		proposedHash []byte,
 	) error
+	OnExecutedBlockCalled      func(header data.HeaderHandler, rootHash []byte) error
 	RemoveHeaderFromPoolCalled func(headerHash []byte)
 }
 
@@ -232,7 +233,12 @@ func (bps *BlockProcessorStub) OnProposedBlock(
 	return nil
 }
 
+// OnExecutedBlock -
 func (bps *BlockProcessorStub) OnExecutedBlock(header data.HeaderHandler, rootHash []byte) error {
+	if bps.OnExecutedBlockCalled != nil {
+		return bps.OnExecutedBlockCalled(header, rootHash)
+	}
+
 	return nil
 }
 
