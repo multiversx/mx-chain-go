@@ -604,16 +604,13 @@ func (st *storageBootstrapper) prepareTxPoolContext(
 			return err
 		}
 
-		err = st.prepareAndExecuteHeader(
+		return st.prepareAndExecuteHeader(
 			currentHeaderHash,
 			currentHeader,
 			currentBody,
 			lastExecutionResult.GetRootHash(),
 			lastExecutedHeaderHash,
 		)
-		if err != nil {
-			return err
-		}
 	}
 
 	// if there are multiple headers in between the syncing header and the last one executed,
