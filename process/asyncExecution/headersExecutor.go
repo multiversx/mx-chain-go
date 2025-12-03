@@ -87,6 +87,8 @@ func (he *headersExecutor) ResumeExecution() {
 	he.mutPaused.Lock()
 	defer he.mutPaused.Unlock()
 
+	he.blocksQueue.ResetNotifyChan()
+
 	he.isPaused = false
 }
 

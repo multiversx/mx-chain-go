@@ -321,6 +321,7 @@ type BlocksQueue interface {
 	Peek() (queue.HeaderBodyPair, bool)
 	RemoveAtNonceAndHigher(nonce uint64) []uint64
 	Clean(lastAddedNonce uint64)
+	ResetNotifyChan()
 	IsInterfaceNil() bool
 	Close()
 }

@@ -9,6 +9,7 @@ type BlocksQueueMock struct {
 	PeekCalled                   func() (queue.HeaderBodyPair, bool)
 	RemoveAtNonceAndHigherCalled func(nonce uint64) []uint64
 	CleanCalled                  func(lastAddedNonce uint64)
+	ResetNotifyChanCalled        func()
 	CloseCalled                  func()
 }
 
@@ -55,6 +56,13 @@ func (bqm *BlocksQueueMock) Clean(lastAddedNonce uint64) {
 func (bqm *BlocksQueueMock) Close() {
 	if bqm.CloseCalled != nil {
 		bqm.CloseCalled()
+	}
+}
+
+// ResetNotifyChan -
+func (bqm *BlocksQueueMock) ResetNotifyChan() {
+	if bqm.ResetNotifyChanCalled != nil {
+		bqm.ResetNotifyChanCalled()
 	}
 }
 

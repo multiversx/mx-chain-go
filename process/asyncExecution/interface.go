@@ -10,6 +10,7 @@ import (
 type BlocksQueue interface {
 	Pop() (queue.HeaderBodyPair, bool)
 	Peek() (queue.HeaderBodyPair, bool)
+	ResetNotifyChan()
 	IsInterfaceNil() bool
 	Close()
 }

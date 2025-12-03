@@ -21,6 +21,8 @@ func TestNewHeadersQueue(t *testing.T) {
 	require.NotNil(t, hq.headerBodyPairs)
 	require.Equal(t, 0, len(hq.headerBodyPairs))
 	require.False(t, hq.IsInterfaceNil())
+
+	hq.ResetNotifyChan() // coverage
 }
 
 func TestHeadersQueue_Add(t *testing.T) {

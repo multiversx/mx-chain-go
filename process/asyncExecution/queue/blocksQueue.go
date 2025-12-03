@@ -207,6 +207,18 @@ func (bq *blocksQueue) updateLastAddedNonceBasedOnRemovingNonce(removingNonce ui
 	bq.lastAddedNonce = 0
 }
 
+// ResetNotifyChan resets the internal buffered chan
+func (bq *blocksQueue) ResetNotifyChan() {
+	bq.mutex.Lock()
+	if bq.closed {
+		bq.mutex.Unlock()
+		return
+	}
+	bq.mutex.Unlock()
+
+	bq.notifyCh = make(chan struct{}, 1)
+}
+
 // Clean cleanup the queue and set the provided last added nonce
 func (bq *blocksQueue) Clean(lastAddedNonce uint64) {
 	bq.mutex.Lock()
