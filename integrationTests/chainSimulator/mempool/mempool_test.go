@@ -2426,11 +2426,8 @@ func Test_SelectionWithAliceRelayerAndSenderOnSameTxs(t *testing.T) {
 	}
 
 	txpool.AddTx(&txcache.WrappedTransaction{
-		Tx:               tx,
-		TxHash:           []byte("txHash1"),
-		Fee:              big.NewInt(int64(tx.GasLimit * tx.GasPrice)),
-		TransferredValue: tx.Value,
-		FeePayer:         tx.SndAddr,
+		Tx:     tx,
+		TxHash: []byte("txHash1"),
 	})
 
 	// the second transaction has alice as sender and as relayer.
@@ -2449,11 +2446,8 @@ func Test_SelectionWithAliceRelayerAndSenderOnSameTxs(t *testing.T) {
 	}
 
 	txpool.AddTx(&txcache.WrappedTransaction{
-		Tx:               tx,
-		TxHash:           []byte("txHash2"),
-		Fee:              big.NewInt(int64(tx.GasLimit * tx.GasPrice)),
-		TransferredValue: tx.Value,
-		FeePayer:         tx.RelayerAddr,
+		Tx:     tx,
+		TxHash: []byte("txHash2"),
 	})
 
 	options := holders.NewTxSelectionOptions(
@@ -2542,34 +2536,29 @@ func Test_SelectionWithAliceSenderAndThenRelayerOnDifferentTxs(t *testing.T) {
 	}
 
 	txpool.AddTx(&txcache.WrappedTransaction{
-		Tx:               tx,
-		TxHash:           []byte("txHash1"),
-		Fee:              big.NewInt(int64(tx.GasLimit * tx.GasPrice)),
-		TransferredValue: tx.Value,
-		FeePayer:         tx.SndAddr,
+		Tx:     tx,
+		TxHash: []byte("txHash1"),
 	})
 
 	// the second transaction has bob as sender and alice as relayer.
 	// this transaction should not be selected
 	tx = &transaction.Transaction{
-		Nonce:     nonceTracker.getThenIncrementNonceByStringAddress("bob"),
-		Value:     big.NewInt(0),
-		SndAddr:   []byte("bob"),
-		RcvAddr:   []byte("receiver"),
-		Data:      []byte{},
-		GasLimit:  50_000,
-		GasPrice:  1_000_000_000,
-		ChainID:   []byte(configs.ChainID),
-		Version:   2,
-		Signature: []byte("signature"),
+		Nonce:       nonceTracker.getThenIncrementNonceByStringAddress("bob"),
+		Value:       big.NewInt(0),
+		SndAddr:     []byte("bob"),
+		RcvAddr:     []byte("receiver"),
+		Data:        []byte{},
+		GasLimit:    100_000,
+		GasPrice:    1_000_000_000,
+		ChainID:     []byte(configs.ChainID),
+		Version:     2,
+		Signature:   []byte("signature"),
+		RelayerAddr: []byte("alice"),
 	}
 
 	txpool.AddTx(&txcache.WrappedTransaction{
-		Tx:               tx,
-		TxHash:           []byte("txHash2"),
-		Fee:              big.NewInt(int64(tx.GasLimit * tx.GasPrice)),
-		TransferredValue: tx.Value,
-		FeePayer:         []byte("alice"),
+		Tx:     tx,
+		TxHash: []byte("txHash2"),
 	})
 
 	options := holders.NewTxSelectionOptions(
