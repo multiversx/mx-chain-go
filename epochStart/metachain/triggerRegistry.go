@@ -97,7 +97,6 @@ func unmarshallTriggerJson(data []byte) (data.MetaTriggerRegistryHandler, error)
 
 // saveState saves the trigger state. Needs to be called under mutex
 func (t *trigger) saveState(key []byte) error {
-	// TODO: add new structures for the new headers and update this component
 	metaHeader, ok := t.epochStartMeta.(data.MetaHeaderHandler)
 	if !ok {
 		return epochStart.ErrWrongTypeAssertion
