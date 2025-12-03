@@ -44,6 +44,7 @@ func (creator *blocksCreator) IncrementRound() {
 	manual.IncrementIndex()
 
 	creator.nodeHandler.GetStatusCoreComponents().AppStatusHandler().SetUInt64Value(common.MetricCurrentRound, uint64(roundHandler.Index()))
+	creator.nodeHandler.GetStatusCoreComponents().AppStatusHandler().SetUInt64Value(common.MetricRoundDuration, uint64(roundHandler.TimeDuration().Milliseconds()))
 }
 
 // CreateNewBlock creates and process a new block
