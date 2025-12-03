@@ -6630,7 +6630,7 @@ func TestShardProcessor_GetLastExecutionResultHeader(t *testing.T) {
 		require.Equal(t, currHeader, retHeader)
 	})
 
-	t.Run("should error if failed to get header from pool", func(t *testing.T) {
+	t.Run("should error if failed to get header from storage", func(t *testing.T) {
 		t.Parallel()
 
 		headerHash1 := []byte("hash1")
@@ -6662,8 +6662,69 @@ func TestShardProcessor_GetLastExecutionResultHeader(t *testing.T) {
 		sp, _ := blproc.NewShardProcessor(arguments)
 
 		retHeader, err := sp.GetLastExecutionResultHeader(currHeader)
-		require.Equal(t, expectedErr, err)
+		require.ErrorIs(t, err, process.ErrMissingHeader)
 		require.Nil(t, retHeader)
+	})
+
+	t.Run("should try to get from storage if not found in pool", func(t *testing.T) {
+		t.Parallel()
+
+		headerHash1 := []byte("hash1")
+
+		currHeader := &block.HeaderV3{
+			LastExecutionResult: &block.ExecutionResultInfo{
+				ExecutionResult: &block.BaseExecutionResult{
+					HeaderHash: headerHash1,
+				},
+			},
+		}
+
+		dataPool := initDataPool()
+		dataPool.HeadersCalled = func() dataRetriever.HeadersPool {
+			return &pool.HeadersPoolStub{
+				GetHeaderByHashCalled: func(hash []byte) (data.HeaderHandler, error) {
+					return nil, errors.New("other error")
+				},
+			}
+		}
+
+		marshaller := &marshal.GogoProtoMarshalizer{}
+
+		execResHeader := &block.HeaderV3{
+			Nonce: 1,
+			LastExecutionResult: &block.ExecutionResultInfo{
+				ExecutionResult: &block.BaseExecutionResult{
+					HeaderHash: headerHash1,
+				},
+			},
+		}
+
+		storer := &storageStubs.ChainStorerStub{
+			GetStorerCalled: func(unitType dataRetriever.UnitType) (storage.Storer, error) {
+				return &storageStubs.StorerStub{
+					RemoveCalled: func(key []byte) error {
+						return nil
+					},
+					GetCalled: func(key []byte) ([]byte, error) {
+						return marshaller.Marshal(execResHeader)
+					},
+				}, nil
+			},
+		}
+
+		coreComp, dataComp, bootComp, statusComp := createComponentHolderMocks()
+		coreComp.IntMarsh = marshaller
+
+		dataComp.Storage = storer
+		dataComp.DataPool = dataPool
+
+		arguments := CreateMockArguments(coreComp, dataComp, bootComp, statusComp)
+
+		sp, _ := blproc.NewShardProcessor(arguments)
+
+		retHeader, err := sp.GetLastExecutionResultHeader(currHeader)
+		require.Nil(t, err)
+		require.Equal(t, execResHeader, retHeader)
 	})
 
 	t.Run("should work", func(t *testing.T) {
