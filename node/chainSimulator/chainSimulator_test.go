@@ -85,6 +85,7 @@ func TestChainSimulator_GenerateBlocksShouldWork(t *testing.T) {
 
 	chainSimulator, err := NewChainSimulator(ArgsChainSimulator{
 		BypassTxSignatureCheck:         true,
+		BypassBlockSignatureCheck:      true,
 		TempDir:                        t.TempDir(),
 		PathToInitialConfig:            defaultPathToInitialConfig,
 		NumOfShards:                    defaultNumOfShards,
