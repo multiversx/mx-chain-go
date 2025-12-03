@@ -145,18 +145,21 @@ func (he *headersExecutor) handleProcessError(ctx context.Context, pair queue.He
 }
 
 func (he *headersExecutor) process(pair queue.HeaderBodyPair) error {
-	log.Debug("headersExecutor.proces: start processing pair",
-		"nonce", pair.Header.GetNonce(),
-		"round", pair.Header.GetRound(),
-	)
-
 	executionResult, err := he.blockProcessor.ProcessBlockProposal(pair.Header, pair.Body)
 	if err != nil {
+		log.Warn("headersExecutor.process process block failed",
+			"nonce", pair.Header.GetNonce(),
+			"err", err,
+		)
 		return err
 	}
 
 	err = he.executionTracker.AddExecutionResult(executionResult)
 	if err != nil {
+		log.Warn("headersExecutor.process add execution result failed",
+			"nonce", pair.Header.GetNonce(),
+			"err", err,
+		)
 		return nil
 	}
 

@@ -624,7 +624,7 @@ func (st *storageBootstrapper) prepareTxPoolContext(
 		return err
 	}
 
-	for i := len(headerHashesReverse) - 1; i >= 0; i++ {
+	for i := len(headerHashesReverse) - 1; i >= 0; i-- {
 		hdrHash := headerHashesReverse[i]
 		hdr := headersReverse[i]
 		body := bodiesReverse[i]

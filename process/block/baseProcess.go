@@ -3398,18 +3398,13 @@ func (bp *baseProcessor) getLastExecutionResultHeader(
 		return nil, err
 	}
 
-	header, err := process.GetHeader(
+	return process.GetHeader(
 		lastExecutionResult.GetHeaderHash(),
 		bp.dataPool.Headers(),
 		bp.store,
 		bp.marshalizer,
 		currentHeader.GetShardID(),
 	)
-	if err != nil {
-		return nil, err
-	}
-
-	return header, nil
 }
 
 func (bp *baseProcessor) checkContextBeforeExecution(header data.HeaderHandler) error {
