@@ -3102,6 +3102,7 @@ func (bp *baseProcessor) addExecutionResultsOnHeader(header data.HeaderHandler) 
 		return err
 	}
 
+	pendingExecutionResults = bp.excludeExecutionResultsNotOnChain(pendingExecutionResults, header)
 	var lastExecutionResultForCurrentBlock data.LastExecutionResultHandler
 	numToInclude := bp.executionResultsInclusionEstimator.Decide(lastNotarizedExecutionResultInfo, pendingExecutionResults, header.GetRound())
 
@@ -3121,6 +3122,61 @@ func (bp *baseProcessor) addExecutionResultsOnHeader(header data.HeaderHandler) 
 	}
 
 	return header.SetExecutionResultsHandlers(executionResultsToInclude)
+}
+
+func (bp *baseProcessor) excludeExecutionResultsNotOnChain(
+	pendingExecutionResults []data.BaseExecutionResultHandler,
+	currentHeader data.HeaderHandler,
+) []data.BaseExecutionResultHandler {
+	if len(pendingExecutionResults) == 0 {
+		return pendingExecutionResults
+	}
+	if check.IfNil(currentHeader) {
+		return make([]data.BaseExecutionResultHandler, 0)
+	}
+
+	// If there's no previous header (nonce == 0) nothing can match
+	if currentHeader.GetNonce() == 0 {
+		return make([]data.BaseExecutionResultHandler, 0)
+	}
+
+	// Build a lookup from headerHash -> index in pendingExecutionResults
+	pendingHashToIndex := make(map[string]int, len(pendingExecutionResults))
+	for i, res := range pendingExecutionResults {
+		h := res.GetHeaderHash()
+		pendingHashToIndex[string(h)] = i
+	}
+
+	// Walk the canonical chain of previous hashes and check membership in the pending set.
+	prevHash := currentHeader.GetPrevHash()
+	prevNonce := currentHeader.GetNonce() - 1
+
+	for {
+		if idx, ok := pendingHashToIndex[string(prevHash)]; ok {
+			// Found the last execution result that is on-chain: include up to it (inclusive).
+			return pendingExecutionResults[:idx+1]
+		}
+
+		// Get the header to continue walking the prevHash chain.
+		hdr, err := bp.dataPool.Headers().GetHeaderByHash(prevHash)
+		if err != nil || check.IfNil(hdr) {
+			log.Debug("excludeExecutionResultsNotOnChain: cannot get header by hash",
+				"hash", prevHash,
+				"err", err)
+			break
+		}
+
+		// Stop if we reached genesis nonce
+		if prevNonce == 0 {
+			break
+		}
+
+		prevHash = hdr.GetPrevHash()
+		prevNonce--
+	}
+
+	// No matching execution result was found on chain.
+	return make([]data.BaseExecutionResultHandler, 0)
 }
 
 func (bp *baseProcessor) createMbsCrossShardDstMe(
