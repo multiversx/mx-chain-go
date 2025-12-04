@@ -1427,6 +1427,3 @@ var ErrNilShardInfoCreator = errors.New("nil shard info creator")
 
 // ErrEpochStartProposeBlockHasMiniBlocks signals that epoch start propose block has mini blocks
 var ErrEpochStartProposeBlockHasMiniBlocks = errors.New("epoch start propose block has mini blocks")
-
-// ErrEpochStartDataShouldBeEmpty signals that epoch start data should be empty for non epoch start blocks
-var ErrEpochStartDataShouldBeEmpty = errors.New("epoch start data should be empty for non epoch start blocks")

@@ -646,6 +646,7 @@ func Test_addExecutionResultsOnHeader(t *testing.T) {
 			},
 		}
 
+		prevHeaderHash := []byte("prev_hash")
 		sp, _ := blproc.ConstructPartialShardBlockProcessorForTest(map[string]interface{}{
 			"executionManager": &processMocks.ExecutionManagerMock{
 				GetPendingExecutionResultsCalled: func() ([]data.BaseExecutionResultHandler, error) {
@@ -653,7 +654,7 @@ func Test_addExecutionResultsOnHeader(t *testing.T) {
 					meta := &block.MetaExecutionResult{
 						ExecutionResult: &block.BaseMetaExecutionResult{
 							BaseExecutionResult: &block.BaseExecutionResult{
-								HeaderHash:  []byte("hdr-hash"),
+								HeaderHash:  prevHeaderHash,
 								HeaderNonce: 1,
 								HeaderRound: 2,
 								RootHash:    []byte("root"),
@@ -689,7 +690,11 @@ func Test_addExecutionResultsOnHeader(t *testing.T) {
 				},
 			},
 		})
-		err := sp.AddExecutionResultsOnHeader(&block.HeaderV3{Round: 3})
+		err := sp.AddExecutionResultsOnHeader(&block.HeaderV3{
+			Round:    3,
+			Nonce:    3,
+			PrevHash: prevHeaderHash,
+		})
 		require.Error(t, err)
 		require.Equal(t, process.ErrWrongTypeAssertion, err)
 	})
