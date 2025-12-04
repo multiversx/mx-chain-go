@@ -919,11 +919,6 @@ func (adb *AccountsDB) commit() ([]byte, error) {
 	log.Trace("accountsDB.Commit started")
 	adb.entries = make([]JournalEntry, 0)
 
-	err := adb.stateAccessesCollector.Store()
-	if err != nil {
-		return nil, err
-	}
-
 	oldHashes := make(common.ModifiedHashes)
 	newHashes := make(common.ModifiedHashes)
 	// Step 1. commit all data tries
@@ -939,7 +934,7 @@ func (adb *AccountsDB) commit() ([]byte, error) {
 	oldRoot := adb.mainTrie.GetOldRoot()
 
 	// Step 2. commit main trie
-	err = adb.commitTrie(adb.mainTrie, oldHashes, newHashes)
+	err := adb.commitTrie(adb.mainTrie, oldHashes, newHashes)
 	if err != nil {
 		return nil, err
 	}
@@ -947,6 +942,11 @@ func (adb *AccountsDB) commit() ([]byte, error) {
 	newRoot, err := adb.mainTrie.RootHash()
 	if err != nil {
 		log.Trace("accountsDB.Commit ended", "error", err.Error())
+		return nil, err
+	}
+
+	err = adb.stateAccessesCollector.CommitCollectedAccesses(newRoot)
+	if err != nil {
 		return nil, err
 	}
 
