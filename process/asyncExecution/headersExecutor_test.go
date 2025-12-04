@@ -7,6 +7,7 @@ import (
 	"testing"
 	"time"
 
+	atomicCore "github.com/multiversx/mx-chain-core-go/core/atomic"
 	"github.com/multiversx/mx-chain-core-go/data"
 	"github.com/multiversx/mx-chain-core-go/data/block"
 	"github.com/stretchr/testify/require"
@@ -81,20 +82,20 @@ func TestNewHeadersExecutor(t *testing.T) {
 func TestHeadersExecutor_StartAndClose(t *testing.T) {
 	t.Parallel()
 
-	calledProcessBlock := 0
-	calledAddExecutionResult := 0
+	calledProcessBlock := uint32(0)
+	calledAddExecutionResult := uint32(0)
 	args := createMockArgs()
 	blocksQueue := queue.NewBlocksQueue()
 	args.BlocksQueue = blocksQueue
 	args.BlockProcessor = &processMocks.BlockProcessorStub{
 		ProcessBlockProposalCalled: func(handler data.HeaderHandler, body data.BodyHandler) (data.BaseExecutionResultHandler, error) {
-			calledProcessBlock++
+			atomic.AddUint32(&calledProcessBlock, 1)
 			return &block.BaseExecutionResult{}, nil
 		},
 	}
 	args.ExecutionTracker = &processMocks.ExecutionTrackerStub{
 		AddExecutionResultCalled: func(executionResult data.BaseExecutionResultHandler) error {
-			calledAddExecutionResult++
+			atomic.AddUint32(&calledAddExecutionResult, 1)
 			return nil
 		},
 	}
@@ -114,8 +115,8 @@ func TestHeadersExecutor_StartAndClose(t *testing.T) {
 
 	err = executor.Close()
 	require.NoError(t, err)
-	require.Equal(t, 1, calledProcessBlock)
-	require.Equal(t, 1, calledAddExecutionResult)
+	require.Equal(t, uint32(1), atomic.LoadUint32(&calledProcessBlock))
+	require.Equal(t, uint32(1), atomic.LoadUint32(&calledAddExecutionResult))
 
 }
 
@@ -226,10 +227,10 @@ func TestHeadersExecutor_ProcessBlock(t *testing.T) {
 		args := createMockArgs()
 		blocksQueue := queue.NewBlocksQueue()
 		args.BlocksQueue = blocksQueue
-		wasAddExecutionResultCalled := false
+		wasAddExecutionResultCalled := atomicCore.Flag{}
 		args.ExecutionTracker = &processMocks.ExecutionTrackerStub{
 			AddExecutionResultCalled: func(executionResult data.BaseExecutionResultHandler) error {
-				wasAddExecutionResultCalled = true
+				wasAddExecutionResultCalled.SetValue(true)
 				return errExpected
 			},
 		}
@@ -252,7 +253,7 @@ func TestHeadersExecutor_ProcessBlock(t *testing.T) {
 
 		err = executor.Close()
 		require.NoError(t, err)
-		require.True(t, wasAddExecutionResultCalled)
+		require.True(t, wasAddExecutionResultCalled.IsSet())
 	})
 
 	t.Run("block processing error, after retry should work", func(t *testing.T) {
