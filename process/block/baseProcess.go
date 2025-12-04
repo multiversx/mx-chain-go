@@ -4,6 +4,7 @@ import (
 	"bytes"
 	"context"
 	"encoding/hex"
+	"errors"
 	"fmt"
 	"math/big"
 	"sort"
@@ -3277,13 +3278,15 @@ func (bp *baseProcessor) verifyGasLimit(header data.HeaderHandler, miniBlocks bl
 
 	bp.gasComputation.Reset()
 	_, numPendingMiniBlocks, err := bp.gasComputation.AddIncomingMiniBlocks(splitRes.incomingMiniBlocks, splitRes.incomingTransactions)
-	if err != nil {
+	// if limits are reached, do not propagate the error so consensus can continue but with no blocks
+	if err != nil && !errors.Is(err, process.ErrZeroLimit) {
 		return err
 	}
 
 	// for meta, both splitRes.outgoingTransactionHashes and splitRes.outgoingTransactions should be empty, checked on checkMetaOutgoingResults
 	addedTxHashes, pendingMiniBlocksAdded, err := bp.gasComputation.AddOutgoingTransactions(splitRes.outgoingTransactionHashes, splitRes.outgoingTransactions)
-	if err != nil {
+	// if limits are reached, do not propagate the error so consensus can continue but with no blocks
+	if err != nil && !errors.Is(err, process.ErrZeroLimit) {
 		return err
 	}
 	if len(addedTxHashes) != len(splitRes.outgoingTransactionHashes) {
