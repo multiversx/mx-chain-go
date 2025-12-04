@@ -12,10 +12,8 @@ import (
 	logger "github.com/multiversx/mx-chain-logger-go"
 
 	"github.com/multiversx/mx-chain-go/common"
-	"github.com/multiversx/mx-chain-go/common/holders"
 	"github.com/multiversx/mx-chain-go/dataRetriever"
 	"github.com/multiversx/mx-chain-go/process"
-	"github.com/multiversx/mx-chain-go/process/asyncExecution/queue"
 	"github.com/multiversx/mx-chain-go/process/block/bootstrapStorage"
 	"github.com/multiversx/mx-chain-go/process/sync"
 	"github.com/multiversx/mx-chain-go/process/sync/storageBootstrap/metricsLoader"
@@ -568,154 +566,9 @@ func (st *storageBootstrapper) setCurrentBlockInfoV3(
 		return err
 	}
 
-	err = st.prepareTxPoolContext(
-		header,
-		headerHash,
-		lastExecutedHeader,
-		lastExecutionResult.GetHeaderHash(),
-		lastExecutionResult,
-	)
-	if err != nil {
-		return err
-	}
+	st.blkc.SetLastExecutionResult(lastExecutionResult)
 
 	return nil
-}
-
-func (st *storageBootstrapper) prepareTxPoolContext(
-	currentHeader data.HeaderHandler,
-	currentHeaderHash []byte,
-	lastExecutedHeader data.HeaderHandler,
-	lastExecutedHeaderHash []byte,
-	lastExecutionResult data.BaseExecutionResultHandler,
-) error {
-	lastExecutedNonce := lastExecutedHeader.GetNonce()
-	currentNonce := currentHeader.GetNonce()
-
-	err := st.txPool.OnExecutedBlock(lastExecutedHeader, lastExecutionResult.GetRootHash())
-	if err != nil {
-		st.txPool.ResetTracker()
-		return err
-	}
-
-	if currentNonce == lastExecutedNonce+1 {
-		currentBody, err := st.getBlockBody(currentHeader)
-		if err != nil {
-			return err
-		}
-
-		return st.prepareAndExecuteHeader(
-			currentHeaderHash,
-			currentHeader,
-			currentBody,
-			lastExecutionResult.GetRootHash(),
-			lastExecutedHeaderHash,
-		)
-	}
-
-	// if there are multiple headers in between the syncing header and the last one executed,
-	// add them into the queue and pool
-	headersReverse, bodiesReverse, headerHashesReverse, err := st.getIntermediateHeaders(
-		currentHeaderHash,
-		currentNonce,
-		lastExecutedNonce,
-	)
-	if err != nil {
-		return err
-	}
-
-	for i := len(headerHashesReverse) - 1; i >= 0; i-- {
-		hdrHash := headerHashesReverse[i]
-		hdr := headersReverse[i]
-		body := bodiesReverse[i]
-
-		err = st.prepareAndExecuteHeader(
-			hdrHash,
-			hdr,
-			body,
-			lastExecutionResult.GetRootHash(),
-			lastExecutedHeaderHash,
-		)
-		if err != nil {
-			return err
-		}
-	}
-
-	return nil
-}
-
-func (st *storageBootstrapper) getIntermediateHeaders(
-	currentHeaderHash []byte,
-	currentNonce uint64,
-	lastExecutedNonce uint64,
-) ([]data.HeaderHandler, []data.BodyHandler, [][]byte, error) {
-	headersReverse := make([]data.HeaderHandler, 0)
-	bodiesReverse := make([]data.BodyHandler, 0)
-	headerHashesReverse := make([][]byte, 0)
-
-	hdrHash := currentHeaderHash
-	hdrNonce := currentNonce
-
-	for hdrNonce > lastExecutedNonce {
-		hdr, err := st.bootstrapper.getHeader(hdrHash)
-		if err != nil {
-			return nil, nil, nil, err
-		}
-
-		body, err := st.getBlockBody(hdr)
-		if err != nil {
-			return nil, nil, nil, err
-		}
-
-		headersReverse = append(headersReverse, hdr)
-		bodiesReverse = append(bodiesReverse, body)
-		headerHashesReverse = append(headerHashesReverse, hdrHash)
-
-		hdrHash = hdr.GetPrevHash()
-		hdrNonce = hdr.GetNonce()
-	}
-
-	return headersReverse, bodiesReverse, headerHashesReverse, nil
-}
-
-func (st *storageBootstrapper) prepareAndExecuteHeader(
-	hdrHash []byte,
-	hdr data.HeaderHandler,
-	body data.BodyHandler,
-	rootHash []byte,
-	lastExecutedHeaderHash []byte,
-) error {
-	rootHashHolder := holders.NewDefaultRootHashesHolder(rootHash)
-	err := st.accountsProposal.RecreateTrieIfNeeded(rootHashHolder)
-	if err != nil {
-		return err
-	}
-
-	accountsProvider, err := state.NewAccountsEphemeralProvider(st.accountsProposal)
-	if err != nil {
-		return err
-	}
-
-	bodyPtr, ok := body.(*block.Body)
-	if !ok {
-		return process.ErrWrongTypeAssertion
-	}
-
-	err = st.txPool.OnProposedBlock(
-		hdrHash,
-		bodyPtr,
-		hdr,
-		accountsProvider,
-		lastExecutedHeaderHash,
-	)
-	if err != nil {
-		return err
-	}
-
-	return st.executionManager.AddPairForExecution(queue.HeaderBodyPair{
-		Header: hdr,
-		Body:   body,
-	})
 }
 
 func (st *storageBootstrapper) getAndApplyProofForHeader(headerHash []byte, header data.HeaderHandler) error {
