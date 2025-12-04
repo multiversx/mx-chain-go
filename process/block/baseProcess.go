@@ -3366,14 +3366,18 @@ func (bp *baseProcessor) getTransactionsForMiniBlock(
 	miniBlock data.MiniBlockHeaderHandler,
 	txHashes [][]byte,
 ) ([]data.TransactionHandler, error) {
+	pool, err := bp.getDataPoolByBlockType(block.Type(miniBlock.GetTypeInt32()))
+	if err != nil {
+		return nil, err
+	}
+
 	txs := make([]data.TransactionHandler, len(txHashes))
-	var err error
 	for idx, txHash := range txHashes {
 		txs[idx], err = process.GetTransactionHandlerFromPool(
 			miniBlock.GetSenderShardID(),
 			miniBlock.GetReceiverShardID(),
 			txHash,
-			bp.dataPool.Transactions(),
+			pool,
 			process.SearchMethodSearchFirst,
 		)
 		if err != nil {
