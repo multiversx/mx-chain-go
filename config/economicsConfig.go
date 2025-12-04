@@ -7,6 +7,15 @@ type GlobalSettings struct {
 	YearSettings                []*YearSetting
 	Denomination                int
 	GenesisMintingSenderAddress string
+	TailInflation               TailInflationSettings
+}
+
+// TailInflationSettings will hold the tail inflation settings
+type TailInflationSettings struct {
+	EnableEpoch        uint32
+	StartYearInflation float64
+	DecayPercentage    float64
+	MinimumInflation   float64
 }
 
 // YearSetting will hold the maximum inflation rate for year
@@ -26,6 +35,10 @@ type EpochRewardSettings struct {
 	DeveloperPercentage              float64
 	ProtocolSustainabilityPercentage float64
 	ProtocolSustainabilityAddress    string
+	EcosystemGrowthPercentage        float64
+	EcosystemGrowthAddress           string
+	GrowthDividendPercentage         float64
+	GrowthDividendAddress            string
 	TopUpGradientPoint               string
 	TopUpFactor                      float64
 	EpochEnable                      uint32

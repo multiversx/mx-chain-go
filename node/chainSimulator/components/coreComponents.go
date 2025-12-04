@@ -194,6 +194,7 @@ func CreateCoreComponents(args ArgsCoreComponentsHolder) (*coreComponentsHolder,
 	}
 
 	argsEconomicsHandler := economics.ArgsNewEconomicsData{
+		GeneralConfig:       &args.Config,
 		TxVersionChecker:    instance.txVersionChecker,
 		Economics:           &args.EconomicsConfig,
 		EpochNotifier:       instance.epochNotifier,

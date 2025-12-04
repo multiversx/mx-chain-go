@@ -2,6 +2,7 @@ package transactionsfee
 
 import (
 	"encoding/hex"
+	"github.com/multiversx/mx-chain-go/config"
 	"math/big"
 	"testing"
 
@@ -27,7 +28,10 @@ var pubKeyConverter, _ = pubkeyConverter.NewBech32PubkeyConverter(32, "erd")
 
 func createEconomicsData(enableEpochsHandler common.EnableEpochsHandler) process.EconomicsDataHandler {
 	economicsConfig := testscommon.GetEconomicsConfig()
+	cfg := &config.Config{EpochStartConfig: config.EpochStartConfig{RoundsPerEpoch: 14400}}
+	cfg.GeneralSettings.ChainParametersByEpoch = []config.ChainParametersByEpochConfig{{RoundDuration: 6000}}
 	economicsData, _ := economics.NewEconomicsData(economics.ArgsNewEconomicsData{
+		GeneralConfig:       cfg,
 		Economics:           &economicsConfig,
 		EnableEpochsHandler: enableEpochsHandler,
 		TxVersionChecker:    &testscommon.TxVersionCheckerStub{},

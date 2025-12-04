@@ -28,10 +28,8 @@ var log = logger.GetOrCreate("process/economics")
 type economicsData struct {
 	*gasConfigHandler
 	*rewardsConfigHandler
+	*globalSettingsHandler
 	gasPriceModifier    float64
-	minInflation        float64
-	yearSettings        map[uint32]*config.YearSetting
-	mutYearSettings     sync.RWMutex
 	statusHandler       core.AppStatusHandler
 	enableEpochsHandler common.EnableEpochsHandler
 	txVersionHandler    process.TxVersionCheckerHandler
@@ -42,6 +40,7 @@ type economicsData struct {
 type ArgsNewEconomicsData struct {
 	TxVersionChecker    process.TxVersionCheckerHandler
 	Economics           *config.EconomicsConfig
+	GeneralConfig       *config.Config
 	EpochNotifier       process.EpochNotifier
 	EnableEpochsHandler common.EnableEpochsHandler
 	PubkeyConverter     core.PubkeyConverter
@@ -79,19 +78,10 @@ func NewEconomicsData(args ArgsNewEconomicsData) (*economicsData, error) {
 	}
 
 	ed := &economicsData{
-		minInflation:        args.Economics.GlobalSettings.MinimumInflation,
 		gasPriceModifier:    args.Economics.FeeSettings.GasPriceModifier,
 		statusHandler:       statusHandler.NewNilStatusHandler(),
 		enableEpochsHandler: args.EnableEpochsHandler,
 		txVersionHandler:    args.TxVersionChecker,
-	}
-
-	ed.yearSettings = make(map[uint32]*config.YearSetting)
-	for _, yearSetting := range args.Economics.GlobalSettings.YearSettings {
-		ed.yearSettings[yearSetting.Year] = &config.YearSetting{
-			Year:             yearSetting.Year,
-			MaximumInflation: yearSetting.MaximumInflation,
-		}
 	}
 
 	ed.gasConfigHandler, err = newGasConfigHandler(args.Economics)
@@ -100,6 +90,11 @@ func NewEconomicsData(args ArgsNewEconomicsData) (*economicsData, error) {
 	}
 
 	ed.rewardsConfigHandler, err = newRewardsConfigHandler(args.Economics.RewardsSettings, args.PubkeyConverter, args.ShardCoordinator)
+	if err != nil {
+		return nil, err
+	}
+
+	ed.globalSettingsHandler, err = newGlobalSettingsHandler(args.Economics, args.GeneralConfig)
 	if err != nil {
 		return nil, err
 	}
@@ -157,22 +152,14 @@ func (ed *economicsData) LeaderPercentageInEpoch(epoch uint32) float64 {
 	return ed.getLeaderPercentage(epoch)
 }
 
-// MinInflationRate returns the minimum inflation rate
-func (ed *economicsData) MinInflationRate() float64 {
-	return ed.minInflation
+// MaxInflationRate returns the maximum inflation rate
+func (ed *economicsData) MaxInflationRate(year uint32, epoch uint32) float64 {
+	return ed.globalSettingsHandler.maxInflationRate(year, epoch)
 }
 
-// MaxInflationRate returns the maximum inflation rate
-func (ed *economicsData) MaxInflationRate(year uint32) float64 {
-	ed.mutYearSettings.RLock()
-	yearSetting, ok := ed.yearSettings[year]
-	ed.mutYearSettings.RUnlock()
-
-	if !ok {
-		return ed.minInflation
-	}
-
-	return yearSetting.MaximumInflation
+// IsTailInflationEnabled returns if the tail inflation is enabled
+func (ed *economicsData) IsTailInflationEnabled(epoch uint32) bool {
+	return ed.globalSettingsHandler.isTailInflationActive(epoch)
 }
 
 // GenesisTotalSupply returns the genesis total supply
@@ -645,6 +632,26 @@ func (ed *economicsData) getExtraGasLimitRelayedTx(txInstance *transaction.Trans
 	}
 
 	return 0
+}
+
+// EcosystemGrowthPercentageInEpoch returns the ecosystem growth percentage in a specific epoch
+func (ed *economicsData) EcosystemGrowthPercentageInEpoch(epoch uint32) float64 {
+	return ed.rewardsConfigHandler.getEcosystemGrowthPercentage(epoch)
+}
+
+// EcosystemGrowthAddressInEpoch returns the ecosystem growth address in a specific epoch
+func (ed *economicsData) EcosystemGrowthAddressInEpoch(epoch uint32) string {
+	return ed.rewardsConfigHandler.getEcosystemGrowthAddress(epoch)
+}
+
+// GrowthDividendPercentageInEpoch returns the growth dividend percentage in a specific epoch
+func (ed *economicsData) GrowthDividendPercentageInEpoch(epoch uint32) float64 {
+	return ed.rewardsConfigHandler.getGrowthDividendPercentage(epoch)
+}
+
+// GrowthDividendAddressInEpoch returns the growth dividend address in a specific epoch
+func (ed *economicsData) GrowthDividendAddressInEpoch(epoch uint32) string {
+	return ed.rewardsConfigHandler.getGrowthDividendAddress(epoch)
 }
 
 // IsInterfaceNil returns true if there is no value under the interface
