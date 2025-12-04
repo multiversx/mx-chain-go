@@ -7,3 +7,5 @@ var errInvalidNumOutGoingMBInMetaHdrProposal = errors.New("invalid number of out
 var errInvalidNumOutGoingTxsInMetaHdrProposal = errors.New("invalid number of outgoing transactions in meta header proposal, should be zero")
 
 var errNilPreviousHeader = errors.New("nil previous header")
+
+var errInvalidMiniBlocks = errors.New("invalid mini blocks")

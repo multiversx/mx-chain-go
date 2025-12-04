@@ -912,18 +912,19 @@ func (sp *shardProcessor) CommitBlock(
 	headerHandler data.HeaderHandler,
 	bodyHandler data.BodyHandler,
 ) error {
-	var err error
-	sp.processStatusHandler.SetBusy("shardProcessor.CommitBlock")
-	defer func() {
-		if err != nil {
-			sp.RevertCurrentBlock(headerHandler)
-		}
-		sp.processStatusHandler.SetIdle()
-	}()
-
-	err = checkForNils(headerHandler, bodyHandler)
+	err := checkForNils(headerHandler, bodyHandler)
 	if err != nil {
 		return err
+	}
+
+	if !headerHandler.IsHeaderV3() {
+		sp.processStatusHandler.SetBusy("shardProcessor.CommitBlock")
+		defer func() {
+			if err != nil {
+				sp.RevertCurrentBlock(headerHandler)
+			}
+			sp.processStatusHandler.SetIdle()
+		}()
 	}
 
 	sp.store.SetEpochForPutOperation(headerHandler.GetEpoch())
@@ -1143,7 +1144,7 @@ func (sp *shardProcessor) CommitBlock(
 
 	sp.displayPoolsInfo()
 
-	errNotCritical = sp.removeTxsFromPools(header, body)
+	errNotCritical = sp.removeTxsFromPools(headerHash, header, body)
 	if errNotCritical != nil {
 		log.Debug("removeTxsFromPools", "error", errNotCritical.Error())
 	}
@@ -1733,7 +1734,13 @@ func (sp *shardProcessor) getOrderedProcessedMetaBlocksFromHeader(header data.He
 		"num miniblocks", len(miniBlockHashes),
 	)
 
-	processedMetaBlocks, err := sp.getOrderedProcessedMetaBlocksFromMiniBlockHashes(miniBlockHeaders, miniBlockHashes)
+	var processedMetaBlocks []data.HeaderHandler
+	var err error
+	if !header.IsHeaderV3() {
+		processedMetaBlocks, err = sp.getOrderedProcessedMetaBlocksFromMiniBlockHashes(miniBlockHeaders, miniBlockHashes)
+	} else {
+		processedMetaBlocks, err = sp.getOrderedProcessedMetaBlocksFromMiniBlockHashesV3(header, miniBlockHashes)
+	}
 	if err != nil {
 		return nil, err
 	}
@@ -2382,6 +2389,7 @@ func (sp *shardProcessor) applyBodyToHeader(
 
 // MarshalizedDataToBroadcast prepares underlying data into a marshalized object according to destination
 func (sp *shardProcessor) MarshalizedDataToBroadcast(
+	headerHash []byte,
 	header data.HeaderHandler,
 	bodyHandler data.BodyHandler,
 ) (map[uint32][]byte, map[string][][]byte, error) {
@@ -2396,12 +2404,12 @@ func (sp *shardProcessor) MarshalizedDataToBroadcast(
 	}
 
 	// Remove mini blocks which are not final from "body" to avoid sending them cross shard
-	newBodyToBroadcast, err := sp.getFinalMiniBlocks(header, body)
+	newBodyToBroadcast, miniBlocksMapToBroadcast, err := sp.getFinalMiniBlocks(headerHash, header, body)
 	if err != nil {
 		return nil, nil, err
 	}
 
-	mrsTxs := sp.txCoordinator.CreateMarshalizedData(newBodyToBroadcast)
+	mrsTxs := sp.txCoordinator.CreateMarshalledDataForHeader(header, newBodyToBroadcast, miniBlocksMapToBroadcast)
 
 	mrsData := sp.marshalledBodyToBroadcast(newBodyToBroadcast)
 

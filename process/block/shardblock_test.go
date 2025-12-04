@@ -2756,7 +2756,11 @@ func TestShardProcessor_CommitBlockShouldRevertCurrentBlockWhenErr(t *testing.T)
 		RevertToSnapshotCalled: revToSnapshot,
 	}
 	bp, _ := blproc.NewShardProcessor(arguments)
-	err := bp.CommitBlock(nil, nil)
+	err := bp.CommitBlock(&block.HeaderV2{
+		Header: &block.Header{
+			Nonce: 100,
+		},
+	}, &block.Body{})
 	assert.NotNil(t, err)
 	assert.Equal(t, 0, journalEntries)
 }
@@ -2914,9 +2918,11 @@ func TestShardProcessor_MarshalizedDataToBroadcast_WithSupernova(t *testing.T) {
 
 	tc.AddTxsFromMiniBlocks(miniBlocksSlice)
 
-	marshalledBlockBody, marshalledTxs, err := sp.MarshalizedDataToBroadcast(&block.HeaderV3{
-		ExecutionResults: executionResults,
-	}, body)
+	marshalledBlockBody, marshalledTxs, err := sp.MarshalizedDataToBroadcast(
+		[]byte("hash"),
+		&block.HeaderV3{
+			ExecutionResults: executionResults,
+		}, body)
 	require.Nil(t, err)
 	require.NotNil(t, marshalledBlockBody)
 	require.NotNil(t, marshalledTxs)
@@ -3006,7 +3012,7 @@ func TestShardProcessor_MarshalizedDataToBroadcastShouldWork(t *testing.T) {
 	arguments := CreateMockArguments(coreComponents, dataComponents, bootstrapComponents, statusComponents)
 	arguments.TxCoordinator = tc
 	sp, _ := blproc.NewShardProcessor(arguments)
-	msh, mstx, err := sp.MarshalizedDataToBroadcast(&block.Header{}, body)
+	msh, mstx, err := sp.MarshalizedDataToBroadcast([]byte("hash"), &block.Header{}, body)
 	assert.Nil(t, err)
 	assert.NotNil(t, msh)
 	assert.NotNil(t, mstx)
@@ -3035,7 +3041,7 @@ func TestShardProcessor_MarshalizedDataWrongType(t *testing.T) {
 
 	sp, _ := blproc.NewShardProcessor(arguments)
 	wr := &wrongBody{}
-	msh, mstx, err := sp.MarshalizedDataToBroadcast(&block.Header{}, wr)
+	msh, mstx, err := sp.MarshalizedDataToBroadcast([]byte("hash"), &block.Header{}, wr)
 	assert.Equal(t, process.ErrWrongTypeAssertion, err)
 	assert.Nil(t, msh)
 	assert.Nil(t, mstx)
@@ -3054,7 +3060,7 @@ func TestShardProcessor_MarshalizedDataNilInput(t *testing.T) {
 	arguments := CreateMockArguments(coreComponents, dataComponents, bootstrapComponents, statusComponents)
 
 	sp, _ := blproc.NewShardProcessor(arguments)
-	msh, mstx, err := sp.MarshalizedDataToBroadcast(nil, nil)
+	msh, mstx, err := sp.MarshalizedDataToBroadcast(nil, nil, nil)
 	assert.Equal(t, process.ErrNilMiniBlocks, err)
 	assert.Nil(t, msh)
 	assert.Nil(t, mstx)
@@ -3128,7 +3134,7 @@ func TestShardProcessor_MarshalizedDataMarshalWithoutSuccess(t *testing.T) {
 
 	sp, _ := blproc.NewShardProcessor(arguments)
 
-	msh, mstx, err := sp.MarshalizedDataToBroadcast(&block.Header{}, body)
+	msh, mstx, err := sp.MarshalizedDataToBroadcast([]byte("hash"), &block.Header{}, body)
 	assert.Nil(t, err)
 	assert.True(t, wasCalled)
 	assert.Equal(t, 0, len(msh))
