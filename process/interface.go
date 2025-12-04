@@ -317,11 +317,10 @@ type BlockProcessor interface {
 // BlocksQueue defines what a block queue should be able to do
 type BlocksQueue interface {
 	AddOrReplace(pair queue.HeaderBodyPair) error
-	Pop() (queue.HeaderBodyPair, bool)
+	Pop() (pair queue.HeaderBodyPair, poppedValidPair bool, shouldContinue bool)
 	Peek() (queue.HeaderBodyPair, bool)
 	RemoveAtNonceAndHigher(nonce uint64) []uint64
 	Clean(lastAddedNonce uint64)
-	ResetNotifyChan()
 	IsInterfaceNil() bool
 	Close()
 }

@@ -5,11 +5,10 @@ import "github.com/multiversx/mx-chain-go/process/asyncExecution/queue"
 // BlocksQueueMock is a mock implementation of the BlocksQueue interface
 type BlocksQueueMock struct {
 	AddOrReplaceCalled           func(pair queue.HeaderBodyPair) error
-	PopCalled                    func() (queue.HeaderBodyPair, bool)
+	PopCalled                    func() (queue.HeaderBodyPair, bool, bool)
 	PeekCalled                   func() (queue.HeaderBodyPair, bool)
 	RemoveAtNonceAndHigherCalled func(nonce uint64) []uint64
 	CleanCalled                  func(lastAddedNonce uint64)
-	ResetNotifyChanCalled        func()
 	CloseCalled                  func()
 }
 
@@ -22,11 +21,11 @@ func (bqm *BlocksQueueMock) AddOrReplace(pair queue.HeaderBodyPair) error {
 }
 
 // Pop -
-func (bqm *BlocksQueueMock) Pop() (queue.HeaderBodyPair, bool) {
+func (bqm *BlocksQueueMock) Pop() (queue.HeaderBodyPair, bool, bool) {
 	if bqm.PopCalled != nil {
 		return bqm.PopCalled()
 	}
-	return queue.HeaderBodyPair{}, false
+	return queue.HeaderBodyPair{}, false, false
 }
 
 // Peek -
@@ -56,13 +55,6 @@ func (bqm *BlocksQueueMock) Clean(lastAddedNonce uint64) {
 func (bqm *BlocksQueueMock) Close() {
 	if bqm.CloseCalled != nil {
 		bqm.CloseCalled()
-	}
-}
-
-// ResetNotifyChan -
-func (bqm *BlocksQueueMock) ResetNotifyChan() {
-	if bqm.ResetNotifyChanCalled != nil {
-		bqm.ResetNotifyChanCalled()
 	}
 }
 

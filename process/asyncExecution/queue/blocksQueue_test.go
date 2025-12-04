@@ -80,8 +80,9 @@ func TestHeadersQueue_Pop(t *testing.T) {
 			hq.Close()
 		}()
 
-		_, ok := hq.Pop()
+		_, ok, shouldContinue := hq.Pop()
 		assert.False(t, ok)
+		assert.False(t, shouldContinue)
 
 	})
 
@@ -93,8 +94,9 @@ func TestHeadersQueue_Pop(t *testing.T) {
 		_ = hq.AddOrReplace(pair1)
 		_ = hq.AddOrReplace(pair2)
 
-		firstPair, ok := hq.Pop()
+		firstPair, ok, shouldContinue := hq.Pop()
 		assert.True(t, ok)
+		assert.True(t, shouldContinue)
 		assert.Equal(t, uint64(1), firstPair.Header.GetNonce())
 		assert.Equal(t, 1, len(hq.headerBodyPairs))
 		assert.Equal(t, uint64(2), hq.headerBodyPairs[0].Header.GetNonce())
@@ -138,8 +140,8 @@ func TestHeadersQueue_Concurrency(t *testing.T) {
 	for i := 0; i < numGoroutines; i++ {
 		go func() {
 			for {
-				pair, ok := hq.Pop()
-				if !ok {
+				pair, ok, shouldContinue := hq.Pop()
+				if !shouldContinue || !ok {
 					return
 				}
 				hdr := pair.Header.(*block.Header)
@@ -161,19 +163,21 @@ func TestHeadersQueue_Concurrency(t *testing.T) {
 	}()
 
 	// pop will return false and empty a pair after close
-	res, ok := hq.Pop()
+	res, ok, shouldContinue := hq.Pop()
 	require.Nil(t, res.Header)
 	require.Nil(t, res.Body)
 	require.False(t, ok)
+	require.False(t, shouldContinue)
 
 	pair := HeaderBodyPair{Header: &block.Header{}, Body: &block.Body{}}
 	err := hq.AddOrReplace(pair)
 	require.Nil(t, err)
 
-	res, ok = hq.Pop()
+	res, ok, shouldContinue = hq.Pop()
 	require.Nil(t, res.Header)
 	require.Nil(t, res.Body)
 	require.False(t, ok)
+	require.False(t, shouldContinue)
 
 }
 
@@ -188,8 +192,9 @@ func TestMultipleAddOrReplaceShouldNotBlock(t *testing.T) {
 		require.Nil(t, err)
 	}
 
-	res, ok := hq.Pop()
+	res, ok, shouldContinue := hq.Pop()
 	require.True(t, ok)
+	require.True(t, shouldContinue)
 	require.Equal(t, uint64(0), res.Header.GetNonce())
 }
 

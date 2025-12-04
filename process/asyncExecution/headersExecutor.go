@@ -87,8 +87,6 @@ func (he *headersExecutor) ResumeExecution() {
 	he.mutPaused.Lock()
 	defer he.mutPaused.Unlock()
 
-	he.blocksQueue.ResetNotifyChan()
-
 	he.isPaused = false
 }
 
@@ -108,10 +106,14 @@ func (he *headersExecutor) start(ctx context.Context) {
 			}
 
 			// blocking operation
-			headerBodyPair, ok := he.blocksQueue.Pop()
-			if !ok {
+			headerBodyPair, valueOk, shouldContinue := he.blocksQueue.Pop()
+			if !shouldContinue {
 				// close event
 				return
+			}
+
+			if !valueOk {
+				continue
 			}
 
 			err := he.process(headerBodyPair)

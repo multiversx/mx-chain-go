@@ -136,24 +136,24 @@ func (bq *blocksQueue) add(pair HeaderBodyPair) error {
 
 // Pop removes and returns the first HeaderBodyPair from the queue.
 // If the queue is empty, the method blocks until a new item is available.
-func (bq *blocksQueue) Pop() (HeaderBodyPair, bool) {
+func (bq *blocksQueue) Pop() (pair HeaderBodyPair, poppedValidPair bool, shouldContinue bool) {
 	bq.mutex.Lock()
 	if len(bq.headerBodyPairs) > 0 {
 		item := bq.headerBodyPairs[0]
 		bq.headerBodyPairs = bq.headerBodyPairs[1:]
 		bq.mutex.Unlock()
-		return item, true
+		return item, true, true
 	}
 	if bq.closed {
 		bq.mutex.Unlock()
-		return HeaderBodyPair{}, false
+		return HeaderBodyPair{}, false, false
 	}
 	bq.mutex.Unlock()
 
 	// Wait until notified or closed
 	_, ok := <-bq.notifyCh
 	if !ok {
-		return HeaderBodyPair{}, false
+		return HeaderBodyPair{}, false, false
 	}
 
 	// After being notified, check again
@@ -162,9 +162,11 @@ func (bq *blocksQueue) Pop() (HeaderBodyPair, bool) {
 	if len(bq.headerBodyPairs) > 0 {
 		item := bq.headerBodyPairs[0]
 		bq.headerBodyPairs = bq.headerBodyPairs[1:]
-		return item, true
+		return item, true, true
 	}
-	return HeaderBodyPair{}, false
+
+	// allow further Pops
+	return HeaderBodyPair{}, false, true
 }
 
 // Peek returns the first element from queue
@@ -205,18 +207,6 @@ func (bq *blocksQueue) updateLastAddedNonceBasedOnRemovingNonce(removingNonce ui
 	}
 
 	bq.lastAddedNonce = 0
-}
-
-// ResetNotifyChan resets the internal buffered chan
-func (bq *blocksQueue) ResetNotifyChan() {
-	bq.mutex.Lock()
-	if bq.closed {
-		bq.mutex.Unlock()
-		return
-	}
-	bq.mutex.Unlock()
-
-	bq.notifyCh = make(chan struct{}, 1)
 }
 
 // Clean cleanup the queue and set the provided last added nonce
