@@ -576,12 +576,28 @@ func (e *economics) startNoncePerShardFromEpochStart(epoch uint32) (map[uint32]u
 		return mapShardIdNonce, previousEpochStartMeta, nil
 	}
 
-	mapShardIdNonce[core.MetachainShardId] = previousEpochStartMeta.GetNonce()
+	prevEpochMetaNonce, err := getPrevEpochMetaStartNonceForEconomics(previousEpochStartMeta)
+	if err != nil {
+		return nil, nil, err
+	}
+	mapShardIdNonce[core.MetachainShardId] = prevEpochMetaNonce
 	for _, shardData := range previousEpochStartMeta.GetEpochStartHandler().GetLastFinalizedHeaderHandlers() {
 		mapShardIdNonce[shardData.GetShardID()] = shardData.GetNonce()
 	}
 
 	return mapShardIdNonce, previousEpochStartMeta, nil
+}
+
+func getPrevEpochMetaStartNonceForEconomics(previousEpochStartMeta data.MetaHeaderHandler) (uint64, error) {
+	if !previousEpochStartMeta.IsHeaderV3() {
+		return previousEpochStartMeta.GetNonce(), nil
+	}
+	lastNotarizedResult, err := common.GetLastBaseExecutionResultHandler(previousEpochStartMeta)
+	if err != nil {
+		return 0, err
+	}
+
+	return lastNotarizedResult.GetHeaderNonce(), nil
 }
 
 func (e *economics) maxPossibleNotarizedBlocks(currentRound uint64, prev data.MetaHeaderHandler) uint64 {
