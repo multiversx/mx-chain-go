@@ -11,9 +11,8 @@ import (
 const numRequiredMissedHeadersToForceResync = 4
 
 type headerTracker struct {
-	outOfRangeRounds []uint64
-	deSyncedRounds   []uint64
-	latestRound      uint64
+	outOfRangeRounds *RoundRingBuffer
+	deSyncedRounds   *RoundRingBuffer
 	syncer           ntp.SyncTimer
 	proofsPool       consensus.EquivalentProofsPool
 }
@@ -21,7 +20,8 @@ type headerTracker struct {
 func newHeaderTracker(proofsPool consensus.EquivalentProofsPool) *headerTracker {
 	ht := &headerTracker{
 		proofsPool:       proofsPool,
-		outOfRangeRounds: make([]uint64, 0),
+		outOfRangeRounds: NewRoundRingBuffer(100),
+		deSyncedRounds:   NewRoundRingBuffer(100),
 	}
 
 	go ht.checkIfForceResyncIsNeeded()
@@ -32,47 +32,24 @@ func newHeaderTracker(proofsPool consensus.EquivalentProofsPool) *headerTracker 
 }
 
 func (ht *headerTracker) addOutOfRangeRound(round uint64) {
-	ht.outOfRangeRounds = append(ht.outOfRangeRounds, round)
+	ht.outOfRangeRounds.Add(round)
 }
 
 func (ht *headerTracker) receivedProof(headerProof data.HeaderProofHandler) {
 	currRound := headerProof.GetHeaderRound()
-	if currRound > ht.latestRound {
-		ht.latestRound = currRound
+	if ht.outOfRangeRounds.Contains(currRound) {
+		ht.deSyncedRounds.Add(currRound)
 	}
-
-	if contains(ht.outOfRangeRounds, currRound) {
-		ht.deSyncedRounds = append(ht.deSyncedRounds, currRound)
-	}
-}
-
-func contains(rounds []uint64, round uint64) bool {
-	for _, r := range rounds {
-		if round == r {
-			return true
-		}
-	}
-	return false
 }
 
 func (ht *headerTracker) checkIfForceResyncIsNeeded() {
 	for {
 		time.Sleep(time.Second) // mby check every N rounds
 
-		if len(ht.deSyncedRounds) >= numRequiredMissedHeadersToForceResync && areRoundsAscendingOrder(ht.deSyncedRounds[len(ht.deSyncedRounds)-numRequiredMissedHeadersToForceResync:]) {
+		if ht.deSyncedRounds.Size() >= numRequiredMissedHeadersToForceResync && areRoundsAscendingOrder(ht.deSyncedRounds.Last(numRequiredMissedHeadersToForceResync)) {
 			ht.syncer.StartSyncingTime()
 		}
 
-		ht.cleanOlderData(ht.outOfRangeRounds)
-		ht.cleanOlderData(ht.deSyncedRounds)
-	}
-}
-
-func (ht *headerTracker) cleanOlderData(rounds []uint64) {
-	for idx, r := range rounds {
-		if ht.latestRound > r+100 {
-			rounds = append(rounds[:idx], rounds[idx+1:]...)
-		}
 	}
 }
 
