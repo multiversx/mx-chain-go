@@ -242,3 +242,14 @@ func GetHeaderTimestamps(
 
 	return timestampSec, timestampMs, nil
 }
+
+// ShouldUseTransactionsNetwork returns true if transactions network should be used for transactions
+func ShouldUseTransactionsNetwork(topic string, enableEpochsHandler EnableEpochsHandler) bool {
+	if !enableEpochsHandler.IsFlagEnabled(SupernovaFlag) {
+		return false
+	}
+
+	return strings.Contains(topic, TransactionTopic) ||
+		strings.Contains(topic, UnsignedTransactionTopic) ||
+		strings.Contains(topic, RewardsTransactionTopic)
+}

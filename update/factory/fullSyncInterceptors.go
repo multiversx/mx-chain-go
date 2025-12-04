@@ -13,6 +13,7 @@ import (
 
 	"github.com/multiversx/mx-chain-go/common"
 	"github.com/multiversx/mx-chain-go/dataRetriever"
+	"github.com/multiversx/mx-chain-go/p2p"
 	"github.com/multiversx/mx-chain-go/process"
 	"github.com/multiversx/mx-chain-go/process/dataValidators"
 	"github.com/multiversx/mx-chain-go/process/factory"
@@ -54,6 +55,7 @@ type fullSyncInterceptorsContainerFactory struct {
 	nodeOperationMode              common.NodeOperation
 	interceptedDataVerifierFactory process.InterceptedDataVerifierFactory
 	config                         config.Config
+	enableEpochsHandler            common.EnableEpochsHandler
 }
 
 // ArgsNewFullSyncInterceptorsContainerFactory holds the arguments needed for fullSyncInterceptorsContainerFactory
@@ -178,6 +180,7 @@ func NewFullSyncInterceptorsContainerFactory(
 		preferredPeersHolder:           disabled.NewPreferredPeersHolder(),
 		nodeOperationMode:              args.NodeOperationMode,
 		interceptedDataVerifierFactory: args.InterceptedDataVerifierFactory,
+		enableEpochsHandler:            args.CoreComponents.EnableEpochsHandler(),
 	}
 
 	icf.globalThrottler, err = throttler.NewNumGoRoutinesThrottler(numGoRoutines)
@@ -261,6 +264,9 @@ func checkBaseParams(
 	}
 	if len(coreComponents.ChainID()) == 0 {
 		return process.ErrInvalidChainID
+	}
+	if check.IfNil(coreComponents.EnableEpochsHandler()) {
+		return process.ErrNilEnableEpochsHandler
 	}
 	if check.IfNil(cryptoComponents.TxSignKeyGen()) {
 		return process.ErrNilKeyGen
@@ -395,7 +401,7 @@ func (ficf *fullSyncInterceptorsContainerFactory) generateUnsignedTxsInterceptor
 	interceptorsSlice := make([]process.Interceptor, numShards+1)
 
 	for idx := uint32(0); idx < numShards; idx++ {
-		identifierScr := factory.UnsignedTransactionTopic + shardC.CommunicationIdentifier(idx)
+		identifierScr := common.UnsignedTransactionTopic + shardC.CommunicationIdentifier(idx)
 		if ficf.checkIfInterceptorExists(identifierScr) {
 			continue
 		}
@@ -410,7 +416,7 @@ func (ficf *fullSyncInterceptorsContainerFactory) generateUnsignedTxsInterceptor
 		interceptorsSlice[int(idx)] = interceptor
 	}
 
-	identifierScr := factory.UnsignedTransactionTopic + shardC.CommunicationIdentifier(core.MetachainShardId)
+	identifierScr := common.UnsignedTransactionTopic + shardC.CommunicationIdentifier(core.MetachainShardId)
 	if !ficf.checkIfInterceptorExists(identifierScr) {
 		isCrossShard := core.MetachainShardId != ficf.shardCoordinator.SelfId()
 		interceptor, err := ficf.createOneUnsignedTxInterceptor(identifierScr, isCrossShard)
@@ -476,14 +482,20 @@ func (ficf *fullSyncInterceptorsContainerFactory) createTopicAndAssignHandler(
 	interceptor process.Interceptor,
 	createChannel bool,
 ) (process.Interceptor, error) {
+	network := p2p.MainNetwork
+	faNetwork := p2p.FullArchiveNetwork
+	if common.ShouldUseTransactionsNetwork(topic, ficf.enableEpochsHandler) {
+		network = p2p.TransactionsNetwork
+		faNetwork = p2p.TransactionsNetwork
+	}
 
-	err := createTopicAndAssignHandlerOnMessenger(topic, interceptor, createChannel, ficf.mainMessenger)
+	err := createTopicAndAssignHandlerOnMessenger(topic, interceptor, createChannel, ficf.mainMessenger, network)
 	if err != nil {
 		return nil, err
 	}
 
 	if ficf.nodeOperationMode == common.FullArchiveMode {
-		err = createTopicAndAssignHandlerOnMessenger(topic, interceptor, createChannel, ficf.fullArchiveMessenger)
+		err = createTopicAndAssignHandlerOnMessenger(topic, interceptor, createChannel, ficf.fullArchiveMessenger, faNetwork)
 		if err != nil {
 			return nil, err
 		}
@@ -497,14 +509,15 @@ func createTopicAndAssignHandlerOnMessenger(
 	interceptor process.Interceptor,
 	createChannel bool,
 	messenger process.TopicHandler,
+	networkType p2p.NetworkType,
 ) error {
 
-	err := messenger.CreateTopic(topic, createChannel)
+	err := messenger.CreateTopic(networkType, topic, createChannel)
 	if err != nil {
 		return err
 	}
 
-	return messenger.RegisterMessageProcessor(topic, common.HardforkInterceptorsIdentifier, interceptor)
+	return messenger.RegisterMessageProcessor(networkType, topic, common.HardforkInterceptorsIdentifier, interceptor)
 }
 
 func (ficf *fullSyncInterceptorsContainerFactory) generateTxInterceptors() error {
@@ -516,7 +529,7 @@ func (ficf *fullSyncInterceptorsContainerFactory) generateTxInterceptors() error
 	interceptorSlice := make([]process.Interceptor, numShards)
 
 	for idx := uint32(0); idx < numShards; idx++ {
-		identifierTx := factory.TransactionTopic + shardC.CommunicationIdentifier(idx)
+		identifierTx := common.TransactionTopic + shardC.CommunicationIdentifier(idx)
 		if ficf.checkIfInterceptorExists(identifierTx) {
 			continue
 		}
@@ -532,7 +545,7 @@ func (ficf *fullSyncInterceptorsContainerFactory) generateTxInterceptors() error
 	}
 
 	// tx interceptor for metachain topic
-	identifierTx := factory.TransactionTopic + shardC.CommunicationIdentifier(core.MetachainShardId)
+	identifierTx := common.TransactionTopic + shardC.CommunicationIdentifier(core.MetachainShardId)
 	if !ficf.checkIfInterceptorExists(identifierTx) {
 		isCrossShard := core.MetachainShardId != ficf.shardCoordinator.SelfId()
 		interceptor, err := ficf.createOneTxInterceptor(identifierTx, isCrossShard)
@@ -909,7 +922,7 @@ func (ficf *fullSyncInterceptorsContainerFactory) generateRewardTxInterceptors()
 	interceptorSlice := make([]process.Interceptor, numShards)
 
 	for idx := uint32(0); idx < numShards; idx++ {
-		identifierScr := factory.RewardsTransactionTopic + tmpSC.CommunicationIdentifier(idx)
+		identifierScr := common.RewardsTransactionTopic + tmpSC.CommunicationIdentifier(idx)
 		if ficf.checkIfInterceptorExists(identifierScr) {
 			return nil
 		}

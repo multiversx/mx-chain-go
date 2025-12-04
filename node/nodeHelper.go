@@ -9,7 +9,6 @@ import (
 	"github.com/multiversx/mx-chain-go/factory"
 	"github.com/multiversx/mx-chain-go/node/nodeDebugFactory"
 	"github.com/multiversx/mx-chain-go/p2p"
-	procFactory "github.com/multiversx/mx-chain-go/process/factory"
 	"github.com/multiversx/mx-chain-go/process/throttle/antiflood/blackList"
 	"github.com/multiversx/mx-chain-go/sharding"
 )
@@ -30,7 +29,7 @@ func prepareOpenTopics(
 		return
 	}
 
-	selfShardTxTopic := procFactory.TransactionTopic + core.CommunicationIdentifierBetweenShards(selfID, selfID)
+	selfShardTxTopic := common.TransactionTopic + core.CommunicationIdentifierBetweenShards(selfID, selfID)
 	antiflood.SetTopicsForAll(
 		common.PeerAuthenticationTopic,
 		selfShardHeartbeatV2Topic,

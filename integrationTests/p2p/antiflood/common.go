@@ -36,7 +36,7 @@ func CreateTopicsAndMockInterceptors(
 	interceptors := make([]*MessageProcessor, len(peers))
 
 	for idx, p := range peers {
-		err := p.CreateTopic(topic, true)
+		err := p.CreateTopic(p2p.MainNetwork, topic, true)
 		if err != nil {
 			return nil, fmt.Errorf("%w, pid: %s", err, p.ID())
 		}
@@ -64,7 +64,7 @@ func CreateTopicsAndMockInterceptors(
 			return nil, err
 		}
 
-		err = p.RegisterMessageProcessor(topic, "test", interceptors[idx])
+		err = p.RegisterMessageProcessor(p2p.MainNetwork, topic, "test", interceptors[idx])
 		if err != nil {
 			return nil, fmt.Errorf("%w, pid: %s", err, p.ID())
 		}

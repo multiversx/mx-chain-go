@@ -8,8 +8,8 @@ import (
 // TopicHandlerStub -
 type TopicHandlerStub struct {
 	HasTopicCalled                 func(name string) bool
-	CreateTopicCalled              func(name string, createChannelForTopic bool) error
-	RegisterMessageProcessorCalled func(topic string, identifier string, handler p2p.MessageProcessor) error
+	CreateTopicCalled              func(networkType p2p.NetworkType, name string, createChannelForTopic bool) error
+	RegisterMessageProcessorCalled func(networkType p2p.NetworkType, topic string, identifier string, handler p2p.MessageProcessor) error
 	IDCalled                       func() core.PeerID
 }
 
@@ -22,17 +22,17 @@ func (stub *TopicHandlerStub) HasTopic(name string) bool {
 }
 
 // CreateTopic -
-func (stub *TopicHandlerStub) CreateTopic(name string, createChannelForTopic bool) error {
+func (stub *TopicHandlerStub) CreateTopic(networkType p2p.NetworkType, name string, createChannelForTopic bool) error {
 	if stub.CreateTopicCalled != nil {
-		return stub.CreateTopicCalled(name, createChannelForTopic)
+		return stub.CreateTopicCalled(networkType, name, createChannelForTopic)
 	}
 	return nil
 }
 
 // RegisterMessageProcessor -
-func (stub *TopicHandlerStub) RegisterMessageProcessor(topic string, identifier string, handler p2p.MessageProcessor) error {
+func (stub *TopicHandlerStub) RegisterMessageProcessor(networkType p2p.NetworkType, topic string, identifier string, handler p2p.MessageProcessor) error {
 	if stub.RegisterMessageProcessorCalled != nil {
-		return stub.RegisterMessageProcessorCalled(topic, identifier, handler)
+		return stub.RegisterMessageProcessorCalled(networkType, topic, identifier, handler)
 	}
 	return nil
 }

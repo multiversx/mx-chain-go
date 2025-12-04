@@ -12,12 +12,12 @@ import (
 type MessengerStub struct {
 	IDCalled                                func() core.PeerID
 	CloseCalled                             func() error
-	CreateTopicCalled                       func(name string, createChannelForTopic bool) error
+	CreateTopicCalled                       func(network p2p.NetworkType, name string, createChannelForTopic bool) error
 	HasTopicCalled                          func(name string) bool
 	HasTopicValidatorCalled                 func(name string) bool
 	BroadcastOnChannelCalled                func(channel string, topic string, buff []byte)
 	BroadcastCalled                         func(topic string, buff []byte)
-	RegisterMessageProcessorCalled          func(topic string, identifier string, handler p2p.MessageProcessor) error
+	RegisterMessageProcessorCalled          func(networkType p2p.NetworkType, topic string, identifier string, handler p2p.MessageProcessor) error
 	BootstrapCalled                         func() error
 	PeerAddressesCalled                     func(pid core.PeerID) []string
 	IsConnectedToTheNetworkCalled           func() bool
@@ -37,6 +37,7 @@ type MessengerStub struct {
 	SetPeerDenialEvaluatorCalled            func(handler p2p.PeerDenialEvaluator) error
 	GetConnectedPeersInfoCalled             func() *p2p.ConnectedPeersInfo
 	UnJoinAllTopicsCalled                   func() error
+	UnJoinTopicCalled                       func(topic string) error
 	PortCalled                              func() int
 	WaitForConnectionsCalled                func(maxWaitingTime time.Duration, minNumOfPeers uint32)
 	SignCalled                              func(payload []byte) ([]byte, error)
@@ -59,9 +60,9 @@ func (ms *MessengerStub) ID() core.PeerID {
 }
 
 // RegisterMessageProcessor -
-func (ms *MessengerStub) RegisterMessageProcessor(topic string, identifier string, handler p2p.MessageProcessor) error {
+func (ms *MessengerStub) RegisterMessageProcessor(networkType p2p.NetworkType, topic string, identifier string, handler p2p.MessageProcessor) error {
 	if ms.RegisterMessageProcessorCalled != nil {
-		return ms.RegisterMessageProcessorCalled(topic, identifier, handler)
+		return ms.RegisterMessageProcessorCalled(networkType, topic, identifier, handler)
 	}
 
 	return nil
@@ -84,9 +85,9 @@ func (ms *MessengerStub) Close() error {
 }
 
 // CreateTopic -
-func (ms *MessengerStub) CreateTopic(name string, createChannelForTopic bool) error {
+func (ms *MessengerStub) CreateTopic(network p2p.NetworkType, name string, createChannelForTopic bool) error {
 	if ms.CreateTopicCalled != nil {
-		return ms.CreateTopicCalled(name, createChannelForTopic)
+		return ms.CreateTopicCalled(network, name, createChannelForTopic)
 	}
 
 	return nil
@@ -283,6 +284,15 @@ func (ms *MessengerStub) GetConnectedPeersInfo() *p2p.ConnectedPeersInfo {
 func (ms *MessengerStub) UnJoinAllTopics() error {
 	if ms.UnJoinAllTopicsCalled != nil {
 		return ms.UnJoinAllTopicsCalled()
+	}
+
+	return nil
+}
+
+// UnJoinTopic -
+func (ms *MessengerStub) UnJoinTopic(topic string) error {
+	if ms.UnJoinTopicCalled != nil {
+		return ms.UnJoinTopicCalled(topic)
 	}
 
 	return nil

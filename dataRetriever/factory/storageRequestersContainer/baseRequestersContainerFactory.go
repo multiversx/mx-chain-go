@@ -83,7 +83,7 @@ func (brcf *baseRequestersContainerFactory) checkParams() error {
 
 func (brcf *baseRequestersContainerFactory) generateCommonRequesters() error {
 	err := brcf.generateTxRequesters(
-		factory.TransactionTopic,
+		common.TransactionTopic,
 		dataRetriever.TransactionUnit,
 	)
 	if err != nil {
@@ -91,7 +91,7 @@ func (brcf *baseRequestersContainerFactory) generateCommonRequesters() error {
 	}
 
 	err = brcf.generateTxRequesters(
-		factory.UnsignedTransactionTopic,
+		common.UnsignedTransactionTopic,
 		dataRetriever.UnsignedTransactionUnit,
 	)
 	if err != nil {

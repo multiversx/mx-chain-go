@@ -6,6 +6,7 @@ import (
 	"testing"
 
 	"github.com/multiversx/mx-chain-core-go/core"
+	"github.com/multiversx/mx-chain-go/testscommon/enableEpochsHandlerMock"
 	"github.com/stretchr/testify/assert"
 
 	"github.com/multiversx/mx-chain-go/common"
@@ -27,7 +28,7 @@ import (
 func createStubMessengerForMeta(matchStrToErrOnCreate string, matchStrToErrOnRegister string) p2p.Messenger {
 	stub := &p2pmocks.MessengerStub{}
 
-	stub.CreateTopicCalled = func(name string, createChannelForTopic bool) error {
+	stub.CreateTopicCalled = func(networkType p2p.NetworkType, name string, createChannelForTopic bool) error {
 		if matchStrToErrOnCreate == "" {
 			return nil
 		}
@@ -38,7 +39,7 @@ func createStubMessengerForMeta(matchStrToErrOnCreate string, matchStrToErrOnReg
 		return nil
 	}
 
-	stub.RegisterMessageProcessorCalled = func(topic string, identifier string, handler p2p.MessageProcessor) error {
+	stub.RegisterMessageProcessorCalled = func(networkType p2p.NetworkType, topic string, identifier string, handler p2p.MessageProcessor) error {
 		if matchStrToErrOnRegister == "" {
 			return nil
 		}
@@ -318,14 +319,14 @@ func TestMetaResolversContainerFactory_With4ShardsShouldWork(t *testing.T) {
 	args := getArgumentsMeta()
 	registerMainCnt := 0
 	args.MainMessenger = &p2pmocks.MessengerStub{
-		RegisterMessageProcessorCalled: func(topic string, identifier string, handler p2p.MessageProcessor) error {
+		RegisterMessageProcessorCalled: func(networkType p2p.NetworkType, topic string, identifier string, handler p2p.MessageProcessor) error {
 			registerMainCnt++
 			return nil
 		},
 	}
 	registerFullArchiveCnt := 0
 	args.FullArchiveMessenger = &p2pmocks.MessengerStub{
-		RegisterMessageProcessorCalled: func(topic string, identifier string, handler p2p.MessageProcessor) error {
+		RegisterMessageProcessorCalled: func(networkType p2p.NetworkType, topic string, identifier string, handler p2p.MessageProcessor) error {
 			registerFullArchiveCnt++
 			return nil
 		},
@@ -388,5 +389,6 @@ func getArgumentsMeta() resolverscontainer.FactoryArgs {
 		MainPreferredPeersHolder:            &p2pmocks.PeersHolderStub{},
 		FullArchivePreferredPeersHolder:     &p2pmocks.PeersHolderStub{},
 		PayloadValidator:                    &testscommon.PeerAuthenticationPayloadValidatorStub{},
+		EnableEpochsHandler:                 &enableEpochsHandlerMock.EnableEpochsHandlerStub{},
 	}
 }

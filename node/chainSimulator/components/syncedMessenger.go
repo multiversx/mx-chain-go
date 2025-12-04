@@ -103,7 +103,7 @@ func (messenger *syncedMessenger) ProcessReceivedMessage(_ p2p.MessageP2P, _ cor
 }
 
 // CreateTopic will create a topic for receiving data
-func (messenger *syncedMessenger) CreateTopic(name string, _ bool) error {
+func (messenger *syncedMessenger) CreateTopic(_ p2p.NetworkType, name string, _ bool) error {
 	if messenger.closed() {
 		return errMessengerIsClosed
 	}
@@ -132,7 +132,7 @@ func (messenger *syncedMessenger) HasTopic(name string) bool {
 }
 
 // RegisterMessageProcessor will try to register a message processor on the provided topic & identifier
-func (messenger *syncedMessenger) RegisterMessageProcessor(topic string, identifier string, handler p2p.MessageProcessor) error {
+func (messenger *syncedMessenger) RegisterMessageProcessor(_ p2p.NetworkType, topic string, identifier string, handler p2p.MessageProcessor) error {
 	if messenger.closed() {
 		return errMessengerIsClosed
 	}
@@ -240,6 +240,16 @@ func (messenger *syncedMessenger) UnJoinAllTopics() error {
 	defer messenger.mutOperation.Unlock()
 
 	messenger.topics = make(map[string]map[string]p2p.MessageProcessor)
+
+	return nil
+}
+
+// UnJoinTopic will unjoin the provided topic
+func (messenger *syncedMessenger) UnJoinTopic(topic string) error {
+	messenger.mutOperation.Lock()
+	defer messenger.mutOperation.Unlock()
+
+	delete(messenger.topics, topic)
 
 	return nil
 }

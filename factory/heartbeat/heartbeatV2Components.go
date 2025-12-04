@@ -284,23 +284,23 @@ func (hcf *heartbeatV2ComponentsFactory) Create() (*heartbeatV2Components, error
 }
 
 func (hcf *heartbeatV2ComponentsFactory) createTopicsIfNeeded() error {
-	err := createTopicsIfNeededOnMessenger(hcf.networkComponents.NetworkMessenger())
+	err := createTopicsIfNeededOnMessenger(hcf.networkComponents.NetworkMessenger(), p2p.MainNetwork)
 	if err != nil {
 		return err
 	}
 
-	return createTopicsIfNeededOnMessenger(hcf.networkComponents.FullArchiveNetworkMessenger())
+	return createTopicsIfNeededOnMessenger(hcf.networkComponents.FullArchiveNetworkMessenger(), p2p.FullArchiveNetwork)
 }
 
-func createTopicsIfNeededOnMessenger(messenger p2p.Messenger) error {
+func createTopicsIfNeededOnMessenger(messenger p2p.Messenger, networkType p2p.NetworkType) error {
 	if !messenger.HasTopic(common.PeerAuthenticationTopic) {
-		err := messenger.CreateTopic(common.PeerAuthenticationTopic, true)
+		err := messenger.CreateTopic(networkType, common.PeerAuthenticationTopic, true)
 		if err != nil {
 			return err
 		}
 	}
 	if !messenger.HasTopic(common.HeartbeatV2Topic) {
-		err := messenger.CreateTopic(common.HeartbeatV2Topic, true)
+		err := messenger.CreateTopic(networkType, common.HeartbeatV2Topic, true)
 		if err != nil {
 			return err
 		}

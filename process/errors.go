@@ -1293,9 +1293,6 @@ var ErrInvalidInterceptedData = errors.New("invalid intercepted data")
 // ErrMissingHeaderProof signals that the proof for the header is missing
 var ErrMissingHeaderProof = errors.New("missing header proof")
 
-// ErrInvalidHeaderProof signals that an invalid equivalent proof has been provided
-var ErrInvalidHeaderProof = errors.New("invalid equivalent proof")
-
 // ErrUnexpectedHeaderProof signals that a header proof has been provided unexpectedly
 var ErrUnexpectedHeaderProof = errors.New("unexpected header proof")
 
@@ -1334,3 +1331,12 @@ var ErrBadTxCacheSelectionLoopDurationCheckInterval = errors.New("bad selection 
 
 // ErrDuplicatedInterceptedDataNotAllowed signals that duplicated intercepted data is not allowed
 var ErrDuplicatedInterceptedDataNotAllowed = errors.New("duplicated intercepted data not allowed")
+
+// ErrNilResolversContainer signals that a nil resolvers container has been provided
+var ErrNilResolversContainer = errors.New("nil resolvers container")
+
+// ErrNilInterceptorsContainer signals that a nil interceptors container has been provided
+var ErrNilInterceptorsContainer = errors.New("nil interceptors container")
+
+// ErrCannotCastTxResolver signals that the provided resolver is not of type tx resolver
+var ErrCannotCastTxResolver = errors.New("cannot cast tx resolver")

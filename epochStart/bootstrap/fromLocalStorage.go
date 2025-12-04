@@ -9,6 +9,7 @@ import (
 	"github.com/multiversx/mx-chain-core-go/core/check"
 	"github.com/multiversx/mx-chain-core-go/data"
 	"github.com/multiversx/mx-chain-core-go/data/block"
+	"github.com/multiversx/mx-chain-go/p2p"
 
 	"github.com/multiversx/mx-chain-go/common"
 	"github.com/multiversx/mx-chain-go/epochStart"
@@ -167,7 +168,7 @@ func (e *epochStartBootstrap) prepareEpochFromStorage() (Parameters, error) {
 	}
 
 	consensusTopic := common.ConsensusTopic + e.shardCoordinator.CommunicationIdentifier(e.shardCoordinator.SelfId())
-	err = e.mainMessenger.CreateTopic(consensusTopic, true)
+	err = e.mainMessenger.CreateTopic(p2p.MainNetwork, consensusTopic, true)
 	if err != nil {
 		return Parameters{}, err
 	}

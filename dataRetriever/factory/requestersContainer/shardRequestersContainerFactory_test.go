@@ -22,7 +22,7 @@ var errExpected = errors.New("expected error")
 func createMessengerStub(matchStrToErrOnCreate string) p2p.Messenger {
 	stub := &p2pmocks.MessengerStub{}
 
-	stub.CreateTopicCalled = func(name string, createChannelForTopic bool) error {
+	stub.CreateTopicCalled = func(networkType p2p.NetworkType, name string, createChannelForTopic bool) error {
 		if matchStrToErrOnCreate == "" {
 			return nil
 		}

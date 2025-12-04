@@ -796,7 +796,7 @@ func TestConsensusComponentsFactory_Create(t *testing.T) {
 			HasTopicCalled: func(name string) bool {
 				return false
 			},
-			CreateTopicCalled: func(name string, createChannelForTopic bool) error {
+			CreateTopicCalled: func(networkType p2p.NetworkType, name string, createChannelForTopic bool) error {
 				return expectedErr
 			},
 		}

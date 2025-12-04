@@ -97,6 +97,15 @@ const ValidatorInfoTopic = "validatorInfo"
 // EquivalentProofsTopic is the topic used for equivalent proofs
 const EquivalentProofsTopic = "equivalentProofs"
 
+// TransactionTopic is the topic used for sharing transactions
+const TransactionTopic = "transactions"
+
+// UnsignedTransactionTopic is the topic used for sharing unsigned transactions
+const UnsignedTransactionTopic = "unsignedTransactions"
+
+// RewardsTransactionTopic is the topic used for sharing fee transactions
+const RewardsTransactionTopic = "rewardsTransactions"
+
 // MetricCurrentRound is the metric for monitoring the current round of a node
 const MetricCurrentRound = "erd_current_round"
 

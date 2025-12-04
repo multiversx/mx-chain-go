@@ -5,9 +5,9 @@ import (
 	"testing"
 
 	"github.com/multiversx/mx-chain-core-go/core"
+	"github.com/multiversx/mx-chain-go/common"
 	"github.com/multiversx/mx-chain-go/integrationTests/resolvers"
 	"github.com/multiversx/mx-chain-go/process"
-	"github.com/multiversx/mx-chain-go/process/factory"
 )
 
 func TestRequestResolveLargeSCRByHashRequestingShardResolvingOtherShard(t *testing.T) {
@@ -39,7 +39,7 @@ func TestRequestResolveLargeSCRByHashRequestingShardResolvingOtherShard(t *testi
 	)
 
 	// request by hash should work
-	requester, err := nRequester.RequestersFinder.CrossShardRequester(factory.UnsignedTransactionTopic, core.MetachainShardId)
+	requester, err := nRequester.RequestersFinder.CrossShardRequester(common.UnsignedTransactionTopic, core.MetachainShardId)
 	resolvers.Log.LogIfError(err)
 	err = requester.RequestDataFromHash(hash, 0)
 	resolvers.Log.LogIfError(err)

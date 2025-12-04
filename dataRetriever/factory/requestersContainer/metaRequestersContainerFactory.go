@@ -76,7 +76,7 @@ func (mrcf *metaRequestersContainerFactory) Create() (dataRetriever.RequestersCo
 		return nil, err
 	}
 
-	err = mrcf.generateRewardsRequesters(factory.RewardsTransactionTopic)
+	err = mrcf.generateRewardsRequesters(common.RewardsTransactionTopic)
 	if err != nil {
 		return nil, err
 	}
