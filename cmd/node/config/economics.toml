@@ -19,7 +19,7 @@
     GenesisMintingSenderAddress = "erd17rc0pu8s7rc0pu8s7rc0pu8s7rc0pu8s7rc0pu8s7rc0pu8s7rcqqkhty3"
 
     [GlobalSettings.TailInflation]
-        EnableEpoch        = 1
+        EnableEpoch        = 8
         StartYearInflation = 0.08757
         DecayPercentage    = 0.0025
         MinimumInflation   = 0.02
@@ -39,7 +39,7 @@
         TopUpFactor = 0.5 # fraction of value 0.5 - 50%
 
     [[RewardsSettings.RewardsConfigByEpoch]]
-        EpochEnable = 1
+        EpochEnable = 8
         LeaderPercentage = 0.1 #fraction of value 0.1 - 10%
         DeveloperPercentage = 0.3 #fraction of value 0.3 - 30%
         ProtocolSustainabilityPercentage = 0.1 #fraction of value 0.1 - 10%
@@ -55,7 +55,7 @@
     GasLimitSettings = [
         {EnableEpoch = 0, MaxGasLimitPerBlock = "1500000000", MaxGasLimitPerMiniBlock = "1500000000", MaxGasLimitPerMetaBlock = "15000000000", MaxGasLimitPerMetaMiniBlock = "15000000000", MaxGasLimitPerTx = "1500000000", MinGasLimit = "50000", ExtraGasLimitGuardedTx  = "50000", MaxGasHigherFactorAccepted = "10"},
         {EnableEpoch = 1, MaxGasLimitPerBlock = "1500000000", MaxGasLimitPerMiniBlock = "250000000", MaxGasLimitPerMetaBlock = "15000000000", MaxGasLimitPerMetaMiniBlock = "250000000", MaxGasLimitPerTx = "600000000", MinGasLimit = "50000", ExtraGasLimitGuardedTx  = "50000", MaxGasHigherFactorAccepted = "2"},
-        {EnableEpoch = 2, MaxGasLimitPerBlock = "3000000000", MaxGasLimitPerMiniBlock = "250000000", MaxGasLimitPerMetaBlock = "3000000000", MaxGasLimitPerMetaMiniBlock = "250000000", MaxGasLimitPerTx = "600000000", MinGasLimit = "50000", ExtraGasLimitGuardedTx  = "50000", MaxGasHigherFactorAccepted = "2"},
+        {EnableEpoch = 999999, MaxGasLimitPerBlock = "3000000000", MaxGasLimitPerMiniBlock = "250000000", MaxGasLimitPerMetaBlock = "3000000000", MaxGasLimitPerMetaMiniBlock = "250000000", MaxGasLimitPerTx = "600000000", MinGasLimit = "50000", ExtraGasLimitGuardedTx  = "50000", MaxGasHigherFactorAccepted = "2"},
     ]
     MinGasPrice             = "1000000000" #will yield min tx fee of 0.00005 eGLD
     GasPriceModifier        = 0.01
