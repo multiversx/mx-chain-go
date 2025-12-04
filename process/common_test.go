@@ -2268,6 +2268,53 @@ func TestGetMiniBlockHeaderWithHash(t *testing.T) {
 		mbh := process.GetMiniBlockHeaderWithHash(header, []byte(hash1))
 		assert.Equal(t, expectedMbh, mbh)
 	})
+
+	t.Run("if extracting from execution results fails, nil should be returned", func(t *testing.T) {
+		t.Parallel()
+
+		header := &block.MetaBlockV3{
+			ExecutionResults: nil,
+		}
+
+		mbh := process.GetMiniBlockHeaderWithHash(header, []byte(hash1))
+		assert.Nil(t, mbh)
+	})
+
+	t.Run("should find the mini block header in the execution results", func(t *testing.T) {
+		t.Parallel()
+
+		expectedMbh := block.MiniBlockHeader{
+			Hash: []byte(hash1),
+		}
+		header := &block.MetaBlockV3{
+			ExecutionResults: []*block.MetaExecutionResult{
+				{
+					MiniBlockHeaders: []block.MiniBlockHeader{expectedMbh},
+				},
+			},
+		}
+
+		mbh := process.GetMiniBlockHeaderWithHash(header, []byte(hash1))
+		assert.Equal(t, &expectedMbh, mbh)
+	})
+
+	t.Run("should return nil in case the execution result is not found", func(t *testing.T) {
+		t.Parallel()
+
+		expectedMbh := block.MiniBlockHeader{
+			Hash: []byte(hash1),
+		}
+		header := &block.MetaBlockV3{
+			ExecutionResults: []*block.MetaExecutionResult{
+				{
+					MiniBlockHeaders: []block.MiniBlockHeader{expectedMbh},
+				},
+			},
+		}
+
+		mbh := process.GetMiniBlockHeaderWithHash(header, []byte("hashX"))
+		assert.Nil(t, mbh)
+	})
 }
 
 func Test_IsBuiltinFuncCallWithParam(t *testing.T) {
