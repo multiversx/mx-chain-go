@@ -118,7 +118,7 @@ func (sr *subroundEndRound) receivedProof(proof consensus.ProofHandler) {
 	log.Debug("step 3: block header final info has been received",
 		"PubKeysBitmap", proof.GetPubKeysBitmap(),
 		"AggregateSignature", proof.GetAggregatedSignature(),
-		"HederHash", proof.GetHeaderHash())
+		"HeaderHash", proof.GetHeaderHash())
 
 	sr.doEndRoundJobByNode()
 }
@@ -271,6 +271,7 @@ func (sr *subroundEndRound) doEndRoundJobByNode() bool {
 		}
 
 		if proofSent {
+			// TODO: confirm that block data is propagated if proof sent (by each node in parallel)
 			err := sr.prepareBroadcastBlockData()
 			log.LogIfError(err)
 		}
@@ -317,6 +318,8 @@ func (sr *subroundEndRound) finalizeConfirmedBlock() bool {
 	if !sr.waitForProof() {
 		return false
 	}
+
+	sr.updateConsensusMetricsProof()
 
 	ok := sr.ScheduledProcessor().IsProcessedOKWithTimeout()
 	// placeholder for subroundEndRound.doEndRoundJobByLeader script
@@ -705,8 +708,11 @@ func (sr *subroundEndRound) updateMetricsForLeader() {
 	}
 
 	sr.appStatusHandler.Increment(common.MetricCountAcceptedBlocks)
+
+	roundTimeStamp := sr.RoundHandler().TimeStamp()
+	timeSinceRound := time.Since(roundTimeStamp)
 	sr.appStatusHandler.SetStringValue(common.MetricConsensusRoundState,
-		fmt.Sprintf("valid block produced in %f sec", time.Since(sr.RoundHandler().TimeStamp()).Seconds()))
+		fmt.Sprintf("valid block produced in %s", timeSinceRound.String()))
 }
 
 // doEndRoundConsensusCheck method checks if the consensus is achieved
@@ -958,6 +964,15 @@ func (sr *subroundEndRound) getNumOfSignaturesCollected() int {
 	}
 
 	return n
+}
+
+// updateConsensusMetricsProof sets the consensus metrics
+func (sr *subroundEndRound) updateConsensusMetricsProof() {
+
+	currentTime := sr.SyncTimer().CurrentTime()
+	metricsTime := currentTime.Sub(sr.RoundHandler().TimeStamp()).Nanoseconds()
+
+	sr.worker.ConsensusMetrics().SetProofReceived(uint64(metricsTime))
 }
 
 // areSignaturesCollected method checks if the signatures received from the nodes, belonging to the current

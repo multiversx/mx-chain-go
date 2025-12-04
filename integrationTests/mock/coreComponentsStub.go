@@ -45,10 +45,11 @@ type CoreComponentsStub struct {
 	NodesShufflerField                 nodesCoordinator.NodesShuffler
 	EpochNotifierField                 process.EpochNotifier
 	RoundNotifierField                 process.RoundNotifier
-	EnableRoundsHandlerField           process.EnableRoundsHandler
+	EnableRoundsHandlerField           common.EnableRoundsHandler
 	EpochStartNotifierWithConfirmField factory.EpochStartNotifierWithConfirm
 	ChanStopNodeProcessField           chan endProcess.ArgEndProcess
 	GenesisTimeField                   time.Time
+	SupernovaGenesisTimeField          time.Time
 	TxVersionCheckField                process.TxVersionCheckerHandler
 	NodeTypeProviderField              core.NodeTypeProviderHandler
 	WasmVMChangeLockerInternal         common.Locker
@@ -59,6 +60,8 @@ type CoreComponentsStub struct {
 	ChainParametersSubscriberField     process.ChainParametersSubscriber
 	FieldsSizeCheckerField             common.FieldsSizeChecker
 	EpochChangeGracePeriodHandlerField common.EpochChangeGracePeriodHandler
+	ProcessConfigsHandlerField         common.ProcessConfigsHandler
+	CommonConfigsHandlerField      common.CommonConfigsHandler
 }
 
 // Create -
@@ -143,7 +146,7 @@ func (ccs *CoreComponentsStub) RoundNotifier() process.RoundNotifier {
 }
 
 // EnableRoundsHandler -
-func (ccs *CoreComponentsStub) EnableRoundsHandler() process.EnableRoundsHandler {
+func (ccs *CoreComponentsStub) EnableRoundsHandler() common.EnableRoundsHandler {
 	return ccs.EnableRoundsHandlerField
 }
 
@@ -155,6 +158,11 @@ func (ccs *CoreComponentsStub) EpochStartNotifierWithConfirm() factory.EpochStar
 // GenesisTime -
 func (ccs *CoreComponentsStub) GenesisTime() time.Time {
 	return ccs.GenesisTimeField
+}
+
+// SupernovaGenesisTime -
+func (ccs *CoreComponentsStub) SupernovaGenesisTime() time.Time {
+	return ccs.SupernovaGenesisTimeField
 }
 
 // InternalMarshalizer -
@@ -282,6 +290,16 @@ func (ccs *CoreComponentsStub) FieldsSizeChecker() common.FieldsSizeChecker {
 // EpochChangeGracePeriodHandler -
 func (ccs *CoreComponentsStub) EpochChangeGracePeriodHandler() common.EpochChangeGracePeriodHandler {
 	return ccs.EpochChangeGracePeriodHandlerField
+}
+
+// ProcessConfigsHandler -
+func (ccs *CoreComponentsStub) ProcessConfigsHandler() common.ProcessConfigsHandler {
+	return ccs.ProcessConfigsHandlerField
+}
+
+// CommonConfigsHandler -
+func (ccs *CoreComponentsStub) CommonConfigsHandler() common.CommonConfigsHandler {
+	return ccs.CommonConfigsHandlerField
 }
 
 // IsInterfaceNil -

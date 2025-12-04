@@ -82,6 +82,11 @@ func (ips *interceptedPeerShard) CheckValidity() error {
 	return nil
 }
 
+// ShouldAllowDuplicates returns if this type of intercepted data should allow duplicates
+func (ips *interceptedPeerShard) ShouldAllowDuplicates() bool {
+	return true
+}
+
 // IsForCurrentShard always returns true
 func (ips *interceptedPeerShard) IsForCurrentShard() bool {
 	return true

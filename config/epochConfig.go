@@ -127,6 +127,7 @@ type EnableEpochs struct {
 	RelayedTransactionsV3EnableEpoch                         uint32
 	RelayedTransactionsV3FixESDTTransferEnableEpoch          uint32
 	AndromedaEnableEpoch                                     uint32
+	SupernovaEnableEpoch                                     uint32
 	CheckBuiltInCallOnTransferValueAndFailEnableRound        uint32
 	MaskVMInternalDependenciesErrorsEnableEpoch              uint32
 	FixBackTransferOPCODEEnableEpoch                         uint32

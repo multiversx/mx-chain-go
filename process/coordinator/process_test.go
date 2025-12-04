@@ -21,6 +21,7 @@ import (
 	"github.com/multiversx/mx-chain-core-go/data/scheduled"
 	"github.com/multiversx/mx-chain-core-go/data/smartContractResult"
 	"github.com/multiversx/mx-chain-core-go/data/transaction"
+	"github.com/multiversx/mx-chain-go/config"
 	vmcommon "github.com/multiversx/mx-chain-vm-common-go"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
@@ -51,6 +52,17 @@ import (
 const MaxGasLimitPerBlock = uint64(100000)
 
 var txHash = []byte("tx_hash1")
+
+func createMockTxCacheSelectionConfig() config.TxCacheSelectionConfig {
+	return config.TxCacheSelectionConfig{
+		SelectionGasBandwidthIncreasePercent:          400,
+		SelectionGasBandwidthIncreaseScheduledPercent: 260,
+		SelectionGasRequested:                         10_000_000_000,
+		SelectionMaxNumTxs:                            30000,
+		SelectionLoopMaximumDuration:                  250,
+		SelectionLoopDurationCheckInterval:            10,
+	}
+}
 
 func FeeHandlerMock() *economicsmocks.EconomicsHandlerMock {
 	return &economicsmocks.EconomicsHandlerMock{
@@ -561,6 +573,7 @@ func createPreProcessorContainer() process.PreProcessorsContainer {
 		&testscommon.ScheduledTxsExecutionStub{},
 		&testscommon.ProcessedMiniBlocksTrackerStub{},
 		&commonMock.TxExecutionOrderHandlerStub{},
+		createMockTxCacheSelectionConfig(),
 	)
 	container, _ := preFactory.Create()
 
@@ -661,6 +674,7 @@ func createPreProcessorContainerWithDataPool(
 		&testscommon.ScheduledTxsExecutionStub{},
 		&testscommon.ProcessedMiniBlocksTrackerStub{},
 		&commonMock.TxExecutionOrderHandlerStub{},
+		createMockTxCacheSelectionConfig(),
 	)
 	container, _ := preFactory.Create()
 
@@ -931,6 +945,7 @@ func TestTransactionCoordinator_CreateMbsAndProcessCrossShardTransactions(t *tes
 		&testscommon.ScheduledTxsExecutionStub{},
 		&testscommon.ProcessedMiniBlocksTrackerStub{},
 		&commonMock.TxExecutionOrderHandlerStub{},
+		createMockTxCacheSelectionConfig(),
 	)
 	container, _ := preFactory.Create()
 
@@ -1118,6 +1133,7 @@ func TestTransactionCoordinator_CreateMbsAndProcessCrossShardTransactionsNilPreP
 		&testscommon.ScheduledTxsExecutionStub{},
 		&testscommon.ProcessedMiniBlocksTrackerStub{},
 		&commonMock.TxExecutionOrderHandlerStub{},
+		createMockTxCacheSelectionConfig(),
 	)
 	container, _ := preFactory.Create()
 
@@ -1227,6 +1243,7 @@ func TestTransactionCoordinator_CreateMbsAndProcessTransactionsFromMeNothingToPr
 		&testscommon.ScheduledTxsExecutionStub{},
 		&testscommon.ProcessedMiniBlocksTrackerStub{},
 		&commonMock.TxExecutionOrderHandlerStub{},
+		createMockTxCacheSelectionConfig(),
 	)
 	container, _ := preFactory.Create()
 
@@ -1299,6 +1316,9 @@ func TestTransactionCoordinator_CreateMbsAndProcessTransactionsFromMe(t *testing
 
 	argsTransactionCoordinator := createMockTransactionCoordinatorArguments()
 	argsTransactionCoordinator.Accounts = &stateMock.AccountsStub{
+		RootHashCalled: func() ([]byte, error) {
+			return []byte("rootHash"), nil
+		},
 		GetExistingAccountCalled: func(_ []byte) (vmcommon.AccountHandler, error) {
 			return &stateMock.UserAccountStub{
 				Nonce:   42,
@@ -1346,6 +1366,9 @@ func TestTransactionCoordinator_CreateMbsAndProcessTransactionsFromMeMultipleMin
 
 	argsTransactionCoordinator := createMockTransactionCoordinatorArguments()
 	argsTransactionCoordinator.Accounts = &stateMock.AccountsStub{
+		RootHashCalled: func() ([]byte, error) {
+			return []byte("rootHash"), nil
+		},
 		GetExistingAccountCalled: func(_ []byte) (vmcommon.AccountHandler, error) {
 			return &stateMock.UserAccountStub{
 				Nonce:   0,
@@ -1407,6 +1430,9 @@ func TestTransactionCoordinator_CreateMbsAndProcessTransactionsFromMeMultipleMin
 
 	argsTransactionCoordinator := createMockTransactionCoordinatorArguments()
 	argsTransactionCoordinator.Accounts = &stateMock.AccountsStub{
+		RootHashCalled: func() ([]byte, error) {
+			return []byte("rootHash"), nil
+		},
 		GetExistingAccountCalled: func(_ []byte) (vmcommon.AccountHandler, error) {
 			return &stateMock.UserAccountStub{
 				Nonce:   0,
@@ -1478,6 +1504,9 @@ func TestTransactionCoordinator_CompactAndExpandMiniblocksShouldWork(t *testing.
 
 	argsTransactionCoordinator := createMockTransactionCoordinatorArguments()
 	argsTransactionCoordinator.Accounts = &stateMock.AccountsStub{
+		RootHashCalled: func() ([]byte, error) {
+			return []byte("rootHash"), nil
+		},
 		GetExistingAccountCalled: func(_ []byte) (vmcommon.AccountHandler, error) {
 			return &stateMock.UserAccountStub{
 				Nonce:   0,
@@ -1550,6 +1579,9 @@ func TestTransactionCoordinator_GetAllCurrentUsedTxs(t *testing.T) {
 
 	argsTransactionCoordinator := createMockTransactionCoordinatorArguments()
 	argsTransactionCoordinator.Accounts = &stateMock.AccountsStub{
+		RootHashCalled: func() ([]byte, error) {
+			return []byte("rootHash"), nil
+		},
 		GetExistingAccountCalled: func(_ []byte) (vmcommon.AccountHandler, error) {
 			return &stateMock.UserAccountStub{
 				Nonce:   42,
@@ -1806,6 +1838,7 @@ func TestTransactionCoordinator_ProcessBlockTransactionProcessTxError(t *testing
 		&testscommon.ScheduledTxsExecutionStub{},
 		&testscommon.ProcessedMiniBlocksTrackerStub{},
 		&commonMock.TxExecutionOrderHandlerStub{},
+		createMockTxCacheSelectionConfig(),
 	)
 	container, _ := preFactory.Create()
 
@@ -1933,6 +1966,7 @@ func TestTransactionCoordinator_RequestMiniblocks(t *testing.T) {
 		&testscommon.ScheduledTxsExecutionStub{},
 		&testscommon.ProcessedMiniBlocksTrackerStub{},
 		&commonMock.TxExecutionOrderHandlerStub{},
+		createMockTxCacheSelectionConfig(),
 	)
 	container, _ := preFactory.Create()
 
@@ -2011,6 +2045,9 @@ func TestShardProcessor_ProcessMiniBlockCompleteWithOkTxsShouldExecuteThemAndNot
 	tx3ExecutionResult := uint64(0)
 
 	accounts := &stateMock.AccountsStub{
+		RootHashCalled: func() ([]byte, error) {
+			return []byte("rootHash"), nil
+		},
 		RevertToSnapshotCalled: func(snapshot int) error {
 			assert.Fail(t, "revert should have not been called")
 			return nil
@@ -2074,6 +2111,7 @@ func TestShardProcessor_ProcessMiniBlockCompleteWithOkTxsShouldExecuteThemAndNot
 		&testscommon.ScheduledTxsExecutionStub{},
 		&testscommon.ProcessedMiniBlocksTrackerStub{},
 		&commonMock.TxExecutionOrderHandlerStub{},
+		createMockTxCacheSelectionConfig(),
 	)
 	container, _ := preFactory.Create()
 
@@ -2158,6 +2196,9 @@ func TestShardProcessor_ProcessMiniBlockCompleteWithErrorWhileProcessShouldCallR
 	revertAccntStateCalled := false
 
 	accounts := &stateMock.AccountsStub{
+		RootHashCalled: func() ([]byte, error) {
+			return []byte("rootHash"), nil
+		},
 		RevertToSnapshotCalled: func(snapshot int) error {
 			if snapshot == currentJournalLen {
 				revertAccntStateCalled = true
@@ -2216,6 +2257,7 @@ func TestShardProcessor_ProcessMiniBlockCompleteWithErrorWhileProcessShouldCallR
 		&testscommon.ScheduledTxsExecutionStub{},
 		&testscommon.ProcessedMiniBlocksTrackerStub{},
 		&commonMock.TxExecutionOrderHandlerStub{},
+		createMockTxCacheSelectionConfig(),
 	)
 	container, _ := preFactory.Create()
 

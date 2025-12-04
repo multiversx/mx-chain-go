@@ -1582,7 +1582,7 @@ func TestNewRewardsCreatorV2_CreateRewardsMiniBlocks(t *testing.T) {
 	t.Parallel()
 
 	args := getRewardsCreatorV2Arguments()
-	nbEligiblePerShard := uint32(1)
+	nbEligiblePerShard := uint32(400)
 	dummyRwd, _ := NewRewardsCreatorV2(args)
 	vInfo := createDefaultValidatorInfo(nbEligiblePerShard, args.ShardCoordinator, args.NodesConfigProvider, 100, defaultBlocksPerShard)
 	nodesRewardInfo := dummyRwd.initNodesRewardsInfo(vInfo)

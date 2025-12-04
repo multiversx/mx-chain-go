@@ -25,6 +25,7 @@ import (
 	"github.com/multiversx/mx-chain-go/sharding/nodesCoordinator"
 	"github.com/multiversx/mx-chain-go/state"
 	"github.com/multiversx/mx-chain-go/testscommon"
+	"github.com/multiversx/mx-chain-go/testscommon/chainParameters"
 	dataRetrieverMock "github.com/multiversx/mx-chain-go/testscommon/dataRetriever"
 	"github.com/multiversx/mx-chain-go/testscommon/stakingcommon"
 	statusHandlerMock "github.com/multiversx/mx-chain-go/testscommon/statusHandler"
@@ -220,10 +221,7 @@ func createEpochStartTrigger(
 	storageService dataRetriever.StorageService,
 ) integrationTests.TestEpochStartTrigger {
 	argsEpochStart := &metachain.ArgsNewMetaEpochStartTrigger{
-		Settings: &config.EpochStartConfig{
-			MinRoundsBetweenEpochs: 10,
-			RoundsPerEpoch:         10,
-		},
+		Settings:           &config.EpochStartConfig{},
 		Epoch:              0,
 		EpochStartNotifier: coreComponents.EpochStartNotifierWithConfirm(),
 		Storage:            storageService,
@@ -231,6 +229,14 @@ func createEpochStartTrigger(
 		Hasher:             coreComponents.Hasher(),
 		AppStatusHandler:   &statusHandlerMock.AppStatusHandlerStub{},
 		DataPool:           dataRetrieverMock.NewPoolsHolderMock(),
+		ChainParametersHandler: &chainParameters.ChainParametersHandlerStub{
+			ChainParametersForEpochCalled: func(uint32) (config.ChainParametersByEpochConfig, error) {
+				return config.ChainParametersByEpochConfig{
+					RoundsPerEpoch:         10,
+					MinRoundsBetweenEpochs: 10,
+				}, nil
+			},
+		},
 	}
 
 	epochStartTrigger, _ := metachain.NewEpochStartTrigger(argsEpochStart)

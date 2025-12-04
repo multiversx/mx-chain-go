@@ -131,6 +131,7 @@ func NewShardInterceptorsContainerFactory(
 		nodeOperationMode:              args.NodeOperationMode,
 		interceptedDataVerifierFactory: args.InterceptedDataVerifierFactory,
 		enableEpochsHandler:            args.CoreComponents.EnableEpochsHandler(),
+		config:                         args.Config,
 	}
 
 	icf := &shardInterceptorsContainerFactory{
@@ -237,7 +238,7 @@ func (sicf *shardInterceptorsContainerFactory) generateRewardTxInterceptor() err
 	interceptorSlice := make([]process.Interceptor, 0)
 
 	identifierTx := factory.RewardsTransactionTopic + shardC.CommunicationIdentifier(core.MetachainShardId)
-	interceptor, err := sicf.createOneRewardTxInterceptor(identifierTx)
+	interceptor, err := sicf.createOneRewardTxInterceptor(identifierTx, true)
 	if err != nil {
 		return err
 	}

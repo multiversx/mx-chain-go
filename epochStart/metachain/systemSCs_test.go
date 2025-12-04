@@ -914,6 +914,7 @@ func createFullArgumentsForSystemSCProcessing(enableEpochsConfig config.EnableEp
 		ChanceComputer:      &mock.ChanceComputerStub{},
 		ShardCoordinator:    &mock.ShardCoordinatorStub{},
 		EnableEpochsHandler: enableEpochsHandler,
+		EnableRoundsHandler: &testscommon.EnableRoundsHandlerStub{},
 		NodesCoordinator:    &shardingMocks.NodesCoordinatorStub{},
 		ArgBlockChainHook:   argsHook,
 	}

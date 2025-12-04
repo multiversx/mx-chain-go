@@ -41,7 +41,7 @@ import (
 	syncDisabled "github.com/multiversx/mx-chain-go/process/sync/disabled"
 	processTransaction "github.com/multiversx/mx-chain-go/process/transaction"
 	"github.com/multiversx/mx-chain-go/state/syncer"
-	"github.com/multiversx/mx-chain-go/storage/txcache"
+	"github.com/multiversx/mx-chain-go/txcache"
 	"github.com/multiversx/mx-chain-go/update"
 	hardForkProcess "github.com/multiversx/mx-chain-go/update/process"
 	"github.com/multiversx/mx-chain-go/vm"
@@ -366,6 +366,7 @@ func createProcessorsForMetaGenesisBlock(arg ArgsGenesisBlockCreator, enableEpoc
 		ChanceComputer:      &disabled.Rater{},
 		ShardCoordinator:    arg.ShardCoordinator,
 		EnableEpochsHandler: enableEpochsHandler,
+		EnableRoundsHandler: enableRoundsHandler,
 		NodesCoordinator:    &disabled.NodesCoordinator{},
 	}
 	virtualMachineFactory, err := metachain.NewVMContainerFactory(argsNewVMContainerFactory)
@@ -515,6 +516,7 @@ func createProcessorsForMetaGenesisBlock(arg ArgsGenesisBlockCreator, enableEpoc
 		disabledScheduledTxsExecutionHandler,
 		disabledProcessedMiniBlocksTracker,
 		arg.TxExecutionOrderHandler,
+		arg.TxCacheSelectionConfig,
 	)
 	if err != nil {
 		return nil, err

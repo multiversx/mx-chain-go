@@ -2,6 +2,7 @@ package metachain
 
 import (
 	"errors"
+	"github.com/multiversx/mx-chain-go/testscommon/chainParameters"
 	"testing"
 
 	"github.com/multiversx/mx-chain-core-go/core"
@@ -78,6 +79,7 @@ func createVmContainerMockArgument(gasSchedule core.GasScheduleNotifier) ArgsNew
 		ChanceComputer:      &mock.RaterMock{},
 		ShardCoordinator:    &mock.ShardCoordinatorStub{},
 		EnableEpochsHandler: enableEpochsHandlerMock.NewEnableEpochsHandlerStub(common.StakeFlag),
+		EnableRoundsHandler: &testscommon.EnableRoundsHandlerStub{},
 		NodesCoordinator: &shardingMocks.NodesCoordinatorMock{GetNumTotalEligibleCalled: func() uint64 {
 			return 1000
 		}},
@@ -278,10 +280,8 @@ func TestNewVMContainerFactory_OkValues(t *testing.T) {
 func TestVmContainerFactory_Create(t *testing.T) {
 	t.Parallel()
 
-	cfg := &config.Config{EpochStartConfig: config.EpochStartConfig{RoundsPerEpoch: 14400}}
-	cfg.GeneralSettings.ChainParametersByEpoch = []config.ChainParametersByEpochConfig{{RoundDuration: 6000}}
 	argsNewEconomicsData := economics.ArgsNewEconomicsData{
-		GeneralConfig: cfg,
+		ChainParamsHandler: &chainParameters.ChainParametersHolderMock{},
 		Economics: &config.EconomicsConfig{
 			GlobalSettings: config.GlobalSettings{
 				GenesisTotalSupply: "2000000000000000000000",
@@ -400,6 +400,7 @@ func TestVmContainerFactory_Create(t *testing.T) {
 		ChanceComputer:      &mock.RaterMock{},
 		ShardCoordinator:    mock.NewMultiShardsCoordinatorMock(1),
 		EnableEpochsHandler: enableEpochsHandlerMock.NewEnableEpochsHandlerStub(),
+		EnableRoundsHandler: &testscommon.EnableRoundsHandlerStub{},
 		NodesCoordinator: &shardingMocks.NodesCoordinatorMock{GetNumTotalEligibleCalled: func() uint64 {
 			return 1000
 		}},

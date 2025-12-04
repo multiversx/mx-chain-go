@@ -3,6 +3,7 @@ package economics_test
 import (
 	"errors"
 	"fmt"
+	"github.com/multiversx/mx-chain-go/testscommon/chainParameters"
 	"math/big"
 	"strconv"
 	"testing"
@@ -105,12 +106,11 @@ func createArgsForEconomicsData(gasModifier float64) economics.ArgsNewEconomicsD
 	feeSettings := feeSettingsDummy(gasModifier)
 	pkConv, _ := pubkeyConverter.NewBech32PubkeyConverter(32, "erd")
 	shardC, _ := sharding.NewMultiShardCoordinator(2, 0)
-	cfg := &config.Config{EpochStartConfig: config.EpochStartConfig{RoundsPerEpoch: 14400}}
-	cfg.GeneralSettings.ChainParametersByEpoch = []config.ChainParametersByEpochConfig{{RoundDuration: 6000}}
+
 	args := economics.ArgsNewEconomicsData{
-		GeneralConfig: cfg,
-		Economics:     createDummyEconomicsConfig(feeSettings),
-		EpochNotifier: &epochNotifier.EpochNotifierStub{},
+		ChainParamsHandler: &chainParameters.ChainParametersHolderMock{},
+		Economics:          createDummyEconomicsConfig(feeSettings),
+		EpochNotifier:      &epochNotifier.EpochNotifierStub{},
 		EnableEpochsHandler: &enableEpochsHandlerMock.EnableEpochsHandlerStub{
 			IsFlagEnabledInEpochCalled: func(flag core.EnableEpochFlag, epoch uint32) bool {
 				return flag == common.GasPriceModifierFlag
@@ -127,12 +127,10 @@ func createArgsForEconomicsDataRealFees() economics.ArgsNewEconomicsData {
 	feeSettings := feeSettingsReal()
 	pkConv, _ := pubkeyConverter.NewBech32PubkeyConverter(32, "erd")
 	shardC, _ := sharding.NewMultiShardCoordinator(2, 0)
-	cfg := &config.Config{EpochStartConfig: config.EpochStartConfig{RoundsPerEpoch: 14400}}
-	cfg.GeneralSettings.ChainParametersByEpoch = []config.ChainParametersByEpochConfig{{RoundDuration: 6000}}
 	args := economics.ArgsNewEconomicsData{
-		GeneralConfig: cfg,
-		Economics:     createDummyEconomicsConfig(feeSettings),
-		EpochNotifier: &epochNotifier.EpochNotifierStub{},
+		ChainParamsHandler: &chainParameters.ChainParametersHolderMock{},
+		Economics:          createDummyEconomicsConfig(feeSettings),
+		EpochNotifier:      &epochNotifier.EpochNotifierStub{},
 		EnableEpochsHandler: &enableEpochsHandlerMock.EnableEpochsHandlerStub{
 			IsFlagEnabledInEpochCalled: func(flag core.EnableEpochFlag, epoch uint32) bool {
 				return flag == common.GasPriceModifierFlag

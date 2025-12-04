@@ -510,6 +510,14 @@ func hardForkImport(
 			HeaderVersionConfigs:    testscommon.GetDefaultHeaderVersionConfig(),
 			HistoryRepository:       &dblookupext.HistoryRepositoryStub{},
 			TxExecutionOrderHandler: &commonMocks.TxExecutionOrderHandlerStub{},
+			TxCacheSelectionConfig: config.TxCacheSelectionConfig{
+				SelectionGasBandwidthIncreasePercent:          400,
+				SelectionGasBandwidthIncreaseScheduledPercent: 260,
+				SelectionGasRequested:                         10_000_000_000,
+				SelectionMaxNumTxs:                            30000,
+				SelectionLoopMaximumDuration:                  250,
+				SelectionLoopDurationCheckInterval:            10,
+			},
 		}
 
 		genesisProcessor, err := process.NewGenesisBlockCreator(argsGenesis)
@@ -611,8 +619,9 @@ func createHardForkExporter(
 		networkComponents.OutputAntiFlood = &mock.NilAntifloodHandler{}
 
 		interceptorDataVerifierFactoryArgs := interceptorFactory.InterceptedDataVerifierFactoryArgs{
-			CacheSpan:   time.Second * 5,
-			CacheExpiry: time.Second * 10,
+			InterceptedDataVerifierConfig: config.InterceptedDataVerifierConfig{
+				EnableCaching: false,
+			},
 		}
 		argsExportHandler := factory.ArgsExporter{
 			CoreComponents:       coreComponents,
@@ -654,21 +663,29 @@ func createHardForkExporter(
 			HeaderIntegrityVerifier:          node.HeaderIntegrityVerifier,
 			ValidityAttester:                 node.BlockTracker,
 			RoundHandler:                     &mock.RoundHandlerMock{},
-			InterceptorDebugConfig: config.InterceptorResolverDebugConfig{
-				Enabled:                    true,
-				EnablePrint:                true,
-				CacheSize:                  10000,
-				IntervalAutoPrintInSeconds: 20,
-				NumRequestsThreshold:       3,
-				NumResolveFailureThreshold: 3,
-				DebugLineExpiration:        3,
+			MaxHardCapForMissingNodes:        500,
+			NumConcurrentTrieSyncers:         50,
+			TrieSyncerVersion:                2,
+			CheckNodesOnDisk:                 false,
+			NodeOperationMode:                node.NodeOperationMode,
+			InterceptedDataVerifierFactory:   interceptorFactory.NewInterceptedDataVerifierFactory(interceptorDataVerifierFactoryArgs),
+			Config: config.Config{
+				Debug: config.DebugConfig{
+					InterceptorResolver: config.InterceptorResolverDebugConfig{
+						Enabled:                    true,
+						EnablePrint:                true,
+						CacheSize:                  10000,
+						IntervalAutoPrintInSeconds: 20,
+						NumRequestsThreshold:       3,
+						NumResolveFailureThreshold: 3,
+						DebugLineExpiration:        3,
+					},
+				},
+				InterceptedDataVerifier: config.InterceptedDataVerifierConfig{
+					CacheExpiryInSec: 1,
+					CacheSpanInSec:   1,
+				},
 			},
-			MaxHardCapForMissingNodes:      500,
-			NumConcurrentTrieSyncers:       50,
-			TrieSyncerVersion:              2,
-			CheckNodesOnDisk:               false,
-			NodeOperationMode:              node.NodeOperationMode,
-			InterceptedDataVerifierFactory: interceptorFactory.NewInterceptedDataVerifierFactory(interceptorDataVerifierFactoryArgs),
 		}
 
 		exportHandler, err := factory.NewExportHandlerFactory(argsExportHandler)

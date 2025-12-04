@@ -44,7 +44,7 @@ import (
 	"github.com/multiversx/mx-chain-go/process/transaction"
 	"github.com/multiversx/mx-chain-go/state"
 	"github.com/multiversx/mx-chain-go/state/syncer"
-	"github.com/multiversx/mx-chain-go/storage/txcache"
+	"github.com/multiversx/mx-chain-go/txcache"
 	"github.com/multiversx/mx-chain-go/vm"
 )
 
@@ -355,6 +355,7 @@ func (pcf *processComponentsFactory) newShardBlockProcessor(
 		scheduledTxsExecutionHandler,
 		processedMiniBlocksTracker,
 		pcf.txExecutionOrderHandler,
+		pcf.config.TxCacheSelection,
 	)
 	if err != nil {
 		return nil, err
@@ -665,6 +666,7 @@ func (pcf *processComponentsFactory) newMetaBlockProcessor(
 		scheduledTxsExecutionHandler,
 		processedMiniBlocksTracker,
 		pcf.txExecutionOrderHandler,
+		pcf.config.TxCacheSelection,
 	)
 	if err != nil {
 		return nil, err
@@ -758,9 +760,12 @@ func (pcf *processComponentsFactory) newMetaBlockProcessor(
 		RoundTime:             pcf.coreData.RoundHandler(),
 		GenesisNonce:          genesisHdr.GetNonce(),
 		GenesisEpoch:          genesisHdr.GetEpoch(),
+		GenesisTimestamp:      genesisHdr.GetTimeStamp(),
 		GenesisTotalSupply:    pcf.coreData.EconomicsData().GenesisTotalSupply(),
 		EconomicsDataNotified: economicsDataProvider,
 		StakingV2EnableEpoch:  pcf.coreData.EnableEpochsHandler().GetActivationEpoch(common.StakingV2Flag),
+		EnableEpochsHandler:   pcf.coreData.EnableEpochsHandler(),
+		ChainParamsHandler:    pcf.coreData.ChainParametersHandler(),
 	}
 	epochEconomics, err := metachainEpochStart.NewEndOfEpochEconomicsDataCreator(argsEpochEconomics)
 	if err != nil {
@@ -1164,6 +1169,7 @@ func (pcf *processComponentsFactory) createVMFactoryMeta(
 		ChanceComputer:      pcf.coreData.Rater(),
 		ShardCoordinator:    pcf.bootstrapComponents.ShardCoordinator(),
 		EnableEpochsHandler: pcf.coreData.EnableEpochsHandler(),
+		EnableRoundsHandler: pcf.coreData.EnableRoundsHandler(),
 		NodesCoordinator:    pcf.nodesCoordinator,
 	}
 	return metachain.NewVMContainerFactory(argsNewVMContainer)

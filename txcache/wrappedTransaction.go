@@ -1,0 +1,78 @@
+package txcache
+
+import (
+	"bytes"
+	"math/big"
+
+	"github.com/multiversx/mx-chain-core-go/data"
+)
+
+// bunchOfTransactions is a slice of WrappedTransaction pointers
+type bunchOfTransactions []*WrappedTransaction
+
+// WrappedTransaction contains a transaction, its hash and extra information
+type WrappedTransaction struct {
+	Tx              data.TransactionHandler
+	TxHash          []byte
+	SenderShardID   uint32
+	ReceiverShardID uint32
+	Size            int64
+
+	// These fields are only set within "precomputeFields".
+	// We don't need to protect them with a mutex, since "precomputeFields" is called only once for each transaction.
+	// Additional note: "WrappedTransaction" objects are created by the Node, in dataRetriever/txpool/shardedTxPool.go.
+	Fee              *big.Int
+	PricePerUnit     uint64
+	TransferredValue *big.Int
+	FeePayer         []byte
+}
+
+// precomputeFields computes (and caches) the (average) price per gas unit.
+func (wrappedTx *WrappedTransaction) precomputeFields(host MempoolHost) {
+	wrappedTx.Fee = host.ComputeTxFee(wrappedTx.Tx)
+
+	gasLimit := wrappedTx.Tx.GetGasLimit()
+	if gasLimit != 0 {
+		pricePerUnit := big.NewInt(0)
+		_ = pricePerUnit.Div(wrappedTx.Fee, big.NewInt(int64(gasLimit)))
+		// The operation below can't result in an overflow.
+		// PricePerUnit will always be uint64 because of how the fee is computed:
+		// Two uint64s which are multiplied and one of them being the actual gasLimit which is used later for the div.
+		wrappedTx.PricePerUnit = pricePerUnit.Uint64()
+	}
+
+	wrappedTx.TransferredValue = host.GetTransferredValue(wrappedTx.Tx)
+	wrappedTx.FeePayer = wrappedTx.decideFeePayer()
+}
+
+func (wrappedTx *WrappedTransaction) decideFeePayer() []byte {
+	asRelayed, ok := wrappedTx.Tx.(data.RelayedTransactionHandler)
+	if ok && len(asRelayed.GetRelayerAddr()) > 0 {
+		return asRelayed.GetRelayerAddr()
+	}
+
+	return wrappedTx.Tx.GetSndAddr()
+}
+
+// Equality is out of scope (not possible in our case).
+func (wrappedTx *WrappedTransaction) isTransactionMoreValuableForNetwork(otherTransaction *WrappedTransaction) bool {
+	// First, compare by PPU (higher PPU is better).
+	if wrappedTx.PricePerUnit != otherTransaction.PricePerUnit {
+		return wrappedTx.PricePerUnit > otherTransaction.PricePerUnit
+	}
+
+	// If PPU is the same, compare by gas limit (higher gas limit is better, promoting less "execution fragmentation").
+	gasLimit := wrappedTx.Tx.GetGasLimit()
+	gasLimitOther := otherTransaction.Tx.GetGasLimit()
+
+	if gasLimit != gasLimitOther {
+		return gasLimit > gasLimitOther
+	}
+
+	// In the end, compare by transaction hash
+	return bytes.Compare(wrappedTx.TxHash, otherTransaction.TxHash) < 0
+}
+
+func (wrappedTx *WrappedTransaction) isFeePayerSameAsSender() bool {
+	return bytes.Equal(wrappedTx.FeePayer, wrappedTx.Tx.GetSndAddr())
+}

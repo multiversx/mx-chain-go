@@ -9,6 +9,9 @@ func GetDefaultRoundsConfig() config.RoundConfig {
 			"DisableAsyncCallV1": {
 				Round: "18446744073709551615",
 			},
+			"SupernovaEnableRound": {
+				Round: "9999999",
+			},
 		},
 	}
 }

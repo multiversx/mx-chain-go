@@ -8,7 +8,7 @@ import (
 // InterceptorProcessorStub -
 type InterceptorProcessorStub struct {
 	ValidateCalled        func(data process.InterceptedData) error
-	SaveCalled            func(data process.InterceptedData) error
+	SaveCalled            func(data process.InterceptedData) (bool, error)
 	RegisterHandlerCalled func(handler func(topic string, hash []byte, data interface{}))
 }
 
@@ -18,7 +18,7 @@ func (ips *InterceptorProcessorStub) Validate(data process.InterceptedData, _ co
 }
 
 // Save -
-func (ips *InterceptorProcessorStub) Save(data process.InterceptedData, _ core.PeerID, _ string) error {
+func (ips *InterceptorProcessorStub) Save(data process.InterceptedData, _ core.PeerID, _ string) (bool, error) {
 	return ips.SaveCalled(data)
 }
 

@@ -8,7 +8,6 @@ import (
 	"strconv"
 	"strings"
 	"testing"
-	"time"
 
 	"github.com/multiversx/mx-chain-core-go/core"
 	apiData "github.com/multiversx/mx-chain-core-go/data/api"
@@ -41,7 +40,7 @@ const (
 	mockTxSignature                         = "ssig"
 	mockRelayerTxSignature                  = "rsig"
 	maxNumOfBlocksToGenerateWhenExecutingTx = 10
-	roundsPerEpoch                          = 30
+	roundsPerEpoch                          = 40
 	guardAccountCost                        = 250_000
 	extraGasLimitForGuarded                 = minGasLimit
 	extraGasESDTTransfer                    = 250000
@@ -111,6 +110,16 @@ func testRelayedV3MoveBalance(
 			cfg.EpochConfig.EnableEpochs.FixRelayedBaseCostEnableEpoch = providedActivationEpoch
 			cfg.EpochConfig.EnableEpochs.RelayedTransactionsV3EnableEpoch = providedActivationEpoch
 			cfg.EpochConfig.EnableEpochs.RelayedTransactionsV3FixESDTTransferEnableEpoch = providedActivationEpoch
+
+			cfg.EpochConfig.EnableEpochs.SupernovaEnableEpoch = 0
+			cfg.RoundConfig.RoundActivations = map[string]config.ActivationRoundByName{
+				"DisableAsyncCallV1": {
+					Round: "0",
+				},
+				"SupernovaEnableRound": {
+					Round: "0",
+				},
+			}
 		}
 
 		cs := startChainSimulator(t, alterConfigsFunc)
@@ -1325,21 +1334,26 @@ func startChainSimulator(
 		HasValue: true,
 		Value:    roundsPerEpoch,
 	}
+	supernovaRoundsPerEpochOpt := core.OptionalUint64{
+		HasValue: true,
+		Value:    roundsPerEpoch * 10,
+	}
 
 	cs, err := chainSimulator.NewChainSimulator(chainSimulator.ArgsChainSimulator{
-		BypassTxSignatureCheck:   true,
-		TempDir:                  t.TempDir(),
-		PathToInitialConfig:      defaultPathToInitialConfig,
-		NumOfShards:              3,
-		GenesisTimestamp:         time.Now().Unix(),
-		RoundDurationInMillis:    roundDurationInMillis,
-		RoundsPerEpoch:           roundsPerEpochOpt,
-		ApiInterface:             api.NewNoApiInterface(),
-		MinNodesPerShard:         3,
-		MetaChainMinNodes:        3,
-		NumNodesWaitingListMeta:  3,
-		NumNodesWaitingListShard: 3,
-		AlterConfigsFunction:     alterConfigsFunction,
+		BypassTxSignatureCheck:         true,
+		TempDir:                        t.TempDir(),
+		PathToInitialConfig:            defaultPathToInitialConfig,
+		NumOfShards:                    3,
+		RoundDurationInMillis:          roundDurationInMillis,
+		SupernovaRoundDurationInMillis: roundDurationInMillis / 10,
+		RoundsPerEpoch:                 roundsPerEpochOpt,
+		SupernovaRoundsPerEpoch:        supernovaRoundsPerEpochOpt,
+		ApiInterface:                   api.NewNoApiInterface(),
+		MinNodesPerShard:               3,
+		MetaChainMinNodes:              3,
+		NumNodesWaitingListMeta:        3,
+		NumNodesWaitingListShard:       3,
+		AlterConfigsFunction:           alterConfigsFunction,
 	})
 	require.NoError(t, err)
 	require.NotNil(t, cs)

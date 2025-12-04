@@ -283,6 +283,7 @@ func (pr *ProcessorRunner) createStatusComponents(tb testing.TB) {
 		pr.CoreComponents.GenesisNodesSetup(),
 		pr.Config.GeneralConfig.EpochStartConfig,
 		pr.CoreComponents.ChanStopNodeProcess(),
+		pr.CoreComponents.ChainParametersHandler(),
 	)
 	require.Nil(tb, err)
 

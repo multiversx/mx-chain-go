@@ -46,7 +46,7 @@ func TestTrieNodesInterceptorProcessor_SaveWrongTypeAssertion(t *testing.T) {
 
 	tnip, _ := processor.NewTrieNodesInterceptorProcessor(cache.NewCacherMock())
 
-	err := tnip.Save(nil, "", "")
+	_, err := tnip.Save(nil, "", "")
 	assert.Equal(t, process.ErrWrongTypeAssertion, err)
 }
 
@@ -72,7 +72,7 @@ func TestTrieNodesInterceptorProcessor_SaveShouldPutInCacher(t *testing.T) {
 	}
 	tnip, _ := processor.NewTrieNodesInterceptorProcessor(cacher)
 
-	err := tnip.Save(interceptedTrieNode, "", "")
+	_, err := tnip.Save(interceptedTrieNode, "", "")
 	assert.Nil(t, err)
 	assert.True(t, putCalled)
 }

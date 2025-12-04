@@ -5,7 +5,6 @@ import (
 	"fmt"
 	"math/big"
 	"testing"
-	"time"
 
 	"github.com/multiversx/mx-chain-go/common"
 	"github.com/multiversx/mx-chain-go/config"
@@ -56,26 +55,30 @@ func TestChainSimulator_ValidatorJailUnJail(t *testing.T) {
 }
 
 func testChainSimulatorJailAndUnJail(t *testing.T, targetEpoch int32, nodeStatusAfterUnJail string) {
-	startTime := time.Now().Unix()
 	roundDurationInMillis := uint64(6000)
 	roundsPerEpoch := core.OptionalUint64{
 		HasValue: true,
 		Value:    20,
 	}
+	supernovaRoundsPerEpochOpt := core.OptionalUint64{
+		HasValue: true,
+		Value:    200,
+	}
 
 	numOfShards := uint32(3)
 
 	cs, err := chainSimulator.NewChainSimulator(chainSimulator.ArgsChainSimulator{
-		BypassTxSignatureCheck: true,
-		TempDir:                t.TempDir(),
-		PathToInitialConfig:    defaultPathToInitialConfig,
-		NumOfShards:            numOfShards,
-		GenesisTimestamp:       startTime,
-		RoundDurationInMillis:  roundDurationInMillis,
-		RoundsPerEpoch:         roundsPerEpoch,
-		ApiInterface:           api.NewNoApiInterface(),
-		MinNodesPerShard:       4,
-		MetaChainMinNodes:      4,
+		BypassTxSignatureCheck:         true,
+		TempDir:                        t.TempDir(),
+		PathToInitialConfig:            defaultPathToInitialConfig,
+		NumOfShards:                    numOfShards,
+		RoundDurationInMillis:          roundDurationInMillis,
+		SupernovaRoundDurationInMillis: roundDurationInMillis / 10,
+		RoundsPerEpoch:                 roundsPerEpoch,
+		SupernovaRoundsPerEpoch:        supernovaRoundsPerEpochOpt,
+		ApiInterface:                   api.NewNoApiInterface(),
+		MinNodesPerShard:               4,
+		MetaChainMinNodes:              4,
 		AlterConfigsFunction: func(cfg *config.Configs) {
 			configs.SetStakingV4ActivationEpochs(cfg, stakingV4JailUnJailStep1EnableEpoch)
 			cfg.EpochConfig.EnableEpochs.AndromedaEnableEpoch = 100
@@ -160,32 +163,38 @@ func TestChainSimulator_FromQueueToAuctionList(t *testing.T) {
 		t.Skip("this is not a short test")
 	}
 
-	startTime := time.Now().Unix()
 	roundDurationInMillis := uint64(6000)
 	roundsPerEpoch := core.OptionalUint64{
 		HasValue: true,
-		Value:    20,
+		Value:    40,
+	}
+	supernovaRoundsPerEpochOpt := core.OptionalUint64{
+		HasValue: true,
+		Value:    400,
 	}
 
 	numOfShards := uint32(3)
 
 	cs, err := chainSimulator.NewChainSimulator(chainSimulator.ArgsChainSimulator{
-		BypassTxSignatureCheck: true,
-		TempDir:                t.TempDir(),
-		PathToInitialConfig:    defaultPathToInitialConfig,
-		NumOfShards:            numOfShards,
-		GenesisTimestamp:       startTime,
-		RoundDurationInMillis:  roundDurationInMillis,
-		RoundsPerEpoch:         roundsPerEpoch,
-		ApiInterface:           api.NewNoApiInterface(),
-		MinNodesPerShard:       4,
-		MetaChainMinNodes:      4,
+		BypassTxSignatureCheck:         true,
+		TempDir:                        t.TempDir(),
+		PathToInitialConfig:            defaultPathToInitialConfig,
+		NumOfShards:                    numOfShards,
+		RoundDurationInMillis:          roundDurationInMillis,
+		SupernovaRoundDurationInMillis: roundDurationInMillis / 10,
+		RoundsPerEpoch:                 roundsPerEpoch,
+		SupernovaRoundsPerEpoch:        supernovaRoundsPerEpochOpt,
+		ApiInterface:                   api.NewNoApiInterface(),
+		MinNodesPerShard:               4,
+		MetaChainMinNodes:              4,
 		AlterConfigsFunction: func(cfg *config.Configs) {
 			configs.SetStakingV4ActivationEpochs(cfg, stakingV4JailUnJailStep1EnableEpoch)
 			configs.SetQuickJailRatingConfig(cfg)
 
 			newNumNodes := cfg.SystemSCConfig.StakingSystemSCConfig.MaxNumberOfNodesForStake + 1
 			configs.SetMaxNumberOfNodesInConfigs(cfg, uint32(newNumNodes), 0, numOfShards)
+
+			cfg.EpochConfig.EnableEpochs.SupernovaEnableEpoch = 0
 		},
 	})
 	require.Nil(t, err)
@@ -257,32 +266,46 @@ func TestChainSimulator_FromQueueToAuctionList(t *testing.T) {
 }
 
 func TestJailNodes(t *testing.T) {
-	startTime := time.Now().Unix()
 	roundDurationInMillis := uint64(6000)
 	roundsPerEpoch := core.OptionalUint64{
 		HasValue: true,
-		Value:    20,
+		Value:    40,
+	}
+	supernovaRoundsPerEpochOpt := core.OptionalUint64{
+		HasValue: true,
+		Value:    50,
 	}
 
 	numOfShards := uint32(3)
 
 	cs, err := chainSimulator.NewChainSimulator(chainSimulator.ArgsChainSimulator{
-		BypassTxSignatureCheck:   true,
-		TempDir:                  t.TempDir(),
-		PathToInitialConfig:      defaultPathToInitialConfig,
-		NumOfShards:              numOfShards,
-		GenesisTimestamp:         startTime,
-		RoundDurationInMillis:    roundDurationInMillis,
-		RoundsPerEpoch:           roundsPerEpoch,
-		ApiInterface:             api.NewNoApiInterface(),
-		MinNodesPerShard:         4,
-		MetaChainMinNodes:        4,
-		NumNodesWaitingListMeta:  1,
-		NumNodesWaitingListShard: 1,
+		BypassTxSignatureCheck:         true,
+		TempDir:                        t.TempDir(),
+		PathToInitialConfig:            defaultPathToInitialConfig,
+		NumOfShards:                    numOfShards,
+		RoundDurationInMillis:          roundDurationInMillis,
+		SupernovaRoundDurationInMillis: roundDurationInMillis / 10,
+		RoundsPerEpoch:                 roundsPerEpoch,
+		SupernovaRoundsPerEpoch:        supernovaRoundsPerEpochOpt,
+		ApiInterface:                   api.NewNoApiInterface(),
+		MinNodesPerShard:               4,
+		MetaChainMinNodes:              4,
+		NumNodesWaitingListMeta:        1,
+		NumNodesWaitingListShard:       1,
 		AlterConfigsFunction: func(cfg *config.Configs) {
 			configs.SetQuickJailRatingConfig(cfg)
 			newNumNodes := cfg.SystemSCConfig.StakingSystemSCConfig.MaxNumberOfNodesForStake + 1
 			configs.SetMaxNumberOfNodesInConfigs(cfg, uint32(newNumNodes), 0, numOfShards)
+
+			cfg.EpochConfig.EnableEpochs.SupernovaEnableEpoch = 0
+			cfg.RoundConfig.RoundActivations = map[string]config.ActivationRoundByName{
+				"DisableAsyncCallV1": {
+					Round: "9999999",
+				},
+				"SupernovaEnableRound": {
+					Round: "0",
+				},
+			}
 		},
 	})
 	require.Nil(t, err)
@@ -310,7 +333,7 @@ func TestJailNodes(t *testing.T) {
 	require.Nil(t, err)
 	require.NotNil(t, stakeTx)
 
-	err = cs.GenerateBlocks(200)
+	err = cs.GenerateBlocks(250)
 	require.Nil(t, err)
 
 	decodedBLSKey0, _ := hex.DecodeString(blsKeys[0])

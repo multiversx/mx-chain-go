@@ -47,7 +47,7 @@ type CoreComponentsMock struct {
 	Shuffler                           nodesCoordinator.NodesShuffler
 	EpochChangeNotifier                process.EpochNotifier
 	RoundChangeNotifier                process.RoundNotifier
-	EnableRoundsHandlerField           process.EnableRoundsHandler
+	EnableRoundsHandlerField           common.EnableRoundsHandler
 	EpochNotifierWithConfirm           factory.EpochStartNotifierWithConfirm
 	TxVersionCheckHandler              process.TxVersionCheckerHandler
 	ChanStopProcess                    chan endProcess.ArgEndProcess
@@ -61,6 +61,8 @@ type CoreComponentsMock struct {
 	ChainParametersSubscriberField     process.ChainParametersSubscriber
 	FieldsSizeCheckerField             common.FieldsSizeChecker
 	EpochChangeGracePeriodHandlerField common.EpochChangeGracePeriodHandler
+	ProcessConfigsHandlerField         common.ProcessConfigsHandler
+	CommonConfigsHandlerField          common.CommonConfigsHandler
 }
 
 // InternalMarshalizer -
@@ -140,6 +142,11 @@ func (ccm *CoreComponentsMock) GenesisTime() time.Time {
 	return ccm.GenesisBlockTime
 }
 
+// SupernovaGenesisTime -
+func (ccm *CoreComponentsMock) SupernovaGenesisTime() time.Time {
+	return ccm.GenesisBlockTime
+}
+
 // ChainID -
 func (ccm *CoreComponentsMock) ChainID() string {
 	if ccm.ChainIdCalled != nil {
@@ -212,7 +219,7 @@ func (ccm *CoreComponentsMock) RoundNotifier() process.RoundNotifier {
 }
 
 // EnableRoundsHandler -
-func (ccm *CoreComponentsMock) EnableRoundsHandler() process.EnableRoundsHandler {
+func (ccm *CoreComponentsMock) EnableRoundsHandler() common.EnableRoundsHandler {
 	return ccm.EnableRoundsHandlerField
 }
 
@@ -269,6 +276,16 @@ func (ccm *CoreComponentsMock) FieldsSizeChecker() common.FieldsSizeChecker {
 // EpochChangeGracePeriodHandler -
 func (ccm *CoreComponentsMock) EpochChangeGracePeriodHandler() common.EpochChangeGracePeriodHandler {
 	return ccm.EpochChangeGracePeriodHandlerField
+}
+
+// ProcessConfigsHandler -
+func (ccm *CoreComponentsMock) ProcessConfigsHandler() common.ProcessConfigsHandler {
+	return ccm.ProcessConfigsHandlerField
+}
+
+// CommonConfigsHandler -
+func (ccm *CoreComponentsMock) CommonConfigsHandler() common.CommonConfigsHandler {
+	return ccm.CommonConfigsHandlerField
 }
 
 // IsInterfaceNil -

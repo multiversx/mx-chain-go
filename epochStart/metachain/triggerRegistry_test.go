@@ -23,8 +23,6 @@ func cloneTrigger(t *trigger) *trigger {
 	rt.epochFinalityAttestingRound = t.epochFinalityAttestingRound
 	rt.currEpochStartRound = t.currEpochStartRound
 	rt.prevEpochStartRound = t.prevEpochStartRound
-	rt.roundsPerEpoch = t.roundsPerEpoch
-	rt.minRoundsBetweenEpochs = t.minRoundsBetweenEpochs
 	rt.epochStartMetaHash = t.epochStartMetaHash
 	rt.triggerStateKey = t.triggerStateKey
 	rt.epochStartTime = t.epochStartTime
@@ -36,6 +34,7 @@ func cloneTrigger(t *trigger) *trigger {
 	rt.appStatusHandler = t.appStatusHandler
 	rt.nextEpochStartRound = t.nextEpochStartRound
 	rt.validatorInfoPool = t.validatorInfoPool
+	rt.chainParametersHandler = t.chainParametersHandler
 
 	return rt
 }

@@ -225,6 +225,11 @@ func (mbp *metaAPIBlockProcessor) convertMetaBlockBytesToAPIBlock(hash []byte, b
 		notarizedBlocks = append(notarizedBlocks, notarizedBlock)
 	}
 
+	timestampSec, timestampMs, err := common.GetHeaderTimestamps(blockHeader, mbp.enableEpochsHandler)
+	if err != nil {
+		return nil, err
+	}
+
 	apiMetaBlock := &api.Block{
 		Nonce:                  blockHeader.Nonce,
 		Round:                  blockHeader.Round,
@@ -239,8 +244,8 @@ func (mbp *metaAPIBlockProcessor) convertMetaBlockBytesToAPIBlock(hash []byte, b
 		DeveloperFees:          blockHeader.DeveloperFees.String(),
 		AccumulatedFeesInEpoch: blockHeader.AccumulatedFeesInEpoch.String(),
 		DeveloperFeesInEpoch:   blockHeader.DevFeesInEpoch.String(),
-		Timestamp:              int64(blockHeader.GetTimeStamp()),
-		TimestampMs:            int64(common.ConvertTimeStampSecToMs(blockHeader.GetTimeStamp())),
+		Timestamp:              int64(timestampSec),
+		TimestampMs:            int64(timestampMs),
 		StateRootHash:          hex.EncodeToString(blockHeader.RootHash),
 		Status:                 BlockStatusOnChain,
 		PubKeyBitmap:           hex.EncodeToString(blockHeader.GetPubKeysBitmap()),

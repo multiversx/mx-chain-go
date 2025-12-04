@@ -17,7 +17,7 @@ import (
 
 var _ process.TransactionProcessor = (*metaTxProcessor)(nil)
 
-// txProcessor implements TransactionProcessor interface and can modify account states according to a transaction
+// metaTxProcessor implements TransactionProcessor interface and can modify account states according to a transaction
 type metaTxProcessor struct {
 	*baseTxProcessor
 	enableEpochsHandler common.EnableEpochsHandler

@@ -4,6 +4,7 @@ import (
 	"encoding/hex"
 	"errors"
 	"fmt"
+	"github.com/multiversx/mx-chain-go/testscommon/chainParameters"
 	"math"
 	"math/big"
 	"strconv"
@@ -52,7 +53,6 @@ import (
 	"github.com/multiversx/mx-chain-go/state"
 	"github.com/multiversx/mx-chain-go/storage"
 	"github.com/multiversx/mx-chain-go/storage/storageunit"
-	"github.com/multiversx/mx-chain-go/storage/txcache"
 	"github.com/multiversx/mx-chain-go/testscommon"
 	commonMocks "github.com/multiversx/mx-chain-go/testscommon/common"
 	dataRetrieverMock "github.com/multiversx/mx-chain-go/testscommon/dataRetriever"
@@ -65,6 +65,7 @@ import (
 	"github.com/multiversx/mx-chain-go/testscommon/shardingMocks"
 	storageStubs "github.com/multiversx/mx-chain-go/testscommon/storage"
 	"github.com/multiversx/mx-chain-go/testscommon/txDataBuilder"
+	"github.com/multiversx/mx-chain-go/txcache"
 	"github.com/multiversx/mx-chain-go/vm/systemSmartContracts/defaults"
 	logger "github.com/multiversx/mx-chain-logger-go"
 	vmcommon "github.com/multiversx/mx-chain-vm-common-go"
@@ -326,11 +327,9 @@ func createEconomicsData(enableEpochsConfig config.EnableEpochs, gasPriceModifie
 	realEpochNotifier := forking.NewGenericEpochNotifier()
 	enableEpochsHandler, _ := enablers.NewEnableEpochsHandler(enableEpochsConfig, realEpochNotifier)
 
-	cfg := &config.Config{EpochStartConfig: config.EpochStartConfig{RoundsPerEpoch: 14400}}
-	cfg.GeneralSettings.ChainParametersByEpoch = []config.ChainParametersByEpochConfig{{RoundDuration: 6000}}
 	argsNewEconomicsData := economics.ArgsNewEconomicsData{
-		TxVersionChecker: versioning.NewTxVersionChecker(minTransactionVersion),
-		GeneralConfig:    cfg,
+		TxVersionChecker:   versioning.NewTxVersionChecker(minTransactionVersion),
+		ChainParamsHandler: &chainParameters.ChainParametersHolderMock{},
 		Economics: &config.EconomicsConfig{
 			GlobalSettings: config.GlobalSettings{
 				GenesisTotalSupply: "2000000000000000000000",
@@ -727,6 +726,7 @@ func CreateVMAndBlockchainHookMeta(
 		ChanceComputer:      &shardingMocks.NodesCoordinatorMock{},
 		ShardCoordinator:    mock.NewMultiShardsCoordinatorMock(1),
 		EnableEpochsHandler: enableEpochsHandler,
+		EnableRoundsHandler: &testscommon.EnableRoundsHandlerStub{},
 		NodesCoordinator:    &shardingMocks.NodesCoordinatorMock{},
 	}
 	vmFactory, err := metachain.NewVMContainerFactory(argVMContainer)

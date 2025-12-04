@@ -11,7 +11,7 @@ import (
 // EpochStartMetaBlockProcessorStub -
 type EpochStartMetaBlockProcessorStub struct {
 	ValidateCalled               func(data process.InterceptedData, fromConnectedPeer core.PeerID) error
-	SaveCalled                   func(data process.InterceptedData, fromConnectedPeer core.PeerID, topic string) error
+	SaveCalled                   func(data process.InterceptedData, fromConnectedPeer core.PeerID, topic string) (bool, error)
 	RegisterHandlerCalled        func(handler func(topic string, hash []byte, data interface{}))
 	GetEpochStartMetaBlockCalled func(ctx context.Context) (data.MetaHeaderHandler, error)
 }
@@ -26,12 +26,12 @@ func (esmbps *EpochStartMetaBlockProcessorStub) Validate(data process.Intercepte
 }
 
 // Save -
-func (esmbps *EpochStartMetaBlockProcessorStub) Save(data process.InterceptedData, fromConnectedPeer core.PeerID, topic string) error {
+func (esmbps *EpochStartMetaBlockProcessorStub) Save(data process.InterceptedData, fromConnectedPeer core.PeerID, topic string) (bool, error) {
 	if esmbps.SaveCalled != nil {
 		return esmbps.SaveCalled(data, fromConnectedPeer, topic)
 	}
 
-	return nil
+	return true, nil
 }
 
 // RegisterHandler -

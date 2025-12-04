@@ -524,6 +524,7 @@ func TestInitMetrics(t *testing.T) {
 	appStatusHandler := &statusHandler.AppStatusHandlerStub{}
 	pubkeyString := "pub key"
 	nodeType := core.NodeTypeValidator
+
 	shardCoordinator := &testscommon.ShardsCoordinatorMock{
 		NoShards: 3,
 		SelfIDCalled: func() uint32 {
@@ -580,33 +581,41 @@ func TestInitMetrics(t *testing.T) {
 		},
 	}
 	roundsPerEpoch := int64(200)
+	currentChainParameters := config.ChainParametersByEpochConfig{
+		RoundsPerEpoch:              roundsPerEpoch,
+		RoundDuration:               6000,
+		ShardMinNumNodes:            uint32(402),
+		MetachainMinNumNodes:        uint32(401),
+		ShardConsensusGroupSize:     uint32(63),
+		MetachainConsensusGroupSize: uint32(400),
+	}
 	minTransactionVersion := uint32(1)
 
 	t.Run("nil app status handler should error", func(t *testing.T) {
 		t.Parallel()
 
-		err := InitMetrics(nil, pubkeyString, nodeType, shardCoordinator, nodesSetup, version, economicsConfigs, roundsPerEpoch, minTransactionVersion)
+		err := InitMetrics(nil, pubkeyString, nodeType, shardCoordinator, nodesSetup, version, economicsConfigs, currentChainParameters, minTransactionVersion)
 		assert.Equal(t, ErrNilAppStatusHandler, err)
 	})
 	t.Run("nil shard coordinator should error", func(t *testing.T) {
 		t.Parallel()
 
 		expectedErrorString := "nil shard coordinator when initializing metrics"
-		err := InitMetrics(appStatusHandler, pubkeyString, nodeType, nil, nodesSetup, version, economicsConfigs, roundsPerEpoch, minTransactionVersion)
+		err := InitMetrics(appStatusHandler, pubkeyString, nodeType, nil, nodesSetup, version, economicsConfigs, currentChainParameters, minTransactionVersion)
 		assert.Equal(t, expectedErrorString, err.Error())
 	})
 	t.Run("nil nodes configs should error", func(t *testing.T) {
 		t.Parallel()
 
 		expectedErrorString := "nil nodes config when initializing metrics"
-		err := InitMetrics(appStatusHandler, pubkeyString, nodeType, shardCoordinator, nil, version, economicsConfigs, roundsPerEpoch, minTransactionVersion)
+		err := InitMetrics(appStatusHandler, pubkeyString, nodeType, shardCoordinator, nil, version, economicsConfigs, currentChainParameters, minTransactionVersion)
 		assert.Equal(t, expectedErrorString, err.Error())
 	})
 	t.Run("nil economics configs should error", func(t *testing.T) {
 		t.Parallel()
 
 		expectedErrorString := "nil economics config when initializing metrics"
-		err := InitMetrics(appStatusHandler, pubkeyString, nodeType, shardCoordinator, nodesSetup, version, nil, roundsPerEpoch, minTransactionVersion)
+		err := InitMetrics(appStatusHandler, pubkeyString, nodeType, shardCoordinator, nodesSetup, version, nil, currentChainParameters, minTransactionVersion)
 		assert.Equal(t, expectedErrorString, err.Error())
 	})
 	t.Run("should work", func(t *testing.T) {
@@ -622,7 +631,7 @@ func TestInitMetrics(t *testing.T) {
 			},
 		}
 
-		err := InitMetrics(localStatusHandler, pubkeyString, nodeType, shardCoordinator, nodesSetup, version, economicsConfigs, roundsPerEpoch, minTransactionVersion)
+		err := InitMetrics(localStatusHandler, pubkeyString, nodeType, shardCoordinator, nodesSetup, version, economicsConfigs, currentChainParameters, minTransactionVersion)
 		assert.Nil(t, err)
 
 		expectedValues := map[string]interface{}{
@@ -630,7 +639,7 @@ func TestInitMetrics(t *testing.T) {
 			common.MetricShardId:                      uint64(shardCoordinator.SelfId()),
 			common.MetricNumShardsWithoutMetachain:    uint64(shardCoordinator.NoShards),
 			common.MetricNodeType:                     string(nodeType),
-			common.MetricRoundTime:                    uint64(6),
+			common.MetricRoundTime:                    uint64(6000),
 			common.MetricAppVersion:                   version,
 			common.MetricRoundsPerEpoch:               uint64(roundsPerEpoch),
 			common.MetricCrossCheckBlockHeight:        "0",
@@ -676,7 +685,7 @@ func TestInitMetrics(t *testing.T) {
 			},
 		}
 
-		err := InitMetrics(localStatusHandler, pubkeyString, nodeType, localShardCoordinator, nodesSetup, version, economicsConfigs, roundsPerEpoch, minTransactionVersion)
+		err := InitMetrics(localStatusHandler, pubkeyString, nodeType, localShardCoordinator, nodesSetup, version, economicsConfigs, currentChainParameters, minTransactionVersion)
 		assert.Nil(t, err)
 
 		expectedValues := map[string]interface{}{
@@ -684,7 +693,7 @@ func TestInitMetrics(t *testing.T) {
 			common.MetricShardId:                      uint64(localShardCoordinator.SelfId()),
 			common.MetricNumShardsWithoutMetachain:    uint64(localShardCoordinator.NoShards),
 			common.MetricNodeType:                     string(nodeType),
-			common.MetricRoundTime:                    uint64(6),
+			common.MetricRoundTime:                    uint64(6000),
 			common.MetricAppVersion:                   version,
 			common.MetricRoundsPerEpoch:               uint64(roundsPerEpoch),
 			common.MetricCrossCheckBlockHeight:        "0",
@@ -730,7 +739,7 @@ func TestInitMetrics(t *testing.T) {
 			},
 		}
 
-		err := InitMetrics(localStatusHandler, pubkeyString, nodeType, localShardCoordinator, nodesSetup, version, economicsConfigs, roundsPerEpoch, minTransactionVersion)
+		err := InitMetrics(localStatusHandler, pubkeyString, nodeType, localShardCoordinator, nodesSetup, version, economicsConfigs, currentChainParameters, minTransactionVersion)
 		assert.Nil(t, err)
 
 		assert.Equal(t, uint64(0), keys[common.MetricConsensusGroupSize])

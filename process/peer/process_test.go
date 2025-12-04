@@ -5,6 +5,7 @@ import (
 	"context"
 	"errors"
 	"fmt"
+	"github.com/multiversx/mx-chain-go/testscommon/chainParameters"
 	"math"
 	"math/big"
 	"testing"
@@ -60,11 +61,9 @@ func createMockPubkeyConverter() *testscommon.PubkeyConverterMock {
 }
 
 func createMockArguments() peer.ArgValidatorStatisticsProcessor {
-	cfg := &config.Config{EpochStartConfig: config.EpochStartConfig{RoundsPerEpoch: 14400}}
-	cfg.GeneralSettings.ChainParametersByEpoch = []config.ChainParametersByEpochConfig{{RoundDuration: 6000}}
 
 	argsNewEconomicsData := economics.ArgsNewEconomicsData{
-		GeneralConfig: cfg,
+		ChainParamsHandler: &chainParameters.ChainParametersHolderMock{},
 		Economics: &config.EconomicsConfig{
 			GlobalSettings: config.GlobalSettings{
 				GenesisTotalSupply: "2000000000000000000000",

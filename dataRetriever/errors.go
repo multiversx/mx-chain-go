@@ -271,3 +271,9 @@ var ErrEquivalentProofsNotFound = errors.New("equivalent proof not found")
 
 // ErrNilEnableEpochsHandler signals that a nil enable epochs handler has been provided
 var ErrNilEnableEpochsHandler = errors.New("nil enable epochs handler")
+
+// ErrBadMaxNumBytesPerSenderUpperBound signals a bad MaxNumBytesPerSenderUpperBound config
+var ErrBadMaxNumBytesPerSenderUpperBound = errors.New("bad max number of bytes per sender upper bound")
+
+// ErrBadMaxTrackedBlocks signals a bad MaxTrackedBlocks config
+var ErrBadMaxTrackedBlocks = errors.New("bad max tracked blocks")

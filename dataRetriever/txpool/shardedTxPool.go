@@ -3,14 +3,17 @@ package txpool
 import (
 	"strconv"
 	"sync"
+	"time"
 
 	"github.com/multiversx/mx-chain-core-go/core"
 	"github.com/multiversx/mx-chain-core-go/core/counting"
 	"github.com/multiversx/mx-chain-core-go/data"
+	"github.com/multiversx/mx-chain-core-go/data/block"
+	"github.com/multiversx/mx-chain-go/common"
 	"github.com/multiversx/mx-chain-go/dataRetriever"
 	"github.com/multiversx/mx-chain-go/process"
 	"github.com/multiversx/mx-chain-go/storage"
-	"github.com/multiversx/mx-chain-go/storage/txcache"
+	"github.com/multiversx/mx-chain-go/txcache"
 	logger "github.com/multiversx/mx-chain-logger-go"
 )
 
@@ -64,6 +67,7 @@ func NewShardedTxPool(args ArgShardedTxPool) (*shardedTxPool, error) {
 		NumBytesPerSenderThreshold:  args.Config.SizeInBytesPerSender,
 		CountPerSenderThreshold:     args.Config.SizePerSender,
 		NumItemsToPreemptivelyEvict: storage.TxPoolSourceMeNumItemsToPreemptivelyEvict,
+		TxCacheBoundsConfig:         args.TxCacheBoundsConfig,
 	}
 
 	// We do not reserve cross tx cache capacity for [metachain] -> [me] (no transactions), [me] -> me (already reserved above).
@@ -386,4 +390,53 @@ func (txPool *shardedTxPool) routeToCacheUnions(cacheID string) string {
 	}
 
 	return cacheID
+}
+
+func (txPool *shardedTxPool) getSelfShardTxCache() txCache {
+	return txPool.getTxCache(strconv.Itoa(int(txPool.selfShardID)))
+}
+
+// CleanupSelfShardTxCache performs an automatic cleanup of the transaction cache for the node's own shard.
+// It removes non-executable transactions based on provided time and number constraints.
+func (txPool *shardedTxPool) CleanupSelfShardTxCache(accountsProvider common.AccountNonceProvider, randomness uint64, maxNum int, maxTime time.Duration) {
+	cache := txPool.getSelfShardTxCache()
+
+	log.Debug("shardedTxPool.CleanupSelfShardTxCache(): starting cleanup",
+		"selfShardID", txPool.selfShardID,
+		"len", cache.Len(),
+		"numBytes", cache.NumBytes(),
+	)
+
+	// Perform the cleanup operation on the mempool
+	cache.Cleanup(accountsProvider, randomness, maxNum, maxTime)
+
+	log.Debug("shardedTxPool.CleanupSelfShardTxCache(): self shard cache cleanup completed",
+		"selfShardID", txPool.selfShardID,
+		"len", cache.Len(),
+		"numBytes", cache.NumBytes(),
+	)
+}
+
+// GetNumTrackedBlocks returns the number of blocks being tracked by the underlying TxCache
+func (txPool *shardedTxPool) GetNumTrackedBlocks() uint64 {
+	cache := txPool.getSelfShardTxCache()
+	return cache.GetTrackerDiagnosis().GetNumTrackedBlocks()
+}
+
+// GetNumTrackedAccounts returns the number of accounts being tracked by the underlying TxCache
+func (txPool *shardedTxPool) GetNumTrackedAccounts() uint64 {
+	cache := txPool.getSelfShardTxCache()
+	return cache.GetTrackerDiagnosis().GetNumTrackedAccounts()
+}
+
+// OnProposedBlock notifies the underlying TxCache
+func (txPool *shardedTxPool) OnProposedBlock(blockHash []byte, blockBody *block.Body, blockHeader data.HeaderHandler, accountsProvider common.AccountNonceAndBalanceProvider, latestExecutedHash []byte) error {
+	cache := txPool.getSelfShardTxCache()
+	return cache.OnProposedBlock(blockHash, blockBody, blockHeader, accountsProvider, latestExecutedHash)
+}
+
+// OnExecutedBlock notifies the underlying TxCache
+func (txPool *shardedTxPool) OnExecutedBlock(blockHeader data.HeaderHandler) error {
+	cache := txPool.getSelfShardTxCache()
+	return cache.OnExecutedBlock(blockHeader)
 }

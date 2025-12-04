@@ -92,31 +92,8 @@ const MaxHeadersToRequestInAdvance = 20
 // RoundModulusTrigger defines a round modulus on which a trigger for an action will be released
 const RoundModulusTrigger = 5
 
-// RoundModulusTriggerWhenSyncIsStuck defines a round modulus on which a trigger for an action when sync is stuck will be released
-const RoundModulusTriggerWhenSyncIsStuck = 20
-
-// MaxRoundsWithoutCommittedBlock defines the maximum rounds to wait for a new block to be committed,
-// before a special action to be applied
-const MaxRoundsWithoutCommittedBlock = 10
-
 // MinForkRound represents the minimum fork round set by a notarized header received
 const MinForkRound = uint64(0)
-
-// MaxMetaNoncesBehind defines the maximum difference between the current meta block nonce and the processed meta block
-// nonce before a shard is considered stuck
-const MaxMetaNoncesBehind = 15
-
-// MaxMetaNoncesBehindForGlobalStuck defines the maximum difference between the current meta block nonce and the processed
-// meta block nonce for any shard, where the chain is considered stuck and enters recovery
-const MaxMetaNoncesBehindForGlobalStuck = 30
-
-// MaxShardNoncesBehind defines the maximum difference between the current shard block nonce and the last notarized
-// shard block nonce by meta, before meta is considered stuck
-const MaxShardNoncesBehind = 15
-
-// MaxRoundsWithoutNewBlockReceived defines the maximum number of rounds to wait for a new block to be received,
-// before a special action to be applied
-const MaxRoundsWithoutNewBlockReceived = 10
 
 // MaxMetaHeadersAllowedInOneShardBlock defines the maximum number of meta headers allowed to be included in one shard block
 const MaxMetaHeadersAllowedInOneShardBlock = 50
@@ -136,11 +113,8 @@ const MaxHeadersToWhitelistInAdvance = 300
 // nothing will be refunded to the sender
 const MaxGasFeeHigherFactorAccepted = 10
 
-// TxCacheSelectionGasRequested defines the maximum total gas for transactions that should be selected from the cache.
-const TxCacheSelectionGasRequested = 10_000_000_000
+// TxCacheCleanupMaxNumTxs defines the maximum number of transactions that should be cleaned from the cache in one go.
+const TxCacheCleanupMaxNumTxs = 30_000
 
-// TxCacheSelectionMaxNumTxs defines the maximum number of transactions that should be selected from the cache.
-const TxCacheSelectionMaxNumTxs = 30_000
-
-// TxCacheSelectionLoopMaximumDuration defines the maximum duration for the loop that selects transactions from the cache.
-const TxCacheSelectionLoopMaximumDuration = 250 * time.Millisecond
+// TxCacheCleanupLoopMaximumDuration defines the maximum duration for the loop that cleans transactions from the cache.
+const TxCacheCleanupLoopMaximumDuration = 250 * time.Millisecond

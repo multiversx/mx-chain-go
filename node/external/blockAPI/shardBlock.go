@@ -219,6 +219,11 @@ func (sbp *shardAPIBlockProcessor) convertShardBlockBytesToAPIBlock(hash []byte,
 	statusFilters := filters.NewStatusFilters(sbp.selfShardID)
 	statusFilters.ApplyStatusFilters(miniblocks)
 
+	timestampSec, timestampMs, err := common.GetHeaderTimestamps(blockHeader, sbp.enableEpochsHandler)
+	if err != nil {
+		return nil, err
+	}
+
 	apiBlock := &api.Block{
 		Nonce:           blockHeader.GetNonce(),
 		Round:           blockHeader.GetRound(),
@@ -230,8 +235,8 @@ func (sbp *shardAPIBlockProcessor) convertShardBlockBytesToAPIBlock(hash []byte,
 		MiniBlocks:      miniblocks,
 		AccumulatedFees: blockHeader.GetAccumulatedFees().String(),
 		DeveloperFees:   blockHeader.GetDeveloperFees().String(),
-		Timestamp:       int64(blockHeader.GetTimeStamp()),
-		TimestampMs:     int64(common.ConvertTimeStampSecToMs(blockHeader.GetTimeStamp())),
+		Timestamp:       int64(timestampSec),
+		TimestampMs:     int64(timestampMs),
 		Status:          BlockStatusOnChain,
 		StateRootHash:   hex.EncodeToString(blockHeader.GetRootHash()),
 		PubKeyBitmap:    hex.EncodeToString(blockHeader.GetPubKeysBitmap()),

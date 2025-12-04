@@ -46,6 +46,8 @@ type SubroundHandler interface {
 	StartTime() int64
 	// EndTime returns the top limit time, in the roundHandler time, of the current subround
 	EndTime() int64
+	// SetBaseDuration sets the base duration
+	SetBaseDuration(baseDuration time.Duration)
 	// Name returns the name of the current roundHandler
 	Name() string
 	// ConsensusChannel returns the consensus channel
@@ -212,6 +214,7 @@ type EquivalentProofsPool interface {
 	GetProof(shardID uint32, headerHash []byte) (data.HeaderProofHandler, error)
 	GetProofByNonce(headerNonce uint64, shardID uint32) (data.HeaderProofHandler, error)
 	HasProof(shardID uint32, headerHash []byte) bool
+	RegisterHandler(handler func(headerProof data.HeaderProofHandler))
 	IsInterfaceNil() bool
 }
 

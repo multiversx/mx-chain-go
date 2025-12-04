@@ -111,6 +111,7 @@ func NewShardProcessor(arguments ArgShardProcessor) (*shardProcessor, error) {
 		roundNotifier:                 arguments.CoreComponents.RoundNotifier(),
 		enableRoundsHandler:           arguments.CoreComponents.EnableRoundsHandler(),
 		epochChangeGracePeriodHandler: arguments.CoreComponents.EpochChangeGracePeriodHandler(),
+		processConfigsHandler:         arguments.CoreComponents.ProcessConfigsHandler(),
 		vmContainerFactory:            arguments.VMContainersFactory,
 		vmContainer:                   arguments.VmContainer,
 		processDataTriesOnCommitEpoch: arguments.Config.Debug.EpochStart.ProcessDataTrieOnCommitEpoch,
@@ -576,7 +577,7 @@ func (sp *shardProcessor) SetNumProcessedObj(numObj uint64) {
 	sp.txCounter.totalTxs = numObj
 }
 
-// checkMetaHeadersValidity - checks if listed metaheaders are valid as construction
+// checkMetaHeadersValidityAndFinality - checks if listed metaheaders are valid as construction
 func (sp *shardProcessor) checkMetaHeadersValidityAndFinality() error {
 	lastCrossNotarizedHeader, _, err := sp.blockTracker.GetLastCrossNotarizedHeader(core.MetachainShardId)
 	if err != nil {
@@ -1071,6 +1072,15 @@ func (sp *shardProcessor) CommitBlock(
 
 	err = sp.saveLastNotarizedHeader(core.MetachainShardId, processedMetaHdrs)
 	if err != nil {
+		return err
+	}
+
+	sp.appStatusHandler.SetUInt64Value(common.MetricNumTrackedBlocks, sp.dataPool.Transactions().GetNumTrackedBlocks())
+	sp.appStatusHandler.SetUInt64Value(common.MetricNumTrackedAccounts, sp.dataPool.Transactions().GetNumTrackedAccounts())
+
+	err = sp.dataPool.Transactions().OnExecutedBlock(headerHandler)
+	if err != nil {
+		log.Debug("dataPool.Transactions().OnExecutedBlock()", "error", err)
 		return err
 	}
 
@@ -2180,7 +2190,7 @@ func (sp *shardProcessor) requestMetaHeadersIfNeeded(hdrsAdded uint32, lastMetaH
 		"highest nonce", lastMetaHdr.GetNonce(),
 	)
 
-	roundTooOld := sp.roundHandler.Index() > int64(lastMetaHdr.GetRound()+process.MaxRoundsWithoutNewBlockReceived)
+	roundTooOld := sp.roundHandler.Index() > int64(lastMetaHdr.GetRound()+sp.getMaxRoundsWithoutBlockReceived(lastMetaHdr.GetRound()))
 	shouldRequestCrossHeaders := hdrsAdded == 0 && roundTooOld
 	if shouldRequestCrossHeaders {
 		fromNonce := lastMetaHdr.GetNonce() + 1
