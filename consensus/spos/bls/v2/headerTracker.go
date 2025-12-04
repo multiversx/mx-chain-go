@@ -1,8 +1,6 @@
 package v2
 
 import (
-	"time"
-
 	"github.com/multiversx/mx-chain-core-go/data"
 	"github.com/multiversx/mx-chain-go/consensus"
 	"github.com/multiversx/mx-chain-go/ntp"
@@ -17,18 +15,17 @@ type headerTracker struct {
 	proofsPool       consensus.EquivalentProofsPool
 }
 
-func newHeaderTracker(proofsPool consensus.EquivalentProofsPool) *headerTracker {
+func newHeaderTracker(proofsPool consensus.EquivalentProofsPool, syncer ntp.SyncTimer) (*headerTracker, error) {
 	ht := &headerTracker{
 		proofsPool:       proofsPool,
-		outOfRangeRounds: NewRoundRingBuffer(100),
-		deSyncedRounds:   NewRoundRingBuffer(100),
+		outOfRangeRounds: NewRoundRingBuffer(10),
+		deSyncedRounds:   NewRoundRingBuffer(10),
+		syncer:           syncer,
 	}
-
-	go ht.checkIfForceResyncIsNeeded()
 
 	proofsPool.RegisterHandler(ht.receivedProof)
 
-	return ht
+	return ht, nil
 }
 
 func (ht *headerTracker) addOutOfRangeRound(round uint64) {
@@ -39,24 +36,27 @@ func (ht *headerTracker) receivedProof(headerProof data.HeaderProofHandler) {
 	currRound := headerProof.GetHeaderRound()
 	if ht.outOfRangeRounds.Contains(currRound) {
 		ht.deSyncedRounds.Add(currRound)
+		ht.tryResyncIfNeeded()
 	}
 }
 
-func (ht *headerTracker) checkIfForceResyncIsNeeded() {
-	for {
-		time.Sleep(time.Second) // mby check every N rounds
+func (ht *headerTracker) tryResyncIfNeeded() {
+	if ht.deSyncedRounds.Size() < numRequiredMissedHeadersToForceResync {
+		return
+	}
 
-		if ht.deSyncedRounds.Size() >= numRequiredMissedHeadersToForceResync && areRoundsAscendingOrder(ht.deSyncedRounds.Last(numRequiredMissedHeadersToForceResync)) {
-			ht.syncer.StartSyncingTime()
-		}
-
+	if areRoundsAscendingOrder(ht.deSyncedRounds.Last(numRequiredMissedHeadersToForceResync)) {
+		ht.syncer.StartSyncingTime()
 	}
 }
 
 func areRoundsAscendingOrder(rounds []uint64) bool {
-	prevRound := rounds[0]
+	if len(rounds) == 0 {
+		return false
+	}
+
 	for i := 1; i < len(rounds); i++ {
-		if rounds[i] != prevRound+1 {
+		if rounds[i] != rounds[i-1]+1 {
 			return false
 		}
 	}
