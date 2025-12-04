@@ -1277,6 +1277,102 @@ func TestAdaptStructureValueBasedOnPath(t *testing.T) {
 		require.Equal(t, expectedIntsArray, testConfig.TestArray.Ints)
 	})
 
+	t.Run("should work with smart merge for struct slices from TOML", func(t *testing.T) {
+		t.Parallel()
+
+		// Create a struct type for testing
+		type TestStruct struct {
+			Items []toml.MessageDescription
+		}
+		
+		testStruct := &TestStruct{
+			Items: []toml.MessageDescription{
+				{Text: "Original1"},
+				{Text: "Original2"},
+			},
+		}
+
+		// Partial override with map-based values (simulating TOML)
+		partialOverride := []interface{}{
+			map[string]interface{}{
+				"Text": "Updated1",
+			},
+		}
+
+		err := AdaptStructureValueBasedOnPath(testStruct, "Items", partialOverride)
+		require.NoError(t, err)
+		require.Len(t, testStruct.Items, 2)
+		require.Equal(t, "Updated1", testStruct.Items[0].Text)
+		require.Equal(t, "Original2", testStruct.Items[1].Text) // Second element unchanged
+	})
+
+	t.Run("should handle empty slice override gracefully", func(t *testing.T) {
+		t.Parallel()
+
+		type TestStruct struct {
+			Items []toml.MessageDescription
+		}
+		
+		testStruct := &TestStruct{
+			Items: []toml.MessageDescription{
+				{Text: "Original1"},
+			},
+		}
+
+		// Empty override array
+		emptyOverride := []interface{}{}
+
+		err := AdaptStructureValueBasedOnPath(testStruct, "Items", emptyOverride)
+		require.NoError(t, err)
+		require.Len(t, testStruct.Items, 0) // Should result in empty slice
+	})
+
+	t.Run("should use complete replacement for Go struct slice override", func(t *testing.T) {
+		t.Parallel()
+
+		type TestStruct struct {
+			Items []toml.MessageDescription
+		}
+		
+		testStruct := &TestStruct{
+			Items: []toml.MessageDescription{
+				{Text: "Original1"},
+				{Text: "Original2"},
+			},
+		}
+
+		// Go struct override (not map-based)
+		structOverride := []toml.MessageDescription{
+			{Text: "NewStruct1"},
+		}
+
+		err := AdaptStructureValueBasedOnPath(testStruct, "Items", structOverride)
+		require.NoError(t, err)
+		require.Len(t, testStruct.Items, 1) // Complete replacement, not merge
+		require.Equal(t, "NewStruct1", testStruct.Items[0].Text)
+	})
+
+	t.Run("should handle nil interface in map-based override detection", func(t *testing.T) {
+		t.Parallel()
+
+		type TestStruct struct {
+			Items []toml.MessageDescription
+		}
+		
+		testStruct := &TestStruct{
+			Items: []toml.MessageDescription{
+				{Text: "Original1"},
+			},
+		}
+
+		// Create slice with nil interface (edge case)
+		overrideWithNil := []interface{}{nil}
+
+		err := AdaptStructureValueBasedOnPath(testStruct, "Items", overrideWithNil)
+		// Should not panic and should handle gracefully
+		require.Error(t, err) // Expected to fail gracefully, not panic
+	})
+
 }
 
 func loadTestConfig(filepath string) (*toml.Config, error) {
