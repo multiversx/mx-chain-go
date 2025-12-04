@@ -266,6 +266,9 @@
     # MultiClaimOnDelegationEnableEpoch represents the epoch when the multi claim on delegation is enabled
     MultiClaimOnDelegationEnableEpoch = 1
 
+    # DelegationOnBehalfEnableEpoch represents the epoch when delegated wallets can act on behalf of users in delegation contracts
+    DelegationOnBehalfEnableEpoch = 1
+
     # ChangeUsernameEnableEpoch represents the epoch when changing username is enabled
     ChangeUsernameEnableEpoch = 4
 
