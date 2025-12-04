@@ -62,7 +62,7 @@ func Test_getTransactionsInBlock(t *testing.T) {
 		txCache.txByHash.addTx(createTx([]byte("txHash2"), "alice", 2))
 		txCache.txByHash.addTx(createTx([]byte("txHash3"), "alice", 3))
 
-		txs, err := getTransactionsInBlock(&blockBody, txCache)
+		txs, err := getTransactionsInBlock(&blockBody, txCache, 0)
 		require.Nil(t, err)
 		require.Equal(t, 3, len(txs))
 	})
@@ -88,7 +88,7 @@ func Test_getTransactionsInBlock(t *testing.T) {
 		txCache.txByHash.addTx(createTx([]byte("txHash1"), "alice", 1))
 		txCache.txByHash.addTx(createTx([]byte("txHash2"), "alice", 2))
 
-		txs, err := getTransactionsInBlock(&blockBody, txCache)
+		txs, err := getTransactionsInBlock(&blockBody, txCache, 0)
 		require.Nil(t, txs)
 		require.Equal(t, errNotFoundTx, err)
 	})

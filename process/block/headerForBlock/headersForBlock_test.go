@@ -11,6 +11,7 @@ import (
 	"github.com/multiversx/mx-chain-core-go/core"
 	"github.com/multiversx/mx-chain-core-go/data"
 	"github.com/multiversx/mx-chain-core-go/data/block"
+	"github.com/multiversx/mx-chain-go/common"
 	"github.com/stretchr/testify/require"
 
 	retriever "github.com/multiversx/mx-chain-go/dataRetriever"
@@ -791,6 +792,125 @@ func TestHeadersForBlock_computeExistingAndRequestMissingShardHeaders(t *testing
 		// counter should be incremented on the RequestShardHeader call for each shard info handler
 		require.Equal(t, 3, counter)
 		mutRequestShardHeader.Unlock()
+	})
+}
+
+func TestHeadersForBlock_AddHeaderNotUsedInBlock(t *testing.T) {
+	t.Parallel()
+
+	args := createMockArgs()
+
+	hfb, err := headerForBlock.NewHeadersForBlock(args)
+	require.NoError(t, err)
+
+	hfb.AddHeaderNotUsedInBlock("hash", &block.HeaderV3{})
+	header, found := hfb.GetHeaderInfo("hash")
+	require.True(t, found)
+	require.False(t, header.UsedInBlock())
+}
+
+func TestHeadersForBlock_ComputeHeadersForCurrentBlock(t *testing.T) {
+	t.Parallel()
+
+	t.Run("if nonce has no proof, missing proof error should be returned", func(t *testing.T) {
+		t.Parallel()
+
+		args := createMockArgs()
+		args.DataPool = &dataRetriever.PoolsHolderStub{
+			ProofsCalled: func() retriever.ProofsPool {
+				return &dataRetriever.ProofsPoolMock{
+					HasProofCalled: func(shardID uint32, headerHash []byte) bool {
+						return string(headerHash) == "hash1"
+					},
+				}
+			},
+			HeadersCalled: func() retriever.HeadersPool {
+				return &pool.HeadersPoolStub{}
+			},
+		}
+
+		args.EnableEpochsHandler = &enableEpochsHandlerMock.EnableEpochsHandlerStub{
+			IsFlagEnabledInEpochCalled: func(flag core.EnableEpochFlag, epoch uint32) bool {
+				return true
+			},
+		}
+
+		hfb, err := headerForBlock.NewHeadersForBlock(args)
+		require.NoError(t, err)
+
+		hfb.AddHeaderUsedInBlock("hash1", &block.HeaderV3{
+			Nonce:   1,
+			ShardID: 4294967295,
+		})
+		hfb.AddHeaderNotUsedInBlock("hash2", &block.HeaderV3{
+			Nonce:   2,
+			ShardID: 4294967295,
+		})
+
+		_, err = hfb.ComputeHeadersForCurrentBlock(true)
+		require.ErrorContains(t, err, process.ErrMissingHeaderProof.Error())
+
+		_, err = hfb.ComputeHeadersForCurrentBlock(false)
+		require.ErrorContains(t, err, process.ErrMissingHeaderProof.Error())
+
+		_, err = hfb.ComputeHeadersForCurrentBlockInfo(true)
+		require.Nil(t, err)
+		_, err = hfb.ComputeHeadersForCurrentBlockInfo(false)
+		require.ErrorContains(t, err, process.ErrMissingHeaderProof.Error())
+	})
+
+	t.Run("should work", func(t *testing.T) {
+		t.Parallel()
+
+		args := createMockArgs()
+		args.DataPool = &dataRetriever.PoolsHolderStub{
+			ProofsCalled: func() retriever.ProofsPool {
+				return &dataRetriever.ProofsPoolMock{
+					HasProofCalled: func(shardID uint32, headerHash []byte) bool {
+						return true
+					},
+				}
+			},
+			HeadersCalled: func() retriever.HeadersPool {
+				return &pool.HeadersPoolStub{}
+			},
+		}
+
+		args.EnableEpochsHandler = &enableEpochsHandlerMock.EnableEpochsHandlerStub{
+			IsFlagEnabledInEpochCalled: func(flag core.EnableEpochFlag, epoch uint32) bool {
+				return true
+			},
+		}
+
+		hfb, err := headerForBlock.NewHeadersForBlock(args)
+		require.NoError(t, err)
+
+		hfb.AddHeaderUsedInBlock("hash1", &block.HeaderV3{
+			Nonce:   1,
+			ShardID: common.MetachainShardId,
+		})
+		hfb.AddHeaderNotUsedInBlock("hash2", &block.HeaderV3{
+			Nonce:   2,
+			ShardID: common.MetachainShardId,
+		})
+
+		headers, err := hfb.ComputeHeadersForCurrentBlock(true)
+		require.NoError(t, err)
+		require.Equal(t, 1, len(headers))
+
+		headersInfo, err := hfb.ComputeHeadersForCurrentBlockInfo(true)
+		require.NoError(t, err)
+		require.Equal(t, uint64(1), headersInfo[common.MetachainShardId][0].GetNonce())
+		require.Equal(t, []byte("hash1"), headersInfo[common.MetachainShardId][0].GetHash())
+
+		headers, err = hfb.ComputeHeadersForCurrentBlock(false)
+		require.NoError(t, err)
+		require.Equal(t, 1, len(headers))
+
+		headersInfo, err = hfb.ComputeHeadersForCurrentBlockInfo(false)
+		require.NoError(t, err)
+		require.Equal(t, uint64(2), headersInfo[common.MetachainShardId][0].GetNonce())
+		require.Equal(t, []byte("hash2"), headersInfo[common.MetachainShardId][0].GetHash())
 	})
 }
 
