@@ -34,7 +34,7 @@ func Test_NewTxCache(t *testing.T) {
 
 	host := txcachemocks.NewMempoolHostMock()
 
-	cache, err := NewTxCache(config, host)
+	cache, err := NewTxCache(config, host, 0)
 	require.Nil(t, err)
 	require.NotNil(t, cache)
 
@@ -55,7 +55,7 @@ func Test_NewTxCache(t *testing.T) {
 	requireErrorOnNewTxCache(t, badConfig, common.ErrInvalidConfig, "config.CountPerSenderThreshold", host)
 
 	badConfig = config
-	cache, err = NewTxCache(config, nil)
+	cache, err = NewTxCache(config, nil, 0)
 	require.Nil(t, cache)
 	require.Equal(t, errNilMempoolHost, err)
 
@@ -73,7 +73,7 @@ func Test_NewTxCache(t *testing.T) {
 }
 
 func requireErrorOnNewTxCache(t *testing.T, config ConfigSourceMe, errExpected error, errPartialMessage string, host MempoolHost) {
-	cache, errReceived := NewTxCache(config, host)
+	cache, errReceived := NewTxCache(config, host, 0)
 	require.Nil(t, cache)
 	require.True(t, errors.Is(errReceived, errExpected))
 	require.Contains(t, errReceived.Error(), errPartialMessage)
@@ -408,7 +408,7 @@ func Test_AddWithEviction_UniformDistributionOfTxsPerSender(t *testing.T) {
 			TxCacheBoundsConfig:         createMockTxBoundsConfig(),
 		}
 
-		cache, err := NewTxCache(config, host)
+		cache, err := NewTxCache(config, host, 0)
 		require.Nil(t, err)
 		require.NotNil(t, cache)
 
@@ -433,7 +433,7 @@ func Test_AddWithEviction_UniformDistributionOfTxsPerSender(t *testing.T) {
 			TxCacheBoundsConfig:         createMockTxBoundsConfig(),
 		}
 
-		cache, err := NewTxCache(config, host)
+		cache, err := NewTxCache(config, host, 0)
 		require.Nil(t, err)
 		require.NotNil(t, cache)
 
@@ -454,7 +454,7 @@ func Test_AddWithEviction_UniformDistributionOfTxsPerSender(t *testing.T) {
 			TxCacheBoundsConfig:         createMockTxBoundsConfig(),
 		}
 
-		cache, err := NewTxCache(config, host)
+		cache, err := NewTxCache(config, host, 0)
 		require.Nil(t, err)
 		require.NotNil(t, cache)
 
@@ -475,7 +475,7 @@ func Test_AddWithEviction_UniformDistributionOfTxsPerSender(t *testing.T) {
 			TxCacheBoundsConfig:         createMockTxBoundsConfig(),
 		}
 
-		cache, err := NewTxCache(config, host)
+		cache, err := NewTxCache(config, host, 0)
 		require.Nil(t, err)
 		require.NotNil(t, cache)
 
@@ -496,7 +496,7 @@ func Test_AddWithEviction_UniformDistributionOfTxsPerSender(t *testing.T) {
 			TxCacheBoundsConfig:         createMockTxBoundsConfig(),
 		}
 
-		cache, err := NewTxCache(config, host)
+		cache, err := NewTxCache(config, host, 0)
 		require.Nil(t, err)
 		require.NotNil(t, cache)
 
@@ -567,7 +567,7 @@ func TestTxCache_GetDimensionOfTrackedBlocks(t *testing.T) {
 	t.Parallel()
 
 	txCache := newCacheToTest(maxNumBytesPerSenderUpperBoundTest, 3)
-	tracker, err := NewSelectionTracker(txCache, maxTrackedBlocks)
+	tracker, err := NewSelectionTracker(txCache, 0, maxTrackedBlocks)
 	require.Nil(t, err)
 	txCache.tracker = tracker
 
@@ -665,7 +665,7 @@ func TestBenchmarkTxCache_addManyTransactionsWithSameNonce(t *testing.T) {
 	sw := core.NewStopWatch()
 
 	t.Run("numTransactions = 100 (worst case)", func(t *testing.T) {
-		cache, err := NewTxCache(config, host)
+		cache, err := NewTxCache(config, host, 0)
 		require.Nil(t, err)
 
 		numTransactions := 100
@@ -682,7 +682,7 @@ func TestBenchmarkTxCache_addManyTransactionsWithSameNonce(t *testing.T) {
 	})
 
 	t.Run("numTransactions = 1000 (worst case)", func(t *testing.T) {
-		cache, err := NewTxCache(config, host)
+		cache, err := NewTxCache(config, host, 0)
 		require.Nil(t, err)
 
 		numTransactions := 1000
@@ -699,7 +699,7 @@ func TestBenchmarkTxCache_addManyTransactionsWithSameNonce(t *testing.T) {
 	})
 
 	t.Run("numTransactions = 5_000 (worst case)", func(t *testing.T) {
-		cache, err := NewTxCache(config, host)
+		cache, err := NewTxCache(config, host, 0)
 		require.Nil(t, err)
 
 		numTransactions := 5_000
@@ -755,7 +755,7 @@ func Test_ResetTracker(t *testing.T) {
 
 	host := txcachemocks.NewMempoolHostMock()
 
-	cache, err := NewTxCache(config, host)
+	cache, err := NewTxCache(config, host, 0)
 	require.Nil(t, err)
 
 	txs := []*WrappedTransaction{
@@ -813,7 +813,7 @@ func newUnconstrainedCacheToTest(boundsConfig config.TxCacheBoundsConfig) *TxCac
 		EvictionEnabled:             false,
 		NumItemsToPreemptivelyEvict: 1,
 		TxCacheBoundsConfig:         boundsConfig,
-	}, host)
+	}, host, 0)
 	if err != nil {
 		panic(fmt.Sprintf("newUnconstrainedCacheToTest(): %s", err))
 	}
@@ -834,7 +834,7 @@ func newCacheToTest(numBytesPerSenderThreshold uint32, countPerSenderThreshold u
 		EvictionEnabled:             false,
 		NumItemsToPreemptivelyEvict: 1,
 		TxCacheBoundsConfig:         createMockTxBoundsConfig(),
-	}, host)
+	}, host, 0)
 	if err != nil {
 		panic(fmt.Sprintf("newCacheToTest(): %s", err))
 	}
