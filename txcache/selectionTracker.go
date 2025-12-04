@@ -20,15 +20,19 @@ type selectionTracker struct {
 	blocks                    map[string]*trackedBlock
 	globalBreadcrumbsCompiler *globalAccountBreadcrumbsCompiler
 	txCache                   txCacheForSelectionTracker
+	selfShardId               uint32
 	maxTrackedBlocks          uint32
 }
 
 // NewSelectionTracker creates a new selectionTracker
-func NewSelectionTracker(txCache txCacheForSelectionTracker, maxTrackedBlocks uint32) (*selectionTracker, error) {
+func NewSelectionTracker(
+	txCache txCacheForSelectionTracker,
+	selfShardId uint32,
+	maxTrackedBlocks uint32,
+) (*selectionTracker, error) {
 	if check.IfNil(txCache) {
 		return nil, errNilTxCache
 	}
-	// TODO compare with the maximum allowed offset between proposing a block and actually executing it
 	if maxTrackedBlocks == 0 {
 		return nil, errInvalidMaxTrackedBlocks
 	}
@@ -37,6 +41,7 @@ func NewSelectionTracker(txCache txCacheForSelectionTracker, maxTrackedBlocks ui
 		blocks:                    make(map[string]*trackedBlock),
 		globalBreadcrumbsCompiler: newGlobalAccountBreadcrumbsCompiler(),
 		txCache:                   txCache,
+		selfShardId:               selfShardId,
 		maxTrackedBlocks:          maxTrackedBlocks,
 	}, nil
 }
@@ -184,7 +189,7 @@ func (st *selectionTracker) validateTrackedBlocksAndCompileBreadcrumbsNoLock(
 	}
 
 	// if we pass the first validation, only then we extract the txs to compile the breadcrumbs
-	txs, err := getTransactionsInBlock(blockBody, st.txCache)
+	txs, err := getTransactionsInBlock(blockBody, st.txCache, st.selfShardId)
 	if err != nil {
 		log.Debug("selectionTracker.validateTrackedBlocksAndCompileBreadcrumbsNoLock: error getting transactions from block", "err", err)
 		return err

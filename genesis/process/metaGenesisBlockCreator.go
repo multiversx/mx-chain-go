@@ -190,7 +190,7 @@ func createMetaGenesisBlockAfterHardFork(
 		return nil, nil, nil, err
 	}
 
-	metaHdr, ok := hdrHandler.(*block.MetaBlock)
+	metaHdr, ok := hdrHandler.(data.MetaHeaderHandler)
 	if !ok {
 		return nil, nil, nil, process.ErrWrongTypeAssertion
 	}
@@ -576,7 +576,7 @@ func createProcessorsForMetaGenesisBlock(arg ArgsGenesisBlockCreator, enableEpoc
 		Marshalizer:                  arg.Core.InternalMarshalizer(),
 		ShardCoordinator:             arg.ShardCoordinator,
 		Accounts:                     arg.Accounts,
-		MiniBlockPool:                arg.Data.Datapool().MiniBlocks(),
+		DataPool:                     arg.Data.Datapool(),
 		PreProcessors:                preProcContainer,
 		PreProcessorsProposal:        preProcContainer, // for genesis no need for separate one
 		InterProcessors:              interimProcContainer,

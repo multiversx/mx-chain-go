@@ -11,6 +11,7 @@ import (
 	"github.com/multiversx/mx-chain-core-go/core/check"
 	"github.com/multiversx/mx-chain-core-go/data"
 	"github.com/multiversx/mx-chain-core-go/data/block"
+	"github.com/multiversx/mx-chain-core-go/marshal"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 
@@ -34,7 +35,7 @@ func createMockEpochStartTriggerArguments() *ArgsNewMetaEpochStartTrigger {
 		Settings:           &config.EpochStartConfig{},
 		Epoch:              0,
 		EpochStartNotifier: &mock.EpochStartNotifierStub{},
-		Marshalizer:        &mock.MarshalizerMock{},
+		Marshalizer:        &marshal.GogoProtoMarshalizer{},
 		Hasher:             &hashingMocks.HasherMock{},
 		AppStatusHandler:   &statusHandlerMock.AppStatusHandlerStub{},
 		Storage: &storageStubs.ChainStorerStub{
@@ -159,7 +160,7 @@ func TestNewEpochStartTrigger_ShouldOk(t *testing.T) {
 	assert.Nil(t, err)
 }
 
-func TestNewEpochStartTrigger_UpdateRoundAndSetEpochChange(t *testing.T) {
+func TestNewEpochStartTrigger_ShouldProposeEpochChange(t *testing.T) {
 	t.Parallel()
 
 	arguments := createMockEpochStartTriggerArguments()
@@ -175,15 +176,11 @@ func TestNewEpochStartTrigger_UpdateRoundAndSetEpochChange(t *testing.T) {
 	shouldProposeEpochChange := epochStartTrigger.ShouldProposeEpochChange(round, nonce)
 	require.True(t, shouldProposeEpochChange)
 
-	epochStartTrigger.SetEpochChange(round)
-	currentEpoch := epochStartTrigger.Epoch()
-	require.Equal(t, epoch+1, currentEpoch)
-	require.True(t, epochStartTrigger.IsEpochStart())
-
+	currentEpoch := epochStartTrigger.epoch
 	shouldProposeEpochChange = epochStartTrigger.ShouldProposeEpochChange(round, nonce)
 	require.True(t, shouldProposeEpochChange)
-	require.Equal(t, epoch+1, currentEpoch)
-	require.True(t, epochStartTrigger.IsEpochStart())
+	require.Equal(t, epoch, currentEpoch)
+	require.False(t, epochStartTrigger.IsEpochStart())
 }
 
 func TestTrigger_Update(t *testing.T) {

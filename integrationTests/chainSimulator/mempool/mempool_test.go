@@ -21,8 +21,6 @@ import (
 	"github.com/multiversx/mx-chain-go/storage"
 )
 
-// TODO add some integration tests for forks scenarios
-
 func TestMempoolWithChainSimulator_Selection(t *testing.T) {
 	if testing.Short() {
 		t.Skip("this is not a short test")
@@ -508,7 +506,7 @@ func Test_Selection_ShouldNotSelectSameTransactionsWithSameSender(t *testing.T) 
 	t.Parallel()
 
 	host := txcachemocks.NewMempoolHostMock()
-	txpool, err := txcache.NewTxCache(configSourceMe, host)
+	txpool, err := txcache.NewTxCache(configSourceMe, host, 0)
 
 	require.Nil(t, err)
 	require.NotNil(t, txpool)
@@ -614,7 +612,7 @@ func Test_Selection_ShouldNotSelectSameTransactionsWithDifferentSenders(t *testi
 	t.Parallel()
 
 	host := txcachemocks.NewMempoolHostMock()
-	txpool, err := txcache.NewTxCache(configSourceMe, host)
+	txpool, err := txcache.NewTxCache(configSourceMe, host, 0)
 
 	require.Nil(t, err)
 	require.NotNil(t, txpool)
@@ -758,7 +756,7 @@ func Test_Selection_ShouldNotSelectSameTransactionsWithManyTransactions(t *testi
 	t.Parallel()
 
 	host := txcachemocks.NewMempoolHostMock()
-	txpool, err := txcache.NewTxCache(configSourceMe, host)
+	txpool, err := txcache.NewTxCache(configSourceMe, host, 0)
 
 	require.Nil(t, err)
 	require.NotNil(t, txpool)
@@ -856,7 +854,7 @@ func Test_Selection_ProposeEmptyBlocks(t *testing.T) {
 	t.Parallel()
 
 	host := txcachemocks.NewMempoolHostMock()
-	txpool, err := txcache.NewTxCache(configSourceMe, host)
+	txpool, err := txcache.NewTxCache(configSourceMe, host, 0)
 
 	require.Nil(t, err)
 	require.NotNil(t, txpool)
@@ -978,7 +976,7 @@ func Test_Selection_ProposeBlocksWithSameNonceToTriggerForkScenarios(t *testing.
 
 	t.Run("should work with only one proposed block being replaced", func(t *testing.T) {
 		host := txcachemocks.NewMempoolHostMock()
-		txpool, err := txcache.NewTxCache(configSourceMe, host)
+		txpool, err := txcache.NewTxCache(configSourceMe, host, 0)
 
 		require.Nil(t, err)
 		require.NotNil(t, txpool)
@@ -1104,7 +1102,7 @@ func Test_Selection_ProposeBlocksWithSameNonceToTriggerForkScenarios(t *testing.
 
 	t.Run("should work with many proposed blocks being replaced", func(t *testing.T) {
 		host := txcachemocks.NewMempoolHostMock()
-		txpool, err := txcache.NewTxCache(configSourceMe, host)
+		txpool, err := txcache.NewTxCache(configSourceMe, host, 0)
 
 		require.Nil(t, err)
 		require.NotNil(t, txpool)
@@ -1280,7 +1278,7 @@ func Test_Selection_ShouldNotSelectSameTransactionsWithManyTransactionsAndExecut
 	t.Parallel()
 
 	host := txcachemocks.NewMempoolHostMock()
-	txpool, err := txcache.NewTxCache(configSourceMe, host)
+	txpool, err := txcache.NewTxCache(configSourceMe, host, 0)
 
 	require.Nil(t, err)
 	require.NotNil(t, txpool)
@@ -1402,7 +1400,7 @@ func Test_Selection_ProposeEmptyBlocksAndExecutedBlockNotification(t *testing.T)
 	t.Parallel()
 
 	host := txcachemocks.NewMempoolHostMock()
-	txpool, err := txcache.NewTxCache(configSourceMe, host)
+	txpool, err := txcache.NewTxCache(configSourceMe, host, 0)
 
 	require.Nil(t, err)
 	require.NotNil(t, txpool)
@@ -1559,7 +1557,7 @@ func Test_Selection_WithRemovingProposedBlocks(t *testing.T) {
 	t.Parallel()
 
 	host := txcachemocks.NewMempoolHostMock()
-	txpool, err := txcache.NewTxCache(configSourceMe, host)
+	txpool, err := txcache.NewTxCache(configSourceMe, host, 0)
 
 	require.Nil(t, err)
 	require.NotNil(t, txpool)
@@ -1694,7 +1692,7 @@ func Test_SimulateSelection_ShouldNotRemoveProposedBlocks(t *testing.T) {
 	t.Parallel()
 
 	host := txcachemocks.NewMempoolHostMock()
-	txpool, err := txcache.NewTxCache(configSourceMe, host)
+	txpool, err := txcache.NewTxCache(configSourceMe, host, 0)
 
 	require.Nil(t, err)
 	require.NotNil(t, txpool)
@@ -1824,7 +1822,7 @@ func Test_Selection_MaxTrackedBlocksReached(t *testing.T) {
 			MaxNumBytesPerSenderUpperBound: maxNumBytesPerSenderUpperBoundTest,
 			MaxTrackedBlocks:               3,
 		},
-	}, host)
+	}, host, 0)
 
 	require.Nil(t, err)
 	require.NotNil(t, txpool)
@@ -1979,7 +1977,7 @@ func Test_SelectionWhenFeeExceedsBalanceWithMax3TxsSelected(t *testing.T) {
 	t.Parallel()
 
 	host := txcachemocks.NewMempoolHostMock()
-	txpool, err := txcache.NewTxCache(configSourceMe, host)
+	txpool, err := txcache.NewTxCache(configSourceMe, host, 0)
 
 	require.Nil(t, err)
 	require.NotNil(t, txpool)
@@ -2137,7 +2135,7 @@ func Test_SelectionWhenFeeExceedsBalanceWithMax2TxsSelected(t *testing.T) {
 	t.Parallel()
 
 	host := txcachemocks.NewMempoolHostMock()
-	txpool, err := txcache.NewTxCache(configSourceMe, host)
+	txpool, err := txcache.NewTxCache(configSourceMe, host, 0)
 
 	require.Nil(t, err)
 	require.NotNil(t, txpool)
@@ -2308,7 +2306,7 @@ func Test_SelectionWithRootHashMismatch(t *testing.T) {
 			MaxNumBytesPerSenderUpperBound: maxNumBytesPerSenderUpperBoundTest,
 			MaxTrackedBlocks:               3,
 		},
-	}, host)
+	}, host, 0)
 
 	require.Nil(t, err)
 	require.NotNil(t, txpool)

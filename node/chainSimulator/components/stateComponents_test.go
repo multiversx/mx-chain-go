@@ -87,6 +87,7 @@ func TestStateComponentsHolder_Getters(t *testing.T) {
 
 	require.NotNil(t, comp.PeerAccounts())
 	require.NotNil(t, comp.AccountsAdapter())
+	require.NotNil(t, comp.AccountsAdapterProposal())
 	require.NotNil(t, comp.AccountsAdapterAPI())
 	require.NotNil(t, comp.AccountsRepository())
 	require.NotNil(t, comp.TriesContainer())

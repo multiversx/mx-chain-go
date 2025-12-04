@@ -607,8 +607,8 @@ func (bp *baseProcessor) GetIndexOfFirstMiniBlockToBeExecuted(header data.Header
 }
 
 // GetFinalMiniBlocks -
-func (bp *baseProcessor) GetFinalMiniBlocks(header data.HeaderHandler, body *block.Body) (*block.Body, error) {
-	return bp.getFinalMiniBlocks(header, body)
+func (bp *baseProcessor) GetFinalMiniBlocks(headerHash []byte, header data.HeaderHandler, body *block.Body) (*block.Body, map[string]block.MiniBlockSlice, error) {
+	return bp.getFinalMiniBlocks(headerHash, header, body)
 }
 
 // GetScheduledMiniBlocksFromMe -
@@ -777,7 +777,7 @@ func (bp *baseProcessor) CheckHeaderBodyCorrelationProposal(miniBlockHeaders []d
 // GetFinalMiniBlocksFromExecutionResults -
 func (bp *baseProcessor) GetFinalMiniBlocksFromExecutionResults(
 	header data.HeaderHandler,
-) (*block.Body, error) {
+) (*block.Body, map[string]block.MiniBlockSlice, error) {
 	return bp.getFinalMiniBlocksFromExecutionResults(header)
 }
 
@@ -822,8 +822,8 @@ func (sp *shardProcessor) CheckMetaHeadersValidityAndFinalityProposal(header dat
 }
 
 // VerifyGasLimit -
-func (sp *shardProcessor) VerifyGasLimit(header data.ShardHeaderHandler) error {
-	return sp.verifyGasLimit(header)
+func (sp *shardProcessor) VerifyGasLimit(header data.ShardHeaderHandler, miniBlocks block.MiniBlockSlice) error {
+	return sp.verifyGasLimit(header, miniBlocks)
 }
 
 // CheckEpochStartInfoAvailableIfNeeded -
@@ -1001,13 +1001,13 @@ func (mp *metaProcessor) SelectIncomingMiniBlocksForProposal(
 
 // SelectIncomingMiniBlocks -
 func (mp *metaProcessor) SelectIncomingMiniBlocks(
-	lastShardHdr map[uint32]ShardHeaderInfo,
+	lastShardHdrs map[uint32]ShardHeaderInfo,
 	orderedHdrs []data.HeaderHandler,
 	orderedHdrsHashes [][]byte,
 	maxNumHeadersFromSameShard uint32,
 	haveTime func() bool,
 ) error {
-	return mp.selectIncomingMiniBlocks(lastShardHdr, orderedHdrs, orderedHdrsHashes, maxNumHeadersFromSameShard, haveTime)
+	return mp.selectIncomingMiniBlocks(lastShardHdrs, orderedHdrs, orderedHdrsHashes, maxNumHeadersFromSameShard, haveTime)
 }
 
 // VerifyEpochStartData -
@@ -1110,4 +1110,12 @@ func (bp *baseProcessor) CollectMiniBlocks(
 // GetCurrentlyAccumulatedFees -
 func (mp *metaProcessor) GetCurrentlyAccumulatedFees(metaHdr data.MetaHeaderHandler) (*big.Int, *big.Int, error) {
 	return mp.getCurrentlyAccumulatedFees(metaHdr)
+}
+
+// GetOrderedProcessedMetaBlocksFromMiniBlockHashesV3 -
+func (sp *shardProcessor) GetOrderedProcessedMetaBlocksFromMiniBlockHashesV3(
+	header data.HeaderHandler,
+	miniBlockHashes map[int][]byte,
+) ([]data.HeaderHandler, error) {
+	return sp.getOrderedProcessedMetaBlocksFromMiniBlockHashesV3(header, miniBlockHashes)
 }

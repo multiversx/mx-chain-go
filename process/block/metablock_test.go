@@ -1275,7 +1275,9 @@ func TestMetaProcessor_CommitBlockShouldRevertCurrentBlockWhenErr(t *testing.T) 
 	}
 	mp, _ := blproc.NewMetaProcessor(arguments)
 
-	err := mp.CommitBlock(nil, nil)
+	err := mp.CommitBlock(&block.MetaBlock{
+		Nonce: 100,
+	}, &block.Body{})
 	assert.NotNil(t, err)
 	assert.Equal(t, 0, journalEntries)
 }
@@ -1387,7 +1389,7 @@ func TestMetaProcessor_MarshalizedDataToBroadcastShouldWork(t *testing.T) {
 		}
 		header := &block.MetaBlock{}
 
-		msh, mstx, err := mp.MarshalizedDataToBroadcast(header, body)
+		msh, mstx, err := mp.MarshalizedDataToBroadcast(nil, header, body)
 		require.Nil(t, err)
 
 		require.Nil(t, msh[selfShardID])
@@ -1438,7 +1440,7 @@ func TestMetaProcessor_MarshalizedDataToBroadcastShouldWork(t *testing.T) {
 			ExecutionResults: executionResults,
 		}
 
-		msh, mstx, err := mp.MarshalizedDataToBroadcast(header, &block.Body{})
+		msh, mstx, err := mp.MarshalizedDataToBroadcast([]byte("hash"), header, &block.Body{})
 		require.Nil(t, err)
 
 		require.Nil(t, msh[selfShardID])
@@ -2099,9 +2101,9 @@ func TestMetaProcessor_saveLastNotarizedHeader(t *testing.T) {
 		mp, _ := blproc.NewMetaProcessor(arguments)
 
 		metaHdr := &block.MetaBlockV3{}
-		shDataCurr := block.ShardData{HeaderHash: []byte("hash")}
-		metaHdr.ShardInfo = make([]block.ShardData, 0)
-		metaHdr.ShardInfo = append(metaHdr.ShardInfo, shDataCurr)
+		shDataCurr := block.ShardDataProposal{HeaderHash: []byte("hash")}
+		metaHdr.ShardInfoProposal = make([]block.ShardDataProposal, 0)
+		metaHdr.ShardInfoProposal = append(metaHdr.ShardInfoProposal, shDataCurr)
 
 		err := mp.SaveLastNotarizedHeader(metaHdr)
 		require.Error(t, err, expectedErr)
@@ -2139,9 +2141,9 @@ func TestMetaProcessor_saveLastNotarizedHeader(t *testing.T) {
 		pool.Headers().AddHeader(hdrHash, hdr)
 
 		metaHdr := &block.MetaBlockV3{}
-		shDataCurr := block.ShardData{HeaderHash: hdrHash}
-		metaHdr.ShardInfo = make([]block.ShardData, 0)
-		metaHdr.ShardInfo = append(metaHdr.ShardInfo, shDataCurr)
+		shDataCurr := block.ShardDataProposal{HeaderHash: hdrHash}
+		metaHdr.ShardInfoProposal = make([]block.ShardDataProposal, 0)
+		metaHdr.ShardInfoProposal = append(metaHdr.ShardInfoProposal, shDataCurr)
 
 		err := mp.SaveLastNotarizedHeader(metaHdr)
 		require.NoError(t, err)
@@ -4239,6 +4241,14 @@ func pruneTrieForHeaderV3Test(t *testing.T, prevHeader data.HeaderHandler, rootH
 					},
 					ValidatorStatsRootHash: []byte("validator stats root hash 3"),
 				},
+			},
+		},
+		LastExecutionResult: &block.MetaExecutionResultInfo{
+			ExecutionResult: &block.BaseMetaExecutionResult{
+				BaseExecutionResult: &block.BaseExecutionResult{
+					RootHash: []byte("state root hash 3"),
+				},
+				ValidatorStatsRootHash: []byte("validator stats root hash 3"),
 			},
 		},
 	}

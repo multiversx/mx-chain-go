@@ -71,7 +71,7 @@ type trigger struct {
 	appStatusHandler            core.AppStatusHandler
 	validatorInfoPool           epochStart.ValidatorInfoCacher
 	chainParametersHandler      process.ChainParametersHandler
-	lastEpochProposedNonce      uint64
+	epochChangeProposed         bool
 }
 
 // NewEpochStartTrigger creates a trigger for start of epoch
@@ -219,14 +219,18 @@ func (t *trigger) ShouldProposeEpochChange(currentRound uint64, currentNonce uin
 	defer t.mutTrigger.Unlock()
 
 	shouldTriggerEpochStart := t.shouldTriggerEpochStart(currentRound, currentNonce)
-	if shouldTriggerEpochStart {
-		t.lastEpochProposedNonce = currentNonce
-	}
-	if currentNonce == t.lastEpochProposedNonce && t.lastEpochProposedNonce >= minimumNonceToStartEpoch {
+	if shouldTriggerEpochStart && !t.epochChangeProposed {
 		return true
 	}
 
-	return shouldTriggerEpochStart
+	return false
+}
+
+// SetEpochChangeProposed sets the epoch change proposed flag to true
+func (t *trigger) SetEpochChangeProposed(value bool) {
+	t.mutTrigger.Lock()
+	defer t.mutTrigger.Unlock()
+	t.epochChangeProposed = value
 }
 
 func (t *trigger) shouldTriggerEpochStart(currentRound uint64, currentNonce uint64) bool {
@@ -283,6 +287,10 @@ func (t *trigger) SetProcessed(header data.HeaderHandler, body data.BodyHandler)
 	}
 	if !metaBlock.IsStartOfEpochBlock() {
 		return
+	}
+
+	if header.IsHeaderV3() {
+		t.setEpochChange(header.GetRound())
 	}
 
 	metaBuff, errNotCritical := t.marshaller.Marshal(metaBlock)
@@ -372,7 +380,7 @@ func (t *trigger) revert(header data.HeaderHandler) error {
 		return nil
 	}
 
-	metaHdr, ok := header.(*block.MetaBlock)
+	metaHdr, ok := header.(data.MetaHeaderHandler)
 	if !ok {
 		log.Warn("wrong type assertion in Revert metachain trigger")
 		return epochStart.ErrWrongTypeAssertion
@@ -381,7 +389,7 @@ func (t *trigger) revert(header data.HeaderHandler) error {
 	t.mutTrigger.Lock()
 	defer t.mutTrigger.Unlock()
 
-	prevEpochStartIdentifier := core.EpochStartIdentifier(metaHdr.Epoch - 1)
+	prevEpochStartIdentifier := core.EpochStartIdentifier(metaHdr.GetEpoch() - 1)
 	epochStartMetaBuff, err := t.metaHeaderStorage.SearchFirst([]byte(prevEpochStartIdentifier))
 	if err != nil {
 		log.Warn("Revert get previous meta from storage", "error", err)
@@ -395,7 +403,7 @@ func (t *trigger) revert(header data.HeaderHandler) error {
 		return err
 	}
 
-	epochStartIdentifier := core.EpochStartIdentifier(metaHdr.Epoch)
+	epochStartIdentifier := core.EpochStartIdentifier(metaHdr.GetEpoch())
 	errNotCritical := t.triggerStorage.Remove([]byte(epochStartIdentifier))
 	if errNotCritical != nil {
 		log.Debug("Revert remove from triggerStorage", "error", errNotCritical.Error())
@@ -406,8 +414,8 @@ func (t *trigger) revert(header data.HeaderHandler) error {
 		log.Debug("Revert remove from triggerStorage", "error", errNotCritical.Error())
 	}
 
-	t.currEpochStartRound = metaHdr.EpochStart.Economics.PrevEpochStartRound
-	t.epoch = metaHdr.Epoch - 1
+	t.currEpochStartRound = metaHdr.GetEpochStartHandler().GetEconomicsHandler().GetPrevEpochStartRound()
+	t.epoch = metaHdr.GetEpoch() - 1
 	t.isEpochStart = false
 	t.epochStartMeta = epochStartMeta
 

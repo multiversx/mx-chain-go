@@ -112,7 +112,6 @@ func (mp *metaProcessor) CreateBlockProposal(
 
 	metaHdr.SoftwareVersion = []byte(mp.headerIntegrityVerifier.GetVersion(metaHdr.Epoch, metaHdr.Round))
 
-	mp.epochStartTrigger.Update(metaHdr.Round, metaHdr.Nonce)
 	if metaHdr.IsStartOfEpochBlock() || metaHdr.GetEpochChangeProposed() || mp.epochStartTrigger.IsEpochStart() {
 		// no new transactions in start of epoch block
 		// to simplify bootstrapping
@@ -141,6 +140,7 @@ func (mp *metaProcessor) CreateBlockProposal(
 			"num txs proposed", numTxs,
 			"num shard headers", len(referencedShardHeaderHashes),
 		)
+
 	}
 
 	defer func() {
@@ -224,7 +224,6 @@ func (mp *metaProcessor) VerifyBlockProposal(
 		return process.ErrInvalidHeader
 	}
 
-	mp.epochStartTrigger.Update(header.Round, header.Nonce)
 	body, ok := bodyHandler.(*block.Body)
 	if !ok {
 		return process.ErrWrongTypeAssertion
@@ -279,7 +278,7 @@ func (mp *metaProcessor) VerifyBlockProposal(
 		return err
 	}
 
-	return mp.verifyGasLimit(header)
+	return mp.verifyGasLimit(header, body.MiniBlocks)
 }
 
 // ProcessBlockProposal processes the proposed block. It returns nil if all ok or the specific error
@@ -509,6 +508,11 @@ func (mp *metaProcessor) collectExecutionResultsEpochStartProposal(
 		return nil, err
 	}
 
+	err = mp.cacheExecutedMiniBlocks(&block.Body{MiniBlocks: constructedBody.MiniBlocks}, miniBlockHeaderHandlers)
+	if err != nil {
+		return nil, err
+	}
+
 	return mp.createExecutionResult(miniBlockHeaderHandlers, header, headerHash, receiptHash, valStatRootHash, totalTxCount)
 }
 
@@ -691,7 +695,7 @@ func (mp *metaProcessor) selectIncomingMiniBlocksForProposal(
 		"num shard headers", len(orderedHdrs),
 	)
 
-	lastShardHdr, err := mp.getLastCrossNotarizedShardHeaders()
+	lastShardHdrs, err := mp.getLastCrossNotarizedShardHeaders()
 	if err != nil {
 		return err
 	}
@@ -700,7 +704,7 @@ func (mp *metaProcessor) selectIncomingMiniBlocksForProposal(
 		process.MinShardHeadersFromSameShardInOneMetaBlock,
 		process.MaxShardHeadersAllowedInOneMetaBlock/mp.shardCoordinator.NumberOfShards(),
 	)
-	err = mp.selectIncomingMiniBlocks(lastShardHdr, orderedHdrs, orderedHdrsHashes, maxShardHeadersFromSameShard, haveTime)
+	err = mp.selectIncomingMiniBlocks(lastShardHdrs, orderedHdrs, orderedHdrsHashes, maxShardHeadersFromSameShard, haveTime)
 	if err != nil {
 		return err
 	}
@@ -709,7 +713,7 @@ func (mp *metaProcessor) selectIncomingMiniBlocksForProposal(
 }
 
 func (mp *metaProcessor) selectIncomingMiniBlocks(
-	lastShardHdr map[uint32]ShardHeaderInfo,
+	lastShardHdrs map[uint32]ShardHeaderInfo,
 	orderedHdrs []data.HeaderHandler,
 	orderedHdrsHashes [][]byte,
 	maxShardHeadersFromSameShard uint32,
@@ -741,7 +745,7 @@ func (mp *metaProcessor) selectIncomingMiniBlocks(
 
 		currHdr := orderedHdrs[i]
 		currHdrHash := orderedHdrsHashes[i]
-		lastShardHeaderInfo, ok := lastShardHdr[currHdr.GetShardID()]
+		lastShardHeaderInfo, ok := lastShardHdrs[currHdr.GetShardID()]
 		if !ok {
 			return process.ErrMissingHeader
 		}
@@ -772,7 +776,7 @@ func (mp *metaProcessor) selectIncomingMiniBlocks(
 
 		if len(currHdr.GetMiniBlockHeadersWithDst(mp.shardCoordinator.SelfId())) == 0 {
 			mp.miniBlocksSelectionSession.AddReferencedHeader(currHdr, currHdrHash)
-			lastShardHdr[currHdr.GetShardID()] = ShardHeaderInfo{
+			lastShardHdrs[currHdr.GetShardID()] = ShardHeaderInfo{
 				Header:      currHdr,
 				Hash:        currHdrHash,
 				UsedInBlock: true,
@@ -803,7 +807,7 @@ func (mp *metaProcessor) selectIncomingMiniBlocks(
 		}
 
 		mp.miniBlocksSelectionSession.AddReferencedHeader(currHdr, currHdrHash)
-		lastShardHdr[currHdr.GetShardID()] = ShardHeaderInfo{
+		lastShardHdrs[currHdr.GetShardID()] = ShardHeaderInfo{
 			Header:      currHdr,
 			Hash:        currHdrHash,
 			UsedInBlock: true,
@@ -812,7 +816,7 @@ func (mp *metaProcessor) selectIncomingMiniBlocks(
 		hdrsAdded++
 	}
 
-	go mp.requestShardHeadersInAdvanceIfNeeded(lastShardHdr)
+	go mp.requestShardHeadersInAdvanceIfNeeded(lastShardHdrs)
 
 	return nil
 }

@@ -22,6 +22,7 @@ type EpochStartTriggerStub struct {
 	EpochStartRoundCalled             func() uint64
 	ShouldProposeEpochChangeCalled    func(round uint64, nonce uint64) bool
 	SetEpochChangeCalled              func(round uint64)
+	SetEpochChangeProposedCalled      func(value bool)
 }
 
 // SetEpochChange -
@@ -38,6 +39,13 @@ func (e *EpochStartTriggerStub) ShouldProposeEpochChange(round uint64, nonce uin
 	}
 
 	return false
+}
+
+// SetEpochChangeProposed -
+func (e *EpochStartTriggerStub) SetEpochChangeProposed(value bool) {
+	if e.SetEpochChangeProposedCalled != nil {
+		e.SetEpochChangeProposedCalled(value)
+	}
 }
 
 // RevertStateToBlock -
