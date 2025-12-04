@@ -89,7 +89,6 @@ type simulator struct {
 
 // NewChainSimulator will create a new instance of simulator
 func NewChainSimulator(args ArgsChainSimulator) (*simulator, error) {
-	args.BypassBlockSignatureCheck = true
 	return NewBaseChainSimulator(ArgsBaseChainSimulator{
 		ArgsChainSimulator:          args,
 		ConsensusGroupSize:          args.MinNodesPerShard,
