@@ -46,7 +46,7 @@ func (ht *headerTracker) tryResyncIfNeeded() {
 	}
 
 	if areRoundsAscendingOrder(ht.deSyncedRounds.Last(numRequiredMissedHeadersToForceResync)) {
-		ht.syncer.StartSyncingTime()
+		ht.syncer.ForceSync()
 	}
 }
 

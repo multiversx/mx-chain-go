@@ -17,7 +17,7 @@ func TestHeaderTracker_ShouldForceNTPResync(t *testing.T) {
 	proofsPool := &dataRetriever.ProofsPoolMock{}
 	wasSyncCalled := false
 	syncer := &facadeMock.SyncTimerMock{
-		StartSyncingTimeCalled: func() {
+		ForceSyncCalled: func() {
 			wasSyncCalled = true
 		},
 	}
