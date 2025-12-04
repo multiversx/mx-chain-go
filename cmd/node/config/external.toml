@@ -44,7 +44,7 @@
 
 [[HostDriversConfig]]
     # This flag shall only be used for observer nodes
-    Enabled = false
+    Enabled = true
 
     # This flag will start the WebSocket connector as server or client (can be "client" or "server")
     Mode = "client"
@@ -60,7 +60,7 @@
     AcknowledgeTimeoutInSec = 60
 
     # This flag defines the marshaller type. Currently supported: "json", "gogo protobuf"
-    MarshallerType = "json"
+    MarshallerType = "gogo protobuf"
 
     # The number of seconds when the client will try again to send the data
     RetryDurationInSec = 5
