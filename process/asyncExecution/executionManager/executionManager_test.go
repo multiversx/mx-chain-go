@@ -226,7 +226,7 @@ func TestExecutionManager_AddPairForExecution(t *testing.T) {
 		require.Equal(t, errExpected, err)
 	})
 
-	t.Run("should return err if previous execution result of the replacing one is not found", func(t *testing.T) {
+	t.Run("should return err if execution result of previous header is not found", func(t *testing.T) {
 		t.Parallel()
 
 		args := createMockArgs()
@@ -263,6 +263,62 @@ func TestExecutionManager_AddPairForExecution(t *testing.T) {
 
 		err := em.AddPairForExecution(pair)
 		require.Equal(t, executionManager.ErrExecutionResultNotFound, err)
+	})
+
+	t.Run("if extracting the header from pool fails, the error should be propagated", func(t *testing.T) {
+		t.Parallel()
+
+		counter := 0
+		args := createMockArgs()
+		args.BlockChain = &testscommon.ChainHandlerStub{
+			GetLastExecutedBlockHeaderCalled: func() data.HeaderHandler {
+				return &block.HeaderV3{
+					Nonce: 10,
+				}
+			},
+			SetLastExecutedBlockHeaderAndRootHashCalled: func(header data.HeaderHandler, blockHash []byte, rootHash []byte) {
+				if bytes.Equal(blockHash, []byte("lastNotarizedExecResultHash")) {
+					counter += 1
+				}
+			},
+			SetLastExecutionResultCalled: func(result data.BaseExecutionResultHandler) {
+				if bytes.Equal(result.GetHeaderHash(), []byte("lastNotarizedExecResultHash")) {
+					counter += 1
+				}
+			},
+		}
+
+		args.ExecutionResultsTracker = &processMocks.ExecutionTrackerStub{
+			GetPendingExecutionResultsCalled: func() ([]data.BaseExecutionResultHandler, error) {
+				return []data.BaseExecutionResultHandler{}, nil
+			},
+			GetLastNotarizedExecutionResultCalled: func() (data.BaseExecutionResultHandler, error) {
+				return &block.BaseExecutionResult{
+					RootHash:   []byte("rootHash"),
+					HeaderHash: []byte("lastNotarizedExecResultHash"),
+				}, nil
+			},
+		}
+
+		args.Headers = &pool.HeadersPoolStub{
+			GetHeaderByHashCalled: func(hash []byte) (data.HeaderHandler, error) {
+				return nil, errExpected
+			},
+		}
+
+		em, _ := executionManager.NewExecutionManager(args)
+
+		pair := queue.HeaderBodyPair{
+			Header: &block.Header{
+				Nonce:    9,
+				PrevHash: []byte("lastNotarizedExecResultHash"),
+			},
+			Body: &block.Body{},
+		}
+
+		err := em.AddPairForExecution(pair)
+		require.Equal(t, errExpected, err)
+		require.Equal(t, 0, counter)
 	})
 
 	t.Run("if removing from pending execution results fails, the error should be propagated", func(t *testing.T) {
@@ -318,7 +374,7 @@ func TestExecutionManager_AddPairForExecution(t *testing.T) {
 		require.Equal(t, 2, counter)
 	})
 
-	t.Run("should work when previous header of replacing header has execution results notarized", func(t *testing.T) {
+	t.Run("should work when the execution results of the previous header are notarized", func(t *testing.T) {
 		t.Parallel()
 
 		counter := 0
@@ -372,7 +428,7 @@ func TestExecutionManager_AddPairForExecution(t *testing.T) {
 		require.Equal(t, 3, counter)
 	})
 
-	t.Run("should work if previous header of replacing header has pending execution results", func(t *testing.T) {
+	t.Run("should work if there are pending execution results of previous header", func(t *testing.T) {
 		t.Parallel()
 
 		counter := 0
