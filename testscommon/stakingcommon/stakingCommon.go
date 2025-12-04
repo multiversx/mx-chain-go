@@ -1,6 +1,7 @@
 package stakingcommon
 
 import (
+	"github.com/multiversx/mx-chain-go/testscommon/chainParameters"
 	"math/big"
 	"strconv"
 
@@ -234,6 +235,7 @@ func CreateEconomicsData() process.EconomicsDataHandler {
 	minGasLimit := strconv.FormatUint(10, 10)
 
 	argsNewEconomicsData := economicsHandler.ArgsNewEconomicsData{
+		ChainParamsHandler: &chainParameters.ChainParametersHolderMock{},
 		Economics: &config.EconomicsConfig{
 			GlobalSettings: config.GlobalSettings{
 				GenesisTotalSupply: "2000000000000000000000",
@@ -252,6 +254,10 @@ func CreateEconomicsData() process.EconomicsDataHandler {
 						DeveloperPercentage:              0.1,
 						ProtocolSustainabilityPercentage: 0.1,
 						ProtocolSustainabilityAddress:    "protocol",
+						EcosystemGrowthPercentage:        0.0,
+						EcosystemGrowthAddress:           "protocol",
+						GrowthDividendPercentage:         0.0,
+						GrowthDividendAddress:            "protocol",
 						TopUpGradientPoint:               "300000000000000000000",
 						TopUpFactor:                      0.25,
 					},
@@ -283,6 +289,7 @@ func CreateEconomicsData() process.EconomicsDataHandler {
 		ShardCoordinator:    &testscommon.ShardsCoordinatorMock{},
 	}
 	economicsData, _ := economicsHandler.NewEconomicsData(argsNewEconomicsData)
+
 	return economicsData
 }
 

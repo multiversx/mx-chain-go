@@ -4,6 +4,7 @@ import (
 	"encoding/hex"
 	"errors"
 	"fmt"
+	"github.com/multiversx/mx-chain-go/testscommon/chainParameters"
 	"math"
 	"math/big"
 	"strconv"
@@ -327,7 +328,8 @@ func createEconomicsData(enableEpochsConfig config.EnableEpochs, gasPriceModifie
 	enableEpochsHandler, _ := enablers.NewEnableEpochsHandler(enableEpochsConfig, realEpochNotifier)
 
 	argsNewEconomicsData := economics.ArgsNewEconomicsData{
-		TxVersionChecker: versioning.NewTxVersionChecker(minTransactionVersion),
+		TxVersionChecker:   versioning.NewTxVersionChecker(minTransactionVersion),
+		ChainParamsHandler: &chainParameters.ChainParametersHolderMock{},
 		Economics: &config.EconomicsConfig{
 			GlobalSettings: config.GlobalSettings{
 				GenesisTotalSupply: "2000000000000000000000",
@@ -347,6 +349,10 @@ func createEconomicsData(enableEpochsConfig config.EnableEpochs, gasPriceModifie
 						DeveloperPercentage:              0.1,
 						ProtocolSustainabilityAddress:    testProtocolSustainabilityAddress,
 						TopUpGradientPoint:               "100000",
+						EcosystemGrowthPercentage:        0.0,
+						EcosystemGrowthAddress:           testProtocolSustainabilityAddress,
+						GrowthDividendPercentage:         0.0,
+						GrowthDividendAddress:            testProtocolSustainabilityAddress,
 					},
 				},
 			},

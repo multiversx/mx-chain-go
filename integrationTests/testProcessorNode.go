@@ -802,20 +802,20 @@ func (tpn *TestProcessorNode) initTestNodeWithArgs(args ArgTestProcessorNode) {
 	tpn.initHeaderValidator()
 	tpn.initRoundHandler(roundTime)
 
+	chainParam := config.ChainParametersByEpochConfig{
+		RoundDuration:          uint64(roundTime.Milliseconds()),
+		RoundsPerEpoch:         1000,
+		MinRoundsBetweenEpochs: 1,
+	}
 	tpn.ChainParametersHandler = &chainParameters.ChainParametersHandlerStub{
 		ChainParametersForEpochCalled: func(_ uint32) (config.ChainParametersByEpochConfig, error) {
-			return config.ChainParametersByEpochConfig{
-				RoundDuration:          uint64(roundTime.Milliseconds()),
-				RoundsPerEpoch:         1000,
-				MinRoundsBetweenEpochs: 1,
-			}, nil
+			return chainParam, nil
 		},
 		CurrentChainParametersCalled: func() config.ChainParametersByEpochConfig {
-			return config.ChainParametersByEpochConfig{
-				RoundDuration:          uint64(roundTime.Milliseconds()),
-				RoundsPerEpoch:         1000,
-				MinRoundsBetweenEpochs: 1,
-			}
+			return chainParam
+		},
+		AllChainParametersCalled: func() []config.ChainParametersByEpochConfig {
+			return []config.ChainParametersByEpochConfig{chainParam}
 		},
 	}
 
@@ -1176,6 +1176,7 @@ func (tpn *TestProcessorNode) initEconomicsData(economicsConfig *config.Economic
 	pubKeyConv, _ := pubkeyConverter.NewBech32PubkeyConverter(32, "erd")
 	argsNewEconomicsData := economics.ArgsNewEconomicsData{
 		Economics:           economicsConfig,
+		ChainParamsHandler:  tpn.ChainParametersHandler,
 		EpochNotifier:       tpn.EpochNotifier,
 		EnableEpochsHandler: tpn.EnableEpochsHandler,
 		TxVersionChecker:    &testscommon.TxVersionCheckerStub{},
@@ -1211,6 +1212,10 @@ func createDefaultEconomicsConfig() *config.EconomicsConfig {
 					TopUpFactor:                      0.25,
 					TopUpGradientPoint:               "300000000000000000000",
 					ProtocolSustainabilityPercentage: 0.1,
+					EcosystemGrowthPercentage:        0.0,
+					EcosystemGrowthAddress:           testProtocolSustainabilityAddress,
+					GrowthDividendPercentage:         0.0,
+					GrowthDividendAddress:            testProtocolSustainabilityAddress,
 				},
 			},
 		},

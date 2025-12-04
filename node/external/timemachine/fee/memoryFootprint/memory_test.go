@@ -2,6 +2,7 @@ package memoryFootprint
 
 import (
 	"fmt"
+	"github.com/multiversx/mx-chain-go/testscommon/chainParameters"
 	"runtime"
 	"testing"
 
@@ -30,7 +31,8 @@ func TestFeeComputer_MemoryFootprint(t *testing.T) {
 
 	economicsConfig := testscommon.GetEconomicsConfig()
 	economicsData, _ := economics.NewEconomicsData(economics.ArgsNewEconomicsData{
-		Economics: &economicsConfig,
+		ChainParamsHandler: &chainParameters.ChainParametersHolderMock{},
+		Economics:          &economicsConfig,
 		EnableEpochsHandler: &enableEpochsHandlerMock.EnableEpochsHandlerStub{
 			IsFlagEnabledInEpochCalled: func(flag core.EnableEpochFlag, epoch uint32) bool {
 				if flag == common.PenalizedTooMuchGasFlag {

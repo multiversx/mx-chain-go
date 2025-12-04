@@ -2,6 +2,7 @@ package transactionAPI
 
 import (
 	"encoding/hex"
+	"github.com/multiversx/mx-chain-go/testscommon/chainParameters"
 	"math/big"
 	"testing"
 
@@ -23,6 +24,7 @@ import (
 func createEconomicsData(enableEpochsHandler common.EnableEpochsHandler) process.EconomicsDataHandler {
 	economicsConfig := testscommon.GetEconomicsConfig()
 	economicsData, _ := economics.NewEconomicsData(economics.ArgsNewEconomicsData{
+		ChainParamsHandler:  &chainParameters.ChainParametersHolderMock{},
 		Economics:           &economicsConfig,
 		EnableEpochsHandler: enableEpochsHandler,
 		TxVersionChecker:    &testscommon.TxVersionCheckerStub{},
