@@ -2273,7 +2273,9 @@ func TestGetMiniBlockHeaderWithHash(t *testing.T) {
 		t.Parallel()
 
 		header := &block.MetaBlockV3{
-			ExecutionResults: nil,
+			ExecutionResults: []*block.MetaExecutionResult{
+				nil,
+			},
 		}
 
 		mbh := process.GetMiniBlockHeaderWithHash(header, []byte(hash1))
