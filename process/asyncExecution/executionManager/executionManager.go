@@ -1,6 +1,7 @@
 package executionManager
 
 import (
+	"bytes"
 	"sync"
 
 	"github.com/multiversx/mx-chain-core-go/core/check"
@@ -101,7 +102,6 @@ func (em *executionManager) AddPairForExecution(pair queue.HeaderBodyPair) error
 }
 
 func (em *executionManager) updateContextForReplacedHeader(header data.HeaderHandler) error {
-	prevNonce := header.GetNonce() - 1
 	pendingExecutionResults, err := em.GetPendingExecutionResults()
 	if err != nil {
 		return err
@@ -112,8 +112,40 @@ func (em *executionManager) updateContextForReplacedHeader(header data.HeaderHan
 		return err
 	}
 
-	headerHashToSet := lastExecutionResult.GetHeaderHash()
-	executionResultToSet := lastExecutionResult
+	executionResultToSet, err := em.getExecutionResultToSetOnReplacedHeader(
+		header,
+		pendingExecutionResults,
+		lastExecutionResult,
+	)
+	if err != nil {
+		return err
+	}
+
+	headerToSet, err := em.headers.GetHeaderByHash(executionResultToSet.GetHeaderHash())
+	if err != nil {
+		return err
+	}
+
+	em.blockChain.SetLastExecutedBlockHeaderAndRootHash(headerToSet, executionResultToSet.GetHeaderHash(), executionResultToSet.GetRootHash())
+	em.blockChain.SetLastExecutionResult(executionResultToSet)
+	// need to remove all execution results after the one set
+	return em.executionResultsTracker.RemoveFromNonce(executionResultToSet.GetHeaderNonce() + 1)
+}
+
+func (em *executionManager) getExecutionResultToSetOnReplacedHeader(
+	header data.HeaderHandler,
+	pendingExecutionResults []data.BaseExecutionResultHandler,
+	lastNotarizedResult data.BaseExecutionResultHandler,
+) (data.BaseExecutionResultHandler, error) {
+	prevNonce := header.GetNonce() - 1
+	prevHash := header.GetPrevHash()
+
+	headerHashToSet := lastNotarizedResult.GetHeaderHash()
+	executionResultToSet := lastNotarizedResult
+	if bytes.Equal(prevHash, headerHashToSet) {
+		return executionResultToSet, nil
+	}
+
 	for i := len(pendingExecutionResults) - 1; i >= 0; i-- {
 		if pendingExecutionResults[i].GetHeaderNonce() <= prevNonce {
 			headerHashToSet = pendingExecutionResults[i].GetHeaderHash()
@@ -121,16 +153,11 @@ func (em *executionManager) updateContextForReplacedHeader(header data.HeaderHan
 			break
 		}
 	}
-
-	headerToSet, err := em.headers.GetHeaderByHash(headerHashToSet)
-	if err != nil {
-		return err
+	if !bytes.Equal(prevHash, headerHashToSet) {
+		return nil, ErrExecutionResultNotFound
 	}
 
-	em.blockChain.SetLastExecutedBlockHeaderAndRootHash(headerToSet, headerHashToSet, executionResultToSet.GetRootHash())
-	em.blockChain.SetLastExecutionResult(executionResultToSet)
-
-	return nil
+	return executionResultToSet, nil
 }
 
 // GetPendingExecutionResults calls the same method from executionResultsTracker
