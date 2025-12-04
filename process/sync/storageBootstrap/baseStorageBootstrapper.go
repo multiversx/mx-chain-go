@@ -19,7 +19,6 @@ import (
 	"github.com/multiversx/mx-chain-go/process/sync/storageBootstrap/metricsLoader"
 	"github.com/multiversx/mx-chain-go/sharding"
 	"github.com/multiversx/mx-chain-go/sharding/nodesCoordinator"
-	"github.com/multiversx/mx-chain-go/state"
 	"github.com/multiversx/mx-chain-go/storage"
 )
 
@@ -50,8 +49,6 @@ type ArgsBaseStorageBootstrapper struct {
 	EnableEpochsHandler          common.EnableEpochsHandler
 	ProofsPool                   process.ProofsPool
 	ExecutionManager             process.ExecutionManager
-	TransactionsPool             dataRetriever.ShardedDataCacherNotifier
-	AccountsProposal             state.AccountsAdapter
 }
 
 // ArgsShardStorageBootstrapper is structure used to create a new storage bootstrapper for shard
@@ -90,8 +87,6 @@ type storageBootstrapper struct {
 	enableEpochsHandler          common.EnableEpochsHandler
 	proofsPool                   process.ProofsPool
 	executionManager             process.ExecutionManager
-	txPool                       dataRetriever.ShardedDataCacherNotifier
-	accountsProposal             state.AccountsAdapter
 }
 
 func (st *storageBootstrapper) loadBlocks() error {
@@ -669,12 +664,6 @@ func checkBaseStorageBootstrapperArguments(args ArgsBaseStorageBootstrapper) err
 	}
 	if check.IfNil(args.ExecutionManager) {
 		return process.ErrNilExecutionManager
-	}
-	if check.IfNil(args.TransactionsPool) {
-		return process.ErrNilTransactionPool
-	}
-	if check.IfNil(args.AccountsProposal) {
-		return process.ErrNilAccountsAdapter
 	}
 
 	return nil

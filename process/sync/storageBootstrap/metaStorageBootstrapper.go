@@ -45,8 +45,6 @@ func NewMetaStorageBootstrapper(arguments ArgsMetaStorageBootstrapper) (*metaSto
 		enableEpochsHandler:          arguments.EnableEpochsHandler,
 		proofsPool:                   arguments.ProofsPool,
 		executionManager:             arguments.ExecutionManager,
-		txPool:                       arguments.TransactionsPool,
-		accountsProposal:             arguments.AccountsProposal,
 	}
 
 	boot := metaStorageBootstrapper{
