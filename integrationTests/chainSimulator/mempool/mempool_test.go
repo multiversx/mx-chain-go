@@ -2384,7 +2384,7 @@ func Test_SelectionWithAliceRelayerAndSenderOnSameTxs(t *testing.T) {
 	require.NotNil(t, txpool)
 
 	// calculate the fee for transfer
-	feeForTransfer := int64(50_000 * 1_000_000_000)
+	feeForTransfer := int64(100_000 * 1_000_000_000)
 	accounts := map[string]*stateMock.UserAccountStub{
 		"alice": {
 			// alice has enough balance for one transaction
@@ -2413,16 +2413,17 @@ func Test_SelectionWithAliceRelayerAndSenderOnSameTxs(t *testing.T) {
 	// both transactions have alice as sender and relayer
 	// alice has enough balance only for this transaction
 	tx := &transaction.Transaction{
-		Nonce:     nonceTracker.getThenIncrementNonceByStringAddress("alice"),
-		Value:     oneEGLD,
-		SndAddr:   []byte("alice"),
-		RcvAddr:   []byte("receiver"),
-		Data:      []byte{},
-		GasLimit:  50_000,
-		GasPrice:  1_000_000_000,
-		ChainID:   []byte(configs.ChainID),
-		Version:   2,
-		Signature: []byte("signature"),
+		Nonce:       nonceTracker.getThenIncrementNonceByStringAddress("alice"),
+		Value:       oneEGLD,
+		SndAddr:     []byte("alice"),
+		RcvAddr:     []byte("receiver"),
+		Data:        []byte{},
+		GasLimit:    100_000,
+		GasPrice:    1_000_000_000,
+		ChainID:     []byte(configs.ChainID),
+		Version:     2,
+		Signature:   []byte("signature"),
+		RelayerAddr: []byte("alice"),
 	}
 
 	txpool.AddTx(&txcache.WrappedTransaction{
@@ -2433,16 +2434,17 @@ func Test_SelectionWithAliceRelayerAndSenderOnSameTxs(t *testing.T) {
 	// the second transaction has alice as sender and as relayer.
 	// this transaction should not be selected
 	tx = &transaction.Transaction{
-		Nonce:     nonceTracker.getThenIncrementNonceByStringAddress("alice"),
-		Value:     big.NewInt(0),
-		SndAddr:   []byte("alice"),
-		RcvAddr:   []byte("receiver"),
-		Data:      []byte{},
-		GasLimit:  50_000,
-		GasPrice:  1_000_000_000,
-		ChainID:   []byte(configs.ChainID),
-		Version:   2,
-		Signature: []byte("signature"),
+		Nonce:       nonceTracker.getThenIncrementNonceByStringAddress("alice"),
+		Value:       big.NewInt(0),
+		SndAddr:     []byte("alice"),
+		RcvAddr:     []byte("receiver"),
+		Data:        []byte{},
+		GasLimit:    100_000,
+		GasPrice:    1_000_000_000,
+		ChainID:     []byte(configs.ChainID),
+		Version:     2,
+		Signature:   []byte("signature"),
+		RelayerAddr: []byte("alice"),
 	}
 
 	txpool.AddTx(&txcache.WrappedTransaction{
@@ -2492,7 +2494,7 @@ func Test_SelectionWithAliceSenderAndThenRelayerOnDifferentTxs(t *testing.T) {
 	require.NotNil(t, txpool)
 
 	// calculate the fee for transfer
-	feeForTransfer := int64(50_000 * 1_000_000_000)
+	feeForTransfer := int64(100_000 * 1_000_000_000)
 	accounts := map[string]*stateMock.UserAccountStub{
 		"alice": {
 			// alice has enough balance for one transaction
@@ -2523,16 +2525,17 @@ func Test_SelectionWithAliceSenderAndThenRelayerOnDifferentTxs(t *testing.T) {
 
 	// the first transaction has alice as sender and its own relayer
 	tx := &transaction.Transaction{
-		Nonce:     nonceTracker.getThenIncrementNonceByStringAddress("alice"),
-		Value:     big.NewInt(0),
-		SndAddr:   []byte("alice"),
-		RcvAddr:   []byte("receiver"),
-		Data:      []byte{},
-		GasLimit:  50_000,
-		GasPrice:  1_000_000_000,
-		ChainID:   []byte(configs.ChainID),
-		Version:   2,
-		Signature: []byte("signature"),
+		Nonce:       nonceTracker.getThenIncrementNonceByStringAddress("alice"),
+		Value:       big.NewInt(0),
+		SndAddr:     []byte("alice"),
+		RcvAddr:     []byte("receiver"),
+		Data:        []byte{},
+		GasLimit:    100_000,
+		GasPrice:    1_000_000_000,
+		ChainID:     []byte(configs.ChainID),
+		Version:     2,
+		Signature:   []byte("signature"),
+		RelayerAddr: []byte("alice"),
 	}
 
 	txpool.AddTx(&txcache.WrappedTransaction{
