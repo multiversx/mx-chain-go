@@ -19,9 +19,9 @@ func TestProcessLogsSaveSupplyNothingInStorage(t *testing.T) {
 	t.Parallel()
 
 	token := []byte("nft-0001")
-	logs := map[string]*data.LogData{
-		"txLog": {
-			LogHandler: &transaction.Log{
+	logs := map[string]data.LogDataHandler{
+		"txLog": &transaction.LogData{
+			Log: &transaction.Log{
 				Events: []*transaction.Event{
 					{
 						Identifier: []byte("something"),
@@ -106,9 +106,9 @@ func TestTestProcessLogsSaveSupplyExistsInStorage(t *testing.T) {
 
 	token := []byte("esdt-miiu")
 
-	logs := map[string]*data.LogData{
-		"txLog": {
-			LogHandler: &transaction.Log{
+	logs := map[string]data.LogDataHandler{
+		"txLog": &transaction.LogData{
+			Log: &transaction.Log{
 				Events: []*transaction.Event{
 					{
 						Identifier: []byte(core.BuiltInFunctionESDTLocalBurn),

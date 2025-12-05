@@ -58,14 +58,14 @@ func NewSuppliesProcessor(
 }
 
 // ProcessLogs will process the provided logs
-func (sp *suppliesProcessor) ProcessLogs(blockNonce uint64, logs []*data.LogData) error {
+func (sp *suppliesProcessor) ProcessLogs(blockNonce uint64, logs []data.LogDataHandler) error {
 	sp.mutex.Lock()
 	defer sp.mutex.Unlock()
 
-	logsMap := make(map[string]*data.LogData)
+	logsMap := make(map[string]data.LogDataHandler)
 	for _, logData := range logs {
 		if logData != nil {
-			logsMap[logData.TxHash] = logData
+			logsMap[logData.GetTxHash()] = logData
 		}
 	}
 

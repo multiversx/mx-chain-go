@@ -115,7 +115,7 @@ type TestContext struct {
 	LastTxHash    []byte
 	SCRForwarder  *mock.IntermediateTransactionHandlerMock
 	LastSCResults []*smartContractResult.SmartContractResult
-	LastLogs      []*data.LogData
+	LastLogs      []data.LogDataHandler
 }
 
 type testParticipant struct {

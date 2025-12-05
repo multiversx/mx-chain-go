@@ -31,7 +31,7 @@ func (tsp *TestScProcessor) GetCompositeTestError() error {
 	if tsp.enableEpochsHandler.IsFlagEnabled(common.CleanUpInformativeSCRsFlag) {
 		allLogs := tsp.txLogsProcessor.GetAllCurrentLogs()
 		for _, logs := range allLogs {
-			for _, event := range logs.GetLogEvents() {
+			for _, event := range logs.GetLogHandler().GetLogEvents() {
 				if string(event.GetIdentifier()) == core.SignalErrorOperation {
 					returnError = wrapErrorIfNotContains(returnError, string(event.GetTopics()[1]))
 				}
