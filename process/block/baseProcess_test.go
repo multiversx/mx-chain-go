@@ -5205,3 +5205,115 @@ func TestBaseProcessor_CacheIntraShardMiniBlocks(t *testing.T) {
 		require.True(t, wasCalled)
 	})
 }
+
+func TestBaseProcessor_excludeRevertedExecutionResultsForHeader(t *testing.T) {
+	t.Parallel()
+
+	t.Run("should work in case of no pending execution results", func(t *testing.T) {
+		t.Parallel()
+
+		bp, err := blproc.ConstructPartialShardBlockProcessorForTest(map[string]interface{}{})
+		require.NoError(t, err)
+
+		header := &block.HeaderV3{}
+		sanitizedPendingExecResults := bp.ExcludeRevertedExecutionResultsForHeader(
+			header,
+			[]data.BaseExecutionResultHandler{},
+		)
+		require.Equal(t, 0, len(sanitizedPendingExecResults))
+	})
+
+	t.Run("should remove last execution result if its header nonce is equal to the nonce of the created block", func(t *testing.T) {
+		t.Parallel()
+
+		bp, err := blproc.ConstructPartialShardBlockProcessorForTest(map[string]interface{}{})
+		require.NoError(t, err)
+
+		headerNonce := uint64(1)
+		header := &block.HeaderV3{
+			Nonce: headerNonce,
+		}
+
+		pendingExecutionResults := []data.BaseExecutionResultHandler{
+			&block.BaseExecutionResult{
+				HeaderNonce: headerNonce,
+			},
+		}
+
+		sanitizedPendingExecResults := bp.ExcludeRevertedExecutionResultsForHeader(
+			header,
+			pendingExecutionResults,
+		)
+		require.Equal(t, 0, len(sanitizedPendingExecResults))
+	})
+
+	t.Run("should remove last execution result if if getting the execution result's header from storage fails", func(t *testing.T) {
+		t.Parallel()
+
+		bp, err := blproc.ConstructPartialShardBlockProcessorForTest(map[string]interface{}{
+			"store": &storageStubs.ChainStorerStub{
+				GetStorerCalled: func(unitType dataRetriever.UnitType) (storage.Storer, error) {
+					return nil, expectedErr
+				},
+			},
+			"marshalizer": &testscommon.MarshallerStub{},
+		})
+		require.NoError(t, err)
+
+		header := &block.HeaderV3{
+			Nonce: 2,
+		}
+
+		pendingExecutionResults := []data.BaseExecutionResultHandler{
+			&block.BaseExecutionResult{
+				HeaderHash:  []byte("wrongHash"),
+				HeaderNonce: 1,
+			},
+		}
+
+		sanitizedPendingExecResults := bp.ExcludeRevertedExecutionResultsForHeader(
+			header,
+			pendingExecutionResults,
+		)
+		require.Equal(t, 0, len(sanitizedPendingExecResults))
+	})
+
+	t.Run("should not remove valid execution results", func(t *testing.T) {
+		t.Parallel()
+
+		bp, err := blproc.ConstructPartialShardBlockProcessorForTest(map[string]interface{}{
+			"store": &storageStubs.ChainStorerStub{
+				GetStorerCalled: func(unitType dataRetriever.UnitType) (storage.Storer, error) {
+					return &storageStubs.StorerStub{
+						GetCalled: func(key []byte) ([]byte, error) {
+							return nil, nil
+						},
+					}, nil
+				},
+			},
+			"marshalizer": &testscommon.MarshallerStub{
+				UnmarshalCalled: func(obj interface{}, buff []byte) error {
+					return nil
+				},
+			},
+		})
+		require.NoError(t, err)
+
+		header := &block.HeaderV3{
+			Nonce: 2,
+		}
+
+		pendingExecutionResults := []data.BaseExecutionResultHandler{
+			&block.BaseExecutionResult{
+				HeaderHash:  []byte("hash"),
+				HeaderNonce: 1,
+			},
+		}
+
+		sanitizedPendingExecResults := bp.ExcludeRevertedExecutionResultsForHeader(
+			header,
+			pendingExecutionResults,
+		)
+		require.Equal(t, pendingExecutionResults, sanitizedPendingExecResults)
+	})
+}
