@@ -7,12 +7,13 @@ import (
 	"github.com/multiversx/mx-chain-core-go/core/check"
 	"github.com/multiversx/mx-chain-core-go/data"
 	dataBlock "github.com/multiversx/mx-chain-core-go/data/block"
+	logger "github.com/multiversx/mx-chain-logger-go"
+
 	"github.com/multiversx/mx-chain-go/common"
 	heartbeatData "github.com/multiversx/mx-chain-go/heartbeat/data"
 	"github.com/multiversx/mx-chain-go/node/chainSimulator/configs"
 	"github.com/multiversx/mx-chain-go/process/asyncExecution/queue"
 	"github.com/multiversx/mx-chain-go/sharding/nodesCoordinator"
-	logger "github.com/multiversx/mx-chain-logger-go"
 )
 
 var log = logger.GetOrCreate("process-block")
@@ -178,6 +179,11 @@ func (creator *blocksCreator) CreateNewBlock() error {
 	}
 
 	if newHeader.IsHeaderV3() {
+		//err = creator.setHeaderSignatures(header, leader.PubKey(), validators, pubKeyBitmap)
+		//if err != nil {
+		//	return err
+		//}
+
 		err = creator.nodeHandler.GetProcessComponents().BlockProcessor().VerifyBlockProposal(header, block, func() time.Duration {
 			return time.Second
 		})
@@ -195,20 +201,7 @@ func (creator *blocksCreator) CreateNewBlock() error {
 		}
 	}
 
-	// Verify block
-	// Add pair in execution manager
-
 	headerProof, err := creator.ApplySignaturesAndGetProof(header, prevHeader, enableEpochHandler, validators, leader, pubKeyBitmap)
-	if err != nil {
-		return err
-	}
-
-	err = bp.CommitBlock(header, block)
-	if err != nil {
-		return err
-	}
-
-	err = creator.setHeartBeat(header)
 	if err != nil {
 		return err
 	}
@@ -218,7 +211,28 @@ func (creator *blocksCreator) CreateNewBlock() error {
 		return err
 	}
 
-	miniBlocks, transactions, err := bp.MarshalizedDataToBroadcast(headerHash, header, block)
+	var miniBlocks map[uint32][]byte
+	var transactions map[string][][]byte
+	if header.IsHeaderV3() {
+		miniBlocks, transactions, err = bp.MarshalizedDataToBroadcast(headerHash, header, block)
+		if err != nil {
+			return err
+		}
+	}
+
+	err = bp.CommitBlock(header, block)
+	if err != nil {
+		return err
+	}
+
+	if !header.IsHeaderV3() {
+		miniBlocks, transactions, err = bp.MarshalizedDataToBroadcast(headerHash, header, block)
+		if err != nil {
+			return err
+		}
+	}
+
+	err = creator.setHeartBeat(header)
 	if err != nil {
 		return err
 	}
@@ -283,9 +297,12 @@ func (creator *blocksCreator) ApplySignaturesAndGetProof(
 	if header.IsHeaderV3() {
 		correctPubKeyBitmap = pubKeyBitmap
 	}
-	err := creator.setHeaderSignatures(header, leader.PubKey(), validators, correctPubKeyBitmap)
-	if err != nil {
-		return nil, err
+
+	if !header.IsHeaderV3() {
+		err := creator.setHeaderSignatures(header, leader.PubKey(), validators, correctPubKeyBitmap)
+		if err != nil {
+			return nil, err
+		}
 	}
 
 	coreComponents := creator.nodeHandler.GetCoreComponents()
