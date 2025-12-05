@@ -2905,7 +2905,7 @@ func (bp *baseProcessor) getMiniBlocksForReceiptsV3(execResult data.BaseExecutio
 	return receiptsMiniBlocks, nil
 }
 
-func (bp *baseProcessor) cacheLogEvents(headerHash []byte, logs []*data.LogData) error {
+func (bp *baseProcessor) cacheLogEvents(headerHash []byte, logs []data.LogDataHandler) error {
 	logsMarshalledSize, err := process.GetMarshaledSliceSize(logs, bp.marshalizer)
 	if err != nil {
 		return err

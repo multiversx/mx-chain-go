@@ -482,7 +482,7 @@ func TestScProcessor_DeploySmartContractBadParse(t *testing.T) {
 
 	allLogs := tsc.GetTxLogsProcessor().GetAllCurrentLogs()
 	require.Equal(t, 1, len(allLogs))
-	require.Equal(t, expectedError, string(allLogs[0].LogHandler.GetLogEvents()[0].GetData()))
+	require.Equal(t, expectedError, string(allLogs[0].GetLogHandler().GetLogEvents()[0].GetData()))
 	require.Equal(t, vmcommon.UserError, returnCode)
 	require.Equal(t, uint64(1), acntSrc.GetNonce())
 	require.True(t, acntSrc.GetBalance().Cmp(tx.Value) == 0)
@@ -529,7 +529,7 @@ func TestScProcessor_DeploySmartContractRunError(t *testing.T) {
 	expectedError := "@" + hex.EncodeToString([]byte(createError.Error()))
 	allLogs := tsc.GetTxLogsProcessor().GetAllCurrentLogs()
 	require.Equal(t, 1, len(allLogs))
-	require.Equal(t, expectedError, string(allLogs[0].LogHandler.GetLogEvents()[0].GetData()))
+	require.Equal(t, expectedError, string(allLogs[0].GetLogHandler().GetLogEvents()[0].GetData()))
 }
 
 func TestScProcessor_BuiltInCallSmartContractSenderFailed(t *testing.T) {
