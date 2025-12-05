@@ -1277,6 +1277,74 @@ func TestAdaptStructureValueBasedOnPath(t *testing.T) {
 		require.Equal(t, expectedIntsArray, testConfig.TestArray.Ints)
 	})
 
+	t.Run("should work and override array of ptr struct from toml", func(t *testing.T) {
+		t.Parallel()
+
+		testConfig, err := loadTestConfig("../../testscommon/toml/config.toml")
+		require.NoError(t, err)
+
+		overrideConfig, err := loadOverrideConfig("../../testscommon/toml/overwrite.toml")
+		require.NoError(t, err)
+		expectedValue := []*toml.TestPtrArray{
+			{
+				Int:   1,
+				Float: 0.99,
+			},
+		}
+
+		err = AdaptStructureValueBasedOnPath(testConfig, overrideConfig.OverridableConfigTomlValues[41].Path, overrideConfig.OverridableConfigTomlValues[41].Value)
+		require.NoError(t, err)
+		require.Equal(t, expectedValue, testConfig.TestPtr.PtrArray)
+	})
+
+	t.Run("should work and override struct containing array of ptr struct from toml", func(t *testing.T) {
+		t.Parallel()
+
+		testConfig, err := loadTestConfig("../../testscommon/toml/config.toml")
+		require.NoError(t, err)
+
+		overrideConfig, err := loadOverrideConfig("../../testscommon/toml/overwrite.toml")
+		require.NoError(t, err)
+		expectedValue := toml.TestPtr{
+			String: "x",
+			PtrArray: []*toml.TestPtrArray{
+				{
+					Int:   1,
+					Float: 0.99,
+				},
+			},
+		}
+
+		err = AdaptStructureValueBasedOnPath(testConfig, overrideConfig.OverridableConfigTomlValues[42].Path, overrideConfig.OverridableConfigTomlValues[42].Value)
+		require.NoError(t, err)
+		require.Equal(t, expectedValue, testConfig.TestPtr)
+	})
+
+	t.Run("unable to cast value to structure with ptr", func(t *testing.T) {
+		t.Parallel()
+
+		testConfig, err := loadTestConfig("../../testscommon/toml/config.toml")
+		require.NoError(t, err)
+
+		overrideConfig, err := loadOverrideConfig("../../testscommon/toml/overwrite.toml")
+		require.NoError(t, err)
+
+		err = AdaptStructureValueBasedOnPath(testConfig, overrideConfig.OverridableConfigTomlValues[43].Path, overrideConfig.OverridableConfigTomlValues[43].Value)
+		require.Equal(t, "unable to cast value 'invalid uint32' of type <string> to type <uint32>", err.Error())
+	})
+
+	t.Run("unable to cast value to structure with ptr", func(t *testing.T) {
+		t.Parallel()
+
+		testConfig, err := loadTestConfig("../../testscommon/toml/config.toml")
+		require.NoError(t, err)
+
+		overrideConfig, err := loadOverrideConfig("../../testscommon/toml/overwrite.toml")
+		require.NoError(t, err)
+
+		err = AdaptStructureValueBasedOnPath(testConfig, overrideConfig.OverridableConfigTomlValues[44].Path, overrideConfig.OverridableConfigTomlValues[44].Value)
+		require.Equal(t, "unsupported type <int64> when trying to add value in type <ptr>", err.Error())
+	})
 }
 
 func loadTestConfig(filepath string) (*toml.Config, error) {
