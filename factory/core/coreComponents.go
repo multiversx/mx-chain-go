@@ -232,6 +232,11 @@ func (ccf *coreComponentsFactory) Create() (*coreComponents, error) {
 		return nil, err
 	}
 
+	common.SetEnableEpochsHandler(enableEpochsHandler)
+	common.SetEnableRoundsHandler(enableRoundsHandler)
+	common.SetProcessConfigsHandler(processConfigs)
+	common.SetCommonConfigsHandler(commonConfigsHandler)
+
 	genesisNodesConfig, err := sharding.NewNodesSetup(
 		ccf.nodesSetupConfig,
 		chainParametersHandler,

@@ -4,6 +4,7 @@ import (
 	"github.com/multiversx/mx-chain-go/common"
 	"github.com/multiversx/mx-chain-go/common/configs"
 	"github.com/multiversx/mx-chain-go/config"
+	logger "github.com/multiversx/mx-chain-logger-go"
 )
 
 // GetDefaultProcessConfigsHandler -
@@ -94,4 +95,9 @@ func (p *ProcessConfigsHandlerStub) GetRoundModulusTriggerWhenSyncIsStuck(round 
 // IsInterfaceNil -
 func (p *ProcessConfigsHandlerStub) IsInterfaceNil() bool {
 	return p == nil
+}
+
+// SetActivationRound -
+func (p *ProcessConfigsHandlerStub) SetActivationRound(round uint64, log logger.Logger) {
+
 }
