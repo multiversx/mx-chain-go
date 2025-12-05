@@ -1,6 +1,7 @@
 package storageBootstrap
 
 import (
+	"errors"
 	"fmt"
 
 	"github.com/multiversx/mx-chain-core-go/core"
@@ -23,6 +24,8 @@ import (
 )
 
 var log = logger.GetOrCreate("process/sync")
+
+var errExecutionResultNotFound = errors.New("execution result not found in referenced execution results on header")
 
 const maxNumOfConsecutiveNoncesNotFoundAccepted = 10
 
@@ -422,15 +425,15 @@ func (st *storageBootstrapper) applyBootInfos(bootInfos []bootstrapStorage.Boots
 			log.Warn("cannot add header to fork detector", "error", err.Error())
 		}
 
-		if i > 0 {
-			log.Debug("added self notarized header in block tracker",
-				"shard", header.GetShardID(),
-				"round", header.GetRound(),
-				"nonce", header.GetNonce(),
-				"hash", bootInfos[i].LastHeader.Hash)
+		// if i > 0 {
+		log.Debug("added self notarized header in block tracker",
+			"shard", header.GetShardID(),
+			"round", header.GetRound(),
+			"nonce", header.GetNonce(),
+			"hash", bootInfos[i].LastHeader.Hash)
 
-			st.blockTracker.AddSelfNotarizedHeader(st.shardCoordinator.SelfId(), header, bootInfos[i].LastHeader.Hash)
-		}
+		st.blockTracker.AddSelfNotarizedHeader(st.shardCoordinator.SelfId(), header, bootInfos[i].LastHeader.Hash)
+		// }
 
 		st.blockTracker.AddTrackedHeader(header, bootInfos[i].LastHeader.Hash)
 	}
@@ -535,23 +538,43 @@ func (st *storageBootstrapper) setCurrentBlockInfoV3(
 	header data.HeaderHandler,
 	headerHash []byte,
 ) error {
-	lastExecutionResult, err := common.ExtractBaseExecutionResultHandler(header.GetLastExecutionResultHandler())
+	lastBaseExecutionResult, err := common.ExtractBaseExecutionResultHandler(header.GetLastExecutionResultHandler())
 	if err != nil {
 		return err
 	}
 
 	// at this point, last executed header reference by current header should be available in storage
 	// it was synced in epoch start bootstrap for header v3
-	lastExecutedHeader, err := st.bootstrapper.getHeader(lastExecutionResult.GetHeaderHash())
+	lastExecutedHeader, err := st.bootstrapper.getHeader(lastBaseExecutionResult.GetHeaderHash())
 	if err != nil {
-		log.Debug("storageBootstrapper: cannot get header from storage", "nonce", lastExecutionResult.GetHeaderNonce, "error", err.Error())
+		log.Debug("storageBootstrapper: cannot get header from storage", "nonce", lastBaseExecutionResult.GetHeaderNonce, "error", err.Error())
 		return err
 	}
 
-	st.blkc.SetLastExecutedBlockHeaderAndRootHash(lastExecutedHeader, lastExecutionResult.GetHeaderHash(), lastExecutionResult.GetRootHash())
+	st.blkc.SetLastExecutedBlockHeaderAndRootHash(lastExecutedHeader, lastBaseExecutionResult.GetHeaderHash(), lastBaseExecutionResult.GetRootHash())
 
 	st.blkc.SetCurrentBlockHeaderHash(headerHash)
 	err = st.blkc.SetCurrentBlockHeader(header)
+	if err != nil {
+		return err
+	}
+
+	// when setting execution result it should be the full structure, not base execution results
+
+	log.Debug("storageBootstrap.setCurrentBlockInfoV3: last execution result",
+		"header hash", lastBaseExecutionResult.GetHeaderHash(),
+		"nonce", lastBaseExecutionResult.GetHeaderNonce(),
+		"root hash", lastBaseExecutionResult.GetRootHash(),
+	)
+
+	metaBaseExecResult, ok := lastBaseExecutionResult.(data.BaseMetaExecutionResultHandler)
+	if ok {
+		log.Debug("storageBootstrap.setCurrentBlockInfoV3: base meta exec result",
+			"val stats root hash", metaBaseExecResult.GetValidatorStatsRootHash(),
+		)
+	}
+
+	lastExecutionResult, err := st.getLastExecutionResult(header, headerHash, lastBaseExecutionResult.GetHeaderNonce())
 	if err != nil {
 		return err
 	}
@@ -564,6 +587,57 @@ func (st *storageBootstrapper) setCurrentBlockInfoV3(
 	st.blkc.SetLastExecutionResult(lastExecutionResult)
 
 	return nil
+}
+
+func (st *storageBootstrapper) getLastExecutionResult(
+	header data.HeaderHandler,
+	headerHash []byte,
+	lastExecutedNonce uint64,
+) (data.BaseExecutionResultHandler, error) {
+	execResult, found := findExecutionResultOnHeader(header, lastExecutedNonce)
+	if found {
+		return execResult, nil
+	}
+
+	// if last execution result not found in execution results referenced by current block
+	// we iterate in reverse to find full last execution result (in last execution result
+	// there is only base execution result info)
+
+	// between current header and last executed header (the header which proposed the
+	// last execution result that we need here) we should be able to find the full execution result
+
+	hdrHash := header.GetPrevHash()
+	hdrNonce := header.GetNonce() - 1
+
+	for hdrNonce > lastExecutedNonce {
+		hdr, err := st.bootstrapper.getHeader(hdrHash)
+		if err != nil {
+			return nil, err
+		}
+
+		execResult, found := findExecutionResultOnHeader(header, lastExecutedNonce)
+		if found {
+			return execResult, nil
+		}
+
+		hdrHash = hdr.GetPrevHash()
+		hdrNonce = hdr.GetNonce()
+	}
+
+	return nil, errExecutionResultNotFound
+}
+
+func findExecutionResultOnHeader(
+	header data.HeaderHandler,
+	lastExecutedNonce uint64,
+) (data.BaseExecutionResultHandler, bool) {
+	for _, execResult := range header.GetExecutionResultsHandlers() {
+		if execResult.GetHeaderNonce() == lastExecutedNonce {
+			return execResult, true
+		}
+	}
+
+	return nil, false
 }
 
 func (st *storageBootstrapper) getAndApplyProofForHeader(headerHash []byte, header data.HeaderHandler) error {
