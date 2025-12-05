@@ -1,6 +1,7 @@
 package executionManager
 
 import (
+	"bytes"
 	"sync"
 
 	"github.com/multiversx/mx-chain-core-go/core/check"
@@ -88,7 +89,27 @@ func (em *executionManager) AddPairForExecution(pair queue.HeaderBodyPair) error
 	em.mut.Lock()
 	defer em.mut.Unlock()
 
+	lastExecutedBlock := em.blockChain.GetLastExecutedBlockHeader()
+	if areSameHeaders(pair.Header, lastExecutedBlock) {
+		log.Warn("header already executed", "nonce", pair.Header.GetNonce(), "round", pair.Header.GetRound())
+		return nil
+	}
+	// todo: remove pending execution result on same nonce if any
+	// todo: make sure the lastExecutedBlockHeader from blockchain is only set in blockchain if
+	// the block has passed consensus (was committed)
 	return em.blocksQueue.AddOrReplace(pair)
+}
+
+func areSameHeaders(header1, header2 data.HeaderHandler) bool {
+	if check.IfNil(header1) || check.IfNil(header2) {
+		return false
+	}
+
+	sameNonce := header1.GetNonce() == header2.GetNonce()
+	sameRound := header1.GetRound() == header2.GetRound()
+	samePreviousHash := bytes.Equal(header1.GetPrevHash(), header2.GetPrevHash())
+
+	return sameNonce && sameRound && samePreviousHash
 }
 
 // GetPendingExecutionResults calls the same method from executionResultsTracker
