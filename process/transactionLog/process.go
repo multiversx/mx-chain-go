@@ -28,7 +28,7 @@ type ArgTxLogProcessor struct {
 }
 
 type txLogProcessor struct {
-	logs        []*transaction.LogData
+	logs        []data.LogDataHandler
 	logsIndices map[string]int
 	mut         sync.RWMutex
 	storer      storage.Storer
@@ -54,7 +54,7 @@ func NewTxLogProcessor(args ArgTxLogProcessor) (*txLogProcessor, error) {
 	return &txLogProcessor{
 		storer:      storer,
 		marshalizer: args.Marshalizer,
-		logs:        make([]*transaction.LogData, 0),
+		logs:        make([]data.LogDataHandler, 0),
 		logsIndices: make(map[string]int),
 		mut:         sync.RWMutex{},
 	}, nil
@@ -68,7 +68,7 @@ func (tlp *txLogProcessor) GetLog(txHash []byte) (data.LogHandler, error) {
 	index, ok := tlp.logsIndices[string(txHash)]
 	if ok {
 		logData := tlp.logs[index]
-		return logData.Log, nil
+		return logData.GetLogHandler(), nil
 	}
 
 	txLogBuff, err := tlp.storer.Get(txHash)
@@ -132,7 +132,7 @@ func (tlp *txLogProcessor) EnableLogToBeSavedInCache() {
 func (tlp *txLogProcessor) Clean() {
 	tlp.mut.Lock()
 	tlp.logsIndices = make(map[string]int)
-	tlp.logs = make([]*transaction.LogData, 0)
+	tlp.logs = make([]data.LogDataHandler, 0)
 	tlp.mut.Unlock()
 }
 
