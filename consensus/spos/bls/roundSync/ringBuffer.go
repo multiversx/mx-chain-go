@@ -20,7 +20,7 @@ func newRoundRingBuffer(cap int) *roundRingBuffer {
 	}
 }
 
-// Add adds a round if it's not already present. If full, it overwrites the oldest.
+// add adds a round if it's not already present. If full, it overwrites the oldest.
 func (r *roundRingBuffer) add(round uint64) {
 	r.mut.Lock()
 	defer r.mut.Unlock()
@@ -45,7 +45,7 @@ func (r *roundRingBuffer) add(round uint64) {
 	}
 }
 
-// Last returns the last N rounds in chronological order
+// last returns the last N rounds in chronological order
 func (r *roundRingBuffer) last(n int) []uint64 {
 	r.mut.Lock()
 	defer r.mut.Unlock()

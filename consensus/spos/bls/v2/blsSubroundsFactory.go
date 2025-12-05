@@ -203,7 +203,12 @@ func (fct *factory) generateBlockSubround() error {
 	if err != nil {
 		return err
 	}
-	syncController, err := roundSync.NewRoundSyncController(subround.EquivalentProofsPool(), subround.ConsensusCoreHandler.SyncTimer())
+
+	syncController, err := roundSync.NewRoundSyncController(
+		subround.EquivalentProofsPool(),
+		subround.ConsensusCoreHandler.SyncTimer(),
+		fct.consensusCore.ShardCoordinator().SelfId(),
+	)
 	if err != nil {
 		return err
 	}

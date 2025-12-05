@@ -1,10 +1,15 @@
 package roundSync
 
 import (
+	"github.com/multiversx/mx-chain-core-go/core/check"
 	"github.com/multiversx/mx-chain-core-go/data"
 	"github.com/multiversx/mx-chain-go/consensus"
+	"github.com/multiversx/mx-chain-go/consensus/spos"
 	"github.com/multiversx/mx-chain-go/ntp"
+	logger "github.com/multiversx/mx-chain-logger-go"
 )
+
+var log = logger.GetOrCreate("roundSyncController")
 
 const (
 	roundBufferSize                       = 10
@@ -15,15 +20,22 @@ type roundSyncController struct {
 	outOfRangeRounds *roundRingBuffer
 	deSyncedRounds   *roundRingBuffer
 	syncer           ntp.SyncTimer
-	proofsPool       consensus.EquivalentProofsPool
+	selfShardID      uint32
 }
 
-func NewRoundSyncController(proofsPool consensus.EquivalentProofsPool, syncer ntp.SyncTimer) (*roundSyncController, error) {
+func NewRoundSyncController(proofsPool consensus.EquivalentProofsPool, syncer ntp.SyncTimer, selfShardID uint32) (*roundSyncController, error) {
+	if check.IfNil(proofsPool) {
+		return nil, spos.ErrNilEquivalentProofPool
+	}
+	if check.IfNil(syncer) {
+		return nil, spos.ErrNilSyncTimer
+	}
+
 	rsc := &roundSyncController{
-		proofsPool:       proofsPool,
 		outOfRangeRounds: newRoundRingBuffer(roundBufferSize),
 		deSyncedRounds:   newRoundRingBuffer(roundBufferSize),
 		syncer:           syncer,
+		selfShardID:      selfShardID,
 	}
 
 	proofsPool.RegisterHandler(rsc.receivedProof)
@@ -36,7 +48,16 @@ func (rsc *roundSyncController) AddOutOfRangeRound(round uint64) {
 }
 
 func (rsc *roundSyncController) receivedProof(headerProof data.HeaderProofHandler) {
+	if headerProof.GetHeaderShardId() != rsc.selfShardID {
+		return
+	}
+
 	currRound := headerProof.GetHeaderRound()
+	// this should probably not happen, but return early if we receive the same proof for this round so we don't trigger resync multiple times
+	if rsc.deSyncedRounds.contains(currRound) {
+		return
+	}
+
 	if rsc.outOfRangeRounds.contains(currRound) {
 		rsc.deSyncedRounds.add(currRound)
 		rsc.tryResyncIfNeeded()
@@ -48,12 +69,14 @@ func (rsc *roundSyncController) tryResyncIfNeeded() {
 		return
 	}
 
-	if areRoundsAscendingOrder(rsc.deSyncedRounds.last(numRequiredMissedHeadersToForceResync)) {
+	lastDeSyncedRounds := rsc.deSyncedRounds.last(numRequiredMissedHeadersToForceResync)
+	if areRoundsInAscendingOrder(lastDeSyncedRounds) {
+		log.Debug("roundSyncController: force ntp synchronization")
 		rsc.syncer.ForceSync()
 	}
 }
 
-func areRoundsAscendingOrder(rounds []uint64) bool {
+func areRoundsInAscendingOrder(rounds []uint64) bool {
 	if len(rounds) == 0 {
 		return false
 	}
