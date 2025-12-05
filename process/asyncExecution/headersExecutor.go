@@ -91,6 +91,8 @@ func (he *headersExecutor) ResumeExecution() {
 }
 
 func (he *headersExecutor) start(ctx context.Context) {
+	log.Debug("headersExecutor.start: starting execution")
+
 	for {
 		select {
 		case <-ctx.Done():
@@ -108,6 +110,7 @@ func (he *headersExecutor) start(ctx context.Context) {
 			// blocking operation
 			headerBodyPair, shouldContinue := he.blocksQueue.Pop()
 			if !shouldContinue {
+				log.Debug("headersExecutor.start: not ok fetching from queue")
 				// close event
 				return
 			}
@@ -149,13 +152,19 @@ func (he *headersExecutor) handleProcessError(ctx context.Context, pair queue.He
 func (he *headersExecutor) process(pair queue.HeaderBodyPair) error {
 	executionResult, err := he.blockProcessor.ProcessBlockProposal(pair.Header, pair.Body)
 	if err != nil {
-		log.Warn("headersExecutor.process process block failed", "err", err)
+		log.Warn("headersExecutor.process process block failed",
+			"nonce", pair.Header.GetNonce(),
+			"err", err,
+		)
 		return err
 	}
 
 	err = he.executionTracker.AddExecutionResult(executionResult)
 	if err != nil {
-		log.Warn("headersExecutor.process add execution result failed", "err", err)
+		log.Warn("headersExecutor.process add execution result failed",
+			"nonce", pair.Header.GetNonce(),
+			"err", err,
+		)
 		return nil
 	}
 
@@ -167,6 +176,12 @@ func (he *headersExecutor) process(pair queue.HeaderBodyPair) error {
 
 	he.blockChain.SetLastExecutedBlockHeaderAndRootHash(pair.Header, executionResult.GetHeaderHash(), executionResult.GetRootHash())
 	he.blockChain.SetLastExecutionResult(executionResult)
+
+	log.Debug("headersExecutor.process completed",
+		"nonce", pair.Header.GetNonce(),
+		"exec nonce", executionResult.GetHeaderNonce(),
+		"exec rootHash", executionResult.GetRootHash(),
+	)
 
 	return nil
 }
