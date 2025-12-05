@@ -3075,6 +3075,14 @@ func (bp *baseProcessor) checkInclusionEstimationForExecutionResults(header data
 		return err
 	}
 	executionResults := header.GetExecutionResultsHandlers()
+	sanitizedExecutionResults := bp.excludeRevertedExecutionResultsForHeader(header, executionResults)
+	if len(sanitizedExecutionResults) != len(executionResults) {
+		log.Warn("non canonical execution result included",
+			"sanitized num results", len(sanitizedExecutionResults),
+			"header num results", len(executionResults),
+		)
+		return process.ErrNonCanonicalExecutionResultIncluded
+	}
 	allowed := bp.executionResultsInclusionEstimator.Decide(lastResultData, executionResults, header.GetRound())
 	if allowed != len(executionResults) {
 		log.Warn("number of execution results included in the header is not correct",
@@ -3103,10 +3111,11 @@ func (bp *baseProcessor) addExecutionResultsOnHeader(header data.HeaderHandler) 
 		return err
 	}
 
+	sanitizedExecutionResults := bp.excludeRevertedExecutionResultsForHeader(header, pendingExecutionResults)
 	var lastExecutionResultForCurrentBlock data.LastExecutionResultHandler
-	numToInclude := bp.executionResultsInclusionEstimator.Decide(lastNotarizedExecutionResultInfo, pendingExecutionResults, header.GetRound())
+	numToInclude := bp.executionResultsInclusionEstimator.Decide(lastNotarizedExecutionResultInfo, sanitizedExecutionResults, header.GetRound())
 
-	executionResultsToInclude := pendingExecutionResults[:numToInclude]
+	executionResultsToInclude := sanitizedExecutionResults[:numToInclude]
 	lastExecutionResultForCurrentBlock = lastExecutionResultHandler
 	if len(executionResultsToInclude) > 0 {
 		lastExecutionResult := executionResultsToInclude[len(executionResultsToInclude)-1]
@@ -3122,6 +3131,38 @@ func (bp *baseProcessor) addExecutionResultsOnHeader(header data.HeaderHandler) 
 	}
 
 	return header.SetExecutionResultsHandlers(executionResultsToInclude)
+}
+
+func (bp *baseProcessor) excludeRevertedExecutionResultsForHeader(
+	header data.HeaderHandler,
+	pendingExecutionResults []data.BaseExecutionResultHandler,
+) []data.BaseExecutionResultHandler {
+	// only last pending execution result can be wrong if the block is reverted
+	// check that and exclude if needed
+	if len(pendingExecutionResults) == 0 {
+		return pendingExecutionResults
+	}
+
+	lastPendingExecutionResult := pendingExecutionResults[len(pendingExecutionResults)-1]
+	if lastPendingExecutionResult.GetHeaderNonce() == header.GetNonce() {
+		// last pending execution result cannot be for the current header that is being constructed
+		// so we need to exclude it
+		return pendingExecutionResults[:len(pendingExecutionResults)-1]
+	}
+
+	// only headers that have passed consensus are stored
+	_, err := process.GetHeaderFromStorage(
+		header.GetShardID(),
+		lastPendingExecutionResult.GetHeaderHash(),
+		bp.marshalizer,
+		bp.store,
+	)
+
+	if err != nil {
+		return pendingExecutionResults[:len(pendingExecutionResults)-1]
+	}
+
+	return pendingExecutionResults
 }
 
 func (bp *baseProcessor) createMbsCrossShardDstMe(
