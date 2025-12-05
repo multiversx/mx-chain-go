@@ -229,6 +229,14 @@ func (sr *subroundBlock) sendHeaderAndBlockBody(
 	sr.SetBody(bodyHandler)
 	sr.SetHeader(headerHandler)
 
+	// log the header output for debugging purposes
+	headerOutput, err := common.PrettifyStruct(headerHandler)
+	if err != nil {
+		log.Error("Proposed header sent v1", "error", err)
+	} else {
+		log.Debug("Proposed header sent v1", "header", headerOutput)
+	}
+
 	return true
 }
 
@@ -447,6 +455,14 @@ func (sr *subroundBlock) receivedBlockBodyAndHeader(ctx context.Context, cnsDta 
 		spos.GetConsensusTopicID(sr.ShardCoordinator()),
 		spos.LeaderPeerHonestyIncreaseFactor,
 	)
+
+	// log the header output for debugging purposes
+	headerOutput, err := common.PrettifyStruct(header)
+	if err != nil {
+		log.Error("Proposed header received v1", "error", err)
+	} else {
+		log.Debug("Proposed header received v1", "header", headerOutput)
+	}
 
 	return blockProcessedWithSuccess
 }
