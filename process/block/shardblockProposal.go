@@ -715,7 +715,7 @@ func (sp *shardProcessor) collectExecutionResults(headerHash []byte, header data
 	}
 
 	logs := sp.txCoordinator.GetAllCurrentLogs()
-	err = sp.cacheLogEvents(headerHash, getLogsSlice(logs))
+	err = sp.cacheLogEvents(headerHash, logs)
 	if err != nil {
 		return nil, err
 	}
@@ -726,14 +726,6 @@ func (sp *shardProcessor) collectExecutionResults(headerHash []byte, header data
 	}
 
 	return executionResult, nil
-}
-
-func getLogsSlice(initialPtrSlice []*data.LogData) []data.LogData {
-	logsSlice := make([]data.LogData, 0, len(initialPtrSlice))
-	for _, logPtr := range initialPtrSlice {
-		logsSlice = append(logsSlice, *logPtr)
-	}
-	return logsSlice
 }
 
 func (sp *shardProcessor) getOrderedProcessedMetaBlocksFromMiniBlockHashesV3(
