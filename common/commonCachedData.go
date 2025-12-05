@@ -38,17 +38,12 @@ func GetCachedLogs(cache storage.Cacher, headerHash []byte) ([]*data.LogData, er
 		log.Warn("logs not found in dataPool", "hash", headerHash)
 		return nil, fmt.Errorf("%w for header %s", ErrMissingCachedLogs, hex.EncodeToString(headerHash))
 	}
-	cachedLogsSlice, ok := cachedLogs.([]data.LogData)
+	cachedLogsSlice, ok := cachedLogs.([]*data.LogData)
 	if !ok {
 		return nil, fmt.Errorf("%w for cached logs %s", ErrWrongTypeAssertion, hex.EncodeToString(headerHash))
 	}
 
-	cachedLogsPtr := make([]*data.LogData, 0, len(cachedLogsSlice))
-	for _, cachedLog := range cachedLogsSlice {
-		cachedLogsPtr = append(cachedLogsPtr, &cachedLog)
-	}
-
-	return cachedLogsPtr, nil
+	return cachedLogsSlice, nil
 }
 
 // GetCachedMbs will return the cached miniblocks from provided cache
