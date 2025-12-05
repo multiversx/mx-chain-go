@@ -6,6 +6,7 @@ import (
 	"testing"
 	"time"
 
+	"github.com/multiversx/mx-chain-core-go/core/check"
 	"github.com/multiversx/mx-chain-core-go/data"
 	"github.com/multiversx/mx-chain-core-go/data/block"
 	"github.com/multiversx/mx-chain-go/common"
@@ -137,7 +138,8 @@ func TestHeadersQueue_Concurrency(t *testing.T) {
 		go func() {
 			for {
 				pair, shouldContinue := hq.Pop()
-				if !shouldContinue {
+				valuseOk := !check.IfNil(pair.Header) && !check.IfNil(pair.Body)
+				if !shouldContinue || !valuseOk {
 					return
 				}
 				hdr := pair.Header.(*block.Header)

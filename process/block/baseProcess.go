@@ -555,7 +555,7 @@ func displayHeader(
 			shouldAddHorizontalLine := idx == len(headerHandler.GetExecutionResultsHandlers())-1
 			logLines = append(logLines, display.NewLineData(shouldAddHorizontalLine, []string{
 				"",
-				fmt.Sprintf("Execution result %d", idx),
+				fmt.Sprintf("Execution result %d", execRes.GetHeaderNonce()),
 				logger.DisplayByteSlice(execRes.GetHeaderHash())}))
 		}
 	} else {
@@ -2905,7 +2905,7 @@ func (bp *baseProcessor) getMiniBlocksForReceiptsV3(execResult data.BaseExecutio
 	return receiptsMiniBlocks, nil
 }
 
-func (bp *baseProcessor) cacheLogEvents(headerHash []byte, logs []*data.LogData) error {
+func (bp *baseProcessor) cacheLogEvents(headerHash []byte, logs []data.LogData) error {
 	logsMarshalledSize, err := process.GetMarshaledSliceSize(logs, bp.marshalizer)
 	if err != nil {
 		return err
@@ -3416,14 +3416,13 @@ func (bp *baseProcessor) getLastExecutionResultHeader(
 		return nil, err
 	}
 
-	headersPool := bp.dataPool.Headers()
-
-	header, err := headersPool.GetHeaderByHash(lastExecutionResult.GetHeaderHash())
-	if err != nil {
-		return nil, err
-	}
-
-	return header, nil
+	return process.GetHeader(
+		lastExecutionResult.GetHeaderHash(),
+		bp.dataPool.Headers(),
+		bp.store,
+		bp.marshalizer,
+		currentHeader.GetShardID(),
+	)
 }
 
 func (bp *baseProcessor) checkContextBeforeExecution(header data.HeaderHandler) error {
@@ -3434,12 +3433,24 @@ func (bp *baseProcessor) checkContextBeforeExecution(header data.HeaderHandler) 
 
 	lastExecutedNonce, lastExecutedHash, lastExecutedRootHash := bp.blockChain.GetLastExecutedBlockInfo()
 	if !bytes.Equal(header.GetPrevHash(), lastExecutedHash) {
+		log.Debug("checkContextBeforeExecution: hash does not match",
+			"lastExecutedHash", lastExecutedHash,
+			"prevHash", header.GetPrevHash(),
+		)
 		return process.ErrBlockHashDoesNotMatch
 	}
 	if header.GetNonce() != lastExecutedNonce+1 {
+		log.Debug("checkContextBeforeExecution: nonce does not match",
+			"lastExecutedNonce+1", lastExecutedNonce+1,
+			"nonce", header.GetNonce(),
+		)
 		return process.ErrWrongNonceInBlock
 	}
 	if !bytes.Equal(lastCommittedRootHash, lastExecutedRootHash) {
+		log.Debug("checkContextBeforeExecution: rootHash does not match",
+			"lastExecutedRootHash", lastExecutedRootHash,
+			"lastCommittedRootHash", lastCommittedRootHash,
+		)
 		return process.ErrRootStateDoesNotMatch
 	}
 
