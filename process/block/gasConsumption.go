@@ -7,6 +7,7 @@ import (
 
 	"github.com/multiversx/mx-chain-core-go/core/check"
 	"github.com/multiversx/mx-chain-core-go/data"
+	"github.com/multiversx/mx-chain-core-go/data/block"
 
 	"golang.org/x/exp/slices"
 
@@ -113,6 +114,13 @@ func (gc *gasConsumption) AddIncomingMiniBlocks(
 	lastMiniBlockIndex = initialLastIndex
 	shouldSavePending := false
 	for i := 0; i < len(miniBlocks); i++ {
+		mbType := miniBlocks[i].GetTypeInt32()
+		if mbType == int32(block.RewardsBlock) || mbType == int32(block.PeerBlock) {
+			// rewards and validator info have 0 gas limit, thus they should be included anyway
+			lastMiniBlockIndex = i
+			continue
+		}
+
 		shouldSavePending, err = gc.addIncomingMiniBlock(miniBlocks[i], transactions, bandwidthForIncomingMiniBlocks)
 		if shouldSavePending {
 			// saving pending starting with idx i, as it was not included either
