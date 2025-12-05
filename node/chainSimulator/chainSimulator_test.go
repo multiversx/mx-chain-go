@@ -8,6 +8,7 @@ import (
 
 	"github.com/multiversx/mx-chain-core-go/core"
 	"github.com/multiversx/mx-chain-core-go/data/transaction"
+	logger "github.com/multiversx/mx-chain-logger-go"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 
@@ -41,6 +42,48 @@ var (
 		Value:    defaultSupernovaRoundsPerEpochValue,
 	}
 )
+
+func TestChainSimulatorCheckSupernova(t *testing.T) {
+	chainSimulator, err := NewChainSimulator(ArgsChainSimulator{
+		BypassTxSignatureCheck:         true,
+		TempDir:                        t.TempDir(),
+		PathToInitialConfig:            defaultPathToInitialConfig,
+		NumOfShards:                    defaultNumOfShards,
+		RoundDurationInMillis:          defaultRoundDurationInMillis,
+		SupernovaRoundDurationInMillis: defaultSupernovaRoundDurationInMillis,
+		RoundsPerEpoch:                 defaultRoundsPerEpoch,
+		SupernovaRoundsPerEpoch:        defaultSupernovaRoundsPerEpoch,
+		ApiInterface:                   api.NewNoApiInterface(),
+		MinNodesPerShard:               3,
+		MetaChainMinNodes:              3,
+		AlterConfigsFunction: func(cfg *config.Configs) {
+
+		},
+	})
+	require.Nil(t, err)
+	require.NotNil(t, chainSimulator)
+
+	logger.SetLogLevel("*:DEBUG")
+
+	err = chainSimulator.GenerateBlocksUntilEpochIsReached(2)
+	require.Nil(t, err)
+
+	err = chainSimulator.GenerateBlocks(2)
+	require.Nil(t, err)
+
+	err = chainSimulator.GenerateBlocks(1) // supernova round activation
+	require.Nil(t, err)
+
+	err = chainSimulator.GenerateBlocks(1)
+	require.Nil(t, err)
+
+	err = chainSimulator.GenerateBlocks(50)
+	require.Nil(t, err)
+
+	time.Sleep(time.Second)
+
+	chainSimulator.Close()
+}
 
 func TestNewChainSimulator(t *testing.T) {
 	if testing.Short() {

@@ -7,11 +7,13 @@ import (
 	"github.com/multiversx/mx-chain-core-go/core/check"
 	"github.com/multiversx/mx-chain-core-go/data"
 	dataBlock "github.com/multiversx/mx-chain-core-go/data/block"
+	logger "github.com/multiversx/mx-chain-logger-go"
+
 	"github.com/multiversx/mx-chain-go/common"
 	heartbeatData "github.com/multiversx/mx-chain-go/heartbeat/data"
 	"github.com/multiversx/mx-chain-go/node/chainSimulator/configs"
+	"github.com/multiversx/mx-chain-go/process/asyncExecution/queue"
 	"github.com/multiversx/mx-chain-go/sharding/nodesCoordinator"
-	logger "github.com/multiversx/mx-chain-logger-go"
 )
 
 var log = logger.GetOrCreate("process-block")
@@ -46,6 +48,30 @@ func (creator *blocksCreator) IncrementRound() {
 	creator.nodeHandler.GetStatusCoreComponents().AppStatusHandler().SetUInt64Value(common.MetricCurrentRound, uint64(roundHandler.Index()))
 }
 
+func (creator *blocksCreator) createHeaderBasedOnRound(round uint64, nonce uint64) (data.HeaderHandler, error) {
+	coreComponents := creator.nodeHandler.GetCoreComponents()
+	processComponents := creator.nodeHandler.GetProcessComponents()
+
+	if coreComponents.EnableRoundsHandler().IsFlagEnabledInRound(common.SupernovaRoundFlag, round) {
+		return processComponents.BlockProcessor().CreateNewHeaderProposal(round, nonce)
+	}
+
+	return processComponents.BlockProcessor().CreateNewHeader(round, nonce)
+}
+
+func (creator *blocksCreator) createBlock(header data.HeaderHandler) (data.HeaderHandler, data.BodyHandler, error) {
+	processComponents := creator.nodeHandler.GetProcessComponents()
+	if header.IsHeaderV3() {
+		return processComponents.BlockProcessor().CreateBlockProposal(header, func() bool {
+			return true
+		})
+	}
+
+	return processComponents.BlockProcessor().CreateBlock(header, func() bool {
+		return true
+	})
+}
+
 // CreateNewBlock creates and process a new block
 func (creator *blocksCreator) CreateNewBlock() error {
 	processComponents := creator.nodeHandler.GetProcessComponents()
@@ -55,7 +81,8 @@ func (creator *blocksCreator) CreateNewBlock() error {
 
 	nonce, _, prevHash, prevRandSeed, epoch, prevHeader := creator.getPreviousHeaderData()
 	round := coreComponents.RoundHandler().Index()
-	newHeader, err := bp.CreateNewHeader(uint64(round), nonce+1)
+
+	newHeader, err := creator.createHeaderBasedOnRound(uint64(round), nonce+1)
 	if err != nil {
 		return err
 	}
@@ -111,9 +138,11 @@ func (creator *blocksCreator) CreateNewBlock() error {
 		}
 	}
 
-	err = newHeader.SetPubKeysBitmap(pubKeyBitmap)
-	if err != nil {
-		return err
+	if !newHeader.IsHeaderV3() {
+		err = newHeader.SetPubKeysBitmap(pubKeyBitmap)
+		if err != nil {
+			return err
+		}
 	}
 
 	isManaged := cryptoComponents.KeysHandler().IsKeyManagedByCurrentNode(leader.PubKey())
@@ -136,9 +165,7 @@ func (creator *blocksCreator) CreateNewBlock() error {
 
 	enableEpochHandler := coreComponents.EnableEpochsHandler()
 
-	header, block, err := bp.CreateBlock(newHeader, func() bool {
-		return true
-	})
+	header, block, err := creator.createBlock(newHeader)
 	if err != nil {
 		return err
 	}
@@ -151,17 +178,30 @@ func (creator *blocksCreator) CreateNewBlock() error {
 		creator.updatePeerShardMapper(header.GetEpoch())
 	}
 
+	if newHeader.IsHeaderV3() {
+		//err = creator.setHeaderSignatures(header, leader.PubKey(), validators, pubKeyBitmap)
+		//if err != nil {
+		//	return err
+		//}
+
+		err = creator.nodeHandler.GetProcessComponents().BlockProcessor().VerifyBlockProposal(header, block, func() time.Duration {
+			return time.Second
+		})
+		if err != nil {
+			return err
+		}
+
+		pair := queue.HeaderBodyPair{
+			Header: header,
+			Body:   block,
+		}
+		err = creator.nodeHandler.GetProcessComponents().ExecutionManager().AddPairForExecution(pair)
+		if err != nil {
+			return err
+		}
+	}
+
 	headerProof, err := creator.ApplySignaturesAndGetProof(header, prevHeader, enableEpochHandler, validators, leader, pubKeyBitmap)
-	if err != nil {
-		return err
-	}
-
-	err = bp.CommitBlock(header, block)
-	if err != nil {
-		return err
-	}
-
-	err = creator.setHeartBeat(header)
 	if err != nil {
 		return err
 	}
@@ -171,7 +211,28 @@ func (creator *blocksCreator) CreateNewBlock() error {
 		return err
 	}
 
-	miniBlocks, transactions, err := bp.MarshalizedDataToBroadcast(headerHash, header, block)
+	var miniBlocks map[uint32][]byte
+	var transactions map[string][][]byte
+	if header.IsHeaderV3() {
+		miniBlocks, transactions, err = bp.MarshalizedDataToBroadcast(headerHash, header, block)
+		if err != nil {
+			return err
+		}
+	}
+
+	err = bp.CommitBlock(header, block)
+	if err != nil {
+		return err
+	}
+
+	if !header.IsHeaderV3() {
+		miniBlocks, transactions, err = bp.MarshalizedDataToBroadcast(headerHash, header, block)
+		if err != nil {
+			return err
+		}
+	}
+
+	err = creator.setHeartBeat(header)
 	if err != nil {
 		return err
 	}
@@ -232,9 +293,16 @@ func (creator *blocksCreator) ApplySignaturesAndGetProof(
 ) (*dataBlock.HeaderProof, error) {
 	nilPrevHeader := check.IfNil(prevHeader)
 
-	err := creator.setHeaderSignatures(header, leader.PubKey(), validators)
-	if err != nil {
-		return nil, err
+	correctPubKeyBitmap := header.GetPubKeysBitmap()
+	if header.IsHeaderV3() {
+		correctPubKeyBitmap = pubKeyBitmap
+	}
+
+	if !header.IsHeaderV3() {
+		err := creator.setHeaderSignatures(header, leader.PubKey(), validators, correctPubKeyBitmap)
+		if err != nil {
+			return nil, err
+		}
 	}
 
 	coreComponents := creator.nodeHandler.GetCoreComponents()
@@ -246,7 +314,8 @@ func (creator *blocksCreator) ApplySignaturesAndGetProof(
 	}
 
 	pubKeys := extractValidatorPubKeys(validators)
-	newHeaderSig, err := creator.generateAggregatedSignature(headerHash, header.GetEpoch(), header.GetPubKeysBitmap(), pubKeys)
+
+	newHeaderSig, err := creator.generateAggregatedSignature(headerHash, header.GetEpoch(), correctPubKeyBitmap, pubKeys)
 	if err != nil {
 		return nil, err
 	}
@@ -333,6 +402,7 @@ func (creator *blocksCreator) setHeaderSignatures(
 	header data.HeaderHandler,
 	blsKeyBytes []byte,
 	validators []nodesCoordinator.Validator,
+	correctPubKeyBitmap []byte,
 ) error {
 	headerClone := header.ShallowClone()
 	_ = headerClone.SetPubKeysBitmap(nil)
@@ -346,7 +416,7 @@ func (creator *blocksCreator) setHeaderSignatures(
 	headerHash := creator.nodeHandler.GetCoreComponents().Hasher().Compute(string(marshalizedHdr))
 	pubKeys := extractValidatorPubKeys(validators)
 
-	sig, err := creator.generateAggregatedSignature(headerHash, header.GetEpoch(), header.GetPubKeysBitmap(), pubKeys)
+	sig, err := creator.generateAggregatedSignature(headerHash, header.GetEpoch(), correctPubKeyBitmap, pubKeys)
 	if err != nil {
 		return err
 	}
