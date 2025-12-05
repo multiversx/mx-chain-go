@@ -310,6 +310,7 @@ type BlockProcessor interface {
 		proposedHeader data.HeaderHandler,
 		proposedHash []byte,
 	) error
+	OnExecutedBlock(header data.HeaderHandler, rootHash []byte) error
 	Close() error
 	IsInterfaceNil() bool
 }
