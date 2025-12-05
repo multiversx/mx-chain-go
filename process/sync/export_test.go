@@ -352,3 +352,8 @@ func (boot *baseBootstrap) IsInImportMode() bool {
 func (boot *baseBootstrap) ProcessWaitTime() time.Duration {
 	return boot.processWaitTime
 }
+
+// PrepareForSyncAtBoostrapIfNeeded -
+func (boot *baseBootstrap) PrepareForSyncAtBoostrapIfNeeded() error {
+	return boot.prepareForSyncAtBoostrapIfNeeded()
+}
