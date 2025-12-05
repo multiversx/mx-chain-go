@@ -47,6 +47,16 @@ func (rd *RatingsInfoMock) MetaChainRatingsStepHandler() process.RatingsStepHand
 	return rd.MetaRatingsStepDataProperty
 }
 
+// ShardChainRatingsStepHandlerForEpoch -
+func (rd *RatingsInfoMock) ShardChainRatingsStepHandlerForEpoch(_ uint32) process.RatingsStepHandler {
+	return rd.ShardRatingsStepDataProperty
+}
+
+// MetaChainRatingsStepHandlerForEpoch -
+func (rd *RatingsInfoMock) MetaChainRatingsStepHandlerForEpoch(_ uint32) process.RatingsStepHandler {
+	return rd.MetaRatingsStepDataProperty
+}
+
 // ShardChainRatingsStepHandler -
 func (rd *RatingsInfoMock) ShardChainRatingsStepHandler() process.RatingsStepHandler {
 	return rd.ShardRatingsStepDataProperty

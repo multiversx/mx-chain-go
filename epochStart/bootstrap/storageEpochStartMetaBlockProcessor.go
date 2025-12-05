@@ -8,8 +8,7 @@ import (
 
 	"github.com/multiversx/mx-chain-core-go/core"
 	"github.com/multiversx/mx-chain-core-go/core/check"
-	"github.com/multiversx/mx-chain-core-go/data"
-	"github.com/multiversx/mx-chain-core-go/data/block"
+	coreData "github.com/multiversx/mx-chain-core-go/data"
 	"github.com/multiversx/mx-chain-core-go/hashing"
 	"github.com/multiversx/mx-chain-core-go/marshal"
 	"github.com/multiversx/mx-chain-go/epochStart"
@@ -25,7 +24,7 @@ type storageEpochStartMetaBlockProcessor struct {
 	hasher         hashing.Hasher
 	chanReceived   chan struct{}
 	mutMetablock   sync.Mutex
-	metaBlock      data.MetaHeaderHandler
+	metaBlock      coreData.MetaHeaderHandler
 }
 
 // NewStorageEpochStartMetaBlockProcessor will return an interceptor processor for epoch start meta block when importing
@@ -68,29 +67,29 @@ func (ses *storageEpochStartMetaBlockProcessor) Validate(_ process.InterceptedDa
 // Save will handle the consensus mechanism for the fetched metablocks
 // All errors are just logged because if this function returns an error, the processing is finished. This way, we ignore
 // wrong received data and wait for relevant intercepted data
-func (ses *storageEpochStartMetaBlockProcessor) Save(data process.InterceptedData, _ core.PeerID, _ string) error {
+func (ses *storageEpochStartMetaBlockProcessor) Save(data process.InterceptedData, _ core.PeerID, _ string) (dataSaved bool, err error) {
 	if check.IfNil(data) {
 		log.Debug("epoch bootstrapper: nil intercepted data")
-		return nil
+		return false, nil
 	}
 
 	log.Debug("received header", "type", data.Type(), "hash", data.Hash())
 	interceptedHdr, ok := data.(process.HdrValidatorHandler)
 	if !ok {
 		log.Warn("saving epoch start meta block error", "error", epochStart.ErrWrongTypeAssertion)
-		return nil
+		return false, nil
 	}
 
-	metaBlock, ok := interceptedHdr.HeaderHandler().(*block.MetaBlock)
+	metaBlock, ok := interceptedHdr.HeaderHandler().(coreData.MetaHeaderHandler)
 	if !ok {
 		log.Warn("saving epoch start meta block error", "error", epochStart.ErrWrongTypeAssertion,
 			"header", interceptedHdr.HeaderHandler())
-		return nil
+		return false, nil
 	}
 
 	if !metaBlock.IsStartOfEpochBlock() {
 		log.Warn("received metablock is not of type epoch start", "error", epochStart.ErrNotEpochStartBlock)
-		return nil
+		return false, nil
 	}
 
 	log.Debug("received epoch start meta", "epoch", metaBlock.GetEpoch(), "from peer", "self")
@@ -103,12 +102,12 @@ func (ses *storageEpochStartMetaBlockProcessor) Save(data process.InterceptedDat
 	default:
 	}
 
-	return nil
+	return true, nil
 }
 
 // GetEpochStartMetaBlock will return the metablock after it is confirmed or an error if the number of tries was exceeded
 // This is a blocking method which will end after the consensus for the meta block is obtained or the context is done
-func (ses *storageEpochStartMetaBlockProcessor) GetEpochStartMetaBlock(ctx context.Context) (data.MetaHeaderHandler, error) {
+func (ses *storageEpochStartMetaBlockProcessor) GetEpochStartMetaBlock(ctx context.Context) (coreData.MetaHeaderHandler, error) {
 	ses.requestMetaBlock()
 
 	chanRequests := time.After(durationBetweenReRequests)
@@ -125,7 +124,7 @@ func (ses *storageEpochStartMetaBlockProcessor) GetEpochStartMetaBlock(ctx conte
 	}
 }
 
-func (ses *storageEpochStartMetaBlockProcessor) getMetablock() (data.MetaHeaderHandler, error) {
+func (ses *storageEpochStartMetaBlockProcessor) getMetablock() (coreData.MetaHeaderHandler, error) {
 	ses.mutMetablock.Lock()
 	defer ses.mutMetablock.Unlock()
 

@@ -11,30 +11,31 @@ import (
 	"github.com/multiversx/mx-chain-core-go/core/check"
 	"github.com/multiversx/mx-chain-core-go/data"
 	"github.com/multiversx/mx-chain-core-go/data/block"
+	"github.com/multiversx/mx-chain-core-go/marshal"
+	"github.com/stretchr/testify/assert"
+	"github.com/stretchr/testify/require"
+
 	"github.com/multiversx/mx-chain-go/config"
 	"github.com/multiversx/mx-chain-go/dataRetriever"
 	"github.com/multiversx/mx-chain-go/epochStart"
 	"github.com/multiversx/mx-chain-go/epochStart/mock"
+	"github.com/multiversx/mx-chain-go/process"
 	"github.com/multiversx/mx-chain-go/storage"
+	"github.com/multiversx/mx-chain-go/testscommon/chainParameters"
 	dataRetrieverMock "github.com/multiversx/mx-chain-go/testscommon/dataRetriever"
 	"github.com/multiversx/mx-chain-go/testscommon/hashingMocks"
 	statusHandlerMock "github.com/multiversx/mx-chain-go/testscommon/statusHandler"
 	storageStubs "github.com/multiversx/mx-chain-go/testscommon/storage"
 	vic "github.com/multiversx/mx-chain-go/testscommon/validatorInfoCacher"
-	"github.com/stretchr/testify/assert"
-	"github.com/stretchr/testify/require"
 )
 
 func createMockEpochStartTriggerArguments() *ArgsNewMetaEpochStartTrigger {
 	return &ArgsNewMetaEpochStartTrigger{
-		GenesisTime: time.Time{},
-		Settings: &config.EpochStartConfig{
-			MinRoundsBetweenEpochs: 1,
-			RoundsPerEpoch:         2,
-		},
+		GenesisTime:        time.Time{},
+		Settings:           &config.EpochStartConfig{},
 		Epoch:              0,
 		EpochStartNotifier: &mock.EpochStartNotifierStub{},
-		Marshalizer:        &mock.MarshalizerMock{},
+		Marshalizer:        &marshal.GogoProtoMarshalizer{},
 		Hasher:             &hashingMocks.HasherMock{},
 		AppStatusHandler:   &statusHandlerMock.AppStatusHandlerStub{},
 		Storage: &storageStubs.ChainStorerStub{
@@ -60,6 +61,14 @@ func createMockEpochStartTriggerArguments() *ArgsNewMetaEpochStartTrigger {
 				return &vic.ValidatorInfoCacherStub{}
 			},
 		},
+		ChainParametersHandler: &chainParameters.ChainParametersHandlerStub{
+			CurrentChainParametersCalled: func() config.ChainParametersByEpochConfig {
+				return config.ChainParametersByEpochConfig{
+					RoundsPerEpoch:         2,
+					MinRoundsBetweenEpochs: 1,
+				}
+			},
+		},
 	}
 }
 
@@ -83,15 +92,15 @@ func TestNewEpochStartTrigger_NilSettingsShouldErr(t *testing.T) {
 	assert.Equal(t, epochStart.ErrNilEpochStartSettings, err)
 }
 
-func TestNewEpochStartTrigger_InvalidSettingsShouldErr(t *testing.T) {
+func TestNewEpochStartTrigger_NilChainParametersHandler(t *testing.T) {
 	t.Parallel()
 
 	arguments := createMockEpochStartTriggerArguments()
-	arguments.Settings.RoundsPerEpoch = 0
+	arguments.ChainParametersHandler = nil
 
 	epochStartTrigger, err := NewEpochStartTrigger(arguments)
 	assert.Nil(t, epochStartTrigger)
-	assert.True(t, errors.Is(err, epochStart.ErrInvalidSettingsForEpochStartTrigger))
+	assert.True(t, errors.Is(err, process.ErrNilChainParametersHandler))
 }
 
 func TestNewEpochStartTrigger_NilEpochStartNotifierShouldErr(t *testing.T) {
@@ -103,30 +112,6 @@ func TestNewEpochStartTrigger_NilEpochStartNotifierShouldErr(t *testing.T) {
 	epochStartTrigger, err := NewEpochStartTrigger(arguments)
 	assert.Nil(t, epochStartTrigger)
 	assert.True(t, errors.Is(err, epochStart.ErrNilEpochStartNotifier))
-}
-
-func TestNewEpochStartTrigger_InvalidSettingsShouldErr2(t *testing.T) {
-	t.Parallel()
-
-	arguments := createMockEpochStartTriggerArguments()
-	arguments.Settings.RoundsPerEpoch = 1
-	arguments.Settings.MinRoundsBetweenEpochs = 0
-
-	epochStartTrigger, err := NewEpochStartTrigger(arguments)
-	assert.Nil(t, epochStartTrigger)
-	assert.True(t, errors.Is(err, epochStart.ErrInvalidSettingsForEpochStartTrigger))
-}
-
-func TestNewEpochStartTrigger_InvalidSettingsShouldErr3(t *testing.T) {
-	t.Parallel()
-
-	arguments := createMockEpochStartTriggerArguments()
-	arguments.Settings.RoundsPerEpoch = 4
-	arguments.Settings.MinRoundsBetweenEpochs = 6
-
-	epochStartTrigger, err := NewEpochStartTrigger(arguments)
-	assert.Nil(t, epochStartTrigger)
-	assert.True(t, errors.Is(err, epochStart.ErrInvalidSettingsForEpochStartTrigger))
 }
 
 func TestNewEpochStartTrigger_MissingBootstrapUnit(t *testing.T) {
@@ -175,6 +160,29 @@ func TestNewEpochStartTrigger_ShouldOk(t *testing.T) {
 	assert.Nil(t, err)
 }
 
+func TestNewEpochStartTrigger_ShouldProposeEpochChange(t *testing.T) {
+	t.Parallel()
+
+	arguments := createMockEpochStartTriggerArguments()
+
+	epochStartTrigger, err := NewEpochStartTrigger(arguments)
+	require.NotNil(t, epochStartTrigger)
+	require.Nil(t, err)
+
+	epoch := uint32(0)
+	round := uint64(2)
+	nonce := uint64(100)
+
+	shouldProposeEpochChange := epochStartTrigger.ShouldProposeEpochChange(round, nonce)
+	require.True(t, shouldProposeEpochChange)
+
+	currentEpoch := epochStartTrigger.epoch
+	shouldProposeEpochChange = epochStartTrigger.ShouldProposeEpochChange(round, nonce)
+	require.True(t, shouldProposeEpochChange)
+	require.Equal(t, epoch, currentEpoch)
+	require.False(t, epochStartTrigger.IsEpochStart())
+}
+
 func TestTrigger_Update(t *testing.T) {
 	t.Parallel()
 
@@ -217,10 +225,7 @@ func TestTrigger_ForceEpochStartCloseToNormalEpochStartShouldNotForce(t *testing
 	t.Parallel()
 
 	arguments := createMockEpochStartTriggerArguments()
-	arguments.Settings.MinRoundsBetweenEpochs = 20
-	arguments.Settings.RoundsPerEpoch = 200
 	epochStartTrigger, _ := NewEpochStartTrigger(arguments)
-	epochStartTrigger.currentRound = 20
 
 	epochStartTrigger.ForceEpochStart(201)
 	assert.Equal(t, uint64(math.MaxUint64), epochStartTrigger.nextEpochStartRound)
@@ -230,13 +235,18 @@ func TestTrigger_ForceEpochStartUnderMinimumBetweenEpochs(t *testing.T) {
 	t.Parallel()
 
 	arguments := createMockEpochStartTriggerArguments()
-	arguments.Settings.MinRoundsBetweenEpochs = 20
-	arguments.Settings.RoundsPerEpoch = 200
+	arguments.ChainParametersHandler = &chainParameters.ChainParametersHandlerStub{
+		ChainParametersForEpochCalled: func(uint32) (config.ChainParametersByEpochConfig, error) {
+			return config.ChainParametersByEpochConfig{
+				MinRoundsBetweenEpochs: 20,
+				RoundsPerEpoch:         200,
+			}, nil
+		},
+	}
 	epochStartTrigger, _ := NewEpochStartTrigger(arguments)
-	epochStartTrigger.currentRound = 1
 
 	epochStartTrigger.ForceEpochStart(10)
-	assert.Equal(t, uint64(arguments.Settings.MinRoundsBetweenEpochs), epochStartTrigger.nextEpochStartRound)
+	assert.Equal(t, uint64(20), epochStartTrigger.nextEpochStartRound)
 }
 
 func TestTrigger_ForceEpochStartShouldOk(t *testing.T) {
@@ -244,13 +254,18 @@ func TestTrigger_ForceEpochStartShouldOk(t *testing.T) {
 
 	epoch := uint32(0)
 	arguments := createMockEpochStartTriggerArguments()
-	arguments.Settings.MinRoundsBetweenEpochs = 20
-	arguments.Settings.RoundsPerEpoch = 200
+	arguments.ChainParametersHandler = &chainParameters.ChainParametersHandlerStub{
+		ChainParametersForEpochCalled: func(epoch uint32) (config.ChainParametersByEpochConfig, error) {
+			return config.ChainParametersByEpochConfig{
+				MinRoundsBetweenEpochs: 20,
+				RoundsPerEpoch:         200,
+			}, nil
+		},
+	}
+
 	arguments.Epoch = epoch
 	epochStartTrigger, err := NewEpochStartTrigger(arguments)
 	require.Nil(t, err)
-
-	epochStartTrigger.currentRound = 50
 
 	expectedRound := uint64(60)
 	epochStartTrigger.ForceEpochStart(60)
@@ -461,4 +476,30 @@ func TestTrigger_RevertBehindEpochStartBlock(t *testing.T) {
 		EpochStart: block.EpochStart{LastFinalizedHeaders: []block.EpochStartShardData{{RootHash: []byte("root")}}}}, nil)
 	ret = epochStartTrigger.IsEpochStart()
 	assert.False(t, ret)
+}
+
+func TestTrigger_SetProcessedHeaderV3(t *testing.T) {
+	t.Parallel()
+
+	args := createMockEpochStartTriggerArguments()
+
+	wasNotifyAllCalled := false
+	wasNotifyAllPrepareCalled := false
+	args.EpochStartNotifier = &mock.EpochStartNotifierStub{
+		NotifyAllCalled: func(hdr data.HeaderHandler) {
+			wasNotifyAllCalled = true
+		},
+		NotifyAllPrepareCalled: func(hdr data.HeaderHandler, body data.BodyHandler) {
+			wasNotifyAllPrepareCalled = true
+		},
+	}
+
+	epochStartTrigger, _ := NewEpochStartTrigger(args)
+
+	header := &block.MetaBlockV3{Nonce: 4, EpochStart: block.EpochStart{LastFinalizedHeaders: make([]block.EpochStartShardData, 1)}}
+	epochStartTrigger.SetProcessed(header, &block.Body{})
+
+	require.True(t, wasNotifyAllCalled)
+	require.True(t, wasNotifyAllPrepareCalled)
+	require.False(t, epochStartTrigger.isEpochStart)
 }

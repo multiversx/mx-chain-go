@@ -7,8 +7,9 @@ import (
 	"github.com/multiversx/mx-chain-core-go/core"
 	"github.com/multiversx/mx-chain-core-go/core/check"
 	"github.com/multiversx/mx-chain-core-go/data"
-	"github.com/multiversx/mx-chain-go/process"
 	"github.com/multiversx/mx-chain-logger-go"
+
+	"github.com/multiversx/mx-chain-go/process"
 )
 
 var _ process.PendingMiniBlocksHandler = (*pendingMiniBlocks)(nil)
@@ -16,21 +17,40 @@ var _ process.PendingMiniBlocksHandler = (*pendingMiniBlocks)(nil)
 var log = logger.GetOrCreate("process/block/pendingMb")
 
 type pendingMiniBlocks struct {
+	headersPool                HeadersPool
 	mutPendingMbShard          sync.RWMutex
 	mapPendingMbShard          map[string]uint32
 	beforeRevertPendingMbShard map[string]uint32
 }
 
 // NewPendingMiniBlocks will create a new pendingMiniBlocks object
-func NewPendingMiniBlocks() (*pendingMiniBlocks, error) {
+func NewPendingMiniBlocks(headersPool HeadersPool) (*pendingMiniBlocks, error) {
+	if check.IfNil(headersPool) {
+		return nil, process.ErrNilHeadersDataPool
+	}
+
 	return &pendingMiniBlocks{
+		headersPool:                headersPool,
 		mapPendingMbShard:          make(map[string]uint32),
 		beforeRevertPendingMbShard: make(map[string]uint32),
 	}, nil
 }
 
-func (p *pendingMiniBlocks) getAllCrossShardMiniBlocksHashes(metaBlock data.MetaHeaderHandler) map[string]uint32 {
+func (p *pendingMiniBlocks) getMiniBlocksHashesReadyForCrossShardExecution(metaBlock data.MetaHeaderHandler) (map[string]uint32, error) {
 	crossShardMiniBlocks := make(map[string]uint32)
+
+	miniBlocksFromShards, err := p.getMiniBlockHandlersFromShardData(metaBlock)
+	if err != nil {
+		return nil, err
+	}
+
+	for _, mbHeader := range miniBlocksFromShards {
+		if !shouldConsiderCrossShardMiniBlock(mbHeader.GetSenderShardID(), mbHeader.GetReceiverShardID()) {
+			continue
+		}
+
+		crossShardMiniBlocks[string(mbHeader.GetHash())] = mbHeader.GetReceiverShardID()
+	}
 
 	for _, mbHeader := range metaBlock.GetMiniBlockHeaderHandlers() {
 		if !shouldConsiderCrossShardMiniBlock(mbHeader.GetSenderShardID(), mbHeader.GetReceiverShardID()) {
@@ -40,19 +60,30 @@ func (p *pendingMiniBlocks) getAllCrossShardMiniBlocksHashes(metaBlock data.Meta
 		crossShardMiniBlocks[string(mbHeader.GetHash())] = mbHeader.GetReceiverShardID()
 	}
 
-	shardInfoHandlers := metaBlock.GetShardInfoHandlers()
-	for _, shardData := range shardInfoHandlers {
-		miniblockHandlers := shardData.GetShardMiniBlockHeaderHandlers()
-		for _, mbHeader := range miniblockHandlers {
-			if !shouldConsiderCrossShardMiniBlock(mbHeader.GetSenderShardID(), mbHeader.GetReceiverShardID()) {
-				continue
-			}
+	return crossShardMiniBlocks, nil
+}
 
-			crossShardMiniBlocks[string(mbHeader.GetHash())] = mbHeader.GetReceiverShardID()
+func (p *pendingMiniBlocks) getMiniBlockHandlersFromShardData(metaBlock data.MetaHeaderHandler) ([]data.MiniBlockHeaderHandler, error) {
+	miniBlocks := make([]data.MiniBlockHeaderHandler, 0)
+	if !metaBlock.IsHeaderV3() {
+		for _, shardData := range metaBlock.GetShardInfoHandlers() {
+			miniblockHandlers := shardData.GetShardMiniBlockHeaderHandlers()
+			miniBlocks = append(miniBlocks, miniblockHandlers...)
 		}
+
+		return miniBlocks, nil
 	}
 
-	return crossShardMiniBlocks
+	for _, shardData := range metaBlock.GetShardInfoProposalHandlers() {
+		shardHeader, err := p.headersPool.GetHeaderByHash(shardData.GetHeaderHash())
+		if err != nil {
+			return nil, err
+		}
+
+		miniBlocks = append(miniBlocks, shardHeader.GetMiniBlockHeaderHandlers()...)
+	}
+
+	return miniBlocks, nil
 }
 
 func shouldConsiderCrossShardMiniBlock(senderShardID uint32, receiverShardID uint32) bool {
@@ -121,7 +152,10 @@ func (p *pendingMiniBlocks) RevertHeader(headerHandler data.HeaderHandler) error
 }
 
 func (p *pendingMiniBlocks) processHeader(metaHandler data.MetaHeaderHandler) error {
-	crossShardMiniBlocksHashes := p.getAllCrossShardMiniBlocksHashes(metaHandler)
+	crossShardMiniBlocksHashes, err := p.getMiniBlocksHashesReadyForCrossShardExecution(metaHandler)
+	if err != nil {
+		return err
+	}
 
 	p.mutPendingMbShard.Lock()
 	defer p.mutPendingMbShard.Unlock()

@@ -77,7 +77,7 @@ func checkHeaderHandler(
 ) error {
 	equivalentMessagesEnabled := enableEpochsHandler.IsFlagEnabledInEpoch(common.AndromedaFlag, hdr.GetEpoch())
 
-	if len(hdr.GetPubKeysBitmap()) == 0 && !equivalentMessagesEnabled {
+	if !hdr.IsHeaderV3() && len(hdr.GetPubKeysBitmap()) == 0 && !equivalentMessagesEnabled {
 		return process.ErrNilPubKeysBitmap
 	}
 	if len(hdr.GetPrevHash()) == 0 {
@@ -86,7 +86,7 @@ func checkHeaderHandler(
 	if len(hdr.GetSignature()) == 0 && !equivalentMessagesEnabled {
 		return process.ErrNilSignature
 	}
-	if len(hdr.GetRootHash()) == 0 {
+	if !hdr.IsHeaderV3() && len(hdr.GetRootHash()) == 0 {
 		return process.ErrNilRootHash
 	}
 	if len(hdr.GetRandSeed()) == 0 {
@@ -96,7 +96,11 @@ func checkHeaderHandler(
 		return process.ErrNilPrevRandSeed
 	}
 
-	return hdr.CheckFieldsForNil()
+	err := hdr.CheckFieldsForNil()
+	if err != nil {
+		return err
+	}
+	return hdr.CheckFieldsIntegrity()
 }
 
 func checkMetaShardInfo(

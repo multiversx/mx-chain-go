@@ -6,16 +6,20 @@ import (
 	"github.com/multiversx/mx-chain-core-go/core"
 	"github.com/multiversx/mx-chain-core-go/core/check"
 	"github.com/multiversx/mx-chain-core-go/data"
+	"github.com/multiversx/mx-chain-go/common"
 )
 
 type baseBlockChain struct {
-	mut                    sync.RWMutex
-	appStatusHandler       core.AppStatusHandler
-	genesisHeader          data.HeaderHandler
-	genesisHeaderHash      []byte
-	currentBlockHeader     data.HeaderHandler
-	currentBlockHeaderHash []byte
-	finalBlockInfo         *blockInfo
+	mut                     sync.RWMutex
+	appStatusHandler        core.AppStatusHandler
+	genesisHeader           data.HeaderHandler
+	genesisHeaderHash       []byte
+	currentBlockHeader      data.HeaderHandler
+	currentBlockHeaderHash  []byte
+	finalBlockInfo          *blockInfo
+	lastExecutedBlockInfo   *blockInfo
+	lastExecutedBlockHeader data.HeaderHandler
+	lastExecutionResult     data.BaseExecutionResultHandler
 }
 
 type blockInfo struct {
@@ -99,4 +103,77 @@ func (bbc *baseBlockChain) GetFinalBlockInfo() (uint64, []byte, []byte) {
 	rootHash := bbc.finalBlockInfo.committedRootHash
 
 	return nonce, hash, rootHash
+}
+
+// GetLastExecutedBlockInfo returns the nonce, hash and rootHash associated with the last executed results
+func (bbc *baseBlockChain) GetLastExecutedBlockInfo() (uint64, []byte, []byte) {
+	bbc.mut.RLock()
+	defer bbc.mut.RUnlock()
+
+	nonce := bbc.lastExecutedBlockInfo.nonce
+	hash := bbc.lastExecutedBlockInfo.hash
+	rootHash := bbc.lastExecutedBlockInfo.committedRootHash
+
+	return nonce, hash, rootHash
+}
+
+// GetLastExecutedBlockHeader returns last executed block header pointer
+func (bbc *baseBlockChain) GetLastExecutedBlockHeader() data.HeaderHandler {
+	bbc.mut.RLock()
+	defer bbc.mut.RUnlock()
+
+	if check.IfNil(bbc.lastExecutedBlockHeader) {
+		return nil
+	}
+
+	return bbc.lastExecutedBlockHeader.ShallowClone()
+}
+
+// SetLastExecutedBlockHeaderAndRootHash sets header, hash and rootHash for last executed block
+func (bbc *baseBlockChain) SetLastExecutedBlockHeaderAndRootHash(
+	header data.HeaderHandler,
+	headerHash []byte,
+	rootHash []byte,
+) {
+	bbc.mut.Lock()
+	defer bbc.mut.Unlock()
+
+	if check.IfNil(header) {
+		bbc.lastExecutedBlockHeader = nil
+		bbc.lastExecutedBlockInfo.nonce = 0
+		bbc.lastExecutedBlockInfo.hash = nil
+		bbc.lastExecutedBlockInfo.committedRootHash = nil
+		return
+	}
+
+	bbc.lastExecutedBlockInfo.nonce = header.GetNonce()
+	bbc.lastExecutedBlockInfo.hash = headerHash
+	bbc.lastExecutedBlockInfo.committedRootHash = rootHash
+
+	bbc.lastExecutedBlockHeader = header.ShallowClone()
+}
+
+// GetLastExecutionResult returns the last execution result
+func (bbc *baseBlockChain) GetLastExecutionResult() data.BaseExecutionResultHandler {
+	bbc.mut.RLock()
+	defer bbc.mut.RUnlock()
+
+	return bbc.lastExecutionResult
+}
+
+// SetLastExecutionResult sets the last execution result
+func (bbc *baseBlockChain) SetLastExecutionResult(result data.BaseExecutionResultHandler) {
+	bbc.mut.Lock()
+	defer bbc.mut.Unlock()
+
+	bbc.lastExecutionResult = result
+}
+
+func (bbc *baseBlockChain) setCurrentHeaderMetrics(
+	header data.HeaderHandler,
+) {
+	bbc.appStatusHandler.SetUInt64Value(common.MetricNonce, header.GetNonce())
+	bbc.appStatusHandler.SetUInt64Value(common.MetricSynchronizedRound, header.GetRound())
+	bbc.appStatusHandler.SetUInt64Value(common.MetricBlockTimestamp, header.GetTimeStamp())
+	bbc.appStatusHandler.SetUInt64Value(common.MetricBlockTimestampMs, header.GetTimeStamp())
 }

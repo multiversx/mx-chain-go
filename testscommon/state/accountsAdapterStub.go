@@ -15,31 +15,33 @@ var _ state.AccountsAdapter = (*AccountsStub)(nil)
 
 // AccountsStub -
 type AccountsStub struct {
-	GetExistingAccountCalled      func(addressContainer []byte) (vmcommon.AccountHandler, error)
-	GetAccountFromBytesCalled     func(address []byte, accountBytes []byte) (vmcommon.AccountHandler, error)
-	LoadAccountCalled             func(container []byte) (vmcommon.AccountHandler, error)
-	SaveAccountCalled             func(account vmcommon.AccountHandler) error
-	RemoveAccountCalled           func(addressContainer []byte) error
-	CommitCalled                  func() ([]byte, error)
-	CommitInEpochCalled           func(uint32, uint32) ([]byte, error)
-	JournalLenCalled              func() int
-	RevertToSnapshotCalled        func(snapshot int) error
-	RootHashCalled                func() ([]byte, error)
-	RecreateTrieCalled            func(options common.RootHashHolder) error
-	PruneTrieCalled               func(rootHash []byte, identifier state.TriePruningIdentifier, handler state.PruningHandler)
-	CancelPruneCalled             func(rootHash []byte, identifier state.TriePruningIdentifier)
-	SnapshotStateCalled           func(rootHash []byte, epoch uint32)
-	IsPruningEnabledCalled        func() bool
-	GetAllLeavesCalled            func(leavesChannels *common.TrieIteratorChannels, ctx context.Context, rootHash []byte, trieLeafParser common.TrieLeafParser) error
-	RecreateAllTriesCalled        func(rootHash []byte) (map[string]common.Trie, error)
-	GetCodeCalled                 func([]byte) []byte
-	GetTrieCalled                 func([]byte) (common.Trie, error)
-	GetStackDebugFirstEntryCalled func() []byte
-	GetAccountWithBlockInfoCalled func(address []byte, options common.RootHashHolder) (vmcommon.AccountHandler, common.BlockInfo, error)
-	GetCodeWithBlockInfoCalled    func(codeHash []byte, options common.RootHashHolder) ([]byte, common.BlockInfo, error)
-	CloseCalled                   func() error
-	SetSyncerCalled               func(syncer state.AccountsDBSyncer) error
-	StartSnapshotIfNeededCalled   func() error
+	GetExistingAccountCalled              func(addressContainer []byte) (vmcommon.AccountHandler, error)
+	GetAccountFromBytesCalled             func(address []byte, accountBytes []byte) (vmcommon.AccountHandler, error)
+	LoadAccountCalled                     func(container []byte) (vmcommon.AccountHandler, error)
+	SaveAccountCalled                     func(account vmcommon.AccountHandler) error
+	RemoveAccountCalled                   func(addressContainer []byte) error
+	CommitCalled                          func() ([]byte, error)
+	CommitInEpochCalled                   func(uint32, uint32) ([]byte, error)
+	JournalLenCalled                      func() int
+	RevertToSnapshotCalled                func(snapshot int) error
+	RootHashCalled                        func() ([]byte, error)
+	RecreateTrieCalled                    func(options common.RootHashHolder) error
+	RecreateTrieIfNeededCalled            func(options common.RootHashHolder) error
+	PruneTrieCalled                       func(rootHash []byte, identifier state.TriePruningIdentifier, handler state.PruningHandler)
+	CancelPruneCalled                     func(rootHash []byte, identifier state.TriePruningIdentifier)
+	SnapshotStateCalled                   func(rootHash []byte, epoch uint32)
+	IsPruningEnabledCalled                func() bool
+	GetAllLeavesCalled                    func(leavesChannels *common.TrieIteratorChannels, ctx context.Context, rootHash []byte, trieLeafParser common.TrieLeafParser) error
+	RecreateAllTriesCalled                func(rootHash []byte) (map[string]common.Trie, error)
+	GetCodeCalled                         func([]byte) []byte
+	GetTrieCalled                         func([]byte) (common.Trie, error)
+	GetStackDebugFirstEntryCalled         func() []byte
+	GetAccountWithBlockInfoCalled         func(address []byte, options common.RootHashHolder) (vmcommon.AccountHandler, common.BlockInfo, error)
+	GetCodeWithBlockInfoCalled            func(codeHash []byte, options common.RootHashHolder) ([]byte, common.BlockInfo, error)
+	CloseCalled                           func() error
+	SetSyncerCalled                       func(syncer state.AccountsDBSyncer) error
+	StartSnapshotIfNeededCalled           func() error
+	SetTxHashForLatestStateAccessesCalled func(txHash []byte)
 }
 
 // CleanCache -
@@ -185,6 +187,15 @@ func (as *AccountsStub) RecreateTrie(options common.RootHashHolder) error {
 	return errNotImplemented
 }
 
+// RecreateTrieIfNeeded -
+func (as *AccountsStub) RecreateTrieIfNeeded(options common.RootHashHolder) error {
+	if as.RecreateTrieIfNeededCalled != nil {
+		return as.RecreateTrieIfNeededCalled(options)
+	}
+
+	return errNotImplemented
+}
+
 // PruneTrie -
 func (as *AccountsStub) PruneTrie(rootHash []byte, identifier state.TriePruningIdentifier, handler state.PruningHandler) {
 	as.PruneTrieCalled(rootHash, identifier, handler)
@@ -247,6 +258,13 @@ func (as *AccountsStub) GetCodeWithBlockInfo(codeHash []byte, options common.Roo
 	}
 
 	return nil, nil, nil
+}
+
+// SetTxHashForLatestStateAccesses -
+func (as *AccountsStub) SetTxHashForLatestStateAccesses(txHash []byte) {
+	if as.SetTxHashForLatestStateAccessesCalled != nil {
+		as.SetTxHashForLatestStateAccessesCalled(txHash)
+	}
 }
 
 // Close -

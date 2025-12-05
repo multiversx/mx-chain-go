@@ -4,14 +4,10 @@ import (
 	"github.com/multiversx/mx-chain-core-go/core"
 	"github.com/multiversx/mx-chain-core-go/core/check"
 	"github.com/multiversx/mx-chain-core-go/data"
-	"github.com/multiversx/mx-chain-core-go/data/block"
-	"github.com/multiversx/mx-chain-go/common"
 )
 
 var _ data.ChainHandler = (*metaChain)(nil)
 
-// metaChain holds the block information for the beacon chain
-//
 // The MetaChain also holds pointers to the Genesis block and the current block.
 type metaChain struct {
 	*baseBlockChain
@@ -26,8 +22,9 @@ func NewMetaChain(appStatusHandler core.AppStatusHandler) (*metaChain, error) {
 
 	return &metaChain{
 		baseBlockChain: &baseBlockChain{
-			appStatusHandler: appStatusHandler,
-			finalBlockInfo:   &blockInfo{},
+			appStatusHandler:      appStatusHandler,
+			finalBlockInfo:        &blockInfo{},
+			lastExecutedBlockInfo: &blockInfo{},
 		},
 	}, nil
 }
@@ -42,7 +39,7 @@ func (mc *metaChain) SetGenesisHeader(header data.HeaderHandler) error {
 		return nil
 	}
 
-	genBlock, ok := header.(*block.MetaBlock)
+	genBlock, ok := header.(data.MetaHeaderHandler)
 	if !ok {
 		return ErrWrongTypeInSet
 	}
@@ -53,32 +50,44 @@ func (mc *metaChain) SetGenesisHeader(header data.HeaderHandler) error {
 	return nil
 }
 
-// SetCurrentBlockHeaderAndRootHash sets current block header pointer and the root hash
-func (mc *metaChain) SetCurrentBlockHeaderAndRootHash(header data.HeaderHandler, rootHash []byte) error {
-	if check.IfNil(header) {
-		mc.mut.Lock()
-		mc.currentBlockHeader = nil
-		mc.currentBlockRootHash = nil
-		mc.mut.Unlock()
+// SetCurrentBlockHeader sets current block header pointer
+func (mc *metaChain) SetCurrentBlockHeader(header data.HeaderHandler) error {
+	mc.mut.Lock()
+	defer mc.mut.Unlock()
 
+	return mc.setCurrentBlockHeaderUnprotected(header)
+}
+
+func (mc *metaChain) setCurrentBlockHeaderUnprotected(header data.HeaderHandler) error {
+	if check.IfNil(header) {
+		mc.currentBlockHeader = nil
 		return nil
 	}
 
-	currHead, ok := header.(*block.MetaBlock)
+	currHead, ok := header.(data.MetaHeaderHandler)
 	if !ok {
 		return ErrWrongTypeInSet
 	}
 
-	mc.appStatusHandler.SetUInt64Value(common.MetricNonce, currHead.Nonce)
-	mc.appStatusHandler.SetUInt64Value(common.MetricSynchronizedRound, currHead.Round)
-	mc.appStatusHandler.SetUInt64Value(common.MetricBlockTimestamp, currHead.GetTimeStamp())
-	mc.appStatusHandler.SetUInt64Value(common.MetricBlockTimestampMs, common.ConvertTimeStampSecToMs(currHead.GetTimeStamp()))
-
-	mc.mut.Lock()
 	mc.currentBlockHeader = currHead.ShallowClone()
+
+	mc.setCurrentHeaderMetrics(header)
+
+	return nil
+}
+
+// SetCurrentBlockHeaderAndRootHash sets current block header pointer and the root hash
+func (mc *metaChain) SetCurrentBlockHeaderAndRootHash(header data.HeaderHandler, rootHash []byte) error {
+	mc.mut.Lock()
+	defer mc.mut.Unlock()
+
+	err := mc.setCurrentBlockHeaderUnprotected(header)
+	if err != nil {
+		return err
+	}
+
 	mc.currentBlockRootHash = make([]byte, len(rootHash))
 	copy(mc.currentBlockRootHash, rootHash)
-	mc.mut.Unlock()
 
 	return nil
 }

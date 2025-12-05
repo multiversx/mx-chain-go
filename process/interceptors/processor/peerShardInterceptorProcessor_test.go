@@ -68,7 +68,7 @@ func TestPeerShardInterceptorProcessor_Save(t *testing.T) {
 		arg.DataBuff, _ = arg.Marshaller.Marshal(&heartbeatMessages.HeartbeatV2{})
 		ihb, _ := heartbeat.NewInterceptedHeartbeat(arg)
 
-		err = processor.Save(ihb, "", "")
+		_, err = processor.Save(ihb, "", "")
 		assert.Equal(t, process.ErrWrongTypeAssertion, err)
 		assert.False(t, wasCalled)
 	})
@@ -99,7 +99,7 @@ func TestPeerShardInterceptorProcessor_Save(t *testing.T) {
 		}
 		data, _ := processP2P.NewInterceptedPeerShard(arg)
 
-		err = processor.Save(data, "", "")
+		_, err = processor.Save(data, "", "")
 		assert.NotNil(t, err)
 		assert.False(t, wasCalled)
 	})
@@ -130,7 +130,7 @@ func TestPeerShardInterceptorProcessor_Save(t *testing.T) {
 		}
 		data, _ := processP2P.NewInterceptedPeerShard(arg)
 
-		err = processor.Save(data, "", "")
+		_, err = processor.Save(data, "", "")
 		assert.Nil(t, err)
 		assert.True(t, wasCalled)
 	})

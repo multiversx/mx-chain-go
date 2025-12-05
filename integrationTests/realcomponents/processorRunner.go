@@ -283,6 +283,7 @@ func (pr *ProcessorRunner) createStatusComponents(tb testing.TB) {
 		pr.CoreComponents.GenesisNodesSetup(),
 		pr.Config.GeneralConfig.EpochStartConfig,
 		pr.CoreComponents.ChanStopNodeProcess(),
+		pr.CoreComponents.ChainParametersHandler(),
 	)
 	require.Nil(tb, err)
 
@@ -393,6 +394,7 @@ func (pr *ProcessorRunner) createProcessComponents(tb testing.TB) {
 		Marshalizer:              pr.CoreComponents.InternalMarshalizer(),
 		Store:                    pr.DataComponents.StorageService(),
 		Uint64ByteSliceConverter: pr.CoreComponents.Uint64ByteSliceConverter(),
+		DataPool:                 pr.DataComponents.Datapool(),
 	}
 	historyRepositoryFactory, err := dbLookupFactory.NewHistoryRepositoryFactory(historyRepoFactoryArgs)
 	require.Nil(tb, err)
@@ -438,6 +440,7 @@ func (pr *ProcessorRunner) createProcessComponents(tb testing.TB) {
 		StatusComponents:        pr.StatusComponents,
 		StatusCoreComponents:    pr.StatusCoreComponents,
 		TxExecutionOrderHandler: txExecutionOrderHandler,
+		EconomicsConfig:         *pr.Config.EconomicsConfig,
 	}
 
 	processFactory, err := factoryProcessing.NewProcessComponentsFactory(argsProcess)

@@ -97,6 +97,10 @@ func (gfp *gasUsedAndFeeProcessor) getFeeOfRelayedV1V2(tx *transaction.ApiTransa
 		return nil, nil, false
 	}
 
+	if gfp.enableEpochsHandler.IsFlagEnabledInEpoch(common.RelayedTransactionsV1V2DisableFlag, tx.Epoch) {
+		return nil, nil, false
+	}
+
 	funcName, args, err := gfp.argsParser.ParseCallData(string(tx.Data))
 	if err != nil {
 		return nil, nil, false

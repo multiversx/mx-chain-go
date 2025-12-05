@@ -132,6 +132,7 @@ func prepareNodesAndPlayers() ([]*integrationTests.TestProcessorNode, []*integra
 	enableEpochsConfig := integrationTests.GetDefaultEnableEpochsConfig()
 	enableEpochsConfig.StakingV2EnableEpoch = integrationTests.UnreachableEpoch
 	enableEpochsConfig.ChangeUsernameEnableEpoch = integrationTests.UnreachableEpoch
+	enableEpochsConfig.RelayedTransactionsV1V2DisableEpoch = integrationTests.UnreachableEpoch
 	nodes, _ := integrationTests.CreateNodesWithFullGenesisCustomEnableEpochs(
 		numOfShards,
 		nodesPerShard,

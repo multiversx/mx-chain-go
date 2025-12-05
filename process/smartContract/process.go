@@ -65,7 +65,7 @@ type scProcessor struct {
 	builtInFunctions   vmcommon.BuiltInFunctionContainer
 	wasmVMChangeLocker common.Locker
 
-	enableRoundsHandler process.EnableRoundsHandler
+	enableRoundsHandler common.EnableRoundsHandler
 	enableEpochsHandler common.EnableEpochsHandler
 	badTxForwarder      process.IntermediateTransactionHandler
 	scrForwarder        process.IntermediateTransactionHandler
@@ -2330,7 +2330,7 @@ func (sc *scProcessor) createSmartContractResults(
 		isCrossShard := sc.shardCoordinator.ComputeId(outAcc.Address) != sc.shardCoordinator.SelfId()
 
 		if isCrossShard && result.CallType == vmData.AsynchronousCall &&
-			sc.enableRoundsHandler.IsDisableAsyncCallV1Enabled() {
+			sc.enableRoundsHandler.IsFlagEnabled(common.DisableAsyncCallV1Flag) {
 			return false, nil, process.ErrAsyncCallsDisabled
 		}
 
@@ -2805,6 +2805,12 @@ func (sc *scProcessor) ProcessSmartContractResult(scr *smartContractResult.Smart
 		txHash,
 		sc.pubkeyConv,
 	)
+
+	// TODO refactor to set the tx hash for the following state accesses before the processing occurs
+	defer func() {
+		sc.accounts.SetTxHashForLatestStateAccesses(txHash)
+		log.Trace("SetTxHashForLatestStateAccesses", "txHash", txHash)
+	}()
 
 	gasLocked := sc.getGasLockedFromSCR(scr)
 

@@ -498,7 +498,7 @@ func TestSyncEpochStartShardHeader_TwoConsecutiveProofsWithSameHeaderHash(t *tes
 		syncer.receivedProof(nonEpochStartProof)
 	}()
 
-	ctx, cancel := context.WithTimeout(context.Background(), time.Second)
+	ctx, cancel := context.WithTimeout(context.Background(), 2*time.Second)
 	defer cancel()
 
 	err = syncer.SyncEpochStartShardHeader(shardID, epoch, startNonce, ctx)
@@ -562,7 +562,7 @@ func TestSyncEpochStartShardHeader_ProofsBeforeHeaderShouldWork(t *testing.T) {
 		syncer.receivedHeader(epochStartHeader, headerHash)
 	}()
 
-	ctx, cancel := context.WithTimeout(context.Background(), time.Second)
+	ctx, cancel := context.WithTimeout(context.Background(), 2*time.Second)
 	defer cancel()
 
 	err = syncer.SyncEpochStartShardHeader(shardID, epoch, startNonce, ctx)
@@ -628,7 +628,7 @@ func TestSyncEpochStartShardHeader_ShouldWorkWithoutAndromedaActivated(t *testin
 		syncer.receivedHeader(epochStartHeader, headerHash)
 	}()
 
-	ctx, cancel := context.WithTimeout(context.Background(), time.Second)
+	ctx, cancel := context.WithTimeout(context.Background(), 2*time.Second)
 	defer cancel()
 
 	err = syncer.SyncEpochStartShardHeader(shardID, epoch, startNonce, ctx)

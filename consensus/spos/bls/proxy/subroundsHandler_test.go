@@ -6,6 +6,7 @@ import (
 
 	"github.com/multiversx/mx-chain-core-go/core"
 	crypto "github.com/multiversx/mx-chain-crypto-go"
+	"github.com/multiversx/mx-chain-go/testscommon/processMocks"
 	"github.com/stretchr/testify/require"
 
 	mock2 "github.com/multiversx/mx-chain-go/consensus/mock"
@@ -20,6 +21,7 @@ import (
 	epochNotifierMock "github.com/multiversx/mx-chain-go/testscommon/epochNotifier"
 	mock "github.com/multiversx/mx-chain-go/testscommon/epochstartmock"
 	outportStub "github.com/multiversx/mx-chain-go/testscommon/outport"
+	"github.com/multiversx/mx-chain-go/testscommon/round"
 	"github.com/multiversx/mx-chain-go/testscommon/shardingMocks"
 	"github.com/multiversx/mx-chain-go/testscommon/statusHandler"
 )
@@ -55,6 +57,7 @@ func getDefaultArgumentsSubroundHandler() (*SubroundsHandlerArgs, *spos.Consensu
 	consensusCore.SetEpochStartNotifier(epochStartNotifier)
 	consensusCore.SetBlockchain(&testscommon.ChainHandlerStub{})
 	consensusCore.SetBlockProcessor(&testscommon.BlockProcessorStub{})
+	consensusCore.SetExecutionManager(&processMocks.ExecutionManagerMock{})
 	consensusCore.SetBootStrapper(&bootstrapperStubs.BootstrapperStub{})
 	consensusCore.SetBroadcastMessenger(&consensus.BroadcastMessengerMock{})
 	consensusCore.SetChronology(chronology)
@@ -66,7 +69,7 @@ func getDefaultArgumentsSubroundHandler() (*SubroundsHandlerArgs, *spos.Consensu
 			return &cryptoMocks.MultisignerMock{}, nil
 		},
 	})
-	consensusCore.SetRoundHandler(&consensus.RoundHandlerMock{})
+	consensusCore.SetRoundHandler(&round.RoundHandlerMock{})
 	consensusCore.SetShardCoordinator(&testscommon.ShardsCoordinatorMock{})
 	consensusCore.SetSyncTimer(&testscommon.SyncTimerStub{})
 	consensusCore.SetNodesCoordinator(&shardingMocks.NodesCoordinatorMock{})
@@ -79,6 +82,8 @@ func getDefaultArgumentsSubroundHandler() (*SubroundsHandlerArgs, *spos.Consensu
 	consensusCore.SetPeerBlacklistHandler(&mock2.PeerBlacklistHandlerStub{})
 	consensusCore.SetSigningHandler(&consensus.SigningHandlerStub{})
 	consensusCore.SetEnableEpochsHandler(epochsEnable)
+	consensusCore.SetEnableRoundsHandler(&testscommon.EnableRoundsHandlerStub{})
+	consensusCore.SetExecutionManager(&processMocks.ExecutionManagerMock{})
 	consensusCore.SetEquivalentProofsPool(&dataRetriever.ProofsPoolMock{})
 	consensusCore.SetEpochNotifier(epochNotifier)
 	consensusCore.SetInvalidSignersCache(&consensus.InvalidSignersCacheMock{})

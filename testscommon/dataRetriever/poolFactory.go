@@ -43,6 +43,10 @@ func CreateTxPool(numShards uint32, selfShard uint32) (dataRetriever.ShardedData
 			SelfShardID:    selfShard,
 			TxGasHandler:   txcachemocks.NewTxGasHandlerMock(),
 			Marshalizer:    &marshal.GogoProtoMarshalizer{},
+			TxCacheBoundsConfig: config.TxCacheBoundsConfig{
+				MaxNumBytesPerSenderUpperBound: 33_554_432,
+				MaxTrackedBlocks:               100,
+			},
 		},
 	)
 }
@@ -122,6 +126,14 @@ func createPoolHolderArgs(numShards uint32, selfShard uint32) dataPool.DataPoolA
 
 	proofsPool := proofscache.NewProofsPool(3, 100)
 
+	cacherConfig = storageunit.CacheConfig{Capacity: 1000, Type: storageunit.LRUCache}
+	executedMiniBlocks, err := storageunit.NewCache(cacherConfig)
+	panicIfError("CreatePoolsHolder", err)
+
+	cacherConfig = storageunit.CacheConfig{Capacity: 1000, Type: storageunit.LRUCache}
+	postProcessTransactions, err := storageunit.NewCache(cacherConfig)
+	panicIfError("CreatePoolsHolder", err)
+
 	currentBlockTransactions := dataPool.NewCurrentBlockTransactionsPool()
 	currentEpochValidatorInfo := dataPool.NewCurrentEpochValidatorInfoPool()
 	dataPoolArgs := dataPool.DataPoolArgs{
@@ -140,6 +152,8 @@ func createPoolHolderArgs(numShards uint32, selfShard uint32) dataPool.DataPoolA
 		Heartbeats:                heartbeatPool,
 		ValidatorsInfo:            validatorsInfo,
 		Proofs:                    proofsPool,
+		ExecutedMiniBlocks:        executedMiniBlocks,
+		PostProcessTransactions:   postProcessTransactions,
 	}
 
 	return dataPoolArgs
@@ -232,6 +246,14 @@ func CreatePoolsHolderWithTxPool(txPool dataRetriever.ShardedDataCacherNotifier)
 
 	proofsPool := proofscache.NewProofsPool(3, 100)
 
+	cacherConfig = storageunit.CacheConfig{Capacity: 1000, Type: storageunit.LRUCache}
+	executedMiniBlocks, err := storageunit.NewCache(cacherConfig)
+	panicIfError("CreatePoolsHolderWithTxPool", err)
+
+	cacherConfig = storageunit.CacheConfig{Capacity: 1000, Type: storageunit.LRUCache}
+	postProcessTransactions, err := storageunit.NewCache(cacherConfig)
+	panicIfError("CreatePoolsHolderWithTxPool", err)
+
 	currentBlockTransactions := dataPool.NewCurrentBlockTransactionsPool()
 	currentEpochValidatorInfo := dataPool.NewCurrentEpochValidatorInfoPool()
 	dataPoolArgs := dataPool.DataPoolArgs{
@@ -250,6 +272,8 @@ func CreatePoolsHolderWithTxPool(txPool dataRetriever.ShardedDataCacherNotifier)
 		Heartbeats:                heartbeatPool,
 		ValidatorsInfo:            validatorsInfo,
 		Proofs:                    proofsPool,
+		ExecutedMiniBlocks:        executedMiniBlocks,
+		PostProcessTransactions:   postProcessTransactions,
 	}
 	holder, err := dataPool.NewDataPool(dataPoolArgs)
 	panicIfError("CreatePoolsHolderWithTxPool", err)

@@ -23,6 +23,7 @@ func CreateGeneralSetupForRelayTxTest(baseCostFixEnabled bool) ([]*integrationTe
 	if !baseCostFixEnabled {
 		epochsConfig.FixRelayedBaseCostEnableEpoch = integrationTests.UnreachableEpoch
 		epochsConfig.FixRelayedMoveBalanceToNonPayableSCEnableEpoch = integrationTests.UnreachableEpoch
+		epochsConfig.RelayedTransactionsV1V2DisableEpoch = integrationTests.UnreachableEpoch
 	}
 	nodes, leaders := createAndMintNodes(initialVal, epochsConfig)
 

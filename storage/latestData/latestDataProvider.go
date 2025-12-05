@@ -11,7 +11,6 @@ import (
 	"github.com/multiversx/mx-chain-core-go/core"
 	"github.com/multiversx/mx-chain-core-go/core/check"
 	"github.com/multiversx/mx-chain-core-go/data"
-	"github.com/multiversx/mx-chain-core-go/data/block"
 	"github.com/multiversx/mx-chain-core-go/marshal"
 	"github.com/multiversx/mx-chain-go/common"
 	"github.com/multiversx/mx-chain-go/config"
@@ -234,7 +233,7 @@ func (ldp *latestDataProvider) loadEpochStartRound(
 		return 0, err
 	}
 
-	var state *block.MetaTriggerRegistry
+	var state data.MetaTriggerRegistryHandler
 	marshaller := &marshal.GogoProtoMarshalizer{}
 	if shardID == core.MetachainShardId {
 		state, err = metachain.UnmarshalTrigger(marshaller, trigData)
@@ -242,7 +241,7 @@ func (ldp *latestDataProvider) loadEpochStartRound(
 			return 0, err
 		}
 
-		return state.CurrEpochStartRound, nil
+		return state.GetCurrEpochStartRound(), nil
 	}
 
 	var trigHandler data.TriggerRegistryHandler

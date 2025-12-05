@@ -298,7 +298,7 @@ func (sr *subroundStartRound) indexRoundIfNeeded(pubKeys []string) {
 		BlockWasProposed: false,
 		ShardId:          shardId,
 		Epoch:            epoch,
-		Timestamp:        uint64(sr.GetRoundTimeStamp().Unix()),
+		Timestamp:        sr.GetUnixTimestampForHeader(epoch),
 	}
 	roundsInfo := &outportcore.RoundsInfo{
 		ShardID:    shardId,

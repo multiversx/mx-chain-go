@@ -27,6 +27,7 @@ type ProcessComponentsMock struct {
 	EpochNotifier                        factory.EpochStartNotifier
 	ForkDetect                           process.ForkDetector
 	BlockProcess                         process.BlockProcessor
+	ExecManager                          process.ExecutionManager
 	BlackListHdl                         process.TimeCacher
 	BootSore                             process.BootStorer
 	HeaderSigVerif                       process.InterceptedHeaderSigVerifier
@@ -129,6 +130,11 @@ func (pcm *ProcessComponentsMock) ForkDetector() process.ForkDetector {
 // BlockProcessor -
 func (pcm *ProcessComponentsMock) BlockProcessor() process.BlockProcessor {
 	return pcm.BlockProcess
+}
+
+// ExecutionManager -
+func (pcm *ProcessComponentsMock) ExecutionManager() process.ExecutionManager {
+	return pcm.ExecManager
 }
 
 // BlackListHandler -

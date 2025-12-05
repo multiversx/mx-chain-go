@@ -955,6 +955,7 @@ func TestBlockChainHookImpl_GettersFromBlockchainCurrentHeader(t *testing.T) {
 		assert.Equal(t, []byte{}, bh.LastRandomSeed())
 		assert.Equal(t, []byte{}, bh.GetStateRootHash())
 	})
+
 	t.Run("custom header, expect correct values are returned", func(t *testing.T) {
 		t.Parallel()
 
@@ -991,6 +992,7 @@ func TestBlockChainHookImpl_GettersFromBlockchainCurrentHeader(t *testing.T) {
 		assert.Equal(t, randSeed, bh.LastRandomSeed())
 		assert.Equal(t, rootHash, bh.GetStateRootHash())
 	})
+
 	t.Run("custom header, do not return old block is set, expect default values", func(t *testing.T) {
 		t.Parallel()
 
@@ -1027,6 +1029,47 @@ func TestBlockChainHookImpl_GettersFromBlockchainCurrentHeader(t *testing.T) {
 		assert.Equal(t, randSeed, bh.LastRandomSeed())
 		assert.Equal(t, epoch, bh.LastEpoch())
 		assert.Equal(t, rootHash, bh.GetStateRootHash())
+	})
+
+	t.Run("custom header v3, expect correct values are returned", func(t *testing.T) {
+		t.Parallel()
+
+		nonce := uint64(37)
+		round := uint64(5)
+		timestamp := uint64(1234)
+		randSeed := []byte("a")
+		rootHash := []byte("b")
+		rootHash1 := []byte("c")
+		epoch := uint32(7)
+
+		hdrToRet := &block.HeaderV3{
+			Nonce:       nonce,
+			Round:       round,
+			TimestampMs: timestamp,
+			RandSeed:    randSeed,
+			Epoch:       epoch,
+		}
+
+		args := createMockBlockChainHookArgs()
+		args.BlockChain = &testscommon.ChainHandlerStub{
+			GetCurrentBlockHeaderCalled: func() data.HeaderHandler {
+				return hdrToRet
+			},
+			GetCurrentBlockRootHashCalled: func() []byte {
+				return rootHash
+			},
+			GetLastExecutedBlockInfoCalled: func() (uint64, []byte, []byte) {
+				return 0, []byte(""), rootHash1
+			},
+		}
+		bh, _ := hooks.NewBlockChainHookImpl(args)
+
+		assert.Equal(t, nonce, bh.LastNonce())
+		assert.Equal(t, round, bh.LastRound())
+		assert.Equal(t, timestamp, bh.LastTimeStamp())
+		assert.Equal(t, epoch, bh.LastEpoch())
+		assert.Equal(t, randSeed, bh.LastRandomSeed())
+		assert.Equal(t, rootHash1, bh.GetStateRootHash())
 	})
 }
 
@@ -2674,46 +2717,188 @@ func TestBlockChainHookImpl_IsLimitedTransfer(t *testing.T) {
 func TestBlockChainHookImpl_CurrentTimeStampMs(t *testing.T) {
 	t.Parallel()
 
-	timestamp := uint64(1234)
+	t.Run("before supernova", func(t *testing.T) {
+		t.Parallel()
 
-	hdr := &block.Header{
-		TimeStamp: timestamp,
-	}
+		timestamp := uint64(1234)
 
-	args := createMockBlockChainHookArgs()
-	bh, _ := hooks.NewBlockChainHookImpl(args)
+		hdr := &block.Header{
+			TimeStamp: timestamp,
+		}
 
-	err := bh.SetCurrentHeader(hdr)
-	require.Nil(t, err)
+		args := createMockBlockChainHookArgs()
+		args.EnableEpochsHandler = &enableEpochsHandlerMock.EnableEpochsHandlerStub{
+			IsFlagEnabledInEpochCalled: func(flag core.EnableEpochFlag, epoch uint32) bool {
+				return flag != common.SupernovaFlag
+			},
+		}
+		bh, _ := hooks.NewBlockChainHookImpl(args)
 
-	assert.Equal(t, timestamp, bh.CurrentTimeStamp())
+		err := bh.SetCurrentHeader(hdr)
+		require.Nil(t, err)
 
-	expTimestampMs := common.ConvertTimeStampSecToMs(timestamp)
-	assert.Equal(t, expTimestampMs, bh.CurrentTimeStampMs())
+		assert.Equal(t, timestamp, bh.CurrentTimeStamp())
+
+		expTimestampMs := common.ConvertTimeStampSecToMs(timestamp)
+		assert.Equal(t, expTimestampMs, bh.CurrentTimeStampMs())
+	})
+
+	t.Run("after supernova", func(t *testing.T) {
+		t.Parallel()
+
+		timestampMs := uint64(1234567)
+
+		hdr := &block.Header{
+			TimeStamp: timestampMs,
+		}
+
+		args := createMockBlockChainHookArgs()
+		args.EnableEpochsHandler = &enableEpochsHandlerMock.EnableEpochsHandlerStub{
+			IsFlagEnabledInEpochCalled: func(flag core.EnableEpochFlag, epoch uint32) bool {
+				return flag == common.SupernovaFlag
+			},
+		}
+		bh, _ := hooks.NewBlockChainHookImpl(args)
+
+		err := bh.SetCurrentHeader(hdr)
+		require.Nil(t, err)
+
+		assert.Equal(t, timestampMs, bh.CurrentTimeStampMs())
+	})
 }
 
 func TestBlockChainHookImpl_LastTimeStampMs(t *testing.T) {
 	t.Parallel()
 
-	timestamp := uint64(1234)
+	t.Run("before supernova activated", func(t *testing.T) {
+		t.Parallel()
 
-	hdr := &block.Header{
-		TimeStamp: timestamp,
-	}
+		timestamp := uint64(1234)
 
-	args := createMockBlockChainHookArgs()
-	args.BlockChain = &testscommon.ChainHandlerStub{
-		GetCurrentBlockHeaderCalled: func() data.HeaderHandler {
-			return hdr
-		},
-	}
+		hdr := &block.Header{
+			TimeStamp: timestamp,
+		}
 
-	bh, _ := hooks.NewBlockChainHookImpl(args)
+		args := createMockBlockChainHookArgs()
+		args.BlockChain = &testscommon.ChainHandlerStub{
+			GetCurrentBlockHeaderCalled: func() data.HeaderHandler {
+				return hdr
+			},
+		}
+		args.EnableEpochsHandler = &enableEpochsHandlerMock.EnableEpochsHandlerStub{
+			IsFlagEnabledCalled: func(flag core.EnableEpochFlag) bool {
+				return flag != common.SupernovaFlag
+			},
+		}
 
-	lastTimeStampMs := bh.LastTimeStampMs()
+		bh, _ := hooks.NewBlockChainHookImpl(args)
 
-	expLastTimeStamp := common.ConvertTimeStampSecToMs(timestamp)
-	require.Equal(t, expLastTimeStamp, lastTimeStampMs)
+		lastTimeStampMs := bh.LastTimeStampMs()
+
+		expLastTimeStamp := common.ConvertTimeStampSecToMs(timestamp)
+		require.Equal(t, expLastTimeStamp, lastTimeStampMs)
+	})
+
+	t.Run("after supernova activated", func(t *testing.T) {
+		t.Parallel()
+
+		timestampMs := uint64(1234567)
+		hdr := &block.Header{
+			TimeStamp: timestampMs,
+		}
+
+		args := createMockBlockChainHookArgs()
+		args.BlockChain = &testscommon.ChainHandlerStub{
+			GetCurrentBlockHeaderCalled: func() data.HeaderHandler {
+				return hdr
+			},
+		}
+		args.EnableEpochsHandler = &enableEpochsHandlerMock.EnableEpochsHandlerStub{
+			IsFlagEnabledInEpochCalled: func(flag core.EnableEpochFlag, epoch uint32) bool {
+				return flag == common.SupernovaFlag
+			},
+		}
+
+		bh, _ := hooks.NewBlockChainHookImpl(args)
+
+		lastTimeStampMs := bh.LastTimeStampMs()
+		require.Equal(t, timestampMs, lastTimeStampMs)
+	})
+}
+
+func TestBlockChainHookImpl_EpochStartBlockTimeStampMs(t *testing.T) {
+	t.Parallel()
+
+	t.Run("before supernova activated", func(t *testing.T) {
+		t.Parallel()
+
+		epoch := uint32(7)
+
+		epochStartTimestamp := uint64(1234)
+
+		epochStartHdr := &block.Header{
+			TimeStamp:          epochStartTimestamp,
+			Epoch:              epoch,
+			EpochStartMetaHash: []byte("meta"),
+		}
+
+		hdr := &block.Header{
+			Epoch: epoch,
+		}
+
+		args := createMockBlockChainHookArgs()
+		args.EnableEpochsHandler = &enableEpochsHandlerMock.EnableEpochsHandlerStub{
+			IsFlagEnabledInEpochCalled: func(flag core.EnableEpochFlag, epoch uint32) bool {
+				return flag != common.SupernovaFlag
+			},
+		}
+
+		bh, _ := hooks.NewBlockChainHookImpl(args)
+
+		err := bh.SetCurrentHeader(epochStartHdr)
+		require.Nil(t, err)
+
+		err = bh.SetCurrentHeader(hdr)
+		require.Nil(t, err)
+
+		expLastTimeStamp := common.ConvertTimeStampSecToMs(epochStartTimestamp)
+		require.Equal(t, expLastTimeStamp, bh.EpochStartBlockTimeStampMs())
+	})
+
+	t.Run("after supernova activated", func(t *testing.T) {
+		t.Parallel()
+
+		epoch := uint32(7)
+
+		epochStartTimestamp := uint64(1234567)
+
+		epochStartHdr := &block.Header{
+			TimeStamp:          epochStartTimestamp,
+			Epoch:              epoch,
+			EpochStartMetaHash: []byte("meta"),
+		}
+
+		hdr := &block.Header{
+			Epoch: epoch,
+		}
+
+		args := createMockBlockChainHookArgs()
+		args.EnableEpochsHandler = &enableEpochsHandlerMock.EnableEpochsHandlerStub{
+			IsFlagEnabledInEpochCalled: func(flag core.EnableEpochFlag, epoch uint32) bool {
+				return flag == common.SupernovaFlag
+			},
+		}
+
+		bh, _ := hooks.NewBlockChainHookImpl(args)
+
+		err := bh.SetCurrentHeader(epochStartHdr)
+		require.Nil(t, err)
+
+		err = bh.SetCurrentHeader(hdr)
+		require.Nil(t, err)
+
+		require.Equal(t, epochStartTimestamp, bh.EpochStartBlockTimeStampMs())
+	})
 }
 
 func TestBlockChainHookImpl_ConcurrencyTimeOperations(t *testing.T) {

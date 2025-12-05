@@ -90,6 +90,11 @@ func (a *accountsAdapter) RecreateTrie(_ common.RootHashHolder) error {
 	return nil
 }
 
+// RecreateTrieIfNeeded -
+func (a *accountsAdapter) RecreateTrieIfNeeded(_ common.RootHashHolder) error {
+	return nil
+}
+
 // CancelPrune -
 func (a *accountsAdapter) CancelPrune(_ []byte, _ state.TriePruningIdentifier) {
 }
@@ -126,6 +131,10 @@ func (a *accountsAdapter) CommitInEpoch(_ uint32, _ uint32) ([]byte, error) {
 // GetStackDebugFirstEntry -
 func (a *accountsAdapter) GetStackDebugFirstEntry() []byte {
 	return nil
+}
+
+// SetTxHashForLatestStateAccesses -
+func (a *accountsAdapter) SetTxHashForLatestStateAccesses(_ []byte) {
 }
 
 // Close -

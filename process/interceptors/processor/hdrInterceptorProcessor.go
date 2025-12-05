@@ -70,17 +70,17 @@ func (hip *HdrInterceptorProcessor) Validate(data process.InterceptedData, _ cor
 
 // Save will save the received data into the headers cacher as hash<->[plain header structure]
 // and in headersNonces as nonce<->hash
-func (hip *HdrInterceptorProcessor) Save(data process.InterceptedData, _ core.PeerID, topic string) error {
+func (hip *HdrInterceptorProcessor) Save(data process.InterceptedData, _ core.PeerID, topic string) (bool, error) {
 	interceptedHdr, ok := data.(process.HdrValidatorHandler)
 	if !ok {
-		return process.ErrWrongTypeAssertion
+		return false, process.ErrWrongTypeAssertion
 	}
 
 	go hip.notify(interceptedHdr.HeaderHandler(), interceptedHdr.Hash(), topic)
 
 	hip.headers.AddHeader(interceptedHdr.Hash(), interceptedHdr.HeaderHandler())
 
-	return nil
+	return true, nil
 }
 
 // RegisterHandler registers a callback function to be notified of incoming headers

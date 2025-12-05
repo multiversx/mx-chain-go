@@ -3,19 +3,25 @@ package mock
 import (
 	"math/big"
 
+	"github.com/multiversx/mx-chain-core-go/data"
 	"github.com/multiversx/mx-chain-core-go/data/block"
 )
 
 // EpochEconomicsStub -
 type EpochEconomicsStub struct {
-	ComputeEndOfEpochEconomicsCalled func(metaBlock *block.MetaBlock) (*block.Economics, error)
-	VerifyRewardsPerBlockCalled      func(
-		metaBlock *block.MetaBlock, correctedProtocolSustainability *big.Int, computedEconomics *block.Economics,
+	ComputeEndOfEpochEconomicsCalled   func(metaBlock data.MetaHeaderHandler) (*block.Economics, error)
+	ComputeEndOfEpochEconomicsV3Called func(
+		metaBlock data.MetaHeaderHandler,
+		prevBlockExecutionResults data.BaseMetaExecutionResultHandler,
+		epochStartHandler data.EpochStartHandler,
+	) (*block.Economics, error)
+	VerifyRewardsPerBlockCalled func(
+		metaBlock data.MetaHeaderHandler, correctedProtocolSustainability *big.Int, computedEconomics data.EconomicsHandler,
 	) error
 }
 
 // ComputeEndOfEpochEconomics -
-func (e *EpochEconomicsStub) ComputeEndOfEpochEconomics(metaBlock *block.MetaBlock) (*block.Economics, error) {
+func (e *EpochEconomicsStub) ComputeEndOfEpochEconomics(metaBlock data.MetaHeaderHandler) (*block.Economics, error) {
 	if e.ComputeEndOfEpochEconomicsCalled != nil {
 		return e.ComputeEndOfEpochEconomicsCalled(metaBlock)
 	}
@@ -24,11 +30,23 @@ func (e *EpochEconomicsStub) ComputeEndOfEpochEconomics(metaBlock *block.MetaBlo
 	}, nil
 }
 
+// ComputeEndOfEpochEconomicsV3 -
+func (e *EpochEconomicsStub) ComputeEndOfEpochEconomicsV3(
+	metaBlock data.MetaHeaderHandler,
+	prevBlockExecutionResults data.BaseMetaExecutionResultHandler,
+	epochStartHandler data.EpochStartHandler,
+) (*block.Economics, error) {
+	if e.ComputeEndOfEpochEconomicsV3Called != nil {
+		return e.ComputeEndOfEpochEconomicsV3Called(metaBlock, prevBlockExecutionResults, epochStartHandler)
+	}
+	return &block.Economics{}, nil
+}
+
 // VerifyRewardsPerBlock -
 func (e *EpochEconomicsStub) VerifyRewardsPerBlock(
-	metaBlock *block.MetaBlock,
+	metaBlock data.MetaHeaderHandler,
 	correctedProtocolSustainability *big.Int,
-	computedEconomics *block.Economics,
+	computedEconomics data.EconomicsHandler,
 ) error {
 	if e.VerifyRewardsPerBlockCalled != nil {
 		return e.VerifyRewardsPerBlockCalled(metaBlock, correctedProtocolSustainability, computedEconomics)

@@ -19,6 +19,7 @@ import (
 	consensusMock "github.com/multiversx/mx-chain-go/testscommon/consensus"
 	"github.com/multiversx/mx-chain-go/testscommon/consensus/initializers"
 	testscommonOutport "github.com/multiversx/mx-chain-go/testscommon/outport"
+	"github.com/multiversx/mx-chain-go/testscommon/round"
 	"github.com/multiversx/mx-chain-go/testscommon/statusHandler"
 )
 
@@ -43,8 +44,8 @@ func executeStoredMessages() {
 func resetConsensusMessages() {
 }
 
-func initRoundHandlerMock() *consensusMock.RoundHandlerMock {
-	return &consensusMock.RoundHandlerMock{
+func initRoundHandlerMock() *round.RoundHandlerMock {
+	return &round.RoundHandlerMock{
 		RoundIndex: 0,
 		TimeStampCalled: func() time.Time {
 			return time.Unix(0, 0)

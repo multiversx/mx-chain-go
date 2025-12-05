@@ -103,6 +103,8 @@ func (sr *subroundStartRound) doStartRoundJob(_ context.Context) bool {
 	sr.worker.ResetConsensusMessages()
 	sr.worker.ResetInvalidSignersCache()
 
+	sr.worker.ConsensusMetrics().ResetInstanceValues()
+
 	return true
 }
 
@@ -274,7 +276,7 @@ func (sr *subroundStartRound) indexRoundIfNeeded(pubKeys []string) {
 		BlockWasProposed: false,
 		ShardId:          shardId,
 		Epoch:            epoch,
-		Timestamp:        uint64(sr.GetRoundTimeStamp().Unix()),
+		Timestamp:        sr.GetUnixTimestampForHeader(epoch),
 	}
 	roundsInfo := &outportcore.RoundsInfo{
 		ShardID:    shardId,
@@ -344,6 +346,8 @@ func (sr *subroundStartRound) changeEpoch(currentEpoch uint32) {
 	if err != nil {
 		panic(fmt.Sprintf("consensus changing epoch failed with error %s", err.Error()))
 	}
+
+	sr.worker.ConsensusMetrics().ResetAverages()
 
 	sr.SetEligibleList(epochNodes)
 }

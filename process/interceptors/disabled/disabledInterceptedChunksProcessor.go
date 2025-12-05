@@ -2,6 +2,7 @@ package disabled
 
 import (
 	"github.com/multiversx/mx-chain-core-go/data/batch"
+	"github.com/multiversx/mx-chain-go/p2p"
 	"github.com/multiversx/mx-chain-go/process"
 )
 
@@ -14,12 +15,16 @@ func NewDisabledInterceptedChunksProcessor() *disabledInterceptedChunksProcessor
 }
 
 // CheckBatch returns a checked chunk result that signals that no chunk has been received
-func (d *disabledInterceptedChunksProcessor) CheckBatch(_ *batch.Batch, _ process.WhiteListHandler) (process.CheckedChunkResult, error) {
+func (d *disabledInterceptedChunksProcessor) CheckBatch(_ *batch.Batch, _ process.WhiteListHandler, _ p2p.BroadcastMethod) (process.CheckedChunkResult, error) {
 	return process.CheckedChunkResult{
 		IsChunk:        false,
 		HaveAllChunks:  false,
 		CompleteBuffer: nil,
 	}, nil
+}
+
+// MarkVerified does nothing
+func (d *disabledInterceptedChunksProcessor) MarkVerified(_ *batch.Batch, _ p2p.BroadcastMethod) {
 }
 
 // Close returns nil

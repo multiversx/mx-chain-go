@@ -2,6 +2,7 @@ package disabled
 
 import (
 	outportcore "github.com/multiversx/mx-chain-core-go/data/outport"
+
 	"github.com/multiversx/mx-chain-go/outport"
 )
 

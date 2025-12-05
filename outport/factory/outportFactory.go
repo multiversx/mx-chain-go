@@ -6,6 +6,7 @@ import (
 
 	outportcore "github.com/multiversx/mx-chain-core-go/data/outport"
 	indexerFactory "github.com/multiversx/mx-chain-es-indexer-go/process/factory"
+	"github.com/multiversx/mx-chain-go/common"
 	"github.com/multiversx/mx-chain-go/outport"
 )
 
@@ -17,6 +18,8 @@ type OutportFactoryArgs struct {
 	ElasticIndexerFactoryArgs indexerFactory.ArgsIndexerFactory
 	EventNotifierFactoryArgs  *EventNotifierFactoryArgs
 	HostDriversArgs           []ArgsHostDriverFactory
+	EnableEpochsHandler       common.EnableEpochsHandler
+	EnableRoundsHandler       common.EnableRoundsHandler
 }
 
 // CreateOutport will create a new instance of OutportHandler
@@ -31,7 +34,12 @@ func CreateOutport(args *OutportFactoryArgs) (outport.OutportHandler, error) {
 		IsInImportDBMode: args.IsImportDB,
 	}
 
-	outportHandler, err := outport.NewOutport(args.RetrialInterval, cfg)
+	outportHandler, err := outport.NewOutport(
+		args.RetrialInterval,
+		cfg,
+		args.EnableEpochsHandler,
+		args.EnableRoundsHandler,
+	)
 	if err != nil {
 		return nil, err
 	}

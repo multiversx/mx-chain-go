@@ -18,6 +18,12 @@ type Presenter interface {
 	GetCountConsensusAcceptedBlocks() uint64
 	GetCountLeader() uint64
 	GetCountAcceptedBlocks() uint64
+	GetDurationProposedBlockReceivedOrSentFromRoundStart() uint64
+	GetDurationProofReceivedFromProposedBlockReceivedOrSent() uint64
+	GetAvgDurationProposedBlockReceivedOrSentFromRoundStart() uint64
+	GetAvgDurationProofReceivedFromProposedBlockReceivedOrSent() uint64
+	GetNumTrackedBlocks() uint64
+	GetNumTrackedAccounts() uint64
 	GetIsSyncing() uint64
 	GetTxPoolLoad() uint64
 	GetNonce() uint64

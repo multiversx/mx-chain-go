@@ -49,7 +49,7 @@ type ArgsNewSmartContractProcessor struct {
 	GasSchedule         core.GasScheduleNotifier
 	TxLogsProcessor     process.TransactionLogProcessor
 	BadTxForwarder      process.IntermediateTransactionHandler
-	EnableRoundsHandler process.EnableRoundsHandler
+	EnableRoundsHandler common.EnableRoundsHandler
 	EnableEpochsHandler common.EnableEpochsHandler
 	EnableEpochs        config.EnableEpochs
 	VMOutputCacher      storage.Cacher

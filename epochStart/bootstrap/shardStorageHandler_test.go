@@ -1708,3 +1708,180 @@ func Test_setMiniBlocksInfoWithPendingMiniBlocks(t *testing.T) {
 		assert.Equal(t, indexOfLastTxProcessed, mbsInfo.indexOfLastTxProcessed[0])
 	})
 }
+
+func TestGetMetaHeadersMiniBlockHandlerFromExecutionResults(t *testing.T) {
+	t.Parallel()
+
+	t.Run("nil header should return nil", func(t *testing.T) {
+		t.Parallel()
+
+		retMiniBlockHandlers := getMetaHeaderMiniBlockHandlersFromExecutionResults(nil)
+		require.Nil(t, retMiniBlockHandlers)
+	})
+
+	t.Run("if not header v3, should return miniblock headers from header directly", func(t *testing.T) {
+		t.Parallel()
+
+		mbHeader1 := &block.MiniBlockHeader{
+			Hash:            []byte("mbHeaderHash1"),
+			SenderShardID:   1,
+			ReceiverShardID: 1,
+		}
+		mbHeader2 := &block.MiniBlockHeader{
+			Hash:            []byte("mbHeaderHash2"),
+			SenderShardID:   2,
+			ReceiverShardID: 2,
+		}
+		miniBlockHeaderHandlers := []block.MiniBlockHeader{
+			*mbHeader1,
+			*mbHeader2,
+		}
+
+		metaBlock := &block.MetaBlock{
+			MiniBlockHeaders: miniBlockHeaderHandlers,
+		}
+
+		expMiniBlockHeaderHandlers := []data.MiniBlockHeaderHandler{
+			mbHeader1,
+			mbHeader2,
+		}
+
+		retMiniBlockHandlers := getMetaHeaderMiniBlockHandlersFromExecutionResults(metaBlock)
+
+		require.Equal(t, expMiniBlockHeaderHandlers, retMiniBlockHandlers)
+	})
+
+	t.Run("if header v3, should return nil if no execution results on header", func(t *testing.T) {
+		t.Parallel()
+
+		mbHeader1 := &block.MiniBlockHeader{
+			Hash:            []byte("mbHeaderHash1"),
+			SenderShardID:   1,
+			ReceiverShardID: 1,
+		}
+		mbHeader2 := &block.MiniBlockHeader{
+			Hash:            []byte("mbHeaderHash2"),
+			SenderShardID:   2,
+			ReceiverShardID: 2,
+		}
+		miniBlockHeaderHandlers := []block.MiniBlockHeader{
+			*mbHeader1,
+			*mbHeader2,
+		}
+
+		metaBlock := &block.MetaBlockV3{
+			MiniBlockHeaders: miniBlockHeaderHandlers,
+			ExecutionResults: make([]*block.MetaExecutionResult, 0),
+		}
+
+		retMiniBlockHandlers := getMetaHeaderMiniBlockHandlersFromExecutionResults(metaBlock)
+
+		require.Nil(t, retMiniBlockHandlers)
+	})
+
+	t.Run("if header v3, should return nil if not able to get mini blocks handlers from execution result", func(t *testing.T) {
+		t.Parallel()
+
+		mbHeader1 := &block.MiniBlockHeader{
+			Hash:            []byte("mbHeaderHash1"),
+			SenderShardID:   1,
+			ReceiverShardID: 1,
+		}
+		mbHeader2 := &block.MiniBlockHeader{
+			Hash:            []byte("mbHeaderHash2"),
+			SenderShardID:   2,
+			ReceiverShardID: 2,
+		}
+
+		miniBlockHeaderHandlers := []block.MiniBlockHeader{
+			*mbHeader1,
+			*mbHeader2,
+		}
+
+		metaBlock := &block.MetaBlockV3{
+			MiniBlockHeaders: miniBlockHeaderHandlers,
+			ExecutionResults: []*block.MetaExecutionResult{
+				nil,
+			},
+		}
+
+		retMiniBlockHandlers := getMetaHeaderMiniBlockHandlersFromExecutionResults(metaBlock)
+
+		require.Nil(t, retMiniBlockHandlers)
+	})
+
+	t.Run("if header v3, should get mini block handlers from execution results", func(t *testing.T) {
+		t.Parallel()
+
+		mbHeader1 := &block.MiniBlockHeader{
+			Hash:            []byte("mbHeaderHash1"),
+			SenderShardID:   1,
+			ReceiverShardID: 1,
+		}
+		mbHeader2 := &block.MiniBlockHeader{
+			Hash:            []byte("mbHeaderHash2"),
+			SenderShardID:   2,
+			ReceiverShardID: 2,
+		}
+		mbHeader3 := &block.MiniBlockHeader{
+			Hash:            []byte("mbHeaderHash3"),
+			SenderShardID:   3,
+			ReceiverShardID: 3,
+		}
+
+		miniBlockHeaderHandlers := []block.MiniBlockHeader{
+			*mbHeader1,
+			*mbHeader2,
+		}
+
+		metaBlock := &block.MetaBlockV3{
+			MiniBlockHeaders: miniBlockHeaderHandlers,
+			LastExecutionResult: &block.MetaExecutionResultInfo{ // this should not be considered
+				ExecutionResult: &block.BaseMetaExecutionResult{
+					BaseExecutionResult: &block.BaseExecutionResult{
+						HeaderHash:  []byte("headerHash1"),
+						HeaderNonce: 1,
+						HeaderRound: 1,
+					},
+				},
+			},
+			ExecutionResults: []*block.MetaExecutionResult{
+				{
+					ExecutionResult: &block.BaseMetaExecutionResult{
+						BaseExecutionResult: &block.BaseExecutionResult{
+							HeaderHash:  []byte("headerHash2"),
+							HeaderNonce: 2,
+							HeaderRound: 2,
+						},
+					},
+					MiniBlockHeaders: []block.MiniBlockHeader{
+						*mbHeader1,
+						*mbHeader2,
+					},
+				},
+				{
+					ExecutionResult: &block.BaseMetaExecutionResult{
+						BaseExecutionResult: &block.BaseExecutionResult{
+							HeaderHash:  []byte("headerHash2"),
+							HeaderNonce: 3,
+							HeaderRound: 3,
+						},
+					},
+					MiniBlockHeaders: []block.MiniBlockHeader{
+						*mbHeader3,
+					},
+				},
+			},
+		}
+
+		retMiniBlockHandlers := getMetaHeaderMiniBlockHandlersFromExecutionResults(metaBlock)
+
+		expMiniBlockHeaderHandlers := []data.MiniBlockHeaderHandler{
+			mbHeader1,
+			mbHeader2,
+			mbHeader3,
+		}
+
+		require.Equal(t, expMiniBlockHeaderHandlers, retMiniBlockHandlers)
+	})
+}

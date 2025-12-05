@@ -2,6 +2,7 @@ package blockInfoProviders
 
 import (
 	"github.com/multiversx/mx-chain-core-go/core/check"
+	"github.com/multiversx/mx-chain-core-go/data"
 	chainData "github.com/multiversx/mx-chain-core-go/data"
 	"github.com/multiversx/mx-chain-go/common"
 	"github.com/multiversx/mx-chain-go/common/holders"
@@ -33,10 +34,17 @@ func (provider *currentBlockInfo) GetBlockInfo() common.BlockInfo {
 		return holders.NewBlockInfo(nil, 0, nil)
 	}
 
-	hash := provider.chainHandler.GetCurrentBlockHeaderHash()
-	rootHash := provider.chainHandler.GetCurrentBlockRootHash()
+	headerHash, nonce, rootHash := provider.getCurrentBlockInfo(block)
+	return holders.NewBlockInfo(headerHash, nonce, rootHash)
+}
 
-	return holders.NewBlockInfo(hash, block.GetNonce(), rootHash)
+func (provider *currentBlockInfo) getCurrentBlockInfo(header data.HeaderHandler) ([]byte, uint64, []byte) {
+	if !header.IsHeaderV3() {
+		return provider.chainHandler.GetCurrentBlockHeaderHash(), header.GetNonce(), provider.chainHandler.GetCurrentBlockRootHash()
+	}
+
+	nonce, headerHash, rootHash := provider.chainHandler.GetLastExecutedBlockInfo()
+	return headerHash, nonce, rootHash
 }
 
 // IsInterfaceNil returns true if there is no value under the interface

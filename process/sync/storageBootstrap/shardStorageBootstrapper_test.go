@@ -9,6 +9,7 @@ import (
 	"github.com/multiversx/mx-chain-core-go/data"
 	"github.com/multiversx/mx-chain-core-go/data/block"
 	dataRetrieverMocks "github.com/multiversx/mx-chain-go/testscommon/dataRetriever"
+	"github.com/multiversx/mx-chain-go/testscommon/processMocks"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 
@@ -40,12 +41,14 @@ func TestShardStorageBootstrapper_LoadFromStorageShouldWork(t *testing.T) {
 
 	marshaller := &marshallerMock.MarshalizerMock{}
 	startRound := 4000
-	hdr := &block.Header{
-		Nonce:    3999,
-		Round:    3999,
-		RootHash: []byte("roothash"),
-		ShardID:  0,
-		ChainID:  []byte("1"),
+	hdr := &block.HeaderV2{
+		Header: &block.Header{
+			Nonce:    3999,
+			Round:    3999,
+			RootHash: []byte("roothash"),
+			ShardID:  0,
+			ChainID:  []byte("1"),
+		},
 	}
 	hdrHash := []byte("header hash")
 	hdrBytes, _ := marshaller.Marshal(hdr)
@@ -61,9 +64,9 @@ func TestShardStorageBootstrapper_LoadFromStorageShouldWork(t *testing.T) {
 				GetCalled: func(round int64) (bootstrapStorage.BootstrapData, error) {
 					return bootstrapStorage.BootstrapData{
 						LastHeader: bootstrapStorage.BootstrapHeaderInfo{
-							ShardId: hdr.ShardID,
-							Epoch:   hdr.Epoch,
-							Nonce:   hdr.Nonce,
+							ShardId: hdr.GetShardID(),
+							Epoch:   hdr.GetEpoch(),
+							Nonce:   hdr.GetNonce(),
 							Hash:    hdrHash,
 						},
 						HighestFinalBlockNonce: 3999,
@@ -96,7 +99,7 @@ func TestShardStorageBootstrapper_LoadFromStorageShouldWork(t *testing.T) {
 				},
 				SetCurrentBlockHeaderAndRootHashCalled: func(header data.HeaderHandler, rootHash []byte) error {
 					assert.Equal(t, hdr, header)
-					assert.Equal(t, hdr.RootHash, rootHash)
+					assert.Equal(t, hdr.GetRootHash(), rootHash)
 					wasCalledBlockchainSetHeader = true
 
 					return nil
@@ -128,7 +131,7 @@ func TestShardStorageBootstrapper_LoadFromStorageShouldWork(t *testing.T) {
 					wasCalledBlockTrackerAddTrackedHeader = true
 				},
 			},
-			ChainID:                      string(hdr.ChainID),
+			ChainID:                      string(hdr.GetChainID()),
 			ScheduledTxsExecutionHandler: &testscommon.ScheduledTxsExecutionStub{},
 			MiniblocksProvider:           &mock.MiniBlocksProviderStub{},
 			EpochNotifier: &epochNotifierMock.EpochNotifierStub{
@@ -141,6 +144,7 @@ func TestShardStorageBootstrapper_LoadFromStorageShouldWork(t *testing.T) {
 			AppStatusHandler:           &statusHandler.AppStatusHandlerMock{},
 			EnableEpochsHandler:        &enableEpochsHandlerMock.EnableEpochsHandlerStub{},
 			ProofsPool:                 &dataRetrieverMocks.ProofsPoolMock{},
+			ExecutionManager:           &processMocks.ExecutionManagerMock{},
 		},
 	}
 

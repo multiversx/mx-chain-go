@@ -13,6 +13,7 @@ import (
 	"github.com/multiversx/mx-chain-go/process"
 	"github.com/multiversx/mx-chain-go/process/mock"
 	"github.com/multiversx/mx-chain-go/testscommon"
+	"github.com/multiversx/mx-chain-go/testscommon/processMocks"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 )
@@ -251,6 +252,7 @@ func TestBaseSync_shouldAllowRollback(t *testing.T) {
 				return *firstBlockNonce
 			},
 		},
+		executionManager: &processMocks.ExecutionManagerMock{},
 	}
 
 	t.Run("should allow rollback nonces above final", func(t *testing.T) {
@@ -353,5 +355,88 @@ func TestBaseSync_shouldAllowRollback(t *testing.T) {
 		}
 		require.False(t, boot.shouldAllowRollback(header, finalBlockHash))
 		require.False(t, boot.shouldAllowRollback(header, notFinalBlockHash))
+	})
+
+	t.Run("should not allow rollback of a header v3", func(t *testing.T) {
+		header := &testscommon.HeaderHandlerStub{
+			GetNonceCalled: func() uint64 {
+				return 11
+			},
+			IsHeaderV3Called: func() bool {
+				return true
+			},
+		}
+		require.False(t, boot.shouldAllowRollback(header, finalBlockHash))
+	})
+}
+
+func TestBaseBootstrap_PrepareForSyncAtBootstrapIfNeeded(t *testing.T) {
+	t.Parallel()
+
+	t.Run("should run only once", func(t *testing.T) {
+		t.Parallel()
+
+		lastExecHeaderHash := []byte("lastExecHeaderHash")
+
+		lastHeader := &block.HeaderV3{
+			LastExecutionResult: &block.ExecutionResultInfo{
+				ExecutionResult: &block.BaseExecutionResult{
+					HeaderHash:  lastExecHeaderHash,
+					HeaderNonce: 9,
+				},
+			},
+			Nonce: 10,
+		}
+
+		numCalls := 0
+		boot := &baseBootstrap{
+			chainHandler: &testscommon.ChainHandlerStub{
+				GetCurrentBlockHeaderCalled: func() data.HeaderHandler {
+					numCalls++
+					return lastHeader
+				},
+			},
+			preparedForSync: true, // prepared for sync already called, we are not testing here
+			// the behaviour of preparedForSyncIfNeeded
+		}
+
+		err := boot.PrepareForSyncAtBoostrapIfNeeded()
+		require.Nil(t, err)
+
+		require.Equal(t, 1, numCalls)
+
+		err = boot.PrepareForSyncAtBoostrapIfNeeded()
+		require.Nil(t, err)
+
+		require.Equal(t, 1, numCalls) // still 1 call
+	})
+
+	t.Run("should not trigger for non header v3", func(t *testing.T) {
+		t.Parallel()
+
+		lastHeader := &block.Header{
+			Nonce: 10,
+		}
+
+		numCalls := 0
+		boot := &baseBootstrap{
+			chainHandler: &testscommon.ChainHandlerStub{
+				GetCurrentBlockHeaderCalled: func() data.HeaderHandler {
+					numCalls++
+					return lastHeader
+				},
+			},
+			preparedForSync: false,
+		}
+
+		err := boot.PrepareForSyncAtBoostrapIfNeeded()
+		require.Nil(t, err)
+
+		require.Equal(t, 1, numCalls)
+
+		err = boot.PrepareForSyncAtBoostrapIfNeeded()
+		require.Nil(t, err)
+
+		require.Equal(t, 1, numCalls) // still 1 call
 	})
 }

@@ -10,13 +10,14 @@ import (
 	"github.com/multiversx/mx-chain-core-go/core/check"
 	"github.com/multiversx/mx-chain-core-go/data"
 	"github.com/multiversx/mx-chain-core-go/data/block"
+	logger "github.com/multiversx/mx-chain-logger-go"
+
 	"github.com/multiversx/mx-chain-go/common"
 	"github.com/multiversx/mx-chain-go/dataRetriever"
 	"github.com/multiversx/mx-chain-go/epochStart"
 	"github.com/multiversx/mx-chain-go/epochStart/bootstrap/disabled"
 	"github.com/multiversx/mx-chain-go/process/block/bootstrapStorage"
 	"github.com/multiversx/mx-chain-go/storage/factory"
-	logger "github.com/multiversx/mx-chain-logger-go"
 )
 
 type shardStorageHandler struct {
@@ -252,7 +253,7 @@ func getProcessedMiniBlocksForFinishedMeta(
 func getNeededMetaBlock(
 	referencedMetaBlockHash []byte,
 	headers map[string]data.HeaderHandler,
-) (*block.MetaBlock, error) {
+) (data.MetaHeaderHandler, error) {
 	header, ok := headers[string(referencedMetaBlockHash)]
 	if !ok {
 		return nil, fmt.Errorf("%w in getProcessedMiniBlocksForFinishedMeta: hash: %s",
@@ -260,7 +261,7 @@ func getNeededMetaBlock(
 			hex.EncodeToString(referencedMetaBlockHash))
 	}
 
-	neededMeta, ok := header.(*block.MetaBlock)
+	neededMeta, ok := header.(data.MetaHeaderHandler)
 	if !ok {
 		return nil, epochStart.ErrWrongTypeAssertion
 	}
@@ -272,7 +273,7 @@ func getNeededMetaBlock(
 }
 
 func getProcessedMiniBlocks(
-	metaBlock *block.MetaBlock,
+	metaBlock data.MetaHeaderHandler,
 	shardID uint32,
 	processedMiniBlocks []bootstrapStorage.MiniBlocksInMeta,
 	referencedMetaBlockHash []byte,
@@ -469,7 +470,7 @@ func getProcessedMiniBlockHashesForMetaBlockHash(
 			epochStart.ErrMissingHeader,
 			hex.EncodeToString(metaBlockHash))
 	}
-	neededMeta, ok := metaHeaderHandler.(*block.MetaBlock)
+	neededMeta, ok := metaHeaderHandler.(data.MetaHeaderHandler)
 	if !ok {
 		return nil, epochStart.ErrWrongTypeAssertion
 	}
@@ -609,7 +610,7 @@ func getEpochShardDataAndNeededMetaBlock(
 	shardID uint32,
 	meta data.MetaHeaderHandler,
 	headers map[string]data.HeaderHandler,
-) (data.EpochStartShardDataHandler, *block.MetaBlock, error) {
+) (data.EpochStartShardDataHandler, data.MetaHeaderHandler, error) {
 
 	epochShardData, err := getEpochStartShardData(meta, shardID)
 	if err != nil {
@@ -623,7 +624,7 @@ func getEpochShardDataAndNeededMetaBlock(
 			hex.EncodeToString(epochShardData.GetFirstPendingMetaBlock()))
 	}
 
-	neededMeta, ok := header.(*block.MetaBlock)
+	neededMeta, ok := header.(data.MetaHeaderHandler)
 	if !ok {
 		return nil, nil, epochStart.ErrWrongTypeAssertion
 	}
@@ -634,7 +635,7 @@ func getEpochShardDataAndNeededMetaBlock(
 	return epochShardData, neededMeta, nil
 }
 
-func getMiniBlocksInfo(epochShardData data.EpochStartShardDataHandler, neededMeta *block.MetaBlock, shardID uint32) *miniBlocksInfo {
+func getMiniBlocksInfo(epochShardData data.EpochStartShardDataHandler, neededMeta data.MetaHeaderHandler, shardID uint32) *miniBlocksInfo {
 	mbsInfo := &miniBlocksInfo{
 		miniBlockHashes:              make([][]byte, 0),
 		fullyProcessed:               make([]bool, 0),
@@ -672,7 +673,7 @@ func setMiniBlocksInfoWithPendingMiniBlocks(epochShardData data.EpochStartShardD
 	}
 }
 
-func setMiniBlocksInfoWithProcessedMiniBlocks(neededMeta *block.MetaBlock, shardID uint32, mbsInfo *miniBlocksInfo) {
+func setMiniBlocksInfoWithProcessedMiniBlocks(neededMeta data.MetaHeaderHandler, shardID uint32, mbsInfo *miniBlocksInfo) {
 	miniBlockHeaders := getProcessedMiniBlockHeaders(neededMeta, shardID, mbsInfo.pendingMiniBlocksMap)
 	for mbHash, mbHeader := range miniBlockHeaders {
 		log.Debug("shardStorageHandler.setMiniBlocksInfoWithProcessedMiniBlocks",
@@ -714,7 +715,7 @@ func createProcessedAndPendingMiniBlocks(
 	return processedMiniBlocks, pendingMiniBlocks
 }
 
-func getProcessedMiniBlockHeaders(metaBlock *block.MetaBlock, destShardID uint32, pendingMBsMap map[string]struct{}) map[string]block.MiniBlockHeader {
+func getProcessedMiniBlockHeaders(metaBlock data.MetaHeaderHandler, destShardID uint32, pendingMBsMap map[string]struct{}) map[string]block.MiniBlockHeader {
 	processedMiniBlockHeaders := make(map[string]block.MiniBlockHeader)
 	miniBlockHeadersDestMe := getMiniBlockHeadersForDest(metaBlock, destShardID)
 	for hash, mbh := range miniBlockHeadersDestMe {
@@ -761,7 +762,7 @@ func (ssh *shardStorageHandler) saveLastCrossNotarizedHeaders(
 			hex.EncodeToString(lastCrossMetaHdrHash))
 	}
 
-	neededMeta, ok := neededHdr.(*block.MetaBlock)
+	neededMeta, ok := neededHdr.(data.MetaHeaderHandler)
 	if !ok {
 		return nil, epochStart.ErrWrongTypeAssertion
 	}
@@ -882,32 +883,76 @@ func (ssh *shardStorageHandler) saveTriggerRegistry(components *ComponentsNeeded
 	return bootstrapKey, nil
 }
 
-func getMiniBlockHeadersForDest(metaBlock *block.MetaBlock, destId uint32) map[string]block.MiniBlockHeader {
+func getMiniBlockHeadersForDest(metaBlock data.MetaHeaderHandler, destId uint32) map[string]block.MiniBlockHeader {
 	hashDst := make(map[string]block.MiniBlockHeader)
-	for i := 0; i < len(metaBlock.ShardInfo); i++ {
-		if metaBlock.ShardInfo[i].ShardID == destId {
+	for i := 0; i < len(metaBlock.GetShardInfoHandlers()); i++ {
+		if metaBlock.GetShardInfoHandlers()[i].GetShardID() == destId {
 			continue
 		}
 
-		for _, val := range metaBlock.ShardInfo[i].ShardMiniBlockHeaders {
-			isCrossShardDestMe := val.ReceiverShardID == destId && val.SenderShardID != destId
+		for _, val := range metaBlock.GetShardInfoHandlers()[i].GetShardMiniBlockHeaderHandlers() {
+			isCrossShardDestMe := val.GetReceiverShardID() == destId && val.GetSenderShardID() != destId
 			if !isCrossShardDestMe {
 				continue
 			}
 
-			hashDst[string(val.Hash)] = val
+			miniBlockHeader, ok := val.(*block.MiniBlockHeader)
+			if !ok {
+				log.Warn("wrong type assertion for mini block header handler", "err", epochStart.ErrWrongTypeAssertion)
+				continue
+			}
+			hashDst[string(val.GetHash())] = *miniBlockHeader
 		}
 	}
 
-	for _, val := range metaBlock.MiniBlockHeaders {
-		isCrossShardDestMe := (val.ReceiverShardID == destId || val.ReceiverShardID == core.AllShardId) && val.SenderShardID != destId
+	miniBlockHandlers := getMetaHeaderMiniBlockHandlersFromExecutionResults(metaBlock)
+
+	for _, val := range miniBlockHandlers {
+		isCrossShardDestMe := (val.GetReceiverShardID() == destId || val.GetReceiverShardID() == core.AllShardId) && val.GetSenderShardID() != destId
 		if !isCrossShardDestMe {
 			continue
 		}
-		hashDst[string(val.Hash)] = val
+
+		miniBlockHeader, ok := val.(*block.MiniBlockHeader)
+		if !ok {
+			log.Warn("wrong type assertion for mini block header handler", "err", epochStart.ErrWrongTypeAssertion)
+			continue
+		}
+		hashDst[string(val.GetHash())] = *miniBlockHeader
 	}
 
 	return hashDst
+}
+
+func getMetaHeaderMiniBlockHandlersFromExecutionResults(
+	metaBlock data.MetaHeaderHandler,
+) []data.MiniBlockHeaderHandler {
+	if check.IfNil(metaBlock) {
+		return nil
+	}
+
+	miniBlockHeaderHandlers := metaBlock.GetMiniBlockHeaderHandlers()
+	if !metaBlock.IsHeaderV3() {
+		return miniBlockHeaderHandlers
+	}
+
+	baseExecutionResults := metaBlock.GetExecutionResultsHandlers()
+	if len(baseExecutionResults) == 0 {
+		return nil
+	}
+
+	execResultsMiniBlockHeaderHandlers := make([]data.MiniBlockHeaderHandler, 0)
+	for _, baseExecutionResult := range baseExecutionResults {
+		miniBlockHeaderHandlers, err := common.GetMiniBlocksHeaderHandlersFromExecResult(baseExecutionResult)
+		if err != nil {
+			log.Warn("failed to get mini blocks header handlers from execution result", "err", err)
+			return nil
+		}
+
+		execResultsMiniBlockHeaderHandlers = append(execResultsMiniBlockHeaderHandlers, miniBlockHeaderHandlers...)
+	}
+
+	return execResultsMiniBlockHeaderHandlers
 }
 
 // IsInterfaceNil returns true if there is no value under the interface

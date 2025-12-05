@@ -59,6 +59,11 @@ func (rndm *RoundHandlerMock) RemainingTime(_ time.Time, _ time.Duration) time.D
 	return rndm.RoundTimeDuration
 }
 
+// GetTimeStampForRound -
+func (rndm *RoundHandlerMock) GetTimeStampForRound(round uint64) uint64 {
+	return 0
+}
+
 // IsInterfaceNil returns true if there is no value under the interface
 func (rndm *RoundHandlerMock) IsInterfaceNil() bool {
 	return rndm == nil

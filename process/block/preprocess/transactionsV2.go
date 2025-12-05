@@ -8,9 +8,10 @@ import (
 	"github.com/multiversx/mx-chain-core-go/core"
 	"github.com/multiversx/mx-chain-core-go/data/block"
 	"github.com/multiversx/mx-chain-core-go/data/transaction"
+
 	"github.com/multiversx/mx-chain-go/common"
 	"github.com/multiversx/mx-chain-go/process"
-	"github.com/multiversx/mx-chain-go/storage/txcache"
+	"github.com/multiversx/mx-chain-go/txcache"
 )
 
 func (txs *transactions) createAndProcessMiniBlocksFromMeV2(
@@ -191,6 +192,12 @@ func (txs *transactions) processTransaction(
 		mbInfo.gasInfo.gasConsumedByMiniBlocksInSenderShard = oldGasConsumedByMiniBlocksInSenderShard
 		mbInfo.mapGasConsumedByMiniBlockInReceiverShard[receiverShardID] = oldGasConsumedByMiniBlockInReceiverShard
 		mbInfo.gasInfo.totalGasConsumedInSelfShard = oldTotalGasConsumedInSelfShard
+
+		if common.IsAsyncExecutionEnabled(txs.enableEpochsHandler, txs.enableRoundsHandler) {
+			txs.mutUnExecutableTxs.Lock()
+			txs.unExecutableTransactions[string(txHash)] = struct{}{}
+			txs.mutUnExecutableTxs.Unlock()
+		}
 
 		return false, err
 	}
@@ -390,11 +397,7 @@ func (txs *transactions) verifyTransaction(
 		return err
 	}
 
-	txShardInfoToSet := &txShardInfo{senderShardID: senderShardID, receiverShardID: receiverShardID}
-	txs.txsForCurrBlock.mutTxsForBlock.Lock()
-	txs.txsForCurrBlock.txHashAndInfo[string(txHash)] = &txInfo{tx: tx, txShardInfo: txShardInfoToSet}
-	txs.txsForCurrBlock.mutTxsForBlock.Unlock()
-
+	txs.txsForCurrBlock.AddTransaction(txHash, tx, senderShardID, receiverShardID)
 	return nil
 }
 
@@ -606,7 +609,7 @@ func (txs *transactions) applyExecutedTransaction(
 		crossShardScCallsOrSpecialTxs := mbInfo.mapCrossShardScCallsOrSpecialTxs[receiverShardID]
 		if crossShardScCallsOrSpecialTxs > mbInfo.maxCrossShardScCallsOrSpecialTxsPerShard {
 			mbInfo.maxCrossShardScCallsOrSpecialTxsPerShard = crossShardScCallsOrSpecialTxs
-			//we need to increment this as to account for the corresponding SCR hash
+			// we need to increment this as to account for the corresponding SCR hash
 			txs.blockSizeComputation.AddNumTxs(common.AdditionalScrForEachScCallOrSpecialTx)
 		}
 		mbInfo.processingInfo.numCrossShardScCallsOrSpecialTxs++
@@ -767,7 +770,7 @@ func (txs *transactions) applyVerifiedTransaction(
 		crossShardScCallTxs := mbInfo.mapCrossShardScCallTxs[receiverShardID]
 		if crossShardScCallTxs > mbInfo.maxCrossShardScCallTxsPerShard {
 			mbInfo.maxCrossShardScCallTxsPerShard = crossShardScCallTxs
-			//we need to increment this as to account for the corresponding SCR hash
+			// we need to increment this as to account for the corresponding SCR hash
 			txs.blockSizeComputation.AddNumTxs(common.AdditionalScrForEachScCallOrSpecialTx)
 		}
 		mbInfo.schedulingInfo.numScheduledCrossShardScCalls++

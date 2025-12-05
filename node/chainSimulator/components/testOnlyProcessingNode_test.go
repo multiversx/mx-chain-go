@@ -2,11 +2,12 @@ package components
 
 import (
 	"errors"
-	"github.com/multiversx/mx-chain-go/node/chainSimulator/components/heartbeat"
 	"math/big"
 	"strings"
 	"testing"
 	"time"
+
+	"github.com/multiversx/mx-chain-go/node/chainSimulator/components/heartbeat"
 
 	"github.com/multiversx/mx-chain-go/common"
 	"github.com/multiversx/mx-chain-go/node/chainSimulator/components/api"
@@ -25,15 +26,15 @@ var expectedErr = errors.New("expected error")
 
 func createMockArgsTestOnlyProcessingNode(t *testing.T) ArgsTestOnlyProcessingNode {
 	outputConfigs, err := configs.CreateChainSimulatorConfigs(configs.ArgsChainSimulatorConfigs{
-		NumOfShards:                 3,
-		OriginalConfigsPath:         "../../../cmd/node/config/",
-		GenesisTimeStamp:            0,
-		RoundDurationInMillis:       6000,
-		TempDir:                     t.TempDir(),
-		MinNodesPerShard:            1,
-		MetaChainMinNodes:           1,
-		ConsensusGroupSize:          1,
-		MetaChainConsensusGroupSize: 1,
+		NumOfShards:                    3,
+		OriginalConfigsPath:            "../../../cmd/node/config/",
+		RoundDurationInMillis:          6000,
+		SupernovaRoundDurationInMillis: 600,
+		TempDir:                        t.TempDir(),
+		MinNodesPerShard:               1,
+		MetaChainMinNodes:              1,
+		ConsensusGroupSize:             1,
+		MetaChainConsensusGroupSize:    1,
 	})
 	require.Nil(t, err)
 
@@ -68,12 +69,29 @@ func TestNewTestOnlyProcessingNode(t *testing.T) {
 	})
 	t.Run("try commit a block", func(t *testing.T) {
 		args := createMockArgsTestOnlyProcessingNode(t)
+		genesisTime := time.Now()
+		args.GenesisTime = genesisTime
 		node, err := NewTestOnlyProcessingNode(args)
 		assert.Nil(t, err)
 		assert.NotNil(t, node)
 
 		newHeader, err := node.ProcessComponentsHolder.BlockProcessor().CreateNewHeader(1, 1)
 		assert.Nil(t, err)
+
+		rootHash, err := node.GetStateComponents().AccountsAdapter().RootHash()
+		if err != nil {
+			log.Error("node.GetStateComponents().AccountsAdapter().RootHash()", "err", err)
+		}
+
+		genesisHeader := node.GetDataComponents().Blockchain().GetGenesisHeader()
+		err = genesisHeader.SetRootHash(rootHash)
+		require.Nil(t, err)
+
+		err = node.GetDataComponents().Blockchain().SetGenesisHeader(genesisHeader)
+		require.Nil(t, err)
+
+		err = node.GetDataComponents().Datapool().Transactions().OnExecutedBlock(genesisHeader, rootHash)
+		require.Nil(t, err)
 
 		err = newHeader.SetPrevHash(node.ChainHandler.GetGenesisHeaderHash())
 		assert.Nil(t, err)
@@ -88,6 +106,9 @@ func TestNewTestOnlyProcessingNode(t *testing.T) {
 		err = node.ProcessComponentsHolder.BlockProcessor().ProcessBlock(header, block, func() time.Duration {
 			return 1000
 		})
+		assert.Nil(t, err)
+
+		err = header.SetTimeStamp(uint64(genesisTime.Add(time.Millisecond * 6000).Unix()))
 		assert.Nil(t, err)
 
 		err = node.ProcessComponentsHolder.BlockProcessor().CommitBlock(header, block)

@@ -9,8 +9,15 @@ import (
 	"sync"
 	"time"
 
+	p2p2 "github.com/multiversx/mx-chain-communication-go/p2p"
+	"github.com/multiversx/mx-chain-core-go/core"
+	"github.com/multiversx/mx-chain-core-go/data"
+	"github.com/multiversx/mx-chain-go/common"
 	"github.com/multiversx/mx-chain-go/config"
 	"github.com/multiversx/mx-chain-go/debug"
+	"github.com/multiversx/mx-chain-go/epochStart"
+	"github.com/multiversx/mx-chain-go/epochStart/notifier"
+	"github.com/multiversx/mx-chain-go/process"
 	"github.com/multiversx/mx-chain-go/storage"
 	"github.com/multiversx/mx-chain-go/storage/cache"
 	logger "github.com/multiversx/mx-chain-logger-go"
@@ -93,6 +100,7 @@ func displayTime(timestamp int64) string {
 }
 
 type interceptorDebugHandler struct {
+	broadcastDebug       BroadcastDebugHandler
 	cache                storage.Cacher
 	intervalAutoPrint    time.Duration
 	requestsThreshold    int
@@ -104,7 +112,7 @@ type interceptorDebugHandler struct {
 }
 
 // NewInterceptorDebugHandler creates a new interceptorDebugHandler able to hold requested-intercepted information
-func NewInterceptorDebugHandler(config config.InterceptorResolverDebugConfig) (*interceptorDebugHandler, error) {
+func NewInterceptorDebugHandler(config config.InterceptorResolverDebugConfig, ntpTime NTPTime) (*interceptorDebugHandler, error) {
 	lruCache, err := cache.NewLRUCache(config.CacheSize)
 	if err != nil {
 		return nil, fmt.Errorf("%w when creating NewInterceptorDebugHandler", err)
@@ -118,6 +126,14 @@ func NewInterceptorDebugHandler(config config.InterceptorResolverDebugConfig) (*
 	err = idh.parseConfig(config)
 	if err != nil {
 		return nil, err
+	}
+
+	idh.broadcastDebug = NewDisabledBroadcastDebug()
+	if config.BroadcastStatistics.Enabled {
+		idh.broadcastDebug, err = NewBroadcastDebug(config.BroadcastStatistics, ntpTime)
+		if err != nil {
+			return nil, err
+		}
 	}
 
 	idh.printEventFunc = idh.printEvent
@@ -417,6 +433,24 @@ func (idh *interceptorDebugHandler) LogSucceededToResolveData(topic string, hash
 	identifier := idh.computeIdentifier(resolveEvent, topic, hash)
 
 	idh.cache.Remove(identifier)
+}
+
+// LogReceivedData will log the received data
+func (idh *interceptorDebugHandler) LogReceivedData(data process.InterceptedData, msg p2p2.MessageP2P, fromConnectedPeer core.PeerID) {
+	idh.broadcastDebug.Process(data, msg, fromConnectedPeer)
+}
+
+// EpochStartEventHandler returns the epoch start event handler
+func (idh *interceptorDebugHandler) EpochStartEventHandler() epochStart.ActionHandler {
+	subscribeHandler := notifier.NewHandlerForEpochStart(
+		func(hdr data.HeaderHandler) {
+			idh.broadcastDebug.PrintReceivedTxsBroadcastAndCleanRecords()
+		},
+		func(_ data.HeaderHandler) {},
+		common.EpochTxBroadcastDebug,
+	)
+
+	return subscribeHandler
 }
 
 // Close closes all underlying components

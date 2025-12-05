@@ -255,6 +255,7 @@ func createVMContainerFactory(
 		ValidatorAccountsDB: stateComponents.PeerAccounts(),
 		ChanceComputer:      coreComponents.Rater(),
 		EnableEpochsHandler: coreComponents.EnableEpochsHandler(),
+		EnableRoundsHandler: coreComponents.EnableRoundsHandler(),
 		ShardCoordinator:    shardCoordinator,
 		NodesCoordinator:    nc,
 		UserAccountsDB:      stateComponents.AccountsAdapter(),

@@ -129,6 +129,8 @@ func TestShardShouldProposeBlockContainingInvalidTransactions(t *testing.T) {
 	transferValue := uint64(1000000)
 	mintAllNodes(nodes, transferValue)
 
+	integrationTests.SetRootHashOfGenesisBlocks(nodes)
+
 	txs, hashes := generateTransferTxs(transferValue, leader.OwnAccount.SkTxSign, nodes[1].OwnAccount.PkTxSign)
 	addTxsInDataPool(leader, txs, hashes)
 
@@ -207,6 +209,7 @@ func testStateOnNodes(t *testing.T, nodes []*integrationTests.TestProcessorNode,
 
 	// Not removed from mempool (see MX-16200).
 	_, ok = proposer.DataPool.Transactions().SearchFirstData(hashes[txDeletedIdx])
+
 	assert.True(t, ok)
 }
 

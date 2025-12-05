@@ -57,6 +57,7 @@ func cloneTrigger(t *trigger) *trigger {
 	rt.mapFinalizedEpochs = t.mapFinalizedEpochs
 	rt.roundHandler = t.roundHandler
 	rt.enableEpochsHandler = t.enableEpochsHandler
+	rt.epochStartConfigsHandler = t.epochStartConfigsHandler
 	return rt
 }
 

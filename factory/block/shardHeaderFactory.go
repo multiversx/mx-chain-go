@@ -22,8 +22,8 @@ func NewShardHeaderFactory(headerVersionHandler HeaderVersionGetter) (*shardHead
 }
 
 // Create creates a header instance with the correct version and format, according to the epoch
-func (shf *shardHeaderFactory) Create(epoch uint32) data.HeaderHandler {
-	version := shf.headerVersionHandler.GetVersion(epoch)
+func (shf *shardHeaderFactory) Create(epoch uint32, round uint64) data.HeaderHandler {
+	version := shf.headerVersionHandler.GetVersion(epoch, round)
 
 	switch version {
 	case "2":
@@ -33,6 +33,12 @@ func (shf *shardHeaderFactory) Create(epoch uint32) data.HeaderHandler {
 				SoftwareVersion: []byte(version),
 			},
 			ScheduledRootHash: nil,
+		}
+	case "3":
+		return &block.HeaderV3{
+			Epoch:           epoch,
+			Round:           round,
+			SoftwareVersion: []byte(version),
 		}
 	default:
 		return &block.Header{

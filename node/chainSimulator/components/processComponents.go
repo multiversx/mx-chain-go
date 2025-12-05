@@ -8,6 +8,8 @@ import (
 	"time"
 
 	"github.com/multiversx/mx-chain-core-go/core/partitioning"
+	vmcommon "github.com/multiversx/mx-chain-vm-common-go"
+
 	"github.com/multiversx/mx-chain-go/common"
 	"github.com/multiversx/mx-chain-go/common/forking"
 	"github.com/multiversx/mx-chain-go/common/ordering"
@@ -28,7 +30,6 @@ import (
 	"github.com/multiversx/mx-chain-go/storage/cache"
 	"github.com/multiversx/mx-chain-go/update"
 	"github.com/multiversx/mx-chain-go/update/trigger"
-	vmcommon "github.com/multiversx/mx-chain-vm-common-go"
 )
 
 // ArgsProcessComponentsHolder will hold the components needed for process components
@@ -70,6 +71,7 @@ type processComponentsHolder struct {
 	epochStartNotifier               factory.EpochStartNotifier
 	forkDetector                     process.ForkDetector
 	blockProcessor                   process.BlockProcessor
+	executionManager                 process.ExecutionManager
 	blackListHandler                 process.TimeCacher
 	bootStorer                       process.BootStorer
 	headerSigVerifier                process.InterceptedHeaderSigVerifier
@@ -148,6 +150,7 @@ func CreateProcessComponents(args ArgsProcessComponentsHolder) (*processComponen
 		Marshalizer:              args.CoreComponents.InternalMarshalizer(),
 		Store:                    args.DataComponents.StorageService(),
 		Uint64ByteSliceConverter: args.CoreComponents.Uint64ByteSliceConverter(),
+		DataPool:                 args.DataComponents.Datapool(),
 	}
 	historyRepositoryFactory, err := dbLookupFactory.NewHistoryRepositoryFactory(historyRepoFactoryArgs)
 	if err != nil {
@@ -373,6 +376,11 @@ func (p *processComponentsHolder) ForkDetector() process.ForkDetector {
 // BlockProcessor will return the block processor
 func (p *processComponentsHolder) BlockProcessor() process.BlockProcessor {
 	return p.blockProcessor
+}
+
+// ExecutionManager will return the execution manager
+func (p *processComponentsHolder) ExecutionManager() process.ExecutionManager {
+	return p.executionManager
 }
 
 // BlackListHandler will return the black list handler

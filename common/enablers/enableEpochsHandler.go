@@ -810,6 +810,12 @@ func (handler *enableEpochsHandler) createAllFlagsMap() {
 			},
 			activationEpoch: handler.enableEpochsConfig.AndromedaEnableEpoch,
 		},
+		common.SupernovaFlag: {
+			isActiveInEpoch: func(epoch uint32) bool {
+				return epoch >= handler.enableEpochsConfig.SupernovaEnableEpoch
+			},
+			activationEpoch: handler.enableEpochsConfig.SupernovaEnableEpoch,
+		},
 		// TODO: move it to activation round
 		common.CheckBuiltInCallOnTransferValueAndFailExecutionFlag: {
 			isActiveInEpoch: func(epoch uint32) bool {
@@ -852,6 +858,12 @@ func (handler *enableEpochsHandler) createAllFlagsMap() {
 				return epoch >= handler.enableEpochsConfig.FixGetBalanceEnableEpoch
 			},
 			activationEpoch: handler.enableEpochsConfig.FixGetBalanceEnableEpoch,
+		},
+		common.RelayedTransactionsV1V2DisableFlag: {
+			isActiveInEpoch: func(epoch uint32) bool {
+				return epoch >= handler.enableEpochsConfig.RelayedTransactionsV1V2DisableEpoch
+			},
+			activationEpoch: handler.enableEpochsConfig.RelayedTransactionsV1V2DisableEpoch,
 		},
 	}
 }

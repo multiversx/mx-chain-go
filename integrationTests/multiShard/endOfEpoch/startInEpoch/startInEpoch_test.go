@@ -1,6 +1,10 @@
 package startInEpoch
 
 import (
+	"github.com/multiversx/mx-chain-go/testscommon/chainParameters"
+	"github.com/multiversx/mx-chain-go/testscommon/pool"
+	"github.com/multiversx/mx-chain-go/testscommon/processMocks"
+
 	"math/big"
 	"os"
 	"testing"
@@ -37,7 +41,6 @@ import (
 	"github.com/multiversx/mx-chain-go/storage/factory"
 	"github.com/multiversx/mx-chain-go/storage/storageunit"
 	"github.com/multiversx/mx-chain-go/testscommon"
-	"github.com/multiversx/mx-chain-go/testscommon/chainParameters"
 	"github.com/multiversx/mx-chain-go/testscommon/enableEpochsHandlerMock"
 	"github.com/multiversx/mx-chain-go/testscommon/genericMocks"
 	"github.com/multiversx/mx-chain-go/testscommon/genesisMocks"
@@ -79,6 +82,7 @@ func testNodeStartsInEpoch(t *testing.T, shardID uint32, expectedHighestRound ui
 		StakingV4Step2EnableEpoch:            integrationTests.UnreachableEpoch,
 		StakingV4Step3EnableEpoch:            integrationTests.UnreachableEpoch,
 		AndromedaEnableEpoch:                 integrationTests.UnreachableEpoch,
+		SupernovaEnableEpoch:                 integrationTests.UnreachableEpoch,
 	}
 
 	nodes := integrationTests.CreateNodesWithEnableEpochs(
@@ -153,7 +157,8 @@ func testNodeStartsInEpoch(t *testing.T, shardID uint32, expectedHighestRound ui
 
 	generalConfig := getGeneralConfig()
 	roundDurationMillis := 4000
-	epochDurationMillis := generalConfig.EpochStartConfig.RoundsPerEpoch * int64(roundDurationMillis)
+	numRoundsPerEpoch := nodes[0].Node.GetCoreComponents().ChainParametersHandler().CurrentChainParameters().RoundsPerEpoch
+	epochDurationMillis := numRoundsPerEpoch * int64(roundDurationMillis)
 	prefsConfig := config.PreferencesConfig{
 		FullArchive: false,
 	}
@@ -250,8 +255,9 @@ func testNodeStartsInEpoch(t *testing.T, shardID uint32, expectedHighestRound ui
 		444,
 	)
 	interceptorDataVerifierArgs := interceptorsFactory.InterceptedDataVerifierFactoryArgs{
-		CacheSpan:   time.Second * 5,
-		CacheExpiry: time.Second * 10,
+		InterceptedDataVerifierConfig: config.InterceptedDataVerifierConfig{
+			EnableCaching: false,
+		},
 	}
 	argsBootstrapHandler := bootstrap.ArgsEpochStartBootstrap{
 		NodesCoordinatorRegistryFactory: nodesCoordinatorRegistryFactory,
@@ -366,6 +372,7 @@ func testNodeStartsInEpoch(t *testing.T, shardID uint32, expectedHighestRound ui
 		AppStatusHandler:             &statusHandlerMock.AppStatusHandlerMock{},
 		EnableEpochsHandler:          enableEpochsHandler,
 		ProofsPool:                   &dataRetrieverMocks.ProofsPoolMock{},
+		ExecutionManager:             &processMocks.ExecutionManagerMock{},
 	}
 
 	bootstrapper, err := getBootstrapper(shardID, argsBaseBootstrapper)
@@ -381,7 +388,7 @@ func testNodeStartsInEpoch(t *testing.T, shardID uint32, expectedHighestRound ui
 
 func getBootstrapper(shardID uint32, baseArgs storageBootstrap.ArgsBaseStorageBootstrapper) (process.BootstrapperFromStorage, error) {
 	if shardID == core.MetachainShardId {
-		pendingMiniBlocksHandler, _ := pendingMb.NewPendingMiniBlocks()
+		pendingMiniBlocksHandler, _ := pendingMb.NewPendingMiniBlocks(&pool.HeadersPoolStub{})
 		bootstrapperArgs := storageBootstrap.ArgsMetaStorageBootstrapper{
 			ArgsBaseStorageBootstrapper: baseArgs,
 			PendingMiniBlocksHandler:    pendingMiniBlocksHandler,

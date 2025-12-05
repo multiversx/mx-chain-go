@@ -73,7 +73,7 @@ func CreateNodesWithNodesCoordinatorAndTxKeys(
 	shardConsensusGroupSize int,
 	metaConsensusGroupSize int,
 ) map[uint32][]*TestProcessorNode {
-	rater, _ := rating.NewBlockSigningRater(CreateRatingsData())
+	rater, _ := rating.NewBlockSigningRater(CreateRatingsData(), &enableEpochsHandlerMock.EnableEpochsHandlerStub{})
 	coordinatorFactory := &IndexHashedNodesCoordinatorWithRaterFactory{
 		PeerAccountListAndRatingHandler: rater,
 	}
@@ -185,6 +185,7 @@ func CreateNodeWithBLSAndTxKeys(
 		MiniBlockPartialExecutionEnableEpoch: UnreachableEpoch,
 		RefactorPeersMiniBlocksEnableEpoch:   UnreachableEpoch,
 		AndromedaEnableEpoch:                 UnreachableEpoch,
+		SupernovaEnableEpoch:                 UnreachableEpoch,
 	}
 
 	return CreateNode(
@@ -247,6 +248,7 @@ func CreateNodesWithNodesCoordinatorFactory(
 		StakingV4Step2EnableEpoch:                       UnreachableEpoch,
 		StakingV4Step3EnableEpoch:                       UnreachableEpoch,
 		AndromedaEnableEpoch:                            UnreachableEpoch,
+		SupernovaEnableEpoch:                            UnreachableEpoch,
 	}
 
 	nodesMap := make(map[uint32][]*TestProcessorNode)

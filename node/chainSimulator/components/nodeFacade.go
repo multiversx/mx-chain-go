@@ -118,13 +118,13 @@ func (node *testOnlyProcessingNode) createFacade(configs config.Configs, apiInte
 		RestAPIServerDebugMode: flagsConfig.EnableRestAPIServerDebugMode,
 		WsAntifloodConfig:      configs.GeneralConfig.WebServerAntiflood,
 		FacadeConfig: config.FacadeConfig{
-			RestApiInterface: restApiInterface,
-			PprofEnabled:     flagsConfig.EnablePprof,
+			RestApiInterface:       restApiInterface,
+			PprofEnabled:           flagsConfig.EnablePprof,
+			TxCacheSelectionConfig: configs.GeneralConfig.TxCacheSelection,
 		},
-		ApiRoutesConfig: *configs.ApiRoutesConfig,
-		AccountsState:   node.StateComponentsHolder.AccountsAdapter(),
-		PeerState:       node.StateComponentsHolder.PeerAccounts(),
-		Blockchain:      node.DataComponentsHolder.Blockchain(),
+		ApiRoutesConfig:  *configs.ApiRoutesConfig,
+		AccountsStateAPI: node.StateComponentsHolder.AccountsAdapter(),
+		Blockchain:       node.DataComponentsHolder.Blockchain(),
 	}
 
 	ef, err := facade.NewNodeFacade(argNodeFacade)
@@ -162,6 +162,7 @@ func (node *testOnlyProcessingNode) createHttpServer(configs config.Configs) err
 }
 
 func (node *testOnlyProcessingNode) createMetrics(configs config.Configs) error {
+	currentChainParameters := node.CoreComponentsHolder.ChainParametersHandler().CurrentChainParameters()
 	err := metrics.InitMetrics(
 		node.StatusCoreComponents.AppStatusHandler(),
 		node.CryptoComponentsHolder.PublicKeyString(),
@@ -170,7 +171,7 @@ func (node *testOnlyProcessingNode) createMetrics(configs config.Configs) error 
 		node.CoreComponentsHolder.GenesisNodesSetup(),
 		configs.FlagsConfig.Version,
 		configs.EconomicsConfig,
-		configs.GeneralConfig.EpochStartConfig.RoundsPerEpoch,
+		currentChainParameters,
 		node.CoreComponentsHolder.MinTransactionVersion(),
 	)
 

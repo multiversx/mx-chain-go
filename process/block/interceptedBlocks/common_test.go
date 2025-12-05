@@ -1,6 +1,7 @@
 package interceptedBlocks
 
 import (
+	"math/big"
 	"testing"
 
 	"github.com/multiversx/mx-chain-core-go/core"
@@ -66,6 +67,175 @@ func createDefaultHeaderHandler() *testscommon.HeaderHandlerStub {
 		},
 		GetPrevHashCalled: func() []byte {
 			return []byte("prev hash")
+		},
+	}
+}
+
+func createValidHeaderV3ToTest() *block.HeaderV3 {
+	return &block.HeaderV3{
+		Nonce:           101,
+		Round:           1200,
+		Epoch:           1,
+		PrevHash:        []byte("prev hash"),
+		PrevRandSeed:    []byte("prev rand seed"),
+		RandSeed:        []byte("rand seed"),
+		LeaderSignature: []byte("leader signature"),
+		SoftwareVersion: []byte("v1.0.0"),
+
+		ExecutionResults: []*block.ExecutionResult{
+			&block.ExecutionResult{
+				BaseExecutionResult: &block.BaseExecutionResult{
+					HeaderHash:  []byte("header hash"),
+					HeaderNonce: 98,
+					HeaderRound: 1001,
+					HeaderEpoch: 0,
+					RootHash:    []byte("root hash"),
+				},
+			},
+			&block.ExecutionResult{
+				BaseExecutionResult: &block.BaseExecutionResult{
+					HeaderHash:  []byte("header hash"),
+					HeaderNonce: 99,
+					HeaderRound: 1020,
+					HeaderEpoch: 0,
+					RootHash:    []byte("root hash"),
+				},
+			},
+			&block.ExecutionResult{
+				BaseExecutionResult: &block.BaseExecutionResult{
+					HeaderHash:  []byte("header hash"),
+					HeaderNonce: 100,
+					HeaderRound: 1100,
+					HeaderEpoch: 1,
+					RootHash:    []byte("root hash"),
+				},
+			},
+		},
+		LastExecutionResult: &block.ExecutionResultInfo{
+			ExecutionResult: &block.BaseExecutionResult{
+				HeaderHash:  []byte("header hash"),
+				HeaderNonce: 100,
+				HeaderRound: 1100,
+				HeaderEpoch: 1,
+				RootHash:    []byte("root hash"),
+			},
+			NotarizedInRound: 1199,
+		},
+	}
+}
+
+func createValidMetaHeaderV3ToTest() *block.MetaBlockV3 {
+	return &block.MetaBlockV3{
+		Nonce:           42,
+		Epoch:           2,
+		Round:           15,
+		TimestampMs:     123456789,
+		PrevHash:        []byte("prev_hash"),
+		PrevRandSeed:    []byte("prev_seed"),
+		RandSeed:        []byte("new_seed"),
+		ChainID:         []byte("chain-id"),
+		SoftwareVersion: []byte("v1.0.0"),
+		LeaderSignature: []byte("leader_signature"),
+
+		MiniBlockHeaders: []block.MiniBlockHeader{
+			{Hash: []byte("meta-to-s0"), SenderShardID: core.MetachainShardId, ReceiverShardID: 0},
+			{Hash: []byte("meta-to-s1"), SenderShardID: core.MetachainShardId, ReceiverShardID: 1},
+		},
+
+		ShardInfo: []block.ShardData{
+			{
+				ShardID:    0,
+				Round:      10,
+				Nonce:      41,
+				Epoch:      1,
+				HeaderHash: []byte("shard0-hash"),
+				ShardMiniBlockHeaders: []block.MiniBlockHeader{
+					{SenderShardID: 0, ReceiverShardID: 1, Hash: []byte("s0-to-s1")},
+				},
+			},
+			{
+				ShardID:    1,
+				Round:      11,
+				Nonce:      40,
+				Epoch:      1,
+				HeaderHash: []byte("shard1-hash"),
+				ShardMiniBlockHeaders: []block.MiniBlockHeader{
+					{SenderShardID: 1, ReceiverShardID: 0, Hash: []byte("s1-to-s0")},
+				},
+			},
+		},
+		ShardInfoProposal: []block.ShardDataProposal{
+			{ShardID: 0, HeaderHash: []byte("shard-0-hash"), Nonce: 41, Round: 10, Epoch: 1},
+			{ShardID: 1, HeaderHash: []byte("shard-1-hash"), Nonce: 40, Round: 11, Epoch: 1},
+		},
+		ExecutionResults: []*block.MetaExecutionResult{
+			{
+				ExecutionResult: &block.BaseMetaExecutionResult{
+					BaseExecutionResult: &block.BaseExecutionResult{
+						HeaderHash:  []byte("hdr-hash-10"),
+						HeaderNonce: 39,
+						HeaderRound: 10,
+						HeaderEpoch: 1,
+						RootHash:    []byte("root-hash-10"),
+					},
+					AccumulatedFeesInEpoch: big.NewInt(1000),
+					DevFeesInEpoch:         big.NewInt(100),
+					ValidatorStatsRootHash: []byte("validator-stats-root-hash"),
+				},
+				AccumulatedFees: big.NewInt(1000),
+				DeveloperFees:   big.NewInt(100),
+				ReceiptsHash:    []byte("receipts hash"),
+			},
+			{
+				ExecutionResult: &block.BaseMetaExecutionResult{
+					BaseExecutionResult: &block.BaseExecutionResult{
+						HeaderHash:  []byte("hdr-hash-11"),
+						HeaderNonce: 40,
+						HeaderRound: 11,
+						HeaderEpoch: 1,
+						RootHash:    []byte("root-hash-11"),
+					},
+					AccumulatedFeesInEpoch: big.NewInt(2000),
+					DevFeesInEpoch:         big.NewInt(200),
+					ValidatorStatsRootHash: []byte("validator-stats-root-hash"),
+				},
+				AccumulatedFees: big.NewInt(2000),
+				DeveloperFees:   big.NewInt(200),
+				ReceiptsHash:    []byte("receipts hash"),
+			},
+			{
+				ExecutionResult: &block.BaseMetaExecutionResult{
+					BaseExecutionResult: &block.BaseExecutionResult{
+						HeaderHash:  []byte("hdr-hash-last"),
+						HeaderNonce: 41,
+						HeaderRound: 12,
+						HeaderEpoch: 2,
+						RootHash:    []byte("root-hash-last"),
+					},
+					AccumulatedFeesInEpoch: big.NewInt(3000),
+					DevFeesInEpoch:         big.NewInt(300),
+					ValidatorStatsRootHash: []byte("validator-stats-root-hash"),
+				},
+				AccumulatedFees: big.NewInt(3000),
+				DeveloperFees:   big.NewInt(300),
+				ReceiptsHash:    []byte("receipts hash"),
+			},
+		},
+
+		LastExecutionResult: &block.MetaExecutionResultInfo{
+			NotarizedInRound: 14,
+			ExecutionResult: &block.BaseMetaExecutionResult{
+				BaseExecutionResult: &block.BaseExecutionResult{
+					HeaderHash:  []byte("hdr-hash-last"),
+					HeaderNonce: 41,
+					HeaderRound: 12,
+					HeaderEpoch: 2,
+					RootHash:    []byte("root-hash-last"),
+				},
+				AccumulatedFeesInEpoch: big.NewInt(3000),
+				DevFeesInEpoch:         big.NewInt(300),
+				ValidatorStatsRootHash: []byte("validator-stats-root-hash"),
+			},
 		},
 	}
 }
@@ -353,6 +523,151 @@ func TestCheckHeaderHandler_ShouldWork(t *testing.T) {
 
 	err := checkHeaderHandler(hdr, enableEpochsHandlerMock.NewEnableEpochsHandlerStub())
 
+	assert.Nil(t, err)
+}
+
+func TestCheckHeaderHandler_HeaderV3_CheckFieldsIntegrityErrors(t *testing.T) {
+	t.Parallel()
+
+	enableEpochsHandler := enableEpochsHandlerMock.NewEnableEpochsHandlerStub()
+	enableEpochsHandler.IsFlagEnabledInEpochCalled = func(flag core.EnableEpochFlag, epoch uint32) bool {
+		return true
+	}
+	t.Run("nil header", func(t *testing.T) {
+		t.Parallel()
+		var hv3 *block.HeaderV3
+		err := checkHeaderHandler(hv3, enableEpochsHandler)
+		assert.Error(t, err)
+	})
+	t.Run("not nil receipt hash field", func(t *testing.T) {
+		t.Parallel()
+		hv3 := createValidHeaderV3ToTest()
+		hv3.ReceiptsHash = []byte("not nil receipts hash")
+		err := checkHeaderHandler(hv3, enableEpochsHandler)
+		assert.True(t, hv3.IsHeaderV3())
+		assert.Error(t, err)
+		assert.ErrorIs(t, err, data.ErrNotNilValue)
+	})
+	t.Run("not nil reserved field", func(t *testing.T) {
+		t.Parallel()
+		hv3 := createValidHeaderV3ToTest()
+		hv3.Reserved = []byte("not nil reserved")
+		err := checkHeaderHandler(hv3, enableEpochsHandler)
+		assert.Error(t, err)
+		assert.ErrorIs(t, err, data.ErrNotNilValue)
+	})
+	t.Run("nil last execution result", func(t *testing.T) {
+		t.Parallel()
+		hv3 := &block.HeaderV3{
+			Nonce: 2,
+			Round: 2,
+			Epoch: 2,
+		}
+		err := checkHeaderHandler(hv3, enableEpochsHandler)
+		assert.Error(t, err)
+	})
+	t.Run("invalid execution results", func(t *testing.T) {
+		t.Parallel()
+		hv3 := createValidHeaderV3ToTest()
+		hv3.ExecutionResults[0].BaseExecutionResult = nil
+		err := checkHeaderHandler(hv3, enableEpochsHandler)
+		assert.Error(t, err)
+	})
+	t.Run("invalid last execution result", func(t *testing.T) {
+		t.Parallel()
+		hv3 := createValidHeaderV3ToTest()
+		hv3.LastExecutionResult.ExecutionResult = nil
+		err := checkHeaderHandler(hv3, enableEpochsHandler)
+		assert.Error(t, err)
+	})
+	t.Run("invalid round in last execution result", func(t *testing.T) {
+		t.Parallel()
+		hv3 := createValidHeaderV3ToTest()
+		hv3.LastExecutionResult.NotarizedInRound = 1300
+		err := checkHeaderHandler(hv3, enableEpochsHandler)
+		assert.Error(t, err)
+	})
+}
+func TestCheckHeaderHandler_HeaderV3_CheckFieldsIntegrityWorks(t *testing.T) {
+	t.Parallel()
+	hdr := createValidHeaderV3ToTest()
+	enableEpochsHandler := enableEpochsHandlerMock.NewEnableEpochsHandlerStub()
+	enableEpochsHandler.IsFlagEnabledInEpochCalled = func(flag core.EnableEpochFlag, epoch uint32) bool {
+		return true
+	}
+	err := checkHeaderHandler(hdr, enableEpochsHandler)
+	assert.Nil(t, err)
+}
+
+func TestCheckHeaderHandler_MetaHeaderV3_CheckFieldsIntegrityErrors(t *testing.T) {
+	t.Parallel()
+
+	enableEpochsHandler := enableEpochsHandlerMock.NewEnableEpochsHandlerStub()
+	enableEpochsHandler.IsFlagEnabledInEpochCalled = func(flag core.EnableEpochFlag, epoch uint32) bool {
+		return true
+	}
+	t.Run("nil header", func(t *testing.T) {
+		t.Parallel()
+		var meta *block.MetaBlockV3
+		err := checkHeaderHandler(meta, enableEpochsHandler)
+		assert.Error(t, err)
+	})
+	t.Run("not nil reserved field", func(t *testing.T) {
+		t.Parallel()
+		meta := createValidMetaHeaderV3ToTest()
+		meta.Reserved = []byte("not nil reserved")
+		err := checkHeaderHandler(meta, enableEpochsHandler)
+		assert.Error(t, err)
+		assert.ErrorIs(t, err, data.ErrNotNilValue)
+	})
+	t.Run("nil last execution result", func(t *testing.T) {
+		t.Parallel()
+		meta := &block.MetaBlockV3{
+			Nonce: 2,
+			Round: 2,
+			Epoch: 2,
+		}
+		err := checkHeaderHandler(meta, enableEpochsHandler)
+		assert.Error(t, err)
+	})
+	t.Run("invalid execution results", func(t *testing.T) {
+		t.Parallel()
+		meta := createValidMetaHeaderV3ToTest()
+		meta.ExecutionResults[0].ExecutionResult = nil
+		err := checkHeaderHandler(meta, enableEpochsHandler)
+		assert.Error(t, err)
+	})
+	t.Run("invalid last execution result", func(t *testing.T) {
+		t.Parallel()
+		meta := createValidMetaHeaderV3ToTest()
+		meta.LastExecutionResult.ExecutionResult = nil
+		err := checkHeaderHandler(meta, enableEpochsHandler)
+		assert.Error(t, err)
+	})
+	t.Run("invalid round in last execution result", func(t *testing.T) {
+		t.Parallel()
+		meta := createValidMetaHeaderV3ToTest()
+		meta.LastExecutionResult.NotarizedInRound = 1300
+		err := checkHeaderHandler(meta, enableEpochsHandler)
+		assert.Error(t, err)
+	})
+	t.Run("invalid shard info", func(t *testing.T) {
+		t.Parallel()
+		meta := createValidMetaHeaderV3ToTest()
+		meta.ShardInfoProposal = make([]block.ShardDataProposal, 0)
+		err := checkHeaderHandler(meta, enableEpochsHandler)
+		assert.Error(t, err)
+	})
+}
+
+func TestCheckHeaderHandler_MetaHeaderV3_CheckFieldsIntegrityWorks(t *testing.T) {
+	t.Parallel()
+	hdr := createValidMetaHeaderV3ToTest()
+	enableEpochsHandler := enableEpochsHandlerMock.NewEnableEpochsHandlerStub()
+	enableEpochsHandler.IsFlagEnabledInEpochCalled = func(flag core.EnableEpochFlag, epoch uint32) bool {
+		return true
+	}
+	err := checkHeaderHandler(hdr, enableEpochsHandler)
 	assert.Nil(t, err)
 }
 

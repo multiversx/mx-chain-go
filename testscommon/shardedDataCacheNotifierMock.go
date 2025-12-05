@@ -2,9 +2,13 @@ package testscommon
 
 import (
 	"sync"
+	"time"
 
 	"github.com/multiversx/mx-chain-core-go/core/counting"
+	"github.com/multiversx/mx-chain-core-go/data"
+	"github.com/multiversx/mx-chain-core-go/data/block"
 
+	"github.com/multiversx/mx-chain-go/common"
 	"github.com/multiversx/mx-chain-go/storage"
 	cacheMocks "github.com/multiversx/mx-chain-go/testscommon/cache"
 )
@@ -13,6 +17,17 @@ import (
 type ShardedDataCacheNotifierMock struct {
 	mutCaches sync.RWMutex
 	caches    map[string]storage.Cacher
+
+	CleanupSelfShardTxCacheCalled func(session interface{}, randomness uint64, maxNum int, cleanupLoopMaximumDuration time.Duration)
+	OnExecutedBlockCalled         func(blockHeader data.HeaderHandler, rootHash []byte) error
+	OnProposedBlockCalled         func(
+		blockHash []byte,
+		blockBody *block.Body,
+		blockHeader data.HeaderHandler,
+		accountsProvider common.AccountNonceAndBalanceProvider,
+		latestExecutedHash []byte,
+	) error
+	ResetTrackerCalled func()
 }
 
 // NewShardedDataCacheNotifierMock -
@@ -109,7 +124,7 @@ func (mock *ShardedDataCacheNotifierMock) ClearShardStore(cacheId string) {
 
 // GetCounts -
 func (mock *ShardedDataCacheNotifierMock) GetCounts() counting.CountsWithSize {
-	return nil
+	return &counting.NullCounts{}
 }
 
 // Keys -
@@ -125,7 +140,54 @@ func (mock *ShardedDataCacheNotifierMock) Keys() [][]byte {
 	return keys
 }
 
+// CleanupSelfShardTxCache -
+func (mock *ShardedDataCacheNotifierMock) CleanupSelfShardTxCache(accountsProvider common.AccountNonceProvider, randomness uint64, maxNum int, cleanupLoopMaximumDuration time.Duration) {
+	if mock.CleanupSelfShardTxCacheCalled != nil {
+		mock.CleanupSelfShardTxCacheCalled(accountsProvider, randomness, maxNum, cleanupLoopMaximumDuration)
+	}
+}
+
+// OnExecutedBlock -
+func (mock *ShardedDataCacheNotifierMock) OnExecutedBlock(blockHeader data.HeaderHandler, rootHash []byte) error {
+	if mock.OnExecutedBlockCalled != nil {
+		return mock.OnExecutedBlockCalled(blockHeader, rootHash)
+	}
+
+	return nil
+}
+
+// OnProposedBlock -
+func (mock *ShardedDataCacheNotifierMock) OnProposedBlock(
+	blockHash []byte,
+	blockBody *block.Body,
+	blockHeader data.HeaderHandler,
+	accountsProvider common.AccountNonceAndBalanceProvider,
+	latestExecutedHash []byte,
+) error {
+	if mock.OnProposedBlockCalled != nil {
+		return mock.OnProposedBlockCalled(blockHash, blockBody, blockHeader, accountsProvider, latestExecutedHash)
+	}
+	return nil
+}
+
+// ResetTracker -
+func (mock *ShardedDataCacheNotifierMock) ResetTracker() {
+	if mock.ResetTrackerCalled != nil {
+		mock.ResetTrackerCalled()
+	}
+}
+
 // IsInterfaceNil -
 func (mock *ShardedDataCacheNotifierMock) IsInterfaceNil() bool {
 	return mock == nil
+}
+
+// GetNumTrackedBlocks -
+func (sd *ShardedDataCacheNotifierMock) GetNumTrackedBlocks() uint64 {
+	return 0
+}
+
+// GetNumTrackedAccounts -
+func (sd *ShardedDataCacheNotifierMock) GetNumTrackedAccounts() uint64 {
+	return 0
 }

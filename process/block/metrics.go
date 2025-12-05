@@ -23,7 +23,7 @@ import (
 const leaderIndex = 0
 
 func getMetricsFromMetaHeader(
-	header *block.MetaBlock,
+	header data.MetaHeaderHandler,
 	marshalizer marshal.Marshalizer,
 	appStatusHandler core.AppStatusHandler,
 	numShardHeadersFromPool int,
@@ -32,8 +32,8 @@ func getMetricsFromMetaHeader(
 	numMiniBlocksMetaBlock := uint64(0)
 	headerSize := uint64(0)
 
-	for _, shardInfo := range header.ShardInfo {
-		numMiniBlocksMetaBlock += uint64(len(shardInfo.ShardMiniBlockHeaders))
+	for _, shardInfo := range header.GetShardInfoHandlers() {
+		numMiniBlocksMetaBlock += uint64(len(shardInfo.GetShardMiniBlockHeaderHandlers()))
 	}
 
 	marshalizedHeader, err := marshalizer.Marshal(header)
@@ -42,7 +42,7 @@ func getMetricsFromMetaHeader(
 	}
 
 	appStatusHandler.SetUInt64Value(common.MetricHeaderSize, headerSize)
-	appStatusHandler.SetUInt64Value(common.MetricNumTxInBlock, uint64(header.TxCount))
+	appStatusHandler.SetUInt64Value(common.MetricNumTxInBlock, uint64(header.GetTxCount()))
 	appStatusHandler.SetUInt64Value(common.MetricNumMiniBlocks, numMiniBlocksMetaBlock)
 	appStatusHandler.SetUInt64Value(common.MetricNumShardHeadersProcessed, numShardHeadersProcessed)
 	appStatusHandler.SetUInt64Value(common.MetricNumShardHeadersFromPool, uint64(numShardHeadersFromPool))
@@ -104,14 +104,14 @@ func saveMetricsForCommittedShardBlock(
 
 func saveMetricsForCommitMetachainBlock(
 	appStatusHandler core.AppStatusHandler,
-	header *block.MetaBlock,
+	header data.MetaHeaderHandler,
 	headerHash []byte,
 	nodesCoordinator nodesCoordinator.NodesCoordinator,
 	highestFinalBlockNonce uint64,
 	managedPeersHolder common.ManagedPeersHolder,
 ) {
 	appStatusHandler.SetStringValue(common.MetricCurrentBlockHash, logger.DisplayByteSlice(headerHash))
-	appStatusHandler.SetUInt64Value(common.MetricEpochNumber, uint64(header.Epoch))
+	appStatusHandler.SetUInt64Value(common.MetricEpochNumber, uint64(header.GetEpoch()))
 	appStatusHandler.SetUInt64Value(common.MetricHighestFinalBlock, highestFinalBlockNonce)
 
 	// TODO: remove if epoch start block needs to be validated by the new epoch nodes
@@ -165,14 +165,20 @@ func indexRoundInfo(
 	signersIndexes []uint64,
 	enableEpochsHandler common.EnableEpochsHandler,
 ) {
+	timestampSec, timestampMs, err := common.GetHeaderTimestamps(header, enableEpochsHandler)
+	if err != nil {
+		log.Warn("failed to get header timestamps", "error", err)
+		return
+	}
+
 	roundInfo := &outportcore.RoundInfo{
 		Round:            header.GetRound(),
 		SignersIndexes:   signersIndexes,
 		BlockWasProposed: true,
 		ShardId:          shardId,
 		Epoch:            header.GetEpoch(),
-		Timestamp:        uint64(time.Duration(header.GetTimeStamp())),
-		TimestampMs:      uint64(time.Duration(common.ConvertTimeStampSecToMs(header.GetTimeStamp()))),
+		Timestamp:        timestampSec,
+		TimestampMs:      timestampMs,
 	}
 
 	if check.IfNil(lastHeader) {
@@ -182,6 +188,8 @@ func indexRoundInfo(
 
 	lastBlockRound := lastHeader.GetRound()
 	currentBlockRound := header.GetRound()
+
+	// TODO: evaluate more if this handling (based on current header and last header) is needed with one-short finality from andromeda
 	roundDuration := calculateRoundDuration(lastHeader.GetTimeStamp(), header.GetTimeStamp(), lastBlockRound, currentBlockRound)
 
 	roundsInfo := make([]*outportcore.RoundInfo, 0)
@@ -293,12 +301,12 @@ func calculateRoundDuration(
 	return diffTimeStamp / diffRounds
 }
 
-func saveEpochStartEconomicsMetrics(statusHandler core.AppStatusHandler, epochStartMetaBlock *block.MetaBlock) {
-	economics := epochStartMetaBlock.EpochStart.Economics
+func saveEpochStartEconomicsMetrics(statusHandler core.AppStatusHandler, epochStartMetaBlock data.MetaHeaderHandler) {
+	economics := epochStartMetaBlock.GetEpochStartHandler().GetEconomicsHandler()
 
-	statusHandler.SetStringValue(common.MetricTotalSupply, economics.TotalSupply.String())
-	statusHandler.SetStringValue(common.MetricInflation, economics.TotalNewlyMinted.String())
-	statusHandler.SetStringValue(common.MetricTotalFees, epochStartMetaBlock.AccumulatedFeesInEpoch.String())
-	statusHandler.SetStringValue(common.MetricDevRewardsInEpoch, epochStartMetaBlock.DevFeesInEpoch.String())
-	statusHandler.SetUInt64Value(common.MetricEpochForEconomicsData, uint64(epochStartMetaBlock.Epoch))
+	statusHandler.SetStringValue(common.MetricTotalSupply, economics.GetTotalSupply().String())
+	statusHandler.SetStringValue(common.MetricInflation, economics.GetTotalNewlyMinted().String())
+	statusHandler.SetStringValue(common.MetricTotalFees, epochStartMetaBlock.GetAccumulatedFeesInEpoch().String())
+	statusHandler.SetStringValue(common.MetricDevRewardsInEpoch, epochStartMetaBlock.GetDevFeesInEpoch().String())
+	statusHandler.SetUInt64Value(common.MetricEpochForEconomicsData, uint64(epochStartMetaBlock.GetEpoch()))
 }

@@ -34,6 +34,8 @@ func createMockDataPoolArgs() dataPool.DataPoolArgs {
 		Heartbeats:                cache.NewCacherStub(),
 		ValidatorsInfo:            testscommon.NewShardedDataStub(),
 		Proofs:                    &dataRetrieverMocks.ProofsPoolMock{},
+		ExecutedMiniBlocks:        cache.NewCacherStub(),
+		PostProcessTransactions:   cache.NewCacherStub(),
 	}
 }
 
@@ -180,6 +182,28 @@ func TestNewDataPool_NilCurrBlockTransactionsShouldErr(t *testing.T) {
 	require.Equal(t, dataRetriever.ErrNilCurrBlockTxs, err)
 }
 
+func TestNewDataPool_NilExecutedMiniBlocksShouldErr(t *testing.T) {
+	t.Parallel()
+
+	args := createMockDataPoolArgs()
+	args.ExecutedMiniBlocks = nil
+	tdp, err := dataPool.NewDataPool(args)
+
+	require.Nil(t, tdp)
+	require.Equal(t, dataRetriever.ErrNilExecutedMiniBlocksCache, err)
+}
+
+func TestNewDataPool_NilPostProcessTransactionsShouldErr(t *testing.T) {
+	t.Parallel()
+
+	args := createMockDataPoolArgs()
+	args.PostProcessTransactions = nil
+	tdp, err := dataPool.NewDataPool(args)
+
+	require.Nil(t, tdp)
+	require.Equal(t, dataRetriever.ErrNilPostProcessTransactionsCache, err)
+}
+
 func TestNewDataPool_NilCurrEpochValidatorInfoShouldErr(t *testing.T) {
 	t.Parallel()
 
@@ -214,6 +238,8 @@ func TestNewDataPool_OkValsShouldWork(t *testing.T) {
 	assert.True(t, args.PeerAuthentications == tdp.PeerAuthentications())
 	assert.True(t, args.Heartbeats == tdp.Heartbeats())
 	assert.True(t, args.ValidatorsInfo == tdp.ValidatorsInfo())
+	assert.True(t, args.ExecutedMiniBlocks == tdp.ExecutedMiniBlocks())
+	assert.True(t, args.PostProcessTransactions == tdp.PostProcessTransactions())
 }
 
 func TestNewDataPool_Close(t *testing.T) {

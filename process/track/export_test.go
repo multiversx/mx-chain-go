@@ -39,7 +39,7 @@ func (sbt *shardBlockTrack) GetTrackedShardHeaderWithNonceAndHash(shardID uint32
 // metaBlockTrack
 
 // GetTrackedMetaBlockWithHash -
-func (mbt *metaBlockTrack) GetTrackedMetaBlockWithHash(hash []byte) (*block.MetaBlock, error) {
+func (mbt *metaBlockTrack) GetTrackedMetaBlockWithHash(hash []byte) (data.MetaHeaderHandler, error) {
 	return mbt.getTrackedMetaBlockWithHash(hash)
 }
 
@@ -48,6 +48,11 @@ func (mbt *metaBlockTrack) GetTrackedMetaBlockWithHash(hash []byte) (*block.Meta
 // ReceivedHeader -
 func (bbt *baseBlockTrack) ReceivedHeader(headerHandler data.HeaderHandler, headerHash []byte) {
 	bbt.receivedHeader(headerHandler, headerHash)
+}
+
+// ReceivedProof -
+func (bbt *baseBlockTrack) ReceivedProof(proof data.HeaderProofHandler) {
+	bbt.receivedProof(proof)
 }
 
 // CheckTrackerNilParameters -

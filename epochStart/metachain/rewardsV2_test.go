@@ -13,6 +13,8 @@ import (
 	"github.com/multiversx/mx-chain-core-go/data"
 	"github.com/multiversx/mx-chain-core-go/data/block"
 	"github.com/multiversx/mx-chain-core-go/data/rewardTx"
+	"github.com/stretchr/testify/require"
+
 	"github.com/multiversx/mx-chain-go/common"
 	"github.com/multiversx/mx-chain-go/epochStart"
 	"github.com/multiversx/mx-chain-go/epochStart/mock"
@@ -20,7 +22,6 @@ import (
 	"github.com/multiversx/mx-chain-go/state"
 	"github.com/multiversx/mx-chain-go/testscommon/economicsmocks"
 	"github.com/multiversx/mx-chain-go/testscommon/stakingcommon"
-	"github.com/stretchr/testify/require"
 )
 
 const (
@@ -1213,7 +1214,7 @@ func setupNodeRewardInfo(
 
 	nrValidatorsToRemoveTopup := big.NewInt(0).Div(validatorTopupStake, topupStakePerNode)
 
-	//remove the newly added topup from some other nodes
+	// remove the newly added topup from some other nodes
 	for i := int64(1); i < nrValidatorsToRemoveTopup.Int64(); i++ {
 		nodesRewardInfo[0][i].topUpStake = big.NewInt(0)
 	}
@@ -1505,7 +1506,7 @@ func TestNewRewardsCreatorV2_addValidatorRewardsToMiniBlocks(t *testing.T) {
 		sumFees.Add(sumFees, vInfo.GetAccumulatedFees())
 	}
 
-	accumulatedDust, err := rwd.addValidatorRewardsToMiniBlocks(metaBlock, miniBlocks, nodesRewardInfo)
+	accumulatedDust, err := rwd.addValidatorRewardsToMiniBlocks(metaBlock.GetEpoch(), metaBlock.GetRound(), miniBlocks, nodesRewardInfo)
 	require.Nil(t, err)
 	require.Equal(t, big.NewInt(0), accumulatedDust)
 
@@ -1556,7 +1557,7 @@ func TestNewRewardsCreatorV2_addValidatorRewardsToMiniBlocksAddressInMetaChainDe
 		}
 	}
 
-	accumulatedDust, err := rwd.addValidatorRewardsToMiniBlocks(metaBlock, miniBlocks, nodesRewardInfo)
+	accumulatedDust, err := rwd.addValidatorRewardsToMiniBlocks(metaBlock.GetEpoch(), metaBlock.GetRound(), miniBlocks, nodesRewardInfo)
 	require.Nil(t, err)
 	require.True(t, big.NewInt(0).Cmp(accumulatedDust) < 0)
 
@@ -1760,6 +1761,75 @@ func TestNewRewardsCreatorV2_CreateRewardsMiniBlocks2169Nodes(t *testing.T) {
 
 	err = rwd.VerifyRewardsMiniBlocks(metaBlock, vInfo, &metaBlock.EpochStart.Economics)
 	require.Nil(t, err)
+}
+
+func TestRewardsCreatorV2_CreateRewardsMiniBlocksHeaderV3(t *testing.T) {
+	t.Parallel()
+
+	t.Run("should return ErrNilHeaderHandler because of nil header argument", func(t *testing.T) {
+		t.Parallel()
+
+		args := getRewardsCreatorV2Arguments()
+		rwd, err := NewRewardsCreatorV2(args)
+		require.Nil(t, err)
+
+		vInfo := state.NewShardValidatorsInfoMap()
+		prevBlockExecResults := block.BaseMetaExecutionResult{}
+
+		_, err = rwd.CreateRewardsMiniBlocksV3(nil, vInfo, &block.Economics{}, &prevBlockExecResults)
+		require.Equal(t, common.ErrNilHeaderHandler, err)
+	})
+
+	t.Run("should return ErrNilPrevBlockExecutionResults because of nil previous block execution results", func(t *testing.T) {
+		t.Parallel()
+
+		args := getRewardsCreatorV2Arguments()
+		rwd, err := NewRewardsCreatorV2(args)
+		require.Nil(t, err)
+
+		vInfo := state.NewShardValidatorsInfoMap()
+		metaBlock := &block.MetaBlockV3{}
+
+		_, err = rwd.CreateRewardsMiniBlocksV3(metaBlock, vInfo, &block.Economics{}, nil)
+		require.Equal(t, epochStart.ErrNilPrevBlockExecutionResults, err)
+	})
+
+	t.Run("should return ErrInvalidHeader because headers is not V3", func(t *testing.T) {
+		t.Parallel()
+
+		args := getRewardsCreatorV2Arguments()
+		rwd, err := NewRewardsCreatorV2(args)
+		require.Nil(t, err)
+
+		vInfo := state.NewShardValidatorsInfoMap()
+		metaBlock := &block.MetaBlock{}
+
+		prevBlockExecResults := block.BaseMetaExecutionResult{}
+
+		_, err = rwd.CreateRewardsMiniBlocksV3(metaBlock, vInfo, &block.Economics{}, &prevBlockExecResults)
+		require.Equal(t, epochStart.ErrInvalidHeader, err)
+	})
+
+	t.Run("should work", func(t *testing.T) {
+		t.Parallel()
+
+		args := getRewardsCreatorV2Arguments()
+		rwd, err := NewRewardsCreatorV2(args)
+		require.Nil(t, err)
+
+		nbEligiblePerShard := uint32(400)
+		vInfo := createDefaultValidatorInfo(nbEligiblePerShard, args.ShardCoordinator, args.NodesConfigProvider, 100, defaultBlocksPerShard)
+		metaBlock := &block.MetaBlockV3{
+			EpochStart: getDefaultEpochStart(),
+		}
+
+		prevBlockExecResults := block.BaseMetaExecutionResult{
+			BaseExecutionResult: &block.BaseExecutionResult{},
+		}
+
+		_, err = rwd.CreateRewardsMiniBlocksV3(metaBlock, vInfo, &metaBlock.EpochStart.Economics, &prevBlockExecResults)
+		require.Nil(t, err)
+	})
 }
 
 func getRewardsCreatorV2Arguments() RewardsCreatorArgsV2 {

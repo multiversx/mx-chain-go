@@ -111,10 +111,6 @@ func createArgsBootstrapComponentsHolder() ArgsBootstrapComponentsHolder {
 				SetGuardianEpochsDelay: 1,
 			},
 			Versions: config.VersionsConfig{
-				Cache: config.CacheConfig{
-					Type:     "LRU",
-					Capacity: 123,
-				},
 				DefaultVersion: "1",
 				VersionsByEpochs: []config.VersionByEpochs{
 					{

@@ -82,7 +82,13 @@ func (creator *blocksCreator) CreateNewBlock() error {
 	}
 
 	headerCreationTime := coreComponents.RoundHandler().TimeStamp()
-	err = newHeader.SetTimeStamp(uint64(headerCreationTime.Unix()))
+
+	headerCreationTimeStamp := headerCreationTime.Unix()
+	if coreComponents.EnableEpochsHandler().IsFlagEnabledInEpoch(common.SupernovaFlag, newHeader.GetEpoch()) {
+		headerCreationTimeStamp = headerCreationTime.UnixMilli()
+	}
+
+	err = newHeader.SetTimeStamp(uint64(headerCreationTimeStamp))
 	if err != nil {
 		return err
 	}
@@ -160,7 +166,12 @@ func (creator *blocksCreator) CreateNewBlock() error {
 		return err
 	}
 
-	miniBlocks, transactions, err := bp.MarshalizedDataToBroadcast(header, block)
+	headerHash, err := core.CalculateHash(creator.nodeHandler.GetCoreComponents().InternalMarshalizer(), creator.nodeHandler.GetCoreComponents().Hasher(), header)
+	if err != nil {
+		return err
+	}
+
+	miniBlocks, transactions, err := bp.MarshalizedDataToBroadcast(headerHash, header, block)
 	if err != nil {
 		return err
 	}
