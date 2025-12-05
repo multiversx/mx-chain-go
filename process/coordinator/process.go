@@ -960,19 +960,19 @@ func (tc *transactionCoordinator) appendTransactionsFromPoolForMiniBlock(
 	for _, txHash := range miniBlock.TxHashes {
 		rawTx, ok := pool.SearchFirstData(txHash)
 		if !ok {
-			log.Warn("appendTransactionFromPool could not find transaction for miniBlock in pool", "hash", txHash)
+			log.Warn("appendTransactionsFromPoolForMiniBlock could not find transaction for miniBlock in pool", "hash", txHash)
 			return
 		}
 
 		tx, ok := rawTx.(data.TransactionHandler)
 		if !ok {
-			log.Warn("appendTransactionFromPool could not cast transaction from pool", "hash", txHash)
+			log.Warn("appendTransactionsFromPoolForMiniBlock could not cast transaction from pool", "hash", txHash)
 			return
 		}
 
 		txBuff, errMarshal := tc.marshalizer.Marshal(tx)
 		if errMarshal != nil {
-			log.Warn("createMarshalledDataV3.Marshal", "error", errMarshal.Error())
+			log.Warn("appendTransactionsFromPoolForMiniBlock.Marshal", "error", errMarshal.Error())
 			return
 		}
 

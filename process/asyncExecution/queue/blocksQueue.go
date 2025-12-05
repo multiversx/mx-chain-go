@@ -136,7 +136,7 @@ func (bq *blocksQueue) add(pair HeaderBodyPair) error {
 
 // Pop removes and returns the first HeaderBodyPair from the queue.
 // If the queue is empty, the method blocks until a new item is available.
-func (bq *blocksQueue) Pop() (HeaderBodyPair, bool) {
+func (bq *blocksQueue) Pop() (pair HeaderBodyPair, shouldContinue bool) {
 	bq.mutex.Lock()
 	if len(bq.headerBodyPairs) > 0 {
 		item := bq.headerBodyPairs[0]
@@ -164,7 +164,9 @@ func (bq *blocksQueue) Pop() (HeaderBodyPair, bool) {
 		bq.headerBodyPairs = bq.headerBodyPairs[1:]
 		return item, true
 	}
-	return HeaderBodyPair{}, false
+
+	// allow further Pops
+	return HeaderBodyPair{}, true
 }
 
 // Peek returns the first element from queue

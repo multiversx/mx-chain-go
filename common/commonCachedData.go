@@ -42,6 +42,7 @@ func GetCachedLogs(cache storage.Cacher, headerHash []byte) ([]*data.LogData, er
 	if !ok {
 		return nil, fmt.Errorf("%w for cached logs %s", ErrWrongTypeAssertion, hex.EncodeToString(headerHash))
 	}
+
 	return cachedLogsSlice, nil
 }
 
