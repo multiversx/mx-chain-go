@@ -1119,3 +1119,11 @@ func (sp *shardProcessor) GetOrderedProcessedMetaBlocksFromMiniBlockHashesV3(
 ) ([]data.HeaderHandler, error) {
 	return sp.getOrderedProcessedMetaBlocksFromMiniBlockHashesV3(header, miniBlockHashes)
 }
+
+// ExcludeRevertedExecutionResultsForHeader -
+func (bp *baseProcessor) ExcludeRevertedExecutionResultsForHeader(
+	header data.HeaderHandler,
+	pendingExecutionResults []data.BaseExecutionResultHandler,
+) []data.BaseExecutionResultHandler {
+	return bp.excludeRevertedExecutionResultsForHeader(header, pendingExecutionResults)
+}
