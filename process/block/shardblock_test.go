@@ -2747,7 +2747,11 @@ func TestShardProcessor_CommitBlockShouldRevertCurrentBlockWhenErr(t *testing.T)
 		RevertToSnapshotCalled: revToSnapshot,
 	}
 	bp, _ := blproc.NewShardProcessor(arguments)
-	err := bp.CommitBlock(nil, nil)
+	err := bp.CommitBlock(&block.HeaderV2{
+		Header: &block.Header{
+			Nonce: 100,
+		},
+	}, &block.Body{})
 	assert.NotNil(t, err)
 	assert.Equal(t, 0, journalEntries)
 }
@@ -2905,9 +2909,11 @@ func TestShardProcessor_MarshalizedDataToBroadcast_WithSupernova(t *testing.T) {
 
 	tc.AddTxsFromMiniBlocks(miniBlocksSlice)
 
-	marshalledBlockBody, marshalledTxs, err := sp.MarshalizedDataToBroadcast(&block.HeaderV3{
-		ExecutionResults: executionResults,
-	}, body)
+	marshalledBlockBody, marshalledTxs, err := sp.MarshalizedDataToBroadcast(
+		[]byte("hash"),
+		&block.HeaderV3{
+			ExecutionResults: executionResults,
+		}, body)
 	require.Nil(t, err)
 	require.NotNil(t, marshalledBlockBody)
 	require.NotNil(t, marshalledTxs)
@@ -2997,7 +3003,7 @@ func TestShardProcessor_MarshalizedDataToBroadcastShouldWork(t *testing.T) {
 	arguments := CreateMockArguments(coreComponents, dataComponents, bootstrapComponents, statusComponents)
 	arguments.TxCoordinator = tc
 	sp, _ := blproc.NewShardProcessor(arguments)
-	msh, mstx, err := sp.MarshalizedDataToBroadcast(&block.Header{}, body)
+	msh, mstx, err := sp.MarshalizedDataToBroadcast([]byte("hash"), &block.Header{}, body)
 	assert.Nil(t, err)
 	assert.NotNil(t, msh)
 	assert.NotNil(t, mstx)
@@ -3026,7 +3032,7 @@ func TestShardProcessor_MarshalizedDataWrongType(t *testing.T) {
 
 	sp, _ := blproc.NewShardProcessor(arguments)
 	wr := &wrongBody{}
-	msh, mstx, err := sp.MarshalizedDataToBroadcast(&block.Header{}, wr)
+	msh, mstx, err := sp.MarshalizedDataToBroadcast([]byte("hash"), &block.Header{}, wr)
 	assert.Equal(t, process.ErrWrongTypeAssertion, err)
 	assert.Nil(t, msh)
 	assert.Nil(t, mstx)
@@ -3045,7 +3051,7 @@ func TestShardProcessor_MarshalizedDataNilInput(t *testing.T) {
 	arguments := CreateMockArguments(coreComponents, dataComponents, bootstrapComponents, statusComponents)
 
 	sp, _ := blproc.NewShardProcessor(arguments)
-	msh, mstx, err := sp.MarshalizedDataToBroadcast(nil, nil)
+	msh, mstx, err := sp.MarshalizedDataToBroadcast(nil, nil, nil)
 	assert.Equal(t, process.ErrNilMiniBlocks, err)
 	assert.Nil(t, msh)
 	assert.Nil(t, mstx)
@@ -3119,7 +3125,7 @@ func TestShardProcessor_MarshalizedDataMarshalWithoutSuccess(t *testing.T) {
 
 	sp, _ := blproc.NewShardProcessor(arguments)
 
-	msh, mstx, err := sp.MarshalizedDataToBroadcast(&block.Header{}, body)
+	msh, mstx, err := sp.MarshalizedDataToBroadcast([]byte("hash"), &block.Header{}, body)
 	assert.Nil(t, err)
 	assert.True(t, wasCalled)
 	assert.Equal(t, 0, len(msh))
@@ -6630,7 +6636,7 @@ func TestShardProcessor_GetLastExecutionResultHeader(t *testing.T) {
 		require.Equal(t, currHeader, retHeader)
 	})
 
-	t.Run("should error if failed to get header from pool", func(t *testing.T) {
+	t.Run("should error if failed to get header from storage", func(t *testing.T) {
 		t.Parallel()
 
 		headerHash1 := []byte("hash1")
@@ -6662,8 +6668,69 @@ func TestShardProcessor_GetLastExecutionResultHeader(t *testing.T) {
 		sp, _ := blproc.NewShardProcessor(arguments)
 
 		retHeader, err := sp.GetLastExecutionResultHeader(currHeader)
-		require.Equal(t, expectedErr, err)
+		require.ErrorIs(t, err, process.ErrMissingHeader)
 		require.Nil(t, retHeader)
+	})
+
+	t.Run("should try to get from storage if not found in pool", func(t *testing.T) {
+		t.Parallel()
+
+		headerHash1 := []byte("hash1")
+
+		currHeader := &block.HeaderV3{
+			LastExecutionResult: &block.ExecutionResultInfo{
+				ExecutionResult: &block.BaseExecutionResult{
+					HeaderHash: headerHash1,
+				},
+			},
+		}
+
+		dataPool := initDataPool()
+		dataPool.HeadersCalled = func() dataRetriever.HeadersPool {
+			return &pool.HeadersPoolStub{
+				GetHeaderByHashCalled: func(hash []byte) (data.HeaderHandler, error) {
+					return nil, errors.New("other error")
+				},
+			}
+		}
+
+		marshaller := &marshal.GogoProtoMarshalizer{}
+
+		execResHeader := &block.HeaderV3{
+			Nonce: 1,
+			LastExecutionResult: &block.ExecutionResultInfo{
+				ExecutionResult: &block.BaseExecutionResult{
+					HeaderHash: headerHash1,
+				},
+			},
+		}
+
+		storer := &storageStubs.ChainStorerStub{
+			GetStorerCalled: func(unitType dataRetriever.UnitType) (storage.Storer, error) {
+				return &storageStubs.StorerStub{
+					RemoveCalled: func(key []byte) error {
+						return nil
+					},
+					GetCalled: func(key []byte) ([]byte, error) {
+						return marshaller.Marshal(execResHeader)
+					},
+				}, nil
+			},
+		}
+
+		coreComp, dataComp, bootComp, statusComp := createComponentHolderMocks()
+		coreComp.IntMarsh = marshaller
+
+		dataComp.Storage = storer
+		dataComp.DataPool = dataPool
+
+		arguments := CreateMockArguments(coreComp, dataComp, bootComp, statusComp)
+
+		sp, _ := blproc.NewShardProcessor(arguments)
+
+		retHeader, err := sp.GetLastExecutionResultHeader(currHeader)
+		require.Nil(t, err)
+		require.Equal(t, execResHeader, retHeader)
 	})
 
 	t.Run("should work", func(t *testing.T) {

@@ -2436,7 +2436,19 @@ func TestEconomics_createEconomicsV3Args(t *testing.T) {
 		Nonce:               4,
 		PrevHash:            metaExecRes.GetHeaderHash(),
 		EpochChangeProposed: true,
-		LastExecutionResult: &block.MetaExecutionResultInfo{},
+		LastExecutionResult: &block.MetaExecutionResultInfo{
+			ExecutionResult: &block.BaseMetaExecutionResult{
+				BaseExecutionResult: &block.BaseExecutionResult{
+					HeaderHash:  []byte("some hash"),
+					HeaderEpoch: 2,
+					HeaderNonce: 3,
+					RootHash:    []byte("some root hash"),
+				},
+				ValidatorStatsRootHash: []byte("validator stats root hash"),
+				AccumulatedFeesInEpoch: big.NewInt(1000),
+				DevFeesInEpoch:         big.NewInt(300),
+			},
+		},
 	}
 
 	t.Run("nil meta block", func(t *testing.T) {
@@ -2555,7 +2567,7 @@ func TestEconomics_createEconomicsV3Args(t *testing.T) {
 				0:                     3,
 				1:                     0,
 				2:                     0,
-				core.MetachainShardId: 4,
+				core.MetachainShardId: 3, // taken from last execution result
 			},
 			lastNoncesPerShardCurrEpoch: map[uint32]uint64{
 				0:                     0,

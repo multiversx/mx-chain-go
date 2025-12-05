@@ -1987,7 +1987,7 @@ func (tpn *TestProcessorNode) initInnerProcessors(gasMap map[string]map[string]u
 		Marshalizer:                  TestMarshalizer,
 		ShardCoordinator:             tpn.ShardCoordinator,
 		Accounts:                     tpn.AccntState,
-		MiniBlockPool:                tpn.DataPool.MiniBlocks(),
+		DataPool:                     tpn.DataPool,
 		PreProcessors:                tpn.PreProcessorsContainer,
 		PreProcessorsProposal:        tpn.PreProcessorsProposal,
 		InterProcessors:              tpn.InterimProcContainer,
@@ -2314,7 +2314,7 @@ func (tpn *TestProcessorNode) initMetaInnerProcessors(gasMap map[string]map[stri
 		Marshalizer:                  TestMarshalizer,
 		ShardCoordinator:             tpn.ShardCoordinator,
 		Accounts:                     tpn.AccntState,
-		MiniBlockPool:                tpn.DataPool.MiniBlocks(),
+		DataPool:                     tpn.DataPool,
 		PreProcessors:                tpn.PreProcessorsContainer,
 		PreProcessorsProposal:        tpn.PreProcessorsProposal,
 		InterProcessors:              tpn.InterimProcContainer,
@@ -3242,7 +3242,9 @@ func (tpn *TestProcessorNode) BroadcastBlock(body data.BodyHandler, header data.
 
 	pkBytes, _ := publicKey.ToByteArray()
 
-	miniBlocks, transactions, _ := tpn.BlockProcessor.MarshalizedDataToBroadcast(header, body)
+	hash, _ := core.CalculateHash(TestMarshalizer, TestHasher, header)
+
+	miniBlocks, transactions, _ := tpn.BlockProcessor.MarshalizedDataToBroadcast(hash, header, body)
 	_ = tpn.BroadcastMessenger.BroadcastMiniBlocks(miniBlocks, pkBytes)
 	_ = tpn.BroadcastMessenger.BroadcastTransactions(transactions, pkBytes)
 }

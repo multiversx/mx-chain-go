@@ -115,6 +115,11 @@ func (txCoordinator *TxCoordinator) CreateMarshalizedData(_ *block.Body) map[str
 	return make(map[string][][]byte)
 }
 
+// CreateMarshalledDataForHeader does nothing as it is disabled
+func (txCoordinator *TxCoordinator) CreateMarshalledDataForHeader(_ data.HeaderHandler, _ *block.Body, _ map[string]block.MiniBlockSlice) map[string][][]byte {
+	return make(map[string][][]byte)
+}
+
 // GetAllCurrentUsedTxs does nothing as it is disabled
 func (txCoordinator *TxCoordinator) GetAllCurrentUsedTxs(_ block.Type) map[string]data.TransactionHandler {
 	return make(map[string]data.TransactionHandler)

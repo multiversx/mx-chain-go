@@ -281,7 +281,7 @@ func (sr *subroundEndRound) doEndRoundJobByNode() bool {
 }
 
 func (sr *subroundEndRound) prepareBroadcastBlockData() error {
-	miniBlocks, transactions, err := sr.BlockProcessor().MarshalizedDataToBroadcast(sr.GetHeader(), sr.GetBody())
+	miniBlocks, transactions, err := sr.BlockProcessor().MarshalizedDataToBroadcast(sr.GetData(), sr.GetHeader(), sr.GetBody())
 	if err != nil {
 		return err
 	}

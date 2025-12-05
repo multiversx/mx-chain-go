@@ -566,7 +566,7 @@ func checkGetTransactionParamsForNil(
 func getHeaderFromPool(
 	hash []byte,
 	headersCacher dataRetriever.HeadersPool,
-) (interface{}, error) {
+) (data.HeaderHandler, error) {
 
 	if check.IfNil(headersCacher) {
 		return nil, ErrNilCacher
@@ -1003,6 +1003,21 @@ func GetMiniBlockHeaderWithHash(header data.HeaderHandler, miniBlockHash []byte)
 			return miniBlockHeader
 		}
 	}
+
+	for _, execResult := range header.GetExecutionResultsHandlers() {
+		mbHeaders, err := common.GetMiniBlocksHeaderHandlersFromExecResult(execResult)
+		if err != nil {
+			log.Warn("GetMiniBlockHeaderWithHash", "error", err.Error())
+			continue
+		}
+
+		for _, mbHeader := range mbHeaders {
+			if bytes.Equal(mbHeader.GetHash(), miniBlockHash) {
+				return mbHeader
+			}
+		}
+	}
+
 	return nil
 }
 

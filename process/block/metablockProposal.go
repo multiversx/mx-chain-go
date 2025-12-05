@@ -278,7 +278,7 @@ func (mp *metaProcessor) VerifyBlockProposal(
 		return err
 	}
 
-	return mp.verifyGasLimit(header)
+	return mp.verifyGasLimit(header, body.MiniBlocks)
 }
 
 // ProcessBlockProposal processes the proposed block. It returns nil if all ok or the specific error
@@ -512,7 +512,7 @@ func (mp *metaProcessor) collectExecutionResultsEpochStartProposal(
 	if err != nil {
 		return nil, err
 	}
-	
+
 	return mp.createExecutionResult(miniBlockHeaderHandlers, header, headerHash, receiptHash, valStatRootHash, totalTxCount)
 }
 

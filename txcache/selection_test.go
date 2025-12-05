@@ -412,7 +412,7 @@ func TestBenchmarkTxCache_acquireBunchesOfTransactions(t *testing.T) {
 	sw := core.NewStopWatch()
 
 	t.Run("numSenders = 10000, numTransactions = 100", func(t *testing.T) {
-		cache, err := NewTxCache(config, host)
+		cache, err := NewTxCache(config, host, 0)
 		require.Nil(t, err)
 
 		addManyTransactionsWithUniformDistribution(cache, 10000, 100)
@@ -429,7 +429,7 @@ func TestBenchmarkTxCache_acquireBunchesOfTransactions(t *testing.T) {
 	})
 
 	t.Run("numSenders = 50000, numTransactions = 2", func(t *testing.T) {
-		cache, err := NewTxCache(config, host)
+		cache, err := NewTxCache(config, host, 0)
 		require.Nil(t, err)
 
 		addManyTransactionsWithUniformDistribution(cache, 50000, 2)
@@ -446,7 +446,7 @@ func TestBenchmarkTxCache_acquireBunchesOfTransactions(t *testing.T) {
 	})
 
 	t.Run("numSenders = 100000, numTransactions = 1", func(t *testing.T) {
-		cache, err := NewTxCache(config, host)
+		cache, err := NewTxCache(config, host, 0)
 		require.Nil(t, err)
 
 		addManyTransactionsWithUniformDistribution(cache, 100000, 1)
@@ -463,7 +463,7 @@ func TestBenchmarkTxCache_acquireBunchesOfTransactions(t *testing.T) {
 	})
 
 	t.Run("numSenders = 300000, numTransactions = 1", func(t *testing.T) {
-		cache, err := NewTxCache(config, host)
+		cache, err := NewTxCache(config, host, 0)
 		require.Nil(t, err)
 
 		addManyTransactionsWithUniformDistribution(cache, 300000, 1)
@@ -608,7 +608,7 @@ func TestBenchmarkTxCache_doSelectTransactions(t *testing.T) {
 	sw := core.NewStopWatch()
 
 	t.Run("numSenders = 10000, numTransactions = 100, maxNum = 30_000", func(t *testing.T) {
-		cache, err := NewTxCache(config, host)
+		cache, err := NewTxCache(config, host, 0)
 		require.Nil(t, err)
 
 		addManyTransactionsWithUniformDistribution(cache, 10000, 100)
@@ -625,7 +625,7 @@ func TestBenchmarkTxCache_doSelectTransactions(t *testing.T) {
 	})
 
 	t.Run("numSenders = 50000, numTransactions = 2, maxNum = 30_000", func(t *testing.T) {
-		cache, err := NewTxCache(config, host)
+		cache, err := NewTxCache(config, host, 0)
 		require.Nil(t, err)
 
 		addManyTransactionsWithUniformDistribution(cache, 50000, 2)
@@ -642,7 +642,7 @@ func TestBenchmarkTxCache_doSelectTransactions(t *testing.T) {
 	})
 
 	t.Run("numSenders = 100000, numTransactions = 1, maxNum = 30_000", func(t *testing.T) {
-		cache, err := NewTxCache(config, host)
+		cache, err := NewTxCache(config, host, 0)
 		require.Nil(t, err)
 
 		addManyTransactionsWithUniformDistribution(cache, 100000, 1)
@@ -659,7 +659,7 @@ func TestBenchmarkTxCache_doSelectTransactions(t *testing.T) {
 	})
 
 	t.Run("numSenders = 300000, numTransactions = 1, maxNum = 30_000", func(t *testing.T) {
-		cache, err := NewTxCache(config, host)
+		cache, err := NewTxCache(config, host, 0)
 		require.Nil(t, err)
 
 		addManyTransactionsWithUniformDistribution(cache, 300000, 1)

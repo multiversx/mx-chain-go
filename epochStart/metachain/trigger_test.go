@@ -11,6 +11,7 @@ import (
 	"github.com/multiversx/mx-chain-core-go/core/check"
 	"github.com/multiversx/mx-chain-core-go/data"
 	"github.com/multiversx/mx-chain-core-go/data/block"
+	"github.com/multiversx/mx-chain-core-go/marshal"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 
@@ -34,7 +35,7 @@ func createMockEpochStartTriggerArguments() *ArgsNewMetaEpochStartTrigger {
 		Settings:           &config.EpochStartConfig{},
 		Epoch:              0,
 		EpochStartNotifier: &mock.EpochStartNotifierStub{},
-		Marshalizer:        &mock.MarshalizerMock{},
+		Marshalizer:        &marshal.GogoProtoMarshalizer{},
 		Hasher:             &hashingMocks.HasherMock{},
 		AppStatusHandler:   &statusHandlerMock.AppStatusHandlerStub{},
 		Storage: &storageStubs.ChainStorerStub{

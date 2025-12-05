@@ -166,7 +166,12 @@ func (creator *blocksCreator) CreateNewBlock() error {
 		return err
 	}
 
-	miniBlocks, transactions, err := bp.MarshalizedDataToBroadcast(header, block)
+	headerHash, err := core.CalculateHash(creator.nodeHandler.GetCoreComponents().InternalMarshalizer(), creator.nodeHandler.GetCoreComponents().Hasher(), header)
+	if err != nil {
+		return err
+	}
+
+	miniBlocks, transactions, err := bp.MarshalizedDataToBroadcast(headerHash, header, block)
 	if err != nil {
 		return err
 	}

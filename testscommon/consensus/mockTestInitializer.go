@@ -55,7 +55,7 @@ func InitBlockProcessorMock(marshaller marshal.Marshalizer) *testscommon.BlockPr
 
 		return header
 	}
-	blockProcessorMock.MarshalizedDataToBroadcastCalled = func(header data.HeaderHandler, body data.BodyHandler) (map[uint32][]byte, map[string][][]byte, error) {
+	blockProcessorMock.MarshalizedDataToBroadcastCalled = func(hash []byte, header data.HeaderHandler, body data.BodyHandler) (map[uint32][]byte, map[string][][]byte, error) {
 		return make(map[uint32][]byte), make(map[string][][]byte), nil
 	}
 	blockProcessorMock.CreateNewHeaderCalled = func(round uint64, nonce uint64) (data.HeaderHandler, error) {
@@ -92,7 +92,7 @@ func InitBlockProcessorHeaderV2Mock() *testscommon.BlockProcessorStub {
 			ScheduledRootHash: []byte{},
 		}
 	}
-	blockProcessorMock.MarshalizedDataToBroadcastCalled = func(header data.HeaderHandler, body data.BodyHandler) (map[uint32][]byte, map[string][][]byte, error) {
+	blockProcessorMock.MarshalizedDataToBroadcastCalled = func(hash []byte, header data.HeaderHandler, body data.BodyHandler) (map[uint32][]byte, map[string][][]byte, error) {
 		return make(map[uint32][]byte), make(map[string][][]byte), nil
 	}
 	blockProcessorMock.CreateNewHeaderCalled = func(round uint64, nonce uint64) (data.HeaderHandler, error) {

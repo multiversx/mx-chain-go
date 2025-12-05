@@ -322,7 +322,7 @@ func testOnProposed(t *testing.T, sw *core.StopWatch, numTxs int, numAddresses i
 	accounts := createFakeAddresses(numAddresses)
 
 	host := txcachemocks.NewMempoolHostMock()
-	txpool, err := txcache.NewTxCache(configSourceMe, host)
+	txpool, err := txcache.NewTxCache(configSourceMe, host, 0)
 
 	require.Nil(t, err)
 	require.NotNil(t, txpool)
@@ -392,7 +392,7 @@ func testFirstSelection(t *testing.T, sw *core.StopWatch, numTxs int, numTxsToBe
 	accounts := createFakeAddresses(numAddresses)
 
 	host := txcachemocks.NewMempoolHostMock()
-	txpool, err := txcache.NewTxCache(configSourceMe, host)
+	txpool, err := txcache.NewTxCache(configSourceMe, host, 0)
 
 	require.Nil(t, err)
 	require.NotNil(t, txpool)
@@ -441,7 +441,7 @@ func testSecondSelection(t *testing.T, sw *core.StopWatch, numTxs int, numTxsToB
 	accounts := createFakeAddresses(numAddresses)
 
 	host := txcachemocks.NewMempoolHostMock()
-	txpool, err := txcache.NewTxCache(configSourceMe, host)
+	txpool, err := txcache.NewTxCache(configSourceMe, host, 0)
 
 	require.Nil(t, err)
 	require.NotNil(t, txpool)
@@ -532,7 +532,7 @@ func testSecondSelectionWithManyTxsInPool(t *testing.T, sw *core.StopWatch, numT
 	accounts := createFakeAddresses(numAddresses)
 
 	host := txcachemocks.NewMempoolHostMock()
-	txpool, err := txcache.NewTxCache(configSourceMe, host)
+	txpool, err := txcache.NewTxCache(configSourceMe, host, 0)
 
 	require.Nil(t, err)
 	require.NotNil(t, txpool)

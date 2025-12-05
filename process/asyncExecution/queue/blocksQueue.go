@@ -68,7 +68,7 @@ func (bq *blocksQueue) AddOrReplace(pair HeaderBodyPair) error {
 			ErrHeaderNonceMismatch, bq.lastAddedNonce, nonce)
 	}
 
-	log.Debug("blocksQueue.AddOrReplace - block queue has been added", "queue size", len(bq.headerBodyPairs))
+	log.Debug("blocksQueue.AddOrReplace - block has been added", "nonce", pair.Header.GetNonce(), "queue size", len(bq.headerBodyPairs))
 
 	if len(bq.headerBodyPairs) > 1 {
 		return nil

@@ -64,7 +64,7 @@ func (tc *transactionCoordinator) CreateMbsCrossShardDstMe(
 			continue
 		}
 
-		miniVal, _ := tc.miniBlockPool.Peek(miniBlockInfo.Hash)
+		miniVal, _ := tc.dataPool.MiniBlocks().Peek(miniBlockInfo.Hash)
 		if miniVal == nil {
 			shouldSkipShard[miniBlockInfo.SenderShardID] = true
 			log.Trace("transactionCoordinator.CreateMbsCrossShardDstMe: mini block not found and was skipped",

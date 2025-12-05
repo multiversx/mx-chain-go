@@ -661,7 +661,7 @@ func createProcessorsForShardGenesisBlock(arg ArgsGenesisBlockCreator, enableEpo
 		Marshalizer:                  arg.Core.InternalMarshalizer(),
 		ShardCoordinator:             arg.ShardCoordinator,
 		Accounts:                     arg.Accounts,
-		MiniBlockPool:                arg.Data.Datapool().MiniBlocks(),
+		DataPool:                     arg.Data.Datapool(),
 		PreProcessors:                preProcContainer,
 		PreProcessorsProposal:        preProcContainer, // no need for a different one in genesis
 		InterProcessors:              interimProcContainer,

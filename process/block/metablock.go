@@ -1212,18 +1212,19 @@ func (mp *metaProcessor) CommitBlock(
 	headerHandler data.HeaderHandler,
 	bodyHandler data.BodyHandler,
 ) error {
-	mp.processStatusHandler.SetBusy("metaProcessor.CommitBlock")
-	var err error
-	defer func() {
-		if err != nil {
-			mp.RevertCurrentBlock(headerHandler)
-		}
-		mp.processStatusHandler.SetIdle()
-	}()
-
-	err = checkForNils(headerHandler, bodyHandler)
+	err := checkForNils(headerHandler, bodyHandler)
 	if err != nil {
 		return err
+	}
+
+	if !headerHandler.IsHeaderV3() {
+		mp.processStatusHandler.SetBusy("metaProcessor.CommitBlock")
+		defer func() {
+			if err != nil {
+				mp.RevertCurrentBlock(headerHandler)
+			}
+			mp.processStatusHandler.SetIdle()
+		}()
 	}
 
 	log.Debug("started committing block",
@@ -1425,7 +1426,7 @@ func (mp *metaProcessor) CommitBlock(
 
 	mp.displayPoolsInfo()
 
-	errNotCritical = mp.removeTxsFromPools(header, body)
+	errNotCritical = mp.removeTxsFromPools(headerHash, header, body)
 	if errNotCritical != nil {
 		log.Debug("removeTxsFromPools", "error", errNotCritical.Error())
 	}
@@ -2292,7 +2293,10 @@ func (mp *metaProcessor) getCurrentlyAccumulatedFees(metaHdr data.MetaHeaderHand
 			return nil, nil, process.ErrWrongTypeAssertion
 		}
 
-		return lastMetaExecResult.GetAccumulatedFeesInEpoch(), lastMetaExecResult.GetDevFeesInEpoch(), nil
+		currentlyAccumulatedFeesInEpoch := big.NewInt(0).Set(lastMetaExecResult.GetAccumulatedFeesInEpoch())
+		currentDevFeesInEpoch := big.NewInt(0).Set(lastMetaExecResult.GetDevFeesInEpoch())
+
+		return currentlyAccumulatedFeesInEpoch, currentDevFeesInEpoch, nil
 	}
 
 	lastHdr := mp.blockChain.GetCurrentBlockHeader()
@@ -2681,6 +2685,7 @@ func (mp *metaProcessor) setHeaderVersionData(metaHeader data.MetaHeaderHandler)
 
 // MarshalizedDataToBroadcast prepares underlying data into a marshalized object according to destination
 func (mp *metaProcessor) MarshalizedDataToBroadcast(
+	headerHash []byte,
 	header data.HeaderHandler,
 	bodyHandler data.BodyHandler,
 ) (map[uint32][]byte, map[string][][]byte, error) {
@@ -2696,7 +2701,7 @@ func (mp *metaProcessor) MarshalizedDataToBroadcast(
 		return nil, nil, process.ErrWrongTypeAssertion
 	}
 
-	bodyToBroadcast, err := mp.getFinalMiniBlocks(header, body)
+	bodyToBroadcast, miniBlocksMapToBroadcast, err := mp.getFinalMiniBlocks(headerHash, header, body)
 	if err != nil {
 		return nil, nil, err
 	}
@@ -2705,7 +2710,7 @@ func (mp *metaProcessor) MarshalizedDataToBroadcast(
 	if header.IsStartOfEpochBlock() {
 		mrsTxs = mp.getAllMarshalledTxs(bodyToBroadcast)
 	} else {
-		mrsTxs = mp.txCoordinator.CreateMarshalizedData(bodyToBroadcast)
+		mrsTxs = mp.txCoordinator.CreateMarshalledDataForHeader(header, bodyToBroadcast, miniBlocksMapToBroadcast)
 	}
 
 	mrsData := mp.marshalledBodyToBroadcast(bodyToBroadcast)
@@ -2713,12 +2718,16 @@ func (mp *metaProcessor) MarshalizedDataToBroadcast(
 	return mrsData, mrsTxs, nil
 }
 
-func (mp *metaProcessor) getFinalMiniBlocks(header data.HeaderHandler, body *block.Body) (*block.Body, error) {
+func (mp *metaProcessor) getFinalMiniBlocks(headerHash []byte, header data.HeaderHandler, body *block.Body) (*block.Body, map[string]block.MiniBlockSlice, error) {
 	if header.IsHeaderV3() {
 		return mp.getFinalMiniBlocksFromExecutionResults(header)
 	}
 
-	return body, nil
+	return body,
+		map[string]block.MiniBlockSlice{
+			string(headerHash): body.MiniBlocks,
+		},
+		nil
 }
 
 func (mp *metaProcessor) getAllMarshalledTxs(body *block.Body) map[string][][]byte {

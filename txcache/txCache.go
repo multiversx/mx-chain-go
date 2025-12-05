@@ -28,7 +28,7 @@ type TxCache struct {
 }
 
 // NewTxCache creates a new transaction cache
-func NewTxCache(config ConfigSourceMe, host MempoolHost) (*TxCache, error) {
+func NewTxCache(config ConfigSourceMe, host MempoolHost, selfShardId uint32) (*TxCache, error) {
 	log.Debug("NewTxCache", "config", config.String())
 	monitoring.MonitorNewCache(config.Name, uint64(config.NumBytesThreshold))
 
@@ -52,7 +52,11 @@ func NewTxCache(config ConfigSourceMe, host MempoolHost) (*TxCache, error) {
 		host:           host,
 	}
 
-	tracker, err := NewSelectionTracker(txCache, config.TxCacheBoundsConfig.MaxTrackedBlocks)
+	tracker, err := NewSelectionTracker(
+		txCache,
+		selfShardId,
+		config.TxCacheBoundsConfig.MaxTrackedBlocks,
+	)
 	if err != nil {
 		return nil, err
 	}

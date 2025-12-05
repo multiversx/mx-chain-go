@@ -29,6 +29,7 @@ type TransactionCoordinatorMock struct {
 	CreateMbsAndProcessTransactionsFromMeCalled          func(haveTime func() bool) block.MiniBlockSlice
 	SelectOutgoingTransactionsCalled                     func(nonce uint64) ([][]byte, []data.MiniBlockHeaderHandler)
 	CreateMarshalizedDataCalled                          func(body *block.Body) map[string][][]byte
+	CreateMarshalledDataForHeaderCalled                  func(header data.HeaderHandler, body *block.Body, miniBlocksMap map[string]block.MiniBlockSlice) map[string][][]byte
 	GetCreatedInShardMiniBlocksCalled                    func() []*block.MiniBlock
 	GetAllCurrentUsedTxsCalled                           func(blockType block.Type) map[string]data.TransactionHandler
 	VerifyCreatedBlockTransactionsCalled                 func(hdr data.HeaderHandler, body *block.Body) error
@@ -200,6 +201,15 @@ func (tcm *TransactionCoordinatorMock) CreateMarshalizedData(body *block.Body) m
 	}
 
 	return tcm.CreateMarshalizedDataCalled(body)
+}
+
+// CreateMarshalledDataForHeader -
+func (tcm *TransactionCoordinatorMock) CreateMarshalledDataForHeader(header data.HeaderHandler, body *block.Body, miniBlocksMap map[string]block.MiniBlockSlice) map[string][][]byte {
+	if tcm.CreateMarshalledDataForHeaderCalled == nil {
+		return make(map[string][][]byte)
+	}
+
+	return tcm.CreateMarshalledDataForHeaderCalled(header, body, miniBlocksMap)
 }
 
 // GetAllCurrentUsedTxs -
