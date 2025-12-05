@@ -216,8 +216,10 @@ func (sic *ShardInfoCreateData) createShardDataFromExecutionResult(
 		return nil, process.ErrWrongTypeAssertion
 	}
 
+	// TODO: search also in storage: at bootstrap the header might not be in pool
 	header, err := sic.headersPool.GetHeaderByHash(execResultHandler.GetHeaderHash())
 	if err != nil {
+		log.Debug("createShardDataFromExecutionResult: failed to get header with hash", "hash", execResultHandler.GetHeaderHash(), "error", err)
 		return nil, err
 	}
 
@@ -290,7 +292,6 @@ func (sic *ShardInfoCreateData) updateShardDataWithCrossShardInfo(shardData *blo
 		shardData.NumPendingMiniBlocks = uint32(len(sic.pendingMiniBlocksHandler.GetPendingMiniBlocks(header.GetShardID())))
 	}
 
-	// TODO: the last self notarized header should be fetched based on the nonce from the execution result
 	metaHeader, _, err := sic.blockTracker.GetLastSelfNotarizedHeader(header.GetShardID())
 	if err != nil {
 		return err

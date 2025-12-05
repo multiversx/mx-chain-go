@@ -927,7 +927,17 @@ func (vs *validatorStatistics) decreaseForConsensusValidators(
 // RevertPeerState takes the current and previous headers and undos the peer state
 // for all of the consensus members
 func (vs *validatorStatistics) RevertPeerState(header data.MetaHeaderHandler) error {
-	rootHashHolder := holders.NewDefaultRootHashesHolder(header.GetValidatorStatsRootHash())
+	rootHash := header.GetValidatorStatsRootHash()
+	if header.IsHeaderV3() {
+		baseMetaExecRes, ok := header.GetLastExecutionResultHandler().(data.LastMetaExecutionResultHandler)
+		if !ok {
+			return process.ErrWrongTypeAssertion
+		}
+
+		rootHash = baseMetaExecRes.GetExecutionResultHandler().GetValidatorStatsRootHash()
+	}
+
+	rootHashHolder := holders.NewDefaultRootHashesHolder(rootHash)
 	return vs.peerAdapter.RecreateTrie(rootHashHolder)
 }
 
@@ -995,7 +1005,7 @@ func (vs *validatorStatistics) updateShardDataPeerState(
 			continue
 		}
 
-		prevShardData, shardInfoErr := vs.searchInMap(h.GetPrevHash(), cacheMap)
+		prevShardData, shardInfoErr := vs.searchInMap(h.GetPrevHash(), cacheMap, h.GetShardID())
 		if shardInfoErr != nil {
 			return shardInfoErr
 		}
@@ -1015,8 +1025,12 @@ func (vs *validatorStatistics) updateShardDataPeerState(
 	return nil
 }
 
-func (vs *validatorStatistics) searchInMap(hash []byte, cacheMap map[string]data.HeaderHandler) (data.HeaderHandler, error) {
-	blkHandler, err := vs.searchInMapAndHeadersPool(hash, cacheMap)
+func (vs *validatorStatistics) searchInMap(
+	hash []byte,
+	cacheMap map[string]data.HeaderHandler,
+	shardID uint32,
+) (data.HeaderHandler, error) {
+	blkHandler, err := vs.searchInMapAndHeadersPool(hash, cacheMap, shardID)
 	if err != nil {
 		return nil, fmt.Errorf("%w : searchInMap hash = %s",
 			err, logger.DisplayByteSlice(hash))
@@ -1033,13 +1047,26 @@ func (vs *validatorStatistics) searchInMap(hash []byte, cacheMap map[string]data
 func (vs *validatorStatistics) searchInMapAndHeadersPool(
 	hash []byte,
 	cacheMap map[string]data.HeaderHandler,
+	shardID uint32,
 ) (data.HeaderHandler, error) {
 	header, ok := cacheMap[string(hash)]
 	if ok && !check.IfNil(header) {
 		return header, nil
 	}
 
-	return vs.dataPool.Headers().GetHeaderByHash(hash)
+	header, err := process.GetHeader(
+		hash,
+		vs.dataPool.Headers(),
+		vs.storageService,
+		vs.marshalizer,
+		shardID,
+	)
+	if err != nil {
+		log.Debug("searchInMapAndHeadersPool", "hash", hash)
+		return nil, err
+	}
+
+	return header, nil
 }
 
 func (vs *validatorStatistics) initializeNode(

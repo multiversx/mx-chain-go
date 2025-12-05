@@ -6,6 +6,7 @@ import (
 	"encoding/hex"
 	"fmt"
 	"math/big"
+	"reflect"
 	"sort"
 	"sync"
 	"time"
@@ -48,7 +49,7 @@ import (
 )
 
 const (
-	clenaupCrossShardHeadersDelta = 5
+	cleanupCrossShardHeadersDelta = 5
 )
 
 var log = logger.GetOrCreate("process/block")
@@ -1210,10 +1211,10 @@ func (bp *baseProcessor) cleanupPoolsForCrossShard(
 	}
 
 	crossNotarizedHeaderNonce := common.GetFirstExecutionResultNonce(crossNotarizedHeader)
-	if crossNotarizedHeaderNonce <= clenaupCrossShardHeadersDelta {
+	if crossNotarizedHeaderNonce <= cleanupCrossShardHeadersDelta {
 		return
 	}
-	crossNotarizedHeaderNonce -= clenaupCrossShardHeadersDelta
+	crossNotarizedHeaderNonce -= cleanupCrossShardHeadersDelta
 
 	bp.removeHeadersBehindNonceFromPools(
 		false,
@@ -1247,6 +1248,13 @@ func (bp *baseProcessor) removeHeadersBehindNonceFromPools(
 		if nonceFromCache >= nonce {
 			continue
 		}
+
+		log.Debug("removeHeadersBehindNonceFromPools",
+			"shardID", shardId,
+			"shouldRemoveBlockBody", shouldRemoveBlockBody,
+			"nonceFromCache", nonceFromCache,
+			"nonce", nonce,
+		)
 
 		if shouldRemoveBlockBody {
 			bp.removeBlocksBody(nonceFromCache, shardId)
@@ -1481,6 +1489,19 @@ func (bp *baseProcessor) prepareDataForBootStorer(args bootStorerDataArgs) {
 		EpochStartTriggerConfigKey: args.epochStartTriggerConfigKey,
 	}
 
+	log.Debug("prepareDataForBootStorer",
+		"lastHeader nonce", args.headerInfo.GetNonce(),
+		"lastHeader hash", args.headerInfo.GetHash(),
+	)
+
+	for _, hdr := range lastCrossNotarizedHeaders {
+		log.Debug("lastCrossNotarizedHeaders",
+			"hash", hdr.GetHash(),
+			"nonce", hdr.GetNonce(),
+			"shardID", hdr.GetShardId(),
+		)
+	}
+
 	startTime := time.Now()
 
 	err := bp.bootStorer.Put(int64(args.round), bootData)
@@ -1547,13 +1568,22 @@ func (bp *baseProcessor) getLastSelfNotarizedHeaders() []bootstrapStorage.Bootst
 		bootstrapHeaderInfo := bp.getLastSelfNotarizedHeadersForShard(shardID)
 		if bootstrapHeaderInfo != nil {
 			lastSelfNotarizedHeaders = append(lastSelfNotarizedHeaders, *bootstrapHeaderInfo)
+			log.Debug("getLastSelfNotarizedHeaders", "shardID", shardID,
+				"boot info", bootstrapHeaderInfo,
+			)
+		} else {
+			log.Debug("getLastSelfNotarizedHeaders: is nil", "shardID", shardID)
 		}
 	}
+
+	log.Debug("getLastSelfNotarizedHeaders:", "len", lastSelfNotarizedHeaders)
 
 	bootstrapHeaderInfo := bp.getLastSelfNotarizedHeadersForShard(core.MetachainShardId)
 	if bootstrapHeaderInfo != nil {
 		lastSelfNotarizedHeaders = append(lastSelfNotarizedHeaders, *bootstrapHeaderInfo)
 	}
+
+	log.Debug("getLastSelfNotarizedHeaders 2:", "len", lastSelfNotarizedHeaders)
 
 	if len(lastSelfNotarizedHeaders) == 0 {
 		return nil
@@ -1575,8 +1605,13 @@ func (bp *baseProcessor) getLastSelfNotarizedHeadersForShard(shardID uint32) *bo
 		return nil
 	}
 
+	bootInfoShardID := lastSelfNotarizedHeader.GetShardID()
+	if lastSelfNotarizedHeader.IsHeaderV3() {
+		bootInfoShardID = shardID
+	}
+
 	headerInfo := &bootstrapStorage.BootstrapHeaderInfo{
-		ShardId: lastSelfNotarizedHeader.GetShardID(),
+		ShardId: bootInfoShardID,
 		Nonce:   lastSelfNotarizedHeader.GetNonce(),
 		Hash:    lastSelfNotarizedHeaderHash,
 	}
@@ -1624,6 +1659,9 @@ func (bp *baseProcessor) getFinalBlockNonce(
 
 	finalHeaderHandler, err := bp.dataPool.Headers().GetHeaderByHash(bp.forkDetector.GetHighestFinalBlockHash())
 	if err != nil {
+		log.Debug("getFinalBlockNonce: could not find header",
+			"hash", bp.forkDetector.GetHighestFinalBlockHash(),
+		)
 		return finalBlockNonce
 	}
 
@@ -1810,6 +1848,12 @@ func (bp *baseProcessor) saveShardHeader(header data.HeaderHandler, headerHash [
 	if elapsedTime >= common.PutInStorerMaxTime {
 		log.Warn("saveShardHeader", "elapsed time", elapsedTime)
 	}
+
+	log.Debug("saveShardHeader",
+		"hash", headerHash,
+		"nonce", header.GetNonce(),
+		"shardID", header.GetShardID(),
+	)
 }
 
 func (bp *baseProcessor) saveMetaHeader(header data.HeaderHandler, headerHash []byte, marshalizedHeader []byte) {
@@ -3480,6 +3524,44 @@ func (bp *baseProcessor) checkContextBeforeExecution(header data.HeaderHandler) 
 			"lastCommittedRootHash", lastCommittedRootHash,
 		)
 		return process.ErrRootStateDoesNotMatch
+	}
+
+	if header.GetShardID() == core.MetachainShardId {
+		lastCommittedPeerRootHash, err := bp.accountsDB[state.PeerAccountsState].RootHash()
+		if err != nil {
+			return err
+		}
+
+		lastExecutedHeader := bp.blockChain.GetLastExecutedBlockHeader()
+
+		var lastExecutedPeerRootHash []byte
+		if !lastExecutedHeader.IsHeaderV3() {
+			lastExecutedHeaderMeta, ok := lastExecutedHeader.(data.MetaHeaderHandler)
+			if !ok {
+				log.Debug("checkContextBeforeExecution1", "type", reflect.TypeOf(lastExecutedHeaderMeta).String())
+				return process.ErrWrongTypeAssertion
+			}
+
+			lastExecutedPeerRootHash = lastExecutedHeaderMeta.GetValidatorStatsRootHash()
+		} else {
+			lastExecutedResult := bp.blockChain.GetLastExecutionResult()
+
+			lastMetaExecResult, ok := lastExecutedResult.(data.BaseMetaExecutionResultHandler)
+			if !ok {
+				log.Debug("checkContextBeforeExecution", "type", reflect.TypeOf(lastExecutedResult).String())
+				return process.ErrWrongTypeAssertion
+			}
+
+			lastExecutedPeerRootHash = lastMetaExecResult.GetValidatorStatsRootHash()
+		}
+
+		if !bytes.Equal(lastCommittedPeerRootHash, lastExecutedPeerRootHash) {
+			log.Debug("checkContextBeforeExecution: validators stats root hash does not match",
+				"lastExecutedPeerRootHash", lastExecutedPeerRootHash,
+				"lastCommittedPeerRootHash", lastCommittedPeerRootHash,
+			)
+			return process.ErrRootStateDoesNotMatch
+		}
 	}
 
 	return nil

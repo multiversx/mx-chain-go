@@ -174,6 +174,8 @@ func createMockMetaArguments(
 		ExecutionResultsTracker: executionResultsTracker,
 		BlockChain:              dataComponents.BlockChain,
 		Headers:                 dataComponents.DataPool.Headers(),
+		StorageService:          dataComponents.StorageService(),
+		Marshaller:              coreComponents.InternalMarshalizer(),
 	})
 	execResultsVerifier, _ := blproc.NewExecutionResultsVerifier(dataComponents.BlockChain, execManager)
 	_ = executionResultsTracker.SetLastNotarizedResult(&block.ExecutionResult{})
