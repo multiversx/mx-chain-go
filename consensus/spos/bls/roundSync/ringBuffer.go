@@ -1,19 +1,19 @@
-package v2
+package roundSync
 
 import "sync"
 
-type RoundRingBuffer struct {
+type roundRingBuffer struct {
 	mut sync.RWMutex
 
 	buf      []uint64
 	capacity int
 	size     int
 	index    int
-	set      map[uint64]struct{} // dedupe instant
+	set      map[uint64]struct{} // deduplication map
 }
 
-func NewRoundRingBuffer(cap int) *RoundRingBuffer {
-	return &RoundRingBuffer{
+func newRoundRingBuffer(cap int) *roundRingBuffer {
+	return &roundRingBuffer{
 		buf:      make([]uint64, cap),
 		capacity: cap,
 		set:      make(map[uint64]struct{}),
@@ -21,7 +21,7 @@ func NewRoundRingBuffer(cap int) *RoundRingBuffer {
 }
 
 // Add adds a round if it's not already present. If full, it overwrites the oldest.
-func (r *RoundRingBuffer) Add(round uint64) {
+func (r *roundRingBuffer) add(round uint64) {
 	r.mut.Lock()
 	defer r.mut.Unlock()
 
@@ -46,7 +46,7 @@ func (r *RoundRingBuffer) Add(round uint64) {
 }
 
 // Last returns the last N rounds in chronological order
-func (r *RoundRingBuffer) Last(n int) []uint64 {
+func (r *roundRingBuffer) last(n int) []uint64 {
 	r.mut.Lock()
 	defer r.mut.Unlock()
 
@@ -64,7 +64,7 @@ func (r *RoundRingBuffer) Last(n int) []uint64 {
 	return out
 }
 
-func (r *RoundRingBuffer) Contains(round uint64) bool {
+func (r *roundRingBuffer) contains(round uint64) bool {
 	r.mut.Lock()
 	defer r.mut.Unlock()
 
@@ -73,7 +73,7 @@ func (r *RoundRingBuffer) Contains(round uint64) bool {
 }
 
 // Size returns number of stored rounds
-func (r *RoundRingBuffer) Size() int {
+func (r *roundRingBuffer) len() int {
 	r.mut.Lock()
 	defer r.mut.Unlock()
 

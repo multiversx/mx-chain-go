@@ -1,4 +1,4 @@
-package v2
+package roundSync
 
 import (
 	"math/rand"
@@ -22,7 +22,7 @@ func TestHeaderTracker_ShouldForceNTPResync(t *testing.T) {
 		},
 	}
 
-	tracker, _ := newHeaderTracker(proofsPool, syncer)
+	tracker, _ := NewRoundSyncController(proofsPool, syncer)
 
 	wg := sync.WaitGroup{}
 	wg.Add(240)
@@ -31,7 +31,7 @@ func TestHeaderTracker_ShouldForceNTPResync(t *testing.T) {
 
 		if i%3 == 0 {
 			go func() {
-				tracker.addOutOfRangeRound(uint64(r))
+				tracker.AddOutOfRangeRound(uint64(r))
 				wg.Done()
 			}()
 		}
@@ -46,14 +46,14 @@ func TestHeaderTracker_ShouldForceNTPResync(t *testing.T) {
 	}
 	wg.Wait()
 
-	tracker.addOutOfRangeRound(2)
-	tracker.addOutOfRangeRound(3)
+	tracker.AddOutOfRangeRound(2)
+	tracker.AddOutOfRangeRound(3)
 
 	tracker.receivedProof(&block.HeaderProof{HeaderRound: 2})
 	tracker.receivedProof(&block.HeaderProof{HeaderRound: 3})
 
-	tracker.addOutOfRangeRound(4)
-	tracker.addOutOfRangeRound(5)
+	tracker.AddOutOfRangeRound(4)
+	tracker.AddOutOfRangeRound(5)
 
 	tracker.receivedProof(&block.HeaderProof{HeaderRound: 4})
 	require.False(t, wasSyncCalled)

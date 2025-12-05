@@ -5,6 +5,7 @@ import (
 
 	"github.com/multiversx/mx-chain-core-go/core"
 	"github.com/multiversx/mx-chain-core-go/core/check"
+	"github.com/multiversx/mx-chain-go/consensus/spos/bls/roundSync"
 
 	"github.com/multiversx/mx-chain-go/consensus/spos"
 	"github.com/multiversx/mx-chain-go/consensus/spos/bls"
@@ -202,11 +203,16 @@ func (fct *factory) generateBlockSubround() error {
 	if err != nil {
 		return err
 	}
+	syncController, err := roundSync.NewRoundSyncController(subround.EquivalentProofsPool(), subround.ConsensusCoreHandler.SyncTimer())
+	if err != nil {
+		return err
+	}
 
 	subroundBlockInstance, err := NewSubroundBlock(
 		subround,
 		processingThresholdPercent,
 		fct.worker,
+		syncController,
 	)
 	if err != nil {
 		return err
