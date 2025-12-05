@@ -84,7 +84,7 @@ func main() {
 	}
 
 	// TODO: remove this after the first release
-	renameDB()
+	// renameDB()
 
 	err := app.Run(os.Args)
 	if err != nil {
