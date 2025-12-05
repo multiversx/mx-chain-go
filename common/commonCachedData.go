@@ -45,7 +45,7 @@ func GetCachedLogs(cache storage.Cacher, headerHash []byte) ([]*data.LogData, er
 
 	cachedLogsPtr := make([]*data.LogData, 0, len(cachedLogsSlice))
 	for _, cachedLog := range cachedLogsSlice {
-		cachedLogs = append(cachedLogsPtr, &cachedLog)
+		cachedLogsPtr = append(cachedLogsPtr, &cachedLog)
 	}
 
 	return cachedLogsPtr, nil
