@@ -1445,7 +1445,7 @@ func deployNewSc(
 	tpn.TransactionLogProcessor.Clean()
 
 	for _, log := range logs {
-		for _, event := range log.GetLogEvents() {
+		for _, event := range log.GetLogHandler().GetLogEvents() {
 			if string(event.GetIdentifier()) == "writeLog" && bytes.Equal(event.GetAddress(), vm.DelegationManagerSCAddress) {
 				tokens := strings.Split(string(event.GetData()), "@")
 				address, _ := hex.DecodeString(tokens[2])
