@@ -299,8 +299,8 @@ func computeRedundancyStr(redundancyLevel int64, redundancyIsMainActive string) 
 }
 
 func (wr *WidgetsRender) prepareBlockInfo() {
-	// 8 rows and one column
-	numRows := 9
+	// 10 rows and one column
+	numRows := 10
 	rows := make([][]string, numRows)
 
 	currentBlockHeight := wr.presenter.GetNonce()
@@ -343,26 +343,28 @@ func (wr *WidgetsRender) prepareBlockInfo() {
 		}
 	}
 
-	currentRoundTimestamp := wr.presenter.GetCurrentRoundTimestamp()
-	rows[8] = []string{fmt.Sprintf("Current round timestamp: %d", currentRoundTimestamp)}
-
 	durationStartRoundToSentOrReceivedBlock := float64(wr.presenter.GetDurationProposedBlockReceivedOrSentFromRoundStart()) / conversionFactorToSeconds
-	durationSentOrReceivedBlockToReceivedSignatures := float64(wr.presenter.GetDurationProofReceivedFromProposedBlockReceivedOrSent()) / conversionFactorToSeconds
+	durationSentOrReceivedBlockToReceivedProof := float64(wr.presenter.GetDurationProofReceivedFromProposedBlockReceivedOrSent()) / conversionFactorToSeconds
 
 	rows[6] = []string{
-		fmt.Sprintf("Received proposed block: %.6f sec | Received signatures: %.6f sec",
+		fmt.Sprintf("Received proposed block: %.6f sec | Received proof: %.6f sec",
 			durationStartRoundToSentOrReceivedBlock,
-			durationSentOrReceivedBlockToReceivedSignatures),
+			durationSentOrReceivedBlockToReceivedProof),
 	}
 
 	durationStartRoundToSentOrReceivedBlock = float64(wr.presenter.GetAvgDurationProposedBlockReceivedOrSentFromRoundStart()) / conversionFactorToSeconds
-	durationSentOrReceivedBlockToReceivedSignatures = float64(wr.presenter.GetAvgDurationProofReceivedFromProposedBlockReceivedOrSent()) / conversionFactorToSeconds
+	durationSentOrReceivedBlockToReceivedProof = float64(wr.presenter.GetAvgDurationProofReceivedFromProposedBlockReceivedOrSent()) / conversionFactorToSeconds
 
 	rows[7] = []string{
-		fmt.Sprintf("Avg Received proposed block: %.6f sec | Avg Received signatures: %.6f sec",
+		fmt.Sprintf("Avg Received proposed block: %.6f sec | Avg Received proof: %.6f sec",
 			durationStartRoundToSentOrReceivedBlock,
-			durationSentOrReceivedBlockToReceivedSignatures),
+			durationSentOrReceivedBlockToReceivedProof),
 	}
+
+	currentRoundTimestamp := wr.presenter.GetCurrentRoundTimestamp()
+	rows[8] = []string{fmt.Sprintf("Current round timestamp: %d", currentRoundTimestamp)}
+
+	rows[9] = []string{fmt.Sprintf("Num tracked blocks: %d, Num tracked accounts: %d", wr.presenter.GetNumTrackedBlocks(), wr.presenter.GetNumTrackedAccounts())}
 
 	wr.blockInfo.Title = "Block info:"
 	wr.blockInfo.RowSeparator = false

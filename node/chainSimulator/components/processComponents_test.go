@@ -181,7 +181,7 @@ func createArgsProcessComponentsHolder() ArgsProcessComponentsHolder {
 			ChainParametersHandlerField:        &chainParameters.ChainParametersHandlerStub{},
 			ChainParametersSubscriberField:     &commonmocks.ChainParametersNotifierStub{},
 			ProcessConfigsHandlerField:         testscommon.GetDefaultProcessConfigsHandler(),
-			CommonConfigsHandlerField:      testscommon.GetDefaultCommonConfigsHandler(),
+			CommonConfigsHandlerField:          testscommon.GetDefaultCommonConfigsHandler(),
 		},
 		CryptoComponents: &mock.CryptoComponentsStub{
 			BlKeyGen: &cryptoMocks.KeyGenStub{},
@@ -424,6 +424,7 @@ func TestProcessComponentsHolder_Getters(t *testing.T) {
 	require.NotNil(t, comp.AccountsParser())
 	require.NotNil(t, comp.ReceiptsRepository())
 	require.NotNil(t, comp.EpochSystemSCProcessor())
+	require.NotNil(t, comp.ExecutionManager())
 	require.Nil(t, comp.CheckSubcomponents())
 	require.Empty(t, comp.String())
 

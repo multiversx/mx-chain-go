@@ -670,7 +670,7 @@ func (tcn *TestConsensusNode) initBlockProcessor(shardId uint32) {
 
 			return header, &dataBlock.Body{}, nil
 		},
-		MarshalizedDataToBroadcastCalled: func(header data.HeaderHandler, body data.BodyHandler) (map[uint32][]byte, map[string][][]byte, error) {
+		MarshalizedDataToBroadcastCalled: func(hash []byte, header data.HeaderHandler, body data.BodyHandler) (map[uint32][]byte, map[string][][]byte, error) {
 			mrsData := make(map[uint32][]byte)
 			mrsTxs := make(map[string][][]byte)
 			return mrsData, mrsTxs, nil

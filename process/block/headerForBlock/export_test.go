@@ -33,3 +33,18 @@ func NewLastNotarizedHeaderInfo(
 func (hfb *headersForBlock) FilterHeadersWithoutProofs() (map[string]HeaderInfo, error) {
 	return hfb.filterHeadersWithoutProofs()
 }
+
+// RequestMissingAndUpdateBasedOnCrossShardData -
+func (hfb *headersForBlock) RequestMissingAndUpdateBasedOnCrossShardData(cd crossShardMetaData) {
+	hfb.requestMissingAndUpdateBasedOnCrossShardData(cd)
+}
+
+// ComputeExistingAndRequestMissingShardHeaders -
+func (hfb *headersForBlock) ComputeExistingAndRequestMissingShardHeaders(metaBlock data.MetaHeaderHandler) {
+	hfb.computeExistingAndRequestMissingShardHeaders(metaBlock)
+}
+
+// UpdateLastNotarizedBlockForShard -
+func (hfb *headersForBlock) UpdateLastNotarizedBlockForShard(hdr data.ShardHeaderHandler, headerHash []byte) {
+	hfb.updateLastNotarizedBlockForShard(hdr, headerHash)
+}

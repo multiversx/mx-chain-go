@@ -527,3 +527,51 @@ func TestExecutionResultsTracker_RemoveFromNonce(t *testing.T) {
 		require.True(t, errors.Is(err, ErrCannotFindExecutionResult))
 	})
 }
+
+func TestExecutionResultsTracker_Clean(t *testing.T) {
+	t.Parallel()
+
+	t.Run("nil last notarized result should early exit", func(t *testing.T) {
+		t.Parallel()
+
+		tracker := NewExecutionResultsTracker()
+		tracker.Clean(nil)
+	})
+	t.Run("should work", func(t *testing.T) {
+		t.Parallel()
+
+		tracker := NewExecutionResultsTracker()
+		_ = tracker.SetLastNotarizedResult(&block.ExecutionResult{
+			BaseExecutionResult: &block.BaseExecutionResult{
+				HeaderHash:  []byte("hash0"),
+				HeaderNonce: 10,
+			},
+		})
+		_ = tracker.AddExecutionResult(&block.ExecutionResult{
+			BaseExecutionResult: &block.BaseExecutionResult{
+				HeaderHash:  []byte("hash1"),
+				HeaderNonce: 11,
+			},
+		})
+		_ = tracker.AddExecutionResult(&block.ExecutionResult{
+			BaseExecutionResult: &block.BaseExecutionResult{
+				HeaderHash:  []byte("hash2"),
+				HeaderNonce: 12,
+			},
+		})
+
+		newLast := &block.BaseExecutionResult{
+			HeaderHash:  []byte("hash_new"),
+			HeaderNonce: 2,
+		}
+		tracker.Clean(newLast)
+
+		pending, err := tracker.GetPendingExecutionResults()
+		require.NoError(t, err)
+		require.Equal(t, 0, len(pending))
+
+		lastExec, err := tracker.GetLastNotarizedExecutionResult()
+		require.NoError(t, err)
+		require.Equal(t, newLast, lastExec)
+	})
+}

@@ -8,6 +8,7 @@ import (
 	"github.com/multiversx/mx-chain-core-go/core"
 	"github.com/multiversx/mx-chain-core-go/data/block"
 	"github.com/multiversx/mx-chain-core-go/data/rewardTx"
+	"github.com/multiversx/mx-chain-go/testscommon/epochNotifier"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 
@@ -540,6 +541,8 @@ func createDefaultValidatorInfoPreProcessorArgs(tdp dataRetriever.PoolsHolder) V
 			EconomicsFee:               feeHandlerMock(),
 			EnableEpochsHandler:        enableEpochsHandlerMock.NewEnableEpochsHandlerStub(),
 			EnableRoundsHandler:        &testscommon.EnableRoundsHandlerStub{},
+			EpochNotifier:              &epochNotifier.EpochNotifierStub{},
+			RoundNotifier:              &epochNotifier.RoundNotifierStub{},
 		},
 	}
 }

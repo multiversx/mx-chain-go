@@ -559,7 +559,6 @@ func (atp *apiTransactionProcessor) selectTransactions(accountsAdapter state.Acc
 		return nil, err
 	}
 
-	// TODO use the right information for nonce
 	selectedTxs, _, err := txCache.SimulateSelectTransactions(selectionSession, selectionOptions)
 	if err != nil {
 		log.Warn("apiTransactionProcessor.selectTransactions could not SelectTransactions")

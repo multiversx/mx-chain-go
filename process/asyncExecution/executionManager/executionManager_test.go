@@ -7,6 +7,7 @@ import (
 
 	"github.com/multiversx/mx-chain-core-go/data"
 	"github.com/multiversx/mx-chain-core-go/data/block"
+	"github.com/multiversx/mx-chain-go/process"
 	"github.com/multiversx/mx-chain-go/process/asyncExecution/executionManager"
 	"github.com/multiversx/mx-chain-go/process/asyncExecution/queue"
 	"github.com/multiversx/mx-chain-go/testscommon"
@@ -326,15 +327,17 @@ func TestExecutionManager_RemoveAtNonceAndHigher(t *testing.T) {
 		pauseCalled := false
 		resumeCalled := false
 		removeFromNonceCalled := false
+
+		lastNotarizedExecResult := &block.ExecutionResult{
+			BaseExecutionResult: &block.BaseExecutionResult{
+				HeaderNonce: 5,
+				HeaderHash:  []byte("hash5"),
+				RootHash:    []byte("root5"),
+			},
+		}
 		args.ExecutionResultsTracker = &processMocks.ExecutionTrackerStub{
 			GetLastNotarizedExecutionResultCalled: func() (data.BaseExecutionResultHandler, error) {
-				return &block.ExecutionResult{
-					BaseExecutionResult: &block.BaseExecutionResult{
-						HeaderNonce: 5,
-						HeaderHash:  []byte("hash5"),
-						RootHash:    []byte("root5"),
-					},
-				}, nil
+				return lastNotarizedExecResult, nil
 			},
 			RemoveFromNonceCalled: func(nonce uint64) error {
 				removeFromNonceCalled = true
@@ -383,6 +386,9 @@ func TestExecutionManager_RemoveAtNonceAndHigher(t *testing.T) {
 		require.Equal(t, uint64(5), nonce)
 		require.Equal(t, []byte("hash5"), hash)
 		require.Equal(t, []byte("root5"), rootHash)
+
+		retLastExecutionResult := chainMock.GetLastExecutionResult()
+		require.Equal(t, lastNotarizedExecResult, retLastExecutionResult)
 	})
 
 	t.Run("error from tracker remove should error", func(t *testing.T) {
@@ -450,6 +456,14 @@ func TestExecutionManager_RemoveAtNonceAndHigher(t *testing.T) {
 		t.Parallel()
 
 		args := createMockArgs()
+
+		lastExecutionResult := &block.ExecutionResult{
+			BaseExecutionResult: &block.BaseExecutionResult{
+				HeaderNonce: 7,
+				HeaderHash:  []byte("hash7"),
+				RootHash:    []byte("root7"),
+			},
+		}
 		args.ExecutionResultsTracker = &processMocks.ExecutionTrackerStub{
 			GetLastNotarizedExecutionResultCalled: func() (data.BaseExecutionResultHandler, error) {
 				return &block.ExecutionResult{
@@ -469,13 +483,7 @@ func TestExecutionManager_RemoveAtNonceAndHigher(t *testing.T) {
 							RootHash:    []byte("root6"),
 						},
 					},
-					&block.ExecutionResult{
-						BaseExecutionResult: &block.BaseExecutionResult{
-							HeaderNonce: 7,
-							HeaderHash:  []byte("hash7"),
-							RootHash:    []byte("root7"),
-						},
-					},
+					lastExecutionResult,
 				}, nil
 			},
 		}
@@ -507,6 +515,9 @@ func TestExecutionManager_RemoveAtNonceAndHigher(t *testing.T) {
 
 		lastExecHeader := chainMock.GetLastExecutedBlockHeader()
 		require.Equal(t, header, lastExecHeader)
+
+		retLastExecutionResult := chainMock.GetLastExecutionResult()
+		require.Equal(t, lastExecutionResult, retLastExecutionResult)
 	})
 
 	t.Run("error getting pending execution results should error", func(t *testing.T) {
@@ -533,9 +544,64 @@ func TestExecutionManager_RemoveAtNonceAndHigher(t *testing.T) {
 			},
 		}
 		em, _ := executionManager.NewExecutionManager(args)
+		wasPauseExecutionCalled := false
+		wasResumeExecutionCalled := false
+		err := em.SetHeadersExecutor(&processMocks.HeadersExecutorMock{
+			PauseExecutionCalled: func() {
+				wasPauseExecutionCalled = true
+			},
+			ResumeExecutionCalled: func() {
+				wasResumeExecutionCalled = true
+			},
+		})
+		require.NoError(t, err)
 
-		err := em.RemoveAtNonceAndHigher(10)
+		err = em.RemoveAtNonceAndHigher(10)
 		require.Equal(t, errExpected, err)
+		require.True(t, wasPauseExecutionCalled)
+		require.False(t, wasResumeExecutionCalled)
+	})
+}
+
+func TestExecutionManager_ResetAndResumeExecution(t *testing.T) {
+	t.Parallel()
+
+	t.Run("nil last execution result should error", func(t *testing.T) {
+		t.Parallel()
+
+		args := createMockArgs()
+		em, _ := executionManager.NewExecutionManager(args)
+		require.NotNil(t, em)
+
+		err := em.ResetAndResumeExecution(nil)
+		require.Equal(t, process.ErrNilLastExecutionResultHandler, err)
+	})
+	t.Run("should work", func(t *testing.T) {
+		t.Parallel()
+
+		args := createMockArgs()
+		args.ExecutionResultsTracker = &processMocks.ExecutionTrackerStub{
+			GetLastNotarizedExecutionResultCalled: func() (data.BaseExecutionResultHandler, error) {
+				return &block.ExecutionResult{
+					BaseExecutionResult: &block.BaseExecutionResult{
+						HeaderNonce: 5,
+						HeaderHash:  []byte("hash5"),
+					},
+				}, nil
+			},
+		}
+		em, _ := executionManager.NewExecutionManager(args)
+		wasResumeExecutionCalled := false
+		err := em.SetHeadersExecutor(&processMocks.HeadersExecutorMock{
+			ResumeExecutionCalled: func() {
+				wasResumeExecutionCalled = true
+			},
+		})
+		require.NoError(t, err)
+
+		err = em.ResetAndResumeExecution(&block.BaseExecutionResult{})
+		require.NoError(t, err)
+		require.True(t, wasResumeExecutionCalled)
 	})
 }
 

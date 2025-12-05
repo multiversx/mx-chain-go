@@ -22,6 +22,7 @@ import (
 	logger "github.com/multiversx/mx-chain-logger-go"
 	vmcommon "github.com/multiversx/mx-chain-vm-common-go"
 
+	"github.com/multiversx/mx-chain-go/common"
 	"github.com/multiversx/mx-chain-go/dataRetriever"
 	"github.com/multiversx/mx-chain-go/process/estimator"
 	"github.com/multiversx/mx-chain-go/state"
@@ -90,7 +91,7 @@ func GetMetaHeader(
 	headersCacher dataRetriever.HeadersPool,
 	marshalizer marshal.Marshalizer,
 	storageService dataRetriever.StorageService,
-) (*block.MetaBlock, error) {
+) (data.MetaHeaderHandler, error) {
 
 	err := checkGetHeaderParamsForNil(headersCacher, marshalizer, storageService)
 	if err != nil {
@@ -131,14 +132,14 @@ func GetShardHeaderFromPool(
 func GetMetaHeaderFromPool(
 	hash []byte,
 	headersCacher dataRetriever.HeadersPool,
-) (*block.MetaBlock, error) {
+) (data.MetaHeaderHandler, error) {
 
 	obj, err := getHeaderFromPool(hash, headersCacher)
 	if err != nil {
 		return nil, err
 	}
 
-	hdr, ok := obj.(*block.MetaBlock)
+	hdr, ok := obj.(data.MetaHeaderHandler)
 	if !ok {
 		return nil, ErrWrongTypeAssertion
 	}
@@ -184,15 +185,13 @@ func GetMetaHeaderFromStorage(
 	hash []byte,
 	marshalizer marshal.Marshalizer,
 	storageService dataRetriever.StorageService,
-) (*block.MetaBlock, error) {
-
+) (data.MetaHeaderHandler, error) {
 	buffHdr, err := GetMarshalizedHeaderFromStorage(dataRetriever.MetaBlockUnit, hash, marshalizer, storageService)
 	if err != nil {
 		return nil, err
 	}
 
-	hdr := &block.MetaBlock{}
-	err = marshalizer.Unmarshal(hdr, buffHdr)
+	hdr, err := UnmarshalMetaHeader(marshalizer, buffHdr)
 	if err != nil {
 		return nil, ErrUnmarshalWithoutSuccess
 	}
@@ -262,7 +261,7 @@ func GetMetaHeaderWithNonce(
 	marshalizer marshal.Marshalizer,
 	storageService dataRetriever.StorageService,
 	uint64Converter typeConverters.Uint64ByteSliceConverter,
-) (*block.MetaBlock, []byte, error) {
+) (data.MetaHeaderHandler, []byte, error) {
 
 	err := checkGetHeaderWithNonceParamsForNil(headersCacher, marshalizer, storageService, uint64Converter)
 	if err != nil {
@@ -304,14 +303,14 @@ func GetShardHeaderFromPoolWithNonce(
 func GetMetaHeaderFromPoolWithNonce(
 	nonce uint64,
 	headersCacher dataRetriever.HeadersPool,
-) (*block.MetaBlock, []byte, error) {
+) (data.MetaHeaderHandler, []byte, error) {
 
 	obj, hash, err := getHeaderFromPoolWithNonce(nonce, core.MetachainShardId, headersCacher)
 	if err != nil {
 		return nil, nil, err
 	}
 
-	hdr, ok := obj.(*block.MetaBlock)
+	hdr, ok := obj.(data.MetaHeaderHandler)
 	if !ok {
 		return nil, nil, ErrWrongTypeAssertion
 	}
@@ -367,8 +366,7 @@ func GetMetaHeaderFromStorageWithNonce(
 	storageService dataRetriever.StorageService,
 	uint64Converter typeConverters.Uint64ByteSliceConverter,
 	marshalizer marshal.Marshalizer,
-) (*block.MetaBlock, []byte, error) {
-
+) (data.MetaHeaderHandler, []byte, error) {
 	hash, err := GetHeaderHashFromStorageWithNonce(
 		nonce,
 		storageService,
@@ -1005,6 +1003,21 @@ func GetMiniBlockHeaderWithHash(header data.HeaderHandler, miniBlockHash []byte)
 			return miniBlockHeader
 		}
 	}
+
+	for _, execResult := range header.GetExecutionResultsHandlers() {
+		mbHeaders, err := common.GetMiniBlocksHeaderHandlersFromExecResult(execResult)
+		if err != nil {
+			log.Warn("GetMiniBlockHeaderWithHash", "error", err.Error())
+			continue
+		}
+
+		for _, mbHeader := range mbHeaders {
+			if bytes.Equal(mbHeader.GetHash(), miniBlockHash) {
+				return mbHeader
+			}
+		}
+	}
+
 	return nil
 }
 
@@ -1122,55 +1135,7 @@ func GetPrevBlockLastExecutionResult(blockChain data.ChainHandler) (data.LastExe
 		return prevHeader.GetLastExecutionResultHandler(), nil
 	}
 
-	return CreateLastExecutionResultFromPrevHeader(prevHeader, prevHeaderHash)
-}
-
-// CreateLastExecutionResultFromPrevHeader creates a LastExecutionResultInfo object from the given previous header
-func CreateLastExecutionResultFromPrevHeader(prevHeader data.HeaderHandler, prevHeaderHash []byte) (data.LastExecutionResultHandler, error) {
-	if check.IfNil(prevHeader) {
-		return nil, ErrNilBlockHeader
-	}
-	if len(prevHeaderHash) == 0 {
-		return nil, ErrInvalidHash
-	}
-
-	if prevHeader.GetShardID() != core.MetachainShardId {
-		if _, ok := prevHeader.(*block.HeaderV2); !ok {
-			return nil, ErrWrongTypeAssertion
-		}
-
-		return &block.ExecutionResultInfo{
-			NotarizedInRound: prevHeader.GetRound(),
-			ExecutionResult: &block.BaseExecutionResult{
-				HeaderHash:  prevHeaderHash,
-				HeaderNonce: prevHeader.GetNonce(),
-				HeaderRound: prevHeader.GetRound(),
-				RootHash:    prevHeader.GetRootHash(),
-				GasUsed:     0, // we don't have this information in previous header
-			},
-		}, nil
-	}
-
-	prevMetaHeader, ok := prevHeader.(*block.MetaBlock)
-	if !ok {
-		return nil, ErrWrongTypeAssertion
-	}
-
-	return &block.MetaExecutionResultInfo{
-		NotarizedInRound: prevHeader.GetRound(),
-		ExecutionResult: &block.BaseMetaExecutionResult{
-			BaseExecutionResult: &block.BaseExecutionResult{
-				HeaderHash:  prevHeaderHash,
-				HeaderNonce: prevMetaHeader.GetNonce(),
-				HeaderRound: prevMetaHeader.GetRound(),
-				RootHash:    prevMetaHeader.GetRootHash(),
-				GasUsed:     0, // we don't have this information in previous header
-			},
-			ValidatorStatsRootHash: prevMetaHeader.GetValidatorStatsRootHash(),
-			AccumulatedFeesInEpoch: prevMetaHeader.GetAccumulatedFeesInEpoch(),
-			DevFeesInEpoch:         prevMetaHeader.GetDevFeesInEpoch(),
-		},
-	}, nil
+	return common.CreateLastExecutionResultFromPrevHeader(prevHeader, prevHeaderHash)
 }
 
 // CreateLastExecutionResultInfoFromExecutionResult creates a LastExecutionResultInfo object from the given execution result
@@ -1258,4 +1223,20 @@ func IsNotExecutableTransactionError(err error) bool {
 		errors.Is(err, ErrHigherNonceInTransaction) ||
 		errors.Is(err, ErrInsufficientFee) ||
 		errors.Is(err, ErrTransactionNotExecutable)
+}
+
+// GetMarshaledSliceSize will return marshalled slice size for any slice
+func GetMarshaledSliceSize[T any](items []T, marshaller marshal.Marshalizer) (int, error) {
+	size := 0
+
+	for i := range items {
+		d, err := marshaller.Marshal(items[i])
+		if err != nil {
+			return 0, err
+		}
+
+		size += len(d)
+	}
+
+	return size, nil
 }

@@ -28,6 +28,7 @@ type peerAccountsDBHandler interface {
 
 type receiptsRepository interface {
 	SaveReceipts(holder common.ReceiptsHolder, header data.HeaderHandler, headerHash []byte) error
+	SaveReceiptsForExecResult(holder common.ReceiptsHolder, execResult data.BaseExecutionResultHandler) error
 	IsInterfaceNil() bool
 }
 

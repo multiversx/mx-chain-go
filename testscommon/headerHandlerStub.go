@@ -75,6 +75,8 @@ type HeaderHandlerStub struct {
 	SetShardInfoHandlersCalled               func(shardInfo []data.ShardDataHandler) error
 	GetShardInfoProposalHandlersCalled       func() []data.ShardDataProposalHandler
 	SetShardInfoProposalHandlersCalled       func(shardInfo []data.ShardDataProposalHandler) error
+	IsEpochChangeProposedCalled              func() bool
+	GetEpochStartHandlerCalled               func() data.EpochStartHandler
 }
 
 // SetEpochStartHandler -
@@ -581,6 +583,9 @@ func (hhs *HeaderHandlerStub) SetEpochChangeProposed(_ bool) {}
 
 // IsEpochChangeProposed -
 func (hhs *HeaderHandlerStub) IsEpochChangeProposed() bool {
+	if hhs.IsEpochChangeProposedCalled != nil {
+		return hhs.IsEpochChangeProposedCalled()
+	}
 	return false
 }
 

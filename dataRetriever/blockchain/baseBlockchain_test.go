@@ -107,6 +107,34 @@ func TestBaseBlockchain_SetAndGetLastExecutedBlockHeaderAndRootHash(t *testing.T
 	})
 }
 
+func TestBaseBlockchain_SetAndGetLastExecutionResult(t *testing.T) {
+	t.Parallel()
+
+	base := &baseBlockChain{
+		appStatusHandler:      &mock.AppStatusHandlerStub{},
+		finalBlockInfo:        &blockInfo{},
+		lastExecutedBlockInfo: &blockInfo{},
+	}
+
+	nonce := uint64(10)
+	hash := []byte("hash")
+	rootHash := []byte("root-hash")
+
+	execResult := &block.ExecutionResult{
+		BaseExecutionResult: &block.BaseExecutionResult{
+			RootHash:    rootHash,
+			HeaderHash:  hash,
+			HeaderNonce: nonce,
+		},
+	}
+
+	base.SetLastExecutionResult(execResult)
+
+	retExecResult := base.GetLastExecutionResult()
+
+	require.Equal(t, execResult, retExecResult)
+}
+
 func TestBaseBlockchain_Concurrency(t *testing.T) {
 	t.Parallel()
 
@@ -122,12 +150,14 @@ func TestBaseBlockchain_Concurrency(t *testing.T) {
 	headerHash := []byte("headerHash")
 	rootHash := []byte("rootHash")
 
+	execResult := &block.ExecutionResult{}
+
 	var wg sync.WaitGroup
 	wg.Add(numCalls)
 
 	for i := range numCalls {
 		go func(i int) {
-			switch i % 10 {
+			switch i % 12 {
 			case 0:
 				_ = bc.GetCurrentBlockHeaderHash()
 			case 1:
@@ -148,6 +178,10 @@ func TestBaseBlockchain_Concurrency(t *testing.T) {
 				bc.SetFinalBlockInfo(0, headerHash, rootHash)
 			case 9:
 				bc.SetGenesisHeaderHash(headerHash)
+			case 10:
+				bc.SetLastExecutionResult(execResult)
+			case 11:
+				_ = bc.GetLastExecutionResult()
 			default:
 				require.Fail(t, "should have not been called")
 			}

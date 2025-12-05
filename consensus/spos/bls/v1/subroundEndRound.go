@@ -839,7 +839,7 @@ func (sr *subroundEndRound) updateMetricsForLeader() {
 }
 
 func (sr *subroundEndRound) broadcastBlockDataLeader() error {
-	miniBlocks, transactions, err := sr.BlockProcessor().MarshalizedDataToBroadcast(sr.GetHeader(), sr.GetBody())
+	miniBlocks, transactions, err := sr.BlockProcessor().MarshalizedDataToBroadcast(sr.GetData(), sr.GetHeader(), sr.GetBody())
 	if err != nil {
 		return err
 	}
@@ -934,7 +934,7 @@ func (sr *subroundEndRound) getIndexPkAndDataToBroadcast() (int, []byte, map[uin
 		return -1, nil, nil, nil, err
 	}
 
-	miniBlocks, transactions, err := sr.BlockProcessor().MarshalizedDataToBroadcast(sr.GetHeader(), sr.GetBody())
+	miniBlocks, transactions, err := sr.BlockProcessor().MarshalizedDataToBroadcast(sr.GetData(), sr.GetHeader(), sr.GetBody())
 	if err != nil {
 		return -1, nil, nil, nil, err
 	}

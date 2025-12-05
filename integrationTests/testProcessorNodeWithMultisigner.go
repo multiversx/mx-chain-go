@@ -73,7 +73,7 @@ func CreateNodesWithNodesCoordinatorAndTxKeys(
 	shardConsensusGroupSize int,
 	metaConsensusGroupSize int,
 ) map[uint32][]*TestProcessorNode {
-	rater, _ := rating.NewBlockSigningRater(CreateRatingsData())
+	rater, _ := rating.NewBlockSigningRater(CreateRatingsData(), &enableEpochsHandlerMock.EnableEpochsHandlerStub{})
 	coordinatorFactory := &IndexHashedNodesCoordinatorWithRaterFactory{
 		PeerAccountListAndRatingHandler: rater,
 	}

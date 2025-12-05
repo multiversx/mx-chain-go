@@ -20,15 +20,19 @@ type selectionTracker struct {
 	blocks                    map[string]*trackedBlock
 	globalBreadcrumbsCompiler *globalAccountBreadcrumbsCompiler
 	txCache                   txCacheForSelectionTracker
+	selfShardId               uint32
 	maxTrackedBlocks          uint32
 }
 
 // NewSelectionTracker creates a new selectionTracker
-func NewSelectionTracker(txCache txCacheForSelectionTracker, maxTrackedBlocks uint32) (*selectionTracker, error) {
+func NewSelectionTracker(
+	txCache txCacheForSelectionTracker,
+	selfShardId uint32,
+	maxTrackedBlocks uint32,
+) (*selectionTracker, error) {
 	if check.IfNil(txCache) {
 		return nil, errNilTxCache
 	}
-	// TODO compare with the maximum allowed offset between proposing a block and actually executing it
 	if maxTrackedBlocks == 0 {
 		return nil, errInvalidMaxTrackedBlocks
 	}
@@ -37,6 +41,7 @@ func NewSelectionTracker(txCache txCacheForSelectionTracker, maxTrackedBlocks ui
 		blocks:                    make(map[string]*trackedBlock),
 		globalBreadcrumbsCompiler: newGlobalAccountBreadcrumbsCompiler(),
 		txCache:                   txCache,
+		selfShardId:               selfShardId,
 		maxTrackedBlocks:          maxTrackedBlocks,
 	}, nil
 }
@@ -73,35 +78,24 @@ func (st *selectionTracker) OnProposedBlock(
 	defer st.mutTracker.Unlock()
 
 	if !bytes.Equal(st.latestRootHash, accountsRootHash) {
-		// TODO when the right information will be passed on the OnExecutedBlock flow, the error must be returned here.
 		log.Error("selectionTracker.OnProposedBlock",
 			"err", errRootHashMismatch,
 			"latestRootHash", st.latestRootHash,
 			"accountsRootHash", accountsRootHash,
 		)
+		return errRootHashMismatch
 	}
 
 	nonce := blockHeader.GetNonce()
-	rootHash := blockHeader.GetRootHash()
 	prevHash := blockHeader.GetPrevHash()
 
-	// analyze if we should have this check
-	if !bytes.Equal(st.latestRootHash, rootHash) {
-		// TODO when the right information will be passed on the OnExecutedBlock flow, the error must be returned here.
-		log.Error("selectionTracker.OnProposedBlock",
-			"err", errRootHashMismatch,
-			"latestRootHash", st.latestRootHash,
-			"block rootHash", rootHash,
-		)
-	}
-
-	tBlock := newTrackedBlock(nonce, blockHash, rootHash, prevHash)
+	tBlock := newTrackedBlock(nonce, blockHash, prevHash)
 
 	log.Debug("selectionTracker.OnProposedBlock",
 		"nonce", nonce,
 		"blockHash", blockHash,
-		"rootHash", rootHash,
 		"prevHash", prevHash,
+		"latestRootHash", st.latestRootHash,
 	)
 
 	err = st.checkReceivedBlockNoLock(blockBody, blockHeader)
@@ -195,7 +189,7 @@ func (st *selectionTracker) validateTrackedBlocksAndCompileBreadcrumbsNoLock(
 	}
 
 	// if we pass the first validation, only then we extract the txs to compile the breadcrumbs
-	txs, err := getTransactionsInBlock(blockBody, st.txCache)
+	txs, err := getTransactionsInBlock(blockBody, st.txCache, st.selfShardId)
 	if err != nil {
 		log.Debug("selectionTracker.validateTrackedBlocksAndCompileBreadcrumbsNoLock: error getting transactions from block", "err", err)
 		return err
@@ -239,7 +233,6 @@ func (st *selectionTracker) validateBreadcrumbsOfTrackedBlocks(
 				log.Debug("selectionTracker.validateBreadcrumbsOfTrackedBlocks",
 					"err", err,
 					"address", address,
-					"tracked block rootHash", tb.rootHash,
 					"tracked block hash", tb.hash,
 					"tracked block nonce", tb.nonce)
 				return err
@@ -249,7 +242,6 @@ func (st *selectionTracker) validateBreadcrumbsOfTrackedBlocks(
 				log.Debug("selectionTracker.validateBreadcrumbsOfTrackedBlocks",
 					"err", errDiscontinuousBreadcrumbs,
 					"address", address,
-					"tracked block rootHash", tb.rootHash,
 					"tracked block hash", tb.hash,
 					"tracked block nonce", tb.nonce)
 				return errDiscontinuousBreadcrumbs
@@ -262,7 +254,6 @@ func (st *selectionTracker) validateBreadcrumbsOfTrackedBlocks(
 				log.Debug("selectionTracker.validateBreadcrumbsOfTrackedBlocks validation failed",
 					"err", err,
 					"address", address,
-					"tracked block rootHash", tb.rootHash,
 					"tracked block hash", tb.hash,
 					"tracked block nonce", tb.nonce)
 				return err
@@ -330,7 +321,7 @@ func (st *selectionTracker) OnExecutedBlock(blockHeader data.HeaderHandler, root
 		"prevHash", prevHash,
 	)
 
-	tempTrackedBlock := newTrackedBlock(nonce, nil, rootHash, prevHash)
+	tempTrackedBlock := newTrackedBlock(nonce, nil, prevHash)
 
 	st.mutTracker.Lock()
 	defer st.mutTracker.Unlock()
@@ -365,7 +356,6 @@ func (st *selectionTracker) removeUpToBlockNoLock(searchedBlock *trackedBlock) e
 	log.Trace("selectionTracker.removeUpToBlockNoLock",
 		"searched block nonce", searchedBlock.nonce,
 		"searched block hash", searchedBlock.hash,
-		"searched block rootHash", searchedBlock.rootHash,
 		"searched block prevHash", searchedBlock.prevHash,
 		"removed blocks", removedBlocks,
 	)

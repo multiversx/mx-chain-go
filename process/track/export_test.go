@@ -39,7 +39,7 @@ func (sbt *shardBlockTrack) GetTrackedShardHeaderWithNonceAndHash(shardID uint32
 // metaBlockTrack
 
 // GetTrackedMetaBlockWithHash -
-func (mbt *metaBlockTrack) GetTrackedMetaBlockWithHash(hash []byte) (*block.MetaBlock, error) {
+func (mbt *metaBlockTrack) GetTrackedMetaBlockWithHash(hash []byte) (data.MetaHeaderHandler, error) {
 	return mbt.getTrackedMetaBlockWithHash(hash)
 }
 

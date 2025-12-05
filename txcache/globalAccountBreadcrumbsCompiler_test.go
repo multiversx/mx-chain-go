@@ -50,7 +50,7 @@ func Test_shouldWorkConcurrently(t *testing.T) {
 	wg.Add(2 * numOfBlocks)
 
 	for i := 1; i <= numOfBlocks; i++ {
-		tb := newTrackedBlock(uint64(i), []byte(fmt.Sprintf("hash%d", i-1)), []byte("rootHash0"), []byte(fmt.Sprintf("prevHash%d", i-1)))
+		tb := newTrackedBlock(uint64(i), []byte(fmt.Sprintf("hash%d", i-1)), []byte(fmt.Sprintf("prevHash%d", i-1)))
 
 		go func(tb *trackedBlock) {
 			defer wg.Done()
@@ -77,7 +77,7 @@ func Test_shouldWorkOnDifferentScenarios(t *testing.T) {
 		gabc := newGlobalAccountBreadcrumbsCompiler()
 
 		// create a first proposed block
-		tb1 := newTrackedBlock(0, []byte("hash0"), []byte("rootHash"), []byte("prevHash"))
+		tb1 := newTrackedBlock(0, []byte("hash0"), []byte("prevHash"))
 
 		tx1 := createTx([]byte("hash1"), "alice", 0).withRelayer([]byte("bob")).withTransferredValue(big.NewInt(1)).withFee(big.NewInt(1))
 		tx2 := createTx([]byte("hash2"), "carol", 0).withTransferredValue(big.NewInt(2)).withFee(big.NewInt(1))
@@ -132,7 +132,7 @@ func Test_shouldWorkOnDifferentScenarios(t *testing.T) {
 		requireEqualGlobalAccountsBreadcrumbs(t, expectedGlobalBreadcrumbs, gabc.globalAccountBreadcrumbs)
 
 		// create the second proposed block
-		tb2 := newTrackedBlock(0, []byte("hash0"), []byte("rootHash"), []byte("prevHash"))
+		tb2 := newTrackedBlock(0, []byte("hash0"), []byte("prevHash"))
 
 		tx3 := createTx([]byte("hash3"), "alice", 1).withTransferredValue(big.NewInt(1)).withFee(big.NewInt(1))
 		tx4 := createTx([]byte("hash4"), "carol", 1).withTransferredValue(big.NewInt(2)).withFee(big.NewInt(1))
@@ -231,7 +231,7 @@ func Test_shouldWorkOnDifferentScenarios(t *testing.T) {
 
 		gabc := newGlobalAccountBreadcrumbsCompiler()
 		// propose another block
-		tb3 := newTrackedBlock(0, []byte("hash0"), []byte("rootHash"), []byte("prevHash"))
+		tb3 := newTrackedBlock(0, []byte("hash0"), []byte("prevHash"))
 
 		tx5 := createTx([]byte("hash5"), "eve", 5).withRelayer([]byte("bob")).withFee(big.NewInt(1))
 		tx6 := createTx([]byte("hash6"), "dave", 10).withRelayer([]byte("bob")).withFee(big.NewInt(1))
@@ -290,7 +290,7 @@ func Test_shouldWorkOnDifferentScenarios(t *testing.T) {
 
 		// start a non-canonical chain
 		// propose another block
-		tb4 := newTrackedBlock(0, []byte("hash0"), []byte("rootHash"), []byte("prevHash"))
+		tb4 := newTrackedBlock(0, []byte("hash0"), []byte("prevHash"))
 
 		tx10 := createTx([]byte("hash10"), "dave", 12).withRelayer([]byte("eve")).withFee(big.NewInt(1))
 		tx11 := createTx([]byte("hash11"), "dave", 13).withRelayer([]byte("eve")).withFee(big.NewInt(1))
@@ -345,7 +345,7 @@ func Test_shouldWorkOnDifferentScenarios(t *testing.T) {
 		requireEqualGlobalAccountsBreadcrumbs(t, expectedGlobalBreadcrumbs, gabc.globalAccountBreadcrumbs)
 
 		// propose another block to the non-canonical chain
-		tb5 := newTrackedBlock(0, []byte("hash0"), []byte("rootHash"), []byte("prevHash"))
+		tb5 := newTrackedBlock(0, []byte("hash0"), []byte("prevHash"))
 
 		tx12 := createTx([]byte("hash12"), "bob", 5).withTransferredValue(big.NewInt(1)).withFee(big.NewInt(1))
 		tx13 := createTx([]byte("hash13"), "alice", 20).withTransferredValue(big.NewInt(3)).withFee(big.NewInt(1))
@@ -508,7 +508,7 @@ func Test_shouldWorkOnDifferentScenarios(t *testing.T) {
 
 		// now, add the new block, the one that replaces the first of the non-canonical chain
 
-		tb6 := newTrackedBlock(0, []byte("hash0"), []byte("rootHash"), []byte("prevHash"))
+		tb6 := newTrackedBlock(0, []byte("hash0"), []byte("prevHash"))
 
 		tx14 := createTx([]byte("hash14"), "frank", 0).withRelayer([]byte("eve")).withFee(big.NewInt(1))
 		tx15 := createTx([]byte("hash15"), "frank", 1).withRelayer([]byte("eve")).withFee(big.NewInt(1))
@@ -583,7 +583,7 @@ func Test_updateGlobalBreadcrumbsOnRemovedBlockOnProposed(t *testing.T) {
 
 		gabc := newGlobalAccountBreadcrumbsCompiler()
 
-		tb1 := newTrackedBlock(0, []byte("hash0"), []byte("rootHash"), []byte("prevHash"))
+		tb1 := newTrackedBlock(0, []byte("hash0"), []byte("prevHash"))
 		tx1 := createTx([]byte("hash14"), "frank", 0).withRelayer([]byte("eve")).withFee(big.NewInt(1))
 		tx2 := createTx([]byte("hash15"), "frank", 1).withRelayer([]byte("eve")).withFee(big.NewInt(1))
 
@@ -614,7 +614,7 @@ func Test_updateGlobalBreadcrumbsOnRemovedBlockOnProposed(t *testing.T) {
 				consumedBalance: big.NewInt(0),
 			},
 		}
-		tb1 := newTrackedBlock(0, []byte("hash0"), []byte("rootHash"), []byte("prevHash"))
+		tb1 := newTrackedBlock(0, []byte("hash0"), []byte("prevHash"))
 		tx1 := createTx([]byte("hash14"), "frank", 0).withRelayer([]byte("eve")).withFee(big.NewInt(1))
 		tx2 := createTx([]byte("hash15"), "frank", 1).withRelayer([]byte("eve")).withFee(big.NewInt(1))
 
@@ -638,7 +638,7 @@ func Test_updateGlobalBreadcrumbsOnRemovedBlockOnExecuted(t *testing.T) {
 
 		gabc := newGlobalAccountBreadcrumbsCompiler()
 
-		tb1 := newTrackedBlock(0, []byte("hash0"), []byte("rootHash"), []byte("prevHash"))
+		tb1 := newTrackedBlock(0, []byte("hash0"), []byte("prevHash"))
 		tx1 := createTx([]byte("hash14"), "frank", 0).withRelayer([]byte("eve")).withFee(big.NewInt(1))
 		tx2 := createTx([]byte("hash15"), "frank", 1).withRelayer([]byte("eve")).withFee(big.NewInt(1))
 
@@ -669,7 +669,7 @@ func Test_updateGlobalBreadcrumbsOnRemovedBlockOnExecuted(t *testing.T) {
 				consumedBalance: big.NewInt(0),
 			},
 		}
-		tb1 := newTrackedBlock(0, []byte("hash0"), []byte("rootHash"), []byte("prevHash"))
+		tb1 := newTrackedBlock(0, []byte("hash0"), []byte("prevHash"))
 		tx1 := createTx([]byte("hash14"), "frank", 0).withRelayer([]byte("eve")).withFee(big.NewInt(1))
 		tx2 := createTx([]byte("hash15"), "frank", 1).withRelayer([]byte("eve")).withFee(big.NewInt(1))
 

@@ -178,3 +178,7 @@ func (ste *scheduledTxsExecution) GetMapScheduledIntermediateTxs() map[block.Typ
 
 	return newMap
 }
+
+func (gt *gasTracker) getEpochAndOverestimationFactorForGasLimits() (uint32, uint64) {
+	return gt.gasEpochState.GetEpochForLimitsAndOverEstimationFactor()
+}

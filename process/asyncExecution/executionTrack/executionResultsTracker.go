@@ -7,6 +7,7 @@ import (
 	"sort"
 	"sync"
 
+	"github.com/multiversx/mx-chain-core-go/core/check"
 	"github.com/multiversx/mx-chain-core-go/data"
 )
 
@@ -243,6 +244,22 @@ func (ert *executionResultsTracker) RemoveFromNonce(nonce uint64) error {
 	defer ert.mutex.Unlock()
 
 	return ert.removePendingFromNonceUnprotected(nonce)
+}
+
+// Clean cleans the execution results tracker and sets its state to the last notarized result provided
+func (ert *executionResultsTracker) Clean(lastNotarizedResult data.BaseExecutionResultHandler) {
+	if check.IfNil(lastNotarizedResult) {
+		return
+	}
+
+	ert.mutex.Lock()
+	defer ert.mutex.Unlock()
+
+	ert.executionResultsByHash = make(map[string]data.BaseExecutionResultHandler)
+	ert.nonceHash = newNonceHash()
+
+	ert.lastNotarizedResult = lastNotarizedResult
+	ert.lastExecutedResultHash = lastNotarizedResult.GetHeaderHash()
 }
 
 func (ert *executionResultsTracker) removePendingFromNonceUnprotected(nonce uint64) error {

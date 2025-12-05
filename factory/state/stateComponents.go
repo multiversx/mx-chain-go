@@ -316,7 +316,7 @@ func (scf *stateComponentsFactory) createAccountsAdapters(triesContainer common.
 	}
 
 	// TODO: this account adapter may be required to be changed as the roothash should be the last execution result roothash
-	accountsAdapterProposal, err := factoryState.CreateAccountsAdapterAPIOnCurrent(argsAPIAccountsDB, scf.chainHandler)
+	accountsAdapterProposal, err := state.NewAccountsDB(argsAPIAccountsDB)
 	if err != nil {
 		return nil, fmt.Errorf("accounts adapter for proposal: %w: %s", errors.ErrAccountsAdapterCreation, err)
 	}

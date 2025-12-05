@@ -85,7 +85,7 @@ func (vip *validatorInfoPreprocessor) RemoveBlockDataFromPools(body *block.Body,
 }
 
 // RemoveTxsFromPools removes validators info from associated pools
-func (vip *validatorInfoPreprocessor) RemoveTxsFromPools(body *block.Body) error {
+func (vip *validatorInfoPreprocessor) RemoveTxsFromPools(body *block.Body, _ common.RootHashHolder) error {
 	return vip.removeTxsFromPools(body, vip.validatorsInfoPool, vip.isMiniBlockCorrect)
 }
 
@@ -238,7 +238,7 @@ func (vip *validatorInfoPreprocessor) GetTransactionsAndRequestMissingForMiniBlo
 }
 
 // SelectOutgoingTransactions does nothing
-func (vip *validatorInfoPreprocessor) SelectOutgoingTransactions(_ uint64) ([][]byte, []data.TransactionHandler, error) {
+func (vip *validatorInfoPreprocessor) SelectOutgoingTransactions(_ uint64, _ uint64) ([][]byte, []data.TransactionHandler, error) {
 	return make([][]byte, 0), make([]data.TransactionHandler, 0), nil
 }
 

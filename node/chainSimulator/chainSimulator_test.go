@@ -8,15 +8,16 @@ import (
 
 	"github.com/multiversx/mx-chain-core-go/core"
 	"github.com/multiversx/mx-chain-core-go/data/transaction"
-	"github.com/multiversx/mx-chain-go/common"
+	"github.com/stretchr/testify/assert"
+	"github.com/stretchr/testify/require"
+
 	"github.com/multiversx/mx-chain-go/config"
 	"github.com/multiversx/mx-chain-go/errors"
+	"github.com/multiversx/mx-chain-go/integrationTests"
 	chainSimulatorCommon "github.com/multiversx/mx-chain-go/integrationTests/chainSimulator"
 	"github.com/multiversx/mx-chain-go/node/chainSimulator/components/api"
 	"github.com/multiversx/mx-chain-go/node/chainSimulator/configs"
 	"github.com/multiversx/mx-chain-go/node/chainSimulator/dtos"
-	"github.com/stretchr/testify/assert"
-	"github.com/stretchr/testify/require"
 )
 
 const (
@@ -46,6 +47,18 @@ func TestNewChainSimulator(t *testing.T) {
 		t.Skip("this is not a short test")
 	}
 
+	alterConfigsFunc := func(cfg *config.Configs) {
+		cfg.EpochConfig.EnableEpochs.SupernovaEnableEpoch = 999999
+		cfg.RoundConfig.RoundActivations = map[string]config.ActivationRoundByName{
+			"DisableAsyncCallV1": {
+				Round: "9999999",
+			},
+			"SupernovaEnableRound": {
+				Round: "9999999",
+			},
+		}
+	}
+
 	chainSimulator, err := NewChainSimulator(ArgsChainSimulator{
 		BypassTxSignatureCheck:         true,
 		TempDir:                        t.TempDir(),
@@ -58,6 +71,7 @@ func TestNewChainSimulator(t *testing.T) {
 		ApiInterface:                   api.NewNoApiInterface(),
 		MinNodesPerShard:               3,
 		MetaChainMinNodes:              3,
+		AlterConfigsFunction:           alterConfigsFunc,
 	})
 	require.Nil(t, err)
 	require.NotNil(t, chainSimulator)
@@ -92,7 +106,7 @@ func TestChainSimulator_GenerateBlocksShouldWork(t *testing.T) {
 		ApiInterface:                   api.NewNoApiInterface(),
 		MinNodesPerShard:               defaultMinNodesPerShard,
 		MetaChainMinNodes:              defaultMetaChainMinNodes,
-		InitialRound:                   200000000,
+		InitialRound:                   20000,
 		InitialEpoch:                   100,
 		InitialNonce:                   100,
 		AlterConfigsFunction: func(cfg *config.Configs) {
@@ -100,9 +114,7 @@ func TestChainSimulator_GenerateBlocksShouldWork(t *testing.T) {
 			// because the owner of a BLS key coming from genesis is not set
 			// (the owner is not set at genesis anymore because we do not enable the staking v2 in that phase)
 			cfg.EpochConfig.EnableEpochs.StakingV2EnableEpoch = 0
-			cfg.RoundConfig.RoundActivations[string(common.SupernovaRoundFlag)] = config.ActivationRoundByName{
-				Round: "500000000",
-			}
+			integrationTests.DeactivateSupernovaInConfig(cfg)
 		},
 	})
 	require.Nil(t, err)
@@ -185,6 +197,18 @@ func TestSimulator_TriggerChangeOfEpoch(t *testing.T) {
 		HasValue: true,
 		Value:    150000,
 	}
+	alterConfigsFunc := func(cfg *config.Configs) {
+		cfg.EpochConfig.EnableEpochs.SupernovaEnableEpoch = 999999
+		cfg.RoundConfig.RoundActivations = map[string]config.ActivationRoundByName{
+			"DisableAsyncCallV1": {
+				Round: "9999999",
+			},
+			"SupernovaEnableRound": {
+				Round: "9999999",
+			},
+		}
+	}
+
 	chainSimulator, err := NewChainSimulator(ArgsChainSimulator{
 		BypassTxSignatureCheck:         true,
 		TempDir:                        t.TempDir(),
@@ -197,6 +221,7 @@ func TestSimulator_TriggerChangeOfEpoch(t *testing.T) {
 		ApiInterface:                   api.NewNoApiInterface(),
 		MinNodesPerShard:               100,
 		MetaChainMinNodes:              100,
+		AlterConfigsFunction:           alterConfigsFunc,
 	})
 	require.Nil(t, err)
 	require.NotNil(t, chainSimulator)

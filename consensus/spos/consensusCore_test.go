@@ -18,6 +18,7 @@ func createDefaultConsensusCoreArgs() *spos.ConsensusCoreArgs {
 	args := &spos.ConsensusCoreArgs{
 		BlockChain:                    consensusCoreMock.Blockchain(),
 		BlockProcessor:                consensusCoreMock.BlockProcessor(),
+		ExecutionManager:              consensusCoreMock.ExecutionManager(),
 		Bootstrapper:                  consensusCoreMock.BootStrapper(),
 		BroadcastMessenger:            consensusCoreMock.BroadcastMessenger(),
 		ChronologyHandler:             consensusCoreMock.Chronology(),
@@ -39,6 +40,7 @@ func createDefaultConsensusCoreArgs() *spos.ConsensusCoreArgs {
 		PeerBlacklistHandler:          consensusCoreMock.PeerBlacklistHandler(),
 		SigningHandler:                consensusCoreMock.SigningHandler(),
 		EnableEpochsHandler:           consensusCoreMock.EnableEpochsHandler(),
+		EnableRoundsHandler:           consensusCoreMock.EnableRoundsHandler(),
 		EquivalentProofsPool:          consensusCoreMock.EquivalentProofsPool(),
 		EpochNotifier:                 consensusCoreMock.EpochNotifier(),
 		InvalidSignersCache:           &consensus.InvalidSignersCacheMock{},
@@ -72,6 +74,20 @@ func TestConsensusCore_WithNilBlockProcessorShouldFail(t *testing.T) {
 
 	assert.Nil(t, consensusCore)
 	assert.Equal(t, spos.ErrNilBlockProcessor, err)
+}
+
+func TestConsensusCore_WithNilExecutionManagerShouldFail(t *testing.T) {
+	t.Parallel()
+
+	args := createDefaultConsensusCoreArgs()
+	args.ExecutionManager = nil
+
+	consensusCore, err := spos.NewConsensusCore(
+		args,
+	)
+
+	assert.Nil(t, consensusCore)
+	assert.Equal(t, spos.ErrNilExecutionManager, err)
 }
 
 func TestConsensusCore_WithNilBootstrapperShouldFail(t *testing.T) {
@@ -350,6 +366,20 @@ func TestConsensusCore_WithNilEnableEpochsHandlerShouldFail(t *testing.T) {
 
 	assert.Nil(t, consensusCore)
 	assert.Equal(t, spos.ErrNilEnableEpochsHandler, err)
+}
+
+func TestConsensusCore_WithNilEnableRoundsHandlerShouldFail(t *testing.T) {
+	t.Parallel()
+
+	args := createDefaultConsensusCoreArgs()
+	args.EnableRoundsHandler = nil
+
+	consensusCore, err := spos.NewConsensusCore(
+		args,
+	)
+
+	assert.Nil(t, consensusCore)
+	assert.Equal(t, spos.ErrNilEnableRoundsHandler, err)
 }
 
 func TestConsensusCore_WithNilEpochStartRegistrationHandlerShouldFail(t *testing.T) {

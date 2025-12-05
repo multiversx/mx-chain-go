@@ -239,6 +239,9 @@ var ErrNilTransactionPool = errors.New("nil transaction pool")
 // ErrNilMiniBlockPool signals that a nil mini blocks pool was used
 var ErrNilMiniBlockPool = errors.New("nil mini block pool")
 
+// ErrNilPostProcessTransactionsCache signals that a nil post-process transactions cache has been provided
+var ErrNilPostProcessTransactionsCache = errors.New("nil post process transactions cache")
+
 // ErrNilMetaBlocksPool signals that a nil meta blocks pool was used
 var ErrNilMetaBlocksPool = errors.New("nil meta blocks pool")
 
@@ -1421,3 +1424,9 @@ var ErrInconsistentShardHeadersAndHashes = errors.New("inconsistent shard header
 
 // ErrNilShardInfoCreator signals that a nil shard info creator has been provided
 var ErrNilShardInfoCreator = errors.New("nil shard info creator")
+
+// ErrEpochStartProposeBlockHasMiniBlocks signals that epoch start propose block has mini blocks
+var ErrEpochStartProposeBlockHasMiniBlocks = errors.New("epoch start propose block has mini blocks")
+
+// ErrEpochStartDataShouldBeEmpty signals that epoch start data should be empty for non epoch start blocks
+var ErrEpochStartDataShouldBeEmpty = errors.New("epoch start data should be empty for non epoch start blocks")

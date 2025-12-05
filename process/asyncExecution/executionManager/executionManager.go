@@ -1,14 +1,16 @@
 package executionManager
 
 import (
+	"bytes"
 	"sync"
 
 	"github.com/multiversx/mx-chain-core-go/core/check"
 	"github.com/multiversx/mx-chain-core-go/data"
+	logger "github.com/multiversx/mx-chain-logger-go"
+
 	"github.com/multiversx/mx-chain-go/common"
 	"github.com/multiversx/mx-chain-go/process"
 	"github.com/multiversx/mx-chain-go/process/asyncExecution/disabled"
-	logger "github.com/multiversx/mx-chain-logger-go"
 
 	"github.com/multiversx/mx-chain-go/process/asyncExecution/queue"
 )
@@ -87,7 +89,27 @@ func (em *executionManager) AddPairForExecution(pair queue.HeaderBodyPair) error
 	em.mut.Lock()
 	defer em.mut.Unlock()
 
+	lastExecutedBlock := em.blockChain.GetLastExecutedBlockHeader()
+	if areSameHeaders(pair.Header, lastExecutedBlock) {
+		log.Warn("header already executed", "nonce", pair.Header.GetNonce(), "round", pair.Header.GetRound())
+		return nil
+	}
+	// todo: remove pending execution result on same nonce if any
+	// todo: make sure the lastExecutedBlockHeader from blockchain is only set in blockchain if
+	// the block has passed consensus (was committed)
 	return em.blocksQueue.AddOrReplace(pair)
+}
+
+func areSameHeaders(header1, header2 data.HeaderHandler) bool {
+	if check.IfNil(header1) || check.IfNil(header2) {
+		return false
+	}
+
+	sameNonce := header1.GetNonce() == header2.GetNonce()
+	sameRound := header1.GetRound() == header2.GetRound()
+	samePreviousHash := bytes.Equal(header1.GetPrevHash(), header2.GetPrevHash())
+
+	return sameNonce && sameRound && samePreviousHash
 }
 
 // GetPendingExecutionResults calls the same method from executionResultsTracker
@@ -155,12 +177,32 @@ func (em *executionManager) RemoveAtNonceAndHigher(nonce uint64) error {
 	// update blockchain with the last executed header, similar to headersExecution
 	err = em.updateBlockchainAfterRemoval(lastNotarizedResult)
 	if err != nil {
-		// TODO: consider adding a reset method that completely resets all sub-components
-		// context: https://github.com/multiversx/mx-chain-go/pull/7402#discussion_r2519131059
 		return err
 	}
 
 	// resume execution
+	em.headersExecutor.ResumeExecution()
+
+	return nil
+}
+
+// ResetAndResumeExecution resets the managed components to the last notarized result and resumes execution
+func (em *executionManager) ResetAndResumeExecution(lastNotarizedResult data.BaseExecutionResultHandler) error {
+	if check.IfNil(lastNotarizedResult) {
+		return process.ErrNilLastExecutionResultHandler
+	}
+
+	em.mut.Lock()
+	defer em.mut.Unlock()
+
+	// even though the headers executor might already be paused, safe to try it one more time
+	em.headersExecutor.PauseExecution()
+
+	em.executionResultsTracker.Clean(lastNotarizedResult)
+
+	lastNotarizedNonce := lastNotarizedResult.GetHeaderNonce()
+	em.blocksQueue.Clean(lastNotarizedNonce)
+
 	em.headersExecutor.ResumeExecution()
 
 	return nil
@@ -174,12 +216,16 @@ func (em *executionManager) updateBlockchainAfterRemoval(lastNotarizedResult dat
 	if err != nil {
 		return err
 	}
+
 	// if there are still pending execution results, use the last one that was executed
+	lastExecutionResult := lastNotarizedResult
 	if len(pendingExecutionResults) > 0 {
 		lastPending := pendingExecutionResults[len(pendingExecutionResults)-1]
 		lastExecutedHeaderHash = lastPending.GetHeaderHash()
 		lastExecutedHeaderNonce = lastPending.GetHeaderNonce()
 		lastExecutedHeaderRootHash = lastPending.GetRootHash()
+
+		lastExecutionResult = lastPending
 	}
 
 	header, err := em.headers.GetHeaderByHash(lastExecutedHeaderHash)
@@ -195,6 +241,7 @@ func (em *executionManager) updateBlockchainAfterRemoval(lastNotarizedResult dat
 	)
 
 	em.blockChain.SetLastExecutedBlockHeaderAndRootHash(header, lastExecutedHeaderHash, lastExecutedHeaderRootHash)
+	em.blockChain.SetLastExecutionResult(lastExecutionResult)
 
 	return nil
 }

@@ -846,9 +846,8 @@ func TestRecordHeaderV3(t *testing.T) {
 		expectedMbs := []*block.MiniBlock{
 			{SenderShardID: 0},
 		}
-		intraMbsBytes, _ := repo.marshalizer.Marshal(expectedMbs)
 
-		args.DataPool.ExecutedMiniBlocks().Put(executionResultHeaderHash, intraMbsBytes, 0)
+		args.DataPool.ExecutedMiniBlocks().Put(executionResultHeaderHash, expectedMbs, 0)
 
 		body := &block.Body{}
 
@@ -888,7 +887,7 @@ func TestRecordHeaderV3(t *testing.T) {
 		headerHash := []byte("headerHash")
 		err = repo.RecordBlock(headerHash, header, body, nil, nil, nil, nil)
 		require.NotNil(t, err)
-		require.ErrorContains(t, err, process.ErrMissingHeader.Error())
+		require.ErrorContains(t, err, common.ErrMissingCachedTransactions.Error())
 	})
 
 	t.Run("record block v3 should error because logs were not found in dataPool", func(t *testing.T) {
@@ -918,7 +917,7 @@ func TestRecordHeaderV3(t *testing.T) {
 		headerHash := []byte("headerHash")
 		err = repo.RecordBlock(headerHash, header, body, nil, nil, nil, nil)
 		require.NotNil(t, err)
-		require.ErrorContains(t, err, process.ErrMissingHeader.Error())
+		require.ErrorContains(t, err, common.ErrMissingCachedLogs.Error())
 	})
 
 	t.Run("record block v3 should error because mini blocks were not cached", func(t *testing.T) {
@@ -1014,7 +1013,7 @@ func TestRecordHeaderV3(t *testing.T) {
 		headerHash := []byte("headerHash")
 		err = repo.RecordBlock(headerHash, header, body, nil, nil, nil, nil)
 		require.NotNil(t, err)
-		require.ErrorContains(t, err, process.ErrMissingHeader.Error())
+		require.ErrorContains(t, err, common.ErrMissingMiniBlock.Error())
 	})
 
 	t.Run("record block v3 should error because of Marshal on recordBlock", func(t *testing.T) {

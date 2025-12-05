@@ -31,11 +31,12 @@ import (
 	ed25519SingleSig "github.com/multiversx/mx-chain-crypto-go/signing/ed25519/singlesig"
 	"github.com/multiversx/mx-chain-crypto-go/signing/mcl"
 	mclsig "github.com/multiversx/mx-chain-crypto-go/signing/mcl/singlesig"
-	"github.com/multiversx/mx-chain-go/process/asyncExecution"
-	"github.com/multiversx/mx-chain-go/process/asyncExecution/executionManager"
 	vmcommon "github.com/multiversx/mx-chain-vm-common-go"
 	"github.com/multiversx/mx-chain-vm-common-go/parsers"
 	wasmConfig "github.com/multiversx/mx-chain-vm-go/config"
+
+	"github.com/multiversx/mx-chain-go/process/asyncExecution"
+	"github.com/multiversx/mx-chain-go/process/asyncExecution/executionManager"
 
 	"github.com/multiversx/mx-chain-go/process/asyncExecution/queue"
 
@@ -724,7 +725,7 @@ func (tpn *TestProcessorNode) initAccountDBs(store storage.Storer) {
 }
 
 func (tpn *TestProcessorNode) initValidatorStatistics() {
-	rater, _ := rating.NewBlockSigningRater(tpn.RatingsData)
+	rater, _ := rating.NewBlockSigningRater(tpn.RatingsData, tpn.EnableEpochsHandler)
 
 	if check.IfNil(tpn.NodesSetup) {
 		tpn.NodesSetup = &genesisMocks.NodesSetupStub{
@@ -791,6 +792,11 @@ func (tpn *TestProcessorNode) initGenesisBlocks(args ArgTestProcessorNode) {
 		}
 
 		tpn.GenesisBlocks = CreateSimpleGenesisBlocks(tpn.ShardCoordinator, rootHash)
+		err = OnGenesisExecutedBlock(tpn)
+		if err != nil {
+			log.Error("tpn.initGenesisBlocks: OnGenesisExecutedBlock(tpn)", "err", err)
+		}
+
 		return
 	}
 
@@ -1230,7 +1236,7 @@ func createDefaultEconomicsConfig() *config.EconomicsConfig {
 			MinimumInflation:   0,
 			YearSettings: []*config.YearSetting{
 				{
-					Year:             0,
+					Year:             1,
 					MaximumInflation: 0.01,
 				},
 			},
@@ -1926,7 +1932,9 @@ func (tpn *TestProcessorNode) initInnerProcessors(gasMap map[string]map[string]u
 		BlockSizeComputation:         TestBlockSizeComputationHandler,
 		BalanceComputation:           TestBalanceComputationHandler,
 		EnableEpochsHandler:          tpn.EnableEpochsHandler,
+		EpochNotifier:                tpn.EpochNotifier,
 		EnableRoundsHandler:          tpn.EnableRoundsHandler,
+		RoundNotifier:                tpn.RoundNotifier,
 		TxTypeHandler:                txTypeHandler,
 		ScheduledTxsExecutionHandler: scheduledTxsExecutionHandler,
 		ProcessedMiniBlocksTracker:   processedMiniBlocksTracker,
@@ -1979,7 +1987,7 @@ func (tpn *TestProcessorNode) initInnerProcessors(gasMap map[string]map[string]u
 		Marshalizer:                  TestMarshalizer,
 		ShardCoordinator:             tpn.ShardCoordinator,
 		Accounts:                     tpn.AccntState,
-		MiniBlockPool:                tpn.DataPool.MiniBlocks(),
+		DataPool:                     tpn.DataPool,
 		PreProcessors:                tpn.PreProcessorsContainer,
 		PreProcessorsProposal:        tpn.PreProcessorsProposal,
 		InterProcessors:              tpn.InterimProcContainer,
@@ -2255,7 +2263,9 @@ func (tpn *TestProcessorNode) initMetaInnerProcessors(gasMap map[string]map[stri
 		BlockSizeComputation:         TestBlockSizeComputationHandler,
 		BalanceComputation:           TestBalanceComputationHandler,
 		EnableEpochsHandler:          tpn.EnableEpochsHandler,
+		EpochNotifier:                tpn.EpochNotifier,
 		EnableRoundsHandler:          tpn.EnableRoundsHandler,
+		RoundNotifier:                tpn.RoundNotifier,
 		TxTypeHandler:                txTypeHandler,
 		ScheduledTxsExecutionHandler: scheduledTxsExecutionHandler,
 		ProcessedMiniBlocksTracker:   processedMiniBlocksTracker,
@@ -2304,7 +2314,7 @@ func (tpn *TestProcessorNode) initMetaInnerProcessors(gasMap map[string]map[stri
 		Marshalizer:                  TestMarshalizer,
 		ShardCoordinator:             tpn.ShardCoordinator,
 		Accounts:                     tpn.AccntState,
-		MiniBlockPool:                tpn.DataPool.MiniBlocks(),
+		DataPool:                     tpn.DataPool,
 		PreProcessors:                tpn.PreProcessorsContainer,
 		PreProcessorsProposal:        tpn.PreProcessorsProposal,
 		InterProcessors:              tpn.InterimProcContainer,
@@ -2458,7 +2468,7 @@ func (tpn *TestProcessorNode) initBlockProcessor() {
 		)
 	}
 
-	bootstrapComponents := getDefaultBootstrapComponents(tpn.ShardCoordinator, tpn.EnableEpochsHandler)
+	bootstrapComponents := getDefaultBootstrapComponents(tpn.ShardCoordinator, tpn.EnableEpochsHandler, tpn.EnableRoundsHandler)
 	bootstrapComponents.HdrIntegrityVerifier = tpn.HeaderIntegrityVerifier
 
 	statusComponents := GetDefaultStatusComponents()
@@ -2905,7 +2915,7 @@ func (tpn *TestProcessorNode) initNode() {
 	dataComponents.DataPool = tpn.DataPool
 	dataComponents.Store = tpn.Storage
 
-	bootstrapComponents := getDefaultBootstrapComponents(tpn.ShardCoordinator, tpn.EnableEpochsHandler)
+	bootstrapComponents := getDefaultBootstrapComponents(tpn.ShardCoordinator, tpn.EnableEpochsHandler, tpn.EnableRoundsHandler)
 
 	processComponents := GetDefaultProcessComponents()
 	processComponents.BlockProcess = tpn.BlockProcessor
@@ -3232,7 +3242,9 @@ func (tpn *TestProcessorNode) BroadcastBlock(body data.BodyHandler, header data.
 
 	pkBytes, _ := publicKey.ToByteArray()
 
-	miniBlocks, transactions, _ := tpn.BlockProcessor.MarshalizedDataToBroadcast(header, body)
+	hash, _ := core.CalculateHash(TestMarshalizer, TestHasher, header)
+
+	miniBlocks, transactions, _ := tpn.BlockProcessor.MarshalizedDataToBroadcast(hash, header, body)
 	_ = tpn.BroadcastMessenger.BroadcastMiniBlocks(miniBlocks, pkBytes)
 	_ = tpn.BroadcastMessenger.BroadcastTransactions(transactions, pkBytes)
 }
@@ -3731,8 +3743,6 @@ func CreateEnableEpochsConfig() config.EnableEpochs {
 		SCProcessorV2EnableEpoch:                          UnreachableEpoch,
 		FixRelayedBaseCostEnableEpoch:                     UnreachableEpoch,
 		FixRelayedMoveBalanceToNonPayableSCEnableEpoch:    UnreachableEpoch,
-		AndromedaEnableEpoch:                              UnreachableEpoch,
-		SupernovaEnableEpoch:                              UnreachableEpoch,
 	}
 }
 
@@ -3898,11 +3908,15 @@ func GetDefaultStatusComponents() *mock.StatusComponentsStub {
 }
 
 // getDefaultBootstrapComponents -
-func getDefaultBootstrapComponents(shardCoordinator sharding.Coordinator, handler common.EnableEpochsHandler) *mainFactoryMocks.BootstrapComponentsStub {
+func getDefaultBootstrapComponents(shardCoordinator sharding.Coordinator, handler common.EnableEpochsHandler, roundsHandler common.EnableRoundsHandler) *mainFactoryMocks.BootstrapComponentsStub {
 	var versionedHeaderFactory nodeFactory.VersionedHeaderFactory
 
 	headerVersionHandler := &testscommon.HeaderVersionHandlerStub{
-		GetVersionCalled: func(epoch uint32, _ uint64) string {
+		GetVersionCalled: func(epoch uint32, round uint64) string {
+			if handler.IsFlagEnabledInEpoch(common.SupernovaFlag, epoch) &&
+				roundsHandler.IsFlagEnabledInRound(common.SupernovaRoundFlag, round) {
+				return "3"
+			}
 			if handler.IsFlagEnabledInEpoch(common.AndromedaFlag, epoch) {
 				return "2"
 			}
@@ -4064,11 +4078,23 @@ func GetDefaultRoundsConfig() config.RoundConfig {
 	return config.RoundConfig{
 		RoundActivations: map[string]config.ActivationRoundByName{
 			"DisableAsyncCallV1": {
-				Round: "18446744073709551615",
+				Round: "9999999",
 			},
 			"SupernovaEnableRound": {
 				Round: "9999999",
 			},
 		},
+	}
+}
+
+// DeactivateSupernovaInConfig -
+func DeactivateSupernovaInConfig(cfg *config.Configs) {
+	cfg.EpochConfig.EnableEpochs.SupernovaEnableEpoch = UnreachableEpoch
+	defaultRoundConfig := GetDefaultRoundsConfig()
+	cfg.RoundConfig = &defaultRoundConfig
+	cfg.GeneralConfig.Versions.VersionsByEpochs = []config.VersionByEpochs{
+		{StartEpoch: 0, StartRound: 0, Version: "*"},
+		{StartEpoch: 1, StartRound: 0, Version: "2"},
+		{StartEpoch: UnreachableEpoch, StartRound: 0, Version: "3"},
 	}
 }

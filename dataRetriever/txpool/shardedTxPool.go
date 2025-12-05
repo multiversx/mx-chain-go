@@ -146,7 +146,7 @@ func (txPool *shardedTxPool) createTxCache(cacheID string) txCache {
 	if isForSenderMe {
 		config := txPool.configPrototypeSourceMe
 		config.Name = cacheID
-		cache, err := txcache.NewTxCache(config, txPool.host)
+		cache, err := txcache.NewTxCache(config, txPool.host, txPool.selfShardID)
 		if err != nil {
 			log.Error("shardedTxPool.createTxCache()", "err", err)
 			return txcache.NewDisabledCache()
@@ -415,6 +415,18 @@ func (txPool *shardedTxPool) CleanupSelfShardTxCache(accountsProvider common.Acc
 		"len", cache.Len(),
 		"numBytes", cache.NumBytes(),
 	)
+}
+
+// GetNumTrackedBlocks returns the number of blocks being tracked by the underlying TxCache
+func (txPool *shardedTxPool) GetNumTrackedBlocks() uint64 {
+	cache := txPool.getSelfShardTxCache()
+	return cache.GetTrackerDiagnosis().GetNumTrackedBlocks()
+}
+
+// GetNumTrackedAccounts returns the number of accounts being tracked by the underlying TxCache
+func (txPool *shardedTxPool) GetNumTrackedAccounts() uint64 {
+	cache := txPool.getSelfShardTxCache()
+	return cache.GetTrackerDiagnosis().GetNumTrackedAccounts()
 }
 
 // OnProposedBlock notifies the underlying TxCache

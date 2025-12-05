@@ -10,7 +10,6 @@ import (
 	"github.com/multiversx/mx-chain-core-go/core"
 	"github.com/multiversx/mx-chain-core-go/core/check"
 	"github.com/multiversx/mx-chain-core-go/data"
-	"github.com/multiversx/mx-chain-core-go/data/block"
 	logger "github.com/multiversx/mx-chain-logger-go"
 
 	"github.com/multiversx/mx-chain-go/common"
@@ -54,6 +53,12 @@ type headersForBlock struct {
 	mutHdrsForBlock              sync.RWMutex
 	hdrHashAndInfo               map[string]HeaderInfo
 	lastNotarizedShardHeaders    map[uint32]LastNotarizedHeaderInfoHandler
+}
+
+type crossShardMetaData interface {
+	GetNonce() uint64
+	GetShardID() uint32
+	GetHeaderHash() []byte
 }
 
 // NewHeadersForBlock returns a new instance of headersForBlock
@@ -323,7 +328,7 @@ func (hfb *headersForBlock) setHasProofRequested(hash string) {
 func (hfb *headersForBlock) RequestShardHeaders(metaBlock data.MetaHeaderHandler) {
 	_ = core.EmptyChannel(hfb.chRcvAllHdrs)
 
-	if len(metaBlock.GetShardInfoHandlers()) == 0 {
+	if len(metaBlock.GetShardInfoHandlers()) == 0 && len(metaBlock.GetShardInfoProposalHandlers()) == 0 {
 		return
 	}
 
@@ -453,53 +458,73 @@ func (hfb *headersForBlock) computeExistingAndRequestMissingMetaHeaders(header d
 	}
 }
 
+func (hfb *headersForBlock) requestMissingAndUpdateBasedOnCrossShardData(cd crossShardMetaData) {
+	if cd.GetNonce() == hfb.genesisNonce {
+		lastCrossNotarizedHeaderForShard, found := hfb.lastNotarizedShardHeaders[cd.GetShardID()]
+		if !found {
+			log.Warn("requestMissingAndUpdateBasedOnCrossShardData could not find last notarized", "shard", cd.GetShardID())
+			return
+		}
+		if !bytes.Equal(lastCrossNotarizedHeaderForShard.GetHash(), cd.GetHeaderHash()) {
+			log.Warn("genesis hash mismatch",
+				"last notarized hash", lastCrossNotarizedHeaderForShard.GetHash(),
+				"genesis nonce", hfb.genesisNonce,
+				"genesis hash", cd.GetHeaderHash())
+		}
+		return
+	}
+
+	hdr, err := process.GetShardHeaderFromPool(
+		cd.GetHeaderHash(),
+		hfb.dataPool.Headers())
+
+	if err != nil {
+		hfb.missingHdrs++
+		hfb.hdrHashAndInfo[string(cd.GetHeaderHash())] = newHeaderInfo(nil, true, false, false)
+
+		go hfb.requestHandler.RequestShardHeader(cd.GetShardID(), cd.GetHeaderHash())
+		return
+	}
+
+	hfb.hdrHashAndInfo[string(cd.GetHeaderHash())] = newHeaderInfo(hdr, true, false, false)
+
+	hfb.requestProofIfNeeded(cd.GetHeaderHash(), hdr)
+
+	if common.IsEpochChangeBlockForFlagActivation(hdr, hfb.enableEpochsHandler, common.AndromedaFlag) {
+		return
+	}
+
+	if hdr.GetNonce() > hfb.highestHdrNonce[cd.GetShardID()] {
+		hfb.highestHdrNonce[cd.GetShardID()] = hdr.GetNonce()
+	}
+
+	hfb.updateLastNotarizedBlockForShard(hdr, cd.GetHeaderHash())
+}
+
+func (hfb *headersForBlock) computeExistingAndRequestMissingBasedOnShardData(shardData []data.ShardDataHandler) {
+	for _, sd := range shardData {
+		hfb.requestMissingAndUpdateBasedOnCrossShardData(sd)
+	}
+}
+
+func (hfb *headersForBlock) computeExistingAndRequestMissingBasedOnShardDataProposal(shardDataProposal []data.ShardDataProposalHandler) {
+	for _, sdp := range shardDataProposal {
+		hfb.requestMissingAndUpdateBasedOnCrossShardData(sdp)
+	}
+}
+
 func (hfb *headersForBlock) computeExistingAndRequestMissingShardHeaders(metaBlock data.MetaHeaderHandler) {
 	hfb.mutHdrsForBlock.Lock()
 	defer hfb.mutHdrsForBlock.Unlock()
 
-	for _, shardData := range metaBlock.GetShardInfoHandlers() {
-		if shardData.GetNonce() == hfb.genesisNonce {
-			lastCrossNotarizedHeaderForShard, found := hfb.lastNotarizedShardHeaders[shardData.GetShardID()]
-			if !found {
-				log.Warn("computeExistingAndRequestMissingShardHeaders.GetLastCrossNotarizedHeader could not find last notarized", "shard", shardData.GetShardID())
-				continue
-			}
-			if !bytes.Equal(lastCrossNotarizedHeaderForShard.GetHash(), shardData.GetHeaderHash()) {
-				log.Warn("genesis hash mismatch",
-					"last notarized hash", lastCrossNotarizedHeaderForShard.GetHash(),
-					"genesis nonce", hfb.genesisNonce,
-					"genesis hash", shardData.GetHeaderHash())
-			}
-			continue
-		}
+	if metaBlock.IsHeaderV3() {
+		hfb.computeExistingAndRequestMissingBasedOnShardDataProposal(metaBlock.GetShardInfoProposalHandlers())
 
-		hdr, err := process.GetShardHeaderFromPool(
-			shardData.GetHeaderHash(),
-			hfb.dataPool.Headers())
-
-		if err != nil {
-			hfb.missingHdrs++
-			hfb.hdrHashAndInfo[string(shardData.GetHeaderHash())] = newHeaderInfo(nil, true, false, false)
-
-			go hfb.requestHandler.RequestShardHeader(shardData.GetShardID(), shardData.GetHeaderHash())
-			continue
-		}
-
-		hfb.hdrHashAndInfo[string(shardData.GetHeaderHash())] = newHeaderInfo(hdr, true, false, false)
-
-		hfb.requestProofIfNeeded(shardData.GetHeaderHash(), hdr)
-
-		if common.IsEpochChangeBlockForFlagActivation(hdr, hfb.enableEpochsHandler, common.AndromedaFlag) {
-			continue
-		}
-
-		if hdr.GetNonce() > hfb.highestHdrNonce[shardData.GetShardID()] {
-			hfb.highestHdrNonce[shardData.GetShardID()] = hdr.GetNonce()
-		}
-
-		hfb.updateLastNotarizedBlockForShard(hdr, shardData.GetHeaderHash())
+		hfb.computeExistingAndRequestMissingBasedOnShardData(metaBlock.GetShardInfoHandlers())
+		return
 	}
 
+	hfb.computeExistingAndRequestMissingBasedOnShardData(metaBlock.GetShardInfoHandlers())
 	if hfb.missingHdrs == 0 {
 		hfb.missingFinalityAttestingHdrs = hfb.requestMissingFinalityAttestingShardHeaders()
 	}
@@ -694,14 +719,14 @@ func (hfb *headersForBlock) requestMissingFinalityAttestingShardHeaders() uint32
 // upon receiving, it parses the new metablock and requests miniblocks and transactions
 // which destination is the current shard
 func (hfb *headersForBlock) receivedMetaBlock(headerHandler data.HeaderHandler, metaBlockHash []byte) {
-	metaBlock, ok := headerHandler.(*block.MetaBlock)
+	metaBlock, ok := headerHandler.(data.MetaHeaderHandler)
 	if !ok {
 		return
 	}
 
 	log.Trace("received meta block from network",
-		"round", metaBlock.Round,
-		"nonce", metaBlock.Nonce,
+		"round", metaBlock.GetRound(),
+		"nonce", metaBlock.GetNonce(),
 		"hash", metaBlockHash,
 	)
 
@@ -720,8 +745,8 @@ func (hfb *headersForBlock) receivedMetaBlock(headerHandler data.HeaderHandler, 
 			hdrInfoForHash.SetHeader(metaBlock)
 			hfb.missingHdrs--
 
-			if metaBlock.Nonce > hfb.highestHdrNonce[core.MetachainShardId] {
-				hfb.highestHdrNonce[core.MetachainShardId] = metaBlock.Nonce
+			if metaBlock.GetNonce() > hfb.highestHdrNonce[core.MetachainShardId] {
+				hfb.highestHdrNonce[core.MetachainShardId] = metaBlock.GetNonce()
 			}
 
 			if !hasProof && !hasProofRequested {
@@ -753,8 +778,8 @@ func (hfb *headersForBlock) receivedMetaBlock(headerHandler data.HeaderHandler, 
 	go hfb.requestMiniBlocksIfNeeded(headerHandler)
 }
 
-func (hfb *headersForBlock) checkFinalityRequestingMissing(metaBlock *block.MetaBlock) {
-	shouldConsiderProofsForNotarization := hfb.enableEpochsHandler.IsFlagEnabledInEpoch(common.AndromedaFlag, metaBlock.Epoch)
+func (hfb *headersForBlock) checkFinalityRequestingMissing(metaBlock data.MetaHeaderHandler) {
+	shouldConsiderProofsForNotarization := hfb.enableEpochsHandler.IsFlagEnabledInEpoch(common.AndromedaFlag, metaBlock.GetEpoch())
 	if !shouldConsiderProofsForNotarization {
 		hfb.missingFinalityAttestingHdrs = hfb.requestMissingFinalityAttestingHeaders(
 			core.MetachainShardId,

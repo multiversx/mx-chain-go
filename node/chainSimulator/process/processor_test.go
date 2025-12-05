@@ -512,7 +512,7 @@ func TestBlocksCreator_CreateNewBlock(t *testing.T) {
 					},
 				}, &block.Body{}, nil
 			},
-			MarshalizedDataToBroadcastCalled: func(header data.HeaderHandler, body data.BodyHandler) (map[uint32][]byte, map[string][][]byte, error) {
+			MarshalizedDataToBroadcastCalled: func(hash []byte, header data.HeaderHandler, body data.BodyHandler) (map[uint32][]byte, map[string][][]byte, error) {
 				return nil, nil, expectedErr
 			},
 		}
@@ -602,7 +602,7 @@ func getNodeHandler() *chainSimulator.NodeHandlerMock {
 							},
 						}, &block.Body{}, nil
 					},
-					MarshalizedDataToBroadcastCalled: func(header data.HeaderHandler, body data.BodyHandler) (map[uint32][]byte, map[string][][]byte, error) {
+					MarshalizedDataToBroadcastCalled: func(hash []byte, header data.HeaderHandler, body data.BodyHandler) (map[uint32][]byte, map[string][][]byte, error) {
 						return make(map[uint32][]byte), make(map[string][][]byte), nil
 					},
 				},

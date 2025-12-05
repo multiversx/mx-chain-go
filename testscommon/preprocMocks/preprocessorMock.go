@@ -5,6 +5,7 @@ import (
 
 	"github.com/multiversx/mx-chain-core-go/data"
 	"github.com/multiversx/mx-chain-core-go/data/block"
+	"github.com/multiversx/mx-chain-go/common"
 
 	"github.com/multiversx/mx-chain-go/process"
 	"github.com/multiversx/mx-chain-go/storage"
@@ -15,7 +16,7 @@ type PreProcessorMock struct {
 	CreateBlockStartedCalled                           func()
 	IsDataPreparedCalled                               func(requestedTxs int, haveTime func() time.Duration) error
 	RemoveBlockDataFromPoolsCalled                     func(body *block.Body, miniBlockPool storage.Cacher) error
-	RemoveTxsFromPoolsCalled                           func(body *block.Body) error
+	RemoveTxsFromPoolsCalled                           func(body *block.Body, rootHashHolder common.RootHashHolder) error
 	RestoreBlockDataIntoPoolsCalled                    func(body *block.Body, miniBlockPool storage.Cacher) (int, error)
 	SaveTxsToStorageCalled                             func(body *block.Body) error
 	ProcessBlockTransactionsCalled                     func(header data.HeaderHandler, body *block.Body, haveTime func() bool) error
@@ -26,7 +27,7 @@ type PreProcessorMock struct {
 	GetTransactionsAndRequestMissingForMiniBlockCalled func(miniBlock *block.MiniBlock) ([]data.TransactionHandler, int)
 	ProcessMiniBlockCalled                             func(miniBlock *block.MiniBlock, haveTime func() bool, haveAdditionalTime func() bool, scheduledMode bool, partialMbExecutionMode bool, indexOfLastTxProcessed int, preProcessorExecutionInfoHandler process.PreProcessorExecutionInfoHandler) ([][]byte, int, bool, error)
 	CreateAndProcessMiniBlocksCalled                   func(haveTime func() bool) (block.MiniBlockSlice, error)
-	SelectOutgoingTransactionsCalled                   func(bandwidth uint64) ([][]byte, []data.TransactionHandler, error)
+	SelectOutgoingTransactionsCalled                   func(bandwidth uint64, nonce uint64) ([][]byte, []data.TransactionHandler, error)
 	GetAllCurrentUsedTxsCalled                         func() map[string]data.TransactionHandler
 	AddTxsFromMiniBlocksCalled                         func(miniBlocks block.MiniBlockSlice)
 	AddTransactionsCalled                              func(txHandlers []data.TransactionHandler)
@@ -57,11 +58,11 @@ func (ppm *PreProcessorMock) RemoveBlockDataFromPools(body *block.Body, miniBloc
 }
 
 // RemoveTxsFromPools -
-func (ppm *PreProcessorMock) RemoveTxsFromPools(body *block.Body) error {
+func (ppm *PreProcessorMock) RemoveTxsFromPools(body *block.Body, rootHashHolder common.RootHashHolder) error {
 	if ppm.RemoveTxsFromPoolsCalled == nil {
 		return nil
 	}
-	return ppm.RemoveTxsFromPoolsCalled(body)
+	return ppm.RemoveTxsFromPoolsCalled(body, rootHashHolder)
 }
 
 // RestoreBlockDataIntoPools -
@@ -145,11 +146,11 @@ func (ppm *PreProcessorMock) ProcessMiniBlock(
 }
 
 // SelectOutgoingTransactions selects the outgoing transactions
-func (ppm *PreProcessorMock) SelectOutgoingTransactions(bandwidth uint64) ([][]byte, []data.TransactionHandler, error) {
+func (ppm *PreProcessorMock) SelectOutgoingTransactions(bandwidth uint64, nonce uint64) ([][]byte, []data.TransactionHandler, error) {
 	if ppm.SelectOutgoingTransactionsCalled == nil {
 		return nil, nil, nil
 	}
-	return ppm.SelectOutgoingTransactionsCalled(bandwidth)
+	return ppm.SelectOutgoingTransactionsCalled(bandwidth, nonce)
 }
 
 // CreateAndProcessMiniBlocks creates miniblocks from storage and processes the reward transactions added into the miniblocks

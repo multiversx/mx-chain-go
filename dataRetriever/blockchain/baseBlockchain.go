@@ -19,6 +19,7 @@ type baseBlockChain struct {
 	finalBlockInfo          *blockInfo
 	lastExecutedBlockInfo   *blockInfo
 	lastExecutedBlockHeader data.HeaderHandler
+	lastExecutionResult     data.BaseExecutionResultHandler
 }
 
 type blockInfo struct {
@@ -150,6 +151,22 @@ func (bbc *baseBlockChain) SetLastExecutedBlockHeaderAndRootHash(
 	bbc.lastExecutedBlockInfo.committedRootHash = rootHash
 
 	bbc.lastExecutedBlockHeader = header.ShallowClone()
+}
+
+// GetLastExecutionResult returns the last execution result
+func (bbc *baseBlockChain) GetLastExecutionResult() data.BaseExecutionResultHandler {
+	bbc.mut.RLock()
+	defer bbc.mut.RUnlock()
+
+	return bbc.lastExecutionResult
+}
+
+// SetLastExecutionResult sets the last execution result
+func (bbc *baseBlockChain) SetLastExecutionResult(result data.BaseExecutionResultHandler) {
+	bbc.mut.Lock()
+	defer bbc.mut.Unlock()
+
+	bbc.lastExecutionResult = result
 }
 
 func (bbc *baseBlockChain) setCurrentHeaderMetrics(

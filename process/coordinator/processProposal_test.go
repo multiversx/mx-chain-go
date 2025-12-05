@@ -9,6 +9,8 @@ import (
 	"github.com/multiversx/mx-chain-core-go/data"
 	"github.com/multiversx/mx-chain-core-go/data/block"
 	"github.com/multiversx/mx-chain-core-go/data/transaction"
+	"github.com/multiversx/mx-chain-go/storage"
+	"github.com/multiversx/mx-chain-go/testscommon/epochNotifier"
 	vmcommon "github.com/multiversx/mx-chain-vm-common-go"
 	"github.com/stretchr/testify/require"
 
@@ -91,8 +93,8 @@ func TestTransactionCoordinator_CreateMbsCrossShardDstMe_UsesProposalContext(t *
 	}
 
 	// make sure mini blocks are available in the pool
-	_ = tc.miniBlockPool.Put(td.mbHashes[0], td.mb1Info.Miniblock, 100)
-	_ = tc.miniBlockPool.Put(td.mbHashes[1], td.mb2Info.Miniblock, 100)
+	_ = tc.dataPool.MiniBlocks().Put(td.mbHashes[0], td.mb1Info.Miniblock, 100)
+	_ = tc.dataPool.MiniBlocks().Put(td.mbHashes[1], td.mb2Info.Miniblock, 100)
 
 	// make sure transactions are available in the pool
 	cacheId := process.ShardCacherIdentifier(td.mb1Info.Miniblock.SenderShardID, td.mb1Info.Miniblock.ReceiverShardID)
@@ -156,12 +158,18 @@ func TestTransactionCoordinator_CreateMbsCrossShardDstMe_MiniBlockProcessing(t *
 	td := createHeaderWithMiniBlocksAndTransactions()
 
 	// Mock mini block pool to return the test mini block
-	tc.miniBlockPool = &cache.CacherStub{
-		PeekCalled: func(key []byte) (value interface{}, ok bool) {
-			if reflect.DeepEqual(key, td.mb1Info.Hash) {
-				return td.mb1Info.Miniblock, true
+	tc.dataPool = &dataRetrieverMock.PoolsHolderStub{
+		TransactionsCalled:            ph.Transactions,
+		PostProcessTransactionsCalled: ph.PostProcessTransactions,
+		MiniBlocksCalled: func() storage.Cacher {
+			return &cache.CacherStub{
+				PeekCalled: func(key []byte) (value interface{}, ok bool) {
+					if reflect.DeepEqual(key, td.mb1Info.Hash) {
+						return td.mb1Info.Miniblock, true
+					}
+					return nil, false
+				},
 			}
-			return nil, false
 		},
 	}
 
@@ -216,12 +224,18 @@ func TestTransactionCoordinator_CreateMbsCrossShardDstMe_MiniBlockProcessing_Wit
 	td := createHeaderWithMiniBlocksAndTransactions()
 
 	// Mock mini block pool to return the test mini block
-	tc.miniBlockPool = &cache.CacherStub{
-		PeekCalled: func(key []byte) (value interface{}, ok bool) {
-			if reflect.DeepEqual(key, td.mb1Info.Hash) {
-				return td.mb1Info.Miniblock, true
+	tc.dataPool = &dataRetrieverMock.PoolsHolderStub{
+		TransactionsCalled:            ph.Transactions,
+		PostProcessTransactionsCalled: ph.PostProcessTransactions,
+		MiniBlocksCalled: func() storage.Cacher {
+			return &cache.CacherStub{
+				PeekCalled: func(key []byte) (value interface{}, ok bool) {
+					if reflect.DeepEqual(key, td.mb1Info.Hash) {
+						return td.mb1Info.Miniblock, true
+					}
+					return nil, false
+				},
 			}
-			return nil, false
 		},
 	}
 
@@ -281,12 +295,18 @@ func TestTransactionCoordinator_CreateMbsCrossShardDstMe_MiniBlockProcessing_Wit
 	td := createHeaderWithMiniBlocksAndTransactions()
 
 	// Mock mini block pool to return the test mini block
-	tc.miniBlockPool = &cache.CacherStub{
-		PeekCalled: func(key []byte) (value interface{}, ok bool) {
-			if reflect.DeepEqual(key, td.mb1Info.Hash) {
-				return td.mb1Info.Miniblock, true
+	tc.dataPool = &dataRetrieverMock.PoolsHolderStub{
+		TransactionsCalled:            ph.Transactions,
+		PostProcessTransactionsCalled: ph.PostProcessTransactions,
+		MiniBlocksCalled: func() storage.Cacher {
+			return &cache.CacherStub{
+				PeekCalled: func(key []byte) (value interface{}, ok bool) {
+					if reflect.DeepEqual(key, td.mb1Info.Hash) {
+						return td.mb1Info.Miniblock, true
+					}
+					return td.mb2Info.Miniblock, true
+				},
 			}
-			return td.mb2Info.Miniblock, true
 		},
 	}
 
@@ -358,15 +378,21 @@ func TestTransactionCoordinator_CreateMbsCrossShardDstMe_SkipShardOnMissingMiniB
 	}
 
 	// Mock mini block pool to return nil (mini block not found)
-	tc.miniBlockPool = &cache.CacherStub{
-		PeekCalled: func(key []byte) (value interface{}, ok bool) {
-			if reflect.DeepEqual(key, missingMiniBlockInfo.Hash) {
-				return nil, false
+	tc.dataPool = &dataRetrieverMock.PoolsHolderStub{
+		TransactionsCalled:            ph.Transactions,
+		PostProcessTransactionsCalled: ph.PostProcessTransactions,
+		MiniBlocksCalled: func() storage.Cacher {
+			return &cache.CacherStub{
+				PeekCalled: func(key []byte) (value interface{}, ok bool) {
+					if reflect.DeepEqual(key, missingMiniBlockInfo.Hash) {
+						return nil, false
+					}
+					if reflect.DeepEqual(key, td.mb1Info.Hash) {
+						return td.mb1Info.Miniblock, true // although the second mini block is available, it should be skipped
+					}
+					return nil, false // other mini blocks not found as well
+				},
 			}
-			if reflect.DeepEqual(key, td.mb1Info.Hash) {
-				return td.mb1Info.Miniblock, true // although the second mini block is available, it should be skipped
-			}
-			return nil, false // other mini blocks not found as well
 		},
 	}
 
@@ -395,8 +421,8 @@ func TestTransactionCoordinator_CreateMbsCrossShardDstMe_SkipShardOnMissingTrans
 
 	td := createHeaderWithMiniBlocksAndTransactions()
 
-	tc.miniBlockPool.Put(td.mbHashes[0], td.mb1Info.Miniblock, 100)
-	tc.miniBlockPool.Put(td.mbHashes[1], td.mb2Info.Miniblock, 100)
+	tc.dataPool.MiniBlocks().Put(td.mbHashes[0], td.mb1Info.Miniblock, 100)
+	tc.dataPool.MiniBlocks().Put(td.mbHashes[1], td.mb2Info.Miniblock, 100)
 
 	// Mock the block data requester
 	tc.blockDataRequesterProposal = &preprocMocks.BlockDataRequesterStub{
@@ -438,12 +464,18 @@ func TestTransactionCoordinator_CreateMbsCrossShardDstMe_ErrorOnUnknownBlockType
 	}
 
 	// Mock mini block pool to return the test mini block
-	tc.miniBlockPool = &cache.CacherStub{
-		PeekCalled: func(key []byte) (value interface{}, ok bool) {
-			if reflect.DeepEqual(key, mbHash) {
-				return testMiniBlock, true
+	tc.dataPool = &dataRetrieverMock.PoolsHolderStub{
+		TransactionsCalled:            ph.Transactions,
+		PostProcessTransactionsCalled: ph.PostProcessTransactions,
+		MiniBlocksCalled: func() storage.Cacher {
+			return &cache.CacherStub{
+				PeekCalled: func(key []byte) (value interface{}, ok bool) {
+					if reflect.DeepEqual(key, mbHash) {
+						return testMiniBlock, true
+					}
+					return nil, false
+				},
 			}
-			return nil, false
 		},
 	}
 
@@ -480,7 +512,7 @@ func TestTransactionCoordinator_SelectOutgoingTransactions_EmptyResult(t *testin
 	// Mock proposal preprocessors to return empty transactions
 	proposalPreprocessorCalled := false
 	tc.preProcProposal.txPreProcessors[block.TxBlock] = &preprocMocks.PreProcessorMock{
-		SelectOutgoingTransactionsCalled: func(_ uint64) ([][]byte, []data.TransactionHandler, error) {
+		SelectOutgoingTransactionsCalled: func(_ uint64, _ uint64) ([][]byte, []data.TransactionHandler, error) {
 			proposalPreprocessorCalled = true
 			return [][]byte{}, []data.TransactionHandler{}, nil
 		},
@@ -489,13 +521,13 @@ func TestTransactionCoordinator_SelectOutgoingTransactions_EmptyResult(t *testin
 	// Mock execution preprocessor to ensure it's not called
 	executionPreprocessorCalled := false
 	tc.preProcExecution.txPreProcessors[block.TxBlock] = &preprocMocks.PreProcessorMock{
-		SelectOutgoingTransactionsCalled: func(_ uint64) ([][]byte, []data.TransactionHandler, error) {
+		SelectOutgoingTransactionsCalled: func(_ uint64, _ uint64) ([][]byte, []data.TransactionHandler, error) {
 			executionPreprocessorCalled = true
 			return [][]byte{}, []data.TransactionHandler{}, nil
 		},
 	}
 
-	txHashes, _ := tc.SelectOutgoingTransactions()
+	txHashes, _ := tc.SelectOutgoingTransactions(0)
 
 	require.Equal(t, 0, len(txHashes))
 
@@ -518,7 +550,7 @@ func TestTransactionCoordinator_SelectOutgoingTransactions_ReturnsTransactions(t
 	// Mock proposal preprocessor to return transactions
 	proposalPreprocessorCalled := false
 	tc.preProcProposal.txPreProcessors[block.TxBlock] = &preprocMocks.PreProcessorMock{
-		SelectOutgoingTransactionsCalled: func(_ uint64) ([][]byte, []data.TransactionHandler, error) {
+		SelectOutgoingTransactionsCalled: func(_ uint64, _ uint64) ([][]byte, []data.TransactionHandler, error) {
 			proposalPreprocessorCalled = true
 			return expectedTxHashes, expectedTxs, nil
 		},
@@ -527,13 +559,13 @@ func TestTransactionCoordinator_SelectOutgoingTransactions_ReturnsTransactions(t
 	// Mock execution preprocessor to ensure it's not called
 	executionPreprocessorCalled := false
 	tc.preProcExecution.txPreProcessors[block.TxBlock] = &preprocMocks.PreProcessorMock{
-		SelectOutgoingTransactionsCalled: func(_ uint64) ([][]byte, []data.TransactionHandler, error) {
+		SelectOutgoingTransactionsCalled: func(_ uint64, _ uint64) ([][]byte, []data.TransactionHandler, error) {
 			executionPreprocessorCalled = true
 			return [][]byte{}, []data.TransactionHandler{}, nil
 		},
 	}
 
-	txHashes, _ := tc.SelectOutgoingTransactions()
+	txHashes, _ := tc.SelectOutgoingTransactions(0)
 
 	require.Equal(t, len(expectedTxHashes), len(txHashes))
 	for i, expectedHash := range expectedTxHashes {
@@ -568,7 +600,7 @@ func TestTransactionCoordinator_SelectOutgoingTransactions_MultipleBlockTypes(t 
 	// Add both block types to the keys
 	tc.preProcProposal.keysTxPreProcs = []block.Type{block.TxBlock, block.SmartContractResultBlock}
 
-	txHashes, _ := tc.SelectOutgoingTransactions()
+	txHashes, _ := tc.SelectOutgoingTransactions(0)
 
 	// Should contain hashes from TxBlock type, for SmartContractsResultsBlock type the selection returns empty
 	expectedTotal := len(txHashesType1)
@@ -597,12 +629,12 @@ func TestTransactionCoordinator_SelectOutgoingTransactions_HandlesErrors(t *test
 
 	// Mock proposal preprocessor to return error
 	tc.preProcProposal.txPreProcessors[block.TxBlock] = &preprocMocks.PreProcessorMock{
-		SelectOutgoingTransactionsCalled: func(_ uint64) ([][]byte, []data.TransactionHandler, error) {
+		SelectOutgoingTransactionsCalled: func(_ uint64, _ uint64) ([][]byte, []data.TransactionHandler, error) {
 			return nil, nil, errors.New("test error")
 		},
 	}
 
-	txHashes, _ := tc.SelectOutgoingTransactions()
+	txHashes, _ := tc.SelectOutgoingTransactions(0)
 
 	// Function should continue and return empty slice despite error
 	require.Equal(t, 0, len(txHashes))
@@ -619,7 +651,7 @@ func TestTransactionCoordinator_SelectOutgoingTransactions_HandlesNilPreprocesso
 	// Set proposal preprocessor to nil
 	tc.preProcProposal.txPreProcessors[block.TxBlock] = nil
 
-	txHashes, _ := tc.SelectOutgoingTransactions()
+	txHashes, _ := tc.SelectOutgoingTransactions(0)
 
 	// Function should handle nil preprocessor gracefully
 	require.Equal(t, 0, len(txHashes))
@@ -653,7 +685,7 @@ func TestTransactionCoordinator_SelectOutgoingTransactions_AddOutgoingTransactio
 	}
 
 	require.NotPanics(t, func() {
-		selectedTxHashes, selectedPendingIncomingMiniBlocks := tc.SelectOutgoingTransactions()
+		selectedTxHashes, selectedPendingIncomingMiniBlocks := tc.SelectOutgoingTransactions(0)
 		// Function should continue and return empty slice despite error
 		require.Nil(t, selectedTxHashes)
 		require.Nil(t, selectedPendingIncomingMiniBlocks)
@@ -712,12 +744,18 @@ func TestTransactionCoordinator_CreateMbsCrossShardDstMe_TypeAssertion(t *testin
 	mbHash := []byte("mb_hash_1")
 
 	// Mock mini block pool to return wrong type
-	tc.miniBlockPool = &cache.CacherStub{
-		PeekCalled: func(key []byte) (value interface{}, ok bool) {
-			if reflect.DeepEqual(key, mbHash) {
-				return "invalid_type", true // Wrong type
+	tc.dataPool = &dataRetrieverMock.PoolsHolderStub{
+		TransactionsCalled:            ph.Transactions,
+		PostProcessTransactionsCalled: ph.PostProcessTransactions,
+		MiniBlocksCalled: func() storage.Cacher {
+			return &cache.CacherStub{
+				PeekCalled: func(key []byte) (value interface{}, ok bool) {
+					if reflect.DeepEqual(key, mbHash) {
+						return "invalid_type", true // Wrong type
+					}
+					return nil, false
+				},
 			}
-			return nil, false
 		},
 	}
 
@@ -998,6 +1036,8 @@ func createPreProcessorContainerWithPoolsHolder(poolsHolder dataRetriever.PoolsH
 		BalanceComputation:           &testscommon.BalanceComputationStub{},
 		EnableEpochsHandler:          enableEpochsHandlerMock.NewEnableEpochsHandlerStub(),
 		EnableRoundsHandler:          &testscommon.EnableRoundsHandlerStub{},
+		EpochNotifier:                &epochNotifier.EpochNotifierStub{},
+		RoundNotifier:                &epochNotifier.RoundNotifierStub{},
 		TxTypeHandler:                &testscommon.TxTypeHandlerMock{},
 		ScheduledTxsExecutionHandler: &testscommon.ScheduledTxsExecutionStub{},
 		ProcessedMiniBlocksTracker:   &testscommon.ProcessedMiniBlocksTrackerStub{},

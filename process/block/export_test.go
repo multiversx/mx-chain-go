@@ -1,6 +1,7 @@
 package block
 
 import (
+	"math/big"
 	"sync"
 	"time"
 
@@ -48,6 +49,12 @@ import (
 
 // UsedShardHeadersInfo -
 type UsedShardHeadersInfo = usedShardHeadersInfo
+
+// EpochStartDataWrapper -
+type EpochStartDataWrapper = epochStartDataWrapper
+
+// ErrNilPreviousHdr -
+var ErrNilPreviousHdr = errNilPreviousHeader
 
 // ComputeHeaderHash -
 func (bp *baseProcessor) ComputeHeaderHash(hdr data.HeaderHandler) ([]byte, error) {
@@ -113,6 +120,11 @@ func (sp *shardProcessor) UpdateStateStorage(finalHeaders []data.HeaderHandler, 
 		return
 	}
 	sp.updateState(finalHeaders, currShardHeader, currentHeaderHash)
+}
+
+// PruneTrieHeaderV3 -
+func (sp *shardProcessor) PruneTrieHeaderV3(executionResultsHandlers []data.BaseExecutionResultHandler) {
+	sp.pruneTrieHeaderV3(executionResultsHandlers)
 }
 
 // NewShardProcessorEmptyWith3shards -
@@ -373,7 +385,7 @@ func (mp *metaProcessor) SetShardBlockFinality(val uint32) {
 }
 
 // SaveLastNotarizedHeader -
-func (mp *metaProcessor) SaveLastNotarizedHeader(header *block.MetaBlock) error {
+func (mp *metaProcessor) SaveLastNotarizedHeader(header data.MetaHeaderHandler) error {
 	return mp.saveLastNotarizedHeader(header)
 }
 
@@ -553,7 +565,12 @@ func (bp *baseProcessor) UpdateState(
 	prevRootHash []byte,
 	accounts state.AccountsAdapter,
 ) {
-	bp.updateStateStorage(finalHeader, rootHash, prevRootHash, accounts)
+	bp.updateStateStorage(finalHeader.GetNonce(), rootHash, prevRootHash, accounts)
+}
+
+// UpdateState -
+func (mp *metaProcessor) UpdateState(metaBlock data.MetaHeaderHandler, metaBlockHash []byte) {
+	mp.updateState(metaBlock, metaBlockHash)
 }
 
 // GasAndFeesDelta -
@@ -590,8 +607,8 @@ func (bp *baseProcessor) GetIndexOfFirstMiniBlockToBeExecuted(header data.Header
 }
 
 // GetFinalMiniBlocks -
-func (bp *baseProcessor) GetFinalMiniBlocks(header data.HeaderHandler, body *block.Body) (*block.Body, error) {
-	return bp.getFinalMiniBlocks(header, body)
+func (bp *baseProcessor) GetFinalMiniBlocks(headerHash []byte, header data.HeaderHandler, body *block.Body) (*block.Body, map[string]block.MiniBlockSlice, error) {
+	return bp.getFinalMiniBlocks(headerHash, header, body)
 }
 
 // GetScheduledMiniBlocksFromMe -
@@ -760,7 +777,7 @@ func (bp *baseProcessor) CheckHeaderBodyCorrelationProposal(miniBlockHeaders []d
 // GetFinalMiniBlocksFromExecutionResults -
 func (bp *baseProcessor) GetFinalMiniBlocksFromExecutionResults(
 	header data.HeaderHandler,
-) (*block.Body, error) {
+) (*block.Body, map[string]block.MiniBlockSlice, error) {
 	return bp.getFinalMiniBlocksFromExecutionResults(header)
 }
 
@@ -805,8 +822,8 @@ func (sp *shardProcessor) CheckMetaHeadersValidityAndFinalityProposal(header dat
 }
 
 // VerifyGasLimit -
-func (sp *shardProcessor) VerifyGasLimit(header data.ShardHeaderHandler) error {
-	return sp.verifyGasLimit(header)
+func (sp *shardProcessor) VerifyGasLimit(header data.ShardHeaderHandler, miniBlocks block.MiniBlockSlice) error {
+	return sp.verifyGasLimit(header, miniBlocks)
 }
 
 // CheckEpochStartInfoAvailableIfNeeded -
@@ -907,6 +924,11 @@ func (bp *baseProcessor) RequestHeadersFromHeaderIfNeeded(
 	bp.requestHeadersFromHeaderIfNeeded(lastHeader)
 }
 
+// CacheIntraShardMiniBlocks -
+func (bp *baseProcessor) CacheIntraShardMiniBlocks(headerHash []byte, mbs block.MiniBlockSlice) error {
+	return bp.cacheIntraShardMiniBlocks(headerHash, mbs)
+}
+
 // GetHaveTimeForProposal -
 func GetHaveTimeForProposal(startTime time.Time, maxDuration time.Duration) func() time.Duration {
 	return getHaveTimeForProposal(startTime, maxDuration)
@@ -933,13 +955,26 @@ func ConstructPartialMetaBlockProcessorForTest(subcomponents map[string]interfac
 }
 
 // SetEpochStartData -
-func (mp *metaProcessor) SetEpochStartData(epochStartData *block.EpochStart) {
-	mp.epochStartData = epochStartData
+func (mp *metaProcessor) SetEpochStartData(epochStartData *EpochStartDataWrapper) {
+	mp.epochStartDataWrapper = epochStartData
 }
 
 // GetTxCountExecutionResults -
 func GetTxCountExecutionResults(metaHeader data.MetaHeaderHandler) (uint32, error) {
 	return getTxCountExecutionResults(metaHeader)
+}
+
+// PrepareBlockHeaderInternalMapForValidatorProcessor -
+func (mp *metaProcessor) PrepareBlockHeaderInternalMapForValidatorProcessor(metaHeader data.MetaHeaderHandler) {
+	mp.prepareBlockHeaderInternalMapForValidatorProcessor(metaHeader)
+}
+
+// UpdatePeerState -
+func (mp *metaProcessor) UpdatePeerState(
+	header data.MetaHeaderHandler,
+	cache map[string]data.HeaderHandler,
+) ([]byte, error) {
+	return mp.updatePeerState(header, cache)
 }
 
 // HasStartOfEpochExecutionResults -
@@ -966,13 +1001,30 @@ func (mp *metaProcessor) SelectIncomingMiniBlocksForProposal(
 
 // SelectIncomingMiniBlocks -
 func (mp *metaProcessor) SelectIncomingMiniBlocks(
-	lastShardHdr map[uint32]ShardHeaderInfo,
+	lastShardHdrs map[uint32]ShardHeaderInfo,
 	orderedHdrs []data.HeaderHandler,
 	orderedHdrsHashes [][]byte,
 	maxNumHeadersFromSameShard uint32,
 	haveTime func() bool,
 ) error {
-	return mp.selectIncomingMiniBlocks(lastShardHdr, orderedHdrs, orderedHdrsHashes, maxNumHeadersFromSameShard, haveTime)
+	return mp.selectIncomingMiniBlocks(lastShardHdrs, orderedHdrs, orderedHdrsHashes, maxNumHeadersFromSameShard, haveTime)
+}
+
+// VerifyEpochStartData -
+func (mp *metaProcessor) VerifyEpochStartData(
+	headerHandler data.MetaHeaderHandler,
+) bool {
+	return mp.verifyEpochStartData(headerHandler)
+}
+
+// PrepareEpochStartBodyForTrigger -
+func (mp *metaProcessor) PrepareEpochStartBodyForTrigger(header data.MetaHeaderHandler, body *block.Body) (*block.Body, error) {
+	return mp.prepareEpochStartBodyForTrigger(header, body)
+}
+
+// CommitEpochStart -
+func (mp *metaProcessor) CommitEpochStart(header data.MetaHeaderHandler, body *block.Body) error {
+	return mp.commitEpochStart(header, body)
 }
 
 // OnExecutedBlock -
@@ -983,4 +1035,87 @@ func (bp *baseProcessor) OnExecutedBlock(header data.HeaderHandler, rootHash []b
 // RecreateTrieIfNeeded -
 func (bp *baseProcessor) RecreateTrieIfNeeded() error {
 	return bp.recreateTrieIfNeeded()
+}
+
+// ExtractRootHashForCleanup -
+func (bp *baseProcessor) ExtractRootHashForCleanup(header data.HeaderHandler) (common.RootHashHolder, error) {
+	return bp.extractRootHashForCleanup(header)
+}
+
+// CheckContextBeforeExecution -
+func (bp *baseProcessor) CheckContextBeforeExecution(header data.HeaderHandler) error {
+	return bp.checkContextBeforeExecution(header)
+}
+
+// SaveProposedTxsToStorage -
+func (bp *baseProcessor) SaveProposedTxsToStorage(header data.HeaderHandler, body *block.Body) error {
+	return bp.saveProposedTxsToStorage(header, body)
+}
+
+// ProcessIfFirstBlockAfterEpochStartBlockV3 -
+func (mp *metaProcessor) ProcessIfFirstBlockAfterEpochStartBlockV3() error {
+	return mp.processIfFirstBlockAfterEpochStartBlockV3()
+}
+
+// ProcessEpochStartProposeBlock -
+func (mp *metaProcessor) ProcessEpochStartProposeBlock(metaHeader data.MetaHeaderHandler, body *block.Body) (data.BaseExecutionResultHandler, error) {
+	return mp.processEpochStartProposeBlock(metaHeader, body)
+}
+
+// ProcessEconomicsDataForEpochStartProposeBlock -
+func (mp *metaProcessor) ProcessEconomicsDataForEpochStartProposeBlock(metaHeader data.MetaHeaderHandler) error {
+	return mp.processEconomicsDataForEpochStartProposeBlock(metaHeader)
+}
+
+// CreateExecutionResult -
+func (mp *metaProcessor) CreateExecutionResult(
+	miniBlockHeaderHandlers []data.MiniBlockHeaderHandler,
+	header data.MetaHeaderHandler,
+	headerHash []byte,
+	receiptHash []byte,
+	valStatRootHash []byte,
+	totalTxCount int,
+) (data.BaseExecutionResultHandler, error) {
+	return mp.createExecutionResult(miniBlockHeaderHandlers, header, headerHash, receiptHash, valStatRootHash, totalTxCount)
+}
+
+// CollectExecutionResults -
+func (mp *metaProcessor) CollectExecutionResults(
+	headerHash []byte,
+	header data.MetaHeaderHandler,
+	body *block.Body,
+	valStatRootHash []byte,
+) (data.BaseExecutionResultHandler, error) {
+	return mp.collectExecutionResults(headerHash, header, body, valStatRootHash)
+}
+
+// CollectExecutionResultsEpochStartProposal -
+func (mp *metaProcessor) CollectExecutionResultsEpochStartProposal(
+	headerHash []byte,
+	header data.MetaHeaderHandler,
+	constructedBody *block.Body,
+	valStatRootHash []byte,
+) (data.BaseExecutionResultHandler, error) {
+	return mp.collectExecutionResultsEpochStartProposal(headerHash, header, constructedBody, valStatRootHash)
+}
+
+// CollectMiniBlocks -
+func (bp *baseProcessor) CollectMiniBlocks(
+	headerHash []byte,
+	body *block.Body,
+) ([]data.MiniBlockHeaderHandler, int, []byte, error) {
+	return bp.collectMiniBlocks(headerHash, body)
+}
+
+// GetCurrentlyAccumulatedFees -
+func (mp *metaProcessor) GetCurrentlyAccumulatedFees(metaHdr data.MetaHeaderHandler) (*big.Int, *big.Int, error) {
+	return mp.getCurrentlyAccumulatedFees(metaHdr)
+}
+
+// GetOrderedProcessedMetaBlocksFromMiniBlockHashesV3 -
+func (sp *shardProcessor) GetOrderedProcessedMetaBlocksFromMiniBlockHashesV3(
+	header data.HeaderHandler,
+	miniBlockHashes map[int][]byte,
+) ([]data.HeaderHandler, error) {
+	return sp.getOrderedProcessedMetaBlocksFromMiniBlockHashesV3(header, miniBlockHashes)
 }

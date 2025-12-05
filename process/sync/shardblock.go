@@ -111,19 +111,9 @@ func (boot *ShardBootstrap) getBlockBody(headerHandler data.HeaderHandler) (data
 		return nil, process.ErrWrongTypeAssertion
 	}
 
-	hashes := make([][]byte, len(header.GetMiniBlockHeaderHandlers()))
-	for i := 0; i < len(header.GetMiniBlockHeaderHandlers()); i++ {
-		hashes[i] = header.GetMiniBlockHeaderHandlers()[i].GetHash()
-	}
-
-	miniBlocksAndHashes, missingMiniBlocksHashes := boot.miniBlocksProvider.GetMiniBlocks(hashes)
-	if len(missingMiniBlocksHashes) > 0 {
-		return nil, process.ErrMissingBody
-	}
-
-	miniBlocks := make([]*block.MiniBlock, len(miniBlocksAndHashes))
-	for index, miniBlockAndHash := range miniBlocksAndHashes {
-		miniBlocks[index] = miniBlockAndHash.Miniblock
+	miniBlocks, err := boot.getHeaderMiniBlocks(header)
+	if err != nil {
+		return nil, err
 	}
 
 	return &block.Body{MiniBlocks: miniBlocks}, nil
@@ -248,14 +238,7 @@ func (boot *ShardBootstrap) getBlockBodyRequestingIfMissing(headerHandler data.H
 		return nil, process.ErrWrongTypeAssertion
 	}
 
-	hashes := make([][]byte, len(header.GetMiniBlockHeaderHandlers()))
-	for i := 0; i < len(header.GetMiniBlockHeaderHandlers()); i++ {
-		hashes[i] = header.GetMiniBlockHeaderHandlers()[i].GetHash()
-	}
-
-	boot.setRequestedMiniBlocks(nil)
-
-	miniBlockSlice, err := boot.getMiniBlocksRequestingIfMissing(hashes)
+	miniBlockSlice, err := boot.getHeaderMiniBlocksRequestingIfMissing(header)
 	if err != nil {
 		return nil, err
 	}

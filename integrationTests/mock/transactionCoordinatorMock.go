@@ -5,6 +5,7 @@ import (
 
 	"github.com/multiversx/mx-chain-core-go/data"
 	"github.com/multiversx/mx-chain-core-go/data/block"
+	"github.com/multiversx/mx-chain-go/common"
 
 	"github.com/multiversx/mx-chain-go/process"
 	"github.com/multiversx/mx-chain-go/process/block/processedMb"
@@ -27,8 +28,9 @@ type TransactionCoordinatorMock struct {
 	CreateMbsAndProcessCrossShardTransactionsDstMeCalled func(header data.HeaderHandler, processedMiniBlocksInfo map[string]*processedMb.ProcessedMiniBlockInfo, haveTime func() bool, haveAdditionalTime func() bool, scheduledMode bool) (block.MiniBlockSlice, uint32, bool, error)
 	CreateMbsAndProcessTransactionsFromMeCalled          func(haveTime func() bool) block.MiniBlockSlice
 	CreateMarshalizedDataCalled                          func(body *block.Body) map[string][][]byte
+	CreateMarshalledDataForHeaderCalled                  func(header data.HeaderHandler, body *block.Body, miniBlocksMap map[string]block.MiniBlockSlice) map[string][][]byte
 	GetCreatedInShardMiniBlocksCalled                    func() []*block.MiniBlock
-	SelectOutgoingTransactionsCalled                     func() ([][]byte, []data.MiniBlockHeaderHandler)
+	SelectOutgoingTransactionsCalled                     func(nonce uint64) ([][]byte, []data.MiniBlockHeaderHandler)
 	GetAllCurrentUsedTxsCalled                           func(blockType block.Type) map[string]data.TransactionHandler
 	VerifyCreatedBlockTransactionsCalled                 func(hdr data.HeaderHandler, body *block.Body) error
 	CreatePostProcessMiniBlocksCalled                    func() block.MiniBlockSlice
@@ -131,7 +133,7 @@ func (tcm *TransactionCoordinatorMock) RemoveBlockDataFromPool(body *block.Body)
 }
 
 // RemoveTxsFromPool -
-func (tcm *TransactionCoordinatorMock) RemoveTxsFromPool(body *block.Body) error {
+func (tcm *TransactionCoordinatorMock) RemoveTxsFromPool(body *block.Body, _ common.RootHashHolder) error {
 	if tcm.RemoveTxsFromPoolCalled == nil {
 		return nil
 	}
@@ -194,12 +196,12 @@ func (tcm *TransactionCoordinatorMock) CreateMbsAndProcessCrossShardTransactions
 }
 
 // SelectOutgoingTransactions -
-func (tcm *TransactionCoordinatorMock) SelectOutgoingTransactions() ([][]byte, []data.MiniBlockHeaderHandler) {
+func (tcm *TransactionCoordinatorMock) SelectOutgoingTransactions(nonce uint64) ([][]byte, []data.MiniBlockHeaderHandler) {
 	if tcm.SelectOutgoingTransactionsCalled == nil {
 		return make([][]byte, 0), make([]data.MiniBlockHeaderHandler, 0)
 	}
 
-	return tcm.SelectOutgoingTransactionsCalled()
+	return tcm.SelectOutgoingTransactionsCalled(nonce)
 }
 
 // CreateMbsAndProcessTransactionsFromMe -
@@ -218,6 +220,15 @@ func (tcm *TransactionCoordinatorMock) CreateMarshalizedData(body *block.Body) m
 	}
 
 	return tcm.CreateMarshalizedDataCalled(body)
+}
+
+// CreateMarshalledDataForHeader -
+func (tcm *TransactionCoordinatorMock) CreateMarshalledDataForHeader(header data.HeaderHandler, body *block.Body, miniBlocksMap map[string]block.MiniBlockSlice) map[string][][]byte {
+	if tcm.CreateMarshalledDataForHeaderCalled == nil {
+		return make(map[string][][]byte)
+	}
+
+	return tcm.CreateMarshalledDataForHeaderCalled(header, body, miniBlocksMap)
 }
 
 // GetCreatedInShardMiniBlocks -

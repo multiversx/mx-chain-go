@@ -618,7 +618,9 @@ func CreateGenesisBlocks(
 	genesisBlocks := make(map[uint32]data.HeaderHandler)
 	for shardId := uint32(0); shardId < shardCoordinator.NumberOfShards(); shardId++ {
 		rootHash, err := accounts.RootHash()
-		log.Debug("Creating genesis block for shard ", "shardId", shardId, "err", err)
+		if err != nil {
+			log.Debug("Creating genesis block for shard ", "shardId", shardId, "err", err)
+		}
 		genesisBlocks[shardId] = CreateSimpleGenesisBlock(shardId, rootHash)
 	}
 

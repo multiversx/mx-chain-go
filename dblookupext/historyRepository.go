@@ -14,6 +14,7 @@ import (
 	"github.com/multiversx/mx-chain-core-go/data/typeConverters"
 	"github.com/multiversx/mx-chain-core-go/hashing"
 	"github.com/multiversx/mx-chain-core-go/marshal"
+	"github.com/multiversx/mx-chain-go/common"
 	"github.com/multiversx/mx-chain-go/common/logging"
 	"github.com/multiversx/mx-chain-go/dataRetriever"
 	"github.com/multiversx/mx-chain-go/dblookupext/esdtSupply"
@@ -195,19 +196,19 @@ func (hr *historyRepository) recordDataBasedOnExecutionResults(blockHeader data.
 	for _, executionResult := range blockHeader.GetExecutionResultsHandlers() {
 		headerHash := executionResult.GetHeaderHash()
 
-		scrResultsFromPool, receiptsFromPool, err := getIntermediateTxs(hr.dataPool.PostProcessTransactions(), headerHash)
+		pool, err := common.GetCachedIntermediateTxs(hr.dataPool.PostProcessTransactions(), headerHash)
 		if err != nil {
 			return err
 		}
-		logs, err := getLogs(hr.dataPool.PostProcessTransactions(), headerHash)
+		logs, err := common.GetCachedLogs(hr.dataPool.PostProcessTransactions(), headerHash)
 		if err != nil {
 			return err
 		}
-		body, err := getBody(hr.dataPool.ExecutedMiniBlocks(), hr.marshalizer, executionResult, hr.selfShardID)
+		body, err := common.GetCachedBody(hr.dataPool.ExecutedMiniBlocks(), hr.marshalizer, executionResult)
 		if err != nil {
 			return err
 		}
-		intraMbs, err := getIntraMbs(hr.dataPool.ExecutedMiniBlocks(), hr.marshalizer, headerHash)
+		intraMbs, err := common.GetCachedMbs(hr.dataPool.ExecutedMiniBlocks(), hr.marshalizer, headerHash)
 		if err != nil {
 			return err
 		}
@@ -220,7 +221,7 @@ func (hr *historyRepository) recordDataBasedOnExecutionResults(blockHeader data.
 			return err
 		}
 
-		err = hr.recordExecutionData(headerHash, headerEpoch, headerNonce, headerRound, scrResultsFromPool, receiptsFromPool, intraMbs, logs)
+		err = hr.recordExecutionData(headerHash, headerEpoch, headerNonce, headerRound, pool[block.SmartContractResultBlock], pool[block.ReceiptBlock], intraMbs, logs)
 		if err != nil {
 			return err
 		}
@@ -415,15 +416,21 @@ func (hr *historyRepository) OnNotarizedBlocks(shardID uint32, headers []data.He
 
 		log.Trace("onNotarizedBlocks():", "shardID", shardID, "nonce", headerHandler.GetNonce(), "headerHash", headerHash, "type", fmt.Sprintf("%T", headerHandler))
 
-		metaBlock, isMetaBlock := headerHandler.(*block.MetaBlock)
+		metaBlock, isMetaBlock := headerHandler.(data.MetaHeaderHandler)
 		if isMetaBlock {
-			for _, miniBlock := range metaBlock.MiniBlockHeaders {
+			mbs, err := common.GetMiniBlockHeadersFromExecResult(metaBlock)
+			if err != nil {
+				log.Error("OnNotarizedBlocks.GetMiniBlockHeadersFromExecResult:", "error", err)
+				continue
+			}
+
+			for _, miniBlock := range mbs {
 				hr.onNotarizedMiniblock(headerHandler.GetNonce(), headerHash, headerHandler.GetShardID(), miniBlock)
 			}
 
-			for _, shardData := range metaBlock.ShardInfo {
-				shardDataCopy := shardData
-				hr.onNotarizedInMetaBlock(headerHandler.GetNonce(), headerHash, &shardDataCopy)
+			for _, shardData := range metaBlock.GetShardInfoHandlers() {
+				shardDataCopy := shardData.ShallowClone()
+				hr.onNotarizedInMetaBlock(headerHandler.GetNonce(), headerHash, shardDataCopy)
 			}
 		} else {
 			log.Error("onNotarizedBlocks(): unexpected type of header", "type", fmt.Sprintf("%T", headerHandler))
@@ -433,27 +440,27 @@ func (hr *historyRepository) OnNotarizedBlocks(shardID uint32, headers []data.He
 	hr.consumePendingNotificationsWithLock()
 }
 
-func (hr *historyRepository) onNotarizedInMetaBlock(metaBlockNonce uint64, metaBlockHash []byte, shardData *block.ShardData) {
+func (hr *historyRepository) onNotarizedInMetaBlock(metaBlockNonce uint64, metaBlockHash []byte, shardData data.ShardDataHandler) {
 	if metaBlockNonce < 1 {
 		return
 	}
 
-	for _, miniblockHeader := range shardData.GetShardMiniBlockHeaders() {
+	for _, miniblockHeader := range shardData.GetShardMiniBlockHeaderHandlers() {
 		hr.onNotarizedMiniblock(metaBlockNonce, metaBlockHash, shardData.GetShardID(), miniblockHeader)
 	}
 }
 
-func (hr *historyRepository) onNotarizedMiniblock(metaBlockNonce uint64, metaBlockHash []byte, shardOfContainingBlock uint32, miniblockHeader block.MiniBlockHeader) {
-	miniblockHash := miniblockHeader.Hash
-	isIntra := miniblockHeader.SenderShardID == miniblockHeader.ReceiverShardID
-	isToMeta := miniblockHeader.ReceiverShardID == core.MetachainShardId
-	isNotarizedAtSource := miniblockHeader.SenderShardID == shardOfContainingBlock
-	isNotarizedAtDestination := miniblockHeader.ReceiverShardID == shardOfContainingBlock
+func (hr *historyRepository) onNotarizedMiniblock(metaBlockNonce uint64, metaBlockHash []byte, shardOfContainingBlock uint32, miniblockHeader data.MiniBlockHeaderHandler) {
+	miniblockHash := miniblockHeader.GetHash()
+	isIntra := miniblockHeader.GetSenderShardID() == miniblockHeader.GetReceiverShardID()
+	isToMeta := miniblockHeader.GetReceiverShardID() == core.MetachainShardId
+	isNotarizedAtSource := miniblockHeader.GetSenderShardID() == shardOfContainingBlock
+	isNotarizedAtDestination := miniblockHeader.GetReceiverShardID() == shardOfContainingBlock
 	isNotarizedAtBoth := isIntra || isToMeta
 
-	notFromMe := miniblockHeader.SenderShardID != hr.selfShardID
-	notToMe := miniblockHeader.ReceiverShardID != hr.selfShardID
-	isPeerMiniblock := miniblockHeader.Type == block.PeerBlock
+	notFromMe := miniblockHeader.GetSenderShardID() != hr.selfShardID
+	notToMe := miniblockHeader.GetReceiverShardID() != hr.selfShardID
+	isPeerMiniblock := miniblockHeader.GetTypeInt32() == int32(block.PeerBlock)
 	iDontCare := (notFromMe && notToMe) || isPeerMiniblock
 	if iDontCare {
 		return
@@ -464,7 +471,7 @@ func (hr *historyRepository) onNotarizedMiniblock(metaBlockNonce uint64, metaBlo
 		"metaBlockHash", metaBlockHash,
 		"shardOfContainingBlock", shardOfContainingBlock,
 		"miniblock", miniblockHash,
-		"direction", fmt.Sprintf("[%d -> %d]", miniblockHeader.SenderShardID, miniblockHeader.ReceiverShardID),
+		"direction", fmt.Sprintf("[%d -> %d]", miniblockHeader.GetSenderShardID(), miniblockHeader.GetReceiverShardID()),
 	)
 
 	if isNotarizedAtBoth {

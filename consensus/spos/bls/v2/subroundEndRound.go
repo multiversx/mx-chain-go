@@ -281,7 +281,7 @@ func (sr *subroundEndRound) doEndRoundJobByNode() bool {
 }
 
 func (sr *subroundEndRound) prepareBroadcastBlockData() error {
-	miniBlocks, transactions, err := sr.BlockProcessor().MarshalizedDataToBroadcast(sr.GetHeader(), sr.GetBody())
+	miniBlocks, transactions, err := sr.BlockProcessor().MarshalizedDataToBroadcast(sr.GetData(), sr.GetHeader(), sr.GetBody())
 	if err != nil {
 		return err
 	}
@@ -321,10 +321,12 @@ func (sr *subroundEndRound) finalizeConfirmedBlock() bool {
 
 	sr.updateConsensusMetricsProof()
 
-	ok := sr.ScheduledProcessor().IsProcessedOKWithTimeout()
-	// placeholder for subroundEndRound.doEndRoundJobByLeader script
-	if !ok {
-		return false
+	if !sr.GetHeader().IsHeaderV3() {
+		ok := sr.ScheduledProcessor().IsProcessedOKWithTimeout()
+		// placeholder for subroundEndRound.doEndRoundJobByLeader script
+		if !ok {
+			return false
+		}
 	}
 
 	err := sr.commitBlock()

@@ -117,16 +117,25 @@ func NewTransactionPreprocessor(
 	if args.TxCacheSelectionConfig.SelectionLoopDurationCheckInterval == 0 {
 		return nil, process.ErrBadTxCacheSelectionLoopDurationCheckInterval
 	}
-	bpp := basePreProcess{
+
+	ges, err := newGasEpochState(
+		args.EconomicsFee,
+		args.EnableEpochsHandler,
+		args.EnableRoundsHandler,
+	)
+	if err != nil {
+		return nil, err
+	}
+
+	bpp := &basePreProcess{
 		hasher:      args.Hasher,
 		marshalizer: args.Marshalizer,
-		gasTracker: gasTracker{
-			shardCoordinator:    args.ShardCoordinator,
-			gasHandler:          args.GasHandler,
-			economicsFee:        args.EconomicsFee,
-			enableEpochsHandler: args.EnableEpochsHandler,
-			enableRoundsHandler: args.EnableRoundsHandler,
-		},
+		gasTracker: newGasTracker(
+			args.ShardCoordinator,
+			args.GasHandler,
+			args.EconomicsFee,
+			ges,
+		),
 		blockSizeComputation:       args.BlockSizeComputation,
 		balanceComputation:         args.BalanceComputation,
 		accounts:                   args.Accounts,
@@ -138,8 +147,11 @@ func NewTransactionPreprocessor(
 		txExecutionOrderHandler:    args.TxExecutionOrderHandler,
 	}
 
+	args.EpochNotifier.RegisterNotifyHandler(bpp)
+	args.RoundNotifier.RegisterNotifyHandler(bpp)
+
 	txs := &transactions{
-		basePreProcess:               &bpp,
+		basePreProcess:               bpp,
 		storage:                      args.Store,
 		txPool:                       args.DataPool,
 		onRequestTransaction:         args.OnRequestTransaction,
@@ -191,8 +203,13 @@ func (txs *transactions) RemoveBlockDataFromPools(body *block.Body, miniBlockPoo
 
 // RemoveTxsFromPools removes transactions from associated pools
 // TODO CleanupSelfShardTxCache - Maybe find a solution to use block nonce instead of randomness
-func (txs *transactions) RemoveTxsFromPools(body *block.Body) error {
-	accountsProvider, err := state.NewAccountsEphemeralProvider(txs.accounts)
+func (txs *transactions) RemoveTxsFromPools(body *block.Body, rootHashHolder common.RootHashHolder) error {
+	err := txs.accountsProposal.RecreateTrieIfNeeded(rootHashHolder)
+	if err != nil {
+		return err
+	}
+
+	accountsProvider, err := state.NewAccountsEphemeralProvider(txs.accountsProposal)
 	if err != nil {
 		return err
 	}
@@ -1008,8 +1025,11 @@ func (txs *transactions) getRemainingGasPerBlockAsScheduled() uint64 {
 }
 
 // SelectOutgoingTransactions selects outgoing transactions from the transaction pool
-func (txs *transactions) SelectOutgoingTransactions(bandwidth uint64) ([][]byte, []data.TransactionHandler, error) {
-	wrappedTxs, err := txs.selectTransactionsFromTxPoolForProposal(txs.shardCoordinator.SelfId(), txs.shardCoordinator.SelfId(), bandwidth)
+func (txs *transactions) SelectOutgoingTransactions(
+	bandwidth uint64,
+	nonce uint64,
+) ([][]byte, []data.TransactionHandler, error) {
+	wrappedTxs, err := txs.selectTransactionsFromTxPoolForProposal(txs.shardCoordinator.SelfId(), txs.shardCoordinator.SelfId(), bandwidth, nonce)
 	if err != nil {
 		return nil, nil, err
 	}
@@ -1423,6 +1443,7 @@ func (txs *transactions) selectTransactionsFromTxPoolForProposal(
 	sndShardId uint32,
 	dstShardId uint32,
 	gasBandwidth uint64,
+	nonce uint64,
 ) ([]*txcache.WrappedTransaction, error) {
 	strCache := process.ShardCacherIdentifier(sndShardId, dstShardId)
 	txShardPool := txs.txPool.ShardDataStore(strCache)
@@ -1449,9 +1470,8 @@ func (txs *transactions) selectTransactionsFromTxPoolForProposal(
 		txs.txCacheSelectionConfig.SelectionLoopMaximumDuration,
 		txs.txCacheSelectionConfig.SelectionLoopDurationCheckInterval,
 	)
-	selectedTransactions, _, err := txCache.SelectTransactions(session, selectionOptions, 0)
+	selectedTransactions, _, err := txCache.SelectTransactions(session, selectionOptions, nonce)
 	if err != nil {
-		// TODO re-brainstorm if this error should be propagated or just logged
 		return nil, err
 	}
 
@@ -1489,10 +1509,8 @@ func (txs *transactions) selectTransactionsFromTxPool(
 		txs.txCacheSelectionConfig.SelectionLoopDurationCheckInterval,
 	)
 
-	// TODO should use the right information for the nonce
 	selectedTxs, _, err := txCache.SelectTransactions(session, selectionOptions, 0)
 	if err != nil {
-		// TODO re-brainstorm if this error should be propagated or just logged
 		return nil, err
 	}
 

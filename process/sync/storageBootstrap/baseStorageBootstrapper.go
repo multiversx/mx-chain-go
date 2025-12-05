@@ -48,6 +48,7 @@ type ArgsBaseStorageBootstrapper struct {
 	AppStatusHandler             core.AppStatusHandler
 	EnableEpochsHandler          common.EnableEpochsHandler
 	ProofsPool                   process.ProofsPool
+	ExecutionManager             process.ExecutionManager
 }
 
 // ArgsShardStorageBootstrapper is structure used to create a new storage bootstrapper for shard
@@ -85,6 +86,7 @@ type storageBootstrapper struct {
 	appStatusHandler             core.AppStatusHandler
 	enableEpochsHandler          common.EnableEpochsHandler
 	proofsPool                   process.ProofsPool
+	executionManager             process.ExecutionManager
 }
 
 func (st *storageBootstrapper) loadBlocks() error {
@@ -521,7 +523,12 @@ func (st *storageBootstrapper) setCurrentBlockInfo(
 	// this will be useful at transition to Supernova with headers v3
 	st.blkc.SetLastExecutedBlockHeaderAndRootHash(header, headerHash, header.GetRootHash())
 
-	return nil
+	lastExecResHandler, err := common.GetOrCreateLastExecutionResultForPrevHeader(header, headerHash)
+	if err != nil {
+		return err
+	}
+
+	return st.executionManager.SetLastNotarizedResult(lastExecResHandler)
 }
 
 func (st *storageBootstrapper) setCurrentBlockInfoV3(
@@ -642,6 +649,9 @@ func checkBaseStorageBootstrapperArguments(args ArgsBaseStorageBootstrapper) err
 	}
 	if check.IfNil(args.ProofsPool) {
 		return process.ErrNilProofsPool
+	}
+	if check.IfNil(args.ExecutionManager) {
+		return process.ErrNilExecutionManager
 	}
 
 	return nil

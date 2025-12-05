@@ -1,4 +1,4 @@
-package stake
+package simpleStake
 
 import (
 	"encoding/hex"
@@ -10,10 +10,10 @@ import (
 	"github.com/multiversx/mx-chain-go/config"
 	chainSimulatorIntegrationTests "github.com/multiversx/mx-chain-go/integrationTests/chainSimulator"
 	"github.com/multiversx/mx-chain-go/integrationTests/chainSimulator/staking"
+	"github.com/multiversx/mx-chain-go/integrationTests/chainSimulator/staking/stake"
 	"github.com/multiversx/mx-chain-go/node/chainSimulator"
 	"github.com/multiversx/mx-chain-go/node/chainSimulator/components/api"
 	"github.com/multiversx/mx-chain-go/node/chainSimulator/configs"
-	"github.com/multiversx/mx-chain-go/node/chainSimulator/process"
 	"github.com/multiversx/mx-chain-go/vm"
 
 	"github.com/multiversx/mx-chain-core-go/core"
@@ -70,7 +70,7 @@ func testChainSimulatorSimpleStake(t *testing.T, targetEpoch int32, nodesStatus 
 	cs, err := chainSimulator.NewChainSimulator(chainSimulator.ArgsChainSimulator{
 		BypassTxSignatureCheck:         true,
 		TempDir:                        t.TempDir(),
-		PathToInitialConfig:            defaultPathToInitialConfig,
+		PathToInitialConfig:            stake.DefaultPathToInitialConfig,
 		NumOfShards:                    numOfShards,
 		RoundDurationInMillis:          roundDurationInMillis,
 		SupernovaRoundDurationInMillis: roundDurationInMillis / 10,
@@ -167,7 +167,7 @@ func TestChainSimulator_StakingV4Step2APICalls(t *testing.T) {
 	cs, err := chainSimulator.NewChainSimulator(chainSimulator.ArgsChainSimulator{
 		BypassTxSignatureCheck:         true,
 		TempDir:                        t.TempDir(),
-		PathToInitialConfig:            defaultPathToInitialConfig,
+		PathToInitialConfig:            stake.DefaultPathToInitialConfig,
 		NumOfShards:                    3,
 		RoundDurationInMillis:          uint64(6000),
 		SupernovaRoundDurationInMillis: uint64(600),
@@ -278,30 +278,8 @@ func TestChainSimulator_StakingV4Step2APICalls(t *testing.T) {
 		err = cs.GenerateBlocks(2)
 		require.Nil(t, err)
 
-		qualified, unQualified := getQualifiedAndUnqualifiedNodes(t, metachainNode)
+		qualified, unQualified := stake.GetQualifiedAndUnqualifiedNodes(t, metachainNode)
 		require.Equal(t, 8, len(qualified))
 		require.Equal(t, 1, len(unQualified))
 	}
-}
-
-func getQualifiedAndUnqualifiedNodes(t *testing.T, metachainNode process.NodeHandler) ([]string, []string) {
-	err := metachainNode.GetProcessComponents().ValidatorsProvider().ForceUpdate()
-	require.Nil(t, err)
-	auctionList, err := metachainNode.GetProcessComponents().ValidatorsProvider().GetAuctionList()
-	require.Nil(t, err)
-
-	qualified := make([]string, 0)
-	unQualified := make([]string, 0)
-
-	for _, auctionOwnerData := range auctionList {
-		for _, auctionNode := range auctionOwnerData.Nodes {
-			if auctionNode.Qualified {
-				qualified = append(qualified, auctionNode.BlsKey)
-			} else {
-				unQualified = append(unQualified, auctionNode.BlsKey)
-			}
-		}
-	}
-
-	return qualified, unQualified
 }

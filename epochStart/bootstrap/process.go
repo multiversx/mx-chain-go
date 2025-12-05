@@ -850,7 +850,7 @@ func (e *epochStartBootstrap) requestAndProcessing() (Parameters, error) {
 	log.Debug("start in epoch bootstrap: got shard headers and previous epoch start meta block")
 
 	prevEpochStartMetaHash := e.epochStartMeta.GetEpochStartHandler().GetEconomicsHandler().GetPrevEpochStartHash()
-	prevEpochStartMeta, ok := e.syncedHeaders[string(prevEpochStartMetaHash)].(*block.MetaBlock)
+	prevEpochStartMeta, ok := e.syncedHeaders[string(prevEpochStartMetaHash)].(data.MetaHeaderHandler)
 	if !ok {
 		return Parameters{}, epochStart.ErrWrongTypeAssertion
 	}
@@ -1346,29 +1346,17 @@ func (e *epochStartBootstrap) getRootHashToSync(
 		return rootHashToSync, nil
 	}
 
-	return getStartOfEpochRootHashFromExecutionResults(header)
+	return getRootHashFromLastExecutionResult(header)
 }
 
-func getStartOfEpochRootHashFromExecutionResults(
+func getRootHashFromLastExecutionResult(
 	header data.HeaderHandler,
 ) ([]byte, error) {
-	var rootHash []byte
-
-	for i := len(header.GetExecutionResultsHandlers()) - 1; i >= 0; i-- {
-		executionResult := header.GetExecutionResultsHandlers()[i]
-
-		miniBlockHeaderHandlers, err := common.GetMiniBlocksHeaderHandlersFromExecResult(executionResult)
-		if err != nil {
-			return nil, err
-		}
-
-		for _, miniBlock := range miniBlockHeaderHandlers {
-			if miniBlock.GetTypeInt32() == int32(block.PeerBlock) {
-				rootHash = executionResult.GetRootHash()
-				break
-			}
-		}
+	lastExecutionResult, err := common.GetLastBaseExecutionResultHandler(header)
+	if err != nil {
+		return nil, err
 	}
+	rootHash := lastExecutionResult.GetRootHash()
 
 	if len(rootHash) == 0 {
 		return nil, ErrGetEpochStartRootHash

@@ -104,14 +104,14 @@ func saveMetricsForCommittedShardBlock(
 
 func saveMetricsForCommitMetachainBlock(
 	appStatusHandler core.AppStatusHandler,
-	header *block.MetaBlock,
+	header data.MetaHeaderHandler,
 	headerHash []byte,
 	nodesCoordinator nodesCoordinator.NodesCoordinator,
 	highestFinalBlockNonce uint64,
 	managedPeersHolder common.ManagedPeersHolder,
 ) {
 	appStatusHandler.SetStringValue(common.MetricCurrentBlockHash, logger.DisplayByteSlice(headerHash))
-	appStatusHandler.SetUInt64Value(common.MetricEpochNumber, uint64(header.Epoch))
+	appStatusHandler.SetUInt64Value(common.MetricEpochNumber, uint64(header.GetEpoch()))
 	appStatusHandler.SetUInt64Value(common.MetricHighestFinalBlock, highestFinalBlockNonce)
 
 	// TODO: remove if epoch start block needs to be validated by the new epoch nodes
@@ -301,12 +301,12 @@ func calculateRoundDuration(
 	return diffTimeStamp / diffRounds
 }
 
-func saveEpochStartEconomicsMetrics(statusHandler core.AppStatusHandler, epochStartMetaBlock *block.MetaBlock) {
-	economics := epochStartMetaBlock.EpochStart.Economics
+func saveEpochStartEconomicsMetrics(statusHandler core.AppStatusHandler, epochStartMetaBlock data.MetaHeaderHandler) {
+	economics := epochStartMetaBlock.GetEpochStartHandler().GetEconomicsHandler()
 
-	statusHandler.SetStringValue(common.MetricTotalSupply, economics.TotalSupply.String())
-	statusHandler.SetStringValue(common.MetricInflation, economics.TotalNewlyMinted.String())
-	statusHandler.SetStringValue(common.MetricTotalFees, epochStartMetaBlock.AccumulatedFeesInEpoch.String())
-	statusHandler.SetStringValue(common.MetricDevRewardsInEpoch, epochStartMetaBlock.DevFeesInEpoch.String())
-	statusHandler.SetUInt64Value(common.MetricEpochForEconomicsData, uint64(epochStartMetaBlock.Epoch))
+	statusHandler.SetStringValue(common.MetricTotalSupply, economics.GetTotalSupply().String())
+	statusHandler.SetStringValue(common.MetricInflation, economics.GetTotalNewlyMinted().String())
+	statusHandler.SetStringValue(common.MetricTotalFees, epochStartMetaBlock.GetAccumulatedFeesInEpoch().String())
+	statusHandler.SetStringValue(common.MetricDevRewardsInEpoch, epochStartMetaBlock.GetDevFeesInEpoch().String())
+	statusHandler.SetUInt64Value(common.MetricEpochForEconomicsData, uint64(epochStartMetaBlock.GetEpoch()))
 }

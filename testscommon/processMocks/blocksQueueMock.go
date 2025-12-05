@@ -8,6 +8,7 @@ type BlocksQueueMock struct {
 	PopCalled                    func() (queue.HeaderBodyPair, bool)
 	PeekCalled                   func() (queue.HeaderBodyPair, bool)
 	RemoveAtNonceAndHigherCalled func(nonce uint64) []uint64
+	CleanCalled                  func(lastAddedNonce uint64)
 	CloseCalled                  func()
 }
 
@@ -41,6 +42,13 @@ func (bqm *BlocksQueueMock) RemoveAtNonceAndHigher(nonce uint64) []uint64 {
 		return bqm.RemoveAtNonceAndHigherCalled(nonce)
 	}
 	return nil
+}
+
+// Clean -
+func (bqm *BlocksQueueMock) Clean(lastAddedNonce uint64) {
+	if bqm.CleanCalled != nil {
+		bqm.CleanCalled(lastAddedNonce)
+	}
 }
 
 // Close -

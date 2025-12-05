@@ -8,6 +8,7 @@ import (
 
 	"github.com/multiversx/mx-chain-core-go/core"
 	"github.com/multiversx/mx-chain-core-go/core/check"
+	"github.com/multiversx/mx-chain-go/common"
 	"github.com/multiversx/mx-chain-go/process"
 	"github.com/multiversx/mx-chain-go/sharding"
 	logger "github.com/multiversx/mx-chain-logger-go"
@@ -23,16 +24,25 @@ const (
 
 // BlockSigningRater defines the behaviour of a struct able to do ratings for validators
 type BlockSigningRater struct {
-	startRating           uint32
-	signedBlocksThreshold float32
-	maxRating             uint32
-	minRating             uint32
-	ratingsHandler        process.RatingsInfoHandler
-	ratingChances         []process.RatingChanceHandler
+	startRating             uint32
+	signedBlocksThreshold   float32
+	maxRating               uint32
+	minRating               uint32
+	ratingsHandler          process.RatingsInfoHandler
+	shardRatingsStepHandler process.RatingsStepHandler
+	metaRatingsStepHandler  process.RatingsStepHandler
+	enableEpochsHandler     common.EnableEpochsHandler
+	ratingChances           []process.RatingChanceHandler
 }
 
 // NewBlockSigningRater creates a new RaterHandler of Type BlockSigningRater
-func NewBlockSigningRater(ratingsData process.RatingsInfoHandler) (*BlockSigningRater, error) {
+func NewBlockSigningRater(
+	ratingsData process.RatingsInfoHandler,
+	enableEpochsHandler common.EnableEpochsHandler,
+) (*BlockSigningRater, error) {
+	if check.IfNil(enableEpochsHandler) {
+		return nil, process.ErrNilEnableEpochsHandler
+	}
 	err := verifyRatingsData(ratingsData)
 	if err != nil {
 		return nil, err
@@ -66,12 +76,15 @@ func NewBlockSigningRater(ratingsData process.RatingsInfoHandler) (*BlockSigning
 	}
 
 	return &BlockSigningRater{
-		startRating:           ratingsData.StartRating(),
-		minRating:             ratingsData.MinRating(),
-		maxRating:             ratingsData.MaxRating(),
-		signedBlocksThreshold: ratingsData.SignedBlocksThreshold(),
-		ratingsHandler:        ratingsData,
-		ratingChances:         ratingChances,
+		startRating:             ratingsData.StartRating(),
+		minRating:               ratingsData.MinRating(),
+		maxRating:               ratingsData.MaxRating(),
+		signedBlocksThreshold:   ratingsData.SignedBlocksThreshold(),
+		ratingsHandler:          ratingsData,
+		shardRatingsStepHandler: ratingsData.ShardChainRatingsStepHandler(),
+		metaRatingsStepHandler:  ratingsData.MetaChainRatingsStepHandler(),
+		enableEpochsHandler:     enableEpochsHandler,
+		ratingChances:           ratingChances,
 	}, nil
 }
 
@@ -157,26 +170,42 @@ func (bsr *BlockSigningRater) GetSignedBlocksThreshold() float32 {
 }
 
 // ComputeIncreaseProposer computes the new rating for the increaseLeader
-func (bsr *BlockSigningRater) ComputeIncreaseProposer(shardId uint32, currentRating uint32) uint32 {
+func (bsr *BlockSigningRater) ComputeIncreaseProposer(shardId uint32, currentRating uint32, epoch uint32) uint32 {
 	log.Trace("ComputeIncreaseProposer", "shardId", shardId, "currentRating", currentRating)
 	var ratingStep int32
 	if shardId == core.MetachainShardId {
-		ratingStep = bsr.ratingsHandler.MetaChainRatingsStepHandler().ProposerIncreaseRatingStep()
+		ratingStep = bsr.getMetaChainRatingsStepHandler(epoch).ProposerIncreaseRatingStep()
 	} else {
-		ratingStep = bsr.ratingsHandler.ShardChainRatingsStepHandler().ProposerIncreaseRatingStep()
+		ratingStep = bsr.getShardChainRatingsStepHandler(epoch).ProposerIncreaseRatingStep()
 	}
 
 	return bsr.computeRating(ratingStep, currentRating)
 }
 
+func (bsr *BlockSigningRater) getShardChainRatingsStepHandler(epoch uint32) process.RatingsStepHandler {
+	if bsr.enableEpochsHandler.IsFlagEnabledInEpoch(common.SupernovaFlag, epoch) {
+		return bsr.ratingsHandler.ShardChainRatingsStepHandlerForEpoch(epoch)
+	}
+
+	return bsr.shardRatingsStepHandler
+}
+
+func (bsr *BlockSigningRater) getMetaChainRatingsStepHandler(epoch uint32) process.RatingsStepHandler {
+	if bsr.enableEpochsHandler.IsFlagEnabledInEpoch(common.SupernovaFlag, epoch) {
+		return bsr.ratingsHandler.MetaChainRatingsStepHandlerForEpoch(epoch)
+	}
+
+	return bsr.metaRatingsStepHandler
+}
+
 // RevertIncreaseValidator computes the new rating based on how many reverts have to be done for the validator
-func (bsr *BlockSigningRater) RevertIncreaseValidator(shardId uint32, currentRating uint32, nrReverts uint32) uint32 {
+func (bsr *BlockSigningRater) RevertIncreaseValidator(shardId uint32, currentRating uint32, nrReverts uint32, epoch uint32) uint32 {
 	log.Trace("RevertIncreaseValidator", "shardId", shardId, "currentRating", currentRating, "nrReverts", nrReverts)
 	var ratingStep int32
 	if shardId == core.MetachainShardId {
-		ratingStep = bsr.ratingsHandler.MetaChainRatingsStepHandler().ValidatorIncreaseRatingStep()
+		ratingStep = bsr.getMetaChainRatingsStepHandler(epoch).ValidatorIncreaseRatingStep()
 	} else {
-		ratingStep = bsr.ratingsHandler.ShardChainRatingsStepHandler().ValidatorIncreaseRatingStep()
+		ratingStep = bsr.getShardChainRatingsStepHandler(epoch).ValidatorIncreaseRatingStep()
 	}
 
 	decreaseValueBigInt := big.NewInt(0).Mul(big.NewInt(int64(-ratingStep)), big.NewInt(int64(nrReverts)))
@@ -192,17 +221,17 @@ func (bsr *BlockSigningRater) RevertIncreaseValidator(shardId uint32, currentRat
 }
 
 // ComputeDecreaseProposer computes the new rating for the decreaseLeader
-func (bsr *BlockSigningRater) ComputeDecreaseProposer(shardId uint32, currentRating uint32, consecutiveMisses uint32) uint32 {
+func (bsr *BlockSigningRater) ComputeDecreaseProposer(shardId uint32, currentRating uint32, consecutiveMisses uint32, epoch uint32) uint32 {
 	log.Trace("ComputeDecreaseProposer", "shardId", shardId, "currentRating", currentRating, "consecutiveMisses", consecutiveMisses)
 	var proposerDecreaseRatingStep int32
 
 	var consecutiveBlocksPenalty float32
 	if shardId == core.MetachainShardId {
-		proposerDecreaseRatingStep = bsr.ratingsHandler.MetaChainRatingsStepHandler().ProposerDecreaseRatingStep()
-		consecutiveBlocksPenalty = bsr.ratingsHandler.MetaChainRatingsStepHandler().ConsecutiveMissedBlocksPenalty()
+		proposerDecreaseRatingStep = bsr.getMetaChainRatingsStepHandler(epoch).ProposerDecreaseRatingStep()
+		consecutiveBlocksPenalty = bsr.getMetaChainRatingsStepHandler(epoch).ConsecutiveMissedBlocksPenalty()
 	} else {
-		proposerDecreaseRatingStep = bsr.ratingsHandler.ShardChainRatingsStepHandler().ProposerDecreaseRatingStep()
-		consecutiveBlocksPenalty = bsr.ratingsHandler.ShardChainRatingsStepHandler().ConsecutiveMissedBlocksPenalty()
+		proposerDecreaseRatingStep = bsr.getShardChainRatingsStepHandler(epoch).ProposerDecreaseRatingStep()
+		consecutiveBlocksPenalty = bsr.getShardChainRatingsStepHandler(epoch).ConsecutiveMissedBlocksPenalty()
 	}
 
 	var consecutiveMissesIncrease int32
@@ -221,25 +250,25 @@ func (bsr *BlockSigningRater) ComputeDecreaseProposer(shardId uint32, currentRat
 }
 
 // ComputeIncreaseValidator computes the new rating for the increaseValidator
-func (bsr *BlockSigningRater) ComputeIncreaseValidator(shardId uint32, currentRating uint32) uint32 {
+func (bsr *BlockSigningRater) ComputeIncreaseValidator(shardId uint32, currentRating uint32, epoch uint32) uint32 {
 	log.Trace("ComputeIncreaseValidator", "shardId", shardId, "currentRating", currentRating)
 	var ratingStep int32
 	if shardId == core.MetachainShardId {
-		ratingStep = bsr.ratingsHandler.MetaChainRatingsStepHandler().ValidatorIncreaseRatingStep()
+		ratingStep = bsr.getMetaChainRatingsStepHandler(epoch).ValidatorIncreaseRatingStep()
 	} else {
-		ratingStep = bsr.ratingsHandler.ShardChainRatingsStepHandler().ValidatorIncreaseRatingStep()
+		ratingStep = bsr.getShardChainRatingsStepHandler(epoch).ValidatorIncreaseRatingStep()
 	}
 	return bsr.computeRating(ratingStep, currentRating)
 }
 
 // ComputeDecreaseValidator computes the new rating for the decreaseValidator
-func (bsr *BlockSigningRater) ComputeDecreaseValidator(shardId uint32, currentRating uint32) uint32 {
+func (bsr *BlockSigningRater) ComputeDecreaseValidator(shardId uint32, currentRating uint32, epoch uint32) uint32 {
 	log.Trace("ComputeDecreaseValidator", "shardId", shardId, "currentRating", currentRating)
 	var ratingStep int32
 	if shardId == core.MetachainShardId {
-		ratingStep = bsr.ratingsHandler.MetaChainRatingsStepHandler().ValidatorDecreaseRatingStep()
+		ratingStep = bsr.getMetaChainRatingsStepHandler(epoch).ValidatorDecreaseRatingStep()
 	} else {
-		ratingStep = bsr.ratingsHandler.ShardChainRatingsStepHandler().ValidatorDecreaseRatingStep()
+		ratingStep = bsr.getShardChainRatingsStepHandler(epoch).ValidatorDecreaseRatingStep()
 	}
 	return bsr.computeRating(ratingStep, currentRating)
 }

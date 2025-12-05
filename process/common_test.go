@@ -13,9 +13,11 @@ import (
 	"github.com/multiversx/mx-chain-core-go/data/block"
 	"github.com/multiversx/mx-chain-core-go/data/transaction"
 	"github.com/multiversx/mx-chain-core-go/data/typeConverters"
-	"github.com/multiversx/mx-chain-go/testscommon/processMocks"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
+
+	"github.com/multiversx/mx-chain-go/common"
+	"github.com/multiversx/mx-chain-go/testscommon/processMocks"
 
 	"github.com/multiversx/mx-chain-go/process/estimator"
 
@@ -156,9 +158,12 @@ func TestGetMetaHeaderShouldErrNilStorage(t *testing.T) {
 func TestGetMetaHeaderShouldGetHeaderFromPool(t *testing.T) {
 	t.Parallel()
 
-	hash := []byte("X")
+	testGetMetaHeader(t, &block.MetaBlock{Nonce: 1})
+	testGetMetaHeader(t, &block.MetaBlockV3{Nonce: 2})
+}
 
-	hdr := &block.MetaBlock{Nonce: 1}
+func testGetMetaHeader(t *testing.T, hdr data.MetaHeaderHandler) {
+	hash := []byte("X")
 	cacher := &mock.HeadersCacherStub{
 		GetHeaderByHashCalled: func(hash []byte) (handler data.HeaderHandler, e error) {
 			return hdr, nil
@@ -303,9 +308,12 @@ func TestGetMetaHeaderFromPoolShouldErrWrongTypeAssertion(t *testing.T) {
 func TestGetMetaHeaderFromPoolShouldWork(t *testing.T) {
 	t.Parallel()
 
-	hash := []byte("X")
+	testGetMetaHeaderFromPool(t, &block.MetaBlock{Nonce: 10})
+	testGetMetaHeaderFromPool(t, &block.MetaBlockV3{Nonce: 11})
+}
 
-	hdr := &block.MetaBlock{Nonce: 10}
+func testGetMetaHeaderFromPool(t *testing.T, hdr data.MetaHeaderHandler) {
+	hash := []byte("X")
 	cacher := &mock.HeadersCacherStub{
 		GetHeaderByHashCalled: func(hash []byte) (handler data.HeaderHandler, e error) {
 			return hdr, nil
@@ -542,9 +550,13 @@ func TestGetMetaHeaderFromStorageShouldErrUnmarshalWithoutSuccess(t *testing.T) 
 func TestGetMetaHeaderFromStorageShouldWork(t *testing.T) {
 	t.Parallel()
 
+	testGetMetaHeaderFromStorage(t, &block.MetaBlock{Nonce: 1})
+	testGetMetaHeaderFromStorage(t, &block.MetaBlockV3{Nonce: 2, LastExecutionResult: &block.MetaExecutionResultInfo{}})
+}
+
+func testGetMetaHeaderFromStorage(t *testing.T, hdr data.MetaHeaderHandler) {
 	hash := []byte("X")
 
-	hdr := &block.MetaBlock{}
 	marshalizer := &mock.MarshalizerMock{}
 	storageService := &storageStubs.ChainStorerStub{
 		GetStorerCalled: func(unitType dataRetriever.UnitType) (storage.Storer, error) {
@@ -938,11 +950,14 @@ func TestGetMetaHeaderWithNonceShouldGetHeaderFromPool(t *testing.T) {
 func TestGetMetaHeaderWithNonceShouldGetHeaderFromStorage(t *testing.T) {
 	t.Parallel()
 
+	testGetMetaHeaderWithNonceShouldGetHeaderFromStorage(t, &block.MetaBlock{Nonce: 1})
+	testGetMetaHeaderWithNonceShouldGetHeaderFromStorage(t, &block.MetaBlockV3{Nonce: 2})
+}
+
+func testGetMetaHeaderWithNonceShouldGetHeaderFromStorage(t *testing.T, hdr data.MetaHeaderHandler) {
 	hash := []byte("X")
-	nonce := uint64(1)
 	nonceToByte := []byte("1")
 
-	hdr := &block.MetaBlock{Nonce: nonce}
 	cacher := &mock.HeadersCacherStub{
 		GetHeaderByNonceAndShardIdCalled: func(hdrNonce uint64, shardId uint32) (handlers []data.HeaderHandler, i [][]byte, e error) {
 			return []data.HeaderHandler{hdr}, [][]byte{hash}, nil
@@ -967,7 +982,7 @@ func TestGetMetaHeaderWithNonceShouldGetHeaderFromStorage(t *testing.T) {
 	}
 	uint64Converter := &mock.Uint64ByteSliceConverterMock{
 		ToByteSliceCalled: func(n uint64) []byte {
-			if n == nonce {
+			if n == hdr.GetNonce() {
 				return nonceToByte
 			}
 
@@ -976,7 +991,7 @@ func TestGetMetaHeaderWithNonceShouldGetHeaderFromStorage(t *testing.T) {
 	}
 
 	header, _, _ := process.GetMetaHeaderWithNonce(
-		nonce,
+		hdr.GetNonce(),
 		cacher,
 		marshalizer,
 		storageService,
@@ -1156,17 +1171,20 @@ func TestGetMetaHeaderFromPoolWithNonceShouldErrWrongTypeAssertion(t *testing.T)
 func TestGetMetaHeaderFromPoolWithNonceShouldWork(t *testing.T) {
 	t.Parallel()
 
-	hash := []byte("X")
-	nonce := uint64(1)
+	testGetMetaHeaderFromPoolWithNonce(t, &block.MetaBlock{Nonce: 1})
+	testGetMetaHeaderFromPoolWithNonce(t, &block.MetaBlockV3{Nonce: 2})
+}
 
-	hdr := &block.MetaBlock{Nonce: nonce}
+func testGetMetaHeaderFromPoolWithNonce(t *testing.T, hdr data.MetaHeaderHandler) {
+	hash := []byte("X")
+
 	cacher := &mock.HeadersCacherStub{
 		GetHeaderByNonceAndShardIdCalled: func(hdrNonce uint64, shardId uint32) (handlers []data.HeaderHandler, i [][]byte, e error) {
 			return []data.HeaderHandler{hdr}, [][]byte{hash}, nil
 		},
 	}
 
-	header, headerHash, err := process.GetMetaHeaderFromPoolWithNonce(nonce, cacher)
+	header, headerHash, err := process.GetMetaHeaderFromPoolWithNonce(hdr.GetNonce(), cacher)
 	assert.Nil(t, err)
 	assert.Equal(t, hash, headerHash)
 	assert.Equal(t, hdr, header)
@@ -1653,10 +1671,13 @@ func TestGetMetaHeaderFromStorageWithNonceShouldErrUnmarshalWithoutSuccess(t *te
 func TestGetMetaHeaderFromStorageWithNonceShouldWork(t *testing.T) {
 	t.Parallel()
 
-	nonce := uint64(1)
+	testGetMetaHeaderFromStorageWithNonce(t, &block.MetaBlock{Nonce: 1})
+	testGetMetaHeaderFromStorageWithNonce(t, &block.MetaBlockV3{Nonce: 2, LastExecutionResult: &block.MetaExecutionResultInfo{}})
+}
+
+func testGetMetaHeaderFromStorageWithNonce(t *testing.T, hdr data.MetaHeaderHandler) {
 	hash := []byte("X")
 	nonceToByte := []byte("1")
-	hdr := &block.MetaBlock{Nonce: nonce}
 	marshalizer := &mock.MarshalizerMock{}
 	marshHdr, _ := marshalizer.Marshal(hdr)
 	storageService := &storageStubs.ChainStorerStub{
@@ -1676,7 +1697,7 @@ func TestGetMetaHeaderFromStorageWithNonceShouldWork(t *testing.T) {
 	}
 	uint64Converter := &mock.Uint64ByteSliceConverterMock{
 		ToByteSliceCalled: func(n uint64) []byte {
-			if n == nonce {
+			if n == hdr.GetNonce() {
 				return nonceToByte
 			}
 
@@ -1685,7 +1706,7 @@ func TestGetMetaHeaderFromStorageWithNonceShouldWork(t *testing.T) {
 	}
 
 	header, headerHash, err := process.GetMetaHeaderFromStorageWithNonce(
-		nonce,
+		hdr.GetNonce(),
 		storageService,
 		uint64Converter,
 		marshalizer)
@@ -2247,6 +2268,55 @@ func TestGetMiniBlockHeaderWithHash(t *testing.T) {
 		mbh := process.GetMiniBlockHeaderWithHash(header, []byte(hash1))
 		assert.Equal(t, expectedMbh, mbh)
 	})
+
+	t.Run("if extracting from execution results fails, nil should be returned", func(t *testing.T) {
+		t.Parallel()
+
+		header := &block.MetaBlockV3{
+			ExecutionResults: []*block.MetaExecutionResult{
+				nil,
+			},
+		}
+
+		mbh := process.GetMiniBlockHeaderWithHash(header, []byte(hash1))
+		assert.Nil(t, mbh)
+	})
+
+	t.Run("should find the mini block header in the execution results", func(t *testing.T) {
+		t.Parallel()
+
+		expectedMbh := block.MiniBlockHeader{
+			Hash: []byte(hash1),
+		}
+		header := &block.MetaBlockV3{
+			ExecutionResults: []*block.MetaExecutionResult{
+				{
+					MiniBlockHeaders: []block.MiniBlockHeader{expectedMbh},
+				},
+			},
+		}
+
+		mbh := process.GetMiniBlockHeaderWithHash(header, []byte(hash1))
+		assert.Equal(t, &expectedMbh, mbh)
+	})
+
+	t.Run("should return nil in case the execution result is not found", func(t *testing.T) {
+		t.Parallel()
+
+		expectedMbh := block.MiniBlockHeader{
+			Hash: []byte(hash1),
+		}
+		header := &block.MetaBlockV3{
+			ExecutionResults: []*block.MetaExecutionResult{
+				{
+					MiniBlockHeaders: []block.MiniBlockHeader{expectedMbh},
+				},
+			},
+		}
+
+		mbh := process.GetMiniBlockHeaderWithHash(header, []byte("hashX"))
+		assert.Nil(t, mbh)
+	})
 }
 
 func Test_IsBuiltinFuncCallWithParam(t *testing.T) {
@@ -2689,98 +2759,6 @@ func Test_CreateLastExecutionResultInfoFromExecutionResult(t *testing.T) {
 	})
 }
 
-func Test_CreateLastExecutionResultFromPrevHeader(t *testing.T) {
-	t.Parallel()
-
-	t.Run("nil prevHeader", func(t *testing.T) {
-		t.Parallel()
-
-		lastExecutionResult, err := process.CreateLastExecutionResultFromPrevHeader(nil, []byte("prevHeaderHash"))
-		require.Equal(t, process.ErrNilBlockHeader, err)
-		require.Nil(t, lastExecutionResult)
-	})
-	t.Run("nil prevHeaderHash", func(t *testing.T) {
-		t.Parallel()
-
-		prevHeader := createDummyPrevShardHeaderV2()
-		lastExecutionResult, err := process.CreateLastExecutionResultFromPrevHeader(prevHeader, nil)
-		require.Equal(t, process.ErrInvalidHash, err)
-		require.Nil(t, lastExecutionResult)
-	})
-	t.Run("invalid shard prevHeader type", func(t *testing.T) {
-		t.Parallel()
-
-		prevHeaderHash := []byte("prevHeaderHash")
-		// the expected header type is HeaderV2
-		prevHeader := &block.Header{
-			Nonce:    1,
-			Round:    2,
-			RootHash: []byte("prevRootHash"),
-			ShardID:  0,
-		}
-		lastExecutionResult, err := process.CreateLastExecutionResultFromPrevHeader(prevHeader, prevHeaderHash)
-		require.Equal(t, process.ErrWrongTypeAssertion, err)
-		require.Nil(t, lastExecutionResult)
-	})
-	t.Run("valid shard prevHeader type", func(t *testing.T) {
-		t.Parallel()
-
-		prevHeaderHash := []byte("prevHeaderHash")
-		prevHeader := createDummyPrevShardHeaderV2()
-		expectedLastExecutionResult := &block.ExecutionResultInfo{
-			NotarizedInRound: prevHeader.GetRound(),
-			ExecutionResult: &block.BaseExecutionResult{
-				HeaderHash:  prevHeaderHash,
-				HeaderNonce: prevHeader.GetNonce(),
-				HeaderRound: prevHeader.GetRound(),
-				RootHash:    prevHeader.GetRootHash(),
-			},
-		}
-
-		lastExecutionResultHandler, err := process.CreateLastExecutionResultFromPrevHeader(prevHeader, prevHeaderHash)
-		lastExecutionResultInfo := lastExecutionResultHandler.(*block.ExecutionResultInfo)
-		require.NoError(t, err)
-		require.NotNil(t, lastExecutionResultInfo)
-		require.Equal(t, expectedLastExecutionResult, lastExecutionResultInfo)
-	})
-	t.Run("invalid metaChain prevHeader type", func(t *testing.T) {
-		t.Parallel()
-
-		prevHeaderHash := []byte("prevHeaderHash")
-		prevMetaHeader := createDummyInvalidMetaHeader()
-		lastExecutionResultHandler, err := process.CreateLastExecutionResultFromPrevHeader(prevMetaHeader, prevHeaderHash)
-		require.Equal(t, process.ErrWrongTypeAssertion, err)
-		require.Nil(t, lastExecutionResultHandler)
-	})
-	t.Run("valid metaChain prevHeader type", func(t *testing.T) {
-		t.Parallel()
-
-		prevHeaderHash := []byte("prevHeaderHash")
-		prevMetaHeader := createDummyPrevMetaHeader()
-		expectedLastExecutionResult := &block.MetaExecutionResultInfo{
-			NotarizedInRound: prevMetaHeader.GetRound(),
-			ExecutionResult: &block.BaseMetaExecutionResult{
-				BaseExecutionResult: &block.BaseExecutionResult{
-					HeaderHash:  prevHeaderHash,
-					HeaderNonce: prevMetaHeader.GetNonce(),
-					HeaderRound: prevMetaHeader.GetRound(),
-					RootHash:    prevMetaHeader.GetRootHash(),
-				},
-				ValidatorStatsRootHash: prevMetaHeader.GetValidatorStatsRootHash(),
-				AccumulatedFeesInEpoch: prevMetaHeader.GetAccumulatedFeesInEpoch(),
-				DevFeesInEpoch:         prevMetaHeader.GetDevFeesInEpoch(),
-			},
-		}
-
-		lastExecutionResultHandler, err := process.CreateLastExecutionResultFromPrevHeader(prevMetaHeader, prevHeaderHash)
-		lastExecutionResultInfo, ok := lastExecutionResultHandler.(*block.MetaExecutionResultInfo)
-		require.True(t, ok)
-		require.NoError(t, err)
-		require.NotNil(t, lastExecutionResultInfo)
-		require.Equal(t, expectedLastExecutionResult, lastExecutionResultInfo)
-	})
-}
-
 func Test_GetPrevBlockLastExecutionResult(t *testing.T) {
 	t.Parallel()
 
@@ -2836,7 +2814,7 @@ func Test_GetPrevBlockLastExecutionResult(t *testing.T) {
 		lastExecutionResult, err := process.GetPrevBlockLastExecutionResult(blockchain)
 		require.NoError(t, err)
 		require.NotNil(t, lastExecutionResult)
-		expectedLastExecutionResult, _ := process.CreateLastExecutionResultFromPrevHeader(prevHeader, prevHeaderHash)
+		expectedLastExecutionResult, _ := common.CreateLastExecutionResultFromPrevHeader(prevHeader, prevHeaderHash)
 		require.Equal(t, expectedLastExecutionResult, lastExecutionResult)
 	})
 	t.Run("valid prev header - meta header v3", func(t *testing.T) {
@@ -2874,7 +2852,7 @@ func Test_GetPrevBlockLastExecutionResult(t *testing.T) {
 		lastExecutionResult, err := process.GetPrevBlockLastExecutionResult(blockchain)
 		require.NoError(t, err)
 		require.NotNil(t, lastExecutionResult)
-		expectedLastExecutionResult, _ := process.CreateLastExecutionResultFromPrevHeader(prevHeader, prevHeaderHash)
+		expectedLastExecutionResult, _ := common.CreateLastExecutionResultFromPrevHeader(prevHeader, prevHeaderHash)
 		require.Equal(t, expectedLastExecutionResult, lastExecutionResult)
 	})
 }
@@ -2999,16 +2977,6 @@ func createDummyPrevShardHeaderV2() *block.HeaderV2 {
 			Nonce:    1,
 			Round:    2,
 			RootHash: []byte("prevRootHash"),
-		},
-	}
-}
-func createDummyInvalidMetaHeader() data.HeaderHandler {
-	return &block.HeaderV2{
-		Header: &block.Header{
-			Nonce:    1,
-			Round:    2,
-			RootHash: []byte("prevRootHash"),
-			ShardID:  core.MetachainShardId,
 		},
 	}
 }

@@ -56,16 +56,24 @@ func NewSmartContractResultPreprocessor(args SmartContractResultsArgs) (*smartCo
 		return nil, err
 	}
 
+	ges, err := newGasEpochState(
+		args.EconomicsFee,
+		args.EnableEpochsHandler,
+		args.EnableRoundsHandler,
+	)
+	if err != nil {
+		return nil, err
+	}
+
 	bpp := &basePreProcess{
 		hasher:      args.Hasher,
 		marshalizer: args.Marshalizer,
-		gasTracker: gasTracker{
-			shardCoordinator:    args.ShardCoordinator,
-			gasHandler:          args.GasHandler,
-			economicsFee:        args.EconomicsFee,
-			enableEpochsHandler: args.EnableEpochsHandler,
-			enableRoundsHandler: args.EnableRoundsHandler,
-		},
+		gasTracker: newGasTracker(
+			args.ShardCoordinator,
+			args.GasHandler,
+			args.EconomicsFee,
+			ges,
+		),
 		blockSizeComputation:       args.BlockSizeComputation,
 		balanceComputation:         args.BalanceComputation,
 		accounts:                   args.Accounts,
@@ -76,6 +84,9 @@ func NewSmartContractResultPreprocessor(args SmartContractResultsArgs) (*smartCo
 		processedMiniBlocksTracker: args.ProcessedMiniBlocksTracker,
 		txExecutionOrderHandler:    args.TxExecutionOrderHandler,
 	}
+
+	args.EpochNotifier.RegisterNotifyHandler(bpp)
+	args.RoundNotifier.RegisterNotifyHandler(bpp)
 
 	scr := &smartContractResults{
 		basePreProcess:               bpp,
@@ -117,7 +128,7 @@ func (scr *smartContractResults) RemoveBlockDataFromPools(body *block.Body, mini
 }
 
 // RemoveTxsFromPools removes smart contract results from associated pools
-func (scr *smartContractResults) RemoveTxsFromPools(body *block.Body) error {
+func (scr *smartContractResults) RemoveTxsFromPools(body *block.Body, _ common.RootHashHolder) error {
 	return scr.removeTxsFromPools(body, scr.scrPool, scr.isMiniBlockCorrect)
 }
 
@@ -474,7 +485,7 @@ func (scr *smartContractResults) getAllScrsFromMiniBlock(
 }
 
 // SelectOutgoingTransactions returns an empty slice of byte slices, as this preprocessor does not handle outgoing transactions
-func (scr *smartContractResults) SelectOutgoingTransactions(_ uint64) ([][]byte, []data.TransactionHandler, error) {
+func (scr *smartContractResults) SelectOutgoingTransactions(_ uint64, _ uint64) ([][]byte, []data.TransactionHandler, error) {
 	return make([][]byte, 0), make([]data.TransactionHandler, 0), nil
 }
 
