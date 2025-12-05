@@ -23,6 +23,7 @@ type roundSyncController struct {
 	selfShardID      uint32
 }
 
+// NewRoundSyncController creates a new round sync controller which detects round desynchronization and triggers a forced NTP resync.
 func NewRoundSyncController(proofsPool consensus.EquivalentProofsPool, syncer ntp.SyncTimer, selfShardID uint32) (*roundSyncController, error) {
 	if check.IfNil(proofsPool) {
 		return nil, spos.ErrNilEquivalentProofPool
@@ -43,6 +44,9 @@ func NewRoundSyncController(proofsPool consensus.EquivalentProofsPool, syncer nt
 	return rsc, nil
 }
 
+// AddOutOfRangeRound records a consensus round that was outside the expected range.
+// These rounds are later correlated with received valid proofs to detect NTP desynchronization
+// and potentially trigger a forced time resync.
 func (rsc *roundSyncController) AddOutOfRangeRound(round uint64) {
 	rsc.outOfRangeRounds.add(round)
 }
