@@ -129,7 +129,7 @@ func TestHeadersExecutor_ProcessBlock(t *testing.T) {
 		args := createMockArgs()
 		cntWasPopCalled := uint32(0)
 		args.BlocksQueue = &processMocks.BlocksQueueMock{
-			PopCalled: func() (queue.HeaderBodyPair, bool, bool) {
+			PopCalled: func() (queue.HeaderBodyPair, bool) {
 				atomic.AddUint32(&cntWasPopCalled, 1)
 
 				return queue.HeaderBodyPair{
@@ -137,7 +137,7 @@ func TestHeadersExecutor_ProcessBlock(t *testing.T) {
 						Nonce: 1,
 					},
 					Body: &block.Body{},
-				}, true, true
+				}, true
 			},
 		}
 

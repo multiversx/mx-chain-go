@@ -116,7 +116,7 @@ func (gc *gasConsumption) AddIncomingMiniBlocks(
 	for i := 0; i < len(miniBlocks); i++ {
 		mbType := miniBlocks[i].GetTypeInt32()
 		if mbType == int32(block.RewardsBlock) || mbType == int32(block.PeerBlock) {
-			// rewards and validator info have 0 gas limit, thus they should be included anyway
+			// rewards and validator info have 0 gas limit, thus they should be included anyway without checking their transactions
 			lastMiniBlockIndex = i
 			continue
 		}

@@ -3366,6 +3366,12 @@ func (bp *baseProcessor) getTransactionsForMiniBlock(
 	miniBlock data.MiniBlockHeaderHandler,
 	txHashes [][]byte,
 ) ([]data.TransactionHandler, error) {
+	mbType := miniBlock.GetTypeInt32()
+	if mbType == int32(block.RewardsBlock) || mbType == int32(block.PeerBlock) {
+		// rewards and validator info have 0 gas limit, thus they should be included anyway without checking their transactions
+		return make([]data.TransactionHandler, 0), nil
+	}
+
 	pool, err := bp.getDataPoolByBlockType(block.Type(miniBlock.GetTypeInt32()))
 	if err != nil {
 		return nil, err

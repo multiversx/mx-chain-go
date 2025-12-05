@@ -106,13 +106,14 @@ func (he *headersExecutor) start(ctx context.Context) {
 			}
 
 			// blocking operation
-			headerBodyPair, valueOk, shouldContinue := he.blocksQueue.Pop()
+			headerBodyPair, shouldContinue := he.blocksQueue.Pop()
 			if !shouldContinue {
 				// close event
 				return
 			}
 
-			if !valueOk {
+			valuesOk := !check.IfNil(headerBodyPair.Header) && !check.IfNil(headerBodyPair.Body)
+			if !valuesOk {
 				continue
 			}
 

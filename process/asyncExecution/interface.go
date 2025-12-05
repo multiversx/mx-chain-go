@@ -8,7 +8,7 @@ import (
 
 // BlocksQueue defines what a block queue should be able to do
 type BlocksQueue interface {
-	Pop() (pair queue.HeaderBodyPair, poppedValidPair bool, shouldContinue bool)
+	Pop() (pair queue.HeaderBodyPair, shouldContinue bool)
 	Peek() (queue.HeaderBodyPair, bool)
 	IsInterfaceNil() bool
 	Close()
