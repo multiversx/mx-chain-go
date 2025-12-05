@@ -578,7 +578,7 @@ func (mp *metaProcessor) createExecutionResult(
 	}
 
 	logs := mp.txCoordinator.GetAllCurrentLogs()
-	err = mp.cacheLogEvents(headerHash, logs)
+	err = mp.cacheLogEvents(headerHash, getLogsSlice(logs))
 	if err != nil {
 		return nil, err
 	}
