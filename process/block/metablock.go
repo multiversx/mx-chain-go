@@ -1772,7 +1772,7 @@ func (mp *metaProcessor) getLastSelfNotarizedHeaderByShard(
 				mp.store,
 			)
 			if errGet != nil {
-				log.Trace("getLastSelfNotarizedHeaderByShard.GetMetaHeader", "error", errGet.Error())
+				log.Debug("getLastSelfNotarizedHeaderByShard.GetMetaHeader", "error", errGet.Error())
 				continue
 			}
 

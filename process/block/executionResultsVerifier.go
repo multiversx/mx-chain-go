@@ -2,6 +2,7 @@ package block
 
 import (
 	"fmt"
+	"reflect"
 
 	"github.com/multiversx/mx-chain-core-go/core/check"
 	"github.com/multiversx/mx-chain-core-go/data"
@@ -77,7 +78,39 @@ func (erc *executionResultsVerifier) verifyExecutionResults(
 	}
 
 	for i, er := range executionResults {
+		log.Debug("verifyExecutionResults: for header",
+			"nonce", header.GetNonce(),
+		)
+
+		log.Debug("header execution result",
+			"nonce", er.GetHeaderNonce(),
+			"round", er.GetHeaderRound(),
+			"epoch", er.GetHeaderEpoch(),
+			"gas", er.GetGasUsed(),
+			"hash", er.GetHeaderHash(),
+			"rootHash", er.GetRootHash(),
+			"full", fmt.Sprintf("%+v\n", er),
+		)
+		log.Debug("verifyExecutionResults: local execution result",
+			"nonce", pendingExecutionResults[i].GetHeaderNonce(),
+			"round", pendingExecutionResults[i].GetHeaderRound(),
+			"epoch", pendingExecutionResults[i].GetHeaderEpoch(),
+			"gas", pendingExecutionResults[i].GetGasUsed(),
+			"hash", pendingExecutionResults[i].GetHeaderHash(),
+			"rootHash", pendingExecutionResults[i].GetRootHash(),
+			"full", fmt.Sprintf("%+v\n", pendingExecutionResults[i]),
+		)
+	}
+
+	for i, er := range executionResults {
 		if !er.Equal(pendingExecutionResults[i]) {
+			log.Debug("verifyExecutionResults: results not matching",
+				"header nonce", header.GetNonce(),
+				"header res nonce", er.GetHeaderNonce(),
+				"header res type", reflect.TypeOf(er).String(),
+				"pending res nonce", pendingExecutionResults[i].GetHeaderNonce(),
+				"pending res type", reflect.TypeOf(pendingExecutionResults[i]).String(),
+			)
 			return process.ErrExecutionResultDoesNotMatch
 		}
 	}
