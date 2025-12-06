@@ -77,6 +77,7 @@ func defaultSubroundBlockFromSubround(sr *spos.Subround) (v2.SubroundBlock, erro
 				return consensusMetrics
 			},
 		},
+		&consensusMocks.RoundSyncControllerMock{},
 	)
 
 	return srBlock, err
@@ -93,6 +94,7 @@ func defaultSubroundBlockWithoutErrorFromSubround(sr *spos.Subround) v2.Subround
 				return consensusMetrics
 			},
 		},
+		&consensusMocks.RoundSyncControllerMock{},
 	)
 
 	return srBlock
@@ -174,6 +176,7 @@ func TestSubroundBlock_NewSubroundBlockNilSubroundShouldFail(t *testing.T) {
 		nil,
 		v2.ProcessingThresholdPercent,
 		&consensusMocks.SposWorkerMock{},
+		&consensusMocks.RoundSyncControllerMock{},
 	)
 	assert.Nil(t, srBlock)
 	assert.Equal(t, spos.ErrNilSubround, err)
@@ -328,9 +331,27 @@ func TestSubroundBlock_NewSubroundBlockNilWorkerShouldFail(t *testing.T) {
 		sr,
 		v2.ProcessingThresholdPercent,
 		nil,
+		&consensusMocks.RoundSyncControllerMock{},
 	)
 	assert.Nil(t, srBlock)
 	assert.Equal(t, spos.ErrNilWorker, err)
+}
+
+func TestSubroundBlock_NewSubroundBlockNilRoundSyncController(t *testing.T) {
+	t.Parallel()
+
+	container := consensusMocks.InitConsensusCore()
+	consensusState := initializers.InitConsensusState()
+	sr, _ := defaultSubroundForSRBlock(consensusState, make(chan bool, 1), container, &statusHandler.AppStatusHandlerStub{})
+
+	srBlock, err := v2.NewSubroundBlock(
+		sr,
+		v2.ProcessingThresholdPercent,
+		&consensusMocks.SposWorkerMock{},
+		nil,
+	)
+	require.Nil(t, srBlock)
+	require.Equal(t, v2.ErrNilRoundSyncController, err)
 }
 
 func TestSubroundBlock_NewSubroundBlockShouldWork(t *testing.T) {
@@ -586,6 +607,7 @@ func TestSubroundBlock_DoBlockJob(t *testing.T) {
 					return consensusMetrics
 				},
 			},
+			&consensusMocks.RoundSyncControllerMock{},
 		)
 
 		providedLeaderSignature := []byte("leader signature")
@@ -684,6 +706,7 @@ func TestSubroundBlock_DoBlockJob(t *testing.T) {
 					return consensusMetrics
 				},
 			},
+			&consensusMocks.RoundSyncControllerMock{},
 		)
 
 		providedLeaderSignature := []byte("leader signature")
@@ -1584,6 +1607,7 @@ func TestSubroundBlock_UpdateConsensusMetrics(t *testing.T) {
 				return consensusMetrics
 			},
 		},
+		&consensusMocks.RoundSyncControllerMock{},
 	)
 
 	consensusMetrics.ResetInstanceValues()

@@ -10,6 +10,10 @@ type SyncTimerMock struct {
 	CurrentTimeCalled func() time.Time
 }
 
+// ForceSync -
+func (stm *SyncTimerMock) ForceSync() {
+}
+
 // StartSyncingTime method does the time synchronization at every syncPeriod time elapsed. This should be started as a go routine
 func (stm *SyncTimerMock) StartSyncingTime() {
 	panic("implement me")

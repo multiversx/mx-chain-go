@@ -10,3 +10,6 @@ var ErrTimeOut = errors.New("time is out")
 
 // ErrProofAlreadyPropagated signals that the proof was already propagated
 var ErrProofAlreadyPropagated = errors.New("proof already propagated")
+
+// ErrNilRoundSyncController signals that a nil round sync controller has been provided
+var ErrNilRoundSyncController = errors.New("nil round sync controller")
