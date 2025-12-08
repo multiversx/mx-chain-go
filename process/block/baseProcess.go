@@ -234,6 +234,11 @@ func NewBaseProcessor(arguments ArgBaseProcessor) (*baseProcessor, error) {
 		executionManager:                   arguments.ExecutionManager,
 	}
 
+	err = base.OnExecutedBlock(genesisHdr, genesisHdr.GetRootHash())
+	if err != nil {
+		return nil, err
+	}
+
 	return base, nil
 }
 
@@ -762,6 +767,9 @@ func checkProcessorParameters(arguments ArgBaseProcessor) error {
 	}
 	if check.IfNil(arguments.DataComponents.Datapool().Headers()) {
 		return process.ErrNilHeadersDataPool
+	}
+	if check.IfNil(arguments.DataComponents.Datapool().Transactions()) {
+		return process.ErrNilTransactionPool
 	}
 	if check.IfNil(arguments.ExecutionResultsInclusionEstimator) {
 		return process.ErrNilExecutionResultsInclusionEstimator
@@ -2658,13 +2666,14 @@ func (bp *baseProcessor) prepareAccountsForProposal() (data.BaseExecutionResultH
 	return lastExecResHandler, nil
 }
 
-func (bp *baseProcessor) onExecutedBlock(header data.HeaderHandler, rootHash []byte) error {
+// OnExecutedBlock notifies the underlying TxCache
+func (bp *baseProcessor) OnExecutedBlock(header data.HeaderHandler, rootHash []byte) error {
 	bp.appStatusHandler.SetUInt64Value(common.MetricNumTrackedBlocks, bp.dataPool.Transactions().GetNumTrackedBlocks())
 	bp.appStatusHandler.SetUInt64Value(common.MetricNumTrackedAccounts, bp.dataPool.Transactions().GetNumTrackedAccounts())
 
 	err := bp.dataPool.Transactions().OnExecutedBlock(header, rootHash)
 	if err != nil {
-		log.Error("baseProcessor.onExecutedBlock", "err", err)
+		log.Error("baseProcessor.OnExecutedBlock", "err", err)
 		return err
 	}
 
@@ -2904,7 +2913,7 @@ func (bp *baseProcessor) getMiniBlocksForReceiptsV3(execResult data.BaseExecutio
 	return receiptsMiniBlocks, nil
 }
 
-func (bp *baseProcessor) cacheLogEvents(headerHash []byte, logs []*data.LogData) error {
+func (bp *baseProcessor) cacheLogEvents(headerHash []byte, logs []data.LogDataHandler) error {
 	logsMarshalledSize, err := process.GetMarshaledSliceSize(logs, bp.marshalizer)
 	if err != nil {
 		return err
@@ -3404,14 +3413,24 @@ func (bp *baseProcessor) getTransactionsForMiniBlock(
 	miniBlock data.MiniBlockHeaderHandler,
 	txHashes [][]byte,
 ) ([]data.TransactionHandler, error) {
+	mbType := miniBlock.GetTypeInt32()
+	if mbType == int32(block.RewardsBlock) || mbType == int32(block.PeerBlock) {
+		// rewards and validator info have 0 gas limit, thus they should be included anyway without checking their transactions
+		return make([]data.TransactionHandler, 0), nil
+	}
+
+	pool, err := bp.getDataPoolByBlockType(block.Type(miniBlock.GetTypeInt32()))
+	if err != nil {
+		return nil, err
+	}
+
 	txs := make([]data.TransactionHandler, len(txHashes))
-	var err error
 	for idx, txHash := range txHashes {
 		txs[idx], err = process.GetTransactionHandlerFromPool(
 			miniBlock.GetSenderShardID(),
 			miniBlock.GetReceiverShardID(),
 			txHash,
-			bp.dataPool.Transactions(),
+			pool,
 			process.SearchMethodSearchFirst,
 		)
 		if err != nil {

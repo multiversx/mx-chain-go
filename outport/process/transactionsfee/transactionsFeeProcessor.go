@@ -264,7 +264,7 @@ func (tep *transactionsFeeProcessor) prepareTxWithResultsBasedOnLogs(
 		return
 	}
 
-	for _, event := range txWithResults.log.GetLogEvents() {
+	for _, event := range txWithResults.log.GetLogHandler().GetLogEvents() {
 		if core.WriteLogIdentifier == string(event.GetIdentifier()) && !hasRefund {
 			tep.setGasUsedAndFeeBasedOnRefundValue(txWithResults, userTx, big.NewInt(0), epoch)
 			continue

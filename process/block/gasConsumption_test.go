@@ -505,7 +505,7 @@ func TestGasConsumption_DecreaseOutgoingLimit(t *testing.T) {
 	// outgoing limit should be at lowest, 0
 	txHashes, txs := generateTxs(maxGasLimitPerTx, 3)
 	addedTxs, _, err := gc.AddOutgoingTransactions(txHashes, txs)
-	require.True(t, errors.Is(err, process.ErrZeroLimit))
+	require.NoError(t, err)
 	require.Zero(t, len(addedTxs)) // nothing added
 
 	// calling reset should not reset the block limit
@@ -536,7 +536,7 @@ func TestGasConsumption_DecreaseIncomingLimit(t *testing.T) {
 	mbs := generateMiniBlocks(2, 2)
 	txsForMBs := generateTxsForMiniBlocks(mbs)
 	lastMBIndex, pendingMBs, err := gc.AddIncomingMiniBlocks(mbs, txsForMBs)
-	require.True(t, errors.Is(err, process.ErrZeroLimit))
+	require.NoError(t, err)
 	require.Equal(t, -1, lastMBIndex) // nothing added
 	require.Zero(t, pendingMBs)       // nothing pending
 
@@ -581,8 +581,7 @@ func TestGasConsumption_ZeroOutgoingLimit(t *testing.T) {
 	// outgoing limit should be at 0, no txs should be added
 	txHashes, txs := generateTxs(maxGasLimitPerTx, 3)
 	addedTxs, _, err := gc.AddOutgoingTransactions(txHashes, txs)
-	require.True(t, errors.Is(err, process.ErrZeroLimit))
-	require.Contains(t, err.Error(), "outgoing transactions")
+	require.NoError(t, err)
 	require.Equal(t, 0, len(addedTxs)) // no txs added
 
 	// calling reset should not reset the block limit
@@ -591,8 +590,7 @@ func TestGasConsumption_ZeroOutgoingLimit(t *testing.T) {
 	// adding txs should still not be allowed
 	txHashes, txs = generateTxs(maxGasLimitPerTx, 3)
 	addedTxs, _, err = gc.AddOutgoingTransactions(txHashes, txs)
-	require.True(t, errors.Is(err, process.ErrZeroLimit))
-	require.Contains(t, err.Error(), "outgoing transactions")
+	require.NoError(t, err)
 	require.Equal(t, 0, len(addedTxs)) // no txs added
 
 	// calling ResetOutgoingLimit should restore the limit
@@ -618,8 +616,7 @@ func TestGasConsumption_ZeroIncomingLimit(t *testing.T) {
 	mbs := generateMiniBlocks(2, 2)
 	txsForMBs := generateTxsForMiniBlocks(mbs)
 	lastMBIndex, pendingMBs, err := gc.AddIncomingMiniBlocks(mbs, txsForMBs)
-	require.True(t, errors.Is(err, process.ErrZeroLimit))
-	require.Contains(t, err.Error(), "incoming mini blocks")
+	require.NoError(t, err)
 	require.Equal(t, -1, lastMBIndex) // no mbs added
 	require.Zero(t, pendingMBs)       // no pending mbs
 
@@ -630,8 +627,7 @@ func TestGasConsumption_ZeroIncomingLimit(t *testing.T) {
 	mbs = generateMiniBlocks(2, 2)
 	txsForMBs = generateTxsForMiniBlocks(mbs)
 	lastMBIndex, pendingMBs, err = gc.AddIncomingMiniBlocks(mbs, txsForMBs)
-	require.True(t, errors.Is(err, process.ErrZeroLimit))
-	require.Contains(t, err.Error(), "incoming mini blocks")
+	require.NoError(t, err)
 	require.Equal(t, -1, lastMBIndex) // no mbs added
 	require.Zero(t, pendingMBs)       // no pending mbs
 

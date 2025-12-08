@@ -164,6 +164,9 @@ func (bq *blocksQueue) Pop() (HeaderBodyPair, bool) {
 		bq.headerBodyPairs = bq.headerBodyPairs[1:]
 		return item, true
 	}
+
+	log.Warn("blocksQueue.Pop - blocks queue is empty")
+
 	return HeaderBodyPair{}, false
 }
 
