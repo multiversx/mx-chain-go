@@ -471,7 +471,7 @@ func (sr *subroundBlock) isHeaderForCurrentConsensus(header data.HeaderHandler) 
 func (sr *subroundBlock) addOutOfRangeHeader(header data.HeaderHandler) {
 	hash, err := core.CalculateHash(sr.Marshalizer(), sr.Hasher(), header)
 	if err != nil {
-		log.Error("failed to calculate hash for out of range header", "err", err)
+		log.Error("failed to calculate hash for out of range header", "err", err, "round", header.GetRound())
 		return
 	}
 
