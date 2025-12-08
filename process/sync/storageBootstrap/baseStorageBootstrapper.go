@@ -425,15 +425,15 @@ func (st *storageBootstrapper) applyBootInfos(bootInfos []bootstrapStorage.Boots
 			log.Warn("cannot add header to fork detector", "error", err.Error())
 		}
 
-		// if i > 0 {
-		log.Debug("added self notarized header in block tracker",
-			"shard", header.GetShardID(),
-			"round", header.GetRound(),
-			"nonce", header.GetNonce(),
-			"hash", bootInfos[i].LastHeader.Hash)
+		if i > 0 {
+			log.Debug("added self notarized header in block tracker",
+				"shard", header.GetShardID(),
+				"round", header.GetRound(),
+				"nonce", header.GetNonce(),
+				"hash", bootInfos[i].LastHeader.Hash)
 
-		st.blockTracker.AddSelfNotarizedHeader(st.shardCoordinator.SelfId(), header, bootInfos[i].LastHeader.Hash)
-		// }
+			st.blockTracker.AddSelfNotarizedHeader(st.shardCoordinator.SelfId(), header, bootInfos[i].LastHeader.Hash)
+		}
 
 		st.blockTracker.AddTrackedHeader(header, bootInfos[i].LastHeader.Hash)
 	}
