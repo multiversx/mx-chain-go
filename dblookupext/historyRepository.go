@@ -144,7 +144,7 @@ func (hr *historyRepository) RecordBlock(blockHeaderHash []byte,
 	scrResultsFromPool map[string]data.TransactionHandler,
 	receiptsFromPool map[string]data.TransactionHandler,
 	createdIntraShardMiniBlocks []*block.MiniBlock,
-	logs []*data.LogData,
+	logs []data.LogDataHandler,
 ) error {
 	hr.recordBlockMutex.Lock()
 	defer hr.recordBlockMutex.Unlock()
@@ -183,7 +183,7 @@ func (hr *historyRepository) recordExtraData(
 	scrResultsFromPool map[string]data.TransactionHandler,
 	receiptsFromPool map[string]data.TransactionHandler,
 	createdIntraShardMiniBlocks []*block.MiniBlock,
-	logs []*data.LogData,
+	logs []data.LogDataHandler,
 ) error {
 	if blockHeader.IsHeaderV3() {
 		return hr.recordDataBasedOnExecutionResults(blockHeader)
@@ -237,7 +237,7 @@ func (hr *historyRepository) recordExecutionData(blockHeaderHash []byte,
 	scrResultsFromPool map[string]data.TransactionHandler,
 	receiptsFromPool map[string]data.TransactionHandler,
 	createdIntraShardMiniBlocks []*block.MiniBlock,
-	logs []*data.LogData,
+	logs []data.LogDataHandler,
 ) error {
 
 	for _, miniBlock := range createdIntraShardMiniBlocks {

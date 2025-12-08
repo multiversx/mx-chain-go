@@ -509,10 +509,26 @@ func (st *storageBootstrapper) setCurrentBlockInfo(
 	rootHash []byte,
 ) error {
 	if header.IsHeaderV3() {
+		lastExecutionResult, err := common.GetLastBaseExecutionResultHandler(header)
+		if err != nil {
+			log.Warn("failed to get last execution result for header", "err", err)
+			return err
+		}
+
+		err = st.blkExecutor.OnExecutedBlock(header, lastExecutionResult.GetRootHash())
+		if err != nil {
+			return err
+		}
+
 		return st.setCurrentBlockInfoV3(header, headerHash)
 	}
 
-	err := st.blkc.SetCurrentBlockHeaderAndRootHash(header, rootHash)
+	err := st.blkExecutor.OnExecutedBlock(header, rootHash)
+	if err != nil {
+		return err
+	}
+
+	err = st.blkc.SetCurrentBlockHeaderAndRootHash(header, rootHash)
 	if err != nil {
 		return err
 	}
