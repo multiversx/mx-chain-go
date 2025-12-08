@@ -159,8 +159,8 @@ func (txCoordinator *TxCoordinator) AddTransactions(_ []data.TransactionHandler,
 }
 
 // GetAllCurrentLogs returns empty logs map
-func (txCoordinator *TxCoordinator) GetAllCurrentLogs() []*data.LogData {
-	return make([]*data.LogData, 0)
+func (txCoordinator *TxCoordinator) GetAllCurrentLogs() []data.LogDataHandler {
+	return make([]data.LogDataHandler, 0)
 }
 
 // IsInterfaceNil returns true if there is no value under the interface

@@ -7,6 +7,7 @@ import (
 
 	"github.com/multiversx/mx-chain-core-go/core/check"
 	"github.com/multiversx/mx-chain-core-go/data"
+	"github.com/multiversx/mx-chain-core-go/data/block"
 
 	"golang.org/x/exp/slices"
 
@@ -105,7 +106,7 @@ func (gc *gasConsumption) AddIncomingMiniBlocks(
 	defer gc.mut.Unlock()
 
 	if gc.incomingLimitFactor == zeroLimitsFactor {
-		return initialLastIndex, 0, fmt.Errorf("%w for incoming mini blocks", process.ErrZeroLimit)
+		return initialLastIndex, 0, nil
 	}
 
 	bandwidthForIncomingMiniBlocks := gc.getGasLimitForOneDirection(incoming, gc.shardCoordinator.SelfId())
@@ -113,6 +114,13 @@ func (gc *gasConsumption) AddIncomingMiniBlocks(
 	lastMiniBlockIndex = initialLastIndex
 	shouldSavePending := false
 	for i := 0; i < len(miniBlocks); i++ {
+		mbType := miniBlocks[i].GetTypeInt32()
+		if mbType == int32(block.RewardsBlock) || mbType == int32(block.PeerBlock) {
+			// rewards and validator info have 0 gas limit, thus they should be included anyway without checking their transactions
+			lastMiniBlockIndex = i
+			continue
+		}
+
 		shouldSavePending, err = gc.addIncomingMiniBlock(miniBlocks[i], transactions, bandwidthForIncomingMiniBlocks)
 		if shouldSavePending {
 			// saving pending starting with idx i, as it was not included either
@@ -306,7 +314,7 @@ func (gc *gasConsumption) AddOutgoingTransactions(
 	defer gc.mut.Unlock()
 
 	if gc.outgoingLimitFactor == 0 {
-		return nil, nil, fmt.Errorf("%w for outgoing transactions", process.ErrZeroLimit)
+		return make([][]byte, 0), make([]data.MiniBlockHeaderHandler, 0), nil
 	}
 
 	skippedSenders := make(map[string]struct{})

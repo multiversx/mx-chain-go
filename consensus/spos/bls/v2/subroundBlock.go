@@ -9,7 +9,6 @@ import (
 	"github.com/multiversx/mx-chain-core-go/core"
 	"github.com/multiversx/mx-chain-core-go/core/check"
 	"github.com/multiversx/mx-chain-core-go/data"
-
 	"github.com/multiversx/mx-chain-go/common"
 	"github.com/multiversx/mx-chain-go/consensus"
 	"github.com/multiversx/mx-chain-go/consensus/spos"
@@ -27,6 +26,7 @@ type subroundBlock struct {
 	processingThresholdPercentage int
 	worker                        spos.WorkerHandler
 	mutBlockProcessing            sync.Mutex
+	syncController                spos.RoundSyncControllerHandler
 }
 
 // NewSubroundBlock creates a subroundBlock object
@@ -34,6 +34,7 @@ func NewSubroundBlock(
 	baseSubround *spos.Subround,
 	processingThresholdPercentage int,
 	worker spos.WorkerHandler,
+	syncController spos.RoundSyncControllerHandler,
 ) (*subroundBlock, error) {
 	err := checkNewSubroundBlockParams(baseSubround)
 	if err != nil {
@@ -43,11 +44,15 @@ func NewSubroundBlock(
 	if check.IfNil(worker) {
 		return nil, spos.ErrNilWorker
 	}
+	if check.IfNil(syncController) {
+		return nil, ErrNilRoundSyncController
+	}
 
 	srBlock := subroundBlock{
 		Subround:                      baseSubround,
 		processingThresholdPercentage: processingThresholdPercentage,
 		worker:                        worker,
+		syncController:                syncController,
 	}
 
 	srBlock.Job = srBlock.doBlockJob
@@ -444,6 +449,7 @@ func (sr *subroundBlock) isHeaderForCurrentConsensus(header data.HeaderHandler) 
 		return false
 	}
 	if header.GetRound() != uint64(sr.RoundHandler().Index()) {
+		sr.addOutOfRangeHeader(header)
 		return false
 	}
 
@@ -460,6 +466,16 @@ func (sr *subroundBlock) isHeaderForCurrentConsensus(header data.HeaderHandler) 
 	prevRandSeed := prevHeader.GetRandSeed()
 
 	return bytes.Equal(header.GetPrevRandSeed(), prevRandSeed)
+}
+
+func (sr *subroundBlock) addOutOfRangeHeader(header data.HeaderHandler) {
+	hash, err := core.CalculateHash(sr.Marshalizer(), sr.Hasher(), header)
+	if err != nil {
+		log.Error("failed to calculate hash for out of range header", "err", err, "round", header.GetRound())
+		return
+	}
+
+	sr.syncController.AddOutOfRangeRound(header.GetRound(), string(hash))
 }
 
 func (sr *subroundBlock) getLeaderForHeader(headerHandler data.HeaderHandler) ([]byte, error) {

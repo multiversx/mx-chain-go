@@ -1357,7 +1357,7 @@ func (mp *metaProcessor) CommitBlock(
 		return err
 	}
 
-	err = mp.onExecutedBlock(lastExecutionResultHeader, rootHash)
+	err = mp.OnExecutedBlock(lastExecutionResultHeader, rootHash)
 	if err != nil {
 		return err
 	}
