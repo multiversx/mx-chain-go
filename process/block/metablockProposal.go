@@ -332,7 +332,6 @@ func (mp *metaProcessor) ProcessBlockProposal(
 
 	defer func() {
 		if err != nil {
-			log.Debug("ProcessBlockProposal", "nonce", headerHandler.GetNonce(), "error", err)
 			mp.RevertCurrentBlock(headerHandler)
 		}
 	}()

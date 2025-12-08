@@ -6,7 +6,6 @@ import (
 	"errors"
 	"fmt"
 	"math/big"
-	"reflect"
 	"sync"
 	"time"
 
@@ -2574,7 +2573,7 @@ func (mp *metaProcessor) getLastExecutionResult(
 
 	metaExecutionResult, castOk := lastExecutionResult.(data.MetaExecutionResultHandler)
 	if !castOk {
-		return nil, fmt.Errorf("%w in metaProcessor.getLastExecutionResult: %s", process.ErrWrongTypeAssertion, reflect.TypeOf(lastExecutionResult).String())
+		return nil, fmt.Errorf("%w in metaProcessor.getLastExecutionResult", process.ErrWrongTypeAssertion)
 	}
 
 	return metaExecutionResult, nil

@@ -561,20 +561,7 @@ func (st *storageBootstrapper) setCurrentBlockInfoV3(
 
 	// when setting execution result it should be the full structure, not base execution results
 
-	log.Debug("storageBootstrap.setCurrentBlockInfoV3: last execution result",
-		"header hash", lastBaseExecutionResult.GetHeaderHash(),
-		"nonce", lastBaseExecutionResult.GetHeaderNonce(),
-		"root hash", lastBaseExecutionResult.GetRootHash(),
-	)
-
-	metaBaseExecResult, ok := lastBaseExecutionResult.(data.BaseMetaExecutionResultHandler)
-	if ok {
-		log.Debug("storageBootstrap.setCurrentBlockInfoV3: base meta exec result",
-			"val stats root hash", metaBaseExecResult.GetValidatorStatsRootHash(),
-		)
-	}
-
-	lastExecutionResult, err := st.getLastExecutionResult(header, headerHash, lastBaseExecutionResult.GetHeaderNonce())
+	lastExecutionResult, err := st.getLastExecutionResult(header, lastBaseExecutionResult.GetHeaderNonce())
 	if err != nil {
 		return err
 	}
@@ -591,7 +578,6 @@ func (st *storageBootstrapper) setCurrentBlockInfoV3(
 
 func (st *storageBootstrapper) getLastExecutionResult(
 	header data.HeaderHandler,
-	headerHash []byte,
 	lastExecutedNonce uint64,
 ) (data.BaseExecutionResultHandler, error) {
 	execResult, found := findExecutionResultOnHeader(header, lastExecutedNonce)

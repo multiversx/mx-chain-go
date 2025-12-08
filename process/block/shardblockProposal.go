@@ -344,7 +344,6 @@ func (sp *shardProcessor) ProcessBlockProposal(
 
 	defer func() {
 		if err != nil {
-			log.Debug("ProcessBlockProposal", "nonce", headerHandler.GetNonce(), "error", err)
 			sp.RevertCurrentBlock(header)
 		}
 	}()
@@ -480,25 +479,6 @@ func (sp *shardProcessor) selectIncomingMiniBlocks(
 	var errCreated error
 	var createIncomingMbsResult *CrossShardIncomingMbsCreationResult
 	lastMeta := lastCrossNotarizedMetaHdr
-
-	log.Debug("selectIncomingMiniBlocks",
-		"len orderedMetaBlocks", len(orderedMetaBlocks),
-		"len orderedMetaBlocksHashes", len(orderedMetaBlocksHashes),
-		"last cross meta nonce", lastCrossNotarizedMetaHdr.GetNonce(),
-		"last cross meta round", lastCrossNotarizedMetaHdr.GetRound(),
-	)
-
-	for _, block := range orderedMetaBlocks {
-		log.Debug(
-			"block", "nonce", block.GetNonce(), "round", block.GetRound(),
-		)
-	}
-
-	for _, hash := range orderedMetaBlocksHashes {
-		log.Debug(
-			"block hash", "hash", hash,
-		)
-	}
 
 	for i := 0; i < len(orderedMetaBlocks); i++ {
 		if !haveTime() {

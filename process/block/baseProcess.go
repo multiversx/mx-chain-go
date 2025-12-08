@@ -1249,13 +1249,6 @@ func (bp *baseProcessor) removeHeadersBehindNonceFromPools(
 			continue
 		}
 
-		log.Debug("removeHeadersBehindNonceFromPools",
-			"shardID", shardId,
-			"shouldRemoveBlockBody", shouldRemoveBlockBody,
-			"nonceFromCache", nonceFromCache,
-			"nonce", nonce,
-		)
-
 		if shouldRemoveBlockBody {
 			bp.removeBlocksBody(nonceFromCache, shardId)
 		}
@@ -1489,19 +1482,6 @@ func (bp *baseProcessor) prepareDataForBootStorer(args bootStorerDataArgs) {
 		EpochStartTriggerConfigKey: args.epochStartTriggerConfigKey,
 	}
 
-	log.Debug("prepareDataForBootStorer",
-		"lastHeader nonce", args.headerInfo.GetNonce(),
-		"lastHeader hash", args.headerInfo.GetHash(),
-	)
-
-	for _, hdr := range lastCrossNotarizedHeaders {
-		log.Debug("lastCrossNotarizedHeaders",
-			"hash", hdr.GetHash(),
-			"nonce", hdr.GetNonce(),
-			"shardID", hdr.GetShardId(),
-		)
-	}
-
 	startTime := time.Now()
 
 	err := bp.bootStorer.Put(int64(args.round), bootData)
@@ -1568,22 +1548,13 @@ func (bp *baseProcessor) getLastSelfNotarizedHeaders() []bootstrapStorage.Bootst
 		bootstrapHeaderInfo := bp.getLastSelfNotarizedHeadersForShard(shardID)
 		if bootstrapHeaderInfo != nil {
 			lastSelfNotarizedHeaders = append(lastSelfNotarizedHeaders, *bootstrapHeaderInfo)
-			log.Debug("getLastSelfNotarizedHeaders", "shardID", shardID,
-				"boot info", bootstrapHeaderInfo,
-			)
-		} else {
-			log.Debug("getLastSelfNotarizedHeaders: is nil", "shardID", shardID)
 		}
 	}
-
-	log.Debug("getLastSelfNotarizedHeaders:", "len", lastSelfNotarizedHeaders)
 
 	bootstrapHeaderInfo := bp.getLastSelfNotarizedHeadersForShard(core.MetachainShardId)
 	if bootstrapHeaderInfo != nil {
 		lastSelfNotarizedHeaders = append(lastSelfNotarizedHeaders, *bootstrapHeaderInfo)
 	}
-
-	log.Debug("getLastSelfNotarizedHeaders 2:", "len", lastSelfNotarizedHeaders)
 
 	if len(lastSelfNotarizedHeaders) == 0 {
 		return nil
@@ -1848,12 +1819,6 @@ func (bp *baseProcessor) saveShardHeader(header data.HeaderHandler, headerHash [
 	if elapsedTime >= common.PutInStorerMaxTime {
 		log.Warn("saveShardHeader", "elapsed time", elapsedTime)
 	}
-
-	log.Debug("saveShardHeader",
-		"hash", headerHash,
-		"nonce", header.GetNonce(),
-		"shardID", header.GetShardID(),
-	)
 }
 
 func (bp *baseProcessor) saveMetaHeader(header data.HeaderHandler, headerHash []byte, marshalizedHeader []byte) {
