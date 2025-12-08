@@ -90,26 +90,74 @@ func (em *executionManager) AddPairForExecution(pair queue.HeaderBodyPair) error
 	defer em.mut.Unlock()
 
 	lastExecutedBlock := em.blockChain.GetLastExecutedBlockHeader()
-	if areSameHeaders(pair.Header, lastExecutedBlock) {
-		log.Warn("header already executed", "nonce", pair.Header.GetNonce(), "round", pair.Header.GetRound())
-		return nil
+	if !check.IfNil(lastExecutedBlock) &&
+		lastExecutedBlock.GetNonce() >= pair.Header.GetNonce() {
+		err := em.updateContextForReplacedHeader(pair.Header)
+		if err != nil {
+			return err
+		}
 	}
-	// todo: remove pending execution result on same nonce if any
-	// todo: make sure the lastExecutedBlockHeader from blockchain is only set in blockchain if
-	// the block has passed consensus (was committed)
+
 	return em.blocksQueue.AddOrReplace(pair)
 }
 
-func areSameHeaders(header1, header2 data.HeaderHandler) bool {
-	if check.IfNil(header1) || check.IfNil(header2) {
-		return false
+func (em *executionManager) updateContextForReplacedHeader(header data.HeaderHandler) error {
+	pendingExecutionResults, err := em.GetPendingExecutionResults()
+	if err != nil {
+		return err
 	}
 
-	sameNonce := header1.GetNonce() == header2.GetNonce()
-	sameRound := header1.GetRound() == header2.GetRound()
-	samePreviousHash := bytes.Equal(header1.GetPrevHash(), header2.GetPrevHash())
+	lastExecutionResult, err := em.executionResultsTracker.GetLastNotarizedExecutionResult()
+	if err != nil {
+		return err
+	}
 
-	return sameNonce && sameRound && samePreviousHash
+	executionResultToSet, err := em.getExecutionResultToSetOnReplacedHeader(
+		header,
+		pendingExecutionResults,
+		lastExecutionResult,
+	)
+	if err != nil {
+		return err
+	}
+
+	headerToSet, err := em.headers.GetHeaderByHash(executionResultToSet.GetHeaderHash())
+	if err != nil {
+		return err
+	}
+
+	em.blockChain.SetLastExecutedBlockHeaderAndRootHash(headerToSet, executionResultToSet.GetHeaderHash(), executionResultToSet.GetRootHash())
+	em.blockChain.SetLastExecutionResult(executionResultToSet)
+	// need to remove all execution results after the one set
+	return em.executionResultsTracker.RemoveFromNonce(executionResultToSet.GetHeaderNonce() + 1)
+}
+
+func (em *executionManager) getExecutionResultToSetOnReplacedHeader(
+	header data.HeaderHandler,
+	pendingExecutionResults []data.BaseExecutionResultHandler,
+	lastNotarizedResult data.BaseExecutionResultHandler,
+) (data.BaseExecutionResultHandler, error) {
+	prevNonce := header.GetNonce() - 1
+	prevHash := header.GetPrevHash()
+
+	headerHashToSet := lastNotarizedResult.GetHeaderHash()
+	executionResultToSet := lastNotarizedResult
+	if bytes.Equal(prevHash, headerHashToSet) {
+		return executionResultToSet, nil
+	}
+
+	for i := len(pendingExecutionResults) - 1; i >= 0; i-- {
+		if pendingExecutionResults[i].GetHeaderNonce() <= prevNonce {
+			headerHashToSet = pendingExecutionResults[i].GetHeaderHash()
+			executionResultToSet = pendingExecutionResults[i]
+			break
+		}
+	}
+	if !bytes.Equal(prevHash, headerHashToSet) {
+		return nil, ErrExecutionResultNotFound
+	}
+
+	return executionResultToSet, nil
 }
 
 // GetPendingExecutionResults calls the same method from executionResultsTracker
