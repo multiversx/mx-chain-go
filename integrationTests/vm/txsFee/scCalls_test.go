@@ -480,7 +480,7 @@ func TestScCallBuyNFT_OneFailedTxAndOneOkTx(t *testing.T) {
 		logs := testContext.TxsLogsProcessor.GetAllCurrentLogs()
 		assert.Equal(t, 2, len(logs))
 
-		logEvents := logs[1].GetLogEvents()
+		logEvents := logs[1].GetLogHandler().GetLogEvents()
 		assert.Equal(t, 2, len(logEvents))
 
 		topics := logEvents[0].GetTopics()
@@ -508,7 +508,7 @@ func TestScCallBuyNFT_OneFailedTxAndOneOkTx(t *testing.T) {
 		logs := testContext.TxsLogsProcessor.GetAllCurrentLogs()
 		assert.Equal(t, 3, len(logs))
 
-		logEvents := logs[1].GetLogEvents()
+		logEvents := logs[1].GetLogHandler().GetLogEvents()
 		assert.Equal(t, 2, len(logEvents))
 
 		topics := logEvents[0].GetTopics()
@@ -554,7 +554,7 @@ func TestScCallBuyNFT_TwoOkTxs(t *testing.T) {
 
 		logs := testContext.TxsLogsProcessor.GetAllCurrentLogs()
 
-		logEvents := logs[1].GetLogEvents()
+		logEvents := logs[1].GetLogHandler().GetLogEvents()
 		assert.Equal(t, 2, len(logEvents))
 
 		topics := logEvents[0].GetTopics()
@@ -582,7 +582,7 @@ func TestScCallBuyNFT_TwoOkTxs(t *testing.T) {
 
 		logs := testContext.TxsLogsProcessor.GetAllCurrentLogs()
 
-		logEvents := logs[1].GetLogEvents()
+		logEvents := logs[1].GetLogHandler().GetLogEvents()
 		assert.Equal(t, 2, len(logEvents))
 
 		topics := logEvents[0].GetTopics()

@@ -4362,11 +4362,19 @@ func TestBaseProcessor_OnExecutedBlock(t *testing.T) {
 		t.Parallel()
 
 		coreComponents, dataComponents, bootstrapComponents, statusComponents := createComponentHolderMocks()
+		dataComponents.BlockChain = &testscommon.ChainHandlerStub{
+			GetGenesisHeaderCalled: func() data.HeaderHandler {
+				return &block.Header{
+					RootHash: []byte("genesisRootHash"),
+				}
+			},
+		}
+
 		dataPool := initDataPool()
 		dataPool.TransactionsCalled = func() dataRetriever.ShardedDataCacherNotifier {
 			return &testscommon.ShardedDataCacheNotifierMock{
 				OnExecutedBlockCalled: func(blockHeader data.HeaderHandler, rootHash []byte) error {
-					if bytes.Equal(rootHash, []byte("rootHash")) {
+					if bytes.Equal(rootHash, []byte("rootHash")) || bytes.Equal(rootHash, []byte("genesisRootHash")) {
 						return nil
 					}
 					return expectedErr
@@ -4387,10 +4395,21 @@ func TestBaseProcessor_OnExecutedBlock(t *testing.T) {
 		t.Parallel()
 
 		coreComponents, dataComponents, bootstrapComponents, statusComponents := createComponentHolderMocks()
+		dataComponents.BlockChain = &testscommon.ChainHandlerStub{
+			GetGenesisHeaderCalled: func() data.HeaderHandler {
+				return &block.Header{
+					RootHash: []byte("genesisRootHash"),
+				}
+			},
+		}
+
 		dataPool := initDataPool()
 		dataPool.TransactionsCalled = func() dataRetriever.ShardedDataCacherNotifier {
 			return &testscommon.ShardedDataCacheNotifierMock{
 				OnExecutedBlockCalled: func(blockHeader data.HeaderHandler, rootHash []byte) error {
+					if bytes.Equal(rootHash, []byte("genesisRootHash")) {
+						return nil
+					}
 					return expectedErr
 				},
 			}
