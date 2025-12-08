@@ -2306,6 +2306,11 @@ func TestShardProcessor_CommitBlockFailsWhenOnExecutedBlockFails(t *testing.T) {
 	testBlockchain.GetCurrentBlockHeaderHashCalled = func() []byte {
 		return headerHash
 	}
+	testBlockchain.GetGenesisHeaderCalled = func() data.HeaderHandler {
+		return &block.Header{
+			RootHash: []byte("genesisHeaderHash"),
+		}
+	}
 
 	dataComponents.BlockChain = testBlockchain
 	dataComponents.Storage = initStore()
@@ -2313,6 +2318,10 @@ func TestShardProcessor_CommitBlockFailsWhenOnExecutedBlockFails(t *testing.T) {
 	txPoolOnExecutedBlockCalled := false
 	dataComponents.DataPool = initDataPool()
 	dataComponents.DataPool.Transactions().(*testscommon.ShardedDataCacheNotifierMock).OnExecutedBlockCalled = func(blockHeader data.HeaderHandler, rootHash []byte) error {
+		if bytes.Equal(rootHash, []byte("genesisHeaderHash")) {
+			return nil
+		}
+
 		txPoolOnExecutedBlockCalled = true
 		return expectedErr
 	}

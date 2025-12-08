@@ -635,6 +635,8 @@ func (pcf *processComponentsFactory) Create() (*processComponents, error) {
 		ExecutionResultsTracker: executionResultsTracker,
 		BlockChain:              pcf.data.Blockchain(),
 		Headers:                 pcf.data.Datapool().Headers(),
+		StorageService:          pcf.data.StorageService(),
+		Marshaller:              pcf.coreData.InternalMarshalizer(),
 	}
 	execManager, err := executionManager.NewExecutionManager(argExecManager)
 	if err != nil {
@@ -2192,7 +2194,7 @@ func wrapReceipts(receipts map[string]*receipt.Receipt) map[string]data.Transact
 	return ret
 }
 
-func wrapLogs(logs []*outport.LogData) []data.LogDataHandler {
+func wrapLogs(logs []*transaction.LogData) []data.LogDataHandler {
 	ret := make([]data.LogDataHandler, len(logs))
 
 	for idx, logData := range logs {

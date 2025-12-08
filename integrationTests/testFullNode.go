@@ -82,6 +82,7 @@ import (
 	"github.com/multiversx/mx-chain-go/testscommon/p2pmocks"
 	"github.com/multiversx/mx-chain-go/testscommon/shardingMocks"
 	statusHandlerMock "github.com/multiversx/mx-chain-go/testscommon/statusHandler"
+	storageStubs "github.com/multiversx/mx-chain-go/testscommon/storage"
 	vic "github.com/multiversx/mx-chain-go/testscommon/validatorInfoCacher"
 	"github.com/multiversx/mx-chain-go/vm"
 	"github.com/multiversx/mx-chain-go/vm/systemSmartContracts/defaults"
@@ -952,6 +953,8 @@ func (tpn *TestFullNode) initBlockProcessor(
 		ExecutionResultsTracker: executionResultsTracker,
 		BlockChain:              tpn.BlockChain,
 		Headers:                 tpn.DataPool.Headers(),
+		StorageService:          &storageStubs.ChainStorerStub{},
+		Marshaller:              TestMarshaller,
 	}
 	tpn.ExecutionManager, err = executionManager.NewExecutionManager(argsExecutionManager)
 	if err != nil {
@@ -1315,6 +1318,8 @@ func (tpn *TestFullNode) initBlockProcessorWithSync(
 		ExecutionResultsTracker: executionResultsTracker,
 		BlockChain:              tpn.BlockChain,
 		Headers:                 tpn.DataPool.Headers(),
+		StorageService:          &storageStubs.ChainStorerStub{},
+		Marshaller:              TestMarshaller,
 	}
 	tpn.ExecutionManager, err = executionManager.NewExecutionManager(argsExecutionManager)
 	if err != nil {

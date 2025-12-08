@@ -212,6 +212,8 @@ func NewShardProcessorEmptyWith3shards(
 		ExecutionResultsTracker: executionResultsTracker,
 		BlockChain:              dataComponents.BlockChain,
 		Headers:                 dataComponents.Datapool().Headers(),
+		StorageService:          dataComponents.StorageService(),
+		Marshaller:              coreComponents.InternalMarshalizer(),
 	})
 	execResultsVerifier, _ := NewExecutionResultsVerifier(dataComponents.BlockChain, execManager)
 	inclusionEstimator := estimator.NewExecutionResultInclusionEstimator(
@@ -1025,11 +1027,6 @@ func (mp *metaProcessor) PrepareEpochStartBodyForTrigger(header data.MetaHeaderH
 // CommitEpochStart -
 func (mp *metaProcessor) CommitEpochStart(header data.MetaHeaderHandler, body *block.Body) error {
 	return mp.commitEpochStart(header, body)
-}
-
-// OnExecutedBlock -
-func (bp *baseProcessor) OnExecutedBlock(header data.HeaderHandler, rootHash []byte) error {
-	return bp.onExecutedBlock(header, rootHash)
 }
 
 // RecreateTrieIfNeeded -

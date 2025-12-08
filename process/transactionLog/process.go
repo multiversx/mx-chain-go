@@ -115,10 +115,8 @@ func (tlp *txLogProcessor) GetLogFromCache(txHash []byte) (data.LogDataHandler, 
 // GetAllCurrentLogs will return all generated logs for the current block
 func (tlp *txLogProcessor) GetAllCurrentLogs() []data.LogDataHandler {
 	tlp.mut.RLock()
-	logsSlice := make([]data.LogDataHandler, 0, len(tlp.logs))
-	for _, cachedLog := range tlp.logs {
-		logsSlice = append(logsSlice, cachedLog)
-	}
+	logsSlice := make([]data.LogDataHandler, len(tlp.logs))
+	copy(logsSlice, tlp.logs)
 	tlp.mut.RUnlock()
 
 	return logsSlice

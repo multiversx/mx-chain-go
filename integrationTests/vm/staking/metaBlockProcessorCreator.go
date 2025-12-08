@@ -120,6 +120,8 @@ func createMetaBlockProcessor(
 		ExecutionResultsTracker: executionResultsTracker,
 		BlockChain:              dataComponents.Blockchain(),
 		Headers:                 dataComponents.Datapool().Headers(),
+		StorageService:          dataComponents.StorageService(),
+		Marshaller:              coreComponents.InternalMarshalizer(),
 	})
 	execResultsVerifier, _ := blproc.NewExecutionResultsVerifier(dataComponents.Blockchain(), execManager)
 	inclusionEstimator := estimator.NewExecutionResultInclusionEstimator(
