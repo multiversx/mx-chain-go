@@ -916,7 +916,7 @@ func (mp *metaProcessor) hasExecutionResultsForProposedEpochChange(headerHandler
 			mp.dataPool.Headers(),
 			mp.store,
 			mp.marshalizer,
-			mp.shardCoordinator.SelfId(),
+			headerHandler.GetShardID(),
 		)
 		if err != nil {
 			log.Debug("hasExecutionResultsForProposedEpochChange: could not find header",
