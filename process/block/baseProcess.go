@@ -1737,7 +1737,7 @@ func (bp *baseProcessor) saveProposedTxsToStorage(header data.HeaderHandler, bod
 
 func (bp *baseProcessor) saveTxsToStorage(dataPool dataRetriever.ShardedDataCacherNotifier, storer storage.Storer, miniBlock *block.MiniBlock) error {
 	if miniBlock.Type == block.PeerBlock {
-		// peer info need special treatment as they do not implement TransactionHandler
+		// peer infos need special treatment as they do not implement TransactionHandler
 		return bp.savePeerInfoToStorage(dataPool, storer, miniBlock)
 	}
 
