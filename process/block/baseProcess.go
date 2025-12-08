@@ -234,6 +234,11 @@ func NewBaseProcessor(arguments ArgBaseProcessor) (*baseProcessor, error) {
 		executionManager:                   arguments.ExecutionManager,
 	}
 
+	err = base.OnExecutedBlock(genesisHdr, genesisHdr.GetRootHash())
+	if err != nil {
+		return nil, err
+	}
+
 	return base, nil
 }
 
@@ -762,6 +767,9 @@ func checkProcessorParameters(arguments ArgBaseProcessor) error {
 	}
 	if check.IfNil(arguments.DataComponents.Datapool().Headers()) {
 		return process.ErrNilHeadersDataPool
+	}
+	if check.IfNil(arguments.DataComponents.Datapool().Transactions()) {
+		return process.ErrNilTransactionPool
 	}
 	if check.IfNil(arguments.ExecutionResultsInclusionEstimator) {
 		return process.ErrNilExecutionResultsInclusionEstimator
@@ -2658,13 +2666,14 @@ func (bp *baseProcessor) prepareAccountsForProposal() (data.BaseExecutionResultH
 	return lastExecResHandler, nil
 }
 
-func (bp *baseProcessor) onExecutedBlock(header data.HeaderHandler, rootHash []byte) error {
+// OnExecutedBlock notifies the underlying TxCache
+func (bp *baseProcessor) OnExecutedBlock(header data.HeaderHandler, rootHash []byte) error {
 	bp.appStatusHandler.SetUInt64Value(common.MetricNumTrackedBlocks, bp.dataPool.Transactions().GetNumTrackedBlocks())
 	bp.appStatusHandler.SetUInt64Value(common.MetricNumTrackedAccounts, bp.dataPool.Transactions().GetNumTrackedAccounts())
 
 	err := bp.dataPool.Transactions().OnExecutedBlock(header, rootHash)
 	if err != nil {
-		log.Error("baseProcessor.onExecutedBlock", "err", err)
+		log.Error("baseProcessor.OnExecutedBlock", "err", err)
 		return err
 	}
 
