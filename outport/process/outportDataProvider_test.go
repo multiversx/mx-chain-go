@@ -769,7 +769,7 @@ func TestPrepareExecutionResultsData(t *testing.T) {
 		arg.DataPool.ExecutedMiniBlocks().Put(headerHash, intraMbs, 0)
 
 		logsKey := common.PrepareLogEventsKey(headerHash)
-		logsSlice := make([]*data.LogData, 0)
+		logsSlice := make([]data.LogDataHandler, 0)
 		arg.DataPool.PostProcessTransactions().Put(logsKey, logsSlice, 0)
 
 		cachedTxs := make(map[block.Type]map[string]data.TransactionHandler)
@@ -810,7 +810,7 @@ func TestPrepareExecutionResultsData(t *testing.T) {
 		arg.DataPool.ExecutedMiniBlocks().Put(headerHash, intraMbs, 0)
 
 		logsKey := common.PrepareLogEventsKey(headerHash)
-		logsSlice := make([]*data.LogData, 0)
+		logsSlice := make([]data.LogDataHandler, 0)
 		arg.DataPool.PostProcessTransactions().Put(logsKey, logsSlice, 0)
 
 		cachedTxs := make(map[block.Type]map[string]data.TransactionHandler)
@@ -849,7 +849,7 @@ func TestPrepareExecutionResultsData(t *testing.T) {
 		arg.DataPool.ExecutedMiniBlocks().Put(headerHash, intraMbs, 0)
 
 		logsKey := common.PrepareLogEventsKey(headerHash)
-		logsSlice := make([]*data.LogData, 0)
+		logsSlice := make([]data.LogDataHandler, 0)
 		arg.DataPool.PostProcessTransactions().Put(logsKey, logsSlice, 0)
 
 		cachedTxs := make(map[block.Type]map[string]data.TransactionHandler)
@@ -890,7 +890,7 @@ func TestPrepareExecutionResultsData(t *testing.T) {
 		arg.DataPool.ExecutedMiniBlocks().Put(headerHash, intraMbs, 0)
 
 		logsKey := common.PrepareLogEventsKey(headerHash)
-		logsSlice := make([]*data.LogData, 0)
+		logsSlice := make([]data.LogDataHandler, 0)
 		arg.DataPool.PostProcessTransactions().Put(logsKey, logsSlice, 0)
 
 		cachedTxs := make(map[block.Type]map[string]data.TransactionHandler)

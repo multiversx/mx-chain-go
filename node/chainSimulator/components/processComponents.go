@@ -288,6 +288,7 @@ func CreateProcessComponents(args ArgsProcessComponentsHolder) (*processComponen
 		sentSignatureTracker:             managedProcessComponents.SentSignaturesTracker(),
 		epochStartSystemSCProcessor:      managedProcessComponents.EpochSystemSCProcessor(),
 		blockchainHook:                   managedProcessComponents.BlockchainHook(),
+		executionManager:                 managedProcessComponents.ExecutionManager(),
 		managedProcessComponentsCloser:   managedProcessComponents,
 	}
 
