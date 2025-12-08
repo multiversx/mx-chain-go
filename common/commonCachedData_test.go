@@ -99,14 +99,14 @@ func TestGetLogs(t *testing.T) {
 		cacher := cache.NewCacherMock()
 
 		headerHash := []byte("h")
-		expectedLogs := []*data.LogData{
-			{
-				LogHandler: &transaction.Log{},
-				TxHash:     "t1",
+		expectedLogs := []data.LogDataHandler{
+			&transaction.LogData{
+				Log:    &transaction.Log{},
+				TxHash: "t1",
 			},
-			{
-				LogHandler: &transaction.Log{},
-				TxHash:     "t2",
+			&transaction.LogData{
+				Log:    &transaction.Log{},
+				TxHash: "t2",
 			},
 		}
 		logsKey := PrepareLogEventsKey(headerHash)

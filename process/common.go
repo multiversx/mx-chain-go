@@ -566,7 +566,7 @@ func checkGetTransactionParamsForNil(
 func getHeaderFromPool(
 	hash []byte,
 	headersCacher dataRetriever.HeadersPool,
-) (interface{}, error) {
+) (data.HeaderHandler, error) {
 
 	if check.IfNil(headersCacher) {
 		return nil, ErrNilCacher
