@@ -6,7 +6,6 @@ import (
 	"encoding/hex"
 	"fmt"
 	"math/big"
-	"reflect"
 	"sort"
 	"sync"
 	"time"
@@ -3463,11 +3462,6 @@ func (bp *baseProcessor) getLastExecutionResultHeader(
 }
 
 func (bp *baseProcessor) checkContextBeforeExecution(header data.HeaderHandler) error {
-	lastCommittedRootHash, err := bp.accountsDB[state.UserAccountsState].RootHash()
-	if err != nil {
-		return err
-	}
-
 	lastExecutedNonce, lastExecutedHash, lastExecutedRootHash := bp.blockChain.GetLastExecutedBlockInfo()
 	if !bytes.Equal(header.GetPrevHash(), lastExecutedHash) {
 		log.Debug("checkContextBeforeExecution: hash does not match",
@@ -3483,96 +3477,91 @@ func (bp *baseProcessor) checkContextBeforeExecution(header data.HeaderHandler) 
 		)
 		return process.ErrWrongNonceInBlock
 	}
+
+	err := bp.checkAccountsRootHash(state.UserAccountsState, lastExecutedRootHash)
+	if err != nil {
+		return process.ErrRootStateDoesNotMatch
+	}
+
+	return bp.checkPeerAccountsRootHash(header.GetShardID())
+}
+
+func (bp *baseProcessor) checkPeerAccountsRootHash(
+	shardID uint32,
+) error {
+	if shardID != core.MetachainShardId {
+		return nil
+	}
+
+	lastExecutedHeader := bp.blockChain.GetLastExecutedBlockHeader()
+
+	var lastExecutedPeerRootHash []byte
+	if !lastExecutedHeader.IsHeaderV3() {
+		lastExecutedHeaderMeta, ok := lastExecutedHeader.(data.MetaHeaderHandler)
+		if !ok {
+			return process.ErrWrongTypeAssertion
+		}
+
+		lastExecutedPeerRootHash = lastExecutedHeaderMeta.GetValidatorStatsRootHash()
+	} else {
+		lastExecutedResult := bp.blockChain.GetLastExecutionResult()
+
+		lastMetaExecResult, ok := lastExecutedResult.(data.BaseMetaExecutionResultHandler)
+		if !ok {
+			return process.ErrWrongTypeAssertion
+		}
+
+		lastExecutedPeerRootHash = lastMetaExecResult.GetValidatorStatsRootHash()
+	}
+
+	err := bp.checkAccountsRootHash(state.PeerAccountsState, lastExecutedPeerRootHash)
+	if err != nil {
+		return process.ErrRootStateDoesNotMatch
+	}
+
+	return nil
+}
+
+func (bp *baseProcessor) checkAccountsRootHash(
+	accountsStateID state.AccountsDbIdentifier,
+	lastExecutedRootHash []byte,
+) error {
+	lastCommittedRootHash, err := bp.accountsDB[accountsStateID].RootHash()
+	if err != nil {
+		return err
+	}
+
+	if bytes.Equal(lastCommittedRootHash, lastExecutedRootHash) {
+		return nil
+	}
+
+	lastCommittedRootHash, err = bp.recreateAccountsTrie(accountsStateID, lastExecutedRootHash)
+	if err != nil {
+		return err
+	}
+
 	if !bytes.Equal(lastCommittedRootHash, lastExecutedRootHash) {
 		log.Debug("checkContextBeforeExecution: rootHash does not match",
 			"lastExecutedRootHash", lastExecutedRootHash,
 			"lastCommittedRootHash", lastCommittedRootHash,
 		)
-		rootHashHolder := holders.NewDefaultRootHashesHolder(lastExecutedRootHash)
-		err := bp.accountsDB[state.UserAccountsState].RecreateTrie(rootHashHolder)
-		if err != nil {
-			log.Debug("recreate trie with error for header",
-				"nonce", header.GetNonce(),
-				"header root hash", header.GetRootHash(),
-				"given root hash", lastExecutedRootHash,
-				"error", err,
-			)
-
-			return err
-		}
-
-		if !bytes.Equal(lastCommittedRootHash, lastExecutedRootHash) {
-			log.Debug("checkContextBeforeExecution: rootHash does not match 2 time",
-				"lastExecutedRootHash", lastExecutedRootHash,
-				"lastCommittedRootHash", lastCommittedRootHash,
-			)
-			return process.ErrRootStateDoesNotMatch
-		}
-	}
-
-	if header.GetShardID() == core.MetachainShardId {
-		lastCommittedPeerRootHash, err := bp.accountsDB[state.PeerAccountsState].RootHash()
-		if err != nil {
-			return err
-		}
-
-		lastExecutedHeader := bp.blockChain.GetLastExecutedBlockHeader()
-
-		var lastExecutedPeerRootHash []byte
-		if !lastExecutedHeader.IsHeaderV3() {
-			lastExecutedHeaderMeta, ok := lastExecutedHeader.(data.MetaHeaderHandler)
-			if !ok {
-				log.Debug("checkContextBeforeExecution1", "type", reflect.TypeOf(lastExecutedHeaderMeta).String())
-				return process.ErrWrongTypeAssertion
-			}
-
-			lastExecutedPeerRootHash = lastExecutedHeaderMeta.GetValidatorStatsRootHash()
-		} else {
-			lastExecutedResult := bp.blockChain.GetLastExecutionResult()
-
-			lastMetaExecResult, ok := lastExecutedResult.(data.BaseMetaExecutionResultHandler)
-			if !ok {
-				log.Debug("checkContextBeforeExecution", "type", reflect.TypeOf(lastExecutedResult).String())
-				return process.ErrWrongTypeAssertion
-			}
-
-			lastExecutedPeerRootHash = lastMetaExecResult.GetValidatorStatsRootHash()
-		}
-
-		if !bytes.Equal(lastCommittedPeerRootHash, lastExecutedPeerRootHash) {
-			log.Debug("checkContextBeforeExecution: validators stats root hash does not match",
-				"lastExecutedPeerRootHash", lastExecutedPeerRootHash,
-				"lastCommittedPeerRootHash", lastCommittedPeerRootHash,
-			)
-
-			rootHashHolder := holders.NewDefaultRootHashesHolder(lastExecutedPeerRootHash)
-			err := bp.accountsDB[state.PeerAccountsState].RecreateTrie(rootHashHolder)
-			if err != nil {
-				log.Debug("recreate trie with error for header",
-					"nonce", header.GetNonce(),
-					"header root hash", header.GetRootHash(),
-					"given root hash", lastExecutedPeerRootHash,
-					"error", err,
-				)
-
-				return err
-			}
-
-			lastCommittedPeerRootHash, err := bp.accountsDB[state.PeerAccountsState].RootHash()
-			if err != nil {
-				return err
-			}
-			if !bytes.Equal(lastCommittedPeerRootHash, lastExecutedPeerRootHash) {
-				log.Debug("checkContextBeforeExecution: validators stats root hash does not match 2 time",
-					"lastExecutedPeerRootHash", lastExecutedPeerRootHash,
-					"lastCommittedPeerRootHash", lastCommittedPeerRootHash,
-				)
-				return process.ErrRootStateDoesNotMatch
-			}
-		}
+		return process.ErrRootStateDoesNotMatch
 	}
 
 	return nil
+}
+
+func (bp *baseProcessor) recreateAccountsTrie(
+	trieStateId state.AccountsDbIdentifier,
+	lastExecutedRootHash []byte,
+) ([]byte, error) {
+	rootHashHolder := holders.NewDefaultRootHashesHolder(lastExecutedRootHash)
+	err := bp.accountsDB[trieStateId].RecreateTrie(rootHashHolder)
+	if err != nil {
+		return nil, err
+	}
+
+	return bp.accountsDB[trieStateId].RootHash()
 }
 
 func (bp *baseProcessor) getCrossShardIncomingMiniBlocksFromBody(body *block.Body) []*block.MiniBlock {

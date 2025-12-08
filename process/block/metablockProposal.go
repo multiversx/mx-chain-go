@@ -911,7 +911,6 @@ func (mp *metaProcessor) hasExecutionResultsForProposedEpochChange(headerHandler
 	var err error
 
 	for _, execResult := range executionResults {
-		header, err = mp.dataPool.Headers().GetHeaderByHash(execResult.GetHeaderHash())
 		header, err = process.GetHeader(
 			execResult.GetHeaderHash(),
 			mp.dataPool.Headers(),

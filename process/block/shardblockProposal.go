@@ -672,7 +672,6 @@ func (sp *shardProcessor) getReferencedMetaHeadersFromPool(header data.ShardHead
 	for _, metaHdrHash := range usedMetaHdrHashes {
 		metaHdr, err = sp.dataPool.Headers().GetHeaderByHash(metaHdrHash)
 		if err != nil {
-			log.Debug("getReferencedMetaHeadersFromPool", "hash", metaHdrHash)
 			return nil, err
 		}
 		usedMetaHeaders = append(usedMetaHeaders, metaHdr)
