@@ -3523,7 +3523,26 @@ func (bp *baseProcessor) checkContextBeforeExecution(header data.HeaderHandler) 
 			"lastExecutedRootHash", lastExecutedRootHash,
 			"lastCommittedRootHash", lastCommittedRootHash,
 		)
-		return process.ErrRootStateDoesNotMatch
+		rootHashHolder := holders.NewDefaultRootHashesHolder(lastExecutedRootHash)
+		err := bp.accountsDB[state.UserAccountsState].RecreateTrie(rootHashHolder)
+		if err != nil {
+			log.Debug("recreate trie with error for header",
+				"nonce", header.GetNonce(),
+				"header root hash", header.GetRootHash(),
+				"given root hash", lastExecutedRootHash,
+				"error", err,
+			)
+
+			return err
+		}
+
+		if !bytes.Equal(lastCommittedRootHash, lastExecutedRootHash) {
+			log.Debug("checkContextBeforeExecution: rootHash does not match 2 time",
+				"lastExecutedRootHash", lastExecutedRootHash,
+				"lastCommittedRootHash", lastCommittedRootHash,
+			)
+			return process.ErrRootStateDoesNotMatch
+		}
 	}
 
 	if header.GetShardID() == core.MetachainShardId {
@@ -3560,7 +3579,31 @@ func (bp *baseProcessor) checkContextBeforeExecution(header data.HeaderHandler) 
 				"lastExecutedPeerRootHash", lastExecutedPeerRootHash,
 				"lastCommittedPeerRootHash", lastCommittedPeerRootHash,
 			)
-			return process.ErrRootStateDoesNotMatch
+
+			rootHashHolder := holders.NewDefaultRootHashesHolder(lastExecutedPeerRootHash)
+			err := bp.accountsDB[state.PeerAccountsState].RecreateTrie(rootHashHolder)
+			if err != nil {
+				log.Debug("recreate trie with error for header",
+					"nonce", header.GetNonce(),
+					"header root hash", header.GetRootHash(),
+					"given root hash", lastExecutedPeerRootHash,
+					"error", err,
+				)
+
+				return err
+			}
+
+			lastCommittedPeerRootHash, err := bp.accountsDB[state.PeerAccountsState].RootHash()
+			if err != nil {
+				return err
+			}
+			if !bytes.Equal(lastCommittedPeerRootHash, lastExecutedPeerRootHash) {
+				log.Debug("checkContextBeforeExecution: validators stats root hash does not match 2 time",
+					"lastExecutedPeerRootHash", lastExecutedPeerRootHash,
+					"lastCommittedPeerRootHash", lastCommittedPeerRootHash,
+				)
+				return process.ErrRootStateDoesNotMatch
+			}
 		}
 	}
 
