@@ -601,7 +601,7 @@ func (st *storageBootstrapper) getLastExecutionResult(
 			return nil, err
 		}
 
-		execResult, found := findExecutionResultOnHeader(header, lastExecutedNonce)
+		execResult, found := findExecutionResultOnHeader(hdr, lastExecutedNonce)
 		if found {
 			return execResult, nil
 		}
