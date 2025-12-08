@@ -3075,6 +3075,7 @@ func (bp *baseProcessor) checkInclusionEstimationForExecutionResults(header data
 	}
 	executionResults := header.GetExecutionResultsHandlers()
 	allowed := bp.executionResultsInclusionEstimator.Decide(lastResultData, executionResults, header.GetRound())
+	bp.updateInclusionEstimatorMetrics(len(executionResults), allowed)
 	if allowed != len(executionResults) {
 		log.Warn("number of execution results included in the header is not correct",
 			"expected", allowed,
@@ -3104,6 +3105,7 @@ func (bp *baseProcessor) addExecutionResultsOnHeader(header data.HeaderHandler) 
 
 	var lastExecutionResultForCurrentBlock data.LastExecutionResultHandler
 	numToInclude := bp.executionResultsInclusionEstimator.Decide(lastNotarizedExecutionResultInfo, pendingExecutionResults, header.GetRound())
+	bp.updateInclusionEstimatorMetrics(len(pendingExecutionResults), numToInclude)
 
 	executionResultsToInclude := pendingExecutionResults[:numToInclude]
 	lastExecutionResultForCurrentBlock = lastExecutionResultHandler
@@ -3541,4 +3543,10 @@ func getProposedAndExecutedMiniBlockHeaders(
 	miniBlockHeaders = append(miniBlockHeaders, execResultsMiniBlockHeaders...)
 
 	return miniBlockHeaders, nil
+}
+
+func (bp *baseProcessor) updateInclusionEstimatorMetrics(executionResultsLen int, allowed int) {
+	bp.appStatusHandler.SetUInt64Value(common.MetricNumInclusionEstimationRejected,
+		uint64(executionResultsLen)-uint64(allowed),
+	)
 }

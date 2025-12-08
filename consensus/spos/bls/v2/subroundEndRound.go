@@ -320,6 +320,7 @@ func (sr *subroundEndRound) finalizeConfirmedBlock() bool {
 	}
 
 	sr.updateConsensusMetricsProof()
+	sr.updateNonceDeltaMetrics()
 
 	if !sr.GetHeader().IsHeaderV3() {
 		ok := sr.ScheduledProcessor().IsProcessedOKWithTimeout()
@@ -966,6 +967,13 @@ func (sr *subroundEndRound) getNumOfSignaturesCollected() int {
 	}
 
 	return n
+}
+
+func (sr *subroundEndRound) updateNonceDeltaMetrics() {
+
+	lastExecutionResult := sr.GetHeader().GetLastExecutionResultHandler().(*block.ExecutionResultInfo)
+	sr.appStatusHandler.SetUInt64Value(common.MetricDeltaHeaderNonceLastExecutionResultNonce,
+		sr.GetHeader().GetNonce()-lastExecutionResult.ExecutionResult.HeaderNonce)
 }
 
 // updateConsensusMetricsProof sets the consensus metrics
