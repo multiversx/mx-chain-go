@@ -120,14 +120,14 @@ func (msh *metaStorageHandler) SaveDataToStorage(components *ComponentsNeededFor
 		return err
 	}
 
-	lastCrossNotarizedHeader, err := msh.saveLastCrossNotarizedHeaders(components.EpochStartMetaBlock, components.Headers)
+	lastCrossNotarizedHeaders, err := msh.saveLastCrossNotarizedHeaders(components.EpochStartMetaBlock, components.Headers)
 	if err != nil {
 		return err
 	}
 
 	bootStrapData := bootstrapStorage.BootstrapData{
 		LastHeader:                 lastHeader,
-		LastCrossNotarizedHeaders:  lastCrossNotarizedHeader,
+		LastCrossNotarizedHeaders:  lastCrossNotarizedHeaders,
 		LastSelfNotarizedHeaders:   []bootstrapStorage.BootstrapHeaderInfo{lastHeader},
 		ProcessedMiniBlocks:        []bootstrapStorage.MiniBlocksInMeta{},
 		PendingMiniBlocks:          miniBlocks,

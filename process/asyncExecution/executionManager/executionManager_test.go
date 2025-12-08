@@ -11,9 +11,11 @@ import (
 	"github.com/multiversx/mx-chain-go/process"
 	"github.com/multiversx/mx-chain-go/process/asyncExecution/executionManager"
 	"github.com/multiversx/mx-chain-go/process/asyncExecution/queue"
+	"github.com/multiversx/mx-chain-go/process/mock"
 	"github.com/multiversx/mx-chain-go/testscommon"
 	"github.com/multiversx/mx-chain-go/testscommon/pool"
 	"github.com/multiversx/mx-chain-go/testscommon/processMocks"
+	storageStubs "github.com/multiversx/mx-chain-go/testscommon/storage"
 	"github.com/stretchr/testify/require"
 )
 
@@ -25,6 +27,8 @@ func createMockArgs() executionManager.ArgsExecutionManager {
 		ExecutionResultsTracker: &processMocks.ExecutionTrackerStub{},
 		BlockChain:              &testscommon.ChainHandlerMock{},
 		Headers:                 &pool.HeadersPoolStub{},
+		StorageService:          &storageStubs.ChainStorerStub{},
+		Marshaller:              &mock.MarshalizerMock{},
 	}
 }
 

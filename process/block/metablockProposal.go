@@ -911,8 +911,17 @@ func (mp *metaProcessor) hasExecutionResultsForProposedEpochChange(headerHandler
 	var err error
 
 	for _, execResult := range executionResults {
-		header, err = mp.dataPool.Headers().GetHeaderByHash(execResult.GetHeaderHash())
+		header, err = process.GetHeader(
+			execResult.GetHeaderHash(),
+			mp.dataPool.Headers(),
+			mp.store,
+			mp.marshalizer,
+			headerHandler.GetShardID(),
+		)
 		if err != nil {
+			log.Debug("hasExecutionResultsForProposedEpochChange: could not find header",
+				"hash", execResult.GetHeaderHash(),
+			)
 			return false, err
 		}
 		metaHeaderHandler, ok := header.(data.MetaHeaderHandler)
@@ -1044,8 +1053,17 @@ func (mp *metaProcessor) getShardHeadersFromMetaHeader(
 	orderedShardHeaders := make([]data.HeaderHandler, 0, len(shardInfoProposalHandlers))
 	orderedShardHeaderHashes := make([][]byte, 0, len(shardInfoProposalHandlers))
 	for _, shardInfoHandler := range shardInfoProposalHandlers {
-		header, err = mp.dataPool.Headers().GetHeaderByHash(shardInfoHandler.GetHeaderHash())
+		header, err = process.GetHeader(
+			shardInfoHandler.GetHeaderHash(),
+			mp.dataPool.Headers(),
+			mp.store,
+			mp.marshalizer,
+			shardInfoHandler.GetShardID(),
+		)
 		if err != nil {
+			log.Debug("hasExecutionResultsForProposedEpochChange: could not find header",
+				"hash", shardInfoHandler.GetHeaderHash(),
+			)
 			return nil, process.ErrMissingHeader
 		}
 

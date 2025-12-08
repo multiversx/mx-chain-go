@@ -56,7 +56,7 @@ func TestTransactionsAndScrsHolder(t *testing.T) {
 				},
 			},
 		},
-		Logs: []*outportcore.LogData{
+		Logs: []*transaction.LogData{
 			{
 				Log:    &transaction.Log{Address: []byte("addr")},
 				TxHash: hex.EncodeToString(txHash),

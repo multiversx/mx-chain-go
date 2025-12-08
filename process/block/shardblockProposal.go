@@ -479,6 +479,7 @@ func (sp *shardProcessor) selectIncomingMiniBlocks(
 	var errCreated error
 	var createIncomingMbsResult *CrossShardIncomingMbsCreationResult
 	lastMeta := lastCrossNotarizedMetaHdr
+
 	for i := 0; i < len(orderedMetaBlocks); i++ {
 		if !haveTime() {
 			log.Debug("time is up after putting cross txs with destination to current shard",

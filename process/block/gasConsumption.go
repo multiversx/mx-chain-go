@@ -106,7 +106,7 @@ func (gc *gasConsumption) AddIncomingMiniBlocks(
 	defer gc.mut.Unlock()
 
 	if gc.incomingLimitFactor == zeroLimitsFactor {
-		return initialLastIndex, 0, fmt.Errorf("%w for incoming mini blocks", process.ErrZeroLimit)
+		return initialLastIndex, 0, nil
 	}
 
 	bandwidthForIncomingMiniBlocks := gc.getGasLimitForOneDirection(incoming, gc.shardCoordinator.SelfId())
@@ -314,7 +314,7 @@ func (gc *gasConsumption) AddOutgoingTransactions(
 	defer gc.mut.Unlock()
 
 	if gc.outgoingLimitFactor == 0 {
-		return nil, nil, fmt.Errorf("%w for outgoing transactions", process.ErrZeroLimit)
+		return make([][]byte, 0), make([]data.MiniBlockHeaderHandler, 0), nil
 	}
 
 	skippedSenders := make(map[string]struct{})

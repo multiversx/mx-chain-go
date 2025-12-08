@@ -7,7 +7,7 @@ import (
 	"github.com/multiversx/mx-chain-core-go/core"
 	"github.com/multiversx/mx-chain-core-go/core/check"
 	"github.com/multiversx/mx-chain-core-go/data"
-	"github.com/multiversx/mx-chain-logger-go"
+	logger "github.com/multiversx/mx-chain-logger-go"
 
 	"github.com/multiversx/mx-chain-go/process"
 )
@@ -77,6 +77,7 @@ func (p *pendingMiniBlocks) getMiniBlockHandlersFromShardData(metaBlock data.Met
 	for _, shardData := range metaBlock.GetShardInfoProposalHandlers() {
 		shardHeader, err := p.headersPool.GetHeaderByHash(shardData.GetHeaderHash())
 		if err != nil {
+			log.Debug("getMiniBlockHandlersFromShardData", "hash", shardData.GetHeaderHash())
 			return nil, err
 		}
 

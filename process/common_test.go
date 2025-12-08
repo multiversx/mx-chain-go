@@ -13,6 +13,7 @@ import (
 	"github.com/multiversx/mx-chain-core-go/data/block"
 	"github.com/multiversx/mx-chain-core-go/data/transaction"
 	"github.com/multiversx/mx-chain-core-go/data/typeConverters"
+	"github.com/multiversx/mx-chain-core-go/marshal"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 
@@ -2931,6 +2932,26 @@ func Test_IsNotExecutableTransactionError(t *testing.T) {
 		t.Parallel()
 		require.False(t, process.IsNotExecutableTransactionError(errors.New("some other error")))
 	})
+}
+
+type testStruct struct {
+	a, b int
+}
+
+func TestUnmarshalMetaHeaderV1(t *testing.T) {
+	t.Parallel()
+
+	marshaller := &marshal.GogoProtoMarshalizer{}
+
+	metaHeader := &testStruct{
+		a: 1,
+	}
+	headerBytes, _ := marshaller.Marshal(metaHeader)
+
+	retHeader, err := process.UnmarshalMetaHeaderV1(marshaller, headerBytes)
+	require.Nil(t, err)
+
+	require.Equal(t, metaHeader, retHeader)
 }
 
 func createDummyShardExecutionResult() *block.ExecutionResult {
