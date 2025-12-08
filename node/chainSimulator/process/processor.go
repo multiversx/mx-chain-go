@@ -179,10 +179,10 @@ func (creator *blocksCreator) CreateNewBlock() error {
 	}
 
 	if newHeader.IsHeaderV3() {
-		//err = creator.setHeaderSignatures(header, leader.PubKey(), validators, pubKeyBitmap)
-		//if err != nil {
-		//	return err
-		//}
+		err = creator.setHeaderSignatures(header, leader.PubKey(), validators, pubKeyBitmap)
+		if err != nil {
+			return err
+		}
 
 		err = creator.nodeHandler.GetProcessComponents().BlockProcessor().VerifyBlockProposal(header, block, func() time.Duration {
 			return time.Second
