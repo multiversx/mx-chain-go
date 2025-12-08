@@ -138,8 +138,8 @@ func TestHeadersQueue_Concurrency(t *testing.T) {
 		go func() {
 			for {
 				pair, shouldContinue := hq.Pop()
-				valuseOk := !check.IfNil(pair.Header) && !check.IfNil(pair.Body)
-				if !shouldContinue || !valuseOk {
+				valuesOk := !check.IfNil(pair.Header) && !check.IfNil(pair.Body)
+				if !shouldContinue || !valuesOk {
 					return
 				}
 				hdr := pair.Header.(*block.Header)
