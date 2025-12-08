@@ -63,8 +63,8 @@ func createEntryKey(round uint64, hash string) string {
 
 // last returns the last N rounds in chronological order
 func (r *roundRingBuffer) last(n int) []uint64 {
-	r.mut.Lock()
-	defer r.mut.Unlock()
+	r.mut.RLock()
+	defer r.mut.RUnlock()
 
 	if n > r.size {
 		n = r.size
@@ -81,8 +81,8 @@ func (r *roundRingBuffer) last(n int) []uint64 {
 }
 
 func (r *roundRingBuffer) contains(round uint64, hash string) bool {
-	r.mut.Lock()
-	defer r.mut.Unlock()
+	r.mut.RLock()
+	defer r.mut.RUnlock()
 
 	_, exists := r.set[createEntryKey(round, hash)]
 	return exists
@@ -90,8 +90,8 @@ func (r *roundRingBuffer) contains(round uint64, hash string) bool {
 
 // Size returns number of stored rounds
 func (r *roundRingBuffer) len() int {
-	r.mut.Lock()
-	defer r.mut.Unlock()
+	r.mut.RLock()
+	defer r.mut.RUnlock()
 
 	return r.size
 }

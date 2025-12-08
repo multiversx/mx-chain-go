@@ -52,17 +52,17 @@ func TestHeaderTracker_ShouldForceNTPResync(t *testing.T) {
 		r := rand.Int() % 1000
 
 		if i%3 == 0 {
-			go func() {
-				tracker.AddOutOfRangeRound(uint64(r), "")
+			go func(round int) {
+				tracker.AddOutOfRangeRound(uint64(round), "")
 				wg.Done()
-			}()
+			}(r)
 		}
 
 		if i%7 == 0 {
-			go func() {
-				tracker.receivedProof(&block.HeaderProof{HeaderRound: uint64(r)})
+			go func(round int) {
+				tracker.receivedProof(&block.HeaderProof{HeaderRound: uint64(round)})
 				wg.Done()
-			}()
+			}(r)
 
 		}
 	}
