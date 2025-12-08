@@ -1,6 +1,7 @@
 package executionManager
 
 import (
+	"bytes"
 	"sync"
 
 	"github.com/multiversx/mx-chain-core-go/core/check"
@@ -88,7 +89,75 @@ func (em *executionManager) AddPairForExecution(pair queue.HeaderBodyPair) error
 	em.mut.Lock()
 	defer em.mut.Unlock()
 
+	lastExecutedBlock := em.blockChain.GetLastExecutedBlockHeader()
+	if !check.IfNil(lastExecutedBlock) &&
+		lastExecutedBlock.GetNonce() >= pair.Header.GetNonce() {
+		err := em.updateContextForReplacedHeader(pair.Header)
+		if err != nil {
+			return err
+		}
+	}
+
 	return em.blocksQueue.AddOrReplace(pair)
+}
+
+func (em *executionManager) updateContextForReplacedHeader(header data.HeaderHandler) error {
+	pendingExecutionResults, err := em.GetPendingExecutionResults()
+	if err != nil {
+		return err
+	}
+
+	lastExecutionResult, err := em.executionResultsTracker.GetLastNotarizedExecutionResult()
+	if err != nil {
+		return err
+	}
+
+	executionResultToSet, err := em.getExecutionResultToSetOnReplacedHeader(
+		header,
+		pendingExecutionResults,
+		lastExecutionResult,
+	)
+	if err != nil {
+		return err
+	}
+
+	headerToSet, err := em.headers.GetHeaderByHash(executionResultToSet.GetHeaderHash())
+	if err != nil {
+		return err
+	}
+
+	em.blockChain.SetLastExecutedBlockHeaderAndRootHash(headerToSet, executionResultToSet.GetHeaderHash(), executionResultToSet.GetRootHash())
+	em.blockChain.SetLastExecutionResult(executionResultToSet)
+	// need to remove all execution results after the one set
+	return em.executionResultsTracker.RemoveFromNonce(executionResultToSet.GetHeaderNonce() + 1)
+}
+
+func (em *executionManager) getExecutionResultToSetOnReplacedHeader(
+	header data.HeaderHandler,
+	pendingExecutionResults []data.BaseExecutionResultHandler,
+	lastNotarizedResult data.BaseExecutionResultHandler,
+) (data.BaseExecutionResultHandler, error) {
+	prevNonce := header.GetNonce() - 1
+	prevHash := header.GetPrevHash()
+
+	headerHashToSet := lastNotarizedResult.GetHeaderHash()
+	executionResultToSet := lastNotarizedResult
+	if bytes.Equal(prevHash, headerHashToSet) {
+		return executionResultToSet, nil
+	}
+
+	for i := len(pendingExecutionResults) - 1; i >= 0; i-- {
+		if pendingExecutionResults[i].GetHeaderNonce() <= prevNonce {
+			headerHashToSet = pendingExecutionResults[i].GetHeaderHash()
+			executionResultToSet = pendingExecutionResults[i]
+			break
+		}
+	}
+	if !bytes.Equal(prevHash, headerHashToSet) {
+		return nil, ErrExecutionResultNotFound
+	}
+
+	return executionResultToSet, nil
 }
 
 // GetPendingExecutionResults calls the same method from executionResultsTracker

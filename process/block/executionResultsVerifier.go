@@ -62,6 +62,11 @@ func (erc *executionResultsVerifier) verifyExecutionResults(
 	}
 
 	if len(pendingExecutionResults) < len(executionResults) {
+		log.Debug("verifyExecutionResults",
+			"pendingExecutionResults", len(pendingExecutionResults),
+			"header executionResults", len(executionResults),
+			"header nonce", header.GetNonce(),
+		)
 		return process.ErrExecutionResultsNumberMismatch
 	}
 

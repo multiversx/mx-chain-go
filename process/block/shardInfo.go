@@ -170,6 +170,7 @@ func (sic *ShardInfoCreateData) createShardDataFromV3Header(
 	if check.IfNil(shardHeader) {
 		return nil, nil, process.ErrNilHeaderHandler
 	}
+
 	shardDataProposal := sic.createShardDataProposalFromHeader(shardHeader, hdrHash)
 	executionResults := shardHeader.GetExecutionResultsHandlers()
 	if len(executionResults) == 0 {
