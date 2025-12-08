@@ -1776,7 +1776,7 @@ func (bp *baseProcessor) savePeerInfoToStorage(dataPool dataRetriever.ShardedDat
 
 		validatorInfo, ok := val.(*state.ShardValidatorInfo)
 		if !ok {
-			return fmt.Errorf("%w for hash %s", process.ErrInvalidTxInPool, hash)
+			return fmt.Errorf("%w for hash %s", process.ErrInvalidTxInPool, hex.EncodeToString(hash))
 		}
 
 		buff, err := bp.marshalizer.Marshal(validatorInfo)
