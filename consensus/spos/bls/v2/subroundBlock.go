@@ -449,7 +449,7 @@ func (sr *subroundBlock) isHeaderForCurrentConsensus(header data.HeaderHandler) 
 		return false
 	}
 	if header.GetRound() != uint64(sr.RoundHandler().Index()) {
-		sr.syncController.AddOutOfRangeRound(header.GetRound())
+		sr.addOutOfRangeHeader(header)
 		return false
 	}
 
@@ -466,6 +466,16 @@ func (sr *subroundBlock) isHeaderForCurrentConsensus(header data.HeaderHandler) 
 	prevRandSeed := prevHeader.GetRandSeed()
 
 	return bytes.Equal(header.GetPrevRandSeed(), prevRandSeed)
+}
+
+func (sr *subroundBlock) addOutOfRangeHeader(header data.HeaderHandler) {
+	hash, err := core.CalculateHash(sr.Marshalizer(), sr.Hasher(), header)
+	if err != nil {
+		log.Error("failed to calculate hash for out of range header", "err", err)
+		return
+	}
+
+	sr.syncController.AddOutOfRangeRound(header.GetRound(), string(hash))
 }
 
 func (sr *subroundBlock) getLeaderForHeader(headerHandler data.HeaderHandler) ([]byte, error) {

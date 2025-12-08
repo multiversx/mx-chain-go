@@ -47,8 +47,8 @@ func NewRoundSyncController(proofsPool consensus.EquivalentProofsPool, syncer nt
 // AddOutOfRangeRound records a consensus round that was outside the expected range.
 // These rounds are later correlated with received valid proofs to detect NTP desynchronization
 // and potentially trigger a forced time resync.
-func (rsc *roundSyncController) AddOutOfRangeRound(round uint64) {
-	rsc.outOfRangeRounds.add(round)
+func (rsc *roundSyncController) AddOutOfRangeRound(round uint64, hash string) {
+	rsc.outOfRangeRounds.add(round, hash)
 }
 
 func (rsc *roundSyncController) receivedProof(headerProof data.HeaderProofHandler) {
@@ -57,13 +57,14 @@ func (rsc *roundSyncController) receivedProof(headerProof data.HeaderProofHandle
 	}
 
 	currRound := headerProof.GetHeaderRound()
+	hash := string(headerProof.GetHeaderHash())
 	// this should probably not happen, but return early if we receive the same proof for this round so we don't trigger resync multiple times
-	if rsc.deSyncedRounds.contains(currRound) {
+	if rsc.deSyncedRounds.contains(currRound, hash) {
 		return
 	}
 
-	if rsc.outOfRangeRounds.contains(currRound) {
-		rsc.deSyncedRounds.add(currRound)
+	if rsc.outOfRangeRounds.contains(currRound, hash) {
+		rsc.deSyncedRounds.add(currRound, hash)
 		rsc.tryResyncIfNeeded()
 	}
 }

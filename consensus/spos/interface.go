@@ -288,6 +288,6 @@ type InvalidSignersCache interface {
 // that fall outside the expected range, the handler identifies this pattern as a de-sync
 // condition and initiates time resynchronization.
 type RoundSyncControllerHandler interface {
-	AddOutOfRangeRound(round uint64)
+	AddOutOfRangeRound(round uint64, hash string)
 	IsInterfaceNil() bool
 }

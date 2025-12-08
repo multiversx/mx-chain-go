@@ -2,13 +2,13 @@ package consensus
 
 // RoundSyncControllerMock -
 type RoundSyncControllerMock struct {
-	AddOutOfRangeRoundCalled func(round uint64)
+	AddOutOfRangeRoundCalled func(round uint64, hash string)
 }
 
 // AddOutOfRangeRound -
-func (mock *RoundSyncControllerMock) AddOutOfRangeRound(round uint64) {
+func (mock *RoundSyncControllerMock) AddOutOfRangeRound(round uint64, hash string) {
 	if mock.AddOutOfRangeRoundCalled != nil {
-		mock.AddOutOfRangeRoundCalled(round)
+		mock.AddOutOfRangeRoundCalled(round, hash)
 	}
 }
 

@@ -53,7 +53,7 @@ func TestHeaderTracker_ShouldForceNTPResync(t *testing.T) {
 
 		if i%3 == 0 {
 			go func() {
-				tracker.AddOutOfRangeRound(uint64(r))
+				tracker.AddOutOfRangeRound(uint64(r), "")
 				wg.Done()
 			}()
 		}
@@ -68,22 +68,23 @@ func TestHeaderTracker_ShouldForceNTPResync(t *testing.T) {
 	}
 	wg.Wait()
 
-	tracker.AddOutOfRangeRound(1)
-	tracker.AddOutOfRangeRound(0)
-	tracker.AddOutOfRangeRound(2)
-	tracker.AddOutOfRangeRound(3)
+	tracker.AddOutOfRangeRound(1, "")
+	tracker.AddOutOfRangeRound(0, "")
+	tracker.AddOutOfRangeRound(2, "")
+	tracker.AddOutOfRangeRound(3, "")
 
-	// receive proofs for different shard in order, which are not relevant
+	// receive nonce ordered proofs for different shard and hash, which are not relevant
 	for i := 0; i <= 3; i++ {
 		tracker.receivedProof(&block.HeaderProof{HeaderRound: uint64(i), HeaderShardId: 1})
+		tracker.receivedProof(&block.HeaderProof{HeaderRound: uint64(i), HeaderHash: []byte("h")})
 	}
 
 	tracker.receivedProof(&block.HeaderProof{HeaderRound: 0})
 	tracker.receivedProof(&block.HeaderProof{HeaderRound: 2})
 	tracker.receivedProof(&block.HeaderProof{HeaderRound: 3})
 
-	tracker.AddOutOfRangeRound(4)
-	tracker.AddOutOfRangeRound(5)
+	tracker.AddOutOfRangeRound(4, "")
+	tracker.AddOutOfRangeRound(5, "")
 
 	tracker.receivedProof(&block.HeaderProof{HeaderRound: 4})
 	require.False(t, wasSyncCalled)
