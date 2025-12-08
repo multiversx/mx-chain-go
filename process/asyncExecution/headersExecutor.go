@@ -108,16 +108,11 @@ func (he *headersExecutor) start(ctx context.Context) {
 			}
 
 			// blocking operation
-			headerBodyPair, shouldContinue := he.blocksQueue.Pop()
-			if !shouldContinue {
+			headerBodyPair, ok := he.blocksQueue.Pop()
+			if !ok {
 				log.Debug("headersExecutor.start: not ok fetching from queue")
 				// close event
 				return
-			}
-
-			valuesOk := !check.IfNil(headerBodyPair.Header) && !check.IfNil(headerBodyPair.Body)
-			if !valuesOk {
-				continue
 			}
 
 			err := he.process(headerBodyPair)
