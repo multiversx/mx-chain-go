@@ -55,7 +55,7 @@ func (tcm *TransactionCoordinatorMock) ComputeTransactionTypeInEpoch(tx data.Tra
 }
 
 // GetAllCurrentLogs -
-func (tcm *TransactionCoordinatorMock) GetAllCurrentLogs() []*data.LogData {
+func (tcm *TransactionCoordinatorMock) GetAllCurrentLogs() []data.LogDataHandler {
 	return nil
 }
 

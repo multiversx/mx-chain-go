@@ -31,14 +31,14 @@ func GetCachedIntermediateTxs(cache storage.Cacher, headerHash []byte) (map[bloc
 }
 
 // GetCachedLogs will return the cached log events from provided cache
-func GetCachedLogs(cache storage.Cacher, headerHash []byte) ([]*data.LogData, error) {
+func GetCachedLogs(cache storage.Cacher, headerHash []byte) ([]data.LogDataHandler, error) {
 	logsKey := PrepareLogEventsKey(headerHash)
 	cachedLogs, ok := cache.Get(logsKey)
 	if !ok {
 		log.Warn("logs not found in dataPool", "hash", headerHash)
 		return nil, fmt.Errorf("%w for header %s", ErrMissingCachedLogs, hex.EncodeToString(headerHash))
 	}
-	cachedLogsSlice, ok := cachedLogs.([]*data.LogData)
+	cachedLogsSlice, ok := cachedLogs.([]data.LogDataHandler)
 	if !ok {
 		return nil, fmt.Errorf("%w for cached logs %s", ErrWrongTypeAssertion, hex.EncodeToString(headerHash))
 	}

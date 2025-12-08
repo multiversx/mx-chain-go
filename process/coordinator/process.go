@@ -1112,7 +1112,7 @@ func (tc *transactionCoordinator) GetAllCurrentUsedTxs(blockType block.Type) map
 }
 
 // GetAllCurrentLogs return the cached logs data from current round
-func (tc *transactionCoordinator) GetAllCurrentLogs() []*data.LogData {
+func (tc *transactionCoordinator) GetAllCurrentLogs() []data.LogDataHandler {
 	return tc.transactionsLogProcessor.GetAllCurrentLogs()
 }
 
