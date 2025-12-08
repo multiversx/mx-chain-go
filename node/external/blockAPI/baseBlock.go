@@ -522,7 +522,7 @@ func (bap *baseAPIBlockProcessor) apiBlockToOutportPool(apiBlock *api.Block) (*o
 		SmartContractResults: make(map[string]*outport.SCRInfo),
 		InvalidTxs:           make(map[string]*outport.TxInfo),
 		Rewards:              make(map[string]*outport.RewardInfo),
-		Logs:                 make([]*outport.LogData, 0),
+		Logs:                 make([]*transaction.LogData, 0),
 	}
 
 	var err error
@@ -568,7 +568,7 @@ func (bap *baseAPIBlockProcessor) addLogsToPool(tx *transaction.ApiTransactionRe
 		})
 	}
 
-	pool.Logs = append(pool.Logs, &outport.LogData{
+	pool.Logs = append(pool.Logs, &transaction.LogData{
 		TxHash: tx.Hash,
 		Log: &transaction.Log{
 			Address: logAddressBytes,

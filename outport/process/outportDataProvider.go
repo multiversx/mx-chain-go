@@ -3,7 +3,6 @@ package process
 import (
 	"encoding/hex"
 	"fmt"
-
 	"math/big"
 
 	"github.com/multiversx/mx-chain-core-go/core"
@@ -570,8 +569,8 @@ func getReceipts(receipts map[string]data.TransactionHandler) (map[string]*recei
 	return ret, nil
 }
 
-func getLogs(logs []data.LogDataHandler) ([]*outportcore.LogData, error) {
-	ret := make([]*outportcore.LogData, len(logs))
+func getLogs(logs []data.LogDataHandler) ([]*transaction.LogData, error) {
+	ret := make([]*transaction.LogData, len(logs))
 
 	for idx, logData := range logs {
 		txHashHex := getHexEncodedHash(logData.GetTxHash())
@@ -580,7 +579,7 @@ func getLogs(logs []data.LogDataHandler) ([]*outportcore.LogData, error) {
 			return nil, fmt.Errorf("%w, hash: %s", errCannotCastLog, txHashHex)
 		}
 
-		ret[idx] = &outportcore.LogData{
+		ret[idx] = &transaction.LogData{
 			TxHash: txHashHex,
 			Log:    log,
 		}
