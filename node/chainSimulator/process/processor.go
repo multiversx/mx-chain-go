@@ -184,6 +184,11 @@ func (creator *blocksCreator) CreateNewBlock() error {
 			return err
 		}
 
+		headerOutput, err := common.PrettifyStruct(header)
+		if err == nil {
+			log.Debug("Proposed header sent", "header", headerOutput)
+		}
+
 		err = creator.nodeHandler.GetProcessComponents().BlockProcessor().VerifyBlockProposal(header, block, func() time.Duration {
 			return time.Second
 		})
