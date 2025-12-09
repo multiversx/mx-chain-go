@@ -62,6 +62,9 @@ import (
 // ErrGetEpochStartRootHash signals that root hash was not found in execution results for epoch start header
 var ErrGetEpochStartRootHash = errors.New("failed to get epoch start root hash from execution results")
 
+// ErrGetEpochStartValidatorStatsRootHash signals that validator stats root hash was not found in execution results for epoch start header
+var ErrGetEpochStartValidatorStatsRootHash = errors.New("failed to get epoch start validator status root hash from execution results")
+
 var log = logger.GetOrCreate("epochStart/bootstrap")
 
 // DefaultTimeToWaitForRequestedData represents the default timespan until requested data needs to be received from the connected peers
@@ -1001,7 +1004,12 @@ func (e *epochStartBootstrap) requestAndProcessForMeta(peerMiniBlocks []*block.M
 	e.trieStorageManagers = trieStorageManagers
 
 	log.Debug("start in epoch bootstrap: started syncValidatorAccountsState")
-	err = e.syncValidatorAccountsState(e.epochStartMeta.GetValidatorStatsRootHash())
+	validatorStatsRootHashToSync, err := e.getValidatorStatsRootHashToSync(e.epochStartMeta)
+	if err != nil {
+		return err
+	}
+
+	err = e.syncValidatorAccountsState(validatorStatsRootHashToSync)
 	if err != nil {
 		return err
 	}
@@ -1336,6 +1344,38 @@ func (e *epochStartBootstrap) updateDataForScheduled(
 	res.rootHashToSync = rootHashToSync
 
 	return res, nil
+}
+
+func (e *epochStartBootstrap) getValidatorStatsRootHashToSync(
+	meta data.MetaHeaderHandler,
+) ([]byte, error) {
+	if !meta.IsHeaderV3() {
+		return meta.GetValidatorStatsRootHash(), nil
+	}
+
+	return getValidatorStatsRootHashFromLastExecutionResult(meta)
+}
+
+func getValidatorStatsRootHashFromLastExecutionResult(
+	header data.MetaHeaderHandler,
+) ([]byte, error) {
+	lastExecutionResult, err := common.GetLastBaseExecutionResultHandler(header)
+	if err != nil {
+		return nil, err
+	}
+
+	metaLastExecutionResult, ok := lastExecutionResult.(data.BaseMetaExecutionResultHandler)
+	if !ok {
+		return nil, fmt.Errorf("%w for getting validator stats root hash", common.ErrWrongTypeAssertion)
+	}
+
+	validatorStatsRootHash := metaLastExecutionResult.GetValidatorStatsRootHash()
+
+	if len(validatorStatsRootHash) == 0 {
+		return nil, ErrGetEpochStartValidatorStatsRootHash
+	}
+
+	return validatorStatsRootHash, nil
 }
 
 func (e *epochStartBootstrap) getRootHashToSync(
