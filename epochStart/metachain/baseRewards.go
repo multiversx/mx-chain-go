@@ -218,7 +218,7 @@ func (brc *baseRewardsCreator) DeleteBlockDataFromStorage(metaBlock data.MetaHea
 	}
 
 	for _, mbHeader := range metaBlock.GetMiniBlockHeaderHandlers() {
-		if mbHeader.GetTypeInt32() == int32(block.RewardsBlock) {
+		if mbHeader.GetTypeInt32() == block.RewardsBlock {
 			_ = brc.miniBlockStorage.Remove(mbHeader.GetHash())
 		}
 	}
@@ -243,7 +243,7 @@ func (brc *baseRewardsCreator) RemoveBlockDataFromPools(metaBlock data.MetaHeade
 	}
 
 	for _, mbHeader := range metaBlock.GetMiniBlockHeaderHandlers() {
-		if mbHeader.GetTypeInt32() != int32(block.RewardsBlock) {
+		if mbHeader.GetTypeInt32() != block.RewardsBlock {
 			continue
 		}
 
@@ -334,14 +334,15 @@ func (brc *baseRewardsCreator) isSystemDelegationSC(address []byte) bool {
 }
 
 func (brc *baseRewardsCreator) createProtocolSustainabilityRewardTransaction(
-	metaBlock data.HeaderHandler,
+	epoch uint32,
+	round uint64,
 	protocolSustainability *big.Int,
 ) (*rewardTx.RewardTx, uint32, error) {
 
 	protocolSustainabilityAddressForEpoch := brc.rewardsHandler.ProtocolSustainabilityAddressInEpoch(epoch)
 	protocolSustainabilityShardID := brc.shardCoordinator.ComputeId([]byte(protocolSustainabilityAddressForEpoch))
 	protocolSustainabilityRwdTx := &rewardTx.RewardTx{
-		Round:   metaBlock.GetRound(),
+		Round:   round,
 		Value:   big.NewInt(0).Set(protocolSustainability),
 		RcvAddr: []byte(protocolSustainabilityAddressForEpoch),
 		Epoch:   epoch,
@@ -465,7 +466,7 @@ func (brc *baseRewardsCreator) getConsensusGroupSizeForShardAndEpoch(shardID uin
 func (brc *baseRewardsCreator) verifyCreatedRewardMiniBlocksWithMetaBlock(metaBlock data.HeaderHandler, createdMiniBlocks block.MiniBlockSlice) error {
 	numReceivedRewardsMBs := 0
 	for _, miniBlockHdr := range metaBlock.GetMiniBlockHeaderHandlers() {
-		if miniBlockHdr.GetTypeInt32() != int32(block.RewardsBlock) {
+		if miniBlockHdr.GetTypeInt32() != block.RewardsBlock {
 			continue
 		}
 

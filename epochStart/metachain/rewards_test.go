@@ -657,7 +657,7 @@ func TestRewardsCreator_CreateProtocolSustainabilityRewardTransaction(t *testing
 		Epoch:   0,
 	}
 
-	rwdTx, _, err := rwdc.createProtocolSustainabilityRewardTransaction(mb.GetEpoch(), mb.GetRound(), &mb.EpochStart.Economics)
+	rwdTx, _, err := rwdc.createProtocolSustainabilityRewardTransaction(mb.GetEpoch(), mb.GetRound(), mb.EpochStart.Economics.GetRewardsForProtocolSustainability())
 	assert.Equal(t, expectedRewardTx, rwdTx)
 	assert.Nil(t, err)
 }

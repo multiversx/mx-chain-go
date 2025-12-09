@@ -161,7 +161,7 @@ func (rc *rewardsCreatorV2) createRewardsMiniBlocks(
 	rc.clean()
 	rc.flagDelegationSystemSCEnabled.SetValue(args.newEpoch >= rc.enableEpochsHandler.GetActivationEpoch(common.StakingV2Flag))
 
-	protRwdTx, protRwdShardId, err := rc.createProtocolSustainabilityRewardTransaction(args.newEpoch, args.round, args.computedEconomics)
+	protRwdTx, protRwdShardId, err := rc.createProtocolSustainabilityRewardTransaction(args.newEpoch, args.round, args.computedEconomics.GetRewardsForProtocolSustainability())
 	if err != nil {
 		return nil, err
 	}
@@ -183,11 +183,11 @@ func (rc *rewardsCreatorV2) createRewardsMiniBlocks(
 		return nil, err
 	}
 
-	ecoGrowthRwdTx, ecoGrowthShardId, err := rc.createEcosystemGrowthRewardTransaction(metaBlock)
+	ecoGrowthRwdTx, ecoGrowthShardId, err := rc.createEcosystemGrowthRewardTransaction(args.newEpoch, args.round)
 	if err != nil {
 		return nil, err
 	}
-	growthDivRwdTx, growthDivShardId, err := rc.createGrowthDividendRewardTransaction(metaBlock)
+	growthDivRwdTx, growthDivShardId, err := rc.createGrowthDividendRewardTransaction(args.newEpoch, args.round)
 	if err != nil {
 		return nil, err
 	}
@@ -204,14 +204,15 @@ func (rc *rewardsCreatorV2) createRewardsMiniBlocks(
 }
 
 func (rc *rewardsCreatorV2) createEcosystemGrowthRewardTransaction(
-	metaBlock data.MetaHeaderHandler,
+	epoch uint32,
+	round uint64,
 ) (*rewardTx.RewardTx, uint32, error) {
-	epoch := metaBlock.GetEpoch()
+
 	rwdAddr := rc.rewardsHandler.EcosystemGrowthAddressInEpoch(epoch)
 	shardId := rc.shardCoordinator.ComputeId([]byte(rwdAddr))
 
 	rwdTx := &rewardTx.RewardTx{
-		Round:   metaBlock.GetRound(),
+		Round:   round,
 		Epoch:   epoch,
 		RcvAddr: []byte(rwdAddr),
 		Value:   big.NewInt(0).Set(rc.economicsDataProvider.RewardsForEcosystemGrowth()),
@@ -222,14 +223,14 @@ func (rc *rewardsCreatorV2) createEcosystemGrowthRewardTransaction(
 }
 
 func (rc *rewardsCreatorV2) createGrowthDividendRewardTransaction(
-	metaBlock data.MetaHeaderHandler,
+	epoch uint32,
+	round uint64,
 ) (*rewardTx.RewardTx, uint32, error) {
-	epoch := metaBlock.GetEpoch()
 	rwdAddr := rc.rewardsHandler.GrowthDividendAddressInEpoch(epoch)
 	shardId := rc.shardCoordinator.ComputeId([]byte(rwdAddr))
 
 	rwdTx := &rewardTx.RewardTx{
-		Round:   metaBlock.GetRound(),
+		Round:   round,
 		Epoch:   epoch,
 		RcvAddr: []byte(rwdAddr),
 		Value:   big.NewInt(0).Set(rc.economicsDataProvider.RewardsForGrowthDividend()),

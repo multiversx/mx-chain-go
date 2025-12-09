@@ -182,16 +182,16 @@ func (e *economics) baseComputeEconomics(args *argsComputeEconomics) (*block.Eco
 	totalNumBlocksInEpoch := e.computeNumOfTotalCreatedBlocks(args.lastNoncesPerShardPrevEpoch, args.lastNoncesPerShardCurrEpoch)
 
 	supplyToUseForRewardsPerBlock := e.genesisTotalSupply
-	if e.rewardsHandler.IsTailInflationEnabled(metaBlock.GetEpoch()) {
-		supplyToUseForRewardsPerBlock = prevEpochEconomics.TotalSupply
+	if e.rewardsHandler.IsTailInflationEnabled(args.computationData.newEpoch) {
+		supplyToUseForRewardsPerBlock = args.prevEpochStart.GetEpochStartHandler().GetEconomicsHandler().GetTotalSupply()
 	}
 
-	inflationRate := e.computeInflationRate(metaBlock)
+	inflationRate := e.computeInflationRate(&args.computationData)
 	rwdPerBlock := e.computeRewardsPerBlock(
 		supplyToUseForRewardsPerBlock,
 		maxBlocksInEpoch,
 		inflationRate,
-		metaBlock.Epoch,
+		args.computationData.newEpoch,
 	)
 	totalRewardsToBeDistributed := big.NewInt(0).Mul(rwdPerBlock, big.NewInt(0).SetUint64(totalNumBlocksInEpoch))
 
@@ -206,7 +206,7 @@ func (e *economics) baseComputeEconomics(args *argsComputeEconomics) (*block.Eco
 	e.adjustRewardsPerBlockWithDeveloperFees(rwdPerBlock, args.computationData.devFeesInEpoch, totalNumBlocksInEpoch)
 	rewardsForLeaders := e.adjustRewardsPerBlockWithLeaderPercentage(rwdPerBlock, args.computationData.accumulatedFeesInEpoch, args.computationData.devFeesInEpoch, totalNumBlocksInEpoch, args.computationData.newEpoch)
 	remainingToBeDistributed = big.NewInt(0).Sub(remainingToBeDistributed, rewardsForLeaders)
-	rewardsForAccelerator, err := e.computeRewardsForAccelerator(totalRewardsToBeDistributed, metaBlock.Epoch)
+	rewardsForAccelerator, err := e.computeRewardsForAccelerator(totalRewardsToBeDistributed, args.computationData.GetEpoch())
 	if err != nil {
 		return nil, err
 	}
@@ -492,8 +492,7 @@ func (e *economics) adjustRewardsPerBlockWithLeaderPercentage(
 
 // compute inflation rate from genesisTotalSupply and economics settings for that year
 func (e *economics) computeInflationBeforeSupernova(currentRound uint64, epoch uint32) float64 {
-	roundsPerDay := common.ComputeRoundsPerDay(e.roundTime.TimeDuration(), e.enableEpochsHandler, epoch)
-
+	roundsPerDay := numberOfSecondsInDay / uint64(e.roundTime.TimeDuration().Seconds())
 	roundsPerYear := numberOfDaysInYear * roundsPerDay
 	yearsIndex := uint32(currentRound/roundsPerYear) + 1
 
@@ -507,10 +506,10 @@ func (e *economics) computeInflationRate(
 	supernovaInEpochActivated := e.enableEpochsHandler.IsFlagEnabledInEpoch(common.SupernovaFlag, prevEpoch)
 
 	if !supernovaInEpochActivated {
-		return e.computeInflationBeforeSupernova(metaBlock.GetRound(), metaBlock.GetEpoch())
+		return e.computeInflationBeforeSupernova(computationData.GetRound(), computationData.GetEpoch())
 	}
 
-	return e.computeInflationRateAfterSupernova(metaBlock.GetTimeStamp(), metaBlock.GetEpoch())
+	return e.computeInflationRateAfterSupernova(computationData.GetTimeStamp(), computationData.GetEpoch())
 }
 
 // currentTimestamp is defined as unix milliseconds after supernova is activated

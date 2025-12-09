@@ -88,7 +88,7 @@ func (rc *rewardsCreator) CreateRewardsMiniBlocks(
 
 	miniBlocks := rc.initializeRewardsMiniBlocks()
 
-	protSustRwdTx, protSustShardId, err := rc.createProtocolSustainabilityRewardTransaction(metaBlock.GetEpoch(), metaBlock.GetRound(), computedEconomics)
+	protSustRwdTx, protSustShardId, err := rc.createProtocolSustainabilityRewardTransaction(metaBlock.GetEpoch(), metaBlock.GetRound(), computedEconomics.GetRewardsForProtocolSustainability())
 	if err != nil {
 		return nil, err
 	}
