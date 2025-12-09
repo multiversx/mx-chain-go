@@ -299,7 +299,7 @@ func (sp *shardProcessor) ProcessBlockProposal(
 		return nil, process.ErrAccountStateDirty
 	}
 
-	err := sp.checkContextBeforeExecution(header)
+	err := sp.checkAndUpdateContextBeforeExecution(header)
 	if err != nil {
 		return nil, err
 	}
@@ -479,6 +479,7 @@ func (sp *shardProcessor) selectIncomingMiniBlocks(
 	var errCreated error
 	var createIncomingMbsResult *CrossShardIncomingMbsCreationResult
 	lastMeta := lastCrossNotarizedMetaHdr
+
 	for i := 0; i < len(orderedMetaBlocks); i++ {
 		if !haveTime() {
 			log.Debug("time is up after putting cross txs with destination to current shard",
