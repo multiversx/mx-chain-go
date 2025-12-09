@@ -9,10 +9,11 @@ import (
 	"github.com/multiversx/mx-chain-core-go/data"
 	"github.com/multiversx/mx-chain-core-go/data/block"
 	"github.com/multiversx/mx-chain-core-go/data/transaction"
-	"github.com/multiversx/mx-chain-go/storage"
-	"github.com/multiversx/mx-chain-go/testscommon/epochNotifier"
 	vmcommon "github.com/multiversx/mx-chain-vm-common-go"
 	"github.com/stretchr/testify/require"
+
+	"github.com/multiversx/mx-chain-go/storage"
+	"github.com/multiversx/mx-chain-go/testscommon/epochNotifier"
 
 	"github.com/multiversx/mx-chain-go/state"
 
@@ -1057,6 +1058,7 @@ func createMockTransactionCoordinatorForProposalTests(poolsHolder dataRetriever.
 	// Create separate preprocessor containers for execution and proposal to ensure context isolation
 	args.PreProcessors = createPreProcessorContainerWithPoolsHolder(poolsHolder)
 	args.PreProcessorsProposal = createPreProcessorContainerWithPoolsHolder(poolsHolder)
+	args.InterProcessors = createInterimProcessorContainer()
 
 	createAndAddBlockDataRequesters(
 		&args,
