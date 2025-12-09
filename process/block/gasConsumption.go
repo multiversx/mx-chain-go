@@ -253,13 +253,18 @@ func (gc *gasConsumption) checkGasConsumedByMiniBlock(mb data.MiniBlockHeaderHan
 	}
 
 	maxGasLimitPerMB := gc.maxGasLimitPerMiniBlock(mb.GetReceiverShardID())
-	if gasConsumedByMB > maxGasLimitPerMB {
-		// return the last saved mini block, and the proper error, without saving the rest of mini blocks
-		// do not save any pending mini blocks, as this one is invalid
-		return 0, process.ErrMaxGasLimitPerMiniBlockIsReached
+	if gasConsumedByMB <= maxGasLimitPerMB {
+		return gasConsumedByMB, nil
 	}
 
-	return gasConsumedByMB, nil
+	// if the limit for mini block is reached and:
+	//	- there is only one tx that satisfied the MaxGasLimitPerTx, allow it into the block
+	//	- there are more than one tx, return error
+	if len(transactionsForMB) == 1 {
+		return gasConsumedByMB, nil
+	}
+
+	return 0, process.ErrMaxGasLimitPerMiniBlockIsReached
 }
 
 func (gc *gasConsumption) addPendingIncomingMiniBlocks() ([]data.MiniBlockHeaderHandler, error) {
