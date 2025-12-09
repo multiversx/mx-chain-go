@@ -732,6 +732,61 @@ func TestBenchmarkTxCache_addManyTransactionsWithSameNonce(t *testing.T) {
 	// 0.062260s (TestBenchmarkTxCache_addManyTransactionsWithSameNonce/numTransactions_=_5_000_(worst_case))
 }
 
+func TestBenchmarkTxCache_addManyTransactionsWithIncreasingNonce(t *testing.T) {
+	config := ConfigSourceMe{
+		Name:                        "untitled",
+		NumChunks:                   16,
+		NumBytesThreshold:           419_430_400,
+		NumBytesPerSenderThreshold:  12_288_000,
+		CountThreshold:              300_000,
+		CountPerSenderThreshold:     5_000,
+		EvictionEnabled:             true,
+		NumItemsToPreemptivelyEvict: 50_000,
+		TxCacheBoundsConfig:         createMockTxBoundsConfig(),
+	}
+
+	host := txcachemocks.NewMempoolHostMock()
+	sw := core.NewStopWatch()
+
+	t.Run("numTransactions = 5_000 (worst case) with decreasing nonce", func(t *testing.T) {
+		cache, err := NewTxCache(config, host, 0)
+		require.Nil(t, err)
+
+		numTransactions := 5_000
+
+		sw.Start(t.Name())
+
+		for i := numTransactions - 1; i >= 0; i-- {
+			cache.AddTx(createTx(randomHashes.getItem(i), "alice", uint64(i)).withGasPrice(oneBillion + uint64(i)))
+		}
+
+		sw.Stop(t.Name())
+
+		require.Equal(t, numTransactions, int(cache.CountTx()))
+	})
+
+	t.Run("numTransactions = 5_000 (worst case) with increasing nonce", func(t *testing.T) {
+		cache, err := NewTxCache(config, host, 0)
+		require.Nil(t, err)
+
+		numTransactions := 5_000
+
+		sw.Start(t.Name())
+
+		for i := 0; i < numTransactions; i++ {
+			cache.AddTx(createTx(randomHashes.getItem(i), "alice", uint64(i)).withGasPrice(oneBillion + uint64(i)))
+		}
+
+		sw.Stop(t.Name())
+
+		require.Equal(t, numTransactions, int(cache.CountTx()))
+	})
+
+	for name, measurement := range sw.GetMeasurementsMap() {
+		fmt.Printf("%fs (%s)\n", measurement, name)
+	}
+}
+
 func Test_ResetTracker(t *testing.T) {
 	t.Parallel()
 
