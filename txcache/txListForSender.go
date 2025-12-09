@@ -1,7 +1,6 @@
 package txcache
 
 import (
-	"bytes"
 	"container/list"
 	"sync"
 
@@ -10,10 +9,11 @@ import (
 
 // txListForSender represents a sorted list of transactions of a particular sender
 type txListForSender struct {
-	sender      string
-	items       *list.List
-	totalBytes  atomic.Counter
-	constraints *senderConstraints
+	sender          string
+	items           *list.List
+	txsRedBlackTree *transactionsRedBlackTree
+	totalBytes      atomic.Counter
+	constraints     *senderConstraints
 
 	mutex sync.RWMutex
 }
@@ -21,9 +21,10 @@ type txListForSender struct {
 // newTxListForSender creates a new (sorted) list of transactions
 func newTxListForSender(sender string, constraints *senderConstraints) *txListForSender {
 	return &txListForSender{
-		items:       list.New(),
-		sender:      sender,
-		constraints: constraints,
+		items:           list.New(),
+		txsRedBlackTree: NewTransactionsRedBlackTree(),
+		sender:          sender,
+		constraints:     constraints,
 	}
 }
 
@@ -44,9 +45,11 @@ func (listForSender *txListForSender) AddTx(tx *WrappedTransaction, tracker *sel
 	}
 
 	if insertionPlace == nil {
-		listForSender.items.PushFront(tx)
+		element := listForSender.items.PushFront(tx)
+		listForSender.txsRedBlackTree.Insert(element)
 	} else {
-		listForSender.items.InsertAfter(tx, insertionPlace)
+		element := listForSender.items.InsertAfter(tx, insertionPlace)
+		listForSender.txsRedBlackTree.Insert(element)
 	}
 
 	listForSender.onAddedTransaction(tx)
@@ -104,57 +107,14 @@ func (listForSender *txListForSender) onAddedTransaction(tx *WrappedTransaction)
 // - duplicates are not allowed.
 // - "PPU" measurement is not relevant in this context. Competition among transactions of the same sender (and nonce) is based on gas price.
 func (listForSender *txListForSender) findInsertionPlace(incomingTx *WrappedTransaction) (*list.Element, error) {
-	incomingNonce := incomingTx.Tx.GetNonce()
-	incomingGasPrice := incomingTx.Tx.GetGasPrice()
-
-	// The loop iterates from the back to the front of the list.
-	// Starting from the back allows the function to quickly find the insertion point for transactions with higher nonces, which are more likely to be added.
-	for element := listForSender.items.Back(); element != nil; element = element.Prev() {
-		currentTx := element.Value.(*WrappedTransaction)
-		currentTxNonce := currentTx.Tx.GetNonce()
-		currentTxGasPrice := currentTx.Tx.GetGasPrice()
-
-		if currentTxNonce == incomingNonce {
-			if currentTxGasPrice > incomingGasPrice {
-				// The case of same nonce, lower gas price.
-				// We've found an insertion place: right after "element".
-				return element, nil
-			}
-
-			if currentTxGasPrice == incomingGasPrice {
-				// The case of same nonce, same gas price.
-
-				comparison := bytes.Compare(currentTx.TxHash, incomingTx.TxHash)
-				if comparison == 0 {
-					// The incoming transaction will be discarded, since it's already in the cache.
-					return nil, errItemAlreadyInCache
-				}
-				if comparison < 0 {
-					// We've found an insertion place: right after "element".
-					return element, nil
-				}
-
-				// We allow the search loop to continue, since the incoming transaction has a "higher hash".
-			}
-
-			// We allow the search loop to continue, since the incoming transaction has a higher gas price.
-			continue
-		}
-
-		if currentTxNonce < incomingNonce {
-			// We've found the first transaction with a lower nonce than the incoming one,
-			// thus the incoming transaction will be placed right after this one.
-			return element, nil
-		}
-
-		// We allow the search loop to continue, since the incoming transaction has a higher nonce.
-	}
-
-	// The incoming transaction will be inserted at the head of the list.
-	return nil, nil
+	return listForSender.txsRedBlackTree.FindInsertionPlace(&list.Element{
+		Value: incomingTx,
+	})
 }
 
 func (listForSender *txListForSender) onRemovedListElement(element *list.Element) {
+	listForSender.txsRedBlackTree.Remove(element)
+
 	tx := element.Value.(*WrappedTransaction)
 	listForSender.totalBytes.Subtract(tx.Size)
 }

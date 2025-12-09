@@ -5,6 +5,7 @@ go 1.23.0
 require (
 	github.com/beevik/ntp v1.3.0
 	github.com/davecgh/go-spew v1.1.1
+	github.com/emirpasic/gods v1.18.1
 	github.com/gin-contrib/cors v1.6.0
 	github.com/gin-contrib/pprof v1.4.0
 	github.com/gin-gonic/gin v1.10.0
