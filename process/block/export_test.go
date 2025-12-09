@@ -1027,11 +1027,6 @@ func (mp *metaProcessor) CommitEpochStart(header data.MetaHeaderHandler, body *b
 	return mp.commitEpochStart(header, body)
 }
 
-// OnExecutedBlock -
-func (bp *baseProcessor) OnExecutedBlock(header data.HeaderHandler, rootHash []byte) error {
-	return bp.onExecutedBlock(header, rootHash)
-}
-
 // RecreateTrieIfNeeded -
 func (bp *baseProcessor) RecreateTrieIfNeeded() error {
 	return bp.recreateTrieIfNeeded()
@@ -1118,4 +1113,12 @@ func (sp *shardProcessor) GetOrderedProcessedMetaBlocksFromMiniBlockHashesV3(
 	miniBlockHashes map[int][]byte,
 ) ([]data.HeaderHandler, error) {
 	return sp.getOrderedProcessedMetaBlocksFromMiniBlockHashesV3(header, miniBlockHashes)
+}
+
+// ExcludeRevertedExecutionResultsForHeader -
+func (bp *baseProcessor) ExcludeRevertedExecutionResultsForHeader(
+	header data.HeaderHandler,
+	pendingExecutionResults []data.BaseExecutionResultHandler,
+) []data.BaseExecutionResultHandler {
+	return bp.excludeRevertedExecutionResultsForHeader(header, pendingExecutionResults)
 }

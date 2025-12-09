@@ -16,3 +16,6 @@ var ErrNilBlockchain = errors.New("nil blockchain")
 
 // ErrNilHeadersPool signals that a nil headers pool has been provided
 var ErrNilHeadersPool = errors.New("nil headers pool")
+
+// ErrExecutionResultNotFound signals that the execution result was not found
+var ErrExecutionResultNotFound = errors.New("execution result not found")
