@@ -213,10 +213,6 @@ func TestBenchmarkListForSender_getTxs(t *testing.T) {
 		require.Len(t, txs, 5000)
 	})
 
-	for name, measurement := range sw.GetMeasurementsMap() {
-		fmt.Printf("%fs (%s)\n", measurement, name)
-	}
-
 	t.Run("numTransactions = 5_000 getTxs reversed", func(t *testing.T) {
 		txCache := newCacheToTest(maxNumBytesPerSenderUpperBoundTest, math.MaxUint32)
 		list := newUnconstrainedListToTest()
