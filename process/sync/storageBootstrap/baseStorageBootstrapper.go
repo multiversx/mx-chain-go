@@ -576,7 +576,6 @@ func (st *storageBootstrapper) setCurrentBlockInfoV3(
 	}
 
 	// when setting execution result it should be the full structure, not base execution results
-
 	lastExecutionResult, err := st.getLastExecutionResult(header, lastBaseExecutionResult.GetHeaderNonce())
 	if err != nil {
 		return err

@@ -154,8 +154,6 @@ func (bn *branchNode) setRootHash() error {
 	if bn.getHash() != nil {
 		return nil
 	}
-	// TODO: analyse if we should calculate hash here if it's already collapsed
-	// also on each node if it's dirty
 	if bn.isCollapsed() {
 		var hash []byte
 		hash, err = encodeNodeAndGetHash(bn)

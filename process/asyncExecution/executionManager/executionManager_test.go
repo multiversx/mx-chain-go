@@ -8,10 +8,12 @@ import (
 
 	"github.com/multiversx/mx-chain-core-go/data"
 	"github.com/multiversx/mx-chain-core-go/data/block"
+	"github.com/multiversx/mx-chain-go/dataRetriever"
 	"github.com/multiversx/mx-chain-go/process"
 	"github.com/multiversx/mx-chain-go/process/asyncExecution/executionManager"
 	"github.com/multiversx/mx-chain-go/process/asyncExecution/queue"
 	"github.com/multiversx/mx-chain-go/process/mock"
+	"github.com/multiversx/mx-chain-go/storage"
 	"github.com/multiversx/mx-chain-go/testscommon"
 	"github.com/multiversx/mx-chain-go/testscommon/pool"
 	"github.com/multiversx/mx-chain-go/testscommon/processMocks"
@@ -782,10 +784,27 @@ func TestExecutionManager_RemoveAtNonceAndHigher(t *testing.T) {
 				return nil, errExpected
 			},
 		}
+		args.StorageService = &storageStubs.ChainStorerStub{
+			GetStorerCalled: func(unitType dataRetriever.UnitType) (storage.Storer, error) {
+				return &storageStubs.StorerStub{
+					GetCalled: func(key []byte) ([]byte, error) {
+						return nil, errExpected
+					},
+				}, nil
+			},
+		}
+		args.BlockChain = &testscommon.ChainHandlerStub{
+			GetCurrentBlockHeaderCalled: func() data.HeaderHandler {
+				return &block.HeaderV3{
+					Nonce: 10,
+				}
+			},
+		}
+
 		em, _ := executionManager.NewExecutionManager(args)
 
 		err := em.RemoveAtNonceAndHigher(10)
-		require.Equal(t, errExpected, err)
+		require.ErrorIs(t, err, process.ErrMissingHeader)
 	})
 
 	t.Run("with pending execution results should use last pending", func(t *testing.T) {

@@ -1583,13 +1583,8 @@ func (bp *baseProcessor) getLastSelfNotarizedHeadersForShard(shardID uint32) *bo
 		return nil
 	}
 
-	bootInfoShardID := lastSelfNotarizedHeader.GetShardID()
-	if lastSelfNotarizedHeader.IsHeaderV3() {
-		bootInfoShardID = shardID
-	}
-
 	headerInfo := &bootstrapStorage.BootstrapHeaderInfo{
-		ShardId: bootInfoShardID,
+		ShardId: shardID,
 		Nonce:   lastSelfNotarizedHeader.GetNonce(),
 		Hash:    lastSelfNotarizedHeaderHash,
 	}
@@ -3512,7 +3507,7 @@ func (bp *baseProcessor) getLastExecutionResultHeader(
 	)
 }
 
-func (bp *baseProcessor) checkContextBeforeExecution(header data.HeaderHandler) error {
+func (bp *baseProcessor) checkAndUpdateContextBeforeExecution(header data.HeaderHandler) error {
 	lastExecutedNonce, lastExecutedHash, lastExecutedRootHash := bp.blockChain.GetLastExecutedBlockInfo()
 	if !bytes.Equal(header.GetPrevHash(), lastExecutedHash) {
 		log.Debug("checkContextBeforeExecution: hash does not match",
@@ -3529,9 +3524,9 @@ func (bp *baseProcessor) checkContextBeforeExecution(header data.HeaderHandler) 
 		return process.ErrWrongNonceInBlock
 	}
 
-	err := bp.checkAccountsRootHash(state.UserAccountsState, lastExecutedRootHash)
+	err := bp.checkAndUpdateAccountsRootHash(state.UserAccountsState, lastExecutedRootHash)
 	if err != nil {
-		return process.ErrRootStateDoesNotMatch
+		return err
 	}
 
 	return bp.checkPeerAccountsRootHash(header.GetShardID())
@@ -3544,36 +3539,37 @@ func (bp *baseProcessor) checkPeerAccountsRootHash(
 		return nil
 	}
 
+	lastExecutedPeerRootHash, err := bp.getLastValidatorStatsRootHash()
+	if err != nil {
+		return err
+	}
+
+	return bp.checkAndUpdateAccountsRootHash(state.PeerAccountsState, lastExecutedPeerRootHash)
+}
+
+func (bp *baseProcessor) getLastValidatorStatsRootHash() ([]byte, error) {
 	lastExecutedHeader := bp.blockChain.GetLastExecutedBlockHeader()
 
-	var lastExecutedPeerRootHash []byte
 	if !lastExecutedHeader.IsHeaderV3() {
 		lastExecutedHeaderMeta, ok := lastExecutedHeader.(data.MetaHeaderHandler)
 		if !ok {
-			return process.ErrWrongTypeAssertion
+			return nil, process.ErrWrongTypeAssertion
 		}
 
-		lastExecutedPeerRootHash = lastExecutedHeaderMeta.GetValidatorStatsRootHash()
-	} else {
-		lastExecutedResult := bp.blockChain.GetLastExecutionResult()
-
-		lastMetaExecResult, ok := lastExecutedResult.(data.BaseMetaExecutionResultHandler)
-		if !ok {
-			return process.ErrWrongTypeAssertion
-		}
-
-		lastExecutedPeerRootHash = lastMetaExecResult.GetValidatorStatsRootHash()
+		return lastExecutedHeaderMeta.GetValidatorStatsRootHash(), nil
 	}
 
-	err := bp.checkAccountsRootHash(state.PeerAccountsState, lastExecutedPeerRootHash)
-	if err != nil {
-		return process.ErrRootStateDoesNotMatch
+	lastExecutedResult := bp.blockChain.GetLastExecutionResult()
+
+	lastMetaExecResult, ok := lastExecutedResult.(data.BaseMetaExecutionResultHandler)
+	if !ok {
+		return nil, process.ErrWrongTypeAssertion
 	}
 
-	return nil
+	return lastMetaExecResult.GetValidatorStatsRootHash(), nil
 }
 
-func (bp *baseProcessor) checkAccountsRootHash(
+func (bp *baseProcessor) checkAndUpdateAccountsRootHash(
 	accountsStateID state.AccountsDbIdentifier,
 	lastExecutedRootHash []byte,
 ) error {

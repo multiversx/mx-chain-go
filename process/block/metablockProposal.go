@@ -325,7 +325,7 @@ func (mp *metaProcessor) ProcessBlockProposal(
 		return nil, process.ErrAccountStateDirty
 	}
 
-	err := mp.checkContextBeforeExecution(header)
+	err := mp.checkAndUpdateContextBeforeExecution(header)
 	if err != nil {
 		return nil, err
 	}
@@ -1061,8 +1061,9 @@ func (mp *metaProcessor) getShardHeadersFromMetaHeader(
 			shardInfoHandler.GetShardID(),
 		)
 		if err != nil {
-			log.Debug("hasExecutionResultsForProposedEpochChange: could not find header",
+			log.Debug("getShardHeadersFromMetaHeader: could not find header",
 				"hash", shardInfoHandler.GetHeaderHash(),
+				"error", err,
 			)
 			return nil, process.ErrMissingHeader
 		}

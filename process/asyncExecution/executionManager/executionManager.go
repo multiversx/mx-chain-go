@@ -142,6 +142,7 @@ func (em *executionManager) updateContextForReplacedHeader(header data.HeaderHan
 
 	em.blockChain.SetLastExecutedBlockHeaderAndRootHash(headerToSet, executionResultToSet.GetHeaderHash(), executionResultToSet.GetRootHash())
 	em.blockChain.SetLastExecutionResult(executionResultToSet)
+
 	// need to remove all execution results after the one set
 	return em.executionResultsTracker.RemoveFromNonce(executionResultToSet.GetHeaderNonce() + 1)
 }
@@ -323,7 +324,12 @@ func (em *executionManager) getHeaderFromPoolOrStorage(
 
 	// chain handler header is set for self shard id
 	// TODO: add use shard coordinator
-	shardID := em.blockChain.GetCurrentBlockHeader().GetShardID()
+	currentBlockHeader := em.blockChain.GetCurrentBlockHeader()
+	if check.IfNil(currentBlockHeader) {
+		return nil, common.ErrNilHeaderHandler
+	}
+
+	shardID := currentBlockHeader.GetShardID()
 
 	return process.GetHeaderFromStorage(
 		shardID,
