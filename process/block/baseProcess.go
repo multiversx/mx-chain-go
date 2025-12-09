@@ -48,7 +48,7 @@ import (
 )
 
 const (
-	clenaupCrossShardHeadersDelta = 5
+	cleanupCrossShardHeadersDelta = 5
 )
 
 var log = logger.GetOrCreate("process/block")
@@ -1218,10 +1218,10 @@ func (bp *baseProcessor) cleanupPoolsForCrossShard(
 	}
 
 	crossNotarizedHeaderNonce := common.GetFirstExecutionResultNonce(crossNotarizedHeader)
-	if crossNotarizedHeaderNonce <= clenaupCrossShardHeadersDelta {
+	if crossNotarizedHeaderNonce <= cleanupCrossShardHeadersDelta {
 		return
 	}
-	crossNotarizedHeaderNonce -= clenaupCrossShardHeadersDelta
+	crossNotarizedHeaderNonce -= cleanupCrossShardHeadersDelta
 
 	bp.removeHeadersBehindNonceFromPools(
 		false,
@@ -1584,7 +1584,7 @@ func (bp *baseProcessor) getLastSelfNotarizedHeadersForShard(shardID uint32) *bo
 	}
 
 	headerInfo := &bootstrapStorage.BootstrapHeaderInfo{
-		ShardId: lastSelfNotarizedHeader.GetShardID(),
+		ShardId: shardID,
 		Nonce:   lastSelfNotarizedHeader.GetNonce(),
 		Hash:    lastSelfNotarizedHeaderHash,
 	}
@@ -1632,6 +1632,9 @@ func (bp *baseProcessor) getFinalBlockNonce(
 
 	finalHeaderHandler, err := bp.dataPool.Headers().GetHeaderByHash(bp.forkDetector.GetHighestFinalBlockHash())
 	if err != nil {
+		log.Debug("getFinalBlockNonce: could not find header",
+			"hash", bp.forkDetector.GetHighestFinalBlockHash(),
+		)
 		return finalBlockNonce
 	}
 
@@ -3504,12 +3507,7 @@ func (bp *baseProcessor) getLastExecutionResultHeader(
 	)
 }
 
-func (bp *baseProcessor) checkContextBeforeExecution(header data.HeaderHandler) error {
-	lastCommittedRootHash, err := bp.accountsDB[state.UserAccountsState].RootHash()
-	if err != nil {
-		return err
-	}
-
+func (bp *baseProcessor) checkAndUpdateContextBeforeExecution(header data.HeaderHandler) error {
 	lastExecutedNonce, lastExecutedHash, lastExecutedRootHash := bp.blockChain.GetLastExecutedBlockInfo()
 	if !bytes.Equal(header.GetPrevHash(), lastExecutedHash) {
 		log.Debug("checkContextBeforeExecution: hash does not match",
@@ -3525,6 +3523,70 @@ func (bp *baseProcessor) checkContextBeforeExecution(header data.HeaderHandler) 
 		)
 		return process.ErrWrongNonceInBlock
 	}
+
+	err := bp.checkAndUpdateAccountsRootHash(state.UserAccountsState, lastExecutedRootHash)
+	if err != nil {
+		return err
+	}
+
+	return bp.checkPeerAccountsRootHash(header.GetShardID())
+}
+
+func (bp *baseProcessor) checkPeerAccountsRootHash(
+	shardID uint32,
+) error {
+	if shardID != core.MetachainShardId {
+		return nil
+	}
+
+	lastExecutedPeerRootHash, err := bp.getLastValidatorStatsRootHash()
+	if err != nil {
+		return err
+	}
+
+	return bp.checkAndUpdateAccountsRootHash(state.PeerAccountsState, lastExecutedPeerRootHash)
+}
+
+func (bp *baseProcessor) getLastValidatorStatsRootHash() ([]byte, error) {
+	lastExecutedHeader := bp.blockChain.GetLastExecutedBlockHeader()
+
+	if !lastExecutedHeader.IsHeaderV3() {
+		lastExecutedHeaderMeta, ok := lastExecutedHeader.(data.MetaHeaderHandler)
+		if !ok {
+			return nil, process.ErrWrongTypeAssertion
+		}
+
+		return lastExecutedHeaderMeta.GetValidatorStatsRootHash(), nil
+	}
+
+	lastExecutedResult := bp.blockChain.GetLastExecutionResult()
+
+	lastMetaExecResult, ok := lastExecutedResult.(data.BaseMetaExecutionResultHandler)
+	if !ok {
+		return nil, process.ErrWrongTypeAssertion
+	}
+
+	return lastMetaExecResult.GetValidatorStatsRootHash(), nil
+}
+
+func (bp *baseProcessor) checkAndUpdateAccountsRootHash(
+	accountsStateID state.AccountsDbIdentifier,
+	lastExecutedRootHash []byte,
+) error {
+	lastCommittedRootHash, err := bp.accountsDB[accountsStateID].RootHash()
+	if err != nil {
+		return err
+	}
+
+	if bytes.Equal(lastCommittedRootHash, lastExecutedRootHash) {
+		return nil
+	}
+
+	lastCommittedRootHash, err = bp.recreateAccountsTrie(accountsStateID, lastExecutedRootHash)
+	if err != nil {
+		return err
+	}
+
 	if !bytes.Equal(lastCommittedRootHash, lastExecutedRootHash) {
 		log.Debug("checkContextBeforeExecution: rootHash does not match",
 			"lastExecutedRootHash", lastExecutedRootHash,
@@ -3534,6 +3596,19 @@ func (bp *baseProcessor) checkContextBeforeExecution(header data.HeaderHandler) 
 	}
 
 	return nil
+}
+
+func (bp *baseProcessor) recreateAccountsTrie(
+	trieStateId state.AccountsDbIdentifier,
+	lastExecutedRootHash []byte,
+) ([]byte, error) {
+	rootHashHolder := holders.NewDefaultRootHashesHolder(lastExecutedRootHash)
+	err := bp.accountsDB[trieStateId].RecreateTrie(rootHashHolder)
+	if err != nil {
+		return nil, err
+	}
+
+	return bp.accountsDB[trieStateId].RootHash()
 }
 
 func (bp *baseProcessor) getCrossShardIncomingMiniBlocksFromBody(body *block.Body) []*block.MiniBlock {
