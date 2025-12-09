@@ -2,6 +2,7 @@ package block
 
 import (
 	"fmt"
+	"reflect"
 
 	"github.com/multiversx/mx-chain-core-go/core/check"
 	"github.com/multiversx/mx-chain-core-go/data"
@@ -78,6 +79,13 @@ func (erc *executionResultsVerifier) verifyExecutionResults(
 
 	for i, er := range executionResults {
 		if !er.Equal(pendingExecutionResults[i]) {
+			log.Debug("verifyExecutionResults: results not matching",
+				"header nonce", header.GetNonce(),
+				"header res nonce", er.GetHeaderNonce(),
+				"header res type", reflect.TypeOf(er).String(),
+				"pending res nonce", pendingExecutionResults[i].GetHeaderNonce(),
+				"pending res type", reflect.TypeOf(pendingExecutionResults[i]).String(),
+			)
 			return process.ErrExecutionResultDoesNotMatch
 		}
 	}

@@ -212,6 +212,8 @@ func NewShardProcessorEmptyWith3shards(
 		ExecutionResultsTracker: executionResultsTracker,
 		BlockChain:              dataComponents.BlockChain,
 		Headers:                 dataComponents.Datapool().Headers(),
+		StorageService:          dataComponents.StorageService(),
+		Marshaller:              coreComponents.InternalMarshalizer(),
 	})
 	execResultsVerifier, _ := NewExecutionResultsVerifier(dataComponents.BlockChain, execManager)
 	inclusionEstimator := estimator.NewExecutionResultInclusionEstimator(
@@ -1039,7 +1041,7 @@ func (bp *baseProcessor) ExtractRootHashForCleanup(header data.HeaderHandler) (c
 
 // CheckContextBeforeExecution -
 func (bp *baseProcessor) CheckContextBeforeExecution(header data.HeaderHandler) error {
-	return bp.checkContextBeforeExecution(header)
+	return bp.checkAndUpdateContextBeforeExecution(header)
 }
 
 // SaveProposedTxsToStorage -

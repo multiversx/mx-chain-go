@@ -2523,6 +2523,8 @@ func (tpn *TestProcessorNode) initBlockProcessor() {
 		ExecutionResultsTracker: executionResultsTracker,
 		BlockChain:              tpn.BlockChain,
 		Headers:                 tpn.DataPool.Headers(),
+		StorageService:          &storageStubs.ChainStorerStub{},
+		Marshaller:              TestMarshaller,
 	}
 	tpn.ExecutionManager, err = executionManager.NewExecutionManager(argsExecutionManager)
 	if err != nil {
