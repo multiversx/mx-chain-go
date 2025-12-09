@@ -363,9 +363,9 @@ func (sp *shardProcessor) ProcessBlockProposal(
 		return nil, err
 	}
 
-	err = sp.commitState(headerHandler)
-	if err != nil {
-		return nil, err
+	errCutoff := sp.blockProcessingCutoffHandler.HandleProcessErrorCutoff(header)
+	if errCutoff != nil {
+		return nil, errCutoff
 	}
 
 	// TODO: should receive the header hash instead of re-computing it
@@ -379,9 +379,9 @@ func (sp *shardProcessor) ProcessBlockProposal(
 		return nil, err
 	}
 
-	errCutoff := sp.blockProcessingCutoffHandler.HandleProcessErrorCutoff(header)
-	if errCutoff != nil {
-		return nil, errCutoff
+	err = sp.commitState(headerHandler)
+	if err != nil {
+		return nil, err
 	}
 
 	return executionResult, nil
