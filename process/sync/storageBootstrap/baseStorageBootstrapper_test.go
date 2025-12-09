@@ -452,13 +452,36 @@ func TestBaseStorageBootstrapper_setCurrentBlockInfoV3(t *testing.T) {
 		t.Parallel()
 
 		baseArgs := createMockShardStorageBootstrapperArgs()
-		baseArgs.Marshalizer = &testscommon.MarshallerStub{
-			UnmarshalCalled: func(obj interface{}, buff []byte) error {
-				return nil
-			},
-		}
+
 		args := ArgsShardStorageBootstrapper{
 			ArgsBaseStorageBootstrapper: baseArgs,
+		}
+
+		args.Store = &storageStubs.ChainStorerStub{
+			GetStorerCalled: func(unitType dataRetriever.UnitType) (storage.Storer, error) {
+				return &storageStubs.StorerStub{
+					GetCalled: func(key []byte) ([]byte, error) {
+						header := &block.HeaderV3{
+							LastExecutionResult: &block.ExecutionResultInfo{
+								ExecutionResult: &block.BaseExecutionResult{
+									HeaderHash: []byte("hashExecResult"),
+								},
+							},
+							ExecutionResults: []*block.ExecutionResult{
+								{
+									BaseExecutionResult: &block.BaseExecutionResult{
+										HeaderNonce: 10,
+										HeaderHash:  []byte("hashExecResult"),
+									},
+								},
+							},
+						}
+						headerBytes, _ := baseArgs.Marshalizer.Marshal(header)
+
+						return headerBytes, nil
+					},
+				}, nil
+			},
 		}
 
 		counter := 0
@@ -478,7 +501,8 @@ func TestBaseStorageBootstrapper_setCurrentBlockInfoV3(t *testing.T) {
 		err := ssb.setCurrentBlockInfoV3(&block.HeaderV3{
 			LastExecutionResult: &block.ExecutionResultInfo{
 				ExecutionResult: &block.BaseExecutionResult{
-					HeaderHash: []byte("hashExecResult"),
+					HeaderHash:  []byte("hashExecResult"),
+					HeaderNonce: 10,
 				},
 			},
 		}, []byte("hash"))

@@ -3531,7 +3531,7 @@ func (bp *baseProcessor) checkContextBeforeExecution(header data.HeaderHandler) 
 
 	err := bp.checkAccountsRootHash(state.UserAccountsState, lastExecutedRootHash)
 	if err != nil {
-		return process.ErrRootStateDoesNotMatch
+		return err
 	}
 
 	return bp.checkPeerAccountsRootHash(header.GetShardID())
