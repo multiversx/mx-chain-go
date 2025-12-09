@@ -791,8 +791,8 @@ func TestBenchmarkTxCache_addManyTransactionsInDifferentScenarios(t *testing.T) 
 
 		sw.Start(t.Name())
 
-		for i := 0; i < numTransactions; i++ {
-			cache.AddTx(createTx(randomHashes.getItem(i), "alice", uint64(i)).withGasPrice(oneBillion + uint64(i)))
+		for i := 0; i < len(nonces); i++ {
+			cache.AddTx(createTx(randomHashes.getItem(nonces[i]), "alice", uint64(nonces[i])).withGasPrice(oneBillion + uint64(nonces[i])))
 		}
 
 		sw.Stop(t.Name())
