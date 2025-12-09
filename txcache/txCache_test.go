@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"math"
 	"math/big"
+	"math/rand/v2"
 	"sort"
 	"sync"
 	"testing"
@@ -732,7 +733,7 @@ func TestBenchmarkTxCache_addManyTransactionsWithSameNonce(t *testing.T) {
 	// 0.062260s (TestBenchmarkTxCache_addManyTransactionsWithSameNonce/numTransactions_=_5_000_(worst_case))
 }
 
-func TestBenchmarkTxCache_addManyTransactionsWithIncreasingNonce(t *testing.T) {
+func TestBenchmarkTxCache_addManyTransactionsInDifferentScenarios(t *testing.T) {
 	config := ConfigSourceMe{
 		Name:                        "untitled",
 		NumChunks:                   16,
@@ -748,7 +749,7 @@ func TestBenchmarkTxCache_addManyTransactionsWithIncreasingNonce(t *testing.T) {
 	host := txcachemocks.NewMempoolHostMock()
 	sw := core.NewStopWatch()
 
-	t.Run("numTransactions = 5_000 (worst case) with decreasing nonce", func(t *testing.T) {
+	t.Run("numTransactions = 5_000 with decreasing nonce (worst case)", func(t *testing.T) {
 		cache, err := NewTxCache(config, host, 0)
 		require.Nil(t, err)
 
@@ -765,7 +766,41 @@ func TestBenchmarkTxCache_addManyTransactionsWithIncreasingNonce(t *testing.T) {
 		require.Equal(t, numTransactions, int(cache.CountTx()))
 	})
 
-	t.Run("numTransactions = 5_000 (worst case) with increasing nonce", func(t *testing.T) {
+	t.Run("numTransactions = 5_000 with unordered nonce", func(t *testing.T) {
+		cache, err := NewTxCache(config, host, 0)
+		require.Nil(t, err)
+
+		numTransactions := 5_000
+		noncesMap := map[int]struct{}{}
+
+		s3 := rand.NewPCG(42, 1024)
+		r3 := rand.New(s3)
+
+		nonces := make([]int, 0, numTransactions)
+		for len(nonces) < numTransactions {
+			num := r3.IntN(numTransactions)
+			_, ok := noncesMap[num]
+			for ok {
+				num = r3.IntN(numTransactions)
+				_, ok = noncesMap[num]
+			}
+
+			nonces = append(nonces, num)
+			noncesMap[num] = struct{}{}
+		}
+
+		sw.Start(t.Name())
+
+		for i := 0; i < numTransactions; i++ {
+			cache.AddTx(createTx(randomHashes.getItem(i), "alice", uint64(i)).withGasPrice(oneBillion + uint64(i)))
+		}
+
+		sw.Stop(t.Name())
+
+		require.Equal(t, numTransactions, int(cache.CountTx()))
+	})
+
+	t.Run("numTransactions = 5_000 with increasing nonce (best case)", func(t *testing.T) {
 		cache, err := NewTxCache(config, host, 0)
 		require.Nil(t, err)
 
