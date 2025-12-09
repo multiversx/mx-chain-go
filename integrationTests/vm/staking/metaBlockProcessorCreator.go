@@ -122,6 +122,7 @@ func createMetaBlockProcessor(
 		Headers:                 dataComponents.Datapool().Headers(),
 		StorageService:          dataComponents.StorageService(),
 		Marshaller:              coreComponents.InternalMarshalizer(),
+		ShardCoordinator:        bootstrapComponents.ShardCoordinator(),
 	})
 	execResultsVerifier, _ := blproc.NewExecutionResultsVerifier(dataComponents.Blockchain(), execManager)
 	inclusionEstimator := estimator.NewExecutionResultInclusionEstimator(
@@ -140,13 +141,16 @@ func createMetaBlockProcessor(
 	}
 	missingDataResolver, _ := missingData.NewMissingDataResolver(missingDataArgs)
 
-	shardInfoCreator, _ := blproc.NewShardInfoCreateData(
-		coreComponents.EnableEpochsHandler(),
-		dataComponents.Datapool().Headers(),
-		dataComponents.Datapool().Proofs(),
-		&mock.PendingMiniBlocksHandlerStub{},
-		blockTracker,
-	)
+	shardInfoCreateDataArgs := blproc.ShardInfoCreateDataArgs{
+		EnableEpochsHandler:      coreComponents.EnableEpochsHandler(),
+		HeadersPool:              dataComponents.Datapool().Headers(),
+		ProofsPool:               dataComponents.Datapool().Proofs(),
+		PendingMiniBlocksHandler: &mock.PendingMiniBlocksHandlerStub{},
+		BlockTracker:             blockTracker,
+		Storage:                  dataComponents.StorageService(),
+		Marshaller:               coreComponents.InternalMarshalizer(),
+	}
+	shardInfoCreator, _ := blproc.NewShardInfoCreateData(shardInfoCreateDataArgs)
 
 	args := blproc.ArgMetaProcessor{
 		ArgBaseProcessor: blproc.ArgBaseProcessor{

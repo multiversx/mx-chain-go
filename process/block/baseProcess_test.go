@@ -178,6 +178,7 @@ func createArgBaseProcessor(
 			Headers:                 dataComponents.DataPool.Headers(),
 			StorageService:          dataComponents.StorageService(),
 			Marshaller:              coreComponents.InternalMarshalizer(),
+			ShardCoordinator:        bootstrapComponents.ShardCoordinator(),
 		})
 		execResultsVerifier, _ = blproc.NewExecutionResultsVerifier(dataComponents.BlockChain, execManager)
 		inclusionEstimator = estimator.NewExecutionResultInclusionEstimator(
