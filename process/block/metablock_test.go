@@ -3766,7 +3766,7 @@ func TestMetaProcessor_CreateEpochStartBodyShouldWork(t *testing.T) {
 				assert.True(t, wasCalled)
 				return rewardMiniBlocks, nil
 			},
-			GetProtocolSustainabilityRewardsCalled: func() *big.Int {
+			GetAcceleratorRewardsCalled: func() *big.Int {
 				return expectedRewardsForProtocolSustain
 			},
 		}
@@ -3836,7 +3836,7 @@ func TestMetaProcessor_CreateEpochStartBodyShouldWork(t *testing.T) {
 				assert.Equal(t, mb, metaBlock)
 				return rewardMiniBlocks, nil
 			},
-			GetProtocolSustainabilityRewardsCalled: func() *big.Int {
+			GetAcceleratorRewardsCalled: func() *big.Int {
 				return expectedRewardsForProtocolSustain
 			},
 		}

@@ -186,11 +186,19 @@ type EpochEconomicsDataProvider interface {
 	SetLeadersFees(fees *big.Int)
 	SetRewardsToBeDistributed(rewards *big.Int)
 	SetRewardsToBeDistributedForBlocks(rewards *big.Int)
+	SetRewardsForProtocolSustainability(rewards *big.Int)
+	SetRewardsForEcosystemGrowth(rewards *big.Int)
+	SetRewardsForGrowthDividend(rewards *big.Int)
 	NumberOfBlocks() uint64
 	NumberOfBlocksPerShard() map[uint32]uint64
 	LeaderFees() *big.Int
 	RewardsToBeDistributed() *big.Int
 	RewardsToBeDistributedForBlocks() *big.Int
+	RewardsForProtocolSustainability() *big.Int
+	RewardsForEcosystemGrowth() *big.Int
+	RewardsForGrowthDividend() *big.Int
+	RewardsForAccelerator() *big.Int
+	Clean()
 	IsInterfaceNil() bool
 }
 
@@ -208,7 +216,7 @@ type RewardsCreator interface {
 		computedEconomics *block.Economics,
 		prevBlockExecutionResults data.BaseMetaExecutionResultHandler,
 	) (block.MiniBlockSlice, error)
-	GetProtocolSustainabilityRewards() *big.Int
+	GetAcceleratorRewards() *big.Int
 	GetLocalTxCache() TransactionCacher
 	CreateMarshalledData(body *block.Body) map[string][][]byte
 	GetRewardsTxs(body *block.Body) map[string]data.TransactionHandler

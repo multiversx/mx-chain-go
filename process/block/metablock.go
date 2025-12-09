@@ -414,7 +414,7 @@ func (mp *metaProcessor) processEpochStartMetaBlock(
 		return err
 	}
 
-	err = mp.epochEconomics.VerifyRewardsPerBlock(header, mp.epochRewardsCreator.GetProtocolSustainabilityRewards(), computedEconomics)
+	err = mp.epochEconomics.VerifyRewardsPerBlock(header, mp.epochRewardsCreator.GetAcceleratorRewards(), computedEconomics)
 	if err != nil {
 		return err
 	}
@@ -872,7 +872,7 @@ func (mp *metaProcessor) processEpochStartMiniBlocks(
 		return nil, err
 	}
 
-	computedEconomics.RewardsForProtocolSustainability.Set(mp.epochRewardsCreator.GetProtocolSustainabilityRewards())
+	computedEconomics.RewardsForProtocolSustainability.Set(mp.epochRewardsCreator.GetAcceleratorRewards())
 
 	err = mp.epochSystemSCProcessor.ProcessDelegationRewards(rewardMiniBlocks, mp.epochRewardsCreator.GetLocalTxCache())
 	if err != nil {
