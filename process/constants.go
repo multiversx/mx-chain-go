@@ -81,10 +81,6 @@ const MaxHeaderRequestsAllowed = 20
 // committed block nonce, after which, node is considered himself not synced
 const NonceDifferenceWhenSynced = 0
 
-// MaxSyncWithErrorsAllowed defines the maximum allowed number of sync with errors,
-// before a special action to be applied
-const MaxSyncWithErrorsAllowed = 10
-
 // MaxHeadersToRequestInAdvance defines the maximum number of headers which will be requested in advance,
 // if they are missing
 const MaxHeadersToRequestInAdvance = 20
