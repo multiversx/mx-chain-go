@@ -57,6 +57,7 @@ import (
 	"github.com/multiversx/mx-chain-go/sharding/nodesCoordinator"
 	"github.com/multiversx/mx-chain-go/state"
 	"github.com/multiversx/mx-chain-go/state/accounts"
+	"github.com/multiversx/mx-chain-go/state/disabled"
 	"github.com/multiversx/mx-chain-go/state/factory"
 	"github.com/multiversx/mx-chain-go/state/iteratorChannelsProvider"
 	"github.com/multiversx/mx-chain-go/state/lastSnapshotMarker"
@@ -487,13 +488,14 @@ func CreateAccountsDBWithEnableEpochsHandler(
 	})
 
 	args := state.ArgsAccountsDB{
-		Trie:                  tr,
-		Hasher:                sha256.NewSha256(),
-		Marshaller:            TestMarshalizer,
-		AccountFactory:        accountFactory,
-		StoragePruningManager: spm,
-		AddressConverter:      &testscommon.PubkeyConverterMock{},
-		SnapshotsManager:      snapshotsManager,
+		Trie:                   tr,
+		Hasher:                 sha256.NewSha256(),
+		Marshaller:             TestMarshalizer,
+		AccountFactory:         accountFactory,
+		StoragePruningManager:  spm,
+		AddressConverter:       &testscommon.PubkeyConverterMock{},
+		SnapshotsManager:       snapshotsManager,
+		StateAccessesCollector: disabled.NewDisabledStateAccessesCollector(),
 	}
 	adb, _ := state.NewAccountsDB(args)
 
@@ -504,9 +506,10 @@ func getAccountFactory(accountType Type, enableEpochsHandler common.EnableEpochs
 	switch accountType {
 	case UserAccount:
 		argsAccCreator := factory.ArgsAccountCreator{
-			Hasher:              TestHasher,
-			Marshaller:          TestMarshalizer,
-			EnableEpochsHandler: enableEpochsHandler,
+			Hasher:                 TestHasher,
+			Marshaller:             TestMarshalizer,
+			EnableEpochsHandler:    enableEpochsHandler,
+			StateAccessesCollector: disabled.NewDisabledStateAccessesCollector(),
 		}
 		return factory.NewAccountCreator(argsAccCreator)
 	case ValidatorAccount:
@@ -984,7 +987,7 @@ func GenerateAddressJournalAccountAccountsDB() ([]byte, state.UserAccountHandler
 	adb, _ := CreateAccountsDB(UserAccount, trieStorage)
 
 	dtlp, _ := parsers.NewDataTrieLeafParser(adr, &marshallerMock.MarshalizerMock{}, &enableEpochsHandlerMock.EnableEpochsHandlerStub{})
-	dtt, _ := trackableDataTrie.NewTrackableDataTrie(adr, &testscommon.HasherStub{}, &marshallerMock.MarshalizerMock{}, &enableEpochsHandlerMock.EnableEpochsHandlerStub{})
+	dtt, _ := trackableDataTrie.NewTrackableDataTrie(adr, &testscommon.HasherStub{}, &marshallerMock.MarshalizerMock{}, &enableEpochsHandlerMock.EnableEpochsHandlerStub{}, disabled.NewDisabledStateAccessesCollector())
 
 	account, _ := accounts.NewUserAccount(adr, dtt, dtlp)
 

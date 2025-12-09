@@ -363,11 +363,14 @@
     # BarnardOpcodesEnableEpoch represents the epoch when Barnard opcodes will be enabled
     BarnardOpcodesEnableEpoch = 1
 
-    # FixGetBalanceEnableEpoch represents the epoch when Barnard opcodes will be enabled
+    # FixGetBalanceEnableEpoch represents the epoch when get balance opcode fix is enabled
     FixGetBalanceEnableEpoch = 1
 
     # AutomaticActivationOfNodesDisableEpoch represents the epoch when automatic activation of nodes for validators is disabled
     AutomaticActivationOfNodesDisableEpoch = 1
+
+    # RelayedTransactionsV1V2DisableEpoch represents the epoch when relayed transactions v1 and v2 are disabled
+    RelayedTransactionsV1V2DisableEpoch = 1
 
     # BLSMultiSignerEnableEpoch represents the activation epoch for different types of BLS multi-signers
     BLSMultiSignerEnableEpoch = [

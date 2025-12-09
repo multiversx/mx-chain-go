@@ -66,7 +66,7 @@ func (jea *journalEntryCode) revertOldCodeEntry() error {
 		return nil
 	}
 
-	err := saveCodeEntry(jea.oldCodeHash, jea.oldCodeEntry, jea.trie, jea.marshalizer)
+	_, err := saveCodeEntry(jea.oldCodeHash, jea.oldCodeEntry, jea.trie, jea.marshalizer)
 	if err != nil {
 		return err
 	}
@@ -94,7 +94,7 @@ func (jea *journalEntryCode) revertNewCodeEntry() error {
 	}
 
 	newCodeEntry.NumReferences--
-	err = saveCodeEntry(jea.newCodeHash, newCodeEntry, jea.trie, jea.marshalizer)
+	_, err = saveCodeEntry(jea.newCodeHash, newCodeEntry, jea.trie, jea.marshalizer)
 	if err != nil {
 		return err
 	}
@@ -193,13 +193,15 @@ func (jedtu *journalEntryDataTrieUpdates) Revert() (vmcommon.AccountHandler, err
 		return nil, fmt.Errorf("invalid trie, type is %T", jedtu.account.DataTrie())
 	}
 
-	for _, trieUpdate := range jedtu.trieUpdates {
+	for i := len(jedtu.trieUpdates) - 1; i >= 0; i-- {
+		trieUpdate := jedtu.trieUpdates[i]
 		err := trie.UpdateWithVersion(trieUpdate.Key, trieUpdate.Value, trieUpdate.Version)
 		if err != nil {
 			return nil, err
 		}
 
 		log.Trace("revert data trie update",
+			"address", jedtu.account.AddressBytes(),
 			"key", trieUpdate.Key,
 			"val", trieUpdate.Value,
 			"version", trieUpdate.Version,

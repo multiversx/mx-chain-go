@@ -853,6 +853,12 @@ func (handler *enableEpochsHandler) createAllFlagsMap() {
 			},
 			activationEpoch: handler.enableEpochsConfig.FixGetBalanceEnableEpoch,
 		},
+		common.RelayedTransactionsV1V2DisableFlag: {
+			isActiveInEpoch: func(epoch uint32) bool {
+				return epoch >= handler.enableEpochsConfig.RelayedTransactionsV1V2DisableEpoch
+			},
+			activationEpoch: handler.enableEpochsConfig.RelayedTransactionsV1V2DisableEpoch,
+		},
 	}
 }
 

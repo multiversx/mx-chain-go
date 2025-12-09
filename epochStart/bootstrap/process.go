@@ -61,7 +61,7 @@ import (
 var log = logger.GetOrCreate("epochStart/bootstrap")
 
 // DefaultTimeToWaitForRequestedData represents the default timespan until requested data needs to be received from the connected peers
-const DefaultTimeToWaitForRequestedData = time.Minute
+const DefaultTimeToWaitForRequestedData = 5 * time.Minute
 const timeBetweenRequests = 100 * time.Millisecond
 const maxToRequest = 100
 const gracePeriodInPercentage = float64(0.25)

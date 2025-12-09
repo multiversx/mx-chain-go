@@ -34,8 +34,18 @@ type TransactionCoordinatorMock struct {
 	GetAllIntermediateTxsCalled                          func() map[block.Type]map[string]data.TransactionHandler
 	AddTxsFromMiniBlocksCalled                           func(miniBlocks block.MiniBlockSlice)
 	AddTransactionsCalled                                func(txHandlers []data.TransactionHandler, blockType block.Type)
+	ComputeTransactionTypeInEpochCalled                  func(tx data.TransactionHandler, epoch uint32) (process.TransactionType, process.TransactionType, bool)
 
 	miniBlocks []*block.MiniBlock
+}
+
+// ComputeTransactionTypeInEpoch -
+func (tcm *TransactionCoordinatorMock) ComputeTransactionTypeInEpoch(tx data.TransactionHandler, epoch uint32) (process.TransactionType, process.TransactionType, bool) {
+	if tcm.ComputeTransactionTypeInEpochCalled == nil {
+		return process.MoveBalance, process.MoveBalance, false
+	}
+
+	return tcm.ComputeTransactionTypeInEpochCalled(tx, epoch)
 }
 
 // GetAllCurrentLogs -

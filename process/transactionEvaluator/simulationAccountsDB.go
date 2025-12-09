@@ -174,6 +174,11 @@ func (r *simulationAccountsDB) GetStackDebugFirstEntry() []byte {
 	return nil
 }
 
+// SetTxHashForLatestStateAccesses -
+func (r *simulationAccountsDB) SetTxHashForLatestStateAccesses(txHash []byte) {
+	r.originalAccounts.SetTxHashForLatestStateAccesses(txHash)
+}
+
 // Close will handle the closing of the underlying components
 func (r *simulationAccountsDB) Close() error {
 	return nil

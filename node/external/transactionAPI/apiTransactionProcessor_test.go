@@ -456,6 +456,14 @@ func TestNode_GetTransactionFromStorage(t *testing.T) {
 	tx, err = n.GetTransaction(hex.EncodeToString([]byte("badly-serialized")), false)
 	require.NotNil(t, err)
 	require.Nil(t, tx)
+
+	// relayed after it is disabled
+	relayedTx := &transaction.Transaction{Nonce: 10, SndAddr: []byte("bob"), RcvAddr: []byte("alice"), Data: []byte("relayed@test")}
+	_ = chainStorer.Transactions.PutWithMarshalizer([]byte("relayed"), relayedTx, internalMarshalizer)
+	tx, err = n.GetTransaction(hex.EncodeToString([]byte("relayed")), false)
+	require.NoError(t, err)
+	require.NotNil(t, tx)
+	require.False(t, tx.IsRelayed)
 }
 
 func TestNode_GetTransactionWithResultsFromStorageMissingStorer(t *testing.T) {
@@ -1139,6 +1147,11 @@ func createAPITransactionProc(t *testing.T, epoch uint32, withDbLookupExt bool) 
 	}
 	dataFieldParser := &testscommon.DataFieldParserStub{
 		ParseCalled: func(dataField []byte, sender, receiver []byte, _ uint32) *datafield.ResponseParseData {
+			if strings.Contains(string(dataField), "relayed") {
+				return &datafield.ResponseParseData{
+					IsRelayed: true,
+				}
+			}
 			return &datafield.ResponseParseData{}
 		},
 	}
@@ -1158,7 +1171,11 @@ func createAPITransactionProc(t *testing.T, epoch uint32, withDbLookupExt bool) 
 		LogsFacade:               &testscommon.LogsFacadeStub{},
 		DataFieldParser:          dataFieldParser,
 		TxMarshaller:             &marshallerMock.MarshalizerMock{},
-		EnableEpochsHandler:      enableEpochsHandlerMock.NewEnableEpochsHandlerStub(),
+		EnableEpochsHandler: &enableEpochsHandlerMock.EnableEpochsHandlerStub{
+			IsFlagEnabledInEpochCalled: func(flag core.EnableEpochFlag, epoch uint32) bool {
+				return flag == common.RelayedTransactionsV1V2DisableFlag
+			},
+		},
 	}
 	apiTransactionProc, err := NewAPITransactionProcessor(args)
 	require.Nil(t, err)
@@ -1320,7 +1337,7 @@ func TestApiTransactionProcessor_GetTransactionPopulatesComputedFields(t *testin
 	})
 
 	t.Run("ProcessingType", func(t *testing.T) {
-		txTypeHandler.ComputeTransactionTypeCalled = func(data.TransactionHandler) (process.TransactionType, process.TransactionType, bool) {
+		txTypeHandler.ComputeTransactionTypeInEpochCalled = func(data.TransactionHandler, uint32) (process.TransactionType, process.TransactionType, bool) {
 			return process.MoveBalance, process.SCDeployment, false
 		}
 
@@ -1333,7 +1350,7 @@ func TestApiTransactionProcessor_GetTransactionPopulatesComputedFields(t *testin
 	})
 
 	t.Run("ProcessingType (with relayed v3)", func(t *testing.T) {
-		txTypeHandler.ComputeTransactionTypeCalled = func(data.TransactionHandler) (process.TransactionType, process.TransactionType, bool) {
+		txTypeHandler.ComputeTransactionTypeInEpochCalled = func(data.TransactionHandler, uint32) (process.TransactionType, process.TransactionType, bool) {
 			return process.MoveBalance, process.SCDeployment, true
 		}
 
@@ -1377,7 +1394,7 @@ func TestApiTransactionProcessor_PopulateComputedFields(t *testing.T) {
 	require.Nil(t, err)
 	require.NotNil(t, processor)
 
-	txTypeHandler.ComputeTransactionTypeCalled = func(data.TransactionHandler) (process.TransactionType, process.TransactionType, bool) {
+	txTypeHandler.ComputeTransactionTypeInEpochCalled = func(data.TransactionHandler, uint32) (process.TransactionType, process.TransactionType, bool) {
 		return process.MoveBalance, process.SCDeployment, false
 	}
 

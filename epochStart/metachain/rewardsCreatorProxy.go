@@ -86,9 +86,9 @@ func (rcp *rewardsCreatorProxy) VerifyRewardsMiniBlocks(
 	return rcp.rc.VerifyRewardsMiniBlocks(metaBlock, validatorsInfo, computedEconomics)
 }
 
-// GetProtocolSustainabilityRewards proxies the same method of the configured rewardsCreator instance
-func (rcp *rewardsCreatorProxy) GetProtocolSustainabilityRewards() *big.Int {
-	return rcp.rc.GetProtocolSustainabilityRewards()
+// GetAcceleratorRewards proxies the same method of the configured rewardsCreator instance
+func (rcp *rewardsCreatorProxy) GetAcceleratorRewards() *big.Int {
+	return rcp.rc.GetAcceleratorRewards()
 }
 
 // GetLocalTxCache proxies the same method of the configured rewardsCreator instance
