@@ -77,7 +77,10 @@ func (p *pendingMiniBlocks) getMiniBlockHandlersFromShardData(metaBlock data.Met
 	for _, shardData := range metaBlock.GetShardInfoProposalHandlers() {
 		shardHeader, err := p.headersPool.GetHeaderByHash(shardData.GetHeaderHash())
 		if err != nil {
-			log.Debug("getMiniBlockHandlersFromShardData", "hash", shardData.GetHeaderHash())
+			log.Debug("getMiniBlockHandlersFromShardData: failed to get from pool",
+				"hash", shardData.GetHeaderHash(),
+				"error", err,
+			)
 			return nil, err
 		}
 

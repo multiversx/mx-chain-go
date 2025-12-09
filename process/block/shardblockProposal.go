@@ -299,7 +299,7 @@ func (sp *shardProcessor) ProcessBlockProposal(
 		return nil, process.ErrAccountStateDirty
 	}
 
-	err := sp.checkContextBeforeExecution(header)
+	err := sp.checkAndUpdateContextBeforeExecution(header)
 	if err != nil {
 		return nil, err
 	}

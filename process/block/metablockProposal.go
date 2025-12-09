@@ -325,7 +325,7 @@ func (mp *metaProcessor) ProcessBlockProposal(
 		return nil, process.ErrAccountStateDirty
 	}
 
-	err := mp.checkContextBeforeExecution(header)
+	err := mp.checkAndUpdateContextBeforeExecution(header)
 	if err != nil {
 		return nil, err
 	}
