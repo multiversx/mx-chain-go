@@ -63,7 +63,7 @@ import (
 var ErrGetEpochStartRootHash = errors.New("failed to get epoch start root hash from execution results")
 
 // ErrGetEpochStartValidatorStatsRootHash signals that validator stats root hash was not found in execution results for epoch start header
-var ErrGetEpochStartValidatorStatsRootHash = errors.New("failed to get epoch start validator status root hash from execution results")
+var ErrGetEpochStartValidatorStatsRootHash = errors.New("failed to get epoch start validator stats root hash from execution results")
 
 var log = logger.GetOrCreate("epochStart/bootstrap")
 
