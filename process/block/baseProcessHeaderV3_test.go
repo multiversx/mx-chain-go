@@ -772,6 +772,8 @@ func TestBaseProcessor_cleanPostProcessCache(t *testing.T) {
 			},
 		}
 
+		expectedRemovedKeys := []string{"hash1", "executionhash1", "hash2", "executionhash2"}
+
 		bp := getDefaultBaseProcessor()
 		removedKeys := make([]string, 0)
 		cacher := &cache.CacherStub{
@@ -786,6 +788,6 @@ func TestBaseProcessor_cleanPostProcessCache(t *testing.T) {
 		}
 
 		bp.cleanPostProcessCache(header)
-		require.Equal(t, headerHashes, removedKeys)
+		require.Equal(t, expectedRemovedKeys, removedKeys)
 	})
 }
