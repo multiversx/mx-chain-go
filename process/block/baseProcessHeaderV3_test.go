@@ -751,18 +751,18 @@ func TestBaseProcessor_cleanPostProcessCache(t *testing.T) {
 		bp.cleanPostProcessCache(header)
 	})
 	t.Run("should remove from cache for each execution result", func(t *testing.T) {
-		headerHashes := [][]byte{[]byte("hash1"), []byte("hash2")}
+		headerHashes := []string{"hash1", "hash2"}
 		header := &testscommon.HeaderHandlerStub{
 			GetExecutionResultsHandlersCalled: func() []data.BaseExecutionResultHandler {
 				return []data.BaseExecutionResultHandler{
 					&block.ExecutionResult{
 						BaseExecutionResult: &block.BaseExecutionResult{
-							HeaderHash: headerHashes[0],
+							HeaderHash: []byte(headerHashes[0]),
 						},
 					},
 					&block.ExecutionResult{
 						BaseExecutionResult: &block.BaseExecutionResult{
-							HeaderHash: headerHashes[1],
+							HeaderHash: []byte(headerHashes[1]),
 						},
 					},
 				}
@@ -783,8 +783,6 @@ func TestBaseProcessor_cleanPostProcessCache(t *testing.T) {
 		}
 
 		bp.cleanPostProcessCache(header)
-		require.Equal(t, 2, len(removedKeys))
-		require.Contains(t, removedKeys, "hash1")
-		require.Contains(t, removedKeys, "hash2")
+		require.Equal(t, headerHashes, removedKeys)
 	})
 }
