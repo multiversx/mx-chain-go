@@ -3,7 +3,9 @@ package processor
 import (
 	"github.com/multiversx/mx-chain-core-go/core"
 	"github.com/multiversx/mx-chain-core-go/core/check"
+	"github.com/multiversx/mx-chain-go/p2p"
 	"github.com/multiversx/mx-chain-go/process"
+	"github.com/multiversx/mx-chain-go/storage"
 	logger "github.com/multiversx/mx-chain-logger-go"
 )
 
@@ -13,8 +15,9 @@ var txLog = logger.GetOrCreate("process/interceptors/processor/txlog")
 // TxInterceptorProcessor is the processor used when intercepting transactions
 // (smart contract results, receipts, transaction) structs which satisfy TransactionHandler interface.
 type TxInterceptorProcessor struct {
-	shardedPool process.ShardedPool
-	txValidator process.TxValidator
+	shardedPool                 process.ShardedPool
+	txValidator                 process.TxValidator
+	directSentTransactionsCache storage.Cacher
 }
 
 // NewTxInterceptorProcessor creates a new TxInterceptorProcessor instance
@@ -28,10 +31,14 @@ func NewTxInterceptorProcessor(argument *ArgTxInterceptorProcessor) (*TxIntercep
 	if check.IfNil(argument.TxValidator) {
 		return nil, process.ErrNilTxValidator
 	}
+	if check.IfNil(argument.DirectSentTransactionsCache) {
+		return nil, process.ErrNilDirectSentCache
+	}
 
 	return &TxInterceptorProcessor{
-		shardedPool: argument.ShardedDataCache,
-		txValidator: argument.TxValidator,
+		shardedPool:                 argument.ShardedDataCache,
+		txValidator:                 argument.TxValidator,
+		directSentTransactionsCache: argument.DirectSentTransactionsCache,
 	}, nil
 }
 
@@ -46,7 +53,7 @@ func (txip *TxInterceptorProcessor) Validate(data process.InterceptedData, _ cor
 }
 
 // Save will save the received data into the cacher
-func (txip *TxInterceptorProcessor) Save(data process.InterceptedData, peerOriginator core.PeerID, _ string) (bool, error) {
+func (txip *TxInterceptorProcessor) Save(data process.InterceptedData, peerOriginator core.PeerID, _ string, broadcastMethod p2p.BroadcastMethod) (bool, error) {
 	interceptedTx, ok := data.(process.InterceptedTransactionHandler)
 	if !ok {
 		return false, process.ErrWrongTypeAssertion
@@ -72,6 +79,10 @@ func (txip *TxInterceptorProcessor) Save(data process.InterceptedData, peerOrigi
 		interceptedTx.Transaction().Size(),
 		cacherIdentifier,
 	)
+
+	if isDirectSend(broadcastMethod) {
+		txip.directSentTransactionsCache.Put(data.Hash(), struct{}{}, 0)
+	}
 
 	return true, nil
 }

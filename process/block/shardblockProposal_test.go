@@ -13,6 +13,8 @@ import (
 	"github.com/multiversx/mx-chain-core-go/data"
 	"github.com/multiversx/mx-chain-core-go/data/block"
 	"github.com/multiversx/mx-chain-core-go/data/transaction"
+	"github.com/multiversx/mx-chain-go/storage"
+	"github.com/multiversx/mx-chain-go/testscommon/cache"
 	commonMocks "github.com/multiversx/mx-chain-go/testscommon/common"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
@@ -229,6 +231,9 @@ func TestShardProcessor_CreateBlockProposal(t *testing.T) {
 			},
 			HeadersCalled: func() retriever.HeadersPool {
 				return headers
+			},
+			DirectSentTransactionsCalled: func() storage.Cacher {
+				return cache.NewCacherStub()
 			},
 		}
 		arguments := CreateMockArguments(coreComponents, dataComponents, bootstrapComponents, statusComponents)
@@ -479,6 +484,9 @@ func TestShardProcessor_CreateBlockProposal(t *testing.T) {
 						return
 					},
 				}
+			},
+			DirectSentTransactionsCalled: func() storage.Cacher {
+				return cache.NewCacherStub()
 			},
 		}
 
@@ -900,6 +908,9 @@ func TestShardProcessor_SelectIncomingMiniBlocks(t *testing.T) {
 					},
 				}
 			},
+			DirectSentTransactionsCalled: func() storage.Cacher {
+				return cache.NewCacherStub()
+			},
 		}
 		arguments := CreateMockArguments(coreComponents, dataComponents, bootstrapComponents, statusComponents)
 		arguments.MiniBlocksSelectionSession = &mbSelection.MiniBlockSelectionSessionStub{
@@ -931,6 +942,9 @@ func TestShardProcessor_SelectIncomingMiniBlocks(t *testing.T) {
 					},
 				}
 			},
+			DirectSentTransactionsCalled: func() storage.Cacher {
+				return cache.NewCacherStub()
+			},
 		}
 		arguments := CreateMockArguments(coreComponents, dataComponents, bootstrapComponents, statusComponents)
 		sp, err := blproc.NewShardProcessor(arguments)
@@ -958,6 +972,9 @@ func TestShardProcessor_SelectIncomingMiniBlocks(t *testing.T) {
 						return false
 					},
 				}
+			},
+			DirectSentTransactionsCalled: func() storage.Cacher {
+				return cache.NewCacherStub()
 			},
 		}
 		arguments := CreateMockArguments(coreComponents, dataComponents, bootstrapComponents, statusComponents)
@@ -993,6 +1010,9 @@ func TestShardProcessor_SelectIncomingMiniBlocks(t *testing.T) {
 						return true
 					},
 				}
+			},
+			DirectSentTransactionsCalled: func() storage.Cacher {
+				return cache.NewCacherStub()
 			},
 		}
 		arguments := CreateMockArguments(coreComponents, dataComponents, bootstrapComponents, statusComponents)
@@ -1047,6 +1067,9 @@ func TestShardProcessor_SelectIncomingMiniBlocks(t *testing.T) {
 						return true
 					},
 				}
+			},
+			DirectSentTransactionsCalled: func() storage.Cacher {
+				return cache.NewCacherStub()
 			},
 		}
 		arguments := CreateMockArguments(coreComponents, dataComponents, bootstrapComponents, statusComponents)
@@ -2042,6 +2065,9 @@ func TestShardBlockProposal_CreateAndVerifyProposal(t *testing.T) {
 				},
 			}
 		},
+		DirectSentTransactionsCalled: func() storage.Cacher {
+			return cache.NewCacherStub()
+		},
 	}
 	dataComponents.BlockChain = blkc
 
@@ -2192,6 +2218,9 @@ func TestShardBlockProposal_CreateAndVerifyProposal_WithTransactions(t *testing.
 					return
 				},
 			}
+		},
+		DirectSentTransactionsCalled: func() storage.Cacher {
+			return cache.NewCacherStub()
 		},
 	}
 	dataComponents.BlockChain = blkc
@@ -2438,6 +2467,7 @@ func adaptDataPoolForVerifyGas(
 ) *dataRetriever.PoolsHolderStub {
 	headers := initialPool.Headers()
 	proofs := initialPool.Proofs()
+	dsTxs := initialPool.DirectSentTransactions()
 	return &dataRetriever.PoolsHolderStub{
 		HeadersCalled: func() retriever.HeadersPool {
 			return headers
@@ -2453,6 +2483,9 @@ func adaptDataPoolForVerifyGas(
 					return
 				},
 			}
+		},
+		DirectSentTransactionsCalled: func() storage.Cacher {
+			return dsTxs
 		},
 	}
 }
@@ -2602,6 +2635,9 @@ func TestShardProcessor_ProcessBlockProposal(t *testing.T) {
 						return nil, expectedErr
 					},
 				}
+			},
+			DirectSentTransactionsCalled: func() storage.Cacher {
+				return cache.NewCacherStub()
 			},
 		}
 		sp, _ := blproc.NewShardProcessor(args)

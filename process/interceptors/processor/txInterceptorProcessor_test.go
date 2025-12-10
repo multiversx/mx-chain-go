@@ -12,13 +12,15 @@ import (
 	"github.com/multiversx/mx-chain-go/process/interceptors/processor"
 	"github.com/multiversx/mx-chain-go/process/mock"
 	"github.com/multiversx/mx-chain-go/testscommon"
+	"github.com/multiversx/mx-chain-go/testscommon/cache"
 	"github.com/stretchr/testify/assert"
 )
 
 func createMockTxArgument() *processor.ArgTxInterceptorProcessor {
 	return &processor.ArgTxInterceptorProcessor{
-		ShardedDataCache: testscommon.NewShardedDataStub(),
-		TxValidator:      &mock.TxValidatorStub{},
+		ShardedDataCache:            testscommon.NewShardedDataStub(),
+		TxValidator:                 &mock.TxValidatorStub{},
+		DirectSentTransactionsCache: &cache.CacherStub{},
 	}
 }
 
@@ -123,7 +125,7 @@ func TestTxInterceptorProcessor_SaveNilDataShouldErr(t *testing.T) {
 
 	txip, _ := processor.NewTxInterceptorProcessor(createMockTxArgument())
 
-	_, err := txip.Save(nil, "", "")
+	_, err := txip.Save(nil, "", "", "")
 
 	assert.Equal(t, process.ErrWrongTypeAssertion, err)
 }
@@ -161,7 +163,7 @@ func TestTxInterceptorProcessor_SaveShouldWork(t *testing.T) {
 
 	txip, _ := processor.NewTxInterceptorProcessor(arg)
 
-	_, err := txip.Save(txInterceptedData, "", "")
+	_, err := txip.Save(txInterceptedData, "", "", "")
 
 	assert.Nil(t, err)
 	assert.True(t, addedWasCalled)

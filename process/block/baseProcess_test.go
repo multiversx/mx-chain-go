@@ -286,6 +286,7 @@ func initDataPool() *dataRetrieverMock.PoolsHolderStub {
 	proofsPool := proofscache.NewProofsPool(3, 100)
 	executedMBs := cache.NewCacherStub()
 	postProcessTxs := cache.NewCacherStub()
+	directSentTxs := cache.NewCacherStub()
 
 	sdp := &dataRetrieverMock.PoolsHolderStub{
 		TransactionsCalled:         func() dataRetriever.ShardedDataCacherNotifier { return transactionsPool },
@@ -309,6 +310,9 @@ func initDataPool() *dataRetrieverMock.PoolsHolderStub {
 		},
 		PostProcessTransactionsCalled: func() storage.Cacher {
 			return postProcessTxs
+		},
+		DirectSentTransactionsCalled: func() storage.Cacher {
+			return directSentTxs
 		},
 	}
 

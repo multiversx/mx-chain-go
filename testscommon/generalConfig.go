@@ -494,6 +494,10 @@ func GetGeneralConfig() config.Config {
 		},
 		ExecutedMiniBlocksCache:      getLRUCacheConfig(),
 		PostProcessTransactionsCache: getLRUCacheConfig(),
+		DirectSentTransactions: config.DirectSentTransactionsConfig{
+			CacheSpanInSec:   1,
+			CacheExpiryInSec: 1,
+		},
 	}
 }
 
