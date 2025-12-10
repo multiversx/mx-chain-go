@@ -252,6 +252,7 @@ func TestNewDataPool_OkValsShouldWork(t *testing.T) {
 	assert.True(t, args.ValidatorsInfo == tdp.ValidatorsInfo())
 	assert.True(t, args.ExecutedMiniBlocks == tdp.ExecutedMiniBlocks())
 	assert.True(t, args.PostProcessTransactions == tdp.PostProcessTransactions())
+	assert.True(t, args.DirectSentTransactions == tdp.DirectSentTransactions())
 }
 
 func TestNewDataPool_Close(t *testing.T) {

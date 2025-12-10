@@ -610,6 +610,25 @@ func TestCheckProcessorNilParameters(t *testing.T) {
 		},
 		{
 			args: func() blproc.ArgBaseProcessor {
+				dataCompCopy := *dataComponents
+				dataCompCopy.DataPool = &dataRetrieverMock.PoolsHolderStub{
+					TransactionsCalled: func() dataRetriever.ShardedDataCacherNotifier {
+						return &testscommon.ShardedDataCacheNotifierMock{}
+					},
+					HeadersCalled: func() dataRetriever.HeadersPool {
+						return &pool.HeadersPoolStub{}
+					},
+					ProofsCalled: func() dataRetriever.ProofsPool {
+						return &dataRetrieverMock.ProofsPoolMock{}
+					},
+				}
+				args := createArgBaseProcessor(coreComponents, &dataCompCopy, bootstrapComponents, statusComponents)
+				return args
+			},
+			expectedErr: process.ErrNilDirectSentCache,
+		},
+		{
+			args: func() blproc.ArgBaseProcessor {
 				args := createArgBaseProcessor(coreComponents, dataComponents, bootstrapComponents, statusComponents)
 				args.BootstrapComponents = &mainFactoryMocks.BootstrapComponentsStub{ShCoordinator: nil}
 				return args
@@ -5547,4 +5566,32 @@ func TestBaseProcessor_excludeRevertedExecutionResultsForHeader(t *testing.T) {
 		)
 		require.Equal(t, pendingExecutionResults, sanitizedPendingExecResults)
 	})
+}
+
+func TestBaseProcessor_ProposedDirectSentTransactionsToBroadcast(t *testing.T) {
+	t.Parallel()
+
+	coreComponents, dataComponents, bootstrapComponents, statusComponents := createComponentHolderMocks()
+	arguments := CreateMockArguments(coreComponents, dataComponents, bootstrapComponents, statusComponents)
+	wasProposedDirectSentTransactionsToBroadcastCalled := false
+	arguments.TxCoordinator = &testscommon.TransactionCoordinatorMock{
+		ProposedDirectSentTransactionsToBroadcastCalled: func(proposedBody data.BodyHandler, headerHash []byte) map[string][][]byte {
+			wasProposedDirectSentTransactionsToBroadcastCalled = true
+			return nil
+		},
+	}
+	bp, _ := blproc.NewShardProcessor(arguments)
+
+	_ = bp.ProposedDirectSentTransactionsToBroadcast(nil, nil)
+	require.True(t, wasProposedDirectSentTransactionsToBroadcastCalled)
+}
+
+func TestBaseProcessor_Close(t *testing.T) {
+	t.Parallel()
+
+	coreComponents, dataComponents, bootstrapComponents, statusComponents := createComponentHolderMocks()
+	arguments := CreateMockArguments(coreComponents, dataComponents, bootstrapComponents, statusComponents)
+	bp, _ := blproc.NewShardProcessor(arguments)
+
+	require.NoError(t, bp.Close())
 }

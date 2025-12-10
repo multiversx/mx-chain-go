@@ -8,6 +8,7 @@ import (
 	"github.com/multiversx/mx-chain-core-go/core/check"
 	"github.com/multiversx/mx-chain-core-go/data"
 	"github.com/multiversx/mx-chain-core-go/data/transaction"
+	"github.com/multiversx/mx-chain-go/p2p"
 	"github.com/multiversx/mx-chain-go/process"
 	"github.com/multiversx/mx-chain-go/process/interceptors/processor"
 	"github.com/multiversx/mx-chain-go/process/mock"
@@ -53,6 +54,17 @@ func TestNewTxInterceptorProcessor_NilTxValidatorShouldErr(t *testing.T) {
 
 	assert.Nil(t, txip)
 	assert.Equal(t, process.ErrNilTxValidator, err)
+}
+
+func TestNewTxInterceptorProcessor_NilDirectSentTransactionsCacheShouldErr(t *testing.T) {
+	t.Parallel()
+
+	arg := createMockTxArgument()
+	arg.DirectSentTransactionsCache = nil
+	txip, err := processor.NewTxInterceptorProcessor(arg)
+
+	assert.Nil(t, txip)
+	assert.Equal(t, process.ErrNilDirectSentCache, err)
 }
 
 func TestNewTxInterceptorProcessor_ShouldWork(t *testing.T) {
@@ -160,13 +172,21 @@ func TestTxInterceptorProcessor_SaveShouldWork(t *testing.T) {
 	shardedDataCache.AddDataCalled = func(key []byte, data interface{}, sizeInBytes int, cacheId string) {
 		addedWasCalled = true
 	}
+	wasPutCalled := false
+	arg.DirectSentTransactionsCache = &cache.CacherStub{
+		PutCalled: func(key []byte, value interface{}, sizeInBytes int) (evicted bool) {
+			wasPutCalled = true
+			return false
+		},
+	}
 
 	txip, _ := processor.NewTxInterceptorProcessor(arg)
 
-	_, err := txip.Save(txInterceptedData, "", "", "")
+	_, err := txip.Save(txInterceptedData, "", "", p2p.Direct)
 
 	assert.Nil(t, err)
 	assert.True(t, addedWasCalled)
+	assert.True(t, wasPutCalled)
 }
 
 // ------- IsInterfaceNil
