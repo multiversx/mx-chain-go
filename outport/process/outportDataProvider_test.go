@@ -836,6 +836,9 @@ func TestPrepareExecutionResultsData(t *testing.T) {
 		cachedTxs[block.TxBlock] = make(map[string]data.TransactionHandler)
 		arg.DataPool.PostProcessTransactions().Put(headerHash, cachedTxs, 1)
 
+		key := common.PrepareOrderedTxHashesKey(headerHash)
+		arg.DataPool.PostProcessTransactions().Put(key, [][]byte{[]byte("a")}, 1)
+
 		outportDataP, _ := NewOutportDataProvider(arg)
 
 		results, err := outportDataP.prepareExecutionResultsData(ArgPrepareOutportSaveBlockData{
@@ -876,6 +879,9 @@ func TestPrepareExecutionResultsData(t *testing.T) {
 		cachedTxs := make(map[block.Type]map[string]data.TransactionHandler)
 		cachedTxs[block.TxBlock] = make(map[string]data.TransactionHandler)
 		arg.DataPool.PostProcessTransactions().Put(headerHash, cachedTxs, 1)
+
+		key := common.PrepareOrderedTxHashesKey(headerHash)
+		arg.DataPool.PostProcessTransactions().Put(key, [][]byte{[]byte("a")}, 1)
 
 		outportDataP, _ := NewOutportDataProvider(arg)
 

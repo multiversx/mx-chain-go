@@ -222,9 +222,6 @@ func (odp *outportDataProvider) prepareExecutionResultsData(args ArgPrepareOutpo
 		if err != nil {
 			return nil, err
 		}
-		if len(cachedTxs[block.SmartContractResultBlock]) > 0 {
-			fmt.Println("aa")
-		}
 
 		putInMapTxsFromBody(odp.dataPool, body, odp.shardID, cachedTxs)
 
@@ -243,6 +240,9 @@ func (odp *outportDataProvider) prepareExecutionResultsData(args ArgPrepareOutpo
 		}
 
 		orderedTxHashes, err := common.GetCachedOrderedTxHashes(odp.dataPool.PostProcessTransactions(), headerHash)
+		if err != nil {
+			return nil, err
+		}
 		_, _ = odp.setExecutionOrderInTransactionPool(pool, orderedTxHashes)
 
 		alteredAccounts, err := odp.alteredAccountsProvider.ExtractAlteredAccountsFromPool(pool, shared.AlteredAccountsOptions{
