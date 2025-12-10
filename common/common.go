@@ -43,6 +43,11 @@ func PrepareLogEventsKey(headerHash []byte) []byte {
 	return append([]byte("logs"), headerHash...)
 }
 
+// PrepareOrderedTxHashesKey will prepare transactions execution order key for cacher
+func PrepareOrderedTxHashesKey(headerHash []byte) []byte {
+	return append([]byte("execution"), headerHash...)
+}
+
 // IsValidRelayedTxV3 returns true if the provided transaction is a valid transaction of type relayed v3
 func IsValidRelayedTxV3(tx data.TransactionHandler) bool {
 	relayedTx, isRelayedV3 := tx.(data.RelayedTransactionHandler)

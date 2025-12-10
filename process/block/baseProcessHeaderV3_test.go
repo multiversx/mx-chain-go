@@ -8,6 +8,7 @@ import (
 	"github.com/multiversx/mx-chain-core-go/data/block"
 	"github.com/multiversx/mx-chain-core-go/data/transaction"
 	"github.com/multiversx/mx-chain-core-go/marshal"
+	commonMocks "github.com/multiversx/mx-chain-go/testscommon/common"
 	"github.com/stretchr/testify/require"
 
 	"github.com/multiversx/mx-chain-go/common"
@@ -200,6 +201,7 @@ func TestBaseProcessor_cacheIntermediateTxsForHeader(t *testing.T) {
 					}
 				},
 			},
+			txExecutionOrderHandler: &commonMocks.TxExecutionOrderHandlerStub{},
 		}
 
 		err := bp.cacheIntermediateTxsForHeader(headerHash)
@@ -224,6 +226,7 @@ func TestBaseProcessor_cacheIntermediateTxsForHeader(t *testing.T) {
 					}
 				},
 			},
+			txExecutionOrderHandler: &commonMocks.TxExecutionOrderHandlerStub{},
 		}
 
 		err := bp.cacheIntermediateTxsForHeader(headerHash)
@@ -710,8 +713,81 @@ func TestBaseProcessor_saveExecutedData(t *testing.T) {
 
 		err := bp.saveExecutedData(header)
 		require.NoError(t, err)
-		require.True(t, wasRemoveCalledForTxs)
+		require.False(t, wasRemoveCalledForTxs)
 		require.True(t, wasRemoveCalledForMbs)
 		require.Equal(t, 4, cntPutCalled) // 3 types of tx blocks + one for mbs
+	})
+}
+
+func TestBaseProcessor_cleanPostProcessCache(t *testing.T) {
+	t.Parallel()
+	t.Run("no execution results on header should not remove", func(t *testing.T) {
+		header := &block.HeaderV3{}
+		bp := getDefaultBaseProcessor()
+		cacher := &cache.CacherStub{
+			RemoveCalled: func(key []byte) {
+				require.Fail(t, "should not be called")
+			},
+		}
+		bp.dataPool = &dataRetrieverMock.PoolsHolderStub{
+			PostProcessTransactionsCalled: func() storage.Cacher {
+				return cacher
+			},
+		}
+
+		bp.cleanPostProcessCache(header)
+	})
+	t.Run("header v2 should not remove", func(t *testing.T) {
+		header := &block.HeaderV2{}
+		bp := getDefaultBaseProcessor()
+		cacher := &cache.CacherStub{
+			RemoveCalled: func(key []byte) {
+				require.Fail(t, "should not be called")
+			},
+		}
+		bp.dataPool = &dataRetrieverMock.PoolsHolderStub{
+			PostProcessTransactionsCalled: func() storage.Cacher {
+				return cacher
+			},
+		}
+
+		bp.cleanPostProcessCache(header)
+	})
+	t.Run("should remove from cache for each execution result", func(t *testing.T) {
+		headerHashes := []string{"hash1", "hash2"}
+		header := &testscommon.HeaderHandlerStub{
+			GetExecutionResultsHandlersCalled: func() []data.BaseExecutionResultHandler {
+				return []data.BaseExecutionResultHandler{
+					&block.ExecutionResult{
+						BaseExecutionResult: &block.BaseExecutionResult{
+							HeaderHash: []byte(headerHashes[0]),
+						},
+					},
+					&block.ExecutionResult{
+						BaseExecutionResult: &block.BaseExecutionResult{
+							HeaderHash: []byte(headerHashes[1]),
+						},
+					},
+				}
+			},
+		}
+
+		expectedRemovedKeys := []string{"hash1", "executionhash1", "hash2", "executionhash2"}
+
+		bp := getDefaultBaseProcessor()
+		removedKeys := make([]string, 0)
+		cacher := &cache.CacherStub{
+			RemoveCalled: func(key []byte) {
+				removedKeys = append(removedKeys, string(key))
+			},
+		}
+		bp.dataPool = &dataRetrieverMock.PoolsHolderStub{
+			PostProcessTransactionsCalled: func() storage.Cacher {
+				return cacher
+			},
+		}
+
+		bp.cleanPostProcessCache(header)
+		require.Equal(t, expectedRemovedKeys, removedKeys)
 	})
 }

@@ -6,11 +6,14 @@ import (
 
 	"github.com/multiversx/mx-chain-core-go/core/check"
 	"github.com/multiversx/mx-chain-core-go/data"
+	"github.com/multiversx/mx-chain-core-go/marshal"
 	logger "github.com/multiversx/mx-chain-logger-go"
 
 	"github.com/multiversx/mx-chain-go/common"
+	"github.com/multiversx/mx-chain-go/dataRetriever"
 	"github.com/multiversx/mx-chain-go/process"
 	"github.com/multiversx/mx-chain-go/process/asyncExecution/disabled"
+	"github.com/multiversx/mx-chain-go/sharding"
 
 	"github.com/multiversx/mx-chain-go/process/asyncExecution/queue"
 )
@@ -23,6 +26,9 @@ type ArgsExecutionManager struct {
 	ExecutionResultsTracker process.ExecutionResultsTracker
 	BlockChain              data.ChainHandler
 	Headers                 common.HeadersPool
+	StorageService          dataRetriever.StorageService
+	Marshaller              marshal.Marshalizer
+	ShardCoordinator        sharding.Coordinator
 }
 
 type executionManager struct {
@@ -32,6 +38,9 @@ type executionManager struct {
 	executionResultsTracker process.ExecutionResultsTracker
 	blockChain              data.ChainHandler
 	headers                 common.HeadersPool
+	storageService          dataRetriever.StorageService
+	marshaller              marshal.Marshalizer
+	shardCoordinator        sharding.Coordinator
 }
 
 // NewExecutionManager creates a new instance of executionManager
@@ -48,6 +57,15 @@ func NewExecutionManager(args ArgsExecutionManager) (*executionManager, error) {
 	if check.IfNil(args.Headers) {
 		return nil, ErrNilHeadersPool
 	}
+	if check.IfNil(args.StorageService) {
+		return nil, process.ErrNilStorage
+	}
+	if check.IfNil(args.Marshaller) {
+		return nil, process.ErrNilMarshalizer
+	}
+	if check.IfNil(args.ShardCoordinator) {
+		return nil, process.ErrNilShardCoordinator
+	}
 
 	instance := &executionManager{
 		headersExecutor:         disabled.NewHeadersExecutor(),
@@ -55,6 +73,9 @@ func NewExecutionManager(args ArgsExecutionManager) (*executionManager, error) {
 		executionResultsTracker: args.ExecutionResultsTracker,
 		blockChain:              args.BlockChain,
 		headers:                 args.Headers,
+		storageService:          args.StorageService,
+		marshaller:              args.Marshaller,
+		shardCoordinator:        args.ShardCoordinator,
 	}
 
 	return instance, nil
@@ -128,6 +149,7 @@ func (em *executionManager) updateContextForReplacedHeader(header data.HeaderHan
 
 	em.blockChain.SetLastExecutedBlockHeaderAndRootHash(headerToSet, executionResultToSet.GetHeaderHash(), executionResultToSet.GetRootHash())
 	em.blockChain.SetLastExecutionResult(executionResultToSet)
+
 	// need to remove all execution results after the one set
 	return em.executionResultsTracker.RemoveFromNonce(executionResultToSet.GetHeaderNonce() + 1)
 }
@@ -276,8 +298,13 @@ func (em *executionManager) updateBlockchainAfterRemoval(lastNotarizedResult dat
 		lastExecutionResult = lastPending
 	}
 
-	header, err := em.headers.GetHeaderByHash(lastExecutedHeaderHash)
+	header, err := em.getHeaderFromPoolOrStorage(lastExecutedHeaderHash)
 	if err != nil {
+		log.Debug("executionmanager.updateBlockchainAfterRemoval: could not find header in pool or storage",
+			"hash", lastExecutedHeaderHash,
+			"nonce", lastExecutedHeaderNonce,
+			"error", err,
+		)
 		return err
 	}
 
@@ -292,6 +319,24 @@ func (em *executionManager) updateBlockchainAfterRemoval(lastNotarizedResult dat
 	em.blockChain.SetLastExecutionResult(lastExecutionResult)
 
 	return nil
+}
+
+func (em *executionManager) getHeaderFromPoolOrStorage(
+	headerHash []byte,
+) (data.HeaderHandler, error) {
+	header, err := em.headers.GetHeaderByHash(headerHash)
+	if err == nil {
+		return header, nil
+	}
+
+	shardID := em.shardCoordinator.SelfId()
+
+	return process.GetHeaderFromStorage(
+		shardID,
+		headerHash,
+		em.marshaller,
+		em.storageService,
+	)
 }
 
 // Close closes the execution manager and all its components

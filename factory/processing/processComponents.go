@@ -635,6 +635,9 @@ func (pcf *processComponentsFactory) Create() (*processComponents, error) {
 		ExecutionResultsTracker: executionResultsTracker,
 		BlockChain:              pcf.data.Blockchain(),
 		Headers:                 pcf.data.Datapool().Headers(),
+		StorageService:          pcf.data.StorageService(),
+		Marshaller:              pcf.coreData.InternalMarshalizer(),
+		ShardCoordinator:        pcf.bootstrapComponents.ShardCoordinator(),
 	}
 	execManager, err := executionManager.NewExecutionManager(argExecManager)
 	if err != nil {

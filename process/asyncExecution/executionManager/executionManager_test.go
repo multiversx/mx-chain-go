@@ -8,12 +8,16 @@ import (
 
 	"github.com/multiversx/mx-chain-core-go/data"
 	"github.com/multiversx/mx-chain-core-go/data/block"
+	"github.com/multiversx/mx-chain-go/dataRetriever"
 	"github.com/multiversx/mx-chain-go/process"
 	"github.com/multiversx/mx-chain-go/process/asyncExecution/executionManager"
 	"github.com/multiversx/mx-chain-go/process/asyncExecution/queue"
+	"github.com/multiversx/mx-chain-go/process/mock"
+	"github.com/multiversx/mx-chain-go/storage"
 	"github.com/multiversx/mx-chain-go/testscommon"
 	"github.com/multiversx/mx-chain-go/testscommon/pool"
 	"github.com/multiversx/mx-chain-go/testscommon/processMocks"
+	storageStubs "github.com/multiversx/mx-chain-go/testscommon/storage"
 	"github.com/stretchr/testify/require"
 )
 
@@ -25,6 +29,9 @@ func createMockArgs() executionManager.ArgsExecutionManager {
 		ExecutionResultsTracker: &processMocks.ExecutionTrackerStub{},
 		BlockChain:              &testscommon.ChainHandlerMock{},
 		Headers:                 &pool.HeadersPoolStub{},
+		StorageService:          &storageStubs.ChainStorerStub{},
+		Marshaller:              &mock.MarshalizerMock{},
+		ShardCoordinator:        &mock.ShardCoordinatorStub{},
 	}
 }
 
@@ -73,6 +80,39 @@ func TestNewExecutionManager(t *testing.T) {
 		em, err := executionManager.NewExecutionManager(args)
 		require.Nil(t, em)
 		require.Equal(t, executionManager.ErrNilHeadersPool, err)
+	})
+
+	t.Run("nil storage service should error", func(t *testing.T) {
+		t.Parallel()
+
+		args := createMockArgs()
+		args.StorageService = nil
+
+		em, err := executionManager.NewExecutionManager(args)
+		require.Nil(t, em)
+		require.Equal(t, process.ErrNilStorage, err)
+	})
+
+	t.Run("nil marshaller should error", func(t *testing.T) {
+		t.Parallel()
+
+		args := createMockArgs()
+		args.Marshaller = nil
+
+		em, err := executionManager.NewExecutionManager(args)
+		require.Nil(t, em)
+		require.Equal(t, process.ErrNilMarshalizer, err)
+	})
+
+	t.Run("nil shard coordinator should error", func(t *testing.T) {
+		t.Parallel()
+
+		args := createMockArgs()
+		args.ShardCoordinator = nil
+
+		em, err := executionManager.NewExecutionManager(args)
+		require.Nil(t, em)
+		require.Equal(t, process.ErrNilShardCoordinator, err)
 	})
 
 	t.Run("should work", func(t *testing.T) {
@@ -778,10 +818,27 @@ func TestExecutionManager_RemoveAtNonceAndHigher(t *testing.T) {
 				return nil, errExpected
 			},
 		}
+		args.StorageService = &storageStubs.ChainStorerStub{
+			GetStorerCalled: func(unitType dataRetriever.UnitType) (storage.Storer, error) {
+				return &storageStubs.StorerStub{
+					GetCalled: func(key []byte) ([]byte, error) {
+						return nil, errExpected
+					},
+				}, nil
+			},
+		}
+		args.BlockChain = &testscommon.ChainHandlerStub{
+			GetCurrentBlockHeaderCalled: func() data.HeaderHandler {
+				return &block.HeaderV3{
+					Nonce: 10,
+				}
+			},
+		}
+
 		em, _ := executionManager.NewExecutionManager(args)
 
 		err := em.RemoveAtNonceAndHigher(10)
-		require.Equal(t, errExpected, err)
+		require.ErrorIs(t, err, process.ErrMissingHeader)
 	})
 
 	t.Run("with pending execution results should use last pending", func(t *testing.T) {

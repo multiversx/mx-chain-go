@@ -13,6 +13,7 @@ import (
 	"github.com/multiversx/mx-chain-core-go/data"
 	"github.com/multiversx/mx-chain-core-go/data/block"
 	"github.com/multiversx/mx-chain-core-go/data/transaction"
+	commonMocks "github.com/multiversx/mx-chain-go/testscommon/common"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 
@@ -2050,6 +2051,9 @@ func TestShardBlockProposal_CreateAndVerifyProposal(t *testing.T) {
 		ExecutionResultsTracker: executionResultsTracker,
 		BlockChain:              blkc,
 		Headers:                 dataComponents.DataPool.Headers(),
+		StorageService:          dataComponents.StorageService(),
+		Marshaller:              coreComponents.InternalMarshalizer(),
+		ShardCoordinator:        bootstrapComponents.ShardCoordinator(),
 	})
 	execResultsVerifier, _ := blproc.NewExecutionResultsVerifier(dataComponents.BlockChain, execManager)
 
@@ -2198,6 +2202,9 @@ func TestShardBlockProposal_CreateAndVerifyProposal_WithTransactions(t *testing.
 		ExecutionResultsTracker: executionResultsTracker,
 		BlockChain:              blkc,
 		Headers:                 dataComponents.DataPool.Headers(),
+		StorageService:          dataComponents.StorageService(),
+		Marshaller:              coreComponents.InternalMarshalizer(),
+		ShardCoordinator:        bootstrapComponents.ShardCoordinator(),
 	})
 	execResultsVerifier, _ := blproc.NewExecutionResultsVerifier(dataComponents.BlockChain, execManager)
 
@@ -3655,13 +3662,14 @@ func createSubComponentsForCollectExecutionResultsTest() (map[string]interface{}
 				return 0
 			},
 		},
-		"feeHandler":          feeHandler,
-		"gasConsumedProvider": gasConsumedProvider,
-		"marshalizer":         &mock.MarshalizerMock{},
-		"hasher":              &hashingMocks.HasherMock{},
-		"enableEpochsHandler": enableEpochsHandlerMock.NewEnableEpochsHandlerStub(),
-		"dataPool":            initDataPool(),
-		"accountsDB":          accounts,
+		"feeHandler":              feeHandler,
+		"gasConsumedProvider":     gasConsumedProvider,
+		"marshalizer":             &mock.MarshalizerMock{},
+		"hasher":                  &hashingMocks.HasherMock{},
+		"enableEpochsHandler":     enableEpochsHandlerMock.NewEnableEpochsHandlerStub(),
+		"dataPool":                initDataPool(),
+		"accountsDB":              accounts,
+		"txExecutionOrderHandler": &commonMocks.TxExecutionOrderHandlerStub{},
 	}
 
 	header, body := createHeaderAndBodyForTestingProcessBlockProposal()

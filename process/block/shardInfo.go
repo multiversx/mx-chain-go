@@ -7,11 +7,23 @@ import (
 	"github.com/multiversx/mx-chain-core-go/core/check"
 	"github.com/multiversx/mx-chain-core-go/data"
 	"github.com/multiversx/mx-chain-core-go/data/block"
+	"github.com/multiversx/mx-chain-core-go/marshal"
 
 	"github.com/multiversx/mx-chain-go/common"
 	"github.com/multiversx/mx-chain-go/dataRetriever"
 	"github.com/multiversx/mx-chain-go/process"
 )
+
+// ShardInfoCreateDataArgs defines the arguments needed to create shard info creator
+type ShardInfoCreateDataArgs struct {
+	EnableEpochsHandler      common.EnableEpochsHandler
+	HeadersPool              dataRetriever.HeadersPool
+	ProofsPool               dataRetriever.ProofsPool
+	PendingMiniBlocksHandler process.PendingMiniBlocksHandler
+	BlockTracker             process.BlockTracker
+	Storage                  dataRetriever.StorageService
+	Marshaller               marshal.Marshalizer
+}
 
 // ShardInfoCreateData is a component used to create shard info from shard headers
 type ShardInfoCreateData struct {
@@ -20,38 +32,44 @@ type ShardInfoCreateData struct {
 	proofsPool               dataRetriever.ProofsPool
 	pendingMiniBlocksHandler process.PendingMiniBlocksHandler
 	blockTracker             process.BlockTracker
+	storage                  dataRetriever.StorageService
+	marshaller               marshal.Marshalizer
 }
 
 // NewShardInfoCreateData creates a new ShardInfoCreateData instance
 func NewShardInfoCreateData(
-	enableEpochsHandler common.EnableEpochsHandler,
-	headersPool dataRetriever.HeadersPool,
-	proofsPool dataRetriever.ProofsPool,
-	pendingMiniBlocksHandler process.PendingMiniBlocksHandler,
-	blockTracker process.BlockTracker,
+	args ShardInfoCreateDataArgs,
 ) (*ShardInfoCreateData, error) {
-	if check.IfNil(enableEpochsHandler) {
+	if check.IfNil(args.EnableEpochsHandler) {
 		return nil, process.ErrNilEnableEpochsHandler
 	}
-	if check.IfNil(headersPool) {
+	if check.IfNil(args.HeadersPool) {
 		return nil, process.ErrNilHeadersDataPool
 	}
-	if check.IfNil(proofsPool) {
+	if check.IfNil(args.ProofsPool) {
 		return nil, process.ErrNilProofsPool
 	}
-	if check.IfNil(pendingMiniBlocksHandler) {
+	if check.IfNil(args.PendingMiniBlocksHandler) {
 		return nil, process.ErrNilPendingMiniBlocksHandler
 	}
-	if check.IfNil(blockTracker) {
+	if check.IfNil(args.BlockTracker) {
 		return nil, process.ErrNilBlockTracker
+	}
+	if check.IfNil(args.Storage) {
+		return nil, process.ErrNilStorageService
+	}
+	if check.IfNil(args.Marshaller) {
+		return nil, process.ErrNilMarshalizer
 	}
 
 	return &ShardInfoCreateData{
-		enableEpochsHandler:      enableEpochsHandler,
-		headersPool:              headersPool,
-		proofsPool:               proofsPool,
-		pendingMiniBlocksHandler: pendingMiniBlocksHandler,
-		blockTracker:             blockTracker,
+		enableEpochsHandler:      args.EnableEpochsHandler,
+		headersPool:              args.HeadersPool,
+		proofsPool:               args.ProofsPool,
+		pendingMiniBlocksHandler: args.PendingMiniBlocksHandler,
+		blockTracker:             args.BlockTracker,
+		storage:                  args.Storage,
+		marshaller:               args.Marshaller,
 	}, nil
 }
 
@@ -180,7 +198,7 @@ func (sic *ShardInfoCreateData) createShardDataFromV3Header(
 
 	shardDataHandlers := make([]data.ShardDataHandler, len(executionResults))
 	for i, execResult := range executionResults {
-		shardData, err := sic.createShardDataFromExecutionResult(execResult)
+		shardData, err := sic.createShardDataFromExecutionResult(execResult, shardHeader.GetShardID())
 		if err != nil {
 			return nil, nil, err
 		}
@@ -206,6 +224,7 @@ func (sic *ShardInfoCreateData) createShardDataProposalFromHeader(
 
 func (sic *ShardInfoCreateData) createShardDataFromExecutionResult(
 	execResult data.BaseExecutionResultHandler,
+	shardID uint32,
 ) (data.ShardDataHandler, error) {
 	if check.IfNil(execResult) {
 		return nil, process.ErrNilExecutionResultHandler
@@ -216,8 +235,15 @@ func (sic *ShardInfoCreateData) createShardDataFromExecutionResult(
 		return nil, process.ErrWrongTypeAssertion
 	}
 
-	header, err := sic.headersPool.GetHeaderByHash(execResultHandler.GetHeaderHash())
+	header, err := process.GetHeader(
+		execResultHandler.GetHeaderHash(),
+		sic.headersPool,
+		sic.storage,
+		sic.marshaller,
+		shardID,
+	)
 	if err != nil {
+		log.Debug("createShardDataFromExecutionResult: failed to get header with hash", "hash", execResultHandler.GetHeaderHash(), "error", err)
 		return nil, err
 	}
 
@@ -290,7 +316,6 @@ func (sic *ShardInfoCreateData) updateShardDataWithCrossShardInfo(shardData *blo
 		shardData.NumPendingMiniBlocks = uint32(len(sic.pendingMiniBlocksHandler.GetPendingMiniBlocks(header.GetShardID())))
 	}
 
-	// TODO: the last self notarized header should be fetched based on the nonce from the execution result
 	metaHeader, _, err := sic.blockTracker.GetLastSelfNotarizedHeader(header.GetShardID())
 	if err != nil {
 		return err
