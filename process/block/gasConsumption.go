@@ -233,8 +233,6 @@ func (gc *gasConsumption) checkGasConsumedByMiniBlock(mb data.MiniBlockHeaderHan
 		if check.IfNil(tx) {
 			continue
 		}
-
-		// we only care about the gas consumed in receiver shard as all mini blocks are coming to current shard
 		_, gasConsumedInReceiverShard, err := gc.gasHandler.ComputeGasProvidedByTx(mb.GetSenderShardID(), mb.GetReceiverShardID(), tx)
 		if err != nil {
 			// do not save any pending mini blocks, as this one is invalid
@@ -242,7 +240,7 @@ func (gc *gasConsumption) checkGasConsumedByMiniBlock(mb data.MiniBlockHeaderHan
 		}
 
 		maxGasLimitPerTx := gc.economicsFee.MaxGasLimitPerTx()
-		if gasConsumedInReceiverShard > maxGasLimitPerTx {
+		if gasConsumedInReceiverShard > maxGasLimitPerTx || tx.GetGasLimit() > maxGasLimitPerTx {
 			// this should not happen, transactions with higher gas should have been already rejected
 			// return the last saved mini block, and the proper error, without saving the rest of mini blocks
 			// do not save any pending mini blocks, as this one is invalid
@@ -253,13 +251,18 @@ func (gc *gasConsumption) checkGasConsumedByMiniBlock(mb data.MiniBlockHeaderHan
 	}
 
 	maxGasLimitPerMB := gc.maxGasLimitPerMiniBlock(mb.GetReceiverShardID())
-	if gasConsumedByMB > maxGasLimitPerMB {
-		// return the last saved mini block, and the proper error, without saving the rest of mini blocks
-		// do not save any pending mini blocks, as this one is invalid
-		return 0, process.ErrMaxGasLimitPerMiniBlockIsReached
+	if gasConsumedByMB <= maxGasLimitPerMB {
+		return gasConsumedByMB, nil
 	}
 
-	return gasConsumedByMB, nil
+	// if the limit for mini block is reached and:
+	//	- there is only one tx that satisfied the MaxGasLimitPerTx, allow it into the block
+	//	- there are more than one tx, return error
+	if len(transactionsForMB) == 1 {
+		return gasConsumedByMB, nil
+	}
+
+	return 0, process.ErrMaxGasLimitPerMiniBlockIsReached
 }
 
 func (gc *gasConsumption) addPendingIncomingMiniBlocks() ([]data.MiniBlockHeaderHandler, error) {
@@ -368,7 +371,9 @@ func (gc *gasConsumption) checkGasConsumedByTx(
 		return 0, 0, err
 	}
 	maxGasLimitPerTx := gc.economicsFee.MaxGasLimitPerTx()
-	if gasConsumedInSenderShard > maxGasLimitPerTx || gasConsumedInReceiverShard > maxGasLimitPerTx {
+	if gasConsumedInSenderShard > maxGasLimitPerTx ||
+		gasConsumedInReceiverShard > maxGasLimitPerTx ||
+		tx.GetGasLimit() > maxGasLimitPerTx {
 		// this should not happen, transactions with higher gas should have been already rejected
 		// return the last saved transaction, and the proper error, without saving the rest of transactions
 		return 0, 0, process.ErrMaxGasLimitPerTransactionIsReached
