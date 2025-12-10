@@ -2987,13 +2987,6 @@ func (bp *baseProcessor) cacheIntermediateTxsForHeader(headerHash []byte) error 
 	}
 
 	bp.dataPool.PostProcessTransactions().Put(headerHash, intermediateTxs, intermediateTxsSize)
-
-	executionOrderKey := common.PrepareOrderedTxHashesKey(headerHash)
-	items := bp.txExecutionOrderHandler.GetItems()
-
-	size := len(items) * 32 // number of items * length of a transaction hash
-	bp.dataPool.PostProcessTransactions().Put(executionOrderKey, items, size)
-
 	return nil
 }
 
@@ -3679,6 +3672,14 @@ func (bp *baseProcessor) collectMiniBlocks(
 	}
 
 	return miniBlockHeaderHandlers, totalTxCount, receiptHash, nil
+}
+
+func (bp *baseProcessor) cacheOrderedTxHashes(headerHash []byte) {
+	executionOrderKey := common.PrepareOrderedTxHashesKey(headerHash)
+	items := bp.txExecutionOrderHandler.GetItems()
+
+	size := len(items) * common.HashSize // number of items * length of a transaction hash
+	bp.dataPool.PostProcessTransactions().Put(executionOrderKey, items, size)
 }
 
 func (bp *baseProcessor) getBlockBodyFromPool(

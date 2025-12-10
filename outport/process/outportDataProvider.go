@@ -656,7 +656,11 @@ func putInMapTxsFromBody(
 			continue
 		}
 
-		storeByType := getDataStoreForType(dataPool, mb.Type)
+		storeByType, found := getDataStoreForType(dataPool, mb.Type)
+		if !found {
+			continue
+		}
+
 		strCache := process.ShardCacherIdentifier(mb.SenderShardID, mb.ReceiverShardID)
 		cache := storeByType.ShardDataStore(strCache)
 
@@ -674,15 +678,15 @@ func putInMapTxsFromBody(
 func getDataStoreForType(
 	dataPool dataRetriever.PoolsHolder,
 	mbType block.Type,
-) dataRetriever.ShardedDataCacherNotifier {
+) (dataRetriever.ShardedDataCacherNotifier, bool) {
 	switch mbType {
 	case block.SmartContractResultBlock:
-		return dataPool.UnsignedTransactions()
+		return dataPool.UnsignedTransactions(), true
 	case block.TxBlock:
-		return dataPool.Transactions()
+		return dataPool.Transactions(), true
 	case block.RewardsBlock:
-		return dataPool.RewardTransactions()
+		return dataPool.RewardTransactions(), true
 	default:
-		return nil
+		return nil, false
 	}
 }
