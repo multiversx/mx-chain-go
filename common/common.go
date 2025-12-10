@@ -43,6 +43,11 @@ func PrepareLogEventsKey(headerHash []byte) []byte {
 	return append([]byte("logs"), headerHash...)
 }
 
+// PrepareOrderedTxHashesKey will prepare transactions execution order key for cacher
+func PrepareOrderedTxHashesKey(headerHash []byte) []byte {
+	return append([]byte("execution"), headerHash...)
+}
+
 // IsValidRelayedTxV3 returns true if the provided transaction is a valid transaction of type relayed v3
 func IsValidRelayedTxV3(tx data.TransactionHandler) bool {
 	relayedTx, isRelayedV3 := tx.(data.RelayedTransactionHandler)
@@ -563,13 +568,13 @@ func GetFirstExecutionResultNonce(
 }
 
 // GetMiniBlockHeadersFromExecResult returns mb headers from meta header if v3, otherwise, returns mini block headers
-func GetMiniBlockHeadersFromExecResult(metaBlock data.HeaderHandler) ([]data.MiniBlockHeaderHandler, error) {
-	if !metaBlock.IsHeaderV3() {
-		return metaBlock.GetMiniBlockHeaderHandlers(), nil
+func GetMiniBlockHeadersFromExecResult(header data.HeaderHandler) ([]data.MiniBlockHeaderHandler, error) {
+	if !header.IsHeaderV3() {
+		return header.GetMiniBlockHeaderHandlers(), nil
 	}
 
 	mbHeaderHandlers := make([]data.MiniBlockHeaderHandler, 0)
-	for _, execResult := range metaBlock.GetExecutionResultsHandlers() {
+	for _, execResult := range header.GetExecutionResultsHandlers() {
 		mbHeaders, err := GetMiniBlocksHeaderHandlersFromExecResult(execResult)
 		if err != nil {
 			return nil, fmt.Errorf("%w in GetMiniBlockHeadersFromExecResult.GetMiniBlocksHeaderHandlersFromExecResult", err)

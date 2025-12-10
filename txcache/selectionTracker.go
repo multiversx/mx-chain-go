@@ -501,6 +501,9 @@ func (st *selectionTracker) getChainOfTrackedPendingBlocks(
 
 		// if no block was found, it means there is a gap and we have to return an error
 		if previousBlock == nil {
+			log.Debug("getChainOfTrackedPendingBlocks: hash not found",
+				"previousHashToBeFound", previousHashToBeFound,
+			)
 			return nil, errBlockNotFound
 		}
 

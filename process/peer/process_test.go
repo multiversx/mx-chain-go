@@ -2969,7 +2969,7 @@ func TestValidatorStatistics_SearchInMap(t *testing.T) {
 
 		validatorStatistics, _ := peer.NewValidatorStatisticsProcessor(arguments)
 
-		retHeader, err := validatorStatistics.SearchInMap(headerHash, cache)
+		retHeader, err := validatorStatistics.SearchInMap(headerHash, cache, 0)
 		require.Nil(t, err)
 		require.Equal(t, header, retHeader)
 	})
@@ -2999,7 +2999,7 @@ func TestValidatorStatistics_SearchInMap(t *testing.T) {
 
 		validatorStatistics, _ := peer.NewValidatorStatisticsProcessor(arguments)
 
-		retHeader, err := validatorStatistics.SearchInMap(headerHash, cache)
+		retHeader, err := validatorStatistics.SearchInMap(headerHash, cache, 0)
 		require.Nil(t, err)
 		require.Equal(t, header, retHeader)
 	})
@@ -3025,10 +3025,20 @@ func TestValidatorStatistics_SearchInMap(t *testing.T) {
 		}
 		arguments.DataPool = dataPool
 
+		arguments.StorageService = &storageStubs.ChainStorerStub{
+			GetStorerCalled: func(unitType dataRetriever.UnitType) (storage.Storer, error) {
+				return &storageStubs.StorerStub{
+					GetCalled: func(key []byte) ([]byte, error) {
+						return nil, expectedErr
+					},
+				}, nil
+			},
+		}
+
 		validatorStatistics, _ := peer.NewValidatorStatisticsProcessor(arguments)
 
-		retHeader, err := validatorStatistics.SearchInMap(headerHash, cache)
-		require.ErrorIs(t, err, expectedErr)
+		retHeader, err := validatorStatistics.SearchInMap(headerHash, cache, 0)
+		require.ErrorIs(t, err, process.ErrMissingHeader)
 		require.Nil(t, retHeader)
 	})
 }

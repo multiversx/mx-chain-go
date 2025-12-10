@@ -1073,7 +1073,7 @@ func (sp *shardProcessor) CommitBlock(
 		return err
 	}
 
-	err = sp.onExecutedBlock(lastExecutionResultHeader, rootHash)
+	err = sp.OnExecutedBlock(lastExecutionResultHeader, rootHash)
 	if err != nil {
 		return err
 	}
@@ -1142,17 +1142,18 @@ func (sp *shardProcessor) CommitBlock(
 
 	sp.displayPoolsInfo()
 
+	err = sp.saveExecutedData(header)
+	if err != nil {
+		return err
+	}
+
+	sp.cleanPostProcessCache(header)
 	errNotCritical = sp.removeTxsFromPools(headerHash, header, body)
 	if errNotCritical != nil {
 		log.Debug("removeTxsFromPools", "error", errNotCritical.Error())
 	}
 
 	sp.cleanupPools(headerHandler)
-
-	err = sp.saveExecutedData(header)
-	if err != nil {
-		return err
-	}
 
 	sp.blockProcessingCutoffHandler.HandlePauseCutoff(header)
 
@@ -1890,17 +1891,19 @@ func (sp *shardProcessor) updateCrossShardInfo(processedMetaHdrs []data.HeaderHa
 
 func (sp *shardProcessor) verifyCrossShardMiniBlockDstMe(header data.ShardHeaderHandler) error {
 	var miniBlockMetaHashes map[string][]byte
+	var crossMiniBlockHashes map[string]uint32
 	var err error
 	if header.IsHeaderV3() {
 		miniBlockMetaHashes, err = sp.getAllMiniBlockDstMeFromMetaForProposal(header)
+		crossMiniBlockHashes = header.GetProposedMiniBlockHeadersWithDst(sp.shardCoordinator.SelfId())
 	} else {
 		miniBlockMetaHashes, err = sp.getAllMiniBlockDstMeFromMeta(header)
+		crossMiniBlockHashes = header.GetMiniBlockHeadersWithDst(sp.shardCoordinator.SelfId())
 	}
 	if err != nil {
 		return err
 	}
 
-	crossMiniBlockHashes := header.GetMiniBlockHeadersWithDst(sp.shardCoordinator.SelfId())
 	for hash := range crossMiniBlockHashes {
 		if _, ok := miniBlockMetaHashes[hash]; !ok {
 			return process.ErrCrossShardMBWithoutConfirmationFromMeta

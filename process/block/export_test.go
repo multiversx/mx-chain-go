@@ -13,6 +13,7 @@ import (
 	"github.com/multiversx/mx-chain-core-go/display"
 	"github.com/multiversx/mx-chain-core-go/hashing"
 	"github.com/multiversx/mx-chain-core-go/marshal"
+	commonMocks "github.com/multiversx/mx-chain-go/testscommon/common"
 
 	"github.com/multiversx/mx-chain-go/common"
 	"github.com/multiversx/mx-chain-go/common/configs"
@@ -212,6 +213,9 @@ func NewShardProcessorEmptyWith3shards(
 		ExecutionResultsTracker: executionResultsTracker,
 		BlockChain:              dataComponents.BlockChain,
 		Headers:                 dataComponents.Datapool().Headers(),
+		StorageService:          dataComponents.StorageService(),
+		Marshaller:              coreComponents.InternalMarshalizer(),
+		ShardCoordinator:        boostrapComponents.ShardCoordinator(),
 	})
 	execResultsVerifier, _ := NewExecutionResultsVerifier(dataComponents.BlockChain, execManager)
 	inclusionEstimator := estimator.NewExecutionResultInclusionEstimator(
@@ -281,6 +285,7 @@ func NewShardProcessorEmptyWith3shards(
 			ExecutionResultsInclusionEstimator: inclusionEstimator,
 			GasComputation:                     gasComputation,
 			ExecutionManager:                   execManager,
+			TxExecutionOrderHandler:            &commonMocks.TxExecutionOrderHandlerStub{},
 		},
 	}
 	shardProc, err := NewShardProcessor(arguments)
@@ -1027,11 +1032,6 @@ func (mp *metaProcessor) CommitEpochStart(header data.MetaHeaderHandler, body *b
 	return mp.commitEpochStart(header, body)
 }
 
-// OnExecutedBlock -
-func (bp *baseProcessor) OnExecutedBlock(header data.HeaderHandler, rootHash []byte) error {
-	return bp.onExecutedBlock(header, rootHash)
-}
-
 // RecreateTrieIfNeeded -
 func (bp *baseProcessor) RecreateTrieIfNeeded() error {
 	return bp.recreateTrieIfNeeded()
@@ -1044,7 +1044,7 @@ func (bp *baseProcessor) ExtractRootHashForCleanup(header data.HeaderHandler) (c
 
 // CheckContextBeforeExecution -
 func (bp *baseProcessor) CheckContextBeforeExecution(header data.HeaderHandler) error {
-	return bp.checkContextBeforeExecution(header)
+	return bp.checkAndUpdateContextBeforeExecution(header)
 }
 
 // SaveProposedTxsToStorage -
@@ -1118,4 +1118,12 @@ func (sp *shardProcessor) GetOrderedProcessedMetaBlocksFromMiniBlockHashesV3(
 	miniBlockHashes map[int][]byte,
 ) ([]data.HeaderHandler, error) {
 	return sp.getOrderedProcessedMetaBlocksFromMiniBlockHashesV3(header, miniBlockHashes)
+}
+
+// ExcludeRevertedExecutionResultsForHeader -
+func (bp *baseProcessor) ExcludeRevertedExecutionResultsForHeader(
+	header data.HeaderHandler,
+	pendingExecutionResults []data.BaseExecutionResultHandler,
+) []data.BaseExecutionResultHandler {
+	return bp.excludeRevertedExecutionResultsForHeader(header, pendingExecutionResults)
 }

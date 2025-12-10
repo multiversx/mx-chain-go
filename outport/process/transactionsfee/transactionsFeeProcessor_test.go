@@ -273,7 +273,7 @@ func TestPutFeeAndGasUsedLogWithErrorAndInformative(t *testing.T) {
 			tx1Hash: tx1,
 			tx2Hash: tx2,
 			"t3":    {Transaction: &transaction.Transaction{}, FeeInfo: &outportcore.FeeInfo{Fee: big.NewInt(0)}}},
-		Logs: []*outportcore.LogData{
+		Logs: []*transaction.LogData{
 			{
 				Log: &transaction.Log{
 					Events: []*transaction.Event{
@@ -640,7 +640,7 @@ func TestMoveBalanceWithSignalError(t *testing.T) {
 		Transactions: map[string]*outportcore.TxInfo{
 			hex.EncodeToString(txHash): initialTx,
 		},
-		Logs: []*outportcore.LogData{
+		Logs: []*transaction.LogData{
 			{
 				Log: &transaction.Log{
 					Events: []*transaction.Event{

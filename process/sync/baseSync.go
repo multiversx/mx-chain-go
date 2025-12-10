@@ -40,7 +40,7 @@ var log = logger.GetOrCreate("process/sync")
 var _ closing.Closer = (*baseBootstrap)(nil)
 
 // sleepTime defines the time in milliseconds between each iteration made in syncBlocks method
-const sleepTime = 5 * time.Millisecond
+const sleepTime = 50 * time.Millisecond
 const minimumProcessWaitTime = time.Millisecond * 100
 
 // hdrInfo hold the data related to a header
@@ -134,6 +134,7 @@ type baseBootstrap struct {
 	processWaitTime              time.Duration
 	processWaitTimeSupernova     time.Duration
 	preparedForSync              bool
+	preparedForSyncAtBootstrap   bool
 
 	repopulateTokensSupplies bool
 }
@@ -196,7 +197,7 @@ func (boot *baseBootstrap) checkProofCorrespondsToRequestedHash(headerProof data
 
 	// if header is also received, release the chan and set requested to nil
 	// otherwise wait for the header
-	_, err := boot.headers.GetHeaderByHash(headerProof.GetHeaderHash())
+	_, err := boot.getHeader(headerProof.GetHeaderHash())
 	hasHeader := err == nil
 	if hasHeader {
 		boot.setRequestedHeaderHash(nil)
@@ -221,7 +222,7 @@ func (boot *baseBootstrap) checkProofCorrespondsToRequestedNonce(headerProof dat
 
 	// if header is also received, release the chan and set requested to nil
 	// otherwise wait for the header
-	_, err := boot.headers.GetHeaderByHash(headerProof.GetHeaderHash())
+	_, err := boot.getHeader(headerProof.GetHeaderHash())
 	hasHeader := err == nil
 	if hasHeader {
 		boot.setRequestedHeaderNonce(nil)
@@ -240,7 +241,7 @@ func (boot *baseBootstrap) processReceivedHeader(headerHandler data.HeaderHandle
 		return
 	}
 
-	log.Trace("received header from network",
+	log.Debug("sync: received header from network",
 		"shard", headerHandler.GetShardID(),
 		"round", headerHandler.GetRound(),
 		"nonce", headerHandler.GetNonce(),
@@ -729,12 +730,23 @@ func (boot *baseBootstrap) syncBlocks(ctx context.Context) {
 	}
 }
 
+func (boot *baseBootstrap) getMaxSyncWithErrorsAllowed(
+	header data.HeaderHandler,
+) uint32 {
+	round := uint64(0)
+	if !check.IfNil(header) {
+		round = header.GetRound()
+	}
+
+	return boot.processConfigsHandler.GetMaxSyncWithErrorsAllowed(round)
+}
+
 func (boot *baseBootstrap) doJobOnSyncBlockFail(bodyHandler data.BodyHandler, headerHandler data.HeaderHandler, err error) {
 	processBlockStarted := !check.IfNil(bodyHandler) && !check.IfNil(headerHandler)
 	isProcessWithError := processBlockStarted && err != process.ErrTimeIsOut
 
 	numSyncedWithErrors := boot.incrementSyncedWithErrorsForNonce(boot.getNonceForNextBlock())
-	allowedSyncWithErrorsLimitReached := numSyncedWithErrors >= process.MaxSyncWithErrorsAllowed
+	allowedSyncWithErrorsLimitReached := numSyncedWithErrors >= boot.getMaxSyncWithErrorsAllowed(headerHandler)
 	isInProperRound := process.IsInProperRound(boot.roundHandler.Index())
 	isSyncWithErrorsLimitReachedInProperRound := allowedSyncWithErrorsLimitReached && isInProperRound
 
@@ -766,10 +778,55 @@ func (boot *baseBootstrap) incrementSyncedWithErrorsForNonce(nonce uint64) uint3
 	return numSyncedWithErrors
 }
 
+func (boot *baseBootstrap) prepareForSyncAtBoostrapIfNeeded() error {
+	// this will be triggered only once, after a full node restart.
+	// it is needed for the case when the node will go through bootstrap process and start
+	// directly into execution flow, because it is already synced (ex: if the entire shard
+	// was down and when the node will came back it will still be in sync, because the
+	// shard did not advance while the node was down).
+	// in case of shuffle out and moving to another shard, the node will not have to
+	// go through this flow, it will go through sync flow directly, so it will not be
+	// a problem that preparedForSyncAtBootstrap is already set
+
+	if boot.preparedForSyncAtBootstrap {
+		return nil
+	}
+
+	boot.preparedForSyncAtBootstrap = true
+
+	// at this point, current header should be the last applied header at bootstrap
+	currentHeader := boot.getCurrentBlock()
+
+	if !currentHeader.IsHeaderV3() {
+		return nil
+	}
+
+	// syncing nonce is taken as next nonce, this is for preparedForSyncIfNeeded to work
+	// properly in this case
+	syncingNonce := currentHeader.GetNonce() + 1
+
+	log.Debug("prepareForSyncAtBoostrapIfNeeded",
+		"currHeader nonce", currentHeader.GetNonce(),
+	)
+
+	err := boot.prepareForSyncIfNeeded(syncingNonce)
+	if err != nil {
+		return err
+	}
+
+	return nil
+}
+
 func (boot *baseBootstrap) syncBlock() error {
 	boot.computeNodeState()
 	nodeState := boot.GetNodeState()
+
 	if nodeState != common.NsNotSynchronized {
+		err := boot.prepareForSyncAtBoostrapIfNeeded()
+		if err != nil {
+			return err
+		}
+
 		boot.preparedForSync = false // reset the state for next loop
 		return nil
 	}
@@ -940,6 +997,7 @@ func (boot *baseBootstrap) syncBlockV3(body data.BodyHandler, header data.Header
 	elapsedTime := time.Since(startVerifyBlockTime)
 	log.Debug("elapsed time to verify block",
 		"time [s]", elapsedTime,
+		"nonce", header.GetNonce(),
 	)
 	if err != nil {
 		return err
@@ -961,6 +1019,7 @@ func (boot *baseBootstrap) syncBlockV3(body data.BodyHandler, header data.Header
 	} else {
 		log.Debug("elapsed time to commit block",
 			"time [s]", elapsedTime,
+			"nonce", header.GetNonce(),
 		)
 	}
 	if err != nil {
@@ -984,15 +1043,24 @@ func (boot *baseBootstrap) prepareForSyncIfNeeded(syncingNonce uint64) error {
 
 	currentHeader := boot.getCurrentBlock()
 	currentHeaderHash := boot.getCurrentBlockHash()
-	lastExecResults, err := process.GetPrevBlockLastExecutionResult(boot.chainHandler)
+	lastExecResult, err := process.GetPrevBlockLastExecutionResult(boot.chainHandler)
 	if err != nil {
 		return err
 	}
 
-	lastExecResultsHandler, err := common.ExtractBaseExecutionResultHandler(lastExecResults)
+	lastExecResultsHandler, err := common.ExtractBaseExecutionResultHandler(lastExecResult)
 	if err != nil {
 		return err
 	}
+
+	log.Debug("prepareForSyncIfNeeded",
+		"syncingNonce", syncingNonce,
+		"currHeader nonce", currentHeader.GetNonce(),
+		"currHeader hash", currentHeaderHash,
+		"lastExecRes nonce", lastExecResultsHandler.GetHeaderNonce(),
+		"lastExecRes hash", lastExecResultsHandler.GetHeaderHash(),
+		"lastExecRes rootHash", lastExecResultsHandler.GetRootHash(),
+	)
 
 	lastExecutedHash := lastExecResultsHandler.GetHeaderHash()
 	lastExecutedHeader, err := boot.getHeader(lastExecutedHash)
@@ -1042,6 +1110,7 @@ func (boot *baseBootstrap) prepareForSyncIfNeeded(syncingNonce uint64) error {
 	for i := lastExecutedNonce + 1; i < syncingNonce; i++ {
 		hdr, hdrHash, errGetHdr := boot.getHeaderFromPoolWithNonce(i)
 		if errGetHdr != nil {
+			log.Debug("prepareForSyncIfNeeded: failed to get header with nonce", "nonce", i, "error", errGetHdr)
 			return errGetHdr
 		}
 
@@ -1432,6 +1501,7 @@ func (boot *baseBootstrap) getHeaderWithNonceRequestingIfMissing(nonce uint64) (
 
 	hdr, hash, err = boot.getHeaderFromPoolWithNonce(nonce)
 	if err != nil {
+		log.Debug("getHeaderWithNonceRequestingIfMissing: failed to get header with nonce", "nonce", nonce, "error", err)
 		return nil, err
 	}
 
