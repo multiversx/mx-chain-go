@@ -925,7 +925,7 @@ func (tc *transactionCoordinator) ProposedDirectSentTransactionsToBroadcast(prop
 func (tc *transactionCoordinator) shouldSkipTransaction(txHash []byte) bool {
 	directSentTransactionsCache := tc.dataPool.DirectSentTransactions()
 	_, found := directSentTransactionsCache.Get(txHash)
-	return found
+	return !found
 }
 
 // CreateMarshalledDataForHeader creates marshaled data for broadcasting based on header
