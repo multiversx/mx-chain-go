@@ -215,6 +215,7 @@ func NewShardProcessorEmptyWith3shards(
 		Headers:                 dataComponents.Datapool().Headers(),
 		StorageService:          dataComponents.StorageService(),
 		Marshaller:              coreComponents.InternalMarshalizer(),
+		ShardCoordinator:        boostrapComponents.ShardCoordinator(),
 	})
 	execResultsVerifier, _ := NewExecutionResultsVerifier(dataComponents.BlockChain, execManager)
 	inclusionEstimator := estimator.NewExecutionResultInclusionEstimator(

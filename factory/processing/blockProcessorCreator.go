@@ -1206,13 +1206,16 @@ func (pcf *processComponentsFactory) newMetaBlockProcessor(
 		return nil, err
 	}
 
-	shardInfoCreator, err := block.NewShardInfoCreateData(
-		pcf.coreData.EnableEpochsHandler(),
-		pcf.data.Datapool().Headers(),
-		pcf.data.Datapool().Proofs(),
-		pendingMiniBlocksHandler,
-		blockTracker,
-	)
+	shardInfoCreateDataArgs := block.ShardInfoCreateDataArgs{
+		EnableEpochsHandler:      pcf.coreData.EnableEpochsHandler(),
+		HeadersPool:              pcf.data.Datapool().Headers(),
+		ProofsPool:               pcf.data.Datapool().Proofs(),
+		PendingMiniBlocksHandler: pendingMiniBlocksHandler,
+		BlockTracker:             blockTracker,
+		Storage:                  pcf.data.StorageService(),
+		Marshaller:               pcf.coreData.InternalMarshalizer(),
+	}
+	shardInfoCreator, err := block.NewShardInfoCreateData(shardInfoCreateDataArgs)
 	if err != nil {
 		return nil, err
 	}

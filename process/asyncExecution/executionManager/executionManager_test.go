@@ -31,6 +31,7 @@ func createMockArgs() executionManager.ArgsExecutionManager {
 		Headers:                 &pool.HeadersPoolStub{},
 		StorageService:          &storageStubs.ChainStorerStub{},
 		Marshaller:              &mock.MarshalizerMock{},
+		ShardCoordinator:        &mock.ShardCoordinatorStub{},
 	}
 }
 
@@ -79,6 +80,39 @@ func TestNewExecutionManager(t *testing.T) {
 		em, err := executionManager.NewExecutionManager(args)
 		require.Nil(t, em)
 		require.Equal(t, executionManager.ErrNilHeadersPool, err)
+	})
+
+	t.Run("nil storage service should error", func(t *testing.T) {
+		t.Parallel()
+
+		args := createMockArgs()
+		args.StorageService = nil
+
+		em, err := executionManager.NewExecutionManager(args)
+		require.Nil(t, em)
+		require.Equal(t, process.ErrNilStorage, err)
+	})
+
+	t.Run("nil marshaller should error", func(t *testing.T) {
+		t.Parallel()
+
+		args := createMockArgs()
+		args.Marshaller = nil
+
+		em, err := executionManager.NewExecutionManager(args)
+		require.Nil(t, em)
+		require.Equal(t, process.ErrNilMarshalizer, err)
+	})
+
+	t.Run("nil shard coordinator should error", func(t *testing.T) {
+		t.Parallel()
+
+		args := createMockArgs()
+		args.ShardCoordinator = nil
+
+		em, err := executionManager.NewExecutionManager(args)
+		require.Nil(t, em)
+		require.Equal(t, process.ErrNilShardCoordinator, err)
 	})
 
 	t.Run("should work", func(t *testing.T) {

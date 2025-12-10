@@ -29,6 +29,7 @@ import (
 	"github.com/multiversx/mx-chain-go/process/asyncExecution/executionManager"
 	"github.com/multiversx/mx-chain-go/process/asyncExecution/executionTrack"
 	blproc "github.com/multiversx/mx-chain-go/process/block"
+	processBlock "github.com/multiversx/mx-chain-go/process/block"
 	"github.com/multiversx/mx-chain-go/process/block/bootstrapStorage"
 	"github.com/multiversx/mx-chain-go/process/block/headerForBlock"
 	"github.com/multiversx/mx-chain-go/process/block/processedMb"
@@ -177,6 +178,7 @@ func createMockMetaArguments(
 		Headers:                 dataComponents.DataPool.Headers(),
 		StorageService:          dataComponents.StorageService(),
 		Marshaller:              coreComponents.InternalMarshalizer(),
+		ShardCoordinator:        bootstrapComponents.ShardCoordinator(),
 	})
 	execResultsVerifier, _ := blproc.NewExecutionResultsVerifier(dataComponents.BlockChain, execManager)
 	_ = executionResultsTracker.SetLastNotarizedResult(&block.ExecutionResult{})
@@ -205,13 +207,16 @@ func createMockMetaArguments(
 	}
 	gasComputation, _ := blproc.NewGasConsumption(argsGasConsumption)
 
-	shardInfoCreator, _ := blproc.NewShardInfoCreateData(
-		coreComponents.EnableEpochsHandler(),
-		dataComponents.Datapool().Headers(),
-		dataComponents.Datapool().Proofs(),
-		&mock.PendingMiniBlocksHandlerStub{},
-		blockTracker,
-	)
+	shardInfoCreateDataArgs := processBlock.ShardInfoCreateDataArgs{
+		EnableEpochsHandler:      coreComponents.EnableEpochsHandler(),
+		HeadersPool:              dataComponents.Datapool().Headers(),
+		ProofsPool:               dataComponents.Datapool().Proofs(),
+		PendingMiniBlocksHandler: &mock.PendingMiniBlocksHandlerStub{},
+		BlockTracker:             blockTracker,
+		Storage:                  dataComponents.StorageService(),
+		Marshaller:               coreComponents.InternalMarshalizer(),
+	}
+	shardInfoCreator, _ := blproc.NewShardInfoCreateData(shardInfoCreateDataArgs)
 
 	arguments := blproc.ArgMetaProcessor{
 		ArgBaseProcessor: blproc.ArgBaseProcessor{
