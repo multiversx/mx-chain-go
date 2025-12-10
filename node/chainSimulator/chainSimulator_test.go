@@ -8,7 +8,6 @@ import (
 
 	"github.com/multiversx/mx-chain-core-go/core"
 	"github.com/multiversx/mx-chain-core-go/data/transaction"
-	logger "github.com/multiversx/mx-chain-logger-go"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 
@@ -62,8 +61,6 @@ func TestChainSimulatorCheckSupernova(t *testing.T) {
 	})
 	require.Nil(t, err)
 	require.NotNil(t, chainSimulator)
-
-	logger.SetLogLevel("*:DEBUG")
 
 	err = chainSimulator.GenerateBlocksUntilEpochIsReached(2)
 	require.Nil(t, err)
