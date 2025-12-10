@@ -2841,6 +2841,18 @@ func (bp *baseProcessor) saveExecutedData(header data.HeaderHandler) error {
 	return nil
 }
 
+func (bp *baseProcessor) cleanPostProcessCache(header data.HeaderHandler) {
+	executionResults := header.GetExecutionResultsHandlers()
+	for _, execResult := range executionResults {
+		headerHash := execResult.GetHeaderHash()
+		postProcessTxsCache := bp.dataPool.PostProcessTransactions()
+		// all transactions moved, cleaning the cache
+		postProcessTxsCache.Remove(headerHash)
+		// remove execution order data
+		postProcessTxsCache.Remove(common.PrepareOrderedTxHashesKey(headerHash))
+	}
+}
+
 func (bp *baseProcessor) saveMiniBlocksFromExecutionResults(baseExecutionResult data.BaseExecutionResultHandler) error {
 	miniBlockHeaderHandlers, err := common.GetMiniBlocksHeaderHandlersFromExecResult(baseExecutionResult)
 	if err != nil {
@@ -2987,6 +2999,7 @@ func (bp *baseProcessor) cacheIntermediateTxsForHeader(headerHash []byte) error 
 	}
 
 	bp.dataPool.PostProcessTransactions().Put(headerHash, intermediateTxs, intermediateTxsSize)
+
 	return nil
 }
 
@@ -3052,11 +3065,6 @@ func (bp *baseProcessor) saveIntermediateTxs(headerHash []byte) error {
 			return err
 		}
 	}
-
-	// all transactions moved, cleaning the cache
-	postProcessTxsCache.Remove(headerHash)
-	// remove execution order data
-	postProcessTxsCache.Remove(common.PrepareOrderedTxHashesKey(headerHash))
 
 	return nil
 }
