@@ -710,8 +710,81 @@ func TestBaseProcessor_saveExecutedData(t *testing.T) {
 
 		err := bp.saveExecutedData(header)
 		require.NoError(t, err)
-		require.True(t, wasRemoveCalledForTxs)
+		require.False(t, wasRemoveCalledForTxs)
 		require.True(t, wasRemoveCalledForMbs)
 		require.Equal(t, 4, cntPutCalled) // 3 types of tx blocks + one for mbs
+	})
+}
+
+func TestBaseProcessor_cleanPostProcessCache(t *testing.T) {
+	t.Parallel()
+	t.Run("no execution results on header should not remove", func(t *testing.T) {
+		header := &block.HeaderV3{}
+		bp := getDefaultBaseProcessor()
+		cacher := &cache.CacherStub{
+			RemoveCalled: func(key []byte) {
+				require.Fail(t, "should not be called")
+			},
+		}
+		bp.dataPool = &dataRetrieverMock.PoolsHolderStub{
+			PostProcessTransactionsCalled: func() storage.Cacher {
+				return cacher
+			},
+		}
+
+		bp.cleanPostProcessCache(header)
+	})
+	t.Run("header v2 should not remove", func(t *testing.T) {
+		header := &block.HeaderV2{}
+		bp := getDefaultBaseProcessor()
+		cacher := &cache.CacherStub{
+			RemoveCalled: func(key []byte) {
+				require.Fail(t, "should not be called")
+			},
+		}
+		bp.dataPool = &dataRetrieverMock.PoolsHolderStub{
+			PostProcessTransactionsCalled: func() storage.Cacher {
+				return cacher
+			},
+		}
+
+		bp.cleanPostProcessCache(header)
+	})
+	t.Run("should remove from cache for each execution result", func(t *testing.T) {
+		headerHashes := [][]byte{[]byte("hash1"), []byte("hash2")}
+		header := &testscommon.HeaderHandlerStub{
+			GetExecutionResultsHandlersCalled: func() []data.BaseExecutionResultHandler {
+				return []data.BaseExecutionResultHandler{
+					&block.ExecutionResult{
+						BaseExecutionResult: &block.BaseExecutionResult{
+							HeaderHash: headerHashes[0],
+						},
+					},
+					&block.ExecutionResult{
+						BaseExecutionResult: &block.BaseExecutionResult{
+							HeaderHash: headerHashes[1],
+						},
+					},
+				}
+			},
+		}
+
+		bp := getDefaultBaseProcessor()
+		removedKeys := make([]string, 0)
+		cacher := &cache.CacherStub{
+			RemoveCalled: func(key []byte) {
+				removedKeys = append(removedKeys, string(key))
+			},
+		}
+		bp.dataPool = &dataRetrieverMock.PoolsHolderStub{
+			PostProcessTransactionsCalled: func() storage.Cacher {
+				return cacher
+			},
+		}
+
+		bp.cleanPostProcessCache(header)
+		require.Equal(t, 2, len(removedKeys))
+		require.Contains(t, removedKeys, "hash1")
+		require.Contains(t, removedKeys, "hash2")
 	})
 }
