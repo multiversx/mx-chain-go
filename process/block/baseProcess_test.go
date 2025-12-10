@@ -246,7 +246,8 @@ func createArgBaseProcessor(
 				return txHashes, nil, nil
 			},
 		},
-		ExecutionManager: execManager,
+		ExecutionManager:        execManager,
+		TxExecutionOrderHandler: &commonMocks.TxExecutionOrderHandlerStub{},
 	}
 }
 

@@ -144,6 +144,7 @@ type baseProcessor struct {
 	missingDataResolver                MissingDataResolver
 	gasComputation                     process.GasComputation
 	executionManager                   process.ExecutionManager
+	txExecutionOrderHandler            common.TxExecutionOrderHandler
 }
 
 type bootStorerDataArgs struct {
@@ -232,6 +233,7 @@ func NewBaseProcessor(arguments ArgBaseProcessor) (*baseProcessor, error) {
 		missingDataResolver:                arguments.MissingDataResolver,
 		gasComputation:                     arguments.GasComputation,
 		executionManager:                   arguments.ExecutionManager,
+		txExecutionOrderHandler:            arguments.TxExecutionOrderHandler,
 	}
 
 	err = base.OnExecutedBlock(genesisHdr, genesisHdr.GetRootHash())
@@ -788,6 +790,9 @@ func checkProcessorParameters(arguments ArgBaseProcessor) error {
 	}
 	if check.IfNil(arguments.ExecutionManager) {
 		return process.ErrNilExecutionManager
+	}
+	if check.IfNil(arguments.TxExecutionOrderHandler) {
+		return process.ErrNilTxExecutionOrderHandler
 	}
 
 	return nil
@@ -2983,6 +2988,12 @@ func (bp *baseProcessor) cacheIntermediateTxsForHeader(headerHash []byte) error 
 
 	bp.dataPool.PostProcessTransactions().Put(headerHash, intermediateTxs, intermediateTxsSize)
 
+	executionOrderKey := common.PrepareOrderedTxHashesKey(headerHash)
+	items := bp.txExecutionOrderHandler.GetItems()
+
+	size := len(items) * 32 // number of items * length of a transaction hash
+	bp.dataPool.PostProcessTransactions().Put(executionOrderKey, items, size)
+
 	return nil
 }
 
@@ -3051,6 +3062,8 @@ func (bp *baseProcessor) saveIntermediateTxs(headerHash []byte) error {
 
 	// all transactions moved, cleaning the cache
 	postProcessTxsCache.Remove(headerHash)
+	// remove execution order data
+	postProcessTxsCache.Remove(common.PrepareOrderedTxHashesKey(headerHash))
 
 	return nil
 }

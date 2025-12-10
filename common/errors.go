@@ -62,5 +62,8 @@ var ErrMissingCachedTransactions = errors.New("missing cached transactions")
 // ErrMissingCachedLogs signals that cached logs events are missing
 var ErrMissingCachedLogs = errors.New("missing cached logs")
 
+// ErrMissingOrderedTxHashes signals that ordered tx hashes are missing
+var ErrMissingOrderedTxHashes = errors.New("missing ordered tx hashes")
+
 // ErrInvalidHeader signals that an invalid header has been provided
 var ErrInvalidHeader = errors.New("invalid header")

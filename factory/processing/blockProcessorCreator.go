@@ -565,6 +565,7 @@ func (pcf *processComponentsFactory) newShardBlockProcessor(
 		ExecutionResultsInclusionEstimator: inclusionEstimator,
 		GasComputation:                     gasConsumption,
 		ExecutionManager:                   executionManager,
+		TxExecutionOrderHandler:            pcf.txExecutionOrderHandler,
 	}
 	arguments := block.ArgShardProcessor{
 		ArgBaseProcessor: argumentsBaseProcessor,
@@ -1118,6 +1119,7 @@ func (pcf *processComponentsFactory) newMetaBlockProcessor(
 		ExecutionResultsInclusionEstimator: inclusionEstimator,
 		GasComputation:                     gasConsumption,
 		ExecutionManager:                   executionManager,
+		TxExecutionOrderHandler:            pcf.txExecutionOrderHandler,
 	}
 
 	esdtOwnerAddress, err := pcf.coreData.AddressPubKeyConverter().Decode(pcf.systemSCConfig.ESDTSystemSCConfig.OwnerAddress)

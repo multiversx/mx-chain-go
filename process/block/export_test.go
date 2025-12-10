@@ -13,6 +13,7 @@ import (
 	"github.com/multiversx/mx-chain-core-go/display"
 	"github.com/multiversx/mx-chain-core-go/hashing"
 	"github.com/multiversx/mx-chain-core-go/marshal"
+	commonMocks "github.com/multiversx/mx-chain-go/testscommon/common"
 
 	"github.com/multiversx/mx-chain-go/common"
 	"github.com/multiversx/mx-chain-go/common/configs"
@@ -283,6 +284,7 @@ func NewShardProcessorEmptyWith3shards(
 			ExecutionResultsInclusionEstimator: inclusionEstimator,
 			GasComputation:                     gasComputation,
 			ExecutionManager:                   execManager,
+			TxExecutionOrderHandler:            &commonMocks.TxExecutionOrderHandlerStub{},
 		},
 	}
 	shardProc, err := NewShardProcessor(arguments)

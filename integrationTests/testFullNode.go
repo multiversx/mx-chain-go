@@ -1041,6 +1041,7 @@ func (tpn *TestFullNode) initBlockProcessor(
 		ExecutionResultsInclusionEstimator: inclusionEstimator,
 		GasComputation:                     gasConsumption,
 		ExecutionManager:                   tpn.ExecutionManager,
+		TxExecutionOrderHandler:            tpn.TxExecutionOrderHandler,
 	}
 
 	if check.IfNil(tpn.EpochStartNotifier) {
@@ -1407,6 +1408,7 @@ func (tpn *TestFullNode) initBlockProcessorWithSync(
 		ExecutionResultsInclusionEstimator: inclusionEstimator,
 		GasComputation:                     gasConsumption,
 		ExecutionManager:                   tpn.ExecutionManager,
+		TxExecutionOrderHandler:            tpn.TxExecutionOrderHandler,
 	}
 
 	if tpn.ShardCoordinator.SelfId() == core.MetachainShardId {

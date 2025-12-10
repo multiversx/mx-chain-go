@@ -15,6 +15,7 @@ import (
 	"github.com/multiversx/mx-chain-core-go/data"
 	"github.com/multiversx/mx-chain-core-go/data/block"
 	"github.com/multiversx/mx-chain-go/testscommon/cache"
+	commonMocks "github.com/multiversx/mx-chain-go/testscommon/common"
 	"github.com/multiversx/mx-chain-go/trie"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
@@ -253,6 +254,7 @@ func createMockMetaArguments(
 			ExecutionResultsInclusionEstimator: inclusionEstimator,
 			GasComputation:                     gasComputation,
 			ExecutionManager:                   execManager,
+			TxExecutionOrderHandler:            &commonMocks.TxExecutionOrderHandlerStub{},
 		},
 		SCToProtocol:                 &mock.SCToProtocolStub{},
 		PendingMiniBlocksHandler:     &mock.PendingMiniBlocksHandlerStub{},

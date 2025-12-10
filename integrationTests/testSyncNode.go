@@ -221,6 +221,7 @@ func (tpn *TestProcessorNode) initBlockProcessorWithSync() {
 		ExecutionResultsInclusionEstimator: inclusionEstimator,
 		GasComputation:                     gasConsumption,
 		ExecutionManager:                   tpn.ExecutionManager,
+		TxExecutionOrderHandler:            tpn.TxExecutionOrderHandler,
 	}
 
 	if tpn.ShardCoordinator.SelfId() == core.MetachainShardId {

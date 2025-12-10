@@ -8,6 +8,7 @@ import (
 	"github.com/multiversx/mx-chain-core-go/data/block"
 	"github.com/multiversx/mx-chain-core-go/data/transaction"
 	"github.com/multiversx/mx-chain-core-go/marshal"
+	commonMocks "github.com/multiversx/mx-chain-go/testscommon/common"
 	"github.com/stretchr/testify/require"
 
 	"github.com/multiversx/mx-chain-go/common"
@@ -200,6 +201,7 @@ func TestBaseProcessor_cacheIntermediateTxsForHeader(t *testing.T) {
 					}
 				},
 			},
+			txExecutionOrderHandler: &commonMocks.TxExecutionOrderHandlerStub{},
 		}
 
 		err := bp.cacheIntermediateTxsForHeader(headerHash)
@@ -224,6 +226,7 @@ func TestBaseProcessor_cacheIntermediateTxsForHeader(t *testing.T) {
 					}
 				},
 			},
+			txExecutionOrderHandler: &commonMocks.TxExecutionOrderHandlerStub{},
 		}
 
 		err := bp.cacheIntermediateTxsForHeader(headerHash)

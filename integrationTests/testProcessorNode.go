@@ -2610,6 +2610,7 @@ func (tpn *TestProcessorNode) initBlockProcessor() {
 		ExecutionResultsInclusionEstimator: inclusionEstimator,
 		GasComputation:                     gasConsumption,
 		ExecutionManager:                   tpn.ExecutionManager,
+		TxExecutionOrderHandler:            tpn.TxExecutionOrderHandler,
 	}
 
 	if check.IfNil(tpn.EpochStartNotifier) {
