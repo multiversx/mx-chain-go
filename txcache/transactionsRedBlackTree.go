@@ -40,8 +40,8 @@ func TransactionsComparator(tx1 interface{}, tx2 interface{}) int {
 }
 
 // transactionsRedBlackTree defines a wrapper structure over a red black tree.
-// The tree contains nodes where the key is a pointer to an element from the txListForSender.
-// This helps to find faster where a new element should be inserted.
+// The tree contains nodes which have the key is a pointer to an element from the txListForSender.
+// This helps to find faster the insertion place of a new element.
 // Before adding the new element in the txListForSender, the FindInsertionPlace of the transactionsRedBlackTree should be called.
 // The FindInsertionPlace will return the potential parent of the new element in the tree.
 // The new element must be added in the txListForSender right after the returned element.
