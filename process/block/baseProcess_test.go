@@ -178,6 +178,7 @@ func createArgBaseProcessor(
 			Headers:                 dataComponents.DataPool.Headers(),
 			StorageService:          dataComponents.StorageService(),
 			Marshaller:              coreComponents.InternalMarshalizer(),
+			ShardCoordinator:        bootstrapComponents.ShardCoordinator(),
 		})
 		execResultsVerifier, _ = blproc.NewExecutionResultsVerifier(dataComponents.BlockChain, execManager)
 		inclusionEstimator = estimator.NewExecutionResultInclusionEstimator(
@@ -246,7 +247,8 @@ func createArgBaseProcessor(
 				return txHashes, nil, nil
 			},
 		},
-		ExecutionManager: execManager,
+		ExecutionManager:        execManager,
+		TxExecutionOrderHandler: &commonMocks.TxExecutionOrderHandlerStub{},
 	}
 }
 
@@ -5018,6 +5020,17 @@ func TestBaseProcessor_checkContextBeforeExecution(t *testing.T) {
 		coreComponents, dataComponents, bootstrapComponents, statusComponents := createComponentHolderMocks()
 		arguments := CreateMockArguments(coreComponents, dataComponents, bootstrapComponents, statusComponents)
 
+		dataComponents.BlockChain = &testscommon.ChainHandlerStub{
+			GetCurrentBlockHeaderCalled: func() data.HeaderHandler {
+				return &block.MetaBlockV3{
+					Nonce: 1,
+				}
+			},
+			GetLastExecutedBlockInfoCalled: func() (uint64, []byte, []byte) {
+				return 1, []byte("hash1"), []byte("rootHash1")
+			},
+		}
+
 		accounts := &stateMock.AccountsStub{
 			RootHashCalled: func() ([]byte, error) {
 				return nil, expectedErr
@@ -5028,7 +5041,10 @@ func TestBaseProcessor_checkContextBeforeExecution(t *testing.T) {
 		bp, err := blproc.NewShardProcessor(arguments)
 		require.NoError(t, err)
 
-		err = bp.CheckContextBeforeExecution(&block.HeaderV3{})
+		err = bp.CheckContextBeforeExecution(&block.HeaderV3{
+			Nonce:    2,
+			PrevHash: []byte("hash1"),
+		})
 		require.Equal(t, expectedErr, err)
 	})
 
@@ -5126,6 +5142,9 @@ func TestBaseProcessor_checkContextBeforeExecution(t *testing.T) {
 		accounts := &stateMock.AccountsStub{
 			RootHashCalled: func() ([]byte, error) {
 				return []byte("rootHashX"), nil
+			},
+			RecreateTrieCalled: func(options common.RootHashHolder) error {
+				return nil
 			},
 		}
 		arguments.AccountsDB[state.UserAccountsState] = accounts

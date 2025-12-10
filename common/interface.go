@@ -486,6 +486,7 @@ type ProcessConfigsHandler interface {
 	GetMaxRoundsWithoutNewBlockReceivedByRound(round uint64) uint32
 	GetMaxRoundsWithoutCommittedBlock(round uint64) uint32
 	GetRoundModulusTriggerWhenSyncIsStuck(round uint64) uint32
+	GetMaxSyncWithErrorsAllowed(round uint64) uint32
 
 	IsInterfaceNil() bool
 }

@@ -13,6 +13,7 @@ import (
 	"github.com/multiversx/mx-chain-go/dataRetriever"
 	"github.com/multiversx/mx-chain-go/process"
 	"github.com/multiversx/mx-chain-go/process/asyncExecution/disabled"
+	"github.com/multiversx/mx-chain-go/sharding"
 
 	"github.com/multiversx/mx-chain-go/process/asyncExecution/queue"
 )
@@ -27,6 +28,7 @@ type ArgsExecutionManager struct {
 	Headers                 common.HeadersPool
 	StorageService          dataRetriever.StorageService
 	Marshaller              marshal.Marshalizer
+	ShardCoordinator        sharding.Coordinator
 }
 
 type executionManager struct {
@@ -38,6 +40,7 @@ type executionManager struct {
 	headers                 common.HeadersPool
 	storageService          dataRetriever.StorageService
 	marshaller              marshal.Marshalizer
+	shardCoordinator        sharding.Coordinator
 }
 
 // NewExecutionManager creates a new instance of executionManager
@@ -60,6 +63,9 @@ func NewExecutionManager(args ArgsExecutionManager) (*executionManager, error) {
 	if check.IfNil(args.Marshaller) {
 		return nil, process.ErrNilMarshalizer
 	}
+	if check.IfNil(args.ShardCoordinator) {
+		return nil, process.ErrNilShardCoordinator
+	}
 
 	instance := &executionManager{
 		headersExecutor:         disabled.NewHeadersExecutor(),
@@ -69,6 +75,7 @@ func NewExecutionManager(args ArgsExecutionManager) (*executionManager, error) {
 		headers:                 args.Headers,
 		storageService:          args.StorageService,
 		marshaller:              args.Marshaller,
+		shardCoordinator:        args.ShardCoordinator,
 	}
 
 	return instance, nil
@@ -142,6 +149,7 @@ func (em *executionManager) updateContextForReplacedHeader(header data.HeaderHan
 
 	em.blockChain.SetLastExecutedBlockHeaderAndRootHash(headerToSet, executionResultToSet.GetHeaderHash(), executionResultToSet.GetRootHash())
 	em.blockChain.SetLastExecutionResult(executionResultToSet)
+
 	// need to remove all execution results after the one set
 	return em.executionResultsTracker.RemoveFromNonce(executionResultToSet.GetHeaderNonce() + 1)
 }
@@ -321,9 +329,7 @@ func (em *executionManager) getHeaderFromPoolOrStorage(
 		return header, nil
 	}
 
-	// chain handler header is set for self shard id
-	// TODO: add use shard coordinator
-	shardID := em.blockChain.GetCurrentBlockHeader().GetShardID()
+	shardID := em.shardCoordinator.SelfId()
 
 	return process.GetHeaderFromStorage(
 		shardID,

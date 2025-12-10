@@ -1224,7 +1224,7 @@ func Test_checkShardHeadersValidityAndFinalityProposal(t *testing.T) {
 			GetStorerCalled: func(unitType dataRetriever.UnitType) (storage.Storer, error) {
 				return &storageStubs.StorerStub{
 					GetCalled: func(key []byte) ([]byte, error) {
-						blockBytes, _ := marshaller.Marshal(&block.MetaBlockV3{})
+						blockBytes, _ := marshaller.Marshal(&block.HeaderV3{})
 						return blockBytes, nil
 					},
 				}, nil
@@ -1279,7 +1279,7 @@ func Test_checkShardHeadersValidityAndFinalityProposal(t *testing.T) {
 			GetStorerCalled: func(unitType dataRetriever.UnitType) (storage.Storer, error) {
 				return &storageStubs.StorerStub{
 					GetCalled: func(key []byte) ([]byte, error) {
-						blockBytes, _ := marshaller.Marshal(&block.MetaBlockV3{})
+						blockBytes, _ := marshaller.Marshal(&block.HeaderV3{})
 						return blockBytes, nil
 					},
 				}, nil

@@ -299,7 +299,7 @@ func (sp *shardProcessor) ProcessBlockProposal(
 		return nil, process.ErrAccountStateDirty
 	}
 
-	err := sp.checkContextBeforeExecution(header)
+	err := sp.checkAndUpdateContextBeforeExecution(header)
 	if err != nil {
 		return nil, err
 	}
@@ -363,9 +363,9 @@ func (sp *shardProcessor) ProcessBlockProposal(
 		return nil, err
 	}
 
-	err = sp.commitState(headerHandler)
-	if err != nil {
-		return nil, err
+	errCutoff := sp.blockProcessingCutoffHandler.HandleProcessErrorCutoff(header)
+	if errCutoff != nil {
+		return nil, errCutoff
 	}
 
 	// TODO: should receive the header hash instead of re-computing it
@@ -379,9 +379,9 @@ func (sp *shardProcessor) ProcessBlockProposal(
 		return nil, err
 	}
 
-	errCutoff := sp.blockProcessingCutoffHandler.HandleProcessErrorCutoff(header)
-	if errCutoff != nil {
-		return nil, errCutoff
+	err = sp.commitState(headerHandler)
+	if err != nil {
+		return nil, err
 	}
 
 	return executionResult, nil
@@ -725,6 +725,8 @@ func (sp *shardProcessor) collectExecutionResults(headerHash []byte, header data
 	if err != nil {
 		return nil, err
 	}
+
+	sp.cacheOrderedTxHashes(headerHash)
 
 	return executionResult, nil
 }
