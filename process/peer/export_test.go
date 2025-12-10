@@ -64,8 +64,8 @@ func (vs *validatorStatistics) UpdateShardDataPeerState(
 }
 
 // SearchInMap -
-func (vs *validatorStatistics) SearchInMap(hash []byte, cacheMap map[string]data.HeaderHandler) (data.HeaderHandler, error) {
-	return vs.searchInMap(hash, cacheMap)
+func (vs *validatorStatistics) SearchInMap(hash []byte, cacheMap map[string]data.HeaderHandler, shardID uint32) (data.HeaderHandler, error) {
+	return vs.searchInMap(hash, cacheMap, shardID)
 }
 
 // GetActualList -
