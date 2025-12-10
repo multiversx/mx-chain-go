@@ -3087,3 +3087,65 @@ func TestGetStartOfEpochRootHashFromExecutionResults(t *testing.T) {
 		require.Equal(t, expRootHash, retRootHash)
 	})
 }
+
+func Test_GetValidatorStatsRootHashFromLastExecutionResult(t *testing.T) {
+	t.Parallel()
+
+	t.Run("should fail if root hash is invalid", func(t *testing.T) {
+		t.Parallel()
+
+		metaBlock := &block.MetaBlockV3{
+			LastExecutionResult: &block.MetaExecutionResultInfo{
+				ExecutionResult: &block.BaseMetaExecutionResult{
+					BaseExecutionResult: &block.BaseExecutionResult{
+						HeaderHash:  []byte("headerHash1"),
+						HeaderNonce: 3,
+						HeaderRound: 3,
+						RootHash:    []byte("otherRootHash"),
+					},
+					ValidatorStatsRootHash: nil,
+				},
+			},
+		}
+
+		retRootHash, err := getValidatorStatsRootHashFromLastExecutionResult(metaBlock)
+		require.Nil(t, retRootHash)
+		require.Equal(t, ErrGetEpochStartValidatorStatsRootHash, err)
+	})
+
+	t.Run("shoud work", func(t *testing.T) {
+		t.Parallel()
+
+		expRootHash := []byte("expRootHash")
+
+		metaBlock := &block.MetaBlockV3{
+			LastExecutionResult: &block.MetaExecutionResultInfo{
+				ExecutionResult: &block.BaseMetaExecutionResult{
+					BaseExecutionResult: &block.BaseExecutionResult{
+						HeaderHash:  []byte("headerHash1"),
+						HeaderNonce: 3,
+						HeaderRound: 3,
+						RootHash:    []byte("otherRootHash"),
+					},
+					ValidatorStatsRootHash: expRootHash,
+				},
+			},
+			ExecutionResults: []*block.MetaExecutionResult{
+				{
+					ExecutionResult: &block.BaseMetaExecutionResult{
+						BaseExecutionResult: &block.BaseExecutionResult{
+							HeaderHash:  []byte("headerHash2"),
+							HeaderNonce: 2,
+							HeaderRound: 2,
+							RootHash:    []byte("otherRootHash"),
+						},
+					},
+				},
+			},
+		}
+
+		retRootHash, err := getValidatorStatsRootHashFromLastExecutionResult(metaBlock)
+		require.Nil(t, err)
+		require.Equal(t, expRootHash, retRootHash)
+	})
+}

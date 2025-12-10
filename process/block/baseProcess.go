@@ -144,6 +144,7 @@ type baseProcessor struct {
 	missingDataResolver                MissingDataResolver
 	gasComputation                     process.GasComputation
 	executionManager                   process.ExecutionManager
+	txExecutionOrderHandler            common.TxExecutionOrderHandler
 }
 
 type bootStorerDataArgs struct {
@@ -232,6 +233,7 @@ func NewBaseProcessor(arguments ArgBaseProcessor) (*baseProcessor, error) {
 		missingDataResolver:                arguments.MissingDataResolver,
 		gasComputation:                     arguments.GasComputation,
 		executionManager:                   arguments.ExecutionManager,
+		txExecutionOrderHandler:            arguments.TxExecutionOrderHandler,
 	}
 
 	err = base.OnExecutedBlock(genesisHdr, genesisHdr.GetRootHash())
@@ -788,6 +790,9 @@ func checkProcessorParameters(arguments ArgBaseProcessor) error {
 	}
 	if check.IfNil(arguments.ExecutionManager) {
 		return process.ErrNilExecutionManager
+	}
+	if check.IfNil(arguments.TxExecutionOrderHandler) {
+		return process.ErrNilTxExecutionOrderHandler
 	}
 
 	return nil
@@ -2836,6 +2841,18 @@ func (bp *baseProcessor) saveExecutedData(header data.HeaderHandler) error {
 	return nil
 }
 
+func (bp *baseProcessor) cleanPostProcessCache(header data.HeaderHandler) {
+	executionResults := header.GetExecutionResultsHandlers()
+	for _, execResult := range executionResults {
+		headerHash := execResult.GetHeaderHash()
+		postProcessTxsCache := bp.dataPool.PostProcessTransactions()
+		// all transactions moved, cleaning the cache
+		postProcessTxsCache.Remove(headerHash)
+		// remove execution order data
+		postProcessTxsCache.Remove(common.PrepareOrderedTxHashesKey(headerHash))
+	}
+}
+
 func (bp *baseProcessor) saveMiniBlocksFromExecutionResults(baseExecutionResult data.BaseExecutionResultHandler) error {
 	miniBlockHeaderHandlers, err := common.GetMiniBlocksHeaderHandlersFromExecResult(baseExecutionResult)
 	if err != nil {
@@ -3048,9 +3065,6 @@ func (bp *baseProcessor) saveIntermediateTxs(headerHash []byte) error {
 			return err
 		}
 	}
-
-	// all transactions moved, cleaning the cache
-	postProcessTxsCache.Remove(headerHash)
 
 	return nil
 }
@@ -3666,6 +3680,14 @@ func (bp *baseProcessor) collectMiniBlocks(
 	}
 
 	return miniBlockHeaderHandlers, totalTxCount, receiptHash, nil
+}
+
+func (bp *baseProcessor) cacheOrderedTxHashes(headerHash []byte) {
+	executionOrderKey := common.PrepareOrderedTxHashesKey(headerHash)
+	items := bp.txExecutionOrderHandler.GetItems()
+
+	size := len(items) * common.HashSize // number of items * length of a transaction hash
+	bp.dataPool.PostProcessTransactions().Put(executionOrderKey, items, size)
 }
 
 func (bp *baseProcessor) getBlockBodyFromPool(

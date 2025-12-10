@@ -588,6 +588,8 @@ func (mp *metaProcessor) createExecutionResult(
 		return nil, err
 	}
 
+	mp.cacheOrderedTxHashes(headerHash)
+
 	return executionResult, nil
 }
 
