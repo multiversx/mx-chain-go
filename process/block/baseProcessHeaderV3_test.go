@@ -636,7 +636,6 @@ func TestBaseProcessor_saveExecutedData(t *testing.T) {
 
 		cntPutCalled := 0
 		wasRemoveCalledForTxs := false
-		wasRemoveCalledForMbs := false
 		getCalls := 0
 		bp := &baseProcessor{
 			receiptsRepository: &testscommon.ReceiptsRepositoryStub{
@@ -684,9 +683,6 @@ func TestBaseProcessor_saveExecutedData(t *testing.T) {
 							}
 							return []byte("marshalled mb"), true
 						},
-						RemoveCalled: func(key []byte) {
-							wasRemoveCalledForMbs = true
-						},
 					}
 				},
 			},
@@ -714,7 +710,6 @@ func TestBaseProcessor_saveExecutedData(t *testing.T) {
 		err := bp.saveExecutedData(header)
 		require.NoError(t, err)
 		require.False(t, wasRemoveCalledForTxs)
-		require.True(t, wasRemoveCalledForMbs)
 		require.Equal(t, 4, cntPutCalled) // 3 types of tx blocks + one for mbs
 	})
 }
@@ -735,7 +730,8 @@ func TestBaseProcessor_cleanPostProcessCache(t *testing.T) {
 			},
 		}
 
-		bp.cleanPostProcessCache(header)
+		err := bp.cleanPostProcessCache(header)
+		require.NoError(t, err)
 	})
 	t.Run("header v2 should not remove", func(t *testing.T) {
 		header := &block.HeaderV2{}
@@ -751,7 +747,8 @@ func TestBaseProcessor_cleanPostProcessCache(t *testing.T) {
 			},
 		}
 
-		bp.cleanPostProcessCache(header)
+		err := bp.cleanPostProcessCache(header)
+		require.NoError(t, err)
 	})
 	t.Run("should remove from cache for each execution result", func(t *testing.T) {
 		headerHashes := []string{"hash1", "hash2"}
@@ -762,17 +759,27 @@ func TestBaseProcessor_cleanPostProcessCache(t *testing.T) {
 						BaseExecutionResult: &block.BaseExecutionResult{
 							HeaderHash: []byte(headerHashes[0]),
 						},
+						MiniBlockHeaders: []block.MiniBlockHeader{
+							{
+								Hash: []byte("mb1"),
+							},
+						},
 					},
 					&block.ExecutionResult{
 						BaseExecutionResult: &block.BaseExecutionResult{
 							HeaderHash: []byte(headerHashes[1]),
+						},
+						MiniBlockHeaders: []block.MiniBlockHeader{
+							{
+								Hash: []byte("mb2"),
+							},
 						},
 					},
 				}
 			},
 		}
 
-		expectedRemovedKeys := []string{"hash1", "executionhash1", "hash2", "executionhash2"}
+		expectedRemovedKeys := []string{"hash1", "executionhash1", "mb1", "hash2", "executionhash2", "mb2"}
 
 		bp := getDefaultBaseProcessor()
 		removedKeys := make([]string, 0)
@@ -785,9 +792,13 @@ func TestBaseProcessor_cleanPostProcessCache(t *testing.T) {
 			PostProcessTransactionsCalled: func() storage.Cacher {
 				return cacher
 			},
+			ExecutedMiniBlocksCalled: func() storage.Cacher {
+				return cacher
+			},
 		}
 
-		bp.cleanPostProcessCache(header)
+		err := bp.cleanPostProcessCache(header)
+		require.NoError(t, err)
 		require.Equal(t, expectedRemovedKeys, removedKeys)
 	})
 }
