@@ -238,6 +238,21 @@ func TestGasConsumption_AddIncomingMiniBlocks(t *testing.T) {
 		require.Zero(t, pendingMbs)
 		require.Equal(t, -1, lastMbIndex)
 	})
+	t.Run("tx limit exceeded", func(t *testing.T) {
+		t.Parallel()
+
+		gc, _ := block.NewGasConsumption(getMockArgsGasConsumption())
+		require.NotNil(t, gc)
+
+		mbs := generateMiniBlocks(1, 1)
+		txs := generateTxsForMiniBlocks(mbs)
+		providedGasLimitForTx := maxGasLimitPerTx + 1
+		_, txs[string(mbs[0].GetHash())] = generateTxs(providedGasLimitForTx, mbs[0].GetTxCount())
+		lastMbIndex, pendingMbs, err := gc.AddIncomingMiniBlocks(mbs, txs)
+		require.Equal(t, process.ErrMaxGasLimitPerTransactionIsReached, err)
+		require.Zero(t, pendingMbs)
+		require.Equal(t, -1, lastMbIndex)
+	})
 	t.Run("should work within limits and multiple calls", func(t *testing.T) {
 		t.Parallel()
 

@@ -233,8 +233,6 @@ func (gc *gasConsumption) checkGasConsumedByMiniBlock(mb data.MiniBlockHeaderHan
 		if check.IfNil(tx) {
 			continue
 		}
-
-		// we only care about the gas consumed in receiver shard as all mini blocks are coming to current shard
 		_, gasConsumedInReceiverShard, err := gc.gasHandler.ComputeGasProvidedByTx(mb.GetSenderShardID(), mb.GetReceiverShardID(), tx)
 		if err != nil {
 			// do not save any pending mini blocks, as this one is invalid
@@ -242,7 +240,7 @@ func (gc *gasConsumption) checkGasConsumedByMiniBlock(mb data.MiniBlockHeaderHan
 		}
 
 		maxGasLimitPerTx := gc.economicsFee.MaxGasLimitPerTx()
-		if gasConsumedInReceiverShard > maxGasLimitPerTx {
+		if gasConsumedInReceiverShard > maxGasLimitPerTx || tx.GetGasLimit() > maxGasLimitPerTx {
 			// this should not happen, transactions with higher gas should have been already rejected
 			// return the last saved mini block, and the proper error, without saving the rest of mini blocks
 			// do not save any pending mini blocks, as this one is invalid
@@ -373,7 +371,9 @@ func (gc *gasConsumption) checkGasConsumedByTx(
 		return 0, 0, err
 	}
 	maxGasLimitPerTx := gc.economicsFee.MaxGasLimitPerTx()
-	if gasConsumedInSenderShard > maxGasLimitPerTx || gasConsumedInReceiverShard > maxGasLimitPerTx {
+	if gasConsumedInSenderShard > maxGasLimitPerTx ||
+		gasConsumedInReceiverShard > maxGasLimitPerTx ||
+		tx.GetGasLimit() > maxGasLimitPerTx {
 		// this should not happen, transactions with higher gas should have been already rejected
 		// return the last saved transaction, and the proper error, without saving the rest of transactions
 		return 0, 0, process.ErrMaxGasLimitPerTransactionIsReached
