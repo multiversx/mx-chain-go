@@ -8,6 +8,7 @@ import (
 	"github.com/multiversx/mx-chain-core-go/data/block"
 	"github.com/multiversx/mx-chain-core-go/data/transaction"
 	"github.com/multiversx/mx-chain-core-go/marshal"
+	commonMocks "github.com/multiversx/mx-chain-go/testscommon/common"
 	"github.com/stretchr/testify/require"
 
 	"github.com/multiversx/mx-chain-go/common"
@@ -200,6 +201,7 @@ func TestBaseProcessor_cacheIntermediateTxsForHeader(t *testing.T) {
 					}
 				},
 			},
+			txExecutionOrderHandler: &commonMocks.TxExecutionOrderHandlerStub{},
 		}
 
 		err := bp.cacheIntermediateTxsForHeader(headerHash)
@@ -224,6 +226,7 @@ func TestBaseProcessor_cacheIntermediateTxsForHeader(t *testing.T) {
 					}
 				},
 			},
+			txExecutionOrderHandler: &commonMocks.TxExecutionOrderHandlerStub{},
 		}
 
 		err := bp.cacheIntermediateTxsForHeader(headerHash)
@@ -769,6 +772,8 @@ func TestBaseProcessor_cleanPostProcessCache(t *testing.T) {
 			},
 		}
 
+		expectedRemovedKeys := []string{"hash1", "executionhash1", "hash2", "executionhash2"}
+
 		bp := getDefaultBaseProcessor()
 		removedKeys := make([]string, 0)
 		cacher := &cache.CacherStub{
@@ -783,6 +788,6 @@ func TestBaseProcessor_cleanPostProcessCache(t *testing.T) {
 		}
 
 		bp.cleanPostProcessCache(header)
-		require.Equal(t, headerHashes, removedKeys)
+		require.Equal(t, expectedRemovedKeys, removedKeys)
 	})
 }
