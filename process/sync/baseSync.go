@@ -40,7 +40,7 @@ var log = logger.GetOrCreate("process/sync")
 var _ closing.Closer = (*baseBootstrap)(nil)
 
 // sleepTime defines the time in milliseconds between each iteration made in syncBlocks method
-const sleepTime = 5 * time.Millisecond
+const sleepTime = 50 * time.Millisecond
 const minimumProcessWaitTime = time.Millisecond * 100
 
 // hdrInfo hold the data related to a header
@@ -730,12 +730,23 @@ func (boot *baseBootstrap) syncBlocks(ctx context.Context) {
 	}
 }
 
+func (boot *baseBootstrap) getMaxSyncWithErrorsAllowed(
+	header data.HeaderHandler,
+) uint32 {
+	round := uint64(0)
+	if !check.IfNil(header) {
+		round = header.GetRound()
+	}
+
+	return boot.processConfigsHandler.GetMaxSyncWithErrorsAllowed(round)
+}
+
 func (boot *baseBootstrap) doJobOnSyncBlockFail(bodyHandler data.BodyHandler, headerHandler data.HeaderHandler, err error) {
 	processBlockStarted := !check.IfNil(bodyHandler) && !check.IfNil(headerHandler)
 	isProcessWithError := processBlockStarted && err != process.ErrTimeIsOut
 
 	numSyncedWithErrors := boot.incrementSyncedWithErrorsForNonce(boot.getNonceForNextBlock())
-	allowedSyncWithErrorsLimitReached := numSyncedWithErrors >= process.MaxSyncWithErrorsAllowed
+	allowedSyncWithErrorsLimitReached := numSyncedWithErrors >= boot.getMaxSyncWithErrorsAllowed(headerHandler)
 	isInProperRound := process.IsInProperRound(boot.roundHandler.Index())
 	isSyncWithErrorsLimitReachedInProperRound := allowedSyncWithErrorsLimitReached && isInProperRound
 
