@@ -279,6 +279,8 @@ func (service *SCQueryService) setCurrentBlockInfo(
 		return service.setCurrentBlockInfoV3(header, rootHash, blockHash)
 	}
 
+	service.apiBlockChain.SetLastExecutedBlockHeaderAndRootHash(header, blockHash, rootHash)
+
 	return service.apiBlockChain.SetCurrentBlockHeaderAndRootHash(header, rootHash)
 }
 
