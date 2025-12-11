@@ -557,6 +557,13 @@ func (inTx *InterceptedTransaction) Type() string {
 	return "intercepted tx"
 }
 
+func (inTx *InterceptedTransaction) SndShard() uint32 {
+	return inTx.sndShard
+}
+func (inTx *InterceptedTransaction) RcvShard() uint32 {
+	return inTx.rcvShard
+}
+
 // String returns the transaction's most important fields as string
 func (inTx *InterceptedTransaction) String() string {
 	return fmt.Sprintf("sender=%s, nonce=%d, value=%s, recv=%s, data=%s",
