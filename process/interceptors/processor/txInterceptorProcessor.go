@@ -80,7 +80,8 @@ func (txip *TxInterceptorProcessor) Save(data process.InterceptedData, peerOrigi
 		cacherIdentifier,
 	)
 
-	if isDirectSend(broadcastMethod) {
+	isIntraShard := interceptedTx.SenderShardId() == interceptedTx.ReceiverShardId()
+	if isDirectSend(broadcastMethod) && isIntraShard {
 		txip.directSentTransactionsCache.Put(data.Hash(), struct{}{}, 0)
 	}
 
