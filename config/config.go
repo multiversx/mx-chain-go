@@ -803,6 +803,7 @@ type ChainParametersByEpochConfig struct {
 	MetachainConsensusGroupSize uint32
 	MetachainMinNumNodes        uint32
 	Adaptivity                  bool
+	Offset                      uint16
 }
 
 // IndexBroadcastDelay holds a pair of starting consensus index and the delay the nodes should wait before broadcasting final info
