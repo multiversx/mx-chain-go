@@ -12,7 +12,7 @@ export USE_PROXY=1
 
 # Enable the MultiversX Transaction Generator. Note that this is a private
 # repository (mx-chain-txgen-go).
-export USE_TXGEN=0
+export USE_TXGEN=1
 
 # Path where the testnet will be instantiated. This folder is assumed to not
 # exist, but it doesn't matter if it already does. It will be created if not,

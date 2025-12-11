@@ -207,6 +207,10 @@ func (odp *outportDataProvider) getStateAccessesForBlock(header data.HeaderHandl
 	if !header.IsHeaderV3() {
 		stateAccesses := odp.getStateAccessForRootHash(header.GetRootHash())
 		stateAccessesForBlock[hex.EncodeToString(headerHash)] = stateAccesses
+		log.Trace("getStateAccessesForBlock",
+			"numStateAccesses", len(stateAccessesForBlock),
+			"rootHash", header.GetRootHash(),
+			"headerHash", headerHash)
 		return stateAccessesForBlock
 	}
 
@@ -214,7 +218,13 @@ func (odp *outportDataProvider) getStateAccessesForBlock(header data.HeaderHandl
 	for _, execResult := range executionResults {
 		stateAccesses := odp.getStateAccessForRootHash(execResult.GetRootHash())
 		stateAccessesForBlock[hex.EncodeToString(execResult.GetHeaderHash())] = stateAccesses
+		log.Trace("getStateAccessesForBlock V3",
+			"numStateAccesses", len(stateAccessesForBlock),
+			"rootHash", execResult.GetRootHash(),
+			"headerHash", execResult.GetHeaderHash(),
+			"nonce", execResult.GetHeaderNonce())
 	}
+	log.Trace("getStateAccessesForBlock V3", "numExecRes", len(executionResults), "stateAccessesForBlock", len(stateAccessesForBlock))
 	return stateAccessesForBlock
 }
 
@@ -289,6 +299,15 @@ func (odp *outportDataProvider) prepareExecutionResultsData(args ArgPrepareOutpo
 			TimestampMs:          odp.roundHandler.GetTimeStampForRound(executionResult.GetHeaderRound()),
 			RootHash:             executionResult.GetRootHash(),
 		}
+
+		log.Debug("prepareExecutionResultsData",
+			"headerNonce", executionResult.GetHeaderNonce(),
+			"rootHash", executionResult.GetRootHash(),
+			"numTxsInPool", len(pool.Transactions),
+			"numSCRsInPool", len(pool.SmartContractResults),
+			"numRewardsInPool", len(pool.Rewards),
+			"numInvalidTxsInPool", len(pool.InvalidTxs),
+		)
 
 		results[encodedHash] = executionResultData
 	}
