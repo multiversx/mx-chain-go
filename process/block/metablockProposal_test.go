@@ -10,11 +10,12 @@ import (
 	"github.com/multiversx/mx-chain-core-go/data"
 	"github.com/multiversx/mx-chain-core-go/data/block"
 	"github.com/multiversx/mx-chain-core-go/marshal"
+	"github.com/stretchr/testify/require"
+
 	"github.com/multiversx/mx-chain-go/dataRetriever"
 	"github.com/multiversx/mx-chain-go/storage"
 	"github.com/multiversx/mx-chain-go/testscommon/epochNotifier"
 	storageStubs "github.com/multiversx/mx-chain-go/testscommon/storage"
-	"github.com/stretchr/testify/require"
 
 	"github.com/multiversx/mx-chain-go/process/estimator"
 	"github.com/multiversx/mx-chain-go/state"
@@ -3950,7 +3951,7 @@ func TestMetaProcessor_ProcessBlockProposal(t *testing.T) {
 		require.Nil(t, err)
 
 		_, err = mp.ProcessBlockProposal(&block.MetaBlockV3{}, &block.Body{})
-		require.Equal(t, process.ErrAccountStateDirty, err)
+		require.ErrorIs(t, err, process.ErrAccountStateDirty)
 	})
 
 	t.Run("if checking context fails, the error should be propagated", func(t *testing.T) {
