@@ -6,7 +6,6 @@ import (
 
 	"github.com/multiversx/mx-chain-core-go/data"
 	"github.com/multiversx/mx-chain-core-go/data/block"
-	"github.com/multiversx/mx-chain-core-go/marshal"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 
@@ -138,13 +137,13 @@ func TestTrigger_LoadStateBackwardsCompatibility(t *testing.T) {
 	epoch := uint32(5)
 	key := []byte("key")
 
+	arguments := createMockShardEpochStartTriggerArguments()
+	arguments.Epoch = epoch
+
 	t.Run("backwards compatibility", func(t *testing.T) {
 		t.Parallel()
 
-		arguments := createMockShardEpochStartTriggerArguments()
-		arguments.Epoch = epoch
 		bootStorer := genericMocks.NewStorerMock()
-
 		arguments.Storage = &storageStubs.ChainStorerStub{
 			GetStorerCalled: func(unitType dataRetriever.UnitType) (storage.Storer, error) {
 				return bootStorer, nil
@@ -154,11 +153,10 @@ func TestTrigger_LoadStateBackwardsCompatibility(t *testing.T) {
 		epochStartTrigger1, epochStartTrigger2 := createDummyEpochStartTriggers(arguments, key)
 
 		trig := createLegacyTriggerRegistryFromTrigger(epochStartTrigger1)
-		d, err := json.Marshal(trig)
-		require.Nil(t, err)
+		d, _ := json.Marshal(trig)
 		trigInternalKey := append([]byte(common.TriggerRegistryKeyPrefix), key...)
 
-		err = bootStorer.Put(trigInternalKey, d)
+		err := bootStorer.Put(trigInternalKey, d)
 		require.Nil(t, err)
 
 		err = epochStartTrigger2.LoadState(key)
@@ -169,19 +167,12 @@ func TestTrigger_LoadStateBackwardsCompatibility(t *testing.T) {
 	t.Run("header v1", func(t *testing.T) {
 		t.Parallel()
 
-		marshaller := &marshal.GogoProtoMarshalizer{}
-
-		arguments := createMockShardEpochStartTriggerArguments()
-		arguments.Marshalizer = marshaller
-		arguments.Epoch = epoch
-
 		triggerRegistry := &block.ShardTriggerRegistry{
 			Epoch:                 epoch,
 			MetaEpoch:             epoch,
 			EpochStartShardHeader: &block.Header{},
 		}
-		triggerRegistryBytes, err := marshaller.Marshal(triggerRegistry)
-		require.Nil(t, err)
+		triggerRegistryBytes, _ := arguments.Marshalizer.Marshal(triggerRegistry)
 
 		bootStorer := &storageStubs.StorerStub{
 			GetCalled: func(key []byte) ([]byte, error) {
@@ -211,12 +202,6 @@ func TestTrigger_LoadStateBackwardsCompatibility(t *testing.T) {
 	t.Run("header v2", func(t *testing.T) {
 		t.Parallel()
 
-		marshaller := &marshal.GogoProtoMarshalizer{}
-
-		arguments := createMockShardEpochStartTriggerArguments()
-		arguments.Marshalizer = marshaller
-		arguments.Epoch = epoch
-
 		triggerRegistry := &block.ShardTriggerRegistryV2{
 			Epoch:     epoch,
 			MetaEpoch: epoch,
@@ -224,8 +209,7 @@ func TestTrigger_LoadStateBackwardsCompatibility(t *testing.T) {
 				Header: &block.Header{},
 			},
 		}
-		triggerRegistryBytes, err := marshaller.Marshal(triggerRegistry)
-		require.Nil(t, err)
+		triggerRegistryBytes, _ := arguments.Marshalizer.Marshal(triggerRegistry)
 
 		bootStorer := &storageStubs.StorerStub{
 			GetCalled: func(key []byte) ([]byte, error) {
@@ -258,29 +242,20 @@ func TestTrigger_LoadStateBackwardsCompatibility(t *testing.T) {
 	t.Run("header v3", func(t *testing.T) {
 		t.Parallel()
 
-		marshaller := &marshal.GogoProtoMarshalizer{}
-
-		arguments := createMockShardEpochStartTriggerArguments()
-		arguments.Marshalizer = marshaller
-		arguments.Epoch = epoch
-
 		triggerRegistry := &block.ShardTriggerRegistryV3{
 			Epoch:                 epoch,
 			MetaEpoch:             epoch,
 			EpochStartShardHeader: &block.HeaderV3{},
 		}
-		triggerRegistryBytes, err := marshaller.Marshal(triggerRegistry)
-		require.Nil(t, err)
-
-		bootStorer := &storageStubs.StorerStub{
-			GetCalled: func(key []byte) ([]byte, error) {
-				return triggerRegistryBytes, nil
-			},
-		}
+		triggerRegistryBytes, _ := arguments.Marshalizer.Marshal(triggerRegistry)
 
 		arguments.Storage = &storageStubs.ChainStorerStub{
 			GetStorerCalled: func(unitType dataRetriever.UnitType) (storage.Storer, error) {
-				return bootStorer, nil
+				return &storageStubs.StorerStub{
+					GetCalled: func(key []byte) ([]byte, error) {
+						return triggerRegistryBytes, nil
+					},
+				}, nil
 			},
 		}
 
