@@ -585,7 +585,7 @@
 [PoolsCleanersConfig]
     # TODO: update these (maybe in txpool feat)
     MaxRoundsToKeepUnprocessedMiniBlocks = 300   # max number of rounds unprocessed miniblocks are kept in pool
-    MaxRoundsToKeepUnprocessedTransactions = 300 # max number of rounds unprocessed transactions are kept in pool
+    MaxRoundsToKeepUnprocessedTransactions = 3000 # max number of rounds unprocessed transactions are kept in pool
 
 [TrieSyncStorage]
     Capacity = 300000
