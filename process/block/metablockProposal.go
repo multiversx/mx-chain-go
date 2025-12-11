@@ -296,7 +296,7 @@ func (mp *metaProcessor) ProcessBlockProposal(
 		return nil, process.ErrInvalidHeader
 	}
 
-	mp.processStatusHandler.SetBusy("shardProcessor.ProcessBlockProposal")
+	mp.processStatusHandler.SetBusy("metaProcessor.ProcessBlockProposal")
 	defer mp.processStatusHandler.SetIdle()
 
 	mp.roundNotifier.CheckRound(headerHandler)
@@ -321,12 +321,12 @@ func (mp *metaProcessor) ProcessBlockProposal(
 	)
 
 	if mp.accountsDB[state.UserAccountsState].JournalLen() != 0 {
-		log.Error("shardProcessor.ProcessBlockProposal first entry", "stack", string(mp.accountsDB[state.UserAccountsState].GetStackDebugFirstEntry()))
-		return nil, fmt.Errorf("%v for user accounts", process.ErrAccountStateDirty)
+		log.Error("metaProcessor.ProcessBlockProposal first entry", "stack", string(mp.accountsDB[state.UserAccountsState].GetStackDebugFirstEntry()))
+		return nil, fmt.Errorf("%w for user accounts", process.ErrAccountStateDirty)
 	}
 	if mp.accountsDB[state.PeerAccountsState].JournalLen() != 0 {
-		log.Error("shardProcessor.ProcessBlockProposal peer accounts first entry", "stack", string(mp.accountsDB[state.PeerAccountsState].GetStackDebugFirstEntry()))
-		return nil, fmt.Errorf("%v for peer accounts", process.ErrAccountStateDirty)
+		log.Error("metaProcessor.ProcessBlockProposal peer accounts first entry", "stack", string(mp.accountsDB[state.PeerAccountsState].GetStackDebugFirstEntry()))
+		return nil, fmt.Errorf("%w for peer accounts", process.ErrAccountStateDirty)
 	}
 
 	var err error
