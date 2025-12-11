@@ -310,6 +310,34 @@ func TestTrigger_ForceEpochStartShouldOk(t *testing.T) {
 	assert.True(t, isEpochStart)
 }
 
+func TestTrigger_ForceEpochStartShouldWorkForSupernovaEpoch(t *testing.T) {
+	t.Parallel()
+
+	epoch := uint32(2)
+	roundsPerEpoch := 200
+	arguments := createMockEpochStartTriggerArguments()
+	arguments.ChainParametersHandler = &chainParameters.ChainParametersHandlerStub{
+		ChainParametersForEpochCalled: func(epoch uint32) (config.ChainParametersByEpochConfig, error) {
+			return config.ChainParametersByEpochConfig{
+				MinRoundsBetweenEpochs: 20,
+				RoundsPerEpoch:         int64(roundsPerEpoch),
+				Offset:                 2,
+			}, nil
+		},
+	}
+
+	arguments.Epoch = epoch
+	arguments.EpochStartRound = 100
+	epochStartTrigger, err := NewEpochStartTrigger(arguments)
+	require.Nil(t, err)
+
+	epochStartTrigger.ForceEpochStart(298)
+	assert.Equal(t, uint64(298), epochStartTrigger.nextEpochStartRound)
+
+	epochStartTrigger.ForceEpochStart(299)
+	assert.Equal(t, uint64(disabledRoundForForceEpochStart), epochStartTrigger.nextEpochStartRound)
+}
+
 func TestTrigger_LastCommitedMetaEpochStartBlock(t *testing.T) {
 	t.Parallel()
 
