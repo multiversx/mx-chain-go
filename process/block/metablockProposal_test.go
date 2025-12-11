@@ -2,6 +2,7 @@ package block_test
 
 import (
 	"bytes"
+	"errors"
 	"math/big"
 	"testing"
 	"time"
@@ -3951,7 +3952,7 @@ func TestMetaProcessor_ProcessBlockProposal(t *testing.T) {
 		require.Nil(t, err)
 
 		_, err = mp.ProcessBlockProposal(&block.MetaBlockV3{}, &block.Body{})
-		require.ErrorIs(t, err, process.ErrAccountStateDirty)
+		require.True(t, errors.Is(err, process.ErrAccountStateDirty))
 	})
 
 	t.Run("if checking context fails, the error should be propagated", func(t *testing.T) {
