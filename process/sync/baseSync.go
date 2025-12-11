@@ -40,7 +40,7 @@ var log = logger.GetOrCreate("process/sync")
 var _ closing.Closer = (*baseBootstrap)(nil)
 
 // sleepTime defines the time in milliseconds between each iteration made in syncBlocks method
-const sleepTime = 5 * time.Millisecond
+const sleepTime = 50 * time.Millisecond
 const minimumProcessWaitTime = time.Millisecond * 100
 
 // hdrInfo hold the data related to a header
@@ -197,7 +197,7 @@ func (boot *baseBootstrap) checkProofCorrespondsToRequestedHash(headerProof data
 
 	// if header is also received, release the chan and set requested to nil
 	// otherwise wait for the header
-	_, err := boot.headers.GetHeaderByHash(headerProof.GetHeaderHash())
+	_, err := boot.getHeader(headerProof.GetHeaderHash())
 	hasHeader := err == nil
 	if hasHeader {
 		boot.setRequestedHeaderHash(nil)
@@ -222,7 +222,7 @@ func (boot *baseBootstrap) checkProofCorrespondsToRequestedNonce(headerProof dat
 
 	// if header is also received, release the chan and set requested to nil
 	// otherwise wait for the header
-	_, err := boot.headers.GetHeaderByHash(headerProof.GetHeaderHash())
+	_, err := boot.getHeader(headerProof.GetHeaderHash())
 	hasHeader := err == nil
 	if hasHeader {
 		boot.setRequestedHeaderNonce(nil)
@@ -730,12 +730,23 @@ func (boot *baseBootstrap) syncBlocks(ctx context.Context) {
 	}
 }
 
+func (boot *baseBootstrap) getMaxSyncWithErrorsAllowed(
+	header data.HeaderHandler,
+) uint32 {
+	round := uint64(0)
+	if !check.IfNil(header) {
+		round = header.GetRound()
+	}
+
+	return boot.processConfigsHandler.GetMaxSyncWithErrorsAllowed(round)
+}
+
 func (boot *baseBootstrap) doJobOnSyncBlockFail(bodyHandler data.BodyHandler, headerHandler data.HeaderHandler, err error) {
 	processBlockStarted := !check.IfNil(bodyHandler) && !check.IfNil(headerHandler)
 	isProcessWithError := processBlockStarted && err != process.ErrTimeIsOut
 
 	numSyncedWithErrors := boot.incrementSyncedWithErrorsForNonce(boot.getNonceForNextBlock())
-	allowedSyncWithErrorsLimitReached := numSyncedWithErrors >= process.MaxSyncWithErrorsAllowed
+	allowedSyncWithErrorsLimitReached := numSyncedWithErrors >= boot.getMaxSyncWithErrorsAllowed(headerHandler)
 	isInProperRound := process.IsInProperRound(boot.roundHandler.Index())
 	isSyncWithErrorsLimitReachedInProperRound := allowedSyncWithErrorsLimitReached && isInProperRound
 
@@ -1099,6 +1110,7 @@ func (boot *baseBootstrap) prepareForSyncIfNeeded(syncingNonce uint64) error {
 	for i := lastExecutedNonce + 1; i < syncingNonce; i++ {
 		hdr, hdrHash, errGetHdr := boot.getHeaderFromPoolWithNonce(i)
 		if errGetHdr != nil {
+			log.Debug("prepareForSyncIfNeeded: failed to get header with nonce", "nonce", i, "error", errGetHdr)
 			return errGetHdr
 		}
 
@@ -1489,6 +1501,7 @@ func (boot *baseBootstrap) getHeaderWithNonceRequestingIfMissing(nonce uint64) (
 
 	hdr, hash, err = boot.getHeaderFromPoolWithNonce(nonce)
 	if err != nil {
+		log.Debug("getHeaderWithNonceRequestingIfMissing: failed to get header with nonce", "nonce", nonce, "error", err)
 		return nil, err
 	}
 

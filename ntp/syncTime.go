@@ -150,6 +150,11 @@ func (s *syncTime) getSleepTime() time.Duration {
 	return s.syncPeriod + time.Duration(offset)
 }
 
+// ForceSync will force sync
+func (s *syncTime) ForceSync() {
+	s.sync()
+}
+
 // sync method does the time synchronization and sets the harmonic mean offset difference between local time
 // and servers time which have been used in synchronization
 func (s *syncTime) sync() {

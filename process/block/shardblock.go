@@ -1073,7 +1073,7 @@ func (sp *shardProcessor) CommitBlock(
 		return err
 	}
 
-	err = sp.onExecutedBlock(lastExecutionResultHeader, rootHash)
+	err = sp.OnExecutedBlock(lastExecutionResultHeader, rootHash)
 	if err != nil {
 		return err
 	}
@@ -1144,17 +1144,22 @@ func (sp *shardProcessor) CommitBlock(
 
 	sp.displayPoolsInfo()
 
+	err = sp.saveExecutedData(header)
+	if err != nil {
+		return err
+	}
+
 	errNotCritical = sp.removeTxsFromPools(headerHash, header, body)
 	if errNotCritical != nil {
 		log.Debug("removeTxsFromPools", "error", errNotCritical.Error())
 	}
 
-	sp.cleanupPools(headerHandler)
-
-	err = sp.saveExecutedData(header)
-	if err != nil {
-		return err
+	errNotCritical = sp.cleanPostProcessCache(header)
+	if errNotCritical != nil {
+		log.Debug("cleanPostProcessCache", "error", errNotCritical.Error())
 	}
+
+	sp.cleanupPools(headerHandler)
 
 	sp.blockProcessingCutoffHandler.HandlePauseCutoff(header)
 

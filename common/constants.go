@@ -1330,3 +1330,6 @@ const (
 	DisableAsyncCallV1Flag EnableRoundFlag = "DisableAsyncCallV1"
 	SupernovaRoundFlag     EnableRoundFlag = "SupernovaEnableRound"
 )
+
+// HashSize defines  const for the hash length
+const HashSize = 32

@@ -13,6 +13,7 @@ import (
 	"github.com/multiversx/mx-chain-core-go/data"
 	"github.com/multiversx/mx-chain-core-go/data/block"
 	"github.com/multiversx/mx-chain-core-go/data/transaction"
+	commonMocks "github.com/multiversx/mx-chain-go/testscommon/common"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 
@@ -646,6 +647,7 @@ func Test_addExecutionResultsOnHeader(t *testing.T) {
 			},
 		}
 
+		prevHeaderHash := []byte("prev_hash")
 		sp, _ := blproc.ConstructPartialShardBlockProcessorForTest(map[string]interface{}{
 			"executionManager": &processMocks.ExecutionManagerMock{
 				GetPendingExecutionResultsCalled: func() ([]data.BaseExecutionResultHandler, error) {
@@ -653,7 +655,7 @@ func Test_addExecutionResultsOnHeader(t *testing.T) {
 					meta := &block.MetaExecutionResult{
 						ExecutionResult: &block.BaseMetaExecutionResult{
 							BaseExecutionResult: &block.BaseExecutionResult{
-								HeaderHash:  []byte("hdr-hash"),
+								HeaderHash:  prevHeaderHash,
 								HeaderNonce: 1,
 								HeaderRound: 2,
 								RootHash:    []byte("root"),
@@ -689,7 +691,11 @@ func Test_addExecutionResultsOnHeader(t *testing.T) {
 				},
 			},
 		})
-		err := sp.AddExecutionResultsOnHeader(&block.HeaderV3{Round: 3})
+		err := sp.AddExecutionResultsOnHeader(&block.HeaderV3{
+			Round:    3,
+			Nonce:    3,
+			PrevHash: prevHeaderHash,
+		})
 		require.Error(t, err)
 		require.Equal(t, process.ErrWrongTypeAssertion, err)
 	})
@@ -765,6 +771,80 @@ func Test_addExecutionResultsOnHeader(t *testing.T) {
 		assert.NotNil(t, proposalHeader.ExecutionResults)
 		assert.Len(t, proposalHeader.ExecutionResults, 1)
 		assert.Equal(t, proposalHeader.ExecutionResults[0], executionResult1)
+	})
+
+	t.Run("should not add non canonical execution results", func(t *testing.T) {
+		t.Parallel()
+
+		proposalHeaderNonce := uint64(5)
+
+		baseExecutionResults := &block.BaseExecutionResult{
+			HeaderHash:  []byte("hash"),
+			HeaderNonce: 3,
+			HeaderRound: 1,
+			RootHash:    []byte("rootHash"),
+		}
+		header := &block.HeaderV3{
+			PrevHash: []byte("prev_hash"),
+
+			LastExecutionResult: &block.ExecutionResultInfo{
+				NotarizedInRound: 1,
+				ExecutionResult:  baseExecutionResults,
+			},
+		}
+
+		genesisTimeStampMs := uint64(1000)
+		roundTime := uint64(100)
+		roundHandler := &round.RoundHandlerMock{
+			GetTimeStampForRoundCalled: func(round uint64) uint64 {
+				return genesisTimeStampMs + round*roundTime
+			},
+		}
+		defaultCfg := config.ExecutionResultInclusionEstimatorConfig{
+			SafetyMargin:       110,
+			MaxResultsPerBlock: 10,
+		}
+
+		executionResult1 := &block.ExecutionResult{
+			BaseExecutionResult: &block.BaseExecutionResult{
+				HeaderHash:  []byte("hash1"),
+				HeaderNonce: proposalHeaderNonce,
+			},
+		}
+
+		sp, _ := blproc.ConstructPartialShardBlockProcessorForTest(map[string]interface{}{
+			"executionManager": &processMocks.ExecutionManagerMock{
+				GetPendingExecutionResultsCalled: func() ([]data.BaseExecutionResultHandler, error) {
+					return []data.BaseExecutionResultHandler{
+						executionResult1,
+					}, nil
+				},
+			},
+			"blockChain": &testscommon.ChainHandlerStub{
+				GetCurrentBlockHeaderHashCalled: func() []byte {
+					return []byte("hash")
+				},
+				GetCurrentBlockHeaderCalled: func() data.HeaderHandler {
+					return header
+				},
+			},
+			"executionResultsInclusionEstimator": estimator.NewExecutionResultInclusionEstimator(defaultCfg, roundHandler),
+			"shardCoordinator": &mock.ShardCoordinatorStub{
+				SelfIdCalled: func() uint32 {
+					return 0
+				},
+			},
+		})
+
+		proposalHeader := &block.HeaderV3{
+			Nonce: proposalHeaderNonce,
+			Round: 3,
+		}
+		err := sp.AddExecutionResultsOnHeader(proposalHeader)
+
+		// no execution result should be added
+		require.NoError(t, err)
+		assert.Len(t, proposalHeader.ExecutionResults, 0)
 	})
 }
 
@@ -1647,6 +1727,34 @@ func TestShardProcessor_CheckInclusionEstimationForExecutionResults(t *testing.T
 		require.Equal(t, process.ErrInvalidNumberOfExecutionResultsInHeader, err)
 	})
 
+	t.Run("should propagate the error in case of non canonical execution results", func(t *testing.T) {
+		t.Parallel()
+
+		coreComponents, dataComponents, bootstrapComponents, statusComponents := createComponentHolderMocks()
+		currentBlockHeader := &block.HeaderV2{
+			Header: &block.Header{},
+		}
+		_ = dataComponents.BlockChain.SetCurrentBlockHeaderAndRootHash(currentBlockHeader, []byte("root"))
+		dataComponents.BlockChain.SetCurrentBlockHeaderHash([]byte("hash"))
+		arguments := CreateMockArguments(coreComponents, dataComponents, bootstrapComponents, statusComponents)
+
+		sp, _ := blproc.NewShardProcessor(arguments)
+
+		header := &block.HeaderV3{
+			Nonce: 2,
+			ExecutionResults: []*block.ExecutionResult{
+				{
+					BaseExecutionResult: &block.BaseExecutionResult{
+						HeaderNonce: 2,
+					},
+				},
+			},
+		}
+
+		err := sp.CheckInclusionEstimationForExecutionResults(header)
+		require.Equal(t, process.ErrNonCanonicalExecutionResultIncluded, err)
+	})
+
 	t.Run("should work", func(t *testing.T) {
 		t.Parallel()
 
@@ -1943,6 +2051,9 @@ func TestShardBlockProposal_CreateAndVerifyProposal(t *testing.T) {
 		ExecutionResultsTracker: executionResultsTracker,
 		BlockChain:              blkc,
 		Headers:                 dataComponents.DataPool.Headers(),
+		StorageService:          dataComponents.StorageService(),
+		Marshaller:              coreComponents.InternalMarshalizer(),
+		ShardCoordinator:        bootstrapComponents.ShardCoordinator(),
 	})
 	execResultsVerifier, _ := blproc.NewExecutionResultsVerifier(dataComponents.BlockChain, execManager)
 
@@ -2091,6 +2202,9 @@ func TestShardBlockProposal_CreateAndVerifyProposal_WithTransactions(t *testing.
 		ExecutionResultsTracker: executionResultsTracker,
 		BlockChain:              blkc,
 		Headers:                 dataComponents.DataPool.Headers(),
+		StorageService:          dataComponents.StorageService(),
+		Marshaller:              coreComponents.InternalMarshalizer(),
+		ShardCoordinator:        bootstrapComponents.ShardCoordinator(),
 	})
 	execResultsVerifier, _ := blproc.NewExecutionResultsVerifier(dataComponents.BlockChain, execManager)
 
@@ -3548,13 +3662,14 @@ func createSubComponentsForCollectExecutionResultsTest() (map[string]interface{}
 				return 0
 			},
 		},
-		"feeHandler":          feeHandler,
-		"gasConsumedProvider": gasConsumedProvider,
-		"marshalizer":         &mock.MarshalizerMock{},
-		"hasher":              &hashingMocks.HasherMock{},
-		"enableEpochsHandler": enableEpochsHandlerMock.NewEnableEpochsHandlerStub(),
-		"dataPool":            initDataPool(),
-		"accountsDB":          accounts,
+		"feeHandler":              feeHandler,
+		"gasConsumedProvider":     gasConsumedProvider,
+		"marshalizer":             &mock.MarshalizerMock{},
+		"hasher":                  &hashingMocks.HasherMock{},
+		"enableEpochsHandler":     enableEpochsHandlerMock.NewEnableEpochsHandlerStub(),
+		"dataPool":                initDataPool(),
+		"accountsDB":              accounts,
+		"txExecutionOrderHandler": &commonMocks.TxExecutionOrderHandlerStub{},
 	}
 
 	header, body := createHeaderAndBodyForTestingProcessBlockProposal()

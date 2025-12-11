@@ -834,10 +834,10 @@ func TestRecordHeaderV3(t *testing.T) {
 		}
 		args.DataPool.PostProcessTransactions().Put(executionResultHeaderHash, cachedIntermediateTxsMap, 1)
 
-		expectedLogs := []*data.LogData{
-			{
-				LogHandler: &transaction.Log{},
-				TxHash:     "t1",
+		expectedLogs := []data.LogDataHandler{
+			&transaction.LogData{
+				Log:    &transaction.Log{},
+				TxHash: "t1",
 			},
 		}
 		logsKey := common.PrepareLogEventsKey(executionResultHeaderHash)
@@ -948,10 +948,10 @@ func TestRecordHeaderV3(t *testing.T) {
 		// add the header hash
 		args.DataPool.PostProcessTransactions().Put(executionResultHeaderHash, cachedIntermediateTxsMap, 1)
 
-		expectedLogs := []*data.LogData{
-			{
-				LogHandler: &transaction.Log{},
-				TxHash:     "t1",
+		expectedLogs := []data.LogDataHandler{
+			&transaction.LogData{
+				Log:    &transaction.Log{},
+				TxHash: "t1",
 			},
 		}
 		logsKey := common.PrepareLogEventsKey(executionResultHeaderHash)
@@ -999,10 +999,10 @@ func TestRecordHeaderV3(t *testing.T) {
 		// add the header hash
 		args.DataPool.PostProcessTransactions().Put(executionResultHeaderHash, cachedIntermediateTxsMap, 1)
 
-		expectedLogs := []*data.LogData{
-			{
-				LogHandler: &transaction.Log{},
-				TxHash:     "t1",
+		expectedLogs := []data.LogDataHandler{
+			&transaction.LogData{
+				Log:    &transaction.Log{},
+				TxHash: "t1",
 			},
 		}
 		logsKey := common.PrepareLogEventsKey(executionResultHeaderHash)

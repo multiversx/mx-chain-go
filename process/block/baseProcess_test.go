@@ -176,6 +176,9 @@ func createArgBaseProcessor(
 			ExecutionResultsTracker: executionResultsTracker,
 			BlockChain:              dataComponents.BlockChain,
 			Headers:                 dataComponents.DataPool.Headers(),
+			StorageService:          dataComponents.StorageService(),
+			Marshaller:              coreComponents.InternalMarshalizer(),
+			ShardCoordinator:        bootstrapComponents.ShardCoordinator(),
 		})
 		execResultsVerifier, _ = blproc.NewExecutionResultsVerifier(dataComponents.BlockChain, execManager)
 		inclusionEstimator = estimator.NewExecutionResultInclusionEstimator(
@@ -244,7 +247,8 @@ func createArgBaseProcessor(
 				return txHashes, nil, nil
 			},
 		},
-		ExecutionManager: execManager,
+		ExecutionManager:        execManager,
+		TxExecutionOrderHandler: &commonMocks.TxExecutionOrderHandlerStub{},
 	}
 }
 
@@ -4362,11 +4366,19 @@ func TestBaseProcessor_OnExecutedBlock(t *testing.T) {
 		t.Parallel()
 
 		coreComponents, dataComponents, bootstrapComponents, statusComponents := createComponentHolderMocks()
+		dataComponents.BlockChain = &testscommon.ChainHandlerStub{
+			GetGenesisHeaderCalled: func() data.HeaderHandler {
+				return &block.Header{
+					RootHash: []byte("genesisRootHash"),
+				}
+			},
+		}
+
 		dataPool := initDataPool()
 		dataPool.TransactionsCalled = func() dataRetriever.ShardedDataCacherNotifier {
 			return &testscommon.ShardedDataCacheNotifierMock{
 				OnExecutedBlockCalled: func(blockHeader data.HeaderHandler, rootHash []byte) error {
-					if bytes.Equal(rootHash, []byte("rootHash")) {
+					if bytes.Equal(rootHash, []byte("rootHash")) || bytes.Equal(rootHash, []byte("genesisRootHash")) {
 						return nil
 					}
 					return expectedErr
@@ -4387,10 +4399,21 @@ func TestBaseProcessor_OnExecutedBlock(t *testing.T) {
 		t.Parallel()
 
 		coreComponents, dataComponents, bootstrapComponents, statusComponents := createComponentHolderMocks()
+		dataComponents.BlockChain = &testscommon.ChainHandlerStub{
+			GetGenesisHeaderCalled: func() data.HeaderHandler {
+				return &block.Header{
+					RootHash: []byte("genesisRootHash"),
+				}
+			},
+		}
+
 		dataPool := initDataPool()
 		dataPool.TransactionsCalled = func() dataRetriever.ShardedDataCacherNotifier {
 			return &testscommon.ShardedDataCacheNotifierMock{
 				OnExecutedBlockCalled: func(blockHeader data.HeaderHandler, rootHash []byte) error {
+					if bytes.Equal(rootHash, []byte("genesisRootHash")) {
+						return nil
+					}
 					return expectedErr
 				},
 			}
@@ -4799,6 +4822,193 @@ func TestBaseProcessor_saveProposedTxsToStorage(t *testing.T) {
 		require.NoError(t, err)
 		require.Equal(t, marshalledTxs[string(keys[4])], val)
 	})
+
+	t.Run("headerV3 should save peer info from cache to storage", func(t *testing.T) {
+		t.Parallel()
+
+		coreComponents, dataComponents, bootstrapComponents, statusComponents := createComponentHolderMocks()
+		arguments := CreateMockArguments(coreComponents, dataComponents, bootstrapComponents, statusComponents)
+		bp, err := blproc.NewShardProcessor(arguments)
+		require.NoError(t, err)
+
+		keys := [][]byte{[]byte("peer1"), []byte("peer2")}
+		validatorInfos := map[string]*state.ShardValidatorInfo{
+			string(keys[0]): {
+				PublicKey: []byte("pubKey1"),
+				ShardId:   0,
+			},
+			string(keys[1]): {
+				PublicKey: []byte("pubKey2"),
+				ShardId:   1,
+			},
+		}
+		marshalledValidatorInfos := make(map[string][]byte)
+		for k, v := range validatorInfos {
+			validatorInfoBytes, err := coreComponents.IntMarsh.Marshal(v)
+			require.NoError(t, err)
+			marshalledValidatorInfos[k] = validatorInfoBytes
+		}
+
+		dataPools := dataComponents.DataPool
+		dataPools.ValidatorsInfo().AddData(keys[0], validatorInfos[string(keys[0])], 100, "0")
+		dataPools.ValidatorsInfo().AddData(keys[1], validatorInfos[string(keys[1])], 100, "0")
+		storer := dataComponents.Storage
+
+		blockBody := &block.Body{
+			MiniBlocks: []*block.MiniBlock{
+				{
+					TxHashes: [][]byte{keys[0], keys[1]},
+					Type:     block.PeerBlock,
+				},
+			},
+		}
+		header := &block.HeaderV3{}
+
+		err = bp.SaveProposedTxsToStorage(header, blockBody)
+		require.Nil(t, err)
+
+		val, err := storer.Get(dataRetriever.UnsignedTransactionUnit, keys[0])
+		require.NoError(t, err)
+		require.Equal(t, marshalledValidatorInfos[string(keys[0])], val)
+
+		val, err = storer.Get(dataRetriever.UnsignedTransactionUnit, keys[1])
+		require.NoError(t, err)
+		require.Equal(t, marshalledValidatorInfos[string(keys[1])], val)
+	})
+
+	t.Run("headerV3 should return error if peer info not found in cache", func(t *testing.T) {
+		t.Parallel()
+
+		coreComponents, dataComponents, bootstrapComponents, statusComponents := createComponentHolderMocks()
+		arguments := CreateMockArguments(coreComponents, dataComponents, bootstrapComponents, statusComponents)
+		bp, err := blproc.NewShardProcessor(arguments)
+		require.NoError(t, err)
+
+		key := []byte("peer1")
+
+		blockBody := &block.Body{
+			MiniBlocks: []*block.MiniBlock{
+				{
+					TxHashes: [][]byte{key},
+					Type:     block.PeerBlock,
+				},
+			},
+		}
+		header := &block.HeaderV3{}
+
+		err = bp.SaveProposedTxsToStorage(header, blockBody)
+		require.Equal(t, dataRetriever.ErrValidatorInfoNotFound, err)
+	})
+
+	t.Run("headerV3 should return error if invalid type in cache for peer block", func(t *testing.T) {
+		t.Parallel()
+
+		coreComponents, dataComponents, bootstrapComponents, statusComponents := createComponentHolderMocks()
+		arguments := CreateMockArguments(coreComponents, dataComponents, bootstrapComponents, statusComponents)
+		bp, err := blproc.NewShardProcessor(arguments)
+		require.NoError(t, err)
+
+		key := []byte("peer1")
+		// Add wrong type to the validator info pool
+		dataPools := dataComponents.DataPool
+		dataPools.ValidatorsInfo().AddData(key, &transaction.Transaction{}, 100, "0")
+
+		blockBody := &block.Body{
+			MiniBlocks: []*block.MiniBlock{
+				{
+					TxHashes: [][]byte{key},
+					Type:     block.PeerBlock,
+				},
+			},
+		}
+		header := &block.HeaderV3{}
+
+		err = bp.SaveProposedTxsToStorage(header, blockBody)
+		require.ErrorIs(t, err, process.ErrInvalidTxInPool)
+	})
+
+	t.Run("headerV3 should return error if marshal fails for peer block", func(t *testing.T) {
+		t.Parallel()
+
+		coreComponents, dataComponents, bootstrapComponents, statusComponents := createComponentHolderMocks()
+		coreComponents.IntMarsh = &marshallerMock.MarshalizerStub{
+			MarshalCalled: func(obj interface{}) ([]byte, error) {
+				// Fail marshal only for ShardValidatorInfo
+				if _, ok := obj.(*state.ShardValidatorInfo); ok {
+					return nil, expectedErr
+				}
+				return []byte("marshalled"), nil
+			},
+		}
+		arguments := CreateMockArguments(coreComponents, dataComponents, bootstrapComponents, statusComponents)
+		bp, err := blproc.NewShardProcessor(arguments)
+		require.NoError(t, err)
+
+		key := []byte("peer1")
+		validatorInfo := &state.ShardValidatorInfo{
+			PublicKey: []byte("pubKey1"),
+			ShardId:   0,
+		}
+
+		dataPools := dataComponents.DataPool
+		dataPools.ValidatorsInfo().AddData(key, validatorInfo, 100, "0")
+
+		blockBody := &block.Body{
+			MiniBlocks: []*block.MiniBlock{
+				{
+					TxHashes: [][]byte{key},
+					Type:     block.PeerBlock,
+				},
+			},
+		}
+		header := &block.HeaderV3{}
+
+		err = bp.SaveProposedTxsToStorage(header, blockBody)
+		require.Equal(t, expectedErr, err)
+	})
+
+	t.Run("headerV3 should return error if storer.Put fails for peer block", func(t *testing.T) {
+		t.Parallel()
+
+		coreComponents, dataComponents, bootstrapComponents, statusComponents := createComponentHolderMocks()
+
+		// Create a storer that fails on Put
+		dataComponents.Storage = &storageStubs.ChainStorerStub{
+			GetStorerCalled: func(unitType dataRetriever.UnitType) (storage.Storer, error) {
+				return &storageStubs.StorerStub{
+					PutCalled: func(key, data []byte) error {
+						return expectedErr
+					},
+				}, nil
+			},
+		}
+
+		arguments := CreateMockArguments(coreComponents, dataComponents, bootstrapComponents, statusComponents)
+		bp, err := blproc.NewShardProcessor(arguments)
+		require.NoError(t, err)
+
+		key := []byte("peer1")
+		validatorInfo := &state.ShardValidatorInfo{
+			PublicKey: []byte("pubKey1"),
+			ShardId:   0,
+		}
+
+		dataPools := dataComponents.DataPool
+		dataPools.ValidatorsInfo().AddData(key, validatorInfo, 100, "0")
+
+		blockBody := &block.Body{
+			MiniBlocks: []*block.MiniBlock{
+				{
+					TxHashes: [][]byte{key},
+					Type:     block.PeerBlock,
+				},
+			},
+		}
+		header := &block.HeaderV3{}
+
+		err = bp.SaveProposedTxsToStorage(header, blockBody)
+		require.Equal(t, expectedErr, err)
+	})
 }
 
 func TestBaseProcessor_checkContextBeforeExecution(t *testing.T) {
@@ -4810,6 +5020,17 @@ func TestBaseProcessor_checkContextBeforeExecution(t *testing.T) {
 		coreComponents, dataComponents, bootstrapComponents, statusComponents := createComponentHolderMocks()
 		arguments := CreateMockArguments(coreComponents, dataComponents, bootstrapComponents, statusComponents)
 
+		dataComponents.BlockChain = &testscommon.ChainHandlerStub{
+			GetCurrentBlockHeaderCalled: func() data.HeaderHandler {
+				return &block.MetaBlockV3{
+					Nonce: 1,
+				}
+			},
+			GetLastExecutedBlockInfoCalled: func() (uint64, []byte, []byte) {
+				return 1, []byte("hash1"), []byte("rootHash1")
+			},
+		}
+
 		accounts := &stateMock.AccountsStub{
 			RootHashCalled: func() ([]byte, error) {
 				return nil, expectedErr
@@ -4820,7 +5041,10 @@ func TestBaseProcessor_checkContextBeforeExecution(t *testing.T) {
 		bp, err := blproc.NewShardProcessor(arguments)
 		require.NoError(t, err)
 
-		err = bp.CheckContextBeforeExecution(&block.HeaderV3{})
+		err = bp.CheckContextBeforeExecution(&block.HeaderV3{
+			Nonce:    2,
+			PrevHash: []byte("hash1"),
+		})
 		require.Equal(t, expectedErr, err)
 	})
 
@@ -4918,6 +5142,9 @@ func TestBaseProcessor_checkContextBeforeExecution(t *testing.T) {
 		accounts := &stateMock.AccountsStub{
 			RootHashCalled: func() ([]byte, error) {
 				return []byte("rootHashX"), nil
+			},
+			RecreateTrieCalled: func(options common.RootHashHolder) error {
+				return nil
 			},
 		}
 		arguments.AccountsDB[state.UserAccountsState] = accounts
@@ -5203,5 +5430,117 @@ func TestBaseProcessor_CacheIntraShardMiniBlocks(t *testing.T) {
 		require.Nil(t, err)
 
 		require.True(t, wasCalled)
+	})
+}
+
+func TestBaseProcessor_excludeRevertedExecutionResultsForHeader(t *testing.T) {
+	t.Parallel()
+
+	t.Run("should work in case of no pending execution results", func(t *testing.T) {
+		t.Parallel()
+
+		bp, err := blproc.ConstructPartialShardBlockProcessorForTest(map[string]interface{}{})
+		require.NoError(t, err)
+
+		header := &block.HeaderV3{}
+		sanitizedPendingExecResults := bp.ExcludeRevertedExecutionResultsForHeader(
+			header,
+			[]data.BaseExecutionResultHandler{},
+		)
+		require.Equal(t, 0, len(sanitizedPendingExecResults))
+	})
+
+	t.Run("should remove last execution result if its header nonce is equal to the nonce of the created block", func(t *testing.T) {
+		t.Parallel()
+
+		bp, err := blproc.ConstructPartialShardBlockProcessorForTest(map[string]interface{}{})
+		require.NoError(t, err)
+
+		headerNonce := uint64(1)
+		header := &block.HeaderV3{
+			Nonce: headerNonce,
+		}
+
+		pendingExecutionResults := []data.BaseExecutionResultHandler{
+			&block.BaseExecutionResult{
+				HeaderNonce: headerNonce,
+			},
+		}
+
+		sanitizedPendingExecResults := bp.ExcludeRevertedExecutionResultsForHeader(
+			header,
+			pendingExecutionResults,
+		)
+		require.Equal(t, 0, len(sanitizedPendingExecResults))
+	})
+
+	t.Run("should remove last execution result if if getting the execution result's header from storage fails", func(t *testing.T) {
+		t.Parallel()
+
+		bp, err := blproc.ConstructPartialShardBlockProcessorForTest(map[string]interface{}{
+			"store": &storageStubs.ChainStorerStub{
+				GetStorerCalled: func(unitType dataRetriever.UnitType) (storage.Storer, error) {
+					return nil, expectedErr
+				},
+			},
+			"marshalizer": &testscommon.MarshallerStub{},
+		})
+		require.NoError(t, err)
+
+		header := &block.HeaderV3{
+			Nonce: 2,
+		}
+
+		pendingExecutionResults := []data.BaseExecutionResultHandler{
+			&block.BaseExecutionResult{
+				HeaderHash:  []byte("wrongHash"),
+				HeaderNonce: 1,
+			},
+		}
+
+		sanitizedPendingExecResults := bp.ExcludeRevertedExecutionResultsForHeader(
+			header,
+			pendingExecutionResults,
+		)
+		require.Equal(t, 0, len(sanitizedPendingExecResults))
+	})
+
+	t.Run("should not remove valid execution results", func(t *testing.T) {
+		t.Parallel()
+
+		bp, err := blproc.ConstructPartialShardBlockProcessorForTest(map[string]interface{}{
+			"store": &storageStubs.ChainStorerStub{
+				GetStorerCalled: func(unitType dataRetriever.UnitType) (storage.Storer, error) {
+					return &storageStubs.StorerStub{
+						GetCalled: func(key []byte) ([]byte, error) {
+							return nil, nil
+						},
+					}, nil
+				},
+			},
+			"marshalizer": &testscommon.MarshallerStub{
+				UnmarshalCalled: func(obj interface{}, buff []byte) error {
+					return nil
+				},
+			},
+		})
+		require.NoError(t, err)
+
+		header := &block.HeaderV3{
+			Nonce: 2,
+		}
+
+		pendingExecutionResults := []data.BaseExecutionResultHandler{
+			&block.BaseExecutionResult{
+				HeaderHash:  []byte("hash"),
+				HeaderNonce: 1,
+			},
+		}
+
+		sanitizedPendingExecResults := bp.ExcludeRevertedExecutionResultsForHeader(
+			header,
+			pendingExecutionResults,
+		)
+		require.Equal(t, pendingExecutionResults, sanitizedPendingExecResults)
 	})
 }

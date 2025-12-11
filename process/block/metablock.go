@@ -1357,7 +1357,7 @@ func (mp *metaProcessor) CommitBlock(
 		return err
 	}
 
-	err = mp.onExecutedBlock(lastExecutionResultHeader, rootHash)
+	err = mp.OnExecutedBlock(lastExecutionResultHeader, rootHash)
 	if err != nil {
 		return err
 	}
@@ -1426,18 +1426,22 @@ func (mp *metaProcessor) CommitBlock(
 
 	mp.displayPoolsInfo()
 
+	err = mp.saveExecutedData(header)
+	if err != nil {
+		return err
+	}
+
 	errNotCritical = mp.removeTxsFromPools(headerHash, header, body)
 	if errNotCritical != nil {
 		log.Debug("removeTxsFromPools", "error", errNotCritical.Error())
 	}
 
-	mp.cleanupPools(headerHandler)
-
-	// TODO: evaluate removing executed miniblocks from cache explicitly, not inside saveExecutedData
-	err = mp.saveExecutedData(header)
-	if err != nil {
-		return err
+	errNotCritical = mp.cleanPostProcessCache(header)
+	if errNotCritical != nil {
+		log.Debug("cleanPostProcessCache", "error", errNotCritical.Error())
 	}
+
+	mp.cleanupPools(headerHandler)
 
 	mp.blockProcessingCutoffHandler.HandlePauseCutoff(header)
 
@@ -1482,7 +1486,7 @@ func (mp *metaProcessor) computeFinalMetaBlock(metaBlock data.MetaHeaderHandler,
 
 func (mp *metaProcessor) updateCrossShardInfo(metaHeader data.MetaHeaderHandler) ([]string, error) {
 	notarizedHeadersHashes := make([]string, 0)
-	for _, shardData := range metaHeader.GetShardInfoHandlers() {
+	for _, shardData := range getShardHeadersReferencedByMeta(metaHeader) {
 		header, err := getHeaderFromHash(mp.dataPool.Headers(), mp.hdrsForCurrBlock, metaHeader.IsHeaderV3(), shardData.GetHeaderHash())
 		if err != nil {
 			return nil, fmt.Errorf("%w : updateCrossShardInfo shardHeaderHash = %s",
@@ -1771,7 +1775,7 @@ func (mp *metaProcessor) getLastSelfNotarizedHeaderByShard(
 				mp.store,
 			)
 			if errGet != nil {
-				log.Trace("getLastSelfNotarizedHeaderByShard.GetMetaHeader", "error", errGet.Error())
+				log.Debug("getLastSelfNotarizedHeaderByShard.GetMetaHeader", "error", errGet.Error())
 				continue
 			}
 
@@ -2568,12 +2572,12 @@ func (mp *metaProcessor) getLastExecutionResult(
 
 	lastExecutionResult := mp.blockChain.GetLastExecutionResult()
 	if check.IfNil(lastExecutionResult) {
-		return nil, fmt.Errorf("missing last execution result in blockchain in metaProcessor.updatePeerState")
+		return nil, fmt.Errorf("missing last execution result in blockchain in metaProcessor.getLastExecutionResult")
 	}
 
 	metaExecutionResult, castOk := lastExecutionResult.(data.MetaExecutionResultHandler)
 	if !castOk {
-		return nil, fmt.Errorf("%w in metaProcessor.updatePeerState ", process.ErrWrongTypeAssertion)
+		return nil, fmt.Errorf("%w in metaProcessor.getLastExecutionResult", process.ErrWrongTypeAssertion)
 	}
 
 	return metaExecutionResult, nil

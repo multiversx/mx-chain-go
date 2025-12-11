@@ -2,7 +2,6 @@ package coordinator
 
 import (
 	"fmt"
-	"reflect"
 
 	"github.com/multiversx/mx-chain-core-go/core/check"
 	"github.com/multiversx/mx-chain-core-go/data"
@@ -183,15 +182,17 @@ func (tc *transactionCoordinator) verifyCreatedMiniBlocksSanity(body *block.Body
 		}
 	}
 
-	collectedMbs := tc.GetCreatedMiniBlocksFromMe()
+	collectedMbsAfterExecution := tc.GetCreatedMiniBlocksFromMe()
 	unExecutableTransactions := tc.getUnExecutableTransactions()
+	invalidTxsInterimProc := tc.getInterimProcessor(block.InvalidBlock)
+	invalidTransactions := invalidTxsInterimProc.GetAllCurrentFinishedTxs()
 
-	allTxsInBody, err := collectTransactionsFromMiniBlocks(miniblocksFromSelf)
+	allProposedOutgoingTxsInBody, err := collectTransactionsFromMiniBlocks(miniblocksFromSelf)
 	if err != nil {
 		return fmt.Errorf("%w: for body miniBlocks", err)
 	}
 
-	allCollectedTxs, err := collectTransactionsFromMiniBlocks(collectedMbs)
+	allCollectedTxs, err := collectTransactionsFromMiniBlocks(collectedMbsAfterExecution)
 	if err != nil {
 		return fmt.Errorf("%w: for created miniBlocks", err)
 	}
@@ -204,8 +205,20 @@ func (tc *transactionCoordinator) verifyCreatedMiniBlocksSanity(body *block.Body
 		allCollectedTxs[txHash] = struct{}{}
 	}
 
-	if !reflect.DeepEqual(allTxsInBody, allCollectedTxs) {
-		return process.ErrTransactionsMismatch
+	// check that invalid transactions are not part of the collected transactions
+	for txHash := range invalidTransactions {
+		if _, exists := allCollectedTxs[txHash]; exists {
+			return fmt.Errorf("%w: for collected invalid transactions", process.ErrDuplicatedTransaction)
+		}
+		allCollectedTxs[txHash] = struct{}{}
+	}
+
+	// check that allProposedOutgoingTxsInBody are part of the collected transactions
+	// the collected transactions may contain also extra items (rewards/peer changes/scrs)
+	for txHash := range allProposedOutgoingTxsInBody {
+		if _, exists := allCollectedTxs[txHash]; !exists {
+			return process.ErrTransactionsMismatch
+		}
 	}
 
 	return nil

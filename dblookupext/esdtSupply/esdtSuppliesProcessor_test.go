@@ -54,10 +54,10 @@ func TestProcessLogsSaveSupply(t *testing.T) {
 	t.Parallel()
 
 	token := []byte("nft-0001")
-	logs := []*data.LogData{
-		{
+	logs := []data.LogDataHandler{
+		&transaction.LogData{
 			TxHash: "txLog",
-			LogHandler: &transaction.Log{
+			Log: &transaction.Log{
 				Events: []*transaction.Event{
 					{
 						Identifier: []byte("something"),
@@ -101,7 +101,7 @@ func TestProcessLogsSaveSupply(t *testing.T) {
 				},
 			},
 		},
-		{
+		&transaction.LogData{
 			TxHash: "log",
 		},
 	}
@@ -151,10 +151,10 @@ func TestProcessLogsSaveSupplyShouldUpdateSupplyMintedAndBurned(t *testing.T) {
 	t.Parallel()
 
 	token := []byte("nft-0001")
-	logsCreate := []*data.LogData{
-		{
+	logsCreate := []data.LogDataHandler{
+		&transaction.LogData{
 			TxHash: "txLog",
-			LogHandler: &transaction.Log{
+			Log: &transaction.Log{
 				Events: []*transaction.Event{
 					{
 						Identifier: []byte("something"),
@@ -174,14 +174,14 @@ func TestProcessLogsSaveSupplyShouldUpdateSupplyMintedAndBurned(t *testing.T) {
 				},
 			},
 		},
-		{
+		&transaction.LogData{
 			TxHash: "log",
 		},
 	}
-	logsAddQuantity := []*data.LogData{
-		{
+	logsAddQuantity := []data.LogDataHandler{
+		&transaction.LogData{
 			TxHash: "txLog",
-			LogHandler: &transaction.Log{
+			Log: &transaction.Log{
 				Events: []*transaction.Event{
 					{
 						Identifier: []byte("something"),
@@ -201,15 +201,15 @@ func TestProcessLogsSaveSupplyShouldUpdateSupplyMintedAndBurned(t *testing.T) {
 				},
 			},
 		},
-		{
+		&transaction.LogData{
 			TxHash: "log",
 		},
 	}
 
-	logsBurn := []*data.LogData{
-		{
+	logsBurn := []data.LogDataHandler{
+		&transaction.LogData{
 			TxHash: "txLog",
-			LogHandler: &transaction.Log{
+			Log: &transaction.Log{
 				Events: []*transaction.Event{
 					{
 						Identifier: []byte("something"),
@@ -229,7 +229,7 @@ func TestProcessLogsSaveSupplyShouldUpdateSupplyMintedAndBurned(t *testing.T) {
 				},
 			},
 		},
-		{
+		&transaction.LogData{
 			TxHash: "log",
 		},
 	}
@@ -319,10 +319,10 @@ func TestProcessLogs_RevertChangesShouldWorkForRevertingMinting(t *testing.T) {
 	t.Parallel()
 
 	token := []byte("BRT-1q2w3e")
-	logsMintNoRevert := []*data.LogData{
-		{
+	logsMintNoRevert := []data.LogDataHandler{
+		&transaction.LogData{
 			TxHash: "txLog0",
-			LogHandler: &transaction.Log{
+			Log: &transaction.Log{
 				Events: []*transaction.Event{
 					{
 						Identifier: []byte(core.BuiltInFunctionESDTLocalMint),
@@ -333,9 +333,9 @@ func TestProcessLogs_RevertChangesShouldWorkForRevertingMinting(t *testing.T) {
 				},
 			},
 		},
-		{
+		&transaction.LogData{
 			TxHash: "txLog1",
-			LogHandler: &transaction.Log{
+			Log: &transaction.Log{
 				Events: []*transaction.Event{
 					{
 						Identifier: []byte(core.BuiltInFunctionESDTLocalMint),
@@ -359,10 +359,10 @@ func TestProcessLogs_RevertChangesShouldWorkForRevertingMinting(t *testing.T) {
 		},
 	}
 
-	logsMintRevert := []*data.LogData{
-		{
-			TxHash:     "txLog3",
-			LogHandler: mintLogToBeReverted,
+	logsMintRevert := []data.LogDataHandler{
+		&transaction.LogData{
+			TxHash: "txLog3",
+			Log:    mintLogToBeReverted,
 		},
 	}
 
@@ -492,10 +492,10 @@ func TestProcessLogs_RevertChangesShouldWorkForRevertingBurning(t *testing.T) {
 	t.Parallel()
 
 	token := []byte("BRT-1q2w3e")
-	logsMintNoRevert := []*data.LogData{
-		{
+	logsMintNoRevert := []data.LogDataHandler{
+		&transaction.LogData{
 			TxHash: "txLog0",
-			LogHandler: &transaction.Log{
+			Log: &transaction.Log{
 				Events: []*transaction.Event{
 					{
 						Identifier: []byte(core.BuiltInFunctionESDTLocalMint),
@@ -506,9 +506,9 @@ func TestProcessLogs_RevertChangesShouldWorkForRevertingBurning(t *testing.T) {
 				},
 			},
 		},
-		{
+		&transaction.LogData{
 			TxHash: "txLog1",
-			LogHandler: &transaction.Log{
+			Log: &transaction.Log{
 				Events: []*transaction.Event{
 					{
 						Identifier: []byte(core.BuiltInFunctionESDTLocalMint),
@@ -532,10 +532,10 @@ func TestProcessLogs_RevertChangesShouldWorkForRevertingBurning(t *testing.T) {
 		},
 	}
 
-	logsMintRevert := []*data.LogData{
-		{
-			TxHash:     "txLog3",
-			LogHandler: mintLogToBeReverted,
+	logsMintRevert := []data.LogDataHandler{
+		&transaction.LogData{
+			TxHash: "txLog3",
+			Log:    mintLogToBeReverted,
 		},
 	}
 
