@@ -113,7 +113,6 @@ func testRelayedV3MoveBalance(
 			cfg.EpochConfig.EnableEpochs.FixRelayedBaseCostEnableEpoch = providedActivationEpoch
 			cfg.EpochConfig.EnableEpochs.RelayedTransactionsV3EnableEpoch = providedActivationEpoch
 			cfg.EpochConfig.EnableEpochs.RelayedTransactionsV3FixESDTTransferEnableEpoch = providedActivationEpoch
-			integrationTests.DeactivateSupernovaInConfig(cfg)
 		}
 
 		cs := startChainSimulator(t, alterConfigsFunc)

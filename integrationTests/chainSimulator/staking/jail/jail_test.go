@@ -302,10 +302,6 @@ func TestJailNodes(t *testing.T) {
 				"DisableAsyncCallV1": {
 					Round: "9999999",
 				},
-				// TODO: Set to 0 when async execution is done
-				"SupernovaEnableRound": {
-					Round: "8000",
-				},
 			}
 		},
 	})
@@ -323,10 +319,8 @@ func TestJailNodes(t *testing.T) {
 	walletAddress, err := cs.GenerateAndMintWalletAddress(core.AllShardId, mintValue)
 	require.Nil(t, err)
 
-	for i := 0; i < 10; i++ {
-		err = cs.ForceChangeOfEpoch()
-		require.Nil(t, err)
-	}
+	err = cs.GenerateBlocksUntilEpochIsReached(10)
+	require.Nil(t, err)
 
 	txDataField := fmt.Sprintf("stake@01@%s@%s", blsKeys[0], staking.MockBLSSignature)
 	txStake := chainSimulatorIntegrationTests.GenerateTransaction(walletAddress.Bytes, 0, vm.ValidatorSCAddress, chainSimulatorIntegrationTests.MinimumStakeValue, txDataField, staking.GasLimitForStakeOperation)
