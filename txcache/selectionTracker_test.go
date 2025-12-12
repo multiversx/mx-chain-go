@@ -1599,7 +1599,7 @@ func TestSelectionTracker_removeBlocksAboveNonce(t *testing.T) {
 	}
 
 	require.Equal(t, 3, len(txCache.tracker.blocks))
-	err = tracker.removeBlocksAboveNonceNoLock(1)
+	err = tracker.removeBlocksAboveOrEqualToNonceNoLock(1)
 	require.Nil(t, err)
 
 	require.Equal(t, 0, len(txCache.tracker.blocks))

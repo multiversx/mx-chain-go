@@ -414,7 +414,7 @@ func (st *selectionTracker) deriveVirtualSelectionSession(
 	defer st.mutTracker.Unlock()
 
 	if !shouldRemoveTrackedBlocks {
-		err := st.removeBlocksAboveNonceNoLock(nonce)
+		err := st.removeBlocksAboveOrEqualToNonceNoLock(nonce)
 		if err != nil {
 			return nil, err
 		}
@@ -449,9 +449,9 @@ func (st *selectionTracker) deriveVirtualSelectionSession(
 	return computer.createVirtualSelectionSession(globalAccountsBreadcrumbs)
 }
 
-// removeBlocksAboveNonceNoLock removes blocks with nonce higher or equal than the given nonce.
-// The removeBlocksAboveNonceNoLock is used on the deriveVirtualSelectionSession flow.
-func (st *selectionTracker) removeBlocksAboveNonceNoLock(nonce uint64) error {
+// removeBlocksAboveOrEqualToNonceNoLock removes blocks with nonce higher or equal than the given nonce.
+// The removeBlocksAboveOrEqualToNonceNoLock is used on the deriveVirtualSelectionSession flow.
+func (st *selectionTracker) removeBlocksAboveOrEqualToNonceNoLock(nonce uint64) error {
 	for blockHash, tb := range st.blocks {
 		if tb.hasSameNonceOrHigherThanGivenNonce(nonce) {
 			// first delete, then update the global breadcrumbs
@@ -462,7 +462,7 @@ func (st *selectionTracker) removeBlocksAboveNonceNoLock(nonce uint64) error {
 				return err
 			}
 
-			log.Trace("selectionTracker.removeBlocksAboveNonceNoLock",
+			log.Trace("selectionTracker.removeBlocksAboveOrEqualToNonceNoLock",
 				"nonce", nonce,
 				"nonce of deleted block", tb.nonce,
 				"hash of deleted block", blockHash,
