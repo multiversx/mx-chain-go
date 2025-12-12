@@ -518,10 +518,7 @@ func (st *storageBootstrapper) setCurrentBlockInfo(
 			return err
 		}
 
-		err = st.blkExecutor.OnExecutedBlock(header, lastExecutionResult.GetRootHash())
-		if err != nil {
-			return err
-		}
+		// tx pool context is already handled on sync flow
 
 		return st.setCurrentBlockInfoV3(header, headerHash)
 	}
