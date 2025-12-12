@@ -112,14 +112,14 @@ func (cache *TxCache) GetByTxHash(txHash []byte) (*WrappedTransaction, bool) {
 // SelectTransactions selects the best transactions to be included in the next miniblock.
 // It returns up to "options.maxNumTxs" transactions, with total gas <= "options.gasRequested".
 // The selection takes into consideration the proposed blocks which were not yet executed.
-// The SelectTransactions should receive the nonce of the block on which the selection is built.
-// The blocks with a nonce greater than the given one will be removed.
+// The SelectTransactions should receive the nonce of the block for which the selection is built.
+// The blocks with a nonce equal or greater than the given one will be removed.
 func (cache *TxCache) SelectTransactions(
 	session SelectionSession,
 	options common.TxSelectionOptions,
-	currentBlockNonce uint64,
+	blockNonce uint64,
 ) ([]*WrappedTransaction, uint64, error) {
-	return cache.selectTransactions(session, options, currentBlockNonce, false)
+	return cache.selectTransactions(session, options, blockNonce, false)
 }
 
 // SimulateSelectTransactions simulates a selection of transaction and does not affect the internal state of the tracker
