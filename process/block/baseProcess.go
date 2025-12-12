@@ -3648,21 +3648,11 @@ func (bp *baseProcessor) collectMiniBlocks(
 	headerHash []byte,
 	body *block.Body,
 ) ([]data.MiniBlockHeaderHandler, int, []byte, error) {
-	crossShardIncomingMiniBlocks := bp.getCrossShardIncomingMiniBlocksFromBody(body)
-	miniBlocksFromSelf := bp.txCoordinator.GetCreatedMiniBlocksFromMe()
-	postProcessMiniBlocks := bp.txCoordinator.CreatePostProcessMiniBlocks()
-
-	allMiniBlocks := make([]*block.MiniBlock, 0, len(crossShardIncomingMiniBlocks)+len(miniBlocksFromSelf)+len(postProcessMiniBlocks))
-	allMiniBlocks = append(allMiniBlocks, crossShardIncomingMiniBlocks...)
-	allMiniBlocks = append(allMiniBlocks, miniBlocksFromSelf...)
-	allMiniBlocks = append(allMiniBlocks, postProcessMiniBlocks...)
-
+	bodyAfterExecution := bp.createBlockBodyAfterExecution(body)
 	receiptHash, err := bp.txCoordinator.CreateReceiptsHash()
 	if err != nil {
 		return nil, 0, nil, err
 	}
-
-	bodyAfterExecution := &block.Body{MiniBlocks: allMiniBlocks}
 	// remove the self-receipts and self smart contract results mini blocks - similar to Pre-Supernova
 	sanitizedBodyAfterExecution := deleteSelfReceiptsMiniBlocks(bodyAfterExecution)
 
@@ -3686,6 +3676,23 @@ func (bp *baseProcessor) collectMiniBlocks(
 	}
 
 	return miniBlockHeaderHandlers, totalTxCount, receiptHash, nil
+}
+
+func (bp *baseProcessor) createBlockBodyAfterExecution(
+	proposedBody *block.Body,
+) *block.Body {
+	crossShardIncomingMiniBlocks := bp.getCrossShardIncomingMiniBlocksFromBody(proposedBody)
+	miniBlocksFromSelf := bp.txCoordinator.GetCreatedMiniBlocksFromMe()
+	postProcessMiniBlocks := bp.txCoordinator.CreatePostProcessMiniBlocks()
+
+	allMiniBlocks := make([]*block.MiniBlock, 0, len(crossShardIncomingMiniBlocks)+len(miniBlocksFromSelf)+len(postProcessMiniBlocks))
+	allMiniBlocks = append(allMiniBlocks, crossShardIncomingMiniBlocks...)
+	allMiniBlocks = append(allMiniBlocks, miniBlocksFromSelf...)
+	allMiniBlocks = append(allMiniBlocks, postProcessMiniBlocks...)
+
+	bodyAfterExecution := &block.Body{MiniBlocks: allMiniBlocks}
+
+	return bodyAfterExecution
 }
 
 func (bp *baseProcessor) cacheOrderedTxHashes(headerHash []byte) {
