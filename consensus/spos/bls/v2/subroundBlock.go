@@ -131,16 +131,6 @@ func (sr *subroundBlock) doBlockJob(ctx context.Context) bool {
 		return false
 	}
 
-	if header.IsHeaderV3() {
-		errAdd := sr.ExecutionManager().AddPairForExecution(queue.HeaderBodyPair{
-			Header: header,
-			Body:   body,
-		})
-		if errAdd != nil {
-			return false
-		}
-	}
-
 	sentWithSuccess := sr.sendBlock(header, body, leader)
 	if !sentWithSuccess {
 		return false
