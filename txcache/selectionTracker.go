@@ -403,7 +403,8 @@ func (st *selectionTracker) ResetTrackedBlocks() {
 }
 
 // deriveVirtualSelectionSession creates a virtual selection session by transforming the global accounts breadcrumbs into virtual records
-// The deriveVirtualSelectionSession methods needs a SelectionSession and the nonce of the block on which the selection is built.
+// The deriveVirtualSelectionSession methods needs a SelectionSession and the nonce of the block for which the selection is built.
+// Before the actual selection, all tracked blocks with greater or equal nonce are removed from the tracker.
 func (st *selectionTracker) deriveVirtualSelectionSession(
 	session SelectionSession,
 	nonce uint64,
@@ -413,7 +414,7 @@ func (st *selectionTracker) deriveVirtualSelectionSession(
 	defer st.mutTracker.Unlock()
 
 	if !shouldRemoveTrackedBlocks {
-		err := st.removeBlocksAboveNonceNoLock(nonce)
+		err := st.removeBlocksAboveOrEqualToNonceNoLock(nonce)
 		if err != nil {
 			return nil, err
 		}
@@ -448,11 +449,11 @@ func (st *selectionTracker) deriveVirtualSelectionSession(
 	return computer.createVirtualSelectionSession(globalAccountsBreadcrumbs)
 }
 
-// removeBlocksAboveNonceNoLock removes blocks with nonce higher than the given nonce.
-// The removeBlocksAboveNonceNoLock is used on the deriveVirtualSelectionSession flow.
-func (st *selectionTracker) removeBlocksAboveNonceNoLock(nonce uint64) error {
+// removeBlocksAboveOrEqualToNonceNoLock removes blocks with nonce higher or equal than the given nonce.
+// The removeBlocksAboveOrEqualToNonceNoLock is used on the deriveVirtualSelectionSession flow.
+func (st *selectionTracker) removeBlocksAboveOrEqualToNonceNoLock(nonce uint64) error {
 	for blockHash, tb := range st.blocks {
-		if tb.hasHigherNonce(nonce) {
+		if tb.hasSameNonceOrHigherThanGivenNonce(nonce) {
 			// first delete, then update the global breadcrumbs
 			delete(st.blocks, blockHash)
 
@@ -461,7 +462,7 @@ func (st *selectionTracker) removeBlocksAboveNonceNoLock(nonce uint64) error {
 				return err
 			}
 
-			log.Trace("selectionTracker.removeBlocksAboveNonceNoLock",
+			log.Trace("selectionTracker.removeBlocksAboveOrEqualToNonceNoLock",
 				"nonce", nonce,
 				"nonce of deleted block", tb.nonce,
 				"hash of deleted block", blockHash,

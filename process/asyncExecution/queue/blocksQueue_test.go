@@ -535,3 +535,35 @@ func TestBlocksQueue_RemoveAtNonceAndHigher(t *testing.T) {
 		hq.RemoveAtNonceAndHigher(10) // coverage only, should early exit
 	})
 }
+
+func TestBlocksQueue_AddAndPop(t *testing.T) {
+	t.Parallel()
+
+	hq := NewBlocksQueue()
+
+	pair := HeaderBodyPair{
+		Header: &block.Header{Nonce: 0, Round: 1},
+		Body:   &block.Body{},
+	}
+
+	err := hq.AddOrReplace(pair)
+	require.NoError(t, err)
+
+	_, ok := hq.Pop()
+	require.True(t, ok)
+
+	done := make(chan struct{})
+
+	go func() {
+		defer close(done)
+		_, okP := hq.Pop()
+		require.True(t, okP)
+	}()
+
+	select {
+	case <-done:
+		t.Fatalf("expected hq.Pop() to block, but it returned")
+	case <-time.After(1 * time.Second):
+		t.Log("expected hq.Pop() to block, success")
+	}
+}
