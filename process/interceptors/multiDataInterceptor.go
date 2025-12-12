@@ -205,12 +205,23 @@ func (mdi *MultiDataInterceptor) ProcessReceivedMessage(message p2p.MessageP2P, 
 		}
 	}
 
+	shouldStop := false
+	wg := &sync.WaitGroup{}
+	wg.Add(1)
 	go func() {
 		cntSaves := 0
 		for _, interceptedData := range listInterceptedData {
 			dataSaved := mdi.processInterceptedData(interceptedData, message, fromConnectedPeer)
 			if dataSaved {
 				cntSaves++
+			}
+
+			interceptedTx, ok := interceptedData.(interceptedCustomTx)
+			if ok {
+				isIntraShard := interceptedTx.SndShard() == interceptedTx.RcvShard()
+				if !isIntraShard {
+					shouldStop = true
+				}
 			}
 		}
 
@@ -219,10 +230,15 @@ func (mdi *MultiDataInterceptor) ProcessReceivedMessage(message p2p.MessageP2P, 
 			mdi.chunksProcessor.MarkVerified(&b, message.BroadcastMethod())
 		}
 		mdi.throttler.EndProcessing()
+		wg.Done()
 	}()
 
+	wg.Wait()
 	messageID := mdi.createInterceptedMultiDataMsgID(listInterceptedData)
 
+	if shouldStop {
+		return nil, errors.New("custom error blocking further intra shard tx broadcast")
+	}
 	return messageID, nil
 }
 

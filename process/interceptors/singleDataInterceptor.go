@@ -149,11 +149,6 @@ func (sdi *SingleDataInterceptor) ProcessReceivedMessage(message p2p.MessageP2P,
 		sdi.throttler.EndProcessing()
 	}()
 
-	type interceptedCustomTx interface {
-		SndShard() uint32
-		RcvShard() uint32
-	}
-
 	interceptedTx, ok := interceptedData.(interceptedCustomTx)
 	if !ok {
 		return messageID, nil
@@ -165,6 +160,11 @@ func (sdi *SingleDataInterceptor) ProcessReceivedMessage(message p2p.MessageP2P,
 	}
 
 	return nil, errors.New("custom error blocking further intra shard tx broadcast")
+}
+
+type interceptedCustomTx interface {
+	SndShard() uint32
+	RcvShard() uint32
 }
 
 // RegisterHandler registers a callback function to be notified on received data
