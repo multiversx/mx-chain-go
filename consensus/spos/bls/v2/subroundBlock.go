@@ -162,21 +162,21 @@ func (sr *subroundBlock) doBlockJob(ctx context.Context) bool {
 }
 
 func (sr *subroundBlock) prepareBlockForExecution(header data.HeaderHandler, body data.BodyHandler) error {
+	if !header.IsHeaderV3() {
+		return nil
+	}
+
 	// metachain does not need to select outgoing txs from txpool
-	if header.IsHeaderV3() && header.GetShardID() != core.MetachainShardId {
+	if header.GetShardID() != core.MetachainShardId {
 		err := sr.BlockProcessor().OnProposedBlock(body, header, sr.GetData())
 		if err != nil {
 			return err
 		}
 	}
-	if header.IsHeaderV3() {
-		return sr.ExecutionManager().AddPairForExecution(queue.HeaderBodyPair{
-			Header: header,
-			Body:   body,
-		})
-	}
-
-	return nil
+	return sr.ExecutionManager().AddPairForExecution(queue.HeaderBodyPair{
+		Header: header,
+		Body:   body,
+	})
 }
 
 func (sr *subroundBlock) signBlockHeader(header data.HeaderHandler) ([]byte, error) {
