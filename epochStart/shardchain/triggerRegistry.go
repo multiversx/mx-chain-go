@@ -46,7 +46,12 @@ func (t *trigger) LoadState(key []byte) error {
 
 // UnmarshalTrigger unmarshalls the trigger
 func UnmarshalTrigger(marshaller marshal.Marshalizer, data []byte) (data.TriggerRegistryHandler, error) {
-	trig, err := unmarshalTriggerV2(marshaller, data)
+	trig, err := unmarshalTriggerV3(marshaller, data)
+	if err == nil {
+		return trig, nil
+	}
+
+	trig, err = unmarshalTriggerV2(marshaller, data)
 	if err == nil {
 		return trig, nil
 	}
@@ -69,6 +74,23 @@ func unmarshalTriggerJson(data []byte) (data.TriggerRegistryHandler, error) {
 	}
 
 	return trig, nil
+}
+
+// unmarshalTriggerV3 tries to unmarshal the data into a v3 trigger
+func unmarshalTriggerV3(marshaller marshal.Marshalizer, data []byte) (data.TriggerRegistryHandler, error) {
+	triggerV3 := &block.ShardTriggerRegistryV3{
+		EpochStartShardHeader: &block.HeaderV3{},
+	}
+
+	err := marshaller.Unmarshal(triggerV3, data)
+	if err != nil {
+		return nil, err
+	}
+
+	if check.IfNil(triggerV3.EpochStartShardHeader) {
+		return nil, fmt.Errorf("%w while checking inner epoch start shard header", epochStart.ErrNilHeaderHandler)
+	}
+	return triggerV3, nil
 }
 
 // unmarshalTriggerV2 tries to unmarshal the data into a v2 trigger
@@ -107,20 +129,7 @@ func unmarshalTriggerV1(marshaller marshal.Marshalizer, data []byte) (data.Trigg
 
 // saveState saves the trigger state. Needs to be called under mutex
 func (t *trigger) saveState(key []byte) error {
-	registryV2 := &block.ShardTriggerRegistryV2{
-		EpochStartShardHeader: &block.HeaderV2{},
-	}
-	registryV1 := &block.ShardTriggerRegistry{
-		EpochStartShardHeader: &block.Header{},
-	}
-	var registry data.TriggerRegistryHandler
-
-	_, ok := t.epochStartShardHeader.(*block.HeaderV2)
-	if ok {
-		registry = registryV2
-	} else {
-		registry = registryV1
-	}
+	registry := t.createRegistryHandler()
 
 	_ = registry.SetMetaEpoch(t.metaEpoch)
 	_ = registry.SetEpoch(t.epoch)
@@ -141,4 +150,23 @@ func (t *trigger) saveState(key []byte) error {
 	log.Debug("saving start of epoch trigger state", "key", trigInternalKey)
 
 	return t.triggerStorage.Put(trigInternalKey, marshalledRegistry)
+}
+
+func (t *trigger) createRegistryHandler() data.TriggerRegistryHandler {
+	if t.epochStartShardHeader.IsHeaderV3() {
+		return &block.ShardTriggerRegistryV3{
+			EpochStartShardHeader: &block.HeaderV3{},
+		}
+	}
+
+	_, ok := t.epochStartShardHeader.(*block.HeaderV2)
+	if ok {
+		return &block.ShardTriggerRegistryV2{
+			EpochStartShardHeader: &block.HeaderV2{},
+		}
+	}
+
+	return &block.ShardTriggerRegistry{
+		EpochStartShardHeader: &block.Header{},
+	}
 }
