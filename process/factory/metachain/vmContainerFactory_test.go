@@ -2,6 +2,7 @@ package metachain
 
 import (
 	"errors"
+	"github.com/multiversx/mx-chain-go/testscommon/chainParameters"
 	"testing"
 
 	"github.com/multiversx/mx-chain-core-go/core"
@@ -280,6 +281,7 @@ func TestVmContainerFactory_Create(t *testing.T) {
 	t.Parallel()
 
 	argsNewEconomicsData := economics.ArgsNewEconomicsData{
+		ChainParamsHandler: &chainParameters.ChainParametersHolderMock{},
 		Economics: &config.EconomicsConfig{
 			GlobalSettings: config.GlobalSettings{
 				GenesisTotalSupply: "2000000000000000000000",
@@ -300,6 +302,10 @@ func TestVmContainerFactory_Create(t *testing.T) {
 						ProtocolSustainabilityAddress:    "erd1932eft30w753xyvme8d49qejgkjc09n5e49w4mwdjtm0neld797su0dlxp",
 						TopUpGradientPoint:               "300000000000000000000",
 						TopUpFactor:                      0.25,
+						EcosystemGrowthPercentage:        0.0,
+						EcosystemGrowthAddress:           "erd1932eft30w753xyvme8d49qejgkjc09n5e49w4mwdjtm0neld797su0dlxp",
+						GrowthDividendPercentage:         0.0,
+						GrowthDividendAddress:            "erd1932eft30w753xyvme8d49qejgkjc09n5e49w4mwdjtm0neld797su0dlxp",
 					},
 				},
 			},

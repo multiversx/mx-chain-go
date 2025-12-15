@@ -84,8 +84,10 @@ func TestBlocksCreator_IncrementRound(t *testing.T) {
 			return &testsFactory.StatusCoreComponentsStub{
 				AppStatusHandlerField: &statusHandler.AppStatusHandlerStub{
 					SetUInt64ValueHandler: func(key string, value uint64) {
-						wasSetUInt64ValueCalled = true
-						require.Equal(t, common.MetricCurrentRound, key)
+
+						if key == common.MetricCurrentRound {
+							wasSetUInt64ValueCalled = true
+						}
 					},
 				},
 			}
