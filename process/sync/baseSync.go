@@ -1092,6 +1092,11 @@ func (boot *baseBootstrap) prepareForSyncIfNeeded(syncingNonce uint64) error {
 			return errGetBody
 		}
 
+		err = boot.saveProposedTxsToPool(currentHeader, currentBody)
+		if err != nil {
+			return err
+		}
+
 		errOnProposedBlock := boot.blockProcessor.OnProposedBlock(
 			currentBody,
 			currentHeader,
@@ -1165,6 +1170,11 @@ func (boot *baseBootstrap) saveProposedTxsToPool(
 	}
 
 	separatedBodies := process.SeparateBodyByType(bodyPtr)
+
+	log.Debug("saveProposedTxsToPool",
+		"separatedBodies", len(separatedBodies),
+	)
+
 	for blockType, blockBody := range separatedBodies {
 		dataPool, err := process.GetDataPoolByBlockType(blockType, boot.dataPool)
 		if err != nil {
@@ -1187,6 +1197,10 @@ func (boot *baseBootstrap) saveProposedTxsToPool(
 			if err != nil {
 				return err
 			}
+
+			log.Debug("saveProposedTxsToPool",
+				"miniBlock txs", len(miniBlock.TxHashes),
+			)
 		}
 	}
 
