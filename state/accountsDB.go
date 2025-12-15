@@ -825,7 +825,7 @@ func (adb *AccountsDB) commit() ([]byte, error) {
 
 	oldHashes := make(common.ModifiedHashes)
 	newHashes := make(common.ModifiedHashes)
-	// Step 1. commit all data tries
+	// Step 1. commit all data tries. GetAll returns only the dirty tries for the dataTriesHolder implementation
 	dataTries := adb.dataTries.GetAll()
 	for i := 0; i < len(dataTries); i++ {
 		err := adb.commitTrie(dataTries[i], oldHashes, newHashes)
