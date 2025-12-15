@@ -40,6 +40,10 @@ import (
 
 var log = logger.GetOrCreate("process/sync")
 
+type txWithSize interface {
+	Size() int
+}
+
 var _ closing.Closer = (*baseBootstrap)(nil)
 
 // sleepTime defines the time in milliseconds between each iteration made in syncBlocks method
@@ -1215,140 +1219,69 @@ func (boot *baseBootstrap) saveTxsToPool(
 ) error {
 	txHashes := miniBlock.TxHashes
 
-	switch blockType {
-	case block.TxBlock, block.InvalidBlock:
-		for _, txHash := range txHashes {
-			txBuff, err := storer.Get(txHash)
-			if err != nil {
-				return err
-			}
-
-			tx := &transaction.Transaction{}
-			err = boot.marshalizer.Unmarshal(tx, txBuff)
-			if err != nil {
-				return err
-			}
-
-			cacherIdentifier := process.ShardCacherIdentifier(miniBlock.SenderShardID, miniBlock.ReceiverShardID)
-			dataPool.AddData(
-				txHash,
-				tx,
-				tx.Size(),
-				cacherIdentifier,
-			)
-			if err != nil {
-				return err
-			}
+	for _, txHash := range txHashes {
+		txBuff, err := storer.Get(txHash)
+		if err != nil {
+			return err
 		}
 
-		return nil
-	case block.SmartContractResultBlock:
-		for _, txHash := range txHashes {
-			txBuff, err := storer.Get(txHash)
-			if err != nil {
-				return err
-			}
-
-			tx := &smartContractResult.SmartContractResult{}
-			err = boot.marshalizer.Unmarshal(tx, txBuff)
-			if err != nil {
-				return err
-			}
-
-			cacherIdentifier := process.ShardCacherIdentifier(miniBlock.SenderShardID, miniBlock.ReceiverShardID)
-			dataPool.AddData(
-				txHash,
-				tx,
-				tx.Size(),
-				cacherIdentifier,
-			)
-			if err != nil {
-				return err
-			}
+		tx, err := boot.unmarshallTxByBlockType(blockType, txBuff)
+		if err != nil {
+			return err
 		}
 
-		return nil
-	case block.RewardsBlock:
-		for _, txHash := range txHashes {
-			txBuff, err := storer.Get(txHash)
-			if err != nil {
-				return err
-			}
-
-			tx := &state.ShardValidatorInfo{}
-			err = boot.marshalizer.Unmarshal(tx, txBuff)
-			if err != nil {
-				return err
-			}
-
-			cacherIdentifier := process.ShardCacherIdentifier(miniBlock.SenderShardID, miniBlock.ReceiverShardID)
-			dataPool.AddData(
-				txHash,
-				tx,
-				tx.Size(),
-				cacherIdentifier,
-			)
-			if err != nil {
-				return err
-			}
+		cacherIdentifier := process.ShardCacherIdentifier(miniBlock.SenderShardID, miniBlock.ReceiverShardID)
+		dataPool.AddData(
+			txHash,
+			tx,
+			tx.Size(),
+			cacherIdentifier,
+		)
+		if err != nil {
+			return err
 		}
-
-		return nil
-	case block.PeerBlock:
-		for _, txHash := range txHashes {
-			txBuff, err := storer.Get(txHash)
-			if err != nil {
-				return err
-			}
-
-			tx := &rewardTx.RewardTx{}
-			err = boot.marshalizer.Unmarshal(tx, txBuff)
-			if err != nil {
-				return err
-			}
-
-			cacherIdentifier := process.ShardCacherIdentifier(miniBlock.SenderShardID, miniBlock.ReceiverShardID)
-			dataPool.AddData(
-				txHash,
-				tx,
-				tx.Size(),
-				cacherIdentifier,
-			)
-			if err != nil {
-				return err
-			}
-		}
-
-		return nil
-	default:
-		return fmt.Errorf("unsupported block type for dataPool: %d", blockType)
 	}
+
+	return nil
 }
 
-func (boot *baseBootstrap) getTransactionHandlerFromStorage(
-	txHash []byte,
-	storer storage.Storer,
-	marshalizer marshal.Marshalizer,
-) (data.TransactionHandler, error) {
-	if check.IfNil(storer) {
-		return nil, process.ErrNilStorage
-	}
-	if check.IfNil(marshalizer) {
-		return nil, process.ErrNilMarshalizer
+func (boot *baseBootstrap) unmarshallTxByBlockType(
+	blockType block.Type,
+	txBuff []byte,
+) (txWithSize, error) {
+	var tx txWithSize
+	var err error
+
+	switch blockType {
+	case block.TxBlock, block.InvalidBlock:
+		tx = &transaction.Transaction{}
+		err = boot.marshalizer.Unmarshal(tx, txBuff)
+		if err != nil {
+			return nil, err
+		}
+	case block.SmartContractResultBlock:
+		tx = &smartContractResult.SmartContractResult{}
+		err = boot.marshalizer.Unmarshal(tx, txBuff)
+		if err != nil {
+			return nil, err
+		}
+	case block.RewardsBlock:
+		tx = &state.ShardValidatorInfo{}
+		err = boot.marshalizer.Unmarshal(tx, txBuff)
+		if err != nil {
+			return nil, err
+		}
+	case block.PeerBlock:
+		tx = &rewardTx.RewardTx{}
+		err = boot.marshalizer.Unmarshal(tx, txBuff)
+		if err != nil {
+			return nil, err
+		}
+	default:
+		return nil, fmt.Errorf("unsupported block type for dataPool: %d", blockType)
 	}
 
-	txBuff, err := storer.Get(txHash)
-	if err != nil {
-		return nil, err
-	}
-
-	tx := transaction.Transaction{}
-	err = marshalizer.Unmarshal(&tx, txBuff)
-	if err != nil {
-		return nil, err
-	}
-
-	return &tx, nil
+	return tx, nil
 }
 
 func (boot *baseBootstrap) handleTrieSyncError(err error, ctx context.Context) {

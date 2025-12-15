@@ -2,6 +2,7 @@ package sync
 
 import (
 	"context"
+	"errors"
 	"sync/atomic"
 	"testing"
 	"time"
@@ -9,11 +10,20 @@ import (
 	"github.com/multiversx/mx-chain-core-go/core"
 	"github.com/multiversx/mx-chain-core-go/data"
 	"github.com/multiversx/mx-chain-core-go/data/block"
+	"github.com/multiversx/mx-chain-core-go/data/rewardTx"
+	"github.com/multiversx/mx-chain-core-go/data/smartContractResult"
+	"github.com/multiversx/mx-chain-core-go/data/transaction"
+	"github.com/multiversx/mx-chain-core-go/marshal"
 	"github.com/multiversx/mx-chain-go/common"
+	"github.com/multiversx/mx-chain-go/dataRetriever"
 	"github.com/multiversx/mx-chain-go/process"
 	"github.com/multiversx/mx-chain-go/process/mock"
+	"github.com/multiversx/mx-chain-go/state"
+	"github.com/multiversx/mx-chain-go/storage"
 	"github.com/multiversx/mx-chain-go/testscommon"
+	dataRetrieverMock "github.com/multiversx/mx-chain-go/testscommon/dataRetriever"
 	"github.com/multiversx/mx-chain-go/testscommon/processMocks"
+	storageStubs "github.com/multiversx/mx-chain-go/testscommon/storage"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 )
@@ -439,4 +449,115 @@ func TestBaseBootstrap_PrepareForSyncAtBootstrapIfNeeded(t *testing.T) {
 
 		require.Equal(t, 1, numCalls) // still 1 call
 	})
+}
+
+func TestBaseBootstrap_SaveProposedTxsToPool(t *testing.T) {
+	t.Parallel()
+
+	marshaller := &marshal.GogoProtoMarshalizer{}
+
+	txCalls := 0
+	scCalls := 0
+	rwCalls := 0
+	peerCalls := 0
+
+	boot := &baseBootstrap{
+		marshalizer: marshaller,
+		dataPool: &dataRetrieverMock.PoolsHolderStub{
+			TransactionsCalled: func() dataRetriever.ShardedDataCacherNotifier {
+				return &testscommon.ShardedDataStub{
+					AddDataCalled: func(key []byte, data interface{}, sizeInBytes int, cacheID string) {
+						txCalls++
+					},
+				}
+			},
+			UnsignedTransactionsCalled: func() dataRetriever.ShardedDataCacherNotifier {
+				return &testscommon.ShardedDataStub{
+					AddDataCalled: func(key []byte, data interface{}, sizeInBytes int, cacheID string) {
+						scCalls++
+					},
+				}
+			},
+			RewardTransactionsCalled: func() dataRetriever.ShardedDataCacherNotifier {
+				return &testscommon.ShardedDataStub{
+					AddDataCalled: func(key []byte, data interface{}, sizeInBytes int, cacheID string) {
+						rwCalls++
+					},
+				}
+			},
+			ValidatorsInfoCalled: func() dataRetriever.ShardedDataCacherNotifier {
+				return &testscommon.ShardedDataStub{
+					AddDataCalled: func(key []byte, data interface{}, sizeInBytes int, cacheID string) {
+						peerCalls++
+					},
+				}
+			},
+		},
+		store: &storageStubs.ChainStorerStub{
+			GetStorerCalled: func(unitType dataRetriever.UnitType) (storage.Storer, error) {
+				return &storageStubs.StorerStub{
+					GetCalled: func(key []byte) ([]byte, error) {
+						switch string(key) {
+						case "txHash1":
+							tx := &transaction.Transaction{}
+							txBytes, _ := marshaller.Marshal(tx)
+							return txBytes, nil
+						case "txHash2":
+							tx := &smartContractResult.SmartContractResult{}
+							txBytes, _ := marshaller.Marshal(tx)
+							return txBytes, nil
+						case "txHash3":
+							tx := &state.ShardValidatorInfo{}
+							txBytes, _ := marshaller.Marshal(tx)
+							return txBytes, nil
+						case "txHash4":
+							tx := &rewardTx.RewardTx{}
+							txBytes, _ := marshaller.Marshal(tx)
+							return txBytes, nil
+						case "txHash5":
+							tx := &rewardTx.RewardTx{}
+							txBytes, _ := marshaller.Marshal(tx)
+							return txBytes, nil
+						default:
+							return nil, errors.New("err")
+						}
+					},
+				}, nil
+			},
+		},
+	}
+
+	header := &block.HeaderV3{}
+	body := &block.Body{
+		MiniBlocks: []*block.MiniBlock{
+			&block.MiniBlock{
+				TxHashes: [][]byte{[]byte("txHash1")},
+				Type:     block.TxBlock,
+			},
+			&block.MiniBlock{
+				TxHashes: [][]byte{[]byte("txHash2")},
+				Type:     block.InvalidBlock,
+			},
+			&block.MiniBlock{
+				TxHashes: [][]byte{[]byte("txHash3")},
+				Type:     block.SmartContractResultBlock,
+			},
+			&block.MiniBlock{
+				TxHashes: [][]byte{[]byte("txHash4")},
+				Type:     block.RewardsBlock,
+			},
+			&block.MiniBlock{
+				TxHashes: [][]byte{[]byte("txHash5")},
+				Type:     block.PeerBlock,
+			},
+		},
+	}
+
+	err := boot.SaveProposedTxsToPool(header, body)
+	require.Nil(t, err)
+
+	require.Equal(t, 2, txCalls)
+	require.Equal(t, 1, scCalls)
+	require.Equal(t, 1, rwCalls)
+	require.Equal(t, 1, peerCalls)
 }
