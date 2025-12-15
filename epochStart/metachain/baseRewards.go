@@ -218,7 +218,7 @@ func (brc *baseRewardsCreator) DeleteBlockDataFromStorage(metaBlock data.MetaHea
 	}
 
 	for _, mbHeader := range metaBlock.GetMiniBlockHeaderHandlers() {
-		if mbHeader.GetTypeInt32() == block.RewardsBlock {
+		if mbHeader.GetTypeInt32() == int32(block.RewardsBlock) {
 			_ = brc.miniBlockStorage.Remove(mbHeader.GetHash())
 		}
 	}
@@ -243,7 +243,7 @@ func (brc *baseRewardsCreator) RemoveBlockDataFromPools(metaBlock data.MetaHeade
 	}
 
 	for _, mbHeader := range metaBlock.GetMiniBlockHeaderHandlers() {
-		if mbHeader.GetTypeInt32() != block.RewardsBlock {
+		if mbHeader.GetTypeInt32() != int32(block.RewardsBlock) {
 			continue
 		}
 
@@ -466,7 +466,7 @@ func (brc *baseRewardsCreator) getConsensusGroupSizeForShardAndEpoch(shardID uin
 func (brc *baseRewardsCreator) verifyCreatedRewardMiniBlocksWithMetaBlock(metaBlock data.HeaderHandler, createdMiniBlocks block.MiniBlockSlice) error {
 	numReceivedRewardsMBs := 0
 	for _, miniBlockHdr := range metaBlock.GetMiniBlockHeaderHandlers() {
-		if miniBlockHdr.GetTypeInt32() != block.RewardsBlock {
+		if miniBlockHdr.GetTypeInt32() != int32(block.RewardsBlock) {
 			continue
 		}
 

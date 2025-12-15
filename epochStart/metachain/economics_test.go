@@ -2930,7 +2930,7 @@ func TestEconomics_ComputeEndOfEpochEconomicsWithPrevEpochTotalSupply(t *testing
 	maxBlocksInEpoch := core.MaxUint64(1, roundsPassedInEpoch*uint64(args.ShardCoordinator.NumberOfShards()+1))
 
 	noncesPerShardPrevEpoch, _, _ := ec.startNoncePerShardFromEpochStart(mb.Epoch - 1)
-	noncesPerShardCurrEpoch, _ := ec.startNoncePerShardFromLastCrossNotarized(mb.GetNonce(), mb.EpochStart)
+	noncesPerShardCurrEpoch := ec.startNoncePerShardFromLastCrossNotarized(mb.GetNonce(), &mb.EpochStart)
 	totalNumBlocksInEpoch := ec.computeNumOfTotalCreatedBlocks(noncesPerShardPrevEpoch, noncesPerShardCurrEpoch)
 
 	rwdPerBlock := ec.computeRewardsPerBlock(
@@ -3002,7 +3002,7 @@ func TestEconomics_TotalSupplyCalculation(t *testing.T) {
 	maxBlocksInEpoch := core.MaxUint64(1, roundsPassedInEpoch*uint64(args.ShardCoordinator.NumberOfShards()+1))
 
 	noncesPerShardPrevEpoch, _, _ := ec.startNoncePerShardFromEpochStart(mb.Epoch - 1)
-	noncesPerShardCurrEpoch, _ := ec.startNoncePerShardFromLastCrossNotarized(mb.GetNonce(), mb.EpochStart)
+	noncesPerShardCurrEpoch := ec.startNoncePerShardFromLastCrossNotarized(mb.GetNonce(), &mb.EpochStart)
 	totalNumBlocksInEpoch := ec.computeNumOfTotalCreatedBlocks(noncesPerShardPrevEpoch, noncesPerShardCurrEpoch)
 
 	rwdPerBlock := ec.computeRewardsPerBlock(
