@@ -5,8 +5,9 @@ import (
 	"strconv"
 
 	"github.com/multiversx/mx-chain-core-go/core"
+	"github.com/multiversx/mx-chain-core-go/core/check"
 	"github.com/multiversx/mx-chain-core-go/data"
-	"github.com/multiversx/mx-chain-core-go/data/block"
+
 	"github.com/multiversx/mx-chain-go/common"
 	"github.com/multiversx/mx-chain-go/dataRetriever"
 	"github.com/multiversx/mx-chain-go/epochStart"
@@ -205,9 +206,9 @@ func (msh *metaStorageHandler) saveLastHeader(metaBlock data.HeaderHandler) (boo
 }
 
 func (msh *metaStorageHandler) saveTriggerRegistry(components *ComponentsNeededForBootstrap) ([]byte, error) {
-	metaBlock, ok := components.EpochStartMetaBlock.(*block.MetaBlock)
-	if !ok {
-		return nil, epochStart.ErrWrongTypeAssertion
+	metaBlock := components.EpochStartMetaBlock
+	if check.IfNil(metaBlock) {
+		return nil, epochStart.ErrNilMetaBlock
 	}
 
 	hash, err := core.CalculateHash(msh.marshalizer, msh.hasher, metaBlock)
@@ -215,15 +216,14 @@ func (msh *metaStorageHandler) saveTriggerRegistry(components *ComponentsNeededF
 		return nil, err
 	}
 
-	triggerReg := block.MetaTriggerRegistry{
-		Epoch:                       metaBlock.GetEpoch(),
-		CurrentRound:                metaBlock.GetRound(),
-		EpochFinalityAttestingRound: metaBlock.GetRound(),
-		CurrEpochStartRound:         metaBlock.GetRound(),
-		PrevEpochStartRound:         components.PreviousEpochStart.GetRound(),
-		EpochStartMetaHash:          hash,
-		EpochStartMeta:              metaBlock,
-	}
+	triggerReg := epochStart.CreateMetaRegistryHandler(metaBlock)
+	_ = triggerReg.SetEpochStartMetaHeaderHandler(metaBlock)
+	_ = triggerReg.SetEpoch(metaBlock.GetEpoch())
+	_ = triggerReg.SetEpochStartMetaHash(hash)
+	_ = triggerReg.SetCurrEpochStartRound(metaBlock.GetRound())
+	_ = triggerReg.SetPrevEpochStartRound(components.PreviousEpochStart.GetRound())
+	_ = triggerReg.SetEpochFinalityAttestingRound(metaBlock.GetRound())
+	_ = triggerReg.SetEpochChangeProposed(false)
 
 	bootstrapKey := []byte(fmt.Sprint(metaBlock.GetRound()))
 	trigInternalKey := append([]byte(common.TriggerRegistryKeyPrefix), bootstrapKey...)
