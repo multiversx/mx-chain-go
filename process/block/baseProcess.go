@@ -1721,7 +1721,7 @@ func (bp *baseProcessor) saveProposedTxsToStorage(header data.HeaderHandler, bod
 			return err
 		}
 
-		unit, err := process.GetStorageForProposedTxsFromBlockType(blockType)
+		unit, err := process.GetStorageUnitByBlockType(blockType)
 		if err != nil {
 			return err
 		}

@@ -1241,6 +1241,7 @@ func GetMarshaledSliceSize[T any](items []T, marshaller marshal.Marshalizer) (in
 	return size, nil
 }
 
+// GetDataPoolByBlockType returns data pool by type
 func GetDataPoolByBlockType(
 	blockType block.Type,
 	dataPool dataRetriever.PoolsHolder,
@@ -1259,7 +1260,8 @@ func GetDataPoolByBlockType(
 	}
 }
 
-func GetStorageForProposedTxsFromBlockType(blockType block.Type) (dataRetriever.UnitType, error) {
+// GetStorageUnitByBlockType returns storage by type
+func GetStorageUnitByBlockType(blockType block.Type) (dataRetriever.UnitType, error) {
 	switch blockType {
 	case block.TxBlock, block.InvalidBlock:
 		return dataRetriever.TransactionUnit, nil

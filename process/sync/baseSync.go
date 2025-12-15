@@ -40,7 +40,7 @@ import (
 
 var log = logger.GetOrCreate("process/sync")
 
-type txWithSize interface {
+type txSizeHandler interface {
 	Size() int
 }
 
@@ -1175,17 +1175,13 @@ func (boot *baseBootstrap) saveProposedTxsToPool(
 
 	separatedBodies := process.SeparateBodyByType(bodyPtr)
 
-	log.Debug("saveProposedTxsToPool",
-		"separatedBodies", len(separatedBodies),
-	)
-
 	for blockType, blockBody := range separatedBodies {
 		dataPool, err := process.GetDataPoolByBlockType(blockType, boot.dataPool)
 		if err != nil {
 			return err
 		}
 
-		unit, err := process.GetStorageForProposedTxsFromBlockType(blockType)
+		unit, err := process.GetStorageUnitByBlockType(blockType)
 		if err != nil {
 			return err
 		}
@@ -1201,10 +1197,6 @@ func (boot *baseBootstrap) saveProposedTxsToPool(
 			if err != nil {
 				return err
 			}
-
-			log.Debug("saveProposedTxsToPool",
-				"miniBlock txs", len(miniBlock.TxHashes),
-			)
 		}
 	}
 
@@ -1248,8 +1240,8 @@ func (boot *baseBootstrap) saveTxsToPool(
 func (boot *baseBootstrap) unmarshallTxByBlockType(
 	blockType block.Type,
 	txBuff []byte,
-) (txWithSize, error) {
-	var tx txWithSize
+) (txSizeHandler, error) {
+	var tx txSizeHandler
 	var err error
 
 	switch blockType {
