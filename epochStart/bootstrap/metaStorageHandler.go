@@ -228,7 +228,7 @@ func (msh *metaStorageHandler) saveTriggerRegistry(components *ComponentsNeededF
 	bootstrapKey := []byte(fmt.Sprint(metaBlock.GetRound()))
 	trigInternalKey := append([]byte(common.TriggerRegistryKeyPrefix), bootstrapKey...)
 
-	triggerRegBytes, err := msh.marshalizer.Marshal(&triggerReg)
+	triggerRegBytes, err := msh.marshalizer.Marshal(triggerReg)
 	if err != nil {
 		return nil, err
 	}
