@@ -219,7 +219,7 @@ func (mdi *MultiDataInterceptor) ProcessReceivedMessage(message p2p.MessageP2P, 
 			interceptedTx, ok := interceptedData.(interceptedCustomTx)
 			if ok {
 				isIntraShard := interceptedTx.SndShard() == interceptedTx.RcvShard()
-				if !isIntraShard {
+				if isIntraShard {
 					shouldStop = true
 				}
 			}
@@ -239,6 +239,7 @@ func (mdi *MultiDataInterceptor) ProcessReceivedMessage(message p2p.MessageP2P, 
 	if shouldStop {
 		return nil, errors.New("custom error blocking further intra shard tx broadcast")
 	}
+
 	return messageID, nil
 }
 
