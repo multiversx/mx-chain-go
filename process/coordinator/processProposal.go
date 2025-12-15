@@ -184,6 +184,8 @@ func (tc *transactionCoordinator) verifyCreatedMiniBlocksSanity(body *block.Body
 
 	collectedMbsAfterExecution := tc.GetCreatedMiniBlocksFromMe()
 	unExecutableTransactions := tc.getUnExecutableTransactions()
+	invalidTxsInterimProc := tc.getInterimProcessor(block.InvalidBlock)
+	invalidTransactions := invalidTxsInterimProc.GetAllCurrentFinishedTxs()
 
 	allProposedOutgoingTxsInBody, err := collectTransactionsFromMiniBlocks(miniblocksFromSelf)
 	if err != nil {
@@ -199,6 +201,14 @@ func (tc *transactionCoordinator) verifyCreatedMiniBlocksSanity(body *block.Body
 	for txHash := range unExecutableTransactions {
 		if _, exists := allCollectedTxs[txHash]; exists {
 			return fmt.Errorf("%w: for collected unexecutable transactions", process.ErrDuplicatedTransaction)
+		}
+		allCollectedTxs[txHash] = struct{}{}
+	}
+
+	// check that invalid transactions are not part of the collected transactions
+	for txHash := range invalidTransactions {
+		if _, exists := allCollectedTxs[txHash]; exists {
+			return fmt.Errorf("%w: for collected invalid transactions", process.ErrDuplicatedTransaction)
 		}
 		allCollectedTxs[txHash] = struct{}{}
 	}

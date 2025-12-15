@@ -2530,6 +2530,7 @@ func (tpn *TestProcessorNode) initBlockProcessor() {
 		Headers:                 tpn.DataPool.Headers(),
 		StorageService:          &storageStubs.ChainStorerStub{},
 		Marshaller:              TestMarshaller,
+		ShardCoordinator:        &testscommon.ShardsCoordinatorMock{},
 	}
 	tpn.ExecutionManager, err = executionManager.NewExecutionManager(argsExecutionManager)
 	if err != nil {
@@ -2615,6 +2616,7 @@ func (tpn *TestProcessorNode) initBlockProcessor() {
 		ExecutionResultsInclusionEstimator: inclusionEstimator,
 		GasComputation:                     gasConsumption,
 		ExecutionManager:                   tpn.ExecutionManager,
+		TxExecutionOrderHandler:            tpn.TxExecutionOrderHandler,
 	}
 
 	if check.IfNil(tpn.EpochStartNotifier) {
@@ -2783,14 +2785,17 @@ func (tpn *TestProcessorNode) initBlockProcessor() {
 		epochStartSystemSCProcessor, _ := metachain.NewSystemSCProcessor(argsEpochSystemSC)
 		tpn.EpochStartSystemSCProcessor = epochStartSystemSCProcessor
 
-		shardInfoCreator, errShardInfoCreator := block.NewShardInfoCreateData(
-			tpn.EnableEpochsHandler,
-			tpn.DataPool.Headers(),
-			tpn.DataPool.Proofs(),
-			&mock.PendingMiniBlocksHandlerStub{},
-			argumentsBase.BlockTracker,
-		)
-		log.LogIfError(errShardInfoCreator)
+		shardInfoCreateDataArgs := block.ShardInfoCreateDataArgs{
+			EnableEpochsHandler:      tpn.EnableEpochsHandler,
+			HeadersPool:              tpn.DataPool.Headers(),
+			ProofsPool:               tpn.DataPool.Proofs(),
+			PendingMiniBlocksHandler: &mock.PendingMiniBlocksHandlerStub{},
+			BlockTracker:             argumentsBase.BlockTracker,
+			Storage:                  tpn.Storage,
+			Marshaller:               TestMarshalizer,
+		}
+		shardInfoCreator, errShardInfoCreate := block.NewShardInfoCreateData(shardInfoCreateDataArgs)
+		log.LogIfError(errShardInfoCreate)
 
 		arguments := block.ArgMetaProcessor{
 			ArgBaseProcessor:             argumentsBase,

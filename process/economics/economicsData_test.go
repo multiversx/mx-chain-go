@@ -1054,15 +1054,24 @@ func TestEconomicsData_TxWithWithMoreGasLimitThanMaximumPerMiniBlockForSafeCross
 	args.Economics.FeeSettings.GasLimitSettings[0].MinGasLimit = fmt.Sprintf("%d", minGasLimit)
 	economicsData, _ := economics.NewEconomicsData(args)
 
-	t.Run("maximum gas limit as defined should work", func(t *testing.T) {
+	t.Run("maximum gas limit as defined should return error", func(t *testing.T) {
 		// do not change this behavior: backwards compatibility reasons
+		tx := &transaction.Transaction{
+			GasPrice: minGasPrice + 1,
+			GasLimit: maxGasLimitPerBlock + 1,
+			Value:    big.NewInt(0),
+		}
+		err := economicsData.CheckValidityTxValues(tx)
+		require.Equal(t, process.ErrMoreGasThanGasLimitPerBlock, err)
+	})
+	t.Run("maximum gas limit as defined should work", func(t *testing.T) {
 		tx := &transaction.Transaction{
 			GasPrice: minGasPrice + 1,
 			GasLimit: maxGasLimitPerBlock,
 			Value:    big.NewInt(0),
 		}
 		err := economicsData.CheckValidityTxValues(tx)
-		require.Equal(t, process.ErrMoreGasThanGasLimitPerBlock, err)
+		require.NoError(t, err)
 	})
 	t.Run("maximum gas limit + 1 as defined should error", func(t *testing.T) {
 		tx := &transaction.Transaction{

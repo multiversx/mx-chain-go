@@ -1426,18 +1426,22 @@ func (mp *metaProcessor) CommitBlock(
 
 	mp.displayPoolsInfo()
 
+	err = mp.saveExecutedData(header)
+	if err != nil {
+		return err
+	}
+
 	errNotCritical = mp.removeTxsFromPools(headerHash, header, body)
 	if errNotCritical != nil {
 		log.Debug("removeTxsFromPools", "error", errNotCritical.Error())
 	}
 
-	mp.cleanupPools(headerHandler)
-
-	// TODO: evaluate removing executed miniblocks from cache explicitly, not inside saveExecutedData
-	err = mp.saveExecutedData(header)
-	if err != nil {
-		return err
+	errNotCritical = mp.cleanPostProcessCache(header)
+	if errNotCritical != nil {
+		log.Debug("cleanPostProcessCache", "error", errNotCritical.Error())
 	}
+
+	mp.cleanupPools(headerHandler)
 
 	mp.blockProcessingCutoffHandler.HandlePauseCutoff(header)
 

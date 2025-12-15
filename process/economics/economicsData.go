@@ -351,7 +351,7 @@ func (ed *economicsData) CheckValidityTxValuesInEpoch(tx data.TransactionWithFee
 	}
 
 	// The following check should be kept as it is in order to avoid backwards compatibility issues
-	if tx.GetGasLimit() >= ed.getMaxGasLimitPerBlock(epoch) {
+	if tx.GetGasLimit() > ed.getMaxGasLimitPerBlock(epoch) {
 		return process.ErrMoreGasThanGasLimitPerBlock
 	}
 
