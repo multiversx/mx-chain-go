@@ -101,9 +101,15 @@ func (virtualSession *virtualSelectionSession) consumedBalanceExceedsInitialBala
 
 	consumedBalance := record.getConsumedBalance()
 	futureConsumedBalance := new(big.Int).Add(consumedBalance, value)
-	feePayerBalance := record.getInitialBalance()
+	initialBalance := record.getInitialBalance()
 
-	willFeeExceedBalance := futureConsumedBalance.Cmp(feePayerBalance) > 0
+	willFeeExceedBalance := futureConsumedBalance.Cmp(initialBalance) > 0
+	if willFeeExceedBalance {
+		logSelect.Trace("virtualSelectionSession.consumedBalanceExceedsInitialBalance",
+			"initialBalance", initialBalance,
+			"consumedBalance", consumedBalance,
+		)
+	}
 	return willFeeExceedBalance
 }
 
@@ -128,6 +134,11 @@ func (virtualSession *virtualSelectionSession) detectWillBalanceBeExceeded(tx *W
 	}
 
 	if virtualSession.consumedBalanceExceedsInitialBalance(sender, transferredValue) {
+		logSelect.Debug("virtualSelectionSession.detectWillBalanceBeExceeded balance exceeded  by transferred value",
+			"txHash", tx.TxHash,
+			"sender", sender,
+			"transferredValue", transferredValue,
+		)
 		return true
 	}
 
@@ -139,11 +150,22 @@ func (virtualSession *virtualSelectionSession) detectWillBalanceBeExceeded(tx *W
 	}
 
 	if virtualSession.consumedBalanceExceedsInitialBalance(feePayer, fee) {
+		logSelect.Debug("virtualSelectionSession.detectWillBalanceBeExceeded balance exceeded by fee",
+			"txHash", tx.TxHash,
+			"feePayer", feePayer,
+			"fee", fee,
+		)
 		return true
 	}
 
 	accumulatedBalance := big.NewInt(0).Add(transferredValue, fee)
 	if bytes.Equal(sender, feePayer) && virtualSession.consumedBalanceExceedsInitialBalance(sender, accumulatedBalance) {
+		logSelect.Debug("virtualSelectionSession.detectWillBalanceBeExceeded balance exceeded by sum of transferred value and fee",
+			"txHash", tx.TxHash,
+			"sender", sender,
+			"transferredValue", transferredValue,
+			"fee", fee,
+		)
 		return true
 	}
 
