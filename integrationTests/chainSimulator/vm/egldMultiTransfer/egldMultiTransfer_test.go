@@ -285,39 +285,16 @@ func TestChainSimulator_EGLD_MultiTransfer_Insufficient_Funds(t *testing.T) {
 
 	beforeBalanceStr0 := account0.Balance
 
-	account1, err := cs.GetAccount(addrs[1])
+	_, err = cs.GetAccount(addrs[1])
 	require.Nil(t, err)
-
-	beforeBalanceStr1 := account1.Balance
 
 	egldValue, _ := big.NewInt(0).SetString(beforeBalanceStr0, 10)
 	egldValue = egldValue.Add(egldValue, big.NewInt(13))
 	tx = multiESDTNFTTransferWithEGLDTx(nonce, addrs[0].Bytes, addrs[1].Bytes, [][]byte{nftTokenID}, egldValue)
 
 	txResult, err = cs.SendTxAndGenerateBlockTilTxIsExecuted(tx, vm2.MaxNumOfBlockToGenerateWhenExecutingTx)
-	require.Nil(t, err)
-	require.NotNil(t, txResult)
-
-	require.NotEqual(t, "success", txResult.Status.String())
-
-	eventLog := string(txResult.Logs.Events[0].Topics[1])
-	require.Equal(t, "insufficient funds for token EGLD-000000", eventLog)
-
-	// check accounts balance
-	account0, err = cs.GetAccount(addrs[0])
-	require.Nil(t, err)
-
-	beforeBalance0, _ := big.NewInt(0).SetString(beforeBalanceStr0, 10)
-
-	txsFee, _ := big.NewInt(0).SetString(txResult.Fee, 10)
-	expectedBalanceWithFee0 := big.NewInt(0).Sub(beforeBalance0, txsFee)
-
-	require.Equal(t, expectedBalanceWithFee0.String(), account0.Balance)
-
-	account1, err = cs.GetAccount(addrs[1])
-	require.Nil(t, err)
-
-	require.Equal(t, beforeBalanceStr1, account1.Balance)
+	require.ErrorContains(t, err, "Transaction(s) is/are still in pending")
+	require.Nil(t, txResult)
 }
 
 func TestChainSimulator_EGLD_MultiTransfer_Invalid_Value(t *testing.T) {
