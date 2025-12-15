@@ -1270,7 +1270,7 @@ func (boot *baseBootstrap) unmarshallTxByBlockType(
 			return nil, err
 		}
 	default:
-		return nil, fmt.Errorf("unsupported block type for dataPool: %d", blockType)
+		return nil, fmt.Errorf("unsupported block type: %d", blockType)
 	}
 
 	return tx, nil
