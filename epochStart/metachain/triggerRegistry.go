@@ -1,11 +1,7 @@
 package metachain
 
 import (
-	"encoding/json"
-
 	"github.com/multiversx/mx-chain-core-go/data"
-	"github.com/multiversx/mx-chain-core-go/data/block"
-	"github.com/multiversx/mx-chain-core-go/marshal"
 
 	"github.com/multiversx/mx-chain-go/common"
 	"github.com/multiversx/mx-chain-go/epochStart"
@@ -21,7 +17,7 @@ func (t *trigger) LoadState(key []byte) error {
 		return err
 	}
 
-	state, err := UnmarshalTrigger(t.marshaller, d)
+	state, err := epochStart.UnmarshalMetaTrigger(t.marshaller, d)
 	if err != nil {
 		return err
 	}
@@ -40,61 +36,6 @@ func (t *trigger) LoadState(key []byte) error {
 	return nil
 }
 
-// UnmarshalTrigger unmarshalls the trigger with json, for backwards compatibility
-func UnmarshalTrigger(marshaller marshal.Marshalizer, data []byte) (data.MetaTriggerRegistryHandler, error) {
-	trig, err := unmarshallTriggerV3(marshaller, data)
-	if err == nil {
-		return trig, nil
-	}
-
-	trig, err = unmarshallTriggerV1(marshaller, data)
-	if err == nil {
-		return trig, nil
-	}
-
-	// for backwards compatibility
-	return unmarshallTriggerJson(data)
-}
-
-func unmarshallTriggerV3(marshaller marshal.Marshalizer, data []byte) (data.MetaTriggerRegistryHandler, error) {
-	state := &block.MetaTriggerRegistryV3{
-		EpochStartMeta: &block.MetaBlockV3{},
-	}
-
-	err := marshaller.Unmarshal(state, data)
-	if err != nil {
-		return nil, err
-	}
-
-	return state, nil
-}
-
-func unmarshallTriggerV1(marshaller marshal.Marshalizer, data []byte) (data.MetaTriggerRegistryHandler, error) {
-	state := &block.MetaTriggerRegistry{
-		EpochStartMeta: &block.MetaBlock{},
-	}
-
-	err := marshaller.Unmarshal(state, data)
-	if err != nil {
-		return nil, err
-	}
-
-	return state, nil
-}
-
-func unmarshallTriggerJson(data []byte) (data.MetaTriggerRegistryHandler, error) {
-	state := &block.MetaTriggerRegistry{
-		EpochStartMeta: &block.MetaBlock{},
-	}
-
-	err := json.Unmarshal(data, state)
-	if err != nil {
-		return nil, err
-	}
-
-	return state, nil
-}
-
 // saveState saves the trigger state. Needs to be called under mutex
 func (t *trigger) saveState(key []byte) error {
 	metaHeader, ok := t.epochStartMeta.(data.MetaHeaderHandler)
@@ -102,7 +43,7 @@ func (t *trigger) saveState(key []byte) error {
 		return epochStart.ErrWrongTypeAssertion
 	}
 
-	registry := t.createRegistryHandler()
+	registry := epochStart.CreateMetaRegistryHandler(t.epochStartMeta)
 	_ = registry.SetEpochFinalityAttestingRound(t.epochFinalityAttestingRound)
 	_ = registry.SetCurrEpochStartRound(t.currEpochStartRound)
 	_ = registry.SetPrevEpochStartRound(t.prevEpochStartRound)
@@ -120,12 +61,4 @@ func (t *trigger) saveState(key []byte) error {
 	log.Debug("saving start of epoch trigger state", "key", trigInternalKey)
 
 	return t.triggerStorage.Put(trigInternalKey, triggerData)
-}
-
-func (t *trigger) createRegistryHandler() data.MetaTriggerRegistryHandler {
-	if t.epochStartMeta.IsHeaderV3() {
-		return &block.MetaTriggerRegistryV3{}
-	}
-
-	return &block.MetaTriggerRegistry{}
 }

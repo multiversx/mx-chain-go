@@ -236,8 +236,6 @@ func (sbp *shardAPIBlockProcessor) convertShardBlockBytesToAPIBlock(hash []byte,
 		Timestamp:       int64(timestampSec),
 		TimestampMs:     int64(timestampMs),
 		Status:          BlockStatusOnChain,
-		PubKeyBitmap:    hex.EncodeToString(blockHeader.GetPubKeysBitmap()),
-		Signature:       hex.EncodeToString(blockHeader.GetSignature()),
 		LeaderSignature: hex.EncodeToString(blockHeader.GetLeaderSignature()),
 		ChainID:         string(blockHeader.GetChainID()),
 		SoftwareVersion: hex.EncodeToString(blockHeader.GetSoftwareVersion()),
@@ -249,6 +247,9 @@ func (sbp *shardAPIBlockProcessor) convertShardBlockBytesToAPIBlock(hash []byte,
 	if blockHeader.IsHeaderV3() {
 		err = sbp.addMbsAndNumTxsAsyncExecution(apiBlock, blockHeader, hash, options)
 	} else {
+		apiBlock.PubKeyBitmap = hex.EncodeToString(blockHeader.GetPubKeysBitmap())
+		apiBlock.Signature = hex.EncodeToString(blockHeader.GetSignature())
+
 		err = sbp.addMbsAndNumTxsV1(apiBlock, blockHeader, hash, options)
 	}
 	if err != nil {
