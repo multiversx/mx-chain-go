@@ -1,6 +1,7 @@
 package components
 
 import (
+	"fmt"
 	"testing"
 
 	"github.com/multiversx/mx-chain-core-go/core"
@@ -86,6 +87,7 @@ func TestCreateCryptoComponents(t *testing.T) {
 		comp, err := CreateCryptoComponents(args)
 		require.NoError(t, err)
 		require.NotNil(t, comp)
+		require.Equal(t, "*singlesig.DisabledSingleSig", fmt.Sprintf("%T", comp.blockSigner))
 
 		require.Nil(t, comp.Create())
 		require.Nil(t, comp.Close())
