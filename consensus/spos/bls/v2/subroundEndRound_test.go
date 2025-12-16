@@ -2551,7 +2551,6 @@ func TestSubroundEndRound_UpdateDeltaMetrics(t *testing.T) {
 	header := &block.HeaderV3{
 		PrevHash: []byte("prev_hash"),
 		Nonce:    10,
-
 		LastExecutionResult: &block.ExecutionResultInfo{
 			NotarizedInRound: 1,
 			ExecutionResult:  baseExecutionResults,
@@ -2561,7 +2560,6 @@ func TestSubroundEndRound_UpdateDeltaMetrics(t *testing.T) {
 	meta := &block.MetaBlockV3{
 		PrevHash: []byte("prev_hash"),
 		Nonce:    10,
-
 		LastExecutionResult: &block.MetaExecutionResultInfo{
 			NotarizedInRound: 1,
 			ExecutionResult:  baseMetaExecutionResult,
@@ -2615,5 +2613,4 @@ func TestSubroundEndRound_UpdateDeltaMetrics(t *testing.T) {
 	srEndRound.SetData([]byte("hash"))
 	srEndRound.UpdateNonceDeltaMetrics()
 	assert.Equal(t, uint64(7), appStatusHandler.GetUint64(common.MetricDeltaHeaderNonceLastExecutionResultNonce), "MetricNonceDelta should be set for meta v3")
-
 }

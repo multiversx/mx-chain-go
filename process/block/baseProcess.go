@@ -3178,7 +3178,6 @@ func (bp *baseProcessor) addExecutionResultsOnHeader(header data.HeaderHandler) 
 	sanitizedExecutionResults := bp.excludeRevertedExecutionResultsForHeader(header, pendingExecutionResults)
 	var lastExecutionResultForCurrentBlock data.LastExecutionResultHandler
 	numToInclude := bp.executionResultsInclusionEstimator.Decide(lastNotarizedExecutionResultInfo, sanitizedExecutionResults, header.GetRound())
-	bp.updateInclusionEstimatorMetrics(len(sanitizedExecutionResults), numToInclude)
 
 	executionResultsToInclude := sanitizedExecutionResults[:numToInclude]
 	lastExecutionResultForCurrentBlock = lastExecutionResultHandler
