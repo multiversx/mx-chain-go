@@ -59,11 +59,6 @@ func (virtualSession *virtualSelectionSession) getNonceForAccountRecord(accountR
 }
 
 func (virtualSession *virtualSelectionSession) accumulateConsumedBalance(tx *WrappedTransaction, senderRecord *virtualAccountRecord) error {
-	transferredValue := tx.TransferredValue
-	if transferredValue != nil {
-		senderRecord.accumulateConsumedBalance(transferredValue)
-	}
-
 	var feePayerRecord *virtualAccountRecord
 
 	// check if there's a need to search for another record
@@ -86,6 +81,14 @@ func (virtualSession *virtualSelectionSession) accumulateConsumedBalance(tx *Wra
 	fee := tx.Fee
 	if fee != nil {
 		feePayerRecord.accumulateConsumedBalance(fee)
+	}
+
+	// getting the record of the gee payer might generate an unexpected failure.
+	// this means that the transaction will not be selected.
+	// accumulate the transferred value only if there isn't any error until here.
+	transferredValue := tx.TransferredValue
+	if transferredValue != nil {
+		senderRecord.accumulateConsumedBalance(transferredValue)
 	}
 
 	return nil
