@@ -239,6 +239,7 @@ func TestStatusMetrics_NetworkMetrics(t *testing.T) {
 	sm.SetUInt64Value(common.MetricNonceAtEpochStart, 95)
 	sm.SetUInt64Value(common.MetricEpochNumber, 1)
 	sm.SetUInt64Value(common.MetricRoundsPerEpoch, 50)
+	sm.SetUInt64Value(common.MetricProposedNonce, 1501)
 
 	expectedConfig := map[string]interface{}{
 		"erd_current_round":                  uint64(200),
@@ -252,6 +253,7 @@ func TestStatusMetrics_NetworkMetrics(t *testing.T) {
 		"erd_rounds_per_epoch":               uint64(50),
 		"erd_rounds_passed_in_current_epoch": uint64(100),
 		"erd_nonces_passed_in_current_epoch": uint64(85),
+		"erd_proposed_nonce":                 uint64(1501),
 	}
 
 	t.Run("no cross check value", func(t *testing.T) {
