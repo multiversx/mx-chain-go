@@ -499,23 +499,34 @@ func TestBaseBootstrap_SaveProposedTxsToPool(t *testing.T) {
 					GetCalled: func(key []byte) ([]byte, error) {
 						switch string(key) {
 						case "txHash1":
-							tx := &transaction.Transaction{}
+							tx := &transaction.Transaction{
+								Nonce: 1,
+							}
 							txBytes, _ := marshaller.Marshal(tx)
 							return txBytes, nil
 						case "txHash2":
-							tx := &smartContractResult.SmartContractResult{}
+							tx := &transaction.Transaction{
+								Nonce: 2,
+							}
 							txBytes, _ := marshaller.Marshal(tx)
 							return txBytes, nil
 						case "txHash3":
-							tx := &state.ShardValidatorInfo{}
+							tx := &smartContractResult.SmartContractResult{
+								Nonce:        3,
+								CodeMetadata: []byte("codeMetadata"),
+							}
 							txBytes, _ := marshaller.Marshal(tx)
 							return txBytes, nil
 						case "txHash4":
-							tx := &rewardTx.RewardTx{}
+							tx := &rewardTx.RewardTx{
+								Round: 1,
+							}
 							txBytes, _ := marshaller.Marshal(tx)
 							return txBytes, nil
 						case "txHash5":
-							tx := &rewardTx.RewardTx{}
+							tx := &state.ShardValidatorInfo{
+								PublicKey: []byte("pubKey"),
+							}
 							txBytes, _ := marshaller.Marshal(tx)
 							return txBytes, nil
 						default:

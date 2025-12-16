@@ -1217,7 +1217,7 @@ func (boot *baseBootstrap) saveTxsToPool(
 			return err
 		}
 
-		tx, err := boot.unmarshallTxByBlockType(blockType, txBuff)
+		tx, err := boot.unmarshalTxByBlockType(blockType, txBuff)
 		if err != nil {
 			return err
 		}
@@ -1229,15 +1229,12 @@ func (boot *baseBootstrap) saveTxsToPool(
 			tx.Size(),
 			cacherIdentifier,
 		)
-		if err != nil {
-			return err
-		}
 	}
 
 	return nil
 }
 
-func (boot *baseBootstrap) unmarshallTxByBlockType(
+func (boot *baseBootstrap) unmarshalTxByBlockType(
 	blockType block.Type,
 	txBuff []byte,
 ) (txSizeHandler, error) {
@@ -1247,30 +1244,19 @@ func (boot *baseBootstrap) unmarshallTxByBlockType(
 	switch blockType {
 	case block.TxBlock, block.InvalidBlock:
 		tx = &transaction.Transaction{}
-		err = boot.marshalizer.Unmarshal(tx, txBuff)
-		if err != nil {
-			return nil, err
-		}
 	case block.SmartContractResultBlock:
 		tx = &smartContractResult.SmartContractResult{}
-		err = boot.marshalizer.Unmarshal(tx, txBuff)
-		if err != nil {
-			return nil, err
-		}
 	case block.RewardsBlock:
-		tx = &state.ShardValidatorInfo{}
-		err = boot.marshalizer.Unmarshal(tx, txBuff)
-		if err != nil {
-			return nil, err
-		}
-	case block.PeerBlock:
 		tx = &rewardTx.RewardTx{}
-		err = boot.marshalizer.Unmarshal(tx, txBuff)
-		if err != nil {
-			return nil, err
-		}
+	case block.PeerBlock:
+		tx = &state.ShardValidatorInfo{}
 	default:
 		return nil, fmt.Errorf("unsupported block type: %d", blockType)
+	}
+
+	err = boot.marshalizer.Unmarshal(tx, txBuff)
+	if err != nil {
+		return nil, err
 	}
 
 	return tx, nil
