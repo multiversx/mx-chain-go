@@ -227,11 +227,9 @@ func TestBaseBlockchain_setMetrics(t *testing.T) {
 			Nonce:       10,
 			Round:       11,
 			TimestampMs: 1234000,
-			ExecutionResults: []*block.ExecutionResult{
-				{
-					BaseExecutionResult: &block.BaseExecutionResult{
-						HeaderNonce: 9,
-					},
+			LastExecutionResult: &block.ExecutionResultInfo{
+				ExecutionResult: &block.BaseExecutionResult{
+					HeaderNonce: 9,
 				},
 			},
 		}

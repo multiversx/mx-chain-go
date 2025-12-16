@@ -184,11 +184,12 @@ func (bbc *baseBlockChain) setCurrentHeaderMetrics(
 }
 
 func (bbc *baseBlockChain) setMetricsHeaderV3(header data.HeaderHandler) {
-	executionResults := header.GetExecutionResultsHandlers()
-
-	if len(executionResults) > 0 {
-		bbc.appStatusHandler.SetUInt64Value(common.MetricNonce, executionResults[0].GetHeaderNonce())
-	}
-
 	bbc.appStatusHandler.SetUInt64Value(common.MetricProposedNonce, header.GetNonce())
+
+	executionResult, err := common.GetLastBaseExecutionResultHandler(header)
+	if err != nil {
+		// any error returned here is intentionally ignored, as it is checked in other locations.
+		return
+	}
+	bbc.appStatusHandler.SetUInt64Value(common.MetricNonce, executionResult.GetHeaderNonce())
 }
