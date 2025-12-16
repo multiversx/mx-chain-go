@@ -396,8 +396,7 @@ func (t *trigger) revert(header data.HeaderHandler) error {
 		return err
 	}
 
-	epochStartMeta := &block.MetaBlock{}
-	err = t.marshaller.Unmarshal(epochStartMeta, epochStartMetaBuff)
+	epochStartMeta, err := process.UnmarshalMetaHeader(t.marshaller, epochStartMetaBuff)
 	if err != nil {
 		log.Warn("Revert unmarshal previous meta", "error", err)
 		return err
@@ -478,8 +477,7 @@ func (t *trigger) GetEpochStartHdrFromStorage(epoch uint32) (data.HeaderHandler,
 		return nil, err
 	}
 
-	metaHdr := &block.MetaBlock{}
-	err = t.marshaller.Unmarshal(metaHdr, epochStartMetaBuff)
+	metaHdr, err := process.UnmarshalMetaHeader(t.marshaller, epochStartMetaBuff)
 	if err != nil {
 		return nil, err
 	}
