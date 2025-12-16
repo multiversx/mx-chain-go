@@ -835,7 +835,6 @@ func (adb *AccountsDB) commit() ([]byte, error) {
 			return nil, err
 		}
 	}
-	//adb.dataTries.Reset()
 
 	oldRoot := adb.mainTrie.GetOldRoot()
 
