@@ -172,8 +172,23 @@ func (bbc *baseBlockChain) SetLastExecutionResult(result data.BaseExecutionResul
 func (bbc *baseBlockChain) setCurrentHeaderMetrics(
 	header data.HeaderHandler,
 ) {
-	bbc.appStatusHandler.SetUInt64Value(common.MetricNonce, header.GetNonce())
+	if header.IsHeaderV3() {
+		bbc.setMetricsHeaderV3(header)
+	} else {
+		bbc.appStatusHandler.SetUInt64Value(common.MetricNonce, header.GetNonce())
+	}
+
 	bbc.appStatusHandler.SetUInt64Value(common.MetricSynchronizedRound, header.GetRound())
 	bbc.appStatusHandler.SetUInt64Value(common.MetricBlockTimestamp, header.GetTimeStamp())
 	bbc.appStatusHandler.SetUInt64Value(common.MetricBlockTimestampMs, header.GetTimeStamp())
+}
+
+func (bbc *baseBlockChain) setMetricsHeaderV3(header data.HeaderHandler) {
+	executionResults := header.GetExecutionResultsHandlers()
+
+	if len(executionResults) > 0 {
+		bbc.appStatusHandler.SetUInt64Value(common.MetricNonce, executionResults[0].GetHeaderNonce())
+	}
+
+	bbc.appStatusHandler.SetUInt64Value(common.MetricProposedNonce, header.GetNonce())
 }
