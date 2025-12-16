@@ -475,16 +475,18 @@ func (adb *AccountsDB) saveDataTrie(accountHandler baseAccountHandler) error {
 	}
 	accountHandler.SetRootHash(rootHash)
 
-	if check.IfNil(adb.dataTries.Get(accountHandler.AddressBytes())) {
-		trie, ok := accountHandler.DataTrie().(common.Trie)
-		if !ok {
-			log.Warn("wrong type conversion", "trie type", fmt.Sprintf("%T", accountHandler.DataTrie()))
-			return nil
-		}
-
-		adb.dataTries.Put(accountHandler.AddressBytes(), trie)
+	if !check.IfNil(adb.dataTries.Get(accountHandler.AddressBytes())) {
+		adb.dataTries.MarkAsDirty(accountHandler.AddressBytes())
+		return nil
 	}
 
+	trie, ok := accountHandler.DataTrie().(common.Trie)
+	if !ok {
+		log.Warn("wrong type conversion", "trie type", fmt.Sprintf("%T", accountHandler.DataTrie()))
+		return nil
+	}
+
+	adb.dataTries.Put(accountHandler.AddressBytes(), trie)
 	return nil
 }
 
@@ -833,7 +835,7 @@ func (adb *AccountsDB) commit() ([]byte, error) {
 			return nil, err
 		}
 	}
-	adb.dataTries.Reset()
+	//adb.dataTries.Reset()
 
 	oldRoot := adb.mainTrie.GetOldRoot()
 

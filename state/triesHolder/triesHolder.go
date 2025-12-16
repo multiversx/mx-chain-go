@@ -63,6 +63,9 @@ func (dth *triesHolder) Reset() {
 	dth.mutex.Unlock()
 }
 
+// MarkAsDirty does nothing in this implementation
+func (dth *triesHolder) MarkAsDirty(_ []byte) {}
+
 // IsInterfaceNil returns true if underlying object is nil
 func (dth *triesHolder) IsInterfaceNil() bool {
 	return dth == nil

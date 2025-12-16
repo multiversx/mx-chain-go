@@ -200,6 +200,15 @@ func (dth *dataTriesHolder) Reset() {
 	dth.mutex.Unlock()
 }
 
+// MarkAsDirty marks the trie at the given key as dirty
+func (dth *dataTriesHolder) MarkAsDirty(key []byte) {
+	dth.mutex.Lock()
+	stringKey := string(key)
+	dth.dirtyTries[stringKey] = struct{}{}
+	dth.touchedTries[stringKey] = struct{}{}
+	dth.mutex.Unlock()
+}
+
 func (dth *dataTriesHolder) reset() {
 	log.Trace("reset data tries holder")
 
