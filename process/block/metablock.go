@@ -1429,10 +1429,14 @@ func (mp *metaProcessor) CommitBlock(
 		return err
 	}
 
-	mp.cleanPostProcessCache(header)
 	errNotCritical = mp.removeTxsFromPools(headerHash, header, body)
 	if errNotCritical != nil {
 		log.Debug("removeTxsFromPools", "error", errNotCritical.Error())
+	}
+
+	errNotCritical = mp.cleanPostProcessCache(header)
+	if errNotCritical != nil {
+		log.Debug("cleanPostProcessCache", "error", errNotCritical.Error())
 	}
 
 	mp.cleanupPools(headerHandler)
