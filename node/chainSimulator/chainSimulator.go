@@ -394,13 +394,33 @@ func (s *simulator) ForceChangeOfEpoch() error {
 }
 
 func (s *simulator) allNodesCreateBlocks() error {
+	headers := make(map[uint32]*dtos.BroadcastData, len(s.handlers))
 	for _, node := range s.handlers {
 		// TODO MX-15150 remove this when we remove all goroutines
 		time.Sleep(2 * time.Millisecond)
 
-		err := node.CreateNewBlock()
+		pair, err := node.CreateNewBlock()
 		if err != nil {
 			return err
+		}
+		if pair == nil {
+			continue
+		}
+
+		headers[pair.Header.GetShardID()] = pair
+	}
+
+	for shardID, pair := range headers {
+		err := s.nodes[shardID].GetBroadcastMessenger().BroadcastHeader(pair.Header, pair.LeaderKey)
+		if err != nil {
+			return err
+		}
+
+		if !check.IfNil(pair.Proof) {
+			err = s.nodes[shardID].GetBroadcastMessenger().BroadcastEquivalentProof(pair.Proof, pair.LeaderKey)
+			if err != nil {
+				return err
+			}
 		}
 	}
 
