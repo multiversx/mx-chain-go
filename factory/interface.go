@@ -504,8 +504,7 @@ type EconomicsHandler interface {
 	LeaderPercentage() float64
 	ProtocolSustainabilityPercentage() float64
 	ProtocolSustainabilityAddress() string
-	MinInflationRate() float64
-	MaxInflationRate(year uint32) float64
+	MaxInflationRate(year uint32, epoch uint32) float64
 	DeveloperPercentage() float64
 	GenesisTotalSupply() *big.Int
 	MaxGasLimitPerBlock(shardID uint32) uint64

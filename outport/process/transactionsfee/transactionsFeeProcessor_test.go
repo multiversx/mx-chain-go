@@ -2,6 +2,7 @@ package transactionsfee
 
 import (
 	"encoding/hex"
+	"github.com/multiversx/mx-chain-go/testscommon/chainParameters"
 	"math/big"
 	"testing"
 
@@ -19,7 +20,6 @@ import (
 	"github.com/multiversx/mx-chain-go/testscommon/epochNotifier"
 	"github.com/multiversx/mx-chain-go/testscommon/genericMocks"
 	"github.com/multiversx/mx-chain-go/testscommon/marshallerMock"
-	logger "github.com/multiversx/mx-chain-logger-go"
 	"github.com/stretchr/testify/require"
 )
 
@@ -28,6 +28,7 @@ var pubKeyConverter, _ = pubkeyConverter.NewBech32PubkeyConverter(32, "erd")
 func createEconomicsData(enableEpochsHandler common.EnableEpochsHandler) process.EconomicsDataHandler {
 	economicsConfig := testscommon.GetEconomicsConfig()
 	economicsData, _ := economics.NewEconomicsData(economics.ArgsNewEconomicsData{
+		ChainParamsHandler:  &chainParameters.ChainParametersHolderMock{},
 		Economics:           &economicsConfig,
 		EnableEpochsHandler: enableEpochsHandler,
 		TxVersionChecker:    &testscommon.TxVersionCheckerStub{},
@@ -464,8 +465,6 @@ func silentDecodeAddress(address string) []byte {
 
 func TestPutFeeAndGasUsedScrWithRefundNoTx(t *testing.T) {
 	t.Parallel()
-
-	_ = logger.SetLogLevel("*:TRACE")
 
 	txHash := []byte("relayedTx")
 	scrWithRefund := []byte("scrWithRefund")

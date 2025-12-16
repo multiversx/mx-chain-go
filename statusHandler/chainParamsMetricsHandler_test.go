@@ -41,5 +41,5 @@ func TestChainParamsMetricsHandler_ChainParametersChanged(t *testing.T) {
 
 	cpm.ChainParametersChanged(config.ChainParametersByEpochConfig{})
 
-	require.Equal(t, 6, numCalls)
+	require.Equal(t, 5, numCalls)
 }

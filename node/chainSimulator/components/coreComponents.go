@@ -160,8 +160,8 @@ func CreateCoreComponents(args ArgsCoreComponentsHolder) (*coreComponentsHolder,
 	instance.syncTimer = &testscommon.SyncTimerStub{}
 
 	instance.epochStartNotifierWithConfirm = notifier.NewEpochStartSubscriptionHandler()
-	instance.chainParametersSubscriber = chainparametersnotifier.NewChainParametersNotifier()
 	chainParametersNotifier := chainparametersnotifier.NewChainParametersNotifier()
+	instance.chainParametersSubscriber = chainParametersNotifier
 	argsChainParametersHandler := sharding.ArgsChainParametersHolder{
 		EpochStartEventNotifier: instance.epochStartNotifierWithConfirm,
 		ChainParameters:         args.Config.GeneralSettings.ChainParametersByEpoch,
@@ -251,6 +251,7 @@ func CreateCoreComponents(args ArgsCoreComponentsHolder) (*coreComponentsHolder,
 	instance.txVersionChecker = versioning.NewTxVersionChecker(args.Config.GeneralSettings.MinTransactionVersion)
 
 	argsEconomicsHandler := economics.ArgsNewEconomicsData{
+		ChainParamsHandler:  instance.chainParametersHandler,
 		TxVersionChecker:    instance.txVersionChecker,
 		Economics:           &args.EconomicsConfig,
 		EpochNotifier:       instance.epochNotifier,
