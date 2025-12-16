@@ -99,16 +99,18 @@ func selectTransactionsFromBunches(
 		shouldSkipTransaction := detectSkippableTransaction(virtualSession, item, senderRecord)
 		if !shouldSkipTransaction {
 			accumulatedGas += gasLimit
-			selectedTransaction := item.selectCurrentTransaction()
-			selectedTransactions = append(selectedTransactions, selectedTransaction)
-			err := virtualSession.accumulateConsumedBalance(selectedTransaction, senderRecord)
+			currentTransaction := item.getCurrentTransaction()
+			err = virtualSession.accumulateConsumedBalance(currentTransaction, senderRecord)
 			if err != nil {
 				// This error is unlikely to occur, as it would have been raised earlier during the detectSkippableSender call.
 				// Even if it does occur, it doesn't imply that the transaction should not be selected.
 				// Therefore, we only log the error here.
 				log.Warn("TxCache.selectTransactionsFromBunches error when accumulating consumed balance",
 					"err", err,
-					"txHash", selectedTransaction.TxHash)
+					"txHash", currentTransaction.TxHash)
+			} else {
+				item.selectCurrentTransaction()
+				selectedTransactions = append(selectedTransactions, currentTransaction)
 			}
 		}
 
