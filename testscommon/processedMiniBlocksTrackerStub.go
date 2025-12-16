@@ -92,3 +92,7 @@ func (pmbts *ProcessedMiniBlocksTrackerStub) DisplayProcessedMiniBlocks() {
 func (pmbts *ProcessedMiniBlocksTrackerStub) IsInterfaceNil() bool {
 	return pmbts == nil
 }
+
+func (pmbts *ProcessedMiniBlocksTrackerStub) CleanProcessedMiniBlocks() {
+
+}

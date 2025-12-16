@@ -7,6 +7,7 @@ import (
 	"fmt"
 	"math"
 	"math/big"
+	"runtime/debug"
 	"sort"
 	"time"
 
@@ -1046,6 +1047,8 @@ func CheckIfIndexesAreOutOfBound(
 
 	isIndexOutOfBound := isFirstIndexHigherThanLastIndex || isFirstIndexOutOfRange || isLastIndexOutOfRange
 	if isIndexOutOfBound {
+		debug.PrintStack()
+
 		return fmt.Errorf("%w: indexOfFirstTxToBeProcessed: %d, indexOfLastTxToBeProcessed = %d, maxIndex: %d",
 			ErrIndexIsOutOfBound,
 			indexOfFirstTxToBeProcessed,

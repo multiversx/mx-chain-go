@@ -73,6 +73,11 @@ type splitTxsResult struct {
 	outgoingTransactions      []data.TransactionHandler
 }
 
+type extendedProcessedMiniBlocksTracker interface {
+	process.ProcessedMiniBlocksTracker
+	CleanProcessedMiniBlocks()
+}
+
 type baseProcessor struct {
 	shardCoordinator        sharding.Coordinator
 	nodesCoordinator        nodesCoordinator.NodesCoordinator
@@ -131,7 +136,7 @@ type baseProcessor struct {
 	processDataTriesOnCommitEpoch bool
 	lastRestartNonce              uint64
 	pruningDelay                  uint32
-	processedMiniBlocksTracker    process.ProcessedMiniBlocksTracker
+	processedMiniBlocksTracker    extendedProcessedMiniBlocksTracker
 	receiptsRepository            receiptsRepository
 
 	mutNonceOfFirstCommittedBlock sync.RWMutex
@@ -175,6 +180,8 @@ func NewBaseProcessor(arguments ArgBaseProcessor) (*baseProcessor, error) {
 		return nil, fmt.Errorf("%w for genesis header in DataComponents.Blockchain", process.ErrNilHeaderHandler)
 	}
 
+	extendedProcessedMiniBlocksTrcker := arguments.ProcessedMiniBlocksTracker.(extendedProcessedMiniBlocksTracker)
+
 	base := &baseProcessor{
 		accountsDB:                         arguments.AccountsDB,
 		accountsProposal:                   arguments.AccountsProposal,
@@ -215,7 +222,7 @@ func NewBaseProcessor(arguments ArgBaseProcessor) (*baseProcessor, error) {
 		economicsData:                      arguments.CoreComponents.EconomicsData(),
 		scheduledTxsExecutionHandler:       arguments.ScheduledTxsExecutionHandler,
 		pruningDelay:                       pruningDelay,
-		processedMiniBlocksTracker:         arguments.ProcessedMiniBlocksTracker,
+		processedMiniBlocksTracker:         extendedProcessedMiniBlocksTrcker,
 		receiptsRepository:                 arguments.ReceiptsRepository,
 		processDebugger:                    processDebugger,
 		outportDataProvider:                arguments.OutportDataProvider,

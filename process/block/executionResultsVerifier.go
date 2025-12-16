@@ -1,6 +1,7 @@
 package block
 
 import (
+	"encoding/json"
 	"fmt"
 	"reflect"
 
@@ -68,6 +69,14 @@ func (erc *executionResultsVerifier) verifyExecutionResults(
 			"header executionResults", len(executionResults),
 			"header nonce", header.GetNonce(),
 		)
+
+		executionResultsStr, _ := json.Marshal(executionResults)
+		pendingExecutionResultsStr, _ := json.Marshal(pendingExecutionResults)
+		log.Error("executionResultsVerifier.verifyExecutionResults",
+			"executionResultsStr", executionResultsStr,
+			"pendingExecutionResultsStr", pendingExecutionResultsStr,
+		)
+
 		return process.ErrExecutionResultsNumberMismatch
 	}
 

@@ -294,6 +294,8 @@ func (sp *shardProcessor) ProcessBlockProposal(
 		"nonce", headerHandler.GetNonce(),
 	)
 
+	sp.processedMiniBlocksTracker.CleanProcessedMiniBlocks()
+
 	if sp.accountsDB[state.UserAccountsState].JournalLen() != 0 {
 		log.Error("shardProcessor.ProcessBlockProposal first entry", "stack", string(sp.accountsDB[state.UserAccountsState].GetStackDebugFirstEntry()))
 		return nil, process.ErrAccountStateDirty

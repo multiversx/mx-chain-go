@@ -53,3 +53,7 @@ func (pmbt *ProcessedMiniBlocksTracker) DisplayProcessedMiniBlocks() {
 func (pmbt *ProcessedMiniBlocksTracker) IsInterfaceNil() bool {
 	return pmbt == nil
 }
+
+func (pmbt *ProcessedMiniBlocksTracker) CleanProcessedMiniBlocks() {
+
+}

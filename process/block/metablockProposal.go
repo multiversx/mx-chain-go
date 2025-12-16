@@ -320,6 +320,8 @@ func (mp *metaProcessor) ProcessBlockProposal(
 		"nonce", headerHandler.GetNonce(),
 	)
 
+	mp.processedMiniBlocksTracker.CleanProcessedMiniBlocks()
+
 	if mp.accountsDB[state.UserAccountsState].JournalLen() != 0 {
 		log.Error("metaProcessor.ProcessBlockProposal first entry", "stack", string(mp.accountsDB[state.UserAccountsState].GetStackDebugFirstEntry()))
 		return nil, fmt.Errorf("%w for user accounts", process.ErrAccountStateDirty)

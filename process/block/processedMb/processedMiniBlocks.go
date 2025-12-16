@@ -1,6 +1,7 @@
 package processedMb
 
 import (
+	"runtime/debug"
 	"sync"
 
 	"github.com/multiversx/mx-chain-go/process/block/bootstrapStorage"
@@ -41,6 +42,14 @@ func (pmbt *processedMiniBlocksTracker) SetProcessedMiniBlockInfo(metaBlockHash 
 		miniBlocksProcessed = make(miniBlocksInfo)
 		pmbt.processedMiniBlocks[string(metaBlockHash)] = miniBlocksProcessed
 	}
+
+	log.Error("processedMiniBlocksTracker.SetProcessedMiniBlockInfo",
+		"miniBlockHash", miniBlockHash,
+		"processedMbInfo.FullyProcessed", processedMbInfo.FullyProcessed,
+		"processedMbInfo.IndexOfLastTxProcessed", processedMbInfo.IndexOfLastTxProcessed,
+	)
+
+	debug.PrintStack()
 
 	miniBlocksProcessed[string(miniBlockHash)] = &ProcessedMiniBlockInfo{
 		FullyProcessed:         processedMbInfo.FullyProcessed,
@@ -92,16 +101,29 @@ func (pmbt *processedMiniBlocksTracker) GetProcessedMiniBlockInfo(miniBlockHash 
 	defer pmbt.mutProcessedMiniBlocks.RUnlock()
 
 	for metaBlockHash, miniBlocksInfo := range pmbt.processedMiniBlocks {
+
+		log.Error("processedMiniBlocksTracker.GetProcessedMiniBlockInfo",
+			"metaBlockHash", metaBlockHash,
+		)
+
 		processedMiniBlockInfo, hashExists := miniBlocksInfo[string(miniBlockHash)]
 		if !hashExists {
 			continue
 		}
+
+		log.Error("RETURN FROM processedMiniBlocksTracker.GetProcessedMiniBlockInfo",
+			"metaBlockHash", metaBlockHash,
+			"FullyProcessed", processedMiniBlockInfo.FullyProcessed,
+			"IndexOfLastTxProcessed", processedMiniBlockInfo.IndexOfLastTxProcessed,
+		)
 
 		return &ProcessedMiniBlockInfo{
 			FullyProcessed:         processedMiniBlockInfo.FullyProcessed,
 			IndexOfLastTxProcessed: processedMiniBlockInfo.IndexOfLastTxProcessed,
 		}, []byte(metaBlockHash)
 	}
+
+	log.Error("processedMiniBlocksTracker.GetProcessedMiniBlockInfo OK")
 
 	return &ProcessedMiniBlockInfo{
 		FullyProcessed:         false,
@@ -201,6 +223,13 @@ func (pmbt *processedMiniBlocksTracker) DisplayProcessedMiniBlocks() {
 			)
 		}
 	}
+}
+
+func (pmbt *processedMiniBlocksTracker) CleanProcessedMiniBlocks() {
+	pmbt.mutProcessedMiniBlocks.Lock()
+	log.Error("processedMiniBlocksTracker:CleanProcessedMiniBlocks")
+	pmbt.processedMiniBlocks = make(map[string]miniBlocksInfo)
+	pmbt.mutProcessedMiniBlocks.Unlock()
 }
 
 // IsInterfaceNil returns true if there is no value under the interface
