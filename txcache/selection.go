@@ -63,6 +63,7 @@ func selectTransactionsFromBunches(
 	accumulatedGas := uint64(0)
 	selectionLoopStartTime := time.Now()
 
+	var currentTransaction *WrappedTransaction
 	// Select transactions (sorted).
 	for transactionsHeap.Len() > 0 {
 		// Always pick the best transaction.
@@ -98,9 +99,8 @@ func selectTransactionsFromBunches(
 
 		shouldSkipTransaction := detectSkippableTransaction(virtualSession, item, senderRecord)
 		if !shouldSkipTransaction {
-			accumulatedGas += gasLimit
 			// first, we get the transaction that might be selected
-			currentTransaction := item.getCurrentTransaction()
+			currentTransaction = item.getCurrentTransaction()
 			err = virtualSession.accumulateConsumedBalance(currentTransaction, senderRecord)
 			if err != nil {
 				// This error is unlikely to occur, as it would have been raised earlier during the detectSkippableSender call.
@@ -110,6 +110,7 @@ func selectTransactionsFromBunches(
 					"txHash", currentTransaction.TxHash)
 			} else {
 				// only if there isn't any error, we select the transaction
+				accumulatedGas += gasLimit
 				item.selectCurrentTransaction()
 				selectedTransactions = append(selectedTransactions, currentTransaction)
 			}
