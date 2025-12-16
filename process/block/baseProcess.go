@@ -3749,7 +3749,12 @@ func getProposedAndExecutedMiniBlockHeaders(
 }
 
 func (bp *baseProcessor) updateInclusionEstimatorMetrics(executionResultsLen int, allowed int) {
-	bp.appStatusHandler.SetUInt64Value(common.MetricNumInclusionEstimationRejected,
-		uint64(executionResultsLen)-uint64(allowed),
-	)
+	var rejected uint64
+	if executionResultsLen > allowed {
+		rejected = uint64(executionResultsLen) - uint64(allowed)
+	} else {
+		rejected = uint64(0)
+	}
+
+	bp.appStatusHandler.SetUInt64Value(common.MetricNumInclusionEstimationRejected, rejected)
 }

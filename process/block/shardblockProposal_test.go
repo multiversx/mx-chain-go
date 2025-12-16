@@ -579,6 +579,7 @@ func Test_addExecutionResultsOnHeader(t *testing.T) {
 					return nil, expectedErr
 				},
 			},
+			"appStatusHandler": &statusHandlerMock.AppStatusHandlerStub{},
 		})
 		err := sp.AddExecutionResultsOnHeader(&block.HeaderV3{})
 		require.Error(t, err)
@@ -596,6 +597,7 @@ func Test_addExecutionResultsOnHeader(t *testing.T) {
 					}, nil
 				},
 			},
+			"appStatusHandler": &statusHandlerMock.AppStatusHandlerStub{},
 		})
 		err := sp.AddExecutionResultsOnHeader(&block.HeaderV3{})
 		require.Error(t, err)
@@ -623,6 +625,7 @@ func Test_addExecutionResultsOnHeader(t *testing.T) {
 					}
 				},
 			},
+			"appStatusHandler": &statusHandlerMock.AppStatusHandlerStub{},
 		})
 		err := sp.AddExecutionResultsOnHeader(&block.HeaderV3{})
 		require.Error(t, err)
@@ -690,6 +693,7 @@ func Test_addExecutionResultsOnHeader(t *testing.T) {
 					return 0
 				},
 			},
+			"appStatusHandler": &statusHandlerMock.AppStatusHandlerStub{},
 		})
 		err := sp.AddExecutionResultsOnHeader(&block.HeaderV3{
 			Round:    3,
@@ -758,6 +762,7 @@ func Test_addExecutionResultsOnHeader(t *testing.T) {
 					return 0
 				},
 			},
+			"appStatusHandler": &statusHandlerMock.AppStatusHandlerStub{},
 		})
 
 		proposalHeader := &block.HeaderV3{Round: 3}
@@ -834,6 +839,7 @@ func Test_addExecutionResultsOnHeader(t *testing.T) {
 					return 0
 				},
 			},
+			"appStatusHandler": &statusHandlerMock.AppStatusHandlerStub{},
 		})
 
 		proposalHeader := &block.HeaderV3{

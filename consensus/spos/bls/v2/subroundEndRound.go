@@ -974,17 +974,7 @@ func (sr *subroundEndRound) updateNonceDeltaMetrics() {
 		return
 	}
 
-	var lastExecutionResultHeaderNonce uint64
-
-	switch h := sr.GetHeader().(type) {
-	case *block.HeaderV3:
-		lastExecutionResultHeaderNonce = h.GetLastExecutionResult().ExecutionResult.GetHeaderNonce()
-	case *block.MetaBlockV3:
-		lastExecutionResultHeaderNonce = h.GetLastExecutionResult().ExecutionResult.GetHeaderNonce()
-	default:
-		log.Debug("updateNonceDeltaMetrics: unknown header type")
-		return
-	}
+	lastExecutionResultHeaderNonce := common.GetLastExecutionResultNonce(sr.GetHeader())
 
 	sr.appStatusHandler.SetUInt64Value(common.MetricDeltaHeaderNonceLastExecutionResultNonce,
 		sr.GetHeader().GetNonce()-lastExecutionResultHeaderNonce)
