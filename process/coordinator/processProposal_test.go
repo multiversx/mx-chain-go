@@ -2,6 +2,7 @@ package coordinator
 
 import (
 	"errors"
+	"math/big"
 	"reflect"
 	"testing"
 	"time"
@@ -591,12 +592,12 @@ func TestTransactionCoordinator_SelectOutgoingTransactions_MultipleBlockTypes(t 
 
 	// add transactions to the transactions pool
 	cacheId := process.ShardCacherIdentifier(0, 0)
-	ph.Transactions().AddData(txHashesType1[0], &transaction.Transaction{SndAddr: []byte("sender1"), Nonce: 0}, 100, cacheId)
-	ph.Transactions().AddData(txHashesType1[1], &transaction.Transaction{SndAddr: []byte("sender1"), Nonce: 1}, 100, cacheId)
+	ph.Transactions().AddData(txHashesType1[0], &transaction.Transaction{SndAddr: []byte("sender1"), Value: big.NewInt(0), Nonce: 0}, 100, cacheId)
+	ph.Transactions().AddData(txHashesType1[1], &transaction.Transaction{SndAddr: []byte("sender1"), Value: big.NewInt(0), Nonce: 1}, 100, cacheId)
 
 	// add transactions to the unsigned transactions pool
-	ph.UnsignedTransactions().AddData(txHashesType2[0], &transaction.Transaction{SndAddr: []byte("sender2"), Nonce: 0}, 100, cacheId)
-	ph.UnsignedTransactions().AddData(txHashesType2[1], &transaction.Transaction{SndAddr: []byte("sender3"), Nonce: 0}, 100, cacheId)
+	ph.UnsignedTransactions().AddData(txHashesType2[0], &transaction.Transaction{SndAddr: []byte("sender2"), Value: big.NewInt(0), Nonce: 0}, 100, cacheId)
+	ph.UnsignedTransactions().AddData(txHashesType2[1], &transaction.Transaction{SndAddr: []byte("sender3"), Value: big.NewInt(0), Nonce: 0}, 100, cacheId)
 
 	// Add both block types to the keys
 	tc.preProcProposal.keysTxPreProcs = []block.Type{block.TxBlock, block.SmartContractResultBlock}
