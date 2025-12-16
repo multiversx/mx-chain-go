@@ -341,15 +341,19 @@ func (sr *subroundBlock) sendDirectSentTransactions(
 	}
 
 	mrsTxs := sr.BlockProcessor().ProposedDirectSentTransactionsToBroadcast(body)
+	if len(mrsTxs) == 0 {
+		return
+	}
+
 	err := sr.BroadcastMessenger().BroadcastTransactions(mrsTxs, []byte(leader))
 	if err != nil {
 		log.Warn("sendDirectSentTransactions.BroadcastTransactions", "error", err.Error())
 		return
 	}
 
-	mrsTxsPrettified, err := common.PrettifyStruct(mrsTxs)
-	if err == nil {
-		log.Debug("proposed direct sent transactions sent", "txs", mrsTxsPrettified)
+	log.Debug("proposed direct sent transactions sent")
+	for topic, txs := range mrsTxs {
+		log.Trace("on topic", "topic", topic, "txs", len(txs))
 	}
 }
 
