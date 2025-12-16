@@ -224,9 +224,11 @@ func (sr *subroundBlock) sendBlock(header data.HeaderHandler, body data.BodyHand
 	sr.logBlockSize(marshalledBody, marshalledHeader)
 	headerHash := sr.Hasher().Compute(string(marshalledHeader))
 
-	if !sr.sendBlockBody(body, marshalledBody) || !sr.sendBlockHeader(header, headerHash) || !sr.sendDirectSentTransactions(header, body, headerHash, leader) {
+	if !sr.sendBlockBody(body, marshalledBody) || !sr.sendBlockHeader(header, headerHash) {
 		return false
 	}
+
+	sr.sendDirectSentTransactions(header, body, leader)
 
 	return true
 }
@@ -323,7 +325,7 @@ func (sr *subroundBlock) sendBlockHeader(
 	// log the header output for debugging purposes
 	headerOutput, err := common.PrettifyStruct(headerHandler)
 	if err == nil {
-		log.Debug("Proposed header sent", "header", headerOutput)
+		log.Debug("proposed header sent", "header", headerOutput)
 	}
 
 	return true
@@ -332,21 +334,23 @@ func (sr *subroundBlock) sendBlockHeader(
 func (sr *subroundBlock) sendDirectSentTransactions(
 	header data.HeaderHandler,
 	body data.BodyHandler,
-	headerHash []byte,
 	leader string,
-) bool {
+) {
 	if !header.IsHeaderV3() {
-		return true
+		return
 	}
 
-	mrsTxs := sr.BlockProcessor().ProposedDirectSentTransactionsToBroadcast(body, headerHash)
+	mrsTxs := sr.BlockProcessor().ProposedDirectSentTransactionsToBroadcast(body)
 	err := sr.BroadcastMessenger().BroadcastTransactions(mrsTxs, []byte(leader))
 	if err != nil {
 		log.Warn("sendDirectSentTransactions.BroadcastTransactions", "error", err.Error())
-		return false
+		return
 	}
 
-	return true
+	mrsTxsPrettified, err := common.PrettifyStruct(mrsTxs)
+	if err == nil {
+		log.Debug("proposed direct sent transactions sent", "txs", mrsTxsPrettified)
+	}
 }
 
 func (sr *subroundBlock) getPrevHeaderAndHash() (data.HeaderHandler, []byte) {
@@ -648,7 +652,7 @@ func (sr *subroundBlock) receivedBlockHeader(headerHandler data.HeaderHandler) {
 	// log the header output for debugging purposes
 	headerOutput, err := common.PrettifyStruct(headerHandler)
 	if err == nil {
-		log.Debug("Proposed header received", "header", headerOutput)
+		log.Debug("proposed header received", "header", headerOutput)
 	}
 }
 

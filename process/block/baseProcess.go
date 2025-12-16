@@ -1719,12 +1719,12 @@ func (bp *baseProcessor) saveProposedTxsToStorage(header data.HeaderHandler, bod
 
 	separatedBodies := process.SeparateBodyByType(body)
 	for blockType, blockBody := range separatedBodies {
-		dataPool, err := bp.getDataPoolByBlockType(blockType)
+		dataPool, err := process.GetDataPoolByBlockType(blockType, bp.dataPool)
 		if err != nil {
 			return err
 		}
 
-		unit, err := getStorageForProposedTxsFromBlockType(blockType)
+		unit, err := process.GetStorageUnitByBlockType(blockType)
 		if err != nil {
 			return err
 		}
@@ -1802,37 +1802,6 @@ func (bp *baseProcessor) savePeerInfoToStorage(dataPool dataRetriever.ShardedDat
 	}
 
 	return nil
-}
-
-func (bp *baseProcessor) getDataPoolByBlockType(blockType block.Type) (dataRetriever.ShardedDataCacherNotifier, error) {
-	switch blockType {
-	case block.TxBlock, block.InvalidBlock:
-		return bp.dataPool.Transactions(), nil
-	case block.SmartContractResultBlock:
-		return bp.dataPool.UnsignedTransactions(), nil
-	case block.RewardsBlock:
-		return bp.dataPool.RewardTransactions(), nil
-	case block.PeerBlock:
-		return bp.dataPool.ValidatorsInfo(), nil
-	default:
-		return nil, fmt.Errorf("unsupported block type for dataPool: %d", blockType)
-	}
-}
-
-func getStorageForProposedTxsFromBlockType(blockType block.Type) (dataRetriever.UnitType, error) {
-	switch blockType {
-	case block.TxBlock, block.InvalidBlock:
-		return dataRetriever.TransactionUnit, nil
-	case block.SmartContractResultBlock:
-		return dataRetriever.UnsignedTransactionUnit, nil
-	case block.ReceiptBlock:
-		return dataRetriever.ReceiptsUnit, nil
-	case block.RewardsBlock:
-		return dataRetriever.RewardTransactionUnit, nil
-	case block.PeerBlock:
-		return dataRetriever.UnsignedTransactionUnit, nil
-	}
-	return 0, process.ErrInvalidBlockType
 }
 
 func (bp *baseProcessor) saveShardHeader(header data.HeaderHandler, headerHash []byte, marshalizedHeader []byte) {
@@ -2422,8 +2391,8 @@ func (bp *baseProcessor) unmarshalUserAccount(
 }
 
 // ProposedDirectSentTransactionsToBroadcast creates marshaled intra-shard transactions received via direct-send for broadcasting
-func (bp *baseProcessor) ProposedDirectSentTransactionsToBroadcast(proposedBody data.BodyHandler, headerHash []byte) map[string][][]byte {
-	return bp.txCoordinator.ProposedDirectSentTransactionsToBroadcast(proposedBody, headerHash)
+func (bp *baseProcessor) ProposedDirectSentTransactionsToBroadcast(proposedBody data.BodyHandler) map[string][][]byte {
+	return bp.txCoordinator.ProposedDirectSentTransactionsToBroadcast(proposedBody)
 }
 
 // Close closes all underlying components
@@ -3482,7 +3451,7 @@ func (bp *baseProcessor) getTransactionsForMiniBlock(
 		return make([]data.TransactionHandler, 0), nil
 	}
 
-	pool, err := bp.getDataPoolByBlockType(block.Type(miniBlock.GetTypeInt32()))
+	pool, err := process.GetDataPoolByBlockType(block.Type(miniBlock.GetTypeInt32()), bp.dataPool)
 	if err != nil {
 		return nil, err
 	}

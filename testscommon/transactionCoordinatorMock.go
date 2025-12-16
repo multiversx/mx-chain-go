@@ -41,7 +41,7 @@ type TransactionCoordinatorMock struct {
 	AddTransactionsCalled                                func(txHandlers []data.TransactionHandler, blockType block.Type)
 	ComputeTransactionTypeInEpochCalled                  func(tx data.TransactionHandler, epoch uint32) (process.TransactionType, process.TransactionType, bool)
 	CreateReceiptsHashCalled                             func() ([]byte, error)
-	ProposedDirectSentTransactionsToBroadcastCalled      func(proposedBody data.BodyHandler, headerHash []byte) map[string][][]byte
+	ProposedDirectSentTransactionsToBroadcastCalled      func(proposedBody data.BodyHandler) map[string][][]byte
 
 	miniBlocks []*block.MiniBlock
 }
@@ -317,12 +317,12 @@ func (tcm *TransactionCoordinatorMock) ClearStoredMbs() {
 }
 
 // ProposedDirectSentTransactionsToBroadcast -
-func (tcm *TransactionCoordinatorMock) ProposedDirectSentTransactionsToBroadcast(proposedBody data.BodyHandler, headerHash []byte) map[string][][]byte {
+func (tcm *TransactionCoordinatorMock) ProposedDirectSentTransactionsToBroadcast(proposedBody data.BodyHandler) map[string][][]byte {
 	if tcm.ProposedDirectSentTransactionsToBroadcastCalled == nil {
 		return nil
 	}
 
-	return tcm.ProposedDirectSentTransactionsToBroadcastCalled(proposedBody, headerHash)
+	return tcm.ProposedDirectSentTransactionsToBroadcastCalled(proposedBody)
 }
 
 // IsInterfaceNil returns true if there is no value under the interface
