@@ -850,22 +850,21 @@ func (ssh *shardStorageHandler) saveTriggerRegistry(components *ComponentsNeeded
 		return nil, err
 	}
 
-	triggerReg := block.ShardTriggerRegistry{
-		Epoch:                       shardHeader.GetEpoch(),
-		MetaEpoch:                   metaBlock.GetEpoch(),
-		CurrentRoundIndex:           int64(shardHeader.GetRound()),
-		EpochStartRound:             shardHeader.GetRound(),
-		EpochMetaBlockHash:          metaBlockHash,
-		IsEpochStart:                true,
-		NewEpochHeaderReceived:      true,
-		EpochFinalityAttestingRound: 0,
-		EpochStartShardHeader:       &block.Header{},
-	}
+	triggerReg := epochStart.CreateShardRegistryHandler(shardHeader)
+	_ = triggerReg.SetEpoch(shardHeader.GetEpoch())
+	_ = triggerReg.SetMetaEpoch(metaBlock.GetEpoch())
+	_ = triggerReg.SetCurrentRoundIndex(int64(shardHeader.GetRound()))
+	_ = triggerReg.SetEpochStartRound(shardHeader.GetRound())
+	_ = triggerReg.SetEpochMetaBlockHash(metaBlockHash)
+	_ = triggerReg.SetIsEpochStart(true)
+	_ = triggerReg.SetNewEpochHeaderReceived(true)
+	_ = triggerReg.SetEpochFinalityAttestingRound(0)
+	_ = triggerReg.SetEpochStartHeaderHandler(shardHeader)
 
 	bootstrapKey := []byte(fmt.Sprint(shardHeader.GetRound()))
 	trigInternalKey := append([]byte(common.TriggerRegistryKeyPrefix), bootstrapKey...)
 
-	triggerRegBytes, err := ssh.marshalizer.Marshal(&triggerReg)
+	triggerRegBytes, err := ssh.marshalizer.Marshal(triggerReg)
 	if err != nil {
 		return nil, err
 	}

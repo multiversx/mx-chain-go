@@ -13,7 +13,6 @@ import (
 
 	"github.com/multiversx/mx-chain-go/config"
 	"github.com/multiversx/mx-chain-go/errors"
-	"github.com/multiversx/mx-chain-go/integrationTests"
 	chainSimulatorCommon "github.com/multiversx/mx-chain-go/integrationTests/chainSimulator"
 	"github.com/multiversx/mx-chain-go/node/chainSimulator/components/api"
 	"github.com/multiversx/mx-chain-go/node/chainSimulator/configs"
@@ -41,6 +40,46 @@ var (
 		Value:    defaultSupernovaRoundsPerEpochValue,
 	}
 )
+
+func TestChainSimulatorCheckSupernova(t *testing.T) {
+	chainSimulator, err := NewChainSimulator(ArgsChainSimulator{
+		BypassTxSignatureCheck:         true,
+		TempDir:                        t.TempDir(),
+		PathToInitialConfig:            defaultPathToInitialConfig,
+		NumOfShards:                    defaultNumOfShards,
+		RoundDurationInMillis:          defaultRoundDurationInMillis,
+		SupernovaRoundDurationInMillis: defaultSupernovaRoundDurationInMillis,
+		RoundsPerEpoch:                 defaultRoundsPerEpoch,
+		SupernovaRoundsPerEpoch:        defaultSupernovaRoundsPerEpoch,
+		ApiInterface:                   api.NewNoApiInterface(),
+		MinNodesPerShard:               3,
+		MetaChainMinNodes:              3,
+		AlterConfigsFunction: func(cfg *config.Configs) {
+
+		},
+	})
+	require.Nil(t, err)
+	require.NotNil(t, chainSimulator)
+
+	err = chainSimulator.GenerateBlocksUntilEpochIsReached(2)
+	require.Nil(t, err)
+
+	err = chainSimulator.GenerateBlocks(2)
+	require.Nil(t, err)
+
+	err = chainSimulator.GenerateBlocks(1) // supernova round activation
+	require.Nil(t, err)
+
+	err = chainSimulator.GenerateBlocks(1)
+	require.Nil(t, err)
+
+	err = chainSimulator.GenerateBlocks(50)
+	require.Nil(t, err)
+
+	time.Sleep(time.Second)
+
+	chainSimulator.Close()
+}
 
 func TestNewChainSimulator(t *testing.T) {
 	if testing.Short() {
@@ -114,7 +153,7 @@ func TestChainSimulator_GenerateBlocksShouldWork(t *testing.T) {
 			// because the owner of a BLS key coming from genesis is not set
 			// (the owner is not set at genesis anymore because we do not enable the staking v2 in that phase)
 			cfg.EpochConfig.EnableEpochs.StakingV2EnableEpoch = 0
-			integrationTests.DeactivateSupernovaInConfig(cfg)
+			cfg.EpochConfig.EnableEpochs.SupernovaEnableEpoch = 99999
 		},
 	})
 	require.Nil(t, err)

@@ -176,7 +176,7 @@ func (t *trigger) ForceEpochStart(round uint64) {
 	defer t.mutTrigger.Unlock()
 
 	t.nextEpochStartRound = round
-	if t.nextEpochStartRound > t.currEpochStartRound+t.getRoundsPerEpoch(t.epoch) {
+	if t.nextEpochStartRound > t.currEpochStartRound+t.getRoundsPerEpoch(t.epoch)-t.getOffsetPerEpoch(t.epoch) {
 		t.nextEpochStartRound = disabledRoundForForceEpochStart
 		log.Debug("can not force epoch start because the resulting round is in the next epoch")
 
@@ -201,6 +201,16 @@ func (t *trigger) getRoundsPerEpoch(epoch uint32) uint64 {
 	}
 
 	return uint64(chainParametersForEpoch.RoundsPerEpoch)
+}
+
+func (t *trigger) getOffsetPerEpoch(epoch uint32) uint64 {
+	chainParametersForEpoch, err := t.chainParametersHandler.ChainParametersForEpoch(epoch)
+	if err != nil {
+		log.Warn("could not get rounds per epoch for epoch, returned current chain parameters", "epoch", epoch, "error", err)
+		chainParametersForEpoch = t.chainParametersHandler.CurrentChainParameters()
+	}
+
+	return uint64(chainParametersForEpoch.Offset)
 }
 
 func (t *trigger) getMinRoundsBetweenEpochs(epoch uint32) uint64 {
@@ -235,7 +245,7 @@ func (t *trigger) SetEpochChangeProposed(value bool) {
 
 func (t *trigger) shouldTriggerEpochStart(currentRound uint64, currentNonce uint64) bool {
 	isZeroEpochEdgeCase := currentNonce < minimumNonceToStartEpoch
-	isNormalEpochStart := currentRound > t.currEpochStartRound+t.getRoundsPerEpoch(t.epoch)
+	isNormalEpochStart := currentRound > t.currEpochStartRound+t.getRoundsPerEpoch(t.epoch)-t.getOffsetPerEpoch(t.epoch)
 	isWithEarlyEndOfEpoch := currentRound >= t.nextEpochStartRound
 	shouldTriggerEpochStart := (isNormalEpochStart || isWithEarlyEndOfEpoch) && !isZeroEpochEdgeCase
 
@@ -396,8 +406,7 @@ func (t *trigger) revert(header data.HeaderHandler) error {
 		return err
 	}
 
-	epochStartMeta := &block.MetaBlock{}
-	err = t.marshaller.Unmarshal(epochStartMeta, epochStartMetaBuff)
+	epochStartMeta, err := process.UnmarshalMetaHeader(t.marshaller, epochStartMetaBuff)
 	if err != nil {
 		log.Warn("Revert unmarshal previous meta", "error", err)
 		return err
@@ -478,8 +487,7 @@ func (t *trigger) GetEpochStartHdrFromStorage(epoch uint32) (data.HeaderHandler,
 		return nil, err
 	}
 
-	metaHdr := &block.MetaBlock{}
-	err = t.marshaller.Unmarshal(metaHdr, epochStartMetaBuff)
+	metaHdr, err := process.UnmarshalMetaHeader(t.marshaller, epochStartMetaBuff)
 	if err != nil {
 		return nil, err
 	}

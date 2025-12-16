@@ -72,7 +72,6 @@ func TransferAndCheckTokensMetaData(t *testing.T, isCrossShard bool, isMultiTran
 		AlterConfigsFunction: func(cfg *config.Configs) {
 			cfg.EpochConfig.EnableEpochs.DynamicESDTEnableEpoch = activationEpoch
 			cfg.SystemSCConfig.ESDTSystemSCConfig.BaseIssuingCost = baseIssuingCost
-			integrationTests.DeactivateSupernovaInConfig(cfg)
 		},
 	})
 	require.Nil(t, err)
@@ -912,7 +911,6 @@ func GetTestChainSimulatorWithDynamicNFTEnabled(t *testing.T, baseIssuingCost st
 			cfg.EpochConfig.EnableEpochs.DynamicESDTEnableEpoch = activationEpochForDynamicNFT
 			cfg.EpochConfig.EnableEpochs.SupernovaEnableEpoch = integrationTests.UnreachableEpoch // TODO: handle supernova activation with transition
 			cfg.SystemSCConfig.ESDTSystemSCConfig.BaseIssuingCost = baseIssuingCost
-			integrationTests.DeactivateSupernovaInConfig(cfg)
 		},
 	})
 	require.Nil(t, err)
@@ -947,7 +945,6 @@ func GetTestChainSimulatorWithSaveToSystemAccountDisabled(t *testing.T, baseIssu
 			cfg.EpochConfig.EnableEpochs.OptimizeNFTStoreEnableEpoch = activationEpochForSaveToSystemAccount
 			cfg.EpochConfig.EnableEpochs.DynamicESDTEnableEpoch = activationEpochForDynamicNFT
 			cfg.SystemSCConfig.ESDTSystemSCConfig.BaseIssuingCost = baseIssuingCost
-			integrationTests.DeactivateSupernovaInConfig(cfg)
 		},
 	})
 	require.Nil(t, err)

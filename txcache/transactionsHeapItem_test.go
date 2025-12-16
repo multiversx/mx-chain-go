@@ -44,7 +44,8 @@ func TestTransactionsHeapItem_selectTransaction(t *testing.T) {
 	item, err := newTransactionsHeapItem(bunchOfTransactions{a, b})
 	require.NoError(t, err)
 
-	selected := item.selectCurrentTransaction()
+	selected := item.getCurrentTransaction()
+	item.selectCurrentTransaction()
 	require.Equal(t, a, selected)
 	require.Equal(t, a, item.latestSelectedTransaction)
 	require.Equal(t, 42, int(item.latestSelectedTransactionNonce))
@@ -52,7 +53,8 @@ func TestTransactionsHeapItem_selectTransaction(t *testing.T) {
 	ok := item.gotoNextTransaction()
 	require.True(t, ok)
 
-	selected = item.selectCurrentTransaction()
+	selected = item.getCurrentTransaction()
+	item.selectCurrentTransaction()
 	require.Equal(t, b, selected)
 	require.Equal(t, b, item.latestSelectedTransaction)
 	require.Equal(t, 43, int(item.latestSelectedTransactionNonce))

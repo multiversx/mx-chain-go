@@ -59,11 +59,6 @@ func (virtualSession *virtualSelectionSession) getNonceForAccountRecord(accountR
 }
 
 func (virtualSession *virtualSelectionSession) accumulateConsumedBalance(tx *WrappedTransaction, senderRecord *virtualAccountRecord) error {
-	transferredValue := tx.TransferredValue
-	if transferredValue != nil {
-		senderRecord.accumulateConsumedBalance(transferredValue)
-	}
-
 	var feePayerRecord *virtualAccountRecord
 
 	// check if there's a need to search for another record
@@ -88,6 +83,14 @@ func (virtualSession *virtualSelectionSession) accumulateConsumedBalance(tx *Wra
 		feePayerRecord.accumulateConsumedBalance(fee)
 	}
 
+	// getting the record of the fee payer might generate an unexpected failure.
+	// this means that the transaction will not be selected.
+	// accumulate the transferred value only if there isn't any error until here.
+	transferredValue := tx.TransferredValue
+	if transferredValue != nil {
+		senderRecord.accumulateConsumedBalance(transferredValue)
+	}
+
 	return nil
 }
 
@@ -96,7 +99,7 @@ func (virtualSession *virtualSelectionSession) consumedBalanceExceedsInitialBala
 	if err != nil {
 		log.Debug("virtualSelectionSession.consumedBalanceExceedsInitialBalance",
 			"err", err)
-		return false
+		return true
 	}
 
 	consumedBalance := record.getConsumedBalance()
@@ -118,19 +121,19 @@ func (virtualSession *virtualSelectionSession) consumedBalanceExceedsInitialBala
 func (virtualSession *virtualSelectionSession) detectWillBalanceBeExceeded(tx *WrappedTransaction) bool {
 	if tx == nil {
 		log.Debug("virtualSelectionSession.detectWillBalanceBeExceeded nil wrapped transaction")
-		return false
+		return true
 	}
 
 	if tx.Tx == nil {
 		log.Debug("virtualSelectionSession.detectWillBalanceBeExceeded nil tx")
-		return false
+		return true
 	}
 
 	sender := tx.Tx.GetSndAddr()
 	transferredValue := tx.TransferredValue
 	if transferredValue == nil {
 		log.Trace("virtualSelectionSession.detectWillBalanceBeExceeded nil transferredValue")
-		return false
+		return true
 	}
 
 	if virtualSession.consumedBalanceExceedsInitialBalance(sender, transferredValue) {
@@ -146,7 +149,7 @@ func (virtualSession *virtualSelectionSession) detectWillBalanceBeExceeded(tx *W
 	fee := tx.Fee
 	if fee == nil {
 		log.Debug("virtualSelectionSession.detectWillBalanceBeExceeded nil fee")
-		return false
+		return true
 	}
 
 	if virtualSession.consumedBalanceExceedsInitialBalance(feePayer, fee) {

@@ -4093,15 +4093,3 @@ func GetDefaultRoundsConfig() config.RoundConfig {
 		},
 	}
 }
-
-// DeactivateSupernovaInConfig -
-func DeactivateSupernovaInConfig(cfg *config.Configs) {
-	cfg.EpochConfig.EnableEpochs.SupernovaEnableEpoch = UnreachableEpoch
-	defaultRoundConfig := GetDefaultRoundsConfig()
-	cfg.RoundConfig = &defaultRoundConfig
-	cfg.GeneralConfig.Versions.VersionsByEpochs = []config.VersionByEpochs{
-		{StartEpoch: 0, StartRound: 0, Version: "*"},
-		{StartEpoch: 1, StartRound: 0, Version: "2"},
-		{StartEpoch: UnreachableEpoch, StartRound: 0, Version: "3"},
-	}
-}

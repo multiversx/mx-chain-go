@@ -88,13 +88,9 @@ func TestMempoolWithChainSimulator_Selection_WhenUsersHaveZeroBalance_WithRelaye
 		cfg.EpochConfig.EnableEpochs.FixRelayedBaseCostEnableEpoch = 2
 		cfg.EpochConfig.EnableEpochs.RelayedTransactionsV3EnableEpoch = 2
 		cfg.EpochConfig.EnableEpochs.RelayedTransactionsV3FixESDTTransferEnableEpoch = 2
-		cfg.EpochConfig.EnableEpochs.SupernovaEnableEpoch = 0
 		cfg.RoundConfig.RoundActivations = map[string]config.ActivationRoundByName{
 			"DisableAsyncCallV1": {
 				Round: "9999999",
-			},
-			"SupernovaEnableRound": {
-				Round: "0",
 			},
 		}
 	}
@@ -163,7 +159,7 @@ func TestMempoolWithChainSimulator_Selection_WhenUsersHaveZeroBalance_WithRelaye
 	require.Equal(t, 1, len(selectedTransactions))
 	require.Equal(t, bob.Bytes, selectedTransactions[0].Tx.GetSndAddr())
 
-	err = simulator.GenerateBlocks(1)
+	err = simulator.GenerateBlocks(2)
 	require.Nil(t, err)
 	require.Equal(t, 1, getNumTransactionsInCurrentBlock(simulator, shard))
 	require.Equal(t, "success", getTransaction(t, simulator, shard, selectedTransactions[0].TxHash).Status.String())

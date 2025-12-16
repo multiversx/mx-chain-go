@@ -12,7 +12,6 @@ import (
 	"github.com/stretchr/testify/require"
 
 	"github.com/multiversx/mx-chain-go/config"
-	"github.com/multiversx/mx-chain-go/integrationTests"
 	vm2 "github.com/multiversx/mx-chain-go/integrationTests/chainSimulator/vm"
 	"github.com/multiversx/mx-chain-go/integrationTests/vm/txsFee"
 	"github.com/multiversx/mx-chain-go/integrationTests/vm/txsFee/utils"
@@ -50,7 +49,6 @@ func TestChainSimulator_EGLD_MultiTransfer(t *testing.T) {
 		AlterConfigsFunction: func(cfg *config.Configs) {
 			cfg.EpochConfig.EnableEpochs.EGLDInMultiTransferEnableEpoch = activationEpoch
 			cfg.SystemSCConfig.ESDTSystemSCConfig.BaseIssuingCost = baseIssuingCost
-			integrationTests.DeactivateSupernovaInConfig(cfg)
 		},
 	})
 	require.Nil(t, err)
@@ -230,7 +228,6 @@ func TestChainSimulator_EGLD_MultiTransfer_Insufficient_Funds(t *testing.T) {
 		AlterConfigsFunction: func(cfg *config.Configs) {
 			cfg.EpochConfig.EnableEpochs.EGLDInMultiTransferEnableEpoch = activationEpoch
 			cfg.SystemSCConfig.ESDTSystemSCConfig.BaseIssuingCost = baseIssuingCost
-			integrationTests.DeactivateSupernovaInConfig(cfg)
 		},
 	})
 	require.Nil(t, err)
@@ -338,7 +335,6 @@ func TestChainSimulator_EGLD_MultiTransfer_Invalid_Value(t *testing.T) {
 		AlterConfigsFunction: func(cfg *config.Configs) {
 			cfg.EpochConfig.EnableEpochs.EGLDInMultiTransferEnableEpoch = activationEpoch
 			cfg.SystemSCConfig.ESDTSystemSCConfig.BaseIssuingCost = baseIssuingCost
-			integrationTests.DeactivateSupernovaInConfig(cfg)
 		},
 	})
 	require.Nil(t, err)
@@ -461,7 +457,6 @@ func TestChainSimulator_Multiple_EGLD_Transfers(t *testing.T) {
 		AlterConfigsFunction: func(cfg *config.Configs) {
 			cfg.EpochConfig.EnableEpochs.EGLDInMultiTransferEnableEpoch = activationEpoch
 			cfg.SystemSCConfig.ESDTSystemSCConfig.BaseIssuingCost = baseIssuingCost
-			integrationTests.DeactivateSupernovaInConfig(cfg)
 		},
 	})
 	require.Nil(t, err)
@@ -673,7 +668,6 @@ func TestChainSimulator_IssueToken_EGLDTicker(t *testing.T) {
 		AlterConfigsFunction: func(cfg *config.Configs) {
 			cfg.EpochConfig.EnableEpochs.EGLDInMultiTransferEnableEpoch = activationEpoch
 			cfg.SystemSCConfig.ESDTSystemSCConfig.BaseIssuingCost = baseIssuingCost
-			integrationTests.DeactivateSupernovaInConfig(cfg)
 		},
 	})
 	require.Nil(t, err)
@@ -766,12 +760,10 @@ func TestScCallTransferValueESDT(t *testing.T) {
 		MetaChainMinNodes:        3,
 		NumNodesWaitingListMeta:  3,
 		NumNodesWaitingListShard: 3,
-
-		InitialEpoch: 1700,
-		InitialNonce: 1700,
-		InitialRound: 1700,
+		InitialEpoch:             1,
+		InitialNonce:             1,
+		InitialRound:             1,
 		AlterConfigsFunction: func(cfg *config.Configs) {
-			integrationTests.DeactivateSupernovaInConfig(cfg)
 		},
 	})
 	require.NoError(t, err)

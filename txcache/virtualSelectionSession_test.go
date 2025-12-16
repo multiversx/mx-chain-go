@@ -339,8 +339,12 @@ func Test_detectWillBalanceBeExceeded(t *testing.T) {
 		}
 
 		tx := WrappedTransaction{
-			Fee:      big.NewInt(2),
-			FeePayer: []byte("alice"),
+			Tx: &transaction.Transaction{
+				SndAddr: []byte("bob"),
+			},
+			TransferredValue: big.NewInt(0),
+			Fee:              big.NewInt(2),
+			FeePayer:         []byte("alice"),
 		}
 
 		actualRes := virtualSession.detectWillBalanceBeExceeded(&tx)
