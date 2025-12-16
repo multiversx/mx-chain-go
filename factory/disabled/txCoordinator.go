@@ -164,7 +164,7 @@ func (txCoordinator *TxCoordinator) GetAllCurrentLogs() []data.LogDataHandler {
 }
 
 // ProposedDirectSentTransactionsToBroadcast returns an empty map
-func (txCoordinator *TxCoordinator) ProposedDirectSentTransactionsToBroadcast(_ data.BodyHandler, _ []byte) map[string][][]byte {
+func (txCoordinator *TxCoordinator) ProposedDirectSentTransactionsToBroadcast(_ data.BodyHandler) map[string][][]byte {
 	return make(map[string][][]byte)
 }
 

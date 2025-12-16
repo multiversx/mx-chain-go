@@ -2422,8 +2422,8 @@ func (bp *baseProcessor) unmarshalUserAccount(
 }
 
 // ProposedDirectSentTransactionsToBroadcast creates marshaled intra-shard transactions received via direct-send for broadcasting
-func (bp *baseProcessor) ProposedDirectSentTransactionsToBroadcast(proposedBody data.BodyHandler, headerHash []byte) map[string][][]byte {
-	return bp.txCoordinator.ProposedDirectSentTransactionsToBroadcast(proposedBody, headerHash)
+func (bp *baseProcessor) ProposedDirectSentTransactionsToBroadcast(proposedBody data.BodyHandler) map[string][][]byte {
+	return bp.txCoordinator.ProposedDirectSentTransactionsToBroadcast(proposedBody)
 }
 
 // Close closes all underlying components

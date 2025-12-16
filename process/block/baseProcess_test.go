@@ -5575,14 +5575,14 @@ func TestBaseProcessor_ProposedDirectSentTransactionsToBroadcast(t *testing.T) {
 	arguments := CreateMockArguments(coreComponents, dataComponents, bootstrapComponents, statusComponents)
 	wasProposedDirectSentTransactionsToBroadcastCalled := false
 	arguments.TxCoordinator = &testscommon.TransactionCoordinatorMock{
-		ProposedDirectSentTransactionsToBroadcastCalled: func(proposedBody data.BodyHandler, headerHash []byte) map[string][][]byte {
+		ProposedDirectSentTransactionsToBroadcastCalled: func(proposedBody data.BodyHandler) map[string][][]byte {
 			wasProposedDirectSentTransactionsToBroadcastCalled = true
 			return nil
 		},
 	}
 	bp, _ := blproc.NewShardProcessor(arguments)
 
-	_ = bp.ProposedDirectSentTransactionsToBroadcast(nil, nil)
+	_ = bp.ProposedDirectSentTransactionsToBroadcast(nil)
 	require.True(t, wasProposedDirectSentTransactionsToBroadcastCalled)
 }
 

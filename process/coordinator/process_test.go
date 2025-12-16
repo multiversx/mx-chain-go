@@ -4278,7 +4278,7 @@ func TestTransactionCoordinator_ProposedDirectSentTransactionsToBroadcast(t *tes
 		require.Nil(t, err)
 		require.NotNil(t, tc)
 
-		result := tc.ProposedDirectSentTransactionsToBroadcast(nil, []byte("headerHash"))
+		result := tc.ProposedDirectSentTransactionsToBroadcast(nil)
 		require.NotNil(t, result)
 		require.Equal(t, 0, len(result))
 	})
@@ -4314,7 +4314,7 @@ func TestTransactionCoordinator_ProposedDirectSentTransactionsToBroadcast(t *tes
 			},
 		}
 
-		result := tc.ProposedDirectSentTransactionsToBroadcast(body, []byte("headerHash"))
+		result := tc.ProposedDirectSentTransactionsToBroadcast(body)
 		require.NotNil(t, result)
 		require.Equal(t, 0, len(result))
 	})
@@ -4346,7 +4346,7 @@ func TestTransactionCoordinator_ProposedDirectSentTransactionsToBroadcast(t *tes
 			},
 		}
 
-		result := tc.ProposedDirectSentTransactionsToBroadcast(body, []byte("headerHash"))
+		result := tc.ProposedDirectSentTransactionsToBroadcast(body)
 		require.NotNil(t, result)
 		require.Equal(t, 0, len(result))
 	})
@@ -4426,7 +4426,7 @@ func TestTransactionCoordinator_ProposedDirectSentTransactionsToBroadcast(t *tes
 			},
 		}
 
-		result := tc.ProposedDirectSentTransactionsToBroadcast(body, []byte("headerHash"))
+		result := tc.ProposedDirectSentTransactionsToBroadcast(body)
 		require.NotNil(t, result)
 		require.Equal(t, 1, len(result))
 		txs, ok := result[factory.TransactionTopic+"_0"]

@@ -781,7 +781,7 @@ func TestSubroundBlock_DoBlockJob(t *testing.T) {
 				require.Fail(t, "should have not been called")
 				return nil, nil, nil
 			},
-			ProposedDirectSentTransactionsToBroadcastCalled: func(proposedBody data.BodyHandler, headerHash []byte) map[string][][]byte {
+			ProposedDirectSentTransactionsToBroadcastCalled: func(proposedBody data.BodyHandler) map[string][][]byte {
 				return map[string][][]byte{
 					"topic": {providedMarshalledTx},
 				}

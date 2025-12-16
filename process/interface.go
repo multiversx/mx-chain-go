@@ -204,7 +204,7 @@ type TransactionCoordinator interface {
 		header data.HeaderHandler,
 		processedMiniBlocksInfo map[string]*processedMb.ProcessedMiniBlockInfo,
 	) (addedMiniBlocksAndHashes []block.MiniblockAndHash, pendingMiniBlocksAndHashes []block.MiniblockAndHash, numTransactions uint32, allMiniBlocksAdded bool, err error)
-	ProposedDirectSentTransactionsToBroadcast(proposedBody data.BodyHandler, headerHash []byte) map[string][][]byte
+	ProposedDirectSentTransactionsToBroadcast(proposedBody data.BodyHandler) map[string][][]byte
 }
 
 // SmartContractProcessor is the main interface for the smart contract caller engine
@@ -312,7 +312,7 @@ type BlockProcessor interface {
 		proposedHash []byte,
 	) error
 	OnExecutedBlock(header data.HeaderHandler, rootHash []byte) error
-	ProposedDirectSentTransactionsToBroadcast(proposedBody data.BodyHandler, headerHash []byte) map[string][][]byte
+	ProposedDirectSentTransactionsToBroadcast(proposedBody data.BodyHandler) map[string][][]byte
 	Close() error
 	IsInterfaceNil() bool
 }

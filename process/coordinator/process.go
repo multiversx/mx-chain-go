@@ -894,7 +894,7 @@ func createBroadcastTopic(shardC sharding.Coordinator, destShId uint32, mbType b
 }
 
 // ProposedDirectSentTransactionsToBroadcast creates marshaled intra-shard transactions received via direct-send for broadcasting
-func (tc *transactionCoordinator) ProposedDirectSentTransactionsToBroadcast(proposedBody data.BodyHandler, headerHash []byte) map[string][][]byte {
+func (tc *transactionCoordinator) ProposedDirectSentTransactionsToBroadcast(proposedBody data.BodyHandler) map[string][][]byte {
 	mrsTxs := make(map[string][][]byte)
 
 	bodyPtr, ok := proposedBody.(*block.Body)
@@ -903,11 +903,8 @@ func (tc *transactionCoordinator) ProposedDirectSentTransactionsToBroadcast(prop
 		return mrsTxs
 	}
 
-	cachedIntermediateTxsMap, err := common.GetCachedIntermediateTxs(tc.dataPool.PostProcessTransactions(), headerHash)
-	if err != nil {
-		log.Warn("ProposedDirectSentTransactionsToBroadcast.GetCachedIntermediateTxs", "error", err.Error())
-		return mrsTxs
-	}
+	// should not be any intermediate transactions at this point and all data needed should be in pools
+	cachedIntermediateTxsMap := make(map[block.Type]map[string]data.TransactionHandler)
 
 	for _, miniBlock := range bodyPtr.MiniBlocks {
 		isIntraShardMb := miniBlock.SenderShardID == miniBlock.ReceiverShardID &&
