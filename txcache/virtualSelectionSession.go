@@ -83,7 +83,7 @@ func (virtualSession *virtualSelectionSession) accumulateConsumedBalance(tx *Wra
 		feePayerRecord.accumulateConsumedBalance(fee)
 	}
 
-	// getting the record of the gee payer might generate an unexpected failure.
+	// getting the record of the fee payer might generate an unexpected failure.
 	// this means that the transaction will not be selected.
 	// accumulate the transferred value only if there isn't any error until here.
 	transferredValue := tx.TransferredValue
