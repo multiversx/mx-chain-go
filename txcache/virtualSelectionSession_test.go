@@ -282,7 +282,7 @@ func Test_accumulateConsumedBalance(t *testing.T) {
 	})
 }
 
-func Test_detectWillFeeExceedBalance(t *testing.T) {
+func Test_detectWillBalanceBeExceeded(t *testing.T) {
 	t.Parallel()
 
 	t.Run("should exceed balance", func(t *testing.T) {

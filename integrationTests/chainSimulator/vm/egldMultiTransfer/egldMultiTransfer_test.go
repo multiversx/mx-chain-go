@@ -285,8 +285,11 @@ func TestChainSimulator_EGLD_MultiTransfer_Insufficient_Funds(t *testing.T) {
 
 	beforeBalanceStr0 := account0.Balance
 
+	account1, err := cs.GetAccount(addrs[1])
 	_, err = cs.GetAccount(addrs[1])
 	require.Nil(t, err)
+
+	beforeBalanceStr1 := account1.Balance
 
 	egldValue, _ := big.NewInt(0).SetString(beforeBalanceStr0, 10)
 	egldValue = egldValue.Add(egldValue, big.NewInt(13))
@@ -295,6 +298,17 @@ func TestChainSimulator_EGLD_MultiTransfer_Insufficient_Funds(t *testing.T) {
 	txResult, err = cs.SendTxAndGenerateBlockTilTxIsExecuted(tx, vm2.MaxNumOfBlockToGenerateWhenExecutingTx)
 	require.ErrorContains(t, err, "Transaction(s) is/are still in pending")
 	require.Nil(t, txResult)
+
+	// check accounts balance
+	account0, err = cs.GetAccount(addrs[0])
+	require.Nil(t, err)
+
+	require.Equal(t, beforeBalanceStr0, account0.Balance)
+
+	account1, err = cs.GetAccount(addrs[1])
+	require.Nil(t, err)
+
+	require.Equal(t, beforeBalanceStr1, account1.Balance)
 }
 
 func TestChainSimulator_EGLD_MultiTransfer_Invalid_Value(t *testing.T) {
