@@ -503,7 +503,7 @@ func (pcf *processComponentsFactory) Create() (*processComponents, error) {
 	}
 	mbsPoolsCleaner, err := poolsCleaner.NewMiniBlocksPoolsCleaner(argsMiniBlocksPoolsCleaner)
 	if err != nil {
-		return nil, err
+		return nil, fmt.Errorf("%w in processComponentsFactory.Create for NewMiniBlocksPoolsCleaner", err)
 	}
 
 	mbsPoolsCleaner.StartCleaning()
@@ -519,7 +519,7 @@ func (pcf *processComponentsFactory) Create() (*processComponents, error) {
 	}
 	txsPoolsCleaner, err := poolsCleaner.NewTxsPoolsCleaner(argsBasePoolsCleaner)
 	if err != nil {
-		return nil, err
+		return nil, fmt.Errorf("%w in processComponentsFactory.Create for NewTxsPoolsCleaner", err)
 	}
 
 	txsPoolsCleaner.StartCleaning()

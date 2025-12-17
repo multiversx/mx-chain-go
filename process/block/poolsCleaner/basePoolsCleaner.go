@@ -9,8 +9,6 @@ import (
 	"github.com/multiversx/mx-chain-go/sharding"
 )
 
-const minRoundsToKeepUnprocessedData = int64(1)
-
 // ArgBasePoolsCleaner is the base argument structure used to create pools cleaners
 type ArgBasePoolsCleaner struct {
 	RoundHandler          process.RoundHandler
@@ -45,12 +43,6 @@ func checkBaseArgs(args ArgBasePoolsCleaner) error {
 	if check.IfNil(args.ProcessConfigsHandler) {
 		return process.ErrNilProcessConfigsHandler
 	}
-
-	// TODO: Move these checks
-	//if args.MaxRoundsToKeepUnprocessedData < minRoundsToKeepUnprocessedData {
-	//	return fmt.Errorf("%w for MaxRoundsToKeepUnprocessedData, received %d, min expected %d",
-	//		process.ErrInvalidValue, args.MaxRoundsToKeepUnprocessedData, minRoundsToKeepUnprocessedData)
-	//}
 
 	return nil
 }

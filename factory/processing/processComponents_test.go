@@ -719,24 +719,34 @@ func TestProcessComponentsFactory_Create(t *testing.T) {
 		}
 		testCreateWithArgs(t, args, expectedErr.Error())
 	})
-	/*
-		t.Run("NewMiniBlocksPoolsCleaner fails should error", func(t *testing.T) {
-			t.Parallel()
+	t.Run("NewMiniBlocksPoolsCleaner fails should error", func(t *testing.T) {
+		t.Parallel()
 
-			args := createMockProcessComponentsFactoryArgs()
-			args.Config.PoolsCleanersConfig.MaxRoundsToKeepUnprocessedMiniBlocks = 0
-			testCreateWithArgs(t, args, "MaxRoundsToKeepUnprocessedData")
-		})
+		args := createMockProcessComponentsFactoryArgs()
+		ct := 0
+		args.CoreData.(*mock.CoreComponentsMock).ProcessConfigsHandlerCalled = func() common.ProcessConfigsHandler {
+			if ct == 1 {
+				return nil
+			}
+			ct++
+			return args.CoreData.(*mock.CoreComponentsMock).ProcessConfigsHandlerField
+		}
+		testCreateWithArgs(t, args, "NewMiniBlocksPoolsCleaner")
+	})
+	t.Run("NewTxsPoolsCleaner fails should error", func(t *testing.T) {
+		t.Parallel()
 
-		t.Run("NewTxsPoolsCleaner fails should error", func(t *testing.T) {
-			t.Parallel()
-
-			args := createMockProcessComponentsFactoryArgs()
-			args.Config.PoolsCleanersConfig.MaxRoundsToKeepUnprocessedTransactions = 0
-			testCreateWithArgs(t, args, "MaxRoundsToKeepUnprocessedData")
-		})
-
-	*/
+		args := createMockProcessComponentsFactoryArgs()
+		ct := 0
+		args.CoreData.(*mock.CoreComponentsMock).ProcessConfigsHandlerCalled = func() common.ProcessConfigsHandler {
+			if ct == 2 {
+				return nil
+			}
+			ct++
+			return args.CoreData.(*mock.CoreComponentsMock).ProcessConfigsHandlerField
+		}
+		testCreateWithArgs(t, args, "NewTxsPoolsCleaner")
+	})
 	t.Run("createHardforkTrigger fails due to Decode failure should error", func(t *testing.T) {
 		t.Parallel()
 

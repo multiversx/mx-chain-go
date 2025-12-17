@@ -1,10 +1,12 @@
 package configs_test
 
 import (
+	"strings"
 	"testing"
 
 	"github.com/multiversx/mx-chain-go/common/configs"
 	"github.com/multiversx/mx-chain-go/config"
+	"github.com/multiversx/mx-chain-go/process"
 	"github.com/stretchr/testify/require"
 )
 
@@ -51,6 +53,36 @@ func TestNewProcessConfigsByEpoch(t *testing.T) {
 		require.Equal(t, configs.ErrMissingEpochZeroConfig, err)
 	})
 
+	t.Run("should return error for zero MaxRoundsToKeepUnprocessedTransactions value", func(t *testing.T) {
+		t.Parallel()
+
+		confByEpoch := []config.ProcessConfigByEpoch{
+			{EnableEpoch: 0, MaxMetaNoncesBehind: 15},
+		}
+		confByRound := []config.ProcessConfigByRound{
+			{EnableRound: 1, MaxRoundsToKeepUnprocessedMiniBlocks: 15, MaxRoundsToKeepUnprocessedTransactions: 0},
+		}
+		pce, err := configs.NewProcessConfigsHandler(confByEpoch, confByRound)
+		require.Nil(t, pce)
+		require.ErrorIs(t, err, process.ErrInvalidValue)
+		require.True(t, strings.Contains(err.Error(), "MaxRoundsToKeepUnprocessedTransactions"))
+	})
+
+	t.Run("should return error for zero MaxRoundsToKeepUnprocessedMiniBlocks value", func(t *testing.T) {
+		t.Parallel()
+
+		confByEpoch := []config.ProcessConfigByEpoch{
+			{EnableEpoch: 0, MaxMetaNoncesBehind: 15},
+		}
+		confByRound := []config.ProcessConfigByRound{
+			{EnableRound: 1, MaxRoundsToKeepUnprocessedMiniBlocks: 0, MaxRoundsToKeepUnprocessedTransactions: 15},
+		}
+		pce, err := configs.NewProcessConfigsHandler(confByEpoch, confByRound)
+		require.Nil(t, pce)
+		require.ErrorIs(t, err, process.ErrInvalidValue)
+		require.True(t, strings.Contains(err.Error(), "MaxRoundsToKeepUnprocessedMiniBlocks"))
+	})
+
 	t.Run("should work", func(t *testing.T) {
 		t.Parallel()
 
@@ -60,8 +92,8 @@ func TestNewProcessConfigsByEpoch(t *testing.T) {
 			{EnableEpoch: 1, MaxMetaNoncesBehind: 45},
 		}
 		confByRound := []config.ProcessConfigByRound{
-			{EnableRound: 0, MaxRoundsWithoutNewBlockReceived: 10},
-			{EnableRound: 1, MaxRoundsWithoutNewBlockReceived: 11},
+			{EnableRound: 0, MaxRoundsWithoutNewBlockReceived: 10, MaxRoundsToKeepUnprocessedMiniBlocks: 1, MaxRoundsToKeepUnprocessedTransactions: 1},
+			{EnableRound: 1, MaxRoundsWithoutNewBlockReceived: 11, MaxRoundsToKeepUnprocessedMiniBlocks: 1, MaxRoundsToKeepUnprocessedTransactions: 1},
 		}
 
 		pce, err := configs.NewProcessConfigsHandler(conf, confByRound)
@@ -93,14 +125,18 @@ func TestProcessConfigsByEpoch_Getters(t *testing.T) {
 
 	confByRound := []config.ProcessConfigByRound{
 		{EnableRound: 0,
-			MaxRoundsWithoutNewBlockReceived: 10,
-			MaxRoundsWithoutCommittedBlock:   20,
-			MaxSyncWithErrorsAllowed:         30,
+			MaxRoundsWithoutNewBlockReceived:       10,
+			MaxRoundsWithoutCommittedBlock:         20,
+			MaxSyncWithErrorsAllowed:               30,
+			MaxRoundsToKeepUnprocessedTransactions: 50,
+			MaxRoundsToKeepUnprocessedMiniBlocks:   50,
 		},
 		{EnableRound: 1,
-			MaxRoundsWithoutNewBlockReceived: 11,
-			MaxRoundsWithoutCommittedBlock:   21,
-			MaxSyncWithErrorsAllowed:         31,
+			MaxRoundsWithoutNewBlockReceived:       11,
+			MaxRoundsWithoutCommittedBlock:         21,
+			MaxSyncWithErrorsAllowed:               31,
+			MaxRoundsToKeepUnprocessedTransactions: 500,
+			MaxRoundsToKeepUnprocessedMiniBlocks:   500,
 		},
 	}
 

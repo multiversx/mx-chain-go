@@ -123,21 +123,6 @@ func TestNewTxsPoolsCleaner_NilShardCoordinatorErr(t *testing.T) {
 	assert.Equal(t, process.ErrNilShardCoordinator, err)
 }
 
-// TODO: Fix this
-/*
-func TestNewTxsPoolsCleaner_InvalidMaxRoundsToKeepUnprocessedDataShouldErr(t *testing.T) {
-	t.Parallel()
-
-	args := createMockArgTxsPoolsCleaner()
-	args.MaxRoundsToKeepUnprocessedData = 0
-	txsPoolsCleaner, err := NewTxsPoolsCleaner(args)
-	assert.True(t, errors.Is(err, process.ErrInvalidValue))
-	assert.True(t, strings.Contains(err.Error(), "MaxRoundsToKeepUnprocessedData"))
-	assert.Nil(t, txsPoolsCleaner)
-}
-
-*/
-
 func TestNewTxsPoolsCleaner_ShouldWork(t *testing.T) {
 	t.Parallel()
 

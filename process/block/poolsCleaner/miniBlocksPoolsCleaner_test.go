@@ -61,21 +61,6 @@ func TestNewMiniBlocksPoolsCleaner_NilShardCoordinatorShouldErr(t *testing.T) {
 	assert.Nil(t, miniblockCleaner)
 }
 
-// TODO: FIx this test somewhere else
-/*
-func TestNewMiniBlocksPoolsCleaner_InvalidMaxRoundsToKeepUnprocessedDataShouldErr(t *testing.T) {
-	t.Parallel()
-
-	args := createMockArgMiniBlocksPoolsCleaner()
-	args.MaxRoundsToKeepUnprocessedData = 0
-	miniblockCleaner, err := NewMiniBlocksPoolsCleaner(args)
-
-	assert.True(t, errors.Is(err, process.ErrInvalidValue))
-	assert.True(t, strings.Contains(err.Error(), "MaxRoundsToKeepUnprocessedData"))
-	assert.Nil(t, miniblockCleaner)
-}
-*/
-
 func TestNewMiniBlocksPoolsCleaner_ShouldWork(t *testing.T) {
 	t.Parallel()
 

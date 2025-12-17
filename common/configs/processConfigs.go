@@ -2,10 +2,14 @@ package configs
 
 import (
 	"errors"
+	"fmt"
 	"sort"
 
 	"github.com/multiversx/mx-chain-go/config"
+	"github.com/multiversx/mx-chain-go/process"
 )
+
+const minRoundsToKeepUnprocessedData = uint64(1)
 
 const (
 	defaultMaxMetaNoncesBehind                    = 15
@@ -113,12 +117,30 @@ func checkConfigsByRound(configsByRound []config.ProcessConfigByRound) error {
 		if exists {
 			return ErrDuplicatedRoundConfig
 		}
+		err := checkRoundConfigValues(cfg)
+		if err != nil {
+			return err
+		}
+
 		seen[cfg.EnableRound] = struct{}{}
 	}
 
 	_, exists := seen[0]
 	if !exists {
 		return ErrMissingRoundZeroConfig
+	}
+
+	return nil
+}
+
+func checkRoundConfigValues(cfg config.ProcessConfigByRound) error {
+	if cfg.MaxRoundsToKeepUnprocessedTransactions < minRoundsToKeepUnprocessedData {
+		return fmt.Errorf("%w for MaxRoundsToKeepUnprocessedTransactions, received %d, min expected %d",
+			process.ErrInvalidValue, cfg.MaxRoundsToKeepUnprocessedTransactions, minRoundsToKeepUnprocessedData)
+	}
+	if cfg.MaxRoundsToKeepUnprocessedMiniBlocks < minRoundsToKeepUnprocessedData {
+		return fmt.Errorf("%w for MaxRoundsToKeepUnprocessedMiniBlocks, received %d, min expected %d",
+			process.ErrInvalidValue, cfg.MaxRoundsToKeepUnprocessedMiniBlocks, minRoundsToKeepUnprocessedData)
 	}
 
 	return nil
