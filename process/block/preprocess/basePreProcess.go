@@ -500,6 +500,23 @@ func getMiniBlockHeaderOfMiniBlock(headerHandler data.HeaderHandler, miniBlockHa
 	return nil, process.ErrMissingMiniBlockHeader
 }
 
+func (bpp *basePreProcess) getIndexesOfLastTxProcessedOnExecution(
+	miniBlock *block.MiniBlock,
+	headerHandler data.HeaderHandler,
+) (*processedIndexes, error) {
+	if !headerHandler.IsHeaderV3() {
+		return bpp.getIndexesOfLastTxProcessed(miniBlock, headerHandler)
+	}
+
+	// for header v3, mini blocks need to be processed in their entirety, there are no longer partially processed mini blocks
+	pi := &processedIndexes{
+		indexOfLastTxProcessed:           -1,
+		indexOfLastTxProcessedByProposer: int32(len(miniBlock.GetTxHashes())) - 1,
+	}
+
+	return pi, nil
+}
+
 func (bpp *basePreProcess) getIndexesOfLastTxProcessed(
 	miniBlock *block.MiniBlock,
 	headerHandler data.HeaderHandler,
