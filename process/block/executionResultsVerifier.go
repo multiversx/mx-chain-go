@@ -73,8 +73,8 @@ func (erc *executionResultsVerifier) verifyExecutionResults(
 		executionResultsStr, _ := json.Marshal(executionResults)
 		pendingExecutionResultsStr, _ := json.Marshal(pendingExecutionResults)
 		log.Error("executionResultsVerifier.verifyExecutionResults",
-			"executionResultsStr", executionResultsStr,
-			"pendingExecutionResultsStr", pendingExecutionResultsStr,
+			"executionResultsStr", string(executionResultsStr),
+			"pendingExecutionResultsStr", string(pendingExecutionResultsStr),
 		)
 
 		return process.ErrExecutionResultsNumberMismatch

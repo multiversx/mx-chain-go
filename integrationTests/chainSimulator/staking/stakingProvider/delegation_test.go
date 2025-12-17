@@ -2194,3 +2194,63 @@ func testChainSimulatorCreateNewDelegationContractAndUnStakeUnBond(t *testing.T,
 	require.Equal(t, 2, len(event.Topics))
 	require.Equal(t, []byte("nothing to unBond"), event.Topics[1])
 }
+
+func TestRandom(t *testing.T) {
+	cs, err := chainSimulator.NewChainSimulator(chainSimulator.ArgsChainSimulator{
+		BypassTxSignatureCheck:         true,
+		TempDir:                        t.TempDir(),
+		PathToInitialConfig:            defaultPathToInitialConfig,
+		NumOfShards:                    3,
+		RoundDurationInMillis:          roundDurationInMillis,
+		SupernovaRoundDurationInMillis: supernovaRoundDurationInMillis,
+		RoundsPerEpoch:                 roundsPerEpoch,
+		SupernovaRoundsPerEpoch:        supernovaRoundsPerEpoch,
+		ApiInterface:                   api.NewNoApiInterface(),
+		MinNodesPerShard:               3,
+		MetaChainMinNodes:              3,
+		NumNodesWaitingListMeta:        3,
+		NumNodesWaitingListShard:       3,
+		AlterConfigsFunction: func(cfg *config.Configs) {
+			cfg.EpochConfig.EnableEpochs.StakingV4Step1EnableEpoch = 2
+			cfg.EpochConfig.EnableEpochs.StakingV4Step2EnableEpoch = 3
+			cfg.EpochConfig.EnableEpochs.StakingV4Step3EnableEpoch = 4
+
+			cfg.EpochConfig.EnableEpochs.MaxNodesChangeEnableEpoch[2].EpochEnable = 4
+
+			cfg.EpochConfig.EnableEpochs.SupernovaEnableEpoch = 100
+		},
+	})
+	require.Nil(t, err)
+	require.NotNil(t, cs)
+
+	defer cs.Close()
+
+	cs.GenerateBlocksUntilEpochIsReached(3)
+
+	w1, err := cs.GenerateAndMintWalletAddress(0, chainSimulatorIntegrationTests.MinimumStakeValue)
+	require.Nil(t, err)
+	w2, err := cs.GenerateAndMintWalletAddress(1, chainSimulatorIntegrationTests.OneEGLD)
+	require.Nil(t, err)
+
+	cs.GenerateBlocks(1)
+
+	nonce := uint64(0)
+	for i := 0; i < 100; i++ {
+		txs := make([]*transaction.Transaction, 0)
+		for j := 0; j < 100; j++ {
+			tx := chainSimulatorIntegrationTests.GenerateTransaction(w1.Bytes, nonce, w2.Bytes, big.NewInt(1), "", 80_000)
+
+			tx2 := chainSimulatorIntegrationTests.GenerateTransaction(w2.Bytes, nonce, w1.Bytes, big.NewInt(1), "", 80_000)
+
+			txs = append(txs, tx)
+			txs = append(txs, tx2)
+
+			log.Info("NONCE", "nonce", nonce)
+			nonce++
+		}
+		_, err = cs.SendTxsAndGenerateBlocksTilAreExecuted(txs, staking.MaxNumOfBlockToGenerateWhenExecutingTx)
+		require.Nil(t, err)
+
+		cs.GenerateBlocks(1)
+	}
+}
