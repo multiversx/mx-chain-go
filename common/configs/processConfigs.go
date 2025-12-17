@@ -179,70 +179,91 @@ func (pce *processConfigsByEpoch) GetMaxShardNoncesBehindByEpoch(epoch uint32) u
 	return defaultMaxShardNoncesBehind // this should not happen
 }
 
-// GetMaxRoundsWithoutNewBlockReceivedByRound returns max rounds without new block received by epoch
-func (pce *processConfigsByEpoch) GetMaxRoundsWithoutNewBlockReceivedByRound(round uint64) uint32 {
-	for i := len(pce.orderedConfigByRound) - 1; i >= 0; i-- {
-		if pce.orderedConfigByRound[i].EnableRound <= round {
-			return pce.orderedConfigByRound[i].MaxRoundsWithoutNewBlockReceived
+func getConfigValueByRound[T any](
+	configs []config.ProcessConfigByRound,
+	round uint64,
+	selector func(config.ProcessConfigByRound) T,
+	defaultValue T,
+) T {
+	for i := len(configs) - 1; i >= 0; i-- {
+		if configs[i].EnableRound <= round {
+			return selector(configs[i])
 		}
 	}
 
-	return defaultMaxRoundsWithoutNewBlockReceived // this should not happen
+	return defaultValue
+}
+
+// GetMaxRoundsWithoutNewBlockReceivedByRound returns max rounds without new block received by epoch
+func (pce *processConfigsByEpoch) GetMaxRoundsWithoutNewBlockReceivedByRound(round uint64) uint32 {
+	return getConfigValueByRound(
+		pce.orderedConfigByRound,
+		round,
+		func(cfg config.ProcessConfigByRound) uint32 {
+			return cfg.MaxRoundsWithoutNewBlockReceived
+		},
+		defaultMaxRoundsWithoutNewBlockReceived,
+	)
 }
 
 // GetMaxRoundsWithoutCommittedBlock returns max rounds without commited block
 func (pce *processConfigsByEpoch) GetMaxRoundsWithoutCommittedBlock(round uint64) uint32 {
-	for i := len(pce.orderedConfigByRound) - 1; i >= 0; i-- {
-		if pce.orderedConfigByRound[i].EnableRound <= round {
-			return pce.orderedConfigByRound[i].MaxRoundsWithoutCommittedBlock
-		}
-	}
-
-	return defaultMaxRoundsWithoutCommittedBlock // this should not happen
+	return getConfigValueByRound(
+		pce.orderedConfigByRound,
+		round,
+		func(cfg config.ProcessConfigByRound) uint32 {
+			return cfg.MaxRoundsWithoutCommittedBlock
+		},
+		defaultMaxRoundsWithoutCommittedBlock,
+	)
 }
 
 // GetRoundModulusTriggerWhenSyncIsStuck returns round modulus when sync is stuck
 func (pce *processConfigsByEpoch) GetRoundModulusTriggerWhenSyncIsStuck(round uint64) uint32 {
-	for i := len(pce.orderedConfigByRound) - 1; i >= 0; i-- {
-		if pce.orderedConfigByRound[i].EnableRound <= round {
-			return pce.orderedConfigByRound[i].RoundModulusTriggerWhenSyncIsStuck
-		}
-	}
-
-	return defaultRoundModulusTriggerWhenSyncIsStuck // this should not happen
+	return getConfigValueByRound(
+		pce.orderedConfigByRound,
+		round,
+		func(cfg config.ProcessConfigByRound) uint32 {
+			return cfg.RoundModulusTriggerWhenSyncIsStuck
+		},
+		defaultRoundModulusTriggerWhenSyncIsStuck,
+	)
 }
 
 // GetMaxSyncWithErrorsAllowed returns max allowed sync errors until an error event is triggered
 func (pce *processConfigsByEpoch) GetMaxSyncWithErrorsAllowed(round uint64) uint32 {
-	for i := len(pce.orderedConfigByRound) - 1; i >= 0; i-- {
-		if pce.orderedConfigByRound[i].EnableRound <= round {
-			return pce.orderedConfigByRound[i].MaxSyncWithErrorsAllowed
-		}
-	}
-
-	return defaultMaxSyncWithErrorsAllowed
+	return getConfigValueByRound(
+		pce.orderedConfigByRound,
+		round,
+		func(cfg config.ProcessConfigByRound) uint32 {
+			return cfg.MaxSyncWithErrorsAllowed
+		},
+		defaultMaxSyncWithErrorsAllowed,
+	)
 }
 
 // GetMaxRoundsToKeepUnprocessedMiniBlocks returns max rounds to keep unprocessed mini blocks based on round
 func (pce *processConfigsByEpoch) GetMaxRoundsToKeepUnprocessedMiniBlocks(round uint64) uint64 {
-	for i := len(pce.orderedConfigByRound) - 1; i >= 0; i-- {
-		if pce.orderedConfigByRound[i].EnableRound <= round {
-			return pce.orderedConfigByRound[i].MaxRoundsToKeepUnprocessedMiniBlocks
-		}
-	}
-
-	return defaultMaxRoundsToKeepUnprocessedMiniBlocks
+	return getConfigValueByRound(
+		pce.orderedConfigByRound,
+		round,
+		func(cfg config.ProcessConfigByRound) uint64 {
+			return cfg.MaxRoundsToKeepUnprocessedMiniBlocks
+		},
+		defaultMaxRoundsToKeepUnprocessedMiniBlocks,
+	)
 }
 
 // GetMaxRoundsToKeepUnprocessedTransactions returns max rounds to keep unprocessed transaction blocks based on round
 func (pce *processConfigsByEpoch) GetMaxRoundsToKeepUnprocessedTransactions(round uint64) uint64 {
-	for i := len(pce.orderedConfigByRound) - 1; i >= 0; i-- {
-		if pce.orderedConfigByRound[i].EnableRound <= round {
-			return pce.orderedConfigByRound[i].MaxRoundsToKeepUnprocessedTransactions
-		}
-	}
-
-	return defaultMaxRoundsToKeepUnprocessedTransactions
+	return getConfigValueByRound(
+		pce.orderedConfigByRound,
+		round,
+		func(cfg config.ProcessConfigByRound) uint64 {
+			return cfg.MaxRoundsToKeepUnprocessedTransactions
+		},
+		defaultMaxRoundsToKeepUnprocessedTransactions,
+	)
 }
 
 // IsInterfaceNil checks if the instance is nil

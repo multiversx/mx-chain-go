@@ -129,14 +129,14 @@ func TestProcessConfigsByEpoch_Getters(t *testing.T) {
 			MaxRoundsWithoutCommittedBlock:         20,
 			MaxSyncWithErrorsAllowed:               30,
 			MaxRoundsToKeepUnprocessedTransactions: 50,
-			MaxRoundsToKeepUnprocessedMiniBlocks:   50,
+			MaxRoundsToKeepUnprocessedMiniBlocks:   60,
 		},
 		{EnableRound: 1,
 			MaxRoundsWithoutNewBlockReceived:       11,
 			MaxRoundsWithoutCommittedBlock:         21,
 			MaxSyncWithErrorsAllowed:               31,
 			MaxRoundsToKeepUnprocessedTransactions: 500,
-			MaxRoundsToKeepUnprocessedMiniBlocks:   500,
+			MaxRoundsToKeepUnprocessedMiniBlocks:   600,
 		},
 	}
 
@@ -210,5 +210,29 @@ func TestProcessConfigsByEpoch_Getters(t *testing.T) {
 
 		maxSyncWithErrorsAllowed = pce.GetMaxSyncWithErrorsAllowed(1)
 		require.Equal(t, uint32(31), maxSyncWithErrorsAllowed)
+	})
+
+	t.Run("get max rounds to keep unprocessed transactions", func(t *testing.T) {
+		t.Parallel()
+
+		pce, _ := configs.NewProcessConfigsHandler(conf, confByRound)
+
+		res := pce.GetMaxRoundsToKeepUnprocessedTransactions(0)
+		require.Equal(t, uint64(50), res)
+
+		res = pce.GetMaxRoundsToKeepUnprocessedTransactions(1)
+		require.Equal(t, uint64(500), res)
+	})
+
+	t.Run("get max rounds to keep unprocessed mini blocks", func(t *testing.T) {
+		t.Parallel()
+
+		pce, _ := configs.NewProcessConfigsHandler(conf, confByRound)
+
+		res := pce.GetMaxRoundsToKeepUnprocessedMiniBlocks(0)
+		require.Equal(t, uint64(60), res)
+
+		res = pce.GetMaxRoundsToKeepUnprocessedMiniBlocks(1)
+		require.Equal(t, uint64(600), res)
 	})
 }
