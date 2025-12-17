@@ -995,6 +995,12 @@ func (mp *metaProcessor) checkShardInfoValidity(metaHeaderHandler data.MetaHeade
 
 	for i := 0; i < len(headerShardInfo); i++ {
 		if !headerShardInfo[i].Equal(createdShardInfo[i]) {
+			log.Debug("checkShardInfoValidity",
+				"hsi hash", headerShardInfo[i].GetHeaderHash(),
+				"hsi nonce", headerShardInfo[i].GetNonce(),
+				"csi hash", createdShardInfo[i].GetHeaderHash(),
+				"csi nonce", createdShardInfo[i].GetNonce(),
+			)
 			return fmt.Errorf("%w for shardInfo item %d", process.ErrHeaderShardDataMismatch, i)
 		}
 	}

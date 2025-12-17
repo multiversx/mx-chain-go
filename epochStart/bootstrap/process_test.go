@@ -2878,9 +2878,10 @@ func TestEpochStartBoostrap_SyncHeadersV3FromMeta(t *testing.T) {
 
 		hdrHash1 := []byte("hdrHash1")
 		hdrHash2 := []byte("hdrHash2")
+		hdrHash3 := []byte("hdrHash3")
 
 		header1 := &block.HeaderV3{
-			Nonce:    11,
+			Nonce:    12,
 			PrevHash: hdrHash2,
 			LastExecutionResult: &block.ExecutionResultInfo{
 				ExecutionResult: &block.BaseExecutionResult{
@@ -2889,6 +2890,11 @@ func TestEpochStartBoostrap_SyncHeadersV3FromMeta(t *testing.T) {
 			},
 		}
 		header2 := &block.HeaderV3{
+			Nonce:               11,
+			PrevHash:            hdrHash3,
+			LastExecutionResult: &block.ExecutionResultInfo{},
+		}
+		header3 := &block.HeaderV3{
 			Nonce:               10,
 			LastExecutionResult: &block.ExecutionResultInfo{},
 		}
@@ -2905,6 +2911,7 @@ func TestEpochStartBoostrap_SyncHeadersV3FromMeta(t *testing.T) {
 				return map[string]data.HeaderHandler{
 					string(hdrHash1): header1,
 					string(hdrHash2): header2,
+					string(hdrHash3): header3,
 				}, nil
 			},
 		}
