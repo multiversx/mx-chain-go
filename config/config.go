@@ -265,9 +265,8 @@ type Config struct {
 	Requesters            RequesterConfig
 	VMOutputCacher        CacheConfig
 
-	PeersRatingConfig   PeersRatingConfig
-	PoolsCleanersConfig PoolsCleanersConfig
-	Redundancy          RedundancyConfig
+	PeersRatingConfig PeersRatingConfig
+	Redundancy        RedundancyConfig
 
 	InterceptedDataVerifier InterceptedDataVerifierConfig
 }
@@ -783,12 +782,6 @@ type RequesterConfig struct {
 	NumCrossShardPeers  uint32
 	NumTotalPeers       uint32
 	NumFullHistoryPeers uint32
-}
-
-// PoolsCleanersConfig represents the config options to be used by the pools cleaners
-type PoolsCleanersConfig struct {
-	MaxRoundsToKeepUnprocessedMiniBlocks   int64
-	MaxRoundsToKeepUnprocessedTransactions int64
 }
 
 // RedundancyConfig represents the config options to be used when setting the redundancy configuration
