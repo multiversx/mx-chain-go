@@ -16,11 +16,13 @@ func GetDefaultProcessConfigsHandler() common.ProcessConfigsHandler {
 	}},
 		[]config.ProcessConfigByRound{
 			{
-				EnableRound:                        0,
-				MaxRoundsWithoutNewBlockReceived:   10,
-				MaxRoundsWithoutCommittedBlock:     10,
-				RoundModulusTriggerWhenSyncIsStuck: 20,
-				MaxSyncWithErrorsAllowed:           10,
+				EnableRound:                            0,
+				MaxRoundsWithoutNewBlockReceived:       10,
+				MaxRoundsWithoutCommittedBlock:         10,
+				RoundModulusTriggerWhenSyncIsStuck:     20,
+				MaxSyncWithErrorsAllowed:               10,
+				MaxRoundsToKeepUnprocessedMiniBlocks:   50,
+				MaxRoundsToKeepUnprocessedTransactions: 50,
 			},
 		},
 	)
