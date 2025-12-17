@@ -86,6 +86,27 @@ func (erc *executionResultsVerifier) verifyExecutionResults(
 				"pending res nonce", pendingExecutionResults[i].GetHeaderNonce(),
 				"pending res type", reflect.TypeOf(pendingExecutionResults[i]).String(),
 			)
+
+			// TODO: remove this, debug only
+			log.Debug("header execution result",
+				"nonce", er.GetHeaderNonce(),
+				"round", er.GetHeaderRound(),
+				"epoch", er.GetHeaderEpoch(),
+				"gas", er.GetGasUsed(),
+				"hash", er.GetHeaderHash(),
+				"rootHash", er.GetRootHash(),
+				"full", fmt.Sprintf("%+v\n", er),
+			)
+			log.Debug("verifyExecutionResults: local execution result",
+				"nonce", pendingExecutionResults[i].GetHeaderNonce(),
+				"round", pendingExecutionResults[i].GetHeaderRound(),
+				"epoch", pendingExecutionResults[i].GetHeaderEpoch(),
+				"gas", pendingExecutionResults[i].GetGasUsed(),
+				"hash", pendingExecutionResults[i].GetHeaderHash(),
+				"rootHash", pendingExecutionResults[i].GetRootHash(),
+				"full", fmt.Sprintf("%+v\n", pendingExecutionResults[i]),
+			)
+
 			return process.ErrExecutionResultDoesNotMatch
 		}
 	}
