@@ -77,6 +77,7 @@ func TestMempoolWithChainSimulator_Selection(t *testing.T) {
 	require.Equal(t, 50_000*(30_000-27_756), int(gas))
 }
 
+// TODO should activate Supernova for this test
 func TestMempoolWithChainSimulator_Selection_WhenUsersHaveZeroBalance_WithRelayedV3(t *testing.T) {
 	if testing.Short() {
 		t.Skip("this is not a short test")
