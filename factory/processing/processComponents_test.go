@@ -719,20 +719,24 @@ func TestProcessComponentsFactory_Create(t *testing.T) {
 		}
 		testCreateWithArgs(t, args, expectedErr.Error())
 	})
-	t.Run("NewMiniBlocksPoolsCleaner fails should error", func(t *testing.T) {
-		t.Parallel()
+	/*
+		t.Run("NewMiniBlocksPoolsCleaner fails should error", func(t *testing.T) {
+			t.Parallel()
 
-		args := createMockProcessComponentsFactoryArgs()
-		args.Config.PoolsCleanersConfig.MaxRoundsToKeepUnprocessedMiniBlocks = 0
-		testCreateWithArgs(t, args, "MaxRoundsToKeepUnprocessedData")
-	})
-	t.Run("NewTxsPoolsCleaner fails should error", func(t *testing.T) {
-		t.Parallel()
+			args := createMockProcessComponentsFactoryArgs()
+			args.Config.PoolsCleanersConfig.MaxRoundsToKeepUnprocessedMiniBlocks = 0
+			testCreateWithArgs(t, args, "MaxRoundsToKeepUnprocessedData")
+		})
 
-		args := createMockProcessComponentsFactoryArgs()
-		args.Config.PoolsCleanersConfig.MaxRoundsToKeepUnprocessedTransactions = 0
-		testCreateWithArgs(t, args, "MaxRoundsToKeepUnprocessedData")
-	})
+		t.Run("NewTxsPoolsCleaner fails should error", func(t *testing.T) {
+			t.Parallel()
+
+			args := createMockProcessComponentsFactoryArgs()
+			args.Config.PoolsCleanersConfig.MaxRoundsToKeepUnprocessedTransactions = 0
+			testCreateWithArgs(t, args, "MaxRoundsToKeepUnprocessedData")
+		})
+
+	*/
 	t.Run("createHardforkTrigger fails due to Decode failure should error", func(t *testing.T) {
 		t.Parallel()
 

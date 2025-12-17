@@ -37,6 +37,8 @@ type ProcessConfigsHandlerStub struct {
 	GetMaxRoundsWithoutCommittedBlockCalled           func(round uint64) uint32
 	GetRoundModulusTriggerWhenSyncIsStuckCalled       func(round uint64) uint32
 	GetMaxSyncWithErrorsAllowedCalled                 func(round uint64) uint32
+	GetMaxRoundsToKeepUnprocessedTransactionsCalled   func(round uint64) uint64
+	GetMaxRoundsToKeepUnprocessedMiniBlocksCalled     func(round uint64) uint64
 }
 
 // GetMaxMetaNoncesBehindByEpoch -
@@ -97,6 +99,23 @@ func (p *ProcessConfigsHandlerStub) GetRoundModulusTriggerWhenSyncIsStuck(round 
 func (p *ProcessConfigsHandlerStub) GetMaxSyncWithErrorsAllowed(round uint64) uint32 {
 	if p.GetMaxSyncWithErrorsAllowedCalled != nil {
 		return p.GetMaxSyncWithErrorsAllowedCalled(round)
+	}
+
+	return 0
+}
+
+// GetMaxRoundsToKeepUnprocessedTransactions -
+func (p *ProcessConfigsHandlerStub) GetMaxRoundsToKeepUnprocessedTransactions(round uint64) uint64 {
+	if p.GetMaxRoundsToKeepUnprocessedTransactionsCalled != nil {
+		return p.GetMaxRoundsToKeepUnprocessedTransactionsCalled(round)
+	}
+	return 0
+}
+
+// GetMaxRoundsToKeepUnprocessedMiniBlocks -
+func (p *ProcessConfigsHandlerStub) GetMaxRoundsToKeepUnprocessedMiniBlocks(round uint64) uint64 {
+	if p.GetMaxRoundsToKeepUnprocessedMiniBlocksCalled != nil {
+		return p.GetMaxRoundsToKeepUnprocessedMiniBlocksCalled(round)
 	}
 
 	return 0

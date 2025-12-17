@@ -495,9 +495,9 @@ func (pcf *processComponentsFactory) Create() (*processComponents, error) {
 
 	argsMiniBlocksPoolsCleaner := poolsCleaner.ArgMiniBlocksPoolsCleaner{
 		ArgBasePoolsCleaner: poolsCleaner.ArgBasePoolsCleaner{
-			RoundHandler:                   pcf.coreData.RoundHandler(),
-			ShardCoordinator:               pcf.bootstrapComponents.ShardCoordinator(),
-			MaxRoundsToKeepUnprocessedData: pcf.config.PoolsCleanersConfig.MaxRoundsToKeepUnprocessedMiniBlocks,
+			RoundHandler:          pcf.coreData.RoundHandler(),
+			ShardCoordinator:      pcf.bootstrapComponents.ShardCoordinator(),
+			ProcessConfigsHandler: pcf.coreData.ProcessConfigsHandler(),
 		},
 		MiniblocksPool: pcf.data.Datapool().MiniBlocks(),
 	}
@@ -510,9 +510,9 @@ func (pcf *processComponentsFactory) Create() (*processComponents, error) {
 
 	argsBasePoolsCleaner := poolsCleaner.ArgTxsPoolsCleaner{
 		ArgBasePoolsCleaner: poolsCleaner.ArgBasePoolsCleaner{
-			RoundHandler:                   pcf.coreData.RoundHandler(),
-			ShardCoordinator:               pcf.bootstrapComponents.ShardCoordinator(),
-			MaxRoundsToKeepUnprocessedData: pcf.config.PoolsCleanersConfig.MaxRoundsToKeepUnprocessedTransactions,
+			RoundHandler:          pcf.coreData.RoundHandler(),
+			ShardCoordinator:      pcf.bootstrapComponents.ShardCoordinator(),
+			ProcessConfigsHandler: pcf.coreData.ProcessConfigsHandler(),
 		},
 		AddressPubkeyConverter: pcf.coreData.AddressPubKeyConverter(),
 		DataPool:               pcf.data.Datapool(),

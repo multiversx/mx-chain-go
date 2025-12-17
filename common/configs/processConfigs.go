@@ -8,19 +8,21 @@ import (
 )
 
 const (
-	defaultMaxMetaNoncesBehind                = 15
-	defaultMaxMetaNoncesBehindForGlobalStuck  = 30
-	defaultMaxShardNoncesBehind               = 15
-	defaultMaxRoundsWithoutNewBlockReceived   = 10
-	defaultMaxRoundsWithoutCommittedBlock     = 10
-	defaultRoundModulusTriggerWhenSyncIsStuck = 20
-	defaultMaxSyncWithErrorsAllowed           = 20
+	defaultMaxMetaNoncesBehind                    = 15
+	defaultMaxMetaNoncesBehindForGlobalStuck      = 30
+	defaultMaxShardNoncesBehind                   = 15
+	defaultMaxRoundsWithoutNewBlockReceived       = 10
+	defaultMaxRoundsWithoutCommittedBlock         = 10
+	defaultRoundModulusTriggerWhenSyncIsStuck     = 20
+	defaultMaxSyncWithErrorsAllowed               = 20
+	defaultMaxRoundsToKeepUnprocessedMiniBlocks   = 3000
+	defaultMaxRoundsToKeepUnprocessedTransactions = 3000
 )
 
 // ErrEmptyProcessConfigsByEpoch signals that an empty process configs by epoch has been provided
 var ErrEmptyProcessConfigsByEpoch = errors.New("empty process configs by epoch")
 
-// ErrEmptyProcessConfigsByEpoch signals that an empty process configs by round has been provided
+// ErrEmptyProcessConfigsByRound signals that an empty process configs by round has been provided
 var ErrEmptyProcessConfigsByRound = errors.New("empty process configs by round")
 
 // ErrDuplicatedEpochConfig signals that a duplicated config section has been provided
@@ -133,7 +135,7 @@ func (pce *processConfigsByEpoch) GetMaxMetaNoncesBehindByEpoch(epoch uint32) ui
 	return defaultMaxMetaNoncesBehind // this should not happen
 }
 
-// GetMaxMetaNoncesBehindForBlobalStuckByEpoch returns the max meta nonces behind for global stuck by epoch
+// GetMaxMetaNoncesBehindForGlobalStuckByEpoch returns the max meta nonces behind for global stuck by epoch
 func (pce *processConfigsByEpoch) GetMaxMetaNoncesBehindForGlobalStuckByEpoch(epoch uint32) uint32 {
 	for i := len(pce.orderedConfigByEpoch) - 1; i >= 0; i-- {
 		if pce.orderedConfigByEpoch[i].EnableEpoch <= epoch {
@@ -144,7 +146,7 @@ func (pce *processConfigsByEpoch) GetMaxMetaNoncesBehindForGlobalStuckByEpoch(ep
 	return defaultMaxMetaNoncesBehindForGlobalStuck // this should not happen
 }
 
-// GetMaxMetaNoncesBehindForBlobalStuckByEpoch returns the max meta nonces behind for global stuck by epoch
+// GetMaxShardNoncesBehindByEpoch returns the max meta nonces behind for global stuck by epoch
 func (pce *processConfigsByEpoch) GetMaxShardNoncesBehindByEpoch(epoch uint32) uint32 {
 	for i := len(pce.orderedConfigByEpoch) - 1; i >= 0; i-- {
 		if pce.orderedConfigByEpoch[i].EnableEpoch <= epoch {
@@ -197,6 +199,28 @@ func (pce *processConfigsByEpoch) GetMaxSyncWithErrorsAllowed(round uint64) uint
 	}
 
 	return defaultMaxSyncWithErrorsAllowed
+}
+
+// GetMaxRoundsToKeepUnprocessedMiniBlocks returns max rounds to keep unprocessed mini blocks based on round
+func (pce *processConfigsByEpoch) GetMaxRoundsToKeepUnprocessedMiniBlocks(round uint64) uint64 {
+	for i := len(pce.orderedConfigByRound) - 1; i >= 0; i-- {
+		if pce.orderedConfigByRound[i].EnableRound <= round {
+			return pce.orderedConfigByRound[i].MaxRoundsToKeepUnprocessedMiniBlocks
+		}
+	}
+
+	return defaultMaxRoundsToKeepUnprocessedMiniBlocks
+}
+
+// GetMaxRoundsToKeepUnprocessedTransactions returns max rounds to keep unprocessed transaction blocks based on round
+func (pce *processConfigsByEpoch) GetMaxRoundsToKeepUnprocessedTransactions(round uint64) uint64 {
+	for i := len(pce.orderedConfigByRound) - 1; i >= 0; i-- {
+		if pce.orderedConfigByRound[i].EnableRound <= round {
+			return pce.orderedConfigByRound[i].MaxRoundsToKeepUnprocessedTransactions
+		}
+	}
+
+	return defaultMaxRoundsToKeepUnprocessedTransactions
 }
 
 // IsInterfaceNil checks if the instance is nil

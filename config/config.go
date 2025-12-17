@@ -386,6 +386,12 @@ type ProcessConfigByRound struct {
 	// MaxSyncWithErrorsAllowed defines the maximum allowed number of sync with errors,
 	// before a special action to be applied
 	MaxSyncWithErrorsAllowed uint32
+
+	// Max number of rounds unprocessed miniblocks are kept in pool
+	MaxRoundsToKeepUnprocessedMiniBlocks uint64
+
+	// Max number of rounds unprocessed transactions are kept in pool
+	MaxRoundsToKeepUnprocessedTransactions uint64
 }
 
 // GeneralSettingsConfig will hold the general settings for a node

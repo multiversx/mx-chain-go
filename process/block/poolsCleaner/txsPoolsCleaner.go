@@ -270,8 +270,9 @@ func (tpc *txsPoolsCleaner) cleanTxsPoolsIfNeeded() int {
 			continue
 		}
 
+		round := tpc.roundHandler.Index()
 		roundDif := tpc.roundHandler.Index() - currTxInfo.round
-		if roundDif <= tpc.maxRoundsToKeepUnprocessedData {
+		if roundDif <= int64(tpc.processConfigsHandler.GetMaxRoundsToKeepUnprocessedTransactions(uint64(round))) {
 			log.Trace("cleaning transaction not yet allowed",
 				"hash", []byte(hash),
 				"round", currTxInfo.round,

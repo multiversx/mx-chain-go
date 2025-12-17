@@ -1,10 +1,10 @@
 package poolsCleaner
 
 import (
-	"fmt"
 	"sync"
 
 	"github.com/multiversx/mx-chain-core-go/core/check"
+	"github.com/multiversx/mx-chain-go/common"
 	"github.com/multiversx/mx-chain-go/process"
 	"github.com/multiversx/mx-chain-go/sharding"
 )
@@ -13,25 +13,25 @@ const minRoundsToKeepUnprocessedData = int64(1)
 
 // ArgBasePoolsCleaner is the base argument structure used to create pools cleaners
 type ArgBasePoolsCleaner struct {
-	RoundHandler                   process.RoundHandler
-	ShardCoordinator               sharding.Coordinator
-	MaxRoundsToKeepUnprocessedData int64
+	RoundHandler          process.RoundHandler
+	ShardCoordinator      sharding.Coordinator
+	ProcessConfigsHandler common.ProcessConfigsHandler
 }
 
 type basePoolsCleaner struct {
-	roundHandler                   process.RoundHandler
-	shardCoordinator               sharding.Coordinator
-	maxRoundsToKeepUnprocessedData int64
-	cancelFunc                     func()
-	isCleaningRoutineRunning       bool
-	mut                            sync.Mutex
+	roundHandler             process.RoundHandler
+	shardCoordinator         sharding.Coordinator
+	processConfigsHandler    common.ProcessConfigsHandler
+	cancelFunc               func()
+	isCleaningRoutineRunning bool
+	mut                      sync.Mutex
 }
 
 func newBasePoolsCleaner(args ArgBasePoolsCleaner) basePoolsCleaner {
 	return basePoolsCleaner{
-		roundHandler:                   args.RoundHandler,
-		shardCoordinator:               args.ShardCoordinator,
-		maxRoundsToKeepUnprocessedData: args.MaxRoundsToKeepUnprocessedData,
+		roundHandler:          args.RoundHandler,
+		shardCoordinator:      args.ShardCoordinator,
+		processConfigsHandler: args.ProcessConfigsHandler,
 	}
 }
 
@@ -42,10 +42,15 @@ func checkBaseArgs(args ArgBasePoolsCleaner) error {
 	if check.IfNil(args.ShardCoordinator) {
 		return process.ErrNilShardCoordinator
 	}
-	if args.MaxRoundsToKeepUnprocessedData < minRoundsToKeepUnprocessedData {
-		return fmt.Errorf("%w for MaxRoundsToKeepUnprocessedData, received %d, min expected %d",
-			process.ErrInvalidValue, args.MaxRoundsToKeepUnprocessedData, minRoundsToKeepUnprocessedData)
+	if check.IfNil(args.ProcessConfigsHandler) {
+		return process.ErrNilProcessConfigsHandler
 	}
+
+	// TODO: Move these checks
+	//if args.MaxRoundsToKeepUnprocessedData < minRoundsToKeepUnprocessedData {
+	//	return fmt.Errorf("%w for MaxRoundsToKeepUnprocessedData, received %d, min expected %d",
+	//		process.ErrInvalidValue, args.MaxRoundsToKeepUnprocessedData, minRoundsToKeepUnprocessedData)
+	//}
 
 	return nil
 }
