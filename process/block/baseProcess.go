@@ -1170,7 +1170,6 @@ func (bp *baseProcessor) cleanExecutionResultsFromTracker(header data.HeaderHand
 
 func (bp *baseProcessor) cleanupPools(headerHandler data.HeaderHandler) {
 	noncesToPrevFinal := bp.getNoncesToFinal(headerHandler) + 1
-	bp.cleanupBlockTrackerPools(noncesToPrevFinal)
 
 	bp.cleanupPoolsForSelf(noncesToPrevFinal)
 
@@ -1181,6 +1180,8 @@ func (bp *baseProcessor) cleanupPools(headerHandler data.HeaderHandler) {
 	} else {
 		bp.cleanupPoolsForCrossShard(core.MetachainShardId, noncesToPrevFinal)
 	}
+
+	bp.cleanupBlockTrackerPools(noncesToPrevFinal)
 
 	for _, executionResult := range headerHandler.GetExecutionResultsHandlers() {
 		executionResultHeaderHash := executionResult.GetHeaderHash()
