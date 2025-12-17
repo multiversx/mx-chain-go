@@ -357,3 +357,11 @@ func (boot *baseBootstrap) ProcessWaitTime() time.Duration {
 func (boot *baseBootstrap) PrepareForSyncAtBoostrapIfNeeded() error {
 	return boot.prepareForSyncAtBoostrapIfNeeded()
 }
+
+// SaveProposedTxsToPool -
+func (boot *baseBootstrap) SaveProposedTxsToPool(
+	header data.HeaderHandler,
+	body data.BodyHandler,
+) error {
+	return boot.saveProposedTxsToPool(header, body)
+}

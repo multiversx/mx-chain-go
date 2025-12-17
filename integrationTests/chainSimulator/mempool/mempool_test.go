@@ -88,13 +88,9 @@ func TestMempoolWithChainSimulator_Selection_WhenUsersHaveZeroBalance_WithRelaye
 		cfg.EpochConfig.EnableEpochs.FixRelayedBaseCostEnableEpoch = 2
 		cfg.EpochConfig.EnableEpochs.RelayedTransactionsV3EnableEpoch = 2
 		cfg.EpochConfig.EnableEpochs.RelayedTransactionsV3FixESDTTransferEnableEpoch = 2
-		cfg.EpochConfig.EnableEpochs.SupernovaEnableEpoch = 0
 		cfg.RoundConfig.RoundActivations = map[string]config.ActivationRoundByName{
 			"DisableAsyncCallV1": {
 				Round: "9999999",
-			},
-			"SupernovaEnableRound": {
-				Round: "0",
 			},
 		}
 	}
@@ -160,16 +156,13 @@ func TestMempoolWithChainSimulator_Selection_WhenUsersHaveZeroBalance_WithRelaye
 	require.Equal(t, 2, getNumTransactionsInPool(simulator, shard))
 
 	selectedTransactions, _ := selectTransactions(t, simulator, shard)
-	require.Equal(t, 2, len(selectedTransactions))
-	require.Equal(t, alice.Bytes, selectedTransactions[0].Tx.GetSndAddr())
-	require.Equal(t, bob.Bytes, selectedTransactions[1].Tx.GetSndAddr())
+	require.Equal(t, 1, len(selectedTransactions))
+	require.Equal(t, bob.Bytes, selectedTransactions[0].Tx.GetSndAddr())
 
-	err = simulator.GenerateBlocks(1)
+	err = simulator.GenerateBlocks(2)
 	require.Nil(t, err)
-	require.Equal(t, 2, getNumTransactionsInCurrentBlock(simulator, shard))
-
-	require.Equal(t, "invalid", getTransaction(t, simulator, shard, selectedTransactions[0].TxHash).Status.String())
-	require.Equal(t, "success", getTransaction(t, simulator, shard, selectedTransactions[1].TxHash).Status.String())
+	require.Equal(t, 1, getNumTransactionsInCurrentBlock(simulator, shard))
+	require.Equal(t, "success", getTransaction(t, simulator, shard, selectedTransactions[0].TxHash).Status.String())
 }
 
 func TestMempoolWithChainSimulator_Selection_WhenInsufficientBalanceForFee_WithRelayedV3(t *testing.T) {
@@ -603,9 +596,8 @@ func Test_Selection_ShouldNotSelectSameTransactionsWithSameSender(t *testing.T) 
 	// the currentNonce should represent here the nonce of the block for which the selection is built
 	selectedTransactions, _, err = txpool.SelectTransactions(selectionSession, options, 2)
 	require.Nil(t, err)
-	require.Equal(t, 2, len(selectedTransactions))
+	require.Equal(t, 1, len(selectedTransactions))
 	require.Equal(t, "txHash2", string(selectedTransactions[0].TxHash))
-	require.Equal(t, "txHash3", string(selectedTransactions[1].TxHash))
 }
 
 func Test_Selection_ShouldNotSelectSameTransactionsWithDifferentSenders(t *testing.T) {

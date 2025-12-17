@@ -1620,8 +1620,8 @@ func (e *epochStartBootstrap) setEpochStartMetrics() {
 		metablockEconomics := e.epochStartMeta.GetEpochStartHandler().GetEconomicsHandler()
 		e.statusHandler.SetStringValue(common.MetricTotalSupply, metablockEconomics.GetTotalSupply().String())
 		e.statusHandler.SetStringValue(common.MetricInflation, metablockEconomics.GetTotalNewlyMinted().String())
-		e.statusHandler.SetStringValue(common.MetricTotalFees, e.epochStartMeta.GetAccumulatedFees().String())
-		e.statusHandler.SetStringValue(common.MetricDevRewardsInEpoch, e.epochStartMeta.GetDevFeesInEpoch().String())
+		e.statusHandler.SetStringValue(common.MetricTotalFees, common.GetAccumulatedFeesInEpoch(e.epochStartMeta).String())
+		e.statusHandler.SetStringValue(common.MetricDevRewardsInEpoch, common.GetDeveloperFeesInEpoch(e.epochStartMeta).String())
 		e.statusHandler.SetUInt64Value(common.MetricEpochForEconomicsData, uint64(e.epochStartMeta.GetEpoch()))
 	}
 }

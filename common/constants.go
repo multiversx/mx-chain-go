@@ -103,6 +103,9 @@ const MetricCurrentRound = "erd_current_round"
 // MetricNonce is the metric for monitoring the nonce of a node
 const MetricNonce = "erd_nonce"
 
+// MetricProposedNonce is the metric for monitoring the proposed nonce of a node
+const MetricProposedNonce = "erd_proposed_nonce"
+
 // MetricBlockTimestamp is the metric for monitoring the timestamp of the last synchronized block
 const MetricBlockTimestamp = "erd_block_timestamp"
 
