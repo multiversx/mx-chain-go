@@ -660,6 +660,7 @@ func (txs *transactions) processTxsFromMe(
 
 	if common.IsAsyncExecutionEnabled(txs.enableEpochsHandler, txs.enableRoundsHandler) {
 		// save the calculatedMiniBlocks for later comparison
+		log.Debug("processTxsFromMe async enabled")
 		txs.mutCreatedMiniBlocks.Lock()
 		txs.createdMiniBlocks = calculatedMiniBlocks
 		txs.mutCreatedMiniBlocks.Unlock()
