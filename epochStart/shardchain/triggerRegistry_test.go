@@ -137,12 +137,11 @@ func TestTrigger_LoadStateBackwardsCompatibility(t *testing.T) {
 	epoch := uint32(5)
 	key := []byte("key")
 
-	arguments := createMockShardEpochStartTriggerArguments()
-	arguments.Epoch = epoch
-
 	t.Run("backwards compatibility", func(t *testing.T) {
 		t.Parallel()
 
+		arguments := createMockShardEpochStartTriggerArguments()
+		arguments.Epoch = epoch
 		bootStorer := genericMocks.NewStorerMock()
 		arguments.Storage = &storageStubs.ChainStorerStub{
 			GetStorerCalled: func(unitType dataRetriever.UnitType) (storage.Storer, error) {
@@ -167,6 +166,8 @@ func TestTrigger_LoadStateBackwardsCompatibility(t *testing.T) {
 	t.Run("header v1", func(t *testing.T) {
 		t.Parallel()
 
+		arguments := createMockShardEpochStartTriggerArguments()
+		arguments.Epoch = epoch
 		triggerRegistry := &block.ShardTriggerRegistry{
 			Epoch:                 epoch,
 			MetaEpoch:             epoch,
@@ -202,6 +203,8 @@ func TestTrigger_LoadStateBackwardsCompatibility(t *testing.T) {
 	t.Run("header v2", func(t *testing.T) {
 		t.Parallel()
 
+		arguments := createMockShardEpochStartTriggerArguments()
+		arguments.Epoch = epoch
 		triggerRegistry := &block.ShardTriggerRegistryV2{
 			Epoch:     epoch,
 			MetaEpoch: epoch,
@@ -242,6 +245,8 @@ func TestTrigger_LoadStateBackwardsCompatibility(t *testing.T) {
 	t.Run("header v3", func(t *testing.T) {
 		t.Parallel()
 
+		arguments := createMockShardEpochStartTriggerArguments()
+		arguments.Epoch = epoch
 		triggerRegistry := &block.ShardTriggerRegistryV3{
 			Epoch:                 epoch,
 			MetaEpoch:             epoch,
