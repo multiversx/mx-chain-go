@@ -165,6 +165,10 @@ func (bq *blocksQueue) Pop() (HeaderBodyPair, bool) {
 		return item, true
 	}
 
+	if bq.closed {
+		return HeaderBodyPair{}, false
+	}
+
 	log.Warn("blocksQueue.Pop - blocks queue is empty")
 
 	return HeaderBodyPair{}, true
