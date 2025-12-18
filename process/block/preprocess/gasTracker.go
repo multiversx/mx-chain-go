@@ -59,6 +59,9 @@ func (gt *gasTracker) computeGasProvided(
 		tx,
 		txHash)
 	if err != nil {
+		log.Debug("computeGasProvided.computeGasProvidedByTx",
+			"error", err,
+		)
 		return 0, err
 	}
 
@@ -69,10 +72,21 @@ func (gt *gasTracker) computeGasProvided(
 		gasProvidedByTxInSelfShard = gasProvidedByTxInSenderShard
 
 		if gasProvidedByTxInReceiverShard > gt.getMaxGasLimitPerTx(epoch) {
+			log.Debug("computeGasProvided",
+				"error", process.ErrMaxGasLimitPerOneTxInReceiverShardIsReached,
+				"gasProvidedByTxInReceiverShard", gasProvidedByTxInReceiverShard,
+				"gt.getMaxGasLimitPerTx(epoch)", gt.getMaxGasLimitPerTx(epoch),
+			)
 			return 0, process.ErrMaxGasLimitPerOneTxInReceiverShardIsReached
 		}
 
 		if gasInfo.gasConsumedByMiniBlockInReceiverShard+gasProvidedByTxInReceiverShard > gt.getMaxGasLimitPerBlockForSafeCrossShard(epoch, overEstimationFactor) {
+			log.Debug("computeGasProvided",
+				"error", process.ErrMaxGasLimitPerMiniBlockInReceiverShardIsReached,
+				"gasInfo.gasConsumedByMiniBlockInReceiverShard", gasInfo.gasConsumedByMiniBlockInReceiverShard,
+				"gasProvidedByTxInReceiverShard", gasProvidedByTxInReceiverShard,
+				"gt.getMaxGasLimitPerBlockForSafeCrossShard(epoch, overEstimationFactor)", gt.getMaxGasLimitPerBlockForSafeCrossShard(epoch, overEstimationFactor),
+			)
 			return 0, process.ErrMaxGasLimitPerMiniBlockInReceiverShardIsReached
 		}
 	} else {
@@ -80,6 +94,12 @@ func (gt *gasTracker) computeGasProvided(
 	}
 
 	if gasInfo.totalGasConsumedInSelfShard+gasProvidedByTxInSelfShard > gt.getMaxGasLimitPerBlock(epoch, overEstimationFactor) {
+		log.Debug("computeGasProvided",
+			"error", process.ErrMaxGasLimitPerBlockInSelfShardIsReached,
+			"gasInfo.totalGasConsumedInSelfShard", gasInfo.totalGasConsumedInSelfShard,
+			"gasProvidedByTxInSelfShard", gasProvidedByTxInSelfShard,
+			"gt.getMaxGasLimitPerBlockForSafeCrossShard(epoch, overEstimationFactor)", gt.getMaxGasLimitPerBlockForSafeCrossShard(epoch, overEstimationFactor),
+		)
 		return 0, process.ErrMaxGasLimitPerBlockInSelfShardIsReached
 	}
 
