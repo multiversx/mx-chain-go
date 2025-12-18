@@ -62,14 +62,49 @@ func (creator *blocksCreator) createHeaderBasedOnRound(round uint64, nonce uint6
 func (creator *blocksCreator) createBlock(header data.HeaderHandler) (data.HeaderHandler, data.BodyHandler, error) {
 	processComponents := creator.nodeHandler.GetProcessComponents()
 	if header.IsHeaderV3() {
-		return processComponents.BlockProcessor().CreateBlockProposal(header, func() bool {
+		newHeader, newBody, err := processComponents.BlockProcessor().CreateBlockProposal(header, func() bool {
 			return true
 		})
+		if err != nil {
+			return nil, nil, err
+		}
+
+		return newHeader, newBody, creator.updateHeader(header)
 	}
 
 	return processComponents.BlockProcessor().CreateBlock(header, func() bool {
 		return true
 	})
+}
+
+func (creator *blocksCreator) updateHeader(header data.HeaderHandler) error {
+	rootHash, err := creator.nodeHandler.GetStateComponents().AccountsAdapter().RootHash()
+	if err != nil {
+		return err
+	}
+
+	switch h := header.(type) {
+	case *dataBlock.HeaderV3:
+		if check.IfNil(h) || h.LastExecutionResult == nil {
+			return nil
+		}
+		if len(h.ExecutionResults) > 0 {
+			h.ExecutionResults[len(h.ExecutionResults)-1].BaseExecutionResult.RootHash = rootHash
+			h.LastExecutionResult.ExecutionResult.RootHash = rootHash
+		}
+
+	case *dataBlock.MetaBlockV3:
+		if check.IfNil(h) || h.LastExecutionResult == nil {
+			return nil
+		}
+
+		if len(h.ExecutionResults) > 0 {
+			h.LastExecutionResult.ExecutionResult.BaseExecutionResult.RootHash = rootHash
+			h.ExecutionResults[len(h.ExecutionResults)-1].ExecutionResult.BaseExecutionResult.RootHash = rootHash
+		}
+	}
+
+	return nil
 }
 
 // CreateNewBlock creates and process a new block
