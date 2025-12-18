@@ -408,32 +408,32 @@ func TestGasConsumption_AddOutgoingTransactions(t *testing.T) {
 		// half of it * factor (200% by default) will be used for mini blocks
 		// thus 400 is the total max limit for mini blocks
 		// 5 txs in each mb with a gas limit of 10 => gasLimitPerMb = 50
-		// adding 10 mbs will lead to adding 8 and saving 2 as pending
-		mbs := generateMiniBlocks(10, 5)
+		// adding 11 mbs will lead to adding 8 and saving 3 as pending
+		mbs := generateMiniBlocks(11, 5)
 		txsInMBs := generateTxsForMiniBlocks(mbs)
 		lastMbIndex, pendingMbs, err := gc.AddIncomingMiniBlocks(mbs, txsInMBs)
 		require.NoError(t, err)
-		require.Equal(t, 2, pendingMbs)  // 2 pending mini blocks
+		require.Equal(t, 3, pendingMbs)  // 3 pending mini blocks
 		require.Equal(t, 7, lastMbIndex) // last index saved 7
 
 		pending := gc.GetPendingMiniBlocks()
-		require.Len(t, pending, 2)
+		require.Len(t, pending, 3)
 
 		// maxGasLimitPerBlock = 400
 		// half of it * factor (200% by default) will be used for txs
 		// thus 400 is the total max limit for transactions
 		// will add all as there is space left from mini blocks
-		// adding 30 txs will lead to an empty space of 100 worth of gas (enough for 2 more blocks)
+		// adding 30 txs will lead to an empty space of 100 worth of gas (enough only for 2 more blocks)
 		txHashes, txs := generateTxs(maxGasLimitPerTx, 30)
 		addedTxs, addedPendingMbs, err := gc.AddOutgoingTransactions(txHashes, txs)
 		require.NoError(t, err)
 		require.Equal(t, len(txs), len(addedTxs)) // added all
-		require.Equal(t, 2, len(addedPendingMbs)) // added all pending mbs
+		require.Equal(t, 2, len(addedPendingMbs)) // added 2 pending mbs
 
 		require.Equal(t, maxGasLimitPerBlock*2, gc.TotalGasConsumed()) // *2 due to the 200% factor
 
 		pending = gc.GetPendingMiniBlocks()
-		require.Len(t, pending, 0)
+		require.Len(t, pending, 1) // one mb was saved as pending, not enough space
 	})
 	t.Run("should work with empty transactions and continue adding pending mini blocks to fill the block", func(t *testing.T) {
 		t.Parallel()

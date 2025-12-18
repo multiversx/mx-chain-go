@@ -284,9 +284,13 @@ func (gc *gasConsumption) addPendingIncomingMiniBlocks() ([]data.MiniBlockHeader
 	lastIndexAdded := 0
 	for i := 0; i < len(gc.pendingMiniBlocks); i++ {
 		mb := gc.pendingMiniBlocks[i]
-		_, err := gc.addIncomingMiniBlock(mb, gc.transactionsForPendingMiniBlocks, bandwidthForIncomingMiniBlocks)
+		shouldSavePending, err := gc.addIncomingMiniBlock(mb, gc.transactionsForPendingMiniBlocks, bandwidthForIncomingMiniBlocks)
 		if err != nil {
 			return nil, err
+		}
+		// if should save pending, it means the limit was reached, thus break the loop
+		if shouldSavePending {
+			break
 		}
 
 		addedMiniBlocks = append(addedMiniBlocks, mb)
