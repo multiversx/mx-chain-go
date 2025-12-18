@@ -370,3 +370,8 @@ func (sr *subroundEndRound) SendProof() (bool, error) {
 func (sr *subroundEndRound) UpdateConsensusMetricsProof() {
 	sr.updateConsensusMetricsProof()
 }
+
+// PrepareBlockForExecution prepares the block for execution
+func (sr *subroundBlock) PrepareBlockForExecution(header data.HeaderHandler, body data.BodyHandler) error {
+	return sr.prepareBlockForExecution(header, body)
+}

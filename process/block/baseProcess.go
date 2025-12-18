@@ -48,7 +48,7 @@ import (
 )
 
 const (
-	cleanupCrossShardHeadersDelta = 5
+	cleanupHeadersDelta = 5
 )
 
 var log = logger.GetOrCreate("process/block")
@@ -551,7 +551,8 @@ func displayHeader(
 
 		lastExecResult, _ := common.GetLastBaseExecutionResultHandler(headerHandler)
 		if !check.IfNil(lastExecResult) {
-			logLines = append(logLines, display.NewLineData(false, []string{
+			horizontalLineAfterLastExecResult := len(headerHandler.GetExecutionResultsHandlers()) == 0
+			logLines = append(logLines, display.NewLineData(horizontalLineAfterLastExecResult, []string{
 				"",
 				"Last execution result",
 				logger.DisplayByteSlice(lastExecResult.GetHeaderHash())}))
@@ -1225,28 +1226,8 @@ func (bp *baseProcessor) cleanExecutionResultsFromTracker(header data.HeaderHand
 
 func (bp *baseProcessor) cleanupPools(headerHandler data.HeaderHandler) {
 	noncesToPrevFinal := bp.getNoncesToFinal(headerHandler) + 1
-	bp.cleanupBlockTrackerPools(noncesToPrevFinal)
 
-	highestPrevFinalBlockNonce := bp.forkDetector.GetHighestFinalBlockNonce()
-	if highestPrevFinalBlockNonce > 0 {
-		highestPrevFinalBlockNonce--
-	}
-
-	bp.removeHeadersBehindNonceFromPools(
-		true,
-		bp.shardCoordinator.SelfId(),
-		highestPrevFinalBlockNonce,
-	)
-
-	if common.IsFlagEnabledAfterEpochsStartBlock(headerHandler, bp.enableEpochsHandler, common.AndromedaFlag) {
-		err := bp.dataPool.Proofs().CleanupProofsBehindNonce(bp.shardCoordinator.SelfId(), highestPrevFinalBlockNonce)
-		if err != nil {
-			log.Warn("failed to cleanup notarized proofs behind nonce",
-				"nonce", noncesToPrevFinal,
-				"shardID", bp.shardCoordinator.SelfId(),
-				"error", err)
-		}
-	}
+	bp.cleanupPoolsForSelf(noncesToPrevFinal)
 
 	if bp.shardCoordinator.SelfId() == core.MetachainShardId {
 		for shardID := uint32(0); shardID < bp.shardCoordinator.NumberOfShards(); shardID++ {
@@ -1255,6 +1236,8 @@ func (bp *baseProcessor) cleanupPools(headerHandler data.HeaderHandler) {
 	} else {
 		bp.cleanupPoolsForCrossShard(core.MetachainShardId, noncesToPrevFinal)
 	}
+
+	bp.cleanupBlockTrackerPools(noncesToPrevFinal)
 
 	for _, executionResult := range headerHandler.GetExecutionResultsHandlers() {
 		executionResultHeaderHash := executionResult.GetHeaderHash()
@@ -1278,27 +1261,58 @@ func (bp *baseProcessor) cleanupPoolsForCrossShard(
 		return
 	}
 
-	crossNotarizedHeaderNonce := common.GetFirstExecutionResultNonce(crossNotarizedHeader)
-	if crossNotarizedHeaderNonce <= cleanupCrossShardHeadersDelta {
+	bp.cleanupPoolsForHeader(shardID, crossNotarizedHeader, false)
+}
+
+func (bp *baseProcessor) cleanupPoolsForSelf(noncesToPrevFinal uint64) {
+	shardID := bp.shardCoordinator.SelfId()
+	selfNotarizedHeader, _, err := bp.blockTracker.GetSelfNotarizedHeader(shardID, noncesToPrevFinal)
+	if err != nil {
+		displayCleanupErrorMessage("cleanupPoolsForSelf",
+			shardID,
+			noncesToPrevFinal,
+			err)
 		return
 	}
-	crossNotarizedHeaderNonce -= cleanupCrossShardHeadersDelta
+
+	bp.cleanupPoolsForHeader(shardID, selfNotarizedHeader, true)
+}
+
+func (bp *baseProcessor) cleanupPoolsForHeader(
+	shardID uint32,
+	header data.HeaderHandler,
+	removeBody bool,
+) {
+	firstNonceToBeRemoved, shouldRemove := getFirstNonceToBeRemoved(header)
+	if !shouldRemove {
+		return
+	}
 
 	bp.removeHeadersBehindNonceFromPools(
-		false,
+		removeBody,
 		shardID,
-		crossNotarizedHeaderNonce,
+		firstNonceToBeRemoved,
 	)
 
-	if common.IsFlagEnabledAfterEpochsStartBlock(crossNotarizedHeader, bp.enableEpochsHandler, common.AndromedaFlag) {
-		err = bp.dataPool.Proofs().CleanupProofsBehindNonce(shardID, noncesToPrevFinal)
+	if common.IsFlagEnabledAfterEpochsStartBlock(header, bp.enableEpochsHandler, common.AndromedaFlag) {
+		err := bp.dataPool.Proofs().CleanupProofsBehindNonce(shardID, firstNonceToBeRemoved)
 		if err != nil {
 			log.Warn("failed to cleanup notarized proofs behind nonce",
-				"nonce", noncesToPrevFinal,
+				"firstNonceToBeRemoved", firstNonceToBeRemoved,
 				"shardID", shardID,
 				"error", err)
 		}
 	}
+}
+
+func getFirstNonceToBeRemoved(headerHandler data.HeaderHandler) (uint64, bool) {
+	nonceToBeRemoved := common.GetFirstExecutionResultNonce(headerHandler)
+	if nonceToBeRemoved <= cleanupHeadersDelta {
+		return 0, false
+	}
+
+	nonceToBeRemoved -= cleanupHeadersDelta
+	return nonceToBeRemoved, true
 }
 
 func (bp *baseProcessor) removeHeadersBehindNonceFromPools(
@@ -1772,12 +1786,12 @@ func (bp *baseProcessor) saveProposedTxsToStorage(header data.HeaderHandler, bod
 
 	separatedBodies := process.SeparateBodyByType(body)
 	for blockType, blockBody := range separatedBodies {
-		dataPool, err := bp.getDataPoolByBlockType(blockType)
+		dataPool, err := process.GetDataPoolByBlockType(blockType, bp.dataPool)
 		if err != nil {
 			return err
 		}
 
-		unit, err := getStorageForProposedTxsFromBlockType(blockType)
+		unit, err := process.GetStorageUnitByBlockType(blockType)
 		if err != nil {
 			return err
 		}
@@ -1855,37 +1869,6 @@ func (bp *baseProcessor) savePeerInfoToStorage(dataPool dataRetriever.ShardedDat
 	}
 
 	return nil
-}
-
-func (bp *baseProcessor) getDataPoolByBlockType(blockType block.Type) (dataRetriever.ShardedDataCacherNotifier, error) {
-	switch blockType {
-	case block.TxBlock, block.InvalidBlock:
-		return bp.dataPool.Transactions(), nil
-	case block.SmartContractResultBlock:
-		return bp.dataPool.UnsignedTransactions(), nil
-	case block.RewardsBlock:
-		return bp.dataPool.RewardTransactions(), nil
-	case block.PeerBlock:
-		return bp.dataPool.ValidatorsInfo(), nil
-	default:
-		return nil, fmt.Errorf("unsupported block type for dataPool: %d", blockType)
-	}
-}
-
-func getStorageForProposedTxsFromBlockType(blockType block.Type) (dataRetriever.UnitType, error) {
-	switch blockType {
-	case block.TxBlock, block.InvalidBlock:
-		return dataRetriever.TransactionUnit, nil
-	case block.SmartContractResultBlock:
-		return dataRetriever.UnsignedTransactionUnit, nil
-	case block.ReceiptBlock:
-		return dataRetriever.ReceiptsUnit, nil
-	case block.RewardsBlock:
-		return dataRetriever.RewardTransactionUnit, nil
-	case block.PeerBlock:
-		return dataRetriever.UnsignedTransactionUnit, nil
-	}
-	return 0, process.ErrInvalidBlockType
 }
 
 func (bp *baseProcessor) saveShardHeader(header data.HeaderHandler, headerHash []byte, marshalizedHeader []byte) {
@@ -3530,7 +3513,7 @@ func (bp *baseProcessor) getTransactionsForMiniBlock(
 		return make([]data.TransactionHandler, 0), nil
 	}
 
-	pool, err := bp.getDataPoolByBlockType(block.Type(miniBlock.GetTypeInt32()))
+	pool, err := process.GetDataPoolByBlockType(block.Type(miniBlock.GetTypeInt32()), bp.dataPool)
 	if err != nil {
 		return nil, err
 	}
@@ -3704,21 +3687,12 @@ func (bp *baseProcessor) collectMiniBlocks(
 	headerHash []byte,
 	body *block.Body,
 ) ([]data.MiniBlockHeaderHandler, int, []byte, error) {
-	crossShardIncomingMiniBlocks := bp.getCrossShardIncomingMiniBlocksFromBody(body)
-	miniBlocksFromSelf := bp.txCoordinator.GetCreatedMiniBlocksFromMe()
-	postProcessMiniBlocks := bp.txCoordinator.CreatePostProcessMiniBlocks()
-
-	allMiniBlocks := make([]*block.MiniBlock, 0, len(crossShardIncomingMiniBlocks)+len(miniBlocksFromSelf)+len(postProcessMiniBlocks))
-	allMiniBlocks = append(allMiniBlocks, crossShardIncomingMiniBlocks...)
-	allMiniBlocks = append(allMiniBlocks, miniBlocksFromSelf...)
-	allMiniBlocks = append(allMiniBlocks, postProcessMiniBlocks...)
-
+	bodyAfterExecution := bp.createBlockBodyAfterExecution(body)
 	receiptHash, err := bp.txCoordinator.CreateReceiptsHash()
 	if err != nil {
 		return nil, 0, nil, err
 	}
 
-	bodyAfterExecution := &block.Body{MiniBlocks: allMiniBlocks}
 	// remove the self-receipts and self smart contract results mini blocks - similar to Pre-Supernova
 	sanitizedBodyAfterExecution := deleteSelfReceiptsMiniBlocks(bodyAfterExecution)
 	totalTxCount, miniBlockHeaderHandlers, err := bp.createMiniBlockHeaderHandlersV3(sanitizedBodyAfterExecution)
@@ -3738,6 +3712,23 @@ func (bp *baseProcessor) collectMiniBlocks(
 	}
 
 	return miniBlockHeaderHandlers, totalTxCount, receiptHash, nil
+}
+
+func (bp *baseProcessor) createBlockBodyAfterExecution(
+	proposedBody *block.Body,
+) *block.Body {
+	crossShardIncomingMiniBlocks := bp.getCrossShardIncomingMiniBlocksFromBody(proposedBody)
+	miniBlocksFromSelf := bp.txCoordinator.GetCreatedMiniBlocksFromMe()
+	postProcessMiniBlocks := bp.txCoordinator.CreatePostProcessMiniBlocks()
+
+	allMiniBlocks := make([]*block.MiniBlock, 0, len(crossShardIncomingMiniBlocks)+len(miniBlocksFromSelf)+len(postProcessMiniBlocks))
+	allMiniBlocks = append(allMiniBlocks, crossShardIncomingMiniBlocks...)
+	allMiniBlocks = append(allMiniBlocks, miniBlocksFromSelf...)
+	allMiniBlocks = append(allMiniBlocks, postProcessMiniBlocks...)
+
+	bodyAfterExecution := &block.Body{MiniBlocks: allMiniBlocks}
+
+	return bodyAfterExecution
 }
 
 func (bp *baseProcessor) cacheOrderedTxHashes(headerHash []byte) {

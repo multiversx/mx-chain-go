@@ -19,12 +19,14 @@ import (
 	"github.com/multiversx/mx-chain-go/consensus/spos"
 	"github.com/multiversx/mx-chain-go/consensus/spos/bls"
 	v2 "github.com/multiversx/mx-chain-go/consensus/spos/bls/v2"
+	"github.com/multiversx/mx-chain-go/process/asyncExecution/queue"
 	"github.com/multiversx/mx-chain-go/sharding/nodesCoordinator"
 	"github.com/multiversx/mx-chain-go/testscommon"
 	consensusMocks "github.com/multiversx/mx-chain-go/testscommon/consensus"
 	"github.com/multiversx/mx-chain-go/testscommon/consensus/initializers"
 	"github.com/multiversx/mx-chain-go/testscommon/dataRetriever"
 	"github.com/multiversx/mx-chain-go/testscommon/enableEpochsHandlerMock"
+	"github.com/multiversx/mx-chain-go/testscommon/processMocks"
 	"github.com/multiversx/mx-chain-go/testscommon/round"
 	"github.com/multiversx/mx-chain-go/testscommon/shardingMocks"
 	"github.com/multiversx/mx-chain-go/testscommon/statusHandler"
@@ -1671,6 +1673,152 @@ func TestSubroundBlock_GetLeaderForHeader(t *testing.T) {
 
 		require.Nil(t, err)
 		require.Equal(t, expLeader.PubKey(), leader)
+	})
+}
+
+func TestSubroundBlock_prepareBlockForExecution(t *testing.T) {
+	t.Parallel()
+
+	t.Run("non-HeaderV3 should return nil without calling any methods", func(t *testing.T) {
+		t.Parallel()
+
+		container := consensusMocks.InitConsensusCore()
+		onProposedBlockCalled := false
+		addPairCalled := false
+
+		container.SetBlockProcessor(&testscommon.BlockProcessorStub{
+			OnProposedBlockCalled: func(_ data.BodyHandler, _ data.HeaderHandler, _ []byte) error {
+				onProposedBlockCalled = true
+				return nil
+			},
+		})
+		container.SetExecutionManager(&processMocks.ExecutionManagerMock{
+			AddPairForExecutionCalled: func(_ queue.HeaderBodyPair) error {
+				addPairCalled = true
+				return nil
+			},
+		})
+
+		sr := initSubroundBlock(nil, container, &statusHandler.AppStatusHandlerStub{})
+
+		err := sr.PrepareBlockForExecution(&testscommon.HeaderHandlerStub{
+			IsHeaderV3Called: func() bool { return false },
+		}, &block.Body{})
+
+		require.Nil(t, err)
+		require.False(t, onProposedBlockCalled)
+		require.False(t, addPairCalled)
+	})
+
+	t.Run("HeaderV3 on shard should call OnProposedBlock before AddPairForExecution", func(t *testing.T) {
+		t.Parallel()
+
+		container := consensusMocks.InitConsensusCore()
+		callOrder := make([]string, 0, 2)
+
+		container.SetBlockProcessor(&testscommon.BlockProcessorStub{
+			OnProposedBlockCalled: func(_ data.BodyHandler, _ data.HeaderHandler, _ []byte) error {
+				callOrder = append(callOrder, "OnProposedBlock")
+				return nil
+			},
+		})
+		container.SetExecutionManager(&processMocks.ExecutionManagerMock{
+			AddPairForExecutionCalled: func(_ queue.HeaderBodyPair) error {
+				callOrder = append(callOrder, "AddPairForExecution")
+				return nil
+			},
+		})
+
+		sr := initSubroundBlock(nil, container, &statusHandler.AppStatusHandlerStub{})
+
+		err := sr.PrepareBlockForExecution(&testscommon.HeaderHandlerStub{
+			IsHeaderV3Called: func() bool { return true },
+			GetShardIDCalled: func() uint32 { return 0 },
+		}, &block.Body{})
+
+		require.Nil(t, err)
+		require.Equal(t, []string{"OnProposedBlock", "AddPairForExecution"}, callOrder)
+	})
+
+	t.Run("HeaderV3 on metachain should only call AddPairForExecution", func(t *testing.T) {
+		t.Parallel()
+
+		container := consensusMocks.InitConsensusCore()
+		onProposedBlockCalled := false
+		addPairCalled := false
+
+		container.SetBlockProcessor(&testscommon.BlockProcessorStub{
+			OnProposedBlockCalled: func(_ data.BodyHandler, _ data.HeaderHandler, _ []byte) error {
+				onProposedBlockCalled = true
+				return nil
+			},
+		})
+		container.SetExecutionManager(&processMocks.ExecutionManagerMock{
+			AddPairForExecutionCalled: func(_ queue.HeaderBodyPair) error {
+				addPairCalled = true
+				return nil
+			},
+		})
+
+		sr := initSubroundBlock(nil, container, &statusHandler.AppStatusHandlerStub{})
+
+		err := sr.PrepareBlockForExecution(&testscommon.HeaderHandlerStub{
+			IsHeaderV3Called: func() bool { return true },
+			GetShardIDCalled: func() uint32 { return core.MetachainShardId },
+		}, &block.Body{})
+
+		require.Nil(t, err)
+		require.False(t, onProposedBlockCalled)
+		require.True(t, addPairCalled)
+	})
+
+	t.Run("OnProposedBlock error should return error and not call AddPairForExecution", func(t *testing.T) {
+		t.Parallel()
+
+		container := consensusMocks.InitConsensusCore()
+		addPairCalled := false
+
+		container.SetBlockProcessor(&testscommon.BlockProcessorStub{
+			OnProposedBlockCalled: func(_ data.BodyHandler, _ data.HeaderHandler, _ []byte) error {
+				return expectedErr
+			},
+		})
+		container.SetExecutionManager(&processMocks.ExecutionManagerMock{
+			AddPairForExecutionCalled: func(_ queue.HeaderBodyPair) error {
+				addPairCalled = true
+				return nil
+			},
+		})
+
+		sr := initSubroundBlock(nil, container, &statusHandler.AppStatusHandlerStub{})
+
+		err := sr.PrepareBlockForExecution(&testscommon.HeaderHandlerStub{
+			IsHeaderV3Called: func() bool { return true },
+			GetShardIDCalled: func() uint32 { return 0 },
+		}, &block.Body{})
+
+		require.Equal(t, expectedErr, err)
+		require.False(t, addPairCalled)
+	})
+
+	t.Run("AddPairForExecution error should return error", func(t *testing.T) {
+		t.Parallel()
+
+		container := consensusMocks.InitConsensusCore()
+		container.SetExecutionManager(&processMocks.ExecutionManagerMock{
+			AddPairForExecutionCalled: func(_ queue.HeaderBodyPair) error {
+				return expectedErr
+			},
+		})
+
+		sr := initSubroundBlock(nil, container, &statusHandler.AppStatusHandlerStub{})
+
+		err := sr.PrepareBlockForExecution(&testscommon.HeaderHandlerStub{
+			IsHeaderV3Called: func() bool { return true },
+			GetShardIDCalled: func() uint32 { return core.MetachainShardId },
+		}, &block.Body{})
+
+		require.Equal(t, expectedErr, err)
 	})
 }
 
