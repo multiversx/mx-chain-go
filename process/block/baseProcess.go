@@ -863,7 +863,7 @@ func (bp *baseProcessor) sortHeaderHashesForCurrentBlockByNonce(usedInBlock bool
 	return hdrsHashesForCurrentBlock, nil
 }
 
-func (bp *baseProcessor) createMiniBlockHeaderHandlersV3(body *block.Body) (int, []data.MiniBlockHeaderHandler, error) {
+func (bp *baseProcessor) createMiniBlockHeaderHandlersForExecutionResults(body *block.Body) (int, []data.MiniBlockHeaderHandler, error) {
 	if len(body.MiniBlocks) == 0 {
 		return 0, nil, nil
 	}
@@ -879,7 +879,7 @@ func (bp *baseProcessor) createMiniBlockHeaderHandlersV3(body *block.Body) (int,
 		}
 		totalTxCount += txCount
 
-		err = setMiniBlockHeaderReservedFieldV3(miniBlockHeaderHandlers[i])
+		err = setMiniBlockHeaderReservedFieldForExecutionResults(miniBlockHeaderHandlers[i])
 		if err != nil {
 			return 0, nil, err
 		}
@@ -934,7 +934,7 @@ func (bp *baseProcessor) createMbHeaderWithoutReservedFields(miniBlock *block.Mi
 	return txCount, mbHeaderHandler, nil
 }
 
-func setMiniBlockHeaderReservedFieldV3(
+func setMiniBlockHeaderReservedFieldForExecutionResults(
 	miniBlockHeaderHandler data.MiniBlockHeaderHandler,
 ) error {
 
@@ -3695,7 +3695,7 @@ func (bp *baseProcessor) collectMiniBlocks(
 
 	// remove the self-receipts and self smart contract results mini blocks - similar to Pre-Supernova
 	sanitizedBodyAfterExecution := deleteSelfReceiptsMiniBlocks(bodyAfterExecution)
-	totalTxCount, miniBlockHeaderHandlers, err := bp.createMiniBlockHeaderHandlersV3(sanitizedBodyAfterExecution)
+	totalTxCount, miniBlockHeaderHandlers, err := bp.createMiniBlockHeaderHandlersForExecutionResults(sanitizedBodyAfterExecution)
 	if err != nil {
 		return nil, 0, nil, err
 	}

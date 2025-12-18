@@ -495,7 +495,7 @@ func (mp *metaProcessor) collectExecutionResultsEpochStartProposal(
 	constructedBody *block.Body,
 	valStatRootHash []byte,
 ) (data.BaseExecutionResultHandler, error) {
-	totalTxCount, miniBlockHeaderHandlers, err := mp.createMiniBlockHeaderHandlersV3(constructedBody)
+	totalTxCount, miniBlockHeaderHandlers, err := mp.createMiniBlockHeaderHandlersForExecutionResults(constructedBody)
 	if err != nil {
 		return nil, err
 	}
