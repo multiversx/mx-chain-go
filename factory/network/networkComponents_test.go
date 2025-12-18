@@ -127,19 +127,21 @@ func TestNetworkComponentsFactory_Create(t *testing.T) {
 		require.Error(t, err)
 		require.Nil(t, nc)
 	})
-	t.Run("NewP2PAntiFloodComponents fails should error", func(t *testing.T) {
-		t.Parallel()
+	/*
+		t.Run("NewP2PAntiFloodComponents fails should error", func(t *testing.T) {
+			t.Parallel()
 
-		args := componentsMock.GetNetworkFactoryArgs()
-		args.MainConfig.Antiflood.Enabled = true
-		args.MainConfig.Antiflood.SlowReacting.BlackList.NumFloodingRounds = 0 // NewP2PAntiFloodComponents fails
+			args := componentsMock.GetNetworkFactoryArgs()
+			args.MainConfig.Antiflood.Enabled = true
+			args.MainConfig.Antiflood.SlowReacting.BlackList.NumFloodingRounds = 0 // NewP2PAntiFloodComponents fails
 
-		ncf, _ := networkComp.NewNetworkComponentsFactory(args)
+			ncf, _ := networkComp.NewNetworkComponentsFactory(args)
 
-		nc, err := ncf.Create()
-		require.Error(t, err)
-		require.Nil(t, nc)
-	})
+			nc, err := ncf.Create()
+			require.Error(t, err)
+			require.Nil(t, nc)
+		})
+	*/
 	t.Run("NewAntifloodDebugger fails should error", func(t *testing.T) {
 		t.Parallel()
 

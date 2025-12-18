@@ -5,6 +5,7 @@ import (
 	"sort"
 
 	"github.com/multiversx/mx-chain-core-go/core/check"
+	"github.com/multiversx/mx-chain-go/common/configs/dto"
 	"github.com/multiversx/mx-chain-go/config"
 	"github.com/multiversx/mx-chain-go/process"
 )
@@ -21,6 +22,9 @@ const (
 	defaultMaxSyncWithErrorsAllowed               = 20
 	defaultMaxRoundsToKeepUnprocessedMiniBlocks   = 3000
 	defaultMaxRoundsToKeepUnprocessedTransactions = 3000
+	defaultNumFloodingRoundsFastReacting          = 20
+	defaultNumFloodingRoundsSlowReacting          = 20
+	defaultNumFloodingRoundsOutOfSpecs            = 20
 )
 
 type configByRoundSelector[T any] func(config.ProcessConfigByRound) T
@@ -34,7 +38,7 @@ type processConfigsByEpoch struct {
 	orderedConfigByEpoch []config.ProcessConfigByEpoch
 	orderedConfigByRound []config.ProcessConfigByRound
 	roundNotifier        process.RoundNotifier
-	variablesMap         map[ConfigVariable]configVariableHandler
+	variablesMap         map[dto.ConfigVariable]configVariableHandler
 }
 
 // NewProcessConfigsHandler creates a new process configs by epoch component
@@ -61,13 +65,24 @@ func NewProcessConfigsHandler(
 		orderedConfigByEpoch: make([]config.ProcessConfigByEpoch, len(configsByEpoch)),
 		orderedConfigByRound: make([]config.ProcessConfigByRound, len(configsByRound)),
 		roundNotifier:        roundNotifier,
-		variablesMap: map[ConfigVariable]configVariableHandler{
-			NumFloodingRoundsFastReaction: {
+		variablesMap: map[dto.ConfigVariable]configVariableHandler{
+			dto.NumFloodingRoundsFastReacting: {
 				valueSelector: func(cfg config.ProcessConfigByRound) uint64 {
-					//return uint64(cfg.NumFloodingRoundsFastReaction)
-					return 0
+					return uint64(cfg.NumFloodingRoundsFastReacting)
 				},
-				defaultValue: 0,
+				defaultValue: defaultNumFloodingRoundsFastReacting,
+			},
+			dto.NumFloodingRoundsSlowReacting: {
+				valueSelector: func(cfg config.ProcessConfigByRound) uint64 {
+					return uint64(cfg.NumFloodingRoundsSlowReacting)
+				},
+				defaultValue: defaultNumFloodingRoundsSlowReacting,
+			},
+			dto.NumFloodingRoundsOutOfSpecs: {
+				valueSelector: func(cfg config.ProcessConfigByRound) uint64 {
+					return uint64(cfg.NumFloodingRoundsOutOfSpecs)
+				},
+				defaultValue: defaultNumFloodingRoundsOutOfSpecs,
 			},
 		},
 	}
@@ -271,20 +286,12 @@ func (pce *processConfigsByEpoch) GetMaxRoundsToKeepUnprocessedTransactions(roun
 	)
 }
 
-type ConfigVariable string
-
-const (
-	NumFloodingRoundsFastReaction       ConfigVariable = "NumFloodingRoundsFastReaction"
-	NumFloodingRoundsSlowReaction       ConfigVariable = "NumFloodingRoundsSlowReaction"
-	NumFloodingRoundsOutOfSpecsReaction ConfigVariable = "NumFloodingRoundsOutOfSpecsReaction"
-)
-
-func (pce *processConfigsByEpoch) GetValue(variable ConfigVariable) uint64 {
+func (pce *processConfigsByEpoch) GetValue(variable dto.ConfigVariable) uint64 {
 	return pce.getValueByRound(variable, pce.roundNotifier.CurrentRound())
 }
 
 func (pce *processConfigsByEpoch) getValueByRound(
-	variable ConfigVariable,
+	variable dto.ConfigVariable,
 	round uint64,
 ) uint64 {
 	cfgVarHandler, ok := pce.variablesMap[variable]

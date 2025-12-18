@@ -42,7 +42,6 @@ func createWorkableConfig() config.Config {
 				BlackList: config.BlackListConfig{
 					ThresholdNumMessagesPerInterval: 480,
 					ThresholdSizePerInterval:        5242880,
-					NumFloodingRounds:               10,
 					PeerBanDurationInSeconds:        300,
 				},
 			},
@@ -56,7 +55,6 @@ func createWorkableConfig() config.Config {
 				BlackList: config.BlackListConfig{
 					ThresholdNumMessagesPerInterval: 6000,
 					ThresholdSizePerInterval:        37748736,
-					NumFloodingRounds:               2,
 					PeerBanDurationInSeconds:        3600,
 				},
 			},
@@ -70,7 +68,6 @@ func createWorkableConfig() config.Config {
 				BlackList: config.BlackListConfig{
 					ThresholdNumMessagesPerInterval: 1500,
 					ThresholdSizePerInterval:        10485760,
-					NumFloodingRounds:               2,
 					PeerBanDurationInSeconds:        3600,
 				},
 			},

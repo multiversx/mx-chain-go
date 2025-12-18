@@ -91,7 +91,6 @@ func createFloodPreventerConfig() config.FloodPreventerConfig {
 		BlackList: config.BlackListConfig{
 			ThresholdNumMessagesPerInterval: 10,
 			ThresholdSizePerInterval:        10,
-			NumFloodingRounds:               10,
 			PeerBanDurationInSeconds:        10,
 		},
 	}

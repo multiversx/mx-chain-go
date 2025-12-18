@@ -7,7 +7,9 @@ import (
 
 	"github.com/multiversx/mx-chain-core-go/core"
 	"github.com/multiversx/mx-chain-core-go/core/check"
+	"github.com/multiversx/mx-chain-go/common/configs/dto"
 	"github.com/multiversx/mx-chain-go/testscommon"
+	"github.com/stretchr/testify/require"
 
 	"github.com/multiversx/mx-chain-go/process"
 	"github.com/multiversx/mx-chain-go/process/mock"
@@ -29,7 +31,7 @@ func TestNewP2PQuotaBlacklistProcessor_NilCacherShouldErr(t *testing.T) {
 		&mock.PeerBlackListHandlerStub{},
 		1,
 		1,
-		2,
+		dto.NumFloodingRoundsFastReacting,
 		time.Second,
 		"",
 		selfPid,
@@ -48,7 +50,7 @@ func TestNewP2PQuotaBlacklistProcessor_NilBlackListHandlerShouldErr(t *testing.T
 		nil,
 		1,
 		1,
-		2,
+		dto.NumFloodingRoundsFastReacting,
 		time.Second,
 		"",
 		selfPid,
@@ -67,7 +69,7 @@ func TestNewP2PQuotaBlacklistProcessor_InvalidThresholdNumReceivedFloodShouldErr
 		&mock.PeerBlackListHandlerStub{},
 		0,
 		1,
-		2,
+		dto.NumFloodingRoundsFastReacting,
 		time.Second,
 		"",
 		selfPid,
@@ -86,26 +88,7 @@ func TestNewP2PQuotaBlacklistProcessor_InvalidThresholdSizeReceivedFloodShouldEr
 		&mock.PeerBlackListHandlerStub{},
 		1,
 		0,
-		2,
-		time.Second,
-		"",
-		selfPid,
-		&testscommon.ProcessConfigsHandlerStub{},
-	)
-
-	assert.True(t, check.IfNil(pbp))
-	assert.True(t, errors.Is(err, process.ErrInvalidValue))
-}
-
-func TestNewP2PQuotaBlacklistProcessor_InvalidNumFloodingRoundsShouldErr(t *testing.T) {
-	t.Parallel()
-
-	pbp, err := blackList.NewP2PBlackListProcessor(
-		cache.NewCacherStub(),
-		&mock.PeerBlackListHandlerStub{},
-		1,
-		1,
-		1,
+		dto.NumFloodingRoundsFastReacting,
 		time.Second,
 		"",
 		selfPid,
@@ -124,7 +107,7 @@ func TestNewP2PQuotaBlacklistProcessor_InvalidBanDurationShouldErr(t *testing.T)
 		&mock.PeerBlackListHandlerStub{},
 		1,
 		1,
-		2,
+		dto.NumFloodingRoundsFastReacting,
 		time.Millisecond,
 		"",
 		selfPid,
@@ -143,7 +126,7 @@ func TestNewP2PQuotaBlacklistProcessor_ShouldWork(t *testing.T) {
 		&mock.PeerBlackListHandlerStub{},
 		1,
 		1,
-		2,
+		dto.NumFloodingRoundsFastReacting,
 		time.Second,
 		"",
 		selfPid,
@@ -176,7 +159,7 @@ func TestP2PQuotaBlacklistProcessor_AddQuotaUnderThresholdShouldNotCallGetOrPut(
 		&mock.PeerBlackListHandlerStub{},
 		thresholdNum,
 		thresholdSize,
-		2,
+		dto.NumFloodingRoundsFastReacting,
 		time.Second,
 		"",
 		selfPid,
@@ -210,7 +193,7 @@ func TestP2PQuotaBlacklistProcessor_AddQuotaOverThresholdInexistentDataOnGetShou
 		&mock.PeerBlackListHandlerStub{},
 		thresholdNum,
 		thresholdSize,
-		2,
+		dto.NumFloodingRoundsFastReacting,
 		time.Second,
 		"",
 		selfPid,
@@ -246,7 +229,7 @@ func TestP2PQuotaBlacklistProcessor_AddQuotaOverThresholdDataNotValidOnGetShould
 		&mock.PeerBlackListHandlerStub{},
 		thresholdNum,
 		thresholdSize,
-		2,
+		dto.NumFloodingRoundsFastReacting,
 		time.Second,
 		"",
 		selfPid,
@@ -283,7 +266,7 @@ func TestP2PQuotaBlacklistProcessor_AddQuotaShouldIncrement(t *testing.T) {
 		&mock.PeerBlackListHandlerStub{},
 		thresholdNum,
 		thresholdSize,
-		2,
+		dto.NumFloodingRoundsFastReacting,
 		time.Second,
 		"",
 		selfPid,
@@ -316,7 +299,7 @@ func TestP2PQuotaBlacklistProcessor_AddQuotaForSelfShouldNotIncrement(t *testing
 		&mock.PeerBlackListHandlerStub{},
 		thresholdNum,
 		thresholdSize,
-		2,
+		dto.NumFloodingRoundsFastReacting,
 		time.Second,
 		"",
 		selfPid,
@@ -355,7 +338,7 @@ func TestP2PQuotaBlacklistProcessor_ResetStatisticsRemoveNilValueKey(t *testing.
 		&mock.PeerBlackListHandlerStub{},
 		thresholdNum,
 		thresholdSize,
-		2,
+		dto.NumFloodingRoundsFastReacting,
 		time.Second,
 		"",
 		selfPid,
@@ -392,7 +375,7 @@ func TestP2PQuotaBlacklistProcessor_ResetStatisticsShouldRemoveInvalidValueKey(t
 		&mock.PeerBlackListHandlerStub{},
 		thresholdNum,
 		thresholdSize,
-		2,
+		dto.NumFloodingRoundsFastReacting,
 		time.Second,
 		"",
 		selfPid,
@@ -437,7 +420,7 @@ func TestP2PQuotaBlacklistProcessor_ResetStatisticsUnderNumFloodingRoundsShouldN
 		},
 		thresholdNum,
 		thresholdSize,
-		numFloodingRounds,
+		dto.NumFloodingRoundsFastReacting,
 		duration,
 		"",
 		selfPid,
@@ -483,11 +466,16 @@ func TestP2PQuotaBlacklistProcessor_ResetStatisticsOverNumFloodingRoundsShouldBl
 		},
 		thresholdNum,
 		thresholdSize,
-		numFloodingRounds,
+		dto.NumFloodingRoundsFastReacting,
 		duration,
 		"",
 		selfPid,
-		&testscommon.ProcessConfigsHandlerStub{},
+		&testscommon.ProcessConfigsHandlerStub{
+			GetValueCalled: func(variable dto.ConfigVariable) uint64 {
+				require.Equal(t, dto.NumFloodingRoundsFastReacting, variable)
+				return uint64(numFloodingRounds)
+			},
+		},
 	)
 
 	pbp.ResetStatistics()

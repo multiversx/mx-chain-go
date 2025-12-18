@@ -8,6 +8,7 @@ import (
 	"github.com/multiversx/mx-chain-core-go/core"
 	"github.com/multiversx/mx-chain-core-go/core/check"
 	"github.com/multiversx/mx-chain-go/common"
+	"github.com/multiversx/mx-chain-go/common/configs/dto"
 	"github.com/multiversx/mx-chain-go/config"
 	antifloodDebug "github.com/multiversx/mx-chain-go/debug/antiflood"
 	"github.com/multiversx/mx-chain-go/p2p"
@@ -90,6 +91,7 @@ func initP2PAntiFloodComponents(
 		p2pPeerBlackList,
 		currentPid,
 		processConfigsHandler,
+		dto.NumFloodingRoundsFastReacting,
 	)
 	if err != nil {
 		return nil, fmt.Errorf("%w when creating fast reacting flood preventer", err)
@@ -104,6 +106,7 @@ func initP2PAntiFloodComponents(
 		p2pPeerBlackList,
 		currentPid,
 		processConfigsHandler,
+		dto.NumFloodingRoundsSlowReacting,
 	)
 	if err != nil {
 		return nil, fmt.Errorf("%w when creating fast reacting flood preventer", err)
@@ -118,6 +121,7 @@ func initP2PAntiFloodComponents(
 		p2pPeerBlackList,
 		currentPid,
 		processConfigsHandler,
+		dto.NumFloodingRoundsOutOfSpecs,
 	)
 	if err != nil {
 		return nil, fmt.Errorf("%w when creating out of specs flood preventer", err)
@@ -230,6 +234,7 @@ func createFloodPreventer(
 	blackListHandler process.PeerBlackListCacher,
 	selfPid core.PeerID,
 	processConfigsHandler common.ProcessConfigsHandler,
+	floodingRoundsVar dto.ConfigVariable,
 ) (process.FloodPreventer, error) {
 	cacheConfig := storageFactory.GetCacherFromConfig(antifloodCacheConfig)
 	blackListCache, err := storageunit.NewCache(cacheConfig)
@@ -242,7 +247,7 @@ func createFloodPreventer(
 		blackListHandler,
 		floodPreventerConfig.BlackList.ThresholdNumMessagesPerInterval,
 		floodPreventerConfig.BlackList.ThresholdSizePerInterval,
-		floodPreventerConfig.BlackList.NumFloodingRounds,
+		floodingRoundsVar,
 		time.Duration(floodPreventerConfig.BlackList.PeerBanDurationInSeconds)*time.Second,
 		quotaIdentifier,
 		selfPid,
@@ -289,7 +294,6 @@ func createFloodPreventer(
 		"peerBanDurationInSeconds", floodPreventerConfig.BlackList.PeerBanDurationInSeconds,
 		"thresholdNumMessagesPerSecond", floodPreventerConfig.BlackList.ThresholdNumMessagesPerInterval,
 		"thresholdSizePerSecond", floodPreventerConfig.BlackList.ThresholdSizePerInterval,
-		"numFloodingRounds", floodPreventerConfig.BlackList.NumFloodingRounds,
 		"increase threshold", floodPreventerConfig.PeerMaxInput.IncreaseFactor.Threshold,
 		"increase factor", floodPreventerConfig.PeerMaxInput.IncreaseFactor.Factor,
 	)
