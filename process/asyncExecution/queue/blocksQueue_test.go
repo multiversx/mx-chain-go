@@ -567,3 +567,30 @@ func TestBlocksQueue_AddAndPop(t *testing.T) {
 		t.Log("expected hq.Pop() to block, success")
 	}
 }
+
+func TestBlocksQueue_RemoveAndPop(t *testing.T) {
+	t.Parallel()
+
+	hq := NewBlocksQueue()
+	pair := HeaderBodyPair{
+		Header: &block.Header{Nonce: 0, Round: 1},
+		Body:   &block.Body{},
+	}
+
+	go func() {
+		// wait a bit so hq.Pop call blocks the channel
+		time.Sleep(time.Millisecond * 100)
+
+		// add a pair and remove it immediately
+		err := hq.AddOrReplace(pair)
+		require.NoError(t, err)
+
+		hq.RemoveAtNonceAndHigher(pair.Header.GetNonce())
+	}()
+
+	// wait blocking, should return ok with nil header and body
+	poppedPair, ok := hq.Pop()
+	require.True(t, ok)
+	require.Nil(t, poppedPair.Header)
+	require.Nil(t, poppedPair.Body)
+}
