@@ -115,6 +115,11 @@ func (he *headersExecutor) start(ctx context.Context) {
 				return
 			}
 
+			if check.IfNil(headerBodyPair.Header) || check.IfNil(headerBodyPair.Body) {
+				log.Debug("headersExecutor.start: popped nil header or body, continuing...")
+				continue
+			}
+
 			err := he.process(headerBodyPair)
 			if err != nil {
 				he.handleProcessError(ctx, headerBodyPair)

@@ -165,9 +165,13 @@ func (bq *blocksQueue) Pop() (HeaderBodyPair, bool) {
 		return item, true
 	}
 
+	if bq.closed {
+		return HeaderBodyPair{}, false
+	}
+
 	log.Warn("blocksQueue.Pop - blocks queue is empty")
 
-	return HeaderBodyPair{}, false
+	return HeaderBodyPair{}, true
 }
 
 // Peek returns the first element from queue
