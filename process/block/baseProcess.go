@@ -48,7 +48,7 @@ import (
 )
 
 const (
-	cleanupCrossShardHeadersDelta = 5
+	cleanupHeadersDelta = 5
 )
 
 var log = logger.GetOrCreate("process/block")
@@ -551,7 +551,8 @@ func displayHeader(
 
 		lastExecResult, _ := common.GetLastBaseExecutionResultHandler(headerHandler)
 		if !check.IfNil(lastExecResult) {
-			logLines = append(logLines, display.NewLineData(false, []string{
+			horizontalLineAfterLastExecResult := len(headerHandler.GetExecutionResultsHandlers()) == 0
+			logLines = append(logLines, display.NewLineData(horizontalLineAfterLastExecResult, []string{
 				"",
 				"Last execution result",
 				logger.DisplayByteSlice(lastExecResult.GetHeaderHash())}))
@@ -862,6 +863,31 @@ func (bp *baseProcessor) sortHeaderHashesForCurrentBlockByNonce(usedInBlock bool
 	return hdrsHashesForCurrentBlock, nil
 }
 
+func (bp *baseProcessor) createMiniBlockHeaderHandlersForExecutionResults(body *block.Body) (int, []data.MiniBlockHeaderHandler, error) {
+	if len(body.MiniBlocks) == 0 {
+		return 0, nil, nil
+	}
+
+	totalTxCount := 0
+	miniBlockHeaderHandlers := make([]data.MiniBlockHeaderHandler, len(body.MiniBlocks))
+	var err error
+	var txCount int
+	for i := 0; i < len(body.MiniBlocks); i++ {
+		txCount, miniBlockHeaderHandlers[i], err = bp.createMbHeaderWithoutReservedFields(body.MiniBlocks[i])
+		if err != nil {
+			return 0, nil, err
+		}
+		totalTxCount += txCount
+
+		err = setMiniBlockHeaderReservedFieldForExecutionResults(miniBlockHeaderHandlers[i])
+		if err != nil {
+			return 0, nil, err
+		}
+	}
+
+	return totalTxCount, miniBlockHeaderHandlers, nil
+}
+
 func (bp *baseProcessor) createMiniBlockHeaderHandlers(
 	body *block.Body,
 	processedMiniBlocksDestMeInfo map[string]*processedMb.ProcessedMiniBlockInfo,
@@ -872,23 +898,14 @@ func (bp *baseProcessor) createMiniBlockHeaderHandlers(
 
 	totalTxCount := 0
 	miniBlockHeaderHandlers := make([]data.MiniBlockHeaderHandler, len(body.MiniBlocks))
-
+	var err error
+	var txCount int
 	for i := 0; i < len(body.MiniBlocks); i++ {
-		txCount := len(body.MiniBlocks[i].TxHashes)
-		totalTxCount += txCount
-
-		miniBlockHash, err := core.CalculateHash(bp.marshalizer, bp.hasher, body.MiniBlocks[i])
+		txCount, miniBlockHeaderHandlers[i], err = bp.createMbHeaderWithoutReservedFields(body.MiniBlocks[i])
 		if err != nil {
 			return 0, nil, err
 		}
-
-		miniBlockHeaderHandlers[i] = &block.MiniBlockHeader{
-			Hash:            miniBlockHash,
-			SenderShardID:   body.MiniBlocks[i].SenderShardID,
-			ReceiverShardID: body.MiniBlocks[i].ReceiverShardID,
-			TxCount:         uint32(txCount),
-			Type:            body.MiniBlocks[i].Type,
-		}
+		totalTxCount += txCount
 
 		err = bp.setMiniBlockHeaderReservedField(body.MiniBlocks[i], miniBlockHeaderHandlers[i], processedMiniBlocksDestMeInfo)
 		if err != nil {
@@ -897,6 +914,46 @@ func (bp *baseProcessor) createMiniBlockHeaderHandlers(
 	}
 
 	return totalTxCount, miniBlockHeaderHandlers, nil
+}
+
+func (bp *baseProcessor) createMbHeaderWithoutReservedFields(miniBlock *block.MiniBlock) (int, data.MiniBlockHeaderHandler, error) {
+	miniBlockHash, err := core.CalculateHash(bp.marshalizer, bp.hasher, miniBlock)
+	if err != nil {
+		return 0, nil, err
+	}
+	txCount := len(miniBlock.TxHashes)
+
+	mbHeaderHandler := &block.MiniBlockHeader{
+		Hash:            miniBlockHash,
+		SenderShardID:   miniBlock.SenderShardID,
+		ReceiverShardID: miniBlock.ReceiverShardID,
+		TxCount:         uint32(txCount),
+		Type:            miniBlock.Type,
+	}
+
+	return txCount, mbHeaderHandler, nil
+}
+
+func setMiniBlockHeaderReservedFieldForExecutionResults(
+	miniBlockHeaderHandler data.MiniBlockHeaderHandler,
+) error {
+
+	err := miniBlockHeaderHandler.SetIndexOfFirstTxProcessed(0)
+	if err != nil {
+		return err
+	}
+
+	err = miniBlockHeaderHandler.SetIndexOfLastTxProcessed(int32(miniBlockHeaderHandler.GetTxCount()) - 1)
+	if err != nil {
+		return err
+	}
+
+	err = miniBlockHeaderHandler.SetProcessingType(int32(block.Normal))
+	if err != nil {
+		return err
+	}
+
+	return miniBlockHeaderHandler.SetConstructionState(int32(block.Final))
 }
 
 func (bp *baseProcessor) setMiniBlockHeaderReservedField(
@@ -1169,28 +1226,8 @@ func (bp *baseProcessor) cleanExecutionResultsFromTracker(header data.HeaderHand
 
 func (bp *baseProcessor) cleanupPools(headerHandler data.HeaderHandler) {
 	noncesToPrevFinal := bp.getNoncesToFinal(headerHandler) + 1
-	bp.cleanupBlockTrackerPools(noncesToPrevFinal)
 
-	highestPrevFinalBlockNonce := bp.forkDetector.GetHighestFinalBlockNonce()
-	if highestPrevFinalBlockNonce > 0 {
-		highestPrevFinalBlockNonce--
-	}
-
-	bp.removeHeadersBehindNonceFromPools(
-		true,
-		bp.shardCoordinator.SelfId(),
-		highestPrevFinalBlockNonce,
-	)
-
-	if common.IsFlagEnabledAfterEpochsStartBlock(headerHandler, bp.enableEpochsHandler, common.AndromedaFlag) {
-		err := bp.dataPool.Proofs().CleanupProofsBehindNonce(bp.shardCoordinator.SelfId(), highestPrevFinalBlockNonce)
-		if err != nil {
-			log.Warn("failed to cleanup notarized proofs behind nonce",
-				"nonce", noncesToPrevFinal,
-				"shardID", bp.shardCoordinator.SelfId(),
-				"error", err)
-		}
-	}
+	bp.cleanupPoolsForSelf(noncesToPrevFinal)
 
 	if bp.shardCoordinator.SelfId() == core.MetachainShardId {
 		for shardID := uint32(0); shardID < bp.shardCoordinator.NumberOfShards(); shardID++ {
@@ -1199,6 +1236,8 @@ func (bp *baseProcessor) cleanupPools(headerHandler data.HeaderHandler) {
 	} else {
 		bp.cleanupPoolsForCrossShard(core.MetachainShardId, noncesToPrevFinal)
 	}
+
+	bp.cleanupBlockTrackerPools(noncesToPrevFinal)
 
 	for _, executionResult := range headerHandler.GetExecutionResultsHandlers() {
 		executionResultHeaderHash := executionResult.GetHeaderHash()
@@ -1222,27 +1261,58 @@ func (bp *baseProcessor) cleanupPoolsForCrossShard(
 		return
 	}
 
-	crossNotarizedHeaderNonce := common.GetFirstExecutionResultNonce(crossNotarizedHeader)
-	if crossNotarizedHeaderNonce <= cleanupCrossShardHeadersDelta {
+	bp.cleanupPoolsForHeader(shardID, crossNotarizedHeader, false)
+}
+
+func (bp *baseProcessor) cleanupPoolsForSelf(noncesToPrevFinal uint64) {
+	shardID := bp.shardCoordinator.SelfId()
+	selfNotarizedHeader, _, err := bp.blockTracker.GetSelfNotarizedHeader(shardID, noncesToPrevFinal)
+	if err != nil {
+		displayCleanupErrorMessage("cleanupPoolsForSelf",
+			shardID,
+			noncesToPrevFinal,
+			err)
 		return
 	}
-	crossNotarizedHeaderNonce -= cleanupCrossShardHeadersDelta
+
+	bp.cleanupPoolsForHeader(shardID, selfNotarizedHeader, true)
+}
+
+func (bp *baseProcessor) cleanupPoolsForHeader(
+	shardID uint32,
+	header data.HeaderHandler,
+	removeBody bool,
+) {
+	firstNonceToBeRemoved, shouldRemove := getFirstNonceToBeRemoved(header)
+	if !shouldRemove {
+		return
+	}
 
 	bp.removeHeadersBehindNonceFromPools(
-		false,
+		removeBody,
 		shardID,
-		crossNotarizedHeaderNonce,
+		firstNonceToBeRemoved,
 	)
 
-	if common.IsFlagEnabledAfterEpochsStartBlock(crossNotarizedHeader, bp.enableEpochsHandler, common.AndromedaFlag) {
-		err = bp.dataPool.Proofs().CleanupProofsBehindNonce(shardID, noncesToPrevFinal)
+	if common.IsFlagEnabledAfterEpochsStartBlock(header, bp.enableEpochsHandler, common.AndromedaFlag) {
+		err := bp.dataPool.Proofs().CleanupProofsBehindNonce(shardID, firstNonceToBeRemoved)
 		if err != nil {
 			log.Warn("failed to cleanup notarized proofs behind nonce",
-				"nonce", noncesToPrevFinal,
+				"firstNonceToBeRemoved", firstNonceToBeRemoved,
 				"shardID", shardID,
 				"error", err)
 		}
 	}
+}
+
+func getFirstNonceToBeRemoved(headerHandler data.HeaderHandler) (uint64, bool) {
+	nonceToBeRemoved := common.GetFirstExecutionResultNonce(headerHandler)
+	if nonceToBeRemoved <= cleanupHeadersDelta {
+		return 0, false
+	}
+
+	nonceToBeRemoved -= cleanupHeadersDelta
+	return nonceToBeRemoved, true
 }
 
 func (bp *baseProcessor) removeHeadersBehindNonceFromPools(
@@ -3625,11 +3695,7 @@ func (bp *baseProcessor) collectMiniBlocks(
 
 	// remove the self-receipts and self smart contract results mini blocks - similar to Pre-Supernova
 	sanitizedBodyAfterExecution := deleteSelfReceiptsMiniBlocks(bodyAfterExecution)
-
-	// giving an empty processedMiniBlockInfo would cause all miniBlockHeaders to be created as fully processed.
-	processedMiniBlockInfo := make(map[string]*processedMb.ProcessedMiniBlockInfo)
-
-	totalTxCount, miniBlockHeaderHandlers, err := bp.createMiniBlockHeaderHandlers(sanitizedBodyAfterExecution, processedMiniBlockInfo)
+	totalTxCount, miniBlockHeaderHandlers, err := bp.createMiniBlockHeaderHandlersForExecutionResults(sanitizedBodyAfterExecution)
 	if err != nil {
 		return nil, 0, nil, err
 	}
