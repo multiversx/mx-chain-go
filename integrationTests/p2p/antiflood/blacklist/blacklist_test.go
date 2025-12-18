@@ -176,6 +176,7 @@ func createBlacklistHandlersAndProcessors(
 			time.Minute*5,
 			"",
 			peers[i].ID(),
+			&testscommon.ProcessConfigsHandlerStub{},
 		)
 		log.LogIfError(err)
 	}

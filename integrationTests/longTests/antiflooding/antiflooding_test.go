@@ -14,6 +14,7 @@ import (
 	"github.com/multiversx/mx-chain-go/p2p"
 	"github.com/multiversx/mx-chain-go/process/throttle/antiflood/blackList"
 	"github.com/multiversx/mx-chain-go/process/throttle/antiflood/factory"
+	"github.com/multiversx/mx-chain-go/testscommon"
 	statusHandlerMock "github.com/multiversx/mx-chain-go/testscommon/statusHandler"
 	logger "github.com/multiversx/mx-chain-logger-go"
 	"github.com/stretchr/testify/assert"
@@ -123,13 +124,13 @@ func createProcessors(peers []p2p.Messenger, topic string, idxBadPeers []int, id
 		var err error
 
 		if intInSlice(i, idxBadPeers) {
-			antifloodComponents, err = factory.NewP2PAntiFloodComponents(ctx, createDisabledConfig(), &statusHandlerMock.AppStatusHandlerStub{}, peers[i].ID())
+			antifloodComponents, err = factory.NewP2PAntiFloodComponents(ctx, createDisabledConfig(), &statusHandlerMock.AppStatusHandlerStub{}, peers[i].ID(), &testscommon.ProcessConfigsHandlerStub{})
 			log.LogIfError(err)
 		}
 
 		if intInSlice(i, idxGoodPeers) {
 			statusHandler := &statusHandlerMock.AppStatusHandlerStub{}
-			antifloodComponents, err = factory.NewP2PAntiFloodComponents(ctx, createWorkableConfig(), statusHandler, peers[i].ID())
+			antifloodComponents, err = factory.NewP2PAntiFloodComponents(ctx, createWorkableConfig(), statusHandler, peers[i].ID(), &testscommon.ProcessConfigsHandlerStub{})
 			log.LogIfError(err)
 		}
 

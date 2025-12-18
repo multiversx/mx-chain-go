@@ -7,6 +7,7 @@ import (
 
 	"github.com/multiversx/mx-chain-core-go/core"
 	"github.com/multiversx/mx-chain-core-go/core/check"
+	"github.com/multiversx/mx-chain-go/common"
 	"github.com/multiversx/mx-chain-go/config"
 	antifloodDebug "github.com/multiversx/mx-chain-go/debug/antiflood"
 	"github.com/multiversx/mx-chain-go/p2p"
@@ -42,12 +43,18 @@ type AntiFloodComponents struct {
 }
 
 // NewP2PAntiFloodComponents will return instances of antiflood and blacklist, based on the config
-func NewP2PAntiFloodComponents(ctx context.Context, config config.Config, statusHandler core.AppStatusHandler, currentPid core.PeerID) (*AntiFloodComponents, error) {
+func NewP2PAntiFloodComponents(
+	ctx context.Context,
+	config config.Config,
+	statusHandler core.AppStatusHandler,
+	currentPid core.PeerID,
+	processConfigsHandler common.ProcessConfigsHandler,
+) (*AntiFloodComponents, error) {
 	if check.IfNil(statusHandler) {
 		return nil, p2p.ErrNilStatusHandler
 	}
 	if config.Antiflood.Enabled {
-		return initP2PAntiFloodComponents(ctx, config, statusHandler, currentPid)
+		return initP2PAntiFloodComponents(ctx, config, statusHandler, currentPid, processConfigsHandler)
 	}
 
 	return &AntiFloodComponents{
@@ -64,6 +71,7 @@ func initP2PAntiFloodComponents(
 	mainConfig config.Config,
 	statusHandler core.AppStatusHandler,
 	currentPid core.PeerID,
+	processConfigsHandler common.ProcessConfigsHandler,
 ) (*AntiFloodComponents, error) {
 	timeCache := cache.NewTimeCache(defaultSpan)
 	p2pPeerBlackList, err := cache.NewPeerTimeCache(timeCache)
@@ -81,6 +89,7 @@ func initP2PAntiFloodComponents(
 		fastReactingIdentifier,
 		p2pPeerBlackList,
 		currentPid,
+		processConfigsHandler,
 	)
 	if err != nil {
 		return nil, fmt.Errorf("%w when creating fast reacting flood preventer", err)
@@ -94,6 +103,7 @@ func initP2PAntiFloodComponents(
 		slowReactingIdentifier,
 		p2pPeerBlackList,
 		currentPid,
+		processConfigsHandler,
 	)
 	if err != nil {
 		return nil, fmt.Errorf("%w when creating fast reacting flood preventer", err)
@@ -107,6 +117,7 @@ func initP2PAntiFloodComponents(
 		outOfSpecsIdentifier,
 		p2pPeerBlackList,
 		currentPid,
+		processConfigsHandler,
 	)
 	if err != nil {
 		return nil, fmt.Errorf("%w when creating out of specs flood preventer", err)
@@ -218,6 +229,7 @@ func createFloodPreventer(
 	quotaIdentifier string,
 	blackListHandler process.PeerBlackListCacher,
 	selfPid core.PeerID,
+	processConfigsHandler common.ProcessConfigsHandler,
 ) (process.FloodPreventer, error) {
 	cacheConfig := storageFactory.GetCacherFromConfig(antifloodCacheConfig)
 	blackListCache, err := storageunit.NewCache(cacheConfig)
@@ -234,6 +246,7 @@ func createFloodPreventer(
 		time.Duration(floodPreventerConfig.BlackList.PeerBanDurationInSeconds)*time.Second,
 		quotaIdentifier,
 		selfPid,
+		processConfigsHandler,
 	)
 	if err != nil {
 		return nil, err

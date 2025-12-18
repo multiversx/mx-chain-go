@@ -35,7 +35,6 @@ import (
 	"github.com/multiversx/mx-chain-go/genesis/data"
 	"github.com/multiversx/mx-chain-go/p2p"
 	p2pConfig "github.com/multiversx/mx-chain-go/p2p/config"
-	p2pFactory "github.com/multiversx/mx-chain-go/p2p/factory"
 	"github.com/multiversx/mx-chain-go/sharding"
 	"github.com/multiversx/mx-chain-go/sharding/nodesCoordinator"
 	"github.com/multiversx/mx-chain-go/state"
@@ -338,7 +337,6 @@ func GetNetworkFactoryArgs() networkComp.NetworkComponentsFactoryArgs {
 		NodeOperationMode: common.NormalOperation,
 		MainConfig:        mainConfig,
 		StatusHandler:     appStatusHandler,
-		Marshalizer:       &mock.MarshalizerMock{},
 		RatingsConfig: config.RatingsConfig{
 			General:    config.General{},
 			ShardChain: config.ShardChain{},
@@ -352,8 +350,8 @@ func GetNetworkFactoryArgs() networkComp.NetworkComponentsFactoryArgs {
 				UnitValue:                    1.0,
 			},
 		},
-		Syncer:           &p2pFactory.LocalSyncTimer{},
 		CryptoComponents: cryptoCompMock,
+		CoreComponents:   GetCoreComponents(),
 	}
 }
 

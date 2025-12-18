@@ -6,6 +6,7 @@ import (
 
 	"github.com/multiversx/mx-chain-core-go/core"
 	"github.com/multiversx/mx-chain-core-go/core/check"
+	"github.com/multiversx/mx-chain-go/common"
 	"github.com/multiversx/mx-chain-go/p2p"
 	"github.com/multiversx/mx-chain-go/process"
 	"github.com/multiversx/mx-chain-go/storage"
@@ -27,6 +28,7 @@ type p2pBlackListProcessor struct {
 	banDuration                time.Duration
 	selfPid                    core.PeerID
 	name                       string
+	processConfigsHandler      common.ProcessConfigsHandler
 }
 
 // NewP2PBlackListProcessor creates a new instance of p2pQuotaBlacklistProcessor able to determine
@@ -41,14 +43,18 @@ func NewP2PBlackListProcessor(
 	banDuration time.Duration,
 	name string,
 	selfPid core.PeerID,
+	processConfigsHandler common.ProcessConfigsHandler,
 ) (*p2pBlackListProcessor, error) {
-
 	if check.IfNil(cacher) {
 		return nil, fmt.Errorf("%w, NewP2PBlackListProcessor", process.ErrNilCacher)
 	}
 	if check.IfNil(peerBlacklistCacher) {
 		return nil, fmt.Errorf("%w, NewP2PBlackListProcessor", process.ErrNilBlackListCacher)
 	}
+	if check.IfNil(processConfigsHandler) {
+		return nil, fmt.Errorf("%w, NewP2PBlackListProcessor", process.ErrNilProcessConfigsHandler)
+	}
+
 	if thresholdNumReceivedFlood == 0 {
 		return nil, fmt.Errorf("%w, thresholdNumReceivedFlood == 0", process.ErrInvalidValue)
 	}
@@ -71,6 +77,7 @@ func NewP2PBlackListProcessor(
 		banDuration:                banDuration,
 		selfPid:                    selfPid,
 		name:                       name,
+		processConfigsHandler:      processConfigsHandler,
 	}, nil
 }
 

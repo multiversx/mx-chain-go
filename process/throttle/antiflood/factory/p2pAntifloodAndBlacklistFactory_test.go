@@ -9,6 +9,7 @@ import (
 	"github.com/multiversx/mx-chain-go/config"
 	"github.com/multiversx/mx-chain-go/p2p"
 	"github.com/multiversx/mx-chain-go/process/throttle/antiflood/disabled"
+	"github.com/multiversx/mx-chain-go/testscommon"
 	"github.com/multiversx/mx-chain-go/testscommon/statusHandler"
 	"github.com/stretchr/testify/assert"
 )
@@ -20,7 +21,7 @@ func TestNewP2PAntiFloodAndBlackList_NilStatusHandlerShouldErr(t *testing.T) {
 
 	ctx := context.Background()
 	cfg := config.Config{}
-	components, err := NewP2PAntiFloodComponents(ctx, cfg, nil, currentPid)
+	components, err := NewP2PAntiFloodComponents(ctx, cfg, nil, currentPid, &testscommon.ProcessConfigsHandlerStub{})
 	assert.Nil(t, components)
 	assert.Equal(t, p2p.ErrNilStatusHandler, err)
 }
@@ -35,7 +36,7 @@ func TestNewP2PAntiFloodAndBlackList_ShouldWorkAndReturnDisabledImplementations(
 	}
 	ash := statusHandler.NewAppStatusHandlerMock()
 	ctx := context.Background()
-	components, err := NewP2PAntiFloodComponents(ctx, cfg, ash, currentPid)
+	components, err := NewP2PAntiFloodComponents(ctx, cfg, ash, currentPid, &testscommon.ProcessConfigsHandlerStub{})
 	assert.NotNil(t, components)
 	assert.Nil(t, err)
 
@@ -69,7 +70,7 @@ func TestNewP2PAntiFloodAndBlackList_ShouldWorkAndReturnOkImplementations(t *tes
 
 	ash := statusHandler.NewAppStatusHandlerMock()
 	ctx := context.Background()
-	components, err := NewP2PAntiFloodComponents(ctx, cfg, ash, currentPid)
+	components, err := NewP2PAntiFloodComponents(ctx, cfg, ash, currentPid, &testscommon.ProcessConfigsHandlerStub{})
 	assert.Nil(t, err)
 	assert.NotNil(t, components.AntiFloodHandler)
 	assert.NotNil(t, components.BlacklistHandler)
