@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"sort"
 
+	"github.com/multiversx/mx-chain-core-go/core/check"
 	"github.com/multiversx/mx-chain-go/config"
 	"github.com/multiversx/mx-chain-go/process"
 )
@@ -45,13 +46,19 @@ var ErrMissingRoundZeroConfig = errors.New("missing base configuration for round
 type processConfigsByEpoch struct {
 	orderedConfigByEpoch []config.ProcessConfigByEpoch
 	orderedConfigByRound []config.ProcessConfigByRound
+	roundNotifier        process.RoundNotifier
 }
 
 // NewProcessConfigsHandler creates a new process configs by epoch component
 func NewProcessConfigsHandler(
 	configsByEpoch []config.ProcessConfigByEpoch,
 	configsByRound []config.ProcessConfigByRound,
+	roundNotifier process.RoundNotifier,
 ) (*processConfigsByEpoch, error) {
+	if check.IfNil(roundNotifier) {
+		return nil, fmt.Errorf("%w in NewProcessConfigsHandler", process.ErrNilRoundNotifier)
+	}
+
 	err := checkConfigsByEpoch(configsByEpoch)
 	if err != nil {
 		return nil, err
@@ -65,6 +72,7 @@ func NewProcessConfigsHandler(
 	pce := &processConfigsByEpoch{
 		orderedConfigByEpoch: make([]config.ProcessConfigByEpoch, len(configsByEpoch)),
 		orderedConfigByRound: make([]config.ProcessConfigByRound, len(configsByRound)),
+		roundNotifier:        roundNotifier,
 	}
 
 	// sort the config values in ascending order

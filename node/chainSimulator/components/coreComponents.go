@@ -314,6 +314,7 @@ func CreateCoreComponents(args ArgsCoreComponentsHolder) (*coreComponentsHolder,
 	instance.processConfigsHandler, err = commonConfigs.NewProcessConfigsHandler(
 		args.Config.GeneralSettings.ProcessConfigsByEpoch,
 		args.Config.GeneralSettings.ProcessConfigsByRound,
+		instance.roundNotifier,
 	)
 	if err != nil {
 		return nil, err

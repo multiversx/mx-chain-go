@@ -162,6 +162,7 @@ func NewShardProcessorEmptyWith3shards(
 				MaxRoundsToKeepUnprocessedTransactions: 50,
 			},
 		},
+		&epochNotifier.RoundNotifierStub{},
 	)
 
 	coreComponents := &mock.CoreComponentsMock{

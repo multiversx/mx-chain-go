@@ -4,6 +4,7 @@ import (
 	"github.com/multiversx/mx-chain-go/common"
 	"github.com/multiversx/mx-chain-go/common/configs"
 	"github.com/multiversx/mx-chain-go/config"
+	"github.com/multiversx/mx-chain-go/testscommon/epochNotifier"
 )
 
 // GetDefaultProcessConfigsHandler -
@@ -25,6 +26,7 @@ func GetDefaultProcessConfigsHandler() common.ProcessConfigsHandler {
 				MaxRoundsToKeepUnprocessedTransactions: 50,
 			},
 		},
+		&epochNotifier.RoundNotifierStub{},
 	)
 
 	return processConfigsHandler

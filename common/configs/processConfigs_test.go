@@ -7,6 +7,7 @@ import (
 	"github.com/multiversx/mx-chain-go/common/configs"
 	"github.com/multiversx/mx-chain-go/config"
 	"github.com/multiversx/mx-chain-go/process"
+	"github.com/multiversx/mx-chain-go/testscommon/epochNotifier"
 	"github.com/stretchr/testify/require"
 )
 
@@ -16,7 +17,7 @@ func TestNewProcessConfigsByEpoch(t *testing.T) {
 	t.Run("should return error for empty config by epoch", func(t *testing.T) {
 		t.Parallel()
 
-		pce, err := configs.NewProcessConfigsHandler(nil, nil)
+		pce, err := configs.NewProcessConfigsHandler(nil, nil, &epochNotifier.RoundNotifierStub{})
 		require.Nil(t, pce)
 		require.Equal(t, configs.ErrEmptyProcessConfigsByEpoch, err)
 	})
@@ -24,7 +25,7 @@ func TestNewProcessConfigsByEpoch(t *testing.T) {
 	t.Run("should return error for empty config by round", func(t *testing.T) {
 		t.Parallel()
 
-		pce, err := configs.NewProcessConfigsHandler([]config.ProcessConfigByEpoch{}, nil)
+		pce, err := configs.NewProcessConfigsHandler([]config.ProcessConfigByEpoch{}, nil, &epochNotifier.RoundNotifierStub{})
 		require.Nil(t, pce)
 		require.Equal(t, configs.ErrEmptyProcessConfigsByEpoch, err)
 	})
@@ -36,7 +37,7 @@ func TestNewProcessConfigsByEpoch(t *testing.T) {
 			{EnableEpoch: 0, MaxMetaNoncesBehind: 15},
 			{EnableEpoch: 0, MaxMetaNoncesBehind: 30},
 		}
-		pce, err := configs.NewProcessConfigsHandler(conf, []config.ProcessConfigByRound{})
+		pce, err := configs.NewProcessConfigsHandler(conf, []config.ProcessConfigByRound{}, &epochNotifier.RoundNotifierStub{})
 		require.Nil(t, pce)
 		require.Equal(t, configs.ErrDuplicatedEpochConfig, err)
 	})
@@ -48,7 +49,7 @@ func TestNewProcessConfigsByEpoch(t *testing.T) {
 			{EnableEpoch: 1, MaxMetaNoncesBehind: 15},
 			{EnableEpoch: 2, MaxMetaNoncesBehind: 30},
 		}
-		pce, err := configs.NewProcessConfigsHandler(conf, []config.ProcessConfigByRound{})
+		pce, err := configs.NewProcessConfigsHandler(conf, []config.ProcessConfigByRound{}, &epochNotifier.RoundNotifierStub{})
 		require.Nil(t, pce)
 		require.Equal(t, configs.ErrMissingEpochZeroConfig, err)
 	})
@@ -62,7 +63,7 @@ func TestNewProcessConfigsByEpoch(t *testing.T) {
 		confByRound := []config.ProcessConfigByRound{
 			{EnableRound: 1, MaxRoundsToKeepUnprocessedMiniBlocks: 15, MaxRoundsToKeepUnprocessedTransactions: 0},
 		}
-		pce, err := configs.NewProcessConfigsHandler(confByEpoch, confByRound)
+		pce, err := configs.NewProcessConfigsHandler(confByEpoch, confByRound, &epochNotifier.RoundNotifierStub{})
 		require.Nil(t, pce)
 		require.ErrorIs(t, err, process.ErrInvalidValue)
 		require.True(t, strings.Contains(err.Error(), "MaxRoundsToKeepUnprocessedTransactions"))
@@ -77,7 +78,7 @@ func TestNewProcessConfigsByEpoch(t *testing.T) {
 		confByRound := []config.ProcessConfigByRound{
 			{EnableRound: 1, MaxRoundsToKeepUnprocessedMiniBlocks: 0, MaxRoundsToKeepUnprocessedTransactions: 15},
 		}
-		pce, err := configs.NewProcessConfigsHandler(confByEpoch, confByRound)
+		pce, err := configs.NewProcessConfigsHandler(confByEpoch, confByRound, &epochNotifier.RoundNotifierStub{})
 		require.Nil(t, pce)
 		require.ErrorIs(t, err, process.ErrInvalidValue)
 		require.True(t, strings.Contains(err.Error(), "MaxRoundsToKeepUnprocessedMiniBlocks"))
@@ -96,7 +97,7 @@ func TestNewProcessConfigsByEpoch(t *testing.T) {
 			{EnableRound: 1, MaxRoundsWithoutNewBlockReceived: 11, MaxRoundsToKeepUnprocessedMiniBlocks: 1, MaxRoundsToKeepUnprocessedTransactions: 1},
 		}
 
-		pce, err := configs.NewProcessConfigsHandler(conf, confByRound)
+		pce, err := configs.NewProcessConfigsHandler(conf, confByRound, &epochNotifier.RoundNotifierStub{})
 		require.NotNil(t, pce)
 		require.NoError(t, err)
 		require.False(t, pce.IsInterfaceNil())
@@ -143,7 +144,7 @@ func TestProcessConfigsByEpoch_Getters(t *testing.T) {
 	t.Run("get max meta nonces behind", func(t *testing.T) {
 		t.Parallel()
 
-		pce, _ := configs.NewProcessConfigsHandler(conf, confByRound)
+		pce, _ := configs.NewProcessConfigsHandler(conf, confByRound, &epochNotifier.RoundNotifierStub{})
 
 		maxMetaNoncesBehind := pce.GetMaxMetaNoncesBehindByEpoch(0)
 		require.Equal(t, uint32(10), maxMetaNoncesBehind)
@@ -155,7 +156,7 @@ func TestProcessConfigsByEpoch_Getters(t *testing.T) {
 	t.Run("get max meta nonces behind for global stuck", func(t *testing.T) {
 		t.Parallel()
 
-		pce, _ := configs.NewProcessConfigsHandler(conf, confByRound)
+		pce, _ := configs.NewProcessConfigsHandler(conf, confByRound, &epochNotifier.RoundNotifierStub{})
 
 		maxMetaNoncesBehindForGlobalStuck := pce.GetMaxMetaNoncesBehindForGlobalStuckByEpoch(0)
 		require.Equal(t, uint32(11), maxMetaNoncesBehindForGlobalStuck)
@@ -167,7 +168,7 @@ func TestProcessConfigsByEpoch_Getters(t *testing.T) {
 	t.Run("get max shard nonces behind", func(t *testing.T) {
 		t.Parallel()
 
-		pce, _ := configs.NewProcessConfigsHandler(conf, confByRound)
+		pce, _ := configs.NewProcessConfigsHandler(conf, confByRound, &epochNotifier.RoundNotifierStub{})
 
 		maxShardNoncesBehind := pce.GetMaxShardNoncesBehindByEpoch(0)
 		require.Equal(t, uint32(12), maxShardNoncesBehind)
@@ -179,7 +180,7 @@ func TestProcessConfigsByEpoch_Getters(t *testing.T) {
 	t.Run("get max rounds without new block received", func(t *testing.T) {
 		t.Parallel()
 
-		pce, _ := configs.NewProcessConfigsHandler(conf, confByRound)
+		pce, _ := configs.NewProcessConfigsHandler(conf, confByRound, &epochNotifier.RoundNotifierStub{})
 
 		maxRoundsWithoutNewBlockReceived := pce.GetMaxRoundsWithoutNewBlockReceivedByRound(0)
 		require.Equal(t, uint32(10), maxRoundsWithoutNewBlockReceived)
@@ -191,7 +192,7 @@ func TestProcessConfigsByEpoch_Getters(t *testing.T) {
 	t.Run("get max rounds without committed block", func(t *testing.T) {
 		t.Parallel()
 
-		pce, _ := configs.NewProcessConfigsHandler(conf, confByRound)
+		pce, _ := configs.NewProcessConfigsHandler(conf, confByRound, &epochNotifier.RoundNotifierStub{})
 
 		maxRoundsWithoutCommittedBlock := pce.GetMaxRoundsWithoutCommittedBlock(0)
 		require.Equal(t, uint32(20), maxRoundsWithoutCommittedBlock)
@@ -203,7 +204,7 @@ func TestProcessConfigsByEpoch_Getters(t *testing.T) {
 	t.Run("get max allowed sync with errors", func(t *testing.T) {
 		t.Parallel()
 
-		pce, _ := configs.NewProcessConfigsHandler(conf, confByRound)
+		pce, _ := configs.NewProcessConfigsHandler(conf, confByRound, &epochNotifier.RoundNotifierStub{})
 
 		maxSyncWithErrorsAllowed := pce.GetMaxSyncWithErrorsAllowed(0)
 		require.Equal(t, uint32(30), maxSyncWithErrorsAllowed)
@@ -215,7 +216,7 @@ func TestProcessConfigsByEpoch_Getters(t *testing.T) {
 	t.Run("get max rounds to keep unprocessed transactions", func(t *testing.T) {
 		t.Parallel()
 
-		pce, _ := configs.NewProcessConfigsHandler(conf, confByRound)
+		pce, _ := configs.NewProcessConfigsHandler(conf, confByRound, &epochNotifier.RoundNotifierStub{})
 
 		res := pce.GetMaxRoundsToKeepUnprocessedTransactions(0)
 		require.Equal(t, uint64(50), res)
@@ -227,7 +228,7 @@ func TestProcessConfigsByEpoch_Getters(t *testing.T) {
 	t.Run("get max rounds to keep unprocessed mini blocks", func(t *testing.T) {
 		t.Parallel()
 
-		pce, _ := configs.NewProcessConfigsHandler(conf, confByRound)
+		pce, _ := configs.NewProcessConfigsHandler(conf, confByRound, &epochNotifier.RoundNotifierStub{})
 
 		res := pce.GetMaxRoundsToKeepUnprocessedMiniBlocks(0)
 		require.Equal(t, uint64(60), res)

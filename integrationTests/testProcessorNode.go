@@ -179,6 +179,7 @@ var TestProcessConfigsHandler, _ = configs.NewProcessConfigsHandler([]config.Pro
 			MaxRoundsToKeepUnprocessedMiniBlocks:   50,
 		},
 	},
+	forking.NewGenericRoundNotifier(),
 )
 
 // TestTxSignHasher represents a sha3 legacy keccak 256 hasher
