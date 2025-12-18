@@ -862,6 +862,31 @@ func (bp *baseProcessor) sortHeaderHashesForCurrentBlockByNonce(usedInBlock bool
 	return hdrsHashesForCurrentBlock, nil
 }
 
+func (bp *baseProcessor) createMiniBlockHeaderHandlersV3(body *block.Body) (int, []data.MiniBlockHeaderHandler, error) {
+	if len(body.MiniBlocks) == 0 {
+		return 0, nil, nil
+	}
+
+	totalTxCount := 0
+	miniBlockHeaderHandlers := make([]data.MiniBlockHeaderHandler, len(body.MiniBlocks))
+	var err error
+	var txCount int
+	for i := 0; i < len(body.MiniBlocks); i++ {
+		txCount, miniBlockHeaderHandlers[i], err = bp.createMbHeaderWithoutReservedFields(body.MiniBlocks[i])
+		if err != nil {
+			return 0, nil, err
+		}
+		totalTxCount += txCount
+
+		err = setMiniBlockHeaderReservedFieldV3(miniBlockHeaderHandlers[i])
+		if err != nil {
+			return 0, nil, err
+		}
+	}
+
+	return totalTxCount, miniBlockHeaderHandlers, nil
+}
+
 func (bp *baseProcessor) createMiniBlockHeaderHandlers(
 	body *block.Body,
 	processedMiniBlocksDestMeInfo map[string]*processedMb.ProcessedMiniBlockInfo,
@@ -872,23 +897,14 @@ func (bp *baseProcessor) createMiniBlockHeaderHandlers(
 
 	totalTxCount := 0
 	miniBlockHeaderHandlers := make([]data.MiniBlockHeaderHandler, len(body.MiniBlocks))
-
+	var err error
+	var txCount int
 	for i := 0; i < len(body.MiniBlocks); i++ {
-		txCount := len(body.MiniBlocks[i].TxHashes)
-		totalTxCount += txCount
-
-		miniBlockHash, err := core.CalculateHash(bp.marshalizer, bp.hasher, body.MiniBlocks[i])
+		txCount, miniBlockHeaderHandlers[i], err = bp.createMbHeaderWithoutReservedFields(body.MiniBlocks[i])
 		if err != nil {
 			return 0, nil, err
 		}
-
-		miniBlockHeaderHandlers[i] = &block.MiniBlockHeader{
-			Hash:            miniBlockHash,
-			SenderShardID:   body.MiniBlocks[i].SenderShardID,
-			ReceiverShardID: body.MiniBlocks[i].ReceiverShardID,
-			TxCount:         uint32(txCount),
-			Type:            body.MiniBlocks[i].Type,
-		}
+		totalTxCount += txCount
 
 		err = bp.setMiniBlockHeaderReservedField(body.MiniBlocks[i], miniBlockHeaderHandlers[i], processedMiniBlocksDestMeInfo)
 		if err != nil {
@@ -897,6 +913,46 @@ func (bp *baseProcessor) createMiniBlockHeaderHandlers(
 	}
 
 	return totalTxCount, miniBlockHeaderHandlers, nil
+}
+
+func (bp *baseProcessor) createMbHeaderWithoutReservedFields(miniBlock *block.MiniBlock) (int, data.MiniBlockHeaderHandler, error) {
+	miniBlockHash, err := core.CalculateHash(bp.marshalizer, bp.hasher, miniBlock)
+	if err != nil {
+		return 0, nil, err
+	}
+	txCount := len(miniBlock.TxHashes)
+
+	mbHeaderHandler := &block.MiniBlockHeader{
+		Hash:            miniBlockHash,
+		SenderShardID:   miniBlock.SenderShardID,
+		ReceiverShardID: miniBlock.ReceiverShardID,
+		TxCount:         uint32(txCount),
+		Type:            miniBlock.Type,
+	}
+
+	return txCount, mbHeaderHandler, nil
+}
+
+func setMiniBlockHeaderReservedFieldV3(
+	miniBlockHeaderHandler data.MiniBlockHeaderHandler,
+) error {
+
+	err := miniBlockHeaderHandler.SetIndexOfLastTxProcessed(0)
+	if err != nil {
+		return err
+	}
+
+	err = miniBlockHeaderHandler.SetIndexOfLastTxProcessed(int32(miniBlockHeaderHandler.GetTxCount()) - 1)
+	if err != nil {
+		return err
+	}
+
+	err = miniBlockHeaderHandler.SetProcessingType(int32(block.Normal))
+	if err != nil {
+		return err
+	}
+
+	return miniBlockHeaderHandler.SetConstructionState(int32(block.Final))
 }
 
 func (bp *baseProcessor) setMiniBlockHeaderReservedField(
@@ -3665,11 +3721,7 @@ func (bp *baseProcessor) collectMiniBlocks(
 	bodyAfterExecution := &block.Body{MiniBlocks: allMiniBlocks}
 	// remove the self-receipts and self smart contract results mini blocks - similar to Pre-Supernova
 	sanitizedBodyAfterExecution := deleteSelfReceiptsMiniBlocks(bodyAfterExecution)
-
-	// giving an empty processedMiniBlockInfo would cause all miniBlockHeaders to be created as fully processed.
-	processedMiniBlockInfo := make(map[string]*processedMb.ProcessedMiniBlockInfo)
-
-	totalTxCount, miniBlockHeaderHandlers, err := bp.createMiniBlockHeaderHandlers(sanitizedBodyAfterExecution, processedMiniBlockInfo)
+	totalTxCount, miniBlockHeaderHandlers, err := bp.createMiniBlockHeaderHandlersV3(sanitizedBodyAfterExecution)
 	if err != nil {
 		return nil, 0, nil, err
 	}

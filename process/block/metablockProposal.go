@@ -13,7 +13,6 @@ import (
 
 	"github.com/multiversx/mx-chain-go/common"
 	"github.com/multiversx/mx-chain-go/process"
-	"github.com/multiversx/mx-chain-go/process/block/processedMb"
 	"github.com/multiversx/mx-chain-go/state"
 )
 
@@ -495,9 +494,7 @@ func (mp *metaProcessor) collectExecutionResultsEpochStartProposal(
 	constructedBody *block.Body,
 	valStatRootHash []byte,
 ) (data.BaseExecutionResultHandler, error) {
-	// giving an empty processedMiniBlockInfo would cause all miniBlockHeaders to be created as fully processed.
-	processedMiniBlockInfo := make(map[string]*processedMb.ProcessedMiniBlockInfo)
-	totalTxCount, miniBlockHeaderHandlers, err := mp.createMiniBlockHeaderHandlers(constructedBody, processedMiniBlockInfo)
+	totalTxCount, miniBlockHeaderHandlers, err := mp.createMiniBlockHeaderHandlersV3(constructedBody)
 	if err != nil {
 		return nil, err
 	}
