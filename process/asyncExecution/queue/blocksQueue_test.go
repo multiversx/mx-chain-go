@@ -579,7 +579,7 @@ func TestBlocksQueue_RemoveAndPop(t *testing.T) {
 
 	go func() {
 		// wait a bit so hq.Pop call blocks the channel
-		time.Sleep(time.Millisecond * 50)
+		time.Sleep(time.Millisecond * 100)
 
 		// add a pair and remove it immediately
 		err := hq.AddOrReplace(pair)
