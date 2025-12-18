@@ -79,13 +79,29 @@ func TestProcessConfigsByEpoch_Getters(t *testing.T) {
 	t.Parallel()
 
 	conf := []config.ProcessConfigByEpoch{
-		{EnableEpoch: 0, MaxMetaNoncesBehind: 10, MaxMetaNoncesBehindForGlobalStuck: 11, MaxShardNoncesBehind: 12},
-		{EnableEpoch: 1, MaxMetaNoncesBehind: 20, MaxMetaNoncesBehindForGlobalStuck: 21, MaxShardNoncesBehind: 22},
+		{EnableEpoch: 0,
+			MaxMetaNoncesBehind:               10,
+			MaxMetaNoncesBehindForGlobalStuck: 11,
+			MaxShardNoncesBehind:              12,
+		},
+		{EnableEpoch: 1,
+			MaxMetaNoncesBehind:               20,
+			MaxMetaNoncesBehindForGlobalStuck: 21,
+			MaxShardNoncesBehind:              22,
+		},
 	}
 
 	confByRound := []config.ProcessConfigByRound{
-		{EnableRound: 0, MaxRoundsWithoutNewBlockReceived: 10, MaxRoundsWithoutCommittedBlock: 20},
-		{EnableRound: 1, MaxRoundsWithoutNewBlockReceived: 11, MaxRoundsWithoutCommittedBlock: 21},
+		{EnableRound: 0,
+			MaxRoundsWithoutNewBlockReceived: 10,
+			MaxRoundsWithoutCommittedBlock:   20,
+			MaxSyncWithErrorsAllowed:         30,
+		},
+		{EnableRound: 1,
+			MaxRoundsWithoutNewBlockReceived: 11,
+			MaxRoundsWithoutCommittedBlock:   21,
+			MaxSyncWithErrorsAllowed:         31,
+		},
 	}
 
 	t.Run("get max meta nonces behind", func(t *testing.T) {
@@ -146,5 +162,17 @@ func TestProcessConfigsByEpoch_Getters(t *testing.T) {
 
 		maxRoundsWithoutCommittedBlock = pce.GetMaxRoundsWithoutCommittedBlock(1)
 		require.Equal(t, uint32(21), maxRoundsWithoutCommittedBlock)
+	})
+
+	t.Run("get max allowed sync with errors", func(t *testing.T) {
+		t.Parallel()
+
+		pce, _ := configs.NewProcessConfigsHandler(conf, confByRound)
+
+		maxSyncWithErrorsAllowed := pce.GetMaxSyncWithErrorsAllowed(0)
+		require.Equal(t, uint32(30), maxSyncWithErrorsAllowed)
+
+		maxSyncWithErrorsAllowed = pce.GetMaxSyncWithErrorsAllowed(1)
+		require.Equal(t, uint32(31), maxSyncWithErrorsAllowed)
 	})
 }

@@ -299,13 +299,8 @@ func (sp *shardProcessor) ProcessBlockProposal(
 		return nil, process.ErrAccountStateDirty
 	}
 
-	err := sp.checkAndUpdateContextBeforeExecution(header)
-	if err != nil {
-		return nil, err
-	}
-
 	// this is used now to reset the context for processing not creation of blocks
-	err = sp.createBlockStarted()
+	err := sp.createBlockStarted()
 	if err != nil {
 		return nil, err
 	}
@@ -347,6 +342,11 @@ func (sp *shardProcessor) ProcessBlockProposal(
 			sp.RevertCurrentBlock(header)
 		}
 	}()
+
+	err = sp.checkAndUpdateContextBeforeExecution(header)
+	if err != nil {
+		return nil, err
+	}
 
 	startTime := time.Now()
 	err = sp.txCoordinator.ProcessBlockTransaction(header, body, haveTime)
@@ -725,6 +725,8 @@ func (sp *shardProcessor) collectExecutionResults(headerHash []byte, header data
 	if err != nil {
 		return nil, err
 	}
+
+	sp.cacheOrderedTxHashes(headerHash)
 
 	return executionResult, nil
 }

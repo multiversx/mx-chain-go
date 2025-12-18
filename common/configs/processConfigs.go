@@ -14,6 +14,7 @@ const (
 	defaultMaxRoundsWithoutNewBlockReceived   = 10
 	defaultMaxRoundsWithoutCommittedBlock     = 10
 	defaultRoundModulusTriggerWhenSyncIsStuck = 20
+	defaultMaxSyncWithErrorsAllowed           = 20
 )
 
 // ErrEmptyProcessConfigsByEpoch signals that an empty process configs by epoch has been provided
@@ -185,6 +186,17 @@ func (pce *processConfigsByEpoch) GetRoundModulusTriggerWhenSyncIsStuck(round ui
 	}
 
 	return defaultRoundModulusTriggerWhenSyncIsStuck // this should not happen
+}
+
+// GetMaxSyncWithErrorsAllowed returns max allowed sync errors until an error event is triggered
+func (pce *processConfigsByEpoch) GetMaxSyncWithErrorsAllowed(round uint64) uint32 {
+	for i := len(pce.orderedConfigByRound) - 1; i >= 0; i-- {
+		if pce.orderedConfigByRound[i].EnableRound <= round {
+			return pce.orderedConfigByRound[i].MaxSyncWithErrorsAllowed
+		}
+	}
+
+	return defaultMaxSyncWithErrorsAllowed
 }
 
 // IsInterfaceNil checks if the instance is nil

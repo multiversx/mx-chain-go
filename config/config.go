@@ -194,14 +194,14 @@ type Config struct {
 	ProofsStorage           StorageConfig
 	ExecutionResultsStorage StorageConfig
 
-	AccountsTrieStorage      StorageConfig
-	PeerAccountsTrieStorage  StorageConfig
-	EvictionWaitingList      EvictionWaitingListConfig
-	StateTriesConfig         StateTriesConfig
+	AccountsTrieStorage          StorageConfig
+	PeerAccountsTrieStorage      StorageConfig
+	EvictionWaitingList          EvictionWaitingListConfig
+	StateTriesConfig             StateTriesConfig
 	StateAccessesCollectorConfig StateAccessesCollectorConfig
-	TrieStorageManagerConfig TrieStorageManagerConfig
-	TrieLeavesRetrieverConfig TrieLeavesRetrieverConfig
-	BadBlocksCache           CacheConfig
+	TrieStorageManagerConfig     TrieStorageManagerConfig
+	TrieLeavesRetrieverConfig    TrieLeavesRetrieverConfig
+	BadBlocksCache               CacheConfig
 
 	TxBlockBodyDataPool          CacheConfig
 	PeerBlockBodyDataPool        CacheConfig
@@ -382,6 +382,10 @@ type ProcessConfigByRound struct {
 
 	// RoundModulusTriggerWhenSyncIsStuck defines a round modulus on which a trigger for an action when sync is stuck will be released
 	RoundModulusTriggerWhenSyncIsStuck uint32
+
+	// MaxSyncWithErrorsAllowed defines the maximum allowed number of sync with errors,
+	// before a special action to be applied
+	MaxSyncWithErrorsAllowed uint32
 }
 
 // GeneralSettingsConfig will hold the general settings for a node
@@ -799,6 +803,7 @@ type ChainParametersByEpochConfig struct {
 	MetachainConsensusGroupSize uint32
 	MetachainMinNumNodes        uint32
 	Adaptivity                  bool
+	Offset                      uint16
 }
 
 // IndexBroadcastDelay holds a pair of starting consensus index and the delay the nodes should wait before broadcasting final info
