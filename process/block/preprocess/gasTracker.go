@@ -98,7 +98,7 @@ func (gt *gasTracker) computeGasProvided(
 			"error", process.ErrMaxGasLimitPerBlockInSelfShardIsReached,
 			"gasInfo.totalGasConsumedInSelfShard", gasInfo.totalGasConsumedInSelfShard,
 			"gasProvidedByTxInSelfShard", gasProvidedByTxInSelfShard,
-			"gt.getMaxGasLimitPerBlockForSafeCrossShard(epoch, overEstimationFactor)", gt.getMaxGasLimitPerBlockForSafeCrossShard(epoch, overEstimationFactor),
+			"gt.getMaxGasLimitPerBlock(epoch, overEstimationFactor)", gt.getMaxGasLimitPerBlock(epoch, overEstimationFactor),
 		)
 		return 0, process.ErrMaxGasLimitPerBlockInSelfShardIsReached
 	}
