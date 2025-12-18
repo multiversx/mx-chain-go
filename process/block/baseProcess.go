@@ -937,7 +937,7 @@ func setMiniBlockHeaderReservedFieldV3(
 	miniBlockHeaderHandler data.MiniBlockHeaderHandler,
 ) error {
 
-	err := miniBlockHeaderHandler.SetIndexOfLastTxProcessed(0)
+	err := miniBlockHeaderHandler.SetIndexOfFirstTxProcessed(0)
 	if err != nil {
 		return err
 	}
