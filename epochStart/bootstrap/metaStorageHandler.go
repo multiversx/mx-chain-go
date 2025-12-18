@@ -131,10 +131,40 @@ func (msh *metaStorageHandler) SaveDataToStorage(components *ComponentsNeededFor
 		return err
 	}
 
+	epochStartMeta := components.EpochStartMetaBlock
+	lastSelfNotarizedHeaders := []bootstrapStorage.BootstrapHeaderInfo{lastHeader}
+	if epochStartMeta.IsHeaderV3() {
+		for _, epochStartData := range epochStartMeta.GetEpochStartHandler().GetLastFinalizedHeaderHandlers() {
+			headerHash := epochStartData.GetLastFinishedMetaBlock()
+			header, ok := components.Headers[string(headerHash)]
+			if !ok {
+				log.Error("should be able to find header",
+					"hash", headerHash,
+					"shardID", epochStartData.GetShardID(),
+				)
+				return epochStart.ErrMissingHeader
+			}
+
+			bootstrapHdrInfo := bootstrapStorage.BootstrapHeaderInfo{
+				ShardId: epochStartData.GetShardID(),
+				Epoch:   header.GetEpoch(),
+				Nonce:   header.GetNonce(),
+				Hash:    headerHash,
+			}
+
+			log.Debug("SaveDataToStorage",
+				"LastFinishedMetaBlock: hash", headerHash,
+				"shard", epochStartData.GetShardID(),
+			)
+
+			lastSelfNotarizedHeaders = append([]bootstrapStorage.BootstrapHeaderInfo{bootstrapHdrInfo}, lastSelfNotarizedHeaders...)
+		}
+	}
+
 	bootStrapData := bootstrapStorage.BootstrapData{
 		LastHeader:                 lastHeader,
 		LastCrossNotarizedHeaders:  lastCrossNotarizedHeaders,
-		LastSelfNotarizedHeaders:   []bootstrapStorage.BootstrapHeaderInfo{lastHeader},
+		LastSelfNotarizedHeaders:   lastSelfNotarizedHeaders,
 		ProcessedMiniBlocks:        []bootstrapStorage.MiniBlocksInMeta{},
 		PendingMiniBlocks:          miniBlocks,
 		NodesCoordinatorConfigKey:  nodesCoordinatorConfigKey,
@@ -169,9 +199,19 @@ func (msh *metaStorageHandler) SaveDataToStorage(components *ComponentsNeededFor
 }
 
 func (msh *metaStorageHandler) saveEpochStartMetaHdrs(components *ComponentsNeededForBootstrap) error {
-	for _, hdr := range components.Headers {
+	for hash, hdr := range components.Headers {
 		isForCurrentShard := hdr.GetShardID() == msh.shardCoordinator.SelfId()
 		if !isForCurrentShard {
+			log.Debug("not for curr shard",
+				"hash", hash,
+				"shard", hdr.GetShardID(),
+				"nonce", hdr.GetNonce(),
+			)
+			_, err := msh.saveShardHdrToStorage(hdr)
+			if err != nil {
+				return err
+			}
+
 			continue
 		}
 
@@ -179,6 +219,12 @@ func (msh *metaStorageHandler) saveEpochStartMetaHdrs(components *ComponentsNeed
 		if err != nil {
 			return err
 		}
+
+		log.Debug("saved header",
+			"hash", hash,
+			"shard", hdr.GetShardID(),
+			"nonce", hdr.GetNonce(),
+		)
 	}
 
 	return nil

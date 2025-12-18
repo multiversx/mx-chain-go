@@ -176,6 +176,12 @@ func (bsh *baseStorageHandler) saveMetaHdrToStorage(metaBlock data.HeaderHandler
 
 	headerHash := bsh.hasher.Compute(string(headerBytes))
 
+	log.Debug("saveMetaHdrToStorage",
+		"hash", headerHash,
+		"nonce", metaBlock.GetNonce(),
+		"round", metaBlock.GetRound(),
+	)
+
 	metaHdrStorage, err := bsh.storageService.GetStorer(dataRetriever.MetaBlockUnit)
 	if err != nil {
 		return nil, err

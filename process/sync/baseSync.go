@@ -1121,7 +1121,7 @@ func (boot *baseBootstrap) prepareForSyncIfNeeded(syncingNonce uint64) error {
 	// if there are multiple headers in between the syncing header and the last one executed,
 	// add them into the queue and pool
 	for i := lastExecutedNonce + 1; i < syncingNonce; i++ {
-		hdr, hdrHash, errGetHdr := boot.getHeaderFromPoolWithNonce(i)
+		hdr, hdrHash, errGetHdr := boot.getHeaderWithNonce(i)
 		if errGetHdr != nil {
 			log.Debug("prepareForSyncIfNeeded: failed to get header with nonce", "nonce", i, "error", errGetHdr)
 			return errGetHdr
@@ -1772,6 +1772,43 @@ func (boot *baseBootstrap) getHeaderFromPool(hash []byte) (data.HeaderHandler, e
 	}
 
 	return process.GetShardHeaderFromPool(hash, boot.headers)
+}
+
+func (boot *baseBootstrap) getHeaderWithNonce(
+	nonce uint64,
+) (data.HeaderHandler, []byte, error) {
+	if boot.shardCoordinator.SelfId() == core.MetachainShardId {
+		header, hash, err := process.GetMetaHeaderFromPoolWithNonce(nonce, boot.headers)
+		if err != nil {
+			header, hash, err = process.GetMetaHeaderFromStorageWithNonce(
+				nonce,
+				boot.store,
+				boot.uint64Converter,
+				boot.marshalizer,
+			)
+			if err != nil {
+				return nil, nil, err
+			}
+		}
+
+		return header, hash, nil
+	}
+
+	header, hash, err := process.GetShardHeaderFromPoolWithNonce(nonce, boot.shardCoordinator.SelfId(), boot.headers)
+	if err != nil {
+		header, hash, err = process.GetShardHeaderFromStorageWithNonce(
+			nonce,
+			boot.shardCoordinator.SelfId(),
+			boot.store,
+			boot.uint64Converter,
+			boot.marshalizer,
+		)
+		if err != nil {
+			return nil, nil, err
+		}
+	}
+
+	return header, hash, nil
 }
 
 func (boot *baseBootstrap) getHeaderFromPoolWithNonce(

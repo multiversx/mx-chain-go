@@ -714,6 +714,16 @@ func (e *epochStartBootstrap) syncHeadersV3From(meta data.MetaHeaderHandler) (ma
 
 	hashesToRequest := make([][]byte, 0)
 	shardIds := make([]uint32, 0)
+	for _, epochStartData := range meta.GetEpochStartHandler().GetLastFinalizedHeaderHandlers() {
+		err := e.requestIntermediateBlocksIfNeeded(syncedHeaders, epochStartData.GetHeaderHash(), epochStartData.GetShardID())
+		if err != nil {
+			return nil, err
+		}
+
+		hashesToRequest = append(hashesToRequest, epochStartData.GetLastFinishedMetaBlock())
+		shardIds = append(shardIds, core.MetachainShardId)
+	}
+
 	syncedMetaHeaders, err := e.syncEpochStartMetaHeaders(meta, hashesToRequest, shardIds)
 	if err != nil {
 		return nil, err
