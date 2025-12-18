@@ -1,7 +1,6 @@
 package configs
 
 import (
-	"errors"
 	"fmt"
 	"sort"
 
@@ -24,29 +23,18 @@ const (
 	defaultMaxRoundsToKeepUnprocessedTransactions = 3000
 )
 
-// ErrEmptyProcessConfigsByEpoch signals that an empty process configs by epoch has been provided
-var ErrEmptyProcessConfigsByEpoch = errors.New("empty process configs by epoch")
-
-// ErrEmptyProcessConfigsByRound signals that an empty process configs by round has been provided
-var ErrEmptyProcessConfigsByRound = errors.New("empty process configs by round")
-
-// ErrDuplicatedEpochConfig signals that a duplicated config section has been provided
-var ErrDuplicatedEpochConfig = errors.New("duplicated epoch config")
-
-// ErrDuplicatedRoundConfig signals that a duplicated config section has been provided
-var ErrDuplicatedRoundConfig = errors.New("duplicated round config")
-
-// ErrMissingEpochZeroConfig signals that epoch zero configuration is missing
-var ErrMissingEpochZeroConfig = errors.New("missing configuration for epoch 0")
-
-// ErrMissingRoundZeroConfig signals that base round configuration is missing
-var ErrMissingRoundZeroConfig = errors.New("missing base configuration for round")
+type configByRoundSelector[T any] func(config.ProcessConfigByRound) T
+type configVariableHandler struct {
+	valueSelector configByRoundSelector[uint64]
+	defaultValue  int
+}
 
 // processConfigsByEpoch holds the process configuration for epoch changes
 type processConfigsByEpoch struct {
 	orderedConfigByEpoch []config.ProcessConfigByEpoch
 	orderedConfigByRound []config.ProcessConfigByRound
 	roundNotifier        process.RoundNotifier
+	variablesMap         map[ConfigVariable]configVariableHandler
 }
 
 // NewProcessConfigsHandler creates a new process configs by epoch component
@@ -73,6 +61,15 @@ func NewProcessConfigsHandler(
 		orderedConfigByEpoch: make([]config.ProcessConfigByEpoch, len(configsByEpoch)),
 		orderedConfigByRound: make([]config.ProcessConfigByRound, len(configsByRound)),
 		roundNotifier:        roundNotifier,
+		variablesMap: map[ConfigVariable]configVariableHandler{
+			NumFloodingRoundsFastReaction: {
+				valueSelector: func(cfg config.ProcessConfigByRound) uint64 {
+					//return uint64(cfg.NumFloodingRoundsFastReaction)
+					return 0
+				},
+				defaultValue: 0,
+			},
+		},
 	}
 
 	// sort the config values in ascending order
@@ -190,7 +187,7 @@ func (pce *processConfigsByEpoch) GetMaxShardNoncesBehindByEpoch(epoch uint32) u
 func getConfigValueByRound[T any](
 	configs []config.ProcessConfigByRound,
 	round uint64,
-	selector func(config.ProcessConfigByRound) T,
+	selector configByRoundSelector[T],
 	defaultValue T,
 ) T {
 	for i := len(configs) - 1; i >= 0; i-- {
@@ -271,6 +268,35 @@ func (pce *processConfigsByEpoch) GetMaxRoundsToKeepUnprocessedTransactions(roun
 			return cfg.MaxRoundsToKeepUnprocessedTransactions
 		},
 		defaultMaxRoundsToKeepUnprocessedTransactions,
+	)
+}
+
+type ConfigVariable string
+
+const (
+	NumFloodingRoundsFastReaction       ConfigVariable = "NumFloodingRoundsFastReaction"
+	NumFloodingRoundsSlowReaction       ConfigVariable = "NumFloodingRoundsSlowReaction"
+	NumFloodingRoundsOutOfSpecsReaction ConfigVariable = "NumFloodingRoundsOutOfSpecsReaction"
+)
+
+func (pce *processConfigsByEpoch) GetValue(variable ConfigVariable) uint64 {
+	return pce.getValueByRound(variable, pce.roundNotifier.CurrentRound())
+}
+
+func (pce *processConfigsByEpoch) getValueByRound(
+	variable ConfigVariable,
+	round uint64,
+) uint64 {
+	cfgVarHandler, ok := pce.variablesMap[variable]
+	if !ok {
+		return 0
+	}
+
+	return getConfigValueByRound(
+		pce.orderedConfigByRound,
+		round,
+		cfgVarHandler.valueSelector,
+		uint64(cfgVarHandler.defaultValue),
 	)
 }
 
