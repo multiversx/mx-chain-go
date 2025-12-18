@@ -393,7 +393,8 @@ func (mp *metaProcessor) ProcessBlockProposal(
 		return nil, err
 	}
 
-	err = mp.scToProtocol.UpdateProtocol(body, header.GetNonce())
+	constructedBody := mp.createBlockBodyAfterExecution(body)
+	err = mp.scToProtocol.UpdateProtocol(constructedBody, header.GetNonce())
 	if err != nil {
 		return nil, err
 	}

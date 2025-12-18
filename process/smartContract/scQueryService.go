@@ -196,13 +196,13 @@ func (service *SCQueryService) executeScCall(query *process.SCQuery, gasPrice ui
 		return nil, nil, process.ErrNodeIsNotSynced
 	}
 
-	blockHeader, blockRootHash, err := service.extractBlockHeaderAndRootHash(query)
+	blockHeader, blockRootHash, headerHash, err := service.extractBlockHeaderAndRootHash(query)
 	if err != nil {
 		return nil, nil, err
 	}
 
 	if len(blockRootHash) > 0 {
-		err = service.setCurrentBlockInfo(blockHeader, blockRootHash)
+		err = service.setCurrentBlockInfo(blockHeader, blockRootHash, headerHash)
 		if err != nil {
 			return nil, nil, err
 		}
@@ -273,10 +273,13 @@ func (service *SCQueryService) executeScCall(query *process.SCQuery, gasPrice ui
 func (service *SCQueryService) setCurrentBlockInfo(
 	header data.HeaderHandler,
 	rootHash []byte,
+	blockHash []byte,
 ) error {
 	if header.IsHeaderV3() {
-		return service.setCurrentBlockInfoV3(header, rootHash)
+		return service.setCurrentBlockInfoV3(header, rootHash, blockHash)
 	}
+
+	service.apiBlockChain.SetLastExecutedBlockHeaderAndRootHash(header, blockHash, rootHash)
 
 	return service.apiBlockChain.SetCurrentBlockHeaderAndRootHash(header, rootHash)
 }
@@ -295,11 +298,12 @@ func (service *SCQueryService) getCurrentBlockRootHash(
 func (service *SCQueryService) setCurrentBlockInfoV3(
 	header data.HeaderHandler,
 	rootHash []byte,
+	blockHash []byte,
 ) error {
 	// for header v3, the context here will be created based on last executed block
 	// so here current block header (in apiBlockChain) is not set anymore)
 
-	service.apiBlockChain.SetLastExecutedBlockHeaderAndRootHash(header, []byte{}, rootHash) // header hash not needed in this context
+	service.apiBlockChain.SetLastExecutedBlockHeaderAndRootHash(header, blockHash, rootHash)
 
 	return nil
 }
@@ -322,73 +326,73 @@ func (service *SCQueryService) recreateTrie(blockRootHash []byte, blockHeader da
 
 // TODO: extract duplicated code with nodeBlocks.go
 // for header v3 current block is considered the last executed block
-func (service *SCQueryService) extractBlockHeaderAndRootHash(query *process.SCQuery) (data.HeaderHandler, []byte, error) {
+func (service *SCQueryService) extractBlockHeaderAndRootHash(query *process.SCQuery) (data.HeaderHandler, []byte, []byte, error) {
 	if len(query.BlockHash) > 0 {
 		currentHeader, err := service.getBlockHeaderByHash(query.BlockHash)
 		if err != nil {
-			return nil, nil, err
+			return nil, nil, nil, err
 		}
 
-		return service.getRootHashForBlock(currentHeader)
+		return service.getRootHashForBlock(currentHeader, query.BlockHash)
 	}
 
 	if query.BlockNonce.HasValue {
-		currentHeader, _, err := service.getBlockHeaderByNonce(query.BlockNonce.Value)
+		currentHeader, currentHeaderHash, err := service.getBlockHeaderByNonce(query.BlockNonce.Value)
 		if err != nil {
-			return nil, nil, err
+			return nil, nil, nil, err
 		}
 
-		return service.getRootHashForBlock(currentHeader)
+		return service.getRootHashForBlock(currentHeader, currentHeaderHash)
 	}
 
 	return service.getCurrentBlockHeaderAndRootHash()
 }
 
-func (service *SCQueryService) getCurrentBlockHeaderAndRootHash() (data.HeaderHandler, []byte, error) {
+func (service *SCQueryService) getCurrentBlockHeaderAndRootHash() (data.HeaderHandler, []byte, []byte, error) {
 	currentHeader := service.mainBlockChain.GetCurrentBlockHeader()
 	if currentHeader != nil && currentHeader.IsHeaderV3() {
 		return service.getCurrentBlockHeaderAndRootHashV3()
 	}
 
-	return service.mainBlockChain.GetCurrentBlockHeader(), service.mainBlockChain.GetCurrentBlockRootHash(), nil
+	return service.mainBlockChain.GetCurrentBlockHeader(), service.mainBlockChain.GetCurrentBlockRootHash(), service.mainBlockChain.GetCurrentBlockHeaderHash(), nil
 }
 
-func (service *SCQueryService) getCurrentBlockHeaderAndRootHashV3() (data.HeaderHandler, []byte, error) {
-	_, _, rootHash := service.mainBlockChain.GetLastExecutedBlockInfo()
+func (service *SCQueryService) getCurrentBlockHeaderAndRootHashV3() (data.HeaderHandler, []byte, []byte, error) {
+	_, headerHash, rootHash := service.mainBlockChain.GetLastExecutedBlockInfo()
 
 	// current header will now be last executed header
 	lastExecutedHeader := service.mainBlockChain.GetLastExecutedBlockHeader()
 
-	return lastExecutedHeader, rootHash, nil
+	return lastExecutedHeader, rootHash, headerHash, nil
 }
 
-func (service *SCQueryService) getRootHashForBlock(currentHeader data.HeaderHandler) (data.HeaderHandler, []byte, error) {
+func (service *SCQueryService) getRootHashForBlock(currentHeader data.HeaderHandler, currentHeaderHash []byte) (data.HeaderHandler, []byte, []byte, error) {
 	if currentHeader.IsHeaderV3() {
 		return service.getRootHashForBlockV3(currentHeader)
 	}
 
-	blockHeader, _, err := service.getBlockHeaderByNonce(currentHeader.GetNonce() + 1)
+	blockHeader, headerHash, err := service.getBlockHeaderByNonce(currentHeader.GetNonce() + 1)
 	if err != nil {
-		return nil, nil, err
+		return nil, nil, nil, err
 	}
 
 	additionalData := blockHeader.GetAdditionalData()
 	if check.IfNil(additionalData) {
-		return currentHeader, currentHeader.GetRootHash(), nil
+		return currentHeader, currentHeader.GetRootHash(), currentHeaderHash, nil
 	}
 
-	return blockHeader, additionalData.GetScheduledRootHash(), nil
+	return blockHeader, additionalData.GetScheduledRootHash(), headerHash, nil
 }
 
-func (service *SCQueryService) getRootHashForBlockV3(currentHeader data.HeaderHandler) (data.HeaderHandler, []byte, error) {
+func (service *SCQueryService) getRootHashForBlockV3(currentHeader data.HeaderHandler) (data.HeaderHandler, []byte, []byte, error) {
 	lastExecutionResult, err := common.ExtractBaseExecutionResultHandler(currentHeader.GetLastExecutionResultHandler())
 	if err != nil {
-		return nil, nil, err
+		return nil, nil, nil, err
 	}
 
 	lastExecutedHeader := service.mainBlockChain.GetLastExecutedBlockHeader()
 
-	return lastExecutedHeader, lastExecutionResult.GetRootHash(), nil
+	return lastExecutedHeader, lastExecutionResult.GetRootHash(), lastExecutionResult.GetHeaderHash(), nil
 }
 
 func (service *SCQueryService) getBlockHeaderByHash(headerHash []byte) (data.HeaderHandler, error) {

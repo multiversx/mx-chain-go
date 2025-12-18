@@ -131,10 +131,14 @@ func (bap *baseAPIBlockProcessor) getMbsAndNumTxsAsyncExecution(
 		numOfTxs += mb.GetTxCount()
 
 		miniblockAPI := &api.MiniBlock{
-			Hash:             hex.EncodeToString(mb.GetHash()),
-			Type:             mbType.String(),
-			SourceShard:      mb.GetSenderShardID(),
-			DestinationShard: mb.GetReceiverShardID(),
+			Hash:                    hex.EncodeToString(mb.GetHash()),
+			Type:                    mbType.String(),
+			ProcessingType:          block.ProcessingType(mb.GetProcessingType()).String(),
+			ConstructionState:       block.MiniBlockState(mb.GetConstructionState()).String(),
+			SourceShard:             mb.GetSenderShardID(),
+			DestinationShard:        mb.GetReceiverShardID(),
+			IndexOfFirstTxProcessed: mb.GetIndexOfFirstTxProcessed(),
+			IndexOfLastTxProcessed:  mb.GetIndexOfLastTxProcessed(),
 		}
 		if options.WithTransactions {
 			miniBlockCopy := mb
