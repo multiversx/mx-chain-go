@@ -194,7 +194,12 @@ func updateSupernovaConfigs(configs *config.Configs, args ArgsChainSimulatorConf
 			Round:   fmt.Sprintf("%d", newSupernovaRound),
 			Options: oldOptions,
 		}
+
 	}
+
+	configs.GeneralConfig.Versions.VersionsByEpochs[2].StartEpoch = configs.EpochConfig.EnableEpochs.SupernovaEnableEpoch
+	supernovaRound, _ := strconv.ParseUint(configs.RoundConfig.RoundActivations[string(common.SupernovaRoundFlag)].Round, 10, 64)
+	configs.GeneralConfig.Versions.VersionsByEpochs[2].StartRound = supernovaRound
 }
 
 func updateConfigsChainParameters(args ArgsChainSimulatorConfigs, configs *config.Configs) {

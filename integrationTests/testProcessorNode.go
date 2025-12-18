@@ -171,10 +171,12 @@ var TestProcessConfigsHandler, _ = configs.NewProcessConfigsHandler([]config.Pro
 }},
 	[]config.ProcessConfigByRound{
 		{
-			EnableRound:                        0,
-			MaxRoundsWithoutNewBlockReceived:   10,
-			MaxRoundsWithoutCommittedBlock:     10,
-			RoundModulusTriggerWhenSyncIsStuck: 20,
+			EnableRound:                            0,
+			MaxRoundsWithoutNewBlockReceived:       10,
+			MaxRoundsWithoutCommittedBlock:         10,
+			RoundModulusTriggerWhenSyncIsStuck:     20,
+			MaxRoundsToKeepUnprocessedTransactions: 50,
+			MaxRoundsToKeepUnprocessedMiniBlocks:   50,
 		},
 	},
 )
@@ -4091,17 +4093,5 @@ func GetDefaultRoundsConfig() config.RoundConfig {
 				Round: "9999999",
 			},
 		},
-	}
-}
-
-// DeactivateSupernovaInConfig -
-func DeactivateSupernovaInConfig(cfg *config.Configs) {
-	cfg.EpochConfig.EnableEpochs.SupernovaEnableEpoch = UnreachableEpoch
-	defaultRoundConfig := GetDefaultRoundsConfig()
-	cfg.RoundConfig = &defaultRoundConfig
-	cfg.GeneralConfig.Versions.VersionsByEpochs = []config.VersionByEpochs{
-		{StartEpoch: 0, StartRound: 0, Version: "*"},
-		{StartEpoch: 1, StartRound: 0, Version: "2"},
-		{StartEpoch: UnreachableEpoch, StartRound: 0, Version: "3"},
 	}
 }

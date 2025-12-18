@@ -28,7 +28,7 @@ func NewCurrentBlockInfo(chainHandler chainData.ChainHandler) (*currentBlockInfo
 
 // GetBlockInfo returns the current block info
 func (provider *currentBlockInfo) GetBlockInfo() common.BlockInfo {
-	block := provider.chainHandler.GetCurrentBlockHeader()
+	block := provider.chainHandler.GetLastExecutedBlockHeader()
 	if check.IfNil(block) {
 		log.Debug("currentBlockInfo.GetBlockInfo: returning empty block info", "reason", "block is nil")
 		return holders.NewBlockInfo(nil, 0, nil)

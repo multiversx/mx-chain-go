@@ -159,7 +159,7 @@ func TestRewardsAfterSupernovaWithTxs(t *testing.T) {
 	roundDurationInMillis := uint64(6000)
 	roundsPerEpoch := core.OptionalUint64{
 		HasValue: true,
-		Value:    200,
+		Value:    20,
 	}
 
 	numOfShards := uint32(3)
@@ -176,26 +176,21 @@ func TestRewardsAfterSupernovaWithTxs(t *testing.T) {
 		MinNodesPerShard:       3,
 		MetaChainMinNodes:      3,
 		AlterConfigsFunction: func(cfg *config.Configs) {
-			cfg.EpochConfig.EnableEpochs.SupernovaEnableEpoch = 0
 			cfg.RoundConfig.RoundActivations = map[string]config.ActivationRoundByName{
 				"DisableAsyncCallV1": {
 					Round: "9999999",
 				},
-				"SupernovaEnableRound": {
-					Round: "0",
-				},
 			}
 		},
+		SupernovaRoundsPerEpoch: roundsPerEpoch,
 	})
 	require.Nil(t, err)
 	require.NotNil(t, cs)
 	defer cs.Close()
 
 	targetEpoch := 9
-	for i := 0; i < targetEpoch; i++ {
-		err = cs.ForceChangeOfEpoch()
-		require.Nil(t, err)
-	}
+	err = cs.GenerateBlocksUntilEpochIsReached(int32(targetEpoch))
+	require.Nil(t, err)
 
 	err = cs.GenerateBlocks(1)
 	require.Nil(t, err)
@@ -208,7 +203,9 @@ func TestRewardsAfterSupernovaWithTxs(t *testing.T) {
 	require.Nil(t, err)
 
 	blockWithTxsHash := results[0].BlockHash
-	blocksWithTxs, err := cs.GetNodeHandler(targetShardID).GetFacadeHandler().GetBlockByHash(blockWithTxsHash, apiCore.BlockQueryOptions{})
+	blocksWithTxs, err := cs.GetNodeHandler(targetShardID).GetFacadeHandler().GetBlockByHash(blockWithTxsHash, apiCore.BlockQueryOptions{
+		WithTransactions: true,
+	})
 	require.Nil(t, err)
 
 	prevRandSeed, _ := hex.DecodeString(blocksWithTxs.PrevRandSeed)
@@ -219,11 +216,11 @@ func TestRewardsAfterSupernovaWithTxs(t *testing.T) {
 	validators, err := readValidatorsAndOwners(nodesSetupFile)
 	require.Nil(t, err)
 
-	err = cs.GenerateBlocks(210)
+	err = cs.GenerateBlocks(21)
 	require.Nil(t, err)
 
-	metaBlock := getLastStartOfEpochBlock(t, cs, core.MetachainShardId)
-	require.NotNil(t, metaBlock)
+	startOfEpochBlock := getLastStartOfEpochBlock(t, cs, core.MetachainShardId)
+	require.NotNil(t, startOfEpochBlock)
 
 	leaderEncoded, _ := cs.GetNodeHandler(0).GetCoreComponents().ValidatorPubKeyConverter().Encode(leader.PubKey())
 	leaderOwnerBlockWithTxs := validators[leaderEncoded]
@@ -237,6 +234,12 @@ func TestRewardsAfterSupernovaWithTxs(t *testing.T) {
 		}
 	}
 	require.True(t, found)
+
+	metachainHandler := cs.GetNodeHandler(core.MetachainShardId).GetFacadeHandler()
+	metaBlock, err := metachainHandler.GetBlockByNonce(startOfEpochBlock.Nonce-1, apiCore.BlockQueryOptions{
+		WithTransactions: true,
+	})
+	require.Nil(t, err)
 
 	rewardTxForLeader := getRewardTxForAddress(metaBlock, leaderOwnerBlockWithTxs)
 	require.NotNil(t, rewardTxForLeader)

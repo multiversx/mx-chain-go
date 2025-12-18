@@ -5,6 +5,7 @@ import (
 	"testing"
 	"time"
 
+	"github.com/multiversx/mx-chain-core-go/core"
 	"github.com/multiversx/mx-chain-core-go/data"
 	"github.com/multiversx/mx-chain-core-go/data/block"
 	"github.com/multiversx/mx-chain-core-go/hashing"
@@ -120,6 +121,20 @@ func TestBlocksCreator_CreateNewBlock(t *testing.T) {
 			return &testscommon.ChainHandlerStub{
 				GetCurrentBlockHeaderCalled: func() data.HeaderHandler {
 					return &block.HeaderV2{} // coverage for getPreviousHeaderData
+				},
+			}
+		}
+		nodeHandler.GetCoreComponentsCalled = func() factory.CoreComponentsHolder {
+			return &testsFactory.CoreComponentsHolderStub{
+				EnableRoundsHandlerCalled: func() common.EnableRoundsHandler {
+					return &testscommon.EnableRoundsHandlerStub{
+						IsFlagEnabledInRoundCalled: func(flag common.EnableRoundFlag, round uint64) bool {
+							return false
+						},
+					}
+				},
+				RoundHandlerCalled: func() consensus.RoundHandler {
+					return &testscommon.RoundHandlerMock{}
 				},
 			}
 		}
@@ -324,6 +339,13 @@ func TestBlocksCreator_CreateNewBlock(t *testing.T) {
 				},
 				EnableEpochsHandlerCalled: func() common.EnableEpochsHandler {
 					return &enableEpochsHandlerMock.EnableEpochsHandlerStub{}
+				},
+				EnableRoundsHandlerCalled: func() common.EnableRoundsHandler {
+					return &testscommon.EnableRoundsHandlerStub{
+						IsFlagEnabledInRoundCalled: func(flag common.EnableRoundFlag, round uint64) bool {
+							return false
+						},
+					}
 				},
 			}
 		}
@@ -555,6 +577,33 @@ func testCreateNewBlock(t *testing.T, blockProcess process.BlockProcessor, expec
 			NodesCoord:   nc,
 		}
 	}
+	nodeHandler.GetCoreComponentsCalled = func() factory.CoreComponentsHolder {
+		return &testsFactory.CoreComponentsHolderStub{
+			EnableRoundsHandlerCalled: func() common.EnableRoundsHandler {
+				return &testscommon.EnableRoundsHandlerStub{
+					IsFlagEnabledInRoundCalled: func(flag common.EnableRoundFlag, round uint64) bool {
+						return false
+					},
+				}
+			},
+			EnableEpochsHandlerCalled: func() common.EnableEpochsHandler {
+				return &enableEpochsHandlerMock.EnableEpochsHandlerStub{
+					IsFlagEnabledInEpochCalled: func(_ core.EnableEpochFlag, _ uint32) bool {
+						return false
+					},
+				}
+			},
+			RoundHandlerCalled: func() consensus.RoundHandler {
+				return &testscommon.RoundHandlerMock{}
+			},
+			InternalMarshalizerCalled: func() marshal.Marshalizer {
+				return &testscommon.MarshallerStub{}
+			},
+			HasherCalled: func() hashing.Hasher {
+				return &testscommon.HasherStub{}
+			},
+		}
+	}
 	creator, err := chainSimulatorProcess.NewBlocksCreator(nodeHandler, heartbeat.NewHeartbeatMonitor())
 	require.NoError(t, err)
 
@@ -585,6 +634,13 @@ func getNodeHandler() *chainSimulator.NodeHandlerMock {
 				},
 				EnableEpochsHandlerCalled: func() common.EnableEpochsHandler {
 					return &enableEpochsHandlerMock.EnableEpochsHandlerStub{}
+				},
+				EnableRoundsHandlerCalled: func() common.EnableRoundsHandler {
+					return &testscommon.EnableRoundsHandlerStub{
+						IsFlagEnabledInRoundCalled: func(flag common.EnableRoundFlag, round uint64) bool {
+							return false
+						},
+					}
 				},
 			}
 		},

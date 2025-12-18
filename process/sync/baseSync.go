@@ -15,6 +15,9 @@ import (
 	"github.com/multiversx/mx-chain-core-go/data"
 	"github.com/multiversx/mx-chain-core-go/data/block"
 	outportcore "github.com/multiversx/mx-chain-core-go/data/outport"
+	"github.com/multiversx/mx-chain-core-go/data/rewardTx"
+	"github.com/multiversx/mx-chain-core-go/data/smartContractResult"
+	"github.com/multiversx/mx-chain-core-go/data/transaction"
 	"github.com/multiversx/mx-chain-core-go/data/typeConverters"
 	"github.com/multiversx/mx-chain-core-go/hashing"
 	"github.com/multiversx/mx-chain-core-go/marshal"
@@ -36,6 +39,10 @@ import (
 )
 
 var log = logger.GetOrCreate("process/sync")
+
+type txSizeHandler interface {
+	Size() int
+}
 
 var _ closing.Closer = (*baseBootstrap)(nil)
 
@@ -61,6 +68,7 @@ type baseBootstrap struct {
 	historyRepo dblookupext.HistoryRepository
 	headers     dataRetriever.HeadersPool
 	proofs      dataRetriever.ProofsPool
+	dataPool    dataRetriever.PoolsHolder
 
 	chainHandler     data.ChainHandler
 	blockProcessor   process.BlockProcessor
@@ -1088,6 +1096,11 @@ func (boot *baseBootstrap) prepareForSyncIfNeeded(syncingNonce uint64) error {
 			return errGetBody
 		}
 
+		err = boot.saveProposedTxsToPool(currentHeader, currentBody)
+		if err != nil {
+			return err
+		}
+
 		errOnProposedBlock := boot.blockProcessor.OnProposedBlock(
 			currentBody,
 			currentHeader,
@@ -1119,6 +1132,11 @@ func (boot *baseBootstrap) prepareForSyncIfNeeded(syncingNonce uint64) error {
 			return errGetBody
 		}
 
+		err := boot.saveProposedTxsToPool(hdr, body)
+		if err != nil {
+			return err
+		}
+
 		errOnProposedBlock := boot.blockProcessor.OnProposedBlock(
 			body,
 			hdr,
@@ -1140,6 +1158,108 @@ func (boot *baseBootstrap) prepareForSyncIfNeeded(syncingNonce uint64) error {
 	boot.preparedForSync = true
 
 	return nil
+}
+
+func (boot *baseBootstrap) saveProposedTxsToPool(
+	header data.HeaderHandler,
+	body data.BodyHandler,
+) error {
+	if !header.IsHeaderV3() {
+		return nil
+	}
+
+	bodyPtr, ok := body.(*block.Body)
+	if !ok {
+		return process.ErrWrongTypeAssertion
+	}
+
+	separatedBodies := process.SeparateBodyByType(bodyPtr)
+
+	for blockType, blockBody := range separatedBodies {
+		dataPool, err := process.GetDataPoolByBlockType(blockType, boot.dataPool)
+		if err != nil {
+			return err
+		}
+
+		unit, err := process.GetStorageUnitByBlockType(blockType)
+		if err != nil {
+			return err
+		}
+
+		storer, err := boot.store.GetStorer(unit)
+		if err != nil {
+			return err
+		}
+
+		for i := 0; i < len(blockBody.MiniBlocks); i++ {
+			miniBlock := blockBody.MiniBlocks[i]
+			err = boot.saveTxsToPool(dataPool, storer, miniBlock, blockType)
+			if err != nil {
+				return err
+			}
+		}
+	}
+
+	return nil
+}
+
+func (boot *baseBootstrap) saveTxsToPool(
+	dataPool dataRetriever.ShardedDataCacherNotifier,
+	storer storage.Storer,
+	miniBlock *block.MiniBlock,
+	blockType block.Type,
+) error {
+	txHashes := miniBlock.TxHashes
+
+	for _, txHash := range txHashes {
+		txBuff, err := storer.Get(txHash)
+		if err != nil {
+			return err
+		}
+
+		tx, err := boot.unmarshalTxByBlockType(blockType, txBuff)
+		if err != nil {
+			return err
+		}
+
+		cacherIdentifier := process.ShardCacherIdentifier(miniBlock.SenderShardID, miniBlock.ReceiverShardID)
+		dataPool.AddData(
+			txHash,
+			tx,
+			tx.Size(),
+			cacherIdentifier,
+		)
+	}
+
+	return nil
+}
+
+func (boot *baseBootstrap) unmarshalTxByBlockType(
+	blockType block.Type,
+	txBuff []byte,
+) (txSizeHandler, error) {
+	var tx txSizeHandler
+	var err error
+
+	switch blockType {
+	case block.TxBlock, block.InvalidBlock:
+		tx = &transaction.Transaction{}
+	case block.SmartContractResultBlock:
+		tx = &smartContractResult.SmartContractResult{}
+	case block.RewardsBlock:
+		tx = &rewardTx.RewardTx{}
+	case block.PeerBlock:
+		tx = &state.ShardValidatorInfo{}
+	default:
+		return nil, fmt.Errorf("unsupported block type: %d", blockType)
+	}
+
+	err = boot.marshalizer.Unmarshal(tx, txBuff)
+	if err != nil {
+		return nil, err
+	}
+
+	return tx, nil
 }
 
 func (boot *baseBootstrap) handleTrieSyncError(err error, ctx context.Context) {
