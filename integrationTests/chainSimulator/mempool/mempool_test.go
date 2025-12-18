@@ -77,6 +77,7 @@ func TestMempoolWithChainSimulator_Selection(t *testing.T) {
 	require.Equal(t, 50_000*(30_000-27_756), int(gas))
 }
 
+// TODO should activate Supernova for this test
 func TestMempoolWithChainSimulator_Selection_WhenUsersHaveZeroBalance_WithRelayedV3(t *testing.T) {
 	if testing.Short() {
 		t.Skip("this is not a short test")
@@ -86,6 +87,7 @@ func TestMempoolWithChainSimulator_Selection_WhenUsersHaveZeroBalance_WithRelaye
 
 	alterConfigsFunc := func(cfg *config.Configs) {
 		cfg.EpochConfig.EnableEpochs.FixRelayedBaseCostEnableEpoch = 2
+		cfg.EpochConfig.EnableEpochs.SupernovaEnableEpoch = 3
 		cfg.EpochConfig.EnableEpochs.RelayedTransactionsV3EnableEpoch = 2
 		cfg.EpochConfig.EnableEpochs.RelayedTransactionsV3FixESDTTransferEnableEpoch = 2
 		cfg.RoundConfig.RoundActivations = map[string]config.ActivationRoundByName{
@@ -159,7 +161,7 @@ func TestMempoolWithChainSimulator_Selection_WhenUsersHaveZeroBalance_WithRelaye
 	require.Equal(t, 1, len(selectedTransactions))
 	require.Equal(t, bob.Bytes, selectedTransactions[0].Tx.GetSndAddr())
 
-	err = simulator.GenerateBlocks(2)
+	err = simulator.GenerateBlocks(1)
 	require.Nil(t, err)
 	require.Equal(t, 1, getNumTransactionsInCurrentBlock(simulator, shard))
 	require.Equal(t, "success", getTransaction(t, simulator, shard, selectedTransactions[0].TxHash).Status.String())
