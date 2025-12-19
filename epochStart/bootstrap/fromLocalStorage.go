@@ -13,6 +13,7 @@ import (
 	"github.com/multiversx/mx-chain-go/common"
 	"github.com/multiversx/mx-chain-go/epochStart"
 	"github.com/multiversx/mx-chain-go/epochStart/bootstrap/disabled"
+	"github.com/multiversx/mx-chain-go/process"
 	"github.com/multiversx/mx-chain-go/process/block/bootstrapStorage"
 	"github.com/multiversx/mx-chain-go/sharding"
 	"github.com/multiversx/mx-chain-go/sharding/nodesCoordinator"
@@ -288,8 +289,7 @@ func (e *epochStartBootstrap) getEpochStartMetaFromStorage(storer storage.Storer
 		return nil, err
 	}
 
-	metaBlock := &block.MetaBlock{}
-	err = e.coreComponentsHolder.InternalMarshalizer().Unmarshal(metaBlock, epochStartMetaBlock)
+	metaBlock, err := process.UnmarshalMetaHeader(e.coreComponentsHolder.InternalMarshalizer(), epochStartMetaBlock)
 	if err != nil {
 		return nil, err
 	}

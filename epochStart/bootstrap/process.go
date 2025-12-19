@@ -720,8 +720,68 @@ func (e *epochStartBootstrap) syncHeadersV3From(meta data.MetaHeaderHandler) (ma
 			return nil, err
 		}
 
-		hashesToRequest = append(hashesToRequest, epochStartData.GetLastFinishedMetaBlock())
-		shardIds = append(shardIds, core.MetachainShardId)
+		err = e.requestIntermediateBlocksIfNeeded(syncedHeaders, epochStartData.GetLastFinishedMetaBlock(), core.MetachainShardId)
+		if err != nil {
+			return nil, err
+		}
+
+		syncedHeader, ok := syncedHeaders[string(epochStartData.GetHeaderHash())]
+		if !ok {
+			log.Error("should have been synced at this point")
+			return nil, epochStart.ErrMissingHeader
+		}
+		shardHeader, ok := syncedHeader.(data.ShardHeaderHandler)
+		if !ok {
+			log.Error("epoch start data shard header",
+				"error", process.ErrWrongTypeAssertion,
+			)
+			return nil, epochStart.ErrWrongTypeAssertion
+		}
+
+		for _, metaHash := range shardHeader.GetMetaBlockHashes() {
+			hashesToRequest = append(hashesToRequest, metaHash)
+			shardIds = append(shardIds, core.MetachainShardId)
+		}
+
+		lastFinished, ok := syncedHeaders[string(epochStartData.GetLastFinishedMetaBlock())]
+		if !ok {
+			log.Error("should have been synced at this point")
+			return nil, epochStart.ErrMissingHeader
+		}
+
+		hashToSync := meta.GetPrevHash()
+		currNonce := meta.GetNonce()
+		for currNonce > lastFinished.GetNonce() {
+			header, err := e.syncOneHeader(hashToSync, core.MetachainShardId)
+			if err != nil {
+				return nil, err
+			}
+			syncedHeaders[string(hashToSync)] = header
+
+			hashToSync = header.GetPrevHash()
+			currNonce = header.GetNonce()
+		}
+	}
+
+	for _, shardData := range meta.GetShardInfoProposalHandlers() {
+		header, err := e.syncOneHeader(shardData.GetHeaderHash(), shardData.GetShardID())
+		if err != nil {
+			return nil, err
+		}
+		syncedHeaders[string(shardData.GetHeaderHash())] = header
+
+		shardHeader, ok := header.(data.ShardHeaderHandler)
+		if !ok {
+			log.Error("epoch start data shard header",
+				"error", process.ErrWrongTypeAssertion,
+			)
+			return nil, epochStart.ErrWrongTypeAssertion
+		}
+
+		for _, metaHash := range shardHeader.GetMetaBlockHashes() {
+			hashesToRequest = append(hashesToRequest, metaHash)
+			shardIds = append(shardIds, core.MetachainShardId)
+		}
 	}
 
 	syncedMetaHeaders, err := e.syncEpochStartMetaHeaders(meta, hashesToRequest, shardIds)

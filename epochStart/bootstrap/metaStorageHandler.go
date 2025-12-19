@@ -132,8 +132,10 @@ func (msh *metaStorageHandler) SaveDataToStorage(components *ComponentsNeededFor
 	}
 
 	epochStartMeta := components.EpochStartMetaBlock
-	lastSelfNotarizedHeaders := []bootstrapStorage.BootstrapHeaderInfo{lastHeader}
-	if epochStartMeta.IsHeaderV3() {
+	var lastSelfNotarizedHeaders []bootstrapStorage.BootstrapHeaderInfo
+	if !epochStartMeta.IsHeaderV3() {
+		lastSelfNotarizedHeaders = []bootstrapStorage.BootstrapHeaderInfo{lastHeader}
+	} else {
 		for _, epochStartData := range epochStartMeta.GetEpochStartHandler().GetLastFinalizedHeaderHandlers() {
 			headerHash := epochStartData.GetLastFinishedMetaBlock()
 			header, ok := components.Headers[string(headerHash)]
@@ -145,6 +147,26 @@ func (msh *metaStorageHandler) SaveDataToStorage(components *ComponentsNeededFor
 				return epochStart.ErrMissingHeader
 			}
 
+			// lastExecResHeader, err := common.GetLastBaseExecutionResultHandler(header)
+			// if err != nil {
+			// 	return err
+			// }
+
+			// lastExecHeader, ok := components.Headers[string(lastExecResHeader.GetHeaderHash())]
+			// if !ok {
+			// 	log.Error("should be able to find last exec meta header",
+			// 		"hash", lastExecResHeader.GetHeaderHash(),
+			// 	)
+			// 	return epochStart.ErrMissingHeader
+			// }
+
+			// bootstrapHdrInfo := bootstrapStorage.BootstrapHeaderInfo{
+			// 	ShardId: epochStartData.GetShardID(),
+			// 	Epoch:   lastExecHeader.GetEpoch(),
+			// 	Nonce:   lastExecHeader.GetNonce(),
+			// 	Hash:    lastExecResHeader.GetHeaderHash(),
+			// }
+
 			bootstrapHdrInfo := bootstrapStorage.BootstrapHeaderInfo{
 				ShardId: epochStartData.GetShardID(),
 				Epoch:   header.GetEpoch(),
@@ -153,12 +175,34 @@ func (msh *metaStorageHandler) SaveDataToStorage(components *ComponentsNeededFor
 			}
 
 			log.Debug("SaveDataToStorage",
-				"LastFinishedMetaBlock: hash", headerHash,
+				"GetLastFinishedMetaBlock: hash", headerHash,
 				"shard", epochStartData.GetShardID(),
 			)
 
-			lastSelfNotarizedHeaders = append([]bootstrapStorage.BootstrapHeaderInfo{bootstrapHdrInfo}, lastSelfNotarizedHeaders...)
+			lastSelfNotarizedHeaders = append(lastSelfNotarizedHeaders, bootstrapHdrInfo)
 		}
+
+		lastExecRes, err := common.GetLastBaseExecutionResultHandler(epochStartMeta)
+		if err != nil {
+			return err
+		}
+
+		lastExecMetaHeader, ok := components.Headers[string(lastExecRes.GetHeaderHash())]
+		if !ok {
+			log.Error("should be able to find last exec meta header",
+				"hash", lastExecRes.GetHeaderHash(),
+			)
+			return epochStart.ErrMissingHeader
+		}
+
+		bootstrapHdrInfoMeta := bootstrapStorage.BootstrapHeaderInfo{
+			ShardId: core.MetachainShardId,
+			Epoch:   lastExecMetaHeader.GetEpoch(),
+			Nonce:   lastExecMetaHeader.GetNonce(),
+			Hash:    lastExecRes.GetHeaderHash(),
+		}
+
+		lastSelfNotarizedHeaders = append(lastSelfNotarizedHeaders, bootstrapHdrInfoMeta)
 	}
 
 	bootStrapData := bootstrapStorage.BootstrapData{
