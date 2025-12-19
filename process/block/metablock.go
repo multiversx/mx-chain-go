@@ -496,7 +496,7 @@ func (mp *metaProcessor) getAllMiniBlockDstMeFromShards(metaHdr data.MetaHeaderH
 	var shardHeaderHandler data.HeaderHandler
 	var err error
 	for _, shardInfo := range getShardHeadersReferencedByMeta(metaHdr) {
-		shardHeaderHandler, err = getHeaderFromHash(mp.dataPool.Headers(), mp.hdrsForCurrBlock, metaHdr.IsHeaderV3(), shardInfo.GetHeaderHash())
+		shardHeaderHandler, err = mp.getHeaderFromHash(metaHdr.IsHeaderV3(), shardInfo.GetHeaderHash(), shardInfo.GetShardID())
 		if err != nil {
 			return nil, fmt.Errorf("%w : for shardInfo.HeaderHash = %s",
 				process.ErrMissingHeader, hex.EncodeToString(shardInfo.GetHeaderHash()))
@@ -1409,6 +1409,10 @@ func (mp *metaProcessor) CommitBlock(
 	nodesCoordinatorKey := mp.nodesCoordinator.GetSavedStateKey()
 	epochStartKey := mp.epochStartTrigger.GetSavedStateKey()
 
+	log.Debug("getLastSelfNotarizedHeaders",
+		"hash", headerHash,
+		"nonoce", header.GetNonce(),
+	)
 	args := bootStorerDataArgs{
 		headerInfo:                 headerInfo,
 		round:                      header.GetRound(),
@@ -1487,7 +1491,7 @@ func (mp *metaProcessor) computeFinalMetaBlock(metaBlock data.MetaHeaderHandler,
 func (mp *metaProcessor) updateCrossShardInfo(metaHeader data.MetaHeaderHandler) ([]string, error) {
 	notarizedHeadersHashes := make([]string, 0)
 	for _, shardData := range getShardHeadersReferencedByMeta(metaHeader) {
-		header, err := getHeaderFromHash(mp.dataPool.Headers(), mp.hdrsForCurrBlock, metaHeader.IsHeaderV3(), shardData.GetHeaderHash())
+		header, err := mp.getHeaderFromHash(metaHeader.IsHeaderV3(), shardData.GetHeaderHash(), shardData.GetShardID())
 		if err != nil {
 			return nil, fmt.Errorf("%w : updateCrossShardInfo shardHeaderHash = %s",
 				err, logger.DisplayByteSlice(shardData.GetHeaderHash()))
@@ -1751,7 +1755,7 @@ func (mp *metaProcessor) getLastSelfNotarizedHeaderByShard(
 			continue
 		}
 
-		header, err := getHeaderFromHash(mp.dataPool.Headers(), mp.hdrsForCurrBlock, metaHeader.IsHeaderV3(), shardData.GetHeaderHash())
+		header, err := mp.getHeaderFromHash(metaHeader.IsHeaderV3(), shardData.GetHeaderHash(), shardData.GetShardID())
 		if err != nil {
 			log.Debug("getLastSelfNotarizedHeaderByShard",
 				"error", err.Error(),
@@ -1962,7 +1966,7 @@ func (mp *metaProcessor) saveLastNotarizedHeader(metaHeader data.MetaHeaderHandl
 	}
 
 	for _, shardData := range getShardHeadersReferencedByMeta(metaHeader) {
-		header, err := getHeaderFromHash(mp.dataPool.Headers(), mp.hdrsForCurrBlock, metaHeader.IsHeaderV3(), shardData.GetHeaderHash())
+		header, err := mp.getHeaderFromHash(metaHeader.IsHeaderV3(), shardData.GetHeaderHash(), shardData.GetShardID())
 		if err != nil {
 			return fmt.Errorf("%w : saveLastNotarizedHeader shardHeaderHash = %s",
 				err, logger.DisplayByteSlice(shardData.GetHeaderHash()))

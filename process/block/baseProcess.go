@@ -1664,6 +1664,12 @@ func (bp *baseProcessor) getLastSelfNotarizedHeadersForShard(shardID uint32) *bo
 		Hash:    lastSelfNotarizedHeaderHash,
 	}
 
+	log.Debug("getLastSelfNotarizedHeadersForShard",
+		"shard", shardID,
+		"lastnot hash", lastSelfNotarizedHeaderHash,
+		"lastnot nonce", lastSelfNotarizedHeader.GetNonce(),
+	)
+
 	return headerInfo
 }
 
@@ -3761,6 +3767,27 @@ func (bp *baseProcessor) getBlockBodyFromPool(
 	}
 
 	return &block.Body{MiniBlocks: miniBlocks}, nil
+}
+
+func (bp *baseProcessor) getHeaderFromHash(
+	isHeaderV3 bool,
+	shardHeaderHash []byte,
+	shardID uint32,
+) (data.HeaderHandler, error) {
+	if isHeaderV3 {
+		header, err := process.GetHeader(shardHeaderHash, bp.dataPool.Headers(), bp.store, bp.marshalizer, shardID)
+		if err != nil {
+			log.Error("getHeaderFromHash - failed to get header from headers pool", "hash", shardHeaderHash, "error", err)
+		}
+		return header, err
+	}
+
+	headerInfo, ok := bp.hdrsForCurrBlock.GetHeaderInfo(string(shardHeaderHash))
+	if !ok {
+		return nil, process.ErrMissingHeader
+	}
+
+	return headerInfo.GetHeader(), nil
 }
 
 func getProposedAndExecutedMiniBlockHeaders(
