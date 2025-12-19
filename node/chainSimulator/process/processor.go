@@ -79,9 +79,7 @@ func (creator *blocksCreator) createBlock(header data.HeaderHandler) (data.Heade
 }
 
 func (creator *blocksCreator) updateHeader(header data.HeaderHandler) error {
-	if check.IfNil(header) ||
-		check.IfNil(header.GetLastExecutionResultHandler()) ||
-		len(header.GetExecutionResultsHandlers()) == 0 {
+	if check.IfNil(header) || len(header.GetExecutionResultsHandlers()) == 0 {
 		return nil
 	}
 
