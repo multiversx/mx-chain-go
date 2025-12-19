@@ -10,7 +10,10 @@ import (
 	"github.com/multiversx/mx-chain-go/process"
 )
 
-const minRoundsToKeepUnprocessedData = uint64(1)
+const (
+	minRoundsToKeepUnprocessedData = uint64(1)
+	minFloodingRounds              = 2
+)
 
 const (
 	defaultMaxMetaNoncesBehind                    = 15
@@ -161,6 +164,18 @@ func checkRoundConfigValues(cfg config.ProcessConfigByRound) error {
 	if cfg.MaxRoundsToKeepUnprocessedMiniBlocks < minRoundsToKeepUnprocessedData {
 		return fmt.Errorf("%w for MaxRoundsToKeepUnprocessedMiniBlocks, received %d, min expected %d",
 			process.ErrInvalidValue, cfg.MaxRoundsToKeepUnprocessedMiniBlocks, minRoundsToKeepUnprocessedData)
+	}
+	if cfg.NumFloodingRoundsFastReacting < minFloodingRounds {
+		return fmt.Errorf("%w for NumFloodingRoundsFastReacting, received %d, min expected %d",
+			process.ErrInvalidValue, cfg.NumFloodingRoundsFastReacting, minFloodingRounds)
+	}
+	if cfg.NumFloodingRoundsSlowReacting < minFloodingRounds {
+		return fmt.Errorf("%w for NumFloodingRoundsSlowReacting, received %d, min expected %d",
+			process.ErrInvalidValue, cfg.NumFloodingRoundsSlowReacting, minFloodingRounds)
+	}
+	if cfg.NumFloodingRoundsOutOfSpecs < minFloodingRounds {
+		return fmt.Errorf("%w for NumFloodingRoundsOutOfSpecs, received %d, min expected %d",
+			process.ErrInvalidValue, cfg.NumFloodingRoundsOutOfSpecs, minFloodingRounds)
 	}
 
 	return nil

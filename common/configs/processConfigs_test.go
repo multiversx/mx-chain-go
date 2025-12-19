@@ -11,6 +11,29 @@ import (
 	"github.com/stretchr/testify/require"
 )
 
+func getConfigsByRound() []config.ProcessConfigByRound {
+	return []config.ProcessConfigByRound{
+		{
+			EnableRound:                            0,
+			MaxRoundsWithoutNewBlockReceived:       10,
+			MaxRoundsToKeepUnprocessedMiniBlocks:   1,
+			MaxRoundsToKeepUnprocessedTransactions: 1,
+			NumFloodingRoundsSlowReacting:          2,
+			NumFloodingRoundsFastReacting:          3,
+			NumFloodingRoundsOutOfSpecs:            4,
+		},
+		{
+			EnableRound:                            1,
+			MaxRoundsWithoutNewBlockReceived:       11,
+			MaxRoundsToKeepUnprocessedMiniBlocks:   1,
+			MaxRoundsToKeepUnprocessedTransactions: 1,
+			NumFloodingRoundsSlowReacting:          20,
+			NumFloodingRoundsFastReacting:          30,
+			NumFloodingRoundsOutOfSpecs:            40,
+		},
+	}
+}
+
 func TestNewProcessConfigsByEpoch(t *testing.T) {
 	t.Parallel()
 
@@ -60,9 +83,9 @@ func TestNewProcessConfigsByEpoch(t *testing.T) {
 		confByEpoch := []config.ProcessConfigByEpoch{
 			{EnableEpoch: 0, MaxMetaNoncesBehind: 15},
 		}
-		confByRound := []config.ProcessConfigByRound{
-			{EnableRound: 1, MaxRoundsToKeepUnprocessedMiniBlocks: 15, MaxRoundsToKeepUnprocessedTransactions: 0},
-		}
+		confByRound := getConfigsByRound()
+		confByRound[0].MaxRoundsToKeepUnprocessedTransactions = 0
+
 		pce, err := configs.NewProcessConfigsHandler(confByEpoch, confByRound, &epochNotifier.RoundNotifierStub{})
 		require.Nil(t, pce)
 		require.ErrorIs(t, err, process.ErrInvalidValue)
@@ -75,13 +98,58 @@ func TestNewProcessConfigsByEpoch(t *testing.T) {
 		confByEpoch := []config.ProcessConfigByEpoch{
 			{EnableEpoch: 0, MaxMetaNoncesBehind: 15},
 		}
-		confByRound := []config.ProcessConfigByRound{
-			{EnableRound: 1, MaxRoundsToKeepUnprocessedMiniBlocks: 0, MaxRoundsToKeepUnprocessedTransactions: 15},
-		}
+		confByRound := getConfigsByRound()
+		confByRound[0].MaxRoundsToKeepUnprocessedMiniBlocks = 0
+
 		pce, err := configs.NewProcessConfigsHandler(confByEpoch, confByRound, &epochNotifier.RoundNotifierStub{})
 		require.Nil(t, pce)
 		require.ErrorIs(t, err, process.ErrInvalidValue)
 		require.True(t, strings.Contains(err.Error(), "MaxRoundsToKeepUnprocessedMiniBlocks"))
+	})
+
+	t.Run("should return error for invalid num flooding rounds fast reacting value", func(t *testing.T) {
+		t.Parallel()
+
+		confByEpoch := []config.ProcessConfigByEpoch{
+			{EnableEpoch: 0, MaxMetaNoncesBehind: 15},
+		}
+		confByRound := getConfigsByRound()
+		confByRound[0].NumFloodingRoundsFastReacting = 0
+
+		pce, err := configs.NewProcessConfigsHandler(confByEpoch, confByRound, &epochNotifier.RoundNotifierStub{})
+		require.Nil(t, pce)
+		require.ErrorIs(t, err, process.ErrInvalidValue)
+		require.True(t, strings.Contains(err.Error(), "NumFloodingRoundsFastReacting"))
+	})
+
+	t.Run("should return error for invalid num flooding rounds slow reacting value", func(t *testing.T) {
+		t.Parallel()
+
+		confByEpoch := []config.ProcessConfigByEpoch{
+			{EnableEpoch: 0, MaxMetaNoncesBehind: 15},
+		}
+		confByRound := getConfigsByRound()
+		confByRound[0].NumFloodingRoundsSlowReacting = 0
+
+		pce, err := configs.NewProcessConfigsHandler(confByEpoch, confByRound, &epochNotifier.RoundNotifierStub{})
+		require.Nil(t, pce)
+		require.ErrorIs(t, err, process.ErrInvalidValue)
+		require.True(t, strings.Contains(err.Error(), "NumFloodingRoundsSlowReacting"))
+	})
+
+	t.Run("should return error for invalid num flooding rounds out of specs value", func(t *testing.T) {
+		t.Parallel()
+
+		confByEpoch := []config.ProcessConfigByEpoch{
+			{EnableEpoch: 0, MaxMetaNoncesBehind: 15},
+		}
+		confByRound := getConfigsByRound()
+		confByRound[0].NumFloodingRoundsOutOfSpecs = 0
+
+		pce, err := configs.NewProcessConfigsHandler(confByEpoch, confByRound, &epochNotifier.RoundNotifierStub{})
+		require.Nil(t, pce)
+		require.ErrorIs(t, err, process.ErrInvalidValue)
+		require.True(t, strings.Contains(err.Error(), "NumFloodingRoundsOutOfSpecs"))
 	})
 
 	t.Run("should work", func(t *testing.T) {
@@ -92,10 +160,7 @@ func TestNewProcessConfigsByEpoch(t *testing.T) {
 			{EnableEpoch: 2, MaxMetaNoncesBehind: 30},
 			{EnableEpoch: 1, MaxMetaNoncesBehind: 45},
 		}
-		confByRound := []config.ProcessConfigByRound{
-			{EnableRound: 0, MaxRoundsWithoutNewBlockReceived: 10, MaxRoundsToKeepUnprocessedMiniBlocks: 1, MaxRoundsToKeepUnprocessedTransactions: 1},
-			{EnableRound: 1, MaxRoundsWithoutNewBlockReceived: 11, MaxRoundsToKeepUnprocessedMiniBlocks: 1, MaxRoundsToKeepUnprocessedTransactions: 1},
-		}
+		confByRound := getConfigsByRound()
 
 		pce, err := configs.NewProcessConfigsHandler(conf, confByRound, &epochNotifier.RoundNotifierStub{})
 		require.NotNil(t, pce)
@@ -131,6 +196,9 @@ func TestProcessConfigsByEpoch_Getters(t *testing.T) {
 			MaxSyncWithErrorsAllowed:               30,
 			MaxRoundsToKeepUnprocessedTransactions: 50,
 			MaxRoundsToKeepUnprocessedMiniBlocks:   60,
+			NumFloodingRoundsSlowReacting:          2,
+			NumFloodingRoundsFastReacting:          3,
+			NumFloodingRoundsOutOfSpecs:            4,
 		},
 		{EnableRound: 1,
 			MaxRoundsWithoutNewBlockReceived:       11,
@@ -138,6 +206,9 @@ func TestProcessConfigsByEpoch_Getters(t *testing.T) {
 			MaxSyncWithErrorsAllowed:               31,
 			MaxRoundsToKeepUnprocessedTransactions: 500,
 			MaxRoundsToKeepUnprocessedMiniBlocks:   600,
+			NumFloodingRoundsSlowReacting:          20,
+			NumFloodingRoundsFastReacting:          30,
+			NumFloodingRoundsOutOfSpecs:            40,
 		},
 	}
 

@@ -143,7 +143,15 @@ func CreateShardTrackerMockArguments() track.ArgShardTracker {
 		MaxShardNoncesBehind:              15,
 	}},
 		[]config.ProcessConfigByRound{
-			{EnableRound: 0, MaxRoundsWithoutNewBlockReceived: 10, MaxRoundsToKeepUnprocessedTransactions: 50, MaxRoundsToKeepUnprocessedMiniBlocks: 50},
+			{
+				EnableRound:                            0,
+				MaxRoundsWithoutNewBlockReceived:       10,
+				MaxRoundsToKeepUnprocessedTransactions: 50,
+				MaxRoundsToKeepUnprocessedMiniBlocks:   50,
+				NumFloodingRoundsSlowReacting:          20,
+				NumFloodingRoundsFastReacting:          30,
+				NumFloodingRoundsOutOfSpecs:            40,
+			},
 		},
 		&epochNotifier.RoundNotifierStub{},
 	)

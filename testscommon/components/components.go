@@ -323,6 +323,9 @@ func GetNetworkFactoryArgs() networkComp.NetworkComponentsFactoryArgs {
 				{
 					MaxRoundsToKeepUnprocessedMiniBlocks:   50,
 					MaxRoundsToKeepUnprocessedTransactions: 50,
+					NumFloodingRoundsSlowReacting:          20,
+					NumFloodingRoundsFastReacting:          30,
+					NumFloodingRoundsOutOfSpecs:            40,
 				},
 			},
 		},
