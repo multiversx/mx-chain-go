@@ -8,7 +8,10 @@ import (
 	"github.com/multiversx/mx-chain-go/common/configs/dto"
 	"github.com/multiversx/mx-chain-go/config"
 	"github.com/multiversx/mx-chain-go/process"
+	logger "github.com/multiversx/mx-chain-logger-go"
 )
+
+var log = logger.GetOrCreate("processConfigs")
 
 type configByRoundSelector[T any] func(config.ProcessConfigByRound) T
 type configVariableHandler struct {
@@ -274,6 +277,7 @@ func (pce *processConfigsByEpoch) getValueByRound(
 ) uint64 {
 	cfgVarHandler, ok := pce.variablesMap[variable]
 	if !ok {
+		log.Warn("processConfigsByEpoch.getValueByRound: variable not found in pce.variablesMap", "variable", variable)
 		return 0
 	}
 
