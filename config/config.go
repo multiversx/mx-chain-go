@@ -414,7 +414,7 @@ type GeneralSettingsConfig struct {
 	ChainParametersByEpoch               []ChainParametersByEpochConfig
 	EpochChangeGracePeriodByEpoch        []EpochChangeGracePeriodByEpoch
 	ProcessConfigsByEpoch                []ProcessConfigByEpoch
-	ProcessConfigsByRound                []ProcessConfigByRound
+	ProcessConfigsByRound                []ProcessConfigByRound `toml:"ProcessConfigsByRound"`
 	EpochStartConfigsByEpoch             []EpochStartConfigByEpoch
 	EpochStartConfigsByRound             []EpochStartConfigByRound
 	ConsensusConfigsByEpoch              []ConsensusConfigByEpoch

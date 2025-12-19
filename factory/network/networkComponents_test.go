@@ -25,6 +25,16 @@ func TestNewNetworkComponentsFactory(t *testing.T) {
 		require.Nil(t, ncf)
 		require.Equal(t, errorsMx.ErrNilStatusHandler, err)
 	})
+	t.Run("nil core components should error", func(t *testing.T) {
+		t.Parallel()
+
+		args := componentsMock.GetNetworkFactoryArgs()
+		args.CoreComponents = nil
+
+		ncf, err := networkComp.NewNetworkComponentsFactory(args)
+		require.Nil(t, ncf)
+		require.True(t, errors.Is(err, process.ErrNilCoreComponentsHolder))
+	})
 	t.Run("nil Marshalizer should error", func(t *testing.T) {
 		t.Parallel()
 

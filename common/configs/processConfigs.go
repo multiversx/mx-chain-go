@@ -10,30 +10,10 @@ import (
 	"github.com/multiversx/mx-chain-go/process"
 )
 
-const (
-	minRoundsToKeepUnprocessedData = uint64(1)
-	minFloodingRounds              = 2
-)
-
-const (
-	defaultMaxMetaNoncesBehind                    = 15
-	defaultMaxMetaNoncesBehindForGlobalStuck      = 30
-	defaultMaxShardNoncesBehind                   = 15
-	defaultMaxRoundsWithoutNewBlockReceived       = 10
-	defaultMaxRoundsWithoutCommittedBlock         = 10
-	defaultRoundModulusTriggerWhenSyncIsStuck     = 20
-	defaultMaxSyncWithErrorsAllowed               = 20
-	defaultMaxRoundsToKeepUnprocessedMiniBlocks   = 3000
-	defaultMaxRoundsToKeepUnprocessedTransactions = 3000
-	defaultNumFloodingRoundsFastReacting          = 20
-	defaultNumFloodingRoundsSlowReacting          = 20
-	defaultNumFloodingRoundsOutOfSpecs            = 20
-)
-
 type configByRoundSelector[T any] func(config.ProcessConfigByRound) T
 type configVariableHandler struct {
 	valueSelector configByRoundSelector[uint64]
-	defaultValue  int
+	defaultValue  uint64
 }
 
 // processConfigsByEpoch holds the process configuration for epoch changes
@@ -318,7 +298,7 @@ func (pce *processConfigsByEpoch) getValueByRound(
 		pce.orderedConfigByRound,
 		round,
 		cfgVarHandler.valueSelector,
-		uint64(cfgVarHandler.defaultValue),
+		cfgVarHandler.defaultValue,
 	)
 }
 

@@ -99,6 +99,44 @@ func TestNewP2PQuotaBlacklistProcessor_InvalidThresholdSizeReceivedFloodShouldEr
 	assert.True(t, errors.Is(err, process.ErrInvalidValue))
 }
 
+func TestNewP2PQuotaBlacklistProcessor_NilProcessConfigsHandlerShouldErr(t *testing.T) {
+	t.Parallel()
+
+	pbp, err := blackList.NewP2PBlackListProcessor(
+		cache.NewCacherStub(),
+		&mock.PeerBlackListHandlerStub{},
+		1,
+		0,
+		dto.NumFloodingRoundsFastReacting,
+		time.Second,
+		"",
+		selfPid,
+		nil,
+	)
+
+	require.True(t, check.IfNil(pbp))
+	require.True(t, errors.Is(err, process.ErrNilProcessConfigsHandler))
+}
+
+func TestNewP2PQuotaBlacklistProcessor_EmptyVarNameForNumFloodingRoundsShouldErr(t *testing.T) {
+	t.Parallel()
+
+	pbp, err := blackList.NewP2PBlackListProcessor(
+		cache.NewCacherStub(),
+		&mock.PeerBlackListHandlerStub{},
+		1,
+		0,
+		"",
+		time.Second,
+		"",
+		selfPid,
+		&testscommon.ProcessConfigsHandlerStub{},
+	)
+
+	require.True(t, check.IfNil(pbp))
+	require.True(t, errors.Is(err, blackList.ErrEmptyConfigVarNameForNumFloodingRounds))
+}
+
 func TestNewP2PQuotaBlacklistProcessor_InvalidBanDurationShouldErr(t *testing.T) {
 	t.Parallel()
 

@@ -55,19 +55,15 @@ func NewP2PBlackListProcessor(
 	if check.IfNil(processConfigsHandler) {
 		return nil, fmt.Errorf("%w, NewP2PBlackListProcessor", process.ErrNilProcessConfigsHandler)
 	}
-
+	if len(floodingRoundsVar) == 0 {
+		return nil, fmt.Errorf("%w, NewP2PBlackListProcessor", ErrEmptyConfigVarNameForNumFloodingRounds)
+	}
 	if thresholdNumReceivedFlood == 0 {
 		return nil, fmt.Errorf("%w, thresholdNumReceivedFlood == 0", process.ErrInvalidValue)
 	}
 	if thresholdSizeReceivedFlood == 0 {
 		return nil, fmt.Errorf("%w, thresholdSizeReceivedFlood == 0", process.ErrInvalidValue)
 	}
-	/*
-		if numFloodingRounds < minFloodingRounds {
-			return nil, fmt.Errorf("%w, numFloodingRounds < %d", process.ErrInvalidValue, minFloodingRounds)
-		}
-
-	*/
 	if banDuration < minBanDuration {
 		return nil, fmt.Errorf("%w for ban duration in NewP2PBlackListProcessor", process.ErrInvalidValue)
 	}

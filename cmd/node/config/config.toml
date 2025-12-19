@@ -63,29 +63,32 @@
         { EnableEpoch = 2, MaxMetaNoncesBehind = 75, MaxMetaNoncesBehindForGlobalStuck = 120, MaxShardNoncesBehind = 75 },
     ]
 
-    [[ProcessConfigsByRound]]
-        EnableRound = 0
-        MaxRoundsWithoutNewBlockReceived = 10
-        MaxRoundsWithoutCommittedBlock = 10
-        RoundModulusTriggerWhenSyncIsStuck = 20
-        MaxSyncWithErrorsAllowed = 10
-        MaxRoundsToKeepUnprocessedMiniBlocks = 300
-        MaxRoundsToKeepUnprocessedTransactions = 300
-        NumFloodingRoundsFastReacting = 2
-        NumFloodingRoundsSlowReacting = 2
+    ProcessConfigsByRound = [
+        {
+        EnableRound = 0,
+        MaxRoundsWithoutNewBlockReceived = 10,
+        MaxRoundsWithoutCommittedBlock = 10,
+        RoundModulusTriggerWhenSyncIsStuck = 20,
+        MaxSyncWithErrorsAllowed = 10,
+        MaxRoundsToKeepUnprocessedMiniBlocks = 300,
+        MaxRoundsToKeepUnprocessedTransactions = 300,
+        NumFloodingRoundsFastReacting = 2,
+        NumFloodingRoundsSlowReacting = 2,
         NumFloodingRoundsOutOfSpecs = 2
-
-    [[ProcessConfigsByRound]]
-        EnableRound = 440
-        MaxRoundsWithoutNewBlockReceived = 100
-        MaxRoundsWithoutCommittedBlock = 100
-        RoundModulusTriggerWhenSyncIsStuck = 200
-        MaxSyncWithErrorsAllowed = 100
-        MaxRoundsToKeepUnprocessedMiniBlocks = 3000
-        MaxRoundsToKeepUnprocessedTransactions = 3000
-        NumFloodingRoundsFastReacting = 20
-        NumFloodingRoundsSlowReacting = 20
+        },
+        {
+        EnableRound = 440,
+        MaxRoundsWithoutNewBlockReceived = 100,
+        MaxRoundsWithoutCommittedBlock = 100,
+        RoundModulusTriggerWhenSyncIsStuck = 200,
+        MaxSyncWithErrorsAllowed = 100,
+        MaxRoundsToKeepUnprocessedMiniBlocks = 3000,
+        MaxRoundsToKeepUnprocessedTransactions = 3000,
+        NumFloodingRoundsFastReacting = 20,
+        NumFloodingRoundsSlowReacting = 20,
         NumFloodingRoundsOutOfSpecs = 20
+        }
+    ]
 
     EpochStartConfigsByEpoch = [
         { EnableEpoch = 0, GracePeriodRounds = 25, ExtraDelayForRequestBlockInfoInMilliseconds = 3000 },
