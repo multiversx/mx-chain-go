@@ -572,6 +572,8 @@ func TestBlocksQueue_RemoveAndPop(t *testing.T) {
 	t.Parallel()
 
 	hq := NewBlocksQueue()
+	defer hq.Close()
+
 	pair := HeaderBodyPair{
 		Header: &block.Header{Nonce: 0, Round: 1},
 		Body:   &block.Body{},
@@ -589,7 +591,8 @@ func TestBlocksQueue_RemoveAndPop(t *testing.T) {
 	}()
 
 	// wait blocking, should return ok with nil header and body
-	poppedPair, ok := hq.Pop()
+	// using TestingPop to ensure that RemoveAtNonceAndHigher acquires the mutex before pop operation
+	poppedPair, ok := hq.TestingPop(time.Millisecond * 20)
 	require.True(t, ok)
 	require.Nil(t, poppedPair.Header)
 	require.Nil(t, poppedPair.Body)
