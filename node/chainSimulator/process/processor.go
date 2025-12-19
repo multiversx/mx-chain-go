@@ -250,6 +250,10 @@ func (creator *blocksCreator) CreateNewBlock() (*dtos.BroadcastData, error) {
 	}
 
 	err = messenger.BroadcastTransactions(transactions, leader.PubKey())
+	if err != nil {
+		return nil, err
+	}
+
 	return &dtos.BroadcastData{
 		Header:    header,
 		LeaderKey: leader.PubKey(),
