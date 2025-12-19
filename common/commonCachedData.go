@@ -89,6 +89,12 @@ func GetCachedBody(cache storage.Cacher, marshaller marshal.Marshalizer, baseExe
 	var miniBlocks block.MiniBlockSlice
 	for _, miniBlockHeaderHandler := range miniBlockHeaderHandlers {
 		mbHash := miniBlockHeaderHandler.GetHash()
+		log.Debug("GetCachedBody",
+			"hash", mbHash,
+			"senderShard", miniBlockHeaderHandler.GetSenderShardID(),
+			"receiverShard", miniBlockHeaderHandler.GetReceiverShardID(),
+			"type", block.Type(miniBlockHeaderHandler.GetTypeInt32()).String(),
+		)
 		cachedMiniBlock, found := cache.Get(mbHash)
 		if !found {
 			log.Warn("mini block from execution result not cached after execution",
