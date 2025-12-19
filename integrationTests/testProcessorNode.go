@@ -171,10 +171,12 @@ var TestProcessConfigsHandler, _ = configs.NewProcessConfigsHandler([]config.Pro
 }},
 	[]config.ProcessConfigByRound{
 		{
-			EnableRound:                        0,
-			MaxRoundsWithoutNewBlockReceived:   10,
-			MaxRoundsWithoutCommittedBlock:     10,
-			RoundModulusTriggerWhenSyncIsStuck: 20,
+			EnableRound:                            0,
+			MaxRoundsWithoutNewBlockReceived:       10,
+			MaxRoundsWithoutCommittedBlock:         10,
+			RoundModulusTriggerWhenSyncIsStuck:     20,
+			MaxRoundsToKeepUnprocessedTransactions: 50,
+			MaxRoundsToKeepUnprocessedMiniBlocks:   50,
 		},
 	},
 )
