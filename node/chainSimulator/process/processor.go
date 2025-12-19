@@ -79,6 +79,12 @@ func (creator *blocksCreator) createBlock(header data.HeaderHandler) (data.Heade
 }
 
 func (creator *blocksCreator) updateHeader(header data.HeaderHandler) error {
+	if check.IfNil(header) ||
+		check.IfNil(header.GetLastExecutionResultHandler()) ||
+		len(header.GetExecutionResultsHandlers()) == 0 {
+		return nil
+	}
+
 	rootHash, err := creator.nodeHandler.GetStateComponents().AccountsAdapter().RootHash()
 	if err != nil {
 		return err
@@ -86,23 +92,12 @@ func (creator *blocksCreator) updateHeader(header data.HeaderHandler) error {
 
 	switch h := header.(type) {
 	case *dataBlock.HeaderV3:
-		if check.IfNil(h) || h.LastExecutionResult == nil {
-			return nil
-		}
-		if len(h.ExecutionResults) > 0 {
-			h.ExecutionResults[len(h.ExecutionResults)-1].BaseExecutionResult.RootHash = rootHash
-			h.LastExecutionResult.ExecutionResult.RootHash = rootHash
-		}
+		h.ExecutionResults[len(h.ExecutionResults)-1].BaseExecutionResult.RootHash = rootHash
+		h.LastExecutionResult.ExecutionResult.RootHash = rootHash
 
 	case *dataBlock.MetaBlockV3:
-		if check.IfNil(h) || h.LastExecutionResult == nil {
-			return nil
-		}
-
-		if len(h.ExecutionResults) > 0 {
-			h.LastExecutionResult.ExecutionResult.BaseExecutionResult.RootHash = rootHash
-			h.ExecutionResults[len(h.ExecutionResults)-1].ExecutionResult.BaseExecutionResult.RootHash = rootHash
-		}
+		h.LastExecutionResult.ExecutionResult.BaseExecutionResult.RootHash = rootHash
+		h.ExecutionResults[len(h.ExecutionResults)-1].ExecutionResult.BaseExecutionResult.RootHash = rootHash
 	}
 
 	return nil
