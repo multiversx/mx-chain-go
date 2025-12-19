@@ -12,6 +12,7 @@ import (
 	"github.com/multiversx/mx-chain-go/dataRetriever"
 	"github.com/multiversx/mx-chain-go/epochStart"
 	"github.com/multiversx/mx-chain-go/epochStart/bootstrap/disabled"
+	"github.com/multiversx/mx-chain-go/process"
 	"github.com/multiversx/mx-chain-go/process/block/bootstrapStorage"
 	"github.com/multiversx/mx-chain-go/storage/factory"
 )
@@ -137,45 +138,69 @@ func (msh *metaStorageHandler) SaveDataToStorage(components *ComponentsNeededFor
 		lastSelfNotarizedHeaders = []bootstrapStorage.BootstrapHeaderInfo{lastHeader}
 	} else {
 		for _, epochStartData := range epochStartMeta.GetEpochStartHandler().GetLastFinalizedHeaderHandlers() {
-			headerHash := epochStartData.GetLastFinishedMetaBlock()
-			header, ok := components.Headers[string(headerHash)]
+			lastFinishedMetaBlockHash := epochStartData.GetLastFinishedMetaBlock()
+			lastFinishedMetaBlock, ok := components.Headers[string(lastFinishedMetaBlockHash)]
 			if !ok {
 				log.Error("should be able to find header",
-					"hash", headerHash,
+					"hash", lastFinishedMetaBlockHash,
 					"shardID", epochStartData.GetShardID(),
 				)
 				return epochStart.ErrMissingHeader
 			}
 
-			// lastExecResHeader, err := common.GetLastBaseExecutionResultHandler(header)
-			// if err != nil {
-			// 	return err
-			// }
+			shardHeaderHash := epochStartData.GetHeaderHash()
+			shardHeader, ok := components.Headers[string(shardHeaderHash)]
+			if !ok {
+				log.Error("should be able to find header",
+					"hash", lastFinishedMetaBlockHash,
+					"shardID", epochStartData.GetShardID(),
+				)
+				return epochStart.ErrMissingHeader
+			}
 
-			// lastExecHeader, ok := components.Headers[string(lastExecResHeader.GetHeaderHash())]
-			// if !ok {
-			// 	log.Error("should be able to find last exec meta header",
-			// 		"hash", lastExecResHeader.GetHeaderHash(),
-			// 	)
-			// 	return epochStart.ErrMissingHeader
-			// }
+			shardHeaderHandler, ok := shardHeader.(data.ShardHeaderHandler)
+			if !ok {
+				log.Error("epoch start data shard header",
+					"error", process.ErrWrongTypeAssertion,
+				)
+				return epochStart.ErrWrongTypeAssertion
+			}
 
-			// bootstrapHdrInfo := bootstrapStorage.BootstrapHeaderInfo{
-			// 	ShardId: epochStartData.GetShardID(),
-			// 	Epoch:   lastExecHeader.GetEpoch(),
-			// 	Nonce:   lastExecHeader.GetNonce(),
-			// 	Hash:    lastExecResHeader.GetHeaderHash(),
-			// }
+			if len(shardHeaderHandler.GetMetaBlockHashes()) > 0 {
+				metaHash := shardHeaderHandler.GetMetaBlockHashes()[0]
+				metaHeader0, ok := components.Headers[string(metaHash)]
+				if !ok {
+					log.Error("should be able to find header",
+						"hash", metaHash,
+						"shardID", epochStartData.GetShardID(),
+					)
+					return epochStart.ErrMissingHeader
+				}
+
+				prevHash := metaHeader0.GetPrevHash()
+
+				metaHeader1, ok := components.Headers[string(prevHash)]
+				if !ok {
+					log.Error("should be able to find header",
+						"hash", prevHash,
+						"shardID", epochStartData.GetShardID(),
+					)
+					return epochStart.ErrMissingHeader
+				}
+
+				lastFinishedMetaBlockHash = prevHash
+				lastFinishedMetaBlock = metaHeader1
+			}
 
 			bootstrapHdrInfo := bootstrapStorage.BootstrapHeaderInfo{
 				ShardId: epochStartData.GetShardID(),
-				Epoch:   header.GetEpoch(),
-				Nonce:   header.GetNonce(),
-				Hash:    headerHash,
+				Epoch:   lastFinishedMetaBlock.GetEpoch(),
+				Nonce:   lastFinishedMetaBlock.GetNonce(),
+				Hash:    lastFinishedMetaBlockHash,
 			}
 
 			log.Debug("SaveDataToStorage",
-				"GetLastFinishedMetaBlock: hash", headerHash,
+				"GetLastFinishedMetaBlock: hash", lastFinishedMetaBlockHash,
 				"shard", epochStartData.GetShardID(),
 			)
 

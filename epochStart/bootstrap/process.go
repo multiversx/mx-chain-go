@@ -705,22 +705,11 @@ func (e *epochStartBootstrap) syncHeadersV3From(meta data.MetaHeaderHandler) (ma
 	}
 
 	syncedHeaders := make(map[string]data.HeaderHandler)
-	for _, epochStartData := range meta.GetEpochStartHandler().GetLastFinalizedHeaderHandlers() {
-		err := e.requestIntermediateBlocksIfNeeded(syncedHeaders, epochStartData.GetHeaderHash(), epochStartData.GetShardID())
-		if err != nil {
-			return nil, err
-		}
-	}
 
 	hashesToRequest := make([][]byte, 0)
 	shardIds := make([]uint32, 0)
 	for _, epochStartData := range meta.GetEpochStartHandler().GetLastFinalizedHeaderHandlers() {
 		err := e.requestIntermediateBlocksIfNeeded(syncedHeaders, epochStartData.GetHeaderHash(), epochStartData.GetShardID())
-		if err != nil {
-			return nil, err
-		}
-
-		err = e.requestIntermediateBlocksIfNeeded(syncedHeaders, epochStartData.GetLastFinishedMetaBlock(), core.MetachainShardId)
 		if err != nil {
 			return nil, err
 		}
@@ -738,9 +727,26 @@ func (e *epochStartBootstrap) syncHeadersV3From(meta data.MetaHeaderHandler) (ma
 			return nil, epochStart.ErrWrongTypeAssertion
 		}
 
-		for _, metaHash := range shardHeader.GetMetaBlockHashes() {
-			hashesToRequest = append(hashesToRequest, metaHash)
-			shardIds = append(shardIds, core.MetachainShardId)
+		// if thare notarized meta headers, sync their previous meta header
+		if len(shardHeader.GetMetaBlockHashes()) > 0 {
+			metaHash := shardHeader.GetMetaBlockHashes()[0]
+			header, err := e.syncOneHeader(metaHash, core.MetachainShardId)
+			if err != nil {
+				return nil, err
+			}
+			syncedHeaders[string(metaHash)] = header
+
+			prevHash := header.GetPrevHash()
+			header, err = e.syncOneHeader(prevHash, core.MetachainShardId)
+			if err != nil {
+				return nil, err
+			}
+			syncedHeaders[string(prevHash)] = header
+		}
+
+		err = e.requestIntermediateBlocksIfNeeded(syncedHeaders, epochStartData.GetLastFinishedMetaBlock(), core.MetachainShardId)
+		if err != nil {
+			return nil, err
 		}
 
 		lastFinished, ok := syncedHeaders[string(epochStartData.GetLastFinishedMetaBlock())]
@@ -763,26 +769,26 @@ func (e *epochStartBootstrap) syncHeadersV3From(meta data.MetaHeaderHandler) (ma
 		}
 	}
 
-	for _, shardData := range meta.GetShardInfoProposalHandlers() {
-		header, err := e.syncOneHeader(shardData.GetHeaderHash(), shardData.GetShardID())
-		if err != nil {
-			return nil, err
-		}
-		syncedHeaders[string(shardData.GetHeaderHash())] = header
+	// for _, shardData := range meta.GetShardInfoProposalHandlers() {
+	// 	header, err := e.syncOneHeader(shardData.GetHeaderHash(), shardData.GetShardID())
+	// 	if err != nil {
+	// 		return nil, err
+	// 	}
+	// 	syncedHeaders[string(shardData.GetHeaderHash())] = header
 
-		shardHeader, ok := header.(data.ShardHeaderHandler)
-		if !ok {
-			log.Error("epoch start data shard header",
-				"error", process.ErrWrongTypeAssertion,
-			)
-			return nil, epochStart.ErrWrongTypeAssertion
-		}
+	// 	shardHeader, ok := header.(data.ShardHeaderHandler)
+	// 	if !ok {
+	// 		log.Error("epoch start data shard header",
+	// 			"error", process.ErrWrongTypeAssertion,
+	// 		)
+	// 		return nil, epochStart.ErrWrongTypeAssertion
+	// 	}
 
-		for _, metaHash := range shardHeader.GetMetaBlockHashes() {
-			hashesToRequest = append(hashesToRequest, metaHash)
-			shardIds = append(shardIds, core.MetachainShardId)
-		}
-	}
+	// 	for _, metaHash := range shardHeader.GetMetaBlockHashes() {
+	// 		hashesToRequest = append(hashesToRequest, metaHash)
+	// 		shardIds = append(shardIds, core.MetachainShardId)
+	// 	}
+	// }
 
 	syncedMetaHeaders, err := e.syncEpochStartMetaHeaders(meta, hashesToRequest, shardIds)
 	if err != nil {
