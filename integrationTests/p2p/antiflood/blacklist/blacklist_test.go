@@ -6,6 +6,7 @@ import (
 	"testing"
 	"time"
 
+	"github.com/multiversx/mx-chain-go/common/configs/dto"
 	"github.com/multiversx/mx-chain-go/integrationTests"
 	"github.com/multiversx/mx-chain-go/integrationTests/mock"
 	"github.com/multiversx/mx-chain-go/integrationTests/p2p/antiflood"
@@ -157,7 +158,7 @@ func createBlacklistHandlersAndProcessors(
 	peers []p2p.Messenger,
 	thresholdNumReceived uint32,
 	thresholdSizeReceived uint64,
-	maxFloodingRounds uint32,
+	maxFloodingRounds uint64,
 ) ([]floodPreventers.QuotaStatusHandler, []process.PeerBlackListCacher) {
 	var err error
 
@@ -172,11 +173,19 @@ func createBlacklistHandlersAndProcessors(
 			blacklistCachers[i],
 			thresholdNumReceived,
 			thresholdSizeReceived,
-			maxFloodingRounds,
+			dto.NumFloodingRoundsFastReacting,
 			time.Minute*5,
 			"",
 			peers[i].ID(),
-			&testscommon.ProcessConfigsHandlerStub{},
+			&testscommon.ProcessConfigsHandlerStub{
+				GetValueCalled: func(variable dto.ConfigVariable) uint64 {
+					if variable == dto.NumFloodingRoundsFastReacting {
+						return maxFloodingRounds
+					}
+
+					return 0
+				},
+			},
 		)
 		log.LogIfError(err)
 	}

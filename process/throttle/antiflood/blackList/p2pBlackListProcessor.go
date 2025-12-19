@@ -17,7 +17,6 @@ import (
 var log = logger.GetOrCreate("process/throttle/antiflood/blacklist")
 
 const minBanDuration = time.Second
-const minFloodingRounds = 2
 const sizeBlacklistInfo = 4
 
 type p2pBlackListProcessor struct {
