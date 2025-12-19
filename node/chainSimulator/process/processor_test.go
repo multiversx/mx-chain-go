@@ -142,7 +142,7 @@ func TestBlocksCreator_CreateNewBlock(t *testing.T) {
 		creator, err := chainSimulatorProcess.NewBlocksCreator(nodeHandler, heartbeat.NewHeartbeatMonitor())
 		require.NoError(t, err)
 
-		err = creator.CreateNewBlock()
+		_, err = creator.CreateNewBlock()
 		require.Equal(t, expectedErr, err)
 	})
 	t.Run("SetShardID failure should error", func(t *testing.T) {
@@ -250,7 +250,7 @@ func TestBlocksCreator_CreateNewBlock(t *testing.T) {
 		creator, err := chainSimulatorProcess.NewBlocksCreator(nodeHandler, heartbeat.NewHeartbeatMonitor())
 		require.NoError(t, err)
 
-		err = creator.CreateNewBlock()
+		_, err = creator.CreateNewBlock()
 		require.Equal(t, expectedErr, err)
 	})
 	t.Run("key not managed by the current node should return nil", func(t *testing.T) {
@@ -269,7 +269,7 @@ func TestBlocksCreator_CreateNewBlock(t *testing.T) {
 		creator, err := chainSimulatorProcess.NewBlocksCreator(nodeHandler, heartbeat.NewHeartbeatMonitor())
 		require.NoError(t, err)
 
-		err = creator.CreateNewBlock()
+		_, err = creator.CreateNewBlock()
 		require.NoError(t, err)
 	})
 	t.Run("CreateSignatureForPublicKey failure should error", func(t *testing.T) {
@@ -290,7 +290,7 @@ func TestBlocksCreator_CreateNewBlock(t *testing.T) {
 		creator, err := chainSimulatorProcess.NewBlocksCreator(nodeHandler, heartbeat.NewHeartbeatMonitor())
 		require.NoError(t, err)
 
-		err = creator.CreateNewBlock()
+		_, err = creator.CreateNewBlock()
 		require.Equal(t, expectedErr, err)
 	})
 	t.Run("SetRandSeed failure should error", func(t *testing.T) {
@@ -352,7 +352,7 @@ func TestBlocksCreator_CreateNewBlock(t *testing.T) {
 		creator, err := chainSimulatorProcess.NewBlocksCreator(nodeHandler, heartbeat.NewHeartbeatMonitor())
 		require.NoError(t, err)
 
-		err = creator.CreateNewBlock()
+		_, err = creator.CreateNewBlock()
 		require.Equal(t, expectedErr, err)
 	})
 	t.Run("setHeaderSignatures.Reset failure should error", func(t *testing.T) {
@@ -373,7 +373,7 @@ func TestBlocksCreator_CreateNewBlock(t *testing.T) {
 		creator, err := chainSimulatorProcess.NewBlocksCreator(nodeHandler, heartbeat.NewHeartbeatMonitor())
 		require.NoError(t, err)
 
-		err = creator.CreateNewBlock()
+		_, err = creator.CreateNewBlock()
 		require.Equal(t, expectedErr, err)
 	})
 	t.Run("setHeaderSignatures.CreateSignatureShareForPublicKey failure should error", func(t *testing.T) {
@@ -394,7 +394,7 @@ func TestBlocksCreator_CreateNewBlock(t *testing.T) {
 		creator, err := chainSimulatorProcess.NewBlocksCreator(nodeHandler, heartbeat.NewHeartbeatMonitor())
 		require.NoError(t, err)
 
-		err = creator.CreateNewBlock()
+		_, err = creator.CreateNewBlock()
 		require.Equal(t, expectedErr, err)
 	})
 	t.Run("setHeaderSignatures.AggregateSigs failure should error", func(t *testing.T) {
@@ -415,7 +415,7 @@ func TestBlocksCreator_CreateNewBlock(t *testing.T) {
 		creator, err := chainSimulatorProcess.NewBlocksCreator(nodeHandler, heartbeat.NewHeartbeatMonitor())
 		require.NoError(t, err)
 
-		err = creator.CreateNewBlock()
+		_, err = creator.CreateNewBlock()
 		require.Equal(t, expectedErr, err)
 	})
 	t.Run("setHeaderSignatures.SetSignature failure should error", func(t *testing.T) {
@@ -540,30 +540,13 @@ func TestBlocksCreator_CreateNewBlock(t *testing.T) {
 		}
 		testCreateNewBlock(t, blockProcess, expectedErr)
 	})
-	t.Run("BroadcastHeader failure should error", func(t *testing.T) {
-		t.Parallel()
-
-		nodeHandler := getNodeHandler()
-		nodeHandler.GetBroadcastMessengerCalled = func() consensus.BroadcastMessenger {
-			return &testsConsensus.BroadcastMessengerMock{
-				BroadcastHeaderCalled: func(handler data.HeaderHandler, bytes []byte) error {
-					return expectedErr
-				},
-			}
-		}
-		creator, err := chainSimulatorProcess.NewBlocksCreator(nodeHandler, heartbeat.NewHeartbeatMonitor())
-		require.NoError(t, err)
-
-		err = creator.CreateNewBlock()
-		require.Equal(t, expectedErr, err)
-	})
 	t.Run("should work", func(t *testing.T) {
 		t.Parallel()
 
 		creator, err := chainSimulatorProcess.NewBlocksCreator(getNodeHandler(), heartbeat.NewHeartbeatMonitor())
 		require.NoError(t, err)
 
-		err = creator.CreateNewBlock()
+		_, err = creator.CreateNewBlock()
 		require.NoError(t, err)
 	})
 }
@@ -607,7 +590,7 @@ func testCreateNewBlock(t *testing.T, blockProcess process.BlockProcessor, expec
 	creator, err := chainSimulatorProcess.NewBlocksCreator(nodeHandler, heartbeat.NewHeartbeatMonitor())
 	require.NoError(t, err)
 
-	err = creator.CreateNewBlock()
+	_, err = creator.CreateNewBlock()
 	require.Equal(t, expectedErr, err)
 }
 
