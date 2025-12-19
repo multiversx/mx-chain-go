@@ -3775,11 +3775,7 @@ func (bp *baseProcessor) getHeaderFromHash(
 	shardID uint32,
 ) (data.HeaderHandler, error) {
 	if isHeaderV3 {
-		header, err := process.GetHeader(shardHeaderHash, bp.dataPool.Headers(), bp.store, bp.marshalizer, shardID)
-		if err != nil {
-			log.Error("getHeaderFromHash - failed to get header from headers pool", "hash", shardHeaderHash, "error", err)
-		}
-		return header, err
+		return process.GetHeader(shardHeaderHash, bp.dataPool.Headers(), bp.store, bp.marshalizer, shardID)
 	}
 
 	headerInfo, ok := bp.hdrsForCurrBlock.GetHeaderInfo(string(shardHeaderHash))
