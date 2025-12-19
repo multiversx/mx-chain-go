@@ -140,7 +140,7 @@ func checkConsensusConfigsByEpoch(configsByEpoch []config.ConsensusConfigByEpoch
 	return nil
 }
 
-// GetGracePeriodRoundsByEpoch returns the max meta nonces behind by epoch
+// GetGracePeriodRoundsByEpoch returns the grace period rounds by epoch
 func (cc *commonConfigs) GetGracePeriodRoundsByEpoch(epoch uint32) uint32 {
 	for i := len(cc.orderedEpochStartConfigByEpoch) - 1; i >= 0; i-- {
 		if cc.orderedEpochStartConfigByEpoch[i].EnableEpoch <= epoch {
@@ -151,7 +151,7 @@ func (cc *commonConfigs) GetGracePeriodRoundsByEpoch(epoch uint32) uint32 {
 	return defaultGracePeriodRounds // this should not happen
 }
 
-// GetExtraDelayForRequestBlockInfoInMs returns the max meta nonces behind by epoch
+// GetExtraDelayForRequestBlockInfoInMs returns the extra delay for request block info by epoch
 func (cc *commonConfigs) GetExtraDelayForRequestBlockInfoInMs(epoch uint32) uint32 {
 	for i := len(cc.orderedEpochStartConfigByEpoch) - 1; i >= 0; i-- {
 		if cc.orderedEpochStartConfigByEpoch[i].EnableEpoch <= epoch {

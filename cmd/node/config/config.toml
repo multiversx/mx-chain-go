@@ -72,7 +72,7 @@
         MaxSyncWithErrorsAllowed = 10,
         MaxRoundsToKeepUnprocessedMiniBlocks = 300,
         MaxRoundsToKeepUnprocessedTransactions = 300,
-        NumFloodingRoundsFastReacting = 2,
+        NumFloodingRoundsFastReacting = 10,
         NumFloodingRoundsSlowReacting = 2,
         NumFloodingRoundsOutOfSpecs = 2
         },
@@ -84,7 +84,7 @@
         MaxSyncWithErrorsAllowed = 100,
         MaxRoundsToKeepUnprocessedMiniBlocks = 3000,
         MaxRoundsToKeepUnprocessedTransactions = 3000,
-        NumFloodingRoundsFastReacting = 20,
+        NumFloodingRoundsFastReacting = 100,
         NumFloodingRoundsSlowReacting = 20,
         NumFloodingRoundsOutOfSpecs = 20
         }

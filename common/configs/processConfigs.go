@@ -48,26 +48,7 @@ func NewProcessConfigsHandler(
 		orderedConfigByEpoch: make([]config.ProcessConfigByEpoch, len(configsByEpoch)),
 		orderedConfigByRound: make([]config.ProcessConfigByRound, len(configsByRound)),
 		roundNotifier:        roundNotifier,
-		variablesMap: map[dto.ConfigVariable]configVariableHandler{
-			dto.NumFloodingRoundsFastReacting: {
-				valueSelector: func(cfg config.ProcessConfigByRound) uint64 {
-					return uint64(cfg.NumFloodingRoundsFastReacting)
-				},
-				defaultValue: defaultNumFloodingRoundsFastReacting,
-			},
-			dto.NumFloodingRoundsSlowReacting: {
-				valueSelector: func(cfg config.ProcessConfigByRound) uint64 {
-					return uint64(cfg.NumFloodingRoundsSlowReacting)
-				},
-				defaultValue: defaultNumFloodingRoundsSlowReacting,
-			},
-			dto.NumFloodingRoundsOutOfSpecs: {
-				valueSelector: func(cfg config.ProcessConfigByRound) uint64 {
-					return uint64(cfg.NumFloodingRoundsOutOfSpecs)
-				},
-				defaultValue: defaultNumFloodingRoundsOutOfSpecs,
-			},
-		},
+		variablesMap:         initCfgVarMap(),
 	}
 
 	// sort the config values in ascending order
@@ -160,6 +141,8 @@ func checkRoundConfigValues(cfg config.ProcessConfigByRound) error {
 
 	return nil
 }
+
+// TODO: We should probably get rid of all these functions and use only GetValue func, similar to how enableEpochsHandler works
 
 // GetMaxMetaNoncesBehindByEpoch returns the max meta nonces behind by epoch
 func (pce *processConfigsByEpoch) GetMaxMetaNoncesBehindByEpoch(epoch uint32) uint32 {
