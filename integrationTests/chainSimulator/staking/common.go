@@ -22,7 +22,7 @@ const (
 	// GasLimitForUnBond the const for the gas limit value for the unBond operation
 	GasLimitForUnBond = 12_000_000
 	// MaxNumOfBlockToGenerateWhenExecutingTx the const for the maximum number of block to generate when execute a transaction
-	MaxNumOfBlockToGenerateWhenExecutingTx = 8
+	MaxNumOfBlockToGenerateWhenExecutingTx = 9
 
 	// QueuedStatus the const for the queued status of a validators
 	QueuedStatus = "queued"
