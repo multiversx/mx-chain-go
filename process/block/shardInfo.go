@@ -203,12 +203,6 @@ func (sic *ShardInfoCreateData) createShardDataFromV3Header(
 			return nil, nil, err
 		}
 		shardDataHandlers[i] = shardData
-
-		log.Debug("createShardDataFromV3Header",
-			"shardHeader", shardHeader.GetNonce(),
-			"hash", shardData.GetHeaderHash(),
-			"lastIncludedMetaNonce", shardData.GetLastIncludedMetaNonce(),
-		)
 	}
 
 	return shardDataProposal, shardDataHandlers, nil
