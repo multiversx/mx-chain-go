@@ -66,21 +66,6 @@ func (bn *blockNotarizer) AddNotarizedHeader(
 		return bn.notarizedHeaders[shardID][i].Header.GetNonce() < bn.notarizedHeaders[shardID][j].Header.GetNonce()
 	})
 	bn.mutNotarizedHeaders.Unlock()
-
-	bn.mutNotarizedHeaders.Lock()
-	for shard, hdrs := range bn.notarizedHeaders {
-		log.Debug("AddNotarizedHeader",
-			"shard", shard,
-		)
-		for _, hdr := range hdrs {
-			log.Debug("AddNotarizedHeader",
-				"hash", hdr.Hash,
-				"nonce", hdr.Header.GetNonce(),
-				"round", hdr.Header.GetRound(),
-			)
-		}
-	}
-	bn.mutNotarizedHeaders.Unlock()
 }
 
 // CleanupNotarizedHeadersBehindNonce cleanups notarized headers for a given shard behind a given nonce
@@ -169,20 +154,6 @@ func (bn *blockNotarizer) GetFirstNotarizedHeader(shardID uint32) (data.HeaderHa
 func (bn *blockNotarizer) GetLastNotarizedHeader(shardID uint32) (data.HeaderHandler, []byte, error) {
 	bn.mutNotarizedHeaders.RLock()
 	defer bn.mutNotarizedHeaders.RUnlock()
-
-	// for shard, hdrs := range bn.notarizedHeaders {
-	// 	log.Debug("GetLastNotarizedHeader",
-	// 		"shardID", shardID,
-	// 		"shard", shard,
-	// 	)
-	// 	for _, hdr := range hdrs {
-	// 		log.Debug("GetLastNotarizedHeader",
-	// 			"hash", hdr.Hash,
-	// 			"nonce", hdr.Header.GetNonce(),
-	// 			"round", hdr.Header.GetRound(),
-	// 		)
-	// 	}
-	// }
 
 	hdrInfo := bn.lastNotarizedHeaderInfo(shardID)
 	if hdrInfo == nil {

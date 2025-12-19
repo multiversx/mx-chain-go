@@ -203,12 +203,6 @@ func (sic *ShardInfoCreateData) createShardDataFromV3Header(
 			return nil, nil, err
 		}
 		shardDataHandlers[i] = shardData
-
-		log.Debug("createShardDataFromV3Header",
-			"shardHeader", shardHeader.GetNonce(),
-			"hash", shardData.GetHeaderHash(),
-			"lastIncludedMetaNonce", shardData.GetLastIncludedMetaNonce(),
-		)
 	}
 
 	return shardDataProposal, shardDataHandlers, nil
@@ -322,21 +316,10 @@ func (sic *ShardInfoCreateData) updateShardDataWithCrossShardInfo(shardData *blo
 		shardData.NumPendingMiniBlocks = uint32(len(sic.pendingMiniBlocksHandler.GetPendingMiniBlocks(header.GetShardID())))
 	}
 
-	metaHeader, metaHash, err := sic.blockTracker.GetLastSelfNotarizedHeader(header.GetShardID())
+	metaHeader, _, err := sic.blockTracker.GetLastSelfNotarizedHeader(header.GetShardID())
 	if err != nil {
 		return err
 	}
-
-	log.Debug("updateShardDataWithCrossShardInfo",
-		"hash", shardData.GetHeaderHash(),
-		"shard", header.GetShardID(),
-		"meta hash", metaHash,
-		"shard", header.GetShardID(),
-		"meta shard", metaHeader.GetShardID(),
-		"nonce", metaHeader.GetNonce(),
-		"round", metaHeader.GetRound(),
-	)
-
 	shardData.LastIncludedMetaNonce = metaHeader.GetNonce()
 
 	return nil

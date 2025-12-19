@@ -1664,12 +1664,6 @@ func (bp *baseProcessor) getLastSelfNotarizedHeadersForShard(shardID uint32) *bo
 		Hash:    lastSelfNotarizedHeaderHash,
 	}
 
-	log.Debug("getLastSelfNotarizedHeadersForShard",
-		"shard", shardID,
-		"lastnot hash", lastSelfNotarizedHeaderHash,
-		"lastnot nonce", lastSelfNotarizedHeader.GetNonce(),
-	)
-
 	return headerInfo
 }
 

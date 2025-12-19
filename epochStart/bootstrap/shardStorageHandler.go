@@ -83,11 +83,6 @@ func (ssh *shardStorageHandler) CloseStorageService() {
 
 // SaveDataToStorage will save the fetched data to storage, so it will be used by the storage bootstrap component
 func (ssh *shardStorageHandler) SaveDataToStorage(components *ComponentsNeededForBootstrap, notarizedShardHeader data.HeaderHandler, withScheduled bool, syncedMiniBlocks map[string]*block.MiniBlock) error {
-	log.Debug("SaveDataToStorage: syncedHeaders")
-	for hash := range components.Headers {
-		log.Debug("SaveDataToStorage", "hash", hash)
-	}
-
 	bootStorer, err := ssh.storageService.GetStorer(dataRetriever.BootstrapUnit)
 	if err != nil {
 		return err
