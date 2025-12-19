@@ -1144,14 +1144,14 @@ func (sp *shardProcessor) CommitBlock(
 
 	sp.displayPoolsInfo()
 
-	errNotCritical = sp.removeTxsFromPools(headerHash, header, body)
-	if errNotCritical != nil {
-		log.Debug("removeTxsFromPools", "error", errNotCritical.Error())
-	}
-
 	err = sp.saveExecutedData(header)
 	if err != nil {
 		return err
+	}
+
+	errNotCritical = sp.removeTxsFromPools(headerHash, header, body)
+	if errNotCritical != nil {
+		log.Debug("removeTxsFromPools", "error", errNotCritical.Error())
 	}
 
 	errNotCritical = sp.cleanPostProcessCache(header)
