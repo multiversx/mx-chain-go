@@ -242,22 +242,12 @@ func (creator *blocksCreator) CreateNewBlock() (*dtos.BroadcastData, error) {
 	if err != nil {
 		return nil, err
 	}
-
-	messenger := creator.nodeHandler.GetBroadcastMessenger()
-	err = messenger.BroadcastMiniBlocks(miniBlocks, leader.PubKey())
-	if err != nil {
-		return nil, err
-	}
-
-	err = messenger.BroadcastTransactions(transactions, leader.PubKey())
-	if err != nil {
-		return nil, err
-	}
-
 	return &dtos.BroadcastData{
-		Header:    header,
-		LeaderKey: leader.PubKey(),
-		Proof:     headerProof,
+		Header:            header,
+		LeaderKey:         leader.PubKey(),
+		Proof:             headerProof,
+		MiniBlocksBytes:   miniBlocks,
+		TransactionsBytes: transactions,
 	}, nil
 }
 

@@ -411,7 +411,9 @@ func (s *simulator) allNodesCreateBlocks() error {
 	}
 
 	for shardID, pair := range headers {
-		err := s.nodes[shardID].GetBroadcastMessenger().BroadcastHeader(pair.Header, pair.LeaderKey)
+		messenger := s.nodes[shardID].GetBroadcastMessenger()
+
+		err := messenger.BroadcastHeader(pair.Header, pair.LeaderKey)
 		if err != nil {
 			return err
 		}
@@ -421,6 +423,16 @@ func (s *simulator) allNodesCreateBlocks() error {
 			if err != nil {
 				return err
 			}
+		}
+
+		err = messenger.BroadcastMiniBlocks(pair.MiniBlocksBytes, pair.LeaderKey)
+		if err != nil {
+			return err
+		}
+
+		err = messenger.BroadcastTransactions(pair.TransactionsBytes, pair.LeaderKey)
+		if err != nil {
+			return err
 		}
 	}
 
