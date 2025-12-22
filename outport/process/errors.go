@@ -65,3 +65,6 @@ var ErrIndexOutOfBounds = errors.New("index out of bounds")
 
 // ErrNilRoundHandler signals that an operation has been attempted to or with a nil RoundHandler implementation
 var ErrNilRoundHandler = errors.New("nil RoundHandler")
+
+// ErrNilRewardsGetter signals that a nil rewards getter has been provided
+var ErrNilRewardsGetter = errors.New("nil RewardsGetter")

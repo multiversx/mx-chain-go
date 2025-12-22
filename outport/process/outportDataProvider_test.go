@@ -967,3 +967,77 @@ func TestPutInMapTxsFromBody(t *testing.T) {
 	scrFromPool := scrPool[string(tx3H)].(*smartContractResult.SmartContractResult)
 	require.Equal(t, tx3, scrFromPool)
 }
+
+func TestOutportDataProvider_GetRewards(t *testing.T) {
+	arg := createArgOutportDataProvider()
+	arg.ShardCoordinator = &testscommon.ShardsCoordinatorMock{
+		CurrentShard: common.MetachainShardId,
+	}
+	arg.DataPool = dataRetriever.NewPoolsHolderMock()
+	arg.AlteredAccountsProvider = &testscommon.AlteredAccountsProviderStub{
+		ExtractAlteredAccountsFromPoolCalled: func(txPool *outportcore.TransactionPool, options shared.AlteredAccountsOptions) (map[string]*alteredAccount.AlteredAccount, error) {
+			return map[string]*alteredAccount.AlteredAccount{
+				"s": {},
+			}, nil
+		}}
+
+	rewardsMbHash := []byte("rewardsMbHash")
+	rewardMb := &block.MiniBlock{
+		Type: block.RewardsBlock,
+	}
+	called := false
+
+	arg.RewardsGetter = &testscommon.RewardsCreatorStub{
+		GetRewardsTxsCalled: func(body *block.Body) map[string]data.TransactionHandler {
+			called = true
+			require.Equal(t, &block.Body{MiniBlocks: []*block.MiniBlock{rewardMb}}, body)
+			return map[string]data.TransactionHandler{}
+		},
+	}
+
+	headerHash := []byte("hash")
+	intraMbs := make([]*block.MiniBlock, 0)
+	intraMbs = append(intraMbs, &block.MiniBlock{})
+	arg.DataPool.ExecutedMiniBlocks().Put(headerHash, intraMbs, 0)
+
+	rewardMbBytes, _ := arg.Marshaller.Marshal(rewardMb)
+
+	arg.DataPool.ExecutedMiniBlocks().Put(rewardsMbHash, rewardMbBytes, 0)
+
+	logsKey := common.PrepareLogEventsKey(headerHash)
+	logsSlice := make([]data.LogDataHandler, 0)
+	arg.DataPool.PostProcessTransactions().Put(logsKey, logsSlice, 0)
+
+	cachedTxs := make(map[block.Type]map[string]data.TransactionHandler)
+	cachedTxs[block.TxBlock] = make(map[string]data.TransactionHandler)
+	arg.DataPool.PostProcessTransactions().Put(headerHash, cachedTxs, 1)
+
+	key := common.PrepareOrderedTxHashesKey(headerHash)
+	arg.DataPool.PostProcessTransactions().Put(key, [][]byte{[]byte("a")}, 1)
+
+	outportDataP, _ := NewOutportDataProvider(arg)
+
+	results, err := outportDataP.prepareExecutionResultsData(ArgPrepareOutportSaveBlockData{
+		Header: &block.MetaBlockV3{
+			ExecutionResults: []*block.MetaExecutionResult{
+				{
+					ExecutionResult: &block.BaseMetaExecutionResult{
+						BaseExecutionResult: &block.BaseExecutionResult{
+							HeaderHash:  headerHash,
+							HeaderNonce: 10,
+						},
+					},
+					MiniBlockHeaders: []block.MiniBlockHeader{
+						{
+							Hash: rewardsMbHash,
+							Type: block.RewardsBlock,
+						},
+					},
+				},
+			},
+		},
+	})
+	require.True(t, called)
+	require.Nil(t, err)
+	require.Len(t, results, 1)
+}

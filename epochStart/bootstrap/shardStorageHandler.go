@@ -183,11 +183,8 @@ func (ssh *shardStorageHandler) saveEpochStartMetaHdrs(components *ComponentsNee
 
 func (ssh *shardStorageHandler) saveEpochStartShardHdrs(components *ComponentsNeededForBootstrap) error {
 	for _, hdr := range components.Headers {
-		// not only start of epoch header have to be saved at this point, we should save
+		// not only start of epoch header should be saved at this point, we should save
 		// also intermediate headers up to last executed header
-		// if !hdr.IsStartOfEpochBlock() {
-		// 	continue
-		// }
 
 		isForCurrentShard := hdr.GetShardID() == ssh.shardCoordinator.SelfId()
 		if !isForCurrentShard {
