@@ -46,6 +46,7 @@ type ArgOutportDataProvider struct {
 	EnableEpochsHandler      common.EnableEpochsHandler
 	StateAccessesCollector   state.StateAccessesCollector
 	RoundHandler             RoundHandler
+	RewardsGetter            EpochRewardsGetter
 }
 
 // ArgPrepareOutportSaveBlockData holds the arguments needed for prepare outport save block data
@@ -60,7 +61,6 @@ type ArgPrepareOutportSaveBlockData struct {
 	NotarizedHeadersHashes []string
 	HighestFinalBlockNonce uint64
 	HighestFinalBlockHash  []byte
-	RewardsGetter          EpochRewardsGetter
 }
 
 type outportDataProvider struct {
@@ -79,6 +79,7 @@ type outportDataProvider struct {
 	enableEpochsHandler      common.EnableEpochsHandler
 	StateAccessesCollector   state.StateAccessesCollector
 	roundHandler             RoundHandler
+	rewardsGetter            EpochRewardsGetter
 }
 
 // NewOutportDataProvider will create a new instance of outportDataProvider
@@ -99,6 +100,7 @@ func NewOutportDataProvider(arg ArgOutportDataProvider) (*outportDataProvider, e
 		enableEpochsHandler:      arg.EnableEpochsHandler,
 		StateAccessesCollector:   arg.StateAccessesCollector,
 		roundHandler:             arg.RoundHandler,
+		rewardsGetter:            arg.RewardsGetter,
 	}, nil
 }
 
@@ -227,8 +229,8 @@ func (odp *outportDataProvider) prepareExecutionResultsData(args ArgPrepareOutpo
 
 		putInMapTxsFromBody(odp.dataPool, body, odp.shardID, cachedTxs)
 
-		if isMeta && hasRewardsOnBody(body) && !check.IfNil(args.RewardsGetter) {
-			cachedTxs[block.RewardsBlock] = args.RewardsGetter.GetRewardsTxs(body)
+		if isMeta && hasRewardsOnBody(body) {
+			cachedTxs[block.RewardsBlock] = odp.rewardsGetter.GetRewardsTxs(body)
 		}
 
 		cachedLogs, err := common.GetCachedLogs(odp.dataPool.PostProcessTransactions(), headerHash)

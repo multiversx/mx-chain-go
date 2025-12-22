@@ -982,14 +982,24 @@ func TestOutportDataProvider_GetRewards(t *testing.T) {
 		}}
 
 	rewardsMbHash := []byte("rewardsMbHash")
+	rewardMb := &block.MiniBlock{
+		Type: block.RewardsBlock,
+	}
+	called := false
+
+	arg.RewardsGetter = &testscommon.RewardsCreatorStub{
+		GetRewardsTxsCalled: func(body *block.Body) map[string]data.TransactionHandler {
+			called = true
+			require.Equal(t, &block.Body{MiniBlocks: []*block.MiniBlock{rewardMb}}, body)
+			return map[string]data.TransactionHandler{}
+		},
+	}
+
 	headerHash := []byte("hash")
 	intraMbs := make([]*block.MiniBlock, 0)
 	intraMbs = append(intraMbs, &block.MiniBlock{})
 	arg.DataPool.ExecutedMiniBlocks().Put(headerHash, intraMbs, 0)
 
-	rewardMb := &block.MiniBlock{
-		Type: block.RewardsBlock,
-	}
 	rewardMbBytes, _ := arg.Marshaller.Marshal(rewardMb)
 
 	arg.DataPool.ExecutedMiniBlocks().Put(rewardsMbHash, rewardMbBytes, 0)
@@ -1007,7 +1017,6 @@ func TestOutportDataProvider_GetRewards(t *testing.T) {
 
 	outportDataP, _ := NewOutportDataProvider(arg)
 
-	called := false
 	results, err := outportDataP.prepareExecutionResultsData(ArgPrepareOutportSaveBlockData{
 		Header: &block.MetaBlockV3{
 			ExecutionResults: []*block.MetaExecutionResult{
@@ -1025,13 +1034,6 @@ func TestOutportDataProvider_GetRewards(t *testing.T) {
 						},
 					},
 				},
-			},
-		},
-		RewardsGetter: &testscommon.RewardsCreatorStub{
-			GetRewardsTxsCalled: func(body *block.Body) map[string]data.TransactionHandler {
-				called = true
-				require.Equal(t, &block.Body{MiniBlocks: []*block.MiniBlock{rewardMb}}, body)
-				return map[string]data.TransactionHandler{}
 			},
 		},
 	})
