@@ -104,6 +104,11 @@ func (msh *metaStorageHandler) SaveDataToStorage(components *ComponentsNeededFor
 		return err
 	}
 
+	err = msh.saveEpochStartMetaHdrs(components)
+	if err != nil {
+		return err
+	}
+
 	msh.saveMiniblocksFromComponents(components)
 
 	miniBlocks, err := msh.groupMiniBlocksByShard(components.PendingMiniBlocks)
@@ -126,10 +131,19 @@ func (msh *metaStorageHandler) SaveDataToStorage(components *ComponentsNeededFor
 		return err
 	}
 
+	lastSelfNotarizedHeaders, err := msh.getLastSelfNotarizedHeaders(
+		components.EpochStartMetaBlock,
+		lastHeader,
+		components.Headers,
+	)
+	if err != nil {
+		return err
+	}
+
 	bootStrapData := bootstrapStorage.BootstrapData{
 		LastHeader:                 lastHeader,
 		LastCrossNotarizedHeaders:  lastCrossNotarizedHeaders,
-		LastSelfNotarizedHeaders:   []bootstrapStorage.BootstrapHeaderInfo{lastHeader},
+		LastSelfNotarizedHeaders:   lastSelfNotarizedHeaders,
 		ProcessedMiniBlocks:        []bootstrapStorage.MiniBlocksInMeta{},
 		PendingMiniBlocks:          miniBlocks,
 		NodesCoordinatorConfigKey:  nodesCoordinatorConfigKey,
@@ -160,6 +174,139 @@ func (msh *metaStorageHandler) SaveDataToStorage(components *ComponentsNeededFor
 	}
 
 	log.Debug("saved bootstrap data to storage", "round", roundToUseAsKey)
+	return nil
+}
+
+func (msh *metaStorageHandler) getLastSelfNotarizedHeaders(
+	epochStartMeta data.MetaHeaderHandler,
+	epochStartMetaBootstrapInfo bootstrapStorage.BootstrapHeaderInfo,
+	syncedHeaders map[string]data.HeaderHandler,
+) ([]bootstrapStorage.BootstrapHeaderInfo, error) {
+	var lastSelfNotarizedHeaders []bootstrapStorage.BootstrapHeaderInfo
+	if !epochStartMeta.IsHeaderV3() {
+		return []bootstrapStorage.BootstrapHeaderInfo{
+			epochStartMetaBootstrapInfo,
+		}, nil
+	}
+
+	for _, epochStartData := range epochStartMeta.GetEpochStartHandler().GetLastFinalizedHeaderHandlers() {
+
+		bootstrapHdrInfo, err := msh.getLastNotarizedBootstrapInfoForEpochStartData(epochStartData, syncedHeaders)
+		if err != nil {
+			return nil, err
+		}
+
+		lastSelfNotarizedHeaders = append(lastSelfNotarizedHeaders, bootstrapHdrInfo)
+	}
+
+	bootstrapHdrInfoMeta, err := msh.getLastMetaBoostrapInfo(epochStartMeta, syncedHeaders)
+	if err != nil {
+		return nil, err
+	}
+
+	lastSelfNotarizedHeaders = append(lastSelfNotarizedHeaders, bootstrapHdrInfoMeta)
+
+	return lastSelfNotarizedHeaders, nil
+}
+
+func (msh *metaStorageHandler) getLastMetaBoostrapInfo(
+	epochStartMeta data.MetaHeaderHandler,
+	syncedHeaders map[string]data.HeaderHandler,
+) (bootstrapStorage.BootstrapHeaderInfo, error) {
+	lastExecRes, err := common.GetLastBaseExecutionResultHandler(epochStartMeta)
+	if err != nil {
+		return bootstrapStorage.BootstrapHeaderInfo{}, err
+	}
+
+	lastExecMetaHeader, ok := syncedHeaders[string(lastExecRes.GetHeaderHash())]
+	if !ok {
+		return bootstrapStorage.BootstrapHeaderInfo{}, epochStart.ErrMissingHeader
+	}
+
+	bootstrapHdrInfoMeta := bootstrapStorage.BootstrapHeaderInfo{
+		ShardId: core.MetachainShardId,
+		Epoch:   lastExecMetaHeader.GetEpoch(),
+		Nonce:   lastExecMetaHeader.GetNonce(),
+		Hash:    lastExecRes.GetHeaderHash(),
+	}
+
+	return bootstrapHdrInfoMeta, nil
+}
+
+func (msh *metaStorageHandler) getLastNotarizedBootstrapInfoForEpochStartData(
+	epochStartData data.EpochStartShardDataHandler,
+	syncedHeaders map[string]data.HeaderHandler,
+) (bootstrapStorage.BootstrapHeaderInfo, error) {
+	lastFinishedMetaBlockHash := epochStartData.GetLastFinishedMetaBlock()
+	lastFinishedMetaBlock, ok := syncedHeaders[string(lastFinishedMetaBlockHash)]
+	if !ok {
+		return bootstrapStorage.BootstrapHeaderInfo{}, epochStart.ErrMissingHeader
+	}
+
+	shardHeaderHash := epochStartData.GetHeaderHash()
+	shardHeader, ok := syncedHeaders[string(shardHeaderHash)]
+	if !ok {
+		return bootstrapStorage.BootstrapHeaderInfo{}, epochStart.ErrMissingHeader
+	}
+
+	shardHeaderHandler, ok := shardHeader.(data.ShardHeaderHandler)
+	if !ok {
+		return bootstrapStorage.BootstrapHeaderInfo{}, epochStart.ErrWrongTypeAssertion
+	}
+
+	if len(shardHeaderHandler.GetMetaBlockHashes()) <= 0 {
+		return bootstrapStorage.BootstrapHeaderInfo{
+			ShardId: epochStartData.GetShardID(),
+			Epoch:   lastFinishedMetaBlock.GetEpoch(),
+			Nonce:   lastFinishedMetaBlock.GetNonce(),
+			Hash:    lastFinishedMetaBlockHash,
+		}, nil
+	}
+
+	metaHash := shardHeaderHandler.GetMetaBlockHashes()[0]
+	metaHeader, ok := syncedHeaders[string(metaHash)]
+	if !ok {
+		return bootstrapStorage.BootstrapHeaderInfo{}, epochStart.ErrMissingHeader
+	}
+
+	prevHash := metaHeader.GetPrevHash()
+
+	prevMetaHeader, ok := syncedHeaders[string(prevHash)]
+	if !ok {
+		return bootstrapStorage.BootstrapHeaderInfo{}, epochStart.ErrMissingHeader
+	}
+
+	lastFinishedMetaBlockHash = prevHash
+	lastFinishedMetaBlock = prevMetaHeader
+
+	bootstrapHdrInfo := bootstrapStorage.BootstrapHeaderInfo{
+		ShardId: epochStartData.GetShardID(),
+		Epoch:   lastFinishedMetaBlock.GetEpoch(),
+		Nonce:   lastFinishedMetaBlock.GetNonce(),
+		Hash:    lastFinishedMetaBlockHash,
+	}
+
+	return bootstrapHdrInfo, nil
+}
+
+func (msh *metaStorageHandler) saveEpochStartMetaHdrs(components *ComponentsNeededForBootstrap) error {
+	for _, hdr := range components.Headers {
+		isForCurrentShard := hdr.GetShardID() == msh.shardCoordinator.SelfId()
+		if !isForCurrentShard {
+			_, err := msh.saveShardHdrToStorage(hdr)
+			if err != nil {
+				return err
+			}
+
+			continue
+		}
+
+		_, err := msh.saveMetaHdrToStorage(hdr)
+		if err != nil {
+			return err
+		}
+	}
+
 	return nil
 }
 

@@ -39,6 +39,7 @@ func (txs *transactions) createAndProcessMiniBlocksFromMeV2(
 			sortedTxs[index],
 			mbInfo)
 		if !shouldContinue {
+			log.Debug("createAndProcessMiniBlocksFromMeV2.shouldContinueProcessingTx")
 			continue
 		}
 
@@ -73,6 +74,10 @@ func (txs *transactions) createAndProcessMiniBlocksFromMeV2(
 			if shouldAddToRemaining {
 				remainingTxs = append(remainingTxs, sortedTxs[index])
 			}
+			log.Debug("createAndProcessMiniBlocksFromMeV2.processTransaction",
+				"txHash", txHash,
+			)
+
 			continue
 		}
 
@@ -147,7 +152,7 @@ func (txs *transactions) processTransaction(
 	elapsedTime := time.Since(startTime)
 	mbInfo.processingInfo.totalTimeUsedForComputeGasProvided += elapsedTime
 	if err != nil {
-		log.Trace("processTransaction.computeGasProvided", "error", err)
+		log.Debug("processTransaction.computeGasProvided", "error", err)
 		isTxTargetedForDeletion := errors.Is(err, process.ErrMaxGasLimitPerOneTxInReceiverShardIsReached)
 		if isTxTargetedForDeletion {
 			mbInfo.processingInfo.numCrossShardTxsWithTooMuchGas++

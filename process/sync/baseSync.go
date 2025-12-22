@@ -1092,7 +1092,7 @@ func (boot *baseBootstrap) prepareForSyncIfNeeded(syncingNonce uint64) error {
 	// if there are multiple headers in between the syncing header and the last one executed,
 	// add them into the queue and pool
 	for i := lastExecutionResultHeaderNonce + 1; i < syncingNonce; i++ {
-		hdr, hdrHash, errGetHdr := boot.getHeaderFromPoolWithNonce(i)
+		hdr, hdrHash, errGetHdr := boot.getHeaderWithNonce(i)
 		if errGetHdr != nil {
 			log.Debug("prepareForSyncIfNeeded: failed to get header with nonce", "nonce", i, "error", errGetHdr)
 			return errGetHdr
@@ -1789,12 +1789,56 @@ func (boot *baseBootstrap) getHeader(hash []byte) (data.HeaderHandler, error) {
 	return process.GetShardHeader(hash, boot.headers, boot.marshalizer, boot.store)
 }
 
+// getHeaderFromPool will try to get header from pool or storage
 func (boot *baseBootstrap) getHeaderFromPool(hash []byte) (data.HeaderHandler, error) {
 	if boot.shardCoordinator.SelfId() == core.MetachainShardId {
 		return process.GetMetaHeaderFromPool(hash, boot.headers)
 	}
 
 	return process.GetShardHeaderFromPool(hash, boot.headers)
+}
+
+func (boot *baseBootstrap) getHeaderWithNonce(
+	nonce uint64,
+) (data.HeaderHandler, []byte, error) {
+	if boot.shardCoordinator.SelfId() == core.MetachainShardId {
+		return boot.getMetaHeaderWithNonce(nonce)
+	}
+
+	return boot.getShardHeaderWithNonce(nonce)
+}
+
+func (boot *baseBootstrap) getMetaHeaderWithNonce(
+	nonce uint64,
+) (data.HeaderHandler, []byte, error) {
+	header, hash, err := process.GetMetaHeaderFromPoolWithNonce(nonce, boot.headers)
+	if err == nil {
+		return header, hash, nil
+	}
+
+	return process.GetMetaHeaderFromStorageWithNonce(
+		nonce,
+		boot.store,
+		boot.uint64Converter,
+		boot.marshalizer,
+	)
+}
+
+func (boot *baseBootstrap) getShardHeaderWithNonce(
+	nonce uint64,
+) (data.HeaderHandler, []byte, error) {
+	header, hash, err := process.GetShardHeaderFromPoolWithNonce(nonce, boot.shardCoordinator.SelfId(), boot.headers)
+	if err == nil {
+		return header, hash, nil
+	}
+
+	return process.GetShardHeaderFromStorageWithNonce(
+		nonce,
+		boot.shardCoordinator.SelfId(),
+		boot.store,
+		boot.uint64Converter,
+		boot.marshalizer,
+	)
 }
 
 func (boot *baseBootstrap) getHeaderFromPoolWithNonce(

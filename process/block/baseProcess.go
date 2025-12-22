@@ -1476,6 +1476,12 @@ func (bp *baseProcessor) getFinalMiniBlocksFromExecutionResults(
 		headerHash := baseExecutionResult.GetHeaderHash()
 		for _, miniBlockHeaderHandler := range miniBlockHeaderHandlers {
 			mbHash := miniBlockHeaderHandler.GetHash()
+			log.Debug("getFinalMiniBlocksFromExecutionResults",
+				"hash", mbHash,
+				"senderShard", miniBlockHeaderHandler.GetSenderShardID(),
+				"receiverShard", miniBlockHeaderHandler.GetReceiverShardID(),
+				"type", block.Type(miniBlockHeaderHandler.GetTypeInt32()).String(),
+			)
 			cachedMiniBlock, found := executedMiniBlocksCache.Get(mbHash)
 			if !found {
 				log.Warn("mini block from execution result not cached after execution",
@@ -2929,6 +2935,14 @@ func (bp *baseProcessor) putMiniBlocksIntoStorage(miniBlockHeaderHandlers []data
 		selfShardID := bp.shardCoordinator.SelfId()
 		isCrossShardIncoming := miniBlockHeaderHandler.GetReceiverShardID() == selfShardID &&
 			miniBlockHeaderHandler.GetSenderShardID() != selfShardID
+
+		log.Debug("putMiniBlocksIntoStorage",
+			"hash", mbHash,
+			"senderShard", miniBlockHeaderHandler.GetSenderShardID(),
+			"receiverShard", miniBlockHeaderHandler.GetReceiverShardID(),
+			"type", block.Type(miniBlockHeaderHandler.GetTypeInt32()).String(),
+			"isCrossShardIncoming", isCrossShardIncoming,
+		)
 		if isCrossShardIncoming {
 			continue
 		}
@@ -3031,6 +3045,8 @@ func (bp *baseProcessor) cacheExecutedMiniBlocks(body *block.Body, miniBlockHead
 		}
 
 		bp.dataPool.ExecutedMiniBlocks().Put(miniBlockHash, marshalledMiniBlock, len(marshalledMiniBlock))
+
+		log.Debug("cacheExecutedMiniBlock", "hash", miniBlockHash, "senderShard", mbHeader.GetSenderShardID(), "receiverShard", mbHeader.GetReceiverShardID(), "type", block.Type(mbHeader.GetTypeInt32()).String())
 	}
 
 	return nil
@@ -3761,6 +3777,23 @@ func (bp *baseProcessor) getBlockBodyFromPool(
 	}
 
 	return &block.Body{MiniBlocks: miniBlocks}, nil
+}
+
+func (bp *baseProcessor) getHeaderFromHash(
+	isHeaderV3 bool,
+	shardHeaderHash []byte,
+	shardID uint32,
+) (data.HeaderHandler, error) {
+	if isHeaderV3 {
+		return process.GetHeader(shardHeaderHash, bp.dataPool.Headers(), bp.store, bp.marshalizer, shardID)
+	}
+
+	headerInfo, ok := bp.hdrsForCurrBlock.GetHeaderInfo(string(shardHeaderHash))
+	if !ok {
+		return nil, process.ErrMissingHeader
+	}
+
+	return headerInfo.GetHeader(), nil
 }
 
 func getProposedAndExecutedMiniBlockHeaders(
