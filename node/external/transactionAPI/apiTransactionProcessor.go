@@ -16,6 +16,8 @@ import (
 	"github.com/multiversx/mx-chain-core-go/data/transaction"
 	"github.com/multiversx/mx-chain-core-go/data/typeConverters"
 	"github.com/multiversx/mx-chain-core-go/marshal"
+	logger "github.com/multiversx/mx-chain-logger-go"
+
 	"github.com/multiversx/mx-chain-go/common"
 	"github.com/multiversx/mx-chain-go/common/holders"
 	"github.com/multiversx/mx-chain-go/dataRetriever"
@@ -28,7 +30,6 @@ import (
 	"github.com/multiversx/mx-chain-go/sharding"
 	"github.com/multiversx/mx-chain-go/state"
 	"github.com/multiversx/mx-chain-go/txcache"
-	logger "github.com/multiversx/mx-chain-logger-go"
 )
 
 var log = logger.GetOrCreate("node/transactionAPI")
@@ -50,6 +51,7 @@ type apiTransactionProcessor struct {
 	refundDetector              *refundDetector
 	gasUsedAndFeeProcessor      *gasUsedAndFeeProcessor
 	enableEpochsHandler         common.EnableEpochsHandler
+	enableRoundsHandler         common.EnableRoundsHandler
 }
 
 // NewAPITransactionProcessor will create a new instance of apiTransactionProcessor
@@ -75,6 +77,7 @@ func NewAPITransactionProcessor(args *ArgAPITransactionProcessor) (*apiTransacti
 		args.LogsFacade,
 		args.ShardCoordinator,
 		args.DataFieldParser,
+		args.EnableRoundsHandler,
 	)
 
 	refundDetectorInstance := NewRefundDetector()
@@ -103,6 +106,7 @@ func NewAPITransactionProcessor(args *ArgAPITransactionProcessor) (*apiTransacti
 		refundDetector:              refundDetectorInstance,
 		gasUsedAndFeeProcessor:      gasUsedAndFeeProc,
 		enableEpochsHandler:         args.EnableEpochsHandler,
+		enableRoundsHandler:         args.EnableRoundsHandler,
 	}, nil
 }
 
@@ -777,7 +781,7 @@ func (atp *apiTransactionProcessor) lookupHistoricalTransaction(hash []byte, wit
 		block.Type(miniblockMetadata.Type), tx)
 
 	if withResults {
-		err = atp.transactionResultsProcessor.putResultsInTransaction(hash, tx, miniblockMetadata.Epoch)
+		err = atp.transactionResultsProcessor.putResultsInTransaction(hash, tx, miniblockMetadata.Epoch, miniblockMetadata.Round)
 		if err != nil {
 			return nil, err
 		}

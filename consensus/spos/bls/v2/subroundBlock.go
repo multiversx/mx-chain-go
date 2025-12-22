@@ -9,6 +9,7 @@ import (
 	"github.com/multiversx/mx-chain-core-go/core"
 	"github.com/multiversx/mx-chain-core-go/core/check"
 	"github.com/multiversx/mx-chain-core-go/data"
+
 	"github.com/multiversx/mx-chain-go/common"
 	"github.com/multiversx/mx-chain-go/consensus"
 	"github.com/multiversx/mx-chain-go/consensus/spos"
@@ -126,18 +127,8 @@ func (sr *subroundBlock) doBlockJob(ctx context.Context) bool {
 
 	leader, errGetLeader := sr.GetLeader()
 	if errGetLeader != nil {
-		log.Debug("doBlockJob.GetLeader", "error", errGetLeader)
+		printLogMessage(ctx, "doBlockJob.GetLeader", errGetLeader)
 		return false
-	}
-
-	if header.IsHeaderV3() {
-		errAdd := sr.ExecutionManager().AddPairForExecution(queue.HeaderBodyPair{
-			Header: header,
-			Body:   body,
-		})
-		if errAdd != nil {
-			return false
-		}
 	}
 
 	sentWithSuccess := sr.sendBlock(header, body, leader)
@@ -145,16 +136,13 @@ func (sr *subroundBlock) doBlockJob(ctx context.Context) bool {
 		return false
 	}
 
-	// placeholder for subroundBlock.doBlockJob script
-
-	// metachain does not need to select outgoing txs from txpool
-	if header.IsHeaderV3() && header.GetShardID() != core.MetachainShardId {
-		err = sr.BlockProcessor().OnProposedBlock(body, header, sr.GetData())
-		if err != nil {
-			log.Debug("doBlockJob.OnProposedBlock", "error", err)
-			return false
-		}
+	err = sr.prepareBlockForExecution(header, body)
+	if err != nil {
+		printLogMessage(ctx, "doBlockJob.prepareBlockForExecution", err)
+		return false
 	}
+
+	// placeholder for subroundBlock.doBlockJob script
 
 	sr.updateConsensusMetricsProposedBlockReceivedOrSent()
 
@@ -171,6 +159,24 @@ func (sr *subroundBlock) doBlockJob(ctx context.Context) bool {
 	}
 
 	return true
+}
+
+func (sr *subroundBlock) prepareBlockForExecution(header data.HeaderHandler, body data.BodyHandler) error {
+	if !header.IsHeaderV3() {
+		return nil
+	}
+
+	// metachain does not need to select outgoing txs from txpool
+	if header.GetShardID() != core.MetachainShardId {
+		err := sr.BlockProcessor().OnProposedBlock(body, header, sr.GetData())
+		if err != nil {
+			return err
+		}
+	}
+	return sr.ExecutionManager().AddPairForExecution(queue.HeaderBodyPair{
+		Header: header,
+		Body:   body,
+	})
 }
 
 func (sr *subroundBlock) signBlockHeader(header data.HeaderHandler) ([]byte, error) {

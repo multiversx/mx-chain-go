@@ -62,6 +62,7 @@ type CoreComponentsMock struct {
 	FieldsSizeCheckerField             common.FieldsSizeChecker
 	EpochChangeGracePeriodHandlerField common.EpochChangeGracePeriodHandler
 	ProcessConfigsHandlerField         common.ProcessConfigsHandler
+	ProcessConfigsHandlerCalled        func() common.ProcessConfigsHandler
 	CommonConfigsHandlerField          common.CommonConfigsHandler
 }
 
@@ -280,6 +281,9 @@ func (ccm *CoreComponentsMock) EpochChangeGracePeriodHandler() common.EpochChang
 
 // ProcessConfigsHandler -
 func (ccm *CoreComponentsMock) ProcessConfigsHandler() common.ProcessConfigsHandler {
+	if ccm.ProcessConfigsHandlerCalled != nil {
+		return ccm.ProcessConfigsHandlerCalled()
+	}
 	return ccm.ProcessConfigsHandlerField
 }
 

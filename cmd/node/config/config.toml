@@ -45,9 +45,9 @@
 
     # ChainParametersByEpoch defines chain operation configurable values that can be modified based on epochs
     ChainParametersByEpoch = [
-        { EnableEpoch = 0, RoundDuration = 6000, RoundsPerEpoch = 200, MinRoundsBetweenEpochs = 20, ShardConsensusGroupSize = 7, ShardMinNumNodes = 10, MetachainConsensusGroupSize = 10, MetachainMinNumNodes = 10, Hysteresis = 0.2, Adaptivity = false },
-        { EnableEpoch = 1, RoundDuration = 6000, RoundsPerEpoch = 200, MinRoundsBetweenEpochs = 20, ShardConsensusGroupSize = 10, ShardMinNumNodes = 10, MetachainConsensusGroupSize = 10, MetachainMinNumNodes = 10, Hysteresis = 0.2, Adaptivity = false },
-        { EnableEpoch = 2, RoundDuration = 600, RoundsPerEpoch = 2000, MinRoundsBetweenEpochs = 50, ShardConsensusGroupSize = 10, ShardMinNumNodes = 10, MetachainConsensusGroupSize = 10, MetachainMinNumNodes = 10, Hysteresis = 0.2, Adaptivity = false }
+        { EnableEpoch = 0, RoundDuration = 6000, RoundsPerEpoch = 200, MinRoundsBetweenEpochs = 20, ShardConsensusGroupSize = 7, ShardMinNumNodes = 10, MetachainConsensusGroupSize = 10, MetachainMinNumNodes = 10, Hysteresis = 0.2, Adaptivity = false, Offset = 0 },
+        { EnableEpoch = 1, RoundDuration = 6000, RoundsPerEpoch = 200, MinRoundsBetweenEpochs = 20, ShardConsensusGroupSize = 10, ShardMinNumNodes = 10, MetachainConsensusGroupSize = 10, MetachainMinNumNodes = 10, Hysteresis = 0.2, Adaptivity = false, Offset = 0 },
+        { EnableEpoch = 2, RoundDuration = 600, RoundsPerEpoch = 2000, MinRoundsBetweenEpochs = 50, ShardConsensusGroupSize = 10, ShardMinNumNodes = 10, MetachainConsensusGroupSize = 10, MetachainMinNumNodes = 10, Hysteresis = 0.2, Adaptivity = false, Offset = 2 }
     ]
 
     # EpochChangeGracePeriodEnableEpoch represents the configuration of different grace periods for epoch change with their activation epochs
@@ -64,8 +64,8 @@
     ]
 
     ProcessConfigsByRound = [
-        { EnableRound = 0, MaxRoundsWithoutNewBlockReceived = 10, MaxRoundsWithoutCommittedBlock = 10, RoundModulusTriggerWhenSyncIsStuck = 20, MaxSyncWithErrorsAllowed = 10 },
-        { EnableRound = 440, MaxRoundsWithoutNewBlockReceived = 100, MaxRoundsWithoutCommittedBlock = 100, RoundModulusTriggerWhenSyncIsStuck = 200, MaxSyncWithErrorsAllowed = 100 },
+        { EnableRound = 0, MaxRoundsWithoutNewBlockReceived = 10, MaxRoundsWithoutCommittedBlock = 10, RoundModulusTriggerWhenSyncIsStuck = 20, MaxSyncWithErrorsAllowed = 10, MaxRoundsToKeepUnprocessedMiniBlocks = 300,   MaxRoundsToKeepUnprocessedTransactions = 300},
+        { EnableRound = 440, MaxRoundsWithoutNewBlockReceived = 100, MaxRoundsWithoutCommittedBlock = 100, RoundModulusTriggerWhenSyncIsStuck = 200, MaxSyncWithErrorsAllowed = 100, MaxRoundsToKeepUnprocessedMiniBlocks = 3000,   MaxRoundsToKeepUnprocessedTransactions = 3000  },
     ]
 
     EpochStartConfigsByEpoch = [
@@ -581,11 +581,6 @@
 [PeersRatingConfig]
     TopRatedCacheCapacity = 5000
     BadRatedCacheCapacity = 5000
-
-[PoolsCleanersConfig]
-    # TODO: update these (maybe in txpool feat)
-    MaxRoundsToKeepUnprocessedMiniBlocks = 300   # max number of rounds unprocessed miniblocks are kept in pool
-    MaxRoundsToKeepUnprocessedTransactions = 300 # max number of rounds unprocessed transactions are kept in pool
 
 [TrieSyncStorage]
     Capacity = 300000
