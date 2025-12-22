@@ -3,7 +3,6 @@ package economics_test
 import (
 	"errors"
 	"fmt"
-	"github.com/multiversx/mx-chain-go/testscommon/chainParameters"
 	"math/big"
 	"strconv"
 	"testing"
@@ -20,6 +19,7 @@ import (
 	"github.com/multiversx/mx-chain-go/process/economics"
 	"github.com/multiversx/mx-chain-go/sharding"
 	"github.com/multiversx/mx-chain-go/testscommon"
+	"github.com/multiversx/mx-chain-go/testscommon/chainParameters"
 	"github.com/multiversx/mx-chain-go/testscommon/enableEpochsHandlerMock"
 	"github.com/multiversx/mx-chain-go/testscommon/epochNotifier"
 	"github.com/multiversx/mx-chain-go/testscommon/statusHandler"

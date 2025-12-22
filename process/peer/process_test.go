@@ -5,7 +5,6 @@ import (
 	"context"
 	"errors"
 	"fmt"
-	"github.com/multiversx/mx-chain-go/testscommon/chainParameters"
 	"math"
 	"math/big"
 	"testing"
@@ -15,10 +14,6 @@ import (
 	"github.com/multiversx/mx-chain-core-go/core/keyValStorage"
 	"github.com/multiversx/mx-chain-core-go/data"
 	"github.com/multiversx/mx-chain-core-go/data/block"
-	vmcommon "github.com/multiversx/mx-chain-vm-common-go"
-	"github.com/stretchr/testify/assert"
-	"github.com/stretchr/testify/require"
-
 	"github.com/multiversx/mx-chain-go/common"
 	"github.com/multiversx/mx-chain-go/config"
 	"github.com/multiversx/mx-chain-go/dataRetriever"
@@ -31,6 +26,7 @@ import (
 	"github.com/multiversx/mx-chain-go/state/accounts"
 	"github.com/multiversx/mx-chain-go/storage"
 	"github.com/multiversx/mx-chain-go/testscommon"
+	"github.com/multiversx/mx-chain-go/testscommon/chainParameters"
 	dataRetrieverMock "github.com/multiversx/mx-chain-go/testscommon/dataRetriever"
 	"github.com/multiversx/mx-chain-go/testscommon/enableEpochsHandlerMock"
 	"github.com/multiversx/mx-chain-go/testscommon/epochNotifier"
@@ -39,6 +35,9 @@ import (
 	"github.com/multiversx/mx-chain-go/testscommon/shardingMocks"
 	stateMock "github.com/multiversx/mx-chain-go/testscommon/state"
 	storageStubs "github.com/multiversx/mx-chain-go/testscommon/storage"
+	vmcommon "github.com/multiversx/mx-chain-vm-common-go"
+	"github.com/stretchr/testify/assert"
+	"github.com/stretchr/testify/require"
 )
 
 const (

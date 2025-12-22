@@ -5,7 +5,6 @@ import (
 	"encoding/hex"
 	"errors"
 	"fmt"
-	"github.com/multiversx/mx-chain-go/testscommon/chainParameters"
 	"math"
 	"math/big"
 	"os"
@@ -24,10 +23,6 @@ import (
 	"github.com/multiversx/mx-chain-core-go/data/transaction"
 	"github.com/multiversx/mx-chain-core-go/hashing/blake2b"
 	"github.com/multiversx/mx-chain-core-go/marshal"
-	vmcommon "github.com/multiversx/mx-chain-vm-common-go"
-	"github.com/multiversx/mx-chain-vm-common-go/parsers"
-	"github.com/stretchr/testify/require"
-
 	"github.com/multiversx/mx-chain-go/common"
 	"github.com/multiversx/mx-chain-go/common/enablers"
 	"github.com/multiversx/mx-chain-go/config"
@@ -51,6 +46,7 @@ import (
 	"github.com/multiversx/mx-chain-go/process/transactionLog"
 	"github.com/multiversx/mx-chain-go/state"
 	"github.com/multiversx/mx-chain-go/testscommon"
+	"github.com/multiversx/mx-chain-go/testscommon/chainParameters"
 	dataRetrieverMock "github.com/multiversx/mx-chain-go/testscommon/dataRetriever"
 	"github.com/multiversx/mx-chain-go/testscommon/dblookupext"
 	"github.com/multiversx/mx-chain-go/testscommon/epochNotifier"
@@ -60,6 +56,9 @@ import (
 	storageStubs "github.com/multiversx/mx-chain-go/testscommon/storage"
 	"github.com/multiversx/mx-chain-go/txcache"
 	"github.com/multiversx/mx-chain-go/vm/systemSmartContracts/defaults"
+	vmcommon "github.com/multiversx/mx-chain-vm-common-go"
+	"github.com/multiversx/mx-chain-vm-common-go/parsers"
+	"github.com/stretchr/testify/require"
 )
 
 // VMTypeHex -
