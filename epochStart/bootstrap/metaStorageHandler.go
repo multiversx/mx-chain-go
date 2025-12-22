@@ -298,10 +298,10 @@ func (msh *metaStorageHandler) saveEpochStartMetaHdrs(components *ComponentsNeed
 				"shard", hdr.GetShardID(),
 				"nonce", hdr.GetNonce(),
 			)
-			// _, err := msh.saveShardHdrToStorage(hdr)
-			// if err != nil {
-			// 	return err
-			// }
+			_, err := msh.saveShardHdrToStorage(hdr)
+			if err != nil {
+				return err
+			}
 
 			continue
 		}
