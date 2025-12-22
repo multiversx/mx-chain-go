@@ -8,7 +8,7 @@ import (
 // EpochRewardsDisabled does nothing
 type EpochRewardsDisabled struct{}
 
-// NewDisabledEpochRewards will create a new instance of
+// NewDisabledEpochRewards will create a new instance of *EpochRewardsDisabled
 func NewDisabledEpochRewards() *EpochRewardsDisabled {
 	return &EpochRewardsDisabled{}
 }
