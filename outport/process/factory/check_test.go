@@ -38,6 +38,7 @@ func createArgOutportDataProviderFactory() ArgOutportDataProviderFactory {
 		ExecutionOrderGetter:   &commonMocks.TxExecutionOrderHandlerStub{},
 		DataPool:               &dataRetriever.PoolsHolderMock{},
 		RoundHandler:           &testscommon.RoundHandlerMock{},
+		RewardsGetter:          &testscommon.RewardsCreatorStub{},
 	}
 }
 
@@ -95,6 +96,10 @@ func TestCheckArgCreateOutportDataProvider(t *testing.T) {
 	arg = createArgOutportDataProviderFactory()
 	arg.RoundHandler = nil
 	require.Equal(t, process.ErrNilRoundHandler, checkArgOutportDataProviderFactory(arg))
+
+	arg = createArgOutportDataProviderFactory()
+	arg.RewardsGetter = nil
+	require.Equal(t, process.ErrNilRewardsGetter, checkArgOutportDataProviderFactory(arg))
 
 	arg = createArgOutportDataProviderFactory()
 	require.Nil(t, checkArgOutportDataProviderFactory(arg))

@@ -160,7 +160,6 @@ func (msb *metaStorageBootstrapper) cleanupNotarizedStorageForHigherNoncesIfExis
 func (msb *metaStorageBootstrapper) applySelfNotarizedHeaders(
 	bootstrapHeadersInfo []bootstrapStorage.BootstrapHeaderInfo,
 ) ([]data.HeaderHandler, [][]byte, error) {
-
 	for _, bootstrapHeaderInfo := range bootstrapHeadersInfo {
 		selfNotarizedHeader, err := msb.getHeader(bootstrapHeaderInfo.Hash)
 		if err != nil {

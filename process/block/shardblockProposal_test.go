@@ -3585,10 +3585,7 @@ func Test_getOrderedProcessedMetaBlocksFromMiniBlockHashesV3(t *testing.T) {
 			}},
 			"processedMiniBlocksTracker": &testscommon.ProcessedMiniBlocksTrackerStub{
 				IsMiniBlockFullyProcessedCalled: func(metaBlockHash []byte, miniBlockHash []byte) bool {
-					if bytes.Equal(miniBlockHash, mbHash2) {
-						return true
-					}
-					return false
+					return bytes.Equal(miniBlockHash, mbHash2)
 				},
 			},
 		})
