@@ -13,9 +13,10 @@ import (
 	"github.com/multiversx/mx-chain-core-go/data"
 	"github.com/multiversx/mx-chain-core-go/data/block"
 	"github.com/multiversx/mx-chain-core-go/data/transaction"
-	commonMocks "github.com/multiversx/mx-chain-go/testscommon/common"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
+
+	commonMocks "github.com/multiversx/mx-chain-go/testscommon/common"
 
 	"github.com/multiversx/mx-chain-go/process/asyncExecution/executionManager"
 
@@ -3318,6 +3319,11 @@ func TestShardProcessor_collectExecutionResults(t *testing.T) {
 func Test_getOrderedProcessedMetaBlocksFromMiniBlockHashesV3(t *testing.T) {
 	t.Parallel()
 
+	mbHash1 := []byte("miniBlockHeaderHash1")
+	mbHash2 := []byte("miniBlockHeaderHash2")
+	metaHeaderHash1 := []byte("metaHeaderHash1")
+	metaHeaderHash2 := []byte("metaHeaderHash2")
+
 	t.Run("should return ErrWrongTypeAssertion in case of wrong header type", func(t *testing.T) {
 		t.Parallel()
 
@@ -3344,13 +3350,12 @@ func Test_getOrderedProcessedMetaBlocksFromMiniBlockHashesV3(t *testing.T) {
 					}
 				},
 			},
+			"processedMiniBlocksTracker": &testscommon.ProcessedMiniBlocksTrackerStub{},
 		})
 		require.Nil(t, err)
 
 		header := &block.HeaderV3{
-			MetaBlockHashes: [][]byte{
-				[]byte("metaBlockHash"),
-			},
+			MetaBlockHashes: [][]byte{metaHeaderHash1},
 		}
 		_, err = sp.GetOrderedProcessedMetaBlocksFromMiniBlockHashesV3(
 			header,
@@ -3363,7 +3368,7 @@ func Test_getOrderedProcessedMetaBlocksFromMiniBlockHashesV3(t *testing.T) {
 		t.Parallel()
 
 		headersByHash := map[string]data.HeaderHandler{
-			"metaHeaderHash1": &block.MetaBlockV3{
+			string(metaHeaderHash1): &block.MetaBlockV3{
 				Nonce: 1,
 				ShardInfo: []block.ShardData{
 					{
@@ -3371,7 +3376,7 @@ func Test_getOrderedProcessedMetaBlocksFromMiniBlockHashesV3(t *testing.T) {
 						ShardMiniBlockHeaders: []block.MiniBlockHeader{
 							{
 								ReceiverShardID: 0,
-								Hash:            []byte("miniBlockHeaderHash1"),
+								Hash:            mbHash1,
 							},
 						},
 					},
@@ -3392,14 +3397,11 @@ func Test_getOrderedProcessedMetaBlocksFromMiniBlockHashesV3(t *testing.T) {
 			"shardCoordinator": &mock.CoordinatorStub{SelfIdCalled: func() uint32 {
 				return 1
 			}},
+			"processedMiniBlocksTracker": &testscommon.ProcessedMiniBlocksTrackerStub{},
 		})
 		require.Nil(t, err)
 
-		header := &block.HeaderV3{
-			MetaBlockHashes: [][]byte{
-				[]byte("metaHeaderHash1"),
-			},
-		}
+		header := &block.HeaderV3{MetaBlockHashes: [][]byte{metaHeaderHash1}}
 		fullyReferencedMetaBlocks, err := sp.GetOrderedProcessedMetaBlocksFromMiniBlockHashesV3(
 			header,
 			make(map[int][]byte),
@@ -3419,7 +3421,7 @@ func Test_getOrderedProcessedMetaBlocksFromMiniBlockHashesV3(t *testing.T) {
 					ShardMiniBlockHeaders: []block.MiniBlockHeader{
 						{
 							ReceiverShardID: 1,
-							Hash:            []byte("miniBlockHeaderHash1"),
+							Hash:            mbHash1,
 						},
 					},
 				},
@@ -3427,14 +3429,14 @@ func Test_getOrderedProcessedMetaBlocksFromMiniBlockHashesV3(t *testing.T) {
 		}
 
 		metaHeader2 := &block.MetaBlockV3{
-			Nonce: 0,
+			Nonce: 2,
 			ShardInfo: []block.ShardData{
 				{
 					ShardID: 0,
 					ShardMiniBlockHeaders: []block.MiniBlockHeader{
 						{
 							ReceiverShardID: 1,
-							Hash:            []byte("miniBlockHeaderHash2"),
+							Hash:            mbHash2,
 						},
 					},
 				},
@@ -3442,8 +3444,8 @@ func Test_getOrderedProcessedMetaBlocksFromMiniBlockHashesV3(t *testing.T) {
 		}
 
 		headersByHash := map[string]data.HeaderHandler{
-			"metaHeaderHash1": metaHeader1,
-			"metaHeaderHash2": metaHeader2,
+			string(metaHeaderHash1): metaHeader1,
+			string(metaHeaderHash2): metaHeader2,
 		}
 
 		sp, err := blproc.ConstructPartialShardBlockProcessorForTest(map[string]interface{}{
@@ -3459,28 +3461,22 @@ func Test_getOrderedProcessedMetaBlocksFromMiniBlockHashesV3(t *testing.T) {
 			"shardCoordinator": &mock.CoordinatorStub{SelfIdCalled: func() uint32 {
 				return 1
 			}},
+			"processedMiniBlocksTracker": &testscommon.ProcessedMiniBlocksTrackerStub{},
 		})
 		require.Nil(t, err)
 
 		header := &block.HeaderV3{
-			MetaBlockHashes: [][]byte{
-				[]byte("metaHeaderHash1"),
-				[]byte("metaHeaderHash2"),
-			},
+			MetaBlockHashes: [][]byte{metaHeaderHash1, metaHeaderHash2},
 		}
 		fullyReferencedMetaBlocks, err := sp.GetOrderedProcessedMetaBlocksFromMiniBlockHashesV3(
 			header,
 			map[int][]byte{
-				0: []byte("miniBlockHeaderHash1"),
-				1: []byte("miniBlockHeaderHash2"),
+				0: mbHash1,
+				1: mbHash2,
 			},
 		)
 
-		expectedFullyReferencedMetaBlocks := []data.HeaderHandler{
-			// should be sorted by nonce
-			metaHeader2,
-			metaHeader1,
-		}
+		expectedFullyReferencedMetaBlocks := []data.HeaderHandler{metaHeader1, metaHeader2}
 		require.Nil(t, err)
 		require.Equal(t, 2, len(fullyReferencedMetaBlocks))
 		require.Equal(t, expectedFullyReferencedMetaBlocks, fullyReferencedMetaBlocks)
@@ -3490,7 +3486,7 @@ func Test_getOrderedProcessedMetaBlocksFromMiniBlockHashesV3(t *testing.T) {
 		t.Parallel()
 
 		headersByHash := map[string]data.HeaderHandler{
-			"metaHeaderHash1": &block.MetaBlockV3{
+			string(metaHeaderHash1): &block.MetaBlockV3{
 				ShardInfo: []block.ShardData{
 					{
 						ShardID: 0,
@@ -3503,7 +3499,7 @@ func Test_getOrderedProcessedMetaBlocksFromMiniBlockHashesV3(t *testing.T) {
 					},
 				},
 			},
-			"metaHeaderHash2": &block.MetaBlockV3{
+			string(metaHeaderHash2): &block.MetaBlockV3{
 				ShardInfo: []block.ShardData{
 					{
 						ShardID: 0,
@@ -3530,23 +3526,86 @@ func Test_getOrderedProcessedMetaBlocksFromMiniBlockHashesV3(t *testing.T) {
 			"shardCoordinator": &mock.CoordinatorStub{SelfIdCalled: func() uint32 {
 				return 1
 			}},
+			"processedMiniBlocksTracker": &testscommon.ProcessedMiniBlocksTrackerStub{},
 		})
 		require.Nil(t, err)
 
 		header := &block.HeaderV3{
-			MetaBlockHashes: [][]byte{
-				[]byte("metaHeaderHash1"),
-				[]byte("metaHeaderHash2"),
-			},
+			MetaBlockHashes: [][]byte{metaHeaderHash1, metaHeaderHash2},
 		}
 		fullyReferencedMetaBlocks, err := sp.GetOrderedProcessedMetaBlocksFromMiniBlockHashesV3(
 			header,
 			map[int][]byte{
-				0: []byte("miniBlockHeaderHash1"),
+				0: mbHash1,
 			},
 		)
 		require.Nil(t, err)
 		require.Equal(t, 1, len(fullyReferencedMetaBlocks))
+	})
+	t.Run("metablock fully referenced across multiple shard headers", func(t *testing.T) {
+		t.Parallel()
+
+		metaHeader1 := &block.MetaBlockV3{
+			Nonce: 1,
+			ShardInfo: []block.ShardData{
+				{
+					ShardID: 0,
+					ShardMiniBlockHeaders: []block.MiniBlockHeader{
+						{
+							ReceiverShardID: 1,
+							Hash:            mbHash1,
+						},
+					},
+				},
+			},
+		}
+
+		metaHeader2 := &block.MetaBlockV3{
+			Nonce:     2,
+			ShardInfo: []block.ShardData{},
+		}
+
+		headersByHash := map[string]data.HeaderHandler{
+			string(metaHeaderHash1): metaHeader1,
+			string(metaHeaderHash2): metaHeader2,
+		}
+
+		sp, err := blproc.ConstructPartialShardBlockProcessorForTest(map[string]interface{}{
+			"dataPool": &dataRetriever.PoolsHolderStub{
+				HeadersCalled: func() retriever.HeadersPool {
+					return &pool.HeadersPoolStub{
+						GetHeaderByHashCalled: func(hash []byte) (data.HeaderHandler, error) {
+							return headersByHash[string(hash)], nil
+						},
+					}
+				},
+			},
+			"shardCoordinator": &mock.CoordinatorStub{SelfIdCalled: func() uint32 {
+				return 1
+			}},
+			"processedMiniBlocksTracker": &testscommon.ProcessedMiniBlocksTrackerStub{
+				IsMiniBlockFullyProcessedCalled: func(metaBlockHash []byte, miniBlockHash []byte) bool {
+					return bytes.Equal(miniBlockHash, mbHash2)
+				},
+			},
+		})
+		require.Nil(t, err)
+
+		header := &block.HeaderV3{
+			MetaBlockHashes: [][]byte{metaHeaderHash1, metaHeaderHash2},
+		}
+		fullyReferencedMetaBlocks, err := sp.GetOrderedProcessedMetaBlocksFromMiniBlockHashesV3(
+			header,
+			map[int][]byte{
+				0: mbHash1,
+				1: mbHash2,
+			},
+		)
+
+		expectedFullyReferencedMetaBlocks := []data.HeaderHandler{metaHeader1, metaHeader2}
+		require.Nil(t, err)
+		require.Equal(t, 2, len(fullyReferencedMetaBlocks))
+		require.Equal(t, expectedFullyReferencedMetaBlocks, fullyReferencedMetaBlocks)
 	})
 }
 

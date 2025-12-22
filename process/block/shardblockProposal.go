@@ -641,7 +641,7 @@ func (sp *shardProcessor) checkMetaHeadersValidityAndFinalityProposal(header dat
 	if err != nil {
 		return err
 	}
-	usedMetaHeaders, err := sp.getReferencedMetaHeadersFromPool(header)
+	_, usedMetaHeaders, err := sp.getReferencedMetaHeadersFromPool(header)
 	if err != nil {
 		return fmt.Errorf("%w : checkMetaHeadersValidityAndFinalityProposal -> getReferencedMetaHeadersFromPool", err)
 	}
@@ -664,7 +664,7 @@ func (sp *shardProcessor) checkMetaHeadersValidityAndFinalityProposal(header dat
 	return nil
 }
 
-func (sp *shardProcessor) getReferencedMetaHeadersFromPool(header data.ShardHeaderHandler) ([]data.HeaderHandler, error) {
+func (sp *shardProcessor) getReferencedMetaHeadersFromPool(header data.ShardHeaderHandler) ([][]byte, []data.HeaderHandler, error) {
 	usedMetaHdrHashes := header.GetMetaBlockHashes()
 	usedMetaHeaders := make([]data.HeaderHandler, 0, len(usedMetaHdrHashes))
 	var metaHdr data.HeaderHandler
@@ -672,12 +672,12 @@ func (sp *shardProcessor) getReferencedMetaHeadersFromPool(header data.ShardHead
 	for _, metaHdrHash := range usedMetaHdrHashes {
 		metaHdr, err = sp.dataPool.Headers().GetHeaderByHash(metaHdrHash)
 		if err != nil {
-			return nil, err
+			return nil, nil, err
 		}
 		usedMetaHeaders = append(usedMetaHeaders, metaHdr)
 	}
 
-	return usedMetaHeaders, nil
+	return usedMetaHdrHashes, usedMetaHeaders, nil
 }
 
 // collectExecutionResults collects the execution results after processing the block
@@ -739,7 +739,7 @@ func (sp *shardProcessor) getOrderedProcessedMetaBlocksFromMiniBlockHashesV3(
 	if !ok {
 		return nil, process.ErrWrongTypeAssertion
 	}
-	metaHeaders, err := sp.getReferencedMetaHeadersFromPool(shardHeader)
+	metaHeaderHashes, metaHeaders, err := sp.getReferencedMetaHeadersFromPool(shardHeader)
 	if err != nil {
 		return nil, err
 	}
@@ -751,11 +751,19 @@ func (sp *shardProcessor) getOrderedProcessedMetaBlocksFromMiniBlockHashesV3(
 
 	fullyReferencedMetaBlocks := make([]data.HeaderHandler, 0, len(metaHeaders))
 	var remaining int
-	for _, metaHeader := range metaHeaders {
+	var metaHeaderHash []byte
+	for i, metaHeader := range metaHeaders {
+		metaHeaderHash = metaHeaderHashes[i]
 		crossMiniBlockHashes := metaHeader.GetMiniBlockHeadersWithDst(sp.shardCoordinator.SelfId())
 		if len(crossMiniBlockHashes) == 0 {
 			fullyReferencedMetaBlocks = append(fullyReferencedMetaBlocks, metaHeader)
 			continue
+		}
+
+		for hash := range crossMiniBlockHashes {
+			if sp.processedMiniBlocksTracker.IsMiniBlockFullyProcessed(metaHeaderHash, []byte(hash)) {
+				hashSet[hash] = struct{}{}
+			}
 		}
 
 		remaining = len(crossMiniBlockHashes)
