@@ -2603,54 +2603,6 @@ func TestSyncSetGuardianTransaction(t *testing.T) {
 func TestEpochStartBoostrap_SyncHeadersV3FromMeta(t *testing.T) {
 	t.Parallel()
 
-	t.Run("should return early if last executed nonce equal to current nonce", func(t *testing.T) {
-		t.Parallel()
-
-		hdrHash1 := []byte("hdrHash1")
-		hdrHash2 := []byte("hdrHash2")
-
-		header1 := &block.HeaderV3{
-			Nonce:    11,
-			PrevHash: hdrHash2,
-			LastExecutionResult: &block.ExecutionResultInfo{
-				ExecutionResult: &block.BaseExecutionResult{
-					HeaderNonce: 11,
-				},
-			},
-		}
-
-		coreComp, cryptoComp := createComponentsForEpochStart()
-		args := createMockEpochStartBootstrapArgs(coreComp, cryptoComp)
-
-		epochStartProvider, _ := NewEpochStartBootstrap(args)
-		epochStartProvider.headersSyncer = &epochStartMocks.HeadersByHashSyncerStub{
-			SyncMissingHeadersByHashCalled: func(shardIDs []uint32, headersHashes [][]byte, ctx context.Context) error {
-				return nil
-			},
-			GetHeadersCalled: func() (m map[string]data.HeaderHandler, err error) {
-				return map[string]data.HeaderHandler{
-					string(hdrHash1): header1,
-				}, nil
-			},
-		}
-
-		metaBlock := &block.MetaBlockV3{
-			Epoch: 2,
-			EpochStart: block.EpochStart{
-				LastFinalizedHeaders: []block.EpochStartShardData{
-					{HeaderHash: hdrHash1, ShardID: 0},
-				},
-				Economics: block.Economics{
-					PrevEpochStartHash: hdrHash2,
-				},
-			},
-		}
-
-		headers, err := epochStartProvider.syncHeadersFrom(metaBlock)
-		require.Nil(t, err)
-		require.Equal(t, 1, len(headers))
-	})
-
 	t.Run("should error if requested header not in returned headers", func(t *testing.T) {
 		t.Parallel()
 
@@ -2823,6 +2775,11 @@ func TestEpochStartBoostrap_SyncHeadersV3FromMeta(t *testing.T) {
 					PrevEpochStartHash: hdrHash2,
 				},
 			},
+			LastExecutionResult: &block.MetaExecutionResultInfo{
+				ExecutionResult: &block.BaseMetaExecutionResult{
+					BaseExecutionResult: &block.BaseExecutionResult{},
+				},
+			},
 		}
 
 		headers, err := epochStartProvider.syncHeadersFrom(metaBlock)
@@ -2835,10 +2792,20 @@ func TestEpochStartBoostrap_SyncHeadersV3FromMeta(t *testing.T) {
 
 		hdrHash1 := []byte("hdrHash1")
 		hdrHash2 := []byte("hdrHash2")
+		lastExecMetaHash := []byte("lastExecMetaHash")
 
 		header1 := &block.Header{
 			Nonce:    11,
 			PrevHash: hdrHash2,
+		}
+
+		lastExecMeta := &block.MetaBlockV3{
+			Nonce: 20,
+			LastExecutionResult: &block.MetaExecutionResultInfo{
+				ExecutionResult: &block.BaseMetaExecutionResult{
+					BaseExecutionResult: &block.BaseExecutionResult{},
+				},
+			},
 		}
 
 		coreComp, cryptoComp := createComponentsForEpochStart()
@@ -2851,26 +2818,41 @@ func TestEpochStartBoostrap_SyncHeadersV3FromMeta(t *testing.T) {
 			},
 			GetHeadersCalled: func() (m map[string]data.HeaderHandler, err error) {
 				return map[string]data.HeaderHandler{
-					string(hdrHash1): header1,
+					string(hdrHash1):         header1,
+					string(lastExecMetaHash): lastExecMeta,
 				}, nil
 			},
 		}
 
 		metaBlock := &block.MetaBlockV3{
-			Epoch: 2,
+			Epoch:    2,
+			Nonce:    21,
+			PrevHash: lastExecMetaHash,
 			EpochStart: block.EpochStart{
 				LastFinalizedHeaders: []block.EpochStartShardData{
-					{HeaderHash: hdrHash1, ShardID: 0},
+					{
+						HeaderHash:            hdrHash1,
+						ShardID:               0,
+						LastFinishedMetaBlock: lastExecMetaHash,
+					},
 				},
 				Economics: block.Economics{
 					PrevEpochStartHash: hdrHash2,
+				},
+			},
+			LastExecutionResult: &block.MetaExecutionResultInfo{
+				ExecutionResult: &block.BaseMetaExecutionResult{
+					BaseExecutionResult: &block.BaseExecutionResult{
+						HeaderNonce: 20,
+						HeaderHash:  lastExecMetaHash,
+					},
 				},
 			},
 		}
 
 		headers, err := epochStartProvider.syncHeadersFrom(metaBlock)
 		require.Nil(t, err)
-		require.Equal(t, 1, len(headers))
+		require.Equal(t, 2, len(headers))
 	})
 
 	t.Run("should work with meta v3 and shard v3", func(t *testing.T) {
@@ -2879,6 +2861,8 @@ func TestEpochStartBoostrap_SyncHeadersV3FromMeta(t *testing.T) {
 		hdrHash1 := []byte("hdrHash1")
 		hdrHash2 := []byte("hdrHash2")
 		hdrHash3 := []byte("hdrHash3")
+		hdrHash4 := []byte("hdrHash4")
+		lastExecMetaHash := []byte("lastExecMetaHash")
 
 		header1 := &block.HeaderV3{
 			Nonce:    12,
@@ -2899,6 +2883,22 @@ func TestEpochStartBoostrap_SyncHeadersV3FromMeta(t *testing.T) {
 			LastExecutionResult: &block.ExecutionResultInfo{},
 		}
 
+		lastExecMeta := &block.MetaBlockV3{
+			Nonce:    20,
+			PrevHash: hdrHash4,
+			LastExecutionResult: &block.MetaExecutionResultInfo{
+				ExecutionResult: &block.BaseMetaExecutionResult{
+					BaseExecutionResult: &block.BaseExecutionResult{
+						HeaderNonce: 19,
+					},
+				},
+			},
+		}
+
+		metaHeader4 := &block.MetaBlockV3{
+			Nonce: 19,
+		}
+
 		coreComp, cryptoComp := createComponentsForEpochStart()
 		args := createMockEpochStartBootstrapArgs(coreComp, cryptoComp)
 
@@ -2909,28 +2909,44 @@ func TestEpochStartBoostrap_SyncHeadersV3FromMeta(t *testing.T) {
 			},
 			GetHeadersCalled: func() (m map[string]data.HeaderHandler, err error) {
 				return map[string]data.HeaderHandler{
-					string(hdrHash1): header1,
-					string(hdrHash2): header2,
-					string(hdrHash3): header3,
+					string(hdrHash1):         header1,
+					string(hdrHash2):         header2,
+					string(hdrHash3):         header3,
+					string(hdrHash4):         metaHeader4,
+					string(lastExecMetaHash): lastExecMeta,
 				}, nil
 			},
 		}
 
 		metaBlock := &block.MetaBlockV3{
-			Epoch: 2,
+			Epoch:    2,
+			Nonce:    21,
+			PrevHash: lastExecMetaHash,
 			EpochStart: block.EpochStart{
 				LastFinalizedHeaders: []block.EpochStartShardData{
-					{HeaderHash: hdrHash1, ShardID: 0},
+					{
+						HeaderHash:            hdrHash1,
+						ShardID:               0,
+						LastFinishedMetaBlock: lastExecMetaHash,
+					},
 				},
 				Economics: block.Economics{
 					PrevEpochStartHash: hdrHash2,
+				},
+			},
+			LastExecutionResult: &block.MetaExecutionResultInfo{
+				ExecutionResult: &block.BaseMetaExecutionResult{
+					BaseExecutionResult: &block.BaseExecutionResult{
+						HeaderHash:  lastExecMetaHash,
+						HeaderNonce: 20,
+					},
 				},
 			},
 		}
 
 		headers, err := epochStartProvider.syncHeadersFrom(metaBlock)
 		require.Nil(t, err)
-		require.Equal(t, 2, len(headers))
+		require.Equal(t, 5, len(headers))
 	})
 }
 
