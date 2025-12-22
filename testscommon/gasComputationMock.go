@@ -15,7 +15,8 @@ type GasComputationMock struct {
 		transactions []data.TransactionHandler,
 	) ([][]byte, []data.MiniBlockHeaderHandler, error)
 	GetBandwidthForTransactionsCalled func() uint64
-	TotalGasConsumedCalled            func() uint64
+	TotalGasConsumedInSelfShardCalled func() uint64
+	TotalGasConsumedInShardCalled     func(shard uint32) uint64
 	DecreaseIncomingLimitCalled       func()
 	DecreaseOutgoingLimitCalled       func()
 	ZeroIncomingLimitCalled           func()
@@ -63,10 +64,18 @@ func (mock *GasComputationMock) GetBandwidthForTransactions() uint64 {
 	return 0
 }
 
-// TotalGasConsumed -
-func (mock *GasComputationMock) TotalGasConsumed() uint64 {
-	if mock.TotalGasConsumedCalled != nil {
-		return mock.TotalGasConsumedCalled()
+// TotalGasConsumedInSelfShard -
+func (mock *GasComputationMock) TotalGasConsumedInSelfShard() uint64 {
+	if mock.TotalGasConsumedInSelfShardCalled != nil {
+		return mock.TotalGasConsumedInSelfShardCalled()
+	}
+	return 0
+}
+
+// TotalGasConsumedInShard -
+func (mock *GasComputationMock) TotalGasConsumedInShard(shard uint32) uint64 {
+	if mock.TotalGasConsumedInShardCalled != nil {
+		return mock.TotalGasConsumedInShardCalled(shard)
 	}
 	return 0
 }
