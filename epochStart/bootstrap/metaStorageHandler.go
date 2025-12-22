@@ -290,14 +290,9 @@ func (msh *metaStorageHandler) getLastNotarizedBootstrapInfoForEpochStartData(
 }
 
 func (msh *metaStorageHandler) saveEpochStartMetaHdrs(components *ComponentsNeededForBootstrap) error {
-	for hash, hdr := range components.Headers {
+	for _, hdr := range components.Headers {
 		isForCurrentShard := hdr.GetShardID() == msh.shardCoordinator.SelfId()
 		if !isForCurrentShard {
-			log.Debug("not for curr shard",
-				"hash", hash,
-				"shard", hdr.GetShardID(),
-				"nonce", hdr.GetNonce(),
-			)
 			_, err := msh.saveShardHdrToStorage(hdr)
 			if err != nil {
 				return err
