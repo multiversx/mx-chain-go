@@ -1146,7 +1146,7 @@ func (boot *baseBootstrap) getExecutionResultHeaderNonceForSyncStart(
 		return 0, err
 	}
 
-	log.Debug("prepareForSyncIfNeeded",
+	log.Debug("getExecutionResultHeaderNonceForSyncStart",
 		"syncingNonce", syncingNonce,
 		"currHeader nonce", currentHeader.GetNonce(),
 		"currHeader hash", currentHeaderHash,
@@ -1177,6 +1177,9 @@ func (boot *baseBootstrap) getExecutionResultHeaderNonceForSyncStart(
 	if !check.IfNil(lastExecutionResult) && lastExecutionResult.GetHeaderNonce() > lastExecutionResultNonce {
 		lastExecutionResultNonce = lastExecutionResult.GetHeaderNonce()
 	}
+
+	log.Debug("getExecutionResultHeaderNonceForSyncStart", "lastExecutionResultNonce", lastExecutionResultNonce)
+
 	return lastExecutionResultNonce, nil
 }
 
