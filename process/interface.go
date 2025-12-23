@@ -1585,13 +1585,15 @@ type GasComputation interface {
 	) (addedTxHashes [][]byte, pendingMiniBlocksAdded []data.MiniBlockHeaderHandler, err error)
 	GetBandwidthForTransactions() uint64
 	RevertIncomingMiniBlocks(miniBlockHashes [][]byte)
-	TotalGasConsumed() uint64
+	TotalGasConsumedInSelfShard() uint64
+	TotalGasConsumedInShard(shard uint32) uint64
 	DecreaseIncomingLimit()
 	DecreaseOutgoingLimit()
 	ZeroIncomingLimit()
 	ZeroOutgoingLimit()
 	ResetIncomingLimit()
 	ResetOutgoingLimit()
+	CanAddPendingIncomingMiniBlocks() bool
 	Reset()
 	IsInterfaceNil() bool
 }
