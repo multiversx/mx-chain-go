@@ -14,16 +14,17 @@ type GasComputationMock struct {
 		txHashes [][]byte,
 		transactions []data.TransactionHandler,
 	) ([][]byte, []data.MiniBlockHeaderHandler, error)
-	GetBandwidthForTransactionsCalled func() uint64
-	TotalGasConsumedCalled            func() uint64
-	DecreaseIncomingLimitCalled       func()
-	DecreaseOutgoingLimitCalled       func()
-	ZeroIncomingLimitCalled           func()
-	ZeroOutgoingLimitCalled           func()
-	ResetIncomingLimitCalled          func()
-	ResetOutgoingLimitCalled          func()
-	ResetCalled                       func()
-	RevertIncomingMiniBlocksCalled    func(miniBlockHashes [][]byte)
+	GetBandwidthForTransactionsCalled     func() uint64
+	TotalGasConsumedCalled                func() uint64
+	DecreaseIncomingLimitCalled           func()
+	DecreaseOutgoingLimitCalled           func()
+	ZeroIncomingLimitCalled               func()
+	ZeroOutgoingLimitCalled               func()
+	ResetIncomingLimitCalled              func()
+	ResetOutgoingLimitCalled              func()
+	ResetCalled                           func()
+	RevertIncomingMiniBlocksCalled        func(miniBlockHashes [][]byte)
+	CanAddPendingIncomingMiniBlocksCalled func() bool
 }
 
 // AddIncomingMiniBlocks -
@@ -111,6 +112,14 @@ func (mock *GasComputationMock) ResetOutgoingLimit() {
 	if mock.ResetOutgoingLimitCalled != nil {
 		mock.ResetOutgoingLimitCalled()
 	}
+}
+
+// CanAddPendingIncomingMiniBlocks -
+func (mock *GasComputationMock) CanAddPendingIncomingMiniBlocks() bool {
+	if mock.CanAddPendingIncomingMiniBlocksCalled != nil {
+		return mock.CanAddPendingIncomingMiniBlocksCalled()
+	}
+	return true
 }
 
 // Reset -

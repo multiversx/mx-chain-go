@@ -21,6 +21,7 @@ const (
 	incoming gasType = iota
 	outgoingIntra
 	outgoingCross
+	pending
 )
 
 const (
@@ -128,6 +129,19 @@ func (gc *gasConsumption) AddIncomingMiniBlocks(
 			for _, mb := range miniBlocks[i:] {
 				hashStr := string(mb.GetHash())
 				gc.transactionsForPendingMiniBlocks[hashStr] = transactions[hashStr]
+
+				transactionsForMB, found := transactions[string(mb.GetHash())]
+				if !found {
+					log.Warn("could not find transaction for pending mini block", "hash", mb.GetHash())
+					continue
+				}
+				gasConsumedByPendingMb, errCheckPending := gc.checkGasConsumedByMiniBlock(mb, transactionsForMB)
+				if errCheckPending != nil {
+					log.Warn("failed to check gas consumed by pending mini block", "hash", mb.GetHash(), "error", errCheckPending)
+					continue
+				}
+
+				gc.totalGasConsumed[pending] += gasConsumedByPendingMb
 			}
 
 			return lastMiniBlockIndex, len(gc.pendingMiniBlocks), err
@@ -158,6 +172,7 @@ func (gc *gasConsumption) RevertIncomingMiniBlocks(miniBlockHashes [][]byte) {
 		isPending, idxInPendingSlice := gc.isPendingMiniBlock(miniBlockHash)
 		if isPending {
 			gc.revertPendingMiniBlock(miniBlockHash, idxInPendingSlice)
+			gc.totalGasConsumed[pending] -= gasConsumedByMb
 			continue
 		}
 
@@ -284,6 +299,7 @@ func (gc *gasConsumption) addPendingIncomingMiniBlocks() ([]data.MiniBlockHeader
 	lastIndexAdded := 0
 	for i := 0; i < len(gc.pendingMiniBlocks); i++ {
 		mb := gc.pendingMiniBlocks[i]
+		gasConsumedByIncomingBefore := gc.totalGasConsumed[incoming]
 		shouldSavePending, err := gc.addIncomingMiniBlock(mb, gc.transactionsForPendingMiniBlocks, bandwidthForIncomingMiniBlocks)
 		if err != nil {
 			return nil, err
@@ -295,6 +311,13 @@ func (gc *gasConsumption) addPendingIncomingMiniBlocks() ([]data.MiniBlockHeader
 
 		addedMiniBlocks = append(addedMiniBlocks, mb)
 		lastIndexAdded = i
+
+		gasConsumedByIncomingAfter := gc.totalGasConsumed[incoming]
+		gasConsumedByMiniBlock := gasConsumedByIncomingAfter - gasConsumedByIncomingBefore
+		if gasConsumedByMiniBlock < gc.totalGasConsumed[pending] {
+			// should never be false
+			gc.totalGasConsumed[pending] -= gasConsumedByMiniBlock
+		}
 	}
 
 	gc.pendingMiniBlocks = gc.pendingMiniBlocks[lastIndexAdded+1:]
@@ -456,11 +479,41 @@ func (gc *gasConsumption) TotalGasConsumed() uint64 {
 	defer gc.mut.RUnlock()
 
 	totalGasConsumed := uint64(0)
-	for _, gasConsumed := range gc.totalGasConsumed {
+	for typeOfGas, gasConsumed := range gc.totalGasConsumed {
+		if typeOfGas == pending {
+			continue
+		}
+
 		totalGasConsumed += gasConsumed
 	}
 
 	return totalGasConsumed
+}
+
+// CanAddPendingIncomingMiniBlocks returns true if more pending incoming mini blocks can be added without reaching the block limits
+func (gc *gasConsumption) CanAddPendingIncomingMiniBlocks() bool {
+	gc.mut.RLock()
+	defer gc.mut.RUnlock()
+
+	totalGasToBeConsumedByPending := uint64(0)
+	totalGasConsumed := uint64(0)
+	for typeOfGas, gasConsumed := range gc.totalGasConsumed {
+		if typeOfGas == pending {
+			totalGasToBeConsumedByPending += gasConsumed
+			continue
+		}
+
+		totalGasConsumed += gasConsumed
+	}
+
+	maxGasLimitPerBlock := gc.maxGasLimitPerBlock(incoming, gc.shardCoordinator.SelfId())
+	if maxGasLimitPerBlock <= totalGasConsumed {
+		return false
+	}
+
+	gasLeft := maxGasLimitPerBlock - totalGasConsumed
+	maxGasLimitPerMiniBlock := gc.maxGasLimitPerMiniBlock(gc.shardCoordinator.SelfId())
+	return totalGasToBeConsumedByPending+maxGasLimitPerMiniBlock < gasLeft
 }
 
 // DecreaseIncomingLimit reduces the gas limit for incoming mini blocks by a configured percentage
