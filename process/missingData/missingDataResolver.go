@@ -8,12 +8,15 @@ import (
 	"github.com/multiversx/mx-chain-core-go/core/check"
 	"github.com/multiversx/mx-chain-core-go/data"
 	"github.com/multiversx/mx-chain-core-go/data/block"
+	logger "github.com/multiversx/mx-chain-logger-go"
 
 	"github.com/multiversx/mx-chain-go/dataRetriever"
 	"github.com/multiversx/mx-chain-go/process"
 )
 
 const checkMissingDataStep = 10 * time.Millisecond
+
+var log = logger.GetOrCreate("missingDataResolver")
 
 // ResolverArgs holds the arguments needed to create a Resolver
 type ResolverArgs struct {
@@ -219,15 +222,34 @@ func (r *Resolver) WaitForMissingData(timeout time.Duration) error {
 		return haveTime
 	}
 
+	err := r.blockDataRequester.IsDataPreparedForProcessing(stepHaveTime(checkMissingDataStep))
 	for {
-		err := r.blockDataRequester.IsDataPreparedForProcessing(stepHaveTime(checkMissingDataStep))
+		if err != nil {
+			err = r.blockDataRequester.IsDataPreparedForProcessing(stepHaveTime(checkMissingDataStep))
+		}
 		if r.allDataReceived() && err == nil {
+			log.Debug("missingDataResolver.WaitForMissingData: all missing data received")
 			return nil
 		}
 
 		if time.Now().After(waitDeadline) {
+			r.mutHeaders.RLock()
+			numMissingHeaders := len(r.missingHeaders)
+			r.mutHeaders.RUnlock()
+
+			r.mutProofs.RLock()
+			numMissingProofs := len(r.missingProofs)
+			r.mutProofs.RUnlock()
+
+			log.Debug("missingDataResolver.WaitForMissingData: timeout reached while waiting for missing data",
+				"missingHeaders", numMissingHeaders,
+				"missingProofs", numMissingProofs,
+				"IsDataPreparedError", err)
+
 			return process.ErrTimeIsOut
 		}
+
+		time.Sleep(checkMissingDataStep)
 	}
 }
 
