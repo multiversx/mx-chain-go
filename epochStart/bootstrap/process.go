@@ -725,6 +725,12 @@ func (e *epochStartBootstrap) syncIntermediateMetaBlocksIfNeeded(
 
 	hashToSync := epochStartMeta.GetPrevHash()
 	currNonce := epochStartMeta.GetNonce()
+
+	lastFinishedNonce := lastFinished.GetNonce()
+	if lastFinishedNonce >= currNonce {
+		return nil
+	}
+
 	for currNonce > lastFinished.GetNonce() {
 		// check if not already synced (when handled for the other shards)
 		header, ok := syncedHeaders[string(hashToSync)]
