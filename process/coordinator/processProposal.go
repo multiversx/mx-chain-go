@@ -31,7 +31,7 @@ func (tc *transactionCoordinator) CreateMbsCrossShardDstMe(
 			"header round", hdr.GetRound(),
 			"header nonce", hdr.GetNonce(),
 			"num mini blocks to be processed", len(finalCrossMiniBlockInfos),
-			"total gas provided", tc.gasComputation.TotalGasConsumed())
+			"total gas consumed in self shard", tc.gasComputation.TotalGasConsumedInSelfShard())
 	}()
 
 	txsForMbs := make(map[string][]data.TransactionHandler, 0)
