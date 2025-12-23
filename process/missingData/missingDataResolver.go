@@ -224,9 +224,6 @@ func (r *Resolver) WaitForMissingData(timeout time.Duration) error {
 
 	err := r.blockDataRequester.IsDataPreparedForProcessing(stepHaveTime(checkMissingDataStep))
 	for {
-		if err != nil {
-			err = r.blockDataRequester.IsDataPreparedForProcessing(stepHaveTime(checkMissingDataStep))
-		}
 		if r.allDataReceived() && err == nil {
 			log.Debug("missingDataResolver.WaitForMissingData: all missing data received")
 			return nil
@@ -247,6 +244,10 @@ func (r *Resolver) WaitForMissingData(timeout time.Duration) error {
 				"IsDataPreparedError", err)
 
 			return process.ErrTimeIsOut
+		}
+
+		if err != nil {
+			err = r.blockDataRequester.IsDataPreparedForProcessing(stepHaveTime(checkMissingDataStep))
 		}
 
 		time.Sleep(checkMissingDataStep)
