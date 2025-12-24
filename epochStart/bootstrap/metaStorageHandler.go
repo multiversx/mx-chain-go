@@ -199,7 +199,7 @@ func (msh *metaStorageHandler) getLastSelfNotarizedHeaders(
 		lastSelfNotarizedHeaders = append(lastSelfNotarizedHeaders, bootstrapHdrInfo)
 	}
 
-	bootstrapHdrInfoMeta, err := msh.getLastMetaBoostrapInfo(epochStartMeta, syncedHeaders)
+	bootstrapHdrInfoMeta, err := msh.getLastMetaBootstrapInfo(epochStartMeta, syncedHeaders)
 	if err != nil {
 		return nil, err
 	}
@@ -209,7 +209,7 @@ func (msh *metaStorageHandler) getLastSelfNotarizedHeaders(
 	return lastSelfNotarizedHeaders, nil
 }
 
-func (msh *metaStorageHandler) getLastMetaBoostrapInfo(
+func (msh *metaStorageHandler) getLastMetaBootstrapInfo(
 	epochStartMeta data.MetaHeaderHandler,
 	syncedHeaders map[string]data.HeaderHandler,
 ) (bootstrapStorage.BootstrapHeaderInfo, error) {
