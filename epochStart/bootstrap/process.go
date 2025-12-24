@@ -961,8 +961,6 @@ func (e *epochStartBootstrap) syncOneHeader(
 		return nil, epochStart.ErrMissingHeader
 	}
 
-	e.txSyncer.SyncTransactionsFor()
-
 	return syncedHeader, nil
 }
 
