@@ -1409,10 +1409,6 @@ func (mp *metaProcessor) CommitBlock(
 	nodesCoordinatorKey := mp.nodesCoordinator.GetSavedStateKey()
 	epochStartKey := mp.epochStartTrigger.GetSavedStateKey()
 
-	log.Debug("getLastSelfNotarizedHeaders",
-		"hash", headerHash,
-		"nonoce", header.GetNonce(),
-	)
 	args := bootStorerDataArgs{
 		headerInfo:                 headerInfo,
 		round:                      header.GetRound(),

@@ -801,7 +801,7 @@ func (e *epochStartBootstrap) syncLastNotarizedMetaForEpochStartData(
 	if len(shardHeader.GetMetaBlockHashes()) <= 0 {
 		return nil
 	}
-	// if thare notarized meta headers, sync their previous meta header
+	// if there are notarized meta headers, sync their previous meta header
 
 	// get oldest referenced meta blocks (first in the list should be the oldest)
 	// and sync its previous meta header
