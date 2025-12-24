@@ -890,20 +890,6 @@ func (e *epochStartBootstrap) syncHeadersFrom(meta data.MetaHeaderHandler) (map[
 	return syncedHeaders, nil
 }
 
-func (e *epochStartBootstrap) requestHeaderAndIntermediateBlocksUpToLastExecuted(
-	syncedHeaders map[string]data.HeaderHandler,
-	headerHash []byte,
-	shardID uint32,
-) error {
-	header, err := e.syncOneHeader(headerHash, shardID)
-	if err != nil {
-		return err
-	}
-	syncedHeaders[string(headerHash)] = header
-
-	return e.requestBlocksUpToLastExecuted(syncedHeaders, header, shardID)
-}
-
 func (e *epochStartBootstrap) requestBlocksUpToLastExecuted(
 	syncedHeaders map[string]data.HeaderHandler,
 	header data.HeaderHandler,
