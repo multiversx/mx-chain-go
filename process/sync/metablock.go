@@ -9,10 +9,12 @@ import (
 	"github.com/multiversx/mx-chain-core-go/data"
 	"github.com/multiversx/mx-chain-core-go/data/block"
 	"github.com/multiversx/mx-chain-go/dataRetriever"
+	"github.com/multiversx/mx-chain-go/epochStart/bootstrap/disabled"
 	"github.com/multiversx/mx-chain-go/process"
 	"github.com/multiversx/mx-chain-go/state"
 	"github.com/multiversx/mx-chain-go/storage"
 	"github.com/multiversx/mx-chain-go/trie/storageMarker"
+	updateSync "github.com/multiversx/mx-chain-go/update/sync"
 )
 
 // MetaBootstrap implements the bootstrap mechanism
@@ -111,6 +113,28 @@ func NewMetaBootstrap(arguments ArgMetaBootstrapper) (*MetaBootstrap, error) {
 	}
 
 	base.headerNonceHashStore, err = boot.store.GetStorer(dataRetriever.MetaHdrNonceHashDataUnit)
+	if err != nil {
+		return nil, err
+	}
+
+	syncMiniBlocksArgs := updateSync.ArgsNewPendingMiniBlocksSyncer{
+		Storage:        disabled.CreateMemUnit(),
+		Cache:          base.dataPool.MiniBlocks(),
+		Marshalizer:    base.marshalizer,
+		RequestHandler: base.requestHandler,
+	}
+	base.miniBlocksSyncer, err = updateSync.NewPendingMiniBlocksSyncer(syncMiniBlocksArgs)
+	if err != nil {
+		return nil, err
+	}
+
+	syncTxsArgs := updateSync.ArgsNewTransactionsSyncer{
+		DataPools:      base.dataPool,
+		Storages:       disabled.NewChainStorer(),
+		Marshaller:     base.marshalizer,
+		RequestHandler: base.requestHandler,
+	}
+	base.txSyncer, err = updateSync.NewTransactionsSyncer(syncTxsArgs)
 	if err != nil {
 		return nil, err
 	}
