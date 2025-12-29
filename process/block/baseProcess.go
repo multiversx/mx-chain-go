@@ -3764,6 +3764,23 @@ func (bp *baseProcessor) getBlockBodyFromPool(
 	return &block.Body{MiniBlocks: miniBlocks}, nil
 }
 
+func (bp *baseProcessor) getHeaderFromHash(
+	isHeaderV3 bool,
+	headerHash []byte,
+	shardID uint32,
+) (data.HeaderHandler, error) {
+	if isHeaderV3 {
+		return process.GetHeader(headerHash, bp.dataPool.Headers(), bp.store, bp.marshalizer, shardID)
+	}
+
+	headerInfo, ok := bp.hdrsForCurrBlock.GetHeaderInfo(string(headerHash))
+	if !ok {
+		return nil, process.ErrMissingHeader
+	}
+
+	return headerInfo.GetHeader(), nil
+}
+
 func getProposedAndExecutedMiniBlockHeaders(
 	header data.HeaderHandler,
 ) ([]data.MiniBlockHeaderHandler, error) {
