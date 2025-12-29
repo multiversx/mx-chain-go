@@ -717,20 +717,21 @@ func (e *epochStartBootstrap) syncHeadersV3From(meta data.MetaHeaderHandler) (ma
 	return syncedHeaders, nil
 }
 
-func (e *epochStartBootstrap) syncIntermediateMetaBlocksIfNeeded(
+func (e *epochStartBootstrap) syncIntermediateBlocksIfNeeded(
 	syncedHeaders map[string]data.HeaderHandler,
-	epochStartMeta data.HeaderHandler,
-	lastFinishedMetaForShard data.HeaderHandler,
+	header data.HeaderHandler,
+	lastExecutedNonce uint64,
 ) error {
-	hashToSync := epochStartMeta.GetPrevHash()
-	currNonce := epochStartMeta.GetNonce()
+	shardID := header.GetShardID()
 
-	lastFinishedNonce := lastFinishedMetaForShard.GetNonce()
-	if lastFinishedNonce >= currNonce {
+	hashToSync := header.GetPrevHash()
+	currNonce := header.GetNonce()
+
+	if lastExecutedNonce >= currNonce {
 		return nil
 	}
 
-	for currNonce > lastFinishedNonce {
+	for currNonce > lastExecutedNonce {
 		// check if not already synced (when handled for the other shards)
 		header, ok := syncedHeaders[string(hashToSync)]
 		if ok {
@@ -739,7 +740,7 @@ func (e *epochStartBootstrap) syncIntermediateMetaBlocksIfNeeded(
 			continue
 		}
 
-		header, err := e.syncOneHeader(hashToSync, core.MetachainShardId)
+		header, err := e.syncOneHeader(hashToSync, shardID)
 		if err != nil {
 			return err
 		}
@@ -767,7 +768,7 @@ func (e *epochStartBootstrap) syncEpochStartDataInfo(
 		return nil
 	}
 
-	err = e.requestBlocksUpToLastExecuted(syncedHeaders, syncedHeader, epochStartData.GetShardID())
+	err = e.syncBlocksUpToLastExecuted(syncedHeaders, syncedHeader, epochStartData.GetShardID())
 	if err != nil {
 		return err
 	}
@@ -786,41 +787,89 @@ func (e *epochStartBootstrap) syncEpochStartDataInfo(
 	syncedHeaders[string(epochStartData.GetLastFinishedMetaBlock())] = lastFinishedMetaBlockForShard
 
 	// sync meta blocks from epoch start meta blocks up to last finished metablock referenced on shard
-	return e.syncIntermediateMetaBlocksIfNeeded(syncedHeaders, epochStartMeta, lastFinishedMetaBlockForShard)
+	return e.syncIntermediateBlocksIfNeeded(syncedHeaders, epochStartMeta, lastFinishedMetaBlockForShard.GetNonce())
 }
 
 func (e *epochStartBootstrap) syncLastNotarizedMetaForEpochStartData(
 	syncedHeaders map[string]data.HeaderHandler,
 	header data.HeaderHandler,
 ) error {
-	shardHeader, ok := header.(data.ShardHeaderHandler)
-	if !ok {
-		return epochStart.ErrWrongTypeAssertion
-	}
-
-	if len(shardHeader.GetMetaBlockHashes()) <= 0 {
-		return nil
-	}
-	// if there are notarized meta headers, sync their previous meta header
-
-	// get oldest referenced meta blocks (first in the list should be the oldest)
-	// and sync its previous meta header
-	metaHash := shardHeader.GetMetaBlockHashes()[0]
-
-	header, err := e.syncOneHeader(metaHash, core.MetachainShardId)
+	lastReferencedMetaHash, err := getLastReferencedMetaHash(syncedHeaders, e.syncPrevShardHeaderHandler, header)
 	if err != nil {
 		return err
 	}
-	syncedHeaders[string(metaHash)] = header
 
-	prevHash := header.GetPrevHash()
-	header, err = e.syncOneHeader(prevHash, core.MetachainShardId)
+	syncedHeader, err := e.syncOneHeader(lastReferencedMetaHash, core.MetachainShardId)
 	if err != nil {
 		return err
 	}
-	syncedHeaders[string(prevHash)] = header
+	syncedHeaders[string(lastReferencedMetaHash)] = syncedHeader
 
 	return nil
+}
+
+func getLastReferencedMetaHash(
+	syncedHeaders map[string]data.HeaderHandler,
+	fetchPrevHeader func(syncedHeaders map[string]data.HeaderHandler, header data.HeaderHandler) (data.ShardHeaderHandler, error),
+	header data.HeaderHandler,
+) ([]byte, error) {
+	// get last execution result header for epoch start data shard header
+	lastExecutionResult, err := common.GetLastBaseExecutionResultHandler(header)
+	if err != nil {
+		return nil, err
+	}
+
+	lastExecutedHeader, ok := syncedHeaders[string(lastExecutionResult.GetHeaderHash())]
+	if !ok {
+		return nil, epochStart.ErrMissingHeader
+	}
+
+	lastExecutedShardHeader, ok := lastExecutedHeader.(data.ShardHeaderHandler)
+	if !ok {
+		return nil, epochStart.ErrWrongTypeAssertion
+	}
+
+	var lastReferencedMetaHash []byte
+
+	currentHdr := lastExecutedShardHeader
+	for currentHdr.GetNonce() > 0 {
+		numIncludedMetaBlocks := len(currentHdr.GetMetaBlockHashes())
+
+		// if there are notarized meta headers, return last included meta header
+		if numIncludedMetaBlocks > 0 {
+			lastReferencedMetaHash = currentHdr.GetMetaBlockHashes()[numIncludedMetaBlocks-1]
+			break
+		}
+
+		// if there are no included meta blocks, go to prev header
+		header, err := fetchPrevHeader(syncedHeaders, currentHdr)
+		if err != nil {
+			return nil, err
+		}
+
+		currentHdr = header
+	}
+
+	return lastReferencedMetaHash, nil
+}
+
+func (e *epochStartBootstrap) syncPrevShardHeaderHandler(
+	syncedHeaders map[string]data.HeaderHandler,
+	header data.HeaderHandler,
+) (data.ShardHeaderHandler, error) {
+	prevHash := header.GetPrevHash()
+	syncedHeader, err := e.syncOneHeader(prevHash, header.GetShardID())
+	if err != nil {
+		return nil, err
+	}
+	syncedHeaders[string(prevHash)] = syncedHeader
+
+	shardHeader, ok := syncedHeader.(data.ShardHeaderHandler)
+	if !ok {
+		return nil, epochStart.ErrWrongTypeAssertion
+	}
+
+	return shardHeader, nil
 }
 
 func (e *epochStartBootstrap) syncEpochStartMetaHeaders(
@@ -839,7 +888,7 @@ func (e *epochStartBootstrap) syncEpochStartMetaHeaders(
 
 	// sync meta header with intermediate blocks up to last executed (for supernova)
 	syncedHeaders := make(map[string]data.HeaderHandler)
-	err = e.requestBlocksUpToLastExecuted(syncedHeaders, meta, core.MetachainShardId)
+	err = e.syncBlocksUpToLastExecuted(syncedHeaders, meta, core.MetachainShardId)
 	if err != nil {
 		return nil, err
 	}
@@ -890,7 +939,7 @@ func (e *epochStartBootstrap) syncHeadersFrom(meta data.MetaHeaderHandler) (map[
 	return syncedHeaders, nil
 }
 
-func (e *epochStartBootstrap) requestBlocksUpToLastExecuted(
+func (e *epochStartBootstrap) syncBlocksUpToLastExecuted(
 	syncedHeaders map[string]data.HeaderHandler,
 	header data.HeaderHandler,
 	shardID uint32,
@@ -904,28 +953,7 @@ func (e *epochStartBootstrap) requestBlocksUpToLastExecuted(
 		return err
 	}
 
-	baseHeaderNonce := header.GetNonce()
-	lastExecutedNonce := lastExecutionResult.GetHeaderNonce()
-
-	if lastExecutedNonce >= baseHeaderNonce {
-		return nil
-	}
-
-	headerHashToSync := header.GetPrevHash()
-	currentNonce := baseHeaderNonce
-	for currentNonce > lastExecutedNonce {
-		syncedHeader, err := e.syncOneHeader(headerHashToSync, shardID)
-		if err != nil {
-			return err
-		}
-
-		syncedHeaders[string(headerHashToSync)] = syncedHeader
-
-		headerHashToSync = syncedHeader.GetPrevHash()
-		currentNonce = syncedHeader.GetNonce()
-	}
-
-	return nil
+	return e.syncIntermediateBlocksIfNeeded(syncedHeaders, header, lastExecutionResult.GetHeaderNonce())
 }
 
 func (e *epochStartBootstrap) syncOneHeader(

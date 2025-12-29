@@ -332,21 +332,21 @@ func (wr *WidgetsRender) prepareBlockInfo() {
 	syncStatus := wr.presenter.GetIsSyncing()
 	switch syncStatus {
 	case 1:
-		rows[5] = []string{"Consensus round state: N/A (syncing)"}
+		rows[4][0] += " | Consensus round state: N/A (syncing)"
 	case 0:
 		instanceType := wr.presenter.GetNodeType()
 		if instanceType == string(core.NodeTypeObserver) {
-			rows[5] = []string{fmt.Sprintf("Consensus round state: N/A (%s)", string(core.NodeTypeObserver))}
+			rows[4][0] += fmt.Sprintf(" | Consensus round state: N/A (%s)", string(core.NodeTypeObserver))
 		} else {
 			consensusRoundState := wr.presenter.GetConsensusRoundState()
-			rows[5] = []string{fmt.Sprintf("Consensus round state: %s", consensusRoundState)}
+			rows[4][0] += fmt.Sprintf(" | Consensus round state: %s", consensusRoundState)
 		}
 	}
 
 	durationStartRoundToSentOrReceivedBlock := float64(wr.presenter.GetDurationProposedBlockReceivedOrSentFromRoundStart()) / conversionFactorToSeconds
 	durationSentOrReceivedBlockToReceivedProof := float64(wr.presenter.GetDurationProofReceivedFromProposedBlockReceivedOrSent()) / conversionFactorToSeconds
 
-	rows[6] = []string{
+	rows[5] = []string{
 		fmt.Sprintf("Received proposed block: %.6f sec | Received proof: %.6f sec",
 			durationStartRoundToSentOrReceivedBlock,
 			durationSentOrReceivedBlockToReceivedProof),
@@ -355,10 +355,16 @@ func (wr *WidgetsRender) prepareBlockInfo() {
 	durationStartRoundToSentOrReceivedBlock = float64(wr.presenter.GetAvgDurationProposedBlockReceivedOrSentFromRoundStart()) / conversionFactorToSeconds
 	durationSentOrReceivedBlockToReceivedProof = float64(wr.presenter.GetAvgDurationProofReceivedFromProposedBlockReceivedOrSent()) / conversionFactorToSeconds
 
-	rows[7] = []string{
+	rows[6] = []string{
 		fmt.Sprintf("Avg Received proposed block: %.6f sec | Avg Received proof: %.6f sec",
 			durationStartRoundToSentOrReceivedBlock,
 			durationSentOrReceivedBlockToReceivedProof),
+	}
+
+	rows[7] = []string{
+		fmt.Sprintf("Delta header nonce - last execution result nonce: %d | Rejected execution results: %d",
+			wr.presenter.GetDeltaHeaderNonceLastExecutionResultNonce(),
+			wr.presenter.GetRejectedExecutionResults()),
 	}
 
 	currentRoundTimestamp := wr.presenter.GetCurrentRoundTimestamp()
