@@ -64,8 +64,8 @@
     ]
 
     ProcessConfigsByRound = [
-        { EnableRound = 0, MaxRoundsWithoutNewBlockReceived = 10, MaxRoundsWithoutCommittedBlock = 10, RoundModulusTriggerWhenSyncIsStuck = 20, MaxSyncWithErrorsAllowed = 10 },
-        { EnableRound = 440, MaxRoundsWithoutNewBlockReceived = 100, MaxRoundsWithoutCommittedBlock = 100, RoundModulusTriggerWhenSyncIsStuck = 200, MaxSyncWithErrorsAllowed = 100 },
+        { EnableRound = 0, MaxRoundsWithoutNewBlockReceived = 10, MaxRoundsWithoutCommittedBlock = 10, RoundModulusTriggerWhenSyncIsStuck = 20, MaxSyncWithErrorsAllowed = 10, MaxRoundsToKeepUnprocessedMiniBlocks = 300,   MaxRoundsToKeepUnprocessedTransactions = 300},
+        { EnableRound = 440, MaxRoundsWithoutNewBlockReceived = 100, MaxRoundsWithoutCommittedBlock = 100, RoundModulusTriggerWhenSyncIsStuck = 200, MaxSyncWithErrorsAllowed = 100, MaxRoundsToKeepUnprocessedMiniBlocks = 3000,   MaxRoundsToKeepUnprocessedTransactions = 3000  },
     ]
 
     EpochStartConfigsByEpoch = [
@@ -581,11 +581,6 @@
 [PeersRatingConfig]
     TopRatedCacheCapacity = 5000
     BadRatedCacheCapacity = 5000
-
-[PoolsCleanersConfig]
-    # TODO: update these (maybe in txpool feat)
-    MaxRoundsToKeepUnprocessedMiniBlocks = 300   # max number of rounds unprocessed miniblocks are kept in pool
-    MaxRoundsToKeepUnprocessedTransactions = 300 # max number of rounds unprocessed transactions are kept in pool
 
 [TrieSyncStorage]
     Capacity = 300000
