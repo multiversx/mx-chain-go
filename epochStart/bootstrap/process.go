@@ -827,13 +827,6 @@ func getLastReferencedMetaHash(
 		return nil, epochStart.ErrWrongTypeAssertion
 	}
 
-	// for last self notarized header
-	// get it based on epoch start data shard header
-	// 	   - based on it's last executed header
-	//     - and get last referenced meta
-	//         - if there are references meta get last finished and last pending
-	//         - if there aren't, go and search to prev header, and so on
-
 	currentHdr := lastExecutedShardHeader
 	for {
 		numIncludedMetaBlocks := len(currentHdr.GetMetaBlockHashes())
@@ -873,78 +866,6 @@ func (e *epochStartBootstrap) syncPrevShardHeaderHandler(
 	}
 
 	return shardHeader, nil
-}
-
-func (e *epochStartBootstrap) getLastRefMetaHash(
-	syncedHeaders map[string]data.HeaderHandler,
-	header data.ShardHeaderHandler,
-) ([]byte, error) {
-	shardHeader, ok := header.(data.ShardHeaderHandler)
-	if !ok {
-		return nil, epochStart.ErrWrongTypeAssertion
-	}
-
-	var lastFinalizedRefMetaHash []byte
-	var firstPendingMetaHash []byte
-
-	for currentHdr := shardHeader; currentHdr.GetNonce() > 0; {
-		if len(currentHdr.GetMetaBlockHashes()) == 0 {
-			shardHeader, err := e.syncPrevShardHeaderHandler(syncedHeaders, currentHdr)
-			if err != nil {
-				return nil, err
-			}
-
-			currentHdr = shardHeader
-			continue
-		}
-
-		numIncludedMetaHeaders := len(currentHdr.GetMetaBlockHashes())
-		if numIncludedMetaHeaders > 1 {
-			if len(firstPendingMetaHash) == 0 {
-				lastFinalizedRefMetaHash = currentHdr.GetMetaBlockHashes()[numIncludedMetaHeaders-2]
-				return lastFinalizedRefMetaHash, nil
-			}
-
-			if bytes.Equal(firstPendingMetaHash, currentHdr.GetMetaBlockHashes()[numIncludedMetaHeaders-1]) {
-				lastFinalizedRefMetaHash = currentHdr.GetMetaBlockHashes()[numIncludedMetaHeaders-2]
-				return lastFinalizedRefMetaHash, nil
-
-			}
-
-			lastFinalizedRefMetaHash = currentHdr.GetMetaBlockHashes()[numIncludedMetaHeaders-1]
-			return lastFinalizedRefMetaHash, nil
-		}
-
-		if len(firstPendingMetaHash) == 0 {
-			firstPendingMetaHash = currentHdr.GetMetaBlockHashes()[numIncludedMetaHeaders-1]
-
-			shardHeader, err := e.syncPrevShardHeaderHandler(syncedHeaders, currentHdr)
-			if err != nil {
-				return nil, err
-			}
-
-			currentHdr = shardHeader
-			continue
-		}
-
-		// if there is an included meta header, we consider it first pending meta hash
-		// and we have to go backwards to previous headers and find last finalized referenced meta hash.
-		// last finalized meta hash will be the first hash different from first pending meta hash
-
-		lastFinalizedMetaHash := currentHdr.GetMetaBlockHashes()[numIncludedMetaHeaders-1]
-		if !bytes.Equal(firstPendingMetaHash, lastFinalizedMetaHash) {
-			return lastFinalizedMetaHash, nil
-		}
-
-		shardHeader, err := e.syncPrevShardHeaderHandler(syncedHeaders, currentHdr)
-		if err != nil {
-			return nil, err
-		}
-
-		currentHdr = shardHeader
-	}
-
-	return lastFinalizedRefMetaHash, nil
 }
 
 func (e *epochStartBootstrap) syncEpochStartMetaHeaders(
