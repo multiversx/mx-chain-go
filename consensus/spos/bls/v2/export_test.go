@@ -371,6 +371,11 @@ func (sr *subroundEndRound) UpdateConsensusMetricsProof() {
 	sr.updateConsensusMetricsProof()
 }
 
+// UpdateNonceDeltaMetrics -
+func (sr *subroundEndRound) UpdateNonceDeltaMetrics() {
+	sr.updateNonceDeltaMetrics()
+}
+
 // PrepareBlockForExecution prepares the block for execution
 func (sr *subroundBlock) PrepareBlockForExecution(header data.HeaderHandler, body data.BodyHandler) error {
 	return sr.prepareBlockForExecution(header, body)

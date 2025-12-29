@@ -16,6 +16,7 @@ import (
 	"github.com/multiversx/mx-chain-go/dataRetriever"
 	"github.com/multiversx/mx-chain-go/storage"
 	"github.com/multiversx/mx-chain-go/testscommon/epochNotifier"
+	statusHandlerMock "github.com/multiversx/mx-chain-go/testscommon/statusHandler"
 	storageStubs "github.com/multiversx/mx-chain-go/testscommon/storage"
 
 	"github.com/multiversx/mx-chain-go/process/estimator"
@@ -4603,5 +4604,6 @@ func createMetaProcessorMapForCreatingEpochStart() map[string]interface{} {
 				return 1 // allow the inclusion of the first execution result
 			},
 		},
+		"appStatusHandler": &statusHandlerMock.AppStatusHandlerStub{},
 	}
 }
