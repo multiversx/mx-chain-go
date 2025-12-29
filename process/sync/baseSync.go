@@ -54,7 +54,7 @@ var _ closing.Closer = (*baseBootstrap)(nil)
 // sleepTime defines the time in milliseconds between each iteration made in syncBlocks method
 const sleepTime = 50 * time.Millisecond
 const minimumProcessWaitTime = time.Millisecond * 100
-const DefaultTimeToWaitForRequestedData = 5 * time.Minute
+const defaultTimeToWaitForRequestedData = 5 * time.Minute
 
 // hdrInfo hold the data related to a header
 type hdrInfo struct {
@@ -1057,7 +1057,7 @@ func (boot *baseBootstrap) syncMiniBlocksAndTxsForHeader(
 	header data.HeaderHandler,
 ) error {
 	boot.miniBlocksSyncer.ClearFields()
-	ctx, cancel := context.WithTimeout(context.Background(), DefaultTimeToWaitForRequestedData)
+	ctx, cancel := context.WithTimeout(context.Background(), defaultTimeToWaitForRequestedData)
 	err := boot.miniBlocksSyncer.SyncPendingMiniBlocks(header.GetMiniBlockHeaderHandlers(), ctx)
 	cancel()
 	if err != nil {
@@ -1071,12 +1071,9 @@ func (boot *baseBootstrap) syncMiniBlocksAndTxsForHeader(
 
 	// sync all txs into pools
 
+	ctx, cancel = context.WithTimeout(context.Background(), defaultTimeToWaitForRequestedData)
 	err = boot.txSyncer.SyncTransactionsFor(miniBlocks, header.GetEpoch(), ctx)
-	if err != nil {
-		return err
-	}
-
-	_, err = boot.txSyncer.GetTransactions()
+	cancel()
 	if err != nil {
 		return err
 	}
@@ -1153,7 +1150,7 @@ func (boot *baseBootstrap) prepareForSyncIfNeeded(
 		}
 
 		if withTxs {
-			err = boot.syncMiniBlocksAndTxsForHeader(currentHeader)
+			err = boot.syncMiniBlocksAndTxsForHeader(hdr)
 			if err != nil {
 				return err
 			}
