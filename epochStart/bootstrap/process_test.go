@@ -2870,6 +2870,7 @@ func TestEpochStartBoostrap_SyncHeadersV3FromMeta(t *testing.T) {
 			LastExecutionResult: &block.ExecutionResultInfo{
 				ExecutionResult: &block.BaseExecutionResult{
 					HeaderNonce: 10,
+					HeaderHash:  hdrHash3,
 				},
 			},
 		}
@@ -2881,6 +2882,7 @@ func TestEpochStartBoostrap_SyncHeadersV3FromMeta(t *testing.T) {
 		header3 := &block.HeaderV3{
 			Nonce:               10,
 			LastExecutionResult: &block.ExecutionResultInfo{},
+			MetaBlockHashes:     [][]byte{hdrHash4, lastExecMetaHash},
 		}
 
 		lastExecMeta := &block.MetaBlockV3{
