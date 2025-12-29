@@ -115,6 +115,11 @@ func NewMetaBootstrap(arguments ArgMetaBootstrapper) (*MetaBootstrap, error) {
 		return nil, err
 	}
 
+	err = base.createTxSyncer()
+	if err != nil {
+		return nil, err
+	}
+
 	base.init()
 
 	return &boot, nil

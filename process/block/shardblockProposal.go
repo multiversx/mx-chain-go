@@ -615,16 +615,15 @@ func (sp *shardProcessor) appendPendingMiniBlocksAddedAfterSelectingOutgoingTran
 	}
 
 	extraMiniBlocksAdded := make([]block.MiniblockAndHash, len(pendingIncomingMiniBlocksAdded))
-	extraHeadersReferenced := make(map[string]data.HeaderHandler)
 	for i, pendingMbAdded := range pendingIncomingMiniBlocksAdded {
-		miniBlockAndHash, headerHash, header, found := getIndexOfPendingMiniBlock(pendingMiniBlocksLeft, pendingMbAdded)
+		miniBlockAndHash, headerHash, header, found := findPendingMiniBlock(pendingMiniBlocksLeft, pendingMbAdded)
 		if !found {
 			log.Error("pending mini block added does not exists in the remaining pending list")
 			return process.ErrInvalidHash
 		}
 
 		extraMiniBlocksAdded[i] = miniBlockAndHash
-		extraHeadersReferenced[string(headerHash)] = header
+		sp.miniBlocksSelectionSession.AddReferencedHeader(header, headerHash)
 	}
 
 	err := sp.miniBlocksSelectionSession.AddMiniBlocksAndHashes(extraMiniBlocksAdded)
@@ -632,14 +631,10 @@ func (sp *shardProcessor) appendPendingMiniBlocksAddedAfterSelectingOutgoingTran
 		return err
 	}
 
-	for referencedHash, referencedHeader := range extraHeadersReferenced {
-		sp.miniBlocksSelectionSession.AddReferencedHeader(referencedHeader, []byte(referencedHash))
-	}
-
 	return nil
 }
 
-func getIndexOfPendingMiniBlock(
+func findPendingMiniBlock(
 	pendingMiniBlocksLeft []*pendingMiniBlocksAfterSelection,
 	pendingMbAdded data.MiniBlockHeaderHandler,
 ) (block.MiniblockAndHash, []byte, data.HeaderHandler, bool) {

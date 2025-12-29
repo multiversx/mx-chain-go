@@ -68,6 +68,8 @@ func TestPrepareBlockInfo(t *testing.T) {
 	presenterStatusHandler.SetUInt64Value(common.MetricAvgReceivedOrSentProposedBlock, 1_000_000)
 	presenterStatusHandler.SetUInt64Value(common.MetricAvgReceivedProof, 1_500_000)
 	presenterStatusHandler.SetUInt64Value(common.MetricNumTrackedBlocks, 100)
+	presenterStatusHandler.SetUInt64Value(common.MetricDeltaHeaderNonceLastExecutionResultNonce, 4)
+	presenterStatusHandler.SetUInt64Value(common.MetricNumInclusionEstimationRejected, 10)
 
 	wr := &WidgetsRender{
 		presenter: presenterStatusHandler,
@@ -83,10 +85,10 @@ func TestPrepareBlockInfo(t *testing.T) {
 	// Example: check one row
 	require.Contains(t, wr.blockInfo.Rows[0][0], fmt.Sprintf("Current block height: %d, size: %s", 42, "2.00 KB"))
 	require.Contains(t, wr.blockInfo.Rows[2][0], "hash")
-	require.Contains(t, wr.blockInfo.Rows[4][0], "Consensus state: ProposedBlock")
-	require.Contains(t, wr.blockInfo.Rows[5][0], "Consensus round state: Success")
-	require.Contains(t, wr.blockInfo.Rows[6][0], "Received proposed block: 0.002000 sec | Received proof: 0.003000 sec")
-	require.Contains(t, wr.blockInfo.Rows[7][0], "Avg Received proposed block: 0.001000 sec | Avg Received proof: 0.001500 sec")
+	require.Contains(t, wr.blockInfo.Rows[4][0], "Consensus state: ProposedBlock | Consensus round state: Success")
+	require.Contains(t, wr.blockInfo.Rows[5][0], "Received proposed block: 0.002000 sec | Received proof: 0.003000 sec")
+	require.Contains(t, wr.blockInfo.Rows[6][0], "Avg Received proposed block: 0.001000 sec | Avg Received proof: 0.001500 sec")
+	require.Contains(t, wr.blockInfo.Rows[7][0], "Delta header nonce - last execution result nonce: 4 | Rejected execution results: 10")
 	require.Contains(t, wr.blockInfo.Rows[8][0], "Current round timestamp: 123456")
 	require.Contains(t, wr.blockInfo.Rows[3][0], "Cross check: cross123, final nonce: 99")
 	require.Contains(t, wr.blockInfo.Rows[9][0], "Num tracked blocks: 100")

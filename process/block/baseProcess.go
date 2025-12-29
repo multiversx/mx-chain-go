@@ -3186,6 +3186,7 @@ func (bp *baseProcessor) checkInclusionEstimationForExecutionResults(header data
 		return process.ErrNonCanonicalExecutionResultIncluded
 	}
 	allowed := bp.executionResultsInclusionEstimator.Decide(lastResultData, executionResults, header.GetRound())
+	bp.updateInclusionEstimatorMetrics(len(executionResults), allowed)
 	if allowed != len(executionResults) {
 		log.Warn("number of execution results included in the header is not correct",
 			"expected", allowed,
@@ -3763,6 +3764,23 @@ func (bp *baseProcessor) getBlockBodyFromPool(
 	return &block.Body{MiniBlocks: miniBlocks}, nil
 }
 
+func (bp *baseProcessor) getHeaderFromHash(
+	isHeaderV3 bool,
+	headerHash []byte,
+	shardID uint32,
+) (data.HeaderHandler, error) {
+	if isHeaderV3 {
+		return process.GetHeader(headerHash, bp.dataPool.Headers(), bp.store, bp.marshalizer, shardID)
+	}
+
+	headerInfo, ok := bp.hdrsForCurrBlock.GetHeaderInfo(string(headerHash))
+	if !ok {
+		return nil, process.ErrMissingHeader
+	}
+
+	return headerInfo.GetHeader(), nil
+}
+
 func getProposedAndExecutedMiniBlockHeaders(
 	header data.HeaderHandler,
 ) ([]data.MiniBlockHeaderHandler, error) {
@@ -3779,4 +3797,13 @@ func getProposedAndExecutedMiniBlockHeaders(
 	miniBlockHeaders = append(miniBlockHeaders, execResultsMiniBlockHeaders...)
 
 	return miniBlockHeaders, nil
+}
+
+func (bp *baseProcessor) updateInclusionEstimatorMetrics(executionResultsLen int, allowed int) {
+	rejected, err := core.SafeSubUint64(uint64(executionResultsLen), uint64(allowed))
+	if err != nil {
+		rejected = uint64(executionResultsLen)
+	}
+
+	bp.appStatusHandler.SetUInt64Value(common.MetricNumInclusionEstimationRejected, rejected)
 }
