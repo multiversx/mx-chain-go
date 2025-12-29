@@ -1428,7 +1428,7 @@ func (sp *shardProcessor) snapShotEpochStartFromMeta(header data.ShardHeaderHand
 	accounts := sp.accountsDB[state.UserAccountsState]
 
 	for _, metaHash := range header.GetMetaBlockHashes() {
-		hdr, err := getHeaderFromHash(sp.dataPool.Headers(), sp.hdrsForCurrBlock, header.IsHeaderV3(), metaHash)
+		hdr, err := sp.getHeaderFromHash(header.IsHeaderV3(), metaHash, core.MetachainShardId)
 		if err != nil {
 			continue
 		}
@@ -1782,7 +1782,7 @@ func (sp *shardProcessor) addProcessedCrossMiniBlocksFromHeader(headerHandler da
 	}
 
 	for _, metaBlockHash := range shardHeader.GetMetaBlockHashes() {
-		hdr, err := getHeaderFromHash(sp.dataPool.Headers(), sp.hdrsForCurrBlock, shardHeader.IsHeaderV3(), metaBlockHash)
+		hdr, err := sp.getHeaderFromHash(shardHeader.IsHeaderV3(), metaBlockHash, core.MetachainShardId)
 		if err != nil {
 			return fmt.Errorf("%w : addProcessedCrossMiniBlocksFromHeader metaBlockHash = %s",
 				err, logger.DisplayByteSlice(metaBlockHash))
