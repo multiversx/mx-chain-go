@@ -515,8 +515,7 @@ func (gc *gasConsumption) CanAddPendingIncomingMiniBlocks() bool {
 	}
 
 	gasLeft := maxGasLimitPerBlock - totalGasConsumed
-	maxGasLimitPerMiniBlock := gc.maxGasLimitPerMiniBlock(gc.shardCoordinator.SelfId())
-	return totalGasToBeConsumedByPending+maxGasLimitPerMiniBlock < gasLeft
+	return totalGasToBeConsumedByPending < gasLeft
 }
 
 // DecreaseIncomingLimit reduces the gas limit for incoming mini blocks by a configured percentage
