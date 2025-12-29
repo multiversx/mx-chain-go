@@ -233,57 +233,49 @@ func (msh *metaStorageHandler) getLastMetaBootstrapInfo(
 	return bootstrapHdrInfoMeta, nil
 }
 
+func fetchPrevHeader(
+	syncedHeaders map[string]data.HeaderHandler,
+	header data.HeaderHandler,
+) (data.ShardHeaderHandler, error) {
+	prevHash := header.GetPrevHash()
+	syncedHeader, ok := syncedHeaders[string(prevHash)]
+	if !ok {
+		return nil, epochStart.ErrMissingHeader
+	}
+
+	shardHeader, ok := syncedHeader.(data.ShardHeaderHandler)
+	if !ok {
+		return nil, epochStart.ErrWrongTypeAssertion
+	}
+
+	return shardHeader, nil
+}
+
 func (msh *metaStorageHandler) getLastNotarizedBootstrapInfoForEpochStartData(
 	epochStartData data.EpochStartShardDataHandler,
 	syncedHeaders map[string]data.HeaderHandler,
 ) (bootstrapStorage.BootstrapHeaderInfo, error) {
-	lastFinishedMetaBlockHash := epochStartData.GetLastFinishedMetaBlock()
-	lastFinishedMetaBlock, ok := syncedHeaders[string(lastFinishedMetaBlockHash)]
-	if !ok {
-		return bootstrapStorage.BootstrapHeaderInfo{}, epochStart.ErrMissingHeader
-	}
-
 	shardHeaderHash := epochStartData.GetHeaderHash()
 	shardHeader, ok := syncedHeaders[string(shardHeaderHash)]
 	if !ok {
 		return bootstrapStorage.BootstrapHeaderInfo{}, epochStart.ErrMissingHeader
 	}
 
-	shardHeaderHandler, ok := shardHeader.(data.ShardHeaderHandler)
-	if !ok {
-		return bootstrapStorage.BootstrapHeaderInfo{}, epochStart.ErrWrongTypeAssertion
+	lastReferencedMetaHash, err := getLastReferencedMetaHash(syncedHeaders, fetchPrevHeader, shardHeader)
+	if err != nil {
+		return bootstrapStorage.BootstrapHeaderInfo{}, err
 	}
 
-	if len(shardHeaderHandler.GetMetaBlockHashes()) <= 0 {
-		return bootstrapStorage.BootstrapHeaderInfo{
-			ShardId: epochStartData.GetShardID(),
-			Epoch:   lastFinishedMetaBlock.GetEpoch(),
-			Nonce:   lastFinishedMetaBlock.GetNonce(),
-			Hash:    lastFinishedMetaBlockHash,
-		}, nil
-	}
-
-	metaHash := shardHeaderHandler.GetMetaBlockHashes()[0]
-	metaHeader, ok := syncedHeaders[string(metaHash)]
+	lastReferencesMetaBlock, ok := syncedHeaders[string(lastReferencedMetaHash)]
 	if !ok {
 		return bootstrapStorage.BootstrapHeaderInfo{}, epochStart.ErrMissingHeader
 	}
-
-	prevHash := metaHeader.GetPrevHash()
-
-	prevMetaHeader, ok := syncedHeaders[string(prevHash)]
-	if !ok {
-		return bootstrapStorage.BootstrapHeaderInfo{}, epochStart.ErrMissingHeader
-	}
-
-	lastFinishedMetaBlockHash = prevHash
-	lastFinishedMetaBlock = prevMetaHeader
 
 	bootstrapHdrInfo := bootstrapStorage.BootstrapHeaderInfo{
 		ShardId: epochStartData.GetShardID(),
-		Epoch:   lastFinishedMetaBlock.GetEpoch(),
-		Nonce:   lastFinishedMetaBlock.GetNonce(),
-		Hash:    lastFinishedMetaBlockHash,
+		Epoch:   lastReferencesMetaBlock.GetEpoch(),
+		Nonce:   lastReferencesMetaBlock.GetNonce(),
+		Hash:    lastReferencedMetaHash,
 	}
 
 	return bootstrapHdrInfo, nil
