@@ -717,20 +717,19 @@ func (e *epochStartBootstrap) syncHeadersV3From(meta data.MetaHeaderHandler) (ma
 	return syncedHeaders, nil
 }
 
-func (e *epochStartBootstrap) syncIntermediateMetaBlocksIfNeeded(
+func (e *epochStartBootstrap) syncIntermediateBlocksIfNeeded(
 	syncedHeaders map[string]data.HeaderHandler,
-	epochStartMeta data.HeaderHandler,
-	lastFinishedMetaForShard data.HeaderHandler,
+	header data.HeaderHandler,
+	lastExecutedNonce uint64,
 ) error {
-	hashToSync := epochStartMeta.GetPrevHash()
-	currNonce := epochStartMeta.GetNonce()
+	hashToSync := header.GetPrevHash()
+	currNonce := header.GetNonce()
 
-	lastFinishedNonce := lastFinishedMetaForShard.GetNonce()
-	if lastFinishedNonce >= currNonce {
+	if lastExecutedNonce >= currNonce {
 		return nil
 	}
 
-	for currNonce > lastFinishedNonce {
+	for currNonce > lastExecutedNonce {
 		// check if not already synced (when handled for the other shards)
 		header, ok := syncedHeaders[string(hashToSync)]
 		if ok {
@@ -786,7 +785,7 @@ func (e *epochStartBootstrap) syncEpochStartDataInfo(
 	syncedHeaders[string(epochStartData.GetLastFinishedMetaBlock())] = lastFinishedMetaBlockForShard
 
 	// sync meta blocks from epoch start meta blocks up to last finished metablock referenced on shard
-	return e.syncIntermediateMetaBlocksIfNeeded(syncedHeaders, epochStartMeta, lastFinishedMetaBlockForShard)
+	return e.syncIntermediateBlocksIfNeeded(syncedHeaders, epochStartMeta, lastFinishedMetaBlockForShard.GetNonce())
 }
 
 func (e *epochStartBootstrap) syncLastNotarizedMetaForEpochStartData(
@@ -1029,28 +1028,7 @@ func (e *epochStartBootstrap) requestBlocksUpToLastExecuted(
 		return err
 	}
 
-	baseHeaderNonce := header.GetNonce()
-	lastExecutedNonce := lastExecutionResult.GetHeaderNonce()
-
-	if lastExecutedNonce >= baseHeaderNonce {
-		return nil
-	}
-
-	headerHashToSync := header.GetPrevHash()
-	currentNonce := baseHeaderNonce
-	for currentNonce > lastExecutedNonce {
-		syncedHeader, err := e.syncOneHeader(headerHashToSync, shardID)
-		if err != nil {
-			return err
-		}
-
-		syncedHeaders[string(headerHashToSync)] = syncedHeader
-
-		headerHashToSync = syncedHeader.GetPrevHash()
-		currentNonce = syncedHeader.GetNonce()
-	}
-
-	return nil
+	return e.syncIntermediateBlocksIfNeeded(syncedHeaders, header, lastExecutionResult.GetHeaderNonce())
 }
 
 func (e *epochStartBootstrap) syncOneHeader(

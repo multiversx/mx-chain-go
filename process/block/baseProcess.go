@@ -3765,14 +3765,14 @@ func (bp *baseProcessor) getBlockBodyFromPool(
 
 func (bp *baseProcessor) getHeaderFromHash(
 	isHeaderV3 bool,
-	shardHeaderHash []byte,
+	headerHash []byte,
 	shardID uint32,
 ) (data.HeaderHandler, error) {
 	if isHeaderV3 {
-		return process.GetHeader(shardHeaderHash, bp.dataPool.Headers(), bp.store, bp.marshalizer, shardID)
+		return process.GetHeader(headerHash, bp.dataPool.Headers(), bp.store, bp.marshalizer, shardID)
 	}
 
-	headerInfo, ok := bp.hdrsForCurrBlock.GetHeaderInfo(string(shardHeaderHash))
+	headerInfo, ok := bp.hdrsForCurrBlock.GetHeaderInfo(string(headerHash))
 	if !ok {
 		return nil, process.ErrMissingHeader
 	}

@@ -190,7 +190,6 @@ func (msh *metaStorageHandler) getLastSelfNotarizedHeaders(
 	}
 
 	for _, epochStartData := range epochStartMeta.GetEpochStartHandler().GetLastFinalizedHeaderHandlers() {
-
 		bootstrapHdrInfo, err := msh.getLastNotarizedBootstrapInfoForEpochStartData(epochStartData, syncedHeaders)
 		if err != nil {
 			return nil, err
