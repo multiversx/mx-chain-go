@@ -829,26 +829,28 @@ func getLastReferencedMetaHash(
 		return nil, epochStart.ErrWrongTypeAssertion
 	}
 
+	var lastReferencedMetaHash []byte
+
 	currentHdr := lastExecutedShardHeader
-	for {
+	for currentHdr.GetNonce() > 0 {
 		numIncludedMetaBlocks := len(currentHdr.GetMetaBlockHashes())
 
-		// if there are no included meta blocks, go to prev header
-		if numIncludedMetaBlocks == 0 {
-			header, err := fetchPrevHeader(syncedHeaders, currentHdr)
-			if err != nil {
-				return nil, err
-			}
-
-			currentHdr = header
-			continue
+		// if there are notarized meta headers, return last included meta header
+		if numIncludedMetaBlocks > 0 {
+			lastReferencedMetaHash = currentHdr.GetMetaBlockHashes()[numIncludedMetaBlocks-1]
+			break
 		}
 
-		// if there are notarized meta headers, return last included meta header
-		metaHash := currentHdr.GetMetaBlockHashes()[numIncludedMetaBlocks-1]
+		// if there are no included meta blocks, go to prev header
+		header, err := fetchPrevHeader(syncedHeaders, currentHdr)
+		if err != nil {
+			return nil, err
+		}
 
-		return metaHash, nil
+		currentHdr = header
 	}
+
+	return lastReferencedMetaHash, nil
 }
 
 func (e *epochStartBootstrap) syncPrevShardHeaderHandler(
