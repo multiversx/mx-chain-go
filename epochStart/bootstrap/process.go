@@ -142,7 +142,6 @@ type epochStartBootstrap struct {
 	headersSyncer                   epochStart.HeadersByHashSyncer
 	epochStartShardHeaderSyncer     epochStart.PendingEpochStartShardHeaderSyncer
 	txSyncerForScheduled            update.TransactionsSyncHandler
-	txSyncer                        update.TransactionsSyncHandler
 	epochStartMetaBlockSyncer       epochStart.StartOfEpochMetaSyncer
 	nodesConfigHandler              StartOfEpochNodesConfigHandler
 	whiteListHandler                update.WhiteListHandler
@@ -688,17 +687,6 @@ func (e *epochStartBootstrap) createSyncers() error {
 		return err
 	}
 
-	syncTxsArgs = updateSync.ArgsNewTransactionsSyncer{
-		DataPools:      e.dataPool,
-		Storages:       disabled.NewChainStorer(),
-		Marshaller:     e.coreComponentsHolder.InternalMarshalizer(),
-		RequestHandler: e.requestHandler,
-	}
-	e.txSyncer, err = updateSync.NewTransactionsSyncer(syncTxsArgs)
-	if err != nil {
-		return err
-	}
-
 	return nil
 }
 
@@ -962,37 +950,6 @@ func (e *epochStartBootstrap) syncOneHeader(
 	}
 
 	return syncedHeader, nil
-}
-
-func (e *epochStartBootstrap) syncMiniBlocksAndTxsForHeader(
-	header data.HeaderHandler,
-) error {
-	e.miniBlocksSyncer.ClearFields()
-	ctx, cancel := context.WithTimeout(context.Background(), DefaultTimeToWaitForRequestedData)
-	err := e.miniBlocksSyncer.SyncPendingMiniBlocks(header.GetMiniBlockHeaderHandlers(), ctx)
-	cancel()
-	if err != nil {
-		return err
-	}
-
-	miniBlocks, err := e.miniBlocksSyncer.GetMiniBlocks()
-	if err != nil {
-		return err
-	}
-
-	// get all txs
-
-	err = e.txSyncer.SyncTransactionsFor(miniBlocks, header.GetEpoch(), ctx)
-	if err != nil {
-		return err
-	}
-
-	_, err = e.txSyncer.GetTransactions()
-	if err != nil {
-		return err
-	}
-
-	return nil
 }
 
 // requestAndProcessing will handle requesting and receiving the needed information the node will bootstrap from
