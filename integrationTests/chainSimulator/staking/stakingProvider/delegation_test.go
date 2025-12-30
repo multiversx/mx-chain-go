@@ -154,14 +154,6 @@ func TestChainSimulator_MakeNewContractFromValidatorData(t *testing.T) {
 
 				cfg.EpochConfig.EnableEpochs.AndromedaEnableEpoch = 1
 				cfg.EpochConfig.EnableEpochs.SupernovaEnableEpoch = 100
-				cfg.RoundConfig.RoundActivations = map[string]config.ActivationRoundByName{
-					"DisableAsyncCallV1": {
-						Round: "9999999",
-					},
-					"SupernovaEnableRound": {
-						Round: "1000",
-					},
-				}
 			},
 		})
 		require.Nil(t, err)
@@ -324,7 +316,7 @@ func testChainSimulatorMakeNewContractFromValidatorData(t *testing.T, cs chainSi
 	delegator2, err := cs.GenerateAndMintWalletAddress(core.AllShardId, mintValue)
 	require.Nil(t, err)
 
-	err = cs.GenerateBlocks(1)
+	err = cs.GenerateBlocks(2)
 	require.Nil(t, err)
 
 	log.Info("working with the following addresses",
