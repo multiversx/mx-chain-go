@@ -407,11 +407,6 @@ func (mp *metaProcessor) ProcessBlockProposal(
 		return nil, err
 	}
 
-	err = mp.blockProcessingCutoffHandler.HandleProcessErrorCutoff(header)
-	if err != nil {
-		return nil, err
-	}
-
 	var headerHash []byte
 	headerHash, err = core.CalculateHash(mp.marshalizer, mp.hasher, header)
 	if err != nil {
@@ -420,6 +415,11 @@ func (mp *metaProcessor) ProcessBlockProposal(
 
 	// in case of error, will be picked up by the deferred revert
 	execResult, err = mp.collectExecutionResults(headerHash, header, body, valStatRootHash)
+	if err != nil {
+		return nil, err
+	}
+
+	err = mp.blockProcessingCutoffHandler.HandleProcessErrorCutoff(header)
 	if err != nil {
 		return nil, err
 	}
@@ -474,17 +474,17 @@ func (mp *metaProcessor) processEpochStartProposeBlock(
 		return nil, err
 	}
 
-	err = mp.blockProcessingCutoffHandler.HandleProcessErrorCutoff(metaHeader)
-	if err != nil {
-		return nil, err
-	}
-
 	headerHash, err := core.CalculateHash(mp.marshalizer, mp.hasher, metaHeader)
 	if err != nil {
 		return nil, err
 	}
 
 	execResult, err := mp.collectExecutionResultsEpochStartProposal(headerHash, metaHeader, constructedBody, valStatRootHash)
+	if err != nil {
+		return nil, err
+	}
+
+	err = mp.blockProcessingCutoffHandler.HandleProcessErrorCutoff(metaHeader)
 	if err != nil {
 		return nil, err
 	}
