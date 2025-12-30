@@ -24,7 +24,6 @@ import (
 	logger "github.com/multiversx/mx-chain-logger-go"
 
 	"github.com/multiversx/mx-chain-go/epochStart"
-	"github.com/multiversx/mx-chain-go/epochStart/bootstrap/disabled"
 	"github.com/multiversx/mx-chain-go/process/asyncExecution/queue"
 	"github.com/multiversx/mx-chain-go/update"
 	updateSync "github.com/multiversx/mx-chain-go/update/sync"
@@ -1114,11 +1113,6 @@ func (boot *baseBootstrap) prepareForSyncIfNeeded(
 			}
 		}
 
-		err = boot.saveProposedTxsToPool(currentHeader, currentBody)
-		if err != nil {
-			return err
-		}
-
 		errOnProposedBlock := boot.blockProcessor.OnProposedBlock(
 			currentBody,
 			currentHeader,
@@ -1155,11 +1149,6 @@ func (boot *baseBootstrap) prepareForSyncIfNeeded(
 			if err != nil {
 				return err
 			}
-		}
-
-		err = boot.saveProposedTxsToPool(hdr, body)
-		if err != nil {
-			return err
 		}
 
 		errOnProposedBlock := boot.blockProcessor.OnProposedBlock(
@@ -1235,80 +1224,6 @@ func (boot *baseBootstrap) getExecutionResultHeaderNonceForSyncStart(
 	log.Debug("getExecutionResultHeaderNonceForSyncStart", "lastExecutionResultNonce", lastExecutionResultNonce)
 
 	return lastExecutionResultNonce, nil
-}
-
-func (boot *baseBootstrap) saveProposedTxsToPool(
-	header data.HeaderHandler,
-	body data.BodyHandler,
-) error {
-	if !header.IsHeaderV3() {
-		return nil
-	}
-
-	bodyPtr, ok := body.(*block.Body)
-	if !ok {
-		return process.ErrWrongTypeAssertion
-	}
-
-	separatedBodies := process.SeparateBodyByType(bodyPtr)
-
-	for blockType, blockBody := range separatedBodies {
-		dataPool, err := process.GetDataPoolByBlockType(blockType, boot.dataPool)
-		if err != nil {
-			return err
-		}
-
-		unit, err := process.GetStorageUnitByBlockType(blockType)
-		if err != nil {
-			return err
-		}
-
-		storer, err := boot.store.GetStorer(unit)
-		if err != nil {
-			return err
-		}
-
-		for i := 0; i < len(blockBody.MiniBlocks); i++ {
-			miniBlock := blockBody.MiniBlocks[i]
-			err = boot.saveTxsToPool(dataPool, storer, miniBlock, blockType)
-			if err != nil {
-				return err
-			}
-		}
-	}
-
-	return nil
-}
-
-func (boot *baseBootstrap) saveTxsToPool(
-	dataPool dataRetriever.ShardedDataCacherNotifier,
-	storer storage.Storer,
-	miniBlock *block.MiniBlock,
-	blockType block.Type,
-) error {
-	txHashes := miniBlock.TxHashes
-
-	for _, txHash := range txHashes {
-		txBuff, err := storer.Get(txHash)
-		if err != nil {
-			return err
-		}
-
-		tx, err := boot.unmarshalTxByBlockType(blockType, txBuff)
-		if err != nil {
-			return err
-		}
-
-		cacherIdentifier := process.ShardCacherIdentifier(miniBlock.SenderShardID, miniBlock.ReceiverShardID)
-		dataPool.AddData(
-			txHash,
-			tx,
-			tx.Size(),
-			cacherIdentifier,
-		)
-	}
-
-	return nil
 }
 
 func (boot *baseBootstrap) unmarshalTxByBlockType(
@@ -2267,8 +2182,13 @@ func (boot *baseBootstrap) IsInterfaceNil() bool {
 func (boot *baseBootstrap) createTxSyncer() error {
 	var err error
 
+	miniBlocksStorer, err := boot.store.GetStorer(dataRetriever.MiniBlockUnit)
+	if err != nil {
+		return err
+	}
+
 	syncMiniBlocksArgs := updateSync.ArgsNewPendingMiniBlocksSyncer{
-		Storage:        disabled.CreateMemUnit(),
+		Storage:        miniBlocksStorer,
 		Cache:          boot.dataPool.MiniBlocks(),
 		Marshalizer:    boot.marshalizer,
 		RequestHandler: boot.requestHandler,
