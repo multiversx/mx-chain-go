@@ -1593,6 +1593,7 @@ type GasComputation interface {
 	ZeroOutgoingLimit()
 	ResetIncomingLimit()
 	ResetOutgoingLimit()
+	CanAddPendingIncomingMiniBlocks() bool
 	Reset()
 	IsInterfaceNil() bool
 }

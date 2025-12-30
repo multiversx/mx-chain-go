@@ -1015,3 +1015,173 @@ func TestGasConsumption_ConcurrentOps(t *testing.T) {
 		wg.Wait()
 	})
 }
+
+func TestGasConsumption_CanAddPendingIncomingMiniBlocks(t *testing.T) {
+	t.Parallel()
+
+	t.Run("no pending mini blocks, block partially filled should return true", func(t *testing.T) {
+		t.Parallel()
+
+		gc, _ := block.NewGasConsumption(getMockArgsGasConsumption())
+		require.NotNil(t, gc)
+
+		// add some mini blocks but no pending ones
+		mbs := generateMiniBlocks(3, 5)
+		txs := generateTxsForMiniBlocks(mbs)
+		lastMbIndex, pendingMbs, err := gc.AddIncomingMiniBlocks(mbs, txs)
+		require.NoError(t, err)
+		require.Equal(t, 2, lastMbIndex)
+		require.Zero(t, pendingMbs)
+
+		// no pending mini blocks, enough space left, should return true
+		require.True(t, gc.CanAddPendingIncomingMiniBlocks())
+	})
+
+	t.Run("pending mini blocks can fit in remaining space", func(t *testing.T) {
+		t.Parallel()
+
+		gc, _ := block.NewGasConsumption(getMockArgsGasConsumption())
+		require.NotNil(t, gc)
+
+		// add mini blocks to create some pending ones
+		// maxGasLimitPerBlock = 400, half * 200% = 400 for incoming
+		// 5 txs * 10 gas = 50 per mb
+		// 8 mbs will consume 400, leaving 2 as pending with total 100 gas
+		mbs := generateMiniBlocks(10, 5)
+		txs := generateTxsForMiniBlocks(mbs)
+		lastMbIndex, pendingMbs, err := gc.AddIncomingMiniBlocks(mbs, txs)
+		require.NoError(t, err)
+		require.Equal(t, 7, lastMbIndex)
+		require.Equal(t, 2, pendingMbs)
+
+		// pending mini blocks consume 100 gas (2 mbs * 5 txs * 10 gas)
+		// max limit is 400, consumed is 400, but we have the full tx space available (400)
+		require.True(t, gc.CanAddPendingIncomingMiniBlocks())
+	})
+
+	t.Run("pending mini blocks cannot fit in remaining space", func(t *testing.T) {
+		t.Parallel()
+
+		gc, _ := block.NewGasConsumption(getMockArgsGasConsumption())
+		require.NotNil(t, gc)
+
+		// add mini blocks to create pending ones
+		mbs := generateMiniBlocks(10, 5)
+		txs := generateTxsForMiniBlocks(mbs)
+		lastMbIndex, pendingMbs, err := gc.AddIncomingMiniBlocks(mbs, txs)
+		require.NoError(t, err)
+		require.Equal(t, 7, lastMbIndex)
+		require.Equal(t, 2, pendingMbs)
+
+		// now fill the transaction space to leave very little room
+		// maxGasLimitPerBlock = 400, half * 200% = 400 for txs
+		// add 39 txs (390 gas), leaving only 10 gas available
+		// already pending mbs need 100 gas, so one more mini block won't fit
+		txHashes, txsOutgoing := generateTxs(maxGasLimitPerTx, 39)
+		_, _, err = gc.AddOutgoingTransactions(txHashes, txsOutgoing)
+		require.NoError(t, err)
+
+		// pending mini blocks consume 100 gas
+		// total consumed = 400 (incoming) + 390 (outgoing) = 790
+		// total block limit is 400 * 2 = 800
+		// gasLeft = 800 - 790 = 10
+		// maxGasLimitPerMiniBlock (100) > gasLeft (10)
+		require.False(t, gc.CanAddPendingIncomingMiniBlocks())
+	})
+
+	t.Run("block is full, no space for pending", func(t *testing.T) {
+		t.Parallel()
+
+		gc, _ := block.NewGasConsumption(getMockArgsGasConsumption())
+		require.NotNil(t, gc)
+
+		// add mini blocks to create pending ones
+		mbs := generateMiniBlocks(10, 5)
+		txs := generateTxsForMiniBlocks(mbs)
+		lastMbIndex, pendingMbs, err := gc.AddIncomingMiniBlocks(mbs, txs)
+		require.NoError(t, err)
+		require.Equal(t, 7, lastMbIndex)
+		require.Equal(t, 2, pendingMbs)
+
+		// fill the transaction space completely
+		txHashes, txsOutgoing := generateTxs(maxGasLimitPerTx, 40)
+		_, _, err = gc.AddOutgoingTransactions(txHashes, txsOutgoing)
+		require.NoError(t, err)
+
+		require.False(t, gc.CanAddPendingIncomingMiniBlocks())
+	})
+
+	t.Run("pending mini blocks exactly fit in remaining space", func(t *testing.T) {
+		t.Parallel()
+
+		gc, _ := block.NewGasConsumption(getMockArgsGasConsumption())
+		require.NotNil(t, gc)
+
+		// add mini blocks to create pending ones
+		mbs := generateMiniBlocks(10, 5)
+		txs := generateTxsForMiniBlocks(mbs)
+		lastMbIndex, pendingMbs, err := gc.AddIncomingMiniBlocks(mbs, txs)
+		require.NoError(t, err)
+		require.Equal(t, 7, lastMbIndex)
+		require.Equal(t, 2, pendingMbs)
+
+		// add 30 txs (300 gas) to leave exactly 100 gas
+		txHashes, txsOutgoing := generateTxs(maxGasLimitPerTx, 30)
+		_, _, err = gc.AddOutgoingTransactions(txHashes, txsOutgoing)
+		require.NoError(t, err)
+
+		// pending mini blocks consume 100 gas
+		// total consumed = 400 (incoming) + 300 (outgoing) = 700
+		// total block limit = 800
+		// gasLeft = 800 - 700 = 100
+		// space enough for already added pending mini blocks
+		require.False(t, gc.CanAddPendingIncomingMiniBlocks())
+	})
+
+	t.Run("after incoming limit is zeroed, should return false", func(t *testing.T) {
+		t.Parallel()
+
+		gc, _ := block.NewGasConsumption(getMockArgsGasConsumption())
+		require.NotNil(t, gc)
+
+		// add mini blocks to create pending ones
+		mbs := generateMiniBlocks(10, 5)
+		txs := generateTxsForMiniBlocks(mbs)
+		lastMbIndex, pendingMbs, err := gc.AddIncomingMiniBlocks(mbs, txs)
+		require.NoError(t, err)
+		require.Equal(t, 7, lastMbIndex)
+		require.Equal(t, 2, pendingMbs)
+
+		// zero the incoming limit
+		gc.ZeroIncomingLimit()
+
+		require.False(t, gc.CanAddPendingIncomingMiniBlocks())
+	})
+
+	t.Run("with transactions added leaving enough space for pending", func(t *testing.T) {
+		t.Parallel()
+
+		gc, _ := block.NewGasConsumption(getMockArgsGasConsumption())
+		require.NotNil(t, gc)
+
+		// add mini blocks to create pending ones
+		mbs := generateMiniBlocks(10, 5)
+		txs := generateTxsForMiniBlocks(mbs)
+		lastMbIndex, pendingMbs, err := gc.AddIncomingMiniBlocks(mbs, txs)
+		require.NoError(t, err)
+		require.Equal(t, 7, lastMbIndex)
+		require.Equal(t, 2, pendingMbs)
+
+		// add only 10 txs (100 gas), leaving 300 gas available
+		txHashes, txsOutgoing := generateTxs(maxGasLimitPerTx, 10)
+		_, _, err = gc.AddOutgoingTransactions(txHashes, txsOutgoing)
+		require.NoError(t, err)
+
+		// pending mini blocks consume 100 gas
+		// total consumed = 400 (incoming) + 100 (outgoing) = 500
+		// total block limit = 800
+		// gasLeft = 800 - 500 = 300
+		// should allow 2 more mini blocks
+		require.True(t, gc.CanAddPendingIncomingMiniBlocks())
+	})
+}

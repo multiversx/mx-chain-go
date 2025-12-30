@@ -134,6 +134,12 @@ func (tc *transactionCoordinator) CreateMbsCrossShardDstMe(
 	// if not all mini blocks were included, remove them from the miniBlocksAndHashes slice
 	// but add them into pendingMiniBlocksAndHashes
 	if lastMBIndex < len(mbsSlice)-1 {
+		log.Debug("transactionCoordinator.CreateMbsCrossShardDstMe: could not select all mini blocks, saving them as pending", "lastMBIndex", lastMBIndex)
+
+		for _, mbAndHash := range miniBlocksAndHashes[lastMBIndex+1:] {
+			numTransactions -= uint32(len(mbAndHash.Miniblock.TxHashes))
+		}
+
 		pendingMiniBlocksAndHashes = miniBlocksAndHashes[lastMBIndex+1:]
 		miniBlocksAndHashes = miniBlocksAndHashes[:lastMBIndex+1]
 	}
