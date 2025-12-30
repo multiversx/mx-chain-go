@@ -118,7 +118,7 @@ func createMockConsensusComponentsFactoryArgs() consensusComp.ConsensusComponent
 				},
 			},
 			MbProvider: &testsMocks.MiniBlocksProviderStub{},
-			Store:      &genericMocks.ChainStorerMock{},
+			Store:      genericMocks.NewChainStorerMock(0),
 		},
 		ProcessComponents: &testsMocks.ProcessComponentsStub{
 			EpochTrigger:                  &testsMocks.EpochStartTriggerStub{},
