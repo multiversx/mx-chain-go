@@ -369,18 +369,20 @@ func (sp *shardProcessor) ProcessBlockProposal(
 		return nil, err
 	}
 
-	errCutoff := sp.blockProcessingCutoffHandler.HandleProcessErrorCutoff(header)
-	if errCutoff != nil {
-		return nil, errCutoff
-	}
-
 	// TODO: should receive the header hash instead of re-computing it
-	headerHash, err := core.CalculateHash(sp.marshalizer, sp.hasher, header)
+	var headerHash []byte
+	headerHash, err = core.CalculateHash(sp.marshalizer, sp.hasher, header)
 	if err != nil {
 		return nil, err
 	}
 
-	executionResult, err := sp.collectExecutionResults(headerHash, header, body)
+	var executionResult data.BaseExecutionResultHandler
+	executionResult, err = sp.collectExecutionResults(headerHash, header, body)
+	if err != nil {
+		return nil, err
+	}
+
+	err = sp.blockProcessingCutoffHandler.HandleProcessErrorCutoff(header)
 	if err != nil {
 		return nil, err
 	}
