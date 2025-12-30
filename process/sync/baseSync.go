@@ -825,7 +825,7 @@ func (boot *baseBootstrap) prepareForSyncAtBoostrapIfNeeded() error {
 		"currHeader nonce", currentHeader.GetNonce(),
 	)
 
-	err := boot.prepareForSyncIfNeeded(syncingNonce, true)
+	err := boot.prepareForSyncIfNeeded(syncingNonce)
 	if err != nil {
 		return err
 	}
@@ -997,7 +997,7 @@ func (boot *baseBootstrap) prepareForLegacySyncIfNeeded() error {
 // Finally, if everything works, the block will be committed and added into the processing queue.
 // And all this mechanism will be reiterated for the next block.
 func (boot *baseBootstrap) syncBlockV3(body data.BodyHandler, header data.HeaderHandler) error {
-	err := boot.prepareForSyncIfNeeded(header.GetNonce(), false)
+	err := boot.prepareForSyncIfNeeded(header.GetNonce())
 	if err != nil {
 		return err
 	}
@@ -1083,7 +1083,6 @@ func (boot *baseBootstrap) syncMiniBlocksAndTxsForHeader(
 
 func (boot *baseBootstrap) prepareForSyncIfNeeded(
 	syncingNonce uint64,
-	withTxs bool,
 ) error {
 	if boot.preparedForSync {
 		return nil
@@ -1106,11 +1105,9 @@ func (boot *baseBootstrap) prepareForSyncIfNeeded(
 			return errGetBody
 		}
 
-		if withTxs {
-			err = boot.syncMiniBlocksAndTxsForHeader(currentHeader)
-			if err != nil {
-				return err
-			}
+		err = boot.syncMiniBlocksAndTxsForHeader(currentHeader)
+		if err != nil {
+			return err
 		}
 
 		errOnProposedBlock := boot.blockProcessor.OnProposedBlock(
@@ -1144,11 +1141,9 @@ func (boot *baseBootstrap) prepareForSyncIfNeeded(
 			return errGetBody
 		}
 
-		if withTxs {
-			err = boot.syncMiniBlocksAndTxsForHeader(hdr)
-			if err != nil {
-				return err
-			}
+		err = boot.syncMiniBlocksAndTxsForHeader(hdr)
+		if err != nil {
+			return err
 		}
 
 		errOnProposedBlock := boot.blockProcessor.OnProposedBlock(
