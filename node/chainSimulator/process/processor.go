@@ -47,6 +47,7 @@ func (creator *blocksCreator) IncrementRound() {
 	manual.IncrementIndex()
 
 	creator.nodeHandler.GetStatusCoreComponents().AppStatusHandler().SetUInt64Value(common.MetricCurrentRound, uint64(roundHandler.Index()))
+	creator.nodeHandler.GetStatusCoreComponents().AppStatusHandler().SetUInt64Value(common.MetricRoundDuration, uint64(roundHandler.TimeDuration().Milliseconds()))
 }
 
 func (creator *blocksCreator) createHeaderBasedOnRound(round uint64, nonce uint64) (data.HeaderHandler, error) {
