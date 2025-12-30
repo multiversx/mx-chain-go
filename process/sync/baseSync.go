@@ -1071,6 +1071,7 @@ func (boot *baseBootstrap) syncMiniBlocksAndTxsForHeader(
 
 	// sync all txs into pools
 
+	boot.txSyncer.ClearFields()
 	ctx, cancel = context.WithTimeout(context.Background(), defaultTimeToWaitForRequestedData)
 	err = boot.txSyncer.SyncTransactionsFor(miniBlocks, header.GetEpoch(), ctx)
 	cancel()
