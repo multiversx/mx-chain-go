@@ -154,6 +154,14 @@ func TestChainSimulator_MakeNewContractFromValidatorData(t *testing.T) {
 
 				cfg.EpochConfig.EnableEpochs.AndromedaEnableEpoch = 1
 				cfg.EpochConfig.EnableEpochs.SupernovaEnableEpoch = 100
+				cfg.RoundConfig.RoundActivations = map[string]config.ActivationRoundByName{
+					"DisableAsyncCallV1": {
+						Round: "9999999",
+					},
+					"SupernovaEnableRound": {
+						Round: "1000",
+					},
+				}
 			},
 		})
 		require.Nil(t, err)
