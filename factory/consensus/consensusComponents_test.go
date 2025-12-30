@@ -9,8 +9,9 @@ import (
 	"github.com/multiversx/mx-chain-core-go/core"
 	"github.com/multiversx/mx-chain-core-go/data"
 	crypto "github.com/multiversx/mx-chain-crypto-go"
-	"github.com/multiversx/mx-chain-go/testscommon/processMocks"
 	"github.com/stretchr/testify/require"
+
+	"github.com/multiversx/mx-chain-go/testscommon/processMocks"
 
 	"github.com/multiversx/mx-chain-go/common"
 	"github.com/multiversx/mx-chain-go/consensus"
@@ -118,7 +119,7 @@ func createMockConsensusComponentsFactoryArgs() consensusComp.ConsensusComponent
 				},
 			},
 			MbProvider: &testsMocks.MiniBlocksProviderStub{},
-			Store:      &genericMocks.ChainStorerMock{},
+			Store:      genericMocks.NewChainStorerMock(0),
 		},
 		ProcessComponents: &testsMocks.ProcessComponentsStub{
 			EpochTrigger:                  &testsMocks.EpochStartTriggerStub{},
