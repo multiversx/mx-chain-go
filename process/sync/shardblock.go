@@ -101,6 +101,11 @@ func NewShardBootstrap(arguments ArgShardBootstrapper) (*ShardBootstrap, error) 
 		return nil, err
 	}
 
+	err = base.createTxSyncer()
+	if err != nil {
+		return nil, err
+	}
+
 	base.init()
 
 	return &boot, nil
