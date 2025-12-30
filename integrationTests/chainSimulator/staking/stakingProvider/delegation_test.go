@@ -316,7 +316,7 @@ func testChainSimulatorMakeNewContractFromValidatorData(t *testing.T, cs chainSi
 	delegator2, err := cs.GenerateAndMintWalletAddress(core.AllShardId, mintValue)
 	require.Nil(t, err)
 
-	err = cs.GenerateBlocks(1)
+	err = cs.GenerateBlocks(2)
 	require.Nil(t, err)
 
 	log.Info("working with the following addresses",
