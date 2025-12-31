@@ -284,7 +284,7 @@ func (msh *metaStorageHandler) saveEpochStartMetaHdrs(components *ComponentsNeed
 	for _, hdr := range components.Headers {
 		isForCurrentShard := hdr.GetShardID() == msh.shardCoordinator.SelfId()
 		if !isForCurrentShard {
-			_, err := msh.saveShardHdrToStorage(hdr)
+			_, err := msh.saveShardHdrToStorageWithoutEpochStartHandling(hdr)
 			if err != nil {
 				return err
 			}
@@ -299,6 +299,43 @@ func (msh *metaStorageHandler) saveEpochStartMetaHdrs(components *ComponentsNeed
 	}
 
 	return nil
+}
+
+func (msh *metaStorageHandler) saveShardHdrToStorageWithoutEpochStartHandling(hdr data.HeaderHandler) ([]byte, error) {
+	headerBytes, err := msh.marshalizer.Marshal(hdr)
+	if err != nil {
+		return nil, err
+	}
+
+	headerHash := msh.hasher.Compute(string(headerBytes))
+
+	shardHdrStorage, err := msh.storageService.GetStorer(dataRetriever.BlockHeaderUnit)
+	if err != nil {
+		return nil, err
+	}
+
+	err = shardHdrStorage.Put(headerHash, headerBytes)
+	if err != nil {
+		return nil, err
+	}
+
+	nonceToByteSlice := msh.uint64Converter.ToByteSlice(hdr.GetNonce())
+	shardHdrNonceStorage, err := msh.storageService.GetStorer(dataRetriever.GetHdrNonceHashDataUnit(hdr.GetShardID()))
+	if err != nil {
+		return nil, err
+	}
+
+	err = shardHdrNonceStorage.Put(nonceToByteSlice, headerHash)
+	if err != nil {
+		return nil, err
+	}
+
+	err = msh.saveProofToStorage(hdr.GetShardID(), headerHash, hdr)
+	if err != nil {
+		return nil, err
+	}
+
+	return headerHash, nil
 }
 
 func (msh *metaStorageHandler) saveLastCrossNotarizedHeaders(
