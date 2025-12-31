@@ -477,21 +477,6 @@ func (ts *transactionsSync) getTransactionFromPoolOrStorage(hash []byte) (data.T
 		return nil, false
 	}
 
-	// if we reached this point, tx was found in storage, but not in pool.
-	// added it to the corresponding pool
-	txPool, ok := ts.txPools[mbType]
-	if !ok {
-		return nil, false
-	}
-
-	cacherIdentifier := process.ShardCacherIdentifier(miniBlock.SenderShardID, miniBlock.ReceiverShardID)
-	txPool.AddData(
-		hash,
-		tx,
-		tx.Size(),
-		cacherIdentifier,
-	)
-
 	return tx, true
 }
 
