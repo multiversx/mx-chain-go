@@ -90,6 +90,6 @@ func Test_getTransactionsInBlock(t *testing.T) {
 
 		txs, err := getTransactionsInBlock(&blockBody, txCache, 0)
 		require.Nil(t, txs)
-		require.Equal(t, errNotFoundTx, err)
+		require.ErrorIs(t, err, errNotFoundTx)
 	})
 }
