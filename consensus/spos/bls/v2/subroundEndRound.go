@@ -394,7 +394,7 @@ func (sr *subroundEndRound) shouldSendProof() bool {
 		return false
 	}
 
-	return sr.IsSelfInConsensusGroup()
+	return sr.IsSelfInConsensusGroup() && sr.ShouldConsiderSelfKeyInConsensus()
 }
 
 func (sr *subroundEndRound) aggregateSigsAndHandleInvalidSigners(bitmap []byte, sender string) ([]byte, []byte, error) {
