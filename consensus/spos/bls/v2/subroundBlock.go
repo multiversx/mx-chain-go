@@ -663,7 +663,7 @@ func (sr *subroundBlock) CanProcessReceivedHeader(headerLeader string) bool {
 }
 
 func (sr *subroundBlock) shouldProcessBlock(headerLeader string) bool {
-	if sr.IsNodeSelf(headerLeader) {
+	if sr.IsNodeSelf(headerLeader) && sr.ShouldConsiderSelfKeyInConsensus() {
 		return false
 	}
 	if sr.IsJobDone(headerLeader, sr.Current()) {
