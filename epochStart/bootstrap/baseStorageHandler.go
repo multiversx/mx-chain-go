@@ -256,6 +256,12 @@ func (bsh *baseStorageHandler) saveMetaHdrForEpochTrigger(metaBlock data.HeaderH
 	}
 
 	epochStartIdentifier := core.EpochStartIdentifier(metaBlock.GetEpoch())
+
+	log.Debug("saveMetaHdrForEpochTrigger",
+		"epochStartIdentifier", epochStartIdentifier,
+		"epoch", metaBlock.GetEpoch(),
+	)
+
 	metaHdrStorage, err := bsh.storageService.GetStorer(dataRetriever.MetaBlockUnit)
 	if err != nil {
 		return err

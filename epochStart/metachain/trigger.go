@@ -327,6 +327,12 @@ func (t *trigger) SetProcessed(header data.HeaderHandler, body data.BodyHandler)
 	log.Debug("trigger.SetProcessed", "isEpochStart", t.isEpochStart)
 
 	epochStartIdentifier := core.EpochStartIdentifier(metaBlock.GetEpoch())
+
+	log.Debug("trigger.SetProcessed",
+		"epochStartIdentifier", epochStartIdentifier,
+		"epoch", metaBlock.GetEpoch(),
+	)
+
 	errNotCritical = t.triggerStorage.Put([]byte(epochStartIdentifier), metaBuff)
 	if errNotCritical != nil {
 		log.Warn("SetProcessed put into triggerStorage", "error", errNotCritical.Error())
@@ -418,6 +424,11 @@ func (t *trigger) revert(header data.HeaderHandler) error {
 		log.Debug("Revert remove from triggerStorage", "error", errNotCritical.Error())
 	}
 
+	log.Debug("revert",
+		"epochStartIdentifier", epochStartIdentifier,
+		"meta epoch", metaHdr.GetEpoch(),
+	)
+
 	errNotCritical = t.metaHeaderStorage.Remove([]byte(epochStartIdentifier))
 	if errNotCritical != nil {
 		log.Debug("Revert remove from triggerStorage", "error", errNotCritical.Error())
@@ -481,6 +492,11 @@ func (t *trigger) GetEpochStartHdrFromStorage(epoch uint32) (data.HeaderHandler,
 	defer t.mutTrigger.RUnlock()
 
 	epochStartIdentifier := core.EpochStartIdentifier(epoch)
+
+	log.Debug("GetEpochStartHdrFromStorage",
+		"epochStartIdentifier", epochStartIdentifier,
+	)
+
 	epochStartMetaBuff, err := t.metaHeaderStorage.SearchFirst([]byte(epochStartIdentifier))
 	if err != nil {
 		log.Warn("GetEpochStartHdrFromStorage search first", "epoch", epoch, "identifier", epochStartIdentifier, "error", err)

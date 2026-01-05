@@ -770,6 +770,11 @@ func (t *trigger) saveEpochStartMeta(metaHdr data.HeaderHandler) {
 		return
 	}
 
+	log.Debug("saveEpochStartMeta",
+		"epochStartIdentifier", epochStartIdentifier,
+		"meta epoch", metaHdr.GetEpoch(),
+	)
+
 	err = t.metaHdrStorage.Put([]byte(epochStartIdentifier), metaBuff)
 	if err != nil {
 		log.Debug("updateTriggerMeta put into metaHdrStorage", "error", err.Error())
@@ -1176,6 +1181,12 @@ func (t *trigger) RevertStateToBlock(header data.HeaderHandler) error {
 	}
 
 	epochStartIdentifier := core.EpochStartIdentifier(t.epochStartShardHeader.GetEpoch())
+
+	log.Debug("RevertStateToBlock",
+		"epochStartIdentifier", epochStartIdentifier,
+		"trigger epoch", t.epochStartShardHeader.GetEpoch(),
+	)
+
 	errNotCritical := t.shardHdrStorage.Remove([]byte(epochStartIdentifier))
 	if errNotCritical != nil {
 		log.Warn("RevertStateToBlock remove from header storage error", "err", errNotCritical)
