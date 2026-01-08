@@ -9,6 +9,7 @@ import (
 	"github.com/multiversx/mx-chain-core-go/data"
 	"github.com/multiversx/mx-chain-core-go/data/block"
 	crypto "github.com/multiversx/mx-chain-crypto-go"
+	"github.com/multiversx/mx-chain-go/common/configs/dto"
 
 	"github.com/multiversx/mx-chain-go/config"
 )
@@ -489,6 +490,8 @@ type ProcessConfigsHandler interface {
 	GetMaxSyncWithErrorsAllowed(round uint64) uint32
 	GetMaxRoundsToKeepUnprocessedTransactions(round uint64) uint64
 	GetMaxRoundsToKeepUnprocessedMiniBlocks(round uint64) uint64
+
+	GetValue(variable dto.ConfigVariable) uint64
 
 	IsInterfaceNil() bool
 }
