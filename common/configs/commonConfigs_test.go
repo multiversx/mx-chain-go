@@ -14,7 +14,7 @@ func TestNewCommonConfigsHandler(t *testing.T) {
 	t.Run("should return error for empty config by epoch", func(t *testing.T) {
 		t.Parallel()
 
-		pce, err := configs.NewCommonConfigsHandler(nil, nil, nil)
+		pce, err := configs.NewCommonConfigsHandler(nil, []config.EpochStartConfigByRound{}, []config.ConsensusConfigByEpoch{})
 		require.Nil(t, pce)
 		require.Equal(t, configs.ErrEmptyCommonConfigsByEpoch, err)
 	})
@@ -22,7 +22,7 @@ func TestNewCommonConfigsHandler(t *testing.T) {
 	t.Run("should return error for empty config by round", func(t *testing.T) {
 		t.Parallel()
 
-		pce, err := configs.NewCommonConfigsHandler([]config.EpochStartConfigByEpoch{}, nil, nil)
+		pce, err := configs.NewCommonConfigsHandler([]config.EpochStartConfigByEpoch{{EnableEpoch: 0}}, nil, []config.ConsensusConfigByEpoch{{EnableEpoch: 0}})
 		require.Nil(t, pce)
 		require.Equal(t, configs.ErrEmptyCommonConfigsByRound, err)
 	})

@@ -391,6 +391,10 @@ type ProcessConfigByRound struct {
 
 	// Max number of rounds unprocessed transactions are kept in pool
 	MaxRoundsToKeepUnprocessedTransactions uint64
+
+	NumFloodingRoundsFastReacting uint32
+	NumFloodingRoundsSlowReacting uint32
+	NumFloodingRoundsOutOfSpecs   uint32
 }
 
 // GeneralSettingsConfig will hold the general settings for a node
@@ -410,7 +414,7 @@ type GeneralSettingsConfig struct {
 	ChainParametersByEpoch               []ChainParametersByEpochConfig
 	EpochChangeGracePeriodByEpoch        []EpochChangeGracePeriodByEpoch
 	ProcessConfigsByEpoch                []ProcessConfigByEpoch
-	ProcessConfigsByRound                []ProcessConfigByRound
+	ProcessConfigsByRound                []ProcessConfigByRound `toml:"ProcessConfigsByRound"`
 	EpochStartConfigsByEpoch             []EpochStartConfigByEpoch
 	EpochStartConfigsByRound             []EpochStartConfigByRound
 	ConsensusConfigsByEpoch              []ConsensusConfigByEpoch
@@ -475,9 +479,7 @@ type WebServerAntifloodConfig struct {
 type BlackListConfig struct {
 	ThresholdNumMessagesPerInterval uint32
 	ThresholdSizePerInterval        uint64
-	// TODO: add config per epoch for supernova
-	NumFloodingRounds        uint32
-	PeerBanDurationInSeconds uint32
+	PeerBanDurationInSeconds        uint32
 }
 
 // TopicMaxMessagesConfig will hold the maximum number of messages/sec per topic value

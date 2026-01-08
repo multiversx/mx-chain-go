@@ -86,6 +86,9 @@ func GetGeneralConfig() config.Config {
 					MaxRoundsWithoutCommittedBlock:         10,
 					MaxRoundsToKeepUnprocessedMiniBlocks:   50,
 					MaxRoundsToKeepUnprocessedTransactions: 50,
+					NumFloodingRoundsSlowReacting:          20,
+					NumFloodingRoundsFastReacting:          30,
+					NumFloodingRoundsOutOfSpecs:            40,
 				},
 			},
 			EpochStartConfigsByEpoch: []config.EpochStartConfigByEpoch{
