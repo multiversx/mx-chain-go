@@ -189,21 +189,11 @@ func (he *headersExecutor) handleProcessError(ctx context.Context, pair queue.He
 }
 
 func (he *headersExecutor) process(pair queue.HeaderBodyPair) error {
-	// Validate input parameters
-	if check.IfNil(pair.Header) {
-		log.Error("headersExecutor.process - nil header received", "nonce", "unknown")
-		return ErrNilHeaderHandler
-	}
-	if check.IfNil(pair.Body) {
-		log.Error("headersExecutor.process - nil body received", "nonce", pair.Header.GetNonce())
-		return ErrNilBlockBody
-	}
-
 	executionResult, err := he.blockProcessor.ProcessBlockProposal(pair.Header, pair.Body)
 	if err != nil {
 		log.Warn("headersExecutor.process process block failed",
 			"nonce", pair.Header.GetNonce(),
-			"hash", pair.Header.GetPrevHash(),
+			"prevHash", pair.Header.GetPrevHash(),
 			"err", err,
 		)
 		return err

@@ -142,13 +142,12 @@ func (bq *blocksQueue) Pop() (HeaderBodyPair, bool) {
 	if len(bq.headerBodyPairs) >= 1 {
 		item := bq.headerBodyPairs[0]
 		bq.headerBodyPairs = bq.headerBodyPairs[1:]
-		bq.mutex.Unlock()
-
 		// Clear any stale notification from the channel when we take the fast path
 		select {
 		case <-bq.notifyCh:
 		default:
 		}
+		bq.mutex.Unlock()
 
 		return item, true
 	}

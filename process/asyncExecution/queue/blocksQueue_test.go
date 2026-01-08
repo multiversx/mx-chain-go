@@ -340,7 +340,7 @@ func TestBlocksQueue_ValidateQueueIntegrity(t *testing.T) {
 
 		err = hq.ValidateQueueIntegrity()
 		require.Error(t, err)
-		assert.Contains(t, err.Error(), "queue integrity violation: expected nonce 2 at index 1, got 3")
+		require.ErrorIs(t, err, ErrQueueIntegrityViolation)
 	})
 
 	t.Run("lastAddedNonce mismatch should return error", func(t *testing.T) {
@@ -365,7 +365,7 @@ func TestBlocksQueue_ValidateQueueIntegrity(t *testing.T) {
 
 		err := hq.ValidateQueueIntegrity()
 		require.Error(t, err)
-		assert.Contains(t, err.Error(), "queue integrity violation: lastAddedNonce 5 doesn't match last pair nonce 3")
+		require.ErrorIs(t, err, ErrQueueIntegrityViolation)
 	})
 
 	t.Run("validation after pop operations", func(t *testing.T) {
