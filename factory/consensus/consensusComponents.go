@@ -420,7 +420,9 @@ func (ccf *consensusComponentsFactory) createConsensusState(epoch uint32, consen
 	consensusState := spos.NewConsensusState(
 		roundConsensus,
 		roundThreshold,
-		roundStatus)
+		roundStatus,
+		ccf.processComponents.NodeRedundancyHandler(),
+	)
 
 	return consensusState, nil
 }
@@ -774,6 +776,9 @@ func checkArgs(args ConsensusComponentsFactoryArgs) error {
 	}
 	if check.IfNil(args.ProcessComponents.HardforkTrigger()) {
 		return errors.ErrNilHardforkTrigger
+	}
+	if check.IfNil(args.ProcessComponents.NodeRedundancyHandler()) {
+		return errors.ErrNilNodeRedundancyHandler
 	}
 	if check.IfNil(args.StateComponents) {
 		return errors.ErrNilStateComponentsHolder
