@@ -247,13 +247,7 @@ func (sr *Subround) GetAssociatedPid(pkBytes []byte) core.PeerID {
 // ShouldConsiderSelfKeyInConsensus returns true if current machine is the main one, or it is a backup machine but the main
 // machine failed
 func (sr *Subround) ShouldConsiderSelfKeyInConsensus() bool {
-	isMainMachine := !sr.NodeRedundancyHandler().IsRedundancyNode()
-	if isMainMachine {
-		return true
-	}
-	isMainMachineInactive := !sr.NodeRedundancyHandler().IsMainMachineActive()
-
-	return isMainMachineInactive
+	return ShouldConsiderSelfKeyInConsensus(sr.NodeRedundancyHandler())
 }
 
 // IsSelfInConsensusGroup returns true is the current node is in consensus group in single
