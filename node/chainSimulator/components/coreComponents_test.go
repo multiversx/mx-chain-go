@@ -88,6 +88,7 @@ func createArgsCoreComponentsHolder() ArgsCoreComponentsHolder {
 			Hardfork: config.HardforkConfig{
 				PublicKeyToListenFrom: components.DummyPk,
 			},
+			EpochStartConfig: config.EpochStartConfig{},
 		},
 		EnableEpochsConfig: config.EnableEpochs{},
 		RoundsConfig: config.RoundConfig{
@@ -139,6 +140,10 @@ func createArgsCoreComponentsHolder() ArgsCoreComponentsHolder {
 						TopUpGradientPoint:               "300000000000000000000",
 						TopUpFactor:                      0.25,
 						EpochEnable:                      0,
+						EcosystemGrowthPercentage:        0.0,
+						EcosystemGrowthAddress:           testingProtocolSustainabilityAddress,
+						GrowthDividendPercentage:         0.0,
+						GrowthDividendAddress:            testingProtocolSustainabilityAddress,
 					},
 				},
 			},

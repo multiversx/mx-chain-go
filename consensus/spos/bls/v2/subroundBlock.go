@@ -408,6 +408,10 @@ func (sr *subroundBlock) receivedBlockBody(ctx context.Context, cnsDta *consensu
 		return false
 	}
 
+	if sr.IsSubroundFinished(sr.Current()) {
+		return false
+	}
+
 	node := string(cnsDta.PubKey)
 
 	if !sr.IsNodeLeaderInCurrentRound(node) { // is NOT this node leader in current round?
@@ -553,6 +557,10 @@ func (sr *subroundBlock) receivedBlockHeader(headerHandler data.HeaderHandler) {
 	}
 
 	if !sr.waitForStartRoundToFinishBlocking() {
+		return
+	}
+
+	if sr.IsSubroundFinished(sr.Current()) {
 		return
 	}
 

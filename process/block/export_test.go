@@ -738,13 +738,31 @@ func (sp *shardProcessor) GetHdrForBlock() HeadersForBlock {
 	return sp.hdrsForCurrBlock
 }
 
+// PendingMiniBlocksAfterSelection -
+type PendingMiniBlocksAfterSelection = pendingMiniBlocksAfterSelection
+
+// GetHeaderHash -
+func (p *PendingMiniBlocksAfterSelection) GetHeaderHash() []byte {
+	return p.headerHash
+}
+
+// GetHeader -
+func (p *PendingMiniBlocksAfterSelection) GetHeader() data.HeaderHandler {
+	return p.header
+}
+
+// GetMiniBlocksAndHashes -
+func (p *PendingMiniBlocksAfterSelection) GetMiniBlocksAndHashes() []block.MiniblockAndHash {
+	return p.pendingMiniBlocksAndHashes
+}
+
 // SelectIncomingMiniBlocks -
 func (sp *shardProcessor) SelectIncomingMiniBlocks(
 	lastCrossNotarizedMetaHdr data.HeaderHandler,
 	orderedMetaBlocks []data.HeaderHandler,
 	orderedMetaBlocksHashes [][]byte,
 	haveTime func() bool,
-) ([]block.MiniblockAndHash, error) {
+) ([]*PendingMiniBlocksAfterSelection, error) {
 	return sp.selectIncomingMiniBlocks(lastCrossNotarizedMetaHdr, orderedMetaBlocks, orderedMetaBlocksHashes, haveTime)
 }
 

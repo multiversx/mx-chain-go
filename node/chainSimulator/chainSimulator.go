@@ -21,6 +21,8 @@ import (
 	crypto "github.com/multiversx/mx-chain-crypto-go"
 	"github.com/multiversx/mx-chain-crypto-go/signing"
 	"github.com/multiversx/mx-chain-crypto-go/signing/mcl"
+	logger "github.com/multiversx/mx-chain-logger-go"
+
 	"github.com/multiversx/mx-chain-go/config"
 	"github.com/multiversx/mx-chain-go/factory"
 	"github.com/multiversx/mx-chain-go/node/chainSimulator/components"
@@ -29,7 +31,6 @@ import (
 	"github.com/multiversx/mx-chain-go/node/chainSimulator/dtos"
 	chainSimulatorErrors "github.com/multiversx/mx-chain-go/node/chainSimulator/errors"
 	"github.com/multiversx/mx-chain-go/node/chainSimulator/process"
-	logger "github.com/multiversx/mx-chain-logger-go"
 )
 
 const delaySendTxs = time.Millisecond
@@ -132,6 +133,7 @@ func (s *simulator) createChainHandlers(args ArgsBaseChainSimulator) error {
 		AlterConfigsFunction:           args.AlterConfigsFunction,
 		NumNodesWaitingListShard:       args.NumNodesWaitingListShard,
 		NumNodesWaitingListMeta:        args.NumNodesWaitingListMeta,
+		InitialRound:                   args.InitialRound,
 	})
 	if err != nil {
 		return err

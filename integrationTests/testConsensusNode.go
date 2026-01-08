@@ -16,6 +16,7 @@ import (
 	crypto "github.com/multiversx/mx-chain-crypto-go"
 	mclMultiSig "github.com/multiversx/mx-chain-crypto-go/signing/mcl/multisig"
 	"github.com/multiversx/mx-chain-crypto-go/signing/multisig"
+
 	"github.com/multiversx/mx-chain-go/testscommon/processMocks"
 
 	"github.com/multiversx/mx-chain-go/common"
@@ -751,6 +752,7 @@ func createHasher(consensusType string) hashing.Hasher {
 func createTestStore() dataRetriever.StorageService {
 	store := dataRetriever.NewChainStorer()
 	store.AddStorer(dataRetriever.TransactionUnit, CreateMemUnit())
+	store.AddStorer(dataRetriever.UnsignedTransactionUnit, CreateMemUnit())
 	store.AddStorer(dataRetriever.MiniBlockUnit, CreateMemUnit())
 	store.AddStorer(dataRetriever.RewardTransactionUnit, CreateMemUnit())
 	store.AddStorer(dataRetriever.MetaBlockUnit, CreateMemUnit())
