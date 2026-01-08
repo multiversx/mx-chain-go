@@ -180,6 +180,7 @@ var TestProcessConfigsHandler, _ = configs.NewProcessConfigsHandler([]config.Pro
 			NumFloodingRoundsSlowReacting:          20,
 			NumFloodingRoundsFastReacting:          30,
 			NumFloodingRoundsOutOfSpecs:            40,
+			MaxConsecutiveRoundsOfRatingDecrease:   600,
 		},
 	},
 	forking.NewGenericRoundNotifier(),

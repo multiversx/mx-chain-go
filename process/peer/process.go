@@ -111,10 +111,6 @@ func NewValidatorStatisticsProcessor(arguments ArgValidatorStatisticsProcessor) 
 	if arguments.MaxComputableRounds == 0 {
 		return nil, process.ErrZeroMaxComputableRounds
 	}
-	// TODO: Here
-	//if arguments.MaxConsecutiveRoundsOfRatingDecrease == 0 {
-	//	return nil, process.ErrZeroMaxConsecutiveRoundsOfRatingDecrease
-	//}
 	if check.IfNil(arguments.Rater) {
 		return nil, process.ErrNilRater
 	}

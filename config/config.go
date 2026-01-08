@@ -396,7 +396,7 @@ type ProcessConfigByRound struct {
 	NumFloodingRoundsSlowReacting uint32
 	NumFloodingRoundsOutOfSpecs   uint32
 
-	MaxConsecutiveRoundsOfRatingDecrease uint32
+	MaxConsecutiveRoundsOfRatingDecrease uint64
 }
 
 // GeneralSettingsConfig will hold the general settings for a node
