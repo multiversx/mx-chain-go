@@ -244,12 +244,6 @@ func (sr *Subround) GetAssociatedPid(pkBytes []byte) core.PeerID {
 	return sr.GetKeysHandler().GetAssociatedPid(pkBytes)
 }
 
-// ShouldConsiderSelfKeyInConsensus returns true if current machine is the main one, or it is a backup machine but the main
-// machine failed
-func (sr *Subround) ShouldConsiderSelfKeyInConsensus() bool {
-	return ShouldConsiderSelfKeyInConsensus(sr.NodeRedundancyHandler())
-}
-
 // IsSelfInConsensusGroup returns true is the current node is in consensus group in single
 // key or in multi-key mode
 func (sr *Subround) IsSelfInConsensusGroup() bool {
@@ -264,7 +258,7 @@ func (sr *Subround) IsSelfLeader() bool {
 
 // IsSelfLeaderInCurrentRound method checks if the current node is leader in the current round
 func (sr *Subround) IsSelfLeaderInCurrentRound() bool {
-	return sr.IsNodeLeaderInCurrentRound(sr.SelfPubKey()) && sr.ShouldConsiderSelfKeyInConsensus()
+	return sr.IsNodeLeaderInCurrentRound(sr.SelfPubKey()) && ShouldConsiderSelfKeyInConsensus(sr.NodeRedundancyHandler())
 }
 
 // GetLeaderStartRoundMessage returns the leader start round message based on single key

@@ -13,7 +13,6 @@ import (
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 
-	"github.com/multiversx/mx-chain-go/consensus/mock"
 	"github.com/multiversx/mx-chain-go/consensus/spos"
 	"github.com/multiversx/mx-chain-go/consensus/spos/bls"
 	"github.com/multiversx/mx-chain-go/testscommon"
@@ -1014,121 +1013,6 @@ func TestSubround_GetAssociatedPid(t *testing.T) {
 
 	assert.Equal(t, pid, subround.GetAssociatedPid(providedPkBytes))
 	assert.True(t, wasCalled)
-}
-
-func TestSubround_ShouldConsiderSelfKeyInConsensus(t *testing.T) {
-	t.Parallel()
-
-	t.Run("is main machine active, should return true", func(t *testing.T) {
-		t.Parallel()
-
-		consensusState := initConsensusState()
-		ch := make(chan bool, 1)
-		container := consensus.InitConsensusCore()
-
-		redundancyHandler := &mock.NodeRedundancyHandlerStub{
-			IsRedundancyNodeCalled: func() bool {
-				return false
-			},
-			IsMainMachineActiveCalled: func() bool {
-				return true
-			},
-		}
-		container.SetNodeRedundancyHandler(redundancyHandler)
-
-		sr, _ := spos.NewSubround(
-			bls.SrStartRound,
-			bls.SrBlock,
-			bls.SrSignature,
-			roundTimeDuration,
-			0.05,
-			0.25,
-			"(BLOCK)",
-			consensusState,
-			ch,
-			executeStoredMessages,
-			container,
-			chainID,
-			currentPid,
-			&statusHandler.AppStatusHandlerStub{},
-		)
-
-		require.True(t, sr.ShouldConsiderSelfKeyInConsensus())
-	})
-
-	t.Run("is redundancy node machine active, should return true", func(t *testing.T) {
-		t.Parallel()
-
-		consensusState := initConsensusState()
-		ch := make(chan bool, 1)
-		container := consensus.InitConsensusCore()
-
-		redundancyHandler := &mock.NodeRedundancyHandlerStub{
-			IsRedundancyNodeCalled: func() bool {
-				return true
-			},
-			IsMainMachineActiveCalled: func() bool {
-				return false
-			},
-		}
-		container.SetNodeRedundancyHandler(redundancyHandler)
-
-		sr, _ := spos.NewSubround(
-			bls.SrStartRound,
-			bls.SrBlock,
-			bls.SrSignature,
-			roundTimeDuration,
-			0.05,
-			0.25,
-			"(BLOCK)",
-			consensusState,
-			ch,
-			executeStoredMessages,
-			container,
-			chainID,
-			currentPid,
-			&statusHandler.AppStatusHandlerStub{},
-		)
-
-		require.True(t, sr.ShouldConsiderSelfKeyInConsensus())
-	})
-
-	t.Run("is redundancy node machine but inactive, should return false", func(t *testing.T) {
-		t.Parallel()
-
-		consensusState := initConsensusState()
-		ch := make(chan bool, 1)
-		container := consensus.InitConsensusCore()
-
-		redundancyHandler := &mock.NodeRedundancyHandlerStub{
-			IsRedundancyNodeCalled: func() bool {
-				return true
-			},
-			IsMainMachineActiveCalled: func() bool {
-				return true
-			},
-		}
-		container.SetNodeRedundancyHandler(redundancyHandler)
-
-		sr, _ := spos.NewSubround(
-			bls.SrStartRound,
-			bls.SrBlock,
-			bls.SrSignature,
-			roundTimeDuration,
-			0.05,
-			0.25,
-			"(BLOCK)",
-			consensusState,
-			ch,
-			executeStoredMessages,
-			container,
-			chainID,
-			currentPid,
-			&statusHandler.AppStatusHandlerStub{},
-		)
-
-		require.False(t, sr.ShouldConsiderSelfKeyInConsensus())
-	})
 }
 
 func TestSubround_GetLeaderStartRoundMessage(t *testing.T) {

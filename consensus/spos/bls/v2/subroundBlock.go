@@ -428,7 +428,7 @@ func (sr *subroundBlock) receivedBlockBody(ctx context.Context, cnsDta *consensu
 		return false
 	}
 
-	if !sr.CanProcessReceivedMessage(cnsDta, sr.RoundHandler().Index(), sr.Current()) && sr.ShouldConsiderSelfKeyInConsensus() {
+	if !sr.CanProcessReceivedMessage(cnsDta, sr.RoundHandler().Index(), sr.Current()) && spos.ShouldConsiderSelfKeyInConsensus(sr.NodeRedundancyHandler()) {
 		return false
 	}
 
@@ -663,7 +663,7 @@ func (sr *subroundBlock) CanProcessReceivedHeader(headerLeader string) bool {
 }
 
 func (sr *subroundBlock) shouldProcessBlock(headerLeader string) bool {
-	if sr.IsNodeSelf(headerLeader) && sr.ShouldConsiderSelfKeyInConsensus() {
+	if sr.IsNodeSelf(headerLeader) && spos.ShouldConsiderSelfKeyInConsensus(sr.NodeRedundancyHandler()) {
 		return false
 	}
 	if sr.IsJobDone(headerLeader, sr.Current()) {
