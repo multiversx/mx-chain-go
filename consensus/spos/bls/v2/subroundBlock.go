@@ -428,7 +428,7 @@ func (sr *subroundBlock) receivedBlockBody(ctx context.Context, cnsDta *consensu
 		return false
 	}
 
-	if !sr.CanProcessReceivedMessage(cnsDta, sr.RoundHandler().Index(), sr.Current()) && spos.ShouldConsiderSelfKeyInConsensus(sr.NodeRedundancyHandler()) {
+	if !sr.CanProcessReceivedMessage(cnsDta, sr.RoundHandler().Index(), sr.Current()) {
 		return false
 	}
 
