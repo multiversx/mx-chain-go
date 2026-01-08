@@ -24,7 +24,6 @@ func ShouldConsiderSelfKeyInConsensus(redundancyHandler consensus.NodeRedundancy
 	if isMainMachine {
 		return true
 	}
-	isMainMachineInactive := !redundancyHandler.IsMainMachineActive()
+	return !redundancyHandler.IsMainMachineActive()
 
-	return isMainMachineInactive
 }
