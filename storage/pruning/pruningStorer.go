@@ -6,6 +6,7 @@ import (
 	"fmt"
 	"math"
 	"runtime/debug"
+	"strings"
 	"sync"
 
 	"github.com/multiversx/mx-chain-core-go/core"
@@ -364,6 +365,27 @@ func (ps *PruningStorer) Put(key, data []byte) error {
 
 	persisterToUse := ps.getPersisterToUse()
 
+	if strings.HasPrefix(string(key), "epochStartBlock_") {
+		log.Debug("PruningStorer.Put: persisterto use",
+			"key", key,
+			"persister epoch", persisterToUse.epoch,
+		)
+
+		for idx := 0; idx < len(ps.activePersisters); idx++ {
+			log.Debug("PruningStorer.Put: active persisters",
+				"persister epoch", ps.activePersisters[idx].epoch,
+				"persister idx", idx,
+			)
+		}
+
+		for epoch, pd := range ps.persistersMapByEpoch {
+			log.Debug("PruningStorer.Put: persisters map",
+				"persister epoch", epoch,
+				"persister isclosed", pd.getIsClosed(),
+			)
+		}
+	}
+
 	return ps.doPutInPersister(key, data, persisterToUse.getPersister(), persisterToUse.epoch)
 }
 
@@ -486,6 +508,23 @@ func (ps *PruningStorer) Get(key []byte) ([]byte, error) {
 	ps.lock.RLock()
 	defer ps.lock.RUnlock()
 
+	if strings.HasPrefix(string(key), "epochStartBlock_") {
+		for idx := 0; idx < len(ps.activePersisters); idx++ {
+			log.Debug("PruningStorer.Get: active persisters",
+				"key", key,
+				"persister epoch", ps.activePersisters[idx].epoch,
+				"persister idx", idx,
+			)
+		}
+
+		for epoch, pd := range ps.persistersMapByEpoch {
+			log.Debug("PruningStorer.Get: persisters map",
+				"persister epoch", epoch,
+				"persister isclosed", pd.getIsClosed(),
+			)
+		}
+	}
+
 	numClosedDbs := 0
 	for idx := 0; idx < len(ps.activePersisters); idx++ {
 		ps.stateStatsHandler.IncrPersister(ps.activePersisters[idx].epoch)
@@ -494,6 +533,14 @@ func (ps *PruningStorer) Get(key []byte) ([]byte, error) {
 		if err != nil {
 			if errors.Is(err, storage.ErrDBIsClosed) {
 				numClosedDbs++
+			}
+
+			if strings.HasPrefix(string(key), "epochStartBlock_") {
+				log.Debug("PruningStorer.Get err",
+					"key", key,
+					"persister epoch", ps.activePersisters[idx].epoch,
+					"err", err,
+				)
 			}
 
 			continue
