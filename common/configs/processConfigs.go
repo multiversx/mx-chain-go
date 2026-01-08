@@ -1,57 +1,42 @@
 package configs
 
 import (
-	"errors"
 	"fmt"
 	"sort"
 
+	"github.com/multiversx/mx-chain-core-go/core/check"
+	"github.com/multiversx/mx-chain-go/common/configs/dto"
 	"github.com/multiversx/mx-chain-go/config"
 	"github.com/multiversx/mx-chain-go/process"
+	logger "github.com/multiversx/mx-chain-logger-go"
 )
 
-const minRoundsToKeepUnprocessedData = uint64(1)
+var log = logger.GetOrCreate("processConfigs")
 
-const (
-	defaultMaxMetaNoncesBehind                    = 15
-	defaultMaxMetaNoncesBehindForGlobalStuck      = 30
-	defaultMaxShardNoncesBehind                   = 15
-	defaultMaxRoundsWithoutNewBlockReceived       = 10
-	defaultMaxRoundsWithoutCommittedBlock         = 10
-	defaultRoundModulusTriggerWhenSyncIsStuck     = 20
-	defaultMaxSyncWithErrorsAllowed               = 20
-	defaultMaxRoundsToKeepUnprocessedMiniBlocks   = 3000
-	defaultMaxRoundsToKeepUnprocessedTransactions = 3000
-)
-
-// ErrEmptyProcessConfigsByEpoch signals that an empty process configs by epoch has been provided
-var ErrEmptyProcessConfigsByEpoch = errors.New("empty process configs by epoch")
-
-// ErrEmptyProcessConfigsByRound signals that an empty process configs by round has been provided
-var ErrEmptyProcessConfigsByRound = errors.New("empty process configs by round")
-
-// ErrDuplicatedEpochConfig signals that a duplicated config section has been provided
-var ErrDuplicatedEpochConfig = errors.New("duplicated epoch config")
-
-// ErrDuplicatedRoundConfig signals that a duplicated config section has been provided
-var ErrDuplicatedRoundConfig = errors.New("duplicated round config")
-
-// ErrMissingEpochZeroConfig signals that epoch zero configuration is missing
-var ErrMissingEpochZeroConfig = errors.New("missing configuration for epoch 0")
-
-// ErrMissingRoundZeroConfig signals that base round configuration is missing
-var ErrMissingRoundZeroConfig = errors.New("missing base configuration for round")
+type configByRoundSelector[T any] func(config.ProcessConfigByRound) T
+type configVariableHandler struct {
+	valueSelector configByRoundSelector[uint64]
+	defaultValue  uint64
+}
 
 // processConfigsByEpoch holds the process configuration for epoch changes
 type processConfigsByEpoch struct {
 	orderedConfigByEpoch []config.ProcessConfigByEpoch
 	orderedConfigByRound []config.ProcessConfigByRound
+	roundNotifier        process.RoundNotifier
+	variablesMap         map[dto.ConfigVariable]configVariableHandler
 }
 
 // NewProcessConfigsHandler creates a new process configs by epoch component
 func NewProcessConfigsHandler(
 	configsByEpoch []config.ProcessConfigByEpoch,
 	configsByRound []config.ProcessConfigByRound,
+	roundNotifier process.RoundNotifier,
 ) (*processConfigsByEpoch, error) {
+	if check.IfNil(roundNotifier) {
+		return nil, fmt.Errorf("%w in NewProcessConfigsHandler", process.ErrNilRoundNotifier)
+	}
+
 	err := checkConfigsByEpoch(configsByEpoch)
 	if err != nil {
 		return nil, err
@@ -65,6 +50,8 @@ func NewProcessConfigsHandler(
 	pce := &processConfigsByEpoch{
 		orderedConfigByEpoch: make([]config.ProcessConfigByEpoch, len(configsByEpoch)),
 		orderedConfigByRound: make([]config.ProcessConfigByRound, len(configsByRound)),
+		roundNotifier:        roundNotifier,
+		variablesMap:         initCfgVarMap(),
 	}
 
 	// sort the config values in ascending order
@@ -142,9 +129,23 @@ func checkRoundConfigValues(cfg config.ProcessConfigByRound) error {
 		return fmt.Errorf("%w for MaxRoundsToKeepUnprocessedMiniBlocks, received %d, min expected %d",
 			process.ErrInvalidValue, cfg.MaxRoundsToKeepUnprocessedMiniBlocks, minRoundsToKeepUnprocessedData)
 	}
+	if cfg.NumFloodingRoundsFastReacting < minFloodingRounds {
+		return fmt.Errorf("%w for NumFloodingRoundsFastReacting, received %d, min expected %d",
+			process.ErrInvalidValue, cfg.NumFloodingRoundsFastReacting, minFloodingRounds)
+	}
+	if cfg.NumFloodingRoundsSlowReacting < minFloodingRounds {
+		return fmt.Errorf("%w for NumFloodingRoundsSlowReacting, received %d, min expected %d",
+			process.ErrInvalidValue, cfg.NumFloodingRoundsSlowReacting, minFloodingRounds)
+	}
+	if cfg.NumFloodingRoundsOutOfSpecs < minFloodingRounds {
+		return fmt.Errorf("%w for NumFloodingRoundsOutOfSpecs, received %d, min expected %d",
+			process.ErrInvalidValue, cfg.NumFloodingRoundsOutOfSpecs, minFloodingRounds)
+	}
 
 	return nil
 }
+
+// TODO: We should probably get rid of all these functions and use only GetValue func, similar to how enableEpochsHandler works
 
 // GetMaxMetaNoncesBehindByEpoch returns the max meta nonces behind by epoch
 func (pce *processConfigsByEpoch) GetMaxMetaNoncesBehindByEpoch(epoch uint32) uint32 {
@@ -182,7 +183,7 @@ func (pce *processConfigsByEpoch) GetMaxShardNoncesBehindByEpoch(epoch uint32) u
 func getConfigValueByRound[T any](
 	configs []config.ProcessConfigByRound,
 	round uint64,
-	selector func(config.ProcessConfigByRound) T,
+	selector configByRoundSelector[T],
 	defaultValue T,
 ) T {
 	for i := len(configs) - 1; i >= 0; i-- {
@@ -263,6 +264,29 @@ func (pce *processConfigsByEpoch) GetMaxRoundsToKeepUnprocessedTransactions(roun
 			return cfg.MaxRoundsToKeepUnprocessedTransactions
 		},
 		defaultMaxRoundsToKeepUnprocessedTransactions,
+	)
+}
+
+// GetValue returns the value of the provided variable for the current round
+func (pce *processConfigsByEpoch) GetValue(variable dto.ConfigVariable) uint64 {
+	return pce.getValueByRound(variable, pce.roundNotifier.CurrentRound())
+}
+
+func (pce *processConfigsByEpoch) getValueByRound(
+	variable dto.ConfigVariable,
+	round uint64,
+) uint64 {
+	cfgVarHandler, ok := pce.variablesMap[variable]
+	if !ok {
+		log.Warn("processConfigsByEpoch.getValueByRound: variable not found in pce.variablesMap", "variable", variable)
+		return 0
+	}
+
+	return getConfigValueByRound(
+		pce.orderedConfigByRound,
+		round,
+		cfgVarHandler.valueSelector,
+		cfgVarHandler.defaultValue,
 	)
 }
 
