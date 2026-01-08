@@ -1,7 +1,6 @@
 package stakingcommon
 
 import (
-	"github.com/multiversx/mx-chain-go/testscommon/chainParameters"
 	"math/big"
 	"strconv"
 
@@ -12,6 +11,7 @@ import (
 	economicsHandler "github.com/multiversx/mx-chain-go/process/economics"
 	"github.com/multiversx/mx-chain-go/state"
 	"github.com/multiversx/mx-chain-go/testscommon"
+	"github.com/multiversx/mx-chain-go/testscommon/chainParameters"
 	"github.com/multiversx/mx-chain-go/testscommon/enableEpochsHandlerMock"
 	"github.com/multiversx/mx-chain-go/testscommon/epochNotifier"
 	"github.com/multiversx/mx-chain-go/vm"

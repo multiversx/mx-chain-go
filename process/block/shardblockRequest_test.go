@@ -13,6 +13,7 @@ import (
 	"github.com/stretchr/testify/require"
 
 	blproc "github.com/multiversx/mx-chain-go/process/block"
+	"github.com/multiversx/mx-chain-go/process/block/headerForBlock"
 	"github.com/multiversx/mx-chain-go/testscommon"
 	dataRetrieverMock "github.com/multiversx/mx-chain-go/testscommon/dataRetriever"
 )
@@ -24,62 +25,6 @@ type headerData struct {
 
 type shardBlockTestData struct {
 	headerData []*headerData
-}
-
-func TestShardProcessor_RequestMissingFinalityAttestingHeaders(t *testing.T) {
-	t.Parallel()
-
-	t.Run("missing attesting meta header", func(t *testing.T) {
-		t.Parallel()
-
-		arguments, requestHandler := shardBlockRequestTestInit(t)
-		testData := createShardProcessorTestData()
-		metaChainData := testData[core.MetachainShardId]
-		numCalls := atomic.Uint32{}
-		requestHandler.RequestShardHeaderByNonceCalled = func(shardID uint32, nonce uint64) {
-			require.Fail(t, fmt.Sprintf("should not request shard header by nonce, shardID: %d, nonce: %d", shardID, nonce))
-		}
-		requestHandler.RequestMetaHeaderByNonceCalled = func(nonce uint64) {
-			attestationNonce := metaChainData.headerData[1].header.GetNonce()
-			require.Equal(t, attestationNonce, nonce, fmt.Sprintf("nonce should have been %d", attestationNonce))
-			numCalls.Add(1)
-		}
-		sp, _ := blproc.NewShardProcessor(arguments)
-
-		metaBlockData := metaChainData.headerData[0]
-		// not adding the confirmation metaBlock to the headers pool means it will be missing and requested
-		sp.SetHighestHdrNonceForCurrentBlock(core.MetachainShardId, metaBlockData.header.GetNonce())
-		res := sp.RequestMissingFinalityAttestingHeaders()
-		time.Sleep(100 * time.Millisecond)
-
-		require.Equal(t, uint32(1), res)
-		require.Equal(t, uint32(1), numCalls.Load())
-	})
-	t.Run("no missing attesting meta header", func(t *testing.T) {
-		t.Parallel()
-
-		arguments, requestHandler := shardBlockRequestTestInit(t)
-		testData := createShardProcessorTestData()
-		metaChainData := testData[core.MetachainShardId]
-		requestHandler.RequestShardHeaderByNonceCalled = func(shardID uint32, nonce uint64) {
-			require.Fail(t, fmt.Sprintf("should not request shard header by nonce, shardID: %d, nonce: %d", shardID, nonce))
-		}
-		requestHandler.RequestMetaHeaderByNonceCalled = func(nonce uint64) {
-			require.Fail(t, "should not request meta header by nonce")
-		}
-		sp, _ := blproc.NewShardProcessor(arguments)
-
-		headersDataPool := arguments.DataComponents.Datapool().Headers()
-		require.NotNil(t, headersDataPool)
-		metaBlockData := metaChainData.headerData[0]
-		confirmationMetaBlockData := metaChainData.headerData[1]
-		headersDataPool.AddHeader(confirmationMetaBlockData.hash, confirmationMetaBlockData.header)
-		sp.SetHighestHdrNonceForCurrentBlock(core.MetachainShardId, metaBlockData.header.GetNonce())
-		res := sp.RequestMissingFinalityAttestingHeaders()
-		time.Sleep(100 * time.Millisecond)
-
-		require.Equal(t, uint32(0), res)
-	})
 }
 
 func TestShardProcessor_computeExistingAndRequestMissingMetaHeaders(t *testing.T) {
@@ -105,10 +50,8 @@ func TestShardProcessor_computeExistingAndRequestMissingMetaHeaders(t *testing.T
 			require.Equal(t, metaChainData.headerData[1].hash, hash)
 			numCalls.Add(1)
 		}
-		sp, _ := blproc.NewShardProcessor(arguments)
 
 		metaBlockData := metaChainData.headerData[0]
-		sp.SetHighestHdrNonceForCurrentBlock(core.MetachainShardId, metaBlockData.header.GetNonce())
 		// not adding the referenced metaBlock to the headers pool means it will be missing and requested
 		// first of the 2 referenced headers is added, the other will be missing
 		headersDataPool := arguments.DataComponents.Datapool().Headers()
@@ -116,7 +59,8 @@ func TestShardProcessor_computeExistingAndRequestMissingMetaHeaders(t *testing.T
 
 		blockBeingProcessed := shard1Data.headerData[1].header
 		shardBlockBeingProcessed := blockBeingProcessed.(*block.Header)
-		missingHeaders, missingFinalityAttestingHeaders, missingProofs := sp.ComputeExistingAndRequestMissingMetaHeaders(shardBlockBeingProcessed)
+		arguments.HeadersForBlock.RequestMetaHeaders(shardBlockBeingProcessed)
+		missingHeaders, missingProofs, missingFinalityAttestingHeaders := arguments.HeadersForBlock.GetMissingData()
 		time.Sleep(100 * time.Millisecond)
 
 		require.Equal(t, uint32(1), missingHeaders)
@@ -146,14 +90,13 @@ func TestShardProcessor_computeExistingAndRequestMissingMetaHeaders(t *testing.T
 
 			numCalls.Add(1)
 		}
-		sp, _ := blproc.NewShardProcessor(arguments)
-		metaBlockData := testData[core.MetachainShardId].headerData[0]
+
 		// not adding the referenced metaBlock to the headers pool means it will be missing and requested
-		sp.SetHighestHdrNonceForCurrentBlock(core.MetachainShardId, metaBlockData.header.GetNonce())
 
 		blockBeingProcessed := shard1Data.headerData[1].header
 		shardBlockBeingProcessed := blockBeingProcessed.(*block.Header)
-		missingHeaders, missingFinalityAttestingHeaders, missingProofs := sp.ComputeExistingAndRequestMissingMetaHeaders(shardBlockBeingProcessed)
+		arguments.HeadersForBlock.RequestMetaHeaders(shardBlockBeingProcessed)
+		missingHeaders, missingProofs, missingFinalityAttestingHeaders := arguments.HeadersForBlock.GetMissingData()
 		time.Sleep(100 * time.Millisecond)
 
 		require.Equal(t, uint32(2), missingHeaders)
@@ -185,7 +128,6 @@ func TestShardProcessor_computeExistingAndRequestMissingMetaHeaders(t *testing.T
 
 			numCallsMissing.Add(1)
 		}
-		sp, _ := blproc.NewShardProcessor(arguments)
 		// not adding the referenced metaBlock to the headers pool means it will be missing and requested
 		headersDataPool := arguments.DataComponents.Datapool().Headers()
 		headersDataPool.AddHeader(metaChainData.headerData[0].hash, metaChainData.headerData[0].header)
@@ -193,7 +135,8 @@ func TestShardProcessor_computeExistingAndRequestMissingMetaHeaders(t *testing.T
 
 		blockBeingProcessed := shard1Data.headerData[1].header
 		shardBlockBeingProcessed := blockBeingProcessed.(*block.Header)
-		missingHeaders, missingFinalityAttestingHeaders, missingProofs := sp.ComputeExistingAndRequestMissingMetaHeaders(shardBlockBeingProcessed)
+		arguments.HeadersForBlock.RequestMetaHeaders(shardBlockBeingProcessed)
+		missingHeaders, missingProofs, missingFinalityAttestingHeaders := arguments.HeadersForBlock.GetMissingData()
 		time.Sleep(100 * time.Millisecond)
 
 		require.Equal(t, uint32(0), missingHeaders)
@@ -220,7 +163,6 @@ func TestShardProcessor_computeExistingAndRequestMissingMetaHeaders(t *testing.T
 		requestHandler.RequestMetaHeaderCalled = func(hash []byte) {
 			numCallsMissing.Add(1)
 		}
-		sp, _ := blproc.NewShardProcessor(arguments)
 		// not adding the referenced metaBlock to the headers pool means it will be missing and requested
 		headersDataPool := arguments.DataComponents.Datapool().Headers()
 		headersDataPool.AddHeader(metaChainData.headerData[0].hash, metaChainData.headerData[0].header)
@@ -237,7 +179,8 @@ func TestShardProcessor_computeExistingAndRequestMissingMetaHeaders(t *testing.T
 
 		blockBeingProcessed := shard1Data.headerData[1].header
 		shardBlockBeingProcessed := blockBeingProcessed.(*block.Header)
-		missingHeaders, missingFinalityAttestingHeaders, missingProofs := sp.ComputeExistingAndRequestMissingMetaHeaders(shardBlockBeingProcessed)
+		arguments.HeadersForBlock.RequestMetaHeaders(shardBlockBeingProcessed)
+		missingHeaders, missingProofs, missingFinalityAttestingHeaders := arguments.HeadersForBlock.GetMissingData()
 		time.Sleep(100 * time.Millisecond)
 
 		require.Equal(t, uint32(0), missingHeaders)
@@ -245,197 +188,6 @@ func TestShardProcessor_computeExistingAndRequestMissingMetaHeaders(t *testing.T
 		require.Equal(t, uint32(0), missingProofs)
 		require.Equal(t, uint32(0), numCallsMissing.Load())
 		require.Equal(t, uint32(0), numCallsAttestation.Load())
-	})
-}
-
-func TestShardProcessor_receivedMetaBlock(t *testing.T) {
-	t.Parallel()
-
-	t.Run("received non referenced metaBlock, while still having missing referenced metaBlocks", func(t *testing.T) {
-		t.Parallel()
-
-		arguments, requestHandler := shardBlockRequestTestInit(t)
-		testData := createShardProcessorTestData()
-		sp, _ := blproc.NewShardProcessor(arguments)
-		hdrsForBlock := sp.GetHdrForBlock()
-
-		firstMissingMetaBlockData := testData[core.MetachainShardId].headerData[0]
-		secondMissingMetaBlockData := testData[core.MetachainShardId].headerData[1]
-
-		requestHandler.RequestMetaHeaderCalled = func(hash []byte) {
-			require.Fail(t, "no requests expected")
-		}
-		requestHandler.RequestMetaHeaderByNonceCalled = func(nonce uint64) {
-			require.Fail(t, "no requests expected")
-		}
-
-		highestHeaderNonce := firstMissingMetaBlockData.header.GetNonce() - 1
-		hdrsForBlock.SetNumMissingHdrs(2)
-		hdrsForBlock.SetNumMissingFinalityAttestingHdrs(0)
-		hdrsForBlock.SetHighestHdrNonce(core.MetachainShardId, highestHeaderNonce)
-		hdrsForBlock.SetHdrHashAndInfo(string(firstMissingMetaBlockData.hash),
-			&blproc.HdrInfo{
-				UsedInBlock: true,
-				Hdr:         nil,
-			})
-		hdrsForBlock.SetHdrHashAndInfo(string(secondMissingMetaBlockData.hash),
-			&blproc.HdrInfo{
-				UsedInBlock: true,
-				Hdr:         nil,
-			})
-		otherMetaBlock := &block.MetaBlock{
-			Nonce:    102,
-			Round:    102,
-			PrevHash: []byte("other meta block prev hash"),
-		}
-
-		otherMetaBlockHash := []byte("other meta block hash")
-		sp.ReceivedMetaBlock(otherMetaBlock, otherMetaBlockHash)
-		time.Sleep(100 * time.Millisecond)
-
-		require.Equal(t, uint32(2), hdrsForBlock.GetMissingHdrs())
-		require.Equal(t, uint32(0), hdrsForBlock.GetMissingFinalityAttestingHdrs())
-		highestHeaderNonces := hdrsForBlock.GetHighestHdrNonce()
-		require.Equal(t, highestHeaderNonce, highestHeaderNonces[core.MetachainShardId])
-	})
-	t.Run("received missing referenced metaBlock, other referenced metaBlock still missing", func(t *testing.T) {
-		t.Parallel()
-
-		arguments, requestHandler := shardBlockRequestTestInit(t)
-		testData := createShardProcessorTestData()
-		sp, _ := blproc.NewShardProcessor(arguments)
-		hdrsForBlock := sp.GetHdrForBlock()
-
-		firstMissingMetaBlockData := testData[core.MetachainShardId].headerData[0]
-		secondMissingMetaBlockData := testData[core.MetachainShardId].headerData[1]
-
-		requestHandler.RequestMetaHeaderCalled = func(hash []byte) {
-			require.Fail(t, "no requests expected")
-		}
-		requestHandler.RequestMetaHeaderByNonceCalled = func(nonce uint64) {
-			require.Fail(t, "no requests expected")
-		}
-
-		highestHeaderNonce := firstMissingMetaBlockData.header.GetNonce() - 1
-		hdrsForBlock.SetNumMissingHdrs(2)
-		hdrsForBlock.SetNumMissingFinalityAttestingHdrs(0)
-		hdrsForBlock.SetHighestHdrNonce(core.MetachainShardId, highestHeaderNonce)
-		hdrsForBlock.SetHdrHashAndInfo(string(firstMissingMetaBlockData.hash),
-			&blproc.HdrInfo{
-				UsedInBlock: true,
-				Hdr:         nil,
-			})
-		hdrsForBlock.SetHdrHashAndInfo(string(secondMissingMetaBlockData.hash),
-			&blproc.HdrInfo{
-				UsedInBlock: true,
-				Hdr:         nil,
-			})
-
-		sp.ReceivedMetaBlock(firstMissingMetaBlockData.header, firstMissingMetaBlockData.hash)
-		time.Sleep(100 * time.Millisecond)
-
-		require.Equal(t, uint32(1), hdrsForBlock.GetMissingHdrs())
-		require.Equal(t, uint32(0), hdrsForBlock.GetMissingFinalityAttestingHdrs())
-		highestHeaderNonces := hdrsForBlock.GetHighestHdrNonce()
-		require.Equal(t, firstMissingMetaBlockData.header.GetNonce(), highestHeaderNonces[core.MetachainShardId])
-	})
-	t.Run("received non missing referenced metaBlock", func(t *testing.T) {
-		t.Parallel()
-
-		arguments, requestHandler := shardBlockRequestTestInit(t)
-		testData := createShardProcessorTestData()
-		sp, _ := blproc.NewShardProcessor(arguments)
-		hdrsForBlock := sp.GetHdrForBlock()
-
-		notMissingReferencedMetaBlockData := testData[core.MetachainShardId].headerData[0]
-		missingMetaBlockData := testData[core.MetachainShardId].headerData[1]
-
-		requestHandler.RequestMetaHeaderCalled = func(hash []byte) {
-			require.Fail(t, "no requests expected")
-		}
-		requestHandler.RequestMetaHeaderByNonceCalled = func(nonce uint64) {
-			require.Fail(t, "no requests expected")
-		}
-
-		highestHeaderNonce := notMissingReferencedMetaBlockData.header.GetNonce() - 1
-		hdrsForBlock.SetNumMissingHdrs(1)
-		hdrsForBlock.SetNumMissingFinalityAttestingHdrs(0)
-		hdrsForBlock.SetHighestHdrNonce(core.MetachainShardId, highestHeaderNonce)
-		hdrsForBlock.SetHdrHashAndInfo(string(notMissingReferencedMetaBlockData.hash),
-			&blproc.HdrInfo{
-				UsedInBlock: true,
-				Hdr:         notMissingReferencedMetaBlockData.header,
-			})
-		hdrsForBlock.SetHdrHashAndInfo(string(missingMetaBlockData.hash),
-			&blproc.HdrInfo{
-				UsedInBlock: true,
-				Hdr:         nil,
-			})
-
-		headersDataPool := arguments.DataComponents.Datapool().Headers()
-		require.NotNil(t, headersDataPool)
-		headersDataPool.AddHeader(notMissingReferencedMetaBlockData.hash, notMissingReferencedMetaBlockData.header)
-
-		sp.ReceivedMetaBlock(notMissingReferencedMetaBlockData.header, notMissingReferencedMetaBlockData.hash)
-		time.Sleep(100 * time.Millisecond)
-
-		require.Equal(t, uint32(1), hdrsForBlock.GetMissingHdrs())
-		require.Equal(t, uint32(0), hdrsForBlock.GetMissingFinalityAttestingHdrs())
-		hdrsForBlockHighestNonces := hdrsForBlock.GetHighestHdrNonce()
-		require.Equal(t, highestHeaderNonce, hdrsForBlockHighestNonces[core.MetachainShardId])
-	})
-	t.Run("received missing attestation metaBlock", func(t *testing.T) {
-		t.Parallel()
-
-		arguments, requestHandler := shardBlockRequestTestInit(t)
-		testData := createShardProcessorTestData()
-		sp, _ := blproc.NewShardProcessor(arguments)
-		hdrsForBlock := sp.GetHdrForBlock()
-
-		referencedMetaBlock := testData[core.MetachainShardId].headerData[0]
-		lastReferencedMetaBlock := testData[core.MetachainShardId].headerData[1]
-		attestationMetaBlockHash := []byte("attestation meta block hash")
-		attestationMetaBlock := &block.MetaBlock{
-			Nonce:    lastReferencedMetaBlock.header.GetNonce() + 1,
-			Round:    lastReferencedMetaBlock.header.GetRound() + 1,
-			PrevHash: lastReferencedMetaBlock.hash,
-		}
-
-		requestHandler.RequestMetaHeaderCalled = func(hash []byte) {
-			require.Fail(t, "no requests expected")
-		}
-		requestHandler.RequestMetaHeaderByNonceCalled = func(nonce uint64) {
-			require.Fail(t, "no requests expected")
-		}
-
-		hdrsForBlock.SetNumMissingHdrs(0)
-		hdrsForBlock.SetNumMissingFinalityAttestingHdrs(1)
-		hdrsForBlock.SetHighestHdrNonce(core.MetachainShardId, lastReferencedMetaBlock.header.GetNonce())
-		hdrsForBlock.SetHdrHashAndInfo(string(referencedMetaBlock.hash),
-			&blproc.HdrInfo{
-				UsedInBlock: true,
-				Hdr:         referencedMetaBlock.header,
-			})
-		hdrsForBlock.SetHdrHashAndInfo(string(lastReferencedMetaBlock.hash),
-			&blproc.HdrInfo{
-				UsedInBlock: true,
-				Hdr:         lastReferencedMetaBlock.header,
-			})
-
-		headersDataPool := arguments.DataComponents.Datapool().Headers()
-		require.NotNil(t, headersDataPool)
-		headersDataPool.AddHeader(referencedMetaBlock.hash, referencedMetaBlock.header)
-		headersDataPool.AddHeader(lastReferencedMetaBlock.hash, lastReferencedMetaBlock.header)
-		headersDataPool.AddHeader(attestationMetaBlockHash, attestationMetaBlock)
-		wg := startWaitingForAllHeadersReceivedSignal(t, sp)
-
-		sp.ReceivedMetaBlock(attestationMetaBlock, attestationMetaBlockHash)
-		wg.Wait()
-
-		require.Equal(t, uint32(0), hdrsForBlock.GetMissingHdrs())
-		require.Equal(t, uint32(0), hdrsForBlock.GetMissingFinalityAttestingHdrs())
-		hdrsForBlockHighestNonces := hdrsForBlock.GetHighestHdrNonce()
-		require.Equal(t, lastReferencedMetaBlock.header.GetNonce(), hdrsForBlockHighestNonces[core.MetachainShardId])
 	})
 }
 
@@ -453,6 +205,21 @@ func shardBlockRequestTestInit(t *testing.T) (blproc.ArgShardProcessor, *testsco
 
 	requestHandler, ok := arguments.ArgBaseProcessor.RequestHandler.(*testscommon.RequestHandlerStub)
 	require.True(t, ok)
+
+	headersForBlock, err := headerForBlock.NewHeadersForBlock(headerForBlock.ArgHeadersForBlock{
+		DataPool:            arguments.DataComponents.Datapool(),
+		RequestHandler:      arguments.RequestHandler,
+		EnableEpochsHandler: arguments.CoreComponents.EnableEpochsHandler(),
+		ShardCoordinator:    arguments.BootstrapComponents.ShardCoordinator(),
+		BlockTracker:        arguments.BlockTracker,
+		TxCoordinator:       arguments.TxCoordinator,
+		RoundHandler:        arguments.CoreComponents.RoundHandler(),
+		ExtraDelayForRequestBlockInfoInMilliseconds: 100,
+		GenesisNonce: 0,
+	})
+	require.Nil(t, err)
+	arguments.HeadersForBlock = headersForBlock
+
 	return arguments, requestHandler
 }
 

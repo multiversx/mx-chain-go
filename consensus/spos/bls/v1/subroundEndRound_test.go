@@ -27,6 +27,7 @@ import (
 	consensusMocks "github.com/multiversx/mx-chain-go/testscommon/consensus"
 	"github.com/multiversx/mx-chain-go/testscommon/consensus/initializers"
 	"github.com/multiversx/mx-chain-go/testscommon/p2pmocks"
+	"github.com/multiversx/mx-chain-go/testscommon/round"
 	"github.com/multiversx/mx-chain-go/testscommon/statusHandler"
 )
 
@@ -469,7 +470,7 @@ func TestSubroundEndRound_DoEndRoundJobErrTimeIsOutShouldFail(t *testing.T) {
 	sr.SetLeader("A")
 
 	remainingTime := time.Millisecond
-	roundHandlerMock := &consensusMocks.RoundHandlerMock{
+	roundHandlerMock := &round.RoundHandlerMock{
 		RemainingTimeCalled: func(startTime time.Time, maxTime time.Duration) time.Duration {
 			return remainingTime
 		},
@@ -514,7 +515,7 @@ func TestSubroundEndRound_DoEndRoundJobErrMarshalizedDataToBroadcastOK(t *testin
 	container := consensusMocks.InitConsensusCore()
 
 	bpm := consensusMocks.InitBlockProcessorMock(container.Marshalizer())
-	bpm.MarshalizedDataToBroadcastCalled = func(header data.HeaderHandler, body data.BodyHandler) (map[uint32][]byte, map[string][][]byte, error) {
+	bpm.MarshalizedDataToBroadcastCalled = func(hash []byte, header data.HeaderHandler, body data.BodyHandler) (map[uint32][]byte, map[string][][]byte, error) {
 		err = errors.New("error marshalized data to broadcast")
 		return make(map[uint32][]byte), make(map[string][][]byte), err
 	}
@@ -550,7 +551,7 @@ func TestSubroundEndRound_DoEndRoundJobErrBroadcastMiniBlocksOK(t *testing.T) {
 	container := consensusMocks.InitConsensusCore()
 
 	bpm := consensusMocks.InitBlockProcessorMock(container.Marshalizer())
-	bpm.MarshalizedDataToBroadcastCalled = func(header data.HeaderHandler, body data.BodyHandler) (map[uint32][]byte, map[string][][]byte, error) {
+	bpm.MarshalizedDataToBroadcastCalled = func(hash []byte, header data.HeaderHandler, body data.BodyHandler) (map[uint32][]byte, map[string][][]byte, error) {
 		return make(map[uint32][]byte), make(map[string][][]byte), nil
 	}
 	container.SetBlockProcessor(bpm)
@@ -587,7 +588,7 @@ func TestSubroundEndRound_DoEndRoundJobErrBroadcastTransactionsOK(t *testing.T) 
 	container := consensusMocks.InitConsensusCore()
 
 	bpm := consensusMocks.InitBlockProcessorMock(container.Marshalizer())
-	bpm.MarshalizedDataToBroadcastCalled = func(header data.HeaderHandler, body data.BodyHandler) (map[uint32][]byte, map[string][][]byte, error) {
+	bpm.MarshalizedDataToBroadcastCalled = func(hash []byte, header data.HeaderHandler, body data.BodyHandler) (map[uint32][]byte, map[string][][]byte, error) {
 		return make(map[uint32][]byte), make(map[string][][]byte), nil
 	}
 	container.SetBlockProcessor(bpm)
@@ -966,7 +967,7 @@ func TestSubroundEndRound_IsOutOfTimeShouldReturnTrue(t *testing.T) {
 
 	// update roundHandler's mock, so it will calculate for real the duration
 	container := consensusMocks.InitConsensusCore()
-	roundHandler := consensusMocks.RoundHandlerMock{RemainingTimeCalled: func(startTime time.Time, maxTime time.Duration) time.Duration {
+	roundHandler := round.RoundHandlerMock{RemainingTimeCalled: func(startTime time.Time, maxTime time.Duration) time.Duration {
 		currentTime := time.Now()
 		elapsedTime := currentTime.Sub(startTime)
 		remainingTime := maxTime - elapsedTime

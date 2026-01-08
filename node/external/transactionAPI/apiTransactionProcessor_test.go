@@ -21,6 +21,11 @@ import (
 	"github.com/multiversx/mx-chain-core-go/data/transaction"
 	"github.com/multiversx/mx-chain-core-go/data/vm"
 	"github.com/multiversx/mx-chain-core-go/marshal"
+	vmcommon "github.com/multiversx/mx-chain-vm-common-go"
+	datafield "github.com/multiversx/mx-chain-vm-common-go/parsers/dataField"
+	"github.com/stretchr/testify/assert"
+	"github.com/stretchr/testify/require"
+
 	"github.com/multiversx/mx-chain-go/common"
 	"github.com/multiversx/mx-chain-go/common/holders"
 	"github.com/multiversx/mx-chain-go/config"
@@ -40,10 +45,6 @@ import (
 	storageStubs "github.com/multiversx/mx-chain-go/testscommon/storage"
 	"github.com/multiversx/mx-chain-go/testscommon/txcachemocks"
 	"github.com/multiversx/mx-chain-go/txcache"
-	vmcommon "github.com/multiversx/mx-chain-vm-common-go"
-	datafield "github.com/multiversx/mx-chain-vm-common-go/parsers/dataField"
-	"github.com/stretchr/testify/assert"
-	"github.com/stretchr/testify/require"
 )
 
 const maxTrackedBlocks = 100
@@ -76,6 +77,7 @@ func createMockArgAPITransactionProcessor() *ArgAPITransactionProcessor {
 		},
 		TxMarshaller:        &marshallerMock.MarshalizerMock{},
 		EnableEpochsHandler: enableEpochsHandlerMock.NewEnableEpochsHandlerStub(),
+		EnableRoundsHandler: &testscommon.EnableRoundsHandlerStub{},
 	}
 }
 
@@ -215,6 +217,15 @@ func TestNewAPITransactionProcessor(t *testing.T) {
 
 		_, err := NewAPITransactionProcessor(arguments)
 		require.Equal(t, process.ErrNilEnableEpochsHandler, err)
+	})
+	t.Run("NilEnableRoundsHandler", func(t *testing.T) {
+		t.Parallel()
+
+		arguments := createMockArgAPITransactionProcessor()
+		arguments.EnableRoundsHandler = nil
+
+		_, err := NewAPITransactionProcessor(arguments)
+		require.Equal(t, process.ErrNilEnableRoundsHandler, err)
 	})
 }
 
@@ -375,6 +386,7 @@ func TestNode_GetSCRs(t *testing.T) {
 		},
 		EnableEpochsHandler: enableEpochsHandlerMock.NewEnableEpochsHandlerStub(),
 		TxMarshaller:        &mock.MarshalizerFake{},
+		EnableRoundsHandler: &testscommon.EnableRoundsHandlerStub{},
 	}
 	apiTransactionProc, _ := NewAPITransactionProcessor(args)
 
@@ -593,6 +605,7 @@ func TestNode_GetTransactionWithResultsFromStorage(t *testing.T) {
 		},
 		TxMarshaller:        &marshallerMock.MarshalizerMock{},
 		EnableEpochsHandler: enableEpochsHandlerMock.NewEnableEpochsHandlerStub(),
+		EnableRoundsHandler: &testscommon.EnableRoundsHandlerStub{},
 	}
 	apiTransactionProc, _ := NewAPITransactionProcessor(args)
 
@@ -910,7 +923,7 @@ func TestApiTransactionProcessor_GetTransactionsPoolForSender(t *testing.T) {
 			MaxNumBytesPerSenderUpperBound: 33_554_432,
 			MaxTrackedBlocks:               maxTrackedBlocks,
 		},
-	}, txcachemocks.NewMempoolHostMock())
+	}, txcachemocks.NewMempoolHostMock(), 0)
 
 	require.NoError(t, err)
 
@@ -931,7 +944,7 @@ func TestApiTransactionProcessor_GetTransactionsPoolForSender(t *testing.T) {
 			MaxNumBytesPerSenderUpperBound: 33_554_432,
 			MaxTrackedBlocks:               maxTrackedBlocks,
 		},
-	}, txcachemocks.NewMempoolHostMock())
+	}, txcachemocks.NewMempoolHostMock(), 0)
 
 	txCacheWithMeta.AddTx(createTx(txHash3, sender, 4))
 	txCacheWithMeta.AddTx(createTx(txHash4, sender, 5))
@@ -1022,7 +1035,7 @@ func TestApiTransactionProcessor_GetLastPoolNonceForSender(t *testing.T) {
 			MaxNumBytesPerSenderUpperBound: 33_554_432,
 			MaxTrackedBlocks:               maxTrackedBlocks,
 		},
-	}, txcachemocks.NewMempoolHostMock())
+	}, txcachemocks.NewMempoolHostMock(), 0)
 
 	txCacheIntraShard.AddTx(createTx(txHash2, sender, 3))
 	txCacheIntraShard.AddTx(createTx(txHash0, sender, 1))
@@ -1079,7 +1092,7 @@ func TestApiTransactionProcessor_GetTransactionsPoolNonceGapsForSender(t *testin
 			MaxNumBytesPerSenderUpperBound: 33_554_432,
 			MaxTrackedBlocks:               maxTrackedBlocks,
 		},
-	}, txcachemocks.NewMempoolHostMock())
+	}, txcachemocks.NewMempoolHostMock(), 0)
 
 	require.NoError(t, err)
 
@@ -1095,7 +1108,7 @@ func TestApiTransactionProcessor_GetTransactionsPoolNonceGapsForSender(t *testin
 			MaxNumBytesPerSenderUpperBound: 33_554_432,
 			MaxTrackedBlocks:               maxTrackedBlocks,
 		},
-	}, txcachemocks.NewMempoolHostMock())
+	}, txcachemocks.NewMempoolHostMock(), 0)
 
 	require.NoError(t, err)
 
@@ -1187,7 +1200,7 @@ func TestApiTransactionProcessor_GetSelectedTransactions(t *testing.T) {
 			MaxNumBytesPerSenderUpperBound: 33_554_432,
 			MaxTrackedBlocks:               maxTrackedBlocks,
 		},
-	}, txcachemocks.NewMempoolHostMock())
+	}, txcachemocks.NewMempoolHostMock(), 0)
 
 	require.NoError(t, err)
 
@@ -1197,6 +1210,9 @@ func TestApiTransactionProcessor_GetSelectedTransactions(t *testing.T) {
 	cache.AddTx(createTx([]byte("hash4"), "bob", 1))
 
 	require.Equal(t, uint64(4), cache.CountTx())
+
+	err = cache.OnExecutedBlock(&block.Header{}, []byte("rootHash"))
+	require.NoError(t, err)
 
 	t.Run("should work", func(t *testing.T) {
 		t.Parallel()
@@ -1214,7 +1230,6 @@ func TestApiTransactionProcessor_GetSelectedTransactions(t *testing.T) {
 				}
 			},
 		}
-
 		atp, err := NewAPITransactionProcessor(args)
 		require.NoError(t, err)
 		require.NotNil(t, atp)
@@ -1525,7 +1540,7 @@ func TestApiTransactionProcessor_GetVirtualNonce(t *testing.T) {
 			MaxNumBytesPerSenderUpperBound: 33_554_432,
 			MaxTrackedBlocks:               maxTrackedBlocks,
 		},
-	}, txcachemocks.NewMempoolHostMock())
+	}, txcachemocks.NewMempoolHostMock(), 0)
 
 	require.NoError(t, err)
 
@@ -1626,6 +1641,7 @@ func createAPITransactionProc(t *testing.T, epoch uint32, withDbLookupExt bool) 
 				return flag == common.RelayedTransactionsV1V2DisableFlag
 			},
 		},
+		EnableRoundsHandler: &testscommon.EnableRoundsHandlerStub{},
 	}
 	apiTransactionProc, err := NewAPITransactionProcessor(args)
 	require.Nil(t, err)
@@ -1858,4 +1874,141 @@ func TestApiTransactionProcessor_PopulateComputedFields(t *testing.T) {
 	require.Equal(t, "MoveBalance", apiTx.ProcessingTypeOnSource)
 	require.Equal(t, "SCDeployment", apiTx.ProcessingTypeOnDestination)
 	require.Equal(t, "1000", apiTx.InitiallyPaidFee)
+}
+
+func Test_GetCurrentRootHash(t *testing.T) {
+	t.Parallel()
+
+	t.Run("should fail if nil current header", func(t *testing.T) {
+		t.Parallel()
+
+		arguments := createMockArgAPITransactionProcessor()
+
+		processor, _ := NewAPITransactionProcessor(arguments)
+
+		chainHandler := &testscommon.ChainHandlerStub{
+			GetCurrentBlockHeaderCalled: func() data.HeaderHandler {
+				return nil
+			},
+		}
+
+		retRootHash, err := processor.getCurrentRootHash(chainHandler)
+		require.Equal(t, ErrNilBlockHeader, err)
+		require.Nil(t, retRootHash)
+	})
+
+	t.Run("before header v3, should fail if not able to get current root hash", func(t *testing.T) {
+		t.Parallel()
+
+		arguments := createMockArgAPITransactionProcessor()
+
+		processor, _ := NewAPITransactionProcessor(arguments)
+
+		header := &block.HeaderV2{}
+
+		chainHandler := &testscommon.ChainHandlerStub{
+			GetCurrentBlockRootHashCalled: func() []byte {
+				return nil
+			},
+			GetCurrentBlockHeaderCalled: func() data.HeaderHandler {
+				return header
+			},
+		}
+
+		retRootHash, err := processor.getCurrentRootHash(chainHandler)
+		require.Equal(t, ErrNilCurrentRootHash, err)
+		require.Nil(t, retRootHash)
+	})
+
+	t.Run("before header v3 should get root hash from current chain handler root hash", func(t *testing.T) {
+		t.Parallel()
+
+		arguments := createMockArgAPITransactionProcessor()
+
+		processor, _ := NewAPITransactionProcessor(arguments)
+
+		expRootHash := []byte("expRootHash")
+
+		header := &block.HeaderV2{}
+
+		chainHandler := &testscommon.ChainHandlerStub{
+			GetCurrentBlockRootHashCalled: func() []byte {
+				return expRootHash
+			},
+			GetCurrentBlockHeaderCalled: func() data.HeaderHandler {
+				return header
+			},
+			GetLastExecutedBlockInfoCalled: func() (uint64, []byte, []byte) {
+				return 0, []byte{}, []byte{}
+			},
+		}
+
+		retRootHash, err := processor.getCurrentRootHash(chainHandler)
+		require.Nil(t, err)
+		require.Equal(t, expRootHash, retRootHash)
+	})
+
+	t.Run("on header v3 should get root hash from last executed block info", func(t *testing.T) {
+		t.Parallel()
+
+		arguments := createMockArgAPITransactionProcessor()
+
+		processor, _ := NewAPITransactionProcessor(arguments)
+
+		expRootHash := []byte("expRootHash")
+
+		header := &block.HeaderV3{
+			LastExecutionResult: &block.ExecutionResultInfo{
+				ExecutionResult: &block.BaseExecutionResult{
+					HeaderHash: []byte("headerHash1"),
+					RootHash:   []byte("rootHash1"),
+				},
+			},
+		}
+
+		chainHandler := &testscommon.ChainHandlerStub{
+			GetCurrentBlockHeaderCalled: func() data.HeaderHandler {
+				return header
+			},
+			GetLastExecutedBlockInfoCalled: func() (uint64, []byte, []byte) {
+				return 0, []byte{}, expRootHash
+			},
+		}
+
+		retRootHash, err := processor.getCurrentRootHash(chainHandler)
+		require.Nil(t, err)
+		require.Equal(t, expRootHash, retRootHash)
+	})
+
+	t.Run("on first header v3 should get root hash from last execution result", func(t *testing.T) {
+		t.Parallel()
+
+		arguments := createMockArgAPITransactionProcessor()
+
+		processor, _ := NewAPITransactionProcessor(arguments)
+
+		expRootHash := []byte("rootHash1")
+
+		header := &block.HeaderV3{
+			LastExecutionResult: &block.ExecutionResultInfo{
+				ExecutionResult: &block.BaseExecutionResult{
+					HeaderHash: []byte("headerHash1"),
+					RootHash:   expRootHash,
+				},
+			},
+		}
+
+		chainHandler := &testscommon.ChainHandlerStub{
+			GetLastExecutedBlockInfoCalled: func() (uint64, []byte, []byte) {
+				return 0, []byte{}, []byte{} // root hash not set
+			},
+			GetCurrentBlockHeaderCalled: func() data.HeaderHandler {
+				return header
+			},
+		}
+
+		retRootHash, err := processor.getCurrentRootHash(chainHandler)
+		require.Nil(t, err)
+		require.Equal(t, expRootHash, retRootHash)
+	})
 }

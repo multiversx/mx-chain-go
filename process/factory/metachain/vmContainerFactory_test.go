@@ -2,7 +2,6 @@ package metachain
 
 import (
 	"errors"
-	"github.com/multiversx/mx-chain-go/testscommon/chainParameters"
 	"testing"
 
 	"github.com/multiversx/mx-chain-core-go/core"
@@ -14,6 +13,7 @@ import (
 	"github.com/multiversx/mx-chain-go/process/factory"
 	"github.com/multiversx/mx-chain-go/process/mock"
 	"github.com/multiversx/mx-chain-go/testscommon"
+	"github.com/multiversx/mx-chain-go/testscommon/chainParameters"
 	"github.com/multiversx/mx-chain-go/testscommon/economicsmocks"
 	"github.com/multiversx/mx-chain-go/testscommon/enableEpochsHandlerMock"
 	"github.com/multiversx/mx-chain-go/testscommon/epochNotifier"

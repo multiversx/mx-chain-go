@@ -37,6 +37,7 @@ import (
 	"github.com/multiversx/mx-chain-go/testscommon/dataRetriever"
 	"github.com/multiversx/mx-chain-go/testscommon/enableEpochsHandlerMock"
 	"github.com/multiversx/mx-chain-go/testscommon/p2pmocks"
+	"github.com/multiversx/mx-chain-go/testscommon/round"
 	"github.com/multiversx/mx-chain-go/testscommon/shardingMocks"
 	"github.com/multiversx/mx-chain-go/testscommon/statusHandler"
 )
@@ -581,7 +582,7 @@ func TestSubroundEndRound_DoEndRoundJobErrTimeIsOutShouldFail(t *testing.T) {
 	sr.SetSelfPubKey("A")
 
 	remainingTime := -time.Millisecond
-	roundHandlerMock := &consensusMocks.RoundHandlerMock{
+	roundHandlerMock := &round.RoundHandlerMock{
 		RemainingTimeCalled: func(startTime time.Time, maxTime time.Duration) time.Duration {
 			return remainingTime
 		},
@@ -954,7 +955,7 @@ func TestSubroundEndRound_IsOutOfTimeShouldReturnTrue(t *testing.T) {
 
 	// update roundHandler's mock, so it will calculate for real the duration
 	container := consensusMocks.InitConsensusCore()
-	roundHandler := consensusMocks.RoundHandlerMock{RemainingTimeCalled: func(startTime time.Time, maxTime time.Duration) time.Duration {
+	roundHandler := round.RoundHandlerMock{RemainingTimeCalled: func(startTime time.Time, maxTime time.Duration) time.Duration {
 		currentTime := time.Now()
 		elapsedTime := currentTime.Sub(startTime)
 		remainingTime := maxTime - elapsedTime
@@ -2392,7 +2393,7 @@ func TestSubroundEndRound_SendProof(t *testing.T) {
 			},
 		}
 		container.SetBroadcastMessenger(bm)
-		roundHandler := &consensusMocks.RoundHandlerMock{
+		roundHandler := &round.RoundHandlerMock{
 			RemainingTimeCalled: func(startTime time.Time, maxTime time.Duration) time.Duration {
 				return -1 // no time left
 			},
@@ -2464,7 +2465,7 @@ func TestSubroundEndRound_UpdateConsensusMetrics(t *testing.T) {
 			return now
 		},
 	}
-	roundHandlerMock := consensusMocks.RoundHandlerMock{
+	roundHandlerMock := testscommon.RoundHandlerMock{
 		TimeStampCalled: func() time.Time {
 			return now.Add(-500 * time.Nanosecond)
 		},
@@ -2532,4 +2533,84 @@ func TestSubroundEndRound_UpdateConsensusMetrics(t *testing.T) {
 	// instance value = 500 - 400 = 100; avg = 300 + 100 / 2 = 200
 	assert.Equal(t, uint64(100), appStatusHandler.GetUint64(common.MetricReceivedProof), "MetricReceivedProof should be set")
 	assert.Equal(t, uint64(200), appStatusHandler.GetUint64(common.MetricAvgReceivedProof), "MetricAvgProofsReceived should be set")
+}
+
+func TestSubroundEndRound_UpdateDeltaMetrics(t *testing.T) {
+	t.Parallel()
+
+	baseExecutionResults := &block.BaseExecutionResult{
+		HeaderHash:  []byte("hash"),
+		HeaderNonce: 3,
+		HeaderRound: 1,
+		RootHash:    []byte("rootHash"),
+	}
+	baseMetaExecutionResult := &block.BaseMetaExecutionResult{
+		BaseExecutionResult: baseExecutionResults,
+	}
+
+	header := &block.HeaderV3{
+		PrevHash: []byte("prev_hash"),
+		Nonce:    10,
+		LastExecutionResult: &block.ExecutionResultInfo{
+			NotarizedInRound: 1,
+			ExecutionResult:  baseExecutionResults,
+		},
+	}
+
+	meta := &block.MetaBlockV3{
+		PrevHash: []byte("prev_hash"),
+		Nonce:    10,
+		LastExecutionResult: &block.MetaExecutionResultInfo{
+			NotarizedInRound: 1,
+			ExecutionResult:  baseMetaExecutionResult,
+		},
+	}
+	container := consensusMocks.InitConsensusCore()
+	appStatusHandler := statusHandler.NewAppStatusHandlerMock()
+
+	ch := make(chan bool, 1)
+	consensusState := initializers.InitConsensusStateWithNodesCoordinator(container.NodesCoordinator())
+	sr, _ := spos.NewSubround(
+		bls.SrSignature,
+		bls.SrEndRound,
+		-1,
+		roundTimeDuration,
+		0.85,
+		0.95,
+		"(END_ROUND)",
+		consensusState,
+		ch,
+		executeStoredMessages,
+		container,
+		chainID,
+		currentPid,
+		appStatusHandler,
+	)
+
+	consensusMetrics, _ := spos.NewConsensusMetrics(sr.AppStatusHandler())
+
+	worker := consensusMocks.SposWorkerMock{
+		ConsensusMetricsCalled: func() spos.ConsensusMetricsHandler {
+			return consensusMetrics
+		},
+	}
+
+	srEndRound, _ := v2.NewSubroundEndRound(
+		sr,
+		v2.ProcessingThresholdPercent,
+		appStatusHandler,
+		&testscommon.SentSignatureTrackerStub{},
+		&worker,
+		&dataRetrieverMocks.ThrottlerStub{},
+	)
+
+	srEndRound.SetHeader(header)
+	srEndRound.SetData([]byte("hash"))
+	srEndRound.UpdateNonceDeltaMetrics()
+	assert.Equal(t, uint64(7), appStatusHandler.GetUint64(common.MetricDeltaHeaderNonceLastExecutionResultNonce), "MetricNonceDelta should be set for header v3")
+
+	srEndRound.SetHeader(meta)
+	srEndRound.SetData([]byte("hash"))
+	srEndRound.UpdateNonceDeltaMetrics()
+	assert.Equal(t, uint64(7), appStatusHandler.GetUint64(common.MetricDeltaHeaderNonceLastExecutionResultNonce), "MetricNonceDelta should be set for meta v3")
 }

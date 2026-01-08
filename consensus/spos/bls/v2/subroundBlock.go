@@ -14,6 +14,7 @@ import (
 	"github.com/multiversx/mx-chain-go/consensus"
 	"github.com/multiversx/mx-chain-go/consensus/spos"
 	"github.com/multiversx/mx-chain-go/consensus/spos/bls"
+	"github.com/multiversx/mx-chain-go/process/asyncExecution/queue"
 )
 
 // maxAllowedSizeInBytes defines how many bytes are allowed as payload in a message
@@ -26,6 +27,7 @@ type subroundBlock struct {
 	processingThresholdPercentage int
 	worker                        spos.WorkerHandler
 	mutBlockProcessing            sync.Mutex
+	syncController                spos.RoundSyncControllerHandler
 }
 
 // NewSubroundBlock creates a subroundBlock object
@@ -33,6 +35,7 @@ func NewSubroundBlock(
 	baseSubround *spos.Subround,
 	processingThresholdPercentage int,
 	worker spos.WorkerHandler,
+	syncController spos.RoundSyncControllerHandler,
 ) (*subroundBlock, error) {
 	err := checkNewSubroundBlockParams(baseSubround)
 	if err != nil {
@@ -42,11 +45,15 @@ func NewSubroundBlock(
 	if check.IfNil(worker) {
 		return nil, spos.ErrNilWorker
 	}
+	if check.IfNil(syncController) {
+		return nil, ErrNilRoundSyncController
+	}
 
 	srBlock := subroundBlock{
 		Subround:                      baseSubround,
 		processingThresholdPercentage: processingThresholdPercentage,
 		worker:                        worker,
+		syncController:                syncController,
 	}
 
 	srBlock.Job = srBlock.doBlockJob
@@ -120,7 +127,7 @@ func (sr *subroundBlock) doBlockJob(ctx context.Context) bool {
 
 	leader, errGetLeader := sr.GetLeader()
 	if errGetLeader != nil {
-		log.Debug("doBlockJob.GetLeader", "error", errGetLeader)
+		printLogMessage(ctx, "doBlockJob.GetLeader", errGetLeader)
 		return false
 	}
 
@@ -128,6 +135,14 @@ func (sr *subroundBlock) doBlockJob(ctx context.Context) bool {
 	if !sentWithSuccess {
 		return false
 	}
+
+	err = sr.prepareBlockForExecution(header, body)
+	if err != nil {
+		printLogMessage(ctx, "doBlockJob.prepareBlockForExecution", err)
+		return false
+	}
+
+	// placeholder for subroundBlock.doBlockJob script
 
 	sr.updateConsensusMetricsProposedBlockReceivedOrSent()
 
@@ -139,9 +154,29 @@ func (sr *subroundBlock) doBlockJob(ctx context.Context) bool {
 
 	// placeholder for subroundBlock.doBlockJob script
 
-	sr.ConsensusCoreHandler.ScheduledProcessor().StartScheduledProcessing(header, body, sr.GetRoundTimeStamp())
+	if !header.IsHeaderV3() {
+		sr.ConsensusCoreHandler.ScheduledProcessor().StartScheduledProcessing(header, body, sr.GetRoundTimeStamp())
+	}
 
 	return true
+}
+
+func (sr *subroundBlock) prepareBlockForExecution(header data.HeaderHandler, body data.BodyHandler) error {
+	if !header.IsHeaderV3() {
+		return nil
+	}
+
+	// metachain does not need to select outgoing txs from txpool
+	if header.GetShardID() != core.MetachainShardId {
+		err := sr.BlockProcessor().OnProposedBlock(body, header, sr.GetData())
+		if err != nil {
+			return err
+		}
+	}
+	return sr.ExecutionManager().AddPairForExecution(queue.HeaderBodyPair{
+		Header: header,
+		Body:   body,
+	})
 }
 
 func (sr *subroundBlock) signBlockHeader(header data.HeaderHandler) ([]byte, error) {
@@ -210,15 +245,11 @@ func (sr *subroundBlock) createBlock(header data.HeaderHandler) (data.HeaderHand
 		return sr.RoundHandler().RemainingTime(startTime, maxTime) > 0
 	}
 
-	finalHeader, blockBody, err := sr.BlockProcessor().CreateBlock(
-		header,
-		haveTimeInCurrentSubround,
-	)
-	if err != nil {
-		return nil, nil, err
+	if header.IsHeaderV3() {
+		return sr.BlockProcessor().CreateBlockProposal(header, haveTimeInCurrentSubround)
 	}
 
-	return finalHeader, blockBody, nil
+	return sr.BlockProcessor().CreateBlock(header, haveTimeInCurrentSubround)
 }
 
 // sendBlockBody method sends the proposed block body in the subround Block
@@ -289,6 +320,12 @@ func (sr *subroundBlock) sendBlockHeader(
 	sr.SetData(headerHash)
 	sr.SetHeader(headerHandler)
 
+	// log the header output for debugging purposes
+	headerOutput, err := common.PrettifyStruct(headerHandler)
+	if err == nil {
+		log.Debug("Proposed header sent", "header", headerOutput)
+	}
+
 	return true
 }
 
@@ -309,7 +346,7 @@ func (sr *subroundBlock) createHeader() (data.HeaderHandler, error) {
 	prevRandSeed := prevHeader.GetRandSeed()
 
 	round := uint64(sr.RoundHandler().Index())
-	hdr, err := sr.BlockProcessor().CreateNewHeader(round, nonce)
+	hdr, err := sr.createHeaderBasedOnRound(round, nonce)
 	if err != nil {
 		return nil, err
 	}
@@ -357,9 +394,21 @@ func (sr *subroundBlock) createHeader() (data.HeaderHandler, error) {
 	return hdr, nil
 }
 
+func (sr *subroundBlock) createHeaderBasedOnRound(round uint64, nonce uint64) (data.HeaderHandler, error) {
+	if sr.EnableRoundsHandler().IsFlagEnabledInRound(common.SupernovaRoundFlag, round) {
+		return sr.BlockProcessor().CreateNewHeaderProposal(round, nonce)
+	}
+
+	return sr.BlockProcessor().CreateNewHeader(round, nonce)
+}
+
 // receivedBlockBody method is called when a block body is received through the block body channel
 func (sr *subroundBlock) receivedBlockBody(ctx context.Context, cnsDta *consensus.Message) bool {
 	if !sr.waitForStartRoundToFinishBlocking() {
+		return false
+	}
+
+	if sr.IsSubroundFinished(sr.Current()) {
 		return false
 	}
 
@@ -410,6 +459,7 @@ func (sr *subroundBlock) isHeaderForCurrentConsensus(header data.HeaderHandler) 
 		return false
 	}
 	if header.GetRound() != uint64(sr.RoundHandler().Index()) {
+		sr.addOutOfRangeHeader(header)
 		return false
 	}
 
@@ -426,6 +476,16 @@ func (sr *subroundBlock) isHeaderForCurrentConsensus(header data.HeaderHandler) 
 	prevRandSeed := prevHeader.GetRandSeed()
 
 	return bytes.Equal(header.GetPrevRandSeed(), prevRandSeed)
+}
+
+func (sr *subroundBlock) addOutOfRangeHeader(header data.HeaderHandler) {
+	hash, err := core.CalculateHash(sr.Marshalizer(), sr.Hasher(), header)
+	if err != nil {
+		log.Error("failed to calculate hash for out of range header", "err", err, "round", header.GetRound())
+		return
+	}
+
+	sr.syncController.AddOutOfRangeRound(header.GetRound(), string(hash))
 }
 
 func (sr *subroundBlock) getLeaderForHeader(headerHandler data.HeaderHandler) ([]byte, error) {
@@ -481,15 +541,26 @@ func (sr *subroundBlock) waitForStartRoundToFinishBlocking() bool {
 
 func (sr *subroundBlock) receivedBlockHeader(headerHandler data.HeaderHandler) {
 	if check.IfNil(headerHandler) {
+		log.Debug("subroundBlock.receivedBlockHeader - header is nil")
 		return
 	}
 
 	log.Debug("subroundBlock.receivedBlockHeader", "nonce", headerHandler.GetNonce(), "round", headerHandler.GetRound())
 	if headerHandler.CheckFieldsForNil() != nil {
+		log.Debug("subroundBlock.receivedBlockHeader - header fields are nil")
+		return
+	}
+
+	ok := sr.checkSupernovaHeader(headerHandler)
+	if !ok {
 		return
 	}
 
 	if !sr.waitForStartRoundToFinishBlocking() {
+		return
+	}
+
+	if sr.IsSubroundFinished(sr.Current()) {
 		return
 	}
 
@@ -561,6 +632,29 @@ func (sr *subroundBlock) receivedBlockHeader(headerHandler data.HeaderHandler) {
 		spos.GetConsensusTopicID(sr.ShardCoordinator()),
 		spos.LeaderPeerHonestyIncreaseFactor,
 	)
+
+	// log the header output for debugging purposes
+	headerOutput, err := common.PrettifyStruct(headerHandler)
+	if err == nil {
+		log.Debug("Proposed header received", "header", headerOutput)
+	}
+}
+
+func (sr *subroundBlock) checkSupernovaHeader(headerHandler data.HeaderHandler) bool {
+	isSupernovaActive := common.IsAsyncExecutionEnabledForEpochAndRound(sr.EnableEpochsHandler(), sr.EnableRoundsHandler(), headerHandler.GetEpoch(), headerHandler.GetRound())
+	isNotHeaderV3AfterSupernova := isSupernovaActive && !headerHandler.IsHeaderV3()
+	if isNotHeaderV3AfterSupernova {
+		log.Debug("checkSupernovaHeader received old header after supernova")
+		return false
+	}
+
+	isHeaderV3BeforeSupernova := !isSupernovaActive && headerHandler.IsHeaderV3()
+	if isHeaderV3BeforeSupernova {
+		log.Debug("checkSupernovaHeader received header v3 before supernova")
+		return false
+	}
+
+	return true
 }
 
 // CanProcessReceivedHeader method returns true if the received header can be processed and false otherwise
@@ -649,11 +743,7 @@ func (sr *subroundBlock) processBlock(
 	metricStatTime := time.Now()
 	defer sr.computeSubroundProcessingMetric(metricStatTime, common.MetricProcessedProposedBlock)
 
-	err := sr.BlockProcessor().ProcessBlock(
-		sr.GetHeader(),
-		sr.GetBody(),
-		remainingTimeInCurrentRound,
-	)
+	err := sr.processBlockBasedOnType(remainingTimeInCurrentRound)
 
 	if roundIndex < sr.RoundHandler().Index() {
 		log.Debug("canceled round, round index has been changed",
@@ -678,9 +768,31 @@ func (sr *subroundBlock) processBlock(
 		return false
 	}
 
-	sr.ConsensusCoreHandler.ScheduledProcessor().StartScheduledProcessing(sr.GetHeader(), sr.GetBody(), sr.GetRoundTimeStamp())
+	if !sr.GetHeader().IsHeaderV3() {
+		sr.ConsensusCoreHandler.ScheduledProcessor().StartScheduledProcessing(sr.GetHeader(), sr.GetBody(), sr.GetRoundTimeStamp())
+	}
 
 	return true
+}
+
+func (sr *subroundBlock) processBlockBasedOnType(haveTime func() time.Duration) error {
+	if sr.GetHeader().IsHeaderV3() {
+		err := sr.BlockProcessor().VerifyBlockProposal(sr.GetHeader(), sr.GetBody(), haveTime)
+		if err != nil {
+			return err
+		}
+
+		return sr.ExecutionManager().AddPairForExecution(queue.HeaderBodyPair{
+			Header: sr.GetHeader(),
+			Body:   sr.GetBody(),
+		})
+	}
+
+	return sr.BlockProcessor().ProcessBlock(
+		sr.GetHeader(),
+		sr.GetBody(),
+		haveTime,
+	)
 }
 
 func (sr *subroundBlock) printCancelRoundLogMessage(ctx context.Context, err error) {

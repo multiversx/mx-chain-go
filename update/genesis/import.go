@@ -151,7 +151,7 @@ func (si *stateImport) importEpochStartMetaBlock(identifier string, keys [][]byt
 		return err
 	}
 
-	metaBlock, ok := object.(*block.MetaBlock)
+	metaBlock, ok := object.(data.MetaHeaderHandler)
 	if !ok {
 		return update.ErrWrongTypeAssertion
 	}
@@ -170,7 +170,7 @@ func (si *stateImport) importUnFinishedMetaBlocks(identifier string, keys [][]by
 			break
 		}
 
-		metaBlock, ok := object.(*block.MetaBlock)
+		metaBlock, ok := object.(data.MetaHeaderHandler)
 		if !ok {
 			return update.ErrWrongTypeAssertion
 		}

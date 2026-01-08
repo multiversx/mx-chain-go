@@ -5,7 +5,6 @@ import (
 	"encoding/hex"
 	"errors"
 	"fmt"
-	"github.com/multiversx/mx-chain-go/testscommon/chainParameters"
 	"math"
 	"math/big"
 	"os"
@@ -47,6 +46,7 @@ import (
 	"github.com/multiversx/mx-chain-go/process/transactionLog"
 	"github.com/multiversx/mx-chain-go/state"
 	"github.com/multiversx/mx-chain-go/testscommon"
+	"github.com/multiversx/mx-chain-go/testscommon/chainParameters"
 	dataRetrieverMock "github.com/multiversx/mx-chain-go/testscommon/dataRetriever"
 	"github.com/multiversx/mx-chain-go/testscommon/dblookupext"
 	"github.com/multiversx/mx-chain-go/testscommon/epochNotifier"
@@ -115,7 +115,7 @@ type TestContext struct {
 	LastTxHash    []byte
 	SCRForwarder  *mock.IntermediateTransactionHandlerMock
 	LastSCResults []*smartContractResult.SmartContractResult
-	LastLogs      []*data.LogData
+	LastLogs      []data.LogDataHandler
 }
 
 type testParticipant struct {

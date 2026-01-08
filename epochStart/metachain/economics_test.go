@@ -10,7 +10,11 @@ import (
 
 	"github.com/multiversx/mx-chain-core-go/core"
 	"github.com/multiversx/mx-chain-core-go/core/check"
+	"github.com/multiversx/mx-chain-core-go/data"
 	"github.com/multiversx/mx-chain-core-go/data/block"
+	"github.com/stretchr/testify/assert"
+	"github.com/stretchr/testify/require"
+
 	"github.com/multiversx/mx-chain-go/common"
 	"github.com/multiversx/mx-chain-go/config"
 	"github.com/multiversx/mx-chain-go/dataRetriever"
@@ -26,8 +30,6 @@ import (
 	"github.com/multiversx/mx-chain-go/testscommon/epochNotifier"
 	"github.com/multiversx/mx-chain-go/testscommon/hashingMocks"
 	storageStubs "github.com/multiversx/mx-chain-go/testscommon/storage"
-	"github.com/stretchr/testify/assert"
-	"github.com/stretchr/testify/require"
 )
 
 func createMockEpochEconomicsArguments() ArgsNewEpochEconomics {
@@ -1946,7 +1948,7 @@ func computeRewardsPerBlock(
 	}
 }
 
-func TestComputeEndOfEpochEconomicsV2(t *testing.T) {
+func TestComputeEndOfEpochEconomicsV2AndV3(t *testing.T) {
 	t.Parallel()
 
 	t.Run("before supernova", func(t *testing.T) {
@@ -2003,7 +2005,6 @@ func TestComputeEndOfEpochEconomicsV2(t *testing.T) {
 
 			economicsBlock, err := ec.ComputeEndOfEpochEconomics(meta)
 			assert.Nil(t, err)
-
 			verifyEconomicsBlock(t, economicsBlock, input, rewardsPerBlock, nodePrice, totalSupply, roundsPerEpoch, args.RewardsHandler, isStakingV2)
 		}
 	})
@@ -2061,21 +2062,27 @@ func TestComputeEndOfEpochEconomicsV2(t *testing.T) {
 		)
 
 		for _, input := range testInputs {
-			meta := &block.MetaBlock{
-				AccumulatedFeesInEpoch: input.accumulatedFeesInEpoch,
-				DevFeesInEpoch:         input.devFeesInEpoch,
-				Epoch:                  metaEpoch,
-				Round:                  roundsPerEpoch,
-				Nonce:                  input.blockPerEpochOneShard,
-				EpochStart: block.EpochStart{
-					LastFinalizedHeaders: []block.EpochStartShardData{
-						{ShardID: 0, Round: roundsPerEpoch, Nonce: input.blockPerEpochOneShard},
-						{ShardID: 1, Round: roundsPerEpoch, Nonce: input.blockPerEpochOneShard},
-					},
+			meta := &block.MetaBlockV3{
+				Epoch:               metaEpoch,
+				Round:               roundsPerEpoch,
+				Nonce:               input.blockPerEpochOneShard,
+				LastExecutionResult: &block.MetaExecutionResultInfo{},
+				EpochChangeProposed: true,
+			}
+			execRes := &block.MetaExecutionResult{
+				ExecutionResult: &block.BaseMetaExecutionResult{
+					AccumulatedFeesInEpoch: input.accumulatedFeesInEpoch,
+					DevFeesInEpoch:         input.devFeesInEpoch,
 				},
 			}
 
-			economicsBlock, err := ec.ComputeEndOfEpochEconomics(meta)
+			blockEpochStart := &block.EpochStart{
+				LastFinalizedHeaders: []block.EpochStartShardData{
+					{ShardID: 0, Round: roundsPerEpoch, Nonce: input.blockPerEpochOneShard},
+					{ShardID: 1, Round: roundsPerEpoch, Nonce: input.blockPerEpochOneShard},
+				},
+			}
+			economicsBlock, err := ec.ComputeEndOfEpochEconomicsV3(meta, execRes, blockEpochStart)
 			assert.Nil(t, err)
 
 			verifyEconomicsBlock(t, economicsBlock, input, rewardsPerBlock, nodePrice, totalSupply, roundsPerEpoch, args.RewardsHandler, isStakingV2)
@@ -2415,6 +2422,171 @@ func TestEconomics_checkEconomicsInvariantsV2ExtraBlocksNotarized(t *testing.T) 
 		1,
 		maxBlocksInEpoch+extraBlocksNotarized)
 	require.Nil(t, err)
+}
+
+func TestEconomics_ComputeEndOfEpochEconomicsV3NilInputShouldError(t *testing.T) {
+	t.Parallel()
+
+	args := getArguments()
+	ec, _ := NewEndOfEpochEconomicsDataCreator(args)
+	res, err := ec.ComputeEndOfEpochEconomicsV3(nil, createMetaExecRes(), &block.EpochStart{})
+	require.Nil(t, res)
+	require.Equal(t, process.ErrNilMetaBlockHeader, err)
+}
+
+func TestEconomics_createEconomicsV3Args(t *testing.T) {
+	t.Parallel()
+
+	args := getArguments()
+	ec, _ := NewEndOfEpochEconomicsDataCreator(args)
+
+	metaExecRes := createMetaExecRes()
+	metaBlock := &block.MetaBlockV3{
+		Epoch:               2,
+		Nonce:               4,
+		PrevHash:            metaExecRes.GetHeaderHash(),
+		EpochChangeProposed: true,
+		LastExecutionResult: &block.MetaExecutionResultInfo{
+			ExecutionResult: &block.BaseMetaExecutionResult{
+				BaseExecutionResult: &block.BaseExecutionResult{
+					HeaderHash:  []byte("some hash"),
+					HeaderEpoch: 2,
+					HeaderNonce: 3,
+					RootHash:    []byte("some root hash"),
+				},
+				ValidatorStatsRootHash: []byte("validator stats root hash"),
+				AccumulatedFeesInEpoch: big.NewInt(1000),
+				DevFeesInEpoch:         big.NewInt(300),
+			},
+		},
+	}
+
+	t.Run("nil meta block", func(t *testing.T) {
+		res, err := ec.createEconomicsV3Args(nil, metaExecRes, &block.EpochStart{})
+		require.Nil(t, res)
+		require.Equal(t, process.ErrNilMetaBlockHeader, err)
+	})
+	t.Run("nil exec results", func(t *testing.T) {
+		res, err := ec.createEconomicsV3Args(metaBlock, nil, &block.EpochStart{})
+		require.Nil(t, res)
+		require.Equal(t, process.ErrNilExecutionResultHandler, err)
+	})
+	t.Run("nil nonces per shard map", func(t *testing.T) {
+		res, err := ec.createEconomicsV3Args(metaBlock, metaExecRes, nil)
+		require.Nil(t, res)
+		require.Equal(t, process.ErrNilEpochStartData, err)
+	})
+	t.Run("nil acc fees in epoch", func(t *testing.T) {
+		metaExecResInvalid := createMetaExecRes()
+		metaExecResInvalid.ExecutionResult.AccumulatedFeesInEpoch = nil
+		res, err := ec.createEconomicsV3Args(metaBlock, metaExecResInvalid, &block.EpochStart{})
+		require.Nil(t, res)
+		require.Equal(t, epochStart.ErrNilTotalAccumulatedFeesInEpoch, err)
+	})
+	t.Run("nil dev fees in epoch", func(t *testing.T) {
+		metaExecResInvalid := createMetaExecRes()
+		metaExecResInvalid.ExecutionResult.DevFeesInEpoch = nil
+		res, err := ec.createEconomicsV3Args(metaBlock, metaExecResInvalid, &block.EpochStart{})
+		require.Nil(t, res)
+		require.Equal(t, epochStart.ErrNilTotalDevFeesInEpoch, err)
+	})
+	t.Run("not meta v3 header", func(t *testing.T) {
+		res, err := ec.createEconomicsV3Args(&block.MetaBlock{}, metaExecRes, &block.EpochStart{})
+		require.Nil(t, res)
+		require.ErrorIs(t, err, data.ErrInvalidHeaderType)
+	})
+	t.Run("not epoch change proposed", func(t *testing.T) {
+		metaBlockCopy := *metaBlock
+		metaBlockCopy.EpochChangeProposed = false
+		res, err := ec.createEconomicsV3Args(&metaBlockCopy, metaExecRes, &block.EpochStart{})
+		require.Nil(t, res)
+		require.ErrorIs(t, err, epochStart.ErrNotEpochStartBlock)
+	})
+	t.Run("exec result header hash does not match prev meta block header hash", func(t *testing.T) {
+		metaBlockCopy := *metaBlock
+		metaBlockCopy.PrevHash = []byte("another hash")
+		res, err := ec.createEconomicsV3Args(&metaBlockCopy, metaExecRes, &block.EpochStart{})
+		require.Nil(t, res)
+		require.ErrorIs(t, err, errHashMismatch)
+	})
+	t.Run("cannot get prev epoch start", func(t *testing.T) {
+		arguments := getArguments()
+
+		localErr := errors.New("get storer failed")
+		arguments.Store = &storageStubs.ChainStorerStub{
+			GetStorerCalled: func(unitType dataRetriever.UnitType) (storage.Storer, error) {
+				return nil, localErr
+			},
+		}
+		economicsCreator, _ := NewEndOfEpochEconomicsDataCreator(arguments)
+		res, err := economicsCreator.createEconomicsV3Args(metaBlock, metaExecRes, &block.EpochStart{})
+		require.Nil(t, res)
+		require.Equal(t, localErr, err)
+	})
+	t.Run("should work", func(t *testing.T) {
+		arguments := getArguments()
+
+		arguments.ShardCoordinator = mock.NewMultiShardsCoordinatorMock(3)
+
+		metaBlockCopy := *metaBlock
+		metaBlockCopy.EpochStart.LastFinalizedHeaders = []block.EpochStartShardData{
+			{
+				Nonce:      3,
+				ShardID:    0,
+				HeaderHash: []byte("hash3"),
+			},
+		}
+
+		storer := &storageStubs.StorerStub{
+			GetCalled: func(key []byte) ([]byte, error) {
+				return arguments.Marshalizer.Marshal(metaBlockCopy)
+			},
+		}
+		arguments.Store = &storageStubs.ChainStorerStub{
+			GetStorerCalled: func(unitType dataRetriever.UnitType) (storage.Storer, error) {
+				return storer, nil
+			},
+		}
+		epochStartDta := &block.EpochStart{
+			LastFinalizedHeaders: []block.EpochStartShardData{
+				{
+					Nonce:      1,
+					ShardID:    1,
+					HeaderHash: []byte("hash1"),
+				},
+				{
+					Nonce:      2,
+					ShardID:    2,
+					HeaderHash: []byte("hash2"),
+				},
+			},
+		}
+
+		economicsCreator, _ := NewEndOfEpochEconomicsDataCreator(arguments)
+		res, err := economicsCreator.createEconomicsV3Args(&metaBlockCopy, metaExecRes, epochStartDta)
+		require.Nil(t, err)
+		require.Equal(t, &argsComputeEconomics{
+			computationData: economicsComputationData{
+				newEpoch:               metaBlockCopy.Epoch + 1,
+				round:                  metaBlockCopy.Round,
+				accumulatedFeesInEpoch: metaExecRes.GetAccumulatedFeesInEpoch(),
+				devFeesInEpoch:         metaExecRes.GetDevFeesInEpoch(),
+			},
+			prevEpochStart: &metaBlockCopy,
+			lastNoncesPerShardPrevEpoch: map[uint32]uint64{
+				0:                     3,
+				1:                     0,
+				2:                     0,
+				core.MetachainShardId: 3, // taken from last execution result
+			},
+			lastNoncesPerShardCurrEpoch: map[uint32]uint64{
+				0:                     0,
+				1:                     1,
+				2:                     2,
+				core.MetachainShardId: 4,
+			},
+		}, res)
+	})
 }
 
 func defaultComputedEconomicsAndMetaBlock(totalSupply *big.Int, inflationPerEpoch float64) (*block.Economics, *block.MetaBlock) {
@@ -2758,7 +2930,7 @@ func TestEconomics_ComputeEndOfEpochEconomicsWithPrevEpochTotalSupply(t *testing
 	maxBlocksInEpoch := core.MaxUint64(1, roundsPassedInEpoch*uint64(args.ShardCoordinator.NumberOfShards()+1))
 
 	noncesPerShardPrevEpoch, _, _ := ec.startNoncePerShardFromEpochStart(mb.Epoch - 1)
-	noncesPerShardCurrEpoch, _ := ec.startNoncePerShardFromLastCrossNotarized(mb.GetNonce(), mb.EpochStart)
+	noncesPerShardCurrEpoch := ec.startNoncePerShardFromLastCrossNotarized(mb.GetNonce(), &mb.EpochStart)
 	totalNumBlocksInEpoch := ec.computeNumOfTotalCreatedBlocks(noncesPerShardPrevEpoch, noncesPerShardCurrEpoch)
 
 	rwdPerBlock := ec.computeRewardsPerBlock(
@@ -2830,7 +3002,7 @@ func TestEconomics_TotalSupplyCalculation(t *testing.T) {
 	maxBlocksInEpoch := core.MaxUint64(1, roundsPassedInEpoch*uint64(args.ShardCoordinator.NumberOfShards()+1))
 
 	noncesPerShardPrevEpoch, _, _ := ec.startNoncePerShardFromEpochStart(mb.Epoch - 1)
-	noncesPerShardCurrEpoch, _ := ec.startNoncePerShardFromLastCrossNotarized(mb.GetNonce(), mb.EpochStart)
+	noncesPerShardCurrEpoch := ec.startNoncePerShardFromLastCrossNotarized(mb.GetNonce(), &mb.EpochStart)
 	totalNumBlocksInEpoch := ec.computeNumOfTotalCreatedBlocks(noncesPerShardPrevEpoch, noncesPerShardCurrEpoch)
 
 	rwdPerBlock := ec.computeRewardsPerBlock(
@@ -2889,6 +3061,18 @@ func getArguments() ArgsNewEpochEconomics {
 					RoundDuration: 4000,
 				}, nil
 			},
+		},
+	}
+}
+
+func createMetaExecRes() *block.MetaExecutionResult {
+	return &block.MetaExecutionResult{
+		ExecutionResult: &block.BaseMetaExecutionResult{
+			BaseExecutionResult: &block.BaseExecutionResult{
+				HeaderHash: []byte("hdrHash"),
+			},
+			DevFeesInEpoch:         big.NewInt(10),
+			AccumulatedFeesInEpoch: big.NewInt(12),
 		},
 	}
 }

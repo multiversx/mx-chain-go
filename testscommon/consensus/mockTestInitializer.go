@@ -7,6 +7,7 @@ import (
 	"github.com/multiversx/mx-chain-core-go/data/block"
 	"github.com/multiversx/mx-chain-core-go/marshal"
 	crypto "github.com/multiversx/mx-chain-crypto-go"
+	"github.com/multiversx/mx-chain-go/testscommon/processMocks"
 
 	"github.com/multiversx/mx-chain-go/consensus"
 	"github.com/multiversx/mx-chain-go/consensus/mock"
@@ -20,6 +21,7 @@ import (
 	epochNotifierMock "github.com/multiversx/mx-chain-go/testscommon/epochNotifier"
 	epochstartmock "github.com/multiversx/mx-chain-go/testscommon/epochstartmock"
 	"github.com/multiversx/mx-chain-go/testscommon/hashingMocks"
+	"github.com/multiversx/mx-chain-go/testscommon/round"
 	"github.com/multiversx/mx-chain-go/testscommon/shardingMocks"
 )
 
@@ -40,7 +42,7 @@ func InitBlockProcessorMock(marshaller marshal.Marshalizer) *testscommon.BlockPr
 	blockProcessorMock.CommitBlockCalled = func(header data.HeaderHandler, body data.BodyHandler) error {
 		return nil
 	}
-	blockProcessorMock.RevertCurrentBlockCalled = func() {}
+	blockProcessorMock.RevertCurrentBlockCalled = func(_ data.HeaderHandler) {}
 	blockProcessorMock.ProcessBlockCalled = func(header data.HeaderHandler, body data.BodyHandler, haveTime func() time.Duration) error {
 		return nil
 	}
@@ -53,7 +55,7 @@ func InitBlockProcessorMock(marshaller marshal.Marshalizer) *testscommon.BlockPr
 
 		return header
 	}
-	blockProcessorMock.MarshalizedDataToBroadcastCalled = func(header data.HeaderHandler, body data.BodyHandler) (map[uint32][]byte, map[string][][]byte, error) {
+	blockProcessorMock.MarshalizedDataToBroadcastCalled = func(hash []byte, header data.HeaderHandler, body data.BodyHandler) (map[uint32][]byte, map[string][][]byte, error) {
 		return make(map[uint32][]byte), make(map[string][][]byte), nil
 	}
 	blockProcessorMock.CreateNewHeaderCalled = func(round uint64, nonce uint64) (data.HeaderHandler, error) {
@@ -77,7 +79,7 @@ func InitBlockProcessorHeaderV2Mock() *testscommon.BlockProcessorStub {
 	blockProcessorMock.CommitBlockCalled = func(header data.HeaderHandler, body data.BodyHandler) error {
 		return nil
 	}
-	blockProcessorMock.RevertCurrentBlockCalled = func() {}
+	blockProcessorMock.RevertCurrentBlockCalled = func(_ data.HeaderHandler) {}
 	blockProcessorMock.ProcessBlockCalled = func(header data.HeaderHandler, body data.BodyHandler, haveTime func() time.Duration) error {
 		return nil
 	}
@@ -90,7 +92,7 @@ func InitBlockProcessorHeaderV2Mock() *testscommon.BlockProcessorStub {
 			ScheduledRootHash: []byte{},
 		}
 	}
-	blockProcessorMock.MarshalizedDataToBroadcastCalled = func(header data.HeaderHandler, body data.BodyHandler) (map[uint32][]byte, map[string][][]byte, error) {
+	blockProcessorMock.MarshalizedDataToBroadcastCalled = func(hash []byte, header data.HeaderHandler, body data.BodyHandler) (map[uint32][]byte, map[string][][]byte, error) {
 		return make(map[uint32][]byte), make(map[string][][]byte), nil
 	}
 	blockProcessorMock.CreateNewHeaderCalled = func(round uint64, nonce uint64) (data.HeaderHandler, error) {
@@ -175,6 +177,7 @@ func InitConsensusCoreWithMultiSigner(multiSigner crypto.MultiSigner) *spos.Cons
 	}
 	marshalizerMock := mock.MarshalizerMock{}
 	blockProcessorMock := InitBlockProcessorMock(marshalizerMock)
+	executionManager := &processMocks.ExecutionManagerMock{}
 	bootstrapperMock := &bootstrapperStubs.BootstrapperStub{}
 	broadcastMessengerMock := &BroadcastMessengerMock{
 		BroadcastConsensusMessageCalled: func(message *consensus.Message) error {
@@ -184,7 +187,7 @@ func InitConsensusCoreWithMultiSigner(multiSigner crypto.MultiSigner) *spos.Cons
 
 	chronologyHandlerMock := InitChronologyHandlerMock()
 	hasherMock := &hashingMocks.HasherMock{}
-	roundHandlerMock := &RoundHandlerMock{}
+	roundHandlerMock := &round.RoundHandlerMock{}
 	shardCoordinatorMock := mock.ShardCoordinatorMock{}
 	syncTimerMock := &SyncTimerMock{}
 	nodesCoordinator := &shardingMocks.NodesCoordinatorMock{
@@ -216,12 +219,14 @@ func InitConsensusCoreWithMultiSigner(multiSigner crypto.MultiSigner) *spos.Cons
 	multiSignerContainer := cryptoMocks.NewMultiSignerContainerMock(multiSigner)
 	signingHandler := &SigningHandlerStub{}
 	enableEpochsHandler := &enableEpochsHandlerMock.EnableEpochsHandlerStub{}
+	enableRoundsHandler := &testscommon.EnableRoundsHandlerStub{}
 	equivalentProofsPool := &dataRetriever.ProofsPoolMock{}
 	epochNotifier := &epochNotifierMock.EpochNotifierStub{}
 
 	container, _ := spos.NewConsensusCore(&spos.ConsensusCoreArgs{
 		BlockChain:                    blockChain,
 		BlockProcessor:                blockProcessorMock,
+		ExecutionManager:              executionManager,
 		Bootstrapper:                  bootstrapperMock,
 		BroadcastMessenger:            broadcastMessengerMock,
 		ChronologyHandler:             chronologyHandlerMock,
@@ -243,6 +248,7 @@ func InitConsensusCoreWithMultiSigner(multiSigner crypto.MultiSigner) *spos.Cons
 		PeerBlacklistHandler:          peerBlacklistHandler,
 		SigningHandler:                signingHandler,
 		EnableEpochsHandler:           enableEpochsHandler,
+		EnableRoundsHandler:           enableRoundsHandler,
 		EquivalentProofsPool:          equivalentProofsPool,
 		EpochNotifier:                 epochNotifier,
 		InvalidSignersCache:           &InvalidSignersCacheMock{},

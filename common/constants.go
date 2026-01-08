@@ -103,6 +103,9 @@ const MetricCurrentRound = "erd_current_round"
 // MetricNonce is the metric for monitoring the nonce of a node
 const MetricNonce = "erd_nonce"
 
+// MetricProposedNonce is the metric for monitoring the proposed nonce of a node
+const MetricProposedNonce = "erd_proposed_nonce"
+
 // MetricBlockTimestamp is the metric for monitoring the timestamp of the last synchronized block
 const MetricBlockTimestamp = "erd_block_timestamp"
 
@@ -336,6 +339,14 @@ const MetricNumTrackedBlocks = "erd_num_tracked_blocks"
 
 // MetricNumTrackedAccounts is the metric that specifies how many accounts are tracked by the txPool
 const MetricNumTrackedAccounts = "erd_num_tracked_accounts"
+
+// MetricNumInclusionEstimationRejected is the metric that specifies how many execution results were rejected by the
+// inclusion estimation process
+const MetricNumInclusionEstimationRejected = "erd_num_inclusion_estimation_rejected"
+
+// MetricDeltaHeaderNonceLastExecutionResultNonce is the metric that specifies the delta between the header nonce and
+// the last execution result nonce
+const MetricDeltaHeaderNonceLastExecutionResultNonce = "erd_delta_header_nonce_last_execution_result_nonce"
 
 // MetricCreatedProposedBlock is the metric that specifies the percent of the block subround used for header and body
 // creation (0 meaning that the block was created in no-time and 100 meaning that the block creation used all the
@@ -1325,3 +1336,6 @@ const (
 	DisableAsyncCallV1Flag EnableRoundFlag = "DisableAsyncCallV1"
 	SupernovaRoundFlag     EnableRoundFlag = "SupernovaEnableRound"
 )
+
+// HashSize defines  const for the hash length
+const HashSize = 32

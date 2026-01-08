@@ -208,6 +208,8 @@ func CreateCoreComponents(args ArgsCoreComponentsHolder) (*coreComponentsHolder,
 		return nil, err
 	}
 
+	instance.genesisTime = time.Unix(instance.genesisNodesSetup.GetStartTime(), 0)
+
 	log.Debug("chain simulator start time",
 		"startTime", instance.genesisNodesSetup.GetStartTime(),
 		"nodesSetup start time", nodesSetup.StartTime,
@@ -236,7 +238,7 @@ func CreateCoreComponents(args ArgsCoreComponentsHolder) (*coreComponentsHolder,
 
 	argsManualRoundHandler := ArgManualRoundHandler{
 		EnableRoundsHandler:       instance.enableRoundsHandler,
-		GenesisTimeStamp:          startTime.UnixMilli(),
+		GenesisTimeStamp:          instance.genesisTime.UnixMilli(),
 		SupernovaGenesisTimeStamp: instance.supernovaGenesisTime.UnixMilli(),
 		RoundDuration:             roundDuration,
 		SupernovaRoundDuration:    time.Duration(chainParamsForSupernova.RoundDuration) * time.Millisecond,
@@ -275,7 +277,7 @@ func CreateCoreComponents(args ArgsCoreComponentsHolder) (*coreComponentsHolder,
 		return nil, err
 	}
 
-	instance.rater, err = rating.NewBlockSigningRater(instance.ratingsData)
+	instance.rater, err = rating.NewBlockSigningRater(instance.ratingsData, instance.enableEpochsHandler)
 	if err != nil {
 		return nil, err
 	}

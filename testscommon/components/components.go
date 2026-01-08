@@ -319,9 +319,13 @@ func GetNetworkFactoryArgs() networkComp.NetworkComponentsFactoryArgs {
 			TopRatedCacheCapacity: 1000,
 			BadRatedCacheCapacity: 1000,
 		},
-		PoolsCleanersConfig: config.PoolsCleanersConfig{
-			MaxRoundsToKeepUnprocessedMiniBlocks:   50,
-			MaxRoundsToKeepUnprocessedTransactions: 50,
+		GeneralSettings: config.GeneralSettingsConfig{
+			ProcessConfigsByRound: []config.ProcessConfigByRound{
+				{
+					MaxRoundsToKeepUnprocessedMiniBlocks:   50,
+					MaxRoundsToKeepUnprocessedTransactions: 50,
+				},
+			},
 		},
 	}
 
@@ -627,6 +631,12 @@ func GetProcessArgs(
 						NodesToShufflePerShard: 2,
 					},
 				},
+			},
+		},
+		EconomicsConfig: config.EconomicsConfig{
+			FeeSettings: config.FeeSettings{
+				BlockCapacityOverestimationFactor: 200,
+				PercentDecreaseLimitsStep:         10,
 			},
 		},
 	}

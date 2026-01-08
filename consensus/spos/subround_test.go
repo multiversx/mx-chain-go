@@ -19,6 +19,7 @@ import (
 	"github.com/multiversx/mx-chain-go/testscommon"
 	"github.com/multiversx/mx-chain-go/testscommon/consensus"
 	"github.com/multiversx/mx-chain-go/testscommon/cryptoMocks"
+	"github.com/multiversx/mx-chain-go/testscommon/round"
 	"github.com/multiversx/mx-chain-go/testscommon/statusHandler"
 )
 
@@ -614,7 +615,7 @@ func TestSubround_DoWorkShouldReturnFalseWhenJobFunctionIsNotSet(t *testing.T) {
 	}
 
 	maxTime := time.Now().Add(100 * time.Millisecond)
-	roundHandlerMock := &consensus.RoundHandlerMock{}
+	roundHandlerMock := &round.RoundHandlerMock{}
 	roundHandlerMock.RemainingTimeCalled = func(time.Time, time.Duration) time.Duration {
 		return time.Until(maxTime)
 	}
@@ -653,7 +654,7 @@ func TestSubround_DoWorkShouldReturnFalseWhenCheckFunctionIsNotSet(t *testing.T)
 	sr.Check = nil
 
 	maxTime := time.Now().Add(100 * time.Millisecond)
-	roundHandlerMock := &consensus.RoundHandlerMock{}
+	roundHandlerMock := &round.RoundHandlerMock{}
 	roundHandlerMock.RemainingTimeCalled = func(time.Time, time.Duration) time.Duration {
 		return time.Until(maxTime)
 	}
@@ -703,7 +704,7 @@ func testDoWork(t *testing.T, checkDone bool, shouldWork bool) {
 	}
 
 	maxTime := time.Now().Add(100 * time.Millisecond)
-	roundHandlerMock := &consensus.RoundHandlerMock{}
+	roundHandlerMock := &round.RoundHandlerMock{}
 	roundHandlerMock.RemainingTimeCalled = func(time.Time, time.Duration) time.Duration {
 		return time.Until(maxTime)
 	}
@@ -751,7 +752,7 @@ func TestSubround_DoWorkShouldReturnTrueWhenJobIsDoneAndConsensusIsDoneAfterAWhi
 	}
 
 	maxTime := time.Now().Add(2000 * time.Millisecond)
-	roundHandlerMock := &consensus.RoundHandlerMock{}
+	roundHandlerMock := &round.RoundHandlerMock{}
 	roundHandlerMock.RemainingTimeCalled = func(time.Time, time.Duration) time.Duration {
 		return time.Until(maxTime)
 	}

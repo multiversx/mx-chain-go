@@ -11,6 +11,7 @@ import (
 	"github.com/multiversx/mx-chain-core-go/core/check"
 	"github.com/multiversx/mx-chain-core-go/data"
 	outportcore "github.com/multiversx/mx-chain-core-go/data/outport"
+	"github.com/multiversx/mx-chain-go/consensus/spos/bls"
 
 	"github.com/multiversx/mx-chain-go/common"
 	"github.com/multiversx/mx-chain-go/consensus/spos"
@@ -129,6 +130,18 @@ func (sr *subroundStartRound) initCurrentRound() bool {
 	nodeState := sr.BootStrapper().GetNodeState()
 	if nodeState != common.NsSynchronized { // if node is not synchronized yet, it has to continue the bootstrapping mechanism
 		return false
+	}
+
+	currentHeader := sr.Blockchain().GetCurrentBlockHeader()
+	if !check.IfNil(currentHeader) && int64(currentHeader.GetRound()) == sr.RoundHandler().Index() {
+		log.Debug("initCurrentRound: header for current consensus already committed, setting all subrounds as finished")
+
+		sr.SetStatus(sr.Current(), spos.SsFinished)
+		sr.SetStatus(bls.SrBlock, spos.SsFinished)
+		sr.SetStatus(bls.SrSignature, spos.SsFinished)
+		sr.SetStatus(bls.SrEndRound, spos.SsFinished)
+
+		return true
 	}
 
 	sr.AppStatusHandler().SetStringValue(common.MetricConsensusRoundState, "")

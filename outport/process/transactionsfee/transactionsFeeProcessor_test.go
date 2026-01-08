@@ -2,7 +2,6 @@ package transactionsfee
 
 import (
 	"encoding/hex"
-	"github.com/multiversx/mx-chain-go/testscommon/chainParameters"
 	"math/big"
 	"testing"
 
@@ -16,6 +15,7 @@ import (
 	"github.com/multiversx/mx-chain-go/process"
 	"github.com/multiversx/mx-chain-go/process/economics"
 	"github.com/multiversx/mx-chain-go/testscommon"
+	"github.com/multiversx/mx-chain-go/testscommon/chainParameters"
 	"github.com/multiversx/mx-chain-go/testscommon/enableEpochsHandlerMock"
 	"github.com/multiversx/mx-chain-go/testscommon/epochNotifier"
 	"github.com/multiversx/mx-chain-go/testscommon/genericMocks"
@@ -274,7 +274,7 @@ func TestPutFeeAndGasUsedLogWithErrorAndInformative(t *testing.T) {
 			tx1Hash: tx1,
 			tx2Hash: tx2,
 			"t3":    {Transaction: &transaction.Transaction{}, FeeInfo: &outportcore.FeeInfo{Fee: big.NewInt(0)}}},
-		Logs: []*outportcore.LogData{
+		Logs: []*transaction.LogData{
 			{
 				Log: &transaction.Log{
 					Events: []*transaction.Event{
@@ -494,6 +494,8 @@ func TestPutFeeAndGasUsedScrWithRefundNoTx(t *testing.T) {
 
 	wasCalled := false
 	txsFeeProc, err := NewTransactionsFeeProcessor(arg)
+	require.Nil(t, err)
+
 	txsFeeProc.log = &testscommon.LoggerStub{
 		TraceCalled: func(message string, args ...interface{}) {
 			wasCalled = true
@@ -639,7 +641,7 @@ func TestMoveBalanceWithSignalError(t *testing.T) {
 		Transactions: map[string]*outportcore.TxInfo{
 			hex.EncodeToString(txHash): initialTx,
 		},
-		Logs: []*outportcore.LogData{
+		Logs: []*transaction.LogData{
 			{
 				Log: &transaction.Log{
 					Events: []*transaction.Event{

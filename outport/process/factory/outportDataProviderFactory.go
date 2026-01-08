@@ -39,8 +39,10 @@ type ArgOutportDataProviderFactory struct {
 	MbsStorer              storage.Storer
 	EnableEpochsHandler    common.EnableEpochsHandler
 	ExecutionOrderGetter   common.ExecutionOrderGetter
-	ProofsPool             dataRetriever.ProofsPool
+	DataPool               dataRetriever.PoolsHolder
 	StateAccessesCollector state.StateAccessesCollector
+	RoundHandler           process.RoundHandler
+	RewardsGetter          process.EpochRewardsGetter
 }
 
 // CreateOutportDataProvider will create a new instance of outport.DataProviderOutport
@@ -89,8 +91,10 @@ func CreateOutportDataProvider(arg ArgOutportDataProviderFactory) (outport.DataP
 		ExecutionOrderHandler:    arg.ExecutionOrderGetter,
 		Hasher:                   arg.Hasher,
 		Marshaller:               arg.Marshaller,
-		ProofsPool:               arg.ProofsPool,
+		DataPool:                 arg.DataPool,
 		EnableEpochsHandler:      arg.EnableEpochsHandler,
 		StateAccessesCollector:   arg.StateAccessesCollector,
+		RoundHandler:             arg.RoundHandler,
+		RewardsGetter:            arg.RewardsGetter,
 	})
 }

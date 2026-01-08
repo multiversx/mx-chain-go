@@ -419,6 +419,7 @@ func hardForkImport(
 			Core:              coreComponents,
 			Data:              dataComponents,
 			Accounts:          node.AccntState,
+			AccountsProposal:  node.AccntState,
 			InitialNodesSetup: node.NodesSetup,
 			Economics:         node.EconomicsData,
 			ShardCoordinator:  node.ShardCoordinator,
@@ -505,6 +506,10 @@ func hardForkImport(
 					DelegationManagerEnableEpoch:       0,
 					DelegationSmartContractEnableEpoch: 0,
 				},
+			},
+			FeeSettings: config.FeeSettings{
+				BlockCapacityOverestimationFactor: 200,
+				PercentDecreaseLimitsStep:         10,
 			},
 			RoundConfig:             testscommon.GetDefaultRoundsConfig(),
 			HeaderVersionConfigs:    testscommon.GetDefaultHeaderVersionConfig(),

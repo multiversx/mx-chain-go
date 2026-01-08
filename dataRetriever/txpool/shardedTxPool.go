@@ -146,7 +146,7 @@ func (txPool *shardedTxPool) createTxCache(cacheID string) txCache {
 	if isForSenderMe {
 		config := txPool.configPrototypeSourceMe
 		config.Name = cacheID
-		cache, err := txcache.NewTxCache(config, txPool.host)
+		cache, err := txcache.NewTxCache(config, txPool.host, txPool.selfShardID)
 		if err != nil {
 			log.Error("shardedTxPool.createTxCache()", "err", err)
 			return txcache.NewDisabledCache()
@@ -436,7 +436,13 @@ func (txPool *shardedTxPool) OnProposedBlock(blockHash []byte, blockBody *block.
 }
 
 // OnExecutedBlock notifies the underlying TxCache
-func (txPool *shardedTxPool) OnExecutedBlock(blockHeader data.HeaderHandler) error {
+func (txPool *shardedTxPool) OnExecutedBlock(blockHeader data.HeaderHandler, rootHash []byte) error {
 	cache := txPool.getSelfShardTxCache()
-	return cache.OnExecutedBlock(blockHeader)
+	return cache.OnExecutedBlock(blockHeader, rootHash)
+}
+
+// ResetTracker resets the underlying TxCache
+func (txPool *shardedTxPool) ResetTracker() {
+	cache := txPool.getSelfShardTxCache()
+	cache.ResetTracker()
 }

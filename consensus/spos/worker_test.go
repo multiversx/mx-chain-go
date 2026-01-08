@@ -34,6 +34,7 @@ import (
 	"github.com/multiversx/mx-chain-go/testscommon/hashingMocks"
 	"github.com/multiversx/mx-chain-go/testscommon/p2pmocks"
 	"github.com/multiversx/mx-chain-go/testscommon/processMocks"
+	"github.com/multiversx/mx-chain-go/testscommon/round"
 	statusHandlerMock "github.com/multiversx/mx-chain-go/testscommon/statusHandler"
 )
 
@@ -57,7 +58,7 @@ func createDefaultWorkerArgs(appStatusHandler core.AppStatusHandler) *spos.Worke
 		DecodeBlockHeaderCalled: func(dta []byte) data.HeaderHandler {
 			return nil
 		},
-		RevertCurrentBlockCalled: func() {
+		RevertCurrentBlockCalled: func(_ data.HeaderHandler) {
 		},
 		DecodeBlockBodyCalled: func(dta []byte) data.BodyHandler {
 			return nil
@@ -149,8 +150,8 @@ func initWorker(appStatusHandler core.AppStatusHandler) *spos.Worker {
 	return sposWorker
 }
 
-func initRoundHandlerMock() *consensusMocks.RoundHandlerMock {
-	return &consensusMocks.RoundHandlerMock{
+func initRoundHandlerMock() *round.RoundHandlerMock {
+	return &round.RoundHandlerMock{
 		RoundIndex: 0,
 		TimeStampCalled: func() time.Time {
 			return time.Unix(0, 0)
@@ -795,14 +796,14 @@ func testWorkerProcessReceivedMessageComputeReceivedProposedBlockMetric(
 
 			return header
 		},
-		RevertCurrentBlockCalled: func() {
+		RevertCurrentBlockCalled: func(_ data.HeaderHandler) {
 		},
 		DecodeBlockBodyCalled: func(dta []byte) data.BodyHandler {
 			return nil
 		},
 	})
 
-	wrk.SetRoundHandler(&consensusMocks.RoundHandlerMock{
+	wrk.SetRoundHandler(&round.RoundHandlerMock{
 		RoundIndex: 0,
 		TimeDurationCalled: func() time.Duration {
 			return roundDuration
@@ -1209,7 +1210,7 @@ func TestWorker_ProcessReceivedMessageWrongChainIDInProposedBlockShouldError(t *
 					},
 				}
 			},
-			RevertCurrentBlockCalled: func() {
+			RevertCurrentBlockCalled: func(_ data.HeaderHandler) {
 			},
 		},
 	)
@@ -1262,7 +1263,7 @@ func TestWorker_ProcessReceivedMessageWithABadOriginatorShouldErr(t *testing.T) 
 					},
 				}
 			},
-			RevertCurrentBlockCalled: func() {
+			RevertCurrentBlockCalled: func(_ data.HeaderHandler) {
 			},
 			DecodeBlockBodyCalled: func(dta []byte) data.BodyHandler {
 				return nil
@@ -1322,7 +1323,7 @@ func TestWorker_ProcessReceivedMessageWithHeaderAndWrongHash(t *testing.T) {
 					},
 				}
 			},
-			RevertCurrentBlockCalled: func() {
+			RevertCurrentBlockCalled: func(_ data.HeaderHandler) {
 			},
 			DecodeBlockBodyCalled: func(dta []byte) data.BodyHandler {
 				return nil
@@ -1393,7 +1394,7 @@ func TestWorker_ProcessReceivedMessageOkValsShouldWork(t *testing.T) {
 					},
 				}
 			},
-			RevertCurrentBlockCalled: func() {
+			RevertCurrentBlockCalled: func(_ data.HeaderHandler) {
 			},
 			DecodeBlockBodyCalled: func(dta []byte) data.BodyHandler {
 				return nil
@@ -1830,7 +1831,7 @@ func TestWorker_StoredHeadersExecution(t *testing.T) {
 
 		roundIndex := &atomic.Int64{}
 		roundIndex.Store(99)
-		roundHandler := &consensusMocks.RoundHandlerMock{
+		roundHandler := &round.RoundHandlerMock{
 			IndexCalled: func() int64 {
 				return roundIndex.Load()
 			},
@@ -1873,7 +1874,7 @@ func TestWorker_StoredHeadersExecution(t *testing.T) {
 
 		roundIndex := &atomic.Int64{}
 		roundIndex.Store(99)
-		roundHandler := &consensusMocks.RoundHandlerMock{
+		roundHandler := &round.RoundHandlerMock{
 			IndexCalled: func() int64 {
 				return roundIndex.Load()
 			},
@@ -1923,7 +1924,7 @@ func TestWorker_StoredHeadersExecution(t *testing.T) {
 
 		roundIndex := &atomic.Int64{}
 		roundIndex.Store(99)
-		roundHandler := &consensusMocks.RoundHandlerMock{
+		roundHandler := &round.RoundHandlerMock{
 			IndexCalled: func() int64 {
 				return roundIndex.Load()
 			},
@@ -2027,7 +2028,7 @@ func TestWorker_ExtendShouldWorkAfterAWhile(t *testing.T) {
 	wrk := *initWorker(&statusHandlerMock.AppStatusHandlerStub{})
 	executed := int32(0)
 	blockProcessor := &testscommon.BlockProcessorStub{
-		RevertCurrentBlockCalled: func() {
+		RevertCurrentBlockCalled: func(_ data.HeaderHandler) {
 			atomic.AddInt32(&executed, 1)
 		},
 	}
@@ -2052,7 +2053,7 @@ func TestWorker_ExtendShouldWork(t *testing.T) {
 	wrk := *initWorker(&statusHandlerMock.AppStatusHandlerStub{})
 	executed := int32(0)
 	blockProcessor := &testscommon.BlockProcessorStub{
-		RevertCurrentBlockCalled: func() {
+		RevertCurrentBlockCalled: func(_ data.HeaderHandler) {
 			atomic.AddInt32(&executed, 1)
 		},
 	}

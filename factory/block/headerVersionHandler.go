@@ -2,40 +2,29 @@ package block
 
 import (
 	"bytes"
-	"encoding/binary"
 	"fmt"
 	"sort"
 
-	"github.com/multiversx/mx-chain-core-go/core/check"
 	"github.com/multiversx/mx-chain-core-go/data"
 	"github.com/multiversx/mx-chain-go/common"
 	"github.com/multiversx/mx-chain-go/config"
 	"github.com/multiversx/mx-chain-go/process"
-	"github.com/multiversx/mx-chain-go/storage"
 )
 
 const wildcard = "*"
-const keySize = 4
 
 type headerVersionHandler struct {
 	versions       []config.VersionByEpochs
 	defaultVersion string
-	versionCache   storage.Cacher
 }
 
 // NewHeaderVersionHandler returns a new instance of a structure capable of handling the header versions
 func NewHeaderVersionHandler(
 	versionsByEpochs []config.VersionByEpochs,
 	defaultVersion string,
-	versionCache storage.Cacher,
 ) (*headerVersionHandler, error) {
-	if check.IfNil(versionCache) {
-		return nil, fmt.Errorf("%w, in NewHeaderVersionHandler", ErrNilCacher)
-	}
-
 	hvh := &headerVersionHandler{
 		defaultVersion: defaultVersion,
-		versionCache:   versionCache,
 	}
 
 	var err error
@@ -83,8 +72,8 @@ func (hvh *headerVersionHandler) prepareVersions(versionsByEpochs []config.Versi
 }
 
 // GetVersion returns the version by providing the epoch
-func (hvh *headerVersionHandler) GetVersion(epoch uint32) string {
-	ver := hvh.getMatchingVersionAndUpdateCache(epoch)
+func (hvh *headerVersionHandler) GetVersion(epoch uint32, round uint64) string {
+	ver := hvh.getMatchingVersionAndUpdateCache(epoch, round)
 	if ver == wildcard {
 		return hvh.defaultVersion
 	}
@@ -92,49 +81,23 @@ func (hvh *headerVersionHandler) GetVersion(epoch uint32) string {
 	return ver
 }
 
-func (hvh *headerVersionHandler) getMatchingVersionAndUpdateCache(epoch uint32) string {
-	version, ok := hvh.getFromCache(epoch)
-	if ok {
-		return version
-	}
-
-	version = hvh.getVersionFromConfig(epoch)
-	hvh.setInCache(epoch, version)
+func (hvh *headerVersionHandler) getMatchingVersionAndUpdateCache(epoch uint32, round uint64) string {
+	version := hvh.getVersionFromConfig(epoch, round)
 
 	return version
 }
 
-func (hvh *headerVersionHandler) getVersionFromConfig(epoch uint32) string {
+func (hvh *headerVersionHandler) getVersionFromConfig(epoch uint32, round uint64) string {
 	for idx := 0; idx < len(hvh.versions)-1; idx++ {
 		crtVer := hvh.versions[idx]
 		nextVer := hvh.versions[idx+1]
-		if crtVer.StartEpoch <= epoch && epoch < nextVer.StartEpoch {
+
+		if (crtVer.StartEpoch <= epoch && epoch < nextVer.StartEpoch) || round < nextVer.StartRound {
 			return crtVer.Version
 		}
 	}
 
 	return hvh.versions[len(hvh.versions)-1].Version
-}
-
-func (hvh *headerVersionHandler) getFromCache(epoch uint32) (string, bool) {
-	key := make([]byte, keySize)
-	binary.BigEndian.PutUint32(key, epoch)
-
-	obj, ok := hvh.versionCache.Get(key)
-	if !ok {
-		return "", false
-	}
-
-	str, ok := obj.(string)
-
-	return str, ok
-}
-
-func (hvh *headerVersionHandler) setInCache(epoch uint32, version string) {
-	key := make([]byte, keySize)
-	binary.BigEndian.PutUint32(key, epoch)
-
-	_ = hvh.versionCache.Put(key, version, len(key)+len(version))
 }
 
 // Verify will check the header's fields such as the chain ID or the software version
@@ -161,7 +124,7 @@ func (hvh *headerVersionHandler) checkSoftwareVersion(hdr data.HeaderHandler) er
 		return err
 	}
 
-	version := hvh.getMatchingVersionAndUpdateCache(hdr.GetEpoch())
+	version := hvh.getMatchingVersionAndUpdateCache(hdr.GetEpoch(), hdr.GetRound())
 	if version == wildcard {
 		return nil
 	}

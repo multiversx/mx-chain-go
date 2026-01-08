@@ -4,7 +4,6 @@ import (
 	"bytes"
 	"encoding/hex"
 	"fmt"
-	"github.com/multiversx/mx-chain-go/testscommon/chainParameters"
 	"math"
 	"math/big"
 	"strings"
@@ -16,15 +15,6 @@ import (
 	"github.com/multiversx/mx-chain-core-go/data/smartContractResult"
 	"github.com/multiversx/mx-chain-core-go/data/transaction"
 	vmData "github.com/multiversx/mx-chain-core-go/data/vm"
-	"github.com/multiversx/mx-chain-go/txcache"
-	vmcommon "github.com/multiversx/mx-chain-vm-common-go"
-	"github.com/multiversx/mx-chain-vm-common-go/builtInFunctions"
-	"github.com/multiversx/mx-chain-vm-common-go/parsers"
-	"github.com/multiversx/mx-chain-vm-go/vmhost"
-	"github.com/pkg/errors"
-	"github.com/stretchr/testify/assert"
-	"github.com/stretchr/testify/require"
-
 	"github.com/multiversx/mx-chain-go/common"
 	"github.com/multiversx/mx-chain-go/config"
 	"github.com/multiversx/mx-chain-go/process"
@@ -39,6 +29,7 @@ import (
 	stateFactory "github.com/multiversx/mx-chain-go/state/factory"
 	"github.com/multiversx/mx-chain-go/storage/storageunit"
 	"github.com/multiversx/mx-chain-go/testscommon"
+	"github.com/multiversx/mx-chain-go/testscommon/chainParameters"
 	"github.com/multiversx/mx-chain-go/testscommon/economicsmocks"
 	"github.com/multiversx/mx-chain-go/testscommon/enableEpochsHandlerMock"
 	"github.com/multiversx/mx-chain-go/testscommon/epochNotifier"
@@ -47,6 +38,14 @@ import (
 	stateMock "github.com/multiversx/mx-chain-go/testscommon/state"
 	testsCommonStorage "github.com/multiversx/mx-chain-go/testscommon/storage"
 	"github.com/multiversx/mx-chain-go/testscommon/vmcommonMocks"
+	"github.com/multiversx/mx-chain-go/txcache"
+	vmcommon "github.com/multiversx/mx-chain-vm-common-go"
+	"github.com/multiversx/mx-chain-vm-common-go/builtInFunctions"
+	"github.com/multiversx/mx-chain-vm-common-go/parsers"
+	"github.com/multiversx/mx-chain-vm-go/vmhost"
+	"github.com/pkg/errors"
+	"github.com/stretchr/testify/assert"
+	"github.com/stretchr/testify/require"
 )
 
 const maxEpoch = math.MaxUint32
@@ -483,7 +482,7 @@ func TestScProcessor_DeploySmartContractBadParse(t *testing.T) {
 
 	allLogs := tsc.GetTxLogsProcessor().GetAllCurrentLogs()
 	require.Equal(t, 1, len(allLogs))
-	require.Equal(t, expectedError, string(allLogs[0].LogHandler.GetLogEvents()[0].GetData()))
+	require.Equal(t, expectedError, string(allLogs[0].GetLogHandler().GetLogEvents()[0].GetData()))
 	require.Equal(t, vmcommon.UserError, returnCode)
 	require.Equal(t, uint64(1), acntSrc.GetNonce())
 	require.True(t, acntSrc.GetBalance().Cmp(tx.Value) == 0)
@@ -530,7 +529,7 @@ func TestScProcessor_DeploySmartContractRunError(t *testing.T) {
 	expectedError := "@" + hex.EncodeToString([]byte(createError.Error()))
 	allLogs := tsc.GetTxLogsProcessor().GetAllCurrentLogs()
 	require.Equal(t, 1, len(allLogs))
-	require.Equal(t, expectedError, string(allLogs[0].LogHandler.GetLogEvents()[0].GetData()))
+	require.Equal(t, expectedError, string(allLogs[0].GetLogHandler().GetLogEvents()[0].GetData()))
 }
 
 func TestScProcessor_BuiltInCallSmartContractSenderFailed(t *testing.T) {

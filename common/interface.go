@@ -418,6 +418,7 @@ type ChainParametersSubscriptionHandler interface {
 // HeadersPool defines what a headers pool structure can perform
 type HeadersPool interface {
 	GetHeaderByHash(hash []byte) (data.HeaderHandler, error)
+	IsInterfaceNil() bool
 }
 
 // FieldsSizeChecker defines the behavior of a fields size checker common component
@@ -465,6 +466,7 @@ type AccountNonceAndBalanceProvider interface {
 // AccountNonceProvider provides the nonce of accounts
 type AccountNonceProvider interface {
 	GetAccountNonce(accountKey []byte) (uint64, bool, error)
+	GetRootHash() ([]byte, error)
 	IsInterfaceNil() bool
 }
 
@@ -485,6 +487,9 @@ type ProcessConfigsHandler interface {
 	GetMaxRoundsWithoutNewBlockReceivedByRound(round uint64) uint32
 	GetMaxRoundsWithoutCommittedBlock(round uint64) uint32
 	GetRoundModulusTriggerWhenSyncIsStuck(round uint64) uint32
+	GetMaxSyncWithErrorsAllowed(round uint64) uint32
+	GetMaxRoundsToKeepUnprocessedTransactions(round uint64) uint64
+	GetMaxRoundsToKeepUnprocessedMiniBlocks(round uint64) uint64
 
 	SetActivationRound(round uint64, log logger.Logger)
 

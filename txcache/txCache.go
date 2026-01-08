@@ -28,7 +28,7 @@ type TxCache struct {
 }
 
 // NewTxCache creates a new transaction cache
-func NewTxCache(config ConfigSourceMe, host MempoolHost) (*TxCache, error) {
+func NewTxCache(config ConfigSourceMe, host MempoolHost, selfShardId uint32) (*TxCache, error) {
 	log.Debug("NewTxCache", "config", config.String())
 	monitoring.MonitorNewCache(config.Name, uint64(config.NumBytesThreshold))
 
@@ -52,7 +52,11 @@ func NewTxCache(config ConfigSourceMe, host MempoolHost) (*TxCache, error) {
 		host:           host,
 	}
 
-	tracker, err := NewSelectionTracker(txCache, config.TxCacheBoundsConfig.MaxTrackedBlocks)
+	tracker, err := NewSelectionTracker(
+		txCache,
+		selfShardId,
+		config.TxCacheBoundsConfig.MaxTrackedBlocks,
+	)
 	if err != nil {
 		return nil, err
 	}
@@ -108,14 +112,14 @@ func (cache *TxCache) GetByTxHash(txHash []byte) (*WrappedTransaction, bool) {
 // SelectTransactions selects the best transactions to be included in the next miniblock.
 // It returns up to "options.maxNumTxs" transactions, with total gas <= "options.gasRequested".
 // The selection takes into consideration the proposed blocks which were not yet executed.
-// The SelectTransactions should receive the nonce of the block on which the selection is built.
-// The blocks with a nonce greater than the given one will be removed.
+// The SelectTransactions should receive the nonce of the block for which the selection is built.
+// The blocks with a nonce equal or greater than the given one will be removed.
 func (cache *TxCache) SelectTransactions(
 	session SelectionSession,
 	options common.TxSelectionOptions,
-	currentBlockNonce uint64,
+	blockNonce uint64,
 ) ([]*WrappedTransaction, uint64, error) {
-	return cache.selectTransactions(session, options, currentBlockNonce, false)
+	return cache.selectTransactions(session, options, blockNonce, false)
 }
 
 // SimulateSelectTransactions simulates a selection of transaction and does not affect the internal state of the tracker
@@ -192,8 +196,8 @@ func (cache *TxCache) OnProposedBlock(
 }
 
 // OnExecutedBlock calls the OnExecutedBlock method from SelectionTracker
-func (cache *TxCache) OnExecutedBlock(blockHeader data.HeaderHandler) error {
-	return cache.tracker.OnExecutedBlock(blockHeader)
+func (cache *TxCache) OnExecutedBlock(blockHeader data.HeaderHandler, rootHash []byte) error {
+	return cache.tracker.OnExecutedBlock(blockHeader, rootHash)
 }
 
 // ResetTracker resets the SelectionTracker

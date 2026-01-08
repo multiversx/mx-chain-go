@@ -273,6 +273,12 @@ func createMockProcessComponentsFactoryArgs() processComp.ProcessComponentsFacto
 			StateStatsHandlerField: disabledStatistics.NewStateStatistics(),
 		},
 		TxExecutionOrderHandler: &txExecOrderStub.TxExecutionOrderHandlerStub{},
+		EconomicsConfig: config.EconomicsConfig{
+			FeeSettings: config.FeeSettings{
+				BlockCapacityOverestimationFactor: 200,
+				PercentDecreaseLimitsStep:         10,
+			},
+		},
 	}
 
 	args.State = components.GetStateComponents(args.CoreData, args.StatusCoreComponents)
@@ -717,15 +723,29 @@ func TestProcessComponentsFactory_Create(t *testing.T) {
 		t.Parallel()
 
 		args := createMockProcessComponentsFactoryArgs()
-		args.Config.PoolsCleanersConfig.MaxRoundsToKeepUnprocessedMiniBlocks = 0
-		testCreateWithArgs(t, args, "MaxRoundsToKeepUnprocessedData")
+		ct := 0
+		args.CoreData.(*mock.CoreComponentsMock).ProcessConfigsHandlerCalled = func() common.ProcessConfigsHandler {
+			if ct == 1 {
+				return nil
+			}
+			ct++
+			return args.CoreData.(*mock.CoreComponentsMock).ProcessConfigsHandlerField
+		}
+		testCreateWithArgs(t, args, "NewMiniBlocksPoolsCleaner")
 	})
 	t.Run("NewTxsPoolsCleaner fails should error", func(t *testing.T) {
 		t.Parallel()
 
 		args := createMockProcessComponentsFactoryArgs()
-		args.Config.PoolsCleanersConfig.MaxRoundsToKeepUnprocessedTransactions = 0
-		testCreateWithArgs(t, args, "MaxRoundsToKeepUnprocessedData")
+		ct := 0
+		args.CoreData.(*mock.CoreComponentsMock).ProcessConfigsHandlerCalled = func() common.ProcessConfigsHandler {
+			if ct == 2 {
+				return nil
+			}
+			ct++
+			return args.CoreData.(*mock.CoreComponentsMock).ProcessConfigsHandlerField
+		}
+		testCreateWithArgs(t, args, "NewTxsPoolsCleaner")
 	})
 	t.Run("createHardforkTrigger fails due to Decode failure should error", func(t *testing.T) {
 		t.Parallel()
@@ -918,11 +938,13 @@ func TestProcessComponentsFactory_Create(t *testing.T) {
 				CommitCalled:   realStateComp.AccountsAdapter().Commit,
 				RootHashCalled: realStateComp.AccountsAdapter().RootHash,
 			},
+			AccountsProposal:     &testState.AccountsStub{},
 			PeersAcc:             realStateComp.PeerAccounts(),
 			Tries:                realStateComp.TriesContainer(),
 			AccountsAPI:          realStateComp.AccountsAdapterAPI(),
 			StorageManagers:      realStateComp.TrieStorageManagers(),
 			MissingNodesNotifier: realStateComp.MissingTrieNodesNotifier(),
+			ChangesCollector:     realStateComp.StateAccessesCollector(),
 		}
 
 		pcf, _ := processComp.NewProcessComponentsFactory(args)
@@ -962,8 +984,10 @@ func TestProcessComponentsFactory_Create(t *testing.T) {
 			PeersAcc:             realStateComp.PeerAccounts(),
 			Tries:                realStateComp.TriesContainer(),
 			AccountsAPI:          realStateComp.AccountsAdapterAPI(),
+			AccountsProposal:     realStateComp.AccountsAdapterProposal(),
 			StorageManagers:      realStateComp.TrieStorageManagers(),
 			MissingNodesNotifier: realStateComp.MissingTrieNodesNotifier(),
+			ChangesCollector:     realStateComp.StateAccessesCollector(),
 		}
 		coreCompStub := factoryMocks.NewCoreComponentsHolderStubFromRealComponent(args.CoreData)
 		coreCompStub.InternalMarshalizerCalled = func() marshal.Marshalizer {

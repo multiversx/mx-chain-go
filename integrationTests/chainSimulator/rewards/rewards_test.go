@@ -14,6 +14,8 @@ import (
 	apiCore "github.com/multiversx/mx-chain-core-go/data/api"
 	"github.com/multiversx/mx-chain-core-go/data/block"
 	"github.com/multiversx/mx-chain-core-go/data/transaction"
+	"github.com/stretchr/testify/require"
+
 	"github.com/multiversx/mx-chain-go/common"
 	"github.com/multiversx/mx-chain-go/config"
 	csUtils "github.com/multiversx/mx-chain-go/integrationTests/chainSimulator"
@@ -22,7 +24,6 @@ import (
 	"github.com/multiversx/mx-chain-go/node/chainSimulator/configs"
 	"github.com/multiversx/mx-chain-go/node/chainSimulator/dtos"
 	"github.com/multiversx/mx-chain-go/sharding/nodesCoordinator"
-	"github.com/stretchr/testify/require"
 )
 
 const (
@@ -56,12 +57,23 @@ func TestRewardsAfterAndromedaWithTxs(t *testing.T) {
 		PathToInitialConfig:            defaultPathToInitialConfig,
 		NumOfShards:                    numOfShards,
 		RoundDurationInMillis:          roundDurationInMillis,
-		SupernovaRoundDurationInMillis: roundDurationInMillis,
+		SupernovaRoundDurationInMillis: roundDurationInMillis / 10,
 		RoundsPerEpoch:                 roundsPerEpoch,
 		SupernovaRoundsPerEpoch:        supernovaRoundsPerEpochOpt,
 		ApiInterface:                   api.NewNoApiInterface(),
 		MinNodesPerShard:               3,
 		MetaChainMinNodes:              3,
+		AlterConfigsFunction: func(cfg *config.Configs) {
+			cfg.EpochConfig.EnableEpochs.SupernovaEnableEpoch = 10
+			cfg.RoundConfig.RoundActivations = map[string]config.ActivationRoundByName{
+				"DisableAsyncCallV1": {
+					Round: "9999999",
+				},
+				"SupernovaEnableRound": {
+					Round: "1000",
+				},
+			}
+		},
 	})
 	require.Nil(t, err)
 	require.NotNil(t, cs)
@@ -147,7 +159,7 @@ func TestRewardsAfterSupernovaWithTxs(t *testing.T) {
 	roundDurationInMillis := uint64(6000)
 	roundsPerEpoch := core.OptionalUint64{
 		HasValue: true,
-		Value:    200,
+		Value:    20,
 	}
 
 	numOfShards := uint32(3)
@@ -164,26 +176,21 @@ func TestRewardsAfterSupernovaWithTxs(t *testing.T) {
 		MinNodesPerShard:       3,
 		MetaChainMinNodes:      3,
 		AlterConfigsFunction: func(cfg *config.Configs) {
-			cfg.EpochConfig.EnableEpochs.SupernovaEnableEpoch = 0
 			cfg.RoundConfig.RoundActivations = map[string]config.ActivationRoundByName{
 				"DisableAsyncCallV1": {
 					Round: "9999999",
 				},
-				"SupernovaEnableRound": {
-					Round: "0",
-				},
 			}
 		},
+		SupernovaRoundsPerEpoch: roundsPerEpoch,
 	})
 	require.Nil(t, err)
 	require.NotNil(t, cs)
 	defer cs.Close()
 
 	targetEpoch := 9
-	for i := 0; i < targetEpoch; i++ {
-		err = cs.ForceChangeOfEpoch()
-		require.Nil(t, err)
-	}
+	err = cs.GenerateBlocksUntilEpochIsReached(int32(targetEpoch))
+	require.Nil(t, err)
 
 	err = cs.GenerateBlocks(1)
 	require.Nil(t, err)
@@ -196,7 +203,9 @@ func TestRewardsAfterSupernovaWithTxs(t *testing.T) {
 	require.Nil(t, err)
 
 	blockWithTxsHash := results[0].BlockHash
-	blocksWithTxs, err := cs.GetNodeHandler(targetShardID).GetFacadeHandler().GetBlockByHash(blockWithTxsHash, apiCore.BlockQueryOptions{})
+	blocksWithTxs, err := cs.GetNodeHandler(targetShardID).GetFacadeHandler().GetBlockByHash(blockWithTxsHash, apiCore.BlockQueryOptions{
+		WithTransactions: true,
+	})
 	require.Nil(t, err)
 
 	prevRandSeed, _ := hex.DecodeString(blocksWithTxs.PrevRandSeed)
@@ -207,11 +216,11 @@ func TestRewardsAfterSupernovaWithTxs(t *testing.T) {
 	validators, err := readValidatorsAndOwners(nodesSetupFile)
 	require.Nil(t, err)
 
-	err = cs.GenerateBlocks(210)
+	err = cs.GenerateBlocks(21)
 	require.Nil(t, err)
 
-	metaBlock := getLastStartOfEpochBlock(t, cs, core.MetachainShardId)
-	require.NotNil(t, metaBlock)
+	startOfEpochBlock := getLastStartOfEpochBlock(t, cs, core.MetachainShardId)
+	require.NotNil(t, startOfEpochBlock)
 
 	leaderEncoded, _ := cs.GetNodeHandler(0).GetCoreComponents().ValidatorPubKeyConverter().Encode(leader.PubKey())
 	leaderOwnerBlockWithTxs := validators[leaderEncoded]
@@ -225,6 +234,12 @@ func TestRewardsAfterSupernovaWithTxs(t *testing.T) {
 		}
 	}
 	require.True(t, found)
+
+	metachainHandler := cs.GetNodeHandler(core.MetachainShardId).GetFacadeHandler()
+	metaBlock, err := metachainHandler.GetBlockByNonce(startOfEpochBlock.Nonce-1, apiCore.BlockQueryOptions{
+		WithTransactions: true,
+	})
+	require.Nil(t, err)
 
 	rewardTxForLeader := getRewardTxForAddress(metaBlock, leaderOwnerBlockWithTxs)
 	require.NotNil(t, rewardTxForLeader)
@@ -338,6 +353,18 @@ func TestRewardsTxsAfterAndromeda(t *testing.T) {
 
 	numOfShards := uint32(3)
 
+	alterConfigsFunc := func(cfg *config.Configs) {
+		cfg.EpochConfig.EnableEpochs.SupernovaEnableEpoch = 999999
+		cfg.RoundConfig.RoundActivations = map[string]config.ActivationRoundByName{
+			"DisableAsyncCallV1": {
+				Round: "9999999",
+			},
+			"SupernovaEnableRound": {
+				Round: "9999999",
+			},
+		}
+	}
+
 	tempDir := t.TempDir()
 	cs, err := chainSimulator.NewChainSimulator(chainSimulator.ArgsChainSimulator{
 		BypassTxSignatureCheck:         true,
@@ -351,6 +378,7 @@ func TestRewardsTxsAfterAndromeda(t *testing.T) {
 		ApiInterface:                   api.NewNoApiInterface(),
 		MinNodesPerShard:               3,
 		MetaChainMinNodes:              3,
+		AlterConfigsFunction:           alterConfigsFunc,
 	})
 	require.Nil(t, err)
 	require.NotNil(t, cs)
