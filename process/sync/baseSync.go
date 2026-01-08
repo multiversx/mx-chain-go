@@ -4,6 +4,7 @@ import (
 	"bytes"
 	"context"
 	"encoding/hex"
+	"errors"
 	"fmt"
 	"math"
 	"sync"
@@ -759,7 +760,7 @@ func (boot *baseBootstrap) getMaxSyncWithErrorsAllowed(
 
 func (boot *baseBootstrap) doJobOnSyncBlockFail(bodyHandler data.BodyHandler, headerHandler data.HeaderHandler, err error) {
 	processBlockStarted := !check.IfNil(bodyHandler) && !check.IfNil(headerHandler)
-	isProcessWithError := processBlockStarted && err != process.ErrTimeIsOut
+	isProcessWithError := processBlockStarted && !errors.Is(err, process.ErrTimeIsOut)
 
 	numSyncedWithErrors := boot.incrementSyncedWithErrorsForNonce(boot.getNonceForNextBlock())
 	allowedSyncWithErrorsLimitReached := numSyncedWithErrors >= boot.getMaxSyncWithErrorsAllowed(headerHandler)
@@ -903,10 +904,15 @@ func (boot *baseBootstrap) syncBlock() error {
 	}
 
 	if header.IsHeaderV3() {
-		return boot.syncBlockV3(body, header)
+		// update err to enable the deferred treatment
+		err = boot.syncBlockV3(body, header)
+		return err
 	}
 
-	return boot.syncBlockLegacy(body, header)
+	// update err to enable the deferred treatment
+	err = boot.syncBlockLegacy(body, header)
+
+	return err
 }
 
 // syncBlockLegacy method actually does the synchronization. It requests the next block header from the pool

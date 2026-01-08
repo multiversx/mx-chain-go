@@ -160,8 +160,12 @@ func NewShardProcessorEmptyWith3shards(
 				MaxRoundsWithoutNewBlockReceived:       10,
 				MaxRoundsToKeepUnprocessedMiniBlocks:   50,
 				MaxRoundsToKeepUnprocessedTransactions: 50,
+				NumFloodingRoundsSlowReacting:          20,
+				NumFloodingRoundsFastReacting:          30,
+				NumFloodingRoundsOutOfSpecs:            40,
 			},
 		},
+		&epochNotifier.RoundNotifierStub{},
 	)
 
 	coreComponents := &mock.CoreComponentsMock{
