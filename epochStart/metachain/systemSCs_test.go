@@ -19,6 +19,7 @@ import (
 	"github.com/multiversx/mx-chain-core-go/hashing/sha256"
 	"github.com/multiversx/mx-chain-core-go/marshal"
 	"github.com/multiversx/mx-chain-go/common"
+	"github.com/multiversx/mx-chain-go/common/configs/dto"
 	"github.com/multiversx/mx-chain-go/common/enablers"
 	"github.com/multiversx/mx-chain-go/common/forking"
 	"github.com/multiversx/mx-chain-go/config"
@@ -798,19 +799,26 @@ func createFullArgumentsForSystemSCProcessing(enableEpochsConfig config.EnableEp
 	peerAccountsDB := createAccountsDB(hasher, marshalizer, peerAccCreator, trieFactoryManager, enableEpochsHandler)
 
 	argsValidatorsProcessor := peer.ArgValidatorStatisticsProcessor{
-		Marshalizer:                          marshalizer,
-		NodesCoordinator:                     &shardingMocks.NodesCoordinatorStub{},
-		ShardCoordinator:                     &mock.ShardCoordinatorStub{},
-		DataPool:                             &dataRetrieverMock.PoolsHolderStub{},
-		StorageService:                       &storageMock.ChainStorerStub{},
-		PubkeyConv:                           &testscommon.PubkeyConverterMock{},
-		PeerAdapter:                          peerAccountsDB,
-		Rater:                                &mock.RaterStub{},
-		RewardsHandler:                       &mock.RewardsHandlerStub{},
-		NodesSetup:                           &genesisMocks.NodesSetupStub{},
-		MaxComputableRounds:                  1,
-		MaxConsecutiveRoundsOfRatingDecrease: 2000,
-		EnableEpochsHandler:                  enableEpochsHandler,
+		Marshalizer:         marshalizer,
+		NodesCoordinator:    &shardingMocks.NodesCoordinatorStub{},
+		ShardCoordinator:    &mock.ShardCoordinatorStub{},
+		DataPool:            &dataRetrieverMock.PoolsHolderStub{},
+		StorageService:      &storageMock.ChainStorerStub{},
+		PubkeyConv:          &testscommon.PubkeyConverterMock{},
+		PeerAdapter:         peerAccountsDB,
+		Rater:               &mock.RaterStub{},
+		RewardsHandler:      &mock.RewardsHandlerStub{},
+		NodesSetup:          &genesisMocks.NodesSetupStub{},
+		MaxComputableRounds: 1,
+		EnableEpochsHandler: enableEpochsHandler,
+		ProcessConfigsHandler: &testscommon.ProcessConfigsHandlerStub{
+			GetValueCalled: func(variable dto.ConfigVariable) uint64 {
+				if variable == dto.MaxConsecutiveRoundsOfRatingDecrease {
+					return 2000
+				}
+				return 10
+			},
+		},
 	}
 	vCreator, _ := peer.NewValidatorStatisticsProcessor(argsValidatorsProcessor)
 
