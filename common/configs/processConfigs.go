@@ -267,6 +267,7 @@ func (pce *processConfigsByEpoch) GetMaxRoundsToKeepUnprocessedTransactions(roun
 	)
 }
 
+// GetValue returns the value of the provided variable for the current round
 func (pce *processConfigsByEpoch) GetValue(variable dto.ConfigVariable) uint64 {
 	return pce.getValueByRound(variable, pce.roundNotifier.CurrentRound())
 }
