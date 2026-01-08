@@ -652,7 +652,6 @@ var erh EnableEpochsHandlerWithSet
 var eeh EnableEpochsHandler
 var pch ProcessConfigsHandlerWithSet
 var cch CommonConfigsHandlerWithSet
-var log = logger.GetOrCreate("common")
 
 func SetEnableRoundsHandler(enableRoundsHandler EnableEpochsHandlerWithSet) {
 	erh = enableRoundsHandler

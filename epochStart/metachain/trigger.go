@@ -280,11 +280,11 @@ func (t *trigger) setEpochChange(round uint64) {
 	t.currEpochStartRound = round
 
 	msg := fmt.Sprintf("EPOCH %d BEGINS IN ROUND (%d)", t.epoch, t.currEpochStartRound)
-	common.SetSuperNovaActivationRound(t.epoch, t.currentRound)
-		log.Debug(display.Headline(msg, "", "#"))
-		log.Debug("trigger.Update", "isEpochStart", t.isEpochStart)
-		logger.SetCorrelationEpoch(t.epoch)
-		t.nextEpochStartRound = disabledRoundForForceEpochStart
+	common.SetSuperNovaActivationRound(t.epoch, round)
+	log.Debug(display.Headline(msg, "", "#"))
+	log.Debug("trigger.Update", "isEpochStart", t.isEpochStart)
+	logger.SetCorrelationEpoch(t.epoch)
+	t.nextEpochStartRound = disabledRoundForForceEpochStart
 
 }
 
