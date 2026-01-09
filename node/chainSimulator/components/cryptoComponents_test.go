@@ -1,13 +1,15 @@
 package components
 
 import (
+	"fmt"
 	"testing"
 
 	"github.com/multiversx/mx-chain-core-go/core"
+	"github.com/stretchr/testify/require"
+
 	"github.com/multiversx/mx-chain-go/config"
 	"github.com/multiversx/mx-chain-go/testscommon"
 	"github.com/multiversx/mx-chain-go/testscommon/factory"
-	"github.com/stretchr/testify/require"
 )
 
 func createArgsCryptoComponentsHolder() ArgsCryptoComponentsHolder {
@@ -48,6 +50,7 @@ func createArgsCryptoComponentsHolder() ArgsCryptoComponentsHolder {
 		},
 		AllValidatorKeysPemFileName: "allValidatorKeys.pem",
 		BypassTxSignatureCheck:      true,
+		BypassBlockSignatureCheck:   false,
 	}
 }
 
@@ -72,6 +75,19 @@ func TestCreateCryptoComponents(t *testing.T) {
 		comp, err := CreateCryptoComponents(args)
 		require.NoError(t, err)
 		require.NotNil(t, comp)
+
+		require.Nil(t, comp.Create())
+		require.Nil(t, comp.Close())
+	})
+	t.Run("should work with bypass blocks sig check", func(t *testing.T) {
+		t.Parallel()
+
+		args := createArgsCryptoComponentsHolder()
+		args.BypassBlockSignatureCheck = true
+		comp, err := CreateCryptoComponents(args)
+		require.NoError(t, err)
+		require.NotNil(t, comp)
+		require.Equal(t, "*singlesig.DisabledSingleSig", fmt.Sprintf("%T", comp.blockSigner))
 
 		require.Nil(t, comp.Create())
 		require.Nil(t, comp.Close())
