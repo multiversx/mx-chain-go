@@ -238,7 +238,6 @@ func NewTestHeartbeatNode(
 	argsKeysManagement := keysManagement.ArgsManagedPeersHolder{
 		KeyGenerator:    TestBLSKeyGenerator,
 		P2PKeyGenerator: TestP2PKeyGenerator,
-		RedundancyLevel: 0,
 		PrefsConfig: config.Preferences{
 			Preferences: config.PreferencesConfig{
 				NodeDisplayName: DefaultNodeName,

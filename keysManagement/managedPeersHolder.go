@@ -49,7 +49,6 @@ type managedPeersHolder struct {
 type ArgsManagedPeersHolder struct {
 	KeyGenerator          crypto.KeyGenerator
 	P2PKeyGenerator       crypto.KeyGenerator
-	RedundancyLevel       int64
 	ProcessConfigsHandler cmn.ProcessConfigsHandler
 	PrefsConfig           config.Preferences
 	P2PKeyConverter       p2p.P2PKeyConverter
@@ -71,7 +70,7 @@ func NewManagedPeersHolder(args ArgsManagedPeersHolder) (*managedPeersHolder, er
 		defaultIdentity:             args.PrefsConfig.Preferences.Identity,
 		p2pKeyConverter:             args.P2PKeyConverter,
 		data:                        make(map[string]*peerInfo),
-		redundancyLevel:             int(args.RedundancyLevel),
+		redundancyLevel:             int(args.PrefsConfig.Preferences.RedundancyLevel),
 		processConfigsHandler:       args.ProcessConfigsHandler,
 	}
 

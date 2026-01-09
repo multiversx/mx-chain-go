@@ -212,7 +212,6 @@ func (ccf *cryptoComponentsFactory) Create() (*cryptoComponents, error) {
 	argsManagedPeersHolder := keysManagement.ArgsManagedPeersHolder{
 		KeyGenerator:          blockSignKeyGen,
 		P2PKeyGenerator:       p2pKeyGenerator,
-		RedundancyLevel:       ccf.prefsConfig.Preferences.RedundancyLevel,
 		ProcessConfigsHandler: ccf.coreComponentsHolder.ProcessConfigsHandler(),
 		PrefsConfig:           ccf.prefsConfig,
 		P2PKeyConverter:       p2pFactory.NewP2PKeyConverter(),
