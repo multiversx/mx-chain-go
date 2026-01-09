@@ -177,6 +177,16 @@ func TestNewManagedPeersHolder(t *testing.T) {
 		assert.True(t, errors.Is(err, keysManagement.ErrNilP2PKeyConverter))
 		assert.True(t, check.IfNil(holder))
 	})
+	t.Run("nil process configs should error", func(t *testing.T) {
+		t.Parallel()
+
+		args := createMockArgsManagedPeersHolder()
+		args.P2PKeyConverter = nil
+		holder, err := keysManagement.NewManagedPeersHolder(args)
+
+		assert.True(t, errors.Is(err, keysManagement.ErrNilP2PKeyConverter))
+		assert.True(t, check.IfNil(holder))
+	})
 	t.Run("valid arguments should work", func(t *testing.T) {
 		t.Parallel()
 
