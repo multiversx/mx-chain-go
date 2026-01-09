@@ -27,6 +27,7 @@ import (
 	"github.com/multiversx/mx-chain-go/genesis/process/disabled"
 	"github.com/multiversx/mx-chain-go/keysManagement"
 	p2pFactory "github.com/multiversx/mx-chain-go/p2p/factory"
+	"github.com/multiversx/mx-chain-go/process"
 	storageFactory "github.com/multiversx/mx-chain-go/storage/factory"
 	"github.com/multiversx/mx-chain-go/storage/storageunit"
 	"github.com/multiversx/mx-chain-go/vm"
@@ -68,6 +69,8 @@ type cryptoComponentsFactory struct {
 	isInImportMode                       bool
 	importModeNoSigCheck                 bool
 	p2pKeyPemFileName                    string
+
+	coreComponentsHolder factory.CoreComponentsHolder
 }
 
 // cryptoParams holds the node public/private key data
@@ -113,6 +116,10 @@ func NewCryptoComponentsFactory(args CryptoComponentsFactoryArgs) (*cryptoCompon
 	if check.IfNil(args.CoreComponentsHolder.ValidatorPubKeyConverter()) {
 		return nil, errors.ErrNilPubKeyConverter
 	}
+	if check.IfNil(args.CoreComponentsHolder.ProcessConfigsHandler()) {
+		return nil, process.ErrNilProcessConfigsHandler
+	}
+
 	if len(args.ValidatorKeyPemFileName) == 0 {
 		return nil, errors.ErrNilPath
 	}
@@ -134,6 +141,7 @@ func NewCryptoComponentsFactory(args CryptoComponentsFactoryArgs) (*cryptoCompon
 		enableEpochs:                         args.EnableEpochs,
 		p2pKeyPemFileName:                    args.P2pKeyPemFileName,
 		allValidatorKeysPemFileName:          args.AllValidatorKeysPemFileName,
+		coreComponentsHolder:                 args.CoreComponentsHolder,
 	}
 
 	return ccf, nil
@@ -201,12 +209,11 @@ func (ccf *cryptoComponentsFactory) Create() (*cryptoComponents, error) {
 		return nil, err
 	}
 
-	redundancyLevel := int(ccf.prefsConfig.Preferences.RedundancyLevel)
-	maxRoundsOfInactivity := redundancyLevel * ccf.config.Redundancy.MaxRoundsOfInactivityAccepted
 	argsManagedPeersHolder := keysManagement.ArgsManagedPeersHolder{
 		KeyGenerator:          blockSignKeyGen,
 		P2PKeyGenerator:       p2pKeyGenerator,
-		MaxRoundsOfInactivity: maxRoundsOfInactivity,
+		RedundancyLevel:       ccf.prefsConfig.Preferences.RedundancyLevel,
+		ProcessConfigsHandler: ccf.coreComponentsHolder.ProcessConfigsHandler(),
 		PrefsConfig:           ccf.prefsConfig,
 		P2PKeyConverter:       p2pFactory.NewP2PKeyConverter(),
 	}

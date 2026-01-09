@@ -12,4 +12,6 @@ const (
 	NumFloodingRoundsOutOfSpecs ConfigVariable = "NumFloodingRoundsOutOfSpecs"
 	// MaxConsecutiveRoundsOfRatingDecrease defines variable name for MaxConsecutiveRoundsOfRatingDecrease
 	MaxConsecutiveRoundsOfRatingDecrease ConfigVariable = "MaxConsecutiveRoundsOfRatingDecrease"
+	// MaxRoundsOfInactivityAccepted defines variable name for MaxRoundsOfInactivityAccepted
+	MaxRoundsOfInactivityAccepted ConfigVariable = "MaxRoundsOfInactivityAccepted"
 )

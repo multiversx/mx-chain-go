@@ -18,6 +18,7 @@ import (
 	"github.com/multiversx/mx-chain-go/common"
 	"github.com/multiversx/mx-chain-go/config"
 	"github.com/multiversx/mx-chain-go/keysManagement"
+	"github.com/multiversx/mx-chain-go/testscommon"
 	"github.com/multiversx/mx-chain-go/testscommon/cryptoMocks"
 	"github.com/multiversx/mx-chain-go/testscommon/p2pmocks"
 	"github.com/stretchr/testify/assert"
@@ -55,7 +56,7 @@ func createMockArgsManagedPeersHolder() keysManagement.ArgsManagedPeersHolder {
 					}
 			},
 		},
-		MaxRoundsOfInactivity: 0,
+		RedundancyLevel: 0,
 		PrefsConfig: config.Preferences{
 			Preferences: config.PreferencesConfig{
 				Identity:        defaultIdentity,
@@ -67,6 +68,7 @@ func createMockArgsManagedPeersHolder() keysManagement.ArgsManagedPeersHolder {
 				return pid, nil
 			},
 		},
+		ProcessConfigsHandler: &testscommon.ProcessConfigsHandlerStub{},
 	}
 }
 
@@ -132,7 +134,7 @@ func TestNewManagedPeersHolder(t *testing.T) {
 
 		t.Run("negative value", func(t *testing.T) {
 			args := createMockArgsManagedPeersHolder()
-			args.MaxRoundsOfInactivity = -2
+			args.RedundancyLevel = -2
 			holder, err := keysManagement.NewManagedPeersHolder(args)
 
 			assert.Nil(t, holder)
@@ -141,7 +143,7 @@ func TestNewManagedPeersHolder(t *testing.T) {
 		})
 		t.Run("value of 1", func(t *testing.T) {
 			args := createMockArgsManagedPeersHolder()
-			args.MaxRoundsOfInactivity = 1
+			args.RedundancyLevel = 1
 			holder, err := keysManagement.NewManagedPeersHolder(args)
 
 			assert.Nil(t, holder)
@@ -430,7 +432,7 @@ func TestManagedPeersHolder_GetPrivateKey(t *testing.T) {
 
 		argsLocal := createMockArgsManagedPeersHolder()
 		argsLocal.PrefsConfig.Preferences.RedundancyLevel = 1
-		argsLocal.MaxRoundsOfInactivity = 3
+		argsLocal.RedundancyLevel = 3
 		namedIdentity := config.NamedIdentity{
 			Identity: testIdentity,
 			NodeName: testName,
@@ -603,7 +605,7 @@ func TestManagedPeersHolder_IncrementRoundsWithoutReceivedMessages(t *testing.T)
 	})
 	t.Run("is secondary machine should increment, if existing", func(t *testing.T) {
 		args := createMockArgsManagedPeersHolder()
-		args.MaxRoundsOfInactivity = 2
+		args.RedundancyLevel = 2
 		holder, _ := keysManagement.NewManagedPeersHolder(args)
 		_ = holder.AddManagedPeer(skBytes0)
 
@@ -664,7 +666,7 @@ func TestManagedPeersHolder_ResetRoundsWithoutReceivedMessages(t *testing.T) {
 	})
 	t.Run("is secondary machine should reset, if existing", func(t *testing.T) {
 		args := createMockArgsManagedPeersHolder()
-		args.MaxRoundsOfInactivity = 2
+		args.RedundancyLevel = 2
 		holder, _ := keysManagement.NewManagedPeersHolder(args)
 		_ = holder.AddManagedPeer(skBytes0)
 		pInfo := holder.GetPeerInfo(pkBytes0)
@@ -724,7 +726,7 @@ func TestManagedPeersHolder_GetManagedKeysByCurrentNode(t *testing.T) {
 	})
 	t.Run("is secondary machine should return managed keys", func(t *testing.T) {
 		args := createMockArgsManagedPeersHolder()
-		args.MaxRoundsOfInactivity = 2
+		args.RedundancyLevel = 2
 		holder, _ := keysManagement.NewManagedPeersHolder(args)
 		_ = holder.AddManagedPeer(skBytes0)
 		_ = holder.AddManagedPeer(skBytes1)
@@ -789,7 +791,7 @@ func TestManagedPeersHolder_IsKeyManagedByCurrentNode(t *testing.T) {
 	})
 	t.Run("secondary machine", func(t *testing.T) {
 		args := createMockArgsManagedPeersHolder()
-		args.MaxRoundsOfInactivity = 2
+		args.RedundancyLevel = 2
 		holder, _ := keysManagement.NewManagedPeersHolder(args)
 		_ = holder.AddManagedPeer(skBytes0)
 		pInfo := holder.GetPeerInfo(pkBytes0)
@@ -844,7 +846,7 @@ func TestManagedPeersHolder_IsKeyRegistered(t *testing.T) {
 	})
 	t.Run("secondary machine", func(t *testing.T) {
 		args := createMockArgsManagedPeersHolder()
-		args.MaxRoundsOfInactivity = 2
+		args.RedundancyLevel = 2
 		holder, _ := keysManagement.NewManagedPeersHolder(args)
 		_ = holder.AddManagedPeer(skBytes0)
 
@@ -949,7 +951,7 @@ func TestManagedPeersHolder_IsMultiKeyMode(t *testing.T) {
 	})
 	t.Run("backup machine mode", func(t *testing.T) {
 		args := createMockArgsManagedPeersHolder()
-		args.MaxRoundsOfInactivity = 2
+		args.RedundancyLevel = 2
 		holder, _ := keysManagement.NewManagedPeersHolder(args)
 		assert.False(t, holder.IsMultiKeyMode())
 
@@ -968,13 +970,13 @@ func TestManagedPeersHolder_GetRedundancyStepInReason(t *testing.T) {
 	})
 	t.Run("redundancy machine mode but no managed keys", func(t *testing.T) {
 		args := createMockArgsManagedPeersHolder()
-		args.MaxRoundsOfInactivity = 2
+		args.RedundancyLevel = 2
 		holder, _ := keysManagement.NewManagedPeersHolder(args)
 		assert.Empty(t, holder.GetRedundancyStepInReason())
 	})
 	t.Run("redundancy machine mode with one managed key, main active", func(t *testing.T) {
 		args := createMockArgsManagedPeersHolder()
-		args.MaxRoundsOfInactivity = 2
+		args.RedundancyLevel = 2
 		holder, _ := keysManagement.NewManagedPeersHolder(args)
 		_ = holder.AddManagedPeer(skBytes0)
 
@@ -982,10 +984,10 @@ func TestManagedPeersHolder_GetRedundancyStepInReason(t *testing.T) {
 	})
 	t.Run("redundancy machine mode with one managed key, main inactive", func(t *testing.T) {
 		args := createMockArgsManagedPeersHolder()
-		args.MaxRoundsOfInactivity = 2
+		args.RedundancyLevel = 2
 		holder, _ := keysManagement.NewManagedPeersHolder(args)
 		_ = holder.AddManagedPeer(skBytes0)
-		for i := 0; i < args.MaxRoundsOfInactivity+1; i++ {
+		for i := 0; i < holder.CalcMaxRoundsOfInactivity()+1; i++ {
 			holder.IncrementRoundsWithoutReceivedMessages(pkBytes0)
 		}
 
@@ -993,7 +995,7 @@ func TestManagedPeersHolder_GetRedundancyStepInReason(t *testing.T) {
 	})
 	t.Run("redundancy machine mode with 2 managed keys, main active", func(t *testing.T) {
 		args := createMockArgsManagedPeersHolder()
-		args.MaxRoundsOfInactivity = 2
+		args.RedundancyLevel = 2
 		holder, _ := keysManagement.NewManagedPeersHolder(args)
 		_ = holder.AddManagedPeer(skBytes0)
 		_ = holder.AddManagedPeer(skBytes1)
@@ -1002,12 +1004,12 @@ func TestManagedPeersHolder_GetRedundancyStepInReason(t *testing.T) {
 	})
 	t.Run("redundancy machine mode with 2 managed keys, main inactive", func(t *testing.T) {
 		args := createMockArgsManagedPeersHolder()
-		args.MaxRoundsOfInactivity = 2
+		args.RedundancyLevel = 2
 		holder, _ := keysManagement.NewManagedPeersHolder(args)
 		_ = holder.AddManagedPeer(skBytes0)
 		_ = holder.AddManagedPeer(skBytes1)
 
-		for i := 0; i < args.MaxRoundsOfInactivity+1; i++ {
+		for i := 0; i < holder.CalcMaxRoundsOfInactivity()+1; i++ {
 			holder.IncrementRoundsWithoutReceivedMessages(pkBytes0)
 			holder.IncrementRoundsWithoutReceivedMessages(pkBytes1)
 		}
