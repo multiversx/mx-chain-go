@@ -462,7 +462,11 @@ func TestP2PQuotaBlacklistProcessor_ResetStatisticsUnderNumFloodingRoundsShouldN
 		duration,
 		"",
 		selfPid,
-		&testscommon.ProcessConfigsHandlerStub{},
+		&testscommon.ProcessConfigsHandlerStub{
+			GetValueCalled: func(variable dto.ConfigVariable) uint64 {
+				return 0
+			},
+		},
 	)
 
 	pbp.ResetStatistics()
