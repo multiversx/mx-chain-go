@@ -353,6 +353,7 @@ func TestInitConfigMetrics(t *testing.T) {
 		"erd_automatic_activation_of_nodes_disable_epoch":                      uint32(114),
 		"erd_fix_get_balance_enable_epoch":                                     uint32(115),
 		"erd_relayed_transactions_v1_v2_disable_epoch":                         uint32(116),
+		"erd_tail_inflation_enable_epoch":                                      uint32(117),
 		"erd_max_nodes_change_enable_epoch":                                    nil,
 		"erd_total_supply":                                                     "12345",
 		"erd_hysteresis":                                                       "0.100000",
@@ -366,6 +367,9 @@ func TestInitConfigMetrics(t *testing.T) {
 	economicsConfig := config.EconomicsConfig{
 		GlobalSettings: config.GlobalSettings{
 			GenesisTotalSupply: "12345",
+			TailInflation: config.TailInflationSettings{
+				EnableEpoch: 117,
+			},
 		},
 	}
 

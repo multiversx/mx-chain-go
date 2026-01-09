@@ -10,6 +10,7 @@ import (
 	p2pMessage "github.com/multiversx/mx-chain-communication-go/p2p/message"
 	"github.com/multiversx/mx-chain-core-go/core"
 	"github.com/multiversx/mx-chain-core-go/data/block"
+	"github.com/multiversx/mx-chain-go/consensus/mock"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 
@@ -58,6 +59,7 @@ func internalInitConsensusStateWithKeysHandler(keysHandler consensus.KeysHandler
 		rcns,
 		rthr,
 		rstatus,
+		&mock.NodeRedundancyHandlerStub{},
 	)
 
 	return cns
@@ -423,11 +425,52 @@ func TestConsensusState_CanProcessReceivedMessageShouldReturnFalseWhenMessageIsR
 func TestConsensusState_CanProcessReceivedMessageShouldReturnFalseWhenMessageIsReceivedForOtherRound(t *testing.T) {
 	t.Parallel()
 
-	cns := internalInitConsensusState()
+	eligibleList := []string{"1", "2", "3"}
+
+	eligibleNodesPubKeys := make(map[string]struct{})
+	for _, key := range eligibleList {
+		eligibleNodesPubKeys[key] = struct{}{}
+	}
+
+	rcns, _ := spos.NewRoundConsensus(
+		eligibleNodesPubKeys,
+		3,
+		"2",
+		&testscommon.KeysHandlerStub{},
+	)
+
+	rcns.SetConsensusGroup(eligibleList)
+	rcns.SetLeader(eligibleList[0])
+	rcns.ResetRoundState()
+
+	rthr := spos.NewRoundThreshold()
+
+	rthr.SetThreshold(bls.SrBlock, 1)
+	rthr.SetThreshold(bls.SrSignature, 3)
+	rthr.SetFallbackThreshold(bls.SrBlock, 1)
+	rthr.SetFallbackThreshold(bls.SrSignature, 2)
+
+	rstatus := spos.NewRoundStatus()
+	rstatus.ResetRoundStatus()
+
+	// force backup case for coverage
+	cns := spos.NewConsensusState(
+		rcns,
+		rthr,
+		rstatus,
+		&mock.NodeRedundancyHandlerStub{
+			IsRedundancyNodeCalled: func() bool {
+				return true
+			},
+			IsMainMachineActiveCalled: func() bool {
+				return false
+			},
+		},
+	)
 
 	cnsDta := &consensus.Message{
 		RoundIndex: 0,
-		PubKey:     []byte("1"),
+		PubKey:     []byte(cns.SelfPubKey()),
 	}
 
 	assert.False(t, cns.CanProcessReceivedMessage(cnsDta, 1, bls.SrBlock))

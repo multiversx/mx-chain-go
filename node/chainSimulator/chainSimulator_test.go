@@ -10,9 +10,10 @@ import (
 	"github.com/multiversx/mx-chain-core-go/core"
 	apiBlock "github.com/multiversx/mx-chain-core-go/data/api"
 	"github.com/multiversx/mx-chain-core-go/data/transaction"
-	"github.com/multiversx/mx-chain-go/common"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
+
+	"github.com/multiversx/mx-chain-go/common"
 
 	"github.com/multiversx/mx-chain-go/config"
 	"github.com/multiversx/mx-chain-go/errors"
@@ -138,6 +139,7 @@ func TestChainSimulator_GenerateBlocksShouldWork(t *testing.T) {
 
 	chainSimulator, err := NewChainSimulator(ArgsChainSimulator{
 		BypassTxSignatureCheck:         true,
+		BypassBlockSignatureCheck:      true,
 		TempDir:                        t.TempDir(),
 		PathToInitialConfig:            defaultPathToInitialConfig,
 		NumOfShards:                    defaultNumOfShards,

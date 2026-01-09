@@ -812,6 +812,9 @@ const (
 	// MetricRelayedTransactionsV1V2DisableEpoch represents the epoch when relayed transactions v1 and v2 are disabled
 	MetricRelayedTransactionsV1V2DisableEpoch = "erd_relayed_transactions_v1_v2_disable_epoch"
 
+	// MetricTailInflationEnableEpoch represents the epoch when tail inflation is enabled
+	MetricTailInflationEnableEpoch = "erd_tail_inflation_enable_epoch"
+
 	// MetricEpochEnable represents the epoch when the max nodes change configuration is applied
 	MetricEpochEnable = "erd_epoch_enable"
 
