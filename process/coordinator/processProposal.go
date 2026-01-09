@@ -223,6 +223,18 @@ func (tc *transactionCoordinator) verifyCreatedMiniBlocksSanity(body *block.Body
 	// the collected transactions may contain also extra items (rewards/peer changes/scrs)
 	for txHash := range allProposedOutgoingTxsInBody {
 		if _, exists := allCollectedTxs[txHash]; !exists {
+			log.Debug("transactions mismatch", "txHash", txHash)
+
+			log.Debug("allProposedOutgoingTxsInBody")
+			for txHashProposed := range allProposedOutgoingTxsInBody {
+				log.Debug("proposed", "hash", txHashProposed)
+			}
+
+			log.Debug("allCollectedTxs")
+			for txHashCollected := range allCollectedTxs {
+				log.Debug("collected", "hash", txHashCollected)
+			}
+
 			return process.ErrTransactionsMismatch
 		}
 	}

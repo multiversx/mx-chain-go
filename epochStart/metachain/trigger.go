@@ -261,7 +261,7 @@ func (t *trigger) Update(round uint64, nonce uint64) {
 	}
 
 	if t.shouldTriggerEpochStart(round, nonce) {
-		t.setEpochChange(round)
+		t.setEpochChange(round, t.epoch+1)
 	}
 }
 
@@ -270,11 +270,11 @@ func (t *trigger) SetEpochChange(round uint64) {
 	t.mutTrigger.Lock()
 	defer t.mutTrigger.Unlock()
 
-	t.setEpochChange(round)
+	t.setEpochChange(round, t.epoch+1)
 }
 
-func (t *trigger) setEpochChange(round uint64) {
-	t.epoch += 1
+func (t *trigger) setEpochChange(round uint64, epoch uint32) {
+	t.epoch = epoch
 	t.isEpochStart = true
 	t.prevEpochStartRound = t.currEpochStartRound
 	t.currEpochStartRound = round
@@ -300,7 +300,7 @@ func (t *trigger) SetProcessed(header data.HeaderHandler, body data.BodyHandler)
 	}
 
 	if header.IsHeaderV3() {
-		t.setEpochChange(header.GetRound())
+		t.setEpochChange(header.GetRound(), header.GetEpoch())
 	}
 
 	metaBuff, errNotCritical := t.marshaller.Marshal(metaBlock)
@@ -327,6 +327,12 @@ func (t *trigger) SetProcessed(header data.HeaderHandler, body data.BodyHandler)
 	log.Debug("trigger.SetProcessed", "isEpochStart", t.isEpochStart)
 
 	epochStartIdentifier := core.EpochStartIdentifier(metaBlock.GetEpoch())
+
+	log.Debug("trigger.SetProcessed",
+		"epochStartIdentifier", epochStartIdentifier,
+		"epoch", metaBlock.GetEpoch(),
+	)
+
 	errNotCritical = t.triggerStorage.Put([]byte(epochStartIdentifier), metaBuff)
 	if errNotCritical != nil {
 		log.Warn("SetProcessed put into triggerStorage", "error", errNotCritical.Error())
@@ -418,6 +424,11 @@ func (t *trigger) revert(header data.HeaderHandler) error {
 		log.Debug("Revert remove from triggerStorage", "error", errNotCritical.Error())
 	}
 
+	log.Debug("revert",
+		"epochStartIdentifier", epochStartIdentifier,
+		"meta epoch", metaHdr.GetEpoch(),
+	)
+
 	errNotCritical = t.metaHeaderStorage.Remove([]byte(epochStartIdentifier))
 	if errNotCritical != nil {
 		log.Debug("Revert remove from triggerStorage", "error", errNotCritical.Error())
@@ -481,6 +492,11 @@ func (t *trigger) GetEpochStartHdrFromStorage(epoch uint32) (data.HeaderHandler,
 	defer t.mutTrigger.RUnlock()
 
 	epochStartIdentifier := core.EpochStartIdentifier(epoch)
+
+	log.Debug("GetEpochStartHdrFromStorage",
+		"epochStartIdentifier", epochStartIdentifier,
+	)
+
 	epochStartMetaBuff, err := t.metaHeaderStorage.SearchFirst([]byte(epochStartIdentifier))
 	if err != nil {
 		log.Warn("GetEpochStartHdrFromStorage search first", "epoch", epoch, "identifier", epochStartIdentifier, "error", err)

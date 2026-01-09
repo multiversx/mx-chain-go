@@ -3,7 +3,9 @@ package testscommon
 import (
 	"github.com/multiversx/mx-chain-go/common"
 	"github.com/multiversx/mx-chain-go/common/configs"
+	"github.com/multiversx/mx-chain-go/common/configs/dto"
 	"github.com/multiversx/mx-chain-go/config"
+	"github.com/multiversx/mx-chain-go/testscommon/epochNotifier"
 )
 
 // GetDefaultProcessConfigsHandler -
@@ -23,8 +25,12 @@ func GetDefaultProcessConfigsHandler() common.ProcessConfigsHandler {
 				MaxSyncWithErrorsAllowed:               10,
 				MaxRoundsToKeepUnprocessedMiniBlocks:   50,
 				MaxRoundsToKeepUnprocessedTransactions: 50,
+				NumFloodingRoundsSlowReacting:          20,
+				NumFloodingRoundsFastReacting:          30,
+				NumFloodingRoundsOutOfSpecs:            40,
 			},
 		},
+		&epochNotifier.RoundNotifierStub{},
 	)
 
 	return processConfigsHandler
@@ -41,6 +47,7 @@ type ProcessConfigsHandlerStub struct {
 	GetMaxSyncWithErrorsAllowedCalled                 func(round uint64) uint32
 	GetMaxRoundsToKeepUnprocessedTransactionsCalled   func(round uint64) uint64
 	GetMaxRoundsToKeepUnprocessedMiniBlocksCalled     func(round uint64) uint64
+	GetValueCalled                                    func(variable dto.ConfigVariable) uint64
 }
 
 // GetMaxMetaNoncesBehindByEpoch -
@@ -118,6 +125,15 @@ func (p *ProcessConfigsHandlerStub) GetMaxRoundsToKeepUnprocessedTransactions(ro
 func (p *ProcessConfigsHandlerStub) GetMaxRoundsToKeepUnprocessedMiniBlocks(round uint64) uint64 {
 	if p.GetMaxRoundsToKeepUnprocessedMiniBlocksCalled != nil {
 		return p.GetMaxRoundsToKeepUnprocessedMiniBlocksCalled(round)
+	}
+
+	return 0
+}
+
+// GetValue -
+func (p *ProcessConfigsHandlerStub) GetValue(variable dto.ConfigVariable) uint64 {
+	if p.GetValueCalled != nil {
+		return p.GetValueCalled(variable)
 	}
 
 	return 0

@@ -183,6 +183,7 @@ func (e *epochStartData) CreateEpochStartData() (*block.EpochStart, error) {
 func (e *epochStartData) CreateEpochStartShardDataMetablockV3(metablock data.MetaHeaderHandler) ([]block.EpochStartShardData, error) {
 	log.Debug("CreateEpochStartShardDataMetablockV3",
 		"metablock epoch", metablock.GetEpoch(),
+		"for epoch", metablock.GetEpoch()+1,
 		"isEpochChangeProposed", metablock.IsEpochChangeProposed(),
 		"trigger epoch", e.epochStartTrigger.Epoch())
 
@@ -366,6 +367,11 @@ func (e *epochStartData) getShardDataFromEpochStartData(
 		return lastMetaHash, []byte(epochStartIdentifier), nil
 	}
 
+	log.Debug("getShardDataFromEpochStartData: for last meta hash",
+		"identifier", epochStartIdentifier,
+		"lastMetaHash", lastMetaHash,
+	)
+
 	previousEpochStartMeta, err := process.GetMetaHeaderFromStorage([]byte(epochStartIdentifier), e.marshalizer, e.store)
 	if err != nil {
 		return nil, nil, err
@@ -390,17 +396,40 @@ func (e *epochStartData) getShardDataFromEpochStartData(
 	return nil, nil, process.ErrGettingShardDataFromEpochStartData
 }
 
+func (e *epochStartData) getPrevEpoch() uint32 {
+	prevEpoch := e.genesisEpoch
+
+	epochStartTriggerEpoch := e.epochStartTrigger.Epoch()
+
+	if epochStartTriggerEpoch <= e.genesisEpoch {
+		return prevEpoch
+	}
+
+	prevEpoch = e.epochStartTrigger.Epoch()
+
+	isAfterSupernova := epochStartTriggerEpoch > e.enableEpochsHandler.GetActivationEpoch(common.SupernovaFlag)
+	if !isAfterSupernova {
+		prevEpoch--
+	}
+
+	return prevEpoch
+}
+
 func (e *epochStartData) computePendingMiniBlockList(
 	startData *block.EpochStart,
 	allShardHdrList [][]data.HeaderHandler,
 ) ([]block.MiniBlockHeader, error) {
-
-	prevEpoch := e.genesisEpoch
-	if e.epochStartTrigger.Epoch() > e.genesisEpoch {
-		prevEpoch = e.epochStartTrigger.Epoch() - 1
-	}
+	prevEpoch := e.getPrevEpoch()
 
 	epochStartIdentifier := core.EpochStartIdentifier(prevEpoch)
+
+	log.Debug("computePendingMiniBlockList: ",
+		"identifier", epochStartIdentifier,
+		"prevEpoch", prevEpoch,
+		"epochStartTrigger.Epoch", e.epochStartTrigger.Epoch(),
+	)
+
+	// TODO: analyse error handling here
 	previousEpochStartMeta, _ := process.GetMetaHeaderFromStorage([]byte(epochStartIdentifier), e.marshalizer, e.store)
 
 	allPending := make([]block.MiniBlockHeader, 0)

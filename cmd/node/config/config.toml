@@ -45,9 +45,9 @@
 
     # ChainParametersByEpoch defines chain operation configurable values that can be modified based on epochs
     ChainParametersByEpoch = [
-        { EnableEpoch = 0, RoundDuration = 6000, RoundsPerEpoch = 200, MinRoundsBetweenEpochs = 20, ShardConsensusGroupSize = 7, ShardMinNumNodes = 10, MetachainConsensusGroupSize = 10, MetachainMinNumNodes = 10, Hysteresis = 0.2, Adaptivity = false, Offset = 0 },
-        { EnableEpoch = 1, RoundDuration = 6000, RoundsPerEpoch = 200, MinRoundsBetweenEpochs = 20, ShardConsensusGroupSize = 10, ShardMinNumNodes = 10, MetachainConsensusGroupSize = 10, MetachainMinNumNodes = 10, Hysteresis = 0.2, Adaptivity = false, Offset = 0 },
-        { EnableEpoch = 2, RoundDuration = 600, RoundsPerEpoch = 2000, MinRoundsBetweenEpochs = 50, ShardConsensusGroupSize = 10, ShardMinNumNodes = 10, MetachainConsensusGroupSize = 10, MetachainMinNumNodes = 10, Hysteresis = 0.2, Adaptivity = false, Offset = 2 }
+        { EnableEpoch = 0, RoundDuration = 6000, RoundsPerEpoch = 100, MinRoundsBetweenEpochs = 20, ShardConsensusGroupSize = 7, ShardMinNumNodes = 10, MetachainConsensusGroupSize = 10, MetachainMinNumNodes = 10, Hysteresis = 0.2, Adaptivity = false, Offset = 0 },
+        { EnableEpoch = 1, RoundDuration = 6000, RoundsPerEpoch = 100, MinRoundsBetweenEpochs = 20, ShardConsensusGroupSize = 10, ShardMinNumNodes = 10, MetachainConsensusGroupSize = 10, MetachainMinNumNodes = 10, Hysteresis = 0.2, Adaptivity = false, Offset = 0 },
+        { EnableEpoch = 2, RoundDuration = 600, RoundsPerEpoch = 1000, MinRoundsBetweenEpochs = 50, ShardConsensusGroupSize = 10, ShardMinNumNodes = 10, MetachainConsensusGroupSize = 10, MetachainMinNumNodes = 10, Hysteresis = 0.2, Adaptivity = false, Offset = 2 }
     ]
 
     # EpochChangeGracePeriodEnableEpoch represents the configuration of different grace periods for epoch change with their activation epochs
@@ -64,8 +64,30 @@
     ]
 
     ProcessConfigsByRound = [
-        { EnableRound = 0, MaxRoundsWithoutNewBlockReceived = 10, MaxRoundsWithoutCommittedBlock = 10, RoundModulusTriggerWhenSyncIsStuck = 20, MaxSyncWithErrorsAllowed = 10, MaxRoundsToKeepUnprocessedMiniBlocks = 300,   MaxRoundsToKeepUnprocessedTransactions = 300},
-        { EnableRound = 440, MaxRoundsWithoutNewBlockReceived = 100, MaxRoundsWithoutCommittedBlock = 100, RoundModulusTriggerWhenSyncIsStuck = 200, MaxSyncWithErrorsAllowed = 100, MaxRoundsToKeepUnprocessedMiniBlocks = 3000,   MaxRoundsToKeepUnprocessedTransactions = 3000  },
+        {
+        EnableRound = 0,
+        MaxRoundsWithoutNewBlockReceived = 10,
+        MaxRoundsWithoutCommittedBlock = 10,
+        RoundModulusTriggerWhenSyncIsStuck = 20,
+        MaxSyncWithErrorsAllowed = 10,
+        MaxRoundsToKeepUnprocessedMiniBlocks = 300,
+        MaxRoundsToKeepUnprocessedTransactions = 300,
+        NumFloodingRoundsFastReacting = 10,
+        NumFloodingRoundsSlowReacting = 2,
+        NumFloodingRoundsOutOfSpecs = 2
+        },
+        {
+        EnableRound = 220,
+        MaxRoundsWithoutNewBlockReceived = 100,
+        MaxRoundsWithoutCommittedBlock = 100,
+        RoundModulusTriggerWhenSyncIsStuck = 200,
+        MaxSyncWithErrorsAllowed = 100,
+        MaxRoundsToKeepUnprocessedMiniBlocks = 3000,
+        MaxRoundsToKeepUnprocessedTransactions = 3000,
+        NumFloodingRoundsFastReacting = 100,
+        NumFloodingRoundsSlowReacting = 20,
+        NumFloodingRoundsOutOfSpecs = 20
+        }
     ]
 
     EpochStartConfigsByEpoch = [
@@ -75,7 +97,7 @@
 
     EpochStartConfigsByRound = [
         { EnableRound = 0, MaxRoundsWithoutCommittedStartInEpochBlock = 50 },
-        { EnableRound = 440, MaxRoundsWithoutCommittedStartInEpochBlock = 500 },
+        { EnableRound = 220, MaxRoundsWithoutCommittedStartInEpochBlock = 500 },
     ]
 
     ConsensusConfigsByEpoch = [
@@ -94,7 +116,7 @@
         { StartEpoch = 1, StartRound = 0, Version = "2" },
 
         # TODO The value of StartEpoch parameter for version 3 should be the same with the SupernovaEnableEpoch flag from enableEpoch.toml file and StartRound the same with the SupernovaEnableRound flag from enableRounds.toml
-        { StartEpoch = 2, StartRound = 440, Version = "3" },
+        { StartEpoch = 2, StartRound = 220, Version = "3" },
     ]
 
 [StoragePruning]
@@ -610,7 +632,6 @@
         [Antiflood.FastReacting.BlackList]
             ThresholdNumMessagesPerInterval = 1000
             ThresholdSizePerInterval = 8388608 #8MB/s
-            NumFloodingRounds = 10
             PeerBanDurationInSeconds = 300
 
     [Antiflood.SlowReacting]
@@ -625,7 +646,6 @@
         [Antiflood.SlowReacting.BlackList]
             ThresholdNumMessagesPerInterval = 10000
             ThresholdSizePerInterval = 37748736 # 36MB/interval
-            NumFloodingRounds = 2
             PeerBanDurationInSeconds = 3600
 
     [Antiflood.OutOfSpecs]
@@ -640,7 +660,6 @@
         [Antiflood.OutOfSpecs.BlackList]
             ThresholdNumMessagesPerInterval = 3600
             ThresholdSizePerInterval = 12582912 # 12MB/interval
-            NumFloodingRounds = 2
             PeerBanDurationInSeconds = 3600
 
     [Antiflood.PeerMaxOutput]

@@ -622,6 +622,11 @@ func (e *economics) startNoncePerShardFromEpochStart(epoch uint32) (map[uint32]u
 	mapShardIdNonce[core.MetachainShardId] = e.genesisNonce
 
 	epochStartIdentifier := core.EpochStartIdentifier(epoch)
+
+	log.Debug("startNoncePerShardFromEpochStart: for prev epoch start meta",
+		"identifier", epochStartIdentifier,
+	)
+
 	previousEpochStartMeta, err := process.GetMetaHeaderFromStorage([]byte(epochStartIdentifier), e.marshalizer, e.store)
 	if err != nil {
 		return nil, nil, err
