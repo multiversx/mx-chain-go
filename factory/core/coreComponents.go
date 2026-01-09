@@ -181,14 +181,6 @@ func (ccf *coreComponentsFactory) Create() (*coreComponents, error) {
 		return nil, fmt.Errorf("%w for epochChangeGracePeriod", err)
 	}
 
-	processConfigs, err := commonConfigs.NewProcessConfigsHandler(
-		ccf.config.GeneralSettings.ProcessConfigsByEpoch,
-		ccf.config.GeneralSettings.ProcessConfigsByRound,
-	)
-	if err != nil {
-		return nil, fmt.Errorf("%w for processConfigsByEpoch", err)
-	}
-
 	commonConfigsHandler, err := commonConfigs.NewCommonConfigsHandler(
 		ccf.config.GeneralSettings.EpochStartConfigsByEpoch,
 		ccf.config.GeneralSettings.EpochStartConfigsByRound,
@@ -230,6 +222,15 @@ func (ccf *coreComponentsFactory) Create() (*coreComponents, error) {
 	enableRoundsHandler, err := enablers.NewEnableRoundsHandler(ccf.roundConfig, roundNotifier)
 	if err != nil {
 		return nil, err
+	}
+
+	processConfigs, err := commonConfigs.NewProcessConfigsHandler(
+		ccf.config.GeneralSettings.ProcessConfigsByEpoch,
+		ccf.config.GeneralSettings.ProcessConfigsByRound,
+		roundNotifier,
+	)
+	if err != nil {
+		return nil, fmt.Errorf("%w for processConfigsByEpoch", err)
 	}
 
 	common.SetEnableEpochsHandler(enableEpochsHandler)

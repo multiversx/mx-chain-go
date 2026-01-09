@@ -19,7 +19,7 @@ const (
 var ErrEmptyCommonConfigsByEpoch = errors.New("empty common configs by epoch")
 
 // ErrEmptyCommonConfigsByRound signals that an empty common configs by round has been provided
-var ErrEmptyCommonConfigsByRound = errors.New("empty common configs by epoch")
+var ErrEmptyCommonConfigsByRound = errors.New("empty common configs by round")
 
 type commonConfigs struct {
 	orderedEpochStartConfigByEpoch []config.EpochStartConfigByEpoch
@@ -141,7 +141,7 @@ func checkConsensusConfigsByEpoch(configsByEpoch []config.ConsensusConfigByEpoch
 	return nil
 }
 
-// GetMaxMetaNoncesBehind returns the max meta nonces behind by epoch
+// GetGracePeriodRoundsByEpoch returns the grace period rounds by epoch
 func (cc *commonConfigs) GetGracePeriodRoundsByEpoch(epoch uint32) uint32 {
 	for i := len(cc.orderedEpochStartConfigByEpoch) - 1; i >= 0; i-- {
 		if cc.orderedEpochStartConfigByEpoch[i].EnableEpoch <= epoch {
@@ -152,7 +152,7 @@ func (cc *commonConfigs) GetGracePeriodRoundsByEpoch(epoch uint32) uint32 {
 	return defaultGracePeriodRounds // this should not happen
 }
 
-// GetExtraDelayForRequestBlockInfoInMs returns the max meta nonces behind by epoch
+// GetExtraDelayForRequestBlockInfoInMs returns the extra delay for request block info by epoch
 func (cc *commonConfigs) GetExtraDelayForRequestBlockInfoInMs(epoch uint32) uint32 {
 	for i := len(cc.orderedEpochStartConfigByEpoch) - 1; i >= 0; i-- {
 		if cc.orderedEpochStartConfigByEpoch[i].EnableEpoch <= epoch {

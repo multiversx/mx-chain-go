@@ -351,6 +351,22 @@ func TestNewConsensusComponentsFactory(t *testing.T) {
 		require.Nil(t, ccf)
 		require.Equal(t, errorsMx.ErrNilRoundHandler, err)
 	})
+	t.Run("nil NodeRedundancyHandler should error", func(t *testing.T) {
+		t.Parallel()
+
+		args := createMockConsensusComponentsFactoryArgs()
+		args.ProcessComponents = &testsMocks.ProcessComponentsStub{
+			NodesCoord:                    &shardingMocks.NodesCoordinatorMock{},
+			ShardCoord:                    &testscommon.ShardsCoordinatorMock{},
+			RoundHandlerField:             &testscommon.RoundHandlerMock{},
+			HardforkTriggerField:          &testscommon.HardforkTriggerStub{},
+			NodeRedundancyHandlerInternal: nil,
+		}
+		ccf, err := consensusComp.NewConsensusComponentsFactory(args)
+
+		require.Nil(t, ccf)
+		require.Equal(t, errorsMx.ErrNilNodeRedundancyHandler, err)
+	})
 	t.Run("nil HardforkTrigger should error", func(t *testing.T) {
 		t.Parallel()
 

@@ -732,7 +732,9 @@ func (wrk *Worker) computeRedundancyMetrics() (bool, string) {
 
 func (wrk *Worker) checkSelfState(cnsDta *consensus.Message) error {
 	isMultiKeyManagedBySelf := wrk.consensusState.keysHandler.IsKeyManagedByCurrentNode(cnsDta.PubKey)
-	if wrk.consensusState.SelfPubKey() == string(cnsDta.PubKey) || isMultiKeyManagedBySelf {
+	isSelfKey := wrk.consensusState.SelfPubKey() == string(cnsDta.PubKey)
+	shouldConsiderSelfKeyInConsensus := isSelfKey && ShouldConsiderSelfKeyInConsensus(wrk.nodeRedundancyHandler)
+	if shouldConsiderSelfKeyInConsensus || isMultiKeyManagedBySelf {
 		return ErrMessageFromItself
 	}
 
