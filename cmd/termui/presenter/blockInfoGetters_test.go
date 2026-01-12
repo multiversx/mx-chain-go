@@ -190,6 +190,28 @@ func TestPresenterStatusHandler_GetNumTrackedAccounts(t *testing.T) {
 	assert.Equal(t, numTrackedAccounts, result)
 }
 
+func TestPresenterStatusHandler_GetDeltaHeaderNonceLastExecutionResultNonce(t *testing.T) {
+	t.Parallel()
+
+	delta := uint64(1)
+	presenterStatusHandler := NewPresenterStatusHandler()
+	presenterStatusHandler.SetUInt64Value(common.MetricDeltaHeaderNonceLastExecutionResultNonce, delta)
+	result := presenterStatusHandler.GetDeltaHeaderNonceLastExecutionResultNonce()
+
+	assert.Equal(t, delta, result)
+}
+
+func TestPresenterStatusHandler_GetInclusionEstimationRejected(t *testing.T) {
+	t.Parallel()
+
+	numRejected := uint64(10)
+	presenterStatusHandler := NewPresenterStatusHandler()
+	presenterStatusHandler.SetUInt64Value(common.MetricNumInclusionEstimationRejected, numRejected)
+	result := presenterStatusHandler.GetRejectedExecutionResults()
+
+	assert.Equal(t, numRejected, result)
+}
+
 func TestPresenterStatusHandler_GetHighestFinalBlock(t *testing.T) {
 	t.Parallel()
 

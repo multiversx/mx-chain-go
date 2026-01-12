@@ -2534,3 +2534,83 @@ func TestSubroundEndRound_UpdateConsensusMetrics(t *testing.T) {
 	assert.Equal(t, uint64(100), appStatusHandler.GetUint64(common.MetricReceivedProof), "MetricReceivedProof should be set")
 	assert.Equal(t, uint64(200), appStatusHandler.GetUint64(common.MetricAvgReceivedProof), "MetricAvgProofsReceived should be set")
 }
+
+func TestSubroundEndRound_UpdateDeltaMetrics(t *testing.T) {
+	t.Parallel()
+
+	baseExecutionResults := &block.BaseExecutionResult{
+		HeaderHash:  []byte("hash"),
+		HeaderNonce: 3,
+		HeaderRound: 1,
+		RootHash:    []byte("rootHash"),
+	}
+	baseMetaExecutionResult := &block.BaseMetaExecutionResult{
+		BaseExecutionResult: baseExecutionResults,
+	}
+
+	header := &block.HeaderV3{
+		PrevHash: []byte("prev_hash"),
+		Nonce:    10,
+		LastExecutionResult: &block.ExecutionResultInfo{
+			NotarizedInRound: 1,
+			ExecutionResult:  baseExecutionResults,
+		},
+	}
+
+	meta := &block.MetaBlockV3{
+		PrevHash: []byte("prev_hash"),
+		Nonce:    10,
+		LastExecutionResult: &block.MetaExecutionResultInfo{
+			NotarizedInRound: 1,
+			ExecutionResult:  baseMetaExecutionResult,
+		},
+	}
+	container := consensusMocks.InitConsensusCore()
+	appStatusHandler := statusHandler.NewAppStatusHandlerMock()
+
+	ch := make(chan bool, 1)
+	consensusState := initializers.InitConsensusStateWithNodesCoordinator(container.NodesCoordinator())
+	sr, _ := spos.NewSubround(
+		bls.SrSignature,
+		bls.SrEndRound,
+		-1,
+		roundTimeDuration,
+		0.85,
+		0.95,
+		"(END_ROUND)",
+		consensusState,
+		ch,
+		executeStoredMessages,
+		container,
+		chainID,
+		currentPid,
+		appStatusHandler,
+	)
+
+	consensusMetrics, _ := spos.NewConsensusMetrics(sr.AppStatusHandler())
+
+	worker := consensusMocks.SposWorkerMock{
+		ConsensusMetricsCalled: func() spos.ConsensusMetricsHandler {
+			return consensusMetrics
+		},
+	}
+
+	srEndRound, _ := v2.NewSubroundEndRound(
+		sr,
+		v2.ProcessingThresholdPercent,
+		appStatusHandler,
+		&testscommon.SentSignatureTrackerStub{},
+		&worker,
+		&dataRetrieverMocks.ThrottlerStub{},
+	)
+
+	srEndRound.SetHeader(header)
+	srEndRound.SetData([]byte("hash"))
+	srEndRound.UpdateNonceDeltaMetrics()
+	assert.Equal(t, uint64(7), appStatusHandler.GetUint64(common.MetricDeltaHeaderNonceLastExecutionResultNonce), "MetricNonceDelta should be set for header v3")
+
+	srEndRound.SetHeader(meta)
+	srEndRound.SetData([]byte("hash"))
+	srEndRound.UpdateNonceDeltaMetrics()
+	assert.Equal(t, uint64(7), appStatusHandler.GetUint64(common.MetricDeltaHeaderNonceLastExecutionResultNonce), "MetricNonceDelta should be set for meta v3")
+}

@@ -265,9 +265,8 @@ type Config struct {
 	Requesters            RequesterConfig
 	VMOutputCacher        CacheConfig
 
-	PeersRatingConfig   PeersRatingConfig
-	PoolsCleanersConfig PoolsCleanersConfig
-	Redundancy          RedundancyConfig
+	PeersRatingConfig PeersRatingConfig
+	Redundancy        RedundancyConfig
 
 	InterceptedDataVerifier InterceptedDataVerifierConfig
 }
@@ -386,6 +385,16 @@ type ProcessConfigByRound struct {
 	// MaxSyncWithErrorsAllowed defines the maximum allowed number of sync with errors,
 	// before a special action to be applied
 	MaxSyncWithErrorsAllowed uint32
+
+	// Max number of rounds unprocessed miniblocks are kept in pool
+	MaxRoundsToKeepUnprocessedMiniBlocks uint64
+
+	// Max number of rounds unprocessed transactions are kept in pool
+	MaxRoundsToKeepUnprocessedTransactions uint64
+
+	NumFloodingRoundsFastReacting uint32
+	NumFloodingRoundsSlowReacting uint32
+	NumFloodingRoundsOutOfSpecs   uint32
 }
 
 // GeneralSettingsConfig will hold the general settings for a node
@@ -405,7 +414,7 @@ type GeneralSettingsConfig struct {
 	ChainParametersByEpoch               []ChainParametersByEpochConfig
 	EpochChangeGracePeriodByEpoch        []EpochChangeGracePeriodByEpoch
 	ProcessConfigsByEpoch                []ProcessConfigByEpoch
-	ProcessConfigsByRound                []ProcessConfigByRound
+	ProcessConfigsByRound                []ProcessConfigByRound `toml:"ProcessConfigsByRound"`
 	EpochStartConfigsByEpoch             []EpochStartConfigByEpoch
 	EpochStartConfigsByRound             []EpochStartConfigByRound
 	ConsensusConfigsByEpoch              []ConsensusConfigByEpoch
@@ -470,9 +479,7 @@ type WebServerAntifloodConfig struct {
 type BlackListConfig struct {
 	ThresholdNumMessagesPerInterval uint32
 	ThresholdSizePerInterval        uint64
-	// TODO: add config per epoch for supernova
-	NumFloodingRounds        uint32
-	PeerBanDurationInSeconds uint32
+	PeerBanDurationInSeconds        uint32
 }
 
 // TopicMaxMessagesConfig will hold the maximum number of messages/sec per topic value
@@ -779,12 +786,6 @@ type RequesterConfig struct {
 	NumFullHistoryPeers uint32
 }
 
-// PoolsCleanersConfig represents the config options to be used by the pools cleaners
-type PoolsCleanersConfig struct {
-	MaxRoundsToKeepUnprocessedMiniBlocks   int64
-	MaxRoundsToKeepUnprocessedTransactions int64
-}
-
 // RedundancyConfig represents the config options to be used when setting the redundancy configuration
 type RedundancyConfig struct {
 	// TODO: add config per epoch for supernova
@@ -803,6 +804,7 @@ type ChainParametersByEpochConfig struct {
 	MetachainConsensusGroupSize uint32
 	MetachainMinNumNodes        uint32
 	Adaptivity                  bool
+	Offset                      uint16
 }
 
 // IndexBroadcastDelay holds a pair of starting consensus index and the delay the nodes should wait before broadcasting final info

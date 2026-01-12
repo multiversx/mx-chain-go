@@ -46,6 +46,7 @@ type ArgOutportDataProvider struct {
 	EnableEpochsHandler      common.EnableEpochsHandler
 	StateAccessesCollector   state.StateAccessesCollector
 	RoundHandler             RoundHandler
+	RewardsGetter            EpochRewardsGetter
 }
 
 // ArgPrepareOutportSaveBlockData holds the arguments needed for prepare outport save block data
@@ -78,6 +79,7 @@ type outportDataProvider struct {
 	enableEpochsHandler      common.EnableEpochsHandler
 	StateAccessesCollector   state.StateAccessesCollector
 	roundHandler             RoundHandler
+	rewardsGetter            EpochRewardsGetter
 }
 
 // NewOutportDataProvider will create a new instance of outportDataProvider
@@ -98,6 +100,7 @@ func NewOutportDataProvider(arg ArgOutportDataProvider) (*outportDataProvider, e
 		enableEpochsHandler:      arg.EnableEpochsHandler,
 		StateAccessesCollector:   arg.StateAccessesCollector,
 		roundHandler:             arg.RoundHandler,
+		rewardsGetter:            arg.RewardsGetter,
 	}, nil
 }
 
@@ -206,6 +209,7 @@ func (odp *outportDataProvider) prepareExecutionResultsData(args ArgPrepareOutpo
 		return results, nil
 	}
 
+	isMeta := odp.shardID == core.MetachainShardId
 	for _, executionResult := range args.Header.GetExecutionResultsHandlers() {
 		headerHash := executionResult.GetHeaderHash()
 
@@ -224,6 +228,10 @@ func (odp *outportDataProvider) prepareExecutionResultsData(args ArgPrepareOutpo
 		}
 
 		putInMapTxsFromBody(odp.dataPool, body, odp.shardID, cachedTxs)
+
+		if isMeta && hasRewardsOnBody(body) {
+			cachedTxs[block.RewardsBlock] = odp.rewardsGetter.GetRewardsTxs(body)
+		}
 
 		cachedLogs, err := common.GetCachedLogs(odp.dataPool.PostProcessTransactions(), headerHash)
 		if err != nil {
@@ -266,6 +274,16 @@ func (odp *outportDataProvider) prepareExecutionResultsData(args ArgPrepareOutpo
 	}
 
 	return results, nil
+}
+
+func hasRewardsOnBody(body *block.Body) bool {
+	for _, mb := range body.MiniBlocks {
+		if mb.Type == block.RewardsBlock {
+			return true
+		}
+	}
+
+	return false
 }
 
 func collectExecutedTxHashes(bodyHandler data.BodyHandler, headerHandler data.HeaderHandler) (map[string]struct{}, error) {
