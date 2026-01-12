@@ -46,6 +46,7 @@ type transactionWithResult struct {
 // ArgsChainSimulator holds the arguments needed to create a new instance of simulator
 type ArgsChainSimulator struct {
 	BypassTxSignatureCheck         bool
+	BypassBlockSignatureCheck      bool
 	TempDir                        string
 	PathToInitialConfig            string
 	NumOfShards                    uint32
@@ -278,6 +279,7 @@ func (s *simulator) createTestNode(
 		ShardIDStr:                  shardIDStr,
 		APIInterface:                args.ApiInterface,
 		BypassTxSignatureCheck:      args.BypassTxSignatureCheck,
+		BypassBlockSignatureCheck:   args.BypassBlockSignatureCheck,
 		InitialRound:                args.InitialRound,
 		InitialNonce:                args.InitialNonce,
 		MinNodesPerShard:            args.MinNodesPerShard,

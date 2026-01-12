@@ -214,7 +214,6 @@ func CreateCoreComponents(args ArgsCoreComponentsHolder) (*coreComponentsHolder,
 		"startTime", instance.genesisNodesSetup.GetStartTime(),
 		"nodesSetup start time", nodesSetup.StartTime,
 	)
-	instance.genesisTime = time.Unix(instance.genesisNodesSetup.GetStartTime(), 0)
 
 	instance.roundNotifier = forking.NewGenericRoundNotifier()
 	instance.enableRoundsHandler, err = enablers.NewEnableRoundsHandler(args.RoundsConfig, instance.roundNotifier)
@@ -225,6 +224,7 @@ func CreateCoreComponents(args ArgsCoreComponentsHolder) (*coreComponentsHolder,
 	roundDuration := time.Millisecond * time.Duration(instance.genesisNodesSetup.GetRoundDuration())
 	supernovaRound := instance.enableRoundsHandler.GetActivationRound(common.SupernovaRoundFlag)
 
+	startTime = instance.genesisTime
 	instance.supernovaGenesisTime = startTime.Add(time.Duration(supernovaRound-uint64(args.InitialRound)) * roundDuration)
 	if instance.supernovaGenesisTime.Before(instance.genesisTime) {
 		instance.supernovaGenesisTime = instance.genesisTime
@@ -318,6 +318,7 @@ func CreateCoreComponents(args ArgsCoreComponentsHolder) (*coreComponentsHolder,
 	instance.processConfigsHandler, err = commonConfigs.NewProcessConfigsHandler(
 		args.Config.GeneralSettings.ProcessConfigsByEpoch,
 		args.Config.GeneralSettings.ProcessConfigsByRound,
+		instance.roundNotifier,
 	)
 	if err != nil {
 		return nil, err
