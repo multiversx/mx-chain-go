@@ -599,6 +599,11 @@ func (sp *shardProcessor) indexBlockIfNeeded(
 		return
 	}
 
+	var scheduledRootHash []byte
+	if header.HasScheduledMiniBlocks() {
+		scheduledRootHash = sp.scheduledTxsExecutionHandler.GetScheduledRootHash()
+	}
+
 	log.Debug("preparing to index block", "hash", headerHash, "nonce", header.GetNonce(), "round", header.GetRound())
 	argSaveBlock, err := sp.outportDataProvider.PrepareOutportSaveBlockData(processOutport.ArgPrepareOutportSaveBlockData{
 		HeaderHash:             headerHash,
@@ -607,6 +612,7 @@ func (sp *shardProcessor) indexBlockIfNeeded(
 		PreviousHeader:         lastBlockHeader,
 		HighestFinalBlockNonce: sp.forkDetector.GetHighestFinalBlockNonce(),
 		HighestFinalBlockHash:  sp.forkDetector.GetHighestFinalBlockHash(),
+		ScheduledRootHash:      scheduledRootHash,
 	})
 	if err != nil {
 		log.Error("shardProcessor.indexBlockIfNeeded cannot prepare argSaveBlock", "error", err.Error(),
