@@ -261,7 +261,7 @@ func (t *trigger) Update(round uint64, nonce uint64) {
 	}
 
 	if t.shouldTriggerEpochStart(round, nonce) {
-		t.setEpochChange(round)
+		t.setEpochChange(round, t.epoch+1)
 	}
 }
 
@@ -270,11 +270,11 @@ func (t *trigger) SetEpochChange(round uint64) {
 	t.mutTrigger.Lock()
 	defer t.mutTrigger.Unlock()
 
-	t.setEpochChange(round)
+	t.setEpochChange(round, t.epoch+1)
 }
 
-func (t *trigger) setEpochChange(round uint64) {
-	t.epoch += 1
+func (t *trigger) setEpochChange(round uint64, epoch uint32) {
+	t.epoch = epoch
 	t.isEpochStart = true
 	t.prevEpochStartRound = t.currEpochStartRound
 	t.currEpochStartRound = round
@@ -300,7 +300,7 @@ func (t *trigger) SetProcessed(header data.HeaderHandler, body data.BodyHandler)
 	}
 
 	if header.IsHeaderV3() {
-		t.setEpochChange(header.GetRound())
+		t.setEpochChange(header.GetRound(), header.GetEpoch())
 	}
 
 	metaBuff, errNotCritical := t.marshaller.Marshal(metaBlock)
