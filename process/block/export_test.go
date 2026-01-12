@@ -739,7 +739,7 @@ func (sp *shardProcessor) GetHdrForBlock() HeadersForBlock {
 }
 
 // PendingMiniBlocksAfterSelection -
-type PendingMiniBlocksAfterSelection = pendingMiniBlocksAfterSelection
+type PendingMiniBlocksAfterSelection = pendingBlocksAfterSelection
 
 // GetHeaderHash -
 func (p *PendingMiniBlocksAfterSelection) GetHeaderHash() []byte {
