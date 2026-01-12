@@ -1062,11 +1062,10 @@ func (boot *baseBootstrap) syncBlockV3(body data.BodyHandler, header data.Header
 func (boot *baseBootstrap) getMiniBlocksToSync(
 	miniBlocks []data.MiniBlockHeaderHandler,
 ) []data.MiniBlockHeaderHandler {
-	miniBlocksPool := boot.dataPool.MiniBlocks()
-
 	miniBlocksToSync := make([]data.MiniBlockHeaderHandler, 0)
+
 	for _, mb := range miniBlocks {
-		_, ok := miniBlocksPool.Get(mb.GetHash())
+		_, ok := boot.dataPool.MiniBlocks().Get(mb.GetHash())
 		if ok {
 			continue
 		}
