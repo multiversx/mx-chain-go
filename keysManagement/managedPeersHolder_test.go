@@ -18,6 +18,7 @@ import (
 	"github.com/multiversx/mx-chain-go/common"
 	"github.com/multiversx/mx-chain-go/config"
 	"github.com/multiversx/mx-chain-go/keysManagement"
+	"github.com/multiversx/mx-chain-go/process"
 	"github.com/multiversx/mx-chain-go/testscommon"
 	"github.com/multiversx/mx-chain-go/testscommon/cryptoMocks"
 	"github.com/multiversx/mx-chain-go/testscommon/p2pmocks"
@@ -181,11 +182,11 @@ func TestNewManagedPeersHolder(t *testing.T) {
 		t.Parallel()
 
 		args := createMockArgsManagedPeersHolder()
-		args.P2PKeyConverter = nil
+		args.ProcessConfigsHandler = nil
 		holder, err := keysManagement.NewManagedPeersHolder(args)
 
-		assert.True(t, errors.Is(err, keysManagement.ErrNilP2PKeyConverter))
-		assert.True(t, check.IfNil(holder))
+		require.True(t, errors.Is(err, process.ErrNilProcessConfigsHandler))
+		require.True(t, check.IfNil(holder))
 	})
 	t.Run("valid arguments should work", func(t *testing.T) {
 		t.Parallel()
