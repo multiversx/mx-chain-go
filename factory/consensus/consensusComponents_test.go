@@ -9,8 +9,9 @@ import (
 	"github.com/multiversx/mx-chain-core-go/core"
 	"github.com/multiversx/mx-chain-core-go/data"
 	crypto "github.com/multiversx/mx-chain-crypto-go"
-	"github.com/multiversx/mx-chain-go/testscommon/processMocks"
 	"github.com/stretchr/testify/require"
+
+	"github.com/multiversx/mx-chain-go/testscommon/processMocks"
 
 	"github.com/multiversx/mx-chain-go/common"
 	"github.com/multiversx/mx-chain-go/consensus"
@@ -118,7 +119,7 @@ func createMockConsensusComponentsFactoryArgs() consensusComp.ConsensusComponent
 				},
 			},
 			MbProvider: &testsMocks.MiniBlocksProviderStub{},
-			Store:      &genericMocks.ChainStorerMock{},
+			Store:      genericMocks.NewChainStorerMock(0),
 		},
 		ProcessComponents: &testsMocks.ProcessComponentsStub{
 			EpochTrigger:                  &testsMocks.EpochStartTriggerStub{},
@@ -349,6 +350,22 @@ func TestNewConsensusComponentsFactory(t *testing.T) {
 
 		require.Nil(t, ccf)
 		require.Equal(t, errorsMx.ErrNilRoundHandler, err)
+	})
+	t.Run("nil NodeRedundancyHandler should error", func(t *testing.T) {
+		t.Parallel()
+
+		args := createMockConsensusComponentsFactoryArgs()
+		args.ProcessComponents = &testsMocks.ProcessComponentsStub{
+			NodesCoord:                    &shardingMocks.NodesCoordinatorMock{},
+			ShardCoord:                    &testscommon.ShardsCoordinatorMock{},
+			RoundHandlerField:             &testscommon.RoundHandlerMock{},
+			HardforkTriggerField:          &testscommon.HardforkTriggerStub{},
+			NodeRedundancyHandlerInternal: nil,
+		}
+		ccf, err := consensusComp.NewConsensusComponentsFactory(args)
+
+		require.Nil(t, ccf)
+		require.Equal(t, errorsMx.ErrNilNodeRedundancyHandler, err)
 	})
 	t.Run("nil HardforkTrigger should error", func(t *testing.T) {
 		t.Parallel()

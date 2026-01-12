@@ -6,6 +6,8 @@ import (
 
 	"github.com/multiversx/mx-chain-core-go/data/block"
 	"github.com/multiversx/mx-chain-core-go/data/mock"
+	"github.com/multiversx/mx-chain-go/common"
+	"github.com/multiversx/mx-chain-go/testscommon/statusHandler"
 	"github.com/stretchr/testify/require"
 )
 
@@ -190,4 +192,51 @@ func TestBaseBlockchain_Concurrency(t *testing.T) {
 	}
 
 	wg.Wait()
+}
+
+func TestBaseBlockchain_setMetrics(t *testing.T) {
+	t.Parallel()
+
+	t.Run("set metrics header v1", func(t *testing.T) {
+		handler := statusHandler.NewAppStatusHandlerMock()
+
+		bc := &baseBlockChain{
+			appStatusHandler: handler,
+		}
+
+		header := &block.Header{
+			Nonce:     10,
+			Round:     11,
+			TimeStamp: 1234,
+		}
+		bc.setCurrentHeaderMetrics(header)
+
+		require.Equal(t, header.Nonce, handler.GetUint64(common.MetricNonce))
+		require.Equal(t, header.Round, handler.GetUint64(common.MetricSynchronizedRound))
+		require.Equal(t, header.TimeStamp, handler.GetUint64(common.MetricBlockTimestampMs))
+	})
+
+	t.Run("set metrics header v3", func(t *testing.T) {
+		handler := statusHandler.NewAppStatusHandlerMock()
+
+		bc := &baseBlockChain{
+			appStatusHandler: handler,
+		}
+
+		header := &block.HeaderV3{
+			Nonce:       10,
+			Round:       11,
+			TimestampMs: 1234000,
+			LastExecutionResult: &block.ExecutionResultInfo{
+				ExecutionResult: &block.BaseExecutionResult{
+					HeaderNonce: 9,
+				},
+			},
+		}
+		bc.setCurrentHeaderMetrics(header)
+
+		require.Equal(t, uint64(9), handler.GetUint64(common.MetricNonce))
+		require.Equal(t, header.Round, handler.GetUint64(common.MetricSynchronizedRound))
+		require.Equal(t, header.TimestampMs, handler.GetUint64(common.MetricBlockTimestampMs))
+	})
 }

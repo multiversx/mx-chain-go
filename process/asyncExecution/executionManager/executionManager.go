@@ -142,7 +142,8 @@ func (em *executionManager) updateContextForReplacedHeader(header data.HeaderHan
 		return err
 	}
 
-	headerToSet, err := em.headers.GetHeaderByHash(executionResultToSet.GetHeaderHash())
+	// TODO: optimize to add into pool at bootstrap
+	headerToSet, err := em.getHeaderFromPoolOrStorage(executionResultToSet.GetHeaderHash())
 	if err != nil {
 		return err
 	}

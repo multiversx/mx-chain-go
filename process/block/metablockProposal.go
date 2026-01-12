@@ -13,7 +13,6 @@ import (
 
 	"github.com/multiversx/mx-chain-go/common"
 	"github.com/multiversx/mx-chain-go/process"
-	"github.com/multiversx/mx-chain-go/process/block/processedMb"
 	"github.com/multiversx/mx-chain-go/state"
 )
 
@@ -356,8 +355,11 @@ func (mp *metaProcessor) ProcessBlockProposal(
 		return nil, err
 	}
 
+	var execResult data.BaseExecutionResultHandler
 	if header.IsEpochChangeProposed() {
-		return mp.processEpochStartProposeBlock(header, body)
+		// in case of error, will be picked up by the deferred revert
+		execResult, err = mp.processEpochStartProposeBlock(header, body)
+		return execResult, err
 	}
 
 	mp.txCoordinator.RequestBlockTransactions(body)
@@ -393,17 +395,26 @@ func (mp *metaProcessor) ProcessBlockProposal(
 		return nil, err
 	}
 
-	err = mp.scToProtocol.UpdateProtocol(body, header.GetNonce())
+	constructedBody := mp.createBlockBodyAfterExecution(body)
+	err = mp.scToProtocol.UpdateProtocol(constructedBody, header.GetNonce())
 	if err != nil {
 		return nil, err
 	}
 
-	valStatRootHash, err := mp.updateValidatorStatistics(header)
+	var valStatRootHash []byte
+	valStatRootHash, err = mp.updateValidatorStatistics(header)
 	if err != nil {
 		return nil, err
 	}
 
-	err = mp.commitState(headerHandler)
+	var headerHash []byte
+	headerHash, err = core.CalculateHash(mp.marshalizer, mp.hasher, header)
+	if err != nil {
+		return nil, err
+	}
+
+	// in case of error, will be picked up by the deferred revert
+	execResult, err = mp.collectExecutionResults(headerHash, header, body, valStatRootHash)
 	if err != nil {
 		return nil, err
 	}
@@ -413,12 +424,12 @@ func (mp *metaProcessor) ProcessBlockProposal(
 		return nil, err
 	}
 
-	headerHash, err := core.CalculateHash(mp.marshalizer, mp.hasher, header)
+	err = mp.commitState(headerHandler)
 	if err != nil {
 		return nil, err
 	}
 
-	return mp.collectExecutionResults(headerHash, header, body, valStatRootHash)
+	return execResult, nil
 }
 
 func (mp *metaProcessor) processEpochStartProposeBlock(
@@ -447,7 +458,8 @@ func (mp *metaProcessor) processEpochStartProposeBlock(
 		return nil, err
 	}
 
-	computedEconomics, err := mp.getComputedEconomics(metaHeader.GetEpoch() + 1)
+	var computedEconomics *block.Economics
+	computedEconomics, err = mp.getComputedEconomics(metaHeader.GetEpoch() + 1)
 	if err != nil {
 		return nil, err
 	}
@@ -462,7 +474,12 @@ func (mp *metaProcessor) processEpochStartProposeBlock(
 		return nil, err
 	}
 
-	err = mp.commitState(metaHeader)
+	headerHash, err := core.CalculateHash(mp.marshalizer, mp.hasher, metaHeader)
+	if err != nil {
+		return nil, err
+	}
+
+	execResult, err := mp.collectExecutionResultsEpochStartProposal(headerHash, metaHeader, constructedBody, valStatRootHash)
 	if err != nil {
 		return nil, err
 	}
@@ -472,12 +489,12 @@ func (mp *metaProcessor) processEpochStartProposeBlock(
 		return nil, err
 	}
 
-	headerHash, err := core.CalculateHash(mp.marshalizer, mp.hasher, metaHeader)
+	err = mp.commitState(metaHeader)
 	if err != nil {
 		return nil, err
 	}
 
-	return mp.collectExecutionResultsEpochStartProposal(headerHash, metaHeader, constructedBody, valStatRootHash)
+	return execResult, nil
 }
 
 func (mp *metaProcessor) updateValidatorStatistics(header data.MetaHeaderHandler) ([]byte, error) {
@@ -495,9 +512,7 @@ func (mp *metaProcessor) collectExecutionResultsEpochStartProposal(
 	constructedBody *block.Body,
 	valStatRootHash []byte,
 ) (data.BaseExecutionResultHandler, error) {
-	// giving an empty processedMiniBlockInfo would cause all miniBlockHeaders to be created as fully processed.
-	processedMiniBlockInfo := make(map[string]*processedMb.ProcessedMiniBlockInfo)
-	totalTxCount, miniBlockHeaderHandlers, err := mp.createMiniBlockHeaderHandlers(constructedBody, processedMiniBlockInfo)
+	totalTxCount, miniBlockHeaderHandlers, err := mp.createMiniBlockHeaderHandlersForExecutionResults(constructedBody)
 	if err != nil {
 		return nil, err
 	}

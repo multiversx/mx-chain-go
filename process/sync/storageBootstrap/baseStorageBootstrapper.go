@@ -512,16 +512,7 @@ func (st *storageBootstrapper) setCurrentBlockInfo(
 	rootHash []byte,
 ) error {
 	if header.IsHeaderV3() {
-		lastExecutionResult, err := common.GetLastBaseExecutionResultHandler(header)
-		if err != nil {
-			log.Warn("failed to get last execution result for header", "err", err)
-			return err
-		}
-
-		err = st.blkExecutor.OnExecutedBlock(header, lastExecutionResult.GetRootHash())
-		if err != nil {
-			return err
-		}
+		// tx pool context is already handled on sync flow
 
 		return st.setCurrentBlockInfoV3(header, headerHash)
 	}

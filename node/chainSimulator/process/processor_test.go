@@ -5,6 +5,7 @@ import (
 	"testing"
 	"time"
 
+	"github.com/multiversx/mx-chain-core-go/core"
 	"github.com/multiversx/mx-chain-core-go/data"
 	"github.com/multiversx/mx-chain-core-go/data/block"
 	"github.com/multiversx/mx-chain-core-go/hashing"
@@ -84,8 +85,10 @@ func TestBlocksCreator_IncrementRound(t *testing.T) {
 			return &testsFactory.StatusCoreComponentsStub{
 				AppStatusHandlerField: &statusHandler.AppStatusHandlerStub{
 					SetUInt64ValueHandler: func(key string, value uint64) {
-						wasSetUInt64ValueCalled = true
-						require.Equal(t, common.MetricCurrentRound, key)
+
+						if key == common.MetricCurrentRound {
+							wasSetUInt64ValueCalled = true
+						}
 					},
 				},
 			}
@@ -123,11 +126,25 @@ func TestBlocksCreator_CreateNewBlock(t *testing.T) {
 				},
 			}
 		}
+		nodeHandler.GetCoreComponentsCalled = func() factory.CoreComponentsHolder {
+			return &testsFactory.CoreComponentsHolderStub{
+				EnableRoundsHandlerCalled: func() common.EnableRoundsHandler {
+					return &testscommon.EnableRoundsHandlerStub{
+						IsFlagEnabledInRoundCalled: func(flag common.EnableRoundFlag, round uint64) bool {
+							return false
+						},
+					}
+				},
+				RoundHandlerCalled: func() consensus.RoundHandler {
+					return &testscommon.RoundHandlerMock{}
+				},
+			}
+		}
 
 		creator, err := chainSimulatorProcess.NewBlocksCreator(nodeHandler, heartbeat.NewHeartbeatMonitor())
 		require.NoError(t, err)
 
-		err = creator.CreateNewBlock()
+		_, err = creator.CreateNewBlock()
 		require.Equal(t, expectedErr, err)
 	})
 	t.Run("SetShardID failure should error", func(t *testing.T) {
@@ -235,7 +252,7 @@ func TestBlocksCreator_CreateNewBlock(t *testing.T) {
 		creator, err := chainSimulatorProcess.NewBlocksCreator(nodeHandler, heartbeat.NewHeartbeatMonitor())
 		require.NoError(t, err)
 
-		err = creator.CreateNewBlock()
+		_, err = creator.CreateNewBlock()
 		require.Equal(t, expectedErr, err)
 	})
 	t.Run("key not managed by the current node should return nil", func(t *testing.T) {
@@ -254,7 +271,7 @@ func TestBlocksCreator_CreateNewBlock(t *testing.T) {
 		creator, err := chainSimulatorProcess.NewBlocksCreator(nodeHandler, heartbeat.NewHeartbeatMonitor())
 		require.NoError(t, err)
 
-		err = creator.CreateNewBlock()
+		_, err = creator.CreateNewBlock()
 		require.NoError(t, err)
 	})
 	t.Run("CreateSignatureForPublicKey failure should error", func(t *testing.T) {
@@ -275,7 +292,7 @@ func TestBlocksCreator_CreateNewBlock(t *testing.T) {
 		creator, err := chainSimulatorProcess.NewBlocksCreator(nodeHandler, heartbeat.NewHeartbeatMonitor())
 		require.NoError(t, err)
 
-		err = creator.CreateNewBlock()
+		_, err = creator.CreateNewBlock()
 		require.Equal(t, expectedErr, err)
 	})
 	t.Run("SetRandSeed failure should error", func(t *testing.T) {
@@ -325,12 +342,19 @@ func TestBlocksCreator_CreateNewBlock(t *testing.T) {
 				EnableEpochsHandlerCalled: func() common.EnableEpochsHandler {
 					return &enableEpochsHandlerMock.EnableEpochsHandlerStub{}
 				},
+				EnableRoundsHandlerCalled: func() common.EnableRoundsHandler {
+					return &testscommon.EnableRoundsHandlerStub{
+						IsFlagEnabledInRoundCalled: func(flag common.EnableRoundFlag, round uint64) bool {
+							return false
+						},
+					}
+				},
 			}
 		}
 		creator, err := chainSimulatorProcess.NewBlocksCreator(nodeHandler, heartbeat.NewHeartbeatMonitor())
 		require.NoError(t, err)
 
-		err = creator.CreateNewBlock()
+		_, err = creator.CreateNewBlock()
 		require.Equal(t, expectedErr, err)
 	})
 	t.Run("setHeaderSignatures.Reset failure should error", func(t *testing.T) {
@@ -351,7 +375,7 @@ func TestBlocksCreator_CreateNewBlock(t *testing.T) {
 		creator, err := chainSimulatorProcess.NewBlocksCreator(nodeHandler, heartbeat.NewHeartbeatMonitor())
 		require.NoError(t, err)
 
-		err = creator.CreateNewBlock()
+		_, err = creator.CreateNewBlock()
 		require.Equal(t, expectedErr, err)
 	})
 	t.Run("setHeaderSignatures.CreateSignatureShareForPublicKey failure should error", func(t *testing.T) {
@@ -372,7 +396,7 @@ func TestBlocksCreator_CreateNewBlock(t *testing.T) {
 		creator, err := chainSimulatorProcess.NewBlocksCreator(nodeHandler, heartbeat.NewHeartbeatMonitor())
 		require.NoError(t, err)
 
-		err = creator.CreateNewBlock()
+		_, err = creator.CreateNewBlock()
 		require.Equal(t, expectedErr, err)
 	})
 	t.Run("setHeaderSignatures.AggregateSigs failure should error", func(t *testing.T) {
@@ -393,7 +417,7 @@ func TestBlocksCreator_CreateNewBlock(t *testing.T) {
 		creator, err := chainSimulatorProcess.NewBlocksCreator(nodeHandler, heartbeat.NewHeartbeatMonitor())
 		require.NoError(t, err)
 
-		err = creator.CreateNewBlock()
+		_, err = creator.CreateNewBlock()
 		require.Equal(t, expectedErr, err)
 	})
 	t.Run("setHeaderSignatures.SetSignature failure should error", func(t *testing.T) {
@@ -518,30 +542,13 @@ func TestBlocksCreator_CreateNewBlock(t *testing.T) {
 		}
 		testCreateNewBlock(t, blockProcess, expectedErr)
 	})
-	t.Run("BroadcastHeader failure should error", func(t *testing.T) {
-		t.Parallel()
-
-		nodeHandler := getNodeHandler()
-		nodeHandler.GetBroadcastMessengerCalled = func() consensus.BroadcastMessenger {
-			return &testsConsensus.BroadcastMessengerMock{
-				BroadcastHeaderCalled: func(handler data.HeaderHandler, bytes []byte) error {
-					return expectedErr
-				},
-			}
-		}
-		creator, err := chainSimulatorProcess.NewBlocksCreator(nodeHandler, heartbeat.NewHeartbeatMonitor())
-		require.NoError(t, err)
-
-		err = creator.CreateNewBlock()
-		require.Equal(t, expectedErr, err)
-	})
 	t.Run("should work", func(t *testing.T) {
 		t.Parallel()
 
 		creator, err := chainSimulatorProcess.NewBlocksCreator(getNodeHandler(), heartbeat.NewHeartbeatMonitor())
 		require.NoError(t, err)
 
-		err = creator.CreateNewBlock()
+		_, err = creator.CreateNewBlock()
 		require.NoError(t, err)
 	})
 }
@@ -555,10 +562,37 @@ func testCreateNewBlock(t *testing.T, blockProcess process.BlockProcessor, expec
 			NodesCoord:   nc,
 		}
 	}
+	nodeHandler.GetCoreComponentsCalled = func() factory.CoreComponentsHolder {
+		return &testsFactory.CoreComponentsHolderStub{
+			EnableRoundsHandlerCalled: func() common.EnableRoundsHandler {
+				return &testscommon.EnableRoundsHandlerStub{
+					IsFlagEnabledInRoundCalled: func(flag common.EnableRoundFlag, round uint64) bool {
+						return false
+					},
+				}
+			},
+			EnableEpochsHandlerCalled: func() common.EnableEpochsHandler {
+				return &enableEpochsHandlerMock.EnableEpochsHandlerStub{
+					IsFlagEnabledInEpochCalled: func(_ core.EnableEpochFlag, _ uint32) bool {
+						return false
+					},
+				}
+			},
+			RoundHandlerCalled: func() consensus.RoundHandler {
+				return &testscommon.RoundHandlerMock{}
+			},
+			InternalMarshalizerCalled: func() marshal.Marshalizer {
+				return &testscommon.MarshallerStub{}
+			},
+			HasherCalled: func() hashing.Hasher {
+				return &testscommon.HasherStub{}
+			},
+		}
+	}
 	creator, err := chainSimulatorProcess.NewBlocksCreator(nodeHandler, heartbeat.NewHeartbeatMonitor())
 	require.NoError(t, err)
 
-	err = creator.CreateNewBlock()
+	_, err = creator.CreateNewBlock()
 	require.Equal(t, expectedErr, err)
 }
 
@@ -585,6 +619,13 @@ func getNodeHandler() *chainSimulator.NodeHandlerMock {
 				},
 				EnableEpochsHandlerCalled: func() common.EnableEpochsHandler {
 					return &enableEpochsHandlerMock.EnableEpochsHandlerStub{}
+				},
+				EnableRoundsHandlerCalled: func() common.EnableRoundsHandler {
+					return &testscommon.EnableRoundsHandlerStub{
+						IsFlagEnabledInRoundCalled: func(flag common.EnableRoundFlag, round uint64) bool {
+							return false
+						},
+					}
 				},
 			}
 		},
