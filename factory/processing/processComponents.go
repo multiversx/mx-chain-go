@@ -16,6 +16,7 @@ import (
 	dataBlock "github.com/multiversx/mx-chain-core-go/data/block"
 	"github.com/multiversx/mx-chain-core-go/data/outport"
 	"github.com/multiversx/mx-chain-core-go/data/receipt"
+	"github.com/multiversx/mx-chain-core-go/data/transaction"
 	"github.com/multiversx/mx-chain-go/process/asyncExecution"
 	"github.com/multiversx/mx-chain-go/process/asyncExecution/executionManager"
 	"github.com/multiversx/mx-chain-go/process/asyncExecution/executionTrack"
@@ -494,31 +495,31 @@ func (pcf *processComponentsFactory) Create() (*processComponents, error) {
 
 	argsMiniBlocksPoolsCleaner := poolsCleaner.ArgMiniBlocksPoolsCleaner{
 		ArgBasePoolsCleaner: poolsCleaner.ArgBasePoolsCleaner{
-			RoundHandler:                   pcf.coreData.RoundHandler(),
-			ShardCoordinator:               pcf.bootstrapComponents.ShardCoordinator(),
-			MaxRoundsToKeepUnprocessedData: pcf.config.PoolsCleanersConfig.MaxRoundsToKeepUnprocessedMiniBlocks,
+			RoundHandler:          pcf.coreData.RoundHandler(),
+			ShardCoordinator:      pcf.bootstrapComponents.ShardCoordinator(),
+			ProcessConfigsHandler: pcf.coreData.ProcessConfigsHandler(),
 		},
 		MiniblocksPool: pcf.data.Datapool().MiniBlocks(),
 	}
 	mbsPoolsCleaner, err := poolsCleaner.NewMiniBlocksPoolsCleaner(argsMiniBlocksPoolsCleaner)
 	if err != nil {
-		return nil, err
+		return nil, fmt.Errorf("%w in processComponentsFactory.Create for NewMiniBlocksPoolsCleaner", err)
 	}
 
 	mbsPoolsCleaner.StartCleaning()
 
 	argsBasePoolsCleaner := poolsCleaner.ArgTxsPoolsCleaner{
 		ArgBasePoolsCleaner: poolsCleaner.ArgBasePoolsCleaner{
-			RoundHandler:                   pcf.coreData.RoundHandler(),
-			ShardCoordinator:               pcf.bootstrapComponents.ShardCoordinator(),
-			MaxRoundsToKeepUnprocessedData: pcf.config.PoolsCleanersConfig.MaxRoundsToKeepUnprocessedTransactions,
+			RoundHandler:          pcf.coreData.RoundHandler(),
+			ShardCoordinator:      pcf.bootstrapComponents.ShardCoordinator(),
+			ProcessConfigsHandler: pcf.coreData.ProcessConfigsHandler(),
 		},
 		AddressPubkeyConverter: pcf.coreData.AddressPubKeyConverter(),
 		DataPool:               pcf.data.Datapool(),
 	}
 	txsPoolsCleaner, err := poolsCleaner.NewTxsPoolsCleaner(argsBasePoolsCleaner)
 	if err != nil {
-		return nil, err
+		return nil, fmt.Errorf("%w in processComponentsFactory.Create for NewTxsPoolsCleaner", err)
 	}
 
 	txsPoolsCleaner.StartCleaning()
@@ -634,6 +635,9 @@ func (pcf *processComponentsFactory) Create() (*processComponents, error) {
 		ExecutionResultsTracker: executionResultsTracker,
 		BlockChain:              pcf.data.Blockchain(),
 		Headers:                 pcf.data.Datapool().Headers(),
+		StorageService:          pcf.data.StorageService(),
+		Marshaller:              pcf.coreData.InternalMarshalizer(),
+		ShardCoordinator:        pcf.bootstrapComponents.ShardCoordinator(),
 	}
 	execManager, err := executionManager.NewExecutionManager(argExecManager)
 	if err != nil {
@@ -2191,13 +2195,13 @@ func wrapReceipts(receipts map[string]*receipt.Receipt) map[string]data.Transact
 	return ret
 }
 
-func wrapLogs(logs []*outport.LogData) []*data.LogData {
-	ret := make([]*data.LogData, len(logs))
+func wrapLogs(logs []*transaction.LogData) []data.LogDataHandler {
+	ret := make([]data.LogDataHandler, len(logs))
 
 	for idx, logData := range logs {
-		ret[idx] = &data.LogData{
-			LogHandler: logData.Log,
-			TxHash:     logData.TxHash,
+		ret[idx] = &transaction.LogData{
+			Log:    logData.Log,
+			TxHash: logData.TxHash,
 		}
 	}
 

@@ -16,6 +16,12 @@ import (
 	"github.com/multiversx/mx-chain-go/state"
 )
 
+type pendingMiniBlocksAfterSelection struct {
+	headerHash                 []byte
+	header                     data.HeaderHandler
+	pendingMiniBlocksAndHashes []block.MiniblockAndHash
+}
+
 // TODO: maybe move this to config
 const maxBlockProcessingTime = 3 * time.Second
 
@@ -299,13 +305,8 @@ func (sp *shardProcessor) ProcessBlockProposal(
 		return nil, process.ErrAccountStateDirty
 	}
 
-	err := sp.checkContextBeforeExecution(header)
-	if err != nil {
-		return nil, err
-	}
-
 	// this is used now to reset the context for processing not creation of blocks
-	err = sp.createBlockStarted()
+	err := sp.createBlockStarted()
 	if err != nil {
 		return nil, err
 	}
@@ -348,6 +349,11 @@ func (sp *shardProcessor) ProcessBlockProposal(
 		}
 	}()
 
+	err = sp.checkAndUpdateContextBeforeExecution(header)
+	if err != nil {
+		return nil, err
+	}
+
 	startTime := time.Now()
 	err = sp.txCoordinator.ProcessBlockTransaction(header, body, haveTime)
 	elapsedTime := time.Since(startTime)
@@ -363,25 +369,27 @@ func (sp *shardProcessor) ProcessBlockProposal(
 		return nil, err
 	}
 
+	// TODO: should receive the header hash instead of re-computing it
+	var headerHash []byte
+	headerHash, err = core.CalculateHash(sp.marshalizer, sp.hasher, header)
+	if err != nil {
+		return nil, err
+	}
+
+	var executionResult data.BaseExecutionResultHandler
+	executionResult, err = sp.collectExecutionResults(headerHash, header, body)
+	if err != nil {
+		return nil, err
+	}
+
+	err = sp.blockProcessingCutoffHandler.HandleProcessErrorCutoff(header)
+	if err != nil {
+		return nil, err
+	}
+
 	err = sp.commitState(headerHandler)
 	if err != nil {
 		return nil, err
-	}
-
-	// TODO: should receive the header hash instead of re-computing it
-	headerHash, err := core.CalculateHash(sp.marshalizer, sp.hasher, header)
-	if err != nil {
-		return nil, err
-	}
-
-	executionResult, err := sp.collectExecutionResults(headerHash, header, body)
-	if err != nil {
-		return nil, err
-	}
-
-	errCutoff := sp.blockProcessingCutoffHandler.HandleProcessErrorCutoff(header)
-	if errCutoff != nil {
-		return nil, errCutoff
 	}
 
 	return executionResult, nil
@@ -427,7 +435,7 @@ func (sp *shardProcessor) createBlockBodyProposal(
 
 func (sp *shardProcessor) selectIncomingMiniBlocksForProposal(
 	haveTime func() bool,
-) ([]block.MiniblockAndHash, error) {
+) ([]*pendingMiniBlocksAfterSelection, error) {
 	log.Debug("selectIncomingMiniBlocksForProposal has been started")
 
 	sw := core.NewStopWatch()
@@ -472,13 +480,15 @@ func (sp *shardProcessor) selectIncomingMiniBlocks(
 	orderedMetaBlocks []data.HeaderHandler,
 	orderedMetaBlocksHashes [][]byte,
 	haveTime func() bool,
-) ([]block.MiniblockAndHash, error) {
+) ([]*pendingMiniBlocksAfterSelection, error) {
 	var currentMetaBlock data.HeaderHandler
 	var currentMetaBlockHash []byte
-	var pendingMiniBlocks []block.MiniblockAndHash
+	var pendingMiniBlocks []*pendingMiniBlocksAfterSelection
 	var errCreated error
 	var createIncomingMbsResult *CrossShardIncomingMbsCreationResult
 	lastMeta := lastCrossNotarizedMetaHdr
+	lastMetaAdded := lastCrossNotarizedMetaHdr
+
 	for i := 0; i < len(orderedMetaBlocks); i++ {
 		if !haveTime() {
 			log.Debug("time is up after putting cross txs with destination to current shard",
@@ -520,6 +530,7 @@ func (sp *shardProcessor) selectIncomingMiniBlocks(
 		if len(currentMetaBlock.GetMiniBlockHeadersWithDst(sp.shardCoordinator.SelfId())) == 0 {
 			sp.miniBlocksSelectionSession.AddReferencedHeader(currentMetaBlock, currentMetaBlockHash)
 			lastMeta = currentMetaBlock
+			lastMetaAdded = currentMetaBlock
 			continue
 		}
 
@@ -529,7 +540,12 @@ func (sp *shardProcessor) selectIncomingMiniBlocks(
 			return nil, errCreated
 		}
 
-		pendingMiniBlocks = append(pendingMiniBlocks, createIncomingMbsResult.PendingMiniBlocks...)
+		pendingMiniBlocks = append(pendingMiniBlocks, &pendingMiniBlocksAfterSelection{
+			headerHash:                 currentMetaBlockHash,
+			header:                     currentMetaBlock,
+			pendingMiniBlocksAndHashes: createIncomingMbsResult.PendingMiniBlocks,
+		})
+
 		if len(createIncomingMbsResult.AddedMiniBlocks) > 0 {
 			errAdd := sp.miniBlocksSelectionSession.AddMiniBlocksAndHashes(createIncomingMbsResult.AddedMiniBlocks)
 			if errAdd != nil {
@@ -537,14 +553,23 @@ func (sp *shardProcessor) selectIncomingMiniBlocks(
 			}
 			sp.miniBlocksSelectionSession.AddReferencedHeader(currentMetaBlock, currentMetaBlockHash)
 			lastMeta = currentMetaBlock
+			lastMetaAdded = currentMetaBlock
 		}
 
-		if !createIncomingMbsResult.HeaderFinished {
+		if createIncomingMbsResult.HeaderFinished {
+			continue
+		}
+
+		canAddMorePendingMiniBlocks := sp.gasComputation.CanAddPendingIncomingMiniBlocks()
+		if !canAddMorePendingMiniBlocks {
 			break
 		}
+
+		// continue saving pending mini blocks until they are done or there is no possible space left in the block
+		lastMeta = currentMetaBlock
 	}
 
-	go sp.requestHeadersFromHeaderIfNeeded(lastMeta)
+	go sp.requestHeadersFromHeaderIfNeeded(lastMetaAdded)
 
 	return pendingMiniBlocks, nil
 }
@@ -584,26 +609,46 @@ func (sp *shardProcessor) createProposalMiniBlocks(
 }
 
 func (sp *shardProcessor) appendPendingMiniBlocksAddedAfterSelectingOutgoingTransactions(
-	pendingMiniBlocksLeft []block.MiniblockAndHash,
+	pendingMiniBlocksLeft []*pendingMiniBlocksAfterSelection,
 	pendingIncomingMiniBlocksAdded []data.MiniBlockHeaderHandler,
 ) error {
 	if len(pendingIncomingMiniBlocksAdded) == 0 {
 		return nil
 	}
 
-	pendingMiniBlocksLeftMap := miniBlocksAndHashesSliceToMap(pendingMiniBlocksLeft)
 	extraMiniBlocksAdded := make([]block.MiniblockAndHash, len(pendingIncomingMiniBlocksAdded))
 	for i, pendingMbAdded := range pendingIncomingMiniBlocksAdded {
-		miniBlockAndHash, ok := pendingMiniBlocksLeftMap[string(pendingMbAdded.GetHash())]
-		if !ok {
+		miniBlockAndHash, headerHash, header, found := findPendingMiniBlock(pendingMiniBlocksLeft, pendingMbAdded)
+		if !found {
 			log.Error("pending mini block added does not exists in the remaining pending list")
 			return process.ErrInvalidHash
 		}
 
 		extraMiniBlocksAdded[i] = miniBlockAndHash
+		sp.miniBlocksSelectionSession.AddReferencedHeader(header, headerHash)
 	}
 
-	return sp.miniBlocksSelectionSession.AddMiniBlocksAndHashes(extraMiniBlocksAdded)
+	err := sp.miniBlocksSelectionSession.AddMiniBlocksAndHashes(extraMiniBlocksAdded)
+	if err != nil {
+		return err
+	}
+
+	return nil
+}
+
+func findPendingMiniBlock(
+	pendingMiniBlocksLeft []*pendingMiniBlocksAfterSelection,
+	pendingMbAdded data.MiniBlockHeaderHandler,
+) (block.MiniblockAndHash, []byte, data.HeaderHandler, bool) {
+	for _, pendingMiniBlocksForHeader := range pendingMiniBlocksLeft {
+		pendingMiniBlocksLeftMap := miniBlocksAndHashesSliceToMap(pendingMiniBlocksForHeader.pendingMiniBlocksAndHashes)
+		miniBlockAndHash, ok := pendingMiniBlocksLeftMap[string(pendingMbAdded.GetHash())]
+		if ok {
+			return miniBlockAndHash, pendingMiniBlocksForHeader.headerHash, pendingMiniBlocksForHeader.header, true
+		}
+	}
+
+	return block.MiniblockAndHash{}, nil, nil, false
 }
 
 func miniBlocksAndHashesSliceToMap(providedSlice []block.MiniblockAndHash) map[string]block.MiniblockAndHash {
@@ -640,7 +685,7 @@ func (sp *shardProcessor) checkMetaHeadersValidityAndFinalityProposal(header dat
 	if err != nil {
 		return err
 	}
-	usedMetaHeaders, err := sp.getReferencedMetaHeadersFromPool(header)
+	_, usedMetaHeaders, err := sp.getReferencedMetaHeadersFromPool(header)
 	if err != nil {
 		return fmt.Errorf("%w : checkMetaHeadersValidityAndFinalityProposal -> getReferencedMetaHeadersFromPool", err)
 	}
@@ -663,7 +708,7 @@ func (sp *shardProcessor) checkMetaHeadersValidityAndFinalityProposal(header dat
 	return nil
 }
 
-func (sp *shardProcessor) getReferencedMetaHeadersFromPool(header data.ShardHeaderHandler) ([]data.HeaderHandler, error) {
+func (sp *shardProcessor) getReferencedMetaHeadersFromPool(header data.ShardHeaderHandler) ([][]byte, []data.HeaderHandler, error) {
 	usedMetaHdrHashes := header.GetMetaBlockHashes()
 	usedMetaHeaders := make([]data.HeaderHandler, 0, len(usedMetaHdrHashes))
 	var metaHdr data.HeaderHandler
@@ -671,12 +716,12 @@ func (sp *shardProcessor) getReferencedMetaHeadersFromPool(header data.ShardHead
 	for _, metaHdrHash := range usedMetaHdrHashes {
 		metaHdr, err = sp.dataPool.Headers().GetHeaderByHash(metaHdrHash)
 		if err != nil {
-			return nil, err
+			return nil, nil, err
 		}
 		usedMetaHeaders = append(usedMetaHeaders, metaHdr)
 	}
 
-	return usedMetaHeaders, nil
+	return usedMetaHdrHashes, usedMetaHeaders, nil
 }
 
 // collectExecutionResults collects the execution results after processing the block
@@ -725,6 +770,8 @@ func (sp *shardProcessor) collectExecutionResults(headerHash []byte, header data
 		return nil, err
 	}
 
+	sp.cacheOrderedTxHashes(headerHash)
+
 	return executionResult, nil
 }
 
@@ -736,7 +783,7 @@ func (sp *shardProcessor) getOrderedProcessedMetaBlocksFromMiniBlockHashesV3(
 	if !ok {
 		return nil, process.ErrWrongTypeAssertion
 	}
-	metaHeaders, err := sp.getReferencedMetaHeadersFromPool(shardHeader)
+	metaHeaderHashes, metaHeaders, err := sp.getReferencedMetaHeadersFromPool(shardHeader)
 	if err != nil {
 		return nil, err
 	}
@@ -748,11 +795,19 @@ func (sp *shardProcessor) getOrderedProcessedMetaBlocksFromMiniBlockHashesV3(
 
 	fullyReferencedMetaBlocks := make([]data.HeaderHandler, 0, len(metaHeaders))
 	var remaining int
-	for _, metaHeader := range metaHeaders {
+	var metaHeaderHash []byte
+	for i, metaHeader := range metaHeaders {
+		metaHeaderHash = metaHeaderHashes[i]
 		crossMiniBlockHashes := metaHeader.GetMiniBlockHeadersWithDst(sp.shardCoordinator.SelfId())
 		if len(crossMiniBlockHashes) == 0 {
 			fullyReferencedMetaBlocks = append(fullyReferencedMetaBlocks, metaHeader)
 			continue
+		}
+
+		for hash := range crossMiniBlockHashes {
+			if sp.processedMiniBlocksTracker.IsMiniBlockFullyProcessed(metaHeaderHash, []byte(hash)) {
+				hashSet[hash] = struct{}{}
+			}
 		}
 
 		remaining = len(crossMiniBlockHashes)

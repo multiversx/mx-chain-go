@@ -113,10 +113,6 @@ func GetGeneralConfig() config.Config {
 			TopRatedCacheCapacity: 1000,
 			BadRatedCacheCapacity: 1000,
 		},
-		PoolsCleanersConfig: config.PoolsCleanersConfig{
-			MaxRoundsToKeepUnprocessedMiniBlocks:   50,
-			MaxRoundsToKeepUnprocessedTransactions: 50,
-		},
 		BuiltInFunctions: config.BuiltInFunctionsConfig{
 			AutomaticCrawlerAddresses: []string{
 				"erd1he8wwxn4az3j82p7wwqsdk794dm7hcrwny6f8dfegkfla34udx7qrf7xje", // shard 0
@@ -178,7 +174,16 @@ func GetGeneralConfig() config.Config {
 				MaxShardNoncesBehind:              15,
 			}},
 			ProcessConfigsByRound: []config.ProcessConfigByRound{
-				{EnableRound: 0, MaxRoundsWithoutNewBlockReceived: 10, MaxRoundsWithoutCommittedBlock: 10},
+				{
+					EnableRound:                            0,
+					MaxRoundsWithoutNewBlockReceived:       10,
+					MaxRoundsWithoutCommittedBlock:         10,
+					MaxRoundsToKeepUnprocessedMiniBlocks:   50,
+					MaxRoundsToKeepUnprocessedTransactions: 50,
+					NumFloodingRoundsFastReacting:          20,
+					NumFloodingRoundsOutOfSpecs:            20,
+					NumFloodingRoundsSlowReacting:          20,
+				},
 			},
 			EpochStartConfigsByEpoch: []config.EpochStartConfigByEpoch{
 				{EnableEpoch: 0, GracePeriodRounds: 25, ExtraDelayForRequestBlockInfoInMilliseconds: 3000},
@@ -276,6 +281,10 @@ func CreateDummyEconomicsConfig() config.EconomicsConfig {
 					ProtocolSustainabilityAddress:    "erd1932eft30w753xyvme8d49qejgkjc09n5e49w4mwdjtm0neld797su0dlxp",
 					TopUpFactor:                      0.25,
 					TopUpGradientPoint:               "3000000000000000000000000",
+					EcosystemGrowthPercentage:        0.0,
+					EcosystemGrowthAddress:           "erd1932eft30w753xyvme8d49qejgkjc09n5e49w4mwdjtm0neld797su0dlxp",
+					GrowthDividendPercentage:         0.0,
+					GrowthDividendAddress:            "erd1932eft30w753xyvme8d49qejgkjc09n5e49w4mwdjtm0neld797su0dlxp",
 				},
 			},
 		},

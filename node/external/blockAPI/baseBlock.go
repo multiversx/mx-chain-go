@@ -131,10 +131,14 @@ func (bap *baseAPIBlockProcessor) getMbsAndNumTxsAsyncExecution(
 		numOfTxs += mb.GetTxCount()
 
 		miniblockAPI := &api.MiniBlock{
-			Hash:             hex.EncodeToString(mb.GetHash()),
-			Type:             mbType.String(),
-			SourceShard:      mb.GetSenderShardID(),
-			DestinationShard: mb.GetReceiverShardID(),
+			Hash:                    hex.EncodeToString(mb.GetHash()),
+			Type:                    mbType.String(),
+			ProcessingType:          block.ProcessingType(mb.GetProcessingType()).String(),
+			ConstructionState:       block.MiniBlockState(mb.GetConstructionState()).String(),
+			SourceShard:             mb.GetSenderShardID(),
+			DestinationShard:        mb.GetReceiverShardID(),
+			IndexOfFirstTxProcessed: mb.GetIndexOfFirstTxProcessed(),
+			IndexOfLastTxProcessed:  mb.GetIndexOfLastTxProcessed(),
 		}
 		if options.WithTransactions {
 			miniBlockCopy := mb
@@ -522,7 +526,7 @@ func (bap *baseAPIBlockProcessor) apiBlockToOutportPool(apiBlock *api.Block) (*o
 		SmartContractResults: make(map[string]*outport.SCRInfo),
 		InvalidTxs:           make(map[string]*outport.TxInfo),
 		Rewards:              make(map[string]*outport.RewardInfo),
-		Logs:                 make([]*outport.LogData, 0),
+		Logs:                 make([]*transaction.LogData, 0),
 	}
 
 	var err error
@@ -568,7 +572,7 @@ func (bap *baseAPIBlockProcessor) addLogsToPool(tx *transaction.ApiTransactionRe
 		})
 	}
 
-	pool.Logs = append(pool.Logs, &outport.LogData{
+	pool.Logs = append(pool.Logs, &transaction.LogData{
 		TxHash: tx.Hash,
 		Log: &transaction.Log{
 			Address: logAddressBytes,

@@ -414,7 +414,7 @@ func (mp *metaProcessor) processEpochStartMetaBlock(
 		return err
 	}
 
-	err = mp.epochEconomics.VerifyRewardsPerBlock(header, mp.epochRewardsCreator.GetProtocolSustainabilityRewards(), computedEconomics)
+	err = mp.epochEconomics.VerifyRewardsPerBlock(header, mp.epochRewardsCreator.GetAcceleratorRewards(), computedEconomics)
 	if err != nil {
 		return err
 	}
@@ -496,7 +496,7 @@ func (mp *metaProcessor) getAllMiniBlockDstMeFromShards(metaHdr data.MetaHeaderH
 	var shardHeaderHandler data.HeaderHandler
 	var err error
 	for _, shardInfo := range getShardHeadersReferencedByMeta(metaHdr) {
-		shardHeaderHandler, err = getHeaderFromHash(mp.dataPool.Headers(), mp.hdrsForCurrBlock, metaHdr.IsHeaderV3(), shardInfo.GetHeaderHash())
+		shardHeaderHandler, err = mp.getHeaderFromHash(metaHdr.IsHeaderV3(), shardInfo.GetHeaderHash(), shardInfo.GetShardID())
 		if err != nil {
 			return nil, fmt.Errorf("%w : for shardInfo.HeaderHash = %s",
 				process.ErrMissingHeader, hex.EncodeToString(shardInfo.GetHeaderHash()))
@@ -872,7 +872,7 @@ func (mp *metaProcessor) processEpochStartMiniBlocks(
 		return nil, err
 	}
 
-	computedEconomics.RewardsForProtocolSustainability.Set(mp.epochRewardsCreator.GetProtocolSustainabilityRewards())
+	computedEconomics.RewardsForProtocolSustainability.Set(mp.epochRewardsCreator.GetAcceleratorRewards())
 
 	err = mp.epochSystemSCProcessor.ProcessDelegationRewards(rewardMiniBlocks, mp.epochRewardsCreator.GetLocalTxCache())
 	if err != nil {
@@ -1357,7 +1357,7 @@ func (mp *metaProcessor) CommitBlock(
 		return err
 	}
 
-	err = mp.onExecutedBlock(lastExecutionResultHeader, rootHash)
+	err = mp.OnExecutedBlock(lastExecutionResultHeader, rootHash)
 	if err != nil {
 		return err
 	}
@@ -1426,18 +1426,22 @@ func (mp *metaProcessor) CommitBlock(
 
 	mp.displayPoolsInfo()
 
+	err = mp.saveExecutedData(header)
+	if err != nil {
+		return err
+	}
+
 	errNotCritical = mp.removeTxsFromPools(headerHash, header, body)
 	if errNotCritical != nil {
 		log.Debug("removeTxsFromPools", "error", errNotCritical.Error())
 	}
 
-	mp.cleanupPools(headerHandler)
-
-	// TODO: evaluate removing executed miniblocks from cache explicitly, not inside saveExecutedData
-	err = mp.saveExecutedData(header)
-	if err != nil {
-		return err
+	errNotCritical = mp.cleanPostProcessCache(header)
+	if errNotCritical != nil {
+		log.Debug("cleanPostProcessCache", "error", errNotCritical.Error())
 	}
+
+	mp.cleanupPools(headerHandler)
 
 	mp.blockProcessingCutoffHandler.HandlePauseCutoff(header)
 
@@ -1482,8 +1486,8 @@ func (mp *metaProcessor) computeFinalMetaBlock(metaBlock data.MetaHeaderHandler,
 
 func (mp *metaProcessor) updateCrossShardInfo(metaHeader data.MetaHeaderHandler) ([]string, error) {
 	notarizedHeadersHashes := make([]string, 0)
-	for _, shardData := range metaHeader.GetShardInfoHandlers() {
-		header, err := getHeaderFromHash(mp.dataPool.Headers(), mp.hdrsForCurrBlock, metaHeader.IsHeaderV3(), shardData.GetHeaderHash())
+	for _, shardData := range getShardHeadersReferencedByMeta(metaHeader) {
+		header, err := mp.getHeaderFromHash(metaHeader.IsHeaderV3(), shardData.GetHeaderHash(), shardData.GetShardID())
 		if err != nil {
 			return nil, fmt.Errorf("%w : updateCrossShardInfo shardHeaderHash = %s",
 				err, logger.DisplayByteSlice(shardData.GetHeaderHash()))
@@ -1747,7 +1751,7 @@ func (mp *metaProcessor) getLastSelfNotarizedHeaderByShard(
 			continue
 		}
 
-		header, err := getHeaderFromHash(mp.dataPool.Headers(), mp.hdrsForCurrBlock, metaHeader.IsHeaderV3(), shardData.GetHeaderHash())
+		header, err := mp.getHeaderFromHash(metaHeader.IsHeaderV3(), shardData.GetHeaderHash(), shardData.GetShardID())
 		if err != nil {
 			log.Debug("getLastSelfNotarizedHeaderByShard",
 				"error", err.Error(),
@@ -1771,7 +1775,7 @@ func (mp *metaProcessor) getLastSelfNotarizedHeaderByShard(
 				mp.store,
 			)
 			if errGet != nil {
-				log.Trace("getLastSelfNotarizedHeaderByShard.GetMetaHeader", "error", errGet.Error())
+				log.Debug("getLastSelfNotarizedHeaderByShard.GetMetaHeader", "error", errGet.Error())
 				continue
 			}
 
@@ -1958,7 +1962,7 @@ func (mp *metaProcessor) saveLastNotarizedHeader(metaHeader data.MetaHeaderHandl
 	}
 
 	for _, shardData := range getShardHeadersReferencedByMeta(metaHeader) {
-		header, err := getHeaderFromHash(mp.dataPool.Headers(), mp.hdrsForCurrBlock, metaHeader.IsHeaderV3(), shardData.GetHeaderHash())
+		header, err := mp.getHeaderFromHash(metaHeader.IsHeaderV3(), shardData.GetHeaderHash(), shardData.GetShardID())
 		if err != nil {
 			return fmt.Errorf("%w : saveLastNotarizedHeader shardHeaderHash = %s",
 				err, logger.DisplayByteSlice(shardData.GetHeaderHash()))
@@ -2568,12 +2572,12 @@ func (mp *metaProcessor) getLastExecutionResult(
 
 	lastExecutionResult := mp.blockChain.GetLastExecutionResult()
 	if check.IfNil(lastExecutionResult) {
-		return nil, fmt.Errorf("missing last execution result in blockchain in metaProcessor.updatePeerState")
+		return nil, fmt.Errorf("missing last execution result in blockchain in metaProcessor.getLastExecutionResult")
 	}
 
 	metaExecutionResult, castOk := lastExecutionResult.(data.MetaExecutionResultHandler)
 	if !castOk {
-		return nil, fmt.Errorf("%w in metaProcessor.updatePeerState ", process.ErrWrongTypeAssertion)
+		return nil, fmt.Errorf("%w in metaProcessor.getLastExecutionResult", process.ErrWrongTypeAssertion)
 	}
 
 	return metaExecutionResult, nil

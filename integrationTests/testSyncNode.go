@@ -34,6 +34,7 @@ import (
 	"github.com/multiversx/mx-chain-go/testscommon/factory"
 	"github.com/multiversx/mx-chain-go/testscommon/outport"
 	statusHandlerMock "github.com/multiversx/mx-chain-go/testscommon/statusHandler"
+	storageStubs "github.com/multiversx/mx-chain-go/testscommon/storage"
 )
 
 func (tpn *TestProcessorNode) addGenesisBlocksIntoStorage() {
@@ -131,6 +132,9 @@ func (tpn *TestProcessorNode) initBlockProcessorWithSync() {
 		ExecutionResultsTracker: executionResultsTracker,
 		BlockChain:              tpn.BlockChain,
 		Headers:                 tpn.DataPool.Headers(),
+		StorageService:          &storageStubs.ChainStorerStub{},
+		Marshaller:              TestMarshaller,
+		ShardCoordinator:        &testscommon.ShardsCoordinatorMock{},
 	}
 	tpn.ExecutionManager, err = executionManager.NewExecutionManager(argsExecutionManager)
 	if err != nil {
@@ -218,6 +222,7 @@ func (tpn *TestProcessorNode) initBlockProcessorWithSync() {
 		ExecutionResultsInclusionEstimator: inclusionEstimator,
 		GasComputation:                     gasConsumption,
 		ExecutionManager:                   tpn.ExecutionManager,
+		TxExecutionOrderHandler:            tpn.TxExecutionOrderHandler,
 	}
 
 	if tpn.ShardCoordinator.SelfId() == core.MetachainShardId {
@@ -235,13 +240,16 @@ func (tpn *TestProcessorNode) initBlockProcessorWithSync() {
 		)
 		argumentsBase.ForkDetector = tpn.ForkDetector
 		argumentsBase.TxCoordinator = &mock.TransactionCoordinatorMock{}
-		shardInfoCreator, errShardInfoCreator := block.NewShardInfoCreateData(
-			tpn.EnableEpochsHandler,
-			tpn.DataPool.Headers(),
-			tpn.DataPool.Proofs(),
-			&mock.PendingMiniBlocksHandlerStub{},
-			argumentsBase.BlockTracker,
-		)
+		shardInfoCreateDataArgs := block.ShardInfoCreateDataArgs{
+			EnableEpochsHandler:      tpn.EnableEpochsHandler,
+			HeadersPool:              tpn.DataPool.Headers(),
+			ProofsPool:               tpn.DataPool.Proofs(),
+			PendingMiniBlocksHandler: &mock.PendingMiniBlocksHandlerStub{},
+			BlockTracker:             argumentsBase.BlockTracker,
+			Storage:                  tpn.Storage,
+			Marshaller:               TestMarshalizer,
+		}
+		shardInfoCreator, errShardInfoCreator := block.NewShardInfoCreateData(shardInfoCreateDataArgs)
 		log.LogIfError(errShardInfoCreator)
 
 		arguments := block.ArgMetaProcessor{

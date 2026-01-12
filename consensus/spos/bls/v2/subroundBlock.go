@@ -27,6 +27,7 @@ type subroundBlock struct {
 	processingThresholdPercentage int
 	worker                        spos.WorkerHandler
 	mutBlockProcessing            sync.Mutex
+	syncController                spos.RoundSyncControllerHandler
 }
 
 // NewSubroundBlock creates a subroundBlock object
@@ -34,6 +35,7 @@ func NewSubroundBlock(
 	baseSubround *spos.Subround,
 	processingThresholdPercentage int,
 	worker spos.WorkerHandler,
+	syncController spos.RoundSyncControllerHandler,
 ) (*subroundBlock, error) {
 	err := checkNewSubroundBlockParams(baseSubround)
 	if err != nil {
@@ -43,11 +45,15 @@ func NewSubroundBlock(
 	if check.IfNil(worker) {
 		return nil, spos.ErrNilWorker
 	}
+	if check.IfNil(syncController) {
+		return nil, ErrNilRoundSyncController
+	}
 
 	srBlock := subroundBlock{
 		Subround:                      baseSubround,
 		processingThresholdPercentage: processingThresholdPercentage,
 		worker:                        worker,
+		syncController:                syncController,
 	}
 
 	srBlock.Job = srBlock.doBlockJob
@@ -121,18 +127,8 @@ func (sr *subroundBlock) doBlockJob(ctx context.Context) bool {
 
 	leader, errGetLeader := sr.GetLeader()
 	if errGetLeader != nil {
-		log.Debug("doBlockJob.GetLeader", "error", errGetLeader)
+		printLogMessage(ctx, "doBlockJob.GetLeader", errGetLeader)
 		return false
-	}
-
-	if header.IsHeaderV3() {
-		errAdd := sr.ExecutionManager().AddPairForExecution(queue.HeaderBodyPair{
-			Header: header,
-			Body:   body,
-		})
-		if errAdd != nil {
-			return false
-		}
 	}
 
 	sentWithSuccess := sr.sendBlock(header, body, leader)
@@ -140,16 +136,13 @@ func (sr *subroundBlock) doBlockJob(ctx context.Context) bool {
 		return false
 	}
 
-	// placeholder for subroundBlock.doBlockJob script
-
-	// metachain does not need to select outgoing txs from txpool
-	if header.IsHeaderV3() && header.GetShardID() != core.MetachainShardId {
-		err = sr.BlockProcessor().OnProposedBlock(body, header, sr.GetData())
-		if err != nil {
-			log.Debug("doBlockJob.OnProposedBlock", "error", err)
-			return false
-		}
+	err = sr.prepareBlockForExecution(header, body)
+	if err != nil {
+		printLogMessage(ctx, "doBlockJob.prepareBlockForExecution", err)
+		return false
 	}
+
+	// placeholder for subroundBlock.doBlockJob script
 
 	sr.updateConsensusMetricsProposedBlockReceivedOrSent()
 
@@ -166,6 +159,24 @@ func (sr *subroundBlock) doBlockJob(ctx context.Context) bool {
 	}
 
 	return true
+}
+
+func (sr *subroundBlock) prepareBlockForExecution(header data.HeaderHandler, body data.BodyHandler) error {
+	if !header.IsHeaderV3() {
+		return nil
+	}
+
+	// metachain does not need to select outgoing txs from txpool
+	if header.GetShardID() != core.MetachainShardId {
+		err := sr.BlockProcessor().OnProposedBlock(body, header, sr.GetData())
+		if err != nil {
+			return err
+		}
+	}
+	return sr.ExecutionManager().AddPairForExecution(queue.HeaderBodyPair{
+		Header: header,
+		Body:   body,
+	})
 }
 
 func (sr *subroundBlock) signBlockHeader(header data.HeaderHandler) ([]byte, error) {
@@ -397,6 +408,10 @@ func (sr *subroundBlock) receivedBlockBody(ctx context.Context, cnsDta *consensu
 		return false
 	}
 
+	if sr.IsSubroundFinished(sr.Current()) {
+		return false
+	}
+
 	node := string(cnsDta.PubKey)
 
 	if !sr.IsNodeLeaderInCurrentRound(node) { // is NOT this node leader in current round?
@@ -444,6 +459,7 @@ func (sr *subroundBlock) isHeaderForCurrentConsensus(header data.HeaderHandler) 
 		return false
 	}
 	if header.GetRound() != uint64(sr.RoundHandler().Index()) {
+		sr.addOutOfRangeHeader(header)
 		return false
 	}
 
@@ -460,6 +476,16 @@ func (sr *subroundBlock) isHeaderForCurrentConsensus(header data.HeaderHandler) 
 	prevRandSeed := prevHeader.GetRandSeed()
 
 	return bytes.Equal(header.GetPrevRandSeed(), prevRandSeed)
+}
+
+func (sr *subroundBlock) addOutOfRangeHeader(header data.HeaderHandler) {
+	hash, err := core.CalculateHash(sr.Marshalizer(), sr.Hasher(), header)
+	if err != nil {
+		log.Error("failed to calculate hash for out of range header", "err", err, "round", header.GetRound())
+		return
+	}
+
+	sr.syncController.AddOutOfRangeRound(header.GetRound(), string(hash))
 }
 
 func (sr *subroundBlock) getLeaderForHeader(headerHandler data.HeaderHandler) ([]byte, error) {
@@ -531,6 +557,10 @@ func (sr *subroundBlock) receivedBlockHeader(headerHandler data.HeaderHandler) {
 	}
 
 	if !sr.waitForStartRoundToFinishBlocking() {
+		return
+	}
+
+	if sr.IsSubroundFinished(sr.Current()) {
 		return
 	}
 
@@ -633,7 +663,7 @@ func (sr *subroundBlock) CanProcessReceivedHeader(headerLeader string) bool {
 }
 
 func (sr *subroundBlock) shouldProcessBlock(headerLeader string) bool {
-	if sr.IsNodeSelf(headerLeader) {
+	if sr.IsNodeSelf(headerLeader) && spos.ShouldConsiderSelfKeyInConsensus(sr.NodeRedundancyHandler()) {
 		return false
 	}
 	if sr.IsJobDone(headerLeader, sr.Current()) {

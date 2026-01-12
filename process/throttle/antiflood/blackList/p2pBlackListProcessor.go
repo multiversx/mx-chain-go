@@ -6,6 +6,8 @@ import (
 
 	"github.com/multiversx/mx-chain-core-go/core"
 	"github.com/multiversx/mx-chain-core-go/core/check"
+	"github.com/multiversx/mx-chain-go/common"
+	"github.com/multiversx/mx-chain-go/common/configs/dto"
 	"github.com/multiversx/mx-chain-go/p2p"
 	"github.com/multiversx/mx-chain-go/process"
 	"github.com/multiversx/mx-chain-go/storage"
@@ -15,18 +17,18 @@ import (
 var log = logger.GetOrCreate("process/throttle/antiflood/blacklist")
 
 const minBanDuration = time.Second
-const minFloodingRounds = 2
 const sizeBlacklistInfo = 4
 
 type p2pBlackListProcessor struct {
 	thresholdNumReceivedFlood  uint32
-	numFloodingRounds          uint32
+	floodingRoundsVar          dto.ConfigVariable
 	thresholdSizeReceivedFlood uint64
 	cacher                     storage.Cacher
 	peerBlacklistCacher        process.PeerBlackListCacher
 	banDuration                time.Duration
 	selfPid                    core.PeerID
 	name                       string
+	processConfigsHandler      common.ProcessConfigsHandler
 }
 
 // NewP2PBlackListProcessor creates a new instance of p2pQuotaBlacklistProcessor able to determine
@@ -37,26 +39,29 @@ func NewP2PBlackListProcessor(
 	peerBlacklistCacher process.PeerBlackListCacher,
 	thresholdNumReceivedFlood uint32,
 	thresholdSizeReceivedFlood uint64,
-	numFloodingRounds uint32,
+	floodingRoundsVar dto.ConfigVariable,
 	banDuration time.Duration,
 	name string,
 	selfPid core.PeerID,
+	processConfigsHandler common.ProcessConfigsHandler,
 ) (*p2pBlackListProcessor, error) {
-
 	if check.IfNil(cacher) {
 		return nil, fmt.Errorf("%w, NewP2PBlackListProcessor", process.ErrNilCacher)
 	}
 	if check.IfNil(peerBlacklistCacher) {
 		return nil, fmt.Errorf("%w, NewP2PBlackListProcessor", process.ErrNilBlackListCacher)
 	}
+	if check.IfNil(processConfigsHandler) {
+		return nil, fmt.Errorf("%w, NewP2PBlackListProcessor", process.ErrNilProcessConfigsHandler)
+	}
+	if len(floodingRoundsVar) == 0 {
+		return nil, fmt.Errorf("%w, NewP2PBlackListProcessor", ErrEmptyConfigVarNameForNumFloodingRounds)
+	}
 	if thresholdNumReceivedFlood == 0 {
 		return nil, fmt.Errorf("%w, thresholdNumReceivedFlood == 0", process.ErrInvalidValue)
 	}
 	if thresholdSizeReceivedFlood == 0 {
 		return nil, fmt.Errorf("%w, thresholdSizeReceivedFlood == 0", process.ErrInvalidValue)
-	}
-	if numFloodingRounds < minFloodingRounds {
-		return nil, fmt.Errorf("%w, numFloodingRounds < %d", process.ErrInvalidValue, minFloodingRounds)
 	}
 	if banDuration < minBanDuration {
 		return nil, fmt.Errorf("%w for ban duration in NewP2PBlackListProcessor", process.ErrInvalidValue)
@@ -67,10 +72,11 @@ func NewP2PBlackListProcessor(
 		peerBlacklistCacher:        peerBlacklistCacher,
 		thresholdNumReceivedFlood:  thresholdNumReceivedFlood,
 		thresholdSizeReceivedFlood: thresholdSizeReceivedFlood,
-		numFloodingRounds:          numFloodingRounds,
 		banDuration:                banDuration,
 		selfPid:                    selfPid,
 		name:                       name,
+		processConfigsHandler:      processConfigsHandler,
+		floodingRoundsVar:          floodingRoundsVar,
 	}, nil
 }
 
@@ -85,7 +91,7 @@ func (pbp *p2pBlackListProcessor) ResetStatistics() {
 			continue
 		}
 
-		if val >= pbp.numFloodingRounds-1 { //-1 because the reset function is called before the AddQuota
+		if val >= uint32(pbp.processConfigsHandler.GetValue(pbp.floodingRoundsVar))-1 { //-1 because the reset function is called before the AddQuota
 			pbp.cacher.Remove(key)
 			pid := core.PeerID(key)
 			log.Debug("added new peer to black list",

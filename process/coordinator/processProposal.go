@@ -2,7 +2,6 @@ package coordinator
 
 import (
 	"fmt"
-	"reflect"
 
 	"github.com/multiversx/mx-chain-core-go/core/check"
 	"github.com/multiversx/mx-chain-core-go/data"
@@ -32,7 +31,7 @@ func (tc *transactionCoordinator) CreateMbsCrossShardDstMe(
 			"header round", hdr.GetRound(),
 			"header nonce", hdr.GetNonce(),
 			"num mini blocks to be processed", len(finalCrossMiniBlockInfos),
-			"total gas provided", tc.gasComputation.TotalGasConsumed())
+			"total gas consumed in self shard", tc.gasComputation.TotalGasConsumedInSelfShard())
 	}()
 
 	txsForMbs := make(map[string][]data.TransactionHandler, 0)
@@ -135,6 +134,12 @@ func (tc *transactionCoordinator) CreateMbsCrossShardDstMe(
 	// if not all mini blocks were included, remove them from the miniBlocksAndHashes slice
 	// but add them into pendingMiniBlocksAndHashes
 	if lastMBIndex < len(mbsSlice)-1 {
+		log.Debug("transactionCoordinator.CreateMbsCrossShardDstMe: could not select all mini blocks, saving them as pending", "lastMBIndex", lastMBIndex)
+
+		for _, mbAndHash := range miniBlocksAndHashes[lastMBIndex+1:] {
+			numTransactions -= uint32(len(mbAndHash.Miniblock.TxHashes))
+		}
+
 		pendingMiniBlocksAndHashes = miniBlocksAndHashes[lastMBIndex+1:]
 		miniBlocksAndHashes = miniBlocksAndHashes[:lastMBIndex+1]
 	}
@@ -183,15 +188,17 @@ func (tc *transactionCoordinator) verifyCreatedMiniBlocksSanity(body *block.Body
 		}
 	}
 
-	collectedMbs := tc.GetCreatedMiniBlocksFromMe()
+	collectedMbsAfterExecution := tc.GetCreatedMiniBlocksFromMe()
 	unExecutableTransactions := tc.getUnExecutableTransactions()
+	invalidTxsInterimProc := tc.getInterimProcessor(block.InvalidBlock)
+	invalidTransactions := invalidTxsInterimProc.GetAllCurrentFinishedTxs()
 
-	allTxsInBody, err := collectTransactionsFromMiniBlocks(miniblocksFromSelf)
+	allProposedOutgoingTxsInBody, err := collectTransactionsFromMiniBlocks(miniblocksFromSelf)
 	if err != nil {
 		return fmt.Errorf("%w: for body miniBlocks", err)
 	}
 
-	allCollectedTxs, err := collectTransactionsFromMiniBlocks(collectedMbs)
+	allCollectedTxs, err := collectTransactionsFromMiniBlocks(collectedMbsAfterExecution)
 	if err != nil {
 		return fmt.Errorf("%w: for created miniBlocks", err)
 	}
@@ -204,8 +211,20 @@ func (tc *transactionCoordinator) verifyCreatedMiniBlocksSanity(body *block.Body
 		allCollectedTxs[txHash] = struct{}{}
 	}
 
-	if !reflect.DeepEqual(allTxsInBody, allCollectedTxs) {
-		return process.ErrTransactionsMismatch
+	// check that invalid transactions are not part of the collected transactions
+	for txHash := range invalidTransactions {
+		if _, exists := allCollectedTxs[txHash]; exists {
+			return fmt.Errorf("%w: for collected invalid transactions", process.ErrDuplicatedTransaction)
+		}
+		allCollectedTxs[txHash] = struct{}{}
+	}
+
+	// check that allProposedOutgoingTxsInBody are part of the collected transactions
+	// the collected transactions may contain also extra items (rewards/peer changes/scrs)
+	for txHash := range allProposedOutgoingTxsInBody {
+		if _, exists := allCollectedTxs[txHash]; !exists {
+			return process.ErrTransactionsMismatch
+		}
 	}
 
 	return nil

@@ -31,18 +31,36 @@ func GetCachedIntermediateTxs(cache storage.Cacher, headerHash []byte) (map[bloc
 }
 
 // GetCachedLogs will return the cached log events from provided cache
-func GetCachedLogs(cache storage.Cacher, headerHash []byte) ([]*data.LogData, error) {
+func GetCachedLogs(cache storage.Cacher, headerHash []byte) ([]data.LogDataHandler, error) {
 	logsKey := PrepareLogEventsKey(headerHash)
 	cachedLogs, ok := cache.Get(logsKey)
 	if !ok {
 		log.Warn("logs not found in dataPool", "hash", headerHash)
 		return nil, fmt.Errorf("%w for header %s", ErrMissingCachedLogs, hex.EncodeToString(headerHash))
 	}
-	cachedLogsSlice, ok := cachedLogs.([]*data.LogData)
+	cachedLogsSlice, ok := cachedLogs.([]data.LogDataHandler)
 	if !ok {
 		return nil, fmt.Errorf("%w for cached logs %s", ErrWrongTypeAssertion, hex.EncodeToString(headerHash))
 	}
+
 	return cachedLogsSlice, nil
+}
+
+// GetCachedOrderedTxHashes wil return the cached ordered tx hashes from the provided cache
+func GetCachedOrderedTxHashes(cache storage.Cacher, headerHash []byte) ([][]byte, error) {
+	orderedTxHashesKey := PrepareOrderedTxHashesKey(headerHash)
+	cachedData, ok := cache.Get(orderedTxHashesKey)
+	if !ok {
+		log.Warn("orderedTxHashes not found in dataPool", "hash", headerHash)
+		return nil, fmt.Errorf("%w for header %s", ErrMissingOrderedTxHashes, hex.EncodeToString(headerHash))
+	}
+
+	cachedDataSlice, ok := cachedData.([][]byte)
+	if !ok {
+		return nil, fmt.Errorf("%w for cached logs %s", ErrWrongTypeAssertion, hex.EncodeToString(headerHash))
+	}
+
+	return cachedDataSlice, nil
 }
 
 // GetCachedMbs will return the cached miniblocks from provided cache

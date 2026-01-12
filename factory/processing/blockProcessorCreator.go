@@ -6,6 +6,7 @@ import (
 
 	"github.com/multiversx/mx-chain-core-go/core"
 	dataBlock "github.com/multiversx/mx-chain-core-go/data/block"
+	"github.com/multiversx/mx-chain-go/epochStart/metachain/disabled"
 	logger "github.com/multiversx/mx-chain-logger-go"
 	vmcommon "github.com/multiversx/mx-chain-vm-common-go"
 	"github.com/multiversx/mx-chain-vm-common-go/parsers"
@@ -462,7 +463,8 @@ func (pcf *processComponentsFactory) newShardBlockProcessor(
 		return nil, err
 	}
 
-	outportDataProvider, err := pcf.createOutportDataProvider(txCoordinator, gasHandler)
+	disabledRewardsCreator := disabled.NewDisabledEpochRewards()
+	outportDataProvider, err := pcf.createOutportDataProvider(txCoordinator, gasHandler, disabledRewardsCreator)
 	if err != nil {
 		return nil, err
 	}
@@ -565,6 +567,7 @@ func (pcf *processComponentsFactory) newShardBlockProcessor(
 		ExecutionResultsInclusionEstimator: inclusionEstimator,
 		GasComputation:                     gasConsumption,
 		ExecutionManager:                   executionManager,
+		TxExecutionOrderHandler:            pcf.txExecutionOrderHandler,
 	}
 	arguments := block.ArgShardProcessor{
 		ArgBaseProcessor: argumentsBaseProcessor,
@@ -1017,7 +1020,7 @@ func (pcf *processComponentsFactory) newMetaBlockProcessor(
 		return nil, err
 	}
 
-	outportDataProvider, err := pcf.createOutportDataProvider(txCoordinator, gasHandler)
+	outportDataProvider, err := pcf.createOutportDataProvider(txCoordinator, gasHandler, epochRewards)
 	if err != nil {
 		return nil, err
 	}
@@ -1118,6 +1121,7 @@ func (pcf *processComponentsFactory) newMetaBlockProcessor(
 		ExecutionResultsInclusionEstimator: inclusionEstimator,
 		GasComputation:                     gasConsumption,
 		ExecutionManager:                   executionManager,
+		TxExecutionOrderHandler:            pcf.txExecutionOrderHandler,
 	}
 
 	esdtOwnerAddress, err := pcf.coreData.AddressPubKeyConverter().Decode(pcf.systemSCConfig.ESDTSystemSCConfig.OwnerAddress)
@@ -1204,13 +1208,16 @@ func (pcf *processComponentsFactory) newMetaBlockProcessor(
 		return nil, err
 	}
 
-	shardInfoCreator, err := block.NewShardInfoCreateData(
-		pcf.coreData.EnableEpochsHandler(),
-		pcf.data.Datapool().Headers(),
-		pcf.data.Datapool().Proofs(),
-		pendingMiniBlocksHandler,
-		blockTracker,
-	)
+	shardInfoCreateDataArgs := block.ShardInfoCreateDataArgs{
+		EnableEpochsHandler:      pcf.coreData.EnableEpochsHandler(),
+		HeadersPool:              pcf.data.Datapool().Headers(),
+		ProofsPool:               pcf.data.Datapool().Proofs(),
+		PendingMiniBlocksHandler: pendingMiniBlocksHandler,
+		BlockTracker:             blockTracker,
+		Storage:                  pcf.data.StorageService(),
+		Marshaller:               pcf.coreData.InternalMarshalizer(),
+	}
+	shardInfoCreator, err := block.NewShardInfoCreateData(shardInfoCreateDataArgs)
 	if err != nil {
 		return nil, err
 	}
@@ -1262,6 +1269,7 @@ func (pcf *processComponentsFactory) attachProcessDebugger(
 func (pcf *processComponentsFactory) createOutportDataProvider(
 	txCoordinator process.TransactionCoordinator,
 	gasConsumedProvider processOutport.GasConsumedProvider,
+	epochRewards processOutport.EpochRewardsGetter,
 ) (outport.DataProviderOutport, error) {
 	txsStorer, err := pcf.data.StorageService().GetStorer(dataRetriever.TransactionUnit)
 	if err != nil {
@@ -1292,6 +1300,7 @@ func (pcf *processComponentsFactory) createOutportDataProvider(
 		DataPool:               pcf.data.Datapool(),
 		StateAccessesCollector: pcf.state.StateAccessesCollector(),
 		RoundHandler:           pcf.coreData.RoundHandler(),
+		RewardsGetter:          epochRewards,
 	})
 }
 

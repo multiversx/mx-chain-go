@@ -99,14 +99,14 @@ func TestGetLogs(t *testing.T) {
 		cacher := cache.NewCacherMock()
 
 		headerHash := []byte("h")
-		expectedLogs := []*data.LogData{
-			{
-				LogHandler: &transaction.Log{},
-				TxHash:     "t1",
+		expectedLogs := []data.LogDataHandler{
+			&transaction.LogData{
+				Log:    &transaction.Log{},
+				TxHash: "t1",
 			},
-			{
-				LogHandler: &transaction.Log{},
-				TxHash:     "t2",
+			&transaction.LogData{
+				Log:    &transaction.Log{},
+				TxHash: "t2",
 			},
 		}
 		logsKey := PrepareLogEventsKey(headerHash)
@@ -262,5 +262,42 @@ func TestGetBody(t *testing.T) {
 		res, err := GetCachedBody(cacher, marshaller, executionResult)
 		require.Nil(t, err)
 		require.Equal(t, &block.Body{MiniBlocks: []*block.MiniBlock{mb1, mb2}}, res)
+	})
+}
+
+func TestGetCachedOrderedTxHashes(t *testing.T) {
+	t.Parallel()
+
+	t.Run("cannot find in cache should error", func(t *testing.T) {
+		t.Parallel()
+
+		cacher := cache.NewCacherMock()
+
+		headerHash := []byte("h")
+
+		_, err := GetCachedOrderedTxHashes(cacher, headerHash)
+		require.True(t, errors.Is(err, ErrMissingOrderedTxHashes))
+	})
+
+	t.Run("wrong type in cache should error", func(t *testing.T) {
+		cacher := cache.NewCacherMock()
+
+		headerHash := []byte("h")
+		cacher.Put(PrepareOrderedTxHashesKey(headerHash), []byte("a"), 0)
+
+		_, err := GetCachedOrderedTxHashes(cacher, headerHash)
+		require.True(t, errors.Is(err, ErrWrongTypeAssertion))
+	})
+
+	t.Run("should work", func(t *testing.T) {
+		cacher := cache.NewCacherMock()
+
+		headerHash := []byte("h")
+		hashes := [][]byte{[]byte("a"), []byte("b"), []byte("c")}
+		cacher.Put(PrepareOrderedTxHashesKey(headerHash), hashes, 0)
+
+		res, err := GetCachedOrderedTxHashes(cacher, headerHash)
+		require.Nil(t, err)
+		require.Equal(t, hashes, res)
 	})
 }
