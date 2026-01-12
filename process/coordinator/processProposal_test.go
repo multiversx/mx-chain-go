@@ -2,6 +2,7 @@ package coordinator
 
 import (
 	"errors"
+	"math/big"
 	"reflect"
 	"testing"
 	"time"
@@ -338,7 +339,7 @@ func TestTransactionCoordinator_CreateMbsCrossShardDstMe_MiniBlockProcessing_Wit
 
 	tc.gasComputation = &testscommon.GasComputationMock{
 		AddIncomingMiniBlocksCalled: func(miniBlocks []data.MiniBlockHeaderHandler, transactions map[string][]data.TransactionHandler) (int, int, error) {
-			return 0, 1, nil // last mb added index is 0, so only first mini block is added, num pendings miniblocks is 1, so the second is pending
+			return 0, 1, nil // last mb added index is 0, so only first mini block is added, num pending miniblocks is 1, so the second is pending
 		},
 	}
 
@@ -354,7 +355,7 @@ func TestTransactionCoordinator_CreateMbsCrossShardDstMe_MiniBlockProcessing_Wit
 	require.Equal(t, td.mb2Info.Miniblock, pendingMiniBlocks[0].Miniblock)
 	require.Equal(t, td.mb2Info.Hash, pendingMiniBlocks[0].Hash)
 
-	require.Equal(t, uint32(3), numTxs)
+	require.Equal(t, uint32(2), numTxs)
 	require.False(t, allAdded)
 
 	// Verify proposal preprocessor was used, not execution
@@ -591,12 +592,12 @@ func TestTransactionCoordinator_SelectOutgoingTransactions_MultipleBlockTypes(t 
 
 	// add transactions to the transactions pool
 	cacheId := process.ShardCacherIdentifier(0, 0)
-	ph.Transactions().AddData(txHashesType1[0], &transaction.Transaction{SndAddr: []byte("sender1"), Nonce: 0}, 100, cacheId)
-	ph.Transactions().AddData(txHashesType1[1], &transaction.Transaction{SndAddr: []byte("sender1"), Nonce: 1}, 100, cacheId)
+	ph.Transactions().AddData(txHashesType1[0], &transaction.Transaction{SndAddr: []byte("sender1"), Value: big.NewInt(0), Nonce: 0}, 100, cacheId)
+	ph.Transactions().AddData(txHashesType1[1], &transaction.Transaction{SndAddr: []byte("sender1"), Value: big.NewInt(0), Nonce: 1}, 100, cacheId)
 
 	// add transactions to the unsigned transactions pool
-	ph.UnsignedTransactions().AddData(txHashesType2[0], &transaction.Transaction{SndAddr: []byte("sender2"), Nonce: 0}, 100, cacheId)
-	ph.UnsignedTransactions().AddData(txHashesType2[1], &transaction.Transaction{SndAddr: []byte("sender3"), Nonce: 0}, 100, cacheId)
+	ph.UnsignedTransactions().AddData(txHashesType2[0], &transaction.Transaction{SndAddr: []byte("sender2"), Value: big.NewInt(0), Nonce: 0}, 100, cacheId)
+	ph.UnsignedTransactions().AddData(txHashesType2[1], &transaction.Transaction{SndAddr: []byte("sender3"), Value: big.NewInt(0), Nonce: 0}, 100, cacheId)
 
 	// Add both block types to the keys
 	tc.preProcProposal.keysTxPreProcs = []block.Type{block.TxBlock, block.SmartContractResultBlock}

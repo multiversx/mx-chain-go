@@ -1155,6 +1155,7 @@ func CreateLastExecutionResultInfoFromExecutionResult(notarizedInRound uint64, l
 				HeaderHash:  lastExecResult.GetHeaderHash(),
 				HeaderNonce: lastExecResult.GetHeaderNonce(),
 				HeaderRound: lastExecResult.GetHeaderRound(),
+				HeaderEpoch: lastExecResult.GetHeaderEpoch(),
 				RootHash:    lastExecResult.GetRootHash(),
 				GasUsed:     lastExecResult.GetGasUsed(),
 			},
@@ -1173,6 +1174,7 @@ func CreateLastExecutionResultInfoFromExecutionResult(notarizedInRound uint64, l
 				HeaderHash:  lastMetaExecResult.GetHeaderHash(),
 				HeaderNonce: lastMetaExecResult.GetHeaderNonce(),
 				HeaderRound: lastMetaExecResult.GetHeaderRound(),
+				HeaderEpoch: lastMetaExecResult.GetHeaderEpoch(),
 				RootHash:    lastMetaExecResult.GetRootHash(),
 				GasUsed:     lastMetaExecResult.GetGasUsed(),
 			},
@@ -1239,4 +1241,40 @@ func GetMarshaledSliceSize[T any](items []T, marshaller marshal.Marshalizer) (in
 	}
 
 	return size, nil
+}
+
+// GetDataPoolByBlockType returns data pool by type
+func GetDataPoolByBlockType(
+	blockType block.Type,
+	dataPool dataRetriever.PoolsHolder,
+) (dataRetriever.ShardedDataCacherNotifier, error) {
+	switch blockType {
+	case block.TxBlock, block.InvalidBlock:
+		return dataPool.Transactions(), nil
+	case block.SmartContractResultBlock:
+		return dataPool.UnsignedTransactions(), nil
+	case block.RewardsBlock:
+		return dataPool.RewardTransactions(), nil
+	case block.PeerBlock:
+		return dataPool.ValidatorsInfo(), nil
+	default:
+		return nil, fmt.Errorf("unsupported block type for dataPool: %d", blockType)
+	}
+}
+
+// GetStorageUnitByBlockType returns storage by type
+func GetStorageUnitByBlockType(blockType block.Type) (dataRetriever.UnitType, error) {
+	switch blockType {
+	case block.TxBlock, block.InvalidBlock:
+		return dataRetriever.TransactionUnit, nil
+	case block.SmartContractResultBlock:
+		return dataRetriever.UnsignedTransactionUnit, nil
+	case block.ReceiptBlock:
+		return dataRetriever.ReceiptsUnit, nil
+	case block.RewardsBlock:
+		return dataRetriever.RewardTransactionUnit, nil
+	case block.PeerBlock:
+		return dataRetriever.UnsignedTransactionUnit, nil
+	}
+	return 0, ErrInvalidBlockType
 }

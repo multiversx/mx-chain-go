@@ -15,6 +15,7 @@ import (
 	"github.com/multiversx/mx-chain-go/process/economics"
 	"github.com/multiversx/mx-chain-go/process/smartContract"
 	"github.com/multiversx/mx-chain-go/testscommon"
+	"github.com/multiversx/mx-chain-go/testscommon/chainParameters"
 	"github.com/multiversx/mx-chain-go/testscommon/enableEpochsHandlerMock"
 	"github.com/multiversx/mx-chain-go/testscommon/epochNotifier"
 	"github.com/stretchr/testify/require"
@@ -23,6 +24,7 @@ import (
 func createEconomicsData(enableEpochsHandler common.EnableEpochsHandler) process.EconomicsDataHandler {
 	economicsConfig := testscommon.GetEconomicsConfig()
 	economicsData, _ := economics.NewEconomicsData(economics.ArgsNewEconomicsData{
+		ChainParamsHandler:  &chainParameters.ChainParametersHolderMock{},
 		Economics:           &economicsConfig,
 		EnableEpochsHandler: enableEpochsHandler,
 		TxVersionChecker:    &testscommon.TxVersionCheckerStub{},

@@ -7,7 +7,6 @@ import (
 
 	"github.com/multiversx/mx-chain-core-go/core"
 	"github.com/multiversx/mx-chain-core-go/core/check"
-	"github.com/multiversx/mx-chain-core-go/marshal"
 	"github.com/multiversx/mx-chain-go/common"
 	"github.com/multiversx/mx-chain-go/config"
 	"github.com/multiversx/mx-chain-go/consensus"
@@ -35,13 +34,12 @@ type NetworkComponentsFactoryArgs struct {
 	MainConfig            config.Config
 	RatingsConfig         config.RatingsConfig
 	StatusHandler         core.AppStatusHandler
-	Marshalizer           marshal.Marshalizer
-	Syncer                p2p.SyncTimer
 	PreferredPeersSlices  []string
 	BootstrapWaitTime     time.Duration
 	NodeOperationMode     common.NodeOperation
 	ConnectionWatcherType string
 	CryptoComponents      factory.CryptoComponentsHolder
+	CoreComponents        process.CoreComponentsHolder
 }
 
 type networkComponentsFactory struct {
@@ -50,13 +48,12 @@ type networkComponentsFactory struct {
 	mainConfig            config.Config
 	ratingsConfig         config.RatingsConfig
 	statusHandler         core.AppStatusHandler
-	marshalizer           marshal.Marshalizer
-	syncer                p2p.SyncTimer
 	preferredPeersSlices  []string
 	bootstrapWaitTime     time.Duration
 	nodeOperationMode     common.NodeOperation
 	connectionWatcherType string
 	cryptoComponents      factory.CryptoComponentsHolder
+	coreComponents        process.CoreComponentsHolder
 }
 
 type networkComponentsHolder struct {
@@ -90,11 +87,17 @@ func NewNetworkComponentsFactory(
 	if check.IfNil(args.StatusHandler) {
 		return nil, errors.ErrNilStatusHandler
 	}
-	if check.IfNil(args.Marshalizer) {
+	if check.IfNil(args.CoreComponents) {
+		return nil, process.ErrNilCoreComponentsHolder
+	}
+	if check.IfNil(args.CoreComponents.InternalMarshalizer()) {
 		return nil, fmt.Errorf("%w in NewNetworkComponentsFactory", errors.ErrNilMarshalizer)
 	}
-	if check.IfNil(args.Syncer) {
+	if check.IfNil(args.CoreComponents.SyncTimer()) {
 		return nil, errors.ErrNilSyncTimer
+	}
+	if check.IfNil(args.CoreComponents.ProcessConfigsHandler()) {
+		return nil, fmt.Errorf("%w in NewNetworkComponentsFactory", process.ErrNilProcessConfigsHandler)
 	}
 	if check.IfNil(args.CryptoComponents) {
 		return nil, errors.ErrNilCryptoComponentsHolder
@@ -107,15 +110,14 @@ func NewNetworkComponentsFactory(
 		mainP2PConfig:         args.MainP2pConfig,
 		fullArchiveP2PConfig:  args.FullArchiveP2pConfig,
 		ratingsConfig:         args.RatingsConfig,
-		marshalizer:           args.Marshalizer,
 		mainConfig:            args.MainConfig,
 		statusHandler:         args.StatusHandler,
-		syncer:                args.Syncer,
 		bootstrapWaitTime:     args.BootstrapWaitTime,
 		preferredPeersSlices:  args.PreferredPeersSlices,
 		nodeOperationMode:     args.NodeOperationMode,
 		connectionWatcherType: args.ConnectionWatcherType,
 		cryptoComponents:      args.CryptoComponents,
+		coreComponents:        args.CoreComponents,
 	}, nil
 }
 
@@ -182,7 +184,7 @@ func (ncf *networkComponentsFactory) createAntifloodComponents(
 	currentPid core.PeerID,
 ) (*antifloodFactory.AntiFloodComponents, factory.P2PAntifloodHandler, factory.P2PAntifloodHandler, consensus.PeerHonestyHandler, error) {
 	var antiFloodComponents *antifloodFactory.AntiFloodComponents
-	antiFloodComponents, err := antifloodFactory.NewP2PAntiFloodComponents(ctx, ncf.mainConfig, ncf.statusHandler, currentPid)
+	antiFloodComponents, err := antifloodFactory.NewP2PAntiFloodComponents(ctx, ncf.mainConfig, ncf.statusHandler, currentPid, ncf.coreComponents.ProcessConfigsHandler())
 	if err != nil {
 		return nil, nil, nil, nil, err
 	}
@@ -245,9 +247,9 @@ func (ncf *networkComponentsFactory) createNetworkHolder(
 	}
 
 	argsMessenger := p2pFactory.ArgsNetworkMessenger{
-		Marshaller:            ncf.marshalizer,
+		Marshaller:            ncf.coreComponents.InternalMarshalizer(),
 		P2pConfig:             p2pConfig,
-		SyncTimer:             ncf.syncer,
+		SyncTimer:             ncf.coreComponents.SyncTimer(),
 		PreferredPeersHolder:  peersHolder,
 		PeersRatingHandler:    peersRatingHandler,
 		ConnectionWatcherType: ncf.connectionWatcherType,

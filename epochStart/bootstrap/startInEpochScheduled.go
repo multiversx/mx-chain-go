@@ -90,6 +90,9 @@ func (ses *startInEpochWithScheduledDataSyncer) IsInterfaceNil() bool {
 func (ses *startInEpochWithScheduledDataSyncer) getRequiredHeaderByHash(
 	notarizedShardHeader data.ShardHeaderHandler,
 ) (data.ShardHeaderHandler, map[string]data.HeaderHandler, error) {
+	// TODO: analyze the requested headers in this func, after andromeda committed blocks are final
+	//  it might not be needed to request based on prev header
+
 	shardIDs, hashesToRequest := getShardIDAndHashesForIncludedMetaBlocks(notarizedShardHeader)
 
 	shardIDs = append(shardIDs, notarizedShardHeader.GetShardID())
@@ -143,6 +146,10 @@ func (ses *startInEpochWithScheduledDataSyncer) getRequiredHeaderByHash(
 		for hash, hdr := range prevPrevHeaders {
 			headers[hash] = hdr
 		}
+	}
+
+	if notarizedShardHeader.IsHeaderV3() {
+		headerToBeProcessed = notarizedShardHeader
 	}
 
 	return headerToBeProcessed, headers, nil

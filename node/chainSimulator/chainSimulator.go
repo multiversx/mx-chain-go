@@ -21,6 +21,8 @@ import (
 	crypto "github.com/multiversx/mx-chain-crypto-go"
 	"github.com/multiversx/mx-chain-crypto-go/signing"
 	"github.com/multiversx/mx-chain-crypto-go/signing/mcl"
+	logger "github.com/multiversx/mx-chain-logger-go"
+
 	"github.com/multiversx/mx-chain-go/config"
 	"github.com/multiversx/mx-chain-go/factory"
 	"github.com/multiversx/mx-chain-go/node/chainSimulator/components"
@@ -29,7 +31,6 @@ import (
 	"github.com/multiversx/mx-chain-go/node/chainSimulator/dtos"
 	chainSimulatorErrors "github.com/multiversx/mx-chain-go/node/chainSimulator/errors"
 	"github.com/multiversx/mx-chain-go/node/chainSimulator/process"
-	logger "github.com/multiversx/mx-chain-logger-go"
 )
 
 const delaySendTxs = time.Millisecond
@@ -45,6 +46,7 @@ type transactionWithResult struct {
 // ArgsChainSimulator holds the arguments needed to create a new instance of simulator
 type ArgsChainSimulator struct {
 	BypassTxSignatureCheck         bool
+	BypassBlockSignatureCheck      bool
 	TempDir                        string
 	PathToInitialConfig            string
 	NumOfShards                    uint32
@@ -132,6 +134,7 @@ func (s *simulator) createChainHandlers(args ArgsBaseChainSimulator) error {
 		AlterConfigsFunction:           args.AlterConfigsFunction,
 		NumNodesWaitingListShard:       args.NumNodesWaitingListShard,
 		NumNodesWaitingListMeta:        args.NumNodesWaitingListMeta,
+		InitialRound:                   args.InitialRound,
 	})
 	if err != nil {
 		return err
@@ -276,6 +279,7 @@ func (s *simulator) createTestNode(
 		ShardIDStr:                  shardIDStr,
 		APIInterface:                args.ApiInterface,
 		BypassTxSignatureCheck:      args.BypassTxSignatureCheck,
+		BypassBlockSignatureCheck:   args.BypassBlockSignatureCheck,
 		InitialRound:                args.InitialRound,
 		InitialNonce:                args.InitialNonce,
 		MinNodesPerShard:            args.MinNodesPerShard,
@@ -394,11 +398,43 @@ func (s *simulator) ForceChangeOfEpoch() error {
 }
 
 func (s *simulator) allNodesCreateBlocks() error {
+	headers := make(map[uint32]*dtos.BroadcastData, len(s.handlers))
 	for _, node := range s.handlers {
 		// TODO MX-15150 remove this when we remove all goroutines
 		time.Sleep(2 * time.Millisecond)
 
-		err := node.CreateNewBlock()
+		pair, err := node.CreateNewBlock()
+		if err != nil {
+			return err
+		}
+		if pair == nil {
+			continue
+		}
+
+		headers[pair.Header.GetShardID()] = pair
+	}
+
+	for shardID, pair := range headers {
+		messenger := s.nodes[shardID].GetBroadcastMessenger()
+
+		err := messenger.BroadcastHeader(pair.Header, pair.LeaderKey)
+		if err != nil {
+			return err
+		}
+
+		if !check.IfNil(pair.Proof) {
+			err = s.nodes[shardID].GetBroadcastMessenger().BroadcastEquivalentProof(pair.Proof, pair.LeaderKey)
+			if err != nil {
+				return err
+			}
+		}
+
+		err = messenger.BroadcastMiniBlocks(pair.MiniBlocksBytes, pair.LeaderKey)
+		if err != nil {
+			return err
+		}
+
+		err = messenger.BroadcastTransactions(pair.TransactionsBytes, pair.LeaderKey)
 		if err != nil {
 			return err
 		}

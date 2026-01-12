@@ -12,7 +12,6 @@ import (
 	"github.com/stretchr/testify/require"
 
 	"github.com/multiversx/mx-chain-go/config"
-	"github.com/multiversx/mx-chain-go/integrationTests"
 	vm2 "github.com/multiversx/mx-chain-go/integrationTests/chainSimulator/vm"
 	"github.com/multiversx/mx-chain-go/integrationTests/vm/txsFee"
 	"github.com/multiversx/mx-chain-go/integrationTests/vm/txsFee/utils"
@@ -50,7 +49,6 @@ func TestChainSimulator_EGLD_MultiTransfer(t *testing.T) {
 		AlterConfigsFunction: func(cfg *config.Configs) {
 			cfg.EpochConfig.EnableEpochs.EGLDInMultiTransferEnableEpoch = activationEpoch
 			cfg.SystemSCConfig.ESDTSystemSCConfig.BaseIssuingCost = baseIssuingCost
-			integrationTests.DeactivateSupernovaInConfig(cfg)
 		},
 	})
 	require.Nil(t, err)
@@ -230,7 +228,6 @@ func TestChainSimulator_EGLD_MultiTransfer_Insufficient_Funds(t *testing.T) {
 		AlterConfigsFunction: func(cfg *config.Configs) {
 			cfg.EpochConfig.EnableEpochs.EGLDInMultiTransferEnableEpoch = activationEpoch
 			cfg.SystemSCConfig.ESDTSystemSCConfig.BaseIssuingCost = baseIssuingCost
-			integrationTests.DeactivateSupernovaInConfig(cfg)
 		},
 	})
 	require.Nil(t, err)
@@ -286,6 +283,7 @@ func TestChainSimulator_EGLD_MultiTransfer_Insufficient_Funds(t *testing.T) {
 	beforeBalanceStr0 := account0.Balance
 
 	account1, err := cs.GetAccount(addrs[1])
+	_, err = cs.GetAccount(addrs[1])
 	require.Nil(t, err)
 
 	beforeBalanceStr1 := account1.Balance
@@ -295,24 +293,14 @@ func TestChainSimulator_EGLD_MultiTransfer_Insufficient_Funds(t *testing.T) {
 	tx = multiESDTNFTTransferWithEGLDTx(nonce, addrs[0].Bytes, addrs[1].Bytes, [][]byte{nftTokenID}, egldValue)
 
 	txResult, err = cs.SendTxAndGenerateBlockTilTxIsExecuted(tx, vm2.MaxNumOfBlockToGenerateWhenExecutingTx)
-	require.Nil(t, err)
-	require.NotNil(t, txResult)
-
-	require.NotEqual(t, "success", txResult.Status.String())
-
-	eventLog := string(txResult.Logs.Events[0].Topics[1])
-	require.Equal(t, "insufficient funds for token EGLD-000000", eventLog)
+	require.ErrorContains(t, err, "Transaction(s) is/are still in pending")
+	require.Nil(t, txResult)
 
 	// check accounts balance
 	account0, err = cs.GetAccount(addrs[0])
 	require.Nil(t, err)
 
-	beforeBalance0, _ := big.NewInt(0).SetString(beforeBalanceStr0, 10)
-
-	txsFee, _ := big.NewInt(0).SetString(txResult.Fee, 10)
-	expectedBalanceWithFee0 := big.NewInt(0).Sub(beforeBalance0, txsFee)
-
-	require.Equal(t, expectedBalanceWithFee0.String(), account0.Balance)
+	require.Equal(t, beforeBalanceStr0, account0.Balance)
 
 	account1, err = cs.GetAccount(addrs[1])
 	require.Nil(t, err)
@@ -347,7 +335,6 @@ func TestChainSimulator_EGLD_MultiTransfer_Invalid_Value(t *testing.T) {
 		AlterConfigsFunction: func(cfg *config.Configs) {
 			cfg.EpochConfig.EnableEpochs.EGLDInMultiTransferEnableEpoch = activationEpoch
 			cfg.SystemSCConfig.ESDTSystemSCConfig.BaseIssuingCost = baseIssuingCost
-			integrationTests.DeactivateSupernovaInConfig(cfg)
 		},
 	})
 	require.Nil(t, err)
@@ -470,7 +457,6 @@ func TestChainSimulator_Multiple_EGLD_Transfers(t *testing.T) {
 		AlterConfigsFunction: func(cfg *config.Configs) {
 			cfg.EpochConfig.EnableEpochs.EGLDInMultiTransferEnableEpoch = activationEpoch
 			cfg.SystemSCConfig.ESDTSystemSCConfig.BaseIssuingCost = baseIssuingCost
-			integrationTests.DeactivateSupernovaInConfig(cfg)
 		},
 	})
 	require.Nil(t, err)
@@ -682,7 +668,6 @@ func TestChainSimulator_IssueToken_EGLDTicker(t *testing.T) {
 		AlterConfigsFunction: func(cfg *config.Configs) {
 			cfg.EpochConfig.EnableEpochs.EGLDInMultiTransferEnableEpoch = activationEpoch
 			cfg.SystemSCConfig.ESDTSystemSCConfig.BaseIssuingCost = baseIssuingCost
-			integrationTests.DeactivateSupernovaInConfig(cfg)
 		},
 	})
 	require.Nil(t, err)
@@ -775,12 +760,10 @@ func TestScCallTransferValueESDT(t *testing.T) {
 		MetaChainMinNodes:        3,
 		NumNodesWaitingListMeta:  3,
 		NumNodesWaitingListShard: 3,
-
-		InitialEpoch: 1700,
-		InitialNonce: 1700,
-		InitialRound: 1700,
+		InitialEpoch:             1,
+		InitialNonce:             1,
+		InitialRound:             1,
 		AlterConfigsFunction: func(cfg *config.Configs) {
-			integrationTests.DeactivateSupernovaInConfig(cfg)
 		},
 	})
 	require.NoError(t, err)
