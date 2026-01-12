@@ -847,21 +847,21 @@ func (pcf *processComponentsFactory) newValidatorStatisticsProcessor() (process.
 	}
 
 	arguments := peer.ArgValidatorStatisticsProcessor{
-		PeerAdapter:                          pcf.state.PeerAccounts(),
-		PubkeyConv:                           pcf.coreData.ValidatorPubKeyConverter(),
-		NodesCoordinator:                     pcf.nodesCoordinator,
-		ShardCoordinator:                     pcf.bootstrapComponents.ShardCoordinator(),
-		DataPool:                             peerDataPool,
-		StorageService:                       storageService,
-		Marshalizer:                          pcf.coreData.InternalMarshalizer(),
-		Rater:                                pcf.coreData.Rater(),
-		MaxComputableRounds:                  pcf.config.GeneralSettings.MaxComputableRounds,
-		MaxConsecutiveRoundsOfRatingDecrease: pcf.config.GeneralSettings.MaxConsecutiveRoundsOfRatingDecrease,
-		RewardsHandler:                       pcf.coreData.EconomicsData(),
-		NodesSetup:                           pcf.coreData.GenesisNodesSetup(),
-		RatingEnableEpoch:                    ratingEnabledEpoch,
-		GenesisNonce:                         genesisHeader.GetNonce(),
-		EnableEpochsHandler:                  pcf.coreData.EnableEpochsHandler(),
+		PeerAdapter:           pcf.state.PeerAccounts(),
+		PubkeyConv:            pcf.coreData.ValidatorPubKeyConverter(),
+		NodesCoordinator:      pcf.nodesCoordinator,
+		ShardCoordinator:      pcf.bootstrapComponents.ShardCoordinator(),
+		DataPool:              peerDataPool,
+		StorageService:        storageService,
+		Marshalizer:           pcf.coreData.InternalMarshalizer(),
+		Rater:                 pcf.coreData.Rater(),
+		MaxComputableRounds:   pcf.config.GeneralSettings.MaxComputableRounds,
+		RewardsHandler:        pcf.coreData.EconomicsData(),
+		NodesSetup:            pcf.coreData.GenesisNodesSetup(),
+		RatingEnableEpoch:     ratingEnabledEpoch,
+		GenesisNonce:          genesisHeader.GetNonce(),
+		EnableEpochsHandler:   pcf.coreData.EnableEpochsHandler(),
+		ProcessConfigsHandler: pcf.coreData.ProcessConfigsHandler(),
 	}
 
 	return peer.NewValidatorStatisticsProcessor(arguments)
