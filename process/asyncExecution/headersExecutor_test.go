@@ -228,6 +228,11 @@ func TestHeadersExecutor_ProcessBlock(t *testing.T) {
 		blocksQueue := queue.NewBlocksQueue()
 		args.BlocksQueue = blocksQueue
 		wasAddExecutionResultCalled := atomicCore.Flag{}
+		args.BlockProcessor = &processMocks.BlockProcessorStub{
+			ProcessBlockProposalCalled: func(handler data.HeaderHandler, body data.BodyHandler) (data.BaseExecutionResultHandler, error) {
+				return &block.BaseExecutionResult{}, nil
+			},
+		}
 		args.ExecutionTracker = &processMocks.ExecutionTrackerStub{
 			AddExecutionResultCalled: func(executionResult data.BaseExecutionResultHandler) error {
 				wasAddExecutionResultCalled.SetValue(true)
@@ -393,7 +398,7 @@ func TestHeadersExecutor_Process(t *testing.T) {
 		require.Equal(t, expectedErr, err)
 	})
 
-	t.Run("should return nil on failing to add execution results to execution tracker", func(t *testing.T) {
+	t.Run("should return error on failing to add execution results to execution tracker", func(t *testing.T) {
 		t.Parallel()
 
 		args := createMockArgs()
@@ -422,7 +427,7 @@ func TestHeadersExecutor_Process(t *testing.T) {
 		}
 
 		err := executor.Process(pair)
-		require.Nil(t, err)
+		require.Equal(t, expectedErr, err)
 	})
 
 	t.Run("should add execution result info to blockchain handler", func(t *testing.T) {
