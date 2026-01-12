@@ -169,6 +169,7 @@ func (tep *transactionsFeeProcessor) prepareTxWithResults(
 	}
 
 	if totalRefunds.Cmp(big.NewInt(0)) > 0 {
+		txWithResults.GetFeeInfo().SetHadRefund()
 		tep.setGasUsedAndFeeBasedOnRefundValue(txWithResults, userTx, totalRefunds, epoch)
 
 	}
@@ -283,8 +284,6 @@ func (tep *transactionsFeeProcessor) setGasUsedAndFeeBasedOnRefundValue(
 	refund *big.Int,
 	epoch uint32,
 ) {
-	txWithResults.GetFeeInfo().SetHadRefund()
-
 	isValidUserTxAfterBaseCostActivation := !check.IfNil(userTx) && tep.enableEpochsHandler.IsFlagEnabledInEpoch(common.FixRelayedBaseCostFlag, epoch)
 	if isValidUserTxAfterBaseCostActivation && !common.IsValidRelayedTxV3(txWithResults.GetTxHandler()) {
 		gasUsed, fee := tep.txFeeCalculator.ComputeGasUsedAndFeeBasedOnRefundValue(userTx, refund)

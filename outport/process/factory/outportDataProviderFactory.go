@@ -42,6 +42,7 @@ type ArgOutportDataProviderFactory struct {
 	DataPool               dataRetriever.PoolsHolder
 	StateAccessesCollector state.StateAccessesCollector
 	RoundHandler           process.RoundHandler
+	RewardsGetter          process.EpochRewardsGetter
 }
 
 // CreateOutportDataProvider will create a new instance of outport.DataProviderOutport
@@ -94,5 +95,6 @@ func CreateOutportDataProvider(arg ArgOutportDataProviderFactory) (outport.DataP
 		EnableEpochsHandler:      arg.EnableEpochsHandler,
 		StateAccessesCollector:   arg.StateAccessesCollector,
 		RoundHandler:             arg.RoundHandler,
+		RewardsGetter:            arg.RewardsGetter,
 	})
 }

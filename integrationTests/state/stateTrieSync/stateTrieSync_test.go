@@ -428,7 +428,6 @@ func testSyncMissingSnapshotNodes(t *testing.T, version int) {
 		t.Skip("this is not a short test")
 	}
 
-	numExtraAccounts := 2 // protocol sustainability acc & nodes owner acc
 	numAccounts := 1000
 	numDataTrieLeaves := 50
 	valSize := 32
@@ -486,7 +485,7 @@ func testSyncMissingSnapshotNodes(t *testing.T, version int) {
 	dataTrieRootHashes := addAccountsToState(t, numAccounts, numDataTrieLeaves, accState, valSize)
 	rootHash, _ := accState.RootHash()
 	numLeaves := getNumLeaves(t, resolverTrie, rootHash)
-	require.Equal(t, numAccounts+numExtraAccounts, numLeaves)
+	require.Equal(t, numAccounts, numLeaves)
 
 	requesterTrie := nRequester.TrieContainer.Get([]byte(dataRetriever.UserAccountsUnit.String()))
 	nilRootHash, _ := requesterTrie.RootHash()
@@ -518,7 +517,7 @@ func testSyncMissingSnapshotNodes(t *testing.T, version int) {
 	assert.Equal(t, rootHash, newRootHash)
 
 	numLeaves = getNumLeaves(t, requesterTrie, rootHash)
-	assert.Equal(t, numAccounts+numExtraAccounts, numLeaves)
+	assert.Equal(t, numAccounts, numLeaves)
 	checkAllDataTriesAreSynced(t, numDataTrieLeaves, requesterTrie, dataTrieRootHashes)
 }
 

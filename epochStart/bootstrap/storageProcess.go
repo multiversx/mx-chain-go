@@ -11,6 +11,7 @@ import (
 	"github.com/multiversx/mx-chain-core-go/data"
 	"github.com/multiversx/mx-chain-core-go/data/block"
 	"github.com/multiversx/mx-chain-core-go/data/endProcess"
+
 	"github.com/multiversx/mx-chain-go/process/interceptors/processor"
 
 	"github.com/multiversx/mx-chain-go/common"
@@ -433,7 +434,7 @@ func (sesb *storageEpochStartBootstrap) processNodesConfig(pubKey []byte) error 
 	clonedHeader := sesb.epochStartMeta.ShallowClone()
 	clonedEpochStartMeta, ok := clonedHeader.(data.MetaHeaderHandler)
 	if !ok {
-		return fmt.Errorf("%w while trying to assert clonedHeader to *block.MetaBlock", epochStart.ErrWrongTypeAssertion)
+		return fmt.Errorf("%w while trying to assert clonedHeader to data.MetaHeaderHandler", epochStart.ErrWrongTypeAssertion)
 	}
 	err = sesb.applyCurrentShardIDOnMiniblocksCopy(clonedEpochStartMeta)
 	if err != nil {
@@ -443,7 +444,7 @@ func (sesb *storageEpochStartBootstrap) processNodesConfig(pubKey []byte) error 
 	clonedHeader = sesb.prevEpochStartMeta.ShallowClone()
 	clonedPrevEpochStartMeta, ok := clonedHeader.(data.MetaHeaderHandler)
 	if !ok {
-		return fmt.Errorf("%w while trying to assert prevClonedHeader to *block.MetaBlock", epochStart.ErrWrongTypeAssertion)
+		return fmt.Errorf("%w while trying to assert prevClonedHeader to data.MetaHeaderHandler", epochStart.ErrWrongTypeAssertion)
 	}
 
 	err = sesb.applyCurrentShardIDOnMiniblocksCopy(clonedPrevEpochStartMeta)

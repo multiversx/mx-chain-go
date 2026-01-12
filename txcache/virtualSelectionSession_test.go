@@ -8,6 +8,7 @@ import (
 
 	"github.com/multiversx/mx-chain-core-go/core"
 	"github.com/multiversx/mx-chain-core-go/data"
+	"github.com/multiversx/mx-chain-core-go/data/transaction"
 	"github.com/multiversx/mx-chain-go/testscommon/txcachemocks"
 	"github.com/stretchr/testify/require"
 )
@@ -281,7 +282,7 @@ func Test_accumulateConsumedBalance(t *testing.T) {
 	})
 }
 
-func Test_detectWillFeeExceedBalance(t *testing.T) {
+func Test_detectWillBalanceBeExceeded(t *testing.T) {
 	t.Parallel()
 
 	t.Run("should exceed balance", func(t *testing.T) {
@@ -305,11 +306,15 @@ func Test_detectWillFeeExceedBalance(t *testing.T) {
 		}
 
 		tx := WrappedTransaction{
+			TransferredValue: big.NewInt(0),
+			Tx: &transaction.Transaction{
+				SndAddr: []byte("alice"),
+			},
 			Fee:      big.NewInt(2),
 			FeePayer: []byte("alice"),
 		}
 
-		actualRes := virtualSession.detectWillFeeExceedBalance(&tx)
+		actualRes := virtualSession.detectWillBalanceBeExceeded(&tx)
 		require.True(t, actualRes)
 	})
 
@@ -334,11 +339,15 @@ func Test_detectWillFeeExceedBalance(t *testing.T) {
 		}
 
 		tx := WrappedTransaction{
-			Fee:      big.NewInt(2),
-			FeePayer: []byte("alice"),
+			Tx: &transaction.Transaction{
+				SndAddr: []byte("bob"),
+			},
+			TransferredValue: big.NewInt(0),
+			Fee:              big.NewInt(2),
+			FeePayer:         []byte("alice"),
 		}
 
-		actualRes := virtualSession.detectWillFeeExceedBalance(&tx)
+		actualRes := virtualSession.detectWillBalanceBeExceeded(&tx)
 		require.False(t, actualRes)
 	})
 }

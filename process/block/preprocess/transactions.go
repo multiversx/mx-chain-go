@@ -13,10 +13,11 @@ import (
 	"github.com/multiversx/mx-chain-core-go/data"
 	"github.com/multiversx/mx-chain-core-go/data/block"
 	"github.com/multiversx/mx-chain-core-go/data/transaction"
+	logger "github.com/multiversx/mx-chain-logger-go"
+
 	"github.com/multiversx/mx-chain-go/common/holders"
 	"github.com/multiversx/mx-chain-go/config"
 	"github.com/multiversx/mx-chain-go/txcache"
-	logger "github.com/multiversx/mx-chain-logger-go"
 
 	"github.com/multiversx/mx-chain-go/common"
 	"github.com/multiversx/mx-chain-go/dataRetriever"
@@ -370,7 +371,7 @@ func (txs *transactions) computeTxsToMe(
 				miniBlock.ReceiverShardID)
 		}
 
-		pi, err := txs.getIndexesOfLastTxProcessed(miniBlock, headerHandler)
+		pi, err := txs.getIndexesOfLastTxProcessedOnExecution(miniBlock, headerHandler)
 		if err != nil {
 			return nil, err
 		}
