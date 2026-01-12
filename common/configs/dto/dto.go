@@ -10,4 +10,8 @@ const (
 	NumFloodingRoundsSlowReacting ConfigVariable = "NumFloodingRoundsSlowReacting"
 	// NumFloodingRoundsOutOfSpecs defines variable name for NumFloodingRoundsOutOfSpecs
 	NumFloodingRoundsOutOfSpecs ConfigVariable = "NumFloodingRoundsOutOfSpecs"
+	// MaxConsecutiveRoundsOfRatingDecrease defines variable name for MaxConsecutiveRoundsOfRatingDecrease
+	MaxConsecutiveRoundsOfRatingDecrease ConfigVariable = "MaxConsecutiveRoundsOfRatingDecrease"
+	// MaxRoundsOfInactivityAccepted defines variable name for MaxRoundsOfInactivityAccepted
+	MaxRoundsOfInactivityAccepted ConfigVariable = "MaxRoundsOfInactivityAccepted"
 )
