@@ -389,6 +389,7 @@ func (sm *statusMetrics) EnableEpochsMetrics() (map[string]interface{}, error) {
 	enableEpochsMetrics[common.MetricBarnardOpcodesEnableEpoch] = sm.uint64Metrics[common.MetricBarnardOpcodesEnableEpoch]
 	enableEpochsMetrics[common.MetricAutomaticActivationOfNodesDisableEpoch] = sm.uint64Metrics[common.MetricAutomaticActivationOfNodesDisableEpoch]
 	enableEpochsMetrics[common.MetricFixGetBalanceEnableEpoch] = sm.uint64Metrics[common.MetricFixGetBalanceEnableEpoch]
+	enableEpochsMetrics[common.MetricTailInflationEnableEpoch] = sm.uint64Metrics[common.MetricTailInflationEnableEpoch]
 
 	numNodesChangeConfig := sm.uint64Metrics[common.MetricMaxNodesChangeEnableEpoch+"_count"]
 
@@ -443,6 +444,7 @@ func (sm *statusMetrics) saveUint64NetworkMetricsInMap(networkMetrics map[string
 	networkMetrics[common.MetricRoundsPerEpoch] = sm.uint64Metrics[common.MetricRoundsPerEpoch]
 	networkMetrics[common.MetricRoundsPassedInCurrentEpoch] = computeDelta(currentRound, roundNumberAtEpochStart)
 	networkMetrics[common.MetricNoncesPassedInCurrentEpoch] = computeDelta(currentNonce, nonceAtEpochStart)
+	networkMetrics[common.MetricProposedNonce] = sm.uint64Metrics[common.MetricProposedNonce]
 }
 
 func (sm *statusMetrics) saveStringNetworkMetricsInMap(networkMetrics map[string]interface{}) {

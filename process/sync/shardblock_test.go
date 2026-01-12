@@ -222,6 +222,7 @@ func createFullStore() dataRetriever.StorageService {
 	store.AddStorer(dataRetriever.ScheduledSCRsUnit, generateTestUnit())
 	store.AddStorer(dataRetriever.UserAccountsUnit, generateTestUnit())
 	store.AddStorer(dataRetriever.PeerAccountsUnit, generateTestUnit())
+	store.AddStorer(dataRetriever.UnsignedTransactionUnit, generateTestUnit())
 	return store
 }
 
@@ -678,7 +679,7 @@ func TestNewShardBootstrap_OkValsShouldWork(t *testing.T) {
 
 	assert.False(t, check.IfNil(bs))
 	assert.Nil(t, err)
-	assert.Equal(t, 2, wasCalled)
+	assert.Equal(t, 3, wasCalled)
 	assert.False(t, bs.IsInterfaceNil())
 	assert.True(t, bs.IsInImportMode())
 
@@ -1937,7 +1938,8 @@ func TestBootstrap_GetTxBodyHavingHashFoundInStorageShouldWork(t *testing.T) {
 		},
 	}
 
-	bs, _ := sync.NewShardBootstrap(args)
+	bs, err := sync.NewShardBootstrap(args)
+	require.Nil(t, err)
 	gotMbsAndHashes, _ := bs.GetMiniBlocks(requestedHash)
 
 	assert.Equal(t, mbsAndHashes, gotMbsAndHashes)

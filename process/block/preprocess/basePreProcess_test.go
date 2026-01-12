@@ -4,6 +4,8 @@ import (
 	"bytes"
 	"testing"
 
+	"github.com/multiversx/mx-chain-core-go/data"
+	"github.com/multiversx/mx-chain-core-go/data/block"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 
@@ -48,4 +50,33 @@ func TestBasePreProcess_handleProcessTransactionInit(t *testing.T) {
 	recoveredJournalLen := bp.handleProcessTransactionInit(preProcessorExecutionInfoHandler, txHash, mbHash)
 	assert.Equal(t, journalLen, recoveredJournalLen)
 	assert.True(t, initProcessedTxsCalled)
+}
+
+func TestBasePreProcess_getIndexesOfLastTxProcessedOnExecution(t *testing.T) {
+	t.Parallel()
+
+	mb := &block.MiniBlock{
+		TxHashes: [][]byte{
+			[]byte("tx1"),
+			[]byte("tx2"),
+			[]byte("tx3"),
+		},
+	}
+
+	t.Run("for v3 header", func(t *testing.T) {
+		var headerHandler data.HeaderHandler = &testscommon.HeaderHandlerStub{
+			IsHeaderV3Called: func() bool {
+				return true
+			},
+		}
+
+		bp := &basePreProcess{}
+
+		pi, err := bp.getIndexesOfLastTxProcessedOnExecution(mb, headerHandler)
+		require.NoError(t, err)
+
+		require.Equal(t, int32(-1), pi.indexOfLastTxProcessed)
+		require.Equal(t, int32(len(mb.GetTxHashes())-1), pi.indexOfLastTxProcessedByProposer)
+
+	})
 }

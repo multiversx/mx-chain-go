@@ -249,7 +249,7 @@ func (scr *smartContractResults) ProcessBlockTransactions(
 			continue
 		}
 
-		pi, err := scr.getIndexesOfLastTxProcessed(miniBlock, headerHandler)
+		pi, err := scr.getIndexesOfLastTxProcessedOnExecution(miniBlock, headerHandler)
 		if err != nil {
 			return err
 		}

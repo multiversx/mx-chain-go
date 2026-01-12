@@ -342,7 +342,16 @@ func TestExecutionManager_AddPairForExecution(t *testing.T) {
 
 		args.Headers = &pool.HeadersPoolStub{
 			GetHeaderByHashCalled: func(hash []byte) (data.HeaderHandler, error) {
-				return nil, errExpected
+				return nil, errors.New("fetch error")
+			},
+		}
+		args.StorageService = &storageStubs.ChainStorerStub{
+			GetStorerCalled: func(unitType dataRetriever.UnitType) (storage.Storer, error) {
+				return &storageStubs.StorerStub{
+					GetCalled: func(key []byte) ([]byte, error) {
+						return nil, errExpected
+					},
+				}, nil
 			},
 		}
 
@@ -357,7 +366,7 @@ func TestExecutionManager_AddPairForExecution(t *testing.T) {
 		}
 
 		err := em.AddPairForExecution(pair)
-		require.Equal(t, errExpected, err)
+		require.ErrorIs(t, err, process.ErrMissingHeader)
 		require.Equal(t, 0, counter)
 	})
 

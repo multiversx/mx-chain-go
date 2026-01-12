@@ -171,12 +171,18 @@ var TestProcessConfigsHandler, _ = configs.NewProcessConfigsHandler([]config.Pro
 }},
 	[]config.ProcessConfigByRound{
 		{
-			EnableRound:                        0,
-			MaxRoundsWithoutNewBlockReceived:   10,
-			MaxRoundsWithoutCommittedBlock:     10,
-			RoundModulusTriggerWhenSyncIsStuck: 20,
+			EnableRound:                            0,
+			MaxRoundsWithoutNewBlockReceived:       10,
+			MaxRoundsWithoutCommittedBlock:         10,
+			RoundModulusTriggerWhenSyncIsStuck:     20,
+			MaxRoundsToKeepUnprocessedTransactions: 50,
+			MaxRoundsToKeepUnprocessedMiniBlocks:   50,
+			NumFloodingRoundsSlowReacting:          20,
+			NumFloodingRoundsFastReacting:          30,
+			NumFloodingRoundsOutOfSpecs:            40,
 		},
 	},
+	forking.NewGenericRoundNotifier(),
 )
 
 // TestTxSignHasher represents a sha3 legacy keccak 256 hasher
@@ -841,20 +847,20 @@ func (tpn *TestProcessorNode) initTestNodeWithArgs(args ArgTestProcessorNode) {
 	tpn.initHeaderValidator()
 	tpn.initRoundHandler(roundTime)
 
+	chainParam := config.ChainParametersByEpochConfig{
+		RoundDuration:          uint64(roundTime.Milliseconds()),
+		RoundsPerEpoch:         1000,
+		MinRoundsBetweenEpochs: 1,
+	}
 	tpn.ChainParametersHandler = &chainParameters.ChainParametersHandlerStub{
 		ChainParametersForEpochCalled: func(_ uint32) (config.ChainParametersByEpochConfig, error) {
-			return config.ChainParametersByEpochConfig{
-				RoundDuration:          uint64(roundTime.Milliseconds()),
-				RoundsPerEpoch:         1000,
-				MinRoundsBetweenEpochs: 1,
-			}, nil
+			return chainParam, nil
 		},
 		CurrentChainParametersCalled: func() config.ChainParametersByEpochConfig {
-			return config.ChainParametersByEpochConfig{
-				RoundDuration:          uint64(roundTime.Milliseconds()),
-				RoundsPerEpoch:         1000,
-				MinRoundsBetweenEpochs: 1,
-			}
+			return chainParam
+		},
+		AllChainParametersCalled: func() []config.ChainParametersByEpochConfig {
+			return []config.ChainParametersByEpochConfig{chainParam}
 		},
 	}
 
@@ -1215,6 +1221,7 @@ func (tpn *TestProcessorNode) initEconomicsData(economicsConfig *config.Economic
 	pubKeyConv, _ := pubkeyConverter.NewBech32PubkeyConverter(32, "erd")
 	argsNewEconomicsData := economics.ArgsNewEconomicsData{
 		Economics:           economicsConfig,
+		ChainParamsHandler:  tpn.ChainParametersHandler,
 		EpochNotifier:       tpn.EpochNotifier,
 		EnableEpochsHandler: tpn.EnableEpochsHandler,
 		TxVersionChecker:    &testscommon.TxVersionCheckerStub{},
@@ -1250,6 +1257,10 @@ func createDefaultEconomicsConfig() *config.EconomicsConfig {
 					TopUpFactor:                      0.25,
 					TopUpGradientPoint:               "300000000000000000000",
 					ProtocolSustainabilityPercentage: 0.1,
+					EcosystemGrowthPercentage:        0.0,
+					EcosystemGrowthAddress:           testProtocolSustainabilityAddress,
+					GrowthDividendPercentage:         0.0,
+					GrowthDividendAddress:            testProtocolSustainabilityAddress,
 				},
 			},
 		},
@@ -4091,17 +4102,5 @@ func GetDefaultRoundsConfig() config.RoundConfig {
 				Round: "9999999",
 			},
 		},
-	}
-}
-
-// DeactivateSupernovaInConfig -
-func DeactivateSupernovaInConfig(cfg *config.Configs) {
-	cfg.EpochConfig.EnableEpochs.SupernovaEnableEpoch = UnreachableEpoch
-	defaultRoundConfig := GetDefaultRoundsConfig()
-	cfg.RoundConfig = &defaultRoundConfig
-	cfg.GeneralConfig.Versions.VersionsByEpochs = []config.VersionByEpochs{
-		{StartEpoch: 0, StartRound: 0, Version: "*"},
-		{StartEpoch: 1, StartRound: 0, Version: "2"},
-		{StartEpoch: UnreachableEpoch, StartRound: 0, Version: "3"},
 	}
 }

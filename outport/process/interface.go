@@ -5,6 +5,7 @@ import (
 
 	"github.com/multiversx/mx-chain-core-go/data"
 	"github.com/multiversx/mx-chain-core-go/data/alteredAccount"
+	"github.com/multiversx/mx-chain-core-go/data/block"
 	"github.com/multiversx/mx-chain-core-go/data/outport"
 	"github.com/multiversx/mx-chain-go/outport/process/alteredaccounts/shared"
 )
@@ -45,4 +46,10 @@ type EconomicsDataHandler interface {
 	ComputeGasLimit(tx data.TransactionWithFeeHandler) uint64
 	IsInterfaceNil() bool
 	MaxGasLimitPerBlock(shardID uint32) uint64
+}
+
+// EpochRewardsGetter defines what a rewards getter should be able to do
+type EpochRewardsGetter interface {
+	GetRewardsTxs(body *block.Body) map[string]data.TransactionHandler
+	IsInterfaceNil() bool
 }
