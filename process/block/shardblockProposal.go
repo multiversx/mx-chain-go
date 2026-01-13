@@ -16,7 +16,7 @@ import (
 	"github.com/multiversx/mx-chain-go/state"
 )
 
-type pendingMiniBlocksAfterSelection struct {
+type pendingBlocksAfterSelection struct {
 	headerHash                 []byte
 	header                     data.HeaderHandler
 	pendingMiniBlocksAndHashes []block.MiniblockAndHash
@@ -435,7 +435,7 @@ func (sp *shardProcessor) createBlockBodyProposal(
 
 func (sp *shardProcessor) selectIncomingMiniBlocksForProposal(
 	haveTime func() bool,
-) ([]*pendingMiniBlocksAfterSelection, error) {
+) ([]*pendingBlocksAfterSelection, error) {
 	log.Debug("selectIncomingMiniBlocksForProposal has been started")
 
 	sw := core.NewStopWatch()
@@ -454,7 +454,7 @@ func (sp *shardProcessor) selectIncomingMiniBlocksForProposal(
 		return nil, err
 	}
 
-	pendingMiniBlocks, err := sp.selectIncomingMiniBlocks(lastMetaHdr, orderedMetaBlocks, orderedMetaBlocksHashes, haveTime)
+	pendingBlocks, err := sp.selectIncomingMiniBlocks(lastMetaHdr, orderedMetaBlocks, orderedMetaBlocksHashes, haveTime)
 	if err != nil {
 		return nil, err
 	}
@@ -472,7 +472,7 @@ func (sp *shardProcessor) selectIncomingMiniBlocksForProposal(
 		"num txs added", sp.miniBlocksSelectionSession.GetNumTxsAdded(),
 		"num referenced meta blocks", len(sp.miniBlocksSelectionSession.GetReferencedHeaders()))
 
-	return pendingMiniBlocks, nil
+	return pendingBlocks, nil
 }
 
 func (sp *shardProcessor) selectIncomingMiniBlocks(
@@ -480,10 +480,10 @@ func (sp *shardProcessor) selectIncomingMiniBlocks(
 	orderedMetaBlocks []data.HeaderHandler,
 	orderedMetaBlocksHashes [][]byte,
 	haveTime func() bool,
-) ([]*pendingMiniBlocksAfterSelection, error) {
+) ([]*pendingBlocksAfterSelection, error) {
 	var currentMetaBlock data.HeaderHandler
 	var currentMetaBlockHash []byte
-	var pendingMiniBlocks []*pendingMiniBlocksAfterSelection
+	var pendingBlocks []*pendingBlocksAfterSelection
 	var errCreated error
 	var createIncomingMbsResult *CrossShardIncomingMbsCreationResult
 	lastMeta := lastCrossNotarizedMetaHdr
@@ -528,9 +528,21 @@ func (sp *shardProcessor) selectIncomingMiniBlocks(
 		}
 
 		if len(currentMetaBlock.GetMiniBlockHeadersWithDst(sp.shardCoordinator.SelfId())) == 0 {
-			sp.miniBlocksSelectionSession.AddReferencedHeader(currentMetaBlock, currentMetaBlockHash)
-			lastMeta = currentMetaBlock
-			lastMetaAdded = currentMetaBlock
+			// if all headers were completely included so far, include this one as well
+			if len(pendingBlocks) == 0 {
+				sp.miniBlocksSelectionSession.AddReferencedHeader(currentMetaBlock, currentMetaBlockHash)
+				lastMeta = currentMetaBlock
+				lastMetaAdded = currentMetaBlock
+				continue
+			}
+
+			// if at least one previous header was not completely included, save the current one as pending
+			// but with no mini blocks
+			pendingBlocks = append(pendingBlocks, &pendingBlocksAfterSelection{
+				headerHash:                 currentMetaBlockHash,
+				header:                     currentMetaBlock,
+				pendingMiniBlocksAndHashes: nil,
+			})
 			continue
 		}
 
@@ -539,12 +551,6 @@ func (sp *shardProcessor) selectIncomingMiniBlocks(
 		if errCreated != nil {
 			return nil, errCreated
 		}
-
-		pendingMiniBlocks = append(pendingMiniBlocks, &pendingMiniBlocksAfterSelection{
-			headerHash:                 currentMetaBlockHash,
-			header:                     currentMetaBlock,
-			pendingMiniBlocksAndHashes: createIncomingMbsResult.PendingMiniBlocks,
-		})
 
 		if len(createIncomingMbsResult.AddedMiniBlocks) > 0 {
 			errAdd := sp.miniBlocksSelectionSession.AddMiniBlocksAndHashes(createIncomingMbsResult.AddedMiniBlocks)
@@ -560,6 +566,12 @@ func (sp *shardProcessor) selectIncomingMiniBlocks(
 			continue
 		}
 
+		pendingBlocks = append(pendingBlocks, &pendingBlocksAfterSelection{
+			headerHash:                 currentMetaBlockHash,
+			header:                     currentMetaBlock,
+			pendingMiniBlocksAndHashes: createIncomingMbsResult.PendingMiniBlocks,
+		})
+
 		canAddMorePendingMiniBlocks := sp.gasComputation.CanAddPendingIncomingMiniBlocks()
 		if !canAddMorePendingMiniBlocks {
 			break
@@ -571,7 +583,7 @@ func (sp *shardProcessor) selectIncomingMiniBlocks(
 
 	go sp.requestHeadersFromHeaderIfNeeded(lastMetaAdded)
 
-	return pendingMiniBlocks, nil
+	return pendingBlocks, nil
 }
 
 func (sp *shardProcessor) createProposalMiniBlocks(
@@ -583,7 +595,7 @@ func (sp *shardProcessor) createProposalMiniBlocks(
 		return nil
 	}
 	startTime := time.Now()
-	pendingMiniBlocksLeft, err := sp.selectIncomingMiniBlocksForProposal(haveTime)
+	pendingBlocks, err := sp.selectIncomingMiniBlocksForProposal(haveTime)
 	if err != nil {
 		return err
 	}
@@ -592,7 +604,7 @@ func (sp *shardProcessor) createProposalMiniBlocks(
 
 	outgoingTransactions, pendingIncomingMiniBlocksAdded := sp.selectOutgoingTransactions(nonce)
 
-	err = sp.appendPendingMiniBlocksAddedAfterSelectingOutgoingTransactions(pendingMiniBlocksLeft, pendingIncomingMiniBlocksAdded)
+	err = sp.appendPendingMiniBlocksAfterSelectingOutgoingTransactions(pendingBlocks, pendingIncomingMiniBlocksAdded)
 	if err != nil {
 		return err
 	}
@@ -608,8 +620,99 @@ func (sp *shardProcessor) createProposalMiniBlocks(
 	return nil
 }
 
+func (sp *shardProcessor) appendPendingMiniBlocksAfterSelectingOutgoingTransactions(
+	pendingBlocksLeft []*pendingBlocksAfterSelection,
+	pendingIncomingMiniBlocksAdded []data.MiniBlockHeaderHandler,
+) error {
+	err := sp.appendPendingMiniBlocksAddedAfterSelectingOutgoingTransactions(pendingBlocksLeft, pendingIncomingMiniBlocksAdded)
+	if err != nil {
+		return err
+	}
+
+	if len(pendingBlocksLeft) == 0 {
+		return nil
+	}
+
+	referencedHeaders := sp.miniBlocksSelectionSession.GetReferencedHeaders()
+	if len(referencedHeaders) == 0 {
+		// if no header was referenced yet, add the empty ones that were left as pending
+		currentPendingBlockLeft := pendingBlocksLeft[0]
+		lastPendingNonceAdded := currentPendingBlockLeft.header.GetNonce()
+		sp.miniBlocksSelectionSession.AddReferencedHeader(currentPendingBlockLeft.header, currentPendingBlockLeft.headerHash)
+
+		for i := 1; i < len(pendingBlocksLeft); i++ {
+			currentPendingBlockLeft = pendingBlocksLeft[i]
+			hasMiniBlocks := len(currentPendingBlockLeft.pendingMiniBlocksAndHashes) != 0
+			if hasMiniBlocks {
+				continue
+			}
+
+			if currentPendingBlockLeft.header.GetNonce() != lastPendingNonceAdded+1 {
+				return nil
+			}
+
+			sp.miniBlocksSelectionSession.AddReferencedHeader(currentPendingBlockLeft.header, currentPendingBlockLeft.headerHash)
+			lastPendingNonceAdded = currentPendingBlockLeft.header.GetNonce()
+		}
+
+		return nil
+	}
+
+	// if there are some referenced headers, check if gaps exist and can be filled by empty pending
+	// and append all consecutive emtpy pending
+	lastReferencedNonce := uint64(0)
+	prevReferencedHeader := referencedHeaders[0]
+	for i := 1; i < len(referencedHeaders); i++ {
+		currentReferencedHeader := referencedHeaders[i]
+		if prevReferencedHeader.GetNonce()+1 == currentReferencedHeader.GetNonce() {
+			prevReferencedHeader = currentReferencedHeader
+			continue
+		}
+
+		// gap detected, try to fill it with empty blocks (they should be available)
+		for j := prevReferencedHeader.GetNonce() + 1; j < currentReferencedHeader.GetNonce(); j++ {
+			found := false
+			for _, pendingBlockLeft := range pendingBlocksLeft {
+				hasMiniBlocks := len(pendingBlockLeft.pendingMiniBlocksAndHashes) != 0
+				if hasMiniBlocks {
+					continue
+				}
+
+				if pendingBlockLeft.header.GetNonce() == j {
+					sp.miniBlocksSelectionSession.AddReferencedHeader(pendingBlockLeft.header, pendingBlockLeft.headerHash)
+					prevReferencedHeader = currentReferencedHeader
+					found = true
+					break
+				}
+			}
+
+			if !found {
+				return fmt.Errorf("%w for pending nonce %d", process.ErrMissingHeader, j)
+			}
+		}
+	}
+
+	// append all empty pending blocks left with higher nonces
+	lastReferencedNonce = prevReferencedHeader.GetNonce()
+	for _, pendingBlockLeft := range pendingBlocksLeft {
+		hasMiniBlocks := len(pendingBlockLeft.pendingMiniBlocksAndHashes) != 0
+		if hasMiniBlocks {
+			continue // only care about empty blocks
+		}
+
+		if pendingBlockLeft.header.GetNonce() != lastReferencedNonce+1 {
+			break
+		}
+
+		lastReferencedNonce = pendingBlockLeft.header.GetNonce()
+		sp.miniBlocksSelectionSession.AddReferencedHeader(pendingBlockLeft.header, pendingBlockLeft.headerHash)
+	}
+
+	return nil
+}
+
 func (sp *shardProcessor) appendPendingMiniBlocksAddedAfterSelectingOutgoingTransactions(
-	pendingMiniBlocksLeft []*pendingMiniBlocksAfterSelection,
+	pendingBlocksLeft []*pendingBlocksAfterSelection,
 	pendingIncomingMiniBlocksAdded []data.MiniBlockHeaderHandler,
 ) error {
 	if len(pendingIncomingMiniBlocksAdded) == 0 {
@@ -618,7 +721,7 @@ func (sp *shardProcessor) appendPendingMiniBlocksAddedAfterSelectingOutgoingTran
 
 	extraMiniBlocksAdded := make([]block.MiniblockAndHash, len(pendingIncomingMiniBlocksAdded))
 	for i, pendingMbAdded := range pendingIncomingMiniBlocksAdded {
-		miniBlockAndHash, headerHash, header, found := findPendingMiniBlock(pendingMiniBlocksLeft, pendingMbAdded)
+		miniBlockAndHash, headerHash, header, found := findPendingMiniBlock(pendingBlocksLeft, pendingMbAdded)
 		if !found {
 			log.Error("pending mini block added does not exists in the remaining pending list")
 			return process.ErrInvalidHash
@@ -628,16 +731,111 @@ func (sp *shardProcessor) appendPendingMiniBlocksAddedAfterSelectingOutgoingTran
 		sp.miniBlocksSelectionSession.AddReferencedHeader(header, headerHash)
 	}
 
-	err := sp.miniBlocksSelectionSession.AddMiniBlocksAndHashes(extraMiniBlocksAdded)
-	if err != nil {
-		return err
+	return sp.miniBlocksSelectionSession.AddMiniBlocksAndHashes(extraMiniBlocksAdded)
+}
+
+func (sp *shardProcessor) addEmptyBlocksLeftPendingAfterSelectingOutgoingTransactions(
+	pendingBlocksLeft []*pendingBlocksAfterSelection,
+) error {
+	if len(pendingBlocksLeft) == 0 {
+		return nil
+	}
+
+	referencedHeaders := sp.miniBlocksSelectionSession.GetReferencedHeaders()
+	if len(referencedHeaders) == 0 {
+		// if no header was referenced yet, add the empty ones that were left as pending
+		return sp.addEmptyBlocksLeftPendingWithNoReferencedBlocks(pendingBlocksLeft)
+	}
+
+	// if there are some referenced headers, check if gaps exist and can be filled by empty pending
+	// and append all consecutive emtpy pending
+	return sp.fillReferencedGaps(pendingBlocksLeft, referencedHeaders)
+}
+
+func (sp *shardProcessor) addEmptyBlocksLeftPendingWithNoReferencedBlocks(
+	pendingBlocksLeft []*pendingBlocksAfterSelection,
+) error {
+	currentPendingBlockLeft := pendingBlocksLeft[0]
+	lastPendingNonceAdded := currentPendingBlockLeft.header.GetNonce()
+	sp.miniBlocksSelectionSession.AddReferencedHeader(currentPendingBlockLeft.header, currentPendingBlockLeft.headerHash)
+
+	for i := 1; i < len(pendingBlocksLeft); i++ {
+		currentPendingBlockLeft = pendingBlocksLeft[i]
+		hasMiniBlocks := len(currentPendingBlockLeft.pendingMiniBlocksAndHashes) != 0
+		if hasMiniBlocks {
+			continue // only care about empty blocks
+		}
+
+		if currentPendingBlockLeft.header.GetNonce() != lastPendingNonceAdded+1 {
+			// if nonce gap is detected, skip further other headers
+			return nil
+		}
+
+		sp.miniBlocksSelectionSession.AddReferencedHeader(currentPendingBlockLeft.header, currentPendingBlockLeft.headerHash)
+		lastPendingNonceAdded = currentPendingBlockLeft.header.GetNonce()
+	}
+
+	return nil
+}
+
+func (sp *shardProcessor) fillReferencedGaps(
+	pendingBlocksLeft []*pendingBlocksAfterSelection,
+	referencedHeaders []data.HeaderHandler,
+) error {
+	lastReferencedNonce := uint64(0)
+	prevReferencedHeader := referencedHeaders[0]
+	for i := 1; i < len(referencedHeaders); i++ {
+		currentReferencedHeader := referencedHeaders[i]
+		if prevReferencedHeader.GetNonce()+1 == currentReferencedHeader.GetNonce() {
+			prevReferencedHeader = currentReferencedHeader
+			continue
+		}
+
+		// gap detected, try to fill it with empty blocks (they should be available)
+		for j := prevReferencedHeader.GetNonce() + 1; j < currentReferencedHeader.GetNonce(); j++ {
+			found := false
+			for _, pendingBlockLeft := range pendingBlocksLeft {
+				hasMiniBlocks := len(pendingBlockLeft.pendingMiniBlocksAndHashes) != 0
+				if hasMiniBlocks {
+					continue // only care about empty blocks
+				}
+
+				if pendingBlockLeft.header.GetNonce() == j {
+					// found missing nonce
+					sp.miniBlocksSelectionSession.AddReferencedHeader(pendingBlockLeft.header, pendingBlockLeft.headerHash)
+					prevReferencedHeader = currentReferencedHeader
+					found = true
+					break
+				}
+			}
+
+			if !found {
+				return fmt.Errorf("%w for pending nonce %d", process.ErrMissingHeader, j)
+			}
+		}
+	}
+
+	// append all empty pending blocks left with higher nonces
+	lastReferencedNonce = prevReferencedHeader.GetNonce()
+	for _, pendingBlockLeft := range pendingBlocksLeft {
+		hasMiniBlocks := len(pendingBlockLeft.pendingMiniBlocksAndHashes) != 0
+		if hasMiniBlocks {
+			continue // only care about empty blocks
+		}
+
+		if pendingBlockLeft.header.GetNonce() != lastReferencedNonce+1 {
+			break
+		}
+
+		lastReferencedNonce = pendingBlockLeft.header.GetNonce()
+		sp.miniBlocksSelectionSession.AddReferencedHeader(pendingBlockLeft.header, pendingBlockLeft.headerHash)
 	}
 
 	return nil
 }
 
 func findPendingMiniBlock(
-	pendingMiniBlocksLeft []*pendingMiniBlocksAfterSelection,
+	pendingMiniBlocksLeft []*pendingBlocksAfterSelection,
 	pendingMbAdded data.MiniBlockHeaderHandler,
 ) (block.MiniblockAndHash, []byte, data.HeaderHandler, bool) {
 	for _, pendingMiniBlocksForHeader := range pendingMiniBlocksLeft {
