@@ -326,6 +326,7 @@ func GetNetworkFactoryArgs() networkComp.NetworkComponentsFactoryArgs {
 					NumFloodingRoundsSlowReacting:          20,
 					NumFloodingRoundsFastReacting:          30,
 					NumFloodingRoundsOutOfSpecs:            40,
+					MaxConsecutiveRoundsOfRatingDecrease:   600,
 				},
 			},
 		},

@@ -779,7 +779,16 @@ func TestBaseProcessor_cleanPostProcessCache(t *testing.T) {
 			},
 		}
 
-		expectedRemovedKeys := []string{"hash1", "executionhash1", "mb1", "hash2", "executionhash2", "mb2"}
+		expectedRemovedKeys := []string{
+			"hash1",
+			"executionhash1",
+			"logshash1",
+			"mb1",
+			"hash2",
+			"executionhash2",
+			"logshash2",
+			"mb2",
+		}
 
 		bp := getDefaultBaseProcessor()
 		removedKeys := make([]string, 0)

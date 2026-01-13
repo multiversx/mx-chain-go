@@ -163,6 +163,7 @@ func NewShardProcessorEmptyWith3shards(
 				NumFloodingRoundsSlowReacting:          20,
 				NumFloodingRoundsFastReacting:          30,
 				NumFloodingRoundsOutOfSpecs:            40,
+				MaxConsecutiveRoundsOfRatingDecrease:   600,
 			},
 		},
 		&epochNotifier.RoundNotifierStub{},
@@ -739,7 +740,7 @@ func (sp *shardProcessor) GetHdrForBlock() HeadersForBlock {
 }
 
 // PendingMiniBlocksAfterSelection -
-type PendingMiniBlocksAfterSelection = pendingMiniBlocksAfterSelection
+type PendingMiniBlocksAfterSelection = pendingBlocksAfterSelection
 
 // GetHeaderHash -
 func (p *PendingMiniBlocksAfterSelection) GetHeaderHash() []byte {
