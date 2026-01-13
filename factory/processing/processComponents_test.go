@@ -725,7 +725,7 @@ func TestProcessComponentsFactory_Create(t *testing.T) {
 		args := createMockProcessComponentsFactoryArgs()
 		ct := 0
 		args.CoreData.(*mock.CoreComponentsMock).ProcessConfigsHandlerCalled = func() common.ProcessConfigsHandler {
-			if ct == 1 {
+			if ct == 2 {
 				return nil
 			}
 			ct++
@@ -739,7 +739,7 @@ func TestProcessComponentsFactory_Create(t *testing.T) {
 		args := createMockProcessComponentsFactoryArgs()
 		ct := 0
 		args.CoreData.(*mock.CoreComponentsMock).ProcessConfigsHandlerCalled = func() common.ProcessConfigsHandler {
-			if ct == 2 {
+			if ct == 3 {
 				return nil
 			}
 			ct++
