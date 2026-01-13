@@ -173,7 +173,7 @@ func (sr *subroundStartRound) initCurrentRound() bool {
 	if sr.IsKeyManagedBySelf([]byte(leader)) {
 		msg = " (my turn in multi-key)"
 	}
-	if leader == sr.SelfPubKey() && sr.ShouldConsiderSelfKeyInConsensus() {
+	if leader == sr.SelfPubKey() && spos.ShouldConsiderSelfKeyInConsensus(sr.NodeRedundancyHandler()) {
 		msg = " (my turn)"
 	}
 	if len(msg) != 0 {
@@ -192,7 +192,7 @@ func (sr *subroundStartRound) initCurrentRound() bool {
 
 	sr.indexRoundIfNeeded(pubKeys)
 
-	isSingleKeyLeader := leader == sr.SelfPubKey() && sr.ShouldConsiderSelfKeyInConsensus()
+	isSingleKeyLeader := leader == sr.SelfPubKey() && spos.ShouldConsiderSelfKeyInConsensus(sr.NodeRedundancyHandler())
 	isLeader := isSingleKeyLeader || sr.IsKeyManagedBySelf([]byte(leader))
 	isSelfInConsensus := sr.IsNodeInConsensusGroup(sr.SelfPubKey()) || numMultiKeysInConsensusGroup > 0
 	if !isSelfInConsensus {
