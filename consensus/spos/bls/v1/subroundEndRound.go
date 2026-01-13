@@ -392,12 +392,7 @@ func (sr *subroundEndRound) doEndRoundJobByLeader() bool {
 	log.Debug("step 3: Body and Header have been committed and header has been broadcast")
 
 	// log the header output for debugging purposes
-	headerOutput, err := common.PrettifyStruct(sr.GetHeader())
-	if err != nil {
-		log.Error("Proposed header committed v1", "error", err)
-	} else {
-		log.Debug("Proposed header committed v1", "header", headerOutput)
-	}
+	common.LogPrettifiedHeader(sr.GetHeader(), "committed", "v1")
 
 	err = sr.broadcastBlockDataLeader()
 	if err != nil {
@@ -716,12 +711,7 @@ func (sr *subroundEndRound) doEndRoundJobByParticipant(cnsDta *consensus.Message
 	log.Debug("step 3: Body and Header have been committed")
 
 	// log the header output for debugging purposes
-	headerOutput, err := common.PrettifyStruct(sr.GetHeader())
-	if err != nil {
-		log.Error("Proposed header committed v1", "error", err)
-	} else {
-		log.Debug("Proposed header committed v1", "header", headerOutput)
-	}
+	common.LogPrettifiedHeader(header, "committed", "v1")
 
 	headerTypeMsg := "received"
 	if cnsDta != nil {

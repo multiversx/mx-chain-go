@@ -812,7 +812,6 @@ func createMockMetaHeaderV3() *block.MetaBlockV3 {
 
 func createMockShardHeaderV3() *block.HeaderV3 {
 	var hdrNonce = uint64(56)
-	var hdrShardId = uint32(1)
 	var hdrRound = uint64(67)
 	var hdrEpoch = uint32(78)
 	return &block.HeaderV3{
@@ -820,7 +819,7 @@ func createMockShardHeaderV3() *block.HeaderV3 {
 		PrevHash:         []byte("prev hash"),
 		PrevRandSeed:     []byte("prev rand seed"),
 		RandSeed:         []byte("rand seed"),
-		ShardID:          hdrShardId,
+		ShardID:          uint32(1),
 		TimestampMs:      0,
 		Round:            hdrRound,
 		Epoch:            hdrEpoch,

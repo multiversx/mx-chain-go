@@ -321,13 +321,7 @@ func (sr *subroundBlock) sendBlockHeader(
 	sr.SetHeader(headerHandler)
 
 	// log the header output for debugging purposes
-	headerOutput, err := common.PrettifyStruct(headerHandler)
-	if err != nil {
-		log.Error("Proposed header sent", "error", err)
-	} else {
-		log.Debug("Proposed header sent", "header", headerOutput)
-	}
-
+	common.LogPrettifiedHeader(headerHandler, "sent", "v2")
 	return true
 }
 
@@ -636,12 +630,7 @@ func (sr *subroundBlock) receivedBlockHeader(headerHandler data.HeaderHandler) {
 	)
 
 	// log the header output for debugging purposes
-	headerOutput, err := common.PrettifyStruct(headerHandler)
-	if err != nil {
-		log.Error("Proposed header received", "error", err)
-	} else {
-		log.Debug("Proposed header received", "header", headerOutput)
-	}
+	common.LogPrettifiedHeader(sr.GetHeader(), "received", "v2")
 }
 
 func (sr *subroundBlock) checkSupernovaHeader(headerHandler data.HeaderHandler) bool {

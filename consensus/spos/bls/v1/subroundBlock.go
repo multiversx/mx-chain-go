@@ -230,13 +230,7 @@ func (sr *subroundBlock) sendHeaderAndBlockBody(
 	sr.SetHeader(headerHandler)
 
 	// log the header output for debugging purposes
-	headerOutput, err := common.PrettifyStruct(headerHandler)
-	if err != nil {
-		log.Error("Proposed header sent v1", "error", err)
-	} else {
-		log.Debug("Proposed header sent v1", "header", headerOutput)
-	}
-
+	common.LogPrettifiedHeader(headerHandler, "sent", "v1")
 	return true
 }
 
@@ -457,12 +451,7 @@ func (sr *subroundBlock) receivedBlockBodyAndHeader(ctx context.Context, cnsDta 
 	)
 
 	// log the header output for debugging purposes
-	headerOutput, err := common.PrettifyStruct(header)
-	if err != nil {
-		log.Error("Proposed header received v1", "error", err)
-	} else {
-		log.Debug("Proposed header received v1", "header", headerOutput)
-	}
+	common.LogPrettifiedHeader(sr.GetHeader(), "received", "v1")
 
 	return blockProcessedWithSuccess
 }
