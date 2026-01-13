@@ -25,5 +25,17 @@ func initCfgVarMap() map[dto.ConfigVariable]configVariableHandler {
 			},
 			defaultValue: defaultNumFloodingRoundsOutOfSpecs,
 		},
+		dto.MaxConsecutiveRoundsOfRatingDecrease: {
+			valueSelector: func(cfg config.ProcessConfigByRound) uint64 {
+				return cfg.MaxConsecutiveRoundsOfRatingDecrease
+			},
+			defaultValue: defaultMaxConsecutiveRoundsOfRatingDecrease,
+		},
+		dto.MaxRoundsOfInactivityAccepted: {
+			valueSelector: func(cfg config.ProcessConfigByRound) uint64 {
+				return cfg.MaxRoundsOfInactivityAccepted
+			},
+			defaultValue: defaultMaxRoundsOfInactivityAccepted,
+		},
 	}
 }

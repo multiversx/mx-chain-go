@@ -163,6 +163,7 @@ func NewShardProcessorEmptyWith3shards(
 				NumFloodingRoundsSlowReacting:          20,
 				NumFloodingRoundsFastReacting:          30,
 				NumFloodingRoundsOutOfSpecs:            40,
+				MaxConsecutiveRoundsOfRatingDecrease:   600,
 			},
 		},
 		&epochNotifier.RoundNotifierStub{},

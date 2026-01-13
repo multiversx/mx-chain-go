@@ -21,6 +21,7 @@ func getConfigsByRound() []config.ProcessConfigByRound {
 			NumFloodingRoundsSlowReacting:          2,
 			NumFloodingRoundsFastReacting:          3,
 			NumFloodingRoundsOutOfSpecs:            4,
+			MaxConsecutiveRoundsOfRatingDecrease:   600,
 		},
 		{
 			EnableRound:                            1,
@@ -30,6 +31,7 @@ func getConfigsByRound() []config.ProcessConfigByRound {
 			NumFloodingRoundsSlowReacting:          20,
 			NumFloodingRoundsFastReacting:          30,
 			NumFloodingRoundsOutOfSpecs:            40,
+			MaxConsecutiveRoundsOfRatingDecrease:   6000,
 		},
 	}
 }
@@ -152,6 +154,20 @@ func TestNewProcessConfigsByEpoch(t *testing.T) {
 		require.True(t, strings.Contains(err.Error(), "NumFloodingRoundsOutOfSpecs"))
 	})
 
+	t.Run("should return error for invalid max consecutive rounds of rating decrease value", func(t *testing.T) {
+		t.Parallel()
+
+		confByEpoch := []config.ProcessConfigByEpoch{
+			{EnableEpoch: 0, MaxMetaNoncesBehind: 15},
+		}
+		confByRound := getConfigsByRound()
+		confByRound[0].MaxConsecutiveRoundsOfRatingDecrease = 0
+
+		pce, err := configs.NewProcessConfigsHandler(confByEpoch, confByRound, &epochNotifier.RoundNotifierStub{})
+		require.Nil(t, pce)
+		require.ErrorIs(t, err, process.ErrZeroMaxConsecutiveRoundsOfRatingDecrease)
+	})
+
 	t.Run("should work", func(t *testing.T) {
 		t.Parallel()
 
@@ -199,6 +215,7 @@ func TestProcessConfigsByEpoch_Getters(t *testing.T) {
 			NumFloodingRoundsSlowReacting:          2,
 			NumFloodingRoundsFastReacting:          3,
 			NumFloodingRoundsOutOfSpecs:            4,
+			MaxConsecutiveRoundsOfRatingDecrease:   600,
 		},
 		{EnableRound: 1,
 			MaxRoundsWithoutNewBlockReceived:       11,
@@ -209,6 +226,7 @@ func TestProcessConfigsByEpoch_Getters(t *testing.T) {
 			NumFloodingRoundsSlowReacting:          20,
 			NumFloodingRoundsFastReacting:          30,
 			NumFloodingRoundsOutOfSpecs:            40,
+			MaxConsecutiveRoundsOfRatingDecrease:   6000,
 		},
 	}
 
