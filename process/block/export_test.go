@@ -753,8 +753,8 @@ func (p *PendingMiniBlocksAfterSelection) GetHeader() data.HeaderHandler {
 }
 
 // GetMiniBlocksAndHashes -
-func (p *PendingMiniBlocksAfterSelection) GetMiniBlocksAndHashes() []block.MiniblockAndHash {
-	return p.pendingMiniBlocksAndHashes
+func (p *PendingMiniBlocksAfterSelection) GetMiniBlocksAndHashes() map[string]*block.MiniBlock {
+	return p.pendingMiniBlocks
 }
 
 // SelectIncomingMiniBlocks -
