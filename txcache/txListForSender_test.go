@@ -396,6 +396,81 @@ func TestBenchmarkListForSender_applySizeConstraints(t *testing.T) {
 	}
 }
 
+func BenchmarkTxList_removeTransactionsWithHigherOrEqualNonce(b *testing.B) {
+	benchmarkTxList(b, funcRemoveTransactionsWithHigherOrEqualNonce)
+}
+
+func BenchmarkTxList_removeTransactionsWithLowerOrEqualNonceReturnHashes(b *testing.B) {
+	benchmarkTxList(b, funcRemoveTransactionsWithLowerOrEqualNonceReturnHashes)
+}
+
+func BenchmarkTxList_applySizeConstraints(b *testing.B) {
+	benchmarkTxList(b, funcApplySizeConstraints)
+}
+
+func benchmarkTxList(b *testing.B, opFunc testTxListFunc) {
+	numNoncesPerAccount := []int{10, 100, 1_000}
+	numAccounts := 1_000
+
+	for _, numNonces := range numNoncesPerAccount {
+		b.Run(fmt.Sprintf("noncesPerAccount=%d", numNonces), func(b *testing.B) {
+			txCache := newCacheToTest(
+				maxNumBytesPerSenderUpperBoundTest,
+				math.MaxUint32,
+			)
+
+			txs := make([]*WrappedTransaction, 0, numNonces*numAccounts)
+			for accIdx := 0; accIdx < numAccounts; accIdx++ {
+				txs = append(txs, createTxs(numNonces, accIdx)...)
+			}
+
+			b.ReportAllocs()
+			b.ResetTimer()
+
+			for i := 0; i < b.N; i++ {
+				list := newUnconstrainedListToTest()
+
+				for _, tx := range txs {
+					list.AddTx(tx, txCache.tracker)
+				}
+
+				opFunc(txCache, list, uint64(numNonces))
+			}
+		})
+	}
+}
+
+func createTxs(size int, senderIdx int) []*WrappedTransaction {
+	txs := make([]*WrappedTransaction, 0, size)
+
+	for i := size - 1; i >= 0; i-- {
+		txs = append(txs,
+			createTx(
+				[]byte(fmt.Sprintf("txHash%d", i)),
+				fmt.Sprintf("sender-%d", senderIdx),
+				uint64(i),
+			),
+		)
+	}
+
+	return txs
+}
+
+type testTxListFunc func(txCache *TxCache, list *txListForSender, numNoncesPerAccount uint64)
+
+func funcRemoveTransactionsWithHigherOrEqualNonce(_ *TxCache, list *txListForSender, _ uint64) {
+	list.removeTransactionsWithHigherOrEqualNonce(0)
+}
+
+func funcRemoveTransactionsWithLowerOrEqualNonceReturnHashes(_ *TxCache, list *txListForSender, numNoncesPerAccount uint64) {
+	list.removeTransactionsWithLowerOrEqualNonceReturnHashes(numNoncesPerAccount)
+}
+
+func funcApplySizeConstraints(txCache *TxCache, list *txListForSender, numNoncesPerAccount uint64) {
+	list.constraints.maxNumTxs = uint32(numNoncesPerAccount / 2)
+	list.applySizeConstraints(txCache.tracker)
+}
+
 func newUnconstrainedListToTest() *txListForSender {
 	return newListToTest(math.MaxUint32, math.MaxUint32)
 }
