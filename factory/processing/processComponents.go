@@ -741,9 +741,9 @@ func (pcf *processComponentsFactory) Create() (*processComponents, error) {
 			"if the node is in backup mode and the main node is active", "hex public key", observerBLSPublicKeyBuff)
 	}
 
-	maxRoundsOfInactivity := int(pcf.prefConfigs.Preferences.RedundancyLevel) * pcf.config.Redundancy.MaxRoundsOfInactivityAccepted
 	nodeRedundancyArg := redundancy.ArgNodeRedundancy{
-		MaxRoundsOfInactivity: maxRoundsOfInactivity,
+		RedundancyLevel:       int(pcf.prefConfigs.Preferences.RedundancyLevel),
+		ProcessConfigsHandler: pcf.coreData.ProcessConfigsHandler(),
 		Messenger:             pcf.network.NetworkMessenger(),
 		ObserverPrivateKey:    observerBLSPrivateKey,
 	}

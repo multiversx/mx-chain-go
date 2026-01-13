@@ -137,7 +137,7 @@ func (p *ProcessConfigsHandlerStub) GetValue(variable dto.ConfigVariable) uint64
 		return p.GetValueCalled(variable)
 	}
 
-	return 0
+	return 1
 }
 
 // IsInterfaceNil -

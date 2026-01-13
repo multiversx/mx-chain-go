@@ -266,7 +266,6 @@ type Config struct {
 	VMOutputCacher        CacheConfig
 
 	PeersRatingConfig PeersRatingConfig
-	Redundancy        RedundancyConfig
 
 	InterceptedDataVerifier InterceptedDataVerifierConfig
 }
@@ -397,6 +396,7 @@ type ProcessConfigByRound struct {
 	NumFloodingRoundsOutOfSpecs   uint32
 
 	MaxConsecutiveRoundsOfRatingDecrease uint64
+	MaxRoundsOfInactivityAccepted        uint64
 }
 
 // GeneralSettingsConfig will hold the general settings for a node
@@ -785,12 +785,6 @@ type RequesterConfig struct {
 	NumCrossShardPeers  uint32
 	NumTotalPeers       uint32
 	NumFullHistoryPeers uint32
-}
-
-// RedundancyConfig represents the config options to be used when setting the redundancy configuration
-type RedundancyConfig struct {
-	// TODO: add config per epoch for supernova
-	MaxRoundsOfInactivityAccepted int
 }
 
 // ChainParametersByEpochConfig holds chain parameters that are configurable based on epochs
