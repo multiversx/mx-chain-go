@@ -686,8 +686,8 @@ func (sp *shardProcessor) appendPendingMiniBlocksAfterSelectingOutgoingTransacti
 		if isHeaderFinished {
 			sp.miniBlocksSelectionSession.AddReferencedHeader(header, headerHash)
 			lastNonceReferenced = header.GetNonce()
+			lastHeaderReferencedFinished = isHeaderFinished
 		}
-		lastHeaderReferencedFinished = isHeaderFinished
 	}
 
 	// if the last header referenced was finished, continue referencing headers that do not have mini blocks dest me
