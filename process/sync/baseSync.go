@@ -767,8 +767,12 @@ func (boot *baseBootstrap) doJobOnSyncBlockFail(bodyHandler data.BodyHandler, he
 	isInProperRound := process.IsInProperRound(boot.roundHandler.Index())
 	isSyncWithErrorsLimitReachedInProperRound := allowedSyncWithErrorsLimitReached && isInProperRound
 
+	lastCommittedBlock := boot.chainHandler.GetCurrentBlockHeader()
+	lastCommittedBlockHash := boot.chainHandler.GetCurrentBlockHeaderHash()
+	shouldAllowRollback := boot.shouldAllowRollback(lastCommittedBlock, lastCommittedBlockHash)
+
 	shouldRollBack := isProcessWithError || isSyncWithErrorsLimitReachedInProperRound
-	if shouldRollBack {
+	if shouldRollBack && shouldAllowRollback {
 		if !check.IfNil(headerHandler) {
 			hash := boot.removeHeaderFromPools(headerHandler)
 			boot.forkDetector.RemoveHeader(headerHandler.GetNonce(), hash)
