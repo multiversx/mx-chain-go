@@ -17,6 +17,9 @@ var log = logger.GetOrCreate("process/asyncExecution")
 
 const timeToSleep = time.Millisecond * 5
 const timeToSleepOnError = time.Millisecond * 300
+const maxRetryAttempts = 10
+const maxBackoffTime = time.Second * 5
+const validationInterval = time.Minute * 1
 
 // ArgsHeadersExecutor holds all the components needed to create a new instance of *headersExecutor
 type ArgsHeadersExecutor struct {
@@ -72,6 +75,8 @@ func (he *headersExecutor) StartExecution() {
 
 // PauseExecution pauses the execution
 func (he *headersExecutor) PauseExecution() {
+	log.Debug("headersExecutor.PauseExecution: pausing execution")
+
 	he.mutPaused.Lock()
 	defer he.mutPaused.Unlock()
 
@@ -84,6 +89,8 @@ func (he *headersExecutor) PauseExecution() {
 
 // ResumeExecution resumes the execution
 func (he *headersExecutor) ResumeExecution() {
+	log.Debug("headersExecutor.ResumeExecution: resuming execution")
+
 	he.mutPaused.Lock()
 	defer he.mutPaused.Unlock()
 
@@ -93,10 +100,19 @@ func (he *headersExecutor) ResumeExecution() {
 func (he *headersExecutor) start(ctx context.Context) {
 	log.Debug("headersExecutor.start: starting execution")
 
+	validationTicker := time.NewTicker(validationInterval)
+	defer validationTicker.Stop()
+
 	for {
 		select {
 		case <-ctx.Done():
 			return
+		case <-validationTicker.C:
+			// Periodic queue validation
+			err := he.blocksQueue.ValidateQueueIntegrity()
+			if err != nil {
+				log.Error("headersExecutor.start: queue integrity validation failed", "err", err)
+			}
 		default:
 			he.mutPaused.RLock()
 			isPaused := he.isPaused
@@ -115,6 +131,11 @@ func (he *headersExecutor) start(ctx context.Context) {
 				return
 			}
 
+			if check.IfNil(headerBodyPair.Header) || check.IfNil(headerBodyPair.Body) {
+				log.Debug("headersExecutor.start: popped nil header or body, continuing...")
+				continue
+			}
+
 			err := he.process(headerBodyPair)
 			if err != nil {
 				he.handleProcessError(ctx, headerBodyPair)
@@ -124,12 +145,16 @@ func (he *headersExecutor) start(ctx context.Context) {
 }
 
 func (he *headersExecutor) handleProcessError(ctx context.Context, pair queue.HeaderBodyPair) {
-	for {
+	retryCount := 0
+	backoffTime := timeToSleepOnError
+
+	for retryCount < maxRetryAttempts {
 		pairFromQueue, ok := he.blocksQueue.Peek()
 		if ok && pairFromQueue.Header.GetNonce() == pair.Header.GetNonce() {
 			// continue the processing (pop the next header from queue)
 			return
 		}
+
 		select {
 		case <-ctx.Done():
 			return
@@ -137,11 +162,30 @@ func (he *headersExecutor) handleProcessError(ctx context.Context, pair queue.He
 			// retry with the same pair
 			err := he.process(pair)
 			if err == nil {
+				log.Debug("headersExecutor.handleProcessError - retry succeeded",
+					"nonce", pair.Header.GetNonce(),
+					"retry_count", retryCount)
 				return
 			}
-			time.Sleep(timeToSleepOnError)
+			retryCount++
+			log.Warn("headersExecutor.handleProcessError - retry failed",
+				"nonce", pair.Header.GetNonce(),
+				"retry_count", retryCount,
+				"max_retries", maxRetryAttempts,
+				"err", err)
+
+			// Exponential backoff with maximum limit
+			time.Sleep(backoffTime)
+			backoffTime = backoffTime * 2
+			if backoffTime > maxBackoffTime {
+				backoffTime = maxBackoffTime
+			}
 		}
 	}
+
+	log.Error("headersExecutor.handleProcessError - max retries exceeded, skipping block",
+		"nonce", pair.Header.GetNonce(),
+		"max_retries", maxRetryAttempts)
 }
 
 func (he *headersExecutor) process(pair queue.HeaderBodyPair) error {
@@ -149,9 +193,17 @@ func (he *headersExecutor) process(pair queue.HeaderBodyPair) error {
 	if err != nil {
 		log.Warn("headersExecutor.process process block failed",
 			"nonce", pair.Header.GetNonce(),
+			"prevHash", pair.Header.GetPrevHash(),
 			"err", err,
 		)
 		return err
+	}
+
+	// Validate execution result
+	if check.IfNil(executionResult) {
+		log.Warn("headersExecutor.process - nil execution result received",
+			"nonce", pair.Header.GetNonce())
+		return ErrNilExecutionResult
 	}
 
 	err = he.executionTracker.AddExecutionResult(executionResult)
@@ -160,7 +212,7 @@ func (he *headersExecutor) process(pair queue.HeaderBodyPair) error {
 			"nonce", pair.Header.GetNonce(),
 			"err", err,
 		)
-		return nil
+		return err
 	}
 
 	he.blockChain.SetFinalBlockInfo(

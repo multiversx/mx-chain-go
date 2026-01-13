@@ -194,14 +194,14 @@ type Config struct {
 	ProofsStorage           StorageConfig
 	ExecutionResultsStorage StorageConfig
 
-	AccountsTrieStorage      StorageConfig
-	PeerAccountsTrieStorage  StorageConfig
-	EvictionWaitingList      EvictionWaitingListConfig
-	StateTriesConfig         StateTriesConfig
+	AccountsTrieStorage          StorageConfig
+	PeerAccountsTrieStorage      StorageConfig
+	EvictionWaitingList          EvictionWaitingListConfig
+	StateTriesConfig             StateTriesConfig
 	StateAccessesCollectorConfig StateAccessesCollectorConfig
-	TrieStorageManagerConfig TrieStorageManagerConfig
-	TrieLeavesRetrieverConfig TrieLeavesRetrieverConfig
-	BadBlocksCache           CacheConfig
+	TrieStorageManagerConfig     TrieStorageManagerConfig
+	TrieLeavesRetrieverConfig    TrieLeavesRetrieverConfig
+	BadBlocksCache               CacheConfig
 
 	TxBlockBodyDataPool          CacheConfig
 	PeerBlockBodyDataPool        CacheConfig
@@ -265,9 +265,7 @@ type Config struct {
 	Requesters            RequesterConfig
 	VMOutputCacher        CacheConfig
 
-	PeersRatingConfig   PeersRatingConfig
-	PoolsCleanersConfig PoolsCleanersConfig
-	Redundancy          RedundancyConfig
+	PeersRatingConfig PeersRatingConfig
 
 	InterceptedDataVerifier InterceptedDataVerifierConfig
 }
@@ -382,29 +380,45 @@ type ProcessConfigByRound struct {
 
 	// RoundModulusTriggerWhenSyncIsStuck defines a round modulus on which a trigger for an action when sync is stuck will be released
 	RoundModulusTriggerWhenSyncIsStuck uint32
+
+	// MaxSyncWithErrorsAllowed defines the maximum allowed number of sync with errors,
+	// before a special action to be applied
+	MaxSyncWithErrorsAllowed uint32
+
+	// Max number of rounds unprocessed miniblocks are kept in pool
+	MaxRoundsToKeepUnprocessedMiniBlocks uint64
+
+	// Max number of rounds unprocessed transactions are kept in pool
+	MaxRoundsToKeepUnprocessedTransactions uint64
+
+	NumFloodingRoundsFastReacting uint32
+	NumFloodingRoundsSlowReacting uint32
+	NumFloodingRoundsOutOfSpecs   uint32
+
+	MaxConsecutiveRoundsOfRatingDecrease uint64
+	MaxRoundsOfInactivityAccepted        uint64
 }
 
 // GeneralSettingsConfig will hold the general settings for a node
 type GeneralSettingsConfig struct {
 	StatusPollingIntervalSec int
 	// TODO: add config per epoch for supernova
-	MaxComputableRounds                  uint64
-	MaxConsecutiveRoundsOfRatingDecrease uint64
-	StartInEpochEnabled                  bool
-	ChainID                              string
-	MinTransactionVersion                uint32
-	GenesisString                        string
-	GenesisMaxNumberOfShards             uint32
-	SyncProcessTimeInMillis              uint32
-	SyncProcessTimeSupernovaInMillis     uint32
-	SetGuardianEpochsDelay               uint32
-	ChainParametersByEpoch               []ChainParametersByEpochConfig
-	EpochChangeGracePeriodByEpoch        []EpochChangeGracePeriodByEpoch
-	ProcessConfigsByEpoch                []ProcessConfigByEpoch
-	ProcessConfigsByRound                []ProcessConfigByRound
-	EpochStartConfigsByEpoch             []EpochStartConfigByEpoch
-	EpochStartConfigsByRound             []EpochStartConfigByRound
-	ConsensusConfigsByEpoch              []ConsensusConfigByEpoch
+	MaxComputableRounds              uint64
+	StartInEpochEnabled              bool
+	ChainID                          string
+	MinTransactionVersion            uint32
+	GenesisString                    string
+	GenesisMaxNumberOfShards         uint32
+	SyncProcessTimeInMillis          uint32
+	SyncProcessTimeSupernovaInMillis uint32
+	SetGuardianEpochsDelay           uint32
+	ChainParametersByEpoch           []ChainParametersByEpochConfig
+	EpochChangeGracePeriodByEpoch    []EpochChangeGracePeriodByEpoch
+	ProcessConfigsByEpoch            []ProcessConfigByEpoch
+	ProcessConfigsByRound            []ProcessConfigByRound `toml:"ProcessConfigsByRound"`
+	EpochStartConfigsByEpoch         []EpochStartConfigByEpoch
+	EpochStartConfigsByRound         []EpochStartConfigByRound
+	ConsensusConfigsByEpoch          []ConsensusConfigByEpoch
 }
 
 // HardwareRequirementsConfig will hold the hardware requirements config
@@ -466,9 +480,7 @@ type WebServerAntifloodConfig struct {
 type BlackListConfig struct {
 	ThresholdNumMessagesPerInterval uint32
 	ThresholdSizePerInterval        uint64
-	// TODO: add config per epoch for supernova
-	NumFloodingRounds        uint32
-	PeerBanDurationInSeconds uint32
+	PeerBanDurationInSeconds        uint32
 }
 
 // TopicMaxMessagesConfig will hold the maximum number of messages/sec per topic value
@@ -775,18 +787,6 @@ type RequesterConfig struct {
 	NumFullHistoryPeers uint32
 }
 
-// PoolsCleanersConfig represents the config options to be used by the pools cleaners
-type PoolsCleanersConfig struct {
-	MaxRoundsToKeepUnprocessedMiniBlocks   int64
-	MaxRoundsToKeepUnprocessedTransactions int64
-}
-
-// RedundancyConfig represents the config options to be used when setting the redundancy configuration
-type RedundancyConfig struct {
-	// TODO: add config per epoch for supernova
-	MaxRoundsOfInactivityAccepted int
-}
-
 // ChainParametersByEpochConfig holds chain parameters that are configurable based on epochs
 type ChainParametersByEpochConfig struct {
 	RoundDuration               uint64
@@ -799,6 +799,7 @@ type ChainParametersByEpochConfig struct {
 	MetachainConsensusGroupSize uint32
 	MetachainMinNumNodes        uint32
 	Adaptivity                  bool
+	Offset                      uint16
 }
 
 // IndexBroadcastDelay holds a pair of starting consensus index and the delay the nodes should wait before broadcasting final info

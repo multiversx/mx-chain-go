@@ -2,6 +2,7 @@ package block_test
 
 import (
 	"bytes"
+	"errors"
 	"math/big"
 	"testing"
 	"time"
@@ -10,11 +11,13 @@ import (
 	"github.com/multiversx/mx-chain-core-go/data"
 	"github.com/multiversx/mx-chain-core-go/data/block"
 	"github.com/multiversx/mx-chain-core-go/marshal"
+	"github.com/stretchr/testify/require"
+
 	"github.com/multiversx/mx-chain-go/dataRetriever"
 	"github.com/multiversx/mx-chain-go/storage"
 	"github.com/multiversx/mx-chain-go/testscommon/epochNotifier"
+	statusHandlerMock "github.com/multiversx/mx-chain-go/testscommon/statusHandler"
 	storageStubs "github.com/multiversx/mx-chain-go/testscommon/storage"
-	"github.com/stretchr/testify/require"
 
 	"github.com/multiversx/mx-chain-go/process/estimator"
 	"github.com/multiversx/mx-chain-go/state"
@@ -3219,6 +3222,15 @@ func TestMetaProcessor_processIfFirstBlockAfterEpochStartBlockV3(t *testing.T) {
 func TestMetaProcessor_processEpochStartProposeBlock(t *testing.T) {
 	t.Parallel()
 
+	defaultMetaBlockV3 := block.MetaBlockV3{
+		LastExecutionResult: &block.MetaExecutionResultInfo{
+			ExecutionResult: &block.BaseMetaExecutionResult{
+				AccumulatedFeesInEpoch: big.NewInt(0),
+				DevFeesInEpoch:         big.NewInt(0),
+			},
+		},
+	}
+
 	t.Run("should return ErrNilBlockHeader because of nil metaHeader argument", func(t *testing.T) {
 		t.Parallel()
 
@@ -3241,7 +3253,7 @@ func TestMetaProcessor_processEpochStartProposeBlock(t *testing.T) {
 		mp, err := blproc.NewMetaProcessor(arguments)
 		require.Nil(t, err)
 
-		_, err = mp.ProcessEpochStartProposeBlock(&block.MetaBlockV3{}, nil)
+		_, err = mp.ProcessEpochStartProposeBlock(&defaultMetaBlockV3, nil)
 		require.Equal(t, process.ErrNilBlockBody, err)
 	})
 
@@ -3254,7 +3266,7 @@ func TestMetaProcessor_processEpochStartProposeBlock(t *testing.T) {
 		mp, err := blproc.NewMetaProcessor(arguments)
 		require.Nil(t, err)
 
-		_, err = mp.ProcessEpochStartProposeBlock(&block.MetaBlockV3{}, &block.Body{
+		_, err = mp.ProcessEpochStartProposeBlock(&defaultMetaBlockV3, &block.Body{
 			MiniBlocks: []*block.MiniBlock{
 				{},
 			},
@@ -3279,7 +3291,7 @@ func TestMetaProcessor_processEpochStartProposeBlock(t *testing.T) {
 		})
 		require.Nil(t, err)
 
-		_, err = mp.ProcessEpochStartProposeBlock(&block.MetaBlockV3{}, &block.Body{})
+		_, err = mp.ProcessEpochStartProposeBlock(&defaultMetaBlockV3, &block.Body{})
 		require.Equal(t, expectedErr, err)
 	})
 
@@ -3304,7 +3316,7 @@ func TestMetaProcessor_processEpochStartProposeBlock(t *testing.T) {
 		require.Nil(t, err)
 
 		mp.SetEpochStartData(&blproc.EpochStartDataWrapper{})
-		_, err = mp.ProcessEpochStartProposeBlock(&block.MetaBlockV3{}, &block.Body{})
+		_, err = mp.ProcessEpochStartProposeBlock(&defaultMetaBlockV3, &block.Body{})
 		require.Equal(t, expectedErr, err)
 	})
 
@@ -3339,7 +3351,7 @@ func TestMetaProcessor_processEpochStartProposeBlock(t *testing.T) {
 
 		mp.SetEpochStartData(&blproc.EpochStartDataWrapper{})
 
-		_, err = mp.ProcessEpochStartProposeBlock(&block.MetaBlockV3{}, &block.Body{})
+		_, err = mp.ProcessEpochStartProposeBlock(&defaultMetaBlockV3, &block.Body{})
 		require.Equal(t, expectedErr, err)
 	})
 
@@ -3378,7 +3390,7 @@ func TestMetaProcessor_processEpochStartProposeBlock(t *testing.T) {
 
 		mp.SetEpochStartData(&blproc.EpochStartDataWrapper{})
 
-		_, err = mp.ProcessEpochStartProposeBlock(&block.MetaBlockV3{}, &block.Body{})
+		_, err = mp.ProcessEpochStartProposeBlock(&defaultMetaBlockV3, &block.Body{})
 		require.Equal(t, expectedErr, err)
 	})
 
@@ -3413,7 +3425,7 @@ func TestMetaProcessor_processEpochStartProposeBlock(t *testing.T) {
 
 		mp.SetEpochStartData(&blproc.EpochStartDataWrapper{})
 
-		_, err = mp.ProcessEpochStartProposeBlock(&block.MetaBlockV3{}, &block.Body{})
+		_, err = mp.ProcessEpochStartProposeBlock(&defaultMetaBlockV3, &block.Body{})
 		require.Equal(t, expectedErr, err)
 	})
 
@@ -3449,7 +3461,7 @@ func TestMetaProcessor_processEpochStartProposeBlock(t *testing.T) {
 
 		mp.SetEpochStartData(&blproc.EpochStartDataWrapper{})
 
-		_, err = mp.ProcessEpochStartProposeBlock(&block.MetaBlockV3{}, &block.Body{})
+		_, err = mp.ProcessEpochStartProposeBlock(&defaultMetaBlockV3, &block.Body{})
 		require.Equal(t, expectedErr, err)
 	})
 
@@ -3483,20 +3495,22 @@ func TestMetaProcessor_processEpochStartProposeBlock(t *testing.T) {
 			},
 		})
 
-		_, err = mp.ProcessEpochStartProposeBlock(&block.MetaBlockV3{
-			LastExecutionResult: &block.MetaExecutionResultInfo{
-				ExecutionResult: &block.BaseMetaExecutionResult{
-					AccumulatedFeesInEpoch: big.NewInt(0),
-					DevFeesInEpoch:         big.NewInt(0),
-				},
-			},
-		}, &block.Body{})
+		_, err = mp.ProcessEpochStartProposeBlock(&defaultMetaBlockV3, &block.Body{})
 		require.Nil(t, err)
 	})
 }
 
 func TestMetaProcessor_processEconomicsDataForEpochStartProposeBlock(t *testing.T) {
 	t.Parallel()
+
+	defaultMetaBlockV3 := block.MetaBlockV3{
+		LastExecutionResult: &block.MetaExecutionResultInfo{
+			ExecutionResult: &block.BaseMetaExecutionResult{
+				AccumulatedFeesInEpoch: big.NewInt(0),
+				DevFeesInEpoch:         big.NewInt(0),
+			},
+		},
+	}
 
 	t.Run("should return ErrNilBaseExecutionResult error on nil last execution result", func(t *testing.T) {
 		t.Parallel()
@@ -3510,7 +3524,7 @@ func TestMetaProcessor_processEconomicsDataForEpochStartProposeBlock(t *testing.
 		})
 		require.Nil(t, err)
 
-		err = mp.ProcessEconomicsDataForEpochStartProposeBlock(&block.MetaBlockV3{})
+		err = mp.ProcessEconomicsDataForEpochStartProposeBlock(&defaultMetaBlockV3)
 		require.ErrorContains(t, err, process.ErrNilBaseExecutionResult.Error())
 	})
 
@@ -3526,7 +3540,7 @@ func TestMetaProcessor_processEconomicsDataForEpochStartProposeBlock(t *testing.
 		})
 		require.Nil(t, err)
 
-		err = mp.ProcessEconomicsDataForEpochStartProposeBlock(&block.MetaBlockV3{})
+		err = mp.ProcessEconomicsDataForEpochStartProposeBlock(&defaultMetaBlockV3)
 		require.Equal(t, common.ErrWrongTypeAssertion, err)
 	})
 
@@ -3547,7 +3561,7 @@ func TestMetaProcessor_processEconomicsDataForEpochStartProposeBlock(t *testing.
 		})
 		require.Nil(t, err)
 
-		err = mp.ProcessEconomicsDataForEpochStartProposeBlock(&block.MetaBlockV3{})
+		err = mp.ProcessEconomicsDataForEpochStartProposeBlock(&defaultMetaBlockV3)
 		require.Equal(t, expectedErr, err)
 	})
 
@@ -3575,7 +3589,7 @@ func TestMetaProcessor_processEconomicsDataForEpochStartProposeBlock(t *testing.
 		})
 		require.Nil(t, err)
 
-		err = mp.ProcessEconomicsDataForEpochStartProposeBlock(&block.MetaBlockV3{})
+		err = mp.ProcessEconomicsDataForEpochStartProposeBlock(&defaultMetaBlockV3)
 		require.Equal(t, expectedErr, err)
 	})
 
@@ -3604,7 +3618,7 @@ func TestMetaProcessor_processEconomicsDataForEpochStartProposeBlock(t *testing.
 		require.Nil(t, err)
 
 		mp.SetEpochStartData(&blproc.EpochStartDataWrapper{})
-		err = mp.ProcessEconomicsDataForEpochStartProposeBlock(&block.MetaBlockV3{})
+		err = mp.ProcessEconomicsDataForEpochStartProposeBlock(&defaultMetaBlockV3)
 		require.Nil(t, err)
 	})
 }
@@ -3851,6 +3865,14 @@ func TestMetaProcessor_collectExecutionResultsEpochStartProposal(t *testing.T) {
 func TestMetaProcessor_ProcessBlockProposal(t *testing.T) {
 	t.Parallel()
 
+	defaultMetaBlockV3 := block.MetaBlockV3{
+		LastExecutionResult: &block.MetaExecutionResultInfo{
+			ExecutionResult: &block.BaseMetaExecutionResult{
+				AccumulatedFeesInEpoch: big.NewInt(0),
+				DevFeesInEpoch:         big.NewInt(0),
+			},
+		},
+	}
 	t.Run("should return ErrNilBlockHeader because of nil argument", func(t *testing.T) {
 		t.Parallel()
 
@@ -3950,7 +3972,7 @@ func TestMetaProcessor_ProcessBlockProposal(t *testing.T) {
 		require.Nil(t, err)
 
 		_, err = mp.ProcessBlockProposal(&block.MetaBlockV3{}, &block.Body{})
-		require.Equal(t, process.ErrAccountStateDirty, err)
+		require.True(t, errors.Is(err, process.ErrAccountStateDirty))
 	})
 
 	t.Run("if checking context fails, the error should be propagated", func(t *testing.T) {
@@ -4288,7 +4310,7 @@ func TestMetaProcessor_ProcessBlockProposal(t *testing.T) {
 				return &block.MetaExecutionResult{}
 			},
 			GetLastExecutedBlockHeaderCalled: func() data.HeaderHandler {
-				return &block.MetaBlockV3{}
+				return &defaultMetaBlockV3
 			},
 		}
 
@@ -4314,9 +4336,9 @@ func TestMetaProcessor_ProcessBlockProposal(t *testing.T) {
 		mp, err := blproc.NewMetaProcessor(arguments)
 		require.Nil(t, err)
 
-		_, err = mp.ProcessBlockProposal(&block.MetaBlockV3{
-			Nonce: 1,
-		}, &block.Body{})
+		newBlock := defaultMetaBlockV3
+		newBlock.Nonce = 1
+		_, err = mp.ProcessBlockProposal(&newBlock, &block.Body{})
 		require.Equal(t, expectedErr, err)
 	})
 
@@ -4329,7 +4351,7 @@ func TestMetaProcessor_ProcessBlockProposal(t *testing.T) {
 				return &block.MetaExecutionResult{}
 			},
 			GetLastExecutedBlockHeaderCalled: func() data.HeaderHandler {
-				return &block.MetaBlockV3{}
+				return &defaultMetaBlockV3
 			},
 		}
 
@@ -4342,9 +4364,9 @@ func TestMetaProcessor_ProcessBlockProposal(t *testing.T) {
 		mp, err := blproc.NewMetaProcessor(arguments)
 		require.Nil(t, err)
 
-		_, err = mp.ProcessBlockProposal(&block.MetaBlockV3{
-			Nonce: 1,
-		}, &block.Body{})
+		newBlock := defaultMetaBlockV3
+		newBlock.Nonce = 1
+		_, err = mp.ProcessBlockProposal(&newBlock, &block.Body{})
 		require.Equal(t, expectedErr, err)
 	})
 
@@ -4601,5 +4623,6 @@ func createMetaProcessorMapForCreatingEpochStart() map[string]interface{} {
 				return 1 // allow the inclusion of the first execution result
 			},
 		},
+		"appStatusHandler": &statusHandlerMock.AppStatusHandlerStub{},
 	}
 }

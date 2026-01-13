@@ -1,6 +1,9 @@
 package txcache
 
 import (
+	"encoding/hex"
+	"fmt"
+
 	"github.com/multiversx/mx-chain-core-go/data/block"
 )
 
@@ -30,7 +33,7 @@ func getTransactionsInBlock(
 		for _, txHash := range txHashes {
 			tx, ok := txCache.GetByTxHash(txHash)
 			if !ok {
-				return nil, errNotFoundTx
+				return nil, fmt.Errorf("%w for txHash: %s", errNotFoundTx, hex.EncodeToString(txHash))
 			}
 
 			txs = append(txs, tx)

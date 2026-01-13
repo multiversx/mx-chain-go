@@ -320,6 +320,7 @@ func (sr *subroundEndRound) finalizeConfirmedBlock() bool {
 	}
 
 	sr.updateConsensusMetricsProof()
+	sr.updateNonceDeltaMetrics()
 
 	if !sr.GetHeader().IsHeaderV3() {
 		ok := sr.ScheduledProcessor().IsProcessedOKWithTimeout()
@@ -393,7 +394,7 @@ func (sr *subroundEndRound) shouldSendProof() bool {
 		return false
 	}
 
-	return sr.IsSelfInConsensusGroup()
+	return sr.IsSelfInConsensusGroup() && spos.ShouldConsiderSelfKeyInConsensus(sr.NodeRedundancyHandler())
 }
 
 func (sr *subroundEndRound) aggregateSigsAndHandleInvalidSigners(bitmap []byte, sender string) ([]byte, []byte, error) {
@@ -672,7 +673,7 @@ func (sr *subroundEndRound) createAndBroadcastInvalidSigners(
 	invalidSignersPubKeys []string,
 	sender string,
 ) {
-	if !sr.ShouldConsiderSelfKeyInConsensus() && !sr.IsMultiKeyInConsensusGroup() {
+	if !spos.ShouldConsiderSelfKeyInConsensus(sr.NodeRedundancyHandler()) && !sr.IsMultiKeyInConsensusGroup() {
 		return
 	}
 
@@ -966,6 +967,17 @@ func (sr *subroundEndRound) getNumOfSignaturesCollected() int {
 	}
 
 	return n
+}
+
+func (sr *subroundEndRound) updateNonceDeltaMetrics() {
+	if !sr.GetHeader().IsHeaderV3() {
+		return
+	}
+
+	lastExecutionResultHeaderNonce := common.GetLastExecutionResultNonce(sr.GetHeader())
+
+	sr.appStatusHandler.SetUInt64Value(common.MetricDeltaHeaderNonceLastExecutionResultNonce,
+		sr.GetHeader().GetNonce()-lastExecutionResultHeaderNonce)
 }
 
 // updateConsensusMetricsProof sets the consensus metrics

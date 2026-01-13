@@ -3,6 +3,7 @@ package block
 import (
 	"bytes"
 	"fmt"
+	"strings"
 	"sync"
 
 	"github.com/multiversx/mx-chain-core-go/core/check"
@@ -14,13 +15,10 @@ import (
 	"github.com/multiversx/mx-chain-go/process"
 )
 
-// gasType defines the type of gas consumption
-type gasType uint8
-
 const (
-	incoming gasType = iota
-	outgoingIntra
-	outgoingCross
+	incoming = "incoming"
+	outgoing = "outgoing"
+	pending  = "pending"
 )
 
 const (
@@ -46,7 +44,7 @@ type gasConsumption struct {
 	economicsFee                     process.FeeHandler
 	shardCoordinator                 process.ShardCoordinator
 	gasHandler                       process.GasHandler
-	totalGasConsumed                 map[gasType]uint64
+	totalGasConsumed                 map[string]uint64
 	gasConsumedByMiniBlock           map[string]uint64
 	pendingMiniBlocks                []data.MiniBlockHeaderHandler
 	transactionsForPendingMiniBlocks map[string][]data.TransactionHandler
@@ -80,7 +78,7 @@ func NewGasConsumption(args ArgsGasConsumption) (*gasConsumption, error) {
 		economicsFee:                     args.EconomicsFee,
 		shardCoordinator:                 args.ShardCoordinator,
 		gasHandler:                       args.GasHandler,
-		totalGasConsumed:                 make(map[gasType]uint64),
+		totalGasConsumed:                 make(map[string]uint64),
 		gasConsumedByMiniBlock:           make(map[string]uint64),
 		transactionsForPendingMiniBlocks: make(map[string][]data.TransactionHandler),
 		incomingLimitFactor:              args.BlockCapacityOverestimationFactor,
@@ -124,11 +122,24 @@ func (gc *gasConsumption) AddIncomingMiniBlocks(
 		shouldSavePending, err = gc.addIncomingMiniBlock(miniBlocks[i], transactions, bandwidthForIncomingMiniBlocks)
 		if shouldSavePending {
 			// saving pending starting with idx i, as it was not included either
-			gc.pendingMiniBlocks = append(gc.pendingMiniBlocks, miniBlocks[i:]...)
 			for _, mb := range miniBlocks[i:] {
 				hashStr := string(mb.GetHash())
+				transactionsForMB, found := transactions[hashStr]
+				if !found {
+					log.Warn("could not find transaction for pending mini block", "hash", mb.GetHash())
+					return lastMiniBlockIndex, 0, fmt.Errorf("%w, could not find mini block hash in transactions map", process.ErrInvalidValue)
+				}
+				gasConsumedByPendingMb, errCheckPending := gc.checkGasConsumedByMiniBlock(mb, transactionsForMB)
+				if errCheckPending != nil {
+					log.Warn("failed to check gas consumed by pending mini block", "hash", mb.GetHash(), "error", errCheckPending)
+					return lastMiniBlockIndex, 0, errCheckPending
+				}
+
 				gc.transactionsForPendingMiniBlocks[hashStr] = transactions[hashStr]
+				gc.totalGasConsumed[pending] += gasConsumedByPendingMb
 			}
+
+			gc.pendingMiniBlocks = append(gc.pendingMiniBlocks, miniBlocks[i:]...)
 
 			return lastMiniBlockIndex, len(gc.pendingMiniBlocks), err
 		}
@@ -158,6 +169,7 @@ func (gc *gasConsumption) RevertIncomingMiniBlocks(miniBlockHashes [][]byte) {
 		isPending, idxInPendingSlice := gc.isPendingMiniBlock(miniBlockHash)
 		if isPending {
 			gc.revertPendingMiniBlock(miniBlockHash, idxInPendingSlice)
+			gc.totalGasConsumed[pending] -= gasConsumedByMb
 			continue
 		}
 
@@ -233,8 +245,6 @@ func (gc *gasConsumption) checkGasConsumedByMiniBlock(mb data.MiniBlockHeaderHan
 		if check.IfNil(tx) {
 			continue
 		}
-
-		// we only care about the gas consumed in receiver shard as all mini blocks are coming to current shard
 		_, gasConsumedInReceiverShard, err := gc.gasHandler.ComputeGasProvidedByTx(mb.GetSenderShardID(), mb.GetReceiverShardID(), tx)
 		if err != nil {
 			// do not save any pending mini blocks, as this one is invalid
@@ -242,7 +252,7 @@ func (gc *gasConsumption) checkGasConsumedByMiniBlock(mb data.MiniBlockHeaderHan
 		}
 
 		maxGasLimitPerTx := gc.economicsFee.MaxGasLimitPerTx()
-		if gasConsumedInReceiverShard > maxGasLimitPerTx {
+		if gasConsumedInReceiverShard > maxGasLimitPerTx || tx.GetGasLimit() > maxGasLimitPerTx {
 			// this should not happen, transactions with higher gas should have been already rejected
 			// return the last saved mini block, and the proper error, without saving the rest of mini blocks
 			// do not save any pending mini blocks, as this one is invalid
@@ -253,13 +263,18 @@ func (gc *gasConsumption) checkGasConsumedByMiniBlock(mb data.MiniBlockHeaderHan
 	}
 
 	maxGasLimitPerMB := gc.maxGasLimitPerMiniBlock(mb.GetReceiverShardID())
-	if gasConsumedByMB > maxGasLimitPerMB {
-		// return the last saved mini block, and the proper error, without saving the rest of mini blocks
-		// do not save any pending mini blocks, as this one is invalid
-		return 0, process.ErrMaxGasLimitPerMiniBlockIsReached
+	if gasConsumedByMB <= maxGasLimitPerMB {
+		return gasConsumedByMB, nil
 	}
 
-	return gasConsumedByMB, nil
+	// if the limit for mini block is reached and:
+	//	- there is only one tx that satisfied the MaxGasLimitPerTx, allow it into the block
+	//	- there are more than one tx, return error
+	if len(transactionsForMB) == 1 {
+		return gasConsumedByMB, nil
+	}
+
+	return 0, process.ErrMaxGasLimitPerMiniBlockIsReached
 }
 
 func (gc *gasConsumption) addPendingIncomingMiniBlocks() ([]data.MiniBlockHeaderHandler, error) {
@@ -281,13 +296,24 @@ func (gc *gasConsumption) addPendingIncomingMiniBlocks() ([]data.MiniBlockHeader
 	lastIndexAdded := 0
 	for i := 0; i < len(gc.pendingMiniBlocks); i++ {
 		mb := gc.pendingMiniBlocks[i]
-		_, err := gc.addIncomingMiniBlock(mb, gc.transactionsForPendingMiniBlocks, bandwidthForIncomingMiniBlocks)
+		gasConsumedByIncomingBefore := gc.totalGasConsumed[incoming]
+		shouldSavePending, err := gc.addIncomingMiniBlock(mb, gc.transactionsForPendingMiniBlocks, bandwidthForIncomingMiniBlocks)
 		if err != nil {
 			return nil, err
+		}
+		// if should save pending, it means the limit was reached, thus break the loop
+		if shouldSavePending {
+			break
 		}
 
 		addedMiniBlocks = append(addedMiniBlocks, mb)
 		lastIndexAdded = i
+
+		gasConsumedByIncomingAfter := gc.totalGasConsumed[incoming]
+		gasConsumedByMiniBlock := gasConsumedByIncomingAfter - gasConsumedByIncomingBefore
+		if gasConsumedByMiniBlock <= gc.totalGasConsumed[pending] {
+			gc.totalGasConsumed[pending] -= gasConsumedByMiniBlock
+		}
 	}
 
 	gc.pendingMiniBlocks = gc.pendingMiniBlocks[lastIndexAdded+1:]
@@ -368,7 +394,9 @@ func (gc *gasConsumption) checkGasConsumedByTx(
 		return 0, 0, err
 	}
 	maxGasLimitPerTx := gc.economicsFee.MaxGasLimitPerTx()
-	if gasConsumedInSenderShard > maxGasLimitPerTx || gasConsumedInReceiverShard > maxGasLimitPerTx {
+	if gasConsumedInSenderShard > maxGasLimitPerTx ||
+		gasConsumedInReceiverShard > maxGasLimitPerTx ||
+		tx.GetGasLimit() > maxGasLimitPerTx {
 		// this should not happen, transactions with higher gas should have been already rejected
 		// return the last saved transaction, and the proper error, without saving the rest of transactions
 		return 0, 0, process.ErrMaxGasLimitPerTransactionIsReached
@@ -385,15 +413,17 @@ func (gc *gasConsumption) checkShardsLimits(
 ) bool {
 	isCrossShard := senderShard != receiverShard
 
-	bandwidthForOutgoingTransactionsIntra := gc.getGasLimitForOneDirection(outgoingIntra, senderShard)
+	gasKeyOutgoingIntra := gc.getGasKeyForOutgoingShard(senderShard)
+	gasKeyOutgoingCross := gc.getGasKeyForOutgoingShard(receiverShard)
+	bandwidthForOutgoingTransactionsIntra := gc.getGasLimitForOneDirection(gasKeyOutgoingIntra, senderShard)
 	// if mini blocks are already handled, use the space left only for intra shard limit
 	bandwidthForOutgoingTransactionsIntra += gc.getGasLeftFromMiniBlocks(senderShard)
 
-	txsLimitReachedIntra := gc.totalGasConsumed[outgoingIntra]+gasConsumedInSenderShard > bandwidthForOutgoingTransactionsIntra
+	txsLimitReachedIntra := gc.totalGasConsumed[gasKeyOutgoingIntra]+gasConsumedInSenderShard > bandwidthForOutgoingTransactionsIntra
 	txsLimitReachedCross := false
 	if isCrossShard {
-		bandwidthForOutgoingCrossTransactions := gc.getGasLimitForOneDirection(outgoingCross, receiverShard)
-		txsLimitReachedCross = gc.totalGasConsumed[outgoingCross]+gasConsumedInReceiverShard > bandwidthForOutgoingCrossTransactions
+		bandwidthForOutgoingCrossTransactions := gc.getGasLimitForOneDirection(gasKeyOutgoingCross, receiverShard)
+		txsLimitReachedCross = gc.totalGasConsumed[gasKeyOutgoingCross]+gasConsumedInReceiverShard > bandwidthForOutgoingCrossTransactions
 	}
 
 	// if one of the limits is reached, do not count the remaining gas
@@ -403,9 +433,9 @@ func (gc *gasConsumption) checkShardsLimits(
 	}
 
 	// add the consumed gas, for receiver shard too if needed
-	gc.totalGasConsumed[outgoingIntra] += gasConsumedInSenderShard
+	gc.totalGasConsumed[gasKeyOutgoingIntra] += gasConsumedInSenderShard
 	if isCrossShard {
-		gc.totalGasConsumed[outgoingCross] += gasConsumedInReceiverShard
+		gc.totalGasConsumed[gasKeyOutgoingCross] += gasConsumedInReceiverShard
 	}
 
 	return false
@@ -422,8 +452,9 @@ func (gc *gasConsumption) getGasLeftFromMiniBlocks(senderShard uint32) uint64 {
 }
 
 func (gc *gasConsumption) getGasLeftFromTransactions() uint64 {
-	bandwidthForOutgoingIntra := gc.getGasLimitForOneDirection(outgoingIntra, gc.shardCoordinator.SelfId())
-	gasConsumedByOutgoingIntra := gc.totalGasConsumed[outgoingIntra]
+	gasKeyOutgoingIntra := gc.getGasKeyForOutgoingShard(gc.shardCoordinator.SelfId())
+	bandwidthForOutgoingIntra := gc.getGasLimitForOneDirection(gasKeyOutgoingIntra, gc.shardCoordinator.SelfId())
+	gasConsumedByOutgoingIntra := gc.totalGasConsumed[gasKeyOutgoingIntra]
 	if gasConsumedByOutgoingIntra >= bandwidthForOutgoingIntra {
 		return 0
 	}
@@ -441,17 +472,50 @@ func (gc *gasConsumption) GetBandwidthForTransactions() uint64 {
 	return gasLeftFromMiniBlocks + gasLeftFromTransactions
 }
 
-// TotalGasConsumed returns the total gas consumed for both incoming and outgoing transactions
-func (gc *gasConsumption) TotalGasConsumed() uint64 {
+// TotalGasConsumedInSelfShard returns the total gas consumed for both incoming and outgoing transactions in self shard
+func (gc *gasConsumption) TotalGasConsumedInSelfShard() uint64 {
 	gc.mut.RLock()
 	defer gc.mut.RUnlock()
 
+	totalGasConsumedInSelfShard := gc.totalGasConsumed[incoming]
+	gasKeyOutgoingIntra := gc.getGasKeyForOutgoingShard(gc.shardCoordinator.SelfId())
+	totalGasConsumedInSelfShard += gc.totalGasConsumed[gasKeyOutgoingIntra]
+
+	return totalGasConsumedInSelfShard
+}
+
+// TotalGasConsumedInShard returns the total gas consumed for outgoing transactions in the provided shard
+func (gc *gasConsumption) TotalGasConsumedInShard(shard uint32) uint64 {
+	gc.mut.RLock()
+	defer gc.mut.RUnlock()
+
+	gasKeyOutgoingCross := gc.getGasKeyForOutgoingShard(shard)
+	return gc.totalGasConsumed[gasKeyOutgoingCross]
+}
+
+// CanAddPendingIncomingMiniBlocks returns true if more pending incoming mini blocks can be added without reaching the block limits
+func (gc *gasConsumption) CanAddPendingIncomingMiniBlocks() bool {
+	gc.mut.RLock()
+	defer gc.mut.RUnlock()
+
+	totalGasToBeConsumedByPending := uint64(0)
 	totalGasConsumed := uint64(0)
-	for _, gasConsumed := range gc.totalGasConsumed {
+	for typeOfGas, gasConsumed := range gc.totalGasConsumed {
+		if typeOfGas == pending {
+			totalGasToBeConsumedByPending += gasConsumed
+			continue
+		}
+
 		totalGasConsumed += gasConsumed
 	}
 
-	return totalGasConsumed
+	maxGasLimitPerBlock := gc.maxGasLimitPerBlock(incoming, gc.shardCoordinator.SelfId())
+	if maxGasLimitPerBlock <= totalGasConsumed {
+		return false
+	}
+
+	gasLeft := maxGasLimitPerBlock - totalGasConsumed
+	return totalGasToBeConsumedByPending < gasLeft
 }
 
 // DecreaseIncomingLimit reduces the gas limit for incoming mini blocks by a configured percentage
@@ -531,7 +595,7 @@ func (gc *gasConsumption) Reset() {
 	gc.mut.Lock()
 	defer gc.mut.Unlock()
 
-	gc.totalGasConsumed = make(map[gasType]uint64)
+	gc.totalGasConsumed = make(map[string]uint64)
 	gc.gasConsumedByMiniBlock = make(map[string]uint64)
 	gc.pendingMiniBlocks = make([]data.MiniBlockHeaderHandler, 0)
 	gc.transactionsForPendingMiniBlocks = make(map[string][]data.TransactionHandler, 0)
@@ -548,15 +612,20 @@ func (gc *gasConsumption) GetPendingMiniBlocks() []data.MiniBlockHeaderHandler {
 	return pendingMbs
 }
 
-func (gc *gasConsumption) getGasLimitForOneDirection(gasType gasType, shardID uint32) uint64 {
+func (gc *gasConsumption) getGasLimitForOneDirection(gasType string, shardID uint32) uint64 {
 	totalBlockLimit := gc.maxGasLimitPerBlock(gasType, shardID)
+	if shardID != gc.shardCoordinator.SelfId() {
+		// allow the full block for receiver shard
+		return totalBlockLimit
+	}
+
 	return totalBlockLimit * percentSplitBlock / 100
 }
 
 // must be called under mutex protection as it access blockLimitFactor
-func (gc *gasConsumption) maxGasLimitPerBlock(gasType gasType, shardID uint32) uint64 {
+func (gc *gasConsumption) maxGasLimitPerBlock(gasType string, shardID uint32) uint64 {
 	limitFactor := gc.incomingLimitFactor
-	if gasType == outgoingIntra || gasType == outgoingCross {
+	if strings.Contains(gasType, outgoing) {
 		limitFactor = gc.outgoingLimitFactor
 	}
 
@@ -576,6 +645,10 @@ func (gc *gasConsumption) maxGasLimitPerMiniBlock(shardID uint32) uint64 {
 	}
 
 	return gc.economicsFee.MaxGasLimitPerMiniBlock(shardID)
+}
+
+func (gc *gasConsumption) getGasKeyForOutgoingShard(shard uint32) string {
+	return fmt.Sprintf("%s_%d", outgoing, shard)
 }
 
 // IsInterfaceNil checks if the interface is nil

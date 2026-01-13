@@ -13,6 +13,7 @@ import (
 	"github.com/multiversx/mx-chain-core-go/display"
 	"github.com/multiversx/mx-chain-core-go/hashing"
 	"github.com/multiversx/mx-chain-core-go/marshal"
+	commonMocks "github.com/multiversx/mx-chain-go/testscommon/common"
 
 	"github.com/multiversx/mx-chain-go/common"
 	"github.com/multiversx/mx-chain-go/common/configs"
@@ -154,8 +155,18 @@ func NewShardProcessorEmptyWith3shards(
 		MaxShardNoncesBehind:              15,
 	}},
 		[]config.ProcessConfigByRound{
-			{EnableRound: 0, MaxRoundsWithoutNewBlockReceived: 10},
+			{
+				EnableRound:                            0,
+				MaxRoundsWithoutNewBlockReceived:       10,
+				MaxRoundsToKeepUnprocessedMiniBlocks:   50,
+				MaxRoundsToKeepUnprocessedTransactions: 50,
+				NumFloodingRoundsSlowReacting:          20,
+				NumFloodingRoundsFastReacting:          30,
+				NumFloodingRoundsOutOfSpecs:            40,
+				MaxConsecutiveRoundsOfRatingDecrease:   600,
+			},
 		},
+		&epochNotifier.RoundNotifierStub{},
 	)
 
 	coreComponents := &mock.CoreComponentsMock{
@@ -214,6 +225,7 @@ func NewShardProcessorEmptyWith3shards(
 		Headers:                 dataComponents.Datapool().Headers(),
 		StorageService:          dataComponents.StorageService(),
 		Marshaller:              coreComponents.InternalMarshalizer(),
+		ShardCoordinator:        boostrapComponents.ShardCoordinator(),
 	})
 	execResultsVerifier, _ := NewExecutionResultsVerifier(dataComponents.BlockChain, execManager)
 	inclusionEstimator := estimator.NewExecutionResultInclusionEstimator(
@@ -283,6 +295,7 @@ func NewShardProcessorEmptyWith3shards(
 			ExecutionResultsInclusionEstimator: inclusionEstimator,
 			GasComputation:                     gasComputation,
 			ExecutionManager:                   execManager,
+			TxExecutionOrderHandler:            &commonMocks.TxExecutionOrderHandlerStub{},
 		},
 	}
 	shardProc, err := NewShardProcessor(arguments)
@@ -726,13 +739,31 @@ func (sp *shardProcessor) GetHdrForBlock() HeadersForBlock {
 	return sp.hdrsForCurrBlock
 }
 
+// PendingMiniBlocksAfterSelection -
+type PendingMiniBlocksAfterSelection = pendingMiniBlocksAfterSelection
+
+// GetHeaderHash -
+func (p *PendingMiniBlocksAfterSelection) GetHeaderHash() []byte {
+	return p.headerHash
+}
+
+// GetHeader -
+func (p *PendingMiniBlocksAfterSelection) GetHeader() data.HeaderHandler {
+	return p.header
+}
+
+// GetMiniBlocksAndHashes -
+func (p *PendingMiniBlocksAfterSelection) GetMiniBlocksAndHashes() []block.MiniblockAndHash {
+	return p.pendingMiniBlocksAndHashes
+}
+
 // SelectIncomingMiniBlocks -
 func (sp *shardProcessor) SelectIncomingMiniBlocks(
 	lastCrossNotarizedMetaHdr data.HeaderHandler,
 	orderedMetaBlocks []data.HeaderHandler,
 	orderedMetaBlocksHashes [][]byte,
 	haveTime func() bool,
-) ([]block.MiniblockAndHash, error) {
+) ([]*PendingMiniBlocksAfterSelection, error) {
 	return sp.selectIncomingMiniBlocks(lastCrossNotarizedMetaHdr, orderedMetaBlocks, orderedMetaBlocksHashes, haveTime)
 }
 

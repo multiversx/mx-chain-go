@@ -46,6 +46,7 @@ type ArgOutportDataProvider struct {
 	EnableEpochsHandler      common.EnableEpochsHandler
 	StateAccessesCollector   state.StateAccessesCollector
 	RoundHandler             RoundHandler
+	RewardsGetter            EpochRewardsGetter
 }
 
 // ArgPrepareOutportSaveBlockData holds the arguments needed for prepare outport save block data
@@ -78,6 +79,7 @@ type outportDataProvider struct {
 	enableEpochsHandler      common.EnableEpochsHandler
 	StateAccessesCollector   state.StateAccessesCollector
 	roundHandler             RoundHandler
+	rewardsGetter            EpochRewardsGetter
 }
 
 // NewOutportDataProvider will create a new instance of outportDataProvider
@@ -98,6 +100,7 @@ func NewOutportDataProvider(arg ArgOutportDataProvider) (*outportDataProvider, e
 		enableEpochsHandler:      arg.EnableEpochsHandler,
 		StateAccessesCollector:   arg.StateAccessesCollector,
 		roundHandler:             arg.RoundHandler,
+		rewardsGetter:            arg.RewardsGetter,
 	}, nil
 }
 
@@ -120,16 +123,19 @@ func (odp *outportDataProvider) PrepareOutportSaveBlockData(arg ArgPrepareOutpor
 		return nil, fmt.Errorf("transactionsFeeProcessor.PutFeeAndGasUsed %w", err)
 	}
 
-	orderedTxHashes, foundTxHashes := odp.setExecutionOrderInTransactionPool(pool)
+	if !arg.Header.IsHeaderV3() {
+		items := odp.executionOrderHandler.GetItems()
+		orderedTxHashes, foundTxHashes := odp.setExecutionOrderInTransactionPool(pool, items)
 
-	executedTxs, err := collectExecutedTxHashes(arg.Body, arg.Header)
-	if err != nil {
-		log.Warn("PrepareOutportSaveBlockData - collectExecutedTxHashes", "error", err)
-	}
+		executedTxs, errC := collectExecutedTxHashes(arg.Body, arg.Header)
+		if errC != nil {
+			log.Warn("PrepareOutportSaveBlockData - collectExecutedTxHashes", "error", errC)
+		}
 
-	err = checkTxOrder(orderedTxHashes, executedTxs, foundTxHashes)
-	if err != nil {
-		log.Warn("PrepareOutportSaveBlockData - checkTxOrder", "error", err.Error())
+		err = checkTxOrder(orderedTxHashes, executedTxs, foundTxHashes)
+		if err != nil {
+			log.Warn("PrepareOutportSaveBlockData - checkTxOrder", "error", err.Error())
+		}
 	}
 
 	alteredAccounts, err := odp.alteredAccountsProvider.ExtractAlteredAccountsFromPool(pool, shared.AlteredAccountsOptions{
@@ -203,6 +209,7 @@ func (odp *outportDataProvider) prepareExecutionResultsData(args ArgPrepareOutpo
 		return results, nil
 	}
 
+	isMeta := odp.shardID == core.MetachainShardId
 	for _, executionResult := range args.Header.GetExecutionResultsHandlers() {
 		headerHash := executionResult.GetHeaderHash()
 
@@ -219,6 +226,13 @@ func (odp *outportDataProvider) prepareExecutionResultsData(args ArgPrepareOutpo
 		if err != nil {
 			return nil, err
 		}
+
+		putInMapTxsFromBody(odp.dataPool, body, odp.shardID, cachedTxs)
+
+		if isMeta && hasRewardsOnBody(body) {
+			cachedTxs[block.RewardsBlock] = odp.rewardsGetter.GetRewardsTxs(body)
+		}
+
 		cachedLogs, err := common.GetCachedLogs(odp.dataPool.PostProcessTransactions(), headerHash)
 		if err != nil {
 			return nil, err
@@ -233,7 +247,11 @@ func (odp *outportDataProvider) prepareExecutionResultsData(args ArgPrepareOutpo
 			return nil, fmt.Errorf("transactionsFeeProcessor.PutFeeAndGasUsed %w", err)
 		}
 
-		_, _ = odp.setExecutionOrderInTransactionPool(pool)
+		orderedTxHashes, err := common.GetCachedOrderedTxHashes(odp.dataPool.PostProcessTransactions(), headerHash)
+		if err != nil {
+			return nil, err
+		}
+		_, _ = odp.setExecutionOrderInTransactionPool(pool, orderedTxHashes)
 
 		alteredAccounts, err := odp.alteredAccountsProvider.ExtractAlteredAccountsFromPool(pool, shared.AlteredAccountsOptions{
 			WithAdditionalOutportData: true,
@@ -256,6 +274,16 @@ func (odp *outportDataProvider) prepareExecutionResultsData(args ArgPrepareOutpo
 	}
 
 	return results, nil
+}
+
+func hasRewardsOnBody(body *block.Body) bool {
+	for _, mb := range body.MiniBlocks {
+		if mb.Type == block.RewardsBlock {
+			return true
+		}
+	}
+
+	return false
 }
 
 func collectExecutedTxHashes(bodyHandler data.BodyHandler, headerHandler data.HeaderHandler) (map[string]struct{}, error) {
@@ -312,8 +340,8 @@ func extractExecutedTxsFromMb(mbHeader data.MiniBlockHeaderHandler, miniBlock *b
 
 func (odp *outportDataProvider) setExecutionOrderInTransactionPool(
 	pool *outportcore.TransactionPool,
+	orderedTxHashes [][]byte,
 ) ([][]byte, int) {
-	orderedTxHashes := odp.executionOrderHandler.GetItems()
 	if pool == nil {
 		return orderedTxHashes, 0
 	}
@@ -626,4 +654,57 @@ func (odp *outportDataProvider) filterOutDuplicatedMiniBlocks(miniBlocksFromBody
 	}
 
 	return filteredMiniBlocks, nil
+}
+
+func putInMapTxsFromBody(
+	dataPool dataRetriever.PoolsHolder,
+	body *block.Body,
+	selfShardID uint32,
+	txs map[block.Type]map[string]data.TransactionHandler,
+) {
+	for _, t := range []block.Type{block.TxBlock, block.SmartContractResultBlock, block.RewardsBlock} {
+		if txs[t] == nil {
+			txs[t] = make(map[string]data.TransactionHandler)
+		}
+	}
+
+	for _, mb := range body.MiniBlocks {
+		isCrossSCRBlockFromMe := mb.Type == block.SmartContractResultBlock && mb.SenderShardID == selfShardID
+		if isCrossSCRBlockFromMe {
+			continue
+		}
+
+		storeByType, found := getDataStoreForType(dataPool, mb.Type)
+		if !found {
+			continue
+		}
+
+		strCache := process.ShardCacherIdentifier(mb.SenderShardID, mb.ReceiverShardID)
+		cache := storeByType.ShardDataStore(strCache)
+
+		for _, txHash := range mb.TxHashes {
+			txI, found := cache.Get(txHash)
+			if !found {
+				continue
+			}
+
+			txs[mb.Type][string(txHash)] = txI.(data.TransactionHandler)
+		}
+	}
+}
+
+func getDataStoreForType(
+	dataPool dataRetriever.PoolsHolder,
+	mbType block.Type,
+) (dataRetriever.ShardedDataCacherNotifier, bool) {
+	switch mbType {
+	case block.SmartContractResultBlock:
+		return dataPool.UnsignedTransactions(), true
+	case block.TxBlock:
+		return dataPool.Transactions(), true
+	case block.RewardsBlock:
+		return dataPool.RewardTransactions(), true
+	default:
+		return nil, false
+	}
 }

@@ -46,6 +46,23 @@ func GetCachedLogs(cache storage.Cacher, headerHash []byte) ([]data.LogDataHandl
 	return cachedLogsSlice, nil
 }
 
+// GetCachedOrderedTxHashes wil return the cached ordered tx hashes from the provided cache
+func GetCachedOrderedTxHashes(cache storage.Cacher, headerHash []byte) ([][]byte, error) {
+	orderedTxHashesKey := PrepareOrderedTxHashesKey(headerHash)
+	cachedData, ok := cache.Get(orderedTxHashesKey)
+	if !ok {
+		log.Warn("orderedTxHashes not found in dataPool", "hash", headerHash)
+		return nil, fmt.Errorf("%w for header %s", ErrMissingOrderedTxHashes, hex.EncodeToString(headerHash))
+	}
+
+	cachedDataSlice, ok := cachedData.([][]byte)
+	if !ok {
+		return nil, fmt.Errorf("%w for cached logs %s", ErrWrongTypeAssertion, hex.EncodeToString(headerHash))
+	}
+
+	return cachedDataSlice, nil
+}
+
 // GetCachedMbs will return the cached miniblocks from provided cache
 func GetCachedMbs(cache storage.Cacher, marshaller marshal.Marshalizer, headerHash []byte) ([]*block.MiniBlock, error) {
 	cachedIntraMBs, ok := cache.Get(headerHash)

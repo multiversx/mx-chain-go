@@ -12,7 +12,6 @@ import (
 	"github.com/multiversx/mx-chain-core-go/data/transaction"
 	"github.com/stretchr/testify/require"
 
-	"github.com/multiversx/mx-chain-go/integrationTests"
 	vm2 "github.com/multiversx/mx-chain-go/integrationTests/chainSimulator/vm"
 
 	"github.com/multiversx/mx-chain-go/config"
@@ -1415,7 +1414,6 @@ func TestChainSimulator_NFT_ChangeToDynamicType(t *testing.T) {
 		AlterConfigsFunction: func(cfg *config.Configs) {
 			cfg.EpochConfig.EnableEpochs.DynamicESDTEnableEpoch = activationEpoch
 			cfg.SystemSCConfig.ESDTSystemSCConfig.BaseIssuingCost = baseIssuingCost
-			integrationTests.DeactivateSupernovaInConfig(cfg)
 		},
 	})
 	require.Nil(t, err)

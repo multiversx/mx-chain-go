@@ -13,10 +13,11 @@ import (
 	"github.com/multiversx/mx-chain-core-go/data"
 	"github.com/multiversx/mx-chain-core-go/data/block"
 	"github.com/multiversx/mx-chain-core-go/data/transaction"
+	logger "github.com/multiversx/mx-chain-logger-go"
+
 	"github.com/multiversx/mx-chain-go/common/holders"
 	"github.com/multiversx/mx-chain-go/config"
 	"github.com/multiversx/mx-chain-go/txcache"
-	logger "github.com/multiversx/mx-chain-logger-go"
 
 	"github.com/multiversx/mx-chain-go/common"
 	"github.com/multiversx/mx-chain-go/dataRetriever"
@@ -370,7 +371,7 @@ func (txs *transactions) computeTxsToMe(
 				miniBlock.ReceiverShardID)
 		}
 
-		pi, err := txs.getIndexesOfLastTxProcessed(miniBlock, headerHandler)
+		pi, err := txs.getIndexesOfLastTxProcessedOnExecution(miniBlock, headerHandler)
 		if err != nil {
 			return nil, err
 		}
@@ -900,13 +901,18 @@ func (txs *transactions) processAndRemoveBadTransaction(
 	_, err := txs.txProcessor.ProcessTransaction(tx)
 
 	isNotExecutable := errors.Is(err, process.ErrLowerNonceInTransaction) || errors.Is(err, process.ErrInsufficientFee) || errors.Is(err, process.ErrTransactionNotExecutable)
-	if err != nil && common.IsAsyncExecutionEnabled(txs.enableEpochsHandler, txs.enableRoundsHandler) {
+	isAsyncExecEnabled := common.IsAsyncExecutionEnabled(txs.enableEpochsHandler, txs.enableRoundsHandler)
+	if err != nil && isAsyncExecEnabled {
 		isNotExecutable = process.IsNotExecutableTransactionError(err)
 	}
 	if isNotExecutable {
 		txs.txExecutionOrderHandler.Remove(txHash)
-		strCache := process.ShardCacherIdentifier(sndShardId, dstShardId)
-		txs.txPool.RemoveData(txHash, strCache)
+		// TODO: remove log if no longer needed for validation
+		log.Debug("processAndRemoveBadTransaction - found not executable transaction", "txHash", txHash)
+		if !isAsyncExecEnabled {
+			strCache := process.ShardCacherIdentifier(sndShardId, dstShardId)
+			txs.txPool.RemoveData(txHash, strCache)
+		}
 	}
 
 	if err != nil && !errors.Is(err, process.ErrFailedTransaction) {

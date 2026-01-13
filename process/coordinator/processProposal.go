@@ -31,7 +31,7 @@ func (tc *transactionCoordinator) CreateMbsCrossShardDstMe(
 			"header round", hdr.GetRound(),
 			"header nonce", hdr.GetNonce(),
 			"num mini blocks to be processed", len(finalCrossMiniBlockInfos),
-			"total gas provided", tc.gasComputation.TotalGasConsumed())
+			"total gas consumed in self shard", tc.gasComputation.TotalGasConsumedInSelfShard())
 	}()
 
 	txsForMbs := make(map[string][]data.TransactionHandler, 0)
@@ -134,6 +134,12 @@ func (tc *transactionCoordinator) CreateMbsCrossShardDstMe(
 	// if not all mini blocks were included, remove them from the miniBlocksAndHashes slice
 	// but add them into pendingMiniBlocksAndHashes
 	if lastMBIndex < len(mbsSlice)-1 {
+		log.Debug("transactionCoordinator.CreateMbsCrossShardDstMe: could not select all mini blocks, saving them as pending", "lastMBIndex", lastMBIndex)
+
+		for _, mbAndHash := range miniBlocksAndHashes[lastMBIndex+1:] {
+			numTransactions -= uint32(len(mbAndHash.Miniblock.TxHashes))
+		}
+
 		pendingMiniBlocksAndHashes = miniBlocksAndHashes[lastMBIndex+1:]
 		miniBlocksAndHashes = miniBlocksAndHashes[:lastMBIndex+1]
 	}

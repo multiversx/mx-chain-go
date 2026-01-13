@@ -1004,6 +1004,7 @@ func TestCleanupSelfShardTxCache(t *testing.T) {
 	createTx := func(sender string, nonce uint64) *transaction.Transaction {
 		return &transaction.Transaction{
 			SndAddr:  []byte(sender),
+			Value:    big.NewInt(0),
 			Nonce:    nonce,
 			GasLimit: 1000,
 			GasPrice: 500,
@@ -1012,6 +1013,7 @@ func TestCleanupSelfShardTxCache(t *testing.T) {
 	createMoreValuableTx := func(sender string, nonce uint64) *transaction.Transaction {
 		return &transaction.Transaction{
 			SndAddr:  []byte(sender),
+			Value:    big.NewInt(0),
 			Nonce:    nonce,
 			GasLimit: 1000,
 			GasPrice: 1000,
@@ -1144,7 +1146,7 @@ func TestTransactions_CreateAndProcessMiniBlockCrossShardGasLimitAddAll(t *testi
 
 	addedTxs := make([]*transaction.Transaction, 0)
 	for i := 0; i < 10; i++ {
-		newTx := &transaction.Transaction{GasLimit: uint64(i), Nonce: 42 + uint64(i)}
+		newTx := &transaction.Transaction{Value: big.NewInt(0), GasLimit: uint64(i), Nonce: 42 + uint64(i)}
 
 		txHash, _ := core.CalculateHash(args.Marshalizer, args.Hasher, newTx)
 		args.DataPool.AddData(txHash, newTx, newTx.Size(), strCache)
@@ -1220,7 +1222,7 @@ func TestTransactions_CreateAndProcessMiniBlockCrossShardGasLimitAddAllAsNoSCCal
 
 	addedTxs := make([]*transaction.Transaction, 0)
 	for i := 0; i < 10; i++ {
-		newTx := &transaction.Transaction{GasLimit: gasLimit, GasPrice: uint64(i), RcvAddr: []byte("012345678910"), Nonce: 42 + uint64(i)}
+		newTx := &transaction.Transaction{Value: big.NewInt(0), GasLimit: gasLimit, GasPrice: uint64(i), RcvAddr: []byte("012345678910"), Nonce: 42 + uint64(i)}
 
 		txHash, _ := core.CalculateHash(args.Marshalizer, args.Hasher, newTx)
 		args.DataPool.AddData(txHash, newTx, newTx.Size(), strCache)
@@ -1300,7 +1302,7 @@ func TestTransactions_CreateAndProcessMiniBlockCrossShardGasLimitAddOnly5asSCCal
 
 	scAddress, _ := hex.DecodeString("000000000000000000005fed9c659422cd8429ce92f8973bba2a9fb51e0eb3a1")
 	for i := 0; i < 10; i++ {
-		newTx := &transaction.Transaction{GasLimit: gasLimit, GasPrice: uint64(i), RcvAddr: scAddress, Nonce: 42 + uint64(i)}
+		newTx := &transaction.Transaction{Value: big.NewInt(0), GasLimit: gasLimit, GasPrice: uint64(i), RcvAddr: scAddress, Nonce: 42 + uint64(i)}
 
 		txHash, _ := core.CalculateHash(args.Marshalizer, args.Hasher, newTx)
 		args.DataPool.AddData(txHash, newTx, newTx.Size(), strCache)
@@ -2790,12 +2792,14 @@ func Test_SelectOutgoingTransactions(t *testing.T) {
 		txsToAdd := []*transaction.Transaction{
 			{
 				SndAddr:  []byte("alice"),
+				Value:    big.NewInt(0),
 				Nonce:    2,
 				GasLimit: 1000,
 				GasPrice: 500,
 			},
 			{
 				SndAddr:  []byte("bob"),
+				Value:    big.NewInt(0),
 				Nonce:    42,
 				GasLimit: 1000,
 				GasPrice: 500,

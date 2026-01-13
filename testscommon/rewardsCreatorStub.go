@@ -30,7 +30,7 @@ type RewardsCreatorStub struct {
 		computedEconomics *block.Economics,
 		prevBlockExecutionResults data.BaseMetaExecutionResultHandler,
 	) (block.MiniBlockSlice, error)
-	GetProtocolSustainabilityRewardsCalled func() *big.Int
+	GetAcceleratorRewardsCalled            func() *big.Int
 	GetLocalTxCacheCalled                  func() epochStart.TransactionCacher
 	CreateMarshalledDataCalled             func(body *block.Body) map[string][][]byte
 	GetRewardsTxsCalled                    func(body *block.Body) map[string]data.TransactionHandler
@@ -77,10 +77,10 @@ func (rcs *RewardsCreatorStub) VerifyRewardsMiniBlocks(
 	return nil
 }
 
-// GetProtocolSustainabilityRewards -
-func (rcs *RewardsCreatorStub) GetProtocolSustainabilityRewards() *big.Int {
-	if rcs.GetProtocolSustainabilityRewardsCalled != nil {
-		return rcs.GetProtocolSustainabilityRewardsCalled()
+// GetAcceleratorRewards -
+func (rcs *RewardsCreatorStub) GetAcceleratorRewards() *big.Int {
+	if rcs.GetAcceleratorRewardsCalled != nil {
+		return rcs.GetAcceleratorRewardsCalled()
 	}
 
 	return big.NewInt(0)

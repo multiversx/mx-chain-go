@@ -16,6 +16,7 @@ import (
 	crypto "github.com/multiversx/mx-chain-crypto-go"
 	mclMultiSig "github.com/multiversx/mx-chain-crypto-go/signing/mcl/multisig"
 	"github.com/multiversx/mx-chain-crypto-go/signing/multisig"
+
 	"github.com/multiversx/mx-chain-go/testscommon/processMocks"
 
 	"github.com/multiversx/mx-chain-go/common"
@@ -349,11 +350,15 @@ func (tcn *TestConsensusNode) initNode(args ArgsTestConsensusNode) {
 	coreComponents.HardforkTriggerPubKeyField = []byte("provided hardfork pub key")
 
 	argsKeysHolder := keysManagement.ArgsManagedPeersHolder{
-		KeyGenerator:          args.KeyGen,
-		P2PKeyGenerator:       args.P2PKeyGen,
-		MaxRoundsOfInactivity: 0, // 0 for main node, non-0 for backup node
-		PrefsConfig:           config.Preferences{},
+		KeyGenerator:    args.KeyGen,
+		P2PKeyGenerator: args.P2PKeyGen,
+		PrefsConfig: config.Preferences{
+			Preferences: config.PreferencesConfig{
+				RedundancyLevel: 0, //  0 for main node, non-0 for backup node
+			},
+		},
 		P2PKeyConverter:       p2pFactory.NewP2PKeyConverter(),
+		ProcessConfigsHandler: &testscommon.ProcessConfigsHandlerStub{},
 	}
 	keysHolder, _ := keysManagement.NewManagedPeersHolder(argsKeysHolder)
 
@@ -751,6 +756,7 @@ func createHasher(consensusType string) hashing.Hasher {
 func createTestStore() dataRetriever.StorageService {
 	store := dataRetriever.NewChainStorer()
 	store.AddStorer(dataRetriever.TransactionUnit, CreateMemUnit())
+	store.AddStorer(dataRetriever.UnsignedTransactionUnit, CreateMemUnit())
 	store.AddStorer(dataRetriever.MiniBlockUnit, CreateMemUnit())
 	store.AddStorer(dataRetriever.RewardTransactionUnit, CreateMemUnit())
 	store.AddStorer(dataRetriever.MetaBlockUnit, CreateMemUnit())

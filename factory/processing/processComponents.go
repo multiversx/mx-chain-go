@@ -495,31 +495,31 @@ func (pcf *processComponentsFactory) Create() (*processComponents, error) {
 
 	argsMiniBlocksPoolsCleaner := poolsCleaner.ArgMiniBlocksPoolsCleaner{
 		ArgBasePoolsCleaner: poolsCleaner.ArgBasePoolsCleaner{
-			RoundHandler:                   pcf.coreData.RoundHandler(),
-			ShardCoordinator:               pcf.bootstrapComponents.ShardCoordinator(),
-			MaxRoundsToKeepUnprocessedData: pcf.config.PoolsCleanersConfig.MaxRoundsToKeepUnprocessedMiniBlocks,
+			RoundHandler:          pcf.coreData.RoundHandler(),
+			ShardCoordinator:      pcf.bootstrapComponents.ShardCoordinator(),
+			ProcessConfigsHandler: pcf.coreData.ProcessConfigsHandler(),
 		},
 		MiniblocksPool: pcf.data.Datapool().MiniBlocks(),
 	}
 	mbsPoolsCleaner, err := poolsCleaner.NewMiniBlocksPoolsCleaner(argsMiniBlocksPoolsCleaner)
 	if err != nil {
-		return nil, err
+		return nil, fmt.Errorf("%w in processComponentsFactory.Create for NewMiniBlocksPoolsCleaner", err)
 	}
 
 	mbsPoolsCleaner.StartCleaning()
 
 	argsBasePoolsCleaner := poolsCleaner.ArgTxsPoolsCleaner{
 		ArgBasePoolsCleaner: poolsCleaner.ArgBasePoolsCleaner{
-			RoundHandler:                   pcf.coreData.RoundHandler(),
-			ShardCoordinator:               pcf.bootstrapComponents.ShardCoordinator(),
-			MaxRoundsToKeepUnprocessedData: pcf.config.PoolsCleanersConfig.MaxRoundsToKeepUnprocessedTransactions,
+			RoundHandler:          pcf.coreData.RoundHandler(),
+			ShardCoordinator:      pcf.bootstrapComponents.ShardCoordinator(),
+			ProcessConfigsHandler: pcf.coreData.ProcessConfigsHandler(),
 		},
 		AddressPubkeyConverter: pcf.coreData.AddressPubKeyConverter(),
 		DataPool:               pcf.data.Datapool(),
 	}
 	txsPoolsCleaner, err := poolsCleaner.NewTxsPoolsCleaner(argsBasePoolsCleaner)
 	if err != nil {
-		return nil, err
+		return nil, fmt.Errorf("%w in processComponentsFactory.Create for NewTxsPoolsCleaner", err)
 	}
 
 	txsPoolsCleaner.StartCleaning()
@@ -637,6 +637,7 @@ func (pcf *processComponentsFactory) Create() (*processComponents, error) {
 		Headers:                 pcf.data.Datapool().Headers(),
 		StorageService:          pcf.data.StorageService(),
 		Marshaller:              pcf.coreData.InternalMarshalizer(),
+		ShardCoordinator:        pcf.bootstrapComponents.ShardCoordinator(),
 	}
 	execManager, err := executionManager.NewExecutionManager(argExecManager)
 	if err != nil {
@@ -740,9 +741,9 @@ func (pcf *processComponentsFactory) Create() (*processComponents, error) {
 			"if the node is in backup mode and the main node is active", "hex public key", observerBLSPublicKeyBuff)
 	}
 
-	maxRoundsOfInactivity := int(pcf.prefConfigs.Preferences.RedundancyLevel) * pcf.config.Redundancy.MaxRoundsOfInactivityAccepted
 	nodeRedundancyArg := redundancy.ArgNodeRedundancy{
-		MaxRoundsOfInactivity: maxRoundsOfInactivity,
+		RedundancyLevel:       int(pcf.prefConfigs.Preferences.RedundancyLevel),
+		ProcessConfigsHandler: pcf.coreData.ProcessConfigsHandler(),
 		Messenger:             pcf.network.NetworkMessenger(),
 		ObserverPrivateKey:    observerBLSPrivateKey,
 	}
@@ -846,21 +847,21 @@ func (pcf *processComponentsFactory) newValidatorStatisticsProcessor() (process.
 	}
 
 	arguments := peer.ArgValidatorStatisticsProcessor{
-		PeerAdapter:                          pcf.state.PeerAccounts(),
-		PubkeyConv:                           pcf.coreData.ValidatorPubKeyConverter(),
-		NodesCoordinator:                     pcf.nodesCoordinator,
-		ShardCoordinator:                     pcf.bootstrapComponents.ShardCoordinator(),
-		DataPool:                             peerDataPool,
-		StorageService:                       storageService,
-		Marshalizer:                          pcf.coreData.InternalMarshalizer(),
-		Rater:                                pcf.coreData.Rater(),
-		MaxComputableRounds:                  pcf.config.GeneralSettings.MaxComputableRounds,
-		MaxConsecutiveRoundsOfRatingDecrease: pcf.config.GeneralSettings.MaxConsecutiveRoundsOfRatingDecrease,
-		RewardsHandler:                       pcf.coreData.EconomicsData(),
-		NodesSetup:                           pcf.coreData.GenesisNodesSetup(),
-		RatingEnableEpoch:                    ratingEnabledEpoch,
-		GenesisNonce:                         genesisHeader.GetNonce(),
-		EnableEpochsHandler:                  pcf.coreData.EnableEpochsHandler(),
+		PeerAdapter:           pcf.state.PeerAccounts(),
+		PubkeyConv:            pcf.coreData.ValidatorPubKeyConverter(),
+		NodesCoordinator:      pcf.nodesCoordinator,
+		ShardCoordinator:      pcf.bootstrapComponents.ShardCoordinator(),
+		DataPool:              peerDataPool,
+		StorageService:        storageService,
+		Marshalizer:           pcf.coreData.InternalMarshalizer(),
+		Rater:                 pcf.coreData.Rater(),
+		MaxComputableRounds:   pcf.config.GeneralSettings.MaxComputableRounds,
+		RewardsHandler:        pcf.coreData.EconomicsData(),
+		NodesSetup:            pcf.coreData.GenesisNodesSetup(),
+		RatingEnableEpoch:     ratingEnabledEpoch,
+		GenesisNonce:          genesisHeader.GetNonce(),
+		EnableEpochsHandler:   pcf.coreData.EnableEpochsHandler(),
+		ProcessConfigsHandler: pcf.coreData.ProcessConfigsHandler(),
 	}
 
 	return peer.NewValidatorStatisticsProcessor(arguments)
