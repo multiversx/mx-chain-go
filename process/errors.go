@@ -1439,3 +1439,6 @@ var ErrEpochStartProposeBlockHasMiniBlocks = errors.New("epoch start propose blo
 
 // ErrNonCanonicalExecutionResultIncluded signals that a non-canonical execution result has been included
 var ErrNonCanonicalExecutionResultIncluded = errors.New("non-canonical execution result included")
+
+// ErrNoReferencedHeader signals that no header was referenced
+var ErrNoReferencedHeader = errors.New("no referenced header")

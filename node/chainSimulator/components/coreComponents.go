@@ -243,6 +243,7 @@ func CreateCoreComponents(args ArgsCoreComponentsHolder) (*coreComponentsHolder,
 		RoundDuration:             roundDuration,
 		SupernovaRoundDuration:    time.Duration(chainParamsForSupernova.RoundDuration) * time.Millisecond,
 		InitialRound:              args.InitialRound,
+		SupernovaStartRound:       int64(supernovaRound),
 	}
 	instance.roundHandler, err = NewManualRoundHandler(argsManualRoundHandler)
 	if err != nil {

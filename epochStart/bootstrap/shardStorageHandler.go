@@ -740,7 +740,11 @@ func (ssh *shardStorageHandler) saveLastCrossNotarizedHeaders(
 	}
 
 	lastCrossMetaHdrHash := shardData.GetLastFinishedMetaBlock()
-	if len(shardData.GetPendingMiniBlockHeaderHandlers()) == 0 {
+	shouldUpdateLastCrossMeta, err := shouldUpdateLastCrossMetaToPending(shardData, headers)
+	if err != nil {
+		return nil, err
+	}
+	if shouldUpdateLastCrossMeta {
 		log.Debug("saveLastCrossNotarizedHeaders changing lastCrossMetaHdrHash", "initial hash", lastCrossMetaHdrHash, "final hash", shardData.GetFirstPendingMetaBlock())
 		lastCrossMetaHdrHash = shardData.GetFirstPendingMetaBlock()
 	}
@@ -779,6 +783,41 @@ func (ssh *shardStorageHandler) saveLastCrossNotarizedHeaders(
 	})
 
 	return crossNotarizedHdrs, nil
+}
+
+func shouldUpdateLastCrossMetaToPending(shardData data.EpochStartShardDataHandler, headers map[string]data.HeaderHandler) (bool, error) {
+	pendingMbs := shardData.GetPendingMiniBlockHeaderHandlers()
+	if len(pendingMbs) == 0 {
+		return true, nil
+	}
+
+	shardHeader, ok := headers[string(shardData.GetHeaderHash())]
+	if !ok {
+		return false, fmt.Errorf("%w in shouldUpdateLastCrossMetaToPending: hash: %s",
+			epochStart.ErrMissingHeader,
+			hex.EncodeToString(shardData.GetHeaderHash()))
+	}
+
+	if shardHeader.IsHeaderV3() {
+		return allPendingMbsAreProposed(pendingMbs, shardHeader.GetMiniBlockHeaderHandlers()), nil
+	}
+
+	return false, nil
+}
+
+func allPendingMbsAreProposed(pendingMbs []data.MiniBlockHeaderHandler, proposedMbs []data.MiniBlockHeaderHandler) bool {
+	proposedMbMap := make(map[string]struct{})
+	for _, mb := range proposedMbs {
+		proposedMbMap[string(mb.GetHash())] = struct{}{}
+	}
+
+	for _, pendingMb := range pendingMbs {
+		if _, exists := proposedMbMap[string(pendingMb.GetHash())]; !exists {
+			return false
+		}
+	}
+
+	return true
 }
 
 func updateLastCrossMetaHdrHashIfNeeded(
