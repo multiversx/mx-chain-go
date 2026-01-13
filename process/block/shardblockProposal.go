@@ -678,7 +678,6 @@ func (sp *shardProcessor) appendPendingMiniBlocksAfterSelectingOutgoingTransacti
 			}
 
 			sp.miniBlocksSelectionSession.AddReferencedHeader(hdr, hash)
-			lastNonceReferenced = hdr.GetNonce()
 		}
 
 		sp.miniBlocksSelectionSession.AddReferencedHeader(header, headerHash)
