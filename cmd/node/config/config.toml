@@ -77,7 +77,7 @@
         NumFloodingRoundsOutOfSpecs = 2
         },
         {
-        EnableRound = 220,
+        EnableRound = 260,
         MaxRoundsWithoutNewBlockReceived = 100,
         MaxRoundsWithoutCommittedBlock = 100,
         RoundModulusTriggerWhenSyncIsStuck = 200,
@@ -97,7 +97,7 @@
 
     EpochStartConfigsByRound = [
         { EnableRound = 0, MaxRoundsWithoutCommittedStartInEpochBlock = 50 },
-        { EnableRound = 220, MaxRoundsWithoutCommittedStartInEpochBlock = 500 },
+        { EnableRound = 260, MaxRoundsWithoutCommittedStartInEpochBlock = 500 },
     ]
 
     ConsensusConfigsByEpoch = [
@@ -116,7 +116,7 @@
         { StartEpoch = 1, StartRound = 0, Version = "2" },
 
         # TODO The value of StartEpoch parameter for version 3 should be the same with the SupernovaEnableEpoch flag from enableEpoch.toml file and StartRound the same with the SupernovaEnableRound flag from enableRounds.toml
-        { StartEpoch = 2, StartRound = 220, Version = "3" },
+        { StartEpoch = 2, StartRound = 260, Version = "3" },
     ]
 
 [StoragePruning]
