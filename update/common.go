@@ -8,6 +8,8 @@ import (
 	"github.com/multiversx/mx-chain-core-go/hashing"
 	"github.com/multiversx/mx-chain-core-go/marshal"
 	"github.com/multiversx/mx-chain-logger-go"
+
+	"github.com/multiversx/mx-chain-go/common"
 )
 
 var log = logger.GetOrCreate("update")
@@ -131,7 +133,12 @@ func getAllMiniBlocksWithDst(metaBlock data.MetaHeaderHandler, destShardID uint3
 		}
 	}
 
-	miniBlockHeaderHandlers := metaBlock.GetMiniBlockHeaderHandlers()
+	miniBlockHeaderHandlers, err := common.GetMiniBlockHeadersFromExecResult(metaBlock)
+	if err != nil {
+		log.Error("GetMiniBlockHeadersFromExecResult failed", "error", err)
+		return mbHdrs
+	}
+
 	for i, mbHdr := range miniBlockHeaderHandlers {
 		if mbHdr.GetReceiverShardID() == destShardID && mbHdr.GetSenderShardID() != destShardID {
 			mbHdrs = append(mbHdrs, miniBlockHeaderHandlers[i])

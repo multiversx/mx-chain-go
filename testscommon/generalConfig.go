@@ -50,14 +50,13 @@ func GetGeneralConfig() config.Config {
 			CacheRefreshIntervalInSec: uint32(100),
 		},
 		GeneralSettings: config.GeneralSettingsConfig{
-			StartInEpochEnabled:                  true,
-			GenesisMaxNumberOfShards:             100,
-			MaxComputableRounds:                  1000,
-			MaxConsecutiveRoundsOfRatingDecrease: 2000,
-			SyncProcessTimeInMillis:              6000,
-			SyncProcessTimeSupernovaInMillis:     3000,
-			SetGuardianEpochsDelay:               20,
-			StatusPollingIntervalSec:             10,
+			StartInEpochEnabled:              true,
+			GenesisMaxNumberOfShards:         100,
+			MaxComputableRounds:              1000,
+			SyncProcessTimeInMillis:          6000,
+			SyncProcessTimeSupernovaInMillis: 3000,
+			SetGuardianEpochsDelay:           20,
+			StatusPollingIntervalSec:         10,
 			ChainParametersByEpoch: []config.ChainParametersByEpochConfig{
 				{
 					EnableEpoch:                 0,
@@ -89,6 +88,7 @@ func GetGeneralConfig() config.Config {
 					NumFloodingRoundsSlowReacting:          20,
 					NumFloodingRoundsFastReacting:          30,
 					NumFloodingRoundsOutOfSpecs:            40,
+					MaxConsecutiveRoundsOfRatingDecrease:   2000,
 				},
 			},
 			EpochStartConfigsByEpoch: []config.EpochStartConfigByEpoch{
