@@ -6,8 +6,9 @@ import (
 
 	"github.com/multiversx/mx-chain-core-go/core/check"
 	"github.com/multiversx/mx-chain-core-go/data"
-	"github.com/multiversx/mx-chain-go/common"
 	logger "github.com/multiversx/mx-chain-logger-go"
+
+	"github.com/multiversx/mx-chain-go/common"
 )
 
 var log = logger.GetOrCreate("process/asyncExecution/queue")
@@ -70,13 +71,12 @@ func (bq *blocksQueue) AddOrReplace(pair HeaderBodyPair) error {
 
 	log.Debug("blocksQueue.AddOrReplace - block has been added", "nonce", pair.Header.GetNonce(), "queue size", len(bq.headerBodyPairs))
 
-	if len(bq.headerBodyPairs) > 1 {
-		return nil
-	}
-
-	select {
-	case bq.notifyCh <- struct{}{}:
-	default:
+	// Notify waiting Pop() calls when the first item is added to an empty queue
+	if len(bq.headerBodyPairs) == 1 {
+		select {
+		case bq.notifyCh <- struct{}{}:
+		default:
+		}
 	}
 
 	return nil
@@ -108,6 +108,7 @@ func (bq *blocksQueue) removeFromNonce(nonce uint64) []uint64 {
 		return removedNonces
 	}
 
+	log.Debug("blocksQueue.removeFromNonce - removing from nonce", "nonce", nonce, "num removed", len(pairsToBeRemoved))
 	for _, pair := range pairsToBeRemoved {
 		removedNonces = append(removedNonces, pair.Header.GetNonce())
 	}
@@ -138,10 +139,21 @@ func (bq *blocksQueue) add(pair HeaderBodyPair) error {
 // If the queue is empty, the method blocks until a new item is available.
 func (bq *blocksQueue) Pop() (HeaderBodyPair, bool) {
 	bq.mutex.Lock()
-	if len(bq.headerBodyPairs) > 1 {
+	if len(bq.headerBodyPairs) >= 1 {
 		item := bq.headerBodyPairs[0]
 		bq.headerBodyPairs = bq.headerBodyPairs[1:]
+		// Clear any stale notification from the channel when we take the fast path
+		if len(bq.headerBodyPairs) > 0 {
+			bq.mutex.Unlock()
+			return item, true
+		}
+
+		select {
+		case <-bq.notifyCh:
+		default:
+		}
 		bq.mutex.Unlock()
+
 		return item, true
 	}
 	if bq.closed {
@@ -190,6 +202,8 @@ func (bq *blocksQueue) Peek() (HeaderBodyPair, bool) {
 // RemoveAtNonceAndHigher removes the header-body pair at the specified nonce
 // and all pairs with higher nonces from the queue
 func (bq *blocksQueue) RemoveAtNonceAndHigher(nonce uint64) []uint64 {
+	log.Debug("blocksQueue.RemoveAtNonceAndHigher - removing from nonce and higher", "nonce", nonce)
+
 	bq.mutex.Lock()
 	defer bq.mutex.Unlock()
 
@@ -202,16 +216,54 @@ func (bq *blocksQueue) RemoveAtNonceAndHigher(nonce uint64) []uint64 {
 
 func (bq *blocksQueue) updateLastAddedNonceBasedOnRemovingNonce(removingNonce uint64) {
 	if len(bq.headerBodyPairs) > 0 {
-		bq.lastAddedNonce = bq.headerBodyPairs[len(bq.headerBodyPairs)-1].Header.GetNonce()
+		lastNonce := bq.headerBodyPairs[len(bq.headerBodyPairs)-1].Header.GetNonce()
+		bq.lastAddedNonce = lastNonce
+		log.Debug("blocksQueue.updateLastAddedNonceBasedOnRemovingNonce - updated from queue",
+			"new_last_nonce", lastNonce,
+			"queue_size", len(bq.headerBodyPairs))
 		return
 	}
 
 	if removingNonce > 0 {
 		bq.lastAddedNonce = removingNonce - 1
+		log.Debug("blocksQueue.updateLastAddedNonceBasedOnRemovingNonce - calculated from removing nonce",
+			"removing_nonce", removingNonce,
+			"new_last_nonce", bq.lastAddedNonce)
 		return
 	}
 
 	bq.lastAddedNonce = 0
+	log.Debug("blocksQueue.updateLastAddedNonceBasedOnRemovingNonce - reset to 0")
+}
+
+// ValidateQueueIntegrity checks the queue for consistency issues
+func (bq *blocksQueue) ValidateQueueIntegrity() error {
+	bq.mutex.Lock()
+	defer bq.mutex.Unlock()
+
+	if len(bq.headerBodyPairs) == 0 {
+		return nil
+	}
+
+	// Check that nonces are sequential
+	expectedNonce := bq.headerBodyPairs[0].Header.GetNonce()
+	for i, pair := range bq.headerBodyPairs {
+		currentNonce := pair.Header.GetNonce()
+		if currentNonce != expectedNonce {
+			return fmt.Errorf("%w: expected nonce %d at index %d, got %d", ErrQueueIntegrityViolation,
+				expectedNonce, i, currentNonce)
+		}
+		expectedNonce++
+	}
+
+	// Check that lastAddedNonce matches the last item
+	lastPair := bq.headerBodyPairs[len(bq.headerBodyPairs)-1]
+	if bq.lastAddedNonce != lastPair.Header.GetNonce() {
+		return fmt.Errorf("%w: lastAddedNonce %d doesn't match last pair nonce %d", ErrQueueIntegrityViolation,
+			bq.lastAddedNonce, lastPair.Header.GetNonce())
+	}
+
+	return nil
 }
 
 // Clean cleanup the queue and set the provided last added nonce
@@ -221,6 +273,8 @@ func (bq *blocksQueue) Clean(lastAddedNonce uint64) {
 
 	bq.headerBodyPairs = make([]HeaderBodyPair, 0)
 	bq.lastAddedNonce = lastAddedNonce
+
+	log.Debug("blocksQueue.Clean - queue cleaned", "last_added_nonce", lastAddedNonce)
 }
 
 // Close will close the queue
