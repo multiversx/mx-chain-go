@@ -15,6 +15,7 @@ import (
 	"github.com/multiversx/mx-chain-core-go/data"
 	"github.com/multiversx/mx-chain-core-go/data/block"
 	"github.com/multiversx/mx-chain-go/common"
+	"github.com/multiversx/mx-chain-go/common/configs/dto"
 	"github.com/multiversx/mx-chain-go/config"
 	"github.com/multiversx/mx-chain-go/dataRetriever"
 	"github.com/multiversx/mx-chain-go/process"
@@ -125,17 +126,24 @@ func createMockArguments() peer.ArgValidatorStatisticsProcessor {
 				return nil
 			},
 		},
-		StorageService:                       &storageStubs.ChainStorerStub{},
-		NodesCoordinator:                     &shardingMocks.NodesCoordinatorMock{},
-		ShardCoordinator:                     mock.NewOneShardCoordinatorMock(),
-		PubkeyConv:                           createMockPubkeyConverter(),
-		PeerAdapter:                          getAccountsMock(),
-		Rater:                                createMockRater(),
-		RewardsHandler:                       economicsData,
-		MaxComputableRounds:                  1000,
-		MaxConsecutiveRoundsOfRatingDecrease: 2000,
-		NodesSetup:                           &genesisMocks.NodesSetupStub{},
-		EnableEpochsHandler:                  enableEpochsHandlerMock.NewEnableEpochsHandlerStub(common.SwitchJailWaitingFlag, common.BelowSignedThresholdFlag),
+		StorageService:      &storageStubs.ChainStorerStub{},
+		NodesCoordinator:    &shardingMocks.NodesCoordinatorMock{},
+		ShardCoordinator:    mock.NewOneShardCoordinatorMock(),
+		PubkeyConv:          createMockPubkeyConverter(),
+		PeerAdapter:         getAccountsMock(),
+		Rater:               createMockRater(),
+		RewardsHandler:      economicsData,
+		MaxComputableRounds: 1000,
+		NodesSetup:          &genesisMocks.NodesSetupStub{},
+		EnableEpochsHandler: enableEpochsHandlerMock.NewEnableEpochsHandlerStub(common.SwitchJailWaitingFlag, common.BelowSignedThresholdFlag),
+		ProcessConfigsHandler: &testscommon.ProcessConfigsHandlerStub{
+			GetValueCalled: func(variable dto.ConfigVariable) uint64 {
+				if variable == dto.MaxConsecutiveRoundsOfRatingDecrease {
+					return 2000
+				}
+				return 10
+			},
+		},
 	}
 	return arguments
 }
@@ -224,17 +232,6 @@ func TestNewValidatorStatisticsProcessor_ZeroMaxComputableRoundsShouldErr(t *tes
 
 	assert.Nil(t, validatorStatistics)
 	assert.Equal(t, process.ErrZeroMaxComputableRounds, err)
-}
-
-func TestNewValidatorStatisticsProcessor_ZeroMaxConsecutiveRoundsOfRatingDecreaseShouldErr(t *testing.T) {
-	t.Parallel()
-
-	arguments := createMockArguments()
-	arguments.MaxConsecutiveRoundsOfRatingDecrease = 0
-	validatorStatistics, err := peer.NewValidatorStatisticsProcessor(arguments)
-
-	assert.Nil(t, validatorStatistics)
-	assert.Equal(t, process.ErrZeroMaxConsecutiveRoundsOfRatingDecrease, err)
 }
 
 func TestNewValidatorStatisticsProcessor_NilRaterShouldErr(t *testing.T) {
@@ -1476,7 +1473,14 @@ func TestValidatorStatisticsProcessor_CheckForMissedBlocksMissedRoundsGreaterTha
 	arguments.MaxComputableRounds = 1
 	enableEpochsHandler, _ := arguments.EnableEpochsHandler.(*enableEpochsHandlerMock.EnableEpochsHandlerStub)
 	enableEpochsHandler.RemoveActiveFlags(common.StopDecreasingValidatorRatingWhenStuckFlag)
-	arguments.MaxConsecutiveRoundsOfRatingDecrease = 4
+	arguments.ProcessConfigsHandler = &testscommon.ProcessConfigsHandlerStub{
+		GetValueCalled: func(variable dto.ConfigVariable) uint64 {
+			if variable == dto.MaxConsecutiveRoundsOfRatingDecrease {
+				return 4
+			}
+			return 0
+		},
+	}
 
 	validatorStatistics, _ := peer.NewValidatorStatisticsProcessor(arguments)
 
