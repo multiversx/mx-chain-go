@@ -645,6 +645,7 @@ func (sp *shardProcessor) appendPendingMiniBlocksAfterSelectingOutgoingTransacti
 
 	extraMiniBlocksAdded := make([]block.MiniblockAndHash, len(pendingIncomingMiniBlocksAdded))
 	lastNonceReferenced := referencedHeaders[len(referencedHeaders)-1].GetNonce()
+	lastHeaderReferencedFinished := false
 	for i, pendingMbAdded := range pendingIncomingMiniBlocksAdded {
 		miniBlockAndHash, headerHash, header, found, isHeaderFinished := findPendingMiniBlock(pendingBlocksLeft, pendingMbAdded)
 		if !found {
@@ -664,6 +665,7 @@ func (sp *shardProcessor) appendPendingMiniBlocksAfterSelectingOutgoingTransacti
 		if header.GetNonce() == lastNonceReferenced+1 {
 			sp.miniBlocksSelectionSession.AddReferencedHeader(header, headerHash)
 			lastNonceReferenced = header.GetNonce()
+			lastHeaderReferencedFinished = isHeaderFinished
 			continue
 		}
 
@@ -677,12 +679,29 @@ func (sp *shardProcessor) appendPendingMiniBlocksAfterSelectingOutgoingTransacti
 
 			sp.miniBlocksSelectionSession.AddReferencedHeader(hdr, hash)
 			lastNonceReferenced = header.GetNonce()
+			lastHeaderReferencedFinished = true // true, no mbs dest me
 		}
 
 		// if the header is finished, reference it too
 		if isHeaderFinished {
 			sp.miniBlocksSelectionSession.AddReferencedHeader(header, headerHash)
 			lastNonceReferenced = header.GetNonce()
+		}
+		lastHeaderReferencedFinished = isHeaderFinished
+	}
+
+	// if the last header referenced was finished, continue referencing headers that do not have mini blocks dest me
+	if lastHeaderReferencedFinished {
+		referencedHeaders = sp.miniBlocksSelectionSession.GetReferencedHeaders()
+		lastNonceReferenced = referencedHeaders[len(referencedHeaders)-1].GetNonce()
+		for {
+			hash, hdr, err := findPendingHeaderWithNonceAndNoMiniBlocksDstMe(lastNonceReferenced+1, pendingBlocksLeft)
+			if err != nil {
+				break
+			}
+
+			sp.miniBlocksSelectionSession.AddReferencedHeader(hdr, hash)
+			lastNonceReferenced = hdr.GetNonce()
 		}
 	}
 
