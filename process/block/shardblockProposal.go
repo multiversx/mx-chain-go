@@ -678,16 +678,12 @@ func (sp *shardProcessor) appendPendingMiniBlocksAfterSelectingOutgoingTransacti
 			}
 
 			sp.miniBlocksSelectionSession.AddReferencedHeader(hdr, hash)
-			lastNonceReferenced = header.GetNonce()
-			lastHeaderReferencedFinished = true // true, no mbs dest me
+			lastNonceReferenced = hdr.GetNonce()
 		}
 
-		// if the header is finished, reference it too
-		if isHeaderFinished {
-			sp.miniBlocksSelectionSession.AddReferencedHeader(header, headerHash)
-			lastNonceReferenced = header.GetNonce()
-			lastHeaderReferencedFinished = isHeaderFinished
-		}
+		sp.miniBlocksSelectionSession.AddReferencedHeader(header, headerHash)
+		lastNonceReferenced = header.GetNonce()
+		lastHeaderReferencedFinished = isHeaderFinished
 	}
 
 	// if the last header referenced was finished, continue referencing headers that do not have mini blocks dest me
@@ -749,8 +745,6 @@ func findPendingHeaderWithNonceAndNoMiniBlocksDstMe(
 			return nil, nil, process.ErrInvalidHeader
 		}
 	}
-
-	log.Error("findPendingHeaderWithNonceAndNoMiniBlocksDstMe: could not find pending block", "nonce", nonce)
 
 	return nil, nil, process.ErrMissingHeader
 }
