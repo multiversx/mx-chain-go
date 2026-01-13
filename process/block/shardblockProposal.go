@@ -369,18 +369,20 @@ func (sp *shardProcessor) ProcessBlockProposal(
 		return nil, err
 	}
 
-	errCutoff := sp.blockProcessingCutoffHandler.HandleProcessErrorCutoff(header)
-	if errCutoff != nil {
-		return nil, errCutoff
-	}
-
 	// TODO: should receive the header hash instead of re-computing it
-	headerHash, err := core.CalculateHash(sp.marshalizer, sp.hasher, header)
+	var headerHash []byte
+	headerHash, err = core.CalculateHash(sp.marshalizer, sp.hasher, header)
 	if err != nil {
 		return nil, err
 	}
 
-	executionResult, err := sp.collectExecutionResults(headerHash, header, body)
+	var executionResult data.BaseExecutionResultHandler
+	executionResult, err = sp.collectExecutionResults(headerHash, header, body)
+	if err != nil {
+		return nil, err
+	}
+
+	err = sp.blockProcessingCutoffHandler.HandleProcessErrorCutoff(header)
 	if err != nil {
 		return nil, err
 	}
@@ -615,16 +617,15 @@ func (sp *shardProcessor) appendPendingMiniBlocksAddedAfterSelectingOutgoingTran
 	}
 
 	extraMiniBlocksAdded := make([]block.MiniblockAndHash, len(pendingIncomingMiniBlocksAdded))
-	extraHeadersReferenced := make(map[string]data.HeaderHandler)
 	for i, pendingMbAdded := range pendingIncomingMiniBlocksAdded {
-		miniBlockAndHash, headerHash, header, found := getIndexOfPendingMiniBlock(pendingMiniBlocksLeft, pendingMbAdded)
+		miniBlockAndHash, headerHash, header, found := findPendingMiniBlock(pendingMiniBlocksLeft, pendingMbAdded)
 		if !found {
 			log.Error("pending mini block added does not exists in the remaining pending list")
 			return process.ErrInvalidHash
 		}
 
 		extraMiniBlocksAdded[i] = miniBlockAndHash
-		extraHeadersReferenced[string(headerHash)] = header
+		sp.miniBlocksSelectionSession.AddReferencedHeader(header, headerHash)
 	}
 
 	err := sp.miniBlocksSelectionSession.AddMiniBlocksAndHashes(extraMiniBlocksAdded)
@@ -632,14 +633,10 @@ func (sp *shardProcessor) appendPendingMiniBlocksAddedAfterSelectingOutgoingTran
 		return err
 	}
 
-	for referencedHash, referencedHeader := range extraHeadersReferenced {
-		sp.miniBlocksSelectionSession.AddReferencedHeader(referencedHeader, []byte(referencedHash))
-	}
-
 	return nil
 }
 
-func getIndexOfPendingMiniBlock(
+func findPendingMiniBlock(
 	pendingMiniBlocksLeft []*pendingMiniBlocksAfterSelection,
 	pendingMbAdded data.MiniBlockHeaderHandler,
 ) (block.MiniblockAndHash, []byte, data.HeaderHandler, bool) {

@@ -10,3 +10,6 @@ var ErrNilExecutionTracker = errors.New("nil execution tracker")
 
 // ErrNilBlockProcessor signals that a nil block processor has been provided
 var ErrNilBlockProcessor = errors.New("nil block processor")
+
+// ErrNilExecutionResult signals that a nil execution result has been provided
+var ErrNilExecutionResult = errors.New("nil execution result")

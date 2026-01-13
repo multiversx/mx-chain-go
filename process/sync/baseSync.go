@@ -4,6 +4,7 @@ import (
 	"bytes"
 	"context"
 	"encoding/hex"
+	"errors"
 	"fmt"
 	"math"
 	"sync"
@@ -23,7 +24,10 @@ import (
 	"github.com/multiversx/mx-chain-core-go/marshal"
 	logger "github.com/multiversx/mx-chain-logger-go"
 
+	"github.com/multiversx/mx-chain-go/epochStart"
 	"github.com/multiversx/mx-chain-go/process/asyncExecution/queue"
+	"github.com/multiversx/mx-chain-go/update"
+	updateSync "github.com/multiversx/mx-chain-go/update/sync"
 
 	"github.com/multiversx/mx-chain-go/common"
 	"github.com/multiversx/mx-chain-go/consensus"
@@ -50,6 +54,7 @@ var _ closing.Closer = (*baseBootstrap)(nil)
 // sleepTime defines the time in milliseconds between each iteration made in syncBlocks method
 const sleepTime = 50 * time.Millisecond
 const minimumProcessWaitTime = time.Millisecond * 100
+const defaultTimeToWaitForRequestedData = 5 * time.Minute
 
 // hdrInfo hold the data related to a header
 type hdrInfo struct {
@@ -146,6 +151,9 @@ type baseBootstrap struct {
 	preparedForSyncAtBootstrap   bool
 
 	repopulateTokensSupplies bool
+
+	miniBlocksSyncer epochStart.PendingMiniBlocksSyncHandler
+	txSyncer         update.TransactionsSyncHandler
 }
 
 func (boot *baseBootstrap) getProcessWaitTime(round uint64) time.Duration {
@@ -752,7 +760,7 @@ func (boot *baseBootstrap) getMaxSyncWithErrorsAllowed(
 
 func (boot *baseBootstrap) doJobOnSyncBlockFail(bodyHandler data.BodyHandler, headerHandler data.HeaderHandler, err error) {
 	processBlockStarted := !check.IfNil(bodyHandler) && !check.IfNil(headerHandler)
-	isProcessWithError := processBlockStarted && err != process.ErrTimeIsOut
+	isProcessWithError := processBlockStarted && !errors.Is(err, process.ErrTimeIsOut)
 
 	numSyncedWithErrors := boot.incrementSyncedWithErrorsForNonce(boot.getNonceForNextBlock())
 	allowedSyncWithErrorsLimitReached := numSyncedWithErrors >= boot.getMaxSyncWithErrorsAllowed(headerHandler)
@@ -896,10 +904,15 @@ func (boot *baseBootstrap) syncBlock() error {
 	}
 
 	if header.IsHeaderV3() {
-		return boot.syncBlockV3(body, header)
+		// update err to enable the deferred treatment
+		err = boot.syncBlockV3(body, header)
+		return err
 	}
 
-	return boot.syncBlockLegacy(body, header)
+	// update err to enable the deferred treatment
+	err = boot.syncBlockLegacy(body, header)
+
+	return err
 }
 
 // syncBlockLegacy method actually does the synchronization. It requests the next block header from the pool
@@ -1045,7 +1058,38 @@ func (boot *baseBootstrap) syncBlockV3(body data.BodyHandler, header data.Header
 	return nil
 }
 
-func (boot *baseBootstrap) prepareForSyncIfNeeded(syncingNonce uint64) error {
+func (boot *baseBootstrap) syncMiniBlocksAndTxsForHeader(
+	header data.HeaderHandler,
+) error {
+	boot.miniBlocksSyncer.ClearFields()
+	ctx, cancel := context.WithTimeout(context.Background(), defaultTimeToWaitForRequestedData)
+	err := boot.miniBlocksSyncer.SyncPendingMiniBlocks(header.GetMiniBlockHeaderHandlers(), ctx)
+	cancel()
+	if err != nil {
+		return err
+	}
+
+	miniBlocks, err := boot.miniBlocksSyncer.GetMiniBlocks()
+	if err != nil {
+		return err
+	}
+
+	// sync all txs into pools
+
+	boot.txSyncer.ClearFields()
+	ctx, cancel = context.WithTimeout(context.Background(), defaultTimeToWaitForRequestedData)
+	err = boot.txSyncer.SyncTransactionsFor(miniBlocks, header.GetEpoch(), ctx)
+	cancel()
+	if err != nil {
+		return err
+	}
+
+	return nil
+}
+
+func (boot *baseBootstrap) prepareForSyncIfNeeded(
+	syncingNonce uint64,
+) error {
 	if boot.preparedForSync {
 		return nil
 	}
@@ -1065,6 +1109,11 @@ func (boot *baseBootstrap) prepareForSyncIfNeeded(syncingNonce uint64) error {
 		currentBody, errGetBody := boot.blockBootstrapper.getBlockBody(currentHeader)
 		if errGetBody != nil {
 			return errGetBody
+		}
+
+		err = boot.syncMiniBlocksAndTxsForHeader(currentHeader)
+		if err != nil {
+			return err
 		}
 
 		err = boot.saveProposedTxsToPool(currentHeader, currentBody)
@@ -1103,6 +1152,11 @@ func (boot *baseBootstrap) prepareForSyncIfNeeded(syncingNonce uint64) error {
 			return errGetBody
 		}
 
+		err = boot.syncMiniBlocksAndTxsForHeader(hdr)
+		if err != nil {
+			return err
+		}
+
 		err = boot.saveProposedTxsToPool(hdr, body)
 		if err != nil {
 			return err
@@ -1129,58 +1183,6 @@ func (boot *baseBootstrap) prepareForSyncIfNeeded(syncingNonce uint64) error {
 	boot.preparedForSync = true
 
 	return nil
-}
-
-func (boot *baseBootstrap) getExecutionResultHeaderNonceForSyncStart(
-	syncingNonce uint64,
-	currentHeader data.HeaderHandler,
-	currentHeaderHash []byte,
-) (uint64, error) {
-	lastNotarizedExecResult, err := process.GetPrevBlockLastExecutionResult(boot.chainHandler)
-	if err != nil {
-		return 0, err
-	}
-
-	lastNotarizedExecResultsHandler, err := common.ExtractBaseExecutionResultHandler(lastNotarizedExecResult)
-	if err != nil {
-		return 0, err
-	}
-
-	log.Debug("getExecutionResultHeaderNonceForSyncStart",
-		"syncingNonce", syncingNonce,
-		"currHeader nonce", currentHeader.GetNonce(),
-		"currHeader hash", currentHeaderHash,
-		"lastNotarizedExecRes nonce", lastNotarizedExecResultsHandler.GetHeaderNonce(),
-		"lastNotarizedExecRes hash", lastNotarizedExecResultsHandler.GetHeaderHash(),
-		"lastNotarizedExecRes rootHash", lastNotarizedExecResultsHandler.GetRootHash(),
-	)
-
-	lastNotarizedExecutedHash := lastNotarizedExecResultsHandler.GetHeaderHash()
-	lastNotarizedExecutedHeader, err := boot.getHeader(lastNotarizedExecutedHash)
-	if err != nil {
-		return 0, err
-	}
-
-	rootHash := lastNotarizedExecResultsHandler.GetRootHash()
-
-	txPool := boot.poolsHolder.Transactions()
-	err = txPool.OnExecutedBlock(lastNotarizedExecutedHeader, rootHash)
-	if err != nil {
-		txPool.ResetTracker()
-		return 0, err
-	}
-
-	lastExecutionResultNonce := lastNotarizedExecutedHeader.GetNonce()
-
-	// in case there is a more recent execution result available, use it
-	lastExecutionResult := boot.chainHandler.GetLastExecutionResult()
-	if !check.IfNil(lastExecutionResult) && lastExecutionResult.GetHeaderNonce() > lastExecutionResultNonce {
-		lastExecutionResultNonce = lastExecutionResult.GetHeaderNonce()
-	}
-
-	log.Debug("getExecutionResultHeaderNonceForSyncStart", "lastExecutionResultNonce", lastExecutionResultNonce)
-
-	return lastExecutionResultNonce, nil
 }
 
 func (boot *baseBootstrap) saveProposedTxsToPool(
@@ -1235,6 +1237,12 @@ func (boot *baseBootstrap) saveTxsToPool(
 	txHashes := miniBlock.TxHashes
 
 	for _, txHash := range txHashes {
+		// continue if already in pool
+		_, ok := dataPool.SearchFirstData(txHash)
+		if ok {
+			continue
+		}
+
 		txBuff, err := storer.Get(txHash)
 		if err != nil {
 			return err
@@ -1255,6 +1263,58 @@ func (boot *baseBootstrap) saveTxsToPool(
 	}
 
 	return nil
+}
+
+func (boot *baseBootstrap) getExecutionResultHeaderNonceForSyncStart(
+	syncingNonce uint64,
+	currentHeader data.HeaderHandler,
+	currentHeaderHash []byte,
+) (uint64, error) {
+	lastNotarizedExecResult, err := process.GetPrevBlockLastExecutionResult(boot.chainHandler)
+	if err != nil {
+		return 0, err
+	}
+
+	lastNotarizedExecResultsHandler, err := common.ExtractBaseExecutionResultHandler(lastNotarizedExecResult)
+	if err != nil {
+		return 0, err
+	}
+
+	log.Debug("getExecutionResultHeaderNonceForSyncStart",
+		"syncingNonce", syncingNonce,
+		"currHeader nonce", currentHeader.GetNonce(),
+		"currHeader hash", currentHeaderHash,
+		"lastNotarizedExecRes nonce", lastNotarizedExecResultsHandler.GetHeaderNonce(),
+		"lastNotarizedExecRes hash", lastNotarizedExecResultsHandler.GetHeaderHash(),
+		"lastNotarizedExecRes rootHash", lastNotarizedExecResultsHandler.GetRootHash(),
+	)
+
+	lastNotarizedExecutedHash := lastNotarizedExecResultsHandler.GetHeaderHash()
+	lastNotarizedExecutedHeader, err := boot.getHeader(lastNotarizedExecutedHash)
+	if err != nil {
+		return 0, err
+	}
+
+	rootHash := lastNotarizedExecResultsHandler.GetRootHash()
+
+	txPool := boot.poolsHolder.Transactions()
+	err = txPool.OnExecutedBlock(lastNotarizedExecutedHeader, rootHash)
+	if err != nil {
+		txPool.ResetTracker()
+		return 0, err
+	}
+
+	lastExecutionResultNonce := lastNotarizedExecutedHeader.GetNonce()
+
+	// in case there is a more recent execution result available, use it
+	lastExecutionResult := boot.chainHandler.GetLastExecutionResult()
+	if !check.IfNil(lastExecutionResult) && lastExecutionResult.GetHeaderNonce() > lastExecutionResultNonce {
+		lastExecutionResultNonce = lastExecutionResult.GetHeaderNonce()
+	}
+
+	log.Debug("getExecutionResultHeaderNonceForSyncStart", "lastExecutionResultNonce", lastExecutionResultNonce)
+
+	return lastExecutionResultNonce, nil
 }
 
 func (boot *baseBootstrap) unmarshalTxByBlockType(
@@ -1789,7 +1849,7 @@ func (boot *baseBootstrap) getHeader(hash []byte) (data.HeaderHandler, error) {
 	return process.GetShardHeader(hash, boot.headers, boot.marshalizer, boot.store)
 }
 
-// getHeaderFromPool will try to get header from pool or storage
+// getHeaderFromPool will try to get the header from pool
 func (boot *baseBootstrap) getHeaderFromPool(hash []byte) (data.HeaderHandler, error) {
 	if boot.shardCoordinator.SelfId() == core.MetachainShardId {
 		return process.GetMetaHeaderFromPool(hash, boot.headers)
@@ -2208,4 +2268,37 @@ func (boot *baseBootstrap) getHeaderMiniBlocks(
 // IsInterfaceNil returns true if there is no value under the interface
 func (boot *baseBootstrap) IsInterfaceNil() bool {
 	return boot == nil
+}
+
+func (boot *baseBootstrap) createTxSyncer() error {
+	var err error
+
+	miniBlocksStorer, err := boot.store.GetStorer(dataRetriever.MiniBlockUnit)
+	if err != nil {
+		return err
+	}
+
+	syncMiniBlocksArgs := updateSync.ArgsNewPendingMiniBlocksSyncer{
+		Storage:        miniBlocksStorer,
+		Cache:          boot.dataPool.MiniBlocks(),
+		Marshalizer:    boot.marshalizer,
+		RequestHandler: boot.requestHandler,
+	}
+	boot.miniBlocksSyncer, err = updateSync.NewPendingMiniBlocksSyncer(syncMiniBlocksArgs)
+	if err != nil {
+		return err
+	}
+
+	syncTxsArgs := updateSync.ArgsNewTransactionsSyncer{
+		DataPools:      boot.dataPool,
+		Storages:       boot.store,
+		Marshaller:     boot.marshalizer,
+		RequestHandler: boot.requestHandler,
+	}
+	boot.txSyncer, err = updateSync.NewTransactionsSyncer(syncTxsArgs)
+	if err != nil {
+		return err
+	}
+
+	return nil
 }

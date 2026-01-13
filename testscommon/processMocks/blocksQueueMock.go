@@ -7,6 +7,7 @@ type BlocksQueueMock struct {
 	AddOrReplaceCalled           func(pair queue.HeaderBodyPair) error
 	PopCalled                    func() (queue.HeaderBodyPair, bool)
 	PeekCalled                   func() (queue.HeaderBodyPair, bool)
+	ValidateQueueIntegrityCalled func() error
 	RemoveAtNonceAndHigherCalled func(nonce uint64) []uint64
 	CleanCalled                  func(lastAddedNonce uint64)
 	CloseCalled                  func()
@@ -34,6 +35,14 @@ func (bqm *BlocksQueueMock) Peek() (queue.HeaderBodyPair, bool) {
 		return bqm.PeekCalled()
 	}
 	return queue.HeaderBodyPair{}, false
+}
+
+// ValidateQueueIntegrity -
+func (bqm *BlocksQueueMock) ValidateQueueIntegrity() error {
+	if bqm.ValidateQueueIntegrityCalled != nil {
+		return bqm.ValidateQueueIntegrityCalled()
+	}
+	return nil
 }
 
 // RemoveAtNonceAndHigher -
