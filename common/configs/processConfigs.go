@@ -106,7 +106,7 @@ func checkConfigsByRound(configsByRound []config.ProcessConfigByRound) error {
 		}
 		err := checkRoundConfigValues(cfg)
 		if err != nil {
-			return err
+			return fmt.Errorf("%w in checkConfigsByRound for enable round: %d", err, cfg.EnableRound)
 		}
 
 		seen[cfg.EnableRound] = struct{}{}
@@ -140,6 +140,9 @@ func checkRoundConfigValues(cfg config.ProcessConfigByRound) error {
 	if cfg.NumFloodingRoundsOutOfSpecs < minFloodingRounds {
 		return fmt.Errorf("%w for NumFloodingRoundsOutOfSpecs, received %d, min expected %d",
 			process.ErrInvalidValue, cfg.NumFloodingRoundsOutOfSpecs, minFloodingRounds)
+	}
+	if cfg.MaxConsecutiveRoundsOfRatingDecrease == 0 {
+		return process.ErrZeroMaxConsecutiveRoundsOfRatingDecrease
 	}
 
 	return nil
