@@ -5,6 +5,7 @@ import (
 	"testing"
 
 	"github.com/multiversx/mx-chain-core-go/core"
+	"github.com/multiversx/mx-chain-go/common"
 	"github.com/stretchr/testify/require"
 
 	"github.com/multiversx/mx-chain-go/config"
@@ -46,6 +47,9 @@ func createArgsCryptoComponentsHolder() ArgsCryptoComponentsHolder {
 						return "public key", nil
 					},
 				}
+			},
+			ProcessConfigsHandlerCalled: func() common.ProcessConfigsHandler {
+				return &testscommon.ProcessConfigsHandlerStub{}
 			},
 		},
 		AllValidatorKeysPemFileName: "allValidatorKeys.pem",
