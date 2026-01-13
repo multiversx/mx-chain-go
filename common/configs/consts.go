@@ -18,4 +18,6 @@ const (
 	defaultNumFloodingRoundsFastReacting          = 20
 	defaultNumFloodingRoundsSlowReacting          = 20
 	defaultNumFloodingRoundsOutOfSpecs            = 20
+	defaultMaxConsecutiveRoundsOfRatingDecrease   = 600
+	defaultMaxRoundsOfInactivityAccepted          = 3
 )

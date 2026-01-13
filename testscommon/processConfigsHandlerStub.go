@@ -29,6 +29,7 @@ func GetDefaultProcessConfigsHandler() common.ProcessConfigsHandler {
 				NumFloodingRoundsSlowReacting:          20,
 				NumFloodingRoundsFastReacting:          30,
 				NumFloodingRoundsOutOfSpecs:            40,
+				MaxConsecutiveRoundsOfRatingDecrease:   600,
 			},
 		},
 		&epochNotifier.RoundNotifierStub{},
@@ -137,7 +138,7 @@ func (p *ProcessConfigsHandlerStub) GetValue(variable dto.ConfigVariable) uint64
 		return p.GetValueCalled(variable)
 	}
 
-	return 0
+	return 1
 }
 
 // IsInterfaceNil -

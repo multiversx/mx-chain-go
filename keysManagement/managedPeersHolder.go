@@ -12,6 +12,9 @@ import (
 	"github.com/multiversx/mx-chain-core-go/core"
 	"github.com/multiversx/mx-chain-core-go/core/check"
 	crypto "github.com/multiversx/mx-chain-crypto-go"
+	cmn "github.com/multiversx/mx-chain-go/common"
+	"github.com/multiversx/mx-chain-go/common/configs/dto"
+	"github.com/multiversx/mx-chain-go/process"
 	logger "github.com/multiversx/mx-chain-logger-go"
 
 	"github.com/multiversx/mx-chain-go/config"
@@ -35,17 +38,18 @@ type managedPeersHolder struct {
 	keyGenerator                crypto.KeyGenerator
 	p2pKeyGenerator             crypto.KeyGenerator
 	isMainMachine               bool
-	maxRoundsOfInactivity       int
 	defaultName                 string
 	defaultIdentity             string
 	p2pKeyConverter             p2p.P2PKeyConverter
+	processConfigsHandler       cmn.ProcessConfigsHandler
+	redundancyLevel             int
 }
 
 // ArgsManagedPeersHolder represents the argument for the managed peers holder
 type ArgsManagedPeersHolder struct {
 	KeyGenerator          crypto.KeyGenerator
 	P2PKeyGenerator       crypto.KeyGenerator
-	MaxRoundsOfInactivity int
+	ProcessConfigsHandler cmn.ProcessConfigsHandler
 	PrefsConfig           config.Preferences
 	P2PKeyConverter       p2p.P2PKeyConverter
 }
@@ -62,13 +66,20 @@ func NewManagedPeersHolder(args ArgsManagedPeersHolder) (*managedPeersHolder, er
 		pids:                        make(map[core.PeerID]struct{}),
 		keyGenerator:                args.KeyGenerator,
 		p2pKeyGenerator:             args.P2PKeyGenerator,
-		isMainMachine:               common.IsMainNode(args.MaxRoundsOfInactivity),
-		maxRoundsOfInactivity:       args.MaxRoundsOfInactivity,
 		defaultName:                 args.PrefsConfig.Preferences.NodeDisplayName,
 		defaultIdentity:             args.PrefsConfig.Preferences.Identity,
 		p2pKeyConverter:             args.P2PKeyConverter,
 		data:                        make(map[string]*peerInfo),
+		redundancyLevel:             int(args.PrefsConfig.Preferences.RedundancyLevel),
+		processConfigsHandler:       args.ProcessConfigsHandler,
 	}
+
+	maxRoundsOfInactivity := holder.calcMaxRoundsOfInactivity()
+	err = common.CheckMaxRoundsOfInactivity(maxRoundsOfInactivity)
+	if err != nil {
+		return nil, err
+	}
+	holder.isMainMachine = common.IsMainNode(maxRoundsOfInactivity)
 
 	holder.providedIdentities, err = holder.createProvidedIdentitiesMap(args.PrefsConfig.NamedIdentity)
 	if err != nil {
@@ -85,15 +96,18 @@ func checkManagedPeersHolderArgs(args ArgsManagedPeersHolder) error {
 	if check.IfNil(args.P2PKeyGenerator) {
 		return fmt.Errorf("%w for args.P2PKeyGenerator", ErrNilKeyGenerator)
 	}
-	err := common.CheckMaxRoundsOfInactivity(args.MaxRoundsOfInactivity)
-	if err != nil {
-		return err
-	}
 	if check.IfNil(args.P2PKeyConverter) {
 		return fmt.Errorf("%w for args.P2PKeyConverter", ErrNilP2PKeyConverter)
 	}
+	if check.IfNil(args.ProcessConfigsHandler) {
+		return process.ErrNilProcessConfigsHandler
+	}
 
 	return nil
+}
+
+func (holder *managedPeersHolder) calcMaxRoundsOfInactivity() int {
+	return holder.redundancyLevel * int(holder.processConfigsHandler.GetValue(dto.MaxRoundsOfInactivityAccepted))
 }
 
 func (holder *managedPeersHolder) createProvidedIdentitiesMap(namedIdentities []config.NamedIdentity) (map[string]*peerInfo, error) {
@@ -299,7 +313,7 @@ func (holder *managedPeersHolder) GetManagedKeysByCurrentNode() map[string]crypt
 
 	allManagedKeys := make(map[string]crypto.PrivateKey)
 	for pk, pInfo := range holder.data {
-		shouldAddToMap := pInfo.shouldActAsValidator(holder.maxRoundsOfInactivity)
+		shouldAddToMap := pInfo.shouldActAsValidator(holder.calcMaxRoundsOfInactivity())
 		if !shouldAddToMap {
 			continue
 		}
@@ -334,7 +348,7 @@ func (holder *managedPeersHolder) IsKeyManagedByCurrentNode(pkBytes []byte) bool
 		return false
 	}
 
-	return pInfo.shouldActAsValidator(holder.maxRoundsOfInactivity)
+	return pInfo.shouldActAsValidator(holder.calcMaxRoundsOfInactivity())
 }
 
 // IsKeyRegistered returns true if the key is registered (not necessarily managed by the current node)

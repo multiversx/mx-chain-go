@@ -978,7 +978,7 @@ func (ps *PruningStorer) changeEpochWithExisting(epoch uint32) error {
 	for e := int64(epoch); e >= oldestEpochActive; e-- {
 		p, ok := ps.persistersMapByEpoch[uint32(e)]
 		if !ok {
-			return nil
+			continue
 		}
 		persisters = append(persisters, p)
 	}
@@ -1007,7 +1007,7 @@ func (ps *PruningStorer) extendActivePersisters(from uint32, to uint32) error {
 	for e := int(to); e >= int(from); e-- {
 		p, ok := ps.persistersMapByEpoch[uint32(e)]
 		if !ok {
-			return nil
+			continue
 		}
 		persisters = append(persisters, p)
 	}
