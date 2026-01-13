@@ -556,7 +556,8 @@ func TestShardProcessor_CreateBlockProposal(t *testing.T) {
 		}
 		arguments.TxCoordinator = &testscommon.TransactionCoordinatorMock{
 			CreateMbsCrossShardDstMeCalled: func(header data.HeaderHandler, processedMiniBlocksInfo map[string]*processedMb.ProcessedMiniBlockInfo) ([]block.MiniblockAndHash, []block.MiniblockAndHash, uint32, bool, error) {
-				if header.GetNonce() == 1 {
+				switch header.GetNonce() {
+				case 1:
 					return []block.MiniblockAndHash{
 							{
 								Miniblock: providedMb,
@@ -568,16 +569,18 @@ func TestShardProcessor_CreateBlockProposal(t *testing.T) {
 								Miniblock: providedPendingMb,
 								Hash:      []byte("providedPendingMB"),
 							},
-						}, 0, true, nil
+						}, 0, false, nil
+				case 2:
+					return nil, nil, 0, true, nil // empty header
+				default:
+					return []block.MiniblockAndHash{},
+						[]block.MiniblockAndHash{
+							{
+								Miniblock: providedPendingMb2,
+								Hash:      []byte("providedPendingMB2"),
+							},
+						}, 0, false, nil
 				}
-
-				return []block.MiniblockAndHash{},
-					[]block.MiniblockAndHash{
-						{
-							Miniblock: providedPendingMb2,
-							Hash:      []byte("providedPendingMB2"),
-						},
-					}, 0, true, nil
 			},
 			SelectOutgoingTransactionsCalled: func(nonce uint64) ([][]byte, []data.MiniBlockHeaderHandler) {
 				pendingMbsAdded := []data.MiniBlockHeaderHandler{
