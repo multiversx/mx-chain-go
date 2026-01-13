@@ -1519,7 +1519,7 @@ func (boot *baseBootstrap) rollBack(revertUsingForkNonce bool) error {
 }
 
 func (boot *baseBootstrap) shouldAllowRollback(currHeader data.HeaderHandler, currHeaderHash []byte) bool {
-	if currHeader.IsHeaderV3() {
+	if check.IfNil(currHeader) || currHeader.IsHeaderV3() {
 		return false
 	}
 
