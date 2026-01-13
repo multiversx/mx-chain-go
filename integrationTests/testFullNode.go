@@ -514,11 +514,15 @@ func (tpn *TestFullNode) initNode(
 	tpn.ForkDetector = tpn.createForkDetector(roundHandler)
 
 	argsKeysHolder := keysManagement.ArgsManagedPeersHolder{
-		KeyGenerator:          args.KeyGen,
-		P2PKeyGenerator:       args.P2PKeyGen,
-		MaxRoundsOfInactivity: 0, // 0 for main node, non-0 for backup node
-		PrefsConfig:           config.Preferences{},
+		KeyGenerator:    args.KeyGen,
+		P2PKeyGenerator: args.P2PKeyGen,
+		PrefsConfig: config.Preferences{
+			Preferences: config.PreferencesConfig{
+				RedundancyLevel: 0, //  0 for main node, non-0 for backup node
+			},
+		},
 		P2PKeyConverter:       p2pFactory.NewP2PKeyConverter(),
+		ProcessConfigsHandler: &testscommon.ProcessConfigsHandlerStub{},
 	}
 	keysHolder, _ := keysManagement.NewManagedPeersHolder(argsKeysHolder)
 

@@ -647,6 +647,7 @@ func getPrevEpochMetaStartNonceForEconomics(previousEpochStartMeta data.MetaHead
 	if !previousEpochStartMeta.IsHeaderV3() {
 		return previousEpochStartMeta.GetNonce(), nil
 	}
+	// todo: extract the epoch change proposal execution result here
 	lastNotarizedResult, err := common.GetLastBaseExecutionResultHandler(previousEpochStartMeta)
 	if err != nil {
 		return 0, err

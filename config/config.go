@@ -266,7 +266,6 @@ type Config struct {
 	VMOutputCacher        CacheConfig
 
 	PeersRatingConfig PeersRatingConfig
-	Redundancy        RedundancyConfig
 
 	InterceptedDataVerifier InterceptedDataVerifierConfig
 }
@@ -395,29 +394,31 @@ type ProcessConfigByRound struct {
 	NumFloodingRoundsFastReacting uint32
 	NumFloodingRoundsSlowReacting uint32
 	NumFloodingRoundsOutOfSpecs   uint32
+
+	MaxConsecutiveRoundsOfRatingDecrease uint64
+	MaxRoundsOfInactivityAccepted        uint64
 }
 
 // GeneralSettingsConfig will hold the general settings for a node
 type GeneralSettingsConfig struct {
 	StatusPollingIntervalSec int
 	// TODO: add config per epoch for supernova
-	MaxComputableRounds                  uint64
-	MaxConsecutiveRoundsOfRatingDecrease uint64
-	StartInEpochEnabled                  bool
-	ChainID                              string
-	MinTransactionVersion                uint32
-	GenesisString                        string
-	GenesisMaxNumberOfShards             uint32
-	SyncProcessTimeInMillis              uint32
-	SyncProcessTimeSupernovaInMillis     uint32
-	SetGuardianEpochsDelay               uint32
-	ChainParametersByEpoch               []ChainParametersByEpochConfig
-	EpochChangeGracePeriodByEpoch        []EpochChangeGracePeriodByEpoch
-	ProcessConfigsByEpoch                []ProcessConfigByEpoch
-	ProcessConfigsByRound                []ProcessConfigByRound `toml:"ProcessConfigsByRound"`
-	EpochStartConfigsByEpoch             []EpochStartConfigByEpoch
-	EpochStartConfigsByRound             []EpochStartConfigByRound
-	ConsensusConfigsByEpoch              []ConsensusConfigByEpoch
+	MaxComputableRounds              uint64
+	StartInEpochEnabled              bool
+	ChainID                          string
+	MinTransactionVersion            uint32
+	GenesisString                    string
+	GenesisMaxNumberOfShards         uint32
+	SyncProcessTimeInMillis          uint32
+	SyncProcessTimeSupernovaInMillis uint32
+	SetGuardianEpochsDelay           uint32
+	ChainParametersByEpoch           []ChainParametersByEpochConfig
+	EpochChangeGracePeriodByEpoch    []EpochChangeGracePeriodByEpoch
+	ProcessConfigsByEpoch            []ProcessConfigByEpoch
+	ProcessConfigsByRound            []ProcessConfigByRound `toml:"ProcessConfigsByRound"`
+	EpochStartConfigsByEpoch         []EpochStartConfigByEpoch
+	EpochStartConfigsByRound         []EpochStartConfigByRound
+	ConsensusConfigsByEpoch          []ConsensusConfigByEpoch
 }
 
 // HardwareRequirementsConfig will hold the hardware requirements config
@@ -784,12 +785,6 @@ type RequesterConfig struct {
 	NumCrossShardPeers  uint32
 	NumTotalPeers       uint32
 	NumFullHistoryPeers uint32
-}
-
-// RedundancyConfig represents the config options to be used when setting the redundancy configuration
-type RedundancyConfig struct {
-	// TODO: add config per epoch for supernova
-	MaxRoundsOfInactivityAccepted int
 }
 
 // ChainParametersByEpochConfig holds chain parameters that are configurable based on epochs
