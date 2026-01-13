@@ -18,10 +18,11 @@ import (
 	"github.com/multiversx/mx-chain-core-go/data"
 	"github.com/multiversx/mx-chain-core-go/data/block"
 	"github.com/multiversx/mx-chain-core-go/marshal"
-	"github.com/multiversx/mx-chain-go/process/asyncExecution/queue"
-	"github.com/multiversx/mx-chain-go/testscommon/processMocks"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
+
+	"github.com/multiversx/mx-chain-go/process/asyncExecution/queue"
+	"github.com/multiversx/mx-chain-go/testscommon/processMocks"
 
 	"github.com/multiversx/mx-chain-go/common"
 	"github.com/multiversx/mx-chain-go/consensus"
@@ -2177,15 +2178,21 @@ func TestShardBootstrap_DoJobOnSyncBlockFailShouldResetProbableHighestNonce(t *t
 	args.ForkDetector = forkDetectorMock
 	args.ChainHandler = &testscommon.ChainHandlerStub{
 		GetCurrentBlockHeaderCalled: func() data.HeaderHandler {
-			return &block.Header{Nonce: 1}
+			return &block.Header{Nonce: 2}
 		},
 		GetGenesisHeaderCalled: func() data.HeaderHandler {
 			return &block.Header{}
 		},
 	}
 
+	// revert final block should not reset probable highest nonce
 	bs, _ := sync.NewShardBootstrap(args)
 	bs.SetNumSyncedWithErrorsForNonce(2, 9)
+	bs.DoJobOnSyncBlockFail(nil, nil, errors.New("error"))
+	assert.False(t, wasCalled)
+
+	// revert non final block should reset probable highest nonce
+	bs.SetNumSyncedWithErrorsForNonce(3, 9)
 	bs.DoJobOnSyncBlockFail(nil, nil, errors.New("error"))
 
 	assert.True(t, wasCalled)

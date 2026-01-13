@@ -2890,6 +2890,8 @@ func (bp *baseProcessor) cleanPostProcessCache(header data.HeaderHandler) error 
 		postProcessTxsCache.Remove(headerHash)
 		// remove execution order data
 		postProcessTxsCache.Remove(common.PrepareOrderedTxHashesKey(headerHash))
+		// remove cached log events
+		postProcessTxsCache.Remove(common.PrepareLogEventsKey(headerHash))
 
 		mbHeaders, err := common.GetMiniBlocksHeaderHandlersFromExecResult(execResult)
 		if err != nil {
