@@ -235,6 +235,7 @@ func (ccf *coreComponentsFactory) Create() (*coreComponents, error) {
 
 	common.SetEnableEpochsHandler(enableEpochsHandler)
 	common.SetEnableRoundsHandler(enableRoundsHandler)
+	common.SetVersionsConfigHandler(&ccf.config.Versions)
 	common.SetProcessConfigsHandler(processConfigs)
 	common.SetCommonConfigsHandler(commonConfigsHandler)
 
