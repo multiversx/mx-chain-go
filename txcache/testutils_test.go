@@ -110,7 +110,7 @@ func (listForSender *txListForSender) getTxsHashes() [][]byte {
 
 	result := make([][]byte, 0, listForSender.countTx())
 
-	for _, tx := range listForSender.items {
+	for _, tx := range listForSender.list.items {
 		result = append(result, tx.TxHash)
 	}
 

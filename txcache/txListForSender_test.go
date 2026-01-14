@@ -124,16 +124,16 @@ func TestListForSender_removeTransactionsWithLowerOrEqualNonceReturnHashes(t *te
 	list.AddTx(createTx([]byte("tx-44"), ".", 44), txCache.tracker)
 	list.AddTx(createTx([]byte("tx-45"), ".", 45), txCache.tracker)
 
-	require.Equal(t, 4, len(list.items))
+	require.Equal(t, 4, list.list.len())
 
 	_ = list.removeTransactionsWithLowerOrEqualNonceReturnHashes(43)
-	require.Equal(t, 2, len(list.items))
+	require.Equal(t, 2, list.list.len())
 
 	_ = list.removeTransactionsWithLowerOrEqualNonceReturnHashes(44)
-	require.Equal(t, 1, len(list.items))
+	require.Equal(t, 1, list.list.len())
 
 	_ = list.removeTransactionsWithLowerOrEqualNonceReturnHashes(99)
-	require.Equal(t, 0, len(list.items))
+	require.Equal(t, 0, list.list.len())
 }
 
 func TestListForSender_getTxs(t *testing.T) {

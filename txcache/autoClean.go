@@ -144,38 +144,27 @@ func (listForSender *txListForSender) removeSweepableTransactionsReturnHashes(ta
 	listForSender.mutex.Lock()
 	defer listForSender.mutex.Unlock()
 
-	// We iterate from start to end (ascending nonce)
-	// We want to remove transactions with nonce < targetNonce ONLY if they are NOT tracked?
-	// The original code says: "finds transactions with lower nonces ... txNonce > targetNonce { break } ... if !tracker.IsTracked { Remove }"
-	// So we are removing untracked transactions that are "old" (nonce <= targetNonce).
+	// Filter approach: we need to remove untracked transactions <= targetNonce
+	// Since we are operating on the underlying slice, we can iterate.
 
-	// Since we are modifying the slice in-place, we should be careful.
-	// Filter approach: keep transactions that SHOULD stay.
+	cutoffIndex := listForSender.list.len()
+	items := listForSender.list.items
 
-	// OR reuse existing slice and compact? Reuse is better for allocs.
-	// But simple logic first.
-
-	// We only need to check up to where nonce > targetNonce.
-
-	cutoffIndex := len(listForSender.items)
-	for i, tx := range listForSender.items {
+	for i, tx := range items {
 		if tx.Tx.GetNonce() > targetNonce {
 			cutoffIndex = i
 			break
 		}
 	}
 
-	// Items from [0...cutoffIndex-1] are candidates for removal.
-	// Items from [cutoffIndex...] remain untouched.
+	// Candidates in [0...cutoffIndex-1]
+	// Rebuild the prefix
 
-	// We will rebuild the prefix [0...cutoffIndex]
 	keptItems := make([]*WrappedTransaction, 0, cutoffIndex)
 
 	for i := 0; i < cutoffIndex; i++ {
-		tx := listForSender.items[i]
-
+		tx := items[i]
 		shouldRemove := !tracker.IsTransactionTracked(tx)
-		// Logic check: original code removed if !IsTransactionTracked.
 
 		if shouldRemove {
 			logRemove.Debug("TxCache.removeSweepableTransactionsReturnHashes",
@@ -190,16 +179,9 @@ func (listForSender *txListForSender) removeSweepableTransactionsReturnHashes(ta
 		}
 	}
 
-	// Reassemble: keptItems + remaining items
-	// We can reuse listForSender.items array if careful, but append is safe.
-	// Optimization:
-	// copy remaining to keptItems
-	keptItems = append(keptItems, listForSender.items[cutoffIndex:]...)
-
-	// Replace
-	// Nil out old pointers for GC safety if we are shrinking?
-	// The new items slice will overwrite.
-	listForSender.items = keptItems
+	// Reassemble
+	keptItems = append(keptItems, items[cutoffIndex:]...)
+	listForSender.list.items = keptItems
 
 	return txHashesToEvict
 }
