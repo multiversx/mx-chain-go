@@ -13,6 +13,9 @@ import (
 	"github.com/multiversx/mx-chain-core-go/core/check"
 	"github.com/multiversx/mx-chain-core-go/data"
 	"github.com/multiversx/mx-chain-core-go/data/block"
+	"github.com/stretchr/testify/assert"
+	"github.com/stretchr/testify/require"
+
 	"github.com/multiversx/mx-chain-go/dataRetriever"
 	"github.com/multiversx/mx-chain-go/epochStart"
 	"github.com/multiversx/mx-chain-go/process/block/bootstrapStorage"
@@ -21,8 +24,6 @@ import (
 	epochStartMocks "github.com/multiversx/mx-chain-go/testscommon/bootstrapMocks/epochStart"
 	"github.com/multiversx/mx-chain-go/testscommon/marshallerMock"
 	storageStubs "github.com/multiversx/mx-chain-go/testscommon/storage"
-	"github.com/stretchr/testify/assert"
-	"github.com/stretchr/testify/require"
 )
 
 func TestNewShardStorageHandler_ShouldWork(t *testing.T) {
@@ -701,10 +702,11 @@ func TestShardStorageHandler_saveLastCrossNotarizedHeadersWithoutScheduledWrongT
 	lastFinishedMetaBlock := "last finished meta block"
 
 	headers := map[string]data.HeaderHandler{
-		shard0HeaderHash: &block.Header{Nonce: 100}, lastFinishedMetaBlock: &block.Header{Nonce: 99}, // wrong header type
+		shard0HeaderHash:      &block.Header{Nonce: 100},
+		lastFinishedMetaBlock: &block.Header{Nonce: 99}, // wrong header type
 	}
 	shardInfo := []block.ShardData{{HeaderHash: []byte(shard0HeaderHash), ShardMiniBlockHeaders: nil, ShardID: 0}}
-	epochStartShardData := createDefaultEpochStartShardData([]byte(lastFinishedMetaBlock), []byte(""))
+	epochStartShardData := createDefaultEpochStartShardData([]byte(lastFinishedMetaBlock), []byte(shard0HeaderHash))
 
 	meta := &block.MetaBlock{
 		Nonce: 100,
@@ -739,7 +741,7 @@ func TestShardStorageHandler_saveLastCrossNotarizedHeadersWithoutScheduledErrorW
 		shard0HeaderHash: &block.Header{Nonce: 100}, lastFinishedMetaBlock: &block.MetaBlock{Nonce: 99},
 	}
 	shardInfo := []block.ShardData{{HeaderHash: []byte(shard0HeaderHash), ShardMiniBlockHeaders: nil, ShardID: 0}}
-	epochStartShardData := createDefaultEpochStartShardData([]byte(lastFinishedMetaBlock), []byte(""))
+	epochStartShardData := createDefaultEpochStartShardData([]byte(lastFinishedMetaBlock), []byte(shard0HeaderHash))
 
 	meta := &block.MetaBlock{
 		Nonce: 100,
@@ -770,7 +772,7 @@ func TestShardStorageHandler_saveLastCrossNotarizedHeadersWithoutScheduled(t *te
 		shard0HeaderHash: &block.Header{Nonce: 100}, lastFinishedMetaBlock: &block.MetaBlock{Nonce: 99},
 	}
 	shardInfo := []block.ShardData{{HeaderHash: []byte(shard0HeaderHash), ShardMiniBlockHeaders: nil, ShardID: 0}}
-	epochStartShardData := createDefaultEpochStartShardData([]byte(lastFinishedMetaBlock), []byte(""))
+	epochStartShardData := createDefaultEpochStartShardData([]byte(lastFinishedMetaBlock), []byte(shard0HeaderHash))
 
 	meta := &block.MetaBlock{
 		Nonce: 100,

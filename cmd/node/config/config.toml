@@ -27,11 +27,6 @@
     # GenesisMaxNumberOfShards represents the maximum number of shards to be created at genesis (excluding metaChain shard)
     GenesisMaxNumberOfShards  = 3
 
-    # MaxConsecutiveRoundsOfRatingDecrease represents the max number of consecutive rounds in which a block is not proposed
-    # on a shard and the validators' rating could be decreased. If, for instance, a shard gets stuck for more rounds
-    # than this value, then the validators rating decrease should stop so they won't get jailed
-    MaxConsecutiveRoundsOfRatingDecrease = 600
-
     # SyncProcessTimeInMillis is the value in milliseconds used when processing blocks while synchronizing blocks
     SyncProcessTimeInMillis = 12000
 
@@ -74,7 +69,14 @@
         MaxRoundsToKeepUnprocessedTransactions = 300,
         NumFloodingRoundsFastReacting = 10,
         NumFloodingRoundsSlowReacting = 2,
-        NumFloodingRoundsOutOfSpecs = 2
+        NumFloodingRoundsOutOfSpecs = 2,
+        # MaxConsecutiveRoundsOfRatingDecrease represents the max number of consecutive rounds in which a block is not proposed
+        # on a shard and the validators' rating could be decreased. If, for instance, a shard gets stuck for more rounds
+        # than this value, then the validators rating decrease should stop so they won't get jailed
+        MaxConsecutiveRoundsOfRatingDecrease = 600,
+        # MaxRoundsOfInactivityAccepted defines the number of rounds missed by a main or higher level backup machine before
+        # the current machine will take over and propose/sign blocks. Used in both single-key and multi-key modes.
+        MaxRoundsOfInactivityAccepted = 3
         },
         {
         EnableRound = 440,
@@ -86,7 +88,9 @@
         MaxRoundsToKeepUnprocessedTransactions = 3000,
         NumFloodingRoundsFastReacting = 100,
         NumFloodingRoundsSlowReacting = 20,
-        NumFloodingRoundsOutOfSpecs = 20
+        NumFloodingRoundsOutOfSpecs = 20,
+        MaxConsecutiveRoundsOfRatingDecrease = 6000,
+        MaxRoundsOfInactivityAccepted = 30
         }
     ]
 
@@ -1077,11 +1081,6 @@
         Capacity = 50000
         Type = "SizeLRU"
         SizeInBytes = 314572800 #300MB
-
-[Redundancy]
-    # MaxRoundsOfInactivityAccepted defines the number of rounds missed by a main or higher level backup machine before
-    # the current machine will take over and propose/sign blocks. Used in both single-key and multi-key modes.
-    MaxRoundsOfInactivityAccepted = 3
 
 [InterceptedDataVerifier]
     EnableCaching = true
