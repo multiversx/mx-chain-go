@@ -656,7 +656,7 @@ func (sp *shardProcessor) appendPendingMiniBlocksAfterSelectingOutgoingTransacti
 		extraMiniBlocksAdded[i] = miniBlockAndHash
 
 		// if this is still the last one referenced, continue adding its mini blocks
-		// possible gaps should have been filled and the current one already referenced
+		// possible gaps should have been filled already and the current one already referenced
 		if header.GetNonce() == lastNonceReferenced {
 			continue
 		}
@@ -777,8 +777,6 @@ func (sp *shardProcessor) checkMetaHeadersValidityAndFinalityProposal(header dat
 	if err != nil {
 		return fmt.Errorf("%w : checkMetaHeadersValidityAndFinalityProposal -> getReferencedMetaHeadersFromPool", err)
 	}
-
-	process.SortHeadersByNonce(usedMetaHeaders)
 
 	for _, metaHeader := range usedMetaHeaders {
 		err = sp.headerValidator.IsHeaderConstructionValid(metaHeader, lastCrossNotarizedHeader)
