@@ -16,7 +16,13 @@ func newOrderedTransactionsList() *orderedTransactionsList {
 	}
 }
 
-// insert inserts a transaction in the correct position.
+// This function should only be used in critical section (listForSender.mutex).
+// When searching for the insertion place, we consider the following rules:
+// - transactions are sorted by nonce in ascending order.
+// - transactions with the same nonce are sorted by gas price in descending order.
+// - transactions with the same nonce and gas price are sorted by hash in ascending order.
+// - duplicates are not allowed.
+// - "PPU" measurement is not relevant in this context. Competition among transactions of the same sender (and nonce) is based on gas price.
 // Returns success (true) or failure (false) if duplicate.
 func (otl *orderedTransactionsList) insert(tx *WrappedTransaction) bool {
 	// Optimization: Check if we can append (Common Case: ordered nonce)

@@ -151,6 +151,7 @@ func (listForSender *txListForSender) removeSweepableTransactionsReturnHashes(ta
 	items := listForSender.list.items
 
 	for i, tx := range items {
+		// Nonces are sorted ascending, so we can stop as soon as we find a nonce that is higher
 		if tx.Tx.GetNonce() > targetNonce {
 			cutoffIndex = i
 			break
