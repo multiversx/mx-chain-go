@@ -184,6 +184,7 @@ func (t *trigger) ForceEpochStart(round uint64) {
 	}
 
 	minRoundsBetweenEpochs := t.getMinRoundsBetweenEpochs(t.epoch)
+	minRoundsBetweenEpochs = 4
 	if t.nextEpochStartRound-t.currEpochStartRound < minRoundsBetweenEpochs {
 		t.nextEpochStartRound = t.currEpochStartRound + minRoundsBetweenEpochs
 		log.Debug("can not force epoch start on provided round",
