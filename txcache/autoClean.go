@@ -144,35 +144,62 @@ func (listForSender *txListForSender) removeSweepableTransactionsReturnHashes(ta
 	listForSender.mutex.Lock()
 	defer listForSender.mutex.Unlock()
 
-	for element := listForSender.items.Front(); element != nil; {
-		// finds transactions with lower nonces
-		tx := element.Value.(*WrappedTransaction)
+	// We iterate from start to end (ascending nonce)
+	// We want to remove transactions with nonce < targetNonce ONLY if they are NOT tracked?
+	// The original code says: "finds transactions with lower nonces ... txNonce > targetNonce { break } ... if !tracker.IsTracked { Remove }"
+	// So we are removing untracked transactions that are "old" (nonce <= targetNonce).
 
-		txNonce := tx.Tx.GetNonce()
+	// Since we are modifying the slice in-place, we should be careful.
+	// Filter approach: keep transactions that SHOULD stay.
 
-		// nonces are sorted ascending, so we can stop as soon as we find a nonce that is higher
-		if txNonce > targetNonce {
+	// OR reuse existing slice and compact? Reuse is better for allocs.
+	// But simple logic first.
+
+	// We only need to check up to where nonce > targetNonce.
+
+	cutoffIndex := len(listForSender.items)
+	for i, tx := range listForSender.items {
+		if tx.Tx.GetNonce() > targetNonce {
+			cutoffIndex = i
 			break
 		}
-
-		logRemove.Debug("TxCache.removeSweepableTransactionsReturnHashes",
-			"txHash", tx.TxHash,
-			"txNonce", txNonce,
-			"targetNonce", targetNonce,
-		)
-
-		nextElement := element.Next()
-
-		if !tracker.IsTransactionTracked(tx) {
-			_ = listForSender.items.Remove(element)
-			listForSender.onRemovedListElement(element)
-
-			// Keep track of removed transactions
-			txHashesToEvict = append(txHashesToEvict, tx.TxHash)
-		}
-
-		element = nextElement
 	}
+
+	// Items from [0...cutoffIndex-1] are candidates for removal.
+	// Items from [cutoffIndex...] remain untouched.
+
+	// We will rebuild the prefix [0...cutoffIndex]
+	keptItems := make([]*WrappedTransaction, 0, cutoffIndex)
+
+	for i := 0; i < cutoffIndex; i++ {
+		tx := listForSender.items[i]
+
+		shouldRemove := !tracker.IsTransactionTracked(tx)
+		// Logic check: original code removed if !IsTransactionTracked.
+
+		if shouldRemove {
+			logRemove.Debug("TxCache.removeSweepableTransactionsReturnHashes",
+				"txHash", tx.TxHash,
+				"txNonce", tx.Tx.GetNonce(),
+				"targetNonce", targetNonce,
+			)
+			txHashesToEvict = append(txHashesToEvict, tx.TxHash)
+			listForSender.onRemovedTransaction(tx)
+		} else {
+			keptItems = append(keptItems, tx)
+		}
+	}
+
+	// Reassemble: keptItems + remaining items
+	// We can reuse listForSender.items array if careful, but append is safe.
+	// Optimization:
+	// copy remaining to keptItems
+	keptItems = append(keptItems, listForSender.items[cutoffIndex:]...)
+
+	// Replace
+	// Nil out old pointers for GC safety if we are shrinking?
+	// The new items slice will overwrite.
+	listForSender.items = keptItems
 
 	return txHashesToEvict
 }
