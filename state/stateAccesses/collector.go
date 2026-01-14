@@ -85,9 +85,9 @@ func (c *collector) Reset() {
 
 	c.stateAccesses = make([]*data.StateAccess, 0)
 	c.stateAccessesForTxs = make(map[string]*data.StateAccesses)
-	c.stateAccessesForBlock = make(map[string]stateAccessesForTxs)
+	//c.stateAccessesForBlock = make(map[string]stateAccessesForTxs)
 
-	log.Trace("reset state accesses collector")
+	log.Trace("reset state accesses collector", "num state accesses for block", len(c.stateAccessesForBlock))
 }
 
 // GetStateAccessesForRootHash will return the collected state accesses
@@ -104,6 +104,7 @@ func (c *collector) GetStateAccessesForRootHash(rootHash []byte) map[string]*dat
 	return stateAccessesForRootHash
 }
 
+// RemoveStateAccessesForRootHash will remove the collected state accesses for the given root hash
 func (c *collector) RemoveStateAccessesForRootHash(rootHash []byte) {
 	c.stateAccessesMut.Lock()
 	defer c.stateAccessesMut.Unlock()
