@@ -237,6 +237,20 @@ func TestNode_GetTransactionInvalidHashShouldErr(t *testing.T) {
 	assert.Error(t, err)
 }
 
+func TestNode_GetTransactionFoundInPoolAndStorageShouldReturnFromStorage(t *testing.T) {
+	n, chainStorer, dataPool, _ := createAPITransactionProc(t, 42, false)
+
+	txA := &transaction.Transaction{Nonce: 7, SndAddr: []byte("bob"), RcvAddr: []byte("alice")}
+	dataPool.Transactions().AddData([]byte("a"), txA, 42, "1")
+
+	internalMarshalizer := &mock.MarshalizerFake{}
+	_ = chainStorer.Transactions.PutWithMarshalizer([]byte("a"), txA, internalMarshalizer)
+
+	actualA, err := n.GetTransaction(hex.EncodeToString([]byte("a")), false)
+	require.Nil(t, err)
+	require.Equal(t, transaction.TxStatusSuccess, actualA.Status)
+}
+
 func TestNode_GetTransactionFromPool(t *testing.T) {
 	t.Parallel()
 
