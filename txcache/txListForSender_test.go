@@ -6,7 +6,6 @@ import (
 	"sync"
 	"testing"
 
-	"github.com/multiversx/mx-chain-core-go/core"
 	"github.com/stretchr/testify/require"
 )
 
@@ -194,206 +193,21 @@ func TestListForSender_DetectRaceConditions(t *testing.T) {
 	wg.Wait()
 }
 
-func TestBenchmarkListForSender_getTxs(t *testing.T) {
-	sw := core.NewStopWatch()
+const numAccountsForBenchmark = 1_000
 
-	t.Run("numTransactions = 5_000 getTxs in order", func(t *testing.T) {
-		txCache := newCacheToTest(maxNumBytesPerSenderUpperBoundTest, math.MaxUint32)
-		list := newUnconstrainedListToTest()
+type testTxListFunc func(txCache *TxCache, list *txListForSender, numNoncesPerAccount uint64)
 
-		numTransactions := 5_000
-
-		for i := numTransactions - 1; i >= 0; i-- {
-			list.AddTx(createTx([]byte(fmt.Sprintf("txHash%d", i)), "alice", uint64(i)), txCache.tracker)
-		}
-
-		sw.Start(t.Name())
-		txs := list.getTxs()
-		sw.Stop(t.Name())
-		require.Len(t, txs, 5000)
-	})
-
-	t.Run("numTransactions = 5_000 getTxs reversed", func(t *testing.T) {
-		txCache := newCacheToTest(maxNumBytesPerSenderUpperBoundTest, math.MaxUint32)
-		list := newUnconstrainedListToTest()
-
-		numTransactions := 5_000
-
-		for i := numTransactions - 1; i >= 0; i-- {
-			list.AddTx(createTx([]byte(fmt.Sprintf("txHash%d", i)), "alice", uint64(i)), txCache.tracker)
-		}
-
-		sw.Start(t.Name())
-		txs := list.getTxsReversed()
-		sw.Stop(t.Name())
-		require.Len(t, txs, 5000)
-	})
-
-	for name, measurement := range sw.GetMeasurementsMap() {
-		fmt.Printf("%fs (%s)\n", measurement, name)
-	}
+func funcRemoveTransactionsWithHigherOrEqualNonce(_ *TxCache, list *txListForSender, _ uint64) {
+	list.removeTransactionsWithHigherOrEqualNonce(0)
 }
 
-func TestBenchmarkListForSender_removeTransactionsWithLowerOrEqualNonceReturnHashes(t *testing.T) {
-	sw := core.NewStopWatch()
-
-	t.Run("numTransactions = 1_000", func(t *testing.T) {
-		txCache := newCacheToTest(maxNumBytesPerSenderUpperBoundTest, math.MaxUint32)
-		list := newUnconstrainedListToTest()
-
-		numTransactions := 1_000
-
-		for i := numTransactions - 1; i >= 0; i-- {
-			list.AddTx(createTx([]byte(fmt.Sprintf("txHash%d", i)), "alice", uint64(i)), txCache.tracker)
-		}
-
-		sw.Start(t.Name())
-		list.removeTransactionsWithLowerOrEqualNonceReturnHashes(1_000)
-		sw.Stop(t.Name())
-	})
-
-	t.Run("numTransactions = 5_000", func(t *testing.T) {
-		txCache := newCacheToTest(maxNumBytesPerSenderUpperBoundTest, math.MaxUint32)
-		list := newUnconstrainedListToTest()
-
-		numTransactions := 5_000
-
-		for i := numTransactions - 1; i >= 0; i-- {
-			list.AddTx(createTx([]byte(fmt.Sprintf("txHash%d", i)), "alice", uint64(i)), txCache.tracker)
-		}
-
-		sw.Start(t.Name())
-		list.removeTransactionsWithLowerOrEqualNonceReturnHashes(5000)
-		sw.Stop(t.Name())
-	})
-
-	t.Run("numTransactions = 10_000", func(t *testing.T) {
-		txCache := newCacheToTest(maxNumBytesPerSenderUpperBoundTest, math.MaxUint32)
-		list := newUnconstrainedListToTest()
-
-		numTransactions := 10_000
-
-		for i := numTransactions - 1; i >= 0; i-- {
-			list.AddTx(createTx([]byte(fmt.Sprintf("txHash%d", i)), "alice", uint64(i)), txCache.tracker)
-		}
-
-		sw.Start(t.Name())
-		list.removeTransactionsWithLowerOrEqualNonceReturnHashes(10_000)
-		sw.Stop(t.Name())
-	})
-
-	for name, measurement := range sw.GetMeasurementsMap() {
-		fmt.Printf("%fs (%s)\n", measurement, name)
-	}
+func funcRemoveTransactionsWithLowerOrEqualNonceReturnHashes(_ *TxCache, list *txListForSender, numNoncesPerAccount uint64) {
+	list.removeTransactionsWithLowerOrEqualNonceReturnHashes(numNoncesPerAccount)
 }
 
-func TestBenchmarkListForSender_removeTransactionsWithHigherOrEqualNonce(t *testing.T) {
-	sw := core.NewStopWatch()
-
-	t.Run("numTransactions = 1_000", func(t *testing.T) {
-		txCache := newCacheToTest(maxNumBytesPerSenderUpperBoundTest, math.MaxUint32)
-		list := newUnconstrainedListToTest()
-
-		numTransactions := 1_000
-
-		for i := numTransactions - 1; i >= 0; i-- {
-			list.AddTx(createTx([]byte(fmt.Sprintf("txHash%d", i)), "alice", uint64(i)), txCache.tracker)
-		}
-
-		sw.Start(t.Name())
-		list.removeTransactionsWithHigherOrEqualNonce(0)
-		sw.Stop(t.Name())
-	})
-
-	t.Run("numTransactions = 5_000", func(t *testing.T) {
-		txCache := newCacheToTest(maxNumBytesPerSenderUpperBoundTest, math.MaxUint32)
-		list := newUnconstrainedListToTest()
-
-		numTransactions := 5_000
-
-		for i := numTransactions - 1; i >= 0; i-- {
-			list.AddTx(createTx([]byte(fmt.Sprintf("txHash%d", i)), "alice", uint64(i)), txCache.tracker)
-		}
-
-		sw.Start(t.Name())
-		list.removeTransactionsWithHigherOrEqualNonce(0)
-		sw.Stop(t.Name())
-	})
-
-	t.Run("numTransactions = 10_000", func(t *testing.T) {
-		txCache := newCacheToTest(maxNumBytesPerSenderUpperBoundTest, math.MaxUint32)
-		list := newUnconstrainedListToTest()
-
-		numTransactions := 10_000
-
-		for i := numTransactions - 1; i >= 0; i-- {
-			list.AddTx(createTx([]byte(fmt.Sprintf("txHash%d", i)), "alice", uint64(i)), txCache.tracker)
-		}
-
-		sw.Start(t.Name())
-		list.removeTransactionsWithHigherOrEqualNonce(0)
-		sw.Stop(t.Name())
-	})
-
-	for name, measurement := range sw.GetMeasurementsMap() {
-		fmt.Printf("%fs (%s)\n", measurement, name)
-	}
-}
-
-func TestBenchmarkListForSender_applySizeConstraints(t *testing.T) {
-	sw := core.NewStopWatch()
-
-	t.Run("numTransactions = 1_000", func(t *testing.T) {
-		numTransactions := 1_000
-
-		txCache := newCacheToTest(maxNumBytesPerSenderUpperBoundTest, math.MaxUint32)
-		list := newListToTest(maxNumBytesPerSenderUpperBoundTest, uint32(numTransactions))
-
-		for i := numTransactions - 1; i >= 0; i-- {
-			list.AddTx(createTx([]byte(fmt.Sprintf("txHash%d", i)), "alice", uint64(i)), txCache.tracker)
-		}
-
-		sw.Start(t.Name())
-		list.constraints.maxNumTxs = uint32(numTransactions / 2)
-		list.applySizeConstraints(txCache.tracker)
-		sw.Stop(t.Name())
-	})
-
-	t.Run("numTransactions = 5_000", func(t *testing.T) {
-		numTransactions := 5_000
-
-		txCache := newCacheToTest(maxNumBytesPerSenderUpperBoundTest, math.MaxUint32)
-		list := newListToTest(maxNumBytesPerSenderUpperBoundTest, uint32(numTransactions))
-
-		for i := numTransactions - 1; i >= 0; i-- {
-			list.AddTx(createTx([]byte(fmt.Sprintf("txHash%d", i)), "alice", uint64(i)), txCache.tracker)
-		}
-
-		sw.Start(t.Name())
-		list.constraints.maxNumTxs = uint32(numTransactions / 2)
-		list.applySizeConstraints(txCache.tracker)
-		sw.Stop(t.Name())
-	})
-
-	t.Run("numTransactions = 10_000", func(t *testing.T) {
-		numTransactions := 10_000
-
-		txCache := newCacheToTest(maxNumBytesPerSenderUpperBoundTest, math.MaxUint32)
-		list := newListToTest(maxNumBytesPerSenderUpperBoundTest, uint32(numTransactions))
-
-		for i := numTransactions - 1; i >= 0; i-- {
-			list.AddTx(createTx([]byte(fmt.Sprintf("txHash%d", i)), "alice", uint64(i)), txCache.tracker)
-		}
-
-		sw.Start(t.Name())
-		list.constraints.maxNumTxs = uint32(numTransactions / 2)
-		list.applySizeConstraints(txCache.tracker)
-		sw.Stop(t.Name())
-	})
-
-	for name, measurement := range sw.GetMeasurementsMap() {
-		fmt.Printf("%fs (%s)\n", measurement, name)
-	}
+func funcApplySizeConstraints(txCache *TxCache, list *txListForSender, numNoncesPerAccount uint64) {
+	list.constraints.maxNumTxs = uint32(numNoncesPerAccount * numAccountsForBenchmark / 2)
+	list.applySizeConstraints(txCache.tracker)
 }
 
 func BenchmarkTxList_removeTransactionsWithHigherOrEqualNonce(b *testing.B) {
@@ -410,7 +224,6 @@ func BenchmarkTxList_applySizeConstraints(b *testing.B) {
 
 func benchmarkTxList(b *testing.B, opFunc testTxListFunc) {
 	numNoncesPerAccount := []int{10, 100, 1_000}
-	numAccounts := 1_000
 
 	for _, numNonces := range numNoncesPerAccount {
 		b.Run(fmt.Sprintf("noncesPerAccount=%d", numNonces), func(b *testing.B) {
@@ -419,8 +232,8 @@ func benchmarkTxList(b *testing.B, opFunc testTxListFunc) {
 				math.MaxUint32,
 			)
 
-			txs := make([]*WrappedTransaction, 0, numNonces*numAccounts)
-			for accIdx := 0; accIdx < numAccounts; accIdx++ {
+			txs := make([]*WrappedTransaction, 0, numNonces*numAccountsForBenchmark)
+			for accIdx := 0; accIdx < numAccountsForBenchmark; accIdx++ {
 				txs = append(txs, createTxs(numNonces, accIdx)...)
 			}
 
@@ -454,21 +267,6 @@ func createTxs(size int, senderIdx int) []*WrappedTransaction {
 	}
 
 	return txs
-}
-
-type testTxListFunc func(txCache *TxCache, list *txListForSender, numNoncesPerAccount uint64)
-
-func funcRemoveTransactionsWithHigherOrEqualNonce(_ *TxCache, list *txListForSender, _ uint64) {
-	list.removeTransactionsWithHigherOrEqualNonce(0)
-}
-
-func funcRemoveTransactionsWithLowerOrEqualNonceReturnHashes(_ *TxCache, list *txListForSender, numNoncesPerAccount uint64) {
-	list.removeTransactionsWithLowerOrEqualNonceReturnHashes(numNoncesPerAccount)
-}
-
-func funcApplySizeConstraints(txCache *TxCache, list *txListForSender, numNoncesPerAccount uint64) {
-	list.constraints.maxNumTxs = uint32(numNoncesPerAccount / 2)
-	list.applySizeConstraints(txCache.tracker)
 }
 
 func newUnconstrainedListToTest() *txListForSender {
