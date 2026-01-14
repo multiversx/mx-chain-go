@@ -1646,6 +1646,12 @@ func (boot *baseBootstrap) getNextHeaderRequestingIfMissing() (data.HeaderHandle
 		hash = boot.forkInfo.Hash
 	}
 
+	// if there is a proof for the current nonce, use the header hash from proof
+	proof, err := boot.dataPool.Proofs().GetProofByNonce(nonce, boot.shardCoordinator.SelfId())
+	if err == nil {
+		hash = proof.GetHeaderHash()
+	}
+
 	if hash != nil {
 		header, err := boot.getHeaderWithHashRequestingIfMissing(hash)
 		return header, err
