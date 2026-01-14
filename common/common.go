@@ -9,6 +9,7 @@ import (
 	"reflect"
 	"strconv"
 	"strings"
+	"sync"
 
 	"github.com/multiversx/mx-chain-core-go/core"
 	"github.com/multiversx/mx-chain-core-go/core/check"
@@ -26,6 +27,9 @@ const (
 	hashIndex      = 0
 	shardIndex     = 1
 	nonceIndex     = 0
+
+	// supernovaActivationRoundOffset is the number of rounds to wait before activating supernova
+	supernovaActivationRoundOffset = 20
 )
 
 type executionResultHandler interface {
@@ -634,4 +638,89 @@ func GetDeveloperFeesInEpoch(header data.HeaderHandler) *big.Int {
 	}
 
 	return metaExecutionResult.GetExecutionResultHandler().GetDevFeesInEpoch()
+}
+
+// EnableEpochsHandlerWithSet defines an interface for setting activation rounds
+type EnableEpochsHandlerWithSet interface {
+	SetActivationRound(flag EnableRoundFlag, round uint64)
+}
+
+// ProcessConfigsHandlerWithSet defines an interface for setting activation rounds on process configs
+type ProcessConfigsHandlerWithSet interface {
+	SetActivationRound(round uint64, log logger.Logger)
+}
+
+// CommonConfigsHandlerWithSet defines an interface for setting activation rounds on common configs
+type CommonConfigsHandlerWithSet interface {
+	SetActivationRound(round uint64, log logger.Logger)
+}
+
+// VersionsConfigWithSet defines an interface for setting activation rounds on versions config
+type VersionsConfigWithSet interface {
+	SetActivationRound(round uint64, log logger.Logger)
+}
+
+var (
+	erh         EnableEpochsHandlerWithSet
+	eeh         EnableEpochsHandler
+	pch         ProcessConfigsHandlerWithSet
+	cch         CommonConfigsHandlerWithSet
+	vch         VersionsConfigWithSet
+	mutHandlers sync.RWMutex
+)
+
+// SetEnableRoundsHandler sets the enable rounds handler
+func SetEnableRoundsHandler(enableRoundsHandler EnableEpochsHandlerWithSet) {
+	mutHandlers.Lock()
+	defer mutHandlers.Unlock()
+	erh = enableRoundsHandler
+}
+
+// SetProcessConfigsHandler sets the process configs handler
+func SetProcessConfigsHandler(pcHandler ProcessConfigsHandler) {
+	mutHandlers.Lock()
+	defer mutHandlers.Unlock()
+	pch = pcHandler
+}
+
+// SetCommonConfigsHandler sets the common configs handler
+func SetCommonConfigsHandler(ccHandler CommonConfigsHandler) {
+	mutHandlers.Lock()
+	defer mutHandlers.Unlock()
+	cch = ccHandler
+}
+
+// SetEnableEpochsHandler sets the enable epochs handler
+func SetEnableEpochsHandler(enableEpochsHandler EnableEpochsHandler) {
+	mutHandlers.Lock()
+	defer mutHandlers.Unlock()
+	eeh = enableEpochsHandler
+}
+
+// SetVersionsConfigHandler sets the versions config handler
+func SetVersionsConfigHandler(versions *config.VersionsConfig) {
+	mutHandlers.Lock()
+	defer mutHandlers.Unlock()
+	vch = versions
+}
+
+// SetSuperNovaActivationRound sets the supernova activation round across all handlers
+func SetSuperNovaActivationRound(epoch uint32, round uint64) {
+	mutHandlers.Lock()
+	defer mutHandlers.Unlock()
+
+	if eeh == nil || erh == nil || pch == nil || cch == nil || vch == nil {
+		log.Warn("SetSuperNovaActivationRound: one or more handlers not initialized")
+		return
+	}
+
+	isEnabled := eeh.GetActivationEpoch(SupernovaFlag) == epoch && eeh.IsFlagEnabledInEpoch(SupernovaFlag, epoch)
+	supernovaRound := round + supernovaActivationRoundOffset
+	log.Info("SetSuperNovaActivationRound", "currentRound", round, "activationRound", supernovaRound, "epoch", epoch, "is enabled in current round", isEnabled)
+	if isEnabled {
+		erh.SetActivationRound(SupernovaRoundFlag, supernovaRound)
+		pch.SetActivationRound(supernovaRound, log)
+		cch.SetActivationRound(supernovaRound, log)
+		vch.SetActivationRound(supernovaRound, log)
+	}
 }

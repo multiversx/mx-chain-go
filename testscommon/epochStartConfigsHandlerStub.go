@@ -4,6 +4,7 @@ import (
 	"github.com/multiversx/mx-chain-go/common"
 	"github.com/multiversx/mx-chain-go/common/configs"
 	"github.com/multiversx/mx-chain-go/config"
+	logger "github.com/multiversx/mx-chain-logger-go"
 )
 
 // GetDefaultCommonConfigsHandler -
@@ -55,6 +56,16 @@ func (e *CommonConfigsHandlerStub) GetMaxRoundsWithoutCommittedStartInEpochBlock
 	}
 
 	return 0
+}
+
+// GetNumRoundsToWaitBeforeSignalingChronologyStuck -
+func (e *CommonConfigsHandlerStub) GetNumRoundsToWaitBeforeSignalingChronologyStuck(epoch uint32) uint32 {
+	return 0
+}
+
+// SetActivationRound -
+func (e *CommonConfigsHandlerStub) SetActivationRound(round uint64, log logger.Logger) {
+
 }
 
 // IsInterfaceNil -

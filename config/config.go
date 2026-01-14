@@ -1,6 +1,9 @@
 package config
 
-import p2pConfig "github.com/multiversx/mx-chain-go/p2p/config"
+import (
+	p2pConfig "github.com/multiversx/mx-chain-go/p2p/config"
+	logger "github.com/multiversx/mx-chain-logger-go"
+)
 
 // CacheConfig will map the cache configuration
 type CacheConfig struct {
@@ -716,6 +719,15 @@ type VersionByEpochs struct {
 type VersionsConfig struct {
 	DefaultVersion   string
 	VersionsByEpochs []VersionByEpochs
+}
+
+// SetActivationRound sets the activation round for the last version entry
+func (vc *VersionsConfig) SetActivationRound(round uint64, log logger.Logger) {
+	if len(vc.VersionsByEpochs) > 0 {
+		oldRound := vc.VersionsByEpochs[len(vc.VersionsByEpochs)-1].StartRound
+		vc.VersionsByEpochs[len(vc.VersionsByEpochs)-1].StartRound = round
+		log.Info("Set activation round for versions", "round", round, "oldRound", oldRound)
+	}
 }
 
 // Configs is a holder for the node configuration parameters

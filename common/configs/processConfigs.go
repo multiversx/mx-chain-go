@@ -293,6 +293,17 @@ func (pce *processConfigsByEpoch) getValueByRound(
 	)
 }
 
+// SetActivationRound -
+func (pce *processConfigsByEpoch) SetActivationRound(round uint64, log logger.Logger) {
+	nr := len(pce.orderedConfigByRound)
+	if nr == 0 {
+		log.Warn("processConfigsByEpoch.SetActivationRound: no configs available")
+		return
+	}
+	log.Info("processConfigsByEpoch.SetActivationRound", "enableRound", round, "oldRound", pce.orderedConfigByRound[nr-1].EnableRound)
+	pce.orderedConfigByRound[nr-1].EnableRound = round
+}
+
 // IsInterfaceNil checks if the instance is nil
 func (pce *processConfigsByEpoch) IsInterfaceNil() bool {
 	return pce == nil
