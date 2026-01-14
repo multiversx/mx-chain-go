@@ -3,6 +3,7 @@ package txcache
 import (
 	"fmt"
 	"math"
+	"math/rand"
 	"sync"
 	"testing"
 
@@ -196,6 +197,7 @@ func TestListForSender_DetectRaceConditions(t *testing.T) {
 const numAccountsForBenchmark = 1_000
 
 type testTxListFunc func(txCache *TxCache, list *txListForSender, numNoncesPerAccount uint64)
+type createTxsFunc func(size int, senderIdx int) []*WrappedTransaction
 
 func funcRemoveTransactionsWithHigherOrEqualNonce(_ *TxCache, list *txListForSender, _ uint64) {
 	list.removeTransactionsWithHigherOrEqualNonce(0)
@@ -210,50 +212,23 @@ func funcApplySizeConstraints(txCache *TxCache, list *txListForSender, numNonces
 	list.applySizeConstraints(txCache.tracker)
 }
 
-func BenchmarkTxList_removeTransactionsWithHigherOrEqualNonce(b *testing.B) {
-	benchmarkTxList(b, funcRemoveTransactionsWithHigherOrEqualNonce)
-}
+func createTxsOrdered(size int, senderIdx int) []*WrappedTransaction {
+	txs := make([]*WrappedTransaction, 0, size)
 
-func BenchmarkTxList_removeTransactionsWithLowerOrEqualNonceReturnHashes(b *testing.B) {
-	benchmarkTxList(b, funcRemoveTransactionsWithLowerOrEqualNonceReturnHashes)
-}
-
-func BenchmarkTxList_applySizeConstraints(b *testing.B) {
-	benchmarkTxList(b, funcApplySizeConstraints)
-}
-
-func benchmarkTxList(b *testing.B, opFunc testTxListFunc) {
-	numNoncesPerAccount := []int{10, 100, 1_000}
-
-	for _, numNonces := range numNoncesPerAccount {
-		b.Run(fmt.Sprintf("noncesPerAccount=%d", numNonces), func(b *testing.B) {
-			txCache := newCacheToTest(
-				maxNumBytesPerSenderUpperBoundTest,
-				math.MaxUint32,
-			)
-
-			txs := make([]*WrappedTransaction, 0, numNonces*numAccountsForBenchmark)
-			for accIdx := 0; accIdx < numAccountsForBenchmark; accIdx++ {
-				txs = append(txs, createTxs(numNonces, accIdx)...)
-			}
-
-			b.ReportAllocs()
-			b.ResetTimer()
-
-			for i := 0; i < b.N; i++ {
-				list := newUnconstrainedListToTest()
-
-				for _, tx := range txs {
-					list.AddTx(tx, txCache.tracker)
-				}
-
-				opFunc(txCache, list, uint64(numNonces))
-			}
-		})
+	for i := 0; i < size; i++ {
+		txs = append(txs,
+			createTx(
+				[]byte(fmt.Sprintf("txHash%d", i)),
+				fmt.Sprintf("sender-%d", senderIdx),
+				uint64(i),
+			),
+		)
 	}
+
+	return txs
 }
 
-func createTxs(size int, senderIdx int) []*WrappedTransaction {
+func createTxsReversed(size int, senderIdx int) []*WrappedTransaction {
 	txs := make([]*WrappedTransaction, 0, size)
 
 	for i := size - 1; i >= 0; i-- {
@@ -267,6 +242,67 @@ func createTxs(size int, senderIdx int) []*WrappedTransaction {
 	}
 
 	return txs
+}
+
+func createTxsRandom(size int, senderIdx int) []*WrappedTransaction {
+	txs := createTxsOrdered(size, senderIdx)
+	rand.Shuffle(size, func(i, j int) { txs[i], txs[j] = txs[j], txs[i] })
+	return txs
+}
+
+func BenchmarkTxList_removeTransactionsWithHigherOrEqualNonce(b *testing.B) {
+	benchmarkTxList(b, funcRemoveTransactionsWithHigherOrEqualNonce)
+}
+
+func BenchmarkTxList_removeTransactionsWithLowerOrEqualNonceReturnHashes(b *testing.B) {
+	benchmarkTxList(b, funcRemoveTransactionsWithLowerOrEqualNonceReturnHashes)
+}
+
+func BenchmarkTxList_applySizeConstraints(b *testing.B) {
+	benchmarkTxList(b, funcApplySizeConstraints)
+}
+
+func benchmarkTxList(b *testing.B, testFunc testTxListFunc) {
+	b.Run("ordered", func(b *testing.B) {
+		benchmarkTxListForTxOrder(b, testFunc, createTxsOrdered)
+	})
+	b.Run("reversed", func(b *testing.B) {
+		benchmarkTxListForTxOrder(b, testFunc, createTxsReversed)
+	})
+	b.Run("random", func(b *testing.B) {
+		benchmarkTxListForTxOrder(b, testFunc, createTxsRandom)
+	})
+}
+
+func benchmarkTxListForTxOrder(b *testing.B, testFunc testTxListFunc, createTxFunc createTxsFunc) {
+	numNoncesPerAccount := []int{10, 100, 1_000}
+
+	for _, numNonces := range numNoncesPerAccount {
+		b.Run(fmt.Sprintf("noncesPerAccount=%d", numNonces), func(b *testing.B) {
+			txCache := newCacheToTest(
+				maxNumBytesPerSenderUpperBoundTest,
+				math.MaxUint32,
+			)
+
+			txs := make([]*WrappedTransaction, 0, numNonces*numAccountsForBenchmark)
+			for accIdx := 0; accIdx < numAccountsForBenchmark; accIdx++ {
+				txs = append(txs, createTxFunc(numNonces, accIdx)...)
+			}
+
+			b.ReportAllocs()
+			b.ResetTimer()
+
+			for i := 0; i < b.N; i++ {
+				list := newUnconstrainedListToTest()
+
+				for _, tx := range txs {
+					list.AddTx(tx, txCache.tracker)
+				}
+
+				testFunc(txCache, list, uint64(numNonces))
+			}
+		})
+	}
 }
 
 func newUnconstrainedListToTest() *txListForSender {
