@@ -292,6 +292,8 @@
         BatchDelaySeconds = 2
         MaxBatchSize = 30000
         MaxOpenFiles = 10
+        ShardIDProviderType = "BinarySplit"
+        NumShards = 4
 
 [UnsignedTransactionStorage]
     [UnsignedTransactionStorage.Cache]
