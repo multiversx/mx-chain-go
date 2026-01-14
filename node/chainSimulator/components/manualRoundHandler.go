@@ -19,6 +19,7 @@ type ArgManualRoundHandler struct {
 	RoundDuration             time.Duration
 	SupernovaRoundDuration    time.Duration
 	InitialRound              int64
+	SupernovaStartRound       int64
 }
 
 type manualRoundHandler struct {
@@ -29,6 +30,7 @@ type manualRoundHandler struct {
 	supernovaRoundDuration    time.Duration
 	initialRound              int64
 	enableRoundsHandler       common.EnableRoundsHandler
+	supernovaStartRound       int64
 }
 
 // NewManualRoundHandler returns a manual round handler instance
@@ -44,6 +46,7 @@ func NewManualRoundHandler(args ArgManualRoundHandler) (*manualRoundHandler, err
 		enableRoundsHandler:       args.EnableRoundsHandler,
 		supernovaGenesisTimeStamp: args.SupernovaGenesisTimeStamp,
 		supernovaRoundDuration:    args.SupernovaRoundDuration,
+		supernovaStartRound:       args.SupernovaStartRound,
 	}, nil
 }
 
@@ -109,9 +112,16 @@ func (handler *manualRoundHandler) RemainingTime(_ time.Time, maxTime time.Durat
 
 // GetTimeStampForRound returns the timestamp for round
 func (handler *manualRoundHandler) GetTimeStampForRound(round uint64) uint64 {
-	timeFromGenesis := handler.roundDuration * time.Duration(round)
-	timestamp := time.Unix(handler.genesisTimeStamp, 0).Add(timeFromGenesis)
-	return uint64(timestamp.UnixMilli())
+	if int64(round) <= handler.supernovaStartRound {
+		genesisTimestamp := time.UnixMilli(handler.genesisTimeStamp)
+		roundTimeStampMs := genesisTimestamp.Add(time.Duration(int64(round)-handler.initialRound) * handler.roundDuration).UnixMilli()
+		return uint64(roundTimeStampMs)
+	}
+
+	genesisTimestamp := time.UnixMilli(handler.supernovaGenesisTimeStamp)
+	roundTimeStampMs := genesisTimestamp.Add(time.Duration(int64(round)-handler.supernovaStartRound) * handler.supernovaRoundDuration).UnixMilli()
+	return uint64(roundTimeStampMs)
+
 }
 
 // IsInterfaceNil returns true if there is no value under the interface
