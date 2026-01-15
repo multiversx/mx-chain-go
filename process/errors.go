@@ -1442,3 +1442,6 @@ var ErrNonCanonicalExecutionResultIncluded = errors.New("non-canonical execution
 
 // ErrNoReferencedHeader signals that no header was referenced
 var ErrNoReferencedHeader = errors.New("no referenced header")
+
+// ErrExecutionResultNotFound signals that the execution result was not found
+var ErrExecutionResultNotFound = errors.New("execution result not found")

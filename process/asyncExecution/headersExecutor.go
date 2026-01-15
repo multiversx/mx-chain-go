@@ -256,10 +256,7 @@ func (he *headersExecutor) checkLastExecutionResultContext(
 		return true
 	}
 
-	sameNonce := currentHeader.GetNonce() == lastExecutionResult.GetHeaderNonce()
-	higherRound := currentHeader.GetRound() > lastExecutionResult.GetHeaderRound()
-	isReplacementBlock := sameNonce && higherRound
-	if isReplacementBlock {
+	if process.IsReplacementBlockForExecution(currentHeader, lastExecutionResult) {
 		return true
 	}
 
