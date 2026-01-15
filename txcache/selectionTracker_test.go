@@ -10,6 +10,7 @@ import (
 
 	"github.com/multiversx/mx-chain-core-go/core"
 	"github.com/multiversx/mx-chain-core-go/data/block"
+	"github.com/multiversx/mx-chain-core-go/data/transaction"
 	"github.com/multiversx/mx-chain-go/common"
 	"github.com/multiversx/mx-chain-go/common/holders"
 	"github.com/multiversx/mx-chain-go/testscommon/txcachemocks"
@@ -1603,4 +1604,49 @@ func TestSelectionTracker_removeBlocksAboveNonce(t *testing.T) {
 	require.Nil(t, err)
 
 	require.Equal(t, 0, len(txCache.tracker.blocks))
+}
+
+func TestSelectionTracker_MaxUniqueAccounts(t *testing.T) {
+	t.Parallel()
+
+	txCache := newCacheToTest(maxNumBytesPerSenderUpperBoundTest, 3)
+	st, err := NewSelectionTracker(txCache, 0, 100)
+	require.Nil(t, err)
+
+	count := maxAccountsPerBlock + 1
+	txs := make([][]byte, count)
+
+	for i := 0; i < count; i++ {
+		sender := fmt.Sprintf("sender%d", i)
+		hash := []byte(fmt.Sprintf("tx%d", i))
+
+		wTx := &WrappedTransaction{
+			Tx: &transaction.Transaction{
+				SndAddr: []byte(sender),
+				RcvAddr: []byte("receiver"),
+				Nonce:   uint64(i),
+			},
+			TxHash: hash,
+		}
+		txCache.txByHash.addTx(wTx)
+		txs[i] = hash
+	}
+
+	body := &block.Body{
+		MiniBlocks: []*block.MiniBlock{
+			{TxHashes: txs, Type: block.TxBlock},
+		},
+	}
+	header := &block.Header{
+		Nonce: 10,
+	}
+
+	accProvider := &txcachemocks.AccountNonceAndBalanceProviderMock{
+		GetRootHashCalled: func() ([]byte, error) {
+			return defaultLatestExecutedHash, nil
+		},
+	}
+
+	err = st.OnProposedBlock([]byte("blockHash"), body, header, accProvider, defaultLatestExecutedHash)
+	require.Equal(t, errToManyUniqueAccountsInBlock, err)
 }
