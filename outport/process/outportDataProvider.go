@@ -1,6 +1,7 @@
 package process
 
 import (
+	"bytes"
 	"encoding/hex"
 	"fmt"
 	"math/big"
@@ -61,6 +62,7 @@ type ArgPrepareOutportSaveBlockData struct {
 	NotarizedHeadersHashes []string
 	HighestFinalBlockNonce uint64
 	HighestFinalBlockHash  []byte
+	ScheduledRootHash      []byte
 }
 
 type outportDataProvider struct {
@@ -160,8 +162,7 @@ func (odp *outportDataProvider) PrepareOutportSaveBlockData(arg ArgPrepareOutpor
 		return nil, err
 	}
 
-	stateAccessesForBlock := odp.getStateAccessesForBlock(arg.Header, arg.HeaderHash)
-
+	stateAccessesForBlock := odp.getStateAccessesForBlock(arg.Header, arg.HeaderHash, arg.ScheduledRootHash)
 	outportBlock := &outportcore.OutportBlockWithHeaderAndBody{
 		OutportBlock: &outportcore.OutportBlock{
 			ShardID:         odp.shardID,
@@ -205,10 +206,19 @@ func (odp *outportDataProvider) PrepareOutportSaveBlockData(arg ArgPrepareOutpor
 	return outportBlock, nil
 }
 
-func (odp *outportDataProvider) getStateAccessesForBlock(header data.HeaderHandler, headerHash []byte) map[string]*outportcore.StateAccessesForBlock {
+func (odp *outportDataProvider) getStateAccessesForBlock(
+	header data.HeaderHandler,
+	headerHash []byte,
+	scheduledRootHash []byte,
+) map[string]*outportcore.StateAccessesForBlock {
 	stateAccessesForBlock := make(map[string]*outportcore.StateAccessesForBlock)
 	if !header.IsHeaderV3() {
-		stateAccesses := odp.getStateAccessForRootHash(header.GetRootHash())
+		rootHash := header.GetRootHash()
+		if len(scheduledRootHash) != 0 && !bytes.Equal(rootHash, scheduledRootHash) {
+			rootHash = scheduledRootHash
+		}
+
+		stateAccesses := odp.getStateAccessForRootHash(rootHash)
 		stateAccessesForBlock[hex.EncodeToString(headerHash)] = stateAccesses
 		return stateAccessesForBlock
 	}
