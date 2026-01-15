@@ -1301,6 +1301,9 @@ func UpdateContextForReplacedHeader(
 	shardID uint32,
 ) error {
 	err := checkForNils(header, executionManager, blockChain, headersPool, storage, marshaller)
+	if err != nil {
+		return err
+	}
 
 	pendingExecutionResults, err := executionManager.GetPendingExecutionResults()
 	if err != nil {
