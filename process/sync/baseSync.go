@@ -52,7 +52,8 @@ type txSizeHandler interface {
 var _ closing.Closer = (*baseBootstrap)(nil)
 
 // sleepTime defines the time in milliseconds between each iteration made in syncBlocks method
-const sleepTime = 50 * time.Millisecond
+const sleepTime = 5 * time.Millisecond
+const sleepTimeOnFail = 400 * time.Millisecond
 const minimumProcessWaitTime = time.Millisecond * 100
 const defaultTimeToWaitForRequestedData = 5 * time.Minute
 
@@ -743,6 +744,8 @@ func (boot *baseBootstrap) syncBlocks(ctx context.Context) {
 			}
 
 			log.Debug("SyncBlock", "error", err.Error())
+
+			time.Sleep(sleepTimeOnFail)
 		}
 	}
 }
