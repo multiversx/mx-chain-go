@@ -269,7 +269,6 @@ func TestStateAccessesCollector_Reset(t *testing.T) {
 	c.Reset()
 	assert.Equal(t, 0, len(c.stateAccesses))
 	assert.Equal(t, 0, len(c.stateAccessesForTxs))
-	assert.Equal(t, 0, len(c.stateAccessesForBlock))
 }
 
 func TestStateAccessesCollector_GetStateAccessesForRootHash(t *testing.T) {
