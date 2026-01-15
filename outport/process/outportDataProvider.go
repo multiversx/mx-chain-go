@@ -3,6 +3,7 @@ package process
 import (
 	"encoding/hex"
 	"fmt"
+	"time"
 
 	"math/big"
 
@@ -99,8 +100,14 @@ func NewOutportDataProvider(arg ArgOutportDataProvider) (*outportDataProvider, e
 	}, nil
 }
 
+func logTime(startTime time.Time, message string) {
+	log.Debug(message, "duration", time.Since(startTime))
+}
+
 // PrepareOutportSaveBlockData will prepare the provided data in a format that will be accepted by an outport driver
 func (odp *outportDataProvider) PrepareOutportSaveBlockData(arg ArgPrepareOutportSaveBlockData) (*outportcore.OutportBlockWithHeaderAndBody, error) {
+	defer logTime(time.Now(), "odp.PrepareOutportSaveBlockData")
+
 	if check.IfNil(arg.Header) {
 		return nil, ErrNilHeaderHandler
 	}
