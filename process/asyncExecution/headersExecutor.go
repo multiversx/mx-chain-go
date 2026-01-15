@@ -248,10 +248,18 @@ func (he *headersExecutor) checkLastExecutionResultContext(
 	currentHeader data.HeaderHandler,
 ) bool {
 	if check.IfNil(currentHeader) {
-		return true
+		return false
 	}
 
 	lastExecutionResult := he.blockChain.GetLastExecutionResult()
+
+	sameNonce := currentHeader.GetNonce() == lastExecutionResult.GetHeaderNonce()
+	higherRound := currentHeader.GetRound() > lastExecutionResult.GetHeaderRound()
+	isReplacementBlock := sameNonce && higherRound
+	if isReplacementBlock {
+		return true
+	}
+
 	if currentHeader.GetNonce() != lastExecutionResult.GetHeaderNonce()+1 {
 		log.Debug("headersExecutor.process: concurrent revert event",
 			"previous nonce", lastExecutionResult.GetHeaderNonce(),
