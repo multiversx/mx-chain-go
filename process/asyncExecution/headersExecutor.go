@@ -252,6 +252,9 @@ func (he *headersExecutor) checkLastExecutionResultContext(
 	}
 
 	lastExecutionResult := he.blockChain.GetLastExecutionResult()
+	if check.IfNil(lastExecutionResult) {
+		return true
+	}
 
 	sameNonce := currentHeader.GetNonce() == lastExecutionResult.GetHeaderNonce()
 	higherRound := currentHeader.GetRound() > lastExecutionResult.GetHeaderRound()
