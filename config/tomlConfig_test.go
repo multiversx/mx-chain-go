@@ -62,6 +62,22 @@ func TestTomlParser(t *testing.T) {
 					Offset:                      2,
 				},
 			},
+			ProcessConfigsByRound: []ProcessConfigByRound{
+				{
+					EnableRound:                            1,
+					MaxRoundsWithoutNewBlockReceived:       2,
+					MaxRoundsWithoutCommittedBlock:         3,
+					RoundModulusTriggerWhenSyncIsStuck:     4,
+					MaxSyncWithErrorsAllowed:               5,
+					MaxRoundsToKeepUnprocessedMiniBlocks:   6,
+					MaxRoundsToKeepUnprocessedTransactions: 7,
+					NumFloodingRoundsFastReacting:          8,
+					NumFloodingRoundsSlowReacting:          9,
+					NumFloodingRoundsOutOfSpecs:            10,
+					MaxConsecutiveRoundsOfRatingDecrease:   11,
+					MaxRoundsOfInactivityAccepted:          12,
+				},
+			},
 		},
 		MiniBlocksStorage: StorageConfig{
 			Cache: CacheConfig{
@@ -160,9 +176,6 @@ func TestTomlParser(t *testing.T) {
 			MaxStateTrieLevelInMemory:   38,
 			MaxPeerTrieLevelInMemory:    39,
 		},
-		Redundancy: RedundancyConfig{
-			MaxRoundsOfInactivityAccepted: 3,
-		},
 		TxCacheBounds: TxCacheBoundsConfig{
 			MaxNumBytesPerSenderUpperBound: 33_554_432,
 			MaxTrackedBlocks:               100,
@@ -181,6 +194,23 @@ func TestTomlParser(t *testing.T) {
 	ChainParametersByEpoch = [
         { EnableEpoch = 0, RoundDuration = 4000, ShardConsensusGroupSize = 3, ShardMinNumNodes = 4, MetachainConsensusGroupSize = 5, MetachainMinNumNodes = 6, Hysteresis = 0.0, Adaptivity = false, Offset = 2 }
     ]
+    ProcessConfigsByRound = [
+        {
+        EnableRound = 1,
+        MaxRoundsWithoutNewBlockReceived = 2,
+        MaxRoundsWithoutCommittedBlock = 3,
+        RoundModulusTriggerWhenSyncIsStuck = 4,
+        MaxSyncWithErrorsAllowed = 5,
+        MaxRoundsToKeepUnprocessedMiniBlocks = 6,
+        MaxRoundsToKeepUnprocessedTransactions = 7,
+        NumFloodingRoundsFastReacting = 8,
+        NumFloodingRoundsSlowReacting = 9,
+        NumFloodingRoundsOutOfSpecs = 10,
+        MaxConsecutiveRoundsOfRatingDecrease = 11,
+        MaxRoundsOfInactivityAccepted = 12
+        }
+    ]
+
 [MiniBlocksStorage]
     [MiniBlocksStorage.Cache]
         Capacity = ` + strconv.Itoa(txBlockBodyStorageSize) + `
@@ -288,11 +318,6 @@ func TestTomlParser(t *testing.T) {
     PeerStatePruningEnabled = true
     MaxStateTrieLevelInMemory = 38
     MaxPeerTrieLevelInMemory = 39
-
-[Redundancy]
-    # MaxRoundsOfInactivityAccepted defines the number of rounds missed by a main or higher level backup machine before
-    # the current machine will take over and propose/sign blocks. Used in both single-key and multi-key modes.
-    MaxRoundsOfInactivityAccepted = 3
 `
 	cfg := Config{}
 

@@ -901,13 +901,18 @@ func (txs *transactions) processAndRemoveBadTransaction(
 	_, err := txs.txProcessor.ProcessTransaction(tx)
 
 	isNotExecutable := errors.Is(err, process.ErrLowerNonceInTransaction) || errors.Is(err, process.ErrInsufficientFee) || errors.Is(err, process.ErrTransactionNotExecutable)
-	if err != nil && common.IsAsyncExecutionEnabled(txs.enableEpochsHandler, txs.enableRoundsHandler) {
+	isAsyncExecEnabled := common.IsAsyncExecutionEnabled(txs.enableEpochsHandler, txs.enableRoundsHandler)
+	if err != nil && isAsyncExecEnabled {
 		isNotExecutable = process.IsNotExecutableTransactionError(err)
 	}
 	if isNotExecutable {
 		txs.txExecutionOrderHandler.Remove(txHash)
-		strCache := process.ShardCacherIdentifier(sndShardId, dstShardId)
-		txs.txPool.RemoveData(txHash, strCache)
+		// TODO: remove log if no longer needed for validation
+		log.Debug("processAndRemoveBadTransaction - found not executable transaction", "txHash", txHash)
+		if !isAsyncExecEnabled {
+			strCache := process.ShardCacherIdentifier(sndShardId, dstShardId)
+			txs.txPool.RemoveData(txHash, strCache)
+		}
 	}
 
 	if err != nil && !errors.Is(err, process.ErrFailedTransaction) {

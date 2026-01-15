@@ -4,6 +4,7 @@ import (
 	"bytes"
 	"context"
 	"encoding/hex"
+	"errors"
 	"fmt"
 	"math"
 	"sync"
@@ -759,15 +760,19 @@ func (boot *baseBootstrap) getMaxSyncWithErrorsAllowed(
 
 func (boot *baseBootstrap) doJobOnSyncBlockFail(bodyHandler data.BodyHandler, headerHandler data.HeaderHandler, err error) {
 	processBlockStarted := !check.IfNil(bodyHandler) && !check.IfNil(headerHandler)
-	isProcessWithError := processBlockStarted && err != process.ErrTimeIsOut
+	isProcessWithError := processBlockStarted && !errors.Is(err, process.ErrTimeIsOut)
 
 	numSyncedWithErrors := boot.incrementSyncedWithErrorsForNonce(boot.getNonceForNextBlock())
 	allowedSyncWithErrorsLimitReached := numSyncedWithErrors >= boot.getMaxSyncWithErrorsAllowed(headerHandler)
 	isInProperRound := process.IsInProperRound(boot.roundHandler.Index())
 	isSyncWithErrorsLimitReachedInProperRound := allowedSyncWithErrorsLimitReached && isInProperRound
 
+	lastCommittedBlock := boot.chainHandler.GetCurrentBlockHeader()
+	lastCommittedBlockHash := boot.chainHandler.GetCurrentBlockHeaderHash()
+	shouldAllowRollback := boot.shouldAllowRollback(lastCommittedBlock, lastCommittedBlockHash)
+
 	shouldRollBack := isProcessWithError || isSyncWithErrorsLimitReachedInProperRound
-	if shouldRollBack {
+	if shouldRollBack && shouldAllowRollback {
 		if !check.IfNil(headerHandler) {
 			hash := boot.removeHeaderFromPools(headerHandler)
 			boot.forkDetector.RemoveHeader(headerHandler.GetNonce(), hash)
@@ -903,10 +908,15 @@ func (boot *baseBootstrap) syncBlock() error {
 	}
 
 	if header.IsHeaderV3() {
-		return boot.syncBlockV3(body, header)
+		// update err to enable the deferred treatment
+		err = boot.syncBlockV3(body, header)
+		return err
 	}
 
-	return boot.syncBlockLegacy(body, header)
+	// update err to enable the deferred treatment
+	err = boot.syncBlockLegacy(body, header)
+
+	return err
 }
 
 // syncBlockLegacy method actually does the synchronization. It requests the next block header from the pool
@@ -1052,12 +1062,32 @@ func (boot *baseBootstrap) syncBlockV3(body data.BodyHandler, header data.Header
 	return nil
 }
 
+// getMiniBlocksToSync will check already synced miniblocks and return only miniblocks that are not in pool
+func (boot *baseBootstrap) getMiniBlocksToSync(
+	miniBlocks []data.MiniBlockHeaderHandler,
+) []data.MiniBlockHeaderHandler {
+	miniBlocksToSync := make([]data.MiniBlockHeaderHandler, 0)
+
+	for _, mb := range miniBlocks {
+		_, ok := boot.dataPool.MiniBlocks().Get(mb.GetHash())
+		if ok {
+			continue
+		}
+
+		miniBlocksToSync = append(miniBlocksToSync, mb)
+	}
+
+	return miniBlocksToSync
+}
+
 func (boot *baseBootstrap) syncMiniBlocksAndTxsForHeader(
 	header data.HeaderHandler,
 ) error {
+	miniBlocksToSync := boot.getMiniBlocksToSync(header.GetMiniBlockHeaderHandlers())
+
 	boot.miniBlocksSyncer.ClearFields()
 	ctx, cancel := context.WithTimeout(context.Background(), defaultTimeToWaitForRequestedData)
-	err := boot.miniBlocksSyncer.SyncPendingMiniBlocks(header.GetMiniBlockHeaderHandlers(), ctx)
+	err := boot.miniBlocksSyncer.SyncPendingMiniBlocks(miniBlocksToSync, ctx)
 	cancel()
 	if err != nil {
 		return err
@@ -1509,7 +1539,7 @@ func (boot *baseBootstrap) rollBack(revertUsingForkNonce bool) error {
 }
 
 func (boot *baseBootstrap) shouldAllowRollback(currHeader data.HeaderHandler, currHeaderHash []byte) bool {
-	if currHeader.IsHeaderV3() {
+	if check.IfNil(currHeader) || currHeader.IsHeaderV3() {
 		return false
 	}
 
@@ -1614,6 +1644,12 @@ func (boot *baseBootstrap) getNextHeaderRequestingIfMissing() (data.HeaderHandle
 	hash := boot.forkDetector.GetNotarizedHeaderHash(nonce)
 	if boot.forkInfo.IsDetected {
 		hash = boot.forkInfo.Hash
+	}
+
+	// if there is a proof for the current nonce, use the header hash from proof
+	proof, err := boot.dataPool.Proofs().GetProofByNonce(nonce, boot.shardCoordinator.SelfId())
+	if err == nil {
+		hash = proof.GetHeaderHash()
 	}
 
 	if hash != nil {
