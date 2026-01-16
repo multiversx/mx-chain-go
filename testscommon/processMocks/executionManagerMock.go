@@ -8,15 +8,17 @@ import (
 
 // ExecutionManagerMock is a mock implementation of the ExecutionManager interface
 type ExecutionManagerMock struct {
-	StartExecutionCalled                 func()
-	SetHeadersExecutorCalled             func(executor process.HeadersExecutor) error
-	AddPairForExecutionCalled            func(pair cache.HeaderBodyPair) error
-	GetPendingExecutionResultsCalled     func() ([]data.BaseExecutionResultHandler, error)
-	CleanConfirmedExecutionResultsCalled func(header data.HeaderHandler) error
-	SetLastNotarizedResultCalled         func(executionResult data.BaseExecutionResultHandler) error
-	RemoveAtNonceAndHigherCalled         func(nonce uint64) error
-	ResetAndResumeExecutionCalled        func(lastNotarizedResult data.BaseExecutionResultHandler) error
-	CloseCalled                          func() error
+	StartExecutionCalled                         func()
+	SetHeadersExecutorCalled                     func(executor process.HeadersExecutor) error
+	AddPairForExecutionCalled            		func(pair cache.HeaderBodyPair) error
+	GetPendingExecutionResultsCalled             func() ([]data.BaseExecutionResultHandler, error)
+	CleanConfirmedExecutionResultsCalled         func(header data.HeaderHandler) error
+	SetLastNotarizedResultCalled                 func(executionResult data.BaseExecutionResultHandler) error
+	RemoveAtNonceAndHigherCalled                 func(nonce uint64) error
+	ResetAndResumeExecutionCalled                func(lastNotarizedResult data.BaseExecutionResultHandler) error
+	GetLastNotarizedExecutionResultCalled        func() (data.BaseExecutionResultHandler, error)
+	RemovePendingExecutionResultsFromNonceCalled func(nonce uint64) error
+	CloseCalled                                  func() error
 }
 
 // StartExecution -
@@ -78,6 +80,22 @@ func (emm *ExecutionManagerMock) RemoveAtNonceAndHigher(nonce uint64) error {
 func (emm *ExecutionManagerMock) ResetAndResumeExecution(lastNotarizedResult data.BaseExecutionResultHandler) error {
 	if emm.ResetAndResumeExecutionCalled != nil {
 		return emm.ResetAndResumeExecutionCalled(lastNotarizedResult)
+	}
+	return nil
+}
+
+// GetLastNotarizedExecutionResult -
+func (emm *ExecutionManagerMock) GetLastNotarizedExecutionResult() (data.BaseExecutionResultHandler, error) {
+	if emm.GetLastNotarizedExecutionResultCalled != nil {
+		return emm.GetLastNotarizedExecutionResultCalled()
+	}
+	return nil, nil
+}
+
+// RemovePendingExecutionResultsFromNonce -
+func (emm *ExecutionManagerMock) RemovePendingExecutionResultsFromNonce(nonce uint64) error {
+	if emm.RemovePendingExecutionResultsFromNonceCalled != nil {
+		return emm.RemovePendingExecutionResultsFromNonceCalled(nonce)
 	}
 	return nil
 }

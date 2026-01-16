@@ -740,7 +740,7 @@ func (sp *shardProcessor) GetHdrForBlock() HeadersForBlock {
 }
 
 // PendingMiniBlocksAfterSelection -
-type PendingMiniBlocksAfterSelection = pendingMiniBlocksAfterSelection
+type PendingMiniBlocksAfterSelection = pendingBlocksAfterSelection
 
 // GetHeaderHash -
 func (p *PendingMiniBlocksAfterSelection) GetHeaderHash() []byte {
@@ -753,8 +753,8 @@ func (p *PendingMiniBlocksAfterSelection) GetHeader() data.HeaderHandler {
 }
 
 // GetMiniBlocksAndHashes -
-func (p *PendingMiniBlocksAfterSelection) GetMiniBlocksAndHashes() []block.MiniblockAndHash {
-	return p.pendingMiniBlocksAndHashes
+func (p *PendingMiniBlocksAfterSelection) GetMiniBlocksAndHashes() map[string]*block.MiniBlock {
+	return p.pendingMiniBlocks
 }
 
 // SelectIncomingMiniBlocks -

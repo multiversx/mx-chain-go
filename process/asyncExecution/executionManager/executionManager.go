@@ -1,7 +1,6 @@
 package executionManager
 
 import (
-	"bytes"
 	"sync"
 
 	"github.com/multiversx/mx-chain-core-go/core/check"
@@ -9,7 +8,6 @@ import (
 	"github.com/multiversx/mx-chain-core-go/marshal"
 	logger "github.com/multiversx/mx-chain-logger-go"
 
-	"github.com/multiversx/mx-chain-go/common"
 	"github.com/multiversx/mx-chain-go/dataRetriever"
 	"github.com/multiversx/mx-chain-go/process"
 	"github.com/multiversx/mx-chain-go/process/asyncExecution/disabled"
@@ -25,7 +23,7 @@ type ArgsExecutionManager struct {
 	BlocksQueue             process.BlocksQueue
 	ExecutionResultsTracker process.ExecutionResultsTracker
 	BlockChain              data.ChainHandler
-	Headers                 common.HeadersPool
+	Headers                 dataRetriever.HeadersPool
 	StorageService          dataRetriever.StorageService
 	Marshaller              marshal.Marshalizer
 	ShardCoordinator        sharding.Coordinator
@@ -37,7 +35,7 @@ type executionManager struct {
 	blocksQueue             process.BlocksQueue
 	executionResultsTracker process.ExecutionResultsTracker
 	blockChain              data.ChainHandler
-	headers                 common.HeadersPool
+	headers                 dataRetriever.HeadersPool
 	storageService          dataRetriever.StorageService
 	marshaller              marshal.Marshalizer
 	shardCoordinator        sharding.Coordinator
@@ -113,7 +111,15 @@ func (em *executionManager) AddPairForExecution(pair cache.HeaderBodyPair) error
 	lastExecutedBlock := em.blockChain.GetLastExecutedBlockHeader()
 	if !check.IfNil(lastExecutedBlock) &&
 		lastExecutedBlock.GetNonce() >= pair.Header.GetNonce() {
-		err := em.updateContextForReplacedHeader(pair.Header)
+		err := process.UpdateContextForReplacedHeader(
+			pair.Header,
+			em,
+			em.blockChain,
+			em.headers,
+			em.storageService,
+			em.marshaller,
+			em.shardCoordinator.SelfId(),
+		)
 		if err != nil {
 			return err
 		}
@@ -122,70 +128,14 @@ func (em *executionManager) AddPairForExecution(pair cache.HeaderBodyPair) error
 	return em.blocksQueue.AddOrReplace(pair)
 }
 
-func (em *executionManager) updateContextForReplacedHeader(header data.HeaderHandler) error {
-	pendingExecutionResults, err := em.GetPendingExecutionResults()
-	if err != nil {
-		return err
-	}
-
-	lastExecutionResult, err := em.executionResultsTracker.GetLastNotarizedExecutionResult()
-	if err != nil {
-		return err
-	}
-
-	executionResultToSet, err := em.getExecutionResultToSetOnReplacedHeader(
-		header,
-		pendingExecutionResults,
-		lastExecutionResult,
-	)
-	if err != nil {
-		return err
-	}
-
-	// TODO: optimize to add into pool at bootstrap
-	headerToSet, err := em.getHeaderFromPoolOrStorage(executionResultToSet.GetHeaderHash())
-	if err != nil {
-		return err
-	}
-
-	em.blockChain.SetLastExecutedBlockHeaderAndRootHash(headerToSet, executionResultToSet.GetHeaderHash(), executionResultToSet.GetRootHash())
-	em.blockChain.SetLastExecutionResult(executionResultToSet)
-
-	// need to remove all execution results after the one set
-	return em.executionResultsTracker.RemoveFromNonce(executionResultToSet.GetHeaderNonce() + 1)
-}
-
-func (em *executionManager) getExecutionResultToSetOnReplacedHeader(
-	header data.HeaderHandler,
-	pendingExecutionResults []data.BaseExecutionResultHandler,
-	lastNotarizedResult data.BaseExecutionResultHandler,
-) (data.BaseExecutionResultHandler, error) {
-	prevNonce := header.GetNonce() - 1
-	prevHash := header.GetPrevHash()
-
-	headerHashToSet := lastNotarizedResult.GetHeaderHash()
-	executionResultToSet := lastNotarizedResult
-	if bytes.Equal(prevHash, headerHashToSet) {
-		return executionResultToSet, nil
-	}
-
-	for i := len(pendingExecutionResults) - 1; i >= 0; i-- {
-		if pendingExecutionResults[i].GetHeaderNonce() <= prevNonce {
-			headerHashToSet = pendingExecutionResults[i].GetHeaderHash()
-			executionResultToSet = pendingExecutionResults[i]
-			break
-		}
-	}
-	if !bytes.Equal(prevHash, headerHashToSet) {
-		return nil, ErrExecutionResultNotFound
-	}
-
-	return executionResultToSet, nil
-}
-
 // GetPendingExecutionResults calls the same method from executionResultsTracker
 func (em *executionManager) GetPendingExecutionResults() ([]data.BaseExecutionResultHandler, error) {
 	return em.executionResultsTracker.GetPendingExecutionResults()
+}
+
+// GetLastNotarizedExecutionResult will return the last notarized execution result
+func (em *executionManager) GetLastNotarizedExecutionResult() (data.BaseExecutionResultHandler, error) {
+	return em.executionResultsTracker.GetLastNotarizedExecutionResult()
 }
 
 // SetLastNotarizedResult calls the same method from executionResultsTracker
@@ -261,6 +211,11 @@ func (em *executionManager) RemoveAtNonceAndHigher(nonce uint64) error {
 	return nil
 }
 
+// RemovePendingExecutionResultsFromNonce will remove the execution result with the provided nonce and all execution results with higher nonces
+func (em *executionManager) RemovePendingExecutionResultsFromNonce(nonce uint64) error {
+	return em.executionResultsTracker.RemoveFromNonce(nonce)
+}
+
 // ResetAndResumeExecution resets the managed components to the last notarized result and resumes execution
 func (em *executionManager) ResetAndResumeExecution(lastNotarizedResult data.BaseExecutionResultHandler) error {
 	if check.IfNil(lastNotarizedResult) {
@@ -302,7 +257,7 @@ func (em *executionManager) updateBlockchainAfterRemoval(lastNotarizedResult dat
 		lastExecutionResult = lastPending
 	}
 
-	header, err := em.getHeaderFromPoolOrStorage(lastExecutedHeaderHash)
+	header, err := process.GetHeader(lastExecutedHeaderHash, em.headers, em.storageService, em.marshaller, em.shardCoordinator.SelfId())
 	if err != nil {
 		log.Debug("executionmanager.updateBlockchainAfterRemoval: could not find header in pool or storage",
 			"hash", lastExecutedHeaderHash,
@@ -323,24 +278,6 @@ func (em *executionManager) updateBlockchainAfterRemoval(lastNotarizedResult dat
 	em.blockChain.SetLastExecutionResult(lastExecutionResult)
 
 	return nil
-}
-
-func (em *executionManager) getHeaderFromPoolOrStorage(
-	headerHash []byte,
-) (data.HeaderHandler, error) {
-	header, err := em.headers.GetHeaderByHash(headerHash)
-	if err == nil {
-		return header, nil
-	}
-
-	shardID := em.shardCoordinator.SelfId()
-
-	return process.GetHeaderFromStorage(
-		shardID,
-		headerHash,
-		em.marshaller,
-		em.storageService,
-	)
 }
 
 // Close closes the execution manager and all its components

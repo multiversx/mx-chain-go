@@ -186,6 +186,12 @@ func (he *headersExecutor) handleProcessError(ctx context.Context, pair cache.He
 }
 
 func (he *headersExecutor) process(pair cache.HeaderBodyPair) error {
+	ok := he.checkLastExecutionResultContext(pair.Header)
+	if !ok {
+		return nil
+	}
+
+
 	executionResult, err := he.blockProcessor.ProcessBlockProposal(pair.Header, pair.Body)
 	if err != nil {
 		log.Warn("headersExecutor.process process block failed",
@@ -203,7 +209,10 @@ func (he *headersExecutor) process(pair cache.HeaderBodyPair) error {
 		return ErrNilExecutionResult
 	}
 
-	// todo call check here
+	ok = he.checkLastExecutionResultContext(pair.Header)
+	if !ok {
+		return nil
+	}
 
 	err = he.executionTracker.AddExecutionResult(executionResult)
 	if err != nil {
@@ -238,6 +247,45 @@ func (he *headersExecutor) process(pair cache.HeaderBodyPair) error {
 	)
 
 	return nil
+}
+
+func (he *headersExecutor) checkLastExecutionResultContext(
+	currentHeader data.HeaderHandler,
+) bool {
+	if check.IfNil(currentHeader) {
+		return false
+	}
+
+	lastExecutionResult := he.blockChain.GetLastExecutionResult()
+	if check.IfNil(lastExecutionResult) {
+		return true
+	}
+
+	if process.IsReplacementBlockForExecution(currentHeader, lastExecutionResult) {
+		return true
+	}
+
+	if currentHeader.GetNonce() != lastExecutionResult.GetHeaderNonce()+1 {
+		log.Debug("headersExecutor.process: concurrent revert event",
+			"previous nonce", lastExecutionResult.GetHeaderNonce(),
+			"current nonce", currentHeader.GetNonce(),
+			"err", process.ErrWrongNonceInBlock,
+		)
+		return false
+	}
+
+	lastExecResultHeaderHash := lastExecutionResult.GetHeaderHash()
+
+	if !bytes.Equal(lastExecResultHeaderHash, currentHeader.GetPrevHash()) {
+		log.Debug("headersExecutor.process: concurrent revert event",
+			"header previous hash", currentHeader.GetPrevHash(),
+			"last execution result hash", lastExecResultHeaderHash,
+			"err", process.ErrBlockHashDoesNotMatch,
+		)
+		return false
+	}
+
+	return true
 }
 
 // Close will close the blocks execution loop
