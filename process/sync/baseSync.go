@@ -1336,6 +1336,8 @@ func (boot *baseBootstrap) getExecutionResultHeaderNonceForSyncStart(
 	// in case there is a more recent execution result available, use it
 	lastExecutionResult := boot.chainHandler.GetLastExecutionResult()
 	notNil := !check.IfNil(lastExecutionResult)
+	// accept newer execution result only if there is a proof for the associated header
+	// otherwise, it might be a temporary execution result from a block that did not pass consensus
 	shouldChangeLastExecutionResultNonce := notNil &&
 		lastExecutionResult.GetHeaderNonce() > lastExecutionResultNonce &&
 		boot.proofs.HasProof(boot.shardCoordinator.SelfId(), lastExecutionResult.GetHeaderHash())

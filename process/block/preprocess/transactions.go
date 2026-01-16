@@ -909,10 +909,8 @@ func (txs *transactions) processAndRemoveBadTransaction(
 		txs.txExecutionOrderHandler.Remove(txHash)
 		// TODO: remove log if no longer needed for validation
 		log.Debug("processAndRemoveBadTransaction - found not executable transaction", "txHash", txHash)
-		if !isAsyncExecEnabled {
-			strCache := process.ShardCacherIdentifier(sndShardId, dstShardId)
-			txs.txPool.RemoveData(txHash, strCache)
-		}
+		strCache := process.ShardCacherIdentifier(sndShardId, dstShardId)
+		txs.txPool.RemoveData(txHash, strCache)
 	}
 
 	if err != nil && !errors.Is(err, process.ErrFailedTransaction) {
