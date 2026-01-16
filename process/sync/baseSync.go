@@ -25,7 +25,7 @@ import (
 	logger "github.com/multiversx/mx-chain-logger-go"
 
 	"github.com/multiversx/mx-chain-go/epochStart"
-	"github.com/multiversx/mx-chain-go/process/asyncExecution/queue"
+	"github.com/multiversx/mx-chain-go/process/asyncExecution/cache"
 	"github.com/multiversx/mx-chain-go/update"
 	updateSync "github.com/multiversx/mx-chain-go/update/sync"
 
@@ -1029,7 +1029,7 @@ func (boot *baseBootstrap) syncBlockV3(body data.BodyHandler, header data.Header
 		return err
 	}
 
-	err = boot.executionManager.AddPairForExecution(queue.HeaderBodyPair{
+	err = boot.executionManager.AddPairForExecution(cache.HeaderBodyPair{
 		Header: header,
 		Body:   body,
 	})
@@ -1156,7 +1156,7 @@ func (boot *baseBootstrap) prepareForSyncIfNeeded(
 
 		boot.preparedForSync = true
 
-		return boot.executionManager.AddPairForExecution(queue.HeaderBodyPair{
+		return boot.executionManager.AddPairForExecution(cache.HeaderBodyPair{
 			Header: currentHeader,
 			Body:   currentBody,
 		})
@@ -1195,7 +1195,7 @@ func (boot *baseBootstrap) prepareForSyncIfNeeded(
 			return errOnProposedBlock
 		}
 
-		errAdd := boot.executionManager.AddPairForExecution(queue.HeaderBodyPair{
+		errAdd := boot.executionManager.AddPairForExecution(cache.HeaderBodyPair{
 			Header: hdr,
 			Body:   body,
 		})

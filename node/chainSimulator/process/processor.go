@@ -13,7 +13,7 @@ import (
 	"github.com/multiversx/mx-chain-go/common"
 	heartbeatData "github.com/multiversx/mx-chain-go/heartbeat/data"
 	"github.com/multiversx/mx-chain-go/node/chainSimulator/configs"
-	"github.com/multiversx/mx-chain-go/process/asyncExecution/queue"
+	"github.com/multiversx/mx-chain-go/process/asyncExecution/cache"
 	"github.com/multiversx/mx-chain-go/sharding/nodesCoordinator"
 )
 
@@ -198,7 +198,7 @@ func (creator *blocksCreator) CreateNewBlock() (*dtos.BroadcastData, error) {
 			return nil, err
 		}
 
-		pair := queue.HeaderBodyPair{
+		pair := cache.HeaderBodyPair{
 			Header: header,
 			Body:   block,
 		}

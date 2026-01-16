@@ -15,7 +15,7 @@ import (
 	"github.com/multiversx/mx-chain-go/process/asyncExecution/disabled"
 	"github.com/multiversx/mx-chain-go/sharding"
 
-	"github.com/multiversx/mx-chain-go/process/asyncExecution/queue"
+	"github.com/multiversx/mx-chain-go/process/asyncExecution/cache"
 )
 
 var log = logger.GetOrCreate("process/asyncExecution/executionManager")
@@ -105,7 +105,7 @@ func (em *executionManager) SetHeadersExecutor(executor process.HeadersExecutor)
 }
 
 // AddPairForExecution adds or replaces a header-body pair in the blocks queue
-func (em *executionManager) AddPairForExecution(pair queue.HeaderBodyPair) error {
+func (em *executionManager) AddPairForExecution(pair cache.HeaderBodyPair) error {
 	// lock the internal mutex to avoid any concurrent removal requests
 	em.mut.Lock()
 	defer em.mut.Unlock()
@@ -195,6 +195,10 @@ func (em *executionManager) SetLastNotarizedResult(executionResult data.BaseExec
 
 // CleanConfirmedExecutionResults calls the same method from executionResultsTracker
 func (em *executionManager) CleanConfirmedExecutionResults(header data.HeaderHandler) error {
+	for _, executionResult := range header.GetExecutionResultsHandlers() {
+		em.blocksQueue.Remove(executionResult.GetHeaderNonce())
+	}
+
 	return em.executionResultsTracker.CleanConfirmedExecutionResults(header)
 }
 
@@ -271,8 +275,7 @@ func (em *executionManager) ResetAndResumeExecution(lastNotarizedResult data.Bas
 
 	em.executionResultsTracker.Clean(lastNotarizedResult)
 
-	lastNotarizedNonce := lastNotarizedResult.GetHeaderNonce()
-	em.blocksQueue.Clean(lastNotarizedNonce)
+	em.blocksQueue.Clean()
 
 	em.headersExecutor.ResumeExecution()
 
@@ -348,8 +351,6 @@ func (em *executionManager) Close() error {
 	if err != nil {
 		log.Warn("executionManager.Close - failed to close headers executor", "error", err)
 	}
-
-	em.blocksQueue.Close()
 
 	return nil
 }

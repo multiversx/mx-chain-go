@@ -14,7 +14,7 @@ import (
 	"github.com/multiversx/mx-chain-go/consensus"
 	"github.com/multiversx/mx-chain-go/consensus/spos"
 	"github.com/multiversx/mx-chain-go/consensus/spos/bls"
-	"github.com/multiversx/mx-chain-go/process/asyncExecution/queue"
+	"github.com/multiversx/mx-chain-go/process/asyncExecution/cache"
 )
 
 // maxAllowedSizeInBytes defines how many bytes are allowed as payload in a message
@@ -173,7 +173,7 @@ func (sr *subroundBlock) prepareBlockForExecution(header data.HeaderHandler, bod
 			return err
 		}
 	}
-	return sr.ExecutionManager().AddPairForExecution(queue.HeaderBodyPair{
+	return sr.ExecutionManager().AddPairForExecution(cache.HeaderBodyPair{
 		Header: header,
 		Body:   body,
 	})
@@ -782,7 +782,7 @@ func (sr *subroundBlock) processBlockBasedOnType(haveTime func() time.Duration) 
 			return err
 		}
 
-		return sr.ExecutionManager().AddPairForExecution(queue.HeaderBodyPair{
+		return sr.ExecutionManager().AddPairForExecution(cache.HeaderBodyPair{
 			Header: sr.GetHeader(),
 			Body:   sr.GetBody(),
 		})

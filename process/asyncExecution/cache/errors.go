@@ -1,4 +1,4 @@
-package queue
+package cache
 
 import "errors"
 

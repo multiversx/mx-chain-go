@@ -1,4 +1,4 @@
-package queue
+package cache
 
 import "github.com/multiversx/mx-chain-core-go/data"
 

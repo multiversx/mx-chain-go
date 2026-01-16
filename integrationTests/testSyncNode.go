@@ -9,8 +9,8 @@ import (
 	"github.com/multiversx/mx-chain-go/process/asyncExecution/executionManager"
 
 	"github.com/multiversx/mx-chain-go/process"
+	"github.com/multiversx/mx-chain-go/process/asyncExecution/cache"
 	"github.com/multiversx/mx-chain-go/process/asyncExecution/executionTrack"
-	"github.com/multiversx/mx-chain-go/process/asyncExecution/queue"
 	"github.com/multiversx/mx-chain-go/process/block/headerForBlock"
 	"github.com/multiversx/mx-chain-go/process/coordinator"
 	"github.com/multiversx/mx-chain-go/process/estimator"
@@ -125,7 +125,7 @@ func (tpn *TestProcessorNode) initBlockProcessorWithSync() {
 	}
 
 	executionResultsTracker := executionTrack.NewExecutionResultsTracker()
-	tpn.BlocksQueue = queue.NewBlocksQueue()
+	tpn.BlocksQueue = cache.NewHeaderBodyCache()
 
 	argsExecutionManager := executionManager.ArgsExecutionManager{
 		BlocksQueue:             tpn.BlocksQueue,
@@ -299,7 +299,7 @@ func (tpn *TestProcessorNode) initBlockProcessorWithSync() {
 	}
 
 	argsHeadersExecutor := asyncExecution.ArgsHeadersExecutor{
-		BlocksQueue:      tpn.BlocksQueue,
+		BlocksCache:      tpn.BlocksQueue,
 		ExecutionTracker: executionResultsTracker,
 		BlockProcessor:   tpn.BlockProcessor,
 		BlockChain:       tpn.BlockChain,

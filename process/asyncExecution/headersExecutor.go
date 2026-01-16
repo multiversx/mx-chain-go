@@ -1,6 +1,7 @@
 package asyncExecution
 
 import (
+	"bytes"
 	"context"
 	"sync"
 	"time"
@@ -10,7 +11,7 @@ import (
 	logger "github.com/multiversx/mx-chain-logger-go"
 
 	"github.com/multiversx/mx-chain-go/process"
-	"github.com/multiversx/mx-chain-go/process/asyncExecution/queue"
+	"github.com/multiversx/mx-chain-go/process/asyncExecution/cache"
 )
 
 var log = logger.GetOrCreate("process/asyncExecution")
@@ -19,18 +20,17 @@ const timeToSleep = time.Millisecond * 5
 const timeToSleepOnError = time.Millisecond * 300
 const maxRetryAttempts = 10
 const maxBackoffTime = time.Second * 5
-const validationInterval = time.Minute * 1
 
 // ArgsHeadersExecutor holds all the components needed to create a new instance of *headersExecutor
 type ArgsHeadersExecutor struct {
-	BlocksQueue      BlocksQueue
+	BlocksCache      BlocksCache
 	ExecutionTracker ExecutionResultsHandler
 	BlockProcessor   BlockProcessor
 	BlockChain       data.ChainHandler
 }
 
 type headersExecutor struct {
-	blocksQueue      BlocksQueue
+	blocksCache      BlocksCache
 	executionTracker ExecutionResultsHandler
 	blockProcessor   BlockProcessor
 	blockChain       data.ChainHandler
@@ -41,8 +41,8 @@ type headersExecutor struct {
 
 // NewHeadersExecutor will create a new instance of *headersExecutor
 func NewHeadersExecutor(args ArgsHeadersExecutor) (*headersExecutor, error) {
-	if check.IfNil(args.BlocksQueue) {
-		return nil, ErrNilHeadersQueue
+	if check.IfNil(args.BlocksCache) {
+		return nil, ErrNilHeadersCache
 	}
 	if check.IfNil(args.ExecutionTracker) {
 		return nil, ErrNilExecutionTracker
@@ -55,7 +55,7 @@ func NewHeadersExecutor(args ArgsHeadersExecutor) (*headersExecutor, error) {
 	}
 
 	instance := &headersExecutor{
-		blocksQueue:      args.BlocksQueue,
+		blocksCache:      args.BlocksCache,
 		executionTracker: args.ExecutionTracker,
 		blockProcessor:   args.BlockProcessor,
 		blockChain:       args.BlockChain,
@@ -100,19 +100,10 @@ func (he *headersExecutor) ResumeExecution() {
 func (he *headersExecutor) start(ctx context.Context) {
 	log.Debug("headersExecutor.start: starting execution")
 
-	validationTicker := time.NewTicker(validationInterval)
-	defer validationTicker.Stop()
-
 	for {
 		select {
 		case <-ctx.Done():
 			return
-		case <-validationTicker.C:
-			// Periodic queue validation
-			err := he.blocksQueue.ValidateQueueIntegrity()
-			if err != nil {
-				log.Error("headersExecutor.start: queue integrity validation failed", "err", err)
-			}
 		default:
 			he.mutPaused.RLock()
 			isPaused := he.isPaused
@@ -124,11 +115,17 @@ func (he *headersExecutor) start(ctx context.Context) {
 			}
 
 			// blocking operation
-			headerBodyPair, ok := he.blocksQueue.Pop()
+			/// get pair by nonce from blockchain
+			lastExecutedHeader := he.blockChain.GetLastExecutedBlockHeader()
+			if lastExecutedHeader == nil {
+				time.Sleep(timeToSleep)
+				continue
+			}
+
+			headerBodyPair, ok := he.blocksCache.GetByNonce(lastExecutedHeader.GetNonce() + 1)
 			if !ok {
-				log.Debug("headersExecutor.start: not ok fetching from queue")
-				// close event
-				return
+				time.Sleep(timeToSleep)
+				continue
 			}
 
 			if check.IfNil(headerBodyPair.Header) || check.IfNil(headerBodyPair.Body) {
@@ -144,12 +141,12 @@ func (he *headersExecutor) start(ctx context.Context) {
 	}
 }
 
-func (he *headersExecutor) handleProcessError(ctx context.Context, pair queue.HeaderBodyPair) {
+func (he *headersExecutor) handleProcessError(ctx context.Context, pair cache.HeaderBodyPair) {
 	retryCount := 0
 	backoffTime := timeToSleepOnError
 
 	for retryCount < maxRetryAttempts {
-		pairFromQueue, ok := he.blocksQueue.Peek()
+		pairFromQueue, ok := he.blocksCache.GetLastAdded()
 		if ok && pairFromQueue.Header.GetNonce() == pair.Header.GetNonce() {
 			// continue the processing (pop the next header from queue)
 			return
@@ -188,7 +185,7 @@ func (he *headersExecutor) handleProcessError(ctx context.Context, pair queue.He
 		"max_retries", maxRetryAttempts)
 }
 
-func (he *headersExecutor) process(pair queue.HeaderBodyPair) error {
+func (he *headersExecutor) process(pair cache.HeaderBodyPair) error {
 	executionResult, err := he.blockProcessor.ProcessBlockProposal(pair.Header, pair.Body)
 	if err != nil {
 		log.Warn("headersExecutor.process process block failed",
@@ -206,6 +203,8 @@ func (he *headersExecutor) process(pair queue.HeaderBodyPair) error {
 		return ErrNilExecutionResult
 	}
 
+	// todo call check here
+
 	err = he.executionTracker.AddExecutionResult(executionResult)
 	if err != nil {
 		log.Warn("headersExecutor.process add execution result failed",
@@ -213,6 +212,14 @@ func (he *headersExecutor) process(pair queue.HeaderBodyPair) error {
 			"err", err,
 		)
 		return err
+	}
+
+	lastExecutionResult := he.blockChain.GetLastExecutionResult()
+	if lastExecutionResult != nil {
+		if !bytes.Equal(lastExecutionResult.GetHeaderHash(), pair.Header.GetPrevHash()) {
+			log.Error("headersExecutor.process - header hash mismatch")
+			return nil
+		}
 	}
 
 	he.blockChain.SetFinalBlockInfo(
