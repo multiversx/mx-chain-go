@@ -28,10 +28,14 @@ func createMockArgs() executionManager.ArgsExecutionManager {
 		BlocksQueue:             &processMocks.BlocksQueueMock{},
 		ExecutionResultsTracker: &processMocks.ExecutionTrackerStub{},
 		BlockChain:              &testscommon.ChainHandlerMock{},
-		Headers:                 &pool.HeadersPoolStub{},
-		StorageService:          &storageStubs.ChainStorerStub{},
-		Marshaller:              &mock.MarshalizerMock{},
-		ShardCoordinator:        &mock.ShardCoordinatorStub{},
+		Headers: &pool.HeadersPoolStub{
+			GetHeaderByHashCalled: func(hash []byte) (data.HeaderHandler, error) {
+				return &block.HeaderV3{}, nil
+			},
+		},
+		StorageService:   &storageStubs.ChainStorerStub{},
+		Marshaller:       &mock.MarshalizerMock{},
+		ShardCoordinator: &mock.ShardCoordinatorStub{},
 	}
 }
 
@@ -302,7 +306,7 @@ func TestExecutionManager_AddPairForExecution(t *testing.T) {
 		}
 
 		err := em.AddPairForExecution(pair)
-		require.Equal(t, executionManager.ErrExecutionResultNotFound, err)
+		require.Equal(t, process.ErrExecutionResultNotFound, err)
 	})
 
 	t.Run("if extracting the header from pool fails, the error should be propagated", func(t *testing.T) {
