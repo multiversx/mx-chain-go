@@ -291,7 +291,6 @@ func TestInitConfigMetrics(t *testing.T) {
 		"erd_is_payable_by_sc_enable_epoch":                                    uint32(52),
 		"erd_cleanup_informative_scrs_enable_epoch":                            uint32(53),
 		"erd_storage_api_cost_optimization_enable_epoch":                       uint32(54),
-		"erd_transform_to_multi_shard_create_enable_epoch":                     uint32(55),
 		"erd_esdt_register_and_set_all_roles_enable_epoch":                     uint32(56),
 		"erd_do_not_returns_old_block_in_blockchain_hook_enable_epoch":         uint32(57),
 		"erd_add_failed_relayed_tx_to_invalid_mbs_enable_epoch":                uint32(58),
