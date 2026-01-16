@@ -160,7 +160,6 @@ func TestInitConfigMetrics(t *testing.T) {
 			IsPayableBySCEnableEpoch:                                 52,
 			CleanUpInformativeSCRsEnableEpoch:                        53,
 			StorageAPICostOptimizationEnableEpoch:                    54,
-			TransformToMultiShardCreateEnableEpoch:                   55,
 			ESDTRegisterAndSetAllRolesEnableEpoch:                    56,
 			DoNotReturnOldBlockInBlockchainHookEnableEpoch:           57,
 			AddFailedRelayedTxToInvalidMBsDisableEpoch:               58,
@@ -222,7 +221,7 @@ func TestInitConfigMetrics(t *testing.T) {
 			AutomaticActivationOfNodesDisableEpoch:                   114,
 			FixGetBalanceEnableEpoch:                                 115,
 			RelayedTransactionsV1V2DisableEpoch:                      116,
-			SupernovaEnableEpoch:                                     118, //tail inflation 117 comes from EconomicsConfig
+			SupernovaEnableEpoch:                                     118, // tail inflation 117 comes from EconomicsConfig
 			MaxNodesChangeEnableEpoch: []config.MaxNodesChangeConfig{
 				{
 					EpochEnable:            0,

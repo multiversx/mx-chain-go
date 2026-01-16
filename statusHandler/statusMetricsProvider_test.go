@@ -363,7 +363,6 @@ func TestStatusMetrics_EnableEpochMetrics(t *testing.T) {
 	sm.SetUInt64Value(common.MetricFrontRunningProtectionEnableEpoch, uint64(4))
 	sm.SetUInt64Value(common.MetricIsPayableBySCEnableEpoch, uint64(4))
 	sm.SetUInt64Value(common.MetricStorageAPICostOptimizationEnableEpoch, uint64(4))
-	sm.SetUInt64Value(common.MetricTransformToMultiShardCreateEnableEpoch, uint64(4))
 	sm.SetUInt64Value(common.MetricESDTRegisterAndSetAllRolesEnableEpoch, uint64(4))
 	sm.SetUInt64Value(common.MetricDoNotReturnOldBlockInBlockchainHookEnableEpoch, uint64(4))
 	sm.SetUInt64Value(common.MetricAddFailedRelayedTxToInvalidMBsDisableEpoch, uint64(4))
@@ -505,7 +504,6 @@ func TestStatusMetrics_EnableEpochMetrics(t *testing.T) {
 		common.MetricFrontRunningProtectionEnableEpoch:                        uint64(4),
 		common.MetricIsPayableBySCEnableEpoch:                                 uint64(4),
 		common.MetricStorageAPICostOptimizationEnableEpoch:                    uint64(4),
-		common.MetricTransformToMultiShardCreateEnableEpoch:                   uint64(4),
 		common.MetricESDTRegisterAndSetAllRolesEnableEpoch:                    uint64(4),
 		common.MetricDoNotReturnOldBlockInBlockchainHookEnableEpoch:           uint64(4),
 		common.MetricAddFailedRelayedTxToInvalidMBsDisableEpoch:               uint64(4),

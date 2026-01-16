@@ -337,7 +337,6 @@ func (sm *statusMetrics) EnableEpochsMetrics() (map[string]interface{}, error) {
 	enableEpochsMetrics[common.MetricIsPayableBySCEnableEpoch] = sm.uint64Metrics[common.MetricIsPayableBySCEnableEpoch]
 	enableEpochsMetrics[common.MetricCleanUpInformativeSCRsEnableEpoch] = sm.uint64Metrics[common.MetricCleanUpInformativeSCRsEnableEpoch]
 	enableEpochsMetrics[common.MetricStorageAPICostOptimizationEnableEpoch] = sm.uint64Metrics[common.MetricStorageAPICostOptimizationEnableEpoch]
-	enableEpochsMetrics[common.MetricTransformToMultiShardCreateEnableEpoch] = sm.uint64Metrics[common.MetricTransformToMultiShardCreateEnableEpoch]
 	enableEpochsMetrics[common.MetricESDTRegisterAndSetAllRolesEnableEpoch] = sm.uint64Metrics[common.MetricESDTRegisterAndSetAllRolesEnableEpoch]
 	enableEpochsMetrics[common.MetricDoNotReturnOldBlockInBlockchainHookEnableEpoch] = sm.uint64Metrics[common.MetricDoNotReturnOldBlockInBlockchainHookEnableEpoch]
 	enableEpochsMetrics[common.MetricAddFailedRelayedTxToInvalidMBsDisableEpoch] = sm.uint64Metrics[common.MetricAddFailedRelayedTxToInvalidMBsDisableEpoch]
