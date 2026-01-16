@@ -5,6 +5,8 @@ import (
 	"strings"
 	"sync"
 
+	"github.com/multiversx/mx-chain-core-go/core/check"
+
 	"github.com/multiversx/mx-chain-go/common"
 )
 
@@ -18,15 +20,22 @@ type statusMetrics struct {
 
 	int64Metrics       map[string]int64
 	mutInt64Operations sync.RWMutex
+
+	enableEpochsHandler common.EnableEpochsHandler
 }
 
 // NewStatusMetrics will return an instance of the struct
-func NewStatusMetrics() *statusMetrics {
-	return &statusMetrics{
-		uint64Metrics: make(map[string]uint64),
-		stringMetrics: make(map[string]string),
-		int64Metrics:  make(map[string]int64),
+func NewStatusMetrics(enableEpochsHandler common.EnableEpochsHandler) (*statusMetrics, error) {
+	if check.IfNil(enableEpochsHandler) {
+		return nil, ErrNilEnableEpochsHandler
 	}
+
+	return &statusMetrics{
+		uint64Metrics:       make(map[string]uint64),
+		stringMetrics:       make(map[string]string),
+		int64Metrics:        make(map[string]int64),
+		enableEpochsHandler: enableEpochsHandler,
+	}, nil
 }
 
 // IsInterfaceNil returns true if there is no value under the interface
@@ -413,6 +422,11 @@ func (sm *statusMetrics) EnableEpochsMetrics() (map[string]interface{}, error) {
 	sm.mutUint64Operations.RUnlock()
 
 	return enableEpochsMetrics, nil
+}
+
+// EnableEpochsMetricsV2 returns all enable epoch flags with their activation epochs
+func (sm *statusMetrics) EnableEpochsMetricsV2() map[string]uint32 {
+	return sm.enableEpochsHandler.GetAllEnableEpochs()
 }
 
 // NetworkMetrics will return metrics related to current configuration

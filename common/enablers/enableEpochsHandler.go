@@ -2,6 +2,7 @@ package enablers
 
 import (
 	"runtime/debug"
+	"strings"
 	"sync"
 
 	"github.com/multiversx/mx-chain-core-go/core"
@@ -14,6 +15,11 @@ import (
 )
 
 var log = logger.GetOrCreate("common/enablers")
+
+const (
+	flagSuffix        = "Flag"
+	enableEpochSuffix = "EnableEpoch"
+)
 
 type flagEnabledInEpoch = func(epoch uint32) bool
 
@@ -941,6 +947,16 @@ func (handler *enableEpochsHandler) StakingV4Step2EnableEpoch() uint32 {
 // StakingV4Step1EnableEpoch returns the epoch when stakingV4 phase1 becomes active
 func (handler *enableEpochsHandler) StakingV4Step1EnableEpoch() uint32 {
 	return handler.enableEpochsConfig.StakingV4Step1EnableEpoch
+}
+
+// GetAllEnableEpochs returns all flags with their activation epochs
+func (handler *enableEpochsHandler) GetAllEnableEpochs() map[string]uint32 {
+	result := make(map[string]uint32, len(handler.allFlagsDefined))
+	for flag, fh := range handler.allFlagsDefined {
+		enableEpochName := strings.Replace(string(flag), flagSuffix, enableEpochSuffix, 1)
+		result[enableEpochName] = fh.activationEpoch
+	}
+	return result
 }
 
 // IsInterfaceNil returns true if there is no value under the interface
