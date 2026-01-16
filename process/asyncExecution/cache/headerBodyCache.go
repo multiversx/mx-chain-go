@@ -72,6 +72,9 @@ func (c *headerBodyCache) RemoveAtNonceAndHigher(providedNonce uint64) []uint64 
 
 // GetLastAdded will return the lat added nonce
 func (c *headerBodyCache) GetLastAdded() (HeaderBodyPair, bool) {
+	c.mutex.RLock()
+	defer c.mutex.RUnlock()
+
 	pair, found := c.cacheByNonce[c.lastAddedNonce]
 
 	return pair, found
