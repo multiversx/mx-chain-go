@@ -1335,10 +1335,13 @@ func (boot *baseBootstrap) getExecutionResultHeaderNonceForSyncStart(
 
 	// in case there is a more recent execution result available, use it
 	lastExecutionResult := boot.chainHandler.GetLastExecutionResult()
-	if !check.IfNil(lastExecutionResult) && lastExecutionResult.GetHeaderNonce() > lastExecutionResultNonce {
+	notNil := !check.IfNil(lastExecutionResult)
+	shouldChangeLastExecutionResultNonce := notNil &&
+		lastExecutionResult.GetHeaderNonce() > lastExecutionResultNonce &&
+		boot.proofs.HasProof(boot.shardCoordinator.SelfId(), lastExecutionResult.GetHeaderHash())
+	if shouldChangeLastExecutionResultNonce {
 		lastExecutionResultNonce = lastExecutionResult.GetHeaderNonce()
 	}
-
 	log.Debug("getExecutionResultHeaderNonceForSyncStart", "lastExecutionResultNonce", lastExecutionResultNonce)
 
 	return lastExecutionResultNonce, nil
