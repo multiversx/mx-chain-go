@@ -1966,6 +1966,9 @@ func TestMetaBootstrap_SyncBlock_WithEquivalentProofs(t *testing.T) {
 				GetProofCalled: func(shardID uint32, headerHash []byte) (data.HeaderProofHandler, error) {
 					return nil, errors.New("missing proof")
 				},
+				GetProofByNonceCalled: func(headerNonce uint64, shardID uint32) (data.HeaderProofHandler, error) {
+					return nil, errors.New("missing proof")
+				},
 				HasProofCalled: func(shardID uint32, headerHash []byte) bool {
 					if numProofCalls == 0 {
 						numProofCalls++
