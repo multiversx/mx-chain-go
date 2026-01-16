@@ -58,7 +58,7 @@ func (c *headerBodyCache) RemoveAtNonceAndHigher(providedNonce uint64) []uint64 
 	defer c.mutex.Unlock()
 
 	nonces := make([]uint64, 0)
-	for nonce, _ := range c.cacheByNonce {
+	for nonce := range c.cacheByNonce {
 		if nonce >= providedNonce {
 			delete(c.cacheByNonce, nonce)
 			nonces = append(nonces, nonce)
