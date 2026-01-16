@@ -114,7 +114,7 @@ func createMetaBlockProcessor(
 		coreComponents.Hasher(),
 	)
 
-	blocksQueue := cache.NewBlocksQueue()
+	blocksQueue := cache.NewHeaderBodyCache()
 	executionResultsTracker := executionTrack.NewExecutionResultsTracker()
 	execManager, _ := executionManager.NewExecutionManager(executionManager.ArgsExecutionManager{
 		BlocksQueue:             blocksQueue,
