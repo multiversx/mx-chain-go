@@ -8,6 +8,7 @@ import (
 	"math/big"
 	"net/http"
 	"net/http/httptest"
+	"reflect"
 	"strconv"
 	"strings"
 	"testing"
@@ -634,6 +635,50 @@ func TestGetEnableEpochs_ShouldWork(t *testing.T) {
 	assert.True(t, keyAndValueFoundInResponse)
 }
 
+func TestGetEnableEpochsV2_ShouldWork(t *testing.T) {
+	t.Parallel()
+
+	allEpochsMap := make(map[string]uint32)
+	typeOfCfg := reflect.TypeOf(config.EnableEpochs{})
+	for i := 0; i < typeOfCfg.NumField(); i++ {
+		field := typeOfCfg.Field(i)
+		if field.Name == "MaxNodesChangeEnableEpoch" ||
+			field.Name == "BLSMultiSignerEnableEpoch" {
+			// slices, ignoring
+			continue
+		}
+		allEpochsMap[field.Name] = uint32(i)
+	}
+
+	statusMetrics, _ := statusHandler.NewStatusMetrics(&enableEpochsHandlerMock.EnableEpochsHandlerStub{
+		GetAllEnableEpochsCalled: func() map[string]uint32 {
+			return allEpochsMap
+		},
+	})
+
+	facade := mock.FacadeStub{}
+	facade.StatusMetricsHandler = func() external.StatusMetricsHandler {
+		return statusMetrics
+	}
+
+	networkGroup, err := groups.NewNetworkGroup(&facade)
+	require.NoError(t, err)
+
+	ws := startWebServer(networkGroup, "network", getNetworkRoutesConfig())
+
+	req, _ := http.NewRequest("GET", "/network/enable-epochs-v2", nil)
+	resp := httptest.NewRecorder()
+	ws.ServeHTTP(resp, req)
+
+	respBytes, _ := io.ReadAll(resp.Body)
+	respStr := string(respBytes)
+	assert.Equal(t, resp.Code, http.StatusOK)
+
+	keyAndValueFoundInResponse := strings.Contains(respStr, "SupernovaEnableEpoch") &&
+		strings.Contains(respStr, strconv.FormatUint(uint64(allEpochsMap["SupernovaEnableEpoch"]), 10))
+	assert.True(t, keyAndValueFoundInResponse)
+}
+
 func TestGetESDTTotalSupply_InternalError(t *testing.T) {
 	t.Parallel()
 
@@ -1055,6 +1100,7 @@ func getNetworkRoutesConfig() config.ApiRoutesConfig {
 					{Name: "/esdts", Open: true},
 					{Name: "/total-staked", Open: true},
 					{Name: "/enable-epochs", Open: true},
+					{Name: "/enable-epochs-v2", Open: true},
 					{Name: "/direct-staked-info", Open: true},
 					{Name: "/delegated-info", Open: true},
 					{Name: "/esdt/supply/:token", Open: true},
