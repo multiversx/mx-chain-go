@@ -345,11 +345,15 @@ func (nf *nodeFacade) GetTransactionsPoolNonceGapsForSender(sender string) (*com
 
 // GetSelectedTransactions will simulate a SelectTransactions, and it will return the corresponding hash of each selected transaction
 func (nf *nodeFacade) GetSelectedTransactions(fields string) (*common.TransactionsSelectionSimulationResult, error) {
+	haveTimeForSimulation := func() bool {
+		return true
+	}
+
 	selectionOptions := holders.NewTxSelectionOptions(
 		nf.config.TxCacheSelectionConfig.SelectionGasRequested,
 		nf.config.TxCacheSelectionConfig.SelectionMaxNumTxs,
-		nf.config.TxCacheSelectionConfig.SelectionLoopMaximumDuration,
 		nf.config.TxCacheSelectionConfig.SelectionLoopDurationCheckInterval,
+		haveTimeForSimulation,
 	)
 
 	selectionOptionsAPI := holders.NewTxSelectionOptionsAPI(

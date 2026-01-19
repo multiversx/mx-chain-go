@@ -19,12 +19,21 @@ import (
 
 var expectedError = errors.New("expected error")
 
-func createMockTxSelectionOptions(gasRequested uint64, maxNumTxs int, loopMaximumDuration int) common.TxSelectionOptions {
+func createMockTxSelectionOptions(gasRequested uint64, maxNumTxs int) common.TxSelectionOptions {
 	return holders.NewTxSelectionOptions(
 		gasRequested,
 		maxNumTxs,
-		loopMaximumDuration,
 		10,
+		haveTimeTrueForSelection,
+	)
+}
+
+func createMockTxSelectionOptionsWithTimeFunc(gasRequested uint64, maxNumTxs int, haveTimeFunc func() bool) common.TxSelectionOptions {
+	return holders.NewTxSelectionOptions(
+		gasRequested,
+		maxNumTxs,
+		10,
+		haveTimeFunc,
 	)
 }
 
@@ -41,7 +50,7 @@ func TestTxCache_SelectTransactions(t *testing.T) {
 	t.Run("should return errNilSelectionSession error", func(t *testing.T) {
 		t.Parallel()
 
-		options := createMockTxSelectionOptions(math.MaxUint64, math.MaxInt, selectionLoopMaximumDuration)
+		options := createMockTxSelectionOptions(math.MaxUint64, math.MaxInt)
 		boundsConfig := createMockTxBoundsConfig()
 		cache := newUnconstrainedCacheToTest(boundsConfig)
 
@@ -52,7 +61,7 @@ func TestTxCache_SelectTransactions(t *testing.T) {
 	t.Run("should return the error from GetRootHash", func(t *testing.T) {
 		t.Parallel()
 
-		options := createMockTxSelectionOptions(math.MaxUint64, math.MaxInt, selectionLoopMaximumDuration)
+		options := createMockTxSelectionOptions(math.MaxUint64, math.MaxInt)
 		boundsConfig := createMockTxBoundsConfig()
 		cache := newUnconstrainedCacheToTest(boundsConfig)
 		session := &txcachemocks.SelectionSessionMock{
@@ -68,7 +77,7 @@ func TestTxCache_SelectTransactions(t *testing.T) {
 
 func TestTxCache_SelectTransactions_Dummy(t *testing.T) {
 	t.Run("all having same PPU", func(t *testing.T) {
-		options := createMockTxSelectionOptions(math.MaxUint64, math.MaxInt, selectionLoopMaximumDuration)
+		options := createMockTxSelectionOptions(math.MaxUint64, math.MaxInt)
 		boundsConfig := createMockTxBoundsConfig()
 		cache := newUnconstrainedCacheToTest(boundsConfig)
 		session := txcachemocks.NewSelectionSessionMock()
@@ -102,7 +111,7 @@ func TestTxCache_SelectTransactions_Dummy(t *testing.T) {
 	})
 
 	t.Run("alice > carol > bob", func(t *testing.T) {
-		options := createMockTxSelectionOptions(math.MaxUint64, math.MaxInt, selectionLoopMaximumDuration)
+		options := createMockTxSelectionOptions(math.MaxUint64, math.MaxInt)
 		boundsConfig := createMockTxBoundsConfig()
 		cache := newUnconstrainedCacheToTest(boundsConfig)
 
@@ -129,7 +138,7 @@ func TestTxCache_SelectTransactions_Dummy(t *testing.T) {
 
 func TestTxCache_SelectTransactionsWithBandwidth_Dummy(t *testing.T) {
 	t.Run("transactions with no data field", func(t *testing.T) {
-		options := createMockTxSelectionOptions(760000, math.MaxInt, selectionLoopMaximumDuration)
+		options := createMockTxSelectionOptions(760000, math.MaxInt)
 		boundsConfig := createMockTxBoundsConfig()
 		cache := newUnconstrainedCacheToTest(boundsConfig)
 
@@ -163,7 +172,7 @@ func TestTxCache_SelectTransactionsWithBandwidth_Dummy(t *testing.T) {
 
 func TestTxCache_SelectTransactions_HandlesNotExecutableTransactions(t *testing.T) {
 	t.Run("with middle gaps", func(t *testing.T) {
-		options := createMockTxSelectionOptions(math.MaxUint64, math.MaxInt, selectionLoopMaximumDuration)
+		options := createMockTxSelectionOptions(math.MaxUint64, math.MaxInt)
 		boundsConfig := createMockTxBoundsConfig()
 		cache := newUnconstrainedCacheToTest(boundsConfig)
 
@@ -193,7 +202,7 @@ func TestTxCache_SelectTransactions_HandlesNotExecutableTransactions(t *testing.
 	})
 
 	t.Run("with initial gaps", func(t *testing.T) {
-		options := createMockTxSelectionOptions(math.MaxUint64, math.MaxInt, selectionLoopMaximumDuration)
+		options := createMockTxSelectionOptions(math.MaxUint64, math.MaxInt)
 		boundsConfig := createMockTxBoundsConfig()
 		cache := newUnconstrainedCacheToTest(boundsConfig)
 
@@ -225,7 +234,7 @@ func TestTxCache_SelectTransactions_HandlesNotExecutableTransactions(t *testing.
 	})
 
 	t.Run("with lower nonces", func(t *testing.T) {
-		options := createMockTxSelectionOptions(math.MaxUint64, math.MaxInt, selectionLoopMaximumDuration)
+		options := createMockTxSelectionOptions(math.MaxUint64, math.MaxInt)
 		boundsConfig := createMockTxBoundsConfig()
 		cache := newUnconstrainedCacheToTest(boundsConfig)
 
@@ -257,7 +266,7 @@ func TestTxCache_SelectTransactions_HandlesNotExecutableTransactions(t *testing.
 	})
 
 	t.Run("with duplicated nonces", func(t *testing.T) {
-		options := createMockTxSelectionOptions(math.MaxUint64, math.MaxInt, selectionLoopMaximumDuration)
+		options := createMockTxSelectionOptions(math.MaxUint64, math.MaxInt)
 		boundsConfig := createMockTxBoundsConfig()
 		cache := newUnconstrainedCacheToTest(boundsConfig)
 
@@ -283,7 +292,7 @@ func TestTxCache_SelectTransactions_HandlesNotExecutableTransactions(t *testing.
 	})
 
 	t.Run("with fee exceeding balance", func(t *testing.T) {
-		options := createMockTxSelectionOptions(math.MaxUint64, math.MaxInt, selectionLoopMaximumDuration)
+		options := createMockTxSelectionOptions(math.MaxUint64, math.MaxInt)
 		boundsConfig := createMockTxBoundsConfig()
 		cache := newUnconstrainedCacheToTest(boundsConfig)
 
@@ -312,7 +321,7 @@ func TestTxCache_SelectTransactions_HandlesNotExecutableTransactions(t *testing.
 	})
 
 	t.Run("with incorrectly guarded", func(t *testing.T) {
-		options := createMockTxSelectionOptions(math.MaxUint64, math.MaxInt, selectionLoopMaximumDuration)
+		options := createMockTxSelectionOptions(math.MaxUint64, math.MaxInt)
 		boundsConfig := createMockTxBoundsConfig()
 		cache := newUnconstrainedCacheToTest(boundsConfig)
 
@@ -341,7 +350,7 @@ func TestTxCache_SelectTransactions_HandlesNotExecutableTransactions(t *testing.
 }
 
 func TestTxCache_SelectTransactions_WhenTransactionsAddedInReversedNonceOrder(t *testing.T) {
-	options := createMockTxSelectionOptions(math.MaxUint64, math.MaxInt, selectionLoopMaximumDuration)
+	options := createMockTxSelectionOptions(math.MaxUint64, math.MaxInt)
 	boundsConfig := createMockTxBoundsConfig()
 	cache := newUnconstrainedCacheToTest(boundsConfig)
 
@@ -386,7 +395,7 @@ func TestTxCache_selectTransactionsFromBunches(t *testing.T) {
 	t.Run("empty cache", func(t *testing.T) {
 		session := txcachemocks.NewSelectionSessionMock()
 		virtualSession := newVirtualSelectionSession(session, make(map[string]*virtualAccountRecord))
-		options := createMockTxSelectionOptions(10_000_000_000, math.MaxInt, selectionLoopMaximumDuration)
+		options := createMockTxSelectionOptions(10_000_000_000, math.MaxInt)
 		selected, accumulatedGas := selectTransactionsFromBunches(virtualSession, []bunchOfTransactions{}, options)
 
 		require.Equal(t, 0, len(selected))
@@ -501,7 +510,7 @@ func TestBenchmarkTxCache_selectTransactionsFromBunches(t *testing.T) {
 	sw := core.NewStopWatch()
 
 	t.Run("numSenders = 1000, numTransactions = 1000", func(t *testing.T) {
-		options := createMockTxSelectionOptions(10_000_000_000, math.MaxInt, selectionLoopMaximumDuration)
+		options := createMockTxSelectionOptions(10_000_000_000, math.MaxInt)
 		session := txcachemocks.NewSelectionSessionMock()
 		virtualSession := newVirtualSelectionSession(session, make(map[string]*virtualAccountRecord))
 		bunches := createBunchesOfTransactionsWithUniformDistribution(1000, 1000)
@@ -515,7 +524,7 @@ func TestBenchmarkTxCache_selectTransactionsFromBunches(t *testing.T) {
 	})
 
 	t.Run("numSenders = 10000, numTransactions = 100", func(t *testing.T) {
-		options := createMockTxSelectionOptions(10_000_000_000, math.MaxInt, selectionLoopMaximumDuration)
+		options := createMockTxSelectionOptions(10_000_000_000, math.MaxInt)
 		session := txcachemocks.NewSelectionSessionMock()
 		virtualSession := newVirtualSelectionSession(session, make(map[string]*virtualAccountRecord))
 		bunches := createBunchesOfTransactionsWithUniformDistribution(1000, 1000)
@@ -529,7 +538,7 @@ func TestBenchmarkTxCache_selectTransactionsFromBunches(t *testing.T) {
 	})
 
 	t.Run("numSenders = 100000, numTransactions = 3", func(t *testing.T) {
-		options := createMockTxSelectionOptions(10_000_000_000, math.MaxInt, selectionLoopMaximumDuration)
+		options := createMockTxSelectionOptions(10_000_000_000, math.MaxInt)
 		session := txcachemocks.NewSelectionSessionMock()
 		virtualSession := newVirtualSelectionSession(session, make(map[string]*virtualAccountRecord))
 		bunches := createBunchesOfTransactionsWithUniformDistribution(100000, 3)
@@ -543,7 +552,7 @@ func TestBenchmarkTxCache_selectTransactionsFromBunches(t *testing.T) {
 	})
 
 	t.Run("numSenders = 300000, numTransactions = 1", func(t *testing.T) {
-		options := createMockTxSelectionOptions(10_000_000_000, math.MaxInt, selectionLoopMaximumDuration)
+		options := createMockTxSelectionOptions(10_000_000_000, math.MaxInt)
 		session := txcachemocks.NewSelectionSessionMock()
 		virtualSession := newVirtualSelectionSession(session, make(map[string]*virtualAccountRecord))
 
@@ -579,7 +588,7 @@ func TestTxCache_selectTransactionsFromBunches_loopBreaks_whenTakesTooLong(t *te
 	t.Run("numSenders = 300000, numTransactions = 1", func(t *testing.T) {
 		session := txcachemocks.NewSelectionSessionMock()
 		virtualSession := newVirtualSelectionSession(session, make(map[string]*virtualAccountRecord))
-		options := createMockTxSelectionOptions(10_000_000_000, 50_000, 1)
+		options := createMockTxSelectionOptionsWithTimeFunc(10_000_000_000, 50_000, haveTimeFalseForSelection)
 		bunches := createBunchesOfTransactionsWithUniformDistribution(300000, 1)
 		selected, accumulatedGas := selectTransactionsFromBunches(virtualSession, bunches, options)
 
@@ -589,7 +598,7 @@ func TestTxCache_selectTransactionsFromBunches_loopBreaks_whenTakesTooLong(t *te
 }
 
 func TestBenchmarkTxCache_doSelectTransactions(t *testing.T) {
-	options := createMockTxSelectionOptions(10_000_000_000, 30_000, selectionLoopMaximumDuration)
+	options := createMockTxSelectionOptions(10_000_000_000, 30_000)
 	config := ConfigSourceMe{
 		Name:                        "untitled",
 		NumChunks:                   16,

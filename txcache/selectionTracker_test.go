@@ -632,8 +632,8 @@ func Test_CompleteFlowShouldWork(t *testing.T) {
 	options := holders.NewTxSelectionOptions(
 		10_000_000_000,
 		10,
-		selectionLoopMaximumDuration,
 		10,
+		haveTimeTrueForSelection,
 	)
 
 	selectedTxs, _, err := cache.SelectTransactions(
