@@ -242,6 +242,10 @@ func (c *collector) CommitCollectedAccesses(rootHash []byte) error {
 	c.stateAccessesForBlock[string(rootHash)] = collectedStateAccesses
 	log.Trace("state accesses collected", "numStateAccesses", len(collectedStateAccesses), "rootHash", rootHash)
 
+	if len(c.stateAccessesForBlock) > maxNumBlocksInMemory {
+		log.Warn("max number of blocks in memory exceeded", "numBlocksInMemory", len(c.stateAccessesForBlock))
+	}
+
 	return c.storer.Store(collectedStateAccesses)
 }
 
