@@ -263,7 +263,6 @@ func createDefaultTransactionsProcessorArgs() ArgsTransactionPreProcessor {
 			SelectionGasBandwidthIncreaseScheduledPercent: 260,
 			SelectionGasRequested:                         10_000_000_000,
 			SelectionMaxNumTxs:                            30000,
-			SelectionLoopMaximumDuration:                  250,
 			SelectionLoopDurationCheckInterval:            10,
 		},
 	}
@@ -562,17 +561,6 @@ func TestTxsPreprocessor_NewTransactionPreprocessorBadTxCacheSelectionConfig(t *
 		txs, err := NewTransactionPreprocessor(args)
 		assert.Nil(t, txs)
 		assert.Equal(t, process.ErrBadTxCacheSelectionMaxNumTxs, err)
-	})
-
-	t.Run("should err ErrBadTxCacheSelectionLoopMaximumDuration", func(t *testing.T) {
-		t.Parallel()
-
-		args := createDefaultTransactionsProcessorArgs()
-		args.TxCacheSelectionConfig.SelectionLoopMaximumDuration = 0
-
-		txs, err := NewTransactionPreprocessor(args)
-		assert.Nil(t, txs)
-		assert.Equal(t, process.ErrBadTxCacheSelectionLoopMaximumDuration, err)
 	})
 
 	t.Run("should err ErrBadTxCacheSelectionLoopDurationCheckInterval", func(t *testing.T) {
@@ -951,7 +939,7 @@ func TestCleanupSelfShardTxCache_NoTransactionToSelect(t *testing.T) {
 	dstShardId := uint32(0)
 	strCache := process.ShardCacherIdentifier(sndShardId, dstShardId)
 
-	sortedTxsAndHashes, _, _ := txs.computeSortedTxs(sndShardId, dstShardId, MaxGasLimitPerBlock, []byte("randomness"))
+	sortedTxsAndHashes, _, _ := txs.computeSortedTxs(sndShardId, dstShardId, MaxGasLimitPerBlock, []byte("randomness"), haveTimeTrue)
 
 	miniBlocks, _, err := txs.createAndProcessMiniBlocksFromMeV1(haveTimeTrue, isShardStuckFalse, isMaxBlockSizeReachedFalse, sortedTxsAndHashes)
 	t.Logf("createAndProcessMiniBlocksFromMeV1 returned with err = %v", err)
@@ -1044,7 +1032,7 @@ func TestCleanupSelfShardTxCache(t *testing.T) {
 		args.DataPool.AddData(hash, tx, 0, strCache)
 	}
 
-	sortedTxsAndHashes, _, _ := txs.computeSortedTxs(sndShardId, dstShardId, MaxGasLimitPerBlock, []byte("randomness"))
+	sortedTxsAndHashes, _, _ := txs.computeSortedTxs(sndShardId, dstShardId, MaxGasLimitPerBlock, []byte("randomness"), haveTimeTrue)
 	miniBlocks, _, err := txs.createAndProcessMiniBlocksFromMeV1(haveTimeTrue, isShardStuckFalse, isMaxBlockSizeReachedFalse, sortedTxsAndHashes)
 	assert.Nil(t, err)
 
@@ -1154,7 +1142,7 @@ func TestTransactions_CreateAndProcessMiniBlockCrossShardGasLimitAddAll(t *testi
 		addedTxs = append(addedTxs, newTx)
 	}
 
-	sortedTxsAndHashes, _, _ := txs.computeSortedTxs(sndShardId, dstShardId, MaxGasLimitPerBlock, []byte("randomness"))
+	sortedTxsAndHashes, _, _ := txs.computeSortedTxs(sndShardId, dstShardId, MaxGasLimitPerBlock, []byte("randomness"), haveTimeTrue)
 	miniBlocks, _, err := txs.createAndProcessMiniBlocksFromMeV1(haveTimeTrue, isShardStuckFalse, isMaxBlockSizeReachedFalse, sortedTxsAndHashes)
 	assert.Nil(t, err)
 
@@ -1230,7 +1218,7 @@ func TestTransactions_CreateAndProcessMiniBlockCrossShardGasLimitAddAllAsNoSCCal
 		addedTxs = append(addedTxs, newTx)
 	}
 
-	sortedTxsAndHashes, _, _ := txs.computeSortedTxs(sndShardId, dstShardId, MaxGasLimitPerBlock, []byte("randomness"))
+	sortedTxsAndHashes, _, _ := txs.computeSortedTxs(sndShardId, dstShardId, MaxGasLimitPerBlock, []byte("randomness"), haveTimeTrue)
 	miniBlocks, _, err := txs.createAndProcessMiniBlocksFromMeV1(haveTimeTrue, isShardStuckFalse, isMaxBlockSizeReachedFalse, sortedTxsAndHashes)
 	assert.Nil(t, err)
 
@@ -1308,7 +1296,7 @@ func TestTransactions_CreateAndProcessMiniBlockCrossShardGasLimitAddOnly5asSCCal
 		args.DataPool.AddData(txHash, newTx, newTx.Size(), strCache)
 	}
 
-	sortedTxsAndHashes, _, _ := txs.computeSortedTxs(sndShardId, dstShardId, MaxGasLimitPerBlock, []byte("randomness"))
+	sortedTxsAndHashes, _, _ := txs.computeSortedTxs(sndShardId, dstShardId, MaxGasLimitPerBlock, []byte("randomness"), haveTimeTrue)
 	miniBlocks, _, err := txs.createAndProcessMiniBlocksFromMeV1(haveTimeTrue, isShardStuckFalse, isMaxBlockSizeReachedFalse, sortedTxsAndHashes)
 	assert.Nil(t, err)
 
@@ -2772,7 +2760,7 @@ func Test_SelectOutgoingTransactions(t *testing.T) {
 			},
 		}
 
-		_, _, err := txs.SelectOutgoingTransactions(0, 0)
+		_, _, err := txs.SelectOutgoingTransactions(0, 0, haveTimeTrue)
 		require.Equal(t, process.ErrNilTxDataPool, err)
 	})
 
@@ -2811,7 +2799,7 @@ func Test_SelectOutgoingTransactions(t *testing.T) {
 			args.DataPool.AddData(hash, tx, 0, strCache)
 		}
 
-		txHashes, txInstances, err := txs.SelectOutgoingTransactions(MaxGasLimitPerBlock, 0)
+		txHashes, txInstances, err := txs.SelectOutgoingTransactions(MaxGasLimitPerBlock, 0, haveTimeTrue)
 		require.NoError(t, err)
 		require.Equal(t, 2, len(txHashes))
 		require.Equal(t, 2, len(txInstances))

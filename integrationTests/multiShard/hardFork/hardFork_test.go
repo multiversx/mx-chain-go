@@ -520,7 +520,6 @@ func hardForkImport(
 				SelectionGasBandwidthIncreaseScheduledPercent: 260,
 				SelectionGasRequested:                         10_000_000_000,
 				SelectionMaxNumTxs:                            30000,
-				SelectionLoopMaximumDuration:                  250,
 				SelectionLoopDurationCheckInterval:            10,
 			},
 		}
