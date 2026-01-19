@@ -79,7 +79,7 @@ type outportDataProvider struct {
 	hasher                   hashing.Hasher
 	dataPool                 dataRetriever.PoolsHolder
 	enableEpochsHandler      common.EnableEpochsHandler
-	StateAccessesCollector   state.StateAccessesCollector
+	stateAccessesCollector   state.StateAccessesCollector
 	roundHandler             RoundHandler
 	rewardsGetter            EpochRewardsGetter
 }
@@ -100,7 +100,7 @@ func NewOutportDataProvider(arg ArgOutportDataProvider) (*outportDataProvider, e
 		hasher:                   arg.Hasher,
 		dataPool:                 arg.DataPool,
 		enableEpochsHandler:      arg.EnableEpochsHandler,
-		StateAccessesCollector:   arg.StateAccessesCollector,
+		stateAccessesCollector:   arg.StateAccessesCollector,
 		roundHandler:             arg.RoundHandler,
 		rewardsGetter:            arg.RewardsGetter,
 	}, nil
@@ -232,11 +232,11 @@ func (odp *outportDataProvider) getStateAccessesForBlock(
 }
 
 func (odp *outportDataProvider) getStateAccessForRootHash(rootHash []byte) *outportcore.StateAccessesForBlock {
-	stateAccessesMap := odp.StateAccessesCollector.GetStateAccessesForRootHash(rootHash)
+	stateAccessesMap := odp.stateAccessesCollector.GetStateAccessesForRootHash(rootHash)
 	if len(stateAccessesMap) == 0 {
 		return nil
 	}
-	odp.StateAccessesCollector.RemoveStateAccessesForRootHash(rootHash)
+	odp.stateAccessesCollector.RemoveStateAccessesForRootHash(rootHash)
 	return &outportcore.StateAccessesForBlock{StateAccesses: stateAccessesMap}
 }
 
