@@ -349,12 +349,15 @@ func (nf *nodeFacade) GetSelectedTransactions(fields string) (*common.Transactio
 		return true
 	}
 
-	selectionOptions := holders.NewTxSelectionOptions(
+	selectionOptions, err := holders.NewTxSelectionOptions(
 		nf.config.TxCacheSelectionConfig.SelectionGasRequested,
 		nf.config.TxCacheSelectionConfig.SelectionMaxNumTxs,
 		nf.config.TxCacheSelectionConfig.SelectionLoopDurationCheckInterval,
 		haveTimeForSimulation,
 	)
+	if err != nil {
+		return &common.TransactionsSelectionSimulationResult{}, err
+	}
 
 	selectionOptionsAPI := holders.NewTxSelectionOptionsAPI(
 		selectionOptions,

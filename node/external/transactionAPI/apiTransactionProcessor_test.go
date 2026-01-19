@@ -1283,7 +1283,7 @@ func TestApiTransactionProcessor_GetSelectedTransactions(t *testing.T) {
 			},
 		}
 
-		options := holders.NewTxSelectionOptions(
+		options, _ := holders.NewTxSelectionOptions(
 			gasRequested,
 			numTxsSelected,
 			loopDurationCheckInterval,
@@ -1353,7 +1353,7 @@ func TestApiTransactionProcessor_GetSelectedTransactions(t *testing.T) {
 			},
 		}
 
-		options := holders.NewTxSelectionOptions(
+		options, _ := holders.NewTxSelectionOptions(
 			gasRequested,
 			numTxsSelected,
 			loopDurationCheckInterval,
@@ -1411,7 +1411,7 @@ func TestApiTransactionProcessor_GetSelectedTransactions(t *testing.T) {
 			},
 		}
 
-		options := holders.NewTxSelectionOptions(
+		options, _ := holders.NewTxSelectionOptions(
 			gasRequested,
 			numTxsSelected,
 			loopDurationCheckInterval,
@@ -1457,7 +1457,7 @@ func TestApiTransactionProcessor_GetSelectedTransactions(t *testing.T) {
 		require.NoError(t, err)
 		require.NotNil(t, atp)
 
-		options := holders.NewTxSelectionOptions(
+		options, _ := holders.NewTxSelectionOptions(
 			gasRequested,
 			numTxsSelected,
 			loopDurationCheckInterval,
@@ -1515,7 +1515,7 @@ func TestApiTransactionProcessor_GetSelectedTransactions(t *testing.T) {
 		require.NoError(t, err)
 		require.NotNil(t, atp)
 
-		options := holders.NewTxSelectionOptions(
+		options, _ := holders.NewTxSelectionOptions(
 			gasRequested,
 			numTxsSelected,
 			loopDurationCheckInterval,

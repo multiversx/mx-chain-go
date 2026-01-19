@@ -9,7 +9,7 @@ import (
 func TestNewTxSelectionOptionsAPI(t *testing.T) {
 	t.Parallel()
 
-	options := NewTxSelectionOptions(10_000_000_000, 30_000, 10, haveTimeTrue)
+	options, _ := NewTxSelectionOptions(10_000_000_000, 30_000, 10, haveTimeTrue)
 	optionsAPI := NewTxSelectionOptionsAPI(options, "hash,nonce")
 
 	require.Equal(t, uint64(10_000_000_000), optionsAPI.GetGasRequested())

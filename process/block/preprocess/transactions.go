@@ -1479,12 +1479,16 @@ func (txs *transactions) selectTransactionsFromTxPoolForProposal(
 		return nil, err
 	}
 
-	selectionOptions := holders.NewTxSelectionOptions(
+	selectionOptions, err := holders.NewTxSelectionOptions(
 		gasBandwidth,
 		txs.txCacheSelectionConfig.SelectionMaxNumTxs,
 		txs.txCacheSelectionConfig.SelectionLoopDurationCheckInterval,
 		haveTimeForSelection,
 	)
+	if err != nil {
+		return nil, err
+	}
+
 	selectedTransactions, _, err := txCache.SelectTransactions(session, selectionOptions, nonce)
 	if err != nil {
 		return nil, err
@@ -1518,12 +1522,15 @@ func (txs *transactions) selectTransactionsFromTxPool(
 		return nil, err
 	}
 
-	selectionOptions := holders.NewTxSelectionOptions(
+	selectionOptions, err := holders.NewTxSelectionOptions(
 		gasBandwidth,
 		txs.txCacheSelectionConfig.SelectionMaxNumTxs,
 		txs.txCacheSelectionConfig.SelectionLoopDurationCheckInterval,
 		haveTimeForSelection,
 	)
+	if err != nil {
+		return nil, err
+	}
 
 	selectedTxs, _, err := txCache.SelectTransactions(session, selectionOptions, 0)
 	if err != nil {

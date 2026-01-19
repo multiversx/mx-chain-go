@@ -8,13 +8,16 @@ type txSelectionOptions struct {
 }
 
 // NewTxSelectionOptions returns a new instance of a selectionOptions struct
-func NewTxSelectionOptions(gasRequested uint64, maxNumTxs int, loopDurationCheckInterval int, haveTimeForSelection func() bool) *txSelectionOptions {
+func NewTxSelectionOptions(gasRequested uint64, maxNumTxs int, loopDurationCheckInterval int, haveTimeForSelection func() bool) (*txSelectionOptions, error) {
+	if haveTimeForSelection == nil {
+		return nil, errNilHaveTimeForSelectionFunc
+	}
 	return &txSelectionOptions{
 		gasRequested:              gasRequested,
 		maxNumTxs:                 maxNumTxs,
 		haveTimeForSelection:      haveTimeForSelection,
 		loopDurationCheckInterval: loopDurationCheckInterval,
-	}
+	}, nil
 }
 
 // GetGasRequested returns a selection constraint parameter (for gas)

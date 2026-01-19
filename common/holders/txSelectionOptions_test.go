@@ -4,6 +4,7 @@ import (
 	"testing"
 
 	"github.com/stretchr/testify/assert"
+	"github.com/stretchr/testify/require"
 )
 
 func haveTimeTrue() bool {
@@ -13,7 +14,11 @@ func haveTimeTrue() bool {
 func TestNewTxSelectionOptions(t *testing.T) {
 	t.Parallel()
 
-	options := NewTxSelectionOptions(10_000_000_000, 30_000, 10, haveTimeTrue)
+	options, err := NewTxSelectionOptions(10_000_000_000, 30_000, 10, nil)
+	require.Equal(t, errNilHaveTimeForSelectionFunc, err)
+
+	options, err = NewTxSelectionOptions(10_000_000_000, 30_000, 10, haveTimeTrue)
+	require.NoError(t, err)
 
 	assert.Equal(t, uint64(10_000_000_000), options.GetGasRequested())
 	assert.Equal(t, 30_000, options.GetMaxNumTxs())

@@ -532,7 +532,7 @@ func Test_Selection_ShouldNotSelectSameTransactionsWithSameSender(t *testing.T) 
 	require.Nil(t, err)
 
 	maxNumTxs := 2
-	options := holders.NewTxSelectionOptions(
+	options, _ := holders.NewTxSelectionOptions(
 		10_000_000_000,
 		maxNumTxs,
 		10,
@@ -640,7 +640,7 @@ func Test_Selection_ShouldNotSelectSameTransactionsWithDifferentSenders(t *testi
 	err = txpool.OnExecutedBlock(&block.Header{}, []byte(testRootHash))
 	require.Nil(t, err)
 
-	options := holders.NewTxSelectionOptions(
+	options, _ := holders.NewTxSelectionOptions(
 		10_000_000_000,
 		2,
 		10,
@@ -787,7 +787,7 @@ func Test_Selection_ShouldNotSelectSameTransactionsWithManyTransactions(t *testi
 	err = txpool.OnExecutedBlock(&block.Header{}, []byte(testRootHash))
 	require.Nil(t, err)
 
-	options := holders.NewTxSelectionOptions(
+	options, _ := holders.NewTxSelectionOptions(
 		10_000_000_000,
 		numTxsPerSender,
 		10,
@@ -885,7 +885,7 @@ func Test_Selection_ProposeEmptyBlocks(t *testing.T) {
 	err = txpool.OnExecutedBlock(&block.Header{}, []byte(testRootHash))
 	require.Nil(t, err)
 
-	options := holders.NewTxSelectionOptions(
+	options, _ := holders.NewTxSelectionOptions(
 		10_000_000_000,
 		numTxsPerSender,
 		10,
@@ -1007,7 +1007,7 @@ func Test_Selection_ProposeBlocksWithSameNonceToTriggerForkScenarios(t *testing.
 		err = txpool.OnExecutedBlock(&block.Header{}, []byte(testRootHash))
 		require.Nil(t, err)
 
-		options := holders.NewTxSelectionOptions(
+		options, _ := holders.NewTxSelectionOptions(
 			10_000_000_000,
 			numTxsPerSender,
 			10,
@@ -1137,7 +1137,7 @@ func Test_Selection_ProposeBlocksWithSameNonceToTriggerForkScenarios(t *testing.
 		err = txpool.OnExecutedBlock(&block.Header{}, []byte(testRootHash))
 		require.Nil(t, err)
 
-		options := holders.NewTxSelectionOptions(
+		options, _ := holders.NewTxSelectionOptions(
 			10_000_000_000,
 			numTxsPerSender,
 			10,
@@ -1307,7 +1307,7 @@ func Test_Selection_ShouldNotSelectSameTransactionsWithManyTransactionsAndExecut
 	err = txpool.OnExecutedBlock(&block.Header{}, []byte(testRootHash))
 	require.Nil(t, err)
 
-	options := holders.NewTxSelectionOptions(
+	options, _ := holders.NewTxSelectionOptions(
 		10_000_000_000,
 		30_000,
 		10,
@@ -1426,7 +1426,7 @@ func Test_Selection_ProposeEmptyBlocksAndExecutedBlockNotification(t *testing.T)
 	err = txpool.OnExecutedBlock(&block.Header{}, []byte(testRootHash))
 	require.Nil(t, err)
 
-	options := holders.NewTxSelectionOptions(
+	options, _ := holders.NewTxSelectionOptions(
 		10_000_000_000,
 		30_000,
 		10,
@@ -1592,7 +1592,7 @@ func Test_Selection_WithRemovingProposedBlocks(t *testing.T) {
 	err = txpool.OnExecutedBlock(&block.Header{}, []byte(testRootHash))
 	require.Nil(t, err)
 
-	options := holders.NewTxSelectionOptions(
+	options, _ := holders.NewTxSelectionOptions(
 		10_000_000_000,
 		numTxsPerSender,
 		10,
@@ -1726,7 +1726,7 @@ func Test_SimulateSelection_ShouldNotRemoveProposedBlocks(t *testing.T) {
 	err = txpool.OnExecutedBlock(&block.Header{}, []byte(testRootHash))
 	require.Nil(t, err)
 
-	options := holders.NewTxSelectionOptions(
+	options, _ := holders.NewTxSelectionOptions(
 		10_000_000_000,
 		numTxsPerSender,
 		10,
@@ -1852,7 +1852,7 @@ func Test_Selection_MaxTrackedBlocksReached(t *testing.T) {
 	err = txpool.OnExecutedBlock(&block.Header{}, []byte(testRootHash))
 	require.Nil(t, err)
 
-	options := holders.NewTxSelectionOptions(
+	options, _ := holders.NewTxSelectionOptions(
 		10_000_000_000,
 		numTxsPerSender,
 		10,
@@ -2011,7 +2011,7 @@ func Test_SelectionWhenFeeExceedsBalanceWithMax3TxsSelected(t *testing.T) {
 	err = txpool.OnExecutedBlock(&block.Header{}, []byte(testRootHash))
 	require.Nil(t, err)
 
-	options := holders.NewTxSelectionOptions(
+	options, _ := holders.NewTxSelectionOptions(
 		10_000_000_000,
 		3,
 		10,
@@ -2169,7 +2169,7 @@ func Test_SelectionWhenFeeExceedsBalanceWithMax2TxsSelected(t *testing.T) {
 	err = txpool.OnExecutedBlock(&block.Header{}, []byte(testRootHash))
 	require.Nil(t, err)
 
-	options := holders.NewTxSelectionOptions(
+	options, _ := holders.NewTxSelectionOptions(
 		10_000_000_000,
 		2,
 		10,
@@ -2332,7 +2332,7 @@ func Test_SelectionWithRootHashMismatch(t *testing.T) {
 	err = txpool.OnExecutedBlock(&block.Header{}, []byte(testRootHash))
 	require.Nil(t, err)
 
-	options := holders.NewTxSelectionOptions(
+	options, _ := holders.NewTxSelectionOptions(
 		10_000_000_000,
 		numTxsPerSender,
 		10,
@@ -2445,7 +2445,7 @@ func Test_SelectionWithAliceRelayerAndSenderOnSameTxs(t *testing.T) {
 		TxHash: []byte("txHash2"),
 	})
 
-	options := holders.NewTxSelectionOptions(
+	options, _ := holders.NewTxSelectionOptions(
 		10_000_000_000,
 		1,
 		10,
@@ -2557,7 +2557,7 @@ func Test_SelectionWithAliceSenderAndThenRelayerOnDifferentTxs(t *testing.T) {
 		TxHash: []byte("txHash2"),
 	})
 
-	options := holders.NewTxSelectionOptions(
+	options, _ := holders.NewTxSelectionOptions(
 		10_000_000_000,
 		// select max 2 txs
 		2,

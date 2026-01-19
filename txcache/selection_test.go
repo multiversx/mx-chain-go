@@ -20,21 +20,23 @@ import (
 var expectedError = errors.New("expected error")
 
 func createMockTxSelectionOptions(gasRequested uint64, maxNumTxs int) common.TxSelectionOptions {
-	return holders.NewTxSelectionOptions(
+	options, _ := holders.NewTxSelectionOptions(
 		gasRequested,
 		maxNumTxs,
 		10,
 		haveTimeTrueForSelection,
 	)
+	return options
 }
 
 func createMockTxSelectionOptionsWithTimeFunc(gasRequested uint64, maxNumTxs int, haveTimeFunc func() bool) common.TxSelectionOptions {
-	return holders.NewTxSelectionOptions(
+	options, _ := holders.NewTxSelectionOptions(
 		gasRequested,
 		maxNumTxs,
 		10,
 		haveTimeFunc,
 	)
+	return options
 }
 
 func createMockTxBoundsConfig() config.TxCacheBoundsConfig {

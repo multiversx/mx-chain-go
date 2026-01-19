@@ -194,7 +194,7 @@ func selectTransactions(t *testing.T, simulator testsChainSimulator.ChainSimulat
 	})
 	require.NoError(t, err)
 
-	options := holders.NewTxSelectionOptions(
+	options, _ := holders.NewTxSelectionOptions(
 		10_000_000_000,
 		30_000,
 		10,
@@ -357,7 +357,7 @@ func testOnProposed(t *testing.T, sw *core.StopWatch, numTxs int, numAddresses i
 	err = txpool.OnExecutedBlock(&block.Header{}, []byte(testRootHash))
 	require.Nil(t, err)
 
-	options := holders.NewTxSelectionOptions(
+	options, _ := holders.NewTxSelectionOptions(
 		10_000_000_000,
 		numTxs,
 		10,
@@ -418,7 +418,7 @@ func testFirstSelection(t *testing.T, sw *core.StopWatch, numTxs int, numTxsToBe
 	err = txpool.OnExecutedBlock(&block.Header{}, []byte(testRootHash))
 	require.Nil(t, err)
 
-	options := holders.NewTxSelectionOptions(
+	options, _ := holders.NewTxSelectionOptions(
 		10_000_000_000*10, // in case of 1_000_000 txs
 		numTxsToBeSelected,
 		10,
@@ -476,7 +476,7 @@ func testSecondSelection(t *testing.T, sw *core.StopWatch, numTxs int, numTxsToB
 	err = txpool.OnExecutedBlock(&block.Header{}, []byte(testRootHash))
 	require.Nil(t, err)
 
-	options := holders.NewTxSelectionOptions(
+	options, _ := holders.NewTxSelectionOptions(
 		10_000_000_000*10,
 		numTxsToBeSelected,
 		10,
@@ -567,7 +567,7 @@ func testSecondSelectionWithManyTxsInPool(t *testing.T, sw *core.StopWatch, numT
 	err = txpool.OnExecutedBlock(&block.Header{}, []byte(testRootHash))
 	require.Nil(t, err)
 
-	options := holders.NewTxSelectionOptions(
+	options, _ := holders.NewTxSelectionOptions(
 		10_000_000_000,
 		numTxsToBeSelected,
 		10,
