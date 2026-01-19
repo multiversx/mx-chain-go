@@ -818,7 +818,7 @@ func Test_addExecutionResultsOnHeader(t *testing.T) {
 			"appStatusHandler": &statusHandlerMock.AppStatusHandlerStub{},
 		})
 
-		proposalHeader := &block.HeaderV3{Round: 3}
+		proposalHeader := &block.HeaderV3{Round: 4}
 		err := sp.AddExecutionResultsOnHeader(proposalHeader)
 
 		// expected only first pending execution result to be added
