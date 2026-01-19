@@ -7,7 +7,7 @@ import (
 
 	"github.com/multiversx/mx-chain-core-go/data"
 	"github.com/multiversx/mx-chain-core-go/data/block"
-	logger "github.com/multiversx/mx-chain-logger-go"
+
 	"github.com/stretchr/testify/require"
 
 	"github.com/multiversx/mx-chain-go/config"
@@ -237,7 +237,6 @@ func TestOverflowProtection(t *testing.T) {
 
 	t.Run("overflow detected in estimated time with margin", func(t *testing.T) {
 		t.Parallel()
-		logger.SetLogLevel("*:DEBUG")
 		cfg := config.ExecutionResultInclusionEstimatorConfig{
 			SafetyMargin:       110,
 			MaxResultsPerBlock: 0,
