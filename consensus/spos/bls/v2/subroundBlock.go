@@ -98,6 +98,7 @@ func (sr *subroundBlock) doBlockJob(ctx context.Context) bool {
 	}
 	if sr.HasProofForCompetingBlock() {
 		log.Debug("doBlockJob - competing block proof exists, skipping block proposal")
+		return false
 	}
 
 	metricStatTime := time.Now()
