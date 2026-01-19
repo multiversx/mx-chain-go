@@ -63,6 +63,11 @@ func (erie *ExecutionResultInclusionEstimator) Decide(
 		return allowed
 	}
 
+	safetyMargin := uint64(erie.cfg.SafetyMargin)
+	if erie.cfg.SafetyMargin > 100 {
+		safetyMargin -= 100
+	}
+
 	var roundForTBaseCalculation uint64
 	var previousExecutionResultMeta data.BaseExecutionResultHandler
 
@@ -78,8 +83,8 @@ func (erie *ExecutionResultInclusionEstimator) Decide(
 	currentHdrTsMs := erie.roundHandler.GetTimeStampForRound(currentRound)
 	currentHdrTsNs := convertMsToNs(currentHdrTsMs)
 
-	// accumulated execution time in ns (1 gas = 1ns)
-	estimatedTime := uint64(0)
+	// accumulated execution tBase for each pending execution result in ns (1 gas = 1ns)
+	estimatedTBase := tBase
 	for i, executionResultMeta := range pending {
 		if i > 0 {
 			previousExecutionResultMeta = pending[i-1]
@@ -99,29 +104,34 @@ func (erie *ExecutionResultInclusionEstimator) Decide(
 			return i
 		}
 
-		estimatedTime, overflow = bits.Add64(estimatedTime, currentEstimatedTime, 0)
+		// Round timestamp for current execution result, since it is the time when the execution result becomes available
+		tRoundNs := convertMsToNs(erie.roundHandler.GetTimeStampForRound(executionResultMeta.GetHeaderRound()))
+
+		// Align previous estimated tBase with start of round if needed
+		estimatedTBase = max(estimatedTBase, tRoundNs)
+		estimatedTBase, overflow = bits.Add64(estimatedTBase, currentEstimatedTime, 0)
 		if overflow != 0 {
 			log.Debug("ExecutionResultInclusionEstimator: overflow detected in block transactions time estimation",
-				"estimatedTime", estimatedTime,
+				"estimatedTBase", estimatedTBase,
 				"currentEstimatedTime", currentEstimatedTime)
 			return i
 		}
 
-		// Apply safety margin
-		overflow, estimatedTimeWithMargin := bits.Mul64(estimatedTime, erie.cfg.SafetyMargin)
+		// Apply safety margin to current estimated time
+		overflow, currentEstimatedTimeMargin := bits.Mul64(currentEstimatedTime, safetyMargin)
 		if overflow != 0 {
 			log.Debug("ExecutionResultInclusionEstimator: overflow detected in estimated time with margin",
-				"estimatedTime", estimatedTime,
-				"safetyMargin", erie.cfg.SafetyMargin)
+				"currentEstimatedTime", currentEstimatedTime,
+				"safetyMargin", safetyMargin)
 			return i
 		}
-		estimatedTimeWithMargin /= 100
+		currentEstimatedTimeMargin /= 100
 
-		tDone, overflow := bits.Add64(tBase, estimatedTimeWithMargin, 0)
+		tDone, overflow := bits.Add64(estimatedTBase, currentEstimatedTimeMargin, 0)
 		if overflow != 0 {
 			log.Debug("ExecutionResultInclusionEstimator: overflow detected in total estimated time",
-				"tBase", tBase,
-				"estimatedTimeWithMargin", estimatedTimeWithMargin)
+				"estimatedTBase", estimatedTBase,
+				"estimatedTimeWithMargin", currentEstimatedTimeMargin)
 			return i
 		}
 
