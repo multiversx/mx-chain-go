@@ -163,7 +163,6 @@ func (odp *outportDataProvider) PrepareOutportSaveBlockData(arg ArgPrepareOutpor
 	}
 
 	stateAccessesForBlock := odp.getStateAccessesForBlock(arg.Header, arg.HeaderHash, arg.ScheduledRootHash)
-
 	outportBlock := &outportcore.OutportBlockWithHeaderAndBody{
 		OutportBlock: &outportcore.OutportBlock{
 			ShardID:         odp.shardID,
