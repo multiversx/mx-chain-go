@@ -599,6 +599,11 @@ func (sp *shardProcessor) indexBlockIfNeeded(
 		return
 	}
 
+	var scheduledRootHash []byte
+	if header.HasScheduledMiniBlocks() {
+		scheduledRootHash = sp.scheduledTxsExecutionHandler.GetScheduledRootHash()
+	}
+
 	log.Debug("preparing to index block", "hash", headerHash, "nonce", header.GetNonce(), "round", header.GetRound())
 	argSaveBlock, err := sp.outportDataProvider.PrepareOutportSaveBlockData(processOutport.ArgPrepareOutportSaveBlockData{
 		HeaderHash:             headerHash,
@@ -607,6 +612,7 @@ func (sp *shardProcessor) indexBlockIfNeeded(
 		PreviousHeader:         lastBlockHeader,
 		HighestFinalBlockNonce: sp.forkDetector.GetHighestFinalBlockNonce(),
 		HighestFinalBlockHash:  sp.forkDetector.GetHighestFinalBlockHash(),
+		ScheduledRootHash:      scheduledRootHash,
 	})
 	if err != nil {
 		log.Error("shardProcessor.indexBlockIfNeeded cannot prepare argSaveBlock", "error", err.Error(),
@@ -1093,8 +1099,6 @@ func (sp *shardProcessor) CommitBlock(
 	}
 
 	sp.indexBlockIfNeeded(bodyHandler, headerHash, headerHandler, lastBlockHeader)
-	// TODO refactor stateAccessesCollector to reset here for executed res block hashes but collect right after commit
-	sp.stateAccessesCollector.Reset()
 	sp.recordBlockInHistory(headerHash, headerHandler, bodyHandler)
 
 	lastCrossNotarizedHeader, _, err := sp.blockTracker.GetLastCrossNotarizedHeader(core.MetachainShardId)
