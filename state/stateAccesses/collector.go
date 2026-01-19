@@ -30,6 +30,9 @@ type collector struct {
 	stateAccessesForBlock map[string]stateAccessesForTxs
 	storer                state.StateAccessesStorer
 	stateAccessesMut      sync.RWMutex
+
+	lastCollectedRootHash     []byte
+	lastCommitHasStateChanges bool
 }
 
 // NewCollector will create a new collector which gathers the state accesses based on the provided options.
@@ -88,6 +91,10 @@ func (c *collector) Reset() {
 	c.stateAccesses = make([]*data.StateAccess, 0)
 	c.stateAccessesForTxs = make(map[string]*data.StateAccesses)
 
+	if c.lastCommitHasStateChanges {
+		delete(c.stateAccessesForBlock, string(c.lastCollectedRootHash))
+		log.Trace("removed last collected root hash from stateAccessesForBlock", "rootHash", c.lastCollectedRootHash)
+	}
 	if len(c.stateAccessesForBlock) > maxNumBlocksInMemory {
 		// TODO remove oldest entries instead of logging a warning
 		log.Warn("max number of blocks in memory exceeded", "numBlocksInMemory", len(c.stateAccessesForBlock))
@@ -221,6 +228,8 @@ func (c *collector) CommitCollectedAccesses(rootHash []byte) error {
 
 	collectedStateAccesses := c.getStateAccessesForTxs()
 	if len(collectedStateAccesses) == 0 {
+		c.lastCollectedRootHash = rootHash
+		c.lastCommitHasStateChanges = false
 		log.Trace("no state accesses collected, skipping commit", "rootHash", rootHash)
 		return nil
 	}
@@ -228,6 +237,8 @@ func (c *collector) CommitCollectedAccesses(rootHash []byte) error {
 	c.stateAccessesForTxs = make(map[string]*data.StateAccesses)
 	c.stateAccesses = make([]*data.StateAccess, 0)
 
+	c.lastCollectedRootHash = rootHash
+	c.lastCommitHasStateChanges = true
 	c.stateAccessesForBlock[string(rootHash)] = collectedStateAccesses
 	log.Trace("state accesses collected", "numStateAccesses", len(collectedStateAccesses), "rootHash", rootHash)
 
