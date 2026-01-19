@@ -21,11 +21,6 @@ func (bqm *BlocksQueueMock) GetByNonce(nonce uint64) (cache.HeaderBodyPair, bool
 	return cache.HeaderBodyPair{}, false
 }
 
-// GetLastAdded -
-func (bqm *BlocksQueueMock) GetLastAdded() (cache.HeaderBodyPair, bool) {
-	return cache.HeaderBodyPair{}, false
-}
-
 // Remove -
 func (bqm *BlocksQueueMock) Remove(_ uint64) {
 }

@@ -20,7 +20,7 @@ var log = logger.GetOrCreate("process/asyncExecution/executionManager")
 
 // ArgsExecutionManager holds all the components needed to create a new instance of executionManager
 type ArgsExecutionManager struct {
-	BlocksQueue             process.BlocksQueue
+	BlocksQueue             process.BlocksCache
 	ExecutionResultsTracker process.ExecutionResultsTracker
 	BlockChain              data.ChainHandler
 	Headers                 dataRetriever.HeadersPool
@@ -32,7 +32,7 @@ type ArgsExecutionManager struct {
 type executionManager struct {
 	mut                     sync.RWMutex
 	headersExecutor         process.HeadersExecutor
-	blocksQueue             process.BlocksQueue
+	blocksQueue             process.BlocksCache
 	executionResultsTracker process.ExecutionResultsTracker
 	blockChain              data.ChainHandler
 	headers                 dataRetriever.HeadersPool

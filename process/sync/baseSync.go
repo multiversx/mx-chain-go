@@ -898,7 +898,8 @@ func (boot *baseBootstrap) syncBlock() error {
 		}
 	}()
 
-	header, err = boot.getNextHeaderRequestingIfMissing()
+	var headerHash []byte
+	header, headerHash, err = boot.getNextHeaderRequestingIfMissing()
 	if err != nil {
 		return err
 	}
@@ -912,7 +913,7 @@ func (boot *baseBootstrap) syncBlock() error {
 
 	if header.IsHeaderV3() {
 		// update err to enable the deferred treatment
-		err = boot.syncBlockV3(body, header)
+		err = boot.syncBlockV3(body, header, headerHash)
 		return err
 	}
 
@@ -1009,7 +1010,7 @@ func (boot *baseBootstrap) prepareForLegacySyncIfNeeded() error {
 // Once received, the header is verified through VerifyBlockProposal, but not before warming up the tx pool.
 // Finally, if everything works, the block will be committed and added into the processing queue.
 // And all this mechanism will be reiterated for the next block.
-func (boot *baseBootstrap) syncBlockV3(body data.BodyHandler, header data.HeaderHandler) error {
+func (boot *baseBootstrap) syncBlockV3(body data.BodyHandler, header data.HeaderHandler, headerHash []byte) error {
 	err := boot.prepareForSyncIfNeeded(header.GetNonce())
 	if err != nil {
 		return err
@@ -1033,8 +1034,9 @@ func (boot *baseBootstrap) syncBlockV3(body data.BodyHandler, header data.Header
 	}
 
 	err = boot.executionManager.AddPairForExecution(cache.HeaderBodyPair{
-		Header: header,
-		Body:   body,
+		Header:     header,
+		Body:       body,
+		HeaderHash: headerHash,
 	})
 	if err != nil {
 		return err
@@ -1160,8 +1162,9 @@ func (boot *baseBootstrap) prepareForSyncIfNeeded(
 		boot.preparedForSync = true
 
 		return boot.executionManager.AddPairForExecution(cache.HeaderBodyPair{
-			Header: currentHeader,
-			Body:   currentBody,
+			Header:     currentHeader,
+			Body:       currentBody,
+			HeaderHash: currentHeaderHash,
 		})
 	}
 
@@ -1199,8 +1202,9 @@ func (boot *baseBootstrap) prepareForSyncIfNeeded(
 		}
 
 		errAdd := boot.executionManager.AddPairForExecution(cache.HeaderBodyPair{
-			Header: hdr,
-			Body:   body,
+			Header:     hdr,
+			Body:       body,
+			HeaderHash: hdrHash,
 		})
 		if errAdd != nil {
 			return errAdd
@@ -1643,7 +1647,7 @@ func (boot *baseBootstrap) getRootHashFromBlock(hdr data.HeaderHandler, hdrHash 
 	return hdrRootHash
 }
 
-func (boot *baseBootstrap) getNextHeaderRequestingIfMissing() (data.HeaderHandler, error) {
+func (boot *baseBootstrap) getNextHeaderRequestingIfMissing() (data.HeaderHandler, []byte, error) {
 	nonce := boot.getNonceForNextBlock()
 
 	boot.setRequestedHeaderHash(nil)
@@ -1662,7 +1666,7 @@ func (boot *baseBootstrap) getNextHeaderRequestingIfMissing() (data.HeaderHandle
 
 	if hash != nil {
 		header, err := boot.getHeaderWithHashRequestingIfMissing(hash)
-		return header, err
+		return header, hash, err
 	}
 
 	return boot.getHeaderWithNonceRequestingIfMissing(nonce)
@@ -1719,12 +1723,12 @@ func (boot *baseBootstrap) checkNeedsProofByHash(hash []byte, header data.Header
 
 // getHeaderWithNonceRequestingIfMissing method gets the header with a given nonce from pool. If it is not found there, it will
 // be requested from network
-func (boot *baseBootstrap) getHeaderWithNonceRequestingIfMissing(nonce uint64) (data.HeaderHandler, error) {
+func (boot *baseBootstrap) getHeaderWithNonceRequestingIfMissing(nonce uint64) (data.HeaderHandler, []byte, error) {
 	hdr, hash, err := boot.getHeaderFromPoolWithNonce(nonce)
 	hasHeader := err == nil
 
 	if hasHeader && boot.hasProof(hash, hdr) {
-		return hdr, nil
+		return hdr, hash, nil
 	}
 
 	needsProof := boot.checkNeedsProofByNonce(nonce, hdr, hash)
@@ -1737,20 +1741,20 @@ func (boot *baseBootstrap) getHeaderWithNonceRequestingIfMissing(nonce uint64) (
 
 	err = boot.waitForHeaderAndProofByNonce()
 	if err != nil {
-		return nil, err
+		return nil, nil, err
 	}
 
 	hdr, hash, err = boot.getHeaderFromPoolWithNonce(nonce)
 	if err != nil {
 		log.Debug("getHeaderWithNonceRequestingIfMissing: failed to get header with nonce", "nonce", nonce, "error", err)
-		return nil, err
+		return nil, nil, err
 	}
 
 	if !boot.hasProof(hash, hdr) {
-		return nil, process.ErrMissingHeaderProof
+		return nil, nil, process.ErrMissingHeaderProof
 	}
 
-	return hdr, nil
+	return hdr, hash, nil
 }
 
 func (boot *baseBootstrap) checkNeedsProofByNonce(

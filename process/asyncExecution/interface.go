@@ -8,7 +8,6 @@ import (
 // BlocksCache defines what a block queue should be able to do
 type BlocksCache interface {
 	GetByNonce(nonce uint64) (cache.HeaderBodyPair, bool)
-	GetLastAdded() (cache.HeaderBodyPair, bool)
 	AddOrReplace(pair cache.HeaderBodyPair) error
 	Remove(nonce uint64)
 	IsInterfaceNil() bool

@@ -50,7 +50,8 @@ func TestHeaderBodyCache_AddOrReplace(t *testing.T) {
 			Header: &block.HeaderV3{
 				Nonce: headerNonce,
 			},
-			Body: &block.Body{},
+			Body:       &block.Body{},
+			HeaderHash: []byte("a"),
 		}
 
 		err := c.AddOrReplace(pair)
@@ -60,11 +61,6 @@ func TestHeaderBodyCache_AddOrReplace(t *testing.T) {
 		retrievedPair, found := c.GetByNonce(headerNonce)
 		require.True(t, found)
 		require.Equal(t, pair, retrievedPair)
-
-		// Verify last added
-		lastAdded, found := c.GetLastAdded()
-		require.True(t, found)
-		require.Equal(t, pair, lastAdded)
 	})
 
 	t.Run("replace existing", func(t *testing.T) {
@@ -76,7 +72,8 @@ func TestHeaderBodyCache_AddOrReplace(t *testing.T) {
 			Header: &block.HeaderV3{
 				Nonce: headerNonce,
 			},
-			Body: &block.Body{},
+			Body:       &block.Body{},
+			HeaderHash: []byte("a"),
 		}
 
 		err := c.AddOrReplace(pair1)
@@ -86,7 +83,8 @@ func TestHeaderBodyCache_AddOrReplace(t *testing.T) {
 			Header: &block.HeaderV3{
 				Nonce: headerNonce,
 			},
-			Body: &block.Body{},
+			Body:       &block.Body{},
+			HeaderHash: []byte("a"),
 		}
 
 		err = c.AddOrReplace(pair2)
@@ -110,7 +108,8 @@ func TestHeaderBodyCache_GetByNonce(t *testing.T) {
 		Header: &block.HeaderV3{
 			Nonce: 5,
 		},
-		Body: &block.Body{},
+		Body:       &block.Body{},
+		HeaderHash: []byte("a"),
 	}
 	_ = c.AddOrReplace(pair)
 
@@ -133,7 +132,8 @@ func TestHeaderBodyCache_RemoveAtNonceAndHigher(t *testing.T) {
 			Header: &block.HeaderV3{
 				Nonce: n,
 			},
-			Body: &block.Body{},
+			Body:       &block.Body{},
+			HeaderHash: []byte("a"),
 		})
 	}
 
@@ -161,7 +161,8 @@ func TestHeaderBodyCache_Remove(t *testing.T) {
 		Header: &block.HeaderV3{
 			Nonce: 10,
 		},
-		Body: &block.Body{},
+		Body:       &block.Body{},
+		HeaderHash: []byte("a"),
 	})
 
 	c.Remove(10)
@@ -177,7 +178,8 @@ func TestHeaderBodyCache_Clean(t *testing.T) {
 		Header: &block.HeaderV3{
 			Nonce: 10,
 		},
-		Body: &block.Body{},
+		Body:       &block.Body{},
+		HeaderHash: []byte("a"),
 	})
 
 	c.Clean()
@@ -199,7 +201,8 @@ func TestHeaderBodyCache_ConcurrentAccess(t *testing.T) {
 				Header: &block.HeaderV3{
 					Nonce: nonce,
 				},
-				Body: &block.Body{},
+				Body:       &block.Body{},
+				HeaderHash: []byte("a"),
 			})
 			_, _ = c.GetByNonce(nonce)
 
