@@ -100,6 +100,11 @@ func (sr *subroundSignature) doSignatureJob(ctx context.Context) bool {
 		return true
 	}
 
+	if sr.HasProofForCompetingBlock() {
+		log.Debug("step 2: subround cannot proceed, proof for competing block exists")
+		return false
+	}
+
 	isSelfSingleKeyInConsensusGroup := sr.IsNodeInConsensusGroup(sr.SelfPubKey()) && spos.ShouldConsiderSelfKeyInConsensus(sr.NodeRedundancyHandler())
 	if isSelfSingleKeyInConsensusGroup {
 		if !sr.doSignatureJobForSingleKey() {
