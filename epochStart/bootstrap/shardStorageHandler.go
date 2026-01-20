@@ -810,7 +810,7 @@ func allPendingMbsAreProposed(
 	header data.HeaderHandler,
 	headers map[string]data.HeaderHandler,
 ) bool {
-	proposedMbs := make([]data.MiniBlockHeaderHandler, 0)
+	var proposedMbs []data.MiniBlockHeaderHandler
 	currentHeader := header
 	for {
 		proposedMbs = currentHeader.GetMiniBlockHeaderHandlers()
