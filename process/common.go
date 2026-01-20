@@ -1278,3 +1278,118 @@ func GetStorageUnitByBlockType(blockType block.Type) (dataRetriever.UnitType, er
 	}
 	return 0, ErrInvalidBlockType
 }
+
+// IsReplacementBlockForExecution returns true if the provided header is a replacement for the last execution result
+func IsReplacementBlockForExecution(header data.HeaderHandler, lastExecutionResult data.BaseExecutionResultHandler) bool {
+	if check.IfNil(header) || check.IfNil(lastExecutionResult) {
+		return false
+	}
+
+	sameNonce := header.GetNonce() == lastExecutionResult.GetHeaderNonce()
+	higherRound := header.GetRound() > lastExecutionResult.GetHeaderRound()
+	return sameNonce && higherRound
+}
+
+// UpdateContextForReplacedHeader updates the blockchain context when a header should be replaced
+func UpdateContextForReplacedHeader(
+	header data.HeaderHandler,
+	executionManager ExecutionManager,
+	blockChain data.ChainHandler,
+	headersPool dataRetriever.HeadersPool,
+	storage dataRetriever.StorageService,
+	marshaller marshal.Marshalizer,
+	shardID uint32,
+) error {
+	err := checkForNils(header, executionManager, blockChain, headersPool, storage, marshaller)
+	if err != nil {
+		return err
+	}
+
+	pendingExecutionResults, err := executionManager.GetPendingExecutionResults()
+	if err != nil {
+		return err
+	}
+
+	lastExecutionResult, err := executionManager.GetLastNotarizedExecutionResult()
+	if err != nil {
+		return err
+	}
+
+	executionResultToSet, err := getExecutionResultToSetOnReplacedHeader(
+		header,
+		pendingExecutionResults,
+		lastExecutionResult,
+	)
+	if err != nil {
+		return err
+	}
+
+	// TODO: optimize to add into pool at bootstrap
+	headerToSet, err := GetHeader(executionResultToSet.GetHeaderHash(), headersPool, storage, marshaller, shardID)
+	if err != nil {
+		return err
+	}
+
+	blockChain.SetLastExecutedBlockHeaderAndRootHash(headerToSet, executionResultToSet.GetHeaderHash(), executionResultToSet.GetRootHash())
+	blockChain.SetLastExecutionResult(executionResultToSet)
+
+	// need to remove all execution results after the one set
+	return executionManager.RemovePendingExecutionResultsFromNonce(executionResultToSet.GetHeaderNonce() + 1)
+}
+
+func checkForNils(
+	header data.HeaderHandler,
+	executionManager ExecutionManager,
+	blockChain data.ChainHandler,
+	headersPool common.HeadersPool,
+	storage dataRetriever.StorageService,
+	marshaller marshal.Marshalizer,
+) error {
+	if check.IfNil(header) {
+		return ErrNilHeaderHandler
+	}
+	if check.IfNil(executionManager) {
+		return ErrNilExecutionManager
+	}
+	if check.IfNil(blockChain) {
+		return ErrNilBlockChain
+	}
+	if check.IfNil(headersPool) {
+		return ErrNilHeadersDataPool
+	}
+	if check.IfNil(storage) {
+		return ErrNilStorageService
+	}
+	if check.IfNil(marshaller) {
+		return ErrNilMarshalizer
+	}
+	return nil
+}
+
+func getExecutionResultToSetOnReplacedHeader(
+	header data.HeaderHandler,
+	pendingExecutionResults []data.BaseExecutionResultHandler,
+	lastNotarizedResult data.BaseExecutionResultHandler,
+) (data.BaseExecutionResultHandler, error) {
+	prevNonce := header.GetNonce() - 1
+	prevHash := header.GetPrevHash()
+
+	headerHashToSet := lastNotarizedResult.GetHeaderHash()
+	executionResultToSet := lastNotarizedResult
+	if bytes.Equal(prevHash, headerHashToSet) {
+		return executionResultToSet, nil
+	}
+
+	for i := len(pendingExecutionResults) - 1; i >= 0; i-- {
+		if pendingExecutionResults[i].GetHeaderNonce() <= prevNonce {
+			headerHashToSet = pendingExecutionResults[i].GetHeaderHash()
+			executionResultToSet = pendingExecutionResults[i]
+			break
+		}
+	}
+	if !bytes.Equal(prevHash, headerHashToSet) {
+		return nil, ErrExecutionResultNotFound
+	}
+
+	return executionResultToSet, nil
+}
