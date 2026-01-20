@@ -115,9 +115,9 @@ func (he *headersExecutor) start(ctx context.Context) {
 			}
 
 			// blocking operation
-			/// get pair by nonce from blockchain
+			// get pair by nonce from blockchain
 			lastExecutedHeader := he.blockChain.GetLastExecutedBlockHeader()
-			if lastExecutedHeader == nil {
+			if check.IfNil(lastExecutedHeader) {
 				time.Sleep(timeToSleep)
 				continue
 			}
@@ -125,11 +125,6 @@ func (he *headersExecutor) start(ctx context.Context) {
 			headerBodyPair, ok := he.blocksCache.GetByNonce(lastExecutedHeader.GetNonce() + 1)
 			if !ok {
 				time.Sleep(timeToSleep)
-				continue
-			}
-
-			if check.IfNil(headerBodyPair.Header) || check.IfNil(headerBodyPair.Body) {
-				log.Debug("headersExecutor.start: popped nil header or body, continuing...")
 				continue
 			}
 
@@ -146,8 +141,8 @@ func (he *headersExecutor) handleProcessError(ctx context.Context, pair cache.He
 	backoffTime := timeToSleepOnError
 
 	for retryCount < maxRetryAttempts {
-		pairFromQueue, ok := he.blocksCache.GetLastAdded()
-		if ok && pairFromQueue.Header.GetNonce() == pair.Header.GetNonce() {
+		pairFromQueue, ok := he.blocksCache.GetByNonce(pair.Header.GetNonce())
+		if ok && bytes.Equal(pair.HeaderHash, pairFromQueue.HeaderHash) {
 			// continue the processing (pop the next header from queue)
 			return
 		}
@@ -191,7 +186,6 @@ func (he *headersExecutor) process(pair cache.HeaderBodyPair) error {
 		return nil
 	}
 
-
 	executionResult, err := he.blockProcessor.ProcessBlockProposal(pair.Header, pair.Body)
 	if err != nil {
 		log.Warn("headersExecutor.process process block failed",
@@ -224,7 +218,7 @@ func (he *headersExecutor) process(pair cache.HeaderBodyPair) error {
 	}
 
 	lastExecutionResult := he.blockChain.GetLastExecutionResult()
-	if lastExecutionResult != nil {
+	if !check.IfNil(lastExecutionResult) {
 		if !bytes.Equal(lastExecutionResult.GetHeaderHash(), pair.Header.GetPrevHash()) {
 			log.Error("headersExecutor.process - header hash mismatch")
 			return nil

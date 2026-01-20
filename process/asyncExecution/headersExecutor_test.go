@@ -21,10 +21,10 @@ import (
 var errExpected = errors.New("expected error")
 
 func createMockArgs() ArgsHeadersExecutor {
-	headerQueue := cache.NewHeaderBodyCache()
+	headerCache := cache.NewHeaderBodyCache()
 
 	return ArgsHeadersExecutor{
-		BlocksCache:      headerQueue,
+		BlocksCache:      headerCache,
 		ExecutionTracker: &processMocks.ExecutionTrackerStub{},
 		BlockProcessor:   &processMocks.BlockProcessorStub{},
 		BlockChain: &testscommon.ChainHandlerStub{
@@ -130,7 +130,8 @@ func TestHeadersExecutor_StartAndClose(t *testing.T) {
 		Header: &block.Header{
 			Nonce: 2,
 		},
-		Body: &block.Body{},
+		Body:       &block.Body{},
+		HeaderHash: []byte("a"),
 	})
 	require.NoError(t, err)
 
@@ -266,8 +267,8 @@ func TestHeadersExecutor_ProcessBlock(t *testing.T) {
 		t.Parallel()
 
 		args := createMockArgs()
-		blocksQueue := cache.NewHeaderBodyCache()
-		args.BlocksCache = blocksQueue
+		blocksCache := cache.NewHeaderBodyCache()
+		args.BlocksCache = blocksCache
 		wasAddExecutionResultCalled := atomicCore.Flag{}
 		args.BlockChain = &testscommon.ChainHandlerStub{
 			GetLastExecutedBlockHeaderCalled: func() data.HeaderHandler {
@@ -292,11 +293,12 @@ func TestHeadersExecutor_ProcessBlock(t *testing.T) {
 		executor, err := NewHeadersExecutor(args)
 		require.NoError(t, err)
 
-		err = blocksQueue.AddOrReplace(cache.HeaderBodyPair{
+		err = blocksCache.AddOrReplace(cache.HeaderBodyPair{
 			Header: &block.Header{
 				Nonce: 1,
 			},
-			Body: &block.Body{},
+			Body:       &block.Body{},
+			HeaderHash: []byte("a"),
 		})
 		require.NoError(t, err)
 
@@ -314,10 +316,10 @@ func TestHeadersExecutor_ProcessBlock(t *testing.T) {
 		t.Parallel()
 
 		args := createMockArgs()
-		blocksQueue := cache.NewHeaderBodyCache()
+		blocksCache := cache.NewHeaderBodyCache()
 		count := 0
 		countAddResult := 0
-		args.BlocksCache = blocksQueue
+		args.BlocksCache = blocksCache
 		wg := &sync.WaitGroup{}
 		wg.Add(1)
 		nonce := uint64(0)
@@ -356,11 +358,12 @@ func TestHeadersExecutor_ProcessBlock(t *testing.T) {
 
 		executor.StartExecution()
 
-		err = blocksQueue.AddOrReplace(cache.HeaderBodyPair{
+		err = blocksCache.AddOrReplace(cache.HeaderBodyPair{
 			Header: &block.Header{
 				Nonce: 1,
 			},
-			Body: &block.Body{},
+			Body:       &block.Body{},
+			HeaderHash: []byte("a"),
 		})
 		require.NoError(t, err)
 
@@ -374,12 +377,12 @@ func TestHeadersExecutor_ProcessBlock(t *testing.T) {
 		t.Parallel()
 
 		args := createMockArgs()
-		blocksQueue := cache.NewHeaderBodyCache()
+		blocksCache := cache.NewHeaderBodyCache()
 
 		count := 0
 		countAddResult := 0
 		nonce := uint64(0)
-		args.BlocksCache = blocksQueue
+		args.BlocksCache = blocksCache
 		wg := &sync.WaitGroup{}
 		wg.Add(1)
 		args.BlockChain = &testscommon.ChainHandlerStub{
@@ -419,22 +422,24 @@ func TestHeadersExecutor_ProcessBlock(t *testing.T) {
 
 		executor.StartExecution()
 
-		err = blocksQueue.AddOrReplace(cache.HeaderBodyPair{
+		err = blocksCache.AddOrReplace(cache.HeaderBodyPair{
 			Header: &block.Header{
 				Nonce: 1,
 				Round: 1,
 			},
-			Body: &block.Body{},
+			Body:       &block.Body{},
+			HeaderHash: []byte("a"),
 		})
 		require.NoError(t, err)
 
 		time.Sleep(time.Millisecond)
-		err = blocksQueue.AddOrReplace(cache.HeaderBodyPair{
+		err = blocksCache.AddOrReplace(cache.HeaderBodyPair{
 			Header: &block.Header{
 				Nonce: 1,
 				Round: 2,
 			},
-			Body: &block.Body{},
+			Body:       &block.Body{},
+			HeaderHash: []byte("a"),
 		})
 		require.NoError(t, err)
 

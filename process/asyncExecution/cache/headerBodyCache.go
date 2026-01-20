@@ -10,9 +10,8 @@ import (
 )
 
 type headerBodyCache struct {
-	mutex          sync.RWMutex
-	cacheByNonce   map[uint64]HeaderBodyPair
-	lastAddedNonce uint64
+	mutex        sync.RWMutex
+	cacheByNonce map[uint64]HeaderBodyPair
 }
 
 // NewHeaderBodyCache will create a new instance of cache
@@ -31,13 +30,15 @@ func (c *headerBodyCache) AddOrReplace(pair HeaderBodyPair) error {
 	if check.IfNil(pair.Body) {
 		return data.ErrNilBlockBody
 	}
+	if pair.HeaderHash == nil {
+		return common.ErrNilHeaderHash
+	}
 
 	c.mutex.Lock()
 	defer c.mutex.Unlock()
 
 	headerNonce := pair.Header.GetNonce()
 	c.cacheByNonce[headerNonce] = pair
-	c.lastAddedNonce = headerNonce
 
 	return nil
 }
@@ -68,16 +69,6 @@ func (c *headerBodyCache) RemoveAtNonceAndHigher(providedNonce uint64) []uint64 
 	sort.Slice(nonces, func(i, j int) bool { return nonces[i] < nonces[j] })
 
 	return nonces
-}
-
-// GetLastAdded will return the lat added nonce
-func (c *headerBodyCache) GetLastAdded() (HeaderBodyPair, bool) {
-	c.mutex.RLock()
-	defer c.mutex.RUnlock()
-
-	pair, found := c.cacheByNonce[c.lastAddedNonce]
-
-	return pair, found
 }
 
 // Remove will remove a pair by provided nonce

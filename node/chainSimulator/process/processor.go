@@ -180,6 +180,11 @@ func (creator *blocksCreator) CreateNewBlock() (*dtos.BroadcastData, error) {
 		creator.updatePeerShardMapper(header.GetEpoch())
 	}
 
+	headerHash, err := core.CalculateHash(creator.nodeHandler.GetCoreComponents().InternalMarshalizer(), creator.nodeHandler.GetCoreComponents().Hasher(), header)
+	if err != nil {
+		return nil, err
+	}
+
 	if newHeader.IsHeaderV3() {
 		err = creator.setHeaderSignatures(header, leader.PubKey(), validators, pubKeyBitmap)
 		if err != nil {
@@ -199,8 +204,9 @@ func (creator *blocksCreator) CreateNewBlock() (*dtos.BroadcastData, error) {
 		}
 
 		pair := cache.HeaderBodyPair{
-			Header: header,
-			Body:   block,
+			Header:     header,
+			Body:       block,
+			HeaderHash: headerHash,
 		}
 		err = creator.nodeHandler.GetProcessComponents().ExecutionManager().AddPairForExecution(pair)
 		if err != nil {
@@ -209,11 +215,6 @@ func (creator *blocksCreator) CreateNewBlock() (*dtos.BroadcastData, error) {
 	}
 
 	headerProof, err := creator.ApplySignaturesAndGetProof(header, prevHeader, enableEpochHandler, validators, leader, pubKeyBitmap)
-	if err != nil {
-		return nil, err
-	}
-
-	headerHash, err := core.CalculateHash(creator.nodeHandler.GetCoreComponents().InternalMarshalizer(), creator.nodeHandler.GetCoreComponents().Hasher(), header)
 	if err != nil {
 		return nil, err
 	}

@@ -174,8 +174,9 @@ func (sr *subroundBlock) prepareBlockForExecution(header data.HeaderHandler, bod
 		}
 	}
 	return sr.ExecutionManager().AddPairForExecution(cache.HeaderBodyPair{
-		Header: header,
-		Body:   body,
+		Header:     header,
+		Body:       body,
+		HeaderHash: sr.GetData(),
 	})
 }
 
@@ -783,8 +784,9 @@ func (sr *subroundBlock) processBlockBasedOnType(haveTime func() time.Duration) 
 		}
 
 		return sr.ExecutionManager().AddPairForExecution(cache.HeaderBodyPair{
-			Header: sr.GetHeader(),
-			Body:   sr.GetBody(),
+			Header:     sr.GetHeader(),
+			Body:       sr.GetBody(),
+			HeaderHash: sr.GetData(),
 		})
 	}
 
