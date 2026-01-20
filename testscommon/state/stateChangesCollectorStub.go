@@ -13,8 +13,9 @@ type StateAccessesCollectorStub struct {
 	AddTxHashToCollectedStateAccessesCalled func(txHash []byte)
 	SetIndexToLatestStateAccessesCalled     func(index int) error
 	RevertToIndexCalled                     func(index int) error
-	GetCollectedAccessesCalled              func() map[string]*stateChange.StateAccesses
-	StoreCalled                             func() error
+	GetStateAccessesForRootHashCalled       func(rootHash []byte) map[string]*stateChange.StateAccesses
+	RemoveStateAccessesForRootHashCalled    func(rootHash []byte)
+	CommitCollectedAccessesCalled           func(rootHash []byte) error
 	IsInterfaceNilCalled                    func() bool
 }
 
@@ -65,19 +66,26 @@ func (s *StateAccessesCollectorStub) RevertToIndex(index int) error {
 	return nil
 }
 
-// GetCollectedAccesses -
-func (s *StateAccessesCollectorStub) GetCollectedAccesses() map[string]*stateChange.StateAccesses {
-	if s.GetCollectedAccessesCalled != nil {
-		return s.GetCollectedAccessesCalled()
+// GetStateAccessesForRootHash -
+func (s *StateAccessesCollectorStub) GetStateAccessesForRootHash(rootHash []byte) map[string]*stateChange.StateAccesses {
+	if s.GetStateAccessesForRootHashCalled != nil {
+		return s.GetStateAccessesForRootHashCalled(rootHash)
 	}
 
 	return nil
 }
 
-// Store -
-func (s *StateAccessesCollectorStub) Store() error {
-	if s.StoreCalled != nil {
-		return s.StoreCalled()
+// RemoveStateAccessesForRootHash -
+func (s *StateAccessesCollectorStub) RemoveStateAccessesForRootHash(rootHash []byte) {
+	if s.RemoveStateAccessesForRootHashCalled != nil {
+		s.RemoveStateAccessesForRootHashCalled(rootHash)
+	}
+}
+
+// CommitCollectedAccesses -
+func (s *StateAccessesCollectorStub) CommitCollectedAccesses(rootHash []byte) error {
+	if s.CommitCollectedAccessesCalled != nil {
+		return s.CommitCollectedAccessesCalled(rootHash)
 	}
 
 	return nil
