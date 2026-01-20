@@ -7,7 +7,10 @@ import (
 	"github.com/multiversx/mx-chain-core-go/core/check"
 	"github.com/multiversx/mx-chain-core-go/data"
 	"github.com/multiversx/mx-chain-go/common"
+	logger "github.com/multiversx/mx-chain-logger-go"
 )
+
+var log = logger.GetOrCreate("process/asyncExecution/cache")
 
 type headerBodyCache struct {
 	mutex        sync.RWMutex
@@ -40,6 +43,11 @@ func (c *headerBodyCache) AddOrReplace(pair HeaderBodyPair) error {
 	headerNonce := pair.Header.GetNonce()
 	c.cacheByNonce[headerNonce] = pair
 
+	log.Debug("headerBodyCache.AddOrReplace - block has been added",
+		"nonce", pair.Header.GetNonce(),
+		"hash", pair.HeaderHash,
+		"cache size", len(c.cacheByNonce))
+
 	return nil
 }
 
@@ -55,16 +63,15 @@ func (c *headerBodyCache) GetByNonce(nonce uint64) (HeaderBodyPair, bool) {
 
 // RemoveAtNonceAndHigher will remove all pairs with the provided nonce or higher
 func (c *headerBodyCache) RemoveAtNonceAndHigher(providedNonce uint64) []uint64 {
-	c.mutex.Lock()
-	defer c.mutex.Unlock()
-
 	nonces := make([]uint64, 0)
+	c.mutex.Lock()
 	for nonce := range c.cacheByNonce {
 		if nonce >= providedNonce {
 			delete(c.cacheByNonce, nonce)
 			nonces = append(nonces, nonce)
 		}
 	}
+	c.mutex.Unlock()
 
 	sort.Slice(nonces, func(i, j int) bool { return nonces[i] < nonces[j] })
 

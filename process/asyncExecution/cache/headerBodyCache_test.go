@@ -57,7 +57,6 @@ func TestHeaderBodyCache_AddOrReplace(t *testing.T) {
 		err := c.AddOrReplace(pair)
 		require.Nil(t, err)
 
-		// Verification
 		retrievedPair, found := c.GetByNonce(headerNonce)
 		require.True(t, found)
 		require.Equal(t, pair, retrievedPair)
@@ -92,9 +91,6 @@ func TestHeaderBodyCache_AddOrReplace(t *testing.T) {
 
 		retrievedPair, found := c.GetByNonce(headerNonce)
 		require.True(t, found)
-		// Should be pair2 (note: they are different pointers for Header/Body so Equal check works if pointer comparison)
-		// Wait, slice/map/func in structs make Go equality tricky unless pointers.
-		// These are pointers to structs, so it should be fine.
 		require.Equal(t, pair2, retrievedPair)
 	})
 }
@@ -140,13 +136,11 @@ func TestHeaderBodyCache_RemoveAtNonceAndHigher(t *testing.T) {
 	removed := c.RemoveAtNonceAndHigher(4)
 	require.Equal(t, []uint64{4, 5, 10}, removed)
 
-	// Verify remaining
 	for _, n := range []uint64{1, 2, 3} {
 		_, found := c.GetByNonce(n)
 		require.True(t, found, "nonce %d should exist", n)
 	}
 
-	// Verify removed
 	for _, n := range []uint64{4, 5, 10} {
 		_, found := c.GetByNonce(n)
 		require.False(t, found, "nonce %d should be removed", n)
