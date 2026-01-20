@@ -332,6 +332,19 @@ func TestGasConsumption_AddIncomingMiniBlocks(t *testing.T) {
 		// full space for txs left although mini blocks reached the limit
 		bandwidthForTxs := gc.GetBandwidthForTransactions()
 		require.Equal(t, maxGasLimitPerBlock, bandwidthForTxs)
+
+		pending := gc.GetPendingMiniBlocks()
+		require.Len(t, pending, 2)
+
+		// calling again after already saving pending should append them as pending
+		mbs = generateMiniBlocks(2, 5)
+		txs = generateTxsForMiniBlocks(mbs)
+		lastMbIndex, pendingMbs, err = gc.AddIncomingMiniBlocks(mbs, txs)
+		require.NoError(t, err)
+		require.Equal(t, len(mbs), pendingMbs) // all saved as pending
+		require.Equal(t, -1, lastMbIndex)      // all saved as pending
+		pending = gc.GetPendingMiniBlocks()
+		require.Len(t, pending, 4)
 	})
 }
 
