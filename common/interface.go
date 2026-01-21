@@ -286,7 +286,7 @@ type RootHashHolder interface {
 type TxSelectionOptions interface {
 	GetGasRequested() uint64
 	GetMaxNumTxs() int
-	GetLoopMaximumDurationMs() int
+	HaveTimeForSelection() bool
 	GetLoopDurationCheckInterval() int
 	IsInterfaceNil() bool
 }
