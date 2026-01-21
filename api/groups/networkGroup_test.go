@@ -8,10 +8,12 @@ import (
 	"math/big"
 	"net/http"
 	"net/http/httptest"
+	"reflect"
 	"strconv"
 	"strings"
 	"testing"
 
+	"github.com/multiversx/mx-chain-core-go/core"
 	"github.com/multiversx/mx-chain-core-go/data/api"
 	apiErrors "github.com/multiversx/mx-chain-go/api/errors"
 	"github.com/multiversx/mx-chain-go/api/groups"
@@ -22,9 +24,20 @@ import (
 	"github.com/multiversx/mx-chain-go/node/external"
 	"github.com/multiversx/mx-chain-go/statusHandler"
 	"github.com/multiversx/mx-chain-go/testscommon"
+	"github.com/multiversx/mx-chain-go/testscommon/enableEpochsHandlerMock"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 )
+
+type testStatusMetricsHandler interface {
+	core.AppStatusHandler
+	external.StatusMetricsHandler
+}
+
+func createNetworkStatusMetrics() testStatusMetricsHandler {
+	sm, _ := statusHandler.NewStatusMetrics(&enableEpochsHandlerMock.EnableEpochsHandlerStub{})
+	return sm
+}
 
 func TestNewNetworkGroup(t *testing.T) {
 	t.Parallel()
@@ -93,7 +106,7 @@ type gasConfigsData struct {
 func TestNetworkConfigMetrics_ShouldWork(t *testing.T) {
 	t.Parallel()
 
-	statusMetricsProvider := statusHandler.NewStatusMetrics()
+	statusMetricsProvider := createNetworkStatusMetrics()
 	key := common.MetricMinGasLimit
 	val := uint64(37)
 	statusMetricsProvider.SetUInt64Value(key, val)
@@ -179,7 +192,7 @@ func TestGetNetworkStatus_ShouldReturnErrorIfFacadeReturnsError(t *testing.T) {
 func TestNetworkConfigMetrics_GasLimitGuardedTxShouldWork(t *testing.T) {
 	t.Parallel()
 
-	statusMetricsProvider := statusHandler.NewStatusMetrics()
+	statusMetricsProvider := createNetworkStatusMetrics()
 	key := common.MetricExtraGasLimitGuardedTx
 	val := uint64(37)
 	statusMetricsProvider.SetUInt64Value(key, val)
@@ -209,7 +222,7 @@ func TestNetworkConfigMetrics_GasLimitGuardedTxShouldWork(t *testing.T) {
 func TestNetworkConfigMetrics_GasLimitRelayedTxShouldWork(t *testing.T) {
 	t.Parallel()
 
-	statusMetricsProvider := statusHandler.NewStatusMetrics()
+	statusMetricsProvider := createNetworkStatusMetrics()
 	key := common.MetricExtraGasLimitRelayedTx
 	val := uint64(123)
 	statusMetricsProvider.SetUInt64Value(key, val)
@@ -239,7 +252,7 @@ func TestNetworkConfigMetrics_GasLimitRelayedTxShouldWork(t *testing.T) {
 func TestNetworkStatusMetrics_ShouldWork(t *testing.T) {
 	t.Parallel()
 
-	statusMetricsProvider := statusHandler.NewStatusMetrics()
+	statusMetricsProvider := createNetworkStatusMetrics()
 	key := common.MetricEpochNumber
 	val := uint64(37)
 	statusMetricsProvider.SetUInt64Value(key, val)
@@ -267,7 +280,7 @@ func TestNetworkStatusMetrics_ShouldWork(t *testing.T) {
 }
 
 func TestEconomicsMetrics_ShouldWork(t *testing.T) {
-	statusMetricsProvider := statusHandler.NewStatusMetrics()
+	statusMetricsProvider := createNetworkStatusMetrics()
 	key := common.MetricTotalSupply
 	val := "12345"
 	statusMetricsProvider.SetStringValue(key, val)
@@ -333,7 +346,7 @@ func TestGetEconomicValues_ShouldReturnErrorIfFacadeReturnsError(t *testing.T) {
 }
 
 func TestEconomicsMetrics_CannotGetStakeValues(t *testing.T) {
-	statusMetricsProvider := statusHandler.NewStatusMetrics()
+	statusMetricsProvider := createNetworkStatusMetrics()
 	key := common.MetricTotalSupply
 	val := "12345"
 	statusMetricsProvider.SetStringValue(key, val)
@@ -595,7 +608,7 @@ func TestGetEnableEpochs_ShouldReturnErrorIfFacadeReturnsError(t *testing.T) {
 func TestGetEnableEpochs_ShouldWork(t *testing.T) {
 	t.Parallel()
 
-	statusMetrics := statusHandler.NewStatusMetrics()
+	statusMetrics := createNetworkStatusMetrics()
 	key := common.MetricScDeployEnableEpoch
 	val := uint64(4)
 	statusMetrics.SetUInt64Value(key, val)
@@ -619,6 +632,50 @@ func TestGetEnableEpochs_ShouldWork(t *testing.T) {
 	assert.Equal(t, resp.Code, http.StatusOK)
 
 	keyAndValueFoundInResponse := strings.Contains(respStr, key) && strings.Contains(respStr, strconv.FormatUint(val, 10))
+	assert.True(t, keyAndValueFoundInResponse)
+}
+
+func TestGetEnableEpochsV2_ShouldWork(t *testing.T) {
+	t.Parallel()
+
+	allEpochsMap := make(map[string]uint32)
+	typeOfCfg := reflect.TypeOf(config.EnableEpochs{})
+	for i := 0; i < typeOfCfg.NumField(); i++ {
+		field := typeOfCfg.Field(i)
+		if field.Name == "MaxNodesChangeEnableEpoch" ||
+			field.Name == "BLSMultiSignerEnableEpoch" {
+			// slices, ignoring
+			continue
+		}
+		allEpochsMap[field.Name] = uint32(i)
+	}
+
+	statusMetrics, _ := statusHandler.NewStatusMetrics(&enableEpochsHandlerMock.EnableEpochsHandlerStub{
+		GetAllEnableEpochsCalled: func() map[string]uint32 {
+			return allEpochsMap
+		},
+	})
+
+	facade := mock.FacadeStub{}
+	facade.StatusMetricsHandler = func() external.StatusMetricsHandler {
+		return statusMetrics
+	}
+
+	networkGroup, err := groups.NewNetworkGroup(&facade)
+	require.NoError(t, err)
+
+	ws := startWebServer(networkGroup, "network", getNetworkRoutesConfig())
+
+	req, _ := http.NewRequest("GET", "/network/enable-epochs-v2", nil)
+	resp := httptest.NewRecorder()
+	ws.ServeHTTP(resp, req)
+
+	respBytes, _ := io.ReadAll(resp.Body)
+	respStr := string(respBytes)
+	assert.Equal(t, resp.Code, http.StatusOK)
+
+	keyAndValueFoundInResponse := strings.Contains(respStr, "SupernovaEnableEpoch") &&
+		strings.Contains(respStr, strconv.FormatUint(uint64(allEpochsMap["SupernovaEnableEpoch"]), 10))
 	assert.True(t, keyAndValueFoundInResponse)
 }
 
@@ -1043,6 +1100,7 @@ func getNetworkRoutesConfig() config.ApiRoutesConfig {
 					{Name: "/esdts", Open: true},
 					{Name: "/total-staked", Open: true},
 					{Name: "/enable-epochs", Open: true},
+					{Name: "/enable-epochs-v2", Open: true},
 					{Name: "/direct-staked-info", Open: true},
 					{Name: "/delegated-info", Open: true},
 					{Name: "/esdt/supply/:token", Open: true},

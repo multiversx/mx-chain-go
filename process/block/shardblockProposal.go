@@ -610,7 +610,7 @@ func (sp *shardProcessor) createProposalMiniBlocks(
 	elapsedTime := time.Since(startTime)
 	log.Debug("elapsed time to create mbs to me", "time", elapsedTime)
 
-	outgoingTransactions, pendingIncomingMiniBlocksAdded := sp.selectOutgoingTransactions(nonce)
+	outgoingTransactions, pendingIncomingMiniBlocksAdded := sp.selectOutgoingTransactions(nonce, haveTime)
 
 	err = sp.appendPendingMiniBlocksAfterSelectingOutgoingTransactions(pendingBlocks, pendingIncomingMiniBlocksAdded)
 	if err != nil {
@@ -656,7 +656,7 @@ func (sp *shardProcessor) appendPendingMiniBlocksAfterSelectingOutgoingTransacti
 		extraMiniBlocksAdded[i] = miniBlockAndHash
 
 		// if this is still the last one referenced, continue adding its mini blocks
-		// possible gaps should have been filled and the current one already referenced
+		// possible gaps should have been filled already and the current one already referenced
 		if header.GetNonce() == lastNonceReferenced {
 			continue
 		}
@@ -750,6 +750,7 @@ func findPendingHeaderWithNonceAndNoMiniBlocksDstMe(
 
 func (sp *shardProcessor) selectOutgoingTransactions(
 	nonce uint64,
+	haveTimeForSelection func() bool,
 ) ([][]byte, []data.MiniBlockHeaderHandler) {
 	log.Debug("selectOutgoingTransactions has been started")
 
@@ -760,7 +761,7 @@ func (sp *shardProcessor) selectOutgoingTransactions(
 		log.Debug("measurements", sw.GetMeasurements()...)
 	}()
 
-	outgoingTransactions, pendingIncomingMiniBlocksAdded := sp.txCoordinator.SelectOutgoingTransactions(nonce)
+	outgoingTransactions, pendingIncomingMiniBlocksAdded := sp.txCoordinator.SelectOutgoingTransactions(nonce, haveTimeForSelection)
 	log.Debug("selectOutgoingTransactions has been finished",
 		"num txs", len(outgoingTransactions),
 		"num pending mini blocks added", len(pendingIncomingMiniBlocksAdded))
@@ -777,8 +778,6 @@ func (sp *shardProcessor) checkMetaHeadersValidityAndFinalityProposal(header dat
 	if err != nil {
 		return fmt.Errorf("%w : checkMetaHeadersValidityAndFinalityProposal -> getReferencedMetaHeadersFromPool", err)
 	}
-
-	process.SortHeadersByNonce(usedMetaHeaders)
 
 	for _, metaHeader := range usedMetaHeaders {
 		err = sp.headerValidator.IsHeaderConstructionValid(metaHeader, lastCrossNotarizedHeader)
