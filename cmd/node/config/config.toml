@@ -227,6 +227,8 @@
         BatchDelaySeconds = 2
         MaxBatchSize = 100
         MaxOpenFiles = 10
+        ShardIDProviderType = "BinarySplit"
+        NumShards = 4
 
 [BootstrapStorage]
     [BootstrapStorage.Cache]
@@ -253,6 +255,8 @@
         BatchDelaySeconds = 2
         MaxBatchSize = 100
         MaxOpenFiles = 10
+        ShardIDProviderType = "BinarySplit"
+        NumShards = 4
 
 [ProofsStorage]
     [ProofsStorage.Cache]
