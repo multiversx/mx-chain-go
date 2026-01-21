@@ -52,7 +52,8 @@ type txSizeHandler interface {
 var _ closing.Closer = (*baseBootstrap)(nil)
 
 // sleepTime defines the time in milliseconds between each iteration made in syncBlocks method
-const sleepTime = 50 * time.Millisecond
+const sleepTime = 5 * time.Millisecond
+const sleepTimeOnFail = 400 * time.Millisecond
 const minimumProcessWaitTime = time.Millisecond * 100
 const defaultTimeToWaitForRequestedData = 5 * time.Minute
 
@@ -743,6 +744,8 @@ func (boot *baseBootstrap) syncBlocks(ctx context.Context) {
 			}
 
 			log.Debug("SyncBlock", "error", err.Error())
+
+			time.Sleep(sleepTimeOnFail)
 		}
 	}
 }
@@ -1332,10 +1335,15 @@ func (boot *baseBootstrap) getExecutionResultHeaderNonceForSyncStart(
 
 	// in case there is a more recent execution result available, use it
 	lastExecutionResult := boot.chainHandler.GetLastExecutionResult()
-	if !check.IfNil(lastExecutionResult) && lastExecutionResult.GetHeaderNonce() > lastExecutionResultNonce {
+	notNil := !check.IfNil(lastExecutionResult)
+	// accept newer execution result only if there is a proof for the associated header
+	// otherwise, it might be a temporary execution result from a block that did not pass consensus
+	shouldChangeLastExecutionResultNonce := notNil &&
+		lastExecutionResult.GetHeaderNonce() > lastExecutionResultNonce &&
+		boot.proofs.HasProof(boot.shardCoordinator.SelfId(), lastExecutionResult.GetHeaderHash())
+	if shouldChangeLastExecutionResultNonce {
 		lastExecutionResultNonce = lastExecutionResult.GetHeaderNonce()
 	}
-
 	log.Debug("getExecutionResultHeaderNonceForSyncStart", "lastExecutionResultNonce", lastExecutionResultNonce)
 
 	return lastExecutionResultNonce, nil
@@ -1644,6 +1652,12 @@ func (boot *baseBootstrap) getNextHeaderRequestingIfMissing() (data.HeaderHandle
 	hash := boot.forkDetector.GetNotarizedHeaderHash(nonce)
 	if boot.forkInfo.IsDetected {
 		hash = boot.forkInfo.Hash
+	}
+
+	// if there is a proof for the current nonce, use the header hash from proof
+	proof, err := boot.dataPool.Proofs().GetProofByNonce(nonce, boot.shardCoordinator.SelfId())
+	if err == nil {
+		hash = proof.GetHeaderHash()
 	}
 
 	if hash != nil {
