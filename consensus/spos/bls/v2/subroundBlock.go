@@ -96,6 +96,10 @@ func (sr *subroundBlock) doBlockJob(ctx context.Context) bool {
 	if sr.IsSubroundFinished(sr.Current()) {
 		return false
 	}
+	if sr.HasProofForCompetingBlock() {
+		log.Debug("doBlockJob - competing block proof exists, skipping block proposal")
+		return false
+	}
 
 	metricStatTime := time.Now()
 	defer sr.computeSubroundProcessingMetric(metricStatTime, common.MetricCreatedProposedBlock)
@@ -128,6 +132,12 @@ func (sr *subroundBlock) doBlockJob(ctx context.Context) bool {
 	leader, errGetLeader := sr.GetLeader()
 	if errGetLeader != nil {
 		printLogMessage(ctx, "doBlockJob.GetLeader", errGetLeader)
+		return false
+	}
+
+	// check again there is no proof for competing block before sending the block
+	if sr.HasProofForCompetingBlock() {
+		log.Debug("doBlockJob - competing block proof exists, skipping block proposal")
 		return false
 	}
 
