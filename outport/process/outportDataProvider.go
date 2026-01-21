@@ -718,6 +718,10 @@ func putInMapTxsFromBody(
 
 		strCache := process.ShardCacherIdentifier(mb.SenderShardID, mb.ReceiverShardID)
 		cache := storeByType.ShardDataStore(strCache)
+		if check.IfNil(cache) {
+			log.Warn("putInMapTxsFromBody cannot find shard data store", "shardID", mb.SenderShardID, "shardID", mb.ReceiverShardID, "type", mb.Type)
+			continue
+		}
 
 		for _, txHash := range mb.TxHashes {
 			txI, found := cache.Get(txHash)
