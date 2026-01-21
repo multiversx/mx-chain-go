@@ -681,6 +681,9 @@ func TestShardProcessor_CreateBlockProposal(t *testing.T) {
 					},
 				}
 			},
+			DirectSentTransactionsCalled: func() storage.Cacher {
+				return cache.NewCacherStub()
+			},
 		}
 
 		arguments := CreateMockArguments(coreComponents, dataComponents, bootstrapComponents, statusComponents)
@@ -983,6 +986,9 @@ func TestShardProcessor_CreateBlockProposal(t *testing.T) {
 					},
 				}
 			},
+			DirectSentTransactionsCalled: func() storage.Cacher {
+				return cache.NewCacherStub()
+			},
 		}
 
 		arguments := CreateMockArguments(coreComponents, dataComponents, bootstrapComponents, statusComponents)
@@ -1068,6 +1074,9 @@ func TestShardProcessor_CreateBlockProposal(t *testing.T) {
 					},
 				}
 			},
+			DirectSentTransactionsCalled: func() storage.Cacher {
+				return cache.NewCacherStub()
+			},
 		}
 
 		arguments := CreateMockArguments(coreComponents, dataComponents, bootstrapComponents, statusComponents)
@@ -1143,6 +1152,9 @@ func TestShardProcessor_CreateBlockProposal(t *testing.T) {
 						return &transaction.Transaction{}, true
 					},
 				}
+			},
+			DirectSentTransactionsCalled: func() storage.Cacher {
+				return cache.NewCacherStub()
 			},
 		}
 
