@@ -27,14 +27,16 @@ import (
 )
 
 var (
-	oneEGLD                      = big.NewInt(1000000000000000000)
-	oneQuarterOfEGLD             = big.NewInt(250000000000000000)
-	durationWaitAfterSendMany    = 7500 * time.Millisecond
-	durationWaitAfterSendSome    = 1000 * time.Millisecond
-	selectionLoopMaximumDuration = 2000 * time.Millisecond
-	defaultLatestExecutedHash    = []byte("blockHash0")
-	gasLimit                     = 50_000
-	gasPrice                     = 1_000_000_000
+	oneEGLD                   = big.NewInt(1000000000000000000)
+	oneQuarterOfEGLD          = big.NewInt(250000000000000000)
+	durationWaitAfterSendMany = 7500 * time.Millisecond
+	durationWaitAfterSendSome = 1000 * time.Millisecond
+	defaultLatestExecutedHash = []byte("blockHash0")
+	gasLimit                  = 50_000
+	gasPrice                  = 1_000_000_000
+	haveTimeTrue              = func() bool {
+		return true
+	}
 )
 
 const maxNumBytesUpperBound = 1_073_741_824           // one GB
@@ -192,11 +194,11 @@ func selectTransactions(t *testing.T, simulator testsChainSimulator.ChainSimulat
 	})
 	require.NoError(t, err)
 
-	options := holders.NewTxSelectionOptions(
+	options, _ := holders.NewTxSelectionOptions(
 		10_000_000_000,
 		30_000,
-		int(selectionLoopMaximumDuration.Milliseconds()),
 		10,
+		haveTimeTrue,
 	)
 
 	mempool := poolsHolder.ShardDataStore(shardAsString).(*txcache.TxCache)
@@ -355,11 +357,11 @@ func testOnProposed(t *testing.T, sw *core.StopWatch, numTxs int, numAddresses i
 	err = txpool.OnExecutedBlock(&block.Header{}, []byte(testRootHash))
 	require.Nil(t, err)
 
-	options := holders.NewTxSelectionOptions(
+	options, _ := holders.NewTxSelectionOptions(
 		10_000_000_000,
 		numTxs,
-		int(selectionLoopMaximumDuration.Milliseconds()),
 		10,
+		haveTimeTrue,
 	)
 
 	nonceTracker := newNoncesTracker()
@@ -416,11 +418,11 @@ func testFirstSelection(t *testing.T, sw *core.StopWatch, numTxs int, numTxsToBe
 	err = txpool.OnExecutedBlock(&block.Header{}, []byte(testRootHash))
 	require.Nil(t, err)
 
-	options := holders.NewTxSelectionOptions(
+	options, _ := holders.NewTxSelectionOptions(
 		10_000_000_000*10, // in case of 1_000_000 txs
 		numTxsToBeSelected,
-		int(selectionLoopMaximumDuration.Milliseconds())*3, // in case of 1_000_000 txs
 		10,
+		haveTimeTrue,
 	)
 
 	nonceTracker := newNoncesTracker()
@@ -474,11 +476,11 @@ func testSecondSelection(t *testing.T, sw *core.StopWatch, numTxs int, numTxsToB
 	err = txpool.OnExecutedBlock(&block.Header{}, []byte(testRootHash))
 	require.Nil(t, err)
 
-	options := holders.NewTxSelectionOptions(
+	options, _ := holders.NewTxSelectionOptions(
 		10_000_000_000*10,
 		numTxsToBeSelected,
-		int(selectionLoopMaximumDuration.Milliseconds())*10,
 		10,
+		haveTimeTrue,
 	)
 
 	nonceTracker := newNoncesTracker()
@@ -565,11 +567,11 @@ func testSecondSelectionWithManyTxsInPool(t *testing.T, sw *core.StopWatch, numT
 	err = txpool.OnExecutedBlock(&block.Header{}, []byte(testRootHash))
 	require.Nil(t, err)
 
-	options := holders.NewTxSelectionOptions(
+	options, _ := holders.NewTxSelectionOptions(
 		10_000_000_000,
 		numTxsToBeSelected,
-		int(selectionLoopMaximumDuration.Milliseconds()),
 		10,
+		haveTimeTrue,
 	)
 
 	nonceTracker := newNoncesTracker()

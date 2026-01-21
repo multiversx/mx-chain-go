@@ -48,10 +48,13 @@ import (
 )
 
 const maxTrackedBlocks = 100
-const selectionLoopMaximumDuration = 250
 const numTxsSelected = 30_000
 const gasRequested = 10_000_000_000
 const loopDurationCheckInterval = 10
+
+func haveTimeTrueForSelection() bool {
+	return true
+}
 
 var oneEGLD = big.NewInt(1000000000000000000)
 var expectedErr = errors.New("expected error")
@@ -1280,11 +1283,11 @@ func TestApiTransactionProcessor_GetSelectedTransactions(t *testing.T) {
 			},
 		}
 
-		options := holders.NewTxSelectionOptions(
+		options, _ := holders.NewTxSelectionOptions(
 			gasRequested,
 			numTxsSelected,
-			selectionLoopMaximumDuration,
 			loopDurationCheckInterval,
+			haveTimeTrueForSelection,
 		)
 
 		selectionOptionsAPI := holders.NewTxSelectionOptionsAPI(
@@ -1350,11 +1353,11 @@ func TestApiTransactionProcessor_GetSelectedTransactions(t *testing.T) {
 			},
 		}
 
-		options := holders.NewTxSelectionOptions(
+		options, _ := holders.NewTxSelectionOptions(
 			gasRequested,
 			numTxsSelected,
-			selectionLoopMaximumDuration,
 			loopDurationCheckInterval,
+			haveTimeTrueForSelection,
 		)
 
 		selectionOptionsAPI := holders.NewTxSelectionOptionsAPI(
@@ -1408,11 +1411,11 @@ func TestApiTransactionProcessor_GetSelectedTransactions(t *testing.T) {
 			},
 		}
 
-		options := holders.NewTxSelectionOptions(
+		options, _ := holders.NewTxSelectionOptions(
 			gasRequested,
 			numTxsSelected,
-			selectionLoopMaximumDuration,
 			loopDurationCheckInterval,
+			haveTimeTrueForSelection,
 		)
 
 		selectionOptionsAPI := holders.NewTxSelectionOptionsAPI(
@@ -1454,11 +1457,11 @@ func TestApiTransactionProcessor_GetSelectedTransactions(t *testing.T) {
 		require.NoError(t, err)
 		require.NotNil(t, atp)
 
-		options := holders.NewTxSelectionOptions(
+		options, _ := holders.NewTxSelectionOptions(
 			gasRequested,
 			numTxsSelected,
-			selectionLoopMaximumDuration,
 			loopDurationCheckInterval,
+			haveTimeTrueForSelection,
 		)
 
 		selectionOptionsAPI := holders.NewTxSelectionOptionsAPI(
@@ -1512,11 +1515,11 @@ func TestApiTransactionProcessor_GetSelectedTransactions(t *testing.T) {
 		require.NoError(t, err)
 		require.NotNil(t, atp)
 
-		options := holders.NewTxSelectionOptions(
+		options, _ := holders.NewTxSelectionOptions(
 			gasRequested,
 			numTxsSelected,
-			selectionLoopMaximumDuration,
 			loopDurationCheckInterval,
+			haveTimeTrueForSelection,
 		)
 
 		blockchainMock := &testscommon.ChainHandlerStub{
