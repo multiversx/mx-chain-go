@@ -1035,7 +1035,7 @@ const CommitMaxTime = 3 * time.Second
 const PutInStorerMaxTime = time.Second
 
 // PutInStorerMaxTimeSupernova represents max time accepted for a put action with supernova activated, after which a warn message is displayed
-const PutInStorerMaxTimeSupernova = 200 * time.Millisecond
+const PutInStorerMaxTimeSupernova = 600 * time.Millisecond
 
 // DefaultUnstakedEpoch represents the default epoch that is set for a validator that has not unstaked yet
 const DefaultUnstakedEpoch = math.MaxUint32
