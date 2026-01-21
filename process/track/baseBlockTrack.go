@@ -23,7 +23,7 @@ var _ process.ValidityAttester = (*baseBlockTrack)(nil)
 
 var log = logger.GetOrCreate("process/track")
 
-const maxNonceDifference = 10 // TODO move this to a config file
+const maxNonceDifference = 3 // TODO move this to a config file
 
 // HeaderInfo holds the information about a header
 type HeaderInfo struct {

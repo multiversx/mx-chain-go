@@ -3570,6 +3570,22 @@ func (bp *baseProcessor) getLastExecutionResultHeader(
 }
 
 func (bp *baseProcessor) checkAndUpdateContextBeforeExecution(header data.HeaderHandler) error {
+	lastExecutionResult := bp.blockChain.GetLastExecutionResult()
+	if process.IsReplacementBlockForExecution(header, lastExecutionResult) {
+		err := process.UpdateContextForReplacedHeader(
+			header,
+			bp.executionManager,
+			bp.blockChain,
+			bp.dataPool.Headers(),
+			bp.store,
+			bp.marshalizer,
+			bp.shardCoordinator.SelfId(),
+		)
+		if err != nil {
+			return err
+		}
+	}
+
 	lastExecutedNonce, lastExecutedHash, lastExecutedRootHash := bp.blockChain.GetLastExecutedBlockInfo()
 	if !bytes.Equal(header.GetPrevHash(), lastExecutedHash) {
 		log.Debug("checkContextBeforeExecution: hash does not match",

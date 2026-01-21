@@ -5,9 +5,10 @@ import (
 
 	"github.com/multiversx/mx-chain-core-go/core"
 	"github.com/multiversx/mx-chain-core-go/data/block"
+	"github.com/stretchr/testify/assert"
+
 	"github.com/multiversx/mx-chain-go/process"
 	"github.com/multiversx/mx-chain-go/testscommon/enableEpochsHandlerMock"
-	"github.com/stretchr/testify/assert"
 )
 
 func TestNewOwnShardTracker(t *testing.T) {
@@ -23,14 +24,14 @@ func TestNewOwnShardTracker(t *testing.T) {
 	t.Run("invalid maxNonceDifference", func(t *testing.T) {
 		t.Parallel()
 
-		tracker, err := NewOwnShardTracker(&enableEpochsHandlerMock.EnableEpochsHandlerStub{}, 3)
+		tracker, err := NewOwnShardTracker(&enableEpochsHandlerMock.EnableEpochsHandlerStub{}, 0)
 		assert.Nil(t, tracker)
 		assert.Equal(t, process.ErrInvalidMaxNonceDifference, err)
 	})
 	t.Run("valid parameters", func(t *testing.T) {
 		t.Parallel()
 
-		tracker, err := NewOwnShardTracker(&enableEpochsHandlerMock.EnableEpochsHandlerStub{}, 10)
+		tracker, err := NewOwnShardTracker(&enableEpochsHandlerMock.EnableEpochsHandlerStub{}, 3)
 		assert.NotNil(t, tracker)
 		assert.Nil(t, err)
 		assert.False(t, tracker.IsOwnShardStuck())
