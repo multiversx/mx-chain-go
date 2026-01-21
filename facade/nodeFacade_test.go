@@ -2161,6 +2161,10 @@ func TestNodeFacade_GetSelectedTransactions(t *testing.T) {
 
 		arg.ApiResolver = &mock.ApiResolverStub{
 			GetSelectedTransactionsCalled: func(selectionOptions common.TxSelectionOptionsAPI, blockchain coreData.ChainHandler, accountsAdapter state.AccountsAdapter) (*common.TransactionsSelectionSimulationResult, error) {
+				require.True(t, selectionOptions.HaveTimeForSelection())
+				time.Sleep(simulateSelectionMaxDuration + 10*time.Millisecond)
+				require.False(t, selectionOptions.HaveTimeForSelection())
+
 				return expectedRes, nil
 			},
 		}
