@@ -403,7 +403,9 @@ func (sr *subroundEndRound) shouldSendProof() bool {
 		return false
 	}
 
-	return sr.IsSelfInConsensusGroup() && spos.ShouldConsiderSelfKeyInConsensus(sr.NodeRedundancyHandler())
+	shouldSingleKeySendProof := sr.IsNodeInConsensusGroup(sr.SelfPubKey()) && spos.ShouldConsiderSelfKeyInConsensus(sr.NodeRedundancyHandler())
+	shouldMultiKeySendProof := sr.IsMultiKeyInConsensusGroup()
+	return shouldSingleKeySendProof || shouldMultiKeySendProof
 }
 
 func (sr *subroundEndRound) aggregateSigsAndHandleInvalidSigners(bitmap []byte, sender string) ([]byte, []byte, error) {

@@ -30,6 +30,7 @@ type StatusMetricsHandler interface {
 	EconomicsMetrics() (map[string]interface{}, error)
 	ConfigMetrics() (map[string]interface{}, error)
 	EnableEpochsMetrics() (map[string]interface{}, error)
+	EnableEpochsMetricsV2() map[string]uint32
 	NetworkMetrics() (map[string]interface{}, error)
 	RatingsMetrics() (map[string]interface{}, error)
 	BootstrapMetrics() (map[string]interface{}, error)
