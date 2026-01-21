@@ -799,13 +799,32 @@ func shouldUpdateLastCrossMetaToPending(shardData data.EpochStartShardDataHandle
 	}
 
 	if shardHeader.IsHeaderV3() {
-		return allPendingMbsAreProposed(pendingMbs, shardHeader.GetMiniBlockHeaderHandlers()), nil
+		return allPendingMbsAreProposed(pendingMbs, shardHeader, headers), nil
 	}
 
 	return false, nil
 }
 
-func allPendingMbsAreProposed(pendingMbs []data.MiniBlockHeaderHandler, proposedMbs []data.MiniBlockHeaderHandler) bool {
+func allPendingMbsAreProposed(
+	pendingMbs []data.MiniBlockHeaderHandler,
+	header data.HeaderHandler,
+	headers map[string]data.HeaderHandler,
+) bool {
+	var proposedMbs []data.MiniBlockHeaderHandler
+	currentHeader := header
+	for {
+		proposedMbs = currentHeader.GetMiniBlockHeaderHandlers()
+		if len(proposedMbs) > 0 {
+			break
+		}
+
+		currentHeader = headers[string(currentHeader.GetPrevHash())]
+		if currentHeader == nil {
+			log.Warn("headerNotFound")
+			break
+		}
+	}
+
 	proposedMbMap := make(map[string]struct{})
 	for _, mb := range proposedMbs {
 		proposedMbMap[string(mb.GetHash())] = struct{}{}

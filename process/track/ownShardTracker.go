@@ -10,7 +10,7 @@ import (
 	"github.com/multiversx/mx-chain-go/process"
 )
 
-const minNonceDifference = 5
+const minNonceDifference = 1
 
 type ownShardTracker struct {
 	enableEpochsHandler common.EnableEpochsHandler

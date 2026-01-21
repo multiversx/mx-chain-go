@@ -262,6 +262,11 @@ func (sr *subroundEndRound) doEndRoundJobByNode() bool {
 			return false
 		}
 
+		if sr.HasProofForCompetingBlock() {
+			log.Debug("doEndRoundJobByNode: competing block proof detected, aborting end round job")
+			return false
+		}
+
 		proofSent, err := sr.sendProof()
 		shouldWaitForMoreSignatures := errors.Is(err, spos.ErrInvalidNumSigShares)
 		// if not enough valid signatures were detected, wait a bit more
@@ -307,6 +312,10 @@ func (sr *subroundEndRound) waitForProof() bool {
 		case <-time.After(time.Millisecond):
 			if sr.EquivalentProofsPool().HasProof(shardID, headerHash) {
 				return true
+			}
+			if sr.HasProofForCompetingBlock() {
+				log.Debug("waitForProof: competing block proof detected, aborting wait")
+				return false
 			}
 		case <-ctx.Done():
 			return false
@@ -394,7 +403,9 @@ func (sr *subroundEndRound) shouldSendProof() bool {
 		return false
 	}
 
-	return sr.IsSelfInConsensusGroup() && spos.ShouldConsiderSelfKeyInConsensus(sr.NodeRedundancyHandler())
+	shouldSingleKeySendProof := sr.IsNodeInConsensusGroup(sr.SelfPubKey()) && spos.ShouldConsiderSelfKeyInConsensus(sr.NodeRedundancyHandler())
+	shouldMultiKeySendProof := sr.IsMultiKeyInConsensusGroup()
+	return shouldSingleKeySendProof || shouldMultiKeySendProof
 }
 
 func (sr *subroundEndRound) aggregateSigsAndHandleInvalidSigners(bitmap []byte, sender string) ([]byte, []byte, error) {
