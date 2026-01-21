@@ -1246,6 +1246,30 @@ func (bp *baseProcessor) cleanupPools(headerHandler data.HeaderHandler) {
 		// cleanup all log events
 		bp.dataPool.PostProcessTransactions().Remove(common.PrepareLogEventsKey(executionResultHeaderHash))
 	}
+
+	if headerHandler.GetRound()%50 == 0 {
+		go bp.logPoolsSize()
+	}
+}
+
+func (bp *baseProcessor) logPoolsSize() {
+	dp := bp.dataPool
+
+	log.Debug("logPoolsSize",
+		"postProcessTxs", "len", dp.PostProcessTransactions().Len(), "size", dp.PostProcessTransactions().SizeInBytesContained(),
+		"executedMiniBlocksCache", "len", dp.ExecutedMiniBlocks().Len(), "size", dp.ExecutedMiniBlocks().SizeInBytesContained(),
+		"miniblocks", "len", dp.MiniBlocks().Len(), "size", dp.MiniBlocks().SizeInBytesContained(),
+		"headers", "len", dp.MiniBlocks().Len(),
+		"proofs", "len", dp.Proofs().Len(),
+	)
+
+	txPoolCounts := dp.Transactions().GetCounts()
+
+	log.Debug("logPoolsSize txPool",
+		"numTrackedBlocks", dp.Transactions().GetNumTrackedBlocks(),
+		"numTrackedAccounts", dp.Transactions().GetNumTrackedAccounts(),
+		"counts", "id", txPoolCounts.String(), "total", txPoolCounts.GetTotal(), "total size", txPoolCounts.GetTotalSize(),
+	)
 }
 
 func (bp *baseProcessor) cleanupPoolsForCrossShard(
