@@ -108,3 +108,10 @@ func (pc *proofsCache) cleanupProofsInBucket(bucket *proofNonceBucket) {
 		delete(pc.proofsByHash, headerHash)
 	}
 }
+
+func (pc *proofsCache) getNumProofsByHash() int {
+	pc.mutProofsCache.RLock()
+	defer pc.mutProofsCache.RUnlock()
+
+	return len(pc.proofsByHash)
+}
