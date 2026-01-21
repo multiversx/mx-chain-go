@@ -626,9 +626,6 @@ const (
 	// MetricStorageAPICostOptimizationEnableEpoch represents the epoch when storage api cost optimization feature is enabled
 	MetricStorageAPICostOptimizationEnableEpoch = "erd_storage_api_cost_optimization_enable_epoch"
 
-	// MetricTransformToMultiShardCreateEnableEpoch represents the epoch when transform to multi shard create functionality is enabled
-	MetricTransformToMultiShardCreateEnableEpoch = "erd_transform_to_multi_shard_create_enable_epoch"
-
 	// MetricESDTRegisterAndSetAllRolesEnableEpoch represents the epoch when esdt register and set all roles functionality is enabled
 	MetricESDTRegisterAndSetAllRolesEnableEpoch = "erd_esdt_register_and_set_all_roles_enable_epoch"
 

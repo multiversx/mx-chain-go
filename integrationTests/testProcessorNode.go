@@ -3750,7 +3750,6 @@ func CreateEnableEpochsConfig() config.EnableEpochs {
 		IsPayableBySCEnableEpoch:                          UnreachableEpoch,
 		CleanUpInformativeSCRsEnableEpoch:                 UnreachableEpoch,
 		StorageAPICostOptimizationEnableEpoch:             UnreachableEpoch,
-		TransformToMultiShardCreateEnableEpoch:            UnreachableEpoch,
 		ESDTRegisterAndSetAllRolesEnableEpoch:             UnreachableEpoch,
 		ScheduledMiniBlocksEnableEpoch:                    UnreachableEpoch,
 		FailExecutionOnEveryAPIErrorEnableEpoch:           UnreachableEpoch,
