@@ -44,6 +44,7 @@ func (c *headerBodyCache) AddOrReplace(pair HeaderBodyPair) error {
 	c.cacheByNonce[headerNonce] = pair
 
 	log.Debug("headerBodyCache.AddOrReplace - block has been added",
+		"round", pair.Header.GetRound(),
 		"nonce", pair.Header.GetNonce(),
 		"hash", pair.HeaderHash,
 		"cache size", len(c.cacheByNonce))

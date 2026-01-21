@@ -32,7 +32,7 @@ type ArgsExecutionManager struct {
 type executionManager struct {
 	mut                     sync.RWMutex
 	headersExecutor         process.HeadersExecutor
-	blocksQueue             process.BlocksCache
+	blocksCache             process.BlocksCache
 	executionResultsTracker process.ExecutionResultsTracker
 	blockChain              data.ChainHandler
 	headers                 dataRetriever.HeadersPool
@@ -67,7 +67,7 @@ func NewExecutionManager(args ArgsExecutionManager) (*executionManager, error) {
 
 	instance := &executionManager{
 		headersExecutor:         disabled.NewHeadersExecutor(),
-		blocksQueue:             args.BlocksQueue,
+		blocksCache:             args.BlocksQueue,
 		executionResultsTracker: args.ExecutionResultsTracker,
 		blockChain:              args.BlockChain,
 		headers:                 args.Headers,
@@ -125,7 +125,7 @@ func (em *executionManager) AddPairForExecution(pair cache.HeaderBodyPair) error
 		}
 	}
 
-	return em.blocksQueue.AddOrReplace(pair)
+	return em.blocksCache.AddOrReplace(pair)
 }
 
 // GetPendingExecutionResults calls the same method from executionResultsTracker
@@ -146,7 +146,7 @@ func (em *executionManager) SetLastNotarizedResult(executionResult data.BaseExec
 // CleanConfirmedExecutionResults calls the same method from executionResultsTracker
 func (em *executionManager) CleanConfirmedExecutionResults(header data.HeaderHandler) error {
 	for _, executionResult := range header.GetExecutionResultsHandlers() {
-		em.blocksQueue.Remove(executionResult.GetHeaderNonce())
+		em.blocksCache.Remove(executionResult.GetHeaderNonce())
 	}
 
 	return em.executionResultsTracker.CleanConfirmedExecutionResults(header)
@@ -181,7 +181,7 @@ func (em *executionManager) RemoveAtNonceAndHigher(nonce uint64) error {
 	em.headersExecutor.PauseExecution()
 
 	// remove from queue
-	removedNonces := em.blocksQueue.RemoveAtNonceAndHigher(nonceToRemove)
+	removedNonces := em.blocksCache.RemoveAtNonceAndHigher(nonceToRemove)
 	if len(removedNonces) > 0 && removedNonces[0] == nonceToRemove {
 		// if the first nonce removed is the initial one,
 		// it means it was still in queue and was not processed.
@@ -213,6 +213,8 @@ func (em *executionManager) RemoveAtNonceAndHigher(nonce uint64) error {
 
 // RemovePendingExecutionResultsFromNonce will remove the execution result with the provided nonce and all execution results with higher nonces
 func (em *executionManager) RemovePendingExecutionResultsFromNonce(nonce uint64) error {
+	em.blocksCache.RemoveAtNonceAndHigher(nonce)
+
 	return em.executionResultsTracker.RemoveFromNonce(nonce)
 }
 
@@ -230,7 +232,7 @@ func (em *executionManager) ResetAndResumeExecution(lastNotarizedResult data.Bas
 
 	em.executionResultsTracker.Clean(lastNotarizedResult)
 
-	em.blocksQueue.Clean()
+	em.blocksCache.Clean()
 
 	em.headersExecutor.ResumeExecution()
 
