@@ -27,7 +27,11 @@ func createMockArgs() ArgsHeadersExecutor {
 		BlocksQueue:      headerQueue,
 		ExecutionTracker: &processMocks.ExecutionTrackerStub{},
 		BlockProcessor:   &processMocks.BlockProcessorStub{},
-		BlockChain:       &testscommon.ChainHandlerStub{},
+		BlockChain: &testscommon.ChainHandlerStub{
+			GetLastExecutionResultCalled: func() data.BaseExecutionResultHandler {
+				return &block.BaseExecutionResult{}
+			},
+		},
 	}
 }
 
@@ -99,6 +103,13 @@ func TestHeadersExecutor_StartAndClose(t *testing.T) {
 			return nil
 		},
 	}
+	args.BlockChain = &testscommon.ChainHandlerStub{
+		GetLastExecutionResultCalled: func() data.BaseExecutionResultHandler {
+			return &block.BaseExecutionResult{
+				HeaderNonce: 1,
+			}
+		},
+	}
 
 	executor, err := NewHeadersExecutor(args)
 	require.NoError(t, err)
@@ -106,8 +117,10 @@ func TestHeadersExecutor_StartAndClose(t *testing.T) {
 	executor.StartExecution()
 
 	err = blocksQueue.AddOrReplace(queue.HeaderBodyPair{
-		Header: &block.Header{},
-		Body:   &block.Body{},
+		Header: &block.Header{
+			Nonce: 2,
+		},
+		Body: &block.Body{},
 	})
 	require.NoError(t, err)
 
@@ -144,6 +157,13 @@ func TestHeadersExecutor_ProcessBlock(t *testing.T) {
 		args.BlockProcessor = &processMocks.BlockProcessorStub{
 			ProcessBlockProposalCalled: func(handler data.HeaderHandler, body data.BodyHandler) (data.BaseExecutionResultHandler, error) {
 				return &block.BaseExecutionResult{}, nil
+			},
+		}
+		args.BlockChain = &testscommon.ChainHandlerStub{
+			GetLastExecutionResultCalled: func() data.BaseExecutionResultHandler {
+				return &block.BaseExecutionResult{
+					HeaderNonce: 0,
+				}
 			},
 		}
 
@@ -188,6 +208,11 @@ func TestHeadersExecutor_ProcessBlock(t *testing.T) {
 					return &block.BaseExecutionResult{}, nil
 				},
 			}
+			args.BlockChain = &testscommon.ChainHandlerStub{
+				GetLastExecutionResultCalled: func() data.BaseExecutionResultHandler {
+					return &block.BaseExecutionResult{}
+				},
+			}
 
 			executor, err := NewHeadersExecutor(args)
 			require.NoError(t, err)
@@ -228,10 +253,20 @@ func TestHeadersExecutor_ProcessBlock(t *testing.T) {
 		blocksQueue := queue.NewBlocksQueue()
 		args.BlocksQueue = blocksQueue
 		wasAddExecutionResultCalled := atomicCore.Flag{}
+		args.BlockProcessor = &processMocks.BlockProcessorStub{
+			ProcessBlockProposalCalled: func(handler data.HeaderHandler, body data.BodyHandler) (data.BaseExecutionResultHandler, error) {
+				return &block.BaseExecutionResult{}, nil
+			},
+		}
 		args.ExecutionTracker = &processMocks.ExecutionTrackerStub{
 			AddExecutionResultCalled: func(executionResult data.BaseExecutionResultHandler) error {
 				wasAddExecutionResultCalled.SetValue(true)
 				return errExpected
+			},
+		}
+		args.BlockChain = &testscommon.ChainHandlerStub{
+			GetLastExecutionResultCalled: func() data.BaseExecutionResultHandler {
+				return &block.BaseExecutionResult{}
 			},
 		}
 
@@ -282,6 +317,11 @@ func TestHeadersExecutor_ProcessBlock(t *testing.T) {
 				return nil
 			},
 		}
+		args.BlockChain = &testscommon.ChainHandlerStub{
+			GetLastExecutionResultCalled: func() data.BaseExecutionResultHandler {
+				return &block.BaseExecutionResult{}
+			},
+		}
 
 		executor, err := NewHeadersExecutor(args)
 		require.NoError(t, err)
@@ -329,6 +369,11 @@ func TestHeadersExecutor_ProcessBlock(t *testing.T) {
 				countAddResult++
 				wg.Done()
 				return nil
+			},
+		}
+		args.BlockChain = &testscommon.ChainHandlerStub{
+			GetLastExecutionResultCalled: func() data.BaseExecutionResultHandler {
+				return &block.BaseExecutionResult{}
 			},
 		}
 
@@ -393,7 +438,7 @@ func TestHeadersExecutor_Process(t *testing.T) {
 		require.Equal(t, expectedErr, err)
 	})
 
-	t.Run("should return nil on failing to add execution results to execution tracker", func(t *testing.T) {
+	t.Run("should return error on failing to add execution results to execution tracker", func(t *testing.T) {
 		t.Parallel()
 
 		args := createMockArgs()
@@ -422,7 +467,7 @@ func TestHeadersExecutor_Process(t *testing.T) {
 		}
 
 		err := executor.Process(pair)
-		require.Nil(t, err)
+		require.Equal(t, expectedErr, err)
 	})
 
 	t.Run("should add execution result info to blockchain handler", func(t *testing.T) {
@@ -453,6 +498,9 @@ func TestHeadersExecutor_Process(t *testing.T) {
 			},
 			SetLastExecutionResultCalled: func(result data.BaseExecutionResultHandler) {
 				setLastExecutionResultCalled = true
+			},
+			GetLastExecutionResultCalled: func() data.BaseExecutionResultHandler {
+				return &block.BaseExecutionResult{}
 			},
 		}
 

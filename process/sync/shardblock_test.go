@@ -18,10 +18,11 @@ import (
 	"github.com/multiversx/mx-chain-core-go/data"
 	"github.com/multiversx/mx-chain-core-go/data/block"
 	"github.com/multiversx/mx-chain-core-go/marshal"
-	"github.com/multiversx/mx-chain-go/process/asyncExecution/queue"
-	"github.com/multiversx/mx-chain-go/testscommon/processMocks"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
+
+	"github.com/multiversx/mx-chain-go/process/asyncExecution/queue"
+	"github.com/multiversx/mx-chain-go/testscommon/processMocks"
 
 	"github.com/multiversx/mx-chain-go/common"
 	"github.com/multiversx/mx-chain-go/consensus"
@@ -222,6 +223,7 @@ func createFullStore() dataRetriever.StorageService {
 	store.AddStorer(dataRetriever.ScheduledSCRsUnit, generateTestUnit())
 	store.AddStorer(dataRetriever.UserAccountsUnit, generateTestUnit())
 	store.AddStorer(dataRetriever.PeerAccountsUnit, generateTestUnit())
+	store.AddStorer(dataRetriever.UnsignedTransactionUnit, generateTestUnit())
 	return store
 }
 
@@ -678,7 +680,7 @@ func TestNewShardBootstrap_OkValsShouldWork(t *testing.T) {
 
 	assert.False(t, check.IfNil(bs))
 	assert.Nil(t, err)
-	assert.Equal(t, 2, wasCalled)
+	assert.Equal(t, 3, wasCalled)
 	assert.False(t, bs.IsInterfaceNil())
 	assert.True(t, bs.IsInImportMode())
 
@@ -1937,7 +1939,8 @@ func TestBootstrap_GetTxBodyHavingHashFoundInStorageShouldWork(t *testing.T) {
 		},
 	}
 
-	bs, _ := sync.NewShardBootstrap(args)
+	bs, err := sync.NewShardBootstrap(args)
+	require.Nil(t, err)
 	gotMbsAndHashes, _ := bs.GetMiniBlocks(requestedHash)
 
 	assert.Equal(t, mbsAndHashes, gotMbsAndHashes)
@@ -2175,15 +2178,21 @@ func TestShardBootstrap_DoJobOnSyncBlockFailShouldResetProbableHighestNonce(t *t
 	args.ForkDetector = forkDetectorMock
 	args.ChainHandler = &testscommon.ChainHandlerStub{
 		GetCurrentBlockHeaderCalled: func() data.HeaderHandler {
-			return &block.Header{Nonce: 1}
+			return &block.Header{Nonce: 2}
 		},
 		GetGenesisHeaderCalled: func() data.HeaderHandler {
 			return &block.Header{}
 		},
 	}
 
+	// revert final block should not reset probable highest nonce
 	bs, _ := sync.NewShardBootstrap(args)
 	bs.SetNumSyncedWithErrorsForNonce(2, 9)
+	bs.DoJobOnSyncBlockFail(nil, nil, errors.New("error"))
+	assert.False(t, wasCalled)
+
+	// revert non final block should reset probable highest nonce
+	bs.SetNumSyncedWithErrorsForNonce(3, 9)
 	bs.DoJobOnSyncBlockFail(nil, nil, errors.New("error"))
 
 	assert.True(t, wasCalled)
@@ -2507,6 +2516,9 @@ func TestShardBootstrap_SyncBlock_WithEquivalentProofs(t *testing.T) {
 		pools.ProofsCalled = func() dataRetriever.ProofsPool {
 			return &dataRetrieverMock.ProofsPoolMock{
 				GetProofCalled: func(shardID uint32, headerHash []byte) (data.HeaderProofHandler, error) {
+					return nil, errors.New("missing proof")
+				},
+				GetProofByNonceCalled: func(headerNonce uint64, shardID uint32) (data.HeaderProofHandler, error) {
 					return nil, errors.New("missing proof")
 				},
 				HasProofCalled: func(shardID uint32, headerHash []byte) bool {

@@ -155,8 +155,18 @@ func NewShardProcessorEmptyWith3shards(
 		MaxShardNoncesBehind:              15,
 	}},
 		[]config.ProcessConfigByRound{
-			{EnableRound: 0, MaxRoundsWithoutNewBlockReceived: 10},
+			{
+				EnableRound:                            0,
+				MaxRoundsWithoutNewBlockReceived:       10,
+				MaxRoundsToKeepUnprocessedMiniBlocks:   50,
+				MaxRoundsToKeepUnprocessedTransactions: 50,
+				NumFloodingRoundsSlowReacting:          20,
+				NumFloodingRoundsFastReacting:          30,
+				NumFloodingRoundsOutOfSpecs:            40,
+				MaxConsecutiveRoundsOfRatingDecrease:   600,
+			},
 		},
+		&epochNotifier.RoundNotifierStub{},
 	)
 
 	coreComponents := &mock.CoreComponentsMock{
@@ -729,13 +739,31 @@ func (sp *shardProcessor) GetHdrForBlock() HeadersForBlock {
 	return sp.hdrsForCurrBlock
 }
 
+// PendingMiniBlocksAfterSelection -
+type PendingMiniBlocksAfterSelection = pendingBlocksAfterSelection
+
+// GetHeaderHash -
+func (p *PendingMiniBlocksAfterSelection) GetHeaderHash() []byte {
+	return p.headerHash
+}
+
+// GetHeader -
+func (p *PendingMiniBlocksAfterSelection) GetHeader() data.HeaderHandler {
+	return p.header
+}
+
+// GetMiniBlocksAndHashes -
+func (p *PendingMiniBlocksAfterSelection) GetMiniBlocksAndHashes() map[string]*block.MiniBlock {
+	return p.pendingMiniBlocks
+}
+
 // SelectIncomingMiniBlocks -
 func (sp *shardProcessor) SelectIncomingMiniBlocks(
 	lastCrossNotarizedMetaHdr data.HeaderHandler,
 	orderedMetaBlocks []data.HeaderHandler,
 	orderedMetaBlocksHashes [][]byte,
 	haveTime func() bool,
-) ([]block.MiniblockAndHash, error) {
+) ([]*PendingMiniBlocksAfterSelection, error) {
 	return sp.selectIncomingMiniBlocks(lastCrossNotarizedMetaHdr, orderedMetaBlocks, orderedMetaBlocksHashes, haveTime)
 }
 

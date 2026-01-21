@@ -1,6 +1,7 @@
 package queue
 
 import (
+	"context"
 	"errors"
 	"sync"
 	"testing"
@@ -9,9 +10,10 @@ import (
 	"github.com/multiversx/mx-chain-core-go/core/check"
 	"github.com/multiversx/mx-chain-core-go/data"
 	"github.com/multiversx/mx-chain-core-go/data/block"
-	"github.com/multiversx/mx-chain-go/common"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
+
+	"github.com/multiversx/mx-chain-go/common"
 )
 
 func TestNewHeadersQueue(t *testing.T) {
@@ -175,6 +177,306 @@ func TestHeadersQueue_Concurrency(t *testing.T) {
 	require.Nil(t, res.Body)
 	require.False(t, shouldContinue)
 
+}
+
+func TestBlocksQueue_ConcurrentAddPopValidate(t *testing.T) {
+	t.Parallel()
+
+	hq := NewBlocksQueue()
+
+	const numGoroutines = 3
+	const operationsPerGoroutine = 10
+
+	var wg sync.WaitGroup
+	ctx, cancel := context.WithTimeout(context.Background(), 3*time.Second)
+	defer cancel()
+
+	wg.Add(numGoroutines * 3) // 3 types of operations
+
+	// Goroutines for AddOrReplace operations
+	for i := 0; i < numGoroutines; i++ {
+		go func(gid int) {
+			defer wg.Done()
+			for j := 0; j < operationsPerGoroutine; j++ {
+				select {
+				case <-ctx.Done():
+					return
+				default:
+					nonce := uint64(gid*operationsPerGoroutine + j)
+					pair := HeaderBodyPair{
+						Header: &block.Header{Nonce: nonce},
+						Body:   &block.Body{},
+					}
+					_ = hq.AddOrReplace(pair) // Ignore errors for concurrency test
+					time.Sleep(time.Millisecond)
+				}
+			}
+		}(i)
+	}
+
+	// Goroutines for Pop operations with timeout protection
+	for i := 0; i < numGoroutines; i++ {
+		go func() {
+			defer wg.Done()
+			for j := 0; j < operationsPerGoroutine/2; j++ { // Fewer pops than adds
+				select {
+				case <-ctx.Done():
+					return
+				default:
+					// Use Peek to check if queue has items before attempting Pop
+					if _, ok := hq.Peek(); ok {
+						_, _ = hq.Pop()
+					}
+					time.Sleep(time.Millisecond)
+				}
+			}
+		}()
+	}
+
+	// Goroutines for ValidateQueueIntegrity operations
+	for i := 0; i < numGoroutines; i++ {
+		go func() {
+			defer wg.Done()
+			for j := 0; j < operationsPerGoroutine; j++ {
+				select {
+				case <-ctx.Done():
+					return
+				default:
+					_ = hq.ValidateQueueIntegrity() // Ignore validation errors for concurrency test
+					time.Sleep(time.Millisecond)
+				}
+			}
+		}()
+	}
+
+	// Wait for all goroutines to complete
+	done := make(chan struct{})
+	go func() {
+		wg.Wait()
+		close(done)
+	}()
+
+	// Wait with timeout to prevent hanging
+	select {
+	case <-done:
+		// Test passed - no deadlocks or panics
+		assert.True(t, true, "Concurrent operations completed without deadlock")
+	case <-time.After(5 * time.Second):
+		t.Fatal("Test timed out - possible deadlock in concurrent operations")
+	}
+
+	// Clean shutdown
+	hq.Close()
+}
+
+func TestBlocksQueue_ValidateQueueIntegrity(t *testing.T) {
+	t.Parallel()
+
+	t.Run("empty queue should be valid", func(t *testing.T) {
+		t.Parallel()
+		hq := NewBlocksQueue()
+		defer hq.Close()
+
+		err := hq.ValidateQueueIntegrity()
+		require.NoError(t, err)
+	})
+
+	t.Run("single item queue should be valid", func(t *testing.T) {
+		t.Parallel()
+		hq := NewBlocksQueue()
+		defer hq.Close()
+
+		pair := HeaderBodyPair{
+			Header: &block.Header{Nonce: 5},
+			Body:   &block.Body{},
+		}
+		err := hq.AddOrReplace(pair)
+		require.NoError(t, err)
+
+		err = hq.ValidateQueueIntegrity()
+		require.NoError(t, err)
+	})
+
+	t.Run("sequential nonces should be valid", func(t *testing.T) {
+		t.Parallel()
+		hq := NewBlocksQueue()
+		defer hq.Close()
+
+		// Add sequential nonces: 1, 2, 3, 4, 5
+		for i := 1; i <= 5; i++ {
+			pair := HeaderBodyPair{
+				Header: &block.Header{Nonce: uint64(i)},
+				Body:   &block.Body{},
+			}
+			err := hq.AddOrReplace(pair)
+			require.NoError(t, err)
+		}
+
+		err := hq.ValidateQueueIntegrity()
+		require.NoError(t, err)
+	})
+
+	t.Run("non-sequential nonces should return error", func(t *testing.T) {
+		t.Parallel()
+		hq := NewBlocksQueue()
+		defer hq.Close()
+
+		// Add nonce 1
+		pair1 := HeaderBodyPair{
+			Header: &block.Header{Nonce: 1},
+			Body:   &block.Body{},
+		}
+		err := hq.AddOrReplace(pair1)
+		require.NoError(t, err)
+
+		// Manually insert nonce 3 (skipping 2) to create invalid state
+		hq.mutex.Lock()
+		pair3 := HeaderBodyPair{
+			Header: &block.Header{Nonce: 3},
+			Body:   &block.Body{},
+		}
+		hq.headerBodyPairs = append(hq.headerBodyPairs, pair3)
+		hq.mutex.Unlock()
+
+		err = hq.ValidateQueueIntegrity()
+		require.Error(t, err)
+		require.ErrorIs(t, err, ErrQueueIntegrityViolation)
+	})
+
+	t.Run("lastAddedNonce mismatch should return error", func(t *testing.T) {
+		t.Parallel()
+		hq := NewBlocksQueue()
+		defer hq.Close()
+
+		// Add some items normally
+		for i := 1; i <= 3; i++ {
+			pair := HeaderBodyPair{
+				Header: &block.Header{Nonce: uint64(i)},
+				Body:   &block.Body{},
+			}
+			err := hq.AddOrReplace(pair)
+			require.NoError(t, err)
+		}
+
+		// Manually corrupt lastAddedNonce
+		hq.mutex.Lock()
+		hq.lastAddedNonce = 5 // Should be 3
+		hq.mutex.Unlock()
+
+		err := hq.ValidateQueueIntegrity()
+		require.Error(t, err)
+		require.ErrorIs(t, err, ErrQueueIntegrityViolation)
+	})
+
+	t.Run("validation after pop operations", func(t *testing.T) {
+		t.Parallel()
+		hq := NewBlocksQueue()
+		defer hq.Close()
+
+		// Add sequential nonces: 1, 2, 3, 4
+		for i := 1; i <= 4; i++ {
+			pair := HeaderBodyPair{
+				Header: &block.Header{Nonce: uint64(i)},
+				Body:   &block.Body{},
+			}
+			err := hq.AddOrReplace(pair)
+			require.NoError(t, err)
+		}
+
+		// Pop first two items
+		_, ok := hq.Pop()
+		require.True(t, ok)
+		_, ok = hq.Pop()
+		require.True(t, ok)
+
+		// Remaining queue should still be valid (nonces 3, 4)
+		err := hq.ValidateQueueIntegrity()
+		require.NoError(t, err)
+	})
+
+	t.Run("validation after replace operations", func(t *testing.T) {
+		t.Parallel()
+		hq := NewBlocksQueue()
+		defer hq.Close()
+
+		// Add sequential nonces: 1, 2, 3, 4, 5
+		for i := 1; i <= 5; i++ {
+			pair := HeaderBodyPair{
+				Header: &block.Header{Nonce: uint64(i)},
+				Body:   &block.Body{},
+			}
+			err := hq.AddOrReplace(pair)
+			require.NoError(t, err)
+		}
+
+		// Replace at nonce 3 (should remove 3, 4, 5 and add new 3)
+		pair3New := HeaderBodyPair{
+			Header: &block.Header{Nonce: 3, Round: 999}, // Different round to distinguish
+			Body:   &block.Body{},
+		}
+		err := hq.AddOrReplace(pair3New)
+		require.NoError(t, err)
+
+		// Queue should be valid with nonces 1, 2, 3
+		err = hq.ValidateQueueIntegrity()
+		require.NoError(t, err)
+
+		// Verify the queue actually contains the right items
+		hq.mutex.Lock()
+		assert.Equal(t, 3, len(hq.headerBodyPairs))
+		assert.Equal(t, uint64(1), hq.headerBodyPairs[0].Header.GetNonce())
+		assert.Equal(t, uint64(2), hq.headerBodyPairs[1].Header.GetNonce())
+		assert.Equal(t, uint64(3), hq.headerBodyPairs[2].Header.GetNonce())
+		assert.Equal(t, uint64(999), hq.headerBodyPairs[2].Header.GetRound()) // Verify it's the new one
+		hq.mutex.Unlock()
+	})
+
+	t.Run("validation on closed queue", func(t *testing.T) {
+		t.Parallel()
+		hq := NewBlocksQueue()
+
+		// Add some items
+		for i := 1; i <= 3; i++ {
+			pair := HeaderBodyPair{
+				Header: &block.Header{Nonce: uint64(i)},
+				Body:   &block.Body{},
+			}
+			err := hq.AddOrReplace(pair)
+			require.NoError(t, err)
+		}
+
+		// Close the queue
+		hq.Close()
+
+		// Validation should still work on closed queue
+		err := hq.ValidateQueueIntegrity()
+		require.NoError(t, err)
+	})
+
+	t.Run("validation with RemoveAtNonceAndHigher", func(t *testing.T) {
+		t.Parallel()
+		hq := NewBlocksQueue()
+		defer hq.Close()
+
+		// Add sequential nonces: 1, 2, 3, 4, 5
+		for i := 1; i <= 5; i++ {
+			pair := HeaderBodyPair{
+				Header: &block.Header{Nonce: uint64(i)},
+				Body:   &block.Body{},
+			}
+			err := hq.AddOrReplace(pair)
+			require.NoError(t, err)
+		}
+
+		// Remove from nonce 3 and higher
+		removedNonces := hq.RemoveAtNonceAndHigher(3)
+		expectedRemoved := []uint64{3, 4, 5}
+		assert.Equal(t, expectedRemoved, removedNonces)
+
+		// Queue should be valid with remaining nonces 1, 2
+		err := hq.ValidateQueueIntegrity()
+		require.NoError(t, err)
+	})
 }
 
 func TestMultipleAddOrReplaceShouldNotBlock(t *testing.T) {
@@ -566,4 +868,34 @@ func TestBlocksQueue_AddAndPop(t *testing.T) {
 	case <-time.After(1 * time.Second):
 		t.Log("expected hq.Pop() to block, success")
 	}
+}
+
+func TestBlocksQueue_RemoveAndPop(t *testing.T) {
+	t.Parallel()
+
+	hq := NewBlocksQueue()
+	defer hq.Close()
+
+	pair := HeaderBodyPair{
+		Header: &block.Header{Nonce: 0, Round: 1},
+		Body:   &block.Body{},
+	}
+
+	go func() {
+		// wait a bit so hq.Pop call blocks the channel
+		time.Sleep(time.Millisecond * 100)
+
+		// add a pair and remove it immediately
+		err := hq.AddOrReplace(pair)
+		require.NoError(t, err)
+
+		hq.RemoveAtNonceAndHigher(pair.Header.GetNonce())
+	}()
+
+	// wait blocking, should return ok with nil header and body
+	// using TestingPop to ensure that RemoveAtNonceAndHigher acquires the mutex before pop operation
+	poppedPair, ok := hq.TestingPop(time.Millisecond * 20)
+	require.True(t, ok)
+	require.Nil(t, poppedPair.Header)
+	require.Nil(t, poppedPair.Body)
 }

@@ -454,6 +454,7 @@ func CreateLastExecutionResultFromPrevHeader(prevHeader data.HeaderHandler, prev
 				HeaderHash:  prevHeaderHash,
 				HeaderNonce: prevHeader.GetNonce(),
 				HeaderRound: prevHeader.GetRound(),
+				HeaderEpoch: prevHeader.GetEpoch(),
 				RootHash:    prevHeader.GetRootHash(),
 				GasUsed:     0, // we don't have this information in previous header
 			},
@@ -472,6 +473,7 @@ func CreateLastExecutionResultFromPrevHeader(prevHeader data.HeaderHandler, prev
 				HeaderHash:  prevHeaderHash,
 				HeaderNonce: prevMetaHeader.GetNonce(),
 				HeaderRound: prevMetaHeader.GetRound(),
+				HeaderEpoch: prevMetaHeader.GetEpoch(),
 				RootHash:    prevMetaHeader.GetRootHash(),
 				GasUsed:     0, // we don't have this information in previous header
 			},

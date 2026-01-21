@@ -11,7 +11,6 @@ import (
 	"github.com/stretchr/testify/require"
 
 	"github.com/multiversx/mx-chain-go/config"
-	"github.com/multiversx/mx-chain-go/integrationTests"
 	chainSimulatorIntegrationTests "github.com/multiversx/mx-chain-go/integrationTests/chainSimulator"
 	"github.com/multiversx/mx-chain-go/integrationTests/chainSimulator/staking"
 	"github.com/multiversx/mx-chain-go/integrationTests/chainSimulator/staking/stake"
@@ -64,7 +63,6 @@ func TestChainSimulator_DirectStakingNodes_WithdrawUnstakedInBatches(t *testing.
 				cfg.EpochConfig.EnableEpochs.MaxNodesChangeEnableEpoch[2].EpochEnable = 102
 
 				cfg.SystemSCConfig.StakingSystemSCConfig.UnBondPeriodInEpochs = 6
-				integrationTests.DeactivateSupernovaInConfig(cfg)
 			},
 		})
 		require.Nil(t, err)
@@ -98,7 +96,6 @@ func TestChainSimulator_DirectStakingNodes_WithdrawUnstakedInBatches(t *testing.
 				cfg.EpochConfig.EnableEpochs.MaxNodesChangeEnableEpoch[2].EpochEnable = 4
 
 				cfg.SystemSCConfig.StakingSystemSCConfig.UnBondPeriodInEpochs = 6
-				integrationTests.DeactivateSupernovaInConfig(cfg)
 			},
 		})
 		require.Nil(t, err)
@@ -132,7 +129,6 @@ func TestChainSimulator_DirectStakingNodes_WithdrawUnstakedInBatches(t *testing.
 				cfg.EpochConfig.EnableEpochs.MaxNodesChangeEnableEpoch[2].EpochEnable = 4
 
 				cfg.SystemSCConfig.StakingSystemSCConfig.UnBondPeriodInEpochs = 6
-				integrationTests.DeactivateSupernovaInConfig(cfg)
 			},
 		})
 		require.Nil(t, err)
@@ -166,7 +162,6 @@ func TestChainSimulator_DirectStakingNodes_WithdrawUnstakedInBatches(t *testing.
 				cfg.EpochConfig.EnableEpochs.MaxNodesChangeEnableEpoch[2].EpochEnable = 4
 
 				cfg.SystemSCConfig.StakingSystemSCConfig.UnBondPeriodInEpochs = 6
-				integrationTests.DeactivateSupernovaInConfig(cfg)
 			},
 		})
 		require.Nil(t, err)

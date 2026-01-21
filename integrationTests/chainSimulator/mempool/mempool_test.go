@@ -77,6 +77,7 @@ func TestMempoolWithChainSimulator_Selection(t *testing.T) {
 	require.Equal(t, 50_000*(30_000-27_756), int(gas))
 }
 
+// TODO should activate Supernova for this test
 func TestMempoolWithChainSimulator_Selection_WhenUsersHaveZeroBalance_WithRelayedV3(t *testing.T) {
 	if testing.Short() {
 		t.Skip("this is not a short test")
@@ -86,15 +87,12 @@ func TestMempoolWithChainSimulator_Selection_WhenUsersHaveZeroBalance_WithRelaye
 
 	alterConfigsFunc := func(cfg *config.Configs) {
 		cfg.EpochConfig.EnableEpochs.FixRelayedBaseCostEnableEpoch = 2
+		cfg.EpochConfig.EnableEpochs.SupernovaEnableEpoch = 3
 		cfg.EpochConfig.EnableEpochs.RelayedTransactionsV3EnableEpoch = 2
 		cfg.EpochConfig.EnableEpochs.RelayedTransactionsV3FixESDTTransferEnableEpoch = 2
-		cfg.EpochConfig.EnableEpochs.SupernovaEnableEpoch = 0
 		cfg.RoundConfig.RoundActivations = map[string]config.ActivationRoundByName{
 			"DisableAsyncCallV1": {
 				Round: "9999999",
-			},
-			"SupernovaEnableRound": {
-				Round: "0",
 			},
 		}
 	}
@@ -160,16 +158,13 @@ func TestMempoolWithChainSimulator_Selection_WhenUsersHaveZeroBalance_WithRelaye
 	require.Equal(t, 2, getNumTransactionsInPool(simulator, shard))
 
 	selectedTransactions, _ := selectTransactions(t, simulator, shard)
-	require.Equal(t, 2, len(selectedTransactions))
-	require.Equal(t, alice.Bytes, selectedTransactions[0].Tx.GetSndAddr())
-	require.Equal(t, bob.Bytes, selectedTransactions[1].Tx.GetSndAddr())
+	require.Equal(t, 1, len(selectedTransactions))
+	require.Equal(t, bob.Bytes, selectedTransactions[0].Tx.GetSndAddr())
 
 	err = simulator.GenerateBlocks(1)
 	require.Nil(t, err)
-	require.Equal(t, 2, getNumTransactionsInCurrentBlock(simulator, shard))
-
-	require.Equal(t, "invalid", getTransaction(t, simulator, shard, selectedTransactions[0].TxHash).Status.String())
-	require.Equal(t, "success", getTransaction(t, simulator, shard, selectedTransactions[1].TxHash).Status.String())
+	require.Equal(t, 1, getNumTransactionsInCurrentBlock(simulator, shard))
+	require.Equal(t, "success", getTransaction(t, simulator, shard, selectedTransactions[0].TxHash).Status.String())
 }
 
 func TestMempoolWithChainSimulator_Selection_WhenInsufficientBalanceForFee_WithRelayedV3(t *testing.T) {
@@ -537,11 +532,11 @@ func Test_Selection_ShouldNotSelectSameTransactionsWithSameSender(t *testing.T) 
 	require.Nil(t, err)
 
 	maxNumTxs := 2
-	options := holders.NewTxSelectionOptions(
+	options, _ := holders.NewTxSelectionOptions(
 		10_000_000_000,
 		maxNumTxs,
-		int(selectionLoopMaximumDuration.Milliseconds()),
 		10,
+		haveTimeTrue,
 	)
 
 	numPoolTxs := maxNumTxs * 2
@@ -603,9 +598,8 @@ func Test_Selection_ShouldNotSelectSameTransactionsWithSameSender(t *testing.T) 
 	// the currentNonce should represent here the nonce of the block for which the selection is built
 	selectedTransactions, _, err = txpool.SelectTransactions(selectionSession, options, 2)
 	require.Nil(t, err)
-	require.Equal(t, 2, len(selectedTransactions))
+	require.Equal(t, 1, len(selectedTransactions))
 	require.Equal(t, "txHash2", string(selectedTransactions[0].TxHash))
-	require.Equal(t, "txHash3", string(selectedTransactions[1].TxHash))
 }
 
 func Test_Selection_ShouldNotSelectSameTransactionsWithDifferentSenders(t *testing.T) {
@@ -646,11 +640,11 @@ func Test_Selection_ShouldNotSelectSameTransactionsWithDifferentSenders(t *testi
 	err = txpool.OnExecutedBlock(&block.Header{}, []byte(testRootHash))
 	require.Nil(t, err)
 
-	options := holders.NewTxSelectionOptions(
+	options, _ := holders.NewTxSelectionOptions(
 		10_000_000_000,
 		2,
-		int(selectionLoopMaximumDuration.Milliseconds()),
 		10,
+		haveTimeTrue,
 	)
 
 	nonceTracker := newNoncesTracker()
@@ -793,11 +787,11 @@ func Test_Selection_ShouldNotSelectSameTransactionsWithManyTransactions(t *testi
 	err = txpool.OnExecutedBlock(&block.Header{}, []byte(testRootHash))
 	require.Nil(t, err)
 
-	options := holders.NewTxSelectionOptions(
+	options, _ := holders.NewTxSelectionOptions(
 		10_000_000_000,
 		numTxsPerSender,
-		int(selectionLoopMaximumDuration.Milliseconds()),
 		10,
+		haveTimeTrue,
 	)
 
 	numTxs := numTxsPerSender * len(senders)
@@ -891,11 +885,11 @@ func Test_Selection_ProposeEmptyBlocks(t *testing.T) {
 	err = txpool.OnExecutedBlock(&block.Header{}, []byte(testRootHash))
 	require.Nil(t, err)
 
-	options := holders.NewTxSelectionOptions(
+	options, _ := holders.NewTxSelectionOptions(
 		10_000_000_000,
 		numTxsPerSender,
-		int(selectionLoopMaximumDuration.Milliseconds()),
 		10,
+		haveTimeTrue,
 	)
 
 	numTxs := numTxsPerSender * len(senders)
@@ -1013,11 +1007,11 @@ func Test_Selection_ProposeBlocksWithSameNonceToTriggerForkScenarios(t *testing.
 		err = txpool.OnExecutedBlock(&block.Header{}, []byte(testRootHash))
 		require.Nil(t, err)
 
-		options := holders.NewTxSelectionOptions(
+		options, _ := holders.NewTxSelectionOptions(
 			10_000_000_000,
 			numTxsPerSender,
-			int(selectionLoopMaximumDuration.Milliseconds()),
 			10,
+			haveTimeTrue,
 		)
 
 		numTxs := numTxsPerSender * len(senders)
@@ -1143,11 +1137,11 @@ func Test_Selection_ProposeBlocksWithSameNonceToTriggerForkScenarios(t *testing.
 		err = txpool.OnExecutedBlock(&block.Header{}, []byte(testRootHash))
 		require.Nil(t, err)
 
-		options := holders.NewTxSelectionOptions(
+		options, _ := holders.NewTxSelectionOptions(
 			10_000_000_000,
 			numTxsPerSender,
-			int(selectionLoopMaximumDuration.Milliseconds()),
 			10,
+			haveTimeTrue,
 		)
 
 		numTxs := numTxsPerSender * len(senders)
@@ -1313,11 +1307,11 @@ func Test_Selection_ShouldNotSelectSameTransactionsWithManyTransactionsAndExecut
 	err = txpool.OnExecutedBlock(&block.Header{}, []byte(testRootHash))
 	require.Nil(t, err)
 
-	options := holders.NewTxSelectionOptions(
+	options, _ := holders.NewTxSelectionOptions(
 		10_000_000_000,
 		30_000,
-		int(selectionLoopMaximumDuration.Milliseconds()),
 		10,
+		haveTimeTrue,
 	)
 
 	nonceTracker := newNoncesTracker()
@@ -1432,11 +1426,11 @@ func Test_Selection_ProposeEmptyBlocksAndExecutedBlockNotification(t *testing.T)
 	err = txpool.OnExecutedBlock(&block.Header{}, []byte(testRootHash))
 	require.Nil(t, err)
 
-	options := holders.NewTxSelectionOptions(
+	options, _ := holders.NewTxSelectionOptions(
 		10_000_000_000,
 		30_000,
-		int(selectionLoopMaximumDuration.Milliseconds()),
 		10,
+		haveTimeTrue,
 	)
 
 	nonceTracker := newNoncesTracker()
@@ -1598,11 +1592,11 @@ func Test_Selection_WithRemovingProposedBlocks(t *testing.T) {
 	err = txpool.OnExecutedBlock(&block.Header{}, []byte(testRootHash))
 	require.Nil(t, err)
 
-	options := holders.NewTxSelectionOptions(
+	options, _ := holders.NewTxSelectionOptions(
 		10_000_000_000,
 		numTxsPerSender,
-		int(selectionLoopMaximumDuration.Milliseconds()),
 		10,
+		haveTimeTrue,
 	)
 
 	numTxs := numTxsPerSender * len(senders)
@@ -1732,11 +1726,11 @@ func Test_SimulateSelection_ShouldNotRemoveProposedBlocks(t *testing.T) {
 	err = txpool.OnExecutedBlock(&block.Header{}, []byte(testRootHash))
 	require.Nil(t, err)
 
-	options := holders.NewTxSelectionOptions(
+	options, _ := holders.NewTxSelectionOptions(
 		10_000_000_000,
 		numTxsPerSender,
-		int(selectionLoopMaximumDuration.Milliseconds()),
 		10,
+		haveTimeTrue,
 	)
 
 	numTxs := numTxsPerSender * len(senders)
@@ -1858,11 +1852,11 @@ func Test_Selection_MaxTrackedBlocksReached(t *testing.T) {
 	err = txpool.OnExecutedBlock(&block.Header{}, []byte(testRootHash))
 	require.Nil(t, err)
 
-	options := holders.NewTxSelectionOptions(
+	options, _ := holders.NewTxSelectionOptions(
 		10_000_000_000,
 		numTxsPerSender,
-		int(selectionLoopMaximumDuration.Milliseconds()),
 		10,
+		haveTimeTrue,
 	)
 
 	numTxs := numTxsPerSender * len(senders)
@@ -2017,11 +2011,11 @@ func Test_SelectionWhenFeeExceedsBalanceWithMax3TxsSelected(t *testing.T) {
 	err = txpool.OnExecutedBlock(&block.Header{}, []byte(testRootHash))
 	require.Nil(t, err)
 
-	options := holders.NewTxSelectionOptions(
+	options, _ := holders.NewTxSelectionOptions(
 		10_000_000_000,
 		3,
-		int(selectionLoopMaximumDuration.Milliseconds()),
 		10,
+		haveTimeTrue,
 	)
 
 	// Consume most of relayer's balance. Keep an amount that is enough for the fee of two simple transfer transactions.
@@ -2175,11 +2169,11 @@ func Test_SelectionWhenFeeExceedsBalanceWithMax2TxsSelected(t *testing.T) {
 	err = txpool.OnExecutedBlock(&block.Header{}, []byte(testRootHash))
 	require.Nil(t, err)
 
-	options := holders.NewTxSelectionOptions(
+	options, _ := holders.NewTxSelectionOptions(
 		10_000_000_000,
 		2,
-		int(selectionLoopMaximumDuration.Milliseconds()),
 		10,
+		haveTimeTrue,
 	)
 
 	// Consume most of relayer's balance. Keep an amount that is enough for the fee of two simple transfer transactions.
@@ -2338,11 +2332,11 @@ func Test_SelectionWithRootHashMismatch(t *testing.T) {
 	err = txpool.OnExecutedBlock(&block.Header{}, []byte(testRootHash))
 	require.Nil(t, err)
 
-	options := holders.NewTxSelectionOptions(
+	options, _ := holders.NewTxSelectionOptions(
 		10_000_000_000,
 		numTxsPerSender,
-		int(selectionLoopMaximumDuration.Milliseconds()),
 		10,
+		haveTimeTrue,
 	)
 
 	numTxs := numTxsPerSender * len(senders)
@@ -2451,11 +2445,11 @@ func Test_SelectionWithAliceRelayerAndSenderOnSameTxs(t *testing.T) {
 		TxHash: []byte("txHash2"),
 	})
 
-	options := holders.NewTxSelectionOptions(
+	options, _ := holders.NewTxSelectionOptions(
 		10_000_000_000,
 		1,
-		int(selectionLoopMaximumDuration.Milliseconds()),
 		10,
+		haveTimeTrue,
 	)
 
 	// do the first selection
@@ -2563,12 +2557,12 @@ func Test_SelectionWithAliceSenderAndThenRelayerOnDifferentTxs(t *testing.T) {
 		TxHash: []byte("txHash2"),
 	})
 
-	options := holders.NewTxSelectionOptions(
+	options, _ := holders.NewTxSelectionOptions(
 		10_000_000_000,
 		// select max 2 txs
 		2,
-		int(selectionLoopMaximumDuration.Milliseconds()),
 		10,
+		haveTimeTrue,
 	)
 
 	// do the first selection

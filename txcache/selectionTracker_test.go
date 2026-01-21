@@ -470,23 +470,23 @@ func Test_CompleteFlowShouldWork(t *testing.T) {
 
 	txs := []*WrappedTransaction{
 		// txs for first block
-		createTx([]byte("txHash1"), "alice", 11).withRelayer([]byte("bob")).withGasLimit(100_000), // the fee is 100000000000000
-		createTx([]byte("txHash2"), "alice", 12),                                                  // the fee is 50000000000000
-		createTx([]byte("txHash3"), "alice", 13),
-		createTx([]byte("txHash4"), "bob", 11),
-		createTx([]byte("txHash5"), "carol", 11),
-		createTx([]byte("txHash6"), "carol", 12).withRelayer([]byte("bob")).withGasLimit(100_000),
-		createTx([]byte("txHash7"), "carol", 13).withRelayer([]byte("alice")).withGasLimit(100_000),
-		createTx([]byte("txHash8"), "carol", 14).withRelayer([]byte("eve")).withGasLimit(100_000),
+		createTx([]byte("txHash1"), "alice", 11).withValue(big.NewInt(0)).withRelayer([]byte("bob")).withGasLimit(100_000), // the fee is 100000000000000
+		createTx([]byte("txHash2"), "alice", 12).withValue(big.NewInt(0)),                                                  // the fee is 50000000000000
+		createTx([]byte("txHash3"), "alice", 13).withValue(big.NewInt(0)),
+		createTx([]byte("txHash4"), "bob", 11).withValue(big.NewInt(0)),
+		createTx([]byte("txHash5"), "carol", 11).withValue(big.NewInt(0)),
+		createTx([]byte("txHash6"), "carol", 12).withValue(big.NewInt(0)).withRelayer([]byte("bob")).withGasLimit(100_000),
+		createTx([]byte("txHash7"), "carol", 13).withValue(big.NewInt(0)).withRelayer([]byte("alice")).withGasLimit(100_000),
+		createTx([]byte("txHash8"), "carol", 14).withValue(big.NewInt(0)).withRelayer([]byte("eve")).withGasLimit(100_000),
 
 		// txs for second block
-		createTx([]byte("txHash9"), "carol", 15),
-		createTx([]byte("txHash10"), "eve", 11).withRelayer([]byte("bob")).withGasLimit(100_000),
+		createTx([]byte("txHash9"), "carol", 15).withValue(big.NewInt(0)),
+		createTx([]byte("txHash10"), "eve", 11).withValue(big.NewInt(0)).withRelayer([]byte("bob")).withGasLimit(100_000),
 
 		// tx to be selected
-		createTx([]byte("txHash11"), "bob", 12),
-		createTx([]byte("txHash12"), "carol", 13), // this one should not be selected
-		createTx([]byte("txHash13"), "eve", 14),   // this one should not be selected
+		createTx([]byte("txHash11"), "bob", 12).withValue(big.NewInt(0)),
+		createTx([]byte("txHash12"), "carol", 13).withValue(big.NewInt(0)), // this one should not be selected
+		createTx([]byte("txHash13"), "eve", 14).withValue(big.NewInt(0)),   // this one should not be selected
 	}
 	for _, tx := range txs {
 		cache.AddTx(tx)
@@ -629,11 +629,11 @@ func Test_CompleteFlowShouldWork(t *testing.T) {
 	}
 	require.Equal(t, expectedVirtualRecords, virtualSession.virtualAccountsByAddress)
 
-	options := holders.NewTxSelectionOptions(
+	options, _ := holders.NewTxSelectionOptions(
 		10_000_000_000,
 		10,
-		selectionLoopMaximumDuration,
 		10,
+		haveTimeTrueForSelection,
 	)
 
 	selectedTxs, _, err := cache.SelectTransactions(

@@ -8,6 +8,7 @@ import (
 	"github.com/multiversx/mx-chain-core-go/data"
 	"github.com/multiversx/mx-chain-core-go/data/block"
 	"github.com/multiversx/mx-chain-core-go/data/rewardTx"
+
 	"github.com/multiversx/mx-chain-go/common"
 
 	"github.com/multiversx/mx-chain-go/dataRetriever"
@@ -198,7 +199,7 @@ func (rtp *rewardTxPreprocessor) ProcessBlockTransactions(
 			continue
 		}
 
-		pi, err := rtp.getIndexesOfLastTxProcessed(miniBlock, headerHandler)
+		pi, err := rtp.getIndexesOfLastTxProcessedOnExecution(miniBlock, headerHandler)
 		if err != nil {
 			return err
 		}
@@ -409,7 +410,7 @@ func (rtp *rewardTxPreprocessor) getAllRewardTxsFromMiniBlock(
 }
 
 // SelectOutgoingTransactions does nothing as rewards transactions are created by meta chain
-func (rtp *rewardTxPreprocessor) SelectOutgoingTransactions(_ uint64, _ uint64) ([][]byte, []data.TransactionHandler, error) {
+func (rtp *rewardTxPreprocessor) SelectOutgoingTransactions(_ uint64, _ uint64, _ func() bool) ([][]byte, []data.TransactionHandler, error) {
 	return make([][]byte, 0), make([]data.TransactionHandler, 0), nil
 }
 

@@ -61,7 +61,6 @@ func createMockTxCacheSelectionConfig() config.TxCacheSelectionConfig {
 		SelectionGasBandwidthIncreaseScheduledPercent: 260,
 		SelectionGasRequested:                         10_000_000_000,
 		SelectionMaxNumTxs:                            30000,
-		SelectionLoopMaximumDuration:                  250,
 		SelectionLoopDurationCheckInterval:            10,
 	}
 }
@@ -1465,7 +1464,7 @@ func TestTransactionCoordinator_CreateMbsAndProcessTransactionsFromMe(t *testing
 	hasher := &hashingMocks.HasherMock{}
 	for shId := uint32(0); shId < nrShards; shId++ {
 		strCache := process.ShardCacherIdentifier(0, shId)
-		newTx := &transaction.Transaction{GasLimit: uint64(shId), Nonce: 42 + uint64(shId)}
+		newTx := &transaction.Transaction{Value: big.NewInt(0), GasLimit: uint64(shId), Nonce: 42 + uint64(shId)}
 
 		computedTxHash, _ := core.CalculateHash(marshalizer, hasher, newTx)
 		txPool.AddData(computedTxHash, newTx, newTx.Size(), strCache)
@@ -1527,7 +1526,7 @@ func TestTransactionCoordinator_CreateMbsAndProcessTransactionsFromMeMultipleMin
 
 	allTxs := 100
 	for i := 0; i < allTxs; i++ {
-		newTx := &transaction.Transaction{GasLimit: gasLimit, GasPrice: uint64(i), RcvAddr: scAddress}
+		newTx := &transaction.Transaction{Value: big.NewInt(0), GasLimit: gasLimit, GasPrice: uint64(i), RcvAddr: scAddress}
 
 		computedTxHash, _ := core.CalculateHash(marshalizer, hasher, newTx)
 		txPool.AddData(computedTxHash, newTx, newTx.Size(), strCache)
@@ -1604,7 +1603,7 @@ func TestTransactionCoordinator_CreateMbsAndProcessTransactionsFromMeMultipleMin
 	scAddress, _ := hex.DecodeString("000000000000000000005fed9c659422cd8429ce92f8973bba2a9fb51e0eb3a1")
 
 	for i := 0; i < allTxs; i++ {
-		newTx := &transaction.Transaction{GasLimit: gasLimit + gasLimit/uint64(numMiniBlocks), GasPrice: uint64(i), RcvAddr: scAddress}
+		newTx := &transaction.Transaction{Value: big.NewInt(0), GasLimit: gasLimit + gasLimit/uint64(numMiniBlocks), GasPrice: uint64(i), RcvAddr: scAddress}
 
 		computedTxHash, _ := core.CalculateHash(marshalizer, hasher, newTx)
 		txPool.AddData(computedTxHash, newTx, newTx.Size(), strCache)
@@ -1686,7 +1685,7 @@ func TestTransactionCoordinator_CompactAndExpandMiniblocksShouldWork(t *testing.
 
 	for _, shardCacher := range shardCacherIdentifiers {
 		for i := 0; i < numTxsPerBulk; i++ {
-			newTx := &transaction.Transaction{GasLimit: gasLimit, GasPrice: uint64(i), RcvAddr: scAddress}
+			newTx := &transaction.Transaction{Value: big.NewInt(0), GasLimit: gasLimit, GasPrice: uint64(i), RcvAddr: scAddress}
 
 			computedTxHash, _ := core.CalculateHash(marshalizer, hasher, newTx)
 			txPool.AddData(computedTxHash, newTx, newTx.Size(), shardCacher)
@@ -1747,7 +1746,7 @@ func TestTransactionCoordinator_GetAllCurrentUsedTxs(t *testing.T) {
 	hasher := &hashingMocks.HasherMock{}
 	for i := uint32(0); i < nrShards; i++ {
 		strCache := process.ShardCacherIdentifier(0, i)
-		newTx := &transaction.Transaction{GasLimit: uint64(i), Nonce: 42 + uint64(i)}
+		newTx := &transaction.Transaction{Value: big.NewInt(0), GasLimit: uint64(i), Nonce: 42 + uint64(i)}
 
 		computedTxHash, _ := core.CalculateHash(marshalizer, hasher, newTx)
 		txPool.AddData(computedTxHash, newTx, newTx.Size(), strCache)

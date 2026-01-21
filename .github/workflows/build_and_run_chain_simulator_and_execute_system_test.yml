@@ -437,6 +437,7 @@ jobs:
             const exitCode                  = process.env.PYTEST_EXIT_CODE;
 
             const simulatorCommitHash = process.env.SIMULATOR_COMMIT_HASH || 'N/A';
+            const testingSuiteCommitHash = process.env.CURRENT_COMMIT_HASH || 'N/A';
             const r2Url            = process.env.R2_REPORT_URL || 'N/A';
 
             const issue_number = context.issue.number;
@@ -465,8 +466,9 @@ jobs:
               - **Current Branch:** \`${currentBranch}\`
               - **mx-chain-go Target Branch:** \`${goTargetBranch}\`
               - **mx-chain-simulator-go Target Branch:** \`${simulatorTargetBranch}\`
-              - **mx-chain-testing-suite Target Branch:** \`${testingSuiteTargetBranch}\`
               - **mx-chain-simulator-go Commit Hash:** \`${simulatorCommitHash}\`
+              - **mx-chain-testing-suite Target Branch:** \`${testingSuiteTargetBranch}\`
+              - **mx-chain-testing-suite Commit Hash:** \`${testingSuiteCommitHash}\`
 
               🚀 **Environment Variables:**
               - **TIMESTAMP:** \`${ts}\`

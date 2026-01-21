@@ -1,6 +1,7 @@
 package spos
 
 import (
+	"bytes"
 	"context"
 	"sync"
 	"time"
@@ -239,21 +240,34 @@ func (sr *Subround) ConsensusChannel() chan bool {
 	return sr.consensusStateChangedChannel
 }
 
+// HasProofForCompetingBlock checks if there is a proof for a competing block in the equivalent proofs pool
+func (sr *Subround) HasProofForCompetingBlock() bool {
+	prevBlock := sr.Blockchain().GetCurrentBlockHeader()
+	if check.IfNil(prevBlock) {
+		return false
+	}
+	competingBlockNonce := prevBlock.GetNonce() + 1
+	proof, err := sr.EquivalentProofsPool().GetProofByNonce(competingBlockNonce, sr.ShardCoordinator().SelfId())
+	if err != nil || check.IfNil(proof) {
+		return false
+	}
+
+	consensusBlockHash := sr.GetData()
+	if len(consensusBlockHash) == 0 {
+		return true
+	}
+
+	// proof for current consensus block does not count as competing
+	if bytes.Equal(proof.GetHeaderHash(), consensusBlockHash) {
+		return false
+	}
+
+	return true
+}
+
 // GetAssociatedPid returns the associated PeerID to the provided public key bytes
 func (sr *Subround) GetAssociatedPid(pkBytes []byte) core.PeerID {
 	return sr.GetKeysHandler().GetAssociatedPid(pkBytes)
-}
-
-// ShouldConsiderSelfKeyInConsensus returns true if current machine is the main one, or it is a backup machine but the main
-// machine failed
-func (sr *Subround) ShouldConsiderSelfKeyInConsensus() bool {
-	isMainMachine := !sr.NodeRedundancyHandler().IsRedundancyNode()
-	if isMainMachine {
-		return true
-	}
-	isMainMachineInactive := !sr.NodeRedundancyHandler().IsMainMachineActive()
-
-	return isMainMachineInactive
 }
 
 // IsSelfInConsensusGroup returns true is the current node is in consensus group in single
@@ -270,7 +284,7 @@ func (sr *Subround) IsSelfLeader() bool {
 
 // IsSelfLeaderInCurrentRound method checks if the current node is leader in the current round
 func (sr *Subround) IsSelfLeaderInCurrentRound() bool {
-	return sr.IsNodeLeaderInCurrentRound(sr.SelfPubKey()) && sr.ShouldConsiderSelfKeyInConsensus()
+	return sr.IsNodeLeaderInCurrentRound(sr.SelfPubKey()) && ShouldConsiderSelfKeyInConsensus(sr.NodeRedundancyHandler())
 }
 
 // GetLeaderStartRoundMessage returns the leader start round message based on single key

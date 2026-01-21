@@ -340,6 +340,14 @@ const MetricNumTrackedBlocks = "erd_num_tracked_blocks"
 // MetricNumTrackedAccounts is the metric that specifies how many accounts are tracked by the txPool
 const MetricNumTrackedAccounts = "erd_num_tracked_accounts"
 
+// MetricNumInclusionEstimationRejected is the metric that specifies how many execution results were rejected by the
+// inclusion estimation process
+const MetricNumInclusionEstimationRejected = "erd_num_inclusion_estimation_rejected"
+
+// MetricDeltaHeaderNonceLastExecutionResultNonce is the metric that specifies the delta between the header nonce and
+// the last execution result nonce
+const MetricDeltaHeaderNonceLastExecutionResultNonce = "erd_delta_header_nonce_last_execution_result_nonce"
+
 // MetricCreatedProposedBlock is the metric that specifies the percent of the block subround used for header and body
 // creation (0 meaning that the block was created in no-time and 100 meaning that the block creation used all the
 // subround spare duration)
@@ -618,9 +626,6 @@ const (
 	// MetricStorageAPICostOptimizationEnableEpoch represents the epoch when storage api cost optimization feature is enabled
 	MetricStorageAPICostOptimizationEnableEpoch = "erd_storage_api_cost_optimization_enable_epoch"
 
-	// MetricTransformToMultiShardCreateEnableEpoch represents the epoch when transform to multi shard create functionality is enabled
-	MetricTransformToMultiShardCreateEnableEpoch = "erd_transform_to_multi_shard_create_enable_epoch"
-
 	// MetricESDTRegisterAndSetAllRolesEnableEpoch represents the epoch when esdt register and set all roles functionality is enabled
 	MetricESDTRegisterAndSetAllRolesEnableEpoch = "erd_esdt_register_and_set_all_roles_enable_epoch"
 
@@ -803,6 +808,12 @@ const (
 
 	// MetricRelayedTransactionsV1V2DisableEpoch represents the epoch when relayed transactions v1 and v2 are disabled
 	MetricRelayedTransactionsV1V2DisableEpoch = "erd_relayed_transactions_v1_v2_disable_epoch"
+
+	// MetricTailInflationEnableEpoch represents the epoch when tail inflation is enabled
+	MetricTailInflationEnableEpoch = "erd_tail_inflation_enable_epoch"
+
+	// MetricSupernovaEnableEpoch represents the epoch when supernova is enabled
+	MetricSupernovaEnableEpoch = "erd_supernova_enable_epoch"
 
 	// MetricEpochEnable represents the epoch when the max nodes change configuration is applied
 	MetricEpochEnable = "erd_epoch_enable"

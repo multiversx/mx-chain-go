@@ -665,6 +665,9 @@ func TestSubroundBlock_DoBlockJob(t *testing.T) {
 					PubKeysBitmap:       providedBitmap,
 				}, nil
 			},
+			GetProofByNonceCalled: func(headerNonce uint64, shardID uint32) (data.HeaderProofHandler, error) {
+				return nil, fmt.Errorf("no proof for nonce")
+			},
 		})
 
 		r := sr.DoBlockJob()
@@ -753,6 +756,7 @@ func TestSubroundBlock_DoBlockJob(t *testing.T) {
 		container.SetRoundHandler(&round.RoundHandlerMock{
 			RoundIndex: 1,
 		})
+
 		container.SetEquivalentProofsPool(&dataRetriever.ProofsPoolMock{
 			GetProofCalled: func(shardID uint32, headerHash []byte) (data.HeaderProofHandler, error) {
 				return &block.HeaderProof{
@@ -760,6 +764,9 @@ func TestSubroundBlock_DoBlockJob(t *testing.T) {
 					AggregatedSignature: providedSignature,
 					PubKeysBitmap:       providedBitmap,
 				}, nil
+			},
+			GetProofByNonceCalled: func(headerNonce uint64, shardID uint32) (data.HeaderProofHandler, error) {
+				return nil, fmt.Errorf("no proof for nonce")
 			},
 		})
 		wasCreateNewHeaderProposalCalled := false

@@ -106,7 +106,6 @@ type ArgsCoreComponentsHolder struct {
 	MetaChainConsensusGroupSize uint32
 	RoundDurationInMs           uint64
 	GenesisTime                 time.Time
-	SupernovaGenesisTime        time.Time
 }
 
 // CreateCoreComponents will create a new instance of factory.CoreComponentsHolder
@@ -161,8 +160,8 @@ func CreateCoreComponents(args ArgsCoreComponentsHolder) (*coreComponentsHolder,
 	instance.syncTimer = &testscommon.SyncTimerStub{}
 
 	instance.epochStartNotifierWithConfirm = notifier.NewEpochStartSubscriptionHandler()
-	instance.chainParametersSubscriber = chainparametersnotifier.NewChainParametersNotifier()
 	chainParametersNotifier := chainparametersnotifier.NewChainParametersNotifier()
+	instance.chainParametersSubscriber = chainParametersNotifier
 	argsChainParametersHandler := sharding.ArgsChainParametersHolder{
 		EpochStartEventNotifier: instance.epochStartNotifierWithConfirm,
 		ChainParameters:         args.Config.GeneralSettings.ChainParametersByEpoch,
@@ -215,7 +214,6 @@ func CreateCoreComponents(args ArgsCoreComponentsHolder) (*coreComponentsHolder,
 		"startTime", instance.genesisNodesSetup.GetStartTime(),
 		"nodesSetup start time", nodesSetup.StartTime,
 	)
-	instance.genesisTime = time.Unix(instance.genesisNodesSetup.GetStartTime(), 0)
 
 	instance.roundNotifier = forking.NewGenericRoundNotifier()
 	instance.enableRoundsHandler, err = enablers.NewEnableRoundsHandler(args.RoundsConfig, instance.roundNotifier)
@@ -225,7 +223,12 @@ func CreateCoreComponents(args ArgsCoreComponentsHolder) (*coreComponentsHolder,
 
 	roundDuration := time.Millisecond * time.Duration(instance.genesisNodesSetup.GetRoundDuration())
 	supernovaRound := instance.enableRoundsHandler.GetActivationRound(common.SupernovaRoundFlag)
-	instance.supernovaGenesisTime = instance.genesisTime.Add(time.Duration(supernovaRound) * roundDuration)
+
+	startTime = instance.genesisTime
+	instance.supernovaGenesisTime = startTime.Add(time.Duration(supernovaRound-uint64(args.InitialRound)) * roundDuration)
+	if instance.supernovaGenesisTime.Before(instance.genesisTime) {
+		instance.supernovaGenesisTime = instance.genesisTime
+	}
 
 	supernovaActivationEpoch := instance.enableEpochsHandler.GetActivationEpoch(common.SupernovaFlag)
 	chainParamsForSupernova, err := instance.chainParametersHandler.ChainParametersForEpoch(supernovaActivationEpoch)
@@ -240,6 +243,7 @@ func CreateCoreComponents(args ArgsCoreComponentsHolder) (*coreComponentsHolder,
 		RoundDuration:             roundDuration,
 		SupernovaRoundDuration:    time.Duration(chainParamsForSupernova.RoundDuration) * time.Millisecond,
 		InitialRound:              args.InitialRound,
+		SupernovaStartRound:       int64(supernovaRound),
 	}
 	instance.roundHandler, err = NewManualRoundHandler(argsManualRoundHandler)
 	if err != nil {
@@ -250,6 +254,7 @@ func CreateCoreComponents(args ArgsCoreComponentsHolder) (*coreComponentsHolder,
 	instance.txVersionChecker = versioning.NewTxVersionChecker(args.Config.GeneralSettings.MinTransactionVersion)
 
 	argsEconomicsHandler := economics.ArgsNewEconomicsData{
+		ChainParamsHandler:  instance.chainParametersHandler,
 		TxVersionChecker:    instance.txVersionChecker,
 		Economics:           &args.EconomicsConfig,
 		EpochNotifier:       instance.epochNotifier,
@@ -314,6 +319,7 @@ func CreateCoreComponents(args ArgsCoreComponentsHolder) (*coreComponentsHolder,
 	instance.processConfigsHandler, err = commonConfigs.NewProcessConfigsHandler(
 		args.Config.GeneralSettings.ProcessConfigsByEpoch,
 		args.Config.GeneralSettings.ProcessConfigsByRound,
+		instance.roundNotifier,
 	)
 	if err != nil {
 		return nil, err

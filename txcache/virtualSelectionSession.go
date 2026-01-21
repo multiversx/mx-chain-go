@@ -1,6 +1,7 @@
 package txcache
 
 import (
+	"bytes"
 	"math/big"
 
 	"github.com/multiversx/mx-chain-core-go/core"
@@ -58,11 +59,6 @@ func (virtualSession *virtualSelectionSession) getNonceForAccountRecord(accountR
 }
 
 func (virtualSession *virtualSelectionSession) accumulateConsumedBalance(tx *WrappedTransaction, senderRecord *virtualAccountRecord) error {
-	transferredValue := tx.TransferredValue
-	if transferredValue != nil {
-		senderRecord.accumulateConsumedBalance(transferredValue)
-	}
-
 	var feePayerRecord *virtualAccountRecord
 
 	// check if there's a need to search for another record
@@ -87,41 +83,96 @@ func (virtualSession *virtualSelectionSession) accumulateConsumedBalance(tx *Wra
 		feePayerRecord.accumulateConsumedBalance(fee)
 	}
 
+	// getting the record of the fee payer might generate an unexpected failure.
+	// this means that the transaction will not be selected.
+	// accumulate the transferred value only if there isn't any error until here.
+	transferredValue := tx.TransferredValue
+	if transferredValue != nil {
+		senderRecord.accumulateConsumedBalance(transferredValue)
+	}
+
 	return nil
 }
 
-func (virtualSession *virtualSelectionSession) detectWillFeeExceedBalance(tx *WrappedTransaction) bool {
-	fee := tx.Fee
-	if fee == nil {
-		// unexpected failure
-		log.Debug("virtualSelectionSession.detectWillFeeExceedBalance nil fee")
-		return false
-	}
-
-	// Here, we are not interested into an eventual transfer of value (we only check if there's enough balance to pay the transaction fee).
-	feePayer := tx.FeePayer
-	feePayerRecord, err := virtualSession.getRecord(feePayer)
+func (virtualSession *virtualSelectionSession) consumedBalanceExceedsInitialBalance(address []byte, value *big.Int) bool {
+	record, err := virtualSession.getRecord(address)
 	if err != nil {
-		log.Debug("virtualSelectionSession.detectWillFeeExceedBalance",
+		log.Debug("virtualSelectionSession.consumedBalanceExceedsInitialBalance",
 			"err", err)
-		return false
+		return true
 	}
 
-	consumedBalance := feePayerRecord.getConsumedBalance()
-	futureConsumedBalance := new(big.Int).Add(consumedBalance, fee)
-	feePayerBalance := feePayerRecord.getInitialBalance()
+	consumedBalance := record.getConsumedBalance()
+	futureConsumedBalance := new(big.Int).Add(consumedBalance, value)
+	initialBalance := record.getInitialBalance()
 
-	willFeeExceedBalance := futureConsumedBalance.Cmp(feePayerBalance) > 0
-	if willFeeExceedBalance {
-		logSelect.Trace("virtualSelectionSession.detectWillFeeExceedBalance",
-			"tx", tx.TxHash,
-			"feePayer", feePayer,
-			"initialBalance", feePayerBalance,
+	willBalanceBeExceeded := futureConsumedBalance.Cmp(initialBalance) > 0
+	if willBalanceBeExceeded {
+		logSelect.Trace("virtualSelectionSession.consumedBalanceExceedsInitialBalance",
+			"initialBalance", initialBalance,
 			"consumedBalance", consumedBalance,
 		)
 	}
+	return willBalanceBeExceeded
+}
 
-	return willFeeExceedBalance
+// the selection of transactions has to be as restrictive as proposing the block.
+// this means that we should check not only if fee exceeds the balance of relayer, but also if the transferred value exceeds it
+func (virtualSession *virtualSelectionSession) detectWillBalanceBeExceeded(tx *WrappedTransaction) bool {
+	if tx == nil {
+		log.Debug("virtualSelectionSession.detectWillBalanceBeExceeded nil wrapped transaction")
+		return true
+	}
+
+	if tx.Tx == nil {
+		log.Debug("virtualSelectionSession.detectWillBalanceBeExceeded nil tx")
+		return true
+	}
+
+	sender := tx.Tx.GetSndAddr()
+	transferredValue := tx.TransferredValue
+	if transferredValue == nil {
+		log.Trace("virtualSelectionSession.detectWillBalanceBeExceeded nil transferredValue")
+		return true
+	}
+
+	if virtualSession.consumedBalanceExceedsInitialBalance(sender, transferredValue) {
+		logSelect.Debug("virtualSelectionSession.detectWillBalanceBeExceeded balance exceeded  by transferred value",
+			"txHash", tx.TxHash,
+			"sender", sender,
+			"transferredValue", transferredValue,
+		)
+		return true
+	}
+
+	feePayer := tx.FeePayer
+	fee := tx.Fee
+	if fee == nil {
+		log.Debug("virtualSelectionSession.detectWillBalanceBeExceeded nil fee")
+		return true
+	}
+
+	if virtualSession.consumedBalanceExceedsInitialBalance(feePayer, fee) {
+		logSelect.Trace("virtualSelectionSession.detectWillBalanceBeExceeded balance exceeded by fee",
+			"txHash", tx.TxHash,
+			"feePayer", feePayer,
+			"fee", fee,
+		)
+		return true
+	}
+
+	accumulatedBalance := big.NewInt(0).Add(transferredValue, fee)
+	if bytes.Equal(sender, feePayer) && virtualSession.consumedBalanceExceedsInitialBalance(sender, accumulatedBalance) {
+		logSelect.Trace("virtualSelectionSession.detectWillBalanceBeExceeded balance exceeded by sum of transferred value and fee",
+			"txHash", tx.TxHash,
+			"sender", sender,
+			"transferredValue", transferredValue,
+			"fee", fee,
+		)
+		return true
+	}
+
+	return false
 }
 
 func (virtualSession *virtualSelectionSession) isIncorrectlyGuarded(tx data.TransactionHandler) bool {

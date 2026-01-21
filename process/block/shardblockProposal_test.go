@@ -493,32 +493,335 @@ func TestShardProcessor_CreateBlockProposal(t *testing.T) {
 		arguments := CreateMockArguments(coreComponents, dataComponents, bootstrapComponents, statusComponents)
 		arguments.BlockTracker = &mock.BlockTrackerMock{
 			ComputeLongestMetaChainFromLastNotarizedCalled: func() ([]data.HeaderHandler, [][]byte, error) {
-				return []data.HeaderHandler{&block.MetaBlockV3{
-						Nonce: 1,
-						ShardInfo: []block.ShardData{
-							{
-								Nonce:   0,
-								ShardID: 1,
-								ShardMiniBlockHeaders: []block.MiniBlockHeader{
-									{
-										SenderShardID:   1,
-										ReceiverShardID: 0,
+				return []data.HeaderHandler{
+						&block.MetaBlockV3{
+							Nonce: 1,
+							ShardInfo: []block.ShardData{
+								{
+									Nonce:   0,
+									ShardID: 1,
+									ShardMiniBlockHeaders: []block.MiniBlockHeader{
+										{
+											SenderShardID:   1,
+											ReceiverShardID: 0,
+										},
+									},
+								},
+								// for extra coverage, should be skipped as it is empty
+								{
+									Nonce:                 1,
+									ShardID:               1,
+									ShardMiniBlockHeaders: []block.MiniBlockHeader{},
+								},
+							},
+							MiniBlockHeaders: []block.MiniBlockHeader{
+								{}, {},
+							},
+						},
+						&block.MetaBlockV3{Nonce: 2},
+						&block.MetaBlockV3{
+							Nonce: 3,
+							ShardInfo: []block.ShardData{
+								// should be saved as pending and added later
+								{
+									Nonce:   2,
+									ShardID: 1,
+									ShardMiniBlockHeaders: []block.MiniBlockHeader{
+										{
+											SenderShardID:   1,
+											ReceiverShardID: 0,
+										},
 									},
 								},
 							},
-							// for extra coverage, should be skipped as it is empty
-							{
-								Nonce:                 1,
-								ShardID:               1,
-								ShardMiniBlockHeaders: []block.MiniBlockHeader{},
+							MiniBlockHeaders: []block.MiniBlockHeader{
+								{},
 							},
 						},
-						MiniBlockHeaders: []block.MiniBlockHeader{
-							{},
-						},
-					}, &block.MetaBlockV3{Nonce: 2},
 					},
-					[][]byte{[]byte("hash_ok"), []byte("hash_empty")},
+					[][]byte{
+						[]byte("hash_ok"),
+						[]byte("hash_empty"),
+						[]byte("hash_pending"),
+					},
+					nil
+			},
+			GetLastCrossNotarizedHeaderCalled: func(shardID uint32) (data.HeaderHandler, []byte, error) {
+				return &block.MetaBlockV3{
+					Nonce: 0,
+				}, []byte("hash"), nil // dummy
+			},
+		}
+		providedMb := &block.MiniBlock{
+			TxHashes: [][]byte{[]byte("tx_hash")},
+		}
+		providedPendingMb := &block.MiniBlock{
+			TxHashes: [][]byte{[]byte("tx_hash2")},
+		}
+		providedPendingMb2 := &block.MiniBlock{
+			TxHashes: [][]byte{[]byte("tx_hash3")},
+		}
+		arguments.TxCoordinator = &testscommon.TransactionCoordinatorMock{
+			CreateMbsCrossShardDstMeCalled: func(header data.HeaderHandler, processedMiniBlocksInfo map[string]*processedMb.ProcessedMiniBlockInfo) ([]block.MiniblockAndHash, []block.MiniblockAndHash, uint32, bool, error) {
+				switch header.GetNonce() {
+				case 1:
+					return []block.MiniblockAndHash{
+							{
+								Miniblock: providedMb,
+								Hash:      []byte("providedMB"),
+							},
+						},
+						[]block.MiniblockAndHash{
+							{
+								Miniblock: providedPendingMb,
+								Hash:      []byte("providedPendingMB"),
+							},
+						}, 0, false, nil
+				case 2:
+					return nil, nil, 0, true, nil // empty header
+				default:
+					return []block.MiniblockAndHash{},
+						[]block.MiniblockAndHash{
+							{
+								Miniblock: providedPendingMb2,
+								Hash:      []byte("providedPendingMB2"),
+							},
+						}, 0, false, nil
+				}
+			},
+			SelectOutgoingTransactionsCalled: func(nonce uint64, _ func() bool) ([][]byte, []data.MiniBlockHeaderHandler) {
+				pendingMbsAdded := []data.MiniBlockHeaderHandler{
+					&block.MiniBlockHeader{
+						Hash: []byte("providedPendingMB"),
+					},
+					&block.MiniBlockHeader{
+						Hash: []byte("providedPendingMB2"),
+					},
+				}
+				return [][]byte{}, pendingMbsAdded
+			},
+		}
+
+		sp, err := blproc.NewShardProcessor(arguments)
+		require.Nil(t, err)
+
+		initialHdr := &block.HeaderV3{
+			LastExecutionResult: &block.ExecutionResultInfo{
+				ExecutionResult: &block.BaseExecutionResult{},
+			},
+			PrevHash:         []byte("prevHash"),
+			MiniBlockHeaders: []block.MiniBlockHeader{{}, {}, {}}, // 3 mb headers to match the provided ones
+		}
+		hdr, body, err := sp.CreateBlockProposal(initialHdr, haveTimeTrue)
+		require.NoError(t, err)
+		require.NotNil(t, hdr)
+		require.NotNil(t, body)
+
+		rawBody, ok := body.(*block.Body)
+		require.True(t, ok)
+		require.Len(t, rawBody.MiniBlocks, 3)
+		require.Equal(t, providedMb, rawBody.MiniBlocks[0])
+		require.Equal(t, providedPendingMb, rawBody.MiniBlocks[1])
+		require.Equal(t, providedPendingMb2, rawBody.MiniBlocks[2])
+		referencedHashes := arguments.MiniBlocksSelectionSession.GetReferencedHeaderHashes()
+		require.Len(t, referencedHashes, 3)
+		require.Equal(t, "hash_ok", string(referencedHashes[0]))
+		require.Equal(t, "hash_empty", string(referencedHashes[1]))
+		require.Equal(t, "hash_pending", string(referencedHashes[2]))
+	})
+	t.Run("should work complex scenario", func(t *testing.T) {
+		// test scenario:
+		// - nonce 1: completely referenced (2 mini blocks dest me)
+		// - nonce 2: has 2 mini blocks dest me -> one is included one is saved as pending which will be included
+		// - nonce 3: has 2 mini blocks dest me -> both saved as pending and included
+		// - nonce 4: does not have mini blocks dest me -> saved as pending which will be included
+		// - nonce 5: has 2 mini blocks dest me -> both saved as pending, only one included
+		// - nonce 6: does not have mini blocks dest me -> saved as pending but not included as the last one is not finished
+		t.Parallel()
+
+		coreComponents, dataComponents, bootstrapComponents, statusComponents := createComponentHolderMocks()
+		coreComponents.IntMarsh = &mock.MarshalizerStub{
+			MarshalCalled: func(obj interface{}) ([]byte, error) {
+				return []byte("marshalled"), nil
+			},
+		}
+		dataComponents.BlockChain = &testscommon.ChainHandlerStub{
+			GetCurrentBlockHeaderCalled: func() data.HeaderHandler {
+				return getSimpleHeaderV3Mock()
+			},
+			GetCurrentBlockHeaderHashCalled: func() []byte {
+				return []byte("hash")
+			},
+		}
+		dataComponents.DataPool = &dataRetriever.PoolsHolderStub{
+			ProofsCalled: func() retriever.ProofsPool {
+				return &dataRetriever.ProofsPoolMock{
+					HasProofCalled: func(shardID uint32, headerHash []byte) bool {
+						return true
+					},
+				}
+			},
+			HeadersCalled: func() retriever.HeadersPool {
+				return &pool.HeadersPoolStub{
+					GetHeaderByHashCalled: func(hash []byte) (data.HeaderHandler, error) {
+						return &block.HeaderV3{
+							LastExecutionResult: &block.ExecutionResultInfo{
+								ExecutionResult: &block.BaseExecutionResult{},
+							},
+						}, nil
+					},
+				}
+			},
+			TransactionsCalled: func() retriever.ShardedDataCacherNotifier {
+				return &testscommon.ShardedDataStub{
+					SearchFirstDataCalled: func(key []byte) (value interface{}, ok bool) {
+						value = &transaction.Transaction{}
+						ok = true
+						return
+					},
+				}
+			},
+		}
+
+		arguments := CreateMockArguments(coreComponents, dataComponents, bootstrapComponents, statusComponents)
+		arguments.BlockTracker = &mock.BlockTrackerMock{
+			ComputeLongestMetaChainFromLastNotarizedCalled: func() ([]data.HeaderHandler, [][]byte, error) {
+				return []data.HeaderHandler{
+						&block.MetaBlockV3{
+							Nonce: 1,
+							ShardInfo: []block.ShardData{
+								{
+									Nonce:   0,
+									ShardID: 1,
+									ShardMiniBlockHeaders: []block.MiniBlockHeader{
+										{
+											SenderShardID:   1,
+											ReceiverShardID: 0,
+										},
+									},
+								},
+								{
+									Nonce:   2,
+									ShardID: 1,
+									ShardMiniBlockHeaders: []block.MiniBlockHeader{
+										{
+											SenderShardID:   1,
+											ReceiverShardID: 0,
+										},
+									},
+								},
+							},
+							MiniBlockHeaders: []block.MiniBlockHeader{
+								{}, {},
+							},
+						},
+						&block.MetaBlockV3{
+							Nonce: 2,
+							ShardInfo: []block.ShardData{
+								{
+									Nonce:   0,
+									ShardID: 1,
+									ShardMiniBlockHeaders: []block.MiniBlockHeader{
+										{
+											SenderShardID:   1,
+											ReceiverShardID: 0,
+										},
+									},
+								},
+								{
+									Nonce:   2,
+									ShardID: 1,
+									ShardMiniBlockHeaders: []block.MiniBlockHeader{
+										{
+											SenderShardID:   1,
+											ReceiverShardID: 0,
+										},
+									},
+								},
+							},
+							MiniBlockHeaders: []block.MiniBlockHeader{
+								{}, {},
+							},
+						},
+						&block.MetaBlockV3{
+							Nonce: 3,
+							ShardInfo: []block.ShardData{
+								{
+									Nonce:   0,
+									ShardID: 1,
+									ShardMiniBlockHeaders: []block.MiniBlockHeader{
+										{
+											SenderShardID:   1,
+											ReceiverShardID: 0,
+										},
+									},
+								},
+								{
+									Nonce:   2,
+									ShardID: 1,
+									ShardMiniBlockHeaders: []block.MiniBlockHeader{
+										{
+											SenderShardID:   1,
+											ReceiverShardID: 0,
+										},
+									},
+								},
+							},
+							MiniBlockHeaders: []block.MiniBlockHeader{
+								{}, {},
+							},
+						},
+						&block.MetaBlockV3{
+							Nonce:     4,
+							ShardInfo: []block.ShardData{},
+							MiniBlockHeaders: []block.MiniBlockHeader{
+								{},
+							},
+						},
+						&block.MetaBlockV3{
+							Nonce: 5,
+							ShardInfo: []block.ShardData{
+								{
+									Nonce:   0,
+									ShardID: 1,
+									ShardMiniBlockHeaders: []block.MiniBlockHeader{
+										{
+											SenderShardID:   1,
+											ReceiverShardID: 0,
+										},
+									},
+								},
+								{
+									Nonce:   2,
+									ShardID: 1,
+									ShardMiniBlockHeaders: []block.MiniBlockHeader{
+										{
+											SenderShardID:   1,
+											ReceiverShardID: 0,
+										},
+									},
+								},
+							},
+							MiniBlockHeaders: []block.MiniBlockHeader{
+								{}, {},
+							},
+						},
+						&block.MetaBlockV3{
+							Nonce:     6,
+							ShardInfo: []block.ShardData{},
+							MiniBlockHeaders: []block.MiniBlockHeader{
+								{},
+							},
+						},
+					},
+					[][]byte{
+						[]byte("hash_1"),
+						[]byte("hash_2"),
+						[]byte("hash_3"),
+						[]byte("hash_4"),
+						[]byte("hash_5"),
+						[]byte("hash_6"),
+					},
 					nil
 			},
 			GetLastCrossNotarizedHeaderCalled: func(shardID uint32) (data.HeaderHandler, []byte, error) {
@@ -535,21 +838,79 @@ func TestShardProcessor_CreateBlockProposal(t *testing.T) {
 		}
 		arguments.TxCoordinator = &testscommon.TransactionCoordinatorMock{
 			CreateMbsCrossShardDstMeCalled: func(header data.HeaderHandler, processedMiniBlocksInfo map[string]*processedMb.ProcessedMiniBlockInfo) ([]block.MiniblockAndHash, []block.MiniblockAndHash, uint32, bool, error) {
-				return []block.MiniblockAndHash{
-						{
-							Miniblock: providedMb,
-							Hash:      []byte("providedMB"),
+				switch header.GetNonce() {
+				case 1:
+					return []block.MiniblockAndHash{
+							{
+								Miniblock: providedMb,
+								Hash:      []byte("providedMB_1_0"),
+							},
+							{
+								Miniblock: providedMb,
+								Hash:      []byte("providedMB_1_1"),
+							},
 						},
-					},
-					[]block.MiniblockAndHash{
-						{
-							Miniblock: providedPendingMb,
-							Hash:      []byte("providedPendingMB"),
+						[]block.MiniblockAndHash{}, 0, true, nil
+				case 2:
+					return []block.MiniblockAndHash{
+							{
+								Miniblock: providedMb,
+								Hash:      []byte("providedMB_2_0"),
+							},
 						},
-					}, 0, true, nil
+						[]block.MiniblockAndHash{
+							{
+								Miniblock: providedPendingMb,
+								Hash:      []byte("providedPendingMB_2_0"),
+							},
+						}, 0, false, nil
+				case 3:
+					return []block.MiniblockAndHash{},
+						[]block.MiniblockAndHash{
+							{
+								Miniblock: providedPendingMb,
+								Hash:      []byte("providedPendingMB_3_0"),
+							},
+							{
+								Miniblock: providedPendingMb,
+								Hash:      []byte("providedPendingMB_3_1"),
+							},
+						}, 0, false, nil
+				case 5:
+					return []block.MiniblockAndHash{},
+						[]block.MiniblockAndHash{
+							{
+								Miniblock: providedPendingMb,
+								Hash:      []byte("providedPendingMB_5_0"),
+							},
+							{
+								Miniblock: providedPendingMb,
+								Hash:      []byte("providedPendingMB_5_1"),
+							},
+						}, 0, false, nil
+				case 4, 6:
+					return nil, nil, 0, true, nil // empty header
+				default:
+					require.Fail(t, "should not happen")
+					return nil, nil, 0, true, nil
+				}
 			},
-			SelectOutgoingTransactionsCalled: func(nonce uint64) ([][]byte, []data.MiniBlockHeaderHandler) {
-				return [][]byte{}, []data.MiniBlockHeaderHandler{&block.MiniBlockHeader{Hash: []byte("providedPendingMB")}}
+			SelectOutgoingTransactionsCalled: func(nonce uint64, _ func() bool) ([][]byte, []data.MiniBlockHeaderHandler) {
+				pendingMbsAdded := []data.MiniBlockHeaderHandler{
+					&block.MiniBlockHeader{
+						Hash: []byte("providedPendingMB_2_0"),
+					},
+					&block.MiniBlockHeader{
+						Hash: []byte("providedPendingMB_3_0"),
+					},
+					&block.MiniBlockHeader{
+						Hash: []byte("providedPendingMB_3_1"),
+					},
+					&block.MiniBlockHeader{
+						Hash: []byte("providedPendingMB_5_0"),
+					},
+				}
+				return [][]byte{}, pendingMbsAdded
 			},
 		}
 
@@ -561,7 +922,7 @@ func TestShardProcessor_CreateBlockProposal(t *testing.T) {
 				ExecutionResult: &block.BaseExecutionResult{},
 			},
 			PrevHash:         []byte("prevHash"),
-			MiniBlockHeaders: []block.MiniBlockHeader{{}, {}}, // 2 mb headers to match the provided ones
+			MiniBlockHeaders: []block.MiniBlockHeader{{}, {}, {}, {}, {}}, // 5 mb headers to match the provided ones
 		}
 		hdr, body, err := sp.CreateBlockProposal(initialHdr, haveTimeTrue)
 		require.NoError(t, err)
@@ -570,9 +931,268 @@ func TestShardProcessor_CreateBlockProposal(t *testing.T) {
 
 		rawBody, ok := body.(*block.Body)
 		require.True(t, ok)
-		require.Len(t, rawBody.MiniBlocks, 2)
+		require.Len(t, rawBody.MiniBlocks, 7)
 		require.Equal(t, providedMb, rawBody.MiniBlocks[0])
-		require.Equal(t, providedPendingMb, rawBody.MiniBlocks[1])
+		require.Equal(t, providedMb, rawBody.MiniBlocks[1])
+		require.Equal(t, providedMb, rawBody.MiniBlocks[2])
+		require.Equal(t, providedPendingMb, rawBody.MiniBlocks[3])
+		require.Equal(t, providedPendingMb, rawBody.MiniBlocks[4])
+		require.Equal(t, providedPendingMb, rawBody.MiniBlocks[5])
+		require.Equal(t, providedPendingMb, rawBody.MiniBlocks[6])
+		referencedHashes := arguments.MiniBlocksSelectionSession.GetReferencedHeaderHashes()
+		require.Len(t, referencedHashes, 5)
+		require.Equal(t, "hash_1", string(referencedHashes[0]))
+		require.Equal(t, "hash_2", string(referencedHashes[1]))
+		require.Equal(t, "hash_3", string(referencedHashes[2]))
+		require.Equal(t, "hash_4", string(referencedHashes[3]))
+		require.Equal(t, "hash_5", string(referencedHashes[4]))
+	})
+	t.Run("only empty blocks should work", func(t *testing.T) {
+		t.Parallel()
+
+		coreComponents, dataComponents, bootstrapComponents, statusComponents := createComponentHolderMocks()
+		coreComponents.IntMarsh = &mock.MarshalizerStub{
+			MarshalCalled: func(obj interface{}) ([]byte, error) {
+				return []byte("marshalled"), nil
+			},
+		}
+		dataComponents.BlockChain = &testscommon.ChainHandlerStub{
+			GetCurrentBlockHeaderCalled: func() data.HeaderHandler {
+				return getSimpleHeaderV3Mock()
+			},
+			GetCurrentBlockHeaderHashCalled: func() []byte {
+				return []byte("hash")
+			},
+		}
+		dataComponents.DataPool = &dataRetriever.PoolsHolderStub{
+			ProofsCalled: func() retriever.ProofsPool {
+				return &dataRetriever.ProofsPoolMock{
+					HasProofCalled: func(shardID uint32, headerHash []byte) bool {
+						return true
+					},
+				}
+			},
+			HeadersCalled: func() retriever.HeadersPool {
+				return &pool.HeadersPoolStub{
+					GetHeaderByHashCalled: func(hash []byte) (data.HeaderHandler, error) {
+						return &block.HeaderV3{
+							LastExecutionResult: &block.ExecutionResultInfo{
+								ExecutionResult: &block.BaseExecutionResult{},
+							},
+						}, nil
+					},
+				}
+			},
+		}
+
+		arguments := CreateMockArguments(coreComponents, dataComponents, bootstrapComponents, statusComponents)
+		arguments.BlockTracker = &mock.BlockTrackerMock{
+			ComputeLongestMetaChainFromLastNotarizedCalled: func() ([]data.HeaderHandler, [][]byte, error) {
+				return []data.HeaderHandler{
+						&block.MetaBlockV3{Nonce: 1}, // Empty - no mini blocks for shard
+						&block.MetaBlockV3{Nonce: 2}, // Empty
+						&block.MetaBlockV3{Nonce: 3}, // Empty
+					},
+					[][]byte{
+						[]byte("hash_1"),
+						[]byte("hash_2"),
+						[]byte("hash_3"),
+					},
+					nil
+			},
+			GetLastCrossNotarizedHeaderCalled: func(shardID uint32) (data.HeaderHandler, []byte, error) {
+				return &block.MetaBlockV3{Nonce: 0}, []byte("hash_0"), nil
+			},
+		}
+
+		arguments.TxCoordinator = &testscommon.TransactionCoordinatorMock{
+			SelectOutgoingTransactionsCalled: func(nonce uint64, _ func() bool) ([][]byte, []data.MiniBlockHeaderHandler) {
+				return [][]byte{}, nil // no pending incoming added
+			},
+		}
+
+		sp, err := blproc.NewShardProcessor(arguments)
+		require.Nil(t, err)
+
+		initialHdr := &block.HeaderV3{
+			LastExecutionResult: &block.ExecutionResultInfo{
+				ExecutionResult: &block.BaseExecutionResult{},
+			},
+			PrevHash: []byte("prevHash"),
+		}
+		hdr, body, err := sp.CreateBlockProposal(initialHdr, haveTimeTrue)
+		require.NoError(t, err)
+		require.NotNil(t, hdr)
+		require.NotNil(t, body)
+
+		// all three empty meta blocks should be in referenced hashes (consecutive from nonce 1)
+		referencedHashes := arguments.MiniBlocksSelectionSession.GetReferencedHeaderHashes()
+		require.Len(t, referencedHashes, 3)
+		require.Equal(t, "hash_1", string(referencedHashes[0]))
+		require.Equal(t, "hash_2", string(referencedHashes[1]))
+		require.Equal(t, "hash_3", string(referencedHashes[2]))
+	})
+	t.Run("no referenced headers with pending incoming should return error", func(t *testing.T) {
+		t.Parallel()
+
+		coreComponents, dataComponents, bootstrapComponents, statusComponents := createComponentHolderMocks()
+		coreComponents.IntMarsh = &mock.MarshalizerStub{
+			MarshalCalled: func(obj interface{}) ([]byte, error) {
+				return []byte("marshalled"), nil
+			},
+		}
+		dataComponents.BlockChain = &testscommon.ChainHandlerStub{
+			GetCurrentBlockHeaderCalled: func() data.HeaderHandler {
+				return getSimpleHeaderV3Mock()
+			},
+			GetCurrentBlockHeaderHashCalled: func() []byte {
+				return []byte("hash")
+			},
+		}
+		dataComponents.DataPool = &dataRetriever.PoolsHolderStub{
+			ProofsCalled: func() retriever.ProofsPool {
+				return &dataRetriever.ProofsPoolMock{
+					HasProofCalled: func(shardID uint32, headerHash []byte) bool {
+						return true
+					},
+				}
+			},
+			HeadersCalled: func() retriever.HeadersPool {
+				return &pool.HeadersPoolStub{
+					GetHeaderByHashCalled: func(hash []byte) (data.HeaderHandler, error) {
+						return &block.HeaderV3{
+							LastExecutionResult: &block.ExecutionResultInfo{
+								ExecutionResult: &block.BaseExecutionResult{},
+							},
+						}, nil
+					},
+				}
+			},
+		}
+
+		arguments := CreateMockArguments(coreComponents, dataComponents, bootstrapComponents, statusComponents)
+
+		arguments.BlockTracker = &mock.BlockTrackerMock{
+			ComputeLongestMetaChainFromLastNotarizedCalled: func() ([]data.HeaderHandler, [][]byte, error) {
+				return []data.HeaderHandler{}, [][]byte{}, nil
+			},
+			GetLastCrossNotarizedHeaderCalled: func(shardID uint32) (data.HeaderHandler, []byte, error) {
+				return &block.MetaBlockV3{Nonce: 0}, []byte("hash_0"), nil
+			},
+		}
+
+		arguments.TxCoordinator = &testscommon.TransactionCoordinatorMock{
+			SelectOutgoingTransactionsCalled: func(nonce uint64, _ func() bool) ([][]byte, []data.MiniBlockHeaderHandler) {
+				return [][]byte{}, []data.MiniBlockHeaderHandler{
+					&block.MiniBlockHeader{Hash: []byte("pendingMB")},
+				}
+			},
+		}
+
+		sp, err := blproc.NewShardProcessor(arguments)
+		require.Nil(t, err)
+
+		initialHdr := &block.HeaderV3{
+			LastExecutionResult: &block.ExecutionResultInfo{
+				ExecutionResult: &block.BaseExecutionResult{},
+			},
+			PrevHash: []byte("prevHash"),
+		}
+		_, _, err = sp.CreateBlockProposal(initialHdr, haveTimeTrue)
+		require.Equal(t, process.ErrNoReferencedHeader, err)
+	})
+	t.Run("pending mini block not found in pending list should return error", func(t *testing.T) {
+		t.Parallel()
+
+		coreComponents, dataComponents, bootstrapComponents, statusComponents := createComponentHolderMocks()
+		coreComponents.IntMarsh = &mock.MarshalizerStub{
+			MarshalCalled: func(obj interface{}) ([]byte, error) {
+				return []byte("marshalled"), nil
+			},
+		}
+		dataComponents.BlockChain = &testscommon.ChainHandlerStub{
+			GetCurrentBlockHeaderCalled: func() data.HeaderHandler {
+				return getSimpleHeaderV3Mock()
+			},
+			GetCurrentBlockHeaderHashCalled: func() []byte {
+				return []byte("hash")
+			},
+		}
+		dataComponents.DataPool = &dataRetriever.PoolsHolderStub{
+			ProofsCalled: func() retriever.ProofsPool {
+				return &dataRetriever.ProofsPoolMock{
+					HasProofCalled: func(shardID uint32, headerHash []byte) bool {
+						return true
+					},
+				}
+			},
+			HeadersCalled: func() retriever.HeadersPool {
+				return &pool.HeadersPoolStub{
+					GetHeaderByHashCalled: func(hash []byte) (data.HeaderHandler, error) {
+						return &block.HeaderV3{
+							LastExecutionResult: &block.ExecutionResultInfo{
+								ExecutionResult: &block.BaseExecutionResult{},
+							},
+						}, nil
+					},
+				}
+			},
+			TransactionsCalled: func() retriever.ShardedDataCacherNotifier {
+				return &testscommon.ShardedDataStub{
+					SearchFirstDataCalled: func(key []byte) (value interface{}, ok bool) {
+						return &transaction.Transaction{}, true
+					},
+				}
+			},
+		}
+
+		arguments := CreateMockArguments(coreComponents, dataComponents, bootstrapComponents, statusComponents)
+		arguments.BlockTracker = &mock.BlockTrackerMock{
+			ComputeLongestMetaChainFromLastNotarizedCalled: func() ([]data.HeaderHandler, [][]byte, error) {
+				return []data.HeaderHandler{
+						&testscommon.HeaderHandlerStub{
+							GetNonceCalled: func() uint64 { return 1 },
+							GetMiniBlockHeadersWithDstCalled: func(destId uint32) map[string]uint32 {
+								return map[string]uint32{"mb": 1}
+							},
+						},
+					},
+					[][]byte{
+						[]byte("hash_1"),
+					},
+					nil
+			},
+			GetLastCrossNotarizedHeaderCalled: func(shardID uint32) (data.HeaderHandler, []byte, error) {
+				return &block.MetaBlockV3{Nonce: 0}, []byte("hash_0"), nil
+			},
+		}
+
+		providedMb := &block.MiniBlock{TxHashes: [][]byte{[]byte("tx_hash")}}
+		arguments.TxCoordinator = &testscommon.TransactionCoordinatorMock{
+			CreateMbsCrossShardDstMeCalled: func(header data.HeaderHandler, processedMiniBlocksInfo map[string]*processedMb.ProcessedMiniBlockInfo) ([]block.MiniblockAndHash, []block.MiniblockAndHash, uint32, bool, error) {
+				return []block.MiniblockAndHash{
+					{Miniblock: providedMb, Hash: []byte("mb_hash_1")},
+				}, nil, 0, true, nil
+			},
+			SelectOutgoingTransactionsCalled: func(nonce uint64, _ func() bool) ([][]byte, []data.MiniBlockHeaderHandler) {
+				return [][]byte{}, []data.MiniBlockHeaderHandler{
+					&block.MiniBlockHeader{Hash: []byte("nonExistentMB")}, // random pending mb added
+				}
+			},
+		}
+
+		sp, err := blproc.NewShardProcessor(arguments)
+		require.Nil(t, err)
+
+		initialHdr := &block.HeaderV3{
+			LastExecutionResult: &block.ExecutionResultInfo{
+				ExecutionResult: &block.BaseExecutionResult{},
+			},
+			PrevHash:         []byte("prevHash"),
+			MiniBlockHeaders: []block.MiniBlockHeader{{}},
+		}
+		_, _, err = sp.CreateBlockProposal(initialHdr, haveTimeTrue)
+		require.Equal(t, process.ErrInvalidHash, err)
 	})
 }
 
@@ -587,6 +1207,7 @@ func Test_addExecutionResultsOnHeader(t *testing.T) {
 					return nil, expectedErr
 				},
 			},
+			"appStatusHandler": &statusHandlerMock.AppStatusHandlerStub{},
 		})
 		err := sp.AddExecutionResultsOnHeader(&block.HeaderV3{})
 		require.Error(t, err)
@@ -604,6 +1225,7 @@ func Test_addExecutionResultsOnHeader(t *testing.T) {
 					}, nil
 				},
 			},
+			"appStatusHandler": &statusHandlerMock.AppStatusHandlerStub{},
 		})
 		err := sp.AddExecutionResultsOnHeader(&block.HeaderV3{})
 		require.Error(t, err)
@@ -631,6 +1253,7 @@ func Test_addExecutionResultsOnHeader(t *testing.T) {
 					}
 				},
 			},
+			"appStatusHandler": &statusHandlerMock.AppStatusHandlerStub{},
 		})
 		err := sp.AddExecutionResultsOnHeader(&block.HeaderV3{})
 		require.Error(t, err)
@@ -698,6 +1321,7 @@ func Test_addExecutionResultsOnHeader(t *testing.T) {
 					return 0
 				},
 			},
+			"appStatusHandler": &statusHandlerMock.AppStatusHandlerStub{},
 		})
 		err := sp.AddExecutionResultsOnHeader(&block.HeaderV3{
 			Round:    3,
@@ -766,6 +1390,7 @@ func Test_addExecutionResultsOnHeader(t *testing.T) {
 					return 0
 				},
 			},
+			"appStatusHandler": &statusHandlerMock.AppStatusHandlerStub{},
 		})
 
 		proposalHeader := &block.HeaderV3{Round: 3}
@@ -842,6 +1467,7 @@ func Test_addExecutionResultsOnHeader(t *testing.T) {
 					return 0
 				},
 			},
+			"appStatusHandler": &statusHandlerMock.AppStatusHandlerStub{},
 		})
 
 		proposalHeader := &block.HeaderV3{
@@ -3354,6 +3980,11 @@ func TestShardProcessor_collectExecutionResults(t *testing.T) {
 func Test_getOrderedProcessedMetaBlocksFromMiniBlockHashesV3(t *testing.T) {
 	t.Parallel()
 
+	mbHash1 := []byte("miniBlockHeaderHash1")
+	mbHash2 := []byte("miniBlockHeaderHash2")
+	metaHeaderHash1 := []byte("metaHeaderHash1")
+	metaHeaderHash2 := []byte("metaHeaderHash2")
+
 	t.Run("should return ErrWrongTypeAssertion in case of wrong header type", func(t *testing.T) {
 		t.Parallel()
 
@@ -3380,13 +4011,12 @@ func Test_getOrderedProcessedMetaBlocksFromMiniBlockHashesV3(t *testing.T) {
 					}
 				},
 			},
+			"processedMiniBlocksTracker": &testscommon.ProcessedMiniBlocksTrackerStub{},
 		})
 		require.Nil(t, err)
 
 		header := &block.HeaderV3{
-			MetaBlockHashes: [][]byte{
-				[]byte("metaBlockHash"),
-			},
+			MetaBlockHashes: [][]byte{metaHeaderHash1},
 		}
 		_, err = sp.GetOrderedProcessedMetaBlocksFromMiniBlockHashesV3(
 			header,
@@ -3399,7 +4029,7 @@ func Test_getOrderedProcessedMetaBlocksFromMiniBlockHashesV3(t *testing.T) {
 		t.Parallel()
 
 		headersByHash := map[string]data.HeaderHandler{
-			"metaHeaderHash1": &block.MetaBlockV3{
+			string(metaHeaderHash1): &block.MetaBlockV3{
 				Nonce: 1,
 				ShardInfo: []block.ShardData{
 					{
@@ -3407,7 +4037,7 @@ func Test_getOrderedProcessedMetaBlocksFromMiniBlockHashesV3(t *testing.T) {
 						ShardMiniBlockHeaders: []block.MiniBlockHeader{
 							{
 								ReceiverShardID: 0,
-								Hash:            []byte("miniBlockHeaderHash1"),
+								Hash:            mbHash1,
 							},
 						},
 					},
@@ -3428,14 +4058,11 @@ func Test_getOrderedProcessedMetaBlocksFromMiniBlockHashesV3(t *testing.T) {
 			"shardCoordinator": &mock.CoordinatorStub{SelfIdCalled: func() uint32 {
 				return 1
 			}},
+			"processedMiniBlocksTracker": &testscommon.ProcessedMiniBlocksTrackerStub{},
 		})
 		require.Nil(t, err)
 
-		header := &block.HeaderV3{
-			MetaBlockHashes: [][]byte{
-				[]byte("metaHeaderHash1"),
-			},
-		}
+		header := &block.HeaderV3{MetaBlockHashes: [][]byte{metaHeaderHash1}}
 		fullyReferencedMetaBlocks, err := sp.GetOrderedProcessedMetaBlocksFromMiniBlockHashesV3(
 			header,
 			make(map[int][]byte),
@@ -3455,7 +4082,7 @@ func Test_getOrderedProcessedMetaBlocksFromMiniBlockHashesV3(t *testing.T) {
 					ShardMiniBlockHeaders: []block.MiniBlockHeader{
 						{
 							ReceiverShardID: 1,
-							Hash:            []byte("miniBlockHeaderHash1"),
+							Hash:            mbHash1,
 						},
 					},
 				},
@@ -3463,14 +4090,14 @@ func Test_getOrderedProcessedMetaBlocksFromMiniBlockHashesV3(t *testing.T) {
 		}
 
 		metaHeader2 := &block.MetaBlockV3{
-			Nonce: 0,
+			Nonce: 2,
 			ShardInfo: []block.ShardData{
 				{
 					ShardID: 0,
 					ShardMiniBlockHeaders: []block.MiniBlockHeader{
 						{
 							ReceiverShardID: 1,
-							Hash:            []byte("miniBlockHeaderHash2"),
+							Hash:            mbHash2,
 						},
 					},
 				},
@@ -3478,8 +4105,8 @@ func Test_getOrderedProcessedMetaBlocksFromMiniBlockHashesV3(t *testing.T) {
 		}
 
 		headersByHash := map[string]data.HeaderHandler{
-			"metaHeaderHash1": metaHeader1,
-			"metaHeaderHash2": metaHeader2,
+			string(metaHeaderHash1): metaHeader1,
+			string(metaHeaderHash2): metaHeader2,
 		}
 
 		sp, err := blproc.ConstructPartialShardBlockProcessorForTest(map[string]interface{}{
@@ -3495,28 +4122,22 @@ func Test_getOrderedProcessedMetaBlocksFromMiniBlockHashesV3(t *testing.T) {
 			"shardCoordinator": &mock.CoordinatorStub{SelfIdCalled: func() uint32 {
 				return 1
 			}},
+			"processedMiniBlocksTracker": &testscommon.ProcessedMiniBlocksTrackerStub{},
 		})
 		require.Nil(t, err)
 
 		header := &block.HeaderV3{
-			MetaBlockHashes: [][]byte{
-				[]byte("metaHeaderHash1"),
-				[]byte("metaHeaderHash2"),
-			},
+			MetaBlockHashes: [][]byte{metaHeaderHash1, metaHeaderHash2},
 		}
 		fullyReferencedMetaBlocks, err := sp.GetOrderedProcessedMetaBlocksFromMiniBlockHashesV3(
 			header,
 			map[int][]byte{
-				0: []byte("miniBlockHeaderHash1"),
-				1: []byte("miniBlockHeaderHash2"),
+				0: mbHash1,
+				1: mbHash2,
 			},
 		)
 
-		expectedFullyReferencedMetaBlocks := []data.HeaderHandler{
-			// should be sorted by nonce
-			metaHeader2,
-			metaHeader1,
-		}
+		expectedFullyReferencedMetaBlocks := []data.HeaderHandler{metaHeader1, metaHeader2}
 		require.Nil(t, err)
 		require.Equal(t, 2, len(fullyReferencedMetaBlocks))
 		require.Equal(t, expectedFullyReferencedMetaBlocks, fullyReferencedMetaBlocks)
@@ -3526,7 +4147,7 @@ func Test_getOrderedProcessedMetaBlocksFromMiniBlockHashesV3(t *testing.T) {
 		t.Parallel()
 
 		headersByHash := map[string]data.HeaderHandler{
-			"metaHeaderHash1": &block.MetaBlockV3{
+			string(metaHeaderHash1): &block.MetaBlockV3{
 				ShardInfo: []block.ShardData{
 					{
 						ShardID: 0,
@@ -3539,7 +4160,7 @@ func Test_getOrderedProcessedMetaBlocksFromMiniBlockHashesV3(t *testing.T) {
 					},
 				},
 			},
-			"metaHeaderHash2": &block.MetaBlockV3{
+			string(metaHeaderHash2): &block.MetaBlockV3{
 				ShardInfo: []block.ShardData{
 					{
 						ShardID: 0,
@@ -3566,23 +4187,86 @@ func Test_getOrderedProcessedMetaBlocksFromMiniBlockHashesV3(t *testing.T) {
 			"shardCoordinator": &mock.CoordinatorStub{SelfIdCalled: func() uint32 {
 				return 1
 			}},
+			"processedMiniBlocksTracker": &testscommon.ProcessedMiniBlocksTrackerStub{},
 		})
 		require.Nil(t, err)
 
 		header := &block.HeaderV3{
-			MetaBlockHashes: [][]byte{
-				[]byte("metaHeaderHash1"),
-				[]byte("metaHeaderHash2"),
-			},
+			MetaBlockHashes: [][]byte{metaHeaderHash1, metaHeaderHash2},
 		}
 		fullyReferencedMetaBlocks, err := sp.GetOrderedProcessedMetaBlocksFromMiniBlockHashesV3(
 			header,
 			map[int][]byte{
-				0: []byte("miniBlockHeaderHash1"),
+				0: mbHash1,
 			},
 		)
 		require.Nil(t, err)
 		require.Equal(t, 1, len(fullyReferencedMetaBlocks))
+	})
+	t.Run("metablock fully referenced across multiple shard headers", func(t *testing.T) {
+		t.Parallel()
+
+		metaHeader1 := &block.MetaBlockV3{
+			Nonce: 1,
+			ShardInfo: []block.ShardData{
+				{
+					ShardID: 0,
+					ShardMiniBlockHeaders: []block.MiniBlockHeader{
+						{
+							ReceiverShardID: 1,
+							Hash:            mbHash1,
+						},
+					},
+				},
+			},
+		}
+
+		metaHeader2 := &block.MetaBlockV3{
+			Nonce:     2,
+			ShardInfo: []block.ShardData{},
+		}
+
+		headersByHash := map[string]data.HeaderHandler{
+			string(metaHeaderHash1): metaHeader1,
+			string(metaHeaderHash2): metaHeader2,
+		}
+
+		sp, err := blproc.ConstructPartialShardBlockProcessorForTest(map[string]interface{}{
+			"dataPool": &dataRetriever.PoolsHolderStub{
+				HeadersCalled: func() retriever.HeadersPool {
+					return &pool.HeadersPoolStub{
+						GetHeaderByHashCalled: func(hash []byte) (data.HeaderHandler, error) {
+							return headersByHash[string(hash)], nil
+						},
+					}
+				},
+			},
+			"shardCoordinator": &mock.CoordinatorStub{SelfIdCalled: func() uint32 {
+				return 1
+			}},
+			"processedMiniBlocksTracker": &testscommon.ProcessedMiniBlocksTrackerStub{
+				IsMiniBlockFullyProcessedCalled: func(metaBlockHash []byte, miniBlockHash []byte) bool {
+					return bytes.Equal(miniBlockHash, mbHash2)
+				},
+			},
+		})
+		require.Nil(t, err)
+
+		header := &block.HeaderV3{
+			MetaBlockHashes: [][]byte{metaHeaderHash1, metaHeaderHash2},
+		}
+		fullyReferencedMetaBlocks, err := sp.GetOrderedProcessedMetaBlocksFromMiniBlockHashesV3(
+			header,
+			map[int][]byte{
+				0: mbHash1,
+				1: mbHash2,
+			},
+		)
+
+		expectedFullyReferencedMetaBlocks := []data.HeaderHandler{metaHeader1, metaHeader2}
+		require.Nil(t, err)
+		require.Equal(t, 2, len(fullyReferencedMetaBlocks))
+		require.Equal(t, expectedFullyReferencedMetaBlocks, fullyReferencedMetaBlocks)
 	})
 }
 

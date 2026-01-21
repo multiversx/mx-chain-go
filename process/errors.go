@@ -837,6 +837,12 @@ var ErrNilDnsAddresses = errors.New("nil dns addresses map")
 // ErrNilProtocolSustainabilityAddress signals that a nil protocol sustainability address was provided
 var ErrNilProtocolSustainabilityAddress = errors.New("nil protocol sustainability address")
 
+// ErrNilEcosystemGrowthAddress signals that a nil ecosystem growth address was provided
+var ErrNilEcosystemGrowthAddress = errors.New("nil ecosystem growth address")
+
+// ErrNilGrowthDividendAddress signals that a nil growth dividend address was provided
+var ErrNilGrowthDividendAddress = errors.New("nil growth dividend address")
+
 // ErrUserNameDoesNotMatch signals that username does not match
 var ErrUserNameDoesNotMatch = errors.New("user name does not match")
 
@@ -1326,6 +1332,12 @@ var ErrInvalidRatingsConfig = errors.New("invalid ratings config")
 // ErrNilKeyRWMutexHandler signals that a nil KeyRWMutexHandler has been provided
 var ErrNilKeyRWMutexHandler = errors.New("nil key rw mutex handler")
 
+// ErrZeroDurationForEpoch signals that duration for epoch is zero
+var ErrZeroDurationForEpoch = errors.New("zero duration for epoch")
+
+// ErrInvalidChainParameters signals that invalid chain parameters has been provided
+var ErrInvalidChainParameters = errors.New("invalid chain parameters")
+
 // ErrBadSelectionGasBandwidthIncreasePercent signals a bad txcache config
 var ErrBadSelectionGasBandwidthIncreasePercent = errors.New("bad selection gas bandwidth increase percent")
 
@@ -1337,9 +1349,6 @@ var ErrBadTxCacheSelectionGasRequested = errors.New("bad tx cache selection gas 
 
 // ErrBadTxCacheSelectionMaxNumTxs signals a bad txcache config
 var ErrBadTxCacheSelectionMaxNumTxs = errors.New("bad tx cache selection max num txs")
-
-// ErrBadTxCacheSelectionLoopMaximumDuration signals a bad txcache config
-var ErrBadTxCacheSelectionLoopMaximumDuration = errors.New("bad tx cache selection loop maximum duration")
 
 // ErrBadTxCacheSelectionLoopDurationCheckInterval signals a bad txcache config
 var ErrBadTxCacheSelectionLoopDurationCheckInterval = errors.New("bad selection loop duration check interval")
@@ -1430,3 +1439,9 @@ var ErrEpochStartProposeBlockHasMiniBlocks = errors.New("epoch start propose blo
 
 // ErrNonCanonicalExecutionResultIncluded signals that a non-canonical execution result has been included
 var ErrNonCanonicalExecutionResultIncluded = errors.New("non-canonical execution result included")
+
+// ErrNoReferencedHeader signals that no header was referenced
+var ErrNoReferencedHeader = errors.New("no referenced header")
+
+// ErrExecutionResultNotFound signals that the execution result was not found
+var ErrExecutionResultNotFound = errors.New("execution result not found")

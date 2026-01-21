@@ -96,6 +96,10 @@ func (sr *subroundBlock) doBlockJob(ctx context.Context) bool {
 	if sr.IsSubroundFinished(sr.Current()) {
 		return false
 	}
+	if sr.HasProofForCompetingBlock() {
+		log.Debug("doBlockJob - competing block proof exists, skipping block proposal")
+		return false
+	}
 
 	metricStatTime := time.Now()
 	defer sr.computeSubroundProcessingMetric(metricStatTime, common.MetricCreatedProposedBlock)
@@ -128,6 +132,12 @@ func (sr *subroundBlock) doBlockJob(ctx context.Context) bool {
 	leader, errGetLeader := sr.GetLeader()
 	if errGetLeader != nil {
 		printLogMessage(ctx, "doBlockJob.GetLeader", errGetLeader)
+		return false
+	}
+
+	// check again there is no proof for competing block before sending the block
+	if sr.HasProofForCompetingBlock() {
+		log.Debug("doBlockJob - competing block proof exists, skipping block proposal")
 		return false
 	}
 
@@ -436,6 +446,10 @@ func (sr *subroundBlock) receivedBlockBody(ctx context.Context, cnsDta *consensu
 		return false
 	}
 
+	if sr.IsSubroundFinished(sr.Current()) {
+		return false
+	}
+
 	node := string(cnsDta.PubKey)
 
 	if !sr.IsNodeLeaderInCurrentRound(node) { // is NOT this node leader in current round?
@@ -584,6 +598,10 @@ func (sr *subroundBlock) receivedBlockHeader(headerHandler data.HeaderHandler) {
 		return
 	}
 
+	if sr.IsSubroundFinished(sr.Current()) {
+		return
+	}
+
 	isHeaderForCurrentConsensus := sr.isHeaderForCurrentConsensus(headerHandler)
 	if !isHeaderForCurrentConsensus {
 		log.Debug("subroundBlock.receivedBlockHeader - header is not for current consensus")
@@ -683,7 +701,7 @@ func (sr *subroundBlock) CanProcessReceivedHeader(headerLeader string) bool {
 }
 
 func (sr *subroundBlock) shouldProcessBlock(headerLeader string) bool {
-	if sr.IsNodeSelf(headerLeader) {
+	if sr.IsNodeSelf(headerLeader) && spos.ShouldConsiderSelfKeyInConsensus(sr.NodeRedundancyHandler()) {
 		return false
 	}
 	if sr.IsJobDone(headerLeader, sr.Current()) {

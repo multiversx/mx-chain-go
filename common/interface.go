@@ -9,6 +9,7 @@ import (
 	"github.com/multiversx/mx-chain-core-go/data"
 	"github.com/multiversx/mx-chain-core-go/data/block"
 	crypto "github.com/multiversx/mx-chain-crypto-go"
+	"github.com/multiversx/mx-chain-go/common/configs/dto"
 
 	"github.com/multiversx/mx-chain-go/config"
 )
@@ -285,7 +286,7 @@ type RootHashHolder interface {
 type TxSelectionOptions interface {
 	GetGasRequested() uint64
 	GetMaxNumTxs() int
-	GetLoopMaximumDurationMs() int
+	HaveTimeForSelection() bool
 	GetLoopDurationCheckInterval() int
 	IsInterfaceNil() bool
 }
@@ -322,6 +323,7 @@ type EnableEpochsHandler interface {
 	IsFlagEnabled(flag core.EnableEpochFlag) bool
 	IsFlagEnabledInEpoch(flag core.EnableEpochFlag, epoch uint32) bool
 	GetActivationEpoch(flag core.EnableEpochFlag) uint32
+	GetAllEnableEpochs() map[string]uint32
 
 	IsInterfaceNil() bool
 }
@@ -487,6 +489,10 @@ type ProcessConfigsHandler interface {
 	GetMaxRoundsWithoutCommittedBlock(round uint64) uint32
 	GetRoundModulusTriggerWhenSyncIsStuck(round uint64) uint32
 	GetMaxSyncWithErrorsAllowed(round uint64) uint32
+	GetMaxRoundsToKeepUnprocessedTransactions(round uint64) uint64
+	GetMaxRoundsToKeepUnprocessedMiniBlocks(round uint64) uint64
+
+	GetValue(variable dto.ConfigVariable) uint64
 
 	IsInterfaceNil() bool
 }

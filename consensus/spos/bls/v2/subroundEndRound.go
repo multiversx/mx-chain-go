@@ -262,6 +262,11 @@ func (sr *subroundEndRound) doEndRoundJobByNode() bool {
 			return false
 		}
 
+		if sr.HasProofForCompetingBlock() {
+			log.Debug("doEndRoundJobByNode: competing block proof detected, aborting end round job")
+			return false
+		}
+
 		proofSent, err := sr.sendProof()
 		shouldWaitForMoreSignatures := errors.Is(err, spos.ErrInvalidNumSigShares)
 		// if not enough valid signatures were detected, wait a bit more
@@ -308,6 +313,10 @@ func (sr *subroundEndRound) waitForProof() bool {
 			if sr.EquivalentProofsPool().HasProof(shardID, headerHash) {
 				return true
 			}
+			if sr.HasProofForCompetingBlock() {
+				log.Debug("waitForProof: competing block proof detected, aborting wait")
+				return false
+			}
 		case <-ctx.Done():
 			return false
 		}
@@ -320,6 +329,7 @@ func (sr *subroundEndRound) finalizeConfirmedBlock() bool {
 	}
 
 	sr.updateConsensusMetricsProof()
+	sr.updateNonceDeltaMetrics()
 
 	if !sr.GetHeader().IsHeaderV3() {
 		ok := sr.ScheduledProcessor().IsProcessedOKWithTimeout()
@@ -393,7 +403,9 @@ func (sr *subroundEndRound) shouldSendProof() bool {
 		return false
 	}
 
-	return sr.IsSelfInConsensusGroup()
+	shouldSingleKeySendProof := sr.IsNodeInConsensusGroup(sr.SelfPubKey()) && spos.ShouldConsiderSelfKeyInConsensus(sr.NodeRedundancyHandler())
+	shouldMultiKeySendProof := sr.IsMultiKeyInConsensusGroup()
+	return shouldSingleKeySendProof || shouldMultiKeySendProof
 }
 
 func (sr *subroundEndRound) aggregateSigsAndHandleInvalidSigners(bitmap []byte, sender string) ([]byte, []byte, error) {
@@ -672,7 +684,7 @@ func (sr *subroundEndRound) createAndBroadcastInvalidSigners(
 	invalidSignersPubKeys []string,
 	sender string,
 ) {
-	if !sr.ShouldConsiderSelfKeyInConsensus() && !sr.IsMultiKeyInConsensusGroup() {
+	if !spos.ShouldConsiderSelfKeyInConsensus(sr.NodeRedundancyHandler()) && !sr.IsMultiKeyInConsensusGroup() {
 		return
 	}
 
@@ -966,6 +978,17 @@ func (sr *subroundEndRound) getNumOfSignaturesCollected() int {
 	}
 
 	return n
+}
+
+func (sr *subroundEndRound) updateNonceDeltaMetrics() {
+	if !sr.GetHeader().IsHeaderV3() {
+		return
+	}
+
+	lastExecutionResultHeaderNonce := common.GetLastExecutionResultNonce(sr.GetHeader())
+
+	sr.appStatusHandler.SetUInt64Value(common.MetricDeltaHeaderNonceLastExecutionResultNonce,
+		sr.GetHeader().GetNonce()-lastExecutionResultHeaderNonce)
 }
 
 // updateConsensusMetricsProof sets the consensus metrics

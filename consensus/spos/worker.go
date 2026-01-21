@@ -732,7 +732,9 @@ func (wrk *Worker) computeRedundancyMetrics() (bool, string) {
 
 func (wrk *Worker) checkSelfState(cnsDta *consensus.Message) error {
 	isMultiKeyManagedBySelf := wrk.consensusState.keysHandler.IsKeyManagedByCurrentNode(cnsDta.PubKey)
-	if wrk.consensusState.SelfPubKey() == string(cnsDta.PubKey) || isMultiKeyManagedBySelf {
+	isSelfKey := wrk.consensusState.SelfPubKey() == string(cnsDta.PubKey)
+	shouldConsiderSelfKeyInConsensus := isSelfKey && ShouldConsiderSelfKeyInConsensus(wrk.nodeRedundancyHandler)
+	if shouldConsiderSelfKeyInConsensus || isMultiKeyManagedBySelf {
 		return ErrMessageFromItself
 	}
 
@@ -862,11 +864,21 @@ func (wrk *Worker) Extend(subroundId int) {
 		time.Sleep(time.Millisecond)
 	}
 
-	wrk.scheduledProcessor.ForceStopScheduledExecutionBlocking()
-	wrk.blockProcessor.RevertCurrentBlock(wrk.consensusState.GetHeader())
-	wrk.removeConsensusHeaderFromPool()
-
 	log.Debug("current block is reverted")
+
+	header := wrk.consensusState.GetHeader()
+	if check.IfNil(header) {
+		return
+	}
+
+	isHeaderV3 := header.IsHeaderV3()
+	if isHeaderV3 {
+		return
+	}
+
+	wrk.scheduledProcessor.ForceStopScheduledExecutionBlocking()
+	wrk.blockProcessor.RevertCurrentBlock(header)
+	wrk.removeConsensusHeaderFromPool()
 }
 
 func (wrk *Worker) removeConsensusHeaderFromPool() {

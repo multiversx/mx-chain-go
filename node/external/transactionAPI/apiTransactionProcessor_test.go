@@ -21,6 +21,11 @@ import (
 	"github.com/multiversx/mx-chain-core-go/data/transaction"
 	"github.com/multiversx/mx-chain-core-go/data/vm"
 	"github.com/multiversx/mx-chain-core-go/marshal"
+	vmcommon "github.com/multiversx/mx-chain-vm-common-go"
+	datafield "github.com/multiversx/mx-chain-vm-common-go/parsers/dataField"
+	"github.com/stretchr/testify/assert"
+	"github.com/stretchr/testify/require"
+
 	"github.com/multiversx/mx-chain-go/common"
 	"github.com/multiversx/mx-chain-go/common/holders"
 	"github.com/multiversx/mx-chain-go/config"
@@ -40,17 +45,16 @@ import (
 	storageStubs "github.com/multiversx/mx-chain-go/testscommon/storage"
 	"github.com/multiversx/mx-chain-go/testscommon/txcachemocks"
 	"github.com/multiversx/mx-chain-go/txcache"
-	vmcommon "github.com/multiversx/mx-chain-vm-common-go"
-	datafield "github.com/multiversx/mx-chain-vm-common-go/parsers/dataField"
-	"github.com/stretchr/testify/assert"
-	"github.com/stretchr/testify/require"
 )
 
 const maxTrackedBlocks = 100
-const selectionLoopMaximumDuration = 250
 const numTxsSelected = 30_000
 const gasRequested = 10_000_000_000
 const loopDurationCheckInterval = 10
+
+func haveTimeTrueForSelection() bool {
+	return true
+}
 
 var oneEGLD = big.NewInt(1000000000000000000)
 var expectedErr = errors.New("expected error")
@@ -76,6 +80,7 @@ func createMockArgAPITransactionProcessor() *ArgAPITransactionProcessor {
 		},
 		TxMarshaller:        &marshallerMock.MarshalizerMock{},
 		EnableEpochsHandler: enableEpochsHandlerMock.NewEnableEpochsHandlerStub(),
+		EnableRoundsHandler: &testscommon.EnableRoundsHandlerStub{},
 	}
 }
 
@@ -216,6 +221,15 @@ func TestNewAPITransactionProcessor(t *testing.T) {
 		_, err := NewAPITransactionProcessor(arguments)
 		require.Equal(t, process.ErrNilEnableEpochsHandler, err)
 	})
+	t.Run("NilEnableRoundsHandler", func(t *testing.T) {
+		t.Parallel()
+
+		arguments := createMockArgAPITransactionProcessor()
+		arguments.EnableRoundsHandler = nil
+
+		_, err := NewAPITransactionProcessor(arguments)
+		require.Equal(t, process.ErrNilEnableRoundsHandler, err)
+	})
 }
 
 func TestNode_GetTransactionInvalidHashShouldErr(t *testing.T) {
@@ -224,6 +238,20 @@ func TestNode_GetTransactionInvalidHashShouldErr(t *testing.T) {
 	n, _, _, _ := createAPITransactionProc(t, 0, false)
 	_, err := n.GetTransaction("zzz", false)
 	assert.Error(t, err)
+}
+
+func TestNode_GetTransactionFoundInPoolAndStorageShouldReturnFromStorage(t *testing.T) {
+	n, chainStorer, dataPool, _ := createAPITransactionProc(t, 42, false)
+
+	txA := &transaction.Transaction{Nonce: 7, SndAddr: []byte("bob"), RcvAddr: []byte("alice")}
+	dataPool.Transactions().AddData([]byte("a"), txA, 42, "1")
+
+	internalMarshalizer := &mock.MarshalizerFake{}
+	_ = chainStorer.Transactions.PutWithMarshalizer([]byte("a"), txA, internalMarshalizer)
+
+	actualA, err := n.GetTransaction(hex.EncodeToString([]byte("a")), false)
+	require.Nil(t, err)
+	require.Equal(t, transaction.TxStatusSuccess, actualA.Status)
 }
 
 func TestNode_GetTransactionFromPool(t *testing.T) {
@@ -375,6 +403,7 @@ func TestNode_GetSCRs(t *testing.T) {
 		},
 		EnableEpochsHandler: enableEpochsHandlerMock.NewEnableEpochsHandlerStub(),
 		TxMarshaller:        &mock.MarshalizerFake{},
+		EnableRoundsHandler: &testscommon.EnableRoundsHandlerStub{},
 	}
 	apiTransactionProc, _ := NewAPITransactionProcessor(args)
 
@@ -593,6 +622,7 @@ func TestNode_GetTransactionWithResultsFromStorage(t *testing.T) {
 		},
 		TxMarshaller:        &marshallerMock.MarshalizerMock{},
 		EnableEpochsHandler: enableEpochsHandlerMock.NewEnableEpochsHandlerStub(),
+		EnableRoundsHandler: &testscommon.EnableRoundsHandlerStub{},
 	}
 	apiTransactionProc, _ := NewAPITransactionProcessor(args)
 
@@ -1253,11 +1283,11 @@ func TestApiTransactionProcessor_GetSelectedTransactions(t *testing.T) {
 			},
 		}
 
-		options := holders.NewTxSelectionOptions(
+		options, _ := holders.NewTxSelectionOptions(
 			gasRequested,
 			numTxsSelected,
-			selectionLoopMaximumDuration,
 			loopDurationCheckInterval,
+			haveTimeTrueForSelection,
 		)
 
 		selectionOptionsAPI := holders.NewTxSelectionOptionsAPI(
@@ -1323,11 +1353,11 @@ func TestApiTransactionProcessor_GetSelectedTransactions(t *testing.T) {
 			},
 		}
 
-		options := holders.NewTxSelectionOptions(
+		options, _ := holders.NewTxSelectionOptions(
 			gasRequested,
 			numTxsSelected,
-			selectionLoopMaximumDuration,
 			loopDurationCheckInterval,
+			haveTimeTrueForSelection,
 		)
 
 		selectionOptionsAPI := holders.NewTxSelectionOptionsAPI(
@@ -1381,11 +1411,11 @@ func TestApiTransactionProcessor_GetSelectedTransactions(t *testing.T) {
 			},
 		}
 
-		options := holders.NewTxSelectionOptions(
+		options, _ := holders.NewTxSelectionOptions(
 			gasRequested,
 			numTxsSelected,
-			selectionLoopMaximumDuration,
 			loopDurationCheckInterval,
+			haveTimeTrueForSelection,
 		)
 
 		selectionOptionsAPI := holders.NewTxSelectionOptionsAPI(
@@ -1427,11 +1457,11 @@ func TestApiTransactionProcessor_GetSelectedTransactions(t *testing.T) {
 		require.NoError(t, err)
 		require.NotNil(t, atp)
 
-		options := holders.NewTxSelectionOptions(
+		options, _ := holders.NewTxSelectionOptions(
 			gasRequested,
 			numTxsSelected,
-			selectionLoopMaximumDuration,
 			loopDurationCheckInterval,
+			haveTimeTrueForSelection,
 		)
 
 		selectionOptionsAPI := holders.NewTxSelectionOptionsAPI(
@@ -1485,11 +1515,11 @@ func TestApiTransactionProcessor_GetSelectedTransactions(t *testing.T) {
 		require.NoError(t, err)
 		require.NotNil(t, atp)
 
-		options := holders.NewTxSelectionOptions(
+		options, _ := holders.NewTxSelectionOptions(
 			gasRequested,
 			numTxsSelected,
-			selectionLoopMaximumDuration,
 			loopDurationCheckInterval,
+			haveTimeTrueForSelection,
 		)
 
 		blockchainMock := &testscommon.ChainHandlerStub{
@@ -1628,6 +1658,7 @@ func createAPITransactionProc(t *testing.T, epoch uint32, withDbLookupExt bool) 
 				return flag == common.RelayedTransactionsV1V2DisableFlag
 			},
 		},
+		EnableRoundsHandler: &testscommon.EnableRoundsHandlerStub{},
 	}
 	apiTransactionProc, err := NewAPITransactionProcessor(args)
 	require.Nil(t, err)

@@ -298,24 +298,22 @@ func (tpn *TestFullNode) initTestNodeWithArgs(args ArgTestProcessorNode, fullArg
 		tpn.initAccountDBs(args.TrieStore)
 	}
 
+	chainParam := config.ChainParametersByEpochConfig{
+		RoundDuration:               uint64(roundDuration.Milliseconds()),
+		ShardConsensusGroupSize:     uint32(fullArgs.ConsensusSize),
+		MetachainConsensusGroupSize: uint32(fullArgs.ConsensusSize),
+		RoundsPerEpoch:              fullArgs.RoundsPerEpoch,
+		MinRoundsBetweenEpochs:      1,
+	}
 	tpn.ChainParametersHandler = &chainParameters.ChainParametersHandlerStub{
 		ChainParametersForEpochCalled: func(_ uint32) (config.ChainParametersByEpochConfig, error) {
-			return config.ChainParametersByEpochConfig{
-				RoundDuration:               uint64(roundDuration.Milliseconds()),
-				ShardConsensusGroupSize:     uint32(fullArgs.ConsensusSize),
-				MetachainConsensusGroupSize: uint32(fullArgs.ConsensusSize),
-				RoundsPerEpoch:              fullArgs.RoundsPerEpoch,
-				MinRoundsBetweenEpochs:      1,
-			}, nil
+			return chainParam, nil
 		},
 		CurrentChainParametersCalled: func() config.ChainParametersByEpochConfig {
-			return config.ChainParametersByEpochConfig{
-				RoundDuration:               uint64(roundDuration.Milliseconds()),
-				ShardConsensusGroupSize:     uint32(fullArgs.ConsensusSize),
-				MetachainConsensusGroupSize: uint32(fullArgs.ConsensusSize),
-				RoundsPerEpoch:              fullArgs.RoundsPerEpoch,
-				MinRoundsBetweenEpochs:      1,
-			}
+			return chainParam
+		},
+		AllChainParametersCalled: func() []config.ChainParametersByEpochConfig {
+			return []config.ChainParametersByEpochConfig{chainParam}
 		},
 	}
 
@@ -516,11 +514,15 @@ func (tpn *TestFullNode) initNode(
 	tpn.ForkDetector = tpn.createForkDetector(roundHandler)
 
 	argsKeysHolder := keysManagement.ArgsManagedPeersHolder{
-		KeyGenerator:          args.KeyGen,
-		P2PKeyGenerator:       args.P2PKeyGen,
-		MaxRoundsOfInactivity: 0, // 0 for main node, non-0 for backup node
-		PrefsConfig:           config.Preferences{},
+		KeyGenerator:    args.KeyGen,
+		P2PKeyGenerator: args.P2PKeyGen,
+		PrefsConfig: config.Preferences{
+			Preferences: config.PreferencesConfig{
+				RedundancyLevel: 0, //  0 for main node, non-0 for backup node
+			},
+		},
 		P2PKeyConverter:       p2pFactory.NewP2PKeyConverter(),
+		ProcessConfigsHandler: &testscommon.ProcessConfigsHandlerStub{},
 	}
 	keysHolder, _ := keysManagement.NewManagedPeersHolder(argsKeysHolder)
 

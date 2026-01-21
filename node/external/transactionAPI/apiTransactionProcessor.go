@@ -16,6 +16,8 @@ import (
 	"github.com/multiversx/mx-chain-core-go/data/transaction"
 	"github.com/multiversx/mx-chain-core-go/data/typeConverters"
 	"github.com/multiversx/mx-chain-core-go/marshal"
+	logger "github.com/multiversx/mx-chain-logger-go"
+
 	"github.com/multiversx/mx-chain-go/common"
 	"github.com/multiversx/mx-chain-go/common/holders"
 	"github.com/multiversx/mx-chain-go/dataRetriever"
@@ -28,7 +30,6 @@ import (
 	"github.com/multiversx/mx-chain-go/sharding"
 	"github.com/multiversx/mx-chain-go/state"
 	"github.com/multiversx/mx-chain-go/txcache"
-	logger "github.com/multiversx/mx-chain-logger-go"
 )
 
 var log = logger.GetOrCreate("node/transactionAPI")
@@ -50,6 +51,7 @@ type apiTransactionProcessor struct {
 	refundDetector              *refundDetector
 	gasUsedAndFeeProcessor      *gasUsedAndFeeProcessor
 	enableEpochsHandler         common.EnableEpochsHandler
+	enableRoundsHandler         common.EnableRoundsHandler
 }
 
 // NewAPITransactionProcessor will create a new instance of apiTransactionProcessor
@@ -75,6 +77,7 @@ func NewAPITransactionProcessor(args *ArgAPITransactionProcessor) (*apiTransacti
 		args.LogsFacade,
 		args.ShardCoordinator,
 		args.DataFieldParser,
+		args.EnableRoundsHandler,
 	)
 
 	refundDetectorInstance := NewRefundDetector()
@@ -103,6 +106,7 @@ func NewAPITransactionProcessor(args *ArgAPITransactionProcessor) (*apiTransacti
 		refundDetector:              refundDetectorInstance,
 		gasUsedAndFeeProcessor:      gasUsedAndFeeProc,
 		enableEpochsHandler:         args.EnableEpochsHandler,
+		enableRoundsHandler:         args.EnableRoundsHandler,
 	}, nil
 }
 
@@ -173,11 +177,23 @@ func (atp *apiTransactionProcessor) GetTransaction(txHash string, withResults bo
 }
 
 func (atp *apiTransactionProcessor) doGetTransaction(hash []byte, withResults bool) (*transaction.ApiTransactionResult, error) {
-	tx := atp.optionallyGetTransactionFromPool(hash)
-	if tx != nil {
-		return tx, nil
+	txFromPool := atp.optionallyGetTransactionFromPool(hash)
+	if txFromPool != nil {
+		// we don't return immediately because storage/history takes priority if it succeeds
+		txFromStorage, err := atp.fetchFromStorageOrHistory(hash, withResults)
+		if err == nil {
+			return txFromStorage, nil
+		}
+
+		// storage/history failed, but pool has it
+		return txFromPool, nil
 	}
 
+	// no pool entry — just return storage/history result
+	return atp.fetchFromStorageOrHistory(hash, withResults)
+}
+
+func (atp *apiTransactionProcessor) fetchFromStorageOrHistory(hash []byte, withResults bool) (*transaction.ApiTransactionResult, error) {
 	if atp.historyRepository.IsEnabled() {
 		return atp.lookupHistoricalTransaction(hash, withResults)
 	}
@@ -732,8 +748,29 @@ func (atp *apiTransactionProcessor) computeTimestampForRoundAsMs(round uint64) i
 	return timestamp.UnixMilli()
 }
 
+func (atp *apiTransactionProcessor) checkExecutionResult(miniblockMetadata *dblookupext.MiniblockMetadata) error {
+	isSupernovaEnabled := atp.enableRoundsHandler.IsFlagEnabledInRound(common.SupernovaRoundFlag, miniblockMetadata.Round)
+	if !isSupernovaEnabled {
+		return nil
+	}
+
+	headerHash := miniblockMetadata.GetHeaderHash()
+	executionResultsStorer, errG := atp.storageService.GetStorer(dataRetriever.ExecutionResultsUnit)
+	if errG != nil {
+		return errG
+	}
+
+	_, err := executionResultsStorer.GetFromEpoch(headerHash, miniblockMetadata.GetEpoch())
+	return err
+}
+
 func (atp *apiTransactionProcessor) lookupHistoricalTransaction(hash []byte, withResults bool) (*transaction.ApiTransactionResult, error) {
 	miniblockMetadata, err := atp.historyRepository.GetMiniblockMetadataByTxHash(hash)
+	if err != nil {
+		return nil, fmt.Errorf("%s: %w", ErrTransactionNotFound.Error(), err)
+	}
+
+	err = atp.checkExecutionResult(miniblockMetadata)
 	if err != nil {
 		return nil, fmt.Errorf("%s: %w", ErrTransactionNotFound.Error(), err)
 	}
@@ -777,7 +814,7 @@ func (atp *apiTransactionProcessor) lookupHistoricalTransaction(hash []byte, wit
 		block.Type(miniblockMetadata.Type), tx)
 
 	if withResults {
-		err = atp.transactionResultsProcessor.putResultsInTransaction(hash, tx, miniblockMetadata.Epoch)
+		err = atp.transactionResultsProcessor.putResultsInTransaction(hash, tx, miniblockMetadata.Epoch, miniblockMetadata.Round)
 		if err != nil {
 			return nil, err
 		}

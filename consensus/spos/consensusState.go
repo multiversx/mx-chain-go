@@ -48,6 +48,8 @@ type ConsensusState struct {
 	*roundStatus
 
 	mutState sync.RWMutex
+
+	redundancyHandler consensus.NodeRedundancyHandler
 }
 
 // NewConsensusState creates a new ConsensusState object
@@ -55,12 +57,14 @@ func NewConsensusState(
 	roundConsensus *roundConsensus,
 	roundThreshold *roundThreshold,
 	roundStatus *roundStatus,
+	redundancyHandler consensus.NodeRedundancyHandler,
 ) *ConsensusState {
 
 	cns := ConsensusState{
-		roundConsensus: roundConsensus,
-		roundThreshold: roundThreshold,
-		roundStatus:    roundStatus,
+		roundConsensus:    roundConsensus,
+		roundThreshold:    roundThreshold,
+		roundStatus:       roundStatus,
+		redundancyHandler: redundancyHandler,
 	}
 
 	cns.ResetConsensusState()
@@ -266,7 +270,7 @@ func (cns *ConsensusState) CanDoSubroundJob(currentSubroundId int) bool {
 // CanProcessReceivedMessage method returns true if the message received can be processed and false otherwise
 func (cns *ConsensusState) CanProcessReceivedMessage(cnsDta *consensus.Message, currentRoundIndex int64,
 	currentSubroundId int) bool {
-	if cns.IsNodeSelf(string(cnsDta.PubKey)) {
+	if cns.IsNodeSelf(string(cnsDta.PubKey)) && ShouldConsiderSelfKeyInConsensus(cns.redundancyHandler) {
 		return false
 	}
 
