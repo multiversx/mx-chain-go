@@ -41,6 +41,8 @@ const DefaultRestInterface = "localhost:8080"
 // to start the node without a REST endpoint available
 const DefaultRestPortOff = "off"
 
+const simulateSelectionMaxDuration = time.Millisecond * 150
+
 var log = logger.GetOrCreate("facade")
 
 // ArgNodeFacade represents the argument for the nodeFacade
@@ -346,8 +348,9 @@ func (nf *nodeFacade) GetTransactionsPoolNonceGapsForSender(sender string) (*com
 // GetSelectedTransactions will simulate a SelectTransactions, and it will return the corresponding hash of each selected transaction
 func (nf *nodeFacade) GetSelectedTransactions(fields string) (*common.TransactionsSelectionSimulationResult, error) {
 	// simulation only, should be safe to pass true here
+	startTime := time.Now()
 	haveTimeForSimulation := func() bool {
-		return true
+		return time.Since(startTime) <= simulateSelectionMaxDuration
 	}
 
 	selectionOptions, err := holders.NewTxSelectionOptions(
