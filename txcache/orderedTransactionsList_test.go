@@ -267,7 +267,6 @@ func TestOrderedTransactionsList_MemorySafety_Fuzz(t *testing.T) {
 	// Fuzz-like scenario:
 	// Insert 1000 items with random nonces/prices
 	// Remove random chunks
-	// Remove random chunks
 	// Verify sorting is maintained
 
 	rnd := rand.New(rand.NewSource(time.Now().UnixNano()))
