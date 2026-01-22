@@ -692,6 +692,15 @@ func (ps *PruningStorer) Has(key []byte) error {
 
 // SetEpochForPutOperation will set the epoch to be used when using the put operation
 func (ps *PruningStorer) SetEpochForPutOperation(epoch uint32) {
+	ps.lock.RLock()
+	epochForPutOperation := ps.epochForPutOperation
+	ps.lock.RUnlock()
+
+	// do not try to aquire full lock if epoch already set
+	if epoch == epochForPutOperation {
+		return
+	}
+
 	ps.lock.Lock()
 	ps.epochForPutOperation = epoch
 	ps.lock.Unlock()
