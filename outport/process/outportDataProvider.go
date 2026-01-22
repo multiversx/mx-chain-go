@@ -1,6 +1,7 @@
 package process
 
 import (
+	"bytes"
 	"encoding/hex"
 	"fmt"
 	"math/big"
@@ -61,6 +62,7 @@ type ArgPrepareOutportSaveBlockData struct {
 	NotarizedHeadersHashes []string
 	HighestFinalBlockNonce uint64
 	HighestFinalBlockHash  []byte
+	ScheduledRootHash      []byte
 }
 
 type outportDataProvider struct {
@@ -77,7 +79,7 @@ type outportDataProvider struct {
 	hasher                   hashing.Hasher
 	dataPool                 dataRetriever.PoolsHolder
 	enableEpochsHandler      common.EnableEpochsHandler
-	StateAccessesCollector   state.StateAccessesCollector
+	stateAccessesCollector   state.StateAccessesCollector
 	roundHandler             RoundHandler
 	rewardsGetter            EpochRewardsGetter
 }
@@ -98,7 +100,7 @@ func NewOutportDataProvider(arg ArgOutportDataProvider) (*outportDataProvider, e
 		hasher:                   arg.Hasher,
 		dataPool:                 arg.DataPool,
 		enableEpochsHandler:      arg.EnableEpochsHandler,
-		StateAccessesCollector:   arg.StateAccessesCollector,
+		stateAccessesCollector:   arg.StateAccessesCollector,
 		roundHandler:             arg.RoundHandler,
 		rewardsGetter:            arg.RewardsGetter,
 	}, nil
@@ -160,6 +162,7 @@ func (odp *outportDataProvider) PrepareOutportSaveBlockData(arg ArgPrepareOutpor
 		return nil, err
 	}
 
+	stateAccessesForBlock := odp.getStateAccessesForBlock(arg.Header, arg.HeaderHash, arg.ScheduledRootHash)
 	outportBlock := &outportcore.OutportBlockWithHeaderAndBody{
 		OutportBlock: &outportcore.OutportBlock{
 			ShardID:         odp.shardID,
@@ -171,7 +174,7 @@ func (odp *outportDataProvider) PrepareOutportSaveBlockData(arg ArgPrepareOutpor
 				GasPenalized:   odp.gasConsumedProvider.TotalGasPenalized(),
 				MaxGasPerBlock: odp.economicsData.MaxGasLimitPerBlock(odp.shardID),
 			},
-			StateAccesses:          odp.StateAccessesCollector.GetCollectedAccesses(),
+			StateAccessesForBlock:  stateAccessesForBlock,
 			AlteredAccounts:        alteredAccounts,
 			NotarizedHeadersHashes: arg.NotarizedHeadersHashes,
 			NumberOfShards:         odp.numOfShards,
@@ -201,6 +204,40 @@ func (odp *outportDataProvider) PrepareOutportSaveBlockData(arg ArgPrepareOutpor
 	}
 
 	return outportBlock, nil
+}
+
+func (odp *outportDataProvider) getStateAccessesForBlock(
+	header data.HeaderHandler,
+	headerHash []byte,
+	scheduledRootHash []byte,
+) map[string]*outportcore.StateAccessesForBlock {
+	stateAccessesForBlock := make(map[string]*outportcore.StateAccessesForBlock)
+	if !header.IsHeaderV3() {
+		rootHash := header.GetRootHash()
+		if len(scheduledRootHash) != 0 && !bytes.Equal(rootHash, scheduledRootHash) {
+			rootHash = scheduledRootHash
+		}
+
+		stateAccesses := odp.getStateAccessForRootHash(rootHash)
+		stateAccessesForBlock[hex.EncodeToString(headerHash)] = stateAccesses
+		return stateAccessesForBlock
+	}
+
+	executionResults := header.GetExecutionResultsHandlers()
+	for _, execResult := range executionResults {
+		stateAccesses := odp.getStateAccessForRootHash(execResult.GetRootHash())
+		stateAccessesForBlock[hex.EncodeToString(execResult.GetHeaderHash())] = stateAccesses
+	}
+	return stateAccessesForBlock
+}
+
+func (odp *outportDataProvider) getStateAccessForRootHash(rootHash []byte) *outportcore.StateAccessesForBlock {
+	stateAccessesMap := odp.stateAccessesCollector.GetStateAccessesForRootHash(rootHash)
+	if len(stateAccessesMap) == 0 {
+		return nil
+	}
+	odp.stateAccessesCollector.RemoveStateAccessesForRootHash(rootHash)
+	return &outportcore.StateAccessesForBlock{StateAccesses: stateAccessesMap}
 }
 
 func (odp *outportDataProvider) prepareExecutionResultsData(args ArgPrepareOutportSaveBlockData) (map[string]*outportcore.ExecutionResultData, error) {
@@ -681,6 +718,10 @@ func putInMapTxsFromBody(
 
 		strCache := process.ShardCacherIdentifier(mb.SenderShardID, mb.ReceiverShardID)
 		cache := storeByType.ShardDataStore(strCache)
+		if check.IfNil(cache) {
+			log.Debug("putInMapTxsFromBody cannot find shard data store", "senderShardID", mb.SenderShardID, "receiverShardID", mb.ReceiverShardID, "type", mb.Type)
+			continue
+		}
 
 		for _, txHash := range mb.TxHashes {
 			txI, found := cache.Get(txHash)
