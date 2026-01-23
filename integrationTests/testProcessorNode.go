@@ -692,6 +692,7 @@ func (tpn *TestProcessorNode) Close() {
 	_ = tpn.MainMessenger.Close()
 	_ = tpn.FullArchiveMessenger.Close()
 	_ = tpn.VMContainer.Close()
+	_ = tpn.ExecutionManager.Close()
 }
 
 func (tpn *TestProcessorNode) initAccountDBsWithPruningStorer() {
