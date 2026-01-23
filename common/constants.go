@@ -626,9 +626,6 @@ const (
 	// MetricStorageAPICostOptimizationEnableEpoch represents the epoch when storage api cost optimization feature is enabled
 	MetricStorageAPICostOptimizationEnableEpoch = "erd_storage_api_cost_optimization_enable_epoch"
 
-	// MetricTransformToMultiShardCreateEnableEpoch represents the epoch when transform to multi shard create functionality is enabled
-	MetricTransformToMultiShardCreateEnableEpoch = "erd_transform_to_multi_shard_create_enable_epoch"
-
 	// MetricESDTRegisterAndSetAllRolesEnableEpoch represents the epoch when esdt register and set all roles functionality is enabled
 	MetricESDTRegisterAndSetAllRolesEnableEpoch = "erd_esdt_register_and_set_all_roles_enable_epoch"
 
@@ -814,6 +811,9 @@ const (
 
 	// MetricTailInflationEnableEpoch represents the epoch when tail inflation is enabled
 	MetricTailInflationEnableEpoch = "erd_tail_inflation_enable_epoch"
+
+	// MetricSupernovaEnableEpoch represents the epoch when supernova is enabled
+	MetricSupernovaEnableEpoch = "erd_supernova_enable_epoch"
 
 	// MetricEpochEnable represents the epoch when the max nodes change configuration is applied
 	MetricEpochEnable = "erd_epoch_enable"
@@ -1033,6 +1033,9 @@ const CommitMaxTime = 3 * time.Second
 
 // PutInStorerMaxTime represents max time accepted for a put action, after which a warn message is displayed
 const PutInStorerMaxTime = time.Second
+
+// PutInStorerMaxTimeSupernova represents max time accepted for a put action with supernova activated, after which a warn message is displayed
+const PutInStorerMaxTimeSupernova = 600 * time.Millisecond
 
 // DefaultUnstakedEpoch represents the default epoch that is set for a validator that has not unstaked yet
 const DefaultUnstakedEpoch = math.MaxUint32
