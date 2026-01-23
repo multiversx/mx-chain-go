@@ -650,12 +650,14 @@ func TestSimulator_SendMoveBalanceTxBeforeAndAfterSupernovaWithMoreGasLimit(t *t
 	chainSimulatorCommon.GenerateMoveBalanceTxsInShardsWithMoreGasLimit(t, chainSimulator)
 }
 
+// TODO: Check here after, before and at the activation of supernova
 func TestChainSimulator_VerifyEconomicsMetricsSupernova(t *testing.T) {
 	if testing.Short() {
 		t.Skip("this is not a short test")
 	}
 
 	supernovaActivationRound := uint64(220)
+	supernovaActivationEpoch := uint64(2)
 
 	cs, err := NewChainSimulator(ArgsChainSimulator{
 		BypassTxSignatureCheck:         true,
@@ -674,7 +676,7 @@ func TestChainSimulator_VerifyEconomicsMetricsSupernova(t *testing.T) {
 		MetaChainMinNodes:       defaultMetaChainMinNodes,
 		AlterConfigsFunction: func(cfg *config.Configs) {
 			cfg.EpochConfig.EnableEpochs.StakingV2EnableEpoch = 0
-			cfg.EpochConfig.EnableEpochs.SupernovaEnableEpoch = 2
+			cfg.EpochConfig.EnableEpochs.SupernovaEnableEpoch = uint32(supernovaActivationEpoch)
 			cfg.RoundConfig.RoundActivations[string(common.SupernovaRoundFlag)] = config.ActivationRoundByName{
 				Round: fmt.Sprintf("%d", supernovaActivationRound),
 			}
@@ -684,7 +686,7 @@ func TestChainSimulator_VerifyEconomicsMetricsSupernova(t *testing.T) {
 	require.NotNil(t, cs)
 	defer cs.Close()
 
-	cs.GenerateBlocksUntilEpochIsReached(2)
+	require.Nil(t, cs.GenerateBlocksUntilEpochIsReached(int32(supernovaActivationEpoch)))
 
 	mintValue := big.NewInt(0).Mul(chainSimulatorCommon.OneEGLD, big.NewInt(3000))
 	wallet1, err := cs.GenerateAndMintWalletAddress(0, mintValue)
@@ -705,13 +707,39 @@ func TestChainSimulator_VerifyEconomicsMetricsSupernova(t *testing.T) {
 	require.Equal(t, 1, len(results))
 	require.NotNil(t, results)
 
-	cs.GenerateBlocksUntilEpochIsReached(3)
+	require.Nil(t, cs.GenerateBlocksUntilEpochIsReached(int32(supernovaActivationEpoch+1)))
 
-	res, err := cs.GetNodeHandler(core.MetachainShardId).GetFacadeHandler().StatusMetrics().EconomicsMetrics()
+	checkMetrics(t, cs, core.MetachainShardId, supernovaActivationEpoch+1)
+	checkMetrics(t, cs, 0, supernovaActivationEpoch+1)
+}
+
+func checkMetrics(t *testing.T, cs ChainSimulator, shardID uint32, expectedEpoch uint64) {
+	res, err := cs.GetNodeHandler(shardID).GetFacadeHandler().StatusMetrics().EconomicsMetrics()
 	require.Nil(t, err)
 
-	_ = res
-	require.NotEmpty(t, res[common.MetricTotalFees])
-	require.NotNil(t, res[common.MetricDevRewardsInEpoch])
+	expectedMetrics := map[string]struct{}{
+		common.MetricTotalSupply:           {},
+		common.MetricInflation:             {},
+		common.MetricEpochForEconomicsData: {},
+		common.MetricTotalFees:             {},
+		common.MetricDevRewardsInEpoch:     {},
+	}
 
+	for foundMetric, metricValue := range res {
+		require.Contains(t, expectedMetrics, foundMetric)
+
+		switch matricVal := metricValue.(type) {
+		case string:
+			require.Greater(t, len(matricVal), 1)
+		case uint64:
+			require.Equal(t, expectedEpoch, metricValue)
+		default:
+			require.Fail(t, "metric value is not a string or uint64")
+		}
+
+		delete(expectedMetrics, foundMetric)
+
+	}
+
+	require.Empty(t, expectedMetrics, "should've found all expected metrics in the result from facade")
 }

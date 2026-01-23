@@ -3833,3 +3833,43 @@ func (bp *baseProcessor) updateInclusionEstimatorMetrics(executionResultsLen int
 
 	bp.appStatusHandler.SetUInt64Value(common.MetricNumInclusionEstimationRejected, rejected)
 }
+
+func (bp *baseProcessor) saveEpochStartEconomicsMetrics(epochStartMetaBlock data.MetaHeaderHandler) {
+	economics := epochStartMetaBlock.GetEpochStartHandler().GetEconomicsHandler()
+
+	bp.appStatusHandler.SetStringValue(common.MetricTotalSupply, economics.GetTotalSupply().String())
+	bp.appStatusHandler.SetStringValue(common.MetricInflation, economics.GetTotalNewlyMinted().String())
+	bp.appStatusHandler.SetUInt64Value(common.MetricEpochForEconomicsData, uint64(epochStartMetaBlock.GetEpoch()))
+
+	metaBlockWithFeesIncluded := bp.getActualEpochStartMetaWithFees(epochStartMetaBlock)
+	bp.appStatusHandler.SetStringValue(common.MetricTotalFees, common.GetAccumulatedFeesInEpoch(metaBlockWithFeesIncluded).String())
+	bp.appStatusHandler.SetStringValue(common.MetricDevRewardsInEpoch, common.GetDeveloperFeesInEpoch(metaBlockWithFeesIncluded).String())
+}
+
+func (bp *baseProcessor) getActualEpochStartMetaWithFees(epochStartMetaBlock data.MetaHeaderHandler) data.MetaHeaderHandler {
+	if !epochStartMetaBlock.IsHeaderV3() {
+		return epochStartMetaBlock
+	}
+
+	// For epoch start block, this should always hold the header hash of the epoch change proposed block
+	lastExecRes, ok := epochStartMetaBlock.GetLastExecutionResultHandler().(data.LastMetaExecutionResultHandler)
+	if !ok {
+		log.Error("getActualEpochStartMetaWitFees: wrong type assertion for epochStartMetaBlock.GetLastExecutionResultHandler().(data.LastMetaExecutionResultHandler)")
+		// saving a metric should not be a blocking error, we will return the actual start of epoch block with empty fee fields
+		return epochStartMetaBlock
+	}
+
+	hdrHashEpochChangeProposed := lastExecRes.GetExecutionResultHandler().GetHeaderHash()
+	epochChangeHdrProposed, err := process.GetMetaHeader(
+		hdrHashEpochChangeProposed,
+		bp.dataPool.Headers(),
+		bp.marshalizer,
+		bp.store)
+	if err != nil {
+		log.Error("getActualEpochStartMetaWitFees: cannot find previous epoch change proposed header", "error", err)
+		// saving a metric should not be a blocking error, we will return the actual start of epoch block with empty fee fields
+		return epochStartMetaBlock
+	}
+
+	return epochChangeHdrProposed
+}
