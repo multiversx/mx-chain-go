@@ -1887,3 +1887,186 @@ func TestGetMetaHeadersMiniBlockHandlerFromExecutionResults(t *testing.T) {
 		require.Equal(t, expMiniBlockHeaderHandlers, retMiniBlockHandlers)
 	})
 }
+
+func createPendingMbsFromHashes(hashes ...[]byte) []data.MiniBlockHeaderHandler {
+	pendingMbs := make([]data.MiniBlockHeaderHandler, len(hashes))
+	for i, hash := range hashes {
+		pendingMbs[i] = &block.MiniBlockHeader{Hash: hash}
+	}
+	return pendingMbs
+}
+
+func createMbHeadersFromHashes(hashes ...[]byte) []block.MiniBlockHeader {
+	mbHeaders := make([]block.MiniBlockHeader, len(hashes))
+	for i, hash := range hashes {
+		mbHeaders[i] = block.MiniBlockHeader{Hash: hash}
+	}
+	return mbHeaders
+}
+
+func Test_allPendingMbsAreProposed(t *testing.T) {
+	t.Parallel()
+
+	t.Run("empty pending mbs - should return true", func(t *testing.T) {
+		t.Parallel()
+
+		result := allPendingMbsAreProposed([]data.MiniBlockHeaderHandler{}, &block.Header{}, nil)
+		assert.True(t, result)
+	})
+
+	t.Run("all pending mbs are proposed in current header - should return true", func(t *testing.T) {
+		t.Parallel()
+
+		mbHash1, mbHash2 := []byte("mbHash1"), []byte("mbHash2")
+		pendingMbs := createPendingMbsFromHashes(mbHash1, mbHash2)
+		header := &block.Header{MiniBlockHeaders: createMbHeadersFromHashes(mbHash1, mbHash2, []byte("extra"))}
+
+		result := allPendingMbsAreProposed(pendingMbs, header, nil)
+		assert.True(t, result)
+	})
+
+	t.Run("some pending mbs are not proposed - should return false", func(t *testing.T) {
+		t.Parallel()
+
+		mbHash1, mbHash2, mbHash3 := []byte("mbHash1"), []byte("mbHash2"), []byte("mbHash3")
+		pendingMbs := createPendingMbsFromHashes(mbHash1, mbHash2, mbHash3)
+		header := &block.Header{MiniBlockHeaders: createMbHeadersFromHashes(mbHash1, mbHash2)} // mbHash3 missing
+
+		result := allPendingMbsAreProposed(pendingMbs, header, nil)
+		assert.False(t, result)
+	})
+
+	t.Run("current header has no mbs but prev header has all - should return true", func(t *testing.T) {
+		t.Parallel()
+
+		mbHash1, mbHash2 := []byte("mbHash1"), []byte("mbHash2")
+		prevHeaderHash := []byte("prevHeaderHash")
+
+		pendingMbs := createPendingMbsFromHashes(mbHash1, mbHash2)
+		currentHeader := &block.Header{PrevHash: prevHeaderHash}
+		headers := map[string]data.HeaderHandler{
+			string(prevHeaderHash): &block.Header{MiniBlockHeaders: createMbHeadersFromHashes(mbHash1, mbHash2)},
+		}
+
+		result := allPendingMbsAreProposed(pendingMbs, currentHeader, headers)
+		assert.True(t, result)
+	})
+
+	t.Run("traverse multiple headers to find mbs - should return true", func(t *testing.T) {
+		t.Parallel()
+
+		mbHash1 := []byte("mbHash1")
+		prevHash1, prevHash2 := []byte("prevHash1"), []byte("prevHash2")
+
+		pendingMbs := createPendingMbsFromHashes(mbHash1)
+		currentHeader := &block.Header{PrevHash: prevHash1}
+		headers := map[string]data.HeaderHandler{
+			string(prevHash1): &block.Header{PrevHash: prevHash2},
+			string(prevHash2): &block.Header{MiniBlockHeaders: createMbHeadersFromHashes(mbHash1)},
+		}
+
+		result := allPendingMbsAreProposed(pendingMbs, currentHeader, headers)
+		assert.True(t, result)
+	})
+
+	t.Run("prev header not found in map - should return false", func(t *testing.T) {
+		t.Parallel()
+
+		pendingMbs := createPendingMbsFromHashes([]byte("mbHash1"))
+		currentHeader := &block.Header{PrevHash: []byte("missingHash")}
+
+		result := allPendingMbsAreProposed(pendingMbs, currentHeader, map[string]data.HeaderHandler{})
+		assert.False(t, result)
+	})
+
+	t.Run("header v3 traversal - should return true", func(t *testing.T) {
+		t.Parallel()
+
+		mbHash1 := []byte("mbHash1")
+		prevHeaderHash := []byte("prevHeaderHash")
+
+		pendingMbs := createPendingMbsFromHashes(mbHash1)
+		currentHeader := &block.HeaderV3{PrevHash: prevHeaderHash}
+		headers := map[string]data.HeaderHandler{
+			string(prevHeaderHash): &block.HeaderV3{
+				MiniBlockHeaders: createMbHeadersFromHashes(mbHash1),
+			},
+		}
+
+		result := allPendingMbsAreProposed(pendingMbs, currentHeader, headers)
+		assert.True(t, result)
+	})
+}
+
+func Test_shouldUpdateLastCrossMetaToPending(t *testing.T) {
+	t.Parallel()
+
+	createShardDataStub := func(pendingMbs []data.MiniBlockHeaderHandler, headerHash []byte) *epochStartMocks.EpochStartShardDataStub {
+		return &epochStartMocks.EpochStartShardDataStub{
+			GetPendingMiniBlockHeaderHandlersCalled: func() []data.MiniBlockHeaderHandler { return pendingMbs },
+			GetHeaderHashCalled:                     func() []byte { return headerHash },
+		}
+	}
+
+	t.Run("no pending mbs - should return true", func(t *testing.T) {
+		t.Parallel()
+
+		shardData := createShardDataStub([]data.MiniBlockHeaderHandler{}, nil)
+		result, err := shouldUpdateLastCrossMetaToPending(shardData, nil)
+		assert.Nil(t, err)
+		assert.True(t, result)
+	})
+
+	t.Run("header not found - should return error", func(t *testing.T) {
+		t.Parallel()
+
+		shardData := createShardDataStub(createPendingMbsFromHashes([]byte("mb1")), []byte("missing"))
+		result, err := shouldUpdateLastCrossMetaToPending(shardData, map[string]data.HeaderHandler{})
+		assert.True(t, errors.Is(err, epochStart.ErrMissingHeader))
+		assert.False(t, result)
+	})
+
+	t.Run("non-v3 header - should return false", func(t *testing.T) {
+		t.Parallel()
+
+		headerHash := []byte("headerHash")
+		shardData := createShardDataStub(createPendingMbsFromHashes([]byte("mb1")), headerHash)
+		headers := map[string]data.HeaderHandler{string(headerHash): &block.Header{}}
+
+		result, err := shouldUpdateLastCrossMetaToPending(shardData, headers)
+		assert.Nil(t, err)
+		assert.False(t, result)
+	})
+
+	t.Run("v3 header with all mbs proposed - should return true", func(t *testing.T) {
+		t.Parallel()
+
+		mbHash1, headerHash := []byte("mbHash1"), []byte("headerHash")
+		shardData := createShardDataStub(createPendingMbsFromHashes(mbHash1), headerHash)
+		headers := map[string]data.HeaderHandler{
+			string(headerHash): &block.HeaderV3{
+				MiniBlockHeaders: createMbHeadersFromHashes(mbHash1),
+			},
+		}
+
+		result, err := shouldUpdateLastCrossMetaToPending(shardData, headers)
+		assert.Nil(t, err)
+		assert.True(t, result)
+	})
+
+	t.Run("v3 header with missing mbs - should return false", func(t *testing.T) {
+		t.Parallel()
+
+		mbHash1, mbHash2, headerHash := []byte("mbHash1"), []byte("mbHash2"), []byte("headerHash")
+		shardData := createShardDataStub(createPendingMbsFromHashes(mbHash1, mbHash2), headerHash)
+		headers := map[string]data.HeaderHandler{
+			string(headerHash): &block.HeaderV3{
+				MiniBlockHeaders: createMbHeadersFromHashes(mbHash1), // mbHash2 missing
+			},
+		}
+
+		result, err := shouldUpdateLastCrossMetaToPending(shardData, headers)
+		assert.Nil(t, err)
+		assert.False(t, result)
+	})
+}
