@@ -63,6 +63,11 @@ func (erie *ExecutionResultInclusionEstimator) Decide(
 		return allowed
 	}
 
+	safetyMargin := uint64(erie.cfg.SafetyMargin)
+	if erie.cfg.SafetyMargin > 100 {
+		safetyMargin -= 100
+	}
+
 	var roundForTBaseCalculation uint64
 	var previousExecutionResultMeta data.BaseExecutionResultHandler
 
@@ -78,15 +83,15 @@ func (erie *ExecutionResultInclusionEstimator) Decide(
 	currentHdrTsMs := erie.roundHandler.GetTimeStampForRound(currentRound)
 	currentHdrTsNs := convertMsToNs(currentHdrTsMs)
 
-	// accumulated execution time in ns (1 gas = 1ns)
-	estimatedTime := uint64(0)
-	for i, executionResultMeta := range pending {
-		if i > 0 {
-			previousExecutionResultMeta = pending[i-1]
+	// accumulated execution tBase for each pending execution result in ns (1 gas = 1ns)
+	estimatedTBase := tBase
+	for pendingExecutionIndex, executionResultMeta := range pending {
+		if pendingExecutionIndex > 0 {
+			previousExecutionResultMeta = pending[pendingExecutionIndex-1]
 		}
 		ok := erie.checkSanity(executionResultMeta, previousExecutionResultMeta, lastNotarised, currentRound)
 		if !ok {
-			return i
+			return pendingExecutionIndex
 		}
 
 		overflow, currentEstimatedTime := bits.Mul64(executionResultMeta.GetGasUsed(), erie.tGas)
@@ -96,33 +101,38 @@ func (erie *ExecutionResultInclusionEstimator) Decide(
 				"gasUsed", executionResultMeta.GetGasUsed(),
 				"tGas", erie.tGas,
 			)
-			return i
+			return pendingExecutionIndex
 		}
 
-		estimatedTime, overflow = bits.Add64(estimatedTime, currentEstimatedTime, 0)
+		// Round timestamp for current execution result, since it is the time when the execution result becomes available
+		tRoundNs := convertMsToNs(erie.roundHandler.GetTimeStampForRound(executionResultMeta.GetHeaderRound()))
+
+		// Align previously estimated tBase with start of round if needed
+		estimatedTBase = max(estimatedTBase, tRoundNs)
+		estimatedTBase, overflow = bits.Add64(estimatedTBase, currentEstimatedTime, 0)
 		if overflow != 0 {
 			log.Debug("ExecutionResultInclusionEstimator: overflow detected in block transactions time estimation",
-				"estimatedTime", estimatedTime,
+				"estimatedTBase", estimatedTBase,
 				"currentEstimatedTime", currentEstimatedTime)
-			return i
+			return pendingExecutionIndex
 		}
 
-		// Apply safety margin
-		overflow, estimatedTimeWithMargin := bits.Mul64(estimatedTime, erie.cfg.SafetyMargin)
+		// Apply safety margin to current estimated time
+		overflow, currentEstimatedTimeMargin := bits.Mul64(currentEstimatedTime, safetyMargin)
 		if overflow != 0 {
 			log.Debug("ExecutionResultInclusionEstimator: overflow detected in estimated time with margin",
-				"estimatedTime", estimatedTime,
-				"safetyMargin", erie.cfg.SafetyMargin)
-			return i
+				"currentEstimatedTime", currentEstimatedTime,
+				"safetyMargin", safetyMargin)
+			return pendingExecutionIndex
 		}
-		estimatedTimeWithMargin /= 100
+		currentEstimatedTimeMargin /= 100
 
-		tDone, overflow := bits.Add64(tBase, estimatedTimeWithMargin, 0)
+		tDone, overflow := bits.Add64(estimatedTBase, currentEstimatedTimeMargin, 0)
 		if overflow != 0 {
 			log.Debug("ExecutionResultInclusionEstimator: overflow detected in total estimated time",
-				"tBase", tBase,
-				"estimatedTimeWithMargin", estimatedTimeWithMargin)
-			return i
+				"estimatedTBase", estimatedTBase,
+				"estimatedTimeWithMargin", currentEstimatedTimeMargin)
+			return pendingExecutionIndex
 		}
 
 		// check for time cap reached, cannot include current pending item or anything after
@@ -130,15 +140,15 @@ func (erie *ExecutionResultInclusionEstimator) Decide(
 			log.Debug("ExecutionResultInclusionEstimator: estimated time exceeds current header timestamp",
 				"tDone", tDone,
 				"currentHdrTsNs", currentHdrTsNs)
-			return i
+			return pendingExecutionIndex
 		}
 
 		// check for number of results cap reached, including current pending item. MaxResultsPerBlock = 0 means no cap.
-		if erie.cfg.MaxResultsPerBlock != 0 && uint64(i+1) >= erie.cfg.MaxResultsPerBlock {
+		if erie.cfg.MaxResultsPerBlock != 0 && uint64(pendingExecutionIndex+1) >= erie.cfg.MaxResultsPerBlock {
 			log.Debug("ExecutionResultInclusionEstimator: reached MaxResultsPerBlock cap",
 				"maxResultsPerBlock", erie.cfg.MaxResultsPerBlock,
-				"currentIndex", i+1)
-			return i + 1
+				"currentIndex", pendingExecutionIndex+1)
+			return pendingExecutionIndex + 1
 		}
 	}
 
