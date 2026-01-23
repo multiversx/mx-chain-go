@@ -1574,7 +1574,7 @@ func (bp *baseProcessor) prepareDataForBootStorer(args bootStorerDataArgs) {
 	}
 
 	elapsedTime := time.Since(startTime)
-	if elapsedTime >= common.PutInStorerMaxTime {
+	if elapsedTime >= bp.getPutInStorerMaxTime() {
 		log.Warn("saveDataForBootStorer", "elapsed time", elapsedTime)
 	}
 }
@@ -1773,7 +1773,7 @@ func (bp *baseProcessor) saveBody(body *block.Body, header data.HeaderHandler, h
 	bp.scheduledTxsExecutionHandler.SaveStateIfNeeded(headerHash)
 
 	elapsedTime := time.Since(startTime)
-	if elapsedTime >= common.PutInStorerMaxTime {
+	if elapsedTime >= bp.getPutInStorerMaxTime() {
 		log.Warn("saveBody", "elapsed time", elapsedTime)
 	}
 }
@@ -1894,7 +1894,7 @@ func (bp *baseProcessor) saveShardHeader(header data.HeaderHandler, headerHash [
 	bp.saveProof(headerHash, header)
 
 	elapsedTime := time.Since(startTime)
-	if elapsedTime >= common.PutInStorerMaxTime {
+	if elapsedTime >= bp.getPutInStorerMaxTime() {
 		log.Warn("saveShardHeader", "elapsed time", elapsedTime)
 	}
 }
@@ -1921,9 +1921,17 @@ func (bp *baseProcessor) saveMetaHeader(header data.HeaderHandler, headerHash []
 	bp.saveProof(headerHash, header)
 
 	elapsedTime := time.Since(startTime)
-	if elapsedTime >= common.PutInStorerMaxTime {
+	if elapsedTime >= bp.getPutInStorerMaxTime() {
 		log.Warn("saveMetaHeader", "elapsed time", elapsedTime)
 	}
+}
+
+func (bp *baseProcessor) getPutInStorerMaxTime() time.Duration {
+	if bp.enableEpochsHandler.IsFlagEnabled(common.SupernovaFlag) {
+		return common.PutInStorerMaxTimeSupernova
+	}
+
+	return common.PutInStorerMaxTime
 }
 
 func (bp *baseProcessor) saveProof(
@@ -3570,6 +3578,22 @@ func (bp *baseProcessor) getLastExecutionResultHeader(
 }
 
 func (bp *baseProcessor) checkAndUpdateContextBeforeExecution(header data.HeaderHandler) error {
+	lastExecutionResult := bp.blockChain.GetLastExecutionResult()
+	if process.IsReplacementBlockForExecution(header, lastExecutionResult) {
+		err := process.UpdateContextForReplacedHeader(
+			header,
+			bp.executionManager,
+			bp.blockChain,
+			bp.dataPool.Headers(),
+			bp.store,
+			bp.marshalizer,
+			bp.shardCoordinator.SelfId(),
+		)
+		if err != nil {
+			return err
+		}
+	}
+
 	lastExecutedNonce, lastExecutedHash, lastExecutedRootHash := bp.blockChain.GetLastExecutedBlockInfo()
 	if !bytes.Equal(header.GetPrevHash(), lastExecutedHash) {
 		log.Debug("checkContextBeforeExecution: hash does not match",

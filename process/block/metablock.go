@@ -588,6 +588,7 @@ func (mp *metaProcessor) indexBlock(
 		NotarizedHeadersHashes: notarizedHeadersHashes,
 		HighestFinalBlockNonce: mp.forkDetector.GetHighestFinalBlockNonce(),
 		HighestFinalBlockHash:  mp.forkDetector.GetHighestFinalBlockHash(),
+		ScheduledRootHash:      mp.scheduledTxsExecutionHandler.GetScheduledRootHash(),
 	})
 	if err != nil {
 		log.Error("metaProcessor.indexBlock cannot prepare argSaveBlock", "error", err.Error(),
@@ -1373,8 +1374,6 @@ func (mp *metaProcessor) CommitBlock(
 
 	// TODO: Should be sent also validatorInfoTxs alongside rewardsTxs -> mp.validatorInfoCreator.GetValidatorInfoTxs(body) ?
 	mp.indexBlock(header, headerHash, body, finalMetaBlock, notarizedHeadersHashes, rewardsTxs)
-	// TODO refactor stateAccessesCollector to reset here for executed res block hashes but collect right after commit
-	mp.stateAccessesCollector.Reset()
 	mp.recordBlockInHistory(headerHash, headerHandler, bodyHandler)
 
 	highestFinalBlockNonce := mp.forkDetector.GetHighestFinalBlockNonce()

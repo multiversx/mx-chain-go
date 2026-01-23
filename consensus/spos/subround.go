@@ -1,6 +1,7 @@
 package spos
 
 import (
+	"bytes"
 	"context"
 	"sync"
 	"time"
@@ -237,6 +238,31 @@ func (sr *Subround) AppStatusHandler() core.AppStatusHandler {
 // ConsensusChannel method returns the consensus channel
 func (sr *Subround) ConsensusChannel() chan bool {
 	return sr.consensusStateChangedChannel
+}
+
+// HasProofForCompetingBlock checks if there is a proof for a competing block in the equivalent proofs pool
+func (sr *Subround) HasProofForCompetingBlock() bool {
+	prevBlock := sr.Blockchain().GetCurrentBlockHeader()
+	if check.IfNil(prevBlock) {
+		return false
+	}
+	competingBlockNonce := prevBlock.GetNonce() + 1
+	proof, err := sr.EquivalentProofsPool().GetProofByNonce(competingBlockNonce, sr.ShardCoordinator().SelfId())
+	if err != nil || check.IfNil(proof) {
+		return false
+	}
+
+	consensusBlockHash := sr.GetData()
+	if len(consensusBlockHash) == 0 {
+		return true
+	}
+
+	// proof for current consensus block does not count as competing
+	if bytes.Equal(proof.GetHeaderHash(), consensusBlockHash) {
+		return false
+	}
+
+	return true
 }
 
 // GetAssociatedPid returns the associated PeerID to the provided public key bytes

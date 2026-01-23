@@ -1347,9 +1347,6 @@ var ErrBadTxCacheSelectionGasRequested = errors.New("bad tx cache selection gas 
 // ErrBadTxCacheSelectionMaxNumTxs signals a bad txcache config
 var ErrBadTxCacheSelectionMaxNumTxs = errors.New("bad tx cache selection max num txs")
 
-// ErrBadTxCacheSelectionLoopMaximumDuration signals a bad txcache config
-var ErrBadTxCacheSelectionLoopMaximumDuration = errors.New("bad tx cache selection loop maximum duration")
-
 // ErrBadTxCacheSelectionLoopDurationCheckInterval signals a bad txcache config
 var ErrBadTxCacheSelectionLoopDurationCheckInterval = errors.New("bad selection loop duration check interval")
 
@@ -1439,3 +1436,9 @@ var ErrEpochStartProposeBlockHasMiniBlocks = errors.New("epoch start propose blo
 
 // ErrNonCanonicalExecutionResultIncluded signals that a non-canonical execution result has been included
 var ErrNonCanonicalExecutionResultIncluded = errors.New("non-canonical execution result included")
+
+// ErrNoReferencedHeader signals that no header was referenced
+var ErrNoReferencedHeader = errors.New("no referenced header")
+
+// ErrExecutionResultNotFound signals that the execution result was not found
+var ErrExecutionResultNotFound = errors.New("execution result not found")
