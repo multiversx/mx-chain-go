@@ -1250,6 +1250,8 @@ func (tpn *TestFullNode) initBlockProcessor(
 
 	err = tpn.ExecutionManager.SetHeadersExecutor(headerExecutor)
 	log.LogIfError(err)
+
+	tpn.ExecutionManager.StartExecution()
 }
 
 func (tpn *TestFullNode) initBlockProcessorWithSync(

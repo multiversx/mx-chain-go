@@ -117,9 +117,8 @@ func (listForSender *txListForSender) getTxsHashes() [][]byte {
 
 	result := make([][]byte, 0, listForSender.countTx())
 
-	for element := listForSender.items.Front(); element != nil; element = element.Next() {
-		value := element.Value.(*WrappedTransaction)
-		result = append(result, value.TxHash)
+	for _, tx := range listForSender.list.items {
+		result = append(result, tx.TxHash)
 	}
 
 	return result
