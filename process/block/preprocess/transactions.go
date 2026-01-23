@@ -112,9 +112,6 @@ func NewTransactionPreprocessor(
 	if args.TxCacheSelectionConfig.SelectionGasRequested == 0 {
 		return nil, process.ErrBadTxCacheSelectionGasRequested
 	}
-	if args.TxCacheSelectionConfig.SelectionLoopMaximumDuration == 0 {
-		return nil, process.ErrBadTxCacheSelectionLoopMaximumDuration
-	}
 	if args.TxCacheSelectionConfig.SelectionLoopDurationCheckInterval == 0 {
 		return nil, process.ErrBadTxCacheSelectionLoopDurationCheckInterval
 	}
@@ -909,10 +906,8 @@ func (txs *transactions) processAndRemoveBadTransaction(
 		txs.txExecutionOrderHandler.Remove(txHash)
 		// TODO: remove log if no longer needed for validation
 		log.Debug("processAndRemoveBadTransaction - found not executable transaction", "txHash", txHash)
-		if !isAsyncExecEnabled {
-			strCache := process.ShardCacherIdentifier(sndShardId, dstShardId)
-			txs.txPool.RemoveData(txHash, strCache)
-		}
+		strCache := process.ShardCacherIdentifier(sndShardId, dstShardId)
+		txs.txPool.RemoveData(txHash, strCache)
 	}
 
 	if err != nil && !errors.Is(err, process.ErrFailedTransaction) {
@@ -1034,8 +1029,15 @@ func (txs *transactions) getRemainingGasPerBlockAsScheduled() uint64 {
 func (txs *transactions) SelectOutgoingTransactions(
 	bandwidth uint64,
 	nonce uint64,
+	haveTimeForSelection func() bool,
 ) ([][]byte, []data.TransactionHandler, error) {
-	wrappedTxs, err := txs.selectTransactionsFromTxPoolForProposal(txs.shardCoordinator.SelfId(), txs.shardCoordinator.SelfId(), bandwidth, nonce)
+	wrappedTxs, err := txs.selectTransactionsFromTxPoolForProposal(
+		txs.shardCoordinator.SelfId(),
+		txs.shardCoordinator.SelfId(),
+		bandwidth,
+		nonce,
+		haveTimeForSelection,
+	)
 	if err != nil {
 		return nil, nil, err
 	}
@@ -1067,7 +1069,13 @@ func (txs *transactions) CreateAndProcessMiniBlocks(haveTime func() bool, random
 		gasBandwidth += gasBandwidthForScheduled
 	}
 
-	sortedTxs, remainingTxsForScheduled, err := txs.computeSortedTxs(txs.shardCoordinator.SelfId(), txs.shardCoordinator.SelfId(), gasBandwidth, randomness)
+	sortedTxs, remainingTxsForScheduled, err := txs.computeSortedTxs(
+		txs.shardCoordinator.SelfId(),
+		txs.shardCoordinator.SelfId(),
+		gasBandwidth,
+		randomness,
+		haveTime,
+	)
 	elapsedTime := time.Since(startTime)
 	if err != nil {
 		log.Debug("computeSortedTxs", "error", err.Error())
@@ -1450,6 +1458,7 @@ func (txs *transactions) selectTransactionsFromTxPoolForProposal(
 	dstShardId uint32,
 	gasBandwidth uint64,
 	nonce uint64,
+	haveTimeForSelection func() bool,
 ) ([]*txcache.WrappedTransaction, error) {
 	strCache := process.ShardCacherIdentifier(sndShardId, dstShardId)
 	txShardPool := txs.txPool.ShardDataStore(strCache)
@@ -1470,12 +1479,16 @@ func (txs *transactions) selectTransactionsFromTxPoolForProposal(
 		return nil, err
 	}
 
-	selectionOptions := holders.NewTxSelectionOptions(
+	selectionOptions, err := holders.NewTxSelectionOptions(
 		gasBandwidth,
 		txs.txCacheSelectionConfig.SelectionMaxNumTxs,
-		txs.txCacheSelectionConfig.SelectionLoopMaximumDuration,
 		txs.txCacheSelectionConfig.SelectionLoopDurationCheckInterval,
+		haveTimeForSelection,
 	)
+	if err != nil {
+		return nil, err
+	}
+
 	selectedTransactions, _, err := txCache.SelectTransactions(session, selectionOptions, nonce)
 	if err != nil {
 		return nil, err
@@ -1488,6 +1501,7 @@ func (txs *transactions) selectTransactionsFromTxPool(
 	sndShardId uint32,
 	dstShardId uint32,
 	gasBandwidth uint64,
+	haveTimeForSelection func() bool,
 ) ([]*txcache.WrappedTransaction, error) {
 	strCache := process.ShardCacherIdentifier(sndShardId, dstShardId)
 	txShardPool := txs.txPool.ShardDataStore(strCache)
@@ -1508,12 +1522,15 @@ func (txs *transactions) selectTransactionsFromTxPool(
 		return nil, err
 	}
 
-	selectionOptions := holders.NewTxSelectionOptions(
+	selectionOptions, err := holders.NewTxSelectionOptions(
 		gasBandwidth,
 		txs.txCacheSelectionConfig.SelectionMaxNumTxs,
-		txs.txCacheSelectionConfig.SelectionLoopMaximumDuration,
 		txs.txCacheSelectionConfig.SelectionLoopDurationCheckInterval,
+		haveTimeForSelection,
 	)
+	if err != nil {
+		return nil, err
+	}
 
 	selectedTxs, _, err := txCache.SelectTransactions(session, selectionOptions, 0)
 	if err != nil {
@@ -1528,6 +1545,7 @@ func (txs *transactions) computeSortedTxs(
 	dstShardId uint32,
 	gasBandwidth uint64,
 	randomness []byte,
+	haveTimeForSelection func() bool,
 ) ([]*txcache.WrappedTransaction, []*txcache.WrappedTransaction, error) {
 	log.Debug("computeSortedTxs",
 		"sndShardId", sndShardId,
@@ -1536,7 +1554,7 @@ func (txs *transactions) computeSortedTxs(
 		"randomness", randomness,
 	)
 
-	sortedTxs, err := txs.selectTransactionsFromTxPool(sndShardId, dstShardId, gasBandwidth)
+	sortedTxs, err := txs.selectTransactionsFromTxPool(sndShardId, dstShardId, gasBandwidth, haveTimeForSelection)
 	if err != nil {
 		return nil, nil, err
 	}

@@ -630,11 +630,11 @@ func Test_CompleteFlowShouldWork(t *testing.T) {
 	}
 	require.Equal(t, expectedVirtualRecords, virtualSession.virtualAccountsByAddress)
 
-	options := holders.NewTxSelectionOptions(
+	options, _ := holders.NewTxSelectionOptions(
 		10_000_000_000,
 		10,
-		selectionLoopMaximumDuration,
 		10,
+		haveTimeTrueForSelection,
 	)
 
 	selectedTxs, _, err := cache.SelectTransactions(
