@@ -114,18 +114,32 @@ func (he *headersExecutor) start(ctx context.Context) {
 				continue
 			}
 
-			// blocking operation
-			// get pair by nonce from blockchain
-			lastExecutedHeader := he.blockChain.GetLastExecutedBlockHeader()
-			if check.IfNil(lastExecutedHeader) {
+			lastExecutedNonce, lastExecutedHeaderHash, _ := he.blockChain.GetLastExecutedBlockInfo()
+			if len(lastExecutedHeaderHash) == 0 {
 				time.Sleep(timeToSleep)
 				continue
 			}
 
-			headerBodyPair, ok := he.blocksCache.GetByNonce(lastExecutedHeader.GetNonce() + 1)
+			headerBodyPair, ok := he.blocksCache.GetByNonce(lastExecutedNonce + 1)
 			if !ok {
 				time.Sleep(timeToSleep)
 				continue
+			}
+
+			if !bytes.Equal(headerBodyPair.Header.GetPrevHash(), lastExecutedHeaderHash) {
+				// the header does not link to the last executed block, previous block got replaced
+				// try to execute the replacement block
+				log.Debug("headersExecutor.start: detected executed block replacement, trying to execute replacement block",
+					"expected_prev_hash", lastExecutedHeaderHash,
+					"actual_prev_hash", headerBodyPair.Header.GetPrevHash(),
+					"nonce", headerBodyPair.Header.GetNonce(),
+				)
+
+				headerBodyPair, ok = he.blocksCache.GetByNonce(lastExecutedNonce)
+				if !ok {
+					time.Sleep(timeToSleep)
+					continue
+				}
 			}
 
 			err := he.process(headerBodyPair)
