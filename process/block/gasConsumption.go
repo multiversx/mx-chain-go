@@ -107,6 +107,16 @@ func (gc *gasConsumption) AddIncomingMiniBlocks(
 		return initialLastIndex, 0, nil
 	}
 
+	// if we already have some pending mini blocks, the new ones should only be appended as pending
+	if len(gc.pendingMiniBlocks) > 0 {
+		errSavePending := gc.savePendingMiniBlocksNoLock(miniBlocks, transactions)
+		if errSavePending != nil {
+			return initialLastIndex, 0, errSavePending
+		}
+
+		return initialLastIndex, len(miniBlocks), nil
+	}
+
 	bandwidthForIncomingMiniBlocks := gc.getGasLimitForOneDirection(incoming, gc.shardCoordinator.SelfId())
 
 	lastMiniBlockIndex = initialLastIndex
@@ -122,24 +132,10 @@ func (gc *gasConsumption) AddIncomingMiniBlocks(
 		shouldSavePending, err = gc.addIncomingMiniBlock(miniBlocks[i], transactions, bandwidthForIncomingMiniBlocks)
 		if shouldSavePending {
 			// saving pending starting with idx i, as it was not included either
-			for _, mb := range miniBlocks[i:] {
-				hashStr := string(mb.GetHash())
-				transactionsForMB, found := transactions[hashStr]
-				if !found {
-					log.Warn("could not find transaction for pending mini block", "hash", mb.GetHash())
-					return lastMiniBlockIndex, 0, fmt.Errorf("%w, could not find mini block hash in transactions map", process.ErrInvalidValue)
-				}
-				gasConsumedByPendingMb, errCheckPending := gc.checkGasConsumedByMiniBlock(mb, transactionsForMB)
-				if errCheckPending != nil {
-					log.Warn("failed to check gas consumed by pending mini block", "hash", mb.GetHash(), "error", errCheckPending)
-					return lastMiniBlockIndex, 0, errCheckPending
-				}
-
-				gc.transactionsForPendingMiniBlocks[hashStr] = transactions[hashStr]
-				gc.totalGasConsumed[pending] += gasConsumedByPendingMb
+			errSavePending := gc.savePendingMiniBlocksNoLock(miniBlocks[i:], transactions)
+			if errSavePending != nil {
+				return lastMiniBlockIndex, 0, errSavePending
 			}
-
-			gc.pendingMiniBlocks = append(gc.pendingMiniBlocks, miniBlocks[i:]...)
 
 			return lastMiniBlockIndex, len(gc.pendingMiniBlocks), err
 		}
@@ -150,6 +146,32 @@ func (gc *gasConsumption) AddIncomingMiniBlocks(
 	}
 
 	return lastMiniBlockIndex, 0, nil
+}
+
+func (gc *gasConsumption) savePendingMiniBlocksNoLock(
+	miniBlocks []data.MiniBlockHeaderHandler,
+	transactions map[string][]data.TransactionHandler,
+) error {
+	for _, mb := range miniBlocks {
+		hashStr := string(mb.GetHash())
+		transactionsForMB, found := transactions[hashStr]
+		if !found {
+			log.Warn("could not find transaction for pending mini block", "hash", mb.GetHash())
+			return fmt.Errorf("%w, could not find mini block hash in transactions map", process.ErrInvalidValue)
+		}
+		gasConsumedByPendingMb, errCheckPending := gc.checkGasConsumedByMiniBlock(mb, transactionsForMB)
+		if errCheckPending != nil {
+			log.Warn("failed to check gas consumed by pending mini block", "hash", mb.GetHash(), "error", errCheckPending)
+			return errCheckPending
+		}
+
+		gc.transactionsForPendingMiniBlocks[hashStr] = transactions[hashStr]
+		gc.totalGasConsumed[pending] += gasConsumedByPendingMb
+	}
+
+	gc.pendingMiniBlocks = append(gc.pendingMiniBlocks, miniBlocks...)
+
+	return nil
 }
 
 // RevertIncomingMiniBlocks gets a list of mini block hashes and removes them from the local state

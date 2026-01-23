@@ -1956,7 +1956,6 @@ func (tpn *TestProcessorNode) initInnerProcessors(gasMap map[string]map[string]u
 			SelectionGasBandwidthIncreaseScheduledPercent: 260,
 			SelectionGasRequested:                         10_000_000_000,
 			SelectionMaxNumTxs:                            30000,
-			SelectionLoopMaximumDuration:                  250,
 			SelectionLoopDurationCheckInterval:            10,
 		},
 	}
@@ -2287,7 +2286,6 @@ func (tpn *TestProcessorNode) initMetaInnerProcessors(gasMap map[string]map[stri
 			SelectionGasBandwidthIncreaseScheduledPercent: 260,
 			SelectionGasRequested:                         10_000_000_000,
 			SelectionMaxNumTxs:                            30000,
-			SelectionLoopMaximumDuration:                  250,
 			SelectionLoopDurationCheckInterval:            10,
 		},
 	}
@@ -3750,7 +3748,6 @@ func CreateEnableEpochsConfig() config.EnableEpochs {
 		IsPayableBySCEnableEpoch:                          UnreachableEpoch,
 		CleanUpInformativeSCRsEnableEpoch:                 UnreachableEpoch,
 		StorageAPICostOptimizationEnableEpoch:             UnreachableEpoch,
-		TransformToMultiShardCreateEnableEpoch:            UnreachableEpoch,
 		ESDTRegisterAndSetAllRolesEnableEpoch:             UnreachableEpoch,
 		ScheduledMiniBlocksEnableEpoch:                    UnreachableEpoch,
 		FailExecutionOnEveryAPIErrorEnableEpoch:           UnreachableEpoch,

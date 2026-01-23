@@ -227,6 +227,8 @@
         BatchDelaySeconds = 2
         MaxBatchSize = 100
         MaxOpenFiles = 10
+        ShardIDProviderType = "BinarySplit"
+        NumShards = 4
 
 [BootstrapStorage]
     [BootstrapStorage.Cache]
@@ -253,6 +255,8 @@
         BatchDelaySeconds = 2
         MaxBatchSize = 100
         MaxOpenFiles = 10
+        ShardIDProviderType = "BinarySplit"
+        NumShards = 4
 
 [ProofsStorage]
     [ProofsStorage.Cache]
@@ -292,6 +296,8 @@
         BatchDelaySeconds = 2
         MaxBatchSize = 30000
         MaxOpenFiles = 10
+        ShardIDProviderType = "BinarySplit"
+        NumShards = 4
 
 [UnsignedTransactionStorage]
     [UnsignedTransactionStorage.Cache]
@@ -509,7 +515,6 @@
 
 [TxCacheSelection]
     SelectionMaxNumTxs = 30000
-    SelectionLoopMaximumDuration = 250                      #milliseconds
     SelectionLoopDurationCheckInterval = 10                 #chunk (of transactions) size
     SelectionGasBandwidthIncreasePercent = 400
     SelectionGasBandwidthIncreaseScheduledPercent = 260
@@ -997,6 +1002,8 @@
         BatchDelaySeconds = 2
         MaxBatchSize = 20000
         MaxOpenFiles = 10
+        ShardIDProviderType = "BinarySplit"
+        NumShards = 4
     [DbLookupExtensions.EpochByHashStorageConfig.Cache]
         Name = "DbLookupExtensions.EpochByHashStorage"
         Capacity = 20000
@@ -1007,6 +1014,8 @@
         BatchDelaySeconds = 2
         MaxBatchSize = 20000
         MaxOpenFiles = 10
+        ShardIDProviderType = "BinarySplit"
+        NumShards = 4
     [DbLookupExtensions.ResultsHashesByTxHashStorageConfig.Cache]
         Name = "DbLookupExtensions.ResultsHashesByTxHashStorage"
         Capacity = 20000

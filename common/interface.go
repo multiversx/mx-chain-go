@@ -287,7 +287,7 @@ type RootHashHolder interface {
 type TxSelectionOptions interface {
 	GetGasRequested() uint64
 	GetMaxNumTxs() int
-	GetLoopMaximumDurationMs() int
+	HaveTimeForSelection() bool
 	GetLoopDurationCheckInterval() int
 	IsInterfaceNil() bool
 }
@@ -324,6 +324,7 @@ type EnableEpochsHandler interface {
 	IsFlagEnabled(flag core.EnableEpochFlag) bool
 	IsFlagEnabledInEpoch(flag core.EnableEpochFlag, epoch uint32) bool
 	GetActivationEpoch(flag core.EnableEpochFlag) uint32
+	GetAllEnableEpochs() map[string]uint32
 
 	IsInterfaceNil() bool
 }
