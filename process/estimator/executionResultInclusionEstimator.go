@@ -85,13 +85,13 @@ func (erie *ExecutionResultInclusionEstimator) Decide(
 
 	// accumulated execution tBase for each pending execution result in ns (1 gas = 1ns)
 	estimatedTBase := tBase
-	for i, executionResultMeta := range pending {
-		if i > 0 {
-			previousExecutionResultMeta = pending[i-1]
+	for pendingExecutionIndex, executionResultMeta := range pending {
+		if pendingExecutionIndex > 0 {
+			previousExecutionResultMeta = pending[pendingExecutionIndex-1]
 		}
 		ok := erie.checkSanity(executionResultMeta, previousExecutionResultMeta, lastNotarised, currentRound)
 		if !ok {
-			return i
+			return pendingExecutionIndex
 		}
 
 		overflow, currentEstimatedTime := bits.Mul64(executionResultMeta.GetGasUsed(), erie.tGas)
@@ -101,20 +101,20 @@ func (erie *ExecutionResultInclusionEstimator) Decide(
 				"gasUsed", executionResultMeta.GetGasUsed(),
 				"tGas", erie.tGas,
 			)
-			return i
+			return pendingExecutionIndex
 		}
 
 		// Round timestamp for current execution result, since it is the time when the execution result becomes available
 		tRoundNs := convertMsToNs(erie.roundHandler.GetTimeStampForRound(executionResultMeta.GetHeaderRound()))
 
-		// Align previous estimated tBase with start of round if needed
+		// Align previously estimated tBase with start of round if needed
 		estimatedTBase = max(estimatedTBase, tRoundNs)
 		estimatedTBase, overflow = bits.Add64(estimatedTBase, currentEstimatedTime, 0)
 		if overflow != 0 {
 			log.Debug("ExecutionResultInclusionEstimator: overflow detected in block transactions time estimation",
 				"estimatedTBase", estimatedTBase,
 				"currentEstimatedTime", currentEstimatedTime)
-			return i
+			return pendingExecutionIndex
 		}
 
 		// Apply safety margin to current estimated time
@@ -123,7 +123,7 @@ func (erie *ExecutionResultInclusionEstimator) Decide(
 			log.Debug("ExecutionResultInclusionEstimator: overflow detected in estimated time with margin",
 				"currentEstimatedTime", currentEstimatedTime,
 				"safetyMargin", safetyMargin)
-			return i
+			return pendingExecutionIndex
 		}
 		currentEstimatedTimeMargin /= 100
 
@@ -132,7 +132,7 @@ func (erie *ExecutionResultInclusionEstimator) Decide(
 			log.Debug("ExecutionResultInclusionEstimator: overflow detected in total estimated time",
 				"estimatedTBase", estimatedTBase,
 				"estimatedTimeWithMargin", currentEstimatedTimeMargin)
-			return i
+			return pendingExecutionIndex
 		}
 
 		// check for time cap reached, cannot include current pending item or anything after
@@ -140,15 +140,15 @@ func (erie *ExecutionResultInclusionEstimator) Decide(
 			log.Debug("ExecutionResultInclusionEstimator: estimated time exceeds current header timestamp",
 				"tDone", tDone,
 				"currentHdrTsNs", currentHdrTsNs)
-			return i
+			return pendingExecutionIndex
 		}
 
 		// check for number of results cap reached, including current pending item. MaxResultsPerBlock = 0 means no cap.
-		if erie.cfg.MaxResultsPerBlock != 0 && uint64(i+1) >= erie.cfg.MaxResultsPerBlock {
+		if erie.cfg.MaxResultsPerBlock != 0 && uint64(pendingExecutionIndex+1) >= erie.cfg.MaxResultsPerBlock {
 			log.Debug("ExecutionResultInclusionEstimator: reached MaxResultsPerBlock cap",
 				"maxResultsPerBlock", erie.cfg.MaxResultsPerBlock,
-				"currentIndex", i+1)
-			return i + 1
+				"currentIndex", pendingExecutionIndex+1)
+			return pendingExecutionIndex + 1
 		}
 	}
 
