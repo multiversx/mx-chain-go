@@ -12,6 +12,7 @@ import (
 	"github.com/multiversx/mx-chain-core-go/data/block"
 	outportcore "github.com/multiversx/mx-chain-core-go/data/outport"
 	"github.com/multiversx/mx-chain-core-go/marshal"
+	"github.com/multiversx/mx-chain-go/dataRetriever"
 	logger "github.com/multiversx/mx-chain-logger-go"
 
 	"github.com/multiversx/mx-chain-go/common"
@@ -309,4 +310,38 @@ func saveEpochStartEconomicsMetrics(statusHandler core.AppStatusHandler, epochSt
 	statusHandler.SetStringValue(common.MetricTotalFees, common.GetAccumulatedFeesInEpoch(epochStartMetaBlock).String())
 	statusHandler.SetStringValue(common.MetricDevRewardsInEpoch, common.GetDeveloperFeesInEpoch(epochStartMetaBlock).String())
 	statusHandler.SetUInt64Value(common.MetricEpochForEconomicsData, uint64(epochStartMetaBlock.GetEpoch()))
+}
+
+func saveEpochStartEconomicsMetricsV3(statusHandler core.AppStatusHandler, epochStartMetaBlock data.MetaHeaderHandler, headersCacher dataRetriever.HeadersPool,
+	marshalizer marshal.Marshalizer,
+	storageService dataRetriever.StorageService) {
+	economics := epochStartMetaBlock.GetEpochStartHandler().GetEconomicsHandler()
+
+	statusHandler.SetStringValue(common.MetricTotalSupply, economics.GetTotalSupply().String())
+	statusHandler.SetStringValue(common.MetricInflation, economics.GetTotalNewlyMinted().String())
+	statusHandler.SetUInt64Value(common.MetricEpochForEconomicsData, uint64(epochStartMetaBlock.GetEpoch()))
+
+	var err error
+	epochChangeHdrProposed := epochStartMetaBlock
+	if epochStartMetaBlock.IsHeaderV3() {
+		prevExecRes, ok := epochStartMetaBlock.GetLastExecutionResultHandler().(data.LastMetaExecutionResultHandler)
+		if !ok {
+			log.Error("saveEpochStartEconomicsMetricsV3")
+			return
+		}
+
+		hdrHashEpochChangeProposed := prevExecRes.GetExecutionResultHandler().GetHeaderHash()
+		epochChangeHdrProposed, err = process.GetMetaHeader(
+			hdrHashEpochChangeProposed,
+			headersCacher,
+			marshalizer,
+			storageService)
+		if err != nil {
+			log.Error("saveEpochStartEconomicsMetricsV3")
+			return
+		}
+	}
+	statusHandler.SetStringValue(common.MetricTotalFees, common.GetAccumulatedFeesInEpoch(epochChangeHdrProposed).String())
+	statusHandler.SetStringValue(common.MetricDevRewardsInEpoch, common.GetDeveloperFeesInEpoch(epochChangeHdrProposed).String())
+
 }

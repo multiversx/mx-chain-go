@@ -10,6 +10,8 @@ import (
 	"github.com/multiversx/mx-chain-core-go/core"
 	apiBlock "github.com/multiversx/mx-chain-core-go/data/api"
 	"github.com/multiversx/mx-chain-core-go/data/transaction"
+	"github.com/multiversx/mx-chain-go/integrationTests/chainSimulator/staking"
+	"github.com/multiversx/mx-chain-go/vm"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 
@@ -646,4 +648,70 @@ func TestSimulator_SendMoveBalanceTxBeforeAndAfterSupernovaWithMoreGasLimit(t *t
 	require.Nil(t, err)
 
 	chainSimulatorCommon.GenerateMoveBalanceTxsInShardsWithMoreGasLimit(t, chainSimulator)
+}
+
+func TestChainSimulator_VerifyEconomicsMetricsSupernova(t *testing.T) {
+	if testing.Short() {
+		t.Skip("this is not a short test")
+	}
+
+	supernovaActivationRound := uint64(220)
+
+	cs, err := NewChainSimulator(ArgsChainSimulator{
+		BypassTxSignatureCheck:         true,
+		TempDir:                        t.TempDir(),
+		PathToInitialConfig:            defaultPathToInitialConfig,
+		NumOfShards:                    defaultNumOfShards,
+		RoundDurationInMillis:          defaultRoundDurationInMillis,
+		SupernovaRoundDurationInMillis: defaultSupernovaRoundDurationInMillis,
+		RoundsPerEpoch: core.OptionalUint64{
+			Value:    20,
+			HasValue: true,
+		},
+		SupernovaRoundsPerEpoch: defaultSupernovaRoundsPerEpoch,
+		ApiInterface:            api.NewNoApiInterface(),
+		MinNodesPerShard:        defaultMinNodesPerShard,
+		MetaChainMinNodes:       defaultMetaChainMinNodes,
+		AlterConfigsFunction: func(cfg *config.Configs) {
+			cfg.EpochConfig.EnableEpochs.StakingV2EnableEpoch = 0
+			cfg.EpochConfig.EnableEpochs.SupernovaEnableEpoch = 2
+			cfg.RoundConfig.RoundActivations[string(common.SupernovaRoundFlag)] = config.ActivationRoundByName{
+				Round: fmt.Sprintf("%d", supernovaActivationRound),
+			}
+		},
+	})
+	require.Nil(t, err)
+	require.NotNil(t, cs)
+	defer cs.Close()
+
+	cs.GenerateBlocksUntilEpochIsReached(2)
+
+	mintValue := big.NewInt(0).Mul(chainSimulatorCommon.OneEGLD, big.NewInt(3000))
+	wallet1, err := cs.GenerateAndMintWalletAddress(0, mintValue)
+	require.Nil(t, err)
+
+	_, blsKeys, err := GenerateBlsPrivateKeys(1)
+	require.Nil(t, err)
+
+	err = cs.GenerateBlocks(1)
+	require.Nil(t, err)
+
+	dataFieldTx1 := fmt.Sprintf("stake@01@%s@%s", blsKeys[0], staking.MockBLSSignature)
+	tx1Value := big.NewInt(0).Mul(big.NewInt(2501), chainSimulatorCommon.OneEGLD)
+	tx1 := chainSimulatorCommon.GenerateTransaction(wallet1.Bytes, 0, vm.ValidatorSCAddress, tx1Value, dataFieldTx1, staking.GasLimitForStakeOperation)
+
+	results, err := cs.SendTxsAndGenerateBlocksTilAreExecuted([]*transaction.Transaction{tx1}, staking.MaxNumOfBlockToGenerateWhenExecutingTx)
+	require.Nil(t, err)
+	require.Equal(t, 1, len(results))
+	require.NotNil(t, results)
+
+	cs.GenerateBlocksUntilEpochIsReached(3)
+
+	res, err := cs.GetNodeHandler(core.MetachainShardId).GetFacadeHandler().StatusMetrics().EconomicsMetrics()
+	require.Nil(t, err)
+
+	_ = res
+	require.NotEmpty(t, res[common.MetricTotalFees])
+	require.NotNil(t, res[common.MetricDevRewardsInEpoch])
+
 }
