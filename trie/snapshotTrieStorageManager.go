@@ -29,10 +29,10 @@ func newSnapshotTrieStorageManager(tsm *trieStorageManager, epoch uint32) (*snap
 
 // Get checks all the storers for the given key, and returns it if it is found
 func (stsm *snapshotTrieStorageManager) Get(key []byte) ([]byte, error) {
-	stsm.storageOperationMutex.Lock()
-	defer stsm.storageOperationMutex.Unlock()
+	stsm.storageOperationMutex.RLock()
 
 	if stsm.closed {
+		stsm.storageOperationMutex.RUnlock()
 		log.Debug("snapshotTrieStorageManager get context closing", "key", key)
 		return nil, core.ErrContextClosing
 	}
@@ -41,12 +41,15 @@ func (stsm *snapshotTrieStorageManager) Get(key []byte) ([]byte, error) {
 
 	val, epoch, err := stsm.mainSnapshotStorer.GetFromOldEpochsWithoutAddingToCache(key, stsm.epoch)
 	if core.IsClosingError(err) {
+		stsm.storageOperationMutex.RUnlock()
 		return nil, err
 	}
 	if len(val) == 0 {
+		stsm.storageOperationMutex.RUnlock()
 		return nil, ErrKeyNotFound
 	}
 
+	stsm.storageOperationMutex.RUnlock()
 	stsm.putInPreviousStorerIfAbsent(key, val, epoch)
 	return val, nil
 }
@@ -80,13 +83,13 @@ func (stsm *snapshotTrieStorageManager) putInPreviousStorerIfAbsent(key []byte, 
 
 // Put adds the given value to the main storer
 func (stsm *snapshotTrieStorageManager) Put(key, data []byte) error {
-	stsm.storageOperationMutex.Lock()
-	defer stsm.storageOperationMutex.Unlock()
-
+	stsm.storageOperationMutex.RLock()
 	if stsm.closed {
+		stsm.storageOperationMutex.RUnlock()
 		log.Debug("snapshotTrieStorageManager put context closing", "key", key, "data", data)
 		return core.ErrContextClosing
 	}
+	stsm.storageOperationMutex.RUnlock()
 
 	log.Trace("put hash in snapshot storer", "hash", key, "epoch", stsm.epoch)
 	return stsm.mainSnapshotStorer.PutInEpochWithoutCache(key, data, stsm.epoch)
@@ -94,8 +97,8 @@ func (stsm *snapshotTrieStorageManager) Put(key, data []byte) error {
 
 // GetFromLastEpoch searches only the last epoch storer for the given key
 func (stsm *snapshotTrieStorageManager) GetFromLastEpoch(key []byte) ([]byte, error) {
-	stsm.storageOperationMutex.Lock()
-	defer stsm.storageOperationMutex.Unlock()
+	stsm.storageOperationMutex.RLock()
+	defer stsm.storageOperationMutex.RUnlock()
 
 	if stsm.closed {
 		log.Debug("snapshotTrieStorageManager getFromLastEpoch context closing", "key", key)
