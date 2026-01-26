@@ -15,6 +15,7 @@ type ExecutionResultsTrackerStub struct {
 	RemoveFromNonceCalled                  func(nonce uint64) error
 	CleanCalled                            func(lastNotarizedResult data.BaseExecutionResultHandler)
 	CleanConfirmedExecutionResultsCalled   func(header data.HeaderHandler) error
+	CleanOnConsensusReachedCalled          func(headerHash []byte, nonce uint64)
 }
 
 // AddExecutionResult -
@@ -87,6 +88,13 @@ func (ets *ExecutionResultsTrackerStub) CleanConfirmedExecutionResults(header da
 	}
 
 	return nil
+}
+
+// CleanOnConsensusReached -
+func (ets *ExecutionResultsTrackerStub) CleanOnConsensusReached(headerHash []byte, nonce uint64) {
+	if ets.CleanOnConsensusReachedCalled != nil {
+		ets.CleanOnConsensusReachedCalled(headerHash, nonce)
+	}
 }
 
 // IsInterfaceNil checks if the interface is nil

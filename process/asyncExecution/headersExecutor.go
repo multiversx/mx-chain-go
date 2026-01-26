@@ -120,10 +120,19 @@ func (he *headersExecutor) start(ctx context.Context) {
 				continue
 			}
 
-			headerBodyPair, ok := he.blocksCache.GetByNonce(lastExecutedNonce + 1)
+			// check if we need to execute another block for the same nonce (replacement block)
+			headerBodyPair, ok := he.blocksCache.GetByNonce(lastExecutedNonce)
 			if !ok {
 				time.Sleep(timeToSleep)
 				continue
+			}
+
+			if bytes.Equal(lastExecutedHeaderHash, headerBodyPair.HeaderHash) {
+				headerBodyPair, ok = he.blocksCache.GetByNonce(lastExecutedNonce + 1)
+				if !ok {
+					time.Sleep(timeToSleep)
+					continue
+				}
 			}
 
 			if !bytes.Equal(headerBodyPair.Header.GetPrevHash(), lastExecutedHeaderHash) {
@@ -219,6 +228,19 @@ func (he *headersExecutor) process(pair cache.HeaderBodyPair) error {
 
 	ok = he.checkLastExecutionResultContext(pair.Header)
 	if !ok {
+		return nil
+	}
+
+	lastCommittedBlockHash := he.blockChain.GetCurrentBlockHeaderHash()
+	lastCommittedBlockHeder := he.blockChain.GetCurrentBlockHeader()
+	if !check.IfNil(lastCommittedBlockHeder) &&
+		executionResult.GetHeaderNonce() == lastCommittedBlockHeder.GetNonce() &&
+		!bytes.Equal(executionResult.GetHeaderHash(), lastCommittedBlockHash) {
+		log.Debug("headersExecutor.process - execution result header hash does not match last committed block hash",
+			"nonce", pair.Header.GetNonce(),
+			"exec_header_hash", executionResult.GetHeaderHash(),
+			"committed_block_hash", lastCommittedBlockHash,
+		)
 		return nil
 	}
 
