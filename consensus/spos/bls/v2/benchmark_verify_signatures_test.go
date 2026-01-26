@@ -15,7 +15,6 @@ import (
 	"github.com/multiversx/mx-chain-crypto-go/signing/multisig"
 
 	"github.com/multiversx/mx-chain-go/consensus/spos/bls"
-	dataRetrieverMocks "github.com/multiversx/mx-chain-go/dataRetriever/mock"
 	"github.com/multiversx/mx-chain-go/testscommon/consensus/initializers"
 
 	"github.com/multiversx/mx-chain-go/common"
@@ -107,7 +106,7 @@ func BenchmarkSubroundEndRound_VerifyNodesOnAggSigFailTime(b *testing.B) {
 	dataToBeSigned := []byte("message")
 	consensusState.Data = dataToBeSigned
 
-	sr := initSubroundEndRoundWithContainerAndConsensusState(container, &statusHandler.AppStatusHandlerStub{}, consensusState, &dataRetrieverMocks.ThrottlerStub{})
+	sr := initSubroundEndRoundWithContainerAndConsensusState(container, &statusHandler.AppStatusHandlerStub{}, consensusState)
 	for i := 0; i < len(sr.ConsensusGroup()); i++ {
 		_, err := sr.SigningHandler().CreateSignatureShareForPublicKey(dataToBeSigned, uint16(i), sr.EnableEpochsHandler().GetCurrentEpoch(), []byte(keys[i]))
 		require.Nil(b, err)

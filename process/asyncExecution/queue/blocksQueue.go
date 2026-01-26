@@ -11,6 +11,10 @@ import (
 	"github.com/multiversx/mx-chain-go/common"
 )
 
+const (
+	defaultMaxQueueSize = 1000
+)
+
 var log = logger.GetOrCreate("process/asyncExecution/queue")
 
 // blocksQueue represents a thread-safe queue for storing and processing blockchain headers.
@@ -22,6 +26,7 @@ type blocksQueue struct {
 	lastAddedNonce  uint64
 	closed          bool
 	notifyCh        chan struct{} // used only for blocking
+	maxQueueSize    int
 }
 
 // NewBlocksQueue creates and returns a new instance of blocksQueue
@@ -32,6 +37,7 @@ func NewBlocksQueue() *blocksQueue {
 		mutex:           mutex,
 		headerBodyPairs: make([]HeaderBodyPair, 0),
 		notifyCh:        make(chan struct{}, 1), // buffered so send won't block if not read yet
+		maxQueueSize:    defaultMaxQueueSize,
 	}
 }
 
@@ -55,6 +61,14 @@ func (bq *blocksQueue) AddOrReplace(pair HeaderBodyPair) error {
 	nonce := pair.Header.GetNonce()
 	switch {
 	case nonce == bq.lastAddedNonce+1 || len(bq.headerBodyPairs) == 0:
+		if len(bq.headerBodyPairs) >= bq.maxQueueSize {
+			log.Warn("async execution queue is full",
+				"current size", len(bq.headerBodyPairs),
+				"max size", bq.maxQueueSize,
+				"rejected nonce", nonce,
+			)
+			return ErrQueueFull
+		}
 		// safe to ignore error here, as the condition inside add method is the same as this one
 		_ = bq.add(pair)
 	case nonce <= bq.lastAddedNonce:
