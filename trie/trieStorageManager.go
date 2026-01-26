@@ -131,7 +131,7 @@ func (tsm *trieStorageManager) checkGoRoutinesThrottler(
 		}
 
 		select {
-		case <-time.After(time.Millisecond * 100):
+		case <-time.After(time.Millisecond * 10):
 			continue
 		case <-ctx.Done():
 			tsm.finishOperation(snapshotRequest, "did not start snapshot, goroutione is closing")

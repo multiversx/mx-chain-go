@@ -22,7 +22,7 @@ const (
 	nibbleMask           = 0x0f
 	pointerSizeInBytes   = 8
 	numNodeInnerPointers = 2 // each trie node contains a marshalizer and a hasher
-	pollingIdleNode      = time.Millisecond
+	pollingIdleNode      = 10 * time.Millisecond
 )
 
 type baseNode struct {
