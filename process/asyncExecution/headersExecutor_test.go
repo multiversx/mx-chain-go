@@ -527,7 +527,7 @@ func TestHeadersExecutor_ProcessBlock(t *testing.T) {
 				PrevHash: prevHash,
 			},
 			Body:       &block.Body{},
-			HeaderHash: []byte("a"),
+			HeaderHash: currentHash,
 		})
 		require.NoError(t, err)
 
