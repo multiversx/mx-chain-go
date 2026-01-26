@@ -899,3 +899,58 @@ func TestBlocksQueue_RemoveAndPop(t *testing.T) {
 	require.Nil(t, poppedPair.Header)
 	require.Nil(t, poppedPair.Body)
 }
+
+func TestBlocksQueue_AddOrReplace_Rejection(t *testing.T) {
+	t.Parallel()
+
+	hq := NewBlocksQueue()
+	// Override maxQueueSize for testing
+	hq.maxQueueSize = 5
+
+	// Fill queue to max capacity
+	for i := uint64(1); i <= 5; i++ {
+		pair := HeaderBodyPair{
+			Header: &block.Header{Nonce: i},
+			Body:   &block.Body{},
+		}
+		err := hq.AddOrReplace(pair)
+		require.Nil(t, err)
+	}
+
+	// Try to add one more
+	pair := HeaderBodyPair{
+		Header: &block.Header{Nonce: 6},
+		Body:   &block.Body{},
+	}
+	err := hq.AddOrReplace(pair)
+	require.Equal(t, ErrQueueFull, err)
+	require.Equal(t, 5, len(hq.headerBodyPairs))
+}
+
+func TestBlocksQueue_AddOrReplace_ReplacementAllowed(t *testing.T) {
+	t.Parallel()
+
+	hq := NewBlocksQueue()
+	// Override maxQueueSize for testing
+	hq.maxQueueSize = 5
+
+	// Fill queue to max capacity
+	for i := uint64(1); i <= 5; i++ {
+		pair := HeaderBodyPair{
+			Header: &block.Header{Nonce: i},
+			Body:   &block.Body{},
+		}
+		err := hq.AddOrReplace(pair)
+		require.Nil(t, err)
+	}
+
+	// Replace existing item (Nonce 3)
+	pair := HeaderBodyPair{
+		Header: &block.Header{Nonce: 3, Round: 100},
+		Body:   &block.Body{},
+	}
+	err := hq.AddOrReplace(pair)
+	require.Nil(t, err)
+	require.Equal(t, 3, len(hq.headerBodyPairs)) // 1, 2, 3 (4 and 5 removed by replacement logic)
+	require.Equal(t, uint64(100), hq.headerBodyPairs[2].Header.GetRound())
+}
