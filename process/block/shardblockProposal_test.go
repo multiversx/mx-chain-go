@@ -582,7 +582,7 @@ func TestShardProcessor_CreateBlockProposal(t *testing.T) {
 						}, 0, false, nil
 				}
 			},
-			SelectOutgoingTransactionsCalled: func(nonce uint64) ([][]byte, []data.MiniBlockHeaderHandler) {
+			SelectOutgoingTransactionsCalled: func(nonce uint64, _ func() bool) ([][]byte, []data.MiniBlockHeaderHandler) {
 				pendingMbsAdded := []data.MiniBlockHeaderHandler{
 					&block.MiniBlockHeader{
 						Hash: []byte("providedPendingMB"),
@@ -888,7 +888,7 @@ func TestShardProcessor_CreateBlockProposal(t *testing.T) {
 					return nil, nil, 0, true, nil
 				}
 			},
-			SelectOutgoingTransactionsCalled: func(nonce uint64) ([][]byte, []data.MiniBlockHeaderHandler) {
+			SelectOutgoingTransactionsCalled: func(nonce uint64, _ func() bool) ([][]byte, []data.MiniBlockHeaderHandler) {
 				pendingMbsAdded := []data.MiniBlockHeaderHandler{
 					&block.MiniBlockHeader{
 						Hash: []byte("providedPendingMB_2_0"),
@@ -999,7 +999,7 @@ func TestShardProcessor_CreateBlockProposal(t *testing.T) {
 		}
 
 		arguments.TxCoordinator = &testscommon.TransactionCoordinatorMock{
-			SelectOutgoingTransactionsCalled: func(nonce uint64) ([][]byte, []data.MiniBlockHeaderHandler) {
+			SelectOutgoingTransactionsCalled: func(nonce uint64, _ func() bool) ([][]byte, []data.MiniBlockHeaderHandler) {
 				return [][]byte{}, nil // no pending incoming added
 			},
 		}
@@ -1075,7 +1075,7 @@ func TestShardProcessor_CreateBlockProposal(t *testing.T) {
 		}
 
 		arguments.TxCoordinator = &testscommon.TransactionCoordinatorMock{
-			SelectOutgoingTransactionsCalled: func(nonce uint64) ([][]byte, []data.MiniBlockHeaderHandler) {
+			SelectOutgoingTransactionsCalled: func(nonce uint64, _ func() bool) ([][]byte, []data.MiniBlockHeaderHandler) {
 				return [][]byte{}, []data.MiniBlockHeaderHandler{
 					&block.MiniBlockHeader{Hash: []byte("pendingMB")},
 				}
@@ -1167,7 +1167,7 @@ func TestShardProcessor_CreateBlockProposal(t *testing.T) {
 					{Miniblock: providedMb, Hash: []byte("mb_hash_1")},
 				}, nil, 0, true, nil
 			},
-			SelectOutgoingTransactionsCalled: func(nonce uint64) ([][]byte, []data.MiniBlockHeaderHandler) {
+			SelectOutgoingTransactionsCalled: func(nonce uint64, _ func() bool) ([][]byte, []data.MiniBlockHeaderHandler) {
 				return [][]byte{}, []data.MiniBlockHeaderHandler{
 					&block.MiniBlockHeader{Hash: []byte("nonExistentMB")}, // random pending mb added
 				}

@@ -33,14 +33,12 @@ func selectTransactionsFromBunches(
 	gasRequested := options.GetGasRequested()
 	maxNumTxs := options.GetMaxNumTxs()
 	loopDurationCheckInterval := options.GetLoopDurationCheckInterval()
-	selectionLoopMaxDuration := time.Duration(options.GetLoopMaximumDurationMs()) * time.Millisecond
 
 	logSelect.Debug("TxCache.selectTransactionsFromBunches",
 		"len(bunches)", len(bunches),
 		"gasRequested", gasRequested,
 		"maxNumTxs", maxNumTxs,
 		"loopDurationCheckInterval", loopDurationCheckInterval,
-		"selectionLoopMaxDuration", selectionLoopMaxDuration,
 	)
 
 	selectedTransactions := make(bunchOfTransactions, 0, initialCapacityOfSelectionSlice)
@@ -77,7 +75,7 @@ func selectTransactionsFromBunches(
 			break
 		}
 		if len(selectedTransactions)%loopDurationCheckInterval == 0 {
-			if time.Since(selectionLoopStartTime) > selectionLoopMaxDuration {
+			if !options.HaveTimeForSelection() {
 				logSelect.Debug("TxCache.selectTransactionsFromBunches, selection loop timeout", "duration", time.Since(selectionLoopStartTime))
 				break
 			}

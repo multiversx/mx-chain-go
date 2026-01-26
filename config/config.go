@@ -25,7 +25,6 @@ type TxCacheSelectionConfig struct {
 	SelectionGasBandwidthIncreaseScheduledPercent uint32
 	SelectionGasRequested                         uint64
 	SelectionMaxNumTxs                            int
-	SelectionLoopMaximumDuration                  int
 	SelectionLoopDurationCheckInterval            int
 }
 

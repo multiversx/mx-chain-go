@@ -70,7 +70,6 @@ type EnableEpochs struct {
 	IsPayableBySCEnableEpoch                                 uint32
 	CleanUpInformativeSCRsEnableEpoch                        uint32
 	StorageAPICostOptimizationEnableEpoch                    uint32
-	TransformToMultiShardCreateEnableEpoch                   uint32
 	ESDTRegisterAndSetAllRolesEnableEpoch                    uint32
 	DoNotReturnOldBlockInBlockchainHookEnableEpoch           uint32
 	AddFailedRelayedTxToInvalidMBsDisableEpoch               uint32
