@@ -63,9 +63,10 @@ func (erie *ExecutionResultInclusionEstimator) Decide(
 		return allowed
 	}
 
-	safetyMargin := uint64(erie.cfg.SafetyMargin)
-	if erie.cfg.SafetyMargin > 100 {
-		safetyMargin -= 100
+	nominalSafetyMargin := uint64(100)
+	safetyMargin := erie.cfg.SafetyMargin
+	if erie.cfg.SafetyMargin > nominalSafetyMargin {
+		safetyMargin -= nominalSafetyMargin
 	}
 
 	var roundForTBaseCalculation uint64
@@ -125,7 +126,7 @@ func (erie *ExecutionResultInclusionEstimator) Decide(
 				"safetyMargin", safetyMargin)
 			return pendingExecutionIndex
 		}
-		currentEstimatedTimeMargin /= 100
+		currentEstimatedTimeMargin /= nominalSafetyMargin
 
 		tDone, overflow := bits.Add64(estimatedTBase, currentEstimatedTimeMargin, 0)
 		if overflow != 0 {

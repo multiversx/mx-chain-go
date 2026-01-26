@@ -156,8 +156,11 @@ func (txs *transactions) processTransaction(
 		isTxTargetedForDeletion := errors.Is(err, process.ErrMaxGasLimitPerOneTxInReceiverShardIsReached)
 		if isTxTargetedForDeletion {
 			mbInfo.processingInfo.numCrossShardTxsWithTooMuchGas++
-			strCache := process.ShardCacherIdentifier(senderShardID, receiverShardID)
-			txs.txPool.RemoveData(txHash, strCache)
+			isAsyncExecEnabled := common.IsAsyncExecutionEnabled(txs.enableEpochsHandler, txs.enableRoundsHandler)
+			if !isAsyncExecEnabled {
+				strCache := process.ShardCacherIdentifier(senderShardID, receiverShardID)
+				txs.txPool.RemoveData(txHash, strCache)
+			}
 			return false, err
 		}
 		return true, err

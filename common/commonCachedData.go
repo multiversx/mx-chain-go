@@ -63,6 +63,23 @@ func GetCachedOrderedTxHashes(cache storage.Cacher, headerHash []byte) ([][]byte
 	return cachedDataSlice, nil
 }
 
+// GetCachedUnexecutableTxHashes will return the cached unexecutable tx hashes from the provided cache
+func GetCachedUnexecutableTxHashes(cache storage.Cacher, headerHash []byte) ([][]byte, error) {
+	unexecutableTxHashesKey := PrepareUnexecutableTxHashesKey(headerHash)
+	cachedData, ok := cache.Get(unexecutableTxHashesKey)
+	if !ok {
+		log.Warn("unexecutableTxHashes not found in dataPool", "hash", headerHash)
+		return nil, fmt.Errorf("%w for header %s", ErrMissingUnexecutableTxHash, hex.EncodeToString(headerHash))
+	}
+
+	cachedDataSlice, ok := cachedData.([][]byte)
+	if !ok {
+		return nil, fmt.Errorf("%w for cached unexecutable txs %s", ErrWrongTypeAssertion, hex.EncodeToString(headerHash))
+	}
+
+	return cachedDataSlice, nil
+}
+
 // GetCachedMbs will return the cached miniblocks from provided cache
 func GetCachedMbs(cache storage.Cacher, marshaller marshal.Marshalizer, headerHash []byte) ([]*block.MiniBlock, error) {
 	cachedIntraMBs, ok := cache.Get(headerHash)
