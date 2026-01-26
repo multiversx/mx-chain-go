@@ -158,13 +158,13 @@ func (tsm *trieStorageManager) cleanupChans() {
 
 // Get checks all the storers for the given key, and returns it if it is found
 func (tsm *trieStorageManager) Get(key []byte) ([]byte, error) {
-	tsm.storageOperationMutex.Lock()
-	defer tsm.storageOperationMutex.Unlock()
-
+	tsm.storageOperationMutex.RLock()
 	if tsm.closed {
+		tsm.storageOperationMutex.RUnlock()
 		log.Trace("trieStorageManager get context closing", "key", key)
 		return nil, core.ErrContextClosing
 	}
+	tsm.storageOperationMutex.RUnlock()
 
 	val, err := tsm.mainStorer.Get(key)
 	if core.IsClosingError(err) {
@@ -184,75 +184,77 @@ func (tsm *trieStorageManager) GetStateStatsHandler() common.StateStatisticsHand
 
 // GetFromCurrentEpoch checks only the current storer for the given key, and returns it if it is found
 func (tsm *trieStorageManager) GetFromCurrentEpoch(key []byte) ([]byte, error) {
-	tsm.storageOperationMutex.Lock()
+	tsm.storageOperationMutex.RLock()
 
 	if tsm.closed {
+		tsm.storageOperationMutex.RUnlock()
 		log.Trace("trieStorageManager get context closing", "key", key)
-		tsm.storageOperationMutex.Unlock()
 		return nil, core.ErrContextClosing
 	}
 
 	storer, ok := tsm.mainStorer.(snapshotPruningStorer)
 	if !ok {
 		storerType := fmt.Sprintf("%T", tsm.mainStorer)
-		tsm.storageOperationMutex.Unlock()
+		tsm.storageOperationMutex.RUnlock()
 		return nil, fmt.Errorf("invalid storer, type is %s", storerType)
 	}
 
-	tsm.storageOperationMutex.Unlock()
+	tsm.storageOperationMutex.RUnlock()
 
 	return storer.GetFromCurrentEpoch(key)
 }
 
 // Put adds the given value to the main storer
 func (tsm *trieStorageManager) Put(key []byte, val []byte) error {
-	tsm.storageOperationMutex.Lock()
-	defer tsm.storageOperationMutex.Unlock()
-	log.Trace("put hash in tsm", "hash", key)
-
+	tsm.storageOperationMutex.RLock()
 	if tsm.closed {
+		tsm.storageOperationMutex.RUnlock()
 		log.Trace("trieStorageManager put context closing", "key", key, "value", val)
 		return core.ErrContextClosing
 	}
+	tsm.storageOperationMutex.RUnlock()
 
+	log.Trace("put hash in tsm", "hash", key)
 	return tsm.mainStorer.Put(key, val)
 }
 
 // PutInEpoch adds the given value to the main storer in the specified epoch
 func (tsm *trieStorageManager) PutInEpoch(key []byte, val []byte, epoch uint32) error {
-	tsm.storageOperationMutex.Lock()
-	defer tsm.storageOperationMutex.Unlock()
-	log.Trace("put hash in tsm in epoch", "hash", key, "epoch", epoch)
-
+	tsm.storageOperationMutex.RLock()
 	if tsm.closed {
+		tsm.storageOperationMutex.RUnlock()
 		log.Trace("trieStorageManager putInEpoch context closing", "key", key, "value", val, "epoch", epoch)
 		return core.ErrContextClosing
 	}
 
 	storer, ok := tsm.mainStorer.(snapshotPruningStorer)
 	if !ok {
+		tsm.storageOperationMutex.RUnlock()
 		return fmt.Errorf("invalid storer type for PutInEpoch")
 	}
+	tsm.storageOperationMutex.RUnlock()
 
+	log.Trace("put hash in tsm in epoch", "hash", key, "epoch", epoch)
 	return storer.PutInEpoch(key, val, epoch)
 }
 
 // PutInEpochWithoutCache adds the given value to the main storer in the specified epoch without saving it to cache
 func (tsm *trieStorageManager) PutInEpochWithoutCache(key []byte, val []byte, epoch uint32) error {
-	tsm.storageOperationMutex.Lock()
-	defer tsm.storageOperationMutex.Unlock()
-	log.Trace("put hash in tsm in epoch without cache", "hash", key, "epoch", epoch)
-
+	tsm.storageOperationMutex.RLock()
 	if tsm.closed {
+		tsm.storageOperationMutex.RUnlock()
 		log.Trace("trieStorageManager putInEpochWithoutCache context closing", "key", key, "value", val, "epoch", epoch)
 		return core.ErrContextClosing
 	}
 
 	storer, ok := tsm.mainStorer.(snapshotPruningStorer)
 	if !ok {
+		tsm.storageOperationMutex.RUnlock()
 		return fmt.Errorf("invalid storer type for PutInEpoch")
 	}
+	tsm.storageOperationMutex.RUnlock()
 
+	log.Trace("put hash in tsm in epoch without cache", "hash", key, "epoch", epoch)
 	return storer.PutInEpochWithoutCache(key, val, epoch)
 }
 
@@ -285,8 +287,8 @@ func (tsm *trieStorageManager) ExitPruningBufferingMode() {
 
 // GetLatestStorageEpoch returns the epoch for the latest opened persister
 func (tsm *trieStorageManager) GetLatestStorageEpoch() (uint32, error) {
-	tsm.storageOperationMutex.Lock()
-	defer tsm.storageOperationMutex.Unlock()
+	tsm.storageOperationMutex.RLock()
+	defer tsm.storageOperationMutex.RUnlock()
 
 	storer, ok := tsm.mainStorer.(snapshotPruningStorer)
 	if !ok {
