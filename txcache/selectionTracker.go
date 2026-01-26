@@ -13,6 +13,10 @@ import (
 	"github.com/multiversx/mx-chain-go/common"
 )
 
+const (
+	maxAccountsPerBlock = 10000
+)
+
 type selectionTracker struct {
 	mutTracker                sync.RWMutex
 	latestNonce               uint64
@@ -76,6 +80,11 @@ func (st *selectionTracker) OnProposedBlock(
 
 	st.mutTracker.Lock()
 	defer st.mutTracker.Unlock()
+
+	err = st.checkUniqueAccountsLimit(blockBody)
+	if err != nil {
+		return err
+	}
 
 	if !bytes.Equal(st.latestRootHash, accountsRootHash) {
 		log.Error("selectionTracker.OnProposedBlock",
@@ -384,6 +393,26 @@ func (st *selectionTracker) updateLatestRootHashNoLock(receivedNonce uint64, rec
 
 	st.latestRootHash = receivedRootHash
 	st.latestNonce = receivedNonce
+}
+
+func (st *selectionTracker) checkUniqueAccountsLimit(blockBody *block.Body) error {
+	txsInBlock, err := getTransactionsInBlock(blockBody, st.txCache, st.selfShardId)
+	if err != nil {
+		return nil
+	}
+
+	uniqueAccounts := make(map[string]struct{})
+	for _, tx := range txsInBlock {
+		uniqueAccounts[string(tx.Tx.GetSndAddr())] = struct{}{}
+		if len(uniqueAccounts) > maxAccountsPerBlock {
+			log.Warn("selectionTracker.OnProposedBlock: too many unique accounts in block",
+				"count", len(uniqueAccounts),
+				"limit", maxAccountsPerBlock)
+			return errToManyUniqueAccountsInBlock
+		}
+	}
+
+	return nil
 }
 
 // ResetTrackedBlocks resets the tracked blocks, the global account breadcrumbs and the state saved on the OnExecutedBlock.
