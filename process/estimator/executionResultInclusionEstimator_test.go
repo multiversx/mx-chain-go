@@ -208,7 +208,6 @@ func TestDecide(t *testing.T) {
 
 func TestOverflowProtection(t *testing.T) {
 	t.Parallel()
-
 	roundHandler := &round.RoundHandlerMock{
 		GetTimeStampForRoundCalled: func(round uint64) uint64 {
 			return round * 1000
@@ -238,18 +237,25 @@ func TestOverflowProtection(t *testing.T) {
 	t.Run("overflow detected in estimated time with margin", func(t *testing.T) {
 		t.Parallel()
 		cfg := config.ExecutionResultInclusionEstimatorConfig{
-			SafetyMargin:       110,
+			SafetyMargin:       110, // => delta = 10
 			MaxResultsPerBlock: 0,
 		}
+
 		erie := NewExecutionResultInclusionEstimator(cfg, roundHandler)
+
+		const nominalSafetyMargin = 100
+		safetyMargin := cfg.SafetyMargin - nominalSafetyMargin // 10
+
+		gasUsed := (math.MaxUint64 / safetyMargin) + 1
+
 		pending := []data.BaseExecutionResultHandler{
-			&block.ExecutionResult{BaseExecutionResult: &block.BaseExecutionResult{HeaderNonce: 1, HeaderRound: 1, GasUsed: (math.MaxUint64 - 1) / erie.tGas}}, // This will bring estimatedTime close to max
-			&block.ExecutionResult{BaseExecutionResult: &block.BaseExecutionResult{HeaderNonce: 2, HeaderRound: 2, GasUsed: 2}},                                // This will cause overflow
+			&block.ExecutionResult{BaseExecutionResult: &block.BaseExecutionResult{HeaderNonce: 1, HeaderRound: 1, GasUsed: gasUsed}},
 		}
-		currentRound := uint64(1<<63 - 1)
+
+		currentRound := uint64(3)
 		numAccepted := erie.Decide(nil, pending, currentRound)
-		t.Log("num_accepted:", numAccepted)
-		require.Equal(t, 0, numAccepted, "should overflow from the first result")
+
+		require.Equal(t, 0, numAccepted, "should overflow at margin calculation")
 	})
 
 	t.Run("overflow detected in total estimated time - accumulated estimatedTime overflows", func(t *testing.T) {
@@ -264,7 +270,7 @@ func TestOverflowProtection(t *testing.T) {
 		}
 		erie := NewExecutionResultInclusionEstimator(cfg, roundHandler)
 		pending := []data.BaseExecutionResultHandler{
-			&block.ExecutionResult{BaseExecutionResult: &block.BaseExecutionResult{HeaderNonce: 1, HeaderRound: uint64(math.MaxUint64 - 2), GasUsed: math.MaxUint64 / 1000}}, // This will bring estimatedTime close to max in margin calculation
+			&block.ExecutionResult{BaseExecutionResult: &block.BaseExecutionResult{HeaderNonce: 1, HeaderRound: uint64(math.MaxUint64-110) / 1_000_000, GasUsed: 509000000}}, // This will bring estimatedTime close to max in margin calculation
 			&block.ExecutionResult{BaseExecutionResult: &block.BaseExecutionResult{HeaderNonce: 2, HeaderRound: 2, GasUsed: 1}},
 		}
 		currentRound := uint64(math.MaxUint64 - 1)
@@ -436,6 +442,60 @@ func TestDecide_RoundStartAlignment(t *testing.T) {
 		require.Equal(t, 2, got)
 	})
 }
+
+func TestSafetyMargin(t *testing.T) {
+	roundTime := uint64(100)
+	genesisTimeStampMs := uint64(0)
+	roundHandler := &round.RoundHandlerMock{
+		GetTimeStampForRoundCalled: func(round uint64) uint64 {
+			return genesisTimeStampMs + round*roundTime
+		},
+	}
+
+	t.Run("rejected due to safety margin", func(t *testing.T) {
+		cfg := config.ExecutionResultInclusionEstimatorConfig{
+			SafetyMargin:       110,
+			MaxResultsPerBlock: 0,
+		}
+		erie := NewExecutionResultInclusionEstimator(cfg, roundHandler)
+
+		pending := []data.BaseExecutionResultHandler{
+			&block.ExecutionResult{
+				BaseExecutionResult: &block.BaseExecutionResult{
+					HeaderNonce: 1,
+					HeaderRound: 1,
+					GasUsed:     100_000_000, // 100 ms
+				},
+			},
+		}
+
+		numAccepted := erie.Decide(nil, pending, 2)
+		require.Equal(t, 0, numAccepted, "should reject because safety margin pushes over")
+	})
+
+	t.Run("within safety margin", func(t *testing.T) {
+		cfg := config.ExecutionResultInclusionEstimatorConfig{
+			SafetyMargin:       110, // delta = 10
+			MaxResultsPerBlock: 0,
+		}
+		erie := NewExecutionResultInclusionEstimator(cfg, roundHandler)
+
+		gasUsed := uint64(100_000_000 * 100 / 110) // such that with margin it fits exactly 100ms
+		pending := []data.BaseExecutionResultHandler{
+			&block.ExecutionResult{
+				BaseExecutionResult: &block.BaseExecutionResult{
+					HeaderNonce: 1,
+					HeaderRound: 1,
+					GasUsed:     gasUsed,
+				},
+			},
+		}
+
+		numAccepted := erie.Decide(nil, pending, 2)
+		require.Equal(t, 1, numAccepted, "should accept because within safety margin")
+	})
+}
+
 func BenchmarkDecideScaling_10(b *testing.B) {
 	cfg := config.ExecutionResultInclusionEstimatorConfig{SafetyMargin: 110}
 	roundHandler := &round.RoundHandlerMock{
