@@ -216,3 +216,56 @@ func TestHeaderBodyCache_ConcurrentAccess(t *testing.T) {
 		}
 	}
 }
+
+func TestBlocksQueue_AddOrReplace_Rejection(t *testing.T) {
+	t.Parallel()
+
+	hq := NewHeaderBodyCache()
+	hq.maxCacheSize = 5
+
+	for i := uint64(1); i <= 5; i++ {
+		pair := HeaderBodyPair{
+			Header:     &block.Header{Nonce: i},
+			Body:       &block.Body{},
+			HeaderHash: []byte("a"),
+		}
+		err := hq.AddOrReplace(pair)
+		require.Nil(t, err)
+	}
+
+	pair := HeaderBodyPair{
+		Header:     &block.Header{Nonce: 6},
+		Body:       &block.Body{},
+		HeaderHash: []byte("a"),
+	}
+	err := hq.AddOrReplace(pair)
+	require.Equal(t, ErrCacheIsFull, err)
+	require.Equal(t, 5, len(hq.cacheByNonce))
+}
+
+func TestBlocksCache_AddOrReplace_ReplacementAllowed(t *testing.T) {
+	t.Parallel()
+
+	hq := NewHeaderBodyCache()
+	hq.maxCacheSize = 5
+
+	for i := uint64(1); i <= 5; i++ {
+		pair := HeaderBodyPair{
+			Header:     &block.Header{Nonce: i},
+			Body:       &block.Body{},
+			HeaderHash: []byte("a"),
+		}
+		err := hq.AddOrReplace(pair)
+		require.Nil(t, err)
+	}
+
+	pair := HeaderBodyPair{
+		Header:     &block.Header{Nonce: 3, Round: 100},
+		Body:       &block.Body{},
+		HeaderHash: []byte("a"),
+	}
+	err := hq.AddOrReplace(pair)
+	require.Nil(t, err)
+	require.Equal(t, 5, len(hq.cacheByNonce))
+	require.Equal(t, uint64(100), hq.cacheByNonce[pair.Header.GetNonce()].Header.GetRound())
+}

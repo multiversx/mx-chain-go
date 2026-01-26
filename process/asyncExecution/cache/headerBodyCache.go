@@ -12,9 +12,14 @@ import (
 
 var log = logger.GetOrCreate("process/asyncExecution/cache")
 
+const (
+	defaultMaxQueueSize = 1000
+)
+
 type headerBodyCache struct {
 	mutex        sync.RWMutex
 	cacheByNonce map[uint64]HeaderBodyPair
+	maxCacheSize int
 }
 
 // NewHeaderBodyCache will create a new instance of cache
@@ -22,6 +27,7 @@ func NewHeaderBodyCache() *headerBodyCache {
 	return &headerBodyCache{
 		cacheByNonce: make(map[uint64]HeaderBodyPair),
 		mutex:        sync.RWMutex{},
+		maxCacheSize: defaultMaxQueueSize,
 	}
 }
 
@@ -41,6 +47,16 @@ func (c *headerBodyCache) AddOrReplace(pair HeaderBodyPair) error {
 	defer c.mutex.Unlock()
 
 	headerNonce := pair.Header.GetNonce()
+	_, found := c.cacheByNonce[headerNonce]
+	if len(c.cacheByNonce) >= c.maxCacheSize && !found {
+		log.Warn("async execution cache is full",
+			"current size", len(c.cacheByNonce),
+			"max size", c.maxCacheSize,
+			"rejected nonce", headerNonce,
+		)
+		return ErrCacheIsFull
+	}
+
 	c.cacheByNonce[headerNonce] = pair
 
 	log.Debug("headerBodyCache.AddOrReplace - block has been added",
