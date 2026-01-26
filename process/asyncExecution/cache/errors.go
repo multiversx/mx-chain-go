@@ -9,4 +9,6 @@ var (
 	ErrInvalidHeaderNonce = errors.New("invalid header nonce")
 	// ErrQueueIntegrityViolation signals a queue integrity violation
 	ErrQueueIntegrityViolation = errors.New("queue integrity violation")
+	// ErrQueueFull is returned when the queue is full
+	ErrQueueFull = errors.New("async execution queue is full")
 )
