@@ -1842,17 +1842,18 @@ func (bp *baseProcessor) saveTxsToStorage(dataPool dataRetriever.ShardedDataCach
 	for _, txHash := range txHashes {
 		tx, err := process.GetTransactionHandlerFromPool(senderShardID, receiverShardID, txHash, dataPool, method)
 		if err != nil {
+			log.Warn("baseProcessor.saveTxsToStorage cannot get transaction from pool", "error", err.Error())
 			continue
 		}
 
 		marshalledTx, err := bp.marshalizer.Marshal(tx)
 		if err != nil {
-			continue
+			return err
 		}
 
 		err = storer.Put(txHash, marshalledTx)
 		if err != nil {
-			continue
+			return err
 		}
 	}
 

@@ -776,7 +776,7 @@ func (atp *apiTransactionProcessor) checkExecutionResultAndTx(miniblockMetadata 
 	}
 
 	// check if the transaction miniblock metadata has a mb header on execution result
-	// if yes - the transaction was execution
+	// if yes - the transaction was executed
 	// if no  - the transaction was proposed but not executed
 	currentTxIsExecuted := false
 	for _, mbHeader := range mbHeaders {
