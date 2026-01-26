@@ -216,9 +216,8 @@ func (ert *executionResultsTracker) cleanExecutionResults(executionResult []data
 // CleanOnConsensusReached will clean the execution results tracker when consensus is reached
 func (ert *executionResultsTracker) CleanOnConsensusReached(headerHash []byte, headerNonce uint64) {
 	ert.mutex.RLock()
-	defer ert.mutex.RUnlock()
-
 	pendingExecutionResult, err := ert.getPendingExecutionResultsByNonce(headerNonce)
+	ert.mutex.RUnlock()
 	if err != nil {
 		return
 	}
@@ -227,7 +226,9 @@ func (ert *executionResultsTracker) CleanOnConsensusReached(headerHash []byte, h
 		return
 	}
 
+	ert.mutex.Lock()
 	_ = ert.removePendingFromNonceUnprotected(headerNonce)
+	ert.mutex.Unlock()
 }
 
 // GetLastNotarizedExecutionResult will return the last notarized execution result
