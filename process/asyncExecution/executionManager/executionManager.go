@@ -6,6 +6,7 @@ import (
 	"github.com/multiversx/mx-chain-core-go/core/check"
 	"github.com/multiversx/mx-chain-core-go/data"
 	"github.com/multiversx/mx-chain-core-go/marshal"
+	"github.com/multiversx/mx-chain-go/storage"
 	logger "github.com/multiversx/mx-chain-logger-go"
 
 	"github.com/multiversx/mx-chain-go/dataRetriever"
@@ -24,6 +25,8 @@ type ArgsExecutionManager struct {
 	ExecutionResultsTracker process.ExecutionResultsTracker
 	BlockChain              data.ChainHandler
 	Headers                 dataRetriever.HeadersPool
+	PostProcessTransactions storage.Cacher
+	ExecutedMiniBlocks      storage.Cacher
 	StorageService          dataRetriever.StorageService
 	Marshaller              marshal.Marshalizer
 	ShardCoordinator        sharding.Coordinator
@@ -36,6 +39,8 @@ type executionManager struct {
 	executionResultsTracker process.ExecutionResultsTracker
 	blockChain              data.ChainHandler
 	headers                 dataRetriever.HeadersPool
+	postProcessTransactions storage.Cacher
+	executedMiniBlocks      storage.Cacher
 	storageService          dataRetriever.StorageService
 	marshaller              marshal.Marshalizer
 	shardCoordinator        sharding.Coordinator
@@ -55,6 +60,12 @@ func NewExecutionManager(args ArgsExecutionManager) (*executionManager, error) {
 	if check.IfNil(args.Headers) {
 		return nil, ErrNilHeadersPool
 	}
+	if check.IfNil(args.PostProcessTransactions) {
+		return nil, ErrNilPostProcessTransactionsCache
+	}
+	if check.IfNil(args.ExecutedMiniBlocks) {
+		return nil, ErrNilExecutedMiniBlocksCache
+	}
 	if check.IfNil(args.StorageService) {
 		return nil, process.ErrNilStorage
 	}
@@ -71,6 +82,8 @@ func NewExecutionManager(args ArgsExecutionManager) (*executionManager, error) {
 		executionResultsTracker: args.ExecutionResultsTracker,
 		blockChain:              args.BlockChain,
 		headers:                 args.Headers,
+		postProcessTransactions: args.PostProcessTransactions,
+		executedMiniBlocks:      args.ExecutedMiniBlocks,
 		storageService:          args.StorageService,
 		marshaller:              args.Marshaller,
 		shardCoordinator:        args.ShardCoordinator,
@@ -116,6 +129,8 @@ func (em *executionManager) AddPairForExecution(pair queue.HeaderBodyPair) error
 			em,
 			em.blockChain,
 			em.headers,
+			em.postProcessTransactions,
+			em.executedMiniBlocks,
 			em.storageService,
 			em.marshaller,
 			em.shardCoordinator.SelfId(),

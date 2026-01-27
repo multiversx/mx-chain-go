@@ -19,6 +19,7 @@ import (
 	"github.com/multiversx/mx-chain-core-go/data/typeConverters"
 	"github.com/multiversx/mx-chain-core-go/hashing"
 	"github.com/multiversx/mx-chain-core-go/marshal"
+	"github.com/multiversx/mx-chain-go/storage"
 	logger "github.com/multiversx/mx-chain-logger-go"
 	vmcommon "github.com/multiversx/mx-chain-vm-common-go"
 
@@ -1296,6 +1297,8 @@ func UpdateContextForReplacedHeader(
 	executionManager ExecutionManager,
 	blockChain data.ChainHandler,
 	headersPool dataRetriever.HeadersPool,
+	postProcessTransactions storage.Cacher,
+	executedMiniBlocks storage.Cacher,
 	storage dataRetriever.StorageService,
 	marshaller marshal.Marshalizer,
 	shardID uint32,
@@ -1330,11 +1333,67 @@ func UpdateContextForReplacedHeader(
 		return err
 	}
 
+	err = CleanCachesForExecutionResult(blockChain.GetLastExecutionResult(), postProcessTransactions, executedMiniBlocks)
+	if err != nil {
+		return err
+	}
+
 	blockChain.SetLastExecutedBlockHeaderAndRootHash(headerToSet, executionResultToSet.GetHeaderHash(), executionResultToSet.GetRootHash())
 	blockChain.SetLastExecutionResult(executionResultToSet)
 
 	// need to remove all execution results after the one set
-	return executionManager.RemovePendingExecutionResultsFromNonce(executionResultToSet.GetHeaderNonce() + 1)
+	err = executionManager.RemovePendingExecutionResultsFromNonce(executionResultToSet.GetHeaderNonce() + 1)
+	if err != nil {
+		return err
+	}
+
+	log.Debug("UpdateContextForReplacedHeader finished",
+		"nonce", header.GetNonce(),
+		"old round", header.GetRound(),
+		"new round", headerToSet.GetRound(),
+		"new hash", executionResultToSet.GetHeaderHash(),
+	)
+
+	return nil
+}
+
+// CleanCachesForExecutionResult cleans post-process transactions and executed mini blocks caches
+func CleanCachesForExecutionResult(
+	execResult data.BaseExecutionResultHandler,
+	postProcessTxsCache storage.Cacher,
+	executedMbs storage.Cacher,
+) error {
+	if check.IfNil(execResult) {
+		return ErrNilExecutionResultHandler
+	}
+	if check.IfNil(postProcessTxsCache) {
+		return ErrNilPostProcessTransactionsCache
+	}
+	if check.IfNil(executedMbs) {
+		return ErrNilExecutedMiniBlocksCache
+	}
+
+	headerHash := execResult.GetHeaderHash()
+	// all transactions moved, cleaning the cache
+	postProcessTxsCache.Remove(headerHash)
+	// remove execution order data
+	postProcessTxsCache.Remove(common.PrepareOrderedTxHashesKey(headerHash))
+	// remove cached log events
+	postProcessTxsCache.Remove(common.PrepareLogEventsKey(headerHash))
+
+	// remove headerHash from executed mini blocks
+	executedMbs.Remove(headerHash)
+
+	// remove mini block headers from executed mini blocks
+	mbHeaders, err := common.GetMiniBlocksHeaderHandlersFromExecResult(execResult)
+	if err != nil {
+		return err
+	}
+	for _, mbHeader := range mbHeaders {
+		executedMbs.Remove(mbHeader.GetHash())
+	}
+
+	return nil
 }
 
 func checkForNils(

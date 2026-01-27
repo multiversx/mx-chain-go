@@ -16,3 +16,9 @@ var ErrNilBlockchain = errors.New("nil blockchain")
 
 // ErrNilHeadersPool signals that a nil headers pool has been provided
 var ErrNilHeadersPool = errors.New("nil headers pool")
+
+// ErrNilPostProcessTransactionsCache signals that a nil post-process transactions cache has been provided
+var ErrNilPostProcessTransactionsCache = errors.New("nil post process transactions cache")
+
+// ErrNilExecutedMiniBlocksCache signals that a nil executed mini blocks cache has been provided
+var ErrNilExecutedMiniBlocksCache = errors.New("nil executed mini blocks cache")

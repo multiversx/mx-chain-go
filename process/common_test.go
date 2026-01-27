@@ -3052,6 +3052,8 @@ func Test_UpdateContextForReplacedHeader(t *testing.T) {
 			&processMocks.ExecutionManagerMock{},
 			&testscommon.ChainHandlerStub{},
 			&mock.HeadersCacherStub{},
+			&cache.CacherStub{},
+			&cache.CacherStub{},
 			&storageStubs.ChainStorerStub{},
 			&mock.MarshalizerMock{},
 			0,
@@ -3067,6 +3069,8 @@ func Test_UpdateContextForReplacedHeader(t *testing.T) {
 			nil,
 			&testscommon.ChainHandlerStub{},
 			&mock.HeadersCacherStub{},
+			&cache.CacherStub{},
+			&cache.CacherStub{},
 			&storageStubs.ChainStorerStub{},
 			&mock.MarshalizerMock{},
 			0,
@@ -3082,6 +3086,8 @@ func Test_UpdateContextForReplacedHeader(t *testing.T) {
 			&processMocks.ExecutionManagerMock{},
 			nil,
 			&mock.HeadersCacherStub{},
+			&cache.CacherStub{},
+			&cache.CacherStub{},
 			&storageStubs.ChainStorerStub{},
 			&mock.MarshalizerMock{},
 			0,
@@ -3097,11 +3103,72 @@ func Test_UpdateContextForReplacedHeader(t *testing.T) {
 			&processMocks.ExecutionManagerMock{},
 			&testscommon.ChainHandlerStub{},
 			nil,
+			&cache.CacherStub{},
+			&cache.CacherStub{},
 			&storageStubs.ChainStorerStub{},
 			&mock.MarshalizerMock{},
 			0,
 		)
 		require.Equal(t, process.ErrNilHeadersDataPool, err)
+	})
+
+	t.Run("error on CleanCachesForExecutionResult due to postProcessTransaction should error", func(t *testing.T) {
+		t.Parallel()
+
+		lastNotarizedResult := &block.BaseExecutionResult{
+			HeaderHash:  []byte("lastNotarizedHash"),
+			HeaderNonce: 5,
+			HeaderRound: 5,
+			RootHash:    []byte("lastNotarizedRoot"),
+		}
+
+		executionManager := &processMocks.ExecutionManagerMock{
+			GetPendingExecutionResultsCalled: func() ([]data.BaseExecutionResultHandler, error) {
+				return []data.BaseExecutionResultHandler{}, nil
+			},
+			GetLastNotarizedExecutionResultCalled: func() (data.BaseExecutionResultHandler, error) {
+				return lastNotarizedResult, nil
+			},
+		}
+
+		header := &block.HeaderV3{
+			Nonce:    6,
+			PrevHash: []byte("lastNotarizedHash"),
+		}
+
+		headerToSet := &block.HeaderV3{
+			Nonce: 5,
+		}
+
+		headersPool := &mock.HeadersCacherStub{
+			GetHeaderByHashCalled: func(hash []byte) (data.HeaderHandler, error) {
+				if bytes.Equal(hash, []byte("lastNotarizedHash")) {
+					return headerToSet, nil
+				}
+				return nil, errors.New("not found")
+			},
+		}
+
+		blockChain := &testscommon.ChainHandlerStub{
+			GetLastExecutionResultCalled: func() data.BaseExecutionResultHandler {
+				return &block.ExecutionResult{
+					BaseExecutionResult: lastNotarizedResult,
+				}
+			},
+		}
+
+		err := process.UpdateContextForReplacedHeader(
+			header,
+			executionManager,
+			blockChain,
+			headersPool,
+			nil,
+			&cache.CacherStub{},
+			&storageStubs.ChainStorerStub{},
+			&mock.MarshalizerMock{},
+			0,
+		)
+		require.Equal(t, process.ErrNilPostProcessTransactionsCache, err)
 	})
 
 	t.Run("nil storage should error", func(t *testing.T) {
@@ -3112,6 +3179,8 @@ func Test_UpdateContextForReplacedHeader(t *testing.T) {
 			&processMocks.ExecutionManagerMock{},
 			&testscommon.ChainHandlerStub{},
 			&mock.HeadersCacherStub{},
+			&cache.CacherStub{},
+			&cache.CacherStub{},
 			nil,
 			&mock.MarshalizerMock{},
 			0,
@@ -3127,6 +3196,8 @@ func Test_UpdateContextForReplacedHeader(t *testing.T) {
 			&processMocks.ExecutionManagerMock{},
 			&testscommon.ChainHandlerStub{},
 			&mock.HeadersCacherStub{},
+			&cache.CacherStub{},
+			&cache.CacherStub{},
 			&storageStubs.ChainStorerStub{},
 			nil,
 			0,
@@ -3148,6 +3219,8 @@ func Test_UpdateContextForReplacedHeader(t *testing.T) {
 			executionManager,
 			&testscommon.ChainHandlerStub{},
 			&mock.HeadersCacherStub{},
+			&cache.CacherStub{},
+			&cache.CacherStub{},
 			&storageStubs.ChainStorerStub{},
 			&mock.MarshalizerMock{},
 			0,
@@ -3172,6 +3245,8 @@ func Test_UpdateContextForReplacedHeader(t *testing.T) {
 			executionManager,
 			&testscommon.ChainHandlerStub{},
 			&mock.HeadersCacherStub{},
+			&cache.CacherStub{},
+			&cache.CacherStub{},
 			&storageStubs.ChainStorerStub{},
 			&mock.MarshalizerMock{},
 			0,
@@ -3208,6 +3283,8 @@ func Test_UpdateContextForReplacedHeader(t *testing.T) {
 			executionManager,
 			&testscommon.ChainHandlerStub{},
 			&mock.HeadersCacherStub{},
+			&cache.CacherStub{},
+			&cache.CacherStub{},
 			&storageStubs.ChainStorerStub{},
 			&mock.MarshalizerMock{},
 			0,
@@ -3260,6 +3337,8 @@ func Test_UpdateContextForReplacedHeader(t *testing.T) {
 			executionManager,
 			&testscommon.ChainHandlerStub{},
 			headersPool,
+			&cache.CacherStub{},
+			&cache.CacherStub{},
 			storageService,
 			&mock.MarshalizerMock{},
 			0,
@@ -3314,6 +3393,11 @@ func Test_UpdateContextForReplacedHeader(t *testing.T) {
 				setLastExecutionResultCalled = true
 				require.Equal(t, lastNotarizedResult, executionResult)
 			},
+			GetLastExecutionResultCalled: func() data.BaseExecutionResultHandler {
+				return &block.ExecutionResult{
+					BaseExecutionResult: lastNotarizedResult,
+				}
+			},
 		}
 
 		headersPool := &mock.HeadersCacherStub{
@@ -3330,6 +3414,8 @@ func Test_UpdateContextForReplacedHeader(t *testing.T) {
 			executionManager,
 			blockChain,
 			headersPool,
+			&cache.CacherStub{},
+			&cache.CacherStub{},
 			&storageStubs.ChainStorerStub{},
 			&mock.MarshalizerMock{},
 			0,
@@ -3394,6 +3480,11 @@ func Test_UpdateContextForReplacedHeader(t *testing.T) {
 				setLastExecutionResultCalled = true
 				require.Equal(t, pendingResult, executionResult)
 			},
+			GetLastExecutionResultCalled: func() data.BaseExecutionResultHandler {
+				return &block.ExecutionResult{
+					BaseExecutionResult: lastNotarizedResult,
+				}
+			},
 		}
 
 		headersPool := &mock.HeadersCacherStub{
@@ -3410,6 +3501,8 @@ func Test_UpdateContextForReplacedHeader(t *testing.T) {
 			executionManager,
 			blockChain,
 			headersPool,
+			&cache.CacherStub{},
+			&cache.CacherStub{},
 			&storageStubs.ChainStorerStub{},
 			&mock.MarshalizerMock{},
 			0,
@@ -3456,6 +3549,11 @@ func Test_UpdateContextForReplacedHeader(t *testing.T) {
 			},
 			SetLastExecutionResultCalled: func(executionResult data.BaseExecutionResultHandler) {
 			},
+			GetLastExecutionResultCalled: func() data.BaseExecutionResultHandler {
+				return &block.ExecutionResult{
+					BaseExecutionResult: lastNotarizedResult,
+				}
+			},
 		}
 
 		headersPool := &mock.HeadersCacherStub{
@@ -3472,6 +3570,8 @@ func Test_UpdateContextForReplacedHeader(t *testing.T) {
 			executionManager,
 			blockChain,
 			headersPool,
+			&cache.CacherStub{},
+			&cache.CacherStub{},
 			&storageStubs.ChainStorerStub{},
 			&mock.MarshalizerMock{},
 			0,

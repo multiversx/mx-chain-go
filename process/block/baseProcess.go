@@ -2909,20 +2909,9 @@ func (bp *baseProcessor) cleanPostProcessCache(header data.HeaderHandler) error 
 	postProcessTxsCache := bp.dataPool.PostProcessTransactions()
 	executedMbs := bp.dataPool.ExecutedMiniBlocks()
 	for _, execResult := range executionResults {
-		headerHash := execResult.GetHeaderHash()
-		// all transactions moved, cleaning the cache
-		postProcessTxsCache.Remove(headerHash)
-		// remove execution order data
-		postProcessTxsCache.Remove(common.PrepareOrderedTxHashesKey(headerHash))
-		// remove cached log events
-		postProcessTxsCache.Remove(common.PrepareLogEventsKey(headerHash))
-
-		mbHeaders, err := common.GetMiniBlocksHeaderHandlersFromExecResult(execResult)
+		err := process.CleanCachesForExecutionResult(execResult, postProcessTxsCache, executedMbs)
 		if err != nil {
 			return err
-		}
-		for _, mbHeader := range mbHeaders {
-			executedMbs.Remove(mbHeader.GetHash())
 		}
 	}
 
@@ -3601,6 +3590,8 @@ func (bp *baseProcessor) checkAndUpdateContextBeforeExecution(header data.Header
 			bp.executionManager,
 			bp.blockChain,
 			bp.dataPool.Headers(),
+			bp.dataPool.PostProcessTransactions(),
+			bp.dataPool.ExecutedMiniBlocks(),
 			bp.store,
 			bp.marshalizer,
 			bp.shardCoordinator.SelfId(),
