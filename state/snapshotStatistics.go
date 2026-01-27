@@ -13,9 +13,11 @@ type snapshotStatistics struct {
 
 	startTime time.Time
 
-	wgSnapshot *sync.WaitGroup
-	wgSync     *sync.WaitGroup
-	mutex      sync.RWMutex
+	maxSnapshotsInParallel int
+	snapshotsCounter       int
+	wgSnapshot             *sync.WaitGroup
+	wgSync                 *sync.WaitGroup
+	mutex                  sync.RWMutex
 }
 
 func newSnapshotStatistics(snapshotDelta int, syncDelta int) *snapshotStatistics {
@@ -25,6 +27,8 @@ func newSnapshotStatistics(snapshotDelta int, syncDelta int) *snapshotStatistics
 	wgSync := &sync.WaitGroup{}
 	wgSync.Add(syncDelta)
 	return &snapshotStatistics{
+		maxSnapshotsInParallel:  0,
+		snapshotsCounter:        0,
 		wgSnapshot:              wgSnapshot,
 		wgSync:                  wgSync,
 		startTime:               time.Now(),
@@ -34,12 +38,22 @@ func newSnapshotStatistics(snapshotDelta int, syncDelta int) *snapshotStatistics
 
 // SnapshotFinished marks the ending of a snapshot goroutine
 func (ss *snapshotStatistics) SnapshotFinished() {
+	ss.mutex.Lock()
 	ss.wgSnapshot.Done()
+	ss.snapshotsCounter--
+	ss.mutex.Unlock()
 }
 
 // NewSnapshotStarted marks the starting of a new snapshot goroutine
 func (ss *snapshotStatistics) NewSnapshotStarted() {
+	ss.mutex.Lock()
 	ss.wgSnapshot.Add(1)
+	ss.snapshotsCounter++
+	if ss.snapshotsCounter > ss.maxSnapshotsInParallel {
+		ss.maxSnapshotsInParallel = ss.snapshotsCounter
+	}
+	log.Debug("new snapshot started", "currentSnapshots", ss.snapshotsCounter, "maxSnapshotsInParallel", ss.maxSnapshotsInParallel)
+	ss.mutex.Unlock()
 }
 
 // WaitForSnapshotsToFinish will wait until the waitGroup counter is zero
