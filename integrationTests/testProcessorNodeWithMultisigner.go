@@ -766,12 +766,12 @@ func DoConsensusSigningOnBlock(
 
 	blockHeaderHash, _ := core.CalculateHash(TestMarshalizer, TestHasher, blockHeader)
 
-	pubKeysBytes := make([][]byte, len(consensusNodes))
+	pubKeysBytes := make([]crypto.PublicKey, len(consensusNodes))
 	sigShares := make([][]byte, len(consensusNodes))
 	msig := leaderNode.MultiSigner
 
 	for i := 0; i < len(consensusNodes); i++ {
-		pubKeysBytes[i] = []byte(pubKeys[i])
+		pubKeysBytes[i], _ = TestKeyGenForAccounts.PublicKeyFromByteArray([]byte(pubKeys[i]))
 		sk, _ := consensusNodes[i].NodeKeys.MainKey.Sk.ToByteArray()
 		sigShares[i], _ = msig.CreateSignatureShare(sk, blockHeaderHash)
 	}
