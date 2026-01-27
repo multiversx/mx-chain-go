@@ -39,6 +39,7 @@ type TransactionCoordinatorMock struct {
 	GetAllIntermediateTxsCalled                          func() map[block.Type]map[string]data.TransactionHandler
 	AddTxsFromMiniBlocksCalled                           func(miniBlocks block.MiniBlockSlice)
 	AddTransactionsCalled                                func(txHandlers []data.TransactionHandler, blockType block.Type)
+	GetUnExecutableTransactionsCalled                    func() map[string]struct{}
 }
 
 // GetAllCurrentLogs -
@@ -183,6 +184,15 @@ func (tcm *TransactionCoordinatorMock) SelectOutgoingTransactions(nonce uint64, 
 	}
 
 	return tcm.SelectOutgoingTransactionsCalled(nonce, haveTimeForSelection)
+}
+
+// GetUnExecutableTransactions -
+func (tcm *TransactionCoordinatorMock) GetUnExecutableTransactions() map[string]struct{} {
+	if tcm.GetUnExecutableTransactionsCalled != nil {
+		return tcm.GetUnExecutableTransactionsCalled()
+	}
+
+	return nil
 }
 
 // CreateMbsAndProcessTransactionsFromMe -

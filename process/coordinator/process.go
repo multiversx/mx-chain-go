@@ -383,6 +383,11 @@ func (tc *transactionCoordinator) GetCreatedMiniBlocksFromMe() block.MiniBlockSl
 	return miniBlocks
 }
 
+// GetUnExecutableTransactions will return a map with hashes of unexecutable transactions
+func (tc *transactionCoordinator) GetUnExecutableTransactions() map[string]struct{} {
+	return tc.getUnExecutableTransactions()
+}
+
 func (tc *transactionCoordinator) getUnExecutableTransactions() map[string]struct{} {
 	unExecutableTxs := make(map[string]struct{})
 	for _, blockType := range tc.preProcExecution.keysTxPreProcs {
