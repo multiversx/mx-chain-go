@@ -687,7 +687,7 @@ func TestChainSimulator_VerifyEconomicsMetricsSupernova(t *testing.T) {
 
 	require.Nil(t, cs.GenerateBlocksUntilEpochIsReached(int32(supernovaActivationEpoch)))
 
-	mintValue := big.NewInt(0).Mul(chainSimulatorCommon.OneEGLD, big.NewInt(3000))
+	mintValue := big.NewInt(0).Mul(chainSimulatorCommon.OneEGLD, big.NewInt(3000*5))
 	wallet1, err := cs.GenerateAndMintWalletAddress(0, mintValue)
 	require.Nil(t, err)
 
@@ -697,19 +697,23 @@ func TestChainSimulator_VerifyEconomicsMetricsSupernova(t *testing.T) {
 	err = cs.GenerateBlocks(1)
 	require.Nil(t, err)
 
-	dataFieldTx1 := fmt.Sprintf("stake@01@%s@%s", blsKeys[0], staking.MockBLSSignature)
-	tx1Value := big.NewInt(0).Mul(big.NewInt(2501), chainSimulatorCommon.OneEGLD)
-	tx1 := chainSimulatorCommon.GenerateTransaction(wallet1.Bytes, 0, vm.ValidatorSCAddress, tx1Value, dataFieldTx1, staking.GasLimitForStakeOperation)
+	nonce := uint64(0)
+	for currentEpoch := supernovaActivationEpoch + 1; currentEpoch < supernovaActivationEpoch+4; currentEpoch++ {
+		dataFieldTx1 := fmt.Sprintf("stake@01@%s@%s", blsKeys[0], staking.MockBLSSignature)
+		tx1Value := big.NewInt(0).Mul(big.NewInt(2501), chainSimulatorCommon.OneEGLD)
+		tx1 := chainSimulatorCommon.GenerateTransaction(wallet1.Bytes, nonce, vm.ValidatorSCAddress, tx1Value, dataFieldTx1, staking.GasLimitForStakeOperation)
 
-	results, err := cs.SendTxsAndGenerateBlocksTilAreExecuted([]*transaction.Transaction{tx1}, staking.MaxNumOfBlockToGenerateWhenExecutingTx)
-	require.Nil(t, err)
-	require.Equal(t, 1, len(results))
-	require.NotNil(t, results)
+		results, err := cs.SendTxsAndGenerateBlocksTilAreExecuted([]*transaction.Transaction{tx1}, staking.MaxNumOfBlockToGenerateWhenExecutingTx)
+		require.Nil(t, err)
+		require.Equal(t, 1, len(results))
+		require.NotNil(t, results)
 
-	require.Nil(t, cs.GenerateBlocksUntilEpochIsReached(int32(supernovaActivationEpoch+1)))
+		require.Nil(t, cs.GenerateBlocksUntilEpochIsReached(int32(currentEpoch)))
+		checkMetrics(t, cs, core.MetachainShardId, currentEpoch)
+		checkMetrics(t, cs, 0, currentEpoch)
 
-	checkMetrics(t, cs, core.MetachainShardId, supernovaActivationEpoch+1)
-	checkMetrics(t, cs, 0, supernovaActivationEpoch+1)
+		nonce++
+	}
 }
 
 func checkMetrics(t *testing.T, cs ChainSimulator, shardID uint32, expectedEpoch uint64) {
