@@ -87,7 +87,6 @@ func TestHeadersExecutor_StartAndClose(t *testing.T) {
 	t.Parallel()
 
 	var prevHash = []byte("prevHash")
-	var currentHash = []byte("currentHash")
 	calledProcessBlock := uint32(0)
 	calledAddExecutionResult := uint32(0)
 	args := createMockArgs()
@@ -117,11 +116,11 @@ func TestHeadersExecutor_StartAndClose(t *testing.T) {
 	}
 
 	args.BlockProcessor = &processMocks.BlockProcessorStub{
-		ProcessBlockProposalCalled: func(handler data.HeaderHandler, body data.BodyHandler) (data.BaseExecutionResultHandler, error) {
+		ProcessBlockProposalCalled: func(handler data.HeaderHandler, headerHash []byte, body data.BodyHandler) (data.BaseExecutionResultHandler, error) {
 			atomic.AddUint32(&calledProcessBlock, 1)
 			return &block.BaseExecutionResult{
 				HeaderNonce: handler.GetNonce(),
-				HeaderHash:  currentHash,
+				HeaderHash:  headerHash,
 			}, nil
 		},
 	}
@@ -217,10 +216,10 @@ func TestHeadersExecutor_ProcessBlock(t *testing.T) {
 		}
 
 		args.BlockProcessor = &processMocks.BlockProcessorStub{
-			ProcessBlockProposalCalled: func(handler data.HeaderHandler, body data.BodyHandler) (data.BaseExecutionResultHandler, error) {
+			ProcessBlockProposalCalled: func(handler data.HeaderHandler, headerHash []byte, body data.BodyHandler) (data.BaseExecutionResultHandler, error) {
 				return &block.BaseExecutionResult{
 					HeaderNonce: handler.GetNonce(),
-					HeaderHash:  currentHash,
+					HeaderHash:  headerHash,
 				}, nil
 			},
 		}
@@ -262,8 +261,10 @@ func TestHeadersExecutor_ProcessBlock(t *testing.T) {
 		require.NotPanics(t, func() {
 			args := createMockArgs()
 			args.BlockProcessor = &processMocks.BlockProcessorStub{
-				ProcessBlockProposalCalled: func(handler data.HeaderHandler, body data.BodyHandler) (data.BaseExecutionResultHandler, error) {
-					return &block.BaseExecutionResult{}, nil
+				ProcessBlockProposalCalled: func(handler data.HeaderHandler, headerHash []byte, body data.BodyHandler) (data.BaseExecutionResultHandler, error) {
+					return &block.BaseExecutionResult{
+						HeaderHash: headerHash,
+					}, nil
 				},
 			}
 			args.BlockChain = &testscommon.ChainHandlerStub{
@@ -334,10 +335,10 @@ func TestHeadersExecutor_ProcessBlock(t *testing.T) {
 			},
 		}
 		args.BlockProcessor = &processMocks.BlockProcessorStub{
-			ProcessBlockProposalCalled: func(handler data.HeaderHandler, body data.BodyHandler) (data.BaseExecutionResultHandler, error) {
+			ProcessBlockProposalCalled: func(handler data.HeaderHandler, headerHash []byte, body data.BodyHandler) (data.BaseExecutionResultHandler, error) {
 				return &block.BaseExecutionResult{
 					HeaderNonce: handler.GetNonce(),
-					HeaderHash:  currentHash,
+					HeaderHash:  headerHash,
 				}, nil
 			},
 		}
@@ -408,11 +409,11 @@ func TestHeadersExecutor_ProcessBlock(t *testing.T) {
 			},
 		}
 		args.BlockProcessor = &processMocks.BlockProcessorStub{
-			ProcessBlockProposalCalled: func(handler data.HeaderHandler, body data.BodyHandler) (data.BaseExecutionResultHandler, error) {
+			ProcessBlockProposalCalled: func(handler data.HeaderHandler, headerHash []byte, body data.BodyHandler) (data.BaseExecutionResultHandler, error) {
 				if count == 1 {
 					return &block.BaseExecutionResult{
 						HeaderNonce: handler.GetNonce(),
-						HeaderHash:  currentHash,
+						HeaderHash:  headerHash,
 					}, nil
 				}
 				count++
@@ -482,7 +483,7 @@ func TestHeadersExecutor_ProcessBlock(t *testing.T) {
 			},
 		}
 		args.BlockProcessor = &processMocks.BlockProcessorStub{
-			ProcessBlockProposalCalled: func(handler data.HeaderHandler, body data.BodyHandler) (data.BaseExecutionResultHandler, error) {
+			ProcessBlockProposalCalled: func(handler data.HeaderHandler, headerHash []byte, body data.BodyHandler) (data.BaseExecutionResultHandler, error) {
 				time.Sleep(time.Millisecond)
 				if handler.GetRound() == 1 {
 					return nil, errExpected
@@ -491,7 +492,7 @@ func TestHeadersExecutor_ProcessBlock(t *testing.T) {
 				count++
 				return &block.BaseExecutionResult{
 					HeaderNonce: handler.GetNonce(),
-					HeaderHash:  currentHash,
+					HeaderHash:  headerHash,
 				}, nil
 			},
 		}
@@ -547,7 +548,7 @@ func TestHeadersExecutor_Process(t *testing.T) {
 
 		expectedErr := errors.New("expected error")
 		args.BlockProcessor = &processMocks.BlockProcessorStub{
-			ProcessBlockProposalCalled: func(handler data.HeaderHandler, body data.BodyHandler) (data.BaseExecutionResultHandler, error) {
+			ProcessBlockProposalCalled: func(handler data.HeaderHandler, headerHash []byte, body data.BodyHandler) (data.BaseExecutionResultHandler, error) {
 				return nil, expectedErr
 			},
 		}
@@ -573,8 +574,10 @@ func TestHeadersExecutor_Process(t *testing.T) {
 
 		expectedErr := errors.New("expected error")
 		args.BlockProcessor = &processMocks.BlockProcessorStub{
-			ProcessBlockProposalCalled: func(handler data.HeaderHandler, body data.BodyHandler) (data.BaseExecutionResultHandler, error) {
-				return &block.BaseExecutionResult{}, nil
+			ProcessBlockProposalCalled: func(handler data.HeaderHandler, headerHash []byte, body data.BodyHandler) (data.BaseExecutionResultHandler, error) {
+				return &block.BaseExecutionResult{
+					HeaderHash: headerHash,
+				}, nil
 			},
 		}
 		args.ExecutionTracker = &processMocks.ExecutionTrackerStub{
@@ -603,8 +606,10 @@ func TestHeadersExecutor_Process(t *testing.T) {
 		args := createMockArgs()
 
 		args.BlockProcessor = &processMocks.BlockProcessorStub{
-			ProcessBlockProposalCalled: func(handler data.HeaderHandler, body data.BodyHandler) (data.BaseExecutionResultHandler, error) {
-				return &block.BaseExecutionResult{}, nil
+			ProcessBlockProposalCalled: func(handler data.HeaderHandler, headerHash []byte, body data.BodyHandler) (data.BaseExecutionResultHandler, error) {
+				return &block.BaseExecutionResult{
+					HeaderHash: headerHash,
+				}, nil
 			},
 		}
 		args.ExecutionTracker = &processMocks.ExecutionTrackerStub{
