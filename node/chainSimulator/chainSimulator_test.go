@@ -650,13 +650,12 @@ func TestSimulator_SendMoveBalanceTxBeforeAndAfterSupernovaWithMoreGasLimit(t *t
 	chainSimulatorCommon.GenerateMoveBalanceTxsInShardsWithMoreGasLimit(t, chainSimulator)
 }
 
-// TODO: Check here after, before and at the activation of supernova
 func TestChainSimulator_VerifyEconomicsMetricsSupernova(t *testing.T) {
 	if testing.Short() {
 		t.Skip("this is not a short test")
 	}
 
-	supernovaActivationRound := uint64(220)
+	supernovaActivationRound := uint64(46)
 	supernovaActivationEpoch := uint64(2)
 
 	cs, err := NewChainSimulator(ArgsChainSimulator{
