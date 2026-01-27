@@ -5528,9 +5528,9 @@ func TestShardProcessor_CheckEpochCorrectnessShouldRemoveAndRequestStartOfEpochM
 	arguments := CreateMockArguments(coreComponents, dataComponents, bootstrapComponents, statusComponents)
 	arguments.EpochStartTrigger = epochStartTriggerStub
 	arguments.RequestHandler = requestHandlerStub
-	sp, err := blproc.NewShardProcessor(arguments)
+	sp, _ := blproc.NewShardProcessor(arguments)
 
-	err = sp.CheckEpochCorrectness(nextHeader)
+	err := sp.CheckEpochCorrectness(nextHeader)
 
 	select {
 	case <-ch:
