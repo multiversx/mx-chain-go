@@ -188,6 +188,7 @@ type TransactionCoordinator interface {
 	CreateMarshalledDataForHeader(header data.HeaderHandler, body *block.Body, miniBlocksMap map[string]block.MiniBlockSlice) map[string][][]byte
 	GetAllCurrentUsedTxs(blockType block.Type) map[string]data.TransactionHandler
 	GetAllCurrentLogs() []data.LogDataHandler
+	GetUnExecutableTransactions() map[string]struct{}
 
 	CreateReceiptsHash() ([]byte, error)
 	VerifyCreatedBlockTransactions(hdr data.HeaderHandler, body *block.Body) error
