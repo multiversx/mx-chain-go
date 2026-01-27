@@ -2,6 +2,7 @@ package crypto
 
 import (
 	"sync"
+	"time"
 
 	"github.com/multiversx/mx-chain-core-go/core/check"
 	crypto "github.com/multiversx/mx-chain-crypto-go"
@@ -271,6 +272,12 @@ func (sh *signingHandler) AggregateSigs(bitmap []byte, epoch uint32) ([]byte, er
 		signatures = append(signatures, sh.data.sigShares[i])
 		pubKeysSigners = append(pubKeysSigners, sh.data.pubKeys[i])
 	}
+
+	start := time.Now()
+
+	defer func() {
+		log.Info("aggregate signatures", "duration", time.Since(start))
+	}()
 
 	return multiSigner.AggregateSigs(pubKeysSigners, signatures)
 }

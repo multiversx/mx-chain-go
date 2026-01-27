@@ -357,6 +357,7 @@ func (sr *subroundEndRound) sendProof() (bool, error) {
 		return false, nil
 	}
 
+	log.Info("checking signatures validity")
 	bitmap := sr.GenerateBitmap(bls.SrSignature)
 	err := sr.checkSignaturesValidity(bitmap)
 	if err != nil {
@@ -366,6 +367,7 @@ func (sr *subroundEndRound) sendProof() (bool, error) {
 
 	currentSender := sr.getEquivalentProofSender()
 
+	log.Info("aggregateSigsAndHandleInvalidSigners")
 	// Aggregate signatures, handle invalid signers and send final info if needed
 	bitmap, sig, err := sr.aggregateSigsAndHandleInvalidSigners(bitmap, currentSender)
 	if err != nil {
@@ -381,6 +383,7 @@ func (sr *subroundEndRound) sendProof() (bool, error) {
 		return false, ErrTimeOut
 	}
 
+	log.Info("createAndBroadcastProof")
 	// broadcast header proof
 	err = sr.createAndBroadcastProof(sig, bitmap, currentSender)
 	if err != nil && !errors.Is(err, ErrProofAlreadyPropagated) {
@@ -388,6 +391,7 @@ func (sr *subroundEndRound) sendProof() (bool, error) {
 	}
 
 	proofSent := err == nil
+	log.Info("finish")
 	return proofSent, err
 }
 
@@ -406,12 +410,17 @@ func (sr *subroundEndRound) aggregateSigsAndHandleInvalidSigners(bitmap []byte, 
 	if sr.EquivalentProofsPool().HasProof(sr.ShardCoordinator().SelfId(), sr.GetData()) {
 		return nil, nil, ErrProofAlreadyPropagated
 	}
+
+	start := time.Now()
 	sig, err := sr.SigningHandler().AggregateSigs(bitmap, sr.GetHeader().GetEpoch())
 	if err != nil {
 		log.Debug("doEndRoundJobByNode.AggregateSigs", "error", err.Error())
 
 		return sr.handleInvalidSignersOnAggSigFail(sender)
 	}
+
+	aggregateSigsTime := time.Since(start)
+	log.Info("aggregate sig time", "time", aggregateSigsTime)
 
 	err = sr.SigningHandler().SetAggregatedSig(sig)
 	if err != nil {
