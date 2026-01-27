@@ -3578,9 +3578,9 @@ func (bp *baseProcessor) getLastExecutionResultHeader(
 	)
 }
 
-func (bp *baseProcessor) checkAndUpdateContextBeforeExecution(header data.HeaderHandler) error {
+func (bp *baseProcessor) checkAndUpdateContextBeforeExecution(header data.HeaderHandler, headerHash []byte) error {
 	lastExecutionResult := bp.blockChain.GetLastExecutionResult()
-	if process.IsReplacementBlockForExecution(header, lastExecutionResult) {
+	if process.IsReplacementBlockForExecution(header, headerHash, lastExecutionResult) {
 		err := process.UpdateContextForReplacedHeader(
 			header,
 			bp.executionManager,

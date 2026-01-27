@@ -5044,7 +5044,7 @@ func TestBaseProcessor_checkContextBeforeExecution(t *testing.T) {
 		err = bp.CheckContextBeforeExecution(&block.HeaderV3{
 			Nonce:    2,
 			PrevHash: []byte("hash1"),
-		})
+		}, []byte("headerHash"))
 		require.Equal(t, expectedErr, err)
 	})
 
@@ -5078,7 +5078,7 @@ func TestBaseProcessor_checkContextBeforeExecution(t *testing.T) {
 
 		err = bp.CheckContextBeforeExecution(&block.HeaderV3{
 			PrevHash: []byte("hash"),
-		})
+		}, []byte("headerHash"))
 		require.Equal(t, process.ErrBlockHashDoesNotMatch, err)
 	})
 
@@ -5115,7 +5115,7 @@ func TestBaseProcessor_checkContextBeforeExecution(t *testing.T) {
 		err = bp.CheckContextBeforeExecution(&block.HeaderV3{
 			PrevHash: []byte("hash"),
 			Nonce:    2,
-		})
+		}, []byte("headerHash"))
 		require.Equal(t, process.ErrWrongNonceInBlock, err)
 	})
 
@@ -5155,7 +5155,7 @@ func TestBaseProcessor_checkContextBeforeExecution(t *testing.T) {
 		err = bp.CheckContextBeforeExecution(&block.HeaderV3{
 			PrevHash: []byte("hash"),
 			Nonce:    2,
-		})
+		}, []byte("headerHash"))
 		require.Equal(t, process.ErrRootStateDoesNotMatch, err)
 	})
 
@@ -5192,7 +5192,7 @@ func TestBaseProcessor_checkContextBeforeExecution(t *testing.T) {
 		err = bp.CheckContextBeforeExecution(&block.HeaderV3{
 			PrevHash: []byte("hash"),
 			Nonce:    2,
-		})
+		}, []byte("headerHash"))
 		require.Nil(t, err)
 	})
 }

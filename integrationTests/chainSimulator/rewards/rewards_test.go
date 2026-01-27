@@ -14,6 +14,7 @@ import (
 	apiCore "github.com/multiversx/mx-chain-core-go/data/api"
 	"github.com/multiversx/mx-chain-core-go/data/block"
 	"github.com/multiversx/mx-chain-core-go/data/transaction"
+	logger "github.com/multiversx/mx-chain-logger-go"
 	"github.com/stretchr/testify/require"
 
 	"github.com/multiversx/mx-chain-go/common"
@@ -155,6 +156,8 @@ func TestRewardsAfterSupernovaWithTxs(t *testing.T) {
 	if testing.Short() {
 		t.Skip("this is not a short test")
 	}
+
+	_ = logger.SetLogLevel("*:DEBUG")
 
 	roundDurationInMillis := uint64(6000)
 	roundsPerEpoch := core.OptionalUint64{

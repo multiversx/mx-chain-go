@@ -203,12 +203,12 @@ func (he *headersExecutor) handleProcessError(ctx context.Context, pair cache.He
 }
 
 func (he *headersExecutor) process(pair cache.HeaderBodyPair) error {
-	ok := he.checkLastExecutionResultContext(pair.Header)
+	ok := he.checkLastExecutionResultContext(pair.Header, pair.HeaderHash)
 	if !ok {
 		return nil
 	}
 
-	executionResult, err := he.blockProcessor.ProcessBlockProposal(pair.Header, pair.Body)
+	executionResult, err := he.blockProcessor.ProcessBlockProposal(pair.Header, pair.HeaderHash, pair.Body)
 	if err != nil {
 		log.Warn("headersExecutor.process process block failed",
 			"nonce", pair.Header.GetNonce(),
@@ -225,7 +225,7 @@ func (he *headersExecutor) process(pair cache.HeaderBodyPair) error {
 		return ErrNilExecutionResult
 	}
 
-	ok = he.checkLastExecutionResultContext(pair.Header)
+	ok = he.checkLastExecutionResultContext(pair.Header, pair.HeaderHash)
 	if !ok {
 		return nil
 	}
@@ -288,6 +288,7 @@ func (he *headersExecutor) process(pair cache.HeaderBodyPair) error {
 
 func (he *headersExecutor) checkLastExecutionResultContext(
 	currentHeader data.HeaderHandler,
+	currentHeaderHash []byte,
 ) bool {
 	if check.IfNil(currentHeader) {
 		return false
@@ -298,7 +299,7 @@ func (he *headersExecutor) checkLastExecutionResultContext(
 		return true
 	}
 
-	if process.IsReplacementBlockForExecution(currentHeader, lastExecutionResult) {
+	if process.IsReplacementBlockForExecution(currentHeader, currentHeaderHash, lastExecutionResult) {
 		return true
 	}
 

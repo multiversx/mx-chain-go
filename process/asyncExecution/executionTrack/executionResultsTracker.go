@@ -223,10 +223,18 @@ func (ert *executionResultsTracker) cleanConfirmedExecutionResults(headerExecuti
 }
 
 func (ert *executionResultsTracker) cleanExecutionResults(executionResult []data.BaseExecutionResultHandler) {
+	ert.removeExecutionResultsFromMaps(executionResult)
+	for _, result := range executionResult {
+		delete(ert.consensusCommittedHashes, result.GetHeaderNonce())
+	}
+}
+
+// removeExecutionResultsFromMaps removes execution results from the internal maps
+// but preserves consensusCommittedHashes entries to continue blocking stale results
+func (ert *executionResultsTracker) removeExecutionResultsFromMaps(executionResult []data.BaseExecutionResultHandler) {
 	for _, result := range executionResult {
 		delete(ert.executionResultsByHash, string(result.GetHeaderHash()))
 		ert.nonceHash.removeByNonce(result.GetHeaderNonce())
-		delete(ert.consensusCommittedHashes, result.GetHeaderNonce())
 	}
 }
 
@@ -322,7 +330,9 @@ func (ert *executionResultsTracker) removePendingFromNonceUnprotected(nonce uint
 		return nil
 	}
 
-	ert.cleanExecutionResults(resultsToRemove)
+	// Remove from executionResultsByHash and nonceHash, but preserve consensusCommittedHashes
+	// to continue blocking stale results from being added for these nonces
+	ert.removeExecutionResultsFromMaps(resultsToRemove)
 
 	pendingExecutionResults, err := ert.getPendingExecutionResults()
 	if err != nil {
