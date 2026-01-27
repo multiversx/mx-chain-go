@@ -19,7 +19,8 @@ const shardConsensusSize = uint16(63)
 
 type multiSignerSetup struct {
 	privKeys          [][]byte
-	pubKeys           [][]byte
+	pubKeysBytes      [][]byte
+	pubKeys           []crypto.PublicKey
 	partialSignatures [][][]byte
 	messages          []string
 	aggSignatures     [][]byte
@@ -60,7 +61,7 @@ func benchmarkMultiSigners(b *testing.B, numSigners uint16, numMessages int) {
 	b.Run("Verify signature shares KOSK", func(b *testing.B) {
 		for i := 0; i < b.N; i++ {
 			for j := 0; j < int(numSigners); j++ {
-				err := multiSignerKOSK.VerifySignatureShare(setupKOSK.pubKeys[j], []byte(setupKOSK.messages[i%numMessages]), setupKOSK.partialSignatures[i%numMessages][j])
+				err := multiSignerKOSK.VerifySignatureShare(setupKOSK.pubKeysBytes[j], []byte(setupKOSK.messages[i%numMessages]), setupKOSK.partialSignatures[i%numMessages][j])
 				require.Nil(b, err)
 			}
 		}
@@ -79,7 +80,7 @@ func benchmarkMultiSigners(b *testing.B, numSigners uint16, numMessages int) {
 	b.Run("Verify signature shares NoKOSK", func(b *testing.B) {
 		for i := 0; i < b.N; i++ {
 			for j := 0; j < int(numSigners); j++ {
-				err := multiSignerNoKOSK.VerifySignatureShare(setupNoKOSK.pubKeys[j], []byte(setupNoKOSK.messages[i%numMessages]), setupNoKOSK.partialSignatures[i%numMessages][j])
+				err := multiSignerNoKOSK.VerifySignatureShare(setupNoKOSK.pubKeysBytes[j], []byte(setupNoKOSK.messages[i%numMessages]), setupNoKOSK.partialSignatures[i%numMessages][j])
 				require.Nil(b, err)
 			}
 		}

@@ -6,7 +6,7 @@ import (
 
 	"github.com/multiversx/mx-chain-core-go/hashing"
 	"github.com/multiversx/mx-chain-core-go/hashing/blake2b"
-	"github.com/multiversx/mx-chain-crypto-go"
+	crypto "github.com/multiversx/mx-chain-crypto-go"
 	"github.com/multiversx/mx-chain-crypto-go/signing"
 	"github.com/multiversx/mx-chain-crypto-go/signing/mcl"
 	llsig "github.com/multiversx/mx-chain-crypto-go/signing/mcl/multisig"
@@ -17,7 +17,7 @@ import (
 func createKeysAndMultiSignerBlsKOSK(
 	grSize uint16,
 	suite crypto.Suite,
-) ([][]byte, [][]byte, crypto.MultiSigner) {
+) ([][]byte, []crypto.PublicKey, crypto.MultiSigner) {
 
 	kg, privKeys, pubKeys := createMultiSignerSetup(grSize, suite)
 	llSigner := &llsig.BlsMultiSignerKOSK{}
@@ -30,7 +30,7 @@ func createKeysAndMultiSignerBlsNoKOSK(
 	grSize uint16,
 	hasher hashing.Hasher,
 	suite crypto.Suite,
-) ([][]byte, [][]byte, crypto.MultiSigner) {
+) ([][]byte, []crypto.PublicKey, crypto.MultiSigner) {
 	kg, privKeys, pubKeys := createMultiSignerSetup(grSize, suite)
 	llSigner := &llsig.BlsMultiSigner{Hasher: hasher}
 
@@ -39,15 +39,15 @@ func createKeysAndMultiSignerBlsNoKOSK(
 	return privKeys, pubKeys, multiSigner
 }
 
-func createMultiSignerSetup(grSize uint16, suite crypto.Suite) (crypto.KeyGenerator, [][]byte, [][]byte) {
+func createMultiSignerSetup(grSize uint16, suite crypto.Suite) (crypto.KeyGenerator, [][]byte, []crypto.PublicKey) {
 	kg := signing.NewKeyGenerator(suite)
 	privKeys := make([][]byte, grSize)
-	pubKeys := make([][]byte, grSize)
+	pubKeys := make([]crypto.PublicKey, grSize)
 
 	for i := uint16(0); i < grSize; i++ {
 		sk, pk := kg.GeneratePair()
 		privKeys[i], _ = sk.ToByteArray()
-		pubKeys[i], _ = pk.ToByteArray()
+		pubKeys[i] = pk
 	}
 	return kg, privKeys, pubKeys
 }
