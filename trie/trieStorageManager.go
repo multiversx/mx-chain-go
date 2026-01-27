@@ -5,6 +5,7 @@ import (
 	"context"
 	"fmt"
 	"sync"
+	"sync/atomic"
 	"time"
 
 	"github.com/multiversx/mx-chain-core-go/core"
@@ -27,7 +28,7 @@ type trieStorageManager struct {
 	storageOperationMutex sync.RWMutex
 	cancelFunc            context.CancelFunc
 	closer                core.SafeCloser
-	closed                bool
+	closed                *atomic.Bool
 	idleProvider          IdleNodeProvider
 	identifier            string
 	statsCollector        common.StateStatisticsHandler
@@ -86,6 +87,7 @@ func NewTrieStorageManager(args NewTrieStorageManagerArgs) (*trieStorageManager,
 		idleProvider:       args.IdleProvider,
 		identifier:         args.Identifier,
 		statsCollector:     args.StatsCollector,
+		closed:             &atomic.Bool{},
 	}
 	goRoutinesThrottler, err := throttler.NewNumGoRoutinesThrottler(int32(args.GeneralConfig.SnapshotsGoroutineNum))
 	if err != nil {
@@ -158,10 +160,7 @@ func (tsm *trieStorageManager) cleanupChans() {
 
 // Get checks all the storers for the given key, and returns it if it is found
 func (tsm *trieStorageManager) Get(key []byte) ([]byte, error) {
-	tsm.storageOperationMutex.Lock()
-	defer tsm.storageOperationMutex.Unlock()
-
-	if tsm.closed {
+	if tsm.closed.Load() == true {
 		log.Trace("trieStorageManager get context closing", "key", key)
 		return nil, core.ErrContextClosing
 	}
@@ -184,33 +183,25 @@ func (tsm *trieStorageManager) GetStateStatsHandler() common.StateStatisticsHand
 
 // GetFromCurrentEpoch checks only the current storer for the given key, and returns it if it is found
 func (tsm *trieStorageManager) GetFromCurrentEpoch(key []byte) ([]byte, error) {
-	tsm.storageOperationMutex.Lock()
-
-	if tsm.closed {
+	if tsm.closed.Load() == true {
 		log.Trace("trieStorageManager get context closing", "key", key)
-		tsm.storageOperationMutex.Unlock()
 		return nil, core.ErrContextClosing
 	}
 
 	storer, ok := tsm.mainStorer.(snapshotPruningStorer)
 	if !ok {
 		storerType := fmt.Sprintf("%T", tsm.mainStorer)
-		tsm.storageOperationMutex.Unlock()
 		return nil, fmt.Errorf("invalid storer, type is %s", storerType)
 	}
-
-	tsm.storageOperationMutex.Unlock()
 
 	return storer.GetFromCurrentEpoch(key)
 }
 
 // Put adds the given value to the main storer
 func (tsm *trieStorageManager) Put(key []byte, val []byte) error {
-	tsm.storageOperationMutex.Lock()
-	defer tsm.storageOperationMutex.Unlock()
 	log.Trace("put hash in tsm", "hash", key)
 
-	if tsm.closed {
+	if tsm.closed.Load() == true {
 		log.Trace("trieStorageManager put context closing", "key", key, "value", val)
 		return core.ErrContextClosing
 	}
@@ -220,11 +211,9 @@ func (tsm *trieStorageManager) Put(key []byte, val []byte) error {
 
 // PutInEpoch adds the given value to the main storer in the specified epoch
 func (tsm *trieStorageManager) PutInEpoch(key []byte, val []byte, epoch uint32) error {
-	tsm.storageOperationMutex.Lock()
-	defer tsm.storageOperationMutex.Unlock()
 	log.Trace("put hash in tsm in epoch", "hash", key, "epoch", epoch)
 
-	if tsm.closed {
+	if tsm.closed.Load() == true {
 		log.Trace("trieStorageManager putInEpoch context closing", "key", key, "value", val, "epoch", epoch)
 		return core.ErrContextClosing
 	}
@@ -239,11 +228,9 @@ func (tsm *trieStorageManager) PutInEpoch(key []byte, val []byte, epoch uint32) 
 
 // PutInEpochWithoutCache adds the given value to the main storer in the specified epoch without saving it to cache
 func (tsm *trieStorageManager) PutInEpochWithoutCache(key []byte, val []byte, epoch uint32) error {
-	tsm.storageOperationMutex.Lock()
-	defer tsm.storageOperationMutex.Unlock()
 	log.Trace("put hash in tsm in epoch without cache", "hash", key, "epoch", epoch)
 
-	if tsm.closed {
+	if tsm.closed.Load() == true {
 		log.Trace("trieStorageManager putInEpochWithoutCache context closing", "key", key, "value", val, "epoch", epoch)
 		return core.ErrContextClosing
 	}
@@ -285,9 +272,6 @@ func (tsm *trieStorageManager) ExitPruningBufferingMode() {
 
 // GetLatestStorageEpoch returns the epoch for the latest opened persister
 func (tsm *trieStorageManager) GetLatestStorageEpoch() (uint32, error) {
-	tsm.storageOperationMutex.Lock()
-	defer tsm.storageOperationMutex.Unlock()
-
 	storer, ok := tsm.mainStorer.(snapshotPruningStorer)
 	if !ok {
 		log.Debug("GetLatestStorageEpoch", "error", fmt.Sprintf("%T", tsm.mainStorer))
@@ -360,7 +344,7 @@ func (tsm *trieStorageManager) takeSnapshot(snapshotEntry *snapshotsQueueEntry, 
 		goRoutinesThrottler.EndProcessing()
 	}()
 
-	log.Trace("trie snapshot started", "rootHash", snapshotEntry.rootHash)
+	log.Debug("trie snapshot started", "rootHash", snapshotEntry.rootHash)
 
 	stsm, err := newSnapshotTrieStorageManager(tsm, snapshotEntry.epoch)
 	if err != nil {
@@ -447,9 +431,6 @@ func (tsm *trieStorageManager) IsPruningBlocked() bool {
 
 // Remove removes the given hash form the storage
 func (tsm *trieStorageManager) Remove(hash []byte) error {
-	tsm.storageOperationMutex.Lock()
-	defer tsm.storageOperationMutex.Unlock()
-
 	storer, ok := tsm.mainStorer.(snapshotPruningStorer)
 	if !ok {
 		return tsm.mainStorer.Remove(hash)
@@ -460,9 +441,6 @@ func (tsm *trieStorageManager) Remove(hash []byte) error {
 
 // RemoveFromAllActiveEpochs removes the given hash from all epochs
 func (tsm *trieStorageManager) RemoveFromAllActiveEpochs(hash []byte) error {
-	tsm.storageOperationMutex.Lock()
-	defer tsm.storageOperationMutex.Unlock()
-
 	storer, ok := tsm.mainStorer.(snapshotPruningStorer)
 	if !ok {
 		return fmt.Errorf("trie storage manager: main storer does not implement snapshotPruningStorer interface: %T", tsm.mainStorer)
@@ -473,19 +451,13 @@ func (tsm *trieStorageManager) RemoveFromAllActiveEpochs(hash []byte) error {
 
 // IsClosed returns true if the trie storage manager has been closed
 func (tsm *trieStorageManager) IsClosed() bool {
-	tsm.storageOperationMutex.RLock()
-	defer tsm.storageOperationMutex.RUnlock()
-
-	return tsm.closed
+	return tsm.closed.Load()
 }
 
 // Close - closes all underlying components
 func (tsm *trieStorageManager) Close() error {
-	tsm.storageOperationMutex.Lock()
-	defer tsm.storageOperationMutex.Unlock()
-
 	tsm.cancelFunc()
-	tsm.closed = true
+	tsm.closed.Store(true)
 
 	// calling close on the SafeCloser instance should be the last instruction called
 	// (just to close some go routines started as edge cases that would otherwise hang)

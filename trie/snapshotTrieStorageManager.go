@@ -29,10 +29,7 @@ func newSnapshotTrieStorageManager(tsm *trieStorageManager, epoch uint32) (*snap
 
 // Get checks all the storers for the given key, and returns it if it is found
 func (stsm *snapshotTrieStorageManager) Get(key []byte) ([]byte, error) {
-	stsm.storageOperationMutex.Lock()
-	defer stsm.storageOperationMutex.Unlock()
-
-	if stsm.closed {
+	if stsm.closed.Load() == true {
 		log.Debug("snapshotTrieStorageManager get context closing", "key", key)
 		return nil, core.ErrContextClosing
 	}
@@ -80,10 +77,7 @@ func (stsm *snapshotTrieStorageManager) putInPreviousStorerIfAbsent(key []byte, 
 
 // Put adds the given value to the main storer
 func (stsm *snapshotTrieStorageManager) Put(key, data []byte) error {
-	stsm.storageOperationMutex.Lock()
-	defer stsm.storageOperationMutex.Unlock()
-
-	if stsm.closed {
+	if stsm.closed.Load() == true {
 		log.Debug("snapshotTrieStorageManager put context closing", "key", key, "data", data)
 		return core.ErrContextClosing
 	}
@@ -94,10 +88,7 @@ func (stsm *snapshotTrieStorageManager) Put(key, data []byte) error {
 
 // GetFromLastEpoch searches only the last epoch storer for the given key
 func (stsm *snapshotTrieStorageManager) GetFromLastEpoch(key []byte) ([]byte, error) {
-	stsm.storageOperationMutex.Lock()
-	defer stsm.storageOperationMutex.Unlock()
-
-	if stsm.closed {
+	if stsm.closed.Load() == true {
 		log.Debug("snapshotTrieStorageManager getFromLastEpoch context closing", "key", key)
 		return nil, core.ErrContextClosing
 	}

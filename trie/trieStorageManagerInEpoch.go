@@ -47,7 +47,7 @@ func (tsmie *trieStorageManagerInEpoch) Get(key []byte) ([]byte, error) {
 	tsmie.storageOperationMutex.Lock()
 	defer tsmie.storageOperationMutex.Unlock()
 
-	if tsmie.closed {
+	if tsmie.closed.Load() == true {
 		log.Debug("trieStorageManagerInEpoch get context closing", "key", key)
 		return nil, core.ErrContextClosing
 	}
