@@ -205,7 +205,7 @@ func (mp *metaProcessor) ProcessBlock(
 
 	defer func() {
 		if err != nil {
-			mp.RevertCurrentBlock(headerHandler)
+			mp.RevertCurrentBlock()
 		}
 	}()
 
@@ -1222,9 +1222,15 @@ func (mp *metaProcessor) CommitBlock(
 		mp.processStatusHandler.SetBusy("metaProcessor.CommitBlock")
 		defer func() {
 			if err != nil {
-				mp.RevertCurrentBlock(headerHandler)
+				mp.RevertCurrentBlock()
 			}
 			mp.processStatusHandler.SetIdle()
+		}()
+	} else {
+		defer func() {
+			if err != nil {
+				mp.RevertHeaderV3OnCommit(headerHandler)
+			}
 		}()
 	}
 
