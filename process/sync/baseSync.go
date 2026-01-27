@@ -1338,9 +1338,22 @@ func (boot *baseBootstrap) getExecutionResultHeaderNonceForSyncStart(
 	notNil := !check.IfNil(lastExecutionResult)
 	// accept newer execution result only if there is a proof for the associated header
 	// otherwise, it might be a temporary execution result from a block that did not pass consensus
+	hasProof := boot.proofs.HasProof(boot.shardCoordinator.SelfId(), lastExecutionResult.GetHeaderHash())
+	if !hasProof {
+		if lastExecutionResult.GetHeaderNonce() < currentHeader.GetNonce() {
+			proofStorer, errGetStorer := boot.store.GetStorer(dataRetriever.ProofsUnit)
+			if errGetStorer == nil {
+				_, errGet := proofStorer.Get(lastExecutionResult.GetHeaderHash())
+				if errGet == nil {
+					//TODO: add proof to pool
+					hasProof = true
+				}
+			}
+		}
+	}
 	shouldChangeLastExecutionResultNonce := notNil &&
-		lastExecutionResult.GetHeaderNonce() > lastExecutionResultNonce &&
-		boot.proofs.HasProof(boot.shardCoordinator.SelfId(), lastExecutionResult.GetHeaderHash())
+		lastExecutionResult.GetHeaderNonce() > lastExecutionResultNonce && hasProof
+
 	if shouldChangeLastExecutionResultNonce {
 		lastExecutionResultNonce = lastExecutionResult.GetHeaderNonce()
 	}
