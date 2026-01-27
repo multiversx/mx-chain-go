@@ -126,9 +126,9 @@ func TestHeadersExecutor_StartAndClose(t *testing.T) {
 		},
 	}
 	args.ExecutionTracker = &processMocks.ExecutionTrackerStub{
-		AddExecutionResultCalled: func(executionResult data.BaseExecutionResultHandler) error {
+		AddExecutionResultCalled: func(executionResult data.BaseExecutionResultHandler) (bool, error) {
 			atomic.AddUint32(&calledAddExecutionResult, 1)
-			return nil
+			return true, nil
 		},
 	}
 
@@ -342,13 +342,13 @@ func TestHeadersExecutor_ProcessBlock(t *testing.T) {
 			},
 		}
 		args.ExecutionTracker = &processMocks.ExecutionTrackerStub{
-			AddExecutionResultCalled: func(executionResult data.BaseExecutionResultHandler) error {
+			AddExecutionResultCalled: func(executionResult data.BaseExecutionResultHandler) (bool, error) {
 				if wasAddExecutionResultCalled.IsSet() {
 					// return nil after first call to allow processing to complete
-					return nil
+					return true, nil
 				}
 				wasAddExecutionResultCalled.SetValue(true)
-				return errExpected
+				return false, errExpected
 			},
 		}
 
@@ -420,10 +420,10 @@ func TestHeadersExecutor_ProcessBlock(t *testing.T) {
 			},
 		}
 		args.ExecutionTracker = &processMocks.ExecutionTrackerStub{
-			AddExecutionResultCalled: func(executionResult data.BaseExecutionResultHandler) error {
+			AddExecutionResultCalled: func(executionResult data.BaseExecutionResultHandler) (bool, error) {
 				countAddResult++
 				wg.Done()
-				return nil
+				return true, nil
 			},
 		}
 
@@ -496,10 +496,10 @@ func TestHeadersExecutor_ProcessBlock(t *testing.T) {
 			},
 		}
 		args.ExecutionTracker = &processMocks.ExecutionTrackerStub{
-			AddExecutionResultCalled: func(executionResult data.BaseExecutionResultHandler) error {
+			AddExecutionResultCalled: func(executionResult data.BaseExecutionResultHandler) (bool, error) {
 				countAddResult++
 				wg.Done()
-				return nil
+				return true, nil
 			},
 		}
 
@@ -578,9 +578,9 @@ func TestHeadersExecutor_Process(t *testing.T) {
 			},
 		}
 		args.ExecutionTracker = &processMocks.ExecutionTrackerStub{
-			AddExecutionResultCalled: func(executionResult data.BaseExecutionResultHandler) error {
+			AddExecutionResultCalled: func(executionResult data.BaseExecutionResultHandler) (bool, error) {
 				countAddResult++
-				return expectedErr
+				return false, expectedErr
 			},
 		}
 
@@ -608,8 +608,8 @@ func TestHeadersExecutor_Process(t *testing.T) {
 			},
 		}
 		args.ExecutionTracker = &processMocks.ExecutionTrackerStub{
-			AddExecutionResultCalled: func(executionResult data.BaseExecutionResultHandler) error {
-				return nil
+			AddExecutionResultCalled: func(executionResult data.BaseExecutionResultHandler) (bool, error) {
+				return true, nil
 			},
 		}
 

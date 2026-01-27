@@ -6,7 +6,7 @@ import (
 
 // ExecutionResultsTrackerStub is a stub implementation of the ExecutionResultsTracker interface
 type ExecutionResultsTrackerStub struct {
-	AddExecutionResultCalled               func(executionResult data.BaseExecutionResultHandler) error
+	AddExecutionResultCalled               func(executionResult data.BaseExecutionResultHandler) (bool, error)
 	GetPendingExecutionResultsCalled       func() ([]data.BaseExecutionResultHandler, error)
 	GetPendingExecutionResultByHashCalled  func(hash []byte) (data.BaseExecutionResultHandler, error)
 	GetPendingExecutionResultByNonceCalled func(nonce uint64) (data.BaseExecutionResultHandler, error)
@@ -19,11 +19,11 @@ type ExecutionResultsTrackerStub struct {
 }
 
 // AddExecutionResult -
-func (ets *ExecutionResultsTrackerStub) AddExecutionResult(executionResult data.BaseExecutionResultHandler) error {
+func (ets *ExecutionResultsTrackerStub) AddExecutionResult(executionResult data.BaseExecutionResultHandler) (bool, error) {
 	if ets.AddExecutionResultCalled != nil {
 		return ets.AddExecutionResultCalled(executionResult)
 	}
-	return nil
+	return true, nil
 }
 
 // GetPendingExecutionResults -

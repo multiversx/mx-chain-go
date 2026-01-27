@@ -32,21 +32,22 @@ func NewExecutionResultsTracker() *executionResultsTracker {
 	}
 }
 
-// AddExecutionResult will add the provided execution result in tracker
-// It will return true if the execution result was added in the tracker
-func (ert *executionResultsTracker) AddExecutionResult(executionResult data.BaseExecutionResultHandler) error {
+// AddExecutionResult will add the provided execution result in tracker.
+// It returns true if the execution result was added, false if it was rejected
+// because consensus already committed a different block for this nonce.
+func (ert *executionResultsTracker) AddExecutionResult(executionResult data.BaseExecutionResultHandler) (bool, error) {
 	if executionResult == nil {
-		return ErrNilExecutionResult
+		return false, ErrNilExecutionResult
 	}
 
 	ert.mutex.Lock()
 	defer ert.mutex.Unlock()
 	if ert.lastNotarizedResult == nil {
-		return ErrNilLastNotarizedExecutionResult
+		return false, ErrNilLastNotarizedExecutionResult
 	}
 
 	if ert.lastNotarizedResult.GetHeaderNonce() >= executionResult.GetHeaderNonce() {
-		return fmt.Errorf("%w nonce(%d) is lower than last notarized nonce(%d)", ErrWrongExecutionResultNonce, executionResult.GetHeaderNonce(), ert.lastNotarizedResult.GetHeaderNonce())
+		return false, fmt.Errorf("%w nonce(%d) is lower than last notarized nonce(%d)", ErrWrongExecutionResultNonce, executionResult.GetHeaderNonce(), ert.lastNotarizedResult.GetHeaderNonce())
 	}
 	// Check if consensus already committed a different block for this nonce
 	committedHash, hasCommitted := ert.consensusCommittedHashes[executionResult.GetHeaderNonce()]
@@ -56,19 +57,19 @@ func (ert *executionResultsTracker) AddExecutionResult(executionResult data.Base
 			"result_hash", executionResult.GetHeaderHash(),
 			"committed_hash", committedHash,
 		)
-		return nil // Silently reject - this is expected in race scenarios
+		return false, nil // Reject without error - this is expected in race scenarios
 	}
 
 	lastExecutedResult, err := ert.getLastExecutionResult()
 	if err != nil {
-		return err
+		return false, err
 	}
 
 	last := lastExecutedResult.GetHeaderNonce()
 	current := executionResult.GetHeaderNonce()
 	isNextOrSameNonce := current == last || current == last+1
 	if !isNextOrSameNonce {
-		return fmt.Errorf("%w nonce(%d) should be equal to the subsequent nonce after last executed(%d)", ErrWrongExecutionResultNonce, executionResult.GetHeaderNonce(), lastExecutedResult.GetHeaderNonce())
+		return false, fmt.Errorf("%w nonce(%d) should be equal to the subsequent nonce after last executed(%d)", ErrWrongExecutionResultNonce, executionResult.GetHeaderNonce(), lastExecutedResult.GetHeaderNonce())
 	}
 
 	ert.executionResultsByHash[string(executionResult.GetHeaderHash())] = executionResult
@@ -76,7 +77,7 @@ func (ert *executionResultsTracker) AddExecutionResult(executionResult data.Base
 
 	ert.lastExecutedResultHash = executionResult.GetHeaderHash()
 
-	return nil
+	return true, nil
 }
 
 func (ert *executionResultsTracker) getLastExecutionResult() (data.BaseExecutionResultHandler, error) {

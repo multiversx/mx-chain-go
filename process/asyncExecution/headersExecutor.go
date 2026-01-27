@@ -243,13 +243,21 @@ func (he *headersExecutor) process(pair cache.HeaderBodyPair) error {
 		return nil
 	}
 
-	err = he.executionTracker.AddExecutionResult(executionResult)
+	added, err := he.executionTracker.AddExecutionResult(executionResult)
 	if err != nil {
 		log.Warn("headersExecutor.process add execution result failed",
 			"nonce", pair.Header.GetNonce(),
 			"err", err,
 		)
 		return err
+	}
+	if !added {
+		// Result was rejected because consensus already committed a different block for this nonce.
+		// Skip blockchain updates as the commit flow already set the correct state.
+		log.Debug("headersExecutor.process execution result not added, skipping blockchain updates",
+			"nonce", pair.Header.GetNonce(),
+		)
+		return nil
 	}
 
 	lastExecutionResult := he.blockChain.GetLastExecutionResult()

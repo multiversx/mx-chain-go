@@ -1613,7 +1613,7 @@ type ShardCoordinator interface {
 
 // ExecutionResultsTracker is the interface that defines the methods for tracking execution results
 type ExecutionResultsTracker interface {
-	AddExecutionResult(executionResult data.BaseExecutionResultHandler) error
+	AddExecutionResult(executionResult data.BaseExecutionResultHandler) (bool, error)
 	GetPendingExecutionResults() ([]data.BaseExecutionResultHandler, error)
 	GetPendingExecutionResultByHash(hash []byte) (data.BaseExecutionResultHandler, error)
 	GetPendingExecutionResultByNonce(nonce uint64) (data.BaseExecutionResultHandler, error)

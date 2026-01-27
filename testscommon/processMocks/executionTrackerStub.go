@@ -6,7 +6,7 @@ import (
 
 // ExecutionTrackerStub -
 type ExecutionTrackerStub struct {
-	AddExecutionResultCalled               func(executionResult data.BaseExecutionResultHandler) error
+	AddExecutionResultCalled               func(executionResult data.BaseExecutionResultHandler) (bool, error)
 	GetPendingExecutionResultsCalled       func() ([]data.BaseExecutionResultHandler, error)
 	GetPendingExecutionResultByHashCalled  func(hash []byte) (data.BaseExecutionResultHandler, error)
 	GetPendingExecutionResultByNonceCalled func(nonce uint64) (data.BaseExecutionResultHandler, error)
@@ -19,12 +19,12 @@ type ExecutionTrackerStub struct {
 }
 
 // AddExecutionResult -
-func (e *ExecutionTrackerStub) AddExecutionResult(executionResult data.BaseExecutionResultHandler) error {
+func (e *ExecutionTrackerStub) AddExecutionResult(executionResult data.BaseExecutionResultHandler) (bool, error) {
 	if e.AddExecutionResultCalled != nil {
 		return e.AddExecutionResultCalled(executionResult)
 	}
 
-	return nil
+	return true, nil
 }
 
 // GetPendingExecutionResults -
