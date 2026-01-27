@@ -12,7 +12,7 @@ import (
 )
 
 const (
-	defaultMaxQueueSize = 1000
+	defaultMaxQueueSize = 100000
 )
 
 var log = logger.GetOrCreate("process/asyncExecution/queue")
