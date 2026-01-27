@@ -2007,6 +2007,10 @@ func (bp *baseProcessor) updateStateStorage(
 func (bp *baseProcessor) RevertCurrentBlock(headerHandler data.HeaderHandler) {
 	bp.revertAccountState()
 	bp.revertScheduledInfo()
+}
+
+// RevertCurrentBlockOnCommit reverts the current block for cleanup failed process
+func (bp *baseProcessor) RevertCurrentBlockOnCommit(headerHandler data.HeaderHandler) {
 	bp.revertCurrentBlockV3(headerHandler)
 }
 

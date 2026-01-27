@@ -1226,6 +1226,12 @@ func (mp *metaProcessor) CommitBlock(
 			}
 			mp.processStatusHandler.SetIdle()
 		}()
+	} else {
+		defer func() {
+			if err != nil {
+				mp.RevertCurrentBlockOnCommit(headerHandler)
+			}
+		}()
 	}
 
 	log.Debug("started committing block",

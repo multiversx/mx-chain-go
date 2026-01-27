@@ -945,6 +945,12 @@ func (sp *shardProcessor) CommitBlock(
 			}
 			sp.processStatusHandler.SetIdle()
 		}()
+	} else {
+		defer func() {
+			if err != nil {
+				sp.RevertCurrentBlockOnCommit(headerHandler)
+			}
+		}()
 	}
 
 	sp.store.SetEpochForPutOperation(headerHandler.GetEpoch())
