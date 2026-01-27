@@ -115,10 +115,10 @@ func InitMultiSignerMock() *cryptoMocks.MultisignerMock {
 	multiSigner.VerifySignatureShareCalled = func(publicKey []byte, message []byte, sig []byte) error {
 		return nil
 	}
-	multiSigner.VerifyAggregatedSigCalled = func(pubKeysSigners [][]byte, message []byte, aggSig []byte) error {
+	multiSigner.VerifyAggregatedSigCalled = func(pubKeysSigners []crypto.PublicKey, message []byte, aggSig []byte) error {
 		return nil
 	}
-	multiSigner.AggregateSigsCalled = func(pubKeysSigners [][]byte, signatures [][]byte) ([]byte, error) {
+	multiSigner.AggregateSigsCalled = func(pubKeysSigners []crypto.PublicKey, signatures [][]byte) ([]byte, error) {
 		return []byte("aggregatedSig"), nil
 	}
 	multiSigner.CreateSignatureShareCalled = func(privateKeyBytes []byte, message []byte) ([]byte, error) {

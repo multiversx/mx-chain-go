@@ -8,6 +8,7 @@ import (
 	crypto "github.com/multiversx/mx-chain-crypto-go"
 	cryptoFactory "github.com/multiversx/mx-chain-go/factory/crypto"
 	"github.com/multiversx/mx-chain-go/testscommon"
+	"github.com/multiversx/mx-chain-go/testscommon/cache"
 	"github.com/multiversx/mx-chain-go/testscommon/cryptoMocks"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
@@ -20,6 +21,7 @@ func createMockArgsSigningHandler() cryptoFactory.ArgsSigningHandler {
 		MultiSignerContainer: &cryptoMocks.MultiSignerContainerMock{},
 		KeyGenerator:         &cryptoMocks.KeyGenStub{},
 		SingleSigner:         &cryptoMocks.SingleSignerStub{},
+		PubKeysCache:         &cache.CacherStub{},
 	}
 }
 
@@ -448,7 +450,7 @@ func TestSigningHandler_AggregateSigs(t *testing.T) {
 
 		expectedErr := errors.New("expected error")
 		multiSigner := &cryptoMocks.MultiSignerStub{
-			AggregateSigsCalled: func(pubKeysSigners, signatures [][]byte) ([]byte, error) {
+			AggregateSigsCalled: func(pubKeysSigners []crypto.PublicKey, signatures [][]byte) ([]byte, error) {
 				return nil, expectedErr
 			},
 		}
@@ -496,7 +498,7 @@ func TestSigningHandler_AggregateSigs(t *testing.T) {
 
 		expectedAggSig := []byte("agg sig")
 		multiSigner := &cryptoMocks.MultiSignerStub{
-			AggregateSigsCalled: func(pubKeysSigners, signatures [][]byte) ([]byte, error) {
+			AggregateSigsCalled: func(pubKeysSigners []crypto.PublicKey, signatures [][]byte) ([]byte, error) {
 				require.Equal(t, len(args.PubKeys)-1, len(pubKeysSigners))
 				require.Equal(t, len(args.PubKeys)-1, len(signatures))
 				return expectedAggSig, nil
@@ -559,7 +561,7 @@ func TestSigningHandler_Verify(t *testing.T) {
 
 		expectedErr := errors.New("expected error")
 		multiSigner := &cryptoMocks.MultiSignerStub{
-			VerifyAggregatedSigCalled: func(pubKeysSigners [][]byte, message, aggSig []byte) error {
+			VerifyAggregatedSigCalled: func(pubKeysSigners []crypto.PublicKey, message, aggSig []byte) error {
 				return expectedErr
 			},
 		}
@@ -602,7 +604,7 @@ func TestSigningHandler_Verify(t *testing.T) {
 		expAggSig := []byte("aggSig")
 
 		multiSigner := &cryptoMocks.MultiSignerStub{
-			VerifyAggregatedSigCalled: func(pubKeysSigners [][]byte, message, aggSig []byte) error {
+			VerifyAggregatedSigCalled: func(pubKeysSigners []crypto.PublicKey, message, aggSig []byte) error {
 				require.Equal(t, len(args.PubKeys)-1, len(pubKeysSigners))
 				require.Equal(t, expAggSig, aggSig)
 				return nil

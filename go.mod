@@ -18,13 +18,13 @@ require (
 	github.com/mitchellh/mapstructure v1.5.0
 	github.com/multiversx/mx-chain-communication-go v1.3.0
 	github.com/multiversx/mx-chain-core-go v1.4.2-0.20260112082618-e36a88370557
-	github.com/multiversx/mx-chain-crypto-go v1.3.0
+	github.com/multiversx/mx-chain-crypto-go v1.3.1-0.20260127130843-3c6c4667127e
 	github.com/multiversx/mx-chain-es-indexer-go v1.9.3-0.20260112102658-97d6a0ceb5f6
 	github.com/multiversx/mx-chain-logger-go v1.1.0
 	github.com/multiversx/mx-chain-scenario-go v1.6.0
 	github.com/multiversx/mx-chain-storage-go v1.1.0
 	github.com/multiversx/mx-chain-vm-common-go v1.6.0
-	github.com/multiversx/mx-chain-vm-go v1.5.43
+	github.com/multiversx/mx-chain-vm-go v1.6.1-0.20260127150738-ce2974927931
 	github.com/multiversx/mx-chain-vm-v1_2-go v1.2.69
 	github.com/multiversx/mx-chain-vm-v1_3-go v1.3.70
 	github.com/multiversx/mx-chain-vm-v1_4-go v1.4.99

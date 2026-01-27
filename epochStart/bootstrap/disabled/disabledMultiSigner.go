@@ -1,5 +1,7 @@
 package disabled
 
+import crypto "github.com/multiversx/mx-chain-crypto-go"
+
 type multiSigner struct {
 }
 
@@ -19,12 +21,12 @@ func (m *multiSigner) VerifySignatureShare(_ []byte, _ []byte, _ []byte) error {
 }
 
 // AggregateSigs returns nil byte slice and nil error
-func (m *multiSigner) AggregateSigs(_ [][]byte, _ [][]byte) ([]byte, error) {
+func (m *multiSigner) AggregateSigs(_ []crypto.PublicKey, _ [][]byte) ([]byte, error) {
 	return nil, nil
 }
 
 // VerifyAggregatedSig returns nil
-func (m *multiSigner) VerifyAggregatedSig(_ [][]byte, _ []byte, _ []byte) error {
+func (m *multiSigner) VerifyAggregatedSig(_ []crypto.PublicKey, _ []byte, _ []byte) error {
 	return nil
 }
 

@@ -2,6 +2,8 @@ package cryptoMocks
 
 import (
 	"bytes"
+
+	crypto "github.com/multiversx/mx-chain-crypto-go"
 )
 
 const signatureSize = 48
@@ -10,8 +12,8 @@ const signatureSize = 48
 type MultisignerMock struct {
 	CreateSignatureShareCalled func(privateKeyBytes []byte, message []byte) ([]byte, error)
 	VerifySignatureShareCalled func(publicKey []byte, message []byte, sig []byte) error
-	AggregateSigsCalled        func(pubKeysSigners [][]byte, signatures [][]byte) ([]byte, error)
-	VerifyAggregatedSigCalled  func(pubKeysSigners [][]byte, message []byte, aggSig []byte) error
+	AggregateSigsCalled        func(pubKeysSigners []crypto.PublicKey, signatures [][]byte) ([]byte, error)
+	VerifyAggregatedSigCalled  func(pubKeysSigners []crypto.PublicKey, message []byte, aggSig []byte) error
 }
 
 // NewMultiSigner -
@@ -37,7 +39,7 @@ func (mm *MultisignerMock) VerifySignatureShare(publicKey []byte, message []byte
 }
 
 // AggregateSigs -
-func (mm *MultisignerMock) AggregateSigs(pubKeysSigners [][]byte, signatures [][]byte) ([]byte, error) {
+func (mm *MultisignerMock) AggregateSigs(pubKeysSigners []crypto.PublicKey, signatures [][]byte) ([]byte, error) {
 	if mm.AggregateSigsCalled != nil {
 		return mm.AggregateSigsCalled(pubKeysSigners, signatures)
 	}
@@ -46,7 +48,7 @@ func (mm *MultisignerMock) AggregateSigs(pubKeysSigners [][]byte, signatures [][
 }
 
 // VerifyAggregatedSig -
-func (mm *MultisignerMock) VerifyAggregatedSig(pubKeysSigners [][]byte, message []byte, aggSig []byte) error {
+func (mm *MultisignerMock) VerifyAggregatedSig(pubKeysSigners []crypto.PublicKey, message []byte, aggSig []byte) error {
 	if mm.VerifyAggregatedSigCalled != nil {
 		return mm.VerifyAggregatedSigCalled(pubKeysSigners, message, aggSig)
 	}

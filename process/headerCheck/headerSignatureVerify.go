@@ -38,6 +38,7 @@ type ArgsHeaderSigVerifier struct {
 	HeadersPool             dataRetriever.HeadersPool
 	ProofsPool              dataRetriever.ProofsPool
 	StorageService          dataRetriever.StorageService
+	PubKeysHandler          pubKeysHandler
 }
 
 // HeaderSigVerifier is component used to check if a header is valid
@@ -53,6 +54,7 @@ type HeaderSigVerifier struct {
 	headersPool             dataRetriever.HeadersPool
 	proofsPool              dataRetriever.ProofsPool
 	storageService          dataRetriever.StorageService
+	pubKeysHandler          pubKeysHandler
 }
 
 // NewHeaderSigVerifier will create a new instance of HeaderSigVerifier
@@ -74,6 +76,7 @@ func NewHeaderSigVerifier(arguments *ArgsHeaderSigVerifier) (*HeaderSigVerifier,
 		headersPool:             arguments.HeadersPool,
 		proofsPool:              arguments.ProofsPool,
 		storageService:          arguments.StorageService,
+		pubKeysHandler:          arguments.PubKeysHandler,
 	}, nil
 }
 
@@ -120,6 +123,9 @@ func checkArgsHeaderSigVerifier(arguments *ArgsHeaderSigVerifier) error {
 	}
 	if check.IfNil(arguments.StorageService) {
 		return process.ErrNilStorageService
+	}
+	if check.IfNil(arguments.PubKeysHandler) {
+		return process.ErrNilPubKeysHandler
 	}
 
 	return nil
@@ -291,7 +297,12 @@ func (hsv *HeaderSigVerifier) VerifySignatureForHash(header data.HeaderHandler, 
 		return err
 	}
 
-	return multiSigVerifier.VerifyAggregatedSig(pubKeysSigners, hash, signature)
+	pubKeys, err := hsv.pubKeysHandler.GetPubKeysFromBytes(pubKeysSigners)
+	if err != nil {
+		return err
+	}
+
+	return multiSigVerifier.VerifyAggregatedSig(pubKeys, hash, signature)
 }
 
 func (hsv *HeaderSigVerifier) getHeaderForProofAtTransition(proof data.HeaderProofHandler) (data.HeaderHandler, error) {
@@ -341,7 +352,12 @@ func (hsv *HeaderSigVerifier) verifyHeaderProofAtTransition(proof data.HeaderPro
 		return err
 	}
 
-	return multiSigVerifier.VerifyAggregatedSig(consensusPubKeys, proof.GetHeaderHash(), proof.GetAggregatedSignature())
+	pubKeys, err := hsv.pubKeysHandler.GetPubKeysFromBytes(consensusPubKeys)
+	if err != nil {
+		return err
+	}
+
+	return multiSigVerifier.VerifyAggregatedSig(pubKeys, proof.GetHeaderHash(), proof.GetAggregatedSignature())
 }
 
 // VerifyHeaderProof checks if the proof is correct for the header
@@ -367,7 +383,12 @@ func (hsv *HeaderSigVerifier) VerifyHeaderProof(proofHandler data.HeaderProofHan
 		return err
 	}
 
-	return multiSigVerifier.VerifyAggregatedSig(consensusPubKeys, proofHandler.GetHeaderHash(), proofHandler.GetAggregatedSignature())
+	pubKeys, err := hsv.pubKeysHandler.GetPubKeysFromBytes(consensusPubKeys)
+	if err != nil {
+		return err
+	}
+
+	return multiSigVerifier.VerifyAggregatedSig(pubKeys, proofHandler.GetHeaderHash(), proofHandler.GetAggregatedSignature())
 }
 
 // VerifyRandSeed will check if rand seed is correct
