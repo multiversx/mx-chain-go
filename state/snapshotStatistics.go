@@ -53,7 +53,7 @@ func (ss *snapshotStatistics) NewSnapshotStarted() {
 	if ss.snapshotsCounter > ss.maxSnapshotsInParallel {
 		ss.maxSnapshotsInParallel = ss.snapshotsCounter
 	}
-	log.Trace("new snapshot started", "currentSnapshots", ss.snapshotsCounter, "maxSnapshotsInParallel", ss.maxSnapshotsInParallel)
+	log.Debug("new snapshot started", "currentSnapshots", ss.snapshotsCounter, "maxSnapshotsInParallel", ss.maxSnapshotsInParallel)
 	ss.mutex.Unlock()
 }
 

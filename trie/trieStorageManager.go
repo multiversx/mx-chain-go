@@ -344,7 +344,7 @@ func (tsm *trieStorageManager) takeSnapshot(snapshotEntry *snapshotsQueueEntry, 
 		goRoutinesThrottler.EndProcessing()
 	}()
 
-	log.Debug("trie snapshot started", "rootHash", snapshotEntry.rootHash)
+	log.Trace("trie snapshot started", "rootHash", snapshotEntry.rootHash)
 
 	stsm, err := newSnapshotTrieStorageManager(tsm, snapshotEntry.epoch)
 	if err != nil {
