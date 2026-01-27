@@ -5477,6 +5477,13 @@ func TestShardProcessor_CheckEpochCorrectnessShouldRemoveAndRequestStartOfEpochM
 		GetGenesisHeaderCalled: func() data.HeaderHandler {
 			return &block.Header{}
 		},
+		GetLastExecutionResultCalled: func() data.BaseExecutionResultHandler {
+			return &block.ExecutionResult{
+				BaseExecutionResult: &block.BaseExecutionResult{
+					HeaderHash: []byte("hash"),
+				},
+			}
+		},
 	}
 	epochStartTriggerStub := &mock.EpochStartTriggerStub{
 		MetaEpochCalled: func() uint32 {
@@ -5495,6 +5502,12 @@ func TestShardProcessor_CheckEpochCorrectnessShouldRemoveAndRequestStartOfEpochM
 		},
 		ProofsCalled: func() dataRetriever.ProofsPool {
 			return &dataRetrieverMock.ProofsPoolMock{}
+		},
+		PostProcessTransactionsCalled: func() storage.Cacher {
+			return &cache.CacherStub{}
+		},
+		ExecutedMiniBlocksCalled: func() storage.Cacher {
+			return &cache.CacherStub{}
 		},
 	}
 
@@ -5515,9 +5528,9 @@ func TestShardProcessor_CheckEpochCorrectnessShouldRemoveAndRequestStartOfEpochM
 	arguments := CreateMockArguments(coreComponents, dataComponents, bootstrapComponents, statusComponents)
 	arguments.EpochStartTrigger = epochStartTriggerStub
 	arguments.RequestHandler = requestHandlerStub
-	sp, _ := blproc.NewShardProcessor(arguments)
+	sp, err := blproc.NewShardProcessor(arguments)
 
-	err := sp.CheckEpochCorrectness(nextHeader)
+	err = sp.CheckEpochCorrectness(nextHeader)
 
 	select {
 	case <-ch:
