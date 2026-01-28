@@ -1345,11 +1345,11 @@ func (boot *baseBootstrap) getExecutionResultHeaderNonceForSyncStart(
 	// accept newer execution result only if there is a proof for the associated header
 	// otherwise, it might be a temporary execution result from a block that did not pass consensus
 	shouldConsiderChangingLastExecutionResultNonce := lastExecutionResult.GetHeaderNonce() > lastExecutionResultNonce
-	if shouldConsiderChangingLastExecutionResultNonce {
-		if !boot.hasProofInCacheOrStorage(lastExecutionResult.GetHeaderHash()) {
-			return lastExecutionResultNonce, nil
-		}
+	if !shouldConsiderChangingLastExecutionResultNonce {
+		return lastExecutionResultNonce, nil
+	}
 
+	if boot.hasProofInCacheOrStorage(lastExecutionResult.GetHeaderHash()) {
 		lastExecutionResultNonce = lastExecutionResult.GetHeaderNonce()
 	}
 
