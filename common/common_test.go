@@ -1282,3 +1282,10 @@ func TestGetDeveloperFeesInEpoch(t *testing.T) {
 		require.Equal(t, big.NewInt(0), result)
 	})
 }
+
+func TestPrepareUnexecutableTxHashesKey(t *testing.T) {
+	t.Parallel()
+
+	hash := []byte("hash")
+	require.Equal(t, []byte("unexecutablehash"), common.PrepareUnexecutableTxHashesKey(hash))
+}

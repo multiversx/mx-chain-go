@@ -152,6 +152,11 @@ func (em *executionManager) CleanConfirmedExecutionResults(header data.HeaderHan
 	return em.executionResultsTracker.CleanConfirmedExecutionResults(header)
 }
 
+// CleanOnConsensusReached calls the same method from executionResultsTracker
+func (em *executionManager) CleanOnConsensusReached(headerHash []byte, headerNonce uint64) {
+	em.executionResultsTracker.CleanOnConsensusReached(headerHash, headerNonce)
+}
+
 // RemoveAtNonceAndHigher removes the header-body pair at the specified nonce
 // and all pairs with higher nonces from the queue.
 // if anything was processed after that nonce, remove the execution results
@@ -213,8 +218,6 @@ func (em *executionManager) RemoveAtNonceAndHigher(nonce uint64) error {
 
 // RemovePendingExecutionResultsFromNonce will remove the execution result with the provided nonce and all execution results with higher nonces
 func (em *executionManager) RemovePendingExecutionResultsFromNonce(nonce uint64) error {
-	em.blocksCache.RemoveAtNonceAndHigher(nonce)
-
 	return em.executionResultsTracker.RemoveFromNonce(nonce)
 }
 

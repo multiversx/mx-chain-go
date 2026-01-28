@@ -1280,14 +1280,14 @@ func GetStorageUnitByBlockType(blockType block.Type) (dataRetriever.UnitType, er
 }
 
 // IsReplacementBlockForExecution returns true if the provided header is a replacement for the last execution result
-func IsReplacementBlockForExecution(header data.HeaderHandler, lastExecutionResult data.BaseExecutionResultHandler) bool {
+func IsReplacementBlockForExecution(header data.HeaderHandler, headerHash []byte, lastExecutionResult data.BaseExecutionResultHandler) bool {
 	if check.IfNil(header) || check.IfNil(lastExecutionResult) {
 		return false
 	}
 
 	sameNonce := header.GetNonce() == lastExecutionResult.GetHeaderNonce()
-	higherRound := header.GetRound() > lastExecutionResult.GetHeaderRound()
-	return sameNonce && higherRound
+	differentHash := !bytes.Equal(headerHash, lastExecutionResult.GetHeaderHash())
+	return sameNonce && differentHash
 }
 
 // UpdateContextForReplacedHeader updates the blockchain context when a header should be replaced

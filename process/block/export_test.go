@@ -1071,8 +1071,8 @@ func (bp *baseProcessor) ExtractRootHashForCleanup(header data.HeaderHandler) (c
 }
 
 // CheckContextBeforeExecution -
-func (bp *baseProcessor) CheckContextBeforeExecution(header data.HeaderHandler) error {
-	return bp.checkAndUpdateContextBeforeExecution(header)
+func (bp *baseProcessor) CheckContextBeforeExecution(header data.HeaderHandler, headerHash []byte) error {
+	return bp.checkAndUpdateContextBeforeExecution(header, headerHash)
 }
 
 // SaveProposedTxsToStorage -

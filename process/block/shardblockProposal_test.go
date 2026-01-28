@@ -1386,7 +1386,7 @@ func Test_addExecutionResultsOnHeader(t *testing.T) {
 			"appStatusHandler": &statusHandlerMock.AppStatusHandlerStub{},
 		})
 
-		proposalHeader := &block.HeaderV3{Round: 3}
+		proposalHeader := &block.HeaderV3{Round: 4}
 		err := sp.AddExecutionResultsOnHeader(proposalHeader)
 
 		// expected only first pending execution result to be added
@@ -3119,13 +3119,13 @@ func TestShardProcessor_ProcessBlockProposal(t *testing.T) {
 	t.Parallel()
 
 	arguments := CreateMockArguments(createComponentHolderMocks())
-
+	headerHash := []byte("headerHash")
 	t.Run("nil header should error", func(t *testing.T) {
 		t.Parallel()
 
 		sp, _ := blproc.NewShardProcessor(arguments)
 		body := &block.Body{}
-		_, err := sp.ProcessBlockProposal(nil, body)
+		_, err := sp.ProcessBlockProposal(nil, headerHash, body)
 
 		require.Equal(t, process.ErrNilBlockHeader, err)
 	})
@@ -3134,7 +3134,7 @@ func TestShardProcessor_ProcessBlockProposal(t *testing.T) {
 
 		sp, _ := blproc.NewShardProcessor(arguments)
 		header := &block.HeaderV3{}
-		_, err := sp.ProcessBlockProposal(header, nil)
+		_, err := sp.ProcessBlockProposal(header, headerHash, nil)
 
 		require.Equal(t, process.ErrNilBlockBody, err)
 	})
@@ -3145,7 +3145,7 @@ func TestShardProcessor_ProcessBlockProposal(t *testing.T) {
 
 		header := &block.Header{} // wrong type
 		body := &block.Body{}
-		_, err := sp.ProcessBlockProposal(header, body)
+		_, err := sp.ProcessBlockProposal(header, headerHash, body)
 
 		require.Equal(t, process.ErrInvalidHeader, err)
 	})
@@ -3156,7 +3156,7 @@ func TestShardProcessor_ProcessBlockProposal(t *testing.T) {
 
 		header := &block.MetaBlockV3{} // wrong type
 		body := &block.Body{}
-		_, err := sp.ProcessBlockProposal(header, body)
+		_, err := sp.ProcessBlockProposal(header, headerHash, body)
 
 		require.Equal(t, process.ErrWrongTypeAssertion, err)
 	})
@@ -3167,7 +3167,7 @@ func TestShardProcessor_ProcessBlockProposal(t *testing.T) {
 
 		header := &block.HeaderV3{}
 		body := &wrongBody{} // wrong type
-		_, err := sp.ProcessBlockProposal(header, body)
+		_, err := sp.ProcessBlockProposal(header, headerHash, body)
 
 		require.Equal(t, process.ErrWrongTypeAssertion, err)
 	})
@@ -3186,7 +3186,7 @@ func TestShardProcessor_ProcessBlockProposal(t *testing.T) {
 			Nonce: 1,
 		}
 		body := &block.Body{}
-		_, err := sp.ProcessBlockProposal(header, body)
+		_, err := sp.ProcessBlockProposal(header, headerHash, body)
 
 		require.Equal(t, expectedErr, err)
 	})
@@ -3205,7 +3205,7 @@ func TestShardProcessor_ProcessBlockProposal(t *testing.T) {
 			Nonce: 1,
 		}
 		body := &block.Body{}
-		_, err := sp.ProcessBlockProposal(header, body)
+		_, err := sp.ProcessBlockProposal(header, headerHash, body)
 
 		require.Equal(t, expectedErr, err)
 	})
@@ -3239,7 +3239,7 @@ func TestShardProcessor_ProcessBlockProposal(t *testing.T) {
 			EpochStartMetaHash: []byte("epochStartHash"),
 		}
 		body := &block.Body{}
-		_, err := sp.ProcessBlockProposal(header, body)
+		_, err := sp.ProcessBlockProposal(header, headerHash, body)
 
 		require.Error(t, err)
 		require.ErrorIs(t, err, process.ErrEpochStartInfoNotAvailable)
@@ -3259,7 +3259,7 @@ func TestShardProcessor_ProcessBlockProposal(t *testing.T) {
 			Nonce: 1,
 		}
 		body := &block.Body{}
-		_, err := sp.ProcessBlockProposal(header, body)
+		_, err := sp.ProcessBlockProposal(header, headerHash, body)
 		require.Equal(t, expectedErr, err)
 	})
 	t.Run("WaitForHeadersIfNeeded fails should error", func(t *testing.T) {
@@ -3277,7 +3277,7 @@ func TestShardProcessor_ProcessBlockProposal(t *testing.T) {
 			Nonce: 1,
 		}
 		body := &block.Body{}
-		_, err := sp.ProcessBlockProposal(header, body)
+		_, err := sp.ProcessBlockProposal(header, headerHash, body)
 		require.Equal(t, expectedErr, err)
 	})
 	t.Run("ProcessBlockTransaction fails should error", func(t *testing.T) {
@@ -3302,7 +3302,7 @@ func TestShardProcessor_ProcessBlockProposal(t *testing.T) {
 			Nonce: 1,
 		}
 		body := &block.Body{}
-		_, err := sp.ProcessBlockProposal(header, body)
+		_, err := sp.ProcessBlockProposal(header, headerHash, body)
 		require.Equal(t, expectedErr, err)
 		require.True(t, wasRemoveAtNonceAndHigherCalled)
 	})
@@ -3321,26 +3321,7 @@ func TestShardProcessor_ProcessBlockProposal(t *testing.T) {
 			Nonce: 1,
 		}
 		body := &block.Body{}
-		_, err := sp.ProcessBlockProposal(header, body)
-		require.Equal(t, expectedErr, err)
-	})
-	t.Run("CalculateHash fails should error", func(t *testing.T) {
-		t.Parallel()
-
-		coreComponents, dataComponents, bootstrapComponents, statusComponents := createComponentHolderMocks()
-		coreComponents.IntMarsh = &mock.MarshalizerStub{
-			MarshalCalled: func(obj interface{}) ([]byte, error) {
-				return nil, expectedErr
-			},
-		}
-		args := CreateMockArguments(coreComponents, dataComponents, bootstrapComponents, statusComponents)
-		sp, _ := blproc.NewShardProcessor(args)
-
-		header := &block.HeaderV3{
-			Nonce: 1,
-		}
-		body := &block.Body{}
-		_, err := sp.ProcessBlockProposal(header, body)
+		_, err := sp.ProcessBlockProposal(header, headerHash, body)
 		require.Equal(t, expectedErr, err)
 	})
 	t.Run("collectExecutionResults fails should error", func(t *testing.T) {
@@ -3358,7 +3339,7 @@ func TestShardProcessor_ProcessBlockProposal(t *testing.T) {
 			Nonce: 1,
 		}
 		body := &block.Body{}
-		_, err := sp.ProcessBlockProposal(header, body)
+		_, err := sp.ProcessBlockProposal(header, headerHash, body)
 		require.Equal(t, expectedErr, err)
 	})
 	t.Run("HandleProcessErrorCutoff fails should error", func(t *testing.T) {
@@ -3376,7 +3357,7 @@ func TestShardProcessor_ProcessBlockProposal(t *testing.T) {
 			Nonce: 1,
 		}
 		body := &block.Body{}
-		_, err := sp.ProcessBlockProposal(header, body)
+		_, err := sp.ProcessBlockProposal(header, headerHash, body)
 		require.Equal(t, expectedErr, err)
 	})
 	t.Run("commit state is called", func(t *testing.T) {
@@ -3406,7 +3387,7 @@ func TestShardProcessor_ProcessBlockProposal(t *testing.T) {
 			Nonce: 1,
 		}
 		body := &block.Body{}
-		_, err := sp.ProcessBlockProposal(header, body)
+		_, err := sp.ProcessBlockProposal(header, headerHash, body)
 		require.Nil(t, err)
 		require.True(t, commitCalled)
 	})
@@ -3419,7 +3400,7 @@ func TestShardProcessor_ProcessBlockProposal(t *testing.T) {
 			Nonce: 1,
 		}
 		body := &block.Body{}
-		_, err := sp.ProcessBlockProposal(header, body)
+		_, err := sp.ProcessBlockProposal(header, headerHash, body)
 
 		require.Nil(t, err)
 	})

@@ -283,6 +283,7 @@ func (mp *metaProcessor) VerifyBlockProposal(
 // ProcessBlockProposal processes the proposed block. It returns nil if all ok or the specific error
 func (mp *metaProcessor) ProcessBlockProposal(
 	headerHandler data.HeaderHandler,
+	headerHash []byte,
 	bodyHandler data.BodyHandler,
 ) (data.BaseExecutionResultHandler, error) {
 	if check.IfNil(headerHandler) {
@@ -335,7 +336,7 @@ func (mp *metaProcessor) ProcessBlockProposal(
 		}
 	}()
 
-	err = mp.checkAndUpdateContextBeforeExecution(header)
+	err = mp.checkAndUpdateContextBeforeExecution(header, headerHash)
 	if err != nil {
 		return nil, err
 	}
@@ -403,12 +404,6 @@ func (mp *metaProcessor) ProcessBlockProposal(
 
 	var valStatRootHash []byte
 	valStatRootHash, err = mp.updateValidatorStatistics(header)
-	if err != nil {
-		return nil, err
-	}
-
-	var headerHash []byte
-	headerHash, err = core.CalculateHash(mp.marshalizer, mp.hasher, header)
 	if err != nil {
 		return nil, err
 	}
@@ -609,6 +604,7 @@ func (mp *metaProcessor) createExecutionResult(
 	}
 
 	mp.cacheOrderedTxHashes(headerHash)
+	mp.cacheUnexecutableTxHashes(headerHash)
 
 	return executionResult, nil
 }
