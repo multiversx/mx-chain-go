@@ -1332,21 +1332,42 @@ func (boot *baseBootstrap) getExecutionResultHeaderNonceForSyncStart(
 	}
 
 	lastExecutionResultNonce := lastNotarizedExecutedHeader.GetNonce()
+	defer func() {
+		log.Debug("getExecutionResultHeaderNonceForSyncStart", "lastExecutionResultNonce", lastExecutionResultNonce)
+	}()
 
 	// in case there is a more recent execution result available, use it
 	lastExecutionResult := boot.chainHandler.GetLastExecutionResult()
-	notNil := !check.IfNil(lastExecutionResult)
+	if check.IfNil(lastExecutionResult) {
+		return lastExecutionResultNonce, nil
+	}
+
 	// accept newer execution result only if there is a proof for the associated header
 	// otherwise, it might be a temporary execution result from a block that did not pass consensus
-	shouldChangeLastExecutionResultNonce := notNil &&
-		lastExecutionResult.GetHeaderNonce() > lastExecutionResultNonce &&
-		boot.proofs.HasProof(boot.shardCoordinator.SelfId(), lastExecutionResult.GetHeaderHash())
-	if shouldChangeLastExecutionResultNonce {
+	shouldConsiderChangingLastExecutionResultNonce := lastExecutionResult.GetHeaderNonce() > lastExecutionResultNonce
+	if shouldConsiderChangingLastExecutionResultNonce {
+		if !boot.hasProofInCacheOrStorage(lastExecutionResult.GetHeaderHash()) {
+			return lastExecutionResultNonce, nil
+		}
+
 		lastExecutionResultNonce = lastExecutionResult.GetHeaderNonce()
 	}
-	log.Debug("getExecutionResultHeaderNonceForSyncStart", "lastExecutionResultNonce", lastExecutionResultNonce)
 
 	return lastExecutionResultNonce, nil
+}
+
+func (boot *baseBootstrap) hasProofInCacheOrStorage(hash []byte) bool {
+	if boot.proofs.HasProof(boot.shardCoordinator.SelfId(), hash) {
+		return true
+	}
+
+	proofsStorer, errGetStorer := boot.store.GetStorer(dataRetriever.ProofsUnit)
+	if errGetStorer != nil {
+		return false
+	}
+
+	_, err := proofsStorer.Get(hash)
+	return err == nil
 }
 
 func (boot *baseBootstrap) unmarshalTxByBlockType(
