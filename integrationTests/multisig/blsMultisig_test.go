@@ -17,7 +17,7 @@ import (
 func createKeysAndMultiSignerBlsKOSK(
 	grSize uint16,
 	suite crypto.Suite,
-) ([][]byte, []crypto.PublicKey, crypto.MultiSigner) {
+) ([][]byte, []crypto.PublicKey, crypto.MultiSignerV2) {
 
 	kg, privKeys, pubKeys := createMultiSignerSetup(grSize, suite)
 	llSigner := &llsig.BlsMultiSignerKOSK{}
@@ -30,7 +30,7 @@ func createKeysAndMultiSignerBlsNoKOSK(
 	grSize uint16,
 	hasher hashing.Hasher,
 	suite crypto.Suite,
-) ([][]byte, []crypto.PublicKey, crypto.MultiSigner) {
+) ([][]byte, []crypto.PublicKey, crypto.MultiSignerV2) {
 	kg, privKeys, pubKeys := createMultiSignerSetup(grSize, suite)
 	llSigner := &llsig.BlsMultiSigner{Hasher: hasher}
 
@@ -81,11 +81,11 @@ func TestMultiSig_Bls(t *testing.T) {
 		message = fmt.Sprintf("%s%d", message, currentIdx)
 		signatures := createSignaturesShares(privKeys, multiSigner, []byte(message))
 
-		aggSig, err := multiSigner.AggregateSigs(pubKeys, signatures)
+		aggSig, err := multiSigner.AggregateSigsV2(pubKeys, signatures)
 		assert.Nil(t, err)
 		assert.NotNil(t, aggSig)
 
-		err = multiSigner.VerifyAggregatedSig(pubKeys, []byte(message), aggSig)
+		err = multiSigner.VerifyAggregatedSigV2(pubKeys, []byte(message), aggSig)
 		assert.Nil(t, err)
 	}
 }

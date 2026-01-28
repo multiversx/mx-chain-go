@@ -95,7 +95,7 @@ func benchmarkSendProof(b *testing.B, numberOfKeys int) {
 	args := factoryCrypto.ArgsSigningHandler{
 		PubKeys: keys,
 		MultiSignerContainer: &cryptoMocks.MultiSignerContainerStub{
-			GetMultiSignerCalled: func(epoch uint32) (crypto.MultiSigner, error) {
+			GetMultiSignerCalled: func(epoch uint32) (crypto.MultiSignerV2, error) {
 				return multiSigHandler, nil
 			},
 		},

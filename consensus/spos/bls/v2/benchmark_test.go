@@ -76,7 +76,7 @@ func benchmarkSubroundSignatureDoSignatureJobForManagedKeys(b *testing.B, number
 	args := cryptoFactory.ArgsSigningHandler{
 		PubKeys: initializers.CreateEligibleListFromMap(mapKeys),
 		MultiSignerContainer: &cryptoMocks.MultiSignerContainerStub{
-			GetMultiSignerCalled: func(epoch uint32) (crypto.MultiSigner, error) {
+			GetMultiSignerCalled: func(epoch uint32) (crypto.MultiSignerV2, error) {
 				return multiSigHandler, nil
 			}},
 		SingleSigner: &cryptoMocks.SingleSignerStub{},
