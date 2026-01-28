@@ -1015,6 +1015,8 @@ func (boot *baseBootstrap) syncBlockV3(body data.BodyHandler, header data.Header
 		return err
 	}
 
+	log.Debug("syncBlockV3", "nonce", header.GetNonce())
+
 	startTime := time.Now()
 	waitTime := boot.getProcessWaitTime(header.GetRound())
 	haveTime := func() time.Duration {
@@ -1031,7 +1033,6 @@ func (boot *baseBootstrap) syncBlockV3(body data.BodyHandler, header data.Header
 	if err != nil {
 		return err
 	}
-
 	err = boot.executionManager.AddPairForExecution(queue.HeaderBodyPair{
 		Header: header,
 		Body:   body,

@@ -73,6 +73,14 @@ func (bq *blocksQueue) AddOrReplace(pair HeaderBodyPair) error {
 		// safe to ignore error here, as the condition inside add method is the same as this one
 		_ = bq.add(pair)
 	case nonce <= bq.lastAddedNonce:
+		// If the queue has items and the nonce is lower than the first item,
+		// the block was already popped/processed. Skip adding without removal.
+		if len(bq.headerBodyPairs) > 0 && nonce < bq.headerBodyPairs[0].Header.GetNonce() {
+			log.Debug("blocksQueue.AddOrReplace - skipping already processed block",
+				"nonce", nonce,
+				"first_queue_nonce", bq.headerBodyPairs[0].Header.GetNonce())
+			return nil
+		}
 		// check if the block at this nonce is identical (same hash) - skip if so
 		if bq.isIdenticalBlockInQueue(pair) {
 			return nil
