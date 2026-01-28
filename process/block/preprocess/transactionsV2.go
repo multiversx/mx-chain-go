@@ -39,6 +39,10 @@ func (txs *transactions) createAndProcessMiniBlocksFromMeV2(
 			sortedTxs[index],
 			mbInfo)
 		if !shouldContinue {
+			if common.IsAsyncExecutionEnabled(txs.enableEpochsHandler, txs.enableRoundsHandler) {
+				log.Warn("createAndProcessMiniBlocksFromMeV2 found unexecutable tx", "txHash", sortedTxs[index])
+			}
+			txs.addUnExecutableTransaction(sortedTxs[index].TxHash)
 			continue
 		}
 
@@ -53,7 +57,8 @@ func (txs *transactions) createAndProcessMiniBlocksFromMeV2(
 			receiverShardID,
 			mbInfo)
 
-		if isMaxBlockSizeReached(txMbInfo.numNewMiniBlocks, txMbInfo.numNewTxs) {
+		if isMaxBlockSizeReached(txMbInfo.numNewMiniBlocks, txMbInfo.numNewTxs) &&
+			!common.IsAsyncExecutionEnabled(txs.enableEpochsHandler, txs.enableRoundsHandler) {
 			log.Debug("max txs accepted in one block is reached",
 				"num txs added", mbInfo.processingInfo.numTxsAdded,
 				"total txs", len(sortedTxs))
@@ -115,9 +120,11 @@ func (txs *transactions) createEmptyMiniBlocks(blockType block.Type, reserved []
 
 func (txs *transactions) hasAddressEnoughInitialBalance(tx *transaction.Transaction) bool {
 	addressHasEnoughBalance := true
-	isAddressSet := txs.balanceComputation.IsAddressSet(tx.GetSndAddr())
-	if isAddressSet {
-		addressHasEnoughBalance = txs.balanceComputation.AddressHasEnoughBalance(tx.GetSndAddr(), getTxMaxTotalCost(tx))
+	if !common.IsAsyncExecutionEnabled(txs.enableEpochsHandler, txs.enableRoundsHandler) {
+		isAddressSet := txs.balanceComputation.IsAddressSet(tx.GetSndAddr())
+		if isAddressSet {
+			addressHasEnoughBalance = txs.balanceComputation.AddressHasEnoughBalance(tx.GetSndAddr(), getTxMaxTotalCost(tx))
+		}
 	}
 
 	return addressHasEnoughBalance
@@ -195,12 +202,7 @@ func (txs *transactions) processTransaction(
 		mbInfo.gasInfo.gasConsumedByMiniBlocksInSenderShard = oldGasConsumedByMiniBlocksInSenderShard
 		mbInfo.mapGasConsumedByMiniBlockInReceiverShard[receiverShardID] = oldGasConsumedByMiniBlockInReceiverShard
 		mbInfo.gasInfo.totalGasConsumedInSelfShard = oldTotalGasConsumedInSelfShard
-
-		if common.IsAsyncExecutionEnabled(txs.enableEpochsHandler, txs.enableRoundsHandler) {
-			txs.mutUnExecutableTxs.Lock()
-			txs.unExecutableTransactions[string(txHash)] = struct{}{}
-			txs.mutUnExecutableTxs.Unlock()
-		}
+		txs.addUnExecutableTransaction(txHash)
 
 		return false, err
 	}
@@ -245,6 +247,14 @@ func (txs *transactions) processTransaction(
 	}
 
 	return false, err
+}
+
+func (txs *transactions) addUnExecutableTransaction(txHash []byte) {
+	if common.IsAsyncExecutionEnabled(txs.enableEpochsHandler, txs.enableRoundsHandler) {
+		txs.mutUnExecutableTxs.Lock()
+		txs.unExecutableTransactions[string(txHash)] = struct{}{}
+		txs.mutUnExecutableTxs.Unlock()
+	}
 }
 
 func (txs *transactions) getMiniBlockSliceFromMapV2(mapMiniBlocks map[uint32]*block.MiniBlock) block.MiniBlockSlice {
