@@ -9,8 +9,6 @@ import (
 	dataBlock "github.com/multiversx/mx-chain-core-go/data/block"
 	logger "github.com/multiversx/mx-chain-logger-go"
 
-	"github.com/multiversx/mx-chain-go/node/chainSimulator/dtos"
-
 	"github.com/multiversx/mx-chain-go/common"
 	heartbeatData "github.com/multiversx/mx-chain-go/heartbeat/data"
 	"github.com/multiversx/mx-chain-go/node/chainSimulator/configs"
