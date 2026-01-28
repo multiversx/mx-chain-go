@@ -186,19 +186,31 @@ func CreateNodesWithTestConsensusNode(
 	return nodes
 }
 
-func createCustomMultiSignerMock(multiSigner crypto.MultiSigner) *cryptoMocks.MultisignerMock {
+func createCustomMultiSignerMock(multiSigner crypto.MultiSignerV2) *cryptoMocks.MultisignerMock {
 	multiSignerMock := &cryptoMocks.MultisignerMock{}
 	multiSignerMock.CreateSignatureShareCalled = func(privateKeyBytes, message []byte) ([]byte, error) {
 		return multiSigner.CreateSignatureShare(privateKeyBytes, message)
 	}
+	multiSignerMock.CreateSignatureShareV2Called = func(privateKey crypto.PrivateKey, message []byte) ([]byte, error) {
+		return multiSigner.CreateSignatureShareV2(privateKey, message)
+	}
 	multiSignerMock.VerifySignatureShareCalled = func(publicKey, message, sig []byte) error {
 		return multiSigner.VerifySignatureShare(publicKey, message, sig)
 	}
-	multiSignerMock.AggregateSigsCalled = func(pubKeysSigners []crypto.PublicKey, signatures [][]byte) ([]byte, error) {
+	multiSignerMock.VerifySignatureShareV2Called = func(publicKey crypto.PublicKey, message, sig []byte) error {
+		return multiSigner.VerifySignatureShareV2(publicKey, message, sig)
+	}
+	multiSignerMock.AggregateSigsCalled = func(pubKeysSigners [][]byte, signatures [][]byte) ([]byte, error) {
 		return multiSigner.AggregateSigs(pubKeysSigners, signatures)
 	}
-	multiSignerMock.VerifyAggregatedSigCalled = func(pubKeysSigners []crypto.PublicKey, message, aggSig []byte) error {
+	multiSignerMock.AggregateSigsV2Called = func(pubKeysSigners []crypto.PublicKey, signatures [][]byte) ([]byte, error) {
+		return multiSigner.AggregateSigsV2(pubKeysSigners, signatures)
+	}
+	multiSignerMock.VerifyAggregatedSigCalled = func(pubKeysSigners [][]byte, message, aggSig []byte) error {
 		return multiSigner.VerifyAggregatedSig(pubKeysSigners, message, aggSig)
+	}
+	multiSignerMock.VerifyAggregatedSigV2Called = func(pubKeysSigners []crypto.PublicKey, message, aggSig []byte) error {
+		return multiSigner.VerifyAggregatedSigV2(pubKeysSigners, message, aggSig)
 	}
 
 	return multiSignerMock

@@ -196,14 +196,18 @@ func (sh *signingHandler) VerifySignatureShare(index uint16, sig []byte, message
 		return ErrIndexOutOfBounds
 	}
 
-	pubKey := sh.data.pubKeys[index]
+	pubKeyBytes := sh.data.pubKeys[index]
+	pubKey, err := sh.getPubKeyFromBytes(pubKeyBytes)
+	if err != nil {
+		return err
+	}
 
 	multiSigner, err := sh.multiSignerContainer.GetMultiSigner(epoch)
 	if err != nil {
 		return err
 	}
 
-	return multiSigner.VerifySignatureShare(pubKey, message, sig)
+	return multiSigner.VerifySignatureShareV2(pubKey, message, sig)
 }
 
 // StoreSignatureShare stores the partial signature of the signer with specified position
@@ -289,7 +293,7 @@ func (sh *signingHandler) AggregateSigs(bitmap []byte, epoch uint32) ([]byte, er
 		pubKeysSigners = append(pubKeysSigners, pubKey)
 	}
 
-	return multiSigner.AggregateSigs(pubKeysSigners, signatures)
+	return multiSigner.AggregateSigsV2(pubKeysSigners, signatures)
 }
 
 func (sh *signingHandler) getPubKeyFromBytes(
@@ -378,7 +382,7 @@ func (sh *signingHandler) Verify(message []byte, bitmap []byte, epoch uint32) er
 		pubKeys = append(pubKeys, pk)
 	}
 
-	return multiSigner.VerifyAggregatedSig(pubKeys, message, sh.data.aggSig)
+	return multiSigner.VerifyAggregatedSigV2(pubKeys, message, sh.data.aggSig)
 }
 
 func convertStringsToPubKeysBytes(pubKeys []string) ([][]byte, error) {

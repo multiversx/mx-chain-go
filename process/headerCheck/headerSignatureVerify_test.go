@@ -682,7 +682,7 @@ func TestHeaderSigVerifier_VerifySignatureOk(t *testing.T) {
 	args.NodesCoordinator = nc
 
 	args.MultiSigContainer = cryptoMocks.NewMultiSignerContainerMock(&cryptoMocks.MultisignerMock{
-		VerifyAggregatedSigCalled: func(pubKeysSigners []crypto.PublicKey, message []byte, aggSig []byte) error {
+		VerifyAggregatedSigV2Called: func(pubKeysSigners []crypto.PublicKey, message []byte, aggSig []byte) error {
 			wasCalled = true
 			return nil
 		}})
@@ -716,7 +716,7 @@ func TestHeaderSigVerifier_VerifySignatureNotEnoughSigsShouldErrWhenFallbackThre
 		},
 	}
 	multiSigVerifier := &cryptoMocks.MultisignerMock{
-		VerifyAggregatedSigCalled: func(pubKeysSigners []crypto.PublicKey, message []byte, aggSig []byte) error {
+		VerifyAggregatedSigV2Called: func(pubKeysSigners []crypto.PublicKey, message []byte, aggSig []byte) error {
 			wasCalled = true
 			return nil
 		},
@@ -755,7 +755,7 @@ func TestHeaderSigVerifier_VerifySignatureOkWhenFallbackThresholdCouldBeApplied(
 		},
 	}
 	multiSigVerifier := &cryptoMocks.MultisignerMock{
-		VerifyAggregatedSigCalled: func(pubKeysSigners []crypto.PublicKey, message []byte, aggSig []byte) error {
+		VerifyAggregatedSigV2Called: func(pubKeysSigners []crypto.PublicKey, message []byte, aggSig []byte) error {
 			wasCalled = true
 			return nil
 		}}
@@ -814,7 +814,7 @@ func TestHeaderSigVerifier_VerifySignatureWithEquivalentProofsActivated(t *testi
 
 		args.NodesCoordinator = nc
 		args.MultiSigContainer = cryptoMocks.NewMultiSignerContainerMock(&cryptoMocks.MultisignerMock{
-			VerifyAggregatedSigCalled: func(pubKeysSigners []crypto.PublicKey, message []byte, aggSig []byte) error {
+			VerifyAggregatedSigV2Called: func(pubKeysSigners []crypto.PublicKey, message []byte, aggSig []byte) error {
 				wasCalled = true
 				return nil
 			}})
@@ -894,7 +894,7 @@ func TestHeaderSigVerifier_VerifyHeaderProof(t *testing.T) {
 			},
 		}
 		args.MultiSigContainer = &cryptoMocks.MultiSignerContainerStub{
-			GetMultiSignerCalled: func(epoch uint32) (crypto.MultiSigner, error) {
+			GetMultiSignerCalled: func(epoch uint32) (crypto.MultiSignerV2, error) {
 				cnt++
 				if cnt > 1 {
 					return nil, expectedErr
@@ -925,9 +925,9 @@ func TestHeaderSigVerifier_VerifyHeaderProof(t *testing.T) {
 			},
 		}
 		args.MultiSigContainer = &cryptoMocks.MultiSignerContainerStub{
-			GetMultiSignerCalled: func(epoch uint32) (crypto.MultiSigner, error) {
+			GetMultiSignerCalled: func(epoch uint32) (crypto.MultiSignerV2, error) {
 				return &cryptoMocks.MultiSignerStub{
-					VerifyAggregatedSigCalled: func(pubKeysSigners []crypto.PublicKey, message []byte, aggSig []byte) error {
+					VerifyAggregatedSigV2Called: func(pubKeysSigners []crypto.PublicKey, message []byte, aggSig []byte) error {
 						wasVerifyAggregatedSigCalled = true
 						return nil
 					},
@@ -984,9 +984,9 @@ func TestHeaderSigVerifier_VerifyHeaderProof(t *testing.T) {
 			},
 		}
 		args.MultiSigContainer = &cryptoMocks.MultiSignerContainerStub{
-			GetMultiSignerCalled: func(epoch uint32) (crypto.MultiSigner, error) {
+			GetMultiSignerCalled: func(epoch uint32) (crypto.MultiSignerV2, error) {
 				return &cryptoMocks.MultiSignerStub{
-					VerifyAggregatedSigCalled: func(pubKeysSigners []crypto.PublicKey, message []byte, aggSig []byte) error {
+					VerifyAggregatedSigV2Called: func(pubKeysSigners []crypto.PublicKey, message []byte, aggSig []byte) error {
 						wasVerifyAggregatedSigCalled = true
 						return nil
 					},
@@ -1024,9 +1024,9 @@ func TestHeaderSigVerifier_VerifyHeaderProof(t *testing.T) {
 			},
 		}
 		args.MultiSigContainer = &cryptoMocks.MultiSignerContainerStub{
-			GetMultiSignerCalled: func(epoch uint32) (crypto.MultiSigner, error) {
+			GetMultiSignerCalled: func(epoch uint32) (crypto.MultiSignerV2, error) {
 				return &cryptoMocks.MultiSignerStub{
-					VerifyAggregatedSigCalled: func(pubKeysSigners []crypto.PublicKey, message []byte, aggSig []byte) error {
+					VerifyAggregatedSigV2Called: func(pubKeysSigners []crypto.PublicKey, message []byte, aggSig []byte) error {
 						wasVerifyAggregatedSigCalled = true
 						return nil
 					},

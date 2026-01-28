@@ -302,7 +302,7 @@ func (hsv *HeaderSigVerifier) VerifySignatureForHash(header data.HeaderHandler, 
 		return err
 	}
 
-	return multiSigVerifier.VerifyAggregatedSig(pubKeys, hash, signature)
+	return multiSigVerifier.VerifyAggregatedSigV2(pubKeys, hash, signature)
 }
 
 func (hsv *HeaderSigVerifier) getHeaderForProofAtTransition(proof data.HeaderProofHandler) (data.HeaderHandler, error) {
@@ -357,7 +357,7 @@ func (hsv *HeaderSigVerifier) verifyHeaderProofAtTransition(proof data.HeaderPro
 		return err
 	}
 
-	return multiSigVerifier.VerifyAggregatedSig(pubKeys, proof.GetHeaderHash(), proof.GetAggregatedSignature())
+	return multiSigVerifier.VerifyAggregatedSigV2(pubKeys, proof.GetHeaderHash(), proof.GetAggregatedSignature())
 }
 
 // VerifyHeaderProof checks if the proof is correct for the header
@@ -388,7 +388,7 @@ func (hsv *HeaderSigVerifier) VerifyHeaderProof(proofHandler data.HeaderProofHan
 		return err
 	}
 
-	return multiSigVerifier.VerifyAggregatedSig(pubKeys, proofHandler.GetHeaderHash(), proofHandler.GetAggregatedSignature())
+	return multiSigVerifier.VerifyAggregatedSigV2(pubKeys, proofHandler.GetHeaderHash(), proofHandler.GetAggregatedSignature())
 }
 
 // VerifyRandSeed will check if rand seed is correct
