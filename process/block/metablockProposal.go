@@ -609,6 +609,7 @@ func (mp *metaProcessor) createExecutionResult(
 	}
 
 	mp.cacheOrderedTxHashes(headerHash)
+	mp.cacheUnexecutableTxHashes(headerHash)
 
 	return executionResult, nil
 }
