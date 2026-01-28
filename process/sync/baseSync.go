@@ -1127,7 +1127,7 @@ func (boot *baseBootstrap) prepareForSyncIfNeeded(
 	if err != nil {
 		return err
 	}
-
+	log.Debug("baseBootstrap - prepareForSyncIfNeeded - last execution result header nonce for sync start", "nonce", lastExecutionResultHeaderNonce)
 	if syncingNonce == lastExecutionResultHeaderNonce+2 {
 		// the ideal/most common case:
 		// the previous block was already processed, its nonce should have been syncingNonce-1,
@@ -1148,6 +1148,7 @@ func (boot *baseBootstrap) prepareForSyncIfNeeded(
 			return err
 		}
 
+		log.Debug("baseBootstrap - prepareForSyncIfNeeded - OnProposedBlock - syncingNonce == lastExecutionResultHeaderNonce+2", "headerNonce", currentHeader.GetNonce())
 		errOnProposedBlock := boot.blockProcessor.OnProposedBlock(
 			currentBody,
 			currentHeader,
@@ -1188,6 +1189,8 @@ func (boot *baseBootstrap) prepareForSyncIfNeeded(
 		if err != nil {
 			return err
 		}
+
+		log.Debug("baseBootstrap - prepareForSyncIfNeeded - OnProposedBlock - syncingNonce for all from lastexecutionNonCe", "headerNonce", currentHeader.GetNonce())
 
 		errOnProposedBlock := boot.blockProcessor.OnProposedBlock(
 			body,
@@ -1334,27 +1337,32 @@ func (boot *baseBootstrap) getExecutionResultHeaderNonceForSyncStart(
 	lastExecutionResultNonce := lastNotarizedExecutedHeader.GetNonce()
 
 	// in case there is a more recent execution result available, use it
+	// This is important for async execution: if the execution has already processed blocks
+	// beyond the notarized result, we should not reset back and re-process those blocks.
+	// The async execution is sequential and its progress should be respected.
 	lastExecutionResult := boot.chainHandler.GetLastExecutionResult()
 	notNil := !check.IfNil(lastExecutionResult)
-	// accept newer execution result only if there is a proof for the associated header
-	// otherwise, it might be a temporary execution result from a block that did not pass consensus
-	hasProof := boot.proofs.HasProof(boot.shardCoordinator.SelfId(), lastExecutionResult.GetHeaderHash())
-	if !hasProof {
-		if lastExecutionResult.GetHeaderNonce() < currentHeader.GetNonce() {
-			proofStorer, errGetStorer := boot.store.GetStorer(dataRetriever.ProofsUnit)
-			if errGetStorer == nil {
-				_, errGet := proofStorer.Get(lastExecutionResult.GetHeaderHash())
-				if errGet == nil {
-					//TODO: add proof to pool
-					hasProof = true
+	if notNil && lastExecutionResult.GetHeaderNonce() > lastExecutionResultNonce {
+		// try to add proof to pool if not already there
+		hasProof := boot.proofs.HasProof(boot.shardCoordinator.SelfId(), lastExecutionResult.GetHeaderHash())
+		if !hasProof {
+			if lastExecutionResult.GetHeaderNonce() < currentHeader.GetNonce() {
+				proofStorer, errGetStorer := boot.store.GetStorer(dataRetriever.ProofsUnit)
+				if errGetStorer == nil {
+					_, errGet := proofStorer.Get(lastExecutionResult.GetHeaderHash())
+					if errGet == nil {
+						//TODO: add proof to pool
+						hasProof = true
+					}
 				}
 			}
 		}
-	}
-	shouldChangeLastExecutionResultNonce := notNil &&
-		lastExecutionResult.GetHeaderNonce() > lastExecutionResultNonce && hasProof
 
-	if shouldChangeLastExecutionResultNonce {
+		log.Debug("getExecutionResultHeaderNonceForSyncStart: using lastExecutionResult instead of notarized",
+			"lastExecutionResult nonce", lastExecutionResult.GetHeaderNonce(),
+			"lastNotarizedExecResult nonce", lastExecutionResultNonce,
+			"hasProof", hasProof,
+		)
 		lastExecutionResultNonce = lastExecutionResult.GetHeaderNonce()
 	}
 	log.Debug("getExecutionResultHeaderNonceForSyncStart", "lastExecutionResultNonce", lastExecutionResultNonce)

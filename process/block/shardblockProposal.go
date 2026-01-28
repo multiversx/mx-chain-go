@@ -23,7 +23,11 @@ type pendingBlocksAfterSelection struct {
 }
 
 // TODO: maybe move this to config
-const maxBlockProcessingTime = 3 * time.Second
+// maxBlockProcessingTime is the timeout for async block execution.
+// This is set to a high value because async execution is decoupled from consensus timing.
+// The consensus round duration will still enforce the actual time limit for consensus operations,
+// while async execution benefits from having more time to wait for data and process blocks.
+const maxBlockProcessingTime = 60 * time.Second
 
 // CreateNewHeaderProposal creates a new header proposal
 func (sp *shardProcessor) CreateNewHeaderProposal(round uint64, nonce uint64) (data.HeaderHandler, error) {
