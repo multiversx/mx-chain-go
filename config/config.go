@@ -502,7 +502,12 @@ type TxAccumulatorConfig struct {
 
 // AntifloodConfig will hold all p2p antiflood parameters
 type AntifloodConfig struct {
-	Enabled                             bool
+	Enabled        bool
+	ConfigsByEpoch []AntifloodConfigByEpoch
+}
+
+type AntifloodConfigByEpoch struct {
+	Epoch                               uint32
 	NumConcurrentResolverJobs           int32
 	NumConcurrentResolvingTrieNodesJobs int32
 	OutOfSpecs                          FloodPreventerConfig
