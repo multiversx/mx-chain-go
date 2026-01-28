@@ -183,3 +183,24 @@ func TestTransactionsHeapItem_detectIncorrectlyGuarded(t *testing.T) {
 		require.True(t, item.detectIncorrectlyGuarded(virtualSession))
 	})
 }
+
+func TestTransactionsHeapItem_hasPendingChangeGuardian(t *testing.T) {
+	a := createTx([]byte("tx-1"), "alice", 42)
+	b := createTx([]byte("tx-2"), "alice", 43).withData([]byte("SetGuardian@newGuardian")).withGasLimit(100000)
+
+	t.Run("no set guardian", func(t *testing.T) {
+		item, err := newTransactionsHeapItem(bunchOfTransactions{a})
+		require.NoError(t, err)
+		item.selectCurrentTransaction()
+		require.False(t, item.hasPendingChangeGuardian())
+	})
+
+	t.Run("with set guardian", func(t *testing.T) {
+		item, err := newTransactionsHeapItem(bunchOfTransactions{a, b})
+		require.NoError(t, err)
+		item.selectCurrentTransaction()
+		item.gotoNextTransaction()
+		item.selectCurrentTransaction()
+		require.True(t, item.hasPendingChangeGuardian())
+	})
+}

@@ -1,14 +1,17 @@
 package txcache
 
+import "github.com/multiversx/mx-chain-go/process"
+
 type transactionsHeapItem struct {
 	sender []byte
 	bunch  bunchOfTransactions
 
-	currentTransactionIndex        int
-	currentTransaction             *WrappedTransaction
-	currentTransactionNonce        uint64
-	latestSelectedTransaction      *WrappedTransaction
-	latestSelectedTransactionNonce uint64
+	currentTransactionIndex             int
+	currentTransaction                  *WrappedTransaction
+	currentTransactionNonce             uint64
+	latestSelectedTransaction           *WrappedTransaction
+	latestSelectedTransactionNonce      uint64
+	hasPendingChangeGuardianTransaction bool
 }
 
 func newTransactionsHeapItem(bunch bunchOfTransactions) (*transactionsHeapItem, error) {
@@ -36,6 +39,7 @@ func (item *transactionsHeapItem) getCurrentTransaction() *WrappedTransaction {
 func (item *transactionsHeapItem) selectCurrentTransaction() {
 	item.latestSelectedTransaction = item.currentTransaction
 	item.latestSelectedTransactionNonce = item.currentTransactionNonce
+	item.hasPendingChangeGuardianTransaction = process.IsSetGuardianCall(item.currentTransaction.Tx.GetData())
 }
 
 func (item *transactionsHeapItem) gotoNextTransaction() bool {
@@ -47,6 +51,10 @@ func (item *transactionsHeapItem) gotoNextTransaction() bool {
 	item.currentTransaction = item.bunch[item.currentTransactionIndex]
 	item.currentTransactionNonce = item.currentTransaction.Tx.GetNonce()
 	return true
+}
+
+func (item *transactionsHeapItem) hasPendingChangeGuardian() bool {
+	return item.hasPendingChangeGuardianTransaction
 }
 
 func (item *transactionsHeapItem) detectInitialGap(senderNonce uint64) bool {
