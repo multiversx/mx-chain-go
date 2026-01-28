@@ -38,6 +38,9 @@ func (m *MockStatistics) GetSnapshotNumNodes() uint64 {
 	return 0
 }
 
+// IncrementThrottlerWaits -
+func (m *MockStatistics) IncrementThrottlerWaits() {}
+
 // IsInterfaceNil returns true if there is no value under the interface
 func (m *MockStatistics) IsInterfaceNil() bool {
 	return m == nil

@@ -13,9 +13,10 @@ type snapshotStatistics struct {
 
 	startTime time.Time
 
-	wgSnapshot *sync.WaitGroup
-	wgSync     *sync.WaitGroup
-	mutex      sync.RWMutex
+	numThrottlerWaits int
+	wgSnapshot        *sync.WaitGroup
+	wgSync            *sync.WaitGroup
+	mutex             sync.RWMutex
 }
 
 func newSnapshotStatistics(snapshotDelta int, syncDelta int) *snapshotStatistics {
@@ -80,6 +81,7 @@ func (ss *snapshotStatistics) PrintStats(identifier string, rootHash []byte) {
 		"type", identifier,
 		"duration", time.Since(ss.startTime).Truncate(time.Second),
 		"rootHash", rootHash,
+		"numThrottlerWaits", ss.numThrottlerWaits,
 	)
 	ss.trieStatisticsCollector.Print()
 }
@@ -87,6 +89,11 @@ func (ss *snapshotStatistics) PrintStats(identifier string, rootHash []byte) {
 // GetSnapshotNumNodes returns the number of nodes from the snapshot
 func (ss *snapshotStatistics) GetSnapshotNumNodes() uint64 {
 	return ss.trieStatisticsCollector.GetNumNodes()
+}
+
+// IncrementThrottlerWaits increments the number of throttler waits. This should not be called in a concurrent context
+func (ss *snapshotStatistics) IncrementThrottlerWaits() {
+	ss.numThrottlerWaits++
 }
 
 // IsInterfaceNil returns true if there is no value under the interface

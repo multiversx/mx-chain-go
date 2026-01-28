@@ -129,7 +129,7 @@ func (tsm *trieStorageManager) checkGoRoutinesThrottler(
 		if goRoutinesThrottler.CanProcess() {
 			break
 		}
-
+		snapshotRequest.stats.IncrementThrottlerWaits()
 		select {
 		case <-time.After(time.Millisecond * 100):
 			continue
