@@ -70,3 +70,6 @@ var ErrMissingOrderedTxHashes = errors.New("missing ordered tx hashes")
 
 // ErrInvalidHeader signals that an invalid header has been provided
 var ErrInvalidHeader = errors.New("invalid header")
+
+// ErrMissingUnexecutableTxHash signals that unexecutable tx hashes are missing
+var ErrMissingUnexecutableTxHash = errors.New("missing unexecutable tx hash")

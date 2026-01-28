@@ -1245,6 +1245,21 @@ func (bp *baseProcessor) cleanupPools(headerHandler data.HeaderHandler) {
 		bp.dataPool.MiniBlocks().Remove(executionResultHeaderHash)
 		// cleanup all log events
 		bp.dataPool.PostProcessTransactions().Remove(common.PrepareLogEventsKey(executionResultHeaderHash))
+		// cleanup all unexecuted transaction from txpool
+		bp.cleanupUnexecutableTxsFromPool(executionResultHeaderHash)
+	}
+}
+
+func (bp *baseProcessor) cleanupUnexecutableTxsFromPool(headerHash []byte) {
+	unexecutableTxHashes, err := common.GetCachedUnexecutableTxHashes(bp.dataPool.PostProcessTransactions(), headerHash)
+	if err != nil {
+		log.Warn("bp.cleanupPools cannot get unexecutable tx hashes", "err", err)
+		return
+	}
+
+	for _, txHash := range unexecutableTxHashes {
+		cacheID := process.ShardCacherIdentifier(bp.shardCoordinator.SelfId(), bp.shardCoordinator.SelfId())
+		bp.dataPool.Transactions().RemoveData(txHash, cacheID)
 	}
 }
 
@@ -1827,7 +1842,8 @@ func (bp *baseProcessor) saveTxsToStorage(dataPool dataRetriever.ShardedDataCach
 	for _, txHash := range txHashes {
 		tx, err := process.GetTransactionHandlerFromPool(senderShardID, receiverShardID, txHash, dataPool, method)
 		if err != nil {
-			return err
+			log.Warn("baseProcessor.saveTxsToStorage cannot get transaction from pool", "error", err.Error())
+			continue
 		}
 
 		marshalledTx, err := bp.marshalizer.Marshal(tx)
@@ -3765,6 +3781,20 @@ func (bp *baseProcessor) cacheOrderedTxHashes(headerHash []byte) {
 
 	size := len(items) * common.HashSize // number of items * length of a transaction hash
 	bp.dataPool.PostProcessTransactions().Put(executionOrderKey, items, size)
+}
+
+func (bp *baseProcessor) cacheUnexecutableTxHashes(headerHash []byte) {
+	unexecutableTxHashes := bp.txCoordinator.GetUnExecutableTransactions()
+
+	hashes := make([][]byte, 0, len(unexecutableTxHashes))
+	for txHash := range unexecutableTxHashes {
+		hashes = append(hashes, []byte(txHash))
+	}
+
+	key := common.PrepareUnexecutableTxHashesKey(headerHash)
+
+	size := len(unexecutableTxHashes) * common.HashSize
+	bp.dataPool.PostProcessTransactions().Put(key, hashes, size)
 }
 
 func (bp *baseProcessor) getBlockBodyFromPool(
