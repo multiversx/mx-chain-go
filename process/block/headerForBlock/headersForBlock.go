@@ -388,14 +388,22 @@ func (hfb *headersForBlock) WaitForHeadersIfNeeded(haveTime func() time.Duration
 	missingHdrs := hfb.missingHdrs
 	missingProofs := hfb.missingProofs
 	if requestedHdrs > 0 {
+		receivedHdrs := uint32(0)
+		if requestedHdrs > missingHdrs {
+			receivedHdrs = requestedHdrs - missingHdrs
+		}
 		log.Debug("received missing headers",
-			"num headers", requestedHdrs-missingHdrs,
+			"num headers", receivedHdrs,
 		)
 	}
 
 	if requestedProofs > 0 {
+		receivedProofs := uint32(0)
+		if requestedProofs > missingProofs {
+			receivedProofs = requestedProofs - missingProofs
+		}
 		log.Debug("received missing header proofs",
-			"num proofs", requestedProofs-missingProofs,
+			"num proofs", receivedProofs,
 		)
 	}
 
@@ -429,6 +437,9 @@ func (hfb *headersForBlock) computeExistingAndRequestMissingMetaHeaders(header d
 			hfb.hdrHashAndInfo[string(metaBlockHashes[i])] = newHeaderInfo(nil, true, false, false)
 
 			go hfb.requestHandler.RequestMetaHeader(metaBlockHashes[i])
+			// Request proof proactively for missing header - uses shard header's epoch
+			// to determine if proofs are needed. This allows proof to arrive in parallel with header.
+			hfb.requestProofForMissingHeader(metaBlockHashes[i], core.MetachainShardId, header.GetEpoch())
 			continue
 		}
 
@@ -458,7 +469,7 @@ func (hfb *headersForBlock) computeExistingAndRequestMissingMetaHeaders(header d
 	}
 }
 
-func (hfb *headersForBlock) requestMissingAndUpdateBasedOnCrossShardData(cd crossShardMetaData) {
+func (hfb *headersForBlock) requestMissingAndUpdateBasedOnCrossShardData(cd crossShardMetaData, epoch uint32) {
 	if cd.GetNonce() == hfb.genesisNonce {
 		lastCrossNotarizedHeaderForShard, found := hfb.lastNotarizedShardHeaders[cd.GetShardID()]
 		if !found {
@@ -483,6 +494,9 @@ func (hfb *headersForBlock) requestMissingAndUpdateBasedOnCrossShardData(cd cros
 		hfb.hdrHashAndInfo[string(cd.GetHeaderHash())] = newHeaderInfo(nil, true, false, false)
 
 		go hfb.requestHandler.RequestShardHeader(cd.GetShardID(), cd.GetHeaderHash())
+		// Request proof proactively for missing header - uses meta block's epoch
+		// to determine if proofs are needed. This allows proof to arrive in parallel with header.
+		hfb.requestProofForMissingHeader(cd.GetHeaderHash(), cd.GetShardID(), epoch)
 		return
 	}
 
@@ -501,15 +515,15 @@ func (hfb *headersForBlock) requestMissingAndUpdateBasedOnCrossShardData(cd cros
 	hfb.updateLastNotarizedBlockForShard(hdr, cd.GetHeaderHash())
 }
 
-func (hfb *headersForBlock) computeExistingAndRequestMissingBasedOnShardData(shardData []data.ShardDataHandler) {
+func (hfb *headersForBlock) computeExistingAndRequestMissingBasedOnShardData(shardData []data.ShardDataHandler, epoch uint32) {
 	for _, sd := range shardData {
-		hfb.requestMissingAndUpdateBasedOnCrossShardData(sd)
+		hfb.requestMissingAndUpdateBasedOnCrossShardData(sd, epoch)
 	}
 }
 
-func (hfb *headersForBlock) computeExistingAndRequestMissingBasedOnShardDataProposal(shardDataProposal []data.ShardDataProposalHandler) {
+func (hfb *headersForBlock) computeExistingAndRequestMissingBasedOnShardDataProposal(shardDataProposal []data.ShardDataProposalHandler, epoch uint32) {
 	for _, sdp := range shardDataProposal {
-		hfb.requestMissingAndUpdateBasedOnCrossShardData(sdp)
+		hfb.requestMissingAndUpdateBasedOnCrossShardData(sdp, epoch)
 	}
 }
 
@@ -517,14 +531,15 @@ func (hfb *headersForBlock) computeExistingAndRequestMissingShardHeaders(metaBlo
 	hfb.mutHdrsForBlock.Lock()
 	defer hfb.mutHdrsForBlock.Unlock()
 
+	epoch := metaBlock.GetEpoch()
 	if metaBlock.IsHeaderV3() {
-		hfb.computeExistingAndRequestMissingBasedOnShardDataProposal(metaBlock.GetShardInfoProposalHandlers())
+		hfb.computeExistingAndRequestMissingBasedOnShardDataProposal(metaBlock.GetShardInfoProposalHandlers(), epoch)
 
-		hfb.computeExistingAndRequestMissingBasedOnShardData(metaBlock.GetShardInfoHandlers())
+		hfb.computeExistingAndRequestMissingBasedOnShardData(metaBlock.GetShardInfoHandlers(), epoch)
 		return
 	}
 
-	hfb.computeExistingAndRequestMissingBasedOnShardData(metaBlock.GetShardInfoHandlers())
+	hfb.computeExistingAndRequestMissingBasedOnShardData(metaBlock.GetShardInfoHandlers(), epoch)
 	if hfb.missingHdrs == 0 {
 		hfb.missingFinalityAttestingHdrs = hfb.requestMissingFinalityAttestingShardHeaders()
 	}
@@ -544,6 +559,22 @@ func (hfb *headersForBlock) requestProofIfNeeded(currentHeaderHash []byte, heade
 	go hfb.requestHandler.RequestEquivalentProofByHash(header.GetShardID(), currentHeaderHash)
 
 	return false
+}
+
+// requestProofForMissingHeader requests a proof for a header that is not yet in the pool.
+// This allows proofs to be fetched in parallel with headers, reducing wait time.
+// The epoch parameter is used to check if proofs are needed (AndromedaFlag enabled).
+func (hfb *headersForBlock) requestProofForMissingHeader(headerHash []byte, shardID uint32, epoch uint32) {
+	if !hfb.enableEpochsHandler.IsFlagEnabledInEpoch(common.AndromedaFlag, epoch) {
+		return
+	}
+	if hfb.dataPool.Proofs().HasProof(shardID, headerHash) {
+		hfb.setHasProof(string(headerHash))
+		return
+	}
+
+	hfb.setHasProofRequested(string(headerHash))
+	go hfb.requestHandler.RequestEquivalentProofByHash(shardID, headerHash)
 }
 
 // requestMissingFinalityAttestingHeaders requests the headers needed to accept the current selected headers for

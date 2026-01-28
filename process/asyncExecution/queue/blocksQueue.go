@@ -1,6 +1,7 @@
 package queue
 
 import (
+	"bytes"
 	"fmt"
 	"sync"
 
@@ -72,6 +73,10 @@ func (bq *blocksQueue) AddOrReplace(pair HeaderBodyPair) error {
 		// safe to ignore error here, as the condition inside add method is the same as this one
 		_ = bq.add(pair)
 	case nonce <= bq.lastAddedNonce:
+		// check if the block at this nonce is identical (same hash) - skip if so
+		if bq.isIdenticalBlockInQueue(pair) {
+			return nil
+		}
 		// remove all nonces starting with the new one, then add it
 		err := bq.replaceAndRemoveHigherNonces(pair)
 		if err != nil {
@@ -136,6 +141,24 @@ func (bq *blocksQueue) removeFromNonce(nonce uint64) []uint64 {
 func (bq *blocksQueue) replaceAndRemoveHigherNonces(pair HeaderBodyPair) error {
 	_ = bq.removeFromNonce(pair.Header.GetNonce())
 	return bq.add(pair)
+}
+
+// isIdenticalBlockInQueue checks if a block with the same nonce and hash already exists in the queue
+func (bq *blocksQueue) isIdenticalBlockInQueue(pair HeaderBodyPair) bool {
+	nonce := pair.Header.GetNonce()
+	for _, existingPair := range bq.headerBodyPairs {
+		if existingPair.Header.GetNonce() == nonce {
+			// Compare hashes - if identical, the block is already in the queue
+			existingHash := existingPair.Header.GetPrevHash()
+			newHash := pair.Header.GetPrevHash()
+			if bytes.Equal(existingHash, newHash) &&
+				existingPair.Header.GetRound() == pair.Header.GetRound() {
+				return true
+			}
+			return false
+		}
+	}
+	return false
 }
 
 func (bq *blocksQueue) add(pair HeaderBodyPair) error {

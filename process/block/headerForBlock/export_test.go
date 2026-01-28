@@ -35,8 +35,8 @@ func (hfb *headersForBlock) FilterHeadersWithoutProofs() (map[string]HeaderInfo,
 }
 
 // RequestMissingAndUpdateBasedOnCrossShardData -
-func (hfb *headersForBlock) RequestMissingAndUpdateBasedOnCrossShardData(cd crossShardMetaData) {
-	hfb.requestMissingAndUpdateBasedOnCrossShardData(cd)
+func (hfb *headersForBlock) RequestMissingAndUpdateBasedOnCrossShardData(cd crossShardMetaData, epoch uint32) {
+	hfb.requestMissingAndUpdateBasedOnCrossShardData(cd, epoch)
 }
 
 // ComputeExistingAndRequestMissingShardHeaders -

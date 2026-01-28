@@ -1252,9 +1252,10 @@ func (nr *nodeRunner) CreateManagedProcessComponents(
 	}
 
 	log.Trace("creating time cache for requested items components")
-	// TODO consider lowering this (perhaps to 1 second) and use a common const
-	requestedItemsHandler := cache.NewTimeCache(
-		time.Duration(uint64(time.Millisecond) * coreComponents.GenesisNodesSetup().GetRoundDuration()))
+	// Using 1 second TTL to allow quick retries within the block processing timeout (3 seconds).
+	// Previously used roundDuration (~6s) which blocked retries since items stayed in cache
+	// longer than the processing timeout, causing "item already requested" skips.
+	requestedItemsHandler := cache.NewTimeCache(time.Second)
 
 	txExecutionOrderHandler := ordering.NewOrderedCollection()
 

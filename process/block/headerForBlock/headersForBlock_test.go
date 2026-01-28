@@ -331,7 +331,7 @@ func testRequestAndWaitHeaders(requestMetaHeaders bool) func(t *testing.T) {
 
 		missingHdrs, missingProofs, missingFinalityAttesting := hfb.GetMissingData()
 		require.Equal(t, uint32(2), missingHdrs)
-		require.Equal(t, uint32(1), missingProofs) // only one proof missing here as the second one will be observed when header is received
+		require.Equal(t, uint32(2), missingProofs) // proofs are now requested proactively for missing headers too
 		require.Zero(t, missingFinalityAttesting)
 
 		go func() {
@@ -537,6 +537,7 @@ func TestHeadersForBlock_requestMissingAndUpdateBasedOnCrossShardData(t *testing
 					return 0
 				},
 			},
+			0,
 		)
 
 		// GetShardIdCalled should be called twice on this flow
@@ -566,6 +567,7 @@ func TestHeadersForBlock_requestMissingAndUpdateBasedOnCrossShardData(t *testing
 					return []byte("wrongHash")
 				},
 			},
+			0,
 		)
 
 		// GetHeaderHashCalled should be called twice on this flow
@@ -607,7 +609,7 @@ func TestHeadersForBlock_requestMissingAndUpdateBasedOnCrossShardData(t *testing
 		hfb.RequestMissingAndUpdateBasedOnCrossShardData(&block.ShardData{
 			Nonce:      1,
 			HeaderHash: []byte("hash"),
-		})
+		}, 0)
 
 		wg.Wait()
 
@@ -661,7 +663,7 @@ func TestHeadersForBlock_requestMissingAndUpdateBasedOnCrossShardData(t *testing
 		hfb.RequestMissingAndUpdateBasedOnCrossShardData(&block.ShardData{
 			Nonce:      1,
 			HeaderHash: []byte("hash"),
-		})
+		}, 0)
 
 		wg.Wait()
 
