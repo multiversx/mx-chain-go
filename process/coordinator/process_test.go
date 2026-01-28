@@ -4259,7 +4259,7 @@ func TestTransactionCoordinator_getUnExecutableTransactions(t *testing.T) {
 		},
 	}
 
-	unExecutableTxs := tc.getUnExecutableTransactions()
+	unExecutableTxs := tc.GetUnExecutableTransactions()
 	require.Equal(t, 4, len(unExecutableTxs))
 	for _, th := range txHashes {
 		require.Contains(t, unExecutableTxs, th)

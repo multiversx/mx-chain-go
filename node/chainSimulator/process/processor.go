@@ -7,12 +7,12 @@ import (
 	"github.com/multiversx/mx-chain-core-go/core/check"
 	"github.com/multiversx/mx-chain-core-go/data"
 	dataBlock "github.com/multiversx/mx-chain-core-go/data/block"
-	"github.com/multiversx/mx-chain-go/node/chainSimulator/dtos"
 	logger "github.com/multiversx/mx-chain-logger-go"
 
 	"github.com/multiversx/mx-chain-go/common"
 	heartbeatData "github.com/multiversx/mx-chain-go/heartbeat/data"
 	"github.com/multiversx/mx-chain-go/node/chainSimulator/configs"
+	"github.com/multiversx/mx-chain-go/node/chainSimulator/dtos"
 	"github.com/multiversx/mx-chain-go/process/asyncExecution/cache"
 	"github.com/multiversx/mx-chain-go/sharding/nodesCoordinator"
 )
@@ -126,6 +126,11 @@ func (creator *blocksCreator) CreateNewBlock() (*dtos.BroadcastData, error) {
 	if err != nil {
 		return nil, err
 	}
+
+	log.Debug("Leader in current block",
+		"shardID", newHeader.GetShardID(),
+		"round", newHeader.GetRound(),
+		"leader", leader.PubKey())
 
 	pubKeyBitmap := GeneratePubKeyBitmap(len(validators))
 	for idx, validator := range validators {
