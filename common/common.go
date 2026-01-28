@@ -48,6 +48,11 @@ func PrepareOrderedTxHashesKey(headerHash []byte) []byte {
 	return append([]byte("execution"), headerHash...)
 }
 
+// PrepareUnexecutableTxHashesKey will prepare unexecutable transaction hashes key for cacher
+func PrepareUnexecutableTxHashesKey(headerHash []byte) []byte {
+	return append([]byte("unexecutable"), headerHash...)
+}
+
 // IsValidRelayedTxV3 returns true if the provided transaction is a valid transaction of type relayed v3
 func IsValidRelayedTxV3(tx data.TransactionHandler) bool {
 	relayedTx, isRelayedV3 := tx.(data.RelayedTransactionHandler)

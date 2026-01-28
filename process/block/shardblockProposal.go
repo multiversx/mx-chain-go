@@ -858,6 +858,7 @@ func (sp *shardProcessor) collectExecutionResults(headerHash []byte, header data
 	}
 
 	sp.cacheOrderedTxHashes(headerHash)
+	sp.cacheUnexecutableTxHashes(headerHash)
 
 	return executionResult, nil
 }
