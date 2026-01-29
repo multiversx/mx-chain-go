@@ -26,11 +26,12 @@ import (
 	"github.com/multiversx/mx-chain-core-go/data/typeConverters/uint64ByteSlice"
 	"github.com/multiversx/mx-chain-core-go/hashing"
 	"github.com/multiversx/mx-chain-core-go/marshal"
+	"github.com/stretchr/testify/assert"
+	"github.com/stretchr/testify/require"
+
 	"github.com/multiversx/mx-chain-go/common/holders"
 	headersCache "github.com/multiversx/mx-chain-go/process/asyncExecution/cache"
 	"github.com/multiversx/mx-chain-go/process/asyncExecution/executionManager"
-	"github.com/stretchr/testify/assert"
-	"github.com/stretchr/testify/require"
 
 	"github.com/multiversx/mx-chain-go/process/asyncExecution/executionTrack"
 	"github.com/multiversx/mx-chain-go/process/estimator"
@@ -466,6 +467,7 @@ func createMockTransactionCoordinatorArguments(
 
 	shardCoordinator := mock.NewMultiShardsCoordinatorMock(3)
 	enableEpochsHandler := enableEpochsHandlerMock.NewEnableEpochsHandlerStub()
+	enableRoundsHandler := &testscommon.EnableRoundsHandlerStub{}
 
 	blockDataRequesterArgs := coordinator.BlockDataRequestArgs{
 		RequestHandler:      &testscommon.RequestHandlerStub{},
@@ -507,6 +509,7 @@ func createMockTransactionCoordinatorArguments(
 		TxTypeHandler:                &testscommon.TxTypeHandlerMock{},
 		TransactionsLogProcessor:     &mock.TxLogsProcessorStub{},
 		EnableEpochsHandler:          enableEpochsHandler,
+		EnableRoundsHandler:          enableRoundsHandler,
 		ScheduledTxsExecutionHandler: &testscommon.ScheduledTxsExecutionStub{},
 		DoubleTransactionsDetector:   &testscommon.PanicDoubleTransactionsDetector{},
 		ProcessedMiniBlocksTracker:   &testscommon.ProcessedMiniBlocksTrackerStub{},
