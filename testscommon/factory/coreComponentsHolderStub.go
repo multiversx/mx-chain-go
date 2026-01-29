@@ -63,6 +63,7 @@ type CoreComponentsHolderStub struct {
 	EpochChangeGracePeriodHandlerCalled func() common.EpochChangeGracePeriodHandler
 	ProcessConfigsHandlerCalled         func() common.ProcessConfigsHandler
 	CommonConfigsHandlerCalled          func() common.CommonConfigsHandler
+	AntifloodConfigsHandlerCalled       func() common.AntifloodConfigsHandler
 }
 
 // NewCoreComponentsHolderStubFromRealComponent -
@@ -445,6 +446,15 @@ func (stub *CoreComponentsHolderStub) CommonConfigsHandler() common.CommonConfig
 	if stub.CommonConfigsHandlerCalled != nil {
 		return stub.CommonConfigsHandlerCalled()
 	}
+	return nil
+}
+
+// AntifloodConfigsHandler -
+func (stub *CoreComponentsHolderStub) AntifloodConfigsHandler() common.AntifloodConfigsHandler {
+	if stub.AntifloodConfigsHandlerCalled != nil {
+		return stub.AntifloodConfigsHandlerCalled()
+	}
+
 	return nil
 }
 

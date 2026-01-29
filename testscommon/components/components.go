@@ -330,6 +330,7 @@ func GetNetworkFactoryArgs() networkComp.NetworkComponentsFactoryArgs {
 				},
 			},
 		},
+		Antiflood: GetDefaultAntifloodConfig(),
 	}
 
 	appStatusHandler := statusHandlerMock.NewAppStatusHandlerMock()
