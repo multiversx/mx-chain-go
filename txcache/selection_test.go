@@ -6,6 +6,7 @@ import (
 	"fmt"
 	"math"
 	"math/big"
+	"strings"
 	"testing"
 
 	"github.com/multiversx/mx-chain-core-go/core"
@@ -357,6 +358,13 @@ func TestTxCache_SelectTransactions_HandlesNotExecutableTransactions(t *testing.
 
 		session := txcachemocks.NewSelectionSessionMock()
 		session.SetNonce([]byte("alice"), 1)
+
+		session.IsIncorrectlyGuardedCalled = func(tx data.TransactionHandler) bool {
+			return false
+		}
+		session.IsGuardedCalled = func(tx data.TransactionHandler) bool {
+			return strings.Contains(string(tx.GetData()), "SetGuardian")
+		}
 
 		cache.AddTx(createTx([]byte("hash-alice-1"), "alice", 1).withValue(big.NewInt(0)))
 		cache.AddTx(createTx([]byte("hash-alice-2"), "alice", 2).withValue(big.NewInt(0)).withData([]byte("SetGuardian@newGuardian")).withGasLimit(100000))
