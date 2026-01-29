@@ -536,6 +536,7 @@ func createProcessorsForMetaGenesisBlock(arg ArgsGenesisBlockCreator, enableEpoc
 		ProcessedMiniBlocksTracker:   disabledProcessedMiniBlocksTracker,
 		TxExecutionOrderHandler:      arg.TxExecutionOrderHandler,
 		TxCacheSelectionConfig:       arg.TxCacheSelectionConfig,
+		TxVersionCheckerHandler:      arg.Core.TxVersionChecker(),
 	}
 
 	preProcFactory, err := metachain.NewPreProcessorsContainerFactory(argsPreProcessorsContainerFactory)

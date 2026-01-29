@@ -622,6 +622,7 @@ func createProcessorsForShardGenesisBlock(arg ArgsGenesisBlockCreator, enableEpo
 		ProcessedMiniBlocksTracker:   disabledProcessedMiniBlocksTracker,
 		TxExecutionOrderHandler:      arg.TxExecutionOrderHandler,
 		TxCacheSelectionConfig:       arg.TxCacheSelectionConfig,
+		TxVersionChecker:             arg.Core.TxVersionChecker(),
 	}
 	preProcFactory, err := shard.NewPreProcessorsContainerFactory(argsPreProcessorContainerFactory)
 	if err != nil {

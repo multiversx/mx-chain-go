@@ -675,6 +675,7 @@ func createPreProcessorContainer() process.PreProcessorsContainer {
 		ProcessedMiniBlocksTracker:   &testscommon.ProcessedMiniBlocksTrackerStub{},
 		TxExecutionOrderHandler:      &commonMock.TxExecutionOrderHandlerStub{},
 		TxCacheSelectionConfig:       createMockTxCacheSelectionConfig(),
+		TxVersionChecker:             &testscommon.TxVersionCheckerStub{},
 	}
 	preFactory, _ := shard.NewPreProcessorsContainerFactory(args)
 	container, _ := preFactory.Create()
@@ -781,6 +782,7 @@ func createPreProcessorContainerWithDataPool(
 		ProcessedMiniBlocksTracker:   &testscommon.ProcessedMiniBlocksTrackerStub{},
 		TxExecutionOrderHandler:      &commonMock.TxExecutionOrderHandlerStub{},
 		TxCacheSelectionConfig:       createMockTxCacheSelectionConfig(),
+		TxVersionChecker:             &testscommon.TxVersionCheckerStub{},
 	}
 	preFactory, _ := shard.NewPreProcessorsContainerFactory(args)
 	container, _ := preFactory.Create()
@@ -1058,6 +1060,7 @@ func TestTransactionCoordinator_CreateMbsAndProcessCrossShardTransactions(t *tes
 		ProcessedMiniBlocksTracker:   &testscommon.ProcessedMiniBlocksTrackerStub{},
 		TxExecutionOrderHandler:      &commonMock.TxExecutionOrderHandlerStub{},
 		TxCacheSelectionConfig:       createMockTxCacheSelectionConfig(),
+		TxVersionChecker:             &testscommon.TxVersionCheckerStub{},
 	}
 
 	preFactory, _ := shard.NewPreProcessorsContainerFactory(args)
@@ -1250,6 +1253,7 @@ func TestTransactionCoordinator_CreateMbsAndProcessCrossShardTransactionsNilPreP
 		ProcessedMiniBlocksTracker:   &testscommon.ProcessedMiniBlocksTrackerStub{},
 		TxExecutionOrderHandler:      &commonMock.TxExecutionOrderHandlerStub{},
 		TxCacheSelectionConfig:       createMockTxCacheSelectionConfig(),
+		TxVersionChecker:             &testscommon.TxVersionCheckerStub{},
 	}
 	preFactory, _ := shard.NewPreProcessorsContainerFactory(args)
 	container, _ := preFactory.Create()
@@ -1365,6 +1369,7 @@ func TestTransactionCoordinator_CreateMbsAndProcessTransactionsFromMeNothingToPr
 		ProcessedMiniBlocksTracker:   &testscommon.ProcessedMiniBlocksTrackerStub{},
 		TxExecutionOrderHandler:      &commonMock.TxExecutionOrderHandlerStub{},
 		TxCacheSelectionConfig:       createMockTxCacheSelectionConfig(),
+		TxVersionChecker:             &testscommon.TxVersionCheckerStub{},
 	}
 	preFactory, _ := shard.NewPreProcessorsContainerFactory(args)
 	container, _ := preFactory.Create()
@@ -1958,6 +1963,7 @@ func TestTransactionCoordinator_ProcessBlockTransactionProcessTxError(t *testing
 		ProcessedMiniBlocksTracker:   &testscommon.ProcessedMiniBlocksTrackerStub{},
 		TxExecutionOrderHandler:      &commonMock.TxExecutionOrderHandlerStub{},
 		TxCacheSelectionConfig:       createMockTxCacheSelectionConfig(),
+		TxVersionChecker:             &testscommon.TxVersionCheckerStub{},
 	}
 	preFactory, _ := shard.NewPreProcessorsContainerFactory(args)
 	container, _ := preFactory.Create()
@@ -2084,6 +2090,7 @@ func TestTransactionCoordinator_RequestMiniblocks(t *testing.T) {
 		ProcessedMiniBlocksTracker:   &testscommon.ProcessedMiniBlocksTrackerStub{},
 		TxExecutionOrderHandler:      &commonMock.TxExecutionOrderHandlerStub{},
 		TxCacheSelectionConfig:       createMockTxCacheSelectionConfig(),
+		TxVersionChecker:             &testscommon.TxVersionCheckerStub{},
 	}
 	preFactory, _ := shard.NewPreProcessorsContainerFactory(args)
 	container, _ := preFactory.Create()
@@ -2231,6 +2238,7 @@ func TestShardProcessor_ProcessMiniBlockCompleteWithOkTxsShouldExecuteThemAndNot
 		ProcessedMiniBlocksTracker:   &testscommon.ProcessedMiniBlocksTrackerStub{},
 		TxExecutionOrderHandler:      &commonMock.TxExecutionOrderHandlerStub{},
 		TxCacheSelectionConfig:       createMockTxCacheSelectionConfig(),
+		TxVersionChecker:             &testscommon.TxVersionCheckerStub{},
 	}
 	preFactory, _ := shard.NewPreProcessorsContainerFactory(args)
 	container, _ := preFactory.Create()
@@ -2382,6 +2390,7 @@ func TestShardProcessor_ProcessMiniBlockCompleteWithErrorWhileProcessShouldCallR
 		ProcessedMiniBlocksTracker:   &testscommon.ProcessedMiniBlocksTrackerStub{},
 		TxExecutionOrderHandler:      &commonMock.TxExecutionOrderHandlerStub{},
 		TxCacheSelectionConfig:       createMockTxCacheSelectionConfig(),
+		TxVersionChecker:             &testscommon.TxVersionCheckerStub{},
 	}
 	preFactory, _ := shard.NewPreProcessorsContainerFactory(args)
 	container, _ := preFactory.Create()

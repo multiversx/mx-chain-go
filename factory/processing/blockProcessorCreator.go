@@ -381,6 +381,7 @@ func (pcf *processComponentsFactory) newShardBlockProcessor(
 		ProcessedMiniBlocksTracker:   processedMiniBlocksTracker,
 		TxExecutionOrderHandler:      pcf.txExecutionOrderHandler,
 		TxCacheSelectionConfig:       pcf.config.TxCacheSelection,
+		TxVersionChecker:             pcf.coreData.TxVersionChecker(),
 	}
 	preProcFactory, err := shard.NewPreProcessorsContainerFactory(argsPreProcFactory)
 	if err != nil {
@@ -805,6 +806,7 @@ func (pcf *processComponentsFactory) newMetaBlockProcessor(
 		ProcessedMiniBlocksTracker:   processedMiniBlocksTracker,
 		TxExecutionOrderHandler:      pcf.txExecutionOrderHandler,
 		TxCacheSelectionConfig:       pcf.config.TxCacheSelection,
+		TxVersionCheckerHandler:      pcf.coreData.TxVersionChecker(),
 	}
 
 	preProcFactory, err := metachain.NewPreProcessorsContainerFactory(argsPreprocContainerFactory)

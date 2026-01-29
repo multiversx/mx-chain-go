@@ -265,6 +265,7 @@ func createDefaultTransactionsProcessorArgs() ArgsTransactionPreProcessor {
 			SelectionMaxNumTxs:                            30000,
 			SelectionLoopDurationCheckInterval:            10,
 		},
+		TxVersionCheckerHandler: &testscommon.TxVersionCheckerStub{},
 	}
 }
 

@@ -109,7 +109,7 @@ func selectTransactionsFromBunches(
 			} else {
 				// only if there isn't any error, we select the transaction
 				accumulatedGas += gasLimit
-				item.selectCurrentTransaction()
+				item.selectCurrentTransaction(virtualSession)
 				selectedTransactions = append(selectedTransactions, currentTransaction)
 			}
 		}

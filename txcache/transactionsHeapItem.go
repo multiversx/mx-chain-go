@@ -1,6 +1,8 @@
 package txcache
 
-import "github.com/multiversx/mx-chain-go/process"
+import (
+	"github.com/multiversx/mx-chain-go/process"
+)
 
 type transactionsHeapItem struct {
 	sender []byte
@@ -36,10 +38,16 @@ func (item *transactionsHeapItem) getCurrentTransaction() *WrappedTransaction {
 	return item.currentTransaction
 }
 
-func (item *transactionsHeapItem) selectCurrentTransaction() {
+func (item *transactionsHeapItem) selectCurrentTransaction(virtualSession *virtualSelectionSession) {
 	item.latestSelectedTransaction = item.currentTransaction
 	item.latestSelectedTransactionNonce = item.currentTransactionNonce
-	item.hasPendingChangeGuardianTransaction = process.IsSetGuardianCall(item.currentTransaction.Tx.GetData())
+	isSetGuardianCall := process.IsSetGuardianCall(item.currentTransaction.Tx.GetData())
+	if !isSetGuardianCall {
+		return
+	}
+
+	// if an instant change guardian is detected, further transactions for this sender should be skipped as they are probably guarded by the old one
+	item.hasPendingChangeGuardianTransaction = virtualSession.isGuardedByActiveGuardian(item.currentTransaction.Tx)
 }
 
 func (item *transactionsHeapItem) gotoNextTransaction() bool {
