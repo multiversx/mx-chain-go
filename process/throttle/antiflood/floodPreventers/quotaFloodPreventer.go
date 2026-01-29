@@ -6,20 +6,22 @@ import (
 
 	"github.com/multiversx/mx-chain-core-go/core"
 	"github.com/multiversx/mx-chain-core-go/core/check"
+	"github.com/multiversx/mx-chain-go/common"
+	"github.com/multiversx/mx-chain-go/config"
 	"github.com/multiversx/mx-chain-go/process"
+	"github.com/multiversx/mx-chain-go/process/throttle/antiflood"
 	"github.com/multiversx/mx-chain-go/storage"
 )
 
+type floodPreventerConfigFetcher func(confHandler common.AntifloodConfigsHandler, id string) config.FloodPreventerConfig
+
 // ArgQuotaFloodPreventer defines the arguments for a quota flood preventer
 type ArgQuotaFloodPreventer struct {
-	Name                      string
-	Cacher                    storage.Cacher
-	StatusHandlers            []QuotaStatusHandler
-	MaxTotalSizePerPeer       uint64
-	PercentReserved           float32
-	IncreaseFactor            float32
-	IncreaseThreshold         uint32
-	BaseMaxNumMessagesPerPeer uint32
+	Name             string
+	Cacher           storage.Cacher
+	StatusHandlers   []QuotaStatusHandler
+	AntifloodConfigs common.AntifloodConfigsHandler
+	ConfigFetcher    floodPreventerConfigFetcher
 }
 
 var _ process.FloodPreventer = (*quotaFloodPreventer)(nil)
@@ -50,11 +52,8 @@ type quotaFloodPreventer struct {
 	cacher                        storage.Cacher
 	statusHandlers                []QuotaStatusHandler
 	computedMaxNumMessagesPerPeer uint32
-	baseMaxNumMessagesPerPeer     uint32
-	maxTotalSizePerPeer           uint64
-	percentReserved               float32
-	increaseThreshold             uint32
-	increaseFactor                float32
+	antifloodConfigs              common.AntifloodConfigsHandler
+	configFetcher                 floodPreventerConfigFetcher
 }
 
 // NewQuotaFloodPreventer creates a new flood preventer based on quota / peer
@@ -68,52 +67,19 @@ func NewQuotaFloodPreventer(arg ArgQuotaFloodPreventer) (*quotaFloodPreventer, e
 			return nil, process.ErrNilQuotaStatusHandler
 		}
 	}
-	if arg.BaseMaxNumMessagesPerPeer < minMessages {
-		return nil, fmt.Errorf("%w, maxMessagesPerPeer: provided %d, minimum %d",
-			process.ErrInvalidValue,
-			arg.BaseMaxNumMessagesPerPeer,
-			minMessages,
-		)
-	}
-	if arg.MaxTotalSizePerPeer < minTotalSize {
-		return nil, fmt.Errorf("%w, maxTotalSizePerPeer: provided %d, minimum %d",
-			process.ErrInvalidValue,
-			arg.MaxTotalSizePerPeer,
-			minTotalSize,
-		)
-	}
-	if arg.PercentReserved > maxPercentReserved {
-		return nil, fmt.Errorf("%w, percentReserved: provided %0.3f, maximum %0.3f",
-			process.ErrInvalidValue,
-			arg.PercentReserved,
-			maxPercentReserved,
-		)
-	}
-	if arg.PercentReserved < minPercentReserved {
-		return nil, fmt.Errorf("%w, percentReserved: provided %0.3f, minimum %0.3f",
-			process.ErrInvalidValue,
-			arg.PercentReserved,
-			minPercentReserved,
-		)
-	}
-	if arg.IncreaseFactor < 0 {
-		return nil, fmt.Errorf("%w, increaseFactor is negative: provided %0.3f",
-			process.ErrInvalidValue,
-			arg.IncreaseFactor,
-		)
+	if check.IfNil(arg.AntifloodConfigs) {
+		return nil, process.ErrNilAntifloodConfigsHandler
 	}
 
-	return &quotaFloodPreventer{
-		name:                          arg.Name,
-		cacher:                        arg.Cacher,
-		statusHandlers:                arg.StatusHandlers,
-		computedMaxNumMessagesPerPeer: arg.BaseMaxNumMessagesPerPeer,
-		baseMaxNumMessagesPerPeer:     arg.BaseMaxNumMessagesPerPeer,
-		maxTotalSizePerPeer:           arg.MaxTotalSizePerPeer,
-		percentReserved:               arg.PercentReserved,
-		increaseThreshold:             arg.IncreaseThreshold,
-		increaseFactor:                arg.IncreaseFactor,
-	}, nil
+	qfp := &quotaFloodPreventer{
+		name:             arg.Name,
+		cacher:           arg.Cacher,
+		statusHandlers:   arg.StatusHandlers,
+		antifloodConfigs: arg.AntifloodConfigs,
+	}
+	qfp.computedMaxNumMessagesPerPeer = qfp.getBbaseMaxNumMessagesPerPeer()
+
+	return qfp, nil
 }
 
 // IncreaseLoad tries to increment the counter values held at "pid" position
@@ -147,7 +113,7 @@ func (qfp *quotaFloodPreventer) increaseLoad(pid core.PeerID, size uint64) error
 	q.sizeReceivedMessages += size
 
 	maxNumMessagesReached := qfp.isMaximumReached(uint64(qfp.computedMaxNumMessagesPerPeer), uint64(q.numReceivedMessages))
-	maxSizeMessagesReached := qfp.isMaximumReached(qfp.maxTotalSizePerPeer, q.sizeReceivedMessages)
+	maxSizeMessagesReached := qfp.isMaximumReached(qfp.getMaxTotalSizePerInternal(), q.sizeReceivedMessages)
 	isPeerQuotaReached := maxNumMessagesReached || maxSizeMessagesReached
 	if isPeerQuotaReached {
 		return fmt.Errorf("%w for pid %s", process.ErrSystemBusy, pid.Pretty())
@@ -160,7 +126,7 @@ func (qfp *quotaFloodPreventer) increaseLoad(pid core.PeerID, size uint64) error
 }
 
 func (qfp *quotaFloodPreventer) isMaximumReached(absoluteMax uint64, counted uint64) bool {
-	max := uint64(100-qfp.percentReserved) * absoluteMax / 100
+	max := uint64(100-qfp.getReservedPercent()) * absoluteMax / 100
 
 	return counted > max
 }
@@ -238,11 +204,11 @@ func (qfp *quotaFloodPreventer) ApplyConsensusSize(size int) {
 		)
 		return
 	}
-	if qfp.increaseThreshold > uint32(size) {
+	if qfp.getIncreaseThreshold() > uint32(size) {
 		log.Debug("consensus size did not reach the threshold for quota flood preventer",
 			"name", qfp.name,
 			"provided", size,
-			"threshold", qfp.increaseThreshold,
+			"threshold", qfp.getIncreaseThreshold(),
 		)
 		return
 	}
@@ -250,20 +216,67 @@ func (qfp *quotaFloodPreventer) ApplyConsensusSize(size int) {
 	qfp.mutOperation.Lock()
 	defer qfp.mutOperation.Unlock()
 
-	numNodesOverThreshold := float32(uint32(size) - qfp.increaseThreshold)
-	value := numNodesOverThreshold * qfp.increaseFactor
+	numNodesOverThreshold := float32(uint32(size) - qfp.getIncreaseThreshold())
+	value := numNodesOverThreshold * qfp.getIncreaseFactor()
 	oldComputed := qfp.computedMaxNumMessagesPerPeer
-	qfp.computedMaxNumMessagesPerPeer = qfp.baseMaxNumMessagesPerPeer + uint32(value)
+	qfp.computedMaxNumMessagesPerPeer = qfp.getBbaseMaxNumMessagesPerPeer() + uint32(value)
 
 	log.Debug("quotaFloodPreventer.ApplyConsensusSize",
 		"name", qfp.name,
 		"provided", size,
-		"threshold", qfp.increaseThreshold,
-		"factor", qfp.increaseFactor,
-		"base", qfp.baseMaxNumMessagesPerPeer,
+		"threshold", qfp.getIncreaseThreshold(),
+		"factor", qfp.getIncreaseFactor(),
+		"base", qfp.getBbaseMaxNumMessagesPerPeer(),
 		"old computed", oldComputed,
 		"new computed", qfp.computedMaxNumMessagesPerPeer,
 	)
+}
+
+func (qfp *quotaFloodPreventer) getBbaseMaxNumMessagesPerPeer() uint32 {
+	if qfp.name == antiflood.OutputIdentifier {
+		currentConfig := qfp.antifloodConfigs.GetCurrentConfig()
+		return currentConfig.PeerMaxOutput.BaseMessagesPerInterval
+	}
+
+	currentConfig := qfp.configFetcher(qfp.antifloodConfigs, qfp.name)
+	return currentConfig.PeerMaxInput.BaseMessagesPerInterval
+}
+
+func (qfp *quotaFloodPreventer) getMaxTotalSizePerInternal() uint64 {
+	if qfp.name == antiflood.OutputIdentifier {
+		currentConfig := qfp.antifloodConfigs.GetCurrentConfig()
+		return currentConfig.PeerMaxOutput.TotalSizePerInterval
+	}
+
+	currentConfig := qfp.configFetcher(qfp.antifloodConfigs, qfp.name)
+	return currentConfig.PeerMaxInput.TotalSizePerInterval
+}
+
+func (qfp *quotaFloodPreventer) getReservedPercent() float32 {
+	if qfp.name == antiflood.OutputIdentifier {
+		return 0
+	}
+
+	currentConfig := qfp.configFetcher(qfp.antifloodConfigs, qfp.name)
+	return currentConfig.ReservedPercent
+}
+
+func (qfp *quotaFloodPreventer) getIncreaseThreshold() uint32 {
+	if qfp.name == antiflood.OutputIdentifier {
+		return 0
+	}
+
+	currentConfig := qfp.configFetcher(qfp.antifloodConfigs, qfp.name)
+	return currentConfig.PeerMaxInput.IncreaseFactor.Threshold
+}
+
+func (qfp *quotaFloodPreventer) getIncreaseFactor() float32 {
+	if qfp.name == antiflood.OutputIdentifier {
+		return 0
+	}
+
+	currentConfig := qfp.configFetcher(qfp.antifloodConfigs, qfp.name)
+	return currentConfig.PeerMaxInput.IncreaseFactor.Factor
 }
 
 // IsInterfaceNil returns true if there is no value under the interface

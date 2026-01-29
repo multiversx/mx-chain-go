@@ -506,3 +506,10 @@ type CommonConfigsHandler interface {
 
 	IsInterfaceNil() bool
 }
+
+// AntifloodConfigsHandler defines the behavior of a component that can return antiflood config by round
+type AntifloodConfigsHandler interface {
+	GetCurrentConfig() config.AntifloodConfigByRound
+	IsEnabled() bool
+	IsInterfaceNil() bool
+}

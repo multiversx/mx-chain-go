@@ -430,11 +430,26 @@ func GetGeneralConfig() config.Config {
 			CheckNodesOnDisk:          false,
 		},
 		Antiflood: config.AntifloodConfig{
-			NumConcurrentResolverJobs:           2,
-			NumConcurrentResolvingTrieNodesJobs: 1,
-			TxAccumulator: config.TxAccumulatorConfig{
-				MaxAllowedTimeInMilliseconds:   10,
-				MaxDeviationTimeInMilliseconds: 1,
+			Enabled: true,
+			ConfigsByRound: []config.AntifloodConfigByRound{
+				{
+					Round:                               0,
+					NumConcurrentResolverJobs:           2,
+					NumConcurrentResolvingTrieNodesJobs: 1,
+					TxAccumulator: config.TxAccumulatorConfig{
+						MaxAllowedTimeInMilliseconds:   10,
+						MaxDeviationTimeInMilliseconds: 1,
+					},
+				},
+				{
+					Round:                               440,
+					NumConcurrentResolverJobs:           20,
+					NumConcurrentResolvingTrieNodesJobs: 10,
+					TxAccumulator: config.TxAccumulatorConfig{
+						MaxAllowedTimeInMilliseconds:   100,
+						MaxDeviationTimeInMilliseconds: 10,
+					},
+				},
 			},
 		},
 		Requesters: config.RequesterConfig{

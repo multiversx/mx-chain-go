@@ -27,12 +27,14 @@ func NewMetaResolversContainerFactory(
 		args.Marshalizer = marshal.NewSizeCheckUnmarshalizer(args.Marshalizer, args.SizeCheckDelta)
 	}
 
-	mainThrottler, err := throttler.NewNumGoRoutinesThrottler(args.NumConcurrentResolvingJobs)
+	currentConfig := args.AntifloodConfigsHandler.GetCurrentConfig()
+
+	mainThrottler, err := throttler.NewNumGoRoutinesThrottler(currentConfig.NumConcurrentResolverJobs)
 	if err != nil {
 		return nil, err
 	}
 
-	trieNodesThrottler, err := throttler.NewNumGoRoutinesThrottler(args.NumConcurrentResolvingTrieNodesJobs)
+	trieNodesThrottler, err := throttler.NewNumGoRoutinesThrottler(currentConfig.NumConcurrentResolvingTrieNodesJobs)
 	if err != nil {
 		return nil, err
 	}
