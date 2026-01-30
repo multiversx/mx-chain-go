@@ -17,7 +17,7 @@ type BlockProcessorMock struct {
 	ProcessBlockProposalCalled       func(header data.HeaderHandler, body data.BodyHandler) (data.BaseExecutionResultHandler, error)
 	ProcessScheduledBlockCalled      func(header data.HeaderHandler, body data.BodyHandler, haveTime func() time.Duration) error
 	CommitBlockCalled                func(header data.HeaderHandler, body data.BodyHandler) error
-	RevertCurrentBlockCalled         func(header data.HeaderHandler)
+	RevertCurrentBlockCalled         func()
 	CreateBlockCalled                func(initialHdrData data.HeaderHandler, haveTime func() bool) (data.HeaderHandler, data.BodyHandler, error)
 	CreateBlockProposalCalled        func(initialHdr data.HeaderHandler, haveTime func() bool) (data.HeaderHandler, data.BodyHandler, error)
 	CreateNewHeaderProposalCalled    func(round uint64, nonce uint64) (data.HeaderHandler, error)
@@ -79,9 +79,9 @@ func (bpm *BlockProcessorMock) CommitBlock(header data.HeaderHandler, body data.
 }
 
 // RevertCurrentBlock mocks revert of the current block
-func (bpm *BlockProcessorMock) RevertCurrentBlock(header data.HeaderHandler) {
+func (bpm *BlockProcessorMock) RevertCurrentBlock() {
 	if bpm.RevertCurrentBlockCalled != nil {
-		bpm.RevertCurrentBlockCalled(header)
+		bpm.RevertCurrentBlockCalled()
 	}
 }
 
