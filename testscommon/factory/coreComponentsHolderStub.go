@@ -110,6 +110,7 @@ func NewCoreComponentsHolderStubFromRealComponent(coreComponents factory.CoreCom
 		EpochChangeGracePeriodHandlerCalled: coreComponents.EpochChangeGracePeriodHandler,
 		ProcessConfigsHandlerCalled:         coreComponents.ProcessConfigsHandler,
 		CommonConfigsHandlerCalled:          coreComponents.CommonConfigsHandler,
+		AntifloodConfigsHandlerCalled:       coreComponents.AntifloodConfigsHandler,
 	}
 }
 

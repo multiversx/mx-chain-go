@@ -231,6 +231,7 @@ func createMockProcessComponentsFactoryArgs() processComp.ProcessComponentsFacto
 			ChainParametersHandlerField:        &chainParameters.ChainParametersHandlerStub{},
 			ProcessConfigsHandlerField:         testscommon.GetDefaultProcessConfigsHandler(),
 			CommonConfigsHandlerField:          testscommon.GetDefaultCommonConfigsHandler(),
+			AntifloodConfigsHandlerField:       &testscommon.AntifloodConfigsHandlerStub{},
 		},
 		Crypto: &testsMocks.CryptoComponentsStub{
 			BlKeyGen: &cryptoMocks.KeyGenStub{},
