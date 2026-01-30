@@ -210,6 +210,9 @@ var TestMultiSig = cryptoMocks.NewMultiSigner()
 // TestKeyGenForAccounts represents a mock key generator for balances
 var TestKeyGenForAccounts = signing.NewKeyGenerator(ed25519.NewEd25519())
 
+// TestBlsKeyGen represents a mock key generator for pub keys
+var TestBlsKeyGen = signing.NewKeyGenerator(mcl.NewSuiteBLS12())
+
 // TestUint64Converter represents an uint64 to byte slice converter
 var TestUint64Converter = uint64ByteSlice.NewBigEndianConverter()
 
@@ -340,7 +343,7 @@ type ArgTestProcessorNode struct {
 	NodeKeys                *TestNodeKeys
 	NodesSetup              sharding.GenesisNodesSetupHandler
 	NodesCoordinator        nodesCoordinator.NodesCoordinator
-	MultiSigner             crypto.MultiSigner
+	MultiSigner             crypto.MultiSignerV2
 	RatingsData             *rating.RatingsData
 	HeaderSigVerifier       process.InterceptedHeaderSigVerifier
 	HeaderIntegrityVerifier process.HeaderIntegrityVerifier
@@ -432,7 +435,7 @@ type TestProcessorNode struct {
 	EpochStartNotifier notifier.EpochStartNotifier
 	EpochProvider      dataRetriever.CurrentNetworkEpochProviderHandler
 
-	MultiSigner             crypto.MultiSigner
+	MultiSigner             crypto.MultiSignerV2
 	HeaderSigVerifier       process.InterceptedHeaderSigVerifier
 	HeaderIntegrityVerifier process.HeaderIntegrityVerifier
 	GuardedAccountHandler   process.GuardedAccountHandler
@@ -2534,6 +2537,8 @@ func (tpn *TestProcessorNode) initBlockProcessor() {
 		ExecutionResultsTracker: executionResultsTracker,
 		BlockChain:              tpn.BlockChain,
 		Headers:                 tpn.DataPool.Headers(),
+		PostProcessTransactions: tpn.DataPool.PostProcessTransactions(),
+		ExecutedMiniBlocks:      tpn.DataPool.ExecutedMiniBlocks(),
 		StorageService:          &storageStubs.ChainStorerStub{},
 		Marshaller:              TestMarshaller,
 		ShardCoordinator:        &testscommon.ShardsCoordinatorMock{},

@@ -1257,8 +1257,8 @@ func (bp *baseProcessor) cleanupUnexecutableTxsFromPool(headerHash []byte) {
 		return
 	}
 
+	cacheID := process.ShardCacherIdentifier(bp.shardCoordinator.SelfId(), bp.shardCoordinator.SelfId())
 	for _, txHash := range unexecutableTxHashes {
-		cacheID := process.ShardCacherIdentifier(bp.shardCoordinator.SelfId(), bp.shardCoordinator.SelfId())
 		bp.dataPool.Transactions().RemoveData(txHash, cacheID)
 	}
 }
@@ -2020,13 +2020,13 @@ func (bp *baseProcessor) updateStateStorage(
 }
 
 // RevertCurrentBlock reverts the current block for cleanup failed process
-func (bp *baseProcessor) RevertCurrentBlock(headerHandler data.HeaderHandler) {
+func (bp *baseProcessor) RevertCurrentBlock() {
 	bp.revertAccountState()
 	bp.revertScheduledInfo()
-	bp.revertCurrentBlockV3(headerHandler)
 }
 
-func (bp *baseProcessor) revertCurrentBlockV3(headerHandler data.HeaderHandler) {
+// RevertHeaderV3OnCommit reverts the current block for commit failed
+func (bp *baseProcessor) RevertHeaderV3OnCommit(headerHandler data.HeaderHandler) {
 	if check.IfNil(headerHandler) || !headerHandler.IsHeaderV3() {
 		return
 	}
@@ -2505,7 +2505,7 @@ func (bp *baseProcessor) ProcessScheduledBlock(headerHandler data.HeaderHandler,
 	bp.processStatusHandler.SetBusy("baseProcessor.ProcessScheduledBlock")
 	defer func() {
 		if err != nil {
-			bp.RevertCurrentBlock(headerHandler)
+			bp.RevertCurrentBlock()
 		}
 		bp.processStatusHandler.SetIdle()
 	}()
@@ -2909,20 +2909,9 @@ func (bp *baseProcessor) cleanPostProcessCache(header data.HeaderHandler) error 
 	postProcessTxsCache := bp.dataPool.PostProcessTransactions()
 	executedMbs := bp.dataPool.ExecutedMiniBlocks()
 	for _, execResult := range executionResults {
-		headerHash := execResult.GetHeaderHash()
-		// all transactions moved, cleaning the cache
-		postProcessTxsCache.Remove(headerHash)
-		// remove execution order data
-		postProcessTxsCache.Remove(common.PrepareOrderedTxHashesKey(headerHash))
-		// remove cached log events
-		postProcessTxsCache.Remove(common.PrepareLogEventsKey(headerHash))
-
-		mbHeaders, err := common.GetMiniBlocksHeaderHandlersFromExecResult(execResult)
+		err := process.CleanCachesForExecutionResult(execResult, postProcessTxsCache, executedMbs)
 		if err != nil {
 			return err
-		}
-		for _, mbHeader := range mbHeaders {
-			executedMbs.Remove(mbHeader.GetHash())
 		}
 	}
 
@@ -3601,6 +3590,8 @@ func (bp *baseProcessor) checkAndUpdateContextBeforeExecution(header data.Header
 			bp.executionManager,
 			bp.blockChain,
 			bp.dataPool.Headers(),
+			bp.dataPool.PostProcessTransactions(),
+			bp.dataPool.ExecutedMiniBlocks(),
 			bp.store,
 			bp.marshalizer,
 			bp.shardCoordinator.SelfId(),
