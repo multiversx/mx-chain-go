@@ -305,7 +305,8 @@ func (wr *WidgetsRender) prepareBlockInfo() {
 
 	currentBlockHeight := wr.presenter.GetNonce()
 	blockSize := wr.presenter.GetBlockSize()
-	rows[0] = []string{fmt.Sprintf("Current block height: %d, size: %s", currentBlockHeight, core.ConvertBytes(blockSize))}
+	lastExecutedNonce := wr.presenter.GetLastExecutedNonce()
+	rows[0] = []string{fmt.Sprintf("Current block height: %d, size: %s, last executed nonce: %d", currentBlockHeight, core.ConvertBytes(blockSize), lastExecutedNonce)}
 
 	numTransactionInBlock := wr.presenter.GetNumTxInBlock()
 	numMiniBlocks := wr.presenter.GetNumMiniBlocks()

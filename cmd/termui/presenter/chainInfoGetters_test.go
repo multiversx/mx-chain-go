@@ -22,6 +22,17 @@ func TestPresenterStatusHandler_GetNonce(t *testing.T) {
 	assert.Equal(t, nonce, result)
 }
 
+func TestPresenterStatusHandler_GetLastExecutedNonce(t *testing.T) {
+	t.Parallel()
+
+	nonce := uint64(900)
+	presenterStatusHandler := NewPresenterStatusHandler()
+	presenterStatusHandler.SetUInt64Value(common.MetricLastExecutedNonce, nonce)
+	result := presenterStatusHandler.GetLastExecutedNonce()
+
+	assert.Equal(t, nonce, result)
+}
+
 func TestPresenterStatusHandler_GetIsSyncing(t *testing.T) {
 	t.Parallel()
 

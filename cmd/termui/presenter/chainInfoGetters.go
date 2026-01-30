@@ -13,6 +13,11 @@ func (psh *PresenterStatusHandler) GetNonce() uint64 {
 	return psh.getFromCacheAsUint64(common.MetricNonce)
 }
 
+// GetLastExecutedNonce will return current last executed nonce of node
+func (psh *PresenterStatusHandler) GetLastExecutedNonce() uint64 {
+	return psh.getFromCacheAsUint64(common.MetricLastExecutedNonce)
+}
+
 // GetIsSyncing will return state of the node
 func (psh *PresenterStatusHandler) GetIsSyncing() uint64 {
 	return psh.getFromCacheAsUint64(common.MetricIsSyncing)
