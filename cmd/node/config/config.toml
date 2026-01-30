@@ -574,6 +574,10 @@
     Type = "SizeLRU"
     SizeInBytes = 104857600 # 100MB
 
+[HeaderBodyCacheConfig]
+    Capacity = 1000
+
+
 #PublicKeyPeerId represents the main cache used to map MultiversX block signing public keys to their associated peer id's.
 [PublicKeyPeerId]
     Name = "PublicKeyPeerId"
