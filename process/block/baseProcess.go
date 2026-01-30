@@ -20,6 +20,7 @@ import (
 	"github.com/multiversx/mx-chain-core-go/display"
 	"github.com/multiversx/mx-chain-core-go/hashing"
 	"github.com/multiversx/mx-chain-core-go/marshal"
+	"github.com/multiversx/mx-chain-go/common/fees"
 	logger "github.com/multiversx/mx-chain-logger-go"
 
 	nodeFactory "github.com/multiversx/mx-chain-go/cmd/node/factory"
@@ -3870,36 +3871,18 @@ func (bp *baseProcessor) saveEpochStartEconomicsMetrics(epochStartMetaBlock data
 	bp.appStatusHandler.SetStringValue(common.MetricTotalSupply, economics.GetTotalSupply().String())
 	bp.appStatusHandler.SetStringValue(common.MetricInflation, economics.GetTotalNewlyMinted().String())
 	bp.appStatusHandler.SetUInt64Value(common.MetricEpochForEconomicsData, uint64(epochStartMetaBlock.GetEpoch()))
-
-	metaBlockWithFeesIncluded := bp.getActualEpochStartMetaWithFees(epochStartMetaBlock)
-	bp.appStatusHandler.SetStringValue(common.MetricTotalFees, common.GetAccumulatedFeesInEpoch(metaBlockWithFeesIncluded).String())
-	bp.appStatusHandler.SetStringValue(common.MetricDevRewardsInEpoch, common.GetDeveloperFeesInEpoch(metaBlockWithFeesIncluded).String())
-}
-
-func (bp *baseProcessor) getActualEpochStartMetaWithFees(epochStartMetaBlock data.MetaHeaderHandler) data.MetaHeaderHandler {
-	if !epochStartMetaBlock.IsHeaderV3() {
-		return epochStartMetaBlock
-	}
-
-	// For epoch start block, this should always hold the header hash of the epoch change proposed block
-	lastExecRes, ok := epochStartMetaBlock.GetLastExecutionResultHandler().(data.LastMetaExecutionResultHandler)
-	if !ok {
-		log.Error("getActualEpochStartMetaWitFees: wrong type assertion for epochStartMetaBlock.GetLastExecutionResultHandler().(data.LastMetaExecutionResultHandler)")
-		// saving a metric should not be a blocking error, we will return the actual start of epoch block with empty fee fields
-		return epochStartMetaBlock
-	}
-
-	hdrHashEpochChangeProposed := lastExecRes.GetExecutionResultHandler().GetHeaderHash()
-	epochChangeHdrProposed, err := process.GetMetaHeader(
-		hdrHashEpochChangeProposed,
+	accumulatedFees := fees.GetAccumulatedFeesInEpoch(
+		epochStartMetaBlock,
 		bp.dataPool.Headers(),
 		bp.marshalizer,
-		bp.store)
-	if err != nil {
-		log.Error("getActualEpochStartMetaWitFees: cannot find previous epoch change proposed header", "error", err)
-		// saving a metric should not be a blocking error, we will return the actual start of epoch block with empty fee fields
-		return epochStartMetaBlock
-	}
-
-	return epochChangeHdrProposed
+		bp.store,
+	)
+	bp.appStatusHandler.SetStringValue(common.MetricTotalFees, accumulatedFees.String())
+	devFees := fees.GetDeveloperFeesInEpoch(
+		epochStartMetaBlock,
+		bp.dataPool.Headers(),
+		bp.marshalizer,
+		bp.store,
+	)
+	bp.appStatusHandler.SetStringValue(common.MetricDevRewardsInEpoch, devFees.String())
 }

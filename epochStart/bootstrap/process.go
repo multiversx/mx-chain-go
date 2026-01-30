@@ -15,6 +15,7 @@ import (
 	"github.com/multiversx/mx-chain-core-go/data"
 	"github.com/multiversx/mx-chain-core-go/data/block"
 	"github.com/multiversx/mx-chain-core-go/data/typeConverters/uint64ByteSlice"
+	"github.com/multiversx/mx-chain-go/common/fees"
 	logger "github.com/multiversx/mx-chain-logger-go"
 
 	"github.com/multiversx/mx-chain-go/process/interceptors/processor"
@@ -1760,8 +1761,20 @@ func (e *epochStartBootstrap) setEpochStartMetrics() {
 		metablockEconomics := e.epochStartMeta.GetEpochStartHandler().GetEconomicsHandler()
 		e.statusHandler.SetStringValue(common.MetricTotalSupply, metablockEconomics.GetTotalSupply().String())
 		e.statusHandler.SetStringValue(common.MetricInflation, metablockEconomics.GetTotalNewlyMinted().String())
-		e.statusHandler.SetStringValue(common.MetricTotalFees, common.GetAccumulatedFeesInEpoch(e.epochStartMeta).String())
-		e.statusHandler.SetStringValue(common.MetricDevRewardsInEpoch, common.GetDeveloperFeesInEpoch(e.epochStartMeta).String())
+		accumulatedFees := fees.GetAccumulatedFeesInEpoch(
+			e.epochStartMeta,
+			e.dataPool.Headers(),
+			e.coreComponentsHolder.InternalMarshalizer(),
+			e.storageService,
+		)
+		e.statusHandler.SetStringValue(common.MetricTotalFees, accumulatedFees.String())
+		devFees := fees.GetDeveloperFeesInEpoch(
+			e.epochStartMeta,
+			e.dataPool.Headers(),
+			e.coreComponentsHolder.InternalMarshalizer(),
+			e.storageService,
+		)
+		e.statusHandler.SetStringValue(common.MetricDevRewardsInEpoch, devFees.String())
 		e.statusHandler.SetUInt64Value(common.MetricEpochForEconomicsData, uint64(e.epochStartMeta.GetEpoch()))
 	}
 }

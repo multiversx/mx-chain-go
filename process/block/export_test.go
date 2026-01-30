@@ -1155,3 +1155,8 @@ func (bp *baseProcessor) ExcludeRevertedExecutionResultsForHeader(
 ) []data.BaseExecutionResultHandler {
 	return bp.excludeRevertedExecutionResultsForHeader(header, pendingExecutionResults)
 }
+
+// SaveEpochStartEconomicsMetrics -
+func (bp *baseProcessor) SaveEpochStartEconomicsMetrics(epochStartMetaBlock data.MetaHeaderHandler) {
+	bp.saveEpochStartEconomicsMetrics(epochStartMetaBlock)
+}
