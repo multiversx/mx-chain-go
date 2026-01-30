@@ -429,6 +429,8 @@ func (mp *metaProcessor) ProcessBlockProposal(
 		return nil, err
 	}
 
+	mp.saveEpochStartEconomicsMetricsV3(header)
+
 	return execResult, nil
 }
 

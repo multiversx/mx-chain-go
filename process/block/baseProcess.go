@@ -20,7 +20,6 @@ import (
 	"github.com/multiversx/mx-chain-core-go/display"
 	"github.com/multiversx/mx-chain-core-go/hashing"
 	"github.com/multiversx/mx-chain-core-go/marshal"
-	"github.com/multiversx/mx-chain-go/common/fees"
 	logger "github.com/multiversx/mx-chain-logger-go"
 
 	nodeFactory "github.com/multiversx/mx-chain-go/cmd/node/factory"
@@ -3871,18 +3870,38 @@ func (bp *baseProcessor) saveEpochStartEconomicsMetrics(epochStartMetaBlock data
 	bp.appStatusHandler.SetStringValue(common.MetricTotalSupply, economics.GetTotalSupply().String())
 	bp.appStatusHandler.SetStringValue(common.MetricInflation, economics.GetTotalNewlyMinted().String())
 	bp.appStatusHandler.SetUInt64Value(common.MetricEpochForEconomicsData, uint64(epochStartMetaBlock.GetEpoch()))
-	accumulatedFees := fees.GetAccumulatedFeesInEpoch(
-		epochStartMetaBlock,
-		bp.dataPool.Headers(),
-		bp.marshalizer,
-		bp.store,
-	)
-	bp.appStatusHandler.SetStringValue(common.MetricTotalFees, accumulatedFees.String())
-	devFees := fees.GetDeveloperFeesInEpoch(
-		epochStartMetaBlock,
-		bp.dataPool.Headers(),
-		bp.marshalizer,
-		bp.store,
-	)
-	bp.appStatusHandler.SetStringValue(common.MetricDevRewardsInEpoch, devFees.String())
+
+	if epochStartMetaBlock.IsHeaderV3() {
+		// fee metrics for meta block v3 will be handled separately when propose epoch change block is processed
+		return
+	}
+
+	bp.appStatusHandler.SetStringValue(common.MetricTotalFees, epochStartMetaBlock.GetAccumulatedFeesInEpoch().String())
+	bp.appStatusHandler.SetStringValue(common.MetricDevRewardsInEpoch, epochStartMetaBlock.GetDevFeesInEpoch().String())
+}
+
+func (bp *baseProcessor) saveEpochStartEconomicsMetricsV3(metaBlock data.MetaHeaderHandler) {
+	if !metaBlock.IsHeaderV3() {
+		// fee metrics for meta block will be handled on commit
+		return
+	}
+
+	if !metaBlock.IsEpochChangeProposed() {
+		return
+	}
+
+	lastExecutionResult := bp.blockChain.GetLastExecutionResult()
+	if string(lastExecutionResult.GetHeaderHash()) != string(metaBlock.GetPrevHash()) {
+		// should never happen, as this is called while processing proposeEpochChangeMetaBlock
+		return
+	}
+
+	lastMetaExecutionResult, ok := lastExecutionResult.(data.BaseMetaExecutionResultHandler)
+	if !ok {
+		// should never happen
+		return
+	}
+
+	bp.appStatusHandler.SetStringValue(common.MetricTotalFees, lastMetaExecutionResult.GetAccumulatedFeesInEpoch().String())
+	bp.appStatusHandler.SetStringValue(common.MetricDevRewardsInEpoch, lastMetaExecutionResult.GetDevFeesInEpoch().String())
 }

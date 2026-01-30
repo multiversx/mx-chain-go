@@ -392,6 +392,8 @@ func (sp *shardProcessor) ProcessBlockProposal(
 		return nil, err
 	}
 
+	sp.saveEpochStartEconomicsIfNeeded(header)
+
 	return executionResult, nil
 }
 
@@ -913,4 +915,23 @@ func (sp *shardProcessor) getOrderedProcessedMetaBlocksFromMiniBlockHashesV3(
 	process.SortHeadersByNonce(fullyReferencedMetaBlocks)
 
 	return fullyReferencedMetaBlocks, nil
+}
+
+func (sp *shardProcessor) saveEpochStartEconomicsIfNeeded(header data.ShardHeaderHandler) {
+	for _, metaHash := range header.GetMetaBlockHashes() {
+		hdr, err := sp.getHeaderFromHash(header.IsHeaderV3(), metaHash, core.MetachainShardId)
+		if err != nil {
+			continue
+		}
+		metaHdr, ok := hdr.(data.MetaHeaderHandler)
+		if !ok {
+			continue
+		}
+		if !metaHdr.IsEpochChangeProposed() {
+			continue
+		}
+
+		sp.saveEpochStartEconomicsMetricsV3(metaHdr)
+		return
+	}
 }
