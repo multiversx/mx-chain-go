@@ -15,6 +15,7 @@ import (
 	"github.com/multiversx/mx-chain-crypto-go/signing/multisig"
 
 	"github.com/multiversx/mx-chain-go/consensus/spos/bls"
+	"github.com/multiversx/mx-chain-go/storage/cache"
 	"github.com/multiversx/mx-chain-go/testscommon/consensus/initializers"
 
 	"github.com/multiversx/mx-chain-go/common"
@@ -86,16 +87,21 @@ func BenchmarkSubroundEndRound_VerifyNodesOnAggSigFailTime(b *testing.B) {
 		},
 	}
 	keys := createListFromMapKeys(mapKeys)
+
+	pubKeysCache, err := cache.NewLRUCache(1000)
+	require.Nil(b, err)
+
 	args := factoryCrypto.ArgsSigningHandler{
 		PubKeys: keys,
 		MultiSignerContainer: &cryptoMocks.MultiSignerContainerStub{
-			GetMultiSignerCalled: func(epoch uint32) (crypto.MultiSigner, error) {
+			GetMultiSignerCalled: func(epoch uint32) (crypto.MultiSignerV2, error) {
 				return multiSigHandler, nil
 			},
 		},
 		SingleSigner: &cryptoMocks.SingleSignerStub{},
 		KeyGenerator: kg,
 		KeysHandler:  keysHandlerMock,
+		PubKeysCache: pubKeysCache,
 	}
 
 	signingHandler, err := factoryCrypto.NewSigningHandler(args)
