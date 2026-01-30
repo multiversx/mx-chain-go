@@ -42,7 +42,7 @@ func InitBlockProcessorMock(marshaller marshal.Marshalizer) *testscommon.BlockPr
 	blockProcessorMock.CommitBlockCalled = func(header data.HeaderHandler, body data.BodyHandler) error {
 		return nil
 	}
-	blockProcessorMock.RevertCurrentBlockCalled = func(_ data.HeaderHandler) {}
+	blockProcessorMock.RevertCurrentBlockCalled = func() {}
 	blockProcessorMock.ProcessBlockCalled = func(header data.HeaderHandler, body data.BodyHandler, haveTime func() time.Duration) error {
 		return nil
 	}
@@ -79,7 +79,7 @@ func InitBlockProcessorHeaderV2Mock() *testscommon.BlockProcessorStub {
 	blockProcessorMock.CommitBlockCalled = func(header data.HeaderHandler, body data.BodyHandler) error {
 		return nil
 	}
-	blockProcessorMock.RevertCurrentBlockCalled = func(_ data.HeaderHandler) {}
+	blockProcessorMock.RevertCurrentBlockCalled = func() {}
 	blockProcessorMock.ProcessBlockCalled = func(header data.HeaderHandler, body data.BodyHandler, haveTime func() time.Duration) error {
 		return nil
 	}
