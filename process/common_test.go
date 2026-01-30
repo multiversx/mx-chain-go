@@ -3635,7 +3635,7 @@ func TestCleanCachesForExecutionResult(t *testing.T) {
 
 		err := process.CleanCachesForExecutionResult(execResult, postProcessTxsCache, executedMbs)
 		require.NotNil(t, err)
-		require.Contains(t, err.Error(), "wrong type assertion")
+		require.ErrorIs(t, err, common.ErrWrongTypeAssertion)
 	})
 
 	t.Run("success with no mini block headers", func(t *testing.T) {

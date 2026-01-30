@@ -1299,11 +1299,11 @@ func UpdateContextForReplacedHeader(
 	headersPool dataRetriever.HeadersPool,
 	postProcessTransactions storage.Cacher,
 	executedMiniBlocks storage.Cacher,
-	storage dataRetriever.StorageService,
+	storageService dataRetriever.StorageService,
 	marshaller marshal.Marshalizer,
 	shardID uint32,
 ) error {
-	err := checkForNils(header, executionManager, blockChain, headersPool, storage, marshaller)
+	err := checkForNils(header, executionManager, blockChain, headersPool, storageService, marshaller)
 	if err != nil {
 		return err
 	}
@@ -1328,7 +1328,7 @@ func UpdateContextForReplacedHeader(
 	}
 
 	// TODO: optimize to add into pool at bootstrap
-	headerToSet, err := GetHeader(executionResultToSet.GetHeaderHash(), headersPool, storage, marshaller, shardID)
+	headerToSet, err := GetHeader(executionResultToSet.GetHeaderHash(), headersPool, storageService, marshaller, shardID)
 	if err != nil {
 		return err
 	}

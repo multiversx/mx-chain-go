@@ -61,10 +61,10 @@ func NewExecutionManager(args ArgsExecutionManager) (*executionManager, error) {
 		return nil, ErrNilHeadersPool
 	}
 	if check.IfNil(args.PostProcessTransactions) {
-		return nil, ErrNilPostProcessTransactionsCache
+		return nil, process.ErrNilPostProcessTransactionsCache
 	}
 	if check.IfNil(args.ExecutedMiniBlocks) {
-		return nil, ErrNilExecutedMiniBlocksCache
+		return nil, process.ErrNilExecutedMiniBlocksCache
 	}
 	if check.IfNil(args.StorageService) {
 		return nil, process.ErrNilStorage
