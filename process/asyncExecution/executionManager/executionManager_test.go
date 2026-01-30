@@ -10,8 +10,8 @@ import (
 	"github.com/multiversx/mx-chain-core-go/data/block"
 	"github.com/multiversx/mx-chain-go/dataRetriever"
 	"github.com/multiversx/mx-chain-go/process"
+	"github.com/multiversx/mx-chain-go/process/asyncExecution/cache"
 	"github.com/multiversx/mx-chain-go/process/asyncExecution/executionManager"
-	"github.com/multiversx/mx-chain-go/process/asyncExecution/queue"
 	"github.com/multiversx/mx-chain-go/process/mock"
 	"github.com/multiversx/mx-chain-go/storage"
 	"github.com/multiversx/mx-chain-go/testscommon"
@@ -197,7 +197,7 @@ func TestExecutionManager_AddPairForExecution(t *testing.T) {
 		args := createMockArgs()
 		addOrReplaceCalled := false
 		args.BlocksQueue = &processMocks.BlocksQueueMock{
-			AddOrReplaceCalled: func(pair queue.HeaderBodyPair) error {
+			AddOrReplaceCalled: func(pair cache.HeaderBodyPair) error {
 				addOrReplaceCalled = true
 				require.NotNil(t, pair.Header)
 				return nil
@@ -205,7 +205,7 @@ func TestExecutionManager_AddPairForExecution(t *testing.T) {
 		}
 		em, _ := executionManager.NewExecutionManager(args)
 
-		pair := queue.HeaderBodyPair{
+		pair := cache.HeaderBodyPair{
 			Header: &block.Header{Nonce: 1},
 			Body:   &block.Body{},
 		}
@@ -233,7 +233,7 @@ func TestExecutionManager_AddPairForExecution(t *testing.T) {
 
 		em, _ := executionManager.NewExecutionManager(args)
 
-		pair := queue.HeaderBodyPair{
+		pair := cache.HeaderBodyPair{
 			Header: &block.Header{Nonce: 9},
 			Body:   &block.Body{},
 		}
@@ -264,7 +264,7 @@ func TestExecutionManager_AddPairForExecution(t *testing.T) {
 
 		em, _ := executionManager.NewExecutionManager(args)
 
-		pair := queue.HeaderBodyPair{
+		pair := cache.HeaderBodyPair{
 			Header: &block.Header{Nonce: 9},
 			Body:   &block.Body{},
 		}
@@ -300,7 +300,7 @@ func TestExecutionManager_AddPairForExecution(t *testing.T) {
 
 		em, _ := executionManager.NewExecutionManager(args)
 
-		pair := queue.HeaderBodyPair{
+		pair := cache.HeaderBodyPair{
 			Header: &block.Header{
 				Nonce:    9,
 				PrevHash: []byte("wrongHash"),
@@ -364,7 +364,7 @@ func TestExecutionManager_AddPairForExecution(t *testing.T) {
 
 		em, _ := executionManager.NewExecutionManager(args)
 
-		pair := queue.HeaderBodyPair{
+		pair := cache.HeaderBodyPair{
 			Header: &block.Header{
 				Nonce:    9,
 				PrevHash: []byte("lastNotarizedExecResultHash"),
@@ -425,7 +425,7 @@ func TestExecutionManager_AddPairForExecution(t *testing.T) {
 
 		em, _ := executionManager.NewExecutionManager(args)
 
-		pair := queue.HeaderBodyPair{
+		pair := cache.HeaderBodyPair{
 			Header: &block.Header{
 				Nonce:    9,
 				PrevHash: []byte("lastNotarizedExecResultHash"),
@@ -487,7 +487,7 @@ func TestExecutionManager_AddPairForExecution(t *testing.T) {
 
 		em, _ := executionManager.NewExecutionManager(args)
 
-		pair := queue.HeaderBodyPair{
+		pair := cache.HeaderBodyPair{
 			Header: &block.Header{
 				Nonce:    9,
 				PrevHash: []byte("lastNotarizedExecResultHash"),
@@ -561,7 +561,7 @@ func TestExecutionManager_AddPairForExecution(t *testing.T) {
 
 		em, _ := executionManager.NewExecutionManager(args)
 
-		pair := queue.HeaderBodyPair{
+		pair := cache.HeaderBodyPair{
 			Header: &block.Header{
 				Nonce:    9,
 				PrevHash: []byte("hashY"),
@@ -1042,17 +1042,11 @@ func TestExecutionManager_Close(t *testing.T) {
 
 		args := createMockArgs()
 		executorCloseCalled := false
-		queueCloseCalled := false
 
 		mockExecutor := &processMocks.HeadersExecutorMock{
 			CloseCalled: func() error {
 				executorCloseCalled = true
 				return nil
-			},
-		}
-		args.BlocksQueue = &processMocks.BlocksQueueMock{
-			CloseCalled: func() {
-				queueCloseCalled = true
 			},
 		}
 		em, _ := executionManager.NewExecutionManager(args)
@@ -1061,7 +1055,6 @@ func TestExecutionManager_Close(t *testing.T) {
 		err := em.Close()
 		require.NoError(t, err)
 		require.True(t, executorCloseCalled)
-		require.True(t, queueCloseCalled)
 	})
 
 	t.Run("error closing headers executor", func(t *testing.T) {
@@ -1107,7 +1100,7 @@ func TestExecutionManager_Concurrency(t *testing.T) {
 
 				switch idx % 6 {
 				case 0:
-					pair := queue.HeaderBodyPair{
+					pair := cache.HeaderBodyPair{
 						Header: &block.HeaderV3{Nonce: uint64(idx)},
 						Body:   &block.Body{},
 					}

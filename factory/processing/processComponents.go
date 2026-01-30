@@ -18,9 +18,9 @@ import (
 	"github.com/multiversx/mx-chain-core-go/data/receipt"
 	"github.com/multiversx/mx-chain-core-go/data/transaction"
 	"github.com/multiversx/mx-chain-go/process/asyncExecution"
+	headersCache "github.com/multiversx/mx-chain-go/process/asyncExecution/cache"
 	"github.com/multiversx/mx-chain-go/process/asyncExecution/executionManager"
 	"github.com/multiversx/mx-chain-go/process/asyncExecution/executionTrack"
-	"github.com/multiversx/mx-chain-go/process/asyncExecution/queue"
 	vmcommon "github.com/multiversx/mx-chain-vm-common-go"
 	vmcommonBuiltInFunctions "github.com/multiversx/mx-chain-vm-common-go/builtInFunctions"
 
@@ -628,7 +628,7 @@ func (pcf *processComponentsFactory) Create() (*processComponents, error) {
 		return nil, fmt.Errorf("%w when assembling components for the sent signatures tracker", err)
 	}
 
-	blocksQueue := queue.NewBlocksQueue(pcf.config.HeaderBodyCacheConfig)
+	blocksQueue := headersCache.NewHeaderBodyCache(pcf.config.HeaderBodyCacheConfig)
 	executionResultsTracker := executionTrack.NewExecutionResultsTracker()
 
 	argExecManager := executionManager.ArgsExecutionManager{
@@ -670,7 +670,7 @@ func (pcf *processComponentsFactory) Create() (*processComponents, error) {
 	}
 
 	argsHeadersExecutor := asyncExecution.ArgsHeadersExecutor{
-		BlocksQueue:      blocksQueue,
+		BlocksCache:      blocksQueue,
 		ExecutionTracker: executionResultsTracker,
 		BlockProcessor:   blockProcessorComponents.blockProcessor,
 		BlockChain:       pcf.data.Blockchain(),

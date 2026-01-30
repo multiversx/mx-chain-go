@@ -38,7 +38,7 @@ import (
 	"github.com/multiversx/mx-chain-go/process/asyncExecution"
 	"github.com/multiversx/mx-chain-go/process/asyncExecution/executionManager"
 
-	"github.com/multiversx/mx-chain-go/process/asyncExecution/queue"
+	headersCache "github.com/multiversx/mx-chain-go/process/asyncExecution/cache"
 
 	"github.com/multiversx/mx-chain-go/process/asyncExecution/executionTrack"
 	"github.com/multiversx/mx-chain-go/process/estimator"
@@ -209,6 +209,9 @@ var TestMultiSig = cryptoMocks.NewMultiSigner()
 
 // TestKeyGenForAccounts represents a mock key generator for balances
 var TestKeyGenForAccounts = signing.NewKeyGenerator(ed25519.NewEd25519())
+
+// TestBlsKeyGen represents a mock key generator for pub keys
+var TestBlsKeyGen = signing.NewKeyGenerator(mcl.NewSuiteBLS12())
 
 // TestUint64Converter represents an uint64 to byte slice converter
 var TestUint64Converter = uint64ByteSlice.NewBigEndianConverter()
@@ -415,7 +418,7 @@ type TestProcessorNode struct {
 
 	ForkDetector             process.ForkDetector
 	BlockProcessor           process.BlockProcessor
-	BlocksQueue              process.BlocksQueue
+	BlocksCache              process.BlocksCache
 	ExecutionManager         process.ExecutionManager
 	BroadcastMessenger       consensus.BroadcastMessenger
 	MiniblocksProvider       process.MiniBlockProvider
@@ -2011,6 +2014,7 @@ func (tpn *TestProcessorNode) initInnerProcessors(gasMap map[string]map[string]u
 		TxTypeHandler:                txTypeHandler,
 		TransactionsLogProcessor:     tpn.TransactionLogProcessor,
 		EnableEpochsHandler:          tpn.EnableEpochsHandler,
+		EnableRoundsHandler:          tpn.EnableRoundsHandler,
 		ScheduledTxsExecutionHandler: scheduledTxsExecutionHandler,
 		DoubleTransactionsDetector:   &testscommon.PanicDoubleTransactionsDetector{},
 		ProcessedMiniBlocksTracker:   processedMiniBlocksTracker,
@@ -2337,6 +2341,7 @@ func (tpn *TestProcessorNode) initMetaInnerProcessors(gasMap map[string]map[stri
 		TxTypeHandler:                txTypeHandler,
 		TransactionsLogProcessor:     tpn.TransactionLogProcessor,
 		EnableEpochsHandler:          tpn.EnableEpochsHandler,
+		EnableRoundsHandler:          tpn.EnableRoundsHandler,
 		ScheduledTxsExecutionHandler: scheduledTxsExecutionHandler,
 		DoubleTransactionsDetector:   &testscommon.PanicDoubleTransactionsDetector{},
 		ProcessedMiniBlocksTracker:   processedMiniBlocksTracker,
@@ -2527,10 +2532,10 @@ func (tpn *TestProcessorNode) initBlockProcessor() {
 	}
 
 	executionResultsTracker := executionTrack.NewExecutionResultsTracker()
-	tpn.BlocksQueue = queue.NewBlocksQueue(config.HeaderBodyCacheConfig{})
+	tpn.BlocksCache = headersCache.NewHeaderBodyCache(pcf.config.HeaderBodyCacheConfig)
 
 	argsExecutionManager := executionManager.ArgsExecutionManager{
-		BlocksQueue:             tpn.BlocksQueue,
+		BlocksQueue:             tpn.BlocksCache,
 		ExecutionResultsTracker: executionResultsTracker,
 		BlockChain:              tpn.BlockChain,
 		Headers:                 tpn.DataPool.Headers(),
@@ -2867,7 +2872,7 @@ func (tpn *TestProcessorNode) initBlockProcessor() {
 	}
 
 	argsHeadersExecutor := asyncExecution.ArgsHeadersExecutor{
-		BlocksQueue:      tpn.BlocksQueue,
+		BlocksCache:      tpn.BlocksCache,
 		ExecutionTracker: executionResultsTracker,
 		BlockProcessor:   tpn.BlockProcessor,
 		BlockChain:       tpn.BlockChain,

@@ -9,6 +9,8 @@ import (
 	"github.com/multiversx/mx-chain-core-go/core"
 	"github.com/multiversx/mx-chain-core-go/data"
 	"github.com/multiversx/mx-chain-core-go/data/transaction"
+	"github.com/stretchr/testify/require"
+
 	"github.com/multiversx/mx-chain-go/common"
 	"github.com/multiversx/mx-chain-go/process"
 	"github.com/multiversx/mx-chain-go/testscommon"
@@ -16,7 +18,6 @@ import (
 	"github.com/multiversx/mx-chain-go/testscommon/enableEpochsHandlerMock"
 	"github.com/multiversx/mx-chain-go/testscommon/hashingMocks"
 	"github.com/multiversx/mx-chain-go/testscommon/marshallerMock"
-	"github.com/stretchr/testify/require"
 )
 
 func moveBalanceGas(data []byte) uint64 {
@@ -395,6 +396,7 @@ func Test_computeGasProvidedWithErrorForGasConsumedForTx(t *testing.T) {
 		tx,
 		txHash,
 		gci,
+		false,
 	)
 	require.Equal(t, expectedError, err)
 }
@@ -432,6 +434,7 @@ func Test_computeGasProvidedMaxGasLimitInSenderShardReached(t *testing.T) {
 		tx,
 		txHash,
 		gci,
+		false,
 	)
 	require.Equal(t, process.ErrMaxGasLimitPerMiniBlockInReceiverShardIsReached, err)
 }
@@ -469,6 +472,7 @@ func Test_computeGasProvidedMaxGasLimitInReceiverShardReached(t *testing.T) {
 		tx,
 		txHash,
 		gci,
+		false,
 	)
 	require.Equal(t, nil, err)
 }
@@ -506,6 +510,7 @@ func Test_computeGasProvidedMaxGasLimitInReceiverShardReachedIntra(t *testing.T)
 		tx,
 		txHash,
 		gci,
+		false,
 	)
 	require.Equal(t, process.ErrMaxGasLimitPerOneTxInReceiverShardIsReached, err)
 }
@@ -543,6 +548,7 @@ func Test_computeGasProvidedMaxGasLimitPerBlockReached(t *testing.T) {
 		tx,
 		txHash,
 		gci,
+		false,
 	)
 	require.Equal(t, process.ErrMaxGasLimitPerBlockInSelfShardIsReached, err)
 }
@@ -578,6 +584,7 @@ func Test_computeGasProvidedOK(t *testing.T) {
 		tx,
 		txHash,
 		gci,
+		false,
 	)
 	require.Nil(t, err)
 	require.Equal(t, gcr.consumedSenderShard, gci.gasConsumedByMiniBlocksInSenderShard)
