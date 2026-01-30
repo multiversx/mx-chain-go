@@ -13,7 +13,7 @@ import (
 	"github.com/stretchr/testify/require"
 
 	"github.com/multiversx/mx-chain-go/process"
-	"github.com/multiversx/mx-chain-go/process/asyncExecution/queue"
+	"github.com/multiversx/mx-chain-go/process/asyncExecution/cache"
 	"github.com/multiversx/mx-chain-go/testscommon"
 	"github.com/multiversx/mx-chain-go/testscommon/processMocks"
 )
@@ -21,10 +21,10 @@ import (
 var errExpected = errors.New("expected error")
 
 func createMockArgs() ArgsHeadersExecutor {
-	headerQueue := queue.NewBlocksQueue()
+	headerCache := cache.NewHeaderBodyCache()
 
 	return ArgsHeadersExecutor{
-		BlocksQueue:      headerQueue,
+		BlocksCache:      headerCache,
 		ExecutionTracker: &processMocks.ExecutionTrackerStub{},
 		BlockProcessor:   &processMocks.BlockProcessorStub{},
 		BlockChain: &testscommon.ChainHandlerStub{
@@ -40,10 +40,10 @@ func TestNewHeadersExecutor(t *testing.T) {
 
 	t.Run("nil headers queue", func(t *testing.T) {
 		args := createMockArgs()
-		args.BlocksQueue = nil
+		args.BlocksCache = nil
 
 		_, err := NewHeadersExecutor(args)
-		require.Equal(t, ErrNilHeadersQueue, err)
+		require.Equal(t, ErrNilHeadersCache, err)
 	})
 
 	t.Run("nil execution tracker", func(t *testing.T) {
@@ -86,15 +86,43 @@ func TestNewHeadersExecutor(t *testing.T) {
 func TestHeadersExecutor_StartAndClose(t *testing.T) {
 	t.Parallel()
 
+	var prevHash = []byte("prevHash")
+	var currentHash = []byte("currentHash")
 	calledProcessBlock := uint32(0)
 	calledAddExecutionResult := uint32(0)
 	args := createMockArgs()
-	blocksQueue := queue.NewBlocksQueue()
-	args.BlocksQueue = blocksQueue
+	blocksQueue := cache.NewHeaderBodyCache()
+	args.BlocksCache = blocksQueue
+	executedNonce := uint64(1)
+	executedHash := prevHash
+	args.BlockChain = &testscommon.ChainHandlerStub{
+		GetLastExecutedBlockHeaderCalled: func() data.HeaderHandler {
+			return &block.HeaderV3{
+				Nonce: executedNonce,
+			}
+		},
+		GetLastExecutionResultCalled: func() data.BaseExecutionResultHandler {
+			return &block.BaseExecutionResult{
+				HeaderNonce: executedNonce,
+				HeaderHash:  executedHash,
+			}
+		},
+		GetLastExecutedBlockInfoCalled: func() (uint64, []byte, []byte) {
+			return executedNonce, executedHash, nil
+		},
+		SetLastExecutedBlockHeaderAndRootHashCalled: func(header data.HeaderHandler, blockHash []byte, rootHash []byte) {
+			executedNonce = header.GetNonce()
+			executedHash = blockHash
+		},
+	}
+
 	args.BlockProcessor = &processMocks.BlockProcessorStub{
 		ProcessBlockProposalCalled: func(handler data.HeaderHandler, body data.BodyHandler) (data.BaseExecutionResultHandler, error) {
 			atomic.AddUint32(&calledProcessBlock, 1)
-			return &block.BaseExecutionResult{}, nil
+			return &block.BaseExecutionResult{
+				HeaderNonce: handler.GetNonce(),
+				HeaderHash:  currentHash,
+			}, nil
 		},
 	}
 	args.ExecutionTracker = &processMocks.ExecutionTrackerStub{
@@ -103,24 +131,19 @@ func TestHeadersExecutor_StartAndClose(t *testing.T) {
 			return nil
 		},
 	}
-	args.BlockChain = &testscommon.ChainHandlerStub{
-		GetLastExecutionResultCalled: func() data.BaseExecutionResultHandler {
-			return &block.BaseExecutionResult{
-				HeaderNonce: 1,
-			}
-		},
-	}
 
 	executor, err := NewHeadersExecutor(args)
 	require.NoError(t, err)
 
 	executor.StartExecution()
 
-	err = blocksQueue.AddOrReplace(queue.HeaderBodyPair{
+	err = blocksQueue.AddOrReplace(cache.HeaderBodyPair{
 		Header: &block.Header{
-			Nonce: 2,
+			Nonce:    2,
+			PrevHash: prevHash,
 		},
-		Body: &block.Body{},
+		Body:       &block.Body{},
+		HeaderHash: []byte("a"),
 	})
 	require.NoError(t, err)
 
@@ -136,18 +159,57 @@ func TestHeadersExecutor_StartAndClose(t *testing.T) {
 func TestHeadersExecutor_ProcessBlock(t *testing.T) {
 	t.Parallel()
 
+	var prevHash = []byte("prevHash")
+	var currentHash = []byte("currentHash")
+
 	t.Run("pause/resume should work", func(t *testing.T) {
 		t.Parallel()
 
 		args := createMockArgs()
 		cntWasPopCalled := uint32(0)
-		args.BlocksQueue = &processMocks.BlocksQueueMock{
-			PopCalled: func() (queue.HeaderBodyPair, bool) {
+		lastExecutedBlockNonce := 0
+
+		args.BlockChain = &testscommon.ChainHandlerStub{
+			GetLastExecutedBlockHeaderCalled: func() data.HeaderHandler {
+				if lastExecutedBlockNonce > 0 {
+					return &block.HeaderV3{
+						Nonce:    uint64(lastExecutedBlockNonce),
+						PrevHash: prevHash,
+					}
+				}
+				return &block.HeaderV3{
+					Nonce: 0,
+				}
+			},
+			GetLastExecutionResultCalled: func() data.BaseExecutionResultHandler {
+				if lastExecutedBlockNonce > 0 {
+					return &block.BaseExecutionResult{
+						HeaderNonce: uint64(lastExecutedBlockNonce),
+						HeaderHash:  currentHash,
+					}
+				}
+				return &block.BaseExecutionResult{
+					HeaderNonce: 0,
+				}
+			},
+			GetLastExecutedBlockInfoCalled: func() (uint64, []byte, []byte) {
+				if lastExecutedBlockNonce > 0 {
+					return uint64(lastExecutedBlockNonce), currentHash, nil
+				}
+				return 0, prevHash, nil
+			},
+			SetLastExecutedBlockHeaderAndRootHashCalled: func(header data.HeaderHandler, blockHash []byte, rootHash []byte) {
+				lastExecutedBlockNonce = int(header.GetNonce())
+			},
+		}
+		args.BlocksCache = &processMocks.BlocksQueueMock{
+			GetByNonceCalled: func(nonce uint64) (cache.HeaderBodyPair, bool) {
 				atomic.AddUint32(&cntWasPopCalled, 1)
 
-				return queue.HeaderBodyPair{
+				return cache.HeaderBodyPair{
 					Header: &block.Header{
-						Nonce: 1,
+						Nonce:    1,
+						PrevHash: prevHash,
 					},
 					Body: &block.Body{},
 				}, true
@@ -156,14 +218,10 @@ func TestHeadersExecutor_ProcessBlock(t *testing.T) {
 
 		args.BlockProcessor = &processMocks.BlockProcessorStub{
 			ProcessBlockProposalCalled: func(handler data.HeaderHandler, body data.BodyHandler) (data.BaseExecutionResultHandler, error) {
-				return &block.BaseExecutionResult{}, nil
-			},
-		}
-		args.BlockChain = &testscommon.ChainHandlerStub{
-			GetLastExecutionResultCalled: func() data.BaseExecutionResultHandler {
 				return &block.BaseExecutionResult{
-					HeaderNonce: 0,
-				}
+					HeaderNonce: handler.GetNonce(),
+					HeaderHash:  currentHash,
+				}, nil
 			},
 		}
 
@@ -250,34 +308,60 @@ func TestHeadersExecutor_ProcessBlock(t *testing.T) {
 		t.Parallel()
 
 		args := createMockArgs()
-		blocksQueue := queue.NewBlocksQueue()
-		args.BlocksQueue = blocksQueue
+		blocksCache := cache.NewHeaderBodyCache()
+		args.BlocksCache = blocksCache
 		wasAddExecutionResultCalled := atomicCore.Flag{}
+		executedNonce := uint64(0)
+		executedHash := prevHash
+		args.BlockChain = &testscommon.ChainHandlerStub{
+			GetLastExecutedBlockHeaderCalled: func() data.HeaderHandler {
+				return &block.HeaderV3{
+					Nonce: executedNonce,
+				}
+			},
+			GetLastExecutionResultCalled: func() data.BaseExecutionResultHandler {
+				return &block.BaseExecutionResult{
+					HeaderNonce: executedNonce,
+					HeaderHash:  executedHash,
+				}
+			},
+			GetLastExecutedBlockInfoCalled: func() (uint64, []byte, []byte) {
+				return executedNonce, executedHash, nil
+			},
+			SetLastExecutedBlockHeaderAndRootHashCalled: func(header data.HeaderHandler, blockHash []byte, rootHash []byte) {
+				executedNonce = header.GetNonce()
+				executedHash = blockHash
+			},
+		}
 		args.BlockProcessor = &processMocks.BlockProcessorStub{
 			ProcessBlockProposalCalled: func(handler data.HeaderHandler, body data.BodyHandler) (data.BaseExecutionResultHandler, error) {
-				return &block.BaseExecutionResult{}, nil
+				return &block.BaseExecutionResult{
+					HeaderNonce: handler.GetNonce(),
+					HeaderHash:  currentHash,
+				}, nil
 			},
 		}
 		args.ExecutionTracker = &processMocks.ExecutionTrackerStub{
 			AddExecutionResultCalled: func(executionResult data.BaseExecutionResultHandler) error {
+				if wasAddExecutionResultCalled.IsSet() {
+					// return nil after first call to allow processing to complete
+					return nil
+				}
 				wasAddExecutionResultCalled.SetValue(true)
 				return errExpected
-			},
-		}
-		args.BlockChain = &testscommon.ChainHandlerStub{
-			GetLastExecutionResultCalled: func() data.BaseExecutionResultHandler {
-				return &block.BaseExecutionResult{}
 			},
 		}
 
 		executor, err := NewHeadersExecutor(args)
 		require.NoError(t, err)
 
-		err = blocksQueue.AddOrReplace(queue.HeaderBodyPair{
+		err = blocksCache.AddOrReplace(cache.HeaderBodyPair{
 			Header: &block.Header{
-				Nonce: 1,
+				Nonce:    1,
+				PrevHash: prevHash,
 			},
-			Body: &block.Body{},
+			Body:       &block.Body{},
+			HeaderHash: []byte("a"),
 		})
 		require.NoError(t, err)
 
@@ -295,16 +379,41 @@ func TestHeadersExecutor_ProcessBlock(t *testing.T) {
 		t.Parallel()
 
 		args := createMockArgs()
-		blocksQueue := queue.NewBlocksQueue()
+		blocksCache := cache.NewHeaderBodyCache()
 		count := 0
 		countAddResult := 0
-		args.BlocksQueue = blocksQueue
+		args.BlocksCache = blocksCache
 		wg := &sync.WaitGroup{}
 		wg.Add(1)
+		nonce := uint64(0)
+		executedHash := prevHash
+		args.BlockChain = &testscommon.ChainHandlerStub{
+			GetLastExecutedBlockHeaderCalled: func() data.HeaderHandler {
+				return &block.HeaderV3{
+					Nonce: nonce,
+				}
+			},
+			GetLastExecutionResultCalled: func() data.BaseExecutionResultHandler {
+				return &block.BaseExecutionResult{
+					HeaderNonce: nonce,
+					HeaderHash:  executedHash,
+				}
+			},
+			GetLastExecutedBlockInfoCalled: func() (uint64, []byte, []byte) {
+				return nonce, executedHash, nil
+			},
+			SetLastExecutedBlockHeaderAndRootHashCalled: func(header data.HeaderHandler, blockHash []byte, rootHash []byte) {
+				nonce = header.GetNonce()
+				executedHash = blockHash
+			},
+		}
 		args.BlockProcessor = &processMocks.BlockProcessorStub{
 			ProcessBlockProposalCalled: func(handler data.HeaderHandler, body data.BodyHandler) (data.BaseExecutionResultHandler, error) {
 				if count == 1 {
-					return &block.BaseExecutionResult{}, nil
+					return &block.BaseExecutionResult{
+						HeaderNonce: handler.GetNonce(),
+						HeaderHash:  currentHash,
+					}, nil
 				}
 				count++
 				return nil, errExpected
@@ -317,22 +426,19 @@ func TestHeadersExecutor_ProcessBlock(t *testing.T) {
 				return nil
 			},
 		}
-		args.BlockChain = &testscommon.ChainHandlerStub{
-			GetLastExecutionResultCalled: func() data.BaseExecutionResultHandler {
-				return &block.BaseExecutionResult{}
-			},
-		}
 
 		executor, err := NewHeadersExecutor(args)
 		require.NoError(t, err)
 
 		executor.StartExecution()
 
-		err = blocksQueue.AddOrReplace(queue.HeaderBodyPair{
+		err = blocksCache.AddOrReplace(cache.HeaderBodyPair{
 			Header: &block.Header{
-				Nonce: 1,
+				Nonce:    1,
+				PrevHash: prevHash,
 			},
-			Body: &block.Body{},
+			Body:       &block.Body{},
+			HeaderHash: []byte("a"),
 		})
 		require.NoError(t, err)
 
@@ -346,13 +452,35 @@ func TestHeadersExecutor_ProcessBlock(t *testing.T) {
 		t.Parallel()
 
 		args := createMockArgs()
-		blocksQueue := queue.NewBlocksQueue()
+		blocksCache := cache.NewHeaderBodyCache()
 
 		count := 0
 		countAddResult := 0
-		args.BlocksQueue = blocksQueue
+		nonce := uint64(0)
+		executedHash := prevHash
+		args.BlocksCache = blocksCache
 		wg := &sync.WaitGroup{}
 		wg.Add(1)
+		args.BlockChain = &testscommon.ChainHandlerStub{
+			GetLastExecutedBlockHeaderCalled: func() data.HeaderHandler {
+				return &block.HeaderV3{
+					Nonce: nonce,
+				}
+			},
+			GetLastExecutionResultCalled: func() data.BaseExecutionResultHandler {
+				return &block.BaseExecutionResult{
+					HeaderNonce: nonce,
+					HeaderHash:  executedHash,
+				}
+			},
+			GetLastExecutedBlockInfoCalled: func() (uint64, []byte, []byte) {
+				return nonce, executedHash, nil
+			},
+			SetLastExecutedBlockHeaderAndRootHashCalled: func(header data.HeaderHandler, blockHash []byte, rootHash []byte) {
+				nonce = header.GetNonce()
+				executedHash = blockHash
+			},
+		}
 		args.BlockProcessor = &processMocks.BlockProcessorStub{
 			ProcessBlockProposalCalled: func(handler data.HeaderHandler, body data.BodyHandler) (data.BaseExecutionResultHandler, error) {
 				time.Sleep(time.Millisecond)
@@ -361,7 +489,10 @@ func TestHeadersExecutor_ProcessBlock(t *testing.T) {
 				}
 
 				count++
-				return &block.BaseExecutionResult{}, nil
+				return &block.BaseExecutionResult{
+					HeaderNonce: handler.GetNonce(),
+					HeaderHash:  currentHash,
+				}, nil
 			},
 		}
 		args.ExecutionTracker = &processMocks.ExecutionTrackerStub{
@@ -371,42 +502,38 @@ func TestHeadersExecutor_ProcessBlock(t *testing.T) {
 				return nil
 			},
 		}
-		args.BlockChain = &testscommon.ChainHandlerStub{
-			GetLastExecutionResultCalled: func() data.BaseExecutionResultHandler {
-				return &block.BaseExecutionResult{}
-			},
-		}
 
 		executor, err := NewHeadersExecutor(args)
 		require.NoError(t, err)
 
 		executor.StartExecution()
 
-		err = blocksQueue.AddOrReplace(queue.HeaderBodyPair{
+		err = blocksCache.AddOrReplace(cache.HeaderBodyPair{
 			Header: &block.Header{
-				Nonce: 1,
-				Round: 1,
+				Nonce:    1,
+				Round:    1,
+				PrevHash: prevHash,
 			},
-			Body: &block.Body{},
+			Body:       &block.Body{},
+			HeaderHash: []byte("a"),
 		})
 		require.NoError(t, err)
 
 		time.Sleep(time.Millisecond)
-		err = blocksQueue.AddOrReplace(queue.HeaderBodyPair{
+		err = blocksCache.AddOrReplace(cache.HeaderBodyPair{
 			Header: &block.Header{
-				Nonce: 1,
-				Round: 2,
+				Nonce:    1,
+				Round:    2,
+				PrevHash: prevHash,
 			},
-			Body: &block.Body{},
+			Body:       &block.Body{},
+			HeaderHash: []byte("a"),
 		})
 		require.NoError(t, err)
 
 		wg.Wait()
 
 		require.Equal(t, 1, count)
-		_, ok := blocksQueue.Peek()
-		// check if queue is empty
-		require.False(t, ok)
 	})
 }
 
@@ -427,7 +554,7 @@ func TestHeadersExecutor_Process(t *testing.T) {
 
 		executor, _ := NewHeadersExecutor(args)
 
-		pair := queue.HeaderBodyPair{
+		pair := cache.HeaderBodyPair{
 			Header: &block.Header{
 				Nonce: 1,
 			},
@@ -459,7 +586,7 @@ func TestHeadersExecutor_Process(t *testing.T) {
 
 		executor, _ := NewHeadersExecutor(args)
 
-		pair := queue.HeaderBodyPair{
+		pair := cache.HeaderBodyPair{
 			Header: &block.Header{
 				Nonce: 1,
 			},
@@ -506,7 +633,7 @@ func TestHeadersExecutor_Process(t *testing.T) {
 
 		executor, _ := NewHeadersExecutor(args)
 
-		pair := queue.HeaderBodyPair{
+		pair := cache.HeaderBodyPair{
 			Header: &block.Header{
 				Nonce: 1,
 			},

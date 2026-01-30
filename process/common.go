@@ -1330,6 +1330,11 @@ func UpdateContextForReplacedHeader(
 		return err
 	}
 
+	log.Debug("UpdateContextForReplacedHeader last executed header",
+		"round", headerToSet.GetRound(),
+		"nonce", headerToSet.GetNonce(),
+		"hash", executionResultToSet.GetHeaderHash())
+
 	blockChain.SetLastExecutedBlockHeaderAndRootHash(headerToSet, executionResultToSet.GetHeaderHash(), executionResultToSet.GetRootHash())
 	blockChain.SetLastExecutionResult(executionResultToSet)
 

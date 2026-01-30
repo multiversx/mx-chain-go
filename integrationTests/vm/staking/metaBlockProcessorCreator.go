@@ -7,8 +7,8 @@ import (
 	"github.com/multiversx/mx-chain-core-go/data"
 	"github.com/multiversx/mx-chain-core-go/data/block"
 	"github.com/multiversx/mx-chain-go/process/asyncExecution"
+	"github.com/multiversx/mx-chain-go/process/asyncExecution/cache"
 	"github.com/multiversx/mx-chain-go/process/asyncExecution/executionManager"
-	"github.com/multiversx/mx-chain-go/process/asyncExecution/queue"
 	commonMock "github.com/multiversx/mx-chain-go/testscommon/common"
 
 	"github.com/multiversx/mx-chain-go/config"
@@ -114,7 +114,7 @@ func createMetaBlockProcessor(
 		coreComponents.Hasher(),
 	)
 
-	blocksQueue := queue.NewBlocksQueue()
+	blocksQueue := cache.NewHeaderBodyCache()
 	executionResultsTracker := executionTrack.NewExecutionResultsTracker()
 	execManager, _ := executionManager.NewExecutionManager(executionManager.ArgsExecutionManager{
 		BlocksQueue:             blocksQueue,
@@ -215,7 +215,7 @@ func createMetaBlockProcessor(
 	metaProc, _ := blproc.NewMetaProcessor(args)
 
 	argHeadersExecutor := asyncExecution.ArgsHeadersExecutor{
-		BlocksQueue:      blocksQueue,
+		BlocksCache:      blocksQueue,
 		ExecutionTracker: executionResultsTracker,
 		BlockProcessor:   metaProc,
 		BlockChain:       dataComponents.Blockchain(),

@@ -3,14 +3,14 @@ package processMocks
 import (
 	"github.com/multiversx/mx-chain-core-go/data"
 	"github.com/multiversx/mx-chain-go/process"
-	"github.com/multiversx/mx-chain-go/process/asyncExecution/queue"
+	"github.com/multiversx/mx-chain-go/process/asyncExecution/cache"
 )
 
 // ExecutionManagerMock is a mock implementation of the ExecutionManager interface
 type ExecutionManagerMock struct {
 	StartExecutionCalled                         func()
 	SetHeadersExecutorCalled                     func(executor process.HeadersExecutor) error
-	AddPairForExecutionCalled                    func(pair queue.HeaderBodyPair) error
+	AddPairForExecutionCalled            		func(pair cache.HeaderBodyPair) error
 	GetPendingExecutionResultsCalled             func() ([]data.BaseExecutionResultHandler, error)
 	CleanConfirmedExecutionResultsCalled         func(header data.HeaderHandler) error
 	SetLastNotarizedResultCalled                 func(executionResult data.BaseExecutionResultHandler) error
@@ -37,7 +37,7 @@ func (emm *ExecutionManagerMock) SetHeadersExecutor(executor process.HeadersExec
 }
 
 // AddPairForExecution -
-func (emm *ExecutionManagerMock) AddPairForExecution(pair queue.HeaderBodyPair) error {
+func (emm *ExecutionManagerMock) AddPairForExecution(pair cache.HeaderBodyPair) error {
 	if emm.AddPairForExecutionCalled != nil {
 		return emm.AddPairForExecutionCalled(pair)
 	}

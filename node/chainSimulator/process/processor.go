@@ -13,7 +13,7 @@ import (
 	heartbeatData "github.com/multiversx/mx-chain-go/heartbeat/data"
 	"github.com/multiversx/mx-chain-go/node/chainSimulator/configs"
 	"github.com/multiversx/mx-chain-go/node/chainSimulator/dtos"
-	"github.com/multiversx/mx-chain-go/process/asyncExecution/queue"
+	"github.com/multiversx/mx-chain-go/process/asyncExecution/cache"
 	"github.com/multiversx/mx-chain-go/sharding/nodesCoordinator"
 )
 
@@ -185,6 +185,11 @@ func (creator *blocksCreator) CreateNewBlock() (*dtos.BroadcastData, error) {
 		creator.updatePeerShardMapper(header.GetEpoch())
 	}
 
+	headerHash, err := core.CalculateHash(creator.nodeHandler.GetCoreComponents().InternalMarshalizer(), creator.nodeHandler.GetCoreComponents().Hasher(), header)
+	if err != nil {
+		return nil, err
+	}
+
 	if newHeader.IsHeaderV3() {
 		err = creator.setHeaderSignatures(header, leader.PubKey(), validators, pubKeyBitmap)
 		if err != nil {
@@ -203,9 +208,10 @@ func (creator *blocksCreator) CreateNewBlock() (*dtos.BroadcastData, error) {
 			return nil, err
 		}
 
-		pair := queue.HeaderBodyPair{
-			Header: header,
-			Body:   block,
+		pair := cache.HeaderBodyPair{
+			Header:     header,
+			Body:       block,
+			HeaderHash: headerHash,
 		}
 		err = creator.nodeHandler.GetProcessComponents().ExecutionManager().AddPairForExecution(pair)
 		if err != nil {
@@ -214,11 +220,6 @@ func (creator *blocksCreator) CreateNewBlock() (*dtos.BroadcastData, error) {
 	}
 
 	headerProof, err := creator.ApplySignaturesAndGetProof(header, prevHeader, enableEpochHandler, validators, leader, pubKeyBitmap)
-	if err != nil {
-		return nil, err
-	}
-
-	headerHash, err := core.CalculateHash(creator.nodeHandler.GetCoreComponents().InternalMarshalizer(), creator.nodeHandler.GetCoreComponents().Hasher(), header)
 	if err != nil {
 		return nil, err
 	}

@@ -5,7 +5,7 @@ import (
 	"time"
 
 	"github.com/multiversx/mx-chain-go/ntp"
-	"github.com/multiversx/mx-chain-go/process/asyncExecution/queue"
+	"github.com/multiversx/mx-chain-go/process/asyncExecution/cache"
 	"github.com/multiversx/mx-chain-go/process/estimator"
 
 	"github.com/multiversx/mx-chain-core-go/core"
@@ -316,16 +316,14 @@ type BlockProcessor interface {
 	IsInterfaceNil() bool
 }
 
-// BlocksQueue defines what a block queue should be able to do
-type BlocksQueue interface {
-	AddOrReplace(pair queue.HeaderBodyPair) error
-	Pop() (queue.HeaderBodyPair, bool)
-	Peek() (queue.HeaderBodyPair, bool)
-	RemoveAtNonceAndHigher(nonce uint64) []uint64
-	ValidateQueueIntegrity() error
-	Clean(lastAddedNonce uint64)
+// BlocksCache defines what a block queue should be able to do
+type BlocksCache interface {
+	GetByNonce(nonce uint64) (cache.HeaderBodyPair, bool)
+	AddOrReplace(pair cache.HeaderBodyPair) error
+	Remove(nonce uint64)
+	Clean()
+	RemoveAtNonceAndHigher(providedNonce uint64) []uint64
 	IsInterfaceNil() bool
-	Close()
 }
 
 // HeadersExecutor defines what a headers executor should be able to do
@@ -341,7 +339,7 @@ type HeadersExecutor interface {
 type ExecutionManager interface {
 	StartExecution()
 	SetHeadersExecutor(executor HeadersExecutor) error
-	AddPairForExecution(pair queue.HeaderBodyPair) error
+	AddPairForExecution(pair cache.HeaderBodyPair) error
 	GetPendingExecutionResults() ([]data.BaseExecutionResultHandler, error)
 	CleanConfirmedExecutionResults(header data.HeaderHandler) error
 	SetLastNotarizedResult(executionResult data.BaseExecutionResultHandler) error
