@@ -132,6 +132,8 @@ func (tpn *TestProcessorNode) initBlockProcessorWithSync() {
 		ExecutionResultsTracker: executionResultsTracker,
 		BlockChain:              tpn.BlockChain,
 		Headers:                 tpn.DataPool.Headers(),
+		PostProcessTransactions: tpn.DataPool.PostProcessTransactions(),
+		ExecutedMiniBlocks:      tpn.DataPool.ExecutedMiniBlocks(),
 		StorageService:          &storageStubs.ChainStorerStub{},
 		Marshaller:              TestMarshaller,
 		ShardCoordinator:        &testscommon.ShardsCoordinatorMock{},

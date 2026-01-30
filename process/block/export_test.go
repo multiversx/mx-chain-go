@@ -223,6 +223,8 @@ func NewShardProcessorEmptyWith3shards(
 		ExecutionResultsTracker: executionResultsTracker,
 		BlockChain:              dataComponents.BlockChain,
 		Headers:                 dataComponents.Datapool().Headers(),
+		PostProcessTransactions: dataComponents.DataPool.PostProcessTransactions(),
+		ExecutedMiniBlocks:      dataComponents.DataPool.ExecutedMiniBlocks(),
 		StorageService:          dataComponents.StorageService(),
 		Marshaller:              coreComponents.InternalMarshalizer(),
 		ShardCoordinator:        boostrapComponents.ShardCoordinator(),
