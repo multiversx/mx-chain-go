@@ -15,7 +15,7 @@ import (
 	"github.com/multiversx/mx-chain-go/process/mock"
 	"github.com/multiversx/mx-chain-go/storage"
 	"github.com/multiversx/mx-chain-go/testscommon"
-	"github.com/multiversx/mx-chain-go/testscommon/cache"
+	testCache "github.com/multiversx/mx-chain-go/testscommon/cache"
 	"github.com/multiversx/mx-chain-go/testscommon/pool"
 	"github.com/multiversx/mx-chain-go/testscommon/processMocks"
 	storageStubs "github.com/multiversx/mx-chain-go/testscommon/storage"
@@ -34,8 +34,8 @@ func createMockArgs() executionManager.ArgsExecutionManager {
 				return &block.HeaderV3{}, nil
 			},
 		},
-		PostProcessTransactions: &cache.CacherStub{},
-		ExecutedMiniBlocks:      &cache.CacherStub{},
+		PostProcessTransactions: &testCache.CacherStub{},
+		ExecutedMiniBlocks:      &testCache.CacherStub{},
 		StorageService:          &storageStubs.ChainStorerStub{},
 		Marshaller:              &mock.MarshalizerMock{},
 		ShardCoordinator:        &mock.ShardCoordinatorStub{},
