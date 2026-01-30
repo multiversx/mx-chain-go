@@ -8,115 +8,14 @@ import (
 	"github.com/multiversx/mx-chain-go/common/configs"
 	"github.com/multiversx/mx-chain-go/config"
 	"github.com/multiversx/mx-chain-go/process"
+	"github.com/multiversx/mx-chain-go/testscommon"
 	"github.com/multiversx/mx-chain-go/testscommon/epochNotifier"
 	"github.com/stretchr/testify/require"
 )
 
 func getAntifloodConfigsByRound() []config.AntifloodConfigByRound {
-	return []config.AntifloodConfigByRound{
-		{
-			Round: 0,
-			FastReacting: config.FloodPreventerConfig{
-				BlackList: config.BlackListConfig{
-					ThresholdNumMessagesPerInterval: 100,
-					ThresholdSizePerInterval:        1024,
-					PeerBanDurationInSeconds:        100,
-					NumFloodingRounds:               5,
-				},
-				PeerMaxInput: config.AntifloodLimitsConfig{
-					BaseMessagesPerInterval: 100,
-					TotalSizePerInterval:    1024,
-					IncreaseFactor: config.IncreaseFactorConfig{
-						Factor: 1.0,
-					},
-				},
-				ReservedPercent: 50.0,
-			},
-			SlowReacting: config.FloodPreventerConfig{
-				BlackList: config.BlackListConfig{
-					ThresholdNumMessagesPerInterval: 100,
-					ThresholdSizePerInterval:        1024,
-					PeerBanDurationInSeconds:        100,
-					NumFloodingRounds:               5,
-				},
-				PeerMaxInput: config.AntifloodLimitsConfig{
-					BaseMessagesPerInterval: 100,
-					TotalSizePerInterval:    1024,
-					IncreaseFactor: config.IncreaseFactorConfig{
-						Factor: 1.0,
-					},
-				},
-				ReservedPercent: 50.0,
-			},
-			OutOfSpecs: config.FloodPreventerConfig{
-				BlackList: config.BlackListConfig{
-					ThresholdNumMessagesPerInterval: 100,
-					ThresholdSizePerInterval:        1024,
-					PeerBanDurationInSeconds:        100,
-					NumFloodingRounds:               5,
-				},
-				PeerMaxInput: config.AntifloodLimitsConfig{
-					BaseMessagesPerInterval: 100,
-					TotalSizePerInterval:    1024,
-					IncreaseFactor: config.IncreaseFactorConfig{
-						Factor: 1.0,
-					},
-				},
-				ReservedPercent: 50.0,
-			},
-		},
-		{
-			Round: 100,
-			FastReacting: config.FloodPreventerConfig{
-				BlackList: config.BlackListConfig{
-					ThresholdNumMessagesPerInterval: 200,
-					ThresholdSizePerInterval:        2048,
-					PeerBanDurationInSeconds:        200,
-					NumFloodingRounds:               10,
-				},
-				PeerMaxInput: config.AntifloodLimitsConfig{
-					BaseMessagesPerInterval: 200,
-					TotalSizePerInterval:    2048,
-					IncreaseFactor: config.IncreaseFactorConfig{
-						Factor: 2.0,
-					},
-				},
-				ReservedPercent: 60.0,
-			},
-			SlowReacting: config.FloodPreventerConfig{
-				BlackList: config.BlackListConfig{
-					ThresholdNumMessagesPerInterval: 200,
-					ThresholdSizePerInterval:        2048,
-					PeerBanDurationInSeconds:        200,
-					NumFloodingRounds:               10,
-				},
-				PeerMaxInput: config.AntifloodLimitsConfig{
-					BaseMessagesPerInterval: 200,
-					TotalSizePerInterval:    2048,
-					IncreaseFactor: config.IncreaseFactorConfig{
-						Factor: 2.0,
-					},
-				},
-				ReservedPercent: 60.0,
-			},
-			OutOfSpecs: config.FloodPreventerConfig{
-				BlackList: config.BlackListConfig{
-					ThresholdNumMessagesPerInterval: 200,
-					ThresholdSizePerInterval:        2048,
-					PeerBanDurationInSeconds:        200,
-					NumFloodingRounds:               10,
-				},
-				PeerMaxInput: config.AntifloodLimitsConfig{
-					BaseMessagesPerInterval: 200,
-					TotalSizePerInterval:    2048,
-					IncreaseFactor: config.IncreaseFactorConfig{
-						Factor: 2.0,
-					},
-				},
-				ReservedPercent: 60.0,
-			},
-		},
-	}
+	defaultAntifloodConfig := testscommon.GetDefaultAntifloodConfig()
+	return defaultAntifloodConfig.ConfigsByRound
 }
 
 func TestNewAntifloodConfigsHandler(t *testing.T) {

@@ -1524,6 +1524,7 @@ func (pcf *processComponentsFactory) newMetaResolverContainerFactory(
 		MainPreferredPeersHolder:        pcf.network.PreferredPeersHolderHandler(),
 		FullArchivePreferredPeersHolder: pcf.network.FullArchivePreferredPeersHolderHandler(),
 		PayloadValidator:                payloadValidator,
+		AntifloodConfigsHandler:         pcf.coreData.AntifloodConfigsHandler(),
 	}
 
 	return resolverscontainer.NewMetaResolversContainerFactory(resolversContainerFactoryArgs)

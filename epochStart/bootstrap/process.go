@@ -1691,6 +1691,7 @@ func (e *epochStartBootstrap) createResolversContainer() error {
 		MainPreferredPeersHolder:        disabled.NewPreferredPeersHolder(),
 		FullArchivePreferredPeersHolder: disabled.NewPreferredPeersHolder(),
 		PayloadValidator:                payloadValidator,
+		AntifloodConfigsHandler:         e.coreComponentsHolder.AntifloodConfigsHandler(),
 	}
 	resolverFactory, err := resolverscontainer.NewMetaResolversContainerFactory(resolversContainerArgs)
 	if err != nil {

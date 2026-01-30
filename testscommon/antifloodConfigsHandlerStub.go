@@ -14,7 +14,7 @@ func (stub *AntifloodConfigsHandlerStub) GetCurrentConfig() config.AntifloodConf
 		return stub.GetCurrentConfigCalled()
 	}
 
-	return config.AntifloodConfigByRound{}
+	return GetDefaultAntifloodConfig().ConfigsByRound[0]
 }
 
 // IsEnabled -

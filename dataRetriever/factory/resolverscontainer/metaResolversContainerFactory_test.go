@@ -388,5 +388,6 @@ func getArgumentsMeta() resolverscontainer.FactoryArgs {
 		MainPreferredPeersHolder:            &p2pmocks.PeersHolderStub{},
 		FullArchivePreferredPeersHolder:     &p2pmocks.PeersHolderStub{},
 		PayloadValidator:                    &testscommon.PeerAuthenticationPayloadValidatorStub{},
+		AntifloodConfigsHandler:             &testscommon.AntifloodConfigsHandlerStub{},
 	}
 }

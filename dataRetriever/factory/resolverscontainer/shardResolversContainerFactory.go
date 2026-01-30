@@ -2,12 +2,14 @@ package resolverscontainer
 
 import (
 	"github.com/multiversx/mx-chain-core-go/core"
+	"github.com/multiversx/mx-chain-core-go/core/check"
 	"github.com/multiversx/mx-chain-core-go/core/throttler"
 	"github.com/multiversx/mx-chain-core-go/marshal"
 	"github.com/multiversx/mx-chain-go/common"
 	"github.com/multiversx/mx-chain-go/dataRetriever"
 	"github.com/multiversx/mx-chain-go/dataRetriever/factory/containers"
 	"github.com/multiversx/mx-chain-go/dataRetriever/resolvers"
+	"github.com/multiversx/mx-chain-go/process"
 	"github.com/multiversx/mx-chain-go/process/factory"
 )
 
@@ -23,6 +25,9 @@ func NewShardResolversContainerFactory(
 ) (*shardResolversContainerFactory, error) {
 	if args.SizeCheckDelta > 0 {
 		args.Marshalizer = marshal.NewSizeCheckUnmarshalizer(args.Marshalizer, args.SizeCheckDelta)
+	}
+	if check.IfNil(args.AntifloodConfigsHandler) {
+		return nil, process.ErrNilAntifloodConfigsHandler
 	}
 
 	currentConfig := args.AntifloodConfigsHandler.GetCurrentConfig()

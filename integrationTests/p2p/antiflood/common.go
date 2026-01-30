@@ -5,9 +5,12 @@ import (
 	"sync/atomic"
 	"time"
 
+	"github.com/multiversx/mx-chain-go/common"
+	"github.com/multiversx/mx-chain-go/config"
 	"github.com/multiversx/mx-chain-go/p2p"
 	"github.com/multiversx/mx-chain-go/process/throttle/antiflood/floodPreventers"
 	"github.com/multiversx/mx-chain-go/storage/storageunit"
+	"github.com/multiversx/mx-chain-go/testscommon"
 )
 
 // DurationBootstrapingTime -
@@ -50,14 +53,23 @@ func CreateTopicsAndMockInterceptors(
 			statusHandlers = append(statusHandlers, blacklistHandlers[idx])
 		}
 		arg := floodPreventers.ArgQuotaFloodPreventer{
-			Name:                      "test",
-			Cacher:                    antifloodPool,
-			StatusHandlers:            statusHandlers,
-			BaseMaxNumMessagesPerPeer: peerMaxNumMessages,
-			MaxTotalSizePerPeer:       peerMaxSize,
-			PercentReserved:           0,
-			IncreaseThreshold:         0,
-			IncreaseFactor:            0,
+			Name:             "test",
+			Cacher:           antifloodPool,
+			StatusHandlers:   statusHandlers,
+			AntifloodConfigs: &testscommon.AntifloodConfigsHandlerStub{},
+			ConfigFetcher: func(confHandler common.AntifloodConfigsHandler, id string) config.FloodPreventerConfig {
+				return config.FloodPreventerConfig{
+					ReservedPercent: 0,
+					PeerMaxInput: config.AntifloodLimitsConfig{
+						BaseMessagesPerInterval: peerMaxNumMessages,
+						TotalSizePerInterval:    peerMaxSize,
+						IncreaseFactor: config.IncreaseFactorConfig{
+							Threshold: 0,
+							Factor:    0,
+						},
+					},
+				}
+			},
 		}
 		interceptors[idx].FloodPreventer, err = floodPreventers.NewQuotaFloodPreventer(arg)
 		if err != nil {

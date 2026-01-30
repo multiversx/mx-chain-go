@@ -2,6 +2,7 @@ package components
 
 import (
 	"github.com/multiversx/mx-chain-go/config"
+	"github.com/multiversx/mx-chain-go/testscommon"
 )
 
 // GetGeneralConfig -
@@ -248,101 +249,7 @@ func GetGeneralConfig() config.Config {
 				MaxOpenFiles:      10,
 			},
 		},
-		Antiflood: GetDefaultAntifloodConfig(),
-	}
-}
-
-// GetDefaultAntifloodConfig -
-func GetDefaultAntifloodConfig() config.AntifloodConfig {
-	return config.AntifloodConfig{
-		Enabled: true,
-		ConfigsByRound: []config.AntifloodConfigByRound{
-			{
-				Round:                               0,
-				NumConcurrentResolverJobs:           2,
-				NumConcurrentResolvingTrieNodesJobs: 1,
-				TxAccumulator: config.TxAccumulatorConfig{
-					MaxAllowedTimeInMilliseconds:   10,
-					MaxDeviationTimeInMilliseconds: 1,
-				},
-				FastReacting: config.FloodPreventerConfig{
-					IntervalInSeconds: 1,
-					ReservedPercent:   0.2,
-					PeerMaxInput: config.AntifloodLimitsConfig{
-						BaseMessagesPerInterval: 10,
-						TotalSizePerInterval:    10,
-						IncreaseFactor: config.IncreaseFactorConfig{
-							Threshold: 11,
-							Factor:    0.1,
-						},
-					},
-					BlackList: config.BlackListConfig{
-						ThresholdNumMessagesPerInterval: 10,
-						ThresholdSizePerInterval:        10,
-						NumFloodingRounds:               100,
-						PeerBanDurationInSeconds:        1,
-					},
-				},
-				SlowReacting: config.FloodPreventerConfig{
-					IntervalInSeconds: 1,
-					ReservedPercent:   0.2,
-					PeerMaxInput: config.AntifloodLimitsConfig{
-						BaseMessagesPerInterval: 10,
-						TotalSizePerInterval:    10,
-						IncreaseFactor: config.IncreaseFactorConfig{
-							Threshold: 11,
-							Factor:    0.1,
-						},
-					},
-					BlackList: config.BlackListConfig{
-						ThresholdNumMessagesPerInterval: 10,
-						ThresholdSizePerInterval:        10,
-						NumFloodingRounds:               100,
-						PeerBanDurationInSeconds:        1,
-					},
-				},
-				OutOfSpecs: config.FloodPreventerConfig{
-					IntervalInSeconds: 1,
-					ReservedPercent:   0.2,
-					PeerMaxInput: config.AntifloodLimitsConfig{
-						BaseMessagesPerInterval: 10,
-						TotalSizePerInterval:    10,
-						IncreaseFactor: config.IncreaseFactorConfig{
-							Threshold: 11,
-							Factor:    0.1,
-						},
-					},
-					BlackList: config.BlackListConfig{
-						ThresholdNumMessagesPerInterval: 10,
-						ThresholdSizePerInterval:        10,
-						NumFloodingRounds:               100,
-						PeerBanDurationInSeconds:        1,
-					},
-				},
-				PeerMaxOutput: config.AntifloodLimitsConfig{
-					BaseMessagesPerInterval: 10,
-					TotalSizePerInterval:    10,
-					IncreaseFactor: config.IncreaseFactorConfig{
-						Threshold: 11,
-						Factor:    0.1,
-					},
-				},
-				Cache: config.CacheConfig{
-					Capacity: 10000,
-					Type:     "LRU",
-					Shards:   1,
-				},
-				Topic: config.TopicAntifloodConfig{
-					DefaultMaxMessagesPerSec: 10,
-					MaxMessages: []config.TopicMaxMessagesConfig{
-						{
-							Topic:             "topic",
-							NumMessagesPerSec: 10,
-						},
-					},
-				},
-			},
-		},
+		Antiflood: testscommon.GetDefaultAntifloodConfig(),
 	}
 }
 
