@@ -2020,13 +2020,13 @@ func (bp *baseProcessor) updateStateStorage(
 }
 
 // RevertCurrentBlock reverts the current block for cleanup failed process
-func (bp *baseProcessor) RevertCurrentBlock(headerHandler data.HeaderHandler) {
+func (bp *baseProcessor) RevertCurrentBlock() {
 	bp.revertAccountState()
 	bp.revertScheduledInfo()
-	bp.revertCurrentBlockV3(headerHandler)
 }
 
-func (bp *baseProcessor) revertCurrentBlockV3(headerHandler data.HeaderHandler) {
+// RevertHeaderV3OnCommit reverts the current block for commit failed
+func (bp *baseProcessor) RevertHeaderV3OnCommit(headerHandler data.HeaderHandler) {
 	if check.IfNil(headerHandler) || !headerHandler.IsHeaderV3() {
 		return
 	}
@@ -2505,7 +2505,7 @@ func (bp *baseProcessor) ProcessScheduledBlock(headerHandler data.HeaderHandler,
 	bp.processStatusHandler.SetBusy("baseProcessor.ProcessScheduledBlock")
 	defer func() {
 		if err != nil {
-			bp.RevertCurrentBlock(headerHandler)
+			bp.RevertCurrentBlock()
 		}
 		bp.processStatusHandler.SetIdle()
 	}()
