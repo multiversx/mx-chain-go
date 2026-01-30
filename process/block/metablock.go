@@ -1858,7 +1858,7 @@ func (mp *metaProcessor) prepareEpochStartBodyForTrigger(header data.MetaHeaderH
 
 		retrievedObj, found := mp.dataPool.ExecutedMiniBlocks().Get(metaExecRes.GetHeaderHash())
 		if !found {
-			return nil, fmt.Errorf("%w in prepareEpochStartBodyForTrigger for key: %s", trie.ErrKeyNotFound, metaExecRes.GetHeaderHash())
+			return nil, fmt.Errorf("%w in prepareEpochStartBodyForTrigger for key: %s", trie.ErrKeyNotFound, hex.EncodeToString(metaExecRes.GetHeaderHash()))
 		}
 
 		currMBs, castOk := retrievedObj.([]*block.MiniBlock)

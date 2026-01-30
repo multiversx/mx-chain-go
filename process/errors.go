@@ -242,6 +242,9 @@ var ErrNilMiniBlockPool = errors.New("nil mini block pool")
 // ErrNilPostProcessTransactionsCache signals that a nil post-process transactions cache has been provided
 var ErrNilPostProcessTransactionsCache = errors.New("nil post process transactions cache")
 
+// ErrNilExecutedMiniBlocksCache signals that a nil executed mini blocks cache has been provided
+var ErrNilExecutedMiniBlocksCache = errors.New("nil executed mini blocks cache")
+
 // ErrNilMetaBlocksPool signals that a nil meta blocks pool was used
 var ErrNilMetaBlocksPool = errors.New("nil meta blocks pool")
 
