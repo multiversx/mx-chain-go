@@ -7,14 +7,12 @@ import (
 	"github.com/multiversx/mx-chain-core-go/core"
 	"github.com/multiversx/mx-chain-core-go/core/check"
 	"github.com/multiversx/mx-chain-go/common"
-	"github.com/multiversx/mx-chain-go/config"
 	"github.com/multiversx/mx-chain-go/p2p"
 	"github.com/multiversx/mx-chain-go/process"
+	"github.com/multiversx/mx-chain-go/process/throttle/antiflood"
 	"github.com/multiversx/mx-chain-go/storage"
 	logger "github.com/multiversx/mx-chain-logger-go"
 )
-
-type floodPreventerConfigFetcher func(confHandler common.AntifloodConfigsHandler, id string) config.FloodPreventerConfig
 
 var log = logger.GetOrCreate("process/throttle/antiflood/blacklist")
 
@@ -27,7 +25,7 @@ type p2pBlackListProcessor struct {
 	selfPid             core.PeerID
 	name                string
 	antifloodConfigs    common.AntifloodConfigsHandler
-	configFetcher       floodPreventerConfigFetcher
+	configFetcher       antiflood.FloodPreventerConfigFetcher
 }
 
 // NewP2PBlackListProcessor creates a new instance of p2pQuotaBlacklistProcessor able to determine
@@ -39,7 +37,7 @@ func NewP2PBlackListProcessor(
 	name string,
 	selfPid core.PeerID,
 	antifloodConfigs common.AntifloodConfigsHandler,
-	configFetcher floodPreventerConfigFetcher,
+	configFetcher antiflood.FloodPreventerConfigFetcher,
 ) (*p2pBlackListProcessor, error) {
 	if check.IfNil(cacher) {
 		return nil, fmt.Errorf("%w, NewP2PBlackListProcessor", process.ErrNilCacher)

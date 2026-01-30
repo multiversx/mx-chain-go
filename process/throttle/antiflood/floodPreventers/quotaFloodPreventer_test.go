@@ -10,8 +10,11 @@ import (
 	"github.com/multiversx/mx-chain-core-go/core"
 	"github.com/multiversx/mx-chain-core-go/core/check"
 
+	"github.com/multiversx/mx-chain-go/common"
+	"github.com/multiversx/mx-chain-go/config"
 	"github.com/multiversx/mx-chain-go/process"
 	"github.com/multiversx/mx-chain-go/process/mock"
+	"github.com/multiversx/mx-chain-go/testscommon"
 	"github.com/multiversx/mx-chain-go/testscommon/cache"
 
 	"github.com/stretchr/testify/assert"
@@ -19,14 +22,30 @@ import (
 
 func createDefaultArgument() ArgQuotaFloodPreventer {
 	return ArgQuotaFloodPreventer{
-		Name:                      "test",
-		Cacher:                    cache.NewCacherStub(),
-		StatusHandlers:            []QuotaStatusHandler{&mock.QuotaStatusHandlerStub{}},
-		BaseMaxNumMessagesPerPeer: minMessages,
-		MaxTotalSizePerPeer:       minTotalSize,
-		PercentReserved:           10,
-		IncreaseThreshold:         0,
-		IncreaseFactor:            0,
+		Name:             "test",
+		Cacher:           cache.NewCacherStub(),
+		StatusHandlers:   []QuotaStatusHandler{&mock.QuotaStatusHandlerStub{}},
+		AntifloodConfigs: &testscommon.AntifloodConfigsHandlerStub{},
+		ConfigFetcher: func(confHandler common.AntifloodConfigsHandler, id string) config.FloodPreventerConfig {
+			return config.FloodPreventerConfig{
+				IntervalInSeconds: 1,
+				ReservedPercent:   10,
+				PeerMaxInput: config.AntifloodLimitsConfig{
+					BaseMessagesPerInterval: minMessages,
+					TotalSizePerInterval:    minTotalSize,
+					IncreaseFactor: config.IncreaseFactorConfig{
+						Threshold: 0,
+						Factor:    0,
+					},
+				},
+				BlackList: config.BlackListConfig{
+					ThresholdNumMessagesPerInterval: 10,
+					ThresholdSizePerInterval:        10,
+					NumFloodingRounds:               10,
+					PeerBanDurationInSeconds:        10,
+				},
+			}
+		},
 	}
 }
 
@@ -52,61 +71,6 @@ func TestNewQuotaFloodPreventer_NilStatusHandlerShouldErr(t *testing.T) {
 
 	assert.True(t, check.IfNil(qfp))
 	assert.Equal(t, process.ErrNilQuotaStatusHandler, err)
-}
-
-func TestNewQuotaFloodPreventer_LowerMinMessagesPerPeerShouldErr(t *testing.T) {
-	t.Parallel()
-
-	arg := createDefaultArgument()
-	arg.BaseMaxNumMessagesPerPeer = minMessages - 1
-	qfp, err := NewQuotaFloodPreventer(arg)
-
-	assert.True(t, check.IfNil(qfp))
-	assert.True(t, errors.Is(err, process.ErrInvalidValue))
-}
-
-func TestNewQuotaFloodPreventer_LowerMinSizePerPeerShouldErr(t *testing.T) {
-	t.Parallel()
-
-	arg := createDefaultArgument()
-	arg.MaxTotalSizePerPeer = minTotalSize - 1
-	qfp, err := NewQuotaFloodPreventer(arg)
-
-	assert.True(t, check.IfNil(qfp))
-	assert.True(t, errors.Is(err, process.ErrInvalidValue))
-}
-
-func TestNewQuotaFloodPreventer_HigherPercentReservedShouldErr(t *testing.T) {
-	t.Parallel()
-
-	arg := createDefaultArgument()
-	arg.PercentReserved = maxPercentReserved + 0.01
-	qfp, err := NewQuotaFloodPreventer(arg)
-
-	assert.True(t, check.IfNil(qfp))
-	assert.True(t, errors.Is(err, process.ErrInvalidValue))
-}
-
-func TestNewQuotaFloodPreventer_LowerPercentReservedShouldErr(t *testing.T) {
-	t.Parallel()
-
-	arg := createDefaultArgument()
-	arg.PercentReserved = minPercentReserved - 0.01
-	qfp, err := NewQuotaFloodPreventer(arg)
-
-	assert.True(t, check.IfNil(qfp))
-	assert.True(t, errors.Is(err, process.ErrInvalidValue))
-}
-
-func TestNewQuotaFloodPreventer_NegativeIncreaseFactorShouldErr(t *testing.T) {
-	t.Parallel()
-
-	arg := createDefaultArgument()
-	arg.IncreaseFactor = -0.001
-	qfp, err := NewQuotaFloodPreventer(arg)
-
-	assert.True(t, check.IfNil(qfp))
-	assert.True(t, errors.Is(err, process.ErrInvalidValue))
 }
 
 func TestNewQuotaFloodPreventer_ShouldWork(t *testing.T) {
@@ -154,8 +118,16 @@ func TestNewQuotaFloodPreventer_IncreaseLoadIdentifierNotPresentPutQuotaAndRetur
 			return
 		},
 	}
-	arg.BaseMaxNumMessagesPerPeer = minMessages * 4
-	arg.MaxTotalSizePerPeer = minTotalSize * 1
+
+	arg.ConfigFetcher = func(confHandler common.AntifloodConfigsHandler, id string) config.FloodPreventerConfig {
+		return config.FloodPreventerConfig{
+			PeerMaxInput: config.AntifloodLimitsConfig{
+				BaseMessagesPerInterval: minMessages * 4,
+				TotalSizePerInterval:    minTotalSize * 1,
+			},
+		}
+	}
+
 	qfp, _ := NewQuotaFloodPreventer(arg)
 
 	err := qfp.IncreaseLoad("identifier", size)
@@ -186,8 +158,16 @@ func TestNewQuotaFloodPreventer_IncreaseLoadNotQuotaSavedInCacheShouldPutQuotaAn
 			return
 		},
 	}
-	arg.BaseMaxNumMessagesPerPeer = minMessages * 4
-	arg.MaxTotalSizePerPeer = minTotalSize * 1
+
+	arg.ConfigFetcher = func(confHandler common.AntifloodConfigsHandler, id string) config.FloodPreventerConfig {
+		return config.FloodPreventerConfig{
+			PeerMaxInput: config.AntifloodLimitsConfig{
+				BaseMessagesPerInterval: minMessages * 4,
+				TotalSizePerInterval:    minTotalSize * 1,
+			},
+		}
+	}
+
 	qfp, _ := NewQuotaFloodPreventer(arg)
 
 	err := qfp.IncreaseLoad("identifier", size)
@@ -212,8 +192,16 @@ func TestNewQuotaFloodPreventer_IncreaseLoadUnderMaxValuesShouldIncrementAndRetu
 			return existingQuota, true
 		},
 	}
-	arg.BaseMaxNumMessagesPerPeer = minMessages * 10
-	arg.MaxTotalSizePerPeer = minTotalSize * 10
+
+	arg.ConfigFetcher = func(confHandler common.AntifloodConfigsHandler, id string) config.FloodPreventerConfig {
+		return config.FloodPreventerConfig{
+			PeerMaxInput: config.AntifloodLimitsConfig{
+				BaseMessagesPerInterval: minMessages * 10,
+				TotalSizePerInterval:    minTotalSize * 10,
+			},
+		}
+	}
+
 	qfp, _ := NewQuotaFloodPreventer(arg)
 
 	err := qfp.IncreaseLoad("identifier", size)
@@ -243,8 +231,16 @@ func TestNewQuotaFloodPreventer_IncreaseLoadOverMaxPeerNumMessagesShouldNotPutAn
 			return false
 		},
 	}
-	arg.BaseMaxNumMessagesPerPeer = minMessages * 4
-	arg.MaxTotalSizePerPeer = minTotalSize * 10
+
+	arg.ConfigFetcher = func(confHandler common.AntifloodConfigsHandler, id string) config.FloodPreventerConfig {
+		return config.FloodPreventerConfig{
+			PeerMaxInput: config.AntifloodLimitsConfig{
+				BaseMessagesPerInterval: minMessages * 4,
+				TotalSizePerInterval:    minTotalSize * 10,
+			},
+		}
+	}
+
 	qfp, _ := NewQuotaFloodPreventer(arg)
 
 	err := qfp.IncreaseLoad("identifier", minTotalSize)
@@ -272,8 +268,15 @@ func TestNewQuotaFloodPreventer_IncreaseLoadOverMaxPeerSizeShouldNotPutAndReturn
 			return false
 		},
 	}
-	arg.BaseMaxNumMessagesPerPeer = minMessages * 4
-	arg.MaxTotalSizePerPeer = minTotalSize * 10
+
+	arg.ConfigFetcher = func(confHandler common.AntifloodConfigsHandler, id string) config.FloodPreventerConfig {
+		return config.FloodPreventerConfig{
+			PeerMaxInput: config.AntifloodLimitsConfig{
+				BaseMessagesPerInterval: minMessages * 4,
+				TotalSizePerInterval:    minTotalSize * 10,
+			},
+		}
+	}
 	qfp, _ := NewQuotaFloodPreventer(arg)
 
 	err := qfp.IncreaseLoad("identifier", minTotalSize)
@@ -421,21 +424,32 @@ func TestNewQuotaFloodPreventer_IncreaseLoadWithMockCacherShouldWork(t *testing.
 	numMessages := uint32(100)
 	arg := createDefaultArgument()
 	arg.Cacher = cache.NewCacherMock()
-	arg.BaseMaxNumMessagesPerPeer = numMessages
-	arg.MaxTotalSizePerPeer = math.MaxUint64
-	arg.PercentReserved = float32(17)
+
+	percentReserved := float32(17)
+
+	arg.ConfigFetcher = func(confHandler common.AntifloodConfigsHandler, id string) config.FloodPreventerConfig {
+		return config.FloodPreventerConfig{
+			ReservedPercent: percentReserved,
+			PeerMaxInput: config.AntifloodLimitsConfig{
+				BaseMessagesPerInterval: numMessages,
+				TotalSizePerInterval:    math.MaxUint64,
+				IncreaseFactor:          config.IncreaseFactorConfig{},
+			},
+		}
+	}
+
 	qfp, _ := NewQuotaFloodPreventer(arg)
 
 	identifier := core.PeerID("id")
-	for i := uint32(0); i < numMessages-uint32(arg.PercentReserved); i++ {
+	for i := uint32(0); i < numMessages-uint32(percentReserved); i++ {
 		err := qfp.IncreaseLoad(identifier, 1)
 		assert.Nil(t, err, fmt.Sprintf("failed at the %d iteration", i))
 	}
 
-	for i := uint32(0); i < uint32(arg.PercentReserved)*2; i++ {
+	for i := uint32(0); i < uint32(percentReserved)*2; i++ {
 		err := qfp.IncreaseLoad(identifier, 1)
 		assert.True(t, errors.Is(err, process.ErrSystemBusy),
-			fmt.Sprintf("failed at the %d iteration", numMessages-uint32(arg.PercentReserved)+i))
+			fmt.Sprintf("failed at the %d iteration", numMessages-uint32(percentReserved)+i))
 	}
 }
 
@@ -445,25 +459,46 @@ func TestQuotaFloodPreventer_ApplyConsensusSizeInvalidConsensusSize(t *testing.T
 	t.Parallel()
 
 	arg := createDefaultArgument()
-	arg.BaseMaxNumMessagesPerPeer = uint32(4682)
+	baseMaxNumMessagesPerPeer := uint32(4682)
+
+	arg.ConfigFetcher = func(confHandler common.AntifloodConfigsHandler, id string) config.FloodPreventerConfig {
+		return config.FloodPreventerConfig{
+			PeerMaxInput: config.AntifloodLimitsConfig{
+				BaseMessagesPerInterval: baseMaxNumMessagesPerPeer,
+			},
+		}
+	}
+
 	qfp, _ := NewQuotaFloodPreventer(arg)
 
 	qfp.ApplyConsensusSize(0)
 
-	assert.Equal(t, arg.BaseMaxNumMessagesPerPeer, qfp.computedMaxNumMessagesPerPeer)
+	assert.Equal(t, baseMaxNumMessagesPerPeer, qfp.computedMaxNumMessagesPerPeer)
 }
 
 func TestQuotaFloodPreventer_ApplyConsensusUnderThreshold(t *testing.T) {
 	t.Parallel()
 
 	arg := createDefaultArgument()
-	arg.BaseMaxNumMessagesPerPeer = uint32(4682)
-	arg.IncreaseThreshold = 100
+
+	baseMaxNumMessagesPerPeer := uint32(4682)
+
+	arg.ConfigFetcher = func(confHandler common.AntifloodConfigsHandler, id string) config.FloodPreventerConfig {
+		return config.FloodPreventerConfig{
+			PeerMaxInput: config.AntifloodLimitsConfig{
+				BaseMessagesPerInterval: baseMaxNumMessagesPerPeer,
+				IncreaseFactor: config.IncreaseFactorConfig{
+					Threshold: 100,
+				},
+			},
+		}
+	}
+
 	qfp, _ := NewQuotaFloodPreventer(arg)
 
 	qfp.ApplyConsensusSize(99)
 
-	assert.Equal(t, arg.BaseMaxNumMessagesPerPeer, qfp.computedMaxNumMessagesPerPeer)
+	assert.Equal(t, baseMaxNumMessagesPerPeer, qfp.computedMaxNumMessagesPerPeer)
 }
 
 func TestQuotaFloodPreventer_ApplyConsensusShouldWork(t *testing.T) {
@@ -471,9 +506,21 @@ func TestQuotaFloodPreventer_ApplyConsensusShouldWork(t *testing.T) {
 
 	arg := createDefaultArgument()
 	arg.Cacher = cache.NewCacherMock()
-	arg.BaseMaxNumMessagesPerPeer = 2000
-	arg.IncreaseThreshold = 1000
-	arg.IncreaseFactor = 0.25
+
+	arg.ConfigFetcher = func(confHandler common.AntifloodConfigsHandler, id string) config.FloodPreventerConfig {
+		return config.FloodPreventerConfig{
+			IntervalInSeconds: 1,
+			ReservedPercent:   10,
+			PeerMaxInput: config.AntifloodLimitsConfig{
+				BaseMessagesPerInterval: 2000,
+				IncreaseFactor: config.IncreaseFactorConfig{
+					Threshold: 1000,
+					Factor:    0.25,
+				},
+			},
+		}
+	}
+
 	qfp, _ := NewQuotaFloodPreventer(arg)
 	absoluteExpected := uint32(2250)
 	qfp.ApplyConsensusSize(2000)

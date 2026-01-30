@@ -29,6 +29,7 @@ const defaultSpan = 300 * time.Second
 const fastReactingIdentifier = "fast_reacting"
 const slowReactingIdentifier = "slow_reacting"
 const outOfSpecsIdentifier = "out_of_specs"
+const outputIdentifier = "output"
 
 var durationSweepP2PBlacklist = time.Second * 5
 
@@ -214,20 +215,6 @@ func startSweepingTimeCaches(ctx context.Context, p2pPeerBlackList process.PeerB
 			publicKeysCache.Sweep()
 		}
 	}()
-}
-
-func floodPreventerConfigFetcher(confHandler common.AntifloodConfigsHandler, identifier string) config.FloodPreventerConfig {
-	currentConfig := confHandler.GetCurrentConfig()
-	switch identifier {
-	case fastReactingIdentifier:
-		return currentConfig.FastReacting
-	case slowReactingIdentifier:
-		return currentConfig.SlowReacting
-	case outOfSpecsIdentifier:
-		return currentConfig.OutOfSpecs
-	default:
-		return currentConfig.FastReacting
-	}
 }
 
 func createFloodPreventer(

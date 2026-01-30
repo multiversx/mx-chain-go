@@ -7,19 +7,21 @@ import (
 	"github.com/multiversx/mx-chain-core-go/core/check"
 	"github.com/multiversx/mx-chain-go/config"
 	"github.com/multiversx/mx-chain-go/process/throttle/antiflood/disabled"
+	"github.com/multiversx/mx-chain-go/testscommon"
 	"github.com/stretchr/testify/assert"
 )
 
 func TestNewP2POutputAntiFlood_ShouldWorkAndReturnDisabledImplementations(t *testing.T) {
 	t.Parallel()
 
-	cfg := config.Config{
-		Antiflood: config.AntifloodConfig{
-			Enabled: false,
+	antifloodConfigHandler := &testscommon.AntifloodConfigsHandlerStub{
+		IsEnabledCalled: func() bool {
+			return false
 		},
 	}
+
 	ctx := context.Background()
-	af, err := NewP2POutputAntiFlood(ctx, cfg)
+	af, err := NewP2POutputAntiFlood(ctx, antifloodConfigHandler)
 	assert.NotNil(t, af)
 	assert.Nil(t, err)
 
@@ -30,47 +32,27 @@ func TestNewP2POutputAntiFlood_ShouldWorkAndReturnDisabledImplementations(t *tes
 func TestNewP2POutputAntiFlood_BadCacheConfigShouldErr(t *testing.T) {
 	t.Parallel()
 
-	cfg := config.Config{
-		Antiflood: config.AntifloodConfig{
-			Enabled: true,
-			Cache: config.CacheConfig{
-				Type:     "unknown type",
-				Capacity: 10,
-				Shards:   2,
-			},
-			PeerMaxOutput: config.AntifloodLimitsConfig{
-				BaseMessagesPerInterval: 10,
-				TotalSizePerInterval:    10,
-			},
+	antifloodConfigHandler := &testscommon.AntifloodConfigsHandlerStub{
+		IsEnabledCalled: func() bool {
+			return true
+		},
+		GetCurrentConfigCalled: func() config.AntifloodConfigByRound {
+			return config.AntifloodConfigByRound{
+				Cache: config.CacheConfig{
+					Type:     "unknown type",
+					Capacity: 10,
+					Shards:   2,
+				},
+				PeerMaxOutput: config.AntifloodLimitsConfig{
+					BaseMessagesPerInterval: 10,
+					TotalSizePerInterval:    10,
+				},
+			}
 		},
 	}
 
 	ctx := context.Background()
-	af, err := NewP2POutputAntiFlood(ctx, cfg)
-	assert.NotNil(t, err)
-	assert.True(t, check.IfNil(af))
-}
-
-func TestNewP2POutputAntiFlood_BadConfigShouldErr(t *testing.T) {
-	t.Parallel()
-
-	cfg := config.Config{
-		Antiflood: config.AntifloodConfig{
-			Enabled: true,
-			Cache: config.CacheConfig{
-				Type:     "LRU",
-				Capacity: 10,
-				Shards:   2,
-			},
-			PeerMaxOutput: config.AntifloodLimitsConfig{
-				BaseMessagesPerInterval: 0,
-				TotalSizePerInterval:    10,
-			},
-		},
-	}
-
-	ctx := context.Background()
-	af, err := NewP2POutputAntiFlood(ctx, cfg)
+	af, err := NewP2POutputAntiFlood(ctx, antifloodConfigHandler)
 	assert.NotNil(t, err)
 	assert.True(t, check.IfNil(af))
 }
@@ -78,23 +60,27 @@ func TestNewP2POutputAntiFlood_BadConfigShouldErr(t *testing.T) {
 func TestNewP2POutputAntiFlood_ShouldWorkAndReturnOkImplementations(t *testing.T) {
 	t.Parallel()
 
-	cfg := config.Config{
-		Antiflood: config.AntifloodConfig{
-			Enabled: true,
-			Cache: config.CacheConfig{
-				Type:     "LRU",
-				Capacity: 10,
-				Shards:   2,
-			},
-			PeerMaxOutput: config.AntifloodLimitsConfig{
-				BaseMessagesPerInterval: 10,
-				TotalSizePerInterval:    10,
-			},
+	antifloodConfigHandler := &testscommon.AntifloodConfigsHandlerStub{
+		IsEnabledCalled: func() bool {
+			return true
+		},
+		GetCurrentConfigCalled: func() config.AntifloodConfigByRound {
+			return config.AntifloodConfigByRound{
+				Cache: config.CacheConfig{
+					Type:     "LRU",
+					Capacity: 10,
+					Shards:   2,
+				},
+				PeerMaxOutput: config.AntifloodLimitsConfig{
+					BaseMessagesPerInterval: 10,
+					TotalSizePerInterval:    10,
+				},
+			}
 		},
 	}
 
 	ctx := context.Background()
-	af, err := NewP2POutputAntiFlood(ctx, cfg)
+	af, err := NewP2POutputAntiFlood(ctx, antifloodConfigHandler)
 	assert.Nil(t, err)
 	assert.NotNil(t, af)
 }
