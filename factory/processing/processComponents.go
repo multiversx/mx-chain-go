@@ -306,6 +306,7 @@ func (pcf *processComponentsFactory) Create() (*processComponents, error) {
 		HeadersPool:             pcf.data.Datapool().Headers(),
 		ProofsPool:              pcf.data.Datapool().Proofs(),
 		StorageService:          pcf.data.StorageService(),
+		PubKeysHandler:          pcf.crypto.ConsensusSigningHandler(),
 	}
 	headerSigVerifier, err := headerCheck.NewHeaderSigVerifier(argsHeaderSig)
 	if err != nil {
