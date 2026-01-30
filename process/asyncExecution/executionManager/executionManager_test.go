@@ -15,6 +15,7 @@ import (
 	"github.com/multiversx/mx-chain-go/process/mock"
 	"github.com/multiversx/mx-chain-go/storage"
 	"github.com/multiversx/mx-chain-go/testscommon"
+	"github.com/multiversx/mx-chain-go/testscommon/cache"
 	"github.com/multiversx/mx-chain-go/testscommon/pool"
 	"github.com/multiversx/mx-chain-go/testscommon/processMocks"
 	storageStubs "github.com/multiversx/mx-chain-go/testscommon/storage"
@@ -33,9 +34,11 @@ func createMockArgs() executionManager.ArgsExecutionManager {
 				return &block.HeaderV3{}, nil
 			},
 		},
-		StorageService:   &storageStubs.ChainStorerStub{},
-		Marshaller:       &mock.MarshalizerMock{},
-		ShardCoordinator: &mock.ShardCoordinatorStub{},
+		PostProcessTransactions: &cache.CacherStub{},
+		ExecutedMiniBlocks:      &cache.CacherStub{},
+		StorageService:          &storageStubs.ChainStorerStub{},
+		Marshaller:              &mock.MarshalizerMock{},
+		ShardCoordinator:        &mock.ShardCoordinatorStub{},
 	}
 }
 
@@ -395,6 +398,14 @@ func TestExecutionManager_AddPairForExecution(t *testing.T) {
 					counter += 1
 				}
 			},
+			GetLastExecutionResultCalled: func() data.BaseExecutionResultHandler {
+				return &block.ExecutionResult{
+					BaseExecutionResult: &block.BaseExecutionResult{
+						RootHash:   []byte("rootHash"),
+						HeaderHash: []byte("lastExecResultHash"),
+					},
+				}
+			},
 		}
 
 		args.ExecutionResultsTracker = &processMocks.ExecutionTrackerStub{
@@ -446,6 +457,14 @@ func TestExecutionManager_AddPairForExecution(t *testing.T) {
 			SetLastExecutionResultCalled: func(result data.BaseExecutionResultHandler) {
 				if bytes.Equal(result.GetHeaderHash(), []byte("lastNotarizedExecResultHash")) {
 					counter += 1
+				}
+			},
+			GetLastExecutionResultCalled: func() data.BaseExecutionResultHandler {
+				return &block.ExecutionResult{
+					BaseExecutionResult: &block.BaseExecutionResult{
+						RootHash:   []byte("rootHash"),
+						HeaderHash: []byte("lastExecResultHash"),
+					},
 				}
 			},
 		}
@@ -500,6 +519,14 @@ func TestExecutionManager_AddPairForExecution(t *testing.T) {
 			SetLastExecutionResultCalled: func(result data.BaseExecutionResultHandler) {
 				if bytes.Equal(result.GetHeaderHash(), []byte("hashY")) {
 					counter += 1
+				}
+			},
+			GetLastExecutionResultCalled: func() data.BaseExecutionResultHandler {
+				return &block.ExecutionResult{
+					BaseExecutionResult: &block.BaseExecutionResult{
+						RootHash:   []byte("rootHash"),
+						HeaderHash: []byte("lastExecResultHash"),
+					},
 				}
 			},
 		}

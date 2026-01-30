@@ -13,6 +13,8 @@ import (
 	"github.com/multiversx/mx-chain-core-go/data"
 	"github.com/multiversx/mx-chain-core-go/data/block"
 	"github.com/multiversx/mx-chain-core-go/data/transaction"
+	"github.com/multiversx/mx-chain-go/storage"
+	"github.com/multiversx/mx-chain-go/testscommon/cache"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 
@@ -230,6 +232,12 @@ func TestShardProcessor_CreateBlockProposal(t *testing.T) {
 			},
 			HeadersCalled: func() retriever.HeadersPool {
 				return headers
+			},
+			PostProcessTransactionsCalled: func() storage.Cacher {
+				return &cache.CacherStub{}
+			},
+			ExecutedMiniBlocksCalled: func() storage.Cacher {
+				return &cache.CacherStub{}
 			},
 		}
 		arguments := CreateMockArguments(coreComponents, dataComponents, bootstrapComponents, statusComponents)
@@ -481,6 +489,12 @@ func TestShardProcessor_CreateBlockProposal(t *testing.T) {
 					},
 				}
 			},
+			PostProcessTransactionsCalled: func() storage.Cacher {
+				return &cache.CacherStub{}
+			},
+			ExecutedMiniBlocksCalled: func() storage.Cacher {
+				return &cache.CacherStub{}
+			},
 		}
 
 		arguments := CreateMockArguments(coreComponents, dataComponents, bootstrapComponents, statusComponents)
@@ -673,6 +687,12 @@ func TestShardProcessor_CreateBlockProposal(t *testing.T) {
 						return
 					},
 				}
+			},
+			PostProcessTransactionsCalled: func() storage.Cacher {
+				return &cache.CacherStub{}
+			},
+			ExecutedMiniBlocksCalled: func() storage.Cacher {
+				return &cache.CacherStub{}
 			},
 		}
 
@@ -976,6 +996,12 @@ func TestShardProcessor_CreateBlockProposal(t *testing.T) {
 					},
 				}
 			},
+			PostProcessTransactionsCalled: func() storage.Cacher {
+				return &cache.CacherStub{}
+			},
+			ExecutedMiniBlocksCalled: func() storage.Cacher {
+				return &cache.CacherStub{}
+			},
 		}
 
 		arguments := CreateMockArguments(coreComponents, dataComponents, bootstrapComponents, statusComponents)
@@ -1061,6 +1087,12 @@ func TestShardProcessor_CreateBlockProposal(t *testing.T) {
 					},
 				}
 			},
+			PostProcessTransactionsCalled: func() storage.Cacher {
+				return &cache.CacherStub{}
+			},
+			ExecutedMiniBlocksCalled: func() storage.Cacher {
+				return &cache.CacherStub{}
+			},
 		}
 
 		arguments := CreateMockArguments(coreComponents, dataComponents, bootstrapComponents, statusComponents)
@@ -1136,6 +1168,12 @@ func TestShardProcessor_CreateBlockProposal(t *testing.T) {
 						return &transaction.Transaction{}, true
 					},
 				}
+			},
+			PostProcessTransactionsCalled: func() storage.Cacher {
+				return &cache.CacherStub{}
+			},
+			ExecutedMiniBlocksCalled: func() storage.Cacher {
+				return &cache.CacherStub{}
 			},
 		}
 
@@ -1527,6 +1565,12 @@ func TestShardProcessor_SelectIncomingMiniBlocks(t *testing.T) {
 					},
 				}
 			},
+			PostProcessTransactionsCalled: func() storage.Cacher {
+				return &cache.CacherStub{}
+			},
+			ExecutedMiniBlocksCalled: func() storage.Cacher {
+				return &cache.CacherStub{}
+			},
 		}
 		arguments := CreateMockArguments(coreComponents, dataComponents, bootstrapComponents, statusComponents)
 		arguments.MiniBlocksSelectionSession = &mbSelection.MiniBlockSelectionSessionStub{
@@ -1558,6 +1602,12 @@ func TestShardProcessor_SelectIncomingMiniBlocks(t *testing.T) {
 					},
 				}
 			},
+			PostProcessTransactionsCalled: func() storage.Cacher {
+				return &cache.CacherStub{}
+			},
+			ExecutedMiniBlocksCalled: func() storage.Cacher {
+				return &cache.CacherStub{}
+			},
 		}
 		arguments := CreateMockArguments(coreComponents, dataComponents, bootstrapComponents, statusComponents)
 		sp, err := blproc.NewShardProcessor(arguments)
@@ -1585,6 +1635,12 @@ func TestShardProcessor_SelectIncomingMiniBlocks(t *testing.T) {
 						return false
 					},
 				}
+			},
+			PostProcessTransactionsCalled: func() storage.Cacher {
+				return &cache.CacherStub{}
+			},
+			ExecutedMiniBlocksCalled: func() storage.Cacher {
+				return &cache.CacherStub{}
 			},
 		}
 		arguments := CreateMockArguments(coreComponents, dataComponents, bootstrapComponents, statusComponents)
@@ -1620,6 +1676,12 @@ func TestShardProcessor_SelectIncomingMiniBlocks(t *testing.T) {
 						return true
 					},
 				}
+			},
+			PostProcessTransactionsCalled: func() storage.Cacher {
+				return &cache.CacherStub{}
+			},
+			ExecutedMiniBlocksCalled: func() storage.Cacher {
+				return &cache.CacherStub{}
 			},
 		}
 		arguments := CreateMockArguments(coreComponents, dataComponents, bootstrapComponents, statusComponents)
@@ -1674,6 +1736,12 @@ func TestShardProcessor_SelectIncomingMiniBlocks(t *testing.T) {
 						return true
 					},
 				}
+			},
+			PostProcessTransactionsCalled: func() storage.Cacher {
+				return &cache.CacherStub{}
+			},
+			ExecutedMiniBlocksCalled: func() storage.Cacher {
+				return &cache.CacherStub{}
 			},
 		}
 		arguments := CreateMockArguments(coreComponents, dataComponents, bootstrapComponents, statusComponents)
@@ -2669,6 +2737,12 @@ func TestShardBlockProposal_CreateAndVerifyProposal(t *testing.T) {
 				},
 			}
 		},
+		PostProcessTransactionsCalled: func() storage.Cacher {
+			return &cache.CacherStub{}
+		},
+		ExecutedMiniBlocksCalled: func() storage.Cacher {
+			return &cache.CacherStub{}
+		},
 	}
 	dataComponents.BlockChain = blkc
 
@@ -2678,6 +2752,8 @@ func TestShardBlockProposal_CreateAndVerifyProposal(t *testing.T) {
 		ExecutionResultsTracker: executionResultsTracker,
 		BlockChain:              blkc,
 		Headers:                 dataComponents.DataPool.Headers(),
+		PostProcessTransactions: dataComponents.DataPool.PostProcessTransactions(),
+		ExecutedMiniBlocks:      dataComponents.DataPool.ExecutedMiniBlocks(),
 		StorageService:          dataComponents.StorageService(),
 		Marshaller:              coreComponents.InternalMarshalizer(),
 		ShardCoordinator:        bootstrapComponents.ShardCoordinator(),
@@ -2820,6 +2896,12 @@ func TestShardBlockProposal_CreateAndVerifyProposal_WithTransactions(t *testing.
 				},
 			}
 		},
+		PostProcessTransactionsCalled: func() storage.Cacher {
+			return &cache.CacherStub{}
+		},
+		ExecutedMiniBlocksCalled: func() storage.Cacher {
+			return &cache.CacherStub{}
+		},
 	}
 	dataComponents.BlockChain = blkc
 
@@ -2829,6 +2911,8 @@ func TestShardBlockProposal_CreateAndVerifyProposal_WithTransactions(t *testing.
 		ExecutionResultsTracker: executionResultsTracker,
 		BlockChain:              blkc,
 		Headers:                 dataComponents.DataPool.Headers(),
+		PostProcessTransactions: dataComponents.DataPool.PostProcessTransactions(),
+		ExecutedMiniBlocks:      dataComponents.DataPool.ExecutedMiniBlocks(),
 		StorageService:          dataComponents.StorageService(),
 		Marshaller:              coreComponents.InternalMarshalizer(),
 		ShardCoordinator:        bootstrapComponents.ShardCoordinator(),
@@ -3065,6 +3149,8 @@ func adaptDataPoolForVerifyGas(
 ) *dataRetriever.PoolsHolderStub {
 	headers := initialPool.Headers()
 	proofs := initialPool.Proofs()
+	postProcessTxs := initialPool.PostProcessTransactions()
+	executedMbs := initialPool.ExecutedMiniBlocks()
 	return &dataRetriever.PoolsHolderStub{
 		HeadersCalled: func() retriever.HeadersPool {
 			return headers
@@ -3080,6 +3166,12 @@ func adaptDataPoolForVerifyGas(
 					return
 				},
 			}
+		},
+		PostProcessTransactionsCalled: func() storage.Cacher {
+			return postProcessTxs
+		},
+		ExecutedMiniBlocksCalled: func() storage.Cacher {
+			return executedMbs
 		},
 	}
 }
@@ -3304,7 +3396,7 @@ func TestShardProcessor_ProcessBlockProposal(t *testing.T) {
 		body := &block.Body{}
 		_, err := sp.ProcessBlockProposal(header, headerHash, body)
 		require.Equal(t, expectedErr, err)
-		require.True(t, wasRemoveAtNonceAndHigherCalled)
+		require.False(t, wasRemoveAtNonceAndHigherCalled)
 	})
 	t.Run("VerifyCreatedBlockTransactions fails should error", func(t *testing.T) {
 		t.Parallel()

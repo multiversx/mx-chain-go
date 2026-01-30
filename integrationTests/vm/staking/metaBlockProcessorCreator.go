@@ -121,6 +121,8 @@ func createMetaBlockProcessor(
 		ExecutionResultsTracker: executionResultsTracker,
 		BlockChain:              dataComponents.Blockchain(),
 		Headers:                 dataComponents.Datapool().Headers(),
+		PostProcessTransactions: dataComponents.Datapool().PostProcessTransactions(),
+		ExecutedMiniBlocks:      dataComponents.Datapool().ExecutedMiniBlocks(),
 		StorageService:          dataComponents.StorageService(),
 		Marshaller:              coreComponents.InternalMarshalizer(),
 		ShardCoordinator:        bootstrapComponents.ShardCoordinator(),

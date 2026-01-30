@@ -1336,6 +1336,9 @@ func (boot *baseBootstrap) getExecutionResultHeaderNonceForSyncStart(
 	}
 
 	lastExecutionResultNonce := lastNotarizedExecutedHeader.GetNonce()
+	defer func() {
+		log.Debug("getExecutionResultHeaderNonceForSyncStart", "lastExecutionResultNonce", lastExecutionResultNonce)
+	}()
 
 	// check with pending execution
 	pendingExecutionResults, err := boot.executionManager.GetPendingExecutionResults()
@@ -1345,14 +1348,40 @@ func (boot *baseBootstrap) getExecutionResultHeaderNonceForSyncStart(
 	var pendingExecutionResult data.BaseExecutionResultHandler
 	for idx := len(pendingExecutionResults) - 1; idx >= 0; idx-- {
 		pendingExecutionResult = pendingExecutionResults[idx]
-		if boot.proofs.HasProof(boot.shardCoordinator.SelfId(), pendingExecutionResult.GetHeaderHash()) {
+		if boot.hasProofInCacheOrStorage(pendingExecutionResult.GetHeaderHash()) {
 			return pendingExecutionResult.GetHeaderNonce(), nil
 		}
 	}
 
-	log.Debug("getExecutionResultHeaderNonceForSyncStart", "lastExecutionResultNonce", lastExecutionResultNonce)
-
 	return lastExecutionResultNonce, nil
+}
+
+func (boot *baseBootstrap) hasProofInCacheOrStorage(hash []byte) bool {
+	if boot.proofs.HasProof(boot.shardCoordinator.SelfId(), hash) {
+		return true
+	}
+
+	proofsStorer, errGetStorer := boot.store.GetStorer(dataRetriever.ProofsUnit)
+	if errGetStorer != nil {
+		return false
+	}
+
+	proofBytes, err := proofsStorer.Get(hash)
+	if err != nil {
+		return false
+	}
+
+	proof := &block.HeaderProof{}
+	err = boot.marshalizer.Unmarshal(proof, proofBytes)
+	if err != nil {
+		// return true here, since the proof exists in storer
+		log.Warn("hasProofInCacheOrStorage invalid proof in storage", "error", err.Error(), "hash", hash)
+		return true
+	}
+
+	boot.proofs.AddProof(proof)
+
+	return true
 }
 
 func (boot *baseBootstrap) unmarshalTxByBlockType(

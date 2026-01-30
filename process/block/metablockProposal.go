@@ -332,7 +332,7 @@ func (mp *metaProcessor) ProcessBlockProposal(
 	var err error
 	defer func() {
 		if err != nil {
-			mp.RevertCurrentBlock(headerHandler)
+			mp.RevertCurrentBlock()
 		}
 	}()
 

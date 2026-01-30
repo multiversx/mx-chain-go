@@ -340,7 +340,7 @@ type ArgTestProcessorNode struct {
 	NodeKeys                *TestNodeKeys
 	NodesSetup              sharding.GenesisNodesSetupHandler
 	NodesCoordinator        nodesCoordinator.NodesCoordinator
-	MultiSigner             crypto.MultiSigner
+	MultiSigner             crypto.MultiSignerV2
 	RatingsData             *rating.RatingsData
 	HeaderSigVerifier       process.InterceptedHeaderSigVerifier
 	HeaderIntegrityVerifier process.HeaderIntegrityVerifier
@@ -432,7 +432,7 @@ type TestProcessorNode struct {
 	EpochStartNotifier notifier.EpochStartNotifier
 	EpochProvider      dataRetriever.CurrentNetworkEpochProviderHandler
 
-	MultiSigner             crypto.MultiSigner
+	MultiSigner             crypto.MultiSignerV2
 	HeaderSigVerifier       process.InterceptedHeaderSigVerifier
 	HeaderIntegrityVerifier process.HeaderIntegrityVerifier
 	GuardedAccountHandler   process.GuardedAccountHandler
@@ -2536,6 +2536,8 @@ func (tpn *TestProcessorNode) initBlockProcessor() {
 		ExecutionResultsTracker: executionResultsTracker,
 		BlockChain:              tpn.BlockChain,
 		Headers:                 tpn.DataPool.Headers(),
+		PostProcessTransactions: tpn.DataPool.PostProcessTransactions(),
+		ExecutedMiniBlocks:      tpn.DataPool.ExecutedMiniBlocks(),
 		StorageService:          &storageStubs.ChainStorerStub{},
 		Marshaller:              TestMarshaller,
 		ShardCoordinator:        &testscommon.ShardsCoordinatorMock{},
