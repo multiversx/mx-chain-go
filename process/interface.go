@@ -284,7 +284,7 @@ type PreProcessor interface {
 // BlockProcessor is the main interface for block execution engine
 type BlockProcessor interface {
 	ProcessBlock(header data.HeaderHandler, body data.BodyHandler, haveTime func() time.Duration) error
-	ProcessBlockProposal(header data.HeaderHandler, body data.BodyHandler) (data.BaseExecutionResultHandler, error)
+	ProcessBlockProposal(header data.HeaderHandler, headerHash []byte, body data.BodyHandler) (data.BaseExecutionResultHandler, error)
 	ProcessScheduledBlock(header data.HeaderHandler, body data.BodyHandler, haveTime func() time.Duration) error
 	CommitBlock(header data.HeaderHandler, body data.BodyHandler) error
 	RevertCurrentBlock(header data.HeaderHandler)
@@ -342,6 +342,7 @@ type ExecutionManager interface {
 	AddPairForExecution(pair cache.HeaderBodyPair) error
 	GetPendingExecutionResults() ([]data.BaseExecutionResultHandler, error)
 	CleanConfirmedExecutionResults(header data.HeaderHandler) error
+	CleanOnConsensusReached(headerHash []byte, nonce uint64)
 	SetLastNotarizedResult(executionResult data.BaseExecutionResultHandler) error
 	GetLastNotarizedExecutionResult() (data.BaseExecutionResultHandler, error)
 	RemoveAtNonceAndHigher(nonce uint64) error
@@ -1613,7 +1614,7 @@ type ShardCoordinator interface {
 
 // ExecutionResultsTracker is the interface that defines the methods for tracking execution results
 type ExecutionResultsTracker interface {
-	AddExecutionResult(executionResult data.BaseExecutionResultHandler) error
+	AddExecutionResult(executionResult data.BaseExecutionResultHandler) (bool, error)
 	GetPendingExecutionResults() ([]data.BaseExecutionResultHandler, error)
 	GetPendingExecutionResultByHash(hash []byte) (data.BaseExecutionResultHandler, error)
 	GetPendingExecutionResultByNonce(nonce uint64) (data.BaseExecutionResultHandler, error)
@@ -1622,6 +1623,7 @@ type ExecutionResultsTracker interface {
 	RemoveFromNonce(nonce uint64) error
 	Clean(lastNotarizedResult data.BaseExecutionResultHandler)
 	CleanConfirmedExecutionResults(header data.HeaderHandler) error
+	CleanOnConsensusReached(headerHash []byte, nonce uint64)
 	IsInterfaceNil() bool
 }
 

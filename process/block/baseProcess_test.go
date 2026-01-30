@@ -26,11 +26,12 @@ import (
 	"github.com/multiversx/mx-chain-core-go/data/typeConverters/uint64ByteSlice"
 	"github.com/multiversx/mx-chain-core-go/hashing"
 	"github.com/multiversx/mx-chain-core-go/marshal"
+	"github.com/stretchr/testify/assert"
+	"github.com/stretchr/testify/require"
+
 	"github.com/multiversx/mx-chain-go/common/holders"
 	headersCache "github.com/multiversx/mx-chain-go/process/asyncExecution/cache"
 	"github.com/multiversx/mx-chain-go/process/asyncExecution/executionManager"
-	"github.com/stretchr/testify/assert"
-	"github.com/stretchr/testify/require"
 
 	"github.com/multiversx/mx-chain-go/process/asyncExecution/executionTrack"
 	"github.com/multiversx/mx-chain-go/process/estimator"
@@ -466,6 +467,7 @@ func createMockTransactionCoordinatorArguments(
 
 	shardCoordinator := mock.NewMultiShardsCoordinatorMock(3)
 	enableEpochsHandler := enableEpochsHandlerMock.NewEnableEpochsHandlerStub()
+	enableRoundsHandler := &testscommon.EnableRoundsHandlerStub{}
 
 	blockDataRequesterArgs := coordinator.BlockDataRequestArgs{
 		RequestHandler:      &testscommon.RequestHandlerStub{},
@@ -507,6 +509,7 @@ func createMockTransactionCoordinatorArguments(
 		TxTypeHandler:                &testscommon.TxTypeHandlerMock{},
 		TransactionsLogProcessor:     &mock.TxLogsProcessorStub{},
 		EnableEpochsHandler:          enableEpochsHandler,
+		EnableRoundsHandler:          enableRoundsHandler,
 		ScheduledTxsExecutionHandler: &testscommon.ScheduledTxsExecutionStub{},
 		DoubleTransactionsDetector:   &testscommon.PanicDoubleTransactionsDetector{},
 		ProcessedMiniBlocksTracker:   &testscommon.ProcessedMiniBlocksTrackerStub{},
@@ -5044,7 +5047,7 @@ func TestBaseProcessor_checkContextBeforeExecution(t *testing.T) {
 		err = bp.CheckContextBeforeExecution(&block.HeaderV3{
 			Nonce:    2,
 			PrevHash: []byte("hash1"),
-		})
+		}, []byte("headerHash"))
 		require.Equal(t, expectedErr, err)
 	})
 
@@ -5078,7 +5081,7 @@ func TestBaseProcessor_checkContextBeforeExecution(t *testing.T) {
 
 		err = bp.CheckContextBeforeExecution(&block.HeaderV3{
 			PrevHash: []byte("hash"),
-		})
+		}, []byte("headerHash"))
 		require.Equal(t, process.ErrBlockHashDoesNotMatch, err)
 	})
 
@@ -5115,7 +5118,7 @@ func TestBaseProcessor_checkContextBeforeExecution(t *testing.T) {
 		err = bp.CheckContextBeforeExecution(&block.HeaderV3{
 			PrevHash: []byte("hash"),
 			Nonce:    2,
-		})
+		}, []byte("headerHash"))
 		require.Equal(t, process.ErrWrongNonceInBlock, err)
 	})
 
@@ -5155,7 +5158,7 @@ func TestBaseProcessor_checkContextBeforeExecution(t *testing.T) {
 		err = bp.CheckContextBeforeExecution(&block.HeaderV3{
 			PrevHash: []byte("hash"),
 			Nonce:    2,
-		})
+		}, []byte("headerHash"))
 		require.Equal(t, process.ErrRootStateDoesNotMatch, err)
 	})
 
@@ -5192,7 +5195,7 @@ func TestBaseProcessor_checkContextBeforeExecution(t *testing.T) {
 		err = bp.CheckContextBeforeExecution(&block.HeaderV3{
 			PrevHash: []byte("hash"),
 			Nonce:    2,
-		})
+		}, []byte("headerHash"))
 		require.Nil(t, err)
 	})
 }
