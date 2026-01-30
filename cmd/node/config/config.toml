@@ -709,8 +709,8 @@
                     Threshold = 10 #if consensus size will exceed this value, then
                     Factor = 1.0   #increase the base value with [factor*consensus size]
             [Antiflood.ConfigsByRound.FastReacting.BlackList]
-                ThresholdNumMessagesPerInterval = 1000
-                ThresholdSizePerInterval = 8388608 #8MB/s
+                ThresholdNumMessagesPerInterval = 10000
+                ThresholdSizePerInterval = 12388608 #12MB/s
                 NumFloodingRounds = 100
                 PeerBanDurationInSeconds = 300
 
@@ -724,8 +724,8 @@
                     Threshold = 10 #if consensus size will exceed this value, then
                     Factor = 0.0   #increase the base value with [factor*consensus size]
             [Antiflood.ConfigsByRound.SlowReacting.BlackList]
-                ThresholdNumMessagesPerInterval = 10000
-                ThresholdSizePerInterval = 37748736 # 36MB/interval
+                ThresholdNumMessagesPerInterval = 100000
+                ThresholdSizePerInterval = 60748736 # 60MB/interval
                 NumFloodingRounds = 20
                 PeerBanDurationInSeconds = 3600
 
@@ -733,14 +733,14 @@
             IntervalInSeconds = 1
             ReservedPercent   = 0.0
             [Antiflood.ConfigsByRound.OutOfSpecs.PeerMaxInput]
-                BaseMessagesPerInterval = 2000
-                TotalSizePerInterval = 10485760 # 10MB/interval
+                BaseMessagesPerInterval = 20000
+                TotalSizePerInterval = 104857600 # 100MB/interval
                 [Antiflood.ConfigsByRound.OutOfSpecs.PeerMaxInput.IncreaseFactor]
                     Threshold = 0 #if consensus size will exceed this value, then
                     Factor = 0.0     #increase the base value with [factor*consensus size]
             [Antiflood.ConfigsByRound.OutOfSpecs.BlackList]
-                ThresholdNumMessagesPerInterval = 3600
-                ThresholdSizePerInterval = 12582912 # 12MB/interval
+                ThresholdNumMessagesPerInterval = 36000
+                ThresholdSizePerInterval = 18582912 # 18MB/interval
                 NumFloodingRounds = 20
                 PeerBanDurationInSeconds = 3600
 
@@ -760,7 +760,7 @@
         [Antiflood.ConfigsByRound.TxAccumulator]
             # MaxAllowedTimeInMilliseconds is used as a time frame in which the node gathers transactions.
             # After this period, collected transactions will be sent on the p2p topics
-            MaxAllowedTimeInMilliseconds = 250
+            MaxAllowedTimeInMilliseconds = 80
             # MaxDeviationTimeInMilliseconds represents the time in miliseconds that will cause the effectual time frame be
             # less than the specified max value. This is used to create desynchronizations between senders as to not
             # clutter the network exactly in the same moment
