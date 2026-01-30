@@ -12,7 +12,7 @@ import (
 )
 
 // estimated size of a public key object
-const pubKeySize = 48
+const pubKeySize = 96
 
 // ArgsSigningHandler defines the arguments needed to create a new signing handler component
 type ArgsSigningHandler struct {

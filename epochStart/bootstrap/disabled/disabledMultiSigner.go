@@ -15,7 +15,7 @@ func (m *multiSigner) CreateSignatureShare(_ []byte, _ []byte) ([]byte, error) {
 	return nil, nil
 }
 
-// CreateSignatureShare returns nil byte slice and nil error
+// CreateSignatureShareV2 returns nil byte slice and nil error
 func (m *multiSigner) CreateSignatureShareV2(_ crypto.PrivateKey, _ []byte) ([]byte, error) {
 	return nil, nil
 }
@@ -25,7 +25,7 @@ func (m *multiSigner) VerifySignatureShare(_ []byte, _ []byte, _ []byte) error {
 	return nil
 }
 
-// VerifySignatureShare returns nil
+// VerifySignatureShareV2 returns nil
 func (m *multiSigner) VerifySignatureShareV2(_ crypto.PublicKey, _ []byte, _ []byte) error {
 	return nil
 }
