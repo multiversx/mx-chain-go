@@ -55,6 +55,7 @@ import (
 	"github.com/multiversx/mx-chain-go/storage/cache"
 	"github.com/multiversx/mx-chain-go/storage/storageunit"
 	"github.com/multiversx/mx-chain-go/testscommon"
+	cacheMocks "github.com/multiversx/mx-chain-go/testscommon/cache"
 	"github.com/multiversx/mx-chain-go/testscommon/chainParameters"
 	consensusMocks "github.com/multiversx/mx-chain-go/testscommon/consensus"
 	"github.com/multiversx/mx-chain-go/testscommon/cryptoMocks"
@@ -395,6 +396,7 @@ func (tcn *TestConsensusNode) initNode(args ArgsTestConsensusNode) {
 		KeyGenerator:         args.KeyGen,
 		KeysHandler:          keysHandler,
 		SingleSigner:         TestSingleBlsSigner,
+		PubKeysCache:         cacheMocks.NewCacherMock(),
 	}
 	sigHandler, _ := cryptoFactory.NewSigningHandler(signingHandlerArgs)
 
