@@ -241,7 +241,6 @@ func CreateProcessComponents(args ArgsProcessComponentsHolder) (*processComponen
 
 	err = managedProcessComponents.Create()
 	if err != nil {
-		log.Error("HEHE")
 		return nil, err
 	}
 

@@ -38,7 +38,8 @@ import (
 
 const (
 	disabledSigChecking = "disabled"
-	pubKeysCacheSize    = 1000
+	// TODO: add to config
+	pubKeysCacheSize = 5000
 )
 
 // CryptoComponentsFactoryArgs holds the arguments needed for creating crypto components
