@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"sort"
 
+	"github.com/multiversx/mx-chain-core-go/core/check"
 	"github.com/multiversx/mx-chain-go/config"
 	"github.com/multiversx/mx-chain-go/process"
 )
@@ -30,13 +31,16 @@ func NewAntifloodConfigsHandler(
 	antifoodConfig config.AntifloodConfig,
 	roundNotifier process.RoundNotifier,
 ) (*antifloodConfigs, error) {
+	if check.IfNil(roundNotifier) {
+		return nil, process.ErrNilRoundNotifier
+	}
 	err := checkAnifloodConfigsByRound(antifoodConfig.ConfigsByRound)
 	if err != nil {
 		return nil, err
 	}
 
 	ac := &antifloodConfigs{
-		orderedConfigsByRound: make([]config.AntifloodConfigByRound, 0),
+		orderedConfigsByRound: make([]config.AntifloodConfigByRound, len(antifoodConfig.ConfigsByRound)),
 		roundNotifier:         roundNotifier,
 		isEnabled:             antifoodConfig.Enabled,
 	}
