@@ -10,6 +10,7 @@ import (
 	atomicCore "github.com/multiversx/mx-chain-core-go/core/atomic"
 	"github.com/multiversx/mx-chain-core-go/data"
 	"github.com/multiversx/mx-chain-core-go/data/block"
+	"github.com/multiversx/mx-chain-go/config"
 	"github.com/stretchr/testify/require"
 
 	"github.com/multiversx/mx-chain-go/process"
@@ -21,7 +22,7 @@ import (
 var errExpected = errors.New("expected error")
 
 func createMockArgs() ArgsHeadersExecutor {
-	headerQueue := queue.NewBlocksQueue()
+	headerQueue := queue.NewBlocksQueue(config.HeaderBodyCacheConfig{})
 
 	return ArgsHeadersExecutor{
 		BlocksQueue:      headerQueue,
@@ -89,7 +90,7 @@ func TestHeadersExecutor_StartAndClose(t *testing.T) {
 	calledProcessBlock := uint32(0)
 	calledAddExecutionResult := uint32(0)
 	args := createMockArgs()
-	blocksQueue := queue.NewBlocksQueue()
+	blocksQueue := queue.NewBlocksQueue(config.HeaderBodyCacheConfig{})
 	args.BlocksQueue = blocksQueue
 	args.BlockProcessor = &processMocks.BlockProcessorStub{
 		ProcessBlockProposalCalled: func(handler data.HeaderHandler, body data.BodyHandler) (data.BaseExecutionResultHandler, error) {
@@ -250,7 +251,7 @@ func TestHeadersExecutor_ProcessBlock(t *testing.T) {
 		t.Parallel()
 
 		args := createMockArgs()
-		blocksQueue := queue.NewBlocksQueue()
+		blocksQueue := queue.NewBlocksQueue(config.HeaderBodyCacheConfig{})
 		args.BlocksQueue = blocksQueue
 		wasAddExecutionResultCalled := atomicCore.Flag{}
 		args.BlockProcessor = &processMocks.BlockProcessorStub{
@@ -295,7 +296,7 @@ func TestHeadersExecutor_ProcessBlock(t *testing.T) {
 		t.Parallel()
 
 		args := createMockArgs()
-		blocksQueue := queue.NewBlocksQueue()
+		blocksQueue := queue.NewBlocksQueue(config.HeaderBodyCacheConfig{})
 		count := 0
 		countAddResult := 0
 		args.BlocksQueue = blocksQueue
@@ -346,7 +347,7 @@ func TestHeadersExecutor_ProcessBlock(t *testing.T) {
 		t.Parallel()
 
 		args := createMockArgs()
-		blocksQueue := queue.NewBlocksQueue()
+		blocksQueue := queue.NewBlocksQueue(config.HeaderBodyCacheConfig{})
 
 		count := 0
 		countAddResult := 0

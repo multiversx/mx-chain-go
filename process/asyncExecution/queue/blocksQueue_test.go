@@ -10,6 +10,7 @@ import (
 	"github.com/multiversx/mx-chain-core-go/core/check"
 	"github.com/multiversx/mx-chain-core-go/data"
 	"github.com/multiversx/mx-chain-core-go/data/block"
+	"github.com/multiversx/mx-chain-go/config"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 
@@ -19,7 +20,7 @@ import (
 func TestNewHeadersQueue(t *testing.T) {
 	t.Parallel()
 
-	hq := NewBlocksQueue()
+	hq := NewBlocksQueue(config.HeaderBodyCacheConfig{})
 	require.NotNil(t, hq)
 	require.NotNil(t, hq.headerBodyPairs)
 	require.Equal(t, 0, len(hq.headerBodyPairs))
@@ -31,21 +32,21 @@ func TestHeadersQueue_Add(t *testing.T) {
 
 	t.Run("nil header should return error", func(t *testing.T) {
 		t.Parallel()
-		hq := NewBlocksQueue()
+		hq := NewBlocksQueue(config.HeaderBodyCacheConfig{})
 		err := hq.AddOrReplace(HeaderBodyPair{})
 		assert.Equal(t, common.ErrNilHeaderHandler, err)
 	})
 
 	t.Run("nil body should return error", func(t *testing.T) {
 		t.Parallel()
-		hq := NewBlocksQueue()
+		hq := NewBlocksQueue(config.HeaderBodyCacheConfig{})
 		err := hq.AddOrReplace(HeaderBodyPair{Header: &block.Header{Nonce: 1}})
 		assert.Equal(t, data.ErrNilBlockBody, err)
 	})
 
 	t.Run("valid header should be added", func(t *testing.T) {
 		t.Parallel()
-		hq := NewBlocksQueue()
+		hq := NewBlocksQueue(config.HeaderBodyCacheConfig{})
 		header := &block.Header{Nonce: 1}
 		err := hq.AddOrReplace(HeaderBodyPair{Header: header, Body: &block.Body{}})
 		assert.Nil(t, err)
@@ -54,7 +55,7 @@ func TestHeadersQueue_Add(t *testing.T) {
 
 	t.Run("add headers with same nonce", func(t *testing.T) {
 		t.Parallel()
-		hq := NewBlocksQueue()
+		hq := NewBlocksQueue(config.HeaderBodyCacheConfig{})
 		header := &block.Header{Nonce: 1, Round: 1}
 		err := hq.AddOrReplace(HeaderBodyPair{Header: header, Body: &block.Body{}})
 		assert.Nil(t, err)
@@ -74,7 +75,7 @@ func TestHeadersQueue_Pop(t *testing.T) {
 
 	t.Run("pop should be blocking", func(t *testing.T) {
 		t.Parallel()
-		hq := NewBlocksQueue()
+		hq := NewBlocksQueue(config.HeaderBodyCacheConfig{})
 
 		go func() {
 			time.Sleep(1 * time.Second)
@@ -88,7 +89,7 @@ func TestHeadersQueue_Pop(t *testing.T) {
 
 	t.Run("should return first header and remove it from queue", func(t *testing.T) {
 		t.Parallel()
-		hq := NewBlocksQueue()
+		hq := NewBlocksQueue(config.HeaderBodyCacheConfig{})
 		pair1 := HeaderBodyPair{Header: &block.Header{Nonce: 1}, Body: &block.Body{}}
 		pair2 := HeaderBodyPair{Header: &block.Header{Nonce: 2}, Body: &block.Body{}}
 		_ = hq.AddOrReplace(pair1)
@@ -105,7 +106,7 @@ func TestHeadersQueue_Pop(t *testing.T) {
 func TestHeadersQueue_Concurrency(t *testing.T) {
 	t.Parallel()
 
-	hq := NewBlocksQueue()
+	hq := NewBlocksQueue(config.HeaderBodyCacheConfig{})
 	const numGoroutines = 10
 	const headersPerGoroutine = 10
 
@@ -182,7 +183,7 @@ func TestHeadersQueue_Concurrency(t *testing.T) {
 func TestBlocksQueue_ConcurrentAddPopValidate(t *testing.T) {
 	t.Parallel()
 
-	hq := NewBlocksQueue()
+	hq := NewBlocksQueue(config.HeaderBodyCacheConfig{})
 
 	const numGoroutines = 3
 	const operationsPerGoroutine = 10
@@ -274,7 +275,7 @@ func TestBlocksQueue_ValidateQueueIntegrity(t *testing.T) {
 
 	t.Run("empty queue should be valid", func(t *testing.T) {
 		t.Parallel()
-		hq := NewBlocksQueue()
+		hq := NewBlocksQueue(config.HeaderBodyCacheConfig{})
 		defer hq.Close()
 
 		err := hq.ValidateQueueIntegrity()
@@ -283,7 +284,7 @@ func TestBlocksQueue_ValidateQueueIntegrity(t *testing.T) {
 
 	t.Run("single item queue should be valid", func(t *testing.T) {
 		t.Parallel()
-		hq := NewBlocksQueue()
+		hq := NewBlocksQueue(config.HeaderBodyCacheConfig{})
 		defer hq.Close()
 
 		pair := HeaderBodyPair{
@@ -299,7 +300,7 @@ func TestBlocksQueue_ValidateQueueIntegrity(t *testing.T) {
 
 	t.Run("sequential nonces should be valid", func(t *testing.T) {
 		t.Parallel()
-		hq := NewBlocksQueue()
+		hq := NewBlocksQueue(config.HeaderBodyCacheConfig{})
 		defer hq.Close()
 
 		// Add sequential nonces: 1, 2, 3, 4, 5
@@ -318,7 +319,7 @@ func TestBlocksQueue_ValidateQueueIntegrity(t *testing.T) {
 
 	t.Run("non-sequential nonces should return error", func(t *testing.T) {
 		t.Parallel()
-		hq := NewBlocksQueue()
+		hq := NewBlocksQueue(config.HeaderBodyCacheConfig{})
 		defer hq.Close()
 
 		// Add nonce 1
@@ -345,7 +346,7 @@ func TestBlocksQueue_ValidateQueueIntegrity(t *testing.T) {
 
 	t.Run("lastAddedNonce mismatch should return error", func(t *testing.T) {
 		t.Parallel()
-		hq := NewBlocksQueue()
+		hq := NewBlocksQueue(config.HeaderBodyCacheConfig{})
 		defer hq.Close()
 
 		// Add some items normally
@@ -370,7 +371,7 @@ func TestBlocksQueue_ValidateQueueIntegrity(t *testing.T) {
 
 	t.Run("validation after pop operations", func(t *testing.T) {
 		t.Parallel()
-		hq := NewBlocksQueue()
+		hq := NewBlocksQueue(config.HeaderBodyCacheConfig{})
 		defer hq.Close()
 
 		// Add sequential nonces: 1, 2, 3, 4
@@ -396,7 +397,7 @@ func TestBlocksQueue_ValidateQueueIntegrity(t *testing.T) {
 
 	t.Run("validation after replace operations", func(t *testing.T) {
 		t.Parallel()
-		hq := NewBlocksQueue()
+		hq := NewBlocksQueue(config.HeaderBodyCacheConfig{})
 		defer hq.Close()
 
 		// Add sequential nonces: 1, 2, 3, 4, 5
@@ -433,7 +434,7 @@ func TestBlocksQueue_ValidateQueueIntegrity(t *testing.T) {
 
 	t.Run("validation on closed queue", func(t *testing.T) {
 		t.Parallel()
-		hq := NewBlocksQueue()
+		hq := NewBlocksQueue(config.HeaderBodyCacheConfig{})
 
 		// Add some items
 		for i := 1; i <= 3; i++ {
@@ -455,7 +456,7 @@ func TestBlocksQueue_ValidateQueueIntegrity(t *testing.T) {
 
 	t.Run("validation with RemoveAtNonceAndHigher", func(t *testing.T) {
 		t.Parallel()
-		hq := NewBlocksQueue()
+		hq := NewBlocksQueue(config.HeaderBodyCacheConfig{})
 		defer hq.Close()
 
 		// Add sequential nonces: 1, 2, 3, 4, 5
@@ -482,7 +483,7 @@ func TestBlocksQueue_ValidateQueueIntegrity(t *testing.T) {
 func TestMultipleAddOrReplaceShouldNotBlock(t *testing.T) {
 	t.Parallel()
 
-	hq := NewBlocksQueue()
+	hq := NewBlocksQueue(config.HeaderBodyCacheConfig{})
 
 	for i := 0; i < 10; i++ {
 		pair := HeaderBodyPair{Header: &block.Header{Nonce: uint64(i)}, Body: &block.Body{}}
@@ -498,7 +499,7 @@ func TestMultipleAddOrReplaceShouldNotBlock(t *testing.T) {
 func TestAddWrongNonce(t *testing.T) {
 	t.Parallel()
 
-	hq := NewBlocksQueue()
+	hq := NewBlocksQueue(config.HeaderBodyCacheConfig{})
 	pair := HeaderBodyPair{Header: &block.Header{Nonce: uint64(1)}, Body: &block.Body{}}
 	err := hq.AddOrReplace(pair)
 	require.Nil(t, err)
@@ -514,7 +515,7 @@ func TestBlocksQueue_Peak(t *testing.T) {
 	t.Run("peak should return first element", func(t *testing.T) {
 		t.Parallel()
 
-		hq := NewBlocksQueue()
+		hq := NewBlocksQueue(config.HeaderBodyCacheConfig{})
 		pair1 := HeaderBodyPair{Header: &block.Header{Nonce: uint64(1)}, Body: &block.Body{}}
 		err := hq.AddOrReplace(pair1)
 		require.Nil(t, err)
@@ -532,7 +533,7 @@ func TestBlocksQueue_Peak(t *testing.T) {
 	t.Run("peak emtpy queue", func(t *testing.T) {
 		t.Parallel()
 
-		hq := NewBlocksQueue()
+		hq := NewBlocksQueue(config.HeaderBodyCacheConfig{})
 
 		_, ok := hq.Peek()
 		require.False(t, ok)
@@ -546,7 +547,7 @@ func TestBlocksQueue_AddOrReplaceWithLowerNonce(t *testing.T) {
 	t.Run("replace at middle nonce and remove all higher nonces", func(t *testing.T) {
 		t.Parallel()
 
-		hq := NewBlocksQueue()
+		hq := NewBlocksQueue(config.HeaderBodyCacheConfig{})
 		// Add blocks with nonces 1, 2, 3, 4, 5
 		for i := uint64(1); i <= 5; i++ {
 			pair := HeaderBodyPair{
@@ -584,7 +585,7 @@ func TestBlocksQueue_AddOrReplaceWithLowerNonce(t *testing.T) {
 	t.Run("replace at first nonce and remove all higher nonces", func(t *testing.T) {
 		t.Parallel()
 
-		hq := NewBlocksQueue()
+		hq := NewBlocksQueue(config.HeaderBodyCacheConfig{})
 		// Add blocks with nonces 1, 2, 3, 4
 		for i := uint64(1); i <= 4; i++ {
 			pair := HeaderBodyPair{
@@ -615,7 +616,7 @@ func TestBlocksQueue_AddOrReplaceWithLowerNonce(t *testing.T) {
 	t.Run("replace with nonce lower than first element should remove all higher nonces", func(t *testing.T) {
 		t.Parallel()
 
-		hq := NewBlocksQueue()
+		hq := NewBlocksQueue(config.HeaderBodyCacheConfig{})
 		hq.SetLastAddedNonce(10)
 
 		// Add blocks with nonces 11, 12, 13
@@ -648,7 +649,7 @@ func TestBlocksQueue_AddOrReplaceWithLowerNonce(t *testing.T) {
 func TestBlocksQueue_Close(t *testing.T) {
 	t.Parallel()
 
-	hq := NewBlocksQueue()
+	hq := NewBlocksQueue(config.HeaderBodyCacheConfig{})
 	hq.Close()
 	hq.Close() // for coverage, should already be closed
 }
@@ -656,7 +657,7 @@ func TestBlocksQueue_Close(t *testing.T) {
 func TestBlocksQueue_Clean(t *testing.T) {
 	t.Parallel()
 
-	hq := NewBlocksQueue()
+	hq := NewBlocksQueue(config.HeaderBodyCacheConfig{})
 	// Add blocks with nonces 2, 3, 4, 5
 	for i := uint64(2); i <= 5; i++ {
 		pair := HeaderBodyPair{
@@ -681,7 +682,7 @@ func TestBlocksQueue_RemoveAtNonceAndHigher(t *testing.T) {
 	t.Run("remove from empty queue should return nil", func(t *testing.T) {
 		t.Parallel()
 
-		hq := NewBlocksQueue()
+		hq := NewBlocksQueue(config.HeaderBodyCacheConfig{})
 		removedNonces := hq.RemoveAtNonceAndHigher(5)
 		require.Zero(t, len(removedNonces))
 		require.Equal(t, 0, len(hq.headerBodyPairs))
@@ -690,7 +691,7 @@ func TestBlocksQueue_RemoveAtNonceAndHigher(t *testing.T) {
 	t.Run("remove from middle nonce removes that nonce and all higher", func(t *testing.T) {
 		t.Parallel()
 
-		hq := NewBlocksQueue()
+		hq := NewBlocksQueue(config.HeaderBodyCacheConfig{})
 
 		// Add blocks with nonces 1, 2, 3, 4, 5
 		for i := uint64(1); i <= 5; i++ {
@@ -724,7 +725,7 @@ func TestBlocksQueue_RemoveAtNonceAndHigher(t *testing.T) {
 	t.Run("remove from first nonce clears entire queue", func(t *testing.T) {
 		t.Parallel()
 
-		hq := NewBlocksQueue()
+		hq := NewBlocksQueue(config.HeaderBodyCacheConfig{})
 		// Add blocks with nonces 1, 2, 3, 4
 		for i := uint64(1); i <= 4; i++ {
 			pair := HeaderBodyPair{
@@ -753,7 +754,7 @@ func TestBlocksQueue_RemoveAtNonceAndHigher(t *testing.T) {
 	t.Run("remove from last nonce removes only last element", func(t *testing.T) {
 		t.Parallel()
 
-		hq := NewBlocksQueue()
+		hq := NewBlocksQueue(config.HeaderBodyCacheConfig{})
 		// Add blocks with nonces 1, 2, 3, 4
 		for i := uint64(1); i <= 4; i++ {
 			pair := HeaderBodyPair{
@@ -785,7 +786,7 @@ func TestBlocksQueue_RemoveAtNonceAndHigher(t *testing.T) {
 	t.Run("remove non-existent nonce removes higher ones", func(t *testing.T) {
 		t.Parallel()
 
-		hq := NewBlocksQueue()
+		hq := NewBlocksQueue(config.HeaderBodyCacheConfig{})
 		hq.SetLastAddedNonce(10)
 
 		// Add blocks with nonces 11, 12, 13
@@ -813,7 +814,7 @@ func TestBlocksQueue_RemoveAtNonceAndHigher(t *testing.T) {
 	t.Run("remove from first nonce with nonce 0", func(t *testing.T) {
 		t.Parallel()
 
-		hq := NewBlocksQueue()
+		hq := NewBlocksQueue(config.HeaderBodyCacheConfig{})
 		// Add block with nonce 0
 		pair := HeaderBodyPair{
 			Header: &block.Header{Nonce: 0, Round: 1},
@@ -841,7 +842,7 @@ func TestBlocksQueue_RemoveAtNonceAndHigher(t *testing.T) {
 func TestBlocksQueue_AddAndPop(t *testing.T) {
 	t.Parallel()
 
-	hq := NewBlocksQueue()
+	hq := NewBlocksQueue(config.HeaderBodyCacheConfig{})
 
 	pair := HeaderBodyPair{
 		Header: &block.Header{Nonce: 0, Round: 1},
@@ -873,7 +874,7 @@ func TestBlocksQueue_AddAndPop(t *testing.T) {
 func TestBlocksQueue_RemoveAndPop(t *testing.T) {
 	t.Parallel()
 
-	hq := NewBlocksQueue()
+	hq := NewBlocksQueue(config.HeaderBodyCacheConfig{})
 	defer hq.Close()
 
 	pair := HeaderBodyPair{
@@ -903,7 +904,7 @@ func TestBlocksQueue_RemoveAndPop(t *testing.T) {
 func TestBlocksQueue_AddOrReplace_Rejection(t *testing.T) {
 	t.Parallel()
 
-	hq := NewBlocksQueue()
+	hq := NewBlocksQueue(config.HeaderBodyCacheConfig{})
 	// Override maxQueueSize for testing
 	hq.maxQueueSize = 5
 
@@ -930,7 +931,7 @@ func TestBlocksQueue_AddOrReplace_Rejection(t *testing.T) {
 func TestBlocksQueue_AddOrReplace_ReplacementAllowed(t *testing.T) {
 	t.Parallel()
 
-	hq := NewBlocksQueue()
+	hq := NewBlocksQueue(config.HeaderBodyCacheConfig{})
 	// Override maxQueueSize for testing
 	hq.maxQueueSize = 5
 

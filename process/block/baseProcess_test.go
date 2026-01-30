@@ -168,7 +168,7 @@ func createArgBaseProcessor(
 			coreComponents.Hasher(),
 		)
 
-		blocksQueue := queue.NewBlocksQueue()
+		blocksQueue := queue.NewBlocksQueue(config.HeaderBodyCacheConfig{})
 		executionResultsTracker := executionTrack.NewExecutionResultsTracker()
 		_ = executionResultsTracker.SetLastNotarizedResult(&block.ExecutionResult{})
 		execManager, _ = executionManager.NewExecutionManager(executionManager.ArgsExecutionManager{

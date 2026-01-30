@@ -125,7 +125,7 @@ func (tpn *TestProcessorNode) initBlockProcessorWithSync() {
 	}
 
 	executionResultsTracker := executionTrack.NewExecutionResultsTracker()
-	tpn.BlocksQueue = queue.NewBlocksQueue()
+	tpn.BlocksQueue = queue.NewBlocksQueue(config.HeaderBodyCacheConfig{})
 
 	argsExecutionManager := executionManager.ArgsExecutionManager{
 		BlocksQueue:             tpn.BlocksQueue,

@@ -6,6 +6,7 @@ import (
 
 	"github.com/multiversx/mx-chain-core-go/core/check"
 	"github.com/multiversx/mx-chain-core-go/data"
+	"github.com/multiversx/mx-chain-go/config"
 	logger "github.com/multiversx/mx-chain-logger-go"
 
 	"github.com/multiversx/mx-chain-go/common"
@@ -30,14 +31,19 @@ type blocksQueue struct {
 }
 
 // NewBlocksQueue creates and returns a new instance of blocksQueue
-func NewBlocksQueue() *blocksQueue {
+func NewBlocksQueue(config config.HeaderBodyCacheConfig) *blocksQueue {
+	size := config.Capacity
+	if config.Capacity == 0 {
+		size = defaultMaxQueueSize
+	}
+
 	mutex := &sync.Mutex{}
 
 	return &blocksQueue{
 		mutex:           mutex,
 		headerBodyPairs: make([]HeaderBodyPair, 0),
 		notifyCh:        make(chan struct{}, 1), // buffered so send won't block if not read yet
-		maxQueueSize:    defaultMaxQueueSize,
+		maxQueueSize:    size,
 	}
 }
 

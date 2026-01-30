@@ -628,7 +628,7 @@ func (pcf *processComponentsFactory) Create() (*processComponents, error) {
 		return nil, fmt.Errorf("%w when assembling components for the sent signatures tracker", err)
 	}
 
-	blocksQueue := queue.NewBlocksQueue()
+	blocksQueue := queue.NewBlocksQueue(pcf.config.HeaderBodyCacheConfig)
 	executionResultsTracker := executionTrack.NewExecutionResultsTracker()
 
 	argExecManager := executionManager.ArgsExecutionManager{
