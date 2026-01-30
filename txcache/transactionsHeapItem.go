@@ -8,12 +8,11 @@ type transactionsHeapItem struct {
 	sender []byte
 	bunch  bunchOfTransactions
 
-	currentTransactionIndex             int
-	currentTransaction                  *WrappedTransaction
-	currentTransactionNonce             uint64
-	latestSelectedTransaction           *WrappedTransaction
-	latestSelectedTransactionNonce      uint64
-	hasPendingChangeGuardianTransaction bool
+	currentTransactionIndex        int
+	currentTransaction             *WrappedTransaction
+	currentTransactionNonce        uint64
+	latestSelectedTransaction      *WrappedTransaction
+	latestSelectedTransactionNonce uint64
 }
 
 func newTransactionsHeapItem(bunch bunchOfTransactions) (*transactionsHeapItem, error) {
@@ -47,7 +46,7 @@ func (item *transactionsHeapItem) selectCurrentTransaction(virtualSession *virtu
 	}
 
 	// if an instant change guardian is detected, further transactions for this sender should be skipped as they are probably guarded by the old one
-	item.hasPendingChangeGuardianTransaction = virtualSession.isGuardedByActiveGuardian(item.currentTransaction.Tx)
+	virtualSession.setChangeGuardianIfNeeded(item.currentTransaction.Tx)
 }
 
 func (item *transactionsHeapItem) gotoNextTransaction() bool {
@@ -59,10 +58,6 @@ func (item *transactionsHeapItem) gotoNextTransaction() bool {
 	item.currentTransaction = item.bunch[item.currentTransactionIndex]
 	item.currentTransactionNonce = item.currentTransaction.Tx.GetNonce()
 	return true
-}
-
-func (item *transactionsHeapItem) hasPendingChangeGuardian() bool {
-	return item.hasPendingChangeGuardianTransaction
 }
 
 func (item *transactionsHeapItem) detectInitialGap(senderNonce uint64) bool {

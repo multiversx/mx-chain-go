@@ -185,35 +185,3 @@ func TestTransactionsHeapItem_detectIncorrectlyGuarded(t *testing.T) {
 		require.True(t, item.detectIncorrectlyGuarded(virtualSession))
 	})
 }
-
-func TestTransactionsHeapItem_hasPendingChangeGuardian(t *testing.T) {
-	a := createTx([]byte("tx-1"), "alice", 42)
-	b := createTx([]byte("tx-2"), "alice", 43).withData([]byte("SetGuardian@newGuardian")).withGasLimit(100000)
-
-	t.Run("no set guardian", func(t *testing.T) {
-		virtualSession := newVirtualSelectionSession(txcachemocks.NewSelectionSessionMock(), make(map[string]*virtualAccountRecord))
-
-		item, err := newTransactionsHeapItem(bunchOfTransactions{a})
-		require.NoError(t, err)
-		item.selectCurrentTransaction(virtualSession)
-		require.False(t, item.hasPendingChangeGuardian())
-	})
-
-	t.Run("with set guardian", func(t *testing.T) {
-		session := txcachemocks.NewSelectionSessionMock()
-		session.IsGuardedCalled = func(tx data.TransactionHandler) bool {
-			return true
-		}
-		session.IsIncorrectlyGuardedCalled = func(tx data.TransactionHandler) bool {
-			return false
-		}
-		virtualSession := newVirtualSelectionSession(session, make(map[string]*virtualAccountRecord))
-
-		item, err := newTransactionsHeapItem(bunchOfTransactions{a, b})
-		require.NoError(t, err)
-		item.selectCurrentTransaction(virtualSession)
-		item.gotoNextTransaction()
-		item.selectCurrentTransaction(virtualSession)
-		require.True(t, item.hasPendingChangeGuardian())
-	})
-}

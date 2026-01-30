@@ -136,7 +136,7 @@ func detectSkippableSender(virtualSession *virtualSelectionSession, item *transa
 		return true
 	}
 
-	if item.hasPendingChangeGuardian() {
+	if virtualRecord.hasPendingChangeGuardian() {
 		return true
 	}
 	if item.detectInitialGap(nonce) {

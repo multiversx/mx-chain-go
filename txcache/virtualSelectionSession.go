@@ -179,10 +179,19 @@ func (virtualSession *virtualSelectionSession) isIncorrectlyGuarded(tx data.Tran
 	return virtualSession.session.IsIncorrectlyGuarded(tx)
 }
 
-func (virtualSession *virtualSelectionSession) isGuardedByActiveGuardian(tx data.TransactionHandler) bool {
+func (virtualSession *virtualSelectionSession) setChangeGuardianIfNeeded(tx data.TransactionHandler) {
 	if !virtualSession.session.IsGuarded(tx) {
-		return false
+		return
 	}
 
-	return !virtualSession.isIncorrectlyGuarded(tx)
+	if virtualSession.isIncorrectlyGuarded(tx) {
+		return
+	}
+
+	record, err := virtualSession.getRecord(tx.GetSndAddr())
+	if err != nil {
+		return
+	}
+
+	record.hasPendingChangeGuardianTransaction = true
 }
