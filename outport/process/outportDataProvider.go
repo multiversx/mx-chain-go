@@ -342,7 +342,7 @@ func (odp *outportDataProvider) addInPoolUnexecutableTransactions(headerHash []b
 		}
 		tx, ok := txI.(*transaction.Transaction)
 		if !ok {
-			log.Warn("addInPoolUnexecutableTransactions - cannot cast object from ache to transaction", "txHash", txHash, "type", fmt.Sprintf("%T", txI))
+			log.Warn("addInPoolUnexecutableTransactions - cannot cast object from cache to transaction", "txHash", txHash, "type", fmt.Sprintf("%T", txI))
 			continue
 		}
 
@@ -529,7 +529,7 @@ func findLeaderIndex(blsKeys []string, leaderBlsKey string) uint64 {
 
 func (odp *outportDataProvider) createPool(rewardsTxs map[string]data.TransactionHandler, header data.HeaderHandler) (*outportcore.TransactionPool, error) {
 	if header.IsHeaderV3() {
-		// transactions will be indexer after execution
+		// transactions will be indexed after execution
 		return &outportcore.TransactionPool{}, nil
 	}
 
