@@ -1257,8 +1257,8 @@ func (bp *baseProcessor) cleanupUnexecutableTxsFromPool(headerHash []byte) {
 		return
 	}
 
+	cacheID := process.ShardCacherIdentifier(bp.shardCoordinator.SelfId(), bp.shardCoordinator.SelfId())
 	for _, txHash := range unexecutableTxHashes {
-		cacheID := process.ShardCacherIdentifier(bp.shardCoordinator.SelfId(), bp.shardCoordinator.SelfId())
 		bp.dataPool.Transactions().RemoveData(txHash, cacheID)
 	}
 }
