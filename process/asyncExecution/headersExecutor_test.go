@@ -10,6 +10,7 @@ import (
 	atomicCore "github.com/multiversx/mx-chain-core-go/core/atomic"
 	"github.com/multiversx/mx-chain-core-go/data"
 	"github.com/multiversx/mx-chain-core-go/data/block"
+	"github.com/multiversx/mx-chain-go/config"
 	"github.com/stretchr/testify/require"
 
 	"github.com/multiversx/mx-chain-go/process"
@@ -21,7 +22,7 @@ import (
 var errExpected = errors.New("expected error")
 
 func createMockArgs() ArgsHeadersExecutor {
-	headerCache := cache.NewHeaderBodyCache()
+	headerCache := cache.NewHeaderBodyCache(config.HeaderBodyCacheConfig{})
 
 	return ArgsHeadersExecutor{
 		BlocksCache:      headerCache,
@@ -90,7 +91,7 @@ func TestHeadersExecutor_StartAndClose(t *testing.T) {
 	calledProcessBlock := uint32(0)
 	calledAddExecutionResult := uint32(0)
 	args := createMockArgs()
-	blocksQueue := cache.NewHeaderBodyCache()
+	blocksQueue := cache.NewHeaderBodyCache(config.HeaderBodyCacheConfig{})
 	args.BlocksCache = blocksQueue
 	executedNonce := uint64(1)
 	executedHash := prevHash
@@ -309,7 +310,7 @@ func TestHeadersExecutor_ProcessBlock(t *testing.T) {
 		t.Parallel()
 
 		args := createMockArgs()
-		blocksCache := cache.NewHeaderBodyCache()
+		blocksCache := cache.NewHeaderBodyCache(config.HeaderBodyCacheConfig{})
 		args.BlocksCache = blocksCache
 		wasAddExecutionResultCalled := atomicCore.Flag{}
 		executedNonce := uint64(0)
@@ -380,7 +381,7 @@ func TestHeadersExecutor_ProcessBlock(t *testing.T) {
 		t.Parallel()
 
 		args := createMockArgs()
-		blocksCache := cache.NewHeaderBodyCache()
+		blocksCache := cache.NewHeaderBodyCache(config.HeaderBodyCacheConfig{})
 		count := 0
 		countAddResult := 0
 		args.BlocksCache = blocksCache
@@ -453,7 +454,7 @@ func TestHeadersExecutor_ProcessBlock(t *testing.T) {
 		t.Parallel()
 
 		args := createMockArgs()
-		blocksCache := cache.NewHeaderBodyCache()
+		blocksCache := cache.NewHeaderBodyCache(config.HeaderBodyCacheConfig{})
 
 		count := 0
 		countAddResult := 0
