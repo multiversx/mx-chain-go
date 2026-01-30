@@ -210,6 +210,9 @@ var TestMultiSig = cryptoMocks.NewMultiSigner()
 // TestKeyGenForAccounts represents a mock key generator for balances
 var TestKeyGenForAccounts = signing.NewKeyGenerator(ed25519.NewEd25519())
 
+// TestBlsKeyGen represents a mock key generator for pub keys
+var TestBlsKeyGen = signing.NewKeyGenerator(mcl.NewSuiteBLS12())
+
 // TestUint64Converter represents an uint64 to byte slice converter
 var TestUint64Converter = uint64ByteSlice.NewBigEndianConverter()
 
