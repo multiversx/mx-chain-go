@@ -1366,8 +1366,21 @@ func (boot *baseBootstrap) hasProofInCacheOrStorage(hash []byte) bool {
 		return false
 	}
 
-	_, err := proofsStorer.Get(hash)
-	return err == nil
+	proofBytes, err := proofsStorer.Get(hash)
+	if err != nil {
+		return false
+	}
+
+	proof := &block.HeaderProof{}
+	err = boot.marshalizer.Unmarshal(proof, proofBytes)
+	if err != nil {
+		// return true here, since the proof exists in storer
+		return true
+	}
+
+	boot.proofs.AddProof(proof)
+
+	return true
 }
 
 func (boot *baseBootstrap) unmarshalTxByBlockType(
