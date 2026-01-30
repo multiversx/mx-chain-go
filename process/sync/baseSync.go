@@ -1375,6 +1375,7 @@ func (boot *baseBootstrap) hasProofInCacheOrStorage(hash []byte) bool {
 	err = boot.marshalizer.Unmarshal(proof, proofBytes)
 	if err != nil {
 		// return true here, since the proof exists in storer
+		log.Warn("hasProofInCacheOrStorage invalid proof in storage", "error", err.Error(), "hash", hash)
 		return true
 	}
 
