@@ -216,13 +216,15 @@ func NewShardProcessorEmptyWith3shards(
 		coreComponents.Hasher(),
 	)
 
-	blocksQueue := cache.NewHeaderBodyCache()
+	blocksQueue := cache.NewHeaderBodyCache(config.HeaderBodyCacheConfig{})
 	executionResultsTracker := executionTrack.NewExecutionResultsTracker()
 	execManager, _ := executionManager.NewExecutionManager(executionManager.ArgsExecutionManager{
 		BlocksQueue:             blocksQueue,
 		ExecutionResultsTracker: executionResultsTracker,
 		BlockChain:              dataComponents.BlockChain,
 		Headers:                 dataComponents.Datapool().Headers(),
+		PostProcessTransactions: dataComponents.DataPool.PostProcessTransactions(),
+		ExecutedMiniBlocks:      dataComponents.DataPool.ExecutedMiniBlocks(),
 		StorageService:          dataComponents.StorageService(),
 		Marshaller:              coreComponents.InternalMarshalizer(),
 		ShardCoordinator:        boostrapComponents.ShardCoordinator(),
@@ -1071,8 +1073,8 @@ func (bp *baseProcessor) ExtractRootHashForCleanup(header data.HeaderHandler) (c
 }
 
 // CheckContextBeforeExecution -
-func (bp *baseProcessor) CheckContextBeforeExecution(header data.HeaderHandler) error {
-	return bp.checkAndUpdateContextBeforeExecution(header)
+func (bp *baseProcessor) CheckContextBeforeExecution(header data.HeaderHandler, headerHash []byte) error {
+	return bp.checkAndUpdateContextBeforeExecution(header, headerHash)
 }
 
 // SaveProposedTxsToStorage -

@@ -134,6 +134,7 @@ type basePreProcess struct {
 	enableEpochsHandler        common.EnableEpochsHandler
 	txExecutionOrderHandler    common.TxExecutionOrderHandler
 	enableRoundsHandler        common.EnableRoundsHandler
+	feeHandler                 process.FeeHandler
 }
 
 func checkBasePreProcessArgs(args BasePreProcessorArgs) error {
@@ -413,9 +414,14 @@ func (bpp *basePreProcess) getBalanceForAddress(address []byte) (*big.Int, error
 	return account.GetBalance(), nil
 }
 
-func getTxMaxTotalCost(txHandler data.TransactionHandler) *big.Int {
+func (bpp *basePreProcess) getTxMaxTotalCost(txHandler data.TransactionHandler) *big.Int {
+	isAsyncExecEnabled := common.IsAsyncExecutionEnabled(bpp.enableEpochsHandler, bpp.enableRoundsHandler)
 	cost := big.NewInt(0)
-	cost.Mul(big.NewInt(0).SetUint64(txHandler.GetGasPrice()), big.NewInt(0).SetUint64(txHandler.GetGasLimit()))
+	if !isAsyncExecEnabled {
+		cost.Mul(big.NewInt(0).SetUint64(txHandler.GetGasPrice()), big.NewInt(0).SetUint64(txHandler.GetGasLimit()))
+	} else {
+		cost = bpp.feeHandler.ComputeTxFee(txHandler)
+	}
 
 	if txHandler.GetValue() != nil {
 		cost.Add(cost, txHandler.GetValue())

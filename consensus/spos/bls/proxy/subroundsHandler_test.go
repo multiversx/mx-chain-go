@@ -65,7 +65,7 @@ func getDefaultArgumentsSubroundHandler() (*SubroundsHandlerArgs, *spos.Consensu
 	consensusCore.SetHasher(&testscommon.HasherStub{})
 	consensusCore.SetMarshalizer(&testscommon.MarshallerStub{})
 	consensusCore.SetMultiSignerContainer(&cryptoMocks.MultiSignerContainerStub{
-		GetMultiSignerCalled: func(epoch uint32) (crypto.MultiSigner, error) {
+		GetMultiSignerCalled: func(epoch uint32) (crypto.MultiSignerV2, error) {
 			return &cryptoMocks.MultisignerMock{}, nil
 		},
 	})

@@ -2,6 +2,7 @@ package asyncExecution
 
 import (
 	"github.com/multiversx/mx-chain-core-go/data"
+
 	"github.com/multiversx/mx-chain-go/process/asyncExecution/cache"
 )
 
@@ -15,12 +16,12 @@ type BlocksCache interface {
 
 // ExecutionResultsHandler defines what an execution results handler should be able to do
 type ExecutionResultsHandler interface {
-	AddExecutionResult(executionResult data.BaseExecutionResultHandler) error
+	AddExecutionResult(executionResult data.BaseExecutionResultHandler) (bool, error)
 	IsInterfaceNil() bool
 }
 
 // BlockProcessor defines what a block processor should be able to do
 type BlockProcessor interface {
-	ProcessBlockProposal(header data.HeaderHandler, body data.BodyHandler) (data.BaseExecutionResultHandler, error)
+	ProcessBlockProposal(header data.HeaderHandler, headerHash []byte, body data.BodyHandler) (data.BaseExecutionResultHandler, error)
 	IsInterfaceNil() bool
 }

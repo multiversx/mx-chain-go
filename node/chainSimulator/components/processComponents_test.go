@@ -27,6 +27,7 @@ import (
 	"github.com/multiversx/mx-chain-go/testscommon/chainParameters"
 	"github.com/multiversx/mx-chain-go/testscommon/commonmocks"
 	"github.com/multiversx/mx-chain-go/testscommon/components"
+	consensusMocks "github.com/multiversx/mx-chain-go/testscommon/consensus"
 	"github.com/multiversx/mx-chain-go/testscommon/cryptoMocks"
 	"github.com/multiversx/mx-chain-go/testscommon/dataRetriever"
 	"github.com/multiversx/mx-chain-go/testscommon/economicsmocks"
@@ -199,6 +200,7 @@ func createArgsProcessComponentsHolder() ArgsProcessComponentsHolder {
 			MsgSigVerifier:          &testscommon.MessageSignVerifierMock{},
 			ManagedPeersHolderField: &testscommon.ManagedPeersHolderStub{},
 			KeysHandlerField:        &testscommon.KeysHandlerStub{},
+			SigHandler:              &consensusMocks.SigningHandlerStub{},
 		},
 		NetworkComponents: &mock.NetworkComponentsStub{
 			Messenger:                        &p2pmocks.MessengerStub{},

@@ -208,6 +208,11 @@ func (creator *blocksCreator) CreateNewBlock() (*dtos.BroadcastData, error) {
 			return nil, err
 		}
 
+		headerHash, err = core.CalculateHash(creator.nodeHandler.GetCoreComponents().InternalMarshalizer(), creator.nodeHandler.GetCoreComponents().Hasher(), header)
+		if err != nil {
+			return nil, err
+		}
+
 		pair := cache.HeaderBodyPair{
 			Header:     header,
 			Body:       block,

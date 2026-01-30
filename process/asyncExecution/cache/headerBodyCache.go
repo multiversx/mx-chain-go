@@ -7,6 +7,7 @@ import (
 	"github.com/multiversx/mx-chain-core-go/core/check"
 	"github.com/multiversx/mx-chain-core-go/data"
 	"github.com/multiversx/mx-chain-go/common"
+	"github.com/multiversx/mx-chain-go/config"
 	logger "github.com/multiversx/mx-chain-logger-go"
 )
 
@@ -23,11 +24,16 @@ type headerBodyCache struct {
 }
 
 // NewHeaderBodyCache will create a new instance of cache
-func NewHeaderBodyCache() *headerBodyCache {
+func NewHeaderBodyCache(config config.HeaderBodyCacheConfig) *headerBodyCache {
+	cacheSize := config.Capacity
+	if cacheSize == 0 {
+		cacheSize = defaultMaxQueueSize
+	}
+
 	return &headerBodyCache{
 		cacheByNonce: make(map[uint64]HeaderBodyPair),
 		mutex:        sync.RWMutex{},
-		maxCacheSize: defaultMaxQueueSize,
+		maxCacheSize: cacheSize,
 	}
 }
 

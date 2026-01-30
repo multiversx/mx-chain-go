@@ -7,13 +7,14 @@ import (
 	"github.com/multiversx/mx-chain-core-go/data"
 	"github.com/multiversx/mx-chain-core-go/data/block"
 	"github.com/multiversx/mx-chain-go/common"
+	"github.com/multiversx/mx-chain-go/config"
 	"github.com/stretchr/testify/require"
 )
 
 func TestNewHeaderBodyCache(t *testing.T) {
 	t.Parallel()
 
-	c := NewHeaderBodyCache()
+	c := NewHeaderBodyCache(config.HeaderBodyCacheConfig{})
 	require.NotNil(t, c)
 	require.False(t, c.IsInterfaceNil())
 }
@@ -23,7 +24,7 @@ func TestHeaderBodyCache_AddOrReplace(t *testing.T) {
 
 	t.Run("nil header", func(t *testing.T) {
 		t.Parallel()
-		c := NewHeaderBodyCache()
+		c := NewHeaderBodyCache(config.HeaderBodyCacheConfig{})
 		err := c.AddOrReplace(HeaderBodyPair{
 			Header: nil,
 			Body:   &block.Body{},
@@ -33,7 +34,7 @@ func TestHeaderBodyCache_AddOrReplace(t *testing.T) {
 
 	t.Run("nil body", func(t *testing.T) {
 		t.Parallel()
-		c := NewHeaderBodyCache()
+		c := NewHeaderBodyCache(config.HeaderBodyCacheConfig{})
 		err := c.AddOrReplace(HeaderBodyPair{
 			Header: &block.HeaderV3{},
 			Body:   nil,
@@ -43,7 +44,7 @@ func TestHeaderBodyCache_AddOrReplace(t *testing.T) {
 
 	t.Run("success", func(t *testing.T) {
 		t.Parallel()
-		c := NewHeaderBodyCache()
+		c := NewHeaderBodyCache(config.HeaderBodyCacheConfig{})
 
 		headerNonce := uint64(10)
 		pair := HeaderBodyPair{
@@ -64,7 +65,7 @@ func TestHeaderBodyCache_AddOrReplace(t *testing.T) {
 
 	t.Run("replace existing", func(t *testing.T) {
 		t.Parallel()
-		c := NewHeaderBodyCache()
+		c := NewHeaderBodyCache(config.HeaderBodyCacheConfig{})
 
 		headerNonce := uint64(10)
 		pair1 := HeaderBodyPair{
@@ -98,7 +99,7 @@ func TestHeaderBodyCache_AddOrReplace(t *testing.T) {
 func TestHeaderBodyCache_GetByNonce(t *testing.T) {
 	t.Parallel()
 
-	c := NewHeaderBodyCache()
+	c := NewHeaderBodyCache(config.HeaderBodyCacheConfig{})
 
 	pair := HeaderBodyPair{
 		Header: &block.HeaderV3{
@@ -120,7 +121,7 @@ func TestHeaderBodyCache_GetByNonce(t *testing.T) {
 func TestHeaderBodyCache_RemoveAtNonceAndHigher(t *testing.T) {
 	t.Parallel()
 
-	c := NewHeaderBodyCache()
+	c := NewHeaderBodyCache(config.HeaderBodyCacheConfig{})
 	nonces := []uint64{1, 2, 3, 4, 5, 10}
 
 	for _, n := range nonces {
@@ -150,7 +151,7 @@ func TestHeaderBodyCache_RemoveAtNonceAndHigher(t *testing.T) {
 func TestHeaderBodyCache_Remove(t *testing.T) {
 	t.Parallel()
 
-	c := NewHeaderBodyCache()
+	c := NewHeaderBodyCache(config.HeaderBodyCacheConfig{})
 	_ = c.AddOrReplace(HeaderBodyPair{
 		Header: &block.HeaderV3{
 			Nonce: 10,
@@ -167,7 +168,7 @@ func TestHeaderBodyCache_Remove(t *testing.T) {
 func TestHeaderBodyCache_Clean(t *testing.T) {
 	t.Parallel()
 
-	c := NewHeaderBodyCache()
+	c := NewHeaderBodyCache(config.HeaderBodyCacheConfig{})
 	_ = c.AddOrReplace(HeaderBodyPair{
 		Header: &block.HeaderV3{
 			Nonce: 10,
@@ -184,7 +185,7 @@ func TestHeaderBodyCache_Clean(t *testing.T) {
 func TestHeaderBodyCache_ConcurrentAccess(t *testing.T) {
 	t.Parallel()
 
-	c := NewHeaderBodyCache()
+	c := NewHeaderBodyCache(config.HeaderBodyCacheConfig{})
 	numGoroutines := 100
 	done := make(chan struct{})
 
@@ -220,7 +221,7 @@ func TestHeaderBodyCache_ConcurrentAccess(t *testing.T) {
 func TestBlocksQueue_AddOrReplace_Rejection(t *testing.T) {
 	t.Parallel()
 
-	hq := NewHeaderBodyCache()
+	hq := NewHeaderBodyCache(config.HeaderBodyCacheConfig{})
 	hq.maxCacheSize = 5
 
 	for i := uint64(1); i <= 5; i++ {
@@ -246,7 +247,7 @@ func TestBlocksQueue_AddOrReplace_Rejection(t *testing.T) {
 func TestBlocksCache_AddOrReplace_ReplacementAllowed(t *testing.T) {
 	t.Parallel()
 
-	hq := NewHeaderBodyCache()
+	hq := NewHeaderBodyCache(config.HeaderBodyCacheConfig{})
 	hq.maxCacheSize = 5
 
 	for i := uint64(1); i <= 5; i++ {

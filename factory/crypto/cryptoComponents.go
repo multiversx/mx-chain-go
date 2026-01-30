@@ -28,6 +28,7 @@ import (
 	"github.com/multiversx/mx-chain-go/keysManagement"
 	p2pFactory "github.com/multiversx/mx-chain-go/p2p/factory"
 	"github.com/multiversx/mx-chain-go/process"
+	"github.com/multiversx/mx-chain-go/storage/cache"
 	storageFactory "github.com/multiversx/mx-chain-go/storage/factory"
 	"github.com/multiversx/mx-chain-go/storage/storageunit"
 	"github.com/multiversx/mx-chain-go/vm"
@@ -37,6 +38,8 @@ import (
 
 const (
 	disabledSigChecking = "disabled"
+	// TODO: add to config
+	pubKeysCacheSize = 5000
 )
 
 // CryptoComponentsFactoryArgs holds the arguments needed for creating crypto components
@@ -254,12 +257,17 @@ func (ccf *cryptoComponentsFactory) Create() (*cryptoComponents, error) {
 		return nil, err
 	}
 
+	pubKeysCache, err := cache.NewLRUCache(pubKeysCacheSize)
+	if err != nil {
+		return nil, err
+	}
 	signingHandlerArgs := ArgsSigningHandler{
 		PubKeys:              []string{cp.publicKeyString},
 		MultiSignerContainer: multiSigner,
 		KeyGenerator:         blockSignKeyGen,
 		SingleSigner:         interceptSingleSigner,
 		KeysHandler:          keysHandler,
+		PubKeysCache:         pubKeysCache,
 	}
 	consensusSigningHandler, err := NewSigningHandler(signingHandlerArgs)
 	if err != nil {
