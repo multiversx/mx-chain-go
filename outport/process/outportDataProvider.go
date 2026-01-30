@@ -346,7 +346,7 @@ func (odp *outportDataProvider) addInPoolUnexecutableTransactions(headerHash []b
 			continue
 		}
 
-		pool.UnexecutableTransactions[string(txHash)] = tx
+		pool.UnexecutableTransactions[hex.EncodeToString(txHash)] = tx
 	}
 
 	return nil

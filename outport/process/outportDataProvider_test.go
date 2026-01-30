@@ -1114,7 +1114,7 @@ func TestAddInPoolUnexecutableTransactions(t *testing.T) {
 		err := outportDataP.addInPoolUnexecutableTransactions(headerHash, pool)
 		require.NoError(t, err)
 		require.Equal(t, 1, len(pool.UnexecutableTransactions))
-		require.Equal(t, tx, pool.UnexecutableTransactions[string(txHash3)])
+		require.Equal(t, tx, pool.UnexecutableTransactions[hex.EncodeToString(txHash3)])
 	})
 
 }
