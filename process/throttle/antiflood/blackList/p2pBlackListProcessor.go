@@ -21,7 +21,6 @@ const sizeBlacklistInfo = 4
 type p2pBlackListProcessor struct {
 	cacher              storage.Cacher
 	peerBlacklistCacher process.PeerBlackListCacher
-	banDuration         time.Duration
 	selfPid             core.PeerID
 	name                string
 	antifloodConfigs    common.AntifloodConfigsHandler

@@ -13,7 +13,6 @@ import (
 const minBanDuration = 1 // second
 const minMessages = 1
 const minTotalSize = 1 //1Byte
-const initNumMessages = 1
 const maxPercentReserved = 90.0
 const minPercentReserved = 0.0
 
