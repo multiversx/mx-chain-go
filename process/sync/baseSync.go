@@ -1332,21 +1332,56 @@ func (boot *baseBootstrap) getExecutionResultHeaderNonceForSyncStart(
 	}
 
 	lastExecutionResultNonce := lastNotarizedExecutedHeader.GetNonce()
+	defer func() {
+		log.Debug("getExecutionResultHeaderNonceForSyncStart", "lastExecutionResultNonce", lastExecutionResultNonce)
+	}()
 
 	// in case there is a more recent execution result available, use it
 	lastExecutionResult := boot.chainHandler.GetLastExecutionResult()
-	notNil := !check.IfNil(lastExecutionResult)
+	if check.IfNil(lastExecutionResult) {
+		return lastExecutionResultNonce, nil
+	}
+
 	// accept newer execution result only if there is a proof for the associated header
 	// otherwise, it might be a temporary execution result from a block that did not pass consensus
-	shouldChangeLastExecutionResultNonce := notNil &&
-		lastExecutionResult.GetHeaderNonce() > lastExecutionResultNonce &&
-		boot.proofs.HasProof(boot.shardCoordinator.SelfId(), lastExecutionResult.GetHeaderHash())
-	if shouldChangeLastExecutionResultNonce {
+	shouldConsiderChangingLastExecutionResultNonce := lastExecutionResult.GetHeaderNonce() > lastExecutionResultNonce
+	if !shouldConsiderChangingLastExecutionResultNonce {
+		return lastExecutionResultNonce, nil
+	}
+
+	if boot.hasProofInCacheOrStorage(lastExecutionResult.GetHeaderHash()) {
 		lastExecutionResultNonce = lastExecutionResult.GetHeaderNonce()
 	}
-	log.Debug("getExecutionResultHeaderNonceForSyncStart", "lastExecutionResultNonce", lastExecutionResultNonce)
 
 	return lastExecutionResultNonce, nil
+}
+
+func (boot *baseBootstrap) hasProofInCacheOrStorage(hash []byte) bool {
+	if boot.proofs.HasProof(boot.shardCoordinator.SelfId(), hash) {
+		return true
+	}
+
+	proofsStorer, errGetStorer := boot.store.GetStorer(dataRetriever.ProofsUnit)
+	if errGetStorer != nil {
+		return false
+	}
+
+	proofBytes, err := proofsStorer.Get(hash)
+	if err != nil {
+		return false
+	}
+
+	proof := &block.HeaderProof{}
+	err = boot.marshalizer.Unmarshal(proof, proofBytes)
+	if err != nil {
+		// return true here, since the proof exists in storer
+		log.Warn("hasProofInCacheOrStorage invalid proof in storage", "error", err.Error(), "hash", hash)
+		return true
+	}
+
+	boot.proofs.AddProof(proof)
+
+	return true
 }
 
 func (boot *baseBootstrap) unmarshalTxByBlockType(
