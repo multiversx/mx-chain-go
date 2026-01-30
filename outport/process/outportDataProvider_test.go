@@ -18,6 +18,8 @@ import (
 	"github.com/multiversx/mx-chain-go/common"
 	"github.com/multiversx/mx-chain-go/outport/process/alteredaccounts/shared"
 	"github.com/multiversx/mx-chain-go/process"
+	"github.com/multiversx/mx-chain-go/storage"
+	"github.com/multiversx/mx-chain-go/testscommon/cache"
 	"github.com/stretchr/testify/require"
 
 	"github.com/multiversx/mx-chain-go/outport/mock"
@@ -792,6 +794,7 @@ func TestPrepareExecutionResultsData(t *testing.T) {
 		logsKey := common.PrepareLogEventsKey(headerHash)
 		logsSlice := make([]data.LogDataHandler, 0)
 		arg.DataPool.PostProcessTransactions().Put(logsKey, logsSlice, 0)
+		arg.DataPool.PostProcessTransactions().Put(common.PrepareUnexecutableTxHashesKey(headerHash), make([][]byte, 0), 0)
 
 		cachedTxs := make(map[block.Type]map[string]data.TransactionHandler)
 		cachedTxs[block.TxBlock] = make(map[string]data.TransactionHandler)
@@ -835,6 +838,7 @@ func TestPrepareExecutionResultsData(t *testing.T) {
 		cachedTxs := make(map[block.Type]map[string]data.TransactionHandler)
 		cachedTxs[block.TxBlock] = make(map[string]data.TransactionHandler)
 		arg.DataPool.PostProcessTransactions().Put(headerHash, cachedTxs, 1)
+		arg.DataPool.PostProcessTransactions().Put(common.PrepareUnexecutableTxHashesKey(headerHash), make([][]byte, 0), 0)
 
 		key := common.PrepareOrderedTxHashesKey(headerHash)
 		arg.DataPool.PostProcessTransactions().Put(key, [][]byte{[]byte("a")}, 1)
@@ -875,6 +879,7 @@ func TestPrepareExecutionResultsData(t *testing.T) {
 		logsKey := common.PrepareLogEventsKey(headerHash)
 		logsSlice := make([]data.LogDataHandler, 0)
 		arg.DataPool.PostProcessTransactions().Put(logsKey, logsSlice, 0)
+		arg.DataPool.PostProcessTransactions().Put(common.PrepareUnexecutableTxHashesKey(headerHash), make([][]byte, 0), 0)
 
 		cachedTxs := make(map[block.Type]map[string]data.TransactionHandler)
 		cachedTxs[block.TxBlock] = make(map[string]data.TransactionHandler)
@@ -1014,6 +1019,7 @@ func TestOutportDataProvider_GetRewards(t *testing.T) {
 
 	key := common.PrepareOrderedTxHashesKey(headerHash)
 	arg.DataPool.PostProcessTransactions().Put(key, [][]byte{[]byte("a")}, 1)
+	arg.DataPool.PostProcessTransactions().Put(common.PrepareUnexecutableTxHashesKey(headerHash), make([][]byte, 0), 0)
 
 	outportDataP, _ := NewOutportDataProvider(arg)
 
@@ -1040,4 +1046,75 @@ func TestOutportDataProvider_GetRewards(t *testing.T) {
 	require.True(t, called)
 	require.Nil(t, err)
 	require.Len(t, results, 1)
+}
+
+func TestAddInPoolUnexecutableTransactions(t *testing.T) {
+	t.Parallel()
+
+	t.Run("cannot cache unexecutable tx hashes", func(t *testing.T) {
+		arg := createArgOutportDataProvider()
+		arg.DataPool = &dataRetriever.PoolsHolderStub{
+			PostProcessTransactionsCalled: func() storage.Cacher {
+				return &cache.CacherStub{
+					GetCalled: func(key []byte) (value interface{}, ok bool) {
+						return []byte("a"), false
+					},
+				}
+			},
+		}
+
+		outportDataP, _ := NewOutportDataProvider(arg)
+
+		headerHash := []byte("hash")
+
+		pool := &outportcore.TransactionPool{}
+		err := outportDataP.addInPoolUnexecutableTransactions(headerHash, pool)
+		require.ErrorIs(t, err, common.ErrMissingUnexecutableTxHash)
+	})
+
+	t.Run("no unexecutable txs should return nil", func(t *testing.T) {
+		arg := createArgOutportDataProvider()
+		arg.DataPool = &dataRetriever.PoolsHolderStub{
+			PostProcessTransactionsCalled: func() storage.Cacher {
+				return &cache.CacherStub{
+					GetCalled: func(key []byte) (value interface{}, ok bool) {
+						return make([][]byte, 0), true
+					},
+				}
+			},
+		}
+
+		outportDataP, _ := NewOutportDataProvider(arg)
+
+		headerHash := []byte("hash")
+
+		pool := &outportcore.TransactionPool{}
+		err := outportDataP.addInPoolUnexecutableTransactions(headerHash, pool)
+		require.NoError(t, err)
+		require.Nil(t, pool.UnexecutableTransactions)
+	})
+
+	t.Run("should work", func(t *testing.T) {
+		arg := createArgOutportDataProvider()
+		arg.DataPool = dataRetriever.NewPoolsHolderMock()
+
+		headerHash := []byte("hash")
+		txHash1, txHash2, txHash3 := []byte("a"), []byte("b"), []byte("c")
+		tx := &transaction.Transaction{Nonce: 1}
+
+		arg.DataPool.PostProcessTransactions().Put(common.PrepareUnexecutableTxHashesKey(headerHash), [][]byte{txHash1, txHash2, txHash3}, 1)
+
+		cacheID := process.ShardCacherIdentifier(0, 0)
+		arg.DataPool.Transactions().AddData(txHash2, &smartContractResult.SmartContractResult{}, 1, cacheID)
+		arg.DataPool.Transactions().AddData(txHash3, tx, 1, cacheID)
+
+		outportDataP, _ := NewOutportDataProvider(arg)
+
+		pool := &outportcore.TransactionPool{}
+		err := outportDataP.addInPoolUnexecutableTransactions(headerHash, pool)
+		require.NoError(t, err)
+		require.Equal(t, 1, len(pool.UnexecutableTransactions))
+		require.Equal(t, tx, pool.UnexecutableTransactions[string(txHash3)])
+	})
+
 }
