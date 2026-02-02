@@ -1281,14 +1281,14 @@ func GetStorageUnitByBlockType(blockType block.Type) (dataRetriever.UnitType, er
 }
 
 // IsReplacementBlockForExecution returns true if the provided header is a replacement for the last execution result
-func IsReplacementBlockForExecution(header data.HeaderHandler, lastExecutionResult data.BaseExecutionResultHandler) bool {
+func IsReplacementBlockForExecution(header data.HeaderHandler, headerHash []byte, lastExecutionResult data.BaseExecutionResultHandler) bool {
 	if check.IfNil(header) || check.IfNil(lastExecutionResult) {
 		return false
 	}
 
 	sameNonce := header.GetNonce() == lastExecutionResult.GetHeaderNonce()
-	higherRound := header.GetRound() > lastExecutionResult.GetHeaderRound()
-	return sameNonce && higherRound
+	differentHash := !bytes.Equal(headerHash, lastExecutionResult.GetHeaderHash())
+	return sameNonce && differentHash
 }
 
 // UpdateContextForReplacedHeader updates the blockchain context when a header should be replaced
@@ -1337,6 +1337,11 @@ func UpdateContextForReplacedHeader(
 	if err != nil {
 		return err
 	}
+
+	log.Debug("UpdateContextForReplacedHeader last executed header",
+		"round", headerToSet.GetRound(),
+		"nonce", headerToSet.GetNonce(),
+		"hash", executionResultToSet.GetHeaderHash())
 
 	blockChain.SetLastExecutedBlockHeaderAndRootHash(headerToSet, executionResultToSet.GetHeaderHash(), executionResultToSet.GetRootHash())
 	blockChain.SetLastExecutionResult(executionResultToSet)
