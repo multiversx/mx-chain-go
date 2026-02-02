@@ -2716,9 +2716,28 @@ func TestMempoolWithChainSimulator_Selection_InstantChangeGuardian(t *testing.T)
 	time.Sleep(durationWaitAfterSendSome)
 	require.Equal(t, 3, getNumTransactionsInPool(simulator, shard))
 
-	selectedTransactions, _ := selectTransactions(t, simulator, shard)
-	require.Equal(t, 2, len(selectedTransactions))
-	require.Equal(t, uint64(2), selectedTransactions[0].Tx.GetNonce())
-	require.Equal(t, uint64(3), selectedTransactions[1].Tx.GetNonce())
-	require.Contains(t, string(selectedTransactions[1].Tx.GetData()), setGuardianTxData)
+	// Propose the header with initial 2 transactions
+	err = simulator.GenerateBlocks(1)
+	require.NoError(t, err)
+
+	currentHeader := simulator.GetNodeHandler(uint32(shard)).GetDataComponents().Blockchain().GetCurrentBlockHeader()
+	require.Equal(t, uint32(2), currentHeader.GetTxCount())
+
+	// Propose one more header, should not select the 3rd transaction
+	err = simulator.GenerateBlocks(1)
+	require.NoError(t, err)
+
+	currentHeader = simulator.GetNodeHandler(uint32(shard)).GetDataComponents().Blockchain().GetCurrentBlockHeader()
+	require.Equal(t, uint32(0), currentHeader.GetTxCount())
+
+	require.Equal(t, 1, getNumTransactionsInPool(simulator, shard)) // the "bad" tx
+
+	// Propose one more header, should not select the 3rd transaction
+	err = simulator.GenerateBlocks(1)
+	require.NoError(t, err)
+
+	currentHeader = simulator.GetNodeHandler(uint32(shard)).GetDataComponents().Blockchain().GetCurrentBlockHeader()
+	require.Equal(t, uint32(0), currentHeader.GetTxCount())
+
+	require.Equal(t, 1, getNumTransactionsInPool(simulator, shard)) // the "bad" tx
 }
