@@ -50,6 +50,7 @@ var (
 func TestChainSimulatorCheckSupernova(t *testing.T) {
 	chainSimulator, err := NewChainSimulator(ArgsChainSimulator{
 		BypassTxSignatureCheck:         true,
+		BypassCreateBlockTimeCheck:     true,
 		TempDir:                        t.TempDir(),
 		PathToInitialConfig:            defaultPathToInitialConfig,
 		NumOfShards:                    defaultNumOfShards,
@@ -106,6 +107,7 @@ func TestNewChainSimulator(t *testing.T) {
 
 	chainSimulator, err := NewChainSimulator(ArgsChainSimulator{
 		BypassTxSignatureCheck:         true,
+		BypassCreateBlockTimeCheck:     true,
 		TempDir:                        t.TempDir(),
 		PathToInitialConfig:            defaultPathToInitialConfig,
 		NumOfShards:                    defaultNumOfShards,
@@ -141,6 +143,7 @@ func TestChainSimulator_GenerateBlocksShouldWork(t *testing.T) {
 
 	chainSimulator, err := NewChainSimulator(ArgsChainSimulator{
 		BypassTxSignatureCheck:         true,
+		BypassCreateBlockTimeCheck:     true,
 		BypassBlockSignatureCheck:      true,
 		TempDir:                        t.TempDir(),
 		PathToInitialConfig:            defaultPathToInitialConfig,
@@ -187,6 +190,7 @@ func TestChainSimulator_VerifyBlockTimestampSupernova(t *testing.T) {
 
 	chainSimulator, err := NewChainSimulator(ArgsChainSimulator{
 		BypassTxSignatureCheck:         true,
+		BypassCreateBlockTimeCheck:     true,
 		TempDir:                        t.TempDir(),
 		PathToInitialConfig:            defaultPathToInitialConfig,
 		NumOfShards:                    defaultNumOfShards,
@@ -245,6 +249,7 @@ func TestChainSimulator_GenerateBlocksAndEpochChangeShouldWork(t *testing.T) {
 
 	chainSimulator, err := NewChainSimulator(ArgsChainSimulator{
 		BypassTxSignatureCheck:         true,
+		BypassCreateBlockTimeCheck:     true,
 		TempDir:                        t.TempDir(),
 		PathToInitialConfig:            defaultPathToInitialConfig,
 		NumOfShards:                    defaultNumOfShards,
@@ -317,6 +322,7 @@ func TestSimulator_TriggerChangeOfEpoch(t *testing.T) {
 
 	chainSimulator, err := NewChainSimulator(ArgsChainSimulator{
 		BypassTxSignatureCheck:         true,
+		BypassCreateBlockTimeCheck:     true,
 		TempDir:                        t.TempDir(),
 		PathToInitialConfig:            defaultPathToInitialConfig,
 		NumOfShards:                    defaultNumOfShards,
@@ -366,6 +372,7 @@ func TestChainSimulator_ChangeRoundsPerEpoch(t *testing.T) {
 	}
 	chainSimulator, err := NewChainSimulator(ArgsChainSimulator{
 		BypassTxSignatureCheck:         true,
+		BypassCreateBlockTimeCheck:     true,
 		TempDir:                        t.TempDir(),
 		PathToInitialConfig:            defaultPathToInitialConfig,
 		NumOfShards:                    defaultNumOfShards,
@@ -415,6 +422,7 @@ func TestChainSimulator_SetState(t *testing.T) {
 
 	chainSimulator, err := NewChainSimulator(ArgsChainSimulator{
 		BypassTxSignatureCheck:         true,
+		BypassCreateBlockTimeCheck:     true,
 		TempDir:                        t.TempDir(),
 		PathToInitialConfig:            defaultPathToInitialConfig,
 		NumOfShards:                    defaultNumOfShards,
@@ -441,6 +449,7 @@ func TestChainSimulator_SetEntireState(t *testing.T) {
 
 	chainSimulator, err := NewChainSimulator(ArgsChainSimulator{
 		BypassTxSignatureCheck:         true,
+		BypassCreateBlockTimeCheck:     true,
 		TempDir:                        t.TempDir(),
 		PathToInitialConfig:            defaultPathToInitialConfig,
 		NumOfShards:                    defaultNumOfShards,
@@ -484,6 +493,7 @@ func TestChainSimulator_SetEntireStateWithRemoval(t *testing.T) {
 
 	chainSimulator, err := NewChainSimulator(ArgsChainSimulator{
 		BypassTxSignatureCheck:         true,
+		BypassCreateBlockTimeCheck:     true,
 		TempDir:                        t.TempDir(),
 		PathToInitialConfig:            defaultPathToInitialConfig,
 		NumOfShards:                    defaultNumOfShards,
@@ -526,6 +536,7 @@ func TestChainSimulator_GetAccount(t *testing.T) {
 
 	chainSimulator, err := NewChainSimulator(ArgsChainSimulator{
 		BypassTxSignatureCheck:         true,
+		BypassCreateBlockTimeCheck:     true,
 		TempDir:                        t.TempDir(),
 		PathToInitialConfig:            defaultPathToInitialConfig,
 		NumOfShards:                    defaultNumOfShards,
@@ -555,6 +566,7 @@ func TestSimulator_SendTransactions(t *testing.T) {
 
 	chainSimulator, err := NewChainSimulator(ArgsChainSimulator{
 		BypassTxSignatureCheck:         true,
+		BypassCreateBlockTimeCheck:     true,
 		TempDir:                        t.TempDir(),
 		PathToInitialConfig:            defaultPathToInitialConfig,
 		NumOfShards:                    defaultNumOfShards,
@@ -581,6 +593,7 @@ func TestSimulator_SentMoveBalanceNoGasForFee(t *testing.T) {
 
 	chainSimulator, err := NewChainSimulator(ArgsChainSimulator{
 		BypassTxSignatureCheck:         true,
+		BypassCreateBlockTimeCheck:     true,
 		TempDir:                        t.TempDir(),
 		PathToInitialConfig:            defaultPathToInitialConfig,
 		NumOfShards:                    defaultNumOfShards,
@@ -623,6 +636,7 @@ func TestSimulator_SendMoveBalanceTxBeforeAndAfterSupernovaWithMoreGasLimit(t *t
 
 	chainSimulator, err := NewChainSimulator(ArgsChainSimulator{
 		BypassTxSignatureCheck:         true,
+		BypassCreateBlockTimeCheck:     true,
 		TempDir:                        t.TempDir(),
 		PathToInitialConfig:            defaultPathToInitialConfig,
 		NumOfShards:                    defaultNumOfShards,
@@ -633,6 +647,7 @@ func TestSimulator_SendMoveBalanceTxBeforeAndAfterSupernovaWithMoreGasLimit(t *t
 		ApiInterface:                   api.NewNoApiInterface(),
 		MinNodesPerShard:               defaultMinNodesPerShard,
 		MetaChainMinNodes:              defaultMetaChainMinNodes,
+		CreateBlockMaxTimePercent:      0.25,
 		AlterConfigsFunction: func(cfg *config.Configs) {
 			cfg.EpochConfig.EnableEpochs.SupernovaEnableEpoch = 2
 		},

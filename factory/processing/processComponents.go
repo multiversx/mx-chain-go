@@ -18,9 +18,9 @@ import (
 	"github.com/multiversx/mx-chain-core-go/data/receipt"
 	"github.com/multiversx/mx-chain-core-go/data/transaction"
 	"github.com/multiversx/mx-chain-go/process/asyncExecution"
+	headersCache "github.com/multiversx/mx-chain-go/process/asyncExecution/cache"
 	"github.com/multiversx/mx-chain-go/process/asyncExecution/executionManager"
 	"github.com/multiversx/mx-chain-go/process/asyncExecution/executionTrack"
-	"github.com/multiversx/mx-chain-go/process/asyncExecution/queue"
 	vmcommon "github.com/multiversx/mx-chain-vm-common-go"
 	vmcommonBuiltInFunctions "github.com/multiversx/mx-chain-vm-common-go/builtInFunctions"
 
@@ -306,6 +306,7 @@ func (pcf *processComponentsFactory) Create() (*processComponents, error) {
 		HeadersPool:             pcf.data.Datapool().Headers(),
 		ProofsPool:              pcf.data.Datapool().Proofs(),
 		StorageService:          pcf.data.StorageService(),
+		PubKeysHandler:          pcf.crypto.ConsensusSigningHandler(),
 	}
 	headerSigVerifier, err := headerCheck.NewHeaderSigVerifier(argsHeaderSig)
 	if err != nil {
@@ -627,7 +628,7 @@ func (pcf *processComponentsFactory) Create() (*processComponents, error) {
 		return nil, fmt.Errorf("%w when assembling components for the sent signatures tracker", err)
 	}
 
-	blocksQueue := queue.NewBlocksQueue()
+	blocksQueue := headersCache.NewHeaderBodyCache(pcf.config.HeaderBodyCacheConfig)
 	executionResultsTracker := executionTrack.NewExecutionResultsTracker()
 
 	argExecManager := executionManager.ArgsExecutionManager{
@@ -635,6 +636,8 @@ func (pcf *processComponentsFactory) Create() (*processComponents, error) {
 		ExecutionResultsTracker: executionResultsTracker,
 		BlockChain:              pcf.data.Blockchain(),
 		Headers:                 pcf.data.Datapool().Headers(),
+		PostProcessTransactions: pcf.data.Datapool().PostProcessTransactions(),
+		ExecutedMiniBlocks:      pcf.data.Datapool().ExecutedMiniBlocks(),
 		StorageService:          pcf.data.StorageService(),
 		Marshaller:              pcf.coreData.InternalMarshalizer(),
 		ShardCoordinator:        pcf.bootstrapComponents.ShardCoordinator(),
@@ -667,7 +670,7 @@ func (pcf *processComponentsFactory) Create() (*processComponents, error) {
 	}
 
 	argsHeadersExecutor := asyncExecution.ArgsHeadersExecutor{
-		BlocksQueue:      blocksQueue,
+		BlocksCache:      blocksQueue,
 		ExecutionTracker: executionResultsTracker,
 		BlockProcessor:   blockProcessorComponents.blockProcessor,
 		BlockChain:       pcf.data.Blockchain(),

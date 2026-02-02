@@ -2,8 +2,8 @@ package asyncExecution
 
 import "errors"
 
-// ErrNilHeadersQueue signals that a nil headers queue has been provided
-var ErrNilHeadersQueue = errors.New("nil headers queue")
+// ErrNilHeadersCache signals that a nil headers cache has been provided
+var ErrNilHeadersCache = errors.New("nil headers cache")
 
 // ErrNilExecutionTracker signals that a nil execution tracker has been provided
 var ErrNilExecutionTracker = errors.New("nil execution tracker")
