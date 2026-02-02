@@ -1,12 +1,14 @@
 package mempool
 
 import (
+	"encoding/hex"
 	"fmt"
 	"math"
 	"math/big"
 	"testing"
 	"time"
 
+	"github.com/multiversx/mx-chain-core-go/data/api"
 	"github.com/multiversx/mx-chain-core-go/data/block"
 	"github.com/multiversx/mx-chain-core-go/data/transaction"
 	"github.com/stretchr/testify/require"
@@ -2589,4 +2591,134 @@ func Test_SelectionWithAliceSenderAndThenRelayerOnDifferentTxs(t *testing.T) {
 	selectedTransactions, _, err = txpool.SelectTransactions(selectionSession, options, 2)
 	require.Nil(t, err)
 	require.Len(t, selectedTransactions, 0)
+}
+
+func TestMempoolWithChainSimulator_Selection_InstantChangeGuardian(t *testing.T) {
+	if testing.Short() {
+		t.Skip("this is not a short test")
+	}
+
+	numSenders := 2
+	shard := 0
+
+	simulator := startChainSimulator(t, func(cfg *config.Configs) {})
+	defer simulator.Close()
+
+	err := simulator.GenerateBlocksUntilEpochIsReached(2)
+	require.NoError(t, err)
+
+	participants := createParticipants(t, simulator, numSenders)
+	noncesTracker := newNoncesTracker()
+
+	alice := participants.sendersByShard[shard][0]
+	bob := participants.sendersByShard[shard][1]
+	receiver := participants.receiverByShard[shard]
+
+	transactions := make([]*transaction.Transaction, 0)
+
+	// Guard Alice's account
+	setGuardianTxData := "SetGuardian@" + hex.EncodeToString(bob.Bytes) + "@" + hex.EncodeToString([]byte("uuid"))
+	setGuardianTx := &transaction.Transaction{
+		Nonce:     noncesTracker.getThenIncrementNonce(alice),
+		Value:     big.NewInt(0),
+		SndAddr:   alice.Bytes,
+		RcvAddr:   alice.Bytes,
+		Data:      []byte(setGuardianTxData),
+		GasLimit:  600_000,
+		GasPrice:  1_000_000_000,
+		ChainID:   []byte(configs.ChainID),
+		Version:   2,
+		Signature: []byte("signature"),
+	}
+	_, err = simulator.SendTxAndGenerateBlockTilTxIsExecuted(setGuardianTx, 10)
+	require.NoError(t, err)
+
+	// fast-forward until the guardian becomes active
+	err = simulator.GenerateBlocks(int(simulator.GetNodeHandler(uint32(shard)).GetCoreComponents().ChainParametersHandler().CurrentChainParameters().RoundsPerEpoch * 20))
+	require.NoError(t, err)
+
+	guardAccountTx := &transaction.Transaction{
+		Nonce:     noncesTracker.getThenIncrementNonce(alice),
+		Value:     big.NewInt(0),
+		SndAddr:   alice.Bytes,
+		RcvAddr:   alice.Bytes,
+		Data:      []byte("GuardAccount"),
+		GasLimit:  400_000,
+		GasPrice:  1_000_000_000,
+		ChainID:   []byte(configs.ChainID),
+		Version:   2,
+		Signature: []byte("signature"),
+	}
+	_, err = simulator.SendTxAndGenerateBlockTilTxIsExecuted(guardAccountTx, 10)
+	require.NoError(t, err)
+
+	guardianData, _, err := simulator.GetNodeHandler(uint32(shard)).GetFacadeHandler().GetGuardianData(alice.Bech32, api.AccountQueryOptions{})
+	require.NoError(t, err)
+
+	require.NotNil(t, guardianData)
+	require.True(t, guardianData.Guarded)
+	require.NotNil(t, guardianData.ActiveGuardian)
+	require.Equal(t, bob.Bech32, guardianData.ActiveGuardian.Address)
+
+	// Transfer from Alice to receiver -> should be selected
+	transactions = append(transactions, &transaction.Transaction{
+		Nonce:             noncesTracker.getThenIncrementNonce(alice),
+		Value:             oneQuarterOfEGLD,
+		SndAddr:           alice.Bytes,
+		RcvAddr:           receiver.Bytes,
+		Data:              []byte{},
+		GasLimit:          100_000,
+		GasPrice:          1_000_000_002,
+		ChainID:           []byte(configs.ChainID),
+		Version:           2,
+		Signature:         []byte("signature"),
+		GuardianAddr:      bob.Bytes,
+		GuardianSignature: []byte("signature"),
+		Options:           2,
+	})
+
+	// Change guardian -> should be selected
+	setGuardianTxData = "SetGuardian@" + hex.EncodeToString(receiver.Bytes) + "@" + hex.EncodeToString([]byte("uuid"))
+	transactions = append(transactions, &transaction.Transaction{
+		Nonce:             noncesTracker.getThenIncrementNonce(alice),
+		Value:             big.NewInt(0),
+		SndAddr:           alice.Bytes,
+		RcvAddr:           alice.Bytes,
+		Data:              []byte(setGuardianTxData),
+		GasLimit:          600_000,
+		GasPrice:          1_000_000_002,
+		ChainID:           []byte(configs.ChainID),
+		Version:           2,
+		Signature:         []byte("signature"),
+		GuardianAddr:      bob.Bytes,
+		GuardianSignature: []byte("signature"),
+		Options:           2,
+	})
+
+	// Transfer from Alice to receiver -> should NOT be selected
+	transactions = append(transactions, &transaction.Transaction{
+		Nonce:             noncesTracker.getThenIncrementNonce(alice),
+		Value:             oneQuarterOfEGLD,
+		SndAddr:           alice.Bytes,
+		RcvAddr:           receiver.Bytes,
+		Data:              []byte{},
+		GasLimit:          100_000,
+		GasPrice:          1_000_000_002,
+		ChainID:           []byte(configs.ChainID),
+		Version:           2,
+		Signature:         []byte("signature"),
+		GuardianAddr:      bob.Bytes, // guarded by the old guardian
+		GuardianSignature: []byte("signature"),
+		Options:           2,
+	})
+
+	sendTransactions(t, simulator, transactions)
+	time.Sleep(durationWaitAfterSendSome)
+	require.Equal(t, 3, getNumTransactionsInPool(simulator, shard))
+
+	selectedTransactions, _ := selectTransactions(t, simulator, shard)
+	require.Equal(t, 2, len(selectedTransactions))
+	require.Equal(t, uint64(2), selectedTransactions[0].Tx.GetNonce())
+	require.Equal(t, uint64(3), selectedTransactions[1].Tx.GetNonce())
+	require.Contains(t, string(selectedTransactions[1].Tx.GetData()), setGuardianTxData)
 }
