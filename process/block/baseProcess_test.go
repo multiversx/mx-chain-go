@@ -176,6 +176,8 @@ func createArgBaseProcessor(
 			ExecutionResultsTracker: executionResultsTracker,
 			BlockChain:              dataComponents.BlockChain,
 			Headers:                 dataComponents.DataPool.Headers(),
+			PostProcessTransactions: dataComponents.DataPool.PostProcessTransactions(),
+			ExecutedMiniBlocks:      dataComponents.DataPool.ExecutedMiniBlocks(),
 			StorageService:          dataComponents.StorageService(),
 			Marshaller:              coreComponents.InternalMarshalizer(),
 			ShardCoordinator:        bootstrapComponents.ShardCoordinator(),
