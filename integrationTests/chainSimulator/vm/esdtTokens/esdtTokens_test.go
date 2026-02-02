@@ -41,6 +41,7 @@ func TestChainSimulator_Api_TokenType(t *testing.T) {
 	numOfShards := uint32(3)
 	cs, err := chainSimulator.NewChainSimulator(chainSimulator.ArgsChainSimulator{
 		BypassTxSignatureCheck:         true,
+		BypassCreateBlockTimeCheck:     true,
 		TempDir:                        t.TempDir(),
 		PathToInitialConfig:            vm.DefaultPathToInitialConfig,
 		NumOfShards:                    numOfShards,
@@ -208,6 +209,7 @@ func TestChainSimulator_Api_NFTToken(t *testing.T) {
 	numOfShards := uint32(3)
 	cs, err := chainSimulator.NewChainSimulator(chainSimulator.ArgsChainSimulator{
 		BypassTxSignatureCheck:         true,
+		BypassCreateBlockTimeCheck:     true,
 		TempDir:                        t.TempDir(),
 		PathToInitialConfig:            vm.DefaultPathToInitialConfig,
 		NumOfShards:                    numOfShards,

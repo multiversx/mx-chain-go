@@ -38,14 +38,14 @@ func TestNewBlocksCreator(t *testing.T) {
 	t.Run("nil node handler should error", func(t *testing.T) {
 		t.Parallel()
 
-		creator, err := chainSimulatorProcess.NewBlocksCreator(nil, heartbeat.NewHeartbeatMonitor())
+		creator, err := chainSimulatorProcess.NewBlocksCreator(nil, heartbeat.NewHeartbeatMonitor(), 0, true)
 		require.Equal(t, chainSimulatorProcess.ErrNilNodeHandler, err)
 		require.Nil(t, creator)
 	})
 	t.Run("should work", func(t *testing.T) {
 		t.Parallel()
 
-		creator, err := chainSimulatorProcess.NewBlocksCreator(&chainSimulator.NodeHandlerMock{}, heartbeat.NewHeartbeatMonitor())
+		creator, err := chainSimulatorProcess.NewBlocksCreator(&chainSimulator.NodeHandlerMock{}, heartbeat.NewHeartbeatMonitor(), 0, true)
 		require.NoError(t, err)
 		require.NotNil(t, creator)
 	})
@@ -54,10 +54,10 @@ func TestNewBlocksCreator(t *testing.T) {
 func TestBlocksCreator_IsInterfaceNil(t *testing.T) {
 	t.Parallel()
 
-	creator, _ := chainSimulatorProcess.NewBlocksCreator(nil, heartbeat.NewHeartbeatMonitor())
+	creator, _ := chainSimulatorProcess.NewBlocksCreator(nil, heartbeat.NewHeartbeatMonitor(), 0, true)
 	require.True(t, creator.IsInterfaceNil())
 
-	creator, _ = chainSimulatorProcess.NewBlocksCreator(&chainSimulator.NodeHandlerMock{}, heartbeat.NewHeartbeatMonitor())
+	creator, _ = chainSimulatorProcess.NewBlocksCreator(&chainSimulator.NodeHandlerMock{}, heartbeat.NewHeartbeatMonitor(), 0, true)
 	require.False(t, creator.IsInterfaceNil())
 }
 
@@ -94,7 +94,7 @@ func TestBlocksCreator_IncrementRound(t *testing.T) {
 			}
 		},
 	}
-	creator, err := chainSimulatorProcess.NewBlocksCreator(nodeHandler, heartbeat.NewHeartbeatMonitor())
+	creator, err := chainSimulatorProcess.NewBlocksCreator(nodeHandler, heartbeat.NewHeartbeatMonitor(), 0, true)
 	require.NoError(t, err)
 
 	creator.IncrementRound()
@@ -141,7 +141,7 @@ func TestBlocksCreator_CreateNewBlock(t *testing.T) {
 			}
 		}
 
-		creator, err := chainSimulatorProcess.NewBlocksCreator(nodeHandler, heartbeat.NewHeartbeatMonitor())
+		creator, err := chainSimulatorProcess.NewBlocksCreator(nodeHandler, heartbeat.NewHeartbeatMonitor(), 0, true)
 		require.NoError(t, err)
 
 		_, err = creator.CreateNewBlock()
@@ -249,7 +249,7 @@ func TestBlocksCreator_CreateNewBlock(t *testing.T) {
 				},
 			}
 		}
-		creator, err := chainSimulatorProcess.NewBlocksCreator(nodeHandler, heartbeat.NewHeartbeatMonitor())
+		creator, err := chainSimulatorProcess.NewBlocksCreator(nodeHandler, heartbeat.NewHeartbeatMonitor(), 0, true)
 		require.NoError(t, err)
 
 		_, err = creator.CreateNewBlock()
@@ -268,7 +268,7 @@ func TestBlocksCreator_CreateNewBlock(t *testing.T) {
 				},
 			}
 		}
-		creator, err := chainSimulatorProcess.NewBlocksCreator(nodeHandler, heartbeat.NewHeartbeatMonitor())
+		creator, err := chainSimulatorProcess.NewBlocksCreator(nodeHandler, heartbeat.NewHeartbeatMonitor(), 0, true)
 		require.NoError(t, err)
 
 		_, err = creator.CreateNewBlock()
@@ -289,7 +289,7 @@ func TestBlocksCreator_CreateNewBlock(t *testing.T) {
 				},
 			}
 		}
-		creator, err := chainSimulatorProcess.NewBlocksCreator(nodeHandler, heartbeat.NewHeartbeatMonitor())
+		creator, err := chainSimulatorProcess.NewBlocksCreator(nodeHandler, heartbeat.NewHeartbeatMonitor(), 0, true)
 		require.NoError(t, err)
 
 		_, err = creator.CreateNewBlock()
@@ -354,7 +354,7 @@ func TestBlocksCreator_CreateNewBlock(t *testing.T) {
 				},
 			}
 		}
-		creator, err := chainSimulatorProcess.NewBlocksCreator(nodeHandler, heartbeat.NewHeartbeatMonitor())
+		creator, err := chainSimulatorProcess.NewBlocksCreator(nodeHandler, heartbeat.NewHeartbeatMonitor(), 0, true)
 		require.NoError(t, err)
 
 		_, err = creator.CreateNewBlock()
@@ -375,7 +375,7 @@ func TestBlocksCreator_CreateNewBlock(t *testing.T) {
 				},
 			}
 		}
-		creator, err := chainSimulatorProcess.NewBlocksCreator(nodeHandler, heartbeat.NewHeartbeatMonitor())
+		creator, err := chainSimulatorProcess.NewBlocksCreator(nodeHandler, heartbeat.NewHeartbeatMonitor(), 0, true)
 		require.NoError(t, err)
 
 		_, err = creator.CreateNewBlock()
@@ -396,7 +396,7 @@ func TestBlocksCreator_CreateNewBlock(t *testing.T) {
 				},
 			}
 		}
-		creator, err := chainSimulatorProcess.NewBlocksCreator(nodeHandler, heartbeat.NewHeartbeatMonitor())
+		creator, err := chainSimulatorProcess.NewBlocksCreator(nodeHandler, heartbeat.NewHeartbeatMonitor(), 0, true)
 		require.NoError(t, err)
 
 		_, err = creator.CreateNewBlock()
@@ -417,7 +417,7 @@ func TestBlocksCreator_CreateNewBlock(t *testing.T) {
 				},
 			}
 		}
-		creator, err := chainSimulatorProcess.NewBlocksCreator(nodeHandler, heartbeat.NewHeartbeatMonitor())
+		creator, err := chainSimulatorProcess.NewBlocksCreator(nodeHandler, heartbeat.NewHeartbeatMonitor(), 0, true)
 		require.NoError(t, err)
 
 		_, err = creator.CreateNewBlock()
@@ -548,7 +548,7 @@ func TestBlocksCreator_CreateNewBlock(t *testing.T) {
 	t.Run("should work", func(t *testing.T) {
 		t.Parallel()
 
-		creator, err := chainSimulatorProcess.NewBlocksCreator(getNodeHandler(), heartbeat.NewHeartbeatMonitor())
+		creator, err := chainSimulatorProcess.NewBlocksCreator(getNodeHandler(), heartbeat.NewHeartbeatMonitor(), 0, true)
 		require.NoError(t, err)
 
 		_, err = creator.CreateNewBlock()
@@ -592,7 +592,7 @@ func testCreateNewBlock(t *testing.T, blockProcess process.BlockProcessor, expec
 			},
 		}
 	}
-	creator, err := chainSimulatorProcess.NewBlocksCreator(nodeHandler, heartbeat.NewHeartbeatMonitor())
+	creator, err := chainSimulatorProcess.NewBlocksCreator(nodeHandler, heartbeat.NewHeartbeatMonitor(), 0, true)
 	require.NoError(t, err)
 
 	_, err = creator.CreateNewBlock()
