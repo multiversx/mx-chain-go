@@ -1336,6 +1336,7 @@ func startChainSimulator(
 
 	cs, err := chainSimulator.NewChainSimulator(chainSimulator.ArgsChainSimulator{
 		BypassTxSignatureCheck:         true,
+		BypassCreateBlockTimeCheck:     true,
 		TempDir:                        t.TempDir(),
 		PathToInitialConfig:            defaultPathToInitialConfig,
 		NumOfShards:                    3,
