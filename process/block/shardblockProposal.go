@@ -175,6 +175,10 @@ func (sp *shardProcessor) VerifyBlockProposal(
 		return process.ErrWrongTypeAssertion
 	}
 
+	if sp.isMaxBlockSizeReached(body.MiniBlocks) {
+		return process.ErrMaxBlockSizeReached
+	}
+
 	err = sp.checkHeaderBodyCorrelationProposal(header.GetMiniBlockHeaderHandlers(), body)
 	if err != nil {
 		return err
@@ -553,6 +557,18 @@ func (sp *shardProcessor) selectIncomingMiniBlocks(
 		}
 
 		if len(createIncomingMbsResult.AddedMiniBlocks) > 0 {
+			newPendingMiniBlocks := sp.checkMaxBlockSizeLimit(createIncomingMbsResult.AddedMiniBlocks)
+			if len(newPendingMiniBlocks) > 0 {
+				createIncomingMbsResult.AddedMiniBlocks = createIncomingMbsResult.AddedMiniBlocks[:len(newPendingMiniBlocks)-1]
+				createIncomingMbsResult.PendingMiniBlocks = append(createIncomingMbsResult.PendingMiniBlocks, newPendingMiniBlocks...)
+
+				mbHashes := make([][]byte, 0, len(newPendingMiniBlocks))
+				for _, mb := range newPendingMiniBlocks {
+					mbHashes = append(mbHashes, mb.Hash)
+				}
+				sp.gasComputation.RevertIncomingMiniBlocks(mbHashes)
+			}
+
 			errAdd := sp.miniBlocksSelectionSession.AddMiniBlocksAndHashes(createIncomingMbsResult.AddedMiniBlocks)
 			if errAdd != nil {
 				return nil, errAdd
@@ -584,6 +600,33 @@ func (sp *shardProcessor) selectIncomingMiniBlocks(
 	go sp.requestHeadersFromHeaderIfNeeded(lastMetaAdded)
 
 	return pendingBlocks, nil
+}
+
+func (bp *baseProcessor) checkMaxBlockSizeLimit(
+	miniBlocksAndHashes []block.MiniblockAndHash,
+) []block.MiniblockAndHash {
+	pendingMiniBlocks := make([]block.MiniblockAndHash, 0)
+
+	if !bp.isMaxBlockSizeReached(miniBlockAndHashesToMiniBlocks(miniBlocksAndHashes)) {
+		return nil
+	}
+
+	for {
+		if len(miniBlocksAndHashes) == 0 {
+			break
+		}
+
+		lastMb := miniBlocksAndHashes[len(miniBlocksAndHashes)-1]
+		pendingMiniBlocks = append(pendingMiniBlocks, lastMb)
+
+		miniBlocksAndHashes = miniBlocksAndHashes[:len(miniBlocksAndHashes)-1]
+
+		if !bp.isMaxBlockSizeReached(miniBlockAndHashesToMiniBlocks(miniBlocksAndHashes)) {
+			break
+		}
+	}
+
+	return pendingMiniBlocks
 }
 
 func miniBlocksSliceToMap(miniBlocksAndHashes []block.MiniblockAndHash) map[string]*block.MiniBlock {

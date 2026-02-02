@@ -1452,3 +1452,37 @@ func getExecutionResultToSetOnReplacedHeader(
 
 	return executionResultToSet, nil
 }
+
+func GetNumOfCrossShardScCallsOrSpecialTxs(
+	mb *block.MiniBlock,
+	allTxs map[string]data.TransactionHandler,
+	selfShardID uint32,
+) int {
+	isCrossShardTxBlockFromSelf := mb.Type == block.TxBlock && mb.SenderShardID == selfShardID && mb.ReceiverShardID != selfShardID
+	if !isCrossShardTxBlockFromSelf {
+		return 0
+	}
+
+	numCrossShardScCallsOrSpecialTxs := 0
+	for _, txHash := range mb.TxHashes {
+		tx, ok := allTxs[string(txHash)]
+		if !ok {
+			log.Warn("GetNumOfCrossShardScCallsOrSpecialTxs: tx not found",
+				"mb type", mb.Type,
+				"senderShardID", mb.SenderShardID,
+				"receiverShardID", mb.ReceiverShardID,
+				"numTxHashes", len(mb.TxHashes),
+				"tx hash", txHash)
+
+			// If the tx is not found we assume that it is the smart contract call or a special tx to handle the worst case scenario
+			numCrossShardScCallsOrSpecialTxs++
+			continue
+		}
+
+		if core.IsSmartContractAddress(tx.GetRcvAddr()) || len(tx.GetRcvUserName()) > 0 {
+			numCrossShardScCallsOrSpecialTxs++
+		}
+	}
+
+	return numCrossShardScCallsOrSpecialTxs
+}

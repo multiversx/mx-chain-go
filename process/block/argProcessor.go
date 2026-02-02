@@ -16,6 +16,7 @@ import (
 	"github.com/multiversx/mx-chain-go/outport"
 	"github.com/multiversx/mx-chain-go/process"
 	"github.com/multiversx/mx-chain-go/process/block/cutoff"
+	"github.com/multiversx/mx-chain-go/process/block/preprocess"
 	"github.com/multiversx/mx-chain-go/sharding"
 	"github.com/multiversx/mx-chain-go/sharding/nodesCoordinator"
 	"github.com/multiversx/mx-chain-go/state"
@@ -107,6 +108,7 @@ type ArgBaseProcessor struct {
 	GasComputation                     process.GasComputation
 	ExecutionManager                   process.ExecutionManager
 	TxExecutionOrderHandler            common.TxExecutionOrderHandler
+	BlockSizeComputation               preprocess.BlockSizeComputationHandler
 }
 
 // ArgShardProcessor holds all dependencies required by the process data factory in order to create
