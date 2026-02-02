@@ -1,8 +1,8 @@
 package asyncExecution
 
-import "github.com/multiversx/mx-chain-go/process/asyncExecution/queue"
+import "github.com/multiversx/mx-chain-go/process/asyncExecution/cache"
 
 // Process -
-func (he *headersExecutor) Process(pair queue.HeaderBodyPair) error {
+func (he *headersExecutor) Process(pair cache.HeaderBodyPair) error {
 	return he.process(pair)
 }

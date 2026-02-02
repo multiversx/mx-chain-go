@@ -148,6 +148,7 @@ func NewTransactionPreprocessor(
 		enableRoundsHandler:        args.EnableRoundsHandler,
 		processedMiniBlocksTracker: args.ProcessedMiniBlocksTracker,
 		txExecutionOrderHandler:    args.TxExecutionOrderHandler,
+		feeHandler:                 args.EconomicsFee,
 	}
 
 	args.EpochNotifier.RegisterNotifyHandler(bpp)
@@ -515,7 +516,8 @@ func (txs *transactions) processTxsToMe(
 
 	var err error
 	scheduledMode := false
-	if txs.enableEpochsHandler.IsFlagEnabled(common.ScheduledMiniBlocksFlag) {
+	isAsyncExecEnabled := common.IsAsyncExecutionEnabled(txs.enableEpochsHandler, txs.enableRoundsHandler)
+	if txs.enableEpochsHandler.IsFlagEnabled(common.ScheduledMiniBlocksFlag) && !isAsyncExecEnabled {
 		scheduledMode, err = process.IsScheduledMode(header, body, txs.hasher, txs.marshalizer)
 		if err != nil {
 			return err
@@ -587,7 +589,8 @@ func (txs *transactions) processTxsToMe(
 			receiverShardID,
 			tx,
 			txHash,
-			&gasInfo)
+			&gasInfo,
+			isAsyncExecEnabled)
 
 		if errComputeGas != nil {
 			return errComputeGas
@@ -1206,7 +1209,7 @@ func (txs *transactions) createAndProcessMiniBlocksFromMeV1(
 		haveTime:                  haveTime,
 		isShardStuck:              isShardStuck,
 		isMaxBlockSizeReached:     isMaxBlockSizeReached,
-		getTxMaxTotalCost:         getTxMaxTotalCost,
+		getTxMaxTotalCost:         txs.getTxMaxTotalCost,
 		getTotalGasConsumed:       txs.getTotalGasConsumed,
 		txPool:                    txs.txPool,
 	}
@@ -1659,7 +1662,7 @@ func (txs *transactions) ProcessMiniBlock(
 	}()
 
 	numOfOldCrossInterMbs, numOfOldCrossInterTxs := preProcessorExecutionInfoHandler.GetNumOfCrossInterMbsAndTxs()
-
+	skipBlockLimitChecks := common.IsAsyncExecutionEnabled(txs.enableEpochsHandler, txs.enableRoundsHandler)
 	for txIndex = indexOfFirstTxToBeProcessed; txIndex < len(miniBlockTxs); txIndex++ {
 		if !haveTime() && !haveAdditionalTime() {
 			err = process.ErrTimeIsOut
@@ -1671,7 +1674,8 @@ func (txs *transactions) ProcessMiniBlock(
 			miniBlock.ReceiverShardID,
 			miniBlockTxs[txIndex],
 			miniBlockTxHashes[txIndex],
-			&gasInfo)
+			&gasInfo,
+			skipBlockLimitChecks)
 
 		if err != nil {
 			break
