@@ -349,6 +349,9 @@ func TestBlocksCreator_CreateNewBlock(t *testing.T) {
 						},
 					}
 				},
+				HasherCalled: func() hashing.Hasher {
+					return &testscommon.HasherStub{}
+				},
 			}
 		}
 		creator, err := chainSimulatorProcess.NewBlocksCreator(nodeHandler, heartbeat.NewHeartbeatMonitor(), 0, true)

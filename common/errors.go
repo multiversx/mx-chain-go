@@ -23,6 +23,9 @@ var ErrAlreadyExistingEquivalentProof = errors.New("already existing equivalent 
 // ErrNilHeaderHandler signals that a nil header handler has been provided
 var ErrNilHeaderHandler = errors.New("nil header handler")
 
+// ErrNilHeaderHash is raised when a nil header hash is provided
+var ErrNilHeaderHash = errors.New("header hash is nil")
+
 // ErrInvalidHeaderHash signals that an invalid header hash has been provided
 var ErrInvalidHeaderHash = errors.New("invalid header hash")
 

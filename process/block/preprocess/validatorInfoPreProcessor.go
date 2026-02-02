@@ -55,6 +55,7 @@ func NewValidatorInfoPreprocessor(
 		blockSizeComputation: args.BlockSizeComputation,
 		enableEpochsHandler:  args.EnableEpochsHandler,
 		enableRoundsHandler:  args.EnableRoundsHandler,
+		feeHandler:           args.EconomicsFee,
 	}
 
 	vip := &validatorInfoPreprocessor{
