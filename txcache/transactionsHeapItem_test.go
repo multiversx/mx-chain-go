@@ -41,13 +41,11 @@ func TestTransactionsHeapItem_selectTransaction(t *testing.T) {
 	a.precomputeFields(host)
 	b.precomputeFields(host)
 
-	virtualSession := newVirtualSelectionSession(txcachemocks.NewSelectionSessionMock(), make(map[string]*virtualAccountRecord))
-
 	item, err := newTransactionsHeapItem(bunchOfTransactions{a, b})
 	require.NoError(t, err)
 
 	selected := item.getCurrentTransaction()
-	item.selectCurrentTransaction(virtualSession)
+	item.selectCurrentTransaction()
 	require.Equal(t, a, selected)
 	require.Equal(t, a, item.latestSelectedTransaction)
 	require.Equal(t, 42, int(item.latestSelectedTransactionNonce))
@@ -56,7 +54,7 @@ func TestTransactionsHeapItem_selectTransaction(t *testing.T) {
 	require.True(t, ok)
 
 	selected = item.getCurrentTransaction()
-	item.selectCurrentTransaction(virtualSession)
+	item.selectCurrentTransaction()
 	require.Equal(t, b, selected)
 	require.Equal(t, b, item.latestSelectedTransaction)
 	require.Equal(t, 43, int(item.latestSelectedTransactionNonce))
