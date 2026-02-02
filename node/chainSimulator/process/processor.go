@@ -19,24 +19,34 @@ import (
 
 var log = logger.GetOrCreate("process-block")
 
+const defaultCreateBlockTimePercent = 0.25
+
 type manualRoundHandler interface {
 	IncrementIndex()
 }
 
 type blocksCreator struct {
-	nodeHandler NodeHandler
-	monitor     HeartbeatMonitorWithSet
+	nodeHandler                NodeHandler
+	monitor                    HeartbeatMonitorWithSet
+	createBlockMaxTimePercent  float64
+	bypassCreateBlockTimeCheck bool
 }
 
 // NewBlocksCreator will create a new instance of blocksCreator
-func NewBlocksCreator(nodeHandler NodeHandler, monitor HeartbeatMonitorWithSet) (*blocksCreator, error) {
+func NewBlocksCreator(nodeHandler NodeHandler, monitor HeartbeatMonitorWithSet, createBlockHaveTimePercent float64, bypassHaveTime bool) (*blocksCreator, error) {
 	if check.IfNil(nodeHandler) {
 		return nil, ErrNilNodeHandler
 	}
+	// If not set, set the default time percentage of the round duration
+	if createBlockHaveTimePercent == 0 {
+		createBlockHaveTimePercent = defaultCreateBlockTimePercent
+	}
 
 	return &blocksCreator{
-		nodeHandler: nodeHandler,
-		monitor:     monitor,
+		nodeHandler:                nodeHandler,
+		monitor:                    monitor,
+		createBlockMaxTimePercent:  createBlockHaveTimePercent,
+		bypassCreateBlockTimeCheck: bypassHaveTime,
 	}, nil
 }
 
@@ -63,15 +73,23 @@ func (creator *blocksCreator) createHeaderBasedOnRound(round uint64, nonce uint6
 
 func (creator *blocksCreator) createBlock(header data.HeaderHandler) (data.HeaderHandler, data.BodyHandler, error) {
 	processComponents := creator.nodeHandler.GetProcessComponents()
-	if header.IsHeaderV3() {
-		return processComponents.BlockProcessor().CreateBlockProposal(header, func() bool {
-			return true
-		})
+	haveTime := func() bool {
+		return true
 	}
 
-	return processComponents.BlockProcessor().CreateBlock(header, func() bool {
-		return true
-	})
+	if header.IsHeaderV3() {
+		if !creator.bypassCreateBlockTimeCheck {
+			roundDuration := creator.nodeHandler.GetCoreComponents().RoundHandler().TimeDuration()
+			allowedDuration := time.Duration(float64(roundDuration) * creator.createBlockMaxTimePercent)
+			startTime := time.Now()
+			haveTime = func() bool {
+				return time.Since(startTime) < allowedDuration
+			}
+		}
+		return processComponents.BlockProcessor().CreateBlockProposal(header, haveTime)
+	}
+
+	return processComponents.BlockProcessor().CreateBlock(header, haveTime)
 }
 
 // CreateNewBlock creates and process a new block
