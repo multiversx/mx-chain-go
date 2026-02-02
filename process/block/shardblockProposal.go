@@ -925,7 +925,7 @@ func (sp *shardProcessor) saveEpochStartEconomicsIfNeeded(header data.ShardHeade
 			continue
 		}
 
-		sp.saveEpochStartEconomicsMetricsV3(metaHdr)
+		sp.saveEpochStartEconomicsMetricsV3IfNeeded(metaHdr)
 		return
 	}
 }

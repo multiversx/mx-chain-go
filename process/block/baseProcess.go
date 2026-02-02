@@ -3872,7 +3872,7 @@ func (bp *baseProcessor) saveEpochStartEconomicsMetrics(epochStartMetaBlock data
 	bp.appStatusHandler.SetStringValue(common.MetricDevRewardsInEpoch, epochStartMetaBlock.GetDevFeesInEpoch().String())
 }
 
-func (bp *baseProcessor) saveEpochStartEconomicsMetricsV3(metaBlock data.MetaHeaderHandler) {
+func (bp *baseProcessor) saveEpochStartEconomicsMetricsV3IfNeeded(metaBlock data.MetaHeaderHandler) {
 	if !metaBlock.IsHeaderV3() {
 		// fee metrics for meta block will be handled on commit
 		return

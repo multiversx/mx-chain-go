@@ -424,8 +424,6 @@ func (mp *metaProcessor) ProcessBlockProposal(
 		return nil, err
 	}
 
-	mp.saveEpochStartEconomicsMetricsV3(header)
-
 	return execResult, nil
 }
 
@@ -490,6 +488,8 @@ func (mp *metaProcessor) processEpochStartProposeBlock(
 	if err != nil {
 		return nil, err
 	}
+
+	mp.saveEpochStartEconomicsMetricsV3IfNeeded(metaHeader)
 
 	return execResult, nil
 }
