@@ -1049,6 +1049,7 @@ func createPreProcessorContainerWithPoolsHolder(poolsHolder dataRetriever.PoolsH
 		ProcessedMiniBlocksTracker:   &testscommon.ProcessedMiniBlocksTrackerStub{},
 		TxExecutionOrderHandler:      &commonMock.TxExecutionOrderHandlerStub{},
 		TxCacheSelectionConfig:       createMockTxCacheSelectionConfig(),
+		TxVersionChecker:             &testscommon.TxVersionCheckerStub{},
 	}
 
 	preFactory, _ := shard.NewPreProcessorsContainerFactory(preProcessorsFactoryArgs)

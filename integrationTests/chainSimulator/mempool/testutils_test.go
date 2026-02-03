@@ -191,8 +191,9 @@ func selectTransactions(t *testing.T, simulator testsChainSimulator.ChainSimulat
 	poolsHolder := node.GetDataComponents().Datapool().Transactions()
 
 	selectionSession, err := preprocess.NewSelectionSession(preprocess.ArgsSelectionSession{
-		AccountsAdapter:       accountsAdapter,
-		TransactionsProcessor: &testscommon.TxProcessorStub{},
+		AccountsAdapter:         accountsAdapter,
+		TransactionsProcessor:   &testscommon.TxProcessorStub{},
+		TxVersionCheckerHandler: node.GetCoreComponents().TxVersionChecker(),
 	})
 	require.NoError(t, err)
 

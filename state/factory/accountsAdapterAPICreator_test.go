@@ -12,7 +12,6 @@ import (
 	"github.com/multiversx/mx-chain-go/testscommon"
 	"github.com/multiversx/mx-chain-go/testscommon/marshallerMock"
 	mockState "github.com/multiversx/mx-chain-go/testscommon/state"
-	stateMock "github.com/multiversx/mx-chain-go/testscommon/state"
 	"github.com/multiversx/mx-chain-go/testscommon/storageManager"
 	mockTrie "github.com/multiversx/mx-chain-go/testscommon/trie"
 )
@@ -30,7 +29,7 @@ func createMockAccountsArgs() state.ArgsAccountsDB {
 		StoragePruningManager:  &mockState.StoragePruningManagerStub{},
 		AddressConverter:       &testscommon.PubkeyConverterMock{},
 		SnapshotsManager:       &mockState.SnapshotsManagerStub{},
-		StateAccessesCollector: &stateMock.StateAccessesCollectorStub{},
+		StateAccessesCollector: &mockState.StateAccessesCollectorStub{},
 	}
 }
 
