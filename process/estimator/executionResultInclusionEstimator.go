@@ -189,10 +189,6 @@ func (erie *ExecutionResultInclusionEstimator) Decide(
 	return len(pending)
 }
 
-func (erie *ExecutionResultInclusionEstimator) checkExecutionResultSize() error {
-	return nil
-}
-
 // IsInterfaceNil returns true if there is no value under the interface
 func (erie *ExecutionResultInclusionEstimator) IsInterfaceNil() bool {
 	return erie == nil
