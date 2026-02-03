@@ -3883,11 +3883,6 @@ func (bp *baseProcessor) isMaxBlockSizeReached(miniBlocks []*block.MiniBlock) bo
 
 	isMaxBlockSizeReached := bp.blockSizeComputation.IsMaxBlockSizeWithoutThrottleReached(numMbs, numTxs)
 
-	if !isMaxBlockSizeReached {
-		bp.blockSizeComputation.AddNumMiniBlocks(numMbs)
-		bp.blockSizeComputation.AddNumTxs(numTxs)
-	}
-
 	log.Trace("transactionCoordinator.isMaxBlockSizeReached",
 		"isMaxBlockSizeReached", isMaxBlockSizeReached,
 		"numMbs", numMbs,
