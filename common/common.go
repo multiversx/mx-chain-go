@@ -1,6 +1,7 @@
 package common
 
 import (
+	"bytes"
 	"encoding/hex"
 	"encoding/json"
 	"fmt"
@@ -591,4 +592,35 @@ func GetMiniBlockHeadersFromExecResult(header data.HeaderHandler) ([]data.MiniBl
 	}
 
 	return mbHeaderHandlers, nil
+}
+
+// SetEpochStartMetricsV3FromExecutionResults sets economics related fees if they are found on the provided execution results
+func SetEpochStartMetricsV3FromExecutionResults(
+	prevHashOfEpochChangeProposed []byte,
+	executionResults []data.BaseExecutionResultHandler,
+	appStatusHandler core.AppStatusHandler,
+) bool {
+	if len(prevHashOfEpochChangeProposed) == 0 {
+		return false
+	}
+	if check.IfNil(appStatusHandler) {
+		return false
+	}
+
+	for _, prevExecResult := range executionResults {
+		if !bytes.Equal(prevHashOfEpochChangeProposed, prevExecResult.GetHeaderHash()) {
+			continue
+		}
+
+		metaExecResult, okMetaExecResultCast := prevExecResult.(data.BaseMetaExecutionResultHandler)
+		if !okMetaExecResultCast {
+			continue
+		}
+
+		appStatusHandler.SetStringValue(MetricTotalFees, metaExecResult.GetAccumulatedFeesInEpoch().String())
+		appStatusHandler.SetStringValue(MetricDevRewardsInEpoch, metaExecResult.GetDevFeesInEpoch().String())
+		return true
+	}
+
+	return false
 }

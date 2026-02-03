@@ -985,26 +985,10 @@ func (sp *shardProcessor) saveEpochStartEconomicsIfNeeded(header data.ShardHeade
 			prevHashOfEpochChangeProposed = metaHeaderFromExecResult.GetPrevHash()
 		}
 
-		sp.setEpochStartMetricsV3FromExecutionResults(prevHashOfEpochChangeProposed, metaEpochChangeHeader.GetExecutionResultsHandlers())
-	}
-}
-
-func (sp *shardProcessor) setEpochStartMetricsV3FromExecutionResults(
-	prevHashOfEpochChangeProposed []byte,
-	executionResults []data.BaseExecutionResultHandler,
-) {
-	for _, prevExecResult := range executionResults {
-		if !bytes.Equal(prevHashOfEpochChangeProposed, prevExecResult.GetHeaderHash()) {
-			continue
+		if len(prevHashOfEpochChangeProposed) == 0 {
+			return
 		}
 
-		metaExecResult, okMetaExecResultCast := prevExecResult.(data.BaseMetaExecutionResultHandler)
-		if !okMetaExecResultCast {
-			continue
-		}
-
-		sp.appStatusHandler.SetStringValue(common.MetricTotalFees, metaExecResult.GetAccumulatedFeesInEpoch().String())
-		sp.appStatusHandler.SetStringValue(common.MetricDevRewardsInEpoch, metaExecResult.GetDevFeesInEpoch().String())
-		return
+		common.SetEpochStartMetricsV3FromExecutionResults(prevHashOfEpochChangeProposed, metaEpochChangeHeader.GetExecutionResultsHandlers(), sp.appStatusHandler)
 	}
 }

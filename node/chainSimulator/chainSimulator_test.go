@@ -746,9 +746,9 @@ func checkMetrics(t *testing.T, cs ChainSimulator, shardID uint32, expectedEpoch
 	for foundMetric, metricValue := range res {
 		require.Contains(t, expectedMetrics, foundMetric)
 
-		switch matricVal := metricValue.(type) {
+		switch metricVal := metricValue.(type) {
 		case string:
-			require.Greater(t, len(matricVal), 1)
+			require.Greater(t, len(metricVal), 1)
 		case uint64:
 			require.Equal(t, expectedEpoch, metricValue)
 		default:

@@ -1793,7 +1793,7 @@ func (e *epochStartBootstrap) setEpochStartMetricsV3() {
 		}
 
 		prevHashOfEpochChangeProposed = metaHeader.GetPrevHash()
-		updatedMetrics := e.setEpochStartMetricsV3FromExecutionResults(prevHashOfEpochChangeProposed, metaHeader.GetExecutionResultsHandlers())
+		updatedMetrics := common.SetEpochStartMetricsV3FromExecutionResults(prevHashOfEpochChangeProposed, metaHeader.GetExecutionResultsHandlers(), e.statusHandler)
 		if updatedMetrics {
 			return
 		}
@@ -1805,28 +1805,7 @@ func (e *epochStartBootstrap) setEpochStartMetricsV3() {
 		return
 	}
 
-	e.setEpochStartMetricsV3FromExecutionResults(prevHashOfEpochChangeProposed, e.epochStartMeta.GetExecutionResultsHandlers())
-}
-
-func (e *epochStartBootstrap) setEpochStartMetricsV3FromExecutionResults(
-	prevHashOfEpochChangeProposed []byte,
-	executionResults []data.BaseExecutionResultHandler,
-) bool {
-	for _, prevExecResult := range executionResults {
-		if !bytes.Equal(prevHashOfEpochChangeProposed, prevExecResult.GetHeaderHash()) {
-			continue
-		}
-
-		metaExecResult, okMetaExecResultCast := prevExecResult.(data.BaseMetaExecutionResultHandler)
-		if !okMetaExecResultCast {
-			continue
-		}
-
-		e.statusHandler.SetStringValue(common.MetricTotalFees, metaExecResult.GetAccumulatedFeesInEpoch().String())
-		e.statusHandler.SetStringValue(common.MetricDevRewardsInEpoch, metaExecResult.GetDevFeesInEpoch().String())
-		return true
-	}
-	return false
+	common.SetEpochStartMetricsV3FromExecutionResults(prevHashOfEpochChangeProposed, e.epochStartMeta.GetExecutionResultsHandlers(), e.statusHandler)
 }
 
 func (e *epochStartBootstrap) applyShardIDAsObserverIfNeeded(receivedShardID uint32) uint32 {
