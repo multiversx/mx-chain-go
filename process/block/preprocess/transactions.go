@@ -43,6 +43,7 @@ type ArgsTransactionPreProcessor struct {
 	TxTypeHandler                process.TxTypeHandler
 	ScheduledTxsExecutionHandler process.ScheduledTxsExecutionHandler
 	TxCacheSelectionConfig       config.TxCacheSelectionConfig
+	TxVersionCheckerHandler      process.TxVersionCheckerHandler
 }
 
 type transactions struct {
@@ -61,6 +62,7 @@ type transactions struct {
 	txTypeHandler                process.TxTypeHandler
 	scheduledTxsExecutionHandler process.ScheduledTxsExecutionHandler
 	txCacheSelectionConfig       config.TxCacheSelectionConfig
+	txVersionCheckerHandler      process.TxVersionCheckerHandler
 
 	unExecutableTransactions map[string]struct{}
 	mutUnExecutableTxs       sync.RWMutex
@@ -115,6 +117,9 @@ func NewTransactionPreprocessor(
 	if args.TxCacheSelectionConfig.SelectionLoopDurationCheckInterval == 0 {
 		return nil, process.ErrBadTxCacheSelectionLoopDurationCheckInterval
 	}
+	if check.IfNil(args.TxVersionCheckerHandler) {
+		return nil, process.ErrNilTransactionVersionChecker
+	}
 
 	ges, err := newGasEpochState(
 		args.EconomicsFee,
@@ -160,6 +165,7 @@ func NewTransactionPreprocessor(
 		txTypeHandler:                args.TxTypeHandler,
 		scheduledTxsExecutionHandler: args.ScheduledTxsExecutionHandler,
 		txCacheSelectionConfig:       args.TxCacheSelectionConfig,
+		txVersionCheckerHandler:      args.TxVersionCheckerHandler,
 	}
 
 	txs.txPool.RegisterOnAdded(txs.receivedTransaction)
@@ -1477,8 +1483,9 @@ func (txs *transactions) selectTransactionsFromTxPoolForProposal(
 	}
 
 	session, err := NewSelectionSession(ArgsSelectionSession{
-		AccountsAdapter:       txs.accountsProposal,
-		TransactionsProcessor: txs.txProcessor,
+		AccountsAdapter:         txs.accountsProposal,
+		TransactionsProcessor:   txs.txProcessor,
+		TxVersionCheckerHandler: txs.txVersionCheckerHandler,
 	})
 	if err != nil {
 		return nil, err
@@ -1520,8 +1527,9 @@ func (txs *transactions) selectTransactionsFromTxPool(
 	}
 
 	session, err := NewSelectionSession(ArgsSelectionSession{
-		AccountsAdapter:       txs.accountsProposal,
-		TransactionsProcessor: txs.txProcessor,
+		AccountsAdapter:         txs.accountsProposal,
+		TransactionsProcessor:   txs.txProcessor,
+		TxVersionCheckerHandler: txs.txVersionCheckerHandler,
 	})
 	if err != nil {
 		return nil, err
