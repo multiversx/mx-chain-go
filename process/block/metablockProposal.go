@@ -228,10 +228,6 @@ func (mp *metaProcessor) VerifyBlockProposal(
 		return process.ErrWrongTypeAssertion
 	}
 
-	if mp.isMaxBlockSizeReached(body.MiniBlocks) {
-		return process.ErrMaxBlockSizeReached
-	}
-
 	err = mp.checkHeaderBodyCorrelationProposal(header.GetMiniBlockHeaderHandlers(), body)
 	if err != nil {
 		return err
@@ -827,18 +823,6 @@ func (mp *metaProcessor) selectIncomingMiniBlocks(
 		}
 
 		if len(createIncomingMbsResult.AddedMiniBlocks) > 0 {
-			newPendingMiniBlocks := mp.checkMaxBlockSizeLimit(currHdr, createIncomingMbsResult.AddedMiniBlocks)
-			if len(newPendingMiniBlocks) > 0 {
-				createIncomingMbsResult.AddedMiniBlocks = createIncomingMbsResult.AddedMiniBlocks[:len(newPendingMiniBlocks)-1]
-				createIncomingMbsResult.PendingMiniBlocks = append(createIncomingMbsResult.PendingMiniBlocks, newPendingMiniBlocks...)
-
-				mbHashes := make([][]byte, 0, len(newPendingMiniBlocks))
-				for _, mb := range newPendingMiniBlocks {
-					mbHashes = append(mbHashes, mb.Hash)
-				}
-				mp.gasComputation.RevertIncomingMiniBlocks(mbHashes)
-			}
-
 			err = mp.miniBlocksSelectionSession.AddMiniBlocksAndHashes(createIncomingMbsResult.AddedMiniBlocks)
 			if err != nil {
 				return err

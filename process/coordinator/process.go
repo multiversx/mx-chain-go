@@ -330,10 +330,8 @@ func (tc *transactionCoordinator) ProcessBlockTransaction(
 		return process.ErrNilBlockBody
 	}
 
-	if !header.IsHeaderV3() {
-		if tc.isMaxBlockSizeReached(body) {
-			return process.ErrMaxBlockSizeReached
-		}
+	if tc.isMaxBlockSizeReached(body) {
+		return process.ErrMaxBlockSizeReached
 	}
 
 	haveTime := func() bool {
@@ -1420,7 +1418,7 @@ func (tc *transactionCoordinator) isMaxBlockSizeReached(body *block.Body) bool {
 
 	for _, mb := range body.MiniBlocks {
 		numTxs += len(mb.TxHashes)
-		numCrossShardScCallsOrSpecialTxs += process.GetNumOfCrossShardScCallsOrSpecialTxs(mb, allTxs, tc.shardCoordinator.SelfId()) * common.AdditionalScrForEachScCallOrSpecialTx
+		numCrossShardScCallsOrSpecialTxs += getNumOfCrossShardScCallsOrSpecialTxs(mb, allTxs, tc.shardCoordinator.SelfId()) * common.AdditionalScrForEachScCallOrSpecialTx
 	}
 
 	if numCrossShardScCallsOrSpecialTxs > 0 {
@@ -1437,6 +1435,40 @@ func (tc *transactionCoordinator) isMaxBlockSizeReached(body *block.Body) bool {
 	)
 
 	return isMaxBlockSizeReached
+}
+
+func getNumOfCrossShardScCallsOrSpecialTxs(
+	mb *block.MiniBlock,
+	allTxs map[string]data.TransactionHandler,
+	selfShardID uint32,
+) int {
+	isCrossShardTxBlockFromSelf := mb.Type == block.TxBlock && mb.SenderShardID == selfShardID && mb.ReceiverShardID != selfShardID
+	if !isCrossShardTxBlockFromSelf {
+		return 0
+	}
+
+	numCrossShardScCallsOrSpecialTxs := 0
+	for _, txHash := range mb.TxHashes {
+		tx, ok := allTxs[string(txHash)]
+		if !ok {
+			log.Warn("transactionCoordinator.getNumOfCrossShardScCallsOrSpecialTxs: tx not found",
+				"mb type", mb.Type,
+				"senderShardID", mb.SenderShardID,
+				"receiverShardID", mb.ReceiverShardID,
+				"numTxHashes", len(mb.TxHashes),
+				"tx hash", txHash)
+
+			// If the tx is not found we assume that it is the smart contract call or a special tx to handle the worst case scenario
+			numCrossShardScCallsOrSpecialTxs++
+			continue
+		}
+
+		if core.IsSmartContractAddress(tx.GetRcvAddr()) || len(tx.GetRcvUserName()) > 0 {
+			numCrossShardScCallsOrSpecialTxs++
+		}
+	}
+
+	return numCrossShardScCallsOrSpecialTxs
 }
 
 // VerifyCreatedMiniBlocks re-checks gas used and generated fees in the given block

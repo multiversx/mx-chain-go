@@ -7,7 +7,6 @@ import (
 	"github.com/multiversx/mx-chain-core-go/data"
 	"github.com/multiversx/mx-chain-core-go/data/block"
 
-	"github.com/multiversx/mx-chain-go/common"
 	"github.com/multiversx/mx-chain-go/process"
 	"github.com/multiversx/mx-chain-go/process/block/processedMb"
 )
@@ -170,13 +169,6 @@ func (tc *transactionCoordinator) SelectOutgoingTransactions(
 			log.Warn("transactionCoordinator.SelectOutgoingTransactions: SelectOutgoingTransactions returned error", "error", err)
 			continue
 		}
-
-		numRemovedTxs := tc.checkTxsMaxSizeLimit(len(txHashes))
-		if numRemovedTxs > 0 {
-			txHashes = txHashes[:len(txHashes)-numRemovedTxs]
-			txs = txs[:len(txs)-numRemovedTxs]
-		}
-
 		selectedTxHashes = append(selectedTxHashes, txHashes...)
 		selectedTxs = append(selectedTxs, txs...)
 	}
@@ -187,25 +179,6 @@ func (tc *transactionCoordinator) SelectOutgoingTransactions(
 	}
 
 	return selectedTxHashes, pendingMiniBlocksAdded
-}
-
-func (tc *transactionCoordinator) checkTxsMaxSizeLimit(
-	initialNumTxs int,
-) int {
-	if !tc.enableRoundsHandler.IsFlagEnabled(common.SupernovaRoundFlag) {
-		return 0
-	}
-
-	numNewMiniBlocks := 1
-
-	numNewTxs := initialNumTxs
-	limitReached := tc.blockSizeComputation.IsMaxBlockSizeWithoutThrottleReached(numNewMiniBlocks, numNewTxs)
-	for !limitReached {
-		numNewTxs--
-		limitReached = tc.blockSizeComputation.IsMaxBlockSizeWithoutThrottleReached(numNewMiniBlocks, numNewTxs)
-	}
-
-	return initialNumTxs - numNewTxs
 }
 
 func (tc *transactionCoordinator) verifyCreatedMiniBlocksSanity(body *block.Body) error {

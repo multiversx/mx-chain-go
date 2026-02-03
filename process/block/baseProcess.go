@@ -36,7 +36,6 @@ import (
 	"github.com/multiversx/mx-chain-go/process"
 	"github.com/multiversx/mx-chain-go/process/block/bootstrapStorage"
 	"github.com/multiversx/mx-chain-go/process/block/cutoff"
-	"github.com/multiversx/mx-chain-go/process/block/preprocess"
 	"github.com/multiversx/mx-chain-go/process/block/processedMb"
 	"github.com/multiversx/mx-chain-go/process/headerCheck"
 	"github.com/multiversx/mx-chain-go/sharding"
@@ -146,7 +145,6 @@ type baseProcessor struct {
 	gasComputation                     process.GasComputation
 	executionManager                   process.ExecutionManager
 	txExecutionOrderHandler            common.TxExecutionOrderHandler
-	blockSizeComputation               preprocess.BlockSizeComputationHandler
 }
 
 type bootStorerDataArgs struct {
@@ -236,7 +234,6 @@ func NewBaseProcessor(arguments ArgBaseProcessor) (*baseProcessor, error) {
 		gasComputation:                     arguments.GasComputation,
 		executionManager:                   arguments.ExecutionManager,
 		txExecutionOrderHandler:            arguments.TxExecutionOrderHandler,
-		blockSizeComputation:               arguments.BlockSizeComputation,
 	}
 
 	err = base.OnExecutedBlock(genesisHdr, genesisHdr.GetRootHash())
@@ -797,9 +794,6 @@ func checkProcessorParameters(arguments ArgBaseProcessor) error {
 	}
 	if check.IfNil(arguments.TxExecutionOrderHandler) {
 		return process.ErrNilTxExecutionOrderHandler
-	}
-	if check.IfNil(arguments.BlockSizeComputation) {
-		return process.ErrNilBlockSizeComputationHandler
 	}
 
 	return nil
@@ -3859,35 +3853,4 @@ func (bp *baseProcessor) updateInclusionEstimatorMetrics(executionResultsLen int
 	}
 
 	bp.appStatusHandler.SetUInt64Value(common.MetricNumInclusionEstimationRejected, rejected)
-}
-
-func miniBlockAndHashesToMiniBlocks(
-	miniblocksAndHashes []block.MiniblockAndHash,
-) []*block.MiniBlock {
-	miniBlocks := make([]*block.MiniBlock, 0, len(miniblocksAndHashes))
-
-	for _, miniBlock := range miniblocksAndHashes {
-		miniBlocks = append(miniBlocks, miniBlock.Miniblock)
-	}
-
-	return miniBlocks
-}
-
-func (bp *baseProcessor) isMaxBlockSizeReached(miniBlocks []*block.MiniBlock) bool {
-	numMbs := len(miniBlocks)
-	numTxs := 0
-
-	for _, mb := range miniBlocks {
-		numTxs += len(mb.TxHashes)
-	}
-
-	isMaxBlockSizeReached := bp.blockSizeComputation.IsMaxBlockSizeWithoutThrottleReached(numMbs, numTxs)
-
-	log.Trace("transactionCoordinator.isMaxBlockSizeReached",
-		"isMaxBlockSizeReached", isMaxBlockSizeReached,
-		"numMbs", numMbs,
-		"numTxs", numTxs,
-	)
-
-	return isMaxBlockSizeReached
 }
