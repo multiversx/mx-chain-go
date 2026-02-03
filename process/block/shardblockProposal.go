@@ -1,7 +1,6 @@
 package block
 
 import (
-	"bytes"
 	"errors"
 	"fmt"
 	"time"
@@ -950,14 +949,14 @@ func (sp *shardProcessor) saveEpochStartEconomicsIfNeeded(header data.ShardHeade
 		execResults := metaEpochChangeProposedHeader.GetExecutionResultsHandlers()
 		execResults = append(execResults, metaEpochChangeHeader.GetExecutionResultsHandlers()...)
 		// having both headers implies having prevHashOfEpochChangeProposed as well
-		sp.setEpochStartMetricsV3FromExecutionResults(prevHashOfEpochChangeProposed, execResults)
+		common.SetEpochStartMetricsV3FromExecutionResults(prevHashOfEpochChangeProposed, execResults, sp.appStatusHandler)
 		return
 	}
 
 	// if only metaEpochChangeProposedHeader is available, try to set the metrics from it
 	// this implies it holds the execution result of its previous header
 	if !check.IfNil(metaEpochChangeProposedHeader) {
-		sp.setEpochStartMetricsV3FromExecutionResults(prevHashOfEpochChangeProposed, metaEpochChangeProposedHeader.GetExecutionResultsHandlers())
+		common.SetEpochStartMetricsV3FromExecutionResults(prevHashOfEpochChangeProposed, metaEpochChangeProposedHeader.GetExecutionResultsHandlers(), sp.appStatusHandler)
 		return
 	}
 
