@@ -7,19 +7,22 @@ import (
 	"testing"
 	"time"
 
-	"github.com/multiversx/mx-chain-go/node/chainSimulator/components/heartbeat"
-
-	"github.com/multiversx/mx-chain-go/common"
-	"github.com/multiversx/mx-chain-go/node/chainSimulator/components/api"
-	"github.com/multiversx/mx-chain-go/node/chainSimulator/configs"
-	"github.com/multiversx/mx-chain-go/node/chainSimulator/dtos"
-	"github.com/multiversx/mx-chain-go/testscommon/factory"
-	"github.com/multiversx/mx-chain-go/testscommon/state"
-
+	"github.com/multiversx/mx-chain-core-go/data"
+	"github.com/multiversx/mx-chain-core-go/data/block"
 	"github.com/multiversx/mx-chain-core-go/data/endProcess"
 	vmcommon "github.com/multiversx/mx-chain-vm-common-go"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
+
+	"github.com/multiversx/mx-chain-go/common"
+	"github.com/multiversx/mx-chain-go/config"
+	"github.com/multiversx/mx-chain-go/node/chainSimulator/components/api"
+	"github.com/multiversx/mx-chain-go/node/chainSimulator/components/heartbeat"
+	"github.com/multiversx/mx-chain-go/node/chainSimulator/configs"
+	"github.com/multiversx/mx-chain-go/node/chainSimulator/dtos"
+	"github.com/multiversx/mx-chain-go/testscommon"
+	"github.com/multiversx/mx-chain-go/testscommon/factory"
+	"github.com/multiversx/mx-chain-go/testscommon/state"
 )
 
 var expectedErr = errors.New("expected error")
@@ -493,4 +496,108 @@ func TestTestOnlyProcessingNode_Getters(t *testing.T) {
 	require.NotNil(t, node.GetStateComponents())
 	require.NotNil(t, node.GetFacadeHandler())
 	require.NotNil(t, node.GetStatusCoreComponents())
+}
+
+func TestTestOnlyProcessingNode_SetBlockchainRootHashWithMetaExecutionResult(t *testing.T) {
+	if testing.Short() {
+		t.Skip("this is not a short test")
+	}
+
+	args := createMockArgsTestOnlyProcessingNode(t)
+	args.Configs.RoundConfig.RoundActivations[string(common.SupernovaRoundFlag)] = config.ActivationRoundByName{
+		Round:   "0",
+		Options: []string{},
+	}
+	node, err := NewTestOnlyProcessingNode(args)
+	require.NoError(t, err)
+
+	expectedRootHash := []byte("new-root-hash")
+
+	metaResult := &block.MetaExecutionResult{
+		ExecutionResult: &block.BaseMetaExecutionResult{
+			BaseExecutionResult: &block.BaseExecutionResult{
+				HeaderHash:  []byte("header-hash"),
+				HeaderNonce: 1,
+				HeaderRound: 1,
+				RootHash:    []byte("initial-root-hash"),
+			},
+		},
+	}
+
+	var capturedResult data.BaseExecutionResultHandler
+	chainHandlerStub := &testscommon.ChainHandlerStub{
+		GetLastExecutedBlockHeaderCalled: func() data.HeaderHandler {
+			return nil
+		},
+		GetLastExecutedBlockInfoCalled: func() (uint64, []byte, []byte) {
+			return 0, nil, nil
+		},
+		SetLastExecutedBlockHeaderAndRootHashCalled: func(header data.HeaderHandler, blockHash []byte, rootHash []byte) {
+		},
+		GetLastExecutionResultCalled: func() data.BaseExecutionResultHandler {
+			return metaResult
+		},
+		SetLastExecutionResultCalled: func(result data.BaseExecutionResultHandler) {
+			capturedResult = result
+		},
+	}
+	node.ChainHandler = chainHandlerStub
+
+	node.setBlockchainRootHashIfSupernovaIsActive(expectedRootHash)
+
+	require.NotNil(t, capturedResult)
+	capturedMetaResult, ok := capturedResult.(*block.MetaExecutionResult)
+	require.True(t, ok)
+	require.Equal(t, expectedRootHash, capturedMetaResult.ExecutionResult.BaseExecutionResult.RootHash)
+}
+
+func TestTestOnlyProcessingNode_SetBlockchainRootHashWithShardExecutionResult(t *testing.T) {
+	if testing.Short() {
+		t.Skip("this is not a short test")
+	}
+
+	args := createMockArgsTestOnlyProcessingNode(t)
+	args.Configs.RoundConfig.RoundActivations[string(common.SupernovaRoundFlag)] = config.ActivationRoundByName{
+		Round:   "0",
+		Options: []string{},
+	}
+	node, err := NewTestOnlyProcessingNode(args)
+	require.NoError(t, err)
+
+	expectedRootHash := []byte("new-root-hash")
+
+	shardResult := &block.ExecutionResult{
+		BaseExecutionResult: &block.BaseExecutionResult{
+			HeaderHash:  []byte("header-hash"),
+			HeaderNonce: 1,
+			HeaderRound: 1,
+			RootHash:    []byte("initial-root-hash"),
+		},
+	}
+
+	var capturedResult data.BaseExecutionResultHandler
+	chainHandlerStub := &testscommon.ChainHandlerStub{
+		GetLastExecutedBlockHeaderCalled: func() data.HeaderHandler {
+			return nil
+		},
+		GetLastExecutedBlockInfoCalled: func() (uint64, []byte, []byte) {
+			return 0, nil, nil
+		},
+		SetLastExecutedBlockHeaderAndRootHashCalled: func(header data.HeaderHandler, blockHash []byte, rootHash []byte) {
+		},
+		GetLastExecutionResultCalled: func() data.BaseExecutionResultHandler {
+			return shardResult
+		},
+		SetLastExecutionResultCalled: func(result data.BaseExecutionResultHandler) {
+			capturedResult = result
+		},
+	}
+	node.ChainHandler = chainHandlerStub
+
+	node.setBlockchainRootHashIfSupernovaIsActive(expectedRootHash)
+
+	require.NotNil(t, capturedResult)
+	capturedShardResult, ok := capturedResult.(*block.ExecutionResult)
+	require.True(t, ok)
+	require.Equal(t, expectedRootHash, capturedShardResult.BaseExecutionResult.RootHash)
 }
