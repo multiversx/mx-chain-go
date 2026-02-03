@@ -19,7 +19,6 @@ import (
 	"github.com/multiversx/mx-chain-go/testscommon/hashingMocks"
 	"github.com/multiversx/mx-chain-go/testscommon/marshallerMock"
 	stateMock "github.com/multiversx/mx-chain-go/testscommon/state"
-	testStorage "github.com/multiversx/mx-chain-go/testscommon/state"
 	"github.com/multiversx/mx-chain-go/testscommon/storage"
 	"github.com/multiversx/mx-chain-go/trie"
 )
@@ -55,7 +54,7 @@ func getDefaultTrieAndAccountsDbAndStoragePruningManager() (common.Trie, *state.
 		Marshaller:           marshaller,
 		AddressConverter:     &testscommon.PubkeyConverterMock{},
 		ProcessStatusHandler: &testscommon.ProcessStatusHandlerStub{},
-		StateMetrics:         &testStorage.StateMetricsStub{},
+		StateMetrics:         &stateMock.StateMetricsStub{},
 		AccountFactory:       accCreator,
 		ChannelsProvider:     iteratorChannelsProvider.NewUserStateIteratorChannelsProvider(),
 		LastSnapshotMarker:   lastSnapshotMarker.NewLastSnapshotMarker(),

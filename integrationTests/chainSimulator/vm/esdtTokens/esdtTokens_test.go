@@ -9,13 +9,14 @@ import (
 	"testing"
 
 	"github.com/multiversx/mx-chain-core-go/core"
+	"github.com/stretchr/testify/require"
+
 	"github.com/multiversx/mx-chain-go/api/groups"
 	"github.com/multiversx/mx-chain-go/config"
 	"github.com/multiversx/mx-chain-go/integrationTests/chainSimulator/vm"
 	"github.com/multiversx/mx-chain-go/integrationTests/vm/txsFee"
 	"github.com/multiversx/mx-chain-go/node/chainSimulator"
 	"github.com/multiversx/mx-chain-go/node/chainSimulator/components/api"
-	"github.com/stretchr/testify/require"
 )
 
 type esdtTokensCompleteResponseData struct {
@@ -40,6 +41,7 @@ func TestChainSimulator_Api_TokenType(t *testing.T) {
 	numOfShards := uint32(3)
 	cs, err := chainSimulator.NewChainSimulator(chainSimulator.ArgsChainSimulator{
 		BypassTxSignatureCheck:         true,
+		BypassCreateBlockTimeCheck:     true,
 		TempDir:                        t.TempDir(),
 		PathToInitialConfig:            vm.DefaultPathToInitialConfig,
 		NumOfShards:                    numOfShards,
@@ -207,6 +209,7 @@ func TestChainSimulator_Api_NFTToken(t *testing.T) {
 	numOfShards := uint32(3)
 	cs, err := chainSimulator.NewChainSimulator(chainSimulator.ArgsChainSimulator{
 		BypassTxSignatureCheck:         true,
+		BypassCreateBlockTimeCheck:     true,
 		TempDir:                        t.TempDir(),
 		PathToInitialConfig:            vm.DefaultPathToInitialConfig,
 		NumOfShards:                    numOfShards,
