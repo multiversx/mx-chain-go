@@ -96,6 +96,7 @@ type transactionCoordinator struct {
 	doubleTransactionsDetector   process.DoubleTransactionDetector
 	processedMiniBlocksTracker   process.ProcessedMiniBlocksTracker
 	enableEpochsHandler          common.EnableEpochsHandler
+	enableRoundsHandler          common.EnableRoundsHandler
 	txExecutionOrderHandler      common.TxExecutionOrderHandler
 	blockDataRequester           process.BlockDataRequester
 	blockDataRequesterProposal   process.BlockDataRequester

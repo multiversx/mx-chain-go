@@ -13,6 +13,7 @@ import (
 	"golang.org/x/exp/slices"
 
 	"github.com/multiversx/mx-chain-go/process"
+	"github.com/multiversx/mx-chain-go/process/block/preprocess"
 )
 
 const (
@@ -29,6 +30,8 @@ const (
 	initialLastIndex       = -1
 )
 
+// TODO: rename to include size check
+
 // ArgsGasConsumption holds the arguments needed to create a gasConsumption instance
 type ArgsGasConsumption struct {
 	EconomicsFee                      process.FeeHandler
@@ -36,6 +39,7 @@ type ArgsGasConsumption struct {
 	GasHandler                        process.GasHandler
 	BlockCapacityOverestimationFactor uint64
 	PercentDecreaseLimitsStep         uint64
+	BlockSizeComputation              preprocess.BlockSizeComputationHandler
 }
 
 // gasConsumption implements the GasComputation interface for managing gas limits during block creation
@@ -44,6 +48,7 @@ type gasConsumption struct {
 	economicsFee                     process.FeeHandler
 	shardCoordinator                 process.ShardCoordinator
 	gasHandler                       process.GasHandler
+	blockSizeComputation             preprocess.BlockSizeComputationHandler
 	totalGasConsumed                 map[string]uint64
 	gasConsumedByMiniBlock           map[string]uint64
 	pendingMiniBlocks                []data.MiniBlockHeaderHandler
@@ -66,6 +71,9 @@ func NewGasConsumption(args ArgsGasConsumption) (*gasConsumption, error) {
 	if check.IfNil(args.GasHandler) {
 		return nil, process.ErrNilGasHandler
 	}
+	if check.IfNil(args.BlockSizeComputation) {
+		return nil, process.ErrNilBlockSizeComputationHandler
+	}
 	if args.BlockCapacityOverestimationFactor <= minPercentLimitsFactor || args.BlockCapacityOverestimationFactor > maxPercentLimitsFactor {
 		return nil, fmt.Errorf("%w for BlockCapacityOverestimationFactor, received %d, min allowed %d, max allowed %d",
 			process.ErrInvalidValue,
@@ -78,6 +86,7 @@ func NewGasConsumption(args ArgsGasConsumption) (*gasConsumption, error) {
 		economicsFee:                     args.EconomicsFee,
 		shardCoordinator:                 args.ShardCoordinator,
 		gasHandler:                       args.GasHandler,
+		blockSizeComputation:             args.BlockSizeComputation,
 		totalGasConsumed:                 make(map[string]uint64),
 		gasConsumedByMiniBlock:           make(map[string]uint64),
 		transactionsForPendingMiniBlocks: make(map[string][]data.TransactionHandler),
@@ -124,6 +133,7 @@ func (gc *gasConsumption) AddIncomingMiniBlocks(
 	for i := 0; i < len(miniBlocks); i++ {
 		mbType := miniBlocks[i].GetTypeInt32()
 		if mbType == int32(block.RewardsBlock) || mbType == int32(block.PeerBlock) {
+			// TODO: check size for rewards/peer miniblocks?
 			// rewards and validator info have 0 gas limit, thus they should be included anyway without checking their transactions
 			lastMiniBlockIndex = i
 			continue
@@ -142,6 +152,10 @@ func (gc *gasConsumption) AddIncomingMiniBlocks(
 		if err != nil {
 			return lastMiniBlockIndex, 0, err
 		}
+
+		gc.blockSizeComputation.AddNumMiniBlocks(1)
+		gc.blockSizeComputation.AddNumTxs(int(miniBlocks[i].GetTxCount()))
+
 		lastMiniBlockIndex = i
 	}
 
@@ -246,7 +260,11 @@ func (gc *gasConsumption) addIncomingMiniBlock(
 	}
 
 	gc.gasConsumedByMiniBlock[string(mbHash)] = gasConsumedByMB
-	mbsLimitReached := gc.totalGasConsumed[incoming]+gasConsumedByMB > bandwidthForIncomingMiniBlocks
+
+	mbsGasLimitReached := gc.totalGasConsumed[incoming]+gasConsumedByMB > bandwidthForIncomingMiniBlocks
+	mbsSizeLimitReached := gc.blockSizeComputation.IsMaxBlockSizeWithoutThrottleReached(1, int(numTxs))
+	mbsLimitReached := mbsGasLimitReached || mbsSizeLimitReached
+
 	if !mbsLimitReached {
 		// limit not reached, continue
 		// this method might be called either from handling all mini blocks,
@@ -328,6 +346,9 @@ func (gc *gasConsumption) addPendingIncomingMiniBlocks() ([]data.MiniBlockHeader
 			break
 		}
 
+		gc.blockSizeComputation.AddNumMiniBlocks(1)
+		gc.blockSizeComputation.AddNumTxs(int(mb.GetTxCount()))
+
 		addedMiniBlocks = append(addedMiniBlocks, mb)
 		lastIndexAdded = i
 
@@ -379,7 +400,13 @@ func (gc *gasConsumption) AddOutgoingTransactions(
 			continue
 		}
 
+		gc.blockSizeComputation.AddNumTxs(1)
+
 		addedHashes = append(addedHashes, txHashes[i])
+	}
+
+	if len(addedHashes) > 0 {
+		gc.blockSizeComputation.AddNumMiniBlocks(1)
 	}
 
 	// reaching this point means that transactions were added and the limit for outgoing was not reached
@@ -448,9 +475,11 @@ func (gc *gasConsumption) checkShardsLimits(
 		txsLimitReachedCross = gc.totalGasConsumed[gasKeyOutgoingCross]+gasConsumedInReceiverShard > bandwidthForOutgoingCrossTransactions
 	}
 
+	txsSizeLimit := gc.blockSizeComputation.IsMaxBlockSizeWithoutThrottleReached(1, 1)
+
 	// if one of the limits is reached, do not count the remaining gas
 	// also return true so sender will be skipped
-	if txsLimitReachedCross || txsLimitReachedIntra {
+	if txsLimitReachedCross || txsLimitReachedIntra || txsSizeLimit {
 		return true
 	}
 
@@ -621,6 +650,8 @@ func (gc *gasConsumption) Reset() {
 	gc.gasConsumedByMiniBlock = make(map[string]uint64)
 	gc.pendingMiniBlocks = make([]data.MiniBlockHeaderHandler, 0)
 	gc.transactionsForPendingMiniBlocks = make(map[string][]data.TransactionHandler, 0)
+
+	gc.blockSizeComputation.Init()
 }
 
 // GetPendingMiniBlocks returns the pending mini blocks

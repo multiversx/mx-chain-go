@@ -72,7 +72,6 @@ func (sp *shardProcessor) CreateBlockProposal(
 		return nil, nil, err
 	}
 
-	sp.blockSizeComputation.Init()
 	sp.gasComputation.Reset()
 	sp.miniBlocksSelectionSession.ResetSelectionSession()
 	err = sp.createBlockBodyProposal(shardHdr, haveTime)
@@ -558,7 +557,7 @@ func (sp *shardProcessor) selectIncomingMiniBlocks(
 		}
 
 		if len(createIncomingMbsResult.AddedMiniBlocks) > 0 {
-			newPendingMiniBlocks := sp.checkMaxBlockSizeLimit(createIncomingMbsResult.AddedMiniBlocks)
+			newPendingMiniBlocks := sp.checkMaxBlockSizeLimit(currentMetaBlock, createIncomingMbsResult.AddedMiniBlocks)
 			if len(newPendingMiniBlocks) > 0 {
 				createIncomingMbsResult.AddedMiniBlocks = createIncomingMbsResult.AddedMiniBlocks[:len(newPendingMiniBlocks)-1]
 				createIncomingMbsResult.PendingMiniBlocks = append(createIncomingMbsResult.PendingMiniBlocks, newPendingMiniBlocks...)
@@ -604,8 +603,13 @@ func (sp *shardProcessor) selectIncomingMiniBlocks(
 }
 
 func (bp *baseProcessor) checkMaxBlockSizeLimit(
+	currHeader data.HeaderHandler,
 	miniBlocksAndHashes []block.MiniblockAndHash,
 ) []block.MiniblockAndHash {
+	if !currHeader.IsHeaderV3() {
+		return nil
+	}
+
 	pendingMiniBlocks := make([]block.MiniblockAndHash, 0)
 
 	if !bp.isMaxBlockSizeReached(miniBlockAndHashesToMiniBlocks(miniBlocksAndHashes)) {

@@ -117,7 +117,6 @@ func (mp *metaProcessor) CreateBlockProposal(
 		return metaHdr, &block.Body{}, nil
 	}
 
-	mp.blockSizeComputation.Init()
 	mp.gasComputation.Reset()
 	mp.miniBlocksSelectionSession.ResetSelectionSession()
 	err := mp.createBlockBodyProposal(metaHdr, haveTime)
@@ -828,7 +827,7 @@ func (mp *metaProcessor) selectIncomingMiniBlocks(
 		}
 
 		if len(createIncomingMbsResult.AddedMiniBlocks) > 0 {
-			newPendingMiniBlocks := mp.checkMaxBlockSizeLimit(createIncomingMbsResult.AddedMiniBlocks)
+			newPendingMiniBlocks := mp.checkMaxBlockSizeLimit(currHdr, createIncomingMbsResult.AddedMiniBlocks)
 			if len(newPendingMiniBlocks) > 0 {
 				createIncomingMbsResult.AddedMiniBlocks = createIncomingMbsResult.AddedMiniBlocks[:len(newPendingMiniBlocks)-1]
 				createIncomingMbsResult.PendingMiniBlocks = append(createIncomingMbsResult.PendingMiniBlocks, newPendingMiniBlocks...)

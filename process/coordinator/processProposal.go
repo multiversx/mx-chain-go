@@ -7,6 +7,7 @@ import (
 	"github.com/multiversx/mx-chain-core-go/data"
 	"github.com/multiversx/mx-chain-core-go/data/block"
 
+	"github.com/multiversx/mx-chain-go/common"
 	"github.com/multiversx/mx-chain-go/process"
 	"github.com/multiversx/mx-chain-go/process/block/processedMb"
 )
@@ -191,6 +192,10 @@ func (tc *transactionCoordinator) SelectOutgoingTransactions(
 func (tc *transactionCoordinator) checkTxsMaxSizeLimit(
 	initialNumTxs int,
 ) int {
+	if !tc.enableRoundsHandler.IsFlagEnabled(common.SupernovaRoundFlag) {
+		return 0
+	}
+
 	numNewMiniBlocks := 1
 
 	numNewTxs := initialNumTxs
