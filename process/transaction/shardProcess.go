@@ -879,7 +879,6 @@ func (txProc *txProcessor) addNonExecutableLog(executionErr error, originalTxHas
 	}
 
 	return txProc.txLogsProcessor.SaveLog(originalTxHash, originalTx, []*vmcommon.LogEntry{logEntry})
-
 }
 
 func (txProc *txProcessor) processMoveBalanceCostRelayedUserTx(

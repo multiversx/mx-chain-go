@@ -2,7 +2,6 @@ package memoryFootprint
 
 import (
 	"fmt"
-	"github.com/multiversx/mx-chain-go/testscommon/chainParameters"
 	"runtime"
 	"testing"
 
@@ -12,6 +11,7 @@ import (
 	"github.com/multiversx/mx-chain-go/node/external/timemachine/fee"
 	"github.com/multiversx/mx-chain-go/process/economics"
 	"github.com/multiversx/mx-chain-go/testscommon"
+	"github.com/multiversx/mx-chain-go/testscommon/chainParameters"
 	"github.com/multiversx/mx-chain-go/testscommon/enableEpochsHandlerMock"
 	"github.com/multiversx/mx-chain-go/testscommon/epochNotifier"
 	"github.com/stretchr/testify/require"

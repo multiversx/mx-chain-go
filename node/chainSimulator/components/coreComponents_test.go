@@ -64,7 +64,17 @@ func createArgsCoreComponentsHolder() ArgsCoreComponentsHolder {
 					MaxShardNoncesBehind:              15,
 				}},
 				ProcessConfigsByRound: []config.ProcessConfigByRound{
-					{EnableRound: 0, MaxRoundsWithoutNewBlockReceived: 10, MaxRoundsWithoutCommittedBlock: 10},
+					{
+						EnableRound:                            0,
+						MaxRoundsWithoutNewBlockReceived:       10,
+						MaxRoundsWithoutCommittedBlock:         10,
+						MaxRoundsToKeepUnprocessedTransactions: 50,
+						MaxRoundsToKeepUnprocessedMiniBlocks:   50,
+						NumFloodingRoundsSlowReacting:          20,
+						NumFloodingRoundsFastReacting:          30,
+						NumFloodingRoundsOutOfSpecs:            40,
+						MaxConsecutiveRoundsOfRatingDecrease:   600,
+					},
 				},
 				EpochStartConfigsByEpoch: []config.EpochStartConfigByEpoch{
 					{EnableEpoch: 0, GracePeriodRounds: 25, ExtraDelayForRequestBlockInfoInMilliseconds: 3000},

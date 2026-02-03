@@ -5,6 +5,7 @@ import (
 
 	"github.com/multiversx/mx-chain-core-go/core"
 	"github.com/multiversx/mx-chain-core-go/data"
+	"github.com/multiversx/mx-chain-core-go/data/block"
 	"github.com/multiversx/mx-chain-core-go/hashing"
 	logger "github.com/multiversx/mx-chain-logger-go"
 
@@ -163,6 +164,18 @@ func (inHdr *InterceptedHeader) integrity() error {
 		return err
 	}
 
+	if inHdr.hdr.IsHeaderV3() {
+		for i, result := range inHdr.hdr.GetExecutionResultsHandlers() {
+			executionResult, ok := result.(*block.ExecutionResult)
+			if !ok {
+				return fmt.Errorf("failed to cast execution result at index %d to block.ExecutionResult", i)
+			}
+			err = checkMiniBlocksHeaders(executionResult.GetMiniBlockHeadersHandlers(), inHdr.shardCoordinator)
+			if err != nil {
+				return err
+			}
+		}
+	}
 	return nil
 }
 

@@ -55,9 +55,11 @@ func NewMetaBootstrap(arguments ArgMetaBootstrapper) (*MetaBootstrap, error) {
 	base := &baseBootstrap{
 		chainHandler:                 arguments.ChainHandler,
 		blockProcessor:               arguments.BlockProcessor,
+		executionManager:             arguments.ExecutionManager,
 		store:                        arguments.Store,
 		headers:                      arguments.PoolsHolder.Headers(),
 		proofs:                       arguments.PoolsHolder.Proofs(),
+		dataPool:                     arguments.PoolsHolder,
 		roundHandler:                 arguments.RoundHandler,
 		hasher:                       arguments.Hasher,
 		marshalizer:                  arguments.Marshalizer,
@@ -81,6 +83,7 @@ func NewMetaBootstrap(arguments ArgMetaBootstrapper) (*MetaBootstrap, error) {
 		historyRepo:                  arguments.HistoryRepo,
 		scheduledTxsExecutionHandler: arguments.ScheduledTxsExecutionHandler,
 		processWaitTime:              arguments.ProcessWaitTime,
+		processWaitTimeSupernova:     arguments.ProcessWaitTimeSupernova,
 		enableEpochsHandler:          arguments.EnableEpochsHandler,
 		enableRoundsHandler:          arguments.EnableRoundsHandler,
 		processConfigsHandler:        arguments.ProcessConfigsHandler,
@@ -112,30 +115,25 @@ func NewMetaBootstrap(arguments ArgMetaBootstrapper) (*MetaBootstrap, error) {
 		return nil, err
 	}
 
+	err = base.createTxSyncer()
+	if err != nil {
+		return nil, err
+	}
+
 	base.init()
 
 	return &boot, nil
 }
 
 func (boot *MetaBootstrap) getBlockBody(headerHandler data.HeaderHandler) (data.BodyHandler, error) {
-	header, ok := headerHandler.(*block.MetaBlock)
+	header, ok := headerHandler.(data.MetaHeaderHandler)
 	if !ok {
 		return nil, process.ErrWrongTypeAssertion
 	}
 
-	hashes := make([][]byte, len(header.MiniBlockHeaders))
-	for i := 0; i < len(header.MiniBlockHeaders); i++ {
-		hashes[i] = header.MiniBlockHeaders[i].Hash
-	}
-
-	miniBlocksAndHashes, missingMiniBlocksHashes := boot.miniBlocksProvider.GetMiniBlocks(hashes)
-	if len(missingMiniBlocksHashes) > 0 {
-		return nil, process.ErrMissingBody
-	}
-
-	miniBlocks := make([]*block.MiniBlock, len(miniBlocksAndHashes))
-	for index, miniBlockAndHash := range miniBlocksAndHashes {
-		miniBlocks[index] = miniBlockAndHash.Miniblock
+	miniBlocks, err := boot.getHeaderMiniBlocks(header)
+	if err != nil {
+		return nil, err
 	}
 
 	return &block.Body{MiniBlocks: miniBlocks}, nil
@@ -252,7 +250,7 @@ func (boot *MetaBootstrap) getCurrHeader() (data.HeaderHandler, error) {
 		return nil, process.ErrNilBlockHeader
 	}
 
-	header, ok := blockHeader.(*block.MetaBlock)
+	header, ok := blockHeader.(data.MetaHeaderHandler)
 	if !ok {
 		return nil, process.ErrWrongTypeAssertion
 	}
@@ -261,19 +259,12 @@ func (boot *MetaBootstrap) getCurrHeader() (data.HeaderHandler, error) {
 }
 
 func (boot *MetaBootstrap) getBlockBodyRequestingIfMissing(headerHandler data.HeaderHandler) (data.BodyHandler, error) {
-	header, ok := headerHandler.(*block.MetaBlock)
+	header, ok := headerHandler.(data.MetaHeaderHandler)
 	if !ok {
 		return nil, process.ErrWrongTypeAssertion
 	}
 
-	hashes := make([][]byte, len(header.MiniBlockHeaders))
-	for i := 0; i < len(header.MiniBlockHeaders); i++ {
-		hashes[i] = header.MiniBlockHeaders[i].Hash
-	}
-
-	boot.setRequestedMiniBlocks(nil)
-
-	miniBlockSlice, err := boot.getMiniBlocksRequestingIfMissing(hashes)
+	miniBlockSlice, err := boot.getHeaderMiniBlocksRequestingIfMissing(header)
 	if err != nil {
 		return nil, err
 	}
@@ -290,22 +281,23 @@ func (boot *MetaBootstrap) requestMiniBlocksFromHeaderWithNonceIfMissing(headerH
 		return
 	}
 
-	header, ok := headerHandler.(*block.MetaBlock)
+	header, ok := headerHandler.(data.MetaHeaderHandler)
 	if !ok {
 		log.Warn("cannot convert headerHandler in block.MetaBlock")
 		return
 	}
 
-	hashes := make([][]byte, 0)
-	for i := 0; i < len(header.MiniBlockHeaders); i++ {
-		hashes = append(hashes, header.MiniBlockHeaders[i].Hash)
+	miniBlockHeaders := header.GetMiniBlockHeaderHandlers()
+	hashes := make([][]byte, len(miniBlockHeaders))
+	for i, miniBlockHeader := range miniBlockHeaders {
+		hashes[i] = miniBlockHeader.GetHash()
 	}
 
 	_, missingMiniBlocksHashes := boot.miniBlocksProvider.GetMiniBlocksFromPool(hashes)
 	if len(missingMiniBlocksHashes) > 0 {
 		log.Trace("requesting in advance mini blocks",
 			"num miniblocks", len(missingMiniBlocksHashes),
-			"header nonce", header.Nonce,
+			"header nonce", header.GetNonce(),
 		)
 		boot.requestHandler.RequestMiniBlocks(boot.shardCoordinator.SelfId(), missingMiniBlocksHashes)
 	}

@@ -1,8 +1,6 @@
 package poolsCleaner
 
 import (
-	"errors"
-	"strings"
 	"testing"
 
 	"github.com/multiversx/mx-chain-core-go/data/transaction"
@@ -21,9 +19,13 @@ import (
 func createMockArgTxsPoolsCleaner() ArgTxsPoolsCleaner {
 	return ArgTxsPoolsCleaner{
 		ArgBasePoolsCleaner: ArgBasePoolsCleaner{
-			RoundHandler:                   &mock.RoundHandlerMock{},
-			ShardCoordinator:               mock.NewMultipleShardsCoordinatorMock(),
-			MaxRoundsToKeepUnprocessedData: 1,
+			RoundHandler:     &mock.RoundHandlerMock{},
+			ShardCoordinator: mock.NewMultipleShardsCoordinatorMock(),
+			ProcessConfigsHandler: &testscommon.ProcessConfigsHandlerStub{
+				GetMaxRoundsToKeepUnprocessedTransactionsCalled: func(round uint64) uint64 {
+					return 1
+				},
+			},
 		},
 		AddressPubkeyConverter: &testscommon.PubkeyConverterStub{},
 		DataPool:               dataRetrieverMock.NewPoolsHolderMock(),
@@ -119,17 +121,6 @@ func TestNewTxsPoolsCleaner_NilShardCoordinatorErr(t *testing.T) {
 	txsPoolsCleaner, err := NewTxsPoolsCleaner(args)
 	assert.Nil(t, txsPoolsCleaner)
 	assert.Equal(t, process.ErrNilShardCoordinator, err)
-}
-
-func TestNewTxsPoolsCleaner_InvalidMaxRoundsToKeepUnprocessedDataShouldErr(t *testing.T) {
-	t.Parallel()
-
-	args := createMockArgTxsPoolsCleaner()
-	args.MaxRoundsToKeepUnprocessedData = 0
-	txsPoolsCleaner, err := NewTxsPoolsCleaner(args)
-	assert.True(t, errors.Is(err, process.ErrInvalidValue))
-	assert.True(t, strings.Contains(err.Error(), "MaxRoundsToKeepUnprocessedData"))
-	assert.Nil(t, txsPoolsCleaner)
 }
 
 func TestNewTxsPoolsCleaner_ShouldWork(t *testing.T) {
@@ -351,7 +342,7 @@ func TestCleanTxsPoolsIfNeeded_RoundDiffTooBigShouldBeRemoved(t *testing.T) {
 	txsPoolsCleaner.receivedUnsignedTx(txKey, tx)
 
 	roundHandler.IndexCalled = func() int64 {
-		return args.MaxRoundsToKeepUnprocessedData + 1
+		return int64(args.ProcessConfigsHandler.GetMaxRoundsToKeepUnprocessedTransactions(0) + 1)
 	}
 	numTxsInMap := txsPoolsCleaner.cleanTxsPoolsIfNeeded()
 	assert.Equal(t, 0, numTxsInMap)

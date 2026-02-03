@@ -14,8 +14,8 @@ import (
 
 // HeaderDataForValidator -
 type HeaderDataForValidator struct {
-	Round        uint64
-	PrevRandSeed []byte
+	Round      uint64
+	HeaderHash []byte
 }
 
 // ExtractMetaMiniBlocksAndTransactions -
@@ -121,8 +121,8 @@ func (dbb *delayedBlockBroadcaster) ScheduleValidatorBroadcast(dataForValidators
 	dfv := make([]*headerDataForValidator, len(dataForValidators))
 	for i, d := range dataForValidators {
 		convDfv := &headerDataForValidator{
-			round:        d.Round,
-			prevRandSeed: d.PrevRandSeed,
+			round:      d.Round,
+			headerHash: d.HeaderHash,
 		}
 		dfv[i] = convDfv
 	}
@@ -149,8 +149,8 @@ func GetShardDataFromMetaChainBlock(
 	dfv := make([]*HeaderDataForValidator, len(dataForValidators))
 	for i, d := range dataForValidators {
 		convDfv := &HeaderDataForValidator{
-			Round:        d.round,
-			PrevRandSeed: d.prevRandSeed,
+			Round:      d.round,
+			HeaderHash: d.headerHash,
 		}
 		dfv[i] = convDfv
 	}

@@ -4,6 +4,7 @@ import (
 	"github.com/multiversx/mx-chain-core-go/core"
 	"github.com/multiversx/mx-chain-core-go/data"
 	"github.com/multiversx/mx-chain-core-go/data/block"
+
 	"github.com/multiversx/mx-chain-go/epochStart"
 )
 
@@ -19,6 +20,32 @@ type EpochStartTriggerStub struct {
 	UpdateCalled                      func(round uint64, nonce uint64)
 	ProcessedCalled                   func(header data.HeaderHandler)
 	EpochStartRoundCalled             func() uint64
+	ShouldProposeEpochChangeCalled    func(round uint64, nonce uint64) bool
+	SetEpochChangeCalled              func(round uint64)
+	SetEpochChangeProposedCalled      func(value bool)
+}
+
+// SetEpochChange -
+func (e *EpochStartTriggerStub) SetEpochChange(round uint64) {
+	if e.SetEpochChangeCalled != nil {
+		e.SetEpochChangeCalled(round)
+	}
+}
+
+// ShouldProposeEpochChange -
+func (e *EpochStartTriggerStub) ShouldProposeEpochChange(round uint64, nonce uint64) bool {
+	if e.ShouldProposeEpochChangeCalled != nil {
+		return e.ShouldProposeEpochChangeCalled(round, nonce)
+	}
+
+	return false
+}
+
+// SetEpochChangeProposed -
+func (e *EpochStartTriggerStub) SetEpochChangeProposed(value bool) {
+	if e.SetEpochChangeProposedCalled != nil {
+		e.SetEpochChangeProposedCalled(value)
+	}
 }
 
 // RevertStateToBlock -

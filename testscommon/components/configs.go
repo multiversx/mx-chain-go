@@ -113,10 +113,6 @@ func GetGeneralConfig() config.Config {
 			TopRatedCacheCapacity: 1000,
 			BadRatedCacheCapacity: 1000,
 		},
-		PoolsCleanersConfig: config.PoolsCleanersConfig{
-			MaxRoundsToKeepUnprocessedMiniBlocks:   50,
-			MaxRoundsToKeepUnprocessedTransactions: 50,
-		},
 		BuiltInFunctions: config.BuiltInFunctionsConfig{
 			AutomaticCrawlerAddresses: []string{
 				"erd1he8wwxn4az3j82p7wwqsdk794dm7hcrwny6f8dfegkfla34udx7qrf7xje", // shard 0
@@ -178,7 +174,17 @@ func GetGeneralConfig() config.Config {
 				MaxShardNoncesBehind:              15,
 			}},
 			ProcessConfigsByRound: []config.ProcessConfigByRound{
-				{EnableRound: 0, MaxRoundsWithoutNewBlockReceived: 10, MaxRoundsWithoutCommittedBlock: 10},
+				{
+					EnableRound:                            0,
+					MaxRoundsWithoutNewBlockReceived:       10,
+					MaxRoundsWithoutCommittedBlock:         10,
+					MaxRoundsToKeepUnprocessedMiniBlocks:   50,
+					MaxRoundsToKeepUnprocessedTransactions: 50,
+					NumFloodingRoundsFastReacting:          20,
+					NumFloodingRoundsOutOfSpecs:            20,
+					NumFloodingRoundsSlowReacting:          20,
+					MaxConsecutiveRoundsOfRatingDecrease:   600,
+				},
 			},
 			EpochStartConfigsByEpoch: []config.EpochStartConfigByEpoch{
 				{EnableEpoch: 0, GracePeriodRounds: 25, ExtraDelayForRequestBlockInfoInMilliseconds: 3000},
@@ -218,11 +224,6 @@ func GetGeneralConfig() config.Config {
 		Versions: config.VersionsConfig{
 			DefaultVersion:   "1",
 			VersionsByEpochs: nil,
-			Cache: config.CacheConfig{
-				Type:     "LRU",
-				Capacity: 1000,
-				Shards:   1,
-			},
 		},
 		Hardfork: config.HardforkConfig{
 			PublicKeyToListenFrom: DummyPk,

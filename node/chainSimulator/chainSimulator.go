@@ -66,6 +66,8 @@ type ArgsChainSimulator struct {
 	ApiInterface                   components.APIConfigurator
 	AlterConfigsFunction           func(cfg *config.Configs)
 	VmQueryDelayAfterStartInMs     uint64
+	CreateBlockMaxTimePercent      float64
+	BypassCreateBlockTimeCheck     bool
 }
 
 // ArgsBaseChainSimulator holds the arguments needed to create a new instance of simulator
@@ -154,7 +156,7 @@ func (s *simulator) createChainHandlers(args ArgsBaseChainSimulator) error {
 			return errCreate
 		}
 
-		chainHandler, errCreate := process.NewBlocksCreator(node, monitor)
+		chainHandler, errCreate := process.NewBlocksCreator(node, monitor, args.CreateBlockMaxTimePercent, args.BypassCreateBlockTimeCheck)
 		if errCreate != nil {
 			return errCreate
 		}
@@ -196,14 +198,18 @@ func (s *simulator) createChainHandlers(args ArgsBaseChainSimulator) error {
 				TimeStamp: uint64(node.GetCoreComponents().RoundHandler().TimeStamp().Unix()),
 			}
 		} else {
-			epochStartBlockHeader = &block.HeaderV2{
-				Header: &block.Header{
-					Nonce:     args.InitialNonce,
-					Epoch:     args.InitialEpoch,
-					Round:     uint64(args.InitialRound),
-					TimeStamp: uint64(node.GetCoreComponents().RoundHandler().TimeStamp().Unix()),
-				},
+			epochStartBlockHeader = &block.MetaBlockV3{
+				Nonce:       args.InitialNonce,
+				Epoch:       args.InitialEpoch,
+				Round:       uint64(args.InitialRound),
+				TimestampMs: uint64(node.GetCoreComponents().RoundHandler().TimeStamp().Unix()),
 			}
+		}
+
+		genesisBlock := node.GetDataComponents().Blockchain().GetGenesisHeader()
+		err = node.GetDataComponents().Datapool().Transactions().OnExecutedBlock(genesisBlock, genesisBlock.GetRootHash())
+		if err != nil {
+			return err
 		}
 
 		err = node.GetProcessComponents().BlockchainHook().SetEpochStartHeader(epochStartBlockHeader)
@@ -394,11 +400,43 @@ func (s *simulator) ForceChangeOfEpoch() error {
 }
 
 func (s *simulator) allNodesCreateBlocks() error {
+	headers := make(map[uint32]*dtos.BroadcastData, len(s.handlers))
 	for _, node := range s.handlers {
 		// TODO MX-15150 remove this when we remove all goroutines
 		time.Sleep(2 * time.Millisecond)
 
-		err := node.CreateNewBlock()
+		pair, err := node.CreateNewBlock()
+		if err != nil {
+			return err
+		}
+		if pair == nil {
+			continue
+		}
+
+		headers[pair.Header.GetShardID()] = pair
+	}
+
+	for shardID, pair := range headers {
+		messenger := s.nodes[shardID].GetBroadcastMessenger()
+
+		err := messenger.BroadcastHeader(pair.Header, pair.LeaderKey)
+		if err != nil {
+			return err
+		}
+
+		if !check.IfNil(pair.Proof) {
+			err = s.nodes[shardID].GetBroadcastMessenger().BroadcastEquivalentProof(pair.Proof, pair.LeaderKey)
+			if err != nil {
+				return err
+			}
+		}
+
+		err = messenger.BroadcastMiniBlocks(pair.MiniBlocksBytes, pair.LeaderKey)
+		if err != nil {
+			return err
+		}
+
+		err = messenger.BroadcastTransactions(pair.TransactionsBytes, pair.LeaderKey)
 		if err != nil {
 			return err
 		}

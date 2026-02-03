@@ -81,6 +81,7 @@ type AccountsAdapter interface {
 	GetCode(codeHash []byte) []byte
 	RootHash() ([]byte, error)
 	RecreateTrie(options common.RootHashHolder) error
+	RecreateTrieIfNeeded(options common.RootHashHolder) error
 	PruneTrie(rootHash []byte, identifier TriePruningIdentifier, handler PruningHandler)
 	CancelPrune(rootHash []byte, identifier TriePruningIdentifier)
 	SnapshotState(rootHash []byte, epoch uint32)
@@ -361,8 +362,9 @@ type StateAccessesCollector interface {
 	AddStateAccess(stateAccess *data.StateAccess)
 	GetAccountChanges(oldAccount, account vmcommon.AccountHandler) uint32
 	Reset()
-	GetCollectedAccesses() map[string]*data.StateAccesses
-	Store() error
+	GetStateAccessesForRootHash(rootHash []byte) map[string]*data.StateAccesses
+	RemoveStateAccessesForRootHash(rootHash []byte)
+	CommitCollectedAccesses(rootHash []byte) error
 	AddTxHashToCollectedStateAccesses(txHash []byte)
 	SetIndexToLatestStateAccesses(index int) error
 	RevertToIndex(index int) error

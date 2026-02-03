@@ -14,6 +14,7 @@ import (
 	"github.com/stretchr/testify/require"
 
 	"github.com/multiversx/mx-chain-go/common"
+
 	"github.com/multiversx/mx-chain-go/config"
 	"github.com/multiversx/mx-chain-go/errors"
 	chainSimulatorCommon "github.com/multiversx/mx-chain-go/integrationTests/chainSimulator"
@@ -44,13 +45,10 @@ var (
 	}
 )
 
-func TestNewChainSimulator(t *testing.T) {
-	if testing.Short() {
-		t.Skip("this is not a short test")
-	}
-
+func TestChainSimulatorCheckSupernova(t *testing.T) {
 	chainSimulator, err := NewChainSimulator(ArgsChainSimulator{
 		BypassTxSignatureCheck:         true,
+		BypassCreateBlockTimeCheck:     true,
 		TempDir:                        t.TempDir(),
 		PathToInitialConfig:            defaultPathToInitialConfig,
 		NumOfShards:                    defaultNumOfShards,
@@ -61,6 +59,64 @@ func TestNewChainSimulator(t *testing.T) {
 		ApiInterface:                   api.NewNoApiInterface(),
 		MinNodesPerShard:               3,
 		MetaChainMinNodes:              3,
+		AlterConfigsFunction: func(cfg *config.Configs) {
+
+		},
+	})
+	require.Nil(t, err)
+	require.NotNil(t, chainSimulator)
+
+	err = chainSimulator.GenerateBlocksUntilEpochIsReached(2)
+	require.Nil(t, err)
+
+	err = chainSimulator.GenerateBlocks(2)
+	require.Nil(t, err)
+
+	err = chainSimulator.GenerateBlocks(1) // supernova round activation
+	require.Nil(t, err)
+
+	err = chainSimulator.GenerateBlocks(1)
+	require.Nil(t, err)
+
+	err = chainSimulator.GenerateBlocks(50)
+	require.Nil(t, err)
+
+	time.Sleep(time.Second)
+
+	chainSimulator.Close()
+}
+
+func TestNewChainSimulator(t *testing.T) {
+	if testing.Short() {
+		t.Skip("this is not a short test")
+	}
+
+	alterConfigsFunc := func(cfg *config.Configs) {
+		cfg.EpochConfig.EnableEpochs.SupernovaEnableEpoch = 999999
+		cfg.RoundConfig.RoundActivations = map[string]config.ActivationRoundByName{
+			"DisableAsyncCallV1": {
+				Round: "9999999",
+			},
+			"SupernovaEnableRound": {
+				Round: "9999999",
+			},
+		}
+	}
+
+	chainSimulator, err := NewChainSimulator(ArgsChainSimulator{
+		BypassTxSignatureCheck:         true,
+		BypassCreateBlockTimeCheck:     true,
+		TempDir:                        t.TempDir(),
+		PathToInitialConfig:            defaultPathToInitialConfig,
+		NumOfShards:                    defaultNumOfShards,
+		RoundDurationInMillis:          defaultRoundDurationInMillis,
+		SupernovaRoundDurationInMillis: defaultSupernovaRoundDurationInMillis,
+		RoundsPerEpoch:                 defaultRoundsPerEpoch,
+		SupernovaRoundsPerEpoch:        defaultSupernovaRoundsPerEpoch,
+		ApiInterface:                   api.NewNoApiInterface(),
+		MinNodesPerShard:               3,
+		MetaChainMinNodes:              3,
+		AlterConfigsFunction:           alterConfigsFunc,
 	})
 	require.Nil(t, err)
 	require.NotNil(t, chainSimulator)
@@ -85,6 +141,7 @@ func TestChainSimulator_GenerateBlocksShouldWork(t *testing.T) {
 
 	chainSimulator, err := NewChainSimulator(ArgsChainSimulator{
 		BypassTxSignatureCheck:         true,
+		BypassCreateBlockTimeCheck:     true,
 		BypassBlockSignatureCheck:      true,
 		TempDir:                        t.TempDir(),
 		PathToInitialConfig:            defaultPathToInitialConfig,
@@ -96,7 +153,7 @@ func TestChainSimulator_GenerateBlocksShouldWork(t *testing.T) {
 		ApiInterface:                   api.NewNoApiInterface(),
 		MinNodesPerShard:               defaultMinNodesPerShard,
 		MetaChainMinNodes:              defaultMetaChainMinNodes,
-		InitialRound:                   200000000,
+		InitialRound:                   20000,
 		InitialEpoch:                   100,
 		InitialNonce:                   100,
 		AlterConfigsFunction: func(cfg *config.Configs) {
@@ -104,6 +161,7 @@ func TestChainSimulator_GenerateBlocksShouldWork(t *testing.T) {
 			// because the owner of a BLS key coming from genesis is not set
 			// (the owner is not set at genesis anymore because we do not enable the staking v2 in that phase)
 			cfg.EpochConfig.EnableEpochs.StakingV2EnableEpoch = 0
+			cfg.EpochConfig.EnableEpochs.SupernovaEnableEpoch = 99999
 		},
 	})
 	require.Nil(t, err)
@@ -130,6 +188,7 @@ func TestChainSimulator_VerifyBlockTimestampSupernova(t *testing.T) {
 
 	chainSimulator, err := NewChainSimulator(ArgsChainSimulator{
 		BypassTxSignatureCheck:         true,
+		BypassCreateBlockTimeCheck:     true,
 		TempDir:                        t.TempDir(),
 		PathToInitialConfig:            defaultPathToInitialConfig,
 		NumOfShards:                    defaultNumOfShards,
@@ -188,6 +247,7 @@ func TestChainSimulator_GenerateBlocksAndEpochChangeShouldWork(t *testing.T) {
 
 	chainSimulator, err := NewChainSimulator(ArgsChainSimulator{
 		BypassTxSignatureCheck:         true,
+		BypassCreateBlockTimeCheck:     true,
 		TempDir:                        t.TempDir(),
 		PathToInitialConfig:            defaultPathToInitialConfig,
 		NumOfShards:                    defaultNumOfShards,
@@ -246,8 +306,21 @@ func TestSimulator_TriggerChangeOfEpoch(t *testing.T) {
 		HasValue: true,
 		Value:    150000,
 	}
+	alterConfigsFunc := func(cfg *config.Configs) {
+		cfg.EpochConfig.EnableEpochs.SupernovaEnableEpoch = 999999
+		cfg.RoundConfig.RoundActivations = map[string]config.ActivationRoundByName{
+			"DisableAsyncCallV1": {
+				Round: "9999999",
+			},
+			"SupernovaEnableRound": {
+				Round: "9999999",
+			},
+		}
+	}
+
 	chainSimulator, err := NewChainSimulator(ArgsChainSimulator{
 		BypassTxSignatureCheck:         true,
+		BypassCreateBlockTimeCheck:     true,
 		TempDir:                        t.TempDir(),
 		PathToInitialConfig:            defaultPathToInitialConfig,
 		NumOfShards:                    defaultNumOfShards,
@@ -258,6 +331,7 @@ func TestSimulator_TriggerChangeOfEpoch(t *testing.T) {
 		ApiInterface:                   api.NewNoApiInterface(),
 		MinNodesPerShard:               100,
 		MetaChainMinNodes:              100,
+		AlterConfigsFunction:           alterConfigsFunc,
 	})
 	require.Nil(t, err)
 	require.NotNil(t, chainSimulator)
@@ -296,6 +370,7 @@ func TestChainSimulator_ChangeRoundsPerEpoch(t *testing.T) {
 	}
 	chainSimulator, err := NewChainSimulator(ArgsChainSimulator{
 		BypassTxSignatureCheck:         true,
+		BypassCreateBlockTimeCheck:     true,
 		TempDir:                        t.TempDir(),
 		PathToInitialConfig:            defaultPathToInitialConfig,
 		NumOfShards:                    defaultNumOfShards,
@@ -345,6 +420,7 @@ func TestChainSimulator_SetState(t *testing.T) {
 
 	chainSimulator, err := NewChainSimulator(ArgsChainSimulator{
 		BypassTxSignatureCheck:         true,
+		BypassCreateBlockTimeCheck:     true,
 		TempDir:                        t.TempDir(),
 		PathToInitialConfig:            defaultPathToInitialConfig,
 		NumOfShards:                    defaultNumOfShards,
@@ -371,6 +447,7 @@ func TestChainSimulator_SetEntireState(t *testing.T) {
 
 	chainSimulator, err := NewChainSimulator(ArgsChainSimulator{
 		BypassTxSignatureCheck:         true,
+		BypassCreateBlockTimeCheck:     true,
 		TempDir:                        t.TempDir(),
 		PathToInitialConfig:            defaultPathToInitialConfig,
 		NumOfShards:                    defaultNumOfShards,
@@ -414,6 +491,7 @@ func TestChainSimulator_SetEntireStateWithRemoval(t *testing.T) {
 
 	chainSimulator, err := NewChainSimulator(ArgsChainSimulator{
 		BypassTxSignatureCheck:         true,
+		BypassCreateBlockTimeCheck:     true,
 		TempDir:                        t.TempDir(),
 		PathToInitialConfig:            defaultPathToInitialConfig,
 		NumOfShards:                    defaultNumOfShards,
@@ -456,6 +534,7 @@ func TestChainSimulator_GetAccount(t *testing.T) {
 
 	chainSimulator, err := NewChainSimulator(ArgsChainSimulator{
 		BypassTxSignatureCheck:         true,
+		BypassCreateBlockTimeCheck:     true,
 		TempDir:                        t.TempDir(),
 		PathToInitialConfig:            defaultPathToInitialConfig,
 		NumOfShards:                    defaultNumOfShards,
@@ -485,6 +564,7 @@ func TestSimulator_SendTransactions(t *testing.T) {
 
 	chainSimulator, err := NewChainSimulator(ArgsChainSimulator{
 		BypassTxSignatureCheck:         true,
+		BypassCreateBlockTimeCheck:     true,
 		TempDir:                        t.TempDir(),
 		PathToInitialConfig:            defaultPathToInitialConfig,
 		NumOfShards:                    defaultNumOfShards,
@@ -511,6 +591,7 @@ func TestSimulator_SentMoveBalanceNoGasForFee(t *testing.T) {
 
 	chainSimulator, err := NewChainSimulator(ArgsChainSimulator{
 		BypassTxSignatureCheck:         true,
+		BypassCreateBlockTimeCheck:     true,
 		TempDir:                        t.TempDir(),
 		PathToInitialConfig:            defaultPathToInitialConfig,
 		NumOfShards:                    defaultNumOfShards,
@@ -546,13 +627,14 @@ func TestSimulator_SentMoveBalanceNoGasForFee(t *testing.T) {
 	require.True(t, strings.Contains(err.Error(), errors.ErrInsufficientFunds.Error()))
 }
 
-func TestChainSimulatorCheckRoundDurationMetrics(t *testing.T) {
+func TestSimulator_SendMoveBalanceTxBeforeAndAfterSupernovaWithMoreGasLimit(t *testing.T) {
 	if testing.Short() {
 		t.Skip("this is not a short test")
 	}
 
 	chainSimulator, err := NewChainSimulator(ArgsChainSimulator{
 		BypassTxSignatureCheck:         true,
+		BypassCreateBlockTimeCheck:     true,
 		TempDir:                        t.TempDir(),
 		PathToInitialConfig:            defaultPathToInitialConfig,
 		NumOfShards:                    defaultNumOfShards,
@@ -563,30 +645,20 @@ func TestChainSimulatorCheckRoundDurationMetrics(t *testing.T) {
 		ApiInterface:                   api.NewNoApiInterface(),
 		MinNodesPerShard:               defaultMinNodesPerShard,
 		MetaChainMinNodes:              defaultMetaChainMinNodes,
+		CreateBlockMaxTimePercent:      0.25,
+		AlterConfigsFunction: func(cfg *config.Configs) {
+			cfg.EpochConfig.EnableEpochs.SupernovaEnableEpoch = 2
+		},
 	})
 	require.Nil(t, err)
 	require.NotNil(t, chainSimulator)
 
 	defer chainSimulator.Close()
 
-	err = chainSimulator.GenerateBlocks(43)
+	chainSimulatorCommon.GenerateMoveBalanceTxsInShardsWithMoreGasLimit(t, chainSimulator)
+
+	err = chainSimulator.GenerateBlocksUntilEpochIsReached(3)
 	require.Nil(t, err)
 
-	result, err := chainSimulator.GetNodeHandler(0).GetFacadeHandler().StatusMetrics().StatusMetricsMapWithoutP2P()
-	require.Nil(t, err)
-
-	roundDuration := result[common.MetricRoundDuration].(uint64)
-	require.Equal(t, defaultRoundDurationInMillis, roundDuration)
-	roundsPerEpoch := result[common.MetricRoundsPerEpoch].(uint64)
-	require.Equal(t, defaultSupernovaRoundsPerEpochValue, roundsPerEpoch)
-
-	// supernova round is activa
-	err = chainSimulator.GenerateBlocks(2)
-	require.Nil(t, err)
-
-	result, err = chainSimulator.GetNodeHandler(0).GetFacadeHandler().StatusMetrics().StatusMetricsMapWithoutP2P()
-	require.Nil(t, err)
-
-	roundDuration = result[common.MetricRoundDuration].(uint64)
-	require.Equal(t, defaultSupernovaRoundDurationInMillis, roundDuration)
+	chainSimulatorCommon.GenerateMoveBalanceTxsInShardsWithMoreGasLimit(t, chainSimulator)
 }

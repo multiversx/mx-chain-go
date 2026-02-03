@@ -11,11 +11,12 @@ import (
 	"github.com/multiversx/mx-chain-core-go/core"
 	"github.com/multiversx/mx-chain-core-go/core/check"
 	"github.com/multiversx/mx-chain-core-go/core/partitioning"
+	logger "github.com/multiversx/mx-chain-logger-go"
+
 	"github.com/multiversx/mx-chain-go/common"
 	"github.com/multiversx/mx-chain-go/dataRetriever"
 	"github.com/multiversx/mx-chain-go/epochStart"
 	"github.com/multiversx/mx-chain-go/process/factory"
-	logger "github.com/multiversx/mx-chain-logger-go"
 )
 
 var _ epochStart.RequestHandler = (*resolverRequestHandler)(nil)
@@ -112,12 +113,18 @@ func (rrh *resolverRequestHandler) getEpoch() uint32 {
 	return rrh.epoch
 }
 
-// RequestTransaction method asks for transactions from the connected peers
-func (rrh *resolverRequestHandler) RequestTransaction(destShardID uint32, txHashes [][]byte) {
-	rrh.requestByHashes(destShardID, txHashes, factory.TransactionTopic, uniqueTxSuffix)
+// RequestTransactions method asks for transactions from the connected peers
+func (rrh *resolverRequestHandler) RequestTransactions(destShardID uint32, txHashes [][]byte) {
+	epoch := rrh.getEpoch()
+	rrh.requestByHashes(destShardID, txHashes, factory.TransactionTopic, uniqueTxSuffix, epoch)
 }
 
-func (rrh *resolverRequestHandler) requestByHashes(destShardID uint32, hashes [][]byte, topic string, abbreviatedTopic string) {
+// RequestTransactionsForEpoch method asks for transactions from the connected peers for a specific epoch
+func (rrh *resolverRequestHandler) RequestTransactionsForEpoch(destShardID uint32, txHashes [][]byte, epoch uint32) {
+	rrh.requestByHashes(destShardID, txHashes, factory.TransactionTopic, uniqueTxSuffix, epoch)
+}
+
+func (rrh *resolverRequestHandler) requestByHashes(destShardID uint32, hashes [][]byte, topic string, abbreviatedTopic string, epoch uint32) {
 	suffix := fmt.Sprintf("%s_%d", abbreviatedTopic, destShardID)
 	unrequestedHashes := rrh.getUnrequestedHashes(hashes, suffix)
 	if len(unrequestedHashes) == 0 {
@@ -125,6 +132,7 @@ func (rrh *resolverRequestHandler) requestByHashes(destShardID uint32, hashes []
 	}
 	log.Debug("requesting transactions from network",
 		"topic", topic,
+		"epoch", epoch,
 		"shard", destShardID,
 		"num txs", len(unrequestedHashes),
 	)
@@ -133,6 +141,7 @@ func (rrh *resolverRequestHandler) requestByHashes(destShardID uint32, hashes []
 		log.Error("requestByHashes.CrossShardRequester",
 			"error", err.Error(),
 			"topic", topic,
+			"epoch", epoch,
 			"shard", destShardID,
 		)
 		return
@@ -153,7 +162,7 @@ func (rrh *resolverRequestHandler) requestByHashes(destShardID uint32, hashes []
 
 	rrh.whiteList.Add(unrequestedHashes)
 
-	go rrh.requestHashesWithDataSplit(unrequestedHashes, txRequester)
+	go rrh.requestHashesWithDataSplit(unrequestedHashes, txRequester, epoch)
 
 	rrh.addRequestedItems(unrequestedHashes, suffix)
 }
@@ -161,6 +170,7 @@ func (rrh *resolverRequestHandler) requestByHashes(destShardID uint32, hashes []
 func (rrh *resolverRequestHandler) requestHashesWithDataSplit(
 	unrequestedHashes [][]byte,
 	requester HashSliceRequester,
+	epoch uint32,
 ) {
 	dataSplit := &partitioning.DataSplit{}
 	sliceBatches, err := dataSplit.SplitDataInChunks(unrequestedHashes, rrh.maxTxsToRequest)
@@ -172,7 +182,6 @@ func (rrh *resolverRequestHandler) requestHashesWithDataSplit(
 		)
 	}
 
-	epoch := rrh.getEpoch()
 	for _, batch := range sliceBatches {
 		err = requester.RequestDataFromHashArray(batch, epoch)
 		if err != nil {
@@ -202,16 +211,34 @@ func (rrh *resolverRequestHandler) requestReferenceWithChunkIndex(
 
 // RequestUnsignedTransactions method asks for unsigned transactions from the connected peers
 func (rrh *resolverRequestHandler) RequestUnsignedTransactions(destShardID uint32, scrHashes [][]byte) {
-	rrh.requestByHashes(destShardID, scrHashes, factory.UnsignedTransactionTopic, uniqueScrSuffix)
+	epoch := rrh.getEpoch()
+	rrh.requestByHashes(destShardID, scrHashes, factory.UnsignedTransactionTopic, uniqueScrSuffix, epoch)
+}
+
+// RequestUnsignedTransactionsForEpoch method asks for unsigned transactions from the connected peers for a specific epoch
+func (rrh *resolverRequestHandler) RequestUnsignedTransactionsForEpoch(destShardID uint32, scrHashes [][]byte, epoch uint32) {
+	rrh.requestByHashes(destShardID, scrHashes, factory.UnsignedTransactionTopic, uniqueScrSuffix, epoch)
 }
 
 // RequestRewardTransactions requests for reward transactions from the connected peers
 func (rrh *resolverRequestHandler) RequestRewardTransactions(destShardID uint32, rewardTxHashes [][]byte) {
-	rrh.requestByHashes(destShardID, rewardTxHashes, factory.RewardsTransactionTopic, uniqueRwdSuffix)
+	epoch := rrh.getEpoch()
+	rrh.requestByHashes(destShardID, rewardTxHashes, factory.RewardsTransactionTopic, uniqueRwdSuffix, epoch)
 }
 
-// RequestMiniBlock method asks for miniblock from the connected peers
-func (rrh *resolverRequestHandler) RequestMiniBlock(destShardID uint32, miniblockHash []byte) {
+// RequestRewardTransactionsForEpoch requests for reward transactions from the connected peers for a specific epoch
+func (rrh *resolverRequestHandler) RequestRewardTransactionsForEpoch(destShardID uint32, rewardTxHashes [][]byte, epoch uint32) {
+	rrh.requestByHashes(destShardID, rewardTxHashes, factory.RewardsTransactionTopic, uniqueRwdSuffix, epoch)
+}
+
+// RequestMiniBlock method asks for miniBlock from the connected peers
+func (rrh *resolverRequestHandler) RequestMiniBlock(destShardID uint32, miniBlockHash []byte) {
+	epoch := rrh.getEpoch()
+	rrh.RequestMiniBlockForEpoch(destShardID, miniBlockHash, epoch)
+}
+
+// RequestMiniBlockForEpoch method asks for miniblock from the connected peers for a specific epoch
+func (rrh *resolverRequestHandler) RequestMiniBlockForEpoch(destShardID uint32, miniblockHash []byte, epoch uint32) {
 	suffix := fmt.Sprintf("%s_%d", uniqueMiniblockSuffix, destShardID)
 	if !rrh.testIfRequestIsNeeded(miniblockHash, suffix) {
 		return
@@ -219,15 +246,17 @@ func (rrh *resolverRequestHandler) RequestMiniBlock(destShardID uint32, minibloc
 
 	log.Debug("requesting miniblock from network",
 		"topic", factory.MiniBlocksTopic,
+		"epoch", epoch,
 		"shard", destShardID,
 		"hash", miniblockHash,
 	)
 
 	requester, err := rrh.requestersFinder.CrossShardRequester(factory.MiniBlocksTopic, destShardID)
 	if err != nil {
-		log.Error("RequestMiniBlock.CrossShardRequester",
+		log.Error("RequestMiniBlockForEpoch.CrossShardRequester",
 			"error", err.Error(),
 			"topic", factory.MiniBlocksTopic,
+			"epoch", epoch,
 			"shard", destShardID,
 		)
 		return
@@ -235,10 +264,9 @@ func (rrh *resolverRequestHandler) RequestMiniBlock(destShardID uint32, minibloc
 
 	rrh.whiteList.Add([][]byte{miniblockHash})
 
-	epoch := rrh.getEpoch()
 	err = requester.RequestDataFromHash(miniblockHash, epoch)
 	if err != nil {
-		log.Debug("RequestMiniBlock.RequestDataFromHash",
+		log.Debug("RequestMiniBlockForEpoch.RequestDataFromHash",
 			"error", err.Error(),
 			"epoch", epoch,
 			"hash", miniblockHash,
@@ -249,24 +277,32 @@ func (rrh *resolverRequestHandler) RequestMiniBlock(destShardID uint32, minibloc
 	rrh.addRequestedItems([][]byte{miniblockHash}, suffix)
 }
 
-// RequestMiniBlocks method asks for miniblocks from the connected peers
-func (rrh *resolverRequestHandler) RequestMiniBlocks(destShardID uint32, miniblocksHashes [][]byte) {
+// RequestMiniBlocks method asks for miniBlocks from the connected peers
+func (rrh *resolverRequestHandler) RequestMiniBlocks(destShardID uint32, miniBlocksHashes [][]byte) {
+	epoch := rrh.getEpoch()
+	rrh.RequestMiniBlocksForEpoch(destShardID, miniBlocksHashes, epoch)
+}
+
+// RequestMiniBlocksForEpoch method asks for miniBlocks from the connected peers for a specific epoch
+func (rrh *resolverRequestHandler) RequestMiniBlocksForEpoch(destShardID uint32, miniBlocksHashes [][]byte, epoch uint32) {
 	suffix := fmt.Sprintf("%s_%d", uniqueMiniblockSuffix, destShardID)
-	unrequestedHashes := rrh.getUnrequestedHashes(miniblocksHashes, suffix)
+	unrequestedHashes := rrh.getUnrequestedHashes(miniBlocksHashes, suffix)
 	if len(unrequestedHashes) == 0 {
 		return
 	}
 	log.Debug("requesting miniblocks from network",
 		"topic", factory.MiniBlocksTopic,
+		"epoch", epoch,
 		"shard", destShardID,
 		"num mbs", len(unrequestedHashes),
 	)
 
 	requester, err := rrh.requestersFinder.CrossShardRequester(factory.MiniBlocksTopic, destShardID)
 	if err != nil {
-		log.Error("RequestMiniBlocks.CrossShardRequester",
+		log.Error("RequestMiniBlocksForEpoch.CrossShardRequester",
 			"error", err.Error(),
 			"topic", factory.MiniBlocksTopic,
+			"epoch", epoch,
 			"shard", destShardID,
 		)
 		return
@@ -280,10 +316,9 @@ func (rrh *resolverRequestHandler) RequestMiniBlocks(destShardID uint32, miniblo
 
 	rrh.whiteList.Add(unrequestedHashes)
 
-	epoch := rrh.getEpoch()
 	err = miniBlocksRequester.RequestDataFromHashArray(unrequestedHashes, epoch)
 	if err != nil {
-		log.Debug("RequestMiniBlocks.RequestDataFromHashArray",
+		log.Debug("RequestMiniBlocksForEpoch.RequestDataFromHashArray",
 			"error", err.Error(),
 			"epoch", epoch,
 			"num mbs", len(unrequestedHashes),
@@ -296,22 +331,27 @@ func (rrh *resolverRequestHandler) RequestMiniBlocks(destShardID uint32, miniblo
 
 // RequestShardHeader method asks for shard header from the connected peers
 func (rrh *resolverRequestHandler) RequestShardHeader(shardID uint32, hash []byte) {
+	epoch := rrh.getEpoch()
+	rrh.RequestShardHeaderForEpoch(shardID, hash, epoch)
+}
+
+// RequestShardHeaderForEpoch method asks for shard header from the connected peers for a specific epoch
+func (rrh *resolverRequestHandler) RequestShardHeaderForEpoch(shardID uint32, hash []byte, epoch uint32) {
 	suffix := fmt.Sprintf("%s_%d", uniqueHeadersSuffix, shardID)
 	if !rrh.testIfRequestIsNeeded(hash, suffix) {
 		return
 	}
 
-	epoch := rrh.getEpoch()
 	log.Debug("requesting shard header from network",
 		"shard", shardID,
 		"hash", hash,
 		"epoch", epoch,
 	)
-
 	headerRequester, err := rrh.getShardHeaderRequester(shardID)
 	if err != nil {
-		log.Error("RequestShardHeader.getShardHeaderRequester",
+		log.Error("RequestShardHeaderForEpoch.getShardHeaderRequester",
 			"error", err.Error(),
+			"epoch", epoch,
 			"shard", shardID,
 		)
 		return
@@ -321,7 +361,7 @@ func (rrh *resolverRequestHandler) RequestShardHeader(shardID uint32, hash []byt
 
 	err = headerRequester.RequestDataFromHash(hash, epoch)
 	if err != nil {
-		log.Debug("RequestShardHeader.RequestDataFromHash",
+		log.Debug("RequestShardHeaderForEpoch.RequestDataFromHash",
 			"error", err.Error(),
 			"epoch", epoch,
 			"hash", hash,
@@ -334,18 +374,25 @@ func (rrh *resolverRequestHandler) RequestShardHeader(shardID uint32, hash []byt
 
 // RequestMetaHeader method asks for meta header from the connected peers
 func (rrh *resolverRequestHandler) RequestMetaHeader(hash []byte) {
+	epoch := rrh.getEpoch()
+	rrh.RequestMetaHeaderForEpoch(hash, epoch)
+}
+
+// RequestMetaHeaderForEpoch method asks for meta header from the connected peers for a specific epoch
+func (rrh *resolverRequestHandler) RequestMetaHeaderForEpoch(hash []byte, epoch uint32) {
 	if !rrh.testIfRequestIsNeeded(hash, uniqueMetaHeadersSuffix) {
 		return
 	}
-
 	log.Debug("requesting meta header from network",
+		"epoch", epoch,
 		"hash", hash,
 	)
 
 	requester, err := rrh.getMetaHeaderRequester()
 	if err != nil {
-		log.Error("RequestMetaHeader.getMetaHeaderRequester",
+		log.Error("RequestMetaHeaderForEpoch.getMetaHeaderRequester",
 			"error", err.Error(),
+			"epoch", epoch,
 			"hash", hash,
 		)
 		return
@@ -358,11 +405,9 @@ func (rrh *resolverRequestHandler) RequestMetaHeader(hash []byte) {
 	}
 
 	rrh.whiteList.Add([][]byte{hash})
-
-	epoch := rrh.getEpoch()
 	err = headerRequester.RequestDataFromHash(hash, epoch)
 	if err != nil {
-		log.Debug("RequestMetaHeader.RequestDataFromHash",
+		log.Debug("RequestMetaHeaderForEpoch.RequestDataFromHash",
 			"error", err.Error(),
 			"epoch", epoch,
 			"hash", hash,
@@ -375,6 +420,12 @@ func (rrh *resolverRequestHandler) RequestMetaHeader(hash []byte) {
 
 // RequestShardHeaderByNonce method asks for shard header from the connected peers by nonce
 func (rrh *resolverRequestHandler) RequestShardHeaderByNonce(shardID uint32, nonce uint64) {
+	epoch := rrh.getEpoch()
+	rrh.RequestShardHeaderByNonceForEpoch(shardID, nonce, epoch)
+}
+
+// RequestShardHeaderByNonceForEpoch method asks for shard header from the connected peers by nonce and epoch
+func (rrh *resolverRequestHandler) RequestShardHeaderByNonceForEpoch(shardID uint32, nonce uint64, epoch uint32) {
 	suffix := fmt.Sprintf("%s_%d", uniqueHeadersSuffix, shardID)
 	key := []byte(fmt.Sprintf("%d-%d", shardID, nonce))
 	if !rrh.testIfRequestIsNeeded(key, suffix) {
@@ -384,12 +435,14 @@ func (rrh *resolverRequestHandler) RequestShardHeaderByNonce(shardID uint32, non
 	log.Debug("requesting shard header by nonce from network",
 		"shard", shardID,
 		"nonce", nonce,
+		"epoch", epoch,
 	)
 
 	requester, err := rrh.getShardHeaderRequester(shardID)
 	if err != nil {
-		log.Error("RequestShardHeaderByNonce.getShardHeaderRequester",
+		log.Error("RequestShardHeaderByNonceForEpoch.getShardHeaderRequester",
 			"error", err.Error(),
+			"epoch", epoch,
 			"shard", shardID,
 		)
 		return
@@ -403,10 +456,9 @@ func (rrh *resolverRequestHandler) RequestShardHeaderByNonce(shardID uint32, non
 
 	rrh.whiteList.Add([][]byte{key})
 
-	epoch := rrh.getEpoch()
 	err = headerRequester.RequestDataFromNonce(nonce, epoch)
 	if err != nil {
-		log.Debug("RequestShardHeaderByNonce.RequestDataFromNonce",
+		log.Debug("RequestShardHeaderByNonceForEpoch.RequestDataFromNonce",
 			"error", err.Error(),
 			"epoch", epoch,
 			"nonce", nonce,
@@ -419,6 +471,12 @@ func (rrh *resolverRequestHandler) RequestShardHeaderByNonce(shardID uint32, non
 
 // RequestTrieNodes method asks for trie nodes from the connected peers
 func (rrh *resolverRequestHandler) RequestTrieNodes(destShardID uint32, hashes [][]byte, topic string) {
+	epoch := rrh.getEpoch()
+	rrh.RequestTrieNodesForEpoch(destShardID, hashes, topic, epoch)
+}
+
+// RequestTrieNodesForEpoch method asks for trie nodes from the connected peers for a specific epoch
+func (rrh *resolverRequestHandler) RequestTrieNodesForEpoch(destShardID uint32, hashes [][]byte, topic string, epoch uint32) {
 	unrequestedHashes := rrh.getUnrequestedHashes(hashes, uniqueTrieNodesSuffix)
 	if len(unrequestedHashes) == 0 {
 		return
@@ -447,6 +505,7 @@ func (rrh *resolverRequestHandler) RequestTrieNodes(destShardID uint32, hashes [
 
 	log.Trace("requesting trie nodes from network",
 		"topic", topic,
+		"epoch", epoch,
 		"shard", destShardID,
 		"num nodes", len(rrh.trieHashesAccumulator),
 		"firstHash", unrequestedHashes[0],
@@ -458,6 +517,7 @@ func (rrh *resolverRequestHandler) RequestTrieNodes(destShardID uint32, hashes [
 		log.Error("requestersFinder.MetaCrossShardRequester",
 			"error", err.Error(),
 			"topic", topic,
+			"epoch", epoch,
 			"shard", destShardID,
 		)
 		return
@@ -471,7 +531,7 @@ func (rrh *resolverRequestHandler) RequestTrieNodes(destShardID uint32, hashes [
 
 	rrh.logTrieHashesFromAccumulator()
 
-	go rrh.requestHashesWithDataSplit(itemsToRequest, trieRequester)
+	go rrh.requestHashesWithDataSplit(itemsToRequest, trieRequester, epoch)
 
 	rrh.addRequestedItems(itemsToRequest, uniqueTrieNodesSuffix)
 	rrh.lastTrieRequestTime = time.Now()
@@ -535,6 +595,12 @@ func (rrh *resolverRequestHandler) logTrieHashesFromAccumulator() {
 
 // RequestMetaHeaderByNonce method asks for meta header from the connected peers by nonce
 func (rrh *resolverRequestHandler) RequestMetaHeaderByNonce(nonce uint64) {
+	epoch := rrh.getEpoch()
+	rrh.RequestMetaHeaderByNonceForEpoch(nonce, epoch)
+}
+
+// RequestMetaHeaderByNonceForEpoch method asks for meta header from the connected peers by nonce and epoch
+func (rrh *resolverRequestHandler) RequestMetaHeaderByNonceForEpoch(nonce uint64, epoch uint32) {
 	key := []byte(fmt.Sprintf("%d-%d", core.MetachainShardId, nonce))
 	if !rrh.testIfRequestIsNeeded(key, uniqueMetaHeadersSuffix) {
 		return
@@ -542,22 +608,21 @@ func (rrh *resolverRequestHandler) RequestMetaHeaderByNonce(nonce uint64) {
 
 	log.Debug("requesting meta header by nonce from network",
 		"nonce", nonce,
+		"epoch", epoch,
 	)
 
 	headerRequester, err := rrh.getMetaHeaderRequester()
 	if err != nil {
-		log.Error("RequestMetaHeaderByNonce.getMetaHeaderRequester",
+		log.Error("RequestMetaHeaderByNonceForEpoch.getMetaHeaderRequester",
 			"error", err.Error(),
 		)
 		return
 	}
 
 	rrh.whiteList.Add([][]byte{key})
-
-	epoch := rrh.getEpoch()
 	err = headerRequester.RequestDataFromNonce(nonce, epoch)
 	if err != nil {
-		log.Debug("RequestMetaHeaderByNonce.RequestDataFromNonce",
+		log.Debug("RequestMetaHeaderByNonceForEpoch.RequestDataFromNonce",
 			"error", err.Error(),
 			"epoch", epoch,
 			"nonce", nonce,
@@ -570,11 +635,15 @@ func (rrh *resolverRequestHandler) RequestMetaHeaderByNonce(nonce uint64) {
 
 // RequestValidatorInfo asks for the validator info associated with a specific hash from connected peers
 func (rrh *resolverRequestHandler) RequestValidatorInfo(hash []byte) {
+	epoch := rrh.getEpoch()
+	rrh.RequestValidatorInfoForEpoch(hash, epoch)
+}
+
+// RequestValidatorInfoForEpoch asks for the validator info associated with a specific hash from connected peers for a specific epoch
+func (rrh *resolverRequestHandler) RequestValidatorInfoForEpoch(hash []byte, epoch uint32) {
 	if !rrh.testIfRequestIsNeeded(hash, uniqueValidatorInfoSuffix) {
 		return
 	}
-
-	epoch := rrh.getEpoch()
 
 	log.Debug("requesting validator info messages from network",
 		"topic", common.ValidatorInfoTopic,
@@ -584,7 +653,7 @@ func (rrh *resolverRequestHandler) RequestValidatorInfo(hash []byte) {
 
 	requester, err := rrh.requestersFinder.MetaChainRequester(common.ValidatorInfoTopic)
 	if err != nil {
-		log.Error("RequestValidatorInfo.MetaChainRequester",
+		log.Error("RequestValidatorInfoForEpoch.MetaChainRequester",
 			"error", err.Error(),
 			"topic", common.ValidatorInfoTopic,
 			"hash", hash,
@@ -597,7 +666,7 @@ func (rrh *resolverRequestHandler) RequestValidatorInfo(hash []byte) {
 
 	err = requester.RequestDataFromHash(hash, epoch)
 	if err != nil {
-		log.Debug("RequestValidatorInfo.RequestDataFromHash",
+		log.Debug("RequestValidatorInfoForEpoch.RequestDataFromHash",
 			"error", err.Error(),
 			"topic", common.ValidatorInfoTopic,
 			"hash", hash,
@@ -611,12 +680,16 @@ func (rrh *resolverRequestHandler) RequestValidatorInfo(hash []byte) {
 
 // RequestValidatorsInfo asks for the validators` info associated with the specified hashes from connected peers
 func (rrh *resolverRequestHandler) RequestValidatorsInfo(hashes [][]byte) {
+	epoch := rrh.getEpoch()
+	rrh.RequestValidatorsInfoForEpoch(hashes, epoch)
+}
+
+// RequestValidatorsInfoForEpoch asks for the validators` info associated with the specified hashes from connected peers for a specific epoch
+func (rrh *resolverRequestHandler) RequestValidatorsInfoForEpoch(hashes [][]byte, epoch uint32) {
 	unrequestedHashes := rrh.getUnrequestedHashes(hashes, uniqueValidatorInfoSuffix)
 	if len(unrequestedHashes) == 0 {
 		return
 	}
-
-	epoch := rrh.getEpoch()
 
 	log.Debug("requesting validator info messages from network",
 		"topic", common.ValidatorInfoTopic,
@@ -626,7 +699,7 @@ func (rrh *resolverRequestHandler) RequestValidatorsInfo(hashes [][]byte) {
 
 	requester, err := rrh.requestersFinder.MetaChainRequester(common.ValidatorInfoTopic)
 	if err != nil {
-		log.Error("RequestValidatorInfo.MetaChainRequester",
+		log.Error("RequestValidatorsInfoForEpoch.MetaChainRequester",
 			"error", err.Error(),
 			"topic", common.ValidatorInfoTopic,
 			"num hashes", len(unrequestedHashes),
@@ -645,7 +718,7 @@ func (rrh *resolverRequestHandler) RequestValidatorsInfo(hashes [][]byte) {
 
 	err = validatorInfoRequester.RequestDataFromHashArray(unrequestedHashes, epoch)
 	if err != nil {
-		log.Debug("RequestValidatorInfo.RequestDataFromHash",
+		log.Debug("RequestValidatorsInfoForEpoch.RequestDataFromHash",
 			"error", err.Error(),
 			"topic", common.ValidatorInfoTopic,
 			"num hashes", len(unrequestedHashes),
@@ -835,7 +908,11 @@ func (rrh *resolverRequestHandler) GetNumPeersToQuery(key string) (int, int, err
 // RequestPeerAuthenticationsByHashes asks for peer authentication messages from specific peers hashes
 func (rrh *resolverRequestHandler) RequestPeerAuthenticationsByHashes(destShardID uint32, hashes [][]byte) {
 	epoch := rrh.getEpoch()
+	rrh.RequestPeerAuthenticationsByHashesForEpoch(destShardID, hashes, epoch)
+}
 
+// RequestPeerAuthenticationsByHashesForEpoch asks for peer authentication messages from specific peers hashes for a specific epoch
+func (rrh *resolverRequestHandler) RequestPeerAuthenticationsByHashesForEpoch(destShardID uint32, hashes [][]byte, epoch uint32) {
 	log.Debug("requesting peer authentication messages from network",
 		"topic", common.PeerAuthenticationTopic,
 		"shard", destShardID,
@@ -845,7 +922,7 @@ func (rrh *resolverRequestHandler) RequestPeerAuthenticationsByHashes(destShardI
 
 	requester, err := rrh.requestersFinder.MetaChainRequester(common.PeerAuthenticationTopic)
 	if err != nil {
-		log.Error("RequestPeerAuthenticationsByHashes.MetaChainRequester",
+		log.Error("RequestPeerAuthenticationsByHashesForEpoch.MetaChainRequester",
 			"error", err.Error(),
 			"topic", common.PeerAuthenticationTopic,
 			"shard", destShardID,
@@ -862,7 +939,7 @@ func (rrh *resolverRequestHandler) RequestPeerAuthenticationsByHashes(destShardI
 
 	err = peerAuthRequester.RequestDataFromHashArray(hashes, epoch)
 	if err != nil {
-		log.Debug("RequestPeerAuthenticationsByHashes.RequestDataFromHashArray",
+		log.Debug("RequestPeerAuthenticationsByHashesForEpoch.RequestDataFromHashArray",
 			"error", err.Error(),
 			"topic", common.PeerAuthenticationTopic,
 			"shard", destShardID,
@@ -873,11 +950,16 @@ func (rrh *resolverRequestHandler) RequestPeerAuthenticationsByHashes(destShardI
 
 // RequestEquivalentProofByHash asks for equivalent proof for the provided header hash
 func (rrh *resolverRequestHandler) RequestEquivalentProofByHash(headerShard uint32, headerHash []byte) {
+	epoch := rrh.getEpoch()
+	rrh.RequestEquivalentProofByHashForEpoch(headerShard, headerHash, epoch)
+}
+
+// RequestEquivalentProofByHashForEpoch asks for equivalent proof for the provided header hash and epoch
+func (rrh *resolverRequestHandler) RequestEquivalentProofByHashForEpoch(headerShard uint32, headerHash []byte, epoch uint32) {
 	if !rrh.testIfRequestIsNeeded(headerHash, uniqueEquivalentProofSuffix) {
 		return
 	}
 
-	epoch := rrh.getEpoch()
 	encodedHash := hex.EncodeToString(headerHash)
 	log.Debug("requesting equivalent proof from network",
 		"headerHash", encodedHash,
@@ -887,7 +969,7 @@ func (rrh *resolverRequestHandler) RequestEquivalentProofByHash(headerShard uint
 
 	requester, err := rrh.getEquivalentProofsRequester(headerShard)
 	if err != nil {
-		log.Error("RequestEquivalentProofByHash.getEquivalentProofsRequester",
+		log.Error("RequestEquivalentProofByHashForEpoch.getEquivalentProofsRequester",
 			"error", err.Error(),
 			"headerHash", encodedHash,
 			"epoch", epoch,
@@ -900,7 +982,7 @@ func (rrh *resolverRequestHandler) RequestEquivalentProofByHash(headerShard uint
 	requestKey := fmt.Sprintf("%s-%d", encodedHash, headerShard)
 	err = requester.RequestDataFromHash([]byte(requestKey), epoch)
 	if err != nil {
-		log.Debug("RequestEquivalentProofByHash.RequestDataFromHash",
+		log.Debug("RequestEquivalentProofByHashForEpoch.RequestDataFromHash",
 			"error", err.Error(),
 			"headerHash", encodedHash,
 			"headerShard", headerShard,
@@ -914,12 +996,17 @@ func (rrh *resolverRequestHandler) RequestEquivalentProofByHash(headerShard uint
 
 // RequestEquivalentProofByNonce asks for equivalent proof for the provided header nonce
 func (rrh *resolverRequestHandler) RequestEquivalentProofByNonce(headerShard uint32, headerNonce uint64) {
+	epoch := rrh.getEpoch()
+	rrh.RequestEquivalentProofByNonceForEpoch(headerShard, headerNonce, epoch)
+}
+
+// RequestEquivalentProofByNonceForEpoch asks for equivalent proof for the provided header nonce and epoch
+func (rrh *resolverRequestHandler) RequestEquivalentProofByNonceForEpoch(headerShard uint32, headerNonce uint64, epoch uint32) {
 	key := common.GetEquivalentProofNonceShardKey(headerNonce, headerShard)
 	if !rrh.testIfRequestIsNeeded([]byte(key), uniqueEquivalentProofSuffix) {
 		return
 	}
 
-	epoch := rrh.getEpoch()
 	log.Debug("requesting equivalent proof by nonce from network",
 		"headerNonce", headerNonce,
 		"headerShard", headerShard,
@@ -928,7 +1015,7 @@ func (rrh *resolverRequestHandler) RequestEquivalentProofByNonce(headerShard uin
 
 	requester, err := rrh.getEquivalentProofsRequester(headerShard)
 	if err != nil {
-		log.Error("RequestEquivalentProofByNonce.getEquivalentProofsRequester",
+		log.Error("RequestEquivalentProofByNonceForEpoch.getEquivalentProofsRequester",
 			"error", err.Error(),
 			"headerNonce", headerNonce,
 		)
@@ -945,7 +1032,7 @@ func (rrh *resolverRequestHandler) RequestEquivalentProofByNonce(headerShard uin
 
 	err = proofsRequester.RequestDataFromNonce([]byte(key), epoch)
 	if err != nil {
-		log.Debug("RequestEquivalentProofByNonce.RequestDataFromNonce",
+		log.Debug("RequestEquivalentProofByNonceForEpoch.RequestDataFromNonce",
 			"error", err.Error(),
 			"headerNonce", headerNonce,
 			"headerShard", headerShard,

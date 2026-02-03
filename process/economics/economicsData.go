@@ -220,6 +220,11 @@ func (ed *economicsData) MaxGasPriceSetGuardian() uint64 {
 	return ed.maxGasPriceSetGuardian
 }
 
+// BlockCapacityOverestimationFactor returns the block capacity overestimation factor
+func (ed *economicsData) BlockCapacityOverestimationFactor() uint64 {
+	return ed.blockCapacityOverestimationFactor
+}
+
 // GasPerDataByte returns the gas required for a economicsData byte
 func (ed *economicsData) GasPerDataByte() uint64 {
 	return ed.gasPerDataByte
@@ -346,7 +351,7 @@ func (ed *economicsData) CheckValidityTxValuesInEpoch(tx data.TransactionWithFee
 	}
 
 	// The following check should be kept as it is in order to avoid backwards compatibility issues
-	if tx.GetGasLimit() >= ed.getMaxGasLimitPerBlock(epoch) {
+	if tx.GetGasLimit() > ed.getMaxGasLimitPerBlock(epoch) {
 		return process.ErrMoreGasThanGasLimitPerBlock
 	}
 
