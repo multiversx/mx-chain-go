@@ -940,7 +940,6 @@ func (sp *shardProcessor) saveEpochStartEconomicsIfNeeded(header data.ShardHeade
 
 	// if epoch change header found, extract epoch change proposed header
 	var metaEpochChangeProposedHeader data.MetaHeaderHandler
-	var metaEpochChangeProposedHeaderHash []byte
 	for _, execResult := range metaEpochChangeHeader.GetExecutionResultsHandlers() {
 		hdr, err := sp.getHeaderFromHash(header.IsHeaderV3(), execResult.GetHeaderHash(), core.MetachainShardId)
 		if err != nil {
@@ -956,7 +955,6 @@ func (sp *shardProcessor) saveEpochStartEconomicsIfNeeded(header data.ShardHeade
 		}
 
 		metaEpochChangeProposedHeader = metaHdr
-		metaEpochChangeProposedHeaderHash = execResult.GetHeaderHash()
 		break
 	}
 
