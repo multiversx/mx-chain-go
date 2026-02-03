@@ -178,3 +178,20 @@ func (virtualSession *virtualSelectionSession) detectWillBalanceBeExceeded(tx *W
 func (virtualSession *virtualSelectionSession) isIncorrectlyGuarded(tx data.TransactionHandler) bool {
 	return virtualSession.session.IsIncorrectlyGuarded(tx)
 }
+
+func (virtualSession *virtualSelectionSession) setChangeGuardianIfNeeded(tx data.TransactionHandler) {
+	if !virtualSession.session.IsGuarded(tx) {
+		return
+	}
+
+	if virtualSession.isIncorrectlyGuarded(tx) {
+		return
+	}
+
+	record, err := virtualSession.getRecord(tx.GetSndAddr())
+	if err != nil {
+		return
+	}
+
+	record.hasPendingChangeGuardianTransaction = true
+}

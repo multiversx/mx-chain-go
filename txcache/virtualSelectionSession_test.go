@@ -475,3 +475,37 @@ func TestBenchmarkVirtualSelectionSession_getRecord(t *testing.T) {
 	// 0.016253s (TestBenchmarkVirtualSelectionSession_getNonce/_numAccounts_=_10_000,_numTransactionsPerAccount=_3)
 	// 0.028861s (TestBenchmarkVirtualSelectionSession_getNonce/_numAccounts_=_30_000,_numTransactionsPerAccount=_1)
 }
+
+func Test_setChangeGuardianIfNeeded(t *testing.T) {
+	a := createTx([]byte("tx-1"), "alice", 42)
+	b := createTx([]byte("tx-2"), "alice", 43)
+	c := createTx([]byte("tx-3"), "alice", 44).withData([]byte("SetGuardian@newGuardian")).withGasLimit(100000)
+
+	session := txcachemocks.NewSelectionSessionMock()
+	session.IsIncorrectlyGuardedCalled = func(tx data.TransactionHandler) bool {
+		return tx.GetNonce() == b.Tx.GetNonce() // for coverage
+	}
+	session.IsGuardedCalled = func(tx data.TransactionHandler) bool {
+		return tx.GetNonce() == b.Tx.GetNonce() ||
+			tx.GetNonce() == c.Tx.GetNonce()
+	}
+	virtualSession := newVirtualSelectionSession(session, make(map[string]*virtualAccountRecord))
+
+	// regular tx, not guarded
+	virtualSession.setChangeGuardianIfNeeded(a.Tx)
+	virtualRecord1, err := virtualSession.getRecord([]byte("alice"))
+	require.NoError(t, err)
+	require.False(t, virtualRecord1.hasPendingChangeGuardian())
+
+	// incorrectly guarded
+	virtualSession.setChangeGuardianIfNeeded(b.Tx)
+	virtualRecord1, err = virtualSession.getRecord([]byte("alice"))
+	require.NoError(t, err)
+	require.False(t, virtualRecord1.hasPendingChangeGuardian())
+
+	// correctly guarded
+	virtualSession.setChangeGuardianIfNeeded(c.Tx)
+	virtualRecord1, err = virtualSession.getRecord([]byte("alice"))
+	require.NoError(t, err)
+	require.True(t, virtualRecord1.hasPendingChangeGuardian())
+}
