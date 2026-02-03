@@ -26,6 +26,11 @@ func (e *epochStartTrigger) ShouldProposeEpochChange(_ uint64, _ uint64) bool {
 func (e *epochStartTrigger) SetEpochChangeProposed(_ bool) {
 }
 
+// GetEpochChangeProposed -
+func (e *epochStartTrigger) GetEpochChangeProposed() bool {
+	return false
+}
+
 // SetEpochChange -
 func (e *epochStartTrigger) SetEpochChange(_ uint64) {}
 

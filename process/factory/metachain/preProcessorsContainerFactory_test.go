@@ -321,5 +321,6 @@ func createPreProcessorContainerFactoryArgs() metachain.ArgsPreProcessorsContain
 		ProcessedMiniBlocksTracker:   &testscommon.ProcessedMiniBlocksTrackerStub{},
 		TxExecutionOrderHandler:      &commonMock.TxExecutionOrderHandlerStub{},
 		TxCacheSelectionConfig:       createMockTxCacheSelectionConfig(),
+		TxVersionCheckerHandler:      &testscommon.TxVersionCheckerStub{},
 	}
 }

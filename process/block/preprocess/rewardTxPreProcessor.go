@@ -71,6 +71,7 @@ func NewRewardTxPreprocessor(args RewardsPreProcessorArgs) (*rewardTxPreprocesso
 		txExecutionOrderHandler:    args.TxExecutionOrderHandler,
 		enableEpochsHandler:        args.EnableEpochsHandler,
 		enableRoundsHandler:        args.EnableRoundsHandler,
+		feeHandler:                 args.EconomicsFee,
 	}
 
 	args.EpochNotifier.RegisterNotifyHandler(bpp)

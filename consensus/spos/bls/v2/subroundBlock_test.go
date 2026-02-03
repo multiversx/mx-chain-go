@@ -19,7 +19,7 @@ import (
 	"github.com/multiversx/mx-chain-go/consensus/spos"
 	"github.com/multiversx/mx-chain-go/consensus/spos/bls"
 	v2 "github.com/multiversx/mx-chain-go/consensus/spos/bls/v2"
-	"github.com/multiversx/mx-chain-go/process/asyncExecution/queue"
+	"github.com/multiversx/mx-chain-go/process/asyncExecution/cache"
 	"github.com/multiversx/mx-chain-go/sharding/nodesCoordinator"
 	"github.com/multiversx/mx-chain-go/testscommon"
 	consensusMocks "github.com/multiversx/mx-chain-go/testscommon/consensus"
@@ -1700,7 +1700,7 @@ func TestSubroundBlock_prepareBlockForExecution(t *testing.T) {
 			},
 		})
 		container.SetExecutionManager(&processMocks.ExecutionManagerMock{
-			AddPairForExecutionCalled: func(_ queue.HeaderBodyPair) error {
+			AddPairForExecutionCalled: func(_ cache.HeaderBodyPair) error {
 				addPairCalled = true
 				return nil
 			},
@@ -1730,7 +1730,7 @@ func TestSubroundBlock_prepareBlockForExecution(t *testing.T) {
 			},
 		})
 		container.SetExecutionManager(&processMocks.ExecutionManagerMock{
-			AddPairForExecutionCalled: func(_ queue.HeaderBodyPair) error {
+			AddPairForExecutionCalled: func(_ cache.HeaderBodyPair) error {
 				callOrder = append(callOrder, "AddPairForExecution")
 				return nil
 			},
@@ -1761,7 +1761,7 @@ func TestSubroundBlock_prepareBlockForExecution(t *testing.T) {
 			},
 		})
 		container.SetExecutionManager(&processMocks.ExecutionManagerMock{
-			AddPairForExecutionCalled: func(_ queue.HeaderBodyPair) error {
+			AddPairForExecutionCalled: func(_ cache.HeaderBodyPair) error {
 				addPairCalled = true
 				return nil
 			},
@@ -1791,7 +1791,7 @@ func TestSubroundBlock_prepareBlockForExecution(t *testing.T) {
 			},
 		})
 		container.SetExecutionManager(&processMocks.ExecutionManagerMock{
-			AddPairForExecutionCalled: func(_ queue.HeaderBodyPair) error {
+			AddPairForExecutionCalled: func(_ cache.HeaderBodyPair) error {
 				addPairCalled = true
 				return nil
 			},
@@ -1813,7 +1813,7 @@ func TestSubroundBlock_prepareBlockForExecution(t *testing.T) {
 
 		container := consensusMocks.InitConsensusCore()
 		container.SetExecutionManager(&processMocks.ExecutionManagerMock{
-			AddPairForExecutionCalled: func(_ queue.HeaderBodyPair) error {
+			AddPairForExecutionCalled: func(_ cache.HeaderBodyPair) error {
 				return expectedErr
 			},
 		})

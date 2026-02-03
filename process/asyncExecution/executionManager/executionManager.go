@@ -14,14 +14,14 @@ import (
 	"github.com/multiversx/mx-chain-go/process/asyncExecution/disabled"
 	"github.com/multiversx/mx-chain-go/sharding"
 
-	"github.com/multiversx/mx-chain-go/process/asyncExecution/queue"
+	"github.com/multiversx/mx-chain-go/process/asyncExecution/cache"
 )
 
 var log = logger.GetOrCreate("process/asyncExecution/executionManager")
 
 // ArgsExecutionManager holds all the components needed to create a new instance of executionManager
 type ArgsExecutionManager struct {
-	BlocksQueue             process.BlocksQueue
+	BlocksQueue             process.BlocksCache
 	ExecutionResultsTracker process.ExecutionResultsTracker
 	BlockChain              data.ChainHandler
 	Headers                 dataRetriever.HeadersPool
@@ -35,7 +35,7 @@ type ArgsExecutionManager struct {
 type executionManager struct {
 	mut                     sync.RWMutex
 	headersExecutor         process.HeadersExecutor
-	blocksQueue             process.BlocksQueue
+	blocksCache             process.BlocksCache
 	executionResultsTracker process.ExecutionResultsTracker
 	blockChain              data.ChainHandler
 	headers                 dataRetriever.HeadersPool
@@ -78,7 +78,7 @@ func NewExecutionManager(args ArgsExecutionManager) (*executionManager, error) {
 
 	instance := &executionManager{
 		headersExecutor:         disabled.NewHeadersExecutor(),
-		blocksQueue:             args.BlocksQueue,
+		blocksCache:             args.BlocksQueue,
 		executionResultsTracker: args.ExecutionResultsTracker,
 		blockChain:              args.BlockChain,
 		headers:                 args.Headers,
@@ -116,7 +116,7 @@ func (em *executionManager) SetHeadersExecutor(executor process.HeadersExecutor)
 }
 
 // AddPairForExecution adds or replaces a header-body pair in the blocks queue
-func (em *executionManager) AddPairForExecution(pair queue.HeaderBodyPair) error {
+func (em *executionManager) AddPairForExecution(pair cache.HeaderBodyPair) error {
 	// lock the internal mutex to avoid any concurrent removal requests
 	em.mut.Lock()
 	defer em.mut.Unlock()
@@ -140,7 +140,7 @@ func (em *executionManager) AddPairForExecution(pair queue.HeaderBodyPair) error
 		}
 	}
 
-	return em.blocksQueue.AddOrReplace(pair)
+	return em.blocksCache.AddOrReplace(pair)
 }
 
 // GetPendingExecutionResults calls the same method from executionResultsTracker
@@ -160,7 +160,16 @@ func (em *executionManager) SetLastNotarizedResult(executionResult data.BaseExec
 
 // CleanConfirmedExecutionResults calls the same method from executionResultsTracker
 func (em *executionManager) CleanConfirmedExecutionResults(header data.HeaderHandler) error {
+	for _, executionResult := range header.GetExecutionResultsHandlers() {
+		em.blocksCache.Remove(executionResult.GetHeaderNonce())
+	}
+
 	return em.executionResultsTracker.CleanConfirmedExecutionResults(header)
+}
+
+// CleanOnConsensusReached calls the same method from executionResultsTracker
+func (em *executionManager) CleanOnConsensusReached(headerHash []byte, headerNonce uint64) {
+	em.executionResultsTracker.CleanOnConsensusReached(headerHash, headerNonce)
 }
 
 // RemoveAtNonceAndHigher removes the header-body pair at the specified nonce
@@ -192,7 +201,7 @@ func (em *executionManager) RemoveAtNonceAndHigher(nonce uint64) error {
 	em.headersExecutor.PauseExecution()
 
 	// remove from queue
-	removedNonces := em.blocksQueue.RemoveAtNonceAndHigher(nonceToRemove)
+	removedNonces := em.blocksCache.RemoveAtNonceAndHigher(nonceToRemove)
 	if len(removedNonces) > 0 && removedNonces[0] == nonceToRemove {
 		// if the first nonce removed is the initial one,
 		// it means it was still in queue and was not processed.
@@ -241,8 +250,7 @@ func (em *executionManager) ResetAndResumeExecution(lastNotarizedResult data.Bas
 
 	em.executionResultsTracker.Clean(lastNotarizedResult)
 
-	lastNotarizedNonce := lastNotarizedResult.GetHeaderNonce()
-	em.blocksQueue.Clean(lastNotarizedNonce)
+	em.blocksCache.Clean()
 
 	em.headersExecutor.ResumeExecution()
 
@@ -300,8 +308,6 @@ func (em *executionManager) Close() error {
 	if err != nil {
 		log.Warn("executionManager.Close - failed to close headers executor", "error", err)
 	}
-
-	em.blocksQueue.Close()
 
 	return nil
 }

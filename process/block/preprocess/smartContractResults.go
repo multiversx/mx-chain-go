@@ -83,6 +83,7 @@ func NewSmartContractResultPreprocessor(args SmartContractResultsArgs) (*smartCo
 		enableRoundsHandler:        args.EnableRoundsHandler,
 		processedMiniBlocksTracker: args.ProcessedMiniBlocksTracker,
 		txExecutionOrderHandler:    args.TxExecutionOrderHandler,
+		feeHandler:                 args.EconomicsFee,
 	}
 
 	args.EpochNotifier.RegisterNotifyHandler(bpp)
@@ -235,6 +236,8 @@ func (scr *smartContractResults) ProcessBlockTransactions(
 		)
 	}()
 
+	skipBlockLimitChecks := common.IsAsyncExecutionEnabled(scr.enableEpochsHandler, scr.enableRoundsHandler)
+
 	// basic validation already done in interceptors
 	for i := 0; i < len(body.MiniBlocks); i++ {
 		miniBlock := body.MiniBlocks[i]
@@ -260,6 +263,7 @@ func (scr *smartContractResults) ProcessBlockTransactions(
 			return err
 		}
 
+		var gasProvidedByTxInSelfShard uint64
 		for j := indexOfFirstTxToBeProcessed; j <= pi.indexOfLastTxProcessedByProposer; j++ {
 			if !haveTime() {
 				return process.ErrTimeIsOut
@@ -279,12 +283,13 @@ func (scr *smartContractResults) ProcessBlockTransactions(
 			}
 
 			if scr.enableEpochsHandler.IsFlagEnabled(common.OptimizeGasUsedInCrossMiniBlocksFlag) {
-				gasProvidedByTxInSelfShard, err := scr.computeGasProvided(
+				gasProvidedByTxInSelfShard, err = scr.computeGasProvided(
 					miniBlock.SenderShardID,
 					miniBlock.ReceiverShardID,
 					currScr,
 					txHash,
-					&gasInfo)
+					&gasInfo,
+					skipBlockLimitChecks)
 
 				if err != nil {
 					return err
@@ -569,6 +574,7 @@ func (scr *smartContractResults) ProcessMiniBlock(
 		)
 	}()
 
+	skipBlockLimitChecks := common.IsAsyncExecutionEnabled(scr.enableEpochsHandler, scr.enableRoundsHandler)
 	for txIndex = indexOfFirstTxToBeProcessed; txIndex < len(miniBlockScrs); txIndex++ {
 		if !haveTime() {
 			err = process.ErrTimeIsOut
@@ -580,7 +586,8 @@ func (scr *smartContractResults) ProcessMiniBlock(
 			miniBlock.ReceiverShardID,
 			miniBlockScrs[txIndex],
 			miniBlockTxHashes[txIndex],
-			&gasInfo)
+			&gasInfo,
+			skipBlockLimitChecks)
 
 		if err != nil {
 			break
