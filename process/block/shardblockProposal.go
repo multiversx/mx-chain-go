@@ -913,29 +913,25 @@ func (sp *shardProcessor) getOrderedProcessedMetaBlocksFromMiniBlockHashesV3(
 }
 
 func (sp *shardProcessor) saveEpochStartEconomicsIfNeeded(header data.ShardHeaderHandler) {
-	metaEpochChangeHeaderHash, metaEpochChangeHeader := sp.extractEpochChangeHeader(header)
-
-	// if not found, exit
-	if check.IfNil(metaEpochChangeHeader) {
+	metaEpochChangeHeaderHash, metaEpochChangeHeader, err := sp.extractEpochChangeHeader(header)
+	if err != nil {
 		return
 	}
 
 	// if epoch change header found, extract epoch change proposed header
-	metaEpochChangeProposedHeader := sp.extractEpochChangeProposedHeader(metaEpochChangeHeader)
-
-	// if epoch change proposed header not found in cache, return
-	if check.IfNil(metaEpochChangeProposedHeader) {
+	metaEpochChangeProposedHeader, err := sp.extractEpochChangeProposedHeader(metaEpochChangeHeader)
+	if err != nil {
 		return
 	}
 
 	sp.saveEconomicsMetricFromHeaders(metaEpochChangeHeader, metaEpochChangeProposedHeader, metaEpochChangeHeaderHash)
 }
 
-func (sp *shardProcessor) extractEpochChangeHeader(header data.ShardHeaderHandler) ([]byte, data.MetaHeaderHandler) {
+func (sp *shardProcessor) extractEpochChangeHeader(header data.ShardHeaderHandler) ([]byte, data.MetaHeaderHandler, error) {
 	for _, metaHash := range header.GetMetaBlockHashes() {
 		hdr, err := sp.getHeaderFromHash(header.IsHeaderV3(), metaHash, core.MetachainShardId)
 		if err != nil {
-			continue
+			return nil, nil, err
 		}
 		metaHdr, ok := hdr.(data.MetaHeaderHandler)
 		if !ok {
@@ -944,18 +940,18 @@ func (sp *shardProcessor) extractEpochChangeHeader(header data.ShardHeaderHandle
 
 		// save epoch change header if found
 		if metaHdr.IsStartOfEpochBlock() {
-			return metaHash, metaHdr
+			return metaHash, metaHdr, nil
 		}
 	}
 
-	return nil, nil
+	return nil, nil, process.ErrMissingHeader
 }
 
-func (sp *shardProcessor) extractEpochChangeProposedHeader(epochChangeHeader data.MetaHeaderHandler) data.MetaHeaderHandler {
+func (sp *shardProcessor) extractEpochChangeProposedHeader(epochChangeHeader data.MetaHeaderHandler) (data.MetaHeaderHandler, error) {
 	for _, execResult := range epochChangeHeader.GetExecutionResultsHandlers() {
 		hdr, err := sp.getHeaderFromHash(epochChangeHeader.IsHeaderV3(), execResult.GetHeaderHash(), core.MetachainShardId)
 		if err != nil {
-			continue
+			return nil, err
 		}
 		metaHdr, ok := hdr.(data.MetaHeaderHandler)
 		if !ok {
@@ -966,10 +962,10 @@ func (sp *shardProcessor) extractEpochChangeProposedHeader(epochChangeHeader dat
 			continue
 		}
 
-		return metaHdr
+		return metaHdr, nil
 	}
 
-	return nil
+	return nil, process.ErrMissingHeader
 }
 
 func (sp *shardProcessor) saveEconomicsMetricFromHeaders(
