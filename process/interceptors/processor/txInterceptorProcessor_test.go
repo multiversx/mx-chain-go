@@ -173,20 +173,29 @@ func TestTxInterceptorProcessor_SaveShouldWork(t *testing.T) {
 		addedWasCalled = true
 	}
 	wasPutCalled := false
+	wasRemoveCalled := false
 	arg.DirectSentTransactionsCache = &cache.CacherStub{
 		PutCalled: func(key []byte, value interface{}, sizeInBytes int) (evicted bool) {
 			wasPutCalled = true
 			return false
+		},
+		RemoveCalled: func(key []byte) {
+			wasRemoveCalled = true
 		},
 	}
 
 	txip, _ := processor.NewTxInterceptorProcessor(arg)
 
 	_, err := txip.Save(txInterceptedData, "", "", p2p.Direct)
-
 	assert.Nil(t, err)
 	assert.True(t, addedWasCalled)
 	assert.True(t, wasPutCalled)
+	assert.False(t, wasRemoveCalled)
+
+	// same tx but from broadcast should remove it from cache
+	_, err = txip.Save(txInterceptedData, "", "", p2p.Broadcast)
+	assert.Nil(t, err)
+	assert.True(t, wasRemoveCalled)
 }
 
 // ------- IsInterfaceNil

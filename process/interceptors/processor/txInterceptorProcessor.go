@@ -85,12 +85,21 @@ func (txip *TxInterceptorProcessor) Save(data process.InterceptedData, peerOrigi
 		txip.directSentTransactionsCache.Put(data.Hash(), struct{}{}, 0)
 	}
 
+	if isBroadcast(broadcastMethod) && isIntraShard {
+		// remove it if exists and is received via broadcast method to avoid flooding the network
+		txip.directSentTransactionsCache.Remove(data.Hash())
+	}
+
 	return true, nil
 }
 
 // RegisterHandler registers a callback function to be notified of incoming transactions
 func (txip *TxInterceptorProcessor) RegisterHandler(_ func(topic string, hash []byte, data interface{})) {
 	log.Error("txInterceptorProcessor.RegisterHandler", "error", "not implemented")
+}
+
+func isBroadcast(method p2p.BroadcastMethod) bool {
+	return method == p2p.Broadcast
 }
 
 // IsInterfaceNil returns true if there is no value under the interface
