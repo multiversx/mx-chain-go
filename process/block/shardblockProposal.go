@@ -979,7 +979,7 @@ func (sp *shardProcessor) saveEconomicsMetricFromHeaders(
 	for currentNonce > metaEpochChangeProposedHeader.GetNonce() {
 		intermHeader, err := sp.getHeaderFromHash(true, currentHash, core.MetachainShardId)
 		if err != nil {
-			// if a header is not found, return here to close the loop. should no be blocking
+			// if a header is not found, return here to close the loop. should not be blocking
 			return
 		}
 		currentNonce = intermHeader.GetNonce()
