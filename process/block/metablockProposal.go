@@ -111,7 +111,7 @@ func (mp *metaProcessor) CreateBlockProposal(
 
 	metaHdr.SoftwareVersion = []byte(mp.headerIntegrityVerifier.GetVersion(metaHdr.Epoch, metaHdr.Round))
 
-	if metaHdr.IsStartOfEpochBlock() || metaHdr.GetEpochChangeProposed() || mp.epochStartTrigger.IsEpochStart() {
+	if metaHdr.IsStartOfEpochBlock() || metaHdr.GetEpochChangeProposed() || mp.epochStartTrigger.GetEpochChangeProposed() {
 		// no new transactions in start of epoch block
 		// to simplify bootstrapping
 		return metaHdr, &block.Body{}, nil
@@ -976,6 +976,11 @@ func (mp *metaProcessor) checkShardHeadersValidityAndFinalityProposal(
 	usedShardHeaders, err := mp.getShardHeadersFromMetaHeader(metaHeaderHandler)
 	if err != nil {
 		return fmt.Errorf("%w : checkShardHeadersValidityAndFinalityProposal -> getShardHeadersFromMetaHeader", err)
+	}
+
+	shouldNotHaveShardHeaders := metaHeaderHandler.IsStartOfEpochBlock() || metaHeaderHandler.IsEpochChangeProposed() || mp.epochStartTrigger.GetEpochChangeProposed()
+	if len(usedShardHeaders.orderedShardHeaders) > 0 && shouldNotHaveShardHeaders {
+		return fmt.Errorf("%w : between epoch change proposed and epoch start block", process.ErrShardHeadersShouldNotBeNotarized)
 	}
 
 	ok := mp.hasProofsForHeaders(usedShardHeaders.headersPerShard)
