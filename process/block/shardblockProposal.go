@@ -966,13 +966,15 @@ func (sp *shardProcessor) saveEpochStartEconomicsIfNeeded(header data.ShardHeade
 	}
 
 	// iterate through all headers starting from epoch change header up until epoch change proposed header
+	currentNonce := metaEpochChangeHeader.GetNonce()
 	currentHash := metaEpochChangeHeaderHash
-	for !bytes.Equal(currentHash, metaEpochChangeProposedHeaderHash) {
+	for currentNonce > metaEpochChangeProposedHeader.GetNonce() {
 		intermHeader, err := sp.getHeaderFromHash(true, currentHash, core.MetachainShardId)
 		if err != nil {
 			// if a header is not found, return here to close the loop. should no be blocking
 			return
 		}
+		currentNonce = intermHeader.GetNonce()
 
 		for _, execResult := range intermHeader.GetExecutionResultsHandlers() {
 			if !bytes.Equal(metaEpochChangeProposedHeader.GetPrevHash(), execResult.GetHeaderHash()) {
