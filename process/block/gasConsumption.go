@@ -136,7 +136,7 @@ func (gc *gasConsumption) AddIncomingMiniBlocks(
 		mbType := miniBlocks[i].GetTypeInt32()
 		if mbType == int32(block.RewardsBlock) || mbType == int32(block.PeerBlock) {
 			// rewards and validator info have 0 gas limit, thus they should be included anyway without checking their transactions
-			gc.increaseBlockSizeLimits(miniBlocks[i])
+			gc.addMiniBlockToBlockSizeComputation(miniBlocks[i])
 			lastMiniBlockIndex = i
 			continue
 		}
@@ -161,7 +161,7 @@ func (gc *gasConsumption) AddIncomingMiniBlocks(
 	return lastMiniBlockIndex, 0, nil
 }
 
-func (gc *gasConsumption) increaseBlockSizeLimits(
+func (gc *gasConsumption) addMiniBlockToBlockSizeComputation(
 	mb data.MiniBlockHeaderHandler,
 ) {
 	gc.blockSizeComputation.AddNumMiniBlocks(1)
@@ -292,7 +292,7 @@ func (gc *gasConsumption) addIncomingMiniBlock(
 		// should have continuous indexes after the ones already included
 		gc.totalGasConsumed[incoming] += gasConsumedByMB
 
-		gc.increaseBlockSizeLimits(mb)
+		gc.addMiniBlockToBlockSizeComputation(mb)
 
 		return false, nil
 	}
