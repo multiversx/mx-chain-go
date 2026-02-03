@@ -10,11 +10,12 @@ import (
 
 	"github.com/multiversx/mx-chain-core-go/core"
 	"github.com/multiversx/mx-chain-core-go/data"
+	"github.com/stretchr/testify/require"
+
 	"github.com/multiversx/mx-chain-go/common"
 	"github.com/multiversx/mx-chain-go/common/holders"
 	"github.com/multiversx/mx-chain-go/config"
 	"github.com/multiversx/mx-chain-go/testscommon/txcachemocks"
-	"github.com/stretchr/testify/require"
 )
 
 var expectedError = errors.New("expected error")
@@ -702,4 +703,176 @@ func TestBenchmarkTxCache_doSelectTransactions(t *testing.T) {
 	// 0.076177s (TestBenchmarkTxCache_doSelectTransactions/numSenders_=_50000,_numTransactions_=_2,_maxNum_=_30_000)
 	// 0.104399s (TestBenchmarkTxCache_doSelectTransactions/numSenders_=_100000,_numTransactions_=_1,_maxNum_=_30_000)
 	// 0.319060s (TestBenchmarkTxCache_doSelectTransactions/numSenders_=_300000,_numTransactions_=_1,_maxNum_=_30_000)
+}
+
+func TestTxCache_SelectionWithOffset(t *testing.T) {
+	t.Run("selection skips transactions based on offset", func(t *testing.T) {
+		boundsConfig := createMockTxBoundsConfig()
+		cache := newUnconstrainedCacheToTest(boundsConfig)
+
+		// Add transactions for alice
+		cache.AddTx(createTx([]byte("hash-alice-1"), "alice", 1).withValue(big.NewInt(0)))
+		cache.AddTx(createTx([]byte("hash-alice-2"), "alice", 2).withValue(big.NewInt(0)))
+		cache.AddTx(createTx([]byte("hash-alice-3"), "alice", 3).withValue(big.NewInt(0)))
+		cache.AddTx(createTx([]byte("hash-alice-4"), "alice", 4).withValue(big.NewInt(0)))
+
+		// Get the sender list and set offset to 2 (skip first 2 transactions)
+		senderList := cache.getListForSender("alice")
+		senderList.mutex.Lock()
+		senderList.incrementSelectionOffset(2)
+		senderList.mutex.Unlock()
+
+		// Selection should only return transactions starting from offset
+		bunches := cache.acquireBunchesOfTransactions()
+		require.Len(t, bunches, 1)
+		require.Len(t, bunches[0], 2)
+		require.Equal(t, "hash-alice-3", string(bunches[0][0].TxHash))
+		require.Equal(t, "hash-alice-4", string(bunches[0][1].TxHash))
+	})
+
+	t.Run("selection returns empty bunch when all transactions are skipped", func(t *testing.T) {
+		boundsConfig := createMockTxBoundsConfig()
+		cache := newUnconstrainedCacheToTest(boundsConfig)
+
+		cache.AddTx(createTx([]byte("hash-alice-1"), "alice", 1).withValue(big.NewInt(0)))
+		cache.AddTx(createTx([]byte("hash-alice-2"), "alice", 2).withValue(big.NewInt(0)))
+
+		// Set offset beyond all transactions
+		senderList := cache.getListForSender("alice")
+		senderList.mutex.Lock()
+		senderList.incrementSelectionOffset(2)
+		senderList.mutex.Unlock()
+
+		// Selection should return no bunches since the only sender has empty selection
+		bunches := cache.acquireBunchesOfTransactions()
+		require.Len(t, bunches, 0)
+	})
+
+	t.Run("getTxs returns all transactions regardless of offset", func(t *testing.T) {
+		boundsConfig := createMockTxBoundsConfig()
+		cache := newUnconstrainedCacheToTest(boundsConfig)
+
+		cache.AddTx(createTx([]byte("hash-alice-1"), "alice", 1).withValue(big.NewInt(0)))
+		cache.AddTx(createTx([]byte("hash-alice-2"), "alice", 2).withValue(big.NewInt(0)))
+		cache.AddTx(createTx([]byte("hash-alice-3"), "alice", 3).withValue(big.NewInt(0)))
+
+		senderList := cache.getListForSender("alice")
+		senderList.mutex.Lock()
+		senderList.incrementSelectionOffset(2)
+		senderList.mutex.Unlock()
+
+		// getTxs should still return all transactions (for API compatibility)
+		allTxs := senderList.getTxs()
+		require.Len(t, allTxs, 3)
+
+		// getTxsForSelection should return only unselected transactions
+		selectableTxs := senderList.getTxsForSelection()
+		require.Len(t, selectableTxs, 1)
+	})
+}
+
+func TestTxCache_SetSelectionOffsetsByLastNonce(t *testing.T) {
+	boundsConfig := createMockTxBoundsConfig()
+	cache := newUnconstrainedCacheToTest(boundsConfig)
+
+	cache.AddTx(createTx([]byte("hash-alice-1"), "alice", 1).withValue(big.NewInt(0)))
+	cache.AddTx(createTx([]byte("hash-alice-2"), "alice", 2).withValue(big.NewInt(0)))
+	cache.AddTx(createTx([]byte("hash-bob-1"), "bob", 1).withValue(big.NewInt(0)))
+	cache.AddTx(createTx([]byte("hash-bob-2"), "bob", 2).withValue(big.NewInt(0)))
+	cache.AddTx(createTx([]byte("hash-bob-3"), "bob", 3).withValue(big.NewInt(0)))
+
+	// Simulate setting offsets by last nonce (as would happen after OnProposed)
+	// alice's last nonce in block is 1, bob's last nonce is 2
+	lastNoncePerSender := map[string]uint64{
+		"alice": 1,
+		"bob":   2,
+	}
+	cache.SetSelectionOffsetsByLastNonce(lastNoncePerSender)
+
+	// Check offsets - should point to first tx with nonce > lastNonce
+	aliceList := cache.getListForSender("alice")
+	require.Equal(t, 1, aliceList.getSelectionOffset()) // points to nonce 2 (index 1)
+
+	bobList := cache.getListForSender("bob")
+	require.Equal(t, 2, bobList.getSelectionOffset()) // points to nonce 3 (index 2)
+
+	// Selection should skip the proposed transactions
+	bunches := cache.acquireBunchesOfTransactions()
+	require.Len(t, bunches, 2)
+
+	// Find alice's and bob's bunches
+	var aliceBunch, bobBunch bunchOfTransactions
+	for _, bunch := range bunches {
+		if string(bunch[0].Tx.GetSndAddr()) == "alice" {
+			aliceBunch = bunch
+		} else {
+			bobBunch = bunch
+		}
+	}
+
+	require.Len(t, aliceBunch, 1)
+	require.Equal(t, "hash-alice-2", string(aliceBunch[0].TxHash))
+
+	require.Len(t, bobBunch, 1)
+	require.Equal(t, "hash-bob-3", string(bobBunch[0].TxHash))
+}
+
+func TestTxCache_SetSelectionOffsetsByLastNonce_WithGaps(t *testing.T) {
+	boundsConfig := createMockTxBoundsConfig()
+	cache := newUnconstrainedCacheToTest(boundsConfig)
+
+	// Sender has transactions with nonces 10, 20, 30, 40, 50
+	cache.AddTx(createTx([]byte("hash-alice-10"), "alice", 10).withValue(big.NewInt(0)))
+	cache.AddTx(createTx([]byte("hash-alice-20"), "alice", 20).withValue(big.NewInt(0)))
+	cache.AddTx(createTx([]byte("hash-alice-30"), "alice", 30).withValue(big.NewInt(0)))
+	cache.AddTx(createTx([]byte("hash-alice-40"), "alice", 40).withValue(big.NewInt(0)))
+	cache.AddTx(createTx([]byte("hash-alice-50"), "alice", 50).withValue(big.NewInt(0)))
+
+	// Block contains transactions with nonces 30 and 40 (account nonce was 30)
+	// The lastNonce in the block is 40
+	lastNoncePerSender := map[string]uint64{
+		"alice": 40,
+	}
+	cache.SetSelectionOffsetsByLastNonce(lastNoncePerSender)
+
+	// Offset should point to first tx with nonce > 40, which is nonce 50 at index 4
+	aliceList := cache.getListForSender("alice")
+	require.Equal(t, 4, aliceList.getSelectionOffset())
+
+	// Selection should return only nonce 50
+	bunches := cache.acquireBunchesOfTransactions()
+	require.Len(t, bunches, 1)
+	require.Len(t, bunches[0], 1)
+	require.Equal(t, "hash-alice-50", string(bunches[0][0].TxHash))
+}
+
+func TestTxCache_ResetSelectionOffsetsToNonce(t *testing.T) {
+	boundsConfig := createMockTxBoundsConfig()
+	cache := newUnconstrainedCacheToTest(boundsConfig)
+
+	cache.AddTx(createTx([]byte("hash-alice-10"), "alice", 10).withValue(big.NewInt(0)))
+	cache.AddTx(createTx([]byte("hash-alice-20"), "alice", 20).withValue(big.NewInt(0)))
+	cache.AddTx(createTx([]byte("hash-alice-30"), "alice", 30).withValue(big.NewInt(0)))
+	cache.AddTx(createTx([]byte("hash-alice-40"), "alice", 40).withValue(big.NewInt(0)))
+
+	// Set offset to skip all transactions
+	aliceList := cache.getListForSender("alice")
+	aliceList.mutex.Lock()
+	aliceList.incrementSelectionOffset(4)
+	aliceList.mutex.Unlock()
+	require.Equal(t, 4, aliceList.getSelectionOffset())
+
+	// Reset offset to nonce 20 (should point to index 1)
+	sendersWithFirstNonce := map[string]uint64{
+		"alice": 20,
+	}
+	cache.ResetSelectionOffsetsToNonce(sendersWithFirstNonce)
+
+	require.Equal(t, 1, aliceList.getSelectionOffset())
+
+	// Selection should now return transactions starting from nonce 20
+	bunches := cache.acquireBunchesOfTransactions()
+	require.Len(t, bunches, 1)
+	require.Len(t, bunches[0], 3)
+	require.Equal(t, "hash-alice-20", string(bunches[0][0].TxHash))
 }

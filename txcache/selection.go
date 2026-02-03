@@ -18,7 +18,10 @@ func (cache *TxCache) acquireBunchesOfTransactions() []bunchOfTransactions {
 	bunches := make([]bunchOfTransactions, 0, len(senders))
 
 	for _, sender := range senders {
-		bunches = append(bunches, sender.getTxs())
+		bunch := sender.getTxsForSelection()
+		if len(bunch) > 0 {
+			bunches = append(bunches, bunch)
+		}
 	}
 
 	return bunches

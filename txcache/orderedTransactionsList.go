@@ -16,45 +16,6 @@ func newOrderedTransactionsList() *orderedTransactionsList {
 	}
 }
 
-// This function should only be used in critical section (listForSender.mutex).
-// When searching for the insertion place, we consider the following rules:
-// - transactions are sorted by nonce in ascending order.
-// - transactions with the same nonce are sorted by gas price in descending order.
-// - transactions with the same nonce and gas price are sorted by hash in ascending order.
-// - duplicates are not allowed.
-// - "PPU" measurement is not relevant in this context. Competition among transactions of the same sender (and nonce) is based on gas price.
-// Returns success (true) or failure (false) if duplicate.
-func (otl *orderedTransactionsList) insert(tx *WrappedTransaction) bool {
-	// Optimization: Check if we can append (Common Case: ordered nonce)
-	if len(otl.items) == 0 {
-		otl.items = append(otl.items, tx)
-		return true
-	}
-
-	lastItem := otl.items[len(otl.items)-1]
-	if isGreater(tx, lastItem) {
-		otl.items = append(otl.items, tx)
-		return true
-	}
-
-	// Binary Search for insertion point
-	index := sort.Search(len(otl.items), func(i int) bool {
-		// Return true if items[i] >= tx
-		return compareTxs(otl.items[i], tx) >= 0
-	})
-
-	// Check for duplicate
-	if index < len(otl.items) && compareTxs(otl.items[index], tx) == 0 {
-		return false // Duplicate
-	}
-
-	// Insert at index
-	otl.items = append(otl.items, nil) // grow
-	copy(otl.items[index+1:], otl.items[index:])
-	otl.items[index] = tx
-	return true
-}
-
 func (otl *orderedTransactionsList) removeAt(index int) *WrappedTransaction {
 	if index < 0 || index >= len(otl.items) {
 		return nil
@@ -134,6 +95,69 @@ func (otl *orderedTransactionsList) getAll() []*WrappedTransaction {
 	result := make([]*WrappedTransaction, len(otl.items))
 	copy(result, otl.items)
 	return result
+}
+
+// getAllFromIndex returns a copy of all transactions starting from the given index.
+// This is used for selection to skip already-proposed transactions.
+func (otl *orderedTransactionsList) getAllFromIndex(startIndex int) []*WrappedTransaction {
+	if startIndex < 0 {
+		startIndex = 0
+	}
+	if startIndex >= len(otl.items) {
+		return make([]*WrappedTransaction, 0)
+	}
+
+	result := make([]*WrappedTransaction, len(otl.items)-startIndex)
+	copy(result, otl.items[startIndex:])
+	return result
+}
+
+// findIndexByNonce returns the index of the first transaction with nonce >= targetNonce.
+// Uses binary search for efficiency. Returns len(items) if no such transaction exists.
+// This is used for block replacement to reset the selection offset.
+func (otl *orderedTransactionsList) findIndexByNonce(targetNonce uint64) int {
+	return sort.Search(len(otl.items), func(i int) bool {
+		return otl.items[i].Tx.GetNonce() >= targetNonce
+	})
+}
+
+// findInsertionIndex returns the index where a transaction would be inserted.
+// This function should only be used in critical section (listForSender.mutex).
+// When searching for the insertion place, we consider the following rules:
+// - transactions are sorted by nonce in ascending order.
+// - transactions with the same nonce are sorted by gas price in descending order.
+// - transactions with the same nonce and gas price are sorted by hash in ascending order.
+// - "PPU" measurement is not relevant in this context. Competition among transactions of the same sender (and nonce) is based on gas price.
+func (otl *orderedTransactionsList) findInsertionIndex(tx *WrappedTransaction) int {
+	if len(otl.items) == 0 {
+		return 0
+	}
+
+	lastItem := otl.items[len(otl.items)-1]
+	if isGreater(tx, lastItem) {
+		return len(otl.items)
+	}
+
+	return sort.Search(len(otl.items), func(i int) bool {
+		return compareTxs(otl.items[i], tx) >= 0
+	})
+}
+
+// insertAt inserts a transaction at the given index (pre-computed by findInsertionIndex).
+// This function should only be used in critical section (listForSender.mutex).
+// Returns false if the transaction is a duplicate (item at index has same nonce, gas price, and hash).
+// Duplicates are not allowed.
+func (otl *orderedTransactionsList) insertAt(tx *WrappedTransaction, index int) bool {
+	// Check for duplicate at the insertion index
+	if index < len(otl.items) && compareTxs(otl.items[index], tx) == 0 {
+		return false // Duplicate
+	}
+
+	// Insert at index
+	otl.items = append(otl.items, nil) // grow
+	copy(otl.items[index+1:], otl.items[index:])
+	otl.items[index] = tx
+	return true
 }
 
 // isGreater returns true if tx1 > tx2
