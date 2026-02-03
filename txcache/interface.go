@@ -18,6 +18,7 @@ type SelectionSession interface {
 	GetAccountNonceAndBalance(accountKey []byte) (uint64, *big.Int, bool, error)
 	GetRootHash() ([]byte, error)
 	IsIncorrectlyGuarded(tx data.TransactionHandler) bool
+	IsGuarded(tx data.TransactionHandler) bool
 	IsInterfaceNil() bool
 }
 

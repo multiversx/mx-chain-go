@@ -7,6 +7,7 @@ import (
 
 	"github.com/gin-contrib/cors"
 	"github.com/gin-gonic/gin"
+	"github.com/multiversx/mx-chain-core-go/core/versioning"
 	"github.com/multiversx/mx-chain-vm-common-go/parsers"
 	datafield "github.com/multiversx/mx-chain-vm-common-go/parsers/dataField"
 	wasmConfig "github.com/multiversx/mx-chain-vm-go/config"
@@ -241,6 +242,7 @@ func createFacadeComponents(tpn *TestProcessorNode) nodeFacade.ApiResolver {
 		TxMarshaller:             &marshallerMock.MarshalizerMock{},
 		EnableEpochsHandler:      tpn.EnableEpochsHandler,
 		EnableRoundsHandler:      tpn.EnableRoundsHandler,
+		TxVersionChecker:         versioning.NewTxVersionChecker(tpn.MinTransactionVersion),
 	}
 	apiTransactionHandler, err := transactionAPI.NewAPITransactionProcessor(argsApiTransactionProc)
 	log.LogIfError(err)

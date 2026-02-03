@@ -6,6 +6,7 @@ import (
 	"fmt"
 	"math"
 	"math/big"
+	"strings"
 	"testing"
 
 	"github.com/multiversx/mx-chain-core-go/core"
@@ -349,6 +350,35 @@ func TestTxCache_SelectTransactions_HandlesNotExecutableTransactions(t *testing.
 		require.Equal(t, "hash-alice-1", string(sorted[0].TxHash))
 		require.Equal(t, "hash-bob-42a", string(sorted[1].TxHash))
 		require.Equal(t, "hash-bob-43a", string(sorted[2].TxHash))
+	})
+
+	t.Run("with change guardian", func(t *testing.T) {
+		options := createMockTxSelectionOptions(math.MaxUint64, math.MaxInt)
+		boundsConfig := createMockTxBoundsConfig()
+		cache := newUnconstrainedCacheToTest(boundsConfig)
+
+		session := txcachemocks.NewSelectionSessionMock()
+		session.SetNonce([]byte("alice"), 1)
+
+		session.IsIncorrectlyGuardedCalled = func(tx data.TransactionHandler) bool {
+			return false
+		}
+		session.IsGuardedCalled = func(tx data.TransactionHandler) bool {
+			return strings.Contains(string(tx.GetData()), "SetGuardian")
+		}
+
+		cache.AddTx(createTx([]byte("hash-alice-1"), "alice", 1).withValue(big.NewInt(0)))
+		cache.AddTx(createTx([]byte("hash-alice-2"), "alice", 2).withValue(big.NewInt(0)).withData([]byte("SetGuardian@newGuardian")).withGasLimit(100000))
+		cache.AddTx(createTx([]byte("hash-alice-3"), "alice", 3).withValue(big.NewInt(0)))
+		cache.AddTx(createTx([]byte("hash-alice-4"), "alice", 4).withValue(big.NewInt(0)))
+
+		sorted, accumulatedGas, err := cache.SelectTransactions(session, options, 0)
+		require.NoError(t, err)
+		require.Len(t, sorted, 2)
+		require.Equal(t, 150000, int(accumulatedGas))
+
+		require.Equal(t, "hash-alice-1", string(sorted[0].TxHash))
+		require.Equal(t, "hash-alice-2", string(sorted[1].TxHash))
 	})
 }
 
