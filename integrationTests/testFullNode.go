@@ -1003,6 +1003,7 @@ func (tpn *TestFullNode) initBlockProcessor(
 		GasHandler:                        tpn.GasHandler,
 		BlockCapacityOverestimationFactor: 200,
 		PercentDecreaseLimitsStep:         10,
+		BlockSizeComputation:              &testscommon.BlockSizeComputationStub{},
 	}
 	gasConsumption, err := block.NewGasConsumption(argsGasConsumption)
 	if err != nil {
@@ -1377,6 +1378,7 @@ func (tpn *TestFullNode) initBlockProcessorWithSync(
 		GasHandler:                        tpn.GasHandler,
 		BlockCapacityOverestimationFactor: 200,
 		PercentDecreaseLimitsStep:         10,
+		BlockSizeComputation:              &testscommon.BlockSizeComputationStub{},
 	}
 	gasConsumption, err := block.NewGasConsumption(argsGasConsumption)
 	if err != nil {

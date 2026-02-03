@@ -10,6 +10,7 @@ import (
 	"github.com/multiversx/mx-chain-go/process/block/preprocess"
 	"github.com/multiversx/mx-chain-go/process/mock"
 	"github.com/stretchr/testify/assert"
+	"github.com/stretchr/testify/require"
 )
 
 const maxSizeInBytes = uint32(core.MegabyteSize * 90 / 100)
@@ -189,4 +190,24 @@ func TestBlockSizeComputation_MaxTransactionsInOneMiniblock(t *testing.T) {
 	maxTxs := bsc.MaxTransactionsInOneMiniblock()
 
 	assert.Equal(t, 27756, maxTxs)
+}
+
+func TestBlockSizeComputation_DecrementValues(t *testing.T) {
+	t.Parallel()
+
+	bsc, _ := preprocess.NewBlockSizeComputation(&mock.ProtobufMarshalizerMock{}, &mock.BlockSizeThrottlerStub{}, maxSizeInBytes)
+
+	bsc.Init()
+
+	bsc.AddNumMiniBlocks(10)
+	require.Equal(t, uint32(10), bsc.NumMiniBlocks())
+
+	bsc.DecNumMiniBlocks(5)
+	require.Equal(t, uint32(5), bsc.NumMiniBlocks())
+
+	bsc.AddNumTxs(20)
+	require.Equal(t, uint32(20), bsc.NumTxs())
+
+	bsc.DecNumTxs(10)
+	require.Equal(t, uint32(10), bsc.NumTxs())
 }

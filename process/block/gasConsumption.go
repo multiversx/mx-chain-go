@@ -51,6 +51,7 @@ type gasConsumption struct {
 	blockSizeComputation             preprocess.BlockSizeComputationHandler
 	totalGasConsumed                 map[string]uint64
 	gasConsumedByMiniBlock           map[string]uint64
+	numTxsPerMiniBlock               map[string]uint32
 	pendingMiniBlocks                []data.MiniBlockHeaderHandler
 	transactionsForPendingMiniBlocks map[string][]data.TransactionHandler
 	incomingLimitFactor              uint64
@@ -89,6 +90,7 @@ func NewGasConsumption(args ArgsGasConsumption) (*gasConsumption, error) {
 		blockSizeComputation:             args.BlockSizeComputation,
 		totalGasConsumed:                 make(map[string]uint64),
 		gasConsumedByMiniBlock:           make(map[string]uint64),
+		numTxsPerMiniBlock:               make(map[string]uint32),
 		transactionsForPendingMiniBlocks: make(map[string][]data.TransactionHandler),
 		incomingLimitFactor:              args.BlockCapacityOverestimationFactor,
 		outgoingLimitFactor:              args.BlockCapacityOverestimationFactor,
@@ -133,7 +135,6 @@ func (gc *gasConsumption) AddIncomingMiniBlocks(
 	for i := 0; i < len(miniBlocks); i++ {
 		mbType := miniBlocks[i].GetTypeInt32()
 		if mbType == int32(block.RewardsBlock) || mbType == int32(block.PeerBlock) {
-			// TODO: check size for rewards/peer miniblocks?
 			// rewards and validator info have 0 gas limit, thus they should be included anyway without checking their transactions
 			lastMiniBlockIndex = i
 			continue
@@ -160,6 +161,15 @@ func (gc *gasConsumption) AddIncomingMiniBlocks(
 	}
 
 	return lastMiniBlockIndex, 0, nil
+}
+
+func (gc *gasConsumption) increaseBlockSizeLimits(
+	mb data.MiniBlockHeaderHandler,
+) {
+	gc.blockSizeComputation.AddNumMiniBlocks(1)
+	gc.blockSizeComputation.AddNumTxs(int(mb.GetTxCount()))
+
+	gc.numTxsPerMiniBlock[string(mb.GetHash())] = mb.GetTxCount()
 }
 
 func (gc *gasConsumption) savePendingMiniBlocksNoLock(
@@ -209,9 +219,21 @@ func (gc *gasConsumption) RevertIncomingMiniBlocks(miniBlockHashes [][]byte) {
 			continue
 		}
 
+		gc.revertBlockSizeLimits(miniBlockHash)
+
 		// if the mini block is not pending, remove it from the total gas consumed
 		gc.totalGasConsumed[incoming] -= gasConsumedByMb
 	}
+}
+
+func (gc *gasConsumption) revertBlockSizeLimits(
+	miniBlockHash []byte,
+) {
+	gc.blockSizeComputation.DecNumMiniBlocks(1)
+
+	numTxsPerMiniBlock := gc.numTxsPerMiniBlock[string(miniBlockHash)]
+	delete(gc.numTxsPerMiniBlock, string(miniBlockHash))
+	gc.blockSizeComputation.DecNumTxs(int(numTxsPerMiniBlock))
 }
 
 func (gc *gasConsumption) isPendingMiniBlock(blockHash []byte) (bool, int) {
@@ -648,6 +670,7 @@ func (gc *gasConsumption) Reset() {
 
 	gc.totalGasConsumed = make(map[string]uint64)
 	gc.gasConsumedByMiniBlock = make(map[string]uint64)
+	gc.numTxsPerMiniBlock = make(map[string]uint32)
 	gc.pendingMiniBlocks = make([]data.MiniBlockHeaderHandler, 0)
 	gc.transactionsForPendingMiniBlocks = make(map[string][]data.TransactionHandler, 0)
 

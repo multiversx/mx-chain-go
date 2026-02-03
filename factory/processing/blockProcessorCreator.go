@@ -347,6 +347,7 @@ func (pcf *processComponentsFactory) newShardBlockProcessor(
 		GasHandler:                        gasHandler,
 		BlockCapacityOverestimationFactor: pcf.economicsConfig.FeeSettings.BlockCapacityOverestimationFactor,
 		PercentDecreaseLimitsStep:         pcf.economicsConfig.FeeSettings.PercentDecreaseLimitsStep,
+		BlockSizeComputation:              blockSizeComputationHandler,
 	}
 	gasConsumption, err := block.NewGasConsumption(argsGasConsumption)
 	if err != nil {
@@ -773,6 +774,7 @@ func (pcf *processComponentsFactory) newMetaBlockProcessor(
 		GasHandler:                        gasHandler,
 		BlockCapacityOverestimationFactor: pcf.economicsConfig.FeeSettings.BlockCapacityOverestimationFactor,
 		PercentDecreaseLimitsStep:         pcf.economicsConfig.FeeSettings.PercentDecreaseLimitsStep,
+		BlockSizeComputation:              blockSizeComputationHandler,
 	}
 	gasConsumption, err := block.NewGasConsumption(argsGasConsumption)
 	if err != nil {
