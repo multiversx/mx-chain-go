@@ -1,6 +1,7 @@
 package block
 
 import (
+	"bytes"
 	"errors"
 	"fmt"
 	"time"
@@ -505,7 +506,7 @@ func (mp *metaProcessor) saveEpochStartEconomicsMetricsV3IfNeeded(metaBlock data
 	}
 
 	lastExecutionResult := mp.blockChain.GetLastExecutionResult()
-	if string(lastExecutionResult.GetHeaderHash()) != string(metaBlock.GetPrevHash()) {
+	if !bytes.Equal(lastExecutionResult.GetHeaderHash(), metaBlock.GetPrevHash()) {
 		// should never happen, as this is called while processing proposeEpochChangeMetaBlock
 		return
 	}

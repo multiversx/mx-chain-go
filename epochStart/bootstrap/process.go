@@ -1793,19 +1793,31 @@ func (e *epochStartBootstrap) setEpochStartMetricsV3() {
 		}
 
 		prevHashOfEpochChangeProposed = metaHeader.GetPrevHash()
-		updatedMetrics := common.SetEpochStartMetricsV3FromExecutionResults(prevHashOfEpochChangeProposed, metaHeader.GetExecutionResultsHandlers(), e.statusHandler)
-		if updatedMetrics {
-			return
-		}
+		break
 	}
 
-	// if metrics not updated, search for the execution result on epoch start meta block
 	if len(prevHashOfEpochChangeProposed) == 0 {
 		// should never happen
 		return
 	}
 
-	common.SetEpochStartMetricsV3FromExecutionResults(prevHashOfEpochChangeProposed, e.epochStartMeta.GetExecutionResultsHandlers(), e.statusHandler)
+	for _, syncedHeader := range e.syncedHeaders {
+		execResults := syncedHeader.GetExecutionResultsHandlers()
+		for _, execResult := range execResults {
+			if !bytes.Equal(prevHashOfEpochChangeProposed, execResult.GetHeaderHash()) {
+				continue
+			}
+
+			metaExecResult, okMetaExecResultCast := execResult.(data.BaseMetaExecutionResultHandler)
+			if !okMetaExecResultCast {
+				continue
+			}
+
+			e.statusHandler.SetStringValue(common.MetricTotalFees, metaExecResult.GetAccumulatedFeesInEpoch().String())
+			e.statusHandler.SetStringValue(common.MetricDevRewardsInEpoch, metaExecResult.GetDevFeesInEpoch().String())
+			return
+		}
+	}
 }
 
 func (e *epochStartBootstrap) applyShardIDAsObserverIfNeeded(receivedShardID uint32) uint32 {
