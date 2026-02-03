@@ -206,6 +206,8 @@ func (bsc *blockSizeComputation) IsMaxExecResSizeReached(numNewExecRes int) bool
 	totalExecRes := atomic.LoadUint32(&bsc.numExecRes) + uint32(numNewExecRes)
 	execResSize := bsc.execResSize * totalExecRes
 
+	// TODO: evaluate adding an execution results size throttler as for blocks
+
 	return execResSize > bsc.maxExecResSize
 }
 
