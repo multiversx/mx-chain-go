@@ -913,8 +913,25 @@ func (sp *shardProcessor) getOrderedProcessedMetaBlocksFromMiniBlockHashesV3(
 }
 
 func (sp *shardProcessor) saveEpochStartEconomicsIfNeeded(header data.ShardHeaderHandler) {
-	var metaEpochChangeHeader data.MetaHeaderHandler
-	var metaEpochChangeHeaderHash []byte
+	metaEpochChangeHeaderHash, metaEpochChangeHeader := sp.extractEpochChangeHeader(header)
+
+	// if not found, exit
+	if check.IfNil(metaEpochChangeHeader) {
+		return
+	}
+
+	// if epoch change header found, extract epoch change proposed header
+	metaEpochChangeProposedHeader := sp.extractEpochChangeProposedHeader(metaEpochChangeHeader)
+
+	// if epoch change proposed header not found in cache, return
+	if check.IfNil(metaEpochChangeProposedHeader) {
+		return
+	}
+
+	sp.saveEconomicsMetricFromHeaders(metaEpochChangeHeader, metaEpochChangeProposedHeader, metaEpochChangeHeaderHash)
+}
+
+func (sp *shardProcessor) extractEpochChangeHeader(header data.ShardHeaderHandler) ([]byte, data.MetaHeaderHandler) {
 	for _, metaHash := range header.GetMetaBlockHashes() {
 		hdr, err := sp.getHeaderFromHash(header.IsHeaderV3(), metaHash, core.MetachainShardId)
 		if err != nil {
@@ -927,21 +944,16 @@ func (sp *shardProcessor) saveEpochStartEconomicsIfNeeded(header data.ShardHeade
 
 		// save epoch change header if found
 		if metaHdr.IsStartOfEpochBlock() {
-			metaEpochChangeHeader = metaHdr
-			metaEpochChangeHeaderHash = metaHash
-			break
+			return metaHash, metaHdr
 		}
 	}
 
-	// if not found, exit
-	if check.IfNil(metaEpochChangeHeader) {
-		return
-	}
+	return nil, nil
+}
 
-	// if epoch change header found, extract epoch change proposed header
-	var metaEpochChangeProposedHeader data.MetaHeaderHandler
-	for _, execResult := range metaEpochChangeHeader.GetExecutionResultsHandlers() {
-		hdr, err := sp.getHeaderFromHash(header.IsHeaderV3(), execResult.GetHeaderHash(), core.MetachainShardId)
+func (sp *shardProcessor) extractEpochChangeProposedHeader(epochChangeHeader data.MetaHeaderHandler) data.MetaHeaderHandler {
+	for _, execResult := range epochChangeHeader.GetExecutionResultsHandlers() {
+		hdr, err := sp.getHeaderFromHash(epochChangeHeader.IsHeaderV3(), execResult.GetHeaderHash(), core.MetachainShardId)
 		if err != nil {
 			continue
 		}
@@ -954,15 +966,17 @@ func (sp *shardProcessor) saveEpochStartEconomicsIfNeeded(header data.ShardHeade
 			continue
 		}
 
-		metaEpochChangeProposedHeader = metaHdr
-		break
+		return metaHdr
 	}
 
-	// if epoch change proposed header not found in cache, return
-	if check.IfNil(metaEpochChangeProposedHeader) {
-		return
-	}
+	return nil
+}
 
+func (sp *shardProcessor) saveEconomicsMetricFromHeaders(
+	metaEpochChangeHeader data.MetaHeaderHandler,
+	metaEpochChangeProposedHeader data.MetaHeaderHandler,
+	metaEpochChangeHeaderHash []byte,
+) {
 	// iterate through all headers starting from epoch change header up until epoch change proposed header
 	currentNonce := metaEpochChangeHeader.GetNonce()
 	currentHash := metaEpochChangeHeaderHash
@@ -974,21 +988,33 @@ func (sp *shardProcessor) saveEpochStartEconomicsIfNeeded(header data.ShardHeade
 		}
 		currentNonce = intermHeader.GetNonce()
 
-		for _, execResult := range intermHeader.GetExecutionResultsHandlers() {
-			if !bytes.Equal(metaEpochChangeProposedHeader.GetPrevHash(), execResult.GetHeaderHash()) {
-				continue
-			}
-
-			metaExecResultWithFees, okMetaExecResultCast := execResult.(data.BaseMetaExecutionResultHandler)
-			if !okMetaExecResultCast {
-				continue
-			}
-
-			sp.appStatusHandler.SetStringValue(common.MetricTotalFees, metaExecResultWithFees.GetAccumulatedFeesInEpoch().String())
-			sp.appStatusHandler.SetStringValue(common.MetricDevRewardsInEpoch, metaExecResultWithFees.GetDevFeesInEpoch().String())
+		updatedMetrics := sp.saveEconomicsMetricFromExecutionResults(intermHeader.GetExecutionResultsHandlers(), metaEpochChangeProposedHeader.GetPrevHash())
+		if updatedMetrics {
 			return
 		}
 
 		currentHash = intermHeader.GetPrevHash()
 	}
+}
+
+func (sp *shardProcessor) saveEconomicsMetricFromExecutionResults(
+	execResults []data.BaseExecutionResultHandler,
+	headerHashWithFees []byte,
+) bool {
+	for _, execResult := range execResults {
+		if !bytes.Equal(headerHashWithFees, execResult.GetHeaderHash()) {
+			continue
+		}
+
+		metaExecResultWithFees, okMetaExecResultCast := execResult.(data.BaseMetaExecutionResultHandler)
+		if !okMetaExecResultCast {
+			continue
+		}
+
+		sp.appStatusHandler.SetStringValue(common.MetricTotalFees, metaExecResultWithFees.GetAccumulatedFeesInEpoch().String())
+		sp.appStatusHandler.SetStringValue(common.MetricDevRewardsInEpoch, metaExecResultWithFees.GetDevFeesInEpoch().String())
+		return true
+	}
+
+	return false
 }
