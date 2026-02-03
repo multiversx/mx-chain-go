@@ -1,14 +1,20 @@
 package estimator
 
 import (
+	"errors"
 	"math/bits"
 
 	"github.com/multiversx/mx-chain-core-go/core/check"
 	"github.com/multiversx/mx-chain-core-go/data"
 	logger "github.com/multiversx/mx-chain-logger-go"
 
+	"github.com/multiversx/mx-chain-go/common"
 	"github.com/multiversx/mx-chain-go/config"
+	"github.com/multiversx/mx-chain-go/process"
 )
+
+// ErrInvalidMaxResultsPerBlock signals that invalid max results per block config has been provided
+var ErrInvalidMaxResultsPerBlock = errors.New("invalid max results per block config")
 
 var log = logger.GetOrCreate("process/executionResultInclusionEstimator")
 
@@ -21,10 +27,11 @@ type RoundHandler interface {
 	IsInterfaceNil() bool
 }
 
-// LastExecutionResultForInclusion is a lightweight summary of the last notarized execution result EIE requires.
-type LastExecutionResultForInclusion struct {
-	NotarizedInRound uint64
-	ProposedInRound  uint64
+type blockSizeComputationHandler interface {
+	AddNumExecRes(numExecRes int)
+	DecNumExecRes(numExecRes int)
+	IsMaxExecResSizeReached(numNewExecRes int) bool
+	IsInterfaceNil() bool
 }
 
 // ExecutionResultInclusionEstimator (EIE) is a deterministic component shipped with the MultiversX *Supernova*
@@ -35,25 +42,43 @@ type ExecutionResultInclusionEstimator struct {
 	tGas         uint64                                         // time per gas unit on minimum‑spec hardware - 1 ns per gas unit
 	roundHandler RoundHandler
 	// TODO add also max estimated block gas capacity - used gas must be lower than this
+	blockSizeComputation blockSizeComputationHandler
 }
 
 // NewExecutionResultInclusionEstimator returns a new instance of EIE
-func NewExecutionResultInclusionEstimator(cfg config.ExecutionResultInclusionEstimatorConfig, roundHandler RoundHandler) *ExecutionResultInclusionEstimator {
+func NewExecutionResultInclusionEstimator(
+	cfg config.ExecutionResultInclusionEstimatorConfig,
+	roundHandler RoundHandler,
+	blockSizeComputation blockSizeComputationHandler,
+) (*ExecutionResultInclusionEstimator, error) {
+	err := checkConfig(cfg)
+	if err != nil {
+		return nil, err
+	}
 	if check.IfNil(roundHandler) {
-		log.Error("NewExecutionResultInclusionEstimator: nil roundHandler")
-		return nil
+		return nil, process.ErrNilRoundHandler
 	}
+
 	return &ExecutionResultInclusionEstimator{
-		cfg:          cfg,
-		tGas:         tGas,
-		roundHandler: roundHandler,
+		cfg:                  cfg,
+		tGas:                 tGas,
+		roundHandler:         roundHandler,
+		blockSizeComputation: blockSizeComputation,
+	}, nil
+}
+
+func checkConfig(cfg config.ExecutionResultInclusionEstimatorConfig) error {
+	if cfg.MaxResultsPerBlock == 0 {
+		return ErrInvalidMaxResultsPerBlock
 	}
+
+	return nil
 }
 
 // Decide returns the prefix of `pending` that may be inserted into the block currently being built / verified.
 // Return value: `allowed` is the count of leading entries in `pending` deemed safe. The caller slices `pending[:allowed]` and embeds them.
 func (erie *ExecutionResultInclusionEstimator) Decide(
-	lastNotarised *LastExecutionResultForInclusion,
+	lastNotarised *common.LastExecutionResultForInclusion,
 	pending []data.BaseExecutionResultHandler,
 	currentRound uint64,
 ) (allowed int) {
@@ -144,8 +169,15 @@ func (erie *ExecutionResultInclusionEstimator) Decide(
 			return pendingExecutionIndex
 		}
 
+		if erie.blockSizeComputation.IsMaxExecResSizeReached(1) {
+			log.Debug("ExecutionResultInclusionEstimator: estimated max size reached",
+				"currentIndex", pendingExecutionIndex)
+			return pendingExecutionIndex
+		}
+		erie.blockSizeComputation.AddNumExecRes(1)
+
 		// check for number of results cap reached, including current pending item. MaxResultsPerBlock = 0 means no cap.
-		if erie.cfg.MaxResultsPerBlock != 0 && uint64(pendingExecutionIndex+1) >= erie.cfg.MaxResultsPerBlock {
+		if uint64(pendingExecutionIndex+1) >= erie.cfg.MaxResultsPerBlock {
 			log.Debug("ExecutionResultInclusionEstimator: reached MaxResultsPerBlock cap",
 				"maxResultsPerBlock", erie.cfg.MaxResultsPerBlock,
 				"currentIndex", pendingExecutionIndex+1)
@@ -157,6 +189,10 @@ func (erie *ExecutionResultInclusionEstimator) Decide(
 	return len(pending)
 }
 
+func (erie *ExecutionResultInclusionEstimator) checkExecutionResultSize() error {
+	return nil
+}
+
 // IsInterfaceNil returns true if there is no value under the interface
 func (erie *ExecutionResultInclusionEstimator) IsInterfaceNil() bool {
 	return erie == nil
@@ -165,7 +201,7 @@ func (erie *ExecutionResultInclusionEstimator) IsInterfaceNil() bool {
 func (erie *ExecutionResultInclusionEstimator) checkSanity(
 	currentExecutionResult data.BaseExecutionResultHandler,
 	previousExecutionResult data.BaseExecutionResultHandler,
-	lastNotarised *LastExecutionResultForInclusion,
+	lastNotarised *common.LastExecutionResultForInclusion,
 	currentRound uint64,
 ) bool {
 	// Check for genesis round

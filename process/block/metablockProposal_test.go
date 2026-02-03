@@ -19,7 +19,6 @@ import (
 	statusHandlerMock "github.com/multiversx/mx-chain-go/testscommon/statusHandler"
 	storageStubs "github.com/multiversx/mx-chain-go/testscommon/storage"
 
-	"github.com/multiversx/mx-chain-go/process/estimator"
 	"github.com/multiversx/mx-chain-go/state"
 	"github.com/multiversx/mx-chain-go/testscommon/marshallerMock"
 	testscommonState "github.com/multiversx/mx-chain-go/testscommon/state"
@@ -4613,7 +4612,7 @@ func createMetaProcessorMapForCreatingEpochStart() map[string]interface{} {
 			},
 		},
 		"executionResultsInclusionEstimator": &processMocks.InclusionEstimatorMock{
-			DecideCalled: func(lastNotarised *estimator.LastExecutionResultForInclusion, pending []data.BaseExecutionResultHandler, currentHdrTsMs uint64) (allowed int) {
+			DecideCalled: func(lastNotarised *common.LastExecutionResultForInclusion, pending []data.BaseExecutionResultHandler, currentHdrTsMs uint64) (allowed int) {
 				return 1 // allow the inclusion of the first execution result
 			},
 		},

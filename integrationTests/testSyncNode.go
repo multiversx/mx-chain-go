@@ -152,14 +152,17 @@ func (tpn *TestProcessorNode) initBlockProcessorWithSync() {
 		log.LogIfError(err)
 	}
 
-	inclusionEstimator := estimator.NewExecutionResultInclusionEstimator(
+	inclusionEstimator, err := estimator.NewExecutionResultInclusionEstimator(
 		config.ExecutionResultInclusionEstimatorConfig{
 			SafetyMargin:       110,
 			MaxResultsPerBlock: 20,
 		},
-
 		tpn.RoundHandler,
+		&testscommon.BlockSizeComputationStub{},
 	)
+	if err != nil {
+		log.LogIfError(err)
+	}
 
 	missingDataArgs := missingData.ResolverArgs{
 		HeadersPool:        tpn.DataPool.Headers(),

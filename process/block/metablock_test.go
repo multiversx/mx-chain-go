@@ -183,12 +183,13 @@ func createMockMetaArguments(
 	})
 	execResultsVerifier, _ := processBlock.NewExecutionResultsVerifier(dataComponents.BlockChain, execManager)
 	_ = executionResultsTracker.SetLastNotarizedResult(&block.ExecutionResult{})
-	inclusionEstimator := estimator.NewExecutionResultInclusionEstimator(
+	inclusionEstimator, _ := estimator.NewExecutionResultInclusionEstimator(
 		config.ExecutionResultInclusionEstimatorConfig{
 			SafetyMargin:       110,
 			MaxResultsPerBlock: 20,
 		},
 		coreComponents.RoundHandler(),
+		&testscommon.BlockSizeComputationStub{},
 	)
 
 	missingDataArgs := missingData.ResolverArgs{

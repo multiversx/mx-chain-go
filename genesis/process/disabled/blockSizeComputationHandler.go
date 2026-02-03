@@ -16,12 +16,20 @@ func (b *BlockSizeComputationHandler) AddNumMiniBlocks(_ int) {
 func (b *BlockSizeComputationHandler) AddNumTxs(_ int) {
 }
 
+// AddNumExecRes does nothing as it is a disabled component
+func (b *BlockSizeComputationHandler) AddNumExecRes(_ int) {
+}
+
 // DecNumMiniBlocks does nothing
 func (b *BlockSizeComputationHandler) DecNumMiniBlocks(numMiniBlocks int) {
 }
 
 // DecNumTxs does nothing
 func (b *BlockSizeComputationHandler) DecNumTxs(numTxs int) {
+}
+
+// DecNumExecRes does nothing
+func (b *BlockSizeComputationHandler) DecNumExecRes(numTxs int) {
 }
 
 // IsMaxBlockSizeReached returns false as it is a disabled components
@@ -31,6 +39,11 @@ func (b *BlockSizeComputationHandler) IsMaxBlockSizeReached(_ int, _ int) bool {
 
 // IsMaxBlockSizeWithoutThrottleReached returns false as it is a disabled component
 func (b *BlockSizeComputationHandler) IsMaxBlockSizeWithoutThrottleReached(_ int, _ int) bool {
+	return false
+}
+
+// IsMaxExecResSizeReached returns false as it is a disabled components
+func (b *BlockSizeComputationHandler) IsMaxExecResSizeReached(_ int) bool {
 	return false
 }
 

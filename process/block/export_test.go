@@ -230,12 +230,13 @@ func NewShardProcessorEmptyWith3shards(
 		ShardCoordinator:        boostrapComponents.ShardCoordinator(),
 	})
 	execResultsVerifier, _ := NewExecutionResultsVerifier(dataComponents.BlockChain, execManager)
-	inclusionEstimator := estimator.NewExecutionResultInclusionEstimator(
+	inclusionEstimator, _ := estimator.NewExecutionResultInclusionEstimator(
 		config.ExecutionResultInclusionEstimatorConfig{
 			SafetyMargin:       110,
 			MaxResultsPerBlock: 20,
 		},
 		coreComponents.RoundHandler(),
+		&testscommon.BlockSizeComputationStub{},
 	)
 
 	missingDataArgs := missingData.ResolverArgs{

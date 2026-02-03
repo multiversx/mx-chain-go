@@ -332,6 +332,7 @@ func (pcf *processComponentsFactory) newShardBlockProcessor(
 		pcf.coreData.InternalMarshalizer(),
 		blockSizeThrottler,
 		pcf.config.BlockSizeThrottleConfig.MaxSizeInBytes,
+		pcf.config.BlockSizeThrottleConfig.MaxExecResSizeInBytes,
 	)
 	if err != nil {
 		return nil, err
@@ -514,10 +515,14 @@ func (pcf *processComponentsFactory) newShardBlockProcessor(
 		return nil, err
 	}
 
-	inclusionEstimator := estimator.NewExecutionResultInclusionEstimator(
+	inclusionEstimator, err := estimator.NewExecutionResultInclusionEstimator(
 		pcf.config.ExecutionResultInclusionEstimator,
 		pcf.coreData.RoundHandler(),
+		blockSizeComputationHandler,
 	)
+	if err != nil {
+		return nil, err
+	}
 
 	missingDataArgs := missingData.ResolverArgs{
 		HeadersPool:        pcf.data.Datapool().Headers(),
@@ -761,6 +766,7 @@ func (pcf *processComponentsFactory) newMetaBlockProcessor(
 		pcf.coreData.InternalMarshalizer(),
 		blockSizeThrottler,
 		pcf.config.BlockSizeThrottleConfig.MaxSizeInBytes,
+		pcf.config.BlockSizeThrottleConfig.MaxExecResSizeInBytes,
 	)
 	if err != nil {
 		return nil, err
@@ -1071,10 +1077,14 @@ func (pcf *processComponentsFactory) newMetaBlockProcessor(
 		return nil, err
 	}
 
-	inclusionEstimator := estimator.NewExecutionResultInclusionEstimator(
+	inclusionEstimator, err := estimator.NewExecutionResultInclusionEstimator(
 		pcf.config.ExecutionResultInclusionEstimator,
 		pcf.coreData.RoundHandler(),
+		blockSizeComputationHandler,
 	)
+	if err != nil {
+		return nil, err
+	}
 
 	missingDataArgs := missingData.ResolverArgs{
 		HeadersPool:        pcf.data.Datapool().Headers(),

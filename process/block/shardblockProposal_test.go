@@ -344,7 +344,7 @@ func TestShardProcessor_CreateBlockProposal(t *testing.T) {
 		}
 		arguments := CreateMockArguments(coreComponents, dataComponents, bootstrapComponents, statusComponents)
 		arguments.ExecutionResultsInclusionEstimator = &processMocks.InclusionEstimatorMock{
-			DecideCalled: func(lastNotarised *estimator.LastExecutionResultForInclusion, pending []data.BaseExecutionResultHandler, currentHdrTsMs uint64) (allowed int) {
+			DecideCalled: func(lastNotarised *common.LastExecutionResultForInclusion, pending []data.BaseExecutionResultHandler, currentHdrTsMs uint64) (allowed int) {
 				return 1 // coverage only
 			},
 		}
@@ -1343,7 +1343,7 @@ func Test_addExecutionResultsOnHeader(t *testing.T) {
 				},
 			},
 			"executionResultsInclusionEstimator": &processMocks.InclusionEstimatorMock{
-				DecideCalled: func(lastNotarised *estimator.LastExecutionResultForInclusion, pending []data.BaseExecutionResultHandler, currentHdrTsMs uint64) (allowed int) {
+				DecideCalled: func(lastNotarised *common.LastExecutionResultForInclusion, pending []data.BaseExecutionResultHandler, currentHdrTsMs uint64) (allowed int) {
 					return 1
 				},
 			},
@@ -1392,6 +1392,8 @@ func Test_addExecutionResultsOnHeader(t *testing.T) {
 			MaxResultsPerBlock: 10,
 		}
 
+		executionResultsInclusionEstimator, _ := estimator.NewExecutionResultInclusionEstimator(defaultCfg, roundHandler, &testscommon.BlockSizeComputationStub{})
+
 		executionResult1 := &block.ExecutionResult{
 			BaseExecutionResult: &block.BaseExecutionResult{HeaderHash: []byte("hash1"), HeaderNonce: 1, HeaderRound: 2, GasUsed: 100_000_000},
 		}
@@ -1415,7 +1417,7 @@ func Test_addExecutionResultsOnHeader(t *testing.T) {
 					return header
 				},
 			},
-			"executionResultsInclusionEstimator": estimator.NewExecutionResultInclusionEstimator(defaultCfg, roundHandler),
+			"executionResultsInclusionEstimator": executionResultsInclusionEstimator,
 			"shardCoordinator": &mock.ShardCoordinatorStub{
 				SelfIdCalled: func() uint32 {
 					return 0
@@ -1476,6 +1478,8 @@ func Test_addExecutionResultsOnHeader(t *testing.T) {
 			},
 		}
 
+		execResEst, _ := estimator.NewExecutionResultInclusionEstimator(defaultCfg, roundHandler, &testscommon.BlockSizeComputationStub{})
+
 		sp, _ := blproc.ConstructPartialShardBlockProcessorForTest(map[string]interface{}{
 			"executionManager": &processMocks.ExecutionManagerMock{
 				GetPendingExecutionResultsCalled: func() ([]data.BaseExecutionResultHandler, error) {
@@ -1492,7 +1496,7 @@ func Test_addExecutionResultsOnHeader(t *testing.T) {
 					return header
 				},
 			},
-			"executionResultsInclusionEstimator": estimator.NewExecutionResultInclusionEstimator(defaultCfg, roundHandler),
+			"executionResultsInclusionEstimator": execResEst,
 			"shardCoordinator": &mock.ShardCoordinatorStub{
 				SelfIdCalled: func() uint32 {
 					return 0
@@ -1965,7 +1969,7 @@ func TestShardProcessor_VerifyBlockProposal(t *testing.T) {
 			},
 		}
 		arguments.ExecutionResultsInclusionEstimator = &processMocks.InclusionEstimatorMock{
-			DecideCalled: func(lastNotarised *estimator.LastExecutionResultForInclusion, pending []data.BaseExecutionResultHandler, currentHdrTsMs uint64) (allowed int) {
+			DecideCalled: func(lastNotarised *common.LastExecutionResultForInclusion, pending []data.BaseExecutionResultHandler, currentHdrTsMs uint64) (allowed int) {
 				return 10
 			},
 		}
@@ -2000,7 +2004,7 @@ func TestShardProcessor_VerifyBlockProposal(t *testing.T) {
 			},
 		}
 		arguments.ExecutionResultsInclusionEstimator = &processMocks.InclusionEstimatorMock{
-			DecideCalled: func(lastNotarised *estimator.LastExecutionResultForInclusion, pending []data.BaseExecutionResultHandler, currentHdrTsMs uint64) (allowed int) {
+			DecideCalled: func(lastNotarised *common.LastExecutionResultForInclusion, pending []data.BaseExecutionResultHandler, currentHdrTsMs uint64) (allowed int) {
 				return 0
 			},
 		}
@@ -2042,7 +2046,7 @@ func TestShardProcessor_VerifyBlockProposal(t *testing.T) {
 			},
 		}
 		arguments.ExecutionResultsInclusionEstimator = &processMocks.InclusionEstimatorMock{
-			DecideCalled: func(lastNotarised *estimator.LastExecutionResultForInclusion, pending []data.BaseExecutionResultHandler, currentHdrTsMs uint64) (allowed int) {
+			DecideCalled: func(lastNotarised *common.LastExecutionResultForInclusion, pending []data.BaseExecutionResultHandler, currentHdrTsMs uint64) (allowed int) {
 				return 0
 			},
 		}
@@ -2240,7 +2244,7 @@ func TestShardProcessor_VerifyBlockProposal(t *testing.T) {
 			},
 		}
 		arguments.ExecutionResultsInclusionEstimator = &processMocks.InclusionEstimatorMock{
-			DecideCalled: func(lastNotarised *estimator.LastExecutionResultForInclusion, pending []data.BaseExecutionResultHandler, currentHdrTsMs uint64) (allowed int) {
+			DecideCalled: func(lastNotarised *common.LastExecutionResultForInclusion, pending []data.BaseExecutionResultHandler, currentHdrTsMs uint64) (allowed int) {
 				return 0
 			},
 		}
@@ -2305,7 +2309,7 @@ func TestShardProcessor_VerifyBlockProposal(t *testing.T) {
 			},
 		}
 		arguments.ExecutionResultsInclusionEstimator = &processMocks.InclusionEstimatorMock{
-			DecideCalled: func(lastNotarised *estimator.LastExecutionResultForInclusion, pending []data.BaseExecutionResultHandler, currentHdrTsMs uint64) (allowed int) {
+			DecideCalled: func(lastNotarised *common.LastExecutionResultForInclusion, pending []data.BaseExecutionResultHandler, currentHdrTsMs uint64) (allowed int) {
 				return 0
 			},
 		}
@@ -2360,7 +2364,7 @@ func TestShardProcessor_VerifyBlockProposal(t *testing.T) {
 			},
 		}
 		arguments.ExecutionResultsInclusionEstimator = &processMocks.InclusionEstimatorMock{
-			DecideCalled: func(lastNotarised *estimator.LastExecutionResultForInclusion, pending []data.BaseExecutionResultHandler, currentHdrTsMs uint64) (allowed int) {
+			DecideCalled: func(lastNotarised *common.LastExecutionResultForInclusion, pending []data.BaseExecutionResultHandler, currentHdrTsMs uint64) (allowed int) {
 				return 0
 			},
 		}
@@ -2410,7 +2414,7 @@ func TestShardProcessor_CheckInclusionEstimationForExecutionResults(t *testing.T
 		arguments := CreateMockArguments(coreComponents, dataComponents, bootstrapComponents, statusComponents)
 
 		arguments.ExecutionResultsInclusionEstimator = &processMocks.InclusionEstimatorMock{
-			DecideCalled: func(lastNotarised *estimator.LastExecutionResultForInclusion, pending []data.BaseExecutionResultHandler, currentHdrTsMs uint64) (allowed int) {
+			DecideCalled: func(lastNotarised *common.LastExecutionResultForInclusion, pending []data.BaseExecutionResultHandler, currentHdrTsMs uint64) (allowed int) {
 				return 1
 			},
 		}
@@ -4541,7 +4545,7 @@ func createSubComponentsForVerifyProposalTest() map[string]interface{} {
 			},
 		},
 		"executionResultsInclusionEstimator": &processMocks.InclusionEstimatorMock{
-			DecideCalled: func(lastNotarised *estimator.LastExecutionResultForInclusion, pending []data.BaseExecutionResultHandler, currentHdrTsMs uint64) (allowed int) {
+			DecideCalled: func(lastNotarised *common.LastExecutionResultForInclusion, pending []data.BaseExecutionResultHandler, currentHdrTsMs uint64) (allowed int) {
 				return 0
 			},
 		},

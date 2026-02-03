@@ -127,8 +127,9 @@ type EpochStartConfig struct {
 
 // BlockSizeThrottleConfig will hold the configuration for adaptive block size throttle
 type BlockSizeThrottleConfig struct {
-	MinSizeInBytes uint32
-	MaxSizeInBytes uint32
+	MinSizeInBytes        uint32
+	MaxSizeInBytes        uint32
+	MaxExecResSizeInBytes uint32
 }
 
 // SoftwareVersionConfig will hold the configuration for software version checker
