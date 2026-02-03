@@ -1,6 +1,7 @@
 package block
 
 import (
+	"bytes"
 	"errors"
 	"fmt"
 	"time"
@@ -912,6 +913,9 @@ func (sp *shardProcessor) getOrderedProcessedMetaBlocksFromMiniBlockHashesV3(
 }
 
 func (sp *shardProcessor) saveEpochStartEconomicsIfNeeded(header data.ShardHeaderHandler) {
+	var prevHashOfEpochChangeProposed []byte
+	var metaEpochChangeProposedHeader data.MetaHeaderHandler
+	var metaEpochChangeHeader data.MetaHeaderHandler
 	for _, metaHash := range header.GetMetaBlockHashes() {
 		hdr, err := sp.getHeaderFromHash(header.IsHeaderV3(), metaHash, core.MetachainShardId)
 		if err != nil {
@@ -921,11 +925,86 @@ func (sp *shardProcessor) saveEpochStartEconomicsIfNeeded(header data.ShardHeade
 		if !ok {
 			continue
 		}
-		if !metaHdr.IsEpochChangeProposed() {
+
+		// save epoch change proposed header if found
+		if metaHdr.IsEpochChangeProposed() {
+			prevHashOfEpochChangeProposed = metaHdr.GetPrevHash()
+			metaEpochChangeProposedHeader = metaHdr
 			continue
 		}
 
-		sp.saveEpochStartEconomicsMetricsV3IfNeeded(metaHdr)
+		// save epoch change header if found
+		if metaHdr.IsStartOfEpochBlock() {
+			metaEpochChangeHeader = metaHdr
+			continue
+		}
+	}
+
+	// if both nil, no metric to be saved
+	if check.IfNil(metaEpochChangeHeader) && check.IfNil(metaEpochChangeProposedHeader) {
+		return
+	}
+
+	// if none of them are nil, iterate through all execution results
+	if !check.IfNil(metaEpochChangeHeader) && !check.IfNil(metaEpochChangeProposedHeader) {
+		execResults := metaEpochChangeProposedHeader.GetExecutionResultsHandlers()
+		execResults = append(execResults, metaEpochChangeHeader.GetExecutionResultsHandlers()...)
+		// having both headers implies having prevHashOfEpochChangeProposed as well
+		sp.setEpochStartMetricsV3FromExecutionResults(prevHashOfEpochChangeProposed, execResults)
+		return
+	}
+
+	// if only metaEpochChangeProposedHeader is available, try to set the metrics from it
+	// this implies it holds the execution result of its previous header
+	if !check.IfNil(metaEpochChangeProposedHeader) {
+		sp.setEpochStartMetricsV3FromExecutionResults(prevHashOfEpochChangeProposed, metaEpochChangeProposedHeader.GetExecutionResultsHandlers())
+		return
+	}
+
+	// if only metaEpochChangeHeader is available, try to set the metrics from it
+	// this implies it holds the execution result of epoch start proposed header and its previous
+	if !check.IfNil(metaEpochChangeHeader) {
+		// first extract epoch change proposed header to get its prev hash
+		for _, execResult := range metaEpochChangeHeader.GetExecutionResultsHandlers() {
+			headerFromExecResult, err := sp.getHeaderFromHash(true, execResult.GetHeaderHash(), core.MetachainShardId)
+			if err != nil {
+				// saving the metric should not be blocking
+				continue
+			}
+
+			metaHeaderFromExecResult, ok := headerFromExecResult.(data.MetaHeaderHandler)
+			if !ok {
+				// saving the metric should not be blocking
+				continue
+			}
+
+			if !metaHeaderFromExecResult.IsEpochChangeProposed() {
+				continue
+			}
+
+			prevHashOfEpochChangeProposed = metaHeaderFromExecResult.GetPrevHash()
+		}
+
+		sp.setEpochStartMetricsV3FromExecutionResults(prevHashOfEpochChangeProposed, metaEpochChangeHeader.GetExecutionResultsHandlers())
+	}
+}
+
+func (sp *shardProcessor) setEpochStartMetricsV3FromExecutionResults(
+	prevHashOfEpochChangeProposed []byte,
+	executionResults []data.BaseExecutionResultHandler,
+) {
+	for _, prevExecResult := range executionResults {
+		if !bytes.Equal(prevHashOfEpochChangeProposed, prevExecResult.GetHeaderHash()) {
+			continue
+		}
+
+		metaExecResult, okMetaExecResultCast := prevExecResult.(data.BaseMetaExecutionResultHandler)
+		if !okMetaExecResultCast {
+			continue
+		}
+
+		sp.appStatusHandler.SetStringValue(common.MetricTotalFees, metaExecResult.GetAccumulatedFeesInEpoch().String())
+		sp.appStatusHandler.SetStringValue(common.MetricDevRewardsInEpoch, metaExecResult.GetDevFeesInEpoch().String())
 		return
 	}
 }

@@ -494,6 +494,32 @@ func (mp *metaProcessor) processEpochStartProposeBlock(
 	return execResult, nil
 }
 
+func (mp *metaProcessor) saveEpochStartEconomicsMetricsV3IfNeeded(metaBlock data.MetaHeaderHandler) {
+	if !metaBlock.IsHeaderV3() {
+		// fee metrics for meta block will be handled on commit
+		return
+	}
+
+	if !metaBlock.IsEpochChangeProposed() {
+		return
+	}
+
+	lastExecutionResult := mp.blockChain.GetLastExecutionResult()
+	if string(lastExecutionResult.GetHeaderHash()) != string(metaBlock.GetPrevHash()) {
+		// should never happen, as this is called while processing proposeEpochChangeMetaBlock
+		return
+	}
+
+	lastMetaExecutionResult, ok := lastExecutionResult.(data.BaseMetaExecutionResultHandler)
+	if !ok {
+		// should never happen
+		return
+	}
+
+	mp.appStatusHandler.SetStringValue(common.MetricTotalFees, lastMetaExecutionResult.GetAccumulatedFeesInEpoch().String())
+	mp.appStatusHandler.SetStringValue(common.MetricDevRewardsInEpoch, lastMetaExecutionResult.GetDevFeesInEpoch().String())
+}
+
 func (mp *metaProcessor) updateValidatorStatistics(header data.MetaHeaderHandler) ([]byte, error) {
 	sw := core.NewStopWatch()
 	sw.Start("UpdatePeerState")

@@ -3871,29 +3871,3 @@ func (bp *baseProcessor) saveEpochStartEconomicsMetrics(epochStartMetaBlock data
 	bp.appStatusHandler.SetStringValue(common.MetricTotalFees, epochStartMetaBlock.GetAccumulatedFeesInEpoch().String())
 	bp.appStatusHandler.SetStringValue(common.MetricDevRewardsInEpoch, epochStartMetaBlock.GetDevFeesInEpoch().String())
 }
-
-func (bp *baseProcessor) saveEpochStartEconomicsMetricsV3IfNeeded(metaBlock data.MetaHeaderHandler) {
-	if !metaBlock.IsHeaderV3() {
-		// fee metrics for meta block will be handled on commit
-		return
-	}
-
-	if !metaBlock.IsEpochChangeProposed() {
-		return
-	}
-
-	lastExecutionResult := bp.blockChain.GetLastExecutionResult()
-	if string(lastExecutionResult.GetHeaderHash()) != string(metaBlock.GetPrevHash()) {
-		// should never happen, as this is called while processing proposeEpochChangeMetaBlock
-		return
-	}
-
-	lastMetaExecutionResult, ok := lastExecutionResult.(data.BaseMetaExecutionResultHandler)
-	if !ok {
-		// should never happen
-		return
-	}
-
-	bp.appStatusHandler.SetStringValue(common.MetricTotalFees, lastMetaExecutionResult.GetAccumulatedFeesInEpoch().String())
-	bp.appStatusHandler.SetStringValue(common.MetricDevRewardsInEpoch, lastMetaExecutionResult.GetDevFeesInEpoch().String())
-}
