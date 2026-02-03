@@ -285,6 +285,7 @@ func TestChainSimulator_EGLD_MultiTransfer_Insufficient_Funds(t *testing.T) {
 	beforeBalanceStr0 := account0.Balance
 
 	account1, err := cs.GetAccount(addrs[1])
+	require.Nil(t, err)
 	_, err = cs.GetAccount(addrs[1])
 	require.Nil(t, err)
 
