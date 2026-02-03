@@ -15,9 +15,10 @@ import (
 	"github.com/multiversx/mx-chain-core-go/data/transaction"
 	"github.com/multiversx/mx-chain-go/storage"
 	"github.com/multiversx/mx-chain-go/testscommon/cache"
-	commonMocks "github.com/multiversx/mx-chain-go/testscommon/common"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
+
+	commonMocks "github.com/multiversx/mx-chain-go/testscommon/common"
 
 	"github.com/multiversx/mx-chain-go/process/asyncExecution/executionManager"
 
@@ -231,6 +232,12 @@ func TestShardProcessor_CreateBlockProposal(t *testing.T) {
 			},
 			HeadersCalled: func() retriever.HeadersPool {
 				return headers
+			},
+			PostProcessTransactionsCalled: func() storage.Cacher {
+				return &cache.CacherStub{}
+			},
+			ExecutedMiniBlocksCalled: func() storage.Cacher {
+				return &cache.CacherStub{}
 			},
 			DirectSentTransactionsCalled: func() storage.Cacher {
 				return cache.NewCacherStub()
@@ -485,6 +492,12 @@ func TestShardProcessor_CreateBlockProposal(t *testing.T) {
 					},
 				}
 			},
+			PostProcessTransactionsCalled: func() storage.Cacher {
+				return &cache.CacherStub{}
+			},
+			ExecutedMiniBlocksCalled: func() storage.Cacher {
+				return &cache.CacherStub{}
+			},
 			DirectSentTransactionsCalled: func() storage.Cacher {
 				return cache.NewCacherStub()
 			},
@@ -680,6 +693,12 @@ func TestShardProcessor_CreateBlockProposal(t *testing.T) {
 						return
 					},
 				}
+			},
+			PostProcessTransactionsCalled: func() storage.Cacher {
+				return &cache.CacherStub{}
+			},
+			ExecutedMiniBlocksCalled: func() storage.Cacher {
+				return &cache.CacherStub{}
 			},
 			DirectSentTransactionsCalled: func() storage.Cacher {
 				return cache.NewCacherStub()
@@ -986,6 +1005,12 @@ func TestShardProcessor_CreateBlockProposal(t *testing.T) {
 					},
 				}
 			},
+			PostProcessTransactionsCalled: func() storage.Cacher {
+				return &cache.CacherStub{}
+			},
+			ExecutedMiniBlocksCalled: func() storage.Cacher {
+				return &cache.CacherStub{}
+			},
 			DirectSentTransactionsCalled: func() storage.Cacher {
 				return cache.NewCacherStub()
 			},
@@ -1074,6 +1099,12 @@ func TestShardProcessor_CreateBlockProposal(t *testing.T) {
 					},
 				}
 			},
+			PostProcessTransactionsCalled: func() storage.Cacher {
+				return &cache.CacherStub{}
+			},
+			ExecutedMiniBlocksCalled: func() storage.Cacher {
+				return &cache.CacherStub{}
+			},
 			DirectSentTransactionsCalled: func() storage.Cacher {
 				return cache.NewCacherStub()
 			},
@@ -1152,6 +1183,12 @@ func TestShardProcessor_CreateBlockProposal(t *testing.T) {
 						return &transaction.Transaction{}, true
 					},
 				}
+			},
+			PostProcessTransactionsCalled: func() storage.Cacher {
+				return &cache.CacherStub{}
+			},
+			ExecutedMiniBlocksCalled: func() storage.Cacher {
+				return &cache.CacherStub{}
 			},
 			DirectSentTransactionsCalled: func() storage.Cacher {
 				return cache.NewCacherStub()
@@ -1405,7 +1442,7 @@ func Test_addExecutionResultsOnHeader(t *testing.T) {
 			"appStatusHandler": &statusHandlerMock.AppStatusHandlerStub{},
 		})
 
-		proposalHeader := &block.HeaderV3{Round: 3}
+		proposalHeader := &block.HeaderV3{Round: 4}
 		err := sp.AddExecutionResultsOnHeader(proposalHeader)
 
 		// expected only first pending execution result to be added
@@ -1546,6 +1583,12 @@ func TestShardProcessor_SelectIncomingMiniBlocks(t *testing.T) {
 					},
 				}
 			},
+			PostProcessTransactionsCalled: func() storage.Cacher {
+				return &cache.CacherStub{}
+			},
+			ExecutedMiniBlocksCalled: func() storage.Cacher {
+				return &cache.CacherStub{}
+			},
 			DirectSentTransactionsCalled: func() storage.Cacher {
 				return cache.NewCacherStub()
 			},
@@ -1580,6 +1623,12 @@ func TestShardProcessor_SelectIncomingMiniBlocks(t *testing.T) {
 					},
 				}
 			},
+			PostProcessTransactionsCalled: func() storage.Cacher {
+				return &cache.CacherStub{}
+			},
+			ExecutedMiniBlocksCalled: func() storage.Cacher {
+				return &cache.CacherStub{}
+			},
 			DirectSentTransactionsCalled: func() storage.Cacher {
 				return cache.NewCacherStub()
 			},
@@ -1610,6 +1659,12 @@ func TestShardProcessor_SelectIncomingMiniBlocks(t *testing.T) {
 						return false
 					},
 				}
+			},
+			PostProcessTransactionsCalled: func() storage.Cacher {
+				return &cache.CacherStub{}
+			},
+			ExecutedMiniBlocksCalled: func() storage.Cacher {
+				return &cache.CacherStub{}
 			},
 			DirectSentTransactionsCalled: func() storage.Cacher {
 				return cache.NewCacherStub()
@@ -1648,6 +1703,12 @@ func TestShardProcessor_SelectIncomingMiniBlocks(t *testing.T) {
 						return true
 					},
 				}
+			},
+			PostProcessTransactionsCalled: func() storage.Cacher {
+				return &cache.CacherStub{}
+			},
+			ExecutedMiniBlocksCalled: func() storage.Cacher {
+				return &cache.CacherStub{}
 			},
 			DirectSentTransactionsCalled: func() storage.Cacher {
 				return cache.NewCacherStub()
@@ -1705,6 +1766,12 @@ func TestShardProcessor_SelectIncomingMiniBlocks(t *testing.T) {
 						return true
 					},
 				}
+			},
+			PostProcessTransactionsCalled: func() storage.Cacher {
+				return &cache.CacherStub{}
+			},
+			ExecutedMiniBlocksCalled: func() storage.Cacher {
+				return &cache.CacherStub{}
 			},
 			DirectSentTransactionsCalled: func() storage.Cacher {
 				return cache.NewCacherStub()
@@ -2703,6 +2770,12 @@ func TestShardBlockProposal_CreateAndVerifyProposal(t *testing.T) {
 				},
 			}
 		},
+		PostProcessTransactionsCalled: func() storage.Cacher {
+			return &cache.CacherStub{}
+		},
+		ExecutedMiniBlocksCalled: func() storage.Cacher {
+			return &cache.CacherStub{}
+		},
 		DirectSentTransactionsCalled: func() storage.Cacher {
 			return cache.NewCacherStub()
 		},
@@ -2715,6 +2788,8 @@ func TestShardBlockProposal_CreateAndVerifyProposal(t *testing.T) {
 		ExecutionResultsTracker: executionResultsTracker,
 		BlockChain:              blkc,
 		Headers:                 dataComponents.DataPool.Headers(),
+		PostProcessTransactions: dataComponents.DataPool.PostProcessTransactions(),
+		ExecutedMiniBlocks:      dataComponents.DataPool.ExecutedMiniBlocks(),
 		StorageService:          dataComponents.StorageService(),
 		Marshaller:              coreComponents.InternalMarshalizer(),
 		ShardCoordinator:        bootstrapComponents.ShardCoordinator(),
@@ -2857,6 +2932,12 @@ func TestShardBlockProposal_CreateAndVerifyProposal_WithTransactions(t *testing.
 				},
 			}
 		},
+		PostProcessTransactionsCalled: func() storage.Cacher {
+			return &cache.CacherStub{}
+		},
+		ExecutedMiniBlocksCalled: func() storage.Cacher {
+			return &cache.CacherStub{}
+		},
 		DirectSentTransactionsCalled: func() storage.Cacher {
 			return cache.NewCacherStub()
 		},
@@ -2869,6 +2950,8 @@ func TestShardBlockProposal_CreateAndVerifyProposal_WithTransactions(t *testing.
 		ExecutionResultsTracker: executionResultsTracker,
 		BlockChain:              blkc,
 		Headers:                 dataComponents.DataPool.Headers(),
+		PostProcessTransactions: dataComponents.DataPool.PostProcessTransactions(),
+		ExecutedMiniBlocks:      dataComponents.DataPool.ExecutedMiniBlocks(),
 		StorageService:          dataComponents.StorageService(),
 		Marshaller:              coreComponents.InternalMarshalizer(),
 		ShardCoordinator:        bootstrapComponents.ShardCoordinator(),
@@ -3105,6 +3188,8 @@ func adaptDataPoolForVerifyGas(
 ) *dataRetriever.PoolsHolderStub {
 	headers := initialPool.Headers()
 	proofs := initialPool.Proofs()
+	postProcessTxs := initialPool.PostProcessTransactions()
+	executedMbs := initialPool.ExecutedMiniBlocks()
 	dsTxs := initialPool.DirectSentTransactions()
 	return &dataRetriever.PoolsHolderStub{
 		HeadersCalled: func() retriever.HeadersPool {
@@ -3121,6 +3206,12 @@ func adaptDataPoolForVerifyGas(
 					return
 				},
 			}
+		},
+		PostProcessTransactionsCalled: func() storage.Cacher {
+			return postProcessTxs
+		},
+		ExecutedMiniBlocksCalled: func() storage.Cacher {
+			return executedMbs
 		},
 		DirectSentTransactionsCalled: func() storage.Cacher {
 			return dsTxs
@@ -3163,13 +3254,13 @@ func TestShardProcessor_ProcessBlockProposal(t *testing.T) {
 	t.Parallel()
 
 	arguments := CreateMockArguments(createComponentHolderMocks())
-
+	headerHash := []byte("headerHash")
 	t.Run("nil header should error", func(t *testing.T) {
 		t.Parallel()
 
 		sp, _ := blproc.NewShardProcessor(arguments)
 		body := &block.Body{}
-		_, err := sp.ProcessBlockProposal(nil, body)
+		_, err := sp.ProcessBlockProposal(nil, headerHash, body)
 
 		require.Equal(t, process.ErrNilBlockHeader, err)
 	})
@@ -3178,7 +3269,7 @@ func TestShardProcessor_ProcessBlockProposal(t *testing.T) {
 
 		sp, _ := blproc.NewShardProcessor(arguments)
 		header := &block.HeaderV3{}
-		_, err := sp.ProcessBlockProposal(header, nil)
+		_, err := sp.ProcessBlockProposal(header, headerHash, nil)
 
 		require.Equal(t, process.ErrNilBlockBody, err)
 	})
@@ -3189,7 +3280,7 @@ func TestShardProcessor_ProcessBlockProposal(t *testing.T) {
 
 		header := &block.Header{} // wrong type
 		body := &block.Body{}
-		_, err := sp.ProcessBlockProposal(header, body)
+		_, err := sp.ProcessBlockProposal(header, headerHash, body)
 
 		require.Equal(t, process.ErrInvalidHeader, err)
 	})
@@ -3200,7 +3291,7 @@ func TestShardProcessor_ProcessBlockProposal(t *testing.T) {
 
 		header := &block.MetaBlockV3{} // wrong type
 		body := &block.Body{}
-		_, err := sp.ProcessBlockProposal(header, body)
+		_, err := sp.ProcessBlockProposal(header, headerHash, body)
 
 		require.Equal(t, process.ErrWrongTypeAssertion, err)
 	})
@@ -3211,7 +3302,7 @@ func TestShardProcessor_ProcessBlockProposal(t *testing.T) {
 
 		header := &block.HeaderV3{}
 		body := &wrongBody{} // wrong type
-		_, err := sp.ProcessBlockProposal(header, body)
+		_, err := sp.ProcessBlockProposal(header, headerHash, body)
 
 		require.Equal(t, process.ErrWrongTypeAssertion, err)
 	})
@@ -3230,7 +3321,7 @@ func TestShardProcessor_ProcessBlockProposal(t *testing.T) {
 			Nonce: 1,
 		}
 		body := &block.Body{}
-		_, err := sp.ProcessBlockProposal(header, body)
+		_, err := sp.ProcessBlockProposal(header, headerHash, body)
 
 		require.Equal(t, expectedErr, err)
 	})
@@ -3249,7 +3340,7 @@ func TestShardProcessor_ProcessBlockProposal(t *testing.T) {
 			Nonce: 1,
 		}
 		body := &block.Body{}
-		_, err := sp.ProcessBlockProposal(header, body)
+		_, err := sp.ProcessBlockProposal(header, headerHash, body)
 
 		require.Equal(t, expectedErr, err)
 	})
@@ -3286,7 +3377,7 @@ func TestShardProcessor_ProcessBlockProposal(t *testing.T) {
 			EpochStartMetaHash: []byte("epochStartHash"),
 		}
 		body := &block.Body{}
-		_, err := sp.ProcessBlockProposal(header, body)
+		_, err := sp.ProcessBlockProposal(header, headerHash, body)
 
 		require.Error(t, err)
 		require.ErrorIs(t, err, process.ErrEpochStartInfoNotAvailable)
@@ -3306,7 +3397,7 @@ func TestShardProcessor_ProcessBlockProposal(t *testing.T) {
 			Nonce: 1,
 		}
 		body := &block.Body{}
-		_, err := sp.ProcessBlockProposal(header, body)
+		_, err := sp.ProcessBlockProposal(header, headerHash, body)
 		require.Equal(t, expectedErr, err)
 	})
 	t.Run("WaitForHeadersIfNeeded fails should error", func(t *testing.T) {
@@ -3324,7 +3415,7 @@ func TestShardProcessor_ProcessBlockProposal(t *testing.T) {
 			Nonce: 1,
 		}
 		body := &block.Body{}
-		_, err := sp.ProcessBlockProposal(header, body)
+		_, err := sp.ProcessBlockProposal(header, headerHash, body)
 		require.Equal(t, expectedErr, err)
 	})
 	t.Run("ProcessBlockTransaction fails should error", func(t *testing.T) {
@@ -3349,9 +3440,9 @@ func TestShardProcessor_ProcessBlockProposal(t *testing.T) {
 			Nonce: 1,
 		}
 		body := &block.Body{}
-		_, err := sp.ProcessBlockProposal(header, body)
+		_, err := sp.ProcessBlockProposal(header, headerHash, body)
 		require.Equal(t, expectedErr, err)
-		require.True(t, wasRemoveAtNonceAndHigherCalled)
+		require.False(t, wasRemoveAtNonceAndHigherCalled)
 	})
 	t.Run("VerifyCreatedBlockTransactions fails should error", func(t *testing.T) {
 		t.Parallel()
@@ -3368,26 +3459,7 @@ func TestShardProcessor_ProcessBlockProposal(t *testing.T) {
 			Nonce: 1,
 		}
 		body := &block.Body{}
-		_, err := sp.ProcessBlockProposal(header, body)
-		require.Equal(t, expectedErr, err)
-	})
-	t.Run("CalculateHash fails should error", func(t *testing.T) {
-		t.Parallel()
-
-		coreComponents, dataComponents, bootstrapComponents, statusComponents := createComponentHolderMocks()
-		coreComponents.IntMarsh = &mock.MarshalizerStub{
-			MarshalCalled: func(obj interface{}) ([]byte, error) {
-				return nil, expectedErr
-			},
-		}
-		args := CreateMockArguments(coreComponents, dataComponents, bootstrapComponents, statusComponents)
-		sp, _ := blproc.NewShardProcessor(args)
-
-		header := &block.HeaderV3{
-			Nonce: 1,
-		}
-		body := &block.Body{}
-		_, err := sp.ProcessBlockProposal(header, body)
+		_, err := sp.ProcessBlockProposal(header, headerHash, body)
 		require.Equal(t, expectedErr, err)
 	})
 	t.Run("collectExecutionResults fails should error", func(t *testing.T) {
@@ -3405,7 +3477,7 @@ func TestShardProcessor_ProcessBlockProposal(t *testing.T) {
 			Nonce: 1,
 		}
 		body := &block.Body{}
-		_, err := sp.ProcessBlockProposal(header, body)
+		_, err := sp.ProcessBlockProposal(header, headerHash, body)
 		require.Equal(t, expectedErr, err)
 	})
 	t.Run("HandleProcessErrorCutoff fails should error", func(t *testing.T) {
@@ -3423,7 +3495,7 @@ func TestShardProcessor_ProcessBlockProposal(t *testing.T) {
 			Nonce: 1,
 		}
 		body := &block.Body{}
-		_, err := sp.ProcessBlockProposal(header, body)
+		_, err := sp.ProcessBlockProposal(header, headerHash, body)
 		require.Equal(t, expectedErr, err)
 	})
 	t.Run("commit state is called", func(t *testing.T) {
@@ -3453,7 +3525,7 @@ func TestShardProcessor_ProcessBlockProposal(t *testing.T) {
 			Nonce: 1,
 		}
 		body := &block.Body{}
-		_, err := sp.ProcessBlockProposal(header, body)
+		_, err := sp.ProcessBlockProposal(header, headerHash, body)
 		require.Nil(t, err)
 		require.True(t, commitCalled)
 	})
@@ -3466,7 +3538,7 @@ func TestShardProcessor_ProcessBlockProposal(t *testing.T) {
 			Nonce: 1,
 		}
 		body := &block.Body{}
-		_, err := sp.ProcessBlockProposal(header, body)
+		_, err := sp.ProcessBlockProposal(header, headerHash, body)
 
 		require.Nil(t, err)
 	})

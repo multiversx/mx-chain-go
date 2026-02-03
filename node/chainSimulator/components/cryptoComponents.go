@@ -181,7 +181,7 @@ func (c *cryptoComponentsHolder) MultiSignerContainer() cryptoCommon.MultiSigner
 }
 
 // GetMultiSigner will return the multi signer by epoch
-func (c *cryptoComponentsHolder) GetMultiSigner(epoch uint32) (crypto.MultiSigner, error) {
+func (c *cryptoComponentsHolder) GetMultiSigner(epoch uint32) (crypto.MultiSignerV2, error) {
 	return c.MultiSignerContainer().GetMultiSigner(epoch)
 }
 

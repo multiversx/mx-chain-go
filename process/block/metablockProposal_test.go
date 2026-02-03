@@ -649,7 +649,7 @@ func TestMetaProcessor_CreateBlockProposal(t *testing.T) {
 		require.NotNil(t, header)
 		require.NotNil(t, body)
 	})
-	t.Run("no mini blocks added if isEpochStart", func(t *testing.T) {
+	t.Run("no mini blocks added if epoch change propose set", func(t *testing.T) {
 		t.Parallel()
 
 		coreComponents, dataComponents, bootstrapComponents, statusComponents := createMockComponentHolders()
@@ -661,7 +661,7 @@ func TestMetaProcessor_CreateBlockProposal(t *testing.T) {
 			},
 		}
 		arguments.EpochStartTrigger = &testscommon.EpochStartTriggerStub{
-			IsEpochStartCalled: func() bool {
+			GetEpochChangeProposedCalled: func() bool {
 				return true
 			},
 		}
@@ -1157,6 +1157,11 @@ func Test_checkShardHeadersValidityAndFinalityProposal(t *testing.T) {
 					return nil, nil, expectedErr
 				},
 			},
+			"epochStartTrigger": &testscommon.EpochStartTriggerStub{
+				GetEpochChangeProposedCalled: func() bool {
+					return false
+				},
+			},
 		})
 		require.Nil(t, err)
 
@@ -1187,6 +1192,11 @@ func Test_checkShardHeadersValidityAndFinalityProposal(t *testing.T) {
 			"blockTracker": &mock.BlockTrackerMock{
 				GetLastCrossNotarizedHeaderCalled: func(_ uint32) (data.HeaderHandler, []byte, error) {
 					return &testscommon.HeaderHandlerStub{}, nil, nil
+				},
+			},
+			"epochStartTrigger": &testscommon.EpochStartTriggerStub{
+				GetEpochChangeProposedCalled: func() bool {
+					return false
 				},
 			},
 			"dataPool": dataPoolMock,
@@ -1240,6 +1250,11 @@ func Test_checkShardHeadersValidityAndFinalityProposal(t *testing.T) {
 			"blockTracker": &mock.BlockTrackerMock{
 				GetLastCrossNotarizedHeaderCalled: func(_ uint32) (data.HeaderHandler, []byte, error) {
 					return &testscommon.HeaderHandlerStub{}, nil, nil
+				},
+			},
+			"epochStartTrigger": &testscommon.EpochStartTriggerStub{
+				GetEpochChangeProposedCalled: func() bool {
+					return false
 				},
 			},
 			"dataPool":   dataPoolMock,
@@ -1296,6 +1311,11 @@ func Test_checkShardHeadersValidityAndFinalityProposal(t *testing.T) {
 					return &testscommon.HeaderHandlerStub{}, nil, nil
 				},
 			},
+			"epochStartTrigger": &testscommon.EpochStartTriggerStub{
+				GetEpochChangeProposedCalled: func() bool {
+					return false
+				},
+			},
 			"dataPool":    dataPoolMock,
 			"marshalizer": marshaller,
 			"blockChain": &testscommon.ChainHandlerStub{
@@ -1334,6 +1354,11 @@ func Test_checkShardHeadersValidityAndFinalityProposal(t *testing.T) {
 			"blockTracker": &mock.BlockTrackerMock{
 				GetLastCrossNotarizedHeaderCalled: func(_ uint32) (data.HeaderHandler, []byte, error) {
 					return &testscommon.HeaderHandlerStub{}, nil, nil
+				},
+			},
+			"epochStartTrigger": &testscommon.EpochStartTriggerStub{
+				GetEpochChangeProposedCalled: func() bool {
+					return false
 				},
 			},
 			"dataPool":    dataPoolMock,
@@ -3882,7 +3907,7 @@ func TestMetaProcessor_ProcessBlockProposal(t *testing.T) {
 		mp, err := blproc.NewMetaProcessor(arguments)
 		require.Nil(t, err)
 
-		_, err = mp.ProcessBlockProposal(nil, &block.Body{})
+		_, err = mp.ProcessBlockProposal(nil, []byte("headerHash"), &block.Body{})
 		require.Equal(t, process.ErrNilBlockHeader, err)
 	})
 
@@ -3895,7 +3920,7 @@ func TestMetaProcessor_ProcessBlockProposal(t *testing.T) {
 		mp, err := blproc.NewMetaProcessor(arguments)
 		require.Nil(t, err)
 
-		_, err = mp.ProcessBlockProposal(&block.MetaBlockV3{}, nil)
+		_, err = mp.ProcessBlockProposal(&block.MetaBlockV3{}, []byte("headerHash"), nil)
 		require.Equal(t, process.ErrNilBlockBody, err)
 	})
 
@@ -3908,7 +3933,7 @@ func TestMetaProcessor_ProcessBlockProposal(t *testing.T) {
 		mp, err := blproc.NewMetaProcessor(arguments)
 		require.Nil(t, err)
 
-		_, err = mp.ProcessBlockProposal(&block.MetaBlock{}, &block.Body{})
+		_, err = mp.ProcessBlockProposal(&block.MetaBlock{}, []byte("headerHash"), &block.Body{})
 		require.Equal(t, process.ErrInvalidHeader, err)
 	})
 
@@ -3937,7 +3962,7 @@ func TestMetaProcessor_ProcessBlockProposal(t *testing.T) {
 		_, err = mp.ProcessBlockProposal(&block.HeaderV3{
 			Round: 2,
 			Epoch: 2,
-		}, &block.Body{})
+		}, []byte("headerHash"), &block.Body{})
 		require.Equal(t, process.ErrWrongTypeAssertion, err)
 		require.Equal(t, 1, checkEpochCounter)
 	})
@@ -3971,7 +3996,7 @@ func TestMetaProcessor_ProcessBlockProposal(t *testing.T) {
 		mp, err := blproc.NewMetaProcessor(arguments)
 		require.Nil(t, err)
 
-		_, err = mp.ProcessBlockProposal(&block.MetaBlockV3{}, &block.Body{})
+		_, err = mp.ProcessBlockProposal(&block.MetaBlockV3{}, []byte("headerHash"), &block.Body{})
 		require.True(t, errors.Is(err, process.ErrAccountStateDirty))
 	})
 
@@ -3995,7 +4020,7 @@ func TestMetaProcessor_ProcessBlockProposal(t *testing.T) {
 
 		_, err = mp.ProcessBlockProposal(&block.MetaBlockV3{
 			PrevHash: []byte("wrongHash"),
-		}, &block.Body{})
+		}, []byte("headerHash"), &block.Body{})
 		require.Equal(t, process.ErrBlockHashDoesNotMatch, err)
 	})
 
@@ -4031,7 +4056,7 @@ func TestMetaProcessor_ProcessBlockProposal(t *testing.T) {
 
 		_, err = mp.ProcessBlockProposal(&block.MetaBlockV3{
 			Nonce: 1,
-		}, &block.Body{})
+		}, []byte("headerHash"), &block.Body{})
 		require.Equal(t, expectedErr, err)
 	})
 
@@ -4061,7 +4086,7 @@ func TestMetaProcessor_ProcessBlockProposal(t *testing.T) {
 
 		_, err = mp.ProcessBlockProposal(&block.MetaBlockV3{
 			Nonce: 1,
-		}, &block.Body{})
+		}, []byte("headerHash"), &block.Body{})
 		require.Equal(t, expectedErr, err)
 	})
 
@@ -4096,7 +4121,7 @@ func TestMetaProcessor_ProcessBlockProposal(t *testing.T) {
 
 		_, err = mp.ProcessBlockProposal(&block.MetaBlockV3{
 			Nonce: 1,
-		}, &block.Body{})
+		}, []byte("headerHash"), &block.Body{})
 		require.Equal(t, expectedErr, err)
 	})
 
@@ -4120,7 +4145,7 @@ func TestMetaProcessor_ProcessBlockProposal(t *testing.T) {
 		_, err = mp.ProcessBlockProposal(&block.MetaBlockV3{
 			Nonce:               1,
 			EpochChangeProposed: true,
-		}, &block.Body{
+		}, []byte("headerHash"), &block.Body{
 			MiniBlocks: []*block.MiniBlock{
 				{}, {}, {},
 			},
@@ -4153,7 +4178,7 @@ func TestMetaProcessor_ProcessBlockProposal(t *testing.T) {
 
 		_, err = mp.ProcessBlockProposal(&block.MetaBlockV3{
 			Nonce: 1,
-		}, &block.Body{})
+		}, []byte("headerHash"), &block.Body{})
 		require.Equal(t, expectedErr, err)
 	})
 
@@ -4182,7 +4207,7 @@ func TestMetaProcessor_ProcessBlockProposal(t *testing.T) {
 
 		_, err = mp.ProcessBlockProposal(&block.MetaBlockV3{
 			Nonce: 1,
-		}, &block.Body{})
+		}, []byte("headerHash"), &block.Body{})
 		require.Equal(t, expectedErr, err)
 	})
 
@@ -4211,7 +4236,7 @@ func TestMetaProcessor_ProcessBlockProposal(t *testing.T) {
 
 		_, err = mp.ProcessBlockProposal(&block.MetaBlockV3{
 			Nonce: 1,
-		}, &block.Body{})
+		}, []byte("headerHash"), &block.Body{})
 		require.Equal(t, expectedErr, err)
 	})
 
@@ -4240,7 +4265,7 @@ func TestMetaProcessor_ProcessBlockProposal(t *testing.T) {
 
 		_, err = mp.ProcessBlockProposal(&block.MetaBlockV3{
 			Nonce: 1,
-		}, &block.Body{})
+		}, []byte("headerHash"), &block.Body{})
 		require.Equal(t, expectedErr, err)
 	})
 
@@ -4268,7 +4293,7 @@ func TestMetaProcessor_ProcessBlockProposal(t *testing.T) {
 
 		_, err = mp.ProcessBlockProposal(&block.MetaBlockV3{
 			Nonce: 1,
-		}, &block.Body{})
+		}, []byte("headerHash"), &block.Body{})
 		require.Equal(t, expectedErr, err)
 	})
 
@@ -4297,7 +4322,7 @@ func TestMetaProcessor_ProcessBlockProposal(t *testing.T) {
 
 		_, err = mp.ProcessBlockProposal(&block.MetaBlockV3{
 			Nonce: 1,
-		}, &block.Body{})
+		}, []byte("headerHash"), &block.Body{})
 		require.Equal(t, expectedErr, err)
 	})
 
@@ -4338,7 +4363,7 @@ func TestMetaProcessor_ProcessBlockProposal(t *testing.T) {
 
 		newBlock := defaultMetaBlockV3
 		newBlock.Nonce = 1
-		_, err = mp.ProcessBlockProposal(&newBlock, &block.Body{})
+		_, err = mp.ProcessBlockProposal(&newBlock, []byte("headerHash"), &block.Body{})
 		require.Equal(t, expectedErr, err)
 	})
 
@@ -4366,37 +4391,7 @@ func TestMetaProcessor_ProcessBlockProposal(t *testing.T) {
 
 		newBlock := defaultMetaBlockV3
 		newBlock.Nonce = 1
-		_, err = mp.ProcessBlockProposal(&newBlock, &block.Body{})
-		require.Equal(t, expectedErr, err)
-	})
-
-	t.Run("if calculating the hash fails, the error should be propagated", func(t *testing.T) {
-		t.Parallel()
-
-		coreComponents, dataComponents, boostrapComponents, statusComponents := createMockComponentHolders()
-		err := coreComponents.SetInternalMarshalizer(&marshallerMock.MarshalizerStub{
-			MarshalCalled: func(obj interface{}) ([]byte, error) {
-				return nil, expectedErr
-			},
-		})
-		require.Nil(t, err)
-
-		dataComponents.BlockChain = &testscommon.ChainHandlerStub{
-			GetLastExecutionResultCalled: func() data.BaseExecutionResultHandler {
-				return &block.MetaExecutionResult{}
-			},
-			GetLastExecutedBlockHeaderCalled: func() data.HeaderHandler {
-				return &block.MetaBlockV3{}
-			},
-		}
-
-		arguments := createMockMetaArguments(coreComponents, dataComponents, boostrapComponents, statusComponents)
-		mp, err := blproc.NewMetaProcessor(arguments)
-		require.Nil(t, err)
-
-		_, err = mp.ProcessBlockProposal(&block.MetaBlockV3{
-			Nonce: 1,
-		}, &block.Body{})
+		_, err = mp.ProcessBlockProposal(&newBlock, []byte("headerHash"), &block.Body{})
 		require.Equal(t, expectedErr, err)
 	})
 
@@ -4425,7 +4420,7 @@ func TestMetaProcessor_ProcessBlockProposal(t *testing.T) {
 
 		_, err = mp.ProcessBlockProposal(&block.MetaBlockV3{
 			Nonce: 1,
-		}, &block.Body{})
+		}, []byte("headerHash"), &block.Body{})
 		require.Equal(t, expectedErr, err)
 	})
 
@@ -4468,7 +4463,7 @@ func TestMetaProcessor_ProcessBlockProposal(t *testing.T) {
 					AccumulatedFeesInEpoch: big.NewInt(1),
 				},
 			},
-		}, &block.Body{
+		}, []byte("headerHash"), &block.Body{
 			MiniBlocks: []*block.MiniBlock{
 				{
 					Type: block.ReceiptBlock,

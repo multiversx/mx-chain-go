@@ -41,9 +41,19 @@ type TransactionCoordinatorMock struct {
 	AddTransactionsCalled                                func(txHandlers []data.TransactionHandler, blockType block.Type)
 	ComputeTransactionTypeInEpochCalled                  func(tx data.TransactionHandler, epoch uint32) (process.TransactionType, process.TransactionType, bool)
 	CreateReceiptsHashCalled                             func() ([]byte, error)
+	GetUnExecutableTransactionsCalled                    func() map[string]struct{}
 	ProposedDirectSentTransactionsToBroadcastCalled      func(proposedBody data.BodyHandler) map[string][][]byte
 
 	miniBlocks []*block.MiniBlock
+}
+
+// GetUnExecutableTransactions -
+func (tcm *TransactionCoordinatorMock) GetUnExecutableTransactions() map[string]struct{} {
+	if tcm.GetUnExecutableTransactionsCalled != nil {
+		return tcm.GetUnExecutableTransactionsCalled()
+	}
+
+	return nil
 }
 
 // ComputeTransactionTypeInEpoch -

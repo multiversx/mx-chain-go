@@ -74,6 +74,11 @@ func (cache *TxCache) AddTx(tx *WrappedTransaction) (ok bool, added bool) {
 
 	logAdd.Trace("TxCache.AddTx", "tx", tx.TxHash, "nonce", tx.Tx.GetNonce(), "sender", tx.Tx.GetSndAddr())
 
+	// Early duplicate check before expensive precomputeFields (DoS protection)
+	if cache.txByHash.hasTx(string(tx.TxHash)) {
+		return true, false
+	}
+
 	tx.precomputeFields(cache.host)
 
 	if cache.config.EvictionEnabled {

@@ -1248,6 +1248,21 @@ func (bp *baseProcessor) cleanupPools(headerHandler data.HeaderHandler) {
 		bp.dataPool.MiniBlocks().Remove(executionResultHeaderHash)
 		// cleanup all log events
 		bp.dataPool.PostProcessTransactions().Remove(common.PrepareLogEventsKey(executionResultHeaderHash))
+		// cleanup all unexecuted transaction from txpool
+		bp.cleanupUnexecutableTxsFromPool(executionResultHeaderHash)
+	}
+}
+
+func (bp *baseProcessor) cleanupUnexecutableTxsFromPool(headerHash []byte) {
+	unexecutableTxHashes, err := common.GetCachedUnexecutableTxHashes(bp.dataPool.PostProcessTransactions(), headerHash)
+	if err != nil {
+		log.Warn("bp.cleanupPools cannot get unexecutable tx hashes", "err", err)
+		return
+	}
+
+	cacheID := process.ShardCacherIdentifier(bp.shardCoordinator.SelfId(), bp.shardCoordinator.SelfId())
+	for _, txHash := range unexecutableTxHashes {
+		bp.dataPool.Transactions().RemoveData(txHash, cacheID)
 	}
 }
 
@@ -1577,7 +1592,7 @@ func (bp *baseProcessor) prepareDataForBootStorer(args bootStorerDataArgs) {
 	}
 
 	elapsedTime := time.Since(startTime)
-	if elapsedTime >= common.PutInStorerMaxTime {
+	if elapsedTime >= bp.getPutInStorerMaxTime() {
 		log.Warn("saveDataForBootStorer", "elapsed time", elapsedTime)
 	}
 }
@@ -1776,7 +1791,7 @@ func (bp *baseProcessor) saveBody(body *block.Body, header data.HeaderHandler, h
 	bp.scheduledTxsExecutionHandler.SaveStateIfNeeded(headerHash)
 
 	elapsedTime := time.Since(startTime)
-	if elapsedTime >= common.PutInStorerMaxTime {
+	if elapsedTime >= bp.getPutInStorerMaxTime() {
 		log.Warn("saveBody", "elapsed time", elapsedTime)
 	}
 }
@@ -1830,7 +1845,8 @@ func (bp *baseProcessor) saveTxsToStorage(dataPool dataRetriever.ShardedDataCach
 	for _, txHash := range txHashes {
 		tx, err := process.GetTransactionHandlerFromPool(senderShardID, receiverShardID, txHash, dataPool, method)
 		if err != nil {
-			return err
+			log.Warn("baseProcessor.saveTxsToStorage cannot get transaction from pool", "error", err.Error())
+			continue
 		}
 
 		marshalledTx, err := bp.marshalizer.Marshal(tx)
@@ -1897,7 +1913,7 @@ func (bp *baseProcessor) saveShardHeader(header data.HeaderHandler, headerHash [
 	bp.saveProof(headerHash, header)
 
 	elapsedTime := time.Since(startTime)
-	if elapsedTime >= common.PutInStorerMaxTime {
+	if elapsedTime >= bp.getPutInStorerMaxTime() {
 		log.Warn("saveShardHeader", "elapsed time", elapsedTime)
 	}
 }
@@ -1924,9 +1940,17 @@ func (bp *baseProcessor) saveMetaHeader(header data.HeaderHandler, headerHash []
 	bp.saveProof(headerHash, header)
 
 	elapsedTime := time.Since(startTime)
-	if elapsedTime >= common.PutInStorerMaxTime {
+	if elapsedTime >= bp.getPutInStorerMaxTime() {
 		log.Warn("saveMetaHeader", "elapsed time", elapsedTime)
 	}
+}
+
+func (bp *baseProcessor) getPutInStorerMaxTime() time.Duration {
+	if bp.enableEpochsHandler.IsFlagEnabled(common.SupernovaFlag) {
+		return common.PutInStorerMaxTimeSupernova
+	}
+
+	return common.PutInStorerMaxTime
 }
 
 func (bp *baseProcessor) saveProof(
@@ -1999,13 +2023,13 @@ func (bp *baseProcessor) updateStateStorage(
 }
 
 // RevertCurrentBlock reverts the current block for cleanup failed process
-func (bp *baseProcessor) RevertCurrentBlock(headerHandler data.HeaderHandler) {
+func (bp *baseProcessor) RevertCurrentBlock() {
 	bp.revertAccountState()
 	bp.revertScheduledInfo()
-	bp.revertCurrentBlockV3(headerHandler)
 }
 
-func (bp *baseProcessor) revertCurrentBlockV3(headerHandler data.HeaderHandler) {
+// RevertHeaderV3OnCommit reverts the current block for commit failed
+func (bp *baseProcessor) RevertHeaderV3OnCommit(headerHandler data.HeaderHandler) {
 	if check.IfNil(headerHandler) || !headerHandler.IsHeaderV3() {
 		return
 	}
@@ -2489,7 +2513,7 @@ func (bp *baseProcessor) ProcessScheduledBlock(headerHandler data.HeaderHandler,
 	bp.processStatusHandler.SetBusy("baseProcessor.ProcessScheduledBlock")
 	defer func() {
 		if err != nil {
-			bp.RevertCurrentBlock(headerHandler)
+			bp.RevertCurrentBlock()
 		}
 		bp.processStatusHandler.SetIdle()
 	}()
@@ -2893,20 +2917,9 @@ func (bp *baseProcessor) cleanPostProcessCache(header data.HeaderHandler) error 
 	postProcessTxsCache := bp.dataPool.PostProcessTransactions()
 	executedMbs := bp.dataPool.ExecutedMiniBlocks()
 	for _, execResult := range executionResults {
-		headerHash := execResult.GetHeaderHash()
-		// all transactions moved, cleaning the cache
-		postProcessTxsCache.Remove(headerHash)
-		// remove execution order data
-		postProcessTxsCache.Remove(common.PrepareOrderedTxHashesKey(headerHash))
-		// remove cached log events
-		postProcessTxsCache.Remove(common.PrepareLogEventsKey(headerHash))
-
-		mbHeaders, err := common.GetMiniBlocksHeaderHandlersFromExecResult(execResult)
+		err := process.CleanCachesForExecutionResult(execResult, postProcessTxsCache, executedMbs)
 		if err != nil {
 			return err
-		}
-		for _, mbHeader := range mbHeaders {
-			executedMbs.Remove(mbHeader.GetHash())
 		}
 	}
 
@@ -3337,6 +3350,7 @@ func (bp *baseProcessor) setCurrentBlockInfo(
 	// set also last executed block info and header
 	// this will be useful at transition to Supernova with headers v3
 	bp.blockChain.SetLastExecutedBlockHeaderAndRootHash(header, headerHash, rootHash)
+	bp.executionManager.CleanOnConsensusReached(headerHash, header.GetNonce())
 
 	// before header v3, create and set execution result in tracker
 	lastExecResHandler, err := common.GetOrCreateLastExecutionResultForPrevHeader(header, headerHash)
@@ -3577,14 +3591,16 @@ func (bp *baseProcessor) getLastExecutionResultHeader(
 	)
 }
 
-func (bp *baseProcessor) checkAndUpdateContextBeforeExecution(header data.HeaderHandler) error {
+func (bp *baseProcessor) checkAndUpdateContextBeforeExecution(header data.HeaderHandler, headerHash []byte) error {
 	lastExecutionResult := bp.blockChain.GetLastExecutionResult()
-	if process.IsReplacementBlockForExecution(header, lastExecutionResult) {
+	if process.IsReplacementBlockForExecution(header, headerHash, lastExecutionResult) {
 		err := process.UpdateContextForReplacedHeader(
 			header,
 			bp.executionManager,
 			bp.blockChain,
 			bp.dataPool.Headers(),
+			bp.dataPool.PostProcessTransactions(),
+			bp.dataPool.ExecutedMiniBlocks(),
 			bp.store,
 			bp.marshalizer,
 			bp.shardCoordinator.SelfId(),
@@ -3764,6 +3780,20 @@ func (bp *baseProcessor) cacheOrderedTxHashes(headerHash []byte) {
 
 	size := len(items) * common.HashSize // number of items * length of a transaction hash
 	bp.dataPool.PostProcessTransactions().Put(executionOrderKey, items, size)
+}
+
+func (bp *baseProcessor) cacheUnexecutableTxHashes(headerHash []byte) {
+	unexecutableTxHashes := bp.txCoordinator.GetUnExecutableTransactions()
+
+	hashes := make([][]byte, 0, len(unexecutableTxHashes))
+	for txHash := range unexecutableTxHashes {
+		hashes = append(hashes, []byte(txHash))
+	}
+
+	key := common.PrepareUnexecutableTxHashesKey(headerHash)
+
+	size := len(unexecutableTxHashes) * common.HashSize
+	bp.dataPool.PostProcessTransactions().Put(key, hashes, size)
 }
 
 func (bp *baseProcessor) getBlockBodyFromPool(

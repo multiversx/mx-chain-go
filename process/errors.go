@@ -242,6 +242,9 @@ var ErrNilMiniBlockPool = errors.New("nil mini block pool")
 // ErrNilPostProcessTransactionsCache signals that a nil post-process transactions cache has been provided
 var ErrNilPostProcessTransactionsCache = errors.New("nil post process transactions cache")
 
+// ErrNilExecutedMiniBlocksCache signals that a nil executed mini blocks cache has been provided
+var ErrNilExecutedMiniBlocksCache = errors.New("nil executed mini blocks cache")
+
 // ErrNilMetaBlocksPool signals that a nil meta blocks pool was used
 var ErrNilMetaBlocksPool = errors.New("nil meta blocks pool")
 
@@ -1263,6 +1266,9 @@ var ErrNilManagedPeersHolder = errors.New("nil managed peers holder")
 // ErrNilStorageService signals that a nil storage service has been provided
 var ErrNilStorageService = errors.New("nil storage service")
 
+// ErrNilPubKeysHandler signals that a nil public keys handler has been provided
+var ErrNilPubKeysHandler = errors.New("nil public keys handler")
+
 // ErrInvalidAsyncArguments signals that invalid arguments were given for async/callBack processing
 var ErrInvalidAsyncArguments = errors.New("invalid arguments to process async/callback function")
 
@@ -1445,3 +1451,6 @@ var ErrNoReferencedHeader = errors.New("no referenced header")
 
 // ErrExecutionResultNotFound signals that the execution result was not found
 var ErrExecutionResultNotFound = errors.New("execution result not found")
+
+// ErrShardHeadersShouldNotBeNotarized signals that shard headers should not be notarized
+var ErrShardHeadersShouldNotBeNotarized = errors.New("shard headers should not be notarized")

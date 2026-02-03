@@ -115,7 +115,7 @@ func (odp *outportDataProvider) PrepareOutportSaveBlockData(arg ArgPrepareOutpor
 		return nil, ErrNilBodyHandler
 	}
 
-	pool, err := odp.createPool(arg.RewardsTxs)
+	pool, err := odp.createPool(arg.RewardsTxs, arg.Header)
 	if err != nil {
 		return nil, err
 	}
@@ -279,6 +279,11 @@ func (odp *outportDataProvider) prepareExecutionResultsData(args ArgPrepareOutpo
 			return nil, err
 		}
 
+		err = odp.addInPoolUnexecutableTransactions(headerHash, pool)
+		if err != nil {
+			return nil, fmt.Errorf("addInPoolUnexecutableTransactions: %w", err)
+		}
+
 		err = odp.transactionsFeeProcessor.PutFeeAndGasUsed(pool, executionResult.GetHeaderEpoch())
 		if err != nil {
 			return nil, fmt.Errorf("transactionsFeeProcessor.PutFeeAndGasUsed %w", err)
@@ -311,6 +316,40 @@ func (odp *outportDataProvider) prepareExecutionResultsData(args ArgPrepareOutpo
 	}
 
 	return results, nil
+}
+
+func (odp *outportDataProvider) addInPoolUnexecutableTransactions(headerHash []byte, pool *outportcore.TransactionPool) error {
+	unexecutableTxHashes, err := common.GetCachedUnexecutableTxHashes(odp.dataPool.PostProcessTransactions(), headerHash)
+	if err != nil {
+		return err
+	}
+	if len(unexecutableTxHashes) == 0 {
+		return nil
+	}
+
+	cacheID := process.ShardCacherIdentifier(odp.shardID, odp.shardID)
+	txCache := odp.dataPool.Transactions().ShardDataStore(cacheID)
+	if check.IfNil(txCache) {
+		return nil
+	}
+
+	pool.UnexecutableTransactions = make(map[string]*transaction.Transaction)
+	for _, txHash := range unexecutableTxHashes {
+		txI, found := txCache.Get(txHash)
+		if !found {
+			log.Warn("addInPoolUnexecutableTransactions - cannot find unexecutable tx in tx cache", "txHash", txHash)
+			continue
+		}
+		tx, ok := txI.(*transaction.Transaction)
+		if !ok {
+			log.Warn("addInPoolUnexecutableTransactions - cannot cast object from cache to transaction", "txHash", txHash, "type", fmt.Sprintf("%T", txI))
+			continue
+		}
+
+		pool.UnexecutableTransactions[hex.EncodeToString(txHash)] = tx
+	}
+
+	return nil
 }
 
 func hasRewardsOnBody(body *block.Body) bool {
@@ -488,7 +527,12 @@ func findLeaderIndex(blsKeys []string, leaderBlsKey string) uint64 {
 	return 0
 }
 
-func (odp *outportDataProvider) createPool(rewardsTxs map[string]data.TransactionHandler) (*outportcore.TransactionPool, error) {
+func (odp *outportDataProvider) createPool(rewardsTxs map[string]data.TransactionHandler, header data.HeaderHandler) (*outportcore.TransactionPool, error) {
+	if header.IsHeaderV3() {
+		// transactions will be indexed after execution
+		return &outportcore.TransactionPool{}, nil
+	}
+
 	grouped := map[block.Type]map[string]data.TransactionHandler{
 		block.TxBlock:                  odp.txCoordinator.GetAllCurrentUsedTxs(block.TxBlock),
 		block.SmartContractResultBlock: odp.txCoordinator.GetAllCurrentUsedTxs(block.SmartContractResultBlock),
@@ -718,6 +762,10 @@ func putInMapTxsFromBody(
 
 		strCache := process.ShardCacherIdentifier(mb.SenderShardID, mb.ReceiverShardID)
 		cache := storeByType.ShardDataStore(strCache)
+		if check.IfNil(cache) {
+			log.Debug("putInMapTxsFromBody cannot find shard data store", "senderShardID", mb.SenderShardID, "receiverShardID", mb.ReceiverShardID, "type", mb.Type)
+			continue
+		}
 
 		for _, txHash := range mb.TxHashes {
 			txI, found := cache.Get(txHash)

@@ -66,6 +66,8 @@ type ArgsChainSimulator struct {
 	ApiInterface                   components.APIConfigurator
 	AlterConfigsFunction           func(cfg *config.Configs)
 	VmQueryDelayAfterStartInMs     uint64
+	CreateBlockMaxTimePercent      float64
+	BypassCreateBlockTimeCheck     bool
 }
 
 // ArgsBaseChainSimulator holds the arguments needed to create a new instance of simulator
@@ -154,7 +156,7 @@ func (s *simulator) createChainHandlers(args ArgsBaseChainSimulator) error {
 			return errCreate
 		}
 
-		chainHandler, errCreate := process.NewBlocksCreator(node, monitor)
+		chainHandler, errCreate := process.NewBlocksCreator(node, monitor, args.CreateBlockMaxTimePercent, args.BypassCreateBlockTimeCheck)
 		if errCreate != nil {
 			return errCreate
 		}

@@ -20,6 +20,11 @@ func (txCoordinator *TxCoordinator) CreatePostProcessMiniBlocks() block.MiniBloc
 	return make(block.MiniBlockSlice, 0)
 }
 
+// GetUnExecutableTransactions does nothing as it is disabled
+func (txCoordinator *TxCoordinator) GetUnExecutableTransactions() map[string]struct{} {
+	return make(map[string]struct{})
+}
+
 // CreateReceiptsHash does nothing as it is disabled
 func (txCoordinator *TxCoordinator) CreateReceiptsHash() ([]byte, error) {
 	return nil, nil

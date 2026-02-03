@@ -227,6 +227,8 @@
         BatchDelaySeconds = 2
         MaxBatchSize = 100
         MaxOpenFiles = 10
+        ShardIDProviderType = "BinarySplit"
+        NumShards = 4
 
 [BootstrapStorage]
     [BootstrapStorage.Cache]
@@ -253,6 +255,8 @@
         BatchDelaySeconds = 2
         MaxBatchSize = 100
         MaxOpenFiles = 10
+        ShardIDProviderType = "BinarySplit"
+        NumShards = 4
 
 [ProofsStorage]
     [ProofsStorage.Cache]
@@ -292,6 +296,8 @@
         BatchDelaySeconds = 2
         MaxBatchSize = 30000
         MaxOpenFiles = 10
+        ShardIDProviderType = "BinarySplit"
+        NumShards = 4
 
 [UnsignedTransactionStorage]
     [UnsignedTransactionStorage.Cache]
@@ -567,6 +573,10 @@
     Capacity = 250000
     Type = "SizeLRU"
     SizeInBytes = 104857600 # 100MB
+
+[HeaderBodyCacheConfig]
+    Capacity = 1000
+
 
 #PublicKeyPeerId represents the main cache used to map MultiversX block signing public keys to their associated peer id's.
 [PublicKeyPeerId]
@@ -996,6 +1006,8 @@
         BatchDelaySeconds = 2
         MaxBatchSize = 20000
         MaxOpenFiles = 10
+        ShardIDProviderType = "BinarySplit"
+        NumShards = 4
     [DbLookupExtensions.EpochByHashStorageConfig.Cache]
         Name = "DbLookupExtensions.EpochByHashStorage"
         Capacity = 20000
@@ -1006,6 +1018,8 @@
         BatchDelaySeconds = 2
         MaxBatchSize = 20000
         MaxOpenFiles = 10
+        ShardIDProviderType = "BinarySplit"
+        NumShards = 4
     [DbLookupExtensions.ResultsHashesByTxHashStorageConfig.Cache]
         Name = "DbLookupExtensions.ResultsHashesByTxHashStorage"
         Capacity = 20000

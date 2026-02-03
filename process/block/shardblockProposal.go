@@ -264,6 +264,7 @@ func getHaveTimeForProposal(startTime time.Time, maxDuration time.Duration) func
 // ProcessBlockProposal processes the proposed block. It returns nil if all ok or the specific error
 func (sp *shardProcessor) ProcessBlockProposal(
 	headerHandler data.HeaderHandler,
+	headerHash []byte,
 	bodyHandler data.BodyHandler,
 ) (data.BaseExecutionResultHandler, error) {
 	if check.IfNil(headerHandler) {
@@ -345,11 +346,11 @@ func (sp *shardProcessor) ProcessBlockProposal(
 
 	defer func() {
 		if err != nil {
-			sp.RevertCurrentBlock(header)
+			sp.RevertCurrentBlock()
 		}
 	}()
 
-	err = sp.checkAndUpdateContextBeforeExecution(header)
+	err = sp.checkAndUpdateContextBeforeExecution(header, headerHash)
 	if err != nil {
 		return nil, err
 	}
@@ -365,13 +366,6 @@ func (sp *shardProcessor) ProcessBlockProposal(
 	}
 
 	err = sp.txCoordinator.VerifyCreatedBlockTransactions(header, body)
-	if err != nil {
-		return nil, err
-	}
-
-	// TODO: should receive the header hash instead of re-computing it
-	var headerHash []byte
-	headerHash, err = core.CalculateHash(sp.marshalizer, sp.hasher, header)
 	if err != nil {
 		return nil, err
 	}
@@ -858,6 +852,7 @@ func (sp *shardProcessor) collectExecutionResults(headerHash []byte, header data
 	}
 
 	sp.cacheOrderedTxHashes(headerHash)
+	sp.cacheUnexecutableTxHashes(headerHash)
 
 	return executionResult, nil
 }

@@ -11,10 +11,10 @@ import (
 type BlockProcessorStub struct {
 	SetNumProcessedObjCalled         func(numObj uint64)
 	ProcessBlockCalled               func(header data.HeaderHandler, body data.BodyHandler, haveTime func() time.Duration) error
-	ProcessBlockProposalCalled       func(header data.HeaderHandler, body data.BodyHandler) (data.BaseExecutionResultHandler, error)
+	ProcessBlockProposalCalled       func(header data.HeaderHandler, headerHash []byte, body data.BodyHandler) (data.BaseExecutionResultHandler, error)
 	ProcessScheduledBlockCalled      func(header data.HeaderHandler, body data.BodyHandler, haveTime func() time.Duration) error
 	CommitBlockCalled                func(header data.HeaderHandler, body data.BodyHandler) error
-	RevertCurrentBlockCalled         func(header data.HeaderHandler)
+	RevertCurrentBlockCalled         func()
 	PruneStateOnRollbackCalled       func(currHeader data.HeaderHandler, currHeaderHash []byte, prevHeader data.HeaderHandler, prevHeaderHash []byte)
 	CreateBlockCalled                func(initialHdrData data.HeaderHandler, haveTime func() bool) (data.HeaderHandler, data.BodyHandler, error)
 	CreateBlockProposalCalled        func(initialHdr data.HeaderHandler, haveTime func() bool) (data.HeaderHandler, data.BodyHandler, error)
@@ -60,9 +60,9 @@ func (bps *BlockProcessorStub) ProcessBlock(header data.HeaderHandler, body data
 }
 
 // ProcessBlockProposal mocks processing a block
-func (bps *BlockProcessorStub) ProcessBlockProposal(header data.HeaderHandler, body data.BodyHandler) (data.BaseExecutionResultHandler, error) {
+func (bps *BlockProcessorStub) ProcessBlockProposal(header data.HeaderHandler, headerHash []byte, body data.BodyHandler) (data.BaseExecutionResultHandler, error) {
 	if bps.ProcessBlockProposalCalled != nil {
-		return bps.ProcessBlockProposalCalled(header, body)
+		return bps.ProcessBlockProposalCalled(header, headerHash, body)
 	}
 
 	return nil, nil
@@ -87,9 +87,9 @@ func (bps *BlockProcessorStub) CommitBlock(header data.HeaderHandler, body data.
 }
 
 // RevertCurrentBlock mocks revert of the current block
-func (bps *BlockProcessorStub) RevertCurrentBlock(header data.HeaderHandler) {
+func (bps *BlockProcessorStub) RevertCurrentBlock() {
 	if bps.RevertCurrentBlockCalled != nil {
-		bps.RevertCurrentBlockCalled(header)
+		bps.RevertCurrentBlockCalled()
 	}
 }
 
