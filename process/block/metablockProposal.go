@@ -117,6 +117,7 @@ func (mp *metaProcessor) CreateBlockProposal(
 		return metaHdr, &block.Body{}, nil
 	}
 
+	mp.blockSizeComputation.Init()
 	mp.gasComputation.Reset()
 	mp.miniBlocksSelectionSession.ResetSelectionSession()
 	err := mp.createBlockBodyProposal(metaHdr, haveTime)

@@ -72,6 +72,7 @@ func (sp *shardProcessor) CreateBlockProposal(
 		return nil, nil, err
 	}
 
+	sp.blockSizeComputation.Init()
 	sp.gasComputation.Reset()
 	sp.miniBlocksSelectionSession.ResetSelectionSession()
 	err = sp.createBlockBodyProposal(shardHdr, haveTime)
