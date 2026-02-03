@@ -160,6 +160,9 @@ func (listForSender *txListForSender) removeTransactionsWithHigherOrEqualNonce(g
 	for _, tx := range removed {
 		listForSender.onRemovedTransaction(tx)
 	}
+	if listForSender.selectionOffset > listForSender.list.len() {
+		listForSender.selectionOffset = listForSender.list.len()
+	}
 }
 
 // getTxsForSelection returns the transactions of the sender starting from the selection offset.
