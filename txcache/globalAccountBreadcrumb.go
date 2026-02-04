@@ -66,7 +66,10 @@ func (gab *globalAccountBreadcrumb) extendRightNonceRange(receivedBreadcrumb *ac
 
 // updateOnRemovedBreadcrumbWithSameNonceOrBelow updates the global account breadcrumb when a block is removed on the OnExecutedBlock notification
 func (gab *globalAccountBreadcrumb) updateOnRemovedBreadcrumbWithSameNonceOrBelow(receivedBreadcrumb *accountBreadcrumb) (bool, error) {
-	gab.hasPendingChangeGuardianTransaction = receivedBreadcrumb.hasPendingChangeGuardianTransaction
+	if receivedBreadcrumb.hasPendingChangeGuardianTransaction {
+		gab.hasPendingChangeGuardianTransaction = false
+	}
+
 	err := gab.reduceConsumedBalance(receivedBreadcrumb)
 	if err != nil {
 		return false, err
@@ -100,7 +103,10 @@ func (gab *globalAccountBreadcrumb) reduceLeftNonceRange(receivedBreadcrumb *acc
 // updateOnRemoveBreadcrumbWithSameNonceOrAbove updates the global account breadcrumb when a block is removed on the OnProposedBlock notification,
 // but should be used only after the validation of the proposed block passed.
 func (gab *globalAccountBreadcrumb) updateOnRemoveBreadcrumbWithSameNonceOrAbove(receivedBreadcrumb *accountBreadcrumb) (bool, error) {
-	gab.hasPendingChangeGuardianTransaction = receivedBreadcrumb.hasPendingChangeGuardianTransaction
+	if receivedBreadcrumb.hasPendingChangeGuardianTransaction {
+		gab.hasPendingChangeGuardianTransaction = false
+	}
+
 	err := gab.reduceConsumedBalance(receivedBreadcrumb)
 	if err != nil {
 		return false, err

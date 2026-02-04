@@ -1648,5 +1648,5 @@ func TestSelectionTracker_MaxUniqueAccounts(t *testing.T) {
 	}
 
 	err = st.OnProposedBlock([]byte("blockHash"), body, header, accProvider, defaultLatestExecutedHash)
-	require.Equal(t, errToManyUniqueAccountsInBlock, err)
+	require.Equal(t, errTooManyUniqueAccountsInBlock, err)
 }

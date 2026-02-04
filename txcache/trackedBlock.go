@@ -90,8 +90,8 @@ func (tb *trackedBlock) compileBreadcrumb(tx *WrappedTransaction) error {
 		return err
 	}
 
-	// proper guardian check should have been done during selection
-	// if a second transaction comes here, it means it was allowed during selection,
+	// proper guardian check was done already
+	// if a second transaction comes here, it means it was allowed,
 	// so it is safe to overwrite this field
 	senderBreadcrumb.setPendingChangeGuardian(process.IsSetGuardianCall(tx.Tx.GetData()))
 

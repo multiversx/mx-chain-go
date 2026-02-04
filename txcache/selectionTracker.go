@@ -210,6 +210,12 @@ func (st *selectionTracker) validateTrackedBlocksAndCompileBreadcrumbsNoLock(
 		return nil, err
 	}
 
+	err = st.validateTransactionsInBlock(txs)
+	if err != nil {
+		log.Debug("selectionTracker.validateTrackedBlocksAndCompileBreadcrumbsNoLock: error validating transactions from block", "err", err)
+		return nil, err
+	}
+
 	lastNoncePerSender, err := blockToTrack.compileBreadcrumbs(txs)
 	if err != nil {
 		log.Debug("selectionTracker.validateTrackedBlocksAndCompileBreadcrumbsNoLock: error compiling breadcrumbs",
@@ -229,6 +235,20 @@ func (st *selectionTracker) validateTrackedBlocksAndCompileBreadcrumbsNoLock(
 	}
 
 	return lastNoncePerSender, nil
+}
+
+func (st *selectionTracker) validateTransactionsInBlock(
+	txs []*WrappedTransaction,
+) error {
+	globalAccountsBreadcrumbs := st.globalBreadcrumbsCompiler.getGlobalBreadcrumbs()
+	for _, tx := range txs {
+		breadcrumb, ok := globalAccountsBreadcrumbs[string(tx.Tx.GetSndAddr())]
+		if ok && breadcrumb.hasPendingChangeGuardianTransaction {
+			return errTransactionNotAllowedDueToPendingChangeGuardian
+		}
+	}
+
+	return nil
 }
 
 // validateBreadcrumbsOfTrackedBlocks validates the breadcrumbs of each tracked block.
@@ -432,7 +452,7 @@ func (st *selectionTracker) checkUniqueAccountsLimit(blockBody *block.Body) erro
 			log.Warn("selectionTracker.OnProposedBlock: too many unique accounts in block",
 				"count", len(uniqueAccounts),
 				"limit", maxAccountsPerBlock)
-			return errToManyUniqueAccountsInBlock
+			return errTooManyUniqueAccountsInBlock
 		}
 	}
 
