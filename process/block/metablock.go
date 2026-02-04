@@ -434,7 +434,7 @@ func (mp *metaProcessor) processEpochStartMetaBlock(
 		return err
 	}
 
-	saveEpochStartEconomicsMetrics(mp.appStatusHandler, header)
+	mp.saveEpochStartEconomicsMetrics(header)
 
 	return nil
 }
@@ -826,7 +826,7 @@ func (mp *metaProcessor) updateEpochStartHeader(metaHdr *block.MetaBlock) error 
 
 	metaHdr.EpochStart.Economics = *economicsData
 
-	saveEpochStartEconomicsMetrics(mp.appStatusHandler, metaHdr)
+	mp.saveEpochStartEconomicsMetrics(metaHdr)
 
 	return nil
 }
@@ -1451,7 +1451,7 @@ func (mp *metaProcessor) CommitBlock(
 	mp.blockProcessingCutoffHandler.HandlePauseCutoff(header)
 
 	if header.IsHeaderV3() && header.IsStartOfEpochBlock() {
-		saveEpochStartEconomicsMetrics(mp.appStatusHandler, header)
+		mp.saveEpochStartEconomicsMetrics(header)
 	}
 
 	return nil
