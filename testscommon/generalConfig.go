@@ -498,6 +498,15 @@ func GetGeneralConfig() config.Config {
 		},
 		ExecutedMiniBlocksCache:      getLRUCacheConfig(),
 		PostProcessTransactionsCache: getLRUCacheConfig(),
+		BlockSizeThrottleConfig: config.BlockSizeThrottleConfig{
+			MinSizeInBytes:        1,
+			MaxSizeInBytes:        10000,
+			MaxExecResSizeInBytes: 10000,
+		},
+		ExecutionResultInclusionEstimator: config.ExecutionResultInclusionEstimatorConfig{
+			SafetyMargin:       0,
+			MaxResultsPerBlock: 10,
+		},
 	}
 }
 
