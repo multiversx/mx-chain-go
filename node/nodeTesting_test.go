@@ -26,6 +26,7 @@ import (
 	stateMock "github.com/multiversx/mx-chain-go/testscommon/state"
 	"github.com/multiversx/mx-chain-go/testscommon/storageManager"
 	trieMock "github.com/multiversx/mx-chain-go/testscommon/trie"
+	vmcommon "github.com/multiversx/mx-chain-vm-common-go"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 )
@@ -411,8 +412,12 @@ func getDefaultCryptoComponents() *factoryMock.CryptoComponentsMock {
 
 func getDefaultStateComponents() *factoryMocks.StateComponentsMock {
 	return &factoryMocks.StateComponentsMock{
-		PeersAcc:        &stateMock.AccountsStub{},
-		Accounts:        &stateMock.AccountsStub{},
+		PeersAcc: &stateMock.AccountsStub{},
+		Accounts: &stateMock.AccountsStub{
+			GetExistingAccountCalled: func(addressContainer []byte) (vmcommon.AccountHandler, error) {
+				return &stateMock.UserAccountStub{}, nil
+			},
+		},
 		AccountsAPI:     &stateMock.AccountsStub{},
 		AccountsRepo:    &stateMock.AccountsRepositoryStub{},
 		Tries:           &trieMock.TriesHolderStub{},
