@@ -22,29 +22,30 @@ import (
 
 func createDefaultArgument() ArgQuotaFloodPreventer {
 	return ArgQuotaFloodPreventer{
-		Name:             "test",
-		Cacher:           cache.NewCacherStub(),
-		StatusHandlers:   []QuotaStatusHandler{&mock.QuotaStatusHandlerStub{}},
-		AntifloodConfigs: &testscommon.AntifloodConfigsHandlerStub{},
-		ConfigFetcher: func(confHandler common.AntifloodConfigsHandler, id string) config.FloodPreventerConfig {
-			return config.FloodPreventerConfig{
-				IntervalInSeconds: 1,
-				ReservedPercent:   10,
-				PeerMaxInput: config.AntifloodLimitsConfig{
-					BaseMessagesPerInterval: minMessages,
-					TotalSizePerInterval:    minTotalSize,
-					IncreaseFactor: config.IncreaseFactorConfig{
-						Threshold: 0,
-						Factor:    0,
+		Name:           "test",
+		Cacher:         cache.NewCacherStub(),
+		StatusHandlers: []QuotaStatusHandler{&mock.QuotaStatusHandlerStub{}},
+		AntifloodConfigs: &testscommon.AntifloodConfigsHandlerStub{
+			GetFloodPreventerConfigByTypeCalled: func(configType common.FloodPreventerType) config.FloodPreventerConfig {
+				return config.FloodPreventerConfig{
+					IntervalInSeconds: 1,
+					ReservedPercent:   10,
+					PeerMaxInput: config.AntifloodLimitsConfig{
+						BaseMessagesPerInterval: minMessages,
+						TotalSizePerInterval:    minTotalSize,
+						IncreaseFactor: config.IncreaseFactorConfig{
+							Threshold: 0,
+							Factor:    0,
+						},
 					},
-				},
-				BlackList: config.BlackListConfig{
-					ThresholdNumMessagesPerInterval: 10,
-					ThresholdSizePerInterval:        10,
-					NumFloodingRounds:               10,
-					PeerBanDurationInSeconds:        10,
-				},
-			}
+					BlackList: config.BlackListConfig{
+						ThresholdNumMessagesPerInterval: 10,
+						ThresholdSizePerInterval:        10,
+						NumFloodingRounds:               10,
+						PeerBanDurationInSeconds:        10,
+					},
+				}
+			},
 		},
 	}
 }
@@ -119,13 +120,15 @@ func TestNewQuotaFloodPreventer_IncreaseLoadIdentifierNotPresentPutQuotaAndRetur
 		},
 	}
 
-	arg.ConfigFetcher = func(confHandler common.AntifloodConfigsHandler, id string) config.FloodPreventerConfig {
-		return config.FloodPreventerConfig{
-			PeerMaxInput: config.AntifloodLimitsConfig{
-				BaseMessagesPerInterval: minMessages * 4,
-				TotalSizePerInterval:    minTotalSize * 1,
-			},
-		}
+	arg.AntifloodConfigs = &testscommon.AntifloodConfigsHandlerStub{
+		GetFloodPreventerConfigByTypeCalled: func(configType common.FloodPreventerType) config.FloodPreventerConfig {
+			return config.FloodPreventerConfig{
+				PeerMaxInput: config.AntifloodLimitsConfig{
+					BaseMessagesPerInterval: minMessages * 4,
+					TotalSizePerInterval:    minTotalSize * 1,
+				},
+			}
+		},
 	}
 
 	qfp, _ := NewQuotaFloodPreventer(arg)
@@ -159,13 +162,15 @@ func TestNewQuotaFloodPreventer_IncreaseLoadNotQuotaSavedInCacheShouldPutQuotaAn
 		},
 	}
 
-	arg.ConfigFetcher = func(confHandler common.AntifloodConfigsHandler, id string) config.FloodPreventerConfig {
-		return config.FloodPreventerConfig{
-			PeerMaxInput: config.AntifloodLimitsConfig{
-				BaseMessagesPerInterval: minMessages * 4,
-				TotalSizePerInterval:    minTotalSize * 1,
-			},
-		}
+	arg.AntifloodConfigs = &testscommon.AntifloodConfigsHandlerStub{
+		GetFloodPreventerConfigByTypeCalled: func(configType common.FloodPreventerType) config.FloodPreventerConfig {
+			return config.FloodPreventerConfig{
+				PeerMaxInput: config.AntifloodLimitsConfig{
+					BaseMessagesPerInterval: minMessages * 4,
+					TotalSizePerInterval:    minTotalSize * 1,
+				},
+			}
+		},
 	}
 
 	qfp, _ := NewQuotaFloodPreventer(arg)
@@ -193,13 +198,15 @@ func TestNewQuotaFloodPreventer_IncreaseLoadUnderMaxValuesShouldIncrementAndRetu
 		},
 	}
 
-	arg.ConfigFetcher = func(confHandler common.AntifloodConfigsHandler, id string) config.FloodPreventerConfig {
-		return config.FloodPreventerConfig{
-			PeerMaxInput: config.AntifloodLimitsConfig{
-				BaseMessagesPerInterval: minMessages * 10,
-				TotalSizePerInterval:    minTotalSize * 10,
-			},
-		}
+	arg.AntifloodConfigs = &testscommon.AntifloodConfigsHandlerStub{
+		GetFloodPreventerConfigByTypeCalled: func(configType common.FloodPreventerType) config.FloodPreventerConfig {
+			return config.FloodPreventerConfig{
+				PeerMaxInput: config.AntifloodLimitsConfig{
+					BaseMessagesPerInterval: minMessages * 10,
+					TotalSizePerInterval:    minTotalSize * 10,
+				},
+			}
+		},
 	}
 
 	qfp, _ := NewQuotaFloodPreventer(arg)
@@ -232,13 +239,15 @@ func TestNewQuotaFloodPreventer_IncreaseLoadOverMaxPeerNumMessagesShouldNotPutAn
 		},
 	}
 
-	arg.ConfigFetcher = func(confHandler common.AntifloodConfigsHandler, id string) config.FloodPreventerConfig {
-		return config.FloodPreventerConfig{
-			PeerMaxInput: config.AntifloodLimitsConfig{
-				BaseMessagesPerInterval: minMessages * 4,
-				TotalSizePerInterval:    minTotalSize * 10,
-			},
-		}
+	arg.AntifloodConfigs = &testscommon.AntifloodConfigsHandlerStub{
+		GetFloodPreventerConfigByTypeCalled: func(configType common.FloodPreventerType) config.FloodPreventerConfig {
+			return config.FloodPreventerConfig{
+				PeerMaxInput: config.AntifloodLimitsConfig{
+					BaseMessagesPerInterval: minMessages * 4,
+					TotalSizePerInterval:    minTotalSize * 10,
+				},
+			}
+		},
 	}
 
 	qfp, _ := NewQuotaFloodPreventer(arg)
@@ -269,13 +278,15 @@ func TestNewQuotaFloodPreventer_IncreaseLoadOverMaxPeerSizeShouldNotPutAndReturn
 		},
 	}
 
-	arg.ConfigFetcher = func(confHandler common.AntifloodConfigsHandler, id string) config.FloodPreventerConfig {
-		return config.FloodPreventerConfig{
-			PeerMaxInput: config.AntifloodLimitsConfig{
-				BaseMessagesPerInterval: minMessages * 4,
-				TotalSizePerInterval:    minTotalSize * 10,
-			},
-		}
+	arg.AntifloodConfigs = &testscommon.AntifloodConfigsHandlerStub{
+		GetFloodPreventerConfigByTypeCalled: func(configType common.FloodPreventerType) config.FloodPreventerConfig {
+			return config.FloodPreventerConfig{
+				PeerMaxInput: config.AntifloodLimitsConfig{
+					BaseMessagesPerInterval: minMessages * 4,
+					TotalSizePerInterval:    minTotalSize * 10,
+				},
+			}
+		},
 	}
 	qfp, _ := NewQuotaFloodPreventer(arg)
 
@@ -427,15 +438,17 @@ func TestNewQuotaFloodPreventer_IncreaseLoadWithMockCacherShouldWork(t *testing.
 
 	percentReserved := float32(17)
 
-	arg.ConfigFetcher = func(confHandler common.AntifloodConfigsHandler, id string) config.FloodPreventerConfig {
-		return config.FloodPreventerConfig{
-			ReservedPercent: percentReserved,
-			PeerMaxInput: config.AntifloodLimitsConfig{
-				BaseMessagesPerInterval: numMessages,
-				TotalSizePerInterval:    math.MaxUint64,
-				IncreaseFactor:          config.IncreaseFactorConfig{},
-			},
-		}
+	arg.AntifloodConfigs = &testscommon.AntifloodConfigsHandlerStub{
+		GetFloodPreventerConfigByTypeCalled: func(configType common.FloodPreventerType) config.FloodPreventerConfig {
+			return config.FloodPreventerConfig{
+				ReservedPercent: percentReserved,
+				PeerMaxInput: config.AntifloodLimitsConfig{
+					BaseMessagesPerInterval: numMessages,
+					TotalSizePerInterval:    math.MaxUint64,
+					IncreaseFactor:          config.IncreaseFactorConfig{},
+				},
+			}
+		},
 	}
 
 	qfp, _ := NewQuotaFloodPreventer(arg)
@@ -461,12 +474,14 @@ func TestQuotaFloodPreventer_ApplyConsensusSizeInvalidConsensusSize(t *testing.T
 	arg := createDefaultArgument()
 	baseMaxNumMessagesPerPeer := uint32(4682)
 
-	arg.ConfigFetcher = func(confHandler common.AntifloodConfigsHandler, id string) config.FloodPreventerConfig {
-		return config.FloodPreventerConfig{
-			PeerMaxInput: config.AntifloodLimitsConfig{
-				BaseMessagesPerInterval: baseMaxNumMessagesPerPeer,
-			},
-		}
+	arg.AntifloodConfigs = &testscommon.AntifloodConfigsHandlerStub{
+		GetFloodPreventerConfigByTypeCalled: func(configType common.FloodPreventerType) config.FloodPreventerConfig {
+			return config.FloodPreventerConfig{
+				PeerMaxInput: config.AntifloodLimitsConfig{
+					BaseMessagesPerInterval: baseMaxNumMessagesPerPeer,
+				},
+			}
+		},
 	}
 
 	qfp, _ := NewQuotaFloodPreventer(arg)
@@ -483,15 +498,17 @@ func TestQuotaFloodPreventer_ApplyConsensusUnderThreshold(t *testing.T) {
 
 	baseMaxNumMessagesPerPeer := uint32(4682)
 
-	arg.ConfigFetcher = func(confHandler common.AntifloodConfigsHandler, id string) config.FloodPreventerConfig {
-		return config.FloodPreventerConfig{
-			PeerMaxInput: config.AntifloodLimitsConfig{
-				BaseMessagesPerInterval: baseMaxNumMessagesPerPeer,
-				IncreaseFactor: config.IncreaseFactorConfig{
-					Threshold: 100,
+	arg.AntifloodConfigs = &testscommon.AntifloodConfigsHandlerStub{
+		GetFloodPreventerConfigByTypeCalled: func(configType common.FloodPreventerType) config.FloodPreventerConfig {
+			return config.FloodPreventerConfig{
+				PeerMaxInput: config.AntifloodLimitsConfig{
+					BaseMessagesPerInterval: baseMaxNumMessagesPerPeer,
+					IncreaseFactor: config.IncreaseFactorConfig{
+						Threshold: 100,
+					},
 				},
-			},
-		}
+			}
+		},
 	}
 
 	qfp, _ := NewQuotaFloodPreventer(arg)
@@ -507,18 +524,20 @@ func TestQuotaFloodPreventer_ApplyConsensusShouldWork(t *testing.T) {
 	arg := createDefaultArgument()
 	arg.Cacher = cache.NewCacherMock()
 
-	arg.ConfigFetcher = func(confHandler common.AntifloodConfigsHandler, id string) config.FloodPreventerConfig {
-		return config.FloodPreventerConfig{
-			IntervalInSeconds: 1,
-			ReservedPercent:   10,
-			PeerMaxInput: config.AntifloodLimitsConfig{
-				BaseMessagesPerInterval: 2000,
-				IncreaseFactor: config.IncreaseFactorConfig{
-					Threshold: 1000,
-					Factor:    0.25,
+	arg.AntifloodConfigs = &testscommon.AntifloodConfigsHandlerStub{
+		GetFloodPreventerConfigByTypeCalled: func(configType common.FloodPreventerType) config.FloodPreventerConfig {
+			return config.FloodPreventerConfig{
+				IntervalInSeconds: 1,
+				ReservedPercent:   10,
+				PeerMaxInput: config.AntifloodLimitsConfig{
+					BaseMessagesPerInterval: 2000,
+					IncreaseFactor: config.IncreaseFactorConfig{
+						Threshold: 1000,
+						Factor:    0.25,
+					},
 				},
-			},
-		}
+			}
+		},
 	}
 
 	qfp, _ := NewQuotaFloodPreventer(arg)

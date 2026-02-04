@@ -6,6 +6,7 @@ import (
 	"sort"
 
 	"github.com/multiversx/mx-chain-core-go/core/check"
+	"github.com/multiversx/mx-chain-go/common"
 	"github.com/multiversx/mx-chain-go/config"
 	"github.com/multiversx/mx-chain-go/process"
 )
@@ -158,6 +159,10 @@ func (ac *antifloodConfigs) IsEnabled() bool {
 
 // GetCurrentConfig returns antiflood config based on the current round
 func (ac *antifloodConfigs) GetCurrentConfig() config.AntifloodConfigByRound {
+	return ac.getCurrentConfig()
+}
+
+func (ac *antifloodConfigs) getCurrentConfig() config.AntifloodConfigByRound {
 	currentRound := ac.roundNotifier.CurrentRound()
 
 	for i := len(ac.orderedConfigsByRound) - 1; i >= 0; i-- {
@@ -168,6 +173,25 @@ func (ac *antifloodConfigs) GetCurrentConfig() config.AntifloodConfigByRound {
 
 	// this should not happen, there is already a check in the constructor for missing config
 	return config.AntifloodConfigByRound{}
+}
+
+// GetFloodPreventerConfigByType returns flood preventer config by type
+func (ac *antifloodConfigs) GetFloodPreventerConfigByType(configType common.FloodPreventerType) config.FloodPreventerConfig {
+	currentConfig := ac.getCurrentConfig()
+
+	switch configType {
+	case common.FastReacting:
+		return currentConfig.FastReacting
+	case common.SlowReacting:
+		return currentConfig.SlowReacting
+	case common.OutOfSpecs:
+		return currentConfig.OutOfSpecs
+	case common.Output:
+		return currentConfig.OutOfSpecs
+	default:
+		// this case should not happen
+		return config.FloodPreventerConfig{}
+	}
 }
 
 // IsInterfaceNil checks if the instance is nil

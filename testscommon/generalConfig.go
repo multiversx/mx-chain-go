@@ -516,9 +516,11 @@ func GetDefaultAntifloodConfig() config.AntifloodConfig {
 					Capacity: 10,
 					Shards:   2,
 				},
-				PeerMaxOutput: config.AntifloodLimitsConfig{
-					BaseMessagesPerInterval: 10,
-					TotalSizePerInterval:    10,
+				PeerMaxOutput: config.FloodPreventerConfig{
+					PeerMaxInput: config.AntifloodLimitsConfig{
+						BaseMessagesPerInterval: 10,
+						TotalSizePerInterval:    10,
+					},
 				},
 				Topic: config.TopicAntifloodConfig{
 					DefaultMaxMessagesPerSec: 10,
@@ -585,9 +587,11 @@ func GetDefaultAntifloodConfig() config.AntifloodConfig {
 					Capacity: 10,
 					Shards:   2,
 				},
-				PeerMaxOutput: config.AntifloodLimitsConfig{
-					BaseMessagesPerInterval: 100,
-					TotalSizePerInterval:    100,
+				PeerMaxOutput: config.FloodPreventerConfig{
+					PeerMaxInput: config.AntifloodLimitsConfig{
+						BaseMessagesPerInterval: 100,
+						TotalSizePerInterval:    100,
+					},
 				},
 				Topic: config.TopicAntifloodConfig{
 					DefaultMaxMessagesPerSec: 100,

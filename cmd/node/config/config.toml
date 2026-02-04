@@ -677,8 +677,9 @@
                 PeerBanDurationInSeconds = 3600
 
         [Antiflood.ConfigsByRound.PeerMaxOutput]
-            BaseMessagesPerInterval  = 150
-            TotalSizePerInterval     = 2097152 #2MB/s
+            [Antiflood.ConfigsByRound.PeerMaxOutput.PeerMaxInput]
+                BaseMessagesPerInterval  = 150
+                TotalSizePerInterval     = 2097152 #2MB/s
 
         [Antiflood.ConfigsByRound.Cache]
             Name = "Antiflood"
@@ -749,8 +750,9 @@
                 PeerBanDurationInSeconds = 3600
 
         [Antiflood.ConfigsByRound.PeerMaxOutput]
-            BaseMessagesPerInterval  = 150
-            TotalSizePerInterval     = 2097152 #2MB/s
+            [Antiflood.ConfigsByRound.PeerMaxOutput.PeerMaxInput]
+                BaseMessagesPerInterval  = 150
+                TotalSizePerInterval     = 2097152 #2MB/s
 
         [Antiflood.ConfigsByRound.Cache]
             Name = "Antiflood"

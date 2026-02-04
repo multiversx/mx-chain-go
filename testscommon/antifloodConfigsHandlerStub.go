@@ -1,11 +1,15 @@
 package testscommon
 
-import "github.com/multiversx/mx-chain-go/config"
+import (
+	"github.com/multiversx/mx-chain-go/common"
+	"github.com/multiversx/mx-chain-go/config"
+)
 
 // AntifloodConfigsHandlerStub -
 type AntifloodConfigsHandlerStub struct {
-	GetCurrentConfigCalled func() config.AntifloodConfigByRound
-	IsEnabledCalled        func() bool
+	GetCurrentConfigCalled              func() config.AntifloodConfigByRound
+	IsEnabledCalled                     func() bool
+	GetFloodPreventerConfigByTypeCalled func(configType common.FloodPreventerType) config.FloodPreventerConfig
 }
 
 // GetCurrentConfig -
@@ -24,6 +28,15 @@ func (stub *AntifloodConfigsHandlerStub) IsEnabled() bool {
 	}
 
 	return false
+}
+
+// GetFloodPreventerConfigByType -
+func (stub *AntifloodConfigsHandlerStub) GetFloodPreventerConfigByType(configType common.FloodPreventerType) config.FloodPreventerConfig {
+	if stub.GetFloodPreventerConfigByTypeCalled != nil {
+		return stub.GetFloodPreventerConfigByTypeCalled(configType)
+	}
+
+	return config.FloodPreventerConfig{}
 }
 
 // IsInterfaceNil -

@@ -245,9 +245,11 @@ func TestTomlParser(t *testing.T) {
 							PeerBanDurationInSeconds:        3600,
 						},
 					},
-					PeerMaxOutput: AntifloodLimitsConfig{
-						BaseMessagesPerInterval: 150,
-						TotalSizePerInterval:    2097152,
+					PeerMaxOutput: FloodPreventerConfig{
+						PeerMaxInput: AntifloodLimitsConfig{
+							BaseMessagesPerInterval: 150,
+							TotalSizePerInterval:    2097152,
+						},
 					},
 					Cache: CacheConfig{
 						Name:     "Antiflood",
@@ -330,9 +332,11 @@ func TestTomlParser(t *testing.T) {
 							PeerBanDurationInSeconds:        3600,
 						},
 					},
-					PeerMaxOutput: AntifloodLimitsConfig{
-						BaseMessagesPerInterval: 150,
-						TotalSizePerInterval:    2097152,
+					PeerMaxOutput: FloodPreventerConfig{
+						PeerMaxInput: AntifloodLimitsConfig{
+							BaseMessagesPerInterval: 150,
+							TotalSizePerInterval:    2097152,
+						},
 					},
 					Cache: CacheConfig{
 						Name:     "Antiflood",
@@ -490,8 +494,9 @@ func TestTomlParser(t *testing.T) {
                 PeerBanDurationInSeconds = 3600
 
         [Antiflood.ConfigsByRound.PeerMaxOutput]
-            BaseMessagesPerInterval  = 150
-            TotalSizePerInterval     = 2097152 #2MB/s
+            [Antiflood.ConfigsByRound.PeerMaxOutput.PeerMaxInput]
+				BaseMessagesPerInterval  = 150
+				TotalSizePerInterval     = 2097152 #2MB/s
 
         [Antiflood.ConfigsByRound.Cache]
             Name = "Antiflood"
@@ -557,8 +562,9 @@ func TestTomlParser(t *testing.T) {
                 PeerBanDurationInSeconds = 3600
 
         [Antiflood.ConfigsByRound.PeerMaxOutput]
-            BaseMessagesPerInterval  = 150
-            TotalSizePerInterval     = 2097152
+            [Antiflood.ConfigsByRound.PeerMaxOutput.PeerMaxInput]
+				BaseMessagesPerInterval  = 150
+				TotalSizePerInterval     = 2097152
 
         [Antiflood.ConfigsByRound.Cache]
             Name = "Antiflood"

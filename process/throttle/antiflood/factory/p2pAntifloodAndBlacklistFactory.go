@@ -26,10 +26,6 @@ import (
 var log = logger.GetOrCreate("p2p/antiflood/factory")
 
 const defaultSpan = 300 * time.Second
-const fastReactingIdentifier = "fast_reacting"
-const slowReactingIdentifier = "slow_reacting"
-const outOfSpecsIdentifier = "out_of_specs"
-const outputIdentifier = "output"
 
 var durationSweepP2PBlacklist = time.Second * 5
 
@@ -85,7 +81,7 @@ func initP2PAntiFloodComponents(
 		ctx,
 		antifloodConfigsHandler,
 		statusHandler,
-		fastReactingIdentifier,
+		common.FastReacting,
 		p2pPeerBlackList,
 		currentPid,
 	)
@@ -97,7 +93,7 @@ func initP2PAntiFloodComponents(
 		ctx,
 		antifloodConfigsHandler,
 		statusHandler,
-		slowReactingIdentifier,
+		common.SlowReacting,
 		p2pPeerBlackList,
 		currentPid,
 	)
@@ -109,7 +105,7 @@ func initP2PAntiFloodComponents(
 		ctx,
 		antifloodConfigsHandler,
 		statusHandler,
-		outOfSpecsIdentifier,
+		common.OutOfSpecs,
 		p2pPeerBlackList,
 		currentPid,
 	)
@@ -221,7 +217,7 @@ func createFloodPreventer(
 	ctx context.Context,
 	antifloodConfigsHandler common.AntifloodConfigsHandler,
 	statusHandler core.AppStatusHandler,
-	quotaIdentifier string,
+	quotaIdentifier common.FloodPreventerType,
 	blackListHandler process.PeerBlackListCacher,
 	selfPid core.PeerID,
 ) (process.FloodPreventer, error) {
@@ -240,7 +236,6 @@ func createFloodPreventer(
 		quotaIdentifier,
 		selfPid,
 		antifloodConfigsHandler,
-		floodPreventerConfigFetcher,
 	)
 	if err != nil {
 		return nil, err
@@ -261,20 +256,19 @@ func createFloodPreventer(
 		Cacher:           antifloodCache,
 		StatusHandlers:   []floodPreventers.QuotaStatusHandler{quotaProcessor, blackListProcessor},
 		AntifloodConfigs: antifloodConfigsHandler,
-		ConfigFetcher:    floodPreventerConfigFetcher,
 	}
 	floodPreventer, err := floodPreventers.NewQuotaFloodPreventer(argFloodPreventer)
 	if err != nil {
 		return nil, err
 	}
 
-	floodPreventerConfig := floodPreventerConfigFetcher(antifloodConfigsHandler, quotaIdentifier)
+	floodPreventerConfig := antifloodConfigsHandler.GetFloodPreventerConfigByType(quotaIdentifier)
 
 	log.Debug("started antiflood & blacklist component",
 		"type", quotaIdentifier,
 		"interval in seconds", floodPreventerConfig.IntervalInSeconds,
-		"base peerMaxMessagesPerInterval", initialAntifloodConf.PeerMaxOutput.BaseMessagesPerInterval,
-		"peerMaxTotalSizePerInterval", core.ConvertBytes(initialAntifloodConf.PeerMaxOutput.TotalSizePerInterval),
+		"base peerMaxMessagesPerInterval", floodPreventerConfig.PeerMaxInput.BaseMessagesPerInterval,
+		"peerMaxTotalSizePerInterval", core.ConvertBytes(floodPreventerConfig.PeerMaxInput.TotalSizePerInterval),
 		"peerBanDurationInSeconds", floodPreventerConfig.BlackList.PeerBanDurationInSeconds,
 		"thresholdNumMessagesPerSecond", floodPreventerConfig.BlackList.ThresholdNumMessagesPerInterval,
 		"thresholdSizePerSecond", floodPreventerConfig.BlackList.ThresholdSizePerInterval,
@@ -283,8 +277,8 @@ func createFloodPreventer(
 	)
 
 	go func() {
-		currAntifloodConf := floodPreventerConfigFetcher(antifloodConfigsHandler, quotaIdentifier)
-		wait := time.Duration(currAntifloodConf.IntervalInSeconds) * time.Second
+		floodPreventerConfig := antifloodConfigsHandler.GetFloodPreventerConfigByType(quotaIdentifier)
+		wait := time.Duration(floodPreventerConfig.IntervalInSeconds) * time.Second
 
 		for {
 			select {

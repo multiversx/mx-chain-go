@@ -520,7 +520,7 @@ type AntifloodConfigByRound struct {
 	OutOfSpecs                          FloodPreventerConfig
 	FastReacting                        FloodPreventerConfig
 	SlowReacting                        FloodPreventerConfig
-	PeerMaxOutput                       AntifloodLimitsConfig
+	PeerMaxOutput                       FloodPreventerConfig
 	Cache                               CacheConfig
 	Topic                               TopicAntifloodConfig
 	TxAccumulator                       TxAccumulatorConfig

@@ -40,13 +40,10 @@ func initP2POutputAntiFlood(
 	}
 
 	arg := floodPreventers.ArgQuotaFloodPreventer{
-		Name:             antiflood.OutputIdentifier,
+		Name:             common.Output,
 		Cacher:           antifloodCache,
 		StatusHandlers:   make([]floodPreventers.QuotaStatusHandler, 0),
 		AntifloodConfigs: antifloodConfigsHandler,
-		ConfigFetcher: func(confHandler common.AntifloodConfigsHandler, id string) config.FloodPreventerConfig {
-			return config.FloodPreventerConfig{} // not needed on this flow
-		},
 	}
 
 	floodPreventer, err := floodPreventers.NewQuotaFloodPreventer(arg)
