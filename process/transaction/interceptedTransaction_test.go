@@ -197,7 +197,9 @@ func createInterceptedTxFromPlainTxWithArgParser(tx *dataTransaction.Transaction
 		return string(firstAddress) == string(relayerAddress) &&
 			string(secondAddress) == string(senderAddress) ||
 			string(firstAddress) == string(guardedRelayerAddress)
-
+	}
+	shardCoordinator.ComputeIdCalled = func(address []byte) uint32 {
+		return 0
 	}
 
 	return transaction.NewInterceptedTransaction(
