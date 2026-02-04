@@ -174,16 +174,17 @@ func createBlacklistHandlersAndProcessors(
 			blacklistCachers[i],
 			"",
 			peers[i].ID(),
-			&testscommon.AntifloodConfigsHandlerStub{},
-			func(confHandler common.AntifloodConfigsHandler, id string) config.FloodPreventerConfig {
-				return config.FloodPreventerConfig{
-					BlackList: config.BlackListConfig{
-						ThresholdNumMessagesPerInterval: thresholdNumReceived,
-						ThresholdSizePerInterval:        thresholdSizeReceived,
-						NumFloodingRounds:               uint32(maxFloodingRounds),
-						PeerBanDurationInSeconds:        5 * 60,
-					},
-				}
+			&testscommon.AntifloodConfigsHandlerStub{
+				GetFloodPreventerConfigByTypeCalled: func(configType common.FloodPreventerType) config.FloodPreventerConfig {
+					return config.FloodPreventerConfig{
+						BlackList: config.BlackListConfig{
+							ThresholdNumMessagesPerInterval: thresholdNumReceived,
+							ThresholdSizePerInterval:        thresholdSizeReceived,
+							NumFloodingRounds:               uint32(maxFloodingRounds),
+							PeerBanDurationInSeconds:        5 * 60,
+						},
+					}
+				},
 			},
 		)
 		log.LogIfError(err)

@@ -3,6 +3,7 @@ package factory
 import (
 	"context"
 
+	"github.com/multiversx/mx-chain-core-go/core/check"
 	"github.com/multiversx/mx-chain-go/common"
 	"github.com/multiversx/mx-chain-go/config"
 	"github.com/multiversx/mx-chain-go/process"
@@ -20,6 +21,9 @@ func NewP2POutputAntiFlood(
 	ctx context.Context,
 	antifloodConfigsHandler common.AntifloodConfigsHandler,
 ) (process.P2PAntifloodHandler, error) {
+	if check.IfNil(antifloodConfigsHandler) {
+		return nil, process.ErrNilAntifloodConfigsHandler
+	}
 	if antifloodConfigsHandler.IsEnabled() {
 		return initP2POutputAntiFlood(ctx, antifloodConfigsHandler)
 	}

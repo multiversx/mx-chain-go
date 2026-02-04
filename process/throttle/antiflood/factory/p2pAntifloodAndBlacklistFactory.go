@@ -49,6 +49,9 @@ func NewP2PAntiFloodComponents(
 	if check.IfNil(statusHandler) {
 		return nil, p2p.ErrNilStatusHandler
 	}
+	if check.IfNil(antifloodConfigsHandler) {
+		return nil, process.ErrNilAntifloodConfigsHandler
+	}
 	if antifloodConfigsHandler.IsEnabled() {
 		return initP2PAntiFloodComponents(ctx, mainConfig, statusHandler, currentPid, antifloodConfigsHandler)
 	}
