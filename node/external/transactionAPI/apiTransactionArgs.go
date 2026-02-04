@@ -32,4 +32,5 @@ type ArgAPITransactionProcessor struct {
 	TxMarshaller             marshal.Marshalizer
 	EnableEpochsHandler      common.EnableEpochsHandler
 	EnableRoundsHandler      common.EnableRoundsHandler
+	TxVersionChecker         process.TxVersionCheckerHandler
 }

@@ -248,6 +248,7 @@ func CreateApiResolver(args *ApiResolverArgs) (facade.ApiResolver, error) {
 		TxMarshaller:             args.CoreComponents.TxMarshalizer(),
 		EnableEpochsHandler:      args.CoreComponents.EnableEpochsHandler(),
 		EnableRoundsHandler:      args.CoreComponents.EnableRoundsHandler(),
+		TxVersionChecker:         args.CoreComponents.TxVersionChecker(),
 	}
 	apiTransactionProcessor, err := transactionAPI.NewAPITransactionProcessor(argsAPITransactionProc)
 	if err != nil {

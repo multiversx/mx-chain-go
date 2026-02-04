@@ -243,6 +243,13 @@ func (t *trigger) SetEpochChangeProposed(value bool) {
 	t.epochChangeProposed = value
 }
 
+// GetEpochChangeProposed returns the epoch change proposed flag
+func (t *trigger) GetEpochChangeProposed() bool {
+	t.mutTrigger.RLock()
+	defer t.mutTrigger.RUnlock()
+	return t.epochChangeProposed
+}
+
 func (t *trigger) shouldTriggerEpochStart(currentRound uint64, currentNonce uint64) bool {
 	isZeroEpochEdgeCase := currentNonce < minimumNonceToStartEpoch
 	isNormalEpochStart := currentRound > t.currEpochStartRound+t.getRoundsPerEpoch(t.epoch)-t.getOffsetPerEpoch(t.epoch)

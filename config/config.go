@@ -219,6 +219,7 @@ type Config struct {
 	ValidatorInfoPool            CacheConfig
 	ExecutedMiniBlocksCache      CacheConfig
 	PostProcessTransactionsCache CacheConfig
+	HeaderBodyCacheConfig        HeaderBodyCacheConfig
 	TrieSyncStorage              TrieSyncStorageConfig
 	EpochStartConfig             EpochStartConfig
 	AddressPubkeyConverter       PubkeyConfig
@@ -294,6 +295,11 @@ type StoragePruningConfig struct {
 	NumEpochsToKeep                      uint64
 	NumActivePersisters                  uint64
 	FullArchiveNumActivePersisters       uint32
+}
+
+// HeaderBodyCacheConfig will hold settings related with header body cache
+type HeaderBodyCacheConfig struct {
+	Capacity int
 }
 
 // ResourceStatsConfig will hold all resource stats settings

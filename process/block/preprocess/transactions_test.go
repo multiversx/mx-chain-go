@@ -21,13 +21,14 @@ import (
 	"github.com/multiversx/mx-chain-core-go/hashing/blake2b"
 	"github.com/multiversx/mx-chain-core-go/hashing/sha256"
 	"github.com/multiversx/mx-chain-core-go/marshal"
+	vmcommon "github.com/multiversx/mx-chain-vm-common-go"
+	"github.com/stretchr/testify/assert"
+	"github.com/stretchr/testify/require"
+
 	"github.com/multiversx/mx-chain-go/common/holders"
 	"github.com/multiversx/mx-chain-go/config"
 	"github.com/multiversx/mx-chain-go/testscommon/epochNotifier"
 	"github.com/multiversx/mx-chain-go/txcache"
-	vmcommon "github.com/multiversx/mx-chain-vm-common-go"
-	"github.com/stretchr/testify/assert"
-	"github.com/stretchr/testify/require"
 
 	"github.com/multiversx/mx-chain-go/common"
 	"github.com/multiversx/mx-chain-go/dataRetriever"
@@ -265,6 +266,7 @@ func createDefaultTransactionsProcessorArgs() ArgsTransactionPreProcessor {
 			SelectionMaxNumTxs:                            30000,
 			SelectionLoopDurationCheckInterval:            10,
 		},
+		TxVersionCheckerHandler: &testscommon.TxVersionCheckerStub{},
 	}
 }
 
@@ -1893,6 +1895,7 @@ func TestTransactionsPreprocessor_ComputeGasProvidedShouldWork(t *testing.T) {
 		&tx,
 		txHash,
 		&gasInfo,
+		false,
 	)
 
 	assert.Nil(t, err)
