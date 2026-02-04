@@ -155,6 +155,8 @@ type baseBootstrap struct {
 
 	miniBlocksSyncer epochStart.PendingMiniBlocksSyncHandler
 	txSyncer         update.TransactionsSyncHandler
+
+	signalProcessCompletionChan chan uint64
 }
 
 func (boot *baseBootstrap) getProcessWaitTime(round uint64) time.Duration {
@@ -745,7 +747,18 @@ func (boot *baseBootstrap) syncBlocks(ctx context.Context) {
 
 			log.Debug("SyncBlock", "error", err.Error())
 
-			time.Sleep(sleepTimeOnFail)
+			select {
+			case nonce := <-boot.signalProcessCompletionChan:
+				log.Debug("SyncBlock - error - notification process finished", "nonce", nonce)
+			case <-time.After(sleepTimeOnFail):
+			}
+		} else {
+			// Non-blocking drain of completion signal when sync succeeds
+			select {
+			case nonce := <-boot.signalProcessCompletionChan:
+				log.Debug("SyncBlock - success - notification process finished", "nonce", nonce)
+			default:
+			}
 		}
 	}
 }
@@ -2187,6 +2200,7 @@ func (boot *baseBootstrap) init() {
 	boot.chRcvHdrNonce = make(chan bool)
 	boot.chRcvHdrHash = make(chan bool)
 	boot.chRcvMiniBlocks = make(chan bool)
+	boot.signalProcessCompletionChan = boot.executionManager.GetSignalProcessCompletionChan()
 
 	boot.setRequestedHeaderNonce(nil)
 	boot.setRequestedHeaderHash(nil)
@@ -2257,6 +2271,11 @@ func (boot *baseBootstrap) GetNodeState() common.NodeState {
 	return common.NsNotSynchronized
 }
 
+// GetSignalProcessCompletionChan returns the channel used to signal the sync loop after execution completes
+func (boot *baseBootstrap) GetSignalProcessCompletionChan() chan uint64 {
+	return boot.signalProcessCompletionChan
+}
+
 func (boot *baseBootstrap) handleAccountsTrieIteration() error {
 	if boot.repopulateTokensSupplies {
 		return boot.handleTokensSuppliesRepopulation()
@@ -2304,6 +2323,18 @@ func (boot *baseBootstrap) Close() error {
 	return nil
 }
 
+func emptyUint64Channel(ch chan uint64) int {
+	nrReads := 0
+	for {
+		select {
+		case <-ch:
+			nrReads++
+		default:
+			return nrReads
+		}
+	}
+}
+
 func (boot *baseBootstrap) cleanChannels() {
 	nrReads := core.EmptyChannel(boot.chRcvHdrNonce)
 	log.Debug("close baseSync: emptied channel", "chRcvHdrNonce nrReads", nrReads)
@@ -2313,6 +2344,11 @@ func (boot *baseBootstrap) cleanChannels() {
 
 	nrReads = core.EmptyChannel(boot.chRcvMiniBlocks)
 	log.Debug("close baseSync: emptied channel", "chRcvMiniBlocks nrReads", nrReads)
+
+	if boot.signalProcessCompletionChan != nil {
+		nrReads = emptyUint64Channel(boot.signalProcessCompletionChan)
+		log.Debug("close baseSync: emptied channel", "signalProcessCompletionChan nrReads", nrReads)
+	}
 }
 
 func (boot *baseBootstrap) getHeaderMiniBlocks(

@@ -572,3 +572,137 @@ func TestBaseBootstrap_SaveProposedTxsToPool(t *testing.T) {
 	require.Equal(t, 1, rwCalls)
 	require.Equal(t, 1, peerCalls)
 }
+
+func TestEmptyUint64Channel_EmptyChannel(t *testing.T) {
+	t.Parallel()
+
+	ch := make(chan uint64, 5)
+	nrReads := emptyUint64Channel(ch)
+
+	assert.Equal(t, 0, nrReads)
+}
+
+func TestEmptyUint64Channel_ChannelWithValues(t *testing.T) {
+	t.Parallel()
+
+	ch := make(chan uint64, 5)
+	ch <- 1
+	ch <- 2
+	ch <- 3
+
+	nrReads := emptyUint64Channel(ch)
+
+	assert.Equal(t, 3, nrReads)
+	assert.Equal(t, 0, len(ch))
+}
+
+func TestEmptyUint64Channel_FullChannel(t *testing.T) {
+	t.Parallel()
+
+	ch := make(chan uint64, 3)
+	ch <- 10
+	ch <- 20
+	ch <- 30
+
+	nrReads := emptyUint64Channel(ch)
+
+	assert.Equal(t, 3, nrReads)
+	assert.Equal(t, 0, len(ch))
+}
+
+func TestBaseBootstrap_GetSignalProcessCompletionChan(t *testing.T) {
+	t.Parallel()
+
+	t.Run("nil channel returns nil", func(t *testing.T) {
+		t.Parallel()
+
+		boot := &baseBootstrap{
+			signalProcessCompletionChan: nil,
+		}
+
+		result := boot.GetSignalProcessCompletionChan()
+		assert.Nil(t, result)
+	})
+
+	t.Run("returns the channel when set", func(t *testing.T) {
+		t.Parallel()
+
+		expectedChan := make(chan uint64, 1)
+		boot := &baseBootstrap{
+			signalProcessCompletionChan: expectedChan,
+		}
+
+		result := boot.GetSignalProcessCompletionChan()
+		assert.Equal(t, expectedChan, result)
+	})
+}
+
+func TestBaseBootstrap_SyncBlocksWakesUpOnSignal(t *testing.T) {
+	t.Parallel()
+
+	signalChan := make(chan uint64, 1)
+	var numCalls uint32
+	syncError := errors.New("sync error to trigger wait")
+
+	boot := &baseBootstrap{
+		chStopSync:                  make(chan bool),
+		signalProcessCompletionChan: signalChan,
+		syncStarter: &mock.SyncStarterStub{
+			SyncBlockCalled: func() error {
+				atomic.AddUint32(&numCalls, 1)
+				return syncError
+			},
+		},
+		networkWatcher: &mock.NetworkConnectionWatcherStub{
+			IsConnectedToTheNetworkCalled: func() bool {
+				return true
+			},
+		},
+		roundHandler: &mock.RoundHandlerMock{
+			BeforeGenesisCalled: func() bool {
+				return false
+			},
+		},
+	}
+
+	ctx, cancelFunc := context.WithCancel(context.Background())
+
+	go boot.syncBlocks(ctx)
+
+	// Wait for first sync call
+	time.Sleep(50 * time.Millisecond)
+	initialCalls := atomic.LoadUint32(&numCalls)
+	require.GreaterOrEqual(t, initialCalls, uint32(1))
+
+	// Signal the channel - this should wake up the loop immediately
+	signalChan <- 42
+
+	// Wait a short time - much less than sleepTimeOnFail (400ms)
+	time.Sleep(50 * time.Millisecond)
+
+	// Should have made another call due to signal wakeup
+	finalCalls := atomic.LoadUint32(&numCalls)
+	require.Greater(t, finalCalls, initialCalls)
+
+	cancelFunc()
+}
+
+func TestBaseBootstrap_CleanChannelsDrainsSignalChannel(t *testing.T) {
+	t.Parallel()
+
+	signalChan := make(chan uint64, 5)
+	signalChan <- 1
+	signalChan <- 2
+	signalChan <- 3
+
+	boot := &baseBootstrap{
+		chRcvHdrNonce:               make(chan bool, 1),
+		chRcvHdrHash:                make(chan bool, 1),
+		chRcvMiniBlocks:             make(chan bool, 1),
+		signalProcessCompletionChan: signalChan,
+	}
+
+	boot.cleanChannels()
+
+	assert.Equal(t, 0, len(signalChan))
+}

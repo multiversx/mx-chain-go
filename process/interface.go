@@ -331,6 +331,7 @@ type HeadersExecutor interface {
 	StartExecution()
 	PauseExecution()
 	ResumeExecution()
+	GetSignalProcessCompletionChan() chan uint64
 	Close() error
 	IsInterfaceNil() bool
 }
@@ -348,6 +349,7 @@ type ExecutionManager interface {
 	RemoveAtNonceAndHigher(nonce uint64) error
 	ResetAndResumeExecution(lastNotarizedResult data.BaseExecutionResultHandler) error
 	RemovePendingExecutionResultsFromNonce(nonce uint64) error
+	GetSignalProcessCompletionChan() chan uint64
 	Close() error
 	IsInterfaceNil() bool
 }
@@ -449,6 +451,7 @@ type Bootstrapper interface {
 	AddSyncStateListener(func(isSyncing bool))
 	GetNodeState() common.NodeState
 	StartSyncingBlocks() error
+	GetSignalProcessCompletionChan() chan uint64
 	IsInterfaceNil() bool
 }
 

@@ -23,20 +23,22 @@ const maxBackoffTime = time.Second * 5
 
 // ArgsHeadersExecutor holds all the components needed to create a new instance of *headersExecutor
 type ArgsHeadersExecutor struct {
-	BlocksCache      BlocksCache
-	ExecutionTracker ExecutionResultsHandler
-	BlockProcessor   BlockProcessor
-	BlockChain       data.ChainHandler
+	BlocksCache                 BlocksCache
+	ExecutionTracker            ExecutionResultsHandler
+	BlockProcessor              BlockProcessor
+	BlockChain                  data.ChainHandler
+	SignalProcessCompletionChan chan uint64
 }
 
 type headersExecutor struct {
-	blocksCache      BlocksCache
-	executionTracker ExecutionResultsHandler
-	blockProcessor   BlockProcessor
-	blockChain       data.ChainHandler
-	cancelFunc       context.CancelFunc
-	mutPaused        sync.RWMutex
-	isPaused         bool
+	blocksCache                 BlocksCache
+	executionTracker            ExecutionResultsHandler
+	blockProcessor              BlockProcessor
+	blockChain                  data.ChainHandler
+	cancelFunc                  context.CancelFunc
+	mutPaused                   sync.RWMutex
+	isPaused                    bool
+	signalProcessCompletionChan chan uint64
 }
 
 // NewHeadersExecutor will create a new instance of *headersExecutor
@@ -55,10 +57,11 @@ func NewHeadersExecutor(args ArgsHeadersExecutor) (*headersExecutor, error) {
 	}
 
 	instance := &headersExecutor{
-		blocksCache:      args.BlocksCache,
-		executionTracker: args.ExecutionTracker,
-		blockProcessor:   args.BlockProcessor,
-		blockChain:       args.BlockChain,
+		blocksCache:                 args.BlocksCache,
+		executionTracker:            args.ExecutionTracker,
+		blockProcessor:              args.BlockProcessor,
+		blockChain:                  args.BlockChain,
+		signalProcessCompletionChan: args.SignalProcessCompletionChan,
 	}
 
 	return instance, nil
@@ -277,6 +280,8 @@ func (he *headersExecutor) process(pair cache.HeaderBodyPair) error {
 	he.blockChain.SetLastExecutedBlockHeaderAndRootHash(pair.Header, executionResult.GetHeaderHash(), executionResult.GetRootHash())
 	he.blockChain.SetLastExecutionResult(executionResult)
 
+	he.signalProcessCompletion(pair.Header.GetNonce())
+
 	log.Debug("headersExecutor.process completed",
 		"nonce", pair.Header.GetNonce(),
 		"exec nonce", executionResult.GetHeaderNonce(),
@@ -284,6 +289,17 @@ func (he *headersExecutor) process(pair cache.HeaderBodyPair) error {
 	)
 
 	return nil
+}
+
+func (he *headersExecutor) signalProcessCompletion(currentNonce uint64) {
+	if he.signalProcessCompletionChan == nil {
+		return
+	}
+
+	select {
+	case he.signalProcessCompletionChan <- currentNonce:
+	default:
+	}
 }
 
 func (he *headersExecutor) checkLastExecutionResultContext(
@@ -324,6 +340,11 @@ func (he *headersExecutor) checkLastExecutionResultContext(
 	}
 
 	return true
+}
+
+// GetSignalProcessCompletionChan returns the channel used to signal the sync loop after execution completes
+func (he *headersExecutor) GetSignalProcessCompletionChan() chan uint64 {
+	return he.signalProcessCompletionChan
 }
 
 // Close will close the blocks execution loop
