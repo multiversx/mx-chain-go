@@ -211,48 +211,49 @@ func (en *extensionNode) commitDirty(level byte, maxTrieLevelInMemory uint, orig
 }
 
 func (en *extensionNode) commitSnapshot(
-	db common.TrieStorageInteractor,
+	db snapshotDb,
+	maxEpochToSearchFrom uint32,
 	leavesChan chan core.KeyValueHolder,
 	missingNodesChan chan []byte,
 	ctx context.Context,
 	stats common.TrieStatisticsHandler,
 	idleProvider IdleNodeProvider,
+	nodeBytes []byte,
 	depthLevel int,
 ) error {
 	if shouldStopIfContextDoneBlockingIfBusy(ctx, idleProvider) {
 		return core.ErrContextClosing
 	}
 
-	err := en.isEmptyOrNil()
+	encChild, foundInEpoch, err := db.GetFromOldEpochsWithoutAddingToCache(en.EncodedChild, maxEpochToSearchFrom)
 	if err != nil {
-		return fmt.Errorf("commit snapshot error %w", err)
-	}
+		treatLogError(log, err, en.EncodedChild)
 
-	err = resolveIfCollapsed(en, 0, db)
-	childIsMissing, err := treatCommitSnapshotError(err, en.EncodedChild, missingNodesChan)
-	if err != nil {
-		return err
-	}
-
-	if !childIsMissing {
-		err = en.child.commitSnapshot(db, leavesChan, missingNodesChan, ctx, stats, idleProvider, depthLevel+1)
-		if err != nil {
+		if core.IsClosingError(err) {
 			return err
 		}
+
+		log.Error("error during trie snapshot", "err", err.Error(), "hash", en.EncodedChild)
+		missingNodesChan <- en.EncodedChild
+		return nil
 	}
 
-	return en.saveToStorage(db, stats, depthLevel)
-}
-
-func (en *extensionNode) saveToStorage(targetDb common.BaseStorer, stats common.TrieStatisticsHandler, depthLevel int) error {
-	nodeSize, err := encodeNodeAndCommitToDB(en, targetDb)
+	child, err := decodeNode(encChild, en.marsh, en.hasher)
 	if err != nil {
 		return err
 	}
 
-	stats.AddExtensionNode(depthLevel, uint64(nodeSize))
+	err = child.commitSnapshot(db, foundInEpoch, leavesChan, missingNodesChan, ctx, stats, idleProvider, encChild, depthLevel+1)
+	if err != nil {
+		return err
+	}
 
-	en.child = nil
+	err = db.PutInEpochWithoutCache(en.EncodedChild, encChild)
+	if err != nil {
+		return err
+	}
+
+	stats.AddExtensionNode(depthLevel, uint64(len(nodeBytes)))
 	return nil
 }
 

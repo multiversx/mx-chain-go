@@ -113,6 +113,7 @@ func (ps *triePruningStorer) GetFromOldEpochsWithoutAddingToCache(key []byte, ma
 				numClosedDbs++
 			}
 
+			ps.stateStatsHandler.IncrSnapshotPersister(ps.activePersisters[idx].epoch)
 			continue
 		}
 

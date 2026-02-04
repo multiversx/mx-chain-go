@@ -9,7 +9,7 @@ import (
 )
 
 type snapshotTrieStorageManager struct {
-	*trieStorageManager
+	tsm                *trieStorageManager
 	mainSnapshotStorer snapshotPruningStorer
 	epoch              uint32
 }
@@ -21,34 +21,26 @@ func newSnapshotTrieStorageManager(tsm *trieStorageManager, epoch uint32) (*snap
 	}
 
 	return &snapshotTrieStorageManager{
-		trieStorageManager: tsm,
+		tsm:                tsm,
 		mainSnapshotStorer: storer,
 		epoch:              epoch,
 	}, nil
 }
 
-// Get checks all the storers for the given key, and returns it if it is found
-func (stsm *snapshotTrieStorageManager) Get(key []byte) ([]byte, error) {
-	stsm.storageOperationMutex.RLock()
-	defer stsm.storageOperationMutex.RUnlock()
-
-	if stsm.closed {
-		log.Debug("snapshotTrieStorageManager get context closing", "key", key)
-		return nil, core.ErrContextClosing
-	}
-
+// GetFromOldEpochsWithoutAddingToCache tries to get the value for the given key from old epochs without adding it to cache
+func (stsm *snapshotTrieStorageManager) GetFromOldEpochsWithoutAddingToCache(key []byte, maxEpochToSearchFrom uint32) ([]byte, uint32, error) {
 	// test point get during snapshot
 
-	val, epoch, err := stsm.mainSnapshotStorer.GetFromOldEpochsWithoutAddingToCache(key, stsm.epoch)
+	val, epoch, err := stsm.mainSnapshotStorer.GetFromOldEpochsWithoutAddingToCache(key, maxEpochToSearchFrom)
 	if core.IsClosingError(err) {
-		return nil, err
+		return nil, 0, err
 	}
 	if len(val) == 0 {
-		return nil, ErrKeyNotFound
+		return nil, 0, ErrKeyNotFound
 	}
 
 	stsm.putInPreviousStorerIfAbsent(key, val, epoch)
-	return val, nil
+	return val, epoch.Value, nil
 }
 
 func (stsm *snapshotTrieStorageManager) putInPreviousStorerIfAbsent(key []byte, val []byte, epoch core.OptionalUint32) {
@@ -78,31 +70,25 @@ func (stsm *snapshotTrieStorageManager) putInPreviousStorerIfAbsent(key []byte, 
 	}
 }
 
-// Put adds the given value to the main storer
-func (stsm *snapshotTrieStorageManager) Put(key, data []byte) error {
-	stsm.storageOperationMutex.Lock()
-	defer stsm.storageOperationMutex.Unlock()
-
-	if stsm.closed {
-		log.Debug("snapshotTrieStorageManager put context closing", "key", key, "data", data)
-		return core.ErrContextClosing
-	}
-
+// PutInEpochWithoutCache adds the given (key, data) in the current epoch without adding it to cache
+func (stsm *snapshotTrieStorageManager) PutInEpochWithoutCache(key, data []byte) error {
 	log.Trace("put hash in snapshot storer", "hash", key, "epoch", stsm.epoch)
 	return stsm.mainSnapshotStorer.PutInEpochWithoutCache(key, data, stsm.epoch)
 }
 
 // GetFromLastEpoch searches only the last epoch storer for the given key
 func (stsm *snapshotTrieStorageManager) GetFromLastEpoch(key []byte) ([]byte, error) {
-	stsm.storageOperationMutex.RLock()
-	defer stsm.storageOperationMutex.RUnlock()
-
-	if stsm.closed {
-		log.Debug("snapshotTrieStorageManager getFromLastEpoch context closing", "key", key)
-		return nil, core.ErrContextClosing
-	}
-
 	return stsm.mainSnapshotStorer.GetFromLastEpoch(key)
+}
+
+// GetIdentifier returns the identifier of the storage manager
+func (stsm *snapshotTrieStorageManager) GetIdentifier() string {
+	return stsm.tsm.GetIdentifier()
+}
+
+// GetFromCurrentEpoch tries to get the value for the given key from the current epoch
+func (stsm *snapshotTrieStorageManager) GetFromCurrentEpoch(key []byte) ([]byte, error) {
+	return stsm.mainSnapshotStorer.GetFromCurrentEpoch(key)
 }
 
 // IsInterfaceNil returns true if there is no value under the interface

@@ -136,29 +136,21 @@ func (ln *leafNode) commitDirty(_ byte, _ uint, _ common.TrieStorageInteractor, 
 }
 
 func (ln *leafNode) commitSnapshot(
-	db common.TrieStorageInteractor,
+	db snapshotDb,
+	maxEpochToSearchFrom uint32,
 	leavesChan chan core.KeyValueHolder,
 	_ chan []byte,
 	ctx context.Context,
 	stats common.TrieStatisticsHandler,
 	idleProvider IdleNodeProvider,
+	nodeBytes []byte,
 	depthLevel int,
 ) error {
 	if shouldStopIfContextDoneBlockingIfBusy(ctx, idleProvider) {
 		return core.ErrContextClosing
 	}
 
-	err := ln.isEmptyOrNil()
-	if err != nil {
-		return fmt.Errorf("commit snapshot error %w", err)
-	}
-
-	err = writeNodeOnChannel(ln, leavesChan)
-	if err != nil {
-		return err
-	}
-
-	nodeSize, err := encodeNodeAndCommitToDB(ln, db)
+	err := writeNodeOnChannel(ln, leavesChan)
 	if err != nil {
 		return err
 	}
@@ -168,7 +160,7 @@ func (ln *leafNode) commitSnapshot(
 		return err
 	}
 
-	stats.AddLeafNode(depthLevel, uint64(nodeSize), version)
+	stats.AddLeafNode(depthLevel, uint64(len(nodeBytes)), version)
 
 	return nil
 }
