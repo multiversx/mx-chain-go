@@ -53,6 +53,7 @@ type apiTransactionProcessor struct {
 	gasUsedAndFeeProcessor      *gasUsedAndFeeProcessor
 	enableEpochsHandler         common.EnableEpochsHandler
 	enableRoundsHandler         common.EnableRoundsHandler
+	txVersionChecker            process.TxVersionCheckerHandler
 }
 
 // NewAPITransactionProcessor will create a new instance of apiTransactionProcessor
@@ -108,6 +109,7 @@ func NewAPITransactionProcessor(args *ArgAPITransactionProcessor) (*apiTransacti
 		gasUsedAndFeeProcessor:      gasUsedAndFeeProc,
 		enableEpochsHandler:         args.EnableEpochsHandler,
 		enableRoundsHandler:         args.EnableRoundsHandler,
+		txVersionChecker:            args.TxVersionChecker,
 	}, nil
 }
 
@@ -566,8 +568,9 @@ func (atp *apiTransactionProcessor) selectTransactions(accountsAdapter state.Acc
 	// TODO use the right object, not a disabled one
 	txProcessor := disabled.TxProcessor{}
 	argsSelectionSession := preprocess.ArgsSelectionSession{
-		AccountsAdapter:       accountsAdapter,
-		TransactionsProcessor: &txProcessor,
+		AccountsAdapter:         accountsAdapter,
+		TransactionsProcessor:   &txProcessor,
+		TxVersionCheckerHandler: atp.txVersionChecker,
 	}
 
 	selectionSession, err := preprocess.NewSelectionSession(argsSelectionSession)

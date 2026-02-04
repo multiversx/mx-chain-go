@@ -74,7 +74,7 @@ func initAccountsMock() *stateMock.AccountsStub {
 	}
 }
 
-func initBasicTestData() (*dataRetrieverMock.PoolsHolderMock, data.ChainHandler, []byte, *block.Body, [][]byte, *hashingMocks.HasherMock, *mock.MarshalizerMock, error, []byte) {
+func initBasicTestData() (*dataRetrieverMock.PoolsHolderMock, data.ChainHandler, []byte, *block.Body, [][]byte, *hashingMocks.HasherMock, *mock.MarshalizerMock, []byte) {
 	tdp := dataRetrieverMock.NewPoolsHolderMock()
 	txHash := []byte("tx_hash1")
 	randSeed := []byte("rand seed")
@@ -101,7 +101,7 @@ func initBasicTestData() (*dataRetrieverMock.PoolsHolderMock, data.ChainHandler,
 	marshalizer := &mock.MarshalizerMock{}
 	mbbytes, _ := marshalizer.Marshal(&miniblock)
 	mbHash := hasher.Compute(string(mbbytes))
-	return tdp, blkc, rootHash, body, txHashes, hasher, marshalizer, nil, mbHash
+	return tdp, blkc, rootHash, body, txHashes, hasher, marshalizer, mbHash
 }
 
 func initBlockHeader(prevHash []byte, prevRandSeed []byte, rootHash []byte, mbHdrs []block.MiniBlockHeader) block.Header {
@@ -516,6 +516,7 @@ func TestShardProcessor_ProcessBlockWithInvalidTransactionShouldErr(t *testing.T
 		ProcessedMiniBlocksTracker:   &testscommon.ProcessedMiniBlocksTrackerStub{},
 		TxExecutionOrderHandler:      &commonMock.TxExecutionOrderHandlerStub{},
 		TxCacheSelectionConfig:       createMockTxCacheSelectionConfig(),
+		TxVersionChecker:             &testscommon.TxVersionCheckerStub{},
 	}
 
 	factory, err := shard.NewPreProcessorsContainerFactory(argsPreProcessorsContainerFactory)
@@ -754,6 +755,7 @@ func TestShardProcessor_ProcessBlockWithErrOnProcessBlockTransactionsCallShouldR
 		ProcessedMiniBlocksTracker:   &testscommon.ProcessedMiniBlocksTrackerStub{},
 		TxExecutionOrderHandler:      &commonMock.TxExecutionOrderHandlerStub{},
 		TxCacheSelectionConfig:       createMockTxCacheSelectionConfig(),
+		TxVersionChecker:             &testscommon.TxVersionCheckerStub{},
 	}
 	factory, err := shard.NewPreProcessorsContainerFactory(argsPreProcessorsContainerFactory)
 	require.NoError(t, err)
@@ -1054,7 +1056,7 @@ func TestShardProcessor_ProcessBlockCrossShardWithoutMetaShouldFail(t *testing.T
 func TestShardProcessor_ProcessBlockCrossShardWithMetaShouldPass(t *testing.T) {
 	t.Parallel()
 
-	tdp, blkc, rootHash, body, txHashes, hasher, marshalizer, _, mbHash := initBasicTestData()
+	tdp, blkc, rootHash, body, txHashes, hasher, marshalizer, mbHash := initBasicTestData()
 	mbHdr := block.MiniBlockHeader{
 		ReceiverShardID: 0,
 		SenderShardID:   1,
@@ -1199,7 +1201,7 @@ func TestShardProcessor_ProcessBlockHaveTimeLessThanZeroShouldErr(t *testing.T) 
 func TestShardProcessor_ProcessBlockWithMissingMetaHdrShouldErr(t *testing.T) {
 	t.Parallel()
 
-	tdp, blkc, rootHash, body, txHashes, hasher, marshalizer, _, mbHash := initBasicTestData()
+	tdp, blkc, rootHash, body, txHashes, hasher, marshalizer, mbHash := initBasicTestData()
 	mbHdr := block.MiniBlockHeader{
 		ReceiverShardID: 0,
 		SenderShardID:   1,
@@ -1666,7 +1668,7 @@ func TestShardProcessor_CheckAndRequestIfMetaHeadersMissingShouldErr(t *testing.
 	t.Parallel()
 
 	hdrNoncesRequestCalled := int32(0)
-	tdp, blkc, rootHash, body, txHashes, hasher, marshalizer, _, mbHash := initBasicTestData()
+	tdp, blkc, rootHash, body, txHashes, hasher, marshalizer, mbHash := initBasicTestData()
 	mbHdr := block.MiniBlockHeader{
 		ReceiverShardID: 0,
 		SenderShardID:   1,
@@ -2903,6 +2905,7 @@ func TestShardProcessor_MarshalizedDataToBroadcast_WithSupernova(t *testing.T) {
 		ProcessedMiniBlocksTracker:   &testscommon.ProcessedMiniBlocksTrackerStub{},
 		TxExecutionOrderHandler:      &commonMock.TxExecutionOrderHandlerStub{},
 		TxCacheSelectionConfig:       createMockTxCacheSelectionConfig(),
+		TxVersionChecker:             &testscommon.TxVersionCheckerStub{},
 	}
 	factory, err := shard.NewPreProcessorsContainerFactory(argsPreProcessorsContainerFactory)
 	require.NoError(t, err)
@@ -3000,6 +3003,7 @@ func TestShardProcessor_MarshalizedDataToBroadcastShouldWork(t *testing.T) {
 		ProcessedMiniBlocksTracker:   &testscommon.ProcessedMiniBlocksTrackerStub{},
 		TxExecutionOrderHandler:      &commonMock.TxExecutionOrderHandlerStub{},
 		TxCacheSelectionConfig:       createMockTxCacheSelectionConfig(),
+		TxVersionChecker:             &testscommon.TxVersionCheckerStub{},
 	}
 
 	factory, err := shard.NewPreProcessorsContainerFactory(argsPreProcessorsContainerFactory)
@@ -3121,6 +3125,7 @@ func TestShardProcessor_MarshalizedDataMarshalWithoutSuccess(t *testing.T) {
 		ProcessedMiniBlocksTracker:   &testscommon.ProcessedMiniBlocksTrackerStub{},
 		TxExecutionOrderHandler:      &commonMock.TxExecutionOrderHandlerStub{},
 		TxCacheSelectionConfig:       createMockTxCacheSelectionConfig(),
+		TxVersionChecker:             &testscommon.TxVersionCheckerStub{},
 	}
 	factory, err := shard.NewPreProcessorsContainerFactory(args)
 	require.NoError(t, err)
@@ -3396,6 +3401,7 @@ func TestShardProcessor_CreateMiniBlocksShouldWorkWithIntraShardTxs(t *testing.T
 		ProcessedMiniBlocksTracker:   &testscommon.ProcessedMiniBlocksTrackerStub{},
 		TxExecutionOrderHandler:      &commonMock.TxExecutionOrderHandlerStub{},
 		TxCacheSelectionConfig:       createMockTxCacheSelectionConfig(),
+		TxVersionChecker:             &testscommon.TxVersionCheckerStub{},
 	}
 	factory, err := shard.NewPreProcessorsContainerFactory(args)
 	require.NoError(t, err)
@@ -3593,6 +3599,7 @@ func TestShardProcessor_RestoreBlockIntoPoolsShouldWork(t *testing.T) {
 		ProcessedMiniBlocksTracker:   &testscommon.ProcessedMiniBlocksTrackerStub{},
 		TxExecutionOrderHandler:      &commonMock.TxExecutionOrderHandlerStub{},
 		TxCacheSelectionConfig:       createMockTxCacheSelectionConfig(),
+		TxVersionChecker:             &testscommon.TxVersionCheckerStub{},
 	}
 	factory, err := shard.NewPreProcessorsContainerFactory(args)
 	require.NoError(t, err)

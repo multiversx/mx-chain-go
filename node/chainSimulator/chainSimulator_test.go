@@ -10,6 +10,8 @@ import (
 	"github.com/multiversx/mx-chain-core-go/core"
 	apiBlock "github.com/multiversx/mx-chain-core-go/data/api"
 	"github.com/multiversx/mx-chain-core-go/data/transaction"
+	"github.com/multiversx/mx-chain-go/integrationTests/chainSimulator/staking"
+	"github.com/multiversx/mx-chain-go/vm"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 
@@ -661,4 +663,101 @@ func TestSimulator_SendMoveBalanceTxBeforeAndAfterSupernovaWithMoreGasLimit(t *t
 	require.Nil(t, err)
 
 	chainSimulatorCommon.GenerateMoveBalanceTxsInShardsWithMoreGasLimit(t, chainSimulator)
+}
+
+func TestChainSimulator_VerifyEconomicsMetricsSupernova(t *testing.T) {
+	if testing.Short() {
+		t.Skip("this is not a short test")
+	}
+
+	supernovaActivationRound := uint64(46)
+	supernovaActivationEpoch := uint64(2)
+
+	cs, err := NewChainSimulator(ArgsChainSimulator{
+		BypassTxSignatureCheck:         true,
+		TempDir:                        t.TempDir(),
+		PathToInitialConfig:            defaultPathToInitialConfig,
+		NumOfShards:                    defaultNumOfShards,
+		RoundDurationInMillis:          defaultRoundDurationInMillis,
+		SupernovaRoundDurationInMillis: defaultSupernovaRoundDurationInMillis,
+		RoundsPerEpoch: core.OptionalUint64{
+			Value:    20,
+			HasValue: true,
+		},
+		SupernovaRoundsPerEpoch: defaultSupernovaRoundsPerEpoch,
+		ApiInterface:            api.NewNoApiInterface(),
+		MinNodesPerShard:        defaultMinNodesPerShard,
+		MetaChainMinNodes:       defaultMetaChainMinNodes,
+		AlterConfigsFunction: func(cfg *config.Configs) {
+			cfg.EpochConfig.EnableEpochs.StakingV2EnableEpoch = 0
+			cfg.EpochConfig.EnableEpochs.SupernovaEnableEpoch = uint32(supernovaActivationEpoch)
+			cfg.RoundConfig.RoundActivations[string(common.SupernovaRoundFlag)] = config.ActivationRoundByName{
+				Round: fmt.Sprintf("%d", supernovaActivationRound),
+			}
+		},
+	})
+	require.Nil(t, err)
+	require.NotNil(t, cs)
+	defer cs.Close()
+
+	require.Nil(t, cs.GenerateBlocksUntilEpochIsReached(int32(supernovaActivationEpoch)))
+
+	mintValue := big.NewInt(0).Mul(chainSimulatorCommon.OneEGLD, big.NewInt(3000*5))
+	wallet1, err := cs.GenerateAndMintWalletAddress(0, mintValue)
+	require.Nil(t, err)
+
+	_, blsKeys, err := GenerateBlsPrivateKeys(1)
+	require.Nil(t, err)
+
+	err = cs.GenerateBlocks(1)
+	require.Nil(t, err)
+
+	nonce := uint64(0)
+	for currentEpoch := supernovaActivationEpoch + 1; currentEpoch < supernovaActivationEpoch+4; currentEpoch++ {
+		dataFieldTx1 := fmt.Sprintf("stake@01@%s@%s", blsKeys[0], staking.MockBLSSignature)
+		tx1Value := big.NewInt(0).Mul(big.NewInt(2501), chainSimulatorCommon.OneEGLD)
+		tx1 := chainSimulatorCommon.GenerateTransaction(wallet1.Bytes, nonce, vm.ValidatorSCAddress, tx1Value, dataFieldTx1, staking.GasLimitForStakeOperation)
+
+		results, err := cs.SendTxsAndGenerateBlocksTilAreExecuted([]*transaction.Transaction{tx1}, staking.MaxNumOfBlockToGenerateWhenExecutingTx)
+		require.Nil(t, err)
+		require.Equal(t, 1, len(results))
+		require.NotNil(t, results)
+
+		require.Nil(t, cs.GenerateBlocksUntilEpochIsReached(int32(currentEpoch)))
+		checkMetrics(t, cs, core.MetachainShardId, currentEpoch)
+		checkMetrics(t, cs, 0, currentEpoch)
+
+		nonce++
+	}
+}
+
+func checkMetrics(t *testing.T, cs ChainSimulator, shardID uint32, expectedEpoch uint64) {
+	res, err := cs.GetNodeHandler(shardID).GetFacadeHandler().StatusMetrics().EconomicsMetrics()
+	require.Nil(t, err)
+
+	expectedMetrics := map[string]struct{}{
+		common.MetricTotalSupply:           {},
+		common.MetricInflation:             {},
+		common.MetricEpochForEconomicsData: {},
+		common.MetricTotalFees:             {},
+		common.MetricDevRewardsInEpoch:     {},
+	}
+
+	for foundMetric, metricValue := range res {
+		require.Contains(t, expectedMetrics, foundMetric)
+
+		switch metricVal := metricValue.(type) {
+		case string:
+			require.Greater(t, len(metricVal), 1)
+		case uint64:
+			require.Equal(t, expectedEpoch, metricValue)
+		default:
+			require.Fail(t, "metric value is not a string or uint64")
+		}
+
+		delete(expectedMetrics, foundMetric)
+
+	}
+
+	require.Empty(t, expectedMetrics, "should've found all expected metrics in the result from facade")
 }
