@@ -291,3 +291,26 @@ func Test_verifyContinuityWithSessionNonce(t *testing.T) {
 		require.False(t, actualRes)
 	})
 }
+
+func Test_setPendingChangeGuardian(t *testing.T) {
+	t.Parallel()
+
+	breadcrumb := accountBreadcrumb{
+		firstNonce: core.OptionalUint64{
+			Value:    1,
+			HasValue: true,
+		},
+		lastNonce: core.OptionalUint64{
+			Value:    2,
+			HasValue: true,
+		},
+		consumedBalance:                     nil,
+		hasPendingChangeGuardianTransaction: false,
+	}
+
+	breadcrumb.setPendingChangeGuardian(true)
+	require.True(t, breadcrumb.hasPendingChangeGuardianTransaction)
+
+	breadcrumb.setPendingChangeGuardian(false)
+	require.False(t, breadcrumb.hasPendingChangeGuardianTransaction)
+}

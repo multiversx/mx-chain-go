@@ -170,7 +170,7 @@ func sendTransactions(t *testing.T, simulator testsChainSimulator.ChainSimulator
 
 		for _, tx := range transactionsFromShard {
 			err := node.GetFacadeHandler().ValidateTransaction(tx)
-			require.NoError(t, err)
+			require.NoError(t, err, fmt.Sprintf("transaction validation failed: %d", tx.Nonce))
 		}
 
 		numSent, err := node.GetFacadeHandler().SendBulkTransactions(transactionsFromShard)

@@ -10,9 +10,10 @@ import (
 // globalAccountBreadcrumb will be used for the elements stored in the globalAccountBreadcrumbs from the SelectionTracker.
 // A globalAccountBreadcrumb should be affected each time a tracked block is added or removed.
 type globalAccountBreadcrumb struct {
-	firstNonce      core.OptionalUint64
-	lastNonce       core.OptionalUint64
-	consumedBalance *big.Int
+	firstNonce                          core.OptionalUint64
+	lastNonce                           core.OptionalUint64
+	consumedBalance                     *big.Int
+	hasPendingChangeGuardianTransaction bool
 }
 
 // newGlobalAccountBreadcrumb creates a new global account breadcrumb
@@ -40,6 +41,7 @@ func (gab *globalAccountBreadcrumb) resetNonces() {
 // updateOnAddedBreadcrumb updates a global breadcrumb when a tracked block is added,
 // but should be used only after the validation of the proposed block passed.
 func (gab *globalAccountBreadcrumb) updateOnAddedBreadcrumb(receivedBreadcrumb *accountBreadcrumb) {
+	gab.hasPendingChangeGuardianTransaction = receivedBreadcrumb.hasPendingChangeGuardianTransaction
 	gab.extendConsumedBalance(receivedBreadcrumb)
 
 	// when a tracked block is added, we should only extend the nonce range of the global account breadcrumb
@@ -64,6 +66,7 @@ func (gab *globalAccountBreadcrumb) extendRightNonceRange(receivedBreadcrumb *ac
 
 // updateOnRemovedBreadcrumbWithSameNonceOrBelow updates the global account breadcrumb when a block is removed on the OnExecutedBlock notification
 func (gab *globalAccountBreadcrumb) updateOnRemovedBreadcrumbWithSameNonceOrBelow(receivedBreadcrumb *accountBreadcrumb) (bool, error) {
+	gab.hasPendingChangeGuardianTransaction = receivedBreadcrumb.hasPendingChangeGuardianTransaction
 	err := gab.reduceConsumedBalance(receivedBreadcrumb)
 	if err != nil {
 		return false, err
@@ -97,6 +100,7 @@ func (gab *globalAccountBreadcrumb) reduceLeftNonceRange(receivedBreadcrumb *acc
 // updateOnRemoveBreadcrumbWithSameNonceOrAbove updates the global account breadcrumb when a block is removed on the OnProposedBlock notification,
 // but should be used only after the validation of the proposed block passed.
 func (gab *globalAccountBreadcrumb) updateOnRemoveBreadcrumbWithSameNonceOrAbove(receivedBreadcrumb *accountBreadcrumb) (bool, error) {
+	gab.hasPendingChangeGuardianTransaction = receivedBreadcrumb.hasPendingChangeGuardianTransaction
 	err := gab.reduceConsumedBalance(receivedBreadcrumb)
 	if err != nil {
 		return false, err
@@ -175,6 +179,7 @@ func (gab *globalAccountBreadcrumb) getSnapshotOfGlobalBreadcrumb() *globalAccou
 	gabCopy.firstNonce = gab.firstNonce
 	gabCopy.lastNonce = gab.lastNonce
 	gabCopy.consumedBalance = big.NewInt(0).Set(gab.consumedBalance)
+	gabCopy.hasPendingChangeGuardianTransaction = gab.hasPendingChangeGuardianTransaction
 
 	return gabCopy
 }

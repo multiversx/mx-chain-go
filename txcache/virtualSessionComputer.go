@@ -115,6 +115,7 @@ func (computer *virtualSessionComputer) fromGlobalBreadcrumbToVirtualRecord(
 	}
 
 	record.accumulateConsumedBalance(globalBreadcrumb.consumedBalance)
+	record.hasPendingChangeGuardianTransaction = globalBreadcrumb.hasPendingChangeGuardianTransaction
 	computer.virtualAccountsByAddress[address] = record
 	return nil
 }

@@ -4,6 +4,7 @@ import (
 	"bytes"
 
 	"github.com/multiversx/mx-chain-core-go/core"
+	"github.com/multiversx/mx-chain-go/process"
 )
 
 type trackedBlock struct {
@@ -88,6 +89,11 @@ func (tb *trackedBlock) compileBreadcrumb(tx *WrappedTransaction) error {
 	if err != nil {
 		return err
 	}
+
+	// proper guardian check should have been done during selection
+	// if a second transaction comes here, it means it was allowed during selection,
+	// so it is safe to overwrite this field
+	senderBreadcrumb.setPendingChangeGuardian(process.IsSetGuardianCall(tx.Tx.GetData()))
 
 	// compile for fee payer
 	if feePayer == nil {

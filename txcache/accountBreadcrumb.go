@@ -7,9 +7,10 @@ import (
 )
 
 type accountBreadcrumb struct {
-	firstNonce      core.OptionalUint64
-	lastNonce       core.OptionalUint64
-	consumedBalance *big.Int
+	firstNonce                          core.OptionalUint64
+	lastNonce                           core.OptionalUint64
+	consumedBalance                     *big.Int
+	hasPendingChangeGuardianTransaction bool
 }
 
 func newAccountBreadcrumb(
@@ -65,4 +66,8 @@ func (breadcrumb *accountBreadcrumb) verifyContinuityWithSessionNonce(sessionNon
 
 func (breadcrumb *accountBreadcrumb) hasUnknownNonce() bool {
 	return !breadcrumb.firstNonce.HasValue && !breadcrumb.lastNonce.HasValue
+}
+
+func (breadcrumb *accountBreadcrumb) setPendingChangeGuardian(value bool) {
+	breadcrumb.hasPendingChangeGuardianTransaction = value
 }
