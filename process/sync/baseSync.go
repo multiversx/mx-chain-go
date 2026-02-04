@@ -2271,11 +2271,6 @@ func (boot *baseBootstrap) GetNodeState() common.NodeState {
 	return common.NsNotSynchronized
 }
 
-// GetSignalProcessCompletionChan returns the channel used to signal the sync loop after execution completes
-func (boot *baseBootstrap) GetSignalProcessCompletionChan() chan uint64 {
-	return boot.signalProcessCompletionChan
-}
-
 func (boot *baseBootstrap) handleAccountsTrieIteration() error {
 	if boot.repopulateTokensSupplies {
 		return boot.handleTokensSuppliesRepopulation()

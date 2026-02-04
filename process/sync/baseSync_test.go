@@ -573,33 +573,6 @@ func TestBaseBootstrap_SaveProposedTxsToPool(t *testing.T) {
 	require.Equal(t, 1, peerCalls)
 }
 
-func TestBaseBootstrap_GetSignalProcessCompletionChan(t *testing.T) {
-	t.Parallel()
-
-	t.Run("nil channel returns nil", func(t *testing.T) {
-		t.Parallel()
-
-		boot := &baseBootstrap{
-			signalProcessCompletionChan: nil,
-		}
-
-		result := boot.GetSignalProcessCompletionChan()
-		assert.Nil(t, result)
-	})
-
-	t.Run("returns the channel when set", func(t *testing.T) {
-		t.Parallel()
-
-		expectedChan := make(chan uint64, 1)
-		boot := &baseBootstrap{
-			signalProcessCompletionChan: expectedChan,
-		}
-
-		result := boot.GetSignalProcessCompletionChan()
-		assert.Equal(t, expectedChan, result)
-	})
-}
-
 func TestBaseBootstrap_SyncBlocksWakesUpOnSignal(t *testing.T) {
 	t.Parallel()
 
