@@ -1451,3 +1451,6 @@ var ErrNoReferencedHeader = errors.New("no referenced header")
 
 // ErrExecutionResultNotFound signals that the execution result was not found
 var ErrExecutionResultNotFound = errors.New("execution result not found")
+
+// ErrShardHeadersShouldNotBeNotarized signals that shard headers should not be notarized
+var ErrShardHeadersShouldNotBeNotarized = errors.New("shard headers should not be notarized")

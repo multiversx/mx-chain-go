@@ -1968,6 +1968,7 @@ func (tpn *TestProcessorNode) initInnerProcessors(gasMap map[string]map[string]u
 			SelectionMaxNumTxs:                            30000,
 			SelectionLoopDurationCheckInterval:            10,
 		},
+		TxVersionChecker: versioning.NewTxVersionChecker(tpn.MinTransactionVersion),
 	}
 	fact, err := shard.NewPreProcessorsContainerFactory(args)
 	if err != nil {
@@ -2299,6 +2300,7 @@ func (tpn *TestProcessorNode) initMetaInnerProcessors(gasMap map[string]map[stri
 			SelectionMaxNumTxs:                            30000,
 			SelectionLoopDurationCheckInterval:            10,
 		},
+		TxVersionCheckerHandler: versioning.NewTxVersionChecker(tpn.MinTransactionVersion),
 	}
 	fact, _ := metaProcess.NewPreProcessorsContainerFactory(args)
 	tpn.PreProcessorsContainer, _ = fact.Create()
