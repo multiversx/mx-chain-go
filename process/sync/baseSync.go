@@ -2323,18 +2323,6 @@ func (boot *baseBootstrap) Close() error {
 	return nil
 }
 
-func emptyUint64Channel(ch chan uint64) int {
-	nrReads := 0
-	for {
-		select {
-		case <-ch:
-			nrReads++
-		default:
-			return nrReads
-		}
-	}
-}
-
 func (boot *baseBootstrap) cleanChannels() {
 	nrReads := core.EmptyChannel(boot.chRcvHdrNonce)
 	log.Debug("close baseSync: emptied channel", "chRcvHdrNonce nrReads", nrReads)
@@ -2346,7 +2334,7 @@ func (boot *baseBootstrap) cleanChannels() {
 	log.Debug("close baseSync: emptied channel", "chRcvMiniBlocks nrReads", nrReads)
 
 	if boot.signalProcessCompletionChan != nil {
-		nrReads = emptyUint64Channel(boot.signalProcessCompletionChan)
+		nrReads = common.EmptyUint64Channel(boot.signalProcessCompletionChan)
 		log.Debug("close baseSync: emptied channel", "signalProcessCompletionChan nrReads", nrReads)
 	}
 }
