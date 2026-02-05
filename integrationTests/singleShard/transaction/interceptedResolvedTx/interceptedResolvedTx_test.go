@@ -16,7 +16,6 @@ import (
 	"github.com/multiversx/mx-chain-go/common"
 	"github.com/multiversx/mx-chain-go/integrationTests"
 	"github.com/multiversx/mx-chain-go/process"
-	"github.com/multiversx/mx-chain-go/process/factory"
 )
 
 func TestNode_RequestInterceptTransactionWithMessengerAndWhitelist(t *testing.T) {
