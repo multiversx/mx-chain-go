@@ -300,6 +300,14 @@ func (em *executionManager) updateBlockchainAfterRemoval(lastNotarizedResult dat
 	return nil
 }
 
+// GetSignalProcessCompletionChan returns the channel used to signal the sync loop after execution completes
+func (em *executionManager) GetSignalProcessCompletionChan() chan uint64 {
+	em.mut.RLock()
+	defer em.mut.RUnlock()
+
+	return em.headersExecutor.GetSignalProcessCompletionChan()
+}
+
 // Close closes the execution manager and all its components
 func (em *executionManager) Close() error {
 	log.Debug("closing execution manager")

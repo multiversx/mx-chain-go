@@ -2,10 +2,11 @@ package processMocks
 
 // HeadersExecutorMock -
 type HeadersExecutorMock struct {
-	StartExecutionCalled  func()
-	PauseExecutionCalled  func()
-	ResumeExecutionCalled func()
-	CloseCalled           func() error
+	StartExecutionCalled                 func()
+	PauseExecutionCalled                 func()
+	ResumeExecutionCalled                func()
+	GetSignalProcessCompletionChanCalled func() chan uint64
+	CloseCalled                          func() error
 }
 
 // StartExecution -
@@ -27,6 +28,14 @@ func (mock *HeadersExecutorMock) ResumeExecution() {
 	if mock.ResumeExecutionCalled != nil {
 		mock.ResumeExecutionCalled()
 	}
+}
+
+// GetSignalProcessCompletionChan -
+func (mock *HeadersExecutorMock) GetSignalProcessCompletionChan() chan uint64 {
+	if mock.GetSignalProcessCompletionChanCalled != nil {
+		return mock.GetSignalProcessCompletionChanCalled()
+	}
+	return nil
 }
 
 // Close -
