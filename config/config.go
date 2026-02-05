@@ -513,6 +513,7 @@ type AntifloodConfig struct {
 	ConfigsByRound []AntifloodConfigByRound
 }
 
+// AntifloodConfigByRound will hold antiflood parameters by round
 type AntifloodConfigByRound struct {
 	Round                               uint64
 	NumConcurrentResolverJobs           int32
