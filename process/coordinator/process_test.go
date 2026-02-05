@@ -26,6 +26,7 @@ import (
 	"github.com/stretchr/testify/require"
 
 	"github.com/multiversx/mx-chain-go/config"
+	"github.com/multiversx/mx-chain-go/process/aotSelection"
 	"github.com/multiversx/mx-chain-go/testscommon/epochNotifier"
 
 	"github.com/multiversx/mx-chain-go/common"
@@ -293,6 +294,7 @@ func createMockTransactionCoordinatorArguments() ArgTransactionCoordinator {
 				return len(miniBlocks) - 1, 0, nil
 			},
 		},
+		AOTSelector: aotSelection.NewDisabledAOTSelector(),
 	}
 
 	blockDataRequesterArgs := BlockDataRequestArgs{

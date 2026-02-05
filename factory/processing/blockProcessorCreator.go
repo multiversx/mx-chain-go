@@ -514,6 +514,11 @@ func (pcf *processComponentsFactory) newShardBlockProcessor(
 		return nil, err
 	}
 
+	aotSelector, err := pcf.createAOTSelector(transactionProcessor)
+	if err != nil {
+		return nil, err
+	}
+
 	argsTransactionCoordinator := coordinator.ArgTransactionCoordinator{
 		Hasher:                       pcf.coreData.Hasher(),
 		Marshalizer:                  pcf.coreData.InternalMarshalizer(),
@@ -539,6 +544,7 @@ func (pcf *processComponentsFactory) newShardBlockProcessor(
 		BlockDataRequester:           blockDataRequester,
 		BlockDataRequesterProposal:   proposalBlockDataRequester,
 		GasComputation:               gasConsumption,
+		AOTSelector:                  aotSelector,
 	}
 	txCoordinator, err := coordinator.NewTransactionCoordinator(argsTransactionCoordinator)
 	if err != nil {
@@ -604,11 +610,6 @@ func (pcf *processComponentsFactory) newShardBlockProcessor(
 		BlockDataRequester: proposalBlockDataRequester,
 	}
 	missingDataResolver, err := missingData.NewMissingDataResolver(missingDataArgs)
-	if err != nil {
-		return nil, err
-	}
-
-	aotSelector, err := pcf.createAOTSelector(transactionProcessor)
 	if err != nil {
 		return nil, err
 	}
@@ -972,6 +973,7 @@ func (pcf *processComponentsFactory) newMetaBlockProcessor(
 		BlockDataRequester:           blockDataRequester,
 		BlockDataRequesterProposal:   proposalBlockDataRequester,
 		GasComputation:               gasConsumption,
+		AOTSelector:                  aotSelection.NewDisabledAOTSelector(),
 	}
 	txCoordinator, err := coordinator.NewTransactionCoordinator(argsTransactionCoordinator)
 	if err != nil {
@@ -1171,6 +1173,7 @@ func (pcf *processComponentsFactory) newMetaBlockProcessor(
 		return nil, err
 	}
 
+	aotSelector := aotSelection.NewDisabledAOTSelector() // Metachain doesn't use AOT selection
 	argumentsBaseProcessor := block.ArgBaseProcessor{
 		CoreComponents:                     pcf.coreData,
 		DataComponents:                     pcf.data,
@@ -1213,7 +1216,7 @@ func (pcf *processComponentsFactory) newMetaBlockProcessor(
 		GasComputation:                     gasConsumption,
 		ExecutionManager:                   executionManager,
 		TxExecutionOrderHandler:            pcf.txExecutionOrderHandler,
-		AOTSelector:                        aotSelection.NewDisabledAOTSelector(), // Metachain doesn't use AOT selection
+		AOTSelector:                        aotSelector,
 	}
 
 	esdtOwnerAddress, err := pcf.coreData.AddressPubKeyConverter().Decode(pcf.systemSCConfig.ESDTSystemSCConfig.OwnerAddress)
@@ -1341,7 +1344,7 @@ func (pcf *processComponentsFactory) newMetaBlockProcessor(
 		blockProcessor:         metaProcessor,
 		vmFactoryForProcessing: vmFactory,
 		epochSystemSCProcessor: epochStartSystemSCProcessor,
-		aotSelector:            aotSelection.NewDisabledAOTSelector(), // Metachain doesn't use AOT selection
+		aotSelector:            aotSelector,
 	}
 
 	return blockProcessorComponents, nil

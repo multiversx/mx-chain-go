@@ -1799,6 +1799,9 @@ func checkTransactionCoordinatorNilParameters(arguments ArgTransactionCoordinato
 	if check.IfNil(arguments.GasComputation) {
 		return process.ErrNilGasComputation
 	}
+	if check.IfNil(arguments.AOTSelector) {
+		return process.ErrNilAOTSelector
+	}
 
 	return nil
 }
