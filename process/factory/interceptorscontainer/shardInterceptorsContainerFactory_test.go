@@ -719,6 +719,7 @@ func createMockComponentHolders() (*mock.CoreComponentsMock, *mock.CryptoCompone
 		HardforkTriggerPubKeyField:         providedHardforkPubKey,
 		EnableEpochsHandlerField:           &enableEpochsHandlerMock.EnableEpochsHandlerStub{},
 		EpochChangeGracePeriodHandlerField: gracePeriod,
+		ProcessConfigsHandlerField:         testscommon.GetDefaultProcessConfigsHandler(),
 	}
 	multiSigner := cryptoMocks.NewMultiSigner()
 	cryptoComponents := &mock.CryptoComponentsMock{
@@ -767,5 +768,11 @@ func getArgumentsShard(
 		FullArchivePeerShardMapper:     &p2pmocks.NetworkShardingCollectorStub{},
 		HardforkTrigger:                &testscommon.HardforkTriggerStub{},
 		InterceptedDataVerifierFactory: &mock.InterceptedDataVerifierFactoryMock{},
+		Config: config.Config{
+			InterceptedDataVerifier: config.InterceptedDataVerifierConfig{
+				CacheSpanInSec:   1,
+				CacheExpiryInSec: 1,
+			},
+		},
 	}
 }

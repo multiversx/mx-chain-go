@@ -25,9 +25,20 @@ import (
 	"github.com/multiversx/mx-chain-go/node/external"
 	"github.com/multiversx/mx-chain-go/statusHandler"
 	"github.com/multiversx/mx-chain-go/testscommon"
+	"github.com/multiversx/mx-chain-go/testscommon/enableEpochsHandlerMock"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 )
+
+type testNodeStatusMetricsHandler interface {
+	core.AppStatusHandler
+	external.StatusMetricsHandler
+}
+
+func createNodeStatusMetrics() testNodeStatusMetricsHandler {
+	sm, _ := statusHandler.NewStatusMetrics(&enableEpochsHandlerMock.EnableEpochsHandlerStub{})
+	return sm
+}
 
 func TestNewNodeGroup(t *testing.T) {
 	t.Parallel()
@@ -259,7 +270,7 @@ func TestBootstrapStatus_ShouldReturnErrorIfFacadeReturnsError(t *testing.T) {
 }
 
 func TestBootstrapStatusMetrics_ShouldWork(t *testing.T) {
-	statusMetricsProvider := statusHandler.NewStatusMetrics()
+	statusMetricsProvider := createNodeStatusMetrics()
 	statusMetricsProvider.SetUInt64Value(common.MetricTrieSyncNumReceivedBytes, uint64(100))
 	statusMetricsProvider.SetUInt64Value(common.MetricTrieSyncNumProcessedNodes, uint64(150))
 
@@ -349,7 +360,7 @@ func TestNodeGroup_GetConnectedPeersRatings(t *testing.T) {
 }
 
 func TestStatusMetrics_ShouldDisplayNonP2pMetrics(t *testing.T) {
-	statusMetricsProvider := statusHandler.NewStatusMetrics()
+	statusMetricsProvider := createNodeStatusMetrics()
 	key := "test-details-key"
 	val := "test-details-value"
 	statusMetricsProvider.SetStringValue(key, val)
@@ -381,7 +392,7 @@ func TestStatusMetrics_ShouldDisplayNonP2pMetrics(t *testing.T) {
 }
 
 func TestP2PStatusMetrics_ShouldDisplayNonP2pMetrics(t *testing.T) {
-	statusMetricsProvider := statusHandler.NewStatusMetrics()
+	statusMetricsProvider := createNodeStatusMetrics()
 	key := "test-details-key"
 	val := "test-details-value"
 	statusMetricsProvider.SetStringValue(key, val)
@@ -687,7 +698,7 @@ func TestPrometheusMetrics_ShouldReturnErrorIfFacadeReturnsError(t *testing.T) {
 }
 
 func TestPrometheusMetrics_ShouldWork(t *testing.T) {
-	statusMetricsProvider := statusHandler.NewStatusMetrics()
+	statusMetricsProvider := createNodeStatusMetrics()
 	key := "test-key"
 	val := uint64(37)
 	statusMetricsProvider.SetUInt64Value(key, val)
@@ -998,7 +1009,7 @@ func TestNodeGroup_UpdateFacade(t *testing.T) {
 	t.Run("should work", func(t *testing.T) {
 		t.Parallel()
 
-		statusMetricsProvider := statusHandler.NewStatusMetrics()
+		statusMetricsProvider := createNodeStatusMetrics()
 		key := "test-key"
 		val := uint64(37)
 		statusMetricsProvider.SetUInt64Value(key, val)

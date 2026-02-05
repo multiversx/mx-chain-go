@@ -14,7 +14,6 @@ import (
 	"github.com/multiversx/mx-chain-go/dataRetriever"
 	"github.com/multiversx/mx-chain-go/sharding"
 	"github.com/multiversx/mx-chain-go/state"
-	"github.com/multiversx/mx-chain-go/storage/factory"
 	storageFactory "github.com/multiversx/mx-chain-go/storage/factory"
 	"github.com/multiversx/mx-chain-go/storage/storageunit"
 	"github.com/multiversx/mx-chain-go/trie"
@@ -67,7 +66,7 @@ func NewDataTrieFactory(args ArgsNewDataTrieFactory) (*dataTrieFactory, error) {
 	dbConfig := storageFactory.GetDBFromConfig(args.StorageConfig.DB)
 	dbConfig.FilePath = path.Join(args.SyncFolder, args.StorageConfig.DB.FilePath)
 
-	persisterFactory, err := factory.NewPersisterFactory(args.StorageConfig.DB)
+	persisterFactory, err := storageFactory.NewPersisterFactory(args.StorageConfig.DB)
 	if err != nil {
 		return nil, err
 	}

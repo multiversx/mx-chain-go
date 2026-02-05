@@ -168,6 +168,11 @@ func (iep *interceptedEquivalentProof) CheckValidity() error {
 	return nil
 }
 
+// ShouldAllowDuplicates returns if this type of intercepted data should allow duplicates
+func (iep *interceptedEquivalentProof) ShouldAllowDuplicates() bool {
+	return true // duplicates are treated separately
+}
+
 func (iep *interceptedEquivalentProof) integrity() error {
 	if !iep.proofSizeChecker.IsProofSizeValid(iep.proof) {
 		return ErrInvalidProof

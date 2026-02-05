@@ -46,6 +46,9 @@ var ErrNilMessenger = errors.New("messenger is nil")
 // ErrNilBlockProcessor is raised when a valid block processor is expected but nil used
 var ErrNilBlockProcessor = errors.New("block processor is nil")
 
+// ErrNilExecutionManager is raised when a valid execution manager is expected but nil used
+var ErrNilExecutionManager = errors.New("execution manager is nil")
+
 // ErrNilBootstrapper is raised when a valid block processor is expected but nil used
 var ErrNilBootstrapper = errors.New("bootstrapper is nil")
 
@@ -253,6 +256,9 @@ var ErrEquivalentMessageAlreadyReceived = errors.New("equivalent message already
 // ErrNilEnableEpochsHandler signals that a nil enable epochs handler has been provided
 var ErrNilEnableEpochsHandler = errors.New("nil enable epochs handler")
 
+// ErrNilEnableRoundsHandler signals a nil enable rounds handler has been provided
+var ErrNilEnableRoundsHandler = errors.New("nil enable rounds handler")
+
 // ErrNilThrottler signals that a nil throttler has been provided
 var ErrNilThrottler = errors.New("nil throttler")
 
@@ -264,12 +270,6 @@ var ErrNilEquivalentProofPool = errors.New("nil equivalent proof pool")
 
 // ErrNilHeaderProof signals that a nil header proof has been provided
 var ErrNilHeaderProof = errors.New("nil header proof")
-
-// ErrHeaderProofNotExpected signals that a header proof was not expected
-var ErrHeaderProofNotExpected = errors.New("header proof not expected")
-
-// ErrConsensusMessageNotExpected signals that a consensus message was not expected
-var ErrConsensusMessageNotExpected = errors.New("consensus message not expected")
 
 // ErrNilEpochNotifier signals that a nil epoch notifier has been provided
 var ErrNilEpochNotifier = errors.New("nil epoch notifier")

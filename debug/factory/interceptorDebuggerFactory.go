@@ -6,10 +6,10 @@ import (
 )
 
 // NewInterceptorDebuggerFactory will instantiate an InterceptorDebugHandler based on the provided config
-func NewInterceptorDebuggerFactory(config config.InterceptorResolverDebugConfig) (InterceptorDebugHandler, error) {
+func NewInterceptorDebuggerFactory(config config.InterceptorResolverDebugConfig, ntpTime handler.NTPTime) (InterceptorDebugHandler, error) {
 	if !config.Enabled {
 		return handler.NewDisabledInterceptorDebugHandler(), nil
 	}
 
-	return handler.NewInterceptorDebugHandler(config)
+	return handler.NewInterceptorDebugHandler(config, ntpTime)
 }

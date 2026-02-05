@@ -17,6 +17,8 @@ import (
 	mclMultiSig "github.com/multiversx/mx-chain-crypto-go/signing/mcl/multisig"
 	"github.com/multiversx/mx-chain-crypto-go/signing/multisig"
 
+	"github.com/multiversx/mx-chain-go/testscommon/processMocks"
+
 	"github.com/multiversx/mx-chain-go/common"
 	"github.com/multiversx/mx-chain-go/common/enablers"
 	"github.com/multiversx/mx-chain-go/common/forking"
@@ -53,6 +55,7 @@ import (
 	"github.com/multiversx/mx-chain-go/storage/cache"
 	"github.com/multiversx/mx-chain-go/storage/storageunit"
 	"github.com/multiversx/mx-chain-go/testscommon"
+	cacheMocks "github.com/multiversx/mx-chain-go/testscommon/cache"
 	"github.com/multiversx/mx-chain-go/testscommon/chainParameters"
 	consensusMocks "github.com/multiversx/mx-chain-go/testscommon/consensus"
 	"github.com/multiversx/mx-chain-go/testscommon/cryptoMocks"
@@ -110,6 +113,8 @@ type TestConsensusNode struct {
 	MainInterceptorsContainer process.InterceptorsContainer
 	DataPool                  dataRetriever.PoolsHolder
 	RequestHandler            process.RequestHandler
+	ChainParametersHandler    common.ChainParametersHandler
+	ProcessConfigsHandler     common.ProcessConfigsHandler
 }
 
 // NewTestConsensusNode returns a new TestConsensusNode
@@ -182,19 +187,31 @@ func CreateNodesWithTestConsensusNode(
 	return nodes
 }
 
-func createCustomMultiSignerMock(multiSigner crypto.MultiSigner) *cryptoMocks.MultisignerMock {
+func createCustomMultiSignerMock(multiSigner crypto.MultiSignerV2) *cryptoMocks.MultisignerMock {
 	multiSignerMock := &cryptoMocks.MultisignerMock{}
 	multiSignerMock.CreateSignatureShareCalled = func(privateKeyBytes, message []byte) ([]byte, error) {
 		return multiSigner.CreateSignatureShare(privateKeyBytes, message)
 	}
+	multiSignerMock.CreateSignatureShareV2Called = func(privateKey crypto.PrivateKey, message []byte) ([]byte, error) {
+		return multiSigner.CreateSignatureShareV2(privateKey, message)
+	}
 	multiSignerMock.VerifySignatureShareCalled = func(publicKey, message, sig []byte) error {
 		return multiSigner.VerifySignatureShare(publicKey, message, sig)
 	}
-	multiSignerMock.AggregateSigsCalled = func(pubKeysSigners, signatures [][]byte) ([]byte, error) {
+	multiSignerMock.VerifySignatureShareV2Called = func(publicKey crypto.PublicKey, message, sig []byte) error {
+		return multiSigner.VerifySignatureShareV2(publicKey, message, sig)
+	}
+	multiSignerMock.AggregateSigsCalled = func(pubKeysSigners [][]byte, signatures [][]byte) ([]byte, error) {
 		return multiSigner.AggregateSigs(pubKeysSigners, signatures)
+	}
+	multiSignerMock.AggregateSigsV2Called = func(pubKeysSigners []crypto.PublicKey, signatures [][]byte) ([]byte, error) {
+		return multiSigner.AggregateSigsV2(pubKeysSigners, signatures)
 	}
 	multiSignerMock.VerifyAggregatedSigCalled = func(pubKeysSigners [][]byte, message, aggSig []byte) error {
 		return multiSigner.VerifyAggregatedSig(pubKeysSigners, message, aggSig)
+	}
+	multiSignerMock.VerifyAggregatedSigV2Called = func(pubKeysSigners []crypto.PublicKey, message, aggSig []byte) error {
+		return multiSigner.VerifyAggregatedSigV2(pubKeysSigners, message, aggSig)
 	}
 
 	return multiSignerMock
@@ -208,28 +225,51 @@ func (tcn *TestConsensusNode) initNode(args ArgsTestConsensusNode) {
 	consensusCache, _ := cache.NewLRUCache(10000)
 	pkBytes, _ := tcn.NodeKeys.Pk.ToByteArray()
 
-	tcn.initNodesCoordinator(args.ConsensusSize, testHasher, epochStartRegistrationHandler, args.EligibleMap, args.WaitingMap, pkBytes, consensusCache)
+	roundTime := time.Millisecond * time.Duration(args.RoundTime)
+
+	tcn.ChainParametersHandler = &chainParameters.ChainParametersHandlerStub{
+		ChainParametersForEpochCalled: func(_ uint32) (config.ChainParametersByEpochConfig, error) {
+			return config.ChainParametersByEpochConfig{
+				ShardConsensusGroupSize:     uint32(args.ConsensusSize),
+				MetachainConsensusGroupSize: uint32(args.ConsensusSize),
+				RoundsPerEpoch:              1000,
+				MinRoundsBetweenEpochs:      1,
+				RoundDuration:               uint64(roundTime.Milliseconds()),
+			}, nil
+		},
+	}
+
+	tcn.ProcessConfigsHandler = testscommon.GetDefaultProcessConfigsHandler()
+
+	tcn.initNodesCoordinator(testHasher, epochStartRegistrationHandler, args.EligibleMap, args.WaitingMap, pkBytes, consensusCache)
 	tcn.MainMessenger = CreateMessengerWithNoDiscovery()
 	tcn.FullArchiveMessenger = &p2pmocks.MessengerStub{}
 	tcn.initBlockChain(testHasher)
 	tcn.initBlockProcessor(tcn.ShardCoordinator.SelfId())
 
-	syncer := ntp.NewSyncTime(ntp.NewNTPGoogleConfig(), nil)
+	syncer := ntp.NewSyncTime(testscommon.NewNTPGoogleConfig(), nil)
 	syncer.StartSyncingTime()
 
 	genericEpochNotifier := forking.NewGenericEpochNotifier()
 
 	epochsConfig := GetDefaultEnableEpochsConfig()
 	enableEpochsHandler, _ := enablers.NewEnableEpochsHandler(*epochsConfig, genericEpochNotifier)
+	enableRoundsHandler := &testscommon.EnableRoundsHandlerStub{}
 
-	storage := CreateStore(tcn.ShardCoordinator.NumberOfShards())
+	store := CreateStore(tcn.ShardCoordinator.NumberOfShards())
 
-	roundHandler, _ := round.NewRound(
-		time.Unix(args.StartTime, 0),
-		syncer.CurrentTime(),
-		time.Millisecond*time.Duration(args.RoundTime),
-		syncer,
-		0)
+	roundArgs := round.ArgsRound{
+		GenesisTimeStamp:          time.Unix(args.StartTime, 0),
+		SupernovaGenesisTimeStamp: time.UnixMilli(args.StartTime * 1000),
+		CurrentTimeStamp:          syncer.CurrentTime(),
+		RoundTimeDuration:         roundTime,
+		SupernovaTimeDuration:     roundTime,
+		SyncTimer:                 syncer,
+		StartRound:                0,
+		SupernovaStartRound:       0,
+		EnableRoundsHandler:       enableRoundsHandler,
+	}
+	roundHandler, _ := round.NewRound(roundArgs)
 
 	dataPool := dataRetrieverMock.CreatePoolsHolder(1, 0)
 	tcn.DataPool = dataPool
@@ -237,18 +277,16 @@ func (tcn *TestConsensusNode) initNode(args ArgsTestConsensusNode) {
 	var epochTrigger TestEpochStartTrigger
 	if tcn.ShardCoordinator.SelfId() == core.MetachainShardId {
 		argsNewMetaEpochStart := &metachain.ArgsNewMetaEpochStartTrigger{
-			GenesisTime:        time.Unix(args.StartTime, 0),
-			EpochStartNotifier: notifier.NewEpochStartSubscriptionHandler(),
-			Settings: &config.EpochStartConfig{
-				MinRoundsBetweenEpochs: 1,
-				RoundsPerEpoch:         1000,
-			},
-			Epoch:            0,
-			Storage:          createTestStore(),
-			Marshalizer:      TestMarshalizer,
-			Hasher:           testHasher,
-			AppStatusHandler: &statusHandlerMock.AppStatusHandlerStub{},
-			DataPool:         dataPool,
+			GenesisTime:            time.Unix(args.StartTime, 0),
+			EpochStartNotifier:     notifier.NewEpochStartSubscriptionHandler(),
+			Settings:               &config.EpochStartConfig{},
+			Epoch:                  0,
+			Storage:                createTestStore(),
+			Marshalizer:            TestMarshalizer,
+			Hasher:                 testHasher,
+			AppStatusHandler:       &statusHandlerMock.AppStatusHandlerStub{},
+			DataPool:               dataPool,
+			ChainParametersHandler: tcn.ChainParametersHandler,
 		}
 		epochStartTrigger, err := metachain.NewEpochStartTrigger(argsNewMetaEpochStart)
 		if err != nil {
@@ -270,7 +308,7 @@ func (tcn *TestConsensusNode) initNode(args ArgsTestConsensusNode) {
 			HeaderValidator:      &mock.HeaderValidatorStub{},
 			Uint64Converter:      TestUint64Converter,
 			DataPool:             tcn.DataPool,
-			Storage:              storage,
+			Storage:              store,
 			RequestHandler:       &testscommon.RequestHandlerStub{},
 			Epoch:                0,
 			Validity:             1,
@@ -280,6 +318,7 @@ func (tcn *TestConsensusNode) initNode(args ArgsTestConsensusNode) {
 			RoundHandler:         roundHandler,
 			AppStatusHandler:     &statusHandlerMock.AppStatusHandlerStub{},
 			EnableEpochsHandler:  enableEpochsHandler,
+			CommonConfigsHandler: testscommon.GetDefaultCommonConfigsHandler(),
 		}
 		epochStartTrigger, err := shardchain.NewEpochStartTrigger(argsShardEpochStart)
 		if err != nil {
@@ -324,11 +363,15 @@ func (tcn *TestConsensusNode) initNode(args ArgsTestConsensusNode) {
 	coreComponents.HardforkTriggerPubKeyField = []byte("provided hardfork pub key")
 
 	argsKeysHolder := keysManagement.ArgsManagedPeersHolder{
-		KeyGenerator:          args.KeyGen,
-		P2PKeyGenerator:       args.P2PKeyGen,
-		MaxRoundsOfInactivity: 0, // 0 for main node, non-0 for backup node
-		PrefsConfig:           config.Preferences{},
+		KeyGenerator:    args.KeyGen,
+		P2PKeyGenerator: args.P2PKeyGen,
+		PrefsConfig: config.Preferences{
+			Preferences: config.PreferencesConfig{
+				RedundancyLevel: 0, //  0 for main node, non-0 for backup node
+			},
+		},
 		P2PKeyConverter:       p2pFactory.NewP2PKeyConverter(),
+		ProcessConfigsHandler: &testscommon.ProcessConfigsHandlerStub{},
 	}
 	keysHolder, _ := keysManagement.NewManagedPeersHolder(argsKeysHolder)
 
@@ -353,6 +396,7 @@ func (tcn *TestConsensusNode) initNode(args ArgsTestConsensusNode) {
 		KeyGenerator:         args.KeyGen,
 		KeysHandler:          keysHandler,
 		SingleSigner:         TestSingleBlsSigner,
+		PubKeysCache:         cacheMocks.NewCacherMock(),
 	}
 	sigHandler, _ := cryptoFactory.NewSigningHandler(signingHandlerArgs)
 
@@ -377,8 +421,12 @@ func (tcn *TestConsensusNode) initNode(args ArgsTestConsensusNode) {
 		cache.NewTimeCache(time.Second),
 		&mock.BlockTrackerStub{},
 		args.StartTime,
+		args.StartTime*1000,
 		enableEpochsHandler,
+		enableRoundsHandler,
 		dataPool.Proofs(),
+		tcn.ChainParametersHandler,
+		tcn.ProcessConfigsHandler,
 	)
 
 	processComponents := GetDefaultProcessComponents()
@@ -400,8 +448,9 @@ func (tcn *TestConsensusNode) initNode(args ArgsTestConsensusNode) {
 	processComponents.ScheduledTxsExecutionHandlerInternal = &testscommon.ScheduledTxsExecutionStub{}
 	processComponents.ProcessedMiniBlocksTrackerInternal = &testscommon.ProcessedMiniBlocksTrackerStub{}
 	processComponents.SentSignaturesTrackerInternal = &testscommon.SentSignatureTrackerStub{}
+	processComponents.ExecManager = &processMocks.ExecutionManagerMock{}
 
-	tcn.initInterceptors(coreComponents, cryptoComponents, roundHandler, enableEpochsHandler, storage, epochTrigger)
+	tcn.initInterceptors(coreComponents, cryptoComponents, roundHandler, enableEpochsHandler, store, epochTrigger)
 	processComponents.IntContainer = tcn.MainInterceptorsContainer
 
 	dataComponents := GetDefaultDataComponents()
@@ -411,6 +460,7 @@ func (tcn *TestConsensusNode) initNode(args ArgsTestConsensusNode) {
 
 	stateComponents := GetDefaultStateComponents()
 	stateComponents.Accounts = tcn.AccountsDB
+	stateComponents.AccountsProposal = tcn.AccountsDB
 	stateComponents.AccountsAPI = tcn.AccountsDB
 
 	statusCoreComponents := &testFactory.StatusCoreComponentsStub{
@@ -446,8 +496,9 @@ func (tcn *TestConsensusNode) initInterceptors(
 	epochStartTrigger TestEpochStartTrigger,
 ) {
 	interceptorDataVerifierArgs := interceptorsFactory.InterceptedDataVerifierFactoryArgs{
-		CacheSpan:   time.Second * 10,
-		CacheExpiry: time.Second * 10,
+		InterceptedDataVerifierConfig: config.InterceptedDataVerifierConfig{
+			EnableCaching: false,
+		},
 	}
 
 	accountsAdapter := epochStartDisabled.NewAccountsAdapter()
@@ -495,6 +546,12 @@ func (tcn *TestConsensusNode) initInterceptors(
 		HardforkTrigger:                &testscommon.HardforkTriggerStub{},
 		NodeOperationMode:              common.NormalOperation,
 		InterceptedDataVerifierFactory: interceptorsFactory.NewInterceptedDataVerifierFactory(interceptorDataVerifierArgs),
+		Config: config.Config{
+			InterceptedDataVerifier: config.InterceptedDataVerifierConfig{
+				CacheSpanInSec:   1,
+				CacheExpiryInSec: 1,
+			},
+		},
 	}
 	if tcn.ShardCoordinator.SelfId() == core.MetachainShardId {
 		interceptorContainerFactory, err := interceptorscontainer.NewMetaInterceptorsContainerFactory(interceptorContainerFactoryArgs)
@@ -529,6 +586,7 @@ func (tcn *TestConsensusNode) initInterceptors(
 			RoundHandler:         roundHandler,
 			AppStatusHandler:     &statusHandlerMock.AppStatusHandlerStub{},
 			EnableEpochsHandler:  enableEpochsHandler,
+			CommonConfigsHandler: testscommon.GetDefaultCommonConfigsHandler(),
 		}
 		_, _ = shardchain.NewEpochStartTrigger(argsShardEpochStart)
 
@@ -545,7 +603,6 @@ func (tcn *TestConsensusNode) initInterceptors(
 }
 
 func (tcn *TestConsensusNode) initNodesCoordinator(
-	consensusSize int,
 	hasher hashing.Hasher,
 	epochStartRegistrationHandler notifier.EpochStartNotifier,
 	eligibleMap map[uint32][]nodesCoordinator.Validator,
@@ -554,14 +611,7 @@ func (tcn *TestConsensusNode) initNodesCoordinator(
 	cache storage.Cacher,
 ) {
 	argumentsNodesCoordinator := nodesCoordinator.ArgNodesCoordinator{
-		ChainParametersHandler: &chainParameters.ChainParametersHandlerStub{
-			ChainParametersForEpochCalled: func(_ uint32) (config.ChainParametersByEpochConfig, error) {
-				return config.ChainParametersByEpochConfig{
-					ShardConsensusGroupSize:     uint32(consensusSize),
-					MetachainConsensusGroupSize: uint32(consensusSize),
-				}, nil
-			},
-		},
+		ChainParametersHandler:          tcn.ChainParametersHandler,
 		Marshalizer:                     TestMarshalizer,
 		Hasher:                          hasher,
 		Shuffler:                        &shardingMocks.NodeShufflerMock{},
@@ -639,7 +689,7 @@ func (tcn *TestConsensusNode) initBlockProcessor(shardId uint32) {
 
 			return header, &dataBlock.Body{}, nil
 		},
-		MarshalizedDataToBroadcastCalled: func(header data.HeaderHandler, body data.BodyHandler) (map[uint32][]byte, map[string][][]byte, error) {
+		MarshalizedDataToBroadcastCalled: func(hash []byte, header data.HeaderHandler, body data.BodyHandler) (map[uint32][]byte, map[string][][]byte, error) {
 			mrsData := make(map[uint32][]byte)
 			mrsTxs := make(map[string][][]byte)
 			return mrsData, mrsTxs, nil
@@ -720,6 +770,7 @@ func createHasher(consensusType string) hashing.Hasher {
 func createTestStore() dataRetriever.StorageService {
 	store := dataRetriever.NewChainStorer()
 	store.AddStorer(dataRetriever.TransactionUnit, CreateMemUnit())
+	store.AddStorer(dataRetriever.UnsignedTransactionUnit, CreateMemUnit())
 	store.AddStorer(dataRetriever.MiniBlockUnit, CreateMemUnit())
 	store.AddStorer(dataRetriever.RewardTransactionUnit, CreateMemUnit())
 	store.AddStorer(dataRetriever.MetaBlockUnit, CreateMemUnit())

@@ -1,0 +1,156 @@
+package txcache
+
+import (
+	"time"
+
+	"github.com/multiversx/mx-chain-core-go/data"
+	"github.com/multiversx/mx-chain-go/common"
+	"github.com/multiversx/mx-chain-storage-go/types"
+)
+
+var _ types.Cacher = (*DisabledCache)(nil)
+
+// DisabledCache represents a disabled cache
+type DisabledCache struct {
+}
+
+// NewDisabledCache creates a new disabled cache
+func NewDisabledCache() *DisabledCache {
+	return &DisabledCache{}
+}
+
+// AddTx does nothing
+func (cache *DisabledCache) AddTx(_ *WrappedTransaction) (ok bool, added bool) {
+	return false, false
+}
+
+// GetByTxHash returns no transaction
+func (cache *DisabledCache) GetByTxHash(_ []byte) (*WrappedTransaction, bool) {
+	return nil, false
+}
+
+// SelectTransactions returns an empty slice
+func (cache *DisabledCache) SelectTransactions(uint64, int) ([]*WrappedTransaction, uint64) {
+	return make([]*WrappedTransaction, 0), 0
+}
+
+// RemoveTxByHash does nothing
+func (cache *DisabledCache) RemoveTxByHash(_ []byte) bool {
+	return false
+}
+
+// Len returns zero
+func (cache *DisabledCache) Len() int {
+	return 0
+}
+
+// SizeInBytesContained returns 0
+func (cache *DisabledCache) SizeInBytesContained() uint64 {
+	return 0
+}
+
+// NumBytes returns zero
+func (cache *DisabledCache) NumBytes() int {
+	return 0
+}
+
+// ForEachTransaction does nothing
+func (cache *DisabledCache) ForEachTransaction(_ ForEachTransaction) {
+}
+
+// Clear does nothing
+func (cache *DisabledCache) Clear() {
+}
+
+// Put does nothing
+func (cache *DisabledCache) Put(_ []byte, _ interface{}, _ int) (evicted bool) {
+	return false
+}
+
+// Get returns no transaction
+func (cache *DisabledCache) Get(_ []byte) (value interface{}, ok bool) {
+	return nil, false
+}
+
+// Has returns false
+func (cache *DisabledCache) Has(_ []byte) bool {
+	return false
+}
+
+// Peek returns no transaction
+func (cache *DisabledCache) Peek(_ []byte) (value interface{}, ok bool) {
+	return nil, false
+}
+
+// HasOrAdd returns false, does nothing
+func (cache *DisabledCache) HasOrAdd(_ []byte, _ interface{}, _ int) (has, added bool) {
+	return false, false
+}
+
+// Remove does nothing
+func (cache *DisabledCache) Remove(_ []byte) {
+}
+
+// Keys returns an empty slice
+func (cache *DisabledCache) Keys() [][]byte {
+	return make([][]byte, 0)
+}
+
+// MaxSize returns zero
+func (cache *DisabledCache) MaxSize() int {
+	return 0
+}
+
+// RegisterHandler does nothing
+func (cache *DisabledCache) RegisterHandler(func(key []byte, value interface{}), string) {
+}
+
+// UnRegisterHandler does nothing
+func (cache *DisabledCache) UnRegisterHandler(string) {
+}
+
+// ImmunizeTxsAgainstEviction does nothing
+func (cache *DisabledCache) ImmunizeTxsAgainstEviction(_ [][]byte) {
+}
+
+// Diagnose does nothing
+func (cache *DisabledCache) Diagnose(_ bool) {
+}
+
+// GetTrackerDiagnosis returns nil
+func (cache *DisabledCache) GetTrackerDiagnosis() TrackerDiagnosis {
+	return nil
+}
+
+// GetTransactionsPoolForSender returns an empty slice
+func (cache *DisabledCache) GetTransactionsPoolForSender(_ string) []*WrappedTransaction {
+	return make([]*WrappedTransaction, 0)
+}
+
+// Close does nothing
+func (cache *DisabledCache) Close() error {
+	return nil
+}
+
+// OnProposedBlock does nothing
+func (cache *DisabledCache) OnProposedBlock(_ []byte, _ data.BodyHandler, _ data.HeaderHandler, _ common.AccountNonceAndBalanceProvider, _ []byte) error {
+	return nil
+}
+
+// OnExecutedBlock does nothing
+func (cache *DisabledCache) OnExecutedBlock(_ data.HeaderHandler, _ []byte) error {
+	return nil
+}
+
+// ResetTracker does nothing
+func (cache *DisabledCache) ResetTracker() {}
+
+// Cleanup does nothing
+func (cache *DisabledCache) Cleanup(_ common.AccountNonceProvider, _ uint64, _ int, _ time.Duration) uint64 {
+	return 0
+}
+
+// IsInterfaceNil returns true if there is no value under the interface
+func (cache *DisabledCache) IsInterfaceNil() bool {
+	return cache == nil
+}

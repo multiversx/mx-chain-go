@@ -25,6 +25,7 @@ import (
 type ConsensusCoreHandler interface {
 	Blockchain() data.ChainHandler
 	BlockProcessor() process.BlockProcessor
+	ExecutionManager() process.ExecutionManager
 	BootStrapper() process.Bootstrapper
 	BroadcastMessenger() consensus.BroadcastMessenger
 	Chronology() consensus.ChronologyHandler
@@ -46,6 +47,7 @@ type ConsensusCoreHandler interface {
 	PeerBlacklistHandler() consensus.PeerBlacklistHandler
 	SigningHandler() consensus.SigningHandler
 	EnableEpochsHandler() common.EnableEpochsHandler
+	EnableRoundsHandler() common.EnableRoundsHandler
 	EquivalentProofsPool() consensus.EquivalentProofsPool
 	EpochNotifier() process.EpochNotifier
 	InvalidSignersCache() InvalidSignersCache
@@ -127,6 +129,16 @@ type WorkerHandler interface {
 	ResetInvalidSignersCache()
 	// IsInterfaceNil returns true if there is no value under the interface
 	IsInterfaceNil() bool
+	ConsensusMetrics() ConsensusMetricsHandler
+}
+
+// ConsensusMetricsHandler handles the consensus metrics
+type ConsensusMetricsHandler interface {
+	IsInterfaceNil() bool
+	ResetAverages()
+	ResetInstanceValues()
+	SetBlockReceivedOrSent(delayFromRoundStart uint64)
+	SetProofReceived(delayProofFromRoundStart uint64)
 }
 
 // PoolAdder adds data in a key-value pool
@@ -268,5 +280,14 @@ type InvalidSignersCache interface {
 	AddInvalidSigners(headerHash []byte, invalidSigners []byte, invalidPublicKeys []string)
 	CheckKnownInvalidSigners(headerHash []byte, invalidSigners []byte) bool
 	Reset()
+	IsInterfaceNil() bool
+}
+
+// RoundSyncControllerHandler detects round desynchronization and triggers a forced NTP resync.
+// If the local clock drifts and the node repeatedly receives valid block proofs for rounds
+// that fall outside the expected range, the handler identifies this pattern as a de-sync
+// condition and initiates time resynchronization.
+type RoundSyncControllerHandler interface {
+	AddOutOfRangeRound(round uint64, hash string)
 	IsInterfaceNil() bool
 }

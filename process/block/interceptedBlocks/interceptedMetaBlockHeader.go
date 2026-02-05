@@ -7,7 +7,6 @@ import (
 	"github.com/multiversx/mx-chain-core-go/data"
 	"github.com/multiversx/mx-chain-core-go/data/block"
 	"github.com/multiversx/mx-chain-core-go/hashing"
-	"github.com/multiversx/mx-chain-core-go/marshal"
 	logger "github.com/multiversx/mx-chain-logger-go"
 
 	"github.com/multiversx/mx-chain-go/common"
@@ -40,7 +39,7 @@ func NewInterceptedMetaHeader(arg *ArgInterceptedBlockHeader) (*InterceptedMetaH
 		return nil, err
 	}
 
-	hdr, err := createMetaHdr(arg.Marshalizer, arg.HdrBuff)
+	hdr, err := process.UnmarshalMetaHeader(arg.Marshalizer, arg.HdrBuff)
 	if err != nil {
 		return nil, err
 	}
@@ -58,18 +57,6 @@ func NewInterceptedMetaHeader(arg *ArgInterceptedBlockHeader) (*InterceptedMetaH
 	inHdr.processFields(arg.HdrBuff)
 
 	return inHdr, nil
-}
-
-func createMetaHdr(marshalizer marshal.Marshalizer, hdrBuff []byte) (*block.MetaBlock, error) {
-	hdr := &block.MetaBlock{
-		ShardInfo: make([]block.ShardData, 0),
-	}
-	err := marshalizer.Unmarshal(hdr, hdrBuff)
-	if err != nil {
-		return nil, err
-	}
-
-	return hdr, nil
 }
 
 func (imh *InterceptedMetaHeader) processFields(txBuff []byte) {
@@ -129,6 +116,11 @@ func (imh *InterceptedMetaHeader) CheckValidity() error {
 	return imh.integrityVerifier.Verify(imh.hdr)
 }
 
+// ShouldAllowDuplicates returns if this type of intercepted data should allow duplicates
+func (imh *InterceptedMetaHeader) ShouldAllowDuplicates() bool {
+	return false
+}
+
 func (imh *InterceptedMetaHeader) isMetaHeaderEpochOutOfRange() bool {
 	if imh.shardCoordinator.SelfId() == core.MetachainShardId {
 		return false
@@ -152,7 +144,23 @@ func (imh *InterceptedMetaHeader) integrity() error {
 	if err != nil {
 		return err
 	}
+	err = checkMiniBlocksHeaders(imh.hdr.GetMiniBlockHeaderHandlers(), imh.shardCoordinator)
+	if err != nil {
+		return err
+	}
 
+	if imh.hdr.IsHeaderV3() {
+		for i, result := range imh.hdr.GetExecutionResultsHandlers() {
+			executionResult, ok := result.(*block.MetaExecutionResult)
+			if !ok {
+				return fmt.Errorf("failed to cast execution result at index %d to block.MetaExecutionResult", i)
+			}
+			err = checkMiniBlocksHeaders(executionResult.GetMiniBlockHeadersHandlers(), imh.shardCoordinator)
+			if err != nil {
+				return err
+			}
+		}
+	}
 	return nil
 }
 

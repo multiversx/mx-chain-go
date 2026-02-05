@@ -191,7 +191,6 @@ func printEnableEpochs(configs *config.Configs) {
 	log.Debug(readEpochFor("payable by smart contract"), "epoch", enableEpochs.IsPayableBySCEnableEpoch)
 	log.Debug(readEpochFor("cleanup informative only SCRs"), "epoch", enableEpochs.CleanUpInformativeSCRsEnableEpoch)
 	log.Debug(readEpochFor("storage API cost optimization"), "epoch", enableEpochs.StorageAPICostOptimizationEnableEpoch)
-	log.Debug(readEpochFor("transform to multi shard create on esdt"), "epoch", enableEpochs.TransformToMultiShardCreateEnableEpoch)
 	log.Debug(readEpochFor("esdt: enable epoch for esdt register and set all roles function"), "epoch", enableEpochs.ESDTRegisterAndSetAllRolesEnableEpoch)
 	log.Debug(readEpochFor("scheduled mini blocks"), "epoch", enableEpochs.ScheduledMiniBlocksEnableEpoch)
 	log.Debug(readEpochFor("correct jailed not unstaked if empty queue"), "epoch", enableEpochs.CorrectJailedNotUnstakedEmptyQueueEpoch)
@@ -372,6 +371,7 @@ func (nr *nodeRunner) executeOneComponentCreationCycle(
 		managedCoreComponents.GenesisNodesSetup(),
 		configs.GeneralConfig.EpochStartConfig,
 		managedCoreComponents.ChanStopNodeProcess(),
+		managedCoreComponents.ChainParametersHandler(),
 	)
 	if err != nil {
 		return true, err
@@ -758,11 +758,11 @@ func (nr *nodeRunner) createApiFacade(
 			RestApiInterface:            flagsConfig.RestApiInterface,
 			PprofEnabled:                flagsConfig.EnablePprof,
 			P2PPrometheusMetricsEnabled: flagsConfig.P2PPrometheusMetricsEnabled,
+			TxCacheSelectionConfig:      configs.GeneralConfig.TxCacheSelection,
 		},
-		ApiRoutesConfig: *configs.ApiRoutesConfig,
-		AccountsState:   currentNode.stateComponents.AccountsAdapter(),
-		PeerState:       currentNode.stateComponents.PeerAccounts(),
-		Blockchain:      currentNode.dataComponents.Blockchain(),
+		ApiRoutesConfig:  *configs.ApiRoutesConfig,
+		AccountsStateAPI: currentNode.stateComponents.AccountsAdapterAPI(),
+		Blockchain:       currentNode.dataComponents.Blockchain(),
 	}
 
 	ef, err := facade.NewNodeFacade(argNodeFacade)
@@ -825,7 +825,13 @@ func (nr *nodeRunner) createMetrics(
 	cryptoComponents mainFactory.CryptoComponentsHolder,
 	bootstrapComponents mainFactory.BootstrapComponentsHolder,
 ) error {
-	err := metrics.InitMetrics(
+
+	chainParameters, err := coreComponents.ChainParametersHandler().ChainParametersForEpoch(bootstrapComponents.EpochBootstrapParams().Epoch())
+	if err != nil {
+		return err
+	}
+
+	err = metrics.InitMetrics(
 		statusCoreComponents.AppStatusHandler(),
 		cryptoComponents.PublicKeyString(),
 		bootstrapComponents.NodeType(),
@@ -833,7 +839,7 @@ func (nr *nodeRunner) createMetrics(
 		coreComponents.GenesisNodesSetup(),
 		nr.configs.FlagsConfig.Version,
 		nr.configs.EconomicsConfig,
-		nr.configs.GeneralConfig.EpochStartConfig.RoundsPerEpoch,
+		chainParameters,
 		coreComponents.MinTransactionVersion(),
 	)
 
@@ -1057,7 +1063,7 @@ func (nr *nodeRunner) logInformation(
 		"ShardId", shardIdString,
 		"TotalShards", bootstrapComponents.ShardCoordinator().NumberOfShards(),
 		"AppVersion", nr.configs.FlagsConfig.Version,
-		"GenesisTimeStamp", coreComponents.GenesisTime().Unix(),
+		"GenesisTimeStamp", common.GetGenesisUnixTimestampFromStartTime(coreComponents.GenesisTime(), coreComponents.EnableEpochsHandler()),
 	)
 
 	sessionInfoFileOutput += "\nStarted with parameters:\n"
@@ -1219,6 +1225,7 @@ func (nr *nodeRunner) CreateManagedProcessComponents(
 		Marshalizer:              coreComponents.InternalMarshalizer(),
 		Store:                    dataComponents.StorageService(),
 		Uint64ByteSliceConverter: coreComponents.Uint64ByteSliceConverter(),
+		DataPool:                 dataComponents.Datapool(),
 	}
 	historyRepositoryFactory, err := dbLookupFactory.NewHistoryRepositoryFactory(historyRepoFactoryArgs)
 	if err != nil {
@@ -1436,8 +1443,7 @@ func (nr *nodeRunner) CreateManagedNetworkComponents(
 		MainConfig:            *nr.configs.GeneralConfig,
 		RatingsConfig:         *nr.configs.RatingsConfig,
 		StatusHandler:         statusCoreComponents.AppStatusHandler(),
-		Marshalizer:           coreComponents.InternalMarshalizer(),
-		Syncer:                coreComponents.SyncTimer(),
+		CoreComponents:        coreComponents,
 		PreferredPeersSlices:  nr.configs.PreferencesConfig.Preferences.PreferredConnections,
 		BootstrapWaitTime:     common.TimeToWaitForP2PBootstrap,
 		NodeOperationMode:     common.NormalOperation,

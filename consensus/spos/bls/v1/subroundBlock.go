@@ -66,7 +66,7 @@ func checkNewSubroundBlockParams(
 
 // doBlockJob method does the job of the subround Block
 func (sr *subroundBlock) doBlockJob(ctx context.Context) bool {
-	isSelfLeader := sr.IsSelfLeaderInCurrentRound() && sr.ShouldConsiderSelfKeyInConsensus()
+	isSelfLeader := sr.IsSelfLeaderInCurrentRound() && spos.ShouldConsiderSelfKeyInConsensus(sr.NodeRedundancyHandler())
 	if !isSelfLeader && !sr.IsMultiKeyLeaderInCurrentRound() { // is NOT self leader in this round?
 		return false
 	}
@@ -359,7 +359,7 @@ func (sr *subroundBlock) createHeader() (data.HeaderHandler, error) {
 		return nil, err
 	}
 
-	err = hdr.SetTimeStamp(uint64(sr.RoundHandler().TimeStamp().Unix()))
+	err = hdr.SetTimeStamp(sr.GetUnixTimestampForHeader(hdr.GetEpoch()))
 	if err != nil {
 		return nil, err
 	}

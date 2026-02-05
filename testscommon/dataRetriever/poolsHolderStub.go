@@ -9,23 +9,25 @@ import (
 
 // PoolsHolderStub -
 type PoolsHolderStub struct {
-	HeadersCalled                func() dataRetriever.HeadersPool
-	TransactionsCalled           func() dataRetriever.ShardedDataCacherNotifier
-	UnsignedTransactionsCalled   func() dataRetriever.ShardedDataCacherNotifier
-	RewardTransactionsCalled     func() dataRetriever.ShardedDataCacherNotifier
-	MiniBlocksCalled             func() storage.Cacher
-	MetaBlocksCalled             func() storage.Cacher
-	CurrBlockTxsCalled           func() dataRetriever.TransactionCacher
-	CurrEpochValidatorInfoCalled func() dataRetriever.ValidatorInfoCacher
-	TrieNodesCalled              func() storage.Cacher
-	TrieNodesChunksCalled        func() storage.Cacher
-	PeerChangesBlocksCalled      func() storage.Cacher
-	SmartContractsCalled         func() storage.Cacher
-	PeerAuthenticationsCalled    func() storage.Cacher
-	HeartbeatsCalled             func() storage.Cacher
-	ValidatorsInfoCalled         func() dataRetriever.ShardedDataCacherNotifier
-	ProofsCalled                 func() dataRetriever.ProofsPool
-	CloseCalled                  func() error
+	HeadersCalled                 func() dataRetriever.HeadersPool
+	TransactionsCalled            func() dataRetriever.ShardedDataCacherNotifier
+	UnsignedTransactionsCalled    func() dataRetriever.ShardedDataCacherNotifier
+	RewardTransactionsCalled      func() dataRetriever.ShardedDataCacherNotifier
+	MiniBlocksCalled              func() storage.Cacher
+	MetaBlocksCalled              func() storage.Cacher
+	CurrBlockTxsCalled            func() dataRetriever.TransactionCacher
+	CurrEpochValidatorInfoCalled  func() dataRetriever.ValidatorInfoCacher
+	TrieNodesCalled               func() storage.Cacher
+	TrieNodesChunksCalled         func() storage.Cacher
+	PeerChangesBlocksCalled       func() storage.Cacher
+	SmartContractsCalled          func() storage.Cacher
+	PeerAuthenticationsCalled     func() storage.Cacher
+	HeartbeatsCalled              func() storage.Cacher
+	ValidatorsInfoCalled          func() dataRetriever.ShardedDataCacherNotifier
+	ProofsCalled                  func() dataRetriever.ProofsPool
+	ExecutedMiniBlocksCalled      func() storage.Cacher
+	PostProcessTransactionsCalled func() storage.Cacher
+	CloseCalled                   func() error
 }
 
 // NewPoolsHolderStub -
@@ -172,6 +174,24 @@ func (holder *PoolsHolderStub) ValidatorsInfo() dataRetriever.ShardedDataCacherN
 func (holder *PoolsHolderStub) Proofs() dataRetriever.ProofsPool {
 	if holder.ProofsCalled != nil {
 		return holder.ProofsCalled()
+	}
+
+	return nil
+}
+
+// ExecutedMiniBlocks -
+func (holder *PoolsHolderStub) ExecutedMiniBlocks() storage.Cacher {
+	if holder.ExecutedMiniBlocksCalled != nil {
+		return holder.ExecutedMiniBlocksCalled()
+	}
+
+	return nil
+}
+
+// PostProcessTransactions -
+func (holder *PoolsHolderStub) PostProcessTransactions() storage.Cacher {
+	if holder.PostProcessTransactionsCalled != nil {
+		return holder.PostProcessTransactionsCalled()
 	}
 
 	return nil

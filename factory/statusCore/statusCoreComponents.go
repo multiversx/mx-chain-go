@@ -97,6 +97,12 @@ func (sccf *statusCoreComponentsFactory) Create() (*statusCoreComponents, error)
 		return nil, err
 	}
 
+	chainParamsMetricsHandler, err := statusHandler.NewChainParamsMetricsHandler(appStatusHandler)
+	if err != nil {
+		return nil, err
+	}
+	sccf.coreComp.ChainParametersSubscriber().RegisterNotifyHandler(chainParamsMetricsHandler)
+
 	stateStatsHandler := sccf.createStateStatsHandler()
 
 	ssc := &statusCoreComponents{
@@ -123,7 +129,10 @@ func (sccf *statusCoreComponentsFactory) createStateStatsHandler() common.StateS
 func (sccf *statusCoreComponentsFactory) createStatusHandler() (core.AppStatusHandler, external.StatusMetricsHandler, factory.PersistentStatusHandler, error) {
 	var appStatusHandlers []core.AppStatusHandler
 	var handler core.AppStatusHandler
-	statusMetrics := statusHandler.NewStatusMetrics()
+	statusMetrics, err := statusHandler.NewStatusMetrics(sccf.coreComp.EnableEpochsHandler())
+	if err != nil {
+		return nil, nil, nil, err
+	}
 	appStatusHandlers = append(appStatusHandlers, statusMetrics)
 
 	persistentHandler, err := persister.NewPersistentStatusHandler(sccf.coreComp.InternalMarshalizer(), sccf.coreComp.Uint64ByteSliceConverter())

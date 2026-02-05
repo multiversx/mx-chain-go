@@ -34,6 +34,7 @@ import (
 	"github.com/multiversx/mx-chain-go/testscommon/hashingMocks"
 	"github.com/multiversx/mx-chain-go/testscommon/p2pmocks"
 	"github.com/multiversx/mx-chain-go/testscommon/processMocks"
+	"github.com/multiversx/mx-chain-go/testscommon/round"
 	statusHandlerMock "github.com/multiversx/mx-chain-go/testscommon/statusHandler"
 )
 
@@ -149,8 +150,8 @@ func initWorker(appStatusHandler core.AppStatusHandler) *spos.Worker {
 	return sposWorker
 }
 
-func initRoundHandlerMock() *consensusMocks.RoundHandlerMock {
-	return &consensusMocks.RoundHandlerMock{
+func initRoundHandlerMock() *round.RoundHandlerMock {
+	return &round.RoundHandlerMock{
 		RoundIndex: 0,
 		TimeStampCalled: func() time.Time {
 			return time.Unix(0, 0)
@@ -802,7 +803,7 @@ func testWorkerProcessReceivedMessageComputeReceivedProposedBlockMetric(
 		},
 	})
 
-	wrk.SetRoundHandler(&consensusMocks.RoundHandlerMock{
+	wrk.SetRoundHandler(&round.RoundHandlerMock{
 		RoundIndex: 0,
 		TimeDurationCalled: func() time.Duration {
 			return roundDuration
@@ -1161,7 +1162,7 @@ func TestWorker_ProcessReceivedMessageReceivedMessageIsFromSelfShouldRetNilAndNo
 func TestWorker_ProcessReceivedMessageWhenRoundIsCanceledShouldRetNilAndNotProcess(t *testing.T) {
 	t.Parallel()
 	wrk := *initWorker(&statusHandlerMock.AppStatusHandlerStub{})
-	wrk.ConsensusState().RoundCanceled = true
+	wrk.ConsensusState().SetRoundCanceled(true)
 	blk := &block.Body{}
 	blkStr, _ := mock.MarshalizerMock{}.Marshal(blk)
 	cnsMsg := consensus.NewConsensusMessage(
@@ -1461,7 +1462,7 @@ func TestWorker_CheckSelfStateShouldErrMessageFromItself(t *testing.T) {
 func TestWorker_CheckSelfStateShouldErrRoundCanceled(t *testing.T) {
 	t.Parallel()
 	wrk := *initWorker(&statusHandlerMock.AppStatusHandlerStub{})
-	wrk.ConsensusState().RoundCanceled = true
+	wrk.ConsensusState().SetRoundCanceled(true)
 	cnsMsg := consensus.NewConsensusMessage(
 		nil,
 		nil,
@@ -1688,6 +1689,7 @@ func TestWorker_ExecuteSignatureMessagesShouldNotExecuteWhenBlockIsNotFinished(t
 
 func TestWorker_ExecuteMessagesShouldExecute(t *testing.T) {
 	t.Parallel()
+
 	wrk := *initWorker(&statusHandlerMock.AppStatusHandlerStub{})
 	wrk.StartWorking()
 	blk := &block.Body{}
@@ -1829,7 +1831,7 @@ func TestWorker_StoredHeadersExecution(t *testing.T) {
 
 		roundIndex := &atomic.Int64{}
 		roundIndex.Store(99)
-		roundHandler := &consensusMocks.RoundHandlerMock{
+		roundHandler := &round.RoundHandlerMock{
 			IndexCalled: func() int64 {
 				return roundIndex.Load()
 			},
@@ -1872,7 +1874,7 @@ func TestWorker_StoredHeadersExecution(t *testing.T) {
 
 		roundIndex := &atomic.Int64{}
 		roundIndex.Store(99)
-		roundHandler := &consensusMocks.RoundHandlerMock{
+		roundHandler := &round.RoundHandlerMock{
 			IndexCalled: func() int64 {
 				return roundIndex.Load()
 			},
@@ -1922,7 +1924,7 @@ func TestWorker_StoredHeadersExecution(t *testing.T) {
 
 		roundIndex := &atomic.Int64{}
 		roundIndex.Store(99)
-		roundHandler := &consensusMocks.RoundHandlerMock{
+		roundHandler := &round.RoundHandlerMock{
 			IndexCalled: func() int64 {
 				return roundIndex.Load()
 			},
@@ -1975,7 +1977,7 @@ func TestWorker_ExtendShouldReturnWhenRoundIsCanceled(t *testing.T) {
 		},
 	}
 	wrk.SetBootstrapper(bootstrapperMock)
-	wrk.ConsensusState().RoundCanceled = true
+	wrk.ConsensusState().SetRoundCanceled(true)
 	wrk.Extend(0)
 
 	assert.False(t, executed)
@@ -2393,4 +2395,31 @@ func TestWorker_ReceivedProof(t *testing.T) {
 		wrk.ReceivedProof(&block.HeaderProof{})
 		require.True(t, wasHandlerCalled)
 	})
+}
+
+func TestWorker_ConsensusMetrics(t *testing.T) {
+	t.Parallel()
+
+	workerArgs := createDefaultWorkerArgs(&statusHandlerMock.AppStatusHandlerStub{})
+	wrk, _ := spos.NewWorker(workerArgs)
+
+	metrics := wrk.ConsensusMetrics()
+	require.NotNil(t, metrics)
+}
+
+func TestWorker_NewWorkerNilConsensusMetrics(t *testing.T) {
+	t.Parallel()
+	called := 0
+	var typedNil core.AppStatusHandler = &statusHandlerMock.AppStatusHandlerStub{
+		IsInterfaceNilCalled: func() bool {
+			called++
+			return called > 1
+		},
+	}
+
+	workerArgs := createDefaultWorkerArgs(typedNil)
+	worker, err := spos.NewWorker(workerArgs)
+	require.Nil(t, worker)
+	require.Error(t, err) // should come from NewConsensusMetrics
+	require.Equal(t, spos.ErrNilAppStatusHandler, err)
 }

@@ -90,6 +90,7 @@ type Worker struct {
 	closer                    core.SafeCloser
 
 	invalidSignersCache InvalidSignersCache
+	consensusMetrics    ConsensusMetricsHandler
 }
 
 // WorkerArgs holds the consensus worker arguments
@@ -148,6 +149,11 @@ func NewWorker(args *WorkerArgs) (*Worker, error) {
 		return nil, err
 	}
 
+	consensusMetrics, err := NewConsensusMetrics(args.AppStatusHandler)
+	if err != nil {
+		return nil, err
+	}
+
 	wrk := Worker{
 		consensusService:         args.ConsensusService,
 		blockChain:               args.BlockChain,
@@ -174,6 +180,7 @@ func NewWorker(args *WorkerArgs) (*Worker, error) {
 		closer:                   closing.NewSafeChanCloser(),
 		enableEpochsHandler:      args.EnableEpochsHandler,
 		invalidSignersCache:      args.InvalidSignersCache,
+		consensusMetrics:         consensusMetrics,
 	}
 
 	wrk.consensusMessageValidator = consensusMessageValidatorObj
@@ -725,7 +732,9 @@ func (wrk *Worker) computeRedundancyMetrics() (bool, string) {
 
 func (wrk *Worker) checkSelfState(cnsDta *consensus.Message) error {
 	isMultiKeyManagedBySelf := wrk.consensusState.keysHandler.IsKeyManagedByCurrentNode(cnsDta.PubKey)
-	if wrk.consensusState.SelfPubKey() == string(cnsDta.PubKey) || isMultiKeyManagedBySelf {
+	isSelfKey := wrk.consensusState.SelfPubKey() == string(cnsDta.PubKey)
+	shouldConsiderSelfKeyInConsensus := isSelfKey && ShouldConsiderSelfKeyInConsensus(wrk.nodeRedundancyHandler)
+	if shouldConsiderSelfKeyInConsensus || isMultiKeyManagedBySelf {
 		return ErrMessageFromItself
 	}
 
@@ -855,11 +864,21 @@ func (wrk *Worker) Extend(subroundId int) {
 		time.Sleep(time.Millisecond)
 	}
 
+	log.Debug("current block is reverted")
+
+	header := wrk.consensusState.GetHeader()
+	if check.IfNil(header) {
+		return
+	}
+
+	isHeaderV3 := header.IsHeaderV3()
+	if isHeaderV3 {
+		return
+	}
+
 	wrk.scheduledProcessor.ForceStopScheduledExecutionBlocking()
 	wrk.blockProcessor.RevertCurrentBlock()
 	wrk.removeConsensusHeaderFromPool()
-
-	log.Debug("current block is reverted")
 }
 
 func (wrk *Worker) removeConsensusHeaderFromPool() {
@@ -987,4 +1006,9 @@ func emptyChannel(ch chan *consensus.Message) int {
 			return readsCnt
 		}
 	}
+}
+
+// ConsensusMetrics returns the consensus metrics handler
+func (wrk *Worker) ConsensusMetrics() ConsensusMetricsHandler {
+	return wrk.consensusMetrics
 }

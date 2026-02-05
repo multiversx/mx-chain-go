@@ -6,14 +6,22 @@ import (
 	"errors"
 	"fmt"
 	"math/big"
+	"time"
+
+	"github.com/multiversx/mx-chain-core-go/core"
+	chainData "github.com/multiversx/mx-chain-core-go/data"
+	"github.com/multiversx/mx-chain-core-go/data/block"
+	"github.com/multiversx/mx-chain-core-go/data/endProcess"
 
 	"github.com/multiversx/mx-chain-go/api/shared"
+	"github.com/multiversx/mx-chain-go/common"
 	"github.com/multiversx/mx-chain-go/config"
 	"github.com/multiversx/mx-chain-go/consensus"
 	"github.com/multiversx/mx-chain-go/consensus/spos/sposFactory"
 	"github.com/multiversx/mx-chain-go/dataRetriever"
 	"github.com/multiversx/mx-chain-go/dataRetriever/blockchain"
 	dataRetrieverFactory "github.com/multiversx/mx-chain-go/dataRetriever/factory"
+	"github.com/multiversx/mx-chain-go/debug/handler"
 	"github.com/multiversx/mx-chain-go/facade"
 	"github.com/multiversx/mx-chain-go/factory"
 	bootstrapComp "github.com/multiversx/mx-chain-go/factory/bootstrap"
@@ -24,10 +32,6 @@ import (
 	"github.com/multiversx/mx-chain-go/sharding"
 	"github.com/multiversx/mx-chain-go/sharding/nodesCoordinator"
 	"github.com/multiversx/mx-chain-go/state"
-
-	"github.com/multiversx/mx-chain-core-go/core"
-	chainData "github.com/multiversx/mx-chain-core-go/data"
-	"github.com/multiversx/mx-chain-core-go/data/endProcess"
 )
 
 // ArgsTestOnlyProcessingNode represents the DTO struct for the NewTestOnlyProcessingNode constructor function
@@ -45,12 +49,14 @@ type ArgsTestOnlyProcessingNode struct {
 	NumShards                   uint32
 	ShardIDStr                  string
 	BypassTxSignatureCheck      bool
+	BypassBlockSignatureCheck   bool
 	MinNodesPerShard            uint32
 	ConsensusGroupSize          uint32
 	MinNodesMeta                uint32
 	MetaChainConsensusGroupSize uint32
 	RoundDurationInMillis       uint64
 	VmQueryDelayAfterStartInMs  uint64
+	GenesisTime                 time.Time
 }
 
 type testOnlyProcessingNode struct {
@@ -107,6 +113,7 @@ func NewTestOnlyProcessingNode(args ArgsTestOnlyProcessingNode) (*testOnlyProces
 		MetaChainConsensusGroupSize: args.MetaChainConsensusGroupSize,
 		RoundDurationInMs:           args.RoundDurationInMillis,
 		RatingConfig:                *args.Configs.RatingsConfig,
+		GenesisTime:                 args.GenesisTime,
 	})
 	if err != nil {
 		return nil, err
@@ -123,6 +130,7 @@ func NewTestOnlyProcessingNode(args ArgsTestOnlyProcessingNode) (*testOnlyProces
 		Preferences:                 *args.Configs.PreferencesConfig,
 		CoreComponentsHolder:        instance.CoreComponentsHolder,
 		BypassTxSignatureCheck:      args.BypassTxSignatureCheck,
+		BypassBlockSignatureCheck:   args.BypassBlockSignatureCheck,
 		AllValidatorKeysPemFileName: args.Configs.ConfigurationPathsHolder.AllValidatorKeys,
 	})
 	if err != nil {
@@ -260,9 +268,39 @@ func NewTestOnlyProcessingNode(args ArgsTestOnlyProcessingNode) (*testOnlyProces
 		return nil, err
 	}
 
+	err = instance.createInterceptorDebugHandler(args.Configs)
+	if err != nil {
+		return nil, err
+	}
+
 	instance.collectClosableComponents(args.APIInterface)
 
 	return instance, nil
+}
+
+func (node *testOnlyProcessingNode) createInterceptorDebugHandler(configs config.Configs) error {
+	debugHandler, err := handler.NewInterceptorDebugHandler(configs.GeneralConfig.Debug.InterceptorResolver, node.CoreComponentsHolder.SyncTimer())
+	if err != nil {
+		return err
+	}
+
+	node.CoreComponentsHolder.EpochStartNotifierWithConfirm().RegisterHandler(debugHandler.EpochStartEventHandler())
+
+	var errFound error
+	node.ProcessComponentsHolder.InterceptorsContainer().Iterate(func(key string, interceptor process.Interceptor) bool {
+		err = interceptor.SetInterceptedDebugHandler(debugHandler)
+		if err != nil {
+			errFound = err
+			return false
+		}
+
+		return true
+	})
+	if errFound != nil {
+		return fmt.Errorf("%w while setting up debugger on interceptors", errFound)
+	}
+
+	return nil
 }
 
 func (node *testOnlyProcessingNode) createBlockChain(selfShardID uint32) error {
@@ -281,6 +319,7 @@ func (node *testOnlyProcessingNode) createNodesCoordinator(pref config.Preferenc
 		node.CoreComponentsHolder.GenesisNodesSetup(),
 		generalConfig.EpochStartConfig,
 		node.CoreComponentsHolder.ChanStopNodeProcess(),
+		node.CoreComponentsHolder.ChainParametersHandler(),
 	)
 	if err != nil {
 		return err
@@ -398,7 +437,7 @@ func (node *testOnlyProcessingNode) GetStatusCoreComponents() factory.StatusCore
 	return node.StatusCoreComponents
 }
 
-// NetworkComponents will return the network components
+// GetNetworkComponents will return the network components
 func (node *testOnlyProcessingNode) GetNetworkComponents() factory.NetworkComponentsHolder {
 	return node.NetworkComponentsHolder
 }
@@ -500,8 +539,48 @@ func (node *testOnlyProcessingNode) SetStateForAddress(address []byte, addressSt
 		return err
 	}
 
-	_, err = accountsAdapter.Commit()
+	newRootHash, err := accountsAdapter.Commit()
+	node.setBlockchainRootHashIfSupernovaIsActive(newRootHash)
+
 	return err
+}
+
+func (node *testOnlyProcessingNode) setBlockchainRootHashIfSupernovaIsActive(
+	rootHash []byte,
+) {
+	if !node.CoreComponentsHolder.EnableRoundsHandler().IsFlagEnabled(common.SupernovaRoundFlag) {
+		return
+	}
+
+	header := node.ChainHandler.GetLastExecutedBlockHeader()
+	_, hash, _ := node.ChainHandler.GetLastExecutedBlockInfo()
+	node.ChainHandler.SetLastExecutedBlockHeaderAndRootHash(header, hash, rootHash)
+
+	lastExecutionResult := node.ChainHandler.GetLastExecutionResult()
+
+	metaResult, isMeta := lastExecutionResult.(*block.MetaExecutionResult)
+	if isMeta {
+		metaResult.ExecutionResult.BaseExecutionResult.RootHash = rootHash
+		node.ChainHandler.SetLastExecutionResult(metaResult)
+		return
+	}
+
+	shardResult, isShard := lastExecutionResult.(*block.ExecutionResult)
+	if isShard {
+		shardResult.BaseExecutionResult.RootHash = rootHash
+		node.ChainHandler.SetLastExecutionResult(shardResult)
+		return
+	}
+
+	updatedLastExecutionResult := &block.BaseExecutionResult{
+		HeaderHash:  lastExecutionResult.GetHeaderHash(),
+		HeaderNonce: lastExecutionResult.GetHeaderNonce(),
+		HeaderRound: lastExecutionResult.GetHeaderRound(),
+		HeaderEpoch: lastExecutionResult.GetHeaderEpoch(),
+		RootHash:    rootHash,
+		GasUsed:     lastExecutionResult.GetGasUsed(),
+	}
+	node.ChainHandler.SetLastExecutionResult(updatedLastExecutionResult)
 }
 
 // RemoveAccount will remove the account for the given address

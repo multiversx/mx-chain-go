@@ -59,6 +59,23 @@ func TestTomlParser(t *testing.T) {
 					MetachainConsensusGroupSize: 5,
 					Hysteresis:                  0.0,
 					Adaptivity:                  false,
+					Offset:                      2,
+				},
+			},
+			ProcessConfigsByRound: []ProcessConfigByRound{
+				{
+					EnableRound:                            1,
+					MaxRoundsWithoutNewBlockReceived:       2,
+					MaxRoundsWithoutCommittedBlock:         3,
+					RoundModulusTriggerWhenSyncIsStuck:     4,
+					MaxSyncWithErrorsAllowed:               5,
+					MaxRoundsToKeepUnprocessedMiniBlocks:   6,
+					MaxRoundsToKeepUnprocessedTransactions: 7,
+					NumFloodingRoundsFastReacting:          8,
+					NumFloodingRoundsSlowReacting:          9,
+					NumFloodingRoundsOutOfSpecs:            10,
+					MaxConsecutiveRoundsOfRatingDecrease:   11,
+					MaxRoundsOfInactivityAccepted:          12,
 				},
 			},
 		},
@@ -159,15 +176,40 @@ func TestTomlParser(t *testing.T) {
 			MaxStateTrieLevelInMemory:   38,
 			MaxPeerTrieLevelInMemory:    39,
 		},
-		Redundancy: RedundancyConfig{
-			MaxRoundsOfInactivityAccepted: 3,
+		TxCacheBounds: TxCacheBoundsConfig{
+			MaxNumBytesPerSenderUpperBound: 33_554_432,
+			MaxTrackedBlocks:               100,
+		},
+		TxCacheSelection: TxCacheSelectionConfig{
+			SelectionGasBandwidthIncreasePercent:          400,
+			SelectionGasBandwidthIncreaseScheduledPercent: 260,
+			SelectionGasRequested:                         10_000_000_000,
+			SelectionMaxNumTxs:                            30000,
+			SelectionLoopDurationCheckInterval:            10,
 		},
 	}
 	testString := `
 [GeneralSettings]
 	ChainParametersByEpoch = [
-        { EnableEpoch = 0, RoundDuration = 4000, ShardConsensusGroupSize = 3, ShardMinNumNodes = 4, MetachainConsensusGroupSize = 5, MetachainMinNumNodes = 6, Hysteresis = 0.0, Adaptivity = false }
+        { EnableEpoch = 0, RoundDuration = 4000, ShardConsensusGroupSize = 3, ShardMinNumNodes = 4, MetachainConsensusGroupSize = 5, MetachainMinNumNodes = 6, Hysteresis = 0.0, Adaptivity = false, Offset = 2 }
     ]
+    ProcessConfigsByRound = [
+        {
+        EnableRound = 1,
+        MaxRoundsWithoutNewBlockReceived = 2,
+        MaxRoundsWithoutCommittedBlock = 3,
+        RoundModulusTriggerWhenSyncIsStuck = 4,
+        MaxSyncWithErrorsAllowed = 5,
+        MaxRoundsToKeepUnprocessedMiniBlocks = 6,
+        MaxRoundsToKeepUnprocessedTransactions = 7,
+        NumFloodingRoundsFastReacting = 8,
+        NumFloodingRoundsSlowReacting = 9,
+        NumFloodingRoundsOutOfSpecs = 10,
+        MaxConsecutiveRoundsOfRatingDecrease = 11,
+        MaxRoundsOfInactivityAccepted = 12
+        }
+    ]
+
 [MiniBlocksStorage]
     [MiniBlocksStorage.Cache]
         Capacity = ` + strconv.Itoa(txBlockBodyStorageSize) + `
@@ -213,6 +255,17 @@ func TestTomlParser(t *testing.T) {
 
 [Consensus]
     Type = "` + consensusType + `"
+
+[TxCacheBounds]
+	MaxNumBytesPerSenderUpperBound = 33_554_432
+	MaxTrackedBlocks = 100
+
+[TxCacheSelection]
+	SelectionMaxNumTxs = 30000
+	SelectionGasRequested = 10_000_000_000
+	SelectionGasBandwidthIncreasePercent = 400
+	SelectionGasBandwidthIncreaseScheduledPercent = 260
+	SelectionLoopDurationCheckInterval = 10
 
 [VirtualMachine]
     [VirtualMachine.Execution]
@@ -263,11 +316,6 @@ func TestTomlParser(t *testing.T) {
     PeerStatePruningEnabled = true
     MaxStateTrieLevelInMemory = 38
     MaxPeerTrieLevelInMemory = 39
-
-[Redundancy]
-    # MaxRoundsOfInactivityAccepted defines the number of rounds missed by a main or higher level backup machine before
-    # the current machine will take over and propose/sign blocks. Used in both single-key and multi-key modes.
-    MaxRoundsOfInactivityAccepted = 3
 `
 	cfg := Config{}
 
@@ -760,9 +808,6 @@ func TestEnableEpochConfig(t *testing.T) {
     # StorageAPICostOptimizationEnableEpoch represents the epoch when new storage helper functions are enabled and cost is reduced in Wasm VM
     StorageAPICostOptimizationEnableEpoch = 54
 
-    # TransformToMultiShardCreateEnableEpoch represents the epoch when the new function on esdt system sc is enabled to transfer create role into multishard
-    TransformToMultiShardCreateEnableEpoch = 55
-
     # ESDTRegisterAndSetAllRolesEnableEpoch represents the epoch when new function to register tickerID and set all roles is enabled
     ESDTRegisterAndSetAllRolesEnableEpoch = 56
 
@@ -944,6 +989,9 @@ func TestEnableEpochConfig(t *testing.T) {
     # RelayedTransactionsV1V2DisableEpoch represents the epoch when relayed transactions v1 and v2 are disabled
     RelayedTransactionsV1V2DisableEpoch = 113
 
+    # SupernovaEnableEpoch represents the epoch when sub-second finality will be enabled
+    SupernovaEnableEpoch = 114
+
     # MaxNodesChangeEnableEpoch holds configuration for changing the maximum number of nodes and the enabling epoch
     MaxNodesChangeEnableEpoch = [
         { EpochEnable = 44, MaxNumNodes = 2169, NodesToShufflePerShard = 80 },
@@ -1018,7 +1066,6 @@ func TestEnableEpochConfig(t *testing.T) {
 			IsPayableBySCEnableEpoch:                                 52,
 			CleanUpInformativeSCRsEnableEpoch:                        53,
 			StorageAPICostOptimizationEnableEpoch:                    54,
-			TransformToMultiShardCreateEnableEpoch:                   55,
 			ESDTRegisterAndSetAllRolesEnableEpoch:                    56,
 			ScheduledMiniBlocksEnableEpoch:                           57,
 			CorrectJailedNotUnstakedEmptyQueueEpoch:                  58,
@@ -1077,6 +1124,7 @@ func TestEnableEpochConfig(t *testing.T) {
 			AutomaticActivationOfNodesDisableEpoch:                   111,
 			FixGetBalanceEnableEpoch:                                 112,
 			RelayedTransactionsV1V2DisableEpoch:                      113,
+			SupernovaEnableEpoch:                                     114,
 			MaxNodesChangeEnableEpoch: []MaxNodesChangeConfig{
 				{
 					EpochEnable:            44,
@@ -1117,6 +1165,38 @@ func TestEnableEpochConfig(t *testing.T) {
 		},
 	}
 	cfg := EpochConfig{}
+
+	err := toml.Unmarshal([]byte(testString), &cfg)
+
+	assert.Nil(t, err)
+	assert.Equal(t, expectedCfg, cfg)
+}
+
+func TestEnableRoundsConfig(t *testing.T) {
+	testString := `
+[RoundActivations]
+    [RoundActivations.DisableAsyncCallV1]
+        Options = []
+        Round = "0"
+
+    [RoundActivations.SupernovaEnableRound]
+        Options = []
+        Round = "75"
+`
+
+	expectedCfg := RoundConfig{
+		RoundActivations: map[string]ActivationRoundByName{
+			"DisableAsyncCallV1": {
+				Round:   "0",
+				Options: []string{},
+			},
+			"SupernovaEnableRound": {
+				Round:   "75",
+				Options: []string{},
+			},
+		},
+	}
+	cfg := RoundConfig{}
 
 	err := toml.Unmarshal([]byte(testString), &cfg)
 

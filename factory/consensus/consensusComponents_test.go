@@ -11,6 +11,8 @@ import (
 	crypto "github.com/multiversx/mx-chain-crypto-go"
 	"github.com/stretchr/testify/require"
 
+	"github.com/multiversx/mx-chain-go/testscommon/processMocks"
+
 	"github.com/multiversx/mx-chain-go/common"
 	"github.com/multiversx/mx-chain-go/consensus"
 	retriever "github.com/multiversx/mx-chain-go/dataRetriever"
@@ -26,7 +28,6 @@ import (
 	"github.com/multiversx/mx-chain-go/testscommon/cache"
 	consensusMocks "github.com/multiversx/mx-chain-go/testscommon/consensus"
 	"github.com/multiversx/mx-chain-go/testscommon/cryptoMocks"
-	"github.com/multiversx/mx-chain-go/testscommon/dataRetriever"
 	dataRetrieverMocks "github.com/multiversx/mx-chain-go/testscommon/dataRetriever"
 	"github.com/multiversx/mx-chain-go/testscommon/dblookupext"
 	"github.com/multiversx/mx-chain-go/testscommon/enableEpochsHandlerMock"
@@ -69,9 +70,12 @@ func createMockConsensusComponentsFactoryArgs() consensusComp.ConsensusComponent
 					return 2
 				},
 			},
-			EpochChangeNotifier:      &epochNotifier.EpochNotifierStub{},
-			StartTime:                time.Time{},
-			EnableEpochsHandlerField: &enableEpochsHandlerMock.EnableEpochsHandlerStub{},
+			EpochChangeNotifier:        &epochNotifier.EpochNotifierStub{},
+			StartTime:                  time.Time{},
+			EnableEpochsHandlerField:   &enableEpochsHandlerMock.EnableEpochsHandlerStub{},
+			EnableRoundsHandlerField:   &testscommon.EnableRoundsHandlerStub{},
+			ProcessConfigsHandlerField: testscommon.GetDefaultProcessConfigsHandler(),
+			CommonConfigsHandlerField:  testscommon.GetDefaultCommonConfigsHandler(),
 		},
 		NetworkComponents: &testsMocks.NetworkComponentsStub{
 			Messenger:      &p2pmocks.MessengerStub{},
@@ -92,7 +96,7 @@ func createMockConsensusComponentsFactoryArgs() consensusComp.ConsensusComponent
 			SigHandler:       &consensusMocks.SigningHandlerStub{},
 		},
 		DataComponents: &testsMocks.DataComponentsStub{
-			DataPool: &dataRetriever.PoolsHolderStub{
+			DataPool: &dataRetrieverMocks.PoolsHolderStub{
 				MiniBlocksCalled: func() storage.Cacher {
 					return &cache.CacherStub{}
 				},
@@ -115,7 +119,7 @@ func createMockConsensusComponentsFactoryArgs() consensusComp.ConsensusComponent
 				},
 			},
 			MbProvider: &testsMocks.MiniBlocksProviderStub{},
-			Store:      &genericMocks.ChainStorerMock{},
+			Store:      genericMocks.NewChainStorerMock(0),
 		},
 		ProcessComponents: &testsMocks.ProcessComponentsStub{
 			EpochTrigger:                  &testsMocks.EpochStartTriggerStub{},
@@ -148,6 +152,7 @@ func createMockConsensusComponentsFactoryArgs() consensusComp.ConsensusComponent
 			FallbackHdrValidator:                 &testscommon.FallBackHeaderValidatorStub{},
 			SentSignaturesTrackerInternal:        &testscommon.SentSignatureTrackerStub{},
 			BlockchainHookField:                  &testscommon.BlockChainHookStub{},
+			ExecManager:                          &processMocks.ExecutionManagerMock{},
 		},
 		StateComponents: &factoryMocks.StateComponentsMock{
 			StorageManagers: map[string]common.StorageManager{
@@ -155,8 +160,10 @@ func createMockConsensusComponentsFactoryArgs() consensusComp.ConsensusComponent
 				retriever.PeerAccountsUnit.String(): &storageManager.StorageManagerStub{},
 			},
 			Accounts:             &stateMocks.AccountsStub{},
+			AccountsProposal:     &stateMocks.AccountsStub{},
 			PeersAcc:             &stateMocks.AccountsStub{},
 			MissingNodesNotifier: &testscommon.MissingTrieNodesNotifierStub{},
+			ChangesCollector:     &stateMocks.StateAccessesCollectorStub{},
 		},
 		StatusComponents: &testsMocks.StatusComponentsStub{
 			Outport: &outportMocks.OutportStub{},
@@ -230,7 +237,7 @@ func TestNewConsensusComponentsFactory(t *testing.T) {
 
 		args := createMockConsensusComponentsFactoryArgs()
 		args.DataComponents = &testsMocks.DataComponentsStub{
-			DataPool:   &dataRetriever.PoolsHolderStub{},
+			DataPool:   &dataRetrieverMocks.PoolsHolderStub{},
 			BlockChain: nil,
 		}
 		ccf, err := consensusComp.NewConsensusComponentsFactory(args)
@@ -343,6 +350,22 @@ func TestNewConsensusComponentsFactory(t *testing.T) {
 
 		require.Nil(t, ccf)
 		require.Equal(t, errorsMx.ErrNilRoundHandler, err)
+	})
+	t.Run("nil NodeRedundancyHandler should error", func(t *testing.T) {
+		t.Parallel()
+
+		args := createMockConsensusComponentsFactoryArgs()
+		args.ProcessComponents = &testsMocks.ProcessComponentsStub{
+			NodesCoord:                    &shardingMocks.NodesCoordinatorMock{},
+			ShardCoord:                    &testscommon.ShardsCoordinatorMock{},
+			RoundHandlerField:             &testscommon.RoundHandlerMock{},
+			HardforkTriggerField:          &testscommon.HardforkTriggerStub{},
+			NodeRedundancyHandlerInternal: nil,
+		}
+		ccf, err := consensusComp.NewConsensusComponentsFactory(args)
+
+		require.Nil(t, ccf)
+		require.Equal(t, errorsMx.ErrNilNodeRedundancyHandler, err)
 	})
 	t.Run("nil HardforkTrigger should error", func(t *testing.T) {
 		t.Parallel()

@@ -5,6 +5,7 @@ import (
 
 	"github.com/multiversx/mx-chain-core-go/core"
 	"github.com/multiversx/mx-chain-core-go/core/check"
+	"github.com/multiversx/mx-chain-go/consensus/spos/bls/roundSync"
 
 	"github.com/multiversx/mx-chain-go/consensus/spos"
 	"github.com/multiversx/mx-chain-go/consensus/spos/bls"
@@ -146,8 +147,9 @@ func (fct *factory) generateStartRoundSubround() error {
 		-1,
 		bls.SrStartRound,
 		bls.SrBlock,
-		int64(float64(fct.getTimeDuration())*srStartStartTime),
-		int64(float64(fct.getTimeDuration())*srStartEndTime),
+		fct.getTimeDuration(),
+		srStartStartTime,
+		srStartEndTime,
 		bls.GetSubroundName(bls.SrStartRound),
 		fct.consensusState,
 		fct.worker.GetConsensusStateChangedChannel(),
@@ -186,8 +188,9 @@ func (fct *factory) generateBlockSubround() error {
 		bls.SrStartRound,
 		bls.SrBlock,
 		bls.SrSignature,
-		int64(float64(fct.getTimeDuration())*srBlockStartTime),
-		int64(float64(fct.getTimeDuration())*srBlockEndTime),
+		fct.getTimeDuration(),
+		srBlockStartTime,
+		srBlockEndTime,
 		bls.GetSubroundName(bls.SrBlock),
 		fct.consensusState,
 		fct.worker.GetConsensusStateChangedChannel(),
@@ -201,10 +204,20 @@ func (fct *factory) generateBlockSubround() error {
 		return err
 	}
 
+	syncController, err := roundSync.NewRoundSyncController(
+		subround.EquivalentProofsPool(),
+		subround.ConsensusCoreHandler.SyncTimer(),
+		fct.consensusCore.ShardCoordinator().SelfId(),
+	)
+	if err != nil {
+		return err
+	}
+
 	subroundBlockInstance, err := NewSubroundBlock(
 		subround,
 		processingThresholdPercent,
 		fct.worker,
+		syncController,
 	)
 	if err != nil {
 		return err
@@ -222,8 +235,9 @@ func (fct *factory) generateSignatureSubround() error {
 		bls.SrBlock,
 		bls.SrSignature,
 		bls.SrEndRound,
-		int64(float64(fct.getTimeDuration())*srSignatureStartTime),
-		int64(float64(fct.getTimeDuration())*srSignatureEndTime),
+		fct.getTimeDuration(),
+		srSignatureStartTime,
+		srSignatureEndTime,
 		bls.GetSubroundName(bls.SrSignature),
 		fct.consensusState,
 		fct.worker.GetConsensusStateChangedChannel(),
@@ -258,8 +272,9 @@ func (fct *factory) generateEndRoundSubround() error {
 		bls.SrSignature,
 		bls.SrEndRound,
 		-1,
-		int64(float64(fct.getTimeDuration())*srEndStartTime),
-		int64(float64(fct.getTimeDuration())*srEndEndTime),
+		fct.getTimeDuration(),
+		srEndStartTime,
+		srEndEndTime,
 		bls.GetSubroundName(bls.SrEndRound),
 		fct.consensusState,
 		fct.worker.GetConsensusStateChangedChannel(),
@@ -279,7 +294,6 @@ func (fct *factory) generateEndRoundSubround() error {
 		fct.appStatusHandler,
 		fct.sentSignaturesTracker,
 		fct.worker,
-		fct.signatureThrottler,
 	)
 	if err != nil {
 		return err

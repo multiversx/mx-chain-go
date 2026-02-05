@@ -526,7 +526,7 @@ func (adb *AccountsDB) loadDataTrieConcurrentSafe(accountHandler baseAccountHand
 	return nil
 }
 
-// SaveDataTrie is used to save the data trie (not committing it) and to recompute the new Root value
+// saveDataTrie is used to save the data trie (not committing it) and to recompute the new Root value
 // If data is not dirtied, method will not create its JournalEntries to keep track of data modification
 func (adb *AccountsDB) saveDataTrie(accountHandler baseAccountHandler) ([]*stateChange.DataTrieChange, error) {
 	newValues, oldValues, err := accountHandler.SaveDirtyData(adb.mainTrie)
@@ -919,11 +919,6 @@ func (adb *AccountsDB) commit() ([]byte, error) {
 	log.Trace("accountsDB.Commit started")
 	adb.entries = make([]JournalEntry, 0)
 
-	err := adb.stateAccessesCollector.Store()
-	if err != nil {
-		return nil, err
-	}
-
 	oldHashes := make(common.ModifiedHashes)
 	newHashes := make(common.ModifiedHashes)
 	// Step 1. commit all data tries
@@ -939,7 +934,7 @@ func (adb *AccountsDB) commit() ([]byte, error) {
 	oldRoot := adb.mainTrie.GetOldRoot()
 
 	// Step 2. commit main trie
-	err = adb.commitTrie(adb.mainTrie, oldHashes, newHashes)
+	err := adb.commitTrie(adb.mainTrie, oldHashes, newHashes)
 	if err != nil {
 		return nil, err
 	}
@@ -947,6 +942,11 @@ func (adb *AccountsDB) commit() ([]byte, error) {
 	newRoot, err := adb.mainTrie.RootHash()
 	if err != nil {
 		log.Trace("accountsDB.Commit ended", "error", err.Error())
+		return nil, err
+	}
+
+	err = adb.stateAccessesCollector.CommitCollectedAccesses(newRoot)
+	if err != nil {
 		return nil, err
 	}
 
@@ -1029,6 +1029,17 @@ func (adb *AccountsDB) RecreateTrie(options common.RootHashHolder) error {
 	return nil
 }
 
+// RecreateTrieIfNeeded is used to reload the trie based on the provided options if the root hash is different than the current one
+func (adb *AccountsDB) RecreateTrieIfNeeded(options common.RootHashHolder) error {
+	err := adb.recreateTrieIfNeeded(options)
+	if err != nil {
+		return err
+	}
+	adb.lastRootHash = options.GetRootHash()
+
+	return nil
+}
+
 func (adb *AccountsDB) recreateTrie(options common.RootHashHolder) error {
 	log.Trace("accountsDB.RecreateTrie", "root hash holder", options.String())
 	defer func() {
@@ -1050,6 +1061,20 @@ func (adb *AccountsDB) recreateTrie(options common.RootHashHolder) error {
 
 	adb.mainTrie = newTrie
 	return nil
+}
+
+func (adb *AccountsDB) recreateTrieIfNeeded(options common.RootHashHolder) error {
+	currentRootHash, err := adb.getMainTrie().RootHash()
+	if err != nil {
+		return err
+	}
+
+	if bytes.Equal(currentRootHash, options.GetRootHash()) {
+		log.Trace("accountsDB.RecreateTrieIfNeeded - no need to recreate", "root hash", currentRootHash)
+		return nil
+	}
+
+	return adb.recreateTrie(options)
 }
 
 // RecreateAllTries recreates all the tries from the accounts DB
@@ -1143,7 +1168,7 @@ func (adb *AccountsDB) GetTrie(rootHash []byte) (common.Trie, error) {
 	return adb.getMainTrie().Recreate(rootHashHolder)
 }
 
-// Journalize adds a new object to entries list.
+// journalize adds a new object to entries list.
 func (adb *AccountsDB) journalize(entry JournalEntry) {
 	if check.IfNil(entry) {
 		return
@@ -1180,14 +1205,20 @@ func (adb *AccountsDB) GetStackDebugFirstEntry() []byte {
 func (adb *AccountsDB) PruneTrie(rootHash []byte, identifier TriePruningIdentifier, handler PruningHandler) {
 	log.Trace("accountsDB.PruneTrie", "root hash", rootHash)
 
-	adb.storagePruningManager.PruneTrie(rootHash, identifier, adb.getMainTrie().GetStorageManager(), handler)
+	adb.mutOp.Lock()
+	defer adb.mutOp.Unlock()
+
+	adb.storagePruningManager.PruneTrie(rootHash, identifier, adb.mainTrie.GetStorageManager(), handler)
 }
 
 // CancelPrune clears the trie's evictionWaitingList
 func (adb *AccountsDB) CancelPrune(rootHash []byte, identifier TriePruningIdentifier) {
 	log.Trace("accountsDB.CancelPrune", "root hash", rootHash)
 
-	adb.storagePruningManager.CancelPrune(rootHash, identifier, adb.getMainTrie().GetStorageManager())
+	adb.mutOp.Lock()
+	defer adb.mutOp.Unlock()
+
+	adb.storagePruningManager.CancelPrune(rootHash, identifier, adb.mainTrie.GetStorageManager())
 }
 
 // SnapshotState triggers the snapshotting process of the state trie

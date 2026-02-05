@@ -39,20 +39,20 @@ func (processor *peerShardInterceptorProcessor) Validate(_ process.InterceptedDa
 }
 
 // Save will save the intercepted validator info into peer shard mapper
-func (processor *peerShardInterceptorProcessor) Save(data process.InterceptedData, fromConnectedPeer core.PeerID, _ string) error {
+func (processor *peerShardInterceptorProcessor) Save(data process.InterceptedData, fromConnectedPeer core.PeerID, _ string) (bool, error) {
 	shardPeerShard, ok := data.(shardProvider)
 	if !ok {
-		return process.ErrWrongTypeAssertion
+		return false, process.ErrWrongTypeAssertion
 	}
 
 	shardID, err := strconv.Atoi(shardPeerShard.ShardID())
 	if err != nil {
-		return err
+		return false, err
 	}
 
 	processor.peerShardMapper.PutPeerIdShardId(fromConnectedPeer, uint32(shardID))
 
-	return nil
+	return true, nil
 }
 
 // RegisterHandler registers a callback function to be notified of incoming shard validator info, currently not implemented

@@ -1332,7 +1332,6 @@ func TestRollbackBlockAndCheckThatPruningIsCancelledOnAccountsTrie(t *testing.T)
 
 	fmt.Println("Minting sender addresses...")
 	integrationTests.CreateMintingForSenders(nodes, 0, sendersPrivateKeys, valMinting)
-
 	shardNode := nodes[0]
 
 	round = integrationTests.IncrementAndPrintRound(round)
@@ -1391,6 +1390,8 @@ func TestRollbackBlockAndCheckThatPruningIsCancelledOnAccountsTrie(t *testing.T)
 	nonces := []*uint64{new(uint64), new(uint64)}
 	atomic.AddUint64(nonces[0], 2)
 	atomic.AddUint64(nonces[1], 3)
+
+	integrationTests.SetRootHashOfGenesisBlocks(nodes)
 
 	numOfRounds := 2
 	integrationTests.ProposeBlocks(
@@ -2496,6 +2497,7 @@ func startNodesAndIssueToken(
 		StakingV4Step2EnableEpoch:                   integrationTests.UnreachableEpoch,
 		StakingV4Step3EnableEpoch:                   integrationTests.UnreachableEpoch,
 		AndromedaEnableEpoch:                        integrationTests.UnreachableEpoch,
+		SupernovaEnableEpoch:                        integrationTests.UnreachableEpoch,
 		AutoBalanceDataTriesEnableEpoch:             1,
 	}
 	nodes = integrationTests.CreateNodesWithEnableEpochs(

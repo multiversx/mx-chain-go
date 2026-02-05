@@ -11,12 +11,13 @@ import (
 	"github.com/multiversx/mx-chain-core-go/data"
 	"github.com/multiversx/mx-chain-core-go/data/block"
 	"github.com/multiversx/mx-chain-core-go/data/transaction"
+
 	"github.com/multiversx/mx-chain-go/common"
 	"github.com/multiversx/mx-chain-go/dataRetriever"
 	"github.com/multiversx/mx-chain-go/process"
 	"github.com/multiversx/mx-chain-go/sharding"
 	"github.com/multiversx/mx-chain-go/state"
-	"github.com/multiversx/mx-chain-go/storage/txcache"
+	"github.com/multiversx/mx-chain-go/txcache"
 )
 
 type miniBlocksBuilderArgs struct {
@@ -300,7 +301,8 @@ func (mbb *miniBlocksBuilder) accountGasForTx(tx *transaction.Transaction, wtx *
 		wtx.ReceiverShardID,
 		tx,
 		wtx.TxHash,
-		&mbb.gasInfo)
+		&mbb.gasInfo,
+		false)
 	elapsedTime := time.Since(startTime)
 	mbb.stats.totalGasComputeTime += elapsedTime
 	if err != nil {

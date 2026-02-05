@@ -6,9 +6,6 @@ import (
 	"github.com/beevik/ntp"
 )
 
-// OutOfBoundsDuration -
-const OutOfBoundsDuration = outOfBoundsDuration
-
 // Query -
 func (s *syncTime) Query() func(options NTPOptions, hostIndex int) (*ntp.Response, error) {
 	return s.query
