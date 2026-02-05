@@ -220,6 +220,7 @@ type processComponentsFactory struct {
 	genesisRound uint64
 
 	interceptedDataVerifierFactory process.InterceptedDataVerifierFactory
+	nodeRedundancyHandler          consensus.NodeRedundancyHandler
 }
 
 // NewProcessComponentsFactory will return a new instance of processComponentsFactory
@@ -649,6 +650,27 @@ func (pcf *processComponentsFactory) Create() (*processComponents, error) {
 		return nil, err
 	}
 
+	observerBLSPrivateKey, observerBLSPublicKey := pcf.crypto.BlockSignKeyGen().GeneratePair()
+	observerBLSPublicKeyBuff, err := observerBLSPublicKey.ToByteArray()
+	if err != nil {
+		return nil, fmt.Errorf("error generating observerBLSPublicKeyBuff, %w", err)
+	} else {
+		log.Debug("generated BLS private key for redundancy handler. This key will be used on heartbeat messages "+
+			"if the node is in backup mode and the main node is active", "hex public key", observerBLSPublicKeyBuff)
+	}
+
+	nodeRedundancyArg := redundancy.ArgNodeRedundancy{
+		RedundancyLevel:       int(pcf.prefConfigs.Preferences.RedundancyLevel),
+		ProcessConfigsHandler: pcf.coreData.ProcessConfigsHandler(),
+		Messenger:             pcf.network.NetworkMessenger(),
+		ObserverPrivateKey:    observerBLSPrivateKey,
+	}
+	nodeRedundancyHandler, err := redundancy.NewNodeRedundancy(nodeRedundancyArg)
+	if err != nil {
+		return nil, err
+	}
+	pcf.nodeRedundancyHandler = nodeRedundancyHandler
+
 	blockProcessorComponents, err := pcf.newBlockProcessor(
 		requestHandler,
 		forkDetector,
@@ -733,26 +755,6 @@ func (pcf *processComponentsFactory) Create() (*processComponents, error) {
 	}
 
 	err = nodesSetupChecker.Check(pcf.coreData.GenesisNodesSetup().AllInitialNodes())
-	if err != nil {
-		return nil, err
-	}
-
-	observerBLSPrivateKey, observerBLSPublicKey := pcf.crypto.BlockSignKeyGen().GeneratePair()
-	observerBLSPublicKeyBuff, err := observerBLSPublicKey.ToByteArray()
-	if err != nil {
-		return nil, fmt.Errorf("error generating observerBLSPublicKeyBuff, %w", err)
-	} else {
-		log.Debug("generated BLS private key for redundancy handler. This key will be used on heartbeat messages "+
-			"if the node is in backup mode and the main node is active", "hex public key", observerBLSPublicKeyBuff)
-	}
-
-	nodeRedundancyArg := redundancy.ArgNodeRedundancy{
-		RedundancyLevel:       int(pcf.prefConfigs.Preferences.RedundancyLevel),
-		ProcessConfigsHandler: pcf.coreData.ProcessConfigsHandler(),
-		Messenger:             pcf.network.NetworkMessenger(),
-		ObserverPrivateKey:    observerBLSPrivateKey,
-	}
-	nodeRedundancyHandler, err := redundancy.NewNodeRedundancy(nodeRedundancyArg)
 	if err != nil {
 		return nil, err
 	}

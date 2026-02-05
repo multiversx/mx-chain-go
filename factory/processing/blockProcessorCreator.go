@@ -169,13 +169,11 @@ func (pcf *processComponentsFactory) createAOTSelector(
 		selectionTimeoutMs = 150 // default 150ms
 	}
 
-	// Create AOT selector with all dependencies except NodeRedundancy
-	// NodeRedundancy will be set later via consensus components wiring
 	aotSelectorArgs := aotSelection.AOTSelectorArgs{
 		NodesCoordinator:     pcf.nodesCoordinator,
 		ShardCoordinator:     shardCoordinator,
 		KeysHandler:          pcf.crypto.KeysHandler(),
-		NodeRedundancy:       nil, // Set later via SetAOTSelector in consensus components
+		NodeRedundancy:       pcf.nodeRedundancyHandler,
 		TxCache:              txCache,
 		AccountsAdapter:      pcf.state.AccountsAdapter(),
 		TransactionProcessor: transactionProcessor,

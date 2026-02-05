@@ -13,21 +13,20 @@ import (
 	vmcommon "github.com/multiversx/mx-chain-vm-common-go"
 	"github.com/stretchr/testify/require"
 
-	"github.com/multiversx/mx-chain-go/storage"
-	"github.com/multiversx/mx-chain-go/testscommon/epochNotifier"
-
-	"github.com/multiversx/mx-chain-go/state"
-
 	"github.com/multiversx/mx-chain-go/dataRetriever"
 	"github.com/multiversx/mx-chain-go/process"
 	"github.com/multiversx/mx-chain-go/process/block/processedMb"
 	"github.com/multiversx/mx-chain-go/process/factory/shard"
 	"github.com/multiversx/mx-chain-go/process/mock"
+	"github.com/multiversx/mx-chain-go/state"
+	"github.com/multiversx/mx-chain-go/storage"
 	"github.com/multiversx/mx-chain-go/testscommon"
+	aotStubs "github.com/multiversx/mx-chain-go/testscommon/aotStubs"
 	"github.com/multiversx/mx-chain-go/testscommon/cache"
 	commonMock "github.com/multiversx/mx-chain-go/testscommon/common"
 	dataRetrieverMock "github.com/multiversx/mx-chain-go/testscommon/dataRetriever"
 	"github.com/multiversx/mx-chain-go/testscommon/enableEpochsHandlerMock"
+	"github.com/multiversx/mx-chain-go/testscommon/epochNotifier"
 	"github.com/multiversx/mx-chain-go/testscommon/hashingMocks"
 	"github.com/multiversx/mx-chain-go/testscommon/preprocMocks"
 	stateMock "github.com/multiversx/mx-chain-go/testscommon/state"
@@ -1148,4 +1147,140 @@ func createHeaderWithMiniBlocksAndTransactions() testData {
 		mb1Info:        mb1Info,
 		mb2Info:        mb2Info,
 	}
+}
+
+func TestTransactionCoordinator_SelectOutgoingTransactionsAOTCacheHit(t *testing.T) {
+	t.Parallel()
+
+	ph := dataRetrieverMock.NewPoolsHolderMock()
+	tc, err := createMockTransactionCoordinatorForProposalTests(ph)
+	require.Nil(t, err)
+	require.NotNil(t, tc)
+
+	txHash1 := []byte("aot_tx_hash_1")
+	txHash2 := []byte("aot_tx_hash_2")
+	tx1 := &transaction.Transaction{SndAddr: []byte("sender1"), Nonce: 0, Value: big.NewInt(0)}
+	tx2 := &transaction.Transaction{SndAddr: []byte("sender2"), Nonce: 0, Value: big.NewInt(0)}
+
+	// Add transactions to tc.dataPool (used by getTxHandlersFromHashes)
+	cacheId := process.ShardCacherIdentifier(0, 0)
+	tc.dataPool.Transactions().AddData(txHash1, tx1, 100, cacheId)
+	tc.dataPool.Transactions().AddData(txHash2, tx2, 100, cacheId)
+
+	// Set up AOT selector that returns a cache hit
+	tc.aotSelector = &aotStubs.AOTSelectorStub{
+		GetPreSelectedTransactionsCalled: func(blockNonce uint64) (*process.AOTSelectionResult, bool) {
+			return &process.AOTSelectionResult{
+				TxHashes:            [][]byte{txHash1, txHash2},
+				GasProvided:         50000,
+				PredictedBlockNonce: blockNonce,
+			}, true
+		},
+	}
+
+	// Track whether the preprocessor was called (it shouldn't be with AOT hit)
+	preprocessorCalled := false
+	tc.preProcProposal.txPreProcessors[block.TxBlock] = &preprocMocks.PreProcessorMock{
+		SelectOutgoingTransactionsCalled: func(_ uint64, _ uint64, _ func() bool) ([][]byte, []data.TransactionHandler, error) {
+			preprocessorCalled = true
+			return nil, nil, nil
+		},
+	}
+
+	txHashes, _ := tc.SelectOutgoingTransactions(42, haveTimeTrue)
+
+	require.Equal(t, 2, len(txHashes))
+	require.Equal(t, txHash1, txHashes[0])
+	require.Equal(t, txHash2, txHashes[1])
+	require.False(t, preprocessorCalled, "preprocessor should not be called when AOT cache hit")
+}
+
+func TestTransactionCoordinator_SelectOutgoingTransactionsAOTCacheMiss(t *testing.T) {
+	t.Parallel()
+
+	ph := dataRetrieverMock.NewPoolsHolderMock()
+	tc, err := createMockTransactionCoordinatorForProposalTests(ph)
+	require.Nil(t, err)
+	require.NotNil(t, tc)
+
+	// Set up AOT selector that returns a cache miss
+	tc.aotSelector = &aotStubs.AOTSelectorStub{
+		GetPreSelectedTransactionsCalled: func(blockNonce uint64) (*process.AOTSelectionResult, bool) {
+			return nil, false
+		},
+	}
+
+	// Set up preprocessor to return transactions (fallback path)
+	expectedTxHashes := [][]byte{[]byte("fallback_tx_1"), []byte("fallback_tx_2")}
+	expectedTxs := []data.TransactionHandler{&transaction.Transaction{}, &transaction.Transaction{}}
+	preprocessorCalled := false
+	tc.preProcProposal.txPreProcessors[block.TxBlock] = &preprocMocks.PreProcessorMock{
+		SelectOutgoingTransactionsCalled: func(_ uint64, _ uint64, _ func() bool) ([][]byte, []data.TransactionHandler, error) {
+			preprocessorCalled = true
+			return expectedTxHashes, expectedTxs, nil
+		},
+	}
+
+	txHashes, _ := tc.SelectOutgoingTransactions(42, haveTimeTrue)
+
+	require.Equal(t, 2, len(txHashes))
+	require.Equal(t, expectedTxHashes[0], txHashes[0])
+	require.Equal(t, expectedTxHashes[1], txHashes[1])
+	require.True(t, preprocessorCalled, "preprocessor should be called when AOT cache miss")
+}
+
+func TestTransactionCoordinator_SelectOutgoingTransactionsNilAOTSelector(t *testing.T) {
+	t.Parallel()
+
+	ph := dataRetrieverMock.NewPoolsHolderMock()
+	tc, err := createMockTransactionCoordinatorForProposalTests(ph)
+	require.Nil(t, err)
+	require.NotNil(t, tc)
+
+	// Ensure AOT selector is nil (default from createMockTransactionCoordinatorArguments)
+	tc.aotSelector = nil
+
+	// Set up preprocessor (should be called as fallback)
+	expectedTxHashes := [][]byte{[]byte("normal_tx_1")}
+	expectedTxs := []data.TransactionHandler{&transaction.Transaction{}}
+	preprocessorCalled := false
+	tc.preProcProposal.txPreProcessors[block.TxBlock] = &preprocMocks.PreProcessorMock{
+		SelectOutgoingTransactionsCalled: func(_ uint64, _ uint64, _ func() bool) ([][]byte, []data.TransactionHandler, error) {
+			preprocessorCalled = true
+			return expectedTxHashes, expectedTxs, nil
+		},
+	}
+
+	txHashes, _ := tc.SelectOutgoingTransactions(42, haveTimeTrue)
+
+	require.Equal(t, 1, len(txHashes))
+	require.Equal(t, expectedTxHashes[0], txHashes[0])
+	require.True(t, preprocessorCalled, "preprocessor should be called when AOT selector is nil")
+}
+
+func TestTransactionCoordinator_GetTxHandlersFromHashesSomeMissing(t *testing.T) {
+	t.Parallel()
+
+	ph := dataRetrieverMock.NewPoolsHolderMock()
+	tc, err := createMockTransactionCoordinatorForProposalTests(ph)
+	require.Nil(t, err)
+	require.NotNil(t, tc)
+
+	txHash1 := []byte("present_tx")
+	txHash2 := []byte("missing_tx")
+	txHash3 := []byte("also_present_tx")
+	tx1 := &transaction.Transaction{SndAddr: []byte("sender1"), Nonce: 0, Value: big.NewInt(0)}
+	tx3 := &transaction.Transaction{SndAddr: []byte("sender3"), Nonce: 0, Value: big.NewInt(0)}
+
+	// Only add tx1 and tx3 to tc.dataPool, tx2 is missing
+	cacheId := process.ShardCacherIdentifier(0, 0)
+	tc.dataPool.Transactions().AddData(txHash1, tx1, 100, cacheId)
+	tc.dataPool.Transactions().AddData(txHash3, tx3, 100, cacheId)
+
+	validHashes, txs := tc.getTxHandlersFromHashes([][]byte{txHash1, txHash2, txHash3})
+
+	require.Equal(t, 2, len(validHashes))
+	require.Equal(t, 2, len(txs))
+	require.Equal(t, txHash1, validHashes[0])
+	require.Equal(t, txHash3, validHashes[1])
 }

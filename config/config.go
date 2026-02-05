@@ -32,7 +32,6 @@ type TxCacheSelectionConfig struct {
 type AOTSelectionConfig struct {
 	Enabled            bool
 	CacheSize          int
-	CacheExpiryRounds  int
 	SelectionTimeoutMs int
 }
 

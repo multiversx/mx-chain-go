@@ -73,6 +73,7 @@ type aotSelector struct {
 	selectionMut sync.Mutex
 	ongoingNonce uint64
 	resultChan   chan *process.AOTSelectionResult
+	lastEpoch    uint32
 }
 
 // NewAOTSelector creates a new AOT selector instance
@@ -160,8 +161,28 @@ func (s *aotSelector) TriggerAOTSelection(committedHeader data.HeaderHandler, cu
 		return
 	}
 
-	randomness := committedHeader.GetRandSeed()
 	epoch := committedHeader.GetEpoch()
+	// Detect epoch change and invalidate cache
+	s.selectionMut.Lock()
+	previousEpoch := s.lastEpoch
+	epochChanged := s.lastEpoch != epoch && s.lastEpoch != 0
+	s.lastEpoch = epoch
+	if epochChanged {
+		s.cache.Clear()
+		if s.cancelChan != nil {
+			close(s.cancelChan)
+			s.cancelChan = nil
+		}
+	}
+	s.selectionMut.Unlock()
+
+	if epochChanged {
+		log.Debug("TriggerAOTSelection: epoch changed, cleared cache and cancelled ongoing selection",
+			"previousEpoch", previousEpoch,
+			"newEpoch", epoch)
+	}
+
+	randomness := committedHeader.GetRandSeed()
 	nextNonce := committedHeader.GetNonce() + 1
 	nextRound := currentRound + 1
 
@@ -364,12 +385,6 @@ func (s *aotSelector) runAOTSelection(targetNonce uint64, randomness []byte) {
 		"duration", time.Since(startTime))
 
 	resultChan <- result
-}
-
-// SetNodeRedundancy sets the node redundancy handler
-// This is called after creation when the handler becomes available via consensus components
-func (s *aotSelector) SetNodeRedundancy(handler consensus.NodeRedundancyHandler) {
-	s.nodeRedundancy = handler
 }
 
 // IsInterfaceNil returns true if there is no value under the interface
