@@ -301,7 +301,8 @@ func (mbb *miniBlocksBuilder) accountGasForTx(tx *transaction.Transaction, wtx *
 		wtx.ReceiverShardID,
 		tx,
 		wtx.TxHash,
-		&mbb.gasInfo)
+		&mbb.gasInfo,
+		false)
 	elapsedTime := time.Since(startTime)
 	mbb.stats.totalGasComputeTime += elapsedTime
 	if err != nil {

@@ -1257,8 +1257,8 @@ func (bp *baseProcessor) cleanupUnexecutableTxsFromPool(headerHash []byte) {
 		return
 	}
 
+	cacheID := process.ShardCacherIdentifier(bp.shardCoordinator.SelfId(), bp.shardCoordinator.SelfId())
 	for _, txHash := range unexecutableTxHashes {
-		cacheID := process.ShardCacherIdentifier(bp.shardCoordinator.SelfId(), bp.shardCoordinator.SelfId())
 		bp.dataPool.Transactions().RemoveData(txHash, cacheID)
 	}
 }
@@ -2020,13 +2020,13 @@ func (bp *baseProcessor) updateStateStorage(
 }
 
 // RevertCurrentBlock reverts the current block for cleanup failed process
-func (bp *baseProcessor) RevertCurrentBlock(headerHandler data.HeaderHandler) {
+func (bp *baseProcessor) RevertCurrentBlock() {
 	bp.revertAccountState()
 	bp.revertScheduledInfo()
-	bp.revertCurrentBlockV3(headerHandler)
 }
 
-func (bp *baseProcessor) revertCurrentBlockV3(headerHandler data.HeaderHandler) {
+// RevertHeaderV3OnCommit reverts the current block for commit failed
+func (bp *baseProcessor) RevertHeaderV3OnCommit(headerHandler data.HeaderHandler) {
 	if check.IfNil(headerHandler) || !headerHandler.IsHeaderV3() {
 		return
 	}
@@ -2505,7 +2505,7 @@ func (bp *baseProcessor) ProcessScheduledBlock(headerHandler data.HeaderHandler,
 	bp.processStatusHandler.SetBusy("baseProcessor.ProcessScheduledBlock")
 	defer func() {
 		if err != nil {
-			bp.RevertCurrentBlock(headerHandler)
+			bp.RevertCurrentBlock()
 		}
 		bp.processStatusHandler.SetIdle()
 	}()
@@ -2909,20 +2909,9 @@ func (bp *baseProcessor) cleanPostProcessCache(header data.HeaderHandler) error 
 	postProcessTxsCache := bp.dataPool.PostProcessTransactions()
 	executedMbs := bp.dataPool.ExecutedMiniBlocks()
 	for _, execResult := range executionResults {
-		headerHash := execResult.GetHeaderHash()
-		// all transactions moved, cleaning the cache
-		postProcessTxsCache.Remove(headerHash)
-		// remove execution order data
-		postProcessTxsCache.Remove(common.PrepareOrderedTxHashesKey(headerHash))
-		// remove cached log events
-		postProcessTxsCache.Remove(common.PrepareLogEventsKey(headerHash))
-
-		mbHeaders, err := common.GetMiniBlocksHeaderHandlersFromExecResult(execResult)
+		err := process.CleanCachesForExecutionResult(execResult, postProcessTxsCache, executedMbs)
 		if err != nil {
 			return err
-		}
-		for _, mbHeader := range mbHeaders {
-			executedMbs.Remove(mbHeader.GetHash())
 		}
 	}
 
@@ -3353,6 +3342,7 @@ func (bp *baseProcessor) setCurrentBlockInfo(
 	// set also last executed block info and header
 	// this will be useful at transition to Supernova with headers v3
 	bp.blockChain.SetLastExecutedBlockHeaderAndRootHash(header, headerHash, rootHash)
+	bp.executionManager.CleanOnConsensusReached(headerHash, header.GetNonce())
 
 	// before header v3, create and set execution result in tracker
 	lastExecResHandler, err := common.GetOrCreateLastExecutionResultForPrevHeader(header, headerHash)
@@ -3593,14 +3583,16 @@ func (bp *baseProcessor) getLastExecutionResultHeader(
 	)
 }
 
-func (bp *baseProcessor) checkAndUpdateContextBeforeExecution(header data.HeaderHandler) error {
+func (bp *baseProcessor) checkAndUpdateContextBeforeExecution(header data.HeaderHandler, headerHash []byte) error {
 	lastExecutionResult := bp.blockChain.GetLastExecutionResult()
-	if process.IsReplacementBlockForExecution(header, lastExecutionResult) {
+	if process.IsReplacementBlockForExecution(header, headerHash, lastExecutionResult) {
 		err := process.UpdateContextForReplacedHeader(
 			header,
 			bp.executionManager,
 			bp.blockChain,
 			bp.dataPool.Headers(),
+			bp.dataPool.PostProcessTransactions(),
+			bp.dataPool.ExecutedMiniBlocks(),
 			bp.store,
 			bp.marshalizer,
 			bp.shardCoordinator.SelfId(),
@@ -3862,4 +3854,20 @@ func (bp *baseProcessor) updateInclusionEstimatorMetrics(executionResultsLen int
 	}
 
 	bp.appStatusHandler.SetUInt64Value(common.MetricNumInclusionEstimationRejected, rejected)
+}
+
+func (bp *baseProcessor) saveEpochStartEconomicsMetrics(epochStartMetaBlock data.MetaHeaderHandler) {
+	economics := epochStartMetaBlock.GetEpochStartHandler().GetEconomicsHandler()
+
+	bp.appStatusHandler.SetStringValue(common.MetricTotalSupply, economics.GetTotalSupply().String())
+	bp.appStatusHandler.SetStringValue(common.MetricInflation, economics.GetTotalNewlyMinted().String())
+	bp.appStatusHandler.SetUInt64Value(common.MetricEpochForEconomicsData, uint64(epochStartMetaBlock.GetEpoch()))
+
+	if epochStartMetaBlock.IsHeaderV3() {
+		// fee metrics for meta block v3 will be handled separately when propose epoch change block is processed
+		return
+	}
+
+	bp.appStatusHandler.SetStringValue(common.MetricTotalFees, epochStartMetaBlock.GetAccumulatedFeesInEpoch().String())
+	bp.appStatusHandler.SetStringValue(common.MetricDevRewardsInEpoch, epochStartMetaBlock.GetDevFeesInEpoch().String())
 }

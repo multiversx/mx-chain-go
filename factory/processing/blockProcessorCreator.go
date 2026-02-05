@@ -6,10 +6,11 @@ import (
 
 	"github.com/multiversx/mx-chain-core-go/core"
 	dataBlock "github.com/multiversx/mx-chain-core-go/data/block"
-	"github.com/multiversx/mx-chain-go/epochStart/metachain/disabled"
 	logger "github.com/multiversx/mx-chain-logger-go"
 	vmcommon "github.com/multiversx/mx-chain-vm-common-go"
 	"github.com/multiversx/mx-chain-vm-common-go/parsers"
+
+	"github.com/multiversx/mx-chain-go/epochStart/metachain/disabled"
 
 	"github.com/multiversx/mx-chain-go/process/estimator"
 	"github.com/multiversx/mx-chain-go/process/missingData"
@@ -381,6 +382,7 @@ func (pcf *processComponentsFactory) newShardBlockProcessor(
 		ProcessedMiniBlocksTracker:   processedMiniBlocksTracker,
 		TxExecutionOrderHandler:      pcf.txExecutionOrderHandler,
 		TxCacheSelectionConfig:       pcf.config.TxCacheSelection,
+		TxVersionChecker:             pcf.coreData.TxVersionChecker(),
 	}
 	preProcFactory, err := shard.NewPreProcessorsContainerFactory(argsPreProcFactory)
 	if err != nil {
@@ -450,6 +452,7 @@ func (pcf *processComponentsFactory) newShardBlockProcessor(
 		TxTypeHandler:                txTypeHandler,
 		TransactionsLogProcessor:     pcf.txLogsProcessor,
 		EnableEpochsHandler:          pcf.coreData.EnableEpochsHandler(),
+		EnableRoundsHandler:          pcf.coreData.EnableRoundsHandler(),
 		ScheduledTxsExecutionHandler: scheduledTxsExecutionHandler,
 		DoubleTransactionsDetector:   doubleTransactionsDetector,
 		ProcessedMiniBlocksTracker:   processedMiniBlocksTracker,
@@ -805,6 +808,7 @@ func (pcf *processComponentsFactory) newMetaBlockProcessor(
 		ProcessedMiniBlocksTracker:   processedMiniBlocksTracker,
 		TxExecutionOrderHandler:      pcf.txExecutionOrderHandler,
 		TxCacheSelectionConfig:       pcf.config.TxCacheSelection,
+		TxVersionCheckerHandler:      pcf.coreData.TxVersionChecker(),
 	}
 
 	preProcFactory, err := metachain.NewPreProcessorsContainerFactory(argsPreprocContainerFactory)
@@ -874,6 +878,7 @@ func (pcf *processComponentsFactory) newMetaBlockProcessor(
 		TxTypeHandler:                txTypeHandler,
 		TransactionsLogProcessor:     pcf.txLogsProcessor,
 		EnableEpochsHandler:          pcf.coreData.EnableEpochsHandler(),
+		EnableRoundsHandler:          pcf.coreData.EnableRoundsHandler(),
 		ScheduledTxsExecutionHandler: scheduledTxsExecutionHandler,
 		DoubleTransactionsDetector:   doubleTransactionsDetector,
 		ProcessedMiniBlocksTracker:   processedMiniBlocksTracker,

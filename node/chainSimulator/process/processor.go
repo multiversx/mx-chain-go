@@ -13,30 +13,40 @@ import (
 	heartbeatData "github.com/multiversx/mx-chain-go/heartbeat/data"
 	"github.com/multiversx/mx-chain-go/node/chainSimulator/configs"
 	"github.com/multiversx/mx-chain-go/node/chainSimulator/dtos"
-	"github.com/multiversx/mx-chain-go/process/asyncExecution/queue"
+	"github.com/multiversx/mx-chain-go/process/asyncExecution/cache"
 	"github.com/multiversx/mx-chain-go/sharding/nodesCoordinator"
 )
 
 var log = logger.GetOrCreate("process-block")
+
+const defaultCreateBlockTimePercent = 0.25
 
 type manualRoundHandler interface {
 	IncrementIndex()
 }
 
 type blocksCreator struct {
-	nodeHandler NodeHandler
-	monitor     HeartbeatMonitorWithSet
+	nodeHandler                NodeHandler
+	monitor                    HeartbeatMonitorWithSet
+	createBlockMaxTimePercent  float64
+	bypassCreateBlockTimeCheck bool
 }
 
 // NewBlocksCreator will create a new instance of blocksCreator
-func NewBlocksCreator(nodeHandler NodeHandler, monitor HeartbeatMonitorWithSet) (*blocksCreator, error) {
+func NewBlocksCreator(nodeHandler NodeHandler, monitor HeartbeatMonitorWithSet, createBlockHaveTimePercent float64, bypassHaveTime bool) (*blocksCreator, error) {
 	if check.IfNil(nodeHandler) {
 		return nil, ErrNilNodeHandler
 	}
+	// If not set, set the default time percentage of the round duration
+	if createBlockHaveTimePercent == 0 {
+		createBlockHaveTimePercent = defaultCreateBlockTimePercent
+	}
 
 	return &blocksCreator{
-		nodeHandler: nodeHandler,
-		monitor:     monitor,
+		nodeHandler:                nodeHandler,
+		monitor:                    monitor,
+		createBlockMaxTimePercent:  createBlockHaveTimePercent,
+		bypassCreateBlockTimeCheck: bypassHaveTime,
 	}, nil
 }
 
@@ -63,15 +73,23 @@ func (creator *blocksCreator) createHeaderBasedOnRound(round uint64, nonce uint6
 
 func (creator *blocksCreator) createBlock(header data.HeaderHandler) (data.HeaderHandler, data.BodyHandler, error) {
 	processComponents := creator.nodeHandler.GetProcessComponents()
-	if header.IsHeaderV3() {
-		return processComponents.BlockProcessor().CreateBlockProposal(header, func() bool {
-			return true
-		})
+	haveTime := func() bool {
+		return true
 	}
 
-	return processComponents.BlockProcessor().CreateBlock(header, func() bool {
-		return true
-	})
+	if header.IsHeaderV3() {
+		if !creator.bypassCreateBlockTimeCheck {
+			roundDuration := creator.nodeHandler.GetCoreComponents().RoundHandler().TimeDuration()
+			allowedDuration := time.Duration(float64(roundDuration) * creator.createBlockMaxTimePercent)
+			startTime := time.Now()
+			haveTime = func() bool {
+				return time.Since(startTime) < allowedDuration
+			}
+		}
+		return processComponents.BlockProcessor().CreateBlockProposal(header, haveTime)
+	}
+
+	return processComponents.BlockProcessor().CreateBlock(header, haveTime)
 }
 
 // CreateNewBlock creates and process a new block
@@ -185,6 +203,11 @@ func (creator *blocksCreator) CreateNewBlock() (*dtos.BroadcastData, error) {
 		creator.updatePeerShardMapper(header.GetEpoch())
 	}
 
+	headerHash, err := core.CalculateHash(creator.nodeHandler.GetCoreComponents().InternalMarshalizer(), creator.nodeHandler.GetCoreComponents().Hasher(), header)
+	if err != nil {
+		return nil, err
+	}
+
 	if newHeader.IsHeaderV3() {
 		err = creator.setHeaderSignatures(header, leader.PubKey(), validators, pubKeyBitmap)
 		if err != nil {
@@ -200,9 +223,15 @@ func (creator *blocksCreator) CreateNewBlock() (*dtos.BroadcastData, error) {
 			return nil, err
 		}
 
-		pair := queue.HeaderBodyPair{
-			Header: header,
-			Body:   block,
+		headerHash, err = core.CalculateHash(creator.nodeHandler.GetCoreComponents().InternalMarshalizer(), creator.nodeHandler.GetCoreComponents().Hasher(), header)
+		if err != nil {
+			return nil, err
+		}
+
+		pair := cache.HeaderBodyPair{
+			Header:     header,
+			Body:       block,
+			HeaderHash: headerHash,
 		}
 		err = creator.nodeHandler.GetProcessComponents().ExecutionManager().AddPairForExecution(pair)
 		if err != nil {
@@ -211,11 +240,6 @@ func (creator *blocksCreator) CreateNewBlock() (*dtos.BroadcastData, error) {
 	}
 
 	headerProof, err := creator.ApplySignaturesAndGetProof(header, prevHeader, enableEpochHandler, validators, leader, pubKeyBitmap)
-	if err != nil {
-		return nil, err
-	}
-
-	headerHash, err := core.CalculateHash(creator.nodeHandler.GetCoreComponents().InternalMarshalizer(), creator.nodeHandler.GetCoreComponents().Hasher(), header)
 	if err != nil {
 		return nil, err
 	}

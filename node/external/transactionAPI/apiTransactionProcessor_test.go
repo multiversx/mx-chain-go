@@ -74,13 +74,14 @@ func createMockArgAPITransactionProcessor() *ArgAPITransactionProcessor {
 		TxTypeHandler:            &testscommon.TxTypeHandlerMock{},
 		LogsFacade:               &testscommon.LogsFacadeStub{},
 		DataFieldParser: &testscommon.DataFieldParserStub{
-			ParseCalled: func(dataField []byte, sender, receiver []byte, _ uint32) *datafield.ResponseParseData {
+			ParseCalled: func(dataField []byte, sender, receiver []byte, _ uint32, _ uint32) *datafield.ResponseParseData {
 				return &datafield.ResponseParseData{}
 			},
 		},
 		TxMarshaller:        &marshallerMock.MarshalizerMock{},
 		EnableEpochsHandler: enableEpochsHandlerMock.NewEnableEpochsHandlerStub(),
 		EnableRoundsHandler: &testscommon.EnableRoundsHandlerStub{},
+		TxVersionChecker:    &testscommon.TxVersionCheckerStub{},
 	}
 }
 
@@ -229,6 +230,15 @@ func TestNewAPITransactionProcessor(t *testing.T) {
 
 		_, err := NewAPITransactionProcessor(arguments)
 		require.Equal(t, process.ErrNilEnableRoundsHandler, err)
+	})
+	t.Run("NilTransactionVersionChecker", func(t *testing.T) {
+		t.Parallel()
+
+		arguments := createMockArgAPITransactionProcessor()
+		arguments.TxVersionChecker = nil
+
+		_, err := NewAPITransactionProcessor(arguments)
+		require.Equal(t, process.ErrNilTransactionVersionChecker, err)
 	})
 }
 
@@ -397,13 +407,14 @@ func TestNode_GetSCRs(t *testing.T) {
 		TxTypeHandler:            &testscommon.TxTypeHandlerMock{},
 		LogsFacade:               &testscommon.LogsFacadeStub{},
 		DataFieldParser: &testscommon.DataFieldParserStub{
-			ParseCalled: func(dataField []byte, sender, receiver []byte, _ uint32) *datafield.ResponseParseData {
+			ParseCalled: func(dataField []byte, sender, receiver []byte, _ uint32, _ uint32) *datafield.ResponseParseData {
 				return &datafield.ResponseParseData{}
 			},
 		},
 		EnableEpochsHandler: enableEpochsHandlerMock.NewEnableEpochsHandlerStub(),
 		TxMarshaller:        &mock.MarshalizerFake{},
 		EnableRoundsHandler: &testscommon.EnableRoundsHandlerStub{},
+		TxVersionChecker:    &testscommon.TxVersionCheckerStub{},
 	}
 	apiTransactionProc, _ := NewAPITransactionProcessor(args)
 
@@ -610,7 +621,7 @@ func TestNode_GetTransactionCheckExecutionResults(t *testing.T) {
 			TxTypeHandler:            &testscommon.TxTypeHandlerMock{},
 			LogsFacade:               &testscommon.LogsFacadeStub{},
 			DataFieldParser: &testscommon.DataFieldParserStub{
-				ParseCalled: func(dataField []byte, sender, receiver []byte, _ uint32) *datafield.ResponseParseData {
+				ParseCalled: func(dataField []byte, sender, receiver []byte, _ uint32, _ uint32) *datafield.ResponseParseData {
 					return &datafield.ResponseParseData{}
 				},
 			},
@@ -621,6 +632,7 @@ func TestNode_GetTransactionCheckExecutionResults(t *testing.T) {
 					return true
 				},
 			},
+			TxVersionChecker: &testscommon.TxVersionCheckerStub{},
 		}
 		apiTransactionProc, _ := NewAPITransactionProcessor(args)
 
@@ -694,7 +706,7 @@ func TestNode_GetTransactionCheckExecutionResults(t *testing.T) {
 			TxTypeHandler:            &testscommon.TxTypeHandlerMock{},
 			LogsFacade:               &testscommon.LogsFacadeStub{},
 			DataFieldParser: &testscommon.DataFieldParserStub{
-				ParseCalled: func(dataField []byte, sender, receiver []byte, _ uint32) *datafield.ResponseParseData {
+				ParseCalled: func(dataField []byte, sender, receiver []byte, _ uint32, _ uint32) *datafield.ResponseParseData {
 					return &datafield.ResponseParseData{}
 				},
 			},
@@ -705,6 +717,7 @@ func TestNode_GetTransactionCheckExecutionResults(t *testing.T) {
 					return true
 				},
 			},
+			TxVersionChecker: &testscommon.TxVersionCheckerStub{},
 		}
 		apiTransactionProc, _ := NewAPITransactionProcessor(args)
 
@@ -790,13 +803,14 @@ func TestNode_GetTransactionWithResultsFromStorage(t *testing.T) {
 		TxTypeHandler:            &testscommon.TxTypeHandlerMock{},
 		LogsFacade:               &testscommon.LogsFacadeStub{},
 		DataFieldParser: &testscommon.DataFieldParserStub{
-			ParseCalled: func(dataField []byte, sender, receiver []byte, _ uint32) *datafield.ResponseParseData {
+			ParseCalled: func(dataField []byte, sender, receiver []byte, _ uint32, _ uint32) *datafield.ResponseParseData {
 				return &datafield.ResponseParseData{}
 			},
 		},
 		TxMarshaller:        &marshallerMock.MarshalizerMock{},
 		EnableEpochsHandler: enableEpochsHandlerMock.NewEnableEpochsHandlerStub(),
 		EnableRoundsHandler: &testscommon.EnableRoundsHandlerStub{},
+		TxVersionChecker:    &testscommon.TxVersionCheckerStub{},
 	}
 	apiTransactionProc, _ := NewAPITransactionProcessor(args)
 
@@ -1136,6 +1150,7 @@ func TestApiTransactionProcessor_GetTransactionsPoolForSender(t *testing.T) {
 			MaxTrackedBlocks:               maxTrackedBlocks,
 		},
 	}, txcachemocks.NewMempoolHostMock(), 0)
+	require.NoError(t, err)
 
 	txCacheWithMeta.AddTx(createTx(txHash3, sender, 4))
 	txCacheWithMeta.AddTx(createTx(txHash4, sender, 5))
@@ -1802,7 +1817,7 @@ func createAPITransactionProc(t *testing.T, epoch uint32, withDbLookupExt bool) 
 		},
 	}
 	dataFieldParser := &testscommon.DataFieldParserStub{
-		ParseCalled: func(dataField []byte, sender, receiver []byte, _ uint32) *datafield.ResponseParseData {
+		ParseCalled: func(dataField []byte, sender, receiver []byte, _ uint32, _ uint32) *datafield.ResponseParseData {
 			if strings.Contains(string(dataField), "relayed") {
 				return &datafield.ResponseParseData{
 					IsRelayed: true,
@@ -1833,6 +1848,7 @@ func createAPITransactionProc(t *testing.T, epoch uint32, withDbLookupExt bool) 
 			},
 		},
 		EnableRoundsHandler: &testscommon.EnableRoundsHandlerStub{},
+		TxVersionChecker:    &testscommon.TxVersionCheckerStub{},
 	}
 	apiTransactionProc, err := NewAPITransactionProcessor(args)
 	require.Nil(t, err)

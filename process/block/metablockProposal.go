@@ -1,6 +1,7 @@
 package block
 
 import (
+	"bytes"
 	"errors"
 	"fmt"
 	"time"
@@ -111,7 +112,7 @@ func (mp *metaProcessor) CreateBlockProposal(
 
 	metaHdr.SoftwareVersion = []byte(mp.headerIntegrityVerifier.GetVersion(metaHdr.Epoch, metaHdr.Round))
 
-	if metaHdr.IsStartOfEpochBlock() || metaHdr.GetEpochChangeProposed() || mp.epochStartTrigger.IsEpochStart() {
+	if metaHdr.IsStartOfEpochBlock() || metaHdr.GetEpochChangeProposed() || mp.epochStartTrigger.GetEpochChangeProposed() {
 		// no new transactions in start of epoch block
 		// to simplify bootstrapping
 		return metaHdr, &block.Body{}, nil
@@ -283,6 +284,7 @@ func (mp *metaProcessor) VerifyBlockProposal(
 // ProcessBlockProposal processes the proposed block. It returns nil if all ok or the specific error
 func (mp *metaProcessor) ProcessBlockProposal(
 	headerHandler data.HeaderHandler,
+	headerHash []byte,
 	bodyHandler data.BodyHandler,
 ) (data.BaseExecutionResultHandler, error) {
 	if check.IfNil(headerHandler) {
@@ -331,11 +333,11 @@ func (mp *metaProcessor) ProcessBlockProposal(
 	var err error
 	defer func() {
 		if err != nil {
-			mp.RevertCurrentBlock(headerHandler)
+			mp.RevertCurrentBlock()
 		}
 	}()
 
-	err = mp.checkAndUpdateContextBeforeExecution(header)
+	err = mp.checkAndUpdateContextBeforeExecution(header, headerHash)
 	if err != nil {
 		return nil, err
 	}
@@ -403,12 +405,6 @@ func (mp *metaProcessor) ProcessBlockProposal(
 
 	var valStatRootHash []byte
 	valStatRootHash, err = mp.updateValidatorStatistics(header)
-	if err != nil {
-		return nil, err
-	}
-
-	var headerHash []byte
-	headerHash, err = core.CalculateHash(mp.marshalizer, mp.hasher, header)
 	if err != nil {
 		return nil, err
 	}
@@ -494,7 +490,35 @@ func (mp *metaProcessor) processEpochStartProposeBlock(
 		return nil, err
 	}
 
+	mp.saveEpochStartEconomicsMetricsV3IfNeeded(metaHeader)
+
 	return execResult, nil
+}
+
+func (mp *metaProcessor) saveEpochStartEconomicsMetricsV3IfNeeded(metaBlock data.MetaHeaderHandler) {
+	if !metaBlock.IsHeaderV3() {
+		// fee metrics for meta block will be handled on commit
+		return
+	}
+
+	if !metaBlock.IsEpochChangeProposed() {
+		return
+	}
+
+	lastExecutionResult := mp.blockChain.GetLastExecutionResult()
+	if !bytes.Equal(lastExecutionResult.GetHeaderHash(), metaBlock.GetPrevHash()) {
+		// should never happen, as this is called while processing proposeEpochChangeMetaBlock
+		return
+	}
+
+	lastMetaExecutionResult, ok := lastExecutionResult.(data.BaseMetaExecutionResultHandler)
+	if !ok {
+		// should never happen
+		return
+	}
+
+	mp.appStatusHandler.SetStringValue(common.MetricTotalFees, lastMetaExecutionResult.GetAccumulatedFeesInEpoch().String())
+	mp.appStatusHandler.SetStringValue(common.MetricDevRewardsInEpoch, lastMetaExecutionResult.GetDevFeesInEpoch().String())
 }
 
 func (mp *metaProcessor) updateValidatorStatistics(header data.MetaHeaderHandler) ([]byte, error) {
@@ -981,6 +1005,11 @@ func (mp *metaProcessor) checkShardHeadersValidityAndFinalityProposal(
 	usedShardHeaders, err := mp.getShardHeadersFromMetaHeader(metaHeaderHandler)
 	if err != nil {
 		return fmt.Errorf("%w : checkShardHeadersValidityAndFinalityProposal -> getShardHeadersFromMetaHeader", err)
+	}
+
+	shouldNotHaveShardHeaders := metaHeaderHandler.IsStartOfEpochBlock() || metaHeaderHandler.IsEpochChangeProposed() || mp.epochStartTrigger.GetEpochChangeProposed()
+	if len(usedShardHeaders.orderedShardHeaders) > 0 && shouldNotHaveShardHeaders {
+		return fmt.Errorf("%w : between epoch change proposed and epoch start block", process.ErrShardHeadersShouldNotBeNotarized)
 	}
 
 	ok := mp.hasProofsForHeaders(usedShardHeaders.headersPerShard)

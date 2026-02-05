@@ -165,6 +165,7 @@ func TestStatusMetrics_StatusMetricsWithoutP2PPrometheusStringShouldComputeRound
 	sm.SetUInt64Value(common.MetricCurrentRound, 137)
 	sm.SetUInt64Value(common.MetricNonceAtEpochStart, 100)
 	sm.SetUInt64Value(common.MetricNonce, 138)
+	sm.SetUInt64Value(common.MetricLastExecutedNonce, 136)
 
 	strRes, _ := sm.StatusMetricsWithoutP2PPrometheusString()
 
@@ -239,6 +240,7 @@ func TestStatusMetrics_NetworkMetrics(t *testing.T) {
 	sm.SetUInt64Value(common.MetricCurrentRound, 200)
 	sm.SetUInt64Value(common.MetricRoundAtEpochStart, 100)
 	sm.SetUInt64Value(common.MetricNonce, 180)
+	sm.SetUInt64Value(common.MetricLastExecutedNonce, 179)
 	sm.SetUInt64Value(common.MetricBlockTimestamp, 18000)
 	sm.SetUInt64Value(common.MetricBlockTimestampMs, 18000000)
 	sm.SetUInt64Value(common.MetricHighestFinalBlock, 181)
@@ -251,6 +253,7 @@ func TestStatusMetrics_NetworkMetrics(t *testing.T) {
 		"erd_current_round":                  uint64(200),
 		"erd_round_at_epoch_start":           uint64(100),
 		"erd_nonce":                          uint64(180),
+		"erd_last_executed_nonce":            uint64(179),
 		"erd_block_timestamp":                uint64(18000),
 		"erd_block_timestamp_ms":             uint64(18000000),
 		"erd_highest_final_nonce":            uint64(181),
@@ -284,6 +287,7 @@ func TestStatusMetrics_StatusMetricsMapWithoutP2P(t *testing.T) {
 	sm.SetUInt64Value(common.MetricCurrentRound, 100)
 	sm.SetUInt64Value(common.MetricRoundAtEpochStart, 200)
 	sm.SetUInt64Value(common.MetricNonce, 300)
+	sm.SetUInt64Value(common.MetricLastExecutedNonce, 298)
 	sm.SetUInt64Value(common.MetricBlockTimestamp, 30000)
 	sm.SetUInt64Value(common.MetricBlockTimestampMs, 30000000)
 	sm.SetStringValue(common.MetricAppVersion, "400")
@@ -297,6 +301,7 @@ func TestStatusMetrics_StatusMetricsMapWithoutP2P(t *testing.T) {
 	require.Equal(t, uint64(100), res[common.MetricCurrentRound])
 	require.Equal(t, uint64(200), res[common.MetricRoundAtEpochStart])
 	require.Equal(t, uint64(300), res[common.MetricNonce])
+	require.Equal(t, uint64(298), res[common.MetricLastExecutedNonce])
 	require.Equal(t, uint64(30000), res[common.MetricBlockTimestamp])
 	require.Equal(t, "400", res[common.MetricAppVersion])
 	require.NotContains(t, res, common.MetricRoundsPassedInCurrentEpoch)
