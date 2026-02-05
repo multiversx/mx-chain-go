@@ -5,6 +5,7 @@ import (
 	"strings"
 	"testing"
 
+	"github.com/multiversx/mx-chain-go/common"
 	"github.com/multiversx/mx-chain-go/common/configs"
 	"github.com/multiversx/mx-chain-go/config"
 	"github.com/multiversx/mx-chain-go/process"
@@ -211,4 +212,35 @@ func TestAntifloodConfigs_GetCurrentConfig(t *testing.T) {
 		require.Equal(t, uint64(100), currentConfig.Round)
 		require.Equal(t, float32(60), currentConfig.FastReacting.ReservedPercent)
 	})
+}
+
+func TestAntifloodConfigs_GetFloodPreventerConfigByType(t *testing.T) {
+	t.Parallel()
+
+	conf := config.AntifloodConfig{
+		Enabled:        true,
+		ConfigsByRound: getAntifloodConfigsByRound(),
+	}
+
+	roundNotifier := &epochNotifier.RoundNotifierStub{
+		CurrentRoundCalled: func() uint64 {
+			return 120
+		},
+	}
+	handler, _ := configs.NewAntifloodConfigsHandler(conf, roundNotifier)
+
+	fastReacting := handler.GetFloodPreventerConfigByType(common.FastReacting)
+	require.Equal(t, conf.ConfigsByRound[1].FastReacting, fastReacting)
+
+	slowReacting := handler.GetFloodPreventerConfigByType(common.SlowReacting)
+	require.Equal(t, conf.ConfigsByRound[1].SlowReacting, slowReacting)
+
+	outOfSpecs := handler.GetFloodPreventerConfigByType(common.OutOfSpecs)
+	require.Equal(t, conf.ConfigsByRound[1].OutOfSpecs, outOfSpecs)
+
+	peerOutput := handler.GetFloodPreventerConfigByType(common.Output)
+	require.Equal(t, conf.ConfigsByRound[1].PeerMaxOutput, peerOutput)
+
+	other := handler.GetFloodPreventerConfigByType(common.FloodPreventerType("other"))
+	require.Equal(t, config.FloodPreventerConfig{}, other) // empty config
 }

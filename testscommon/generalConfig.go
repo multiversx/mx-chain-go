@@ -589,27 +589,27 @@ func GetDefaultAntifloodConfig() config.AntifloodConfig {
 				},
 				PeerMaxOutput: config.FloodPreventerConfig{
 					PeerMaxInput: config.AntifloodLimitsConfig{
-						BaseMessagesPerInterval: 100,
-						TotalSizePerInterval:    100,
+						BaseMessagesPerInterval: 101,
+						TotalSizePerInterval:    102,
 					},
 				},
 				Topic: config.TopicAntifloodConfig{
-					DefaultMaxMessagesPerSec: 100,
+					DefaultMaxMessagesPerSec: 103,
 				},
 				TxAccumulator: config.TxAccumulatorConfig{
-					MaxAllowedTimeInMilliseconds:   100,
-					MaxDeviationTimeInMilliseconds: 10,
+					MaxAllowedTimeInMilliseconds:   104,
+					MaxDeviationTimeInMilliseconds: 11,
 				},
 				FastReacting: config.FloodPreventerConfig{
 					BlackList: config.BlackListConfig{
-						ThresholdNumMessagesPerInterval: 200,
-						ThresholdSizePerInterval:        2048,
-						PeerBanDurationInSeconds:        200,
-						NumFloodingRounds:               10,
+						ThresholdNumMessagesPerInterval: 201,
+						ThresholdSizePerInterval:        2041,
+						PeerBanDurationInSeconds:        201,
+						NumFloodingRounds:               12,
 					},
 					PeerMaxInput: config.AntifloodLimitsConfig{
-						BaseMessagesPerInterval: 200,
-						TotalSizePerInterval:    2048,
+						BaseMessagesPerInterval: 202,
+						TotalSizePerInterval:    2042,
 						IncreaseFactor: config.IncreaseFactorConfig{
 							Factor: 2.0,
 						},
@@ -618,14 +618,14 @@ func GetDefaultAntifloodConfig() config.AntifloodConfig {
 				},
 				SlowReacting: config.FloodPreventerConfig{
 					BlackList: config.BlackListConfig{
-						ThresholdNumMessagesPerInterval: 200,
-						ThresholdSizePerInterval:        2048,
-						PeerBanDurationInSeconds:        200,
-						NumFloodingRounds:               10,
+						ThresholdNumMessagesPerInterval: 203,
+						ThresholdSizePerInterval:        2043,
+						PeerBanDurationInSeconds:        203,
+						NumFloodingRounds:               13,
 					},
 					PeerMaxInput: config.AntifloodLimitsConfig{
-						BaseMessagesPerInterval: 200,
-						TotalSizePerInterval:    2048,
+						BaseMessagesPerInterval: 203,
+						TotalSizePerInterval:    2043,
 						IncreaseFactor: config.IncreaseFactorConfig{
 							Factor: 2.0,
 						},
@@ -634,14 +634,14 @@ func GetDefaultAntifloodConfig() config.AntifloodConfig {
 				},
 				OutOfSpecs: config.FloodPreventerConfig{
 					BlackList: config.BlackListConfig{
-						ThresholdNumMessagesPerInterval: 200,
-						ThresholdSizePerInterval:        2048,
-						PeerBanDurationInSeconds:        200,
-						NumFloodingRounds:               10,
+						ThresholdNumMessagesPerInterval: 204,
+						ThresholdSizePerInterval:        2044,
+						PeerBanDurationInSeconds:        204,
+						NumFloodingRounds:               14,
 					},
 					PeerMaxInput: config.AntifloodLimitsConfig{
-						BaseMessagesPerInterval: 200,
-						TotalSizePerInterval:    2048,
+						BaseMessagesPerInterval: 204,
+						TotalSizePerInterval:    2044,
 						IncreaseFactor: config.IncreaseFactorConfig{
 							Factor: 2.0,
 						},

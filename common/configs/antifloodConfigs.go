@@ -187,7 +187,7 @@ func (ac *antifloodConfigs) GetFloodPreventerConfigByType(configType common.Floo
 	case common.OutOfSpecs:
 		return currentConfig.OutOfSpecs
 	case common.Output:
-		return currentConfig.OutOfSpecs
+		return currentConfig.PeerMaxOutput
 	default:
 		// this case should not happen
 		return config.FloodPreventerConfig{}
