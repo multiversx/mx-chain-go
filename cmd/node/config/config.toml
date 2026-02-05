@@ -520,6 +520,13 @@
     SelectionGasBandwidthIncreaseScheduledPercent = 260
     SelectionGasRequested = 10_000_000_000
 
+[AOTSelection]
+    # Ahead-of-Time transaction selection - pre-selects transactions before consensus round
+    Enabled = true
+    CacheSize = 10                                          # Number of pre-selection results to cache
+    CacheExpiryRounds = 2                                   # Entries expire after this many rounds
+    SelectionTimeoutMs = 150                                # Max time for AOT selection in milliseconds
+
 [TrieNodesChunksDataPool]
     Name = "TrieNodesDataPool"
     Capacity = 400

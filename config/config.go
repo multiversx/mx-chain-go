@@ -28,6 +28,14 @@ type TxCacheSelectionConfig struct {
 	SelectionLoopDurationCheckInterval            int
 }
 
+// AOTSelectionConfig will map the ahead-of-time transaction selection config
+type AOTSelectionConfig struct {
+	Enabled            bool
+	CacheSize          int
+	CacheExpiryRounds  int
+	SelectionTimeoutMs int
+}
+
 // HeadersPoolConfig will map the headers cache configuration
 type HeadersPoolConfig struct {
 	MaxHeadersPerShard            int
@@ -40,7 +48,7 @@ type ProofsPoolConfig struct {
 	BucketSize        int
 }
 
-// ExecutionResultInclusionEstimatorConfig will map the EIE configuration - supplied at construction, read‑only thereafter.
+// ExecutionResultInclusionEstimatorConfig will map the EIE configuration - supplied at construction, read\u2011only thereafter.
 // TODO add also max estimated block gas capacity
 type ExecutionResultInclusionEstimatorConfig struct {
 	SafetyMargin       uint64
@@ -207,6 +215,7 @@ type Config struct {
 	TxDataPool                   CacheConfig
 	TxCacheBounds                TxCacheBoundsConfig
 	TxCacheSelection             TxCacheSelectionConfig
+	AOTSelection                 AOTSelectionConfig
 	UnsignedTransactionDataPool  CacheConfig
 	RewardTransactionDataPool    CacheConfig
 	TrieNodesChunksDataPool      CacheConfig

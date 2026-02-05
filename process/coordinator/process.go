@@ -71,6 +71,7 @@ type ArgTransactionCoordinator struct {
 	BlockDataRequester           process.BlockDataRequester
 	BlockDataRequesterProposal   process.BlockDataRequester
 	GasComputation               process.GasComputation
+	AOTSelector                  process.AOTTransactionSelector
 }
 
 type transactionCoordinator struct {
@@ -103,6 +104,7 @@ type transactionCoordinator struct {
 	blockDataRequester           process.BlockDataRequester
 	blockDataRequesterProposal   process.BlockDataRequester
 	gasComputation               process.GasComputation
+	aotSelector                  process.AOTTransactionSelector
 }
 
 // NewTransactionCoordinator creates a transaction coordinator to run and coordinate preprocessors and processors
@@ -134,6 +136,7 @@ func NewTransactionCoordinator(args ArgTransactionCoordinator) (*transactionCoor
 		blockDataRequester:           args.BlockDataRequester,
 		blockDataRequesterProposal:   args.BlockDataRequesterProposal,
 		gasComputation:               args.GasComputation,
+		aotSelector:                  args.AOTSelector,
 	}
 
 	tc.interimProcessors = make(map[block.Type]process.IntermediateTransactionHandler)

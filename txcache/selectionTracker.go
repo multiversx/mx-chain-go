@@ -26,6 +26,7 @@ type selectionTracker struct {
 	txCache                   txCacheForSelectionTracker
 	selfShardId               uint32
 	maxTrackedBlocks          uint32
+	aotSelectionPreempter     common.AOTSelectionPreempter
 }
 
 // NewSelectionTracker creates a new selectionTracker
@@ -77,6 +78,9 @@ func (st *selectionTracker) OnProposedBlock(
 	if err != nil {
 		return err
 	}
+
+	// Preempt any ongoing AOT selection before acquiring the lock
+	st.preemptAOTSelectionIfNeeded()
 
 	st.mutTracker.Lock()
 	defer st.mutTracker.Unlock()
@@ -355,6 +359,9 @@ func (st *selectionTracker) OnExecutedBlock(blockHeader data.HeaderHandler, root
 	)
 
 	tempTrackedBlock := newTrackedBlock(nonce, nil, prevHash)
+
+	// Preempt any ongoing AOT selection before acquiring the lock
+	st.preemptAOTSelectionIfNeeded()
 
 	st.mutTracker.Lock()
 	defer st.mutTracker.Unlock()
@@ -680,4 +687,16 @@ func (st *selectionTracker) getTrackerDiagnosis() TrackerDiagnosis {
 	defer st.mutTracker.RUnlock()
 
 	return NewTrackerDiagnosis(uint64(len(st.blocks)), st.globalBreadcrumbsCompiler.getNumGlobalBreadcrumbs())
+}
+
+// SetAOTSelectionPreempter sets the AOT selection preempter for preemption support
+func (st *selectionTracker) SetAOTSelectionPreempter(preempter common.AOTSelectionPreempter) {
+	st.aotSelectionPreempter = preempter
+}
+
+// preemptAOTSelectionIfNeeded cancels any ongoing AOT selection before critical operations
+func (st *selectionTracker) preemptAOTSelectionIfNeeded() {
+	if st.aotSelectionPreempter != nil && !check.IfNil(st.aotSelectionPreempter) {
+		st.aotSelectionPreempter.CancelOngoingSelection()
+	}
 }

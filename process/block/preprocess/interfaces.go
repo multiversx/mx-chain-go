@@ -19,6 +19,7 @@ type TxCache interface {
 	SelectTransactions(session txcache.SelectionSession, options common.TxSelectionOptions, currentBlockNonce uint64) ([]*txcache.WrappedTransaction, uint64, error)
 	SimulateSelectTransactions(session txcache.SelectionSession, options common.TxSelectionOptions) ([]*txcache.WrappedTransaction, uint64, error)
 	GetVirtualNonceAndRootHash(sender []byte) (uint64, []byte, error)
+	SetAOTSelectionPreempter(preempter common.AOTSelectionPreempter)
 	IsInterfaceNil() bool
 }
 

@@ -398,3 +398,9 @@ func (cache *TxCache) Close() error {
 func (cache *TxCache) IsInterfaceNil() bool {
 	return cache == nil
 }
+
+// SetAOTSelectionPreempter sets the AOT selection preempter for preemption support
+// This allows the selectionTracker to preempt ongoing AOT selections when needed
+func (cache *TxCache) SetAOTSelectionPreempter(preempter common.AOTSelectionPreempter) {
+	cache.tracker.SetAOTSelectionPreempter(preempter)
+}

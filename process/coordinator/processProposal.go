@@ -156,21 +156,40 @@ func (tc *transactionCoordinator) SelectOutgoingTransactions(
 ) (selectedTxHashes [][]byte, selectedPendingIncomingMiniBlocks []data.MiniBlockHeaderHandler) {
 	selectedTxHashes = make([][]byte, 0)
 	selectedTxs := make([]data.TransactionHandler, 0)
-	for _, blockType := range tc.preProcProposal.keysTxPreProcs {
-		txPreProc := tc.preProcProposal.getPreProcessor(blockType)
-		if check.IfNil(txPreProc) {
-			log.Warn("transactionCoordinator.SelectOutgoingTransactions: getPreProcessor returned nil for block type", "blockType", blockType)
-			continue
-		}
 
-		gasBandwidth := tc.gasComputation.GetBandwidthForTransactions()
-		txHashes, txs, err := txPreProc.SelectOutgoingTransactions(gasBandwidth, nonce, haveTimeForSelection)
-		if err != nil {
-			log.Warn("transactionCoordinator.SelectOutgoingTransactions: SelectOutgoingTransactions returned error", "error", err)
-			continue
+	// Check AOT cache first
+	aotHit := false
+	if !check.IfNil(tc.aotSelector) {
+		aotResult, found := tc.aotSelector.GetPreSelectedTransactions(nonce)
+		if found && aotResult != nil && len(aotResult.TxHashes) > 0 {
+			log.Info("SelectOutgoingTransactions: using AOT pre-selected transactions",
+				"nonce", nonce,
+				"numTxs", len(aotResult.TxHashes))
+
+			// Retrieve transaction handlers from the data pool using cached hashes
+			selectedTxHashes, selectedTxs = tc.getTxHandlersFromHashes(aotResult.TxHashes)
+			aotHit = true
 		}
-		selectedTxHashes = append(selectedTxHashes, txHashes...)
-		selectedTxs = append(selectedTxs, txs...)
+	}
+
+	// If no AOT cache hit, use normal selection from preprocessors
+	if !aotHit {
+		for _, blockType := range tc.preProcProposal.keysTxPreProcs {
+			txPreProc := tc.preProcProposal.getPreProcessor(blockType)
+			if check.IfNil(txPreProc) {
+				log.Warn("transactionCoordinator.SelectOutgoingTransactions: getPreProcessor returned nil for block type", "blockType", blockType)
+				continue
+			}
+
+			gasBandwidth := tc.gasComputation.GetBandwidthForTransactions()
+			txHashes, txs, err := txPreProc.SelectOutgoingTransactions(gasBandwidth, nonce, haveTimeForSelection)
+			if err != nil {
+				log.Warn("transactionCoordinator.SelectOutgoingTransactions: SelectOutgoingTransactions returned error", "error", err)
+				continue
+			}
+			selectedTxHashes = append(selectedTxHashes, txHashes...)
+			selectedTxs = append(selectedTxs, txs...)
+		}
 	}
 
 	selectedTxHashes, pendingMiniBlocksAdded, err := tc.gasComputation.AddOutgoingTransactions(selectedTxHashes, selectedTxs)
@@ -179,6 +198,38 @@ func (tc *transactionCoordinator) SelectOutgoingTransactions(
 	}
 
 	return selectedTxHashes, pendingMiniBlocksAdded
+}
+
+// getTxHandlersFromHashes retrieves transaction handlers from the data pool using the provided hashes
+func (tc *transactionCoordinator) getTxHandlersFromHashes(txHashes [][]byte) ([][]byte, []data.TransactionHandler) {
+	validHashes := make([][]byte, 0, len(txHashes))
+	txs := make([]data.TransactionHandler, 0, len(txHashes))
+
+	txPool := tc.dataPool.Transactions()
+	for _, txHash := range txHashes {
+		val, ok := txPool.SearchFirstData(txHash)
+		if !ok {
+			log.Trace("getTxHandlersFromHashes: transaction not found in pool", "hash", txHash)
+			continue
+		}
+
+		tx, isTx := val.(data.TransactionHandler)
+		if !isTx {
+			log.Warn("getTxHandlersFromHashes: value is not a TransactionHandler", "hash", txHash)
+			continue
+		}
+
+		validHashes = append(validHashes, txHash)
+		txs = append(txs, tx)
+	}
+
+	if len(validHashes) != len(txHashes) {
+		log.Debug("getTxHandlersFromHashes: some transactions not found",
+			"requested", len(txHashes),
+			"found", len(validHashes))
+	}
+
+	return validHashes, txs
 }
 
 func (tc *transactionCoordinator) verifyCreatedMiniBlocksSanity(body *block.Body) error {
