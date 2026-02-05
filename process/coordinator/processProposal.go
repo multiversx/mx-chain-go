@@ -149,6 +149,35 @@ func (tc *transactionCoordinator) CreateMbsCrossShardDstMe(
 	return miniBlocksAndHashes, pendingMiniBlocksAndHashes, numTransactions, allMiniBlocksAdded, nil
 }
 
+func (tc *transactionCoordinator) getAOTSelection(nonce uint64) ([][]byte, []data.TransactionHandler) {
+	if check.IfNil(tc.aotSelector) {
+		return [][]byte{}, []data.TransactionHandler{}
+	}
+
+	aotResult, found := tc.aotSelector.GetPreSelectedTransactions(nonce)
+	if !found || aotResult == nil {
+		log.Trace("GetAOTSelection: no AOT pre-selected transactions found for nonce", "nonce", nonce)
+		return [][]byte{}, []data.TransactionHandler{}
+	}
+
+	if len(aotResult.TxHashes) == 0 {
+		return [][]byte{}, []data.TransactionHandler{}
+	}
+
+	// Retrieve transaction handlers from the data pool using cached hashes
+	selectedTxHashes, selectedTxs := tc.getTxHandlersFromHashes(aotResult.TxHashes)
+	if len(selectedTxs) == 0 {
+		log.Warn("getTxHandlersFromHashes, txs not found in pool for AOT pre-selected hashes", "nonce", nonce, "numHashes", len(aotResult.TxHashes))
+		return [][]byte{}, []data.TransactionHandler{}
+	}
+
+	log.Info("SelectOutgoingTransactions: using AOT pre-selected transactions",
+		"nonce", nonce,
+		"numTxs", len(aotResult.TxHashes))
+
+	return selectedTxHashes, selectedTxs
+}
+
 // SelectOutgoingTransactions returns transactions originating in the shard, for a block proposal
 func (tc *transactionCoordinator) SelectOutgoingTransactions(
 	nonce uint64,
@@ -157,23 +186,9 @@ func (tc *transactionCoordinator) SelectOutgoingTransactions(
 	selectedTxHashes = make([][]byte, 0)
 	selectedTxs := make([]data.TransactionHandler, 0)
 
-	// Check AOT cache first
-	aotHit := false
-	if !check.IfNil(tc.aotSelector) {
-		aotResult, found := tc.aotSelector.GetPreSelectedTransactions(nonce)
-		if found && aotResult != nil && len(aotResult.TxHashes) > 0 {
-			log.Info("SelectOutgoingTransactions: using AOT pre-selected transactions",
-				"nonce", nonce,
-				"numTxs", len(aotResult.TxHashes))
-
-			// Retrieve transaction handlers from the data pool using cached hashes
-			selectedTxHashes, selectedTxs = tc.getTxHandlersFromHashes(aotResult.TxHashes)
-			aotHit = true
-		}
-	}
-
-	// If no AOT cache hit, use normal selection from preprocessors
-	if !aotHit {
+	selectedTxHashes, selectedTxs = tc.getAOTSelection(nonce)
+	// If no tx returned from AOT selection, fallback to regular selection from pre-processors
+	if len(selectedTxs) == 0 {
 		for _, blockType := range tc.preProcProposal.keysTxPreProcs {
 			txPreProc := tc.preProcProposal.getPreProcessor(blockType)
 			if check.IfNil(txPreProc) {
@@ -210,23 +225,17 @@ func (tc *transactionCoordinator) getTxHandlersFromHashes(txHashes [][]byte) ([]
 		val, ok := txPool.SearchFirstData(txHash)
 		if !ok {
 			log.Trace("getTxHandlersFromHashes: transaction not found in pool", "hash", txHash)
-			continue
+			return [][]byte{}, []data.TransactionHandler{}
 		}
 
 		tx, isTx := val.(data.TransactionHandler)
 		if !isTx {
 			log.Warn("getTxHandlersFromHashes: value is not a TransactionHandler", "hash", txHash)
-			continue
+			return [][]byte{}, []data.TransactionHandler{}
 		}
 
 		validHashes = append(validHashes, txHash)
 		txs = append(txs, tx)
-	}
-
-	if len(validHashes) != len(txHashes) {
-		log.Debug("getTxHandlersFromHashes: some transactions not found",
-			"requested", len(txHashes),
-			"found", len(validHashes))
 	}
 
 	return validHashes, txs
