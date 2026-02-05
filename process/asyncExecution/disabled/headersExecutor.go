@@ -20,6 +20,11 @@ func (he *headersExecutor) PauseExecution() {
 func (he *headersExecutor) ResumeExecution() {
 }
 
+// GetSignalProcessCompletionChan returns nil as it is disabled
+func (he *headersExecutor) GetSignalProcessCompletionChan() chan uint64 {
+	return nil
+}
+
 // Close always returns nil as it is disabled
 func (he *headersExecutor) Close() error {
 	return nil
