@@ -1465,7 +1465,7 @@ func (sp *shardProcessor) snapShotEpochStartFromMeta(header data.ShardHeaderHand
 			log.Debug("shard trie snapshot from epoch start shard data", "rootHash", rootHash, "epoch", epoch)
 			accounts.SnapshotState(rootHash, epoch)
 			sp.markSnapshotDoneInPeerAccounts()
-			saveEpochStartEconomicsMetrics(sp.appStatusHandler, metaHdr)
+			sp.saveEpochStartEconomicsMetrics(metaHdr)
 			go func() {
 				err := sp.commitTrieEpochRootHashIfNeeded(metaHdr, rootHash)
 				if err != nil {
