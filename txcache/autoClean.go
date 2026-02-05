@@ -28,12 +28,18 @@ func (cache *TxCache) RemoveSweepableTxs(accountsProvider common.AccountNoncePro
 	cache.mutTxOperation.Lock()
 	defer cache.mutTxOperation.Unlock()
 
+	rootHash, err := accountsProvider.GetRootHash()
+	if err != nil {
+		log.Debug("TxCache.RemoveSweepableTxs: failed to get root hash", "err", err)
+	}
+
 	cleanupLoopStartTime := time.Now()
 
 	logRemove.Debug("TxCache.RemoveSweepableTxs start",
 		"randomness", randomness,
 		"maxNum", maxNum,
 		"cleanupLoopMaximumDuration", cleanupLoopMaximumDurationMs,
+		"rootHash", rootHash,
 	)
 
 	evicted := make([][]byte, 0, cache.txByHash.counter.Get())
@@ -138,35 +144,45 @@ func (listForSender *txListForSender) removeSweepableTransactionsReturnHashes(ta
 	listForSender.mutex.Lock()
 	defer listForSender.mutex.Unlock()
 
-	for element := listForSender.items.Front(); element != nil; {
-		// finds transactions with lower nonces
-		tx := element.Value.(*WrappedTransaction)
+	// Filter approach: we need to remove untracked transactions <= targetNonce
+	// Since we are operating on the underlying slice, we can iterate.
 
-		txNonce := tx.Tx.GetNonce()
+	cutoffIndex := listForSender.list.len()
+	items := listForSender.list.items
 
-		// nonces are sorted ascending, so we can stop as soon as we find a nonce that is higher
-		if txNonce > targetNonce {
+	for i, tx := range items {
+		// Nonces are sorted ascending, so we can stop as soon as we find a nonce that is higher
+		if tx.Tx.GetNonce() > targetNonce {
+			cutoffIndex = i
 			break
 		}
-
-		logRemove.Debug("TxCache.removeSweepableTransactionsReturnHashes",
-			"txHash", tx.TxHash,
-			"txNonce", txNonce,
-			"targetNonce", targetNonce,
-		)
-
-		nextElement := element.Next()
-
-		if !tracker.IsTransactionTracked(tx) {
-			_ = listForSender.items.Remove(element)
-			listForSender.onRemovedListElement(element)
-
-			// Keep track of removed transactions
-			txHashesToEvict = append(txHashesToEvict, tx.TxHash)
-		}
-
-		element = nextElement
 	}
+
+	// Candidates in [0...cutoffIndex-1]
+	// Rebuild the prefix
+
+	keptItems := make([]*WrappedTransaction, 0, cutoffIndex)
+
+	for i := 0; i < cutoffIndex; i++ {
+		tx := items[i]
+		shouldRemove := !tracker.IsTransactionTracked(tx)
+
+		if shouldRemove {
+			logRemove.Debug("TxCache.removeSweepableTransactionsReturnHashes",
+				"txHash", tx.TxHash,
+				"txNonce", tx.Tx.GetNonce(),
+				"targetNonce", targetNonce,
+			)
+			txHashesToEvict = append(txHashesToEvict, tx.TxHash)
+			listForSender.onRemovedTransaction(tx)
+			continue
+		}
+		keptItems = append(keptItems, tx)
+	}
+
+	// Reassemble
+	keptItems = append(keptItems, items[cutoffIndex:]...)
+	listForSender.list.items = keptItems
 
 	return txHashesToEvict
 }

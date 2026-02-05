@@ -191,7 +191,6 @@ func printEnableEpochs(configs *config.Configs) {
 	log.Debug(readEpochFor("payable by smart contract"), "epoch", enableEpochs.IsPayableBySCEnableEpoch)
 	log.Debug(readEpochFor("cleanup informative only SCRs"), "epoch", enableEpochs.CleanUpInformativeSCRsEnableEpoch)
 	log.Debug(readEpochFor("storage API cost optimization"), "epoch", enableEpochs.StorageAPICostOptimizationEnableEpoch)
-	log.Debug(readEpochFor("transform to multi shard create on esdt"), "epoch", enableEpochs.TransformToMultiShardCreateEnableEpoch)
 	log.Debug(readEpochFor("esdt: enable epoch for esdt register and set all roles function"), "epoch", enableEpochs.ESDTRegisterAndSetAllRolesEnableEpoch)
 	log.Debug(readEpochFor("scheduled mini blocks"), "epoch", enableEpochs.ScheduledMiniBlocksEnableEpoch)
 	log.Debug(readEpochFor("correct jailed not unstaked if empty queue"), "epoch", enableEpochs.CorrectJailedNotUnstakedEmptyQueueEpoch)
@@ -1226,6 +1225,7 @@ func (nr *nodeRunner) CreateManagedProcessComponents(
 		Marshalizer:              coreComponents.InternalMarshalizer(),
 		Store:                    dataComponents.StorageService(),
 		Uint64ByteSliceConverter: coreComponents.Uint64ByteSliceConverter(),
+		DataPool:                 dataComponents.Datapool(),
 	}
 	historyRepositoryFactory, err := dbLookupFactory.NewHistoryRepositoryFactory(historyRepoFactoryArgs)
 	if err != nil {
@@ -1443,8 +1443,7 @@ func (nr *nodeRunner) CreateManagedNetworkComponents(
 		MainConfig:            *nr.configs.GeneralConfig,
 		RatingsConfig:         *nr.configs.RatingsConfig,
 		StatusHandler:         statusCoreComponents.AppStatusHandler(),
-		Marshalizer:           coreComponents.InternalMarshalizer(),
-		Syncer:                coreComponents.SyncTimer(),
+		CoreComponents:        coreComponents,
 		PreferredPeersSlices:  nr.configs.PreferencesConfig.Preferences.PreferredConnections,
 		BootstrapWaitTime:     common.TimeToWaitForP2PBootstrap,
 		NodeOperationMode:     common.NormalOperation,

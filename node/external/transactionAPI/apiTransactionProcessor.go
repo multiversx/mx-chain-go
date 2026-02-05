@@ -1,6 +1,7 @@
 package transactionAPI
 
 import (
+	"bytes"
 	"encoding/hex"
 	"errors"
 	"fmt"
@@ -16,6 +17,8 @@ import (
 	"github.com/multiversx/mx-chain-core-go/data/transaction"
 	"github.com/multiversx/mx-chain-core-go/data/typeConverters"
 	"github.com/multiversx/mx-chain-core-go/marshal"
+	logger "github.com/multiversx/mx-chain-logger-go"
+
 	"github.com/multiversx/mx-chain-go/common"
 	"github.com/multiversx/mx-chain-go/common/holders"
 	"github.com/multiversx/mx-chain-go/dataRetriever"
@@ -28,7 +31,6 @@ import (
 	"github.com/multiversx/mx-chain-go/sharding"
 	"github.com/multiversx/mx-chain-go/state"
 	"github.com/multiversx/mx-chain-go/txcache"
-	logger "github.com/multiversx/mx-chain-logger-go"
 )
 
 var log = logger.GetOrCreate("node/transactionAPI")
@@ -50,6 +52,8 @@ type apiTransactionProcessor struct {
 	refundDetector              *refundDetector
 	gasUsedAndFeeProcessor      *gasUsedAndFeeProcessor
 	enableEpochsHandler         common.EnableEpochsHandler
+	enableRoundsHandler         common.EnableRoundsHandler
+	txVersionChecker            process.TxVersionCheckerHandler
 }
 
 // NewAPITransactionProcessor will create a new instance of apiTransactionProcessor
@@ -75,6 +79,7 @@ func NewAPITransactionProcessor(args *ArgAPITransactionProcessor) (*apiTransacti
 		args.LogsFacade,
 		args.ShardCoordinator,
 		args.DataFieldParser,
+		args.EnableRoundsHandler,
 	)
 
 	refundDetectorInstance := NewRefundDetector()
@@ -103,6 +108,8 @@ func NewAPITransactionProcessor(args *ArgAPITransactionProcessor) (*apiTransacti
 		refundDetector:              refundDetectorInstance,
 		gasUsedAndFeeProcessor:      gasUsedAndFeeProc,
 		enableEpochsHandler:         args.EnableEpochsHandler,
+		enableRoundsHandler:         args.EnableRoundsHandler,
+		txVersionChecker:            args.TxVersionChecker,
 	}, nil
 }
 
@@ -173,11 +180,23 @@ func (atp *apiTransactionProcessor) GetTransaction(txHash string, withResults bo
 }
 
 func (atp *apiTransactionProcessor) doGetTransaction(hash []byte, withResults bool) (*transaction.ApiTransactionResult, error) {
-	tx := atp.optionallyGetTransactionFromPool(hash)
-	if tx != nil {
-		return tx, nil
+	txFromPool := atp.optionallyGetTransactionFromPool(hash)
+	if txFromPool != nil {
+		// we don't return immediately because storage/history takes priority if it succeeds
+		txFromStorage, err := atp.fetchFromStorageOrHistory(hash, withResults)
+		if err == nil {
+			return txFromStorage, nil
+		}
+
+		// storage/history failed, but pool has it
+		return txFromPool, nil
 	}
 
+	// no pool entry — just return storage/history result
+	return atp.fetchFromStorageOrHistory(hash, withResults)
+}
+
+func (atp *apiTransactionProcessor) fetchFromStorageOrHistory(hash []byte, withResults bool) (*transaction.ApiTransactionResult, error) {
 	if atp.historyRepository.IsEnabled() {
 		return atp.lookupHistoricalTransaction(hash, withResults)
 	}
@@ -473,9 +492,9 @@ func (atp *apiTransactionProcessor) recreateTrie(blockchain data.ChainHandler, a
 		return ErrNilBlockchain
 	}
 
-	currentRootHash := blockchain.GetCurrentBlockRootHash()
-	if currentRootHash == nil {
-		return ErrNilCurrentRootHash
+	currentRootHash, err := atp.getCurrentRootHash(blockchain)
+	if err != nil {
+		return err
 	}
 
 	blockHeader := blockchain.GetCurrentBlockHeader()
@@ -487,12 +506,54 @@ func (atp *apiTransactionProcessor) recreateTrie(blockchain data.ChainHandler, a
 	rootHashHolder := holders.NewRootHashHolder(currentRootHash, core.OptionalUint32{Value: epoch, HasValue: true})
 
 	// TODO: keep in mind that the selection simulation can be affected by other API requests which might alter the trie
-	err := accountStateAPI.RecreateTrie(rootHashHolder)
+	err = accountStateAPI.RecreateTrie(rootHashHolder)
 	if err != nil {
 		return err
 	}
 
 	return nil
+}
+
+func (atp *apiTransactionProcessor) getCurrentRootHash(
+	blockchain data.ChainHandler,
+) ([]byte, error) {
+	blockHeader := blockchain.GetCurrentBlockHeader()
+	if blockHeader == nil {
+		return nil, ErrNilBlockHeader
+	}
+
+	if blockHeader.IsHeaderV3() {
+		return getHeaderV3RootHash(blockchain)
+	}
+
+	currentRootHash := blockchain.GetCurrentBlockRootHash()
+	if currentRootHash == nil {
+		return nil, ErrNilCurrentRootHash
+	}
+
+	return currentRootHash, nil
+}
+
+func getHeaderV3RootHash(
+	blockchain data.ChainHandler,
+) ([]byte, error) {
+	_, _, lastExecutedRootHash := blockchain.GetLastExecutedBlockInfo()
+	if len(lastExecutedRootHash) != 0 {
+		return lastExecutedRootHash, nil
+	}
+
+	blockHeader := blockchain.GetCurrentBlockHeader()
+
+	// is first header v3, last executed block info might not be updated yet
+	// rootHash can be taken from last execution results directly from header
+	// on creation, the first header v3 has the last execution info from last header v2
+	// and it should be available
+	lastExecutionResult, err := common.ExtractBaseExecutionResultHandler(blockHeader.GetLastExecutionResultHandler())
+	if err != nil {
+		return nil, err
+	}
+
+	return lastExecutionResult.GetRootHash(), nil
 }
 
 func (atp *apiTransactionProcessor) selectTransactions(accountsAdapter state.AccountsAdapter, selectionOptions common.TxSelectionOptionsAPI) ([]common.Transaction, error) {
@@ -507,8 +568,9 @@ func (atp *apiTransactionProcessor) selectTransactions(accountsAdapter state.Acc
 	// TODO use the right object, not a disabled one
 	txProcessor := disabled.TxProcessor{}
 	argsSelectionSession := preprocess.ArgsSelectionSession{
-		AccountsAdapter:       accountsAdapter,
-		TransactionsProcessor: &txProcessor,
+		AccountsAdapter:         accountsAdapter,
+		TransactionsProcessor:   &txProcessor,
+		TxVersionCheckerHandler: atp.txVersionChecker,
 	}
 
 	selectionSession, err := preprocess.NewSelectionSession(argsSelectionSession)
@@ -517,7 +579,6 @@ func (atp *apiTransactionProcessor) selectTransactions(accountsAdapter state.Acc
 		return nil, err
 	}
 
-	// TODO use the right information for nonce
 	selectedTxs, _, err := txCache.SimulateSelectTransactions(selectionSession, selectionOptions)
 	if err != nil {
 		log.Warn("apiTransactionProcessor.selectTransactions could not SelectTransactions")
@@ -691,8 +752,62 @@ func (atp *apiTransactionProcessor) computeTimestampForRoundAsMs(round uint64) i
 	return timestamp.UnixMilli()
 }
 
+func (atp *apiTransactionProcessor) checkExecutionResultAndTx(miniblockMetadata *dblookupext.MiniblockMetadata) (bool, error) {
+	isSupernovaEnabled := atp.enableRoundsHandler.IsFlagEnabledInRound(common.SupernovaRoundFlag, miniblockMetadata.Round)
+	if !isSupernovaEnabled {
+		return true, nil
+	}
+
+	headerHash := miniblockMetadata.GetHeaderHash()
+	executionResultsStorer, errG := atp.storageService.GetStorer(dataRetriever.ExecutionResultsUnit)
+	if errG != nil {
+		return false, errG
+	}
+
+	executionResultsBytes, err := executionResultsStorer.GetFromEpoch(headerHash, miniblockMetadata.GetEpoch())
+	if err != nil {
+		return false, err
+	}
+
+	if atp.shardCoordinator.SelfId() == core.MetachainShardId {
+		// we cannot have unexecutable txs on metachain
+		return true, nil
+	}
+	mbHeaders, err := atp.getMbHeadersFromExecutionResultBytes(executionResultsBytes)
+	if err != nil {
+		return false, err
+	}
+
+	// check if the transaction miniblock metadata has a mb header on execution result
+	// if yes - the transaction was executed
+	// if no  - the transaction was proposed but not executed
+	currentTxIsExecuted := false
+	for _, mbHeader := range mbHeaders {
+		if bytes.Equal(mbHeader.Hash, miniblockMetadata.MiniblockHash) {
+			currentTxIsExecuted = true
+			break
+		}
+	}
+	return currentTxIsExecuted, nil
+}
+
+func (atp *apiTransactionProcessor) getMbHeadersFromExecutionResultBytes(executionResultBytes []byte) ([]block.MiniBlockHeader, error) {
+	executResult := &block.ExecutionResult{}
+	err := atp.marshalizer.Unmarshal(executResult, executionResultBytes)
+	if err != nil {
+		return nil, err
+	}
+
+	return executResult.GetMiniBlockHeaders(), nil
+}
+
 func (atp *apiTransactionProcessor) lookupHistoricalTransaction(hash []byte, withResults bool) (*transaction.ApiTransactionResult, error) {
 	miniblockMetadata, err := atp.historyRepository.GetMiniblockMetadataByTxHash(hash)
+	if err != nil {
+		return nil, fmt.Errorf("%s: %w", ErrTransactionNotFound.Error(), err)
+	}
+
+	isExecuted, err := atp.checkExecutionResultAndTx(miniblockMetadata)
 	if err != nil {
 		return nil, fmt.Errorf("%s: %w", ErrTransactionNotFound.Error(), err)
 	}
@@ -724,6 +839,11 @@ func (atp *apiTransactionProcessor) lookupHistoricalTransaction(hash []byte, wit
 		return nil, fmt.Errorf("%s: %w", ErrNilStatusComputer.Error(), err)
 	}
 
+	if !isExecuted {
+		tx.Status = transaction.TxStatusNotExecutable
+		return tx, nil
+	}
+
 	if ok, _ := statusComputer.SetStatusIfIsRewardReverted(
 		tx,
 		block.Type(miniblockMetadata.Type),
@@ -736,7 +856,7 @@ func (atp *apiTransactionProcessor) lookupHistoricalTransaction(hash []byte, wit
 		block.Type(miniblockMetadata.Type), tx)
 
 	if withResults {
-		err = atp.transactionResultsProcessor.putResultsInTransaction(hash, tx, miniblockMetadata.Epoch)
+		err = atp.transactionResultsProcessor.putResultsInTransaction(hash, tx, miniblockMetadata.Epoch, miniblockMetadata.Round)
 		if err != nil {
 			return nil, err
 		}

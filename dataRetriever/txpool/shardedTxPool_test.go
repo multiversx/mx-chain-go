@@ -630,7 +630,7 @@ func TestShardedTxPool_GetNumTrackedAccounts(t *testing.T) {
 	}
 
 	execHdr := &block.Header{Nonce: 1, RootHash: []byte("rootHash0")}
-	_ = txCache.OnExecutedBlock(execHdr)
+	_ = txCache.OnExecutedBlock(execHdr, []byte("rootHash0"))
 
 	err := txCache.OnProposedBlock(
 		[]byte("hash0"),
@@ -693,11 +693,13 @@ func TestShardedTxPool_OnProposedBlock_And_OnExecutedBlock(t *testing.T) {
 	t.Run("OnExecutedBlock calls TxCache.OnExecutedBlock", func(t *testing.T) {
 		t.Parallel()
 
-		err := pool.OnExecutedBlock(nil)
+		err := pool.OnExecutedBlock(nil, []byte{})
 		require.ErrorContains(t, err, "nil block header")
 
-		err = pool.OnExecutedBlock(&block.HeaderV2{})
+		err = pool.OnExecutedBlock(&block.HeaderV2{}, []byte{})
 		require.Nil(t, err)
+
+		pool.ResetTracker() // coverage
 	})
 }
 

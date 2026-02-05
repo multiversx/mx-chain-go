@@ -10,11 +10,13 @@ import (
 	"github.com/multiversx/mx-chain-core-go/core"
 	"github.com/multiversx/mx-chain-core-go/data/rewardTx"
 	"github.com/multiversx/mx-chain-core-go/data/transaction"
+	"github.com/stretchr/testify/assert"
+	"github.com/stretchr/testify/require"
+
 	"github.com/multiversx/mx-chain-go/common"
 	"github.com/multiversx/mx-chain-go/integrationTests"
 	"github.com/multiversx/mx-chain-go/process"
-	"github.com/stretchr/testify/assert"
-	"github.com/stretchr/testify/require"
+	"github.com/multiversx/mx-chain-go/process/factory"
 )
 
 func TestNode_RequestInterceptTransactionWithMessengerAndWhitelist(t *testing.T) {
@@ -103,7 +105,7 @@ func TestNode_RequestInterceptTransactionWithMessengerAndWhitelist(t *testing.T)
 	)
 
 	// Step 4. request tx through request handler that will whitelist the hash
-	nRequester.RequestHandler.RequestTransaction(0, [][]byte{txHash})
+	nRequester.RequestHandler.RequestTransactions(0, [][]byte{txHash})
 	assert.Nil(t, err)
 
 	select {

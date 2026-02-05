@@ -18,3 +18,6 @@ var ErrOperationNotPermitted = errors.New("operation not permitted")
 
 // ErrNilBlockChain signals that a nil blockchain has been provided
 var ErrNilBlockChain = errors.New("nil block chain")
+
+// ErrNonceDoesNotMatch signals the nonce in block is different from last executed nonce
+var ErrNonceDoesNotMatch = errors.New("nonce does not match")

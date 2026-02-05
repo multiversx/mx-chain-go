@@ -12,6 +12,7 @@ import (
 	"github.com/multiversx/mx-chain-go/process"
 	"github.com/multiversx/mx-chain-go/testscommon"
 	"github.com/multiversx/mx-chain-go/testscommon/economicsmocks"
+	"github.com/multiversx/mx-chain-go/testscommon/enableEpochsHandlerMock"
 	"github.com/multiversx/mx-chain-go/testscommon/hashingMocks"
 	"github.com/multiversx/mx-chain-go/testscommon/marshallerMock"
 	stateMock "github.com/multiversx/mx-chain-go/testscommon/state"
@@ -496,6 +497,7 @@ func Test_MiniBlocksBuilderAccountGasForTxComputeGasProvidedWithErr(t *testing.T
 				return 0, 0, expectedErr
 			},
 		},
+		gasEpochState: &testscommon.GasEpochStateHandlerStub{},
 	}
 	mbb, _ := newMiniBlockBuilder(args)
 	sender, _ := hex.DecodeString("aaaaaaaaaa" + suffixShard0)
@@ -518,6 +520,7 @@ func Test_MiniBlocksBuilderAccountGasForTxComputeGasProvidedOK(t *testing.T) {
 	args := createDefaultMiniBlockBuilderArgs()
 	gasProvidedByTxInReceiverShard := uint64(20)
 	gasProvidedByTxInSenderShard := uint64(10)
+	ges, _ := newGasEpochState(args.gasTracker.economicsFee, &enableEpochsHandlerMock.EnableEpochsHandlerStub{}, &testscommon.EnableRoundsHandlerStub{})
 	args.gasTracker = gasTracker{
 		shardCoordinator: args.gasTracker.shardCoordinator,
 		economicsFee:     args.gasTracker.economicsFee,
@@ -528,6 +531,7 @@ func Test_MiniBlocksBuilderAccountGasForTxComputeGasProvidedOK(t *testing.T) {
 				return gasProvidedByTxInSenderShard, gasProvidedByTxInReceiverShard, nil
 			},
 		},
+		gasEpochState: ges,
 	}
 	mbb, _ := newMiniBlockBuilder(args)
 	sender, _ := hex.DecodeString("aaaaaaaaaa" + suffixShard0)
@@ -796,6 +800,7 @@ func Test_MiniBlocksBuilderCheckAddTransactionGasAccountingError(t *testing.T) {
 				return 0, 0, expectedErr
 			},
 		},
+		gasEpochState: &testscommon.GasEpochStateHandlerStub{},
 	}
 	mbb, _ := newMiniBlockBuilder(args)
 
@@ -838,13 +843,13 @@ func createDefaultMiniBlockBuilderArgs() miniBlocksBuilderArgs {
 				},
 			},
 			economicsFee: &economicsmocks.EconomicsHandlerMock{
-				MaxGasLimitPerTxCalled: func() uint64 {
+				MaxGasLimitPerTxInEpochCalled: func(_ uint32) uint64 {
 					return 1000000
 				},
-				MaxGasLimitPerBlockForSafeCrossShardCalled: func() uint64 {
+				MaxGasLimitPerBlockForSafeCrossShardInEpochCalled: func(_ uint32) uint64 {
 					return 1000000
 				},
-				MaxGasLimitPerBlockCalled: func(shardID uint32) uint64 {
+				MaxGasLimitPerBlockInEpochCalled: func(shardID uint32, _ uint32) uint64 {
 					return 1000000
 				},
 			},
@@ -856,6 +861,7 @@ func createDefaultMiniBlockBuilderArgs() miniBlocksBuilderArgs {
 				RemoveGasPenalizedCalled: func(hashes [][]byte) {
 				},
 			},
+			gasEpochState: &testscommon.GasEpochStateHandlerStub{},
 		},
 		accounts:                  &stateMock.AccountsStub{},
 		blockSizeComputation:      &testscommon.BlockSizeComputationStub{},

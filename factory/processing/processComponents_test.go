@@ -40,6 +40,7 @@ import (
 	"github.com/multiversx/mx-chain-go/testscommon/chainParameters"
 	txExecOrderStub "github.com/multiversx/mx-chain-go/testscommon/common"
 	"github.com/multiversx/mx-chain-go/testscommon/components"
+	consensusMocks "github.com/multiversx/mx-chain-go/testscommon/consensus"
 	"github.com/multiversx/mx-chain-go/testscommon/cryptoMocks"
 	"github.com/multiversx/mx-chain-go/testscommon/dataRetriever"
 	"github.com/multiversx/mx-chain-go/testscommon/dblookupext"
@@ -248,6 +249,7 @@ func createMockProcessComponentsFactoryArgs() processComp.ProcessComponentsFacto
 			MsgSigVerifier:          &testscommon.MessageSignVerifierMock{},
 			ManagedPeersHolderField: &testscommon.ManagedPeersHolderStub{},
 			KeysHandlerField:        &testscommon.KeysHandlerStub{},
+			SigHandler:              &consensusMocks.SigningHandlerStub{},
 		},
 		Network: &testsMocks.NetworkComponentsStub{
 			Messenger:                        &p2pmocks.MessengerStub{},
@@ -273,6 +275,12 @@ func createMockProcessComponentsFactoryArgs() processComp.ProcessComponentsFacto
 			StateStatsHandlerField: disabledStatistics.NewStateStatistics(),
 		},
 		TxExecutionOrderHandler: &txExecOrderStub.TxExecutionOrderHandlerStub{},
+		EconomicsConfig: config.EconomicsConfig{
+			FeeSettings: config.FeeSettings{
+				BlockCapacityOverestimationFactor: 200,
+				PercentDecreaseLimitsStep:         10,
+			},
+		},
 	}
 
 	args.State = components.GetStateComponents(args.CoreData, args.StatusCoreComponents)
@@ -717,15 +725,29 @@ func TestProcessComponentsFactory_Create(t *testing.T) {
 		t.Parallel()
 
 		args := createMockProcessComponentsFactoryArgs()
-		args.Config.PoolsCleanersConfig.MaxRoundsToKeepUnprocessedMiniBlocks = 0
-		testCreateWithArgs(t, args, "MaxRoundsToKeepUnprocessedData")
+		ct := 0
+		args.CoreData.(*mock.CoreComponentsMock).ProcessConfigsHandlerCalled = func() common.ProcessConfigsHandler {
+			if ct == 2 {
+				return nil
+			}
+			ct++
+			return args.CoreData.(*mock.CoreComponentsMock).ProcessConfigsHandlerField
+		}
+		testCreateWithArgs(t, args, "NewMiniBlocksPoolsCleaner")
 	})
 	t.Run("NewTxsPoolsCleaner fails should error", func(t *testing.T) {
 		t.Parallel()
 
 		args := createMockProcessComponentsFactoryArgs()
-		args.Config.PoolsCleanersConfig.MaxRoundsToKeepUnprocessedTransactions = 0
-		testCreateWithArgs(t, args, "MaxRoundsToKeepUnprocessedData")
+		ct := 0
+		args.CoreData.(*mock.CoreComponentsMock).ProcessConfigsHandlerCalled = func() common.ProcessConfigsHandler {
+			if ct == 3 {
+				return nil
+			}
+			ct++
+			return args.CoreData.(*mock.CoreComponentsMock).ProcessConfigsHandlerField
+		}
+		testCreateWithArgs(t, args, "NewTxsPoolsCleaner")
 	})
 	t.Run("createHardforkTrigger fails due to Decode failure should error", func(t *testing.T) {
 		t.Parallel()
@@ -918,11 +940,13 @@ func TestProcessComponentsFactory_Create(t *testing.T) {
 				CommitCalled:   realStateComp.AccountsAdapter().Commit,
 				RootHashCalled: realStateComp.AccountsAdapter().RootHash,
 			},
+			AccountsProposal:     &testState.AccountsStub{},
 			PeersAcc:             realStateComp.PeerAccounts(),
 			Tries:                realStateComp.TriesContainer(),
 			AccountsAPI:          realStateComp.AccountsAdapterAPI(),
 			StorageManagers:      realStateComp.TrieStorageManagers(),
 			MissingNodesNotifier: realStateComp.MissingTrieNodesNotifier(),
+			ChangesCollector:     realStateComp.StateAccessesCollector(),
 		}
 
 		pcf, _ := processComp.NewProcessComponentsFactory(args)
@@ -962,8 +986,10 @@ func TestProcessComponentsFactory_Create(t *testing.T) {
 			PeersAcc:             realStateComp.PeerAccounts(),
 			Tries:                realStateComp.TriesContainer(),
 			AccountsAPI:          realStateComp.AccountsAdapterAPI(),
+			AccountsProposal:     realStateComp.AccountsAdapterProposal(),
 			StorageManagers:      realStateComp.TrieStorageManagers(),
 			MissingNodesNotifier: realStateComp.MissingTrieNodesNotifier(),
+			ChangesCollector:     realStateComp.StateAccessesCollector(),
 		}
 		coreCompStub := factoryMocks.NewCoreComponentsHolderStubFromRealComponent(args.CoreData)
 		coreCompStub.InternalMarshalizerCalled = func() marshal.Marshalizer {

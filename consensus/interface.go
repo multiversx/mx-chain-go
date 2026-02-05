@@ -23,6 +23,7 @@ type RoundHandler interface {
 	TimeStamp() time.Time
 	TimeDuration() time.Duration
 	RemainingTime(startTime time.Time, maxTime time.Duration) time.Duration
+	GetTimeStampForRound(round uint64) uint64
 	IsInterfaceNil() bool
 }
 
@@ -191,6 +192,7 @@ type SigningHandler interface {
 	AggregateSigs(bitmap []byte, epoch uint32) ([]byte, error)
 	SetAggregatedSig([]byte) error
 	Verify(msg []byte, bitmap []byte, epoch uint32) error
+	GetPubKeysFromBytes(pubKeysBytes [][]byte) ([]crypto.PublicKey, error)
 	IsInterfaceNil() bool
 }
 

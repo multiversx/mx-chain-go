@@ -115,19 +115,19 @@ func createValidatorStatisticsProcessor(
 	peerAccounts state.AccountsAdapter,
 ) process.ValidatorStatisticsProcessor {
 	argsValidatorsProcessor := peer.ArgValidatorStatisticsProcessor{
-		Marshalizer:                          coreComponents.InternalMarshalizer(),
-		NodesCoordinator:                     nc,
-		ShardCoordinator:                     shardCoordinator,
-		DataPool:                             dataComponents.Datapool(),
-		StorageService:                       dataComponents.StorageService(),
-		PubkeyConv:                           coreComponents.AddressPubKeyConverter(),
-		PeerAdapter:                          peerAccounts,
-		Rater:                                coreComponents.Rater(),
-		RewardsHandler:                       &epochStartMock.RewardsHandlerStub{},
-		NodesSetup:                           &genesisMocks.NodesSetupStub{},
-		MaxComputableRounds:                  1,
-		MaxConsecutiveRoundsOfRatingDecrease: 2000,
-		EnableEpochsHandler:                  coreComponents.EnableEpochsHandler(),
+		Marshalizer:           coreComponents.InternalMarshalizer(),
+		NodesCoordinator:      nc,
+		ShardCoordinator:      shardCoordinator,
+		DataPool:              dataComponents.Datapool(),
+		StorageService:        dataComponents.StorageService(),
+		PubkeyConv:            coreComponents.AddressPubKeyConverter(),
+		PeerAdapter:           peerAccounts,
+		Rater:                 coreComponents.Rater(),
+		RewardsHandler:        &epochStartMock.RewardsHandlerStub{},
+		NodesSetup:            &genesisMocks.NodesSetupStub{},
+		MaxComputableRounds:   1,
+		EnableEpochsHandler:   coreComponents.EnableEpochsHandler(),
+		ProcessConfigsHandler: coreComponents.ProcessConfigsHandler(),
 	}
 	validatorStatisticsProcessor, _ := peer.NewValidatorStatisticsProcessor(argsValidatorsProcessor)
 	return validatorStatisticsProcessor

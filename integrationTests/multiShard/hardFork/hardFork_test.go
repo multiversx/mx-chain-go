@@ -419,6 +419,7 @@ func hardForkImport(
 			Core:              coreComponents,
 			Data:              dataComponents,
 			Accounts:          node.AccntState,
+			AccountsProposal:  node.AccntState,
 			InitialNodesSetup: node.NodesSetup,
 			Economics:         node.EconomicsData,
 			ShardCoordinator:  node.ShardCoordinator,
@@ -506,6 +507,10 @@ func hardForkImport(
 					DelegationSmartContractEnableEpoch: 0,
 				},
 			},
+			FeeSettings: config.FeeSettings{
+				BlockCapacityOverestimationFactor: 200,
+				PercentDecreaseLimitsStep:         10,
+			},
 			RoundConfig:             testscommon.GetDefaultRoundsConfig(),
 			HeaderVersionConfigs:    testscommon.GetDefaultHeaderVersionConfig(),
 			HistoryRepository:       &dblookupext.HistoryRepositoryStub{},
@@ -515,7 +520,6 @@ func hardForkImport(
 				SelectionGasBandwidthIncreaseScheduledPercent: 260,
 				SelectionGasRequested:                         10_000_000_000,
 				SelectionMaxNumTxs:                            30000,
-				SelectionLoopMaximumDuration:                  250,
 				SelectionLoopDurationCheckInterval:            10,
 			},
 		}

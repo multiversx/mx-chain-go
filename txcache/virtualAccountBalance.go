@@ -1,6 +1,9 @@
 package txcache
 
-import "math/big"
+import (
+	"math/big"
+	"sync"
+)
 
 // virtualAccountBalance contains:
 // the initialBalance from the non-virtual session,
@@ -8,6 +11,7 @@ import "math/big"
 type virtualAccountBalance struct {
 	initialBalance  *big.Int
 	consumedBalance *big.Int
+	mutex           sync.Mutex
 }
 
 // virtualAccountBalance is used in two scenarios:
@@ -27,12 +31,20 @@ func newVirtualAccountBalance(initialBalance *big.Int) (*virtualAccountBalance, 
 // accumulating for the validation of a proposed block
 // accumulating for a virtual record
 func (virtualBalance *virtualAccountBalance) accumulateConsumedBalance(consumedBalance *big.Int) {
-	_ = virtualBalance.consumedBalance.Add(virtualBalance.consumedBalance, consumedBalance)
+	virtualBalance.mutex.Lock()
+	defer virtualBalance.mutex.Unlock()
+
+	// defensive copy to prevent aliasing issues if consumedBalance is modified externally later
+	toAdd := new(big.Int).Set(consumedBalance)
+	_ = virtualBalance.consumedBalance.Add(virtualBalance.consumedBalance, toAdd)
 }
 
 // validateBalance is used in ONLY one place: the validation of a proposed block
 // this method is NOT used for the virtual records (in deriveVirtualSelectionSession)
 func (virtualBalance *virtualAccountBalance) validateBalance() error {
+	virtualBalance.mutex.Lock()
+	defer virtualBalance.mutex.Unlock()
+
 	if virtualBalance.consumedBalance.Cmp(virtualBalance.initialBalance) > 0 {
 		return errExceededBalance
 	}
@@ -41,9 +53,14 @@ func (virtualBalance *virtualAccountBalance) validateBalance() error {
 }
 
 func (virtualBalance *virtualAccountBalance) getInitialBalance() *big.Int {
+	// initialBalance is immutable after creation, no lock needed
 	return virtualBalance.initialBalance
 }
 
 func (virtualBalance *virtualAccountBalance) getConsumedBalance() *big.Int {
-	return virtualBalance.consumedBalance
+	virtualBalance.mutex.Lock()
+	defer virtualBalance.mutex.Unlock()
+
+	// Return a copy to prevent external mutation
+	return new(big.Int).Set(virtualBalance.consumedBalance)
 }

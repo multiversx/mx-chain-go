@@ -2,9 +2,16 @@ package preprocess
 
 import (
 	"math/big"
+	"time"
+
+	"github.com/multiversx/mx-chain-core-go/data"
+	"github.com/multiversx/mx-chain-core-go/data/block"
+
+	"github.com/multiversx/mx-chain-go/process"
+	"github.com/multiversx/mx-chain-go/txcache"
 
 	"github.com/multiversx/mx-chain-go/common"
-	"github.com/multiversx/mx-chain-go/txcache"
+	"github.com/multiversx/mx-chain-go/dataRetriever"
 )
 
 // TxCache defines the functionality for the transactions cache
@@ -48,5 +55,37 @@ type BalanceComputationHandler interface {
 	SubBalanceFromAddress(address []byte, value *big.Int) bool
 	IsAddressSet(address []byte) bool
 	AddressHasEnoughBalance(address []byte, value *big.Int) bool
+	IsInterfaceNil() bool
+}
+
+// TxsForBlockHandler defines the functionality for handling transactions for a block
+type TxsForBlockHandler interface {
+	Reset()
+	AddTransaction(
+		txHash []byte,
+		tx data.TransactionHandler,
+		senderShardID uint32,
+		receiverShardID uint32,
+	)
+	WaitForRequestedData(waitTime time.Duration) error
+	GetTxInfoByHash(hash []byte) (*process.TxInfo, bool)
+	GetAllCurrentUsedTxs() map[string]data.TransactionHandler
+	GetMissingTxsCount() int
+	ReceivedTransaction(txHash []byte, tx data.TransactionHandler)
+	HasMissingTransactions() bool
+	ComputeExistingAndRequestMissing(
+		body *block.Body,
+		isMiniBlockCorrect func(block.Type) bool,
+		txPool dataRetriever.ShardedDataCacherNotifier,
+		onRequestTxs func(shardID uint32, txHashes [][]byte),
+	) int
+	IsInterfaceNil() bool
+}
+
+// GasEpochStateHandler defines the functionality for handling gas limits and overestimation factor based on epochs and rounds
+type GasEpochStateHandler interface {
+	EpochConfirmed(epoch uint32)
+	RoundConfirmed(round uint64)
+	GetEpochForLimitsAndOverEstimationFactor() (uint32, uint64)
 	IsInterfaceNil() bool
 }

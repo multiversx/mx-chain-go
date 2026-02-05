@@ -34,6 +34,7 @@ import (
 	"github.com/multiversx/mx-chain-go/testscommon/hashingMocks"
 	"github.com/multiversx/mx-chain-go/testscommon/p2pmocks"
 	"github.com/multiversx/mx-chain-go/testscommon/processMocks"
+	"github.com/multiversx/mx-chain-go/testscommon/round"
 	statusHandlerMock "github.com/multiversx/mx-chain-go/testscommon/statusHandler"
 )
 
@@ -149,8 +150,8 @@ func initWorker(appStatusHandler core.AppStatusHandler) *spos.Worker {
 	return sposWorker
 }
 
-func initRoundHandlerMock() *consensusMocks.RoundHandlerMock {
-	return &consensusMocks.RoundHandlerMock{
+func initRoundHandlerMock() *round.RoundHandlerMock {
+	return &round.RoundHandlerMock{
 		RoundIndex: 0,
 		TimeStampCalled: func() time.Time {
 			return time.Unix(0, 0)
@@ -802,7 +803,7 @@ func testWorkerProcessReceivedMessageComputeReceivedProposedBlockMetric(
 		},
 	})
 
-	wrk.SetRoundHandler(&consensusMocks.RoundHandlerMock{
+	wrk.SetRoundHandler(&round.RoundHandlerMock{
 		RoundIndex: 0,
 		TimeDurationCalled: func() time.Duration {
 			return roundDuration
@@ -1830,7 +1831,7 @@ func TestWorker_StoredHeadersExecution(t *testing.T) {
 
 		roundIndex := &atomic.Int64{}
 		roundIndex.Store(99)
-		roundHandler := &consensusMocks.RoundHandlerMock{
+		roundHandler := &round.RoundHandlerMock{
 			IndexCalled: func() int64 {
 				return roundIndex.Load()
 			},
@@ -1873,7 +1874,7 @@ func TestWorker_StoredHeadersExecution(t *testing.T) {
 
 		roundIndex := &atomic.Int64{}
 		roundIndex.Store(99)
-		roundHandler := &consensusMocks.RoundHandlerMock{
+		roundHandler := &round.RoundHandlerMock{
 			IndexCalled: func() int64 {
 				return roundIndex.Load()
 			},
@@ -1923,7 +1924,7 @@ func TestWorker_StoredHeadersExecution(t *testing.T) {
 
 		roundIndex := &atomic.Int64{}
 		roundIndex.Store(99)
-		roundHandler := &consensusMocks.RoundHandlerMock{
+		roundHandler := &round.RoundHandlerMock{
 			IndexCalled: func() int64 {
 				return roundIndex.Load()
 			},
