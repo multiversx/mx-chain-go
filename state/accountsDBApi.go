@@ -133,6 +133,11 @@ func (accountsDB *accountsDBApi) Commit() ([]byte, error) {
 	return nil, ErrOperationNotPermitted
 }
 
+// CommitInMemory is a not permitted operation in this implementation and thus, will return an error
+func (accountsDB *accountsDBApi) CommitInMemory() ([]byte, error) {
+	return nil, ErrOperationNotPermitted
+}
+
 // JournalLen will always return 0
 func (accountsDB *accountsDBApi) JournalLen() int {
 	return 0

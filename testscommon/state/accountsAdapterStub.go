@@ -21,6 +21,7 @@ type AccountsStub struct {
 	SaveAccountCalled                     func(account vmcommon.AccountHandler) error
 	RemoveAccountCalled                   func(addressContainer []byte) error
 	CommitCalled                          func() ([]byte, error)
+	CommitInMemoryCalled                  func() ([]byte, error)
 	CommitInEpochCalled                   func(uint32, uint32) ([]byte, error)
 	JournalLenCalled                      func() int
 	RevertToSnapshotCalled                func(snapshot int) error
@@ -119,6 +120,15 @@ func (as *AccountsStub) GetAllLeaves(leavesChannels *common.TrieIteratorChannels
 func (as *AccountsStub) Commit() ([]byte, error) {
 	if as.CommitCalled != nil {
 		return as.CommitCalled()
+	}
+
+	return nil, errNotImplemented
+}
+
+// CommitInMemory -
+func (as *AccountsStub) CommitInMemory() ([]byte, error) {
+	if as.CommitInMemoryCalled != nil {
+		return as.CommitInMemoryCalled()
 	}
 
 	return nil, errNotImplemented

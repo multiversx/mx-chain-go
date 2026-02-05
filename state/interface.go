@@ -76,6 +76,7 @@ type AccountsAdapter interface {
 	RemoveAccount(address []byte) error
 	CommitInEpoch(currentEpoch uint32, epochToCommit uint32) ([]byte, error)
 	Commit() ([]byte, error)
+	CommitInMemory() ([]byte, error)
 	JournalLen() int
 	RevertToSnapshot(snapshot int) error
 	GetCode(codeHash []byte) []byte

@@ -70,6 +70,11 @@ func (a *accountsAdapter) Commit() ([]byte, error) {
 	return nil, nil
 }
 
+// CommitInMemory -
+func (a *accountsAdapter) CommitInMemory() ([]byte, error) {
+	return nil, nil
+}
+
 // JournalLen -
 func (a *accountsAdapter) JournalLen() int {
 	return 0
