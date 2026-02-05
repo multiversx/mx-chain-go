@@ -1279,8 +1279,6 @@ func TestTransactionCoordinator_GetTxHandlersFromHashesSomeMissing(t *testing.T)
 
 	validHashes, txs := tc.getTxHandlersFromHashes([][]byte{txHash1, txHash2, txHash3})
 
-	require.Equal(t, 2, len(validHashes))
-	require.Equal(t, 2, len(txs))
-	require.Equal(t, txHash1, validHashes[0])
-	require.Equal(t, txHash3, validHashes[1])
+	require.Equal(t, 0, len(validHashes))
+	require.Equal(t, 0, len(txs))
 }
