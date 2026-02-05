@@ -160,13 +160,13 @@ func TestNewAOTSelector(t *testing.T) {
 		require.Equal(t, process.ErrNilEconomicsData, err)
 	})
 
-	t.Run("nil NodeRedundancy is allowed at creation", func(t *testing.T) {
+	t.Run("nil NodeRedundancy should error", func(t *testing.T) {
 		t.Parallel()
 		args := createDefaultArgs()
 		args.NodeRedundancy = nil
 		sel, err := NewAOTSelector(args)
-		require.NoError(t, err)
-		require.NotNil(t, sel)
+		require.Equal(t, process.ErrNilNodeRedundancyHandler, err)
+		require.Nil(t, sel)
 	})
 
 	t.Run("should use defaults for zero config values", func(t *testing.T) {
@@ -391,15 +391,6 @@ func TestAOTSelector_IsSelfLeaderForRoundNoKeyMatch(t *testing.T) {
 	}
 	sel, _ := NewAOTSelector(args)
 	assert.False(t, sel.isSelfLeaderForRound([]byte("rand"), 10, 1))
-}
-
-func TestAOTSelector_ShouldConsiderSelfKeyInConsensusNilRedundancy(t *testing.T) {
-	t.Parallel()
-
-	args := createDefaultArgs()
-	args.NodeRedundancy = nil
-	sel, _ := NewAOTSelector(args)
-	assert.False(t, sel.shouldConsiderSelfKeyInConsensus())
 }
 
 func TestAOTSelector_ShouldConsiderSelfKeyInConsensusMainMachine(t *testing.T) {
