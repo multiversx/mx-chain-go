@@ -8,11 +8,10 @@ import (
 
 // BootstrapperStub mocks the implementation for a Bootstrapper
 type BootstrapperStub struct {
-	CreateAndCommitEmptyBlockCalled      func(uint32) (data.BodyHandler, data.HeaderHandler, error)
-	AddSyncStateListenerCalled           func(func(bool))
-	GetNodeStateCalled                   func() common.NodeState
-	StartSyncingBlocksCalled             func() error
-	GetSignalProcessCompletionChanCalled func() chan uint64
+	CreateAndCommitEmptyBlockCalled func(uint32) (data.BodyHandler, data.HeaderHandler, error)
+	AddSyncStateListenerCalled      func(func(bool))
+	GetNodeStateCalled              func() common.NodeState
+	StartSyncingBlocksCalled        func() error
 }
 
 // CreateAndCommitEmptyBlock -
@@ -44,15 +43,6 @@ func (boot *BootstrapperStub) GetNodeState() common.NodeState {
 func (boot *BootstrapperStub) StartSyncingBlocks() error {
 	if boot.StartSyncingBlocksCalled != nil {
 		return boot.StartSyncingBlocksCalled()
-	}
-
-	return nil
-}
-
-// GetSignalProcessCompletionChan -
-func (boot *BootstrapperStub) GetSignalProcessCompletionChan() chan uint64 {
-	if boot.GetSignalProcessCompletionChanCalled != nil {
-		return boot.GetSignalProcessCompletionChanCalled()
 	}
 
 	return nil

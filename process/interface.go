@@ -451,7 +451,6 @@ type Bootstrapper interface {
 	AddSyncStateListener(func(isSyncing bool))
 	GetNodeState() common.NodeState
 	StartSyncingBlocks() error
-	GetSignalProcessCompletionChan() chan uint64
 	IsInterfaceNil() bool
 }
 

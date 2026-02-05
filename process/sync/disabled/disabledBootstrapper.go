@@ -26,11 +26,6 @@ func (d *disabledBootstrapper) StartSyncingBlocks() error {
 	return nil
 }
 
-// GetSignalProcessCompletionChan returns nil as this is a disabled component
-func (d *disabledBootstrapper) GetSignalProcessCompletionChan() chan uint64 {
-	return nil
-}
-
 // Close will return a nil error as this is a disabled component
 func (d *disabledBootstrapper) Close() error {
 	return nil
