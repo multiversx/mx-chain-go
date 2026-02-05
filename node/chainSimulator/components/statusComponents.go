@@ -147,7 +147,6 @@ func makeElasticIndexerArgs(external config.ExternalConfig, coreComponents proce
 		ValidatorPubkeyConverter: coreComponents.ValidatorPubKeyConverter(),
 		EnabledIndexes:           elasticSearchConfig.EnabledIndexes,
 		Denomination:             18,
-		UseKibana:                elasticSearchConfig.UseKibana,
 		ImportDB:                 false,
 		HeaderMarshaller:         coreComponents.InternalMarshalizer(),
 	}
