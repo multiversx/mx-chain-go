@@ -154,7 +154,11 @@ func TestPresenterStatusHandler_CalculateTimeToSynchronize(t *testing.T) {
 	time.Sleep(time.Second)
 	presenterStatusHandler.SetUInt64Value(common.MetricSynchronizedRound, currentBlockNonce)
 	presenterStatusHandler.SetUInt64Value(common.MetricCurrentRound, probableHighestNonce)
-	presenterStatusHandler.synchronizationSpeedHistory = append(presenterStatusHandler.synchronizationSpeedHistory, synchronizationSpeed)
+	presenterStatusHandler.synchronizationSpeedHistory = []uint64{
+		currentBlockNonce,
+		currentBlockNonce + synchronizationSpeed,
+	}
+
 	synchronizationEstimation := presenterStatusHandler.CalculateTimeToSynchronize(1000)
 
 	// Node needs to synchronize 190 blocks and synchronization speed is 10 blocks/s
