@@ -48,6 +48,11 @@ func PrepareOrderedTxHashesKey(headerHash []byte) []byte {
 	return append([]byte("execution"), headerHash...)
 }
 
+// PrepareUnexecutableTxHashesKey will prepare unexecutable transaction hashes key for cacher
+func PrepareUnexecutableTxHashesKey(headerHash []byte) []byte {
+	return append([]byte("unexecutable"), headerHash...)
+}
+
 // IsValidRelayedTxV3 returns true if the provided transaction is a valid transaction of type relayed v3
 func IsValidRelayedTxV3(tx data.TransactionHandler) bool {
 	relayedTx, isRelayedV3 := tx.(data.RelayedTransactionHandler)
@@ -586,52 +591,4 @@ func GetMiniBlockHeadersFromExecResult(header data.HeaderHandler) ([]data.MiniBl
 	}
 
 	return mbHeaderHandlers, nil
-}
-
-// GetAccumulatedFeesInEpoch returns the accumulated fees in epoch from the header
-func GetAccumulatedFeesInEpoch(header data.HeaderHandler) *big.Int {
-	if check.IfNil(header) {
-		return big.NewInt(0)
-	}
-
-	if !header.IsHeaderV3() {
-		metaHeader, ok := header.(data.MetaHeaderHandler)
-		if !ok {
-			return big.NewInt(0)
-		}
-
-		return metaHeader.GetAccumulatedFeesInEpoch()
-	}
-
-	metaExecutionResult, ok := header.GetLastExecutionResultHandler().(data.LastMetaExecutionResultHandler)
-	if !ok {
-		log.Warn("GetAccumulatedFeesInEpoch cannot cast last execution result handler to data.LastMetaExecutionResultHandler")
-		return big.NewInt(0)
-	}
-
-	return metaExecutionResult.GetExecutionResultHandler().GetAccumulatedFeesInEpoch()
-}
-
-// GetDeveloperFeesInEpoch returns the developer fees in epoch from the header
-func GetDeveloperFeesInEpoch(header data.HeaderHandler) *big.Int {
-	if check.IfNil(header) {
-		return big.NewInt(0)
-	}
-
-	if !header.IsHeaderV3() {
-		metaHeader, ok := header.(data.MetaHeaderHandler)
-		if !ok {
-			return big.NewInt(0)
-		}
-
-		return metaHeader.GetDevFeesInEpoch()
-	}
-
-	metaExecutionResult, ok := header.GetLastExecutionResultHandler().(data.LastMetaExecutionResultHandler)
-	if !ok {
-		log.Warn("GetDeveloperFeesInEpoch cannot cast last execution result handler to data.LastMetaExecutionResultHandler")
-		return big.NewInt(0)
-	}
-
-	return metaExecutionResult.GetExecutionResultHandler().GetDevFeesInEpoch()
 }

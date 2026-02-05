@@ -13,6 +13,10 @@ import (
 	"github.com/multiversx/mx-chain-go/common"
 )
 
+const (
+	maxAccountsPerBlock = 10000
+)
+
 type selectionTracker struct {
 	mutTracker                sync.RWMutex
 	latestNonce               uint64
@@ -77,6 +81,11 @@ func (st *selectionTracker) OnProposedBlock(
 	st.mutTracker.Lock()
 	defer st.mutTracker.Unlock()
 
+	err = st.checkUniqueAccountsLimit(blockBody)
+	if err != nil {
+		return err
+	}
+
 	if !bytes.Equal(st.latestRootHash, accountsRootHash) {
 		log.Error("selectionTracker.OnProposedBlock",
 			"err", errRootHashMismatch,
@@ -104,7 +113,7 @@ func (st *selectionTracker) OnProposedBlock(
 		return err
 	}
 
-	err = st.validateTrackedBlocksAndCompileBreadcrumbsNoLock(blockBody, tBlock, accountsProvider, latestExecutedHash)
+	lastNoncePerSender, err := st.validateTrackedBlocksAndCompileBreadcrumbsNoLock(blockBody, tBlock, accountsProvider, latestExecutedHash)
 	if err != nil {
 		log.Debug("selectionTracker.OnProposedBlock: error validating the tracked blocks", "err", err)
 		return err
@@ -115,6 +124,11 @@ func (st *selectionTracker) OnProposedBlock(
 		log.Debug("selectionTracker.OnProposedBlock: error adding the new tracked block", "err", err)
 		return err
 	}
+
+	// Set selection offsets to skip transactions up to and including the last proposed nonce per sender
+	// This skips already-proposed transactions during future selections
+	st.txCache.SetSelectionOffsetsByLastNonce(lastNoncePerSender)
+
 	return nil
 }
 
@@ -172,12 +186,13 @@ func (st *selectionTracker) checkReceivedBlockNoLock(blockBody *block.Body, bloc
 // Firstly, the method finds the chain of tracked blocks.
 // Secondly, the method extracts the transaction of the new block, compiles its breadcrumbs and adds the new block to the previous returned chain.
 // Then, it validates the entire chain (by nonce and balance of each breadcrumb).
+// Returns lastNoncePerSender map for updating selection offsets.
 func (st *selectionTracker) validateTrackedBlocksAndCompileBreadcrumbsNoLock(
 	blockBody *block.Body,
 	blockToTrack *trackedBlock,
 	accountsProvider common.AccountNonceAndBalanceProvider,
 	latestExecutedHash []byte,
-) error {
+) (map[string]uint64, error) {
 	blocksToBeValidated, err := st.getChainOfTrackedPendingBlocks(
 		latestExecutedHash,
 		blockToTrack.prevHash,
@@ -185,21 +200,21 @@ func (st *selectionTracker) validateTrackedBlocksAndCompileBreadcrumbsNoLock(
 	)
 	if err != nil {
 		log.Debug("selectionTracker.validateTrackedBlocksAndCompileBreadcrumbsNoLock: error creating chain of tracked blocks", "err", err)
-		return err
+		return nil, err
 	}
 
 	// if we pass the first validation, only then we extract the txs to compile the breadcrumbs
 	txs, err := getTransactionsInBlock(blockBody, st.txCache, st.selfShardId)
 	if err != nil {
 		log.Debug("selectionTracker.validateTrackedBlocksAndCompileBreadcrumbsNoLock: error getting transactions from block", "err", err)
-		return err
+		return nil, err
 	}
 
-	err = blockToTrack.compileBreadcrumbs(txs)
+	lastNoncePerSender, err := blockToTrack.compileBreadcrumbs(txs)
 	if err != nil {
 		log.Debug("selectionTracker.validateTrackedBlocksAndCompileBreadcrumbsNoLock: error compiling breadcrumbs",
 			"error", err)
-		return err
+		return nil, err
 	}
 
 	// add the new block in the returned chain
@@ -210,10 +225,10 @@ func (st *selectionTracker) validateTrackedBlocksAndCompileBreadcrumbsNoLock(
 	err = st.validateBreadcrumbsOfTrackedBlocks(blocksToBeValidated, accountsProvider)
 	if err != nil {
 		log.Debug("selectionTracker.validateTrackedBlocksAndCompileBreadcrumbsNoLock: error validating tracked blocks", "err", err)
-		return err
+		return nil, err
 	}
 
-	return nil
+	return lastNoncePerSender, nil
 }
 
 // validateBreadcrumbsOfTrackedBlocks validates the breadcrumbs of each tracked block.
@@ -283,9 +298,22 @@ func (st *selectionTracker) addNewTrackedBlockNoLock(blockToBeAddedHash []byte, 
 // removeBlockEqualOrAboveNoLock removes blocks higher or equal to the nonce of the given block.
 // The removeBlockEqualOrAboveNoLock is used on the OnProposedBlock flow.
 func (st *selectionTracker) removeBlockEqualOrAboveNoLock(blockToBeAddedHash []byte, blockToBeAdded *trackedBlock) error {
+	// Collect affected senders and their firstNonce for resetting selection offsets
+	sendersWithFirstNonce := make(map[string]uint64)
+
 	// search if in the tracked blocks we already have one with same nonce or greater
 	for bHash, b := range st.blocks {
 		if b.hasSameNonceOrHigher(blockToBeAdded) {
+			// Collect senders and their first nonce from removed blocks for offset reset
+			for address, breadcrumb := range b.breadcrumbsByAddress {
+				if breadcrumb.firstNonce.HasValue {
+					// Keep the lowest first nonce for each sender across all removed blocks
+					if existingNonce, exists := sendersWithFirstNonce[address]; !exists || breadcrumb.firstNonce.Value < existingNonce {
+						sendersWithFirstNonce[address] = breadcrumb.firstNonce.Value
+					}
+				}
+			}
+
 			// first delete, then update the global breadcrumbs
 			delete(st.blocks, bHash)
 
@@ -300,6 +328,11 @@ func (st *selectionTracker) removeBlockEqualOrAboveNoLock(blockToBeAddedHash []b
 				"hash of new block", blockToBeAddedHash,
 			)
 		}
+	}
+
+	// Reset selection offsets for affected senders so their transactions can be re-selected
+	if len(sendersWithFirstNonce) > 0 {
+		st.txCache.ResetSelectionOffsetsToNonce(sendersWithFirstNonce)
 	}
 
 	return nil
@@ -386,6 +419,26 @@ func (st *selectionTracker) updateLatestRootHashNoLock(receivedNonce uint64, rec
 	st.latestNonce = receivedNonce
 }
 
+func (st *selectionTracker) checkUniqueAccountsLimit(blockBody *block.Body) error {
+	txsInBlock, err := getTransactionsInBlock(blockBody, st.txCache, st.selfShardId)
+	if err != nil {
+		return nil
+	}
+
+	uniqueAccounts := make(map[string]struct{})
+	for _, tx := range txsInBlock {
+		uniqueAccounts[string(tx.Tx.GetSndAddr())] = struct{}{}
+		if len(uniqueAccounts) > maxAccountsPerBlock {
+			log.Warn("selectionTracker.OnProposedBlock: too many unique accounts in block",
+				"count", len(uniqueAccounts),
+				"limit", maxAccountsPerBlock)
+			return errToManyUniqueAccountsInBlock
+		}
+	}
+
+	return nil
+}
+
 // ResetTrackedBlocks resets the tracked blocks, the global account breadcrumbs and the state saved on the OnExecutedBlock.
 func (st *selectionTracker) ResetTrackedBlocks() {
 	st.mutTracker.Lock()
@@ -452,8 +505,21 @@ func (st *selectionTracker) deriveVirtualSelectionSession(
 // removeBlocksAboveOrEqualToNonceNoLock removes blocks with nonce higher or equal than the given nonce.
 // The removeBlocksAboveOrEqualToNonceNoLock is used on the deriveVirtualSelectionSession flow.
 func (st *selectionTracker) removeBlocksAboveOrEqualToNonceNoLock(nonce uint64) error {
+	// Collect affected senders and their firstNonce for resetting selection offsets
+	sendersWithFirstNonce := make(map[string]uint64)
+
 	for blockHash, tb := range st.blocks {
 		if tb.hasSameNonceOrHigherThanGivenNonce(nonce) {
+			// Collect senders and their first nonce from removed blocks for offset reset
+			for address, breadcrumb := range tb.breadcrumbsByAddress {
+				if breadcrumb.firstNonce.HasValue {
+					// Keep the lowest first nonce for each sender across all removed blocks
+					if existingNonce, exists := sendersWithFirstNonce[address]; !exists || breadcrumb.firstNonce.Value < existingNonce {
+						sendersWithFirstNonce[address] = breadcrumb.firstNonce.Value
+					}
+				}
+			}
+
 			// first delete, then update the global breadcrumbs
 			delete(st.blocks, blockHash)
 
@@ -468,6 +534,11 @@ func (st *selectionTracker) removeBlocksAboveOrEqualToNonceNoLock(nonce uint64) 
 				"hash of deleted block", blockHash,
 			)
 		}
+	}
+
+	// Reset selection offsets for affected senders so their transactions can be re-selected
+	if len(sendersWithFirstNonce) > 0 {
+		st.txCache.ResetSelectionOffsetsToNonce(sendersWithFirstNonce)
 	}
 
 	return nil

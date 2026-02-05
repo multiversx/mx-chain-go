@@ -190,7 +190,7 @@ type CryptoComponentsHolder interface {
 	BlockSigner() crypto.SingleSigner
 	SetMultiSignerContainer(container cryptoCommon.MultiSignerContainer) error
 	MultiSignerContainer() cryptoCommon.MultiSignerContainer
-	GetMultiSigner(epoch uint32) (crypto.MultiSigner, error)
+	GetMultiSigner(epoch uint32) (crypto.MultiSignerV2, error)
 	PeerSignatureHandler() crypto.PeerSignatureHandler
 	BlockSignKeyGen() crypto.KeyGenerator
 	TxSignKeyGen() crypto.KeyGenerator

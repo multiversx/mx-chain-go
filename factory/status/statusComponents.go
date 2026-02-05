@@ -250,7 +250,6 @@ func (scf *statusComponentsFactory) makeElasticIndexerArgs() indexerFactory.Args
 		ValidatorPubkeyConverter: scf.coreComponents.ValidatorPubKeyConverter(),
 		EnabledIndexes:           elasticSearchConfig.EnabledIndexes,
 		Denomination:             scf.economicsConfig.GlobalSettings.Denomination,
-		UseKibana:                elasticSearchConfig.UseKibana,
 		ImportDB:                 scf.isInImportMode,
 		HeaderMarshaller:         scf.coreComponents.InternalMarshalizer(),
 	}

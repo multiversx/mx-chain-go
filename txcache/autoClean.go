@@ -175,9 +175,9 @@ func (listForSender *txListForSender) removeSweepableTransactionsReturnHashes(ta
 			)
 			txHashesToEvict = append(txHashesToEvict, tx.TxHash)
 			listForSender.onRemovedTransaction(tx)
-		} else {
-			keptItems = append(keptItems, tx)
+			continue
 		}
+		keptItems = append(keptItems, tx)
 	}
 
 	// Reassemble

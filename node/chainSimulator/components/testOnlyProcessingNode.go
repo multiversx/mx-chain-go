@@ -557,6 +557,21 @@ func (node *testOnlyProcessingNode) setBlockchainRootHashIfSupernovaIsActive(
 	node.ChainHandler.SetLastExecutedBlockHeaderAndRootHash(header, hash, rootHash)
 
 	lastExecutionResult := node.ChainHandler.GetLastExecutionResult()
+
+	metaResult, isMeta := lastExecutionResult.(*block.MetaExecutionResult)
+	if isMeta {
+		metaResult.ExecutionResult.BaseExecutionResult.RootHash = rootHash
+		node.ChainHandler.SetLastExecutionResult(metaResult)
+		return
+	}
+
+	shardResult, isShard := lastExecutionResult.(*block.ExecutionResult)
+	if isShard {
+		shardResult.BaseExecutionResult.RootHash = rootHash
+		node.ChainHandler.SetLastExecutionResult(shardResult)
+		return
+	}
+
 	updatedLastExecutionResult := &block.BaseExecutionResult{
 		HeaderHash:  lastExecutionResult.GetHeaderHash(),
 		HeaderNonce: lastExecutionResult.GetHeaderNonce(),

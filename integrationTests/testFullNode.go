@@ -19,8 +19,8 @@ import (
 	"github.com/multiversx/mx-chain-go/state/disabled"
 	wasmConfig "github.com/multiversx/mx-chain-vm-go/config"
 
+	headersCache "github.com/multiversx/mx-chain-go/process/asyncExecution/cache"
 	"github.com/multiversx/mx-chain-go/process/asyncExecution/executionTrack"
-	"github.com/multiversx/mx-chain-go/process/asyncExecution/queue"
 	"github.com/multiversx/mx-chain-go/process/estimator"
 	"github.com/multiversx/mx-chain-go/process/missingData"
 
@@ -70,6 +70,7 @@ import (
 	"github.com/multiversx/mx-chain-go/storage/cache"
 	"github.com/multiversx/mx-chain-go/storage/storageunit"
 	"github.com/multiversx/mx-chain-go/testscommon"
+	cacheMocks "github.com/multiversx/mx-chain-go/testscommon/cache"
 	"github.com/multiversx/mx-chain-go/testscommon/chainParameters"
 	consensusMocks "github.com/multiversx/mx-chain-go/testscommon/consensus"
 	"github.com/multiversx/mx-chain-go/testscommon/cryptoMocks"
@@ -549,6 +550,7 @@ func (tpn *TestFullNode) initNode(
 		KeyGenerator:         args.KeyGen,
 		KeysHandler:          keysHandler,
 		SingleSigner:         TestSingleBlsSigner,
+		PubKeysCache:         cacheMocks.NewCacherMock(),
 	}
 	sigHandler, _ := cryptoFactory.NewSigningHandler(signingHandlerArgs)
 
@@ -948,13 +950,15 @@ func (tpn *TestFullNode) initBlockProcessor(
 	}
 
 	executionResultsTracker := executionTrack.NewExecutionResultsTracker()
-	tpn.BlocksQueue = queue.NewBlocksQueue()
+	tpn.BlocksCache = headersCache.NewHeaderBodyCache(config.HeaderBodyCacheConfig{})
 
 	argsExecutionManager := executionManager.ArgsExecutionManager{
-		BlocksQueue:             tpn.BlocksQueue,
+		BlocksQueue:             tpn.BlocksCache,
 		ExecutionResultsTracker: executionResultsTracker,
 		BlockChain:              tpn.BlockChain,
 		Headers:                 tpn.DataPool.Headers(),
+		PostProcessTransactions: tpn.DataPool.PostProcessTransactions(),
+		ExecutedMiniBlocks:      tpn.DataPool.ExecutedMiniBlocks(),
 		StorageService:          &storageStubs.ChainStorerStub{},
 		Marshaller:              TestMarshaller,
 		ShardCoordinator:        &testscommon.ShardsCoordinatorMock{},
@@ -1240,7 +1244,7 @@ func (tpn *TestFullNode) initBlockProcessor(
 	}
 
 	argsHeadersExecutor := asyncExecution.ArgsHeadersExecutor{
-		BlocksQueue:      tpn.BlocksQueue,
+		BlocksCache:      tpn.BlocksCache,
 		ExecutionTracker: executionResultsTracker,
 		BlockProcessor:   tpn.BlockProcessor,
 		BlockChain:       tpn.BlockChain,
@@ -1250,6 +1254,8 @@ func (tpn *TestFullNode) initBlockProcessor(
 
 	err = tpn.ExecutionManager.SetHeadersExecutor(headerExecutor)
 	log.LogIfError(err)
+
+	tpn.ExecutionManager.StartExecution()
 }
 
 func (tpn *TestFullNode) initBlockProcessorWithSync(
@@ -1318,13 +1324,15 @@ func (tpn *TestFullNode) initBlockProcessorWithSync(
 	}
 
 	executionResultsTracker := executionTrack.NewExecutionResultsTracker()
-	tpn.BlocksQueue = queue.NewBlocksQueue()
+	tpn.BlocksCache = headersCache.NewHeaderBodyCache(config.HeaderBodyCacheConfig{})
 
 	argsExecutionManager := executionManager.ArgsExecutionManager{
-		BlocksQueue:             tpn.BlocksQueue,
+		BlocksQueue:             tpn.BlocksCache,
 		ExecutionResultsTracker: executionResultsTracker,
 		BlockChain:              tpn.BlockChain,
 		Headers:                 tpn.DataPool.Headers(),
+		PostProcessTransactions: tpn.DataPool.PostProcessTransactions(),
+		ExecutedMiniBlocks:      tpn.DataPool.ExecutedMiniBlocks(),
 		StorageService:          &storageStubs.ChainStorerStub{},
 		Marshaller:              TestMarshaller,
 		ShardCoordinator:        &testscommon.ShardsCoordinatorMock{},

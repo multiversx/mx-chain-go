@@ -53,6 +53,7 @@ func TestRewardsAfterAndromedaWithTxs(t *testing.T) {
 	tempDir := t.TempDir()
 	cs, err := chainSimulator.NewChainSimulator(chainSimulator.ArgsChainSimulator{
 		BypassTxSignatureCheck:         true,
+		BypassCreateBlockTimeCheck:     true,
 		TempDir:                        tempDir,
 		PathToInitialConfig:            defaultPathToInitialConfig,
 		NumOfShards:                    numOfShards,
@@ -166,15 +167,16 @@ func TestRewardsAfterSupernovaWithTxs(t *testing.T) {
 
 	tempDir := t.TempDir()
 	cs, err := chainSimulator.NewChainSimulator(chainSimulator.ArgsChainSimulator{
-		BypassTxSignatureCheck: true,
-		TempDir:                tempDir,
-		PathToInitialConfig:    defaultPathToInitialConfig,
-		NumOfShards:            numOfShards,
-		RoundDurationInMillis:  roundDurationInMillis,
-		RoundsPerEpoch:         roundsPerEpoch,
-		ApiInterface:           api.NewNoApiInterface(),
-		MinNodesPerShard:       3,
-		MetaChainMinNodes:      3,
+		BypassTxSignatureCheck:     true,
+		BypassCreateBlockTimeCheck: true,
+		TempDir:                    tempDir,
+		PathToInitialConfig:        defaultPathToInitialConfig,
+		NumOfShards:                numOfShards,
+		RoundDurationInMillis:      roundDurationInMillis,
+		RoundsPerEpoch:             roundsPerEpoch,
+		ApiInterface:               api.NewNoApiInterface(),
+		MinNodesPerShard:           3,
+		MetaChainMinNodes:          3,
 		AlterConfigsFunction: func(cfg *config.Configs) {
 			cfg.RoundConfig.RoundActivations = map[string]config.ActivationRoundByName{
 				"DisableAsyncCallV1": {
@@ -368,6 +370,7 @@ func TestRewardsTxsAfterAndromeda(t *testing.T) {
 	tempDir := t.TempDir()
 	cs, err := chainSimulator.NewChainSimulator(chainSimulator.ArgsChainSimulator{
 		BypassTxSignatureCheck:         true,
+		BypassCreateBlockTimeCheck:     true,
 		TempDir:                        tempDir,
 		PathToInitialConfig:            defaultPathToInitialConfig,
 		NumOfShards:                    numOfShards,

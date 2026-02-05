@@ -19,6 +19,7 @@ import (
 	"github.com/multiversx/mx-chain-go/consensus/spos/bls"
 	v2 "github.com/multiversx/mx-chain-go/consensus/spos/bls/v2"
 	cryptoFactory "github.com/multiversx/mx-chain-go/factory/crypto"
+	"github.com/multiversx/mx-chain-go/storage/cache"
 	"github.com/multiversx/mx-chain-go/testscommon"
 	nodeMock "github.com/multiversx/mx-chain-go/testscommon/common"
 	"github.com/multiversx/mx-chain-go/testscommon/consensus"
@@ -73,15 +74,19 @@ func benchmarkSubroundSignatureDoSignatureJobForManagedKeys(b *testing.B, number
 		},
 	}
 
+	pubKeysCache, err := cache.NewLRUCache(1000)
+	require.Nil(b, err)
+
 	args := cryptoFactory.ArgsSigningHandler{
 		PubKeys: initializers.CreateEligibleListFromMap(mapKeys),
 		MultiSignerContainer: &cryptoMocks.MultiSignerContainerStub{
-			GetMultiSignerCalled: func(epoch uint32) (crypto.MultiSigner, error) {
+			GetMultiSignerCalled: func(epoch uint32) (crypto.MultiSignerV2, error) {
 				return multiSigHandler, nil
 			}},
 		SingleSigner: &cryptoMocks.SingleSignerStub{},
 		KeyGenerator: kg,
 		KeysHandler:  keysHandlerMock,
+		PubKeysCache: pubKeysCache,
 	}
 	signingHandler, err := cryptoFactory.NewSigningHandler(args)
 	require.Nil(b, err)

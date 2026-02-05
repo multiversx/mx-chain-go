@@ -301,3 +301,41 @@ func TestGetCachedOrderedTxHashes(t *testing.T) {
 		require.Equal(t, hashes, res)
 	})
 }
+
+func TestGetCachedUnexecutableTxHashes(t *testing.T) {
+	t.Parallel()
+
+	t.Run("cannot find in cache should error", func(t *testing.T) {
+		t.Parallel()
+
+		cacher := cache.NewCacherMock()
+
+		headerHash := []byte("h")
+
+		_, err := GetCachedUnexecutableTxHashes(cacher, headerHash)
+		require.True(t, errors.Is(err, ErrMissingUnexecutableTxHash))
+	})
+
+	t.Run("wrong type in cache should error", func(t *testing.T) {
+		cacher := cache.NewCacherMock()
+
+		headerHash := []byte("h")
+		cacher.Put(PrepareUnexecutableTxHashesKey(headerHash), []byte("a"), 0)
+
+		_, err := GetCachedUnexecutableTxHashes(cacher, headerHash)
+		require.True(t, errors.Is(err, ErrWrongTypeAssertion))
+	})
+
+	t.Run("should work", func(t *testing.T) {
+		cacher := cache.NewCacherMock()
+
+		headerHash := []byte("h")
+		hashes := [][]byte{[]byte("a"), []byte("b"), []byte("c")}
+		cacher.Put(PrepareUnexecutableTxHashesKey(headerHash), hashes, 0)
+
+		res, err := GetCachedUnexecutableTxHashes(cacher, headerHash)
+		require.Nil(t, err)
+		require.Equal(t, hashes, res)
+	})
+
+}

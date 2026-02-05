@@ -5,6 +5,7 @@ import (
 	"time"
 
 	"github.com/multiversx/mx-chain-go/common"
+	"github.com/multiversx/mx-chain-go/process"
 )
 
 func (cache *TxCache) doSelectTransactions(virtualSession *virtualSelectionSession, options common.TxSelectionOptions) (bunchOfTransactions, uint64) {
@@ -18,7 +19,10 @@ func (cache *TxCache) acquireBunchesOfTransactions() []bunchOfTransactions {
 	bunches := make([]bunchOfTransactions, 0, len(senders))
 
 	for _, sender := range senders {
-		bunches = append(bunches, sender.getTxs())
+		bunch := sender.getTxsForSelection()
+		if len(bunch) > 0 {
+			bunches = append(bunches, bunch)
+		}
 	}
 
 	return bunches
@@ -136,6 +140,9 @@ func detectSkippableSender(virtualSession *virtualSelectionSession, item *transa
 		return true
 	}
 
+	if virtualRecord.hasPendingChangeGuardian() {
+		return true
+	}
 	if item.detectInitialGap(nonce) {
 		return true
 	}
@@ -145,6 +152,15 @@ func detectSkippableSender(virtualSession *virtualSelectionSession, item *transa
 	if virtualSession.detectWillBalanceBeExceeded(item.currentTransaction) {
 		return true
 	}
+
+	isSetGuardianCall := process.IsSetGuardianCall(item.currentTransaction.Tx.GetData())
+	if !isSetGuardianCall {
+		return false
+	}
+
+	// if an instant change guardian is detected, further transactions for this sender should be skipped as they are probably guarded by the old one
+	// allow this one though
+	virtualSession.setChangeGuardianIfNeeded(item.currentTransaction.Tx)
 
 	return false
 }

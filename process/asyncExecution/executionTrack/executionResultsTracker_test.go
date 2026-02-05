@@ -47,7 +47,8 @@ func TestAddExecutionResult_AllBranches(t *testing.T) {
 
 		tracker := NewExecutionResultsTracker()
 
-		err := tracker.AddExecutionResult(nil)
+		added, err := tracker.AddExecutionResult(nil)
+		require.False(t, added)
 		require.ErrorIs(t, err, ErrNilExecutionResult)
 	})
 
@@ -61,7 +62,8 @@ func TestAddExecutionResult_AllBranches(t *testing.T) {
 				HeaderHash: []byte("hash1"), HeaderNonce: 1,
 			},
 		}
-		err := tracker.AddExecutionResult(execResult)
+		added, err := tracker.AddExecutionResult(execResult)
+		require.False(t, added)
 		require.ErrorIs(t, err, ErrNilLastNotarizedExecutionResult)
 	})
 
@@ -81,7 +83,8 @@ func TestAddExecutionResult_AllBranches(t *testing.T) {
 				HeaderNonce: 9,
 			},
 		}
-		err := tracker.AddExecutionResult(execResult)
+		added, err := tracker.AddExecutionResult(execResult)
+		require.False(t, added)
 		require.Error(t, err)
 		require.True(t, errors.Is(err, ErrWrongExecutionResultNonce))
 		require.Contains(t, err.Error(), "is lower than last notarized nonce")
@@ -104,7 +107,8 @@ func TestAddExecutionResult_AllBranches(t *testing.T) {
 				HeaderNonce: 12,
 			},
 		}
-		err := tracker.AddExecutionResult(execResult)
+		added, err := tracker.AddExecutionResult(execResult)
+		require.False(t, added)
 		require.Error(t, err)
 		require.True(t, errors.Is(err, ErrWrongExecutionResultNonce))
 		require.Contains(t, err.Error(), "should be equal to the subsequent nonce after last executed")
@@ -127,7 +131,8 @@ func TestAddExecutionResult_AllBranches(t *testing.T) {
 				HeaderNonce: 11,
 			},
 		}
-		err := tracker.AddExecutionResult(execResult)
+		added, err := tracker.AddExecutionResult(execResult)
+		require.True(t, added)
 		require.Nil(t, err)
 	})
 
@@ -148,7 +153,8 @@ func TestAddExecutionResult_AllBranches(t *testing.T) {
 			},
 		}
 		tracker.lastExecutedResultHash = []byte("h1")
-		err := tracker.AddExecutionResult(execResult)
+		added, err := tracker.AddExecutionResult(execResult)
+		require.False(t, added)
 		require.Error(t, err)
 		require.True(t, errors.Is(err, ErrCannotFindExecutionResult))
 	})
@@ -205,9 +211,9 @@ func TestAddExecutionResultAndCleanShouldWork(t *testing.T) {
 			ExecutionResults: executionResults,
 		}
 
-		err = tracker.AddExecutionResult(executionResults[0])
+		_, err = tracker.AddExecutionResult(executionResults[0])
 		require.Nil(t, err)
-		err = tracker.AddExecutionResult(executionResults[1])
+		_, err = tracker.AddExecutionResult(executionResults[1])
 		require.Nil(t, err)
 
 		errC := tracker.CleanConfirmedExecutionResults(header)
@@ -265,16 +271,16 @@ func TestAddExecutionResultAndCleanDifferentResultsFromHeader(t *testing.T) {
 			HeaderNonce: 11,
 		},
 	}
-	err = tracker.AddExecutionResult(executionResult1)
+	_, err = tracker.AddExecutionResult(executionResult1)
 	require.Nil(t, err)
-	err = tracker.AddExecutionResult(&block.ExecutionResult{
+	_, err = tracker.AddExecutionResult(&block.ExecutionResult{
 		BaseExecutionResult: &block.BaseExecutionResult{
 			HeaderHash:  []byte("hash2"),
 			HeaderNonce: 12,
 		},
 	})
 	require.Nil(t, err)
-	err = tracker.AddExecutionResult(&block.ExecutionResult{
+	_, err = tracker.AddExecutionResult(&block.ExecutionResult{
 		BaseExecutionResult: &block.BaseExecutionResult{
 			HeaderHash:  []byte("hash3"),
 			HeaderNonce: 13,
@@ -328,7 +334,7 @@ func TestExecutionResultsTracker_GetPendingExecutionResultByHashAndHash(t *testi
 			HeaderNonce: 11,
 		},
 	}
-	err = tracker.AddExecutionResult(executionResult1)
+	_, err = tracker.AddExecutionResult(executionResult1)
 	require.Nil(t, err)
 
 	res, err := tracker.GetPendingExecutionResultByHash([]byte("hh"))
@@ -396,7 +402,7 @@ func TestExecutionResultsTracker_RemoveFromNonce(t *testing.T) {
 				HeaderNonce: 11,
 			},
 		}
-		err = tracker.AddExecutionResult(executionResult1)
+		_, err = tracker.AddExecutionResult(executionResult1)
 		require.NoError(t, err)
 
 		err = tracker.RemoveFromNonce(11)
@@ -428,7 +434,7 @@ func TestExecutionResultsTracker_RemoveFromNonce(t *testing.T) {
 				HeaderNonce: 11,
 			},
 		}
-		err = tracker.AddExecutionResult(executionResult1)
+		_, err = tracker.AddExecutionResult(executionResult1)
 		require.NoError(t, err)
 
 		executionResult2 := &block.ExecutionResult{
@@ -437,7 +443,7 @@ func TestExecutionResultsTracker_RemoveFromNonce(t *testing.T) {
 				HeaderNonce: 12,
 			},
 		}
-		err = tracker.AddExecutionResult(executionResult2)
+		_, err = tracker.AddExecutionResult(executionResult2)
 		require.NoError(t, err)
 
 		executionResult3 := &block.ExecutionResult{
@@ -446,7 +452,7 @@ func TestExecutionResultsTracker_RemoveFromNonce(t *testing.T) {
 				HeaderNonce: 13,
 			},
 		}
-		err = tracker.AddExecutionResult(executionResult3)
+		_, err = tracker.AddExecutionResult(executionResult3)
 		require.NoError(t, err)
 
 		executionResult4 := &block.ExecutionResult{
@@ -455,7 +461,7 @@ func TestExecutionResultsTracker_RemoveFromNonce(t *testing.T) {
 				HeaderNonce: 14,
 			},
 		}
-		err = tracker.AddExecutionResult(executionResult4)
+		_, err = tracker.AddExecutionResult(executionResult4)
 		require.NoError(t, err)
 
 		// Remove from hash2 (nonce 12), should keep only hash1 (nonce 11)
@@ -500,7 +506,7 @@ func TestExecutionResultsTracker_RemoveFromNonce(t *testing.T) {
 				HeaderNonce: 11,
 			},
 		}
-		err = tracker.AddExecutionResult(executionResult1)
+		_, err = tracker.AddExecutionResult(executionResult1)
 		require.NoError(t, err)
 
 		executionResult2 := &block.ExecutionResult{
@@ -509,7 +515,7 @@ func TestExecutionResultsTracker_RemoveFromNonce(t *testing.T) {
 				HeaderNonce: 12,
 			},
 		}
-		err = tracker.AddExecutionResult(executionResult2)
+		_, err = tracker.AddExecutionResult(executionResult2)
 		require.NoError(t, err)
 
 		// Remove from nonce 8(missing) should remove all
@@ -547,13 +553,13 @@ func TestExecutionResultsTracker_Clean(t *testing.T) {
 				HeaderNonce: 10,
 			},
 		})
-		_ = tracker.AddExecutionResult(&block.ExecutionResult{
+		_, _ = tracker.AddExecutionResult(&block.ExecutionResult{
 			BaseExecutionResult: &block.BaseExecutionResult{
 				HeaderHash:  []byte("hash1"),
 				HeaderNonce: 11,
 			},
 		})
-		_ = tracker.AddExecutionResult(&block.ExecutionResult{
+		_, _ = tracker.AddExecutionResult(&block.ExecutionResult{
 			BaseExecutionResult: &block.BaseExecutionResult{
 				HeaderHash:  []byte("hash2"),
 				HeaderNonce: 12,
