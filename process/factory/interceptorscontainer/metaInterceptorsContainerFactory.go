@@ -103,7 +103,6 @@ func NewMetaInterceptorsContainerFactory(
 		SignaturesHandler:            args.SignaturesHandler,
 		HeartbeatExpiryTimespanInSec: args.HeartbeatExpiryTimespanInSec,
 		PeerID:                       args.MainMessenger.ID(),
-		AccountsAdapter:              args.Accounts,
 	}
 
 	base := &baseInterceptorsContainerFactory{

@@ -10,7 +10,6 @@ import (
 	"github.com/multiversx/mx-chain-go/process"
 	"github.com/multiversx/mx-chain-go/process/transaction"
 	"github.com/multiversx/mx-chain-go/sharding"
-	"github.com/multiversx/mx-chain-go/state"
 )
 
 var _ process.InterceptedDataFactory = (*interceptedTxDataFactory)(nil)
@@ -32,7 +31,6 @@ type interceptedTxDataFactory struct {
 	txSignHasher           hashing.Hasher
 	txVersionChecker       process.TxVersionCheckerHandler
 	enableEpochsHandler    common.EnableEpochsHandler
-	accountsAdapter        state.AccountsAdapter
 }
 
 // NewInterceptedTxDataFactory creates an instance of interceptedTxDataFactory
@@ -109,7 +107,6 @@ func NewInterceptedTxDataFactory(argument *ArgInterceptedDataFactory) (*intercep
 		txSignHasher:           argument.CoreComponents.TxSignHasher(),
 		txVersionChecker:       argument.CoreComponents.TxVersionChecker(),
 		enableEpochsHandler:    argument.CoreComponents.EnableEpochsHandler(),
-		accountsAdapter:        argument.AccountsAdapter,
 	}
 
 	return itdf, nil
@@ -134,7 +131,6 @@ func (itdf *interceptedTxDataFactory) Create(buff []byte, _ core.PeerID) (proces
 		itdf.txSignHasher,
 		itdf.txVersionChecker,
 		itdf.enableEpochsHandler,
-		itdf.accountsAdapter,
 	)
 }
 

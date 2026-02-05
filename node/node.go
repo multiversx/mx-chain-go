@@ -848,7 +848,6 @@ func (n *Node) commonTransactionValidation(
 		n.coreComponents.TxSignHasher(),
 		n.coreComponents.TxVersionChecker(),
 		n.coreComponents.EnableEpochsHandler(),
-		n.stateComponents.AccountsAdapter(),
 	)
 	if err != nil {
 		return nil, nil, err

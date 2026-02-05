@@ -6,7 +6,6 @@ import (
 	"github.com/multiversx/mx-chain-core-go/data"
 	"github.com/multiversx/mx-chain-core-go/data/block"
 	"github.com/multiversx/mx-chain-go/testscommon/shardingMocks"
-	"github.com/multiversx/mx-chain-go/testscommon/state"
 	"github.com/stretchr/testify/require"
 
 	"github.com/multiversx/mx-chain-go/consensus/mock"
@@ -28,7 +27,6 @@ func createMockArgInterceptedEquivalentProofsFactory() ArgInterceptedEquivalentP
 			ShardCoordinator:  &mock.ShardCoordinatorMock{},
 			HeaderSigVerifier: &consensus.HeaderSigVerifierMock{},
 			NodesCoordinator:  &shardingMocks.NodesCoordinatorStub{},
-			AccountsAdapter:   &state.AccountsStub{},
 		},
 		ProofsPool: &dataRetriever.ProofsPoolMock{},
 	}

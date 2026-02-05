@@ -16,7 +16,6 @@ import (
 	"github.com/multiversx/mx-chain-go/common"
 	"github.com/multiversx/mx-chain-go/process"
 	"github.com/multiversx/mx-chain-go/sharding"
-	"github.com/multiversx/mx-chain-go/state"
 	logger "github.com/multiversx/mx-chain-logger-go"
 )
 
@@ -45,7 +44,6 @@ type InterceptedTransaction struct {
 	isForCurrentShard      bool
 	enableSignedTxWithHash bool
 	enableEpochsHandler    common.EnableEpochsHandler
-	accountsAdapter        state.AccountsAdapter
 }
 
 // NewInterceptedTransaction returns a new instance of InterceptedTransaction
@@ -66,7 +64,6 @@ func NewInterceptedTransaction(
 	txSignHasher hashing.Hasher,
 	txVersionChecker process.TxVersionCheckerHandler,
 	enableEpochsHandler common.EnableEpochsHandler,
-	accountsAdapter state.AccountsAdapter,
 ) (*InterceptedTransaction, error) {
 
 	if txBuff == nil {
@@ -114,9 +111,6 @@ func NewInterceptedTransaction(
 	if check.IfNil(enableEpochsHandler) {
 		return nil, process.ErrNilEnableEpochsHandler
 	}
-	if check.IfNil(accountsAdapter) {
-		return nil, process.ErrNilAccountsAdapter
-	}
 
 	tx, err := createTx(protoMarshalizer, txBuff)
 	if err != nil {
@@ -140,7 +134,6 @@ func NewInterceptedTransaction(
 		txVersionChecker:       txVersionChecker,
 		txSignHasher:           txSignHasher,
 		enableEpochsHandler:    enableEpochsHandler,
-		accountsAdapter:        accountsAdapter,
 	}
 
 	err = inTx.processFields(txBuff)
@@ -281,11 +274,6 @@ func (inTx *InterceptedTransaction) verifyIfRelayedTxV3(tx *transaction.Transact
 		return process.ErrRelayedByGuardianNotAllowed
 	}
 
-	err = inTx.checkGuardedRelayer(tx)
-	if err != nil {
-		return err
-	}
-
 	userTx := *tx
 	userTx.RelayerSignature = make([]byte, 0) // temporary removed signature for recursive relayed checks
 	err = inTx.verifyUserTx(&userTx)
@@ -296,28 +284,6 @@ func (inTx *InterceptedTransaction) verifyIfRelayedTxV3(tx *transaction.Transact
 	err = inTx.verifyRelayerSig(tx)
 	if err != nil {
 		return err
-	}
-
-	return nil
-}
-
-func (inTx *InterceptedTransaction) checkGuardedRelayer(tx *transaction.Transaction) error {
-	if inTx.coordinator.ComputeId(tx.RelayerAddr) != inTx.coordinator.SelfId() {
-		return nil // cross shard, relayer not available
-	}
-
-	relayerAcc, err := inTx.accountsAdapter.GetExistingAccount(tx.RelayerAddr)
-	if err != nil {
-		return err
-	}
-
-	relayerAccount, ok := relayerAcc.(state.UserAccountHandler)
-	if !ok {
-		return process.ErrWrongTypeAssertion
-	}
-
-	if relayerAccount.IsGuarded() {
-		return process.ErrGuardedRelayerNotAllowed
 	}
 
 	return nil
