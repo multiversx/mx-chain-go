@@ -94,42 +94,7 @@ func (txv *txValidator) CheckTxValidity(interceptedTx process.InterceptedTransac
 		return err
 	}
 
-	if isRelayedV3 {
-		err = txv.checkGuardedRelayer(interceptedTx.Transaction())
-		if err != nil {
-			return err
-		}
-	}
-
 	return txv.checkAccount(interceptedTx, accountHandler)
-}
-
-func (txv *txValidator) checkGuardedRelayer(tx data.TransactionHandler) error {
-	txPtr, ok := tx.(*transaction.Transaction)
-	if !ok {
-		return process.ErrWrongTypeAssertion
-	}
-	// if GetExistingAccount returns error, it means the relayer account does not exist
-	// so it won't have funds for the fee. Return error
-	relayerAcc, err := txv.accounts.GetExistingAccount(txPtr.RelayerAddr)
-	if err != nil {
-		return err
-	}
-
-	if check.IfNil(relayerAcc) {
-		return process.ErrNilUserAccount
-	}
-
-	relayerAccount, ok := relayerAcc.(state.UserAccountHandler)
-	if !ok {
-		return process.ErrWrongTypeAssertion
-	}
-
-	if relayerAccount.IsGuarded() {
-		return process.ErrGuardedRelayerNotAllowed
-	}
-
-	return nil
 }
 
 func (txv *txValidator) isGuardedTxAfterSupernova(tx data.TransactionHandler) bool {
@@ -166,6 +131,10 @@ func (txv *txValidator) checkAccount(
 	feePayerAccount, err := txv.getFeePayerAccount(interceptedTx, accountHandler)
 	if err != nil {
 		return err
+	}
+
+	if common.IsRelayedTxV3(interceptedTx.Transaction()) && feePayerAccount.IsGuarded() {
+		return process.ErrGuardedRelayerNotAllowed
 	}
 
 	return txv.checkBalance(interceptedTx, feePayerAccount)
