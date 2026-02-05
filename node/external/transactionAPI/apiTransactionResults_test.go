@@ -61,7 +61,7 @@ func TestPutEventsInTransactionReceipt(t *testing.T) {
 	pubKeyConverter := &testscommon.PubkeyConverterMock{}
 	logsFacade := &testscommon.LogsFacadeStub{}
 	dataFieldParser := &testscommon.DataFieldParserStub{
-		ParseCalled: func(dataField []byte, sender, receiver []byte, _ uint32) *datafield.ResponseParseData {
+		ParseCalled: func(dataField []byte, sender, receiver []byte, _ uint32, _ uint32) *datafield.ResponseParseData {
 			return &datafield.ResponseParseData{}
 		},
 	}
@@ -108,7 +108,7 @@ func TestApiTransactionProcessor_PutResultsInTransactionWhenNoResultsShouldWork(
 	}
 
 	dataFieldParser := &testscommon.DataFieldParserStub{
-		ParseCalled: func(dataField []byte, sender, receiver []byte, _ uint32) *datafield.ResponseParseData {
+		ParseCalled: func(dataField []byte, sender, receiver []byte, _ uint32, _ uint32) *datafield.ResponseParseData {
 			return &datafield.ResponseParseData{}
 		},
 	}
@@ -233,7 +233,7 @@ func TestPutEventsInTransactionSmartContractResults(t *testing.T) {
 	}
 
 	dataFieldParser := &testscommon.DataFieldParserStub{
-		ParseCalled: func(dataField []byte, sender, receiver []byte, _ uint32) *datafield.ResponseParseData {
+		ParseCalled: func(dataField []byte, sender, receiver []byte, _ uint32, _ uint32) *datafield.ResponseParseData {
 			return &datafield.ResponseParseData{}
 		},
 	}
@@ -339,7 +339,7 @@ func TestPutLogsInTransaction(t *testing.T) {
 	}
 
 	dataFieldParser := &testscommon.DataFieldParserStub{
-		ParseCalled: func(dataField []byte, sender, receiver []byte, _ uint32) *datafield.ResponseParseData {
+		ParseCalled: func(dataField []byte, sender, receiver []byte, _ uint32, _ uint32) *datafield.ResponseParseData {
 			return &datafield.ResponseParseData{}
 		},
 	}
