@@ -104,13 +104,16 @@ func TestBlockSizeComputation_Init(t *testing.T) {
 
 	numTxs := 57
 	numMiniblocks := 23
+	numExecRes := 78
 	bsc.AddNumMiniBlocks(numMiniblocks)
 	bsc.AddNumTxs(numTxs)
+	bsc.AddNumExecRes(numExecRes)
 
 	bsc.Init()
 
 	assert.Equal(t, uint32(0), bsc.NumTxs())
 	assert.Equal(t, uint32(0), bsc.NumMiniBlocks())
+	assert.Equal(t, uint32(0), bsc.NumExecRes())
 }
 
 func TestBlockSizeComputation_IsMaxBlockSizeReachedShouldWork(t *testing.T) {
@@ -185,6 +188,39 @@ func TestBlockSizeComputation_IsMaxBlockSizeWithoutThrottleReachedShouldWork(t *
 	}
 }
 
+func TestBlockSizeComputation_IsMaxExecResSizeReached(t *testing.T) {
+	t.Parallel()
+
+	bsc, _ := preprocess.NewBlockSizeComputation(
+		&mock.ProtobufMarshalizerMock{},
+		&mock.BlockSizeThrottlerStub{
+			GetCurrentMaxSizeCalled: func() uint32 {
+				return maxSizeInBytes
+			},
+		},
+		maxSizeInBytes,
+		maxSizeInBytes,
+	)
+
+	testData := []struct {
+		numNewExecRes int
+		expected      bool
+		name          string
+	}{
+		{numNewExecRes: 0, expected: false, name: "with numExecRes 0"},
+		{numNewExecRes: 10, expected: false, name: "with numExecRes 10"},
+		{numNewExecRes: 30, expected: false, name: "with numExecRes 30"},
+		{numNewExecRes: 1000, expected: false, name: "with numExecRes 1000"},
+		{numNewExecRes: 10000, expected: true, name: "with numExecRes 10000"},
+	}
+
+	for _, td := range testData {
+		t.Run(td.name, func(t *testing.T) {
+			assert.Equal(t, td.expected, bsc.IsMaxExecResSizeReached(td.numNewExecRes))
+		})
+	}
+}
+
 func TestBlockSizeComputation_MaxTransactionsInOneMiniblock(t *testing.T) {
 	t.Parallel()
 
@@ -213,4 +249,10 @@ func TestBlockSizeComputation_DecrementValues(t *testing.T) {
 
 	bsc.DecNumTxs(10)
 	require.Equal(t, uint32(10), bsc.NumTxs())
+
+	bsc.AddNumExecRes(30)
+	require.Equal(t, uint32(30), bsc.NumExecRes())
+
+	bsc.DecNumExecRes(15)
+	require.Equal(t, uint32(15), bsc.NumExecRes())
 }

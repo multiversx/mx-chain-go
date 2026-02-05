@@ -44,6 +44,7 @@ func NewBlockSizeComputation(
 	bsc := &blockSizeComputation{
 		blockSizeThrottler: blockSizeThrottler,
 		maxSize:            maxSize,
+		maxExecResSize:     maxExecResSize,
 	}
 
 	err := bsc.precomputeValues(marshalizer)
@@ -169,6 +170,7 @@ func (bsc *blockSizeComputation) generateDummyExecutionResultSize(
 func (bsc *blockSizeComputation) Init() {
 	atomic.StoreUint32(&bsc.numTxs, 0)
 	atomic.StoreUint32(&bsc.numMiniBlocks, 0)
+	atomic.StoreUint32(&bsc.numExecRes, 0)
 }
 
 // AddNumMiniBlocks adds the provided value to numMiniBlocks in a concurrent safe manner

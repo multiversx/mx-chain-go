@@ -11,10 +11,12 @@ import (
 	"github.com/multiversx/mx-chain-go/process"
 )
 
+// ReceivedTransaction -
 func (txs *transactions) ReceivedTransaction(txHash []byte, value interface{}) {
 	txs.receivedTransaction(txHash, value)
 }
 
+// AddTxHashToRequestedList -
 func (txs *transactions) AddTxHashToRequestedList(txHash []byte) {
 	txsForCurrentBlock := txs.txsForCurrBlock.(*txsForBlock)
 	txsForCurrentBlock.mutTxsForBlock.Lock()
@@ -26,6 +28,7 @@ func (txs *transactions) AddTxHashToRequestedList(txHash []byte) {
 	txsForCurrentBlock.txHashAndInfo[string(txHash)] = &process.TxInfo{TxShardInfo: &process.TxShardInfo{}}
 }
 
+// IsTxHashRequested -
 func (txs *transactions) IsTxHashRequested(txHash []byte) bool {
 	txsForCurrentBlock := txs.txsForCurrBlock.(*txsForBlock)
 	txsForCurrentBlock.mutTxsForBlock.Lock()
@@ -35,6 +38,7 @@ func (txs *transactions) IsTxHashRequested(txHash []byte) bool {
 		txsForCurrentBlock.txHashAndInfo[string(txHash)].Tx.IsInterfaceNil()
 }
 
+// SetMissingTxs -
 func (txs *transactions) SetMissingTxs(missingTxs int) {
 	txsForCurrentBlock := txs.txsForCurrBlock.(*txsForBlock)
 
@@ -43,11 +47,13 @@ func (txs *transactions) SetMissingTxs(missingTxs int) {
 	txsForCurrentBlock.mutTxsForBlock.Unlock()
 }
 
+// SetRcvdTxChan -
 func (txs *transactions) SetRcvdTxChan() {
 	tfb := txs.txsForCurrBlock.(*txsForBlock)
 	tfb.chRcvAllTxs <- true
 }
 
+// AddScrHashToRequestedList -
 func (scr *smartContractResults) AddScrHashToRequestedList(txHash []byte) {
 	scrForBlock := scr.scrForBlock.(*txsForBlock)
 	scrForBlock.mutTxsForBlock.Lock()
@@ -59,6 +65,7 @@ func (scr *smartContractResults) AddScrHashToRequestedList(txHash []byte) {
 	scrForBlock.txHashAndInfo[string(txHash)] = &process.TxInfo{TxShardInfo: &process.TxShardInfo{}}
 }
 
+// IsScrHashRequested -
 func (scr *smartContractResults) IsScrHashRequested(txHash []byte) bool {
 	scrForBlock := scr.scrForBlock.(*txsForBlock)
 	scrForBlock.mutTxsForBlock.Lock()
@@ -68,6 +75,7 @@ func (scr *smartContractResults) IsScrHashRequested(txHash []byte) bool {
 		scrForBlock.txHashAndInfo[string(txHash)].Tx.IsInterfaceNil()
 }
 
+// SetMissingScr -
 func (scr *smartContractResults) SetMissingScr(missingTxs int) {
 	missingScrsForBlock, _ := scr.scrForBlock.(*txsForBlock)
 	missingScrsForBlock.mutTxsForBlock.Lock()
@@ -75,12 +83,14 @@ func (scr *smartContractResults) SetMissingScr(missingTxs int) {
 	missingScrsForBlock.mutTxsForBlock.Unlock()
 }
 
+// AddTxs -
 func (rtp *rewardTxPreprocessor) AddTxs(txHashes [][]byte, txs []data.TransactionHandler) {
 	for i := 0; i < len(txHashes); i++ {
 		rtp.rewardTxsForBlock.AddTransaction(txHashes[i], txs[i], core.MetachainShardId, 0)
 	}
 }
 
+// SetMissingRewardTxs -
 func (rtp *rewardTxPreprocessor) SetMissingRewardTxs(missingTxs int) {
 	missingRewards, _ := rtp.rewardTxsForBlock.(*txsForBlock)
 	missingRewards.mutTxsForBlock.Lock()
@@ -88,22 +98,37 @@ func (rtp *rewardTxPreprocessor) SetMissingRewardTxs(missingTxs int) {
 	missingRewards.mutTxsForBlock.Unlock()
 }
 
+// MiniblockSize -
 func (bsc *blockSizeComputation) MiniblockSize() uint32 {
 	return bsc.miniblockSize
 }
 
+// TxSize -
 func (bsc *blockSizeComputation) TxSize() uint32 {
 	return bsc.txSize
 }
 
+// ExecResSize -
+func (bsc *blockSizeComputation) ExecResSize() uint32 {
+	return bsc.execResSize
+}
+
+// NumMiniBlocks -
 func (bsc *blockSizeComputation) NumMiniBlocks() uint32 {
 	return atomic.LoadUint32(&bsc.numMiniBlocks)
 }
 
+// NumTxs -
 func (bsc *blockSizeComputation) NumTxs() uint32 {
 	return atomic.LoadUint32(&bsc.numTxs)
 }
 
+// NumExecRes -
+func (bsc *blockSizeComputation) NumExecRes() uint32 {
+	return atomic.LoadUint32(&bsc.numExecRes)
+}
+
+// ProcessTxsToMe -
 func (txs *transactions) ProcessTxsToMe(
 	header data.HeaderHandler,
 	body *block.Body,
@@ -112,6 +137,7 @@ func (txs *transactions) ProcessTxsToMe(
 	return txs.processTxsToMe(header, body, haveTime)
 }
 
+// AddTxForCurrentBlock -
 func (txs *transactions) AddTxForCurrentBlock(
 	txHash []byte,
 	txHandler data.TransactionHandler,
@@ -121,6 +147,7 @@ func (txs *transactions) AddTxForCurrentBlock(
 	txs.txsForCurrBlock.AddTransaction(txHash, txHandler, senderShardID, receiverShardID)
 }
 
+// GetTxInfoForCurrentBlock -
 func (txs *transactions) GetTxInfoForCurrentBlock(txHash []byte) (data.TransactionHandler, uint32, uint32) {
 	txInfo, ok := txs.txsForCurrBlock.GetTxInfoByHash(txHash)
 	if !ok {
@@ -130,6 +157,7 @@ func (txs *transactions) GetTxInfoForCurrentBlock(txHash []byte) (data.Transacti
 	return txInfo.Tx, txInfo.SenderShardID, txInfo.ReceiverShardID
 }
 
+// GetBalanceOfAddress -
 func (bc *balanceComputation) GetBalanceOfAddress(address []byte) *big.Int {
 	bc.mutAddressBalance.RLock()
 	defer bc.mutAddressBalance.RUnlock()
@@ -142,22 +170,27 @@ func (bc *balanceComputation) GetBalanceOfAddress(address []byte) *big.Int {
 	return big.NewInt(0).Set(currValue)
 }
 
+// GetTxHashesWithGasProvidedSinceLastReset -
 func (gc *gasComputation) GetTxHashesWithGasProvidedSinceLastReset(key []byte) [][]byte {
 	return gc.getTxHashesWithGasProvidedSinceLastReset(key)
 }
 
+// GetTxHashesWithGasProvidedAsScheduledSinceLastReset -
 func (gc *gasComputation) GetTxHashesWithGasProvidedAsScheduledSinceLastReset(key []byte) [][]byte {
 	return gc.getTxHashesWithGasProvidedAsScheduledSinceLastReset(key)
 }
 
+// GetTxHashesWithGasRefundedSinceLastReset -
 func (gc *gasComputation) GetTxHashesWithGasRefundedSinceLastReset(key []byte) [][]byte {
 	return gc.getTxHashesWithGasRefundedSinceLastReset(key)
 }
 
+// GetTxHashesWithGasPenalizedSinceLastReset -
 func (gc *gasComputation) GetTxHashesWithGasPenalizedSinceLastReset(key []byte) [][]byte {
 	return gc.getTxHashesWithGasPenalizedSinceLastReset(key)
 }
 
+// ComputeScheduledIntermediateTxs -
 func (ste *scheduledTxsExecution) ComputeScheduledIntermediateTxs(
 	mapAllIntermediateTxsBeforeScheduledExecution map[block.Type]map[string]data.TransactionHandler,
 	mapAllIntermediateTxsAfterScheduledExecution map[block.Type]map[string]data.TransactionHandler,
@@ -167,6 +200,7 @@ func (ste *scheduledTxsExecution) ComputeScheduledIntermediateTxs(
 	ste.mutScheduledTxs.Unlock()
 }
 
+// GetMapScheduledIntermediateTxs -
 func (ste *scheduledTxsExecution) GetMapScheduledIntermediateTxs() map[block.Type][]data.TransactionHandler {
 	ste.mutScheduledTxs.RLock()
 	defer ste.mutScheduledTxs.RUnlock()
