@@ -669,11 +669,13 @@ func (pcf *processComponentsFactory) Create() (*processComponents, error) {
 		return nil, err
 	}
 
+	signalProcessCompletionChan := make(chan uint64, 1)
 	argsHeadersExecutor := asyncExecution.ArgsHeadersExecutor{
-		BlocksCache:      blocksQueue,
-		ExecutionTracker: executionResultsTracker,
-		BlockProcessor:   blockProcessorComponents.blockProcessor,
-		BlockChain:       pcf.data.Blockchain(),
+		BlocksCache:                 blocksQueue,
+		ExecutionTracker:            executionResultsTracker,
+		BlockProcessor:              blockProcessorComponents.blockProcessor,
+		BlockChain:                  pcf.data.Blockchain(),
+		SignalProcessCompletionChan: signalProcessCompletionChan,
 	}
 	headersExecutor, err := asyncExecution.NewHeadersExecutor(argsHeadersExecutor)
 	if err != nil {
