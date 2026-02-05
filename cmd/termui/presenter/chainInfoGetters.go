@@ -82,25 +82,14 @@ func (psh *PresenterStatusHandler) CalculateTimeToSynchronize(numMillisecondsRef
 
 	currentSynchronizedRound := psh.GetSynchronizedRound()
 
-	numSynchronizationSpeedHistory := len(psh.synchronizationSpeedHistory)
-
-	sum := uint64(0)
-	for i := 0; i < len(psh.synchronizationSpeedHistory); i++ {
-		sum += psh.synchronizationSpeedHistory[i]
-	}
-
-	speed := float64(0)
-	if numSynchronizationSpeedHistory > 0 {
-		speed = float64(sum*1000) / float64(numSynchronizationSpeedHistory*numMillisecondsRefreshTime)
-	}
-
+	speed := psh.calculateSpeedFromSpeedHistory(numMillisecondsRefreshTime)
 	currentRound := psh.GetCurrentRound()
 	if currentRound < currentSynchronizedRound || speed == 0 {
-		return ""
+		return "Estimating..."
 	}
 
 	remainingRoundsToSynchronize := currentRound - currentSynchronizedRound
-	timeEstimationSeconds := float64(remainingRoundsToSynchronize) / speed
+	timeEstimationSeconds := float64(remainingRoundsToSynchronize) / float64(speed)
 	remainingTime := core.SecondsToHourMinSec(int(timeEstimationSeconds))
 
 	return remainingTime
@@ -110,47 +99,37 @@ func (psh *PresenterStatusHandler) CalculateTimeToSynchronize(numMillisecondsRef
 // how many blocks per second are synchronized
 func (psh *PresenterStatusHandler) CalculateSynchronizationSpeed(numMillisecondsRefreshTime int) uint64 {
 	currentSynchronizedRound := psh.GetSynchronizedRound()
-	if psh.oldRound == 0 {
-		psh.oldRound = currentSynchronizedRound
-		return 0
-	}
-
-	roundsPerSecond := int64(currentSynchronizedRound - psh.oldRound)
-	if roundsPerSecond < 0 {
-		roundsPerSecond = 0
-	}
 
 	if len(psh.synchronizationSpeedHistory) >= maxSpeedHistorySaved {
-		psh.synchronizationSpeedHistory = psh.synchronizationSpeedHistory[1:len(psh.synchronizationSpeedHistory)]
+		psh.synchronizationSpeedHistory = psh.synchronizationSpeedHistory[1:]
 	}
-	psh.synchronizationSpeedHistory = append(psh.synchronizationSpeedHistory, uint64(roundsPerSecond))
+	psh.synchronizationSpeedHistory = append(psh.synchronizationSpeedHistory, currentSynchronizedRound)
 
-	psh.oldRound = currentSynchronizedRound
+	speed := psh.calculateSpeedFromSpeedHistory(numMillisecondsRefreshTime)
 
-	numSyncedBlocks := uint64(0)
-	cumulatedTime := uint64(0)
+	return speed
+}
+
+func (psh *PresenterStatusHandler) calculateSpeedFromSpeedHistory(numMillisecondsRefreshTime int) uint64 {
 	lastIndex := len(psh.synchronizationSpeedHistory) - 1
-	millisecondsInASecond := uint64(1000)
-	for {
-		if lastIndex < 0 {
-			break
-		}
-		if cumulatedTime >= millisecondsInASecond {
-			break
-		}
+	firstIndex := 0
 
-		numSyncedBlocks += psh.synchronizationSpeedHistory[lastIndex]
-		lastIndex--
-		cumulatedTime += uint64(numMillisecondsRefreshTime)
-	}
-	if cumulatedTime == 0 || numSyncedBlocks == 0 {
+	if lastIndex <= firstIndex {
 		return 0
 	}
 
-	timeAdjustment := float64(millisecondsInASecond) / float64(cumulatedTime)
-	syncedBlocksAdjustment := timeAdjustment * float64(numSyncedBlocks)
+	numSyncedBlocks := psh.synchronizationSpeedHistory[lastIndex] - psh.synchronizationSpeedHistory[firstIndex]
+	cumulatedTimeMs := uint64((lastIndex - firstIndex) * numMillisecondsRefreshTime)
 
-	return uint64(syncedBlocksAdjustment)
+	if cumulatedTimeMs == 0 || numSyncedBlocks == 0 {
+		return 0
+	}
+
+	numMillisecondsInASecond := 1000.0
+	speed := (float64(numSyncedBlocks) / float64(cumulatedTimeMs)) * numMillisecondsInASecond
+
+	return uint64(speed)
+
 }
 
 // GetNumTxProcessed will return number of processed transactions since node starts
