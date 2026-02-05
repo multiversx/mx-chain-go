@@ -319,7 +319,7 @@ func (bn *branchNode) commitSnapshot(
 			if core.IsClosingError(err) {
 				return err
 			}
-			
+
 			log.Error("error during trie snapshot", "err", err.Error(), "hash", bn.EncodedChildren[i])
 			missingNodesChan <- bn.EncodedChildren[i]
 			continue
@@ -330,7 +330,8 @@ func (bn *branchNode) commitSnapshot(
 			return err
 		}
 
-		err = child.commitSnapshot(db, foundInEpoch, leavesChan, missingNodesChan, ctx, stats, idleProvider, encChild, depthLevel+1)
+		maxEpochToSearchFromForChild := foundInEpoch + 1
+		err = child.commitSnapshot(db, maxEpochToSearchFromForChild, leavesChan, missingNodesChan, ctx, stats, idleProvider, encChild, depthLevel+1)
 		if err != nil {
 			return err
 		}

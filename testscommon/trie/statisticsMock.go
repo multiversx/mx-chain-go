@@ -6,6 +6,7 @@ import (
 
 // MockStatistics -
 type MockStatistics struct {
+	AddTrieStatsCalled             func(common.TrieStatisticsHandler, common.TrieType)
 	WaitForSnapshotsToFinishCalled func()
 }
 
@@ -25,7 +26,10 @@ func (m *MockStatistics) WaitForSnapshotsToFinish() {
 }
 
 // AddTrieStats -
-func (m *MockStatistics) AddTrieStats(_ common.TrieStatisticsHandler, _ common.TrieType) {
+func (m *MockStatistics) AddTrieStats(stats common.TrieStatisticsHandler, t common.TrieType) {
+	if m.AddTrieStatsCalled != nil {
+		m.AddTrieStatsCalled(stats, t)
+	}
 }
 
 // GetSnapshotDuration -

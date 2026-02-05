@@ -136,8 +136,8 @@ func (ln *leafNode) commitDirty(_ byte, _ uint, _ common.TrieStorageInteractor, 
 }
 
 func (ln *leafNode) commitSnapshot(
-	db snapshotDb,
-	maxEpochToSearchFrom uint32,
+	_ snapshotDb,
+	_ uint32,
 	leavesChan chan core.KeyValueHolder,
 	_ chan []byte,
 	ctx context.Context,
