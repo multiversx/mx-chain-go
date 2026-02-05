@@ -20,6 +20,7 @@ type ExecutionManagerMock struct {
 	ResetAndResumeExecutionCalled                func(lastNotarizedResult data.BaseExecutionResultHandler) error
 	GetLastNotarizedExecutionResultCalled        func() (data.BaseExecutionResultHandler, error)
 	RemovePendingExecutionResultsFromNonceCalled func(nonce uint64) error
+	GetSignalProcessCompletionChanCalled         func() chan uint64
 	CloseCalled                                  func() error
 }
 
@@ -105,6 +106,14 @@ func (emm *ExecutionManagerMock) GetLastNotarizedExecutionResult() (data.BaseExe
 func (emm *ExecutionManagerMock) RemovePendingExecutionResultsFromNonce(nonce uint64) error {
 	if emm.RemovePendingExecutionResultsFromNonceCalled != nil {
 		return emm.RemovePendingExecutionResultsFromNonceCalled(nonce)
+	}
+	return nil
+}
+
+// GetSignalProcessCompletionChan -
+func (emm *ExecutionManagerMock) GetSignalProcessCompletionChan() chan uint64 {
+	if emm.GetSignalProcessCompletionChanCalled != nil {
+		return emm.GetSignalProcessCompletionChanCalled()
 	}
 	return nil
 }

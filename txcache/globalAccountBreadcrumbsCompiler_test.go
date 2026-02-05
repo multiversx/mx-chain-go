@@ -87,7 +87,7 @@ func Test_shouldWorkOnDifferentScenarios(t *testing.T) {
 		}
 
 		// compile its breadcrumbs
-		err := tb1.compileBreadcrumbs(txs)
+		_, err := tb1.compileBreadcrumbs(txs)
 		require.NoError(t, err)
 
 		// update the global state
@@ -142,7 +142,7 @@ func Test_shouldWorkOnDifferentScenarios(t *testing.T) {
 		}
 
 		// compile its breadcrumbs
-		err = tb2.compileBreadcrumbs(txs)
+		_, err = tb2.compileBreadcrumbs(txs)
 		require.NoError(t, err)
 
 		// update the global state
@@ -244,7 +244,7 @@ func Test_shouldWorkOnDifferentScenarios(t *testing.T) {
 		}
 
 		// compile its breadcrumbs
-		err := tb3.compileBreadcrumbs(txs)
+		_, err := tb3.compileBreadcrumbs(txs)
 		require.NoError(t, err)
 
 		// update the global state
@@ -300,7 +300,7 @@ func Test_shouldWorkOnDifferentScenarios(t *testing.T) {
 		}
 
 		// compile its breadcrumbs
-		err = tb4.compileBreadcrumbs(txs)
+		_, err = tb4.compileBreadcrumbs(txs)
 		require.NoError(t, err)
 
 		// update the global state
@@ -355,7 +355,7 @@ func Test_shouldWorkOnDifferentScenarios(t *testing.T) {
 		}
 
 		// compile its breadcrumbs
-		err = tb5.compileBreadcrumbs(txs)
+		_, err = tb5.compileBreadcrumbs(txs)
 		require.NoError(t, err)
 
 		// propose
@@ -518,7 +518,7 @@ func Test_shouldWorkOnDifferentScenarios(t *testing.T) {
 		}
 
 		// compile its breadcrumbs
-		err = tb6.compileBreadcrumbs(txs)
+		_, err = tb6.compileBreadcrumbs(txs)
 		require.NoError(t, err)
 
 		// update the global state
@@ -591,7 +591,7 @@ func Test_updateGlobalBreadcrumbsOnRemovedBlockOnProposed(t *testing.T) {
 			tx1, tx2,
 		}
 
-		err := tb1.compileBreadcrumbs(txs)
+		_, err := tb1.compileBreadcrumbs(txs)
 		require.NoError(t, err)
 
 		err = gabc.updateOnRemovedBlockWithSameNonceOrAbove(tb1)
@@ -622,7 +622,7 @@ func Test_updateGlobalBreadcrumbsOnRemovedBlockOnProposed(t *testing.T) {
 			tx1, tx2,
 		}
 
-		err := tb1.compileBreadcrumbs(txs)
+		_, err := tb1.compileBreadcrumbs(txs)
 		require.NoError(t, err)
 
 		err = gabc.updateOnRemovedBlockWithSameNonceOrAbove(tb1)
@@ -646,7 +646,7 @@ func Test_updateGlobalBreadcrumbsOnRemovedBlockOnExecuted(t *testing.T) {
 			tx1, tx2,
 		}
 
-		err := tb1.compileBreadcrumbs(txs)
+		_, err := tb1.compileBreadcrumbs(txs)
 		require.NoError(t, err)
 
 		err = gabc.updateOnRemovedBlockWithSameNonceOrBelow(tb1)
@@ -677,7 +677,7 @@ func Test_updateGlobalBreadcrumbsOnRemovedBlockOnExecuted(t *testing.T) {
 			tx1, tx2,
 		}
 
-		err := tb1.compileBreadcrumbs(txs)
+		_, err := tb1.compileBreadcrumbs(txs)
 		require.NoError(t, err)
 
 		err = gabc.updateOnRemovedBlockWithSameNonceOrBelow(tb1)
