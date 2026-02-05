@@ -2787,9 +2787,7 @@ func TestStateSnapshot_MultipleEpochsWithoutCompleteSnapshot(t *testing.T) {
 	assert.True(t, ok)
 
 	numEpochs := 5
-	persisters := make([]storage.Persister, numEpochs)
 	getCounters := make([]int, numEpochs)
-	putCounters := make([]int, numEpochs)
 
 	args := testStorage.GetStorageManagerArgs()
 	args.MainStorer = mainStorer
@@ -2809,12 +2807,7 @@ func TestStateSnapshot_MultipleEpochsWithoutCompleteSnapshot(t *testing.T) {
 		persister.GetCalledNoReturn = func(key []byte) {
 			getCounters[i]++
 		}
-		persister.PutCalled = func(key []byte, value []byte) error {
-			putCounters[i]++
-			return nil
-		}
 
-		persisters[i] = persister
 		persisterPath := fmt.Sprintf("Epoch_%d/Shard_0/id", i)
 		persistersMap.AddPersister(persisterPath, persister)
 		mainStorerWithEpoch.SetEpochForPutOperation(uint32(i))
