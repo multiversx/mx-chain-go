@@ -151,6 +151,7 @@ func (bbc *baseBlockChain) SetLastExecutedBlockHeaderAndRootHash(
 	bbc.lastExecutedBlockInfo.committedRootHash = rootHash
 
 	bbc.lastExecutedBlockHeader = header.ShallowClone()
+	bbc.appStatusHandler.SetUInt64Value(common.MetricLastExecutedNonce, header.GetNonce())
 }
 
 // GetLastExecutionResult returns the last execution result
