@@ -2867,6 +2867,7 @@ func TestStateSnapshot_MultipleEpochsWithoutCompleteSnapshot(t *testing.T) {
 	wg.Wait()
 
 	hashes, err := tr.GetAllHashes()
+	assert.Nil(t, err)
 	numTrieNodes := len(hashes)
 	assert.Less(t, getCounters[numEpochs-1], numTrieNodes)
 }
