@@ -191,9 +191,6 @@ func createInterceptedTxFromPlainTxWithArgParser(tx *dataTransaction.Transaction
 		return string(firstAddress) == string(relayerAddress) &&
 			string(secondAddress) == string(senderAddress)
 	}
-	shardCoordinator.ComputeIdCalled = func(address []byte) uint32 {
-		return 0
-	}
 
 	return transaction.NewInterceptedTransaction(
 		txBuff,
@@ -1731,7 +1728,6 @@ func TestInterceptedTransaction_CheckValidityOfRelayedTxV3(t *testing.T) {
 	// recursive relayed txs
 	tx.Version = minTxVersion
 	tx.Options = 0
-	tx.RelayerAddr = relayerAddress
 	tx.GuardianAddr = nil
 	tx.GuardianSignature = nil
 	tx.Data = []byte(core.RelayedTransactionV2 + "@" + hex.EncodeToString(recvAddress) + "@" + hex.EncodeToString(big.NewInt(0).SetUint64(0).Bytes()) + "@" + hex.EncodeToString([]byte("some method")) + "@" + hex.EncodeToString(sigOk))
