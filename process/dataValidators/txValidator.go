@@ -133,6 +133,10 @@ func (txv *txValidator) checkAccount(
 		return err
 	}
 
+	if common.IsRelayedTxV3(interceptedTx.Transaction()) && feePayerAccount.IsGuarded() {
+		return process.ErrGuardedRelayerNotAllowed
+	}
+
 	return txv.checkBalance(interceptedTx, feePayerAccount)
 }
 

@@ -112,6 +112,9 @@ const MetricCurrentRound = "erd_current_round"
 // MetricNonce is the metric for monitoring the nonce of a node
 const MetricNonce = "erd_nonce"
 
+// MetricLastExecutedNonce is the metric for monitoring the last executed nonce of a node
+const MetricLastExecutedNonce = "erd_last_executed_nonce"
+
 // MetricProposedNonce is the metric for monitoring the proposed nonce of a node
 const MetricProposedNonce = "erd_proposed_nonce"
 
