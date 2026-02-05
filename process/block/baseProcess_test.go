@@ -30,6 +30,7 @@ import (
 	"github.com/stretchr/testify/require"
 
 	"github.com/multiversx/mx-chain-go/common/holders"
+	"github.com/multiversx/mx-chain-go/process/aotSelection"
 	headersCache "github.com/multiversx/mx-chain-go/process/asyncExecution/cache"
 	"github.com/multiversx/mx-chain-go/process/asyncExecution/executionManager"
 
@@ -252,6 +253,7 @@ func createArgBaseProcessor(
 		},
 		ExecutionManager:        execManager,
 		TxExecutionOrderHandler: &commonMocks.TxExecutionOrderHandlerStub{},
+		AOTSelector:             aotSelection.NewDisabledAOTSelector(),
 	}
 }
 
@@ -526,6 +528,7 @@ func createMockTransactionCoordinatorArguments(
 				return txHashes, nil, nil
 			},
 		},
+		AOTSelector: aotSelection.NewDisabledAOTSelector(),
 	}
 
 	return argsTransactionCoordinator

@@ -1460,3 +1460,6 @@ var ErrNilNodeRedundancyHandler = errors.New("nil node redundancy handler")
 
 // ErrNilTxCache signals that a nil transaction cache has been provided
 var ErrNilTxCache = errors.New("nil tx cache")
+
+// ErrNilAOTSelector signals that a nil AOT selector has been provided
+var ErrNilAOTSelector = errors.New("nil AOT selector")

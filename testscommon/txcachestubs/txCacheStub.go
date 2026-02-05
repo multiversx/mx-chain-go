@@ -1,4 +1,4 @@
-package txcachestub
+package txcachestubs
 
 import (
 	"github.com/multiversx/mx-chain-go/common"

@@ -87,8 +87,9 @@ func NewAOTSelector(args AOTSelectorArgs) (*aotSelector, error) {
 	if check.IfNil(args.KeysHandler) {
 		return nil, process.ErrNilKeysHandler
 	}
-	// NodeRedundancy can be nil at creation time - it may be set later via consensus components
-	// The shouldConsiderSelfKeyInConsensus method handles nil NodeRedundancy gracefully
+	if check.IfNil(args.NodeRedundancy) {
+		return nil, process.ErrNilNodeRedundancyHandler
+	}
 	if check.IfNil(args.TxCache) {
 		return nil, process.ErrNilTxCache
 	}
@@ -294,8 +295,10 @@ func (s *aotSelector) runAOTSelection(targetNonce uint64, randomness []byte) {
 		s.selectionMut.Lock()
 		s.ongoingNonce = 0
 		s.resultChan = nil
+		s.cancelChan = nil
 		s.selectionMut.Unlock()
 		close(resultChan)
+		close(cancelChan)
 	}()
 
 	startTime := time.Now()

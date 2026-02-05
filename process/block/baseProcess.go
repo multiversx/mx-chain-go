@@ -797,6 +797,9 @@ func checkProcessorParameters(arguments ArgBaseProcessor) error {
 	if check.IfNil(arguments.TxExecutionOrderHandler) {
 		return process.ErrNilTxExecutionOrderHandler
 	}
+	if check.IfNil(arguments.AOTSelector) {
+		return process.ErrNilAOTSelector
+	}
 
 	return nil
 }

@@ -1,4 +1,4 @@
-package testscommon
+package aotStubs
 
 import (
 	"github.com/multiversx/mx-chain-core-go/data"
