@@ -103,6 +103,9 @@ const MetricCurrentRound = "erd_current_round"
 // MetricNonce is the metric for monitoring the nonce of a node
 const MetricNonce = "erd_nonce"
 
+// MetricLastExecutedNonce is the metric for monitoring the last executed nonce of a node
+const MetricLastExecutedNonce = "erd_last_executed_nonce"
+
 // MetricProposedNonce is the metric for monitoring the proposed nonce of a node
 const MetricProposedNonce = "erd_proposed_nonce"
 
@@ -1033,6 +1036,9 @@ const CommitMaxTime = 3 * time.Second
 
 // PutInStorerMaxTime represents max time accepted for a put action, after which a warn message is displayed
 const PutInStorerMaxTime = time.Second
+
+// PutInStorerMaxTimeSupernova represents max time accepted for a put action with supernova activated, after which a warn message is displayed
+const PutInStorerMaxTimeSupernova = 600 * time.Millisecond
 
 // DefaultUnstakedEpoch represents the default epoch that is set for a validator that has not unstaked yet
 const DefaultUnstakedEpoch = math.MaxUint32

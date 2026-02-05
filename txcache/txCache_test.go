@@ -541,18 +541,18 @@ func TestTxCache_TransactionIsAdded_EvenWhenInternalMapsAreInconsistent(t *testi
 	cache := newUnconstrainedCacheToTest(boundsConfig)
 
 	// Setup inconsistency: transaction already exists in map by hash, but not in map by sender
+	// With early duplicate check (DoS protection), this now returns (true, false) - duplicate detected early
 	cache.txByHash.addTx(createTx([]byte("alice-x"), "alice", 42))
 
 	require.Equal(t, 1, cache.txByHash.backingMap.Count())
 	require.True(t, cache.Has([]byte("alice-x")))
 	ok, added := cache.AddTx(createTx([]byte("alice-x"), "alice", 42))
 	require.True(t, ok)
-	require.True(t, added)
-	require.Equal(t, uint64(1), cache.CountSenders())
-	require.Equal(t, []string{"alice-x"}, cache.getHashesForSender("alice"))
+	require.False(t, added) // Changed: now returns false due to early duplicate check (DoS protection)
 	cache.Clear()
 
 	// Setup inconsistency: transaction already exists in map by sender, but not in map by hash
+	// This case still works as before - tx not in hash map, so it gets added
 	cache.txListBySender.addTxReturnEvicted(createTx([]byte("alice-x"), "alice", 42), cache.tracker)
 
 	require.False(t, cache.Has([]byte("alice-x")))

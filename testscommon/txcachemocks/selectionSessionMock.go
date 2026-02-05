@@ -18,6 +18,7 @@ type SelectionSessionMock struct {
 	GetAccountNonceAndBalanceCalled   func(address []byte) (uint64, *big.Int, bool, error)
 	GetRootHashCalled                 func() ([]byte, error)
 	IsIncorrectlyGuardedCalled        func(tx data.TransactionHandler) bool
+	IsGuardedCalled                   func(tx data.TransactionHandler) bool
 }
 
 // NewSelectionSessionMock -
@@ -99,6 +100,15 @@ func (mock *SelectionSessionMock) GetRootHash() ([]byte, error) {
 func (mock *SelectionSessionMock) IsIncorrectlyGuarded(tx data.TransactionHandler) bool {
 	if mock.IsIncorrectlyGuardedCalled != nil {
 		return mock.IsIncorrectlyGuardedCalled(tx)
+	}
+
+	return false
+}
+
+// IsGuarded -
+func (mock *SelectionSessionMock) IsGuarded(tx data.TransactionHandler) bool {
+	if mock.IsGuardedCalled != nil {
+		return mock.IsGuardedCalled(tx)
 	}
 
 	return false

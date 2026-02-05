@@ -15,8 +15,9 @@ import (
 	"github.com/multiversx/mx-chain-core-go/data/block"
 	"github.com/multiversx/mx-chain-core-go/hashing"
 	"github.com/multiversx/mx-chain-core-go/marshal"
-	"github.com/multiversx/mx-chain-go/dataRetriever"
 	logger "github.com/multiversx/mx-chain-logger-go"
+
+	"github.com/multiversx/mx-chain-go/dataRetriever"
 
 	"github.com/multiversx/mx-chain-go/common"
 	"github.com/multiversx/mx-chain-go/process"
@@ -62,6 +63,7 @@ type ArgTransactionCoordinator struct {
 	TxTypeHandler                process.TxTypeHandler
 	TransactionsLogProcessor     process.TransactionLogProcessor
 	EnableEpochsHandler          common.EnableEpochsHandler
+	EnableRoundsHandler          common.EnableRoundsHandler
 	ScheduledTxsExecutionHandler process.ScheduledTxsExecutionHandler
 	DoubleTransactionsDetector   process.DoubleTransactionDetector
 	ProcessedMiniBlocksTracker   process.ProcessedMiniBlocksTracker
@@ -96,6 +98,7 @@ type transactionCoordinator struct {
 	doubleTransactionsDetector   process.DoubleTransactionDetector
 	processedMiniBlocksTracker   process.ProcessedMiniBlocksTracker
 	enableEpochsHandler          common.EnableEpochsHandler
+	enableRoundsHandler          common.EnableRoundsHandler
 	txExecutionOrderHandler      common.TxExecutionOrderHandler
 	blockDataRequester           process.BlockDataRequester
 	blockDataRequesterProposal   process.BlockDataRequester
@@ -126,6 +129,7 @@ func NewTransactionCoordinator(args ArgTransactionCoordinator) (*transactionCoor
 		doubleTransactionsDetector:   args.DoubleTransactionsDetector,
 		processedMiniBlocksTracker:   args.ProcessedMiniBlocksTracker,
 		enableEpochsHandler:          args.EnableEpochsHandler,
+		enableRoundsHandler:          args.EnableRoundsHandler,
 		txExecutionOrderHandler:      args.TxExecutionOrderHandler,
 		blockDataRequester:           args.BlockDataRequester,
 		blockDataRequesterProposal:   args.BlockDataRequesterProposal,
@@ -329,7 +333,8 @@ func (tc *transactionCoordinator) ProcessBlockTransaction(
 		return process.ErrNilBlockBody
 	}
 
-	if tc.isMaxBlockSizeReached(body) {
+	isAsyncExecEnabled := common.IsAsyncExecutionEnabled(tc.enableEpochsHandler, tc.enableRoundsHandler)
+	if !isAsyncExecEnabled && tc.isMaxBlockSizeReached(body) {
 		return process.ErrMaxBlockSizeReached
 	}
 
@@ -381,6 +386,11 @@ func (tc *transactionCoordinator) GetCreatedMiniBlocksFromMe() block.MiniBlockSl
 	}
 
 	return miniBlocks
+}
+
+// GetUnExecutableTransactions will return a map with hashes of unexecutable transactions
+func (tc *transactionCoordinator) GetUnExecutableTransactions() map[string]struct{} {
+	return tc.getUnExecutableTransactions()
 }
 
 func (tc *transactionCoordinator) getUnExecutableTransactions() map[string]struct{} {
@@ -1753,6 +1763,9 @@ func checkTransactionCoordinatorNilParameters(arguments ArgTransactionCoordinato
 	}
 	if check.IfNil(arguments.EnableEpochsHandler) {
 		return process.ErrNilEnableEpochsHandler
+	}
+	if check.IfNil(arguments.EnableRoundsHandler) {
+		return process.ErrNilEnableRoundsHandler
 	}
 	err := core.CheckHandlerCompatibility(arguments.EnableEpochsHandler, []core.EnableEpochFlag{
 		common.ScheduledMiniBlocksFlag,

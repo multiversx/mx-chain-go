@@ -20,6 +20,9 @@ var ErrNoPublicKeySet = errors.New("no public key was set")
 // ErrNilKeyGenerator is raised when a valid key generator is expected but nil used
 var ErrNilKeyGenerator = errors.New("key generator is nil")
 
+// ErrNilCacher is raised when a valid cacher is expected but nil used
+var ErrNilCacher = errors.New("cacher is nil")
+
 // ErrNilPublicKeys is raised when public keys are expected but received nil
 var ErrNilPublicKeys = errors.New("public keys are nil")
 

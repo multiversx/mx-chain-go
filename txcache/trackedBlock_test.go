@@ -131,7 +131,7 @@ func TestTrackedBlock_compileBreadcrumbs(t *testing.T) {
 			},
 		}
 
-		err := block.compileBreadcrumbs(txs)
+		_, err := block.compileBreadcrumbs(txs)
 		require.NoError(t, err)
 
 		aliceBreadcrumb := newAccountBreadcrumb(core.OptionalUint64{Value: 1, HasValue: true})
@@ -171,7 +171,7 @@ func TestTrackedBlock_compileBreadcrumbs(t *testing.T) {
 			},
 		}
 
-		err := block.compileBreadcrumbs(txs)
+		_, err := block.compileBreadcrumbs(txs)
 		require.NoError(t, err)
 
 		aliceBreadcrumb = newAccountBreadcrumb(core.OptionalUint64{Value: 1, HasValue: true})
@@ -213,7 +213,7 @@ func TestTrackedBlock_compileBreadcrumbs(t *testing.T) {
 			},
 		}
 
-		err := block.compileBreadcrumbs(txs)
+		_, err := block.compileBreadcrumbs(txs)
 		require.NoError(t, err)
 
 		aliceBreadcrumb = newAccountBreadcrumb(core.OptionalUint64{Value: 1, HasValue: true})
@@ -275,7 +275,7 @@ func TestTrackedBlock_compileBreadcrumbs(t *testing.T) {
 			},
 		}
 
-		err := block.compileBreadcrumbs(txs)
+		_, err := block.compileBreadcrumbs(txs)
 		require.NoError(t, err)
 
 		aliceBreadcrumb = newAccountBreadcrumb(core.OptionalUint64{Value: 1, HasValue: true})
@@ -321,7 +321,7 @@ func TestTrackedBlock_compileBreadcrumbs(t *testing.T) {
 			},
 		}
 
-		err := block.compileBreadcrumbs(txs)
+		_, err := block.compileBreadcrumbs(txs)
 		require.NoError(t, err)
 
 		aliceBreadcrumb = newAccountBreadcrumb(core.OptionalUint64{
@@ -382,7 +382,7 @@ func TestTrackedBlock_compileBreadcrumbs(t *testing.T) {
 			},
 		}
 
-		err := block.compileBreadcrumbs(txs)
+		_, err := block.compileBreadcrumbs(txs)
 		require.NoError(t, err)
 
 		aliceBreadcrumb := newAccountBreadcrumb(core.OptionalUint64{Value: 1, HasValue: true})

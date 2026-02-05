@@ -21,7 +21,7 @@ import (
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 
-	"github.com/multiversx/mx-chain-go/process/asyncExecution/queue"
+	headersCache "github.com/multiversx/mx-chain-go/process/asyncExecution/cache"
 	"github.com/multiversx/mx-chain-go/testscommon/processMocks"
 
 	"github.com/multiversx/mx-chain-go/common"
@@ -233,7 +233,7 @@ func createBlockProcessor(blk data.ChainHandler) *testscommon.BlockProcessorStub
 			_ = blk.SetCurrentBlockHeaderAndRootHash(hdr.(*block.Header), hdr.GetRootHash())
 			return nil
 		},
-		RevertCurrentBlockCalled: func(_ data.HeaderHandler) {
+		RevertCurrentBlockCalled: func() {
 		},
 		CommitBlockCalled: func(header data.HeaderHandler, body data.BodyHandler) error {
 			return nil
@@ -2655,7 +2655,7 @@ func TestShardBootstrap_SyncBlockV3(t *testing.T) {
 
 		addToQueueCalled := false
 		args.ExecutionManager = &processMocks.ExecutionManagerMock{
-			AddPairForExecutionCalled: func(pair queue.HeaderBodyPair) error {
+			AddPairForExecutionCalled: func(pair headersCache.HeaderBodyPair) error {
 				addToQueueCalled = true
 				return nil
 			},
@@ -2766,7 +2766,7 @@ func TestShardBootstrap_SyncBlockV3(t *testing.T) {
 
 		cntAddToQueue := 0
 		args.ExecutionManager = &processMocks.ExecutionManagerMock{
-			AddPairForExecutionCalled: func(pair queue.HeaderBodyPair) error {
+			AddPairForExecutionCalled: func(pair headersCache.HeaderBodyPair) error {
 				cntAddToQueue++
 				return nil
 			},
@@ -2941,7 +2941,7 @@ func TestShardBootstrap_SyncBlockV3(t *testing.T) {
 		args.ForkDetector = setupForkDetector(5)
 
 		args.ExecutionManager = &processMocks.ExecutionManagerMock{
-			AddPairForExecutionCalled: func(pair queue.HeaderBodyPair) error {
+			AddPairForExecutionCalled: func(pair headersCache.HeaderBodyPair) error {
 				return errExpected
 			},
 		}
@@ -3033,7 +3033,7 @@ func TestShardBootstrap_SyncBlockV3(t *testing.T) {
 		args.ForkDetector = setupForkDetector(5)
 
 		args.ExecutionManager = &processMocks.ExecutionManagerMock{
-			AddPairForExecutionCalled: func(pair queue.HeaderBodyPair) error {
+			AddPairForExecutionCalled: func(pair headersCache.HeaderBodyPair) error {
 				return errExpected
 			},
 		}
@@ -3262,7 +3262,7 @@ func TestShardBootstrap_SyncBlockV3(t *testing.T) {
 
 		args := createSyncBlockV3Args()
 		args.ExecutionManager = &processMocks.ExecutionManagerMock{
-			AddPairForExecutionCalled: func(pair queue.HeaderBodyPair) error {
+			AddPairForExecutionCalled: func(pair headersCache.HeaderBodyPair) error {
 				return errExpected
 			},
 		}
