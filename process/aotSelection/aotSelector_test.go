@@ -301,10 +301,7 @@ func TestAOTSelector_TriggerAOTSelectionLeaderRoundN2Only(t *testing.T) {
 	}
 	args.KeysHandler = &testscommon.KeysHandlerStub{
 		IsOriginalPublicKeyOfTheNodeCalled: func(pk []byte) bool {
-			if string(pk) == string(leaderPubKey) {
-				return true
-			}
-			return false
+			return string(pk) == string(leaderPubKey)
 		},
 		IsKeyManagedByCurrentNodeCalled: func(_ []byte) bool {
 			return false
