@@ -1345,3 +1345,17 @@ const (
 
 // HashSize defines  const for the hash length
 const HashSize = 32
+
+// FloodPreventerType defines the type of flood preventer
+type FloodPreventerType string
+
+const (
+	// FastReacting defines fast reacting flood preventer type
+	FastReacting FloodPreventerType = "fast_reacting"
+	// SlowReacting defines slow reacting flood preventer type
+	SlowReacting FloodPreventerType = "slow_reacting"
+	// OutOfSpecs defines out of specs flood preventer type
+	OutOfSpecs FloodPreventerType = "out_of_specs"
+	// Output defines output flood preventer type
+	Output FloodPreventerType = "output"
+)

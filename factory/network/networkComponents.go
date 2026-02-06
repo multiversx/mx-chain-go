@@ -73,7 +73,6 @@ type networkComponents struct {
 	topicFloodPreventer      process.TopicFloodPreventer
 	floodPreventers          []process.FloodPreventer
 	peerBlackListHandler     process.PeerBlackListCacher
-	antifloodConfig          config.AntifloodConfig
 	peerHonestyHandler       consensus.PeerHonestyHandler
 	closeFunc                context.CancelFunc
 }
@@ -173,7 +172,6 @@ func (ncf *networkComponentsFactory) Create() (*networkComponents, error) {
 		topicFloodPreventer:      antiFloodComponents.TopicPreventer,
 		floodPreventers:          antiFloodComponents.FloodPreventers,
 		peerBlackListHandler:     antiFloodComponents.BlacklistHandler,
-		antifloodConfig:          ncf.mainConfig.Antiflood,
 		peerHonestyHandler:       peerHonestyHandler,
 		closeFunc:                cancelFunc,
 	}, nil
@@ -184,7 +182,7 @@ func (ncf *networkComponentsFactory) createAntifloodComponents(
 	currentPid core.PeerID,
 ) (*antifloodFactory.AntiFloodComponents, factory.P2PAntifloodHandler, factory.P2PAntifloodHandler, consensus.PeerHonestyHandler, error) {
 	var antiFloodComponents *antifloodFactory.AntiFloodComponents
-	antiFloodComponents, err := antifloodFactory.NewP2PAntiFloodComponents(ctx, ncf.mainConfig, ncf.statusHandler, currentPid, ncf.coreComponents.ProcessConfigsHandler())
+	antiFloodComponents, err := antifloodFactory.NewP2PAntiFloodComponents(ctx, ncf.mainConfig, ncf.statusHandler, currentPid, ncf.coreComponents.AntifloodConfigsHandler())
 	if err != nil {
 		return nil, nil, nil, nil, err
 	}
@@ -196,7 +194,7 @@ func (ncf *networkComponentsFactory) createAntifloodComponents(
 	}
 
 	var outAntifloodHandler process.P2PAntifloodHandler
-	outAntifloodHandler, err = antifloodFactory.NewP2POutputAntiFlood(ctx, ncf.mainConfig)
+	outAntifloodHandler, err = antifloodFactory.NewP2POutputAntiFlood(ctx, ncf.coreComponents.AntifloodConfigsHandler())
 	if err != nil {
 		return nil, nil, nil, nil, err
 	}
