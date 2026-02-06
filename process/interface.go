@@ -331,6 +331,7 @@ type HeadersExecutor interface {
 	StartExecution()
 	PauseExecution()
 	ResumeExecution()
+	GetSignalProcessCompletionChan() chan uint64
 	Close() error
 	IsInterfaceNil() bool
 }
@@ -348,6 +349,7 @@ type ExecutionManager interface {
 	RemoveAtNonceAndHigher(nonce uint64) error
 	ResetAndResumeExecution(lastNotarizedResult data.BaseExecutionResultHandler) error
 	RemovePendingExecutionResultsFromNonce(nonce uint64) error
+	GetSignalProcessCompletionChan() chan uint64
 	Close() error
 	IsInterfaceNil() bool
 }
@@ -1385,6 +1387,7 @@ type CoreComponentsHolder interface {
 	EpochChangeGracePeriodHandler() common.EpochChangeGracePeriodHandler
 	ProcessConfigsHandler() common.ProcessConfigsHandler
 	CommonConfigsHandler() common.CommonConfigsHandler
+	AntifloodConfigsHandler() common.AntifloodConfigsHandler
 	SyncTimer() ntp.SyncTimer
 	IsInterfaceNil() bool
 }

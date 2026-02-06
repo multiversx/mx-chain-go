@@ -119,6 +119,7 @@ type coreComponents struct {
 	epochChangeGracePeriodHandler common.EpochChangeGracePeriodHandler
 	processConfigsHandler         common.ProcessConfigsHandler
 	epochStartConfigsHandler      common.CommonConfigsHandler
+	antifloodConfigsHandler       common.AntifloodConfigsHandler
 }
 
 // NewCoreComponentsFactory initializes the factory which is responsible to creating core components
@@ -233,11 +234,13 @@ func (ccf *coreComponentsFactory) Create() (*coreComponents, error) {
 		return nil, fmt.Errorf("%w for processConfigsByEpoch", err)
 	}
 
-	common.SetEnableEpochsHandler(enableEpochsHandler)
-	common.SetEnableRoundsHandler(enableRoundsHandler)
-	common.SetVersionsConfigHandler(&ccf.config.Versions)
-	common.SetProcessConfigsHandler(processConfigs)
-	common.SetCommonConfigsHandler(commonConfigsHandler)
+	antifloodConfigsHandler, err := commonConfigs.NewAntifloodConfigsHandler(
+		ccf.config.Antiflood,
+		roundNotifier,
+	)
+	if err != nil {
+		return nil, fmt.Errorf("%w for antifloodConfigsHandler", err)
+	}
 
 	genesisNodesConfig, err := sharding.NewNodesSetup(
 		ccf.nodesSetupConfig,
@@ -444,6 +447,7 @@ func (ccf *coreComponentsFactory) Create() (*coreComponents, error) {
 		epochChangeGracePeriodHandler: epochChangeGracePeriodHandler,
 		processConfigsHandler:         processConfigs,
 		epochStartConfigsHandler:      commonConfigsHandler,
+		antifloodConfigsHandler:       antifloodConfigsHandler,
 	}, nil
 }
 

@@ -8,10 +8,11 @@ import (
 
 // txListForSender represents a sorted list of transactions of a particular sender
 type txListForSender struct {
-	sender      string
-	list        *orderedTransactionsList
-	totalBytes  atomic.Counter
-	constraints *senderConstraints
+	sender          string
+	list            *orderedTransactionsList
+	totalBytes      atomic.Counter
+	constraints     *senderConstraints
+	selectionOffset int // Index from which selection should start (transactions before are in proposed blocks)
 
 	mutex sync.RWMutex
 }
@@ -35,9 +36,15 @@ func (listForSender *txListForSender) AddTx(tx *WrappedTransaction, tracker *sel
 		return false, nil
 	}
 
-	added := listForSender.list.insert(tx)
+	insertionIndex := listForSender.list.findInsertionIndex(tx)
+	added := listForSender.list.insertAt(tx, insertionIndex)
 	if !added {
 		return false, nil
+	}
+
+	// If transaction was inserted before the selection offset, increment offset to maintain position
+	if insertionIndex < listForSender.selectionOffset {
+		listForSender.selectionOffset++
 	}
 
 	listForSender.onAddedTransaction(tx)
@@ -61,6 +68,11 @@ func (listForSender *txListForSender) applySizeConstraints(tracker *selectionTra
 			_ = listForSender.list.removeAt(i)
 			listForSender.onRemovedTransaction(tx)
 			evictedTxHashes = append(evictedTxHashes, tx.TxHash)
+
+			// If removal is at index < offset, decrement offset
+			if i < listForSender.selectionOffset {
+				listForSender.selectionOffset--
+			}
 		}
 	}
 
@@ -134,6 +146,9 @@ func (listForSender *txListForSender) removeTransactionsWithLowerOrEqualNonceRet
 		evictedTxHashes[i] = tx.TxHash
 	}
 
+	// Decrement offset by number of removed transactions (clamped to 0)
+	listForSender.decrementSelectionOffset(len(removed))
+
 	return evictedTxHashes
 }
 
@@ -145,4 +160,57 @@ func (listForSender *txListForSender) removeTransactionsWithHigherOrEqualNonce(g
 	for _, tx := range removed {
 		listForSender.onRemovedTransaction(tx)
 	}
+	if listForSender.selectionOffset > listForSender.list.len() {
+		listForSender.selectionOffset = listForSender.list.len()
+	}
+}
+
+// getTxsForSelection returns the transactions of the sender starting from the selection offset.
+// Transactions before the offset are already in proposed blocks and should be skipped during selection.
+func (listForSender *txListForSender) getTxsForSelection() []*WrappedTransaction {
+	listForSender.mutex.RLock()
+	defer listForSender.mutex.RUnlock()
+
+	return listForSender.list.getAllFromIndex(listForSender.selectionOffset)
+}
+
+// incrementSelectionOffset increases the selection offset by the given count.
+// This is called during OnProposed to skip transactions that are now in a proposed block.
+// This function should only be used in critical section (listForSender.mutex)
+func (listForSender *txListForSender) incrementSelectionOffset(count int) {
+	listForSender.selectionOffset += count
+	// Clamp to list length to avoid going beyond available transactions
+	if listForSender.selectionOffset > listForSender.list.len() {
+		listForSender.selectionOffset = listForSender.list.len()
+	}
+}
+
+// decrementSelectionOffset decreases the selection offset by the given count.
+// This is called when transactions are removed from the front of the list (executed).
+// This function should only be used in critical section (listForSender.mutex)
+func (listForSender *txListForSender) decrementSelectionOffset(count int) {
+	listForSender.selectionOffset -= count
+	// Clamp to 0 to avoid negative offset
+	if listForSender.selectionOffset < 0 {
+		listForSender.selectionOffset = 0
+	}
+}
+
+// resetSelectionOffsetByNonce resets the selection offset to point to the first transaction
+// with nonce >= startNonce. Uses binary search for efficiency.
+// This is called during block replacement to re-enable transactions for selection.
+func (listForSender *txListForSender) resetSelectionOffsetByNonce(startNonce uint64) {
+	listForSender.mutex.Lock()
+	defer listForSender.mutex.Unlock()
+
+	listForSender.selectionOffset = listForSender.list.findIndexByNonce(startNonce)
+}
+
+// getSelectionOffset returns the current selection offset.
+// This is primarily used for testing.
+func (listForSender *txListForSender) getSelectionOffset() int {
+	listForSender.mutex.RLock()
+	defer listForSender.mutex.RUnlock()
+
+	return listForSender.selectionOffset
 }

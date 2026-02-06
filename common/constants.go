@@ -103,6 +103,9 @@ const MetricCurrentRound = "erd_current_round"
 // MetricNonce is the metric for monitoring the nonce of a node
 const MetricNonce = "erd_nonce"
 
+// MetricLastExecutedNonce is the metric for monitoring the last executed nonce of a node
+const MetricLastExecutedNonce = "erd_last_executed_nonce"
+
 // MetricProposedNonce is the metric for monitoring the proposed nonce of a node
 const MetricProposedNonce = "erd_proposed_nonce"
 
@@ -1342,3 +1345,17 @@ const (
 
 // HashSize defines  const for the hash length
 const HashSize = 32
+
+// FloodPreventerType defines the type of flood preventer
+type FloodPreventerType string
+
+const (
+	// FastReacting defines fast reacting flood preventer type
+	FastReacting FloodPreventerType = "fast_reacting"
+	// SlowReacting defines slow reacting flood preventer type
+	SlowReacting FloodPreventerType = "slow_reacting"
+	// OutOfSpecs defines out of specs flood preventer type
+	OutOfSpecs FloodPreventerType = "out_of_specs"
+	// Output defines output flood preventer type
+	Output FloodPreventerType = "output"
+)
