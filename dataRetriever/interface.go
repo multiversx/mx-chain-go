@@ -258,6 +258,7 @@ type PoolsHolder interface {
 	Proofs() ProofsPool
 	ExecutedMiniBlocks() storage.Cacher
 	PostProcessTransactions() storage.Cacher
+	DirectSentTransactions() storage.Cacher
 	Close() error
 	IsInterfaceNil() bool
 }

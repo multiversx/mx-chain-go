@@ -239,6 +239,10 @@ func createMockEpochStartBootstrapArgs(
 				CacheExpiryInSec: 1,
 			},
 			Antiflood: testscommon.GetDefaultAntifloodConfig(),
+			DirectSentTransactions: config.DirectSentTransactionsConfig{
+				CacheSpanInSec:   1,
+				CacheExpiryInSec: 1,
+			},
 		},
 		EconomicsData: &economicsmocks.EconomicsHandlerMock{
 			MinGasPriceCalled: func() uint64 {
@@ -1032,6 +1036,9 @@ func TestCreateSyncers(t *testing.T) {
 		},
 		ProofsCalled: func() dataRetriever.ProofsPool {
 			return &dataRetrieverMock.ProofsPoolMock{}
+		},
+		DirectSentTransactionsCalled: func() storage.Cacher {
+			return cache.NewCacherStub()
 		},
 	}
 	epochStartProvider.whiteListHandler = &testscommon.WhiteListHandlerStub{}
@@ -2206,6 +2213,9 @@ func TestEpochStartBootstrap_WithDisabledShardIDAsObserver(t *testing.T) {
 		CurrEpochValidatorInfoCalled: func() dataRetriever.ValidatorInfoCacher {
 			return &validatorInfoCacherStub.ValidatorInfoCacherStub{}
 		},
+		DirectSentTransactionsCalled: func() storage.Cacher {
+			return cache.NewCacherStub()
+		},
 	}
 	epochStartProvider.requestHandler = &testscommon.RequestHandlerStub{}
 	epochStartProvider.epochStartMeta = &block.MetaBlock{Epoch: 0}
@@ -2548,6 +2558,9 @@ func TestSyncSetGuardianTransaction(t *testing.T) {
 		},
 		ProofsCalled: func() dataRetriever.ProofsPool {
 			return &dataRetrieverMock.ProofsPoolMock{}
+		},
+		DirectSentTransactionsCalled: func() storage.Cacher {
+			return cache.NewCacherStub()
 		},
 	}
 	epochStartProvider.whiteListHandler = &testscommon.WhiteListHandlerStub{

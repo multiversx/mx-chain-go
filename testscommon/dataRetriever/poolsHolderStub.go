@@ -27,6 +27,7 @@ type PoolsHolderStub struct {
 	ProofsCalled                  func() dataRetriever.ProofsPool
 	ExecutedMiniBlocksCalled      func() storage.Cacher
 	PostProcessTransactionsCalled func() storage.Cacher
+	DirectSentTransactionsCalled  func() storage.Cacher
 	CloseCalled                   func() error
 }
 
@@ -183,6 +184,15 @@ func (holder *PoolsHolderStub) Proofs() dataRetriever.ProofsPool {
 func (holder *PoolsHolderStub) ExecutedMiniBlocks() storage.Cacher {
 	if holder.ExecutedMiniBlocksCalled != nil {
 		return holder.ExecutedMiniBlocksCalled()
+	}
+
+	return nil
+}
+
+// DirectSentTransactions -
+func (holder *PoolsHolderStub) DirectSentTransactions() storage.Cacher {
+	if holder.DirectSentTransactionsCalled != nil {
+		return holder.DirectSentTransactionsCalled()
 	}
 
 	return nil

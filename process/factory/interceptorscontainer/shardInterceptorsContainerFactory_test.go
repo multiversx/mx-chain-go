@@ -96,6 +96,9 @@ func createShardDataPools() dataRetriever.PoolsHolder {
 	pools.ProofsCalled = func() dataRetriever.ProofsPool {
 		return &dataRetrieverMock.ProofsPoolMock{}
 	}
+	pools.DirectSentTransactionsCalled = func() storage.Cacher {
+		return cache.NewCacherStub()
+	}
 
 	return pools
 }
