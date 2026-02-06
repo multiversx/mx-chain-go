@@ -793,6 +793,7 @@ func TestAOTSelector_TriggerAOTSelectionEpochChangeCancelsOngoing(t *testing.T) 
 
 	selectionStarted := make(chan struct{}, 1)
 	selectionBlocked := make(chan struct{})
+	firstSelectionDone := make(chan struct{})
 	callCount := 0
 	var callMut sync.Mutex
 	args := createLeaderArgs([]byte("self-leader-key"))
@@ -805,6 +806,7 @@ func TestAOTSelector_TriggerAOTSelectionEpochChangeCancelsOngoing(t *testing.T) 
 			if isFirst {
 				selectionStarted <- struct{}{}
 				<-selectionBlocked
+				defer close(firstSelectionDone)
 			}
 			return []*txcache.WrappedTransaction{{TxHash: []byte("tx1")}}, 1000, nil
 		},
@@ -830,9 +832,13 @@ func TestAOTSelector_TriggerAOTSelectionEpochChangeCancelsOngoing(t *testing.T) 
 	// Now trigger at epoch 2 - should cancel the ongoing selection
 	sel.TriggerAOTSelection(createHeader(20, []byte("randomness2"), 2), 200)
 
-	// Unblock the first selection goroutine
+	// Unblock the first selection goroutine and wait for it to complete
 	close(selectionBlocked)
-	time.Sleep(100 * time.Millisecond)
+	select {
+	case <-firstSelectionDone:
+	case <-time.After(time.Second):
+		t.Fatal("first selection did not complete in time")
+	}
 
 	// The result from the cancelled selection at nonce 11 should not be cached
 	// (because cancel was triggered before the selection finished storing)
