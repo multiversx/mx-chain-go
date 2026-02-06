@@ -35,7 +35,6 @@ type ExecutionResultInclusionEstimator struct {
 	tGas         uint64                                         // time per gas unit on minimum‑spec hardware - 1 ns per gas unit
 	roundHandler RoundHandler
 	// TODO add also max estimated block gas capacity - used gas must be lower than this
-	// blockSizeComputation     blockSizeComputationHandler
 	execResSizeComputation ExecResSizeComputationHandler
 }
 
