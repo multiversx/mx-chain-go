@@ -227,8 +227,8 @@ func (s *aotSelector) isSelfLeaderForRound(randomness []byte, round uint64, epoc
 	}
 
 	// Check single key
-	selfPubKey := s.keysHandler.GetHandledPrivateKey(leader.PubKey())
-	isSelfLeader := selfPubKey != nil && s.shouldConsiderSelfKeyInConsensus()
+	selfPubKey := s.keysHandler.IsOriginalPublicKeyOfTheNode(leader.PubKey())
+	isSelfLeader := selfPubKey && s.shouldConsiderSelfKeyInConsensus()
 
 	// Check multi-key
 	isMultiKeyLeader := s.keysHandler.IsKeyManagedByCurrentNode(leader.PubKey())

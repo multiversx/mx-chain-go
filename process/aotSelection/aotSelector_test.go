@@ -9,7 +9,6 @@ import (
 	"time"
 
 	"github.com/multiversx/mx-chain-core-go/core"
-	"github.com/multiversx/mx-chain-crypto-go"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 
@@ -19,7 +18,6 @@ import (
 	"github.com/multiversx/mx-chain-go/process/mock"
 	"github.com/multiversx/mx-chain-go/sharding/nodesCoordinator"
 	"github.com/multiversx/mx-chain-go/testscommon"
-	"github.com/multiversx/mx-chain-go/testscommon/cryptoMocks"
 	"github.com/multiversx/mx-chain-go/testscommon/economicsmocks"
 	"github.com/multiversx/mx-chain-go/testscommon/shardingMocks"
 	stateMock "github.com/multiversx/mx-chain-go/testscommon/state"
@@ -59,8 +57,8 @@ func createLeaderArgs(leaderPubKey []byte) AOTSelectorArgs {
 		},
 	}
 	args.KeysHandler = &testscommon.KeysHandlerStub{
-		GetHandledPrivateKeyCalled: func(_ []byte) crypto.PrivateKey {
-			return &cryptoMocks.PrivateKeyStub{}
+		IsOriginalPublicKeyOfTheNodeCalled: func(_ []byte) bool {
+			return true
 		},
 		IsKeyManagedByCurrentNodeCalled: func(_ []byte) bool {
 			return false
@@ -239,8 +237,8 @@ func TestAOTSelector_TriggerAOTSelectionNotLeaderSkips(t *testing.T) {
 		},
 	}
 	args.KeysHandler = &testscommon.KeysHandlerStub{
-		GetHandledPrivateKeyCalled: func(_ []byte) crypto.PrivateKey {
-			return nil
+		IsOriginalPublicKeyOfTheNodeCalled: func(_ []byte) bool {
+			return false
 		},
 		IsKeyManagedByCurrentNodeCalled: func(_ []byte) bool {
 			return false
@@ -302,11 +300,11 @@ func TestAOTSelector_TriggerAOTSelectionLeaderRoundN2Only(t *testing.T) {
 		},
 	}
 	args.KeysHandler = &testscommon.KeysHandlerStub{
-		GetHandledPrivateKeyCalled: func(pk []byte) crypto.PrivateKey {
+		IsOriginalPublicKeyOfTheNodeCalled: func(pk []byte) bool {
 			if string(pk) == string(leaderPubKey) {
-				return &cryptoMocks.PrivateKeyStub{}
+				return true
 			}
-			return nil
+			return false
 		},
 		IsKeyManagedByCurrentNodeCalled: func(_ []byte) bool {
 			return false
@@ -364,8 +362,8 @@ func TestAOTSelector_IsSelfLeaderForRoundMultiKeyMatch(t *testing.T) {
 		},
 	}
 	args.KeysHandler = &testscommon.KeysHandlerStub{
-		GetHandledPrivateKeyCalled: func(_ []byte) crypto.PrivateKey {
-			return nil // not the single key
+		IsOriginalPublicKeyOfTheNodeCalled: func(_ []byte) bool {
+			return false
 		},
 		IsKeyManagedByCurrentNodeCalled: func(_ []byte) bool {
 			return true // but is managed multi-key
@@ -385,8 +383,8 @@ func TestAOTSelector_IsSelfLeaderForRoundNoKeyMatch(t *testing.T) {
 		},
 	}
 	args.KeysHandler = &testscommon.KeysHandlerStub{
-		GetHandledPrivateKeyCalled: func(_ []byte) crypto.PrivateKey {
-			return nil
+		IsOriginalPublicKeyOfTheNodeCalled: func(_ []byte) bool {
+			return false
 		},
 		IsKeyManagedByCurrentNodeCalled: func(_ []byte) bool {
 			return false
