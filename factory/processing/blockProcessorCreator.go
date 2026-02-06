@@ -180,9 +180,8 @@ func (pcf *processComponentsFactory) createAOTSelector(
 		TxVersionChecker:     pcf.coreData.TxVersionChecker(),
 		BlockChain:           pcf.data.Blockchain(),
 		EconomicsDataHandler: pcf.coreData.EconomicsData(),
-		SelectionTimeout:     time.Duration(selectionTimeoutMs) * time.Millisecond,
-		CacheSize:            cacheSize,
-		MaxGasPerBlock:       pcf.coreData.EconomicsData().MaxGasLimitPerBlock(shardCoordinator.SelfId()),
+		SelectionTimeout:     time.Duration(pcf.config.AOTSelection.SelectionTimeoutMs) * time.Millisecond,
+		CacheSize:            pcf.config.AOTSelection.CacheSize,
 		MaxTxsPerBlock:       pcf.config.TxCacheSelection.SelectionMaxNumTxs,
 	}
 

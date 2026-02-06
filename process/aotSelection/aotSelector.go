@@ -51,7 +51,6 @@ type AOTSelectorArgs struct {
 	// Configuration
 	SelectionTimeout time.Duration
 	CacheSize        int
-	MaxGasPerBlock   uint64
 	MaxTxsPerBlock   int
 }
 
@@ -69,7 +68,6 @@ type aotSelector struct {
 
 	cache            storage.Cacher
 	selectionTimeout time.Duration
-	maxGasPerBlock   uint64
 	maxTxsPerBlock   int
 
 	// Synchronization
@@ -148,7 +146,6 @@ func NewAOTSelector(args AOTSelectorArgs) (*aotSelector, error) {
 		economicsDataHandler: args.EconomicsDataHandler,
 		cache:                lruCache,
 		selectionTimeout:     selectionTimeout,
-		maxGasPerBlock:       args.MaxGasPerBlock,
 		maxTxsPerBlock:       maxTxsPerBlock,
 	}, nil
 }
@@ -397,10 +394,9 @@ func (s *aotSelector) runAOTSelection(targetNonce uint64, randomness []byte) {
 	}
 
 	// Get gas limit
-	maxGas := s.maxGasPerBlock
-	if maxGas == 0 {
-		maxGas = s.economicsDataHandler.MaxGasLimitPerBlock(s.shardCoordinator.SelfId())
-	}
+	maxGas := s.economicsDataHandler.MaxGasLimitPerBlock(s.shardCoordinator.SelfId())
+	overestimationFactor := s.economicsDataHandler.BlockCapacityOverestimationFactor()
+	maxGas = maxGas * overestimationFactor / 100
 
 	options, err := holders.NewTxSelectionOptions(
 		maxGas,
@@ -424,8 +420,8 @@ func (s *aotSelector) runAOTSelection(targetNonce uint64, randomness []byte) {
 		return
 	}
 
-	// Perform simulated selection
-	wrappedTxs, accumulatedGas, err := s.txCache.SimulateSelectTransactions(session, options)
+	// select transactions from tx cache
+	wrappedTxs, accumulatedGas, err := s.txCache.SelectTransactions(session, options, targetNonce)
 	if err != nil {
 		log.Debug("runAOTSelection: selection failed", "error", err)
 		s.sendResult(resultChan, nil)

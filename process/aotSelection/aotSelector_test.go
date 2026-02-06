@@ -40,11 +40,14 @@ func createDefaultArgs() AOTSelectorArgs {
 		TransactionProcessor: &testscommon.TxProcessorStub{},
 		TxVersionChecker:     &testscommon.TxVersionCheckerStub{},
 		BlockChain:           &testscommon.ChainHandlerStub{},
-		EconomicsDataHandler: &economicsmocks.EconomicsHandlerMock{},
-		SelectionTimeout:     100 * time.Millisecond,
-		CacheSize:            5,
-		MaxGasPerBlock:       1500000000,
-		MaxTxsPerBlock:       30000,
+		EconomicsDataHandler: &economicsmocks.EconomicsHandlerMock{
+			BlockCapacityOverestimationFactorCalled: func() uint64 {
+				return 200 // 2x overestimation
+			},
+		},
+		SelectionTimeout: 100 * time.Millisecond,
+		CacheSize:        5,
+		MaxTxsPerBlock:   30000,
 	}
 }
 
@@ -190,7 +193,6 @@ func TestNewAOTSelector(t *testing.T) {
 		require.NoError(t, err)
 		require.NotNil(t, sel)
 		assert.Equal(t, 100*time.Millisecond, sel.selectionTimeout)
-		assert.Equal(t, uint64(1500000000), sel.maxGasPerBlock)
 		assert.Equal(t, 30000, sel.maxTxsPerBlock)
 	})
 }
@@ -653,7 +655,6 @@ func TestAOTSelector_RunAOTSelectionUsesEconomicsGasWhenZero(t *testing.T) {
 
 	economicsGasCalled := false
 	args := createDefaultArgs()
-	args.MaxGasPerBlock = 0
 	args.EconomicsDataHandler = &economicsmocks.EconomicsHandlerMock{
 		MaxGasLimitPerBlockCalled: func(_ uint32) uint64 {
 			economicsGasCalled = true
