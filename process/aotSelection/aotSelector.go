@@ -27,6 +27,7 @@ import (
 var log = logger.GetOrCreate("process/aotSelection")
 
 const (
+	maxSelectionDuration             = 500 * time.Millisecond
 	defaultSelectionTimeout          = 150 * time.Millisecond
 	defaultMaxTxsPerBlock            = 30000
 	defaultLoopDurationCheckInterval = 100
@@ -113,17 +114,20 @@ func NewAOTSelector(args AOTSelectorArgs) (*aotSelector, error) {
 	}
 
 	selectionTimeout := args.SelectionTimeout
-	if selectionTimeout <= 0 {
+	if selectionTimeout <= 0 || selectionTimeout > maxSelectionDuration {
+		log.Debug("NewAOTSelector: invalid selection timeout, using default", "provided", selectionTimeout, "default", defaultSelectionTimeout)
 		selectionTimeout = defaultSelectionTimeout
 	}
 
 	cacheSize := args.CacheSize
 	if cacheSize <= 0 {
+		log.Debug("NewAOTSelector: invalid cache size, using default", "provided", cacheSize, "default", defaultCacheSize)
 		cacheSize = defaultCacheSize
 	}
 
 	maxTxsPerBlock := args.MaxTxsPerBlock
 	if maxTxsPerBlock <= 0 {
+		log.Debug("NewAOTSelector: invalid maxTxsPerBlock, using default", "provided", maxTxsPerBlock, "default", defaultMaxTxsPerBlock)
 		maxTxsPerBlock = defaultMaxTxsPerBlock
 	}
 
@@ -176,6 +180,9 @@ func (s *aotSelector) TriggerAOTSelection(committedHeader data.HeaderHandler, cu
 	epochChanged := s.lastEpoch != epoch && s.lastEpoch != 0
 	s.lastEpoch = epoch
 	if epochChanged {
+		log.Debug("TriggerAOTSelection: epoch changed, cleared cache and cancelled ongoing selection",
+			"previousEpoch", previousEpoch,
+			"newEpoch", epoch)
 		s.cache.Clear()
 		if s.cancelFunc != nil {
 			s.cancelFunc()
@@ -183,12 +190,6 @@ func (s *aotSelector) TriggerAOTSelection(committedHeader data.HeaderHandler, cu
 		}
 	}
 	s.selectionMut.Unlock()
-
-	if epochChanged {
-		log.Debug("TriggerAOTSelection: epoch changed, cleared cache and cancelled ongoing selection",
-			"previousEpoch", previousEpoch,
-			"newEpoch", epoch)
-	}
 
 	randomness := committedHeader.GetRandSeed()
 	nextNonce := committedHeader.GetNonce() + 1
@@ -238,6 +239,7 @@ func (s *aotSelector) isSelfLeaderForRound(randomness []byte, round uint64, epoc
 
 // shouldConsiderSelfKeyInConsensus checks if the node should consider its self key in consensus
 // Returns true if not a redundancy node, or if the main machine is not active
+// TODO move ShouldConsiderSelfKeyInConsensus from spos to make it available for both and unify the logic
 func (s *aotSelector) shouldConsiderSelfKeyInConsensus() bool {
 	if check.IfNil(s.nodeRedundancy) {
 		log.Warn("shouldConsiderSelfKeyInConsensus: redundancy handler is nil")
