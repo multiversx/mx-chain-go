@@ -5549,3 +5549,208 @@ func TestBaseProcessor_excludeRevertedExecutionResultsForHeader(t *testing.T) {
 		require.Equal(t, pendingExecutionResults, sanitizedPendingExecResults)
 	})
 }
+
+// ------- Sync Commit Optimization Tests
+
+func TestBaseProcessor_ShouldUseSyncCommitOptimization_DisabledWhenIntervalZero(t *testing.T) {
+	t.Parallel()
+
+	coreComponents, dataComponents, bootstrapComponents, statusComponents := createComponentHolderMocks()
+	arguments := createArgBaseProcessor(coreComponents, dataComponents, bootstrapComponents, statusComponents)
+	arguments.ForkDetector = &mock.ForkDetectorMock{
+		ProbableHighestNonceCalled: func() uint64 {
+			return 1000 // Far behind
+		},
+	}
+
+	sp, err := blproc.NewShardProcessor(blproc.ArgShardProcessor{ArgBaseProcessor: arguments})
+	require.NoError(t, err)
+
+	// Disable the optimization
+	sp.SetSyncCommitIntervalForTest(0)
+
+	header := &block.Header{
+		Nonce: 100, // Far behind network
+	}
+
+	// Should return false because interval is 0
+	result := sp.ShouldUseSyncCommitOptimization(header)
+	assert.False(t, result, "should return false when sync commit interval is 0")
+}
+
+func TestBaseProcessor_ShouldUseSyncCommitOptimization_DisabledWhenNotSyncing(t *testing.T) {
+	t.Parallel()
+
+	coreComponents, dataComponents, bootstrapComponents, statusComponents := createComponentHolderMocks()
+	arguments := createArgBaseProcessor(coreComponents, dataComponents, bootstrapComponents, statusComponents)
+	arguments.ForkDetector = &mock.ForkDetectorMock{
+		ProbableHighestNonceCalled: func() uint64 {
+			return 105 // Only 5 ahead
+		},
+	}
+
+	sp, err := blproc.NewShardProcessor(blproc.ArgShardProcessor{ArgBaseProcessor: arguments})
+	require.NoError(t, err)
+
+	sp.SetSyncCommitIntervalForTest(10)
+
+	header := &block.Header{
+		Nonce: 100, // Not far behind network (less than syncThresholdNonces)
+	}
+
+	// Should return false because node is not syncing
+	result := sp.ShouldUseSyncCommitOptimization(header)
+	assert.False(t, result, "should return false when not syncing (nonces behind < threshold)")
+}
+
+func TestBaseProcessor_ShouldUseSyncCommitOptimization_UsesInMemoryWhenSyncing(t *testing.T) {
+	t.Parallel()
+
+	coreComponents, dataComponents, bootstrapComponents, statusComponents := createComponentHolderMocks()
+	arguments := createArgBaseProcessor(coreComponents, dataComponents, bootstrapComponents, statusComponents)
+	arguments.ForkDetector = &mock.ForkDetectorMock{
+		ProbableHighestNonceCalled: func() uint64 {
+			return 200 // Far ahead (100 nonces behind)
+		},
+	}
+
+	sp, err := blproc.NewShardProcessor(blproc.ArgShardProcessor{ArgBaseProcessor: arguments})
+	require.NoError(t, err)
+
+	sp.SetSyncCommitIntervalForTest(10)
+
+	header := &block.Header{
+		Nonce: 100,
+	}
+
+	// First call should return true (in-memory commit)
+	result := sp.ShouldUseSyncCommitOptimization(header)
+	assert.True(t, result, "should return true for first block when syncing")
+	assert.Equal(t, uint64(1), sp.GetBlocksSinceLastCommit())
+}
+
+func TestBaseProcessor_ShouldUseSyncCommitOptimization_FullCommitAtInterval(t *testing.T) {
+	t.Parallel()
+
+	coreComponents, dataComponents, bootstrapComponents, statusComponents := createComponentHolderMocks()
+	arguments := createArgBaseProcessor(coreComponents, dataComponents, bootstrapComponents, statusComponents)
+	arguments.ForkDetector = &mock.ForkDetectorMock{
+		ProbableHighestNonceCalled: func() uint64 {
+			return 200 // Far ahead
+		},
+	}
+
+	sp, err := blproc.NewShardProcessor(blproc.ArgShardProcessor{ArgBaseProcessor: arguments})
+	require.NoError(t, err)
+
+	sp.SetSyncCommitIntervalForTest(5)
+
+	header := &block.Header{
+		Nonce: 100,
+	}
+
+	// Call 5 times - first 4 should return true (in-memory), 5th should return false (full commit)
+	for i := 0; i < 4; i++ {
+		result := sp.ShouldUseSyncCommitOptimization(header)
+		assert.True(t, result, "should return true for block %d", i+1)
+	}
+
+	// 5th call should trigger full commit
+	result := sp.ShouldUseSyncCommitOptimization(header)
+	assert.False(t, result, "should return false at interval (full commit)")
+	assert.Equal(t, uint64(0), sp.GetBlocksSinceLastCommit(), "counter should be reset after full commit")
+}
+
+func TestBaseProcessor_SetSyncCommitInterval(t *testing.T) {
+	t.Parallel()
+
+	coreComponents, dataComponents, bootstrapComponents, statusComponents := createComponentHolderMocks()
+	arguments := createArgBaseProcessor(coreComponents, dataComponents, bootstrapComponents, statusComponents)
+
+	sp, err := blproc.NewShardProcessor(blproc.ArgShardProcessor{ArgBaseProcessor: arguments})
+	require.NoError(t, err)
+
+	// Check default value
+	assert.Equal(t, blproc.DefaultSyncCommitInterval, sp.GetSyncCommitInterval())
+
+	// Set new value
+	sp.SetSyncCommitIntervalForTest(20)
+	assert.Equal(t, uint64(20), sp.GetSyncCommitInterval())
+
+	// Set to 0 to disable
+	sp.SetSyncCommitIntervalForTest(0)
+	assert.Equal(t, uint64(0), sp.GetSyncCommitInterval())
+}
+
+func TestBaseProcessor_ResetSyncCommitCounter(t *testing.T) {
+	t.Parallel()
+
+	coreComponents, dataComponents, bootstrapComponents, statusComponents := createComponentHolderMocks()
+	arguments := createArgBaseProcessor(coreComponents, dataComponents, bootstrapComponents, statusComponents)
+	arguments.ForkDetector = &mock.ForkDetectorMock{
+		ProbableHighestNonceCalled: func() uint64 {
+			return 200 // Far ahead
+		},
+	}
+
+	sp, err := blproc.NewShardProcessor(blproc.ArgShardProcessor{ArgBaseProcessor: arguments})
+	require.NoError(t, err)
+
+	sp.SetSyncCommitIntervalForTest(10)
+
+	header := &block.Header{
+		Nonce: 100,
+	}
+
+	// Make a few calls to increment counter
+	for i := 0; i < 3; i++ {
+		_ = sp.ShouldUseSyncCommitOptimization(header)
+	}
+	assert.Equal(t, uint64(3), sp.GetBlocksSinceLastCommit())
+
+	// Reset counter
+	sp.ResetSyncCommitCounter()
+	assert.Equal(t, uint64(0), sp.GetBlocksSinceLastCommit())
+}
+
+func TestBaseProcessor_CommitInMemory(t *testing.T) {
+	t.Parallel()
+
+	commitInMemoryCalled := false
+	commitCalled := false
+
+	coreComponents, dataComponents, bootstrapComponents, statusComponents := createComponentHolderMocks()
+	arguments := createArgBaseProcessor(coreComponents, dataComponents, bootstrapComponents, statusComponents)
+
+	accountsDb := make(map[state.AccountsDbIdentifier]state.AccountsAdapter)
+	accountsDb[state.UserAccountsState] = &stateMock.AccountsStub{
+		CommitInMemoryCalled: func() ([]byte, error) {
+			commitInMemoryCalled = true
+			return []byte("rootHash"), nil
+		},
+		CommitCalled: func() ([]byte, error) {
+			commitCalled = true
+			return []byte("rootHash"), nil
+		},
+		RecreateTrieIfNeededCalled: func(options common.RootHashHolder) error {
+			return nil
+		},
+	}
+	arguments.AccountsDB = accountsDb
+
+	sp, err := blproc.NewShardProcessor(blproc.ArgShardProcessor{ArgBaseProcessor: arguments})
+	require.NoError(t, err)
+
+	err = sp.CommitInMemoryForTest()
+	assert.NoError(t, err)
+	assert.True(t, commitInMemoryCalled, "CommitInMemory should be called")
+	assert.False(t, commitCalled, "Commit should not be called")
+}
+
+func TestBaseProcessor_SyncCommitOptimization_Constants(t *testing.T) {
+	t.Parallel()
+
+	// Verify constants are set to expected values
+	assert.Equal(t, uint64(50), blproc.SyncThresholdNonces)
+	assert.Equal(t, uint64(10), blproc.DefaultSyncCommitInterval)
+}

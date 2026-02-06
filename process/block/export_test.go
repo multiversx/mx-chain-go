@@ -51,6 +51,12 @@ import (
 // UsedShardHeadersInfo -
 type UsedShardHeadersInfo = usedShardHeadersInfo
 
+// SyncThresholdNonces is exported for testing
+const SyncThresholdNonces = syncThresholdNonces
+
+// DefaultSyncCommitInterval is exported for testing
+const DefaultSyncCommitInterval = defaultSyncCommitInterval
+
 // EpochStartDataWrapper -
 type EpochStartDataWrapper = epochStartDataWrapper
 
@@ -1156,4 +1162,38 @@ func (bp *baseProcessor) ExcludeRevertedExecutionResultsForHeader(
 	pendingExecutionResults []data.BaseExecutionResultHandler,
 ) []data.BaseExecutionResultHandler {
 	return bp.excludeRevertedExecutionResultsForHeader(header, pendingExecutionResults)
+}
+
+// ShouldUseSyncCommitOptimization -
+func (bp *baseProcessor) ShouldUseSyncCommitOptimization(headerHandler data.HeaderHandler) bool {
+	return bp.shouldUseSyncCommitOptimization(headerHandler)
+}
+
+// SetSyncCommitIntervalForTest -
+func (bp *baseProcessor) SetSyncCommitIntervalForTest(interval uint64) {
+	bp.SetSyncCommitInterval(interval)
+}
+
+// GetSyncCommitInterval -
+func (bp *baseProcessor) GetSyncCommitInterval() uint64 {
+	bp.mutSyncCommit.Lock()
+	defer bp.mutSyncCommit.Unlock()
+	return bp.syncCommitInterval
+}
+
+// GetBlocksSinceLastCommit -
+func (bp *baseProcessor) GetBlocksSinceLastCommit() uint64 {
+	bp.mutSyncCommit.Lock()
+	defer bp.mutSyncCommit.Unlock()
+	return bp.blocksSinceLastCommit
+}
+
+// ResetSyncCommitCounter -
+func (bp *baseProcessor) ResetSyncCommitCounter() {
+	bp.resetSyncCommitCounter()
+}
+
+// CommitInMemoryForTest -
+func (bp *baseProcessor) CommitInMemoryForTest() error {
+	return bp.commitInMemory()
 }
