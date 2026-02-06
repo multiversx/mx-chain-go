@@ -46,18 +46,19 @@ func GetDefaultCoreComponents() *mock.CoreComponentsMock {
 		MinTransactionVersionCalled: func() uint32 {
 			return 1
 		},
-		WatchdogTimer:            &testscommon.WatchdogMock{},
-		AlarmSch:                 &testscommon.AlarmSchedulerStub{},
-		NtpSyncTimer:             &testscommon.SyncTimerStub{},
-		RoundHandlerField:        &testscommon.RoundHandlerMock{},
-		EconomicsHandler:         &economicsmocks.EconomicsHandlerMock{},
-		RatingsConfig:            &testscommon.RatingsInfoMock{},
-		RatingHandler:            &testscommon.RaterMock{},
-		NodesConfig:              &genesisMocks.NodesSetupStub{},
-		StartTime:                time.Time{},
-		NodeTypeProviderField:    &nodeTypeProviderMock.NodeTypeProviderStub{},
-		EpochChangeNotifier:      &epochNotifierMock.EpochNotifierStub{},
-		EnableEpochsHandlerField: &enableEpochsHandlerMock.EnableEpochsHandlerStub{},
+		WatchdogTimer:                &testscommon.WatchdogMock{},
+		AlarmSch:                     &testscommon.AlarmSchedulerStub{},
+		NtpSyncTimer:                 &testscommon.SyncTimerStub{},
+		RoundHandlerField:            &testscommon.RoundHandlerMock{},
+		EconomicsHandler:             &economicsmocks.EconomicsHandlerMock{},
+		RatingsConfig:                &testscommon.RatingsInfoMock{},
+		RatingHandler:                &testscommon.RaterMock{},
+		NodesConfig:                  &genesisMocks.NodesSetupStub{},
+		StartTime:                    time.Time{},
+		NodeTypeProviderField:        &nodeTypeProviderMock.NodeTypeProviderStub{},
+		EpochChangeNotifier:          &epochNotifierMock.EpochNotifierStub{},
+		EnableEpochsHandlerField:     &enableEpochsHandlerMock.EnableEpochsHandlerStub{},
+		AntifloodConfigsHandlerField: &testscommon.AntifloodConfigsHandlerStub{},
 	}
 }
 

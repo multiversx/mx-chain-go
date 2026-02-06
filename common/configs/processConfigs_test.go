@@ -109,51 +109,6 @@ func TestNewProcessConfigsByEpoch(t *testing.T) {
 		require.True(t, strings.Contains(err.Error(), "MaxRoundsToKeepUnprocessedMiniBlocks"))
 	})
 
-	t.Run("should return error for invalid num flooding rounds fast reacting value", func(t *testing.T) {
-		t.Parallel()
-
-		confByEpoch := []config.ProcessConfigByEpoch{
-			{EnableEpoch: 0, MaxMetaNoncesBehind: 15},
-		}
-		confByRound := getConfigsByRound()
-		confByRound[0].NumFloodingRoundsFastReacting = 0
-
-		pce, err := configs.NewProcessConfigsHandler(confByEpoch, confByRound, &epochNotifier.RoundNotifierStub{})
-		require.Nil(t, pce)
-		require.ErrorIs(t, err, process.ErrInvalidValue)
-		require.True(t, strings.Contains(err.Error(), "NumFloodingRoundsFastReacting"))
-	})
-
-	t.Run("should return error for invalid num flooding rounds slow reacting value", func(t *testing.T) {
-		t.Parallel()
-
-		confByEpoch := []config.ProcessConfigByEpoch{
-			{EnableEpoch: 0, MaxMetaNoncesBehind: 15},
-		}
-		confByRound := getConfigsByRound()
-		confByRound[0].NumFloodingRoundsSlowReacting = 0
-
-		pce, err := configs.NewProcessConfigsHandler(confByEpoch, confByRound, &epochNotifier.RoundNotifierStub{})
-		require.Nil(t, pce)
-		require.ErrorIs(t, err, process.ErrInvalidValue)
-		require.True(t, strings.Contains(err.Error(), "NumFloodingRoundsSlowReacting"))
-	})
-
-	t.Run("should return error for invalid num flooding rounds out of specs value", func(t *testing.T) {
-		t.Parallel()
-
-		confByEpoch := []config.ProcessConfigByEpoch{
-			{EnableEpoch: 0, MaxMetaNoncesBehind: 15},
-		}
-		confByRound := getConfigsByRound()
-		confByRound[0].NumFloodingRoundsOutOfSpecs = 0
-
-		pce, err := configs.NewProcessConfigsHandler(confByEpoch, confByRound, &epochNotifier.RoundNotifierStub{})
-		require.Nil(t, pce)
-		require.ErrorIs(t, err, process.ErrInvalidValue)
-		require.True(t, strings.Contains(err.Error(), "NumFloodingRoundsOutOfSpecs"))
-	})
-
 	t.Run("should return error for invalid max consecutive rounds of rating decrease value", func(t *testing.T) {
 		t.Parallel()
 
