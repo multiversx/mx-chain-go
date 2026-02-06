@@ -80,7 +80,7 @@ func (st *selectionTracker) OnProposedBlock(
 	}
 
 	// Preempt any ongoing AOT selection before acquiring the lock
-	st.preemptAOTSelectionIfNeeded()
+	st.cancelAOTOngoingSelection()
 
 	st.mutTracker.Lock()
 	defer st.mutTracker.Unlock()
@@ -361,7 +361,7 @@ func (st *selectionTracker) OnExecutedBlock(blockHeader data.HeaderHandler, root
 	tempTrackedBlock := newTrackedBlock(nonce, nil, prevHash)
 
 	// Preempt any ongoing AOT selection before acquiring the lock
-	st.preemptAOTSelectionIfNeeded()
+	st.cancelAOTOngoingSelection()
 
 	st.mutTracker.Lock()
 	defer st.mutTracker.Unlock()
@@ -694,9 +694,9 @@ func (st *selectionTracker) SetAOTSelectionPreempter(preempter common.AOTSelecti
 	st.aotSelectionPreempter = preempter
 }
 
-// preemptAOTSelectionIfNeeded cancels any ongoing AOT selection before critical operations
-func (st *selectionTracker) preemptAOTSelectionIfNeeded() {
-	if st.aotSelectionPreempter != nil && !check.IfNil(st.aotSelectionPreempter) {
+// cancelAOTOngoingSelection cancels any ongoing AOT selection before critical operations
+func (st *selectionTracker) cancelAOTOngoingSelection() {
+	if !check.IfNil(st.aotSelectionPreempter) {
 		st.aotSelectionPreempter.CancelOngoingSelection()
 	}
 }

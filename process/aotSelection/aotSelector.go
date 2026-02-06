@@ -12,6 +12,7 @@ import (
 	"github.com/multiversx/mx-chain-core-go/data"
 	logger "github.com/multiversx/mx-chain-logger-go"
 
+	"github.com/multiversx/mx-chain-go/common"
 	"github.com/multiversx/mx-chain-go/common/holders"
 	"github.com/multiversx/mx-chain-go/consensus"
 	"github.com/multiversx/mx-chain-go/process"
@@ -299,6 +300,27 @@ func (s *aotSelector) getFromCache(blockNonce uint64) (*process.AOTSelectionResu
 	return result, true
 }
 
+// prepareAccountsForSelection ensures the accounts adapter is synced to the correct state
+func (s *aotSelector) prepareAccountsForSelection() error {
+	prevHeader := s.blockChain.GetCurrentBlockHeader()
+	if prevHeader == nil {
+		log.Debug("prepareAccountsForSelection: no current header (genesis), skipping preparation")
+		return nil
+	}
+
+	prevHeaderHash := s.blockChain.GetCurrentBlockHeaderHash()
+
+	lastExecResHandler, err := common.GetOrCreateLastExecutionResultForPrevHeader(prevHeader, prevHeaderHash)
+	if err != nil {
+		return err
+	}
+
+	rootHash := lastExecResHandler.GetRootHash()
+	rootHashHolder := holders.NewDefaultRootHashesHolder(rootHash)
+
+	return s.accountsAdapter.RecreateTrieIfNeeded(rootHashHolder)
+}
+
 // CancelOngoingSelection cancels any ongoing AOT selection
 // Called before OnProposed/OnExecuted to avoid conflicts
 func (s *aotSelector) CancelOngoingSelection() {
@@ -353,6 +375,14 @@ func (s *aotSelector) runAOTSelection(targetNonce uint64, randomness []byte) {
 	selectionBudget := time.Duration(float64(s.selectionTimeout) * selectionTimeoutMargin)
 
 	log.Debug("runAOTSelection: starting", "targetNonce", targetNonce, "selectionBudget", selectionBudget)
+
+	// Prepare accounts adapter with correct state before selection
+	err := s.prepareAccountsForSelection()
+	if err != nil {
+		log.Debug("runAOTSelection: failed to prepare accounts", "error", err)
+		s.sendResult(resultChan, nil)
+		return
+	}
 
 	// Create selection session
 	session, err := preprocess.NewSelectionSession(preprocess.ArgsSelectionSession{

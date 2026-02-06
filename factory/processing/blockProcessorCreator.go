@@ -175,7 +175,7 @@ func (pcf *processComponentsFactory) createAOTSelector(
 		KeysHandler:          pcf.crypto.KeysHandler(),
 		NodeRedundancy:       pcf.nodeRedundancyHandler,
 		TxCache:              txCache,
-		AccountsAdapter:      pcf.state.AccountsAdapter(),
+		AccountsAdapter:      pcf.state.AccountsAdapterProposal(),
 		TransactionProcessor: transactionProcessor,
 		TxVersionChecker:     pcf.coreData.TxVersionChecker(),
 		BlockChain:           pcf.data.Blockchain(),

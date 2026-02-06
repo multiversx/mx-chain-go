@@ -184,6 +184,9 @@ func (m *managedProcessComponents) CheckSubcomponents() error {
 	if check.IfNil(m.processComponents.epochSystemSCProcessor) {
 		return errors.ErrNilEpochSystemSCProcessor
 	}
+	if check.IfNil(m.processComponents.aotSelector) {
+		return errors.ErrNilAOTSelector
+	}
 
 	return nil
 }

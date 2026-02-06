@@ -167,7 +167,7 @@ func (tc *transactionCoordinator) getAOTSelection(nonce uint64) ([][]byte, []dat
 	// Retrieve transaction handlers from the data pool using cached hashes
 	selectedTxHashes, selectedTxs := tc.getTxHandlersFromHashes(aotResult.TxHashes)
 	if len(selectedTxs) == 0 {
-		log.Warn("getTxHandlersFromHashes, txs not found in pool for AOT pre-selected hashes", "nonce", nonce, "numHashes", len(aotResult.TxHashes))
+		log.Warn("AOT selection abandoned, some pre-selected txs unavailable in pool, will re-select", "nonce", nonce, "numHashes", len(aotResult.TxHashes))
 		return [][]byte{}, []data.TransactionHandler{}
 	}
 
