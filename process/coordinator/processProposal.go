@@ -37,7 +37,8 @@ func (tc *transactionCoordinator) CreateMbsCrossShardDstMe(
 	txsForMbs := make(map[string][]data.TransactionHandler, 0)
 	mbsSlice := make([]data.MiniBlockHeaderHandler, 0)
 	for _, miniBlockInfo := range finalCrossMiniBlockInfos {
-		if tc.blockSizeComputation.IsMaxBlockSizeReached(0, 0) {
+		isAsyncExecutionEnabled := hdr.IsHeaderV3()
+		if !isAsyncExecutionEnabled && tc.blockSizeComputation.IsMaxBlockSizeReached(0, 0) {
 			log.Debug("transactionCoordinator.CreateMbsCrossShardDstMe",
 				"stop creating", "max block size has been reached")
 			break
