@@ -7,6 +7,7 @@ import (
 	"github.com/multiversx/mx-chain-core-go/data/endProcess"
 	"github.com/stretchr/testify/require"
 
+	"github.com/multiversx/mx-chain-go/testscommon"
 	"github.com/multiversx/mx-chain-go/testscommon/components"
 
 	"github.com/multiversx/mx-chain-go/config"
@@ -90,6 +91,7 @@ func createArgsCoreComponentsHolder() ArgsCoreComponentsHolder {
 				PublicKeyToListenFrom: components.DummyPk,
 			},
 			EpochStartConfig: config.EpochStartConfig{},
+			Antiflood:        testscommon.GetDefaultAntifloodConfig(),
 		},
 		EnableEpochsConfig: config.EnableEpochs{},
 		RoundsConfig: config.RoundConfig{

@@ -118,6 +118,7 @@ func createComponentsForEpochStart() (*mock.CoreComponentsMock, *mock.CryptoComp
 			ChainParametersHandlerField:        chainParams,
 			ProcessConfigsHandlerField:         &testscommon.ProcessConfigsHandlerStub{},
 			CommonConfigsHandlerField:          testscommon.GetDefaultCommonConfigsHandler(),
+			AntifloodConfigsHandlerField:       &testscommon.AntifloodConfigsHandlerStub{},
 		},
 		&mock.CryptoComponentsMock{
 			PubKey:          &cryptoMocks.PublicKeyStub{},
@@ -237,6 +238,7 @@ func createMockEpochStartBootstrapArgs(
 				CacheSpanInSec:   1,
 				CacheExpiryInSec: 1,
 			},
+			Antiflood: testscommon.GetDefaultAntifloodConfig(),
 		},
 		EconomicsData: &economicsmocks.EconomicsHandlerMock{
 			MinGasPriceCalled: func() uint64 {

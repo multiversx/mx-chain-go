@@ -507,6 +507,14 @@ type CommonConfigsHandler interface {
 	IsInterfaceNil() bool
 }
 
+// AntifloodConfigsHandler defines the behavior of a component that can return antiflood config by round
+type AntifloodConfigsHandler interface {
+	GetCurrentConfig() config.AntifloodConfigByRound
+	GetFloodPreventerConfigByType(configType FloodPreventerType) config.FloodPreventerConfig
+	IsEnabled() bool
+	IsInterfaceNil() bool
+}
+
 // ProofHandler defines the interface for a proof handler
 type ProofHandler interface {
 	GetPubKeysBitmap() []byte
