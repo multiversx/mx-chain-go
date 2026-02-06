@@ -11,7 +11,6 @@ import (
 	crypto "github.com/multiversx/mx-chain-crypto-go"
 
 	"github.com/multiversx/mx-chain-go/common/configs/dto"
-
 	"github.com/multiversx/mx-chain-go/config"
 )
 
@@ -505,6 +504,14 @@ type CommonConfigsHandler interface {
 	GetMaxRoundsWithoutCommittedStartInEpochBlockInRound(round uint64) uint32
 	GetNumRoundsToWaitBeforeSignalingChronologyStuck(epoch uint32) uint32
 
+	IsInterfaceNil() bool
+}
+
+// AntifloodConfigsHandler defines the behavior of a component that can return antiflood config by round
+type AntifloodConfigsHandler interface {
+	GetCurrentConfig() config.AntifloodConfigByRound
+	GetFloodPreventerConfigByType(configType FloodPreventerType) config.FloodPreventerConfig
+	IsEnabled() bool
 	IsInterfaceNil() bool
 }
 

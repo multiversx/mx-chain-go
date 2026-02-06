@@ -766,11 +766,11 @@ func (pcf *processComponentsFactory) Create() (*processComponents, error) {
 		return nil, err
 	}
 	args := txsSender.ArgsTxsSenderWithAccumulator{
-		Marshaller:        pcf.coreData.InternalMarshalizer(),
-		ShardCoordinator:  pcf.bootstrapComponents.ShardCoordinator(),
-		NetworkMessenger:  pcf.network.NetworkMessenger(),
-		AccumulatorConfig: pcf.config.Antiflood.TxAccumulator,
-		DataPacker:        dataPacker,
+		Marshaller:             pcf.coreData.InternalMarshalizer(),
+		ShardCoordinator:       pcf.bootstrapComponents.ShardCoordinator(),
+		NetworkMessenger:       pcf.network.NetworkMessenger(),
+		DataPacker:             dataPacker,
+		AntifloodConfigHandler: pcf.coreData.AntifloodConfigsHandler(),
 	}
 	txsSenderWithAccumulator, err := txsSender.NewTxsSenderWithAccumulator(args)
 	if err != nil {
@@ -1482,24 +1482,23 @@ func (pcf *processComponentsFactory) newShardResolverContainerFactory(
 	}
 
 	resolversContainerFactoryArgs := resolverscontainer.FactoryArgs{
-		ShardCoordinator:                    pcf.bootstrapComponents.ShardCoordinator(),
-		MainMessenger:                       pcf.network.NetworkMessenger(),
-		FullArchiveMessenger:                pcf.network.FullArchiveNetworkMessenger(),
-		Store:                               pcf.data.StorageService(),
-		Marshalizer:                         pcf.coreData.InternalMarshalizer(),
-		DataPools:                           pcf.data.Datapool(),
-		Uint64ByteSliceConverter:            pcf.coreData.Uint64ByteSliceConverter(),
-		DataPacker:                          dataPacker,
-		TriesContainer:                      pcf.state.TriesContainer(),
-		SizeCheckDelta:                      pcf.config.Marshalizer.SizeCheckDelta,
-		InputAntifloodHandler:               pcf.network.InputAntiFloodHandler(),
-		OutputAntifloodHandler:              pcf.network.OutputAntiFloodHandler(),
-		NumConcurrentResolvingJobs:          pcf.config.Antiflood.NumConcurrentResolverJobs,
-		NumConcurrentResolvingTrieNodesJobs: pcf.config.Antiflood.NumConcurrentResolvingTrieNodesJobs,
-		IsFullHistoryNode:                   pcf.prefConfigs.Preferences.FullArchive,
-		MainPreferredPeersHolder:            pcf.network.PreferredPeersHolderHandler(),
-		FullArchivePreferredPeersHolder:     pcf.network.FullArchivePreferredPeersHolderHandler(),
-		PayloadValidator:                    payloadValidator,
+		ShardCoordinator:                pcf.bootstrapComponents.ShardCoordinator(),
+		MainMessenger:                   pcf.network.NetworkMessenger(),
+		FullArchiveMessenger:            pcf.network.FullArchiveNetworkMessenger(),
+		Store:                           pcf.data.StorageService(),
+		Marshalizer:                     pcf.coreData.InternalMarshalizer(),
+		DataPools:                       pcf.data.Datapool(),
+		Uint64ByteSliceConverter:        pcf.coreData.Uint64ByteSliceConverter(),
+		DataPacker:                      dataPacker,
+		TriesContainer:                  pcf.state.TriesContainer(),
+		SizeCheckDelta:                  pcf.config.Marshalizer.SizeCheckDelta,
+		InputAntifloodHandler:           pcf.network.InputAntiFloodHandler(),
+		OutputAntifloodHandler:          pcf.network.OutputAntiFloodHandler(),
+		IsFullHistoryNode:               pcf.prefConfigs.Preferences.FullArchive,
+		MainPreferredPeersHolder:        pcf.network.PreferredPeersHolderHandler(),
+		FullArchivePreferredPeersHolder: pcf.network.FullArchivePreferredPeersHolderHandler(),
+		PayloadValidator:                payloadValidator,
+		AntifloodConfigsHandler:         pcf.coreData.AntifloodConfigsHandler(),
 	}
 	resolversContainerFactory, err := resolverscontainer.NewShardResolversContainerFactory(resolversContainerFactoryArgs)
 	if err != nil {
@@ -1519,24 +1518,23 @@ func (pcf *processComponentsFactory) newMetaResolverContainerFactory(
 	}
 
 	resolversContainerFactoryArgs := resolverscontainer.FactoryArgs{
-		ShardCoordinator:                    pcf.bootstrapComponents.ShardCoordinator(),
-		MainMessenger:                       pcf.network.NetworkMessenger(),
-		FullArchiveMessenger:                pcf.network.FullArchiveNetworkMessenger(),
-		Store:                               pcf.data.StorageService(),
-		Marshalizer:                         pcf.coreData.InternalMarshalizer(),
-		DataPools:                           pcf.data.Datapool(),
-		Uint64ByteSliceConverter:            pcf.coreData.Uint64ByteSliceConverter(),
-		DataPacker:                          dataPacker,
-		TriesContainer:                      pcf.state.TriesContainer(),
-		SizeCheckDelta:                      pcf.config.Marshalizer.SizeCheckDelta,
-		InputAntifloodHandler:               pcf.network.InputAntiFloodHandler(),
-		OutputAntifloodHandler:              pcf.network.OutputAntiFloodHandler(),
-		NumConcurrentResolvingJobs:          pcf.config.Antiflood.NumConcurrentResolverJobs,
-		NumConcurrentResolvingTrieNodesJobs: pcf.config.Antiflood.NumConcurrentResolvingTrieNodesJobs,
-		IsFullHistoryNode:                   pcf.prefConfigs.Preferences.FullArchive,
-		MainPreferredPeersHolder:            pcf.network.PreferredPeersHolderHandler(),
-		FullArchivePreferredPeersHolder:     pcf.network.FullArchivePreferredPeersHolderHandler(),
-		PayloadValidator:                    payloadValidator,
+		ShardCoordinator:                pcf.bootstrapComponents.ShardCoordinator(),
+		MainMessenger:                   pcf.network.NetworkMessenger(),
+		FullArchiveMessenger:            pcf.network.FullArchiveNetworkMessenger(),
+		Store:                           pcf.data.StorageService(),
+		Marshalizer:                     pcf.coreData.InternalMarshalizer(),
+		DataPools:                       pcf.data.Datapool(),
+		Uint64ByteSliceConverter:        pcf.coreData.Uint64ByteSliceConverter(),
+		DataPacker:                      dataPacker,
+		TriesContainer:                  pcf.state.TriesContainer(),
+		SizeCheckDelta:                  pcf.config.Marshalizer.SizeCheckDelta,
+		InputAntifloodHandler:           pcf.network.InputAntiFloodHandler(),
+		OutputAntifloodHandler:          pcf.network.OutputAntiFloodHandler(),
+		IsFullHistoryNode:               pcf.prefConfigs.Preferences.FullArchive,
+		MainPreferredPeersHolder:        pcf.network.PreferredPeersHolderHandler(),
+		FullArchivePreferredPeersHolder: pcf.network.FullArchivePreferredPeersHolderHandler(),
+		PayloadValidator:                payloadValidator,
+		AntifloodConfigsHandler:         pcf.coreData.AntifloodConfigsHandler(),
 	}
 
 	return resolverscontainer.NewMetaResolversContainerFactory(resolversContainerFactoryArgs)

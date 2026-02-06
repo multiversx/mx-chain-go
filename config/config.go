@@ -493,6 +493,7 @@ type WebServerAntifloodConfig struct {
 type BlackListConfig struct {
 	ThresholdNumMessagesPerInterval uint32
 	ThresholdSizePerInterval        uint64
+	NumFloodingRounds               uint32
 	PeerBanDurationInSeconds        uint32
 }
 
@@ -516,13 +517,19 @@ type TxAccumulatorConfig struct {
 
 // AntifloodConfig will hold all p2p antiflood parameters
 type AntifloodConfig struct {
-	Enabled                             bool
+	Enabled        bool
+	ConfigsByRound []AntifloodConfigByRound
+}
+
+// AntifloodConfigByRound will hold antiflood parameters by round
+type AntifloodConfigByRound struct {
+	Round                               uint64
 	NumConcurrentResolverJobs           int32
 	NumConcurrentResolvingTrieNodesJobs int32
 	OutOfSpecs                          FloodPreventerConfig
 	FastReacting                        FloodPreventerConfig
 	SlowReacting                        FloodPreventerConfig
-	PeerMaxOutput                       AntifloodLimitsConfig
+	PeerMaxOutput                       FloodPreventerConfig
 	Cache                               CacheConfig
 	Topic                               TopicAntifloodConfig
 	TxAccumulator                       TxAccumulatorConfig
