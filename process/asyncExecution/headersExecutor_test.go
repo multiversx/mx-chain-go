@@ -654,3 +654,201 @@ func TestHeadersExecutor_Process(t *testing.T) {
 		require.True(t, setLastExecutionResultCalled)
 	})
 }
+
+func TestHeadersExecutor_GetSignalProcessCompletionChan(t *testing.T) {
+	t.Parallel()
+
+	t.Run("should return nil when channel is not set", func(t *testing.T) {
+		t.Parallel()
+
+		args := createMockArgs()
+		args.SignalProcessCompletionChan = nil
+
+		executor, err := NewHeadersExecutor(args)
+		require.NoError(t, err)
+
+		ch := executor.GetSignalProcessCompletionChan()
+		require.Nil(t, ch)
+
+		err = executor.Close()
+		require.NoError(t, err)
+	})
+
+	t.Run("should return channel when set", func(t *testing.T) {
+		t.Parallel()
+
+		signalChan := make(chan uint64, 1)
+		args := createMockArgs()
+		args.SignalProcessCompletionChan = signalChan
+
+		executor, err := NewHeadersExecutor(args)
+		require.NoError(t, err)
+
+		ch := executor.GetSignalProcessCompletionChan()
+		require.NotNil(t, ch)
+		require.Equal(t, signalChan, ch)
+
+		err = executor.Close()
+		require.NoError(t, err)
+	})
+}
+
+func TestHeadersExecutor_SignalProcessCompletion(t *testing.T) {
+	t.Parallel()
+
+	t.Run("should signal channel on successful process", func(t *testing.T) {
+		t.Parallel()
+
+		signalChan := make(chan uint64, 1)
+		args := createMockArgs()
+		args.SignalProcessCompletionChan = signalChan
+
+		args.BlockProcessor = &processMocks.BlockProcessorStub{
+			ProcessBlockProposalCalled: func(handler data.HeaderHandler, headerHash []byte, body data.BodyHandler) (data.BaseExecutionResultHandler, error) {
+				return &block.BaseExecutionResult{
+					HeaderNonce: handler.GetNonce(),
+					HeaderHash:  headerHash,
+				}, nil
+			},
+		}
+		args.ExecutionTracker = &processMocks.ExecutionTrackerStub{
+			AddExecutionResultCalled: func(executionResult data.BaseExecutionResultHandler) (bool, error) {
+				return true, nil
+			},
+		}
+		args.BlockChain = &testscommon.ChainHandlerStub{
+			GetLastExecutionResultCalled: func() data.BaseExecutionResultHandler {
+				return nil // Return nil so checkLastExecutionResultContext passes
+			},
+		}
+
+		executor, err := NewHeadersExecutor(args)
+		require.NoError(t, err)
+
+		pair := cache.HeaderBodyPair{
+			Header: &block.Header{
+				Nonce: 5,
+			},
+			Body:       &block.Body{},
+			HeaderHash: []byte("hash"),
+		}
+
+		err = executor.Process(pair)
+		require.NoError(t, err)
+
+		// Check that signal was sent
+		select {
+		case nonce := <-signalChan:
+			require.Equal(t, uint64(5), nonce)
+		default:
+			require.Fail(t, "expected signal on channel")
+		}
+
+		err = executor.Close()
+		require.NoError(t, err)
+	})
+
+	t.Run("should not block when channel is full", func(t *testing.T) {
+		t.Parallel()
+
+		signalChan := make(chan uint64, 1)
+		// Pre-fill the channel
+		signalChan <- 1
+
+		args := createMockArgs()
+		args.SignalProcessCompletionChan = signalChan
+
+		args.BlockProcessor = &processMocks.BlockProcessorStub{
+			ProcessBlockProposalCalled: func(handler data.HeaderHandler, headerHash []byte, body data.BodyHandler) (data.BaseExecutionResultHandler, error) {
+				return &block.BaseExecutionResult{
+					HeaderNonce: handler.GetNonce(),
+					HeaderHash:  headerHash,
+				}, nil
+			},
+		}
+		args.ExecutionTracker = &processMocks.ExecutionTrackerStub{
+			AddExecutionResultCalled: func(executionResult data.BaseExecutionResultHandler) (bool, error) {
+				return true, nil
+			},
+		}
+		args.BlockChain = &testscommon.ChainHandlerStub{
+			GetLastExecutionResultCalled: func() data.BaseExecutionResultHandler {
+				return nil // Return nil so checkLastExecutionResultContext passes
+			},
+		}
+
+		executor, err := NewHeadersExecutor(args)
+		require.NoError(t, err)
+
+		pair := cache.HeaderBodyPair{
+			Header: &block.Header{
+				Nonce: 5,
+			},
+			Body:       &block.Body{},
+			HeaderHash: []byte("hash"),
+		}
+
+		// Should not block even though channel is full
+		done := make(chan struct{})
+		go func() {
+			err := executor.Process(pair)
+			require.NoError(t, err)
+			close(done)
+		}()
+
+		select {
+		case <-done:
+			// Success - process completed without blocking
+		case <-time.After(time.Second):
+			require.Fail(t, "process blocked when channel was full")
+		}
+
+		err = executor.Close()
+		require.NoError(t, err)
+	})
+
+	t.Run("should not panic when channel is nil", func(t *testing.T) {
+		t.Parallel()
+
+		args := createMockArgs()
+		args.SignalProcessCompletionChan = nil
+
+		args.BlockProcessor = &processMocks.BlockProcessorStub{
+			ProcessBlockProposalCalled: func(handler data.HeaderHandler, headerHash []byte, body data.BodyHandler) (data.BaseExecutionResultHandler, error) {
+				return &block.BaseExecutionResult{
+					HeaderNonce: handler.GetNonce(),
+					HeaderHash:  headerHash,
+				}, nil
+			},
+		}
+		args.ExecutionTracker = &processMocks.ExecutionTrackerStub{
+			AddExecutionResultCalled: func(executionResult data.BaseExecutionResultHandler) (bool, error) {
+				return true, nil
+			},
+		}
+		args.BlockChain = &testscommon.ChainHandlerStub{
+			GetLastExecutionResultCalled: func() data.BaseExecutionResultHandler {
+				return nil // Return nil so checkLastExecutionResultContext passes
+			},
+		}
+
+		executor, err := NewHeadersExecutor(args)
+		require.NoError(t, err)
+
+		pair := cache.HeaderBodyPair{
+			Header: &block.Header{
+				Nonce: 5,
+			},
+			Body:       &block.Body{},
+			HeaderHash: []byte("hash"),
+		}
+
+		require.NotPanics(t, func() {
+			err := executor.Process(pair)
+			require.NoError(t, err)
+		})
+
+		err = executor.Close()
+		require.NoError(t, err)
+	})
+}

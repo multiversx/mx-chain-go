@@ -2,6 +2,7 @@ package components
 
 import (
 	"github.com/multiversx/mx-chain-go/config"
+	"github.com/multiversx/mx-chain-go/testscommon"
 )
 
 // GetGeneralConfig -
@@ -248,6 +249,7 @@ func GetGeneralConfig() config.Config {
 				MaxOpenFiles:      10,
 			},
 		},
+		Antiflood: testscommon.GetDefaultAntifloodConfig(),
 	}
 }
 
