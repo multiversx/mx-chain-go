@@ -11,6 +11,7 @@ type AOTSelectorStub struct {
 	TriggerAOTSelectionCalled        func(committedHeader data.HeaderHandler, currentRound uint64)
 	GetPreSelectedTransactionsCalled func(blockNonce uint64) (*process.AOTSelectionResult, bool)
 	CancelOngoingSelectionCalled     func()
+	CloseCalled                      func() error
 }
 
 // TriggerAOTSelection -
@@ -33,6 +34,14 @@ func (stub *AOTSelectorStub) CancelOngoingSelection() {
 	if stub.CancelOngoingSelectionCalled != nil {
 		stub.CancelOngoingSelectionCalled()
 	}
+}
+
+// Close -
+func (stub *AOTSelectorStub) Close() error {
+	if stub.CloseCalled != nil {
+		return stub.CloseCalled()
+	}
+	return nil
 }
 
 // IsInterfaceNil returns true if there is no value under the interface

@@ -27,6 +27,11 @@ func (d *disabledAOTSelector) GetPreSelectedTransactions(_ uint64) (*process.AOT
 func (d *disabledAOTSelector) CancelOngoingSelection() {
 }
 
+// Close does nothing for disabled selector
+func (d *disabledAOTSelector) Close() error {
+	return nil
+}
+
 // IsInterfaceNil returns true if there is no value under the interface
 func (d *disabledAOTSelector) IsInterfaceNil() bool {
 	return d == nil

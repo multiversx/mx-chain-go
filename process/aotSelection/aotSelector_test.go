@@ -1,6 +1,7 @@
 package aotSelection
 
 import (
+	"context"
 	"errors"
 	"fmt"
 	"sync"
@@ -533,27 +534,28 @@ func TestAOTSelector_CancelOngoingSelectionNoOp(t *testing.T) {
 	})
 }
 
-func TestAOTSelector_CancelOngoingSelectionClosesCancelChannel(t *testing.T) {
+func TestAOTSelector_CancelOngoingSelectionCancelsContext(t *testing.T) {
 	t.Parallel()
 
 	args := createDefaultArgs()
 	sel, _ := NewAOTSelector(args)
 
-	cancelChan := make(chan struct{})
+	// Create a context and set it as the cancelFunc
+	ctx, cancelFunc := context.WithCancel(context.Background())
 	sel.selectionMut.Lock()
-	sel.cancelChan = cancelChan
+	sel.cancelFunc = cancelFunc
 	sel.selectionMut.Unlock()
 
 	sel.CancelOngoingSelection()
 
 	select {
-	case <-cancelChan:
-		// channel closed as expected
+	case <-ctx.Done():
+		// context cancelled as expected
 	default:
-		t.Fatal("cancel channel was not closed")
+		t.Fatal("context was not cancelled")
 	}
 
-	// Second call should not panic (cancelChan is nil now)
+	// Second call should not panic (cancelFunc is nil now)
 	require.NotPanics(t, func() {
 		sel.CancelOngoingSelection()
 	})
@@ -875,4 +877,138 @@ func TestAOTSelector_TriggerAOTSelectionSameEpochKeepsCache(t *testing.T) {
 	require.True(t, found)
 	require.NotNil(t, result)
 	assert.Equal(t, firstTxHash, result.TxHashes[0])
+}
+
+func TestAOTSelector_Close(t *testing.T) {
+	t.Parallel()
+
+	args := createDefaultArgs()
+	sel, err := NewAOTSelector(args)
+	require.NoError(t, err)
+
+	// Close should not panic
+	err = sel.Close()
+	require.NoError(t, err)
+
+	// Second close should be idempotent
+	err = sel.Close()
+	require.NoError(t, err)
+}
+
+func TestAOTSelector_CloseStopsOngoingSelection(t *testing.T) {
+	t.Parallel()
+
+	selectionStarted := make(chan struct{})
+	selectionBlocked := make(chan struct{})
+
+	args := createLeaderArgs([]byte("self-leader-key"))
+	args.TxCache = &txcachestubs.TxCacheStub{
+		SimulateSelectTransactionsCalled: func(_ txcache.SelectionSession, opts common.TxSelectionOptions) ([]*txcache.WrappedTransaction, uint64, error) {
+			close(selectionStarted)
+			// Block until cancelled or signaled
+			<-selectionBlocked
+			return []*txcache.WrappedTransaction{{TxHash: []byte("tx1")}}, 1000, nil
+		},
+	}
+	sel, err := NewAOTSelector(args)
+	require.NoError(t, err)
+
+	// Trigger selection
+	sel.TriggerAOTSelection(createHeader(10, []byte("randomness"), 1), 100)
+
+	// Wait for selection to start
+	select {
+	case <-selectionStarted:
+	case <-time.After(time.Second):
+		t.Fatal("selection did not start in time")
+	}
+
+	// Close should cancel ongoing selection
+	err = sel.Close()
+	require.NoError(t, err)
+
+	// Unblock the selection
+	close(selectionBlocked)
+
+	// Operations after close should be no-ops
+	sel.TriggerAOTSelection(createHeader(11, []byte("randomness2"), 1), 101)
+	result, found := sel.GetPreSelectedTransactions(11)
+	require.False(t, found)
+	require.Nil(t, result)
+}
+
+func TestAOTSelector_ConcurrentCancelDoesNotPanic(t *testing.T) {
+	t.Parallel()
+
+	args := createLeaderArgs([]byte("self-leader-key"))
+	args.TxCache = &txcachestubs.TxCacheStub{
+		SimulateSelectTransactionsCalled: func(_ txcache.SelectionSession, opts common.TxSelectionOptions) ([]*txcache.WrappedTransaction, uint64, error) {
+			// Simulate some work
+			time.Sleep(5 * time.Millisecond)
+			return []*txcache.WrappedTransaction{{TxHash: []byte("tx1")}}, 1000, nil
+		},
+	}
+	sel, _ := NewAOTSelector(args)
+
+	// Run many concurrent triggers and cancels - this used to cause double-close panic
+	var wg sync.WaitGroup
+	for i := 0; i < 50; i++ {
+		wg.Add(3)
+
+		go func(nonce uint64) {
+			defer wg.Done()
+			sel.TriggerAOTSelection(createHeader(nonce, []byte("rand"), 1), nonce+100)
+		}(uint64(i))
+
+		go func() {
+			defer wg.Done()
+			sel.CancelOngoingSelection()
+		}()
+
+		go func(nonce uint64) {
+			defer wg.Done()
+			sel.GetPreSelectedTransactions(nonce)
+		}(uint64(i))
+	}
+
+	// This should not panic
+	require.NotPanics(t, func() {
+		wg.Wait()
+	})
+
+	// Close should also not panic
+	require.NotPanics(t, func() {
+		_ = sel.Close()
+	})
+}
+
+func TestAOTSelector_GetPreSelectedTransactionsTimeout(t *testing.T) {
+	t.Parallel()
+
+	args := createLeaderArgs([]byte("self-leader-key"))
+	args.SelectionTimeout = 50 * time.Millisecond
+	args.TxCache = &txcachestubs.TxCacheStub{
+		SimulateSelectTransactionsCalled: func(_ txcache.SelectionSession, opts common.TxSelectionOptions) ([]*txcache.WrappedTransaction, uint64, error) {
+			// Block longer than timeout
+			time.Sleep(200 * time.Millisecond)
+			return []*txcache.WrappedTransaction{{TxHash: []byte("tx1")}}, 1000, nil
+		},
+	}
+	sel, _ := NewAOTSelector(args)
+
+	// Trigger selection
+	sel.TriggerAOTSelection(createHeader(10, []byte("randomness"), 1), 100)
+
+	// Small delay to ensure selection starts
+	time.Sleep(10 * time.Millisecond)
+
+	// GetPreSelectedTransactions should timeout and return false
+	start := time.Now()
+	result, found := sel.GetPreSelectedTransactions(11)
+	elapsed := time.Since(start)
+
+	require.False(t, found)
+	require.Nil(t, result)
+	// Should return within timeout + some margin
+	require.Less(t, elapsed, 100*time.Millisecond)
 }

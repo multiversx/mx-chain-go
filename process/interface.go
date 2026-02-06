@@ -1629,6 +1629,7 @@ type AOTTransactionSelector interface {
 	TriggerAOTSelection(committedHeader data.HeaderHandler, currentRound uint64)
 	GetPreSelectedTransactions(blockNonce uint64) (*AOTSelectionResult, bool)
 	CancelOngoingSelection()
+	Close() error
 	IsInterfaceNil() bool
 }
 

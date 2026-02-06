@@ -2,6 +2,7 @@ package aotSelection
 
 import (
 	"bytes"
+	"context"
 	"fmt"
 	"sync"
 	"time"
@@ -29,6 +30,8 @@ const (
 	defaultMaxTxsPerBlock            = 30000
 	defaultLoopDurationCheckInterval = 100
 	defaultCacheSize                 = 10
+	// margin to account for txcache's interval-based timeout checking
+	selectionTimeoutMargin = 0.85
 )
 
 // AOTSelectorArgs holds the arguments needed to create an AOT selector
@@ -69,11 +72,12 @@ type aotSelector struct {
 	maxTxsPerBlock   int
 
 	// Synchronization
-	cancelChan   chan struct{}
 	selectionMut sync.Mutex
+	cancelFunc   context.CancelFunc
 	ongoingNonce uint64
 	resultChan   chan *process.AOTSelectionResult
 	lastEpoch    uint32
+	closed       bool
 }
 
 // NewAOTSelector creates a new AOT selector instance
@@ -165,14 +169,19 @@ func (s *aotSelector) TriggerAOTSelection(committedHeader data.HeaderHandler, cu
 	epoch := committedHeader.GetEpoch()
 	// Detect epoch change and invalidate cache
 	s.selectionMut.Lock()
+	if s.closed {
+		s.selectionMut.Unlock()
+		log.Debug("TriggerAOTSelection: selector is closed, skipping")
+		return
+	}
 	previousEpoch := s.lastEpoch
 	epochChanged := s.lastEpoch != epoch && s.lastEpoch != 0
 	s.lastEpoch = epoch
 	if epochChanged {
 		s.cache.Clear()
-		if s.cancelChan != nil {
-			close(s.cancelChan)
-			s.cancelChan = nil
+		if s.cancelFunc != nil {
+			s.cancelFunc()
+			s.cancelFunc = nil
 		}
 	}
 	s.selectionMut.Unlock()
@@ -245,29 +254,49 @@ func (s *aotSelector) shouldConsiderSelfKeyInConsensus() bool {
 }
 
 // GetPreSelectedTransactions retrieves cached selection for the given nonce
-// If selection is ongoing, WAITS for completion (we need the result anyway)
+// If selection is ongoing, waits for completion with timeout (we need the result anyway)
 func (s *aotSelector) GetPreSelectedTransactions(blockNonce uint64) (*process.AOTSelectionResult, bool) {
 	s.selectionMut.Lock()
+	if s.closed {
+		s.selectionMut.Unlock()
+		return nil, false
+	}
 	if s.ongoingNonce == blockNonce && s.resultChan != nil {
 		resultChan := s.resultChan
+		timeout := s.selectionTimeout
 		s.selectionMut.Unlock()
-		// Wait for ongoing selection to complete
-		result := <-resultChan
-		if result != nil {
-			return result, true
+
+		// Wait for ongoing selection to complete with timeout
+		select {
+		case result, ok := <-resultChan:
+			if ok && result != nil {
+				return result, true
+			}
+			// Channel closed or nil result - fall through to cache check
+		case <-time.After(timeout):
+			log.Debug("GetPreSelectedTransactions: timeout on channel, checking cache",
+				"blockNonce", blockNonce)
 		}
-		return nil, false
+
+		// Fallback to cache (result may have been cached before channel issue)
+		return s.getFromCache(blockNonce)
 	}
 	s.selectionMut.Unlock()
 
-	// Check cache
+	return s.getFromCache(blockNonce)
+}
+
+func (s *aotSelector) getFromCache(blockNonce uint64) (*process.AOTSelectionResult, bool) {
 	cacheKey := []byte(fmt.Sprintf("%d", blockNonce))
-	if val, ok := s.cache.Get(cacheKey); ok {
-		if result, isResult := val.(*process.AOTSelectionResult); isResult {
-			return result, true
-		}
+	val, ok := s.cache.Get(cacheKey)
+	if !ok {
+		return nil, false
 	}
-	return nil, false
+	result, isResult := val.(*process.AOTSelectionResult)
+	if !isResult || result == nil {
+		return nil, false
+	}
+	return result, true
 }
 
 // CancelOngoingSelection cancels any ongoing AOT selection
@@ -275,35 +304,55 @@ func (s *aotSelector) GetPreSelectedTransactions(blockNonce uint64) (*process.AO
 func (s *aotSelector) CancelOngoingSelection() {
 	s.selectionMut.Lock()
 	defer s.selectionMut.Unlock()
-	if s.cancelChan != nil {
-		close(s.cancelChan)
-		s.cancelChan = nil
+	if s.cancelFunc != nil {
+		s.cancelFunc()
+		s.cancelFunc = nil
 	}
 }
 
 // runAOTSelection performs the actual transaction selection in a background goroutine
 func (s *aotSelector) runAOTSelection(targetNonce uint64, randomness []byte) {
 	s.selectionMut.Lock()
-	s.cancelChan = make(chan struct{})
+	if s.closed {
+		s.selectionMut.Unlock()
+		log.Debug("runAOTSelection: selector is closed, aborting")
+		return
+	}
+
+	// Cancel any previous ongoing selection before starting new one
+	if s.cancelFunc != nil {
+		s.cancelFunc()
+	}
+
+	// Create new context for this selection - NO timeout here, timeout is handled
+	// separately via time.Since() to ensure consistent timing with selection start
+	ctx, cancelFunc := context.WithCancel(context.Background())
+	s.cancelFunc = cancelFunc
 	s.resultChan = make(chan *process.AOTSelectionResult, 1)
 	s.ongoingNonce = targetNonce
-	cancelChan := s.cancelChan
 	resultChan := s.resultChan
 	s.selectionMut.Unlock()
 
-	defer func() {
+	// cleanup function to safely clean up state
+	cleanup := func() {
 		s.selectionMut.Lock()
-		s.ongoingNonce = 0
-		s.resultChan = nil
-		s.cancelChan = nil
+		// Only clean up if this is still the active selection
+		if s.resultChan == resultChan {
+			s.ongoingNonce = 0
+			s.resultChan = nil
+			// Don't nil cancelFunc here - context cleanup is handled by defer cancelFunc()
+		}
 		s.selectionMut.Unlock()
-		close(resultChan)
-		close(cancelChan)
-	}()
+	}
+
+	// Ensure context is always cancelled to release resources
+	defer cancelFunc()
+	defer cleanup()
 
 	startTime := time.Now()
+	selectionBudget := time.Duration(float64(s.selectionTimeout) * selectionTimeoutMargin)
 
-	log.Debug("runAOTSelection: starting", "targetNonce", targetNonce)
+	log.Debug("runAOTSelection: starting", "targetNonce", targetNonce, "selectionBudget", selectionBudget)
 
 	// Create selection session
 	session, err := preprocess.NewSelectionSession(preprocess.ArgsSelectionSession{
@@ -313,7 +362,7 @@ func (s *aotSelector) runAOTSelection(targetNonce uint64, randomness []byte) {
 	})
 	if err != nil {
 		log.Debug("runAOTSelection: failed to create selection session", "error", err)
-		resultChan <- nil
+		s.sendResult(resultChan, nil)
 		return
 	}
 
@@ -323,17 +372,16 @@ func (s *aotSelector) runAOTSelection(targetNonce uint64, randomness []byte) {
 		maxGas = s.economicsDataHandler.MaxGasLimitPerBlock(s.shardCoordinator.SelfId())
 	}
 
-	timeout := s.selectionTimeout
 	options, err := holders.NewTxSelectionOptions(
 		maxGas,
 		s.maxTxsPerBlock,
 		defaultLoopDurationCheckInterval,
 		func() bool {
-			if time.Since(startTime) >= timeout {
+			if time.Since(startTime) >= selectionBudget {
 				return false
 			}
 			select {
-			case <-cancelChan:
+			case <-ctx.Done():
 				return false
 			default:
 				return true
@@ -342,7 +390,7 @@ func (s *aotSelector) runAOTSelection(targetNonce uint64, randomness []byte) {
 	)
 	if err != nil {
 		log.Debug("runAOTSelection: failed to create selection options", "error", err)
-		resultChan <- nil
+		s.sendResult(resultChan, nil)
 		return
 	}
 
@@ -350,15 +398,15 @@ func (s *aotSelector) runAOTSelection(targetNonce uint64, randomness []byte) {
 	wrappedTxs, accumulatedGas, err := s.txCache.SimulateSelectTransactions(session, options)
 	if err != nil {
 		log.Debug("runAOTSelection: selection failed", "error", err)
-		resultChan <- nil
+		s.sendResult(resultChan, nil)
 		return
 	}
 
-	// Check if cancelled
+	// Check if cancelled (could have been cancelled during selection)
 	select {
-	case <-cancelChan:
+	case <-ctx.Done():
 		log.Debug("runAOTSelection: cancelled", "targetNonce", targetNonce)
-		resultChan <- nil
+		s.sendResult(resultChan, nil)
 		return
 	default:
 	}
@@ -387,7 +435,36 @@ func (s *aotSelector) runAOTSelection(targetNonce uint64, randomness []byte) {
 		"gasProvided", accumulatedGas,
 		"duration", time.Since(startTime))
 
-	resultChan <- result
+	s.sendResult(resultChan, result)
+}
+
+// sendResult sends result and closes the channel to signal completion to all waiters
+func (s *aotSelector) sendResult(resultChan chan *process.AOTSelectionResult, result *process.AOTSelectionResult) {
+	select {
+	case resultChan <- result:
+	default:
+	}
+	close(resultChan)
+}
+
+// Close gracefully shuts down the AOT selector
+// It cancels any ongoing selection and prevents new selections from starting
+func (s *aotSelector) Close() error {
+	s.selectionMut.Lock()
+	defer s.selectionMut.Unlock()
+
+	if s.closed {
+		return nil
+	}
+
+	s.closed = true
+	if s.cancelFunc != nil {
+		s.cancelFunc()
+		s.cancelFunc = nil
+	}
+	s.cache.Clear()
+	log.Debug("aotSelector: closed")
+	return nil
 }
 
 // IsInterfaceNil returns true if there is no value under the interface
