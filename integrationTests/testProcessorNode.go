@@ -224,7 +224,7 @@ var TestBuiltinFunctions = make(map[string]vmcommon.BuiltinFunction)
 var TestBlockSizeThrottler = &mock.BlockSizeThrottlerStub{}
 
 // TestBlockSizeComputation represents a block size computation handler
-var TestBlockSizeComputationHandler, _ = preprocess.NewBlockSizeComputation(TestMarshalizer, TestBlockSizeThrottler, uint32(core.MegabyteSize*90/100), uint32(core.MegabyteSize*10/100))
+var TestBlockSizeComputationHandler, _ = preprocess.NewBlockSizeComputation(TestMarshalizer, TestBlockSizeThrottler, uint32(core.MegabyteSize*90/100))
 
 // TestBalanceComputationHandler represents a balance computation handler
 var TestBalanceComputationHandler, _ = preprocess.NewBalanceComputation()
@@ -2569,7 +2569,7 @@ func (tpn *TestProcessorNode) initBlockProcessor() {
 			MaxResultsPerBlock: 20,
 		},
 		tpn.RoundHandler,
-		&testscommon.BlockSizeComputationStub{},
+		&testscommon.ExecResSizeComputationStub{},
 	)
 	if err != nil {
 		log.LogIfError(err)

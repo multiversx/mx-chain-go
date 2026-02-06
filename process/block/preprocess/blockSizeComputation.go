@@ -17,14 +17,11 @@ import (
 type blockSizeComputation struct {
 	miniblockSize uint32
 	txSize        uint32
-	execResSize   uint32
 
 	numMiniBlocks      uint32
 	numTxs             uint32
-	numExecRes         uint32
 	blockSizeThrottler BlockSizeThrottler
 	maxSize            uint32
-	maxExecResSize     uint32
 }
 
 // NewBlockSizeComputation creates a blockSizeComputation instance
@@ -32,7 +29,6 @@ func NewBlockSizeComputation(
 	marshalizer marshal.Marshalizer,
 	blockSizeThrottler BlockSizeThrottler,
 	maxSize uint32,
-	maxExecResSize uint32,
 ) (*blockSizeComputation, error) {
 	if check.IfNil(marshalizer) {
 		return nil, process.ErrNilMarshalizer
@@ -44,7 +40,6 @@ func NewBlockSizeComputation(
 	bsc := &blockSizeComputation{
 		blockSizeThrottler: blockSizeThrottler,
 		maxSize:            maxSize,
-		maxExecResSize:     maxExecResSize,
 	}
 
 	err := bsc.precomputeValues(marshalizer)
@@ -79,11 +74,6 @@ func (bsc *blockSizeComputation) precomputeValues(marshalizer marshal.Marshalize
 	bsc.txSize = (oneMiniblockSizeWithTwentyTxs - oneMiniblockSizeWithTenTxs) / 10
 	bsc.miniblockSize = core.MaxUint32(oneEmptyMiniblockSize, oneMiniblockSizeWithTenTxs-10*bsc.txSize)
 	bsc.miniblockSize = core.MaxUint32(bsc.miniblockSize, (tenMiniblocksWithTenTxs-100*bsc.txSize)/10)
-
-	bsc.execResSize, err = bsc.generateDummyExecutionResultSize(marshalizer, 10)
-	if err != nil {
-		return err
-	}
 
 	return nil
 }
@@ -128,49 +118,10 @@ func (bsc *blockSizeComputation) generateDummyMiniblock(numTxHashes int) *block.
 	return mb
 }
 
-func (bsc *blockSizeComputation) generateDummyExecutionResultSize(
-	marshaller marshal.Marshalizer,
-	numMbs int,
-) (uint32, error) {
-	dummyHash := make([]byte, 32)
-	_, _ = rand.Reader.Read(dummyHash)
-
-	executionResult := &block.ExecutionResult{
-		BaseExecutionResult: &block.BaseExecutionResult{
-			HeaderHash:  dummyHash,
-			HeaderNonce: 1,
-			HeaderRound: 2,
-			HeaderEpoch: 3,
-			RootHash:    dummyHash,
-		},
-		ReceiptsHash:    dummyHash,
-		ExecutedTxCount: 10,
-	}
-
-	executionResult.MiniBlockHeaders = make([]block.MiniBlockHeader, numMbs)
-	for i := 0; i < numMbs; i++ {
-		executionResult.MiniBlockHeaders[i] = block.MiniBlockHeader{
-			Hash:            dummyHash,
-			SenderShardID:   1,
-			ReceiverShardID: 2,
-			TxCount:         10,
-			Type:            1,
-		}
-	}
-
-	buff, err := marshaller.Marshal(executionResult)
-	if err != nil {
-		return 0, err
-	}
-
-	return uint32(len(buff)), nil
-}
-
 // Init reset the stored values of accumulated numTxs and numMiniBlocks
 func (bsc *blockSizeComputation) Init() {
 	atomic.StoreUint32(&bsc.numTxs, 0)
 	atomic.StoreUint32(&bsc.numMiniBlocks, 0)
-	atomic.StoreUint32(&bsc.numExecRes, 0)
 }
 
 // AddNumMiniBlocks adds the provided value to numMiniBlocks in a concurrent safe manner
@@ -188,29 +139,9 @@ func (bsc *blockSizeComputation) AddNumTxs(numTxs int) {
 	atomic.AddUint32(&bsc.numTxs, uint32(numTxs))
 }
 
-// AddNumExecRes adds the provided value to numExecRes in a concurrent safe manner
-func (bsc *blockSizeComputation) AddNumExecRes(numExecRes int) {
-	atomic.AddUint32(&bsc.numExecRes, uint32(numExecRes))
-}
-
 // DecNumTxs decrements the provided value to numTxs in a concurrent safe manner
 func (bsc *blockSizeComputation) DecNumTxs(numTxs int) {
 	atomic.AddUint32(&bsc.numTxs, ^uint32(numTxs-1))
-}
-
-// DecNumExecRes decrements the provided value to numExecRes in a concurrent safe manner
-func (bsc *blockSizeComputation) DecNumExecRes(numExecRes int) {
-	atomic.AddUint32(&bsc.numExecRes, ^uint32(numExecRes-1))
-}
-
-// IsMaxExecResSizeReached returns true if the provided number of execution results exceeds maximum allowed size
-func (bsc *blockSizeComputation) IsMaxExecResSizeReached(numNewExecRes int) bool {
-	totalExecRes := atomic.LoadUint32(&bsc.numExecRes) + uint32(numNewExecRes)
-	execResSize := bsc.execResSize * totalExecRes
-
-	// TODO: evaluate adding an execution results size throttler as for blocks
-
-	return execResSize > bsc.maxExecResSize
 }
 
 // IsMaxBlockSizeReached returns true if the provided number of new miniblocks and txs go over

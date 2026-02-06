@@ -333,7 +333,6 @@ func (pcf *processComponentsFactory) newShardBlockProcessor(
 		pcf.coreData.InternalMarshalizer(),
 		blockSizeThrottler,
 		pcf.config.BlockSizeThrottleConfig.MaxSizeInBytes,
-		pcf.config.BlockSizeThrottleConfig.MaxExecResSizeInBytes,
 	)
 	if err != nil {
 		return nil, err
@@ -343,7 +342,6 @@ func (pcf *processComponentsFactory) newShardBlockProcessor(
 		pcf.coreData.InternalMarshalizer(),
 		blockSizeThrottler,
 		pcf.config.BlockSizeThrottleConfig.MaxSizeInBytes,
-		pcf.config.BlockSizeThrottleConfig.MaxExecResSizeInBytes,
 	)
 	if err != nil {
 		return nil, err
@@ -526,10 +524,18 @@ func (pcf *processComponentsFactory) newShardBlockProcessor(
 		return nil, err
 	}
 
+	execResSizeComputationHandler, err := estimator.NewExecResultSizeComputationHandler(
+		pcf.coreData.InternalMarshalizer(),
+		pcf.config.BlockSizeThrottleConfig.MaxExecResSizeInBytes,
+	)
+	if err != nil {
+		return nil, err
+	}
+
 	inclusionEstimator, err := estimator.NewExecutionResultInclusionEstimator(
 		pcf.config.ExecutionResultInclusionEstimator,
 		pcf.coreData.RoundHandler(),
-		blockSizeComputationProposalHandler,
+		execResSizeComputationHandler,
 	)
 	if err != nil {
 		return nil, err
@@ -777,7 +783,6 @@ func (pcf *processComponentsFactory) newMetaBlockProcessor(
 		pcf.coreData.InternalMarshalizer(),
 		blockSizeThrottler,
 		pcf.config.BlockSizeThrottleConfig.MaxSizeInBytes,
-		pcf.config.BlockSizeThrottleConfig.MaxExecResSizeInBytes,
 	)
 	if err != nil {
 		return nil, err
@@ -1088,10 +1093,18 @@ func (pcf *processComponentsFactory) newMetaBlockProcessor(
 		return nil, err
 	}
 
+	execResSizeComputationHandler, err := estimator.NewExecResultSizeComputationHandler(
+		pcf.coreData.InternalMarshalizer(),
+		pcf.config.BlockSizeThrottleConfig.MaxExecResSizeInBytes,
+	)
+	if err != nil {
+		return nil, err
+	}
+
 	inclusionEstimator, err := estimator.NewExecutionResultInclusionEstimator(
 		pcf.config.ExecutionResultInclusionEstimator,
 		pcf.coreData.RoundHandler(),
-		blockSizeComputationHandler,
+		execResSizeComputationHandler,
 	)
 	if err != nil {
 		return nil, err

@@ -36,11 +36,8 @@ type BlockSizeComputationHandler interface {
 	DecNumMiniBlocks(numMiniBlocks int)
 	AddNumTxs(numTxs int)
 	DecNumTxs(numTxs int)
-	AddNumExecRes(numExecRes int)
-	DecNumExecRes(numExecRes int)
 	IsMaxBlockSizeReached(numNewMiniBlocks int, numNewTxs int) bool
 	IsMaxBlockSizeWithoutThrottleReached(numNewMiniBlocks int, numNewTxs int) bool
-	IsMaxExecResSizeReached(numNewExecRes int) bool
 	IsInterfaceNil() bool
 }
 

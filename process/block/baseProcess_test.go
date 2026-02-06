@@ -190,7 +190,7 @@ func createArgBaseProcessor(
 				MaxResultsPerBlock: 20,
 			},
 			coreComponents.RoundHandler(),
-			&testscommon.BlockSizeComputationStub{},
+			&testscommon.ExecResSizeComputationStub{},
 		)
 
 		missingDataArgs := missingData.ResolverArgs{

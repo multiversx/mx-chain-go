@@ -1392,7 +1392,7 @@ func Test_addExecutionResultsOnHeader(t *testing.T) {
 			MaxResultsPerBlock: 10,
 		}
 
-		executionResultsInclusionEstimator, _ := estimator.NewExecutionResultInclusionEstimator(defaultCfg, roundHandler, &testscommon.BlockSizeComputationStub{})
+		executionResultsInclusionEstimator, _ := estimator.NewExecutionResultInclusionEstimator(defaultCfg, roundHandler, &testscommon.ExecResSizeComputationStub{})
 
 		executionResult1 := &block.ExecutionResult{
 			BaseExecutionResult: &block.BaseExecutionResult{HeaderHash: []byte("hash1"), HeaderNonce: 1, HeaderRound: 2, GasUsed: 100_000_000},
@@ -1478,7 +1478,7 @@ func Test_addExecutionResultsOnHeader(t *testing.T) {
 			},
 		}
 
-		execResEst, _ := estimator.NewExecutionResultInclusionEstimator(defaultCfg, roundHandler, &testscommon.BlockSizeComputationStub{})
+		execResEst, _ := estimator.NewExecutionResultInclusionEstimator(defaultCfg, roundHandler, &testscommon.ExecResSizeComputationStub{})
 
 		sp, _ := blproc.ConstructPartialShardBlockProcessorForTest(map[string]interface{}{
 			"executionManager": &processMocks.ExecutionManagerMock{

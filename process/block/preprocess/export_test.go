@@ -108,11 +108,6 @@ func (bsc *blockSizeComputation) TxSize() uint32 {
 	return bsc.txSize
 }
 
-// ExecResSize -
-func (bsc *blockSizeComputation) ExecResSize() uint32 {
-	return bsc.execResSize
-}
-
 // NumMiniBlocks -
 func (bsc *blockSizeComputation) NumMiniBlocks() uint32 {
 	return atomic.LoadUint32(&bsc.numMiniBlocks)
@@ -121,11 +116,6 @@ func (bsc *blockSizeComputation) NumMiniBlocks() uint32 {
 // NumTxs -
 func (bsc *blockSizeComputation) NumTxs() uint32 {
 	return atomic.LoadUint32(&bsc.numTxs)
-}
-
-// NumExecRes -
-func (bsc *blockSizeComputation) NumExecRes() uint32 {
-	return atomic.LoadUint32(&bsc.numExecRes)
 }
 
 // ProcessTxsToMe -
