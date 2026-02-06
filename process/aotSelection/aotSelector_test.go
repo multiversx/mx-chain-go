@@ -216,7 +216,7 @@ func TestAOTSelector_TriggerAOTSelectionMetachainSkips(t *testing.T) {
 		SelfIdCalled: func() uint32 { return core.MetachainShardId },
 	}
 	args.TxCache = &txcachestubs.TxCacheStub{
-		SimulateSelectTransactionsCalled: func(_ txcache.SelectionSession, _ common.TxSelectionOptions) ([]*txcache.WrappedTransaction, uint64, error) {
+		SelectTransactionsCalled: func(_ txcache.SelectionSession, _ common.TxSelectionOptions, _ uint64) ([]*txcache.WrappedTransaction, uint64, error) {
 			selectionStarted = true
 			return nil, 0, nil
 		},
@@ -247,7 +247,7 @@ func TestAOTSelector_TriggerAOTSelectionNotLeaderSkips(t *testing.T) {
 		},
 	}
 	args.TxCache = &txcachestubs.TxCacheStub{
-		SimulateSelectTransactionsCalled: func(_ txcache.SelectionSession, _ common.TxSelectionOptions) ([]*txcache.WrappedTransaction, uint64, error) {
+		SelectTransactionsCalled: func(_ txcache.SelectionSession, _ common.TxSelectionOptions, _ uint64) ([]*txcache.WrappedTransaction, uint64, error) {
 			selectionStarted = true
 			return nil, 0, nil
 		},
@@ -265,7 +265,7 @@ func TestAOTSelector_TriggerAOTSelectionLeaderNextRound(t *testing.T) {
 	selectionDone := make(chan struct{})
 	args := createLeaderArgs([]byte("self-leader-key"))
 	args.TxCache = &txcachestubs.TxCacheStub{
-		SimulateSelectTransactionsCalled: func(_ txcache.SelectionSession, _ common.TxSelectionOptions) ([]*txcache.WrappedTransaction, uint64, error) {
+		SelectTransactionsCalled: func(_ txcache.SelectionSession, _ common.TxSelectionOptions, _ uint64) ([]*txcache.WrappedTransaction, uint64, error) {
 			close(selectionDone)
 			return []*txcache.WrappedTransaction{
 				{TxHash: []byte("tx1")},
@@ -316,7 +316,7 @@ func TestAOTSelector_TriggerAOTSelectionLeaderRoundN2Only(t *testing.T) {
 		IsRedundancyNodeCalled: func() bool { return false },
 	}
 	args.TxCache = &txcachestubs.TxCacheStub{
-		SimulateSelectTransactionsCalled: func(_ txcache.SelectionSession, _ common.TxSelectionOptions) ([]*txcache.WrappedTransaction, uint64, error) {
+		SelectTransactionsCalled: func(_ txcache.SelectionSession, _ common.TxSelectionOptions, _ uint64) ([]*txcache.WrappedTransaction, uint64, error) {
 			close(selectionDone)
 			return nil, 0, nil
 		},
@@ -568,7 +568,7 @@ func TestAOTSelector_RunAOTSelectionSuccess(t *testing.T) {
 
 	args := createDefaultArgs()
 	args.TxCache = &txcachestubs.TxCacheStub{
-		SimulateSelectTransactionsCalled: func(_ txcache.SelectionSession, _ common.TxSelectionOptions) ([]*txcache.WrappedTransaction, uint64, error) {
+		SelectTransactionsCalled: func(_ txcache.SelectionSession, _ common.TxSelectionOptions, _ uint64) ([]*txcache.WrappedTransaction, uint64, error) {
 			return []*txcache.WrappedTransaction{
 				{TxHash: []byte("hash1")},
 				{TxHash: []byte("hash2")},
@@ -597,7 +597,7 @@ func TestAOTSelector_RunAOTSelectionError(t *testing.T) {
 
 	args := createDefaultArgs()
 	args.TxCache = &txcachestubs.TxCacheStub{
-		SimulateSelectTransactionsCalled: func(_ txcache.SelectionSession, _ common.TxSelectionOptions) ([]*txcache.WrappedTransaction, uint64, error) {
+		SelectTransactionsCalled: func(_ txcache.SelectionSession, _ common.TxSelectionOptions, _ uint64) ([]*txcache.WrappedTransaction, uint64, error) {
 			return nil, 0, errors.New("selection failed")
 		},
 	}
@@ -616,7 +616,7 @@ func TestAOTSelector_RunAOTSelectionCancelled(t *testing.T) {
 	cancelAfterSelect := make(chan struct{})
 	args := createDefaultArgs()
 	args.TxCache = &txcachestubs.TxCacheStub{
-		SimulateSelectTransactionsCalled: func(_ txcache.SelectionSession, _ common.TxSelectionOptions) ([]*txcache.WrappedTransaction, uint64, error) {
+		SelectTransactionsCalled: func(_ txcache.SelectionSession, _ common.TxSelectionOptions, _ uint64) ([]*txcache.WrappedTransaction, uint64, error) {
 			// Wait for the cancel signal before returning
 			<-cancelAfterSelect
 			return []*txcache.WrappedTransaction{
@@ -660,9 +660,12 @@ func TestAOTSelector_RunAOTSelectionUsesEconomicsGasWhenZero(t *testing.T) {
 			economicsGasCalled = true
 			return 2000000000
 		},
+		BlockCapacityOverestimationFactorCalled: func() uint64 {
+			return 100
+		},
 	}
 	args.TxCache = &txcachestubs.TxCacheStub{
-		SimulateSelectTransactionsCalled: func(_ txcache.SelectionSession, _ common.TxSelectionOptions) ([]*txcache.WrappedTransaction, uint64, error) {
+		SelectTransactionsCalled: func(_ txcache.SelectionSession, _ common.TxSelectionOptions, _ uint64) ([]*txcache.WrappedTransaction, uint64, error) {
 			return nil, 0, nil
 		},
 	}
@@ -677,7 +680,7 @@ func TestAOTSelector_RunAOTSelectionEmptyResult(t *testing.T) {
 
 	args := createDefaultArgs()
 	args.TxCache = &txcachestubs.TxCacheStub{
-		SimulateSelectTransactionsCalled: func(_ txcache.SelectionSession, _ common.TxSelectionOptions) ([]*txcache.WrappedTransaction, uint64, error) {
+		SelectTransactionsCalled: func(_ txcache.SelectionSession, _ common.TxSelectionOptions, _ uint64) ([]*txcache.WrappedTransaction, uint64, error) {
 			return []*txcache.WrappedTransaction{}, 0, nil
 		},
 	}
@@ -697,7 +700,7 @@ func TestAOTSelector_RunAOTSelectionCleansUpOngoingState(t *testing.T) {
 
 	args := createDefaultArgs()
 	args.TxCache = &txcachestubs.TxCacheStub{
-		SimulateSelectTransactionsCalled: func(_ txcache.SelectionSession, _ common.TxSelectionOptions) ([]*txcache.WrappedTransaction, uint64, error) {
+		SelectTransactionsCalled: func(_ txcache.SelectionSession, _ common.TxSelectionOptions, _ uint64) ([]*txcache.WrappedTransaction, uint64, error) {
 			return nil, 0, nil
 		},
 	}
@@ -727,7 +730,7 @@ func TestAOTSelector_ConcurrentTriggerCancelGet(t *testing.T) {
 
 	args := createLeaderArgs([]byte("self-leader-key"))
 	args.TxCache = &txcachestubs.TxCacheStub{
-		SimulateSelectTransactionsCalled: func(_ txcache.SelectionSession, _ common.TxSelectionOptions) ([]*txcache.WrappedTransaction, uint64, error) {
+		SelectTransactionsCalled: func(_ txcache.SelectionSession, _ common.TxSelectionOptions, _ uint64) ([]*txcache.WrappedTransaction, uint64, error) {
 			time.Sleep(10 * time.Millisecond)
 			return []*txcache.WrappedTransaction{{TxHash: []byte("tx1")}}, 1000, nil
 		},
@@ -762,7 +765,7 @@ func TestAOTSelector_TriggerAOTSelectionEpochChangeClearsCache(t *testing.T) {
 
 	args := createLeaderArgs([]byte("self-leader-key"))
 	args.TxCache = &txcachestubs.TxCacheStub{
-		SimulateSelectTransactionsCalled: func(_ txcache.SelectionSession, _ common.TxSelectionOptions) ([]*txcache.WrappedTransaction, uint64, error) {
+		SelectTransactionsCalled: func(_ txcache.SelectionSession, _ common.TxSelectionOptions, _ uint64) ([]*txcache.WrappedTransaction, uint64, error) {
 			return []*txcache.WrappedTransaction{
 				{TxHash: []byte("tx1")},
 			}, 1000, nil
@@ -799,7 +802,7 @@ func TestAOTSelector_TriggerAOTSelectionEpochChangeCancelsOngoing(t *testing.T) 
 	var callMut sync.Mutex
 	args := createLeaderArgs([]byte("self-leader-key"))
 	args.TxCache = &txcachestubs.TxCacheStub{
-		SimulateSelectTransactionsCalled: func(_ txcache.SelectionSession, _ common.TxSelectionOptions) ([]*txcache.WrappedTransaction, uint64, error) {
+		SelectTransactionsCalled: func(_ txcache.SelectionSession, _ common.TxSelectionOptions, _ uint64) ([]*txcache.WrappedTransaction, uint64, error) {
 			callMut.Lock()
 			callCount++
 			isFirst := callCount == 1
@@ -849,7 +852,7 @@ func TestAOTSelector_TriggerAOTSelectionSameEpochKeepsCache(t *testing.T) {
 	callCount := 0
 	args := createLeaderArgs([]byte("self-leader-key"))
 	args.TxCache = &txcachestubs.TxCacheStub{
-		SimulateSelectTransactionsCalled: func(_ txcache.SelectionSession, _ common.TxSelectionOptions) ([]*txcache.WrappedTransaction, uint64, error) {
+		SelectTransactionsCalled: func(_ txcache.SelectionSession, _ common.TxSelectionOptions, _ uint64) ([]*txcache.WrappedTransaction, uint64, error) {
 			callCount++
 			return []*txcache.WrappedTransaction{
 				{TxHash: []byte(fmt.Sprintf("tx-%d", callCount))},
@@ -904,7 +907,7 @@ func TestAOTSelector_CloseStopsOngoingSelection(t *testing.T) {
 
 	args := createLeaderArgs([]byte("self-leader-key"))
 	args.TxCache = &txcachestubs.TxCacheStub{
-		SimulateSelectTransactionsCalled: func(_ txcache.SelectionSession, opts common.TxSelectionOptions) ([]*txcache.WrappedTransaction, uint64, error) {
+		SelectTransactionsCalled: func(_ txcache.SelectionSession, _ common.TxSelectionOptions, _ uint64) ([]*txcache.WrappedTransaction, uint64, error) {
 			close(selectionStarted)
 			// Block until cancelled or signaled
 			<-selectionBlocked
@@ -943,7 +946,7 @@ func TestAOTSelector_ConcurrentCancelDoesNotPanic(t *testing.T) {
 
 	args := createLeaderArgs([]byte("self-leader-key"))
 	args.TxCache = &txcachestubs.TxCacheStub{
-		SimulateSelectTransactionsCalled: func(_ txcache.SelectionSession, opts common.TxSelectionOptions) ([]*txcache.WrappedTransaction, uint64, error) {
+		SelectTransactionsCalled: func(_ txcache.SelectionSession, _ common.TxSelectionOptions, _ uint64) ([]*txcache.WrappedTransaction, uint64, error) {
 			// Simulate some work
 			time.Sleep(5 * time.Millisecond)
 			return []*txcache.WrappedTransaction{{TxHash: []byte("tx1")}}, 1000, nil
@@ -989,7 +992,7 @@ func TestAOTSelector_GetPreSelectedTransactionsTimeout(t *testing.T) {
 	args := createLeaderArgs([]byte("self-leader-key"))
 	args.SelectionTimeout = 50 * time.Millisecond
 	args.TxCache = &txcachestubs.TxCacheStub{
-		SimulateSelectTransactionsCalled: func(_ txcache.SelectionSession, opts common.TxSelectionOptions) ([]*txcache.WrappedTransaction, uint64, error) {
+		SelectTransactionsCalled: func(_ txcache.SelectionSession, _ common.TxSelectionOptions, _ uint64) ([]*txcache.WrappedTransaction, uint64, error) {
 			// Block longer than timeout
 			time.Sleep(200 * time.Millisecond)
 			return []*txcache.WrappedTransaction{{TxHash: []byte("tx1")}}, 1000, nil
