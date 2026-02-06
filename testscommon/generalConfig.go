@@ -429,14 +429,7 @@ func GetGeneralConfig() config.Config {
 			TrieSyncerVersion:         2,
 			CheckNodesOnDisk:          false,
 		},
-		Antiflood: config.AntifloodConfig{
-			NumConcurrentResolverJobs:           2,
-			NumConcurrentResolvingTrieNodesJobs: 1,
-			TxAccumulator: config.TxAccumulatorConfig{
-				MaxAllowedTimeInMilliseconds:   10,
-				MaxDeviationTimeInMilliseconds: 1,
-			},
-		},
+		Antiflood: GetDefaultAntifloodConfig(),
 		Requesters: config.RequesterConfig{
 			NumCrossShardPeers:  2,
 			NumTotalPeers:       3,
@@ -510,5 +503,156 @@ func getLRUCacheConfig() config.CacheConfig {
 		Type:     "LRU",
 		Capacity: 1000,
 		Shards:   1,
+	}
+}
+
+// GetDefaultAntifloodConfig -
+func GetDefaultAntifloodConfig() config.AntifloodConfig {
+	return config.AntifloodConfig{
+		Enabled: true,
+		ConfigsByRound: []config.AntifloodConfigByRound{
+			{
+				Round:                               0,
+				NumConcurrentResolverJobs:           10,
+				NumConcurrentResolvingTrieNodesJobs: 3,
+				Cache: config.CacheConfig{
+					Type:     "LRU",
+					Capacity: 10,
+					Shards:   2,
+				},
+				PeerMaxOutput: config.FloodPreventerConfig{
+					PeerMaxInput: config.AntifloodLimitsConfig{
+						BaseMessagesPerInterval: 10,
+						TotalSizePerInterval:    10,
+					},
+				},
+				Topic: config.TopicAntifloodConfig{
+					DefaultMaxMessagesPerSec: 10,
+				},
+				TxAccumulator: config.TxAccumulatorConfig{
+					MaxAllowedTimeInMilliseconds:   10,
+					MaxDeviationTimeInMilliseconds: 1,
+				},
+				FastReacting: config.FloodPreventerConfig{
+					BlackList: config.BlackListConfig{
+						ThresholdNumMessagesPerInterval: 100,
+						ThresholdSizePerInterval:        1024,
+						PeerBanDurationInSeconds:        100,
+						NumFloodingRounds:               5,
+					},
+					PeerMaxInput: config.AntifloodLimitsConfig{
+						BaseMessagesPerInterval: 100,
+						TotalSizePerInterval:    1024,
+						IncreaseFactor: config.IncreaseFactorConfig{
+							Factor: 1.0,
+						},
+					},
+					ReservedPercent: 50.0,
+				},
+				SlowReacting: config.FloodPreventerConfig{
+					BlackList: config.BlackListConfig{
+						ThresholdNumMessagesPerInterval: 100,
+						ThresholdSizePerInterval:        1024,
+						PeerBanDurationInSeconds:        100,
+						NumFloodingRounds:               5,
+					},
+					PeerMaxInput: config.AntifloodLimitsConfig{
+						BaseMessagesPerInterval: 100,
+						TotalSizePerInterval:    1024,
+						IncreaseFactor: config.IncreaseFactorConfig{
+							Factor: 1.0,
+						},
+					},
+					ReservedPercent: 50.0,
+				},
+				OutOfSpecs: config.FloodPreventerConfig{
+					BlackList: config.BlackListConfig{
+						ThresholdNumMessagesPerInterval: 100,
+						ThresholdSizePerInterval:        1024,
+						PeerBanDurationInSeconds:        100,
+						NumFloodingRounds:               5,
+					},
+					PeerMaxInput: config.AntifloodLimitsConfig{
+						BaseMessagesPerInterval: 100,
+						TotalSizePerInterval:    1024,
+						IncreaseFactor: config.IncreaseFactorConfig{
+							Factor: 1.0,
+						},
+					},
+					ReservedPercent: 50.0,
+				},
+			},
+			{
+				Round:                               100,
+				NumConcurrentResolverJobs:           10,
+				NumConcurrentResolvingTrieNodesJobs: 3,
+				Cache: config.CacheConfig{
+					Type:     "LRU",
+					Capacity: 10,
+					Shards:   2,
+				},
+				PeerMaxOutput: config.FloodPreventerConfig{
+					PeerMaxInput: config.AntifloodLimitsConfig{
+						BaseMessagesPerInterval: 101,
+						TotalSizePerInterval:    102,
+					},
+				},
+				Topic: config.TopicAntifloodConfig{
+					DefaultMaxMessagesPerSec: 103,
+				},
+				TxAccumulator: config.TxAccumulatorConfig{
+					MaxAllowedTimeInMilliseconds:   104,
+					MaxDeviationTimeInMilliseconds: 11,
+				},
+				FastReacting: config.FloodPreventerConfig{
+					BlackList: config.BlackListConfig{
+						ThresholdNumMessagesPerInterval: 201,
+						ThresholdSizePerInterval:        2041,
+						PeerBanDurationInSeconds:        201,
+						NumFloodingRounds:               12,
+					},
+					PeerMaxInput: config.AntifloodLimitsConfig{
+						BaseMessagesPerInterval: 202,
+						TotalSizePerInterval:    2042,
+						IncreaseFactor: config.IncreaseFactorConfig{
+							Factor: 2.0,
+						},
+					},
+					ReservedPercent: 60.0,
+				},
+				SlowReacting: config.FloodPreventerConfig{
+					BlackList: config.BlackListConfig{
+						ThresholdNumMessagesPerInterval: 203,
+						ThresholdSizePerInterval:        2043,
+						PeerBanDurationInSeconds:        203,
+						NumFloodingRounds:               13,
+					},
+					PeerMaxInput: config.AntifloodLimitsConfig{
+						BaseMessagesPerInterval: 203,
+						TotalSizePerInterval:    2043,
+						IncreaseFactor: config.IncreaseFactorConfig{
+							Factor: 2.0,
+						},
+					},
+					ReservedPercent: 60.0,
+				},
+				OutOfSpecs: config.FloodPreventerConfig{
+					BlackList: config.BlackListConfig{
+						ThresholdNumMessagesPerInterval: 204,
+						ThresholdSizePerInterval:        2044,
+						PeerBanDurationInSeconds:        204,
+						NumFloodingRounds:               14,
+					},
+					PeerMaxInput: config.AntifloodLimitsConfig{
+						BaseMessagesPerInterval: 204,
+						TotalSizePerInterval:    2044,
+						IncreaseFactor: config.IncreaseFactorConfig{
+							Factor: 2.0,
+						},
+					},
+					ReservedPercent: 60.0,
+				},
+			},
+		},
 	}
 }
