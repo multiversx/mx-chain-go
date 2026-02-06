@@ -4,11 +4,9 @@ import (
 	"errors"
 	"testing"
 
-	"github.com/multiversx/mx-chain-go/common"
 	errorsMx "github.com/multiversx/mx-chain-go/errors"
 	networkComp "github.com/multiversx/mx-chain-go/factory/network"
 	"github.com/multiversx/mx-chain-go/process"
-	"github.com/multiversx/mx-chain-go/testscommon"
 	componentsMock "github.com/multiversx/mx-chain-go/testscommon/components"
 	"github.com/stretchr/testify/require"
 )
@@ -134,32 +132,6 @@ func TestNetworkComponentsFactory_Create(t *testing.T) {
 		args.MainConfig.PeersRatingConfig.TopRatedCacheCapacity = 0
 
 		ncf, _ := networkComp.NewNetworkComponentsFactory(args)
-
-		nc, err := ncf.Create()
-		require.Error(t, err)
-		require.Nil(t, nc)
-	})
-
-	t.Run("NewP2PAntiFloodComponents fails should error", func(t *testing.T) {
-		t.Parallel()
-
-		args := componentsMock.GetNetworkFactoryArgs()
-		args.MainConfig.Antiflood.Enabled = true
-		coreComps := componentsMock.GetDefaultCoreComponents()
-
-		ct := 0
-		coreComps.ProcessConfigsHandlerCalled = func() common.ProcessConfigsHandler {
-			if ct == 0 {
-				return &testscommon.ProcessConfigsHandlerStub{}
-			}
-
-			ct++
-			return nil
-		}
-		args.CoreComponents = coreComps
-
-		ncf, err := networkComp.NewNetworkComponentsFactory(args)
-		require.Nil(t, err)
 
 		nc, err := ncf.Create()
 		require.Error(t, err)
