@@ -1179,6 +1179,9 @@ var ErrNilEpochChangeGracePeriodHandler = errors.New("nil epoch change grace per
 // ErrNilProcessConfigsHandler signals that a nil process configs by epoch handler has been provided
 var ErrNilProcessConfigsHandler = errors.New("nil process configs by epoch handler")
 
+// ErrNilAntifloodConfigsHandler signals that a nil antiflood configs handler has been provided
+var ErrNilAntifloodConfigsHandler = errors.New("nil antiflood configs handler")
+
 // ErrNilMultiSignerContainer signals that the given multisigner container is nil
 var ErrNilMultiSignerContainer = errors.New("nil multiSigner container")
 

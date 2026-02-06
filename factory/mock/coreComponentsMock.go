@@ -64,6 +64,7 @@ type CoreComponentsMock struct {
 	ProcessConfigsHandlerField         common.ProcessConfigsHandler
 	ProcessConfigsHandlerCalled        func() common.ProcessConfigsHandler
 	CommonConfigsHandlerField          common.CommonConfigsHandler
+	AntifloodConfigsHandlerField       common.AntifloodConfigsHandler
 }
 
 // InternalMarshalizer -
@@ -290,6 +291,11 @@ func (ccm *CoreComponentsMock) ProcessConfigsHandler() common.ProcessConfigsHand
 // CommonConfigsHandler -
 func (ccm *CoreComponentsMock) CommonConfigsHandler() common.CommonConfigsHandler {
 	return ccm.CommonConfigsHandlerField
+}
+
+// AntifloodConfigsHandler -
+func (ccm *CoreComponentsMock) AntifloodConfigsHandler() common.AntifloodConfigsHandler {
+	return ccm.AntifloodConfigsHandlerField
 }
 
 // IsInterfaceNil -
