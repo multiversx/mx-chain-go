@@ -328,7 +328,18 @@ func (pcf *processComponentsFactory) newShardBlockProcessor(
 		return nil, err
 	}
 
+	// TODO: evaluate disabling this entirely (for old flows) - the check is not triggered if async enabled but there are still some checks in the old flow
 	blockSizeComputationHandler, err := preprocess.NewBlockSizeComputation(
+		pcf.coreData.InternalMarshalizer(),
+		blockSizeThrottler,
+		pcf.config.BlockSizeThrottleConfig.MaxSizeInBytes,
+		pcf.config.BlockSizeThrottleConfig.MaxExecResSizeInBytes,
+	)
+	if err != nil {
+		return nil, err
+	}
+
+	blockSizeComputationProposalHandler, err := preprocess.NewBlockSizeComputation(
 		pcf.coreData.InternalMarshalizer(),
 		blockSizeThrottler,
 		pcf.config.BlockSizeThrottleConfig.MaxSizeInBytes,
@@ -349,7 +360,7 @@ func (pcf *processComponentsFactory) newShardBlockProcessor(
 		GasHandler:                        gasHandler,
 		BlockCapacityOverestimationFactor: pcf.economicsConfig.FeeSettings.BlockCapacityOverestimationFactor,
 		PercentDecreaseLimitsStep:         pcf.economicsConfig.FeeSettings.PercentDecreaseLimitsStep,
-		BlockSizeComputation:              blockSizeComputationHandler,
+		BlockSizeComputation:              blockSizeComputationProposalHandler,
 	}
 	gasConsumption, err := block.NewGasConsumption(argsGasConsumption)
 	if err != nil {
@@ -518,7 +529,7 @@ func (pcf *processComponentsFactory) newShardBlockProcessor(
 	inclusionEstimator, err := estimator.NewExecutionResultInclusionEstimator(
 		pcf.config.ExecutionResultInclusionEstimator,
 		pcf.coreData.RoundHandler(),
-		blockSizeComputationHandler,
+		blockSizeComputationProposalHandler,
 	)
 	if err != nil {
 		return nil, err

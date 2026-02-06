@@ -29,7 +29,7 @@ func (b *BlockSizeComputationHandler) DecNumTxs(numTxs int) {
 }
 
 // DecNumExecRes does nothing
-func (b *BlockSizeComputationHandler) DecNumExecRes(numTxs int) {
+func (b *BlockSizeComputationHandler) DecNumExecRes(numExecRes int) {
 }
 
 // IsMaxBlockSizeReached returns false as it is a disabled components

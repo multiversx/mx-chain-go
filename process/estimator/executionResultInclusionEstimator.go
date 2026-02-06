@@ -58,6 +58,9 @@ func NewExecutionResultInclusionEstimator(
 	if check.IfNil(roundHandler) {
 		return nil, process.ErrNilRoundHandler
 	}
+	if check.IfNil(blockSizeComputation) {
+		return nil, process.ErrNilBlockSizeComputationHandler
+	}
 
 	return &ExecutionResultInclusionEstimator{
 		cfg:                  cfg,
