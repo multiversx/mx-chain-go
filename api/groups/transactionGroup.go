@@ -630,18 +630,6 @@ func (tg *transactionGroup) getTransactionsPool(c *gin.Context) {
 		return
 	}
 
-	if true {
-		c.JSON(
-			http.StatusBadRequest,
-			shared.GenericAPIResponse{
-				Data:  nil,
-				Error: fmt.Sprintf("%s: %s SF response", errors.ErrValidation.Error(), err.Error()),
-				Code:  shared.ReturnCodeRequestError,
-			},
-		)
-		return
-	}
-
 	// if no sender was provided, the fields for all transactions from pool should be returned in response
 	if sender == "" {
 		tg.getTxPool(fields, c)
