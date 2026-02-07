@@ -390,10 +390,15 @@ func (atp *apiTransactionProcessor) extractRequestedTxInfo(wrappedTx *txcache.Wr
 }
 
 func (atp *apiTransactionProcessor) getFieldGettersForTx(wrappedTx *txcache.WrappedTransaction) map[string]interface{} {
+	sender := "erd1qqqqqqqqqqqqqpgqxwakt2g7u9atsnr03gqcgmhcv38pt7mkd94q6shuwt"
+	if len(wrappedTx.Tx.GetSndAddr()) == 32 {
+		sender = atp.addressPubKeyConverter.SilentEncode(wrappedTx.Tx.GetSndAddr(), log)
+	}
+
 	var fieldGetters = map[string]interface{}{
 		hashField:        hex.EncodeToString(wrappedTx.TxHash),
 		nonceField:       wrappedTx.Tx.GetNonce(),
-		senderField:      atp.addressPubKeyConverter.SilentEncode(wrappedTx.Tx.GetSndAddr(), log),
+		senderField:      sender,
 		receiverField:    atp.addressPubKeyConverter.SilentEncode(wrappedTx.Tx.GetRcvAddr(), log),
 		gasLimitField:    wrappedTx.Tx.GetGasLimit(),
 		gasPriceField:    wrappedTx.Tx.GetGasPrice(),
