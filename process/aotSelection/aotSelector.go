@@ -10,6 +10,7 @@ import (
 	"github.com/multiversx/mx-chain-core-go/core"
 	"github.com/multiversx/mx-chain-core-go/core/check"
 	"github.com/multiversx/mx-chain-core-go/data"
+	commonConsensus "github.com/multiversx/mx-chain-go/common/consensus"
 	logger "github.com/multiversx/mx-chain-logger-go"
 
 	"github.com/multiversx/mx-chain-go/common"
@@ -229,28 +230,12 @@ func (s *aotSelector) isSelfLeaderForRound(randomness []byte, round uint64, epoc
 
 	// Check single key
 	selfPubKey := s.keysHandler.IsOriginalPublicKeyOfTheNode(leader.PubKey())
-	isSelfLeader := selfPubKey && s.shouldConsiderSelfKeyInConsensus()
+	isSelfLeader := selfPubKey && commonConsensus.ShouldConsiderSelfKeyInConsensus(s.nodeRedundancy)
 
 	// Check multi-key
 	isMultiKeyLeader := s.keysHandler.IsKeyManagedByCurrentNode(leader.PubKey())
 
 	return isSelfLeader || isMultiKeyLeader
-}
-
-// shouldConsiderSelfKeyInConsensus checks if the node should consider its self key in consensus
-// Returns true if not a redundancy node, or if the main machine is not active
-// TODO move ShouldConsiderSelfKeyInConsensus from spos to make it available for both and unify the logic
-func (s *aotSelector) shouldConsiderSelfKeyInConsensus() bool {
-	if check.IfNil(s.nodeRedundancy) {
-		log.Warn("shouldConsiderSelfKeyInConsensus: redundancy handler is nil")
-		return false
-	}
-
-	isMainMachine := !s.nodeRedundancy.IsRedundancyNode()
-	if isMainMachine {
-		return true
-	}
-	return !s.nodeRedundancy.IsMainMachineActive()
 }
 
 // GetPreSelectedTransactions retrieves cached selection for the given nonce
