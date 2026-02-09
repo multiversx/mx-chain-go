@@ -98,6 +98,7 @@ func createCoreComponents() factory.CoreComponentsHolder {
 		EpochChangeGracePeriodHandlerField: gracePeriod,
 		ProcessConfigsHandlerField:         testscommon.GetDefaultProcessConfigsHandler(),
 		CommonConfigsHandlerField:          testscommon.GetDefaultCommonConfigsHandler(),
+		AntifloodConfigsHandlerField:       &testscommon.AntifloodConfigsHandlerStub{},
 	}
 }
 
