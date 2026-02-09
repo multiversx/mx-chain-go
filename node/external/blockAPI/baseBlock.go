@@ -871,4 +871,18 @@ func updateExecutionResult(executionResult data.BaseExecutionResultHandler, apiE
 	apiExecutionResult.HeaderRound = executionResult.GetHeaderRound()
 	apiExecutionResult.HeaderEpoch = executionResult.GetHeaderEpoch()
 	apiExecutionResult.RootHash = hex.EncodeToString(executionResult.GetRootHash())
+	apiExecutionResult.ExecutedTxCount = getNumExecutedTx(executionResult)
+}
+
+type getExecutedTxHandler interface {
+	GetExecutedTxCount() uint64
+}
+
+func getNumExecutedTx(executionResult data.BaseExecutionResultHandler) uint64 {
+	handler, ok := executionResult.(getExecutedTxHandler)
+	if !ok {
+		return 0
+	}
+
+	return handler.GetExecutedTxCount()
 }
