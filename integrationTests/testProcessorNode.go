@@ -3824,6 +3824,7 @@ func GetDefaultCoreComponents(
 		FieldsSizeCheckerField:             &testscommon.FieldsSizeCheckerMock{},
 		ChainParametersHandlerField:        &chainParameters.ChainParametersHandlerStub{},
 		CommonConfigsHandlerField:          testscommon.GetDefaultCommonConfigsHandler(),
+		AntifloodConfigsHandlerField:       &testscommon.AntifloodConfigsHandlerStub{},
 	}
 }
 

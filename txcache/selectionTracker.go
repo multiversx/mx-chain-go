@@ -19,8 +19,8 @@ const (
 
 type selectionTracker struct {
 	mutTracker                sync.RWMutex
-	latestNonce               uint64
-	latestRootHash            []byte
+	latestNonce               uint64 // last OnExecuted nonce
+	latestRootHash            []byte // last OnExecuted rootHash
 	blocks                    map[string]*trackedBlock
 	globalBreadcrumbsCompiler *globalAccountBreadcrumbsCompiler
 	txCache                   txCacheForSelectionTracker
@@ -462,22 +462,40 @@ func (st *selectionTracker) ResetTrackedBlocks() {
 	st.globalBreadcrumbsCompiler.cleanGlobalBreadcrumbs()
 }
 
+func (st *selectionTracker) canDoSimulateSelection(nonce uint64) bool {
+	// nonce 0 will select over current tracker state
+	if nonce == 0 {
+		return true
+	}
+
+	// drop the selection if not matching the tracker state
+	for _, tb := range st.blocks {
+		if tb.hasSameNonceOrHigherThanGivenNonce(nonce) {
+			return false
+		}
+	}
+
+	return true
+}
+
 // deriveVirtualSelectionSession creates a virtual selection session by transforming the global accounts breadcrumbs into virtual records
 // The deriveVirtualSelectionSession methods needs a SelectionSession and the nonce of the block for which the selection is built.
 // Before the actual selection, all tracked blocks with greater or equal nonce are removed from the tracker.
 func (st *selectionTracker) deriveVirtualSelectionSession(
 	session SelectionSession,
 	nonce uint64,
-	shouldRemoveTrackedBlocks bool,
+	isSimulation bool,
 ) (*virtualSelectionSession, error) {
 	st.mutTracker.Lock()
 	defer st.mutTracker.Unlock()
 
-	if !shouldRemoveTrackedBlocks {
+	if !isSimulation {
 		err := st.removeBlocksAboveOrEqualToNonceNoLock(nonce)
 		if err != nil {
 			return nil, err
 		}
+	} else if !st.canDoSimulateSelection(nonce) {
+		return nil, errSimulateSelectionContextInvalid
 	}
 
 	rootHash, err := session.GetRootHash()
