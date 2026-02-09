@@ -457,7 +457,7 @@ func (rtp *rewardTxPreprocessor) ProcessMiniBlock(
 		return nil, indexOfLastTxProcessed, false, err
 	}
 
-	if rtp.blockSizeComputation.IsMaxBlockSizeWithoutThrottleReached(1, len(miniBlock.TxHashes)) {
+	if rtp.isMaxBlockSizeWithoutThrottleReached(1, len(miniBlock.TxHashes)) {
 		return nil, indexOfLastTxProcessed, false, process.ErrMaxBlockSizeReached
 	}
 
@@ -498,8 +498,8 @@ func (rtp *rewardTxPreprocessor) ProcessMiniBlock(
 		rtp.rewardTxsForBlock.AddTransaction(txHash, miniBlockRewardTxs[index], miniBlock.SenderShardID, miniBlock.ReceiverShardID)
 	}
 
-	rtp.blockSizeComputation.AddNumMiniBlocks(1)
-	rtp.blockSizeComputation.AddNumTxs(len(miniBlock.TxHashes))
+	rtp.addNumMiniBlocks(1)
+	rtp.addNumTxs(len(miniBlock.TxHashes))
 
 	return nil, txIndex - 1, false, err
 }

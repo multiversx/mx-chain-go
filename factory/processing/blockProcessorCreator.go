@@ -788,6 +788,15 @@ func (pcf *processComponentsFactory) newMetaBlockProcessor(
 		return nil, err
 	}
 
+	blockSizeComputationProposalHandler, err := preprocess.NewBlockSizeComputation(
+		pcf.coreData.InternalMarshalizer(),
+		blockSizeThrottler,
+		pcf.config.BlockSizeThrottleConfig.MaxSizeInBytes,
+	)
+	if err != nil {
+		return nil, err
+	}
+
 	balanceComputationHandler, err := preprocess.NewBalanceComputation()
 	if err != nil {
 		return nil, err
@@ -799,7 +808,7 @@ func (pcf *processComponentsFactory) newMetaBlockProcessor(
 		GasHandler:                        gasHandler,
 		BlockCapacityOverestimationFactor: pcf.economicsConfig.FeeSettings.BlockCapacityOverestimationFactor,
 		PercentDecreaseLimitsStep:         pcf.economicsConfig.FeeSettings.PercentDecreaseLimitsStep,
-		BlockSizeComputation:              blockSizeComputationHandler,
+		BlockSizeComputation:              blockSizeComputationProposalHandler,
 	}
 	gasConsumption, err := block.NewGasConsumption(argsGasConsumption)
 	if err != nil {

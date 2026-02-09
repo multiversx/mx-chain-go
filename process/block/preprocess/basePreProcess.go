@@ -547,3 +547,35 @@ func (bpp *basePreProcess) getIndexesOfLastTxProcessed(
 
 	return pi, nil
 }
+
+func (bpp *basePreProcess) addNumTxs(numTxs int) {
+	if common.IsAsyncExecutionEnabled(bpp.enableEpochsHandler, bpp.enableRoundsHandler) {
+		return
+	}
+
+	bpp.blockSizeComputation.AddNumTxs(numTxs)
+}
+
+func (bpp *basePreProcess) addNumMiniBlocks(numMiniBlocks int) {
+	if common.IsAsyncExecutionEnabled(bpp.enableEpochsHandler, bpp.enableRoundsHandler) {
+		return
+	}
+
+	bpp.blockSizeComputation.AddNumMiniBlocks(numMiniBlocks)
+}
+
+func (bpp *basePreProcess) isMaxBlockSizeReached(numNewMiniBlocks int, numNewTxs int) bool {
+	if common.IsAsyncExecutionEnabled(bpp.enableEpochsHandler, bpp.enableRoundsHandler) {
+		return false
+	}
+
+	return bpp.blockSizeComputation.IsMaxBlockSizeReached(numNewMiniBlocks, numNewTxs)
+}
+
+func (bpp *basePreProcess) isMaxBlockSizeWithoutThrottleReached(numNewMiniBlocks int, numNewTxs int) bool {
+	if common.IsAsyncExecutionEnabled(bpp.enableEpochsHandler, bpp.enableRoundsHandler) {
+		return false
+	}
+
+	return bpp.blockSizeComputation.IsMaxBlockSizeWithoutThrottleReached(numNewMiniBlocks, numNewTxs)
+}
