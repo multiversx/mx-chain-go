@@ -476,11 +476,7 @@ func (st *selectionTracker) canDoSimulateSelection(nonce uint64) bool {
 		}
 	}
 
-	if nonce != lastTrackedBlockNonce+1 {
-		return false
-	}
-
-	return true
+	return nonce == lastTrackedBlockNonce+1
 }
 
 // deriveVirtualSelectionSession creates a virtual selection session by transforming the global accounts breadcrumbs into virtual records
