@@ -154,6 +154,7 @@ func (tc *transactionCoordinator) getAOTSelection(nonce uint64) ([][]byte, []dat
 		return [][]byte{}, []data.TransactionHandler{}
 	}
 
+	// cancel any ongoing AOT selection
 	tc.aotSelector.CancelOngoingSelection()
 	aotResult, found := tc.aotSelector.GetPreSelectedTransactions(nonce)
 	if !found || aotResult == nil {
@@ -190,7 +191,6 @@ func (tc *transactionCoordinator) SelectOutgoingTransactions(
 	selectedTxHashes, selectedTxs = tc.getAOTSelection(nonce)
 	// if no tx returned from AOT selection, fallback to regular selection from pre-processors
 	if len(selectedTxs) == 0 {
-		// cancel any ongoing AOT selection
 		for _, blockType := range tc.preProcProposal.keysTxPreProcs {
 			txPreProc := tc.preProcProposal.getPreProcessor(blockType)
 			if check.IfNil(txPreProc) {

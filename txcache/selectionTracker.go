@@ -468,11 +468,16 @@ func (st *selectionTracker) canDoSimulateSelection(nonce uint64) bool {
 		return true
 	}
 
+	lastTrackedBlockNonce := st.latestNonce
 	// drop the selection if not matching the tracker state
 	for _, tb := range st.blocks {
-		if tb.hasSameNonceOrHigherThanGivenNonce(nonce) {
-			return false
+		if tb.nonce > lastTrackedBlockNonce {
+			lastTrackedBlockNonce = tb.nonce
 		}
+	}
+
+	if nonce != lastTrackedBlockNonce+1 {
+		return false
 	}
 
 	return true

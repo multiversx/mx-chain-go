@@ -158,17 +158,6 @@ func (pcf *processComponentsFactory) createAOTSelector(
 		return nil, fmt.Errorf("createAOTSelector: transaction pool is not a TxCache")
 	}
 
-	// Configure AOT selector from config
-	cacheSize := pcf.config.AOTSelection.CacheSize
-	if cacheSize <= 0 {
-		cacheSize = 10 // default
-	}
-
-	selectionTimeoutMs := pcf.config.AOTSelection.SelectionTimeoutMs
-	if selectionTimeoutMs <= 0 {
-		selectionTimeoutMs = 150 // default 150ms
-	}
-
 	aotSelectorArgs := aotSelection.AOTSelectorArgs{
 		NodesCoordinator:     pcf.nodesCoordinator,
 		ShardCoordinator:     shardCoordinator,
@@ -195,8 +184,8 @@ func (pcf *processComponentsFactory) createAOTSelector(
 	txCache.SetAOTSelectionPreempter(aotSelector)
 
 	log.Info("AOT transaction selection enabled",
-		"cacheSize", cacheSize,
-		"selectionTimeoutMs", selectionTimeoutMs)
+		"cacheSize", pcf.config.AOTSelection.CacheSize,
+		"selectionTimeoutMs", pcf.config.TxCacheSelection.SelectionMaxNumTxs)
 
 	return aotSelector, nil
 }
