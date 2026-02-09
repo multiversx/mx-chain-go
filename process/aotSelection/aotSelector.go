@@ -423,7 +423,7 @@ func (s *aotSelector) runAOTSelection(targetNonce uint64, randomness []byte) {
 	}
 
 	// select transactions from tx cache
-	wrappedTxs, accumulatedGas, err := s.txCache.SelectTransactions(session, options, targetNonce)
+	wrappedTxs, accumulatedGas, err := s.txCache.SimulateSelectTransactions(session, options, targetNonce)
 	if err != nil {
 		log.Debug("runAOTSelection: selection failed", "error", err)
 		s.sendResult(resultChan, nil)

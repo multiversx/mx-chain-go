@@ -9,7 +9,6 @@ import (
 	"time"
 
 	"github.com/multiversx/mx-chain-core-go/core"
-	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 
 	"github.com/multiversx/mx-chain-go/common"
@@ -180,8 +179,8 @@ func TestNewAOTSelector(t *testing.T) {
 		sel, err := NewAOTSelector(args)
 		require.NoError(t, err)
 		require.NotNil(t, sel)
-		assert.Equal(t, defaultSelectionTimeout, sel.selectionTimeout)
-		assert.Equal(t, defaultMaxTxsPerBlock, sel.maxTxsPerBlock)
+		require.Equal(t, defaultSelectionTimeout, sel.selectionTimeout)
+		require.Equal(t, defaultMaxTxsPerBlock, sel.maxTxsPerBlock)
 	})
 
 	t.Run("should work with all valid args", func(t *testing.T) {
@@ -190,8 +189,8 @@ func TestNewAOTSelector(t *testing.T) {
 		sel, err := NewAOTSelector(args)
 		require.NoError(t, err)
 		require.NotNil(t, sel)
-		assert.Equal(t, 100*time.Millisecond, sel.selectionTimeout)
-		assert.Equal(t, 30000, sel.maxTxsPerBlock)
+		require.Equal(t, 100*time.Millisecond, sel.selectionTimeout)
+		require.Equal(t, 30000, sel.maxTxsPerBlock)
 	})
 }
 
@@ -214,7 +213,7 @@ func TestAOTSelector_TriggerAOTSelectionMetachainSkips(t *testing.T) {
 		SelfIdCalled: func() uint32 { return core.MetachainShardId },
 	}
 	args.TxCache = &txcachestubs.TxCacheStub{
-		SelectTransactionsCalled: func(_ txcache.SelectionSession, _ common.TxSelectionOptions, _ uint64) ([]*txcache.WrappedTransaction, uint64, error) {
+		SimulateSelectTransactionsCalled: func(_ txcache.SelectionSession, _ common.TxSelectionOptions, _ uint64) ([]*txcache.WrappedTransaction, uint64, error) {
 			selectionStarted = true
 			return nil, 0, nil
 		},
@@ -223,7 +222,7 @@ func TestAOTSelector_TriggerAOTSelectionMetachainSkips(t *testing.T) {
 
 	sel.TriggerAOTSelection(createHeader(10, []byte("randomness"), 1), 100)
 	time.Sleep(50 * time.Millisecond)
-	assert.False(t, selectionStarted)
+	require.False(t, selectionStarted)
 }
 
 func TestAOTSelector_TriggerAOTSelectionNotLeaderSkips(t *testing.T) {
@@ -245,7 +244,7 @@ func TestAOTSelector_TriggerAOTSelectionNotLeaderSkips(t *testing.T) {
 		},
 	}
 	args.TxCache = &txcachestubs.TxCacheStub{
-		SelectTransactionsCalled: func(_ txcache.SelectionSession, _ common.TxSelectionOptions, _ uint64) ([]*txcache.WrappedTransaction, uint64, error) {
+		SimulateSelectTransactionsCalled: func(_ txcache.SelectionSession, _ common.TxSelectionOptions, _ uint64) ([]*txcache.WrappedTransaction, uint64, error) {
 			selectionStarted = true
 			return nil, 0, nil
 		},
@@ -254,7 +253,7 @@ func TestAOTSelector_TriggerAOTSelectionNotLeaderSkips(t *testing.T) {
 
 	sel.TriggerAOTSelection(createHeader(10, []byte("randomness"), 1), 100)
 	time.Sleep(50 * time.Millisecond)
-	assert.False(t, selectionStarted)
+	require.False(t, selectionStarted)
 }
 
 func TestAOTSelector_TriggerAOTSelectionLeaderNextRound(t *testing.T) {
@@ -263,7 +262,7 @@ func TestAOTSelector_TriggerAOTSelectionLeaderNextRound(t *testing.T) {
 	selectionDone := make(chan struct{})
 	args := createLeaderArgs([]byte("self-leader-key"))
 	args.TxCache = &txcachestubs.TxCacheStub{
-		SelectTransactionsCalled: func(_ txcache.SelectionSession, _ common.TxSelectionOptions, _ uint64) ([]*txcache.WrappedTransaction, uint64, error) {
+		SimulateSelectTransactionsCalled: func(_ txcache.SelectionSession, _ common.TxSelectionOptions, _ uint64) ([]*txcache.WrappedTransaction, uint64, error) {
 			close(selectionDone)
 			return []*txcache.WrappedTransaction{
 				{TxHash: []byte("tx1")},
@@ -311,7 +310,7 @@ func TestAOTSelector_TriggerAOTSelectionLeaderRoundN2Only(t *testing.T) {
 		IsRedundancyNodeCalled: func() bool { return false },
 	}
 	args.TxCache = &txcachestubs.TxCacheStub{
-		SelectTransactionsCalled: func(_ txcache.SelectionSession, _ common.TxSelectionOptions, _ uint64) ([]*txcache.WrappedTransaction, uint64, error) {
+		SimulateSelectTransactionsCalled: func(_ txcache.SelectionSession, _ common.TxSelectionOptions, _ uint64) ([]*txcache.WrappedTransaction, uint64, error) {
 			close(selectionDone)
 			return nil, 0, nil
 		},
@@ -337,7 +336,7 @@ func TestAOTSelector_IsSelfLeaderForRoundComputeError(t *testing.T) {
 		},
 	}
 	sel, _ := NewAOTSelector(args)
-	assert.False(t, sel.isSelfLeaderForRound([]byte("rand"), 10, 1))
+	require.False(t, sel.isSelfLeaderForRound([]byte("rand"), 10, 1))
 }
 
 func TestAOTSelector_IsSelfLeaderForRoundSingleKeyMatch(t *testing.T) {
@@ -345,7 +344,7 @@ func TestAOTSelector_IsSelfLeaderForRoundSingleKeyMatch(t *testing.T) {
 
 	args := createLeaderArgs([]byte("my-key"))
 	sel, _ := NewAOTSelector(args)
-	assert.True(t, sel.isSelfLeaderForRound([]byte("rand"), 10, 1))
+	require.True(t, sel.isSelfLeaderForRound([]byte("rand"), 10, 1))
 }
 
 func TestAOTSelector_IsSelfLeaderForRoundMultiKeyMatch(t *testing.T) {
@@ -367,7 +366,7 @@ func TestAOTSelector_IsSelfLeaderForRoundMultiKeyMatch(t *testing.T) {
 		},
 	}
 	sel, _ := NewAOTSelector(args)
-	assert.True(t, sel.isSelfLeaderForRound([]byte("rand"), 10, 1))
+	require.True(t, sel.isSelfLeaderForRound([]byte("rand"), 10, 1))
 }
 
 func TestAOTSelector_IsSelfLeaderForRoundNoKeyMatch(t *testing.T) {
@@ -388,7 +387,7 @@ func TestAOTSelector_IsSelfLeaderForRoundNoKeyMatch(t *testing.T) {
 		},
 	}
 	sel, _ := NewAOTSelector(args)
-	assert.False(t, sel.isSelfLeaderForRound([]byte("rand"), 10, 1))
+	require.False(t, sel.isSelfLeaderForRound([]byte("rand"), 10, 1))
 }
 
 func TestAOTSelector_ShouldConsiderSelfKeyInConsensusMainMachine(t *testing.T) {
@@ -399,7 +398,7 @@ func TestAOTSelector_ShouldConsiderSelfKeyInConsensusMainMachine(t *testing.T) {
 		IsRedundancyNodeCalled: func() bool { return false },
 	}
 	sel, _ := NewAOTSelector(args)
-	assert.True(t, sel.shouldConsiderSelfKeyInConsensus())
+	require.True(t, sel.shouldConsiderSelfKeyInConsensus())
 }
 
 func TestAOTSelector_ShouldConsiderSelfKeyInConsensusRedundancyNodeMainActive(t *testing.T) {
@@ -411,7 +410,7 @@ func TestAOTSelector_ShouldConsiderSelfKeyInConsensusRedundancyNodeMainActive(t 
 		IsMainMachineActiveCalled: func() bool { return true },
 	}
 	sel, _ := NewAOTSelector(args)
-	assert.False(t, sel.shouldConsiderSelfKeyInConsensus())
+	require.False(t, sel.shouldConsiderSelfKeyInConsensus())
 }
 
 func TestAOTSelector_ShouldConsiderSelfKeyInConsensusRedundancyNodeMainInactive(t *testing.T) {
@@ -423,7 +422,7 @@ func TestAOTSelector_ShouldConsiderSelfKeyInConsensusRedundancyNodeMainInactive(
 		IsMainMachineActiveCalled: func() bool { return false },
 	}
 	sel, _ := NewAOTSelector(args)
-	assert.True(t, sel.shouldConsiderSelfKeyInConsensus())
+	require.True(t, sel.shouldConsiderSelfKeyInConsensus())
 }
 
 func TestAOTSelector_GetPreSelectedTransactionsCacheMiss(t *testing.T) {
@@ -432,8 +431,8 @@ func TestAOTSelector_GetPreSelectedTransactionsCacheMiss(t *testing.T) {
 	args := createDefaultArgs()
 	sel, _ := NewAOTSelector(args)
 	result, found := sel.GetPreSelectedTransactions(42)
-	assert.Nil(t, result)
-	assert.False(t, found)
+	require.Nil(t, result)
+	require.False(t, found)
 }
 
 func TestAOTSelector_GetPreSelectedTransactionsCacheHit(t *testing.T) {
@@ -453,11 +452,11 @@ func TestAOTSelector_GetPreSelectedTransactionsCacheHit(t *testing.T) {
 	sel.cache.Put(cacheKey, expected, 1)
 
 	result, found := sel.GetPreSelectedTransactions(42)
-	assert.True(t, found)
+	require.True(t, found)
 	require.NotNil(t, result)
-	assert.Equal(t, expected.TxHashes, result.TxHashes)
-	assert.Equal(t, expected.GasProvided, result.GasProvided)
-	assert.Equal(t, uint64(42), result.PredictedBlockNonce)
+	require.Equal(t, expected.TxHashes, result.TxHashes)
+	require.Equal(t, expected.GasProvided, result.GasProvided)
+	require.Equal(t, uint64(42), result.PredictedBlockNonce)
 }
 
 func TestAOTSelector_GetPreSelectedTransactionsWaitsForOngoing(t *testing.T) {
@@ -495,9 +494,9 @@ func TestAOTSelector_GetPreSelectedTransactionsWaitsForOngoing(t *testing.T) {
 
 	select {
 	case <-done:
-		assert.True(t, gotFound)
+		require.True(t, gotFound)
 		require.NotNil(t, gotResult)
-		assert.Equal(t, expected.TxHashes, gotResult.TxHashes)
+		require.Equal(t, expected.TxHashes, gotResult.TxHashes)
 	case <-time.After(time.Second):
 		t.Fatal("GetPreSelectedTransactions did not return after result was delivered")
 	}
@@ -517,8 +516,8 @@ func TestAOTSelector_GetPreSelectedTransactionsOngoingForDifferentNonce(t *testi
 
 	// Query for different nonce should go to cache (miss)
 	result, found := sel.GetPreSelectedTransactions(99)
-	assert.Nil(t, result)
-	assert.False(t, found)
+	require.Nil(t, result)
+	require.False(t, found)
 }
 
 func TestAOTSelector_CancelOngoingSelectionNoOp(t *testing.T) {
@@ -563,7 +562,7 @@ func TestAOTSelector_RunAOTSelectionSuccess(t *testing.T) {
 
 	args := createDefaultArgs()
 	args.TxCache = &txcachestubs.TxCacheStub{
-		SelectTransactionsCalled: func(_ txcache.SelectionSession, _ common.TxSelectionOptions, _ uint64) ([]*txcache.WrappedTransaction, uint64, error) {
+		SimulateSelectTransactionsCalled: func(_ txcache.SelectionSession, _ common.TxSelectionOptions, _ uint64) ([]*txcache.WrappedTransaction, uint64, error) {
 			return []*txcache.WrappedTransaction{
 				{TxHash: []byte("hash1")},
 				{TxHash: []byte("hash2")},
@@ -573,18 +572,18 @@ func TestAOTSelector_RunAOTSelectionSuccess(t *testing.T) {
 	}
 	sel, _ := NewAOTSelector(args)
 
-	sel.runAOTSelection(42, []byte("randomness"))
+	sel.runAOTSelection(0, []byte("randomness"))
 
-	result, found := sel.GetPreSelectedTransactions(42)
+	result, found := sel.GetPreSelectedTransactions(0)
 	require.True(t, found)
 	require.NotNil(t, result)
-	assert.Equal(t, 3, len(result.TxHashes))
-	assert.Equal(t, []byte("hash1"), result.TxHashes[0])
-	assert.Equal(t, []byte("hash2"), result.TxHashes[1])
-	assert.Equal(t, []byte("hash3"), result.TxHashes[2])
-	assert.Equal(t, uint64(75000), result.GasProvided)
-	assert.Equal(t, uint64(42), result.PredictedBlockNonce)
-	assert.Equal(t, []byte("randomness"), result.Randomness)
+	require.Equal(t, 3, len(result.TxHashes))
+	require.Equal(t, []byte("hash1"), result.TxHashes[0])
+	require.Equal(t, []byte("hash2"), result.TxHashes[1])
+	require.Equal(t, []byte("hash3"), result.TxHashes[2])
+	require.Equal(t, uint64(75000), result.GasProvided)
+	require.Equal(t, uint64(0), result.PredictedBlockNonce)
+	require.Equal(t, []byte("randomness"), result.Randomness)
 }
 
 func TestAOTSelector_RunAOTSelectionError(t *testing.T) {
@@ -592,17 +591,17 @@ func TestAOTSelector_RunAOTSelectionError(t *testing.T) {
 
 	args := createDefaultArgs()
 	args.TxCache = &txcachestubs.TxCacheStub{
-		SelectTransactionsCalled: func(_ txcache.SelectionSession, _ common.TxSelectionOptions, _ uint64) ([]*txcache.WrappedTransaction, uint64, error) {
+		SimulateSelectTransactionsCalled: func(_ txcache.SelectionSession, _ common.TxSelectionOptions, _ uint64) ([]*txcache.WrappedTransaction, uint64, error) {
 			return nil, 0, errors.New("selection failed")
 		},
 	}
 	sel, _ := NewAOTSelector(args)
 
-	sel.runAOTSelection(42, []byte("randomness"))
+	sel.runAOTSelection(0, []byte("randomness"))
 
-	result, found := sel.GetPreSelectedTransactions(42)
-	assert.Nil(t, result)
-	assert.False(t, found)
+	result, found := sel.GetPreSelectedTransactions(0)
+	require.Nil(t, result)
+	require.False(t, found)
 }
 
 func TestAOTSelector_RunAOTSelectionCancelled(t *testing.T) {
@@ -611,7 +610,7 @@ func TestAOTSelector_RunAOTSelectionCancelled(t *testing.T) {
 	cancelAfterSelect := make(chan struct{})
 	args := createDefaultArgs()
 	args.TxCache = &txcachestubs.TxCacheStub{
-		SelectTransactionsCalled: func(_ txcache.SelectionSession, _ common.TxSelectionOptions, _ uint64) ([]*txcache.WrappedTransaction, uint64, error) {
+		SimulateSelectTransactionsCalled: func(_ txcache.SelectionSession, _ common.TxSelectionOptions, _ uint64) ([]*txcache.WrappedTransaction, uint64, error) {
 			// Wait for the cancel signal before returning
 			<-cancelAfterSelect
 			return []*txcache.WrappedTransaction{
@@ -623,7 +622,7 @@ func TestAOTSelector_RunAOTSelectionCancelled(t *testing.T) {
 
 	done := make(chan struct{})
 	go func() {
-		sel.runAOTSelection(42, []byte("randomness"))
+		sel.runAOTSelection(0, []byte("randomness"))
 		close(done)
 	}()
 
@@ -640,9 +639,9 @@ func TestAOTSelector_RunAOTSelectionCancelled(t *testing.T) {
 		t.Fatal("runAOTSelection did not finish after cancel")
 	}
 
-	result, found := sel.GetPreSelectedTransactions(42)
-	assert.Nil(t, result)
-	assert.False(t, found)
+	result, found := sel.GetPreSelectedTransactions(0)
+	require.Nil(t, result)
+	require.False(t, found)
 }
 
 func TestAOTSelector_RunAOTSelectionUsesEconomicsGasWhenZero(t *testing.T) {
@@ -660,14 +659,14 @@ func TestAOTSelector_RunAOTSelectionUsesEconomicsGasWhenZero(t *testing.T) {
 		},
 	}
 	args.TxCache = &txcachestubs.TxCacheStub{
-		SelectTransactionsCalled: func(_ txcache.SelectionSession, _ common.TxSelectionOptions, _ uint64) ([]*txcache.WrappedTransaction, uint64, error) {
+		SimulateSelectTransactionsCalled: func(_ txcache.SelectionSession, _ common.TxSelectionOptions, _ uint64) ([]*txcache.WrappedTransaction, uint64, error) {
 			return nil, 0, nil
 		},
 	}
 	sel, _ := NewAOTSelector(args)
 
-	sel.runAOTSelection(42, []byte("randomness"))
-	assert.True(t, economicsGasCalled)
+	sel.runAOTSelection(0, []byte("randomness"))
+	require.True(t, economicsGasCalled)
 }
 
 func TestAOTSelector_RunAOTSelectionEmptyResult(t *testing.T) {
@@ -675,19 +674,19 @@ func TestAOTSelector_RunAOTSelectionEmptyResult(t *testing.T) {
 
 	args := createDefaultArgs()
 	args.TxCache = &txcachestubs.TxCacheStub{
-		SelectTransactionsCalled: func(_ txcache.SelectionSession, _ common.TxSelectionOptions, _ uint64) ([]*txcache.WrappedTransaction, uint64, error) {
+		SimulateSelectTransactionsCalled: func(_ txcache.SelectionSession, _ common.TxSelectionOptions, _ uint64) ([]*txcache.WrappedTransaction, uint64, error) {
 			return []*txcache.WrappedTransaction{}, 0, nil
 		},
 	}
 	sel, _ := NewAOTSelector(args)
 
-	sel.runAOTSelection(42, []byte("randomness"))
+	sel.runAOTSelection(0, []byte("randomness"))
 
-	result, found := sel.GetPreSelectedTransactions(42)
+	result, found := sel.GetPreSelectedTransactions(0)
 	require.True(t, found)
 	require.NotNil(t, result)
-	assert.Equal(t, 0, len(result.TxHashes))
-	assert.Equal(t, uint64(0), result.GasProvided)
+	require.Equal(t, 0, len(result.TxHashes))
+	require.Equal(t, uint64(0), result.GasProvided)
 }
 
 func TestAOTSelector_RunAOTSelectionCleansUpOngoingState(t *testing.T) {
@@ -695,17 +694,17 @@ func TestAOTSelector_RunAOTSelectionCleansUpOngoingState(t *testing.T) {
 
 	args := createDefaultArgs()
 	args.TxCache = &txcachestubs.TxCacheStub{
-		SelectTransactionsCalled: func(_ txcache.SelectionSession, _ common.TxSelectionOptions, _ uint64) ([]*txcache.WrappedTransaction, uint64, error) {
+		SimulateSelectTransactionsCalled: func(_ txcache.SelectionSession, _ common.TxSelectionOptions, _ uint64) ([]*txcache.WrappedTransaction, uint64, error) {
 			return nil, 0, nil
 		},
 	}
 	sel, _ := NewAOTSelector(args)
 
-	sel.runAOTSelection(42, []byte("randomness"))
+	sel.runAOTSelection(0, []byte("randomness"))
 
 	sel.selectionMut.Lock()
-	assert.Equal(t, uint64(0), sel.ongoingNonce)
-	assert.Nil(t, sel.resultChan)
+	require.Equal(t, uint64(0), sel.ongoingNonce)
+	require.Nil(t, sel.resultChan)
 	sel.selectionMut.Unlock()
 }
 
@@ -713,11 +712,11 @@ func TestAOTSelector_IsInterfaceNil(t *testing.T) {
 	t.Parallel()
 
 	var sel *aotSelector
-	assert.True(t, sel.IsInterfaceNil())
+	require.True(t, sel.IsInterfaceNil())
 
 	args := createDefaultArgs()
 	sel, _ = NewAOTSelector(args)
-	assert.False(t, sel.IsInterfaceNil())
+	require.False(t, sel.IsInterfaceNil())
 }
 
 func TestAOTSelector_ConcurrentTriggerCancelGet(t *testing.T) {
@@ -725,7 +724,7 @@ func TestAOTSelector_ConcurrentTriggerCancelGet(t *testing.T) {
 
 	args := createLeaderArgs([]byte("self-leader-key"))
 	args.TxCache = &txcachestubs.TxCacheStub{
-		SelectTransactionsCalled: func(_ txcache.SelectionSession, _ common.TxSelectionOptions, _ uint64) ([]*txcache.WrappedTransaction, uint64, error) {
+		SimulateSelectTransactionsCalled: func(_ txcache.SelectionSession, _ common.TxSelectionOptions, _ uint64) ([]*txcache.WrappedTransaction, uint64, error) {
 			time.Sleep(10 * time.Millisecond)
 			return []*txcache.WrappedTransaction{{TxHash: []byte("tx1")}}, 1000, nil
 		},
@@ -760,7 +759,7 @@ func TestAOTSelector_TriggerAOTSelectionEpochChangeClearsCache(t *testing.T) {
 
 	args := createLeaderArgs([]byte("self-leader-key"))
 	args.TxCache = &txcachestubs.TxCacheStub{
-		SelectTransactionsCalled: func(_ txcache.SelectionSession, _ common.TxSelectionOptions, _ uint64) ([]*txcache.WrappedTransaction, uint64, error) {
+		SimulateSelectTransactionsCalled: func(_ txcache.SelectionSession, _ common.TxSelectionOptions, _ uint64) ([]*txcache.WrappedTransaction, uint64, error) {
 			return []*txcache.WrappedTransaction{
 				{TxHash: []byte("tx1")},
 			}, 1000, nil
@@ -784,8 +783,8 @@ func TestAOTSelector_TriggerAOTSelectionEpochChangeClearsCache(t *testing.T) {
 
 	// The old entry at nonce 11 should be gone
 	result, found = sel.GetPreSelectedTransactions(11)
-	assert.False(t, found)
-	assert.Nil(t, result)
+	require.False(t, found)
+	require.Nil(t, result)
 }
 
 func TestAOTSelector_TriggerAOTSelectionEpochChangeCancelsOngoing(t *testing.T) {
@@ -798,7 +797,7 @@ func TestAOTSelector_TriggerAOTSelectionEpochChangeCancelsOngoing(t *testing.T) 
 	var callMut sync.Mutex
 	args := createLeaderArgs([]byte("self-leader-key"))
 	args.TxCache = &txcachestubs.TxCacheStub{
-		SelectTransactionsCalled: func(_ txcache.SelectionSession, _ common.TxSelectionOptions, _ uint64) ([]*txcache.WrappedTransaction, uint64, error) {
+		SimulateSelectTransactionsCalled: func(_ txcache.SelectionSession, _ common.TxSelectionOptions, _ uint64) ([]*txcache.WrappedTransaction, uint64, error) {
 			callMut.Lock()
 			callCount++
 			isFirst := callCount == 1
@@ -843,8 +842,8 @@ func TestAOTSelector_TriggerAOTSelectionEpochChangeCancelsOngoing(t *testing.T) 
 	// The result from the cancelled selection at nonce 11 should not be cached
 	// (because cancel was triggered before the selection finished storing)
 	result, found := sel.GetPreSelectedTransactions(11)
-	assert.False(t, found)
-	assert.Nil(t, result)
+	require.False(t, found)
+	require.Nil(t, result)
 }
 
 func TestAOTSelector_TriggerAOTSelectionSameEpochKeepsCache(t *testing.T) {
@@ -853,7 +852,7 @@ func TestAOTSelector_TriggerAOTSelectionSameEpochKeepsCache(t *testing.T) {
 	callCount := 0
 	args := createLeaderArgs([]byte("self-leader-key"))
 	args.TxCache = &txcachestubs.TxCacheStub{
-		SelectTransactionsCalled: func(_ txcache.SelectionSession, _ common.TxSelectionOptions, _ uint64) ([]*txcache.WrappedTransaction, uint64, error) {
+		SimulateSelectTransactionsCalled: func(_ txcache.SelectionSession, _ common.TxSelectionOptions, _ uint64) ([]*txcache.WrappedTransaction, uint64, error) {
 			callCount++
 			return []*txcache.WrappedTransaction{
 				{TxHash: []byte(fmt.Sprintf("tx-%d", callCount))},
@@ -881,7 +880,7 @@ func TestAOTSelector_TriggerAOTSelectionSameEpochKeepsCache(t *testing.T) {
 	result, found = sel.GetPreSelectedTransactions(11)
 	require.True(t, found)
 	require.NotNil(t, result)
-	assert.Equal(t, firstTxHash, result.TxHashes[0])
+	require.Equal(t, firstTxHash, result.TxHashes[0])
 }
 
 func TestAOTSelector_Close(t *testing.T) {
@@ -908,7 +907,7 @@ func TestAOTSelector_CloseStopsOngoingSelection(t *testing.T) {
 
 	args := createLeaderArgs([]byte("self-leader-key"))
 	args.TxCache = &txcachestubs.TxCacheStub{
-		SelectTransactionsCalled: func(_ txcache.SelectionSession, _ common.TxSelectionOptions, _ uint64) ([]*txcache.WrappedTransaction, uint64, error) {
+		SimulateSelectTransactionsCalled: func(_ txcache.SelectionSession, _ common.TxSelectionOptions, _ uint64) ([]*txcache.WrappedTransaction, uint64, error) {
 			close(selectionStarted)
 			// Block until cancelled or signaled
 			<-selectionBlocked
@@ -947,7 +946,7 @@ func TestAOTSelector_ConcurrentCancelDoesNotPanic(t *testing.T) {
 
 	args := createLeaderArgs([]byte("self-leader-key"))
 	args.TxCache = &txcachestubs.TxCacheStub{
-		SelectTransactionsCalled: func(_ txcache.SelectionSession, _ common.TxSelectionOptions, _ uint64) ([]*txcache.WrappedTransaction, uint64, error) {
+		SimulateSelectTransactionsCalled: func(_ txcache.SelectionSession, _ common.TxSelectionOptions, _ uint64) ([]*txcache.WrappedTransaction, uint64, error) {
 			// Simulate some work
 			time.Sleep(5 * time.Millisecond)
 			return []*txcache.WrappedTransaction{{TxHash: []byte("tx1")}}, 1000, nil
@@ -993,7 +992,7 @@ func TestAOTSelector_GetPreSelectedTransactionsTimeout(t *testing.T) {
 	args := createLeaderArgs([]byte("self-leader-key"))
 	args.SelectionTimeout = 50 * time.Millisecond
 	args.TxCache = &txcachestubs.TxCacheStub{
-		SelectTransactionsCalled: func(_ txcache.SelectionSession, _ common.TxSelectionOptions, _ uint64) ([]*txcache.WrappedTransaction, uint64, error) {
+		SimulateSelectTransactionsCalled: func(_ txcache.SelectionSession, _ common.TxSelectionOptions, _ uint64) ([]*txcache.WrappedTransaction, uint64, error) {
 			// Block longer than timeout
 			time.Sleep(200 * time.Millisecond)
 			return []*txcache.WrappedTransaction{{TxHash: []byte("tx1")}}, 1000, nil

@@ -8,7 +8,7 @@ import (
 // TxCacheStub -
 type TxCacheStub struct {
 	SelectTransactionsCalled         func(session txcache.SelectionSession, options common.TxSelectionOptions, currentBlockNonce uint64) ([]*txcache.WrappedTransaction, uint64, error)
-	SimulateSelectTransactionsCalled func(session txcache.SelectionSession, options common.TxSelectionOptions) ([]*txcache.WrappedTransaction, uint64, error)
+	SimulateSelectTransactionsCalled func(session txcache.SelectionSession, options common.TxSelectionOptions, currentBlockNonce uint64) ([]*txcache.WrappedTransaction, uint64, error)
 	GetVirtualNonceAndRootHashCalled func(sender []byte) (uint64, []byte, error)
 	SetAOTSelectionPreempterCalled   func(preempter common.AOTSelectionPreempter)
 }
@@ -22,9 +22,9 @@ func (stub *TxCacheStub) SelectTransactions(session txcache.SelectionSession, op
 }
 
 // SimulateSelectTransactions -
-func (stub *TxCacheStub) SimulateSelectTransactions(session txcache.SelectionSession, options common.TxSelectionOptions) ([]*txcache.WrappedTransaction, uint64, error) {
+func (stub *TxCacheStub) SimulateSelectTransactions(session txcache.SelectionSession, options common.TxSelectionOptions, currentBlockNonce uint64) ([]*txcache.WrappedTransaction, uint64, error) {
 	if stub.SimulateSelectTransactionsCalled != nil {
-		return stub.SimulateSelectTransactionsCalled(session, options)
+		return stub.SimulateSelectTransactionsCalled(session, options, currentBlockNonce)
 	}
 	return nil, 0, nil
 }
