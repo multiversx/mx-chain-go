@@ -207,6 +207,7 @@ func createMockMetaArguments(
 		GasHandler:                        &mock.GasHandlerMock{},
 		BlockCapacityOverestimationFactor: 200,
 		PercentDecreaseLimitsStep:         10,
+		BlockSizeComputation:              &testscommon.BlockSizeComputationStub{},
 	}
 	gasComputation, _ := processBlock.NewGasConsumption(argsGasConsumption)
 

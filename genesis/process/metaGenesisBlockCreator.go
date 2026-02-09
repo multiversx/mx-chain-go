@@ -506,6 +506,7 @@ func createProcessorsForMetaGenesisBlock(arg ArgsGenesisBlockCreator, enableEpoc
 		GasHandler:                        gasHandler,
 		BlockCapacityOverestimationFactor: arg.FeeSettings.BlockCapacityOverestimationFactor,
 		PercentDecreaseLimitsStep:         arg.FeeSettings.PercentDecreaseLimitsStep,
+		BlockSizeComputation:              disabledBlockSizeComputationHandler,
 	}
 	gasConsumption, err := processBlock.NewGasConsumption(argsGasConsumption)
 	if err != nil {
