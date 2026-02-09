@@ -390,41 +390,6 @@ func TestAOTSelector_IsSelfLeaderForRoundNoKeyMatch(t *testing.T) {
 	require.False(t, sel.isSelfLeaderForRound([]byte("rand"), 10, 1))
 }
 
-func TestAOTSelector_ShouldConsiderSelfKeyInConsensusMainMachine(t *testing.T) {
-	t.Parallel()
-
-	args := createDefaultArgs()
-	args.NodeRedundancy = &consensusMock.NodeRedundancyHandlerStub{
-		IsRedundancyNodeCalled: func() bool { return false },
-	}
-	sel, _ := NewAOTSelector(args)
-	require.True(t, sel.shouldConsiderSelfKeyInConsensus())
-}
-
-func TestAOTSelector_ShouldConsiderSelfKeyInConsensusRedundancyNodeMainActive(t *testing.T) {
-	t.Parallel()
-
-	args := createDefaultArgs()
-	args.NodeRedundancy = &consensusMock.NodeRedundancyHandlerStub{
-		IsRedundancyNodeCalled:    func() bool { return true },
-		IsMainMachineActiveCalled: func() bool { return true },
-	}
-	sel, _ := NewAOTSelector(args)
-	require.False(t, sel.shouldConsiderSelfKeyInConsensus())
-}
-
-func TestAOTSelector_ShouldConsiderSelfKeyInConsensusRedundancyNodeMainInactive(t *testing.T) {
-	t.Parallel()
-
-	args := createDefaultArgs()
-	args.NodeRedundancy = &consensusMock.NodeRedundancyHandlerStub{
-		IsRedundancyNodeCalled:    func() bool { return true },
-		IsMainMachineActiveCalled: func() bool { return false },
-	}
-	sel, _ := NewAOTSelector(args)
-	require.True(t, sel.shouldConsiderSelfKeyInConsensus())
-}
-
 func TestAOTSelector_GetPreSelectedTransactionsCacheMiss(t *testing.T) {
 	t.Parallel()
 
