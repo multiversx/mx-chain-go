@@ -10,8 +10,9 @@ import (
 	"github.com/multiversx/mx-chain-core-go/core"
 	"github.com/multiversx/mx-chain-core-go/core/check"
 	"github.com/multiversx/mx-chain-core-go/data"
-	commonConsensus "github.com/multiversx/mx-chain-go/common/consensus"
 	logger "github.com/multiversx/mx-chain-logger-go"
+
+	commonConsensus "github.com/multiversx/mx-chain-go/common/consensus"
 
 	"github.com/multiversx/mx-chain-go/common"
 	"github.com/multiversx/mx-chain-go/common/holders"
@@ -184,11 +185,8 @@ func (s *aotSelector) TriggerAOTSelection(committedHeader data.HeaderHandler, cu
 		log.Debug("TriggerAOTSelection: epoch changed, cleared cache and cancelled ongoing selection",
 			"previousEpoch", previousEpoch,
 			"newEpoch", epoch)
+		s.cancelOngoingSelectionNoLock()
 		s.cache.Clear()
-		if s.cancelFunc != nil {
-			s.cancelFunc()
-			s.cancelFunc = nil
-		}
 	}
 	s.selectionMut.Unlock()
 
@@ -310,9 +308,43 @@ func (s *aotSelector) prepareAccountsForSelection() error {
 func (s *aotSelector) CancelOngoingSelection() {
 	s.selectionMut.Lock()
 	defer s.selectionMut.Unlock()
+
+	s.cancelOngoingSelectionNoLock()
+}
+
+func (s *aotSelector) cancelOngoingSelectionNoLock() {
+	if s.closed {
+		return
+	}
+
 	if s.cancelFunc != nil {
 		s.cancelFunc()
 		s.cancelFunc = nil
+	}
+}
+
+func (s *aotSelector) cleanupSelectionState(resultChan chan *process.AOTSelectionResult) {
+	s.selectionMut.Lock()
+	// Only clean up if this is still the active selection
+	if s.resultChan == resultChan {
+		s.ongoingNonce = 0
+		s.resultChan = nil
+		// Don't nil cancelFunc here - context cleanup is handled by defer cancelFunc()
+	}
+	s.selectionMut.Unlock()
+}
+
+func haveTimeWithCancel(ctx context.Context, startTime time.Time, timeBudget time.Duration) func() bool {
+	return func() bool {
+		if time.Since(startTime) >= timeBudget {
+			return false
+		}
+		select {
+		case <-ctx.Done():
+			return false
+		default:
+			return true
+		}
 	}
 }
 
@@ -339,21 +371,9 @@ func (s *aotSelector) runAOTSelection(targetNonce uint64, randomness []byte) {
 	resultChan := s.resultChan
 	s.selectionMut.Unlock()
 
-	// cleanup function to safely clean up state
-	cleanup := func() {
-		s.selectionMut.Lock()
-		// Only clean up if this is still the active selection
-		if s.resultChan == resultChan {
-			s.ongoingNonce = 0
-			s.resultChan = nil
-			// Don't nil cancelFunc here - context cleanup is handled by defer cancelFunc()
-		}
-		s.selectionMut.Unlock()
-	}
-
 	// Ensure context is always cancelled to release resources
 	defer cancelFunc()
-	defer cleanup()
+	defer s.cleanupSelectionState(resultChan)
 
 	startTime := time.Now()
 	selectionBudget := time.Duration(float64(s.selectionTimeout) * selectionTimeoutMargin)
@@ -389,17 +409,7 @@ func (s *aotSelector) runAOTSelection(targetNonce uint64, randomness []byte) {
 		maxGas,
 		s.maxTxsPerBlock,
 		defaultLoopDurationCheckInterval,
-		func() bool {
-			if time.Since(startTime) >= selectionBudget {
-				return false
-			}
-			select {
-			case <-ctx.Done():
-				return false
-			default:
-				return true
-			}
-		},
+		haveTimeWithCancel(ctx, startTime, selectionBudget),
 	)
 	if err != nil {
 		log.Debug("runAOTSelection: failed to create selection options", "error", err)
@@ -466,15 +476,7 @@ func (s *aotSelector) Close() error {
 	s.selectionMut.Lock()
 	defer s.selectionMut.Unlock()
 
-	if s.closed {
-		return nil
-	}
-
-	s.closed = true
-	if s.cancelFunc != nil {
-		s.cancelFunc()
-		s.cancelFunc = nil
-	}
+	s.cancelOngoingSelectionNoLock()
 	s.cache.Clear()
 	log.Debug("aotSelector: closed")
 	return nil
