@@ -2,6 +2,7 @@ package estimator
 
 import (
 	"crypto/rand"
+	"math/big"
 
 	"github.com/multiversx/mx-chain-core-go/core/check"
 	"github.com/multiversx/mx-chain-core-go/data/block"
@@ -43,16 +44,24 @@ func (ers *execResSizeComputation) generateDummyExecutionResultSize(
 	dummyHash := make([]byte, 32)
 	_, _ = rand.Reader.Read(dummyHash)
 
-	executionResult := &block.ExecutionResult{
-		BaseExecutionResult: &block.BaseExecutionResult{
-			HeaderHash:  dummyHash,
-			HeaderNonce: 1,
-			HeaderRound: 2,
-			HeaderEpoch: 3,
-			RootHash:    dummyHash,
+	executionResult := &block.MetaExecutionResult{
+		ExecutionResult: &block.BaseMetaExecutionResult{
+			BaseExecutionResult: &block.BaseExecutionResult{
+				HeaderHash:  dummyHash,
+				HeaderNonce: 1,
+				HeaderRound: 2,
+				HeaderEpoch: 3,
+				RootHash:    dummyHash,
+				GasUsed:     1234,
+			},
+			ValidatorStatsRootHash: dummyHash,
+			AccumulatedFeesInEpoch: big.NewInt(0),
+			DevFeesInEpoch:         big.NewInt(0),
 		},
 		ReceiptsHash:    dummyHash,
 		ExecutedTxCount: 10,
+		AccumulatedFees: big.NewInt(0),
+		DeveloperFees:   big.NewInt(0),
 	}
 
 	executionResult.MiniBlockHeaders = make([]block.MiniBlockHeader, numMbs)

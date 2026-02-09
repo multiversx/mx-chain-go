@@ -50,6 +50,8 @@ func TestExecResultSizeComputation_IsMaxExecResSizeReached(t *testing.T) {
 		{numNewExecRes: 0, expected: false, name: "with numExecRes 0"},
 		{numNewExecRes: 10, expected: false, name: "with numExecRes 10"},
 		{numNewExecRes: 30, expected: false, name: "with numExecRes 30"},
+		{numNewExecRes: 150, expected: false, name: "with numExecRes 150"},
+		{numNewExecRes: 200, expected: true, name: "with numExecRes 200"},
 		{numNewExecRes: 1000, expected: true, name: "with numExecRes 1000"},
 		{numNewExecRes: 10000, expected: true, name: "with numExecRes 10000"},
 	}
