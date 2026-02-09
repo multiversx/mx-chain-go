@@ -130,9 +130,19 @@ func (bsc *blockSizeComputation) AddNumMiniBlocks(numMiniBlocks int) {
 	atomic.AddUint32(&bsc.numMiniBlocks, uint32(numMiniBlocks))
 }
 
+// DecNumMiniBlocks decrements the provided value to numMiniBlocks in a concurrent safe manner
+func (bsc *blockSizeComputation) DecNumMiniBlocks(numMiniBlocks int) {
+	atomic.AddUint32(&bsc.numMiniBlocks, ^uint32(numMiniBlocks-1))
+}
+
 // AddNumTxs adds the provided value to numTxs in a concurrent safe manner
 func (bsc *blockSizeComputation) AddNumTxs(numTxs int) {
 	atomic.AddUint32(&bsc.numTxs, uint32(numTxs))
+}
+
+// DecNumTxs decrements the provided value to numTxs in a concurrent safe manner
+func (bsc *blockSizeComputation) DecNumTxs(numTxs int) {
+	atomic.AddUint32(&bsc.numTxs, ^uint32(numTxs-1))
 }
 
 // IsMaxBlockSizeReached returns true if the provided number of new miniblocks and txs go over
