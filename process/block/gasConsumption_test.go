@@ -12,6 +12,7 @@ import (
 	"github.com/multiversx/mx-chain-core-go/data/transaction"
 	"github.com/multiversx/mx-chain-go/process/block"
 	"github.com/multiversx/mx-chain-go/process/mock"
+	"github.com/multiversx/mx-chain-go/testscommon"
 	"github.com/stretchr/testify/require"
 
 	"github.com/multiversx/mx-chain-go/process"
@@ -50,6 +51,7 @@ func getMockArgsGasConsumption() block.ArgsGasConsumption {
 		},
 		BlockCapacityOverestimationFactor: 200,
 		PercentDecreaseLimitsStep:         10,
+		BlockSizeComputation:              &testscommon.BlockSizeComputationStub{},
 	}
 }
 

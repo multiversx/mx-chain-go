@@ -34,7 +34,9 @@ type BlockTracker interface {
 type BlockSizeComputationHandler interface {
 	Init()
 	AddNumMiniBlocks(numMiniBlocks int)
+	DecNumMiniBlocks(numMiniBlocks int)
 	AddNumTxs(numTxs int)
+	DecNumTxs(numTxs int)
 	IsMaxBlockSizeReached(numNewMiniBlocks int, numNewTxs int) bool
 	IsMaxBlockSizeWithoutThrottleReached(numNewMiniBlocks int, numNewTxs int) bool
 	IsInterfaceNil() bool
