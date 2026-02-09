@@ -227,9 +227,6 @@ func (sr *subroundEndRound) doEndRoundJob(_ context.Context) bool {
 	if check.IfNil(sr.GetHeader()) {
 		return false
 	}
-	if sr.IsSelfJobDone(sr.Current()) {
-		return true
-	}
 
 	sr.mutProcessingEndRound.Lock()
 	defer sr.mutProcessingEndRound.Unlock()
