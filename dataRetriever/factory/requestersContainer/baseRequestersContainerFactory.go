@@ -88,12 +88,12 @@ func (brcf *baseRequestersContainerFactory) checkParams() error {
 }
 
 func (brcf *baseRequestersContainerFactory) generateCommonRequesters() error {
-	err := brcf.generateTxRequesters(factory.TransactionTopic)
+	err := brcf.generateTxRequesters(common.TransactionTopic)
 	if err != nil {
 		return err
 	}
 
-	err = brcf.generateTxRequesters(factory.UnsignedTransactionTopic)
+	err = brcf.generateTxRequesters(common.UnsignedTransactionTopic)
 	if err != nil {
 		return err
 	}

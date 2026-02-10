@@ -7,6 +7,7 @@ import (
 	"time"
 
 	"github.com/multiversx/mx-chain-core-go/data"
+	"github.com/multiversx/mx-chain-go/common"
 	"github.com/stretchr/testify/require"
 
 	"github.com/multiversx/mx-chain-go/consensus"
@@ -24,7 +25,6 @@ import (
 	"github.com/multiversx/mx-chain-go/consensus/spos"
 	"github.com/multiversx/mx-chain-go/p2p"
 	"github.com/multiversx/mx-chain-go/process"
-	"github.com/multiversx/mx-chain-go/process/factory"
 	"github.com/multiversx/mx-chain-go/testscommon"
 	"github.com/multiversx/mx-chain-go/testscommon/hashingMocks"
 	"github.com/multiversx/mx-chain-go/testscommon/p2pmocks"
@@ -345,7 +345,7 @@ func TestShardChainMessenger_BroadcastTransactionsShouldNotBeCalled(t *testing.T
 	assert.Nil(t, err)
 	assert.False(t, wasCalled)
 
-	transactions[factory.TransactionTopic] = make([][]byte, 0)
+	transactions[common.TransactionTopic] = make([][]byte, 0)
 	err = scm.BroadcastTransactions(transactions, []byte("pk bytes"))
 
 	wasCalled = false
@@ -384,7 +384,7 @@ func TestShardChainMessenger_BroadcastTransactionsShouldBeCalled(t *testing.T) {
 	transactions := make(map[string][][]byte)
 	txs := make([][]byte, 0)
 	txs = append(txs, []byte(""))
-	transactions[factory.TransactionTopic] = txs
+	transactions[common.TransactionTopic] = txs
 	t.Run("original public key of the node", func(t *testing.T) {
 		err := scm.BroadcastTransactions(transactions, nodePkBytes)
 

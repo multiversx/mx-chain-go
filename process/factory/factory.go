@@ -1,12 +1,6 @@
 package factory
 
 const (
-	// TransactionTopic is the topic used for sharing transactions
-	TransactionTopic = "transactions"
-	// UnsignedTransactionTopic is the topic used for sharing unsigned transactions
-	UnsignedTransactionTopic = "unsignedTransactions"
-	// RewardsTransactionTopic is the topic used for sharing fee transactions
-	RewardsTransactionTopic = "rewardsTransactions"
 	// ShardBlocksTopic is the topic used for sharing block headers
 	ShardBlocksTopic = "shardBlocks"
 	// MiniBlocksTopic is the topic used for sharing mini blocks

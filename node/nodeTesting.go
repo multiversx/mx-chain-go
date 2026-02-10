@@ -14,7 +14,6 @@ import (
 	"github.com/multiversx/mx-chain-crypto-go"
 
 	"github.com/multiversx/mx-chain-go/common"
-	"github.com/multiversx/mx-chain-go/process/factory"
 	"github.com/multiversx/mx-chain-go/process/txsSender"
 	"github.com/multiversx/mx-chain-go/state"
 )
@@ -118,7 +117,7 @@ func (n *Node) GenerateAndSendBulkTransactions(
 	}
 
 	// the topic identifier is made of the current shard id and sender's shard id
-	identifier := factory.TransactionTopic + n.processComponents.ShardCoordinator().CommunicationIdentifier(senderShardId)
+	identifier := common.TransactionTopic + n.processComponents.ShardCoordinator().CommunicationIdentifier(senderShardId)
 
 	packets, err := dataPacker.PackDataInChunks(txsBuff, common.MaxBulkTransactionSize)
 	if err != nil {

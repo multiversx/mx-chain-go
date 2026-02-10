@@ -21,6 +21,7 @@ import (
 	headersCache "github.com/multiversx/mx-chain-go/process/asyncExecution/cache"
 	"github.com/multiversx/mx-chain-go/process/asyncExecution/executionManager"
 	"github.com/multiversx/mx-chain-go/process/asyncExecution/executionTrack"
+	p2pProcess "github.com/multiversx/mx-chain-go/process/p2p"
 	vmcommon "github.com/multiversx/mx-chain-vm-common-go"
 	vmcommonBuiltInFunctions "github.com/multiversx/mx-chain-vm-common-go/builtInFunctions"
 
@@ -141,6 +142,7 @@ type processComponents struct {
 	epochSystemSCProcessor           process.EpochStartSystemSCProcessor
 	interceptedDataVerifierFactory   process.InterceptedDataVerifierFactory
 	epochStartTriggerHanlder         epochStart.TriggerHandler
+	epochChangeTopicsHandler         process.EpochChangeTopicsHandler
 }
 
 // ProcessComponentsFactoryArgs holds the arguments needed to create a process components factory
@@ -778,6 +780,22 @@ func (pcf *processComponentsFactory) Create() (*processComponents, error) {
 		return nil, fmt.Errorf("%w when assembling components for the transactions simulator processor", err)
 	}
 
+	argsEpochChangeTopicsHandler := p2pProcess.ArgEpochChangeTopicsHandler{
+		MainMessenger:                    pcf.network.NetworkMessenger(),
+		FullArchiveMessenger:             pcf.network.FullArchiveNetworkMessenger(),
+		EnableEpochsHandler:              pcf.coreData.EnableEpochsHandler(),
+		EpochNotifier:                    pcf.epochNotifier,
+		ShardCoordinator:                 pcf.bootstrapComponents.ShardCoordinator(),
+		ResolversContainer:               resolversContainer,
+		MainInterceptorsContainer:        mainInterceptorsContainer,
+		FullArchiveInterceptorsContainer: fullArchiveInterceptorsContainer,
+		IsFullArchive:                    pcf.prefConfigs.Preferences.FullArchive,
+	}
+	epochChangeTopicsHandler, err := p2pProcess.NewEpochChangeTopicsHandler(argsEpochChangeTopicsHandler)
+	if err != nil {
+		return nil, err
+	}
+
 	return &processComponents{
 		nodesCoordinator:                 pcf.nodesCoordinator,
 		shardCoordinator:                 pcf.bootstrapComponents.ShardCoordinator(),
@@ -829,6 +847,7 @@ func (pcf *processComponentsFactory) Create() (*processComponents, error) {
 		sentSignaturesTracker:            sentSignaturesTracker,
 		interceptedDataVerifierFactory:   pcf.interceptedDataVerifierFactory,
 		epochStartTriggerHanlder:         epochStartTrigger,
+		epochChangeTopicsHandler:         epochChangeTopicsHandler,
 	}, nil
 }
 
@@ -1494,6 +1513,7 @@ func (pcf *processComponentsFactory) newShardResolverContainerFactory(
 		FullArchivePreferredPeersHolder: pcf.network.FullArchivePreferredPeersHolderHandler(),
 		PayloadValidator:                payloadValidator,
 		AntifloodConfigsHandler:         pcf.coreData.AntifloodConfigsHandler(),
+		EnableEpochsHandler:             pcf.coreData.EnableEpochsHandler(),
 	}
 	resolversContainerFactory, err := resolverscontainer.NewShardResolversContainerFactory(resolversContainerFactoryArgs)
 	if err != nil {
@@ -1530,6 +1550,7 @@ func (pcf *processComponentsFactory) newMetaResolverContainerFactory(
 		FullArchivePreferredPeersHolder: pcf.network.FullArchivePreferredPeersHolderHandler(),
 		PayloadValidator:                payloadValidator,
 		AntifloodConfigsHandler:         pcf.coreData.AntifloodConfigsHandler(),
+		EnableEpochsHandler:             pcf.coreData.EnableEpochsHandler(),
 	}
 
 	return resolverscontainer.NewMetaResolversContainerFactory(resolversContainerFactoryArgs)

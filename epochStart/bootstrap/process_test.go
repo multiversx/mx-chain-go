@@ -19,6 +19,8 @@ import (
 	dataBatch "github.com/multiversx/mx-chain-core-go/data/batch"
 	"github.com/multiversx/mx-chain-core-go/data/block"
 	"github.com/multiversx/mx-chain-core-go/data/transaction"
+	"github.com/multiversx/mx-chain-go/p2p"
+
 	"github.com/multiversx/mx-chain-go/common"
 	"github.com/multiversx/mx-chain-go/common/graceperiod"
 	"github.com/multiversx/mx-chain-go/common/statistics"
@@ -1005,6 +1007,7 @@ func TestCreateSyncers(t *testing.T) {
 	args := createMockEpochStartBootstrapArgs(coreComp, cryptoComp)
 
 	epochStartProvider, _ := NewEpochStartBootstrap(args)
+	epochStartProvider.epochStartMeta = &block.MetaBlock{}
 	epochStartProvider.shardCoordinator = mock.NewMultipleShardsCoordinatorMock()
 	epochStartProvider.dataPool = &dataRetrieverMock.PoolsHolderStub{
 		HeadersCalled: func() dataRetriever.HeadersPool {
@@ -1856,7 +1859,7 @@ func TestRequestAndProcessing(t *testing.T) {
 
 		expectedErr := errors.New("expected error")
 		args.MainMessenger = &p2pmocks.MessengerStub{
-			CreateTopicCalled: func(topic string, identifier bool) error {
+			CreateTopicCalled: func(networkType p2p.NetworkType, topic string, identifier bool) error {
 				return expectedErr
 			},
 		}
@@ -2525,6 +2528,7 @@ func TestSyncSetGuardianTransaction(t *testing.T) {
 	args := createMockEpochStartBootstrapArgs(coreComp, cryptoComp)
 
 	epochStartProvider, _ := NewEpochStartBootstrap(args)
+	epochStartProvider.epochStartMeta = &block.MetaBlock{}
 	epochStartProvider.shardCoordinator = mock.NewMultipleShardsCoordinatorMock()
 	transactions := testscommon.NewShardedDataCacheNotifierMock()
 	epochStartProvider.dataPool = &dataRetrieverMock.PoolsHolderStub{

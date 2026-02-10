@@ -4,6 +4,7 @@ import (
 	"fmt"
 	"testing"
 
+	"github.com/multiversx/mx-chain-go/p2p"
 	"github.com/stretchr/testify/assert"
 
 	"github.com/multiversx/mx-chain-go/testscommon/p2pmocks"
@@ -78,23 +79,25 @@ func TestSyncedMessenger_RegisterMessageProcessor(t *testing.T) {
 
 		messenger, _ := NewSyncedMessenger(NewSyncedBroadcastNetwork())
 
-		err := messenger.RegisterMessageProcessor("", "", nil)
+		err := messenger.RegisterMessageProcessor("main", "", "", nil)
 		assert.ErrorIs(t, err, errNilMessageProcessor)
 	})
 	t.Run("processor exists, should error", func(t *testing.T) {
 		t.Parallel()
 
+		mainNetwork := p2p.NetworkType("main")
+
 		messenger, _ := NewSyncedMessenger(NewSyncedBroadcastNetwork())
 
-		err := messenger.CreateTopic("t", false)
+		err := messenger.CreateTopic(mainNetwork, "t", false)
 		assert.Nil(t, err)
 
 		processor1 := &p2pmocks.MessageProcessorStub{}
-		err = messenger.RegisterMessageProcessor("t", "i", processor1)
+		err = messenger.RegisterMessageProcessor(mainNetwork, "t", "i", processor1)
 		assert.Nil(t, err)
 
 		processor2 := &p2pmocks.MessageProcessorStub{}
-		err = messenger.RegisterMessageProcessor("t", "i", processor2)
+		err = messenger.RegisterMessageProcessor(mainNetwork, "t", "i", processor2)
 		assert.ErrorIs(t, err, errTopicHasProcessor)
 
 		messenger.mutOperation.RLock()
@@ -105,13 +108,15 @@ func TestSyncedMessenger_RegisterMessageProcessor(t *testing.T) {
 	t.Run("should work", func(t *testing.T) {
 		t.Parallel()
 
+		mainNetwork := p2p.NetworkType("main")
+
 		messenger, _ := NewSyncedMessenger(NewSyncedBroadcastNetwork())
 
-		err := messenger.CreateTopic("t", false)
+		err := messenger.CreateTopic(mainNetwork, "t", false)
 		assert.Nil(t, err)
 
 		processor := &p2pmocks.MessageProcessorStub{}
-		err = messenger.RegisterMessageProcessor("t", "i", processor)
+		err = messenger.RegisterMessageProcessor(mainNetwork, "t", "i", processor)
 		assert.Nil(t, err)
 
 		messenger.mutOperation.RLock()
@@ -142,10 +147,12 @@ func TestSyncedMessenger_UnregisterAllMessageProcessors(t *testing.T) {
 	t.Run("one topic but no processor should work", func(t *testing.T) {
 		t.Parallel()
 
+		mainNetwork := p2p.NetworkType("main")
+
 		messenger, _ := NewSyncedMessenger(NewSyncedBroadcastNetwork())
 
 		topic := "topic"
-		_ = messenger.CreateTopic(topic, true)
+		_ = messenger.CreateTopic(mainNetwork, topic, true)
 
 		messenger.mutOperation.RLock()
 		assert.Empty(t, messenger.topics[topic])
@@ -161,12 +168,14 @@ func TestSyncedMessenger_UnregisterAllMessageProcessors(t *testing.T) {
 	t.Run("one topic with processor should work", func(t *testing.T) {
 		t.Parallel()
 
+		mainNetwork := p2p.NetworkType("main")
+
 		messenger, _ := NewSyncedMessenger(NewSyncedBroadcastNetwork())
 
 		topic := "topic"
 		identifier := "identifier"
-		_ = messenger.CreateTopic(topic, true)
-		_ = messenger.RegisterMessageProcessor(topic, identifier, &p2pmocks.MessageProcessorStub{})
+		_ = messenger.CreateTopic(mainNetwork, topic, true)
+		_ = messenger.RegisterMessageProcessor(mainNetwork, topic, identifier, &p2pmocks.MessageProcessorStub{})
 
 		messenger.mutOperation.RLock()
 		assert.NotNil(t, messenger.topics[topic][identifier])
@@ -202,10 +211,11 @@ func TestSyncedMessenger_UnregisterMessageProcessor(t *testing.T) {
 		topic := "topic"
 		identifier1 := "identifier1"
 		identifier2 := "identifier2"
+		mainNetwork := p2p.NetworkType("main")
 
-		_ = messenger.CreateTopic(topic, true)
-		_ = messenger.RegisterMessageProcessor(topic, identifier1, &p2pmocks.MessageProcessorStub{})
-		_ = messenger.RegisterMessageProcessor(topic, identifier2, &p2pmocks.MessageProcessorStub{})
+		_ = messenger.CreateTopic(mainNetwork, topic, true)
+		_ = messenger.RegisterMessageProcessor(mainNetwork, topic, identifier1, &p2pmocks.MessageProcessorStub{})
+		_ = messenger.RegisterMessageProcessor(mainNetwork, topic, identifier2, &p2pmocks.MessageProcessorStub{})
 
 		messenger.mutOperation.RLock()
 		assert.Equal(t, 2, len(messenger.topics[topic]))
@@ -245,9 +255,11 @@ func TestSyncedMessenger_UnJoinAllTopics(t *testing.T) {
 	t.Run("one registered topic should work", func(t *testing.T) {
 		t.Parallel()
 
+		mainNetwork := p2p.NetworkType("main")
+
 		messenger, _ := NewSyncedMessenger(NewSyncedBroadcastNetwork())
 		topic := "topic"
-		_ = messenger.CreateTopic(topic, true)
+		_ = messenger.CreateTopic(mainNetwork, topic, true)
 
 		messenger.mutOperation.RLock()
 		assert.Empty(t, messenger.topics[topic])

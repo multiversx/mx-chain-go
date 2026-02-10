@@ -21,7 +21,7 @@ import (
 	"github.com/stretchr/testify/assert"
 )
 
-var log = logger.GetOrCreate("integrationtests/longtests/antiflood") //nolint
+var log = logger.GetOrCreate("integrationtests/longtests/antiflood") // nolint
 
 func createAntifloodConfigHandler(enabled bool) common.AntifloodConfigsHandler {
 	antifloodConfigHandler := &testscommon.AntifloodConfigsHandlerStub{
@@ -111,8 +111,8 @@ func TestAntifloodingForLargerPeriodOfTime(t *testing.T) {
 		integrationTests.ClosePeers(peers)
 	}()
 
-	//the network has 8 peers (check integrationTests.CreateFixedNetworkOf7Peers function)
-	//nodes 2, 4, 6 decide to flood the network, but they will keep their messages/sec under the threshold
+	// the network has 8 peers (check integrationTests.CreateFixedNetworkOf7Peers function)
+	// nodes 2, 4, 6 decide to flood the network, but they will keep their messages/sec under the threshold
 	topic := "test_topic"
 	idxGoodPeers := []int{0, 1, 3, 5, 7}
 	idxBadPeers := []int{2, 4, 6}
@@ -158,10 +158,10 @@ func createProcessors(peers []p2p.Messenger, topic string, idxBadPeers []int, id
 		proc := NewMessageProcessor(antifloodComponents.AntiFloodHandler, peers[i])
 		processors = append(processors, proc)
 
-		err = proc.messenger.CreateTopic(topic, true)
+		err = proc.messenger.CreateTopic(p2p.MainNetwork, topic, true)
 		log.LogIfError(err)
 
-		err = proc.messenger.RegisterMessageProcessor(topic, "test", proc)
+		err = proc.messenger.RegisterMessageProcessor(p2p.MainNetwork, topic, "test", proc)
 		log.LogIfError(err)
 	}
 
@@ -226,7 +226,7 @@ func startFlooding(peers []p2p.Messenger, topic string, idxBadPeers []int, maxSi
 
 			if time.Since(lastUpdated) > time.Second {
 				m = make(map[core.PeerID]int)
-				//comment the following line to make the test generate a large number of messages/sec
+				// comment the following line to make the test generate a large number of messages/sec
 				lastUpdated = time.Now()
 			}
 

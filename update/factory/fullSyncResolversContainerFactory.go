@@ -181,12 +181,12 @@ func (rcf *resolversContainerFactory) createTrieNodesResolver(baseTopic string, 
 		return nil, err
 	}
 
-	err = rcf.mainMessenger.RegisterMessageProcessor(resolver.RequestTopic(), common.HardforkResolversIdentifier, resolver)
+	err = rcf.mainMessenger.RegisterMessageProcessor(p2p.MainNetwork, resolver.RequestTopic(), common.HardforkResolversIdentifier, resolver)
 	if err != nil {
 		return nil, err
 	}
 
-	err = rcf.fullArchiveMessenger.RegisterMessageProcessor(resolver.RequestTopic(), common.HardforkResolversIdentifier, resolver)
+	err = rcf.fullArchiveMessenger.RegisterMessageProcessor(p2p.FullArchiveNetwork, resolver.RequestTopic(), common.HardforkResolversIdentifier, resolver)
 	if err != nil {
 		return nil, err
 	}

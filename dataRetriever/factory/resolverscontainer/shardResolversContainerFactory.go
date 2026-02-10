@@ -9,6 +9,7 @@ import (
 	"github.com/multiversx/mx-chain-go/dataRetriever"
 	"github.com/multiversx/mx-chain-go/dataRetriever/factory/containers"
 	"github.com/multiversx/mx-chain-go/dataRetriever/resolvers"
+	"github.com/multiversx/mx-chain-go/p2p"
 	"github.com/multiversx/mx-chain-go/process"
 	"github.com/multiversx/mx-chain-go/process/factory"
 )
@@ -62,6 +63,7 @@ func NewShardResolversContainerFactory(
 		mainPreferredPeersHolder:        args.MainPreferredPeersHolder,
 		fullArchivePreferredPeersHolder: args.FullArchivePreferredPeersHolder,
 		payloadValidator:                args.PayloadValidator,
+		enableEpochsHandler:             args.EnableEpochsHandler,
 	}
 
 	err = base.checkParams()
@@ -80,7 +82,7 @@ func NewShardResolversContainerFactory(
 // Create returns a resolver container that will hold all resolvers in the system
 func (srcf *shardResolversContainerFactory) Create() (dataRetriever.ResolversContainer, error) {
 	err := srcf.generateTxResolvers(
-		factory.TransactionTopic,
+		common.TransactionTopic,
 		dataRetriever.TransactionUnit,
 		srcf.dataPools.Transactions(),
 	)
@@ -89,7 +91,7 @@ func (srcf *shardResolversContainerFactory) Create() (dataRetriever.ResolversCon
 	}
 
 	err = srcf.generateTxResolvers(
-		factory.UnsignedTransactionTopic,
+		common.UnsignedTransactionTopic,
 		dataRetriever.UnsignedTransactionUnit,
 		srcf.dataPools.UnsignedTransactions(),
 	)
@@ -98,7 +100,7 @@ func (srcf *shardResolversContainerFactory) Create() (dataRetriever.ResolversCon
 	}
 
 	err = srcf.generateRewardResolver(
-		factory.RewardsTransactionTopic,
+		common.RewardsTransactionTopic,
 		dataRetriever.RewardTransactionUnit,
 		srcf.dataPools.RewardTransactions(),
 	)
@@ -186,12 +188,12 @@ func (srcf *shardResolversContainerFactory) generateHeaderResolvers() error {
 		return err
 	}
 
-	err = srcf.mainMessenger.RegisterMessageProcessor(resolver.RequestTopic(), common.DefaultResolversIdentifier, resolver)
+	err = srcf.mainMessenger.RegisterMessageProcessor(p2p.MainNetwork, resolver.RequestTopic(), common.DefaultResolversIdentifier, resolver)
 	if err != nil {
 		return err
 	}
 
-	err = srcf.fullArchiveMessenger.RegisterMessageProcessor(resolver.RequestTopic(), common.DefaultResolversIdentifier, resolver)
+	err = srcf.fullArchiveMessenger.RegisterMessageProcessor(p2p.FullArchiveNetwork, resolver.RequestTopic(), common.DefaultResolversIdentifier, resolver)
 	if err != nil {
 		return err
 	}
@@ -239,12 +241,12 @@ func (srcf *shardResolversContainerFactory) generateMetablockHeaderResolvers() e
 		return err
 	}
 
-	err = srcf.mainMessenger.RegisterMessageProcessor(resolver.RequestTopic(), common.DefaultResolversIdentifier, resolver)
+	err = srcf.mainMessenger.RegisterMessageProcessor(p2p.MainNetwork, resolver.RequestTopic(), common.DefaultResolversIdentifier, resolver)
 	if err != nil {
 		return err
 	}
 
-	err = srcf.fullArchiveMessenger.RegisterMessageProcessor(resolver.RequestTopic(), common.DefaultResolversIdentifier, resolver)
+	err = srcf.fullArchiveMessenger.RegisterMessageProcessor(p2p.FullArchiveNetwork, resolver.RequestTopic(), common.DefaultResolversIdentifier, resolver)
 	if err != nil {
 		return err
 	}
@@ -285,7 +287,7 @@ func (srcf *shardResolversContainerFactory) generateRewardResolver(
 	resolverSlice := make([]dataRetriever.Resolver, 0)
 
 	identifierTx := topic + shardC.CommunicationIdentifier(core.MetachainShardId)
-	excludedPeersOnTopic := factory.TransactionTopic + shardC.CommunicationIdentifier(shardC.SelfId())
+	excludedPeersOnTopic := common.TransactionTopic + shardC.CommunicationIdentifier(shardC.SelfId())
 
 	resolver, err := srcf.createTxResolver(identifierTx, excludedPeersOnTopic, unit, dataPool, core.MetachainShardId)
 	if err != nil {

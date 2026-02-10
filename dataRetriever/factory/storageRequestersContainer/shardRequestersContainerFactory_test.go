@@ -27,7 +27,7 @@ var errExpected = errors.New("expected error")
 func createMessengerStubForShard(matchStrToErrOnCreate string, matchStrToErrOnRegister string) p2p.Messenger {
 	stub := &p2pmocks.MessengerStub{}
 
-	stub.CreateTopicCalled = func(name string, createChannelForTopic bool) error {
+	stub.CreateTopicCalled = func(networkType p2p.NetworkType, name string, createChannelForTopic bool) error {
 		if matchStrToErrOnCreate == "" {
 			return nil
 		}
@@ -39,7 +39,7 @@ func createMessengerStubForShard(matchStrToErrOnCreate string, matchStrToErrOnRe
 		return nil
 	}
 
-	stub.RegisterMessageProcessorCalled = func(topic string, identifier string, handler p2p.MessageProcessor) error {
+	stub.RegisterMessageProcessorCalled = func(networkType p2p.NetworkType, topic string, identifier string, handler p2p.MessageProcessor) error {
 		if matchStrToErrOnRegister == "" {
 			return nil
 		}

@@ -8,6 +8,7 @@ import (
 	"github.com/multiversx/mx-chain-go/dataRetriever"
 	"github.com/multiversx/mx-chain-go/dataRetriever/factory/containers"
 	"github.com/multiversx/mx-chain-go/dataRetriever/resolvers"
+	"github.com/multiversx/mx-chain-go/p2p"
 	"github.com/multiversx/mx-chain-go/process"
 
 	"github.com/multiversx/mx-chain-core-go/marshal"
@@ -63,6 +64,7 @@ func NewMetaResolversContainerFactory(
 		mainPreferredPeersHolder:        args.MainPreferredPeersHolder,
 		fullArchivePreferredPeersHolder: args.FullArchivePreferredPeersHolder,
 		payloadValidator:                args.PayloadValidator,
+		enableEpochsHandler:             args.EnableEpochsHandler,
 	}
 
 	err = base.checkParams()
@@ -91,7 +93,7 @@ func (mrcf *metaResolversContainerFactory) Create() (dataRetriever.ResolversCont
 	}
 
 	err = mrcf.generateTxResolvers(
-		factory.TransactionTopic,
+		common.TransactionTopic,
 		dataRetriever.TransactionUnit,
 		mrcf.dataPools.Transactions(),
 	)
@@ -100,7 +102,7 @@ func (mrcf *metaResolversContainerFactory) Create() (dataRetriever.ResolversCont
 	}
 
 	err = mrcf.generateTxResolvers(
-		factory.UnsignedTransactionTopic,
+		common.UnsignedTransactionTopic,
 		dataRetriever.UnsignedTransactionUnit,
 		mrcf.dataPools.UnsignedTransactions(),
 	)
@@ -109,7 +111,7 @@ func (mrcf *metaResolversContainerFactory) Create() (dataRetriever.ResolversCont
 	}
 
 	err = mrcf.generateRewardsResolvers(
-		factory.RewardsTransactionTopic,
+		common.RewardsTransactionTopic,
 		dataRetriever.RewardTransactionUnit,
 		mrcf.dataPools.RewardTransactions(),
 	)
@@ -240,12 +242,12 @@ func (mrcf *metaResolversContainerFactory) createShardHeaderResolver(
 		return nil, err
 	}
 
-	err = mrcf.mainMessenger.RegisterMessageProcessor(resolver.RequestTopic(), common.DefaultResolversIdentifier, resolver)
+	err = mrcf.mainMessenger.RegisterMessageProcessor(p2p.MainNetwork, resolver.RequestTopic(), common.DefaultResolversIdentifier, resolver)
 	if err != nil {
 		return nil, err
 	}
 
-	err = mrcf.fullArchiveMessenger.RegisterMessageProcessor(resolver.RequestTopic(), common.DefaultResolversIdentifier, resolver)
+	err = mrcf.fullArchiveMessenger.RegisterMessageProcessor(p2p.FullArchiveNetwork, resolver.RequestTopic(), common.DefaultResolversIdentifier, resolver)
 	if err != nil {
 		return nil, err
 	}
@@ -303,12 +305,12 @@ func (mrcf *metaResolversContainerFactory) createMetaChainHeaderResolver(
 		return nil, err
 	}
 
-	err = mrcf.mainMessenger.RegisterMessageProcessor(resolver.RequestTopic(), common.DefaultResolversIdentifier, resolver)
+	err = mrcf.mainMessenger.RegisterMessageProcessor(p2p.MainNetwork, resolver.RequestTopic(), common.DefaultResolversIdentifier, resolver)
 	if err != nil {
 		return nil, err
 	}
 
-	err = mrcf.fullArchiveMessenger.RegisterMessageProcessor(resolver.RequestTopic(), common.DefaultResolversIdentifier, resolver)
+	err = mrcf.fullArchiveMessenger.RegisterMessageProcessor(p2p.FullArchiveNetwork, resolver.RequestTopic(), common.DefaultResolversIdentifier, resolver)
 	if err != nil {
 		return nil, err
 	}

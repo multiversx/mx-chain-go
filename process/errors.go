@@ -1457,3 +1457,12 @@ var ErrExecutionResultNotFound = errors.New("execution result not found")
 
 // ErrShardHeadersShouldNotBeNotarized signals that shard headers should not be notarized
 var ErrShardHeadersShouldNotBeNotarized = errors.New("shard headers should not be notarized")
+
+// ErrNilResolversContainer signals that a nil resolvers container has been provided
+var ErrNilResolversContainer = errors.New("nil resolvers container")
+
+// ErrNilInterceptorsContainer signals that a nil interceptors container has been provided
+var ErrNilInterceptorsContainer = errors.New("nil interceptors container")
+
+// ErrCannotCastTxResolver signals that the provided resolver is not of type tx resolver
+var ErrCannotCastTxResolver = errors.New("cannot cast tx resolver")

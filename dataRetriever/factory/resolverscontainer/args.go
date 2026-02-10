@@ -28,4 +28,5 @@ type FactoryArgs struct {
 	IsFullHistoryNode               bool
 	PayloadValidator                dataRetriever.PeerAuthenticationPayloadValidator
 	AntifloodConfigsHandler         common.AntifloodConfigsHandler
+	EnableEpochsHandler             common.EnableEpochsHandler
 }

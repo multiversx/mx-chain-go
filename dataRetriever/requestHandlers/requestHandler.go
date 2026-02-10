@@ -116,12 +116,12 @@ func (rrh *resolverRequestHandler) getEpoch() uint32 {
 // RequestTransactions method asks for transactions from the connected peers
 func (rrh *resolverRequestHandler) RequestTransactions(destShardID uint32, txHashes [][]byte) {
 	epoch := rrh.getEpoch()
-	rrh.requestByHashes(destShardID, txHashes, factory.TransactionTopic, uniqueTxSuffix, epoch)
+	rrh.requestByHashes(destShardID, txHashes, common.TransactionTopic, uniqueTxSuffix, epoch)
 }
 
 // RequestTransactionsForEpoch method asks for transactions from the connected peers for a specific epoch
 func (rrh *resolverRequestHandler) RequestTransactionsForEpoch(destShardID uint32, txHashes [][]byte, epoch uint32) {
-	rrh.requestByHashes(destShardID, txHashes, factory.TransactionTopic, uniqueTxSuffix, epoch)
+	rrh.requestByHashes(destShardID, txHashes, common.TransactionTopic, uniqueTxSuffix, epoch)
 }
 
 func (rrh *resolverRequestHandler) requestByHashes(destShardID uint32, hashes [][]byte, topic string, abbreviatedTopic string, epoch uint32) {
@@ -212,23 +212,23 @@ func (rrh *resolverRequestHandler) requestReferenceWithChunkIndex(
 // RequestUnsignedTransactions method asks for unsigned transactions from the connected peers
 func (rrh *resolverRequestHandler) RequestUnsignedTransactions(destShardID uint32, scrHashes [][]byte) {
 	epoch := rrh.getEpoch()
-	rrh.requestByHashes(destShardID, scrHashes, factory.UnsignedTransactionTopic, uniqueScrSuffix, epoch)
+	rrh.requestByHashes(destShardID, scrHashes, common.UnsignedTransactionTopic, uniqueScrSuffix, epoch)
 }
 
 // RequestUnsignedTransactionsForEpoch method asks for unsigned transactions from the connected peers for a specific epoch
 func (rrh *resolverRequestHandler) RequestUnsignedTransactionsForEpoch(destShardID uint32, scrHashes [][]byte, epoch uint32) {
-	rrh.requestByHashes(destShardID, scrHashes, factory.UnsignedTransactionTopic, uniqueScrSuffix, epoch)
+	rrh.requestByHashes(destShardID, scrHashes, common.UnsignedTransactionTopic, uniqueScrSuffix, epoch)
 }
 
 // RequestRewardTransactions requests for reward transactions from the connected peers
 func (rrh *resolverRequestHandler) RequestRewardTransactions(destShardID uint32, rewardTxHashes [][]byte) {
 	epoch := rrh.getEpoch()
-	rrh.requestByHashes(destShardID, rewardTxHashes, factory.RewardsTransactionTopic, uniqueRwdSuffix, epoch)
+	rrh.requestByHashes(destShardID, rewardTxHashes, common.RewardsTransactionTopic, uniqueRwdSuffix, epoch)
 }
 
 // RequestRewardTransactionsForEpoch requests for reward transactions from the connected peers for a specific epoch
 func (rrh *resolverRequestHandler) RequestRewardTransactionsForEpoch(destShardID uint32, rewardTxHashes [][]byte, epoch uint32) {
-	rrh.requestByHashes(destShardID, rewardTxHashes, factory.RewardsTransactionTopic, uniqueRwdSuffix, epoch)
+	rrh.requestByHashes(destShardID, rewardTxHashes, common.RewardsTransactionTopic, uniqueRwdSuffix, epoch)
 }
 
 // RequestMiniBlock method asks for miniBlock from the connected peers

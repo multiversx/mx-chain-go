@@ -15,6 +15,8 @@ import (
 	"github.com/multiversx/mx-chain-core-go/data"
 	"github.com/multiversx/mx-chain-core-go/data/block"
 	"github.com/multiversx/mx-chain-core-go/data/typeConverters/uint64ByteSlice"
+	disabledFactory "github.com/multiversx/mx-chain-go/dataRetriever/factory/containers/disabled"
+	processP2P "github.com/multiversx/mx-chain-go/process/p2p"
 	logger "github.com/multiversx/mx-chain-logger-go"
 
 	"github.com/multiversx/mx-chain-go/process/interceptors/processor"
@@ -640,6 +642,24 @@ func (e *epochStartBootstrap) createSyncers() error {
 		return err
 	}
 
+	argsEpochChangeTopicsHandler := processP2P.ArgEpochChangeTopicsHandler{
+		MainMessenger:                    e.mainMessenger,
+		FullArchiveMessenger:             e.fullArchiveMessenger,
+		EnableEpochsHandler:              e.enableEpochsHandler,
+		EpochNotifier:                    e.coreComponentsHolder.EpochNotifier(),
+		ShardCoordinator:                 e.shardCoordinator,
+		ResolversContainer:               disabledFactory.NewDisabledResolversContainer(),
+		MainInterceptorsContainer:        e.mainInterceptorContainer,
+		FullArchiveInterceptorsContainer: e.fullArchiveInterceptorContainer,
+		IsFullArchive:                    e.nodeOperationMode == common.FullArchiveMode,
+	}
+	epochChangeTopicsHandler, err := processP2P.NewEpochChangeTopicsHandler(argsEpochChangeTopicsHandler)
+	if err != nil {
+		return err
+	}
+	// force moving the interceptors on the new subnetwork if needed
+	epochChangeTopicsHandler.EpochConfirmed(e.epochStartMeta.GetEpoch(), e.epochStartMeta.GetTimeStamp())
+
 	syncMiniBlocksArgs := updateSync.ArgsNewPendingMiniBlocksSyncer{
 		Storage:        disabled.CreateMemUnit(),
 		Cache:          e.dataPool.MiniBlocks(),
@@ -1024,7 +1044,7 @@ func (e *epochStartBootstrap) requestAndProcessing() (Parameters, error) {
 	log.Debug("start in epoch bootstrap: shardCoordinator", "numOfShards", e.baseData.numberOfShards, "shardId", e.baseData.shardId)
 
 	consensusTopic := common.ConsensusTopic + e.shardCoordinator.CommunicationIdentifier(e.shardCoordinator.SelfId())
-	err = e.mainMessenger.CreateTopic(consensusTopic, true)
+	err = e.mainMessenger.CreateTopic(p2p.MainNetwork, consensusTopic, true)
 	if err != nil {
 		return Parameters{}, err
 	}
@@ -1698,6 +1718,7 @@ func (e *epochStartBootstrap) createResolversContainer() error {
 		FullArchivePreferredPeersHolder: disabled.NewPreferredPeersHolder(),
 		PayloadValidator:                payloadValidator,
 		AntifloodConfigsHandler:         e.coreComponentsHolder.AntifloodConfigsHandler(),
+		EnableEpochsHandler:             e.enableEpochsHandler,
 	}
 	resolverFactory, err := resolverscontainer.NewMetaResolversContainerFactory(resolversContainerArgs)
 	if err != nil {
@@ -1839,14 +1860,14 @@ func (e *epochStartBootstrap) createHeartbeatSender() error {
 
 	heartbeatTopic := common.HeartbeatV2Topic + e.shardCoordinator.CommunicationIdentifier(e.shardCoordinator.SelfId())
 	if !e.mainMessenger.HasTopic(heartbeatTopic) {
-		err = e.mainMessenger.CreateTopic(heartbeatTopic, true)
+		err = e.mainMessenger.CreateTopic(p2p.MainNetwork, heartbeatTopic, true)
 		if err != nil {
 			return err
 		}
 	}
 
 	if !e.fullArchiveMessenger.HasTopic(heartbeatTopic) {
-		err = e.fullArchiveMessenger.CreateTopic(heartbeatTopic, true)
+		err = e.fullArchiveMessenger.CreateTopic(p2p.FullArchiveNetwork, heartbeatTopic, true)
 		if err != nil {
 			return err
 		}

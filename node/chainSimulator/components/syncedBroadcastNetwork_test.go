@@ -21,36 +21,37 @@ func TestSyncedBroadcastNetwork_BroadcastShouldWorkOn3Peers(t *testing.T) {
 	oneTwoTopic := "topic_1_2"
 	oneThreeTopic := "topic_1_3"
 	twoThreeTopic := "topic_2_3"
+	mainNetwork := p2p.NetworkType("main")
 
 	peer1, err := NewSyncedMessenger(network)
 	assert.Nil(t, err)
 	processor1 := createMessageProcessor(t, messages, peer1.ID())
-	_ = peer1.CreateTopic(globalTopic, true)
-	_ = peer1.RegisterMessageProcessor(globalTopic, "", processor1)
-	_ = peer1.CreateTopic(oneTwoTopic, true)
-	_ = peer1.RegisterMessageProcessor(oneTwoTopic, "", processor1)
-	_ = peer1.CreateTopic(oneThreeTopic, true)
-	_ = peer1.RegisterMessageProcessor(oneThreeTopic, "", processor1)
+	_ = peer1.CreateTopic(mainNetwork, globalTopic, true)
+	_ = peer1.RegisterMessageProcessor(mainNetwork, globalTopic, "", processor1)
+	_ = peer1.CreateTopic(mainNetwork, oneTwoTopic, true)
+	_ = peer1.RegisterMessageProcessor(mainNetwork, oneTwoTopic, "", processor1)
+	_ = peer1.CreateTopic(mainNetwork, oneThreeTopic, true)
+	_ = peer1.RegisterMessageProcessor(mainNetwork, oneThreeTopic, "", processor1)
 
 	peer2, err := NewSyncedMessenger(network)
 	assert.Nil(t, err)
 	processor2 := createMessageProcessor(t, messages, peer2.ID())
-	_ = peer2.CreateTopic(globalTopic, true)
-	_ = peer2.RegisterMessageProcessor(globalTopic, "", processor2)
-	_ = peer2.CreateTopic(oneTwoTopic, true)
-	_ = peer2.RegisterMessageProcessor(oneTwoTopic, "", processor2)
-	_ = peer2.CreateTopic(twoThreeTopic, true)
-	_ = peer2.RegisterMessageProcessor(twoThreeTopic, "", processor2)
+	_ = peer2.CreateTopic(mainNetwork, globalTopic, true)
+	_ = peer2.RegisterMessageProcessor(mainNetwork, globalTopic, "", processor2)
+	_ = peer2.CreateTopic(mainNetwork, oneTwoTopic, true)
+	_ = peer2.RegisterMessageProcessor(mainNetwork, oneTwoTopic, "", processor2)
+	_ = peer2.CreateTopic(mainNetwork, twoThreeTopic, true)
+	_ = peer2.RegisterMessageProcessor(mainNetwork, twoThreeTopic, "", processor2)
 
 	peer3, err := NewSyncedMessenger(network)
 	assert.Nil(t, err)
 	processor3 := createMessageProcessor(t, messages, peer3.ID())
-	_ = peer3.CreateTopic(globalTopic, true)
-	_ = peer3.RegisterMessageProcessor(globalTopic, "", processor3)
-	_ = peer3.CreateTopic(oneThreeTopic, true)
-	_ = peer3.RegisterMessageProcessor(oneThreeTopic, "", processor3)
-	_ = peer3.CreateTopic(twoThreeTopic, true)
-	_ = peer3.RegisterMessageProcessor(twoThreeTopic, "", processor3)
+	_ = peer3.CreateTopic(mainNetwork, globalTopic, true)
+	_ = peer3.RegisterMessageProcessor(mainNetwork, globalTopic, "", processor3)
+	_ = peer3.CreateTopic(mainNetwork, oneThreeTopic, true)
+	_ = peer3.RegisterMessageProcessor(mainNetwork, oneThreeTopic, "", processor3)
+	_ = peer3.CreateTopic(mainNetwork, twoThreeTopic, true)
+	_ = peer3.RegisterMessageProcessor(mainNetwork, twoThreeTopic, "", processor3)
 
 	globalMessage := []byte("global message")
 	oneTwoMessage := []byte("1-2 message")
@@ -86,28 +87,29 @@ func TestSyncedBroadcastNetwork_BroadcastOnAnUnjoinedTopicShouldDiscardMessage(t
 
 	globalTopic := "global"
 	twoThreeTopic := "topic_2_3"
+	mainNetwork := p2p.NetworkType("main")
 
 	peer1, err := NewSyncedMessenger(network)
 	assert.Nil(t, err)
 	processor1 := createMessageProcessor(t, messages, peer1.ID())
-	_ = peer1.CreateTopic(globalTopic, true)
-	_ = peer1.RegisterMessageProcessor(globalTopic, "", processor1)
+	_ = peer1.CreateTopic(mainNetwork, globalTopic, true)
+	_ = peer1.RegisterMessageProcessor(mainNetwork, globalTopic, "", processor1)
 
 	peer2, err := NewSyncedMessenger(network)
 	assert.Nil(t, err)
 	processor2 := createMessageProcessor(t, messages, peer2.ID())
-	_ = peer2.CreateTopic(globalTopic, true)
-	_ = peer2.RegisterMessageProcessor(globalTopic, "", processor2)
-	_ = peer2.CreateTopic(twoThreeTopic, true)
-	_ = peer2.RegisterMessageProcessor(twoThreeTopic, "", processor2)
+	_ = peer2.CreateTopic(mainNetwork, globalTopic, true)
+	_ = peer2.RegisterMessageProcessor(mainNetwork, globalTopic, "", processor2)
+	_ = peer2.CreateTopic(mainNetwork, twoThreeTopic, true)
+	_ = peer2.RegisterMessageProcessor(mainNetwork, twoThreeTopic, "", processor2)
 
 	peer3, err := NewSyncedMessenger(network)
 	assert.Nil(t, err)
 	processor3 := createMessageProcessor(t, messages, peer3.ID())
-	_ = peer3.CreateTopic(globalTopic, true)
-	_ = peer3.RegisterMessageProcessor(globalTopic, "", processor3)
-	_ = peer3.CreateTopic(twoThreeTopic, true)
-	_ = peer3.RegisterMessageProcessor(twoThreeTopic, "", processor3)
+	_ = peer3.CreateTopic(mainNetwork, globalTopic, true)
+	_ = peer3.RegisterMessageProcessor(mainNetwork, globalTopic, "", processor3)
+	_ = peer3.CreateTopic(mainNetwork, twoThreeTopic, true)
+	_ = peer3.RegisterMessageProcessor(mainNetwork, twoThreeTopic, "", processor3)
 
 	testMessage := []byte("test message")
 
@@ -126,18 +128,19 @@ func TestSyncedBroadcastNetwork_SendDirectlyShouldWorkBetween2peers(t *testing.T
 
 	topic := "topic"
 	testMessage := []byte("test message")
+	mainNetwork := p2p.NetworkType("main")
 
 	peer1, err := NewSyncedMessenger(network)
 	assert.Nil(t, err)
 	processor1 := createMessageProcessor(t, messages, peer1.ID())
-	_ = peer1.CreateTopic(topic, true)
-	_ = peer1.RegisterMessageProcessor(topic, "", processor1)
+	_ = peer1.CreateTopic(mainNetwork, topic, true)
+	_ = peer1.RegisterMessageProcessor(mainNetwork, topic, "", processor1)
 
 	peer2, err := NewSyncedMessenger(network)
 	assert.Nil(t, err)
 	processor2 := createMessageProcessor(t, messages, peer2.ID())
-	_ = peer2.CreateTopic(topic, true)
-	_ = peer2.RegisterMessageProcessor(topic, "", processor2)
+	_ = peer2.CreateTopic(mainNetwork, topic, true)
+	_ = peer2.RegisterMessageProcessor(mainNetwork, topic, "", processor2)
 
 	err = peer1.SendToConnectedPeer(topic, testMessage, peer2.ID())
 	assert.Nil(t, err)
@@ -154,18 +157,19 @@ func TestSyncedBroadcastNetwork_SendDirectlyToSelfShouldWork(t *testing.T) {
 
 	topic := "topic"
 	testMessage := []byte("test message")
+	mainNetwork := p2p.NetworkType("main")
 
 	peer1, err := NewSyncedMessenger(network)
 	assert.Nil(t, err)
 	processor1 := createMessageProcessor(t, messages, peer1.ID())
-	_ = peer1.CreateTopic(topic, true)
-	_ = peer1.RegisterMessageProcessor(topic, "", processor1)
+	_ = peer1.CreateTopic(mainNetwork, topic, true)
+	_ = peer1.RegisterMessageProcessor(mainNetwork, topic, "", processor1)
 
 	peer2, err := NewSyncedMessenger(network)
 	assert.Nil(t, err)
 	processor2 := createMessageProcessor(t, messages, peer2.ID())
-	_ = peer2.CreateTopic(topic, true)
-	_ = peer2.RegisterMessageProcessor(topic, "", processor2)
+	_ = peer2.CreateTopic(mainNetwork, topic, true)
+	_ = peer2.RegisterMessageProcessor(mainNetwork, topic, "", processor2)
 
 	err = peer1.SendToConnectedPeer(topic, testMessage, peer1.ID())
 	assert.Nil(t, err)
@@ -183,12 +187,13 @@ func TestSyncedBroadcastNetwork_SendDirectlyShouldNotDeadlock(t *testing.T) {
 	topic := "topic"
 	testMessage := []byte("test message")
 	msgID := []byte("msgID")
+	mainNetwork := p2p.NetworkType("main")
 
 	peer1, err := NewSyncedMessenger(network)
 	assert.Nil(t, err)
 	processor1 := createMessageProcessor(t, messages, peer1.ID())
-	_ = peer1.CreateTopic(topic, true)
-	_ = peer1.RegisterMessageProcessor(topic, "", processor1)
+	_ = peer1.CreateTopic(mainNetwork, topic, true)
+	_ = peer1.RegisterMessageProcessor(mainNetwork, topic, "", processor1)
 
 	peer2, err := NewSyncedMessenger(network)
 	assert.Nil(t, err)
@@ -198,8 +203,8 @@ func TestSyncedBroadcastNetwork_SendDirectlyShouldNotDeadlock(t *testing.T) {
 			return msgID, source.SendToConnectedPeer(message.Topic(), []byte("reply: "+string(message.Data())), fromConnectedPeer)
 		},
 	}
-	_ = peer2.CreateTopic(topic, true)
-	_ = peer2.RegisterMessageProcessor(topic, "", processor2)
+	_ = peer2.CreateTopic(mainNetwork, topic, true)
+	_ = peer2.RegisterMessageProcessor(mainNetwork, topic, "", processor2)
 
 	err = peer1.SendToConnectedPeer(topic, testMessage, peer2.ID())
 	assert.Nil(t, err)
@@ -244,26 +249,27 @@ func TestSyncedBroadcastNetwork_GetConnectedPeersOnTopic(t *testing.T) {
 	oneTwoTopic := "topic_1_2"
 	oneThreeTopic := "topic_1_3"
 	twoThreeTopic := "topic_2_3"
+	mainNetwork := p2p.NetworkType("main")
 
 	network := NewSyncedBroadcastNetwork()
 
 	peer1, err := NewSyncedMessenger(network)
 	assert.Nil(t, err)
-	_ = peer1.CreateTopic(globalTopic, false)
-	_ = peer1.CreateTopic(oneTwoTopic, false)
-	_ = peer1.CreateTopic(oneThreeTopic, false)
+	_ = peer1.CreateTopic(mainNetwork, globalTopic, false)
+	_ = peer1.CreateTopic(mainNetwork, oneTwoTopic, false)
+	_ = peer1.CreateTopic(mainNetwork, oneThreeTopic, false)
 
 	peer2, err := NewSyncedMessenger(network)
 	assert.Nil(t, err)
-	_ = peer2.CreateTopic(globalTopic, false)
-	_ = peer2.CreateTopic(oneTwoTopic, false)
-	_ = peer2.CreateTopic(twoThreeTopic, false)
+	_ = peer2.CreateTopic(mainNetwork, globalTopic, false)
+	_ = peer2.CreateTopic(mainNetwork, oneTwoTopic, false)
+	_ = peer2.CreateTopic(mainNetwork, twoThreeTopic, false)
 
 	peer3, err := NewSyncedMessenger(network)
 	assert.Nil(t, err)
-	_ = peer3.CreateTopic(globalTopic, false)
-	_ = peer3.CreateTopic(oneThreeTopic, false)
-	_ = peer3.CreateTopic(twoThreeTopic, false)
+	_ = peer3.CreateTopic(mainNetwork, globalTopic, false)
+	_ = peer3.CreateTopic(mainNetwork, oneThreeTopic, false)
+	_ = peer3.CreateTopic(mainNetwork, twoThreeTopic, false)
 
 	peers := peer1.ConnectedPeersOnTopic(globalTopic)
 	assert.Equal(t, 3, len(peers))

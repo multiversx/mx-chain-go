@@ -13,9 +13,9 @@ import (
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 
+	"github.com/multiversx/mx-chain-go/common"
 	"github.com/multiversx/mx-chain-go/integrationTests"
 	"github.com/multiversx/mx-chain-go/process"
-	"github.com/multiversx/mx-chain-go/process/factory"
 )
 
 func TestNode_RequestInterceptTransactionWithMessengerAndWhitelist(t *testing.T) {
@@ -187,7 +187,7 @@ func TestNode_RequestInterceptRewardTransactionWithMessenger(t *testing.T) {
 	)
 
 	// Step 4. request tx
-	rewardTxRequester, _ := nRequester.RequestersFinder.CrossShardRequester(factory.RewardsTransactionTopic, core.MetachainShardId)
+	rewardTxRequester, _ := nRequester.RequestersFinder.CrossShardRequester(common.RewardsTransactionTopic, core.MetachainShardId)
 	err = rewardTxRequester.RequestDataFromHash(txHash, 0)
 	assert.Nil(t, err)
 
