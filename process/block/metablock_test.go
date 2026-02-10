@@ -271,6 +271,7 @@ func createMockMetaArguments(
 		ValidatorStatisticsProcessor: &testscommon.ValidatorStatisticsProcessorStub{},
 		EpochSystemSCProcessor:       &testscommon.EpochStartSystemSCStub{},
 		ShardInfoCreator:             shardInfoCreator,
+		MaxShardInfoProposalNonceGap: 10,
 	}
 	return arguments
 }

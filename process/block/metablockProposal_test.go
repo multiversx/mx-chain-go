@@ -518,8 +518,6 @@ func TestMetaProcessor_CreateNewHeaderProposal(t *testing.T) {
 		}
 
 		arguments := createMockMetaArguments(coreComponents, dataComponents, bootstrapComponents, statusComponents)
-		arguments.MaxShardInfoProposalNonceGap = 100
-
 		mp, err := blproc.NewMetaProcessor(arguments)
 		require.Nil(t, err)
 
@@ -553,7 +551,7 @@ func TestMetaProcessor_CreateNewHeaderProposal(t *testing.T) {
 			ShardInfoProposal: []block.ShardDataProposal{
 				{
 					ShardID:    0,
-					Nonce:      150,
+					Nonce:      101,
 					HeaderHash: []byte("hash"),
 				},
 				{
@@ -571,8 +569,6 @@ func TestMetaProcessor_CreateNewHeaderProposal(t *testing.T) {
 		}
 
 		arguments := createMockMetaArguments(coreComponents, dataComponents, bootstrapComponents, statusComponents)
-		arguments.MaxShardInfoProposalNonceGap = 100
-
 		mp, err := blproc.NewMetaProcessor(arguments)
 		require.Nil(t, err)
 
@@ -1021,6 +1017,63 @@ func TestMetaProcessor_VerifyBlockProposal(t *testing.T) {
 		body := &block.Body{}
 		err = mp.VerifyBlockProposal(header, body, haveTime)
 		require.ErrorIs(t, err, expectedErr)
+	})
+	t.Run("error on nonce gap verification", func(t *testing.T) {
+		t.Parallel()
+
+		prevBlockHash := []byte("prev header hash")
+		prevLastMetaExecutionResult := &block.MetaExecutionResultInfo{
+			ExecutionResult: &block.BaseMetaExecutionResult{
+				BaseExecutionResult: &block.BaseExecutionResult{},
+			},
+		}
+		coreComponents, dataComponents, bootstrapComponents, statusComponents := createMockComponentHolders()
+		dataComponents = &mock.DataComponentsMock{
+			Storage:  dataComponents.Storage,
+			DataPool: dataComponents.DataPool,
+			BlockChain: &testscommon.ChainHandlerStub{
+				GetCurrentBlockHeaderHashCalled: func() []byte {
+					return prevBlockHash
+				},
+				GetCurrentBlockHeaderCalled: func() data.HeaderHandler {
+					return &block.MetaBlockV3{
+						LastExecutionResult: prevLastMetaExecutionResult,
+					}
+				},
+			},
+		}
+		arguments := createMockMetaArguments(coreComponents, dataComponents, bootstrapComponents, statusComponents)
+		arguments.MissingDataResolver = &processMocks.MissingDataResolverMock{
+			RequestMissingShardHeadersCalled: func(_ data.MetaHeaderHandler) error {
+				require.Fail(t, "should have not been called")
+				return nil
+			},
+		}
+		mp, err := blproc.NewMetaProcessor(arguments)
+		require.Nil(t, err)
+
+		header := &block.MetaBlockV3{
+			PrevHash:            prevBlockHash,
+			Nonce:               1,
+			Round:               1,
+			LastExecutionResult: prevLastMetaExecutionResult,
+			ShardInfo: []block.ShardData{
+				{
+					ShardID: 0,
+					Nonce:   100,
+				},
+			},
+			ShardInfoProposal: []block.ShardDataProposal{
+				{
+					ShardID:    0,
+					Nonce:      250, // 150 gap
+					HeaderHash: []byte("hash"),
+				},
+			},
+		}
+		body := &block.Body{}
+		err = mp.VerifyBlockProposal(header, body, haveTime)
+		require.ErrorIs(t, err, process.ErrNonceGapTooLarge)
 	})
 	t.Run("error on request missing shard header", func(t *testing.T) {
 		t.Parallel()
