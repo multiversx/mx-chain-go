@@ -128,4 +128,5 @@ type ArgMetaProcessor struct {
 	EpochSystemSCProcessor       process.EpochStartSystemSCProcessor
 	ValidatorStatisticsProcessor process.ValidatorStatisticsProcessor
 	ShardInfoCreator             process.ShardInfoCreator
+	MaxShardInfoProposalNonceGap uint64
 }

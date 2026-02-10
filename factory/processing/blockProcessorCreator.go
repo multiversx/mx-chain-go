@@ -1238,6 +1238,7 @@ func (pcf *processComponentsFactory) newMetaBlockProcessor(
 		ValidatorStatisticsProcessor: validatorStatisticsProcessor,
 		EpochSystemSCProcessor:       epochStartSystemSCProcessor,
 		ShardInfoCreator:             shardInfoCreator,
+		MaxShardInfoProposalNonceGap: pcf.config.GeneralSettings.MaxShardInfoProposalNonceGap,
 	}
 
 	metaProcessor, err := block.NewMetaProcessor(arguments)

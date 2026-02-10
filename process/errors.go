@@ -1457,3 +1457,6 @@ var ErrExecutionResultNotFound = errors.New("execution result not found")
 
 // ErrShardHeadersShouldNotBeNotarized signals that shard headers should not be notarized
 var ErrShardHeadersShouldNotBeNotarized = errors.New("shard headers should not be notarized")
+
+// ErrNonceGapTooLarge signals that nonce gap between finalized and proposed shard headers is too large
+var ErrNonceGapTooLarge = errors.New("nonce gap between finalized and proposed shard headers is too large")

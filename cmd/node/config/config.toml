@@ -38,6 +38,9 @@
     # Make sure that this is greater than the unbonding period!
     SetGuardianEpochsDelay = 2 # TODO: for mainnet should be 20, 2 is just for testing
 
+    # MaxShardInfoProposalNonceGap defines the maximum gap allowed between highest finalized shard nonce and lowest proposed shard nonce
+    MaxShardInfoProposalNonceGap = 10
+
     # ChainParametersByEpoch defines chain operation configurable values that can be modified based on epochs
     ChainParametersByEpoch = [
         { EnableEpoch = 0, RoundDuration = 6000, RoundsPerEpoch = 200, MinRoundsBetweenEpochs = 20, ShardConsensusGroupSize = 7, ShardMinNumNodes = 10, MetachainConsensusGroupSize = 10, MetachainMinNumNodes = 10, Hysteresis = 0.2, Adaptivity = false, Offset = 0 },

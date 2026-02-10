@@ -58,6 +58,11 @@ func (mp *metaProcessor) CreateNewHeaderProposal(round uint64, nonce uint64) (da
 		return nil, err
 	}
 
+	err = mp.checkShardInfoProposalNonceGap(metaHeader)
+	if err != nil {
+		return nil, err
+	}
+
 	err = metaHeader.SetEpochStartHandler(&block.EpochStart{})
 	if err != nil {
 		return nil, err
@@ -245,6 +250,11 @@ func (mp *metaProcessor) VerifyBlockProposal(
 		return err
 	}
 
+	err = mp.checkShardInfoProposalNonceGap(header)
+	if err != nil {
+		return err
+	}
+
 	mp.updateMetrics(header)
 
 	mp.missingDataResolver.Reset()
@@ -426,6 +436,52 @@ func (mp *metaProcessor) ProcessBlockProposal(
 	}
 
 	return execResult, nil
+}
+
+func (mp *metaProcessor) checkShardInfoProposalNonceGap(metaHeader data.MetaHeaderHandler) error {
+	// Get highest finalized nonce per shard from ShardInfoHandlers
+	shardDataFinalizedNonces := make(map[uint32]uint64)
+	for _, shardData := range metaHeader.GetShardInfoHandlers() {
+		shardID := shardData.GetShardID()
+		nonce := shardData.GetNonce()
+
+		if existing, found := shardDataFinalizedNonces[shardID]; !found || nonce > existing {
+			shardDataFinalizedNonces[shardID] = nonce
+		}
+	}
+
+	// Get highest proposed nonce per shard from ShardInfoProposalHandlers
+	shardDataProposedNonces := make(map[uint32]uint64)
+	for _, shardProposalData := range metaHeader.GetShardInfoProposalHandlers() {
+		shardID := shardProposalData.GetShardID()
+		nonce := shardProposalData.GetNonce()
+
+		if existing, found := shardDataProposedNonces[shardID]; !found || nonce > existing {
+			shardDataProposedNonces[shardID] = nonce
+		}
+	}
+
+	// Check nonce gaps for each shard
+	for shardID, maxProposedNonce := range shardDataProposedNonces {
+		lastFinalizedNonce, found := shardDataFinalizedNonces[shardID]
+		if !found {
+			// No finalized data for this shard, skip validation
+			continue
+		}
+
+		nonceGap := maxProposedNonce - lastFinalizedNonce
+		if nonceGap > mp.maxShardInfoProposalNonceGap {
+			return fmt.Errorf("%w: shard %d has nonce gap of %d between finalized nonce %d and proposed nonce %d, max allowed gap is %d",
+				process.ErrNonceGapTooLarge,
+				shardID,
+				nonceGap,
+				lastFinalizedNonce,
+				maxProposedNonce,
+				mp.maxShardInfoProposalNonceGap)
+		}
+	}
+
+	return nil
 }
 
 func (mp *metaProcessor) processEpochStartProposeBlock(
