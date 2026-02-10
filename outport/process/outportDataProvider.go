@@ -14,6 +14,7 @@ import (
 	"github.com/multiversx/mx-chain-core-go/data/receipt"
 	"github.com/multiversx/mx-chain-core-go/data/rewardTx"
 	"github.com/multiversx/mx-chain-core-go/data/smartContractResult"
+	"github.com/multiversx/mx-chain-core-go/data/stateChange"
 	"github.com/multiversx/mx-chain-core-go/data/transaction"
 	"github.com/multiversx/mx-chain-core-go/hashing"
 	"github.com/multiversx/mx-chain-core-go/marshal"
@@ -162,7 +163,7 @@ func (odp *outportDataProvider) PrepareOutportSaveBlockData(arg ArgPrepareOutpor
 		return nil, err
 	}
 
-	stateAccessesForBlock := odp.getStateAccessesForBlock(arg.Header, arg.HeaderHash, arg.ScheduledRootHash)
+	stateAccessesForBlock, stateAccessesDeprecated := odp.getStateAccesses(arg.Header, arg.ScheduledRootHash)
 	outportBlock := &outportcore.OutportBlockWithHeaderAndBody{
 		OutportBlock: &outportcore.OutportBlock{
 			ShardID:         odp.shardID,
@@ -174,6 +175,7 @@ func (odp *outportDataProvider) PrepareOutportSaveBlockData(arg ArgPrepareOutpor
 				GasPenalized:   odp.gasConsumedProvider.TotalGasPenalized(),
 				MaxGasPerBlock: odp.economicsData.MaxGasLimitPerBlock(odp.shardID),
 			},
+			StateAccesses:          stateAccessesDeprecated,
 			StateAccessesForBlock:  stateAccessesForBlock,
 			AlteredAccounts:        alteredAccounts,
 			NotarizedHeadersHashes: arg.NotarizedHeadersHashes,
@@ -206,12 +208,10 @@ func (odp *outportDataProvider) PrepareOutportSaveBlockData(arg ArgPrepareOutpor
 	return outportBlock, nil
 }
 
-func (odp *outportDataProvider) getStateAccessesForBlock(
+func (odp *outportDataProvider) getStateAccesses(
 	header data.HeaderHandler,
-	headerHash []byte,
 	scheduledRootHash []byte,
-) map[string]*outportcore.StateAccessesForBlock {
-	stateAccessesForBlock := make(map[string]*outportcore.StateAccessesForBlock)
+) (map[string]*outportcore.StateAccessesForBlock, map[string]*stateChange.StateAccesses) {
 	if !header.IsHeaderV3() {
 		rootHash := header.GetRootHash()
 		if len(scheduledRootHash) != 0 && !bytes.Equal(rootHash, scheduledRootHash) {
@@ -219,25 +219,25 @@ func (odp *outportDataProvider) getStateAccessesForBlock(
 		}
 
 		stateAccesses := odp.getStateAccessForRootHash(rootHash)
-		stateAccessesForBlock[hex.EncodeToString(headerHash)] = stateAccesses
-		return stateAccessesForBlock
+		return nil, stateAccesses
 	}
 
+	stateAccessesForBlock := make(map[string]*outportcore.StateAccessesForBlock)
 	executionResults := header.GetExecutionResultsHandlers()
 	for _, execResult := range executionResults {
 		stateAccesses := odp.getStateAccessForRootHash(execResult.GetRootHash())
-		stateAccessesForBlock[hex.EncodeToString(execResult.GetHeaderHash())] = stateAccesses
+		stateAccessesForBlock[hex.EncodeToString(execResult.GetHeaderHash())] = &outportcore.StateAccessesForBlock{StateAccesses: stateAccesses}
 	}
-	return stateAccessesForBlock
+	return stateAccessesForBlock, nil
 }
 
-func (odp *outportDataProvider) getStateAccessForRootHash(rootHash []byte) *outportcore.StateAccessesForBlock {
+func (odp *outportDataProvider) getStateAccessForRootHash(rootHash []byte) map[string]*stateChange.StateAccesses {
 	stateAccessesMap := odp.stateAccessesCollector.GetStateAccessesForRootHash(rootHash)
 	if len(stateAccessesMap) == 0 {
 		return nil
 	}
 	odp.stateAccessesCollector.RemoveStateAccessesForRootHash(rootHash)
-	return &outportcore.StateAccessesForBlock{StateAccesses: stateAccessesMap}
+	return stateAccessesMap
 }
 
 func (odp *outportDataProvider) prepareExecutionResultsData(args ArgPrepareOutportSaveBlockData) (map[string]*outportcore.ExecutionResultData, error) {
