@@ -363,6 +363,8 @@ func (ps *PruningStorer) Put(key, data []byte) error {
 	ps.cacher.Put(key, data, len(data))
 
 	persisterToUse := ps.getPersisterToUse()
+	
+	log.Debug("put hash in epoch", "key", key, "epoch", persisterToUse.epoch, "identifier", ps.identifier)
 
 	return ps.doPutInPersister(key, data, persisterToUse.getPersister(), persisterToUse.epoch)
 }

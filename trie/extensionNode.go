@@ -226,6 +226,7 @@ func (en *extensionNode) commitSnapshot(
 	}
 
 	encChild, foundInEpoch, err := db.GetFromOldEpochsWithoutAddingToCache(en.EncodedChild, maxEpochToSearchFrom)
+	log.Trace("hash lookup during snapshot", "hash", en.EncodedChild, "foundInEpoch", foundInEpoch, "maxEpochToSearchFrom", maxEpochToSearchFrom)
 	if err != nil {
 		treatLogError(log, err, en.EncodedChild)
 
