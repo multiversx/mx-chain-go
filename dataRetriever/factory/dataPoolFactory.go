@@ -168,6 +168,14 @@ func NewDataPoolFromConfig(args ArgsDataPool) (dataRetriever.PoolsHolder, error)
 		return nil, fmt.Errorf("%w while creating the cache for the post process transactions", err)
 	}
 
+	directSentTransactionsCache, err := cache.NewTimeCacher(cache.ArgTimeCacher{
+		DefaultSpan: time.Duration(mainConfig.DirectSentTransactions.CacheSpanInSec) * time.Second,
+		CacheExpiry: time.Duration(mainConfig.DirectSentTransactions.CacheExpiryInSec) * time.Second,
+	})
+	if err != nil {
+		return nil, fmt.Errorf("%w while creating the cache for the direct sent transactions", err)
+	}
+
 	dataPoolArgs := dataPool.DataPoolArgs{
 		Transactions:              txPool,
 		UnsignedTransactions:      uTxPool,
@@ -186,6 +194,7 @@ func NewDataPoolFromConfig(args ArgsDataPool) (dataRetriever.PoolsHolder, error)
 		Proofs:                    proofsPool,
 		ExecutedMiniBlocks:        executedMiniBlocksCache,
 		PostProcessTransactions:   postProcessTransactionsCache,
+		DirectSentTransactions:    directSentTransactionsCache,
 	}
 	return dataPool.NewDataPool(dataPoolArgs)
 }

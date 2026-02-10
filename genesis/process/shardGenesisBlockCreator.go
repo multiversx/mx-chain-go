@@ -25,6 +25,7 @@ import (
 	"github.com/multiversx/mx-chain-go/genesis/process/disabled"
 	"github.com/multiversx/mx-chain-go/genesis/process/intermediate"
 	"github.com/multiversx/mx-chain-go/process"
+	"github.com/multiversx/mx-chain-go/process/aotSelection"
 	"github.com/multiversx/mx-chain-go/process/block"
 	"github.com/multiversx/mx-chain-go/process/block/preprocess"
 	"github.com/multiversx/mx-chain-go/process/coordinator"
@@ -589,6 +590,7 @@ func createProcessorsForShardGenesisBlock(arg ArgsGenesisBlockCreator, enableEpo
 		GasHandler:                        gasHandler,
 		BlockCapacityOverestimationFactor: arg.FeeSettings.BlockCapacityOverestimationFactor,
 		PercentDecreaseLimitsStep:         arg.FeeSettings.PercentDecreaseLimitsStep,
+		BlockSizeComputation:              disabledBlockSizeComputationHandler,
 	}
 	gasConsumption, err := block.NewGasConsumption(argsGasConsumption)
 	if err != nil {
@@ -623,6 +625,7 @@ func createProcessorsForShardGenesisBlock(arg ArgsGenesisBlockCreator, enableEpo
 		ProcessedMiniBlocksTracker:   disabledProcessedMiniBlocksTracker,
 		TxExecutionOrderHandler:      arg.TxExecutionOrderHandler,
 		TxCacheSelectionConfig:       arg.TxCacheSelectionConfig,
+		TxVersionChecker:             arg.Core.TxVersionChecker(),
 	}
 	preProcFactory, err := shard.NewPreProcessorsContainerFactory(argsPreProcessorContainerFactory)
 	if err != nil {
@@ -682,6 +685,7 @@ func createProcessorsForShardGenesisBlock(arg ArgsGenesisBlockCreator, enableEpo
 		BlockDataRequester:           blockDataRequester,
 		BlockDataRequesterProposal:   blockDataRequester, // no need for a different one in genesis
 		GasComputation:               gasConsumption,
+		AOTSelector:                  aotSelection.NewDisabledAOTSelector(),
 	}
 	txCoordinator, err := coordinator.NewTransactionCoordinator(argsTransactionCoordinator)
 	if err != nil {

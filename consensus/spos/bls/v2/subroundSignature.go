@@ -10,6 +10,7 @@ import (
 	"github.com/multiversx/mx-chain-core-go/core"
 	atomicCore "github.com/multiversx/mx-chain-core-go/core/atomic"
 	"github.com/multiversx/mx-chain-core-go/core/check"
+	commonConsensus "github.com/multiversx/mx-chain-go/common/consensus"
 
 	"github.com/multiversx/mx-chain-go/common"
 	"github.com/multiversx/mx-chain-go/consensus"
@@ -105,7 +106,7 @@ func (sr *subroundSignature) doSignatureJob(ctx context.Context) bool {
 		return false
 	}
 
-	isSelfSingleKeyInConsensusGroup := sr.IsNodeInConsensusGroup(sr.SelfPubKey()) && spos.ShouldConsiderSelfKeyInConsensus(sr.NodeRedundancyHandler())
+	isSelfSingleKeyInConsensusGroup := sr.IsNodeInConsensusGroup(sr.SelfPubKey()) && commonConsensus.ShouldConsiderSelfKeyInConsensus(sr.NodeRedundancyHandler())
 	if isSelfSingleKeyInConsensusGroup {
 		if !sr.doSignatureJobForSingleKey() {
 			return false

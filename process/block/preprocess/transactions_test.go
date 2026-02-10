@@ -266,6 +266,7 @@ func createDefaultTransactionsProcessorArgs() ArgsTransactionPreProcessor {
 			SelectionMaxNumTxs:                            30000,
 			SelectionLoopDurationCheckInterval:            10,
 		},
+		TxVersionCheckerHandler: &testscommon.TxVersionCheckerStub{},
 	}
 }
 
@@ -1734,65 +1735,141 @@ func TestTransactionsPreprocessor_ProcessMiniBlockShouldWork(t *testing.T) {
 			}
 		},
 	}
-	nbTxsProcessed := 0
-	maxBlockSize := 16
-	args := createDefaultTransactionsProcessorArgs()
-	args.TxProcessor = &testscommon.TxProcessorMock{
-		ProcessTransactionCalled: func(transaction *transaction.Transaction) (vmcommon.ReturnCode, error) {
-			nbTxsProcessed++
-			return vmcommon.Ok, nil
-		},
-	}
-	args.BlockSizeComputation = &testscommon.BlockSizeComputationStub{
-		IsMaxBlockSizeWithoutThrottleReachedCalled: func(mbs int, txs int) bool {
-			return mbs+txs > maxBlockSize
-		},
-	}
-	args.DataPool = tdp.Transactions()
-	txs, err := NewTransactionPreprocessor(args)
 
-	assert.NotNil(t, txs)
-	assert.Nil(t, err)
-
-	txHashes := make([][]byte, 0)
-	txHashes = append(txHashes, []byte("tx_hash1"), []byte("tx_hash2"), []byte("tx_hash3"))
-
-	miniBlock := &block.MiniBlock{
-		ReceiverShardID: 0,
-		SenderShardID:   1,
-		TxHashes:        txHashes,
-		Type:            block.TxBlock,
-	}
-
-	f := func() (int, int) {
-		if nbTxsProcessed == 0 {
-			return 0, 0
+	t.Run("no async execution", func(t *testing.T) {
+		nbTxsProcessed := 0
+		maxBlockSize := 16
+		args := createDefaultTransactionsProcessorArgs()
+		args.TxProcessor = &testscommon.TxProcessorMock{
+			ProcessTransactionCalled: func(transaction *transaction.Transaction) (vmcommon.ReturnCode, error) {
+				nbTxsProcessed++
+				return vmcommon.Ok, nil
+			},
 		}
-		return nbTxsProcessed + 1, nbTxsProcessed * common.AdditionalScrForEachScCallOrSpecialTx
-	}
-	preProcessorExecutionInfoHandlerMock := &testscommon.PreProcessorExecutionInfoHandlerMock{
-		GetNumOfCrossInterMbsAndTxsCalled: f,
-	}
-	txsToBeReverted, indexOfLastTxProcessed, _, err := txs.ProcessMiniBlock(miniBlock, haveTimeTrue, haveAdditionalTimeFalse, false, false, -1, preProcessorExecutionInfoHandlerMock)
-
-	assert.Equal(t, process.ErrMaxBlockSizeReached, err)
-	assert.Equal(t, 3, len(txsToBeReverted))
-	assert.Equal(t, 2, indexOfLastTxProcessed)
-
-	f = func() (int, int) {
-		if nbTxsProcessed == 0 {
-			return 0, 0
+		args.BlockSizeComputation = &testscommon.BlockSizeComputationStub{
+			IsMaxBlockSizeWithoutThrottleReachedCalled: func(mbs int, txs int) bool {
+				return mbs+txs > maxBlockSize
+			},
 		}
-		return nbTxsProcessed, nbTxsProcessed * common.AdditionalScrForEachScCallOrSpecialTx
-	}
-	preProcessorExecutionInfoHandlerMock = &testscommon.PreProcessorExecutionInfoHandlerMock{
-		GetNumOfCrossInterMbsAndTxsCalled: f,
-	}
-	txsToBeReverted, indexOfLastTxProcessed, _, err = txs.ProcessMiniBlock(miniBlock, haveTimeTrue, haveAdditionalTimeFalse, false, false, -1, preProcessorExecutionInfoHandlerMock)
+		args.DataPool = tdp.Transactions()
+		txs, err := NewTransactionPreprocessor(args)
 
-	assert.Nil(t, err)
-	assert.Equal(t, 0, len(txsToBeReverted))
-	assert.Equal(t, 2, indexOfLastTxProcessed)
+		assert.NotNil(t, txs)
+		assert.Nil(t, err)
+
+		txHashes := make([][]byte, 0)
+		txHashes = append(txHashes, []byte("tx_hash1"), []byte("tx_hash2"), []byte("tx_hash3"))
+
+		miniBlock := &block.MiniBlock{
+			ReceiverShardID: 0,
+			SenderShardID:   1,
+			TxHashes:        txHashes,
+			Type:            block.TxBlock,
+		}
+
+		f := func() (int, int) {
+			if nbTxsProcessed == 0 {
+				return 0, 0
+			}
+			return nbTxsProcessed + 1, nbTxsProcessed * common.AdditionalScrForEachScCallOrSpecialTx
+		}
+		preProcessorExecutionInfoHandlerMock := &testscommon.PreProcessorExecutionInfoHandlerMock{
+			GetNumOfCrossInterMbsAndTxsCalled: f,
+		}
+		txsToBeReverted, indexOfLastTxProcessed, _, err := txs.ProcessMiniBlock(miniBlock, haveTimeTrue, haveAdditionalTimeFalse, false, false, -1, preProcessorExecutionInfoHandlerMock)
+
+		assert.Equal(t, process.ErrMaxBlockSizeReached, err)
+		assert.Equal(t, 3, len(txsToBeReverted))
+		assert.Equal(t, 2, indexOfLastTxProcessed)
+
+		f = func() (int, int) {
+			if nbTxsProcessed == 0 {
+				return 0, 0
+			}
+			return nbTxsProcessed, nbTxsProcessed * common.AdditionalScrForEachScCallOrSpecialTx
+		}
+		preProcessorExecutionInfoHandlerMock = &testscommon.PreProcessorExecutionInfoHandlerMock{
+			GetNumOfCrossInterMbsAndTxsCalled: f,
+		}
+		txsToBeReverted, indexOfLastTxProcessed, _, err = txs.ProcessMiniBlock(miniBlock, haveTimeTrue, haveAdditionalTimeFalse, false, false, -1, preProcessorExecutionInfoHandlerMock)
+
+		assert.Nil(t, err)
+		assert.Equal(t, 0, len(txsToBeReverted))
+		assert.Equal(t, 2, indexOfLastTxProcessed)
+	})
+
+	t.Run("with async execution", func(t *testing.T) {
+		nbTxsProcessed := 0
+		args := createDefaultTransactionsProcessorArgs()
+		args.TxProcessor = &testscommon.TxProcessorMock{
+			ProcessTransactionCalled: func(transaction *transaction.Transaction) (vmcommon.ReturnCode, error) {
+				nbTxsProcessed++
+				return vmcommon.Ok, nil
+			},
+		}
+		args.BlockSizeComputation = &testscommon.BlockSizeComputationStub{
+			IsMaxBlockSizeWithoutThrottleReachedCalled: func(mbs int, txs int) bool {
+				require.Fail(t, "should not have been called")
+				return false
+			},
+		}
+		args.DataPool = tdp.Transactions()
+		args.EnableEpochsHandler = &enableEpochsHandlerMock.EnableEpochsHandlerStub{
+			IsFlagEnabledCalled: func(flag core.EnableEpochFlag) bool {
+				return true
+			},
+		}
+		args.EnableRoundsHandler = &testscommon.EnableRoundsHandlerStub{
+			IsFlagEnabledCalled: func(flag common.EnableRoundFlag) bool {
+				return true
+			},
+		}
+
+		txs, err := NewTransactionPreprocessor(args)
+
+		assert.NotNil(t, txs)
+		assert.Nil(t, err)
+
+		txHashes := make([][]byte, 0)
+		txHashes = append(txHashes, []byte("tx_hash1"), []byte("tx_hash2"), []byte("tx_hash3"))
+
+		miniBlock := &block.MiniBlock{
+			ReceiverShardID: 0,
+			SenderShardID:   1,
+			TxHashes:        txHashes,
+			Type:            block.TxBlock,
+		}
+
+		f := func() (int, int) {
+			if nbTxsProcessed == 0 {
+				return 0, 0
+			}
+			return nbTxsProcessed + 1, nbTxsProcessed * common.AdditionalScrForEachScCallOrSpecialTx
+		}
+		preProcessorExecutionInfoHandlerMock := &testscommon.PreProcessorExecutionInfoHandlerMock{
+			GetNumOfCrossInterMbsAndTxsCalled: f,
+		}
+		txsToBeReverted, indexOfLastTxProcessed, _, err := txs.ProcessMiniBlock(miniBlock, haveTimeTrue, haveAdditionalTimeFalse, false, false, -1, preProcessorExecutionInfoHandlerMock)
+
+		assert.Nil(t, err)
+		assert.Equal(t, 0, len(txsToBeReverted))
+		assert.Equal(t, 2, indexOfLastTxProcessed)
+
+		f = func() (int, int) {
+			if nbTxsProcessed == 0 {
+				return 0, 0
+			}
+			return nbTxsProcessed, nbTxsProcessed * common.AdditionalScrForEachScCallOrSpecialTx
+		}
+		preProcessorExecutionInfoHandlerMock = &testscommon.PreProcessorExecutionInfoHandlerMock{
+			GetNumOfCrossInterMbsAndTxsCalled: f,
+		}
+		txsToBeReverted, indexOfLastTxProcessed, _, err = txs.ProcessMiniBlock(miniBlock, haveTimeTrue, haveAdditionalTimeFalse, false, false, -1, preProcessorExecutionInfoHandlerMock)
+
+		assert.Nil(t, err)
+		assert.Equal(t, 0, len(txsToBeReverted))
+		assert.Equal(t, 2, indexOfLastTxProcessed)
+	})
 }
 
 func TestTransactionsPreprocessor_ProcessMiniBlockShouldErrMaxGasLimitUsedForDestMeTxsIsReached(t *testing.T) {

@@ -15,7 +15,6 @@ import (
 	"github.com/multiversx/mx-chain-go/process/sync"
 	"github.com/multiversx/mx-chain-go/testscommon"
 	"github.com/multiversx/mx-chain-go/testscommon/chainParameters"
-	"github.com/multiversx/mx-chain-go/testscommon/dataRetriever"
 	dataRetrieverMock "github.com/multiversx/mx-chain-go/testscommon/dataRetriever"
 	"github.com/multiversx/mx-chain-go/testscommon/enableEpochsHandlerMock"
 
@@ -354,7 +353,7 @@ func TestShardForkDetector_ComputeGenesisTimeFromHeader(t *testing.T) {
 				},
 			},
 			&testscommon.EnableRoundsHandlerStub{},
-			&dataRetriever.ProofsPoolMock{},
+			&dataRetrieverMock.ProofsPoolMock{},
 			&chainParameters.ChainParametersHandlerStub{
 				ChainParametersForEpochCalled: func(epoch uint32) (config.ChainParametersByEpochConfig, error) {
 					return config.ChainParametersByEpochConfig{
@@ -391,7 +390,7 @@ func TestShardForkDetector_ComputeGenesisTimeFromHeader(t *testing.T) {
 				},
 			},
 			&testscommon.EnableRoundsHandlerStub{},
-			&dataRetriever.ProofsPoolMock{},
+			&dataRetrieverMock.ProofsPoolMock{},
 			&chainParameters.ChainParametersHandlerStub{
 				ChainParametersForEpochCalled: func(epoch uint32) (config.ChainParametersByEpochConfig, error) {
 					return config.ChainParametersByEpochConfig{}, expErr
@@ -431,7 +430,7 @@ func TestShardForkDetector_ComputeGenesisTimeFromHeader(t *testing.T) {
 					return flag != common.SupernovaRoundFlag
 				},
 			},
-			&dataRetriever.ProofsPoolMock{},
+			&dataRetrieverMock.ProofsPoolMock{},
 			&chainParameters.ChainParametersHandlerStub{
 				ChainParametersForEpochCalled: func(epoch uint32) (config.ChainParametersByEpochConfig, error) {
 					return config.ChainParametersByEpochConfig{
@@ -478,7 +477,7 @@ func TestShardForkDetector_ComputeGenesisTimeFromHeader(t *testing.T) {
 					return flag != common.SupernovaRoundFlag
 				},
 			},
-			&dataRetriever.ProofsPoolMock{},
+			&dataRetrieverMock.ProofsPoolMock{},
 			&chainParameters.ChainParametersHandlerStub{
 				ChainParametersForEpochCalled: func(epoch uint32) (config.ChainParametersByEpochConfig, error) {
 					return config.ChainParametersByEpochConfig{}, expErr
@@ -525,7 +524,7 @@ func TestShardForkDetector_ComputeGenesisTimeFromHeader(t *testing.T) {
 					return supernovaActivationRound
 				},
 			},
-			&dataRetriever.ProofsPoolMock{},
+			&dataRetrieverMock.ProofsPoolMock{},
 			&chainParameters.ChainParametersHandlerStub{
 				ChainParametersForEpochCalled: func(epoch uint32) (config.ChainParametersByEpochConfig, error) {
 					return config.ChainParametersByEpochConfig{

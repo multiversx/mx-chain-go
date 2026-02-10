@@ -1,12 +1,16 @@
 package mempool
 
 import (
+	"encoding/hex"
 	"fmt"
 	"math"
 	"math/big"
 	"testing"
 	"time"
 
+	"github.com/multiversx/mx-chain-core-go/core"
+	"github.com/multiversx/mx-chain-core-go/data"
+	"github.com/multiversx/mx-chain-core-go/data/api"
 	"github.com/multiversx/mx-chain-core-go/data/block"
 	"github.com/multiversx/mx-chain-core-go/data/transaction"
 	"github.com/stretchr/testify/require"
@@ -1741,7 +1745,7 @@ func Test_SimulateSelection_ShouldNotRemoveProposedBlocks(t *testing.T) {
 	require.Equal(t, txpool.CountTx(), uint64(numTxs))
 
 	// do the first selection
-	selectedTransactions, _, err := txpool.SimulateSelectTransactions(selectionSession, options)
+	selectedTransactions, _, err := txpool.SimulateSelectTransactions(selectionSession, options, 0)
 	require.Nil(t, err)
 	require.Equal(t, numTxsPerSender, len(selectedTransactions))
 
@@ -1758,7 +1762,7 @@ func Test_SimulateSelection_ShouldNotRemoveProposedBlocks(t *testing.T) {
 	require.Nil(t, err)
 
 	// do the second selection
-	selectedTransactions, _, err = txpool.SimulateSelectTransactions(selectionSession, options)
+	selectedTransactions, _, err = txpool.SimulateSelectTransactions(selectionSession, options, 0)
 	require.Nil(t, err)
 	require.Equal(t, numTxsPerSender, len(selectedTransactions))
 
@@ -1775,7 +1779,7 @@ func Test_SimulateSelection_ShouldNotRemoveProposedBlocks(t *testing.T) {
 	require.Nil(t, err)
 
 	// because it is only a simulation, we should have only one more non-empty selection.
-	selectedTransactions, _, err = txpool.SimulateSelectTransactions(selectionSession, options)
+	selectedTransactions, _, err = txpool.SimulateSelectTransactions(selectionSession, options, 0)
 	require.Nil(t, err)
 	require.Equal(t, numTxsPerSender, len(selectedTransactions))
 
@@ -1793,7 +1797,7 @@ func Test_SimulateSelection_ShouldNotRemoveProposedBlocks(t *testing.T) {
 
 	// now, do the last selection and expect an empty one
 	// used a lower nonce to highlight that the proposed blocks will not be removed
-	selectedTransactions, _, err = txpool.SimulateSelectTransactions(selectionSession, options)
+	selectedTransactions, _, err = txpool.SimulateSelectTransactions(selectionSession, options, 0)
 	require.Nil(t, err)
 	require.Equal(t, 0, len(selectedTransactions))
 }
@@ -2589,4 +2593,305 @@ func Test_SelectionWithAliceSenderAndThenRelayerOnDifferentTxs(t *testing.T) {
 	selectedTransactions, _, err = txpool.SelectTransactions(selectionSession, options, 2)
 	require.Nil(t, err)
 	require.Len(t, selectedTransactions, 0)
+}
+
+func TestMempoolWithChainSimulator_Selection_InstantChangeGuardian(t *testing.T) {
+	if testing.Short() {
+		t.Skip("this is not a short test")
+	}
+
+	numSenders := 2
+	shard := 0
+
+	simulator := startChainSimulator(t, func(cfg *config.Configs) {})
+	defer simulator.Close()
+
+	err := simulator.GenerateBlocksUntilEpochIsReached(2)
+	require.NoError(t, err)
+
+	participants := createParticipants(t, simulator, numSenders)
+	noncesTracker := newNoncesTracker()
+
+	alice := participants.sendersByShard[shard][0]
+	bob := participants.sendersByShard[shard][1]
+	receiver := participants.receiverByShard[shard]
+
+	transactions := make([]*transaction.Transaction, 0)
+
+	// Guard Alice's account
+	setGuardianTxData := "SetGuardian@" + hex.EncodeToString(bob.Bytes) + "@" + hex.EncodeToString([]byte("uuid"))
+	setGuardianTx := &transaction.Transaction{
+		Nonce:     noncesTracker.getThenIncrementNonce(alice),
+		Value:     big.NewInt(0),
+		SndAddr:   alice.Bytes,
+		RcvAddr:   alice.Bytes,
+		Data:      []byte(setGuardianTxData),
+		GasLimit:  600_000,
+		GasPrice:  1_000_000_000,
+		ChainID:   []byte(configs.ChainID),
+		Version:   2,
+		Signature: []byte("signature"),
+	}
+	_, err = simulator.SendTxAndGenerateBlockTilTxIsExecuted(setGuardianTx, 10)
+	require.NoError(t, err)
+
+	// fast-forward until the guardian becomes active
+	err = simulator.GenerateBlocks(int(simulator.GetNodeHandler(uint32(shard)).GetCoreComponents().ChainParametersHandler().CurrentChainParameters().RoundsPerEpoch * 20))
+	require.NoError(t, err)
+
+	guardAccountTx := &transaction.Transaction{
+		Nonce:     noncesTracker.getThenIncrementNonce(alice),
+		Value:     big.NewInt(0),
+		SndAddr:   alice.Bytes,
+		RcvAddr:   alice.Bytes,
+		Data:      []byte("GuardAccount"),
+		GasLimit:  400_000,
+		GasPrice:  1_000_000_000,
+		ChainID:   []byte(configs.ChainID),
+		Version:   2,
+		Signature: []byte("signature"),
+	}
+	_, err = simulator.SendTxAndGenerateBlockTilTxIsExecuted(guardAccountTx, 10)
+	require.NoError(t, err)
+
+	guardianData, _, err := simulator.GetNodeHandler(uint32(shard)).GetFacadeHandler().GetGuardianData(alice.Bech32, api.AccountQueryOptions{})
+	require.NoError(t, err)
+
+	require.NotNil(t, guardianData)
+	require.True(t, guardianData.Guarded)
+	require.NotNil(t, guardianData.ActiveGuardian)
+	require.Equal(t, bob.Bech32, guardianData.ActiveGuardian.Address)
+
+	// Transfer from Alice to receiver -> should be selected
+	transactions = append(transactions, &transaction.Transaction{
+		Nonce:             noncesTracker.getThenIncrementNonce(alice),
+		Value:             oneQuarterOfEGLD,
+		SndAddr:           alice.Bytes,
+		RcvAddr:           receiver.Bytes,
+		Data:              []byte{},
+		GasLimit:          100_000,
+		GasPrice:          1_000_000_002,
+		ChainID:           []byte(configs.ChainID),
+		Version:           2,
+		Signature:         []byte("signature"),
+		GuardianAddr:      bob.Bytes,
+		GuardianSignature: []byte("signature"),
+		Options:           2,
+	})
+
+	// Change guardian -> should be selected
+	setGuardianTxData = "SetGuardian@" + hex.EncodeToString(receiver.Bytes) + "@" + hex.EncodeToString([]byte("uuid"))
+	transactions = append(transactions, &transaction.Transaction{
+		Nonce:             noncesTracker.getThenIncrementNonce(alice),
+		Value:             big.NewInt(0),
+		SndAddr:           alice.Bytes,
+		RcvAddr:           alice.Bytes,
+		Data:              []byte(setGuardianTxData),
+		GasLimit:          600_000,
+		GasPrice:          1_000_000_002,
+		ChainID:           []byte(configs.ChainID),
+		Version:           2,
+		Signature:         []byte("signature"),
+		GuardianAddr:      bob.Bytes,
+		GuardianSignature: []byte("signature"),
+		Options:           2,
+	})
+
+	// Transfer from Alice to receiver -> should NOT be selected
+	transactions = append(transactions, &transaction.Transaction{
+		Nonce:             noncesTracker.getThenIncrementNonce(alice),
+		Value:             oneQuarterOfEGLD,
+		SndAddr:           alice.Bytes,
+		RcvAddr:           receiver.Bytes,
+		Data:              []byte{},
+		GasLimit:          100_000,
+		GasPrice:          1_000_000_002,
+		ChainID:           []byte(configs.ChainID),
+		Version:           2,
+		Signature:         []byte("signature"),
+		GuardianAddr:      bob.Bytes, // guarded by the old guardian
+		GuardianSignature: []byte("signature"),
+		Options:           2,
+	})
+
+	sendTransactions(t, simulator, transactions)
+	time.Sleep(durationWaitAfterSendSome)
+	require.Equal(t, 3, getNumTransactionsInPool(simulator, shard))
+
+	// Propose the header with initial 2 transactions
+	err = simulator.GenerateBlocks(1)
+	require.NoError(t, err)
+
+	currentHeader := simulator.GetNodeHandler(uint32(shard)).GetDataComponents().Blockchain().GetCurrentBlockHeader()
+	require.Equal(t, uint32(2), currentHeader.GetTxCount())
+
+	// Propose one more header, will select the 3rd transaction
+	err = simulator.GenerateBlocks(1)
+	require.NoError(t, err)
+
+	currentHeader = simulator.GetNodeHandler(uint32(shard)).GetDataComponents().Blockchain().GetCurrentBlockHeader()
+	require.Equal(t, uint32(1), currentHeader.GetTxCount())
+
+	require.Equal(t, 1, getNumTransactionsInPool(simulator, shard))
+
+	// Propose one more header, should not select anything (empty pool)
+	err = simulator.GenerateBlocks(1)
+	require.NoError(t, err)
+
+	currentHeader = simulator.GetNodeHandler(uint32(shard)).GetDataComponents().Blockchain().GetCurrentBlockHeader()
+	require.Equal(t, uint32(0), currentHeader.GetTxCount())
+
+	require.Equal(t, 0, getNumTransactionsInPool(simulator, shard))
+}
+
+func TestMempoolWithChainSimulator_Selection_InstantChangeGuardian_ReplaceHeader(t *testing.T) {
+	t.Parallel()
+
+	host := txcachemocks.NewMempoolHostMock()
+	txpool, err := txcache.NewTxCache(configSourceMe, host, 0)
+
+	require.Nil(t, err)
+	require.NotNil(t, txpool)
+
+	// calculate the fee for transfer
+	accounts := map[string]*stateMock.UserAccountStub{
+		"alice": {
+			// alice has enough balance for transactions
+			Balance: core.SafeMul(oneEGLD.Uint64(), 100),
+			Nonce:   0,
+		},
+		"bob": {
+			Balance: big.NewInt(0),
+			Nonce:   0,
+		},
+		"receiver": {
+			Balance: big.NewInt(0),
+			Nonce:   0,
+		},
+	}
+
+	selectionSession := txcachemocks.NewSelectionSessionMockWithAccounts(accounts)
+	// all transactions are correctly guarded, except the last one
+	selectionSession.IsGuardedCalled = func(tx data.TransactionHandler) bool {
+		return true
+	}
+	selectionSession.IsIncorrectlyGuardedCalled = func(tx data.TransactionHandler) bool {
+		return tx.GetNonce() == 4
+	}
+	// keep the same root hash with the one used on the OnExecutedBlock to avoid root hash mismatch on selection
+	selectionSession.GetRootHashCalled = func() ([]byte, error) {
+		return []byte(testRootHash), nil
+	}
+
+	accountsProvider := txcachemocks.NewAccountNonceAndBalanceProviderMockWithAccounts(accounts)
+	accountsProvider.GetRootHashCalled = func() ([]byte, error) {
+		return []byte(testRootHash), nil
+	}
+
+	err = txpool.OnExecutedBlock(&block.Header{
+		Nonce: 0,
+	}, []byte(testRootHash))
+	require.Nil(t, err)
+
+	nonceTracker := newNoncesTracker()
+
+	// Transfer from Alice to receiver -> should be selected
+	tx1 := &transaction.Transaction{
+		Nonce:             nonceTracker.getThenIncrementNonceByStringAddress("alice"),
+		Value:             oneQuarterOfEGLD,
+		SndAddr:           []byte("alice"),
+		RcvAddr:           []byte("receiver"),
+		Data:              []byte{},
+		GasLimit:          100_000,
+		GasPrice:          1_000_000_000,
+		ChainID:           []byte(configs.ChainID),
+		Version:           2,
+		Signature:         []byte("signature"),
+		GuardianAddr:      []byte("bob"),
+		GuardianSignature: []byte("signature"),
+		Options:           2,
+	}
+	txpool.AddTx(&txcache.WrappedTransaction{
+		Tx:     tx1,
+		TxHash: []byte("txHash1"),
+	})
+
+	// Change guardian -> should be selected
+	setGuardianTxData := "SetGuardian@" + hex.EncodeToString([]byte("receiver")) + "@" + hex.EncodeToString([]byte("uuid"))
+	tx2 := &transaction.Transaction{
+		Nonce:             nonceTracker.getThenIncrementNonceByStringAddress("alice"),
+		Value:             big.NewInt(0),
+		SndAddr:           []byte("alice"),
+		RcvAddr:           []byte("alice"),
+		Data:              []byte(setGuardianTxData),
+		GasLimit:          600_000,
+		GasPrice:          1_000_000_000,
+		ChainID:           []byte(configs.ChainID),
+		Version:           2,
+		Signature:         []byte("signature"),
+		GuardianAddr:      []byte("bob"),
+		GuardianSignature: []byte("signature"),
+		Options:           2,
+	}
+	txpool.AddTx(&txcache.WrappedTransaction{
+		Tx:     tx2,
+		TxHash: []byte("txHash2"),
+	})
+
+	// Transfer from Alice to receiver -> should NOT be selected
+	tx3 := &transaction.Transaction{
+		Nonce:             nonceTracker.getThenIncrementNonceByStringAddress("alice"),
+		Value:             oneQuarterOfEGLD,
+		SndAddr:           []byte("alice"),
+		RcvAddr:           []byte("receiver"),
+		Data:              []byte{},
+		GasLimit:          100_000,
+		GasPrice:          1_000_000_000,
+		ChainID:           []byte(configs.ChainID),
+		Version:           2,
+		Signature:         []byte("signature"),
+		GuardianAddr:      []byte("bob"), // guarded by the old guardian
+		GuardianSignature: []byte("signature"),
+		Options:           2,
+	}
+	txpool.AddTx(&txcache.WrappedTransaction{
+		Tx:     tx3,
+		TxHash: []byte("txHash3"),
+	})
+
+	options, _ := holders.NewTxSelectionOptions(
+		10_000_000_000,
+		// select max 3 txs
+		3,
+		10,
+		haveTimeTrue,
+	)
+
+	// do the first selection
+	selectedTransactions, _, err := txpool.SelectTransactions(selectionSession, options, 1)
+	require.Nil(t, err)
+	require.Len(t, selectedTransactions, 2)
+	require.Equal(t, selectedTransactions[0].TxHash, []byte("txHash1"))
+	require.Equal(t, selectedTransactions[1].TxHash, []byte("txHash2"))
+
+	// propose the block
+	proposedBlock1 := createProposedBlock(selectedTransactions)
+	err = txpool.OnProposedBlock([]byte(testBlockHash1), proposedBlock1,
+		&block.Header{
+			Nonce:    1,
+			PrevHash: []byte(testBlockHash0),
+			RootHash: []byte(testRootHash),
+		},
+		accountsProvider,
+		defaultLatestExecutedHash,
+	)
+	require.Nil(t, err)
+
+	// do the second selection with the same block nonce
+	// should select the same txs
+	selectedTransactions, _, err = txpool.SelectTransactions(selectionSession, options, 1)
+	require.Nil(t, err)
+	require.Len(t, selectedTransactions, 2)
+	require.Equal(t, selectedTransactions[0].TxHash, []byte("txHash1"))
+	require.Equal(t, selectedTransactions[1].TxHash, []byte("txHash2"))
 }

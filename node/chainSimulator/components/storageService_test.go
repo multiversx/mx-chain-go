@@ -40,6 +40,7 @@ func TestCreateStore(t *testing.T) {
 		dataRetriever.ProofsUnit,
 		dataRetriever.ExecutionResultsUnit,
 		dataRetriever.UnitType(101), // shard 2
+		dataRetriever.StateAccessesUnit,
 	}
 
 	all := store.GetAllStorers()

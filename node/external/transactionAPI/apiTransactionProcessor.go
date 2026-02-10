@@ -53,6 +53,7 @@ type apiTransactionProcessor struct {
 	gasUsedAndFeeProcessor      *gasUsedAndFeeProcessor
 	enableEpochsHandler         common.EnableEpochsHandler
 	enableRoundsHandler         common.EnableRoundsHandler
+	txVersionChecker            process.TxVersionCheckerHandler
 }
 
 // NewAPITransactionProcessor will create a new instance of apiTransactionProcessor
@@ -108,6 +109,7 @@ func NewAPITransactionProcessor(args *ArgAPITransactionProcessor) (*apiTransacti
 		gasUsedAndFeeProcessor:      gasUsedAndFeeProc,
 		enableEpochsHandler:         args.EnableEpochsHandler,
 		enableRoundsHandler:         args.EnableRoundsHandler,
+		txVersionChecker:            args.TxVersionChecker,
 	}, nil
 }
 
@@ -446,10 +448,15 @@ func (atp *apiTransactionProcessor) extractRequestedTxInfo(wrappedTx *txcache.Wr
 }
 
 func (atp *apiTransactionProcessor) getFieldGettersForTx(wrappedTx *txcache.WrappedTransaction) map[string]interface{} {
+	senderAddr := ""
+	if len(wrappedTx.Tx.GetSndAddr()) != 0 {
+		senderAddr = atp.addressPubKeyConverter.SilentEncode(wrappedTx.Tx.GetSndAddr(), log)
+	}
+
 	var fieldGetters = map[string]interface{}{
 		hashField:        hex.EncodeToString(wrappedTx.TxHash),
 		nonceField:       wrappedTx.Tx.GetNonce(),
-		senderField:      atp.addressPubKeyConverter.SilentEncode(wrappedTx.Tx.GetSndAddr(), log),
+		senderField:      senderAddr,
 		receiverField:    atp.addressPubKeyConverter.SilentEncode(wrappedTx.Tx.GetRcvAddr(), log),
 		gasLimitField:    wrappedTx.Tx.GetGasLimit(),
 		gasPriceField:    wrappedTx.Tx.GetGasPrice(),
@@ -566,8 +573,9 @@ func (atp *apiTransactionProcessor) selectTransactions(accountsAdapter state.Acc
 	// TODO use the right object, not a disabled one
 	txProcessor := disabled.TxProcessor{}
 	argsSelectionSession := preprocess.ArgsSelectionSession{
-		AccountsAdapter:       accountsAdapter,
-		TransactionsProcessor: &txProcessor,
+		AccountsAdapter:         accountsAdapter,
+		TransactionsProcessor:   &txProcessor,
+		TxVersionCheckerHandler: atp.txVersionChecker,
 	}
 
 	selectionSession, err := preprocess.NewSelectionSession(argsSelectionSession)
@@ -576,7 +584,7 @@ func (atp *apiTransactionProcessor) selectTransactions(accountsAdapter state.Acc
 		return nil, err
 	}
 
-	selectedTxs, _, err := txCache.SimulateSelectTransactions(selectionSession, selectionOptions)
+	selectedTxs, _, err := txCache.SimulateSelectTransactions(selectionSession, selectionOptions, 0)
 	if err != nil {
 		log.Warn("apiTransactionProcessor.selectTransactions could not SelectTransactions")
 		return nil, err

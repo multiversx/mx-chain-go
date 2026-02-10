@@ -6,7 +6,6 @@ import (
 
 	"github.com/multiversx/mx-chain-go/ntp"
 	"github.com/multiversx/mx-chain-go/process/asyncExecution/cache"
-	"github.com/multiversx/mx-chain-go/process/estimator"
 
 	"github.com/multiversx/mx-chain-core-go/core"
 	"github.com/multiversx/mx-chain-core-go/data"
@@ -153,7 +152,7 @@ type InterceptedData interface {
 // InterceptorProcessor further validates and saves received data
 type InterceptorProcessor interface {
 	Validate(data InterceptedData, fromConnectedPeer core.PeerID) error
-	Save(data InterceptedData, fromConnectedPeer core.PeerID, topic string) (dataSaved bool, err error)
+	Save(data InterceptedData, fromConnectedPeer core.PeerID, topic string, broadcastMethod p2p.BroadcastMethod) (dataSaved bool, err error)
 	RegisterHandler(handler func(topic string, hash []byte, data interface{}))
 	IsInterfaceNil() bool
 }
@@ -205,6 +204,7 @@ type TransactionCoordinator interface {
 		header data.HeaderHandler,
 		processedMiniBlocksInfo map[string]*processedMb.ProcessedMiniBlockInfo,
 	) (addedMiniBlocksAndHashes []block.MiniblockAndHash, pendingMiniBlocksAndHashes []block.MiniblockAndHash, numTransactions uint32, allMiniBlocksAdded bool, err error)
+	ProposedDirectSentTransactionsToBroadcast(proposedBody data.BodyHandler) map[string][][]byte
 }
 
 // SmartContractProcessor is the main interface for the smart contract caller engine
@@ -312,6 +312,7 @@ type BlockProcessor interface {
 		proposedHash []byte,
 	) error
 	OnExecutedBlock(header data.HeaderHandler, rootHash []byte) error
+	ProposedDirectSentTransactionsToBroadcast(proposedBody data.BodyHandler) map[string][][]byte
 	Close() error
 	IsInterfaceNil() bool
 }
@@ -331,6 +332,7 @@ type HeadersExecutor interface {
 	StartExecution()
 	PauseExecution()
 	ResumeExecution()
+	GetSignalProcessCompletionChan() chan uint64
 	Close() error
 	IsInterfaceNil() bool
 }
@@ -348,6 +350,7 @@ type ExecutionManager interface {
 	RemoveAtNonceAndHigher(nonce uint64) error
 	ResetAndResumeExecution(lastNotarizedResult data.BaseExecutionResultHandler) error
 	RemovePendingExecutionResultsFromNonce(nonce uint64) error
+	GetSignalProcessCompletionChan() chan uint64
 	Close() error
 	IsInterfaceNil() bool
 }
@@ -1385,6 +1388,7 @@ type CoreComponentsHolder interface {
 	EpochChangeGracePeriodHandler() common.EpochChangeGracePeriodHandler
 	ProcessConfigsHandler() common.ProcessConfigsHandler
 	CommonConfigsHandler() common.CommonConfigsHandler
+	AntifloodConfigsHandler() common.AntifloodConfigsHandler
 	SyncTimer() ntp.SyncTimer
 	IsInterfaceNil() bool
 }
@@ -1613,6 +1617,24 @@ type ShardCoordinator interface {
 	IsInterfaceNil() bool
 }
 
+// AOTSelectionResult contains the result of pre-selected transactions
+type AOTSelectionResult struct {
+	TxHashes            [][]byte
+	GasProvided         uint64
+	PredictedBlockNonce uint64
+	Randomness          []byte
+	SelectionTimestamp  time.Time
+}
+
+// AOTTransactionSelector orchestrates ahead-of-time transaction selection
+type AOTTransactionSelector interface {
+	TriggerAOTSelection(committedHeader data.HeaderHandler, currentRound uint64)
+	GetPreSelectedTransactions(blockNonce uint64) (*AOTSelectionResult, bool)
+	CancelOngoingSelection()
+	Close() error
+	IsInterfaceNil() bool
+}
+
 // ExecutionResultsTracker is the interface that defines the methods for tracking execution results
 type ExecutionResultsTracker interface {
 	AddExecutionResult(executionResult data.BaseExecutionResultHandler) (bool, error)
@@ -1640,7 +1662,7 @@ type BlockDataRequester interface {
 
 // InclusionEstimator decides how many execution results can be included in the next block
 type InclusionEstimator interface {
-	Decide(lastNotarised *estimator.LastExecutionResultForInclusion, pending []data.BaseExecutionResultHandler, currentHeaderRound uint64) (allowed int)
+	Decide(lastNotarised *common.LastExecutionResultForInclusion, pending []data.BaseExecutionResultHandler, currentHeaderRound uint64) (allowed int)
 	IsInterfaceNil() bool
 }
 
