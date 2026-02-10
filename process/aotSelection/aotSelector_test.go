@@ -867,13 +867,16 @@ func TestAOTSelector_Close(t *testing.T) {
 func TestAOTSelector_CloseStopsOngoingSelection(t *testing.T) {
 	t.Parallel()
 
-	selectionStarted := make(chan struct{})
+	selectionStarted := make(chan struct{}, 1)
 	selectionBlocked := make(chan struct{})
 
 	args := createLeaderArgs([]byte("self-leader-key"))
 	args.TxCache = &txcachestubs.TxCacheStub{
 		SimulateSelectTransactionsCalled: func(_ txcache.SelectionSession, _ common.TxSelectionOptions, _ uint64) ([]*txcache.WrappedTransaction, uint64, error) {
-			close(selectionStarted)
+			select {
+			case selectionStarted <- struct{}{}:
+			default:
+			}
 			// Block until cancelled or signaled
 			<-selectionBlocked
 			return []*txcache.WrappedTransaction{{TxHash: []byte("tx1")}}, 1000, nil
