@@ -491,7 +491,6 @@ func GetGeneralConfig() config.Config {
 		},
 		ExecutedMiniBlocksCache:      getLRUCacheConfig(),
 		PostProcessTransactionsCache: getLRUCacheConfig(),
-<<<<<<< HEAD
 		BlockSizeThrottleConfig: config.BlockSizeThrottleConfig{
 			MinSizeInBytes:        1,
 			MaxSizeInBytes:        10000,
@@ -500,11 +499,10 @@ func GetGeneralConfig() config.Config {
 		ExecutionResultInclusionEstimator: config.ExecutionResultInclusionEstimatorConfig{
 			SafetyMargin:       0,
 			MaxResultsPerBlock: 10,
-=======
+		},
 		DirectSentTransactions: config.DirectSentTransactionsConfig{
 			CacheSpanInSec:   1,
 			CacheExpiryInSec: 1,
->>>>>>> feat/supernova-async-exec
 		},
 	}
 }
