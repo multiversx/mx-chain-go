@@ -6,7 +6,6 @@ import (
 
 	"github.com/multiversx/mx-chain-go/ntp"
 	"github.com/multiversx/mx-chain-go/process/asyncExecution/cache"
-	"github.com/multiversx/mx-chain-go/process/estimator"
 
 	"github.com/multiversx/mx-chain-core-go/core"
 	"github.com/multiversx/mx-chain-core-go/data"
@@ -1663,7 +1662,7 @@ type BlockDataRequester interface {
 
 // InclusionEstimator decides how many execution results can be included in the next block
 type InclusionEstimator interface {
-	Decide(lastNotarised *estimator.LastExecutionResultForInclusion, pending []data.BaseExecutionResultHandler, currentHeaderRound uint64) (allowed int)
+	Decide(lastNotarised *common.LastExecutionResultForInclusion, pending []data.BaseExecutionResultHandler, currentHeaderRound uint64) (allowed int)
 	IsInterfaceNil() bool
 }
 

@@ -232,12 +232,13 @@ func NewShardProcessorEmptyWith3shards(
 		ShardCoordinator:        boostrapComponents.ShardCoordinator(),
 	})
 	execResultsVerifier, _ := NewExecutionResultsVerifier(dataComponents.BlockChain, execManager)
-	inclusionEstimator := estimator.NewExecutionResultInclusionEstimator(
+	inclusionEstimator, _ := estimator.NewExecutionResultInclusionEstimator(
 		config.ExecutionResultInclusionEstimatorConfig{
 			SafetyMargin:       110,
 			MaxResultsPerBlock: 20,
 		},
 		coreComponents.RoundHandler(),
+		&testscommon.ExecResSizeComputationStub{},
 	)
 
 	missingDataArgs := missingData.ResolverArgs{
@@ -254,6 +255,7 @@ func NewShardProcessorEmptyWith3shards(
 		GasHandler:                        &mock.GasHandlerMock{},
 		BlockCapacityOverestimationFactor: 200,
 		PercentDecreaseLimitsStep:         10,
+		BlockSizeComputation:              &testscommon.BlockSizeComputationStub{},
 	}
 	gasComputation, _ := NewGasConsumption(argsGasConsumption)
 

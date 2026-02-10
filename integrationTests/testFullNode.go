@@ -980,13 +980,17 @@ func (tpn *TestFullNode) initBlockProcessor(
 		log.LogIfError(err)
 	}
 
-	inclusionEstimator := estimator.NewExecutionResultInclusionEstimator(
+	inclusionEstimator, err := estimator.NewExecutionResultInclusionEstimator(
 		config.ExecutionResultInclusionEstimatorConfig{
 			SafetyMargin:       110,
 			MaxResultsPerBlock: 20,
 		},
 		tpn.RoundHandler,
+		&testscommon.ExecResSizeComputationStub{},
 	)
+	if err != nil {
+		log.LogIfError(err)
+	}
 
 	missingDataArgs := missingData.ResolverArgs{
 		HeadersPool:        tpn.DataPool.Headers(),
@@ -1005,6 +1009,7 @@ func (tpn *TestFullNode) initBlockProcessor(
 		GasHandler:                        tpn.GasHandler,
 		BlockCapacityOverestimationFactor: 200,
 		PercentDecreaseLimitsStep:         10,
+		BlockSizeComputation:              &testscommon.BlockSizeComputationStub{},
 	}
 	gasConsumption, err := block.NewGasConsumption(argsGasConsumption)
 	if err != nil {
@@ -1355,13 +1360,17 @@ func (tpn *TestFullNode) initBlockProcessorWithSync(
 		log.LogIfError(err)
 	}
 
-	inclusionEstimator := estimator.NewExecutionResultInclusionEstimator(
+	inclusionEstimator, err := estimator.NewExecutionResultInclusionEstimator(
 		config.ExecutionResultInclusionEstimatorConfig{
 			SafetyMargin:       110,
 			MaxResultsPerBlock: 20,
 		},
 		tpn.RoundHandler,
+		&testscommon.ExecResSizeComputationStub{},
 	)
+	if err != nil {
+		log.LogIfError(err)
+	}
 
 	missingDataArgs := missingData.ResolverArgs{
 		HeadersPool:        tpn.DataPool.Headers(),
@@ -1380,6 +1389,7 @@ func (tpn *TestFullNode) initBlockProcessorWithSync(
 		GasHandler:                        tpn.GasHandler,
 		BlockCapacityOverestimationFactor: 200,
 		PercentDecreaseLimitsStep:         10,
+		BlockSizeComputation:              &testscommon.BlockSizeComputationStub{},
 	}
 	gasConsumption, err := block.NewGasConsumption(argsGasConsumption)
 	if err != nil {

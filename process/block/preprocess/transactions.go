@@ -1122,7 +1122,7 @@ func (txs *transactions) CreateAndProcessMiniBlocks(haveTime func() bool, random
 	miniBlocks, remainingTxs, mapSCTxs, err := txs.createAndProcessMiniBlocksFromMe(
 		haveTime,
 		txs.blockTracker.IsShardStuck,
-		txs.blockSizeComputation.IsMaxBlockSizeReached,
+		txs.isMaxBlockSizeReached,
 		sortedTxs,
 	)
 	elapsedTime = time.Since(startTime)
@@ -1172,7 +1172,7 @@ func (txs *transactions) createAndProcessScheduledMiniBlocksFromMeAsProposer(
 		haveTime,
 		haveAdditionalTime,
 		txs.blockTracker.IsShardStuck,
-		txs.blockSizeComputation.IsMaxBlockSizeReached,
+		txs.isMaxBlockSizeReached,
 		sortedTxs,
 		mapSCTxs,
 	)
@@ -1205,13 +1205,15 @@ func (txs *transactions) createAndProcessMiniBlocksFromMeV1(
 		gasTracker:                txs.gasTracker,
 		accounts:                  txs.accounts,
 		balanceComputationHandler: txs.balanceComputation,
-		blockSizeComputation:      txs.blockSizeComputation,
+		blockSizeComputation:      txs.blockSizeComputation, // this will use size calculation using methods from base preprocessor
 		haveTime:                  haveTime,
 		isShardStuck:              isShardStuck,
 		isMaxBlockSizeReached:     isMaxBlockSizeReached,
 		getTxMaxTotalCost:         txs.getTxMaxTotalCost,
 		getTotalGasConsumed:       txs.getTotalGasConsumed,
 		txPool:                    txs.txPool,
+		enableEpochsHandler:       txs.enableEpochsHandler,
+		enableRoundsHandler:       txs.enableRoundsHandler,
 	}
 
 	mbBuilder, err := newMiniBlockBuilder(args)
@@ -1610,7 +1612,7 @@ func (txs *transactions) ProcessMiniBlock(
 		return nil, indexOfLastTxProcessed, false, err
 	}
 
-	if txs.blockSizeComputation.IsMaxBlockSizeWithoutThrottleReached(1, len(miniBlock.TxHashes)) {
+	if txs.isMaxBlockSizeWithoutThrottleReached(1, len(miniBlock.TxHashes)) {
 		return nil, indexOfLastTxProcessed, false, process.ErrMaxBlockSizeReached
 	}
 
@@ -1729,7 +1731,7 @@ func (txs *transactions) ProcessMiniBlock(
 
 	numMiniBlocks := 1 + numOfNewCrossInterMbs
 	numTxs := len(miniBlock.TxHashes) + numOfNewCrossInterTxs
-	if txs.blockSizeComputation.IsMaxBlockSizeWithoutThrottleReached(numMiniBlocks, numTxs) {
+	if txs.isMaxBlockSizeWithoutThrottleReached(numMiniBlocks, numTxs) {
 		return processedTxHashes, txIndex - 1, true, process.ErrMaxBlockSizeReached
 	}
 
@@ -1737,8 +1739,8 @@ func (txs *transactions) ProcessMiniBlock(
 		txs.txsForCurrBlock.AddTransaction(txHash, miniBlockTxs[index], miniBlock.SenderShardID, miniBlock.ReceiverShardID)
 	}
 
-	txs.blockSizeComputation.AddNumMiniBlocks(numMiniBlocks)
-	txs.blockSizeComputation.AddNumTxs(numTxs)
+	txs.addNumMiniBlocks(numMiniBlocks)
+	txs.addNumTxs(numTxs)
 
 	if scheduledMode {
 		for index := indexOfFirstTxToBeProcessed; index <= txIndex-1; index++ {
