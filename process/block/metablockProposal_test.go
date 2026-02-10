@@ -481,6 +481,105 @@ func TestMetaProcessor_CreateNewHeaderProposal(t *testing.T) {
 		require.Nil(t, err)
 		require.NotNil(t, header)
 	})
+
+	t.Run("nonce gap exceeds maximum allowed, should error", func(t *testing.T) {
+		t.Parallel()
+
+		coreComponents, dataComponents, bootstrapComponents, statusComponents := createMockComponentHolders()
+		dataComponents.BlockChain = &testscommon.ChainHandlerStub{
+			GetCurrentBlockHeaderCalled: func() data.HeaderHandler {
+				return &prevValidMetaBlockV3
+			},
+			GetCurrentBlockHeaderHashCalled: func() []byte {
+				return []byte("hash1")
+			},
+		}
+
+		metaHeader := &block.MetaBlockV3{
+			ShardInfo: []block.ShardData{
+				{
+					ShardID: 0,
+					Nonce:   100,
+				},
+			},
+			ShardInfoProposal: []block.ShardDataProposal{
+				{
+					ShardID:    0,
+					Nonce:      250, // 150 gap
+					HeaderHash: []byte("hash"),
+				},
+			},
+		}
+
+		bootstrapComponents.VersionedHdrFactory = &testscommon.VersionedHeaderFactoryStub{
+			CreateCalled: func(epoch uint32, _ uint64) data.HeaderHandler {
+				return metaHeader
+			},
+		}
+
+		arguments := createMockMetaArguments(coreComponents, dataComponents, bootstrapComponents, statusComponents)
+		arguments.MaxShardInfoProposalNonceGap = 100
+
+		mp, err := blproc.NewMetaProcessor(arguments)
+		require.Nil(t, err)
+
+		header, err := mp.CreateNewHeaderProposal(1, 1)
+		require.Nil(t, header)
+		require.ErrorIs(t, err, process.ErrNonceGapTooLarge)
+		require.Contains(t, err.Error(), "shard 0")
+		require.Contains(t, err.Error(), "gap of 150")
+	})
+
+	t.Run("nonce gap within allowed limit, should succeed", func(t *testing.T) {
+		t.Parallel()
+
+		coreComponents, dataComponents, bootstrapComponents, statusComponents := createMockComponentHolders()
+		dataComponents.BlockChain = &testscommon.ChainHandlerStub{
+			GetCurrentBlockHeaderCalled: func() data.HeaderHandler {
+				return &prevValidMetaBlockV3
+			},
+			GetCurrentBlockHeaderHashCalled: func() []byte {
+				return []byte("hash1")
+			},
+		}
+
+		metaHeader := &block.MetaBlockV3{
+			ShardInfo: []block.ShardData{
+				{
+					ShardID: 0,
+					Nonce:   100,
+				},
+			},
+			ShardInfoProposal: []block.ShardDataProposal{
+				{
+					ShardID:    0,
+					Nonce:      150,
+					HeaderHash: []byte("hash"),
+				},
+				{
+					// for coverage only, no shard info should skip check
+					ShardID:    1,
+					Nonce:      250,
+					HeaderHash: []byte("hash2"),
+				},
+			},
+		}
+		bootstrapComponents.VersionedHdrFactory = &testscommon.VersionedHeaderFactoryStub{
+			CreateCalled: func(epoch uint32, _ uint64) data.HeaderHandler {
+				return metaHeader
+			},
+		}
+
+		arguments := createMockMetaArguments(coreComponents, dataComponents, bootstrapComponents, statusComponents)
+		arguments.MaxShardInfoProposalNonceGap = 100
+
+		mp, err := blproc.NewMetaProcessor(arguments)
+		require.Nil(t, err)
+
+		header, err := mp.CreateNewHeaderProposal(1, 1)
+		require.Nil(t, err)
+		require.NotNil(t, header)
+	})
 }
 
 func TestMetaProcessor_CreateBlockProposal(t *testing.T) {
