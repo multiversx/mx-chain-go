@@ -1475,3 +1475,6 @@ var ErrNonceGapTooLarge = errors.New("nonce gap between finalized and proposed s
 
 // ErrInvalidLastExecutionResult signals that an invalid last execution result has been included
 var ErrInvalidLastExecutionResult = errors.New("invalid last execution result")
+
+// ErrInvalidProposedNonce signals that an invalid nonce has been proposed
+var ErrInvalidProposedNonce = errors.New("invalid proposed nonce")

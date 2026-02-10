@@ -2404,7 +2404,7 @@ func TestShardProcessor_VerifyBlockProposal(t *testing.T) {
 			},
 		}
 		arguments.ExecutionResultsInclusionEstimator = &processMocks.InclusionEstimatorMock{
-			DecideCalled: func(lastNotarised *estimator.LastExecutionResultForInclusion, pending []data.BaseExecutionResultHandler, currentHdrTsMs uint64) (allowed int) {
+			DecideCalled: func(lastNotarised *common.LastExecutionResultForInclusion, pending []data.BaseExecutionResultHandler, currentHdrTsMs uint64) (allowed int) {
 				return 0
 			},
 		}
