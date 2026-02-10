@@ -57,7 +57,7 @@ func GetGeneralConfig() config.Config {
 			SyncProcessTimeSupernovaInMillis: 3000,
 			SetGuardianEpochsDelay:           20,
 			StatusPollingIntervalSec:         10,
-			MaxShardInfoProposalNonceGap:     10,
+			MaxProposalNonceGap:              10,
 			ChainParametersByEpoch: []config.ChainParametersByEpochConfig{
 				{
 					EnableEpoch:                 0,

@@ -107,6 +107,7 @@ type ArgBaseProcessor struct {
 	GasComputation                     process.GasComputation
 	ExecutionManager                   process.ExecutionManager
 	TxExecutionOrderHandler            common.TxExecutionOrderHandler
+	MaxProposalNonceGap                uint64
 }
 
 // ArgShardProcessor holds all dependencies required by the process data factory in order to create
@@ -128,5 +129,4 @@ type ArgMetaProcessor struct {
 	EpochSystemSCProcessor       process.EpochStartSystemSCProcessor
 	ValidatorStatisticsProcessor process.ValidatorStatisticsProcessor
 	ShardInfoCreator             process.ShardInfoCreator
-	MaxShardInfoProposalNonceGap uint64
 }

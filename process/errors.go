@@ -1460,3 +1460,6 @@ var ErrShardHeadersShouldNotBeNotarized = errors.New("shard headers should not b
 
 // ErrNonceGapTooLarge signals that nonce gap between finalized and proposed shard headers is too large
 var ErrNonceGapTooLarge = errors.New("nonce gap between finalized and proposed shard headers is too large")
+
+// ErrInvalidLastExecutionResult signals that an invalid last execution result has been included
+var ErrInvalidLastExecutionResult = errors.New("invalid last execution result")

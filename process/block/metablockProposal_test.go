@@ -54,6 +54,13 @@ func TestMetaProcessor_CreateNewHeaderProposal(t *testing.T) {
 		IsHeaderV3Called: func() bool {
 			return true
 		},
+		GetLastExecutionResultHandlerCalled: func() data.LastExecutionResultHandler {
+			return &block.MetaExecutionResultInfo{
+				ExecutionResult: &block.BaseMetaExecutionResult{
+					BaseExecutionResult: &block.BaseExecutionResult{},
+				},
+			}
+		},
 	}
 
 	prevValidMetaBlockV3 := testscommon.HeaderHandlerStub{
@@ -480,6 +487,93 @@ func TestMetaProcessor_CreateNewHeaderProposal(t *testing.T) {
 		header, err := mp.CreateNewHeaderProposal(1, 1)
 		require.Nil(t, err)
 		require.NotNil(t, header)
+	})
+
+	t.Run("higher nonce in last execution result should error", func(t *testing.T) {
+		t.Parallel()
+
+		coreComponents, dataComponents, bootstrapComponents, statusComponents := createMockComponentHolders()
+		dataComponents.BlockChain = &testscommon.ChainHandlerStub{
+			GetCurrentBlockHeaderCalled: func() data.HeaderHandler {
+				return &prevValidMetaBlockV3
+			},
+			GetCurrentBlockHeaderHashCalled: func() []byte {
+				return []byte("hash1")
+			},
+		}
+
+		metaHeader := &testscommon.HeaderHandlerStub{
+			IsHeaderV3Called: func() bool {
+				return true
+			},
+			GetNonceCalled: func() uint64 {
+				return 5
+			},
+			GetLastExecutionResultHandlerCalled: func() data.LastExecutionResultHandler {
+				return &block.MetaExecutionResultInfo{
+					ExecutionResult: &block.BaseMetaExecutionResult{
+						BaseExecutionResult: &block.BaseExecutionResult{
+							HeaderNonce: 105,
+						},
+					},
+				}
+			},
+		}
+
+		bootstrapComponents.VersionedHdrFactory = &testscommon.VersionedHeaderFactoryStub{
+			CreateCalled: func(epoch uint32, _ uint64) data.HeaderHandler {
+				return metaHeader
+			},
+		}
+
+		arguments := createMockMetaArguments(coreComponents, dataComponents, bootstrapComponents, statusComponents)
+		mp, err := blproc.NewMetaProcessor(arguments)
+		require.Nil(t, err)
+
+		header, err := mp.CreateNewHeaderProposal(1, 5)
+		require.Nil(t, header)
+		require.ErrorIs(t, err, process.ErrInvalidLastExecutionResult)
+	})
+
+	t.Run("nonce gap from last exec result exceeds maximum allowed, should error", func(t *testing.T) {
+		t.Parallel()
+
+		coreComponents, dataComponents, bootstrapComponents, statusComponents := createMockComponentHolders()
+		dataComponents.BlockChain = &testscommon.ChainHandlerStub{
+			GetCurrentBlockHeaderCalled: func() data.HeaderHandler {
+				return &prevValidMetaBlockV3
+			},
+			GetCurrentBlockHeaderHashCalled: func() []byte {
+				return []byte("hash1")
+			},
+		}
+
+		metaHeader := &block.MetaBlockV3{
+			LastExecutionResult: &block.MetaExecutionResultInfo{
+				ExecutionResult: &block.BaseMetaExecutionResult{
+					BaseExecutionResult: &block.BaseExecutionResult{
+						HeaderNonce: 5,
+					},
+				},
+			},
+			Nonce: 105,
+		}
+
+		bootstrapComponents.VersionedHdrFactory = &testscommon.VersionedHeaderFactoryStub{
+			CreateCalled: func(epoch uint32, _ uint64) data.HeaderHandler {
+				return metaHeader
+			},
+		}
+
+		arguments := createMockMetaArguments(coreComponents, dataComponents, bootstrapComponents, statusComponents)
+		mp, err := blproc.NewMetaProcessor(arguments)
+		require.Nil(t, err)
+
+		header, err := mp.CreateNewHeaderProposal(1, 105)
+		require.Nil(t, header)
+		require.ErrorIs(t, err, process.ErrNonceGapTooLarge)
+		require.Contains(t, err.Error(), "from last execution")
+		require.Contains(t, err.Error(), "gap of 105")
 	})
 
 	t.Run("nonce gap exceeds maximum allowed, should error", func(t *testing.T) {
@@ -4769,6 +4863,7 @@ func createMetaProcessorMapForCreatingEpochStart() map[string]interface{} {
 				return 1 // allow the inclusion of the first execution result
 			},
 		},
-		"appStatusHandler": &statusHandlerMock.AppStatusHandlerStub{},
+		"appStatusHandler":    &statusHandlerMock.AppStatusHandlerStub{},
+		"maxProposalNonceGap": uint64(10),
 	}
 }

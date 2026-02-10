@@ -571,6 +571,7 @@ func (pcf *processComponentsFactory) newShardBlockProcessor(
 		GasComputation:                     gasConsumption,
 		ExecutionManager:                   executionManager,
 		TxExecutionOrderHandler:            pcf.txExecutionOrderHandler,
+		MaxProposalNonceGap:                pcf.config.GeneralSettings.MaxProposalNonceGap,
 	}
 	arguments := block.ArgShardProcessor{
 		ArgBaseProcessor: argumentsBaseProcessor,
@@ -1127,6 +1128,7 @@ func (pcf *processComponentsFactory) newMetaBlockProcessor(
 		GasComputation:                     gasConsumption,
 		ExecutionManager:                   executionManager,
 		TxExecutionOrderHandler:            pcf.txExecutionOrderHandler,
+		MaxProposalNonceGap:                pcf.config.GeneralSettings.MaxProposalNonceGap,
 	}
 
 	esdtOwnerAddress, err := pcf.coreData.AddressPubKeyConverter().Decode(pcf.systemSCConfig.ESDTSystemSCConfig.OwnerAddress)
@@ -1238,7 +1240,6 @@ func (pcf *processComponentsFactory) newMetaBlockProcessor(
 		ValidatorStatisticsProcessor: validatorStatisticsProcessor,
 		EpochSystemSCProcessor:       epochStartSystemSCProcessor,
 		ShardInfoCreator:             shardInfoCreator,
-		MaxShardInfoProposalNonceGap: pcf.config.GeneralSettings.MaxShardInfoProposalNonceGap,
 	}
 
 	metaProcessor, err := block.NewMetaProcessor(arguments)

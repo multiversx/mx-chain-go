@@ -149,11 +149,11 @@ func GetGeneralConfig() config.Config {
 			Shards:   16,
 		},
 		GeneralSettings: config.GeneralSettingsConfig{
-			ChainID:                      "undefined",
-			MinTransactionVersion:        1,
-			GenesisMaxNumberOfShards:     3,
-			SetGuardianEpochsDelay:       20,
-			MaxShardInfoProposalNonceGap: 10,
+			ChainID:                  "undefined",
+			MinTransactionVersion:    1,
+			GenesisMaxNumberOfShards: 3,
+			SetGuardianEpochsDelay:   20,
+			MaxProposalNonceGap:      10,
 			ChainParametersByEpoch: []config.ChainParametersByEpochConfig{
 				{
 					EnableEpoch:                 0,

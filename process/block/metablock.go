@@ -31,8 +31,8 @@ import (
 )
 
 const (
-	firstHeaderNonce                    = uint64(1)
-	defaultMaxShardInfoProposalNonceGap = 10
+	firstHeaderNonce           = uint64(1)
+	defaultMaxProposalNonceGap = 10
 )
 
 var _ process.BlockProcessor = (*metaProcessor)(nil)
@@ -66,7 +66,6 @@ type metaProcessor struct {
 	epochStartDataWrapper        *epochStartDataWrapper
 	mutEpochStartData            sync.RWMutex
 	shardInfoCreateData          process.ShardInfoCreator
-	maxShardInfoProposalNonceGap uint64
 }
 
 // NewMetaProcessor creates a new metaProcessor object
@@ -106,11 +105,6 @@ func NewMetaProcessor(arguments ArgMetaProcessor) (*metaProcessor, error) {
 		return nil, process.ErrNilShardInfoCreator
 	}
 
-	maxShardInfoProposalNonceGap := arguments.MaxShardInfoProposalNonceGap
-	if maxShardInfoProposalNonceGap == 0 {
-		maxShardInfoProposalNonceGap = defaultMaxShardInfoProposalNonceGap
-	}
-
 	mp := metaProcessor{
 		baseProcessor:                base,
 		headersCounter:               NewHeaderCounter(),
@@ -123,7 +117,6 @@ func NewMetaProcessor(arguments ArgMetaProcessor) (*metaProcessor, error) {
 		validatorInfoCreator:         arguments.EpochValidatorInfoCreator,
 		epochSystemSCProcessor:       arguments.EpochSystemSCProcessor,
 		shardInfoCreateData:          arguments.ShardInfoCreator,
-		maxShardInfoProposalNonceGap: maxShardInfoProposalNonceGap,
 		epochStartDataWrapper: &epochStartDataWrapper{
 			Epoch:          arguments.EpochStartTrigger.Epoch(),
 			EpochStartData: &block.EpochStart{},

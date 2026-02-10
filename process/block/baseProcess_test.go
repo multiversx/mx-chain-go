@@ -252,6 +252,7 @@ func createArgBaseProcessor(
 		},
 		ExecutionManager:        execManager,
 		TxExecutionOrderHandler: &commonMocks.TxExecutionOrderHandlerStub{},
+		MaxProposalNonceGap:     10,
 	}
 }
 

@@ -261,6 +261,7 @@ func createMockMetaArguments(
 			GasComputation:                     gasComputation,
 			ExecutionManager:                   execManager,
 			TxExecutionOrderHandler:            &commonMocks.TxExecutionOrderHandlerStub{},
+			MaxProposalNonceGap:                10,
 		},
 		SCToProtocol:                 &mock.SCToProtocolStub{},
 		PendingMiniBlocksHandler:     &mock.PendingMiniBlocksHandlerStub{},
@@ -271,7 +272,6 @@ func createMockMetaArguments(
 		ValidatorStatisticsProcessor: &testscommon.ValidatorStatisticsProcessorStub{},
 		EpochSystemSCProcessor:       &testscommon.EpochStartSystemSCStub{},
 		ShardInfoCreator:             shardInfoCreator,
-		MaxShardInfoProposalNonceGap: 10,
 	}
 	return arguments
 }
@@ -3395,7 +3395,7 @@ func TestCreateNewHeaderProposal(t *testing.T) {
 
 	rootHash := []byte("root")
 	round := uint64(7)
-	nonce := uint64(8)
+	nonce := uint64(10)
 	epoch := uint32(5)
 
 	coreComponents, dataComponents, _, statusComponents := createMockComponentHolders()

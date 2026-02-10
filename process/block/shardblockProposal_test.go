@@ -2054,6 +2054,9 @@ func TestShardProcessor_VerifyBlockProposal(t *testing.T) {
 			Nonce:            1,
 			Round:            2,
 			MiniBlockHeaders: []block.MiniBlockHeader{},
+			LastExecutionResult: &block.ExecutionResultInfo{
+				ExecutionResult: &block.BaseExecutionResult{},
+			},
 		}
 		err = sp.VerifyBlockProposal(header, body, haveTime)
 		require.Equal(t, expectedError, err)
@@ -2099,6 +2102,9 @@ func TestShardProcessor_VerifyBlockProposal(t *testing.T) {
 			Nonce:            1,
 			Round:            2,
 			MiniBlockHeaders: []block.MiniBlockHeader{},
+			LastExecutionResult: &block.ExecutionResultInfo{
+				ExecutionResult: &block.BaseExecutionResult{},
+			},
 		}
 		err = sp.VerifyBlockProposal(header, body, haveTime)
 		require.Equal(t, expectedError, err)
@@ -2360,6 +2366,65 @@ func TestShardProcessor_VerifyBlockProposal(t *testing.T) {
 		err = sp.VerifyBlockProposal(header, body, haveTime)
 		require.Error(t, err)
 		require.Equal(t, expectedErr, err)
+	})
+
+	t.Run("nonce gap from last exec result exceeds maximum allowed, should error", func(t *testing.T) {
+		t.Parallel()
+
+		coreComponents, dataComponents, bootstrapComponents, statusComponents := createComponentHolderMocks()
+		poolMock, ok := dataComponents.DataPool.(*dataRetriever.PoolsHolderStub)
+		require.True(t, ok)
+		poolMock.HeadersCalled = func() retriever.HeadersPool {
+			return &pool.HeadersPoolStub{
+				GetHeaderByHashCalled: func(hash []byte) (data.HeaderHandler, error) {
+					return &block.HeaderV3{
+						LastExecutionResult: &block.ExecutionResultInfo{
+							ExecutionResult: &block.BaseExecutionResult{},
+						},
+					}, nil
+				},
+			}
+		}
+		currentBlockHeader := &block.HeaderV3{
+			LastExecutionResult: &block.ExecutionResultInfo{
+				ExecutionResult: &block.BaseExecutionResult{},
+			},
+			Nonce: 109,
+		}
+		_ = dataComponents.BlockChain.SetCurrentBlockHeaderAndRootHash(currentBlockHeader, []byte("root"))
+		dataComponents.BlockChain.SetCurrentBlockHeaderHash([]byte("hash"))
+		arguments := CreateMockArguments(coreComponents, dataComponents, bootstrapComponents, statusComponents)
+		arguments.ExecutionResultsVerifier = &processMocks.ExecutionResultsVerifierMock{
+			VerifyHeaderExecutionResultsCalled: func(header data.HeaderHandler) error {
+				return nil
+			},
+		}
+		arguments.ExecutionResultsInclusionEstimator = &processMocks.InclusionEstimatorMock{
+			DecideCalled: func(lastNotarised *estimator.LastExecutionResultForInclusion, pending []data.BaseExecutionResultHandler, currentHdrTsMs uint64) (allowed int) {
+				return 0
+			},
+		}
+
+		sp, err := blproc.NewShardProcessor(arguments)
+		require.Nil(t, err)
+
+		body := &block.Body{}
+
+		header := &block.HeaderV3{
+			PrevHash:         []byte("hash"),
+			Nonce:            110,
+			Round:            2,
+			MiniBlockHeaders: []block.MiniBlockHeader{},
+			LastExecutionResult: &block.ExecutionResultInfo{
+				ExecutionResult: &block.BaseExecutionResult{
+					HeaderNonce: 5,
+				},
+			},
+		}
+		err = sp.VerifyBlockProposal(header, body, haveTime)
+		require.ErrorIs(t, err, process.ErrNonceGapTooLarge)
+		require.Contains(t, err.Error(), "from last execution")
+		require.Contains(t, err.Error(), "gap of 105")
 	})
 
 	t.Run("should work", func(t *testing.T) {
@@ -4619,9 +4684,10 @@ func createSubComponentsForVerifyProposalTest() map[string]interface{} {
 				return txHashes, []data.MiniBlockHeaderHandler{&block.MiniBlockHeader{}}, nil // one pending mini block added
 			},
 		},
-		"appStatusHandler": &statusHandlerMock.AppStatusHandlerStub{},
-		"marshalizer":      &mock.MarshalizerMock{},
-		"roundHandler":     &mock.RoundHandlerMock{},
+		"appStatusHandler":    &statusHandlerMock.AppStatusHandlerStub{},
+		"marshalizer":         &mock.MarshalizerMock{},
+		"roundHandler":        &mock.RoundHandlerMock{},
+		"maxProposalNonceGap": uint64(10),
 	}
 }
 
