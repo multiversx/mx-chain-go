@@ -477,6 +477,7 @@ func (s *aotSelector) Close() error {
 	defer s.selectionMut.Unlock()
 
 	s.cancelOngoingSelectionNoLock()
+	s.closed = true
 	s.cache.Clear()
 	log.Debug("aotSelector: closed")
 	return nil
