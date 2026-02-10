@@ -49,11 +49,6 @@ func (sp *shardProcessor) CreateNewHeaderProposal(round uint64, nonce uint64) (d
 		return nil, err
 	}
 
-	err = sp.checkHeaderExecutionResultNonceGap(shardHeader)
-	if err != nil {
-		return nil, err
-	}
-
 	return header, nil
 }
 
@@ -110,6 +105,11 @@ func (sp *shardProcessor) CreateBlockProposal(
 	}
 
 	err = sp.addExecutionResultsOnHeader(shardHdr)
+	if err != nil {
+		return nil, nil, err
+	}
+
+	err = sp.checkHeaderExecutionResultNonceGap(shardHdr)
 	if err != nil {
 		return nil, nil, err
 	}
