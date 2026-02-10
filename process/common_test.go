@@ -19,8 +19,6 @@ import (
 	"github.com/multiversx/mx-chain-go/common"
 	"github.com/multiversx/mx-chain-go/testscommon/processMocks"
 
-	"github.com/multiversx/mx-chain-go/process/estimator"
-
 	"github.com/multiversx/mx-chain-go/dataRetriever"
 	"github.com/multiversx/mx-chain-go/process"
 	"github.com/multiversx/mx-chain-go/process/mock"
@@ -2867,7 +2865,7 @@ func Test_CreateDataForInclusionEstimation(t *testing.T) {
 		t.Parallel()
 
 		executionResult := createLastExecutionResultShard()
-		expectedLastExecResultForInclusion := &estimator.LastExecutionResultForInclusion{
+		expectedLastExecResultForInclusion := &common.LastExecutionResultForInclusion{
 			NotarizedInRound: executionResult.GetNotarizedInRound(),
 			ProposedInRound:  executionResult.GetExecutionResult().GetHeaderRound(),
 		}
@@ -2880,7 +2878,7 @@ func Test_CreateDataForInclusionEstimation(t *testing.T) {
 		t.Parallel()
 
 		executionResult := createLastExecutionResultMeta()
-		expectedLastExecResultForInclusion := &estimator.LastExecutionResultForInclusion{
+		expectedLastExecResultForInclusion := &common.LastExecutionResultForInclusion{
 			NotarizedInRound: executionResult.GetNotarizedInRound(),
 			ProposedInRound:  executionResult.GetExecutionResult().GetHeaderRound(),
 		}

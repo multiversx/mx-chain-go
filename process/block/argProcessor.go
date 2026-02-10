@@ -107,6 +107,7 @@ type ArgBaseProcessor struct {
 	GasComputation                     process.GasComputation
 	ExecutionManager                   process.ExecutionManager
 	TxExecutionOrderHandler            common.TxExecutionOrderHandler
+	AOTSelector                        process.AOTTransactionSelector
 	MaxProposalNonceGap                uint64
 }
 

@@ -72,6 +72,11 @@ func (ert *executionResultsTracker) AddExecutionResult(executionResult data.Base
 		return false, fmt.Errorf("%w nonce(%d) should be equal to the subsequent nonce after last executed(%d)", ErrWrongExecutionResultNonce, executionResult.GetHeaderNonce(), lastExecutedResult.GetHeaderNonce())
 	}
 
+	executionResultByHash := ert.nonceHash.getHashByNonce(executionResult.GetHeaderNonce())
+	if len(executionResultByHash) > 0 {
+		delete(ert.executionResultsByHash, executionResultByHash)
+	}
+
 	ert.executionResultsByHash[string(executionResult.GetHeaderHash())] = executionResult
 	ert.nonceHash.addNonceHash(executionResult.GetHeaderNonce(), string(executionResult.GetHeaderHash()))
 

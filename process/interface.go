@@ -6,7 +6,6 @@ import (
 
 	"github.com/multiversx/mx-chain-go/ntp"
 	"github.com/multiversx/mx-chain-go/process/asyncExecution/cache"
-	"github.com/multiversx/mx-chain-go/process/estimator"
 
 	"github.com/multiversx/mx-chain-core-go/core"
 	"github.com/multiversx/mx-chain-core-go/data"
@@ -1618,6 +1617,24 @@ type ShardCoordinator interface {
 	IsInterfaceNil() bool
 }
 
+// AOTSelectionResult contains the result of pre-selected transactions
+type AOTSelectionResult struct {
+	TxHashes            [][]byte
+	GasProvided         uint64
+	PredictedBlockNonce uint64
+	Randomness          []byte
+	SelectionTimestamp  time.Time
+}
+
+// AOTTransactionSelector orchestrates ahead-of-time transaction selection
+type AOTTransactionSelector interface {
+	TriggerAOTSelection(committedHeader data.HeaderHandler, currentRound uint64)
+	GetPreSelectedTransactions(blockNonce uint64) (*AOTSelectionResult, bool)
+	CancelOngoingSelection()
+	Close() error
+	IsInterfaceNil() bool
+}
+
 // ExecutionResultsTracker is the interface that defines the methods for tracking execution results
 type ExecutionResultsTracker interface {
 	AddExecutionResult(executionResult data.BaseExecutionResultHandler) (bool, error)
@@ -1645,7 +1662,7 @@ type BlockDataRequester interface {
 
 // InclusionEstimator decides how many execution results can be included in the next block
 type InclusionEstimator interface {
-	Decide(lastNotarised *estimator.LastExecutionResultForInclusion, pending []data.BaseExecutionResultHandler, currentHeaderRound uint64) (allowed int)
+	Decide(lastNotarised *common.LastExecutionResultForInclusion, pending []data.BaseExecutionResultHandler, currentHeaderRound uint64) (allowed int)
 	IsInterfaceNil() bool
 }
 
