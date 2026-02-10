@@ -163,7 +163,7 @@ func (odp *outportDataProvider) PrepareOutportSaveBlockData(arg ArgPrepareOutpor
 		return nil, err
 	}
 
-	stateAccessesForBlock, stateAccessesDeprecated := odp.getStateAccesses(arg.Header, arg.ScheduledRootHash)
+	stateAccessesForBlock, stateAccessesDeprecated := odp.getStateAccesses(arg.Header, arg.HeaderHash, arg.ScheduledRootHash)
 	outportBlock := &outportcore.OutportBlockWithHeaderAndBody{
 		OutportBlock: &outportcore.OutportBlock{
 			ShardID:         odp.shardID,
@@ -210,8 +210,10 @@ func (odp *outportDataProvider) PrepareOutportSaveBlockData(arg ArgPrepareOutpor
 
 func (odp *outportDataProvider) getStateAccesses(
 	header data.HeaderHandler,
+	headerHash []byte,
 	scheduledRootHash []byte,
 ) (map[string]*outportcore.StateAccessesForBlock, map[string]*stateChange.StateAccesses) {
+	stateAccessesForBlock := make(map[string]*outportcore.StateAccessesForBlock)
 	if !header.IsHeaderV3() {
 		rootHash := header.GetRootHash()
 		if len(scheduledRootHash) != 0 && !bytes.Equal(rootHash, scheduledRootHash) {
@@ -219,10 +221,11 @@ func (odp *outportDataProvider) getStateAccesses(
 		}
 
 		stateAccesses := odp.getStateAccessForRootHash(rootHash)
-		return nil, stateAccesses
+		stateAccessesForBlock[hex.EncodeToString(headerHash)] = &outportcore.StateAccessesForBlock{StateAccesses: stateAccesses}
+		// for backward compatibility, in case some driver is still using StateAccesses instead of StateAccessesForBlock
+		return stateAccessesForBlock, stateAccesses
 	}
 
-	stateAccessesForBlock := make(map[string]*outportcore.StateAccessesForBlock)
 	executionResults := header.GetExecutionResultsHandlers()
 	for _, execResult := range executionResults {
 		stateAccesses := odp.getStateAccessForRootHash(execResult.GetRootHash())
