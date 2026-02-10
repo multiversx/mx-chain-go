@@ -38,8 +38,9 @@ type BlockProcessorStub struct {
 		proposedHeader data.HeaderHandler,
 		proposedHash []byte,
 	) error
-	OnExecutedBlockCalled      func(header data.HeaderHandler, rootHash []byte) error
-	RemoveHeaderFromPoolCalled func(headerHash []byte)
+	OnExecutedBlockCalled                           func(header data.HeaderHandler, rootHash []byte) error
+	RemoveHeaderFromPoolCalled                      func(headerHash []byte)
+	ProposedDirectSentTransactionsToBroadcastCalled func(proposedBody data.BodyHandler) map[string][][]byte
 }
 
 // SetNumProcessedObj -
@@ -247,6 +248,14 @@ func (bps *BlockProcessorStub) RemoveHeaderFromPool(headerHash []byte) {
 	if bps.RemoveHeaderFromPoolCalled != nil {
 		bps.RemoveHeaderFromPoolCalled(headerHash)
 	}
+}
+
+// ProposedDirectSentTransactionsToBroadcast -
+func (bps *BlockProcessorStub) ProposedDirectSentTransactionsToBroadcast(proposedBody data.BodyHandler) map[string][][]byte {
+	if bps.ProposedDirectSentTransactionsToBroadcastCalled != nil {
+		return bps.ProposedDirectSentTransactionsToBroadcastCalled(proposedBody)
+	}
+	return nil
 }
 
 // IsInterfaceNil returns true if there is no value under the interface

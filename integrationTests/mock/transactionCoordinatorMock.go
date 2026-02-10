@@ -41,6 +41,7 @@ type TransactionCoordinatorMock struct {
 	AddTransactionsCalled                                func(txHandlers []data.TransactionHandler, blockType block.Type)
 	ComputeTransactionTypeInEpochCalled                  func(tx data.TransactionHandler, epoch uint32) (process.TransactionType, process.TransactionType, bool)
 	GetUnExecutableTransactionsCalled                    func() map[string]struct{}
+	ProposedDirectSentTransactionsToBroadcastCalled      func(proposedBody data.BodyHandler) map[string][][]byte
 }
 
 // GetAllCurrentLogs -
@@ -310,6 +311,15 @@ func (tcm *TransactionCoordinatorMock) AddTransactions(txHandlers []data.Transac
 		return
 	}
 	tcm.AddTransactionsCalled(txHandlers, blockType)
+}
+
+// ProposedDirectSentTransactionsToBroadcast -
+func (tcm *TransactionCoordinatorMock) ProposedDirectSentTransactionsToBroadcast(proposedBody data.BodyHandler) map[string][][]byte {
+	if tcm.ProposedDirectSentTransactionsToBroadcastCalled == nil {
+		return nil
+	}
+
+	return tcm.ProposedDirectSentTransactionsToBroadcastCalled(proposedBody)
 }
 
 // IsInterfaceNil returns true if there is no value under the interface
