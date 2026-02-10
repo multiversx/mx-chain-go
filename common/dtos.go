@@ -110,3 +110,9 @@ type AuctionListValidatorAPIResponse struct {
 	QualifiedTopUp string         `json:"qualifiedTopUp"`
 	Nodes          []*AuctionNode `json:"nodes"`
 }
+
+// LastExecutionResultForInclusion is a lightweight summary of the last notarized execution result EIE requires.
+type LastExecutionResultForInclusion struct {
+	NotarizedInRound uint64
+	ProposedInRound  uint64
+}

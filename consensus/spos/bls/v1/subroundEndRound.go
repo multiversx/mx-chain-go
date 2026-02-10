@@ -11,6 +11,7 @@ import (
 	"github.com/multiversx/mx-chain-core-go/core/check"
 	"github.com/multiversx/mx-chain-core-go/data"
 	"github.com/multiversx/mx-chain-core-go/display"
+	commonConsensus "github.com/multiversx/mx-chain-go/common/consensus"
 
 	"github.com/multiversx/mx-chain-go/common"
 	"github.com/multiversx/mx-chain-go/consensus"
@@ -594,7 +595,7 @@ func (sr *subroundEndRound) createAndBroadcastHeaderFinalInfo() {
 }
 
 func (sr *subroundEndRound) createAndBroadcastInvalidSigners(invalidSigners []byte) {
-	isSelfLeader := sr.IsSelfLeaderInCurrentRound() && spos.ShouldConsiderSelfKeyInConsensus(sr.NodeRedundancyHandler())
+	isSelfLeader := sr.IsSelfLeaderInCurrentRound() && commonConsensus.ShouldConsiderSelfKeyInConsensus(sr.NodeRedundancyHandler())
 	if !(isSelfLeader || sr.IsMultiKeyLeaderInCurrentRound()) {
 		return
 	}
