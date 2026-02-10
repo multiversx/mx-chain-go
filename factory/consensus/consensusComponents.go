@@ -271,6 +271,7 @@ func (ccf *consensusComponentsFactory) Create() (*consensusComponents, error) {
 		EquivalentProofsPool:          ccf.dataComponents.Datapool().Proofs(),
 		EpochNotifier:                 ccf.coreComponents.EpochNotifier(),
 		InvalidSignersCache:           invalidSignersCache,
+		AOTSelector:                   ccf.processComponents.AOTSelector(),
 	}
 
 	consensusDataContainer, err := spos.NewConsensusCore(

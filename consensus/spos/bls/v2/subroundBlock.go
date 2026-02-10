@@ -11,6 +11,7 @@ import (
 	"github.com/multiversx/mx-chain-core-go/data"
 
 	"github.com/multiversx/mx-chain-go/common"
+	commonConsensus "github.com/multiversx/mx-chain-go/common/consensus"
 	"github.com/multiversx/mx-chain-go/consensus"
 	"github.com/multiversx/mx-chain-go/consensus/spos"
 	"github.com/multiversx/mx-chain-go/consensus/spos/bls"
@@ -702,7 +703,7 @@ func (sr *subroundBlock) CanProcessReceivedHeader(headerLeader string) bool {
 }
 
 func (sr *subroundBlock) shouldProcessBlock(headerLeader string) bool {
-	if sr.IsNodeSelf(headerLeader) && spos.ShouldConsiderSelfKeyInConsensus(sr.NodeRedundancyHandler()) {
+	if sr.IsNodeSelf(headerLeader) && commonConsensus.ShouldConsiderSelfKeyInConsensus(sr.NodeRedundancyHandler()) {
 		return false
 	}
 	if sr.IsJobDone(headerLeader, sr.Current()) {
