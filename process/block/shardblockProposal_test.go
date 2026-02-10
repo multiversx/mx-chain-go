@@ -239,6 +239,9 @@ func TestShardProcessor_CreateBlockProposal(t *testing.T) {
 			ExecutedMiniBlocksCalled: func() storage.Cacher {
 				return &cache.CacherStub{}
 			},
+			DirectSentTransactionsCalled: func() storage.Cacher {
+				return cache.NewCacherStub()
+			},
 		}
 		arguments := CreateMockArguments(coreComponents, dataComponents, bootstrapComponents, statusComponents)
 		arguments.BlockTracker = &mock.BlockTrackerMock{
@@ -495,6 +498,9 @@ func TestShardProcessor_CreateBlockProposal(t *testing.T) {
 			ExecutedMiniBlocksCalled: func() storage.Cacher {
 				return &cache.CacherStub{}
 			},
+			DirectSentTransactionsCalled: func() storage.Cacher {
+				return cache.NewCacherStub()
+			},
 		}
 
 		arguments := CreateMockArguments(coreComponents, dataComponents, bootstrapComponents, statusComponents)
@@ -693,6 +699,9 @@ func TestShardProcessor_CreateBlockProposal(t *testing.T) {
 			},
 			ExecutedMiniBlocksCalled: func() storage.Cacher {
 				return &cache.CacherStub{}
+			},
+			DirectSentTransactionsCalled: func() storage.Cacher {
+				return cache.NewCacherStub()
 			},
 		}
 
@@ -1002,6 +1011,9 @@ func TestShardProcessor_CreateBlockProposal(t *testing.T) {
 			ExecutedMiniBlocksCalled: func() storage.Cacher {
 				return &cache.CacherStub{}
 			},
+			DirectSentTransactionsCalled: func() storage.Cacher {
+				return cache.NewCacherStub()
+			},
 		}
 
 		arguments := CreateMockArguments(coreComponents, dataComponents, bootstrapComponents, statusComponents)
@@ -1093,6 +1105,9 @@ func TestShardProcessor_CreateBlockProposal(t *testing.T) {
 			ExecutedMiniBlocksCalled: func() storage.Cacher {
 				return &cache.CacherStub{}
 			},
+			DirectSentTransactionsCalled: func() storage.Cacher {
+				return cache.NewCacherStub()
+			},
 		}
 
 		arguments := CreateMockArguments(coreComponents, dataComponents, bootstrapComponents, statusComponents)
@@ -1174,6 +1189,9 @@ func TestShardProcessor_CreateBlockProposal(t *testing.T) {
 			},
 			ExecutedMiniBlocksCalled: func() storage.Cacher {
 				return &cache.CacherStub{}
+			},
+			DirectSentTransactionsCalled: func() storage.Cacher {
+				return cache.NewCacherStub()
 			},
 		}
 
@@ -1575,6 +1593,9 @@ func TestShardProcessor_SelectIncomingMiniBlocks(t *testing.T) {
 			ExecutedMiniBlocksCalled: func() storage.Cacher {
 				return &cache.CacherStub{}
 			},
+			DirectSentTransactionsCalled: func() storage.Cacher {
+				return cache.NewCacherStub()
+			},
 		}
 		arguments := CreateMockArguments(coreComponents, dataComponents, bootstrapComponents, statusComponents)
 		arguments.MiniBlocksSelectionSession = &mbSelection.MiniBlockSelectionSessionStub{
@@ -1612,6 +1633,9 @@ func TestShardProcessor_SelectIncomingMiniBlocks(t *testing.T) {
 			ExecutedMiniBlocksCalled: func() storage.Cacher {
 				return &cache.CacherStub{}
 			},
+			DirectSentTransactionsCalled: func() storage.Cacher {
+				return cache.NewCacherStub()
+			},
 		}
 		arguments := CreateMockArguments(coreComponents, dataComponents, bootstrapComponents, statusComponents)
 		sp, err := blproc.NewShardProcessor(arguments)
@@ -1645,6 +1669,9 @@ func TestShardProcessor_SelectIncomingMiniBlocks(t *testing.T) {
 			},
 			ExecutedMiniBlocksCalled: func() storage.Cacher {
 				return &cache.CacherStub{}
+			},
+			DirectSentTransactionsCalled: func() storage.Cacher {
+				return cache.NewCacherStub()
 			},
 		}
 		arguments := CreateMockArguments(coreComponents, dataComponents, bootstrapComponents, statusComponents)
@@ -1686,6 +1713,9 @@ func TestShardProcessor_SelectIncomingMiniBlocks(t *testing.T) {
 			},
 			ExecutedMiniBlocksCalled: func() storage.Cacher {
 				return &cache.CacherStub{}
+			},
+			DirectSentTransactionsCalled: func() storage.Cacher {
+				return cache.NewCacherStub()
 			},
 		}
 		arguments := CreateMockArguments(coreComponents, dataComponents, bootstrapComponents, statusComponents)
@@ -1746,6 +1776,9 @@ func TestShardProcessor_SelectIncomingMiniBlocks(t *testing.T) {
 			},
 			ExecutedMiniBlocksCalled: func() storage.Cacher {
 				return &cache.CacherStub{}
+			},
+			DirectSentTransactionsCalled: func() storage.Cacher {
+				return cache.NewCacherStub()
 			},
 		}
 		arguments := CreateMockArguments(coreComponents, dataComponents, bootstrapComponents, statusComponents)
@@ -2747,6 +2780,9 @@ func TestShardBlockProposal_CreateAndVerifyProposal(t *testing.T) {
 		ExecutedMiniBlocksCalled: func() storage.Cacher {
 			return &cache.CacherStub{}
 		},
+		DirectSentTransactionsCalled: func() storage.Cacher {
+			return cache.NewCacherStub()
+		},
 	}
 	dataComponents.BlockChain = blkc
 
@@ -2905,6 +2941,9 @@ func TestShardBlockProposal_CreateAndVerifyProposal_WithTransactions(t *testing.
 		},
 		ExecutedMiniBlocksCalled: func() storage.Cacher {
 			return &cache.CacherStub{}
+		},
+		DirectSentTransactionsCalled: func() storage.Cacher {
+			return cache.NewCacherStub()
 		},
 	}
 	dataComponents.BlockChain = blkc
@@ -3155,6 +3194,7 @@ func adaptDataPoolForVerifyGas(
 	proofs := initialPool.Proofs()
 	postProcessTxs := initialPool.PostProcessTransactions()
 	executedMbs := initialPool.ExecutedMiniBlocks()
+	dsTxs := initialPool.DirectSentTransactions()
 	return &dataRetriever.PoolsHolderStub{
 		HeadersCalled: func() retriever.HeadersPool {
 			return headers
@@ -3176,6 +3216,9 @@ func adaptDataPoolForVerifyGas(
 		},
 		ExecutedMiniBlocksCalled: func() storage.Cacher {
 			return executedMbs
+		},
+		DirectSentTransactionsCalled: func() storage.Cacher {
+			return dsTxs
 		},
 	}
 }
@@ -3325,6 +3368,9 @@ func TestShardProcessor_ProcessBlockProposal(t *testing.T) {
 						return nil, expectedErr
 					},
 				}
+			},
+			DirectSentTransactionsCalled: func() storage.Cacher {
+				return cache.NewCacherStub()
 			},
 		}
 		sp, _ := blproc.NewShardProcessor(args)

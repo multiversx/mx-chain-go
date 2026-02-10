@@ -29,6 +29,7 @@ type dataPool struct {
 	proofs                  dataRetriever.ProofsPool
 	executedMiniBlocks      storage.Cacher
 	postProcessTransactions storage.Cacher
+	directSentTransactions  storage.Cacher
 }
 
 // DataPoolArgs represents the data pool's constructor structure
@@ -50,6 +51,7 @@ type DataPoolArgs struct {
 	Proofs                    dataRetriever.ProofsPool
 	ExecutedMiniBlocks        storage.Cacher
 	PostProcessTransactions   storage.Cacher
+	DirectSentTransactions    storage.Cacher
 }
 
 // NewDataPool creates a data pools holder object
@@ -105,6 +107,9 @@ func NewDataPool(args DataPoolArgs) (*dataPool, error) {
 	if check.IfNil(args.PostProcessTransactions) {
 		return nil, dataRetriever.ErrNilPostProcessTransactionsCache
 	}
+	if check.IfNil(args.DirectSentTransactions) {
+		return nil, dataRetriever.ErrNilDirectSentTransactionsCache
+	}
 
 	return &dataPool{
 		transactions:            args.Transactions,
@@ -124,6 +129,7 @@ func NewDataPool(args DataPoolArgs) (*dataPool, error) {
 		proofs:                  args.Proofs,
 		executedMiniBlocks:      args.ExecutedMiniBlocks,
 		postProcessTransactions: args.PostProcessTransactions,
+		directSentTransactions:  args.DirectSentTransactions,
 	}, nil
 }
 
@@ -207,6 +213,11 @@ func (dp *dataPool) ExecutedMiniBlocks() storage.Cacher {
 	return dp.executedMiniBlocks
 }
 
+// DirectSentTransactions returns the holder for direct-sent transactions
+func (dp *dataPool) DirectSentTransactions() storage.Cacher {
+	return dp.directSentTransactions
+}
+
 // PostProcessTransactions returns the holder for post-process transactions
 func (dp *dataPool) PostProcessTransactions() storage.Cacher {
 	return dp.postProcessTransactions
@@ -229,6 +240,15 @@ func (dp *dataPool) Close() error {
 		err := dp.peerAuthentications.Close()
 		if err != nil {
 			log.Error("failed to close peer authentications data pool", "error", err.Error())
+			lastError = err
+		}
+	}
+
+	if !check.IfNil(dp.directSentTransactions) {
+		log.Debug("closing direct sent transactions pool....")
+		err := dp.directSentTransactions.Close()
+		if err != nil {
+			log.Error("failed to close direct sent transactions pool", "error", err.Error())
 			lastError = err
 		}
 	}

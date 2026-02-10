@@ -1314,6 +1314,9 @@ var ErrNilHeaderProof = errors.New("nil header proof")
 // ErrNilInterceptedDataCache signals that a nil cacher was provided for intercepted data verifier
 var ErrNilInterceptedDataCache = errors.New("nil cache for intercepted data")
 
+// ErrNilDirectSentCache signals that a nil cacher was provided for direct-sent data
+var ErrNilDirectSentCache = errors.New("nil cache for direct sent")
+
 // ErrFlagNotActive signals that a flag is not active
 var ErrFlagNotActive = errors.New("flag not active")
 

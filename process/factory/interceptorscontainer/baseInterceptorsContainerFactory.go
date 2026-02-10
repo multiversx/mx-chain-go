@@ -281,8 +281,9 @@ func (bicf *baseInterceptorsContainerFactory) createOneTxInterceptor(topic strin
 	}
 
 	argProcessor := &processor.ArgTxInterceptorProcessor{
-		ShardedDataCache: bicf.dataPool.Transactions(),
-		TxValidator:      txValidator,
+		ShardedDataCache:            bicf.dataPool.Transactions(),
+		TxValidator:                 txValidator,
+		DirectSentTransactionsCache: bicf.dataPool.DirectSentTransactions(),
 	}
 	txProcessor, err := processor.NewTxInterceptorProcessor(argProcessor)
 	if err != nil {
@@ -338,8 +339,9 @@ func (bicf *baseInterceptorsContainerFactory) createOneUnsignedTxInterceptor(top
 	}
 
 	argProcessor := &processor.ArgTxInterceptorProcessor{
-		ShardedDataCache: bicf.dataPool.UnsignedTransactions(),
-		TxValidator:      dataValidators.NewDisabledTxValidator(),
+		ShardedDataCache:            bicf.dataPool.UnsignedTransactions(),
+		TxValidator:                 dataValidators.NewDisabledTxValidator(),
+		DirectSentTransactionsCache: bicf.dataPool.DirectSentTransactions(),
 	}
 	txProcessor, err := processor.NewTxInterceptorProcessor(argProcessor)
 	if err != nil {
@@ -395,8 +397,9 @@ func (bicf *baseInterceptorsContainerFactory) createOneRewardTxInterceptor(topic
 	}
 
 	argProcessor := &processor.ArgTxInterceptorProcessor{
-		ShardedDataCache: bicf.dataPool.RewardTransactions(),
-		TxValidator:      dataValidators.NewDisabledTxValidator(),
+		ShardedDataCache:            bicf.dataPool.RewardTransactions(),
+		TxValidator:                 dataValidators.NewDisabledTxValidator(),
+		DirectSentTransactionsCache: bicf.dataPool.DirectSentTransactions(),
 	}
 	txProcessor, err := processor.NewTxInterceptorProcessor(argProcessor)
 	if err != nil {

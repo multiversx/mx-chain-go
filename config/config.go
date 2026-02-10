@@ -269,6 +269,7 @@ type Config struct {
 	PeersRatingConfig PeersRatingConfig
 
 	InterceptedDataVerifier InterceptedDataVerifierConfig
+	DirectSentTransactions  DirectSentTransactionsConfig
 }
 
 // PeersRatingConfig will hold settings related to peers rating
@@ -824,6 +825,12 @@ type IndexBroadcastDelay struct {
 // InterceptedDataVerifierConfig holds the configuration for the intercepted data verifier
 type InterceptedDataVerifierConfig struct {
 	EnableCaching    bool
+	CacheSpanInSec   uint64
+	CacheExpiryInSec uint64
+}
+
+// DirectSentTransactionsConfig holds the configuration for the direct-sent transactions
+type DirectSentTransactionsConfig struct {
 	CacheSpanInSec   uint64
 	CacheExpiryInSec uint64
 }

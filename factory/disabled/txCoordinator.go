@@ -168,6 +168,11 @@ func (txCoordinator *TxCoordinator) GetAllCurrentLogs() []data.LogDataHandler {
 	return make([]data.LogDataHandler, 0)
 }
 
+// ProposedDirectSentTransactionsToBroadcast returns an empty map
+func (txCoordinator *TxCoordinator) ProposedDirectSentTransactionsToBroadcast(_ data.BodyHandler) map[string][][]byte {
+	return make(map[string][][]byte)
+}
+
 // IsInterfaceNil returns true if there is no value under the interface
 func (txCoordinator *TxCoordinator) IsInterfaceNil() bool {
 	return txCoordinator == nil
