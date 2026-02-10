@@ -145,6 +145,7 @@ type baseProcessor struct {
 	gasComputation                     process.GasComputation
 	executionManager                   process.ExecutionManager
 	txExecutionOrderHandler            common.TxExecutionOrderHandler
+	aotSelector                        process.AOTTransactionSelector
 }
 
 type bootStorerDataArgs struct {
@@ -234,6 +235,7 @@ func NewBaseProcessor(arguments ArgBaseProcessor) (*baseProcessor, error) {
 		gasComputation:                     arguments.GasComputation,
 		executionManager:                   arguments.ExecutionManager,
 		txExecutionOrderHandler:            arguments.TxExecutionOrderHandler,
+		aotSelector:                        arguments.AOTSelector,
 	}
 
 	err = base.OnExecutedBlock(genesisHdr, genesisHdr.GetRootHash())
@@ -797,6 +799,9 @@ func checkProcessorParameters(arguments ArgBaseProcessor) error {
 	}
 	if check.IfNil(arguments.TxExecutionOrderHandler) {
 		return process.ErrNilTxExecutionOrderHandler
+	}
+	if check.IfNil(arguments.AOTSelector) {
+		return process.ErrNilAOTSelector
 	}
 
 	return nil

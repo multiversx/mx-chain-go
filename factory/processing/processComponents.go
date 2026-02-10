@@ -17,12 +17,13 @@ import (
 	"github.com/multiversx/mx-chain-core-go/data/outport"
 	"github.com/multiversx/mx-chain-core-go/data/receipt"
 	"github.com/multiversx/mx-chain-core-go/data/transaction"
+	vmcommon "github.com/multiversx/mx-chain-vm-common-go"
+	vmcommonBuiltInFunctions "github.com/multiversx/mx-chain-vm-common-go/builtInFunctions"
+
 	"github.com/multiversx/mx-chain-go/process/asyncExecution"
 	headersCache "github.com/multiversx/mx-chain-go/process/asyncExecution/cache"
 	"github.com/multiversx/mx-chain-go/process/asyncExecution/executionManager"
 	"github.com/multiversx/mx-chain-go/process/asyncExecution/executionTrack"
-	vmcommon "github.com/multiversx/mx-chain-vm-common-go"
-	vmcommonBuiltInFunctions "github.com/multiversx/mx-chain-vm-common-go/builtInFunctions"
 
 	nodeFactory "github.com/multiversx/mx-chain-go/cmd/node/factory"
 	"github.com/multiversx/mx-chain-go/common"
@@ -141,6 +142,7 @@ type processComponents struct {
 	epochSystemSCProcessor           process.EpochStartSystemSCProcessor
 	interceptedDataVerifierFactory   process.InterceptedDataVerifierFactory
 	epochStartTriggerHanlder         epochStart.TriggerHandler
+	aotSelector                      process.AOTTransactionSelector
 }
 
 // ProcessComponentsFactoryArgs holds the arguments needed to create a process components factory
@@ -218,6 +220,7 @@ type processComponentsFactory struct {
 	genesisRound uint64
 
 	interceptedDataVerifierFactory process.InterceptedDataVerifierFactory
+	nodeRedundancyHandler          consensus.NodeRedundancyHandler
 }
 
 // NewProcessComponentsFactory will return a new instance of processComponentsFactory
@@ -647,6 +650,27 @@ func (pcf *processComponentsFactory) Create() (*processComponents, error) {
 		return nil, err
 	}
 
+	observerBLSPrivateKey, observerBLSPublicKey := pcf.crypto.BlockSignKeyGen().GeneratePair()
+	observerBLSPublicKeyBuff, err := observerBLSPublicKey.ToByteArray()
+	if err != nil {
+		return nil, fmt.Errorf("error generating observerBLSPublicKeyBuff, %w", err)
+	} else {
+		log.Debug("generated BLS private key for redundancy handler. This key will be used on heartbeat messages "+
+			"if the node is in backup mode and the main node is active", "hex public key", observerBLSPublicKeyBuff)
+	}
+
+	nodeRedundancyArg := redundancy.ArgNodeRedundancy{
+		RedundancyLevel:       int(pcf.prefConfigs.Preferences.RedundancyLevel),
+		ProcessConfigsHandler: pcf.coreData.ProcessConfigsHandler(),
+		Messenger:             pcf.network.NetworkMessenger(),
+		ObserverPrivateKey:    observerBLSPrivateKey,
+	}
+	nodeRedundancyHandler, err := redundancy.NewNodeRedundancy(nodeRedundancyArg)
+	if err != nil {
+		return nil, err
+	}
+	pcf.nodeRedundancyHandler = nodeRedundancyHandler
+
 	blockProcessorComponents, err := pcf.newBlockProcessor(
 		requestHandler,
 		forkDetector,
@@ -737,26 +761,6 @@ func (pcf *processComponentsFactory) Create() (*processComponents, error) {
 		return nil, err
 	}
 
-	observerBLSPrivateKey, observerBLSPublicKey := pcf.crypto.BlockSignKeyGen().GeneratePair()
-	observerBLSPublicKeyBuff, err := observerBLSPublicKey.ToByteArray()
-	if err != nil {
-		return nil, fmt.Errorf("error generating observerBLSPublicKeyBuff, %w", err)
-	} else {
-		log.Debug("generated BLS private key for redundancy handler. This key will be used on heartbeat messages "+
-			"if the node is in backup mode and the main node is active", "hex public key", observerBLSPublicKeyBuff)
-	}
-
-	nodeRedundancyArg := redundancy.ArgNodeRedundancy{
-		RedundancyLevel:       int(pcf.prefConfigs.Preferences.RedundancyLevel),
-		ProcessConfigsHandler: pcf.coreData.ProcessConfigsHandler(),
-		Messenger:             pcf.network.NetworkMessenger(),
-		ObserverPrivateKey:    observerBLSPrivateKey,
-	}
-	nodeRedundancyHandler, err := redundancy.NewNodeRedundancy(nodeRedundancyArg)
-	if err != nil {
-		return nil, err
-	}
-
 	dataPacker, err := partitioning.NewSimpleDataPacker(pcf.coreData.InternalMarshalizer())
 	if err != nil {
 		return nil, err
@@ -829,6 +833,7 @@ func (pcf *processComponentsFactory) Create() (*processComponents, error) {
 		sentSignaturesTracker:            sentSignaturesTracker,
 		interceptedDataVerifierFactory:   pcf.interceptedDataVerifierFactory,
 		epochStartTriggerHanlder:         epochStartTrigger,
+		aotSelector:                      blockProcessorComponents.aotSelector,
 	}, nil
 }
 
@@ -2166,6 +2171,9 @@ func (pc *processComponents) Close() error {
 	}
 	if !check.IfNil(pc.interceptedDataVerifierFactory) {
 		log.LogIfError(pc.interceptedDataVerifierFactory.Close())
+	}
+	if !check.IfNil(pc.aotSelector) {
+		log.LogIfError(pc.aotSelector.Close())
 	}
 
 	return nil

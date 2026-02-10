@@ -5,6 +5,8 @@ import (
 
 	"github.com/multiversx/mx-chain-core-go/core"
 	"github.com/multiversx/mx-chain-core-go/data"
+
+	"github.com/multiversx/mx-chain-go/process/aotSelection"
 	"github.com/multiversx/mx-chain-go/process/asyncExecution"
 	"github.com/multiversx/mx-chain-go/process/asyncExecution/executionManager"
 
@@ -225,6 +227,7 @@ func (tpn *TestProcessorNode) initBlockProcessorWithSync() {
 		GasComputation:                     gasConsumption,
 		ExecutionManager:                   tpn.ExecutionManager,
 		TxExecutionOrderHandler:            tpn.TxExecutionOrderHandler,
+		AOTSelector:                        aotSelection.NewDisabledAOTSelector(),
 	}
 
 	if tpn.ShardCoordinator.SelfId() == core.MetachainShardId {

@@ -11,6 +11,7 @@ import (
 	"github.com/multiversx/mx-chain-core-go/core/check"
 	"github.com/multiversx/mx-chain-core-go/data"
 	outportcore "github.com/multiversx/mx-chain-core-go/data/outport"
+	"github.com/multiversx/mx-chain-go/common/consensus"
 
 	"github.com/multiversx/mx-chain-go/common"
 	"github.com/multiversx/mx-chain-go/consensus/spos"
@@ -173,7 +174,7 @@ func (sr *subroundStartRound) initCurrentRound() bool {
 	if sr.IsKeyManagedBySelf([]byte(leader)) {
 		msg = " (my turn in multi-key)"
 	}
-	if leader == sr.SelfPubKey() && spos.ShouldConsiderSelfKeyInConsensus(sr.NodeRedundancyHandler()) {
+	if leader == sr.SelfPubKey() && consensus.ShouldConsiderSelfKeyInConsensus(sr.NodeRedundancyHandler()) {
 		msg = " (my turn)"
 	}
 	if len(msg) != 0 {
@@ -192,7 +193,7 @@ func (sr *subroundStartRound) initCurrentRound() bool {
 
 	sr.indexRoundIfNeeded(pubKeys)
 
-	isSingleKeyLeader := leader == sr.SelfPubKey() && spos.ShouldConsiderSelfKeyInConsensus(sr.NodeRedundancyHandler())
+	isSingleKeyLeader := leader == sr.SelfPubKey() && consensus.ShouldConsiderSelfKeyInConsensus(sr.NodeRedundancyHandler())
 	isLeader := isSingleKeyLeader || sr.IsKeyManagedBySelf([]byte(leader))
 	isSelfInConsensus := sr.IsNodeInConsensusGroup(sr.SelfPubKey()) || numMultiKeysInConsensusGroup > 0
 	if !isSelfInConsensus {
