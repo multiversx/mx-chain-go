@@ -19,6 +19,7 @@ import (
 	"github.com/multiversx/mx-chain-core-go/data/typeConverters"
 	"github.com/multiversx/mx-chain-core-go/hashing"
 	"github.com/multiversx/mx-chain-core-go/marshal"
+	"github.com/multiversx/mx-chain-go/storage"
 	logger "github.com/multiversx/mx-chain-logger-go"
 	vmcommon "github.com/multiversx/mx-chain-vm-common-go"
 
@@ -1277,4 +1278,182 @@ func GetStorageUnitByBlockType(blockType block.Type) (dataRetriever.UnitType, er
 		return dataRetriever.UnsignedTransactionUnit, nil
 	}
 	return 0, ErrInvalidBlockType
+}
+
+// IsReplacementBlockForExecution returns true if the provided header is a replacement for the last execution result
+func IsReplacementBlockForExecution(header data.HeaderHandler, headerHash []byte, lastExecutionResult data.BaseExecutionResultHandler) bool {
+	if check.IfNil(header) || check.IfNil(lastExecutionResult) {
+		return false
+	}
+
+	sameNonce := header.GetNonce() == lastExecutionResult.GetHeaderNonce()
+	differentHash := !bytes.Equal(headerHash, lastExecutionResult.GetHeaderHash())
+	return sameNonce && differentHash
+}
+
+// UpdateContextForReplacedHeader updates the blockchain context when a header should be replaced
+func UpdateContextForReplacedHeader(
+	header data.HeaderHandler,
+	executionManager ExecutionManager,
+	blockChain data.ChainHandler,
+	headersPool dataRetriever.HeadersPool,
+	postProcessTransactions storage.Cacher,
+	executedMiniBlocks storage.Cacher,
+	storageService dataRetriever.StorageService,
+	marshaller marshal.Marshalizer,
+	shardID uint32,
+) error {
+	err := checkForNils(header, executionManager, blockChain, headersPool, storageService, marshaller)
+	if err != nil {
+		return err
+	}
+
+	pendingExecutionResults, err := executionManager.GetPendingExecutionResults()
+	if err != nil {
+		return err
+	}
+
+	lastExecutionResult, err := executionManager.GetLastNotarizedExecutionResult()
+	if err != nil {
+		return err
+	}
+
+	executionResultToSet, err := getExecutionResultToSetOnReplacedHeader(
+		header,
+		pendingExecutionResults,
+		lastExecutionResult,
+	)
+	if err != nil {
+		return err
+	}
+
+	// TODO: optimize to add into pool at bootstrap
+	headerToSet, err := GetHeader(executionResultToSet.GetHeaderHash(), headersPool, storageService, marshaller, shardID)
+	if err != nil {
+		return err
+	}
+
+	err = CleanCachesForExecutionResult(blockChain.GetLastExecutionResult(), postProcessTransactions, executedMiniBlocks)
+	if err != nil {
+		return err
+	}
+
+	log.Debug("UpdateContextForReplacedHeader last executed header",
+		"round", headerToSet.GetRound(),
+		"nonce", headerToSet.GetNonce(),
+		"hash", executionResultToSet.GetHeaderHash())
+
+	blockChain.SetLastExecutedBlockHeaderAndRootHash(headerToSet, executionResultToSet.GetHeaderHash(), executionResultToSet.GetRootHash())
+	blockChain.SetLastExecutionResult(executionResultToSet)
+
+	// need to remove all execution results after the one set
+	err = executionManager.RemovePendingExecutionResultsFromNonce(executionResultToSet.GetHeaderNonce() + 1)
+	if err != nil {
+		return err
+	}
+
+	log.Debug("UpdateContextForReplacedHeader finished",
+		"nonce", header.GetNonce(),
+		"old round", header.GetRound(),
+		"new round", headerToSet.GetRound(),
+		"new hash", executionResultToSet.GetHeaderHash(),
+	)
+
+	return nil
+}
+
+// CleanCachesForExecutionResult cleans post-process transactions and executed mini blocks caches
+func CleanCachesForExecutionResult(
+	execResult data.BaseExecutionResultHandler,
+	postProcessTxsCache storage.Cacher,
+	executedMbs storage.Cacher,
+) error {
+	if check.IfNil(execResult) {
+		return ErrNilExecutionResultHandler
+	}
+	if check.IfNil(postProcessTxsCache) {
+		return ErrNilPostProcessTransactionsCache
+	}
+	if check.IfNil(executedMbs) {
+		return ErrNilExecutedMiniBlocksCache
+	}
+
+	headerHash := execResult.GetHeaderHash()
+	// all transactions moved, cleaning the cache
+	postProcessTxsCache.Remove(headerHash)
+	// remove execution order data
+	postProcessTxsCache.Remove(common.PrepareOrderedTxHashesKey(headerHash))
+	// remove cached log events
+	postProcessTxsCache.Remove(common.PrepareLogEventsKey(headerHash))
+
+	// remove headerHash from executed mini blocks
+	executedMbs.Remove(headerHash)
+
+	// remove mini block headers from executed mini blocks
+	mbHeaders, err := common.GetMiniBlocksHeaderHandlersFromExecResult(execResult)
+	if err != nil {
+		return err
+	}
+	for _, mbHeader := range mbHeaders {
+		executedMbs.Remove(mbHeader.GetHash())
+	}
+
+	return nil
+}
+
+func checkForNils(
+	header data.HeaderHandler,
+	executionManager ExecutionManager,
+	blockChain data.ChainHandler,
+	headersPool common.HeadersPool,
+	storage dataRetriever.StorageService,
+	marshaller marshal.Marshalizer,
+) error {
+	if check.IfNil(header) {
+		return ErrNilHeaderHandler
+	}
+	if check.IfNil(executionManager) {
+		return ErrNilExecutionManager
+	}
+	if check.IfNil(blockChain) {
+		return ErrNilBlockChain
+	}
+	if check.IfNil(headersPool) {
+		return ErrNilHeadersDataPool
+	}
+	if check.IfNil(storage) {
+		return ErrNilStorageService
+	}
+	if check.IfNil(marshaller) {
+		return ErrNilMarshalizer
+	}
+	return nil
+}
+
+func getExecutionResultToSetOnReplacedHeader(
+	header data.HeaderHandler,
+	pendingExecutionResults []data.BaseExecutionResultHandler,
+	lastNotarizedResult data.BaseExecutionResultHandler,
+) (data.BaseExecutionResultHandler, error) {
+	prevNonce := header.GetNonce() - 1
+	prevHash := header.GetPrevHash()
+
+	headerHashToSet := lastNotarizedResult.GetHeaderHash()
+	executionResultToSet := lastNotarizedResult
+	if bytes.Equal(prevHash, headerHashToSet) {
+		return executionResultToSet, nil
+	}
+
+	for i := len(pendingExecutionResults) - 1; i >= 0; i-- {
+		if pendingExecutionResults[i].GetHeaderNonce() <= prevNonce {
+			headerHashToSet = pendingExecutionResults[i].GetHeaderHash()
+			executionResultToSet = pendingExecutionResults[i]
+			break
+		}
+	}
+	if !bytes.Equal(prevHash, headerHashToSet) {
+		return nil, ErrExecutionResultNotFound
+	}
+
+	return executionResultToSet, nil
 }

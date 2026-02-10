@@ -48,10 +48,13 @@ import (
 )
 
 const maxTrackedBlocks = 100
-const selectionLoopMaximumDuration = 250
 const numTxsSelected = 30_000
 const gasRequested = 10_000_000_000
 const loopDurationCheckInterval = 10
+
+func haveTimeTrueForSelection() bool {
+	return true
+}
 
 var oneEGLD = big.NewInt(1000000000000000000)
 var expectedErr = errors.New("expected error")
@@ -71,13 +74,14 @@ func createMockArgAPITransactionProcessor() *ArgAPITransactionProcessor {
 		TxTypeHandler:            &testscommon.TxTypeHandlerMock{},
 		LogsFacade:               &testscommon.LogsFacadeStub{},
 		DataFieldParser: &testscommon.DataFieldParserStub{
-			ParseCalled: func(dataField []byte, sender, receiver []byte, _ uint32) *datafield.ResponseParseData {
+			ParseCalled: func(dataField []byte, sender, receiver []byte, _ uint32, _ uint32) *datafield.ResponseParseData {
 				return &datafield.ResponseParseData{}
 			},
 		},
 		TxMarshaller:        &marshallerMock.MarshalizerMock{},
 		EnableEpochsHandler: enableEpochsHandlerMock.NewEnableEpochsHandlerStub(),
 		EnableRoundsHandler: &testscommon.EnableRoundsHandlerStub{},
+		TxVersionChecker:    &testscommon.TxVersionCheckerStub{},
 	}
 }
 
@@ -226,6 +230,15 @@ func TestNewAPITransactionProcessor(t *testing.T) {
 
 		_, err := NewAPITransactionProcessor(arguments)
 		require.Equal(t, process.ErrNilEnableRoundsHandler, err)
+	})
+	t.Run("NilTransactionVersionChecker", func(t *testing.T) {
+		t.Parallel()
+
+		arguments := createMockArgAPITransactionProcessor()
+		arguments.TxVersionChecker = nil
+
+		_, err := NewAPITransactionProcessor(arguments)
+		require.Equal(t, process.ErrNilTransactionVersionChecker, err)
 	})
 }
 
@@ -394,13 +407,14 @@ func TestNode_GetSCRs(t *testing.T) {
 		TxTypeHandler:            &testscommon.TxTypeHandlerMock{},
 		LogsFacade:               &testscommon.LogsFacadeStub{},
 		DataFieldParser: &testscommon.DataFieldParserStub{
-			ParseCalled: func(dataField []byte, sender, receiver []byte, _ uint32) *datafield.ResponseParseData {
+			ParseCalled: func(dataField []byte, sender, receiver []byte, _ uint32, _ uint32) *datafield.ResponseParseData {
 				return &datafield.ResponseParseData{}
 			},
 		},
 		EnableEpochsHandler: enableEpochsHandlerMock.NewEnableEpochsHandlerStub(),
 		TxMarshaller:        &mock.MarshalizerFake{},
 		EnableRoundsHandler: &testscommon.EnableRoundsHandlerStub{},
+		TxVersionChecker:    &testscommon.TxVersionCheckerStub{},
 	}
 	apiTransactionProc, _ := NewAPITransactionProcessor(args)
 
@@ -537,6 +551,182 @@ func testWithMissingStorer(missingUnit dataRetriever.UnitType) func(t *testing.T
 	}
 }
 
+func TestNode_GetTransactionCheckExecutionResults(t *testing.T) {
+	t.Parallel()
+
+	t.Run("get transaction by hash, unexecutable tx", func(t *testing.T) {
+		marshalizer := &mock.MarshalizerFake{}
+		txHash := hex.EncodeToString([]byte("txHash"))
+		tx := &transaction.Transaction{Nonce: 7, SndAddr: []byte("alice"), RcvAddr: []byte("bob")}
+		scResultHash := []byte("scHash")
+
+		resultHashesByTxHash := &dblookupext.ResultsHashesByTxHash{
+			ScResultsHashesAndEpoch: []*dblookupext.ScResultsHashesAndEpoch{
+				{
+					Epoch:           0,
+					ScResultsHashes: [][]byte{scResultHash},
+				},
+			},
+		}
+
+		executionResult := &block.ExecutionResult{
+			BaseExecutionResult: &block.BaseExecutionResult{},
+		}
+
+		chainStorer := &storageStubs.ChainStorerStub{
+			GetStorerCalled: func(unitType dataRetriever.UnitType) (storage.Storer, error) {
+				switch unitType {
+				case dataRetriever.TransactionUnit:
+					return &storageStubs.StorerStub{
+						GetFromEpochCalled: func(key []byte, epoch uint32) ([]byte, error) {
+							return marshalizer.Marshal(tx)
+						},
+					}, nil
+				case dataRetriever.ExecutionResultsUnit:
+					return &storageStubs.StorerStub{
+						GetFromEpochCalled: func(key []byte, epoch uint32) ([]byte, error) {
+							return marshalizer.Marshal(executionResult)
+						},
+					}, nil
+				default:
+					return nil, storage.ErrKeyNotFound
+				}
+			},
+		}
+
+		proposedMBHash := []byte("proposedMBHash")
+		historyRepo := &dblookupextMock.HistoryRepositoryStub{
+			GetMiniblockMetadataByTxHashCalled: func(hash []byte) (*dblookupext.MiniblockMetadata, error) {
+				return &dblookupext.MiniblockMetadata{
+					MiniblockHash: proposedMBHash,
+					Round:         100,
+				}, nil
+			},
+			GetEventsHashesByTxHashCalled: func(hash []byte, epoch uint32) (*dblookupext.ResultsHashesByTxHash, error) {
+				return resultHashesByTxHash, nil
+			},
+		}
+
+		args := &ArgAPITransactionProcessor{
+			RoundDuration:            0,
+			GenesisTime:              time.Time{},
+			Marshalizer:              &mock.MarshalizerFake{},
+			AddressPubKeyConverter:   &testscommon.PubkeyConverterMock{},
+			ShardCoordinator:         &mock.ShardCoordinatorMock{},
+			HistoryRepository:        historyRepo,
+			StorageService:           chainStorer,
+			DataPool:                 dataRetrieverMock.NewPoolsHolderMock(),
+			Uint64ByteSliceConverter: mock.NewNonceHashConverterMock(),
+			FeeComputer:              &testscommon.FeeComputerStub{},
+			TxTypeHandler:            &testscommon.TxTypeHandlerMock{},
+			LogsFacade:               &testscommon.LogsFacadeStub{},
+			DataFieldParser: &testscommon.DataFieldParserStub{
+				ParseCalled: func(dataField []byte, sender, receiver []byte, _ uint32, _ uint32) *datafield.ResponseParseData {
+					return &datafield.ResponseParseData{}
+				},
+			},
+			TxMarshaller:        &marshallerMock.MarshalizerMock{},
+			EnableEpochsHandler: enableEpochsHandlerMock.NewEnableEpochsHandlerStub(),
+			EnableRoundsHandler: &testscommon.EnableRoundsHandlerStub{
+				IsFlagEnabledInRoundCalled: func(flag common.EnableRoundFlag, round uint64) bool {
+					return true
+				},
+			},
+			TxVersionChecker: &testscommon.TxVersionCheckerStub{},
+		}
+		apiTransactionProc, _ := NewAPITransactionProcessor(args)
+
+		apiTx, err := apiTransactionProc.GetTransaction(txHash, true)
+		require.Nil(t, err)
+		require.Equal(t, transaction.TxStatusNotExecutable, apiTx.Status)
+	})
+
+	t.Run("get transaction by hash, transaction is execution", func(t *testing.T) {
+		marshalizer := &mock.MarshalizerFake{}
+		txHash := hex.EncodeToString([]byte("txHash"))
+		tx := &transaction.Transaction{Nonce: 7, SndAddr: []byte("alice"), RcvAddr: []byte("bob")}
+
+		miniblockHash := []byte("mbHash")
+		executionResult := &block.ExecutionResult{
+			BaseExecutionResult: &block.BaseExecutionResult{},
+			MiniBlockHeaders: []block.MiniBlockHeader{
+				{
+					Hash: []byte("h"),
+				},
+				{
+					Hash: miniblockHash,
+				},
+			},
+		}
+
+		chainStorer := &storageStubs.ChainStorerStub{
+			GetStorerCalled: func(unitType dataRetriever.UnitType) (storage.Storer, error) {
+				switch unitType {
+				case dataRetriever.TransactionUnit:
+					return &storageStubs.StorerStub{
+						GetFromEpochCalled: func(key []byte, epoch uint32) ([]byte, error) {
+							return marshalizer.Marshal(tx)
+						},
+					}, nil
+				case dataRetriever.ExecutionResultsUnit:
+					return &storageStubs.StorerStub{
+						GetFromEpochCalled: func(key []byte, epoch uint32) ([]byte, error) {
+							return marshalizer.Marshal(executionResult)
+						},
+					}, nil
+				default:
+					return nil, storage.ErrKeyNotFound
+				}
+			},
+		}
+
+		historyRepo := &dblookupextMock.HistoryRepositoryStub{
+			GetMiniblockMetadataByTxHashCalled: func(hash []byte) (*dblookupext.MiniblockMetadata, error) {
+				return &dblookupext.MiniblockMetadata{
+					MiniblockHash: miniblockHash,
+					Round:         100,
+				}, nil
+			},
+			GetEventsHashesByTxHashCalled: func(hash []byte, epoch uint32) (*dblookupext.ResultsHashesByTxHash, error) {
+				return nil, dblookupext.ErrNotFoundInStorage
+			},
+		}
+
+		args := &ArgAPITransactionProcessor{
+			RoundDuration:            0,
+			GenesisTime:              time.Time{},
+			Marshalizer:              &mock.MarshalizerFake{},
+			AddressPubKeyConverter:   &testscommon.PubkeyConverterMock{},
+			ShardCoordinator:         &mock.ShardCoordinatorMock{},
+			HistoryRepository:        historyRepo,
+			StorageService:           chainStorer,
+			DataPool:                 dataRetrieverMock.NewPoolsHolderMock(),
+			Uint64ByteSliceConverter: mock.NewNonceHashConverterMock(),
+			FeeComputer:              &testscommon.FeeComputerStub{},
+			TxTypeHandler:            &testscommon.TxTypeHandlerMock{},
+			LogsFacade:               &testscommon.LogsFacadeStub{},
+			DataFieldParser: &testscommon.DataFieldParserStub{
+				ParseCalled: func(dataField []byte, sender, receiver []byte, _ uint32, _ uint32) *datafield.ResponseParseData {
+					return &datafield.ResponseParseData{}
+				},
+			},
+			TxMarshaller:        &marshallerMock.MarshalizerMock{},
+			EnableEpochsHandler: enableEpochsHandlerMock.NewEnableEpochsHandlerStub(),
+			EnableRoundsHandler: &testscommon.EnableRoundsHandlerStub{
+				IsFlagEnabledInRoundCalled: func(flag common.EnableRoundFlag, round uint64) bool {
+					return true
+				},
+			},
+			TxVersionChecker: &testscommon.TxVersionCheckerStub{},
+		}
+		apiTransactionProc, _ := NewAPITransactionProcessor(args)
+
+		apiTx, err := apiTransactionProc.GetTransaction(txHash, true)
+		require.Nil(t, err)
+		require.Equal(t, transaction.TxStatusSuccess, apiTx.Status)
+	})
+}
+
 func TestNode_GetTransactionWithResultsFromStorage(t *testing.T) {
 	t.Parallel()
 
@@ -613,13 +803,14 @@ func TestNode_GetTransactionWithResultsFromStorage(t *testing.T) {
 		TxTypeHandler:            &testscommon.TxTypeHandlerMock{},
 		LogsFacade:               &testscommon.LogsFacadeStub{},
 		DataFieldParser: &testscommon.DataFieldParserStub{
-			ParseCalled: func(dataField []byte, sender, receiver []byte, _ uint32) *datafield.ResponseParseData {
+			ParseCalled: func(dataField []byte, sender, receiver []byte, _ uint32, _ uint32) *datafield.ResponseParseData {
 				return &datafield.ResponseParseData{}
 			},
 		},
 		TxMarshaller:        &marshallerMock.MarshalizerMock{},
 		EnableEpochsHandler: enableEpochsHandlerMock.NewEnableEpochsHandlerStub(),
 		EnableRoundsHandler: &testscommon.EnableRoundsHandlerStub{},
+		TxVersionChecker:    &testscommon.TxVersionCheckerStub{},
 	}
 	apiTransactionProc, _ := NewAPITransactionProcessor(args)
 
@@ -959,6 +1150,7 @@ func TestApiTransactionProcessor_GetTransactionsPoolForSender(t *testing.T) {
 			MaxTrackedBlocks:               maxTrackedBlocks,
 		},
 	}, txcachemocks.NewMempoolHostMock(), 0)
+	require.NoError(t, err)
 
 	txCacheWithMeta.AddTx(createTx(txHash3, sender, 4))
 	txCacheWithMeta.AddTx(createTx(txHash4, sender, 5))
@@ -1280,11 +1472,11 @@ func TestApiTransactionProcessor_GetSelectedTransactions(t *testing.T) {
 			},
 		}
 
-		options := holders.NewTxSelectionOptions(
+		options, _ := holders.NewTxSelectionOptions(
 			gasRequested,
 			numTxsSelected,
-			selectionLoopMaximumDuration,
 			loopDurationCheckInterval,
+			haveTimeTrueForSelection,
 		)
 
 		selectionOptionsAPI := holders.NewTxSelectionOptionsAPI(
@@ -1350,11 +1542,11 @@ func TestApiTransactionProcessor_GetSelectedTransactions(t *testing.T) {
 			},
 		}
 
-		options := holders.NewTxSelectionOptions(
+		options, _ := holders.NewTxSelectionOptions(
 			gasRequested,
 			numTxsSelected,
-			selectionLoopMaximumDuration,
 			loopDurationCheckInterval,
+			haveTimeTrueForSelection,
 		)
 
 		selectionOptionsAPI := holders.NewTxSelectionOptionsAPI(
@@ -1408,11 +1600,11 @@ func TestApiTransactionProcessor_GetSelectedTransactions(t *testing.T) {
 			},
 		}
 
-		options := holders.NewTxSelectionOptions(
+		options, _ := holders.NewTxSelectionOptions(
 			gasRequested,
 			numTxsSelected,
-			selectionLoopMaximumDuration,
 			loopDurationCheckInterval,
+			haveTimeTrueForSelection,
 		)
 
 		selectionOptionsAPI := holders.NewTxSelectionOptionsAPI(
@@ -1454,11 +1646,11 @@ func TestApiTransactionProcessor_GetSelectedTransactions(t *testing.T) {
 		require.NoError(t, err)
 		require.NotNil(t, atp)
 
-		options := holders.NewTxSelectionOptions(
+		options, _ := holders.NewTxSelectionOptions(
 			gasRequested,
 			numTxsSelected,
-			selectionLoopMaximumDuration,
 			loopDurationCheckInterval,
+			haveTimeTrueForSelection,
 		)
 
 		selectionOptionsAPI := holders.NewTxSelectionOptionsAPI(
@@ -1512,11 +1704,11 @@ func TestApiTransactionProcessor_GetSelectedTransactions(t *testing.T) {
 		require.NoError(t, err)
 		require.NotNil(t, atp)
 
-		options := holders.NewTxSelectionOptions(
+		options, _ := holders.NewTxSelectionOptions(
 			gasRequested,
 			numTxsSelected,
-			selectionLoopMaximumDuration,
 			loopDurationCheckInterval,
+			haveTimeTrueForSelection,
 		)
 
 		blockchainMock := &testscommon.ChainHandlerStub{
@@ -1625,7 +1817,7 @@ func createAPITransactionProc(t *testing.T, epoch uint32, withDbLookupExt bool) 
 		},
 	}
 	dataFieldParser := &testscommon.DataFieldParserStub{
-		ParseCalled: func(dataField []byte, sender, receiver []byte, _ uint32) *datafield.ResponseParseData {
+		ParseCalled: func(dataField []byte, sender, receiver []byte, _ uint32, _ uint32) *datafield.ResponseParseData {
 			if strings.Contains(string(dataField), "relayed") {
 				return &datafield.ResponseParseData{
 					IsRelayed: true,
@@ -1656,6 +1848,7 @@ func createAPITransactionProc(t *testing.T, epoch uint32, withDbLookupExt bool) 
 			},
 		},
 		EnableRoundsHandler: &testscommon.EnableRoundsHandlerStub{},
+		TxVersionChecker:    &testscommon.TxVersionCheckerStub{},
 	}
 	apiTransactionProc, err := NewAPITransactionProcessor(args)
 	require.Nil(t, err)

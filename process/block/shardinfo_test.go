@@ -1021,14 +1021,6 @@ func TestShardInfoCreateData_updateShardDataWithCrossShardInfo(t *testing.T) {
 	})
 }
 
-type shardInfoCreateDataTestArgs struct {
-	headersPool              *poolMock.HeadersPoolStub
-	proofsPool               *dataRetrieverMock.ProofsPoolMock
-	pendingMiniBlocksHandler *mock.PendingMiniBlocksHandlerStub
-	blockTracker             *mock.BlockTrackerMock
-	enableEpochsHandler      *enableEpochsHandlerMock.EnableEpochsHandlerStub
-}
-
 func createDefaultShardInfoCreateDataArgs() ShardInfoCreateDataArgs {
 	return ShardInfoCreateDataArgs{
 		EnableEpochsHandler:      &enableEpochsHandlerMock.EnableEpochsHandlerStub{},

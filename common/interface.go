@@ -286,7 +286,7 @@ type RootHashHolder interface {
 type TxSelectionOptions interface {
 	GetGasRequested() uint64
 	GetMaxNumTxs() int
-	GetLoopMaximumDurationMs() int
+	HaveTimeForSelection() bool
 	GetLoopDurationCheckInterval() int
 	IsInterfaceNil() bool
 }
@@ -323,6 +323,7 @@ type EnableEpochsHandler interface {
 	IsFlagEnabled(flag core.EnableEpochFlag) bool
 	IsFlagEnabledInEpoch(flag core.EnableEpochFlag, epoch uint32) bool
 	GetActivationEpoch(flag core.EnableEpochFlag) uint32
+	GetAllEnableEpochs() map[string]uint32
 
 	IsInterfaceNil() bool
 }
@@ -503,5 +504,13 @@ type CommonConfigsHandler interface {
 	GetMaxRoundsWithoutCommittedStartInEpochBlockInRound(round uint64) uint32
 	GetNumRoundsToWaitBeforeSignalingChronologyStuck(epoch uint32) uint32
 
+	IsInterfaceNil() bool
+}
+
+// AntifloodConfigsHandler defines the behavior of a component that can return antiflood config by round
+type AntifloodConfigsHandler interface {
+	GetCurrentConfig() config.AntifloodConfigByRound
+	GetFloodPreventerConfigByType(configType FloodPreventerType) config.FloodPreventerConfig
+	IsEnabled() bool
 	IsInterfaceNil() bool
 }

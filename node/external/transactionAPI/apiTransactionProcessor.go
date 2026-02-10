@@ -1,6 +1,7 @@
 package transactionAPI
 
 import (
+	"bytes"
 	"encoding/hex"
 	"errors"
 	"fmt"
@@ -52,6 +53,7 @@ type apiTransactionProcessor struct {
 	gasUsedAndFeeProcessor      *gasUsedAndFeeProcessor
 	enableEpochsHandler         common.EnableEpochsHandler
 	enableRoundsHandler         common.EnableRoundsHandler
+	txVersionChecker            process.TxVersionCheckerHandler
 }
 
 // NewAPITransactionProcessor will create a new instance of apiTransactionProcessor
@@ -107,6 +109,7 @@ func NewAPITransactionProcessor(args *ArgAPITransactionProcessor) (*apiTransacti
 		gasUsedAndFeeProcessor:      gasUsedAndFeeProc,
 		enableEpochsHandler:         args.EnableEpochsHandler,
 		enableRoundsHandler:         args.EnableRoundsHandler,
+		txVersionChecker:            args.TxVersionChecker,
 	}, nil
 }
 
@@ -565,8 +568,9 @@ func (atp *apiTransactionProcessor) selectTransactions(accountsAdapter state.Acc
 	// TODO use the right object, not a disabled one
 	txProcessor := disabled.TxProcessor{}
 	argsSelectionSession := preprocess.ArgsSelectionSession{
-		AccountsAdapter:       accountsAdapter,
-		TransactionsProcessor: &txProcessor,
+		AccountsAdapter:         accountsAdapter,
+		TransactionsProcessor:   &txProcessor,
+		TxVersionCheckerHandler: atp.txVersionChecker,
 	}
 
 	selectionSession, err := preprocess.NewSelectionSession(argsSelectionSession)
@@ -748,20 +752,53 @@ func (atp *apiTransactionProcessor) computeTimestampForRoundAsMs(round uint64) i
 	return timestamp.UnixMilli()
 }
 
-func (atp *apiTransactionProcessor) checkExecutionResult(miniblockMetadata *dblookupext.MiniblockMetadata) error {
+func (atp *apiTransactionProcessor) checkExecutionResultAndTx(miniblockMetadata *dblookupext.MiniblockMetadata) (bool, error) {
 	isSupernovaEnabled := atp.enableRoundsHandler.IsFlagEnabledInRound(common.SupernovaRoundFlag, miniblockMetadata.Round)
 	if !isSupernovaEnabled {
-		return nil
+		return true, nil
 	}
 
 	headerHash := miniblockMetadata.GetHeaderHash()
 	executionResultsStorer, errG := atp.storageService.GetStorer(dataRetriever.ExecutionResultsUnit)
 	if errG != nil {
-		return errG
+		return false, errG
 	}
 
-	_, err := executionResultsStorer.GetFromEpoch(headerHash, miniblockMetadata.GetEpoch())
-	return err
+	executionResultsBytes, err := executionResultsStorer.GetFromEpoch(headerHash, miniblockMetadata.GetEpoch())
+	if err != nil {
+		return false, err
+	}
+
+	if atp.shardCoordinator.SelfId() == core.MetachainShardId {
+		// we cannot have unexecutable txs on metachain
+		return true, nil
+	}
+	mbHeaders, err := atp.getMbHeadersFromExecutionResultBytes(executionResultsBytes)
+	if err != nil {
+		return false, err
+	}
+
+	// check if the transaction miniblock metadata has a mb header on execution result
+	// if yes - the transaction was executed
+	// if no  - the transaction was proposed but not executed
+	currentTxIsExecuted := false
+	for _, mbHeader := range mbHeaders {
+		if bytes.Equal(mbHeader.Hash, miniblockMetadata.MiniblockHash) {
+			currentTxIsExecuted = true
+			break
+		}
+	}
+	return currentTxIsExecuted, nil
+}
+
+func (atp *apiTransactionProcessor) getMbHeadersFromExecutionResultBytes(executionResultBytes []byte) ([]block.MiniBlockHeader, error) {
+	executResult := &block.ExecutionResult{}
+	err := atp.marshalizer.Unmarshal(executResult, executionResultBytes)
+	if err != nil {
+		return nil, err
+	}
+
+	return executResult.GetMiniBlockHeaders(), nil
 }
 
 func (atp *apiTransactionProcessor) lookupHistoricalTransaction(hash []byte, withResults bool) (*transaction.ApiTransactionResult, error) {
@@ -770,7 +807,7 @@ func (atp *apiTransactionProcessor) lookupHistoricalTransaction(hash []byte, wit
 		return nil, fmt.Errorf("%s: %w", ErrTransactionNotFound.Error(), err)
 	}
 
-	err = atp.checkExecutionResult(miniblockMetadata)
+	isExecuted, err := atp.checkExecutionResultAndTx(miniblockMetadata)
 	if err != nil {
 		return nil, fmt.Errorf("%s: %w", ErrTransactionNotFound.Error(), err)
 	}
@@ -800,6 +837,11 @@ func (atp *apiTransactionProcessor) lookupHistoricalTransaction(hash []byte, wit
 	statusComputer, err := txstatus.NewStatusComputer(atp.shardCoordinator.SelfId(), atp.uint64ByteSliceConverter, atp.storageService)
 	if err != nil {
 		return nil, fmt.Errorf("%s: %w", ErrNilStatusComputer.Error(), err)
+	}
+
+	if !isExecuted {
+		tx.Status = transaction.TxStatusNotExecutable
+		return tx, nil
 	}
 
 	if ok, _ := statusComputer.SetStatusIfIsRewardReverted(

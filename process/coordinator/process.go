@@ -15,8 +15,9 @@ import (
 	"github.com/multiversx/mx-chain-core-go/data/block"
 	"github.com/multiversx/mx-chain-core-go/hashing"
 	"github.com/multiversx/mx-chain-core-go/marshal"
-	"github.com/multiversx/mx-chain-go/dataRetriever"
 	logger "github.com/multiversx/mx-chain-logger-go"
+
+	"github.com/multiversx/mx-chain-go/dataRetriever"
 
 	"github.com/multiversx/mx-chain-go/common"
 	"github.com/multiversx/mx-chain-go/process"
@@ -62,6 +63,7 @@ type ArgTransactionCoordinator struct {
 	TxTypeHandler                process.TxTypeHandler
 	TransactionsLogProcessor     process.TransactionLogProcessor
 	EnableEpochsHandler          common.EnableEpochsHandler
+	EnableRoundsHandler          common.EnableRoundsHandler
 	ScheduledTxsExecutionHandler process.ScheduledTxsExecutionHandler
 	DoubleTransactionsDetector   process.DoubleTransactionDetector
 	ProcessedMiniBlocksTracker   process.ProcessedMiniBlocksTracker
@@ -96,6 +98,7 @@ type transactionCoordinator struct {
 	doubleTransactionsDetector   process.DoubleTransactionDetector
 	processedMiniBlocksTracker   process.ProcessedMiniBlocksTracker
 	enableEpochsHandler          common.EnableEpochsHandler
+	enableRoundsHandler          common.EnableRoundsHandler
 	txExecutionOrderHandler      common.TxExecutionOrderHandler
 	blockDataRequester           process.BlockDataRequester
 	blockDataRequesterProposal   process.BlockDataRequester
@@ -126,6 +129,7 @@ func NewTransactionCoordinator(args ArgTransactionCoordinator) (*transactionCoor
 		doubleTransactionsDetector:   args.DoubleTransactionsDetector,
 		processedMiniBlocksTracker:   args.ProcessedMiniBlocksTracker,
 		enableEpochsHandler:          args.EnableEpochsHandler,
+		enableRoundsHandler:          args.EnableRoundsHandler,
 		txExecutionOrderHandler:      args.TxExecutionOrderHandler,
 		blockDataRequester:           args.BlockDataRequester,
 		blockDataRequesterProposal:   args.BlockDataRequesterProposal,
@@ -329,7 +333,8 @@ func (tc *transactionCoordinator) ProcessBlockTransaction(
 		return process.ErrNilBlockBody
 	}
 
-	if tc.isMaxBlockSizeReached(body) {
+	isAsyncExecEnabled := common.IsAsyncExecutionEnabled(tc.enableEpochsHandler, tc.enableRoundsHandler)
+	if !isAsyncExecEnabled && tc.isMaxBlockSizeReached(body) {
 		return process.ErrMaxBlockSizeReached
 	}
 
@@ -381,6 +386,11 @@ func (tc *transactionCoordinator) GetCreatedMiniBlocksFromMe() block.MiniBlockSl
 	}
 
 	return miniBlocks
+}
+
+// GetUnExecutableTransactions will return a map with hashes of unexecutable transactions
+func (tc *transactionCoordinator) GetUnExecutableTransactions() map[string]struct{} {
+	return tc.getUnExecutableTransactions()
 }
 
 func (tc *transactionCoordinator) getUnExecutableTransactions() map[string]struct{} {
@@ -893,6 +903,38 @@ func createBroadcastTopic(shardC sharding.Coordinator, destShId uint32, mbType b
 	return transactionTopic, nil
 }
 
+// ProposedDirectSentTransactionsToBroadcast creates marshaled intra-shard transactions received via direct-send for broadcasting
+func (tc *transactionCoordinator) ProposedDirectSentTransactionsToBroadcast(proposedBody data.BodyHandler) map[string][][]byte {
+	mrsTxs := make(map[string][][]byte)
+
+	bodyPtr, ok := proposedBody.(*block.Body)
+	if !ok {
+		log.Warn("ProposedDirectSentTransactionsToBroadcast could not cast body")
+		return mrsTxs
+	}
+
+	// should not be any intermediate transactions at this point and all data needed should be in pools
+	cachedIntermediateTxsMap := make(map[block.Type]map[string]data.TransactionHandler)
+
+	for _, miniBlock := range bodyPtr.MiniBlocks {
+		isIntraShardMb := miniBlock.SenderShardID == miniBlock.ReceiverShardID &&
+			miniBlock.SenderShardID == tc.shardCoordinator.SelfId()
+		if !isIntraShardMb {
+			continue
+		}
+
+		tc.appendTransactionsForMiniBlock(miniBlock, cachedIntermediateTxsMap, mrsTxs, tc.shouldSkipTransaction)
+	}
+
+	return mrsTxs
+}
+
+func (tc *transactionCoordinator) shouldSkipTransaction(txHash []byte) bool {
+	directSentTransactionsCache := tc.dataPool.DirectSentTransactions()
+	_, found := directSentTransactionsCache.Get(txHash)
+	return !found
+}
+
 // CreateMarshalledDataForHeader creates marshaled data for broadcasting based on header
 func (tc *transactionCoordinator) CreateMarshalledDataForHeader(header data.HeaderHandler, body *block.Body, miniBlocksMap map[string]block.MiniBlockSlice) map[string][][]byte {
 	mrsTxs := make(map[string][][]byte)
@@ -912,6 +954,8 @@ func (tc *transactionCoordinator) createMarshalledDataV3(miniBlocksMap map[strin
 	// for header v3, the mini blocks are from execution results
 	mrsTxs := make(map[string][][]byte)
 
+	shouldNotSkipTransactionFunc := func(_ []byte) bool { return false }
+
 	for headerHash, miniBlocks := range miniBlocksMap {
 		cachedIntermediateTxsMap, err := common.GetCachedIntermediateTxs(tc.dataPool.PostProcessTransactions(), []byte(headerHash))
 		if err != nil {
@@ -924,31 +968,40 @@ func (tc *transactionCoordinator) createMarshalledDataV3(miniBlocksMap map[strin
 				continue
 			}
 
-			broadcastTopic, errCreate := createBroadcastTopic(tc.shardCoordinator, miniBlock.ReceiverShardID, miniBlock.Type)
-			if errCreate != nil {
-				log.Warn("createMarshalledDataV3.createBroadcastTopic", "error", errCreate.Error())
-				continue
-			}
-
-			if miniBlock.Type == block.TxBlock || miniBlock.Type == block.InvalidBlock {
-				tc.appendTransactionsFromPoolForMiniBlock(tc.dataPool.Transactions(), miniBlock, broadcastTopic, mrsTxs)
-				continue
-			}
-
-			if miniBlock.Type == block.RewardsBlock {
-				tc.appendTransactionsFromPoolForMiniBlock(tc.dataPool.RewardTransactions(), miniBlock, broadcastTopic, mrsTxs)
-				continue
-			}
-
-			if miniBlock.Type == block.PeerBlock {
-				tc.appendTransactionsFromPoolForMiniBlock(tc.dataPool.ValidatorsInfo(), miniBlock, broadcastTopic, mrsTxs)
-			}
-
-			tc.appendPostProcessTransactionsForMiniBlocks(cachedIntermediateTxsMap, miniBlock, broadcastTopic, mrsTxs)
+			tc.appendTransactionsForMiniBlock(miniBlock, cachedIntermediateTxsMap, mrsTxs, shouldNotSkipTransactionFunc)
 		}
 	}
 
 	return mrsTxs
+}
+
+func (tc *transactionCoordinator) appendTransactionsForMiniBlock(
+	miniBlock *block.MiniBlock,
+	cachedIntermediateTxsMap map[block.Type]map[string]data.TransactionHandler,
+	mrsTxs map[string][][]byte,
+	shouldSkipTransactionFunc func(txHash []byte) bool,
+) {
+	broadcastTopic, errCreate := createBroadcastTopic(tc.shardCoordinator, miniBlock.ReceiverShardID, miniBlock.Type)
+	if errCreate != nil {
+		log.Warn("appendTransactionsForMiniBlock.createBroadcastTopic", "error", errCreate.Error())
+		return
+	}
+
+	if miniBlock.Type == block.TxBlock || miniBlock.Type == block.InvalidBlock {
+		tc.appendTransactionsFromPoolForMiniBlock(tc.dataPool.Transactions(), miniBlock, broadcastTopic, mrsTxs, shouldSkipTransactionFunc)
+		return
+	}
+
+	if miniBlock.Type == block.RewardsBlock {
+		tc.appendTransactionsFromPoolForMiniBlock(tc.dataPool.RewardTransactions(), miniBlock, broadcastTopic, mrsTxs, shouldSkipTransactionFunc)
+		return
+	}
+
+	if miniBlock.Type == block.PeerBlock {
+		tc.appendTransactionsFromPoolForMiniBlock(tc.dataPool.ValidatorsInfo(), miniBlock, broadcastTopic, mrsTxs, shouldSkipTransactionFunc)
+	}
+
+	tc.appendPostProcessTransactionsForMiniBlocks(cachedIntermediateTxsMap, miniBlock, broadcastTopic, mrsTxs, shouldSkipTransactionFunc)
 }
 
 func (tc *transactionCoordinator) appendTransactionsFromPoolForMiniBlock(
@@ -956,8 +1009,13 @@ func (tc *transactionCoordinator) appendTransactionsFromPoolForMiniBlock(
 	miniBlock *block.MiniBlock,
 	broadcastTopic string,
 	mrsTxs map[string][][]byte,
+	shouldSkipTransactionFunc func(txHash []byte) bool,
 ) {
 	for _, txHash := range miniBlock.TxHashes {
+		if shouldSkipTransactionFunc(txHash) {
+			continue
+		}
+
 		rawTx, ok := pool.SearchFirstData(txHash)
 		if !ok {
 			log.Warn("appendTransactionsFromPoolForMiniBlock could not find transaction for miniBlock in pool", "hash", txHash)
@@ -985,6 +1043,7 @@ func (tc *transactionCoordinator) appendPostProcessTransactionsForMiniBlocks(
 	miniBlock *block.MiniBlock,
 	broadcastTopic string,
 	mrsTxs map[string][][]byte,
+	shouldSkipTransactionFunc func(txHash []byte) bool,
 ) {
 	transactionsForMiniBlock, ok := cachedIntermediateTxsMap[miniBlock.Type]
 	if !ok {
@@ -992,7 +1051,7 @@ func (tc *transactionCoordinator) appendPostProcessTransactionsForMiniBlocks(
 		return
 	}
 
-	tc.appendMarshalledDataForTransactions(miniBlock.TxHashes, transactionsForMiniBlock, broadcastTopic, mrsTxs)
+	tc.appendMarshalledDataForTransactions(miniBlock.TxHashes, transactionsForMiniBlock, broadcastTopic, mrsTxs, shouldSkipTransactionFunc)
 }
 
 func (tc *transactionCoordinator) appendMarshalledDataForTransactions(
@@ -1000,8 +1059,13 @@ func (tc *transactionCoordinator) appendMarshalledDataForTransactions(
 	transactionsForMiniBlock map[string]data.TransactionHandler,
 	broadcastTopic string,
 	mrsTxs map[string][][]byte,
+	shouldSkipTransactionFunc func(txHash []byte) bool,
 ) {
 	for _, txHash := range txHashes {
+		if shouldSkipTransactionFunc(txHash) {
+			continue
+		}
+
 		tx, ok := transactionsForMiniBlock[string(txHash)]
 		if !ok {
 			log.Warn("appendMarshalledDataForTransactions.createBroadcastTopic", "txHash", txHash)
@@ -1753,6 +1817,9 @@ func checkTransactionCoordinatorNilParameters(arguments ArgTransactionCoordinato
 	}
 	if check.IfNil(arguments.EnableEpochsHandler) {
 		return process.ErrNilEnableEpochsHandler
+	}
+	if check.IfNil(arguments.EnableRoundsHandler) {
+		return process.ErrNilEnableRoundsHandler
 	}
 	err := core.CheckHandlerCompatibility(arguments.EnableEpochsHandler, []core.EnableEpochFlag{
 		common.ScheduledMiniBlocksFlag,

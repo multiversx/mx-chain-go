@@ -14,7 +14,7 @@ import (
 	"github.com/multiversx/mx-chain-go/consensus"
 	"github.com/multiversx/mx-chain-go/consensus/spos"
 	"github.com/multiversx/mx-chain-go/consensus/spos/bls"
-	"github.com/multiversx/mx-chain-go/process/asyncExecution/queue"
+	"github.com/multiversx/mx-chain-go/process/asyncExecution/cache"
 )
 
 // maxAllowedSizeInBytes defines how many bytes are allowed as payload in a message
@@ -96,6 +96,10 @@ func (sr *subroundBlock) doBlockJob(ctx context.Context) bool {
 	if sr.IsSubroundFinished(sr.Current()) {
 		return false
 	}
+	if sr.HasProofForCompetingBlock() {
+		log.Debug("doBlockJob - competing block proof exists, skipping block proposal")
+		return false
+	}
 
 	metricStatTime := time.Now()
 	defer sr.computeSubroundProcessingMetric(metricStatTime, common.MetricCreatedProposedBlock)
@@ -128,6 +132,12 @@ func (sr *subroundBlock) doBlockJob(ctx context.Context) bool {
 	leader, errGetLeader := sr.GetLeader()
 	if errGetLeader != nil {
 		printLogMessage(ctx, "doBlockJob.GetLeader", errGetLeader)
+		return false
+	}
+
+	// check again there is no proof for competing block before sending the block
+	if sr.HasProofForCompetingBlock() {
+		log.Debug("doBlockJob - competing block proof exists, skipping block proposal")
 		return false
 	}
 
@@ -173,9 +183,10 @@ func (sr *subroundBlock) prepareBlockForExecution(header data.HeaderHandler, bod
 			return err
 		}
 	}
-	return sr.ExecutionManager().AddPairForExecution(queue.HeaderBodyPair{
-		Header: header,
-		Body:   body,
+	return sr.ExecutionManager().AddPairForExecution(cache.HeaderBodyPair{
+		Header:     header,
+		Body:       body,
+		HeaderHash: sr.GetData(),
 	})
 }
 
@@ -208,7 +219,7 @@ func printLogMessage(ctx context.Context, baseMessage string, err error) {
 	log.Debug(baseMessage, "error", err.Error())
 }
 
-func (sr *subroundBlock) sendBlock(header data.HeaderHandler, body data.BodyHandler, _ string) bool {
+func (sr *subroundBlock) sendBlock(header data.HeaderHandler, body data.BodyHandler, leader string) bool {
 	marshalledBody, err := sr.Marshalizer().Marshal(body)
 	if err != nil {
 		log.Debug("sendBlock.Marshal: body", "error", err.Error())
@@ -222,9 +233,13 @@ func (sr *subroundBlock) sendBlock(header data.HeaderHandler, body data.BodyHand
 	}
 
 	sr.logBlockSize(marshalledBody, marshalledHeader)
-	if !sr.sendBlockBody(body, marshalledBody) || !sr.sendBlockHeader(header, marshalledHeader) {
+	headerHash := sr.Hasher().Compute(string(marshalledHeader))
+
+	if !sr.sendBlockBody(body, marshalledBody) || !sr.sendBlockHeader(header, headerHash) {
 		return false
 	}
+
+	sr.sendDirectSentTransactions(header, body, leader)
 
 	return true
 }
@@ -296,7 +311,7 @@ func (sr *subroundBlock) sendBlockBody(
 // sendBlockHeader method sends the proposed block header in the subround Block
 func (sr *subroundBlock) sendBlockHeader(
 	headerHandler data.HeaderHandler,
-	marshalledHeader []byte,
+	headerHash []byte,
 ) bool {
 	leader, errGetLeader := sr.GetLeader()
 	if errGetLeader != nil {
@@ -310,8 +325,6 @@ func (sr *subroundBlock) sendBlockHeader(
 		return false
 	}
 
-	headerHash := sr.Hasher().Compute(string(marshalledHeader))
-
 	log.Debug("step 1: block header has been sent",
 		"nonce", headerHandler.GetNonce(),
 		"hash", headerHash,
@@ -323,10 +336,36 @@ func (sr *subroundBlock) sendBlockHeader(
 	// log the header output for debugging purposes
 	headerOutput, err := common.PrettifyStruct(headerHandler)
 	if err == nil {
-		log.Debug("Proposed header sent", "header", headerOutput)
+		log.Debug("proposed header sent", "header", headerOutput)
 	}
 
 	return true
+}
+
+func (sr *subroundBlock) sendDirectSentTransactions(
+	header data.HeaderHandler,
+	body data.BodyHandler,
+	leader string,
+) {
+	if !header.IsHeaderV3() {
+		return
+	}
+
+	mrsTxs := sr.BlockProcessor().ProposedDirectSentTransactionsToBroadcast(body)
+	if len(mrsTxs) == 0 {
+		return
+	}
+
+	err := sr.BroadcastMessenger().BroadcastTransactions(mrsTxs, []byte(leader))
+	if err != nil {
+		log.Warn("sendDirectSentTransactions.BroadcastTransactions", "error", err.Error())
+		return
+	}
+
+	log.Debug("proposed direct sent transactions sent")
+	for topic, txs := range mrsTxs {
+		log.Trace("on topic", "topic", topic, "txs", len(txs))
+	}
 }
 
 func (sr *subroundBlock) getPrevHeaderAndHash() (data.HeaderHandler, []byte) {
@@ -636,7 +675,7 @@ func (sr *subroundBlock) receivedBlockHeader(headerHandler data.HeaderHandler) {
 	// log the header output for debugging purposes
 	headerOutput, err := common.PrettifyStruct(headerHandler)
 	if err == nil {
-		log.Debug("Proposed header received", "header", headerOutput)
+		log.Debug("proposed header received", "header", headerOutput)
 	}
 }
 
@@ -782,9 +821,10 @@ func (sr *subroundBlock) processBlockBasedOnType(haveTime func() time.Duration) 
 			return err
 		}
 
-		return sr.ExecutionManager().AddPairForExecution(queue.HeaderBodyPair{
-			Header: sr.GetHeader(),
-			Body:   sr.GetBody(),
+		return sr.ExecutionManager().AddPairForExecution(cache.HeaderBodyPair{
+			Header:     sr.GetHeader(),
+			Body:       sr.GetBody(),
+			HeaderHash: sr.GetData(),
 		})
 	}
 

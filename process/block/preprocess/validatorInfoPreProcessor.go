@@ -55,6 +55,7 @@ func NewValidatorInfoPreprocessor(
 		blockSizeComputation: args.BlockSizeComputation,
 		enableEpochsHandler:  args.EnableEpochsHandler,
 		enableRoundsHandler:  args.EnableRoundsHandler,
+		feeHandler:           args.EconomicsFee,
 	}
 
 	vip := &validatorInfoPreprocessor{
@@ -238,7 +239,7 @@ func (vip *validatorInfoPreprocessor) GetTransactionsAndRequestMissingForMiniBlo
 }
 
 // SelectOutgoingTransactions does nothing
-func (vip *validatorInfoPreprocessor) SelectOutgoingTransactions(_ uint64, _ uint64) ([][]byte, []data.TransactionHandler, error) {
+func (vip *validatorInfoPreprocessor) SelectOutgoingTransactions(_ uint64, _ uint64, _ func() bool) ([][]byte, []data.TransactionHandler, error) {
 	return make([][]byte, 0), make([]data.TransactionHandler, 0), nil
 }
 

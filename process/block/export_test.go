@@ -22,9 +22,9 @@ import (
 	"github.com/multiversx/mx-chain-go/dataRetriever"
 	"github.com/multiversx/mx-chain-go/process"
 	"github.com/multiversx/mx-chain-go/process/asyncExecution"
+	"github.com/multiversx/mx-chain-go/process/asyncExecution/cache"
 	"github.com/multiversx/mx-chain-go/process/asyncExecution/executionManager"
 	"github.com/multiversx/mx-chain-go/process/asyncExecution/executionTrack"
-	"github.com/multiversx/mx-chain-go/process/asyncExecution/queue"
 	"github.com/multiversx/mx-chain-go/process/block/bootstrapStorage"
 	"github.com/multiversx/mx-chain-go/process/block/processedMb"
 	"github.com/multiversx/mx-chain-go/process/coordinator"
@@ -216,13 +216,15 @@ func NewShardProcessorEmptyWith3shards(
 		coreComponents.Hasher(),
 	)
 
-	blocksQueue := queue.NewBlocksQueue()
+	blocksQueue := cache.NewHeaderBodyCache(config.HeaderBodyCacheConfig{})
 	executionResultsTracker := executionTrack.NewExecutionResultsTracker()
 	execManager, _ := executionManager.NewExecutionManager(executionManager.ArgsExecutionManager{
 		BlocksQueue:             blocksQueue,
 		ExecutionResultsTracker: executionResultsTracker,
 		BlockChain:              dataComponents.BlockChain,
 		Headers:                 dataComponents.Datapool().Headers(),
+		PostProcessTransactions: dataComponents.DataPool.PostProcessTransactions(),
+		ExecutedMiniBlocks:      dataComponents.DataPool.ExecutedMiniBlocks(),
 		StorageService:          dataComponents.StorageService(),
 		Marshaller:              coreComponents.InternalMarshalizer(),
 		ShardCoordinator:        boostrapComponents.ShardCoordinator(),
@@ -304,7 +306,7 @@ func NewShardProcessorEmptyWith3shards(
 	}
 
 	argsHeaderExecutor := asyncExecution.ArgsHeadersExecutor{
-		BlocksQueue:      blocksQueue,
+		BlocksCache:      blocksQueue,
 		ExecutionTracker: executionResultsTracker,
 		BlockProcessor:   shardProc,
 		BlockChain:       dataComponents.BlockChain,
@@ -740,7 +742,7 @@ func (sp *shardProcessor) GetHdrForBlock() HeadersForBlock {
 }
 
 // PendingMiniBlocksAfterSelection -
-type PendingMiniBlocksAfterSelection = pendingMiniBlocksAfterSelection
+type PendingMiniBlocksAfterSelection = pendingBlocksAfterSelection
 
 // GetHeaderHash -
 func (p *PendingMiniBlocksAfterSelection) GetHeaderHash() []byte {
@@ -753,8 +755,8 @@ func (p *PendingMiniBlocksAfterSelection) GetHeader() data.HeaderHandler {
 }
 
 // GetMiniBlocksAndHashes -
-func (p *PendingMiniBlocksAfterSelection) GetMiniBlocksAndHashes() []block.MiniblockAndHash {
-	return p.pendingMiniBlocksAndHashes
+func (p *PendingMiniBlocksAfterSelection) GetMiniBlocksAndHashes() map[string]*block.MiniBlock {
+	return p.pendingMiniBlocks
 }
 
 // SelectIncomingMiniBlocks -
@@ -1071,8 +1073,8 @@ func (bp *baseProcessor) ExtractRootHashForCleanup(header data.HeaderHandler) (c
 }
 
 // CheckContextBeforeExecution -
-func (bp *baseProcessor) CheckContextBeforeExecution(header data.HeaderHandler) error {
-	return bp.checkAndUpdateContextBeforeExecution(header)
+func (bp *baseProcessor) CheckContextBeforeExecution(header data.HeaderHandler, headerHash []byte) error {
+	return bp.checkAndUpdateContextBeforeExecution(header, headerHash)
 }
 
 // SaveProposedTxsToStorage -

@@ -3,7 +3,6 @@ package blockInfoProviders
 import (
 	"github.com/multiversx/mx-chain-core-go/core/check"
 	"github.com/multiversx/mx-chain-core-go/data"
-	chainData "github.com/multiversx/mx-chain-core-go/data"
 	"github.com/multiversx/mx-chain-go/common"
 	"github.com/multiversx/mx-chain-go/common/holders"
 	logger "github.com/multiversx/mx-chain-logger-go"
@@ -12,11 +11,11 @@ import (
 var log = logger.GetOrCreate("state/blockinfoproviders")
 
 type currentBlockInfo struct {
-	chainHandler chainData.ChainHandler
+	chainHandler data.ChainHandler
 }
 
 // NewCurrentBlockInfo creates a new instance of type currentBlockInfo
-func NewCurrentBlockInfo(chainHandler chainData.ChainHandler) (*currentBlockInfo, error) {
+func NewCurrentBlockInfo(chainHandler data.ChainHandler) (*currentBlockInfo, error) {
 	if check.IfNil(chainHandler) {
 		return nil, ErrNilChainHandler
 	}

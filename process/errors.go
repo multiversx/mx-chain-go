@@ -242,6 +242,9 @@ var ErrNilMiniBlockPool = errors.New("nil mini block pool")
 // ErrNilPostProcessTransactionsCache signals that a nil post-process transactions cache has been provided
 var ErrNilPostProcessTransactionsCache = errors.New("nil post process transactions cache")
 
+// ErrNilExecutedMiniBlocksCache signals that a nil executed mini blocks cache has been provided
+var ErrNilExecutedMiniBlocksCache = errors.New("nil executed mini blocks cache")
+
 // ErrNilMetaBlocksPool signals that a nil meta blocks pool was used
 var ErrNilMetaBlocksPool = errors.New("nil meta blocks pool")
 
@@ -1176,6 +1179,9 @@ var ErrNilEpochChangeGracePeriodHandler = errors.New("nil epoch change grace per
 // ErrNilProcessConfigsHandler signals that a nil process configs by epoch handler has been provided
 var ErrNilProcessConfigsHandler = errors.New("nil process configs by epoch handler")
 
+// ErrNilAntifloodConfigsHandler signals that a nil antiflood configs handler has been provided
+var ErrNilAntifloodConfigsHandler = errors.New("nil antiflood configs handler")
+
 // ErrNilMultiSignerContainer signals that the given multisigner container is nil
 var ErrNilMultiSignerContainer = errors.New("nil multiSigner container")
 
@@ -1263,6 +1269,9 @@ var ErrNilManagedPeersHolder = errors.New("nil managed peers holder")
 // ErrNilStorageService signals that a nil storage service has been provided
 var ErrNilStorageService = errors.New("nil storage service")
 
+// ErrNilPubKeysHandler signals that a nil public keys handler has been provided
+var ErrNilPubKeysHandler = errors.New("nil public keys handler")
+
 // ErrInvalidAsyncArguments signals that invalid arguments were given for async/callBack processing
 var ErrInvalidAsyncArguments = errors.New("invalid arguments to process async/callback function")
 
@@ -1305,6 +1314,9 @@ var ErrNilHeaderProof = errors.New("nil header proof")
 // ErrNilInterceptedDataCache signals that a nil cacher was provided for intercepted data verifier
 var ErrNilInterceptedDataCache = errors.New("nil cache for intercepted data")
 
+// ErrNilDirectSentCache signals that a nil cacher was provided for direct-sent data
+var ErrNilDirectSentCache = errors.New("nil cache for direct sent")
+
 // ErrFlagNotActive signals that a flag is not active
 var ErrFlagNotActive = errors.New("flag not active")
 
@@ -1346,9 +1358,6 @@ var ErrBadTxCacheSelectionGasRequested = errors.New("bad tx cache selection gas 
 
 // ErrBadTxCacheSelectionMaxNumTxs signals a bad txcache config
 var ErrBadTxCacheSelectionMaxNumTxs = errors.New("bad tx cache selection max num txs")
-
-// ErrBadTxCacheSelectionLoopMaximumDuration signals a bad txcache config
-var ErrBadTxCacheSelectionLoopMaximumDuration = errors.New("bad tx cache selection loop maximum duration")
 
 // ErrBadTxCacheSelectionLoopDurationCheckInterval signals a bad txcache config
 var ErrBadTxCacheSelectionLoopDurationCheckInterval = errors.New("bad selection loop duration check interval")
@@ -1439,3 +1448,12 @@ var ErrEpochStartProposeBlockHasMiniBlocks = errors.New("epoch start propose blo
 
 // ErrNonCanonicalExecutionResultIncluded signals that a non-canonical execution result has been included
 var ErrNonCanonicalExecutionResultIncluded = errors.New("non-canonical execution result included")
+
+// ErrNoReferencedHeader signals that no header was referenced
+var ErrNoReferencedHeader = errors.New("no referenced header")
+
+// ErrExecutionResultNotFound signals that the execution result was not found
+var ErrExecutionResultNotFound = errors.New("execution result not found")
+
+// ErrShardHeadersShouldNotBeNotarized signals that shard headers should not be notarized
+var ErrShardHeadersShouldNotBeNotarized = errors.New("shard headers should not be notarized")

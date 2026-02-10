@@ -867,13 +867,17 @@ func (wrk *Worker) Extend(subroundId int) {
 	log.Debug("current block is reverted")
 
 	header := wrk.consensusState.GetHeader()
-	isHeaderV3 := !check.IfNil(header) && header.IsHeaderV3()
+	if check.IfNil(header) {
+		return
+	}
+
+	isHeaderV3 := header.IsHeaderV3()
 	if isHeaderV3 {
 		return
 	}
 
 	wrk.scheduledProcessor.ForceStopScheduledExecutionBlocking()
-	wrk.blockProcessor.RevertCurrentBlock(header)
+	wrk.blockProcessor.RevertCurrentBlock()
 	wrk.removeConsensusHeaderFromPool()
 }
 
