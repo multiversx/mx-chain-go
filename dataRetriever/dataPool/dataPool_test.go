@@ -36,6 +36,7 @@ func createMockDataPoolArgs() dataPool.DataPoolArgs {
 		Proofs:                    &dataRetrieverMocks.ProofsPoolMock{},
 		ExecutedMiniBlocks:        cache.NewCacherStub(),
 		PostProcessTransactions:   cache.NewCacherStub(),
+		DirectSentTransactions:    cache.NewCacherStub(),
 	}
 }
 
@@ -193,6 +194,17 @@ func TestNewDataPool_NilExecutedMiniBlocksShouldErr(t *testing.T) {
 	require.Equal(t, dataRetriever.ErrNilExecutedMiniBlocksCache, err)
 }
 
+func TestNewDataPool_NilDirectSentTransactionsShouldErr(t *testing.T) {
+	t.Parallel()
+
+	args := createMockDataPoolArgs()
+	args.DirectSentTransactions = nil
+	tdp, err := dataPool.NewDataPool(args)
+
+	require.Nil(t, tdp)
+	require.Equal(t, dataRetriever.ErrNilDirectSentTransactionsCache, err)
+}
+
 func TestNewDataPool_NilPostProcessTransactionsShouldErr(t *testing.T) {
 	t.Parallel()
 
@@ -240,6 +252,7 @@ func TestNewDataPool_OkValsShouldWork(t *testing.T) {
 	assert.True(t, args.ValidatorsInfo == tdp.ValidatorsInfo())
 	assert.True(t, args.ExecutedMiniBlocks == tdp.ExecutedMiniBlocks())
 	assert.True(t, args.PostProcessTransactions == tdp.PostProcessTransactions())
+	assert.True(t, args.DirectSentTransactions == tdp.DirectSentTransactions())
 }
 
 func TestNewDataPool_Close(t *testing.T) {
@@ -274,13 +287,28 @@ func TestNewDataPool_Close(t *testing.T) {
 		err := tdp.Close()
 		assert.Equal(t, expectedErr, err)
 	})
-	t.Run("both fail", func(t *testing.T) {
+	t.Run("direct sent transactions close returns error", func(t *testing.T) {
+		t.Parallel()
+
+		args := createMockDataPoolArgs()
+		args.DirectSentTransactions = &cache.CacherStub{
+			CloseCalled: func() error {
+				return expectedErr
+			},
+		}
+		tdp, _ := dataPool.NewDataPool(args)
+		assert.NotNil(t, tdp)
+		err := tdp.Close()
+		assert.Equal(t, expectedErr, err)
+	})
+	t.Run("all fail", func(t *testing.T) {
 		t.Parallel()
 
 		tnExpectedErr := errors.New("tn expected error")
 		paExpectedErr := errors.New("pa expected error")
+		dsExpectedErr := errors.New("ds expected error")
 		args := createMockDataPoolArgs()
-		tnCalled, paCalled := false, false
+		tnCalled, paCalled, dsCalled := false, false, false
 		args.TrieNodes = &cache.CacherStub{
 			CloseCalled: func() error {
 				tnCalled = true
@@ -293,12 +321,19 @@ func TestNewDataPool_Close(t *testing.T) {
 				return paExpectedErr
 			},
 		}
+		args.DirectSentTransactions = &cache.CacherStub{
+			CloseCalled: func() error {
+				dsCalled = true
+				return dsExpectedErr
+			},
+		}
 		tdp, _ := dataPool.NewDataPool(args)
 		assert.NotNil(t, tdp)
 		err := tdp.Close()
-		assert.Equal(t, paExpectedErr, err)
+		assert.Equal(t, dsExpectedErr, err)
 		assert.True(t, tnCalled)
 		assert.True(t, paCalled)
+		assert.True(t, dsCalled)
 	})
 	t.Run("should work", func(t *testing.T) {
 		t.Parallel()

@@ -1176,6 +1176,10 @@
     CacheSpanInSec = 30
     CacheExpiryInSec = 30
 
+[DirectSentTransactions]
+    CacheSpanInSec = 30
+    CacheExpiryInSec = 30
+
 [ExecutionResultInclusionEstimator]
     # Safety margin = 110 -> 110% -> 10% buffer
     SafetyMargin = 110

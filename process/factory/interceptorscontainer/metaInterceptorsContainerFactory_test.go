@@ -84,6 +84,9 @@ func createMetaDataPools() dataRetriever.PoolsHolder {
 		ProofsCalled: func() dataRetriever.ProofsPool {
 			return &dataRetrieverMock.ProofsPoolMock{}
 		},
+		DirectSentTransactionsCalled: func() storage.Cacher {
+			return cache.NewCacherStub()
+		},
 	}
 
 	return pools
