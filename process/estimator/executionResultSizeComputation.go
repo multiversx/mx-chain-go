@@ -44,6 +44,8 @@ func (ers *execResSizeComputation) generateDummyExecutionResultSize(
 	dummyHash := make([]byte, 32)
 	_, _ = rand.Reader.Read(dummyHash)
 
+	bigIntValue, _ := big.NewInt(0).SetString("10000000000000000000", 10)
+
 	executionResult := &block.MetaExecutionResult{
 		ExecutionResult: &block.BaseMetaExecutionResult{
 			BaseExecutionResult: &block.BaseExecutionResult{
@@ -55,13 +57,13 @@ func (ers *execResSizeComputation) generateDummyExecutionResultSize(
 				GasUsed:     1234,
 			},
 			ValidatorStatsRootHash: dummyHash,
-			AccumulatedFeesInEpoch: big.NewInt(0),
-			DevFeesInEpoch:         big.NewInt(0),
+			AccumulatedFeesInEpoch: bigIntValue,
+			DevFeesInEpoch:         bigIntValue,
 		},
 		ReceiptsHash:    dummyHash,
 		ExecutedTxCount: 10,
-		AccumulatedFees: big.NewInt(0),
-		DeveloperFees:   big.NewInt(0),
+		AccumulatedFees: bigIntValue,
+		DeveloperFees:   bigIntValue,
 	}
 
 	executionResult.MiniBlockHeaders = make([]block.MiniBlockHeader, numMbs)

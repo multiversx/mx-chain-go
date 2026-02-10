@@ -131,7 +131,25 @@ func (bsc *blockSizeComputation) AddNumMiniBlocks(numMiniBlocks int) {
 
 // DecNumMiniBlocks decrements the provided value to numMiniBlocks in a concurrent safe manner
 func (bsc *blockSizeComputation) DecNumMiniBlocks(numMiniBlocks int) {
-	atomic.AddInt32(&bsc.numMiniBlocks, -int32(numMiniBlocks))
+	bsc.decCounter(&bsc.numMiniBlocks, numMiniBlocks)
+}
+
+func (bsc *blockSizeComputation) decCounter(cntAddr *int32, n int) {
+	if n <= 0 {
+		return
+	}
+
+	currentCnt := atomic.LoadInt32(cntAddr)
+	if currentCnt <= 0 {
+		return
+	}
+
+	newCnt := currentCnt - int32(n)
+	if newCnt < 0 {
+		newCnt = 0
+	}
+
+	atomic.CompareAndSwapInt32(cntAddr, currentCnt, newCnt)
 }
 
 // AddNumTxs adds the provided value to numTxs in a concurrent safe manner
@@ -141,7 +159,7 @@ func (bsc *blockSizeComputation) AddNumTxs(numTxs int) {
 
 // DecNumTxs decrements the provided value to numTxs in a concurrent safe manner
 func (bsc *blockSizeComputation) DecNumTxs(numTxs int) {
-	atomic.AddInt32(&bsc.numTxs, -int32(numTxs))
+	bsc.decCounter(&bsc.numTxs, numTxs)
 }
 
 // IsMaxBlockSizeReached returns true if the provided number of new miniblocks and txs go over
