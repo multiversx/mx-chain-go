@@ -38,6 +38,7 @@ type PoolsHolderMock struct {
 	proofs                  dataRetriever.ProofsPool
 	executedMiniBlocks      storage.Cacher
 	postProcessTransactions storage.Cacher
+	directSentTransactions  storage.Cacher
 }
 
 // NewPoolsHolderMock -
@@ -122,6 +123,12 @@ func NewPoolsHolderMock() *PoolsHolderMock {
 	panicIfError("NewPoolsHolderMock", err)
 
 	holder.postProcessTransactions, err = storageunit.NewCache(storageunit.CacheConfig{Type: storageunit.LRUCache, Capacity: 10000, Shards: 1, SizeInBytes: 0})
+	panicIfError("NewPoolsHolderMock", err)
+
+	holder.directSentTransactions, err = cache.NewTimeCacher(cache.ArgTimeCacher{
+		DefaultSpan: 10 * time.Second,
+		CacheExpiry: 10 * time.Second,
+	})
 	panicIfError("NewPoolsHolderMock", err)
 
 	return holder
@@ -225,6 +232,11 @@ func (holder *PoolsHolderMock) ExecutedMiniBlocks() storage.Cacher {
 // PostProcessTransactions -
 func (holder *PoolsHolderMock) PostProcessTransactions() storage.Cacher {
 	return holder.postProcessTransactions
+}
+
+// DirectSentTransactions -
+func (holder *PoolsHolderMock) DirectSentTransactions() storage.Cacher {
+	return holder.directSentTransactions
 }
 
 // SetProofsPool -

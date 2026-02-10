@@ -1498,6 +1498,9 @@ func TestShardProcessor_RequestEpochStartInfo(t *testing.T) {
 			ProofsCalled: func() dataRetriever.ProofsPool {
 				return &dataRetrieverMock.ProofsPoolMock{}
 			},
+			DirectSentTransactionsCalled: func() storage.Cacher {
+				return cache.NewCacherStub()
+			},
 		}
 
 		args := CreateMockArguments(coreComponents, dataComponents, bootstrapComponents, statusComponents)
@@ -1552,6 +1555,9 @@ func TestShardProcessor_RequestEpochStartInfo(t *testing.T) {
 			},
 			ProofsCalled: func() dataRetriever.ProofsPool {
 				return &dataRetrieverMock.ProofsPoolMock{}
+			},
+			DirectSentTransactionsCalled: func() storage.Cacher {
+				return cache.NewCacherStub()
 			},
 		}
 
@@ -1613,6 +1619,9 @@ func TestShardProcessor_RequestEpochStartInfo(t *testing.T) {
 			},
 			ProofsCalled: func() dataRetriever.ProofsPool {
 				return &dataRetrieverMock.ProofsPoolMock{}
+			},
+			DirectSentTransactionsCalled: func() storage.Cacher {
+				return cache.NewCacherStub()
 			},
 		}
 
@@ -5516,6 +5525,9 @@ func TestShardProcessor_CheckEpochCorrectnessShouldRemoveAndRequestStartOfEpochM
 		ExecutedMiniBlocksCalled: func() storage.Cacher {
 			return &cache.CacherStub{}
 		},
+		DirectSentTransactionsCalled: func() storage.Cacher {
+			return cache.NewCacherStub()
+		},
 	}
 
 	ch := make(chan struct{})
@@ -6213,6 +6225,9 @@ func TestVerifyCrossShardMiniBlockDstMe(t *testing.T) {
 					},
 				}
 			},
+			DirectSentTransactionsCalled: func() storage.Cacher {
+				return cache.NewCacherStub()
+			},
 		}
 		arguments.DataComponents = dataComponents
 		sp, _ := blproc.NewShardProcessor(arguments)
@@ -6250,6 +6265,9 @@ func TestVerifyCrossShardMiniBlockDstMe(t *testing.T) {
 						return nil, nil
 					},
 				}
+			},
+			DirectSentTransactionsCalled: func() storage.Cacher {
+				return cache.NewCacherStub()
 			},
 		}
 		arguments.DataComponents = dataComponents
@@ -6290,6 +6308,9 @@ func TestVerifyCrossShardMiniBlockDstMe(t *testing.T) {
 					},
 				}
 			},
+			DirectSentTransactionsCalled: func() storage.Cacher {
+				return cache.NewCacherStub()
+			},
 		}
 		arguments.DataComponents = dataComponents
 		sp, _ := blproc.NewShardProcessor(arguments)
@@ -6328,6 +6349,9 @@ func TestVerifyCrossShardMiniBlockDstMe(t *testing.T) {
 						}, nil
 					},
 				}
+			},
+			DirectSentTransactionsCalled: func() storage.Cacher {
+				return cache.NewCacherStub()
 			},
 		}
 		arguments.DataComponents = dataComponents

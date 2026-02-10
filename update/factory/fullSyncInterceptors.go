@@ -562,8 +562,9 @@ func (ficf *fullSyncInterceptorsContainerFactory) createOneTxInterceptor(topic s
 	}
 
 	argProcessor := &processor.ArgTxInterceptorProcessor{
-		ShardedDataCache: ficf.dataPool.Transactions(),
-		TxValidator:      txValidator,
+		ShardedDataCache:            ficf.dataPool.Transactions(),
+		TxValidator:                 txValidator,
+		DirectSentTransactionsCache: ficf.dataPool.DirectSentTransactions(),
 	}
 	txProcessor, err := processor.NewTxInterceptorProcessor(argProcessor)
 	if err != nil {
@@ -611,8 +612,9 @@ func (ficf *fullSyncInterceptorsContainerFactory) createOneTxInterceptor(topic s
 
 func (ficf *fullSyncInterceptorsContainerFactory) createOneUnsignedTxInterceptor(topic string, isCrossShard bool) (process.Interceptor, error) {
 	argProcessor := &processor.ArgTxInterceptorProcessor{
-		ShardedDataCache: ficf.dataPool.UnsignedTransactions(),
-		TxValidator:      dataValidators.NewDisabledTxValidator(),
+		ShardedDataCache:            ficf.dataPool.UnsignedTransactions(),
+		TxValidator:                 dataValidators.NewDisabledTxValidator(),
+		DirectSentTransactionsCache: ficf.dataPool.DirectSentTransactions(),
 	}
 	txProcessor, err := processor.NewTxInterceptorProcessor(argProcessor)
 	if err != nil {
@@ -660,8 +662,9 @@ func (ficf *fullSyncInterceptorsContainerFactory) createOneUnsignedTxInterceptor
 
 func (ficf *fullSyncInterceptorsContainerFactory) createOneRewardTxInterceptor(topic string, isCrossShard bool) (process.Interceptor, error) {
 	argProcessor := &processor.ArgTxInterceptorProcessor{
-		ShardedDataCache: ficf.dataPool.RewardTransactions(),
-		TxValidator:      dataValidators.NewDisabledTxValidator(),
+		ShardedDataCache:            ficf.dataPool.RewardTransactions(),
+		TxValidator:                 dataValidators.NewDisabledTxValidator(),
+		DirectSentTransactionsCache: ficf.dataPool.DirectSentTransactions(),
 	}
 	txProcessor, err := processor.NewTxInterceptorProcessor(argProcessor)
 	if err != nil {
