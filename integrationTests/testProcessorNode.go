@@ -1615,23 +1615,29 @@ func (tpn *TestProcessorNode) initResolvers() {
 	fullArchivePreferredPeersHolder, _ := p2pFactory.NewPeersHolder([]string{})
 
 	resolverContainerFactory := resolverscontainer.FactoryArgs{
-		ShardCoordinator:                    tpn.ShardCoordinator,
-		MainMessenger:                       tpn.MainMessenger,
-		FullArchiveMessenger:                tpn.FullArchiveMessenger,
-		Store:                               tpn.Storage,
-		Marshalizer:                         TestMarshalizer,
-		DataPools:                           tpn.DataPool,
-		Uint64ByteSliceConverter:            TestUint64Converter,
-		DataPacker:                          dataPacker,
-		TriesContainer:                      tpn.TrieContainer,
-		SizeCheckDelta:                      100,
-		InputAntifloodHandler:               &mock.NilAntifloodHandler{},
-		OutputAntifloodHandler:              &mock.NilAntifloodHandler{},
-		NumConcurrentResolvingJobs:          10,
-		NumConcurrentResolvingTrieNodesJobs: 3,
-		MainPreferredPeersHolder:            preferredPeersHolder,
-		FullArchivePreferredPeersHolder:     fullArchivePreferredPeersHolder,
-		PayloadValidator:                    payloadValidator,
+		ShardCoordinator:                tpn.ShardCoordinator,
+		MainMessenger:                   tpn.MainMessenger,
+		FullArchiveMessenger:            tpn.FullArchiveMessenger,
+		Store:                           tpn.Storage,
+		Marshalizer:                     TestMarshalizer,
+		DataPools:                       tpn.DataPool,
+		Uint64ByteSliceConverter:        TestUint64Converter,
+		DataPacker:                      dataPacker,
+		TriesContainer:                  tpn.TrieContainer,
+		SizeCheckDelta:                  100,
+		InputAntifloodHandler:           &mock.NilAntifloodHandler{},
+		OutputAntifloodHandler:          &mock.NilAntifloodHandler{},
+		MainPreferredPeersHolder:        preferredPeersHolder,
+		FullArchivePreferredPeersHolder: fullArchivePreferredPeersHolder,
+		PayloadValidator:                payloadValidator,
+		AntifloodConfigsHandler: &testscommon.AntifloodConfigsHandlerStub{
+			GetCurrentConfigCalled: func() config.AntifloodConfigByRound {
+				return config.AntifloodConfigByRound{
+					NumConcurrentResolverJobs:           10,
+					NumConcurrentResolvingTrieNodesJobs: 3,
+				}
+			},
+		},
 	}
 
 	var err error
@@ -1962,6 +1968,7 @@ func (tpn *TestProcessorNode) initInnerProcessors(gasMap map[string]map[string]u
 			SelectionMaxNumTxs:                            30000,
 			SelectionLoopDurationCheckInterval:            10,
 		},
+		TxVersionChecker: versioning.NewTxVersionChecker(tpn.MinTransactionVersion),
 	}
 	fact, err := shard.NewPreProcessorsContainerFactory(args)
 	if err != nil {
@@ -2293,6 +2300,7 @@ func (tpn *TestProcessorNode) initMetaInnerProcessors(gasMap map[string]map[stri
 			SelectionMaxNumTxs:                            30000,
 			SelectionLoopDurationCheckInterval:            10,
 		},
+		TxVersionCheckerHandler: versioning.NewTxVersionChecker(tpn.MinTransactionVersion),
 	}
 	fact, _ := metaProcess.NewPreProcessorsContainerFactory(args)
 	tpn.PreProcessorsContainer, _ = fact.Create()
@@ -3812,6 +3820,7 @@ func GetDefaultCoreComponents(
 		FieldsSizeCheckerField:             &testscommon.FieldsSizeCheckerMock{},
 		ChainParametersHandlerField:        &chainParameters.ChainParametersHandlerStub{},
 		CommonConfigsHandlerField:          testscommon.GetDefaultCommonConfigsHandler(),
+		AntifloodConfigsHandlerField:       &testscommon.AntifloodConfigsHandlerStub{},
 	}
 }
 
@@ -4014,11 +4023,17 @@ func createTxsSender(shardCoordinator storage.ShardCoordinator, messenger txsSen
 	log.LogIfError(err)
 
 	argsTxsSender := txsSender.ArgsTxsSenderWithAccumulator{
-		Marshaller:        TestMarshalizer,
-		ShardCoordinator:  shardCoordinator,
-		NetworkMessenger:  messenger,
-		AccumulatorConfig: txAccumulatorConfig,
-		DataPacker:        dataPacker,
+		Marshaller:       TestMarshalizer,
+		ShardCoordinator: shardCoordinator,
+		NetworkMessenger: messenger,
+		DataPacker:       dataPacker,
+		AntifloodConfigHandler: &testscommon.AntifloodConfigsHandlerStub{
+			GetCurrentConfigCalled: func() config.AntifloodConfigByRound {
+				return config.AntifloodConfigByRound{
+					TxAccumulator: txAccumulatorConfig,
+				}
+			},
+		},
 	}
 	txsSenderHandler, err := txsSender.NewTxsSenderWithAccumulator(argsTxsSender)
 	log.LogIfError(err)
