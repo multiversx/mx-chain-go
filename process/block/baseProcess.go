@@ -369,7 +369,7 @@ func (bp *baseProcessor) checkHeaderExecutionResultNonceGap(header data.HeaderHa
 	headerNonce := header.GetNonce()
 	lastExecutionResultNonce := common.GetLastExecutionResultNonce(header)
 
-	if lastExecutionResultNonce >= headerNonce {
+	if lastExecutionResultNonce > headerNonce {
 		return process.ErrInvalidLastExecutionResult
 	}
 
