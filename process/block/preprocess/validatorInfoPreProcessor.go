@@ -266,12 +266,12 @@ func (vip *validatorInfoPreprocessor) ProcessMiniBlock(
 		return nil, indexOfLastTxProcessed, false, process.ErrValidatorInfoMiniBlockNotFromMeta
 	}
 
-	if vip.blockSizeComputation.IsMaxBlockSizeWithoutThrottleReached(1, len(miniBlock.TxHashes)) {
+	if vip.isMaxBlockSizeWithoutThrottleReached(1, len(miniBlock.TxHashes)) {
 		return nil, indexOfLastTxProcessed, false, process.ErrMaxBlockSizeReached
 	}
 
-	vip.blockSizeComputation.AddNumMiniBlocks(1)
-	vip.blockSizeComputation.AddNumTxs(len(miniBlock.TxHashes))
+	vip.addNumMiniBlocks(1)
+	vip.addNumTxs(len(miniBlock.TxHashes))
 
 	return nil, len(miniBlock.TxHashes) - 1, false, nil
 }

@@ -395,7 +395,17 @@ func (pcf *processComponentsFactory) newShardBlockProcessor(
 		return nil, err
 	}
 
+	// TODO: evaluate disabling this entirely (for old flows) - the check is not triggered if async enabled but there are still some checks in the old flow
 	blockSizeComputationHandler, err := preprocess.NewBlockSizeComputation(
+		pcf.coreData.InternalMarshalizer(),
+		blockSizeThrottler,
+		pcf.config.BlockSizeThrottleConfig.MaxSizeInBytes,
+	)
+	if err != nil {
+		return nil, err
+	}
+
+	blockSizeComputationProposalHandler, err := preprocess.NewBlockSizeComputation(
 		pcf.coreData.InternalMarshalizer(),
 		blockSizeThrottler,
 		pcf.config.BlockSizeThrottleConfig.MaxSizeInBytes,
@@ -415,6 +425,7 @@ func (pcf *processComponentsFactory) newShardBlockProcessor(
 		GasHandler:                        gasHandler,
 		BlockCapacityOverestimationFactor: pcf.economicsConfig.FeeSettings.BlockCapacityOverestimationFactor,
 		PercentDecreaseLimitsStep:         pcf.economicsConfig.FeeSettings.PercentDecreaseLimitsStep,
+		BlockSizeComputation:              blockSizeComputationProposalHandler,
 	}
 	gasConsumption, err := block.NewGasConsumption(argsGasConsumption)
 	if err != nil {
@@ -586,10 +597,22 @@ func (pcf *processComponentsFactory) newShardBlockProcessor(
 		return nil, err
 	}
 
-	inclusionEstimator := estimator.NewExecutionResultInclusionEstimator(
+	execResSizeComputationHandler, err := estimator.NewExecResultSizeComputationHandler(
+		pcf.coreData.InternalMarshalizer(),
+		pcf.config.BlockSizeThrottleConfig.MaxExecResSizeInBytes,
+	)
+	if err != nil {
+		return nil, err
+	}
+
+	inclusionEstimator, err := estimator.NewExecutionResultInclusionEstimator(
 		pcf.config.ExecutionResultInclusionEstimator,
 		pcf.coreData.RoundHandler(),
+		execResSizeComputationHandler,
 	)
+	if err != nil {
+		return nil, err
+	}
 
 	missingDataArgs := missingData.ResolverArgs{
 		HeadersPool:        pcf.data.Datapool().Headers(),
@@ -840,6 +863,15 @@ func (pcf *processComponentsFactory) newMetaBlockProcessor(
 		return nil, err
 	}
 
+	blockSizeComputationProposalHandler, err := preprocess.NewBlockSizeComputation(
+		pcf.coreData.InternalMarshalizer(),
+		blockSizeThrottler,
+		pcf.config.BlockSizeThrottleConfig.MaxSizeInBytes,
+	)
+	if err != nil {
+		return nil, err
+	}
+
 	balanceComputationHandler, err := preprocess.NewBalanceComputation()
 	if err != nil {
 		return nil, err
@@ -851,6 +883,7 @@ func (pcf *processComponentsFactory) newMetaBlockProcessor(
 		GasHandler:                        gasHandler,
 		BlockCapacityOverestimationFactor: pcf.economicsConfig.FeeSettings.BlockCapacityOverestimationFactor,
 		PercentDecreaseLimitsStep:         pcf.economicsConfig.FeeSettings.PercentDecreaseLimitsStep,
+		BlockSizeComputation:              blockSizeComputationProposalHandler,
 	}
 	gasConsumption, err := block.NewGasConsumption(argsGasConsumption)
 	if err != nil {
@@ -1145,10 +1178,22 @@ func (pcf *processComponentsFactory) newMetaBlockProcessor(
 		return nil, err
 	}
 
-	inclusionEstimator := estimator.NewExecutionResultInclusionEstimator(
+	execResSizeComputationHandler, err := estimator.NewExecResultSizeComputationHandler(
+		pcf.coreData.InternalMarshalizer(),
+		pcf.config.BlockSizeThrottleConfig.MaxExecResSizeInBytes,
+	)
+	if err != nil {
+		return nil, err
+	}
+
+	inclusionEstimator, err := estimator.NewExecutionResultInclusionEstimator(
 		pcf.config.ExecutionResultInclusionEstimator,
 		pcf.coreData.RoundHandler(),
+		execResSizeComputationHandler,
 	)
+	if err != nil {
+		return nil, err
+	}
 
 	missingDataArgs := missingData.ResolverArgs{
 		HeadersPool:        pcf.data.Datapool().Headers(),

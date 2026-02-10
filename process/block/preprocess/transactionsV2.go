@@ -235,10 +235,10 @@ func (txs *transactions) processTransaction(
 		)
 		if !mbInfo.firstInvalidTxFound {
 			mbInfo.firstInvalidTxFound = true
-			txs.blockSizeComputation.AddNumMiniBlocks(1)
+			txs.addNumMiniBlocks(1)
 		}
 
-		txs.blockSizeComputation.AddNumTxs(1)
+		txs.addNumTxs(1)
 		mbInfo.processingInfo.numTxsFailed++
 	}
 
@@ -606,22 +606,22 @@ func (txs *transactions) applyExecutedTransaction(
 	}
 
 	if len(miniBlock.TxHashes) == 0 {
-		txs.blockSizeComputation.AddNumMiniBlocks(1)
+		txs.addNumMiniBlocks(1)
 	}
 
 	miniBlock.TxHashes = append(miniBlock.TxHashes, txHash)
-	txs.blockSizeComputation.AddNumTxs(1)
+	txs.addNumTxs(1)
 	if txMbInfo.isCrossShardScCallOrSpecialTx {
 		if !mbInfo.firstCrossShardScCallOrSpecialTxFound {
 			mbInfo.firstCrossShardScCallOrSpecialTxFound = true
-			txs.blockSizeComputation.AddNumMiniBlocks(1)
+			txs.addNumMiniBlocks(1)
 		}
 		mbInfo.mapCrossShardScCallsOrSpecialTxs[receiverShardID]++
 		crossShardScCallsOrSpecialTxs := mbInfo.mapCrossShardScCallsOrSpecialTxs[receiverShardID]
 		if crossShardScCallsOrSpecialTxs > mbInfo.maxCrossShardScCallsOrSpecialTxsPerShard {
 			mbInfo.maxCrossShardScCallsOrSpecialTxsPerShard = crossShardScCallsOrSpecialTxs
 			// we need to increment this as to account for the corresponding SCR hash
-			txs.blockSizeComputation.AddNumTxs(common.AdditionalScrForEachScCallOrSpecialTx)
+			txs.addNumTxs(common.AdditionalScrForEachScCallOrSpecialTx)
 		}
 		mbInfo.processingInfo.numCrossShardScCallsOrSpecialTxs++
 	}
@@ -767,22 +767,22 @@ func (txs *transactions) applyVerifiedTransaction(
 	}
 
 	if len(miniBlock.TxHashes) == 0 {
-		txs.blockSizeComputation.AddNumMiniBlocks(1)
+		txs.addNumMiniBlocks(1)
 	}
 
 	miniBlock.TxHashes = append(miniBlock.TxHashes, txHash)
-	txs.blockSizeComputation.AddNumTxs(1)
+	txs.addNumTxs(1)
 	if scheduledTxMbInfo.isCrossShardScCallTx {
 		if !mbInfo.firstCrossShardScCallTxFound {
 			mbInfo.firstCrossShardScCallTxFound = true
-			txs.blockSizeComputation.AddNumMiniBlocks(1)
+			txs.addNumMiniBlocks(1)
 		}
 		mbInfo.mapCrossShardScCallTxs[receiverShardID]++
 		crossShardScCallTxs := mbInfo.mapCrossShardScCallTxs[receiverShardID]
 		if crossShardScCallTxs > mbInfo.maxCrossShardScCallTxsPerShard {
 			mbInfo.maxCrossShardScCallTxsPerShard = crossShardScCallTxs
 			// we need to increment this as to account for the corresponding SCR hash
-			txs.blockSizeComputation.AddNumTxs(common.AdditionalScrForEachScCallOrSpecialTx)
+			txs.addNumTxs(common.AdditionalScrForEachScCallOrSpecialTx)
 		}
 		mbInfo.schedulingInfo.numScheduledCrossShardScCalls++
 	}

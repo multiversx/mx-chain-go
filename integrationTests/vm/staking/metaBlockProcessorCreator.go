@@ -130,12 +130,13 @@ func createMetaBlockProcessor(
 		ShardCoordinator:        bootstrapComponents.ShardCoordinator(),
 	})
 	execResultsVerifier, _ := blproc.NewExecutionResultsVerifier(dataComponents.Blockchain(), execManager)
-	inclusionEstimator := estimator.NewExecutionResultInclusionEstimator(
+	inclusionEstimator, _ := estimator.NewExecutionResultInclusionEstimator(
 		config.ExecutionResultInclusionEstimatorConfig{
 			SafetyMargin:       110,
 			MaxResultsPerBlock: 20,
 		},
 		coreComponents.RoundHandler(),
+		&testscommon.ExecResSizeComputationStub{},
 	)
 
 	missingDataArgs := missingData.ResolverArgs{

@@ -895,6 +895,7 @@
 [BlockSizeThrottleConfig]
     MinSizeInBytes = 104857 # 104857 is 10% from 1MB
     MaxSizeInBytes = 943718 # 943718 is 90% from 1MB
+    MaxExecResSizeInBytes = 104857 # 104857 is 10% from 1MB
 
 [VirtualMachine]
     [VirtualMachine.Execution]
