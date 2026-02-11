@@ -668,7 +668,6 @@ func (pcf *processComponentsFactory) newShardBlockProcessor(
 		ExecutionManager:                   executionManager,
 		TxExecutionOrderHandler:            pcf.txExecutionOrderHandler,
 		AOTSelector:                        aotSelector,
-		MaxProposalNonceGap:                pcf.config.GeneralSettings.MaxProposalNonceGap,
 	}
 	arguments := block.ArgShardProcessor{
 		ArgBaseProcessor: argumentsBaseProcessor,
@@ -1251,7 +1250,6 @@ func (pcf *processComponentsFactory) newMetaBlockProcessor(
 		ExecutionManager:                   executionManager,
 		TxExecutionOrderHandler:            pcf.txExecutionOrderHandler,
 		AOTSelector:                        aotSelector,
-		MaxProposalNonceGap:                pcf.config.GeneralSettings.MaxProposalNonceGap,
 	}
 
 	esdtOwnerAddress, err := pcf.coreData.AddressPubKeyConverter().Decode(pcf.systemSCConfig.ESDTSystemSCConfig.OwnerAddress)

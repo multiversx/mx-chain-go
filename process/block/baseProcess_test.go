@@ -255,7 +255,6 @@ func createArgBaseProcessor(
 		ExecutionManager:        execManager,
 		TxExecutionOrderHandler: &commonMocks.TxExecutionOrderHandlerStub{},
 		AOTSelector:             aotSelection.NewDisabledAOTSelector(),
-		MaxProposalNonceGap:     10,
 	}
 }
 

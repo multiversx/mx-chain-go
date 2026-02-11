@@ -177,7 +177,7 @@ func NewBaseProcessor(arguments ArgBaseProcessor) (*baseProcessor, error) {
 		return nil, fmt.Errorf("%w for genesis header in DataComponents.Blockchain", process.ErrNilHeaderHandler)
 	}
 
-	maxProposalNonceGap := arguments.MaxProposalNonceGap
+	maxProposalNonceGap := arguments.Config.GeneralSettings.MaxProposalNonceGap
 	if maxProposalNonceGap < defaultMaxProposalNonceGap {
 		maxProposalNonceGap = defaultMaxProposalNonceGap
 	}

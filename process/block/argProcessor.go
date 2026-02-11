@@ -108,7 +108,6 @@ type ArgBaseProcessor struct {
 	ExecutionManager                   process.ExecutionManager
 	TxExecutionOrderHandler            common.TxExecutionOrderHandler
 	AOTSelector                        process.AOTTransactionSelector
-	MaxProposalNonceGap                uint64
 }
 
 // ArgShardProcessor holds all dependencies required by the process data factory in order to create
