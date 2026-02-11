@@ -1,6 +1,8 @@
 package mock
 
 import (
+	vmcommon "github.com/multiversx/mx-chain-vm-common-go"
+
 	"github.com/multiversx/mx-chain-go/consensus"
 	"github.com/multiversx/mx-chain-go/dataRetriever"
 	"github.com/multiversx/mx-chain-go/dblookupext"
@@ -11,7 +13,6 @@ import (
 	"github.com/multiversx/mx-chain-go/sharding"
 	"github.com/multiversx/mx-chain-go/sharding/nodesCoordinator"
 	"github.com/multiversx/mx-chain-go/update"
-	vmcommon "github.com/multiversx/mx-chain-vm-common-go"
 )
 
 // ProcessComponentsMock -
@@ -60,6 +61,7 @@ type ProcessComponentsMock struct {
 	SentSignaturesTrackerInternal        process.SentSignaturesTracker
 	EpochSystemSCProcessorInternal       process.EpochStartSystemSCProcessor
 	BlockchainHookField                  process.BlockChainHookWithAccountsAdapter
+	AOTSelectorField                     process.AOTTransactionSelector
 }
 
 // Create -
@@ -300,6 +302,11 @@ func (pcm *ProcessComponentsMock) EpochSystemSCProcessor() process.EpochStartSys
 // BlockchainHook -
 func (pcm *ProcessComponentsMock) BlockchainHook() process.BlockChainHookWithAccountsAdapter {
 	return pcm.BlockchainHookField
+}
+
+// AOTSelector -
+func (pcm *ProcessComponentsMock) AOTSelector() process.AOTTransactionSelector {
+	return pcm.AOTSelectorField
 }
 
 // IsInterfaceNil -

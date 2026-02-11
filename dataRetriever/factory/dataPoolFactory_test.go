@@ -150,6 +150,13 @@ func TestNewDataPoolFromConfig_BadConfigShouldErr(t *testing.T) {
 	require.Nil(t, holder)
 	require.True(t, errors.Is(err, storage.ErrNotSupportedCacheType))
 	require.True(t, strings.Contains(err.Error(), "the cache for the post process transactions"))
+
+	args = getGoodArgs()
+	args.Config.DirectSentTransactions.CacheExpiryInSec = 0
+	holder, err = NewDataPoolFromConfig(args)
+	require.Nil(t, holder)
+	require.Error(t, err)
+	require.True(t, strings.Contains(err.Error(), "the cache for the direct sent transactions"))
 }
 
 func getGoodArgs() ArgsDataPool {

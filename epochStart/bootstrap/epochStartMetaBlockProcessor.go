@@ -11,6 +11,7 @@ import (
 	coreData "github.com/multiversx/mx-chain-core-go/data"
 	"github.com/multiversx/mx-chain-core-go/hashing"
 	"github.com/multiversx/mx-chain-core-go/marshal"
+	"github.com/multiversx/mx-chain-go/p2p"
 
 	"github.com/multiversx/mx-chain-go/common"
 	"github.com/multiversx/mx-chain-go/epochStart"
@@ -136,7 +137,7 @@ func (e *epochStartMetaBlockProcessor) waitForEnoughNumConnectedPeers(messenger 
 // Save will handle the consensus mechanism for the fetched metablocks
 // All errors are just logged because if this function returns an error, the processing is finished. This way, we ignore
 // wrong received data and wait for relevant intercepted data
-func (e *epochStartMetaBlockProcessor) Save(data process.InterceptedData, fromConnectedPeer core.PeerID, _ string) (dataSaved bool, err error) {
+func (e *epochStartMetaBlockProcessor) Save(data process.InterceptedData, fromConnectedPeer core.PeerID, _ string, _ p2p.BroadcastMethod) (dataSaved bool, err error) {
 	if check.IfNil(data) {
 		log.Debug("epoch bootstrapper: nil intercepted data")
 		return false, nil

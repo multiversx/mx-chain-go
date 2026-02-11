@@ -514,6 +514,12 @@
     SelectionGasBandwidthIncreaseScheduledPercent = 260
     SelectionGasRequested = 10_000_000_000
 
+[AOTSelection]
+    # Ahead-of-Time transaction selection - pre-selects transactions before consensus round
+    Enabled = true
+    CacheSize = 10                                          # Number of pre-selection results to cache
+    SelectionTimeoutMs = 150                                # Max time for AOT selection in milliseconds
+
 [TrieNodesChunksDataPool]
     Name = "TrieNodesDataPool"
     Capacity = 400
@@ -889,6 +895,7 @@
 [BlockSizeThrottleConfig]
     MinSizeInBytes = 104857 # 104857 is 10% from 1MB
     MaxSizeInBytes = 943718 # 943718 is 90% from 1MB
+    MaxExecResSizeInBytes = 104857 # 104857 is 10% from 1MB
 
 [VirtualMachine]
     [VirtualMachine.Execution]
@@ -1173,6 +1180,10 @@
 
 [InterceptedDataVerifier]
     EnableCaching = true
+    CacheSpanInSec = 30
+    CacheExpiryInSec = 30
+
+[DirectSentTransactions]
     CacheSpanInSec = 30
     CacheExpiryInSec = 30
 

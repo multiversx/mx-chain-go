@@ -154,6 +154,7 @@ type baseProcessor struct {
 	gasComputation                     process.GasComputation
 	executionManager                   process.ExecutionManager
 	txExecutionOrderHandler            common.TxExecutionOrderHandler
+	aotSelector                        process.AOTTransactionSelector
 
 	// Sync commit optimization fields
 	syncCommitInterval    uint64
@@ -248,6 +249,7 @@ func NewBaseProcessor(arguments ArgBaseProcessor) (*baseProcessor, error) {
 		gasComputation:                     arguments.GasComputation,
 		executionManager:                   arguments.ExecutionManager,
 		txExecutionOrderHandler:            arguments.TxExecutionOrderHandler,
+		aotSelector:                        arguments.AOTSelector,
 		syncCommitInterval:                 defaultSyncCommitInterval,
 	}
 
@@ -789,6 +791,9 @@ func checkProcessorParameters(arguments ArgBaseProcessor) error {
 	if check.IfNil(arguments.DataComponents.Datapool().Transactions()) {
 		return process.ErrNilTransactionPool
 	}
+	if check.IfNil(arguments.DataComponents.Datapool().DirectSentTransactions()) {
+		return process.ErrNilDirectSentCache
+	}
 	if check.IfNil(arguments.ExecutionResultsInclusionEstimator) {
 		return process.ErrNilExecutionResultsInclusionEstimator
 	}
@@ -809,6 +814,9 @@ func checkProcessorParameters(arguments ArgBaseProcessor) error {
 	}
 	if check.IfNil(arguments.TxExecutionOrderHandler) {
 		return process.ErrNilTxExecutionOrderHandler
+	}
+	if check.IfNil(arguments.AOTSelector) {
+		return process.ErrNilAOTSelector
 	}
 
 	return nil
@@ -2574,7 +2582,12 @@ func (bp *baseProcessor) unmarshalUserAccount(
 	return userAccount, nil
 }
 
-// Close - closes all underlying components
+// ProposedDirectSentTransactionsToBroadcast creates marshaled intra-shard transactions received via direct-send for broadcasting
+func (bp *baseProcessor) ProposedDirectSentTransactionsToBroadcast(proposedBody data.BodyHandler) map[string][][]byte {
+	return bp.txCoordinator.ProposedDirectSentTransactionsToBroadcast(proposedBody)
+}
+
+// Close closes all underlying components
 func (bp *baseProcessor) Close() error {
 	var err1, err2, err3 error
 	if !check.IfNil(bp.vmContainer) {

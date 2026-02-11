@@ -875,6 +875,8 @@ func createDefaultMiniBlockBuilderArgs() miniBlocksBuilderArgs {
 		},
 		getTotalGasConsumed: getTotalGasConsumedZero,
 		txPool:              shardedDataCacherNotifier(),
+		enableEpochsHandler: &enableEpochsHandlerMock.EnableEpochsHandlerStub{},
+		enableRoundsHandler: &testscommon.EnableRoundsHandlerStub{},
 	}
 }
 

@@ -272,6 +272,9 @@ var ErrNilExecutedMiniBlocksCache = errors.New("nil executed mini blocks cache")
 // ErrNilPostProcessTransactionsCache signals that a nil post-process transactions cache has been provided
 var ErrNilPostProcessTransactionsCache = errors.New("nil post process transactions cache")
 
+// ErrNilDirectSentTransactionsCache signals that a nil direct-sent transactions cache has been provided
+var ErrNilDirectSentTransactionsCache = errors.New("nil direct sent transactions cache")
+
 // ErrEquivalentProofsNotFound signals that no equivalent proof found
 var ErrEquivalentProofsNotFound = errors.New("equivalent proof not found")
 

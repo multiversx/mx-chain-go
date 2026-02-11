@@ -28,6 +28,13 @@ type TxCacheSelectionConfig struct {
 	SelectionLoopDurationCheckInterval            int
 }
 
+// AOTSelectionConfig will map the ahead-of-time transaction selection config
+type AOTSelectionConfig struct {
+	Enabled            bool
+	CacheSize          int
+	SelectionTimeoutMs int
+}
+
 // HeadersPoolConfig will map the headers cache configuration
 type HeadersPoolConfig struct {
 	MaxHeadersPerShard            int
@@ -40,7 +47,7 @@ type ProofsPoolConfig struct {
 	BucketSize        int
 }
 
-// ExecutionResultInclusionEstimatorConfig will map the EIE configuration - supplied at construction, read‑only thereafter.
+// ExecutionResultInclusionEstimatorConfig will map the EIE configuration - supplied at construction, read-only thereafter.
 // TODO add also max estimated block gas capacity
 type ExecutionResultInclusionEstimatorConfig struct {
 	SafetyMargin       uint64
@@ -127,8 +134,9 @@ type EpochStartConfig struct {
 
 // BlockSizeThrottleConfig will hold the configuration for adaptive block size throttle
 type BlockSizeThrottleConfig struct {
-	MinSizeInBytes uint32
-	MaxSizeInBytes uint32
+	MinSizeInBytes        uint32
+	MaxSizeInBytes        uint32
+	MaxExecResSizeInBytes uint32
 }
 
 // SoftwareVersionConfig will hold the configuration for software version checker
@@ -207,6 +215,7 @@ type Config struct {
 	TxDataPool                   CacheConfig
 	TxCacheBounds                TxCacheBoundsConfig
 	TxCacheSelection             TxCacheSelectionConfig
+	AOTSelection                 AOTSelectionConfig
 	UnsignedTransactionDataPool  CacheConfig
 	RewardTransactionDataPool    CacheConfig
 	TrieNodesChunksDataPool      CacheConfig
@@ -268,6 +277,7 @@ type Config struct {
 	PeersRatingConfig PeersRatingConfig
 
 	InterceptedDataVerifier InterceptedDataVerifierConfig
+	DirectSentTransactions  DirectSentTransactionsConfig
 }
 
 // PeersRatingConfig will hold settings related to peers rating
@@ -823,6 +833,12 @@ type IndexBroadcastDelay struct {
 // InterceptedDataVerifierConfig holds the configuration for the intercepted data verifier
 type InterceptedDataVerifierConfig struct {
 	EnableCaching    bool
+	CacheSpanInSec   uint64
+	CacheExpiryInSec uint64
+}
+
+// DirectSentTransactionsConfig holds the configuration for the direct-sent transactions
+type DirectSentTransactionsConfig struct {
 	CacheSpanInSec   uint64
 	CacheExpiryInSec uint64
 }
