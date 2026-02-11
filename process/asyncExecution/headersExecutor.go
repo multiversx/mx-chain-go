@@ -167,7 +167,7 @@ func (he *headersExecutor) handleProcessError(ctx context.Context, pair cache.He
 
 	for retryCount < maxRetryAttempts {
 		pairFromQueue, ok := he.blocksCache.GetByNonce(pair.Header.GetNonce())
-		if ok && bytes.Equal(pair.HeaderHash, pairFromQueue.HeaderHash) {
+		if ok && !bytes.Equal(pair.HeaderHash, pairFromQueue.HeaderHash) {
 			// continue the processing (pop the next header from queue)
 			return
 		}
