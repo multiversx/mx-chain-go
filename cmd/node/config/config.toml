@@ -76,7 +76,7 @@
             MaxRoundsOfInactivityAccepted = 3
         },
         {
-            EnableRound = 9999999,
+            EnableRound = 999999999,
             MaxRoundsWithoutNewBlockReceived = 100,
             MaxRoundsWithoutCommittedBlock = 100,
             RoundModulusTriggerWhenSyncIsStuck = 200,
@@ -95,7 +95,7 @@
 
     EpochStartConfigsByRound = [
         { EnableRound = 0, MaxRoundsWithoutCommittedStartInEpochBlock = 50 },
-        { EnableRound = 9999999, MaxRoundsWithoutCommittedStartInEpochBlock = 500 },
+        { EnableRound = 999999999, MaxRoundsWithoutCommittedStartInEpochBlock = 500 },
     ]
 
     ConsensusConfigsByEpoch = [
