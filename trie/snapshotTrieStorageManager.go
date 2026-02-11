@@ -40,7 +40,13 @@ func (stsm *snapshotTrieStorageManager) GetFromOldEpochsWithoutAddingToCache(key
 	}
 
 	stsm.putInPreviousStorerIfAbsent(key, val, epoch)
-	return val, epoch.Value, nil
+
+	foundInEpoch := maxEpochToSearchFrom
+	if epoch.HasValue {
+		foundInEpoch = epoch.Value
+	}
+
+	return val, foundInEpoch, nil
 }
 
 func (stsm *snapshotTrieStorageManager) putInPreviousStorerIfAbsent(key []byte, val []byte, epoch core.OptionalUint32) {
