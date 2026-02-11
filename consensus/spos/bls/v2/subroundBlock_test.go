@@ -830,12 +830,6 @@ func TestSubroundBlock_ReceivedBlock(t *testing.T) {
 		nil,
 	)
 	r := sr.ReceivedBlockBody(cnsMsg)
-	assert.False(t, r) // returns false as start round is not finished yet
-
-	sr.SetStatus(bls.SrStartRound, spos.SsFinished)
-
-	sr.SetBody(&block.Body{})
-	r = sr.ReceivedBlockBody(cnsMsg)
 	assert.False(t, r)
 
 	sr.SetBody(nil)
@@ -1411,12 +1405,7 @@ func TestSubroundBlock_ReceivedBlockHeader(t *testing.T) {
 	// start round is not finished
 	sr.ReceivedBlockHeader(&testscommon.HeaderHandlerStub{})
 	require.Nil(t, sr.GetData())
-
-	// set start round finished on go routine for extra coverage
-	go func() {
-		time.Sleep(2 * time.Millisecond)
-		sr.SetStatus(bls.SrStartRound, spos.SsFinished)
-	}()
+	sr.SetStatus(bls.SrStartRound, spos.SsFinished)
 
 	// old header after supernova
 	container.SetEnableEpochsHandler(&enableEpochsHandlerMock.EnableEpochsHandlerStub{

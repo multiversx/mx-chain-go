@@ -444,10 +444,6 @@ func (sr *subroundBlock) createHeaderBasedOnRound(round uint64, nonce uint64) (d
 
 // receivedBlockBody method is called when a block body is received through the block body channel
 func (sr *subroundBlock) receivedBlockBody(ctx context.Context, cnsDta *consensus.Message) bool {
-	if !sr.waitForStartRoundToFinishBlocking() {
-		return false
-	}
-
 	if sr.IsSubroundFinished(sr.Current()) {
 		return false
 	}
@@ -554,31 +550,6 @@ func (sr *subroundBlock) getLeaderForHeader(headerHandler data.HeaderHandler) ([
 	return leader.PubKey(), err
 }
 
-func (sr *subroundBlock) waitForStartRoundToFinishBlocking() bool {
-	if sr.IsSubroundFinished(bls.SrStartRound) {
-		return true
-	}
-
-	timerStartRoundChecks := time.NewTimer(timeSpentBetweenChecks)
-
-	ctx, cancel := context.WithTimeout(context.Background(), sr.RoundHandler().TimeDuration())
-	defer cancel()
-
-	for {
-		timerStartRoundChecks.Reset(timeSpentBetweenChecks)
-
-		select {
-		case <-timerStartRoundChecks.C:
-			if sr.IsSubroundFinished(bls.SrStartRound) {
-				return true
-			}
-		case <-ctx.Done():
-			log.Debug("subroundBlock timeout while waiting for start round to finish")
-			return false
-		}
-	}
-}
-
 func (sr *subroundBlock) receivedBlockHeader(headerHandler data.HeaderHandler) {
 	if check.IfNil(headerHandler) {
 		log.Debug("subroundBlock.receivedBlockHeader - header is nil")
@@ -596,11 +567,12 @@ func (sr *subroundBlock) receivedBlockHeader(headerHandler data.HeaderHandler) {
 		return
 	}
 
-	if !sr.waitForStartRoundToFinishBlocking() {
+	if sr.IsSubroundFinished(sr.Current()) {
 		return
 	}
 
-	if sr.IsSubroundFinished(sr.Current()) {
+	if !sr.IsSubroundFinished(bls.SrStartRound) {
+		log.Debug("subroundBlock.receivedBlockHeader subroundStartRound not finished yet")
 		return
 	}
 
