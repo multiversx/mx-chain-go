@@ -21,11 +21,13 @@ import (
 	"github.com/multiversx/mx-chain-core-go/data/scheduled"
 	"github.com/multiversx/mx-chain-core-go/data/smartContractResult"
 	"github.com/multiversx/mx-chain-core-go/data/transaction"
-	"github.com/multiversx/mx-chain-go/config"
-	"github.com/multiversx/mx-chain-go/testscommon/epochNotifier"
 	vmcommon "github.com/multiversx/mx-chain-vm-common-go"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
+
+	"github.com/multiversx/mx-chain-go/config"
+	"github.com/multiversx/mx-chain-go/process/aotSelection"
+	"github.com/multiversx/mx-chain-go/testscommon/epochNotifier"
 
 	"github.com/multiversx/mx-chain-go/common"
 	"github.com/multiversx/mx-chain-go/dataRetriever"
@@ -61,7 +63,6 @@ func createMockTxCacheSelectionConfig() config.TxCacheSelectionConfig {
 		SelectionGasBandwidthIncreaseScheduledPercent: 260,
 		SelectionGasRequested:                         10_000_000_000,
 		SelectionMaxNumTxs:                            30000,
-		SelectionLoopMaximumDuration:                  250,
 		SelectionLoopDurationCheckInterval:            10,
 	}
 }
@@ -278,6 +279,7 @@ func createMockTransactionCoordinatorArguments() ArgTransactionCoordinator {
 		TxTypeHandler:                &testscommon.TxTypeHandlerMock{},
 		TransactionsLogProcessor:     &mock.TxLogsProcessorStub{},
 		EnableEpochsHandler:          enableEpochsHandlerMock.NewEnableEpochsHandlerStub(),
+		EnableRoundsHandler:          &testscommon.EnableRoundsHandlerStub{},
 		ScheduledTxsExecutionHandler: &testscommon.ScheduledTxsExecutionStub{},
 		DoubleTransactionsDetector:   &testscommon.PanicDoubleTransactionsDetector{},
 		ProcessedMiniBlocksTracker:   &testscommon.ProcessedMiniBlocksTrackerStub{},
@@ -292,6 +294,7 @@ func createMockTransactionCoordinatorArguments() ArgTransactionCoordinator {
 				return len(miniBlocks) - 1, 0, nil
 			},
 		},
+		AOTSelector: aotSelection.NewDisabledAOTSelector(),
 	}
 
 	blockDataRequesterArgs := BlockDataRequestArgs{
@@ -676,6 +679,7 @@ func createPreProcessorContainer() process.PreProcessorsContainer {
 		ProcessedMiniBlocksTracker:   &testscommon.ProcessedMiniBlocksTrackerStub{},
 		TxExecutionOrderHandler:      &commonMock.TxExecutionOrderHandlerStub{},
 		TxCacheSelectionConfig:       createMockTxCacheSelectionConfig(),
+		TxVersionChecker:             &testscommon.TxVersionCheckerStub{},
 	}
 	preFactory, _ := shard.NewPreProcessorsContainerFactory(args)
 	container, _ := preFactory.Create()
@@ -782,6 +786,7 @@ func createPreProcessorContainerWithDataPool(
 		ProcessedMiniBlocksTracker:   &testscommon.ProcessedMiniBlocksTrackerStub{},
 		TxExecutionOrderHandler:      &commonMock.TxExecutionOrderHandlerStub{},
 		TxCacheSelectionConfig:       createMockTxCacheSelectionConfig(),
+		TxVersionChecker:             &testscommon.TxVersionCheckerStub{},
 	}
 	preFactory, _ := shard.NewPreProcessorsContainerFactory(args)
 	container, _ := preFactory.Create()
@@ -1059,6 +1064,7 @@ func TestTransactionCoordinator_CreateMbsAndProcessCrossShardTransactions(t *tes
 		ProcessedMiniBlocksTracker:   &testscommon.ProcessedMiniBlocksTrackerStub{},
 		TxExecutionOrderHandler:      &commonMock.TxExecutionOrderHandlerStub{},
 		TxCacheSelectionConfig:       createMockTxCacheSelectionConfig(),
+		TxVersionChecker:             &testscommon.TxVersionCheckerStub{},
 	}
 
 	preFactory, _ := shard.NewPreProcessorsContainerFactory(args)
@@ -1251,6 +1257,7 @@ func TestTransactionCoordinator_CreateMbsAndProcessCrossShardTransactionsNilPreP
 		ProcessedMiniBlocksTracker:   &testscommon.ProcessedMiniBlocksTrackerStub{},
 		TxExecutionOrderHandler:      &commonMock.TxExecutionOrderHandlerStub{},
 		TxCacheSelectionConfig:       createMockTxCacheSelectionConfig(),
+		TxVersionChecker:             &testscommon.TxVersionCheckerStub{},
 	}
 	preFactory, _ := shard.NewPreProcessorsContainerFactory(args)
 	container, _ := preFactory.Create()
@@ -1366,6 +1373,7 @@ func TestTransactionCoordinator_CreateMbsAndProcessTransactionsFromMeNothingToPr
 		ProcessedMiniBlocksTracker:   &testscommon.ProcessedMiniBlocksTrackerStub{},
 		TxExecutionOrderHandler:      &commonMock.TxExecutionOrderHandlerStub{},
 		TxCacheSelectionConfig:       createMockTxCacheSelectionConfig(),
+		TxVersionChecker:             &testscommon.TxVersionCheckerStub{},
 	}
 	preFactory, _ := shard.NewPreProcessorsContainerFactory(args)
 	container, _ := preFactory.Create()
@@ -1959,6 +1967,7 @@ func TestTransactionCoordinator_ProcessBlockTransactionProcessTxError(t *testing
 		ProcessedMiniBlocksTracker:   &testscommon.ProcessedMiniBlocksTrackerStub{},
 		TxExecutionOrderHandler:      &commonMock.TxExecutionOrderHandlerStub{},
 		TxCacheSelectionConfig:       createMockTxCacheSelectionConfig(),
+		TxVersionChecker:             &testscommon.TxVersionCheckerStub{},
 	}
 	preFactory, _ := shard.NewPreProcessorsContainerFactory(args)
 	container, _ := preFactory.Create()
@@ -2085,6 +2094,7 @@ func TestTransactionCoordinator_RequestMiniblocks(t *testing.T) {
 		ProcessedMiniBlocksTracker:   &testscommon.ProcessedMiniBlocksTrackerStub{},
 		TxExecutionOrderHandler:      &commonMock.TxExecutionOrderHandlerStub{},
 		TxCacheSelectionConfig:       createMockTxCacheSelectionConfig(),
+		TxVersionChecker:             &testscommon.TxVersionCheckerStub{},
 	}
 	preFactory, _ := shard.NewPreProcessorsContainerFactory(args)
 	container, _ := preFactory.Create()
@@ -2232,6 +2242,7 @@ func TestShardProcessor_ProcessMiniBlockCompleteWithOkTxsShouldExecuteThemAndNot
 		ProcessedMiniBlocksTracker:   &testscommon.ProcessedMiniBlocksTrackerStub{},
 		TxExecutionOrderHandler:      &commonMock.TxExecutionOrderHandlerStub{},
 		TxCacheSelectionConfig:       createMockTxCacheSelectionConfig(),
+		TxVersionChecker:             &testscommon.TxVersionCheckerStub{},
 	}
 	preFactory, _ := shard.NewPreProcessorsContainerFactory(args)
 	container, _ := preFactory.Create()
@@ -2383,6 +2394,7 @@ func TestShardProcessor_ProcessMiniBlockCompleteWithErrorWhileProcessShouldCallR
 		ProcessedMiniBlocksTracker:   &testscommon.ProcessedMiniBlocksTrackerStub{},
 		TxExecutionOrderHandler:      &commonMock.TxExecutionOrderHandlerStub{},
 		TxCacheSelectionConfig:       createMockTxCacheSelectionConfig(),
+		TxVersionChecker:             &testscommon.TxVersionCheckerStub{},
 	}
 	preFactory, _ := shard.NewPreProcessorsContainerFactory(args)
 	container, _ := preFactory.Create()
@@ -4260,11 +4272,179 @@ func TestTransactionCoordinator_getUnExecutableTransactions(t *testing.T) {
 		},
 	}
 
-	unExecutableTxs := tc.getUnExecutableTransactions()
+	unExecutableTxs := tc.GetUnExecutableTransactions()
 	require.Equal(t, 4, len(unExecutableTxs))
 	for _, th := range txHashes {
 		require.Contains(t, unExecutableTxs, th)
 	}
+}
+
+func TestTransactionCoordinator_ProposedDirectSentTransactionsToBroadcast(t *testing.T) {
+	t.Parallel()
+
+	t.Run("nil body should return empty map", func(t *testing.T) {
+		t.Parallel()
+
+		txCoordinatorArgs := createMockTransactionCoordinatorArguments()
+		tc, err := NewTransactionCoordinator(txCoordinatorArgs)
+		require.Nil(t, err)
+		require.NotNil(t, tc)
+
+		result := tc.ProposedDirectSentTransactionsToBroadcast(nil)
+		require.NotNil(t, result)
+		require.Equal(t, 0, len(result))
+	})
+
+	t.Run("error getting cached intermediate txs should return empty map", func(t *testing.T) {
+		t.Parallel()
+
+		txCoordinatorArgs := createMockTransactionCoordinatorArguments()
+		txCoordinatorArgs.DataPool = &dataRetrieverMock.PoolsHolderStub{
+			PostProcessTransactionsCalled: func() storage.Cacher {
+				return &cache.CacherStub{
+					PeekCalled: func(key []byte) (interface{}, bool) {
+						return nil, false
+					},
+				}
+			},
+			DirectSentTransactionsCalled: func() storage.Cacher {
+				return &cache.CacherStub{}
+			},
+		}
+		tc, err := NewTransactionCoordinator(txCoordinatorArgs)
+		require.Nil(t, err)
+		require.NotNil(t, tc)
+
+		body := &block.Body{
+			MiniBlocks: []*block.MiniBlock{
+				{
+					Type:            block.TxBlock,
+					SenderShardID:   0,
+					ReceiverShardID: 0,
+					TxHashes:        [][]byte{[]byte("txHash1")},
+				},
+			},
+		}
+
+		result := tc.ProposedDirectSentTransactionsToBroadcast(body)
+		require.NotNil(t, result)
+		require.Equal(t, 0, len(result))
+	})
+
+	t.Run("cross-shard miniblocks should be skipped", func(t *testing.T) {
+		t.Parallel()
+
+		txCoordinatorArgs := createMockTransactionCoordinatorArguments()
+		txCoordinatorArgs.ShardCoordinator = mock.NewMultiShardsCoordinatorMock(3)
+
+		tc, err := NewTransactionCoordinator(txCoordinatorArgs)
+		require.Nil(t, err)
+		require.NotNil(t, tc)
+
+		body := &block.Body{
+			MiniBlocks: []*block.MiniBlock{
+				{
+					Type:            block.TxBlock,
+					SenderShardID:   0,
+					ReceiverShardID: 1, // cross-shard
+					TxHashes:        [][]byte{[]byte("txHash1")},
+				},
+				{
+					Type:            block.TxBlock,
+					SenderShardID:   1,
+					ReceiverShardID: 0, // cross-shard
+					TxHashes:        [][]byte{[]byte("txHash2")},
+				},
+			},
+		}
+
+		result := tc.ProposedDirectSentTransactionsToBroadcast(body)
+		require.NotNil(t, result)
+		require.Equal(t, 0, len(result))
+	})
+
+	t.Run("mixed scenario with some txs in cache and some not", func(t *testing.T) {
+		t.Parallel()
+
+		tx1 := &transaction.Transaction{Nonce: 1, Value: big.NewInt(100)}
+		tx2 := &transaction.Transaction{Nonce: 2, Value: big.NewInt(200)}
+		txHash1 := []byte("txHash1")
+		txHash2 := []byte("txHash2")
+
+		directSentCache := &cache.CacherStub{
+			GetCalled: func(key []byte) (interface{}, bool) {
+				// txHash1 is in cache, txHash2 is not
+				if bytes.Equal(key, txHash1) {
+					return struct{}{}, true
+				}
+				return nil, false
+			},
+		}
+
+		transactionsCache := &testscommon.ShardedDataStub{
+			SearchFirstDataCalled: func(key []byte) (value interface{}, ok bool) {
+				switch string(key) {
+				case string(txHash1):
+					return tx1, true
+				case string(txHash2):
+					return tx2, true
+				default:
+					require.Fail(t, "should not happen")
+				}
+
+				return nil, false
+			},
+		}
+		txCoordinatorArgs := createMockTransactionCoordinatorArguments()
+		txCoordinatorArgs.ShardCoordinator = mock.NewMultiShardsCoordinatorMock(3)
+		txCoordinatorArgs.DataPool = &dataRetrieverMock.PoolsHolderStub{
+			PostProcessTransactionsCalled: func() storage.Cacher {
+				return &cache.CacherStub{
+					GetCalled: func(key []byte) (value interface{}, ok bool) {
+						return map[block.Type]map[string]data.TransactionHandler{}, true
+					},
+				}
+			},
+			DirectSentTransactionsCalled: func() storage.Cacher {
+				return directSentCache
+			},
+			TransactionsCalled: func() dataRetriever.ShardedDataCacherNotifier {
+				return transactionsCache
+			},
+		}
+		txCoordinatorArgs.Marshalizer = &marshallerMock.MarshalizerStub{
+			MarshalCalled: func(obj interface{}) ([]byte, error) {
+				return []byte("marshalledTx"), nil
+			},
+		}
+
+		tc, err := NewTransactionCoordinator(txCoordinatorArgs)
+		require.Nil(t, err)
+		require.NotNil(t, tc)
+
+		body := &block.Body{
+			MiniBlocks: []*block.MiniBlock{
+				{
+					Type:            block.TxBlock,
+					SenderShardID:   0,
+					ReceiverShardID: 0, // intra-shard
+					TxHashes:        [][]byte{txHash1, txHash2},
+				},
+				{
+					Type:            block.TxBlock,
+					SenderShardID:   0,
+					ReceiverShardID: 1, // cross-shard
+				},
+			},
+		}
+
+		result := tc.ProposedDirectSentTransactionsToBroadcast(body)
+		require.NotNil(t, result)
+		require.Equal(t, 1, len(result))
+		txs, ok := result[factory.TransactionTopic+"_0"]
+		require.True(t, ok)
+		require.Equal(t, 1, len(txs))
+	})
 }
 
 func createDefaultTxCoordinatorArgs() ArgTransactionCoordinator {

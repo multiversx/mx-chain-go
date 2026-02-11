@@ -14,6 +14,7 @@ import (
 	"github.com/multiversx/mx-chain-core-go/core/check"
 	"github.com/multiversx/mx-chain-core-go/data/block"
 	"github.com/multiversx/mx-chain-core-go/display"
+	commonConsensus "github.com/multiversx/mx-chain-go/common/consensus"
 
 	"github.com/multiversx/mx-chain-go/common"
 	"github.com/multiversx/mx-chain-go/consensus"
@@ -32,7 +33,6 @@ type subroundEndRound struct {
 	mutProcessingEndRound         sync.Mutex
 	sentSignatureTracker          spos.SentSignaturesTracker
 	worker                        spos.WorkerHandler
-	signatureThrottler            core.Throttler
 }
 
 // NewSubroundEndRound creates a subroundEndRound object
@@ -42,7 +42,6 @@ func NewSubroundEndRound(
 	appStatusHandler core.AppStatusHandler,
 	sentSignatureTracker spos.SentSignaturesTracker,
 	worker spos.WorkerHandler,
-	signatureThrottler core.Throttler,
 ) (*subroundEndRound, error) {
 	err := checkNewSubroundEndRoundParams(baseSubround)
 	if err != nil {
@@ -57,9 +56,6 @@ func NewSubroundEndRound(
 	if check.IfNil(worker) {
 		return nil, spos.ErrNilWorker
 	}
-	if check.IfNil(signatureThrottler) {
-		return nil, spos.ErrNilThrottler
-	}
 
 	srEndRound := subroundEndRound{
 		Subround:                      baseSubround,
@@ -68,7 +64,6 @@ func NewSubroundEndRound(
 		mutProcessingEndRound:         sync.Mutex{},
 		sentSignatureTracker:          sentSignatureTracker,
 		worker:                        worker,
-		signatureThrottler:            signatureThrottler,
 	}
 	srEndRound.Job = srEndRound.doEndRoundJob
 	srEndRound.Check = srEndRound.doEndRoundConsensusCheck
@@ -262,6 +257,11 @@ func (sr *subroundEndRound) doEndRoundJobByNode() bool {
 			return false
 		}
 
+		if sr.HasProofForCompetingBlock() {
+			log.Debug("doEndRoundJobByNode: competing block proof detected, aborting end round job")
+			return false
+		}
+
 		proofSent, err := sr.sendProof()
 		shouldWaitForMoreSignatures := errors.Is(err, spos.ErrInvalidNumSigShares)
 		// if not enough valid signatures were detected, wait a bit more
@@ -308,6 +308,10 @@ func (sr *subroundEndRound) waitForProof() bool {
 			if sr.EquivalentProofsPool().HasProof(shardID, headerHash) {
 				return true
 			}
+			if sr.HasProofForCompetingBlock() {
+				log.Debug("waitForProof: competing block proof detected, aborting wait")
+				return false
+			}
 		case <-ctx.Done():
 			return false
 		}
@@ -336,6 +340,10 @@ func (sr *subroundEndRound) finalizeConfirmedBlock() bool {
 	}
 
 	sr.SetStatus(sr.Current(), spos.SsFinished)
+
+	// Trigger AOT selection for next round after block commits
+	// This prepares transactions for the next block while state is consistent (post-OnExecuted)
+	sr.triggerAOTSelection()
 
 	sr.worker.DisplayStatistics()
 
@@ -394,7 +402,9 @@ func (sr *subroundEndRound) shouldSendProof() bool {
 		return false
 	}
 
-	return sr.IsSelfInConsensusGroup() && spos.ShouldConsiderSelfKeyInConsensus(sr.NodeRedundancyHandler())
+	shouldSingleKeySendProof := sr.IsNodeInConsensusGroup(sr.SelfPubKey()) && commonConsensus.ShouldConsiderSelfKeyInConsensus(sr.NodeRedundancyHandler())
+	shouldMultiKeySendProof := sr.IsMultiKeyInConsensusGroup()
+	return shouldSingleKeySendProof || shouldMultiKeySendProof
 }
 
 func (sr *subroundEndRound) aggregateSigsAndHandleInvalidSigners(bitmap []byte, sender string) ([]byte, []byte, error) {
@@ -425,22 +435,6 @@ func (sr *subroundEndRound) aggregateSigsAndHandleInvalidSigners(bitmap []byte, 
 	return bitmap, sig, nil
 }
 
-func (sr *subroundEndRound) checkGoRoutinesThrottler(ctx context.Context) error {
-	for {
-		if sr.signatureThrottler.CanProcess() {
-			break
-		}
-
-		select {
-		case <-time.After(time.Millisecond):
-			continue
-		case <-ctx.Done():
-			return spos.ErrTimeIsOut
-		}
-	}
-	return nil
-}
-
 // verifySignature implements parallel signature verification
 func (sr *subroundEndRound) verifySignature(i int, pk string, sigShare []byte) error {
 	err := sr.SigningHandler().VerifySignatureShare(uint16(i), sigShare, sr.GetData(), sr.GetHeader().GetEpoch())
@@ -466,51 +460,74 @@ func (sr *subroundEndRound) verifySignature(i int, pk string, sigShare []byte) e
 	return nil
 }
 
+const maxParallelVerifications = 30
+
 func (sr *subroundEndRound) verifyNodesOnAggSigFail(ctx context.Context) ([]string, error) {
-	wg := &sync.WaitGroup{}
-	mutex := &sync.Mutex{}
-	invalidPubKeys := make([]string, 0)
 	pubKeys := sr.ConsensusGroup()
+	invalidPubKeys := make([]string, 0)
+	var invalidMutex sync.Mutex
 
 	if check.IfNil(sr.GetHeader()) {
 		return nil, spos.ErrNilHeader
 	}
 
-	for i, pk := range pubKeys {
-		isJobDone, err := sr.JobDone(pk, bls.SrSignature)
-		if err != nil || !isJobDone {
-			continue
-		}
+	// Create worker pool
+	workChan := make(chan struct {
+		index  int
+		pubKey string
+	}, len(pubKeys))
 
-		sigShare, err := sr.SigningHandler().SignatureShare(uint16(i))
-		if err != nil {
-			return nil, err
-		}
+	var wg sync.WaitGroup
 
-		err = sr.checkGoRoutinesThrottler(ctx)
-		if err != nil {
-			return nil, err
-		}
-
-		sr.signatureThrottler.StartProcessing()
-
-		wg.Add(1)
-
-		go func(i int, pk string, sigShare []byte) {
-			defer func() {
-				sr.signatureThrottler.EndProcessing()
-				wg.Done()
-			}()
-			errSigVerification := sr.verifySignature(i, pk, sigShare)
-			if errSigVerification != nil {
-				mutex.Lock()
-				invalidPubKeys = append(invalidPubKeys, pk)
-				mutex.Unlock()
-			}
-		}(i, pk, sigShare)
+	// Start workers (bounded parallelism)
+	numWorkers := maxParallelVerifications
+	if len(pubKeys) < numWorkers {
+		numWorkers = len(pubKeys)
 	}
-	wg.Wait()
 
+	for i := 0; i < numWorkers; i++ {
+		wg.Add(1)
+		go func() {
+			defer wg.Done()
+			for work := range workChan {
+				select {
+				case <-ctx.Done():
+					return
+				default:
+					isJobDone, err := sr.JobDone(work.pubKey, bls.SrSignature)
+					if err != nil || !isJobDone {
+						continue
+					}
+
+					sigShare, err := sr.SigningHandler().SignatureShare(uint16(work.index))
+					if err != nil {
+						log.Debug("verifyNodesOnAggSigFail: failed to get signature share",
+							"public key", work.pubKey,
+							"error", err)
+						continue
+					}
+
+					err = sr.verifySignature(work.index, work.pubKey, sigShare)
+					if err != nil {
+						invalidMutex.Lock()
+						invalidPubKeys = append(invalidPubKeys, work.pubKey)
+						invalidMutex.Unlock()
+					}
+				}
+			}
+		}()
+	}
+
+	// Send work
+	for i, pk := range pubKeys {
+		workChan <- struct {
+			index  int
+			pubKey string
+		}{i, pk}
+	}
+	close(workChan)
+
+	wg.Wait()
 	return invalidPubKeys, nil
 }
 
@@ -673,7 +690,7 @@ func (sr *subroundEndRound) createAndBroadcastInvalidSigners(
 	invalidSignersPubKeys []string,
 	sender string,
 ) {
-	if !spos.ShouldConsiderSelfKeyInConsensus(sr.NodeRedundancyHandler()) && !sr.IsMultiKeyInConsensusGroup() {
+	if !commonConsensus.ShouldConsiderSelfKeyInConsensus(sr.NodeRedundancyHandler()) && !sr.IsMultiKeyInConsensusGroup() {
 		return
 	}
 
@@ -994,6 +1011,24 @@ func (sr *subroundEndRound) updateConsensusMetricsProof() {
 func (sr *subroundEndRound) areSignaturesCollected(threshold int) (bool, int) {
 	n := sr.getNumOfSignaturesCollected()
 	return n >= threshold, n
+}
+
+// triggerAOTSelection triggers ahead-of-time transaction selection for the next block
+// This is called after a block commits to prepare transactions for when this node becomes leader
+func (sr *subroundEndRound) triggerAOTSelection() {
+	aotSelector := sr.AOTSelector()
+	if check.IfNil(aotSelector) {
+		return
+	}
+
+	committedHeader := sr.GetHeader()
+	if check.IfNil(committedHeader) {
+		log.Debug("triggerAOTSelection: no committed header available")
+		return
+	}
+
+	currentRound := uint64(sr.RoundHandler().Index())
+	aotSelector.TriggerAOTSelection(committedHeader, currentRound)
 }
 
 // IsInterfaceNil returns true if there is no value under the interface

@@ -7,6 +7,8 @@ type BlockSizeComputationStub struct {
 	AddNumTxsCalled                            func(int)
 	IsMaxBlockSizeReachedCalled                func(int, int) bool
 	IsMaxBlockSizeWithoutThrottleReachedCalled func(int, int) bool
+	DecNumMiniBlocksCalled                     func(numMiniBlocks int)
+	DecNumTxsCalled                            func(numTxs int)
 }
 
 // Init -
@@ -27,6 +29,20 @@ func (bscs *BlockSizeComputationStub) AddNumMiniBlocks(numMiniBlocks int) {
 func (bscs *BlockSizeComputationStub) AddNumTxs(numTxs int) {
 	if bscs.AddNumTxsCalled != nil {
 		bscs.AddNumTxsCalled(numTxs)
+	}
+}
+
+// DecNumMiniBlocks -
+func (bscs *BlockSizeComputationStub) DecNumMiniBlocks(numMiniBlocks int) {
+	if bscs.DecNumMiniBlocksCalled != nil {
+		bscs.DecNumMiniBlocksCalled(numMiniBlocks)
+	}
+}
+
+// DecNumTxs -
+func (bscs *BlockSizeComputationStub) DecNumTxs(numTxs int) {
+	if bscs.DecNumTxsCalled != nil {
+		bscs.DecNumTxsCalled(numTxs)
 	}
 }
 

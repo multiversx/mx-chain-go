@@ -52,6 +52,7 @@ func (gt *gasTracker) computeGasProvided(
 	tx data.TransactionHandler,
 	txHash []byte,
 	gasInfo *gasConsumedInfo,
+	skipBlockLimitCheck bool,
 ) (uint64, error) {
 	gasProvidedByTxInSenderShard, gasProvidedByTxInReceiverShard, err := gt.computeGasProvidedByTx(
 		senderShardId,
@@ -63,7 +64,6 @@ func (gt *gasTracker) computeGasProvided(
 	}
 
 	epoch, overEstimationFactor := gt.gasEpochState.GetEpochForLimitsAndOverEstimationFactor()
-
 	gasProvidedByTxInSelfShard := uint64(0)
 	if gt.shardCoordinator.SelfId() == senderShardId {
 		gasProvidedByTxInSelfShard = gasProvidedByTxInSenderShard
@@ -72,14 +72,14 @@ func (gt *gasTracker) computeGasProvided(
 			return 0, process.ErrMaxGasLimitPerOneTxInReceiverShardIsReached
 		}
 
-		if gasInfo.gasConsumedByMiniBlockInReceiverShard+gasProvidedByTxInReceiverShard > gt.getMaxGasLimitPerBlockForSafeCrossShard(epoch, overEstimationFactor) {
+		if !skipBlockLimitCheck && gasInfo.gasConsumedByMiniBlockInReceiverShard+gasProvidedByTxInReceiverShard > gt.getMaxGasLimitPerBlockForSafeCrossShard(epoch, overEstimationFactor) {
 			return 0, process.ErrMaxGasLimitPerMiniBlockInReceiverShardIsReached
 		}
 	} else {
 		gasProvidedByTxInSelfShard = gasProvidedByTxInReceiverShard
 	}
 
-	if gasInfo.totalGasConsumedInSelfShard+gasProvidedByTxInSelfShard > gt.getMaxGasLimitPerBlock(epoch, overEstimationFactor) {
+	if !skipBlockLimitCheck && gasInfo.totalGasConsumedInSelfShard+gasProvidedByTxInSelfShard > gt.getMaxGasLimitPerBlock(epoch, overEstimationFactor) {
 		return 0, process.ErrMaxGasLimitPerBlockInSelfShardIsReached
 	}
 

@@ -25,8 +25,14 @@ type TxCacheSelectionConfig struct {
 	SelectionGasBandwidthIncreaseScheduledPercent uint32
 	SelectionGasRequested                         uint64
 	SelectionMaxNumTxs                            int
-	SelectionLoopMaximumDuration                  int
 	SelectionLoopDurationCheckInterval            int
+}
+
+// AOTSelectionConfig will map the ahead-of-time transaction selection config
+type AOTSelectionConfig struct {
+	Enabled            bool
+	CacheSize          int
+	SelectionTimeoutMs int
 }
 
 // HeadersPoolConfig will map the headers cache configuration
@@ -41,7 +47,7 @@ type ProofsPoolConfig struct {
 	BucketSize        int
 }
 
-// ExecutionResultInclusionEstimatorConfig will map the EIE configuration - supplied at construction, read‑only thereafter.
+// ExecutionResultInclusionEstimatorConfig will map the EIE configuration - supplied at construction, read-only thereafter.
 // TODO add also max estimated block gas capacity
 type ExecutionResultInclusionEstimatorConfig struct {
 	SafetyMargin       uint64
@@ -128,8 +134,9 @@ type EpochStartConfig struct {
 
 // BlockSizeThrottleConfig will hold the configuration for adaptive block size throttle
 type BlockSizeThrottleConfig struct {
-	MinSizeInBytes uint32
-	MaxSizeInBytes uint32
+	MinSizeInBytes        uint32
+	MaxSizeInBytes        uint32
+	MaxExecResSizeInBytes uint32
 }
 
 // SoftwareVersionConfig will hold the configuration for software version checker
@@ -208,6 +215,7 @@ type Config struct {
 	TxDataPool                   CacheConfig
 	TxCacheBounds                TxCacheBoundsConfig
 	TxCacheSelection             TxCacheSelectionConfig
+	AOTSelection                 AOTSelectionConfig
 	UnsignedTransactionDataPool  CacheConfig
 	RewardTransactionDataPool    CacheConfig
 	TrieNodesChunksDataPool      CacheConfig
@@ -217,6 +225,7 @@ type Config struct {
 	ValidatorInfoPool            CacheConfig
 	ExecutedMiniBlocksCache      CacheConfig
 	PostProcessTransactionsCache CacheConfig
+	HeaderBodyCacheConfig        HeaderBodyCacheConfig
 	TrieSyncStorage              TrieSyncStorageConfig
 	EpochStartConfig             EpochStartConfig
 	AddressPubkeyConverter       PubkeyConfig
@@ -268,6 +277,7 @@ type Config struct {
 	PeersRatingConfig PeersRatingConfig
 
 	InterceptedDataVerifier InterceptedDataVerifierConfig
+	DirectSentTransactions  DirectSentTransactionsConfig
 }
 
 // PeersRatingConfig will hold settings related to peers rating
@@ -292,6 +302,11 @@ type StoragePruningConfig struct {
 	NumEpochsToKeep                      uint64
 	NumActivePersisters                  uint64
 	FullArchiveNumActivePersisters       uint32
+}
+
+// HeaderBodyCacheConfig will hold settings related with header body cache
+type HeaderBodyCacheConfig struct {
+	Capacity int
 }
 
 // ResourceStatsConfig will hold all resource stats settings
@@ -480,6 +495,7 @@ type WebServerAntifloodConfig struct {
 type BlackListConfig struct {
 	ThresholdNumMessagesPerInterval uint32
 	ThresholdSizePerInterval        uint64
+	NumFloodingRounds               uint32
 	PeerBanDurationInSeconds        uint32
 }
 
@@ -503,13 +519,19 @@ type TxAccumulatorConfig struct {
 
 // AntifloodConfig will hold all p2p antiflood parameters
 type AntifloodConfig struct {
-	Enabled                             bool
+	Enabled        bool
+	ConfigsByRound []AntifloodConfigByRound
+}
+
+// AntifloodConfigByRound will hold antiflood parameters by round
+type AntifloodConfigByRound struct {
+	Round                               uint64
 	NumConcurrentResolverJobs           int32
 	NumConcurrentResolvingTrieNodesJobs int32
 	OutOfSpecs                          FloodPreventerConfig
 	FastReacting                        FloodPreventerConfig
 	SlowReacting                        FloodPreventerConfig
-	PeerMaxOutput                       AntifloodLimitsConfig
+	PeerMaxOutput                       FloodPreventerConfig
 	Cache                               CacheConfig
 	Topic                               TopicAntifloodConfig
 	TxAccumulator                       TxAccumulatorConfig
@@ -811,6 +833,12 @@ type IndexBroadcastDelay struct {
 // InterceptedDataVerifierConfig holds the configuration for the intercepted data verifier
 type InterceptedDataVerifierConfig struct {
 	EnableCaching    bool
+	CacheSpanInSec   uint64
+	CacheExpiryInSec uint64
+}
+
+// DirectSentTransactionsConfig holds the configuration for the direct-sent transactions
+type DirectSentTransactionsConfig struct {
 	CacheSpanInSec   uint64
 	CacheExpiryInSec uint64
 }

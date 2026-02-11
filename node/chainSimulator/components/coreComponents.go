@@ -84,6 +84,7 @@ type coreComponentsHolder struct {
 	epochChangeGracePeriodHandler common.EpochChangeGracePeriodHandler
 	processConfigsHandler         common.ProcessConfigsHandler
 	epochStartConfigsHandler      common.CommonConfigsHandler
+	antifloodConfigsHandler       common.AntifloodConfigsHandler
 }
 
 // ArgsCoreComponentsHolder will hold arguments needed for the core components holder
@@ -334,6 +335,14 @@ func CreateCoreComponents(args ArgsCoreComponentsHolder) (*coreComponentsHolder,
 		return nil, err
 	}
 
+	instance.antifloodConfigsHandler, err = commonConfigs.NewAntifloodConfigsHandler(
+		args.Config.Antiflood,
+		instance.roundNotifier,
+	)
+	if err != nil {
+		return nil, err
+	}
+
 	instance.collectClosableComponents()
 
 	return instance, nil
@@ -571,6 +580,11 @@ func (c *coreComponentsHolder) ProcessConfigsHandler() common.ProcessConfigsHand
 // CommonConfigsHandler returns epoch start configs handler component
 func (c *coreComponentsHolder) CommonConfigsHandler() common.CommonConfigsHandler {
 	return c.epochStartConfigsHandler
+}
+
+// AntifloddConfigsHandler returns epoch start configs handler component
+func (c *coreComponentsHolder) AntifloodConfigsHandler() common.AntifloodConfigsHandler {
+	return c.antifloodConfigsHandler
 }
 
 func (c *coreComponentsHolder) collectClosableComponents() {

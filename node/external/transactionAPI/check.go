@@ -54,6 +54,9 @@ func checkNilArgs(arg *ArgAPITransactionProcessor) error {
 	if check.IfNil(arg.EnableRoundsHandler) {
 		return process.ErrNilEnableRoundsHandler
 	}
+	if check.IfNil(arg.TxVersionChecker) {
+		return process.ErrNilTransactionVersionChecker
+	}
 
 	return nil
 }

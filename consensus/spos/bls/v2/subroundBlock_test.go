@@ -19,7 +19,7 @@ import (
 	"github.com/multiversx/mx-chain-go/consensus/spos"
 	"github.com/multiversx/mx-chain-go/consensus/spos/bls"
 	v2 "github.com/multiversx/mx-chain-go/consensus/spos/bls/v2"
-	"github.com/multiversx/mx-chain-go/process/asyncExecution/queue"
+	"github.com/multiversx/mx-chain-go/process/asyncExecution/cache"
 	"github.com/multiversx/mx-chain-go/sharding/nodesCoordinator"
 	"github.com/multiversx/mx-chain-go/testscommon"
 	consensusMocks "github.com/multiversx/mx-chain-go/testscommon/consensus"
@@ -665,6 +665,9 @@ func TestSubroundBlock_DoBlockJob(t *testing.T) {
 					PubKeysBitmap:       providedBitmap,
 				}, nil
 			},
+			GetProofByNonceCalled: func(headerNonce uint64, shardID uint32) (data.HeaderProofHandler, error) {
+				return nil, fmt.Errorf("no proof for nonce")
+			},
 		})
 
 		r := sr.DoBlockJob()
@@ -677,7 +680,8 @@ func TestSubroundBlock_DoBlockJob(t *testing.T) {
 		providedSignature := []byte("provided signature")
 		providedBitmap := []byte("provided bitmap")
 		providedHash := []byte("provided hash")
-		providedHeadr := &block.HeaderV2{
+		providedMarshalledTx := []byte("provided marshalled tx")
+		providedHeader := &block.HeaderV2{
 			Header: &block.Header{
 				Signature:     []byte("signature"),
 				PubKeysBitmap: []byte("bitmap"),
@@ -687,7 +691,7 @@ func TestSubroundBlock_DoBlockJob(t *testing.T) {
 		container := consensusMocks.InitConsensusCore()
 		chainHandler := &testscommon.ChainHandlerStub{
 			GetCurrentBlockHeaderCalled: func() data.HeaderHandler {
-				return providedHeadr
+				return providedHeader
 			},
 			GetCurrentBlockHeaderHashCalled: func() []byte {
 				return providedHash
@@ -737,18 +741,14 @@ func TestSubroundBlock_DoBlockJob(t *testing.T) {
 		require.Nil(t, err)
 
 		sr.SetSelfPubKey(leader)
-		bpm := consensusMocks.InitBlockProcessorMock(container.Marshalizer())
-		container.SetBlockProcessor(bpm)
-		bpm.CreateNewHeaderCalled = func(round uint64, nonce uint64) (data.HeaderHandler, error) {
-			return &block.HeaderV2{
-				Header: &block.Header{
-					Round: round,
-					Nonce: nonce,
-				},
-			}, nil
-		}
+
+		wasBroadcastTransactionsCalled := false
 		bm := &consensusMocks.BroadcastMessengerMock{
 			BroadcastConsensusMessageCalled: func(message *consensus.Message) error {
+				return nil
+			},
+			BroadcastTransactionsCalled: func(m map[string][][]byte, bytes []byte) error {
+				wasBroadcastTransactionsCalled = true
 				return nil
 			},
 		}
@@ -756,6 +756,7 @@ func TestSubroundBlock_DoBlockJob(t *testing.T) {
 		container.SetRoundHandler(&round.RoundHandlerMock{
 			RoundIndex: 1,
 		})
+
 		container.SetEquivalentProofsPool(&dataRetriever.ProofsPoolMock{
 			GetProofCalled: func(shardID uint32, headerHash []byte) (data.HeaderProofHandler, error) {
 				return &block.HeaderProof{
@@ -763,6 +764,9 @@ func TestSubroundBlock_DoBlockJob(t *testing.T) {
 					AggregatedSignature: providedSignature,
 					PubKeysBitmap:       providedBitmap,
 				}, nil
+			},
+			GetProofByNonceCalled: func(headerNonce uint64, shardID uint32) (data.HeaderProofHandler, error) {
+				return nil, fmt.Errorf("no proof for nonce")
 			},
 		})
 		wasCreateNewHeaderProposalCalled := false
@@ -784,6 +788,11 @@ func TestSubroundBlock_DoBlockJob(t *testing.T) {
 				require.Fail(t, "should have not been called")
 				return nil, nil, nil
 			},
+			ProposedDirectSentTransactionsToBroadcastCalled: func(proposedBody data.BodyHandler) map[string][][]byte {
+				return map[string][][]byte{
+					"topic": {providedMarshalledTx},
+				}
+			},
 		}
 		container.SetBlockProcessor(blockProcessor)
 
@@ -791,6 +800,7 @@ func TestSubroundBlock_DoBlockJob(t *testing.T) {
 		require.True(t, r)
 		require.True(t, wasCreateNewHeaderProposalCalled)
 		assert.True(t, wasCreateBlockProposalCalled)
+		assert.True(t, wasBroadcastTransactionsCalled)
 	})
 }
 
@@ -1693,7 +1703,7 @@ func TestSubroundBlock_prepareBlockForExecution(t *testing.T) {
 			},
 		})
 		container.SetExecutionManager(&processMocks.ExecutionManagerMock{
-			AddPairForExecutionCalled: func(_ queue.HeaderBodyPair) error {
+			AddPairForExecutionCalled: func(_ cache.HeaderBodyPair) error {
 				addPairCalled = true
 				return nil
 			},
@@ -1723,7 +1733,7 @@ func TestSubroundBlock_prepareBlockForExecution(t *testing.T) {
 			},
 		})
 		container.SetExecutionManager(&processMocks.ExecutionManagerMock{
-			AddPairForExecutionCalled: func(_ queue.HeaderBodyPair) error {
+			AddPairForExecutionCalled: func(_ cache.HeaderBodyPair) error {
 				callOrder = append(callOrder, "AddPairForExecution")
 				return nil
 			},
@@ -1754,7 +1764,7 @@ func TestSubroundBlock_prepareBlockForExecution(t *testing.T) {
 			},
 		})
 		container.SetExecutionManager(&processMocks.ExecutionManagerMock{
-			AddPairForExecutionCalled: func(_ queue.HeaderBodyPair) error {
+			AddPairForExecutionCalled: func(_ cache.HeaderBodyPair) error {
 				addPairCalled = true
 				return nil
 			},
@@ -1784,7 +1794,7 @@ func TestSubroundBlock_prepareBlockForExecution(t *testing.T) {
 			},
 		})
 		container.SetExecutionManager(&processMocks.ExecutionManagerMock{
-			AddPairForExecutionCalled: func(_ queue.HeaderBodyPair) error {
+			AddPairForExecutionCalled: func(_ cache.HeaderBodyPair) error {
 				addPairCalled = true
 				return nil
 			},
@@ -1806,7 +1816,7 @@ func TestSubroundBlock_prepareBlockForExecution(t *testing.T) {
 
 		container := consensusMocks.InitConsensusCore()
 		container.SetExecutionManager(&processMocks.ExecutionManagerMock{
-			AddPairForExecutionCalled: func(_ queue.HeaderBodyPair) error {
+			AddPairForExecutionCalled: func(_ cache.HeaderBodyPair) error {
 				return expectedErr
 			},
 		})

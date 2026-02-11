@@ -264,7 +264,7 @@ func (ldp *latestDataProvider) GetLastEpochFromDirNames(epochDirs []string, inde
 
 	for _, dirname := range epochDirs {
 		epochStr := re.FindString(dirname)
-		epoch, err := strconv.ParseInt(epochStr, 10, 64)
+		epoch, err := strconv.ParseUint(epochStr, 10, 32)
 		if err != nil {
 			return 0, err
 		}

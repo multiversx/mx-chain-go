@@ -222,7 +222,7 @@ func (sp *shardProcessor) ProcessBlock(
 
 	defer func() {
 		if err != nil {
-			sp.RevertCurrentBlock(header)
+			sp.RevertCurrentBlock()
 		}
 	}()
 
@@ -941,9 +941,15 @@ func (sp *shardProcessor) CommitBlock(
 		sp.processStatusHandler.SetBusy("shardProcessor.CommitBlock")
 		defer func() {
 			if err != nil {
-				sp.RevertCurrentBlock(headerHandler)
+				sp.RevertCurrentBlock()
 			}
 			sp.processStatusHandler.SetIdle()
+		}()
+	} else {
+		defer func() {
+			if err != nil {
+				sp.RevertHeaderV3OnCommit(headerHandler)
+			}
 		}()
 	}
 
@@ -1459,7 +1465,7 @@ func (sp *shardProcessor) snapShotEpochStartFromMeta(header data.ShardHeaderHand
 			log.Debug("shard trie snapshot from epoch start shard data", "rootHash", rootHash, "epoch", epoch)
 			accounts.SnapshotState(rootHash, epoch)
 			sp.markSnapshotDoneInPeerAccounts()
-			saveEpochStartEconomicsMetrics(sp.appStatusHandler, metaHdr)
+			sp.saveEpochStartEconomicsMetrics(metaHdr)
 			go func() {
 				err := sp.commitTrieEpochRootHashIfNeeded(metaHdr, rootHash)
 				if err != nil {

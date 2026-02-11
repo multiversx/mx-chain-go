@@ -23,8 +23,15 @@ const addressLength = 32
 var oneQuintillionBig = big.NewInt(oneQuintillion)
 
 // The GitHub Actions runners are (extremely) slow. The variable is expressed in milliseconds.
-const selectionLoopMaximumDuration = 30_000
 const cleanupLoopMaximumDuration = 30_000
+
+func haveTimeTrueForSelection() bool {
+	return true
+}
+
+func haveTimeFalseForSelection() bool {
+	return false
+}
 
 var randomHashes = newRandomData(math.MaxUint16, hashLength)
 var randomAddresses = newRandomData(math.MaxUint16, addressLength)
@@ -110,9 +117,8 @@ func (listForSender *txListForSender) getTxsHashes() [][]byte {
 
 	result := make([][]byte, 0, listForSender.countTx())
 
-	for element := listForSender.items.Front(); element != nil; element = element.Next() {
-		value := element.Value.(*WrappedTransaction)
-		result = append(result, value.TxHash)
+	for _, tx := range listForSender.list.items {
+		result = append(result, tx.TxHash)
 	}
 
 	return result

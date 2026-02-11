@@ -103,6 +103,9 @@ const MetricCurrentRound = "erd_current_round"
 // MetricNonce is the metric for monitoring the nonce of a node
 const MetricNonce = "erd_nonce"
 
+// MetricLastExecutedNonce is the metric for monitoring the last executed nonce of a node
+const MetricLastExecutedNonce = "erd_last_executed_nonce"
+
 // MetricProposedNonce is the metric for monitoring the proposed nonce of a node
 const MetricProposedNonce = "erd_proposed_nonce"
 
@@ -626,9 +629,6 @@ const (
 	// MetricStorageAPICostOptimizationEnableEpoch represents the epoch when storage api cost optimization feature is enabled
 	MetricStorageAPICostOptimizationEnableEpoch = "erd_storage_api_cost_optimization_enable_epoch"
 
-	// MetricTransformToMultiShardCreateEnableEpoch represents the epoch when transform to multi shard create functionality is enabled
-	MetricTransformToMultiShardCreateEnableEpoch = "erd_transform_to_multi_shard_create_enable_epoch"
-
 	// MetricESDTRegisterAndSetAllRolesEnableEpoch represents the epoch when esdt register and set all roles functionality is enabled
 	MetricESDTRegisterAndSetAllRolesEnableEpoch = "erd_esdt_register_and_set_all_roles_enable_epoch"
 
@@ -1037,6 +1037,9 @@ const CommitMaxTime = 3 * time.Second
 // PutInStorerMaxTime represents max time accepted for a put action, after which a warn message is displayed
 const PutInStorerMaxTime = time.Second
 
+// PutInStorerMaxTimeSupernova represents max time accepted for a put action with supernova activated, after which a warn message is displayed
+const PutInStorerMaxTimeSupernova = 600 * time.Millisecond
+
 // DefaultUnstakedEpoch represents the default epoch that is set for a validator that has not unstaked yet
 const DefaultUnstakedEpoch = math.MaxUint32
 
@@ -1342,3 +1345,17 @@ const (
 
 // HashSize defines  const for the hash length
 const HashSize = 32
+
+// FloodPreventerType defines the type of flood preventer
+type FloodPreventerType string
+
+const (
+	// FastReacting defines fast reacting flood preventer type
+	FastReacting FloodPreventerType = "fast_reacting"
+	// SlowReacting defines slow reacting flood preventer type
+	SlowReacting FloodPreventerType = "slow_reacting"
+	// OutOfSpecs defines out of specs flood preventer type
+	OutOfSpecs FloodPreventerType = "out_of_specs"
+	// Output defines output flood preventer type
+	Output FloodPreventerType = "output"
+)

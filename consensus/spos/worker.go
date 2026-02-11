@@ -18,6 +18,7 @@ import (
 	"github.com/multiversx/mx-chain-core-go/hashing"
 	"github.com/multiversx/mx-chain-core-go/marshal"
 	crypto "github.com/multiversx/mx-chain-crypto-go"
+	commonConsensus "github.com/multiversx/mx-chain-go/common/consensus"
 
 	"github.com/multiversx/mx-chain-go/common"
 	"github.com/multiversx/mx-chain-go/consensus"
@@ -733,7 +734,7 @@ func (wrk *Worker) computeRedundancyMetrics() (bool, string) {
 func (wrk *Worker) checkSelfState(cnsDta *consensus.Message) error {
 	isMultiKeyManagedBySelf := wrk.consensusState.keysHandler.IsKeyManagedByCurrentNode(cnsDta.PubKey)
 	isSelfKey := wrk.consensusState.SelfPubKey() == string(cnsDta.PubKey)
-	shouldConsiderSelfKeyInConsensus := isSelfKey && ShouldConsiderSelfKeyInConsensus(wrk.nodeRedundancyHandler)
+	shouldConsiderSelfKeyInConsensus := isSelfKey && commonConsensus.ShouldConsiderSelfKeyInConsensus(wrk.nodeRedundancyHandler)
 	if shouldConsiderSelfKeyInConsensus || isMultiKeyManagedBySelf {
 		return ErrMessageFromItself
 	}
@@ -867,13 +868,17 @@ func (wrk *Worker) Extend(subroundId int) {
 	log.Debug("current block is reverted")
 
 	header := wrk.consensusState.GetHeader()
-	isHeaderV3 := !check.IfNil(header) && header.IsHeaderV3()
+	if check.IfNil(header) {
+		return
+	}
+
+	isHeaderV3 := header.IsHeaderV3()
 	if isHeaderV3 {
 		return
 	}
 
 	wrk.scheduledProcessor.ForceStopScheduledExecutionBlocking()
-	wrk.blockProcessor.RevertCurrentBlock(header)
+	wrk.blockProcessor.RevertCurrentBlock()
 	wrk.removeConsensusHeaderFromPool()
 }
 

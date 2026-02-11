@@ -31,6 +31,8 @@ type miniBlocksBuilderArgs struct {
 	getTxMaxTotalCost         func(txHandler data.TransactionHandler) *big.Int
 	getTotalGasConsumed       func() uint64
 	txPool                    dataRetriever.ShardedDataCacherNotifier
+	enableEpochsHandler       common.EnableEpochsHandler
+	enableRoundsHandler       common.EnableRoundsHandler
 }
 
 type miniBlockBuilderStats struct {
@@ -63,6 +65,8 @@ type miniBlocksBuilder struct {
 	getTxMaxTotalCost          func(txHandler data.TransactionHandler) *big.Int
 	stats                      miniBlockBuilderStats
 	txPool                     dataRetriever.ShardedDataCacherNotifier
+	enableEpochsHandler        common.EnableEpochsHandler
+	enableRoundsHandler        common.EnableRoundsHandler
 }
 
 func newMiniBlockBuilder(args miniBlocksBuilderArgs) (*miniBlocksBuilder, error) {
@@ -87,9 +91,11 @@ func newMiniBlockBuilder(args miniBlocksBuilderArgs) (*miniBlocksBuilder, error)
 			gasConsumedByMiniBlockInReceiverShard: 0,
 			totalGasConsumedInSelfShard:           args.getTotalGasConsumed(),
 		},
-		stats:        miniBlockBuilderStats{},
-		senderToSkip: []byte(""),
-		txPool:       args.txPool,
+		stats:               miniBlockBuilderStats{},
+		senderToSkip:        []byte(""),
+		txPool:              args.txPool,
+		enableEpochsHandler: args.enableEpochsHandler,
+		enableRoundsHandler: args.enableRoundsHandler,
 	}, nil
 }
 
@@ -301,7 +307,8 @@ func (mbb *miniBlocksBuilder) accountGasForTx(tx *transaction.Transaction, wtx *
 		wtx.ReceiverShardID,
 		tx,
 		wtx.TxHash,
-		&mbb.gasInfo)
+		&mbb.gasInfo,
+		false)
 	elapsedTime := time.Since(startTime)
 	mbb.stats.totalGasComputeTime += elapsedTime
 	if err != nil {
@@ -352,10 +359,10 @@ func (mbb *miniBlocksBuilder) handleGasRefund(wtx *txcache.WrappedTransaction, g
 func (mbb *miniBlocksBuilder) handleFailedTransaction() {
 	if !mbb.stats.firstInvalidTxFound {
 		mbb.stats.firstInvalidTxFound = true
-		mbb.blockSizeComputation.AddNumMiniBlocks(1)
+		mbb.addNumMiniBlocks(1)
 	}
 
-	mbb.blockSizeComputation.AddNumTxs(1)
+	mbb.addNumTxs(1)
 	mbb.stats.numTxsFailed++
 }
 
@@ -363,11 +370,11 @@ func (mbb *miniBlocksBuilder) addTxAndUpdateBlockSize(tx *transaction.Transactio
 	miniBlock := mbb.miniBlocks[wtx.ReceiverShardID]
 
 	if len(miniBlock.TxHashes) == 0 {
-		mbb.blockSizeComputation.AddNumMiniBlocks(1)
+		mbb.addNumMiniBlocks(1)
 	}
 
 	miniBlock.TxHashes = append(miniBlock.TxHashes, wtx.TxHash)
-	mbb.blockSizeComputation.AddNumTxs(1)
+	mbb.addNumTxs(1)
 	if isCrossShardScCallOrSpecialTx(wtx.ReceiverShardID, mbb.shardCoordinator.SelfId(), tx) {
 		mbb.handleCrossShardScCallOrSpecialTx()
 	}
@@ -377,9 +384,25 @@ func (mbb *miniBlocksBuilder) addTxAndUpdateBlockSize(tx *transaction.Transactio
 func (mbb *miniBlocksBuilder) handleCrossShardScCallOrSpecialTx() {
 	if !mbb.stats.firstCrossShardScCallOrSpecialTxFound {
 		mbb.stats.firstCrossShardScCallOrSpecialTxFound = true
-		mbb.blockSizeComputation.AddNumMiniBlocks(1)
+		mbb.addNumMiniBlocks(1)
 	}
 	// we need to increment this as to account for the corresponding SCR hash
-	mbb.blockSizeComputation.AddNumTxs(common.AdditionalScrForEachScCallOrSpecialTx)
+	mbb.addNumTxs(common.AdditionalScrForEachScCallOrSpecialTx)
 	mbb.stats.numCrossShardSCCallsOrSpecialTxs++
+}
+
+func (mbb *miniBlocksBuilder) addNumTxs(numTxs int) {
+	if common.IsAsyncExecutionEnabled(mbb.enableEpochsHandler, mbb.enableRoundsHandler) {
+		return
+	}
+
+	mbb.blockSizeComputation.AddNumTxs(numTxs)
+}
+
+func (mbb *miniBlocksBuilder) addNumMiniBlocks(numMiniBlocks int) {
+	if common.IsAsyncExecutionEnabled(mbb.enableEpochsHandler, mbb.enableRoundsHandler) {
+		return
+	}
+
+	mbb.blockSizeComputation.AddNumMiniBlocks(numMiniBlocks)
 }

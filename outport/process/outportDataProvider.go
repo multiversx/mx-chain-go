@@ -14,6 +14,7 @@ import (
 	"github.com/multiversx/mx-chain-core-go/data/receipt"
 	"github.com/multiversx/mx-chain-core-go/data/rewardTx"
 	"github.com/multiversx/mx-chain-core-go/data/smartContractResult"
+	"github.com/multiversx/mx-chain-core-go/data/stateChange"
 	"github.com/multiversx/mx-chain-core-go/data/transaction"
 	"github.com/multiversx/mx-chain-core-go/hashing"
 	"github.com/multiversx/mx-chain-core-go/marshal"
@@ -79,7 +80,7 @@ type outportDataProvider struct {
 	hasher                   hashing.Hasher
 	dataPool                 dataRetriever.PoolsHolder
 	enableEpochsHandler      common.EnableEpochsHandler
-	StateAccessesCollector   state.StateAccessesCollector
+	stateAccessesCollector   state.StateAccessesCollector
 	roundHandler             RoundHandler
 	rewardsGetter            EpochRewardsGetter
 }
@@ -100,7 +101,7 @@ func NewOutportDataProvider(arg ArgOutportDataProvider) (*outportDataProvider, e
 		hasher:                   arg.Hasher,
 		dataPool:                 arg.DataPool,
 		enableEpochsHandler:      arg.EnableEpochsHandler,
-		StateAccessesCollector:   arg.StateAccessesCollector,
+		stateAccessesCollector:   arg.StateAccessesCollector,
 		roundHandler:             arg.RoundHandler,
 		rewardsGetter:            arg.RewardsGetter,
 	}, nil
@@ -115,7 +116,7 @@ func (odp *outportDataProvider) PrepareOutportSaveBlockData(arg ArgPrepareOutpor
 		return nil, ErrNilBodyHandler
 	}
 
-	pool, err := odp.createPool(arg.RewardsTxs)
+	pool, err := odp.createPool(arg.RewardsTxs, arg.Header)
 	if err != nil {
 		return nil, err
 	}
@@ -162,7 +163,7 @@ func (odp *outportDataProvider) PrepareOutportSaveBlockData(arg ArgPrepareOutpor
 		return nil, err
 	}
 
-	stateAccessesForBlock := odp.getStateAccessesForBlock(arg.Header, arg.HeaderHash, arg.ScheduledRootHash)
+	stateAccessesForBlock, stateAccessesDeprecated := odp.getStateAccesses(arg.Header, arg.HeaderHash, arg.ScheduledRootHash)
 	outportBlock := &outportcore.OutportBlockWithHeaderAndBody{
 		OutportBlock: &outportcore.OutportBlock{
 			ShardID:         odp.shardID,
@@ -174,6 +175,7 @@ func (odp *outportDataProvider) PrepareOutportSaveBlockData(arg ArgPrepareOutpor
 				GasPenalized:   odp.gasConsumedProvider.TotalGasPenalized(),
 				MaxGasPerBlock: odp.economicsData.MaxGasLimitPerBlock(odp.shardID),
 			},
+			StateAccesses:          stateAccessesDeprecated,
 			StateAccessesForBlock:  stateAccessesForBlock,
 			AlteredAccounts:        alteredAccounts,
 			NotarizedHeadersHashes: arg.NotarizedHeadersHashes,
@@ -206,11 +208,11 @@ func (odp *outportDataProvider) PrepareOutportSaveBlockData(arg ArgPrepareOutpor
 	return outportBlock, nil
 }
 
-func (odp *outportDataProvider) getStateAccessesForBlock(
+func (odp *outportDataProvider) getStateAccesses(
 	header data.HeaderHandler,
 	headerHash []byte,
 	scheduledRootHash []byte,
-) map[string]*outportcore.StateAccessesForBlock {
+) (map[string]*outportcore.StateAccessesForBlock, map[string]*stateChange.StateAccesses) {
 	stateAccessesForBlock := make(map[string]*outportcore.StateAccessesForBlock)
 	if !header.IsHeaderV3() {
 		rootHash := header.GetRootHash()
@@ -219,18 +221,19 @@ func (odp *outportDataProvider) getStateAccessesForBlock(
 			log.Trace("getStateAccessesForBlock - using scheduled root hash", "scheduledRootHash", scheduledRootHash)
 		}
 		stateAccesses := odp.getStateAccessForRootHash(rootHash)
-		stateAccessesForBlock[hex.EncodeToString(headerHash)] = stateAccesses
+		stateAccessesForBlock[hex.EncodeToString(headerHash)] = &outportcore.StateAccessesForBlock{StateAccesses: stateAccesses}
+		// for backward compatibility, in case some driver is still using StateAccesses instead of StateAccessesForBlock
 		log.Trace("getStateAccessesForBlock",
 			"numStateAccesses", len(stateAccessesForBlock),
 			"rootHash", rootHash,
 			"headerHash", headerHash)
-		return stateAccessesForBlock
+		return stateAccessesForBlock, stateAccesses
 	}
 
 	executionResults := header.GetExecutionResultsHandlers()
 	for _, execResult := range executionResults {
 		stateAccesses := odp.getStateAccessForRootHash(execResult.GetRootHash())
-		stateAccessesForBlock[hex.EncodeToString(execResult.GetHeaderHash())] = stateAccesses
+		stateAccessesForBlock[hex.EncodeToString(execResult.GetHeaderHash())] = &outportcore.StateAccessesForBlock{StateAccesses: stateAccesses}
 		log.Trace("getStateAccessesForBlock V3",
 			"numStateAccesses", len(stateAccessesForBlock),
 			"rootHash", execResult.GetRootHash(),
@@ -238,16 +241,16 @@ func (odp *outportDataProvider) getStateAccessesForBlock(
 			"nonce", execResult.GetHeaderNonce())
 	}
 	log.Trace("getStateAccessesForBlock V3", "numExecRes", len(executionResults), "stateAccessesForBlock", len(stateAccessesForBlock))
-	return stateAccessesForBlock
+	return stateAccessesForBlock, nil
 }
 
-func (odp *outportDataProvider) getStateAccessForRootHash(rootHash []byte) *outportcore.StateAccessesForBlock {
-	stateAccessesMap := odp.StateAccessesCollector.GetStateAccessesForRootHash(rootHash)
+func (odp *outportDataProvider) getStateAccessForRootHash(rootHash []byte) map[string]*stateChange.StateAccesses {
+	stateAccessesMap := odp.stateAccessesCollector.GetStateAccessesForRootHash(rootHash)
 	if len(stateAccessesMap) == 0 {
 		return nil
 	}
-	odp.StateAccessesCollector.RemoveStateAccessesForRootHash(rootHash)
-	return &outportcore.StateAccessesForBlock{StateAccesses: stateAccessesMap}
+	odp.stateAccessesCollector.RemoveStateAccessesForRootHash(rootHash)
+	return stateAccessesMap
 }
 
 func (odp *outportDataProvider) prepareExecutionResultsData(args ArgPrepareOutportSaveBlockData) (map[string]*outportcore.ExecutionResultData, error) {
@@ -287,6 +290,11 @@ func (odp *outportDataProvider) prepareExecutionResultsData(args ArgPrepareOutpo
 		pool, err := odp.createPoolWithWrappedTxs(cachedTxs, cachedLogs)
 		if err != nil {
 			return nil, err
+		}
+
+		err = odp.addInPoolUnexecutableTransactions(headerHash, pool)
+		if err != nil {
+			return nil, fmt.Errorf("addInPoolUnexecutableTransactions: %w", err)
 		}
 
 		err = odp.transactionsFeeProcessor.PutFeeAndGasUsed(pool, executionResult.GetHeaderEpoch())
@@ -331,6 +339,40 @@ func (odp *outportDataProvider) prepareExecutionResultsData(args ArgPrepareOutpo
 	}
 
 	return results, nil
+}
+
+func (odp *outportDataProvider) addInPoolUnexecutableTransactions(headerHash []byte, pool *outportcore.TransactionPool) error {
+	unexecutableTxHashes, err := common.GetCachedUnexecutableTxHashes(odp.dataPool.PostProcessTransactions(), headerHash)
+	if err != nil {
+		return err
+	}
+	if len(unexecutableTxHashes) == 0 {
+		return nil
+	}
+
+	cacheID := process.ShardCacherIdentifier(odp.shardID, odp.shardID)
+	txCache := odp.dataPool.Transactions().ShardDataStore(cacheID)
+	if check.IfNil(txCache) {
+		return nil
+	}
+
+	pool.UnexecutableTransactions = make(map[string]*transaction.Transaction)
+	for _, txHash := range unexecutableTxHashes {
+		txI, found := txCache.Get(txHash)
+		if !found {
+			log.Warn("addInPoolUnexecutableTransactions - cannot find unexecutable tx in tx cache", "txHash", txHash)
+			continue
+		}
+		tx, ok := txI.(*transaction.Transaction)
+		if !ok {
+			log.Warn("addInPoolUnexecutableTransactions - cannot cast object from cache to transaction", "txHash", txHash, "type", fmt.Sprintf("%T", txI))
+			continue
+		}
+
+		pool.UnexecutableTransactions[hex.EncodeToString(txHash)] = tx
+	}
+
+	return nil
 }
 
 func hasRewardsOnBody(body *block.Body) bool {
@@ -508,7 +550,12 @@ func findLeaderIndex(blsKeys []string, leaderBlsKey string) uint64 {
 	return 0
 }
 
-func (odp *outportDataProvider) createPool(rewardsTxs map[string]data.TransactionHandler) (*outportcore.TransactionPool, error) {
+func (odp *outportDataProvider) createPool(rewardsTxs map[string]data.TransactionHandler, header data.HeaderHandler) (*outportcore.TransactionPool, error) {
+	if header.IsHeaderV3() {
+		// transactions will be indexed after execution
+		return &outportcore.TransactionPool{}, nil
+	}
+
 	grouped := map[block.Type]map[string]data.TransactionHandler{
 		block.TxBlock:                  odp.txCoordinator.GetAllCurrentUsedTxs(block.TxBlock),
 		block.SmartContractResultBlock: odp.txCoordinator.GetAllCurrentUsedTxs(block.SmartContractResultBlock),
@@ -738,6 +785,10 @@ func putInMapTxsFromBody(
 
 		strCache := process.ShardCacherIdentifier(mb.SenderShardID, mb.ReceiverShardID)
 		cache := storeByType.ShardDataStore(strCache)
+		if check.IfNil(cache) {
+			log.Debug("putInMapTxsFromBody cannot find shard data store", "senderShardID", mb.SenderShardID, "receiverShardID", mb.ReceiverShardID, "type", mb.Type)
+			continue
+		}
 
 		for _, txHash := range mb.TxHashes {
 			txI, found := cache.Get(txHash)

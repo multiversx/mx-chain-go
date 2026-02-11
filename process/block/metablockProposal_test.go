@@ -19,13 +19,11 @@ import (
 	statusHandlerMock "github.com/multiversx/mx-chain-go/testscommon/statusHandler"
 	storageStubs "github.com/multiversx/mx-chain-go/testscommon/storage"
 
-	"github.com/multiversx/mx-chain-go/process/estimator"
 	"github.com/multiversx/mx-chain-go/state"
 	"github.com/multiversx/mx-chain-go/testscommon/marshallerMock"
 	testscommonState "github.com/multiversx/mx-chain-go/testscommon/state"
 
 	"github.com/multiversx/mx-chain-go/common"
-	retriever "github.com/multiversx/mx-chain-go/dataRetriever"
 	integrationTestsMock "github.com/multiversx/mx-chain-go/integrationTests/mock"
 	"github.com/multiversx/mx-chain-go/process"
 	blproc "github.com/multiversx/mx-chain-go/process/block"
@@ -438,7 +436,7 @@ func TestMetaProcessor_CreateNewHeaderProposal(t *testing.T) {
 		}
 
 		dataPool := initDataPool()
-		dataPool.HeadersCalled = func() retriever.HeadersPool {
+		dataPool.HeadersCalled = func() dataRetriever.HeadersPool {
 			return headersPoolMock
 		}
 
@@ -649,7 +647,7 @@ func TestMetaProcessor_CreateBlockProposal(t *testing.T) {
 		require.NotNil(t, header)
 		require.NotNil(t, body)
 	})
-	t.Run("no mini blocks added if isEpochStart", func(t *testing.T) {
+	t.Run("no mini blocks added if epoch change propose set", func(t *testing.T) {
 		t.Parallel()
 
 		coreComponents, dataComponents, bootstrapComponents, statusComponents := createMockComponentHolders()
@@ -661,7 +659,7 @@ func TestMetaProcessor_CreateBlockProposal(t *testing.T) {
 			},
 		}
 		arguments.EpochStartTrigger = &testscommon.EpochStartTriggerStub{
-			IsEpochStartCalled: func() bool {
+			GetEpochChangeProposedCalled: func() bool {
 				return true
 			},
 		}
@@ -1157,6 +1155,11 @@ func Test_checkShardHeadersValidityAndFinalityProposal(t *testing.T) {
 					return nil, nil, expectedErr
 				},
 			},
+			"epochStartTrigger": &testscommon.EpochStartTriggerStub{
+				GetEpochChangeProposedCalled: func() bool {
+					return false
+				},
+			},
 		})
 		require.Nil(t, err)
 
@@ -1187,6 +1190,11 @@ func Test_checkShardHeadersValidityAndFinalityProposal(t *testing.T) {
 			"blockTracker": &mock.BlockTrackerMock{
 				GetLastCrossNotarizedHeaderCalled: func(_ uint32) (data.HeaderHandler, []byte, error) {
 					return &testscommon.HeaderHandlerStub{}, nil, nil
+				},
+			},
+			"epochStartTrigger": &testscommon.EpochStartTriggerStub{
+				GetEpochChangeProposedCalled: func() bool {
+					return false
 				},
 			},
 			"dataPool": dataPoolMock,
@@ -1240,6 +1248,11 @@ func Test_checkShardHeadersValidityAndFinalityProposal(t *testing.T) {
 			"blockTracker": &mock.BlockTrackerMock{
 				GetLastCrossNotarizedHeaderCalled: func(_ uint32) (data.HeaderHandler, []byte, error) {
 					return &testscommon.HeaderHandlerStub{}, nil, nil
+				},
+			},
+			"epochStartTrigger": &testscommon.EpochStartTriggerStub{
+				GetEpochChangeProposedCalled: func() bool {
+					return false
 				},
 			},
 			"dataPool":   dataPoolMock,
@@ -1296,6 +1309,11 @@ func Test_checkShardHeadersValidityAndFinalityProposal(t *testing.T) {
 					return &testscommon.HeaderHandlerStub{}, nil, nil
 				},
 			},
+			"epochStartTrigger": &testscommon.EpochStartTriggerStub{
+				GetEpochChangeProposedCalled: func() bool {
+					return false
+				},
+			},
 			"dataPool":    dataPoolMock,
 			"marshalizer": marshaller,
 			"blockChain": &testscommon.ChainHandlerStub{
@@ -1334,6 +1352,11 @@ func Test_checkShardHeadersValidityAndFinalityProposal(t *testing.T) {
 			"blockTracker": &mock.BlockTrackerMock{
 				GetLastCrossNotarizedHeaderCalled: func(_ uint32) (data.HeaderHandler, []byte, error) {
 					return &testscommon.HeaderHandlerStub{}, nil, nil
+				},
+			},
+			"epochStartTrigger": &testscommon.EpochStartTriggerStub{
+				GetEpochChangeProposedCalled: func() bool {
+					return false
 				},
 			},
 			"dataPool":    dataPoolMock,
@@ -1778,7 +1801,7 @@ func TestMetaProcessor_selectIncomingMiniBlocks(t *testing.T) {
 		// ensure proofs exist but haveTime will stop immediately
 		pools := dataComponents.DataPool
 		if ph, ok := pools.(*dataRetrieverMock.PoolsHolderStub); ok {
-			ph.ProofsCalled = func() retriever.ProofsPool {
+			ph.ProofsCalled = func() dataRetriever.ProofsPool {
 				return &dataRetrieverMock.ProofsPoolMock{HasProofCalled: func(shardID uint32, headerHash []byte) bool { return true }}
 			}
 		}
@@ -1812,7 +1835,7 @@ func TestMetaProcessor_selectIncomingMiniBlocks(t *testing.T) {
 		coreComponents, dataComponents, bootstrapComponents, statusComponents := createMockComponentHolders()
 		pools := dataComponents.DataPool
 		if ph, ok := pools.(*dataRetrieverMock.PoolsHolderStub); ok {
-			ph.ProofsCalled = func() retriever.ProofsPool {
+			ph.ProofsCalled = func() dataRetriever.ProofsPool {
 				return &dataRetrieverMock.ProofsPoolMock{HasProofCalled: func(shardID uint32, headerHash []byte) bool { return true }}
 			}
 		}
@@ -1841,7 +1864,7 @@ func TestMetaProcessor_selectIncomingMiniBlocks(t *testing.T) {
 		coreComponents, dataComponents, bootstrapComponents, statusComponents := createMockComponentHolders()
 		pools := dataComponents.DataPool
 		if ph, ok := pools.(*dataRetrieverMock.PoolsHolderStub); ok {
-			ph.ProofsCalled = func() retriever.ProofsPool {
+			ph.ProofsCalled = func() dataRetriever.ProofsPool {
 				return &dataRetrieverMock.ProofsPoolMock{HasProofCalled: func(shardID uint32, headerHash []byte) bool { return true }}
 			}
 		}
@@ -1871,7 +1894,7 @@ func TestMetaProcessor_selectIncomingMiniBlocks(t *testing.T) {
 		coreComponents, dataComponents, bootstrapComponents, statusComponents := createMockComponentHolders()
 		pools := dataComponents.DataPool
 		if ph, ok := pools.(*dataRetrieverMock.PoolsHolderStub); ok {
-			ph.ProofsCalled = func() retriever.ProofsPool {
+			ph.ProofsCalled = func() dataRetriever.ProofsPool {
 				return &dataRetrieverMock.ProofsPoolMock{HasProofCalled: func(shardID uint32, headerHash []byte) bool { return true }}
 			}
 		}
@@ -1900,7 +1923,7 @@ func TestMetaProcessor_selectIncomingMiniBlocks(t *testing.T) {
 		coreComponents, dataComponents, bootstrapComponents, statusComponents := createMockComponentHolders()
 		pools := dataComponents.DataPool
 		if ph, ok := pools.(*dataRetrieverMock.PoolsHolderStub); ok {
-			ph.ProofsCalled = func() retriever.ProofsPool {
+			ph.ProofsCalled = func() dataRetriever.ProofsPool {
 				return &dataRetrieverMock.ProofsPoolMock{HasProofCalled: func(shardID uint32, headerHash []byte) bool { return false }}
 			}
 		}
@@ -1925,7 +1948,7 @@ func TestMetaProcessor_selectIncomingMiniBlocks(t *testing.T) {
 		coreComponents, dataComponents, bootstrapComponents, statusComponents := createMockComponentHolders()
 		pools := dataComponents.DataPool
 		if ph, ok := pools.(*dataRetrieverMock.PoolsHolderStub); ok {
-			ph.ProofsCalled = func() retriever.ProofsPool {
+			ph.ProofsCalled = func() dataRetriever.ProofsPool {
 				return &dataRetrieverMock.ProofsPoolMock{HasProofCalled: func(shardID uint32, headerHash []byte) bool { return true }}
 			}
 		}
@@ -1953,7 +1976,7 @@ func TestMetaProcessor_selectIncomingMiniBlocks(t *testing.T) {
 		coreComponents, dataComponents, bootstrapComponents, statusComponents := createMockComponentHolders()
 		pools := dataComponents.DataPool
 		if ph, ok := pools.(*dataRetrieverMock.PoolsHolderStub); ok {
-			ph.ProofsCalled = func() retriever.ProofsPool {
+			ph.ProofsCalled = func() dataRetriever.ProofsPool {
 				return &dataRetrieverMock.ProofsPoolMock{HasProofCalled: func(shardID uint32, headerHash []byte) bool { return true }}
 			}
 		}
@@ -1982,7 +2005,7 @@ func TestMetaProcessor_selectIncomingMiniBlocks(t *testing.T) {
 		coreComponents, dataComponents, bootstrapComponents, statusComponents := createMockComponentHolders()
 		pools := dataComponents.DataPool
 		if ph, ok := pools.(*dataRetrieverMock.PoolsHolderStub); ok {
-			ph.ProofsCalled = func() retriever.ProofsPool {
+			ph.ProofsCalled = func() dataRetriever.ProofsPool {
 				return &dataRetrieverMock.ProofsPoolMock{HasProofCalled: func(shardID uint32, headerHash []byte) bool { return true }}
 			}
 		}
@@ -2013,7 +2036,7 @@ func TestMetaProcessor_selectIncomingMiniBlocks(t *testing.T) {
 		coreComponents, dataComponents, bootstrapComponents, statusComponents := createMockComponentHolders()
 		pools := dataComponents.DataPool
 		if ph, ok := pools.(*dataRetrieverMock.PoolsHolderStub); ok {
-			ph.ProofsCalled = func() retriever.ProofsPool {
+			ph.ProofsCalled = func() dataRetriever.ProofsPool {
 				return &dataRetrieverMock.ProofsPoolMock{HasProofCalled: func(shardID uint32, headerHash []byte) bool { return true }}
 			}
 		}
@@ -2055,7 +2078,7 @@ func TestMetaProcessor_selectIncomingMiniBlocks_GapsAndDuplicates(t *testing.T) 
 		coreComponents, dataComponents, bootstrapComponents, statusComponents := createMockComponentHolders()
 		pools := dataComponents.DataPool
 		if ph, ok := pools.(*dataRetrieverMock.PoolsHolderStub); ok {
-			ph.ProofsCalled = func() retriever.ProofsPool {
+			ph.ProofsCalled = func() dataRetriever.ProofsPool {
 				return &dataRetrieverMock.ProofsPoolMock{HasProofCalled: hasProofFn}
 			}
 		}
@@ -2093,7 +2116,7 @@ func TestMetaProcessor_selectIncomingMiniBlocks_GapsAndDuplicates(t *testing.T) 
 		coreComponents, dataComponents, bootstrapComponents, statusComponents := createMockComponentHolders()
 		pools := dataComponents.DataPool
 		if ph, ok := pools.(*dataRetrieverMock.PoolsHolderStub); ok {
-			ph.ProofsCalled = func() retriever.ProofsPool {
+			ph.ProofsCalled = func() dataRetriever.ProofsPool {
 				return &dataRetrieverMock.ProofsPoolMock{HasProofCalled: func(uint32, []byte) bool { return true }}
 			}
 		}
@@ -2122,7 +2145,7 @@ func TestMetaProcessor_selectIncomingMiniBlocks_GapsAndDuplicates(t *testing.T) 
 		coreComponents, dataComponents, bootstrapComponents, statusComponents := createMockComponentHolders()
 		pools := dataComponents.DataPool
 		if ph, ok := pools.(*dataRetrieverMock.PoolsHolderStub); ok {
-			ph.ProofsCalled = func() retriever.ProofsPool {
+			ph.ProofsCalled = func() dataRetriever.ProofsPool {
 				return &dataRetrieverMock.ProofsPoolMock{HasProofCalled: func(_ uint32, hash []byte) bool { return string(hash) == "h2" }}
 			}
 		}
@@ -2170,7 +2193,7 @@ func TestMetaProcessor_hasExecutionResultsForProposedEpochChange(t *testing.T) {
 		}
 
 		dataPool := initDataPool()
-		dataPool.HeadersCalled = func() retriever.HeadersPool {
+		dataPool.HeadersCalled = func() dataRetriever.HeadersPool {
 			return headersPoolMock
 		}
 
@@ -2232,7 +2255,7 @@ func TestMetaProcessor_hasExecutionResultsForProposedEpochChange(t *testing.T) {
 		}
 
 		dataPool := initDataPool()
-		dataPool.HeadersCalled = func() retriever.HeadersPool {
+		dataPool.HeadersCalled = func() dataRetriever.HeadersPool {
 			return headersPoolMock
 		}
 
@@ -2290,7 +2313,7 @@ func TestMetaProcessor_hasExecutionResultsForProposedEpochChange(t *testing.T) {
 		}
 
 		dataPool := initDataPool()
-		dataPool.HeadersCalled = func() retriever.HeadersPool {
+		dataPool.HeadersCalled = func() dataRetriever.HeadersPool {
 			return headersPoolMock
 		}
 
@@ -3882,7 +3905,7 @@ func TestMetaProcessor_ProcessBlockProposal(t *testing.T) {
 		mp, err := blproc.NewMetaProcessor(arguments)
 		require.Nil(t, err)
 
-		_, err = mp.ProcessBlockProposal(nil, &block.Body{})
+		_, err = mp.ProcessBlockProposal(nil, []byte("headerHash"), &block.Body{})
 		require.Equal(t, process.ErrNilBlockHeader, err)
 	})
 
@@ -3895,7 +3918,7 @@ func TestMetaProcessor_ProcessBlockProposal(t *testing.T) {
 		mp, err := blproc.NewMetaProcessor(arguments)
 		require.Nil(t, err)
 
-		_, err = mp.ProcessBlockProposal(&block.MetaBlockV3{}, nil)
+		_, err = mp.ProcessBlockProposal(&block.MetaBlockV3{}, []byte("headerHash"), nil)
 		require.Equal(t, process.ErrNilBlockBody, err)
 	})
 
@@ -3908,7 +3931,7 @@ func TestMetaProcessor_ProcessBlockProposal(t *testing.T) {
 		mp, err := blproc.NewMetaProcessor(arguments)
 		require.Nil(t, err)
 
-		_, err = mp.ProcessBlockProposal(&block.MetaBlock{}, &block.Body{})
+		_, err = mp.ProcessBlockProposal(&block.MetaBlock{}, []byte("headerHash"), &block.Body{})
 		require.Equal(t, process.ErrInvalidHeader, err)
 	})
 
@@ -3937,7 +3960,7 @@ func TestMetaProcessor_ProcessBlockProposal(t *testing.T) {
 		_, err = mp.ProcessBlockProposal(&block.HeaderV3{
 			Round: 2,
 			Epoch: 2,
-		}, &block.Body{})
+		}, []byte("headerHash"), &block.Body{})
 		require.Equal(t, process.ErrWrongTypeAssertion, err)
 		require.Equal(t, 1, checkEpochCounter)
 	})
@@ -3971,7 +3994,7 @@ func TestMetaProcessor_ProcessBlockProposal(t *testing.T) {
 		mp, err := blproc.NewMetaProcessor(arguments)
 		require.Nil(t, err)
 
-		_, err = mp.ProcessBlockProposal(&block.MetaBlockV3{}, &block.Body{})
+		_, err = mp.ProcessBlockProposal(&block.MetaBlockV3{}, []byte("headerHash"), &block.Body{})
 		require.True(t, errors.Is(err, process.ErrAccountStateDirty))
 	})
 
@@ -3995,7 +4018,7 @@ func TestMetaProcessor_ProcessBlockProposal(t *testing.T) {
 
 		_, err = mp.ProcessBlockProposal(&block.MetaBlockV3{
 			PrevHash: []byte("wrongHash"),
-		}, &block.Body{})
+		}, []byte("headerHash"), &block.Body{})
 		require.Equal(t, process.ErrBlockHashDoesNotMatch, err)
 	})
 
@@ -4031,7 +4054,7 @@ func TestMetaProcessor_ProcessBlockProposal(t *testing.T) {
 
 		_, err = mp.ProcessBlockProposal(&block.MetaBlockV3{
 			Nonce: 1,
-		}, &block.Body{})
+		}, []byte("headerHash"), &block.Body{})
 		require.Equal(t, expectedErr, err)
 	})
 
@@ -4061,7 +4084,7 @@ func TestMetaProcessor_ProcessBlockProposal(t *testing.T) {
 
 		_, err = mp.ProcessBlockProposal(&block.MetaBlockV3{
 			Nonce: 1,
-		}, &block.Body{})
+		}, []byte("headerHash"), &block.Body{})
 		require.Equal(t, expectedErr, err)
 	})
 
@@ -4096,7 +4119,7 @@ func TestMetaProcessor_ProcessBlockProposal(t *testing.T) {
 
 		_, err = mp.ProcessBlockProposal(&block.MetaBlockV3{
 			Nonce: 1,
-		}, &block.Body{})
+		}, []byte("headerHash"), &block.Body{})
 		require.Equal(t, expectedErr, err)
 	})
 
@@ -4120,7 +4143,7 @@ func TestMetaProcessor_ProcessBlockProposal(t *testing.T) {
 		_, err = mp.ProcessBlockProposal(&block.MetaBlockV3{
 			Nonce:               1,
 			EpochChangeProposed: true,
-		}, &block.Body{
+		}, []byte("headerHash"), &block.Body{
 			MiniBlocks: []*block.MiniBlock{
 				{}, {}, {},
 			},
@@ -4153,7 +4176,7 @@ func TestMetaProcessor_ProcessBlockProposal(t *testing.T) {
 
 		_, err = mp.ProcessBlockProposal(&block.MetaBlockV3{
 			Nonce: 1,
-		}, &block.Body{})
+		}, []byte("headerHash"), &block.Body{})
 		require.Equal(t, expectedErr, err)
 	})
 
@@ -4182,7 +4205,7 @@ func TestMetaProcessor_ProcessBlockProposal(t *testing.T) {
 
 		_, err = mp.ProcessBlockProposal(&block.MetaBlockV3{
 			Nonce: 1,
-		}, &block.Body{})
+		}, []byte("headerHash"), &block.Body{})
 		require.Equal(t, expectedErr, err)
 	})
 
@@ -4211,7 +4234,7 @@ func TestMetaProcessor_ProcessBlockProposal(t *testing.T) {
 
 		_, err = mp.ProcessBlockProposal(&block.MetaBlockV3{
 			Nonce: 1,
-		}, &block.Body{})
+		}, []byte("headerHash"), &block.Body{})
 		require.Equal(t, expectedErr, err)
 	})
 
@@ -4240,7 +4263,7 @@ func TestMetaProcessor_ProcessBlockProposal(t *testing.T) {
 
 		_, err = mp.ProcessBlockProposal(&block.MetaBlockV3{
 			Nonce: 1,
-		}, &block.Body{})
+		}, []byte("headerHash"), &block.Body{})
 		require.Equal(t, expectedErr, err)
 	})
 
@@ -4268,7 +4291,7 @@ func TestMetaProcessor_ProcessBlockProposal(t *testing.T) {
 
 		_, err = mp.ProcessBlockProposal(&block.MetaBlockV3{
 			Nonce: 1,
-		}, &block.Body{})
+		}, []byte("headerHash"), &block.Body{})
 		require.Equal(t, expectedErr, err)
 	})
 
@@ -4297,7 +4320,7 @@ func TestMetaProcessor_ProcessBlockProposal(t *testing.T) {
 
 		_, err = mp.ProcessBlockProposal(&block.MetaBlockV3{
 			Nonce: 1,
-		}, &block.Body{})
+		}, []byte("headerHash"), &block.Body{})
 		require.Equal(t, expectedErr, err)
 	})
 
@@ -4338,7 +4361,7 @@ func TestMetaProcessor_ProcessBlockProposal(t *testing.T) {
 
 		newBlock := defaultMetaBlockV3
 		newBlock.Nonce = 1
-		_, err = mp.ProcessBlockProposal(&newBlock, &block.Body{})
+		_, err = mp.ProcessBlockProposal(&newBlock, []byte("headerHash"), &block.Body{})
 		require.Equal(t, expectedErr, err)
 	})
 
@@ -4366,37 +4389,7 @@ func TestMetaProcessor_ProcessBlockProposal(t *testing.T) {
 
 		newBlock := defaultMetaBlockV3
 		newBlock.Nonce = 1
-		_, err = mp.ProcessBlockProposal(&newBlock, &block.Body{})
-		require.Equal(t, expectedErr, err)
-	})
-
-	t.Run("if calculating the hash fails, the error should be propagated", func(t *testing.T) {
-		t.Parallel()
-
-		coreComponents, dataComponents, boostrapComponents, statusComponents := createMockComponentHolders()
-		err := coreComponents.SetInternalMarshalizer(&marshallerMock.MarshalizerStub{
-			MarshalCalled: func(obj interface{}) ([]byte, error) {
-				return nil, expectedErr
-			},
-		})
-		require.Nil(t, err)
-
-		dataComponents.BlockChain = &testscommon.ChainHandlerStub{
-			GetLastExecutionResultCalled: func() data.BaseExecutionResultHandler {
-				return &block.MetaExecutionResult{}
-			},
-			GetLastExecutedBlockHeaderCalled: func() data.HeaderHandler {
-				return &block.MetaBlockV3{}
-			},
-		}
-
-		arguments := createMockMetaArguments(coreComponents, dataComponents, boostrapComponents, statusComponents)
-		mp, err := blproc.NewMetaProcessor(arguments)
-		require.Nil(t, err)
-
-		_, err = mp.ProcessBlockProposal(&block.MetaBlockV3{
-			Nonce: 1,
-		}, &block.Body{})
+		_, err = mp.ProcessBlockProposal(&newBlock, []byte("headerHash"), &block.Body{})
 		require.Equal(t, expectedErr, err)
 	})
 
@@ -4425,7 +4418,7 @@ func TestMetaProcessor_ProcessBlockProposal(t *testing.T) {
 
 		_, err = mp.ProcessBlockProposal(&block.MetaBlockV3{
 			Nonce: 1,
-		}, &block.Body{})
+		}, []byte("headerHash"), &block.Body{})
 		require.Equal(t, expectedErr, err)
 	})
 
@@ -4468,7 +4461,7 @@ func TestMetaProcessor_ProcessBlockProposal(t *testing.T) {
 					AccumulatedFeesInEpoch: big.NewInt(1),
 				},
 			},
-		}, &block.Body{
+		}, []byte("headerHash"), &block.Body{
 			MiniBlocks: []*block.MiniBlock{
 				{
 					Type: block.ReceiptBlock,
@@ -4619,7 +4612,7 @@ func createMetaProcessorMapForCreatingEpochStart() map[string]interface{} {
 			},
 		},
 		"executionResultsInclusionEstimator": &processMocks.InclusionEstimatorMock{
-			DecideCalled: func(lastNotarised *estimator.LastExecutionResultForInclusion, pending []data.BaseExecutionResultHandler, currentHdrTsMs uint64) (allowed int) {
+			DecideCalled: func(lastNotarised *common.LastExecutionResultForInclusion, pending []data.BaseExecutionResultHandler, currentHdrTsMs uint64) (allowed int) {
 				return 1 // allow the inclusion of the first execution result
 			},
 		},

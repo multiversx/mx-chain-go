@@ -13,6 +13,8 @@ import (
 	"github.com/multiversx/mx-chain-core-go/display"
 	"github.com/multiversx/mx-chain-core-go/hashing"
 	"github.com/multiversx/mx-chain-core-go/marshal"
+
+	"github.com/multiversx/mx-chain-go/process/aotSelection"
 	commonMocks "github.com/multiversx/mx-chain-go/testscommon/common"
 
 	"github.com/multiversx/mx-chain-go/common"
@@ -22,9 +24,9 @@ import (
 	"github.com/multiversx/mx-chain-go/dataRetriever"
 	"github.com/multiversx/mx-chain-go/process"
 	"github.com/multiversx/mx-chain-go/process/asyncExecution"
+	"github.com/multiversx/mx-chain-go/process/asyncExecution/cache"
 	"github.com/multiversx/mx-chain-go/process/asyncExecution/executionManager"
 	"github.com/multiversx/mx-chain-go/process/asyncExecution/executionTrack"
-	"github.com/multiversx/mx-chain-go/process/asyncExecution/queue"
 	"github.com/multiversx/mx-chain-go/process/block/bootstrapStorage"
 	"github.com/multiversx/mx-chain-go/process/block/processedMb"
 	"github.com/multiversx/mx-chain-go/process/coordinator"
@@ -216,24 +218,27 @@ func NewShardProcessorEmptyWith3shards(
 		coreComponents.Hasher(),
 	)
 
-	blocksQueue := queue.NewBlocksQueue()
+	blocksQueue := cache.NewHeaderBodyCache(config.HeaderBodyCacheConfig{})
 	executionResultsTracker := executionTrack.NewExecutionResultsTracker()
 	execManager, _ := executionManager.NewExecutionManager(executionManager.ArgsExecutionManager{
 		BlocksQueue:             blocksQueue,
 		ExecutionResultsTracker: executionResultsTracker,
 		BlockChain:              dataComponents.BlockChain,
 		Headers:                 dataComponents.Datapool().Headers(),
+		PostProcessTransactions: dataComponents.DataPool.PostProcessTransactions(),
+		ExecutedMiniBlocks:      dataComponents.DataPool.ExecutedMiniBlocks(),
 		StorageService:          dataComponents.StorageService(),
 		Marshaller:              coreComponents.InternalMarshalizer(),
 		ShardCoordinator:        boostrapComponents.ShardCoordinator(),
 	})
 	execResultsVerifier, _ := NewExecutionResultsVerifier(dataComponents.BlockChain, execManager)
-	inclusionEstimator := estimator.NewExecutionResultInclusionEstimator(
+	inclusionEstimator, _ := estimator.NewExecutionResultInclusionEstimator(
 		config.ExecutionResultInclusionEstimatorConfig{
 			SafetyMargin:       110,
 			MaxResultsPerBlock: 20,
 		},
 		coreComponents.RoundHandler(),
+		&testscommon.ExecResSizeComputationStub{},
 	)
 
 	missingDataArgs := missingData.ResolverArgs{
@@ -250,6 +255,7 @@ func NewShardProcessorEmptyWith3shards(
 		GasHandler:                        &mock.GasHandlerMock{},
 		BlockCapacityOverestimationFactor: 200,
 		PercentDecreaseLimitsStep:         10,
+		BlockSizeComputation:              &testscommon.BlockSizeComputationStub{},
 	}
 	gasComputation, _ := NewGasConsumption(argsGasConsumption)
 
@@ -296,6 +302,7 @@ func NewShardProcessorEmptyWith3shards(
 			GasComputation:                     gasComputation,
 			ExecutionManager:                   execManager,
 			TxExecutionOrderHandler:            &commonMocks.TxExecutionOrderHandlerStub{},
+			AOTSelector:                        aotSelection.NewDisabledAOTSelector(),
 		},
 	}
 	shardProc, err := NewShardProcessor(arguments)
@@ -304,7 +311,7 @@ func NewShardProcessorEmptyWith3shards(
 	}
 
 	argsHeaderExecutor := asyncExecution.ArgsHeadersExecutor{
-		BlocksQueue:      blocksQueue,
+		BlocksCache:      blocksQueue,
 		ExecutionTracker: executionResultsTracker,
 		BlockProcessor:   shardProc,
 		BlockChain:       dataComponents.BlockChain,
@@ -753,8 +760,8 @@ func (p *PendingMiniBlocksAfterSelection) GetHeader() data.HeaderHandler {
 }
 
 // GetMiniBlocksAndHashes -
-func (p *PendingMiniBlocksAfterSelection) GetMiniBlocksAndHashes() []block.MiniblockAndHash {
-	return p.pendingMiniBlocksAndHashes
+func (p *PendingMiniBlocksAfterSelection) GetMiniBlocksAndHashes() map[string]*block.MiniBlock {
+	return p.pendingMiniBlocks
 }
 
 // SelectIncomingMiniBlocks -
@@ -1071,8 +1078,8 @@ func (bp *baseProcessor) ExtractRootHashForCleanup(header data.HeaderHandler) (c
 }
 
 // CheckContextBeforeExecution -
-func (bp *baseProcessor) CheckContextBeforeExecution(header data.HeaderHandler) error {
-	return bp.checkAndUpdateContextBeforeExecution(header)
+func (bp *baseProcessor) CheckContextBeforeExecution(header data.HeaderHandler, headerHash []byte) error {
+	return bp.checkAndUpdateContextBeforeExecution(header, headerHash)
 }
 
 // SaveProposedTxsToStorage -
