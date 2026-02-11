@@ -6,8 +6,9 @@ import (
 	"github.com/multiversx/mx-chain-core-go/core/check"
 	"github.com/multiversx/mx-chain-core-go/data"
 	"github.com/multiversx/mx-chain-core-go/marshal"
-	"github.com/multiversx/mx-chain-go/storage"
 	logger "github.com/multiversx/mx-chain-logger-go"
+
+	"github.com/multiversx/mx-chain-go/storage"
 
 	"github.com/multiversx/mx-chain-go/dataRetriever"
 	"github.com/multiversx/mx-chain-go/process"
@@ -201,19 +202,7 @@ func (em *executionManager) RemoveAtNonceAndHigher(nonce uint64) error {
 	em.headersExecutor.PauseExecution()
 
 	// remove from queue
-	removedNonces := em.blocksCache.RemoveAtNonceAndHigher(nonceToRemove)
-	if len(removedNonces) > 0 && removedNonces[0] == nonceToRemove {
-		// if the first nonce removed is the initial one,
-		// it means it was still in queue and was not processed.
-		// no matter how many were removed, safe to resume execution
-		em.headersExecutor.ResumeExecution()
-
-		return nil
-	}
-
-	// if the initial nonce was not returned as removed from the queue,
-	// it means that it was already popped for execution (and perhaps not the only one).
-	// inform executionResultsTracker to remove all nonces >= than the provided one
+	_ = em.blocksCache.RemoveAtNonceAndHigher(nonceToRemove)
 	err = em.executionResultsTracker.RemoveFromNonce(nonceToRemove)
 	if err != nil {
 		return err
