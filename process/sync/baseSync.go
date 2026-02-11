@@ -1172,13 +1172,18 @@ func (boot *baseBootstrap) prepareForSyncIfNeeded(
 			return errOnProposedBlock
 		}
 
-		boot.preparedForSync = true
-
-		return boot.executionManager.AddPairForExecution(cache.HeaderBodyPair{
+		errAdd := boot.executionManager.AddPairForExecution(cache.HeaderBodyPair{
 			Header:     currentHeader,
 			Body:       currentBody,
 			HeaderHash: currentHeaderHash,
 		})
+		if errAdd != nil {
+			return errAdd
+		}
+
+		boot.preparedForSync = true
+
+		return nil
 	}
 
 	// if there are multiple headers in between the syncing header and the last one executed,
