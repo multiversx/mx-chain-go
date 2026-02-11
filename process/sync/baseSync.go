@@ -829,12 +829,12 @@ func (boot *baseBootstrap) prepareForSyncAtBoostrapIfNeeded() error {
 		return nil
 	}
 
-	boot.preparedForSyncAtBootstrap = true
-
 	// at this point, current header should be the last applied header at bootstrap
 	currentHeader := boot.getCurrentBlock()
 
 	if !currentHeader.IsHeaderV3() {
+		boot.preparedForSyncAtBootstrap = true
+
 		return nil
 	}
 
@@ -850,6 +850,8 @@ func (boot *baseBootstrap) prepareForSyncAtBoostrapIfNeeded() error {
 	if err != nil {
 		return err
 	}
+
+	boot.preparedForSyncAtBootstrap = true
 
 	return nil
 }
