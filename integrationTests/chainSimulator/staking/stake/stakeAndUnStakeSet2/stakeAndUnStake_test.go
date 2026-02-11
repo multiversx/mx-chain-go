@@ -8,6 +8,8 @@ import (
 
 	"github.com/multiversx/mx-chain-core-go/core"
 	coreAPI "github.com/multiversx/mx-chain-core-go/data/api"
+	"github.com/stretchr/testify/require"
+
 	"github.com/multiversx/mx-chain-go/config"
 	chainSimulatorIntegrationTests "github.com/multiversx/mx-chain-go/integrationTests/chainSimulator"
 	"github.com/multiversx/mx-chain-go/integrationTests/chainSimulator/staking"
@@ -16,7 +18,6 @@ import (
 	"github.com/multiversx/mx-chain-go/node/chainSimulator/components/api"
 	"github.com/multiversx/mx-chain-go/process"
 	"github.com/multiversx/mx-chain-go/vm"
-	"github.com/stretchr/testify/require"
 )
 
 // Test description:
@@ -37,6 +38,7 @@ func TestChainSimulator_DirectStakingNodes_UnstakeFundsWithDeactivation(t *testi
 	t.Run("staking ph 4 is not active", func(t *testing.T) {
 		cs, err := chainSimulator.NewChainSimulator(chainSimulator.ArgsChainSimulator{
 			BypassTxSignatureCheck:         true,
+			BypassCreateBlockTimeCheck:     true,
 			TempDir:                        t.TempDir(),
 			PathToInitialConfig:            stake.DefaultPathToInitialConfig,
 			NumOfShards:                    3,
@@ -69,6 +71,7 @@ func TestChainSimulator_DirectStakingNodes_UnstakeFundsWithDeactivation(t *testi
 	t.Run("staking ph 4 step 1 is active", func(t *testing.T) {
 		cs, err := chainSimulator.NewChainSimulator(chainSimulator.ArgsChainSimulator{
 			BypassTxSignatureCheck:         true,
+			BypassCreateBlockTimeCheck:     true,
 			TempDir:                        t.TempDir(),
 			PathToInitialConfig:            stake.DefaultPathToInitialConfig,
 			NumOfShards:                    3,
@@ -102,6 +105,7 @@ func TestChainSimulator_DirectStakingNodes_UnstakeFundsWithDeactivation(t *testi
 	t.Run("staking ph 4 step 2 is active", func(t *testing.T) {
 		cs, err := chainSimulator.NewChainSimulator(chainSimulator.ArgsChainSimulator{
 			BypassTxSignatureCheck:         true,
+			BypassCreateBlockTimeCheck:     true,
 			TempDir:                        t.TempDir(),
 			PathToInitialConfig:            stake.DefaultPathToInitialConfig,
 			NumOfShards:                    3,
@@ -135,6 +139,7 @@ func TestChainSimulator_DirectStakingNodes_UnstakeFundsWithDeactivation(t *testi
 	t.Run("staking ph 4 step 3 is active", func(t *testing.T) {
 		cs, err := chainSimulator.NewChainSimulator(chainSimulator.ArgsChainSimulator{
 			BypassTxSignatureCheck:         true,
+			BypassCreateBlockTimeCheck:     true,
 			TempDir:                        t.TempDir(),
 			PathToInitialConfig:            stake.DefaultPathToInitialConfig,
 			NumOfShards:                    3,
@@ -261,6 +266,7 @@ func TestChainSimulator_DirectStakingNodes_UnstakeFundsWithDeactivation_WithReac
 	t.Run("staking ph 4 is not active", func(t *testing.T) {
 		cs, err := chainSimulator.NewChainSimulator(chainSimulator.ArgsChainSimulator{
 			BypassTxSignatureCheck:         true,
+			BypassCreateBlockTimeCheck:     true,
 			TempDir:                        t.TempDir(),
 			PathToInitialConfig:            stake.DefaultPathToInitialConfig,
 			NumOfShards:                    3,
@@ -293,6 +299,7 @@ func TestChainSimulator_DirectStakingNodes_UnstakeFundsWithDeactivation_WithReac
 	t.Run("staking ph 4 step 1 is active", func(t *testing.T) {
 		cs, err := chainSimulator.NewChainSimulator(chainSimulator.ArgsChainSimulator{
 			BypassTxSignatureCheck:         true,
+			BypassCreateBlockTimeCheck:     true,
 			TempDir:                        t.TempDir(),
 			PathToInitialConfig:            stake.DefaultPathToInitialConfig,
 			NumOfShards:                    3,
@@ -326,6 +333,7 @@ func TestChainSimulator_DirectStakingNodes_UnstakeFundsWithDeactivation_WithReac
 	t.Run("staking ph 4 step 2 is active", func(t *testing.T) {
 		cs, err := chainSimulator.NewChainSimulator(chainSimulator.ArgsChainSimulator{
 			BypassTxSignatureCheck:         true,
+			BypassCreateBlockTimeCheck:     true,
 			TempDir:                        t.TempDir(),
 			PathToInitialConfig:            stake.DefaultPathToInitialConfig,
 			NumOfShards:                    3,
@@ -359,6 +367,7 @@ func TestChainSimulator_DirectStakingNodes_UnstakeFundsWithDeactivation_WithReac
 	t.Run("staking ph 4 step 3 is active", func(t *testing.T) {
 		cs, err := chainSimulator.NewChainSimulator(chainSimulator.ArgsChainSimulator{
 			BypassTxSignatureCheck:         true,
+			BypassCreateBlockTimeCheck:     true,
 			TempDir:                        t.TempDir(),
 			PathToInitialConfig:            stake.DefaultPathToInitialConfig,
 			NumOfShards:                    3,
@@ -499,6 +508,7 @@ func TestChainSimulator_DirectStakingNodes_WithdrawUnstakedFundsBeforeUnbonding(
 	t.Run("staking ph 4 is not active", func(t *testing.T) {
 		cs, err := chainSimulator.NewChainSimulator(chainSimulator.ArgsChainSimulator{
 			BypassTxSignatureCheck:         true,
+			BypassCreateBlockTimeCheck:     true,
 			TempDir:                        t.TempDir(),
 			PathToInitialConfig:            stake.DefaultPathToInitialConfig,
 			NumOfShards:                    3,
@@ -530,6 +540,7 @@ func TestChainSimulator_DirectStakingNodes_WithdrawUnstakedFundsBeforeUnbonding(
 	t.Run("staking ph 4 step 1 is active", func(t *testing.T) {
 		cs, err := chainSimulator.NewChainSimulator(chainSimulator.ArgsChainSimulator{
 			BypassTxSignatureCheck:         true,
+			BypassCreateBlockTimeCheck:     true,
 			TempDir:                        t.TempDir(),
 			PathToInitialConfig:            stake.DefaultPathToInitialConfig,
 			NumOfShards:                    3,
@@ -561,6 +572,7 @@ func TestChainSimulator_DirectStakingNodes_WithdrawUnstakedFundsBeforeUnbonding(
 	t.Run("staking ph 4 step 2 is active", func(t *testing.T) {
 		cs, err := chainSimulator.NewChainSimulator(chainSimulator.ArgsChainSimulator{
 			BypassTxSignatureCheck:         true,
+			BypassCreateBlockTimeCheck:     true,
 			TempDir:                        t.TempDir(),
 			PathToInitialConfig:            stake.DefaultPathToInitialConfig,
 			NumOfShards:                    3,
@@ -592,6 +604,7 @@ func TestChainSimulator_DirectStakingNodes_WithdrawUnstakedFundsBeforeUnbonding(
 	t.Run("staking ph 4 step 3 is active", func(t *testing.T) {
 		cs, err := chainSimulator.NewChainSimulator(chainSimulator.ArgsChainSimulator{
 			BypassTxSignatureCheck:         true,
+			BypassCreateBlockTimeCheck:     true,
 			TempDir:                        t.TempDir(),
 			PathToInitialConfig:            stake.DefaultPathToInitialConfig,
 			NumOfShards:                    3,

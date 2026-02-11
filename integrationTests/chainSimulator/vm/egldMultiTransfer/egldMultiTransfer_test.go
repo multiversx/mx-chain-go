@@ -9,6 +9,8 @@ import (
 
 	"github.com/multiversx/mx-chain-core-go/core"
 	"github.com/multiversx/mx-chain-core-go/data/transaction"
+	"github.com/stretchr/testify/require"
+
 	"github.com/multiversx/mx-chain-go/config"
 	vm2 "github.com/multiversx/mx-chain-go/integrationTests/chainSimulator/vm"
 	"github.com/multiversx/mx-chain-go/integrationTests/vm/txsFee"
@@ -18,7 +20,6 @@ import (
 	"github.com/multiversx/mx-chain-go/node/chainSimulator/configs"
 	"github.com/multiversx/mx-chain-go/node/chainSimulator/dtos"
 	"github.com/multiversx/mx-chain-go/vm"
-	"github.com/stretchr/testify/require"
 )
 
 func TestChainSimulator_EGLD_MultiTransfer(t *testing.T) {
@@ -33,6 +34,7 @@ func TestChainSimulator_EGLD_MultiTransfer(t *testing.T) {
 	numOfShards := uint32(3)
 	cs, err := chainSimulator.NewChainSimulator(chainSimulator.ArgsChainSimulator{
 		BypassTxSignatureCheck:         true,
+		BypassCreateBlockTimeCheck:     true,
 		TempDir:                        t.TempDir(),
 		PathToInitialConfig:            vm2.DefaultPathToInitialConfig,
 		NumOfShards:                    numOfShards,
@@ -212,6 +214,7 @@ func TestChainSimulator_EGLD_MultiTransfer_Insufficient_Funds(t *testing.T) {
 	numOfShards := uint32(3)
 	cs, err := chainSimulator.NewChainSimulator(chainSimulator.ArgsChainSimulator{
 		BypassTxSignatureCheck:         true,
+		BypassCreateBlockTimeCheck:     true,
 		TempDir:                        t.TempDir(),
 		PathToInitialConfig:            vm2.DefaultPathToInitialConfig,
 		NumOfShards:                    numOfShards,
@@ -283,6 +286,8 @@ func TestChainSimulator_EGLD_MultiTransfer_Insufficient_Funds(t *testing.T) {
 
 	account1, err := cs.GetAccount(addrs[1])
 	require.Nil(t, err)
+	_, err = cs.GetAccount(addrs[1])
+	require.Nil(t, err)
 
 	beforeBalanceStr1 := account1.Balance
 
@@ -291,24 +296,14 @@ func TestChainSimulator_EGLD_MultiTransfer_Insufficient_Funds(t *testing.T) {
 	tx = multiESDTNFTTransferWithEGLDTx(nonce, addrs[0].Bytes, addrs[1].Bytes, [][]byte{nftTokenID}, egldValue)
 
 	txResult, err = cs.SendTxAndGenerateBlockTilTxIsExecuted(tx, vm2.MaxNumOfBlockToGenerateWhenExecutingTx)
-	require.Nil(t, err)
-	require.NotNil(t, txResult)
-
-	require.NotEqual(t, "success", txResult.Status.String())
-
-	eventLog := string(txResult.Logs.Events[0].Topics[1])
-	require.Equal(t, "insufficient funds for token EGLD-000000", eventLog)
+	require.ErrorContains(t, err, "Transaction(s) is/are still in pending")
+	require.Nil(t, txResult)
 
 	// check accounts balance
 	account0, err = cs.GetAccount(addrs[0])
 	require.Nil(t, err)
 
-	beforeBalance0, _ := big.NewInt(0).SetString(beforeBalanceStr0, 10)
-
-	txsFee, _ := big.NewInt(0).SetString(txResult.Fee, 10)
-	expectedBalanceWithFee0 := big.NewInt(0).Sub(beforeBalance0, txsFee)
-
-	require.Equal(t, expectedBalanceWithFee0.String(), account0.Balance)
+	require.Equal(t, beforeBalanceStr0, account0.Balance)
 
 	account1, err = cs.GetAccount(addrs[1])
 	require.Nil(t, err)
@@ -328,6 +323,7 @@ func TestChainSimulator_EGLD_MultiTransfer_Invalid_Value(t *testing.T) {
 	numOfShards := uint32(3)
 	cs, err := chainSimulator.NewChainSimulator(chainSimulator.ArgsChainSimulator{
 		BypassTxSignatureCheck:         true,
+		BypassCreateBlockTimeCheck:     true,
 		TempDir:                        t.TempDir(),
 		PathToInitialConfig:            vm2.DefaultPathToInitialConfig,
 		NumOfShards:                    numOfShards,
@@ -450,6 +446,7 @@ func TestChainSimulator_Multiple_EGLD_Transfers(t *testing.T) {
 	numOfShards := uint32(3)
 	cs, err := chainSimulator.NewChainSimulator(chainSimulator.ArgsChainSimulator{
 		BypassTxSignatureCheck:         true,
+		BypassCreateBlockTimeCheck:     true,
 		TempDir:                        t.TempDir(),
 		PathToInitialConfig:            vm2.DefaultPathToInitialConfig,
 		NumOfShards:                    numOfShards,
@@ -661,6 +658,7 @@ func TestChainSimulator_IssueToken_EGLDTicker(t *testing.T) {
 	numOfShards := uint32(3)
 	cs, err := chainSimulator.NewChainSimulator(chainSimulator.ArgsChainSimulator{
 		BypassTxSignatureCheck:         true,
+		BypassCreateBlockTimeCheck:     true,
 		TempDir:                        t.TempDir(),
 		PathToInitialConfig:            vm2.DefaultPathToInitialConfig,
 		NumOfShards:                    numOfShards,
@@ -757,21 +755,23 @@ func TestScCallTransferValueESDT(t *testing.T) {
 	}
 
 	cs, err := chainSimulator.NewChainSimulator(chainSimulator.ArgsChainSimulator{
-		BypassTxSignatureCheck:   true,
-		TempDir:                  t.TempDir(),
-		PathToInitialConfig:      vm2.DefaultPathToInitialConfig,
-		NumOfShards:              3,
-		RoundDurationInMillis:    roundDurationInMillis,
-		RoundsPerEpoch:           roundsPerEpochOpt,
-		ApiInterface:             api.NewNoApiInterface(),
-		MinNodesPerShard:         3,
-		MetaChainMinNodes:        3,
-		NumNodesWaitingListMeta:  3,
-		NumNodesWaitingListShard: 3,
-
-		InitialEpoch: 1700,
-		InitialNonce: 1700,
-		InitialRound: 1700,
+		BypassTxSignatureCheck:     true,
+		BypassCreateBlockTimeCheck: true,
+		TempDir:                    t.TempDir(),
+		PathToInitialConfig:        vm2.DefaultPathToInitialConfig,
+		NumOfShards:                3,
+		RoundDurationInMillis:      roundDurationInMillis,
+		RoundsPerEpoch:             roundsPerEpochOpt,
+		ApiInterface:               api.NewNoApiInterface(),
+		MinNodesPerShard:           3,
+		MetaChainMinNodes:          3,
+		NumNodesWaitingListMeta:    3,
+		NumNodesWaitingListShard:   3,
+		InitialEpoch:               1,
+		InitialNonce:               1,
+		InitialRound:               1,
+		AlterConfigsFunction: func(cfg *config.Configs) {
+		},
 	})
 	require.NoError(t, err)
 	require.NotNil(t, cs)

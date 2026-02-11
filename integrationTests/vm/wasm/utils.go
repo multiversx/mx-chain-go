@@ -23,10 +23,6 @@ import (
 	"github.com/multiversx/mx-chain-core-go/data/transaction"
 	"github.com/multiversx/mx-chain-core-go/hashing/blake2b"
 	"github.com/multiversx/mx-chain-core-go/marshal"
-	vmcommon "github.com/multiversx/mx-chain-vm-common-go"
-	"github.com/multiversx/mx-chain-vm-common-go/parsers"
-	"github.com/stretchr/testify/require"
-
 	"github.com/multiversx/mx-chain-go/common"
 	"github.com/multiversx/mx-chain-go/common/enablers"
 	"github.com/multiversx/mx-chain-go/config"
@@ -50,6 +46,7 @@ import (
 	"github.com/multiversx/mx-chain-go/process/transactionLog"
 	"github.com/multiversx/mx-chain-go/state"
 	"github.com/multiversx/mx-chain-go/testscommon"
+	"github.com/multiversx/mx-chain-go/testscommon/chainParameters"
 	dataRetrieverMock "github.com/multiversx/mx-chain-go/testscommon/dataRetriever"
 	"github.com/multiversx/mx-chain-go/testscommon/dblookupext"
 	"github.com/multiversx/mx-chain-go/testscommon/epochNotifier"
@@ -59,6 +56,9 @@ import (
 	storageStubs "github.com/multiversx/mx-chain-go/testscommon/storage"
 	"github.com/multiversx/mx-chain-go/txcache"
 	"github.com/multiversx/mx-chain-go/vm/systemSmartContracts/defaults"
+	vmcommon "github.com/multiversx/mx-chain-vm-common-go"
+	"github.com/multiversx/mx-chain-vm-common-go/parsers"
+	"github.com/stretchr/testify/require"
 )
 
 // VMTypeHex -
@@ -115,7 +115,7 @@ type TestContext struct {
 	LastTxHash    []byte
 	SCRForwarder  *mock.IntermediateTransactionHandlerMock
 	LastSCResults []*smartContractResult.SmartContractResult
-	LastLogs      []*data.LogData
+	LastLogs      []data.LogDataHandler
 }
 
 type testParticipant struct {
@@ -215,7 +215,9 @@ func (context *TestContext) initFeeHandlers() {
 	minGasPrice := strconv.FormatUint(1, 10)
 	minGasLimit := strconv.FormatUint(1, 10)
 	testProtocolSustainabilityAddress := "erd1932eft30w753xyvme8d49qejgkjc09n5e49w4mwdjtm0neld797su0dlxp"
+
 	argsNewEconomicsData := economics.ArgsNewEconomicsData{
+		ChainParamsHandler: &chainParameters.ChainParametersHolderMock{},
 		Economics: &config.EconomicsConfig{
 			GlobalSettings: config.GlobalSettings{
 				GenesisTotalSupply: "2000000000000000000000",
@@ -236,6 +238,10 @@ func (context *TestContext) initFeeHandlers() {
 						ProtocolSustainabilityAddress:    testProtocolSustainabilityAddress,
 						TopUpGradientPoint:               "1000000",
 						TopUpFactor:                      0,
+						EcosystemGrowthPercentage:        0.0,
+						EcosystemGrowthAddress:           testProtocolSustainabilityAddress,
+						GrowthDividendPercentage:         0.0,
+						GrowthDividendAddress:            testProtocolSustainabilityAddress,
 					},
 				},
 			},

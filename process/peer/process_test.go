@@ -14,11 +14,8 @@ import (
 	"github.com/multiversx/mx-chain-core-go/core/keyValStorage"
 	"github.com/multiversx/mx-chain-core-go/data"
 	"github.com/multiversx/mx-chain-core-go/data/block"
-	vmcommon "github.com/multiversx/mx-chain-vm-common-go"
-	"github.com/stretchr/testify/assert"
-	"github.com/stretchr/testify/require"
-
 	"github.com/multiversx/mx-chain-go/common"
+	"github.com/multiversx/mx-chain-go/common/configs/dto"
 	"github.com/multiversx/mx-chain-go/config"
 	"github.com/multiversx/mx-chain-go/dataRetriever"
 	"github.com/multiversx/mx-chain-go/process"
@@ -30,13 +27,18 @@ import (
 	"github.com/multiversx/mx-chain-go/state/accounts"
 	"github.com/multiversx/mx-chain-go/storage"
 	"github.com/multiversx/mx-chain-go/testscommon"
+	"github.com/multiversx/mx-chain-go/testscommon/chainParameters"
 	dataRetrieverMock "github.com/multiversx/mx-chain-go/testscommon/dataRetriever"
 	"github.com/multiversx/mx-chain-go/testscommon/enableEpochsHandlerMock"
 	"github.com/multiversx/mx-chain-go/testscommon/epochNotifier"
 	"github.com/multiversx/mx-chain-go/testscommon/genesisMocks"
+	"github.com/multiversx/mx-chain-go/testscommon/pool"
 	"github.com/multiversx/mx-chain-go/testscommon/shardingMocks"
 	stateMock "github.com/multiversx/mx-chain-go/testscommon/state"
 	storageStubs "github.com/multiversx/mx-chain-go/testscommon/storage"
+	vmcommon "github.com/multiversx/mx-chain-vm-common-go"
+	"github.com/stretchr/testify/assert"
+	"github.com/stretchr/testify/require"
 )
 
 const (
@@ -60,7 +62,9 @@ func createMockPubkeyConverter() *testscommon.PubkeyConverterMock {
 }
 
 func createMockArguments() peer.ArgValidatorStatisticsProcessor {
+
 	argsNewEconomicsData := economics.ArgsNewEconomicsData{
+		ChainParamsHandler: &chainParameters.ChainParametersHolderMock{},
 		Economics: &config.EconomicsConfig{
 			GlobalSettings: config.GlobalSettings{
 				GenesisTotalSupply: "2000000000000000000000",
@@ -81,6 +85,10 @@ func createMockArguments() peer.ArgValidatorStatisticsProcessor {
 						ProtocolSustainabilityAddress:    "erd1932eft30w753xyvme8d49qejgkjc09n5e49w4mwdjtm0neld797su0dlxp",
 						TopUpGradientPoint:               "300000000000000000000",
 						TopUpFactor:                      0.25,
+						EcosystemGrowthPercentage:        0.0,
+						EcosystemGrowthAddress:           "erd1932eft30w753xyvme8d49qejgkjc09n5e49w4mwdjtm0neld797su0dlxp",
+						GrowthDividendPercentage:         0.0,
+						GrowthDividendAddress:            "erd1932eft30w753xyvme8d49qejgkjc09n5e49w4mwdjtm0neld797su0dlxp",
 					},
 				},
 			},
@@ -118,17 +126,24 @@ func createMockArguments() peer.ArgValidatorStatisticsProcessor {
 				return nil
 			},
 		},
-		StorageService:                       &storageStubs.ChainStorerStub{},
-		NodesCoordinator:                     &shardingMocks.NodesCoordinatorMock{},
-		ShardCoordinator:                     mock.NewOneShardCoordinatorMock(),
-		PubkeyConv:                           createMockPubkeyConverter(),
-		PeerAdapter:                          getAccountsMock(),
-		Rater:                                createMockRater(),
-		RewardsHandler:                       economicsData,
-		MaxComputableRounds:                  1000,
-		MaxConsecutiveRoundsOfRatingDecrease: 2000,
-		NodesSetup:                           &genesisMocks.NodesSetupStub{},
-		EnableEpochsHandler:                  enableEpochsHandlerMock.NewEnableEpochsHandlerStub(common.SwitchJailWaitingFlag, common.BelowSignedThresholdFlag),
+		StorageService:      &storageStubs.ChainStorerStub{},
+		NodesCoordinator:    &shardingMocks.NodesCoordinatorMock{},
+		ShardCoordinator:    mock.NewOneShardCoordinatorMock(),
+		PubkeyConv:          createMockPubkeyConverter(),
+		PeerAdapter:         getAccountsMock(),
+		Rater:               createMockRater(),
+		RewardsHandler:      economicsData,
+		MaxComputableRounds: 1000,
+		NodesSetup:          &genesisMocks.NodesSetupStub{},
+		EnableEpochsHandler: enableEpochsHandlerMock.NewEnableEpochsHandlerStub(common.SwitchJailWaitingFlag, common.BelowSignedThresholdFlag),
+		ProcessConfigsHandler: &testscommon.ProcessConfigsHandlerStub{
+			GetValueCalled: func(variable dto.ConfigVariable) uint64 {
+				if variable == dto.MaxConsecutiveRoundsOfRatingDecrease {
+					return 2000
+				}
+				return 10
+			},
+		},
 	}
 	return arguments
 }
@@ -217,17 +232,6 @@ func TestNewValidatorStatisticsProcessor_ZeroMaxComputableRoundsShouldErr(t *tes
 
 	assert.Nil(t, validatorStatistics)
 	assert.Equal(t, process.ErrZeroMaxComputableRounds, err)
-}
-
-func TestNewValidatorStatisticsProcessor_ZeroMaxConsecutiveRoundsOfRatingDecreaseShouldErr(t *testing.T) {
-	t.Parallel()
-
-	arguments := createMockArguments()
-	arguments.MaxConsecutiveRoundsOfRatingDecrease = 0
-	validatorStatistics, err := peer.NewValidatorStatisticsProcessor(arguments)
-
-	assert.Nil(t, validatorStatistics)
-	assert.Equal(t, process.ErrZeroMaxConsecutiveRoundsOfRatingDecrease, err)
 }
 
 func TestNewValidatorStatisticsProcessor_NilRaterShouldErr(t *testing.T) {
@@ -1469,7 +1473,14 @@ func TestValidatorStatisticsProcessor_CheckForMissedBlocksMissedRoundsGreaterTha
 	arguments.MaxComputableRounds = 1
 	enableEpochsHandler, _ := arguments.EnableEpochsHandler.(*enableEpochsHandlerMock.EnableEpochsHandlerStub)
 	enableEpochsHandler.RemoveActiveFlags(common.StopDecreasingValidatorRatingWhenStuckFlag)
-	arguments.MaxConsecutiveRoundsOfRatingDecrease = 4
+	arguments.ProcessConfigsHandler = &testscommon.ProcessConfigsHandlerStub{
+		GetValueCalled: func(variable dto.ConfigVariable) uint64 {
+			if variable == dto.MaxConsecutiveRoundsOfRatingDecrease {
+				return 4
+			}
+			return 0
+		},
+	}
 
 	validatorStatistics, _ := peer.NewValidatorStatisticsProcessor(arguments)
 
@@ -2950,4 +2961,94 @@ func TestValidatorStatisticsProcessor_getActualList(t *testing.T) {
 	}
 	computedJailedList := peer.GetActualList(jailedPeer)
 	assert.Equal(t, jailedList, computedJailedList)
+}
+
+func TestValidatorStatistics_SearchInMap(t *testing.T) {
+	t.Parallel()
+
+	t.Run("should work when found in cache", func(t *testing.T) {
+		t.Parallel()
+
+		cache := createMockCache()
+
+		_, header := generateTestShardBlockHeaders(cache)
+		headerHash := []byte("headerHash")
+		cache[string(headerHash)] = header
+
+		arguments := createMockArguments()
+
+		validatorStatistics, _ := peer.NewValidatorStatisticsProcessor(arguments)
+
+		retHeader, err := validatorStatistics.SearchInMap(headerHash, cache, 0)
+		require.Nil(t, err)
+		require.Equal(t, header, retHeader)
+	})
+
+	t.Run("should work when found in headers pool", func(t *testing.T) {
+		t.Parallel()
+
+		cache := createMockCache()
+
+		_, header := generateTestShardBlockHeaders(cache)
+
+		headerHash := []byte("headerHash")
+
+		arguments := createMockArguments()
+
+		dataPool := &dataRetrieverMock.PoolsHolderStub{
+			HeadersCalled: func() dataRetriever.HeadersPool {
+				return &pool.HeadersPoolStub{
+					GetHeaderByHashCalled: func(hash []byte) (data.HeaderHandler, error) {
+						require.Equal(t, headerHash, hash)
+						return header, nil
+					},
+				}
+			},
+		}
+		arguments.DataPool = dataPool
+
+		validatorStatistics, _ := peer.NewValidatorStatisticsProcessor(arguments)
+
+		retHeader, err := validatorStatistics.SearchInMap(headerHash, cache, 0)
+		require.Nil(t, err)
+		require.Equal(t, header, retHeader)
+	})
+
+	t.Run("should fail when not found in headers pool", func(t *testing.T) {
+		t.Parallel()
+
+		cache := createMockCache()
+
+		headerHash := []byte("headerHash")
+
+		arguments := createMockArguments()
+
+		expectedErr := errors.New("exp err")
+		dataPool := &dataRetrieverMock.PoolsHolderStub{
+			HeadersCalled: func() dataRetriever.HeadersPool {
+				return &pool.HeadersPoolStub{
+					GetHeaderByHashCalled: func(hash []byte) (data.HeaderHandler, error) {
+						return nil, expectedErr
+					},
+				}
+			},
+		}
+		arguments.DataPool = dataPool
+
+		arguments.StorageService = &storageStubs.ChainStorerStub{
+			GetStorerCalled: func(unitType dataRetriever.UnitType) (storage.Storer, error) {
+				return &storageStubs.StorerStub{
+					GetCalled: func(key []byte) ([]byte, error) {
+						return nil, expectedErr
+					},
+				}, nil
+			},
+		}
+
+		validatorStatistics, _ := peer.NewValidatorStatisticsProcessor(arguments)
+
+		retHeader, err := validatorStatistics.SearchInMap(headerHash, cache, 0)
+		require.ErrorIs(t, err, process.ErrMissingHeader)
+		require.Nil(t, retHeader)
+	})
 }

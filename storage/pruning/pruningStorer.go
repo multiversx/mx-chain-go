@@ -692,6 +692,15 @@ func (ps *PruningStorer) Has(key []byte) error {
 
 // SetEpochForPutOperation will set the epoch to be used when using the put operation
 func (ps *PruningStorer) SetEpochForPutOperation(epoch uint32) {
+	ps.lock.RLock()
+	epochForPutOperation := ps.epochForPutOperation
+	ps.lock.RUnlock()
+
+	// do not try to aquire full lock if epoch already set
+	if epoch == epochForPutOperation {
+		return
+	}
+
 	ps.lock.Lock()
 	ps.epochForPutOperation = epoch
 	ps.lock.Unlock()
@@ -978,7 +987,7 @@ func (ps *PruningStorer) changeEpochWithExisting(epoch uint32) error {
 	for e := int64(epoch); e >= oldestEpochActive; e-- {
 		p, ok := ps.persistersMapByEpoch[uint32(e)]
 		if !ok {
-			return nil
+			continue
 		}
 		persisters = append(persisters, p)
 	}
@@ -1007,7 +1016,7 @@ func (ps *PruningStorer) extendActivePersisters(from uint32, to uint32) error {
 	for e := int(to); e >= int(from); e-- {
 		p, ok := ps.persistersMapByEpoch[uint32(e)]
 		if !ok {
-			return nil
+			continue
 		}
 		persisters = append(persisters, p)
 	}

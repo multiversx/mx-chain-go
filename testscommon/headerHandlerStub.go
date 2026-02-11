@@ -75,6 +75,8 @@ type HeaderHandlerStub struct {
 	SetShardInfoHandlersCalled               func(shardInfo []data.ShardDataHandler) error
 	GetShardInfoProposalHandlersCalled       func() []data.ShardDataProposalHandler
 	SetShardInfoProposalHandlersCalled       func(shardInfo []data.ShardDataProposalHandler) error
+	IsEpochChangeProposedCalled              func() bool
+	GetEpochStartHandlerCalled               func() data.EpochStartHandler
 }
 
 // SetEpochStartHandler -
@@ -173,12 +175,19 @@ func (hhs *HeaderHandlerStub) GetTimeStamp() uint64 {
 
 // GetRootHash -
 func (hhs *HeaderHandlerStub) GetRootHash() []byte {
-	return hhs.GetRootHashCalled()
+	if hhs.GetRootHashCalled != nil {
+		return hhs.GetRootHashCalled()
+	}
+
+	return nil
 }
 
 // GetPrevHash -
 func (hhs *HeaderHandlerStub) GetPrevHash() []byte {
-	return hhs.GetPrevHashCalled()
+	if hhs.GetPrevHashCalled != nil {
+		return hhs.GetPrevHashCalled()
+	}
+	return nil
 }
 
 // GetPrevRandSeed -
@@ -204,17 +213,29 @@ func (hhs *HeaderHandlerStub) GetPubKeysBitmap() []byte {
 
 // GetSignature -
 func (hhs *HeaderHandlerStub) GetSignature() []byte {
-	return hhs.GetSignatureCalled()
+	if hhs.GetSignatureCalled != nil {
+		return hhs.GetSignatureCalled()
+	}
+
+	return nil
 }
 
 // GetLeaderSignature -
 func (hhs *HeaderHandlerStub) GetLeaderSignature() []byte {
-	return hhs.GetSignatureCalled()
+	if hhs.GetSignatureCalled != nil {
+		return hhs.GetSignatureCalled()
+	}
+
+	return nil
 }
 
 // GetChainID -
 func (hhs *HeaderHandlerStub) GetChainID() []byte {
-	return hhs.GetChainIDCalled()
+	if hhs.GetChainIDCalled != nil {
+		return hhs.GetChainIDCalled()
+	}
+
+	return nil
 }
 
 // GetTxCount -
@@ -581,6 +602,9 @@ func (hhs *HeaderHandlerStub) SetEpochChangeProposed(_ bool) {}
 
 // IsEpochChangeProposed -
 func (hhs *HeaderHandlerStub) IsEpochChangeProposed() bool {
+	if hhs.IsEpochChangeProposedCalled != nil {
+		return hhs.IsEpochChangeProposedCalled()
+	}
 	return false
 }
 

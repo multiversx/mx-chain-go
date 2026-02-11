@@ -55,6 +55,7 @@ func NewValidatorInfoPreprocessor(
 		blockSizeComputation: args.BlockSizeComputation,
 		enableEpochsHandler:  args.EnableEpochsHandler,
 		enableRoundsHandler:  args.EnableRoundsHandler,
+		feeHandler:           args.EconomicsFee,
 	}
 
 	vip := &validatorInfoPreprocessor{
@@ -238,7 +239,7 @@ func (vip *validatorInfoPreprocessor) GetTransactionsAndRequestMissingForMiniBlo
 }
 
 // SelectOutgoingTransactions does nothing
-func (vip *validatorInfoPreprocessor) SelectOutgoingTransactions(_ uint64) ([][]byte, []data.TransactionHandler, error) {
+func (vip *validatorInfoPreprocessor) SelectOutgoingTransactions(_ uint64, _ uint64, _ func() bool) ([][]byte, []data.TransactionHandler, error) {
 	return make([][]byte, 0), make([]data.TransactionHandler, 0), nil
 }
 
@@ -265,12 +266,12 @@ func (vip *validatorInfoPreprocessor) ProcessMiniBlock(
 		return nil, indexOfLastTxProcessed, false, process.ErrValidatorInfoMiniBlockNotFromMeta
 	}
 
-	if vip.blockSizeComputation.IsMaxBlockSizeWithoutThrottleReached(1, len(miniBlock.TxHashes)) {
+	if vip.isMaxBlockSizeWithoutThrottleReached(1, len(miniBlock.TxHashes)) {
 		return nil, indexOfLastTxProcessed, false, process.ErrMaxBlockSizeReached
 	}
 
-	vip.blockSizeComputation.AddNumMiniBlocks(1)
-	vip.blockSizeComputation.AddNumTxs(len(miniBlock.TxHashes))
+	vip.addNumMiniBlocks(1)
+	vip.addNumTxs(len(miniBlock.TxHashes))
 
 	return nil, len(miniBlock.TxHashes) - 1, false, nil
 }

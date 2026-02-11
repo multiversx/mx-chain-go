@@ -2,7 +2,6 @@ package common
 
 import (
 	"errors"
-	"strings"
 	"testing"
 
 	"github.com/multiversx/mx-chain-core-go/data"
@@ -100,14 +99,14 @@ func TestGetLogs(t *testing.T) {
 		cacher := cache.NewCacherMock()
 
 		headerHash := []byte("h")
-		expectedLogs := []*data.LogData{
-			{
-				LogHandler: &transaction.Log{},
-				TxHash:     "t1",
+		expectedLogs := []data.LogDataHandler{
+			&transaction.LogData{
+				Log:    &transaction.Log{},
+				TxHash: "t1",
 			},
-			{
-				LogHandler: &transaction.Log{},
-				TxHash:     "t2",
+			&transaction.LogData{
+				Log:    &transaction.Log{},
+				TxHash: "t2",
 			},
 		}
 		logsKey := PrepareLogEventsKey(headerHash)
@@ -133,23 +132,8 @@ func TestGetIntraMbs(t *testing.T) {
 
 		headerHash := []byte("h")
 
-		_, err := GetCachedIntraMbs(cacher, marshaller, headerHash)
+		_, err := GetCachedMbs(cacher, marshaller, headerHash)
 		require.True(t, errors.Is(err, ErrMissingMiniBlock))
-	})
-
-	t.Run("getIntraMbs wrong type should error", func(t *testing.T) {
-		t.Parallel()
-
-		cacher := cache.NewCacherMock()
-		marshaller := &marshallerMock.MarshalizerMock{}
-
-		headerHash := []byte("h")
-		cacher.Put(headerHash, []byte("wrong type"), 0)
-
-		intraMBs, err := GetCachedIntraMbs(cacher, marshaller, headerHash)
-		require.Nil(t, intraMBs)
-		require.NotNil(t, err)
-		require.True(t, strings.Contains(err.Error(), "getIntraMbs: cannot unmarshall"))
 	})
 
 	t.Run("getIntraMbs should work", func(t *testing.T) {
@@ -163,11 +147,10 @@ func TestGetIntraMbs(t *testing.T) {
 			{SenderShardID: 0},
 			{SenderShardID: 0},
 		}
-		intraMbsBytes, _ := marshaller.Marshal(expectedMbs)
 
-		cacher.Put(headerHash, intraMbsBytes, 0)
+		cacher.Put(headerHash, expectedMbs, 0)
 
-		intraMBs, err := GetCachedIntraMbs(cacher, marshaller, headerHash)
+		intraMBs, err := GetCachedMbs(cacher, marshaller, headerHash)
 		require.Nil(t, err)
 		require.Equal(t, expectedMbs, intraMBs)
 	})
@@ -280,4 +263,79 @@ func TestGetBody(t *testing.T) {
 		require.Nil(t, err)
 		require.Equal(t, &block.Body{MiniBlocks: []*block.MiniBlock{mb1, mb2}}, res)
 	})
+}
+
+func TestGetCachedOrderedTxHashes(t *testing.T) {
+	t.Parallel()
+
+	t.Run("cannot find in cache should error", func(t *testing.T) {
+		t.Parallel()
+
+		cacher := cache.NewCacherMock()
+
+		headerHash := []byte("h")
+
+		_, err := GetCachedOrderedTxHashes(cacher, headerHash)
+		require.True(t, errors.Is(err, ErrMissingOrderedTxHashes))
+	})
+
+	t.Run("wrong type in cache should error", func(t *testing.T) {
+		cacher := cache.NewCacherMock()
+
+		headerHash := []byte("h")
+		cacher.Put(PrepareOrderedTxHashesKey(headerHash), []byte("a"), 0)
+
+		_, err := GetCachedOrderedTxHashes(cacher, headerHash)
+		require.True(t, errors.Is(err, ErrWrongTypeAssertion))
+	})
+
+	t.Run("should work", func(t *testing.T) {
+		cacher := cache.NewCacherMock()
+
+		headerHash := []byte("h")
+		hashes := [][]byte{[]byte("a"), []byte("b"), []byte("c")}
+		cacher.Put(PrepareOrderedTxHashesKey(headerHash), hashes, 0)
+
+		res, err := GetCachedOrderedTxHashes(cacher, headerHash)
+		require.Nil(t, err)
+		require.Equal(t, hashes, res)
+	})
+}
+
+func TestGetCachedUnexecutableTxHashes(t *testing.T) {
+	t.Parallel()
+
+	t.Run("cannot find in cache should error", func(t *testing.T) {
+		t.Parallel()
+
+		cacher := cache.NewCacherMock()
+
+		headerHash := []byte("h")
+
+		_, err := GetCachedUnexecutableTxHashes(cacher, headerHash)
+		require.True(t, errors.Is(err, ErrMissingUnexecutableTxHash))
+	})
+
+	t.Run("wrong type in cache should error", func(t *testing.T) {
+		cacher := cache.NewCacherMock()
+
+		headerHash := []byte("h")
+		cacher.Put(PrepareUnexecutableTxHashesKey(headerHash), []byte("a"), 0)
+
+		_, err := GetCachedUnexecutableTxHashes(cacher, headerHash)
+		require.True(t, errors.Is(err, ErrWrongTypeAssertion))
+	})
+
+	t.Run("should work", func(t *testing.T) {
+		cacher := cache.NewCacherMock()
+
+		headerHash := []byte("h")
+		hashes := [][]byte{[]byte("a"), []byte("b"), []byte("c")}
+		cacher.Put(PrepareUnexecutableTxHashesKey(headerHash), hashes, 0)
+
+		res, err := GetCachedUnexecutableTxHashes(cacher, headerHash)
+		require.Nil(t, err)
+		require.Equal(t, hashes, res)
+	})
+
 }

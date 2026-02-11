@@ -13,22 +13,31 @@ import (
 	"github.com/multiversx/mx-chain-go/common"
 )
 
+const (
+	maxAccountsPerBlock = 10000
+)
+
 type selectionTracker struct {
 	mutTracker                sync.RWMutex
-	latestNonce               uint64
-	latestRootHash            []byte
+	latestNonce               uint64 // last OnExecuted nonce
+	latestRootHash            []byte // last OnExecuted rootHash
 	blocks                    map[string]*trackedBlock
 	globalBreadcrumbsCompiler *globalAccountBreadcrumbsCompiler
 	txCache                   txCacheForSelectionTracker
+	selfShardId               uint32
 	maxTrackedBlocks          uint32
+	aotSelectionPreempter     common.AOTSelectionPreempter
 }
 
 // NewSelectionTracker creates a new selectionTracker
-func NewSelectionTracker(txCache txCacheForSelectionTracker, maxTrackedBlocks uint32) (*selectionTracker, error) {
+func NewSelectionTracker(
+	txCache txCacheForSelectionTracker,
+	selfShardId uint32,
+	maxTrackedBlocks uint32,
+) (*selectionTracker, error) {
 	if check.IfNil(txCache) {
 		return nil, errNilTxCache
 	}
-	// TODO compare with the maximum allowed offset between proposing a block and actually executing it
 	if maxTrackedBlocks == 0 {
 		return nil, errInvalidMaxTrackedBlocks
 	}
@@ -37,6 +46,7 @@ func NewSelectionTracker(txCache txCacheForSelectionTracker, maxTrackedBlocks ui
 		blocks:                    make(map[string]*trackedBlock),
 		globalBreadcrumbsCompiler: newGlobalAccountBreadcrumbsCompiler(),
 		txCache:                   txCache,
+		selfShardId:               selfShardId,
 		maxTrackedBlocks:          maxTrackedBlocks,
 	}, nil
 }
@@ -69,16 +79,24 @@ func (st *selectionTracker) OnProposedBlock(
 		return err
 	}
 
+	// Preempt any ongoing AOT selection before acquiring the lock
+	st.cancelAOTOngoingSelection()
+
 	st.mutTracker.Lock()
 	defer st.mutTracker.Unlock()
 
+	err = st.checkUniqueAccountsLimit(blockBody)
+	if err != nil {
+		return err
+	}
+
 	if !bytes.Equal(st.latestRootHash, accountsRootHash) {
-		// TODO when the right information will be passed on the OnExecutedBlock flow, the error must be returned here.
 		log.Error("selectionTracker.OnProposedBlock",
 			"err", errRootHashMismatch,
 			"latestRootHash", st.latestRootHash,
 			"accountsRootHash", accountsRootHash,
 		)
+		return errRootHashMismatch
 	}
 
 	nonce := blockHeader.GetNonce()
@@ -99,7 +117,7 @@ func (st *selectionTracker) OnProposedBlock(
 		return err
 	}
 
-	err = st.validateTrackedBlocksAndCompileBreadcrumbsNoLock(blockBody, tBlock, accountsProvider, latestExecutedHash)
+	lastNoncePerSender, err := st.validateTrackedBlocksAndCompileBreadcrumbsNoLock(blockBody, tBlock, accountsProvider, latestExecutedHash)
 	if err != nil {
 		log.Debug("selectionTracker.OnProposedBlock: error validating the tracked blocks", "err", err)
 		return err
@@ -110,6 +128,11 @@ func (st *selectionTracker) OnProposedBlock(
 		log.Debug("selectionTracker.OnProposedBlock: error adding the new tracked block", "err", err)
 		return err
 	}
+
+	// Set selection offsets to skip transactions up to and including the last proposed nonce per sender
+	// This skips already-proposed transactions during future selections
+	st.txCache.SetSelectionOffsetsByLastNonce(lastNoncePerSender)
+
 	return nil
 }
 
@@ -167,12 +190,13 @@ func (st *selectionTracker) checkReceivedBlockNoLock(blockBody *block.Body, bloc
 // Firstly, the method finds the chain of tracked blocks.
 // Secondly, the method extracts the transaction of the new block, compiles its breadcrumbs and adds the new block to the previous returned chain.
 // Then, it validates the entire chain (by nonce and balance of each breadcrumb).
+// Returns lastNoncePerSender map for updating selection offsets.
 func (st *selectionTracker) validateTrackedBlocksAndCompileBreadcrumbsNoLock(
 	blockBody *block.Body,
 	blockToTrack *trackedBlock,
 	accountsProvider common.AccountNonceAndBalanceProvider,
 	latestExecutedHash []byte,
-) error {
+) (map[string]uint64, error) {
 	blocksToBeValidated, err := st.getChainOfTrackedPendingBlocks(
 		latestExecutedHash,
 		blockToTrack.prevHash,
@@ -180,21 +204,21 @@ func (st *selectionTracker) validateTrackedBlocksAndCompileBreadcrumbsNoLock(
 	)
 	if err != nil {
 		log.Debug("selectionTracker.validateTrackedBlocksAndCompileBreadcrumbsNoLock: error creating chain of tracked blocks", "err", err)
-		return err
+		return nil, err
 	}
 
 	// if we pass the first validation, only then we extract the txs to compile the breadcrumbs
-	txs, err := getTransactionsInBlock(blockBody, st.txCache)
+	txs, err := getTransactionsInBlock(blockBody, st.txCache, st.selfShardId)
 	if err != nil {
 		log.Debug("selectionTracker.validateTrackedBlocksAndCompileBreadcrumbsNoLock: error getting transactions from block", "err", err)
-		return err
+		return nil, err
 	}
 
-	err = blockToTrack.compileBreadcrumbs(txs)
+	lastNoncePerSender, err := blockToTrack.compileBreadcrumbs(txs)
 	if err != nil {
 		log.Debug("selectionTracker.validateTrackedBlocksAndCompileBreadcrumbsNoLock: error compiling breadcrumbs",
 			"error", err)
-		return err
+		return nil, err
 	}
 
 	// add the new block in the returned chain
@@ -205,10 +229,10 @@ func (st *selectionTracker) validateTrackedBlocksAndCompileBreadcrumbsNoLock(
 	err = st.validateBreadcrumbsOfTrackedBlocks(blocksToBeValidated, accountsProvider)
 	if err != nil {
 		log.Debug("selectionTracker.validateTrackedBlocksAndCompileBreadcrumbsNoLock: error validating tracked blocks", "err", err)
-		return err
+		return nil, err
 	}
 
-	return nil
+	return lastNoncePerSender, nil
 }
 
 // validateBreadcrumbsOfTrackedBlocks validates the breadcrumbs of each tracked block.
@@ -278,9 +302,22 @@ func (st *selectionTracker) addNewTrackedBlockNoLock(blockToBeAddedHash []byte, 
 // removeBlockEqualOrAboveNoLock removes blocks higher or equal to the nonce of the given block.
 // The removeBlockEqualOrAboveNoLock is used on the OnProposedBlock flow.
 func (st *selectionTracker) removeBlockEqualOrAboveNoLock(blockToBeAddedHash []byte, blockToBeAdded *trackedBlock) error {
+	// Collect affected senders and their firstNonce for resetting selection offsets
+	sendersWithFirstNonce := make(map[string]uint64)
+
 	// search if in the tracked blocks we already have one with same nonce or greater
 	for bHash, b := range st.blocks {
 		if b.hasSameNonceOrHigher(blockToBeAdded) {
+			// Collect senders and their first nonce from removed blocks for offset reset
+			for address, breadcrumb := range b.breadcrumbsByAddress {
+				if breadcrumb.firstNonce.HasValue {
+					// Keep the lowest first nonce for each sender across all removed blocks
+					if existingNonce, exists := sendersWithFirstNonce[address]; !exists || breadcrumb.firstNonce.Value < existingNonce {
+						sendersWithFirstNonce[address] = breadcrumb.firstNonce.Value
+					}
+				}
+			}
+
 			// first delete, then update the global breadcrumbs
 			delete(st.blocks, bHash)
 
@@ -295,6 +332,11 @@ func (st *selectionTracker) removeBlockEqualOrAboveNoLock(blockToBeAddedHash []b
 				"hash of new block", blockToBeAddedHash,
 			)
 		}
+	}
+
+	// Reset selection offsets for affected senders so their transactions can be re-selected
+	if len(sendersWithFirstNonce) > 0 {
+		st.txCache.ResetSelectionOffsetsToNonce(sendersWithFirstNonce)
 	}
 
 	return nil
@@ -317,6 +359,9 @@ func (st *selectionTracker) OnExecutedBlock(blockHeader data.HeaderHandler, root
 	)
 
 	tempTrackedBlock := newTrackedBlock(nonce, nil, prevHash)
+
+	// Preempt any ongoing AOT selection before acquiring the lock
+	st.cancelAOTOngoingSelection()
 
 	st.mutTracker.Lock()
 	defer st.mutTracker.Unlock()
@@ -381,6 +426,26 @@ func (st *selectionTracker) updateLatestRootHashNoLock(receivedNonce uint64, rec
 	st.latestNonce = receivedNonce
 }
 
+func (st *selectionTracker) checkUniqueAccountsLimit(blockBody *block.Body) error {
+	txsInBlock, err := getTransactionsInBlock(blockBody, st.txCache, st.selfShardId)
+	if err != nil {
+		return nil
+	}
+
+	uniqueAccounts := make(map[string]struct{})
+	for _, tx := range txsInBlock {
+		uniqueAccounts[string(tx.Tx.GetSndAddr())] = struct{}{}
+		if len(uniqueAccounts) > maxAccountsPerBlock {
+			log.Warn("selectionTracker.OnProposedBlock: too many unique accounts in block",
+				"count", len(uniqueAccounts),
+				"limit", maxAccountsPerBlock)
+			return errToManyUniqueAccountsInBlock
+		}
+	}
+
+	return nil
+}
+
 // ResetTrackedBlocks resets the tracked blocks, the global account breadcrumbs and the state saved on the OnExecutedBlock.
 func (st *selectionTracker) ResetTrackedBlocks() {
 	st.mutTracker.Lock()
@@ -397,21 +462,41 @@ func (st *selectionTracker) ResetTrackedBlocks() {
 	st.globalBreadcrumbsCompiler.cleanGlobalBreadcrumbs()
 }
 
+func (st *selectionTracker) canDoSimulateSelection(nonce uint64) bool {
+	// nonce 0 will select over current tracker state
+	if nonce == 0 {
+		return true
+	}
+
+	lastTrackedBlockNonce := st.latestNonce
+	// drop the selection if not matching the tracker state
+	for _, tb := range st.blocks {
+		if tb.nonce > lastTrackedBlockNonce {
+			lastTrackedBlockNonce = tb.nonce
+		}
+	}
+
+	return nonce == lastTrackedBlockNonce+1
+}
+
 // deriveVirtualSelectionSession creates a virtual selection session by transforming the global accounts breadcrumbs into virtual records
-// The deriveVirtualSelectionSession methods needs a SelectionSession and the nonce of the block on which the selection is built.
+// The deriveVirtualSelectionSession methods needs a SelectionSession and the nonce of the block for which the selection is built.
+// Before the actual selection, all tracked blocks with greater or equal nonce are removed from the tracker.
 func (st *selectionTracker) deriveVirtualSelectionSession(
 	session SelectionSession,
 	nonce uint64,
-	shouldRemoveTrackedBlocks bool,
+	isSimulation bool,
 ) (*virtualSelectionSession, error) {
 	st.mutTracker.Lock()
 	defer st.mutTracker.Unlock()
 
-	if !shouldRemoveTrackedBlocks {
-		err := st.removeBlocksAboveNonceNoLock(nonce)
+	if !isSimulation {
+		err := st.removeBlocksAboveOrEqualToNonceNoLock(nonce)
 		if err != nil {
 			return nil, err
 		}
+	} else if !st.canDoSimulateSelection(nonce) {
+		return nil, errSimulateSelectionContextInvalid
 	}
 
 	rootHash, err := session.GetRootHash()
@@ -443,11 +528,24 @@ func (st *selectionTracker) deriveVirtualSelectionSession(
 	return computer.createVirtualSelectionSession(globalAccountsBreadcrumbs)
 }
 
-// removeBlocksAboveNonceNoLock removes blocks with nonce higher than the given nonce.
-// The removeBlocksAboveNonceNoLock is used on the deriveVirtualSelectionSession flow.
-func (st *selectionTracker) removeBlocksAboveNonceNoLock(nonce uint64) error {
+// removeBlocksAboveOrEqualToNonceNoLock removes blocks with nonce higher or equal than the given nonce.
+// The removeBlocksAboveOrEqualToNonceNoLock is used on the deriveVirtualSelectionSession flow.
+func (st *selectionTracker) removeBlocksAboveOrEqualToNonceNoLock(nonce uint64) error {
+	// Collect affected senders and their firstNonce for resetting selection offsets
+	sendersWithFirstNonce := make(map[string]uint64)
+
 	for blockHash, tb := range st.blocks {
-		if tb.hasHigherNonce(nonce) {
+		if tb.hasSameNonceOrHigherThanGivenNonce(nonce) {
+			// Collect senders and their first nonce from removed blocks for offset reset
+			for address, breadcrumb := range tb.breadcrumbsByAddress {
+				if breadcrumb.firstNonce.HasValue {
+					// Keep the lowest first nonce for each sender across all removed blocks
+					if existingNonce, exists := sendersWithFirstNonce[address]; !exists || breadcrumb.firstNonce.Value < existingNonce {
+						sendersWithFirstNonce[address] = breadcrumb.firstNonce.Value
+					}
+				}
+			}
+
 			// first delete, then update the global breadcrumbs
 			delete(st.blocks, blockHash)
 
@@ -456,12 +554,17 @@ func (st *selectionTracker) removeBlocksAboveNonceNoLock(nonce uint64) error {
 				return err
 			}
 
-			log.Trace("selectionTracker.removeBlocksAboveNonceNoLock",
+			log.Trace("selectionTracker.removeBlocksAboveOrEqualToNonceNoLock",
 				"nonce", nonce,
 				"nonce of deleted block", tb.nonce,
 				"hash of deleted block", blockHash,
 			)
 		}
+	}
+
+	// Reset selection offsets for affected senders so their transactions can be re-selected
+	if len(sendersWithFirstNonce) > 0 {
+		st.txCache.ResetSelectionOffsetsToNonce(sendersWithFirstNonce)
 	}
 
 	return nil
@@ -496,6 +599,9 @@ func (st *selectionTracker) getChainOfTrackedPendingBlocks(
 
 		// if no block was found, it means there is a gap and we have to return an error
 		if previousBlock == nil {
+			log.Debug("getChainOfTrackedPendingBlocks: hash not found",
+				"previousHashToBeFound", previousHashToBeFound,
+			)
 			return nil, errBlockNotFound
 		}
 
@@ -600,4 +706,16 @@ func (st *selectionTracker) getTrackerDiagnosis() TrackerDiagnosis {
 	defer st.mutTracker.RUnlock()
 
 	return NewTrackerDiagnosis(uint64(len(st.blocks)), st.globalBreadcrumbsCompiler.getNumGlobalBreadcrumbs())
+}
+
+// SetAOTSelectionPreempter sets the AOT selection preempter for preemption support
+func (st *selectionTracker) SetAOTSelectionPreempter(preempter common.AOTSelectionPreempter) {
+	st.aotSelectionPreempter = preempter
+}
+
+// cancelAOTOngoingSelection cancels any ongoing AOT selection before critical operations
+func (st *selectionTracker) cancelAOTOngoingSelection() {
+	if !check.IfNil(st.aotSelectionPreempter) {
+		st.aotSelectionPreempter.CancelOngoingSelection()
+	}
 }

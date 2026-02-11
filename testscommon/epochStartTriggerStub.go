@@ -22,6 +22,8 @@ type EpochStartTriggerStub struct {
 	EpochStartMetaHdrHashCalled       func() []byte
 	ShouldProposeEpochChangeCalled    func(round uint64, nonce uint64) bool
 	SetEpochChangeCalled              func(round uint64)
+	SetEpochChangeProposedCalled      func(value bool)
+	GetEpochChangeProposedCalled      func() bool
 }
 
 // SetEpochChange -
@@ -109,6 +111,21 @@ func (e *EpochStartTriggerStub) EpochStartRound() uint64 {
 		return e.EpochStartRoundCalled()
 	}
 	return 0
+}
+
+// SetEpochChangeProposed -
+func (e *EpochStartTriggerStub) SetEpochChangeProposed(value bool) {
+	if e.SetEpochChangeProposedCalled != nil {
+		e.SetEpochChangeProposedCalled(value)
+	}
+}
+
+// GetEpochChangeProposed -
+func (e *EpochStartTriggerStub) GetEpochChangeProposed() bool {
+	if e.GetEpochChangeProposedCalled != nil {
+		return e.GetEpochChangeProposedCalled()
+	}
+	return false
 }
 
 // Update -

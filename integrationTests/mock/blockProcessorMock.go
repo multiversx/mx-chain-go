@@ -14,16 +14,16 @@ type BlockProcessorMock struct {
 	NumCommitBlockCalled             uint32
 	Marshalizer                      marshal.Marshalizer
 	ProcessBlockCalled               func(header data.HeaderHandler, body data.BodyHandler, haveTime func() time.Duration) error
-	ProcessBlockProposalCalled       func(header data.HeaderHandler, body data.BodyHandler) (data.BaseExecutionResultHandler, error)
+	ProcessBlockProposalCalled       func(header data.HeaderHandler, headerHash []byte, body data.BodyHandler) (data.BaseExecutionResultHandler, error)
 	ProcessScheduledBlockCalled      func(header data.HeaderHandler, body data.BodyHandler, haveTime func() time.Duration) error
 	CommitBlockCalled                func(header data.HeaderHandler, body data.BodyHandler) error
-	RevertCurrentBlockCalled         func(header data.HeaderHandler)
+	RevertCurrentBlockCalled         func()
 	CreateBlockCalled                func(initialHdrData data.HeaderHandler, haveTime func() bool) (data.HeaderHandler, data.BodyHandler, error)
 	CreateBlockProposalCalled        func(initialHdr data.HeaderHandler, haveTime func() bool) (data.HeaderHandler, data.BodyHandler, error)
 	CreateNewHeaderProposalCalled    func(round uint64, nonce uint64) (data.HeaderHandler, error)
 	RestoreBlockIntoPoolsCalled      func(header data.HeaderHandler, body data.BodyHandler) error
 	RestoreBlockBodyIntoPoolsCalled  func(body data.BodyHandler) error
-	MarshalizedDataToBroadcastCalled func(header data.HeaderHandler, body data.BodyHandler) (map[uint32][]byte, map[string][][]byte, error)
+	MarshalizedDataToBroadcastCalled func(headerHash []byte, header data.HeaderHandler, body data.BodyHandler) (map[uint32][]byte, map[string][][]byte, error)
 	CreateNewHeaderCalled            func(round uint64, nonce uint64) (data.HeaderHandler, error)
 	PruneStateOnRollbackCalled       func(currHeader data.HeaderHandler, currHeaderHash []byte, prevHeader data.HeaderHandler, prevHeaderHash []byte)
 	RevertStateToBlockCalled         func(header data.HeaderHandler, rootHash []byte) error
@@ -39,6 +39,8 @@ type BlockProcessorMock struct {
 		proposedHeader data.HeaderHandler,
 		proposedHash []byte,
 	) error
+	OnExecutedBlockCalled                           func(header data.HeaderHandler, rootHash []byte) error
+	ProposedDirectSentTransactionsToBroadcastCalled func(proposedBody data.BodyHandler) map[string][][]byte
 }
 
 // ProcessBlock mocks processing a block
@@ -51,9 +53,9 @@ func (bpm *BlockProcessorMock) ProcessBlock(header data.HeaderHandler, body data
 }
 
 // ProcessBlockProposal mocks processing a block
-func (bpm *BlockProcessorMock) ProcessBlockProposal(header data.HeaderHandler, body data.BodyHandler) (data.BaseExecutionResultHandler, error) {
+func (bpm *BlockProcessorMock) ProcessBlockProposal(header data.HeaderHandler, headerHash []byte, body data.BodyHandler) (data.BaseExecutionResultHandler, error) {
 	if bpm.ProcessBlockProposalCalled != nil {
-		return bpm.ProcessBlockProposalCalled(header, body)
+		return bpm.ProcessBlockProposalCalled(header, headerHash, body)
 	}
 
 	return nil, nil
@@ -78,9 +80,9 @@ func (bpm *BlockProcessorMock) CommitBlock(header data.HeaderHandler, body data.
 }
 
 // RevertCurrentBlock mocks revert of the current block
-func (bpm *BlockProcessorMock) RevertCurrentBlock(header data.HeaderHandler) {
+func (bpm *BlockProcessorMock) RevertCurrentBlock() {
 	if bpm.RevertCurrentBlockCalled != nil {
-		bpm.RevertCurrentBlockCalled(header)
+		bpm.RevertCurrentBlockCalled()
 	}
 }
 
@@ -157,8 +159,8 @@ func (bpm *BlockProcessorMock) SetNumProcessedObj(_ uint64) {
 }
 
 // MarshalizedDataToBroadcast -
-func (bpm *BlockProcessorMock) MarshalizedDataToBroadcast(header data.HeaderHandler, body data.BodyHandler) (map[uint32][]byte, map[string][][]byte, error) {
-	return bpm.MarshalizedDataToBroadcastCalled(header, body)
+func (bpm *BlockProcessorMock) MarshalizedDataToBroadcast(headerHash []byte, header data.HeaderHandler, body data.BodyHandler) (map[uint32][]byte, map[string][][]byte, error) {
+	return bpm.MarshalizedDataToBroadcastCalled(headerHash, header, body)
 }
 
 // DecodeBlockBody method decodes block body from a given byte array
@@ -231,6 +233,22 @@ func (bpm *BlockProcessorMock) OnProposedBlock(
 ) error {
 	if bpm.OnProposedBlockCalled != nil {
 		return bpm.OnProposedBlockCalled(proposedBody, proposedHeader, proposedHash)
+	}
+	return nil
+}
+
+// OnExecutedBlock -
+func (bpm *BlockProcessorMock) OnExecutedBlock(header data.HeaderHandler, rootHash []byte) error {
+	if bpm.OnExecutedBlockCalled != nil {
+		return bpm.OnExecutedBlockCalled(header, rootHash)
+	}
+	return nil
+}
+
+// ProposedDirectSentTransactionsToBroadcast -
+func (bpm *BlockProcessorMock) ProposedDirectSentTransactionsToBroadcast(proposedBody data.BodyHandler) map[string][][]byte {
+	if bpm.ProposedDirectSentTransactionsToBroadcastCalled != nil {
+		return bpm.ProposedDirectSentTransactionsToBroadcastCalled(proposedBody)
 	}
 	return nil
 }

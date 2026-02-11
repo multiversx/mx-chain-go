@@ -1,39 +1,36 @@
 package processMocks
 
-import "github.com/multiversx/mx-chain-go/process/asyncExecution/queue"
+import (
+	"github.com/multiversx/mx-chain-go/process/asyncExecution/cache"
+)
 
-// BlocksQueueMock is a mock implementation of the BlocksQueue interface
+// BlocksQueueMock is a mock implementation of the BlocksCache interface
 type BlocksQueueMock struct {
-	AddOrReplaceCalled           func(pair queue.HeaderBodyPair) error
-	PopCalled                    func() (queue.HeaderBodyPair, bool)
-	PeekCalled                   func() (queue.HeaderBodyPair, bool)
+	AddOrReplaceCalled           func(pair cache.HeaderBodyPair) error
 	RemoveAtNonceAndHigherCalled func(nonce uint64) []uint64
-	CleanCalled                  func(lastAddedNonce uint64)
-	CloseCalled                  func()
+	CleanCalled                  func()
+	GetByNonceCalled             func(nonce uint64) (cache.HeaderBodyPair, bool)
+}
+
+// GetByNonce -
+func (bqm *BlocksQueueMock) GetByNonce(nonce uint64) (cache.HeaderBodyPair, bool) {
+	if bqm.GetByNonceCalled != nil {
+		return bqm.GetByNonceCalled(nonce)
+	}
+
+	return cache.HeaderBodyPair{}, false
+}
+
+// Remove -
+func (bqm *BlocksQueueMock) Remove(_ uint64) {
 }
 
 // AddOrReplace -
-func (bqm *BlocksQueueMock) AddOrReplace(pair queue.HeaderBodyPair) error {
+func (bqm *BlocksQueueMock) AddOrReplace(pair cache.HeaderBodyPair) error {
 	if bqm.AddOrReplaceCalled != nil {
 		return bqm.AddOrReplaceCalled(pair)
 	}
 	return nil
-}
-
-// Pop -
-func (bqm *BlocksQueueMock) Pop() (queue.HeaderBodyPair, bool) {
-	if bqm.PopCalled != nil {
-		return bqm.PopCalled()
-	}
-	return queue.HeaderBodyPair{}, false
-}
-
-// Peek -
-func (bqm *BlocksQueueMock) Peek() (queue.HeaderBodyPair, bool) {
-	if bqm.PeekCalled != nil {
-		return bqm.PeekCalled()
-	}
-	return queue.HeaderBodyPair{}, false
 }
 
 // RemoveAtNonceAndHigher -
@@ -45,16 +42,9 @@ func (bqm *BlocksQueueMock) RemoveAtNonceAndHigher(nonce uint64) []uint64 {
 }
 
 // Clean -
-func (bqm *BlocksQueueMock) Clean(lastAddedNonce uint64) {
+func (bqm *BlocksQueueMock) Clean() {
 	if bqm.CleanCalled != nil {
-		bqm.CleanCalled(lastAddedNonce)
-	}
-}
-
-// Close -
-func (bqm *BlocksQueueMock) Close() {
-	if bqm.CloseCalled != nil {
-		bqm.CloseCalled()
+		bqm.CleanCalled()
 	}
 }
 

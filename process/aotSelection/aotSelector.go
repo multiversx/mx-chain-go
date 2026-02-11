@@ -1,0 +1,489 @@
+package aotSelection
+
+import (
+	"bytes"
+	"context"
+	"fmt"
+	"sync"
+	"time"
+
+	"github.com/multiversx/mx-chain-core-go/core"
+	"github.com/multiversx/mx-chain-core-go/core/check"
+	"github.com/multiversx/mx-chain-core-go/data"
+	logger "github.com/multiversx/mx-chain-logger-go"
+
+	commonConsensus "github.com/multiversx/mx-chain-go/common/consensus"
+
+	"github.com/multiversx/mx-chain-go/common"
+	"github.com/multiversx/mx-chain-go/common/holders"
+	"github.com/multiversx/mx-chain-go/consensus"
+	"github.com/multiversx/mx-chain-go/process"
+	"github.com/multiversx/mx-chain-go/process/block/preprocess"
+	"github.com/multiversx/mx-chain-go/sharding"
+	"github.com/multiversx/mx-chain-go/sharding/nodesCoordinator"
+	"github.com/multiversx/mx-chain-go/state"
+	"github.com/multiversx/mx-chain-go/storage"
+	"github.com/multiversx/mx-chain-go/storage/cache"
+)
+
+var log = logger.GetOrCreate("process/aotSelection")
+
+const (
+	maxSelectionDuration             = 500 * time.Millisecond
+	defaultSelectionTimeout          = 150 * time.Millisecond
+	defaultMaxTxsPerBlock            = 30000
+	defaultLoopDurationCheckInterval = 100
+	defaultCacheSize                 = 10
+	// margin to account for txcache's interval-based timeout checking
+	selectionTimeoutMargin = 0.85
+)
+
+// AOTSelectorArgs holds the arguments needed to create an AOT selector
+type AOTSelectorArgs struct {
+	NodesCoordinator     nodesCoordinator.NodesCoordinator
+	ShardCoordinator     sharding.Coordinator
+	KeysHandler          consensus.KeysHandler
+	NodeRedundancy       consensus.NodeRedundancyHandler
+	TxCache              preprocess.TxCache
+	AccountsAdapter      state.AccountsAdapter
+	TransactionProcessor process.TransactionProcessor
+	TxVersionChecker     process.TxVersionCheckerHandler
+	BlockChain           data.ChainHandler
+	EconomicsDataHandler process.EconomicsDataHandler
+
+	// Configuration
+	SelectionTimeout time.Duration
+	CacheSize        int
+	MaxTxsPerBlock   int
+}
+
+type aotSelector struct {
+	nodesCoordinator     nodesCoordinator.NodesCoordinator
+	shardCoordinator     sharding.Coordinator
+	keysHandler          consensus.KeysHandler
+	nodeRedundancy       consensus.NodeRedundancyHandler
+	txCache              preprocess.TxCache
+	accountsAdapter      state.AccountsAdapter
+	transactionProcessor process.TransactionProcessor
+	txVersionChecker     process.TxVersionCheckerHandler
+	blockChain           data.ChainHandler
+	economicsDataHandler process.EconomicsDataHandler
+
+	cache            storage.Cacher
+	selectionTimeout time.Duration
+	maxTxsPerBlock   int
+
+	// Synchronization
+	selectionMut sync.Mutex
+	cancelFunc   context.CancelFunc
+	ongoingNonce uint64
+	resultChan   chan *process.AOTSelectionResult
+	lastEpoch    uint32
+	closed       bool
+}
+
+// NewAOTSelector creates a new AOT selector instance
+func NewAOTSelector(args AOTSelectorArgs) (*aotSelector, error) {
+	if check.IfNil(args.NodesCoordinator) {
+		return nil, process.ErrNilNodesCoordinator
+	}
+	if check.IfNil(args.ShardCoordinator) {
+		return nil, process.ErrNilShardCoordinator
+	}
+	if check.IfNil(args.KeysHandler) {
+		return nil, process.ErrNilKeysHandler
+	}
+	if check.IfNil(args.NodeRedundancy) {
+		return nil, process.ErrNilNodeRedundancyHandler
+	}
+	if check.IfNil(args.TxCache) {
+		return nil, process.ErrNilTxCache
+	}
+	if check.IfNil(args.AccountsAdapter) {
+		return nil, process.ErrNilAccountsAdapter
+	}
+	if check.IfNil(args.TransactionProcessor) {
+		return nil, process.ErrNilTxProcessor
+	}
+	if check.IfNil(args.TxVersionChecker) {
+		return nil, process.ErrNilTransactionVersionChecker
+	}
+	if check.IfNil(args.BlockChain) {
+		return nil, process.ErrNilBlockChain
+	}
+	if check.IfNil(args.EconomicsDataHandler) {
+		return nil, process.ErrNilEconomicsData
+	}
+
+	selectionTimeout := args.SelectionTimeout
+	if selectionTimeout <= 0 || selectionTimeout > maxSelectionDuration {
+		log.Debug("NewAOTSelector: invalid selection timeout, using default", "provided", selectionTimeout, "default", defaultSelectionTimeout)
+		selectionTimeout = defaultSelectionTimeout
+	}
+
+	cacheSize := args.CacheSize
+	if cacheSize <= 0 {
+		log.Debug("NewAOTSelector: invalid cache size, using default", "provided", cacheSize, "default", defaultCacheSize)
+		cacheSize = defaultCacheSize
+	}
+
+	maxTxsPerBlock := args.MaxTxsPerBlock
+	if maxTxsPerBlock <= 0 {
+		log.Debug("NewAOTSelector: invalid maxTxsPerBlock, using default", "provided", maxTxsPerBlock, "default", defaultMaxTxsPerBlock)
+		maxTxsPerBlock = defaultMaxTxsPerBlock
+	}
+
+	// Use existing LRU cache from storage/cache
+	lruCache, err := cache.NewLRUCache(cacheSize)
+	if err != nil {
+		return nil, err
+	}
+
+	return &aotSelector{
+		nodesCoordinator:     args.NodesCoordinator,
+		shardCoordinator:     args.ShardCoordinator,
+		keysHandler:          args.KeysHandler,
+		nodeRedundancy:       args.NodeRedundancy,
+		txCache:              args.TxCache,
+		accountsAdapter:      args.AccountsAdapter,
+		transactionProcessor: args.TransactionProcessor,
+		txVersionChecker:     args.TxVersionChecker,
+		blockChain:           args.BlockChain,
+		economicsDataHandler: args.EconomicsDataHandler,
+		cache:                lruCache,
+		selectionTimeout:     selectionTimeout,
+		maxTxsPerBlock:       maxTxsPerBlock,
+	}, nil
+}
+
+// TriggerAOTSelection triggers AOT for the next block after commit
+// Checks if node is leader in round N+1 OR N+2 (if N+1 fails)
+func (s *aotSelector) TriggerAOTSelection(committedHeader data.HeaderHandler, currentRound uint64) {
+	if check.IfNil(committedHeader) {
+		log.Debug("TriggerAOTSelection: nil header, skipping")
+		return
+	}
+
+	// Only process for shard nodes (metachain does not select transactions)
+	if s.shardCoordinator.SelfId() == core.MetachainShardId {
+		log.Trace("TriggerAOTSelection: metachain node, skipping")
+		return
+	}
+
+	epoch := committedHeader.GetEpoch()
+	// Detect epoch change and invalidate cache
+	s.selectionMut.Lock()
+	if s.closed {
+		s.selectionMut.Unlock()
+		log.Debug("TriggerAOTSelection: selector is closed, skipping")
+		return
+	}
+	previousEpoch := s.lastEpoch
+	epochChanged := s.lastEpoch != epoch && s.lastEpoch != 0
+	s.lastEpoch = epoch
+	if epochChanged {
+		log.Debug("TriggerAOTSelection: epoch changed, cleared cache and cancelled ongoing selection",
+			"previousEpoch", previousEpoch,
+			"newEpoch", epoch)
+		s.cancelOngoingSelectionNoLock()
+		s.cache.Clear()
+	}
+	s.selectionMut.Unlock()
+
+	randomness := committedHeader.GetRandSeed()
+	nextNonce := committedHeader.GetNonce() + 1
+	nextRound := currentRound + 1
+
+	// Check if we could be leader in either of the next two rounds
+	isLeaderNextRound := s.isSelfLeaderForRound(randomness, nextRound, epoch)
+	isLeaderRoundAfter := s.isSelfLeaderForRound(randomness, nextRound+1, epoch)
+
+	if !isLeaderNextRound && !isLeaderRoundAfter {
+		log.Trace("TriggerAOTSelection: not a potential leader, skipping",
+			"nextRound", nextRound,
+			"nextNonce", nextNonce)
+		return
+	}
+
+	log.Debug("TriggerAOTSelection: starting AOT selection",
+		"nextNonce", nextNonce,
+		"nextRound", nextRound,
+		"isLeaderNextRound", isLeaderNextRound,
+		"isLeaderRoundAfter", isLeaderRoundAfter)
+
+	// Spawn goroutine for background selection
+	go s.runAOTSelection(nextNonce, randomness)
+}
+
+// isSelfLeaderForRound checks if self is leader for a specific round using nodesCoordinator directly
+func (s *aotSelector) isSelfLeaderForRound(randomness []byte, round uint64, epoch uint32) bool {
+	shardId := s.shardCoordinator.SelfId()
+
+	// Use nodesCoordinator directly - no separate LeaderPredictor
+	leader, _, err := s.nodesCoordinator.ComputeConsensusGroup(randomness, round, shardId, epoch)
+	if err != nil {
+		log.Trace("isSelfLeaderForRound: ComputeConsensusGroup failed", "error", err)
+		return false
+	}
+
+	// Check single key
+	selfPubKey := s.keysHandler.IsOriginalPublicKeyOfTheNode(leader.PubKey())
+	isSelfLeader := selfPubKey && commonConsensus.ShouldConsiderSelfKeyInConsensus(s.nodeRedundancy)
+
+	// Check multi-key
+	isMultiKeyLeader := s.keysHandler.IsKeyManagedByCurrentNode(leader.PubKey())
+
+	return isSelfLeader || isMultiKeyLeader
+}
+
+// GetPreSelectedTransactions retrieves cached selection for the given nonce
+// If selection is ongoing, waits for completion with timeout (we need the result anyway)
+func (s *aotSelector) GetPreSelectedTransactions(blockNonce uint64) (*process.AOTSelectionResult, bool) {
+	s.selectionMut.Lock()
+	if s.closed {
+		s.selectionMut.Unlock()
+		return nil, false
+	}
+	if s.ongoingNonce == blockNonce && s.resultChan != nil {
+		resultChan := s.resultChan
+		timeout := s.selectionTimeout
+		s.selectionMut.Unlock()
+
+		// Wait for ongoing selection to complete with timeout
+		select {
+		case result, ok := <-resultChan:
+			if ok && result != nil {
+				return result, true
+			}
+			// Channel closed or nil result - fall through to cache check
+		case <-time.After(timeout):
+			log.Debug("GetPreSelectedTransactions: timeout on channel, checking cache",
+				"blockNonce", blockNonce)
+		}
+
+		// Fallback to cache (result may have been cached before channel issue)
+		return s.getFromCache(blockNonce)
+	}
+	s.selectionMut.Unlock()
+
+	return s.getFromCache(blockNonce)
+}
+
+func (s *aotSelector) getFromCache(blockNonce uint64) (*process.AOTSelectionResult, bool) {
+	cacheKey := []byte(fmt.Sprintf("%d", blockNonce))
+	val, ok := s.cache.Get(cacheKey)
+	if !ok {
+		return nil, false
+	}
+	result, isResult := val.(*process.AOTSelectionResult)
+	if !isResult || result == nil {
+		return nil, false
+	}
+	return result, true
+}
+
+// prepareAccountsForSelection ensures the accounts adapter is synced to the correct state
+func (s *aotSelector) prepareAccountsForSelection() error {
+	prevHeader := s.blockChain.GetCurrentBlockHeader()
+	if prevHeader == nil {
+		log.Debug("prepareAccountsForSelection: no current header (genesis), skipping preparation")
+		return nil
+	}
+
+	prevHeaderHash := s.blockChain.GetCurrentBlockHeaderHash()
+
+	lastExecResHandler, err := common.GetOrCreateLastExecutionResultForPrevHeader(prevHeader, prevHeaderHash)
+	if err != nil {
+		return err
+	}
+
+	rootHash := lastExecResHandler.GetRootHash()
+	rootHashHolder := holders.NewDefaultRootHashesHolder(rootHash)
+
+	return s.accountsAdapter.RecreateTrieIfNeeded(rootHashHolder)
+}
+
+// CancelOngoingSelection cancels any ongoing AOT selection
+// Called before OnProposed/OnExecuted to avoid conflicts
+func (s *aotSelector) CancelOngoingSelection() {
+	s.selectionMut.Lock()
+	defer s.selectionMut.Unlock()
+
+	s.cancelOngoingSelectionNoLock()
+}
+
+func (s *aotSelector) cancelOngoingSelectionNoLock() {
+	if s.closed {
+		return
+	}
+
+	if s.cancelFunc != nil {
+		s.cancelFunc()
+		s.cancelFunc = nil
+	}
+}
+
+func (s *aotSelector) cleanupSelectionState(resultChan chan *process.AOTSelectionResult) {
+	s.selectionMut.Lock()
+	// Only clean up if this is still the active selection
+	if s.resultChan == resultChan {
+		s.ongoingNonce = 0
+		s.resultChan = nil
+		// Don't nil cancelFunc here - context cleanup is handled by defer cancelFunc()
+	}
+	s.selectionMut.Unlock()
+}
+
+func haveTimeWithCancel(ctx context.Context, startTime time.Time, timeBudget time.Duration) func() bool {
+	return func() bool {
+		if time.Since(startTime) >= timeBudget {
+			return false
+		}
+		select {
+		case <-ctx.Done():
+			return false
+		default:
+			return true
+		}
+	}
+}
+
+// runAOTSelection performs the actual transaction selection in a background goroutine
+func (s *aotSelector) runAOTSelection(targetNonce uint64, randomness []byte) {
+	s.selectionMut.Lock()
+	if s.closed {
+		s.selectionMut.Unlock()
+		log.Debug("runAOTSelection: selector is closed, aborting")
+		return
+	}
+
+	// Cancel any previous ongoing selection before starting new one
+	if s.cancelFunc != nil {
+		s.cancelFunc()
+	}
+
+	// Create new context for this selection - NO timeout here, timeout is handled
+	// separately via time.Since() to ensure consistent timing with selection start
+	ctx, cancelFunc := context.WithCancel(context.Background())
+	s.cancelFunc = cancelFunc
+	s.resultChan = make(chan *process.AOTSelectionResult, 1)
+	s.ongoingNonce = targetNonce
+	resultChan := s.resultChan
+	s.selectionMut.Unlock()
+
+	// Ensure context is always cancelled to release resources
+	defer cancelFunc()
+	defer s.cleanupSelectionState(resultChan)
+
+	startTime := time.Now()
+	selectionBudget := time.Duration(float64(s.selectionTimeout) * selectionTimeoutMargin)
+
+	log.Debug("runAOTSelection: starting", "targetNonce", targetNonce, "selectionBudget", selectionBudget)
+
+	// Prepare accounts adapter with correct state before selection
+	err := s.prepareAccountsForSelection()
+	if err != nil {
+		log.Debug("runAOTSelection: failed to prepare accounts", "error", err)
+		s.sendResult(resultChan, nil)
+		return
+	}
+
+	// Create selection session
+	session, err := preprocess.NewSelectionSession(preprocess.ArgsSelectionSession{
+		AccountsAdapter:         s.accountsAdapter,
+		TransactionsProcessor:   s.transactionProcessor,
+		TxVersionCheckerHandler: s.txVersionChecker,
+	})
+	if err != nil {
+		log.Debug("runAOTSelection: failed to create selection session", "error", err)
+		s.sendResult(resultChan, nil)
+		return
+	}
+
+	// Get gas limit
+	maxGas := s.economicsDataHandler.MaxGasLimitPerBlock(s.shardCoordinator.SelfId())
+	overestimationFactor := s.economicsDataHandler.BlockCapacityOverestimationFactor()
+	maxGas = maxGas * overestimationFactor / 100
+
+	options, err := holders.NewTxSelectionOptions(
+		maxGas,
+		s.maxTxsPerBlock,
+		defaultLoopDurationCheckInterval,
+		haveTimeWithCancel(ctx, startTime, selectionBudget),
+	)
+	if err != nil {
+		log.Debug("runAOTSelection: failed to create selection options", "error", err)
+		s.sendResult(resultChan, nil)
+		return
+	}
+
+	// select transactions from tx cache
+	wrappedTxs, accumulatedGas, err := s.txCache.SimulateSelectTransactions(session, options, targetNonce)
+	if err != nil {
+		log.Debug("runAOTSelection: selection failed", "error", err)
+		s.sendResult(resultChan, nil)
+		return
+	}
+
+	// Check if cancelled (could have been cancelled during selection)
+	select {
+	case <-ctx.Done():
+		log.Debug("runAOTSelection: cancelled", "targetNonce", targetNonce)
+		s.sendResult(resultChan, nil)
+		return
+	default:
+	}
+
+	// Extract transaction hashes
+	txHashes := make([][]byte, len(wrappedTxs))
+	for i, wrappedTx := range wrappedTxs {
+		txHashes[i] = bytes.Clone(wrappedTx.TxHash)
+	}
+
+	result := &process.AOTSelectionResult{
+		TxHashes:            txHashes,
+		GasProvided:         accumulatedGas,
+		PredictedBlockNonce: targetNonce,
+		Randomness:          bytes.Clone(randomness),
+		SelectionTimestamp:  time.Now(),
+	}
+
+	// Store in cache
+	cacheKey := []byte(fmt.Sprintf("%d", targetNonce))
+	s.cache.Put(cacheKey, result, 1)
+
+	log.Info("runAOTSelection: completed",
+		"targetNonce", targetNonce,
+		"numTxs", len(txHashes),
+		"gasProvided", accumulatedGas,
+		"duration", time.Since(startTime))
+
+	s.sendResult(resultChan, result)
+}
+
+// sendResult sends result and closes the channel to signal completion to all waiters
+func (s *aotSelector) sendResult(resultChan chan *process.AOTSelectionResult, result *process.AOTSelectionResult) {
+	select {
+	case resultChan <- result:
+	default:
+	}
+	close(resultChan)
+}
+
+// Close gracefully shuts down the AOT selector
+// It cancels any ongoing selection and prevents new selections from starting
+func (s *aotSelector) Close() error {
+	s.selectionMut.Lock()
+	defer s.selectionMut.Unlock()
+
+	s.cancelOngoingSelectionNoLock()
+	s.closed = true
+	s.cache.Clear()
+	log.Debug("aotSelector: closed")
+	return nil
+}
+
+// IsInterfaceNil returns true if there is no value under the interface
+func (s *aotSelector) IsInterfaceNil() bool {
+	return s == nil
+}

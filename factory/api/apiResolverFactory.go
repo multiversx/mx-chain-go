@@ -223,8 +223,9 @@ func CreateApiResolver(args *ApiResolverArgs) (facade.ApiResolver, error) {
 	}
 
 	argsDataFieldParser := &datafield.ArgsOperationDataFieldParser{
-		AddressLength: args.CoreComponents.AddressPubKeyConverter().Len(),
-		Marshalizer:   args.CoreComponents.InternalMarshalizer(),
+		AddressLength:                       args.CoreComponents.AddressPubKeyConverter().Len(),
+		Marshalizer:                         args.CoreComponents.InternalMarshalizer(),
+		RelayedTransactionsV1V2DisableEpoch: args.CoreComponents.EnableEpochsHandler().GetActivationEpoch(common.RelayedTransactionsV1V2DisableFlag),
 	}
 	dataFieldParser, err := datafield.NewOperationDataFieldParser(argsDataFieldParser)
 	if err != nil {
@@ -247,6 +248,8 @@ func CreateApiResolver(args *ApiResolverArgs) (facade.ApiResolver, error) {
 		DataFieldParser:          dataFieldParser,
 		TxMarshaller:             args.CoreComponents.TxMarshalizer(),
 		EnableEpochsHandler:      args.CoreComponents.EnableEpochsHandler(),
+		EnableRoundsHandler:      args.CoreComponents.EnableRoundsHandler(),
+		TxVersionChecker:         args.CoreComponents.TxVersionChecker(),
 	}
 	apiTransactionProcessor, err := transactionAPI.NewAPITransactionProcessor(argsAPITransactionProc)
 	if err != nil {

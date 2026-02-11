@@ -8,6 +8,7 @@ import (
 	"github.com/multiversx/mx-chain-core-go/data"
 	"github.com/multiversx/mx-chain-core-go/data/block"
 	"github.com/multiversx/mx-chain-core-go/data/rewardTx"
+
 	"github.com/multiversx/mx-chain-go/common"
 
 	"github.com/multiversx/mx-chain-go/dataRetriever"
@@ -70,6 +71,7 @@ func NewRewardTxPreprocessor(args RewardsPreProcessorArgs) (*rewardTxPreprocesso
 		txExecutionOrderHandler:    args.TxExecutionOrderHandler,
 		enableEpochsHandler:        args.EnableEpochsHandler,
 		enableRoundsHandler:        args.EnableRoundsHandler,
+		feeHandler:                 args.EconomicsFee,
 	}
 
 	args.EpochNotifier.RegisterNotifyHandler(bpp)
@@ -198,7 +200,7 @@ func (rtp *rewardTxPreprocessor) ProcessBlockTransactions(
 			continue
 		}
 
-		pi, err := rtp.getIndexesOfLastTxProcessed(miniBlock, headerHandler)
+		pi, err := rtp.getIndexesOfLastTxProcessedOnExecution(miniBlock, headerHandler)
 		if err != nil {
 			return err
 		}
@@ -409,7 +411,7 @@ func (rtp *rewardTxPreprocessor) getAllRewardTxsFromMiniBlock(
 }
 
 // SelectOutgoingTransactions does nothing as rewards transactions are created by meta chain
-func (rtp *rewardTxPreprocessor) SelectOutgoingTransactions(_ uint64) ([][]byte, []data.TransactionHandler, error) {
+func (rtp *rewardTxPreprocessor) SelectOutgoingTransactions(_ uint64, _ uint64, _ func() bool) ([][]byte, []data.TransactionHandler, error) {
 	return make([][]byte, 0), make([]data.TransactionHandler, 0), nil
 }
 
@@ -455,7 +457,7 @@ func (rtp *rewardTxPreprocessor) ProcessMiniBlock(
 		return nil, indexOfLastTxProcessed, false, err
 	}
 
-	if rtp.blockSizeComputation.IsMaxBlockSizeWithoutThrottleReached(1, len(miniBlock.TxHashes)) {
+	if rtp.isMaxBlockSizeWithoutThrottleReached(1, len(miniBlock.TxHashes)) {
 		return nil, indexOfLastTxProcessed, false, process.ErrMaxBlockSizeReached
 	}
 
@@ -496,8 +498,8 @@ func (rtp *rewardTxPreprocessor) ProcessMiniBlock(
 		rtp.rewardTxsForBlock.AddTransaction(txHash, miniBlockRewardTxs[index], miniBlock.SenderShardID, miniBlock.ReceiverShardID)
 	}
 
-	rtp.blockSizeComputation.AddNumMiniBlocks(1)
-	rtp.blockSizeComputation.AddNumTxs(len(miniBlock.TxHashes))
+	rtp.addNumMiniBlocks(1)
+	rtp.addNumTxs(len(miniBlock.TxHashes))
 
 	return nil, txIndex - 1, false, err
 }

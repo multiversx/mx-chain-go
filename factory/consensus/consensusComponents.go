@@ -271,6 +271,7 @@ func (ccf *consensusComponentsFactory) Create() (*consensusComponents, error) {
 		EquivalentProofsPool:          ccf.dataComponents.Datapool().Proofs(),
 		EpochNotifier:                 ccf.coreComponents.EpochNotifier(),
 		InvalidSignersCache:           invalidSignersCache,
+		AOTSelector:                   ccf.processComponents.AOTSelector(),
 	}
 
 	consensusDataContainer, err := spos.NewConsensusCore(
@@ -420,7 +421,9 @@ func (ccf *consensusComponentsFactory) createConsensusState(epoch uint32, consen
 	consensusState := spos.NewConsensusState(
 		roundConsensus,
 		roundThreshold,
-		roundStatus)
+		roundStatus,
+		ccf.processComponents.NodeRedundancyHandler(),
+	)
 
 	return consensusState, nil
 }
@@ -464,6 +467,7 @@ func (ccf *consensusComponentsFactory) createShardBootstrapper() (process.Bootst
 		AppStatusHandler:             ccf.statusCoreComponents.AppStatusHandler(),
 		EnableEpochsHandler:          ccf.coreComponents.EnableEpochsHandler(),
 		ProofsPool:                   ccf.dataComponents.Datapool().Proofs(),
+		ExecutionManager:             ccf.processComponents.ExecutionManager(),
 	}
 
 	argsShardStorageBootstrapper := storageBootstrap.ArgsShardStorageBootstrapper{
@@ -603,6 +607,7 @@ func (ccf *consensusComponentsFactory) createMetaChainBootstrapper() (process.Bo
 		AppStatusHandler:             ccf.statusCoreComponents.AppStatusHandler(),
 		EnableEpochsHandler:          ccf.coreComponents.EnableEpochsHandler(),
 		ProofsPool:                   ccf.dataComponents.Datapool().Proofs(),
+		ExecutionManager:             ccf.processComponents.ExecutionManager(),
 	}
 
 	argsMetaStorageBootstrapper := storageBootstrap.ArgsMetaStorageBootstrapper{
@@ -772,6 +777,9 @@ func checkArgs(args ConsensusComponentsFactoryArgs) error {
 	}
 	if check.IfNil(args.ProcessComponents.HardforkTrigger()) {
 		return errors.ErrNilHardforkTrigger
+	}
+	if check.IfNil(args.ProcessComponents.NodeRedundancyHandler()) {
+		return errors.ErrNilNodeRedundancyHandler
 	}
 	if check.IfNil(args.StateComponents) {
 		return errors.ErrNilStateComponentsHolder

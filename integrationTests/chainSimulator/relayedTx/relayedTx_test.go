@@ -113,16 +113,6 @@ func testRelayedV3MoveBalance(
 			cfg.EpochConfig.EnableEpochs.FixRelayedBaseCostEnableEpoch = providedActivationEpoch
 			cfg.EpochConfig.EnableEpochs.RelayedTransactionsV3EnableEpoch = providedActivationEpoch
 			cfg.EpochConfig.EnableEpochs.RelayedTransactionsV3FixESDTTransferEnableEpoch = providedActivationEpoch
-
-			cfg.EpochConfig.EnableEpochs.SupernovaEnableEpoch = 0
-			cfg.RoundConfig.RoundActivations = map[string]config.ActivationRoundByName{
-				"DisableAsyncCallV1": {
-					Round: "9999999",
-				},
-				"SupernovaEnableRound": {
-					Round: "0",
-				},
-			}
 		}
 
 		cs := startChainSimulator(t, alterConfigsFunc)
@@ -1346,6 +1336,7 @@ func startChainSimulator(
 
 	cs, err := chainSimulator.NewChainSimulator(chainSimulator.ArgsChainSimulator{
 		BypassTxSignatureCheck:         true,
+		BypassCreateBlockTimeCheck:     true,
 		TempDir:                        t.TempDir(),
 		PathToInitialConfig:            defaultPathToInitialConfig,
 		NumOfShards:                    3,

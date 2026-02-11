@@ -7,6 +7,7 @@ import (
 	"fmt"
 	"testing"
 
+	"github.com/multiversx/mx-chain-core-go/core"
 	"github.com/multiversx/mx-chain-core-go/data"
 	"github.com/multiversx/mx-chain-core-go/data/alteredAccount"
 	"github.com/multiversx/mx-chain-core-go/data/block"
@@ -16,6 +17,9 @@ import (
 	"github.com/multiversx/mx-chain-core-go/data/transaction"
 	"github.com/multiversx/mx-chain-go/common"
 	"github.com/multiversx/mx-chain-go/outport/process/alteredaccounts/shared"
+	"github.com/multiversx/mx-chain-go/process"
+	"github.com/multiversx/mx-chain-go/storage"
+	"github.com/multiversx/mx-chain-go/testscommon/cache"
 	"github.com/stretchr/testify/require"
 
 	"github.com/multiversx/mx-chain-go/outport/mock"
@@ -279,7 +283,7 @@ func Test_setExecutionOrderInTransactionPool(t *testing.T) {
 			},
 		}
 
-		orderedHashes, numProcessed := odp.setExecutionOrderInTransactionPool(nil)
+		orderedHashes, numProcessed := odp.setExecutionOrderInTransactionPool(nil, txHashes)
 		require.Equal(t, 0, numProcessed)
 		require.Equal(t, len(txHashes), len(orderedHashes))
 		for i := 0; i < len(txHashes); i++ {
@@ -296,13 +300,8 @@ func Test_setExecutionOrderInTransactionPool(t *testing.T) {
 		}
 
 		txHashes := createRandTxHashes(10)
-		odp.executionOrderHandler = &commonMocks.TxExecutionOrderHandlerStub{
-			GetItemsCalled: func() [][]byte {
-				return txHashes
-			},
-		}
 
-		orderedHashes, numProcessed := odp.setExecutionOrderInTransactionPool(pool)
+		orderedHashes, numProcessed := odp.setExecutionOrderInTransactionPool(pool, txHashes)
 		require.Equal(t, 0, numProcessed)
 		require.Equal(t, len(txHashes), len(orderedHashes))
 	})
@@ -334,13 +333,8 @@ func Test_setExecutionOrderInTransactionPool(t *testing.T) {
 		}
 
 		txHashes := createRandTxHashes(10)
-		odp.executionOrderHandler = &commonMocks.TxExecutionOrderHandlerStub{
-			GetItemsCalled: func() [][]byte {
-				return txHashes
-			},
-		}
 
-		orderedHashes, numProcessed := odp.setExecutionOrderInTransactionPool(pool)
+		orderedHashes, numProcessed := odp.setExecutionOrderInTransactionPool(pool, txHashes)
 		require.Equal(t, 0, numProcessed)
 		require.Equal(t, len(txHashes), len(orderedHashes))
 	})
@@ -373,13 +367,7 @@ func Test_setExecutionOrderInTransactionPool(t *testing.T) {
 			},
 		}
 
-		odp.executionOrderHandler = &commonMocks.TxExecutionOrderHandlerStub{
-			GetItemsCalled: func() [][]byte {
-				return txHashes
-			},
-		}
-
-		orderedHashes, numProcessed := odp.setExecutionOrderInTransactionPool(pool)
+		orderedHashes, numProcessed := odp.setExecutionOrderInTransactionPool(pool, txHashes)
 		require.Equal(t, 3, numProcessed)
 		require.Equal(t, uint32(0), pool.Transactions[hex.EncodeToString(txHashes[0])].GetExecutionOrder())
 		require.Equal(t, uint32(1), pool.SmartContractResults[hex.EncodeToString(txHashes[1])].GetExecutionOrder())
@@ -414,13 +402,7 @@ func Test_setExecutionOrderInTransactionPool(t *testing.T) {
 			},
 		}
 
-		odp.executionOrderHandler = &commonMocks.TxExecutionOrderHandlerStub{
-			GetItemsCalled: func() [][]byte {
-				return txHashes
-			},
-		}
-
-		orderedHashes, numProcessed := odp.setExecutionOrderInTransactionPool(pool)
+		orderedHashes, numProcessed := odp.setExecutionOrderInTransactionPool(pool, txHashes)
 		require.Equal(t, 3, numProcessed)
 		require.Equal(t, uint32(7), pool.Transactions[hex.EncodeToString(txHashes[7])].GetExecutionOrder())
 		require.Equal(t, uint32(8), pool.SmartContractResults[hex.EncodeToString(txHashes[8])].GetExecutionOrder())
@@ -713,9 +695,8 @@ func TestPrepareExecutionResultsData(t *testing.T) {
 
 		headerHash := []byte("hash")
 		intraMbs := make([]*block.MiniBlock, 0)
-		intraMbsBytes, _ := arg.Marshaller.Marshal(intraMbs)
 
-		arg.DataPool.ExecutedMiniBlocks().Put(headerHash, intraMbsBytes, 0)
+		arg.DataPool.ExecutedMiniBlocks().Put(headerHash, intraMbs, 0)
 		outportDataP, _ := NewOutportDataProvider(arg)
 
 		results, err := outportDataP.prepareExecutionResultsData(ArgPrepareOutportSaveBlockData{
@@ -739,8 +720,7 @@ func TestPrepareExecutionResultsData(t *testing.T) {
 
 		headerHash := []byte("hash")
 		intraMbs := make([]*block.MiniBlock, 0)
-		intraMbsBytes, _ := arg.Marshaller.Marshal(intraMbs)
-		arg.DataPool.ExecutedMiniBlocks().Put(headerHash, intraMbsBytes, 0)
+		arg.DataPool.ExecutedMiniBlocks().Put(headerHash, intraMbs, 0)
 
 		cachedTxs := make(map[block.Type]map[string]data.TransactionHandler)
 		arg.DataPool.PostProcessTransactions().Put(headerHash, cachedTxs, 1)
@@ -768,11 +748,10 @@ func TestPrepareExecutionResultsData(t *testing.T) {
 
 		headerHash := []byte("hash")
 		intraMbs := make([]*block.MiniBlock, 0)
-		intraMbsBytes, _ := arg.Marshaller.Marshal(intraMbs)
-		arg.DataPool.ExecutedMiniBlocks().Put(headerHash, intraMbsBytes, 0)
+		arg.DataPool.ExecutedMiniBlocks().Put(headerHash, intraMbs, 0)
 
 		logsKey := common.PrepareLogEventsKey(headerHash)
-		logsSlice := make([]*data.LogData, 0)
+		logsSlice := make([]data.LogDataHandler, 0)
 		arg.DataPool.PostProcessTransactions().Put(logsKey, logsSlice, 0)
 
 		cachedTxs := make(map[block.Type]map[string]data.TransactionHandler)
@@ -810,12 +789,12 @@ func TestPrepareExecutionResultsData(t *testing.T) {
 
 		headerHash := []byte("hash")
 		intraMbs := make([]*block.MiniBlock, 0)
-		intraMbsBytes, _ := arg.Marshaller.Marshal(intraMbs)
-		arg.DataPool.ExecutedMiniBlocks().Put(headerHash, intraMbsBytes, 0)
+		arg.DataPool.ExecutedMiniBlocks().Put(headerHash, intraMbs, 0)
 
 		logsKey := common.PrepareLogEventsKey(headerHash)
-		logsSlice := make([]*data.LogData, 0)
+		logsSlice := make([]data.LogDataHandler, 0)
 		arg.DataPool.PostProcessTransactions().Put(logsKey, logsSlice, 0)
+		arg.DataPool.PostProcessTransactions().Put(common.PrepareUnexecutableTxHashesKey(headerHash), make([][]byte, 0), 0)
 
 		cachedTxs := make(map[block.Type]map[string]data.TransactionHandler)
 		cachedTxs[block.TxBlock] = make(map[string]data.TransactionHandler)
@@ -850,16 +829,19 @@ func TestPrepareExecutionResultsData(t *testing.T) {
 
 		headerHash := []byte("hash")
 		intraMbs := make([]*block.MiniBlock, 0)
-		intraMbsBytes, _ := arg.Marshaller.Marshal(intraMbs)
-		arg.DataPool.ExecutedMiniBlocks().Put(headerHash, intraMbsBytes, 0)
+		arg.DataPool.ExecutedMiniBlocks().Put(headerHash, intraMbs, 0)
 
 		logsKey := common.PrepareLogEventsKey(headerHash)
-		logsSlice := make([]*data.LogData, 0)
+		logsSlice := make([]data.LogDataHandler, 0)
 		arg.DataPool.PostProcessTransactions().Put(logsKey, logsSlice, 0)
 
 		cachedTxs := make(map[block.Type]map[string]data.TransactionHandler)
 		cachedTxs[block.TxBlock] = make(map[string]data.TransactionHandler)
 		arg.DataPool.PostProcessTransactions().Put(headerHash, cachedTxs, 1)
+		arg.DataPool.PostProcessTransactions().Put(common.PrepareUnexecutableTxHashesKey(headerHash), make([][]byte, 0), 0)
+
+		key := common.PrepareOrderedTxHashesKey(headerHash)
+		arg.DataPool.PostProcessTransactions().Put(key, [][]byte{[]byte("a")}, 1)
 
 		outportDataP, _ := NewOutportDataProvider(arg)
 
@@ -892,16 +874,19 @@ func TestPrepareExecutionResultsData(t *testing.T) {
 		headerHash := []byte("hash")
 		intraMbs := make([]*block.MiniBlock, 0)
 		intraMbs = append(intraMbs, &block.MiniBlock{})
-		intraMbsBytes, _ := arg.Marshaller.Marshal(intraMbs)
-		arg.DataPool.ExecutedMiniBlocks().Put(headerHash, intraMbsBytes, 0)
+		arg.DataPool.ExecutedMiniBlocks().Put(headerHash, intraMbs, 0)
 
 		logsKey := common.PrepareLogEventsKey(headerHash)
-		logsSlice := make([]*data.LogData, 0)
+		logsSlice := make([]data.LogDataHandler, 0)
 		arg.DataPool.PostProcessTransactions().Put(logsKey, logsSlice, 0)
+		arg.DataPool.PostProcessTransactions().Put(common.PrepareUnexecutableTxHashesKey(headerHash), make([][]byte, 0), 0)
 
 		cachedTxs := make(map[block.Type]map[string]data.TransactionHandler)
 		cachedTxs[block.TxBlock] = make(map[string]data.TransactionHandler)
 		arg.DataPool.PostProcessTransactions().Put(headerHash, cachedTxs, 1)
+
+		key := common.PrepareOrderedTxHashesKey(headerHash)
+		arg.DataPool.PostProcessTransactions().Put(key, [][]byte{[]byte("a")}, 1)
 
 		outportDataP, _ := NewOutportDataProvider(arg)
 
@@ -923,4 +908,213 @@ func TestPrepareExecutionResultsData(t *testing.T) {
 		require.Len(t, results[hex.EncodeToString(headerHash)].AlteredAccounts, 1)
 		require.Equal(t, uint64(10), results[hex.EncodeToString(headerHash)].HeaderNonce)
 	})
+}
+
+func TestPutInMapTxsFromBody(t *testing.T) {
+	t.Parallel()
+
+	dataPool := dataRetriever.NewPoolsHolderMock()
+	txsMap := make(map[block.Type]map[string]data.TransactionHandler)
+	shardID := uint32(0)
+
+	tx1H, tx2H, tx3H := []byte("tx1"), []byte("tx2"), []byte("tx3")
+
+	tx1 := &transaction.Transaction{}
+	cacheID := process.ShardCacherIdentifier(0, 1)
+	dataPool.Transactions().AddData(tx1H, tx1, 1, cacheID)
+
+	tx2 := &rewardTx.RewardTx{}
+	cacheID = process.ShardCacherIdentifier(core.MetachainShardId, 0)
+	dataPool.RewardTransactions().AddData(tx2H, tx2, 1, cacheID)
+
+	tx3 := &smartContractResult.SmartContractResult{}
+	cacheID = process.ShardCacherIdentifier(2, 0)
+	dataPool.UnsignedTransactions().AddData(tx3H, tx3, 1, cacheID)
+
+	body := &block.Body{
+		MiniBlocks: []*block.MiniBlock{
+			{
+				SenderShardID:   shardID,
+				ReceiverShardID: 2,
+				Type:            block.SmartContractResultBlock,
+				// this will be ignored
+			},
+			{
+				SenderShardID:   shardID,
+				ReceiverShardID: 1,
+				Type:            block.TxBlock,
+				TxHashes:        [][]byte{tx1H},
+			},
+			{
+				SenderShardID:   core.MetachainShardId,
+				ReceiverShardID: shardID,
+				TxHashes:        [][]byte{tx2H},
+				Type:            block.RewardsBlock,
+			},
+			{
+				SenderShardID:   2,
+				ReceiverShardID: shardID,
+				Type:            block.SmartContractResultBlock,
+				TxHashes:        [][]byte{tx3H},
+			},
+		},
+	}
+
+	putInMapTxsFromBody(dataPool, body, shardID, txsMap)
+
+	txPool, scrPool, rewardPool := txsMap[block.TxBlock], txsMap[block.SmartContractResultBlock], txsMap[block.RewardsBlock]
+	txFromPool := txPool[string(tx1H)].(*transaction.Transaction)
+	require.Equal(t, tx1, txFromPool)
+
+	rewordFromPool := rewardPool[string(tx2H)].(*rewardTx.RewardTx)
+	require.Equal(t, tx2, rewordFromPool)
+
+	scrFromPool := scrPool[string(tx3H)].(*smartContractResult.SmartContractResult)
+	require.Equal(t, tx3, scrFromPool)
+}
+
+func TestOutportDataProvider_GetRewards(t *testing.T) {
+	arg := createArgOutportDataProvider()
+	arg.ShardCoordinator = &testscommon.ShardsCoordinatorMock{
+		CurrentShard: common.MetachainShardId,
+	}
+	arg.DataPool = dataRetriever.NewPoolsHolderMock()
+	arg.AlteredAccountsProvider = &testscommon.AlteredAccountsProviderStub{
+		ExtractAlteredAccountsFromPoolCalled: func(txPool *outportcore.TransactionPool, options shared.AlteredAccountsOptions) (map[string]*alteredAccount.AlteredAccount, error) {
+			return map[string]*alteredAccount.AlteredAccount{
+				"s": {},
+			}, nil
+		}}
+
+	rewardsMbHash := []byte("rewardsMbHash")
+	rewardMb := &block.MiniBlock{
+		Type: block.RewardsBlock,
+	}
+	called := false
+
+	arg.RewardsGetter = &testscommon.RewardsCreatorStub{
+		GetRewardsTxsCalled: func(body *block.Body) map[string]data.TransactionHandler {
+			called = true
+			require.Equal(t, &block.Body{MiniBlocks: []*block.MiniBlock{rewardMb}}, body)
+			return map[string]data.TransactionHandler{}
+		},
+	}
+
+	headerHash := []byte("hash")
+	intraMbs := make([]*block.MiniBlock, 0)
+	intraMbs = append(intraMbs, &block.MiniBlock{})
+	arg.DataPool.ExecutedMiniBlocks().Put(headerHash, intraMbs, 0)
+
+	rewardMbBytes, _ := arg.Marshaller.Marshal(rewardMb)
+
+	arg.DataPool.ExecutedMiniBlocks().Put(rewardsMbHash, rewardMbBytes, 0)
+
+	logsKey := common.PrepareLogEventsKey(headerHash)
+	logsSlice := make([]data.LogDataHandler, 0)
+	arg.DataPool.PostProcessTransactions().Put(logsKey, logsSlice, 0)
+
+	cachedTxs := make(map[block.Type]map[string]data.TransactionHandler)
+	cachedTxs[block.TxBlock] = make(map[string]data.TransactionHandler)
+	arg.DataPool.PostProcessTransactions().Put(headerHash, cachedTxs, 1)
+
+	key := common.PrepareOrderedTxHashesKey(headerHash)
+	arg.DataPool.PostProcessTransactions().Put(key, [][]byte{[]byte("a")}, 1)
+	arg.DataPool.PostProcessTransactions().Put(common.PrepareUnexecutableTxHashesKey(headerHash), make([][]byte, 0), 0)
+
+	outportDataP, _ := NewOutportDataProvider(arg)
+
+	results, err := outportDataP.prepareExecutionResultsData(ArgPrepareOutportSaveBlockData{
+		Header: &block.MetaBlockV3{
+			ExecutionResults: []*block.MetaExecutionResult{
+				{
+					ExecutionResult: &block.BaseMetaExecutionResult{
+						BaseExecutionResult: &block.BaseExecutionResult{
+							HeaderHash:  headerHash,
+							HeaderNonce: 10,
+						},
+					},
+					MiniBlockHeaders: []block.MiniBlockHeader{
+						{
+							Hash: rewardsMbHash,
+							Type: block.RewardsBlock,
+						},
+					},
+				},
+			},
+		},
+	})
+	require.True(t, called)
+	require.Nil(t, err)
+	require.Len(t, results, 1)
+}
+
+func TestAddInPoolUnexecutableTransactions(t *testing.T) {
+	t.Parallel()
+
+	t.Run("cannot cache unexecutable tx hashes", func(t *testing.T) {
+		arg := createArgOutportDataProvider()
+		arg.DataPool = &dataRetriever.PoolsHolderStub{
+			PostProcessTransactionsCalled: func() storage.Cacher {
+				return &cache.CacherStub{
+					GetCalled: func(key []byte) (value interface{}, ok bool) {
+						return []byte("a"), false
+					},
+				}
+			},
+		}
+
+		outportDataP, _ := NewOutportDataProvider(arg)
+
+		headerHash := []byte("hash")
+
+		pool := &outportcore.TransactionPool{}
+		err := outportDataP.addInPoolUnexecutableTransactions(headerHash, pool)
+		require.ErrorIs(t, err, common.ErrMissingUnexecutableTxHash)
+	})
+
+	t.Run("no unexecutable txs should return nil", func(t *testing.T) {
+		arg := createArgOutportDataProvider()
+		arg.DataPool = &dataRetriever.PoolsHolderStub{
+			PostProcessTransactionsCalled: func() storage.Cacher {
+				return &cache.CacherStub{
+					GetCalled: func(key []byte) (value interface{}, ok bool) {
+						return make([][]byte, 0), true
+					},
+				}
+			},
+		}
+
+		outportDataP, _ := NewOutportDataProvider(arg)
+
+		headerHash := []byte("hash")
+
+		pool := &outportcore.TransactionPool{}
+		err := outportDataP.addInPoolUnexecutableTransactions(headerHash, pool)
+		require.NoError(t, err)
+		require.Nil(t, pool.UnexecutableTransactions)
+	})
+
+	t.Run("should work", func(t *testing.T) {
+		arg := createArgOutportDataProvider()
+		arg.DataPool = dataRetriever.NewPoolsHolderMock()
+
+		headerHash := []byte("hash")
+		txHash1, txHash2, txHash3 := []byte("a"), []byte("b"), []byte("c")
+		tx := &transaction.Transaction{Nonce: 1}
+
+		arg.DataPool.PostProcessTransactions().Put(common.PrepareUnexecutableTxHashesKey(headerHash), [][]byte{txHash1, txHash2, txHash3}, 1)
+
+		cacheID := process.ShardCacherIdentifier(0, 0)
+		arg.DataPool.Transactions().AddData(txHash2, &smartContractResult.SmartContractResult{}, 1, cacheID)
+		arg.DataPool.Transactions().AddData(txHash3, tx, 1, cacheID)
+
+		outportDataP, _ := NewOutportDataProvider(arg)
+
+		pool := &outportcore.TransactionPool{}
+		err := outportDataP.addInPoolUnexecutableTransactions(headerHash, pool)
+		require.NoError(t, err)
+		require.Equal(t, 1, len(pool.UnexecutableTransactions))
+		require.Equal(t, tx, pool.UnexecutableTransactions[hex.EncodeToString(txHash3)])
+	})
+
 }

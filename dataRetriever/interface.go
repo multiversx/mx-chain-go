@@ -185,6 +185,8 @@ type ShardedDataCacherNotifier interface {
 	Keys() [][]byte
 	IsInterfaceNil() bool
 	CleanupSelfShardTxCache(accountsProvider common.AccountNonceProvider, randomness uint64, maxNum int, cleanupLoopMaximumDuration time.Duration)
+	GetNumTrackedBlocks() uint64
+	GetNumTrackedAccounts() uint64
 	OnExecutedBlock(blockHeader data.HeaderHandler, rootHash []byte) error
 	OnProposedBlock(
 		blockHash []byte,
@@ -256,6 +258,7 @@ type PoolsHolder interface {
 	Proofs() ProofsPool
 	ExecutedMiniBlocks() storage.Cacher
 	PostProcessTransactions() storage.Cacher
+	DirectSentTransactions() storage.Cacher
 	Close() error
 	IsInterfaceNil() bool
 }

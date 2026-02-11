@@ -31,35 +31,69 @@ func GetCachedIntermediateTxs(cache storage.Cacher, headerHash []byte) (map[bloc
 }
 
 // GetCachedLogs will return the cached log events from provided cache
-func GetCachedLogs(cache storage.Cacher, headerHash []byte) ([]*data.LogData, error) {
+func GetCachedLogs(cache storage.Cacher, headerHash []byte) ([]data.LogDataHandler, error) {
 	logsKey := PrepareLogEventsKey(headerHash)
 	cachedLogs, ok := cache.Get(logsKey)
 	if !ok {
 		log.Warn("logs not found in dataPool", "hash", headerHash)
 		return nil, fmt.Errorf("%w for header %s", ErrMissingCachedLogs, hex.EncodeToString(headerHash))
 	}
-	cachedLogsSlice, ok := cachedLogs.([]*data.LogData)
+	cachedLogsSlice, ok := cachedLogs.([]data.LogDataHandler)
 	if !ok {
 		return nil, fmt.Errorf("%w for cached logs %s", ErrWrongTypeAssertion, hex.EncodeToString(headerHash))
 	}
+
 	return cachedLogsSlice, nil
 }
 
-// GetCachedIntraMbs will return the cached intra shard miniblocks from provided cache
-func GetCachedIntraMbs(cache storage.Cacher, marshaller marshal.Marshalizer, headerHash []byte) ([]*block.MiniBlock, error) {
+// GetCachedOrderedTxHashes wil return the cached ordered tx hashes from the provided cache
+func GetCachedOrderedTxHashes(cache storage.Cacher, headerHash []byte) ([][]byte, error) {
+	orderedTxHashesKey := PrepareOrderedTxHashesKey(headerHash)
+	cachedData, ok := cache.Get(orderedTxHashesKey)
+	if !ok {
+		log.Warn("orderedTxHashes not found in dataPool", "hash", headerHash)
+		return nil, fmt.Errorf("%w for header %s", ErrMissingOrderedTxHashes, hex.EncodeToString(headerHash))
+	}
+
+	cachedDataSlice, ok := cachedData.([][]byte)
+	if !ok {
+		return nil, fmt.Errorf("%w for cached logs %s", ErrWrongTypeAssertion, hex.EncodeToString(headerHash))
+	}
+
+	return cachedDataSlice, nil
+}
+
+// GetCachedUnexecutableTxHashes will return the cached unexecutable tx hashes from the provided cache
+func GetCachedUnexecutableTxHashes(cache storage.Cacher, headerHash []byte) ([][]byte, error) {
+	unexecutableTxHashesKey := PrepareUnexecutableTxHashesKey(headerHash)
+	cachedData, ok := cache.Get(unexecutableTxHashesKey)
+	if !ok {
+		log.Warn("unexecutableTxHashes not found in dataPool", "hash", headerHash)
+		return nil, fmt.Errorf("%w for header %s", ErrMissingUnexecutableTxHash, hex.EncodeToString(headerHash))
+	}
+
+	cachedDataSlice, ok := cachedData.([][]byte)
+	if !ok {
+		return nil, fmt.Errorf("%w for cached unexecutable txs %s", ErrWrongTypeAssertion, hex.EncodeToString(headerHash))
+	}
+
+	return cachedDataSlice, nil
+}
+
+// GetCachedMbs will return the cached miniblocks from provided cache
+func GetCachedMbs(cache storage.Cacher, marshaller marshal.Marshalizer, headerHash []byte) ([]*block.MiniBlock, error) {
 	cachedIntraMBs, ok := cache.Get(headerHash)
 	if !ok {
 		log.Warn("intra miniblocks not found in dataPool", "hash", headerHash)
 		return nil, fmt.Errorf("%w for header %s", ErrMissingMiniBlock, hex.EncodeToString(headerHash))
 	}
-	cachedLogsBuff := cachedIntraMBs.([]byte)
-	var intraMBs []*block.MiniBlock
-	errUnmarshal := marshaller.Unmarshal(&intraMBs, cachedLogsBuff)
-	if errUnmarshal != nil {
-		return nil, fmt.Errorf("%w getIntraMbs: cannot unmarshall", errUnmarshal)
+
+	miniBlocks, ok := cachedIntraMBs.([]*block.MiniBlock)
+	if !ok {
+		return nil, fmt.Errorf("%w for GetCachedMbs", ErrWrongTypeAssertion)
 	}
 
-	return intraMBs, nil
+	return miniBlocks, nil
 }
 
 // GetCachedBody will return the block body based from provided cache based on the execution result
@@ -81,8 +115,8 @@ func GetCachedBody(cache storage.Cacher, marshaller marshal.Marshalizer, baseExe
 
 		cachedMiniBlockBytes := cachedMiniBlock.([]byte)
 
-		var miniBlock *block.MiniBlock
-		err = marshaller.Unmarshal(&miniBlock, cachedMiniBlockBytes)
+		miniBlock := &block.MiniBlock{}
+		err = marshaller.Unmarshal(miniBlock, cachedMiniBlockBytes)
 		if err != nil {
 			return nil, err
 		}

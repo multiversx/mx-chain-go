@@ -1,6 +1,7 @@
 package block
 
 import (
+	"math/big"
 	"sync"
 	"time"
 
@@ -13,6 +14,9 @@ import (
 	"github.com/multiversx/mx-chain-core-go/hashing"
 	"github.com/multiversx/mx-chain-core-go/marshal"
 
+	"github.com/multiversx/mx-chain-go/process/aotSelection"
+	commonMocks "github.com/multiversx/mx-chain-go/testscommon/common"
+
 	"github.com/multiversx/mx-chain-go/common"
 	"github.com/multiversx/mx-chain-go/common/configs"
 	"github.com/multiversx/mx-chain-go/common/graceperiod"
@@ -20,9 +24,9 @@ import (
 	"github.com/multiversx/mx-chain-go/dataRetriever"
 	"github.com/multiversx/mx-chain-go/process"
 	"github.com/multiversx/mx-chain-go/process/asyncExecution"
+	"github.com/multiversx/mx-chain-go/process/asyncExecution/cache"
 	"github.com/multiversx/mx-chain-go/process/asyncExecution/executionManager"
 	"github.com/multiversx/mx-chain-go/process/asyncExecution/executionTrack"
-	"github.com/multiversx/mx-chain-go/process/asyncExecution/queue"
 	"github.com/multiversx/mx-chain-go/process/block/bootstrapStorage"
 	"github.com/multiversx/mx-chain-go/process/block/processedMb"
 	"github.com/multiversx/mx-chain-go/process/coordinator"
@@ -49,7 +53,11 @@ import (
 // UsedShardHeadersInfo -
 type UsedShardHeadersInfo = usedShardHeadersInfo
 
+// EpochStartDataWrapper -
 type EpochStartDataWrapper = epochStartDataWrapper
+
+// ErrNilPreviousHdr -
+var ErrNilPreviousHdr = errNilPreviousHeader
 
 // ComputeHeaderHash -
 func (bp *baseProcessor) ComputeHeaderHash(hdr data.HeaderHandler) ([]byte, error) {
@@ -149,8 +157,18 @@ func NewShardProcessorEmptyWith3shards(
 		MaxShardNoncesBehind:              15,
 	}},
 		[]config.ProcessConfigByRound{
-			{EnableRound: 0, MaxRoundsWithoutNewBlockReceived: 10},
+			{
+				EnableRound:                            0,
+				MaxRoundsWithoutNewBlockReceived:       10,
+				MaxRoundsToKeepUnprocessedMiniBlocks:   50,
+				MaxRoundsToKeepUnprocessedTransactions: 50,
+				NumFloodingRoundsSlowReacting:          20,
+				NumFloodingRoundsFastReacting:          30,
+				NumFloodingRoundsOutOfSpecs:            40,
+				MaxConsecutiveRoundsOfRatingDecrease:   600,
+			},
 		},
+		&epochNotifier.RoundNotifierStub{},
 	)
 
 	coreComponents := &mock.CoreComponentsMock{
@@ -200,21 +218,27 @@ func NewShardProcessorEmptyWith3shards(
 		coreComponents.Hasher(),
 	)
 
-	blocksQueue := queue.NewBlocksQueue()
+	blocksQueue := cache.NewHeaderBodyCache(config.HeaderBodyCacheConfig{})
 	executionResultsTracker := executionTrack.NewExecutionResultsTracker()
 	execManager, _ := executionManager.NewExecutionManager(executionManager.ArgsExecutionManager{
 		BlocksQueue:             blocksQueue,
 		ExecutionResultsTracker: executionResultsTracker,
 		BlockChain:              dataComponents.BlockChain,
 		Headers:                 dataComponents.Datapool().Headers(),
+		PostProcessTransactions: dataComponents.DataPool.PostProcessTransactions(),
+		ExecutedMiniBlocks:      dataComponents.DataPool.ExecutedMiniBlocks(),
+		StorageService:          dataComponents.StorageService(),
+		Marshaller:              coreComponents.InternalMarshalizer(),
+		ShardCoordinator:        boostrapComponents.ShardCoordinator(),
 	})
 	execResultsVerifier, _ := NewExecutionResultsVerifier(dataComponents.BlockChain, execManager)
-	inclusionEstimator := estimator.NewExecutionResultInclusionEstimator(
+	inclusionEstimator, _ := estimator.NewExecutionResultInclusionEstimator(
 		config.ExecutionResultInclusionEstimatorConfig{
 			SafetyMargin:       110,
 			MaxResultsPerBlock: 20,
 		},
 		coreComponents.RoundHandler(),
+		&testscommon.ExecResSizeComputationStub{},
 	)
 
 	missingDataArgs := missingData.ResolverArgs{
@@ -231,6 +255,7 @@ func NewShardProcessorEmptyWith3shards(
 		GasHandler:                        &mock.GasHandlerMock{},
 		BlockCapacityOverestimationFactor: 200,
 		PercentDecreaseLimitsStep:         10,
+		BlockSizeComputation:              &testscommon.BlockSizeComputationStub{},
 	}
 	gasComputation, _ := NewGasConsumption(argsGasConsumption)
 
@@ -276,6 +301,8 @@ func NewShardProcessorEmptyWith3shards(
 			ExecutionResultsInclusionEstimator: inclusionEstimator,
 			GasComputation:                     gasComputation,
 			ExecutionManager:                   execManager,
+			TxExecutionOrderHandler:            &commonMocks.TxExecutionOrderHandlerStub{},
+			AOTSelector:                        aotSelection.NewDisabledAOTSelector(),
 		},
 	}
 	shardProc, err := NewShardProcessor(arguments)
@@ -284,7 +311,7 @@ func NewShardProcessorEmptyWith3shards(
 	}
 
 	argsHeaderExecutor := asyncExecution.ArgsHeadersExecutor{
-		BlocksQueue:      blocksQueue,
+		BlocksCache:      blocksQueue,
 		ExecutionTracker: executionResultsTracker,
 		BlockProcessor:   shardProc,
 		BlockChain:       dataComponents.BlockChain,
@@ -602,8 +629,8 @@ func (bp *baseProcessor) GetIndexOfFirstMiniBlockToBeExecuted(header data.Header
 }
 
 // GetFinalMiniBlocks -
-func (bp *baseProcessor) GetFinalMiniBlocks(header data.HeaderHandler, body *block.Body) (*block.Body, error) {
-	return bp.getFinalMiniBlocks(header, body)
+func (bp *baseProcessor) GetFinalMiniBlocks(headerHash []byte, header data.HeaderHandler, body *block.Body) (*block.Body, map[string]block.MiniBlockSlice, error) {
+	return bp.getFinalMiniBlocks(headerHash, header, body)
 }
 
 // GetScheduledMiniBlocksFromMe -
@@ -719,13 +746,31 @@ func (sp *shardProcessor) GetHdrForBlock() HeadersForBlock {
 	return sp.hdrsForCurrBlock
 }
 
+// PendingMiniBlocksAfterSelection -
+type PendingMiniBlocksAfterSelection = pendingBlocksAfterSelection
+
+// GetHeaderHash -
+func (p *PendingMiniBlocksAfterSelection) GetHeaderHash() []byte {
+	return p.headerHash
+}
+
+// GetHeader -
+func (p *PendingMiniBlocksAfterSelection) GetHeader() data.HeaderHandler {
+	return p.header
+}
+
+// GetMiniBlocksAndHashes -
+func (p *PendingMiniBlocksAfterSelection) GetMiniBlocksAndHashes() map[string]*block.MiniBlock {
+	return p.pendingMiniBlocks
+}
+
 // SelectIncomingMiniBlocks -
 func (sp *shardProcessor) SelectIncomingMiniBlocks(
 	lastCrossNotarizedMetaHdr data.HeaderHandler,
 	orderedMetaBlocks []data.HeaderHandler,
 	orderedMetaBlocksHashes [][]byte,
 	haveTime func() bool,
-) ([]block.MiniblockAndHash, error) {
+) ([]*PendingMiniBlocksAfterSelection, error) {
 	return sp.selectIncomingMiniBlocks(lastCrossNotarizedMetaHdr, orderedMetaBlocks, orderedMetaBlocksHashes, haveTime)
 }
 
@@ -772,7 +817,7 @@ func (bp *baseProcessor) CheckHeaderBodyCorrelationProposal(miniBlockHeaders []d
 // GetFinalMiniBlocksFromExecutionResults -
 func (bp *baseProcessor) GetFinalMiniBlocksFromExecutionResults(
 	header data.HeaderHandler,
-) (*block.Body, error) {
+) (*block.Body, map[string]block.MiniBlockSlice, error) {
 	return bp.getFinalMiniBlocksFromExecutionResults(header)
 }
 
@@ -817,8 +862,8 @@ func (sp *shardProcessor) CheckMetaHeadersValidityAndFinalityProposal(header dat
 }
 
 // VerifyGasLimit -
-func (sp *shardProcessor) VerifyGasLimit(header data.ShardHeaderHandler) error {
-	return sp.verifyGasLimit(header)
+func (sp *shardProcessor) VerifyGasLimit(header data.ShardHeaderHandler, miniBlocks block.MiniBlockSlice) error {
+	return sp.verifyGasLimit(header, miniBlocks)
 }
 
 // CheckEpochStartInfoAvailableIfNeeded -
@@ -919,6 +964,11 @@ func (bp *baseProcessor) RequestHeadersFromHeaderIfNeeded(
 	bp.requestHeadersFromHeaderIfNeeded(lastHeader)
 }
 
+// CacheIntraShardMiniBlocks -
+func (bp *baseProcessor) CacheIntraShardMiniBlocks(headerHash []byte, mbs block.MiniBlockSlice) error {
+	return bp.cacheIntraShardMiniBlocks(headerHash, mbs)
+}
+
 // GetHaveTimeForProposal -
 func GetHaveTimeForProposal(startTime time.Time, maxDuration time.Duration) func() time.Duration {
 	return getHaveTimeForProposal(startTime, maxDuration)
@@ -991,13 +1041,13 @@ func (mp *metaProcessor) SelectIncomingMiniBlocksForProposal(
 
 // SelectIncomingMiniBlocks -
 func (mp *metaProcessor) SelectIncomingMiniBlocks(
-	lastShardHdr map[uint32]ShardHeaderInfo,
+	lastShardHdrs map[uint32]ShardHeaderInfo,
 	orderedHdrs []data.HeaderHandler,
 	orderedHdrsHashes [][]byte,
 	maxNumHeadersFromSameShard uint32,
 	haveTime func() bool,
 ) error {
-	return mp.selectIncomingMiniBlocks(lastShardHdr, orderedHdrs, orderedHdrsHashes, maxNumHeadersFromSameShard, haveTime)
+	return mp.selectIncomingMiniBlocks(lastShardHdrs, orderedHdrs, orderedHdrsHashes, maxNumHeadersFromSameShard, haveTime)
 }
 
 // VerifyEpochStartData -
@@ -1017,11 +1067,6 @@ func (mp *metaProcessor) CommitEpochStart(header data.MetaHeaderHandler, body *b
 	return mp.commitEpochStart(header, body)
 }
 
-// OnExecutedBlock -
-func (bp *baseProcessor) OnExecutedBlock(header data.HeaderHandler, rootHash []byte) error {
-	return bp.onExecutedBlock(header, rootHash)
-}
-
 // RecreateTrieIfNeeded -
 func (bp *baseProcessor) RecreateTrieIfNeeded() error {
 	return bp.recreateTrieIfNeeded()
@@ -1033,8 +1078,8 @@ func (bp *baseProcessor) ExtractRootHashForCleanup(header data.HeaderHandler) (c
 }
 
 // CheckContextBeforeExecution -
-func (bp *baseProcessor) CheckContextBeforeExecution(header data.HeaderHandler) error {
-	return bp.checkContextBeforeExecution(header)
+func (bp *baseProcessor) CheckContextBeforeExecution(header data.HeaderHandler, headerHash []byte) error {
+	return bp.checkAndUpdateContextBeforeExecution(header, headerHash)
 }
 
 // SaveProposedTxsToStorage -
@@ -1087,4 +1132,33 @@ func (mp *metaProcessor) CollectExecutionResultsEpochStartProposal(
 	valStatRootHash []byte,
 ) (data.BaseExecutionResultHandler, error) {
 	return mp.collectExecutionResultsEpochStartProposal(headerHash, header, constructedBody, valStatRootHash)
+}
+
+// CollectMiniBlocks -
+func (bp *baseProcessor) CollectMiniBlocks(
+	headerHash []byte,
+	body *block.Body,
+) ([]data.MiniBlockHeaderHandler, int, []byte, error) {
+	return bp.collectMiniBlocks(headerHash, body)
+}
+
+// GetCurrentlyAccumulatedFees -
+func (mp *metaProcessor) GetCurrentlyAccumulatedFees(metaHdr data.MetaHeaderHandler) (*big.Int, *big.Int, error) {
+	return mp.getCurrentlyAccumulatedFees(metaHdr)
+}
+
+// GetOrderedProcessedMetaBlocksFromMiniBlockHashesV3 -
+func (sp *shardProcessor) GetOrderedProcessedMetaBlocksFromMiniBlockHashesV3(
+	header data.HeaderHandler,
+	miniBlockHashes map[int][]byte,
+) ([]data.HeaderHandler, error) {
+	return sp.getOrderedProcessedMetaBlocksFromMiniBlockHashesV3(header, miniBlockHashes)
+}
+
+// ExcludeRevertedExecutionResultsForHeader -
+func (bp *baseProcessor) ExcludeRevertedExecutionResultsForHeader(
+	header data.HeaderHandler,
+	pendingExecutionResults []data.BaseExecutionResultHandler,
+) []data.BaseExecutionResultHandler {
+	return bp.excludeRevertedExecutionResultsForHeader(header, pendingExecutionResults)
 }

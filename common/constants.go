@@ -103,6 +103,12 @@ const MetricCurrentRound = "erd_current_round"
 // MetricNonce is the metric for monitoring the nonce of a node
 const MetricNonce = "erd_nonce"
 
+// MetricLastExecutedNonce is the metric for monitoring the last executed nonce of a node
+const MetricLastExecutedNonce = "erd_last_executed_nonce"
+
+// MetricProposedNonce is the metric for monitoring the proposed nonce of a node
+const MetricProposedNonce = "erd_proposed_nonce"
+
 // MetricBlockTimestamp is the metric for monitoring the timestamp of the last synchronized block
 const MetricBlockTimestamp = "erd_block_timestamp"
 
@@ -330,6 +336,20 @@ const MetricAvgReceivedOrSentProposedBlock = "erd_consensus_average_received_or_
 // MetricAvgReceivedProof is the metric that specifies the average delay in nanoseconds between the time the proposed block
 // has been sent or has reached the current node until proof was received.
 const MetricAvgReceivedProof = "erd_consensus_average_received_sent_proof"
+
+// MetricNumTrackedBlocks is the metric that specifies how many blocks are tracked by the txPool
+const MetricNumTrackedBlocks = "erd_num_tracked_blocks"
+
+// MetricNumTrackedAccounts is the metric that specifies how many accounts are tracked by the txPool
+const MetricNumTrackedAccounts = "erd_num_tracked_accounts"
+
+// MetricNumInclusionEstimationRejected is the metric that specifies how many execution results were rejected by the
+// inclusion estimation process
+const MetricNumInclusionEstimationRejected = "erd_num_inclusion_estimation_rejected"
+
+// MetricDeltaHeaderNonceLastExecutionResultNonce is the metric that specifies the delta between the header nonce and
+// the last execution result nonce
+const MetricDeltaHeaderNonceLastExecutionResultNonce = "erd_delta_header_nonce_last_execution_result_nonce"
 
 // MetricCreatedProposedBlock is the metric that specifies the percent of the block subround used for header and body
 // creation (0 meaning that the block was created in no-time and 100 meaning that the block creation used all the
@@ -609,9 +629,6 @@ const (
 	// MetricStorageAPICostOptimizationEnableEpoch represents the epoch when storage api cost optimization feature is enabled
 	MetricStorageAPICostOptimizationEnableEpoch = "erd_storage_api_cost_optimization_enable_epoch"
 
-	// MetricTransformToMultiShardCreateEnableEpoch represents the epoch when transform to multi shard create functionality is enabled
-	MetricTransformToMultiShardCreateEnableEpoch = "erd_transform_to_multi_shard_create_enable_epoch"
-
 	// MetricESDTRegisterAndSetAllRolesEnableEpoch represents the epoch when esdt register and set all roles functionality is enabled
 	MetricESDTRegisterAndSetAllRolesEnableEpoch = "erd_esdt_register_and_set_all_roles_enable_epoch"
 
@@ -794,6 +811,12 @@ const (
 
 	// MetricRelayedTransactionsV1V2DisableEpoch represents the epoch when relayed transactions v1 and v2 are disabled
 	MetricRelayedTransactionsV1V2DisableEpoch = "erd_relayed_transactions_v1_v2_disable_epoch"
+
+	// MetricTailInflationEnableEpoch represents the epoch when tail inflation is enabled
+	MetricTailInflationEnableEpoch = "erd_tail_inflation_enable_epoch"
+
+	// MetricSupernovaEnableEpoch represents the epoch when supernova is enabled
+	MetricSupernovaEnableEpoch = "erd_supernova_enable_epoch"
 
 	// MetricEpochEnable represents the epoch when the max nodes change configuration is applied
 	MetricEpochEnable = "erd_epoch_enable"
@@ -1013,6 +1036,9 @@ const CommitMaxTime = 3 * time.Second
 
 // PutInStorerMaxTime represents max time accepted for a put action, after which a warn message is displayed
 const PutInStorerMaxTime = time.Second
+
+// PutInStorerMaxTimeSupernova represents max time accepted for a put action with supernova activated, after which a warn message is displayed
+const PutInStorerMaxTimeSupernova = 600 * time.Millisecond
 
 // DefaultUnstakedEpoch represents the default epoch that is set for a validator that has not unstaked yet
 const DefaultUnstakedEpoch = math.MaxUint32
@@ -1315,4 +1341,21 @@ type EnableRoundFlag string
 const (
 	DisableAsyncCallV1Flag EnableRoundFlag = "DisableAsyncCallV1"
 	SupernovaRoundFlag     EnableRoundFlag = "SupernovaEnableRound"
+)
+
+// HashSize defines  const for the hash length
+const HashSize = 32
+
+// FloodPreventerType defines the type of flood preventer
+type FloodPreventerType string
+
+const (
+	// FastReacting defines fast reacting flood preventer type
+	FastReacting FloodPreventerType = "fast_reacting"
+	// SlowReacting defines slow reacting flood preventer type
+	SlowReacting FloodPreventerType = "slow_reacting"
+	// OutOfSpecs defines out of specs flood preventer type
+	OutOfSpecs FloodPreventerType = "out_of_specs"
+	// Output defines output flood preventer type
+	Output FloodPreventerType = "output"
 )

@@ -94,8 +94,7 @@ func (mbp *metaAPIBlockProcessor) GetBlockByHash(hash []byte, options api.BlockQ
 		return nil, err
 	}
 
-	blockHeader := &block.MetaBlock{}
-	err = mbp.marshalizer.Unmarshal(blockHeader, blockBytes)
+	blockHeader, err := process.UnmarshalHeader(core.MetachainShardId, mbp.marshalizer, blockBytes)
 	if err != nil {
 		return nil, err
 	}
@@ -249,8 +248,6 @@ func (mbp *metaAPIBlockProcessor) convertMetaBlockBytesToAPIBlock(hash []byte, b
 		TimestampMs:            int64(timestampMs),
 		StateRootHash:          hex.EncodeToString(blockHeader.GetRootHash()),
 		Status:                 BlockStatusOnChain,
-		PubKeyBitmap:           hex.EncodeToString(blockHeader.GetPubKeysBitmap()),
-		Signature:              hex.EncodeToString(blockHeader.GetSignature()),
 		LeaderSignature:        hex.EncodeToString(blockHeader.GetLeaderSignature()),
 		ChainID:                string(blockHeader.GetChainID()),
 		SoftwareVersion:        hex.EncodeToString(blockHeader.GetSoftwareVersion()),
@@ -261,6 +258,9 @@ func (mbp *metaAPIBlockProcessor) convertMetaBlockBytesToAPIBlock(hash []byte, b
 	}
 
 	if !blockHeader.IsHeaderV3() {
+		apiMetaBlock.PubKeyBitmap = hex.EncodeToString(blockHeader.GetPubKeysBitmap())
+		apiMetaBlock.Signature = hex.EncodeToString(blockHeader.GetSignature())
+
 		err = mbp.addMbsAndNumTxsV1(apiMetaBlock, blockHeader, hash, options)
 	} else {
 		// async execution

@@ -16,6 +16,7 @@ import (
 	crypto "github.com/multiversx/mx-chain-crypto-go"
 	mclMultiSig "github.com/multiversx/mx-chain-crypto-go/signing/mcl/multisig"
 	"github.com/multiversx/mx-chain-crypto-go/signing/multisig"
+
 	"github.com/multiversx/mx-chain-go/testscommon/processMocks"
 
 	"github.com/multiversx/mx-chain-go/common"
@@ -54,6 +55,7 @@ import (
 	"github.com/multiversx/mx-chain-go/storage/cache"
 	"github.com/multiversx/mx-chain-go/storage/storageunit"
 	"github.com/multiversx/mx-chain-go/testscommon"
+	cacheMocks "github.com/multiversx/mx-chain-go/testscommon/cache"
 	"github.com/multiversx/mx-chain-go/testscommon/chainParameters"
 	consensusMocks "github.com/multiversx/mx-chain-go/testscommon/consensus"
 	"github.com/multiversx/mx-chain-go/testscommon/cryptoMocks"
@@ -185,19 +187,31 @@ func CreateNodesWithTestConsensusNode(
 	return nodes
 }
 
-func createCustomMultiSignerMock(multiSigner crypto.MultiSigner) *cryptoMocks.MultisignerMock {
+func createCustomMultiSignerMock(multiSigner crypto.MultiSignerV2) *cryptoMocks.MultisignerMock {
 	multiSignerMock := &cryptoMocks.MultisignerMock{}
 	multiSignerMock.CreateSignatureShareCalled = func(privateKeyBytes, message []byte) ([]byte, error) {
 		return multiSigner.CreateSignatureShare(privateKeyBytes, message)
 	}
+	multiSignerMock.CreateSignatureShareV2Called = func(privateKey crypto.PrivateKey, message []byte) ([]byte, error) {
+		return multiSigner.CreateSignatureShareV2(privateKey, message)
+	}
 	multiSignerMock.VerifySignatureShareCalled = func(publicKey, message, sig []byte) error {
 		return multiSigner.VerifySignatureShare(publicKey, message, sig)
 	}
-	multiSignerMock.AggregateSigsCalled = func(pubKeysSigners, signatures [][]byte) ([]byte, error) {
+	multiSignerMock.VerifySignatureShareV2Called = func(publicKey crypto.PublicKey, message, sig []byte) error {
+		return multiSigner.VerifySignatureShareV2(publicKey, message, sig)
+	}
+	multiSignerMock.AggregateSigsCalled = func(pubKeysSigners [][]byte, signatures [][]byte) ([]byte, error) {
 		return multiSigner.AggregateSigs(pubKeysSigners, signatures)
+	}
+	multiSignerMock.AggregateSigsV2Called = func(pubKeysSigners []crypto.PublicKey, signatures [][]byte) ([]byte, error) {
+		return multiSigner.AggregateSigsV2(pubKeysSigners, signatures)
 	}
 	multiSignerMock.VerifyAggregatedSigCalled = func(pubKeysSigners [][]byte, message, aggSig []byte) error {
 		return multiSigner.VerifyAggregatedSig(pubKeysSigners, message, aggSig)
+	}
+	multiSignerMock.VerifyAggregatedSigV2Called = func(pubKeysSigners []crypto.PublicKey, message, aggSig []byte) error {
+		return multiSigner.VerifyAggregatedSigV2(pubKeysSigners, message, aggSig)
 	}
 
 	return multiSignerMock
@@ -349,11 +363,15 @@ func (tcn *TestConsensusNode) initNode(args ArgsTestConsensusNode) {
 	coreComponents.HardforkTriggerPubKeyField = []byte("provided hardfork pub key")
 
 	argsKeysHolder := keysManagement.ArgsManagedPeersHolder{
-		KeyGenerator:          args.KeyGen,
-		P2PKeyGenerator:       args.P2PKeyGen,
-		MaxRoundsOfInactivity: 0, // 0 for main node, non-0 for backup node
-		PrefsConfig:           config.Preferences{},
+		KeyGenerator:    args.KeyGen,
+		P2PKeyGenerator: args.P2PKeyGen,
+		PrefsConfig: config.Preferences{
+			Preferences: config.PreferencesConfig{
+				RedundancyLevel: 0, //  0 for main node, non-0 for backup node
+			},
+		},
 		P2PKeyConverter:       p2pFactory.NewP2PKeyConverter(),
+		ProcessConfigsHandler: &testscommon.ProcessConfigsHandlerStub{},
 	}
 	keysHolder, _ := keysManagement.NewManagedPeersHolder(argsKeysHolder)
 
@@ -378,6 +396,7 @@ func (tcn *TestConsensusNode) initNode(args ArgsTestConsensusNode) {
 		KeyGenerator:         args.KeyGen,
 		KeysHandler:          keysHandler,
 		SingleSigner:         TestSingleBlsSigner,
+		PubKeysCache:         cacheMocks.NewCacherMock(),
 	}
 	sigHandler, _ := cryptoFactory.NewSigningHandler(signingHandlerArgs)
 
@@ -670,7 +689,7 @@ func (tcn *TestConsensusNode) initBlockProcessor(shardId uint32) {
 
 			return header, &dataBlock.Body{}, nil
 		},
-		MarshalizedDataToBroadcastCalled: func(header data.HeaderHandler, body data.BodyHandler) (map[uint32][]byte, map[string][][]byte, error) {
+		MarshalizedDataToBroadcastCalled: func(hash []byte, header data.HeaderHandler, body data.BodyHandler) (map[uint32][]byte, map[string][][]byte, error) {
 			mrsData := make(map[uint32][]byte)
 			mrsTxs := make(map[string][][]byte)
 			return mrsData, mrsTxs, nil
@@ -751,6 +770,7 @@ func createHasher(consensusType string) hashing.Hasher {
 func createTestStore() dataRetriever.StorageService {
 	store := dataRetriever.NewChainStorer()
 	store.AddStorer(dataRetriever.TransactionUnit, CreateMemUnit())
+	store.AddStorer(dataRetriever.UnsignedTransactionUnit, CreateMemUnit())
 	store.AddStorer(dataRetriever.MiniBlockUnit, CreateMemUnit())
 	store.AddStorer(dataRetriever.RewardTransactionUnit, CreateMemUnit())
 	store.AddStorer(dataRetriever.MetaBlockUnit, CreateMemUnit())

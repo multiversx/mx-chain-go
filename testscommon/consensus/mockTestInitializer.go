@@ -42,7 +42,7 @@ func InitBlockProcessorMock(marshaller marshal.Marshalizer) *testscommon.BlockPr
 	blockProcessorMock.CommitBlockCalled = func(header data.HeaderHandler, body data.BodyHandler) error {
 		return nil
 	}
-	blockProcessorMock.RevertCurrentBlockCalled = func(_ data.HeaderHandler) {}
+	blockProcessorMock.RevertCurrentBlockCalled = func() {}
 	blockProcessorMock.ProcessBlockCalled = func(header data.HeaderHandler, body data.BodyHandler, haveTime func() time.Duration) error {
 		return nil
 	}
@@ -55,7 +55,7 @@ func InitBlockProcessorMock(marshaller marshal.Marshalizer) *testscommon.BlockPr
 
 		return header
 	}
-	blockProcessorMock.MarshalizedDataToBroadcastCalled = func(header data.HeaderHandler, body data.BodyHandler) (map[uint32][]byte, map[string][][]byte, error) {
+	blockProcessorMock.MarshalizedDataToBroadcastCalled = func(hash []byte, header data.HeaderHandler, body data.BodyHandler) (map[uint32][]byte, map[string][][]byte, error) {
 		return make(map[uint32][]byte), make(map[string][][]byte), nil
 	}
 	blockProcessorMock.CreateNewHeaderCalled = func(round uint64, nonce uint64) (data.HeaderHandler, error) {
@@ -79,7 +79,7 @@ func InitBlockProcessorHeaderV2Mock() *testscommon.BlockProcessorStub {
 	blockProcessorMock.CommitBlockCalled = func(header data.HeaderHandler, body data.BodyHandler) error {
 		return nil
 	}
-	blockProcessorMock.RevertCurrentBlockCalled = func(_ data.HeaderHandler) {}
+	blockProcessorMock.RevertCurrentBlockCalled = func() {}
 	blockProcessorMock.ProcessBlockCalled = func(header data.HeaderHandler, body data.BodyHandler, haveTime func() time.Duration) error {
 		return nil
 	}
@@ -92,7 +92,7 @@ func InitBlockProcessorHeaderV2Mock() *testscommon.BlockProcessorStub {
 			ScheduledRootHash: []byte{},
 		}
 	}
-	blockProcessorMock.MarshalizedDataToBroadcastCalled = func(header data.HeaderHandler, body data.BodyHandler) (map[uint32][]byte, map[string][][]byte, error) {
+	blockProcessorMock.MarshalizedDataToBroadcastCalled = func(hash []byte, header data.HeaderHandler, body data.BodyHandler) (map[uint32][]byte, map[string][][]byte, error) {
 		return make(map[uint32][]byte), make(map[string][][]byte), nil
 	}
 	blockProcessorMock.CreateNewHeaderCalled = func(round uint64, nonce uint64) (data.HeaderHandler, error) {
@@ -115,13 +115,25 @@ func InitMultiSignerMock() *cryptoMocks.MultisignerMock {
 	multiSigner.VerifySignatureShareCalled = func(publicKey []byte, message []byte, sig []byte) error {
 		return nil
 	}
+	multiSigner.VerifySignatureShareV2Called = func(publicKey crypto.PublicKey, message []byte, sig []byte) error {
+		return nil
+	}
 	multiSigner.VerifyAggregatedSigCalled = func(pubKeysSigners [][]byte, message []byte, aggSig []byte) error {
+		return nil
+	}
+	multiSigner.VerifyAggregatedSigV2Called = func(pubKeysSigners []crypto.PublicKey, message []byte, aggSig []byte) error {
 		return nil
 	}
 	multiSigner.AggregateSigsCalled = func(pubKeysSigners [][]byte, signatures [][]byte) ([]byte, error) {
 		return []byte("aggregatedSig"), nil
 	}
+	multiSigner.AggregateSigsV2Called = func(pubKeysSigners []crypto.PublicKey, signatures [][]byte) ([]byte, error) {
+		return []byte("aggregatedSig"), nil
+	}
 	multiSigner.CreateSignatureShareCalled = func(privateKeyBytes []byte, message []byte) ([]byte, error) {
+		return []byte("partialSign"), nil
+	}
+	multiSigner.CreateSignatureShareV2Called = func(privateKeyBytes crypto.PrivateKey, message []byte) ([]byte, error) {
 		return []byte("partialSign"), nil
 	}
 	return multiSigner
@@ -167,7 +179,7 @@ func InitConsensusCore() *spos.ConsensusCore {
 }
 
 // InitConsensusCoreWithMultiSigner -
-func InitConsensusCoreWithMultiSigner(multiSigner crypto.MultiSigner) *spos.ConsensusCore {
+func InitConsensusCoreWithMultiSigner(multiSigner crypto.MultiSignerV2) *spos.ConsensusCore {
 	blockChain := &testscommon.ChainHandlerStub{
 		GetGenesisHeaderCalled: func() data.HeaderHandler {
 			return &block.Header{

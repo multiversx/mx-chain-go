@@ -36,7 +36,7 @@ func (gen *genericEpochNotifier) CheckEpoch(header data.HeaderHandler) {
 	}
 
 	gen.mutData.Lock()
-	epoch := header.GetEpoch()
+	epoch := getEpoch(header)
 	timestamp := header.GetTimeStamp()
 	shouldSkipHeader := gen.wasInitialized && gen.currentEpoch == epoch
 	if shouldSkipHeader {
@@ -63,6 +63,25 @@ func (gen *genericEpochNotifier) CheckEpoch(header data.HeaderHandler) {
 	for _, handler := range handlersCopy {
 		handler.EpochConfirmed(epoch, timestamp)
 	}
+}
+
+func getEpoch(header data.HeaderHandler) uint32 {
+	epoch := header.GetEpoch()
+	if !header.IsHeaderV3() {
+		return epoch
+	}
+
+	metaBlock, isMeta := header.(data.MetaHeaderHandler)
+	if !isMeta {
+		return epoch
+	}
+
+	if !metaBlock.IsEpochChangeProposed() {
+		return epoch
+	}
+
+	// If it is epoch start proposed meta header, we should use next epoch
+	return epoch + 1
 }
 
 // RegisterNotifyHandler will register the provided handler to be called whenever a new epoch has changed

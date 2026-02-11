@@ -71,7 +71,7 @@ type trigger struct {
 	appStatusHandler            core.AppStatusHandler
 	validatorInfoPool           epochStart.ValidatorInfoCacher
 	chainParametersHandler      process.ChainParametersHandler
-	lastEpochProposedNonce      uint64
+	epochChangeProposed         bool
 }
 
 // NewEpochStartTrigger creates a trigger for start of epoch
@@ -176,7 +176,7 @@ func (t *trigger) ForceEpochStart(round uint64) {
 	defer t.mutTrigger.Unlock()
 
 	t.nextEpochStartRound = round
-	if t.nextEpochStartRound > t.currEpochStartRound+t.getRoundsPerEpoch(t.epoch) {
+	if t.nextEpochStartRound > t.currEpochStartRound+t.getRoundsPerEpoch(t.epoch)-t.getOffsetPerEpoch(t.epoch) {
 		t.nextEpochStartRound = disabledRoundForForceEpochStart
 		log.Debug("can not force epoch start because the resulting round is in the next epoch")
 
@@ -203,6 +203,16 @@ func (t *trigger) getRoundsPerEpoch(epoch uint32) uint64 {
 	return uint64(chainParametersForEpoch.RoundsPerEpoch)
 }
 
+func (t *trigger) getOffsetPerEpoch(epoch uint32) uint64 {
+	chainParametersForEpoch, err := t.chainParametersHandler.ChainParametersForEpoch(epoch)
+	if err != nil {
+		log.Warn("could not get rounds per epoch for epoch, returned current chain parameters", "epoch", epoch, "error", err)
+		chainParametersForEpoch = t.chainParametersHandler.CurrentChainParameters()
+	}
+
+	return uint64(chainParametersForEpoch.Offset)
+}
+
 func (t *trigger) getMinRoundsBetweenEpochs(epoch uint32) uint64 {
 	chainParametersForEpoch, err := t.chainParametersHandler.ChainParametersForEpoch(epoch)
 	if err != nil {
@@ -219,19 +229,30 @@ func (t *trigger) ShouldProposeEpochChange(currentRound uint64, currentNonce uin
 	defer t.mutTrigger.Unlock()
 
 	shouldTriggerEpochStart := t.shouldTriggerEpochStart(currentRound, currentNonce)
-	if shouldTriggerEpochStart {
-		t.lastEpochProposedNonce = currentNonce
-	}
-	if currentNonce == t.lastEpochProposedNonce && t.lastEpochProposedNonce >= minimumNonceToStartEpoch {
+	if shouldTriggerEpochStart && !t.epochChangeProposed {
 		return true
 	}
 
-	return shouldTriggerEpochStart
+	return false
+}
+
+// SetEpochChangeProposed sets the epoch change proposed flag to true
+func (t *trigger) SetEpochChangeProposed(value bool) {
+	t.mutTrigger.Lock()
+	defer t.mutTrigger.Unlock()
+	t.epochChangeProposed = value
+}
+
+// GetEpochChangeProposed returns the epoch change proposed flag
+func (t *trigger) GetEpochChangeProposed() bool {
+	t.mutTrigger.RLock()
+	defer t.mutTrigger.RUnlock()
+	return t.epochChangeProposed
 }
 
 func (t *trigger) shouldTriggerEpochStart(currentRound uint64, currentNonce uint64) bool {
 	isZeroEpochEdgeCase := currentNonce < minimumNonceToStartEpoch
-	isNormalEpochStart := currentRound > t.currEpochStartRound+t.getRoundsPerEpoch(t.epoch)
+	isNormalEpochStart := currentRound > t.currEpochStartRound+t.getRoundsPerEpoch(t.epoch)-t.getOffsetPerEpoch(t.epoch)
 	isWithEarlyEndOfEpoch := currentRound >= t.nextEpochStartRound
 	shouldTriggerEpochStart := (isNormalEpochStart || isWithEarlyEndOfEpoch) && !isZeroEpochEdgeCase
 
@@ -247,7 +268,7 @@ func (t *trigger) Update(round uint64, nonce uint64) {
 	}
 
 	if t.shouldTriggerEpochStart(round, nonce) {
-		t.setEpochChange(round)
+		t.setEpochChange(round, t.epoch+1)
 	}
 }
 
@@ -256,11 +277,11 @@ func (t *trigger) SetEpochChange(round uint64) {
 	t.mutTrigger.Lock()
 	defer t.mutTrigger.Unlock()
 
-	t.setEpochChange(round)
+	t.setEpochChange(round, t.epoch+1)
 }
 
-func (t *trigger) setEpochChange(round uint64) {
-	t.epoch += 1
+func (t *trigger) setEpochChange(round uint64, epoch uint32) {
+	t.epoch = epoch
 	t.isEpochStart = true
 	t.prevEpochStartRound = t.currEpochStartRound
 	t.currEpochStartRound = round
@@ -283,6 +304,10 @@ func (t *trigger) SetProcessed(header data.HeaderHandler, body data.BodyHandler)
 	}
 	if !metaBlock.IsStartOfEpochBlock() {
 		return
+	}
+
+	if header.IsHeaderV3() {
+		t.setEpochChange(header.GetRound(), header.GetEpoch())
 	}
 
 	metaBuff, errNotCritical := t.marshaller.Marshal(metaBlock)
@@ -372,7 +397,7 @@ func (t *trigger) revert(header data.HeaderHandler) error {
 		return nil
 	}
 
-	metaHdr, ok := header.(*block.MetaBlock)
+	metaHdr, ok := header.(data.MetaHeaderHandler)
 	if !ok {
 		log.Warn("wrong type assertion in Revert metachain trigger")
 		return epochStart.ErrWrongTypeAssertion
@@ -381,21 +406,20 @@ func (t *trigger) revert(header data.HeaderHandler) error {
 	t.mutTrigger.Lock()
 	defer t.mutTrigger.Unlock()
 
-	prevEpochStartIdentifier := core.EpochStartIdentifier(metaHdr.Epoch - 1)
+	prevEpochStartIdentifier := core.EpochStartIdentifier(metaHdr.GetEpoch() - 1)
 	epochStartMetaBuff, err := t.metaHeaderStorage.SearchFirst([]byte(prevEpochStartIdentifier))
 	if err != nil {
 		log.Warn("Revert get previous meta from storage", "error", err)
 		return err
 	}
 
-	epochStartMeta := &block.MetaBlock{}
-	err = t.marshaller.Unmarshal(epochStartMeta, epochStartMetaBuff)
+	epochStartMeta, err := process.UnmarshalMetaHeader(t.marshaller, epochStartMetaBuff)
 	if err != nil {
 		log.Warn("Revert unmarshal previous meta", "error", err)
 		return err
 	}
 
-	epochStartIdentifier := core.EpochStartIdentifier(metaHdr.Epoch)
+	epochStartIdentifier := core.EpochStartIdentifier(metaHdr.GetEpoch())
 	errNotCritical := t.triggerStorage.Remove([]byte(epochStartIdentifier))
 	if errNotCritical != nil {
 		log.Debug("Revert remove from triggerStorage", "error", errNotCritical.Error())
@@ -406,8 +430,8 @@ func (t *trigger) revert(header data.HeaderHandler) error {
 		log.Debug("Revert remove from triggerStorage", "error", errNotCritical.Error())
 	}
 
-	t.currEpochStartRound = metaHdr.EpochStart.Economics.PrevEpochStartRound
-	t.epoch = metaHdr.Epoch - 1
+	t.currEpochStartRound = metaHdr.GetEpochStartHandler().GetEconomicsHandler().GetPrevEpochStartRound()
+	t.epoch = metaHdr.GetEpoch() - 1
 	t.isEpochStart = false
 	t.epochStartMeta = epochStartMeta
 
@@ -470,8 +494,7 @@ func (t *trigger) GetEpochStartHdrFromStorage(epoch uint32) (data.HeaderHandler,
 		return nil, err
 	}
 
-	metaHdr := &block.MetaBlock{}
-	err = t.marshaller.Unmarshal(metaHdr, epochStartMetaBuff)
+	metaHdr, err := process.UnmarshalMetaHeader(t.marshaller, epochStartMetaBuff)
 	if err != nil {
 		return nil, err
 	}

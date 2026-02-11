@@ -11,16 +11,16 @@ import (
 type BlockProcessorStub struct {
 	SetNumProcessedObjCalled         func(numObj uint64)
 	ProcessBlockCalled               func(header data.HeaderHandler, body data.BodyHandler, haveTime func() time.Duration) error
-	ProcessBlockProposalCalled       func(header data.HeaderHandler, body data.BodyHandler) (data.BaseExecutionResultHandler, error)
+	ProcessBlockProposalCalled       func(header data.HeaderHandler, headerHash []byte, body data.BodyHandler) (data.BaseExecutionResultHandler, error)
 	ProcessScheduledBlockCalled      func(header data.HeaderHandler, body data.BodyHandler, haveTime func() time.Duration) error
 	CommitBlockCalled                func(header data.HeaderHandler, body data.BodyHandler) error
-	RevertCurrentBlockCalled         func(header data.HeaderHandler)
+	RevertCurrentBlockCalled         func()
 	PruneStateOnRollbackCalled       func(currHeader data.HeaderHandler, currHeaderHash []byte, prevHeader data.HeaderHandler, prevHeaderHash []byte)
 	CreateBlockCalled                func(initialHdrData data.HeaderHandler, haveTime func() bool) (data.HeaderHandler, data.BodyHandler, error)
 	CreateBlockProposalCalled        func(initialHdr data.HeaderHandler, haveTime func() bool) (data.HeaderHandler, data.BodyHandler, error)
 	RestoreBlockIntoPoolsCalled      func(header data.HeaderHandler, body data.BodyHandler) error
 	RestoreBlockBodyIntoPoolsCalled  func(body data.BodyHandler) error
-	MarshalizedDataToBroadcastCalled func(header data.HeaderHandler, body data.BodyHandler) (map[uint32][]byte, map[string][][]byte, error)
+	MarshalizedDataToBroadcastCalled func(headerHash []byte, header data.HeaderHandler, body data.BodyHandler) (map[uint32][]byte, map[string][][]byte, error)
 	DecodeBlockBodyCalled            func(dta []byte) data.BodyHandler
 	DecodeBlockHeaderCalled          func(dta []byte) data.HeaderHandler
 	CreateNewHeaderCalled            func(round uint64, nonce uint64) (data.HeaderHandler, error)
@@ -38,7 +38,9 @@ type BlockProcessorStub struct {
 		proposedHeader data.HeaderHandler,
 		proposedHash []byte,
 	) error
-	RemoveHeaderFromPoolCalled func(headerHash []byte)
+	OnExecutedBlockCalled                           func(header data.HeaderHandler, rootHash []byte) error
+	RemoveHeaderFromPoolCalled                      func(headerHash []byte)
+	ProposedDirectSentTransactionsToBroadcastCalled func(proposedBody data.BodyHandler) map[string][][]byte
 }
 
 // SetNumProcessedObj -
@@ -58,9 +60,9 @@ func (bps *BlockProcessorStub) ProcessBlock(header data.HeaderHandler, body data
 }
 
 // ProcessBlockProposal mocks processing a block
-func (bps *BlockProcessorStub) ProcessBlockProposal(header data.HeaderHandler, body data.BodyHandler) (data.BaseExecutionResultHandler, error) {
+func (bps *BlockProcessorStub) ProcessBlockProposal(header data.HeaderHandler, headerHash []byte, body data.BodyHandler) (data.BaseExecutionResultHandler, error) {
 	if bps.ProcessBlockProposalCalled != nil {
-		return bps.ProcessBlockProposalCalled(header, body)
+		return bps.ProcessBlockProposalCalled(header, headerHash, body)
 	}
 
 	return nil, nil
@@ -85,9 +87,9 @@ func (bps *BlockProcessorStub) CommitBlock(header data.HeaderHandler, body data.
 }
 
 // RevertCurrentBlock mocks revert of the current block
-func (bps *BlockProcessorStub) RevertCurrentBlock(header data.HeaderHandler) {
+func (bps *BlockProcessorStub) RevertCurrentBlock() {
 	if bps.RevertCurrentBlockCalled != nil {
-		bps.RevertCurrentBlockCalled(header)
+		bps.RevertCurrentBlockCalled()
 	}
 }
 
@@ -135,9 +137,9 @@ func (bps *BlockProcessorStub) RestoreBlockBodyIntoPools(body data.BodyHandler) 
 }
 
 // MarshalizedDataToBroadcast -
-func (bps *BlockProcessorStub) MarshalizedDataToBroadcast(header data.HeaderHandler, body data.BodyHandler) (map[uint32][]byte, map[string][][]byte, error) {
+func (bps *BlockProcessorStub) MarshalizedDataToBroadcast(headerHash []byte, header data.HeaderHandler, body data.BodyHandler) (map[uint32][]byte, map[string][][]byte, error) {
 	if bps.MarshalizedDataToBroadcastCalled != nil {
-		return bps.MarshalizedDataToBroadcastCalled(header, body)
+		return bps.MarshalizedDataToBroadcastCalled(headerHash, header, body)
 	}
 
 	return nil, nil, ErrNotImplemented
@@ -232,11 +234,28 @@ func (bps *BlockProcessorStub) OnProposedBlock(
 	return nil
 }
 
+// OnExecutedBlock -
+func (bps *BlockProcessorStub) OnExecutedBlock(header data.HeaderHandler, rootHash []byte) error {
+	if bps.OnExecutedBlockCalled != nil {
+		return bps.OnExecutedBlockCalled(header, rootHash)
+	}
+
+	return nil
+}
+
 // RemoveHeaderFromPool -
 func (bps *BlockProcessorStub) RemoveHeaderFromPool(headerHash []byte) {
 	if bps.RemoveHeaderFromPoolCalled != nil {
 		bps.RemoveHeaderFromPoolCalled(headerHash)
 	}
+}
+
+// ProposedDirectSentTransactionsToBroadcast -
+func (bps *BlockProcessorStub) ProposedDirectSentTransactionsToBroadcast(proposedBody data.BodyHandler) map[string][][]byte {
+	if bps.ProposedDirectSentTransactionsToBroadcastCalled != nil {
+		return bps.ProposedDirectSentTransactionsToBroadcastCalled(proposedBody)
+	}
+	return nil
 }
 
 // IsInterfaceNil returns true if there is no value under the interface

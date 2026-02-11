@@ -51,6 +51,7 @@ type ConsensusCoreHandler interface {
 	EquivalentProofsPool() consensus.EquivalentProofsPool
 	EpochNotifier() process.EpochNotifier
 	InvalidSignersCache() InvalidSignersCache
+	AOTSelector() process.AOTTransactionSelector
 	IsInterfaceNil() bool
 }
 
@@ -280,5 +281,14 @@ type InvalidSignersCache interface {
 	AddInvalidSigners(headerHash []byte, invalidSigners []byte, invalidPublicKeys []string)
 	CheckKnownInvalidSigners(headerHash []byte, invalidSigners []byte) bool
 	Reset()
+	IsInterfaceNil() bool
+}
+
+// RoundSyncControllerHandler detects round desynchronization and triggers a forced NTP resync.
+// If the local clock drifts and the node repeatedly receives valid block proofs for rounds
+// that fall outside the expected range, the handler identifies this pattern as a de-sync
+// condition and initiates time resynchronization.
+type RoundSyncControllerHandler interface {
+	AddOutOfRangeRound(round uint64, hash string)
 	IsInterfaceNil() bool
 }

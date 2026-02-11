@@ -834,10 +834,10 @@ func TestRecordHeaderV3(t *testing.T) {
 		}
 		args.DataPool.PostProcessTransactions().Put(executionResultHeaderHash, cachedIntermediateTxsMap, 1)
 
-		expectedLogs := []*data.LogData{
-			{
-				LogHandler: &transaction.Log{},
-				TxHash:     "t1",
+		expectedLogs := []data.LogDataHandler{
+			&transaction.LogData{
+				Log:    &transaction.Log{},
+				TxHash: "t1",
 			},
 		}
 		logsKey := common.PrepareLogEventsKey(executionResultHeaderHash)
@@ -846,9 +846,8 @@ func TestRecordHeaderV3(t *testing.T) {
 		expectedMbs := []*block.MiniBlock{
 			{SenderShardID: 0},
 		}
-		intraMbsBytes, _ := repo.marshalizer.Marshal(expectedMbs)
 
-		args.DataPool.ExecutedMiniBlocks().Put(executionResultHeaderHash, intraMbsBytes, 0)
+		args.DataPool.ExecutedMiniBlocks().Put(executionResultHeaderHash, expectedMbs, 0)
 
 		body := &block.Body{}
 
@@ -949,10 +948,10 @@ func TestRecordHeaderV3(t *testing.T) {
 		// add the header hash
 		args.DataPool.PostProcessTransactions().Put(executionResultHeaderHash, cachedIntermediateTxsMap, 1)
 
-		expectedLogs := []*data.LogData{
-			{
-				LogHandler: &transaction.Log{},
-				TxHash:     "t1",
+		expectedLogs := []data.LogDataHandler{
+			&transaction.LogData{
+				Log:    &transaction.Log{},
+				TxHash: "t1",
 			},
 		}
 		logsKey := common.PrepareLogEventsKey(executionResultHeaderHash)
@@ -1000,10 +999,10 @@ func TestRecordHeaderV3(t *testing.T) {
 		// add the header hash
 		args.DataPool.PostProcessTransactions().Put(executionResultHeaderHash, cachedIntermediateTxsMap, 1)
 
-		expectedLogs := []*data.LogData{
-			{
-				LogHandler: &transaction.Log{},
-				TxHash:     "t1",
+		expectedLogs := []data.LogDataHandler{
+			&transaction.LogData{
+				Log:    &transaction.Log{},
+				TxHash: "t1",
 			},
 		}
 		logsKey := common.PrepareLogEventsKey(executionResultHeaderHash)

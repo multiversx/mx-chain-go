@@ -4,6 +4,7 @@ import (
 	"bytes"
 	"context"
 	"encoding/hex"
+	"errors"
 	"fmt"
 	"math"
 	"sync"
@@ -15,11 +16,18 @@ import (
 	"github.com/multiversx/mx-chain-core-go/data"
 	"github.com/multiversx/mx-chain-core-go/data/block"
 	outportcore "github.com/multiversx/mx-chain-core-go/data/outport"
+	"github.com/multiversx/mx-chain-core-go/data/rewardTx"
+	"github.com/multiversx/mx-chain-core-go/data/smartContractResult"
+	"github.com/multiversx/mx-chain-core-go/data/transaction"
 	"github.com/multiversx/mx-chain-core-go/data/typeConverters"
 	"github.com/multiversx/mx-chain-core-go/hashing"
 	"github.com/multiversx/mx-chain-core-go/marshal"
-	"github.com/multiversx/mx-chain-go/process/asyncExecution/queue"
 	logger "github.com/multiversx/mx-chain-logger-go"
+
+	"github.com/multiversx/mx-chain-go/epochStart"
+	"github.com/multiversx/mx-chain-go/process/asyncExecution/cache"
+	"github.com/multiversx/mx-chain-go/update"
+	updateSync "github.com/multiversx/mx-chain-go/update/sync"
 
 	"github.com/multiversx/mx-chain-go/common"
 	"github.com/multiversx/mx-chain-go/consensus"
@@ -37,11 +45,17 @@ import (
 
 var log = logger.GetOrCreate("process/sync")
 
+type txSizeHandler interface {
+	Size() int
+}
+
 var _ closing.Closer = (*baseBootstrap)(nil)
 
 // sleepTime defines the time in milliseconds between each iteration made in syncBlocks method
 const sleepTime = 5 * time.Millisecond
+const sleepTimeOnFail = 400 * time.Millisecond
 const minimumProcessWaitTime = time.Millisecond * 100
+const defaultTimeToWaitForRequestedData = 5 * time.Minute
 
 // hdrInfo hold the data related to a header
 type hdrInfo struct {
@@ -61,6 +75,7 @@ type baseBootstrap struct {
 	historyRepo dblookupext.HistoryRepository
 	headers     dataRetriever.HeadersPool
 	proofs      dataRetriever.ProofsPool
+	dataPool    dataRetriever.PoolsHolder
 
 	chainHandler     data.ChainHandler
 	blockProcessor   process.BlockProcessor
@@ -134,8 +149,14 @@ type baseBootstrap struct {
 	processWaitTime              time.Duration
 	processWaitTimeSupernova     time.Duration
 	preparedForSync              bool
+	preparedForSyncAtBootstrap   bool
 
 	repopulateTokensSupplies bool
+
+	miniBlocksSyncer epochStart.PendingMiniBlocksSyncHandler
+	txSyncer         update.TransactionsSyncHandler
+
+	signalProcessCompletionChan chan uint64
 }
 
 func (boot *baseBootstrap) getProcessWaitTime(round uint64) time.Duration {
@@ -196,7 +217,7 @@ func (boot *baseBootstrap) checkProofCorrespondsToRequestedHash(headerProof data
 
 	// if header is also received, release the chan and set requested to nil
 	// otherwise wait for the header
-	_, err := boot.headers.GetHeaderByHash(headerProof.GetHeaderHash())
+	_, err := boot.getHeader(headerProof.GetHeaderHash())
 	hasHeader := err == nil
 	if hasHeader {
 		boot.setRequestedHeaderHash(nil)
@@ -221,7 +242,7 @@ func (boot *baseBootstrap) checkProofCorrespondsToRequestedNonce(headerProof dat
 
 	// if header is also received, release the chan and set requested to nil
 	// otherwise wait for the header
-	_, err := boot.headers.GetHeaderByHash(headerProof.GetHeaderHash())
+	_, err := boot.getHeader(headerProof.GetHeaderHash())
 	hasHeader := err == nil
 	if hasHeader {
 		boot.setRequestedHeaderNonce(nil)
@@ -240,7 +261,7 @@ func (boot *baseBootstrap) processReceivedHeader(headerHandler data.HeaderHandle
 		return
 	}
 
-	log.Trace("received header from network",
+	log.Debug("sync: received header from network",
 		"shard", headerHandler.GetShardID(),
 		"round", headerHandler.GetRound(),
 		"nonce", headerHandler.GetNonce(),
@@ -725,21 +746,49 @@ func (boot *baseBootstrap) syncBlocks(ctx context.Context) {
 			}
 
 			log.Debug("SyncBlock", "error", err.Error())
+
+			select {
+			case nonce := <-boot.signalProcessCompletionChan:
+				log.Debug("SyncBlock - error - notification process finished", "nonce", nonce)
+			case <-time.After(sleepTimeOnFail):
+			}
+		} else {
+			// Non-blocking drain of completion signal when sync succeeds
+			select {
+			case nonce := <-boot.signalProcessCompletionChan:
+				log.Debug("SyncBlock - success - notification process finished", "nonce", nonce)
+			default:
+			}
 		}
 	}
 }
 
+func (boot *baseBootstrap) getMaxSyncWithErrorsAllowed(
+	header data.HeaderHandler,
+) uint32 {
+	round := uint64(0)
+	if !check.IfNil(header) {
+		round = header.GetRound()
+	}
+
+	return boot.processConfigsHandler.GetMaxSyncWithErrorsAllowed(round)
+}
+
 func (boot *baseBootstrap) doJobOnSyncBlockFail(bodyHandler data.BodyHandler, headerHandler data.HeaderHandler, err error) {
 	processBlockStarted := !check.IfNil(bodyHandler) && !check.IfNil(headerHandler)
-	isProcessWithError := processBlockStarted && err != process.ErrTimeIsOut
+	isProcessWithError := processBlockStarted && !errors.Is(err, process.ErrTimeIsOut)
 
 	numSyncedWithErrors := boot.incrementSyncedWithErrorsForNonce(boot.getNonceForNextBlock())
-	allowedSyncWithErrorsLimitReached := numSyncedWithErrors >= process.MaxSyncWithErrorsAllowed
+	allowedSyncWithErrorsLimitReached := numSyncedWithErrors >= boot.getMaxSyncWithErrorsAllowed(headerHandler)
 	isInProperRound := process.IsInProperRound(boot.roundHandler.Index())
 	isSyncWithErrorsLimitReachedInProperRound := allowedSyncWithErrorsLimitReached && isInProperRound
 
+	lastCommittedBlock := boot.chainHandler.GetCurrentBlockHeader()
+	lastCommittedBlockHash := boot.chainHandler.GetCurrentBlockHeaderHash()
+	shouldAllowRollback := boot.shouldAllowRollback(lastCommittedBlock, lastCommittedBlockHash)
+
 	shouldRollBack := isProcessWithError || isSyncWithErrorsLimitReachedInProperRound
-	if shouldRollBack {
+	if shouldRollBack && shouldAllowRollback {
 		if !check.IfNil(headerHandler) {
 			hash := boot.removeHeaderFromPools(headerHandler)
 			boot.forkDetector.RemoveHeader(headerHandler.GetNonce(), hash)
@@ -766,10 +815,55 @@ func (boot *baseBootstrap) incrementSyncedWithErrorsForNonce(nonce uint64) uint3
 	return numSyncedWithErrors
 }
 
+func (boot *baseBootstrap) prepareForSyncAtBoostrapIfNeeded() error {
+	// this will be triggered only once, after a full node restart.
+	// it is needed for the case when the node will go through bootstrap process and start
+	// directly into execution flow, because it is already synced (ex: if the entire shard
+	// was down and when the node will came back it will still be in sync, because the
+	// shard did not advance while the node was down).
+	// in case of shuffle out and moving to another shard, the node will not have to
+	// go through this flow, it will go through sync flow directly, so it will not be
+	// a problem that preparedForSyncAtBootstrap is already set
+
+	if boot.preparedForSyncAtBootstrap {
+		return nil
+	}
+
+	boot.preparedForSyncAtBootstrap = true
+
+	// at this point, current header should be the last applied header at bootstrap
+	currentHeader := boot.getCurrentBlock()
+
+	if !currentHeader.IsHeaderV3() {
+		return nil
+	}
+
+	// syncing nonce is taken as next nonce, this is for preparedForSyncIfNeeded to work
+	// properly in this case
+	syncingNonce := currentHeader.GetNonce() + 1
+
+	log.Debug("prepareForSyncAtBoostrapIfNeeded",
+		"currHeader nonce", currentHeader.GetNonce(),
+	)
+
+	err := boot.prepareForSyncIfNeeded(syncingNonce)
+	if err != nil {
+		return err
+	}
+
+	return nil
+}
+
 func (boot *baseBootstrap) syncBlock() error {
 	boot.computeNodeState()
 	nodeState := boot.GetNodeState()
+
 	if nodeState != common.NsNotSynchronized {
+		err := boot.prepareForSyncAtBoostrapIfNeeded()
+		if err != nil {
+			return err
+		}
+
 		boot.preparedForSync = false // reset the state for next loop
 		return nil
 	}
@@ -811,13 +905,14 @@ func (boot *baseBootstrap) syncBlock() error {
 
 	defer func() {
 		if err != nil {
-			log.Warn("sync block failed", "error", err)
+			log.Debug("sync block failed", "error", err)
 
 			boot.doJobOnSyncBlockFail(body, header, err)
 		}
 	}()
 
-	header, err = boot.getNextHeaderRequestingIfMissing()
+	var headerHash []byte
+	header, headerHash, err = boot.getNextHeaderRequestingIfMissing()
 	if err != nil {
 		return err
 	}
@@ -830,10 +925,15 @@ func (boot *baseBootstrap) syncBlock() error {
 	}
 
 	if header.IsHeaderV3() {
-		return boot.syncBlockV3(body, header)
+		// update err to enable the deferred treatment
+		err = boot.syncBlockV3(body, header, headerHash)
+		return err
 	}
 
-	return boot.syncBlockLegacy(body, header)
+	// update err to enable the deferred treatment
+	err = boot.syncBlockLegacy(body, header)
+
+	return err
 }
 
 // syncBlockLegacy method actually does the synchronization. It requests the next block header from the pool
@@ -923,7 +1023,7 @@ func (boot *baseBootstrap) prepareForLegacySyncIfNeeded() error {
 // Once received, the header is verified through VerifyBlockProposal, but not before warming up the tx pool.
 // Finally, if everything works, the block will be committed and added into the processing queue.
 // And all this mechanism will be reiterated for the next block.
-func (boot *baseBootstrap) syncBlockV3(body data.BodyHandler, header data.HeaderHandler) error {
+func (boot *baseBootstrap) syncBlockV3(body data.BodyHandler, header data.HeaderHandler, headerHash []byte) error {
 	err := boot.prepareForSyncIfNeeded(header.GetNonce())
 	if err != nil {
 		return err
@@ -940,14 +1040,16 @@ func (boot *baseBootstrap) syncBlockV3(body data.BodyHandler, header data.Header
 	elapsedTime := time.Since(startVerifyBlockTime)
 	log.Debug("elapsed time to verify block",
 		"time [s]", elapsedTime,
+		"nonce", header.GetNonce(),
 	)
 	if err != nil {
 		return err
 	}
 
-	err = boot.executionManager.AddPairForExecution(queue.HeaderBodyPair{
-		Header: header,
-		Body:   body,
+	err = boot.executionManager.AddPairForExecution(cache.HeaderBodyPair{
+		Header:     header,
+		Body:       body,
+		HeaderHash: headerHash,
 	})
 	if err != nil {
 		return err
@@ -961,6 +1063,7 @@ func (boot *baseBootstrap) syncBlockV3(body data.BodyHandler, header data.Header
 	} else {
 		log.Debug("elapsed time to commit block",
 			"time [s]", elapsedTime,
+			"nonce", header.GetNonce(),
 		)
 	}
 	if err != nil {
@@ -977,40 +1080,70 @@ func (boot *baseBootstrap) syncBlockV3(body data.BodyHandler, header data.Header
 	return nil
 }
 
-func (boot *baseBootstrap) prepareForSyncIfNeeded(syncingNonce uint64) error {
+// getMiniBlocksToSync will check already synced miniblocks and return only miniblocks that are not in pool
+func (boot *baseBootstrap) getMiniBlocksToSync(
+	miniBlocks []data.MiniBlockHeaderHandler,
+) []data.MiniBlockHeaderHandler {
+	miniBlocksToSync := make([]data.MiniBlockHeaderHandler, 0)
+
+	for _, mb := range miniBlocks {
+		_, ok := boot.dataPool.MiniBlocks().Get(mb.GetHash())
+		if ok {
+			continue
+		}
+
+		miniBlocksToSync = append(miniBlocksToSync, mb)
+	}
+
+	return miniBlocksToSync
+}
+
+func (boot *baseBootstrap) syncMiniBlocksAndTxsForHeader(
+	header data.HeaderHandler,
+) error {
+	miniBlocksToSync := boot.getMiniBlocksToSync(header.GetMiniBlockHeaderHandlers())
+
+	boot.miniBlocksSyncer.ClearFields()
+	ctx, cancel := context.WithTimeout(context.Background(), defaultTimeToWaitForRequestedData)
+	err := boot.miniBlocksSyncer.SyncPendingMiniBlocks(miniBlocksToSync, ctx)
+	cancel()
+	if err != nil {
+		return err
+	}
+
+	miniBlocks, err := boot.miniBlocksSyncer.GetMiniBlocks()
+	if err != nil {
+		return err
+	}
+
+	// sync all txs into pools
+
+	boot.txSyncer.ClearFields()
+	ctx, cancel = context.WithTimeout(context.Background(), defaultTimeToWaitForRequestedData)
+	err = boot.txSyncer.SyncTransactionsFor(miniBlocks, header.GetEpoch(), ctx)
+	cancel()
+	if err != nil {
+		return err
+	}
+
+	return nil
+}
+
+func (boot *baseBootstrap) prepareForSyncIfNeeded(
+	syncingNonce uint64,
+) error {
 	if boot.preparedForSync {
 		return nil
 	}
 
 	currentHeader := boot.getCurrentBlock()
 	currentHeaderHash := boot.getCurrentBlockHash()
-	lastExecResults, err := process.GetPrevBlockLastExecutionResult(boot.chainHandler)
+	lastExecutionResultHeaderNonce, err := boot.getExecutionResultHeaderNonceForSyncStart(syncingNonce, currentHeader, currentHeaderHash)
 	if err != nil {
 		return err
 	}
 
-	lastExecResultsHandler, err := common.ExtractBaseExecutionResultHandler(lastExecResults)
-	if err != nil {
-		return err
-	}
-
-	lastExecutedHash := lastExecResultsHandler.GetHeaderHash()
-	lastExecutedHeader, err := boot.getHeader(lastExecutedHash)
-	if err != nil {
-		return err
-	}
-
-	rootHash := lastExecResultsHandler.GetRootHash()
-
-	txPool := boot.poolsHolder.Transactions()
-	err = txPool.OnExecutedBlock(lastExecutedHeader, rootHash)
-	if err != nil {
-		txPool.ResetTracker()
-		return err
-	}
-
-	lastExecutedNonce := lastExecutedHeader.GetNonce()
-	if syncingNonce == lastExecutedNonce+2 {
+	if syncingNonce == lastExecutionResultHeaderNonce+2 {
 		// the ideal/most common case:
 		// the previous block was already processed, its nonce should have been syncingNonce-1,
 		// and it notarized its previous block, which should have had nonce equal to syncingNonce-2
@@ -1018,6 +1151,16 @@ func (boot *baseBootstrap) prepareForSyncIfNeeded(syncingNonce uint64) error {
 		currentBody, errGetBody := boot.blockBootstrapper.getBlockBody(currentHeader)
 		if errGetBody != nil {
 			return errGetBody
+		}
+
+		err = boot.syncMiniBlocksAndTxsForHeader(currentHeader)
+		if err != nil {
+			return err
+		}
+
+		err = boot.saveProposedTxsToPool(currentHeader, currentBody)
+		if err != nil {
+			return err
 		}
 
 		errOnProposedBlock := boot.blockProcessor.OnProposedBlock(
@@ -1031,23 +1174,35 @@ func (boot *baseBootstrap) prepareForSyncIfNeeded(syncingNonce uint64) error {
 
 		boot.preparedForSync = true
 
-		return boot.executionManager.AddPairForExecution(queue.HeaderBodyPair{
-			Header: currentHeader,
-			Body:   currentBody,
+		return boot.executionManager.AddPairForExecution(cache.HeaderBodyPair{
+			Header:     currentHeader,
+			Body:       currentBody,
+			HeaderHash: currentHeaderHash,
 		})
 	}
 
 	// if there are multiple headers in between the syncing header and the last one executed,
 	// add them into the queue and pool
-	for i := lastExecutedNonce + 1; i < syncingNonce; i++ {
-		hdr, hdrHash, errGetHdr := boot.getHeaderFromPoolWithNonce(i)
+	for i := lastExecutionResultHeaderNonce + 1; i < syncingNonce; i++ {
+		hdr, hdrHash, errGetHdr := boot.getHeaderWithNonce(i)
 		if errGetHdr != nil {
+			log.Debug("prepareForSyncIfNeeded: failed to get header with nonce", "nonce", i, "error", errGetHdr)
 			return errGetHdr
 		}
 
 		body, errGetBody := boot.blockBootstrapper.getBlockBody(hdr)
 		if errGetBody != nil {
 			return errGetBody
+		}
+
+		err = boot.syncMiniBlocksAndTxsForHeader(hdr)
+		if err != nil {
+			return err
+		}
+
+		err = boot.saveProposedTxsToPool(hdr, body)
+		if err != nil {
+			return err
 		}
 
 		errOnProposedBlock := boot.blockProcessor.OnProposedBlock(
@@ -1059,9 +1214,10 @@ func (boot *baseBootstrap) prepareForSyncIfNeeded(syncingNonce uint64) error {
 			return errOnProposedBlock
 		}
 
-		errAdd := boot.executionManager.AddPairForExecution(queue.HeaderBodyPair{
-			Header: hdr,
-			Body:   body,
+		errAdd := boot.executionManager.AddPairForExecution(cache.HeaderBodyPair{
+			Header:     hdr,
+			Body:       body,
+			HeaderHash: hdrHash,
 		})
 		if errAdd != nil {
 			return errAdd
@@ -1071,6 +1227,202 @@ func (boot *baseBootstrap) prepareForSyncIfNeeded(syncingNonce uint64) error {
 	boot.preparedForSync = true
 
 	return nil
+}
+
+func (boot *baseBootstrap) saveProposedTxsToPool(
+	header data.HeaderHandler,
+	body data.BodyHandler,
+) error {
+	if !header.IsHeaderV3() {
+		return nil
+	}
+
+	bodyPtr, ok := body.(*block.Body)
+	if !ok {
+		return process.ErrWrongTypeAssertion
+	}
+
+	separatedBodies := process.SeparateBodyByType(bodyPtr)
+
+	for blockType, blockBody := range separatedBodies {
+		dataPool, err := process.GetDataPoolByBlockType(blockType, boot.dataPool)
+		if err != nil {
+			return err
+		}
+
+		unit, err := process.GetStorageUnitByBlockType(blockType)
+		if err != nil {
+			return err
+		}
+
+		storer, err := boot.store.GetStorer(unit)
+		if err != nil {
+			return err
+		}
+
+		for i := 0; i < len(blockBody.MiniBlocks); i++ {
+			miniBlock := blockBody.MiniBlocks[i]
+			err = boot.saveTxsToPool(dataPool, storer, miniBlock, blockType)
+			if err != nil {
+				return err
+			}
+		}
+	}
+
+	return nil
+}
+
+func (boot *baseBootstrap) saveTxsToPool(
+	dataPool dataRetriever.ShardedDataCacherNotifier,
+	storer storage.Storer,
+	miniBlock *block.MiniBlock,
+	blockType block.Type,
+) error {
+	txHashes := miniBlock.TxHashes
+
+	for _, txHash := range txHashes {
+		// continue if already in pool
+		_, ok := dataPool.SearchFirstData(txHash)
+		if ok {
+			continue
+		}
+
+		txBuff, err := storer.Get(txHash)
+		if err != nil {
+			return err
+		}
+
+		tx, err := boot.unmarshalTxByBlockType(blockType, txBuff)
+		if err != nil {
+			return err
+		}
+
+		cacherIdentifier := process.ShardCacherIdentifier(miniBlock.SenderShardID, miniBlock.ReceiverShardID)
+		dataPool.AddData(
+			txHash,
+			tx,
+			tx.Size(),
+			cacherIdentifier,
+		)
+	}
+
+	return nil
+}
+
+func (boot *baseBootstrap) getExecutionResultHeaderNonceForSyncStart(
+	syncingNonce uint64,
+	currentHeader data.HeaderHandler,
+	currentHeaderHash []byte,
+) (uint64, error) {
+	lastNotarizedExecResult, err := process.GetPrevBlockLastExecutionResult(boot.chainHandler)
+	if err != nil {
+		return 0, err
+	}
+
+	lastNotarizedExecResultsHandler, err := common.ExtractBaseExecutionResultHandler(lastNotarizedExecResult)
+	if err != nil {
+		return 0, err
+	}
+
+	log.Debug("getExecutionResultHeaderNonceForSyncStart",
+		"syncingNonce", syncingNonce,
+		"currHeader nonce", currentHeader.GetNonce(),
+		"currHeader hash", currentHeaderHash,
+		"lastNotarizedExecRes nonce", lastNotarizedExecResultsHandler.GetHeaderNonce(),
+		"lastNotarizedExecRes hash", lastNotarizedExecResultsHandler.GetHeaderHash(),
+		"lastNotarizedExecRes rootHash", lastNotarizedExecResultsHandler.GetRootHash(),
+	)
+
+	lastNotarizedExecutedHash := lastNotarizedExecResultsHandler.GetHeaderHash()
+	lastNotarizedExecutedHeader, err := boot.getHeader(lastNotarizedExecutedHash)
+	if err != nil {
+		return 0, err
+	}
+
+	rootHash := lastNotarizedExecResultsHandler.GetRootHash()
+
+	txPool := boot.poolsHolder.Transactions()
+	err = txPool.OnExecutedBlock(lastNotarizedExecutedHeader, rootHash)
+	if err != nil {
+		txPool.ResetTracker()
+		return 0, err
+	}
+
+	lastExecutionResultNonce := lastNotarizedExecutedHeader.GetNonce()
+	defer func() {
+		log.Debug("getExecutionResultHeaderNonceForSyncStart", "lastExecutionResultNonce", lastExecutionResultNonce)
+	}()
+
+	// check with pending execution
+	pendingExecutionResults, err := boot.executionManager.GetPendingExecutionResults()
+	if err != nil {
+		return 0, err
+	}
+	var pendingExecutionResult data.BaseExecutionResultHandler
+	for idx := len(pendingExecutionResults) - 1; idx >= 0; idx-- {
+		pendingExecutionResult = pendingExecutionResults[idx]
+		if boot.hasProofInCacheOrStorage(pendingExecutionResult.GetHeaderHash()) {
+			return pendingExecutionResult.GetHeaderNonce(), nil
+		}
+	}
+
+	return lastExecutionResultNonce, nil
+}
+
+func (boot *baseBootstrap) hasProofInCacheOrStorage(hash []byte) bool {
+	if boot.proofs.HasProof(boot.shardCoordinator.SelfId(), hash) {
+		return true
+	}
+
+	proofsStorer, errGetStorer := boot.store.GetStorer(dataRetriever.ProofsUnit)
+	if errGetStorer != nil {
+		return false
+	}
+
+	proofBytes, err := proofsStorer.Get(hash)
+	if err != nil {
+		return false
+	}
+
+	proof := &block.HeaderProof{}
+	err = boot.marshalizer.Unmarshal(proof, proofBytes)
+	if err != nil {
+		// return true here, since the proof exists in storer
+		log.Warn("hasProofInCacheOrStorage invalid proof in storage", "error", err.Error(), "hash", hash)
+		return true
+	}
+
+	boot.proofs.AddProof(proof)
+
+	return true
+}
+
+func (boot *baseBootstrap) unmarshalTxByBlockType(
+	blockType block.Type,
+	txBuff []byte,
+) (txSizeHandler, error) {
+	var tx txSizeHandler
+	var err error
+
+	switch blockType {
+	case block.TxBlock, block.InvalidBlock:
+		tx = &transaction.Transaction{}
+	case block.SmartContractResultBlock:
+		tx = &smartContractResult.SmartContractResult{}
+	case block.RewardsBlock:
+		tx = &rewardTx.RewardTx{}
+	case block.PeerBlock:
+		tx = &state.ShardValidatorInfo{}
+	default:
+		return nil, fmt.Errorf("unsupported block type: %d", blockType)
+	}
+
+	err = boot.marshalizer.Unmarshal(tx, txBuff)
+	if err != nil {
+		return nil, err
+	}
+
+	return tx, nil
 }
 
 func (boot *baseBootstrap) handleTrieSyncError(err error, ctx context.Context) {
@@ -1243,7 +1595,7 @@ func (boot *baseBootstrap) rollBack(revertUsingForkNonce bool) error {
 }
 
 func (boot *baseBootstrap) shouldAllowRollback(currHeader data.HeaderHandler, currHeaderHash []byte) bool {
-	if currHeader.IsHeaderV3() {
+	if check.IfNil(currHeader) || currHeader.IsHeaderV3() {
 		return false
 	}
 
@@ -1339,7 +1691,7 @@ func (boot *baseBootstrap) getRootHashFromBlock(hdr data.HeaderHandler, hdrHash 
 	return hdrRootHash
 }
 
-func (boot *baseBootstrap) getNextHeaderRequestingIfMissing() (data.HeaderHandler, error) {
+func (boot *baseBootstrap) getNextHeaderRequestingIfMissing() (data.HeaderHandler, []byte, error) {
 	nonce := boot.getNonceForNextBlock()
 
 	boot.setRequestedHeaderHash(nil)
@@ -1350,9 +1702,15 @@ func (boot *baseBootstrap) getNextHeaderRequestingIfMissing() (data.HeaderHandle
 		hash = boot.forkInfo.Hash
 	}
 
+	// if there is a proof for the current nonce, use the header hash from proof
+	proof, err := boot.dataPool.Proofs().GetProofByNonce(nonce, boot.shardCoordinator.SelfId())
+	if err == nil {
+		hash = proof.GetHeaderHash()
+	}
+
 	if hash != nil {
 		header, err := boot.getHeaderWithHashRequestingIfMissing(hash)
-		return header, err
+		return header, hash, err
 	}
 
 	return boot.getHeaderWithNonceRequestingIfMissing(nonce)
@@ -1409,12 +1767,12 @@ func (boot *baseBootstrap) checkNeedsProofByHash(hash []byte, header data.Header
 
 // getHeaderWithNonceRequestingIfMissing method gets the header with a given nonce from pool. If it is not found there, it will
 // be requested from network
-func (boot *baseBootstrap) getHeaderWithNonceRequestingIfMissing(nonce uint64) (data.HeaderHandler, error) {
+func (boot *baseBootstrap) getHeaderWithNonceRequestingIfMissing(nonce uint64) (data.HeaderHandler, []byte, error) {
 	hdr, hash, err := boot.getHeaderFromPoolWithNonce(nonce)
 	hasHeader := err == nil
 
 	if hasHeader && boot.hasProof(hash, hdr) {
-		return hdr, nil
+		return hdr, hash, nil
 	}
 
 	needsProof := boot.checkNeedsProofByNonce(nonce, hdr, hash)
@@ -1427,19 +1785,20 @@ func (boot *baseBootstrap) getHeaderWithNonceRequestingIfMissing(nonce uint64) (
 
 	err = boot.waitForHeaderAndProofByNonce()
 	if err != nil {
-		return nil, err
+		return nil, nil, err
 	}
 
 	hdr, hash, err = boot.getHeaderFromPoolWithNonce(nonce)
 	if err != nil {
-		return nil, err
+		log.Debug("getHeaderWithNonceRequestingIfMissing: failed to get header with nonce", "nonce", nonce, "error", err)
+		return nil, nil, err
 	}
 
 	if !boot.hasProof(hash, hdr) {
-		return nil, process.ErrMissingHeaderProof
+		return nil, nil, process.ErrMissingHeaderProof
 	}
 
-	return hdr, nil
+	return hdr, hash, nil
 }
 
 func (boot *baseBootstrap) checkNeedsProofByNonce(
@@ -1576,12 +1935,56 @@ func (boot *baseBootstrap) getHeader(hash []byte) (data.HeaderHandler, error) {
 	return process.GetShardHeader(hash, boot.headers, boot.marshalizer, boot.store)
 }
 
+// getHeaderFromPool will try to get the header from pool
 func (boot *baseBootstrap) getHeaderFromPool(hash []byte) (data.HeaderHandler, error) {
 	if boot.shardCoordinator.SelfId() == core.MetachainShardId {
 		return process.GetMetaHeaderFromPool(hash, boot.headers)
 	}
 
 	return process.GetShardHeaderFromPool(hash, boot.headers)
+}
+
+func (boot *baseBootstrap) getHeaderWithNonce(
+	nonce uint64,
+) (data.HeaderHandler, []byte, error) {
+	if boot.shardCoordinator.SelfId() == core.MetachainShardId {
+		return boot.getMetaHeaderWithNonce(nonce)
+	}
+
+	return boot.getShardHeaderWithNonce(nonce)
+}
+
+func (boot *baseBootstrap) getMetaHeaderWithNonce(
+	nonce uint64,
+) (data.HeaderHandler, []byte, error) {
+	header, hash, err := process.GetMetaHeaderFromPoolWithNonce(nonce, boot.headers)
+	if err == nil {
+		return header, hash, nil
+	}
+
+	return process.GetMetaHeaderFromStorageWithNonce(
+		nonce,
+		boot.store,
+		boot.uint64Converter,
+		boot.marshalizer,
+	)
+}
+
+func (boot *baseBootstrap) getShardHeaderWithNonce(
+	nonce uint64,
+) (data.HeaderHandler, []byte, error) {
+	header, hash, err := process.GetShardHeaderFromPoolWithNonce(nonce, boot.shardCoordinator.SelfId(), boot.headers)
+	if err == nil {
+		return header, hash, nil
+	}
+
+	return process.GetShardHeaderFromStorageWithNonce(
+		nonce,
+		boot.shardCoordinator.SelfId(),
+		boot.store,
+		boot.uint64Converter,
+		boot.marshalizer,
+	)
 }
 
 func (boot *baseBootstrap) getHeaderFromPoolWithNonce(
@@ -1797,6 +2200,7 @@ func (boot *baseBootstrap) init() {
 	boot.chRcvHdrNonce = make(chan bool)
 	boot.chRcvHdrHash = make(chan bool)
 	boot.chRcvMiniBlocks = make(chan bool)
+	boot.signalProcessCompletionChan = boot.executionManager.GetSignalProcessCompletionChan()
 
 	boot.setRequestedHeaderNonce(nil)
 	boot.setRequestedHeaderHash(nil)
@@ -1923,6 +2327,11 @@ func (boot *baseBootstrap) cleanChannels() {
 
 	nrReads = core.EmptyChannel(boot.chRcvMiniBlocks)
 	log.Debug("close baseSync: emptied channel", "chRcvMiniBlocks nrReads", nrReads)
+
+	if boot.signalProcessCompletionChan != nil {
+		nrReads = common.EmptyUint64Channel(boot.signalProcessCompletionChan)
+		log.Debug("close baseSync: emptied channel", "signalProcessCompletionChan nrReads", nrReads)
+	}
 }
 
 func (boot *baseBootstrap) getHeaderMiniBlocks(
@@ -1951,4 +2360,37 @@ func (boot *baseBootstrap) getHeaderMiniBlocks(
 // IsInterfaceNil returns true if there is no value under the interface
 func (boot *baseBootstrap) IsInterfaceNil() bool {
 	return boot == nil
+}
+
+func (boot *baseBootstrap) createTxSyncer() error {
+	var err error
+
+	miniBlocksStorer, err := boot.store.GetStorer(dataRetriever.MiniBlockUnit)
+	if err != nil {
+		return err
+	}
+
+	syncMiniBlocksArgs := updateSync.ArgsNewPendingMiniBlocksSyncer{
+		Storage:        miniBlocksStorer,
+		Cache:          boot.dataPool.MiniBlocks(),
+		Marshalizer:    boot.marshalizer,
+		RequestHandler: boot.requestHandler,
+	}
+	boot.miniBlocksSyncer, err = updateSync.NewPendingMiniBlocksSyncer(syncMiniBlocksArgs)
+	if err != nil {
+		return err
+	}
+
+	syncTxsArgs := updateSync.ArgsNewTransactionsSyncer{
+		DataPools:      boot.dataPool,
+		Storages:       boot.store,
+		Marshaller:     boot.marshalizer,
+		RequestHandler: boot.requestHandler,
+	}
+	boot.txSyncer, err = updateSync.NewTransactionsSyncer(syncTxsArgs)
+	if err != nil {
+		return err
+	}
+
+	return nil
 }

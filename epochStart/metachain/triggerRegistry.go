@@ -1,10 +1,7 @@
 package metachain
 
 import (
-	"encoding/json"
-
-	"github.com/multiversx/mx-chain-core-go/data/block"
-	"github.com/multiversx/mx-chain-core-go/marshal"
+	"github.com/multiversx/mx-chain-core-go/data"
 
 	"github.com/multiversx/mx-chain-go/common"
 	"github.com/multiversx/mx-chain-go/epochStart"
@@ -20,56 +17,41 @@ func (t *trigger) LoadState(key []byte) error {
 		return err
 	}
 
-	state, err := UnmarshalTrigger(t.marshaller, d)
+	state, err := epochStart.UnmarshalMetaTrigger(t.marshaller, d)
 	if err != nil {
 		return err
 	}
 
 	t.mutTrigger.Lock()
 	t.triggerStateKey = key
-	t.epochFinalityAttestingRound = state.EpochFinalityAttestingRound
-	t.currEpochStartRound = state.CurrEpochStartRound
-	t.prevEpochStartRound = state.PrevEpochStartRound
-	t.epoch = state.Epoch
-	t.epochStartMetaHash = state.EpochStartMetaHash
-	t.epochStartMeta = state.EpochStartMeta
+	t.epochFinalityAttestingRound = state.GetEpochFinalityAttestingRound()
+	t.currEpochStartRound = state.GetCurrEpochStartRound()
+	t.prevEpochStartRound = state.GetPrevEpochStartRound()
+	t.epoch = state.GetEpoch()
+	t.epochStartMetaHash = state.GetEpochStartMetaHash()
+	t.epochStartMeta = state.GetEpochStartMetaHeaderHandler()
+	t.epochChangeProposed = state.GetEpochChangeProposed()
 	t.mutTrigger.Unlock()
 
 	return nil
 }
 
-// UnmarshalTrigger unmarshalls the trigger with json, for backwards compatibility
-func UnmarshalTrigger(marshaller marshal.Marshalizer, data []byte) (*block.MetaTriggerRegistry, error) {
-	state := &block.MetaTriggerRegistry{
-		EpochStartMeta: &block.MetaBlock{},
-	}
-
-	err := marshaller.Unmarshal(state, data)
-	if err == nil {
-		return state, nil
-	}
-
-	// for backwards compatibility
-	err = json.Unmarshal(data, state)
-	if err != nil {
-		return nil, err
-	}
-	return state, nil
-}
-
 // saveState saves the trigger state. Needs to be called under mutex
 func (t *trigger) saveState(key []byte) error {
-	metaHeader, ok := t.epochStartMeta.(*block.MetaBlock)
+	metaHeader, ok := t.epochStartMeta.(data.MetaHeaderHandler)
 	if !ok {
 		return epochStart.ErrWrongTypeAssertion
 	}
-	registry := &block.MetaTriggerRegistry{}
-	registry.EpochFinalityAttestingRound = t.epochFinalityAttestingRound
-	registry.CurrEpochStartRound = t.currEpochStartRound
-	registry.PrevEpochStartRound = t.prevEpochStartRound
-	registry.Epoch = t.epoch
-	registry.EpochStartMetaHash = t.epochStartMetaHash
-	registry.EpochStartMeta = metaHeader
+
+	registry := epochStart.CreateMetaRegistryHandler(t.epochStartMeta)
+	_ = registry.SetEpochFinalityAttestingRound(t.epochFinalityAttestingRound)
+	_ = registry.SetCurrEpochStartRound(t.currEpochStartRound)
+	_ = registry.SetPrevEpochStartRound(t.prevEpochStartRound)
+	_ = registry.SetEpoch(t.epoch)
+	_ = registry.SetEpochStartMetaHash(t.epochStartMetaHash)
+	_ = registry.SetEpochStartMetaHeaderHandler(metaHeader)
+	_ = registry.SetEpochChangeProposed(t.epochChangeProposed)
+
 	triggerData, err := t.marshaller.Marshal(registry)
 	if err != nil {
 		return err

@@ -16,7 +16,12 @@ import (
 	"github.com/multiversx/mx-chain-core-go/data/transaction"
 	"github.com/multiversx/mx-chain-core-go/marshal"
 
+	"github.com/multiversx/mx-chain-go/process/aotSelection"
 	processBlock "github.com/multiversx/mx-chain-go/process/block"
+
+	vmcommon "github.com/multiversx/mx-chain-vm-common-go"
+	vmcommonBuiltInFunctions "github.com/multiversx/mx-chain-vm-common-go/builtInFunctions"
+	"github.com/multiversx/mx-chain-vm-common-go/parsers"
 
 	"github.com/multiversx/mx-chain-go/common"
 	disabledCommon "github.com/multiversx/mx-chain-go/common/disabled"
@@ -48,9 +53,6 @@ import (
 	"github.com/multiversx/mx-chain-go/update"
 	hardForkProcess "github.com/multiversx/mx-chain-go/update/process"
 	"github.com/multiversx/mx-chain-go/vm"
-	vmcommon "github.com/multiversx/mx-chain-vm-common-go"
-	vmcommonBuiltInFunctions "github.com/multiversx/mx-chain-vm-common-go/builtInFunctions"
-	"github.com/multiversx/mx-chain-vm-common-go/parsers"
 )
 
 // CreateMetaGenesisBlock will create a metachain genesis block
@@ -190,7 +192,7 @@ func createMetaGenesisBlockAfterHardFork(
 		return nil, nil, nil, err
 	}
 
-	metaHdr, ok := hdrHandler.(*block.MetaBlock)
+	metaHdr, ok := hdrHandler.(data.MetaHeaderHandler)
 	if !ok {
 		return nil, nil, nil, process.ErrWrongTypeAssertion
 	}
@@ -504,6 +506,7 @@ func createProcessorsForMetaGenesisBlock(arg ArgsGenesisBlockCreator, enableEpoc
 		GasHandler:                        gasHandler,
 		BlockCapacityOverestimationFactor: arg.FeeSettings.BlockCapacityOverestimationFactor,
 		PercentDecreaseLimitsStep:         arg.FeeSettings.PercentDecreaseLimitsStep,
+		BlockSizeComputation:              disabledBlockSizeComputationHandler,
 	}
 	gasConsumption, err := processBlock.NewGasConsumption(argsGasConsumption)
 	if err != nil {
@@ -536,6 +539,7 @@ func createProcessorsForMetaGenesisBlock(arg ArgsGenesisBlockCreator, enableEpoc
 		ProcessedMiniBlocksTracker:   disabledProcessedMiniBlocksTracker,
 		TxExecutionOrderHandler:      arg.TxExecutionOrderHandler,
 		TxCacheSelectionConfig:       arg.TxCacheSelectionConfig,
+		TxVersionCheckerHandler:      arg.Core.TxVersionChecker(),
 	}
 
 	preProcFactory, err := metachain.NewPreProcessorsContainerFactory(argsPreProcessorsContainerFactory)
@@ -576,7 +580,7 @@ func createProcessorsForMetaGenesisBlock(arg ArgsGenesisBlockCreator, enableEpoc
 		Marshalizer:                  arg.Core.InternalMarshalizer(),
 		ShardCoordinator:             arg.ShardCoordinator,
 		Accounts:                     arg.Accounts,
-		MiniBlockPool:                arg.Data.Datapool().MiniBlocks(),
+		DataPool:                     arg.Data.Datapool(),
 		PreProcessors:                preProcContainer,
 		PreProcessorsProposal:        preProcContainer, // for genesis no need for separate one
 		InterProcessors:              interimProcContainer,
@@ -588,6 +592,7 @@ func createProcessorsForMetaGenesisBlock(arg ArgsGenesisBlockCreator, enableEpoc
 		TxTypeHandler:                txTypeHandler,
 		TransactionsLogProcessor:     arg.TxLogsProcessor,
 		EnableEpochsHandler:          enableEpochsHandler,
+		EnableRoundsHandler:          enableRoundsHandler,
 		ScheduledTxsExecutionHandler: disabledScheduledTxsExecutionHandler,
 		DoubleTransactionsDetector:   doubleTransactionsDetector,
 		ProcessedMiniBlocksTracker:   disabledProcessedMiniBlocksTracker,
@@ -595,6 +600,7 @@ func createProcessorsForMetaGenesisBlock(arg ArgsGenesisBlockCreator, enableEpoc
 		BlockDataRequester:           blockDataRequester,
 		BlockDataRequesterProposal:   blockDataRequester, // for genesis block no need for separate one
 		GasComputation:               gasConsumption,
+		AOTSelector:                  aotSelection.NewDisabledAOTSelector(),
 	}
 	txCoordinator, err := coordinator.NewTransactionCoordinator(argsTransactionCoordinator)
 	if err != nil {

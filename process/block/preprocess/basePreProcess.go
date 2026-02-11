@@ -134,6 +134,7 @@ type basePreProcess struct {
 	enableEpochsHandler        common.EnableEpochsHandler
 	txExecutionOrderHandler    common.TxExecutionOrderHandler
 	enableRoundsHandler        common.EnableRoundsHandler
+	feeHandler                 process.FeeHandler
 }
 
 func checkBasePreProcessArgs(args BasePreProcessorArgs) error {
@@ -413,9 +414,14 @@ func (bpp *basePreProcess) getBalanceForAddress(address []byte) (*big.Int, error
 	return account.GetBalance(), nil
 }
 
-func getTxMaxTotalCost(txHandler data.TransactionHandler) *big.Int {
+func (bpp *basePreProcess) getTxMaxTotalCost(txHandler data.TransactionHandler) *big.Int {
+	isAsyncExecEnabled := common.IsAsyncExecutionEnabled(bpp.enableEpochsHandler, bpp.enableRoundsHandler)
 	cost := big.NewInt(0)
-	cost.Mul(big.NewInt(0).SetUint64(txHandler.GetGasPrice()), big.NewInt(0).SetUint64(txHandler.GetGasLimit()))
+	if !isAsyncExecEnabled {
+		cost.Mul(big.NewInt(0).SetUint64(txHandler.GetGasPrice()), big.NewInt(0).SetUint64(txHandler.GetGasLimit()))
+	} else {
+		cost = bpp.feeHandler.ComputeTxFee(txHandler)
+	}
 
 	if txHandler.GetValue() != nil {
 		cost.Add(cost, txHandler.GetValue())
@@ -500,6 +506,23 @@ func getMiniBlockHeaderOfMiniBlock(headerHandler data.HeaderHandler, miniBlockHa
 	return nil, process.ErrMissingMiniBlockHeader
 }
 
+func (bpp *basePreProcess) getIndexesOfLastTxProcessedOnExecution(
+	miniBlock *block.MiniBlock,
+	headerHandler data.HeaderHandler,
+) (*processedIndexes, error) {
+	if !headerHandler.IsHeaderV3() {
+		return bpp.getIndexesOfLastTxProcessed(miniBlock, headerHandler)
+	}
+
+	// for header v3, mini blocks need to be processed in their entirety, there are no longer partially processed mini blocks
+	pi := &processedIndexes{
+		indexOfLastTxProcessed:           -1,
+		indexOfLastTxProcessedByProposer: int32(len(miniBlock.GetTxHashes())) - 1,
+	}
+
+	return pi, nil
+}
+
 func (bpp *basePreProcess) getIndexesOfLastTxProcessed(
 	miniBlock *block.MiniBlock,
 	headerHandler data.HeaderHandler,
@@ -523,4 +546,36 @@ func (bpp *basePreProcess) getIndexesOfLastTxProcessed(
 	pi.indexOfLastTxProcessedByProposer = miniBlockHeader.GetIndexOfLastTxProcessed()
 
 	return pi, nil
+}
+
+func (bpp *basePreProcess) addNumTxs(numTxs int) {
+	if common.IsAsyncExecutionEnabled(bpp.enableEpochsHandler, bpp.enableRoundsHandler) {
+		return
+	}
+
+	bpp.blockSizeComputation.AddNumTxs(numTxs)
+}
+
+func (bpp *basePreProcess) addNumMiniBlocks(numMiniBlocks int) {
+	if common.IsAsyncExecutionEnabled(bpp.enableEpochsHandler, bpp.enableRoundsHandler) {
+		return
+	}
+
+	bpp.blockSizeComputation.AddNumMiniBlocks(numMiniBlocks)
+}
+
+func (bpp *basePreProcess) isMaxBlockSizeReached(numNewMiniBlocks int, numNewTxs int) bool {
+	if common.IsAsyncExecutionEnabled(bpp.enableEpochsHandler, bpp.enableRoundsHandler) {
+		return false
+	}
+
+	return bpp.blockSizeComputation.IsMaxBlockSizeReached(numNewMiniBlocks, numNewTxs)
+}
+
+func (bpp *basePreProcess) isMaxBlockSizeWithoutThrottleReached(numNewMiniBlocks int, numNewTxs int) bool {
+	if common.IsAsyncExecutionEnabled(bpp.enableEpochsHandler, bpp.enableRoundsHandler) {
+		return false
+	}
+
+	return bpp.blockSizeComputation.IsMaxBlockSizeWithoutThrottleReached(numNewMiniBlocks, numNewTxs)
 }

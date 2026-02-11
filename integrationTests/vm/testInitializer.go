@@ -19,15 +19,6 @@ import (
 	"github.com/multiversx/mx-chain-core-go/data/scheduled"
 	dataTransaction "github.com/multiversx/mx-chain-core-go/data/transaction"
 	"github.com/multiversx/mx-chain-core-go/marshal"
-	logger "github.com/multiversx/mx-chain-logger-go"
-	vmcommon "github.com/multiversx/mx-chain-vm-common-go"
-	vmcommonBuiltInFunctions "github.com/multiversx/mx-chain-vm-common-go/builtInFunctions"
-	"github.com/multiversx/mx-chain-vm-common-go/parsers"
-	datafield "github.com/multiversx/mx-chain-vm-common-go/parsers/dataField"
-	wasmConfig "github.com/multiversx/mx-chain-vm-go/config"
-	"github.com/stretchr/testify/assert"
-	"github.com/stretchr/testify/require"
-
 	"github.com/multiversx/mx-chain-go/common"
 	"github.com/multiversx/mx-chain-go/common/enablers"
 	"github.com/multiversx/mx-chain-go/common/forking"
@@ -61,6 +52,7 @@ import (
 	"github.com/multiversx/mx-chain-go/storage"
 	"github.com/multiversx/mx-chain-go/storage/storageunit"
 	"github.com/multiversx/mx-chain-go/testscommon"
+	"github.com/multiversx/mx-chain-go/testscommon/chainParameters"
 	commonMocks "github.com/multiversx/mx-chain-go/testscommon/common"
 	dataRetrieverMock "github.com/multiversx/mx-chain-go/testscommon/dataRetriever"
 	"github.com/multiversx/mx-chain-go/testscommon/dblookupext"
@@ -74,6 +66,14 @@ import (
 	"github.com/multiversx/mx-chain-go/testscommon/txDataBuilder"
 	"github.com/multiversx/mx-chain-go/txcache"
 	"github.com/multiversx/mx-chain-go/vm/systemSmartContracts/defaults"
+	logger "github.com/multiversx/mx-chain-logger-go"
+	vmcommon "github.com/multiversx/mx-chain-vm-common-go"
+	vmcommonBuiltInFunctions "github.com/multiversx/mx-chain-vm-common-go/builtInFunctions"
+	"github.com/multiversx/mx-chain-vm-common-go/parsers"
+	datafield "github.com/multiversx/mx-chain-vm-common-go/parsers/dataField"
+	wasmConfig "github.com/multiversx/mx-chain-vm-go/config"
+	"github.com/stretchr/testify/assert"
+	"github.com/stretchr/testify/require"
 )
 
 // EpochGuardianDelay is the test constant for the delay in epochs for the guardian feature
@@ -318,7 +318,7 @@ func CreateAccount(accnts state.AccountsAdapter, pubKey []byte, nonce uint64, ba
 }
 
 func createEconomicsData(enableEpochsConfig config.EnableEpochs, gasPriceModifier float64) (process.EconomicsDataHandler, error) {
-	maxGasLimitPerBlock := strconv.FormatUint(math.MaxUint64, 10)
+	maxGasLimitPerBlock := strconv.FormatUint(math.MaxUint64-1, 10)
 	minGasPrice := strconv.FormatUint(1, 10)
 	minGasLimit := strconv.FormatUint(1, 10)
 	testProtocolSustainabilityAddress := "erd1932eft30w753xyvme8d49qejgkjc09n5e49w4mwdjtm0neld797su0dlxp"
@@ -327,7 +327,8 @@ func createEconomicsData(enableEpochsConfig config.EnableEpochs, gasPriceModifie
 	enableEpochsHandler, _ := enablers.NewEnableEpochsHandler(enableEpochsConfig, realEpochNotifier)
 
 	argsNewEconomicsData := economics.ArgsNewEconomicsData{
-		TxVersionChecker: versioning.NewTxVersionChecker(minTransactionVersion),
+		TxVersionChecker:   versioning.NewTxVersionChecker(minTransactionVersion),
+		ChainParamsHandler: &chainParameters.ChainParametersHolderMock{},
 		Economics: &config.EconomicsConfig{
 			GlobalSettings: config.GlobalSettings{
 				GenesisTotalSupply: "2000000000000000000000",
@@ -347,6 +348,10 @@ func createEconomicsData(enableEpochsConfig config.EnableEpochs, gasPriceModifie
 						DeveloperPercentage:              0.1,
 						ProtocolSustainabilityAddress:    testProtocolSustainabilityAddress,
 						TopUpGradientPoint:               "100000",
+						EcosystemGrowthPercentage:        0.0,
+						EcosystemGrowthAddress:           testProtocolSustainabilityAddress,
+						GrowthDividendPercentage:         0.0,
+						GrowthDividendAddress:            testProtocolSustainabilityAddress,
 					},
 				},
 			},
@@ -989,8 +994,9 @@ func CreateTxProcessorWithOneSCExecutorWithVMs(
 	})
 
 	dataFieldParser, err := datafield.NewOperationDataFieldParser(&datafield.ArgsOperationDataFieldParser{
-		AddressLength: pubkeyConv.Len(),
-		Marshalizer:   integrationtests.TestMarshalizer,
+		AddressLength:                       pubkeyConv.Len(),
+		Marshalizer:                         integrationtests.TestMarshalizer,
+		RelayedTransactionsV1V2DisableEpoch: enableEpochsHandler.GetActivationEpoch(common.RelayedTransactionsV1V2DisableFlag),
 	})
 	if err != nil {
 		return nil, err

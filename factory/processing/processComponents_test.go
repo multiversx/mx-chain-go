@@ -40,6 +40,7 @@ import (
 	"github.com/multiversx/mx-chain-go/testscommon/chainParameters"
 	txExecOrderStub "github.com/multiversx/mx-chain-go/testscommon/common"
 	"github.com/multiversx/mx-chain-go/testscommon/components"
+	consensusMocks "github.com/multiversx/mx-chain-go/testscommon/consensus"
 	"github.com/multiversx/mx-chain-go/testscommon/cryptoMocks"
 	"github.com/multiversx/mx-chain-go/testscommon/dataRetriever"
 	"github.com/multiversx/mx-chain-go/testscommon/dblookupext"
@@ -231,6 +232,7 @@ func createMockProcessComponentsFactoryArgs() processComp.ProcessComponentsFacto
 			ChainParametersHandlerField:        &chainParameters.ChainParametersHandlerStub{},
 			ProcessConfigsHandlerField:         testscommon.GetDefaultProcessConfigsHandler(),
 			CommonConfigsHandlerField:          testscommon.GetDefaultCommonConfigsHandler(),
+			AntifloodConfigsHandlerField:       &testscommon.AntifloodConfigsHandlerStub{},
 		},
 		Crypto: &testsMocks.CryptoComponentsStub{
 			BlKeyGen: &cryptoMocks.KeyGenStub{},
@@ -248,6 +250,7 @@ func createMockProcessComponentsFactoryArgs() processComp.ProcessComponentsFacto
 			MsgSigVerifier:          &testscommon.MessageSignVerifierMock{},
 			ManagedPeersHolderField: &testscommon.ManagedPeersHolderStub{},
 			KeysHandlerField:        &testscommon.KeysHandlerStub{},
+			SigHandler:              &consensusMocks.SigningHandlerStub{},
 		},
 		Network: &testsMocks.NetworkComponentsStub{
 			Messenger:                        &p2pmocks.MessengerStub{},
@@ -723,15 +726,29 @@ func TestProcessComponentsFactory_Create(t *testing.T) {
 		t.Parallel()
 
 		args := createMockProcessComponentsFactoryArgs()
-		args.Config.PoolsCleanersConfig.MaxRoundsToKeepUnprocessedMiniBlocks = 0
-		testCreateWithArgs(t, args, "MaxRoundsToKeepUnprocessedData")
+		ct := 0
+		args.CoreData.(*mock.CoreComponentsMock).ProcessConfigsHandlerCalled = func() common.ProcessConfigsHandler {
+			if ct == 2 {
+				return nil
+			}
+			ct++
+			return args.CoreData.(*mock.CoreComponentsMock).ProcessConfigsHandlerField
+		}
+		testCreateWithArgs(t, args, "NewMiniBlocksPoolsCleaner")
 	})
 	t.Run("NewTxsPoolsCleaner fails should error", func(t *testing.T) {
 		t.Parallel()
 
 		args := createMockProcessComponentsFactoryArgs()
-		args.Config.PoolsCleanersConfig.MaxRoundsToKeepUnprocessedTransactions = 0
-		testCreateWithArgs(t, args, "MaxRoundsToKeepUnprocessedData")
+		ct := 0
+		args.CoreData.(*mock.CoreComponentsMock).ProcessConfigsHandlerCalled = func() common.ProcessConfigsHandler {
+			if ct == 3 {
+				return nil
+			}
+			ct++
+			return args.CoreData.(*mock.CoreComponentsMock).ProcessConfigsHandlerField
+		}
+		testCreateWithArgs(t, args, "NewTxsPoolsCleaner")
 	})
 	t.Run("createHardforkTrigger fails due to Decode failure should error", func(t *testing.T) {
 		t.Parallel()

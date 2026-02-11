@@ -23,6 +23,7 @@ func cloneTrigger(t *trigger) *trigger {
 	rt.epochFinalityAttestingRound = t.epochFinalityAttestingRound
 	rt.currEpochStartRound = t.currEpochStartRound
 	rt.prevEpochStartRound = t.prevEpochStartRound
+	rt.epochStartMeta = t.epochStartMeta
 	rt.epochStartMetaHash = t.epochStartMetaHash
 	rt.triggerStateKey = t.triggerStateKey
 	rt.epochStartTime = t.epochStartTime
@@ -35,6 +36,8 @@ func cloneTrigger(t *trigger) *trigger {
 	rt.nextEpochStartRound = t.nextEpochStartRound
 	rt.validatorInfoPool = t.validatorInfoPool
 	rt.chainParametersHandler = t.chainParametersHandler
+	rt.epochChangeProposed = t.epochChangeProposed
+	rt.triggerStorage = t.triggerStorage
 
 	return rt
 }
@@ -108,6 +111,43 @@ func TestTrigger_LoadStateBackwardsCompatibility(t *testing.T) {
 	require.Equal(t, epochStartTrigger1, epochStartTrigger2)
 }
 
+func TestTrigger_LoadHeaderV3StateAfterSave(t *testing.T) {
+	t.Parallel()
+
+	epoch := uint32(5)
+	arguments := createMockEpochStartTriggerArguments()
+	arguments.Epoch = epoch
+	bootStorer := genericMocks.NewStorerMock()
+
+	arguments.Storage = &storageStubs.ChainStorerStub{
+		GetStorerCalled: func(unitType dataRetriever.UnitType) (storage.Storer, error) {
+			return bootStorer, nil
+		},
+	}
+
+	epochStartTrigger1, _ := NewEpochStartTrigger(arguments)
+	// create a copy
+	epochStartTrigger2 := cloneTrigger(epochStartTrigger1)
+
+	key := []byte("key")
+	epochStartTrigger1.triggerStateKey = key
+	epochStartTrigger1.epoch = 6
+	epochStartTrigger1.epochFinalityAttestingRound = 998
+	epochStartTrigger1.currEpochStartRound = 800
+	epochStartTrigger1.prevEpochStartRound = 650
+
+	epochStartTrigger1.epochStartMeta = &block.MetaBlockV3{
+		EpochChangeProposed: true,
+	}
+	err := epochStartTrigger1.saveState(key)
+	require.Nil(t, err)
+	require.NotEqual(t, epochStartTrigger1, epochStartTrigger2)
+
+	err = epochStartTrigger2.LoadState(key)
+	require.Nil(t, err)
+	require.Equal(t, epochStartTrigger1, epochStartTrigger2)
+}
+
 type legacyTriggerRegistry struct {
 	Epoch                       uint32
 	CurrentRound                uint64
@@ -119,7 +159,7 @@ type legacyTriggerRegistry struct {
 }
 
 func createLegacyTriggerRegistryFromTrigger(t *trigger) *legacyTriggerRegistry {
-	metaBlock, _ := t.epochStartMeta.(*block.MetaBlock)
+	metaBlock, _ := t.epochStartMeta.(data.MetaHeaderHandler)
 	return &legacyTriggerRegistry{
 		Epoch:                       t.epoch,
 		EpochFinalityAttestingRound: t.epochFinalityAttestingRound,

@@ -10,17 +10,17 @@ import (
 	outportcore "github.com/multiversx/mx-chain-core-go/data/outport"
 	"github.com/multiversx/mx-chain-core-go/data/smartContractResult"
 	"github.com/multiversx/mx-chain-core-go/data/transaction"
-	"github.com/stretchr/testify/require"
-
 	"github.com/multiversx/mx-chain-go/common"
 	"github.com/multiversx/mx-chain-go/outport/mock"
 	"github.com/multiversx/mx-chain-go/process"
 	"github.com/multiversx/mx-chain-go/process/economics"
 	"github.com/multiversx/mx-chain-go/testscommon"
+	"github.com/multiversx/mx-chain-go/testscommon/chainParameters"
 	"github.com/multiversx/mx-chain-go/testscommon/enableEpochsHandlerMock"
 	"github.com/multiversx/mx-chain-go/testscommon/epochNotifier"
 	"github.com/multiversx/mx-chain-go/testscommon/genericMocks"
 	"github.com/multiversx/mx-chain-go/testscommon/marshallerMock"
+	"github.com/stretchr/testify/require"
 )
 
 var pubKeyConverter, _ = pubkeyConverter.NewBech32PubkeyConverter(32, "erd")
@@ -28,6 +28,7 @@ var pubKeyConverter, _ = pubkeyConverter.NewBech32PubkeyConverter(32, "erd")
 func createEconomicsData(enableEpochsHandler common.EnableEpochsHandler) process.EconomicsDataHandler {
 	economicsConfig := testscommon.GetEconomicsConfig()
 	economicsData, _ := economics.NewEconomicsData(economics.ArgsNewEconomicsData{
+		ChainParamsHandler:  &chainParameters.ChainParametersHolderMock{},
 		Economics:           &economicsConfig,
 		EnableEpochsHandler: enableEpochsHandler,
 		TxVersionChecker:    &testscommon.TxVersionCheckerStub{},
@@ -273,7 +274,7 @@ func TestPutFeeAndGasUsedLogWithErrorAndInformative(t *testing.T) {
 			tx1Hash: tx1,
 			tx2Hash: tx2,
 			"t3":    {Transaction: &transaction.Transaction{}, FeeInfo: &outportcore.FeeInfo{Fee: big.NewInt(0)}}},
-		Logs: []*outportcore.LogData{
+		Logs: []*transaction.LogData{
 			{
 				Log: &transaction.Log{
 					Events: []*transaction.Event{
@@ -640,7 +641,7 @@ func TestMoveBalanceWithSignalError(t *testing.T) {
 		Transactions: map[string]*outportcore.TxInfo{
 			hex.EncodeToString(txHash): initialTx,
 		},
-		Logs: []*outportcore.LogData{
+		Logs: []*transaction.LogData{
 			{
 				Log: &transaction.Log{
 					Events: []*transaction.Event{

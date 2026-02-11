@@ -26,6 +26,7 @@ type ArgsNewRewardsCreator struct {
 
 type rewardsCreator struct {
 	*baseRewardsCreator
+	protocolSustainabilityValue *big.Int
 }
 
 type rewardInfoData struct {
@@ -42,10 +43,24 @@ func NewRewardsCreator(args ArgsNewRewardsCreator) (*rewardsCreator, error) {
 	}
 
 	rc := &rewardsCreator{
-		baseRewardsCreator: brc,
+		baseRewardsCreator:          brc,
+		protocolSustainabilityValue: big.NewInt(0),
 	}
 
 	return rc, nil
+}
+
+func (rc *rewardsCreator) clean() {
+	rc.protocolSustainabilityValue = big.NewInt(0)
+	rc.baseRewardsCreator.clean()
+}
+
+// GetAcceleratorRewards returns the sum of all rewards
+func (rc *rewardsCreator) GetAcceleratorRewards() *big.Int {
+	rc.mutRewardsData.RLock()
+	defer rc.mutRewardsData.RUnlock()
+
+	return rc.protocolSustainabilityValue
 }
 
 // CreateRewardsMiniBlocks creates the rewards miniblocks according to economics data and validator info
@@ -73,7 +88,7 @@ func (rc *rewardsCreator) CreateRewardsMiniBlocks(
 
 	miniBlocks := rc.initializeRewardsMiniBlocks()
 
-	protSustRwdTx, protSustShardId, err := rc.createProtocolSustainabilityRewardTransaction(metaBlock.GetEpoch(), metaBlock.GetRound(), computedEconomics)
+	protSustRwdTx, protSustShardId, err := rc.createProtocolSustainabilityRewardTransaction(metaBlock.GetEpoch(), metaBlock.GetRound(), computedEconomics.GetRewardsForProtocolSustainability())
 	if err != nil {
 		return nil, err
 	}
@@ -88,7 +103,8 @@ func (rc *rewardsCreator) CreateRewardsMiniBlocks(
 	difference := big.NewInt(0).Sub(totalWithoutDevelopers, rc.accumulatedRewards)
 	log.Debug("arithmetic difference in end of epoch rewards economics", "epoch", metaBlock.GetEpoch(), "value", difference)
 	rc.adjustProtocolSustainabilityRewards(protSustRwdTx, difference)
-	err = rc.addProtocolRewardToMiniBlocks(protSustRwdTx, miniBlocks, protSustShardId)
+
+	err = rc.addAcceleratorRewardToMiniBlocks(protSustRwdTx, miniBlocks, protSustShardId)
 	if err != nil {
 		return nil, err
 	}
@@ -220,7 +236,7 @@ func (rc *rewardsCreator) VerifyRewardsMiniBlocks(
 	return rc.verifyCreatedRewardMiniBlocksWithMetaBlock(metaBlock, createdMiniBlocks)
 }
 
-// CreateRewardsMiniBlocksV3 creates the rewards miniblocks according to economics data and validator info for V3 headers
+// CreateRewardsMiniBlocksV3 is not supported
 func (rcp *rewardsCreator) CreateRewardsMiniBlocksV3(
 	_ data.MetaHeaderHandler,
 	_ state.ShardValidatorsInfoMapHandler,

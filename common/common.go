@@ -13,6 +13,7 @@ import (
 	"github.com/multiversx/mx-chain-core-go/core"
 	"github.com/multiversx/mx-chain-core-go/core/check"
 	"github.com/multiversx/mx-chain-core-go/data"
+	"github.com/multiversx/mx-chain-core-go/data/block"
 	logger "github.com/multiversx/mx-chain-logger-go"
 
 	"github.com/multiversx/mx-chain-go/config"
@@ -40,6 +41,16 @@ type chainParametersHandler interface {
 // PrepareLogEventsKey will prepare logs key for cacher
 func PrepareLogEventsKey(headerHash []byte) []byte {
 	return append([]byte("logs"), headerHash...)
+}
+
+// PrepareOrderedTxHashesKey will prepare transactions execution order key for cacher
+func PrepareOrderedTxHashesKey(headerHash []byte) []byte {
+	return append([]byte("execution"), headerHash...)
+}
+
+// PrepareUnexecutableTxHashesKey will prepare unexecutable transaction hashes key for cacher
+func PrepareUnexecutableTxHashesKey(headerHash []byte) []byte {
+	return append([]byte("unexecutable"), headerHash...)
 }
 
 // IsValidRelayedTxV3 returns true if the provided transaction is a valid transaction of type relayed v3
@@ -389,13 +400,99 @@ func GetLastBaseExecutionResultHandler(header data.HeaderHandler) (data.BaseExec
 	if check.IfNil(header) {
 		return nil, ErrNilHeaderHandler
 	}
+
 	lastExecResultsHandler := header.GetLastExecutionResultHandler()
 	return ExtractBaseExecutionResultHandler(lastExecResultsHandler)
+}
+
+// GetOrCreateLastExecutionResultForPrevHeader extracts base execution result from
+// header if header v3. Otherwise, it will create last execution result based
+// on the provided header
+func GetOrCreateLastExecutionResultForPrevHeader(
+	prevHeader data.HeaderHandler,
+	prevHeaderHash []byte,
+) (data.BaseExecutionResultHandler, error) {
+	if prevHeader.IsHeaderV3() {
+		return ExtractBaseExecutionResultHandler(prevHeader.GetLastExecutionResultHandler())
+	}
+
+	lastExecResult, err := CreateLastExecutionResultFromPrevHeader(prevHeader, prevHeaderHash)
+	if err != nil {
+		return nil, err
+	}
+
+	return ExtractBaseExecutionResultHandler(lastExecResult)
+}
+
+func isValidHeaderBeforeV3(header data.HeaderHandler) error {
+	_, isHeaderV2 := header.(*block.HeaderV2)
+	if isHeaderV2 {
+		return nil
+	}
+
+	_, isHeaderV1 := header.(*block.Header)
+	if !isHeaderV1 {
+		return ErrWrongTypeAssertion
+	}
+
+	return nil
+}
+
+// CreateLastExecutionResultFromPrevHeader creates a LastExecutionResultInfo object from the given previous header
+func CreateLastExecutionResultFromPrevHeader(prevHeader data.HeaderHandler, prevHeaderHash []byte) (data.LastExecutionResultHandler, error) {
+	if check.IfNil(prevHeader) {
+		return nil, ErrNilHeaderHandler
+	}
+	if len(prevHeaderHash) == 0 {
+		return nil, ErrInvalidHeaderHash
+	}
+
+	if prevHeader.GetShardID() != core.MetachainShardId {
+		err := isValidHeaderBeforeV3(prevHeader)
+		if err != nil {
+			return nil, err
+		}
+
+		return &block.ExecutionResultInfo{
+			NotarizedInRound: prevHeader.GetRound(),
+			ExecutionResult: &block.BaseExecutionResult{
+				HeaderHash:  prevHeaderHash,
+				HeaderNonce: prevHeader.GetNonce(),
+				HeaderRound: prevHeader.GetRound(),
+				HeaderEpoch: prevHeader.GetEpoch(),
+				RootHash:    prevHeader.GetRootHash(),
+				GasUsed:     0, // we don't have this information in previous header
+			},
+		}, nil
+	}
+
+	prevMetaHeader, ok := prevHeader.(data.MetaHeaderHandler)
+	if !ok {
+		return nil, ErrWrongTypeAssertion
+	}
+
+	return &block.MetaExecutionResultInfo{
+		NotarizedInRound: prevHeader.GetRound(),
+		ExecutionResult: &block.BaseMetaExecutionResult{
+			BaseExecutionResult: &block.BaseExecutionResult{
+				HeaderHash:  prevHeaderHash,
+				HeaderNonce: prevMetaHeader.GetNonce(),
+				HeaderRound: prevMetaHeader.GetRound(),
+				HeaderEpoch: prevMetaHeader.GetEpoch(),
+				RootHash:    prevMetaHeader.GetRootHash(),
+				GasUsed:     0, // we don't have this information in previous header
+			},
+			ValidatorStatsRootHash: prevMetaHeader.GetValidatorStatsRootHash(),
+			AccumulatedFeesInEpoch: prevMetaHeader.GetAccumulatedFeesInEpoch(),
+			DevFeesInEpoch:         prevMetaHeader.GetDevFeesInEpoch(),
+		},
+	}, nil
 }
 
 // ExtractBaseExecutionResultHandler extracts the base execution result handler from a last execution result handler
 func ExtractBaseExecutionResultHandler(lastExecResultsHandler data.LastExecutionResultHandler) (data.BaseExecutionResultHandler, error) {
 	if check.IfNil(lastExecResultsHandler) {
+		log.Error("ExtractBaseExecutionResultHandler: nil exec")
 		return nil, ErrNilLastExecutionResultHandler
 	}
 
@@ -440,7 +537,7 @@ func GetMiniBlocksHeaderHandlersFromExecResult(
 	return execResult.GetMiniBlockHeadersHandlers(), nil
 }
 
-// GetLastExecutionResultNonce returns last execution result nonce if header v3 enable, otherwise it returns provided header nonce
+// GetLastExecutionResultNonce returns last execution result nonce if header v3 enabled, otherwise it returns provided header nonce
 func GetLastExecutionResultNonce(
 	header data.HeaderHandler,
 ) uint64 {
@@ -458,14 +555,33 @@ func GetLastExecutionResultNonce(
 	return lastExecutionResult.GetHeaderNonce()
 }
 
+// GetFirstExecutionResultNonce returns first execution result nonce if header v3 enabled, otherwise it returns provided header nonce.
+// For header v3, it returns first execution result if there are any, otherwise it returns last execution results on the header
+func GetFirstExecutionResultNonce(
+	header data.HeaderHandler,
+) uint64 {
+	nonce := header.GetNonce()
+
+	if !header.IsHeaderV3() {
+		return nonce
+	}
+
+	if len(header.GetExecutionResultsHandlers()) > 0 {
+		firstExecResult := header.GetExecutionResultsHandlers()[0]
+		return firstExecResult.GetHeaderNonce()
+	}
+
+	return GetLastExecutionResultNonce(header)
+}
+
 // GetMiniBlockHeadersFromExecResult returns mb headers from meta header if v3, otherwise, returns mini block headers
-func GetMiniBlockHeadersFromExecResult(metaBlock data.HeaderHandler) ([]data.MiniBlockHeaderHandler, error) {
-	if !metaBlock.IsHeaderV3() {
-		return metaBlock.GetMiniBlockHeaderHandlers(), nil
+func GetMiniBlockHeadersFromExecResult(header data.HeaderHandler) ([]data.MiniBlockHeaderHandler, error) {
+	if !header.IsHeaderV3() {
+		return header.GetMiniBlockHeaderHandlers(), nil
 	}
 
 	mbHeaderHandlers := make([]data.MiniBlockHeaderHandler, 0)
-	for _, execResult := range metaBlock.GetExecutionResultsHandlers() {
+	for _, execResult := range header.GetExecutionResultsHandlers() {
 		mbHeaders, err := GetMiniBlocksHeaderHandlersFromExecResult(execResult)
 		if err != nil {
 			return nil, fmt.Errorf("%w in GetMiniBlockHeadersFromExecResult.GetMiniBlocksHeaderHandlersFromExecResult", err)

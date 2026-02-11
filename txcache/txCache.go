@@ -7,9 +7,10 @@ import (
 	"github.com/multiversx/mx-chain-core-go/core/atomic"
 	"github.com/multiversx/mx-chain-core-go/core/check"
 	"github.com/multiversx/mx-chain-core-go/data"
-	"github.com/multiversx/mx-chain-go/common"
 	"github.com/multiversx/mx-chain-storage-go/monitoring"
 	"github.com/multiversx/mx-chain-storage-go/types"
+
+	"github.com/multiversx/mx-chain-go/common"
 )
 
 var _ types.Cacher = (*TxCache)(nil)
@@ -28,7 +29,7 @@ type TxCache struct {
 }
 
 // NewTxCache creates a new transaction cache
-func NewTxCache(config ConfigSourceMe, host MempoolHost) (*TxCache, error) {
+func NewTxCache(config ConfigSourceMe, host MempoolHost, selfShardId uint32) (*TxCache, error) {
 	log.Debug("NewTxCache", "config", config.String())
 	monitoring.MonitorNewCache(config.Name, uint64(config.NumBytesThreshold))
 
@@ -52,7 +53,11 @@ func NewTxCache(config ConfigSourceMe, host MempoolHost) (*TxCache, error) {
 		host:           host,
 	}
 
-	tracker, err := NewSelectionTracker(txCache, config.TxCacheBoundsConfig.MaxTrackedBlocks)
+	tracker, err := NewSelectionTracker(
+		txCache,
+		selfShardId,
+		config.TxCacheBoundsConfig.MaxTrackedBlocks,
+	)
 	if err != nil {
 		return nil, err
 	}
@@ -69,6 +74,11 @@ func (cache *TxCache) AddTx(tx *WrappedTransaction) (ok bool, added bool) {
 	}
 
 	logAdd.Trace("TxCache.AddTx", "tx", tx.TxHash, "nonce", tx.Tx.GetNonce(), "sender", tx.Tx.GetSndAddr())
+
+	// Early duplicate check before expensive precomputeFields (DoS protection)
+	if cache.txByHash.hasTx(string(tx.TxHash)) {
+		return true, false
+	}
 
 	tx.precomputeFields(cache.host)
 
@@ -108,22 +118,23 @@ func (cache *TxCache) GetByTxHash(txHash []byte) (*WrappedTransaction, bool) {
 // SelectTransactions selects the best transactions to be included in the next miniblock.
 // It returns up to "options.maxNumTxs" transactions, with total gas <= "options.gasRequested".
 // The selection takes into consideration the proposed blocks which were not yet executed.
-// The SelectTransactions should receive the nonce of the block on which the selection is built.
-// The blocks with a nonce greater than the given one will be removed.
+// The SelectTransactions should receive the nonce of the block for which the selection is built.
+// The blocks with a nonce equal or greater than the given one will be removed.
 func (cache *TxCache) SelectTransactions(
 	session SelectionSession,
 	options common.TxSelectionOptions,
-	currentBlockNonce uint64,
+	blockNonce uint64,
 ) ([]*WrappedTransaction, uint64, error) {
-	return cache.selectTransactions(session, options, currentBlockNonce, false)
+	return cache.selectTransactions(session, options, blockNonce, false)
 }
 
 // SimulateSelectTransactions simulates a selection of transaction and does not affect the internal state of the tracker
 func (cache *TxCache) SimulateSelectTransactions(
 	session SelectionSession,
 	options common.TxSelectionOptions,
+	currentBlockNonce uint64,
 ) ([]*WrappedTransaction, uint64, error) {
-	return cache.selectTransactions(session, options, 0, true)
+	return cache.selectTransactions(session, options, currentBlockNonce, true)
 }
 
 // selectTransactions executes a real / simulated selection
@@ -203,6 +214,33 @@ func (cache *TxCache) ResetTracker() {
 
 func (cache *TxCache) getSenders() []*txListForSender {
 	return cache.txListBySender.getSenders()
+}
+
+// SetSelectionOffsetsByLastNonce sets the selection offset for each sender to skip all transactions
+// up to and including the given last nonce. This is called after a block is proposed.
+func (cache *TxCache) SetSelectionOffsetsByLastNonce(lastNoncePerSender map[string]uint64) {
+	for sender, lastNonce := range lastNoncePerSender {
+		listForSender, ok := cache.txListBySender.getListForSender(sender)
+		if !ok {
+			continue
+		}
+
+		// Set offset to first transaction with nonce > lastNonce (i.e., nonce >= lastNonce + 1)
+		listForSender.resetSelectionOffsetByNonce(lastNonce + 1)
+	}
+}
+
+// ResetSelectionOffsetsToNonce resets the selection offset for each sender to point to the first
+// transaction with nonce >= the given nonce. This is called during block replacement.
+func (cache *TxCache) ResetSelectionOffsetsToNonce(sendersWithFirstNonce map[string]uint64) {
+	for sender, firstNonce := range sendersWithFirstNonce {
+		listForSender, ok := cache.txListBySender.getListForSender(sender)
+		if !ok {
+			continue
+		}
+
+		listForSender.resetSelectionOffsetByNonce(firstNonce)
+	}
 }
 
 // RemoveTxByHash removes transactions with nonces lower or equal to the given transaction's nonce
@@ -360,4 +398,10 @@ func (cache *TxCache) Close() error {
 // IsInterfaceNil returns true if there is no value under the interface
 func (cache *TxCache) IsInterfaceNil() bool {
 	return cache == nil
+}
+
+// SetAOTSelectionPreempter sets the AOT selection preempter for preemption support
+// This allows the selectionTracker to preempt ongoing AOT selections when needed
+func (cache *TxCache) SetAOTSelectionPreempter(preempter common.AOTSelectionPreempter) {
+	cache.tracker.SetAOTSelectionPreempter(preempter)
 }

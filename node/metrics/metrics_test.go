@@ -23,6 +23,7 @@ func TestInitBaseMetrics(t *testing.T) {
 	expectedKeys := []string{
 		common.MetricSynchronizedRound,
 		common.MetricNonce,
+		common.MetricLastExecutedNonce,
 		common.MetricBlockTimestamp,
 		common.MetricBlockTimestampMs,
 		common.MetricCountConsensus,
@@ -160,7 +161,6 @@ func TestInitConfigMetrics(t *testing.T) {
 			IsPayableBySCEnableEpoch:                                 52,
 			CleanUpInformativeSCRsEnableEpoch:                        53,
 			StorageAPICostOptimizationEnableEpoch:                    54,
-			TransformToMultiShardCreateEnableEpoch:                   55,
 			ESDTRegisterAndSetAllRolesEnableEpoch:                    56,
 			DoNotReturnOldBlockInBlockchainHookEnableEpoch:           57,
 			AddFailedRelayedTxToInvalidMBsDisableEpoch:               58,
@@ -222,6 +222,7 @@ func TestInitConfigMetrics(t *testing.T) {
 			AutomaticActivationOfNodesDisableEpoch:                   114,
 			FixGetBalanceEnableEpoch:                                 115,
 			RelayedTransactionsV1V2DisableEpoch:                      116,
+			SupernovaEnableEpoch:                                     118, // tail inflation 117 comes from EconomicsConfig
 			MaxNodesChangeEnableEpoch: []config.MaxNodesChangeConfig{
 				{
 					EpochEnable:            0,
@@ -291,7 +292,6 @@ func TestInitConfigMetrics(t *testing.T) {
 		"erd_is_payable_by_sc_enable_epoch":                                    uint32(52),
 		"erd_cleanup_informative_scrs_enable_epoch":                            uint32(53),
 		"erd_storage_api_cost_optimization_enable_epoch":                       uint32(54),
-		"erd_transform_to_multi_shard_create_enable_epoch":                     uint32(55),
 		"erd_esdt_register_and_set_all_roles_enable_epoch":                     uint32(56),
 		"erd_do_not_returns_old_block_in_blockchain_hook_enable_epoch":         uint32(57),
 		"erd_add_failed_relayed_tx_to_invalid_mbs_enable_epoch":                uint32(58),
@@ -353,6 +353,8 @@ func TestInitConfigMetrics(t *testing.T) {
 		"erd_automatic_activation_of_nodes_disable_epoch":                      uint32(114),
 		"erd_fix_get_balance_enable_epoch":                                     uint32(115),
 		"erd_relayed_transactions_v1_v2_disable_epoch":                         uint32(116),
+		"erd_tail_inflation_enable_epoch":                                      uint32(117),
+		"erd_supernova_enable_epoch":                                           uint32(118),
 		"erd_max_nodes_change_enable_epoch":                                    nil,
 		"erd_total_supply":                                                     "12345",
 		"erd_hysteresis":                                                       "0.100000",
@@ -366,6 +368,9 @@ func TestInitConfigMetrics(t *testing.T) {
 	economicsConfig := config.EconomicsConfig{
 		GlobalSettings: config.GlobalSettings{
 			GenesisTotalSupply: "12345",
+			TailInflation: config.TailInflationSettings{
+				EnableEpoch: 117,
+			},
 		},
 	}
 

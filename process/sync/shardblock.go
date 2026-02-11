@@ -46,6 +46,7 @@ func NewShardBootstrap(arguments ArgShardBootstrapper) (*ShardBootstrap, error) 
 		store:                        arguments.Store,
 		headers:                      arguments.PoolsHolder.Headers(),
 		proofs:                       arguments.PoolsHolder.Proofs(),
+		dataPool:                     arguments.PoolsHolder,
 		roundHandler:                 arguments.RoundHandler,
 		hasher:                       arguments.Hasher,
 		marshalizer:                  arguments.Marshalizer,
@@ -96,6 +97,11 @@ func NewShardBootstrap(arguments ArgShardBootstrapper) (*ShardBootstrap, error) 
 
 	hdrNonceHashDataUnit := dataRetriever.GetHdrNonceHashDataUnit(boot.shardCoordinator.SelfId())
 	base.headerNonceHashStore, err = boot.store.GetStorer(hdrNonceHashDataUnit)
+	if err != nil {
+		return nil, err
+	}
+
+	err = base.createTxSyncer()
 	if err != nil {
 		return nil, err
 	}

@@ -27,6 +27,7 @@ import (
 	"github.com/multiversx/mx-chain-go/testscommon/chainParameters"
 	"github.com/multiversx/mx-chain-go/testscommon/commonmocks"
 	"github.com/multiversx/mx-chain-go/testscommon/components"
+	consensusMocks "github.com/multiversx/mx-chain-go/testscommon/consensus"
 	"github.com/multiversx/mx-chain-go/testscommon/cryptoMocks"
 	"github.com/multiversx/mx-chain-go/testscommon/dataRetriever"
 	"github.com/multiversx/mx-chain-go/testscommon/economicsmocks"
@@ -181,7 +182,8 @@ func createArgsProcessComponentsHolder() ArgsProcessComponentsHolder {
 			ChainParametersHandlerField:        &chainParameters.ChainParametersHandlerStub{},
 			ChainParametersSubscriberField:     &commonmocks.ChainParametersNotifierStub{},
 			ProcessConfigsHandlerField:         testscommon.GetDefaultProcessConfigsHandler(),
-			CommonConfigsHandlerField:      testscommon.GetDefaultCommonConfigsHandler(),
+			CommonConfigsHandlerField:          testscommon.GetDefaultCommonConfigsHandler(),
+			AntifloodConfigsHandlerField:       &testscommon.AntifloodConfigsHandlerStub{},
 		},
 		CryptoComponents: &mock.CryptoComponentsStub{
 			BlKeyGen: &cryptoMocks.KeyGenStub{},
@@ -199,6 +201,7 @@ func createArgsProcessComponentsHolder() ArgsProcessComponentsHolder {
 			MsgSigVerifier:          &testscommon.MessageSignVerifierMock{},
 			ManagedPeersHolderField: &testscommon.ManagedPeersHolderStub{},
 			KeysHandlerField:        &testscommon.KeysHandlerStub{},
+			SigHandler:              &consensusMocks.SigningHandlerStub{},
 		},
 		NetworkComponents: &mock.NetworkComponentsStub{
 			Messenger:                        &p2pmocks.MessengerStub{},
@@ -258,7 +261,7 @@ func TestCreateProcessComponents(t *testing.T) {
 
 	t.Run("should work", func(t *testing.T) {
 		comp, err := CreateProcessComponents(createArgsProcessComponentsHolder())
-		require.NoError(t, err)
+		require.Nil(t, err)
 		require.NotNil(t, comp)
 
 		require.Nil(t, comp.Create())
@@ -424,6 +427,7 @@ func TestProcessComponentsHolder_Getters(t *testing.T) {
 	require.NotNil(t, comp.AccountsParser())
 	require.NotNil(t, comp.ReceiptsRepository())
 	require.NotNil(t, comp.EpochSystemSCProcessor())
+	require.NotNil(t, comp.ExecutionManager())
 	require.Nil(t, comp.CheckSubcomponents())
 	require.Empty(t, comp.String())
 

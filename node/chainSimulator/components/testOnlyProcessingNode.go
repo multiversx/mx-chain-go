@@ -6,8 +6,12 @@ import (
 	"errors"
 	"fmt"
 	"math/big"
-	"strconv"
 	"time"
+
+	"github.com/multiversx/mx-chain-core-go/core"
+	chainData "github.com/multiversx/mx-chain-core-go/data"
+	"github.com/multiversx/mx-chain-core-go/data/block"
+	"github.com/multiversx/mx-chain-core-go/data/endProcess"
 
 	"github.com/multiversx/mx-chain-go/api/shared"
 	"github.com/multiversx/mx-chain-go/common"
@@ -28,10 +32,6 @@ import (
 	"github.com/multiversx/mx-chain-go/sharding"
 	"github.com/multiversx/mx-chain-go/sharding/nodesCoordinator"
 	"github.com/multiversx/mx-chain-go/state"
-
-	"github.com/multiversx/mx-chain-core-go/core"
-	chainData "github.com/multiversx/mx-chain-core-go/data"
-	"github.com/multiversx/mx-chain-core-go/data/endProcess"
 )
 
 // ArgsTestOnlyProcessingNode represents the DTO struct for the NewTestOnlyProcessingNode constructor function
@@ -49,6 +49,7 @@ type ArgsTestOnlyProcessingNode struct {
 	NumShards                   uint32
 	ShardIDStr                  string
 	BypassTxSignatureCheck      bool
+	BypassBlockSignatureCheck   bool
 	MinNodesPerShard            uint32
 	ConsensusGroupSize          uint32
 	MinNodesMeta                uint32
@@ -95,13 +96,6 @@ func NewTestOnlyProcessingNode(args ArgsTestOnlyProcessingNode) (*testOnlyProces
 	var err error
 	instance.TransactionFeeHandler = postprocess.NewFeeAccumulator()
 
-	supernovaRoundStr := args.Configs.RoundConfig.RoundActivations[string(common.SupernovaRoundFlag)].Round
-	supernovaRound, err := strconv.ParseUint(supernovaRoundStr, 10, 64)
-	if err != nil {
-		return nil, err
-	}
-
-	supernovaGenesisTime := args.GenesisTime.Add(time.Duration(supernovaRound*args.RoundDurationInMillis) * time.Millisecond)
 	instance.CoreComponentsHolder, err = CreateCoreComponents(ArgsCoreComponentsHolder{
 		Config:                      *args.Configs.GeneralConfig,
 		EnableEpochsConfig:          args.Configs.EpochConfig.EnableEpochs,
@@ -120,7 +114,6 @@ func NewTestOnlyProcessingNode(args ArgsTestOnlyProcessingNode) (*testOnlyProces
 		RoundDurationInMs:           args.RoundDurationInMillis,
 		RatingConfig:                *args.Configs.RatingsConfig,
 		GenesisTime:                 args.GenesisTime,
-		SupernovaGenesisTime:        supernovaGenesisTime,
 	})
 	if err != nil {
 		return nil, err
@@ -137,6 +130,7 @@ func NewTestOnlyProcessingNode(args ArgsTestOnlyProcessingNode) (*testOnlyProces
 		Preferences:                 *args.Configs.PreferencesConfig,
 		CoreComponentsHolder:        instance.CoreComponentsHolder,
 		BypassTxSignatureCheck:      args.BypassTxSignatureCheck,
+		BypassBlockSignatureCheck:   args.BypassBlockSignatureCheck,
 		AllValidatorKeysPemFileName: args.Configs.ConfigurationPathsHolder.AllValidatorKeys,
 	})
 	if err != nil {
@@ -545,8 +539,48 @@ func (node *testOnlyProcessingNode) SetStateForAddress(address []byte, addressSt
 		return err
 	}
 
-	_, err = accountsAdapter.Commit()
+	newRootHash, err := accountsAdapter.Commit()
+	node.setBlockchainRootHashIfSupernovaIsActive(newRootHash)
+
 	return err
+}
+
+func (node *testOnlyProcessingNode) setBlockchainRootHashIfSupernovaIsActive(
+	rootHash []byte,
+) {
+	if !node.CoreComponentsHolder.EnableRoundsHandler().IsFlagEnabled(common.SupernovaRoundFlag) {
+		return
+	}
+
+	header := node.ChainHandler.GetLastExecutedBlockHeader()
+	_, hash, _ := node.ChainHandler.GetLastExecutedBlockInfo()
+	node.ChainHandler.SetLastExecutedBlockHeaderAndRootHash(header, hash, rootHash)
+
+	lastExecutionResult := node.ChainHandler.GetLastExecutionResult()
+
+	metaResult, isMeta := lastExecutionResult.(*block.MetaExecutionResult)
+	if isMeta {
+		metaResult.ExecutionResult.BaseExecutionResult.RootHash = rootHash
+		node.ChainHandler.SetLastExecutionResult(metaResult)
+		return
+	}
+
+	shardResult, isShard := lastExecutionResult.(*block.ExecutionResult)
+	if isShard {
+		shardResult.BaseExecutionResult.RootHash = rootHash
+		node.ChainHandler.SetLastExecutionResult(shardResult)
+		return
+	}
+
+	updatedLastExecutionResult := &block.BaseExecutionResult{
+		HeaderHash:  lastExecutionResult.GetHeaderHash(),
+		HeaderNonce: lastExecutionResult.GetHeaderNonce(),
+		HeaderRound: lastExecutionResult.GetHeaderRound(),
+		HeaderEpoch: lastExecutionResult.GetHeaderEpoch(),
+		RootHash:    rootHash,
+		GasUsed:     lastExecutionResult.GetGasUsed(),
+	}
+	node.ChainHandler.SetLastExecutionResult(updatedLastExecutionResult)
 }
 
 // RemoveAccount will remove the account for the given address

@@ -17,6 +17,8 @@ import (
 	"github.com/multiversx/mx-chain-core-go/marshal"
 	logger "github.com/multiversx/mx-chain-logger-go"
 
+	"github.com/multiversx/mx-chain-go/dataRetriever"
+
 	"github.com/multiversx/mx-chain-go/common"
 	"github.com/multiversx/mx-chain-go/process"
 	"github.com/multiversx/mx-chain-go/process/block/preprocess"
@@ -24,7 +26,6 @@ import (
 	"github.com/multiversx/mx-chain-go/process/factory"
 	"github.com/multiversx/mx-chain-go/sharding"
 	"github.com/multiversx/mx-chain-go/state"
-	"github.com/multiversx/mx-chain-go/storage"
 )
 
 var _ process.TransactionCoordinator = (*transactionCoordinator)(nil)
@@ -50,7 +51,7 @@ type ArgTransactionCoordinator struct {
 	Marshalizer                  marshal.Marshalizer
 	ShardCoordinator             sharding.Coordinator
 	Accounts                     state.AccountsAdapter
-	MiniBlockPool                storage.Cacher
+	DataPool                     dataRetriever.PoolsHolder
 	PreProcessors                process.PreProcessorsContainer
 	PreProcessorsProposal        process.PreProcessorsContainer
 	InterProcessors              process.IntermediateProcessorContainer
@@ -62,6 +63,7 @@ type ArgTransactionCoordinator struct {
 	TxTypeHandler                process.TxTypeHandler
 	TransactionsLogProcessor     process.TransactionLogProcessor
 	EnableEpochsHandler          common.EnableEpochsHandler
+	EnableRoundsHandler          common.EnableRoundsHandler
 	ScheduledTxsExecutionHandler process.ScheduledTxsExecutionHandler
 	DoubleTransactionsDetector   process.DoubleTransactionDetector
 	ProcessedMiniBlocksTracker   process.ProcessedMiniBlocksTracker
@@ -69,12 +71,13 @@ type ArgTransactionCoordinator struct {
 	BlockDataRequester           process.BlockDataRequester
 	BlockDataRequesterProposal   process.BlockDataRequester
 	GasComputation               process.GasComputation
+	AOTSelector                  process.AOTTransactionSelector
 }
 
 type transactionCoordinator struct {
 	shardCoordinator sharding.Coordinator
 	accounts         state.AccountsAdapter
-	miniBlockPool    storage.Cacher
+	dataPool         dataRetriever.PoolsHolder
 	hasher           hashing.Hasher
 	marshalizer      marshal.Marshalizer
 
@@ -96,10 +99,12 @@ type transactionCoordinator struct {
 	doubleTransactionsDetector   process.DoubleTransactionDetector
 	processedMiniBlocksTracker   process.ProcessedMiniBlocksTracker
 	enableEpochsHandler          common.EnableEpochsHandler
+	enableRoundsHandler          common.EnableRoundsHandler
 	txExecutionOrderHandler      common.TxExecutionOrderHandler
 	blockDataRequester           process.BlockDataRequester
 	blockDataRequesterProposal   process.BlockDataRequester
 	gasComputation               process.GasComputation
+	aotSelector                  process.AOTTransactionSelector
 }
 
 // NewTransactionCoordinator creates a transaction coordinator to run and coordinate preprocessors and processors
@@ -112,6 +117,7 @@ func NewTransactionCoordinator(args ArgTransactionCoordinator) (*transactionCoor
 	tc := &transactionCoordinator{
 		shardCoordinator:             args.ShardCoordinator,
 		accounts:                     args.Accounts,
+		dataPool:                     args.DataPool,
 		gasHandler:                   args.GasHandler,
 		hasher:                       args.Hasher,
 		marshalizer:                  args.Marshalizer,
@@ -125,13 +131,14 @@ func NewTransactionCoordinator(args ArgTransactionCoordinator) (*transactionCoor
 		doubleTransactionsDetector:   args.DoubleTransactionsDetector,
 		processedMiniBlocksTracker:   args.ProcessedMiniBlocksTracker,
 		enableEpochsHandler:          args.EnableEpochsHandler,
+		enableRoundsHandler:          args.EnableRoundsHandler,
 		txExecutionOrderHandler:      args.TxExecutionOrderHandler,
 		blockDataRequester:           args.BlockDataRequester,
 		blockDataRequesterProposal:   args.BlockDataRequesterProposal,
 		gasComputation:               args.GasComputation,
+		aotSelector:                  args.AOTSelector,
 	}
 
-	tc.miniBlockPool = args.MiniBlockPool
 	tc.interimProcessors = make(map[block.Type]process.IntermediateTransactionHandler)
 
 	tc.preProcExecution, err = newPreProcData(args.PreProcessors)
@@ -218,7 +225,7 @@ func (tc *transactionCoordinator) RestoreBlockDataFromStorage(body *block.Body) 
 				return
 			}
 
-			restoredTxs, err := preproc.RestoreBlockDataIntoPools(blockBody, tc.miniBlockPool)
+			restoredTxs, err := preproc.RestoreBlockDataIntoPools(blockBody, tc.dataPool.MiniBlocks())
 			if err != nil {
 				log.Trace("RestoreBlockDataIntoPools", "error", err.Error())
 
@@ -263,7 +270,7 @@ func (tc *transactionCoordinator) RemoveBlockDataFromPool(body *block.Body) erro
 				return
 			}
 
-			err := preproc.RemoveBlockDataFromPools(blockBody, tc.miniBlockPool)
+			err := preproc.RemoveBlockDataFromPools(blockBody, tc.dataPool.MiniBlocks())
 			if err != nil {
 				log.Trace("RemoveBlockDataFromPools", "error", err.Error())
 
@@ -329,7 +336,8 @@ func (tc *transactionCoordinator) ProcessBlockTransaction(
 		return process.ErrNilBlockBody
 	}
 
-	if tc.isMaxBlockSizeReached(body) {
+	isAsyncExecEnabled := common.IsAsyncExecutionEnabled(tc.enableEpochsHandler, tc.enableRoundsHandler)
+	if !isAsyncExecEnabled && tc.isMaxBlockSizeReached(body) {
 		return process.ErrMaxBlockSizeReached
 	}
 
@@ -381,6 +389,11 @@ func (tc *transactionCoordinator) GetCreatedMiniBlocksFromMe() block.MiniBlockSl
 	}
 
 	return miniBlocks
+}
+
+// GetUnExecutableTransactions will return a map with hashes of unexecutable transactions
+func (tc *transactionCoordinator) GetUnExecutableTransactions() map[string]struct{} {
+	return tc.getUnExecutableTransactions()
 }
 
 func (tc *transactionCoordinator) getUnExecutableTransactions() map[string]struct{} {
@@ -589,7 +602,7 @@ func (tc *transactionCoordinator) CreateMbsAndProcessCrossShardTransactionsDstMe
 			continue
 		}
 
-		miniVal, _ := tc.miniBlockPool.Peek(miniBlockInfo.Hash)
+		miniVal, _ := tc.dataPool.MiniBlocks().Peek(miniBlockInfo.Hash)
 		if miniVal == nil {
 			shouldSkipShard[miniBlockInfo.SenderShardID] = true
 			log.Trace("transactionCoordinator.CreateMbsAndProcessCrossShardTransactionsDstMe: mini block not found and was requested",
@@ -893,6 +906,185 @@ func createBroadcastTopic(shardC sharding.Coordinator, destShId uint32, mbType b
 	return transactionTopic, nil
 }
 
+// ProposedDirectSentTransactionsToBroadcast creates marshaled intra-shard transactions received via direct-send for broadcasting
+func (tc *transactionCoordinator) ProposedDirectSentTransactionsToBroadcast(proposedBody data.BodyHandler) map[string][][]byte {
+	mrsTxs := make(map[string][][]byte)
+
+	bodyPtr, ok := proposedBody.(*block.Body)
+	if !ok {
+		log.Warn("ProposedDirectSentTransactionsToBroadcast could not cast body")
+		return mrsTxs
+	}
+
+	// should not be any intermediate transactions at this point and all data needed should be in pools
+	cachedIntermediateTxsMap := make(map[block.Type]map[string]data.TransactionHandler)
+
+	for _, miniBlock := range bodyPtr.MiniBlocks {
+		isIntraShardMb := miniBlock.SenderShardID == miniBlock.ReceiverShardID &&
+			miniBlock.SenderShardID == tc.shardCoordinator.SelfId()
+		if !isIntraShardMb {
+			continue
+		}
+
+		tc.appendTransactionsForMiniBlock(miniBlock, cachedIntermediateTxsMap, mrsTxs, tc.shouldSkipTransaction)
+	}
+
+	return mrsTxs
+}
+
+func (tc *transactionCoordinator) shouldSkipTransaction(txHash []byte) bool {
+	directSentTransactionsCache := tc.dataPool.DirectSentTransactions()
+	_, found := directSentTransactionsCache.Get(txHash)
+	return !found
+}
+
+// CreateMarshalledDataForHeader creates marshaled data for broadcasting based on header
+func (tc *transactionCoordinator) CreateMarshalledDataForHeader(header data.HeaderHandler, body *block.Body, miniBlocksMap map[string]block.MiniBlockSlice) map[string][][]byte {
+	mrsTxs := make(map[string][][]byte)
+
+	if check.IfNil(header) || check.IfNil(body) {
+		return mrsTxs
+	}
+
+	if !header.IsHeaderV3() {
+		return tc.CreateMarshalizedData(body)
+	}
+
+	return tc.createMarshalledDataV3(miniBlocksMap)
+}
+
+func (tc *transactionCoordinator) createMarshalledDataV3(miniBlocksMap map[string]block.MiniBlockSlice) map[string][][]byte {
+	// for header v3, the mini blocks are from execution results
+	mrsTxs := make(map[string][][]byte)
+
+	shouldNotSkipTransactionFunc := func(_ []byte) bool { return false }
+
+	for headerHash, miniBlocks := range miniBlocksMap {
+		cachedIntermediateTxsMap, err := common.GetCachedIntermediateTxs(tc.dataPool.PostProcessTransactions(), []byte(headerHash))
+		if err != nil {
+			log.Warn("createMarshalledDataV3.GetCachedIntermediateTxs", "error", err.Error())
+		}
+
+		for _, miniBlock := range miniBlocks {
+			if miniBlock.SenderShardID != tc.shardCoordinator.SelfId() ||
+				miniBlock.ReceiverShardID == tc.shardCoordinator.SelfId() {
+				continue
+			}
+
+			tc.appendTransactionsForMiniBlock(miniBlock, cachedIntermediateTxsMap, mrsTxs, shouldNotSkipTransactionFunc)
+		}
+	}
+
+	return mrsTxs
+}
+
+func (tc *transactionCoordinator) appendTransactionsForMiniBlock(
+	miniBlock *block.MiniBlock,
+	cachedIntermediateTxsMap map[block.Type]map[string]data.TransactionHandler,
+	mrsTxs map[string][][]byte,
+	shouldSkipTransactionFunc func(txHash []byte) bool,
+) {
+	broadcastTopic, errCreate := createBroadcastTopic(tc.shardCoordinator, miniBlock.ReceiverShardID, miniBlock.Type)
+	if errCreate != nil {
+		log.Warn("appendTransactionsForMiniBlock.createBroadcastTopic", "error", errCreate.Error())
+		return
+	}
+
+	if miniBlock.Type == block.TxBlock || miniBlock.Type == block.InvalidBlock {
+		tc.appendTransactionsFromPoolForMiniBlock(tc.dataPool.Transactions(), miniBlock, broadcastTopic, mrsTxs, shouldSkipTransactionFunc)
+		return
+	}
+
+	if miniBlock.Type == block.RewardsBlock {
+		tc.appendTransactionsFromPoolForMiniBlock(tc.dataPool.RewardTransactions(), miniBlock, broadcastTopic, mrsTxs, shouldSkipTransactionFunc)
+		return
+	}
+
+	if miniBlock.Type == block.PeerBlock {
+		tc.appendTransactionsFromPoolForMiniBlock(tc.dataPool.ValidatorsInfo(), miniBlock, broadcastTopic, mrsTxs, shouldSkipTransactionFunc)
+	}
+
+	tc.appendPostProcessTransactionsForMiniBlocks(cachedIntermediateTxsMap, miniBlock, broadcastTopic, mrsTxs, shouldSkipTransactionFunc)
+}
+
+func (tc *transactionCoordinator) appendTransactionsFromPoolForMiniBlock(
+	pool dataRetriever.ShardedDataCacherNotifier,
+	miniBlock *block.MiniBlock,
+	broadcastTopic string,
+	mrsTxs map[string][][]byte,
+	shouldSkipTransactionFunc func(txHash []byte) bool,
+) {
+	for _, txHash := range miniBlock.TxHashes {
+		if shouldSkipTransactionFunc(txHash) {
+			continue
+		}
+
+		rawTx, ok := pool.SearchFirstData(txHash)
+		if !ok {
+			log.Warn("appendTransactionsFromPoolForMiniBlock could not find transaction for miniBlock in pool", "hash", txHash)
+			return
+		}
+
+		tx, ok := rawTx.(data.TransactionHandler)
+		if !ok {
+			log.Warn("appendTransactionsFromPoolForMiniBlock could not cast transaction from pool", "hash", txHash)
+			return
+		}
+
+		txBuff, errMarshal := tc.marshalizer.Marshal(tx)
+		if errMarshal != nil {
+			log.Warn("appendTransactionsFromPoolForMiniBlock.Marshal", "error", errMarshal.Error())
+			return
+		}
+
+		mrsTxs[broadcastTopic] = append(mrsTxs[broadcastTopic], txBuff)
+	}
+}
+
+func (tc *transactionCoordinator) appendPostProcessTransactionsForMiniBlocks(
+	cachedIntermediateTxsMap map[block.Type]map[string]data.TransactionHandler,
+	miniBlock *block.MiniBlock,
+	broadcastTopic string,
+	mrsTxs map[string][][]byte,
+	shouldSkipTransactionFunc func(txHash []byte) bool,
+) {
+	transactionsForMiniBlock, ok := cachedIntermediateTxsMap[miniBlock.Type]
+	if !ok {
+		log.Warn("appendPostProcessTransactionsForMiniBlocks could not find transactions for miniBlock", "type", miniBlock.Type)
+		return
+	}
+
+	tc.appendMarshalledDataForTransactions(miniBlock.TxHashes, transactionsForMiniBlock, broadcastTopic, mrsTxs, shouldSkipTransactionFunc)
+}
+
+func (tc *transactionCoordinator) appendMarshalledDataForTransactions(
+	txHashes [][]byte,
+	transactionsForMiniBlock map[string]data.TransactionHandler,
+	broadcastTopic string,
+	mrsTxs map[string][][]byte,
+	shouldSkipTransactionFunc func(txHash []byte) bool,
+) {
+	for _, txHash := range txHashes {
+		if shouldSkipTransactionFunc(txHash) {
+			continue
+		}
+
+		tx, ok := transactionsForMiniBlock[string(txHash)]
+		if !ok {
+			log.Warn("appendMarshalledDataForTransactions.createBroadcastTopic", "txHash", txHash)
+			continue
+		}
+
+		txBuff, errMarshal := tc.marshalizer.Marshal(tx)
+		if errMarshal != nil {
+			log.Warn("appendMarshalledDataForTransactions.Marshal", "error", errMarshal.Error())
+			continue
+		}
+
+		mrsTxs[broadcastTopic] = append(mrsTxs[broadcastTopic], txBuff)
+	}
+}
+
 // CreateMarshalizedData creates marshalized data for broadcasting
 func (tc *transactionCoordinator) CreateMarshalizedData(body *block.Body) map[string][][]byte {
 	mrsTxs := make(map[string][][]byte)
@@ -987,7 +1179,7 @@ func (tc *transactionCoordinator) GetAllCurrentUsedTxs(blockType block.Type) map
 }
 
 // GetAllCurrentLogs return the cached logs data from current round
-func (tc *transactionCoordinator) GetAllCurrentLogs() []*data.LogData {
+func (tc *transactionCoordinator) GetAllCurrentLogs() []data.LogDataHandler {
 	return tc.transactionsLogProcessor.GetAllCurrentLogs()
 }
 
@@ -1572,8 +1764,23 @@ func checkTransactionCoordinatorNilParameters(arguments ArgTransactionCoordinato
 	if check.IfNil(arguments.Accounts) {
 		return process.ErrNilAccountsAdapter
 	}
-	if check.IfNil(arguments.MiniBlockPool) {
+	if check.IfNil(arguments.DataPool) {
+		return process.ErrNilPoolsHolder
+	}
+	if check.IfNil(arguments.DataPool.MiniBlocks()) {
 		return process.ErrNilMiniBlockPool
+	}
+	if check.IfNil(arguments.DataPool.PostProcessTransactions()) {
+		return process.ErrNilPostProcessTransactionsCache
+	}
+	if check.IfNil(arguments.DataPool.Transactions()) {
+		return process.ErrNilTxDataPool
+	}
+	if check.IfNil(arguments.DataPool.RewardTransactions()) {
+		return process.ErrNilRewardTxDataPool
+	}
+	if check.IfNil(arguments.DataPool.ValidatorsInfo()) {
+		return process.ErrNilValidatorInfoPool
 	}
 	if check.IfNil(arguments.InterProcessors) {
 		return process.ErrNilIntermediateProcessorContainer
@@ -1614,6 +1821,9 @@ func checkTransactionCoordinatorNilParameters(arguments ArgTransactionCoordinato
 	if check.IfNil(arguments.EnableEpochsHandler) {
 		return process.ErrNilEnableEpochsHandler
 	}
+	if check.IfNil(arguments.EnableRoundsHandler) {
+		return process.ErrNilEnableRoundsHandler
+	}
 	err := core.CheckHandlerCompatibility(arguments.EnableEpochsHandler, []core.EnableEpochFlag{
 		common.ScheduledMiniBlocksFlag,
 		common.MiniBlockPartialExecutionFlag,
@@ -1642,6 +1852,9 @@ func checkTransactionCoordinatorNilParameters(arguments ArgTransactionCoordinato
 	}
 	if check.IfNil(arguments.GasComputation) {
 		return process.ErrNilGasComputation
+	}
+	if check.IfNil(arguments.AOTSelector) {
+		return process.ErrNilAOTSelector
 	}
 
 	return nil

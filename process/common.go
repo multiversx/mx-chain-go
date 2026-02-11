@@ -19,11 +19,12 @@ import (
 	"github.com/multiversx/mx-chain-core-go/data/typeConverters"
 	"github.com/multiversx/mx-chain-core-go/hashing"
 	"github.com/multiversx/mx-chain-core-go/marshal"
+	"github.com/multiversx/mx-chain-go/storage"
 	logger "github.com/multiversx/mx-chain-logger-go"
 	vmcommon "github.com/multiversx/mx-chain-vm-common-go"
 
+	"github.com/multiversx/mx-chain-go/common"
 	"github.com/multiversx/mx-chain-go/dataRetriever"
-	"github.com/multiversx/mx-chain-go/process/estimator"
 	"github.com/multiversx/mx-chain-go/state"
 )
 
@@ -565,7 +566,7 @@ func checkGetTransactionParamsForNil(
 func getHeaderFromPool(
 	hash []byte,
 	headersCacher dataRetriever.HeadersPool,
-) (interface{}, error) {
+) (data.HeaderHandler, error) {
 
 	if check.IfNil(headersCacher) {
 		return nil, ErrNilCacher
@@ -1002,6 +1003,21 @@ func GetMiniBlockHeaderWithHash(header data.HeaderHandler, miniBlockHash []byte)
 			return miniBlockHeader
 		}
 	}
+
+	for _, execResult := range header.GetExecutionResultsHandlers() {
+		mbHeaders, err := common.GetMiniBlocksHeaderHandlersFromExecResult(execResult)
+		if err != nil {
+			log.Warn("GetMiniBlockHeaderWithHash", "error", err.Error())
+			continue
+		}
+
+		for _, mbHeader := range mbHeaders {
+			if bytes.Equal(mbHeader.GetHash(), miniBlockHash) {
+				return mbHeader
+			}
+		}
+	}
+
 	return nil
 }
 
@@ -1119,55 +1135,7 @@ func GetPrevBlockLastExecutionResult(blockChain data.ChainHandler) (data.LastExe
 		return prevHeader.GetLastExecutionResultHandler(), nil
 	}
 
-	return CreateLastExecutionResultFromPrevHeader(prevHeader, prevHeaderHash)
-}
-
-// CreateLastExecutionResultFromPrevHeader creates a LastExecutionResultInfo object from the given previous header
-func CreateLastExecutionResultFromPrevHeader(prevHeader data.HeaderHandler, prevHeaderHash []byte) (data.LastExecutionResultHandler, error) {
-	if check.IfNil(prevHeader) {
-		return nil, ErrNilBlockHeader
-	}
-	if len(prevHeaderHash) == 0 {
-		return nil, ErrInvalidHash
-	}
-
-	if prevHeader.GetShardID() != core.MetachainShardId {
-		if _, ok := prevHeader.(*block.HeaderV2); !ok {
-			return nil, ErrWrongTypeAssertion
-		}
-
-		return &block.ExecutionResultInfo{
-			NotarizedInRound: prevHeader.GetRound(),
-			ExecutionResult: &block.BaseExecutionResult{
-				HeaderHash:  prevHeaderHash,
-				HeaderNonce: prevHeader.GetNonce(),
-				HeaderRound: prevHeader.GetRound(),
-				RootHash:    prevHeader.GetRootHash(),
-				GasUsed:     0, // we don't have this information in previous header
-			},
-		}, nil
-	}
-
-	prevMetaHeader, ok := prevHeader.(*block.MetaBlock)
-	if !ok {
-		return nil, ErrWrongTypeAssertion
-	}
-
-	return &block.MetaExecutionResultInfo{
-		NotarizedInRound: prevHeader.GetRound(),
-		ExecutionResult: &block.BaseMetaExecutionResult{
-			BaseExecutionResult: &block.BaseExecutionResult{
-				HeaderHash:  prevHeaderHash,
-				HeaderNonce: prevMetaHeader.GetNonce(),
-				HeaderRound: prevMetaHeader.GetRound(),
-				RootHash:    prevMetaHeader.GetRootHash(),
-				GasUsed:     0, // we don't have this information in previous header
-			},
-			ValidatorStatsRootHash: prevMetaHeader.GetValidatorStatsRootHash(),
-			AccumulatedFeesInEpoch: prevMetaHeader.GetAccumulatedFeesInEpoch(),
-			DevFeesInEpoch:         prevMetaHeader.GetDevFeesInEpoch(),
-		},
-	}, nil
+	return common.CreateLastExecutionResultFromPrevHeader(prevHeader, prevHeaderHash)
 }
 
 // CreateLastExecutionResultInfoFromExecutionResult creates a LastExecutionResultInfo object from the given execution result
@@ -1187,6 +1155,7 @@ func CreateLastExecutionResultInfoFromExecutionResult(notarizedInRound uint64, l
 				HeaderHash:  lastExecResult.GetHeaderHash(),
 				HeaderNonce: lastExecResult.GetHeaderNonce(),
 				HeaderRound: lastExecResult.GetHeaderRound(),
+				HeaderEpoch: lastExecResult.GetHeaderEpoch(),
 				RootHash:    lastExecResult.GetRootHash(),
 				GasUsed:     lastExecResult.GetGasUsed(),
 			},
@@ -1205,6 +1174,7 @@ func CreateLastExecutionResultInfoFromExecutionResult(notarizedInRound uint64, l
 				HeaderHash:  lastMetaExecResult.GetHeaderHash(),
 				HeaderNonce: lastMetaExecResult.GetHeaderNonce(),
 				HeaderRound: lastMetaExecResult.GetHeaderRound(),
+				HeaderEpoch: lastMetaExecResult.GetHeaderEpoch(),
 				RootHash:    lastMetaExecResult.GetRootHash(),
 				GasUsed:     lastMetaExecResult.GetGasUsed(),
 			},
@@ -1218,7 +1188,7 @@ func CreateLastExecutionResultInfoFromExecutionResult(notarizedInRound uint64, l
 // CreateDataForInclusionEstimation creates the metadata needed for inclusion time estimation
 func CreateDataForInclusionEstimation(
 	handler data.LastExecutionResultHandler,
-) (*estimator.LastExecutionResultForInclusion, error) {
+) (*common.LastExecutionResultForInclusion, error) {
 	if check.IfNil(handler) {
 		return nil, ErrNilLastExecutionResultHandler
 	}
@@ -1242,7 +1212,7 @@ func CreateDataForInclusionEstimation(
 		return nil, ErrWrongTypeAssertion
 	}
 
-	return &estimator.LastExecutionResultForInclusion{
+	return &common.LastExecutionResultForInclusion{
 		NotarizedInRound: notarizedInRound,
 		ProposedInRound:  proposedInRound,
 	}, nil
@@ -1255,4 +1225,234 @@ func IsNotExecutableTransactionError(err error) bool {
 		errors.Is(err, ErrHigherNonceInTransaction) ||
 		errors.Is(err, ErrInsufficientFee) ||
 		errors.Is(err, ErrTransactionNotExecutable)
+}
+
+// GetMarshaledSliceSize will return marshalled slice size for any slice
+func GetMarshaledSliceSize[T any](items []T, marshaller marshal.Marshalizer) (int, error) {
+	size := 0
+
+	for i := range items {
+		d, err := marshaller.Marshal(items[i])
+		if err != nil {
+			return 0, err
+		}
+
+		size += len(d)
+	}
+
+	return size, nil
+}
+
+// GetDataPoolByBlockType returns data pool by type
+func GetDataPoolByBlockType(
+	blockType block.Type,
+	dataPool dataRetriever.PoolsHolder,
+) (dataRetriever.ShardedDataCacherNotifier, error) {
+	switch blockType {
+	case block.TxBlock, block.InvalidBlock:
+		return dataPool.Transactions(), nil
+	case block.SmartContractResultBlock:
+		return dataPool.UnsignedTransactions(), nil
+	case block.RewardsBlock:
+		return dataPool.RewardTransactions(), nil
+	case block.PeerBlock:
+		return dataPool.ValidatorsInfo(), nil
+	default:
+		return nil, fmt.Errorf("unsupported block type for dataPool: %d", blockType)
+	}
+}
+
+// GetStorageUnitByBlockType returns storage by type
+func GetStorageUnitByBlockType(blockType block.Type) (dataRetriever.UnitType, error) {
+	switch blockType {
+	case block.TxBlock, block.InvalidBlock:
+		return dataRetriever.TransactionUnit, nil
+	case block.SmartContractResultBlock:
+		return dataRetriever.UnsignedTransactionUnit, nil
+	case block.ReceiptBlock:
+		return dataRetriever.ReceiptsUnit, nil
+	case block.RewardsBlock:
+		return dataRetriever.RewardTransactionUnit, nil
+	case block.PeerBlock:
+		return dataRetriever.UnsignedTransactionUnit, nil
+	}
+	return 0, ErrInvalidBlockType
+}
+
+// IsReplacementBlockForExecution returns true if the provided header is a replacement for the last execution result
+func IsReplacementBlockForExecution(header data.HeaderHandler, headerHash []byte, lastExecutionResult data.BaseExecutionResultHandler) bool {
+	if check.IfNil(header) || check.IfNil(lastExecutionResult) {
+		return false
+	}
+
+	sameNonce := header.GetNonce() == lastExecutionResult.GetHeaderNonce()
+	differentHash := !bytes.Equal(headerHash, lastExecutionResult.GetHeaderHash())
+	return sameNonce && differentHash
+}
+
+// UpdateContextForReplacedHeader updates the blockchain context when a header should be replaced
+func UpdateContextForReplacedHeader(
+	header data.HeaderHandler,
+	executionManager ExecutionManager,
+	blockChain data.ChainHandler,
+	headersPool dataRetriever.HeadersPool,
+	postProcessTransactions storage.Cacher,
+	executedMiniBlocks storage.Cacher,
+	storageService dataRetriever.StorageService,
+	marshaller marshal.Marshalizer,
+	shardID uint32,
+) error {
+	err := checkForNils(header, executionManager, blockChain, headersPool, storageService, marshaller)
+	if err != nil {
+		return err
+	}
+
+	pendingExecutionResults, err := executionManager.GetPendingExecutionResults()
+	if err != nil {
+		return err
+	}
+
+	lastExecutionResult, err := executionManager.GetLastNotarizedExecutionResult()
+	if err != nil {
+		return err
+	}
+
+	executionResultToSet, err := getExecutionResultToSetOnReplacedHeader(
+		header,
+		pendingExecutionResults,
+		lastExecutionResult,
+	)
+	if err != nil {
+		return err
+	}
+
+	// TODO: optimize to add into pool at bootstrap
+	headerToSet, err := GetHeader(executionResultToSet.GetHeaderHash(), headersPool, storageService, marshaller, shardID)
+	if err != nil {
+		return err
+	}
+
+	err = CleanCachesForExecutionResult(blockChain.GetLastExecutionResult(), postProcessTransactions, executedMiniBlocks)
+	if err != nil {
+		return err
+	}
+
+	log.Debug("UpdateContextForReplacedHeader last executed header",
+		"round", headerToSet.GetRound(),
+		"nonce", headerToSet.GetNonce(),
+		"hash", executionResultToSet.GetHeaderHash())
+
+	blockChain.SetLastExecutedBlockHeaderAndRootHash(headerToSet, executionResultToSet.GetHeaderHash(), executionResultToSet.GetRootHash())
+	blockChain.SetLastExecutionResult(executionResultToSet)
+
+	// need to remove all execution results after the one set
+	err = executionManager.RemovePendingExecutionResultsFromNonce(executionResultToSet.GetHeaderNonce() + 1)
+	if err != nil {
+		return err
+	}
+
+	log.Debug("UpdateContextForReplacedHeader finished",
+		"nonce", header.GetNonce(),
+		"old round", header.GetRound(),
+		"new round", headerToSet.GetRound(),
+		"new hash", executionResultToSet.GetHeaderHash(),
+	)
+
+	return nil
+}
+
+// CleanCachesForExecutionResult cleans post-process transactions and executed mini blocks caches
+func CleanCachesForExecutionResult(
+	execResult data.BaseExecutionResultHandler,
+	postProcessTxsCache storage.Cacher,
+	executedMbs storage.Cacher,
+) error {
+	if check.IfNil(execResult) {
+		return ErrNilExecutionResultHandler
+	}
+	if check.IfNil(postProcessTxsCache) {
+		return ErrNilPostProcessTransactionsCache
+	}
+	if check.IfNil(executedMbs) {
+		return ErrNilExecutedMiniBlocksCache
+	}
+
+	headerHash := execResult.GetHeaderHash()
+	// all transactions moved, cleaning the cache
+	postProcessTxsCache.Remove(headerHash)
+	// remove execution order data
+	postProcessTxsCache.Remove(common.PrepareOrderedTxHashesKey(headerHash))
+	// remove cached log events
+	postProcessTxsCache.Remove(common.PrepareLogEventsKey(headerHash))
+
+	// remove headerHash from executed mini blocks
+	executedMbs.Remove(headerHash)
+
+	// remove mini block headers from executed mini blocks
+	mbHeaders, err := common.GetMiniBlocksHeaderHandlersFromExecResult(execResult)
+	if err != nil {
+		return err
+	}
+	for _, mbHeader := range mbHeaders {
+		executedMbs.Remove(mbHeader.GetHash())
+	}
+
+	return nil
+}
+
+func checkForNils(
+	header data.HeaderHandler,
+	executionManager ExecutionManager,
+	blockChain data.ChainHandler,
+	headersPool common.HeadersPool,
+	storage dataRetriever.StorageService,
+	marshaller marshal.Marshalizer,
+) error {
+	if check.IfNil(header) {
+		return ErrNilHeaderHandler
+	}
+	if check.IfNil(executionManager) {
+		return ErrNilExecutionManager
+	}
+	if check.IfNil(blockChain) {
+		return ErrNilBlockChain
+	}
+	if check.IfNil(headersPool) {
+		return ErrNilHeadersDataPool
+	}
+	if check.IfNil(storage) {
+		return ErrNilStorageService
+	}
+	if check.IfNil(marshaller) {
+		return ErrNilMarshalizer
+	}
+	return nil
+}
+
+func getExecutionResultToSetOnReplacedHeader(
+	header data.HeaderHandler,
+	pendingExecutionResults []data.BaseExecutionResultHandler,
+	lastNotarizedResult data.BaseExecutionResultHandler,
+) (data.BaseExecutionResultHandler, error) {
+	prevNonce := header.GetNonce() - 1
+	prevHash := header.GetPrevHash()
+
+	headerHashToSet := lastNotarizedResult.GetHeaderHash()
+	executionResultToSet := lastNotarizedResult
+	if bytes.Equal(prevHash, headerHashToSet) {
+		return executionResultToSet, nil
+	}
+
+	for i := len(pendingExecutionResults) - 1; i >= 0; i-- {
+		if pendingExecutionResults[i].GetHeaderNonce() <= prevNonce {
+			headerHashToSet = pendingExecutionResults[i].GetHeaderHash()
+			executionResultToSet = pendingExecutionResults[i]
+			break
+		}
+	}
+	if !bytes.Equal(prevHash, headerHashToSet) {
+		return nil, ErrExecutionResultNotFound
+	}
+
+	return executionResultToSet, nil
 }

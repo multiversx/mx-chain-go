@@ -34,11 +34,15 @@ func (tb *trackedBlock) hasSameNonceOrHigher(otherBlock *trackedBlock) bool {
 	return tb.nonce >= otherBlock.nonce
 }
 
-func (tb *trackedBlock) hasHigherNonce(nonce uint64) bool {
-	return tb.nonce > nonce
+func (tb *trackedBlock) hasSameNonceOrHigherThanGivenNonce(nonce uint64) bool {
+	return tb.nonce >= nonce
 }
 
-func (tb *trackedBlock) compileBreadcrumbs(txs []*WrappedTransaction) error {
+// compileBreadcrumbs compiles breadcrumbs for all transactions and returns a map of last nonce per sender.
+// The lastNoncePerSender map is used to update selection offsets after the block is tracked.
+func (tb *trackedBlock) compileBreadcrumbs(txs []*WrappedTransaction) (map[string]uint64, error) {
+	lastNoncePerSender := make(map[string]uint64)
+
 	for _, tx := range txs {
 		err := tb.compileBreadcrumb(tx)
 		if err != nil {
@@ -48,11 +52,18 @@ func (tb *trackedBlock) compileBreadcrumbs(txs []*WrappedTransaction) error {
 				"sender", tx.Tx.GetSndAddr(),
 				"nonce", tx.Tx.GetNonce(),
 			)
-			return err
+			return nil, err
+		}
+
+		// Track the highest nonce per sender (to update selection offset)
+		sender := string(tx.Tx.GetSndAddr())
+		nonce := tx.Tx.GetNonce()
+		if existingNonce, exists := lastNoncePerSender[sender]; !exists || nonce > existingNonce {
+			lastNoncePerSender[sender] = nonce
 		}
 	}
 
-	return nil
+	return lastNoncePerSender, nil
 }
 
 func (tb *trackedBlock) compileBreadcrumb(tx *WrappedTransaction) error {

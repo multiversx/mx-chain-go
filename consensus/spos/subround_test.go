@@ -3,17 +3,22 @@ package spos_test
 import (
 	"bytes"
 	"context"
+	"errors"
 	"sync"
 	"testing"
 	"time"
 
 	"github.com/multiversx/mx-chain-core-go/core"
+	"github.com/multiversx/mx-chain-core-go/data"
+	"github.com/multiversx/mx-chain-core-go/data/block"
+
+	"github.com/multiversx/mx-chain-go/consensus/mock"
+	"github.com/multiversx/mx-chain-go/testscommon/dataRetriever"
 	"github.com/multiversx/mx-chain-go/testscommon/enableEpochsHandlerMock"
 
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 
-	"github.com/multiversx/mx-chain-go/consensus/mock"
 	"github.com/multiversx/mx-chain-go/consensus/spos"
 	"github.com/multiversx/mx-chain-go/consensus/spos/bls"
 	"github.com/multiversx/mx-chain-go/testscommon"
@@ -89,6 +94,7 @@ func initConsensusState() *spos.ConsensusState {
 		rcns,
 		rthr,
 		rstatus,
+		&mock.NodeRedundancyHandlerStub{},
 	)
 
 	cns.Data = []byte("X")
@@ -1016,121 +1022,6 @@ func TestSubround_GetAssociatedPid(t *testing.T) {
 	assert.True(t, wasCalled)
 }
 
-func TestSubround_ShouldConsiderSelfKeyInConsensus(t *testing.T) {
-	t.Parallel()
-
-	t.Run("is main machine active, should return true", func(t *testing.T) {
-		t.Parallel()
-
-		consensusState := initConsensusState()
-		ch := make(chan bool, 1)
-		container := consensus.InitConsensusCore()
-
-		redundancyHandler := &mock.NodeRedundancyHandlerStub{
-			IsRedundancyNodeCalled: func() bool {
-				return false
-			},
-			IsMainMachineActiveCalled: func() bool {
-				return true
-			},
-		}
-		container.SetNodeRedundancyHandler(redundancyHandler)
-
-		sr, _ := spos.NewSubround(
-			bls.SrStartRound,
-			bls.SrBlock,
-			bls.SrSignature,
-			roundTimeDuration,
-			0.05,
-			0.25,
-			"(BLOCK)",
-			consensusState,
-			ch,
-			executeStoredMessages,
-			container,
-			chainID,
-			currentPid,
-			&statusHandler.AppStatusHandlerStub{},
-		)
-
-		require.True(t, sr.ShouldConsiderSelfKeyInConsensus())
-	})
-
-	t.Run("is redundancy node machine active, should return true", func(t *testing.T) {
-		t.Parallel()
-
-		consensusState := initConsensusState()
-		ch := make(chan bool, 1)
-		container := consensus.InitConsensusCore()
-
-		redundancyHandler := &mock.NodeRedundancyHandlerStub{
-			IsRedundancyNodeCalled: func() bool {
-				return true
-			},
-			IsMainMachineActiveCalled: func() bool {
-				return false
-			},
-		}
-		container.SetNodeRedundancyHandler(redundancyHandler)
-
-		sr, _ := spos.NewSubround(
-			bls.SrStartRound,
-			bls.SrBlock,
-			bls.SrSignature,
-			roundTimeDuration,
-			0.05,
-			0.25,
-			"(BLOCK)",
-			consensusState,
-			ch,
-			executeStoredMessages,
-			container,
-			chainID,
-			currentPid,
-			&statusHandler.AppStatusHandlerStub{},
-		)
-
-		require.True(t, sr.ShouldConsiderSelfKeyInConsensus())
-	})
-
-	t.Run("is redundancy node machine but inactive, should return false", func(t *testing.T) {
-		t.Parallel()
-
-		consensusState := initConsensusState()
-		ch := make(chan bool, 1)
-		container := consensus.InitConsensusCore()
-
-		redundancyHandler := &mock.NodeRedundancyHandlerStub{
-			IsRedundancyNodeCalled: func() bool {
-				return true
-			},
-			IsMainMachineActiveCalled: func() bool {
-				return true
-			},
-		}
-		container.SetNodeRedundancyHandler(redundancyHandler)
-
-		sr, _ := spos.NewSubround(
-			bls.SrStartRound,
-			bls.SrBlock,
-			bls.SrSignature,
-			roundTimeDuration,
-			0.05,
-			0.25,
-			"(BLOCK)",
-			consensusState,
-			ch,
-			executeStoredMessages,
-			container,
-			chainID,
-			currentPid,
-			&statusHandler.AppStatusHandlerStub{},
-		)
-
-		require.False(t, sr.ShouldConsiderSelfKeyInConsensus())
-	})
-}
-
 func TestSubround_GetLeaderStartRoundMessage(t *testing.T) {
 	t.Parallel()
 
@@ -1468,4 +1359,144 @@ func TestSubround_IsInterfaceNil(t *testing.T) {
 		&statusHandler.AppStatusHandlerStub{},
 	)
 	require.False(t, sr.IsInterfaceNil())
+}
+
+func TestSubround_HasProofForCompetingBlock(t *testing.T) {
+	t.Parallel()
+
+	prevBlockNonce := uint64(10)
+	shardID := uint32(0)
+
+	createSubround := func(
+		blockchain data.ChainHandler,
+		proofsPool *dataRetriever.ProofsPoolMock,
+	) *spos.Subround {
+		consensusState := internalInitConsensusStateWithKeysHandler(&testscommon.KeysHandlerStub{})
+		ch := make(chan bool, 1)
+		container := consensus.InitConsensusCore()
+		container.SetBlockchain(blockchain)
+		container.SetEquivalentProofsPool(proofsPool)
+		container.SetShardCoordinator(&mock.ShardCoordinatorMock{
+			ShardID: shardID,
+		})
+
+		sr, _ := spos.NewSubround(
+			bls.SrStartRound,
+			bls.SrBlock,
+			bls.SrSignature,
+			roundTimeDuration,
+			0.05,
+			0.25,
+			"(BLOCK)",
+			consensusState,
+			ch,
+			executeStoredMessages,
+			container,
+			chainID,
+			currentPid,
+			&statusHandler.AppStatusHandlerStub{},
+		)
+		return sr
+	}
+
+	t.Run("nil previous block should return false", func(t *testing.T) {
+		t.Parallel()
+
+		blockchain := &testscommon.ChainHandlerStub{
+			GetCurrentBlockHeaderCalled: func() data.HeaderHandler {
+				return nil
+			},
+		}
+		proofsPool := &dataRetriever.ProofsPoolMock{}
+
+		sr := createSubround(blockchain, proofsPool)
+
+		assert.False(t, sr.HasProofForCompetingBlock())
+	})
+
+	t.Run("no proof at nonce should return false", func(t *testing.T) {
+		t.Parallel()
+
+		blockchain := &testscommon.ChainHandlerStub{
+			GetCurrentBlockHeaderCalled: func() data.HeaderHandler {
+				return &block.Header{Nonce: prevBlockNonce}
+			},
+		}
+		proofsPool := &dataRetriever.ProofsPoolMock{
+			GetProofByNonceCalled: func(headerNonce uint64, shardId uint32) (data.HeaderProofHandler, error) {
+				return nil, errors.New("proof not found")
+			},
+		}
+
+		sr := createSubround(blockchain, proofsPool)
+
+		assert.False(t, sr.HasProofForCompetingBlock())
+	})
+
+	t.Run("proof exists but consensus data is empty should return true", func(t *testing.T) {
+		t.Parallel()
+
+		competingBlockHash := []byte("competing_block_hash")
+
+		blockchain := &testscommon.ChainHandlerStub{
+			GetCurrentBlockHeaderCalled: func() data.HeaderHandler {
+				return &block.Header{Nonce: prevBlockNonce}
+			},
+		}
+		proofsPool := &dataRetriever.ProofsPoolMock{
+			GetProofByNonceCalled: func(headerNonce uint64, shardId uint32) (data.HeaderProofHandler, error) {
+				return &block.HeaderProof{HeaderHash: competingBlockHash}, nil
+			},
+		}
+
+		sr := createSubround(blockchain, proofsPool)
+		sr.SetData(nil)
+
+		assert.True(t, sr.HasProofForCompetingBlock())
+	})
+
+	t.Run("proof for same block should return false", func(t *testing.T) {
+		t.Parallel()
+
+		currentBlockHash := []byte("current_block_hash")
+
+		blockchain := &testscommon.ChainHandlerStub{
+			GetCurrentBlockHeaderCalled: func() data.HeaderHandler {
+				return &block.Header{Nonce: prevBlockNonce}
+			},
+		}
+		proofsPool := &dataRetriever.ProofsPoolMock{
+			GetProofByNonceCalled: func(headerNonce uint64, shardId uint32) (data.HeaderProofHandler, error) {
+				return &block.HeaderProof{HeaderHash: currentBlockHash}, nil
+			},
+		}
+
+		sr := createSubround(blockchain, proofsPool)
+		sr.SetData(currentBlockHash)
+
+		assert.False(t, sr.HasProofForCompetingBlock())
+	})
+
+	t.Run("proof for different block should return true", func(t *testing.T) {
+		t.Parallel()
+
+		currentBlockHash := []byte("current_block_hash")
+		competingBlockHash := []byte("competing_block_hash")
+
+		blockchain := &testscommon.ChainHandlerStub{
+			GetCurrentBlockHeaderCalled: func() data.HeaderHandler {
+				return &block.Header{Nonce: prevBlockNonce}
+			},
+		}
+		proofsPool := &dataRetriever.ProofsPoolMock{
+			GetProofByNonceCalled: func(headerNonce uint64, shardId uint32) (data.HeaderProofHandler, error) {
+				return &block.HeaderProof{HeaderHash: competingBlockHash}, nil
+			},
+		}
+
+		sr := createSubround(blockchain, proofsPool)
+		sr.SetData(currentBlockHash)
+
+		assert.True(t, sr.HasProofForCompetingBlock())
+	})
 }

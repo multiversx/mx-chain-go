@@ -77,11 +77,12 @@ func createCoreComponents() factory.CoreComponentsHolder {
 
 	enableEpochsHandler, _ := enablers.NewEnableEpochsHandler(configEnableEpochs, epochNotifier)
 	gracePeriod, _ := graceperiod.NewEpochChangeGracePeriod([]config.EpochChangeGracePeriodByEpoch{{EnableEpoch: 0, GracePeriodInRounds: 1}})
+	statusMetrics, _ := statusHandler.NewStatusMetrics(enableEpochsHandler)
 	return &integrationMocks.CoreComponentsStub{
 		InternalMarshalizerField:           &marshal.GogoProtoMarshalizer{},
 		HasherField:                        sha256.NewSha256(),
 		Uint64ByteSliceConverterField:      uint64ByteSlice.NewBigEndianConverter(),
-		StatusHandlerField:                 statusHandler.NewStatusMetrics(),
+		StatusHandlerField:                 statusMetrics,
 		RoundHandlerField:                  &mock.RoundHandlerMock{RoundTimeDuration: time.Second},
 		EpochStartNotifierWithConfirmField: notifier.NewEpochStartSubscriptionHandler(),
 		EpochNotifierField:                 epochNotifier,
@@ -97,6 +98,7 @@ func createCoreComponents() factory.CoreComponentsHolder {
 		EpochChangeGracePeriodHandlerField: gracePeriod,
 		ProcessConfigsHandlerField:         testscommon.GetDefaultProcessConfigsHandler(),
 		CommonConfigsHandlerField:          testscommon.GetDefaultCommonConfigsHandler(),
+		AntifloodConfigsHandlerField:       &testscommon.AntifloodConfigsHandlerStub{},
 	}
 }
 

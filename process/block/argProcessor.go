@@ -106,6 +106,8 @@ type ArgBaseProcessor struct {
 	MissingDataResolver                MissingDataResolver
 	GasComputation                     process.GasComputation
 	ExecutionManager                   process.ExecutionManager
+	TxExecutionOrderHandler            common.TxExecutionOrderHandler
+	AOTSelector                        process.AOTTransactionSelector
 }
 
 // ArgShardProcessor holds all dependencies required by the process data factory in order to create

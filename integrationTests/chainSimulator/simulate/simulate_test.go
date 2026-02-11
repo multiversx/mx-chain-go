@@ -9,13 +9,14 @@ import (
 
 	"github.com/multiversx/mx-chain-core-go/core"
 	"github.com/multiversx/mx-chain-core-go/data/transaction"
+	"github.com/stretchr/testify/require"
+
 	"github.com/multiversx/mx-chain-go/config"
 	"github.com/multiversx/mx-chain-go/integrationTests/vm/wasm"
 	"github.com/multiversx/mx-chain-go/node/chainSimulator"
 	"github.com/multiversx/mx-chain-go/node/chainSimulator/components/api"
 	"github.com/multiversx/mx-chain-go/node/chainSimulator/configs"
 	"github.com/multiversx/mx-chain-go/node/chainSimulator/dtos"
-	"github.com/stretchr/testify/require"
 )
 
 const (
@@ -43,6 +44,7 @@ func TestCostScDeploy(t *testing.T) {
 
 	cs, err := chainSimulator.NewChainSimulator(chainSimulator.ArgsChainSimulator{
 		BypassTxSignatureCheck:         true,
+		BypassCreateBlockTimeCheck:     true,
 		TempDir:                        t.TempDir(),
 		PathToInitialConfig:            defaultPathToInitialConfig,
 		NumOfShards:                    3,
@@ -116,6 +118,7 @@ func TestSimulateIntraShardTxWithGuardian(t *testing.T) {
 
 	cs, err := chainSimulator.NewChainSimulator(chainSimulator.ArgsChainSimulator{
 		BypassTxSignatureCheck:         true,
+		BypassCreateBlockTimeCheck:     true,
 		TempDir:                        t.TempDir(),
 		PathToInitialConfig:            defaultPathToInitialConfig,
 		NumOfShards:                    3,
@@ -205,6 +208,7 @@ func TestRelayedV3(t *testing.T) {
 
 	cs, err := chainSimulator.NewChainSimulator(chainSimulator.ArgsChainSimulator{
 		BypassTxSignatureCheck:         true,
+		BypassCreateBlockTimeCheck:     true,
 		TempDir:                        t.TempDir(),
 		PathToInitialConfig:            defaultPathToInitialConfig,
 		NumOfShards:                    3,
@@ -265,6 +269,7 @@ func TestRelayedV3(t *testing.T) {
 	err = cs.ForceChangeOfEpoch()
 	require.NoError(t, err)
 
+	tx.GasLimit = 0 // reset GasLimit so it will be completed according to the new block limits for the updated epoch
 	cost, err = cs.GetNodeHandler(0).GetFacadeHandler().ComputeTransactionGasLimit(tx)
 	require.NoError(t, err)
 	require.Equal(t, uint64(855001), cost.GasUnits)

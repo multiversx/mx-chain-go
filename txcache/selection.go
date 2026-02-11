@@ -5,6 +5,7 @@ import (
 	"time"
 
 	"github.com/multiversx/mx-chain-go/common"
+	"github.com/multiversx/mx-chain-go/process"
 )
 
 func (cache *TxCache) doSelectTransactions(virtualSession *virtualSelectionSession, options common.TxSelectionOptions) (bunchOfTransactions, uint64) {
@@ -18,7 +19,10 @@ func (cache *TxCache) acquireBunchesOfTransactions() []bunchOfTransactions {
 	bunches := make([]bunchOfTransactions, 0, len(senders))
 
 	for _, sender := range senders {
-		bunches = append(bunches, sender.getTxs())
+		bunch := sender.getTxsForSelection()
+		if len(bunch) > 0 {
+			bunches = append(bunches, bunch)
+		}
 	}
 
 	return bunches
@@ -33,14 +37,12 @@ func selectTransactionsFromBunches(
 	gasRequested := options.GetGasRequested()
 	maxNumTxs := options.GetMaxNumTxs()
 	loopDurationCheckInterval := options.GetLoopDurationCheckInterval()
-	selectionLoopMaxDuration := time.Duration(options.GetLoopMaximumDurationMs()) * time.Millisecond
 
 	logSelect.Debug("TxCache.selectTransactionsFromBunches",
 		"len(bunches)", len(bunches),
 		"gasRequested", gasRequested,
 		"maxNumTxs", maxNumTxs,
 		"loopDurationCheckInterval", loopDurationCheckInterval,
-		"selectionLoopMaxDuration", selectionLoopMaxDuration,
 	)
 
 	selectedTransactions := make(bunchOfTransactions, 0, initialCapacityOfSelectionSlice)
@@ -63,6 +65,7 @@ func selectTransactionsFromBunches(
 	accumulatedGas := uint64(0)
 	selectionLoopStartTime := time.Now()
 
+	var currentTransaction *WrappedTransaction
 	// Select transactions (sorted).
 	for transactionsHeap.Len() > 0 {
 		// Always pick the best transaction.
@@ -76,7 +79,7 @@ func selectTransactionsFromBunches(
 			break
 		}
 		if len(selectedTransactions)%loopDurationCheckInterval == 0 {
-			if time.Since(selectionLoopStartTime) > selectionLoopMaxDuration {
+			if !options.HaveTimeForSelection() {
 				logSelect.Debug("TxCache.selectTransactionsFromBunches, selection loop timeout", "duration", time.Since(selectionLoopStartTime))
 				break
 			}
@@ -98,17 +101,20 @@ func selectTransactionsFromBunches(
 
 		shouldSkipTransaction := detectSkippableTransaction(virtualSession, item, senderRecord)
 		if !shouldSkipTransaction {
-			accumulatedGas += gasLimit
-			selectedTransaction := item.selectCurrentTransaction()
-			selectedTransactions = append(selectedTransactions, selectedTransaction)
-			err := virtualSession.accumulateConsumedBalance(selectedTransaction, senderRecord)
+			// first, we get the transaction that might be selected
+			currentTransaction = item.getCurrentTransaction()
+			err = virtualSession.accumulateConsumedBalance(currentTransaction, senderRecord)
 			if err != nil {
 				// This error is unlikely to occur, as it would have been raised earlier during the detectSkippableSender call.
-				// Even if it does occur, it doesn't imply that the transaction should not be selected.
-				// Therefore, we only log the error here.
+				// However, we should not select the transaction if anything fails here.
 				log.Warn("TxCache.selectTransactionsFromBunches error when accumulating consumed balance",
 					"err", err,
-					"txHash", selectedTransaction.TxHash)
+					"txHash", currentTransaction.TxHash)
+			} else {
+				// only if there isn't any error, we select the transaction
+				accumulatedGas += gasLimit
+				item.selectCurrentTransaction()
+				selectedTransactions = append(selectedTransactions, currentTransaction)
 			}
 		}
 
@@ -134,15 +140,27 @@ func detectSkippableSender(virtualSession *virtualSelectionSession, item *transa
 		return true
 	}
 
+	if virtualRecord.hasPendingChangeGuardian() {
+		return true
+	}
 	if item.detectInitialGap(nonce) {
 		return true
 	}
 	if item.detectMiddleGap() {
 		return true
 	}
-	if virtualSession.detectWillFeeExceedBalance(item.currentTransaction) {
+	if virtualSession.detectWillBalanceBeExceeded(item.currentTransaction) {
 		return true
 	}
+
+	isSetGuardianCall := process.IsSetGuardianCall(item.currentTransaction.Tx.GetData())
+	if !isSetGuardianCall {
+		return false
+	}
+
+	// if an instant change guardian is detected, further transactions for this sender should be skipped as they are probably guarded by the old one
+	// allow this one though
+	virtualSession.setChangeGuardianIfNeeded(item.currentTransaction.Tx)
 
 	return false
 }

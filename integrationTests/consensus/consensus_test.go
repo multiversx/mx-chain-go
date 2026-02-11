@@ -191,16 +191,15 @@ func TestConsensusBLSWithFullProcessing_WithEquivalentProofs_MultiKeys(t *testin
 }
 
 func TestConsensusBLSWithFullProcessing_TransitionToSupernova(t *testing.T) {
-	t.Skip("TODO: activate this test once meta processing is done")
 	if testing.Short() {
 		t.Skip("this is not a short test")
 	}
 
 	enableEpochsConfig := integrationTests.CreateEnableEpochsConfig()
 	enableEpochsConfig.AndromedaEnableEpoch = uint32(0)
-	enableEpochsConfig.SupernovaEnableEpoch = uint32(1)
+	enableEpochsConfig.SupernovaEnableEpoch = uint32(2)
 	numKeysOnEachNode := 3
-	targetEpoch := uint32(2)
+	targetEpoch := uint32(4)
 	txs := &generatedTxsParams{
 		numScTxs:          0,
 		numMoveBalanceTxs: 0,
@@ -209,34 +208,6 @@ func TestConsensusBLSWithFullProcessing_TransitionToSupernova(t *testing.T) {
 	testParams := fullConsensusTestParams{
 		enableEpochsConfig: enableEpochsConfig,
 		roundsConfig:       integrationTests.GetSupernovaRoundConfigActivatedAt(int64(enableEpochsConfig.SupernovaEnableEpoch*uint32(roundsPerEpoch)) + int64(roundsPerEpoch/2)),
-		numKeysOnEachNode:  numKeysOnEachNode,
-		roundsPerEpoch:     roundsPerEpoch,
-		roundTime:          roundTime,
-		targetEpoch:        targetEpoch,
-		txs:                txs,
-	}
-	testConsensusBLSWithFullProcessing(t, testParams)
-}
-
-func TestConsensusBLSWithFullProcessing_AfterSupernova(t *testing.T) {
-	t.Skip("TODO: activate this test once meta processing is done")
-	if testing.Short() {
-		t.Skip("this is not a short test")
-	}
-
-	enableEpochsConfig := integrationTests.CreateEnableEpochsConfig()
-	enableEpochsConfig.AndromedaEnableEpoch = uint32(0)
-	enableEpochsConfig.SupernovaEnableEpoch = uint32(0)
-	numKeysOnEachNode := 3
-	targetEpoch := uint32(2)
-	txs := &generatedTxsParams{
-		numScTxs:          0,
-		numMoveBalanceTxs: 0,
-	}
-
-	testParams := fullConsensusTestParams{
-		enableEpochsConfig: enableEpochsConfig,
-		roundsConfig:       integrationTests.GetDefaultRoundsConfig(),
 		numKeysOnEachNode:  numKeysOnEachNode,
 		roundsPerEpoch:     roundsPerEpoch,
 		roundTime:          roundTime,
@@ -247,16 +218,15 @@ func TestConsensusBLSWithFullProcessing_AfterSupernova(t *testing.T) {
 }
 
 func TestConsensusBLSWithFullProcessing_TransitionToSupernova_HighLoad(t *testing.T) {
-	t.Skip("TODO: activate this test once meta processing is done")
 	if testing.Short() {
 		t.Skip("this is not a short test")
 	}
 
 	enableEpochsConfig := integrationTests.CreateEnableEpochsConfig()
 	enableEpochsConfig.AndromedaEnableEpoch = uint32(0)
-	enableEpochsConfig.SupernovaEnableEpoch = uint32(1)
+	enableEpochsConfig.SupernovaEnableEpoch = uint32(2)
 	numKeysOnEachNode := 3
-	targetEpoch := uint32(2)
+	targetEpoch := uint32(4)
 	txs := &generatedTxsParams{
 		numScTxs:          500,
 		numMoveBalanceTxs: 10000,
@@ -265,35 +235,6 @@ func TestConsensusBLSWithFullProcessing_TransitionToSupernova_HighLoad(t *testin
 	testParams := fullConsensusTestParams{
 		enableEpochsConfig: enableEpochsConfig,
 		roundsConfig:       integrationTests.GetSupernovaRoundConfigActivatedAt(int64(enableEpochsConfig.SupernovaEnableEpoch*uint32(roundsPerEpoch)) + int64(roundsPerEpoch/2)),
-		numKeysOnEachNode:  numKeysOnEachNode,
-		roundsPerEpoch:     roundsPerEpoch,
-		roundTime:          roundTime,
-		targetEpoch:        targetEpoch,
-		txs:                txs,
-	}
-
-	testConsensusBLSWithFullProcessing(t, testParams)
-}
-
-func TestConsensusBLSWithFullProcessing_AfterSupernova_HighLoad(t *testing.T) {
-	t.Skip("TODO: activate this test once meta processing is done")
-	if testing.Short() {
-		t.Skip("this is not a short test")
-	}
-
-	enableEpochsConfig := integrationTests.CreateEnableEpochsConfig()
-	enableEpochsConfig.AndromedaEnableEpoch = uint32(0)
-	enableEpochsConfig.SupernovaEnableEpoch = uint32(0)
-	numKeysOnEachNode := 3
-	targetEpoch := uint32(2)
-	txs := &generatedTxsParams{
-		numScTxs:          500,
-		numMoveBalanceTxs: 10000,
-	}
-
-	testParams := fullConsensusTestParams{
-		enableEpochsConfig: enableEpochsConfig,
-		roundsConfig:       integrationTests.GetSupernovaRoundConfigActivatedAt(0),
 		numKeysOnEachNode:  numKeysOnEachNode,
 		roundsPerEpoch:     roundsPerEpoch,
 		roundTime:          roundTime,

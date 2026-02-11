@@ -183,9 +183,8 @@ func (ssh *shardStorageHandler) saveEpochStartMetaHdrs(components *ComponentsNee
 
 func (ssh *shardStorageHandler) saveEpochStartShardHdrs(components *ComponentsNeededForBootstrap) error {
 	for _, hdr := range components.Headers {
-		if !hdr.IsStartOfEpochBlock() {
-			continue
-		}
+		// not only start of epoch header should be saved at this point, we should save
+		// also intermediate headers up to last executed header
 
 		isForCurrentShard := hdr.GetShardID() == ssh.shardCoordinator.SelfId()
 		if !isForCurrentShard {
@@ -470,7 +469,7 @@ func getProcessedMiniBlockHashesForMetaBlockHash(
 			epochStart.ErrMissingHeader,
 			hex.EncodeToString(metaBlockHash))
 	}
-	neededMeta, ok := metaHeaderHandler.(*block.MetaBlock)
+	neededMeta, ok := metaHeaderHandler.(data.MetaHeaderHandler)
 	if !ok {
 		return nil, epochStart.ErrWrongTypeAssertion
 	}
@@ -610,7 +609,7 @@ func getEpochShardDataAndNeededMetaBlock(
 	shardID uint32,
 	meta data.MetaHeaderHandler,
 	headers map[string]data.HeaderHandler,
-) (data.EpochStartShardDataHandler, *block.MetaBlock, error) {
+) (data.EpochStartShardDataHandler, data.MetaHeaderHandler, error) {
 
 	epochShardData, err := getEpochStartShardData(meta, shardID)
 	if err != nil {
@@ -624,7 +623,7 @@ func getEpochShardDataAndNeededMetaBlock(
 			hex.EncodeToString(epochShardData.GetFirstPendingMetaBlock()))
 	}
 
-	neededMeta, ok := header.(*block.MetaBlock)
+	neededMeta, ok := header.(data.MetaHeaderHandler)
 	if !ok {
 		return nil, nil, epochStart.ErrWrongTypeAssertion
 	}
@@ -635,7 +634,7 @@ func getEpochShardDataAndNeededMetaBlock(
 	return epochShardData, neededMeta, nil
 }
 
-func getMiniBlocksInfo(epochShardData data.EpochStartShardDataHandler, neededMeta *block.MetaBlock, shardID uint32) *miniBlocksInfo {
+func getMiniBlocksInfo(epochShardData data.EpochStartShardDataHandler, neededMeta data.MetaHeaderHandler, shardID uint32) *miniBlocksInfo {
 	mbsInfo := &miniBlocksInfo{
 		miniBlockHashes:              make([][]byte, 0),
 		fullyProcessed:               make([]bool, 0),
@@ -673,7 +672,7 @@ func setMiniBlocksInfoWithPendingMiniBlocks(epochShardData data.EpochStartShardD
 	}
 }
 
-func setMiniBlocksInfoWithProcessedMiniBlocks(neededMeta *block.MetaBlock, shardID uint32, mbsInfo *miniBlocksInfo) {
+func setMiniBlocksInfoWithProcessedMiniBlocks(neededMeta data.MetaHeaderHandler, shardID uint32, mbsInfo *miniBlocksInfo) {
 	miniBlockHeaders := getProcessedMiniBlockHeaders(neededMeta, shardID, mbsInfo.pendingMiniBlocksMap)
 	for mbHash, mbHeader := range miniBlockHeaders {
 		log.Debug("shardStorageHandler.setMiniBlocksInfoWithProcessedMiniBlocks",
@@ -715,7 +714,7 @@ func createProcessedAndPendingMiniBlocks(
 	return processedMiniBlocks, pendingMiniBlocks
 }
 
-func getProcessedMiniBlockHeaders(metaBlock *block.MetaBlock, destShardID uint32, pendingMBsMap map[string]struct{}) map[string]block.MiniBlockHeader {
+func getProcessedMiniBlockHeaders(metaBlock data.MetaHeaderHandler, destShardID uint32, pendingMBsMap map[string]struct{}) map[string]block.MiniBlockHeader {
 	processedMiniBlockHeaders := make(map[string]block.MiniBlockHeader)
 	miniBlockHeadersDestMe := getMiniBlockHeadersForDest(metaBlock, destShardID)
 	for hash, mbh := range miniBlockHeadersDestMe {
@@ -741,7 +740,11 @@ func (ssh *shardStorageHandler) saveLastCrossNotarizedHeaders(
 	}
 
 	lastCrossMetaHdrHash := shardData.GetLastFinishedMetaBlock()
-	if len(shardData.GetPendingMiniBlockHeaderHandlers()) == 0 {
+	shouldUpdateLastCrossMeta, err := shouldUpdateLastCrossMetaToPending(shardData, headers)
+	if err != nil {
+		return nil, err
+	}
+	if shouldUpdateLastCrossMeta {
 		log.Debug("saveLastCrossNotarizedHeaders changing lastCrossMetaHdrHash", "initial hash", lastCrossMetaHdrHash, "final hash", shardData.GetFirstPendingMetaBlock())
 		lastCrossMetaHdrHash = shardData.GetFirstPendingMetaBlock()
 	}
@@ -762,7 +765,7 @@ func (ssh *shardStorageHandler) saveLastCrossNotarizedHeaders(
 			hex.EncodeToString(lastCrossMetaHdrHash))
 	}
 
-	neededMeta, ok := neededHdr.(*block.MetaBlock)
+	neededMeta, ok := neededHdr.(data.MetaHeaderHandler)
 	if !ok {
 		return nil, epochStart.ErrWrongTypeAssertion
 	}
@@ -780,6 +783,60 @@ func (ssh *shardStorageHandler) saveLastCrossNotarizedHeaders(
 	})
 
 	return crossNotarizedHdrs, nil
+}
+
+func shouldUpdateLastCrossMetaToPending(shardData data.EpochStartShardDataHandler, headers map[string]data.HeaderHandler) (bool, error) {
+	pendingMbs := shardData.GetPendingMiniBlockHeaderHandlers()
+	if len(pendingMbs) == 0 {
+		return true, nil
+	}
+
+	shardHeader, ok := headers[string(shardData.GetHeaderHash())]
+	if !ok {
+		return false, fmt.Errorf("%w in shouldUpdateLastCrossMetaToPending: hash: %s",
+			epochStart.ErrMissingHeader,
+			hex.EncodeToString(shardData.GetHeaderHash()))
+	}
+
+	if shardHeader.IsHeaderV3() {
+		return allPendingMbsAreProposed(pendingMbs, shardHeader, headers), nil
+	}
+
+	return false, nil
+}
+
+func allPendingMbsAreProposed(
+	pendingMbs []data.MiniBlockHeaderHandler,
+	header data.HeaderHandler,
+	headers map[string]data.HeaderHandler,
+) bool {
+	var proposedMbs []data.MiniBlockHeaderHandler
+	currentHeader := header
+	for {
+		proposedMbs = currentHeader.GetMiniBlockHeaderHandlers()
+		if len(proposedMbs) > 0 {
+			break
+		}
+
+		currentHeader = headers[string(currentHeader.GetPrevHash())]
+		if currentHeader == nil {
+			log.Warn("headerNotFound")
+			break
+		}
+	}
+
+	proposedMbMap := make(map[string]struct{})
+	for _, mb := range proposedMbs {
+		proposedMbMap[string(mb.GetHash())] = struct{}{}
+	}
+
+	for _, pendingMb := range pendingMbs {
+		if _, exists := proposedMbMap[string(pendingMb.GetHash())]; !exists {
+			return false
+		}
+	}
+
+	return true
 }
 
 func updateLastCrossMetaHdrHashIfNeeded(
@@ -850,22 +907,21 @@ func (ssh *shardStorageHandler) saveTriggerRegistry(components *ComponentsNeeded
 		return nil, err
 	}
 
-	triggerReg := block.ShardTriggerRegistry{
-		Epoch:                       shardHeader.GetEpoch(),
-		MetaEpoch:                   metaBlock.GetEpoch(),
-		CurrentRoundIndex:           int64(shardHeader.GetRound()),
-		EpochStartRound:             shardHeader.GetRound(),
-		EpochMetaBlockHash:          metaBlockHash,
-		IsEpochStart:                true,
-		NewEpochHeaderReceived:      true,
-		EpochFinalityAttestingRound: 0,
-		EpochStartShardHeader:       &block.Header{},
-	}
+	triggerReg := epochStart.CreateShardRegistryHandler(shardHeader)
+	_ = triggerReg.SetEpoch(shardHeader.GetEpoch())
+	_ = triggerReg.SetMetaEpoch(metaBlock.GetEpoch())
+	_ = triggerReg.SetCurrentRoundIndex(int64(shardHeader.GetRound()))
+	_ = triggerReg.SetEpochStartRound(shardHeader.GetRound())
+	_ = triggerReg.SetEpochMetaBlockHash(metaBlockHash)
+	_ = triggerReg.SetIsEpochStart(true)
+	_ = triggerReg.SetNewEpochHeaderReceived(true)
+	_ = triggerReg.SetEpochFinalityAttestingRound(0)
+	_ = triggerReg.SetEpochStartHeaderHandler(shardHeader)
 
 	bootstrapKey := []byte(fmt.Sprint(shardHeader.GetRound()))
 	trigInternalKey := append([]byte(common.TriggerRegistryKeyPrefix), bootstrapKey...)
 
-	triggerRegBytes, err := ssh.marshalizer.Marshal(&triggerReg)
+	triggerRegBytes, err := ssh.marshalizer.Marshal(triggerReg)
 	if err != nil {
 		return nil, err
 	}

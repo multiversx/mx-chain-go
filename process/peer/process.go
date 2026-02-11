@@ -14,6 +14,7 @@ import (
 	"github.com/multiversx/mx-chain-core-go/data"
 	"github.com/multiversx/mx-chain-core-go/data/block"
 	"github.com/multiversx/mx-chain-core-go/marshal"
+	"github.com/multiversx/mx-chain-go/common/configs/dto"
 	logger "github.com/multiversx/mx-chain-logger-go"
 
 	"github.com/multiversx/mx-chain-go/common"
@@ -45,41 +46,41 @@ const (
 
 // ArgValidatorStatisticsProcessor holds all dependencies for the validatorStatistics
 type ArgValidatorStatisticsProcessor struct {
-	Marshalizer                          marshal.Marshalizer
-	NodesCoordinator                     nodesCoordinator.NodesCoordinator
-	ShardCoordinator                     sharding.Coordinator
-	DataPool                             DataPool
-	StorageService                       dataRetriever.StorageService
-	PubkeyConv                           core.PubkeyConverter
-	PeerAdapter                          state.AccountsAdapter
-	Rater                                sharding.PeerAccountListAndRatingHandler
-	RewardsHandler                       process.RewardsHandler
-	MaxComputableRounds                  uint64
-	MaxConsecutiveRoundsOfRatingDecrease uint64
-	NodesSetup                           sharding.GenesisNodesSetupHandler
-	GenesisNonce                         uint64
-	RatingEnableEpoch                    uint32
-	EnableEpochsHandler                  common.EnableEpochsHandler
+	Marshalizer           marshal.Marshalizer
+	NodesCoordinator      nodesCoordinator.NodesCoordinator
+	ShardCoordinator      sharding.Coordinator
+	DataPool              DataPool
+	StorageService        dataRetriever.StorageService
+	PubkeyConv            core.PubkeyConverter
+	PeerAdapter           state.AccountsAdapter
+	Rater                 sharding.PeerAccountListAndRatingHandler
+	RewardsHandler        process.RewardsHandler
+	MaxComputableRounds   uint64
+	NodesSetup            sharding.GenesisNodesSetupHandler
+	GenesisNonce          uint64
+	RatingEnableEpoch     uint32
+	EnableEpochsHandler   common.EnableEpochsHandler
+	ProcessConfigsHandler common.ProcessConfigsHandler
 }
 
 type validatorStatistics struct {
-	marshalizer                          marshal.Marshalizer
-	dataPool                             DataPool
-	storageService                       dataRetriever.StorageService
-	nodesCoordinator                     nodesCoordinator.NodesCoordinator
-	shardCoordinator                     sharding.Coordinator
-	pubkeyConv                           core.PubkeyConverter
-	peerAdapter                          state.AccountsAdapter
-	rater                                sharding.PeerAccountListAndRatingHandler
-	rewardsHandler                       process.RewardsHandler
-	maxComputableRounds                  uint64
-	maxConsecutiveRoundsOfRatingDecrease uint64
-	missedBlocksCounters                 validatorRoundCounters
-	mutValidatorStatistics               sync.RWMutex
-	genesisNonce                         uint64
-	ratingEnableEpoch                    uint32
-	lastFinalizedRootHash                []byte
-	enableEpochsHandler                  common.EnableEpochsHandler
+	marshalizer            marshal.Marshalizer
+	dataPool               DataPool
+	storageService         dataRetriever.StorageService
+	nodesCoordinator       nodesCoordinator.NodesCoordinator
+	shardCoordinator       sharding.Coordinator
+	pubkeyConv             core.PubkeyConverter
+	peerAdapter            state.AccountsAdapter
+	rater                  sharding.PeerAccountListAndRatingHandler
+	rewardsHandler         process.RewardsHandler
+	maxComputableRounds    uint64
+	missedBlocksCounters   validatorRoundCounters
+	mutValidatorStatistics sync.RWMutex
+	genesisNonce           uint64
+	ratingEnableEpoch      uint32
+	lastFinalizedRootHash  []byte
+	enableEpochsHandler    common.EnableEpochsHandler
+	processConfigsHandler  common.ProcessConfigsHandler
 }
 
 // NewValidatorStatisticsProcessor instantiates a new validatorStatistics structure responsible for keeping account of
@@ -110,9 +111,6 @@ func NewValidatorStatisticsProcessor(arguments ArgValidatorStatisticsProcessor) 
 	if arguments.MaxComputableRounds == 0 {
 		return nil, process.ErrZeroMaxComputableRounds
 	}
-	if arguments.MaxConsecutiveRoundsOfRatingDecrease == 0 {
-		return nil, process.ErrZeroMaxConsecutiveRoundsOfRatingDecrease
-	}
 	if check.IfNil(arguments.Rater) {
 		return nil, process.ErrNilRater
 	}
@@ -125,6 +123,9 @@ func NewValidatorStatisticsProcessor(arguments ArgValidatorStatisticsProcessor) 
 	if check.IfNil(arguments.EnableEpochsHandler) {
 		return nil, process.ErrNilEnableEpochsHandler
 	}
+	if check.IfNil(arguments.ProcessConfigsHandler) {
+		return nil, process.ErrNilProcessConfigsHandler
+	}
 	err := core.CheckHandlerCompatibility(arguments.EnableEpochsHandler, []core.EnableEpochFlag{
 		common.StopDecreasingValidatorRatingWhenStuckFlag,
 		common.SwitchJailWaitingFlag,
@@ -136,20 +137,20 @@ func NewValidatorStatisticsProcessor(arguments ArgValidatorStatisticsProcessor) 
 	}
 
 	vs := &validatorStatistics{
-		peerAdapter:                          arguments.PeerAdapter,
-		pubkeyConv:                           arguments.PubkeyConv,
-		nodesCoordinator:                     arguments.NodesCoordinator,
-		shardCoordinator:                     arguments.ShardCoordinator,
-		dataPool:                             arguments.DataPool,
-		storageService:                       arguments.StorageService,
-		marshalizer:                          arguments.Marshalizer,
-		missedBlocksCounters:                 make(validatorRoundCounters),
-		rater:                                arguments.Rater,
-		rewardsHandler:                       arguments.RewardsHandler,
-		maxComputableRounds:                  arguments.MaxComputableRounds,
-		maxConsecutiveRoundsOfRatingDecrease: arguments.MaxConsecutiveRoundsOfRatingDecrease,
-		genesisNonce:                         arguments.GenesisNonce,
-		enableEpochsHandler:                  arguments.EnableEpochsHandler,
+		peerAdapter:           arguments.PeerAdapter,
+		pubkeyConv:            arguments.PubkeyConv,
+		nodesCoordinator:      arguments.NodesCoordinator,
+		shardCoordinator:      arguments.ShardCoordinator,
+		dataPool:              arguments.DataPool,
+		storageService:        arguments.StorageService,
+		marshalizer:           arguments.Marshalizer,
+		missedBlocksCounters:  make(validatorRoundCounters),
+		rater:                 arguments.Rater,
+		rewardsHandler:        arguments.RewardsHandler,
+		maxComputableRounds:   arguments.MaxComputableRounds,
+		genesisNonce:          arguments.GenesisNonce,
+		enableEpochsHandler:   arguments.EnableEpochsHandler,
+		processConfigsHandler: arguments.ProcessConfigsHandler,
 	}
 
 	err = vs.saveInitialState(arguments.NodesSetup)
@@ -803,7 +804,7 @@ func (vs *validatorStatistics) checkForMissedBlocks(
 		return nil
 	}
 	if vs.enableEpochsHandler.IsFlagEnabled(common.StopDecreasingValidatorRatingWhenStuckFlag) {
-		if missedRounds > vs.maxConsecutiveRoundsOfRatingDecrease {
+		if missedRounds > vs.processConfigsHandler.GetValue(dto.MaxConsecutiveRoundsOfRatingDecrease) {
 			return nil
 		}
 	}
@@ -927,7 +928,17 @@ func (vs *validatorStatistics) decreaseForConsensusValidators(
 // RevertPeerState takes the current and previous headers and undos the peer state
 // for all of the consensus members
 func (vs *validatorStatistics) RevertPeerState(header data.MetaHeaderHandler) error {
-	rootHashHolder := holders.NewDefaultRootHashesHolder(header.GetValidatorStatsRootHash())
+	rootHash := header.GetValidatorStatsRootHash()
+	if header.IsHeaderV3() {
+		baseMetaExecRes, ok := header.GetLastExecutionResultHandler().(data.LastMetaExecutionResultHandler)
+		if !ok {
+			return process.ErrWrongTypeAssertion
+		}
+
+		rootHash = baseMetaExecRes.GetExecutionResultHandler().GetValidatorStatsRootHash()
+	}
+
+	rootHashHolder := holders.NewDefaultRootHashesHolder(rootHash)
 	return vs.peerAdapter.RecreateTrie(rootHashHolder)
 }
 
@@ -995,7 +1006,7 @@ func (vs *validatorStatistics) updateShardDataPeerState(
 			continue
 		}
 
-		prevShardData, shardInfoErr := vs.searchInMap(h.GetPrevHash(), cacheMap)
+		prevShardData, shardInfoErr := vs.searchInMap(h.GetPrevHash(), cacheMap, h.GetShardID())
 		if shardInfoErr != nil {
 			return shardInfoErr
 		}
@@ -1015,11 +1026,15 @@ func (vs *validatorStatistics) updateShardDataPeerState(
 	return nil
 }
 
-func (vs *validatorStatistics) searchInMap(hash []byte, cacheMap map[string]data.HeaderHandler) (data.HeaderHandler, error) {
-	blkHandler := cacheMap[string(hash)]
-	if check.IfNil(blkHandler) {
+func (vs *validatorStatistics) searchInMap(
+	hash []byte,
+	cacheMap map[string]data.HeaderHandler,
+	shardID uint32,
+) (data.HeaderHandler, error) {
+	blkHandler, err := vs.searchInMapAndHeadersPool(hash, cacheMap, shardID)
+	if err != nil {
 		return nil, fmt.Errorf("%w : searchInMap hash = %s",
-			process.ErrMissingHeader, logger.DisplayByteSlice(hash))
+			err, logger.DisplayByteSlice(hash))
 	}
 
 	blk, ok := blkHandler.(data.ShardHeaderHandler)
@@ -1028,6 +1043,31 @@ func (vs *validatorStatistics) searchInMap(hash []byte, cacheMap map[string]data
 	}
 
 	return blk, nil
+}
+
+func (vs *validatorStatistics) searchInMapAndHeadersPool(
+	hash []byte,
+	cacheMap map[string]data.HeaderHandler,
+	shardID uint32,
+) (data.HeaderHandler, error) {
+	header, ok := cacheMap[string(hash)]
+	if ok && !check.IfNil(header) {
+		return header, nil
+	}
+
+	header, err := process.GetHeader(
+		hash,
+		vs.dataPool.Headers(),
+		vs.storageService,
+		vs.marshalizer,
+		shardID,
+	)
+	if err != nil {
+		log.Debug("searchInMapAndHeadersPool", "hash", hash)
+		return nil, err
+	}
+
+	return header, nil
 }
 
 func (vs *validatorStatistics) initializeNode(
