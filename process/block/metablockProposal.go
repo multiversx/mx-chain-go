@@ -474,7 +474,7 @@ func (mp *metaProcessor) checkNonceGaps(metaHeader data.MetaHeaderHandler) error
 			continue
 		}
 
-		if maxProposedNonce <= lastFinalizedNonce {
+		if maxProposedNonce < lastFinalizedNonce {
 			return fmt.Errorf("%w: shard %d, last finalized nonce %d, proposed nonce %d",
 				process.ErrInvalidProposedNonce,
 				shardID,
