@@ -367,7 +367,8 @@ func (sr *subroundStartRound) EpochStartAction(hdr data.HeaderHandler) {
 func (sr *subroundStartRound) changeEpoch(currentEpoch uint32) {
 	epochNodes, err := sr.NodesCoordinator().GetConsensusWhitelistedNodes(currentEpoch)
 	if err != nil {
-		panic(fmt.Sprintf("consensus changing epoch failed with error %s", err.Error()))
+		log.Error("consensus changing epoch failed", "error", err.Error())
+		return
 	}
 
 	sr.SetEligibleList(epochNodes)
