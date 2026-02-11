@@ -344,7 +344,7 @@ type ExecutionManager interface {
 	AddPairForExecution(pair cache.HeaderBodyPair) error
 	GetPendingExecutionResults() ([]data.BaseExecutionResultHandler, error)
 	CleanConfirmedExecutionResults(header data.HeaderHandler) error
-	CleanOnConsensusReached(headerHash []byte, nonce uint64)
+	CleanOnConsensusReached(headerHash []byte, header data.HeaderHandler)
 	SetLastNotarizedResult(executionResult data.BaseExecutionResultHandler) error
 	GetLastNotarizedExecutionResult() (data.BaseExecutionResultHandler, error)
 	RemoveAtNonceAndHigher(nonce uint64) error
@@ -1646,7 +1646,7 @@ type ExecutionResultsTracker interface {
 	RemoveFromNonce(nonce uint64) error
 	Clean(lastNotarizedResult data.BaseExecutionResultHandler)
 	CleanConfirmedExecutionResults(header data.HeaderHandler) error
-	CleanOnConsensusReached(headerHash []byte, nonce uint64)
+	CleanOnConsensusReached(headerHash []byte, header data.HeaderHandler)
 	IsInterfaceNil() bool
 }
 
