@@ -12,6 +12,7 @@ import (
 	"github.com/multiversx/mx-chain-core-go/hashing"
 	"github.com/multiversx/mx-chain-core-go/marshal"
 	"github.com/multiversx/mx-chain-go/epochStart"
+	"github.com/multiversx/mx-chain-go/p2p"
 	"github.com/multiversx/mx-chain-go/process"
 )
 
@@ -67,7 +68,7 @@ func (ses *storageEpochStartMetaBlockProcessor) Validate(_ process.InterceptedDa
 // Save will handle the consensus mechanism for the fetched metablocks
 // All errors are just logged because if this function returns an error, the processing is finished. This way, we ignore
 // wrong received data and wait for relevant intercepted data
-func (ses *storageEpochStartMetaBlockProcessor) Save(data process.InterceptedData, _ core.PeerID, _ string) (dataSaved bool, err error) {
+func (ses *storageEpochStartMetaBlockProcessor) Save(data process.InterceptedData, _ core.PeerID, _ string, _ p2p.BroadcastMethod) (dataSaved bool, err error) {
 	if check.IfNil(data) {
 		log.Debug("epoch bootstrapper: nil intercepted data")
 		return false, nil

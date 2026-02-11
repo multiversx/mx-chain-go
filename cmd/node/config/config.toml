@@ -60,37 +60,31 @@
 
     ProcessConfigsByRound = [
         {
-        EnableRound = 0,
-        MaxRoundsWithoutNewBlockReceived = 10,
-        MaxRoundsWithoutCommittedBlock = 10,
-        RoundModulusTriggerWhenSyncIsStuck = 20,
-        MaxSyncWithErrorsAllowed = 10,
-        MaxRoundsToKeepUnprocessedMiniBlocks = 300,
-        MaxRoundsToKeepUnprocessedTransactions = 300,
-        NumFloodingRoundsFastReacting = 10,
-        NumFloodingRoundsSlowReacting = 2,
-        NumFloodingRoundsOutOfSpecs = 2,
-        # MaxConsecutiveRoundsOfRatingDecrease represents the max number of consecutive rounds in which a block is not proposed
-        # on a shard and the validators' rating could be decreased. If, for instance, a shard gets stuck for more rounds
-        # than this value, then the validators rating decrease should stop so they won't get jailed
-        MaxConsecutiveRoundsOfRatingDecrease = 600,
-        # MaxRoundsOfInactivityAccepted defines the number of rounds missed by a main or higher level backup machine before
-        # the current machine will take over and propose/sign blocks. Used in both single-key and multi-key modes.
-        MaxRoundsOfInactivityAccepted = 3
+            EnableRound = 0,
+            MaxRoundsWithoutNewBlockReceived = 10,
+            MaxRoundsWithoutCommittedBlock = 10,
+            RoundModulusTriggerWhenSyncIsStuck = 20,
+            MaxSyncWithErrorsAllowed = 10,
+            MaxRoundsToKeepUnprocessedMiniBlocks = 300,
+            MaxRoundsToKeepUnprocessedTransactions = 300,
+            # MaxConsecutiveRoundsOfRatingDecrease represents the max number of consecutive rounds in which a block is not proposed
+            # on a shard and the validators' rating could be decreased. If, for instance, a shard gets stuck for more rounds
+            # than this value, then the validators rating decrease should stop so they won't get jailed
+            MaxConsecutiveRoundsOfRatingDecrease = 600,
+            # MaxRoundsOfInactivityAccepted defines the number of rounds missed by a main or higher level backup machine before
+            # the current machine will take over and propose/sign blocks. Used in both single-key and multi-key modes.
+            MaxRoundsOfInactivityAccepted = 3
         },
         {
-        EnableRound = 260,
-        MaxRoundsWithoutNewBlockReceived = 100,
-        MaxRoundsWithoutCommittedBlock = 100,
-        RoundModulusTriggerWhenSyncIsStuck = 200,
-        MaxSyncWithErrorsAllowed = 100,
-        MaxRoundsToKeepUnprocessedMiniBlocks = 3000,
-        MaxRoundsToKeepUnprocessedTransactions = 3000,
-        NumFloodingRoundsFastReacting = 100,
-        NumFloodingRoundsSlowReacting = 20,
-        NumFloodingRoundsOutOfSpecs = 20,
-        MaxConsecutiveRoundsOfRatingDecrease = 6000,
-        MaxRoundsOfInactivityAccepted = 30
+            EnableRound = 260,
+            MaxRoundsWithoutNewBlockReceived = 100,
+            MaxRoundsWithoutCommittedBlock = 100,
+            RoundModulusTriggerWhenSyncIsStuck = 200,
+            MaxSyncWithErrorsAllowed = 100,
+            MaxRoundsToKeepUnprocessedMiniBlocks = 3000,
+            MaxRoundsToKeepUnprocessedTransactions = 3000,
+            MaxConsecutiveRoundsOfRatingDecrease = 6000,
+            MaxRoundsOfInactivityAccepted = 30
         }
     ]
 
@@ -520,6 +514,12 @@
     SelectionGasBandwidthIncreaseScheduledPercent = 260
     SelectionGasRequested = 10_000_000_000
 
+[AOTSelection]
+    # Ahead-of-Time transaction selection - pre-selects transactions before consensus round
+    Enabled = true
+    CacheSize = 10                                          # Number of pre-selection results to cache
+    SelectionTimeoutMs = 150                                # Max time for AOT selection in milliseconds
+
 [TrieNodesChunksDataPool]
     Name = "TrieNodesDataPool"
     Capacity = 400
@@ -631,71 +631,153 @@
 
 [Antiflood]
     Enabled = true
-    NumConcurrentResolverJobs = 50
-    NumConcurrentResolvingTrieNodesJobs = 3
-    [Antiflood.FastReacting]
-        IntervalInSeconds = 1
-        ReservedPercent   = 20.0
-        [Antiflood.FastReacting.PeerMaxInput]
-            BaseMessagesPerInterval  = 280
-            TotalSizePerInterval = 4194304 #4MB/s
-            [Antiflood.FastReacting.PeerMaxInput.IncreaseFactor]
-                Threshold = 10 #if consensus size will exceed this value, then
-                Factor = 1.0   #increase the base value with [factor*consensus size]
-        [Antiflood.FastReacting.BlackList]
-            ThresholdNumMessagesPerInterval = 1000
-            ThresholdSizePerInterval = 8388608 #8MB/s
-            PeerBanDurationInSeconds = 300
 
-    [Antiflood.SlowReacting]
-        IntervalInSeconds = 30
-        ReservedPercent   = 20.0
-        [Antiflood.SlowReacting.PeerMaxInput]
-            BaseMessagesPerInterval = 6000
-            TotalSizePerInterval = 18874368 # 18MB/interval
-            [Antiflood.SlowReacting.PeerMaxInput.IncreaseFactor]
-                Threshold = 10 #if consensus size will exceed this value, then
-                Factor = 0.0   #increase the base value with [factor*consensus size]
-        [Antiflood.SlowReacting.BlackList]
-            ThresholdNumMessagesPerInterval = 10000
-            ThresholdSizePerInterval = 37748736 # 36MB/interval
-            PeerBanDurationInSeconds = 3600
+    [[Antiflood.ConfigsByRound]]
+        Round = 0
+        NumConcurrentResolverJobs = 50
+        NumConcurrentResolvingTrieNodesJobs = 3
 
-    [Antiflood.OutOfSpecs]
-        IntervalInSeconds = 1
-        ReservedPercent   = 0.0
-        [Antiflood.OutOfSpecs.PeerMaxInput]
-            BaseMessagesPerInterval = 2000
-            TotalSizePerInterval = 10485760 # 10MB/interval
-            [Antiflood.OutOfSpecs.PeerMaxInput.IncreaseFactor]
-                Threshold = 0 #if consensus size will exceed this value, then
-                Factor = 0.0     #increase the base value with [factor*consensus size]
-        [Antiflood.OutOfSpecs.BlackList]
-            ThresholdNumMessagesPerInterval = 3600
-            ThresholdSizePerInterval = 12582912 # 12MB/interval
-            PeerBanDurationInSeconds = 3600
+        [Antiflood.ConfigsByRound.FastReacting]
+            IntervalInSeconds = 1
+            ReservedPercent   = 20.0
+            [Antiflood.ConfigsByRound.FastReacting.PeerMaxInput]
+                BaseMessagesPerInterval  = 280
+                TotalSizePerInterval = 4194304 #4MB/s
+                [Antiflood.ConfigsByRound.FastReacting.PeerMaxInput.IncreaseFactor]
+                    Threshold = 10 #if consensus size will exceed this value, then
+                    Factor = 1.0   #increase the base value with [factor*consensus size]
+            [Antiflood.ConfigsByRound.FastReacting.BlackList]
+                ThresholdNumMessagesPerInterval = 1000
+                ThresholdSizePerInterval = 8388608 #8MB/s
+                NumFloodingRounds = 10
+                PeerBanDurationInSeconds = 300
 
-    [Antiflood.PeerMaxOutput]
-        BaseMessagesPerInterval  = 150
-        TotalSizePerInterval     = 2097152 #2MB/s
+        [Antiflood.ConfigsByRound.SlowReacting]
+            IntervalInSeconds = 30
+            ReservedPercent   = 20.0
+            [Antiflood.ConfigsByRound.SlowReacting.PeerMaxInput]
+                BaseMessagesPerInterval = 6000
+                TotalSizePerInterval = 18874368 # 18MB/interval
+                [Antiflood.ConfigsByRound.SlowReacting.PeerMaxInput.IncreaseFactor]
+                    Threshold = 10 #if consensus size will exceed this value, then
+                    Factor = 0.0   #increase the base value with [factor*consensus size]
+            [Antiflood.ConfigsByRound.SlowReacting.BlackList]
+                ThresholdNumMessagesPerInterval = 10000
+                ThresholdSizePerInterval = 37748736 # 36MB/interval
+                NumFloodingRounds = 2
+                PeerBanDurationInSeconds = 3600
 
-    [Antiflood.Cache]
-        Name = "Antiflood"
-        Capacity = 7000
-        Type = "LRU"
-    [Antiflood.Topic]
-        DefaultMaxMessagesPerSec = 15000
-        MaxMessages = [{ Topic = "shardBlocks*", NumMessagesPerSec = 30 },
-                       { Topic = "metachainBlocks", NumMessagesPerSec = 30 }]
+        [Antiflood.ConfigsByRound.OutOfSpecs]
+            IntervalInSeconds = 1
+            ReservedPercent   = 0.0
+            [Antiflood.ConfigsByRound.OutOfSpecs.PeerMaxInput]
+                BaseMessagesPerInterval = 2000
+                TotalSizePerInterval = 10485760 # 10MB/interval
+                [Antiflood.ConfigsByRound.OutOfSpecs.PeerMaxInput.IncreaseFactor]
+                    Threshold = 0 #if consensus size will exceed this value, then
+                    Factor = 0.0     #increase the base value with [factor*consensus size]
+            [Antiflood.ConfigsByRound.OutOfSpecs.BlackList]
+                ThresholdNumMessagesPerInterval = 3600
+                ThresholdSizePerInterval = 12582912 # 12MB/interval
+                NumFloodingRounds = 2
+                PeerBanDurationInSeconds = 3600
 
-    [Antiflood.TxAccumulator]
-        # MaxAllowedTimeInMilliseconds is used as a time frame in which the node gathers transactions.
-        # After this period, collected transactions will be sent on the p2p topics
-        MaxAllowedTimeInMilliseconds = 250
-        # MaxDeviationTimeInMilliseconds represents the time in miliseconds that will cause the effectual time frame be
-        # less than the specified max value. This is used to create desynchronizations between senders as to not
-        # clutter the network exactly in the same moment
-        MaxDeviationTimeInMilliseconds = 25
+        [Antiflood.ConfigsByRound.PeerMaxOutput]
+            [Antiflood.ConfigsByRound.PeerMaxOutput.PeerMaxInput]
+                BaseMessagesPerInterval  = 150
+                TotalSizePerInterval     = 2097152 #2MB/s
+
+        [Antiflood.ConfigsByRound.Cache]
+            Name = "Antiflood"
+            Capacity = 7000
+            Type = "LRU"
+        [Antiflood.ConfigsByRound.Topic]
+            DefaultMaxMessagesPerSec = 15000
+            MaxMessages = [{ Topic = "shardBlocks*", NumMessagesPerSec = 30 },
+                           { Topic = "metachainBlocks", NumMessagesPerSec = 30 }]
+
+        [Antiflood.ConfigsByRound.TxAccumulator]
+            # MaxAllowedTimeInMilliseconds is used as a time frame in which the node gathers transactions.
+            # After this period, collected transactions will be sent on the p2p topics
+            MaxAllowedTimeInMilliseconds = 250
+            # MaxDeviationTimeInMilliseconds represents the time in miliseconds that will cause the effectual time frame be
+            # less than the specified max value. This is used to create desynchronizations between senders as to not
+            # clutter the network exactly in the same moment
+            MaxDeviationTimeInMilliseconds = 25
+
+    [[Antiflood.ConfigsByRound]]
+        Round = 260
+        NumConcurrentResolverJobs = 50 # TODO: analyse for meta on bootstrap there was a constant used with value 10
+        NumConcurrentResolvingTrieNodesJobs = 3
+
+        [Antiflood.ConfigsByRound.FastReacting]
+            IntervalInSeconds = 1
+            ReservedPercent   = 20.0
+            [Antiflood.ConfigsByRound.FastReacting.PeerMaxInput]
+                BaseMessagesPerInterval  = 280
+                TotalSizePerInterval = 4194304 #4MB/s
+                [Antiflood.ConfigsByRound.FastReacting.PeerMaxInput.IncreaseFactor]
+                    Threshold = 10 #if consensus size will exceed this value, then
+                    Factor = 1.0   #increase the base value with [factor*consensus size]
+            [Antiflood.ConfigsByRound.FastReacting.BlackList]
+                ThresholdNumMessagesPerInterval = 10000
+                ThresholdSizePerInterval = 12388608 #12MB/s
+                NumFloodingRounds = 100
+                PeerBanDurationInSeconds = 300
+
+        [Antiflood.ConfigsByRound.SlowReacting]
+            IntervalInSeconds = 30
+            ReservedPercent   = 20.0
+            [Antiflood.ConfigsByRound.SlowReacting.PeerMaxInput]
+                BaseMessagesPerInterval = 6000
+                TotalSizePerInterval = 18874368 # 18MB/interval
+                [Antiflood.ConfigsByRound.SlowReacting.PeerMaxInput.IncreaseFactor]
+                    Threshold = 10 #if consensus size will exceed this value, then
+                    Factor = 0.0   #increase the base value with [factor*consensus size]
+            [Antiflood.ConfigsByRound.SlowReacting.BlackList]
+                ThresholdNumMessagesPerInterval = 100000
+                ThresholdSizePerInterval = 60748736 # 60MB/interval
+                NumFloodingRounds = 20
+                PeerBanDurationInSeconds = 3600
+
+        [Antiflood.ConfigsByRound.OutOfSpecs]
+            IntervalInSeconds = 1
+            ReservedPercent   = 0.0
+            [Antiflood.ConfigsByRound.OutOfSpecs.PeerMaxInput]
+                BaseMessagesPerInterval = 20000
+                TotalSizePerInterval = 104857600 # 100MB/interval
+                [Antiflood.ConfigsByRound.OutOfSpecs.PeerMaxInput.IncreaseFactor]
+                    Threshold = 0 #if consensus size will exceed this value, then
+                    Factor = 0.0     #increase the base value with [factor*consensus size]
+            [Antiflood.ConfigsByRound.OutOfSpecs.BlackList]
+                ThresholdNumMessagesPerInterval = 36000
+                ThresholdSizePerInterval = 18582912 # 18MB/interval
+                NumFloodingRounds = 20
+                PeerBanDurationInSeconds = 3600
+
+        [Antiflood.ConfigsByRound.PeerMaxOutput]
+            [Antiflood.ConfigsByRound.PeerMaxOutput.PeerMaxInput]
+                BaseMessagesPerInterval  = 150
+                TotalSizePerInterval     = 2097152 #2MB/s
+
+        [Antiflood.ConfigsByRound.Cache]
+            Name = "Antiflood"
+            Capacity = 7000
+            Type = "LRU"
+        [Antiflood.ConfigsByRound.Topic]
+            DefaultMaxMessagesPerSec = 15000
+            MaxMessages = [{ Topic = "shardBlocks*", NumMessagesPerSec = 30 },
+                           { Topic = "metachainBlocks", NumMessagesPerSec = 30 }]
+
+        [Antiflood.ConfigsByRound.TxAccumulator]
+            # MaxAllowedTimeInMilliseconds is used as a time frame in which the node gathers transactions.
+            # After this period, collected transactions will be sent on the p2p topics
+            MaxAllowedTimeInMilliseconds = 80
+            # MaxDeviationTimeInMilliseconds represents the time in miliseconds that will cause the effectual time frame be
+            # less than the specified max value. This is used to create desynchronizations between senders as to not
+            # clutter the network exactly in the same moment
+            MaxDeviationTimeInMilliseconds = 25
+    # Antiflood config ends here for Supernova
 
 [WebServerAntiflood]
     WebServerAntifloodEnabled = true
@@ -813,6 +895,7 @@
 [BlockSizeThrottleConfig]
     MinSizeInBytes = 104857 # 104857 is 10% from 1MB
     MaxSizeInBytes = 943718 # 943718 is 90% from 1MB
+    MaxExecResSizeInBytes = 104857 # 104857 is 10% from 1MB
 
 [VirtualMachine]
     [VirtualMachine.Execution]
@@ -1097,6 +1180,10 @@
 
 [InterceptedDataVerifier]
     EnableCaching = true
+    CacheSpanInSec = 30
+    CacheExpiryInSec = 30
+
+[DirectSentTransactions]
     CacheSpanInSec = 30
     CacheExpiryInSec = 30
 

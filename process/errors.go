@@ -1179,6 +1179,9 @@ var ErrNilEpochChangeGracePeriodHandler = errors.New("nil epoch change grace per
 // ErrNilProcessConfigsHandler signals that a nil process configs by epoch handler has been provided
 var ErrNilProcessConfigsHandler = errors.New("nil process configs by epoch handler")
 
+// ErrNilAntifloodConfigsHandler signals that a nil antiflood configs handler has been provided
+var ErrNilAntifloodConfigsHandler = errors.New("nil antiflood configs handler")
+
 // ErrNilMultiSignerContainer signals that the given multisigner container is nil
 var ErrNilMultiSignerContainer = errors.New("nil multiSigner container")
 
@@ -1310,6 +1313,9 @@ var ErrNilHeaderProof = errors.New("nil header proof")
 
 // ErrNilInterceptedDataCache signals that a nil cacher was provided for intercepted data verifier
 var ErrNilInterceptedDataCache = errors.New("nil cache for intercepted data")
+
+// ErrNilDirectSentCache signals that a nil cacher was provided for direct-sent data
+var ErrNilDirectSentCache = errors.New("nil cache for direct sent")
 
 // ErrFlagNotActive signals that a flag is not active
 var ErrFlagNotActive = errors.New("flag not active")
@@ -1451,3 +1457,15 @@ var ErrExecutionResultNotFound = errors.New("execution result not found")
 
 // ErrShardHeadersShouldNotBeNotarized signals that shard headers should not be notarized
 var ErrShardHeadersShouldNotBeNotarized = errors.New("shard headers should not be notarized")
+
+// ErrNilKeysHandler signals that a nil keys handler has been provided
+var ErrNilKeysHandler = errors.New("nil keys handler")
+
+// ErrNilNodeRedundancyHandler signals that a nil node redundancy handler has been provided
+var ErrNilNodeRedundancyHandler = errors.New("nil node redundancy handler")
+
+// ErrNilTxCache signals that a nil transaction cache has been provided
+var ErrNilTxCache = errors.New("nil tx cache")
+
+// ErrNilAOTSelector signals that a nil AOT selector has been provided
+var ErrNilAOTSelector = errors.New("nil AOT selector")

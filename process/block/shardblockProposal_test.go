@@ -239,6 +239,9 @@ func TestShardProcessor_CreateBlockProposal(t *testing.T) {
 			ExecutedMiniBlocksCalled: func() storage.Cacher {
 				return &cache.CacherStub{}
 			},
+			DirectSentTransactionsCalled: func() storage.Cacher {
+				return cache.NewCacherStub()
+			},
 		}
 		arguments := CreateMockArguments(coreComponents, dataComponents, bootstrapComponents, statusComponents)
 		arguments.BlockTracker = &mock.BlockTrackerMock{
@@ -344,7 +347,7 @@ func TestShardProcessor_CreateBlockProposal(t *testing.T) {
 		}
 		arguments := CreateMockArguments(coreComponents, dataComponents, bootstrapComponents, statusComponents)
 		arguments.ExecutionResultsInclusionEstimator = &processMocks.InclusionEstimatorMock{
-			DecideCalled: func(lastNotarised *estimator.LastExecutionResultForInclusion, pending []data.BaseExecutionResultHandler, currentHdrTsMs uint64) (allowed int) {
+			DecideCalled: func(lastNotarised *common.LastExecutionResultForInclusion, pending []data.BaseExecutionResultHandler, currentHdrTsMs uint64) (allowed int) {
 				return 1 // coverage only
 			},
 		}
@@ -494,6 +497,9 @@ func TestShardProcessor_CreateBlockProposal(t *testing.T) {
 			},
 			ExecutedMiniBlocksCalled: func() storage.Cacher {
 				return &cache.CacherStub{}
+			},
+			DirectSentTransactionsCalled: func() storage.Cacher {
+				return cache.NewCacherStub()
 			},
 		}
 
@@ -693,6 +699,9 @@ func TestShardProcessor_CreateBlockProposal(t *testing.T) {
 			},
 			ExecutedMiniBlocksCalled: func() storage.Cacher {
 				return &cache.CacherStub{}
+			},
+			DirectSentTransactionsCalled: func() storage.Cacher {
+				return cache.NewCacherStub()
 			},
 		}
 
@@ -1002,6 +1011,9 @@ func TestShardProcessor_CreateBlockProposal(t *testing.T) {
 			ExecutedMiniBlocksCalled: func() storage.Cacher {
 				return &cache.CacherStub{}
 			},
+			DirectSentTransactionsCalled: func() storage.Cacher {
+				return cache.NewCacherStub()
+			},
 		}
 
 		arguments := CreateMockArguments(coreComponents, dataComponents, bootstrapComponents, statusComponents)
@@ -1093,6 +1105,9 @@ func TestShardProcessor_CreateBlockProposal(t *testing.T) {
 			ExecutedMiniBlocksCalled: func() storage.Cacher {
 				return &cache.CacherStub{}
 			},
+			DirectSentTransactionsCalled: func() storage.Cacher {
+				return cache.NewCacherStub()
+			},
 		}
 
 		arguments := CreateMockArguments(coreComponents, dataComponents, bootstrapComponents, statusComponents)
@@ -1174,6 +1189,9 @@ func TestShardProcessor_CreateBlockProposal(t *testing.T) {
 			},
 			ExecutedMiniBlocksCalled: func() storage.Cacher {
 				return &cache.CacherStub{}
+			},
+			DirectSentTransactionsCalled: func() storage.Cacher {
+				return cache.NewCacherStub()
 			},
 		}
 
@@ -1343,7 +1361,7 @@ func Test_addExecutionResultsOnHeader(t *testing.T) {
 				},
 			},
 			"executionResultsInclusionEstimator": &processMocks.InclusionEstimatorMock{
-				DecideCalled: func(lastNotarised *estimator.LastExecutionResultForInclusion, pending []data.BaseExecutionResultHandler, currentHdrTsMs uint64) (allowed int) {
+				DecideCalled: func(lastNotarised *common.LastExecutionResultForInclusion, pending []data.BaseExecutionResultHandler, currentHdrTsMs uint64) (allowed int) {
 					return 1
 				},
 			},
@@ -1392,6 +1410,8 @@ func Test_addExecutionResultsOnHeader(t *testing.T) {
 			MaxResultsPerBlock: 10,
 		}
 
+		executionResultsInclusionEstimator, _ := estimator.NewExecutionResultInclusionEstimator(defaultCfg, roundHandler, &testscommon.ExecResSizeComputationStub{})
+
 		executionResult1 := &block.ExecutionResult{
 			BaseExecutionResult: &block.BaseExecutionResult{HeaderHash: []byte("hash1"), HeaderNonce: 1, HeaderRound: 2, GasUsed: 100_000_000},
 		}
@@ -1415,7 +1435,7 @@ func Test_addExecutionResultsOnHeader(t *testing.T) {
 					return header
 				},
 			},
-			"executionResultsInclusionEstimator": estimator.NewExecutionResultInclusionEstimator(defaultCfg, roundHandler),
+			"executionResultsInclusionEstimator": executionResultsInclusionEstimator,
 			"shardCoordinator": &mock.ShardCoordinatorStub{
 				SelfIdCalled: func() uint32 {
 					return 0
@@ -1476,6 +1496,8 @@ func Test_addExecutionResultsOnHeader(t *testing.T) {
 			},
 		}
 
+		execResEst, _ := estimator.NewExecutionResultInclusionEstimator(defaultCfg, roundHandler, &testscommon.ExecResSizeComputationStub{})
+
 		sp, _ := blproc.ConstructPartialShardBlockProcessorForTest(map[string]interface{}{
 			"executionManager": &processMocks.ExecutionManagerMock{
 				GetPendingExecutionResultsCalled: func() ([]data.BaseExecutionResultHandler, error) {
@@ -1492,7 +1514,7 @@ func Test_addExecutionResultsOnHeader(t *testing.T) {
 					return header
 				},
 			},
-			"executionResultsInclusionEstimator": estimator.NewExecutionResultInclusionEstimator(defaultCfg, roundHandler),
+			"executionResultsInclusionEstimator": execResEst,
 			"shardCoordinator": &mock.ShardCoordinatorStub{
 				SelfIdCalled: func() uint32 {
 					return 0
@@ -1571,6 +1593,9 @@ func TestShardProcessor_SelectIncomingMiniBlocks(t *testing.T) {
 			ExecutedMiniBlocksCalled: func() storage.Cacher {
 				return &cache.CacherStub{}
 			},
+			DirectSentTransactionsCalled: func() storage.Cacher {
+				return cache.NewCacherStub()
+			},
 		}
 		arguments := CreateMockArguments(coreComponents, dataComponents, bootstrapComponents, statusComponents)
 		arguments.MiniBlocksSelectionSession = &mbSelection.MiniBlockSelectionSessionStub{
@@ -1608,6 +1633,9 @@ func TestShardProcessor_SelectIncomingMiniBlocks(t *testing.T) {
 			ExecutedMiniBlocksCalled: func() storage.Cacher {
 				return &cache.CacherStub{}
 			},
+			DirectSentTransactionsCalled: func() storage.Cacher {
+				return cache.NewCacherStub()
+			},
 		}
 		arguments := CreateMockArguments(coreComponents, dataComponents, bootstrapComponents, statusComponents)
 		sp, err := blproc.NewShardProcessor(arguments)
@@ -1641,6 +1669,9 @@ func TestShardProcessor_SelectIncomingMiniBlocks(t *testing.T) {
 			},
 			ExecutedMiniBlocksCalled: func() storage.Cacher {
 				return &cache.CacherStub{}
+			},
+			DirectSentTransactionsCalled: func() storage.Cacher {
+				return cache.NewCacherStub()
 			},
 		}
 		arguments := CreateMockArguments(coreComponents, dataComponents, bootstrapComponents, statusComponents)
@@ -1682,6 +1713,9 @@ func TestShardProcessor_SelectIncomingMiniBlocks(t *testing.T) {
 			},
 			ExecutedMiniBlocksCalled: func() storage.Cacher {
 				return &cache.CacherStub{}
+			},
+			DirectSentTransactionsCalled: func() storage.Cacher {
+				return cache.NewCacherStub()
 			},
 		}
 		arguments := CreateMockArguments(coreComponents, dataComponents, bootstrapComponents, statusComponents)
@@ -1742,6 +1776,9 @@ func TestShardProcessor_SelectIncomingMiniBlocks(t *testing.T) {
 			},
 			ExecutedMiniBlocksCalled: func() storage.Cacher {
 				return &cache.CacherStub{}
+			},
+			DirectSentTransactionsCalled: func() storage.Cacher {
+				return cache.NewCacherStub()
 			},
 		}
 		arguments := CreateMockArguments(coreComponents, dataComponents, bootstrapComponents, statusComponents)
@@ -1965,7 +2002,7 @@ func TestShardProcessor_VerifyBlockProposal(t *testing.T) {
 			},
 		}
 		arguments.ExecutionResultsInclusionEstimator = &processMocks.InclusionEstimatorMock{
-			DecideCalled: func(lastNotarised *estimator.LastExecutionResultForInclusion, pending []data.BaseExecutionResultHandler, currentHdrTsMs uint64) (allowed int) {
+			DecideCalled: func(lastNotarised *common.LastExecutionResultForInclusion, pending []data.BaseExecutionResultHandler, currentHdrTsMs uint64) (allowed int) {
 				return 10
 			},
 		}
@@ -2000,7 +2037,7 @@ func TestShardProcessor_VerifyBlockProposal(t *testing.T) {
 			},
 		}
 		arguments.ExecutionResultsInclusionEstimator = &processMocks.InclusionEstimatorMock{
-			DecideCalled: func(lastNotarised *estimator.LastExecutionResultForInclusion, pending []data.BaseExecutionResultHandler, currentHdrTsMs uint64) (allowed int) {
+			DecideCalled: func(lastNotarised *common.LastExecutionResultForInclusion, pending []data.BaseExecutionResultHandler, currentHdrTsMs uint64) (allowed int) {
 				return 0
 			},
 		}
@@ -2042,7 +2079,7 @@ func TestShardProcessor_VerifyBlockProposal(t *testing.T) {
 			},
 		}
 		arguments.ExecutionResultsInclusionEstimator = &processMocks.InclusionEstimatorMock{
-			DecideCalled: func(lastNotarised *estimator.LastExecutionResultForInclusion, pending []data.BaseExecutionResultHandler, currentHdrTsMs uint64) (allowed int) {
+			DecideCalled: func(lastNotarised *common.LastExecutionResultForInclusion, pending []data.BaseExecutionResultHandler, currentHdrTsMs uint64) (allowed int) {
 				return 0
 			},
 		}
@@ -2240,7 +2277,7 @@ func TestShardProcessor_VerifyBlockProposal(t *testing.T) {
 			},
 		}
 		arguments.ExecutionResultsInclusionEstimator = &processMocks.InclusionEstimatorMock{
-			DecideCalled: func(lastNotarised *estimator.LastExecutionResultForInclusion, pending []data.BaseExecutionResultHandler, currentHdrTsMs uint64) (allowed int) {
+			DecideCalled: func(lastNotarised *common.LastExecutionResultForInclusion, pending []data.BaseExecutionResultHandler, currentHdrTsMs uint64) (allowed int) {
 				return 0
 			},
 		}
@@ -2305,7 +2342,7 @@ func TestShardProcessor_VerifyBlockProposal(t *testing.T) {
 			},
 		}
 		arguments.ExecutionResultsInclusionEstimator = &processMocks.InclusionEstimatorMock{
-			DecideCalled: func(lastNotarised *estimator.LastExecutionResultForInclusion, pending []data.BaseExecutionResultHandler, currentHdrTsMs uint64) (allowed int) {
+			DecideCalled: func(lastNotarised *common.LastExecutionResultForInclusion, pending []data.BaseExecutionResultHandler, currentHdrTsMs uint64) (allowed int) {
 				return 0
 			},
 		}
@@ -2360,7 +2397,7 @@ func TestShardProcessor_VerifyBlockProposal(t *testing.T) {
 			},
 		}
 		arguments.ExecutionResultsInclusionEstimator = &processMocks.InclusionEstimatorMock{
-			DecideCalled: func(lastNotarised *estimator.LastExecutionResultForInclusion, pending []data.BaseExecutionResultHandler, currentHdrTsMs uint64) (allowed int) {
+			DecideCalled: func(lastNotarised *common.LastExecutionResultForInclusion, pending []data.BaseExecutionResultHandler, currentHdrTsMs uint64) (allowed int) {
 				return 0
 			},
 		}
@@ -2410,7 +2447,7 @@ func TestShardProcessor_CheckInclusionEstimationForExecutionResults(t *testing.T
 		arguments := CreateMockArguments(coreComponents, dataComponents, bootstrapComponents, statusComponents)
 
 		arguments.ExecutionResultsInclusionEstimator = &processMocks.InclusionEstimatorMock{
-			DecideCalled: func(lastNotarised *estimator.LastExecutionResultForInclusion, pending []data.BaseExecutionResultHandler, currentHdrTsMs uint64) (allowed int) {
+			DecideCalled: func(lastNotarised *common.LastExecutionResultForInclusion, pending []data.BaseExecutionResultHandler, currentHdrTsMs uint64) (allowed int) {
 				return 1
 			},
 		}
@@ -2743,6 +2780,9 @@ func TestShardBlockProposal_CreateAndVerifyProposal(t *testing.T) {
 		ExecutedMiniBlocksCalled: func() storage.Cacher {
 			return &cache.CacherStub{}
 		},
+		DirectSentTransactionsCalled: func() storage.Cacher {
+			return cache.NewCacherStub()
+		},
 	}
 	dataComponents.BlockChain = blkc
 
@@ -2901,6 +2941,9 @@ func TestShardBlockProposal_CreateAndVerifyProposal_WithTransactions(t *testing.
 		},
 		ExecutedMiniBlocksCalled: func() storage.Cacher {
 			return &cache.CacherStub{}
+		},
+		DirectSentTransactionsCalled: func() storage.Cacher {
+			return cache.NewCacherStub()
 		},
 	}
 	dataComponents.BlockChain = blkc
@@ -3151,6 +3194,7 @@ func adaptDataPoolForVerifyGas(
 	proofs := initialPool.Proofs()
 	postProcessTxs := initialPool.PostProcessTransactions()
 	executedMbs := initialPool.ExecutedMiniBlocks()
+	dsTxs := initialPool.DirectSentTransactions()
 	return &dataRetriever.PoolsHolderStub{
 		HeadersCalled: func() retriever.HeadersPool {
 			return headers
@@ -3172,6 +3216,9 @@ func adaptDataPoolForVerifyGas(
 		},
 		ExecutedMiniBlocksCalled: func() storage.Cacher {
 			return executedMbs
+		},
+		DirectSentTransactionsCalled: func() storage.Cacher {
+			return dsTxs
 		},
 	}
 }
@@ -3321,6 +3368,9 @@ func TestShardProcessor_ProcessBlockProposal(t *testing.T) {
 						return nil, expectedErr
 					},
 				}
+			},
+			DirectSentTransactionsCalled: func() storage.Cacher {
+				return cache.NewCacherStub()
 			},
 		}
 		sp, _ := blproc.NewShardProcessor(args)
@@ -4541,7 +4591,7 @@ func createSubComponentsForVerifyProposalTest() map[string]interface{} {
 			},
 		},
 		"executionResultsInclusionEstimator": &processMocks.InclusionEstimatorMock{
-			DecideCalled: func(lastNotarised *estimator.LastExecutionResultForInclusion, pending []data.BaseExecutionResultHandler, currentHdrTsMs uint64) (allowed int) {
+			DecideCalled: func(lastNotarised *common.LastExecutionResultForInclusion, pending []data.BaseExecutionResultHandler, currentHdrTsMs uint64) (allowed int) {
 				return 0
 			},
 		},

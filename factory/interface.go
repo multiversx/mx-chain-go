@@ -145,6 +145,7 @@ type CoreComponentsHolder interface {
 	EpochChangeGracePeriodHandler() common.EpochChangeGracePeriodHandler
 	ProcessConfigsHandler() common.ProcessConfigsHandler
 	CommonConfigsHandler() common.CommonConfigsHandler
+	AntifloodConfigsHandler() common.AntifloodConfigsHandler
 	IsInterfaceNil() bool
 }
 
@@ -325,6 +326,7 @@ type ProcessComponentsHolder interface {
 	SentSignaturesTracker() process.SentSignaturesTracker
 	EpochSystemSCProcessor() process.EpochStartSystemSCProcessor
 	BlockchainHook() process.BlockChainHookWithAccountsAdapter
+	AOTSelector() process.AOTTransactionSelector
 	IsInterfaceNil() bool
 }
 

@@ -19,13 +19,14 @@ const (
 
 type selectionTracker struct {
 	mutTracker                sync.RWMutex
-	latestNonce               uint64
-	latestRootHash            []byte
+	latestNonce               uint64 // last OnExecuted nonce
+	latestRootHash            []byte // last OnExecuted rootHash
 	blocks                    map[string]*trackedBlock
 	globalBreadcrumbsCompiler *globalAccountBreadcrumbsCompiler
 	txCache                   txCacheForSelectionTracker
 	selfShardId               uint32
 	maxTrackedBlocks          uint32
+	aotSelectionPreempter     common.AOTSelectionPreempter
 }
 
 // NewSelectionTracker creates a new selectionTracker
@@ -77,6 +78,9 @@ func (st *selectionTracker) OnProposedBlock(
 	if err != nil {
 		return err
 	}
+
+	// Preempt any ongoing AOT selection before acquiring the lock
+	st.cancelAOTOngoingSelection()
 
 	st.mutTracker.Lock()
 	defer st.mutTracker.Unlock()
@@ -356,6 +360,9 @@ func (st *selectionTracker) OnExecutedBlock(blockHeader data.HeaderHandler, root
 
 	tempTrackedBlock := newTrackedBlock(nonce, nil, prevHash)
 
+	// Preempt any ongoing AOT selection before acquiring the lock
+	st.cancelAOTOngoingSelection()
+
 	st.mutTracker.Lock()
 	defer st.mutTracker.Unlock()
 
@@ -455,22 +462,41 @@ func (st *selectionTracker) ResetTrackedBlocks() {
 	st.globalBreadcrumbsCompiler.cleanGlobalBreadcrumbs()
 }
 
+func (st *selectionTracker) canDoSimulateSelection(nonce uint64) bool {
+	// nonce 0 will select over current tracker state
+	if nonce == 0 {
+		return true
+	}
+
+	lastTrackedBlockNonce := st.latestNonce
+	// drop the selection if not matching the tracker state
+	for _, tb := range st.blocks {
+		if tb.nonce > lastTrackedBlockNonce {
+			lastTrackedBlockNonce = tb.nonce
+		}
+	}
+
+	return nonce == lastTrackedBlockNonce+1
+}
+
 // deriveVirtualSelectionSession creates a virtual selection session by transforming the global accounts breadcrumbs into virtual records
 // The deriveVirtualSelectionSession methods needs a SelectionSession and the nonce of the block for which the selection is built.
 // Before the actual selection, all tracked blocks with greater or equal nonce are removed from the tracker.
 func (st *selectionTracker) deriveVirtualSelectionSession(
 	session SelectionSession,
 	nonce uint64,
-	shouldRemoveTrackedBlocks bool,
+	isSimulation bool,
 ) (*virtualSelectionSession, error) {
 	st.mutTracker.Lock()
 	defer st.mutTracker.Unlock()
 
-	if !shouldRemoveTrackedBlocks {
+	if !isSimulation {
 		err := st.removeBlocksAboveOrEqualToNonceNoLock(nonce)
 		if err != nil {
 			return nil, err
 		}
+	} else if !st.canDoSimulateSelection(nonce) {
+		return nil, errSimulateSelectionContextInvalid
 	}
 
 	rootHash, err := session.GetRootHash()
@@ -680,4 +706,16 @@ func (st *selectionTracker) getTrackerDiagnosis() TrackerDiagnosis {
 	defer st.mutTracker.RUnlock()
 
 	return NewTrackerDiagnosis(uint64(len(st.blocks)), st.globalBreadcrumbsCompiler.getNumGlobalBreadcrumbs())
+}
+
+// SetAOTSelectionPreempter sets the AOT selection preempter for preemption support
+func (st *selectionTracker) SetAOTSelectionPreempter(preempter common.AOTSelectionPreempter) {
+	st.aotSelectionPreempter = preempter
+}
+
+// cancelAOTOngoingSelection cancels any ongoing AOT selection before critical operations
+func (st *selectionTracker) cancelAOTOngoingSelection() {
+	if !check.IfNil(st.aotSelectionPreempter) {
+		st.aotSelectionPreempter.CancelOngoingSelection()
+	}
 }
