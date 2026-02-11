@@ -8,14 +8,12 @@ import (
 	"github.com/multiversx/mx-chain-core-go/marshal"
 	logger "github.com/multiversx/mx-chain-logger-go"
 
-	"github.com/multiversx/mx-chain-go/storage"
-
 	"github.com/multiversx/mx-chain-go/dataRetriever"
 	"github.com/multiversx/mx-chain-go/process"
+	"github.com/multiversx/mx-chain-go/process/asyncExecution/cache"
 	"github.com/multiversx/mx-chain-go/process/asyncExecution/disabled"
 	"github.com/multiversx/mx-chain-go/sharding"
-
-	"github.com/multiversx/mx-chain-go/process/asyncExecution/cache"
+	"github.com/multiversx/mx-chain-go/storage"
 )
 
 var log = logger.GetOrCreate("process/asyncExecution/executionManager")
