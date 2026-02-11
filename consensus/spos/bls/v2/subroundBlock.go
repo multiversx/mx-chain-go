@@ -435,7 +435,13 @@ func (sr *subroundBlock) createHeader() (data.HeaderHandler, error) {
 }
 
 func (sr *subroundBlock) createHeaderBasedOnRound(round uint64, nonce uint64) (data.HeaderHandler, error) {
-	if sr.EnableRoundsHandler().IsFlagEnabledInRound(common.SupernovaRoundFlag, round) {
+	isSupernovaActiveInRound := sr.EnableRoundsHandler().IsFlagEnabledInRound(common.SupernovaRoundFlag, round)
+	isSupernovaActiveInEpoch := sr.EnableEpochsHandler().IsFlagEnabled(common.SupernovaFlag)
+	if isSupernovaActiveInRound && !isSupernovaActiveInEpoch {
+		log.Warn("Supernova is active in round but not in epoch, creating header v2...")
+	}
+
+	if isSupernovaActiveInRound && isSupernovaActiveInEpoch {
 		return sr.BlockProcessor().CreateNewHeaderProposal(round, nonce)
 	}
 
