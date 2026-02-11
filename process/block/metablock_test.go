@@ -173,7 +173,7 @@ func createMockMetaArguments(
 
 	executionResultsTracker := executionTrack.NewExecutionResultsTracker()
 	execManager, _ := executionManager.NewExecutionManager(executionManager.ArgsExecutionManager{
-		BlocksQueue:             &processMocks.BlocksQueueMock{},
+		BlocksCache:             &processMocks.BlocksCacheMock{},
 		ExecutionResultsTracker: executionResultsTracker,
 		BlockChain:              dataComponents.BlockChain,
 		Headers:                 dataComponents.DataPool.Headers(),

@@ -8,6 +8,8 @@ import (
 
 	"github.com/multiversx/mx-chain-core-go/data"
 	"github.com/multiversx/mx-chain-core-go/data/block"
+	"github.com/stretchr/testify/require"
+
 	"github.com/multiversx/mx-chain-go/dataRetriever"
 	"github.com/multiversx/mx-chain-go/process"
 	"github.com/multiversx/mx-chain-go/process/asyncExecution/cache"
@@ -19,14 +21,13 @@ import (
 	"github.com/multiversx/mx-chain-go/testscommon/pool"
 	"github.com/multiversx/mx-chain-go/testscommon/processMocks"
 	storageStubs "github.com/multiversx/mx-chain-go/testscommon/storage"
-	"github.com/stretchr/testify/require"
 )
 
 var errExpected = errors.New("expected error")
 
 func createMockArgs() executionManager.ArgsExecutionManager {
 	return executionManager.ArgsExecutionManager{
-		BlocksQueue:             &processMocks.BlocksQueueMock{},
+		BlocksCache:             &processMocks.BlocksCacheMock{},
 		ExecutionResultsTracker: &processMocks.ExecutionTrackerStub{},
 		BlockChain:              &testscommon.ChainHandlerMock{},
 		Headers: &pool.HeadersPoolStub{
@@ -45,15 +46,15 @@ func createMockArgs() executionManager.ArgsExecutionManager {
 func TestNewExecutionManager(t *testing.T) {
 	t.Parallel()
 
-	t.Run("nil blocks queue should error", func(t *testing.T) {
+	t.Run("nil blocks cache should error", func(t *testing.T) {
 		t.Parallel()
 
 		args := createMockArgs()
-		args.BlocksQueue = nil
+		args.BlocksCache = nil
 
 		em, err := executionManager.NewExecutionManager(args)
 		require.Nil(t, em)
-		require.Equal(t, executionManager.ErrNilBlocksQueue, err)
+		require.Equal(t, executionManager.ErrNilBlocksCache, err)
 	})
 
 	t.Run("nil execution results tracker should error", func(t *testing.T) {
@@ -196,7 +197,7 @@ func TestExecutionManager_AddPairForExecution(t *testing.T) {
 
 		args := createMockArgs()
 		addOrReplaceCalled := false
-		args.BlocksQueue = &processMocks.BlocksQueueMock{
+		args.BlocksCache = &processMocks.BlocksCacheMock{
 			AddOrReplaceCalled: func(pair cache.HeaderBodyPair) error {
 				addOrReplaceCalled = true
 				require.NotNil(t, pair.Header)
@@ -665,7 +666,7 @@ func TestExecutionManager_RemoveAtNonceAndHigher(t *testing.T) {
 				}, nil
 			},
 		}
-		args.BlocksQueue = &processMocks.BlocksQueueMock{
+		args.BlocksCache = &processMocks.BlocksCacheMock{
 			RemoveAtNonceAndHigherCalled: func(nonce uint64) []uint64 {
 				// Should be adjusted to lastNotarizedNonce + 1 = 11
 				require.Equal(t, uint64(11), nonce)
@@ -708,7 +709,7 @@ func TestExecutionManager_RemoveAtNonceAndHigher(t *testing.T) {
 				return nil
 			},
 		}
-		args.BlocksQueue = &processMocks.BlocksQueueMock{
+		args.BlocksCache = &processMocks.BlocksCacheMock{
 			RemoveAtNonceAndHigherCalled: func(nonce uint64) []uint64 {
 				require.Equal(t, uint64(10), nonce)
 				// First removed nonce matches the requested nonce
@@ -760,7 +761,7 @@ func TestExecutionManager_RemoveAtNonceAndHigher(t *testing.T) {
 				return []data.BaseExecutionResultHandler{}, nil
 			},
 		}
-		args.BlocksQueue = &processMocks.BlocksQueueMock{
+		args.BlocksCache = &processMocks.BlocksCacheMock{
 			RemoveAtNonceAndHigherCalled: func(nonce uint64) []uint64 {
 				require.Equal(t, uint64(10), nonce)
 				// First removed nonce does NOT match the requested nonce
@@ -819,7 +820,7 @@ func TestExecutionManager_RemoveAtNonceAndHigher(t *testing.T) {
 				return errExpected
 			},
 		}
-		args.BlocksQueue = &processMocks.BlocksQueueMock{
+		args.BlocksCache = &processMocks.BlocksCacheMock{
 			RemoveAtNonceAndHigherCalled: func(nonce uint64) []uint64 {
 				// First removed nonce does NOT match
 				return []uint64{11, 12}
@@ -848,7 +849,7 @@ func TestExecutionManager_RemoveAtNonceAndHigher(t *testing.T) {
 				return []data.BaseExecutionResultHandler{}, nil
 			},
 		}
-		args.BlocksQueue = &processMocks.BlocksQueueMock{
+		args.BlocksCache = &processMocks.BlocksCacheMock{
 			RemoveAtNonceAndHigherCalled: func(nonce uint64) []uint64 {
 				return []uint64{11, 12}
 			},
@@ -916,7 +917,7 @@ func TestExecutionManager_RemoveAtNonceAndHigher(t *testing.T) {
 				}, nil
 			},
 		}
-		args.BlocksQueue = &processMocks.BlocksQueueMock{
+		args.BlocksCache = &processMocks.BlocksCacheMock{
 			RemoveAtNonceAndHigherCalled: func(nonce uint64) []uint64 {
 				return []uint64{11, 12}
 			},
@@ -966,7 +967,7 @@ func TestExecutionManager_RemoveAtNonceAndHigher(t *testing.T) {
 				return nil, errExpected
 			},
 		}
-		args.BlocksQueue = &processMocks.BlocksQueueMock{
+		args.BlocksCache = &processMocks.BlocksCacheMock{
 			RemoveAtNonceAndHigherCalled: func(nonce uint64) []uint64 {
 				// First removed nonce does NOT match
 				return []uint64{11, 12}
@@ -1122,5 +1123,45 @@ func TestExecutionManager_Concurrency(t *testing.T) {
 		}
 
 		wg.Wait()
+	})
+}
+
+func TestExecutionManager_CleanOnConsensusReached(t *testing.T) {
+	t.Parallel()
+
+	t.Run("should call tracker and remove higher nonce blocks from cache", func(t *testing.T) {
+		t.Parallel()
+
+		trackerCalled := false
+		var trackerHash []byte
+		var trackerNonce uint64
+		var removedNonce uint64
+
+		args := createMockArgs()
+		args.ExecutionResultsTracker = &processMocks.ExecutionTrackerStub{
+			CleanOnConsensusReachedCalled: func(headerHash []byte, nonce uint64) {
+				trackerCalled = true
+				trackerHash = headerHash
+				trackerNonce = nonce
+			},
+		}
+		args.BlocksCache = &processMocks.BlocksCacheMock{
+			RemoveAtNonceAndHigherCalled: func(nonce uint64) []uint64 {
+				removedNonce = nonce
+				return []uint64{}
+			},
+		}
+
+		em, err := executionManager.NewExecutionManager(args)
+		require.NoError(t, err)
+
+		committedNonce := uint64(10)
+		committedHash := []byte("committedHash")
+		em.CleanOnConsensusReached(committedHash, committedNonce)
+
+		require.True(t, trackerCalled)
+		require.Equal(t, committedHash, trackerHash)
+		require.Equal(t, committedNonce, trackerNonce)
+		require.Equal(t, committedNonce+1, removedNonce)
 	})
 }
