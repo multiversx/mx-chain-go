@@ -1143,6 +1143,14 @@ func (boot *baseBootstrap) prepareForSyncIfNeeded(
 		return err
 	}
 
+	if lastExecutionResultHeaderNonce >= syncingNonce {
+		log.Warn("prepareForSyncIfNeeded got higher last execution result header nonce than syncing nonce",
+			"last executed nonce", lastExecutionResultHeaderNonce,
+			"syncing nonce", syncingNonce,
+		)
+		return ErrInvalidSyncingNonce
+	}
+
 	if syncingNonce == lastExecutionResultHeaderNonce+2 {
 		// the ideal/most common case:
 		// the previous block was already processed, its nonce should have been syncingNonce-1,
@@ -1361,6 +1369,14 @@ func (boot *baseBootstrap) getExecutionResultHeaderNonceForSyncStart(
 	var pendingExecutionResult data.BaseExecutionResultHandler
 	for idx := len(pendingExecutionResults) - 1; idx >= 0; idx-- {
 		pendingExecutionResult = pendingExecutionResults[idx]
+		if pendingExecutionResult.GetHeaderNonce() <= lastExecutionResultNonce {
+			log.Warn("getExecutionResultHeaderNonceForSyncStart found pending execution result with lower or equal nonce than last executed",
+				"pending nonce", pendingExecutionResult.GetHeaderNonce(),
+				"lastExecutionResultNonce", lastExecutionResultNonce,
+			)
+			continue
+		}
+
 		if boot.hasProofInCacheOrStorage(pendingExecutionResult.GetHeaderHash()) {
 			return pendingExecutionResult.GetHeaderNonce(), nil
 		}
