@@ -449,6 +449,79 @@ func TestBaseBootstrap_PrepareForSyncAtBootstrapIfNeeded(t *testing.T) {
 
 		require.Equal(t, 1, numCalls) // still 1 call
 	})
+
+	t.Run("should return error when last execution result nonce is higher than or equal to syncing nonce", func(t *testing.T) {
+		t.Parallel()
+
+		lastExecHeaderHash := []byte("lastExecHeaderHash")
+		pendingExecHeaderHash := []byte("pendingExecHeaderHash")
+
+		lastHeader := &block.HeaderV3{
+			LastExecutionResult: &block.ExecutionResultInfo{
+				ExecutionResult: &block.BaseExecutionResult{
+					HeaderHash:  lastExecHeaderHash,
+					HeaderNonce: 9,
+					RootHash:    []byte("rootHash"),
+				},
+			},
+			Nonce: 10,
+		}
+
+		// Pending execution result with nonce 11 (same as syncingNonce which will be currentNonce + 1)
+		pendingExecResult := &block.BaseExecutionResult{
+			HeaderHash:  pendingExecHeaderHash,
+			HeaderNonce: 11,
+		}
+
+		boot := &baseBootstrap{
+			chainHandler: &testscommon.ChainHandlerStub{
+				GetCurrentBlockHeaderCalled: func() data.HeaderHandler {
+					return lastHeader
+				},
+				GetCurrentBlockHeaderHashCalled: func() []byte {
+					return []byte("currentHash")
+				},
+			},
+			headers: &mock.HeadersCacherStub{
+				GetHeaderByHashCalled: func(hash []byte) (data.HeaderHandler, error) {
+					if string(hash) == string(lastExecHeaderHash) {
+						return &block.HeaderV3{Nonce: 9}, nil
+					}
+					return nil, errors.New("header not found")
+				},
+			},
+			marshalizer: &marshal.GogoProtoMarshalizer{},
+			store: &storageStubs.ChainStorerStub{
+				GetStorerCalled: func(unitType dataRetriever.UnitType) (storage.Storer, error) {
+					return &storageStubs.StorerStub{}, nil
+				},
+			},
+			executionManager: &processMocks.ExecutionManagerMock{
+				GetPendingExecutionResultsCalled: func() ([]data.BaseExecutionResultHandler, error) {
+					return []data.BaseExecutionResultHandler{pendingExecResult}, nil
+				},
+			},
+			proofs: &dataRetrieverMock.ProofsPoolMock{
+				HasProofCalled: func(shardID uint32, hash []byte) bool {
+					return string(hash) == string(pendingExecHeaderHash)
+				},
+			},
+			shardCoordinator: &testscommon.ShardsCoordinatorMock{},
+			poolsHolder: &dataRetrieverMock.PoolsHolderStub{
+				TransactionsCalled: func() dataRetriever.ShardedDataCacherNotifier {
+					return &testscommon.ShardedDataStub{
+						OnExecutedBlockCalled: func(header data.HeaderHandler, rootHash []byte) error {
+							return nil
+						},
+					}
+				},
+			},
+			preparedForSync: false,
+		}
+
+		err := boot.PrepareForSyncAtBoostrapIfNeeded()
+		require.Equal(t, ErrInvalidSyncingNonce, err)
+	})
 }
 
 func TestBaseBootstrap_SaveProposedTxsToPool(t *testing.T) {
