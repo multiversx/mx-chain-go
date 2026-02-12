@@ -1119,6 +1119,24 @@ func TestComputeAddSigOnValidNodes(t *testing.T) {
 		require.True(t, errors.Is(err, spos.ErrInvalidNumSigShares))
 	})
 
+	t.Run("invalid number of valid sig shares, with fallback validation", func(t *testing.T) {
+		t.Parallel()
+
+		container := consensusMocks.InitConsensusCore()
+		container.SetFallbackHeaderValidator(&testscommon.FallBackHeaderValidatorStub{
+			ShouldApplyFallbackValidationCalled: func(headerHandler data.HeaderHandler) bool {
+				return true
+			},
+		})
+
+		sr := initSubroundEndRoundWithContainer(container, &statusHandler.AppStatusHandlerStub{})
+		sr.SetHeader(&block.Header{})
+		sr.SetFallbackThreshold(bls.SrEndRound, 2)
+
+		_, _, err := sr.ComputeAggSigOnValidNodes()
+		require.True(t, errors.Is(err, spos.ErrInvalidNumSigShares))
+	})
+
 	t.Run("fail to created aggregated sig", func(t *testing.T) {
 		t.Parallel()
 
