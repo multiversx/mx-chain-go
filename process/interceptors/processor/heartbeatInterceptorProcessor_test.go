@@ -103,7 +103,7 @@ func TestHeartbeatInterceptorProcessor_Save(t *testing.T) {
 		hip, err := processor.NewHeartbeatInterceptorProcessor(createHeartbeatInterceptorProcessArg())
 		assert.Nil(t, err)
 		assert.False(t, hip.IsInterfaceNil())
-		_, err = hip.Save(nil, "", "")
+		_, err = hip.Save(nil, "", "", "")
 		assert.Equal(t, process.ErrWrongTypeAssertion, err)
 	})
 	t.Run("invalid heartbeat data should error", func(t *testing.T) {
@@ -125,7 +125,7 @@ func TestHeartbeatInterceptorProcessor_Save(t *testing.T) {
 		paip, err := processor.NewHeartbeatInterceptorProcessor(args)
 		assert.Nil(t, err)
 		assert.False(t, paip.IsInterfaceNil())
-		_, err = paip.Save(providedData, "", "")
+		_, err = paip.Save(providedData, "", "", "")
 		assert.Equal(t, process.ErrWrongTypeAssertion, err)
 		assert.False(t, wasPutPeerIdShardIdCalled)
 		assert.False(t, wasPutPeerIdSubTypeCalled)
@@ -170,7 +170,7 @@ func TestHeartbeatInterceptorProcessor_Save(t *testing.T) {
 		assert.Nil(t, err)
 		assert.False(t, hip.IsInterfaceNil())
 
-		_, err = hip.Save(providedHb, providedPid, "")
+		_, err = hip.Save(providedHb, providedPid, "", "")
 		assert.Nil(t, err)
 		assert.True(t, wasCalled)
 		assert.True(t, wasPutPeerIdShardIdCalled)

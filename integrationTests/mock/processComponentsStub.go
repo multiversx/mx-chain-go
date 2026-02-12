@@ -1,6 +1,8 @@
 package mock
 
 import (
+	vmcommon "github.com/multiversx/mx-chain-vm-common-go"
+
 	"github.com/multiversx/mx-chain-go/consensus"
 	"github.com/multiversx/mx-chain-go/dataRetriever"
 	"github.com/multiversx/mx-chain-go/dblookupext"
@@ -11,7 +13,6 @@ import (
 	"github.com/multiversx/mx-chain-go/sharding"
 	"github.com/multiversx/mx-chain-go/sharding/nodesCoordinator"
 	"github.com/multiversx/mx-chain-go/update"
-	vmcommon "github.com/multiversx/mx-chain-vm-common-go"
 )
 
 // ProcessComponentsStub -
@@ -63,6 +64,7 @@ type ProcessComponentsStub struct {
 	SentSignaturesTrackerInternal        process.SentSignaturesTracker
 	EpochSystemSCProcessorInternal       process.EpochStartSystemSCProcessor
 	BlockchainHookField                  process.BlockChainHookWithAccountsAdapter
+	AOTSelectorField                     process.AOTTransactionSelector
 }
 
 // Create -
@@ -312,6 +314,11 @@ func (pcs *ProcessComponentsStub) EpochSystemSCProcessor() process.EpochStartSys
 // BlockchainHook -
 func (pcs *ProcessComponentsStub) BlockchainHook() process.BlockChainHookWithAccountsAdapter {
 	return pcs.BlockchainHookField
+}
+
+// AOTSelector -
+func (pcs *ProcessComponentsStub) AOTSelector() process.AOTTransactionSelector {
+	return pcs.AOTSelectorField
 }
 
 // IsInterfaceNil -

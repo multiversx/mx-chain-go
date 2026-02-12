@@ -16,6 +16,7 @@ import (
 	"github.com/multiversx/mx-chain-core-go/data/transaction"
 	"github.com/multiversx/mx-chain-core-go/marshal"
 
+	"github.com/multiversx/mx-chain-go/process/aotSelection"
 	processBlock "github.com/multiversx/mx-chain-go/process/block"
 
 	vmcommon "github.com/multiversx/mx-chain-vm-common-go"
@@ -505,6 +506,7 @@ func createProcessorsForMetaGenesisBlock(arg ArgsGenesisBlockCreator, enableEpoc
 		GasHandler:                        gasHandler,
 		BlockCapacityOverestimationFactor: arg.FeeSettings.BlockCapacityOverestimationFactor,
 		PercentDecreaseLimitsStep:         arg.FeeSettings.PercentDecreaseLimitsStep,
+		BlockSizeComputation:              disabledBlockSizeComputationHandler,
 	}
 	gasConsumption, err := processBlock.NewGasConsumption(argsGasConsumption)
 	if err != nil {
@@ -598,6 +600,7 @@ func createProcessorsForMetaGenesisBlock(arg ArgsGenesisBlockCreator, enableEpoc
 		BlockDataRequester:           blockDataRequester,
 		BlockDataRequesterProposal:   blockDataRequester, // for genesis block no need for separate one
 		GasComputation:               gasConsumption,
+		AOTSelector:                  aotSelection.NewDisabledAOTSelector(),
 	}
 	txCoordinator, err := coordinator.NewTransactionCoordinator(argsTransactionCoordinator)
 	if err != nil {

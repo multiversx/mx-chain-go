@@ -5,6 +5,7 @@ import (
 
 	"github.com/multiversx/mx-chain-core-go/core"
 	"github.com/multiversx/mx-chain-core-go/core/check"
+	"github.com/multiversx/mx-chain-go/p2p"
 	"github.com/multiversx/mx-chain-go/process"
 )
 
@@ -39,7 +40,7 @@ func (processor *peerShardInterceptorProcessor) Validate(_ process.InterceptedDa
 }
 
 // Save will save the intercepted validator info into peer shard mapper
-func (processor *peerShardInterceptorProcessor) Save(data process.InterceptedData, fromConnectedPeer core.PeerID, _ string) (bool, error) {
+func (processor *peerShardInterceptorProcessor) Save(data process.InterceptedData, fromConnectedPeer core.PeerID, _ string, _ p2p.BroadcastMethod) (bool, error) {
 	shardPeerShard, ok := data.(shardProvider)
 	if !ok {
 		return false, process.ErrWrongTypeAssertion

@@ -6,7 +6,8 @@ import (
 	"testing"
 	"time"
 
-	"github.com/multiversx/mx-chain-go/common/configs/dto"
+	"github.com/multiversx/mx-chain-go/common"
+	"github.com/multiversx/mx-chain-go/config"
 	"github.com/multiversx/mx-chain-go/integrationTests"
 	"github.com/multiversx/mx-chain-go/integrationTests/mock"
 	"github.com/multiversx/mx-chain-go/integrationTests/p2p/antiflood"
@@ -16,7 +17,7 @@ import (
 	"github.com/multiversx/mx-chain-go/process/throttle/antiflood/floodPreventers"
 	"github.com/multiversx/mx-chain-go/storage/cache"
 	"github.com/multiversx/mx-chain-go/testscommon"
-	"github.com/multiversx/mx-chain-logger-go"
+	logger "github.com/multiversx/mx-chain-logger-go"
 	"github.com/stretchr/testify/assert"
 )
 
@@ -171,19 +172,18 @@ func createBlacklistHandlersAndProcessors(
 		blacklistProcessors[i], err = blackList.NewP2PBlackListProcessor(
 			blacklistCache,
 			blacklistCachers[i],
-			thresholdNumReceived,
-			thresholdSizeReceived,
-			dto.NumFloodingRoundsFastReacting,
-			time.Minute*5,
 			"",
 			peers[i].ID(),
-			&testscommon.ProcessConfigsHandlerStub{
-				GetValueCalled: func(variable dto.ConfigVariable) uint64 {
-					if variable == dto.NumFloodingRoundsFastReacting {
-						return maxFloodingRounds
+			&testscommon.AntifloodConfigsHandlerStub{
+				GetFloodPreventerConfigByTypeCalled: func(configType common.FloodPreventerType) config.FloodPreventerConfig {
+					return config.FloodPreventerConfig{
+						BlackList: config.BlackListConfig{
+							ThresholdNumMessagesPerInterval: thresholdNumReceived,
+							ThresholdSizePerInterval:        thresholdSizeReceived,
+							NumFloodingRounds:               uint32(maxFloodingRounds),
+							PeerBanDurationInSeconds:        5 * 60,
+						},
 					}
-
-					return 0
 				},
 			},
 		)

@@ -59,7 +59,8 @@ type CoreComponentsMock struct {
 	FieldsSizeCheckerField             common.FieldsSizeChecker
 	EpochChangeGracePeriodHandlerField common.EpochChangeGracePeriodHandler
 	ProcessConfigsHandlerField         common.ProcessConfigsHandler
-	CommonConfigsHandlerField      common.CommonConfigsHandler
+	CommonConfigsHandlerField          common.CommonConfigsHandler
+	AntifloodConfigsHandlerField       common.AntifloodConfigsHandler
 }
 
 // Create -
@@ -298,6 +299,11 @@ func (ccm *CoreComponentsMock) ProcessConfigsHandler() common.ProcessConfigsHand
 // CommonConfigsHandler -
 func (ccm *CoreComponentsMock) CommonConfigsHandler() common.CommonConfigsHandler {
 	return ccm.CommonConfigsHandlerField
+}
+
+// AntifloodConfigsHandler -
+func (ccm *CoreComponentsMock) AntifloodConfigsHandler() common.AntifloodConfigsHandler {
+	return ccm.AntifloodConfigsHandlerField
 }
 
 // IsInterfaceNil -

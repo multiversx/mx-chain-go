@@ -119,6 +119,7 @@ type coreComponents struct {
 	epochChangeGracePeriodHandler common.EpochChangeGracePeriodHandler
 	processConfigsHandler         common.ProcessConfigsHandler
 	epochStartConfigsHandler      common.CommonConfigsHandler
+	antifloodConfigsHandler       common.AntifloodConfigsHandler
 }
 
 // NewCoreComponentsFactory initializes the factory which is responsible to creating core components
@@ -233,6 +234,14 @@ func (ccf *coreComponentsFactory) Create() (*coreComponents, error) {
 		return nil, fmt.Errorf("%w for processConfigsByEpoch", err)
 	}
 
+	antifloodConfigsHandler, err := commonConfigs.NewAntifloodConfigsHandler(
+		ccf.config.Antiflood,
+		roundNotifier,
+	)
+	if err != nil {
+		return nil, fmt.Errorf("%w for antifloodConfigsHandler", err)
+	}
+
 	genesisNodesConfig, err := sharding.NewNodesSetup(
 		ccf.nodesSetupConfig,
 		chainParametersHandler,
@@ -303,6 +312,7 @@ func (ccf *coreComponentsFactory) Create() (*coreComponents, error) {
 		StartRound:                startRound,
 		SupernovaStartRound:       supernovaStartRound,
 		EnableRoundsHandler:       enableRoundsHandler,
+		ImportDBMode:              ccf.importDbConfig.IsImportDBMode,
 	}
 	roundHandler, err := round.NewRound(roundArgs)
 	if err != nil {
@@ -438,6 +448,7 @@ func (ccf *coreComponentsFactory) Create() (*coreComponents, error) {
 		epochChangeGracePeriodHandler: epochChangeGracePeriodHandler,
 		processConfigsHandler:         processConfigs,
 		epochStartConfigsHandler:      commonConfigsHandler,
+		antifloodConfigsHandler:       antifloodConfigsHandler,
 	}, nil
 }
 

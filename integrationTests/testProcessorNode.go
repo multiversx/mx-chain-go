@@ -35,6 +35,7 @@ import (
 	"github.com/multiversx/mx-chain-vm-common-go/parsers"
 	wasmConfig "github.com/multiversx/mx-chain-vm-go/config"
 
+	"github.com/multiversx/mx-chain-go/process/aotSelection"
 	"github.com/multiversx/mx-chain-go/process/asyncExecution"
 	"github.com/multiversx/mx-chain-go/process/asyncExecution/executionManager"
 
@@ -1615,23 +1616,29 @@ func (tpn *TestProcessorNode) initResolvers() {
 	fullArchivePreferredPeersHolder, _ := p2pFactory.NewPeersHolder([]string{})
 
 	resolverContainerFactory := resolverscontainer.FactoryArgs{
-		ShardCoordinator:                    tpn.ShardCoordinator,
-		MainMessenger:                       tpn.MainMessenger,
-		FullArchiveMessenger:                tpn.FullArchiveMessenger,
-		Store:                               tpn.Storage,
-		Marshalizer:                         TestMarshalizer,
-		DataPools:                           tpn.DataPool,
-		Uint64ByteSliceConverter:            TestUint64Converter,
-		DataPacker:                          dataPacker,
-		TriesContainer:                      tpn.TrieContainer,
-		SizeCheckDelta:                      100,
-		InputAntifloodHandler:               &mock.NilAntifloodHandler{},
-		OutputAntifloodHandler:              &mock.NilAntifloodHandler{},
-		NumConcurrentResolvingJobs:          10,
-		NumConcurrentResolvingTrieNodesJobs: 3,
-		MainPreferredPeersHolder:            preferredPeersHolder,
-		FullArchivePreferredPeersHolder:     fullArchivePreferredPeersHolder,
-		PayloadValidator:                    payloadValidator,
+		ShardCoordinator:                tpn.ShardCoordinator,
+		MainMessenger:                   tpn.MainMessenger,
+		FullArchiveMessenger:            tpn.FullArchiveMessenger,
+		Store:                           tpn.Storage,
+		Marshalizer:                     TestMarshalizer,
+		DataPools:                       tpn.DataPool,
+		Uint64ByteSliceConverter:        TestUint64Converter,
+		DataPacker:                      dataPacker,
+		TriesContainer:                  tpn.TrieContainer,
+		SizeCheckDelta:                  100,
+		InputAntifloodHandler:           &mock.NilAntifloodHandler{},
+		OutputAntifloodHandler:          &mock.NilAntifloodHandler{},
+		MainPreferredPeersHolder:        preferredPeersHolder,
+		FullArchivePreferredPeersHolder: fullArchivePreferredPeersHolder,
+		PayloadValidator:                payloadValidator,
+		AntifloodConfigsHandler: &testscommon.AntifloodConfigsHandlerStub{
+			GetCurrentConfigCalled: func() config.AntifloodConfigByRound {
+				return config.AntifloodConfigByRound{
+					NumConcurrentResolverJobs:           10,
+					NumConcurrentResolvingTrieNodesJobs: 3,
+				}
+			},
+		},
 	}
 
 	var err error
@@ -1922,6 +1929,7 @@ func (tpn *TestProcessorNode) initInnerProcessors(gasMap map[string]map[string]u
 		GasHandler:                        tpn.GasHandler,
 		BlockCapacityOverestimationFactor: 200,
 		PercentDecreaseLimitsStep:         10,
+		BlockSizeComputation:              &testscommon.BlockSizeComputationStub{},
 	}
 	gasConsumption, err := block.NewGasConsumption(argsGasConsumption)
 	if err != nil {
@@ -2023,6 +2031,7 @@ func (tpn *TestProcessorNode) initInnerProcessors(gasMap map[string]map[string]u
 		BlockDataRequester:           blockDataRequester,
 		BlockDataRequesterProposal:   blockDataRequesterProposal,
 		GasComputation:               gasConsumption,
+		AOTSelector:                  aotSelection.NewDisabledAOTSelector(),
 	}
 	tpn.TxCoordinator, _ = coordinator.NewTransactionCoordinator(argsTransactionCoordinator)
 	scheduledTxsExecutionHandler.SetTransactionCoordinator(tpn.TxCoordinator)
@@ -2256,6 +2265,7 @@ func (tpn *TestProcessorNode) initMetaInnerProcessors(gasMap map[string]map[stri
 		GasHandler:                        tpn.GasHandler,
 		BlockCapacityOverestimationFactor: 200,
 		PercentDecreaseLimitsStep:         10,
+		BlockSizeComputation:              &testscommon.BlockSizeComputationStub{},
 	}
 	gasConsumption, err := block.NewGasConsumption(argsGasConsumption)
 	if err != nil {
@@ -2351,6 +2361,7 @@ func (tpn *TestProcessorNode) initMetaInnerProcessors(gasMap map[string]map[stri
 		BlockDataRequester:           blockDataRequester,
 		BlockDataRequesterProposal:   blockDataRequesterProposal,
 		GasComputation:               gasConsumption,
+		AOTSelector:                  aotSelection.NewDisabledAOTSelector(),
 	}
 	tpn.TxCoordinator, _ = coordinator.NewTransactionCoordinator(argsTransactionCoordinator)
 	scheduledTxsExecutionHandler.SetTransactionCoordinator(tpn.TxCoordinator)
@@ -2561,13 +2572,17 @@ func (tpn *TestProcessorNode) initBlockProcessor() {
 		log.LogIfError(err)
 	}
 
-	inclusionEstimator := estimator.NewExecutionResultInclusionEstimator(
+	inclusionEstimator, err := estimator.NewExecutionResultInclusionEstimator(
 		config.ExecutionResultInclusionEstimatorConfig{
 			SafetyMargin:       110,
 			MaxResultsPerBlock: 20,
 		},
 		tpn.RoundHandler,
+		&testscommon.ExecResSizeComputationStub{},
 	)
+	if err != nil {
+		log.LogIfError(err)
+	}
 
 	missingDataArgs := missingData.ResolverArgs{
 		HeadersPool:        tpn.DataPool.Headers(),
@@ -2586,6 +2601,7 @@ func (tpn *TestProcessorNode) initBlockProcessor() {
 		GasHandler:                        tpn.GasHandler,
 		BlockCapacityOverestimationFactor: 200,
 		PercentDecreaseLimitsStep:         10,
+		BlockSizeComputation:              &testscommon.BlockSizeComputationStub{},
 	}
 	gasConsumption, err := block.NewGasConsumption(argsGasConsumption)
 	if err != nil {
@@ -2632,6 +2648,7 @@ func (tpn *TestProcessorNode) initBlockProcessor() {
 		GasComputation:                     gasConsumption,
 		ExecutionManager:                   tpn.ExecutionManager,
 		TxExecutionOrderHandler:            tpn.TxExecutionOrderHandler,
+		AOTSelector:                        aotSelection.NewDisabledAOTSelector(),
 	}
 
 	if check.IfNil(tpn.EpochStartNotifier) {
@@ -3814,6 +3831,7 @@ func GetDefaultCoreComponents(
 		FieldsSizeCheckerField:             &testscommon.FieldsSizeCheckerMock{},
 		ChainParametersHandlerField:        &chainParameters.ChainParametersHandlerStub{},
 		CommonConfigsHandlerField:          testscommon.GetDefaultCommonConfigsHandler(),
+		AntifloodConfigsHandlerField:       &testscommon.AntifloodConfigsHandlerStub{},
 	}
 }
 
@@ -4016,11 +4034,17 @@ func createTxsSender(shardCoordinator storage.ShardCoordinator, messenger txsSen
 	log.LogIfError(err)
 
 	argsTxsSender := txsSender.ArgsTxsSenderWithAccumulator{
-		Marshaller:        TestMarshalizer,
-		ShardCoordinator:  shardCoordinator,
-		NetworkMessenger:  messenger,
-		AccumulatorConfig: txAccumulatorConfig,
-		DataPacker:        dataPacker,
+		Marshaller:       TestMarshalizer,
+		ShardCoordinator: shardCoordinator,
+		NetworkMessenger: messenger,
+		DataPacker:       dataPacker,
+		AntifloodConfigHandler: &testscommon.AntifloodConfigsHandlerStub{
+			GetCurrentConfigCalled: func() config.AntifloodConfigByRound {
+				return config.AntifloodConfigByRound{
+					TxAccumulator: txAccumulatorConfig,
+				}
+			},
+		},
 	}
 	txsSenderHandler, err := txsSender.NewTxsSenderWithAccumulator(argsTxsSender)
 	log.LogIfError(err)

@@ -39,7 +39,8 @@ type BlockProcessorMock struct {
 		proposedHeader data.HeaderHandler,
 		proposedHash []byte,
 	) error
-	OnExecutedBlockCalled func(header data.HeaderHandler, rootHash []byte) error
+	OnExecutedBlockCalled                           func(header data.HeaderHandler, rootHash []byte) error
+	ProposedDirectSentTransactionsToBroadcastCalled func(proposedBody data.BodyHandler) map[string][][]byte
 }
 
 // ProcessBlock mocks processing a block
@@ -240,6 +241,14 @@ func (bpm *BlockProcessorMock) OnProposedBlock(
 func (bpm *BlockProcessorMock) OnExecutedBlock(header data.HeaderHandler, rootHash []byte) error {
 	if bpm.OnExecutedBlockCalled != nil {
 		return bpm.OnExecutedBlockCalled(header, rootHash)
+	}
+	return nil
+}
+
+// ProposedDirectSentTransactionsToBroadcast -
+func (bpm *BlockProcessorMock) ProposedDirectSentTransactionsToBroadcast(proposedBody data.BodyHandler) map[string][][]byte {
+	if bpm.ProposedDirectSentTransactionsToBroadcastCalled != nil {
+		return bpm.ProposedDirectSentTransactionsToBroadcastCalled(proposedBody)
 	}
 	return nil
 }

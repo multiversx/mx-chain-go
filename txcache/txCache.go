@@ -132,8 +132,9 @@ func (cache *TxCache) SelectTransactions(
 func (cache *TxCache) SimulateSelectTransactions(
 	session SelectionSession,
 	options common.TxSelectionOptions,
+	currentBlockNonce uint64,
 ) ([]*WrappedTransaction, uint64, error) {
-	return cache.selectTransactions(session, options, 0, true)
+	return cache.selectTransactions(session, options, currentBlockNonce, true)
 }
 
 // selectTransactions executes a real / simulated selection
@@ -397,4 +398,10 @@ func (cache *TxCache) Close() error {
 // IsInterfaceNil returns true if there is no value under the interface
 func (cache *TxCache) IsInterfaceNil() bool {
 	return cache == nil
+}
+
+// SetAOTSelectionPreempter sets the AOT selection preempter for preemption support
+// This allows the selectionTracker to preempt ongoing AOT selections when needed
+func (cache *TxCache) SetAOTSelectionPreempter(preempter common.AOTSelectionPreempter) {
+	cache.tracker.SetAOTSelectionPreempter(preempter)
 }
