@@ -92,7 +92,7 @@ func TestInterceptedDataVerifier_checkCachedData(t *testing.T) {
 
 		verifier := defaultInterceptedDataVerifier(defaultSpan)
 
-		verifier.PutInCache(interceptedData, interceptedDataStatus(1)) // not validInterceptedData
+		verifier.PutInCache(interceptedData, interceptedDataStatus(2)) // not validInterceptedData
 
 		err := verifier.Verify(interceptedData, "topic", p2p.Broadcast)
 		require.Equal(t, process.ErrInvalidInterceptedData, err)
