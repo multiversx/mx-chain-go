@@ -320,7 +320,7 @@ func (bn *branchNode) commitSnapshot(
 				return err
 			}
 
-			log.Error("error during trie snapshot", "err", err.Error(), "hash", bn.EncodedChildren[i])
+			log.Error("error during trie snapshot", "err", err.Error(), "hash", bn.EncodedChildren[i], "maxEpochToSearchFrom", maxEpochToSearchFrom)
 			missingNodesChan <- bn.EncodedChildren[i]
 			continue
 		}

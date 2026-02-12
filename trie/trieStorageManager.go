@@ -436,7 +436,7 @@ func newSnapshotNode(
 		}
 
 		err = core.NewGetNodeFromDBErrWithKey(rootHash, err, db.GetIdentifier())
-		log.Error("error during trie snapshot", "err", err.Error(), "hash", rootHash)
+		log.Error("error during trie snapshot", "err", err.Error(), "hash", rootHash, "maxEpochToSearchFrom", epoch)
 		missingNodesCh <- rootHash
 		return nil, nil, err
 	}
