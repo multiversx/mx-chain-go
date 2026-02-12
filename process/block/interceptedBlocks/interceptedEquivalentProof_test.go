@@ -10,13 +10,14 @@ import (
 	coreSync "github.com/multiversx/mx-chain-core-go/core/sync"
 	"github.com/multiversx/mx-chain-core-go/data"
 	"github.com/multiversx/mx-chain-core-go/data/block"
-	errErd "github.com/multiversx/mx-chain-go/errors"
 	logger "github.com/multiversx/mx-chain-logger-go"
 	"github.com/stretchr/testify/require"
 
 	"github.com/multiversx/mx-chain-go/common"
 	"github.com/multiversx/mx-chain-go/consensus/mock"
+	errErd "github.com/multiversx/mx-chain-go/errors"
 	"github.com/multiversx/mx-chain-go/process"
+	processMock "github.com/multiversx/mx-chain-go/process/mock"
 	"github.com/multiversx/mx-chain-go/testscommon"
 	"github.com/multiversx/mx-chain-go/testscommon/consensus"
 	"github.com/multiversx/mx-chain-go/testscommon/dataRetriever"
@@ -73,6 +74,7 @@ func createMockArgInterceptedEquivalentProof() ArgInterceptedEquivalentProof {
 		Hasher:            &hashingMocks.HasherMock{},
 		ProofSizeChecker:  &testscommon.FieldsSizeCheckerMock{},
 		KeyRWMutexHandler: coreSync.NewKeyRWMutex(),
+		ValidityAttester:  &processMock.ValidityAttesterStub{},
 	}
 }
 
@@ -172,6 +174,15 @@ func TestNewInterceptedEquivalentProof(t *testing.T) {
 		args.KeyRWMutexHandler = nil
 		iep, err := NewInterceptedEquivalentProof(args)
 		require.Equal(t, process.ErrNilKeyRWMutexHandler, err)
+		require.Nil(t, iep)
+	})
+	t.Run("nil ValidityAttester should error", func(t *testing.T) {
+		t.Parallel()
+
+		args := createMockArgInterceptedEquivalentProof()
+		args.ValidityAttester = nil
+		iep, err := NewInterceptedEquivalentProof(args)
+		require.Equal(t, process.ErrNilValidityAttester, err)
 		require.Nil(t, iep)
 	})
 	t.Run("should work", func(t *testing.T) {

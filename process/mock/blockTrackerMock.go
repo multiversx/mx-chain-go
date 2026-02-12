@@ -26,7 +26,9 @@ type BlockTrackerMock struct {
 	AddCrossNotarizedHeaderCalled                      func(shardID uint32, crossNotarizedHeader data.HeaderHandler, crossNotarizedHeaderHash []byte)
 	AddSelfNotarizedHeaderCalled                       func(shardID uint32, selfNotarizedHeader data.HeaderHandler, selfNotarizedHeaderHash []byte)
 	CheckBlockAgainstFinalCalled                       func(headerHandler data.HeaderHandler) error
+	CheckProofAgainstFinalCalled                       func(proof data.HeaderProofHandler) error
 	CheckBlockAgainstRoundHandlerCalled                func(headerHandler data.HeaderHandler) error
+	CheckProofAgainstRoundHandlerCalled                func(proof data.HeaderProofHandler) error
 	CheckBlockAgainstWhitelistCalled                   func(interceptedData process.InterceptedData) bool
 	CleanupHeadersBehindNonceCalled                    func(shardID uint32, selfNotarizedNonce uint64, crossNotarizedNonce uint64)
 	ComputeLongestChainCalled                          func(shardID uint32, header data.HeaderHandler) ([]data.HeaderHandler, [][]byte)
@@ -179,6 +181,24 @@ func (btm *BlockTrackerMock) CheckBlockAgainstRoundHandler(headerHandler data.He
 func (btm *BlockTrackerMock) CheckBlockAgainstFinal(headerHandler data.HeaderHandler) error {
 	if btm.CheckBlockAgainstFinalCalled != nil {
 		return btm.CheckBlockAgainstFinalCalled(headerHandler)
+	}
+
+	return nil
+}
+
+// CheckProofAgainstFinal -
+func (btm *BlockTrackerMock) CheckProofAgainstFinal(proof data.HeaderProofHandler) error {
+	if btm.CheckProofAgainstFinalCalled != nil {
+		return btm.CheckProofAgainstFinalCalled(proof)
+	}
+
+	return nil
+}
+
+// CheckProofAgainstRoundHandler -
+func (btm *BlockTrackerMock) CheckProofAgainstRoundHandler(proof data.HeaderProofHandler) error {
+	if btm.CheckProofAgainstRoundHandlerCalled != nil {
+		return btm.CheckProofAgainstRoundHandlerCalled(proof)
 	}
 
 	return nil

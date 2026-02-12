@@ -473,11 +473,24 @@ func (bbt *baseBlockTrack) CheckBlockAgainstRoundHandler(headerHandler data.Head
 		return process.ErrNilHeaderHandler
 	}
 
+	return bbt.checkAgainstRoundHandler(headerHandler.GetRound())
+}
+
+// CheckProofAgainstRoundHandler verifies the provided proof against the roundHandler's current round
+func (bbt *baseBlockTrack) CheckProofAgainstRoundHandler(proof data.HeaderProofHandler) error {
+	if check.IfNil(proof) {
+		return process.ErrNilHeaderProof
+	}
+
+	return bbt.checkAgainstRoundHandler(proof.GetHeaderRound())
+}
+
+func (bbt *baseBlockTrack) checkAgainstRoundHandler(round uint64) error {
 	nextRound := bbt.roundHandler.Index() + 1
-	if int64(headerHandler.GetRound()) > nextRound {
+	if int64(round) > nextRound {
 		return fmt.Errorf("%w header round: %d, next chronology round: %d",
 			process.ErrHigherRoundInBlock,
-			headerHandler.GetRound(),
+			round,
 			nextRound)
 	}
 
@@ -490,39 +503,52 @@ func (bbt *baseBlockTrack) CheckBlockAgainstFinal(headerHandler data.HeaderHandl
 		return process.ErrNilHeaderHandler
 	}
 
-	finalHeader, _, err := bbt.getFinalHeader(headerHandler.GetShardID())
-	if err != nil {
-		return fmt.Errorf("%w: header shard: %d, header round: %d, header nonce: %d",
-			err,
-			headerHandler.GetShardID(),
-			headerHandler.GetRound(),
-			headerHandler.GetNonce())
+	return bbt.checkAgainstFinal(headerHandler.GetShardID(), headerHandler.GetRound(), headerHandler.GetNonce())
+}
+
+// CheckProofAgainstFinal checks if the given proof is valid related to the final header
+func (bbt *baseBlockTrack) CheckProofAgainstFinal(proof data.HeaderProofHandler) error {
+	if check.IfNil(proof) {
+		return process.ErrNilHeaderProof
 	}
 
-	roundDif := int64(headerHandler.GetRound()) - int64(finalHeader.GetRound())
-	nonceDif := int64(headerHandler.GetNonce()) - int64(finalHeader.GetNonce())
+	return bbt.checkAgainstFinal(proof.GetHeaderShardId(), proof.GetHeaderRound(), proof.GetHeaderNonce())
+}
+
+func (bbt *baseBlockTrack) checkAgainstFinal(shardID uint32, round uint64, nonce uint64) error {
+	finalHeader, _, err := bbt.getFinalHeader(shardID)
+	if err != nil {
+		return fmt.Errorf("%w: shard: %d, round: %d, nonce: %d",
+			err,
+			shardID,
+			round,
+			nonce)
+	}
+
+	roundDif := int64(round) - int64(finalHeader.GetRound())
+	nonceDif := int64(nonce) - int64(finalHeader.GetNonce())
 
 	if roundDif < 0 {
-		return fmt.Errorf("%w for header round: %d, final header round: %d",
+		return fmt.Errorf("%w for round: %d, final header round: %d",
 			process.ErrLowerRoundInBlock,
-			headerHandler.GetRound(),
+			round,
 			finalHeader.GetRound())
 	}
 	if nonceDif < 0 {
-		return fmt.Errorf("%w for header nonce: %d, final header nonce: %d",
+		return fmt.Errorf("%w for nonce: %d, final header nonce: %d",
 			process.ErrLowerNonceInBlock,
-			headerHandler.GetNonce(),
+			nonce,
 			finalHeader.GetNonce())
 	}
 	if roundDif < nonceDif {
 		return fmt.Errorf("%w for "+
-			"header round: %d, final header round: %d, round dif: %d"+
-			"header nonce: %d, final header nonce: %d, nonce dif: %d",
+			"round: %d, final header round: %d, round dif: %d"+
+			"nonce: %d, final header nonce: %d, nonce dif: %d",
 			process.ErrHigherNonceInBlock,
-			headerHandler.GetRound(),
+			round,
 			finalHeader.GetRound(),
 			roundDif,
-			headerHandler.GetNonce(),
+			nonce,
 			finalHeader.GetNonce(),
 			nonceDif)
 	}
