@@ -233,7 +233,7 @@ func (en *extensionNode) commitSnapshot(
 			return err
 		}
 
-		log.Error("error during trie snapshot", "err", err.Error(), "hash", en.EncodedChild)
+		log.Error("error during trie snapshot", "err", err.Error(), "hash", en.EncodedChild, "maxEpochToSearchFrom", maxEpochToSearchFrom)
 		missingNodesChan <- en.EncodedChild
 		return nil
 	}
