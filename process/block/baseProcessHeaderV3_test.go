@@ -784,11 +784,13 @@ func TestBaseProcessor_cleanPostProcessCache(t *testing.T) {
 			"hash1",
 			"executionhash1",
 			"logshash1",
+			"unexecutablehash1",
 			"hash1",
 			"mb1",
 			"hash2",
 			"executionhash2",
 			"logshash2",
+			"unexecutablehash2",
 			"hash2",
 			"mb2",
 		}
