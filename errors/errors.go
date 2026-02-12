@@ -613,3 +613,6 @@ var ErrNilFieldsSizeChecker = errors.New("nil fields size checker")
 
 // ErrNilTrieLeavesRetriever defines the error for setting a nil TrieLeavesRetriever
 var ErrNilTrieLeavesRetriever = errors.New("nil trie leaves retriever")
+
+// ErrNilAOTSelector signals that a nil AOT selector has been provided
+var ErrNilAOTSelector = errors.New("nil AOT selector")

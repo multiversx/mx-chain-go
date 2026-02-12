@@ -9,9 +9,9 @@ import (
 	"github.com/multiversx/mx-chain-core-go/data"
 	"github.com/multiversx/mx-chain-core-go/data/block"
 	crypto "github.com/multiversx/mx-chain-crypto-go"
-	"github.com/multiversx/mx-chain-go/common/configs/dto"
 	logger "github.com/multiversx/mx-chain-logger-go"
 
+	"github.com/multiversx/mx-chain-go/common/configs/dto"
 	"github.com/multiversx/mx-chain-go/config"
 )
 
@@ -517,5 +517,13 @@ type AntifloodConfigsHandler interface {
 	GetCurrentConfig() config.AntifloodConfigByRound
 	GetFloodPreventerConfigByType(configType FloodPreventerType) config.FloodPreventerConfig
 	IsEnabled() bool
+	IsInterfaceNil() bool
+}
+
+// AOTSelectionPreempter defines the interface for preempting AOT transaction selection
+type AOTSelectionPreempter interface {
+	// CancelOngoingSelection aborts ongoing AOT selection if one is in progress
+	// Called before OnProposed/OnExecuted to avoid conflicts
+	CancelOngoingSelection()
 	IsInterfaceNil() bool
 }

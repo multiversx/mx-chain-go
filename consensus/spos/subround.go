@@ -8,6 +8,7 @@ import (
 
 	"github.com/multiversx/mx-chain-core-go/core"
 	"github.com/multiversx/mx-chain-core-go/core/check"
+	commonConsensus "github.com/multiversx/mx-chain-go/common/consensus"
 
 	"github.com/multiversx/mx-chain-go/common"
 	"github.com/multiversx/mx-chain-go/consensus"
@@ -284,7 +285,7 @@ func (sr *Subround) IsSelfLeader() bool {
 
 // IsSelfLeaderInCurrentRound method checks if the current node is leader in the current round
 func (sr *Subround) IsSelfLeaderInCurrentRound() bool {
-	return sr.IsNodeLeaderInCurrentRound(sr.SelfPubKey()) && ShouldConsiderSelfKeyInConsensus(sr.NodeRedundancyHandler())
+	return sr.IsNodeLeaderInCurrentRound(sr.SelfPubKey()) && commonConsensus.ShouldConsiderSelfKeyInConsensus(sr.NodeRedundancyHandler())
 }
 
 // GetLeaderStartRoundMessage returns the leader start round message based on single key
