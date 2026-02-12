@@ -1113,7 +1113,7 @@ func TestComputeAddSigOnValidNodes(t *testing.T) {
 		container := consensusMocks.InitConsensusCore()
 		sr := initSubroundEndRoundWithContainer(container, &statusHandler.AppStatusHandlerStub{})
 		sr.SetHeader(&block.Header{})
-		sr.SetThreshold(bls.SrEndRound, 2)
+		sr.SetThreshold(bls.SrSignature, 2)
 
 		_, _, err := sr.ComputeAggSigOnValidNodes()
 		require.True(t, errors.Is(err, spos.ErrInvalidNumSigShares))
@@ -1131,7 +1131,7 @@ func TestComputeAddSigOnValidNodes(t *testing.T) {
 
 		sr := initSubroundEndRoundWithContainer(container, &statusHandler.AppStatusHandlerStub{})
 		sr.SetHeader(&block.Header{})
-		sr.SetFallbackThreshold(bls.SrEndRound, 2)
+		sr.SetFallbackThreshold(bls.SrSignature, 2)
 
 		_, _, err := sr.ComputeAggSigOnValidNodes()
 		require.True(t, errors.Is(err, spos.ErrInvalidNumSigShares))
