@@ -5809,3 +5809,61 @@ func TestBaseProcessor_SyncCommitOptimization_Constants(t *testing.T) {
 	assert.Equal(t, uint64(50), blproc.SyncThresholdNonces)
 	assert.Equal(t, uint64(10), blproc.DefaultSyncCommitInterval)
 }
+
+func TestBaseProcessor_SyncCommitOptimization_ConcurrentAccess(t *testing.T) {
+	t.Parallel()
+
+	// This test verifies that concurrent access to syncCommitInterval is thread-safe.
+	// The fix moved mutex locking to the beginning of shouldUseSyncCommitOptimization
+	// to prevent data races when reading syncCommitInterval.
+
+	coreComponents, dataComponents, bootstrapComponents, statusComponents := createComponentHolderMocks()
+	arguments := createArgBaseProcessor(coreComponents, dataComponents, bootstrapComponents, statusComponents)
+	arguments.ForkDetector = &mock.ForkDetectorMock{
+		ProbableHighestNonceCalled: func() uint64 {
+			return 200 // Far behind - will trigger sync optimization
+		},
+	}
+
+	sp, err := blproc.NewShardProcessor(blproc.ArgShardProcessor{ArgBaseProcessor: arguments})
+	require.NoError(t, err)
+
+	sp.SetSyncCommitIntervalForTest(10)
+
+	header := &block.Header{
+		Nonce: 100,
+	}
+
+	// Run concurrent operations
+	var wg sync.WaitGroup
+	numGoroutines := 10
+	numIterations := 100
+
+	// Concurrent readers calling shouldUseSyncCommitOptimization
+	for i := 0; i < numGoroutines; i++ {
+		wg.Add(1)
+		go func() {
+			defer wg.Done()
+			for j := 0; j < numIterations; j++ {
+				_ = sp.ShouldUseSyncCommitOptimization(header)
+			}
+		}()
+	}
+
+	// Concurrent writers calling SetSyncCommitIntervalForTest
+	for i := 0; i < numGoroutines/2; i++ {
+		wg.Add(1)
+		go func(id int) {
+			defer wg.Done()
+			for j := 0; j < numIterations; j++ {
+				sp.SetSyncCommitIntervalForTest(uint64(10 + id))
+			}
+		}(i)
+	}
+
+	// Wait for all goroutines to complete
+	wg.Wait()
+
+	// If we reach here without a race condition, the test passes
+	// Run with -race flag to verify: go test -race -run TestBaseProcessor_SyncCommitOptimization_ConcurrentAccess
+}

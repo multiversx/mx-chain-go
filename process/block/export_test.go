@@ -1174,9 +1174,12 @@ func (bp *baseProcessor) ShouldUseSyncCommitOptimization(headerHandler data.Head
 	return bp.shouldUseSyncCommitOptimization(headerHandler)
 }
 
-// SetSyncCommitIntervalForTest -
+// SetSyncCommitIntervalForTest sets the commit interval for sync optimization (test only).
+// Set to 0 to disable the optimization (commit every block).
 func (bp *baseProcessor) SetSyncCommitIntervalForTest(interval uint64) {
-	bp.SetSyncCommitInterval(interval)
+	bp.mutSyncCommit.Lock()
+	bp.syncCommitInterval = interval
+	bp.mutSyncCommit.Unlock()
 }
 
 // GetSyncCommitInterval -

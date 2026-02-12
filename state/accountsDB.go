@@ -941,7 +941,6 @@ func (adb *AccountsDB) commitInMemory() ([]byte, error) {
 			return nil, err
 		}
 	}
-	adb.dataTries.Reset()
 
 	// Compute root hash for main trie without persisting
 	newRoot, err := adb.mainTrie.RootHash()

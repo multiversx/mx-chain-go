@@ -106,3 +106,13 @@ type AccountHandlerWithDataTrieMigrationStatus interface {
 	vmcommon.AccountHandler
 	IsDataTrieMigrated() (bool, error)
 }
+
+// DataTries returns the data tries holder for testing
+func (adb *AccountsDB) DataTries() common.TriesHolder {
+	return adb.dataTries
+}
+
+// SetDataTries sets the data tries holder for testing
+func (adb *AccountsDB) SetDataTries(holder common.TriesHolder) {
+	adb.dataTries = holder
+}

@@ -2132,7 +2132,7 @@ func (bp *baseProcessor) RevertAccountsDBToSnapshot(accountsSnapshot map[state.A
 
 func (bp *baseProcessor) commitState(headerHandler data.HeaderHandler) error {
 	startTime := time.Now()
-	inMemory := true
+	inMemory := false
 	defer func() {
 		elapsedTime := time.Since(startTime)
 		log.Debug("elapsed time to commit accounts state",
@@ -2149,15 +2149,19 @@ func (bp *baseProcessor) commitState(headerHandler data.HeaderHandler) error {
 
 	// Check if we should use sync commit optimization
 	if bp.shouldUseSyncCommitOptimization(headerHandler) {
+		inMemory = true
 		return bp.commitInMemory()
 	}
-	inMemory = false
+
 	return bp.commit()
 }
 
 // shouldUseSyncCommitOptimization checks if the node is syncing and should use
 // the in-memory commit optimization to improve sync speed.
 func (bp *baseProcessor) shouldUseSyncCommitOptimization(headerHandler data.HeaderHandler) bool {
+	bp.mutSyncCommit.Lock()
+	defer bp.mutSyncCommit.Unlock()
+
 	// Disabled if syncCommitInterval is 0
 	if bp.syncCommitInterval == 0 {
 		return false
@@ -2173,14 +2177,11 @@ func (bp *baseProcessor) shouldUseSyncCommitOptimization(headerHandler data.Head
 
 	// Not syncing - commit every block
 	if noncesBehind < syncThresholdNonces {
-		bp.resetSyncCommitCounter()
+		bp.blocksSinceLastCommit = 0
 		return false
 	}
 
 	// Syncing - use commit interval
-	bp.mutSyncCommit.Lock()
-	defer bp.mutSyncCommit.Unlock()
-
 	bp.blocksSinceLastCommit++
 
 	// Time for a full commit
@@ -2213,16 +2214,6 @@ func (bp *baseProcessor) commitInMemory() error {
 	}
 
 	return nil
-}
-
-// SetSyncCommitInterval sets the commit interval for sync optimization.
-// Set to 0 to disable the optimization (commit every block).
-// Higher values improve sync speed but increase memory usage and data loss risk on crash.
-func (bp *baseProcessor) SetSyncCommitInterval(interval uint64) {
-	bp.mutSyncCommit.Lock()
-	bp.syncCommitInterval = interval
-	bp.mutSyncCommit.Unlock()
-	log.Debug("sync commit interval updated", "interval", interval)
 }
 
 func (bp *baseProcessor) commitInLastEpoch(currentEpoch uint32) error {
