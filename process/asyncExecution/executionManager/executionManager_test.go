@@ -8,6 +8,8 @@ import (
 
 	"github.com/multiversx/mx-chain-core-go/data"
 	"github.com/multiversx/mx-chain-core-go/data/block"
+	"github.com/stretchr/testify/require"
+
 	"github.com/multiversx/mx-chain-go/dataRetriever"
 	"github.com/multiversx/mx-chain-go/process"
 	"github.com/multiversx/mx-chain-go/process/asyncExecution/cache"
@@ -19,7 +21,6 @@ import (
 	"github.com/multiversx/mx-chain-go/testscommon/pool"
 	"github.com/multiversx/mx-chain-go/testscommon/processMocks"
 	storageStubs "github.com/multiversx/mx-chain-go/testscommon/storage"
-	"github.com/stretchr/testify/require"
 )
 
 var errExpected = errors.New("expected error")
@@ -656,13 +657,26 @@ func TestExecutionManager_RemoveAtNonceAndHigher(t *testing.T) {
 		args := createMockArgs()
 		pauseCalled := false
 		resumeCalled := false
+		removeFromNonceCalled := false
+
+		lastNotarizedExecResult := &block.ExecutionResult{
+			BaseExecutionResult: &block.BaseExecutionResult{
+				HeaderNonce: 10,
+				HeaderHash:  []byte("hash10"),
+				RootHash:    []byte("root10"),
+			},
+		}
 		args.ExecutionResultsTracker = &processMocks.ExecutionTrackerStub{
 			GetLastNotarizedExecutionResultCalled: func() (data.BaseExecutionResultHandler, error) {
-				return &block.ExecutionResult{
-					BaseExecutionResult: &block.BaseExecutionResult{
-						HeaderNonce: 10,
-					},
-				}, nil
+				return lastNotarizedExecResult, nil
+			},
+			RemoveFromNonceCalled: func(nonce uint64) error {
+				removeFromNonceCalled = true
+				require.Equal(t, uint64(11), nonce)
+				return nil
+			},
+			GetPendingExecutionResultsCalled: func() ([]data.BaseExecutionResultHandler, error) {
+				return []data.BaseExecutionResultHandler{}, nil
 			},
 		}
 		args.BlocksQueue = &processMocks.BlocksQueueMock{
@@ -672,6 +686,15 @@ func TestExecutionManager_RemoveAtNonceAndHigher(t *testing.T) {
 				return []uint64{11}
 			},
 		}
+		header := &block.Header{Nonce: 10}
+		args.Headers = &pool.HeadersPoolStub{
+			GetHeaderByHashCalled: func(hash []byte) (data.HeaderHandler, error) {
+				return header, nil
+			},
+		}
+		chainMock := &testscommon.ChainHandlerMock{}
+		args.BlockChain = chainMock
+
 		em, _ := executionManager.NewExecutionManager(args)
 		mockExecutor := &processMocks.HeadersExecutorMock{
 			PauseExecutionCalled: func() {
@@ -687,34 +710,59 @@ func TestExecutionManager_RemoveAtNonceAndHigher(t *testing.T) {
 		require.NoError(t, err)
 		require.True(t, pauseCalled)
 		require.True(t, resumeCalled)
+		require.True(t, removeFromNonceCalled)
+
+		// Verify blockchain was updated to last notarized state
+		nonce, hash, rootHash := chainMock.GetFinalBlockInfo()
+		require.Equal(t, uint64(10), nonce)
+		require.Equal(t, []byte("hash10"), hash)
+		require.Equal(t, []byte("root10"), rootHash)
 	})
 
-	t.Run("nonce still in queue should resume execution", func(t *testing.T) {
+	t.Run("nonce still in cache should still perform cleanup", func(t *testing.T) {
 		t.Parallel()
 
 		args := createMockArgs()
 		pauseCalled := false
 		resumeCalled := false
+		removeFromNonceCalled := false
+
+		lastNotarizedExecResult := &block.ExecutionResult{
+			BaseExecutionResult: &block.BaseExecutionResult{
+				HeaderNonce: 9,
+				HeaderHash:  []byte("hash9"),
+				RootHash:    []byte("root9"),
+			},
+		}
 		args.ExecutionResultsTracker = &processMocks.ExecutionTrackerStub{
 			GetLastNotarizedExecutionResultCalled: func() (data.BaseExecutionResultHandler, error) {
-				return &block.ExecutionResult{
-					BaseExecutionResult: &block.BaseExecutionResult{
-						HeaderNonce: 9,
-					},
-				}, nil
+				return lastNotarizedExecResult, nil
 			},
 			RemoveFromNonceCalled: func(nonce uint64) error {
-				require.Fail(t, "should not have been called")
+				removeFromNonceCalled = true
+				require.Equal(t, uint64(10), nonce)
 				return nil
+			},
+			GetPendingExecutionResultsCalled: func() ([]data.BaseExecutionResultHandler, error) {
+				return []data.BaseExecutionResultHandler{}, nil
 			},
 		}
 		args.BlocksQueue = &processMocks.BlocksQueueMock{
 			RemoveAtNonceAndHigherCalled: func(nonce uint64) []uint64 {
 				require.Equal(t, uint64(10), nonce)
-				// First removed nonce matches the requested nonce
+				// First removed nonce matches the requested nonce (block still in cache)
 				return []uint64{10, 11, 12}
 			},
 		}
+		header := &block.Header{Nonce: 9}
+		args.Headers = &pool.HeadersPoolStub{
+			GetHeaderByHashCalled: func(hash []byte) (data.HeaderHandler, error) {
+				return header, nil
+			},
+		}
+		chainMock := &testscommon.ChainHandlerMock{}
+		args.BlockChain = chainMock
+
 		em, _ := executionManager.NewExecutionManager(args)
 		mockExecutor := &processMocks.HeadersExecutorMock{
 			PauseExecutionCalled: func() {
@@ -730,6 +778,16 @@ func TestExecutionManager_RemoveAtNonceAndHigher(t *testing.T) {
 		require.NoError(t, err)
 		require.True(t, pauseCalled)
 		require.True(t, resumeCalled)
+		require.True(t, removeFromNonceCalled)
+
+		// Verify blockchain was updated to last notarized state
+		nonce, hash, rootHash := chainMock.GetFinalBlockInfo()
+		require.Equal(t, uint64(9), nonce)
+		require.Equal(t, []byte("hash9"), hash)
+		require.Equal(t, []byte("root9"), rootHash)
+
+		retLastExecutionResult := chainMock.GetLastExecutionResult()
+		require.Equal(t, lastNotarizedExecResult, retLastExecutionResult)
 	})
 
 	t.Run("nonce already popped should clean tracker and update blockchain", func(t *testing.T) {
@@ -798,6 +856,90 @@ func TestExecutionManager_RemoveAtNonceAndHigher(t *testing.T) {
 		require.Equal(t, uint64(5), nonce)
 		require.Equal(t, []byte("hash5"), hash)
 		require.Equal(t, []byte("root5"), rootHash)
+
+		retLastExecutionResult := chainMock.GetLastExecutionResult()
+		require.Equal(t, lastNotarizedExecResult, retLastExecutionResult)
+	})
+
+	t.Run("nonce in cache and already processed should clean tracker and update blockchain", func(t *testing.T) {
+		t.Parallel()
+
+		args := createMockArgs()
+		pauseCalled := false
+		resumeCalled := false
+		removeFromNonceCalled := false
+
+		// Block at nonce 10 was processed, execution result exists as pending
+		pendingExecResult := &block.BaseExecutionResult{
+			HeaderNonce: 10,
+			HeaderHash:  []byte("hash10"),
+			RootHash:    []byte("root10"),
+		}
+		lastNotarizedExecResult := &block.ExecutionResult{
+			BaseExecutionResult: &block.BaseExecutionResult{
+				HeaderNonce: 9,
+				HeaderHash:  []byte("hash9"),
+				RootHash:    []byte("root9"),
+			},
+		}
+		removePendingCalled := false
+		args.ExecutionResultsTracker = &processMocks.ExecutionTrackerStub{
+			GetLastNotarizedExecutionResultCalled: func() (data.BaseExecutionResultHandler, error) {
+				return lastNotarizedExecResult, nil
+			},
+			RemoveFromNonceCalled: func(nonce uint64) error {
+				removeFromNonceCalled = true
+				require.Equal(t, uint64(10), nonce)
+				removePendingCalled = true
+				return nil
+			},
+			GetPendingExecutionResultsCalled: func() ([]data.BaseExecutionResultHandler, error) {
+				if removePendingCalled {
+					// after RemoveFromNonce, pending is empty
+					return []data.BaseExecutionResultHandler{}, nil
+				}
+				// before removal, pending has the processed result
+				return []data.BaseExecutionResultHandler{pendingExecResult}, nil
+			},
+		}
+		args.BlocksQueue = &processMocks.BlocksQueueMock{
+			RemoveAtNonceAndHigherCalled: func(nonce uint64) []uint64 {
+				require.Equal(t, uint64(10), nonce)
+				// Block was still in cache but was already processed by headersExecutor
+				return []uint64{10}
+			},
+		}
+		header := &block.Header{Nonce: 9}
+		args.Headers = &pool.HeadersPoolStub{
+			GetHeaderByHashCalled: func(hash []byte) (data.HeaderHandler, error) {
+				return header, nil
+			},
+		}
+		chainMock := &testscommon.ChainHandlerMock{}
+		args.BlockChain = chainMock
+
+		em, _ := executionManager.NewExecutionManager(args)
+		mockExecutor := &processMocks.HeadersExecutorMock{
+			PauseExecutionCalled: func() {
+				pauseCalled = true
+			},
+			ResumeExecutionCalled: func() {
+				resumeCalled = true
+			},
+		}
+		_ = em.SetHeadersExecutor(mockExecutor)
+
+		err := em.RemoveAtNonceAndHigher(10)
+		require.NoError(t, err)
+		require.True(t, pauseCalled)
+		require.True(t, resumeCalled)
+		require.True(t, removeFromNonceCalled)
+
+		// Verify blockchain was rolled back to last notarized state
+		nonce, hash, rootHash := chainMock.GetFinalBlockInfo()
+		require.Equal(t, uint64(9), nonce)
+		require.Equal(t, []byte("hash9"), hash)
+		require.Equal(t, []byte("root9"), rootHash)
 
 		retLastExecutionResult := chainMock.GetLastExecutionResult()
 		require.Equal(t, lastNotarizedExecResult, retLastExecutionResult)
