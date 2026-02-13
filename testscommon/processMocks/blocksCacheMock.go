@@ -4,8 +4,8 @@ import (
 	"github.com/multiversx/mx-chain-go/process/asyncExecution/cache"
 )
 
-// BlocksQueueMock is a mock implementation of the BlocksCache interface
-type BlocksQueueMock struct {
+// BlocksCacheMock is a mock implementation of the BlocksCache interface
+type BlocksCacheMock struct {
 	AddOrReplaceCalled           func(pair cache.HeaderBodyPair) error
 	RemoveAtNonceAndHigherCalled func(nonce uint64) []uint64
 	CleanCalled                  func()
@@ -13,7 +13,7 @@ type BlocksQueueMock struct {
 }
 
 // GetByNonce -
-func (bqm *BlocksQueueMock) GetByNonce(nonce uint64) (cache.HeaderBodyPair, bool) {
+func (bqm *BlocksCacheMock) GetByNonce(nonce uint64) (cache.HeaderBodyPair, bool) {
 	if bqm.GetByNonceCalled != nil {
 		return bqm.GetByNonceCalled(nonce)
 	}
@@ -22,11 +22,11 @@ func (bqm *BlocksQueueMock) GetByNonce(nonce uint64) (cache.HeaderBodyPair, bool
 }
 
 // Remove -
-func (bqm *BlocksQueueMock) Remove(_ uint64) {
+func (bqm *BlocksCacheMock) Remove(_ uint64) {
 }
 
 // AddOrReplace -
-func (bqm *BlocksQueueMock) AddOrReplace(pair cache.HeaderBodyPair) error {
+func (bqm *BlocksCacheMock) AddOrReplace(pair cache.HeaderBodyPair) error {
 	if bqm.AddOrReplaceCalled != nil {
 		return bqm.AddOrReplaceCalled(pair)
 	}
@@ -34,7 +34,7 @@ func (bqm *BlocksQueueMock) AddOrReplace(pair cache.HeaderBodyPair) error {
 }
 
 // RemoveAtNonceAndHigher -
-func (bqm *BlocksQueueMock) RemoveAtNonceAndHigher(nonce uint64) []uint64 {
+func (bqm *BlocksCacheMock) RemoveAtNonceAndHigher(nonce uint64) []uint64 {
 	if bqm.RemoveAtNonceAndHigherCalled != nil {
 		return bqm.RemoveAtNonceAndHigherCalled(nonce)
 	}
@@ -42,13 +42,13 @@ func (bqm *BlocksQueueMock) RemoveAtNonceAndHigher(nonce uint64) []uint64 {
 }
 
 // Clean -
-func (bqm *BlocksQueueMock) Clean() {
+func (bqm *BlocksCacheMock) Clean() {
 	if bqm.CleanCalled != nil {
 		bqm.CleanCalled()
 	}
 }
 
 // IsInterfaceNil -
-func (bqm *BlocksQueueMock) IsInterfaceNil() bool {
+func (bqm *BlocksCacheMock) IsInterfaceNil() bool {
 	return bqm == nil
 }

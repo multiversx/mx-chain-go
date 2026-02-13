@@ -253,6 +253,50 @@ func TestRound_UpdateRoundShouldAdvanceOneRound(t *testing.T) {
 		assert.Equal(t, int64(7), rnd.Index())
 		assert.Equal(t, currentTime.Add(supernovaRoundDuration).UnixMilli(), rnd.TimeStamp().UnixMilli())
 	})
+
+	t.Run("after supernova genesis time, in import db mode", func(t *testing.T) {
+		t.Parallel()
+
+		genesisTime := time.Now()
+
+		roundDuration := 10 * time.Millisecond
+
+		supernovaRoundDuration := 5 * time.Millisecond
+		supernovaStartRond := int64(5)
+		supernovaGenesisTime := genesisTime.Add(time.Duration(supernovaStartRond) * roundDuration)
+
+		args := createDefaultRoundArgs()
+		args.RoundTimeDuration = roundDuration
+		args.SupernovaTimeDuration = supernovaRoundDuration
+		args.EnableRoundsHandler = &testscommon.EnableRoundsHandlerStub{
+			IsFlagEnabledInRoundCalled: func(flag common.EnableRoundFlag, round uint64) bool {
+				return flag != common.SupernovaRoundFlag && round >= uint64(supernovaStartRond)
+			},
+		}
+		args.ImportDBMode = true
+
+		args.SupernovaStartRound = supernovaStartRond
+		args.GenesisTimeStamp = genesisTime
+		args.SupernovaGenesisTimeStamp = supernovaGenesisTime
+
+		// set current time 2 rounds ahead
+		currentTime := genesisTime.Add(roundDuration * 2)
+
+		args.CurrentTimeStamp = currentTime
+
+		rnd, _ := round.NewRound(args)
+
+		assert.Equal(t, roundDuration, rnd.TimeDuration())
+		assert.Equal(t, int64(2), rnd.Index())
+
+		rnd.UpdateRound(genesisTime, genesisTime.Add(roundDuration*6))
+
+		// if in import db and supernova enable flag not enabled, do not activate
+		// supernova even if supernova genesis time was reached
+
+		assert.Equal(t, roundDuration, rnd.TimeDuration())
+		assert.Equal(t, int64(6), rnd.Index())
+	})
 }
 
 func TestRound_IndexShouldReturnFirstIndex(t *testing.T) {

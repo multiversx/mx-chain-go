@@ -736,6 +736,12 @@ func TestSubroundBlock_DoBlockJob(t *testing.T) {
 			},
 		}
 		container.SetEnableRoundsHandler(enableRoundsHandler)
+		enableEpochsHandler := &enableEpochsHandlerMock.EnableEpochsHandlerStub{
+			IsFlagEnabledCalled: func(flag core.EnableEpochFlag) bool {
+				return flag == common.SupernovaFlag
+			},
+		}
+		container.SetEnableEpochsHandler(enableEpochsHandler)
 
 		leader, err := sr.GetLeader()
 		require.Nil(t, err)
