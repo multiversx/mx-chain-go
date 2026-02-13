@@ -458,10 +458,6 @@ func (mp *metaProcessor) checkNonceGaps(metaHeader data.MetaHeaderHandler) error
 		nonce := shardData.GetNonce()
 
 		existing, found := shardDataFinalizedNonces[shardID]
-		if found && nonce <= existing {
-			continue
-		}
-
 		if !found || nonce > existing {
 			lastCrossNotarizedInBlockTracker, foundInTracker := lastCrossNotarizedForAllShards[shardID]
 			if !foundInTracker {
@@ -471,7 +467,7 @@ func (mp *metaProcessor) checkNonceGaps(metaHeader data.MetaHeaderHandler) error
 
 			lastExecResultNonceOfLastCrossNotarized := common.GetLastExecutionResultNonce(lastCrossNotarizedInBlockTracker)
 			if nonce < lastExecResultNonceOfLastCrossNotarized {
-				log.Warn("found proposed nonce higher than last cross notarized",
+				log.Warn("found proposed nonce lower than last exec result of cross notarized",
 					"shard", shardID,
 					"shardInfoNonce", nonce,
 					"lastExecResultNonceOfLastCrossNotarized", lastExecResultNonceOfLastCrossNotarized,
