@@ -155,7 +155,7 @@ func (s *syncTime) getSleepTime() time.Duration {
 	return s.syncPeriod + time.Duration(offset)
 }
 
-// ForceSync will trigger ntp sync
+// ForceSync will trigger ntp sync and does not wait for completion
 // it will not trigger if sync already in progress
 func (s *syncTime) ForceSync() {
 	ch := s.sf.DoChan(syncKey, func() (any, error) {
@@ -170,7 +170,7 @@ func (s *syncTime) ForceSync() {
 	}
 }
 
-// triggerSync will trigger sync and wait for the response
+// triggerSync will trigger sync and waits for completion
 // this is called periodically in the ntp sync loop
 func (s *syncTime) triggerSync() {
 	ch := s.sf.DoChan(syncKey, func() (any, error) {

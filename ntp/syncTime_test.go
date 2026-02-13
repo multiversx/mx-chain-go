@@ -482,7 +482,7 @@ func TestCall_Sync_AcceptedBoundsChecks(t *testing.T) {
 func TestSyncTime_ForceSync(t *testing.T) {
 	t.Parallel()
 
-	t.Run("Sync should trigger multiple times", func(t *testing.T) {
+	t.Run("ForceSync should work", func(t *testing.T) {
 		t.Parallel()
 
 		numCalls := 0
@@ -496,7 +496,42 @@ func TestSyncTime_ForceSync(t *testing.T) {
 			func(options ntp.NTPOptions, hostIndex int) (*beevikNtp.Response, error) {
 				numCalls++
 
-				time.Sleep(10 * time.Millisecond)
+				time.Sleep(1 * time.Millisecond)
+
+				return &beevikNtp.Response{
+					ClockOffset: 1 * time.Millisecond,
+				}, nil
+			},
+		)
+
+		currentValue := 3 * time.Millisecond
+		st.SetClockOffset(currentValue)
+
+		st.ForceSync()
+
+		time.Sleep(time.Duration(ntp.NumRequestsFromHost+5) * time.Millisecond)
+
+		expClockOffset := 1 * time.Millisecond
+		assert.Equal(t, expClockOffset, st.ClockOffset())
+
+		require.Equal(t, ntp.NumRequestsFromHost, numCalls)
+	})
+
+	t.Run("TriggerSync should trigger multiple times", func(t *testing.T) {
+		t.Parallel()
+
+		numCalls := 0
+
+		st := ntp.NewSyncTime(
+			config.NTPConfig{
+				SyncPeriodSeconds:    3600,
+				Hosts:                []string{"host1"},
+				OutOfBoundsThreshold: 2,
+			},
+			func(options ntp.NTPOptions, hostIndex int) (*beevikNtp.Response, error) {
+				numCalls++
+
+				time.Sleep(2 * time.Millisecond)
 
 				return &beevikNtp.Response{
 					ClockOffset: 1 * time.Millisecond,
@@ -508,10 +543,10 @@ func TestSyncTime_ForceSync(t *testing.T) {
 		st.SetClockOffset(currentValue)
 
 		// multiple calls should trigger multiple times
-		st.Sync()
-		st.Sync()
-		st.Sync()
-		st.Sync()
+		st.TriggerSync()
+		st.TriggerSync()
+		st.TriggerSync()
+		st.TriggerSync()
 
 		expClockOffset := 1 * time.Millisecond
 		assert.Equal(t, expClockOffset, st.ClockOffset())
@@ -533,6 +568,9 @@ func TestSyncTime_ForceSync(t *testing.T) {
 			func(options ntp.NTPOptions, hostIndex int) (*beevikNtp.Response, error) {
 				numCalls++
 
+				if numCalls == 0 {
+					time.Sleep(100 * time.Millisecond)
+				}
 				time.Sleep(10 * time.Millisecond)
 
 				return &beevikNtp.Response{
@@ -541,16 +579,13 @@ func TestSyncTime_ForceSync(t *testing.T) {
 			},
 		)
 
-		currentValue := 3 * time.Millisecond
-		st.SetClockOffset(currentValue)
-
-		st.Sync()
+		// multiple ForceSync calls should not trigger if already syncing
+		go st.TriggerSync()
 		st.ForceSync()
 		st.ForceSync()
 		st.ForceSync()
 
-		expClockOffset := 1 * time.Millisecond
-		assert.Equal(t, expClockOffset, st.ClockOffset())
+		time.Sleep(time.Duration(ntp.NumRequestsFromHost*10+10) * time.Millisecond)
 
 		require.Equal(t, ntp.NumRequestsFromHost, numCalls)
 	})

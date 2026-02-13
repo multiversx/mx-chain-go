@@ -26,6 +26,11 @@ func (s *syncTime) SetClockOffset(clockOffset time.Duration) {
 
 // Sync -
 func (s *syncTime) Sync() {
+	s.sync()
+}
+
+// TriggerSync -
+func (s *syncTime) TriggerSync() {
 	s.triggerSync()
 }
 
