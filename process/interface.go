@@ -4,9 +4,6 @@ import (
 	"math/big"
 	"time"
 
-	"github.com/multiversx/mx-chain-go/ntp"
-	"github.com/multiversx/mx-chain-go/process/asyncExecution/cache"
-
 	"github.com/multiversx/mx-chain-core-go/core"
 	"github.com/multiversx/mx-chain-core-go/data"
 	"github.com/multiversx/mx-chain-core-go/data/batch"
@@ -30,7 +27,9 @@ import (
 	cryptoCommon "github.com/multiversx/mx-chain-go/common/crypto"
 	"github.com/multiversx/mx-chain-go/config"
 	"github.com/multiversx/mx-chain-go/epochStart"
+	"github.com/multiversx/mx-chain-go/ntp"
 	"github.com/multiversx/mx-chain-go/p2p"
+	"github.com/multiversx/mx-chain-go/process/asyncExecution/cache"
 	"github.com/multiversx/mx-chain-go/process/block/bootstrapStorage"
 	"github.com/multiversx/mx-chain-go/process/block/processedMb"
 	"github.com/multiversx/mx-chain-go/sharding"
@@ -1014,6 +1013,8 @@ type BlockTracker interface {
 	CheckBlockAgainstFinal(headerHandler data.HeaderHandler) error
 	CheckBlockAgainstRoundHandler(headerHandler data.HeaderHandler) error
 	CheckBlockAgainstWhitelist(interceptedData InterceptedData) bool
+	CheckProofAgainstFinal(proof data.HeaderProofHandler) error
+	CheckProofAgainstRoundHandler(proof data.HeaderProofHandler) error
 	CleanupHeadersBehindNonce(shardID uint32, selfNotarizedNonce uint64, crossNotarizedNonce uint64)
 	CleanupInvalidCrossHeaders(metaNewEpoch uint32, metaRoundAttestingEpoch uint64)
 	ComputeLongestChain(shardID uint32, header data.HeaderHandler) ([]data.HeaderHandler, [][]byte)
@@ -1158,6 +1159,8 @@ type ValidityAttester interface {
 	CheckBlockAgainstFinal(headerHandler data.HeaderHandler) error
 	CheckBlockAgainstRoundHandler(headerHandler data.HeaderHandler) error
 	CheckBlockAgainstWhitelist(interceptedData InterceptedData) bool
+	CheckProofAgainstFinal(proof data.HeaderProofHandler) error
+	CheckProofAgainstRoundHandler(proof data.HeaderProofHandler) error
 	IsInterfaceNil() bool
 }
 
