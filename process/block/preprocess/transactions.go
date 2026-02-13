@@ -516,7 +516,7 @@ func (txs *transactions) processTxsToMe(
 
 	var err error
 	scheduledMode := false
-	isAsyncExecEnabled := common.IsAsyncExecutionEnabled(txs.enableEpochsHandler, txs.enableRoundsHandler)
+	isAsyncExecEnabled := header.IsHeaderV3()
 	if txs.enableEpochsHandler.IsFlagEnabled(common.ScheduledMiniBlocksFlag) && !isAsyncExecEnabled {
 		scheduledMode, err = process.IsScheduledMode(header, body, txs.hasher, txs.marshalizer)
 		if err != nil {
