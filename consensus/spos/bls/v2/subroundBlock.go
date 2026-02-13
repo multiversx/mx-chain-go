@@ -504,7 +504,7 @@ func (sr *subroundBlock) isHeaderForCurrentConsensus(header data.HeaderHandler) 
 	if header.GetShardID() != sr.ShardCoordinator().SelfId() {
 		return false
 	}
-	if header.GetRound() != uint64(sr.RoundHandler().Index()) {
+	if header.GetRound() != uint64(sr.GetRoundIndex()) {
 		sr.addOutOfRangeHeader(header)
 		return false
 	}
@@ -610,15 +610,15 @@ func (sr *subroundBlock) receivedBlockHeader(headerHandler data.HeaderHandler) {
 		return
 	}
 
-	isHeaderForCurrentConsensus := sr.isHeaderForCurrentConsensus(headerHandler)
-	if !isHeaderForCurrentConsensus {
-		log.Debug("subroundBlock.receivedBlockHeader - header is not for current consensus")
-		return
-	}
-
 	isLeader := sr.IsSelfLeader()
 	if sr.ConsensusGroup() == nil || isLeader {
 		log.Debug("subroundBlock.receivedBlockHeader - consensus group is nil or is leader")
+		return
+	}
+
+	isHeaderForCurrentConsensus := sr.isHeaderForCurrentConsensus(headerHandler)
+	if !isHeaderForCurrentConsensus {
+		log.Debug("subroundBlock.receivedBlockHeader - header is not for current consensus")
 		return
 	}
 
