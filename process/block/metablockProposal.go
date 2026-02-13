@@ -58,6 +58,11 @@ func (mp *metaProcessor) CreateNewHeaderProposal(round uint64, nonce uint64) (da
 		return nil, err
 	}
 
+	err = mp.checkNonceGaps(metaHeader)
+	if err != nil {
+		return nil, err
+	}
+
 	err = metaHeader.SetEpochStartHandler(&block.EpochStart{})
 	if err != nil {
 		return nil, err
@@ -245,6 +250,11 @@ func (mp *metaProcessor) VerifyBlockProposal(
 		return err
 	}
 
+	err = mp.checkNonceGaps(header)
+	if err != nil {
+		return err
+	}
+
 	mp.updateMetrics(header)
 
 	mp.missingDataResolver.Reset()
@@ -426,6 +436,99 @@ func (mp *metaProcessor) ProcessBlockProposal(
 	}
 
 	return execResult, nil
+}
+
+func (mp *metaProcessor) checkNonceGaps(metaHeader data.MetaHeaderHandler) error {
+	err := mp.checkHeaderExecutionResultNonceGap(metaHeader)
+	if err != nil {
+		return err
+	}
+
+	shardDataFinalizedNonces := make(map[uint32]uint64)
+
+	// Initialize shardDataFinalizedNonces with data from block tracker
+	lastCrossNotarizedForAllShards, err := mp.blockTracker.GetLastCrossNotarizedHeadersForAllShards()
+	if err != nil {
+		return err
+	}
+
+	// Get highest finalized nonce per shard from ShardInfoHandlers
+	for _, shardData := range metaHeader.GetShardInfoHandlers() {
+		shardID := shardData.GetShardID()
+		nonce := shardData.GetNonce()
+
+		existing, found := shardDataFinalizedNonces[shardID]
+		if !found || nonce > existing {
+			lastCrossNotarizedInBlockTracker, foundInTracker := lastCrossNotarizedForAllShards[shardID]
+			if !foundInTracker {
+				log.Warn("missing cross notarized header for shard in block tracker", "shard", shardID)
+				return process.ErrMissingCrossNotarizedHeader
+			}
+
+			lastExecResultNonceOfLastCrossNotarized := common.GetLastExecutionResultNonce(lastCrossNotarizedInBlockTracker)
+			if nonce < lastExecResultNonceOfLastCrossNotarized {
+				log.Warn("found proposed nonce lower than last exec result of cross notarized",
+					"shard", shardID,
+					"shardInfoNonce", nonce,
+					"lastExecResultNonceOfLastCrossNotarized", lastExecResultNonceOfLastCrossNotarized,
+				)
+				return process.ErrInvalidShardInfo
+			}
+
+			shardDataFinalizedNonces[shardID] = nonce
+		}
+	}
+
+	// fill missing data from block tracker
+	for shardID, lastCrossNotarizedInBlockTracker := range lastCrossNotarizedForAllShards {
+		_, found := shardDataFinalizedNonces[shardID]
+		if found {
+			continue
+		}
+
+		shardDataFinalizedNonces[shardID] = common.GetLastExecutionResultNonce(lastCrossNotarizedInBlockTracker)
+	}
+
+	// Get highest proposed nonce per shard from ShardInfoProposalHandlers
+	shardDataProposedNonces := make(map[uint32]uint64)
+	for _, shardProposalData := range metaHeader.GetShardInfoProposalHandlers() {
+		shardID := shardProposalData.GetShardID()
+		nonce := shardProposalData.GetNonce()
+
+		if existing, found := shardDataProposedNonces[shardID]; !found || nonce > existing {
+			shardDataProposedNonces[shardID] = nonce
+		}
+	}
+
+	// Check nonce gaps for each shard
+	for shardID, maxProposedNonce := range shardDataProposedNonces {
+		lastFinalizedNonce, found := shardDataFinalizedNonces[shardID]
+		if !found {
+			log.Warn("missing last notarized header for shard", "shard", shardID)
+			return process.ErrMissingCrossNotarizedHeader
+		}
+
+		if maxProposedNonce < lastFinalizedNonce {
+			return fmt.Errorf("%w: shard %d, last finalized nonce %d, proposed nonce %d",
+				process.ErrInvalidProposedNonce,
+				shardID,
+				lastFinalizedNonce,
+				maxProposedNonce)
+		}
+
+		nonceGap := maxProposedNonce - lastFinalizedNonce
+		if nonceGap > mp.maxProposalNonceGap {
+			return fmt.Errorf("%w: shard %d has nonce gap of %d between finalized nonce %d and proposed nonce %d, max allowed gap is %d",
+				process.ErrNonceGapTooLarge,
+				shardID,
+				nonceGap,
+				lastFinalizedNonce,
+				maxProposedNonce,
+				mp.maxProposalNonceGap)
+		}
+	}
+
+	return nil
 }
 
 func (mp *metaProcessor) processEpochStartProposeBlock(

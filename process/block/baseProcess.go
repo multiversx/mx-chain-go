@@ -146,6 +146,7 @@ type baseProcessor struct {
 	executionManager                   process.ExecutionManager
 	txExecutionOrderHandler            common.TxExecutionOrderHandler
 	aotSelector                        process.AOTTransactionSelector
+	maxProposalNonceGap                uint64
 }
 
 type bootStorerDataArgs struct {
@@ -174,6 +175,11 @@ func NewBaseProcessor(arguments ArgBaseProcessor) (*baseProcessor, error) {
 	genesisHdr := arguments.DataComponents.Blockchain().GetGenesisHeader()
 	if check.IfNil(genesisHdr) {
 		return nil, fmt.Errorf("%w for genesis header in DataComponents.Blockchain", process.ErrNilHeaderHandler)
+	}
+
+	maxProposalNonceGap := arguments.Config.GeneralSettings.MaxProposalNonceGap
+	if maxProposalNonceGap < defaultMaxProposalNonceGap {
+		maxProposalNonceGap = defaultMaxProposalNonceGap
 	}
 
 	base := &baseProcessor{
@@ -236,6 +242,7 @@ func NewBaseProcessor(arguments ArgBaseProcessor) (*baseProcessor, error) {
 		executionManager:                   arguments.ExecutionManager,
 		txExecutionOrderHandler:            arguments.TxExecutionOrderHandler,
 		aotSelector:                        arguments.AOTSelector,
+		maxProposalNonceGap:                maxProposalNonceGap,
 	}
 
 	err = base.OnExecutedBlock(genesisHdr, genesisHdr.GetRootHash())
@@ -353,6 +360,29 @@ func (bp *baseProcessor) checkScheduledRootHash(headerHandler data.HeaderHandler
 			"current root hash", bp.getRootHash(),
 			"header scheduled root hash", additionalData.GetScheduledRootHash())
 		return process.ErrScheduledRootHashDoesNotMatch
+	}
+
+	return nil
+}
+
+// checkHeaderExecutionResultNonceGap validates the nonce gap between a header's nonce
+// and its last execution result's header nonce
+func (bp *baseProcessor) checkHeaderExecutionResultNonceGap(header data.HeaderHandler) error {
+	headerNonce := header.GetNonce()
+	lastExecutionResultNonce := common.GetLastExecutionResultNonce(header)
+
+	if lastExecutionResultNonce > headerNonce {
+		return process.ErrInvalidLastExecutionResult
+	}
+
+	nonceGap := headerNonce - lastExecutionResultNonce
+	if nonceGap > bp.maxProposalNonceGap {
+		return fmt.Errorf("%w: header nonce %d has nonce gap of %d from last execution result nonce %d, max allowed gap is %d",
+			process.ErrNonceGapTooLarge,
+			headerNonce,
+			nonceGap,
+			lastExecutionResultNonce,
+			bp.maxProposalNonceGap)
 	}
 
 	return nil
@@ -3343,7 +3373,7 @@ func (bp *baseProcessor) setCurrentBlockInfo(
 	rootHash []byte,
 ) error {
 	if header.IsHeaderV3() {
-		bp.executionManager.CleanOnConsensusReached(headerHash, header.GetNonce())
+		bp.executionManager.CleanOnConsensusReached(headerHash, header)
 		// last executed info and header will be set on headers executor in async mode
 		return bp.blockChain.SetCurrentBlockHeader(header)
 	}
@@ -3356,7 +3386,7 @@ func (bp *baseProcessor) setCurrentBlockInfo(
 	// set also last executed block info and header
 	// this will be useful at transition to Supernova with headers v3
 	bp.blockChain.SetLastExecutedBlockHeaderAndRootHash(header, headerHash, rootHash)
-	bp.executionManager.CleanOnConsensusReached(headerHash, header.GetNonce())
+	bp.executionManager.CleanOnConsensusReached(headerHash, header)
 
 	// before header v3, create and set execution result in tracker
 	lastExecResHandler, err := common.GetOrCreateLastExecutionResultForPrevHeader(header, headerHash)
