@@ -79,7 +79,7 @@ func NewHeadersForBlock(args ArgHeadersForBlock) (*headersForBlock, error) {
 		extraDelayRequestBlockInfo: time.Duration(args.ExtraDelayForRequestBlockInfoInMilliseconds) * time.Millisecond,
 		genesisNonce:               args.GenesisNonce,
 		blockFinality:              process.BlockFinality,
-		chRcvAllHdrs:               make(chan bool),
+		chRcvAllHdrs:               make(chan bool, 1),
 		hdrHashAndInfo:             make(map[string]HeaderInfo),
 		highestHdrNonce:            make(map[uint32]uint64),
 		lastNotarizedShardHeaders:  make(map[uint32]LastNotarizedHeaderInfoHandler),
@@ -614,10 +614,11 @@ func (hfb *headersForBlock) checkReceivedProofIfAttestingIsNeeded(proof data.Hea
 		return
 	}
 
+	hInfo.SetHasProof(true)
+	hInfo.SetHasProofRequested(false)
+
 	if hfb.missingProofs > 0 {
 		hfb.missingProofs--
-		hInfo.SetHasProof(true)
-		hInfo.SetHasProofRequested(false)
 	}
 
 	missingHdrs := hfb.missingHdrs
