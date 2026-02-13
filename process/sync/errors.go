@@ -47,6 +47,3 @@ var ErrGenesisTimeMissmatch = errors.New("genesis time missmatch")
 
 // ErrHeaderNotFound signals that the needed header is not found
 var ErrHeaderNotFound = errors.New("header is not found")
-
-// ErrInvalidSyncingNonce signals that the syncing nonce is invalid
-var ErrInvalidSyncingNonce = errors.New("invalid syncing nonce")

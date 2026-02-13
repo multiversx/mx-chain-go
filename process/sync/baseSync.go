@@ -1150,14 +1150,6 @@ func (boot *baseBootstrap) prepareForSyncIfNeeded(
 		return nil
 	}
 
-	if lastExecResultNonce >= syncingNonce {
-		log.Warn("prepareForSyncIfNeeded got higher last execution result header nonce than syncing nonce",
-			"last executed nonce", lastExecResultNonce,
-			"syncing nonce", syncingNonce,
-		)
-		return ErrInvalidSyncingNonce
-	}
-
 	// Walk backward from currentHeader following PrevHash pointers to collect
 	// the canonical chain of committed headers between the last execution result
 	// and the syncing header. Hash-based lookups are used instead of nonce-based
