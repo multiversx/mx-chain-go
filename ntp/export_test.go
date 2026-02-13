@@ -6,6 +6,9 @@ import (
 	"github.com/beevik/ntp"
 )
 
+// NumRequestsFromHost -
+var NumRequestsFromHost = numRequestsFromHost
+
 // Query -
 func (s *syncTime) Query() func(options NTPOptions, hostIndex int) (*ntp.Response, error) {
 	return s.query
@@ -23,7 +26,7 @@ func (s *syncTime) SetClockOffset(clockOffset time.Duration) {
 
 // Sync -
 func (s *syncTime) Sync() {
-	s.sync()
+	s.triggerSync()
 }
 
 // GetClockOffsetsWithoutEdges -

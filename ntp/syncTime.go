@@ -14,6 +14,7 @@ import (
 	"github.com/multiversx/mx-chain-core-go/core"
 	"github.com/multiversx/mx-chain-core-go/core/closing"
 	logger "github.com/multiversx/mx-chain-logger-go"
+	"golang.org/x/sync/singleflight"
 
 	"github.com/multiversx/mx-chain-go/config"
 )
@@ -43,6 +44,8 @@ const minTimeout = 100
 // maxAllowedNTPQueryResponseTimeMS specifies the maximum duration (in milliseconds)
 // allowed for an NTP query. If a query takes longer than this limit, its response will be disregarded.
 const maxAllowedNTPQueryResponseTimeMS = 200
+
+const syncKey = "ntp-sync"
 
 // NTPOptions defines configuration options for a NTP query
 type NTPOptions struct {
@@ -93,6 +96,8 @@ type syncTime struct {
 	query                func(options NTPOptions, hostIndex int) (*ntp.Response, error)
 	cancelFunc           func()
 	outOfBoundsThreshold time.Duration
+
+	sf singleflight.Group
 }
 
 // NewSyncTime creates a syncTime object. The customQueryFunc argument allows the caller to set a different NTP-querying
@@ -127,7 +132,7 @@ func (s *syncTime) StartSyncingTime() {
 
 func (s *syncTime) startSync(ctx context.Context) {
 	for {
-		s.sync()
+		s.triggerSync()
 
 		select {
 		case <-ctx.Done():
@@ -150,9 +155,30 @@ func (s *syncTime) getSleepTime() time.Duration {
 	return s.syncPeriod + time.Duration(offset)
 }
 
-// ForceSync will force sync
+// ForceSync will trigger ntp sync
+// it will not trigger if sync already in progress
 func (s *syncTime) ForceSync() {
-	s.sync()
+	ch := s.sf.DoChan(syncKey, func() (any, error) {
+		s.sync()
+		return nil, nil
+	})
+
+	select {
+	case <-ch:
+	default:
+		log.Debug("ForceSync ignored: sync already in progress")
+	}
+}
+
+// triggerSync will trigger sync and wait for the response
+// this is called periodically in the ntp sync loop
+func (s *syncTime) triggerSync() {
+	ch := s.sf.DoChan(syncKey, func() (any, error) {
+		s.sync()
+		return nil, nil
+	})
+
+	<-ch
 }
 
 // sync method does the time synchronization and sets the harmonic mean offset difference between local time

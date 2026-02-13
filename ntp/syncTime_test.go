@@ -479,6 +479,83 @@ func TestCall_Sync_AcceptedBoundsChecks(t *testing.T) {
 	})
 }
 
+func TestSyncTime_ForceSync(t *testing.T) {
+	t.Parallel()
+
+	t.Run("Sync should trigger multiple times", func(t *testing.T) {
+		t.Parallel()
+
+		numCalls := 0
+
+		st := ntp.NewSyncTime(
+			config.NTPConfig{
+				SyncPeriodSeconds:    3600,
+				Hosts:                []string{"host1"},
+				OutOfBoundsThreshold: 2,
+			},
+			func(options ntp.NTPOptions, hostIndex int) (*beevikNtp.Response, error) {
+				numCalls++
+
+				time.Sleep(10 * time.Millisecond)
+
+				return &beevikNtp.Response{
+					ClockOffset: 1 * time.Millisecond,
+				}, nil
+			},
+		)
+
+		currentValue := 3 * time.Millisecond
+		st.SetClockOffset(currentValue)
+
+		// multiple calls should trigger multiple times
+		st.Sync()
+		st.Sync()
+		st.Sync()
+		st.Sync()
+
+		expClockOffset := 1 * time.Millisecond
+		assert.Equal(t, expClockOffset, st.ClockOffset())
+
+		require.Equal(t, ntp.NumRequestsFromHost*4, numCalls)
+	})
+
+	t.Run("direct trigger should not trigger if already in progress", func(t *testing.T) {
+		t.Parallel()
+
+		numCalls := 0
+
+		st := ntp.NewSyncTime(
+			config.NTPConfig{
+				SyncPeriodSeconds:    3600,
+				Hosts:                []string{"host1"},
+				OutOfBoundsThreshold: 2,
+			},
+			func(options ntp.NTPOptions, hostIndex int) (*beevikNtp.Response, error) {
+				numCalls++
+
+				time.Sleep(10 * time.Millisecond)
+
+				return &beevikNtp.Response{
+					ClockOffset: 1 * time.Millisecond,
+				}, nil
+			},
+		)
+
+		currentValue := 3 * time.Millisecond
+		st.SetClockOffset(currentValue)
+
+		st.Sync()
+		st.ForceSync()
+		st.ForceSync()
+		st.ForceSync()
+
+		expClockOffset := 1 * time.Millisecond
+		assert.Equal(t, expClockOffset, st.ClockOffset())
+
+		require.Equal(t, ntp.NumRequestsFromHost, numCalls)
+	})
+}
+
 // On local machine, seems like average query time is ~35ms, e.g.:
 // Avg response time from host: time.google.com is 42.928837ms
 // Avg response time from host: time.cloudflare.com is 13.877162ms
