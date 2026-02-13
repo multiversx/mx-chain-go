@@ -319,6 +319,7 @@ func (ccf *coreComponentsFactory) Create() (*coreComponents, error) {
 		StartRound:                startRound,
 		SupernovaStartRound:       supernovaStartRound,
 		EnableRoundsHandler:       enableRoundsHandler,
+		ImportDBMode:              ccf.importDbConfig.IsImportDBMode,
 	}
 	roundHandler, err := round.NewRound(roundArgs)
 	if err != nil {
