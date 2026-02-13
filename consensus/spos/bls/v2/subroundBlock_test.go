@@ -680,7 +680,8 @@ func TestSubroundBlock_DoBlockJob(t *testing.T) {
 		providedSignature := []byte("provided signature")
 		providedBitmap := []byte("provided bitmap")
 		providedHash := []byte("provided hash")
-		providedHeadr := &block.HeaderV2{
+		providedMarshalledTx := []byte("provided marshalled tx")
+		providedHeader := &block.HeaderV2{
 			Header: &block.Header{
 				Signature:     []byte("signature"),
 				PubKeysBitmap: []byte("bitmap"),
@@ -690,7 +691,7 @@ func TestSubroundBlock_DoBlockJob(t *testing.T) {
 		container := consensusMocks.InitConsensusCore()
 		chainHandler := &testscommon.ChainHandlerStub{
 			GetCurrentBlockHeaderCalled: func() data.HeaderHandler {
-				return providedHeadr
+				return providedHeader
 			},
 			GetCurrentBlockHeaderHashCalled: func() []byte {
 				return providedHash
@@ -740,18 +741,14 @@ func TestSubroundBlock_DoBlockJob(t *testing.T) {
 		require.Nil(t, err)
 
 		sr.SetSelfPubKey(leader)
-		bpm := consensusMocks.InitBlockProcessorMock(container.Marshalizer())
-		container.SetBlockProcessor(bpm)
-		bpm.CreateNewHeaderCalled = func(round uint64, nonce uint64) (data.HeaderHandler, error) {
-			return &block.HeaderV2{
-				Header: &block.Header{
-					Round: round,
-					Nonce: nonce,
-				},
-			}, nil
-		}
+
+		wasBroadcastTransactionsCalled := false
 		bm := &consensusMocks.BroadcastMessengerMock{
 			BroadcastConsensusMessageCalled: func(message *consensus.Message) error {
+				return nil
+			},
+			BroadcastTransactionsCalled: func(m map[string][][]byte, bytes []byte) error {
+				wasBroadcastTransactionsCalled = true
 				return nil
 			},
 		}
@@ -791,6 +788,11 @@ func TestSubroundBlock_DoBlockJob(t *testing.T) {
 				require.Fail(t, "should have not been called")
 				return nil, nil, nil
 			},
+			ProposedDirectSentTransactionsToBroadcastCalled: func(proposedBody data.BodyHandler) map[string][][]byte {
+				return map[string][][]byte{
+					"topic": {providedMarshalledTx},
+				}
+			},
 		}
 		container.SetBlockProcessor(blockProcessor)
 
@@ -798,6 +800,7 @@ func TestSubroundBlock_DoBlockJob(t *testing.T) {
 		require.True(t, r)
 		require.True(t, wasCreateNewHeaderProposalCalled)
 		assert.True(t, wasCreateBlockProposalCalled)
+		assert.True(t, wasBroadcastTransactionsCalled)
 	})
 }
 

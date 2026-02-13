@@ -532,7 +532,7 @@ func (scr *smartContractResults) ProcessMiniBlock(
 		return nil, indexOfLastTxProcessed, false, err
 	}
 
-	if scr.blockSizeComputation.IsMaxBlockSizeWithoutThrottleReached(1, len(miniBlock.TxHashes)) {
+	if scr.isMaxBlockSizeWithoutThrottleReached(1, len(miniBlock.TxHashes)) {
 		return nil, indexOfLastTxProcessed, false, process.ErrMaxBlockSizeReached
 	}
 
@@ -628,8 +628,8 @@ func (scr *smartContractResults) ProcessMiniBlock(
 		scr.scrForBlock.AddTransaction(txHash, miniBlockScrs[index], miniBlock.SenderShardID, miniBlock.ReceiverShardID)
 	}
 
-	scr.blockSizeComputation.AddNumMiniBlocks(1)
-	scr.blockSizeComputation.AddNumTxs(len(miniBlock.TxHashes))
+	scr.addNumMiniBlocks(1)
+	scr.addNumTxs(len(miniBlock.TxHashes))
 
 	return nil, txIndex - 1, false, err
 }
