@@ -290,5 +290,6 @@ type InvalidSignersCache interface {
 // condition and initiates time resynchronization.
 type RoundSyncControllerHandler interface {
 	AddOutOfRangeRound(round uint64, hash string)
+	AddLeaderRoundAsOutOfRange(round uint64, hash string)
 	IsInterfaceNil() bool
 }

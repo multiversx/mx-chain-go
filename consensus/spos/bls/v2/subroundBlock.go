@@ -242,6 +242,8 @@ func (sr *subroundBlock) sendBlock(header data.HeaderHandler, body data.BodyHand
 
 	sr.sendDirectSentTransactions(header, body, leader)
 
+	sr.syncController.AddLeaderRoundAsOutOfRange(header.GetRound(), string(headerHash))
+
 	return true
 }
 
@@ -610,15 +612,15 @@ func (sr *subroundBlock) receivedBlockHeader(headerHandler data.HeaderHandler) {
 		return
 	}
 
-	isLeader := sr.IsSelfLeader()
-	if sr.ConsensusGroup() == nil || isLeader {
-		log.Debug("subroundBlock.receivedBlockHeader - consensus group is nil or is leader")
-		return
-	}
-
 	isHeaderForCurrentConsensus := sr.isHeaderForCurrentConsensus(headerHandler)
 	if !isHeaderForCurrentConsensus {
 		log.Debug("subroundBlock.receivedBlockHeader - header is not for current consensus")
+		return
+	}
+
+	isLeader := sr.IsSelfLeader()
+	if sr.ConsensusGroup() == nil || isLeader {
+		log.Debug("subroundBlock.receivedBlockHeader - consensus group is nil or is leader")
 		return
 	}
 

@@ -51,6 +51,14 @@ func (rsc *roundSyncController) AddOutOfRangeRound(round uint64, hash string) {
 	rsc.outOfRangeRounds.add(round, hash)
 }
 
+// AddLeaderRoundAsOutOfRange will forcely add round as out of sync when self node as leader
+// this will make sure that self proposed headers will not broke consecutivity while out of sync
+func (rsc *roundSyncController) AddLeaderRoundAsOutOfRange(round uint64, hash string) {
+	rsc.outOfRangeRounds.add(round, hash)
+	rsc.deSyncedRounds.add(round, hash)
+	rsc.tryResyncIfNeeded()
+}
+
 func (rsc *roundSyncController) receivedProof(headerProof data.HeaderProofHandler) {
 	if headerProof.GetHeaderShardId() != rsc.selfShardID {
 		return
@@ -75,6 +83,9 @@ func (rsc *roundSyncController) tryResyncIfNeeded() {
 	}
 
 	lastDeSyncedRounds := rsc.deSyncedRounds.last(numRequiredMissedHeadersToForceResync)
+
+	log.Error("AAA", "aaa", lastDeSyncedRounds)
+
 	if areRoundsInAscendingOrder(lastDeSyncedRounds) {
 		log.Debug("roundSyncController: force ntp synchronization")
 		rsc.syncer.ForceSync()
