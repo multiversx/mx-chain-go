@@ -15,7 +15,7 @@ type ExecutionResultsTrackerStub struct {
 	RemoveFromNonceCalled                  func(nonce uint64) error
 	CleanCalled                            func(lastNotarizedResult data.BaseExecutionResultHandler)
 	CleanConfirmedExecutionResultsCalled   func(header data.HeaderHandler) error
-	CleanOnConsensusReachedCalled          func(headerHash []byte, nonce uint64)
+	CleanOnConsensusReachedCalled          func(headerHash []byte, header data.HeaderHandler)
 }
 
 // AddExecutionResult -
@@ -91,9 +91,9 @@ func (ets *ExecutionResultsTrackerStub) CleanConfirmedExecutionResults(header da
 }
 
 // CleanOnConsensusReached -
-func (ets *ExecutionResultsTrackerStub) CleanOnConsensusReached(headerHash []byte, nonce uint64) {
+func (ets *ExecutionResultsTrackerStub) CleanOnConsensusReached(headerHash []byte, header data.HeaderHandler) {
 	if ets.CleanOnConsensusReachedCalled != nil {
-		ets.CleanOnConsensusReachedCalled(headerHash, nonce)
+		ets.CleanOnConsensusReachedCalled(headerHash, header)
 	}
 }
 

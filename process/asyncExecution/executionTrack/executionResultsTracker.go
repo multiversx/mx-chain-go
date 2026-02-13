@@ -247,13 +247,20 @@ func (ert *executionResultsTracker) removeExecutionResultsFromMaps(executionResu
 // If the pending execution result for the given nonce has a different hash than the one that
 // passed consensus, remove it and all higher nonces from the tracker.
 // It also records the committed hash to prevent stale results from being added later.
-func (ert *executionResultsTracker) CleanOnConsensusReached(headerHash []byte, headerNonce uint64) {
+func (ert *executionResultsTracker) CleanOnConsensusReached(headerHash []byte, header data.HeaderHandler) {
+	if check.IfNil(header) {
+		return
+	}
+
 	ert.mutex.Lock()
 	defer ert.mutex.Unlock()
-	// record the committed hash to prevent stale results being added later
-	ert.consensusCommittedHashes[headerNonce] = headerHash
 
-	pendingExecutionResult, err := ert.getPendingExecutionResultsByNonce(headerNonce)
+	if header.IsHeaderV3() {
+		// record the committed hash to prevent stale results being added later
+		ert.consensusCommittedHashes[header.GetNonce()] = headerHash
+	}
+
+	pendingExecutionResult, err := ert.getPendingExecutionResultsByNonce(header.GetNonce())
 	if err != nil {
 		return
 	}
@@ -262,7 +269,7 @@ func (ert *executionResultsTracker) CleanOnConsensusReached(headerHash []byte, h
 		return
 	}
 
-	_ = ert.removePendingFromNonceUnprotected(headerNonce)
+	_ = ert.removePendingFromNonceUnprotected(header.GetNonce())
 }
 
 // GetLastNotarizedExecutionResult will return the last notarized execution result

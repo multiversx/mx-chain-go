@@ -172,7 +172,7 @@ func (he *headersExecutor) handleProcessError(ctx context.Context, pair cache.He
 
 	for retryCount < maxRetryAttempts {
 		pairFromQueue, ok := he.blocksCache.GetByNonce(pair.Header.GetNonce())
-		if ok && bytes.Equal(pair.HeaderHash, pairFromQueue.HeaderHash) {
+		if ok && !bytes.Equal(pair.HeaderHash, pairFromQueue.HeaderHash) {
 			// continue the processing (pop the next header from queue)
 			return
 		}
@@ -181,6 +181,13 @@ func (he *headersExecutor) handleProcessError(ctx context.Context, pair cache.He
 		case <-ctx.Done():
 			return
 		default:
+			// Exponential backoff with maximum limit
+			time.Sleep(backoffTime)
+			backoffTime = backoffTime * 2
+			if backoffTime > maxBackoffTime {
+				backoffTime = maxBackoffTime
+			}
+
 			// retry with the same pair
 			err := he.process(pair)
 			if err == nil {
@@ -189,19 +196,13 @@ func (he *headersExecutor) handleProcessError(ctx context.Context, pair cache.He
 					"retry_count", retryCount)
 				return
 			}
+
 			retryCount++
 			log.Warn("headersExecutor.handleProcessError - retry failed",
 				"nonce", pair.Header.GetNonce(),
 				"retry_count", retryCount,
 				"max_retries", maxRetryAttempts,
 				"err", err)
-
-			// Exponential backoff with maximum limit
-			time.Sleep(backoffTime)
-			backoffTime = backoffTime * 2
-			if backoffTime > maxBackoffTime {
-				backoffTime = maxBackoffTime
-			}
 		}
 	}
 
