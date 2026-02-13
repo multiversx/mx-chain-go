@@ -32,3 +32,13 @@ func (pc *proofsCache) AddProof(proof data.HeaderProofHandler) {
 func (pc *proofsCache) CleanupProofsBehindNonce(nonce uint64) {
 	pc.cleanupProofsBehindNonce(nonce)
 }
+
+// GetProofByHash -
+func (pc *proofsCache) GetProofByHash(headerHash []byte) (data.HeaderProofHandler, error) {
+	return pc.getProofByHash(headerHash)
+}
+
+// GetProofByNonce -
+func (pc *proofsCache) GetProofByNonce(headerNonce uint64) (data.HeaderProofHandler, error) {
+	return pc.getProofByNonce(headerNonce)
+}
