@@ -1280,10 +1280,10 @@ func TestExecutionManager_CleanOnConsensusReached(t *testing.T) {
 
 		args := createMockArgs()
 		args.ExecutionResultsTracker = &processMocks.ExecutionTrackerStub{
-			CleanOnConsensusReachedCalled: func(headerHash []byte, nonce uint64) {
+			CleanOnConsensusReachedCalled: func(headerHash []byte, header data.HeaderHandler) {
 				trackerCalled = true
 				trackerHash = headerHash
-				trackerNonce = nonce
+				trackerNonce = header.GetNonce()
 			},
 		}
 		args.BlocksCache = &processMocks.BlocksCacheMock{
@@ -1298,7 +1298,7 @@ func TestExecutionManager_CleanOnConsensusReached(t *testing.T) {
 
 		committedNonce := uint64(10)
 		committedHash := []byte("committedHash")
-		em.CleanOnConsensusReached(committedHash, committedNonce)
+		em.CleanOnConsensusReached(committedHash, &block.HeaderV3{Nonce: committedNonce})
 
 		require.True(t, trackerCalled)
 		require.Equal(t, committedHash, trackerHash)
