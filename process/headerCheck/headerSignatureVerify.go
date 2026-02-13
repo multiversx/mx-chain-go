@@ -1,6 +1,8 @@
 package headerCheck
 
 import (
+	"encoding/hex"
+	"errors"
 	"fmt"
 	"time"
 
@@ -20,6 +22,7 @@ import (
 )
 
 const headerWaitDelayAtTransition = 50 * time.Millisecond
+const maxHeaderWaitRetriesAtTransition = 100
 
 var _ process.InterceptedHeaderSigVerifier = (*HeaderSigVerifier)(nil)
 
@@ -309,21 +312,28 @@ func (hsv *HeaderSigVerifier) getHeaderForProofAtTransition(proof data.HeaderPro
 	var header data.HeaderHandler
 	var err error
 
-	for {
+	for i := 0; i < maxHeaderWaitRetriesAtTransition; i++ {
 		header, err = process.GetHeader(proof.GetHeaderHash(), hsv.headersPool, hsv.storageService, hsv.marshalizer, proof.GetHeaderShardId())
 		if err == nil {
-			break
+			return header, nil
 		}
 
 		log.Debug("getHeaderForProofAtTransition: failed to get header, will wait and try again",
 			"headerHash", proof.GetHeaderHash(),
+			"attempt", i+1,
+			"maxAttempts", maxHeaderWaitRetriesAtTransition,
 			"error", err.Error(),
 		)
+
+		if !errors.Is(err, process.ErrMissingHeader) {
+			return nil, err
+		}
 
 		time.Sleep(headerWaitDelayAtTransition)
 	}
 
-	return header, nil
+	return nil, fmt.Errorf("%w: failed to get header after %d attempts for hash %s",
+		err, maxHeaderWaitRetriesAtTransition, hex.EncodeToString(proof.GetHeaderHash()))
 }
 
 func (hsv *HeaderSigVerifier) verifyHeaderProofAtTransition(proof data.HeaderProofHandler) error {
