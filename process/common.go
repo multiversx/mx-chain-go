@@ -1384,6 +1384,8 @@ func CleanCachesForExecutionResult(
 	postProcessTxsCache.Remove(common.PrepareOrderedTxHashesKey(headerHash))
 	// remove cached log events
 	postProcessTxsCache.Remove(common.PrepareLogEventsKey(headerHash))
+	// remove cached unexecutable txs
+	postProcessTxsCache.Remove(common.PrepareUnexecutableTxHashesKey(headerHash))
 
 	// remove headerHash from executed mini blocks
 	executedMbs.Remove(headerHash)
