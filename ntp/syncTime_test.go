@@ -568,9 +568,6 @@ func TestSyncTime_ForceSync(t *testing.T) {
 			func(options ntp.NTPOptions, hostIndex int) (*beevikNtp.Response, error) {
 				numCalls++
 
-				if numCalls == 0 {
-					time.Sleep(100 * time.Millisecond)
-				}
 				time.Sleep(10 * time.Millisecond)
 
 				return &beevikNtp.Response{

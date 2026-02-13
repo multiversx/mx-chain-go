@@ -115,10 +115,10 @@ func TestHeaderTracker_ShouldForceNTPResync(t *testing.T) {
 		tracker.receivedProof(&block.HeaderProof{HeaderNonce: 8})
 		require.False(t, wasSyncCalled)
 
+		// Nonces 0-9 are out of range with received proofs, should force sync
 		tracker.receivedProof(&block.HeaderProof{HeaderNonce: 9})
 		require.True(t, wasSyncCalled)
 
-		// Nonces 1-10 are out of range with received proofs, should force sync
 		tracker.receivedProof(&block.HeaderProof{HeaderNonce: 10})
 		require.True(t, wasSyncCalled)
 
