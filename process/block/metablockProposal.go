@@ -444,15 +444,52 @@ func (mp *metaProcessor) checkNonceGaps(metaHeader data.MetaHeaderHandler) error
 		return err
 	}
 
-	// Get highest finalized nonce per shard from ShardInfoHandlers
 	shardDataFinalizedNonces := make(map[uint32]uint64)
+
+	// Initialize shardDataFinalizedNonces with data from block tracker
+	lastCrossNotarizedForAllShards, err := mp.blockTracker.GetLastCrossNotarizedHeadersForAllShards()
+	if err != nil {
+		return err
+	}
+
+	// Get highest finalized nonce per shard from ShardInfoHandlers
 	for _, shardData := range metaHeader.GetShardInfoHandlers() {
 		shardID := shardData.GetShardID()
 		nonce := shardData.GetNonce()
 
-		if existing, found := shardDataFinalizedNonces[shardID]; !found || nonce > existing {
+		existing, found := shardDataFinalizedNonces[shardID]
+		if found && nonce <= existing {
+			continue
+		}
+
+		if !found || nonce > existing {
+			lastCrossNotarizedInBlockTracker, foundInTracker := lastCrossNotarizedForAllShards[shardID]
+			if !foundInTracker {
+				log.Warn("missing cross notarized header for shard in block tracker", "shard", shardID)
+				return process.ErrMissingCrossNotarizedHeader
+			}
+
+			if nonce < lastCrossNotarizedInBlockTracker.GetNonce() {
+				log.Warn("found proposed nonce higher than last cross notarized",
+					"shard", shardID,
+					"shardInfoNonce", nonce,
+					"lastCrossNotarizedInBlockTracker", lastCrossNotarizedInBlockTracker,
+				)
+				return process.ErrInvalidShardInfo
+			}
+
 			shardDataFinalizedNonces[shardID] = nonce
 		}
+	}
+
+	// fill missing data from block tracker
+	for shardID, lastCrossNotarizedInBlockTracker := range lastCrossNotarizedForAllShards {
+		_, found := shardDataFinalizedNonces[shardID]
+		if found {
+			continue
+		}
+
+		shardDataFinalizedNonces[shardID] = lastCrossNotarizedInBlockTracker.GetNonce()
 	}
 
 	// Get highest proposed nonce per shard from ShardInfoProposalHandlers
@@ -470,8 +507,8 @@ func (mp *metaProcessor) checkNonceGaps(metaHeader data.MetaHeaderHandler) error
 	for shardID, maxProposedNonce := range shardDataProposedNonces {
 		lastFinalizedNonce, found := shardDataFinalizedNonces[shardID]
 		if !found {
-			// No finalized data for this shard, skip validation
-			continue
+			log.Warn("missing last notarized header for shard", "shard", shardID)
+			return process.ErrMissingCrossNotarizedHeader
 		}
 
 		if maxProposedNonce < lastFinalizedNonce {

@@ -902,7 +902,7 @@ func TestExecutionManager_RemoveAtNonceAndHigher(t *testing.T) {
 				return []data.BaseExecutionResultHandler{pendingExecResult}, nil
 			},
 		}
-		args.BlocksQueue = &processMocks.BlocksQueueMock{
+		args.BlocksCache = &processMocks.BlocksCacheMock{
 			RemoveAtNonceAndHigherCalled: func(nonce uint64) []uint64 {
 				require.Equal(t, uint64(10), nonce)
 				// Block was still in cache but was already processed by headersExecutor

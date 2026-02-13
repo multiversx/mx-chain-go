@@ -1478,3 +1478,9 @@ var ErrInvalidLastExecutionResult = errors.New("invalid last execution result")
 
 // ErrInvalidProposedNonce signals that an invalid nonce has been proposed
 var ErrInvalidProposedNonce = errors.New("invalid proposed nonce")
+
+// ErrMissingCrossNotarizedHeader signals that there is a missing cross notarized header
+var ErrMissingCrossNotarizedHeader = errors.New("missing cross notarized header")
+
+// ErrInvalidShardInfo signals that an invalid shard info has been provided
+var ErrInvalidShardInfo = errors.New("invalid shard info")
