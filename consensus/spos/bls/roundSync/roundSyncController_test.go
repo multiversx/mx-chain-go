@@ -74,12 +74,13 @@ func TestHeaderTracker_ShouldForceNTPResync(t *testing.T) {
 	tracker.AddOutOfRangeRound(3, "")
 
 	// receive nonce ordered proofs for different shard and hash, which are not relevant
-	for i := 0; i <= 3; i++ {
+	for i := 0; i <= 9; i++ {
 		tracker.receivedProof(&block.HeaderProof{HeaderRound: uint64(i), HeaderShardId: 1})
 		tracker.receivedProof(&block.HeaderProof{HeaderRound: uint64(i), HeaderHash: []byte("h")})
 	}
 
 	tracker.receivedProof(&block.HeaderProof{HeaderRound: 0})
+	tracker.receivedProof(&block.HeaderProof{HeaderRound: 1})
 	tracker.receivedProof(&block.HeaderProof{HeaderRound: 2})
 	tracker.receivedProof(&block.HeaderProof{HeaderRound: 3})
 
@@ -89,16 +90,28 @@ func TestHeaderTracker_ShouldForceNTPResync(t *testing.T) {
 	tracker.receivedProof(&block.HeaderProof{HeaderRound: 4})
 	require.False(t, wasSyncCalled)
 
-	// Rounds 2,3,4,5 are out of range with received proofs, should force sync
+	tracker.AddOutOfRangeRound(6, "")
+	tracker.AddOutOfRangeRound(7, "")
+	tracker.AddOutOfRangeRound(8, "")
+	tracker.AddOutOfRangeRound(9, "")
+	tracker.AddOutOfRangeRound(10, "")
+
 	tracker.receivedProof(&block.HeaderProof{HeaderRound: 5})
+	tracker.receivedProof(&block.HeaderProof{HeaderRound: 6})
+	tracker.receivedProof(&block.HeaderProof{HeaderRound: 7})
+	tracker.receivedProof(&block.HeaderProof{HeaderRound: 8})
+	tracker.receivedProof(&block.HeaderProof{HeaderRound: 9})
+
+	// Rounds 1-10 are out of range with received proofs, should force sync
+	tracker.receivedProof(&block.HeaderProof{HeaderRound: 10})
 	require.True(t, wasSyncCalled)
 
 	// Receive proof for the same header round, should not force resync again
 	wasSyncCalled = false
-	tracker.receivedProof(&block.HeaderProof{HeaderRound: 5})
+	tracker.receivedProof(&block.HeaderProof{HeaderRound: 10})
 	require.False(t, wasSyncCalled)
 
 	// Receive proof, but no out of range round, should not force resync
-	tracker.receivedProof(&block.HeaderProof{HeaderRound: 6})
+	tracker.receivedProof(&block.HeaderProof{HeaderRound: 11})
 	require.False(t, wasSyncCalled)
 }

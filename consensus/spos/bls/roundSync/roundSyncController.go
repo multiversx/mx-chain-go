@@ -12,8 +12,8 @@ import (
 var log = logger.GetOrCreate("roundSyncController")
 
 const (
-	roundBufferSize                       = 10
-	numRequiredMissedHeadersToForceResync = 4
+	roundBufferSize                       = 20
+	numRequiredMissedHeadersToForceResync = 10
 )
 
 type roundSyncController struct {
