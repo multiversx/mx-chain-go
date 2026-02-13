@@ -1299,6 +1299,8 @@ func (bp *baseProcessor) cleanupUnexecutableTxsFromPool(headerHash []byte) {
 	for _, txHash := range unexecutableTxHashes {
 		bp.dataPool.Transactions().RemoveData(txHash, cacheID)
 	}
+
+	bp.dataPool.PostProcessTransactions().Remove(common.PrepareUnexecutableTxHashesKey(headerHash))
 }
 
 func (bp *baseProcessor) cleanupPoolsForCrossShard(
