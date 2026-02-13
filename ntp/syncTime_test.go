@@ -4,6 +4,7 @@ import (
 	"errors"
 	"fmt"
 	"sync"
+	"sync/atomic"
 	"testing"
 	"time"
 
@@ -520,7 +521,7 @@ func TestSyncTime_ForceSync(t *testing.T) {
 	t.Run("TriggerSync should trigger multiple times", func(t *testing.T) {
 		t.Parallel()
 
-		numCalls := 0
+		numCalls := &atomic.Uint32{}
 
 		st := ntp.NewSyncTime(
 			config.NTPConfig{
@@ -529,7 +530,7 @@ func TestSyncTime_ForceSync(t *testing.T) {
 				OutOfBoundsThreshold: 2,
 			},
 			func(options ntp.NTPOptions, hostIndex int) (*beevikNtp.Response, error) {
-				numCalls++
+				numCalls.Add(1)
 
 				time.Sleep(2 * time.Millisecond)
 
@@ -551,13 +552,13 @@ func TestSyncTime_ForceSync(t *testing.T) {
 		expClockOffset := 1 * time.Millisecond
 		assert.Equal(t, expClockOffset, st.ClockOffset())
 
-		require.Equal(t, ntp.NumRequestsFromHost*4, numCalls)
+		require.Equal(t, ntp.NumRequestsFromHost*4, int(numCalls.Load()))
 	})
 
 	t.Run("direct trigger should not trigger if already in progress", func(t *testing.T) {
 		t.Parallel()
 
-		numCalls := 0
+		numCalls := &atomic.Uint32{}
 
 		st := ntp.NewSyncTime(
 			config.NTPConfig{
@@ -566,7 +567,7 @@ func TestSyncTime_ForceSync(t *testing.T) {
 				OutOfBoundsThreshold: 2,
 			},
 			func(options ntp.NTPOptions, hostIndex int) (*beevikNtp.Response, error) {
-				numCalls++
+				numCalls.Add(1)
 
 				time.Sleep(10 * time.Millisecond)
 
@@ -584,7 +585,7 @@ func TestSyncTime_ForceSync(t *testing.T) {
 
 		time.Sleep(time.Duration(ntp.NumRequestsFromHost*10+10) * time.Millisecond)
 
-		require.Equal(t, ntp.NumRequestsFromHost, numCalls)
+		require.Equal(t, ntp.NumRequestsFromHost, int(numCalls.Load()))
 	})
 }
 
