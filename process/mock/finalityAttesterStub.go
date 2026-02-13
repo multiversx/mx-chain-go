@@ -2,6 +2,7 @@ package mock
 
 import (
 	"github.com/multiversx/mx-chain-core-go/data"
+
 	"github.com/multiversx/mx-chain-go/process"
 )
 
@@ -10,6 +11,8 @@ type ValidityAttesterStub struct {
 	CheckBlockAgainstRoundHandlerCalled func(headerHandler data.HeaderHandler) error
 	CheckBlockAgainstFinalCalled        func(headerHandler data.HeaderHandler) error
 	CheckBlockAgainstWhitelistCalled    func(interceptedData process.InterceptedData) bool
+	CheckProofAgainstFinalCalled        func(proof data.HeaderProofHandler) error
+	CheckProofAgainstRoundHandlerCalled func(proof data.HeaderProofHandler) error
 }
 
 // CheckBlockAgainstRoundHandler -
@@ -37,6 +40,24 @@ func (vas *ValidityAttesterStub) CheckBlockAgainstWhitelist(interceptedData proc
 	}
 
 	return false
+}
+
+// CheckProofAgainstFinal -
+func (vas *ValidityAttesterStub) CheckProofAgainstFinal(proof data.HeaderProofHandler) error {
+	if vas.CheckProofAgainstFinalCalled != nil {
+		return vas.CheckProofAgainstFinalCalled(proof)
+	}
+
+	return nil
+}
+
+// CheckProofAgainstRoundHandler -
+func (vas *ValidityAttesterStub) CheckProofAgainstRoundHandler(proof data.HeaderProofHandler) error {
+	if vas.CheckProofAgainstRoundHandlerCalled != nil {
+		return vas.CheckProofAgainstRoundHandlerCalled(proof)
+	}
+
+	return nil
 }
 
 // IsInterfaceNil -
