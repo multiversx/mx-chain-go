@@ -8,7 +8,6 @@ import (
 	"github.com/multiversx/mx-chain-core-go/data/block"
 	"github.com/multiversx/mx-chain-core-go/data/transaction"
 	"github.com/multiversx/mx-chain-core-go/marshal"
-	commonMocks "github.com/multiversx/mx-chain-go/testscommon/common"
 	"github.com/stretchr/testify/require"
 
 	"github.com/multiversx/mx-chain-go/common"
@@ -17,9 +16,11 @@ import (
 	"github.com/multiversx/mx-chain-go/storage"
 	"github.com/multiversx/mx-chain-go/testscommon"
 	"github.com/multiversx/mx-chain-go/testscommon/cache"
+	commonMocks "github.com/multiversx/mx-chain-go/testscommon/common"
 	dataRetrieverMock "github.com/multiversx/mx-chain-go/testscommon/dataRetriever"
 	"github.com/multiversx/mx-chain-go/testscommon/enableEpochsHandlerMock"
 	"github.com/multiversx/mx-chain-go/testscommon/marshallerMock"
+	"github.com/multiversx/mx-chain-go/testscommon/processMocks"
 	commonStorage "github.com/multiversx/mx-chain-go/testscommon/storage"
 )
 
@@ -811,5 +812,51 @@ func TestBaseProcessor_cleanPostProcessCache(t *testing.T) {
 		err := bp.cleanPostProcessCache(header)
 		require.NoError(t, err)
 		require.Equal(t, expectedRemovedKeys, removedKeys)
+	})
+}
+
+func TestBaseProcessor_setCurrentBlockInfoV3CallsCleanOnConsensusReached(t *testing.T) {
+	t.Parallel()
+
+	t.Run("V3 header should call CleanOnConsensusReached and set current block header on blockchain", func(t *testing.T) {
+		t.Parallel()
+
+		cleanCalled := false
+		var receivedHash []byte
+		var receivedNonce uint64
+		setHeaderCalled := false
+
+		bp := &baseProcessor{
+			executionManager: &processMocks.ExecutionManagerMock{
+				CleanOnConsensusReachedCalled: func(headerHash []byte, nonce uint64) {
+					cleanCalled = true
+					receivedHash = headerHash
+					receivedNonce = nonce
+				},
+			},
+			blockChain: &testscommon.ChainHandlerStub{
+				SetCurrentBlockHeaderCalled: func(header data.HeaderHandler) error {
+					setHeaderCalled = true
+					return nil
+				},
+			},
+		}
+
+		header := &testscommon.HeaderHandlerStub{
+			IsHeaderV3Called: func() bool {
+				return true
+			},
+			GetNonceCalled: func() uint64 {
+				return 10
+			},
+		}
+
+		committedHash := []byte("committedHash")
+		err := bp.setCurrentBlockInfo(header, committedHash, []byte("rootHash"))
+		require.NoError(t, err)
+		require.True(t, cleanCalled)
+		require.Equal(t, committedHash, receivedHash)
+		require.True(t, setHeaderCalled)
+		require.Equal(t, uint64(10), receivedNonce)
 	})
 }

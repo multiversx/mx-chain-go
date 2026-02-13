@@ -2853,7 +2853,7 @@ func TestShardBlockProposal_CreateAndVerifyProposal(t *testing.T) {
 
 	executionResultsTracker := executionTrack.NewExecutionResultsTracker()
 	execManager, _ := executionManager.NewExecutionManager(executionManager.ArgsExecutionManager{
-		BlocksQueue:             &processMocks.BlocksQueueMock{},
+		BlocksCache:             &processMocks.BlocksCacheMock{},
 		ExecutionResultsTracker: executionResultsTracker,
 		BlockChain:              blkc,
 		Headers:                 dataComponents.DataPool.Headers(),
@@ -3015,7 +3015,7 @@ func TestShardBlockProposal_CreateAndVerifyProposal_WithTransactions(t *testing.
 
 	executionResultsTracker := executionTrack.NewExecutionResultsTracker()
 	execManager, _ := executionManager.NewExecutionManager(executionManager.ArgsExecutionManager{
-		BlocksQueue:             &processMocks.BlocksQueueMock{},
+		BlocksCache:             &processMocks.BlocksCacheMock{},
 		ExecutionResultsTracker: executionResultsTracker,
 		BlockChain:              blkc,
 		Headers:                 dataComponents.DataPool.Headers(),

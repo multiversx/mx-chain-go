@@ -3373,6 +3373,7 @@ func (bp *baseProcessor) setCurrentBlockInfo(
 	rootHash []byte,
 ) error {
 	if header.IsHeaderV3() {
+		bp.executionManager.CleanOnConsensusReached(headerHash, header.GetNonce())
 		// last executed info and header will be set on headers executor in async mode
 		return bp.blockChain.SetCurrentBlockHeader(header)
 	}

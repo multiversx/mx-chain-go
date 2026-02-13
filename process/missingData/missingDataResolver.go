@@ -322,8 +322,16 @@ func (r *Resolver) requestNonceGapsIfNeeded(shardDataFinalizedNonces, shardDataP
 			continue
 		}
 
-		nonceGaps := proposedNonce - lastFinalizedNonce
-		if nonceGaps < 2 {
+		if proposedNonce <= lastFinalizedNonce {
+			log.Warn("requestNonceGapsIfNeeded: proposed nonce is not greater than finalized nonce, skipping",
+				"shardID", shardID,
+				"proposedNonce", proposedNonce,
+				"lastFinalizedNonce", lastFinalizedNonce)
+			continue
+		}
+
+		nonceGap := proposedNonce - lastFinalizedNonce
+		if nonceGap < 2 {
 			continue
 		}
 
