@@ -201,7 +201,7 @@ func (s *syncTime) sync() {
 			}
 
 			if duration.Milliseconds() > maxAllowedNTPQueryResponseTimeMS {
-				log.Trace("sync.query exceeds maximum allowed response time",
+				log.Debug("sync.query exceeds maximum allowed response time",
 					"host", s.ntpOptions.Hosts[hostIndex],
 					"port", s.ntpOptions.Port,
 					"duration", duration,
@@ -209,7 +209,7 @@ func (s *syncTime) sync() {
 				continue
 			}
 
-			log.Trace("sync.query",
+			log.Debug("sync.query",
 				"host", s.ntpOptions.Hosts[hostIndex],
 				"reference time", response.ReferenceTime.Format("Mon Jan 2 15:04:05 MST 2006"),
 				"time", response.Time.Format("Mon Jan 2 15:04:05 MST 2006"),
