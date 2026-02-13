@@ -13,3 +13,6 @@ var ErrNilBlockProcessor = errors.New("nil block processor")
 
 // ErrNilExecutionResult signals that a nil execution result has been provided
 var ErrNilExecutionResult = errors.New("nil execution result")
+
+// ErrContextMismatch signals that a block context does not match the current execution state
+var ErrContextMismatch = errors.New("block context mismatch with current execution state")
