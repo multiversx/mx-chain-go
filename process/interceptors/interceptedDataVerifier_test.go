@@ -381,7 +381,7 @@ func TestInterceptedDataVerifier_ConcurrentCheckValidity(t *testing.T) {
 
 	verifier.MarkVerified(interceptedData, p2p.Broadcast)
 
-	// Future calls should be blocked
+	// Future calls should not re-run CheckValidity (they should still succeed)
 	err := verifier.Verify(interceptedData, "topic_0_1", p2p.Broadcast)
 	require.NoError(t, err)
 
