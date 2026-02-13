@@ -4,6 +4,7 @@ import (
 	"errors"
 	"fmt"
 	"sync"
+	"sync/atomic"
 	"testing"
 	"time"
 
@@ -476,6 +477,115 @@ func TestCall_Sync_AcceptedBoundsChecks(t *testing.T) {
 
 		expClockOffset := 3 * time.Millisecond
 		assert.Equal(t, expClockOffset, st.ClockOffset())
+	})
+}
+
+func TestSyncTime_ForceSync(t *testing.T) {
+	t.Parallel()
+
+	t.Run("ForceSync should work", func(t *testing.T) {
+		t.Parallel()
+
+		numCalls := 0
+
+		st := ntp.NewSyncTime(
+			config.NTPConfig{
+				SyncPeriodSeconds:    3600,
+				Hosts:                []string{"host1"},
+				OutOfBoundsThreshold: 2,
+			},
+			func(options ntp.NTPOptions, hostIndex int) (*beevikNtp.Response, error) {
+				numCalls++
+
+				time.Sleep(1 * time.Millisecond)
+
+				return &beevikNtp.Response{
+					ClockOffset: 1 * time.Millisecond,
+				}, nil
+			},
+		)
+
+		currentValue := 3 * time.Millisecond
+		st.SetClockOffset(currentValue)
+
+		st.ForceSync()
+
+		time.Sleep(time.Duration(ntp.NumRequestsFromHost+5) * time.Millisecond)
+
+		expClockOffset := 1 * time.Millisecond
+		assert.Equal(t, expClockOffset, st.ClockOffset())
+
+		require.Equal(t, ntp.NumRequestsFromHost, numCalls)
+	})
+
+	t.Run("TriggerSync should trigger multiple times", func(t *testing.T) {
+		t.Parallel()
+
+		numCalls := &atomic.Uint32{}
+
+		st := ntp.NewSyncTime(
+			config.NTPConfig{
+				SyncPeriodSeconds:    3600,
+				Hosts:                []string{"host1"},
+				OutOfBoundsThreshold: 2,
+			},
+			func(options ntp.NTPOptions, hostIndex int) (*beevikNtp.Response, error) {
+				numCalls.Add(1)
+
+				time.Sleep(2 * time.Millisecond)
+
+				return &beevikNtp.Response{
+					ClockOffset: 1 * time.Millisecond,
+				}, nil
+			},
+		)
+
+		currentValue := 3 * time.Millisecond
+		st.SetClockOffset(currentValue)
+
+		// multiple calls should trigger multiple times
+		st.TriggerSync()
+		st.TriggerSync()
+		st.TriggerSync()
+		st.TriggerSync()
+
+		expClockOffset := 1 * time.Millisecond
+		assert.Equal(t, expClockOffset, st.ClockOffset())
+
+		require.Equal(t, ntp.NumRequestsFromHost*4, int(numCalls.Load()))
+	})
+
+	t.Run("direct trigger should not trigger if already in progress", func(t *testing.T) {
+		t.Parallel()
+
+		numCalls := &atomic.Uint32{}
+
+		st := ntp.NewSyncTime(
+			config.NTPConfig{
+				SyncPeriodSeconds:    3600,
+				Hosts:                []string{"host1"},
+				OutOfBoundsThreshold: 2,
+			},
+			func(options ntp.NTPOptions, hostIndex int) (*beevikNtp.Response, error) {
+				numCalls.Add(1)
+
+				time.Sleep(10 * time.Millisecond)
+
+				return &beevikNtp.Response{
+					ClockOffset: 1 * time.Millisecond,
+				}, nil
+			},
+		)
+
+		// multiple ForceSync calls should not trigger if already syncing
+		go st.TriggerSync()
+		st.ForceSync()
+		st.ForceSync()
+		st.ForceSync()
+
+		time.Sleep(time.Duration(ntp.NumRequestsFromHost*10+10) * time.Millisecond)
+
+		require.Equal(t, ntp.NumRequestsFromHost, int(numCalls.Load()))
 	})
 }
 
