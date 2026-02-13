@@ -1022,15 +1022,19 @@ func (tpn *TestFullNode) initBlockProcessor(
 		BootstrapComponents:  bootstrapComponents,
 		StatusComponents:     statusComponents,
 		StatusCoreComponents: statusCoreComponents,
-		Config:               config.Config{},
-		AccountsDB:           accountsDb,
-		AccountsProposal:     tpn.AccntStateProposal,
-		ForkDetector:         tpn.ForkDetector,
-		NodesCoordinator:     tpn.NodesCoordinator,
-		FeeHandler:           tpn.FeeAccumulator,
-		RequestHandler:       tpn.RequestHandler,
-		BlockChainHook:       tpn.BlockchainHook,
-		HeaderValidator:      tpn.HeaderValidator,
+		Config: config.Config{
+			GeneralSettings: config.GeneralSettingsConfig{
+				MaxProposalNonceGap: 50,
+			},
+		},
+		AccountsDB:       accountsDb,
+		AccountsProposal: tpn.AccntStateProposal,
+		ForkDetector:     tpn.ForkDetector,
+		NodesCoordinator: tpn.NodesCoordinator,
+		FeeHandler:       tpn.FeeAccumulator,
+		RequestHandler:   tpn.RequestHandler,
+		BlockChainHook:   tpn.BlockchainHook,
+		HeaderValidator:  tpn.HeaderValidator,
 		BootStorer: &mock.BoostrapStorerMock{
 			PutCalled: func(round int64, bootData bootstrapStorage.BootstrapData) error {
 				return nil
