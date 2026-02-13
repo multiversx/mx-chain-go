@@ -469,11 +469,12 @@ func (mp *metaProcessor) checkNonceGaps(metaHeader data.MetaHeaderHandler) error
 				return process.ErrMissingCrossNotarizedHeader
 			}
 
-			if nonce < lastCrossNotarizedInBlockTracker.GetNonce() {
+			lastExecResultNonceOfLastCrossNotarized := common.GetLastExecutionResultNonce(lastCrossNotarizedInBlockTracker)
+			if nonce < lastExecResultNonceOfLastCrossNotarized {
 				log.Warn("found proposed nonce higher than last cross notarized",
 					"shard", shardID,
 					"shardInfoNonce", nonce,
-					"lastCrossNotarizedInBlockTracker", lastCrossNotarizedInBlockTracker,
+					"lastExecResultNonceOfLastCrossNotarized", lastExecResultNonceOfLastCrossNotarized,
 				)
 				return process.ErrInvalidShardInfo
 			}
@@ -489,7 +490,7 @@ func (mp *metaProcessor) checkNonceGaps(metaHeader data.MetaHeaderHandler) error
 			continue
 		}
 
-		shardDataFinalizedNonces[shardID] = lastCrossNotarizedInBlockTracker.GetNonce()
+		shardDataFinalizedNonces[shardID] = common.GetLastExecutionResultNonce(lastCrossNotarizedInBlockTracker)
 	}
 
 	// Get highest proposed nonce per shard from ShardInfoProposalHandlers
