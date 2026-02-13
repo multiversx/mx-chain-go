@@ -153,7 +153,7 @@ func (odp *outportDataProvider) PrepareOutportSaveBlockData(arg ArgPrepareOutpor
 		return nil, err
 	}
 
-	intraMiniBlocks, err := odp.getIntraShardMiniBlocks(arg.Body)
+	intraMiniBlocks, err := odp.getIntraShardMiniBlocks(arg.Body, arg.Header)
 	if err != nil {
 		return nil, err
 	}
@@ -704,7 +704,13 @@ func (odp *outportDataProvider) IsInterfaceNil() bool {
 	return odp == nil
 }
 
-func (odp *outportDataProvider) getIntraShardMiniBlocks(bodyHandler data.BodyHandler) ([]*block.MiniBlock, error) {
+func (odp *outportDataProvider) getIntraShardMiniBlocks(bodyHandler data.BodyHandler, headerHandler data.HeaderHandler) ([]*block.MiniBlock, error) {
+	if headerHandler.IsHeaderV3() {
+		// skip intra-shard miniblocks.
+		// they are returned later when this block’s execution result is included in a future block.
+		return []*block.MiniBlock{}, nil
+	}
+
 	body, err := outportcore.GetBody(bodyHandler)
 	if err != nil {
 		return nil, err
