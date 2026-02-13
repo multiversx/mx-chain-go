@@ -572,7 +572,7 @@ func TestMetaProcessor_CreateNewHeaderProposal(t *testing.T) {
 		require.Nil(t, header)
 		require.ErrorIs(t, err, process.ErrNonceGapTooLarge)
 		require.Contains(t, err.Error(), "from last execution")
-		require.Contains(t, err.Error(), "gap of 105")
+		require.Contains(t, err.Error(), "gap of 100")
 	})
 
 	t.Run("nonce gap exceeds maximum allowed, should error", func(t *testing.T) {
