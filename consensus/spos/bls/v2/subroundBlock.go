@@ -28,7 +28,7 @@ type subroundBlock struct {
 	processingThresholdPercentage int
 	worker                        spos.WorkerHandler
 	mutBlockProcessing            sync.Mutex
-	syncController                spos.RoundSyncControllerHandler
+	syncController                spos.NtpSyncControllerHandler
 }
 
 // NewSubroundBlock creates a subroundBlock object
@@ -36,7 +36,7 @@ func NewSubroundBlock(
 	baseSubround *spos.Subround,
 	processingThresholdPercentage int,
 	worker spos.WorkerHandler,
-	syncController spos.RoundSyncControllerHandler,
+	syncController spos.NtpSyncControllerHandler,
 ) (*subroundBlock, error) {
 	err := checkNewSubroundBlockParams(baseSubround)
 	if err != nil {
@@ -241,6 +241,8 @@ func (sr *subroundBlock) sendBlock(header data.HeaderHandler, body data.BodyHand
 	}
 
 	sr.sendDirectSentTransactions(header, body, leader)
+
+	sr.syncController.AddLeaderNonceAsOutOfRange(header.GetNonce(), string(headerHash))
 
 	return true
 }
@@ -500,7 +502,7 @@ func (sr *subroundBlock) isHeaderForCurrentConsensus(header data.HeaderHandler) 
 	if header.GetShardID() != sr.ShardCoordinator().SelfId() {
 		return false
 	}
-	if header.GetRound() != uint64(sr.RoundHandler().Index()) {
+	if header.GetRound() != uint64(sr.GetRoundIndex()) {
 		sr.addOutOfRangeHeader(header)
 		return false
 	}
@@ -527,7 +529,7 @@ func (sr *subroundBlock) addOutOfRangeHeader(header data.HeaderHandler) {
 		return
 	}
 
-	sr.syncController.AddOutOfRangeRound(header.GetRound(), string(hash))
+	sr.syncController.AddOutOfRangeNonce(header.GetNonce(), string(hash))
 }
 
 func (sr *subroundBlock) getLeaderForHeader(headerHandler data.HeaderHandler) ([]byte, error) {
