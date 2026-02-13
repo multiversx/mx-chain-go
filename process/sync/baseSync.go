@@ -1375,6 +1375,14 @@ func (boot *baseBootstrap) getExecutionResultHeaderNonceForSyncStart(
 	var pendingExecutionResult data.BaseExecutionResultHandler
 	for idx := len(pendingExecutionResults) - 1; idx >= 0; idx-- {
 		pendingExecutionResult = pendingExecutionResults[idx]
+		if pendingExecutionResult.GetHeaderNonce() <= lastExecutionResultNonce {
+			log.Warn("getExecutionResultHeaderNonceForSyncStart found pending execution result with lower or equal nonce than last executed",
+				"pending nonce", pendingExecutionResult.GetHeaderNonce(),
+				"lastExecutionResultNonce", lastExecutionResultNonce,
+			)
+			continue
+		}
+
 		if boot.hasProofInCacheOrStorage(pendingExecutionResult.GetHeaderHash()) {
 			return pendingExecutionResult.GetHeaderNonce(), pendingExecutionResult.GetHeaderHash(), nil
 		}
