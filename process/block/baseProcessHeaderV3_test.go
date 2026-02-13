@@ -784,11 +784,13 @@ func TestBaseProcessor_cleanPostProcessCache(t *testing.T) {
 			"hash1",
 			"executionhash1",
 			"logshash1",
+			"unexecutablehash1",
 			"hash1",
 			"mb1",
 			"hash2",
 			"executionhash2",
 			"logshash2",
+			"unexecutablehash2",
 			"hash2",
 			"mb2",
 		}
@@ -828,10 +830,10 @@ func TestBaseProcessor_setCurrentBlockInfoV3CallsCleanOnConsensusReached(t *test
 
 		bp := &baseProcessor{
 			executionManager: &processMocks.ExecutionManagerMock{
-				CleanOnConsensusReachedCalled: func(headerHash []byte, nonce uint64) {
+				CleanOnConsensusReachedCalled: func(headerHash []byte, header data.HeaderHandler) {
 					cleanCalled = true
 					receivedHash = headerHash
-					receivedNonce = nonce
+					receivedNonce = header.GetNonce()
 				},
 			},
 			blockChain: &testscommon.ChainHandlerStub{
