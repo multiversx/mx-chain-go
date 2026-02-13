@@ -830,10 +830,10 @@ func TestBaseProcessor_setCurrentBlockInfoV3CallsCleanOnConsensusReached(t *test
 
 		bp := &baseProcessor{
 			executionManager: &processMocks.ExecutionManagerMock{
-				CleanOnConsensusReachedCalled: func(headerHash []byte, nonce uint64) {
+				CleanOnConsensusReachedCalled: func(headerHash []byte, header data.HeaderHandler) {
 					cleanCalled = true
 					receivedHash = headerHash
-					receivedNonce = nonce
+					receivedNonce = header.GetNonce()
 				},
 			},
 			blockChain: &testscommon.ChainHandlerStub{
