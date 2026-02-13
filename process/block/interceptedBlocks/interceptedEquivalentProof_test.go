@@ -219,6 +219,38 @@ func TestInterceptedEquivalentProof_CheckValidity(t *testing.T) {
 		err = iep.CheckValidity()
 		require.Equal(t, ErrInvalidProof, err)
 	})
+	t.Run("CheckProofAgainstFinal error should be propagated", func(t *testing.T) {
+		t.Parallel()
+
+		args := createMockArgInterceptedEquivalentProof()
+		args.ValidityAttester = &processMock.ValidityAttesterStub{
+			CheckProofAgainstFinalCalled: func(proof data.HeaderProofHandler) error {
+				return expectedErr
+			},
+		}
+
+		iep, err := NewInterceptedEquivalentProof(args)
+		require.NoError(t, err)
+
+		err = iep.CheckValidity()
+		require.Equal(t, expectedErr, err)
+	})
+	t.Run("CheckProofAgainstRoundHandler error should be propagated", func(t *testing.T) {
+		t.Parallel()
+
+		args := createMockArgInterceptedEquivalentProof()
+		args.ValidityAttester = &processMock.ValidityAttesterStub{
+			CheckProofAgainstRoundHandlerCalled: func(proof data.HeaderProofHandler) error {
+				return expectedErr
+			},
+		}
+
+		iep, err := NewInterceptedEquivalentProof(args)
+		require.NoError(t, err)
+
+		err = iep.CheckValidity()
+		require.Equal(t, expectedErr, err)
+	})
 	t.Run("already exiting proof should error", func(t *testing.T) {
 		t.Parallel()
 

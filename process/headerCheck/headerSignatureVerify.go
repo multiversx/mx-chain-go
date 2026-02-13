@@ -2,6 +2,7 @@ package headerCheck
 
 import (
 	"encoding/hex"
+	"errors"
 	"fmt"
 	"time"
 
@@ -324,10 +325,14 @@ func (hsv *HeaderSigVerifier) getHeaderForProofAtTransition(proof data.HeaderPro
 			"error", err.Error(),
 		)
 
+		if !errors.Is(err, process.ErrMissingHeader) {
+			return nil, err
+		}
+
 		time.Sleep(headerWaitDelayAtTransition)
 	}
 
-	return nil, fmt.Errorf("%w: header not found after %d attempts for hash %s",
+	return nil, fmt.Errorf("%w: failed to get header after %d attempts for hash %s",
 		err, maxHeaderWaitRetriesAtTransition, hex.EncodeToString(proof.GetHeaderHash()))
 }
 

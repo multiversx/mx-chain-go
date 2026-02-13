@@ -542,7 +542,7 @@ func (bbt *baseBlockTrack) checkAgainstFinal(shardID uint32, round uint64, nonce
 	}
 	if roundDif < nonceDif {
 		return fmt.Errorf("%w for "+
-			"round: %d, final header round: %d, round dif: %d"+
+			"round: %d, final header round: %d, round dif: %d, "+
 			"nonce: %d, final header nonce: %d, nonce dif: %d",
 			process.ErrHigherNonceInBlock,
 			round,
