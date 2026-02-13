@@ -857,6 +857,18 @@ func getFilledHeader() data.HeaderHandler {
 	}
 }
 
+func getFilledHeaderV2() data.HeaderHandler {
+	return &dataBlock.HeaderV2{
+		Header: &dataBlock.Header{
+			PrevHash:        []byte("prev hash"),
+			PrevRandSeed:    []byte("prev rand seed"),
+			RandSeed:        []byte("rand seed"),
+			PubKeysBitmap:   []byte{0xFF},
+			LeaderSignature: []byte("leader signature"),
+		},
+	}
+}
+
 func TestHeaderSigVerifier_VerifyHeaderProof(t *testing.T) {
 	t.Parallel()
 
@@ -960,8 +972,8 @@ func TestHeaderSigVerifier_VerifyHeaderProof(t *testing.T) {
 		args.StorageService = &testscommonStorage.ChainStorerStub{
 			GetStorerCalled: func(unitType dataRetriever.UnitType) (storage.Storer, error) {
 				return &testscommonStorage.StorerStub{
-					SearchFirstCalled: func(key []byte) ([]byte, error) {
-						return nil, errors.New("not found")
+					GetCalled: func(key []byte) ([]byte, error) {
+						return nil, process.ErrMissingHeader
 					},
 				}, nil
 			},
@@ -972,10 +984,10 @@ func TestHeaderSigVerifier_VerifyHeaderProof(t *testing.T) {
 			GetHeaderByHashCalled: func(hash []byte) (data.HeaderHandler, error) {
 				if numCalls < 2 {
 					numCalls++
-					return nil, errors.New("not found")
+					return nil, process.ErrMissingHeader
 				}
 
-				return getFilledHeader(), nil
+				return getFilledHeaderV2(), nil
 			},
 		}
 		args.EnableEpochsHandler = &enableEpochsHandlerMock.EnableEpochsHandlerStub{
