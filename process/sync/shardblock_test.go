@@ -154,6 +154,54 @@ func setupPools(headersAndHashes ...headerAndHash) dataRetriever.PoolsHolder {
 	return pools
 }
 
+// setupPoolsDirectHashMapping creates a pools holder where GetHeaderByHash returns the header
+// that actually has the given hash (direct mapping), rather than the off-by-one mapping in setupPools.
+// This is needed for tests that exercise the backward hash-walk in prepareForSyncIfNeeded.
+func setupPoolsDirectHashMapping(headersAndHashes ...headerAndHash) dataRetriever.PoolsHolder {
+	pools := dataRetrieverMock.NewPoolsHolderStub()
+	pools.HeadersCalled = func() dataRetriever.HeadersPool {
+		return &mock.HeadersCacherStub{
+			GetHeaderByNonceAndShardIdCalled: func(hdrNonce uint64, shardId uint32) ([]data.HeaderHandler, [][]byte, error) {
+				for _, hh := range headersAndHashes {
+					if hh.header.GetNonce() == hdrNonce {
+						return []data.HeaderHandler{hh.header}, [][]byte{hh.hash}, nil
+					}
+				}
+
+				return nil, nil, errors.New("err")
+			},
+			GetHeaderByHashCalled: func(hash []byte) (data.HeaderHandler, error) {
+				for _, hh := range headersAndHashes {
+					if string(hh.hash) == string(hash) {
+						return hh.header, nil
+					}
+				}
+
+				return nil, errors.New("err")
+			},
+		}
+	}
+	pools.MiniBlocksCalled = func() storage.Cacher {
+		cs := cache.NewCacherStub()
+		cs.RegisterHandlerCalled = func(i func(key []byte, value interface{})) {}
+		cs.GetCalled = func(key []byte) (value interface{}, ok bool) {
+			return make(block.MiniBlockSlice, 0), true
+		}
+		return cs
+	}
+	pools.TransactionsCalled = func() dataRetriever.ShardedDataCacherNotifier {
+		return &testscommon.ShardedDataStub{
+			OnExecutedBlockCalled: func(header data.HeaderHandler, rootHash []byte) error {
+				return nil
+			},
+		}
+	}
+	pools.ProofsCalled = func() dataRetriever.ProofsPool {
+		return &dataRetrieverMock.ProofsPoolMock{}
+	}
+	return pools
+}
+
 type removedFlags struct {
 	flagHdrRemovedFromHeaders      bool
 	flagHdrRemovedFromStorage      bool
@@ -2679,72 +2727,71 @@ func TestShardBootstrap_SyncBlockV3(t *testing.T) {
 		// fork detector highest nonce: 5 -> will sync nonce 5
 		// current header holds last execution result with nonce 2
 		// so when syncing header 5, we expect to prepare the pool
-		// with nonces 2, 3, 4
+		// with nonces 3, 4 (backfill via backward hash-walk) + nonce 5 (synced block)
 		args := createSyncBlockV3Args()
+
+		hash1 := []byte("hash1")
+		hash2 := []byte("hash2")
+		hash3 := []byte("hash3")
+		hash4 := []byte("hash4")
+		hash5 := []byte("hash5")
+
 		header2 := &block.HeaderV3{
 			Nonce:         2,
+			PrevHash:      hash1,
 			BlockBodyType: block.TxBlock,
 			LastExecutionResult: &block.ExecutionResultInfo{
 				ExecutionResult: &block.BaseExecutionResult{
 					HeaderNonce: 1,
-					HeaderHash:  []byte("hash1"),
+					HeaderHash:  hash1,
 				},
 			},
 		}
 		header3 := &block.HeaderV3{
 			Nonce:         3,
+			PrevHash:      hash2,
 			BlockBodyType: block.TxBlock,
 			LastExecutionResult: &block.ExecutionResultInfo{
 				ExecutionResult: &block.BaseExecutionResult{
 					HeaderNonce: 2,
-					HeaderHash:  []byte("hash2"),
+					HeaderHash:  hash2,
 				},
 			},
 		}
 		header4 := &block.HeaderV3{
 			Nonce:         4,
+			PrevHash:      hash3,
 			BlockBodyType: block.TxBlock,
 			LastExecutionResult: &block.ExecutionResultInfo{
 				ExecutionResult: &block.BaseExecutionResult{
 					HeaderNonce: 2,
-					HeaderHash:  []byte("hash3"),
+					HeaderHash:  hash2,
 				},
 			},
 		}
 		header5 := &block.HeaderV3{
 			Nonce:         5,
+			PrevHash:      hash4,
 			BlockBodyType: block.TxBlock,
 			LastExecutionResult: &block.ExecutionResultInfo{
 				ExecutionResult: &block.BaseExecutionResult{
 					HeaderNonce: 4,
-					HeaderHash:  []byte("hash4"),
+					HeaderHash:  hash4,
 				},
 			},
 		}
-		args.PoolsHolder = setupPools(
-			headerAndHash{
-				header: header2,
-				hash:   []byte("hash2"),
-			},
-			headerAndHash{
-				header: header3,
-				hash:   []byte("hash3"),
-			},
-			headerAndHash{
-				header: header4,
-				hash:   []byte("hash4"),
-			},
-			headerAndHash{
-				header: header5,
-				hash:   []byte("hash5"),
-			},
+		args.PoolsHolder = setupPoolsDirectHashMapping(
+			headerAndHash{header: header2, hash: hash2},
+			headerAndHash{header: header3, hash: hash3},
+			headerAndHash{header: header4, hash: hash4},
+			headerAndHash{header: header5, hash: hash5},
 		)
 		args.ChainHandler = &testscommon.ChainHandlerStub{
 			GetCurrentBlockHeaderCalled: func() data.HeaderHandler {
 				return header4 // forcing to sync nonce 5
 			},
 			GetCurrentBlockHeaderHashCalled: func() []byte {
-				return []byte("hash4")
+				return hash4
 			},
 		}
 
@@ -2779,7 +2826,7 @@ func TestShardBootstrap_SyncBlockV3(t *testing.T) {
 		assert.Nil(t, err)
 		assert.True(t, verifyBlockProposalCalled)
 		assert.True(t, commitBlockCalled)
-		assert.Equal(t, 3, cntAddToQueue) // three times for the intermediate blocks
+		assert.Equal(t, 3, cntAddToQueue) // two backfilled (nonces 3,4) + one synced (nonce 5)
 	})
 
 	t.Run("should error when GetPrevBlockLastExecutionResult fails", func(t *testing.T) {
@@ -2962,70 +3009,69 @@ func TestShardBootstrap_SyncBlockV3(t *testing.T) {
 		// fork detector highest nonce: 5 -> will sync nonce 5
 		// current header holds last execution result with nonce 2
 		args := createSyncBlockV3Args()
+
+		hash1 := []byte("hash1")
+		hash2 := []byte("hash2")
+		hash3 := []byte("hash3")
+		hash4 := []byte("hash4")
+		hash5 := []byte("hash5")
+
 		header2 := &block.HeaderV3{
 			Nonce:         2,
+			PrevHash:      hash1,
 			BlockBodyType: block.TxBlock,
 			LastExecutionResult: &block.ExecutionResultInfo{
 				ExecutionResult: &block.BaseExecutionResult{
 					HeaderNonce: 1,
-					HeaderHash:  []byte("hash1"),
+					HeaderHash:  hash1,
 				},
 			},
 		}
 		header3 := &block.HeaderV3{
 			Nonce:         3,
+			PrevHash:      hash2,
 			BlockBodyType: block.TxBlock,
 			LastExecutionResult: &block.ExecutionResultInfo{
 				ExecutionResult: &block.BaseExecutionResult{
 					HeaderNonce: 2,
-					HeaderHash:  []byte("hash2"),
+					HeaderHash:  hash2,
 				},
 			},
 		}
 		header4 := &block.HeaderV3{
 			Nonce:         4,
+			PrevHash:      hash3,
 			BlockBodyType: block.TxBlock,
 			LastExecutionResult: &block.ExecutionResultInfo{
 				ExecutionResult: &block.BaseExecutionResult{
 					HeaderNonce: 2,
-					HeaderHash:  []byte("hash3"),
+					HeaderHash:  hash2,
 				},
 			},
 		}
 		header5 := &block.HeaderV3{
 			Nonce:         5,
+			PrevHash:      hash4,
 			BlockBodyType: block.TxBlock,
 			LastExecutionResult: &block.ExecutionResultInfo{
 				ExecutionResult: &block.BaseExecutionResult{
 					HeaderNonce: 4,
-					HeaderHash:  []byte("hash4"),
+					HeaderHash:  hash4,
 				},
 			},
 		}
-		args.PoolsHolder = setupPools(
-			headerAndHash{
-				header: header2,
-				hash:   []byte("hash2"),
-			},
-			headerAndHash{
-				header: header3,
-				hash:   []byte("hash3"),
-			},
-			headerAndHash{
-				header: header4,
-				hash:   []byte("hash4"),
-			},
-			headerAndHash{
-				header: header5,
-				hash:   []byte("hash5"),
-			},
+		args.PoolsHolder = setupPoolsDirectHashMapping(
+			headerAndHash{header: header2, hash: hash2},
+			headerAndHash{header: header3, hash: hash3},
+			headerAndHash{header: header4, hash: hash4},
+			headerAndHash{header: header5, hash: hash5},
 		)
 		args.ChainHandler = &testscommon.ChainHandlerStub{
 			GetCurrentBlockHeaderCalled: func() data.HeaderHandler {
 				return header4 // forcing to sync nonce 5
 			},
 			GetCurrentBlockHeaderHashCalled: func() []byte {
-				return []byte("hash4")
+				return hash4
 			},
 		}
 
@@ -3053,63 +3099,62 @@ func TestShardBootstrap_SyncBlockV3(t *testing.T) {
 		// fork detector highest nonce: 5 -> will sync nonce 5
 		// current header holds last execution result with nonce 2
 		args := createSyncBlockV3Args()
+
+		hash1 := []byte("hash1")
+		hash2 := []byte("hash2")
+		hash3 := []byte("hash3")
+		hash4 := []byte("hash4")
+		hash5 := []byte("hash5")
+
 		header2 := &block.HeaderV3{
 			Nonce:         2,
+			PrevHash:      hash1,
 			BlockBodyType: block.TxBlock,
 			LastExecutionResult: &block.ExecutionResultInfo{
 				ExecutionResult: &block.BaseExecutionResult{
 					HeaderNonce: 1,
-					HeaderHash:  []byte("hash1"),
+					HeaderHash:  hash1,
 				},
 			},
 		}
 		header3 := &block.HeaderV3{
 			Nonce:         3,
+			PrevHash:      hash2,
 			BlockBodyType: block.TxBlock,
 			LastExecutionResult: &block.ExecutionResultInfo{
 				ExecutionResult: &block.BaseExecutionResult{
 					HeaderNonce: 2,
-					HeaderHash:  []byte("hash2"),
+					HeaderHash:  hash2,
 				},
 			},
 		}
 		header4 := &block.HeaderV3{
 			Nonce:         4,
+			PrevHash:      hash3,
 			BlockBodyType: block.TxBlock,
 			LastExecutionResult: &block.ExecutionResultInfo{
 				ExecutionResult: &block.BaseExecutionResult{
 					HeaderNonce: 2,
-					HeaderHash:  []byte("hash2"),
+					HeaderHash:  hash2,
 				},
 			},
 		}
 		header5 := &block.HeaderV3{
 			Nonce:         5,
+			PrevHash:      hash4,
 			BlockBodyType: block.TxBlock,
 			LastExecutionResult: &block.ExecutionResultInfo{
 				ExecutionResult: &block.BaseExecutionResult{
 					HeaderNonce: 4,
-					HeaderHash:  []byte("hash4"),
+					HeaderHash:  hash4,
 				},
 			},
 		}
-		args.PoolsHolder = setupPools(
-			headerAndHash{
-				header: header2,
-				hash:   []byte("hash2"),
-			},
-			headerAndHash{
-				header: header3,
-				hash:   []byte("hash3"),
-			},
-			headerAndHash{
-				header: header4,
-				hash:   []byte("hash4"),
-			},
-			headerAndHash{
-				header: header5,
-				hash:   []byte("hash5"),
-			},
+		args.PoolsHolder = setupPoolsDirectHashMapping(
+			headerAndHash{header: header2, hash: hash2},
+			headerAndHash{header: header3, hash: hash3},
+			headerAndHash{header: header4, hash: hash4},
+			headerAndHash{header: header5, hash: hash5},
 		)
 		blockProcessor := &testscommon.BlockProcessorStub{
 			OnProposedBlockCalled: func(proposedBody data.BodyHandler, proposedHeader data.HeaderHandler, proposedHash []byte) error {
@@ -3122,7 +3167,7 @@ func TestShardBootstrap_SyncBlockV3(t *testing.T) {
 				return header4 // forcing to sync nonce 5
 			},
 			GetCurrentBlockHeaderHashCalled: func() []byte {
-				return []byte("hash4")
+				return hash4
 			},
 		}
 

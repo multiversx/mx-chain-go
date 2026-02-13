@@ -116,10 +116,10 @@ func createMetaBlockProcessor(
 		coreComponents.Hasher(),
 	)
 
-	blocksQueue := cache.NewHeaderBodyCache(config.HeaderBodyCacheConfig{})
+	blocksCache := cache.NewHeaderBodyCache(config.HeaderBodyCacheConfig{})
 	executionResultsTracker := executionTrack.NewExecutionResultsTracker()
 	execManager, _ := executionManager.NewExecutionManager(executionManager.ArgsExecutionManager{
-		BlocksQueue:             blocksQueue,
+		BlocksCache:             blocksCache,
 		ExecutionResultsTracker: executionResultsTracker,
 		BlockChain:              dataComponents.Blockchain(),
 		Headers:                 dataComponents.Datapool().Headers(),
@@ -221,7 +221,7 @@ func createMetaBlockProcessor(
 	metaProc, _ := blproc.NewMetaProcessor(args)
 
 	argHeadersExecutor := asyncExecution.ArgsHeadersExecutor{
-		BlocksCache:      blocksQueue,
+		BlocksCache:      blocksCache,
 		ExecutionTracker: executionResultsTracker,
 		BlockProcessor:   metaProc,
 		BlockChain:       dataComponents.Blockchain(),
