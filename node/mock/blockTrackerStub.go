@@ -2,6 +2,7 @@ package mock
 
 import (
 	"github.com/multiversx/mx-chain-core-go/data"
+
 	"github.com/multiversx/mx-chain-go/process"
 )
 
@@ -37,6 +38,24 @@ type BlockTrackerStub struct {
 	RestoreToGenesisCalled                             func()
 	ShouldAddHeaderCalled                              func(headerHandler data.HeaderHandler) bool
 	ComputeOwnShardStuckCalled                         func(lastExecutionResultsInfo data.BaseExecutionResultHandler, currentNonce uint64)
+	CheckProofAgainstFinalCalled                       func(proof data.HeaderProofHandler) error
+	CheckProofAgainstRoundHandlerCalled                func(proof data.HeaderProofHandler) error
+}
+
+// CheckProofAgainstFinal -
+func (bts *BlockTrackerStub) CheckProofAgainstFinal(proof data.HeaderProofHandler) error {
+	if bts.CheckProofAgainstFinalCalled != nil {
+		return bts.CheckProofAgainstFinalCalled(proof)
+	}
+	return nil
+}
+
+// CheckProofAgainstRoundHandler -
+func (bts *BlockTrackerStub) CheckProofAgainstRoundHandler(proof data.HeaderProofHandler) error {
+	if bts.CheckProofAgainstRoundHandlerCalled != nil {
+		return bts.CheckProofAgainstRoundHandlerCalled(proof)
+	}
+	return nil
 }
 
 // AddTrackedHeader -

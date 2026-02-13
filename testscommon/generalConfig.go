@@ -57,6 +57,7 @@ func GetGeneralConfig() config.Config {
 			SyncProcessTimeSupernovaInMillis: 3000,
 			SetGuardianEpochsDelay:           20,
 			StatusPollingIntervalSec:         10,
+			MaxProposalNonceGap:              10,
 			ChainParametersByEpoch: []config.ChainParametersByEpochConfig{
 				{
 					EnableEpoch:                 0,
@@ -491,6 +492,15 @@ func GetGeneralConfig() config.Config {
 		},
 		ExecutedMiniBlocksCache:      getLRUCacheConfig(),
 		PostProcessTransactionsCache: getLRUCacheConfig(),
+		BlockSizeThrottleConfig: config.BlockSizeThrottleConfig{
+			MinSizeInBytes:        1,
+			MaxSizeInBytes:        10000,
+			MaxExecResSizeInBytes: 10000,
+		},
+		ExecutionResultInclusionEstimator: config.ExecutionResultInclusionEstimatorConfig{
+			SafetyMargin:       0,
+			MaxResultsPerBlock: 10,
+		},
 		DirectSentTransactions: config.DirectSentTransactionsConfig{
 			CacheSpanInSec:   1,
 			CacheExpiryInSec: 1,

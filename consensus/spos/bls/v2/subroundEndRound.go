@@ -14,6 +14,7 @@ import (
 	"github.com/multiversx/mx-chain-core-go/core/check"
 	"github.com/multiversx/mx-chain-core-go/data/block"
 	"github.com/multiversx/mx-chain-core-go/display"
+	commonConsensus "github.com/multiversx/mx-chain-go/common/consensus"
 
 	"github.com/multiversx/mx-chain-go/common"
 	"github.com/multiversx/mx-chain-go/consensus"
@@ -340,6 +341,10 @@ func (sr *subroundEndRound) finalizeConfirmedBlock() bool {
 
 	sr.SetStatus(sr.Current(), spos.SsFinished)
 
+	// Trigger AOT selection for next round after block commits
+	// This prepares transactions for the next block while state is consistent (post-OnExecuted)
+	sr.triggerAOTSelection()
+
 	sr.worker.DisplayStatistics()
 
 	log.Debug("step 3: Body and Header have been committed")
@@ -397,7 +402,7 @@ func (sr *subroundEndRound) shouldSendProof() bool {
 		return false
 	}
 
-	shouldSingleKeySendProof := sr.IsNodeInConsensusGroup(sr.SelfPubKey()) && spos.ShouldConsiderSelfKeyInConsensus(sr.NodeRedundancyHandler())
+	shouldSingleKeySendProof := sr.IsNodeInConsensusGroup(sr.SelfPubKey()) && commonConsensus.ShouldConsiderSelfKeyInConsensus(sr.NodeRedundancyHandler())
 	shouldMultiKeySendProof := sr.IsMultiKeyInConsensusGroup()
 	return shouldSingleKeySendProof || shouldMultiKeySendProof
 }
@@ -580,7 +585,7 @@ func (sr *subroundEndRound) handleInvalidSignersOnAggSigFail(sender string) ([]b
 }
 
 func (sr *subroundEndRound) computeAggSigOnValidNodes() ([]byte, []byte, error) {
-	threshold := sr.Threshold(bls.SrSignature)
+	threshold := sr.getThreshold()
 	numValidSigShares := sr.ComputeSize(bls.SrSignature)
 
 	if check.IfNil(sr.GetHeader()) {
@@ -685,7 +690,7 @@ func (sr *subroundEndRound) createAndBroadcastInvalidSigners(
 	invalidSignersPubKeys []string,
 	sender string,
 ) {
-	if !spos.ShouldConsiderSelfKeyInConsensus(sr.NodeRedundancyHandler()) && !sr.IsMultiKeyInConsensusGroup() {
+	if !commonConsensus.ShouldConsiderSelfKeyInConsensus(sr.NodeRedundancyHandler()) && !sr.IsMultiKeyInConsensusGroup() {
 		return
 	}
 
@@ -917,7 +922,7 @@ func (sr *subroundEndRound) receivedSignature(_ context.Context, cnsDta *consens
 	return true
 }
 
-func (sr *subroundEndRound) checkReceivedSignatures() bool {
+func (sr *subroundEndRound) getThreshold() int {
 	isTransitionBlock := common.IsEpochChangeBlockForFlagActivation(sr.GetHeader(), sr.EnableEpochsHandler(), common.AndromedaFlag)
 
 	threshold := sr.Threshold(bls.SrSignature)
@@ -936,6 +941,12 @@ func (sr *subroundEndRound) checkReceivedSignatures() bool {
 			"actual number of signatures received", sr.getNumOfSignaturesCollected(),
 		)
 	}
+
+	return threshold
+}
+
+func (sr *subroundEndRound) checkReceivedSignatures() bool {
+	threshold := sr.getThreshold()
 
 	areSignaturesCollected, numSigs := sr.areSignaturesCollected(threshold)
 	areAllSignaturesCollected := numSigs == sr.ConsensusGroupSize()
@@ -1006,6 +1017,24 @@ func (sr *subroundEndRound) updateConsensusMetricsProof() {
 func (sr *subroundEndRound) areSignaturesCollected(threshold int) (bool, int) {
 	n := sr.getNumOfSignaturesCollected()
 	return n >= threshold, n
+}
+
+// triggerAOTSelection triggers ahead-of-time transaction selection for the next block
+// This is called after a block commits to prepare transactions for when this node becomes leader
+func (sr *subroundEndRound) triggerAOTSelection() {
+	aotSelector := sr.AOTSelector()
+	if check.IfNil(aotSelector) {
+		return
+	}
+
+	committedHeader := sr.GetHeader()
+	if check.IfNil(committedHeader) {
+		log.Debug("triggerAOTSelection: no committed header available")
+		return
+	}
+
+	currentRound := uint64(sr.RoundHandler().Index())
+	aotSelector.TriggerAOTSelection(committedHeader, currentRound)
 }
 
 // IsInterfaceNil returns true if there is no value under the interface

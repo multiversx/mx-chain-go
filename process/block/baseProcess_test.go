@@ -30,6 +30,7 @@ import (
 	"github.com/stretchr/testify/require"
 
 	"github.com/multiversx/mx-chain-go/common/holders"
+	"github.com/multiversx/mx-chain-go/process/aotSelection"
 	headersCache "github.com/multiversx/mx-chain-go/process/asyncExecution/cache"
 	"github.com/multiversx/mx-chain-go/process/asyncExecution/executionManager"
 
@@ -169,11 +170,11 @@ func createArgBaseProcessor(
 			coreComponents.Hasher(),
 		)
 
-		blocksQueue := headersCache.NewHeaderBodyCache(config.HeaderBodyCacheConfig{})
+		blocksCache := headersCache.NewHeaderBodyCache(config.HeaderBodyCacheConfig{})
 		executionResultsTracker := executionTrack.NewExecutionResultsTracker()
 		_ = executionResultsTracker.SetLastNotarizedResult(&block.ExecutionResult{})
 		execManager, _ = executionManager.NewExecutionManager(executionManager.ArgsExecutionManager{
-			BlocksQueue:             blocksQueue,
+			BlocksCache:             blocksCache,
 			ExecutionResultsTracker: executionResultsTracker,
 			BlockChain:              dataComponents.BlockChain,
 			Headers:                 dataComponents.DataPool.Headers(),
@@ -184,12 +185,13 @@ func createArgBaseProcessor(
 			ShardCoordinator:        bootstrapComponents.ShardCoordinator(),
 		})
 		execResultsVerifier, _ = blproc.NewExecutionResultsVerifier(dataComponents.BlockChain, execManager)
-		inclusionEstimator = estimator.NewExecutionResultInclusionEstimator(
+		inclusionEstimator, _ = estimator.NewExecutionResultInclusionEstimator(
 			config.ExecutionResultInclusionEstimatorConfig{
 				SafetyMargin:       110,
 				MaxResultsPerBlock: 20,
 			},
 			coreComponents.RoundHandler(),
+			&testscommon.ExecResSizeComputationStub{},
 		)
 
 		missingDataArgs := missingData.ResolverArgs{
@@ -252,6 +254,7 @@ func createArgBaseProcessor(
 		},
 		ExecutionManager:        execManager,
 		TxExecutionOrderHandler: &commonMocks.TxExecutionOrderHandlerStub{},
+		AOTSelector:             aotSelection.NewDisabledAOTSelector(),
 	}
 }
 
@@ -530,6 +533,7 @@ func createMockTransactionCoordinatorArguments(
 				return txHashes, nil, nil
 			},
 		},
+		AOTSelector: aotSelection.NewDisabledAOTSelector(),
 	}
 
 	return argsTransactionCoordinator
