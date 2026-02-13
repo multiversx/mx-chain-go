@@ -1218,6 +1218,9 @@ func (mp *metaProcessor) CommitBlock(
 		return err
 	}
 
+	prevBlockHeader := mp.blockChain.GetCurrentBlockHeader()
+	prevBlockHeaderHash := mp.blockChain.GetCurrentBlockHeaderHash()
+
 	if !headerHandler.IsHeaderV3() {
 		mp.processStatusHandler.SetBusy("metaProcessor.CommitBlock")
 		defer func() {
@@ -1230,6 +1233,8 @@ func (mp *metaProcessor) CommitBlock(
 		defer func() {
 			if err != nil {
 				mp.RevertHeaderV3OnCommit(headerHandler)
+				_ = mp.blockChain.SetCurrentBlockHeader(prevBlockHeader)
+				mp.blockChain.SetCurrentBlockHeaderHash(prevBlockHeaderHash)
 			}
 		}()
 	}
