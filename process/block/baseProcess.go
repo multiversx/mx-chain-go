@@ -3343,7 +3343,7 @@ func (bp *baseProcessor) setCurrentBlockInfo(
 	rootHash []byte,
 ) error {
 	if header.IsHeaderV3() {
-		bp.executionManager.CleanOnConsensusReached(headerHash, header.GetNonce())
+		bp.executionManager.CleanOnConsensusReached(headerHash, header)
 		// last executed info and header will be set on headers executor in async mode
 		return bp.blockChain.SetCurrentBlockHeader(header)
 	}
@@ -3356,7 +3356,7 @@ func (bp *baseProcessor) setCurrentBlockInfo(
 	// set also last executed block info and header
 	// this will be useful at transition to Supernova with headers v3
 	bp.blockChain.SetLastExecutedBlockHeaderAndRootHash(header, headerHash, rootHash)
-	bp.executionManager.CleanOnConsensusReached(headerHash, header.GetNonce())
+	bp.executionManager.CleanOnConsensusReached(headerHash, header)
 
 	// before header v3, create and set execution result in tracker
 	lastExecResHandler, err := common.GetOrCreateLastExecutionResultForPrevHeader(header, headerHash)

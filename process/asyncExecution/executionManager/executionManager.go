@@ -167,9 +167,13 @@ func (em *executionManager) CleanConfirmedExecutionResults(header data.HeaderHan
 }
 
 // CleanOnConsensusReached calls the same method from executionResultsTracker
-func (em *executionManager) CleanOnConsensusReached(headerHash []byte, headerNonce uint64) {
-	em.executionResultsTracker.CleanOnConsensusReached(headerHash, headerNonce)
-	em.blocksCache.RemoveAtNonceAndHigher(headerNonce + 1)
+func (em *executionManager) CleanOnConsensusReached(headerHash []byte, header data.HeaderHandler) {
+	if check.IfNil(header) {
+		return
+	}
+
+	em.executionResultsTracker.CleanOnConsensusReached(headerHash, header)
+	em.blocksCache.RemoveAtNonceAndHigher(header.GetNonce() + 1)
 }
 
 // RemoveAtNonceAndHigher removes the header-body pair at the specified nonce
