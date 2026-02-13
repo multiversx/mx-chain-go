@@ -12,19 +12,21 @@ import (
 	"github.com/gin-gonic/gin"
 	"github.com/multiversx/mx-chain-core-go/core/check"
 	"github.com/multiversx/mx-chain-core-go/marshal"
+	logger "github.com/multiversx/mx-chain-logger-go"
+	"github.com/prometheus/client_golang/prometheus/promhttp"
+
 	"github.com/multiversx/mx-chain-go/api/errors"
 	"github.com/multiversx/mx-chain-go/api/groups"
 	"github.com/multiversx/mx-chain-go/api/middleware"
 	"github.com/multiversx/mx-chain-go/api/shared"
 	"github.com/multiversx/mx-chain-go/config"
 	"github.com/multiversx/mx-chain-go/facade"
-	logger "github.com/multiversx/mx-chain-logger-go"
-	"github.com/prometheus/client_golang/prometheus/promhttp"
 )
 
 var log = logger.GetOrCreate("api/gin")
 
 const prometheusMetricsRoute = "/debug/metrics/prometheus"
+const readHeaderTimeout = 10 * time.Second
 
 // ArgsNewWebServer holds the arguments needed to create a new instance of webServer
 type ArgsNewWebServer struct {
@@ -126,7 +128,11 @@ func (ws *webServer) StartHttpServer() error {
 
 	ws.registerRoutes(engine)
 
-	server := &http.Server{Addr: ws.facade.RestApiInterface(), Handler: engine}
+	server := &http.Server{
+		Addr:              ws.facade.RestApiInterface(),
+		Handler:           engine,
+		ReadHeaderTimeout: readHeaderTimeout,
+	}
 	log.Debug("creating gin web sever", "interface", ws.facade.RestApiInterface())
 	ws.httpServer, err = NewHttpServer(server)
 	if err != nil {
