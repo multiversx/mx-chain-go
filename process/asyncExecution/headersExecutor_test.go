@@ -451,7 +451,7 @@ func TestHeadersExecutor_ProcessBlock(t *testing.T) {
 		require.Equal(t, 1, countAddResult)
 	})
 
-	t.Run("block processing error, pop header for queue with the same nonce", func(t *testing.T) {
+	t.Run("block processing error, different hash should early exit", func(t *testing.T) {
 		t.Parallel()
 
 		args := createMockArgs()
