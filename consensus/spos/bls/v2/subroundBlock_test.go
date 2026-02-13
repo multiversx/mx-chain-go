@@ -79,7 +79,7 @@ func defaultSubroundBlockFromSubround(sr *spos.Subround) (v2.SubroundBlock, erro
 				return consensusMetrics
 			},
 		},
-		&consensusMocks.RoundSyncControllerMock{},
+		&consensusMocks.NtpSyncControllerMock{},
 	)
 
 	return srBlock, err
@@ -96,7 +96,7 @@ func defaultSubroundBlockWithoutErrorFromSubround(sr *spos.Subround) v2.Subround
 				return consensusMetrics
 			},
 		},
-		&consensusMocks.RoundSyncControllerMock{},
+		&consensusMocks.NtpSyncControllerMock{},
 	)
 
 	return srBlock
@@ -178,7 +178,7 @@ func TestSubroundBlock_NewSubroundBlockNilSubroundShouldFail(t *testing.T) {
 		nil,
 		v2.ProcessingThresholdPercent,
 		&consensusMocks.SposWorkerMock{},
-		&consensusMocks.RoundSyncControllerMock{},
+		&consensusMocks.NtpSyncControllerMock{},
 	)
 	assert.Nil(t, srBlock)
 	assert.Equal(t, spos.ErrNilSubround, err)
@@ -333,7 +333,7 @@ func TestSubroundBlock_NewSubroundBlockNilWorkerShouldFail(t *testing.T) {
 		sr,
 		v2.ProcessingThresholdPercent,
 		nil,
-		&consensusMocks.RoundSyncControllerMock{},
+		&consensusMocks.NtpSyncControllerMock{},
 	)
 	assert.Nil(t, srBlock)
 	assert.Equal(t, spos.ErrNilWorker, err)
@@ -609,7 +609,7 @@ func TestSubroundBlock_DoBlockJob(t *testing.T) {
 					return consensusMetrics
 				},
 			},
-			&consensusMocks.RoundSyncControllerMock{},
+			&consensusMocks.NtpSyncControllerMock{},
 		)
 
 		providedLeaderSignature := []byte("leader signature")
@@ -712,7 +712,7 @@ func TestSubroundBlock_DoBlockJob(t *testing.T) {
 					return consensusMetrics
 				},
 			},
-			&consensusMocks.RoundSyncControllerMock{},
+			&consensusMocks.NtpSyncControllerMock{},
 		)
 
 		providedLeaderSignature := []byte("leader signature")
@@ -1625,7 +1625,7 @@ func TestSubroundBlock_UpdateConsensusMetrics(t *testing.T) {
 				return consensusMetrics
 			},
 		},
-		&consensusMocks.RoundSyncControllerMock{},
+		&consensusMocks.NtpSyncControllerMock{},
 	)
 
 	consensusMetrics.ResetInstanceValues()

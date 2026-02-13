@@ -1,4 +1,4 @@
-package roundSync
+package ntpsync
 
 import (
 	"math/rand"
@@ -12,21 +12,21 @@ import (
 	"github.com/stretchr/testify/require"
 )
 
-func TestNewRoundSyncController(t *testing.T) {
+func TestNewNonceSyncController(t *testing.T) {
 	t.Parallel()
 
 	t.Run("nil proofs pool", func(t *testing.T) {
-		rsc, err := NewRoundSyncController(nil, &facadeMock.SyncTimerMock{}, 0)
+		rsc, err := NewNtpSyncController(nil, &facadeMock.SyncTimerMock{}, 0)
 		require.Nil(t, rsc)
 		require.Equal(t, spos.ErrNilEquivalentProofPool, err)
 	})
 	t.Run("nil sync timer", func(t *testing.T) {
-		rsc, err := NewRoundSyncController(&dataRetriever.ProofsPoolMock{}, nil, 0)
+		rsc, err := NewNtpSyncController(&dataRetriever.ProofsPoolMock{}, nil, 0)
 		require.Nil(t, rsc)
 		require.Equal(t, spos.ErrNilSyncTimer, err)
 	})
 	t.Run("should work", func(t *testing.T) {
-		rsc, err := NewRoundSyncController(&dataRetriever.ProofsPoolMock{}, &facadeMock.SyncTimerMock{}, 0)
+		rsc, err := NewNtpSyncController(&dataRetriever.ProofsPoolMock{}, &facadeMock.SyncTimerMock{}, 0)
 		require.NotNil(t, rsc)
 		require.False(t, rsc.IsInterfaceNil())
 		require.Nil(t, err)
@@ -47,7 +47,7 @@ func TestHeaderTracker_ShouldForceNTPResync(t *testing.T) {
 			},
 		}
 
-		tracker, _ := NewRoundSyncController(proofsPool, syncer, 0)
+		tracker, _ := NewNtpSyncController(proofsPool, syncer, 0)
 
 		wg := sync.WaitGroup{}
 
@@ -60,14 +60,14 @@ func TestHeaderTracker_ShouldForceNTPResync(t *testing.T) {
 
 			if i%3 == 0 {
 				handlers = append(handlers, func() {
-					tracker.AddOutOfRangeRound(uint64(r), "")
+					tracker.AddOutOfRangeNonce(uint64(r), "")
 					wg.Done()
 				})
 			}
 
 			if i%7 == 0 {
 				handlers = append(handlers, func() {
-					tracker.receivedProof(&block.HeaderProof{HeaderRound: uint64(r)})
+					tracker.receivedProof(&block.HeaderProof{HeaderNonce: uint64(r)})
 					wg.Done()
 				})
 			}
@@ -81,54 +81,54 @@ func TestHeaderTracker_ShouldForceNTPResync(t *testing.T) {
 
 		wg.Wait()
 
-		tracker.AddOutOfRangeRound(1, "")
-		tracker.AddOutOfRangeRound(0, "")
-		tracker.AddOutOfRangeRound(2, "")
-		tracker.AddOutOfRangeRound(3, "")
+		tracker.AddOutOfRangeNonce(1, "")
+		tracker.AddOutOfRangeNonce(0, "")
+		tracker.AddOutOfRangeNonce(2, "")
+		tracker.AddOutOfRangeNonce(3, "")
 
 		// receive nonce ordered proofs for different shard and hash, which are not relevant
 		for i := 0; i <= 9; i++ {
-			tracker.receivedProof(&block.HeaderProof{HeaderRound: uint64(i), HeaderShardId: 1})
-			tracker.receivedProof(&block.HeaderProof{HeaderRound: uint64(i), HeaderHash: []byte("h")})
+			tracker.receivedProof(&block.HeaderProof{HeaderNonce: uint64(i), HeaderShardId: 1})
+			tracker.receivedProof(&block.HeaderProof{HeaderNonce: uint64(i), HeaderHash: []byte("h")})
 		}
 
-		tracker.receivedProof(&block.HeaderProof{HeaderRound: 0})
-		tracker.receivedProof(&block.HeaderProof{HeaderRound: 1})
-		tracker.receivedProof(&block.HeaderProof{HeaderRound: 2})
-		tracker.receivedProof(&block.HeaderProof{HeaderRound: 3})
+		tracker.receivedProof(&block.HeaderProof{HeaderNonce: 0})
+		tracker.receivedProof(&block.HeaderProof{HeaderNonce: 1})
+		tracker.receivedProof(&block.HeaderProof{HeaderNonce: 2})
+		tracker.receivedProof(&block.HeaderProof{HeaderNonce: 3})
 
-		tracker.AddOutOfRangeRound(4, "")
-		tracker.AddOutOfRangeRound(5, "")
+		tracker.AddOutOfRangeNonce(4, "")
+		tracker.AddOutOfRangeNonce(5, "")
 
-		tracker.receivedProof(&block.HeaderProof{HeaderRound: 4})
+		tracker.receivedProof(&block.HeaderProof{HeaderNonce: 4})
 		require.False(t, wasSyncCalled)
 
-		tracker.AddOutOfRangeRound(6, "")
-		tracker.AddOutOfRangeRound(7, "")
-		tracker.AddOutOfRangeRound(8, "")
-		tracker.AddOutOfRangeRound(9, "")
-		tracker.AddOutOfRangeRound(10, "")
+		tracker.AddOutOfRangeNonce(6, "")
+		tracker.AddOutOfRangeNonce(7, "")
+		tracker.AddOutOfRangeNonce(8, "")
+		tracker.AddOutOfRangeNonce(9, "")
+		tracker.AddOutOfRangeNonce(10, "")
 
-		tracker.receivedProof(&block.HeaderProof{HeaderRound: 5})
-		tracker.receivedProof(&block.HeaderProof{HeaderRound: 6})
-		tracker.receivedProof(&block.HeaderProof{HeaderRound: 7})
-		tracker.receivedProof(&block.HeaderProof{HeaderRound: 8})
+		tracker.receivedProof(&block.HeaderProof{HeaderNonce: 5})
+		tracker.receivedProof(&block.HeaderProof{HeaderNonce: 6})
+		tracker.receivedProof(&block.HeaderProof{HeaderNonce: 7})
+		tracker.receivedProof(&block.HeaderProof{HeaderNonce: 8})
 		require.False(t, wasSyncCalled)
 
-		tracker.receivedProof(&block.HeaderProof{HeaderRound: 9})
+		tracker.receivedProof(&block.HeaderProof{HeaderNonce: 9})
 		require.True(t, wasSyncCalled)
 
-		// Rounds 1-10 are out of range with received proofs, should force sync
-		tracker.receivedProof(&block.HeaderProof{HeaderRound: 10})
+		// Nonces 1-10 are out of range with received proofs, should force sync
+		tracker.receivedProof(&block.HeaderProof{HeaderNonce: 10})
 		require.True(t, wasSyncCalled)
 
-		// Receive proof for the same header round, should not force resync again
+		// Receive proof for the same header nonce, should not force resync again
 		wasSyncCalled = false
-		tracker.receivedProof(&block.HeaderProof{HeaderRound: 10})
+		tracker.receivedProof(&block.HeaderProof{HeaderNonce: 10})
 		require.False(t, wasSyncCalled)
 
-		// Receive proof, but no out of range round, should not force resync
-		tracker.receivedProof(&block.HeaderProof{HeaderRound: 11})
+		// Receive proof, but no out of range nonce, should not force resync
+		tracker.receivedProof(&block.HeaderProof{HeaderNonce: 11})
 		require.False(t, wasSyncCalled)
 	})
 
@@ -143,21 +143,21 @@ func TestHeaderTracker_ShouldForceNTPResync(t *testing.T) {
 			},
 		}
 
-		tracker, _ := NewRoundSyncController(proofsPool, syncer, 0)
+		tracker, _ := NewNtpSyncController(proofsPool, syncer, 0)
 
 		for i := 0; i <= 7; i++ {
-			tracker.AddOutOfRangeRound(uint64(i), "")
-			tracker.receivedProof(&block.HeaderProof{HeaderRound: uint64(i)})
+			tracker.AddOutOfRangeNonce(uint64(i), "")
+			tracker.receivedProof(&block.HeaderProof{HeaderNonce: uint64(i)})
 		}
 
-		tracker.AddOutOfRangeRound(9, "")
+		tracker.AddOutOfRangeNonce(9, "")
 		require.False(t, wasSyncCalled)
 
 		// add for self leader, without receiving proof
-		tracker.AddLeaderRoundAsOutOfRange(8, "")
+		tracker.AddLeaderNonceAsOutOfRange(8, "")
 		require.False(t, wasSyncCalled)
 
-		tracker.receivedProof(&block.HeaderProof{HeaderRound: 9})
+		tracker.receivedProof(&block.HeaderProof{HeaderNonce: 9})
 		require.True(t, wasSyncCalled)
 	})
 
@@ -172,10 +172,10 @@ func TestHeaderTracker_ShouldForceNTPResync(t *testing.T) {
 			},
 		}
 
-		tracker, _ := NewRoundSyncController(proofsPool, syncer, 0)
+		tracker, _ := NewNtpSyncController(proofsPool, syncer, 0)
 
 		for i := 0; i <= 9; i++ {
-			tracker.AddLeaderRoundAsOutOfRange(uint64(i), "")
+			tracker.AddLeaderNonceAsOutOfRange(uint64(i), "")
 		}
 
 		// 10 consecutive leader proposed headers will trigger ntp force sync

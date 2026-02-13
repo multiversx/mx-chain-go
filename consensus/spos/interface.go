@@ -284,12 +284,12 @@ type InvalidSignersCache interface {
 	IsInterfaceNil() bool
 }
 
-// RoundSyncControllerHandler detects round desynchronization and triggers a forced NTP resync.
+// NtpSyncControllerHandler detects round desynchronization and triggers a forced NTP resync.
 // If the local clock drifts and the node repeatedly receives valid block proofs for rounds
 // that fall outside the expected range, the handler identifies this pattern as a de-sync
 // condition and initiates time resynchronization.
-type RoundSyncControllerHandler interface {
-	AddOutOfRangeRound(round uint64, hash string)
-	AddLeaderRoundAsOutOfRange(round uint64, hash string)
+type NtpSyncControllerHandler interface {
+	AddOutOfRangeNonce(nonce uint64, hash string)
+	AddLeaderNonceAsOutOfRange(nonce uint64, hash string)
 	IsInterfaceNil() bool
 }
