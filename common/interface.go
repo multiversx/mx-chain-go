@@ -517,6 +517,7 @@ type AntifloodConfigsHandler interface {
 	GetCurrentConfig() config.AntifloodConfigByRound
 	GetFloodPreventerConfigByType(configType FloodPreventerType) config.FloodPreventerConfig
 	IsEnabled() bool
+	SetActivationRound(round uint64, log logger.Logger)
 	IsInterfaceNil() bool
 }
 

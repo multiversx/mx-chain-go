@@ -5,6 +5,8 @@ import (
 	"strings"
 	"testing"
 
+	logger "github.com/multiversx/mx-chain-logger-go"
+
 	"github.com/multiversx/mx-chain-go/common"
 	"github.com/multiversx/mx-chain-go/common/configs"
 	"github.com/multiversx/mx-chain-go/config"
@@ -243,4 +245,41 @@ func TestAntifloodConfigs_GetFloodPreventerConfigByType(t *testing.T) {
 
 	other := handler.GetFloodPreventerConfigByType(common.FloodPreventerType("other"))
 	require.Equal(t, config.FloodPreventerConfig{}, other) // empty config
+}
+
+func TestAntifloodConfigs_SetActivationRound(t *testing.T) {
+	t.Parallel()
+
+	afConf := config.AntifloodConfig{
+		Enabled:        true,
+		ConfigsByRound: getAntifloodConfigsByRound(),
+	}
+
+	currentRound := uint64(50)
+	roundNotifier := &epochNotifier.RoundNotifierStub{
+		CurrentRoundCalled: func() uint64 {
+			return currentRound
+		},
+	}
+	handler, err := configs.NewAntifloodConfigsHandler(afConf, roundNotifier)
+	require.NoError(t, err)
+	require.NotNil(t, handler)
+
+	// Before SetActivationRound, the last config has round 100
+	currentRound = 120
+	currentConfig := handler.GetCurrentConfig()
+	require.Equal(t, uint64(100), currentConfig.Round)
+
+	// Set activation round to 500
+	testLog := logger.GetOrCreate("test")
+	handler.SetActivationRound(500, testLog)
+
+	// Now at round 120, the last config (round 500) should not be active
+	currentConfig = handler.GetCurrentConfig()
+	require.Equal(t, uint64(0), currentConfig.Round)
+
+	// At round 500, the last config should be active
+	currentRound = 500
+	currentConfig = handler.GetCurrentConfig()
+	require.Equal(t, uint64(500), currentConfig.Round)
 }

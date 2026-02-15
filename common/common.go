@@ -609,11 +609,16 @@ type VersionsConfigWithSet interface {
 	SetActivationRound(round uint64, log logger.Logger)
 }
 
+type AntifloodConfigsHandlerWithSet interface {
+	SetActivationRound(round uint64, log logger.Logger)
+}
+
 var erh EnableEpochsHandlerWithSet
 var eeh EnableEpochsHandler
 var pch ProcessConfigsHandlerWithSet
 var cch CommonConfigsHandlerWithSet
 var vch VersionsConfigWithSet
+var ach AntifloodConfigsHandlerWithSet
 
 func SetEnableRoundsHandler(enableRoundsHandler EnableEpochsHandlerWithSet) {
 	erh = enableRoundsHandler
@@ -635,6 +640,10 @@ func SetVersionsConfigHandler(versions *config.VersionsConfig) {
 	vch = versions
 }
 
+func SetAntifloodConfigsHandler(handler AntifloodConfigsHandler) {
+	ach = handler
+}
+
 func SetSuperNovaActivationRound(epoch uint32, round uint64) {
 	isEnabled := eeh.GetActivationEpoch(SupernovaFlag) == epoch && eeh.IsFlagEnabledInEpoch(SupernovaFlag, epoch)
 	log.Info("SetSuperNovaActivationRound", "currentRound", round, "activationRound", round+20, "epoch", epoch, "is enabled in current round", isEnabled)
@@ -644,5 +653,6 @@ func SetSuperNovaActivationRound(epoch uint32, round uint64) {
 		pch.SetActivationRound(supernovaRound, log)
 		cch.SetActivationRound(supernovaRound, log)
 		vch.SetActivationRound(supernovaRound, log)
+		ach.SetActivationRound(supernovaRound, log)
 	}
 }
