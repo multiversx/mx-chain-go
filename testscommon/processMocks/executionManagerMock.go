@@ -14,7 +14,7 @@ type ExecutionManagerMock struct {
 	AddPairForExecutionCalled                    func(pair cache.HeaderBodyPair) error
 	GetPendingExecutionResultsCalled             func() ([]data.BaseExecutionResultHandler, error)
 	CleanConfirmedExecutionResultsCalled         func(header data.HeaderHandler) error
-	CleanOnConsensusReachedCalled                func(headerHash []byte, nonce uint64)
+	CleanOnConsensusReachedCalled                func(headerHash []byte, header data.HeaderHandler)
 	SetLastNotarizedResultCalled                 func(executionResult data.BaseExecutionResultHandler) error
 	RemoveAtNonceAndHigherCalled                 func(nonce uint64) error
 	ResetAndResumeExecutionCalled                func(lastNotarizedResult data.BaseExecutionResultHandler) error
@@ -64,9 +64,9 @@ func (emm *ExecutionManagerMock) CleanConfirmedExecutionResults(header data.Head
 }
 
 // CleanOnConsensusReached -
-func (emm *ExecutionManagerMock) CleanOnConsensusReached(headerHash []byte, nonce uint64) {
+func (emm *ExecutionManagerMock) CleanOnConsensusReached(headerHash []byte, header data.HeaderHandler) {
 	if emm.CleanOnConsensusReachedCalled != nil {
-		emm.CleanOnConsensusReachedCalled(headerHash, nonce)
+		emm.CleanOnConsensusReachedCalled(headerHash, header)
 	}
 }
 

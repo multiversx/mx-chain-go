@@ -153,6 +153,7 @@ func GetGeneralConfig() config.Config {
 			MinTransactionVersion:    1,
 			GenesisMaxNumberOfShards: 3,
 			SetGuardianEpochsDelay:   20,
+			MaxProposalNonceGap:      10,
 			ChainParametersByEpoch: []config.ChainParametersByEpochConfig{
 				{
 					EnableEpoch:                 0,

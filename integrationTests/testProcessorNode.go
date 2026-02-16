@@ -2548,7 +2548,7 @@ func (tpn *TestProcessorNode) initBlockProcessor() {
 	tpn.BlocksCache = headersCache.NewHeaderBodyCache(config.HeaderBodyCacheConfig{})
 
 	argsExecutionManager := executionManager.ArgsExecutionManager{
-		BlocksQueue:             tpn.BlocksCache,
+		BlocksCache:             tpn.BlocksCache,
 		ExecutionResultsTracker: executionResultsTracker,
 		BlockChain:              tpn.BlockChain,
 		Headers:                 tpn.DataPool.Headers(),

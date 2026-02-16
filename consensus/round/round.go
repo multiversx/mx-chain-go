@@ -29,6 +29,7 @@ type ArgsRound struct {
 	StartRound                int64
 	SupernovaStartRound       int64
 	EnableRoundsHandler       common.EnableRoundsHandler
+	ImportDBMode              bool
 }
 
 // round defines the data needed by the roundHandler
@@ -42,6 +43,7 @@ type round struct {
 	syncTimer                 ntp.SyncTimer
 	startRound                int64
 	supernovaStartRound       int64
+	importDBMode              bool
 
 	*sync.RWMutex
 
@@ -70,6 +72,7 @@ func NewRound(args ArgsRound) (*round, error) {
 		genesisTimeStamp:          args.GenesisTimeStamp,
 		RWMutex:                   &sync.RWMutex{},
 		enableRoundsHandler:       args.EnableRoundsHandler,
+		importDBMode:              args.ImportDBMode,
 	}
 	rnd.UpdateRound(args.GenesisTimeStamp, args.CurrentTimeStamp)
 
@@ -115,7 +118,7 @@ func (rnd *round) isSupernovaActivated(currentTimeStamp time.Time) bool {
 
 	currentTimeAfterSupernova := currentTimeStamp.UnixMilli() >= rnd.supernovaGenesisTimeStamp.UnixMilli()
 
-	if currentTimeAfterSupernova {
+	if currentTimeAfterSupernova && !rnd.importDBMode {
 		log.Debug("isSupernovaActivated: force set supernovaActivated",
 			"currentTimeAfterSupernova", currentTimeAfterSupernova,
 		)

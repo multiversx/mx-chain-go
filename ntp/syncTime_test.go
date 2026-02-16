@@ -4,6 +4,7 @@ import (
 	"errors"
 	"fmt"
 	"sync"
+	"sync/atomic"
 	"testing"
 	"time"
 
@@ -161,7 +162,7 @@ func TestCallQueryShouldErrIndexOutOfBounds(t *testing.T) {
 }
 
 func TestCallQueryShouldWork(t *testing.T) {
-	//TODO fix this test
+	// TODO fix this test
 	t.Skip("rework this test as to not rely on the internet connection")
 	t.Parallel()
 
@@ -182,7 +183,7 @@ func TestNtpHostIsChange(t *testing.T) {
 	st := ntp.NewSyncTime(ntpConfig, queryMock5)
 	st.Sync()
 
-	//HostIndex will be equal with 1 and time offset will be a second
+	// HostIndex will be equal with 1 and time offset will be a second
 	assert.Equal(t, time.Second, st.ClockOffset())
 }
 
@@ -195,69 +196,6 @@ func TestSyncShouldNotUpdateClockOffset(t *testing.T) {
 	st.Sync()
 
 	assert.Equal(t, time.Millisecond, st.ClockOffset())
-}
-
-func TestGetClockOffsetsWithoutEdges(t *testing.T) {
-	t.Parallel()
-
-	st := ntp.NewSyncTime(config.NTPConfig{SyncPeriodSeconds: 1, OutOfBoundsThreshold: 200}, nil)
-
-	clockOffsets := make([]time.Duration, 0)
-	clockOffsetsWithoutEdges := st.GetClockOffsetsWithoutEdges(clockOffsets)
-	require.Equal(t, 0, len(clockOffsetsWithoutEdges))
-
-	clockOffsets = []time.Duration{100}
-	clockOffsetsWithoutEdges = st.GetClockOffsetsWithoutEdges(clockOffsets)
-	require.Equal(t, 1, len(clockOffsetsWithoutEdges))
-
-	clockOffsets = []time.Duration{100, 54}
-	clockOffsetsWithoutEdges = st.GetClockOffsetsWithoutEdges(clockOffsets)
-	require.Equal(t, 2, len(clockOffsetsWithoutEdges))
-	assert.Equal(t, time.Duration(54), clockOffsetsWithoutEdges[0])
-	assert.Equal(t, time.Duration(100), clockOffsetsWithoutEdges[1])
-
-	clockOffsets = []time.Duration{100, 54, 2}
-	clockOffsetsWithoutEdges = st.GetClockOffsetsWithoutEdges(clockOffsets)
-	require.Equal(t, 3, len(clockOffsetsWithoutEdges))
-	assert.Equal(t, time.Duration(2), clockOffsetsWithoutEdges[0])
-	assert.Equal(t, time.Duration(54), clockOffsetsWithoutEdges[1])
-	assert.Equal(t, time.Duration(100), clockOffsetsWithoutEdges[2])
-
-	clockOffsets = []time.Duration{100, 54, 2, 52}
-	clockOffsetsWithoutEdges = st.GetClockOffsetsWithoutEdges(clockOffsets)
-	require.Equal(t, 4, len(clockOffsetsWithoutEdges))
-	assert.Equal(t, time.Duration(2), clockOffsetsWithoutEdges[0])
-	assert.Equal(t, time.Duration(52), clockOffsetsWithoutEdges[1])
-	assert.Equal(t, time.Duration(54), clockOffsetsWithoutEdges[2])
-	assert.Equal(t, time.Duration(100), clockOffsetsWithoutEdges[3])
-
-	clockOffsets = []time.Duration{100, 54, 12, 52, 16, 1, 70}
-	clockOffsetsWithoutEdges = st.GetClockOffsetsWithoutEdges(clockOffsets)
-	require.Equal(t, 5, len(clockOffsetsWithoutEdges))
-	assert.Equal(t, time.Duration(12), clockOffsetsWithoutEdges[0])
-	assert.Equal(t, time.Duration(16), clockOffsetsWithoutEdges[1])
-	assert.Equal(t, time.Duration(52), clockOffsetsWithoutEdges[2])
-	assert.Equal(t, time.Duration(54), clockOffsetsWithoutEdges[3])
-	assert.Equal(t, time.Duration(70), clockOffsetsWithoutEdges[4])
-}
-
-func TestGetHarmonicMean(t *testing.T) {
-	t.Parallel()
-
-	st := ntp.NewSyncTime(config.NTPConfig{SyncPeriodSeconds: 1, OutOfBoundsThreshold: 200}, nil)
-
-	clockOffsets := make([]time.Duration, 0)
-	harmonicMean := st.GetHarmonicMean(clockOffsets)
-	assert.Equal(t, time.Duration(0), harmonicMean)
-
-	clockOffsets = []time.Duration{2, 0, 3}
-	harmonicMean = st.GetHarmonicMean(clockOffsets)
-	assert.Equal(t, time.Duration(0), harmonicMean)
-
-	// harmonic mean for 4, 1, 4 is equal with: 3 / (1/4 + 1/1 + 1/4) = 3 / 1.5 = 2
-	clockOffsets = []time.Duration{4, 1, 4}
-	harmonicMean = st.GetHarmonicMean(clockOffsets)
-	assert.Equal(t, time.Duration(2), harmonicMean)
 }
 
 func TestGetSleepTime(t *testing.T) {
@@ -348,7 +286,7 @@ func TestCallQueryShouldUpdateOnOutOfBoundValuesNegative(t *testing.T) {
 	st.SetClockOffset(currentValue)
 	st.Sync()
 
-	expValue := -2 - 2*time.Millisecond + 1 // + 1 due to added constant in harmonic mean calculation
+	expValue := -2 - 2*time.Millisecond
 
 	assert.Equal(t, expValue, st.ClockOffset())
 }
@@ -479,6 +417,115 @@ func TestCall_Sync_AcceptedBoundsChecks(t *testing.T) {
 	})
 }
 
+func TestSyncTime_ForceSync(t *testing.T) {
+	t.Parallel()
+
+	t.Run("ForceSync should work", func(t *testing.T) {
+		t.Parallel()
+
+		numCalls := 0
+
+		st := ntp.NewSyncTime(
+			config.NTPConfig{
+				SyncPeriodSeconds:    3600,
+				Hosts:                []string{"host1"},
+				OutOfBoundsThreshold: 2,
+			},
+			func(options ntp.NTPOptions, hostIndex int) (*beevikNtp.Response, error) {
+				numCalls++
+
+				time.Sleep(1 * time.Millisecond)
+
+				return &beevikNtp.Response{
+					ClockOffset: 1 * time.Millisecond,
+				}, nil
+			},
+		)
+
+		currentValue := 3 * time.Millisecond
+		st.SetClockOffset(currentValue)
+
+		st.ForceSync()
+
+		time.Sleep(time.Duration(ntp.NumRequestsFromHost+5) * time.Millisecond)
+
+		expClockOffset := 1 * time.Millisecond
+		assert.Equal(t, expClockOffset, st.ClockOffset())
+
+		require.Equal(t, ntp.NumRequestsFromHost, numCalls)
+	})
+
+	t.Run("TriggerSync should trigger multiple times", func(t *testing.T) {
+		t.Parallel()
+
+		numCalls := &atomic.Uint32{}
+
+		st := ntp.NewSyncTime(
+			config.NTPConfig{
+				SyncPeriodSeconds:    3600,
+				Hosts:                []string{"host1"},
+				OutOfBoundsThreshold: 2,
+			},
+			func(options ntp.NTPOptions, hostIndex int) (*beevikNtp.Response, error) {
+				numCalls.Add(1)
+
+				time.Sleep(2 * time.Millisecond)
+
+				return &beevikNtp.Response{
+					ClockOffset: 1 * time.Millisecond,
+				}, nil
+			},
+		)
+
+		currentValue := 3 * time.Millisecond
+		st.SetClockOffset(currentValue)
+
+		// multiple calls should trigger multiple times
+		st.TriggerSync()
+		st.TriggerSync()
+		st.TriggerSync()
+		st.TriggerSync()
+
+		expClockOffset := 1 * time.Millisecond
+		assert.Equal(t, expClockOffset, st.ClockOffset())
+
+		require.Equal(t, ntp.NumRequestsFromHost*4, int(numCalls.Load()))
+	})
+
+	t.Run("direct trigger should not trigger if already in progress", func(t *testing.T) {
+		t.Parallel()
+
+		numCalls := &atomic.Uint32{}
+
+		st := ntp.NewSyncTime(
+			config.NTPConfig{
+				SyncPeriodSeconds:    3600,
+				Hosts:                []string{"host1"},
+				OutOfBoundsThreshold: 2,
+			},
+			func(options ntp.NTPOptions, hostIndex int) (*beevikNtp.Response, error) {
+				numCalls.Add(1)
+
+				time.Sleep(10 * time.Millisecond)
+
+				return &beevikNtp.Response{
+					ClockOffset: 1 * time.Millisecond,
+				}, nil
+			},
+		)
+
+		// multiple ForceSync calls should not trigger if already syncing
+		go st.TriggerSync()
+		st.ForceSync()
+		st.ForceSync()
+		st.ForceSync()
+
+		time.Sleep(time.Duration(ntp.NumRequestsFromHost*10+10) * time.Millisecond)
+
+		require.Equal(t, ntp.NumRequestsFromHost, int(numCalls.Load()))
+	})
+}
+
 // On local machine, seems like average query time is ~35ms, e.g.:
 // Avg response time from host: time.google.com is 42.928837ms
 // Avg response time from host: time.cloudflare.com is 13.877162ms
@@ -533,4 +580,47 @@ func TestCallQueryShouldWorkMeasurements(t *testing.T) {
 
 	avgGlobalTime := totalGlobalDuration / time.Duration(totalRequests)
 	fmt.Printf("Global average response time is %s\n", avgGlobalTime)
+}
+
+func TestGetClockOffsetsWithoutEdges1(t *testing.T) {
+	t.Parallel()
+
+	expectedValue := -706902 * time.Nanosecond
+	clockOffsets := []time.Duration{
+		-1855712 * time.Nanosecond, // -1.855712ms
+		-1621517 * time.Nanosecond, // -1.621517ms
+		-1682624 * time.Nanosecond, // -1.682624ms
+		-1732382 * time.Nanosecond, // -1.732382ms
+		-1793740 * time.Nanosecond, // -1.79374ms
+		-1739692 * time.Nanosecond, // -1.739692ms
+		-1791143 * time.Nanosecond, // -1.791143ms
+		-1680870 * time.Nanosecond, // -1.68087ms
+		-1674741 * time.Nanosecond, // -1.674741ms
+		-1678761 * time.Nanosecond, // -1.678761ms
+		431740 * time.Nanosecond,   // 431.74µs
+		384421 * time.Nanosecond,   // 384.421µs
+		496821 * time.Nanosecond,   // 496.821µs
+		289701 * time.Nanosecond,   // 289.701µs
+		505729 * time.Nanosecond,   // 505.729µs
+		551695 * time.Nanosecond,   // 551.695µs
+		264902 * time.Nanosecond,   // 264.902µs
+		336397 * time.Nanosecond,   // 336.397µs
+		426982 * time.Nanosecond,   // 426.982µs
+		349654 * time.Nanosecond,   // 349.654µs
+		-717224 * time.Nanosecond,  // -717.224µs
+		expectedValue,
+		-709033 * time.Nanosecond, // -709.033µs
+		-613281 * time.Nanosecond, // -613.281µs
+		-705814 * time.Nanosecond, // -705.814µs
+		-691355 * time.Nanosecond, // -691.355µs
+		-602491 * time.Nanosecond, // -602.491µs
+		-733157 * time.Nanosecond, // -733.157µs
+		-754736 * time.Nanosecond, // -754.736µs
+		-732048 * time.Nanosecond, // -732.048µs
+	}
+
+	st := ntp.NewSyncTime(config.NTPConfig{SyncPeriodSeconds: 1, OutOfBoundsThreshold: 200}, nil)
+	offset, err := st.GetMedianOffset(clockOffsets)
+	require.Nil(t, err)
+	require.Equal(t, expectedValue, offset)
 }

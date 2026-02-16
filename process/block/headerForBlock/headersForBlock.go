@@ -79,7 +79,7 @@ func NewHeadersForBlock(args ArgHeadersForBlock) (*headersForBlock, error) {
 		extraDelayRequestBlockInfo: time.Duration(args.ExtraDelayForRequestBlockInfoInMilliseconds) * time.Millisecond,
 		genesisNonce:               args.GenesisNonce,
 		blockFinality:              process.BlockFinality,
-		chRcvAllHdrs:               make(chan bool),
+		chRcvAllHdrs:               make(chan bool, 1),
 		hdrHashAndInfo:             make(map[string]HeaderInfo),
 		highestHdrNonce:            make(map[uint32]uint64),
 		lastNotarizedShardHeaders:  make(map[uint32]LastNotarizedHeaderInfoHandler),
@@ -614,6 +614,9 @@ func (hfb *headersForBlock) checkReceivedProofIfAttestingIsNeeded(proof data.Hea
 		return
 	}
 
+	hInfo.SetHasProof(true)
+	hInfo.SetHasProofRequested(false)
+
 	if hfb.missingProofs > 0 {
 		hfb.missingProofs--
 	}
@@ -625,7 +628,10 @@ func (hfb *headersForBlock) checkReceivedProofIfAttestingIsNeeded(proof data.Hea
 
 	allMissingHeadersReceived := missingHdrs == 0 && missingFinalityAttestingHdrs == 0 && missingProofs == 0
 	if allMissingHeadersReceived {
-		hfb.chRcvAllHdrs <- true
+		select {
+		case hfb.chRcvAllHdrs <- true:
+		default:
+		}
 	}
 }
 
@@ -684,7 +690,10 @@ func (hfb *headersForBlock) receivedShardBlock(headerHandler data.HeaderHandler,
 
 		allMissingShardHeadersReceived := missingHdrs == 0 && missingFinalityAttestingHdrs == 0 && missingProofs == 0
 		if allMissingShardHeadersReceived {
-			hfb.chRcvAllHdrs <- true
+			select {
+			case hfb.chRcvAllHdrs <- true:
+			default:
+			}
 		}
 	} else {
 		hfb.mutHdrsForBlock.Unlock()
@@ -769,7 +778,10 @@ func (hfb *headersForBlock) receivedMetaBlock(headerHandler data.HeaderHandler, 
 
 		allMissingMetaHeadersReceived := missingHdrs == 0 && missingFinalityAttestingHdrs == 0 && missingProofs == 0
 		if allMissingMetaHeadersReceived {
-			hfb.chRcvAllHdrs <- true
+			select {
+			case hfb.chRcvAllHdrs <- true:
+			default:
+			}
 		}
 	} else {
 		hfb.mutHdrsForBlock.Unlock()

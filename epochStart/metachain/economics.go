@@ -492,7 +492,15 @@ func (e *economics) adjustRewardsPerBlockWithLeaderPercentage(
 
 // compute inflation rate from genesisTotalSupply and economics settings for that year
 func (e *economics) computeInflationBeforeSupernova(currentRound uint64, epoch uint32) float64 {
-	roundsPerDay := numberOfSecondsInDay / uint64(e.roundTime.TimeDuration().Seconds())
+	roundDurationInSec := e.roundTime.TimeDuration().Seconds()
+	if roundDurationInSec <= 0 {
+		// this means that round duration is sub-seconds
+		// set it to 1 second
+		log.Error("computeInflationBeforeSupernova: sub second round time before supernova activation")
+		roundDurationInSec = 1
+	}
+
+	roundsPerDay := numberOfSecondsInDay / uint64(roundDurationInSec)
 	roundsPerYear := numberOfDaysInYear * roundsPerDay
 	yearsIndex := uint32(currentRound/roundsPerYear) + 1
 

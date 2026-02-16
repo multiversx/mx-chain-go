@@ -63,6 +63,7 @@ type HeaderHandlerStub struct {
 	IsHeaderV3Called                         func() bool
 	GetMiniBlockHeaderHandlersCalled         func() []data.MiniBlockHeaderHandler
 	SetEpochStartMetaHashCalled              func(hash []byte) error
+	GetShardInfoHandlersCalled               func() []data.ShardDataHandler
 	SetLastExecutionResultHandlerCalled      func(resultHandler data.LastExecutionResultHandler) error
 	SetExecutionResultsHandlersCalled        func(resultHandlers []data.BaseExecutionResultHandler) error
 	SetEpochCalled                           func(epoch uint32) error
@@ -463,7 +464,10 @@ func (hhs *HeaderHandlerStub) SetEpochStartMetaHash(hash []byte) error {
 
 // GetShardInfoHandlers -
 func (hhs *HeaderHandlerStub) GetShardInfoHandlers() []data.ShardDataHandler {
-	panic("implement me")
+	if hhs.GetShardInfoHandlersCalled != nil {
+		return hhs.GetShardInfoHandlersCalled()
+	}
+	return make([]data.ShardDataHandler, 0)
 }
 
 // GetEpochStartHandler -

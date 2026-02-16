@@ -14,6 +14,7 @@ import (
 	"github.com/multiversx/mx-chain-core-go/core"
 	"github.com/multiversx/mx-chain-core-go/core/closing"
 	logger "github.com/multiversx/mx-chain-logger-go"
+	"golang.org/x/sync/singleflight"
 
 	"github.com/multiversx/mx-chain-go/config"
 )
@@ -43,6 +44,8 @@ const minTimeout = 100
 // maxAllowedNTPQueryResponseTimeMS specifies the maximum duration (in milliseconds)
 // allowed for an NTP query. If a query takes longer than this limit, its response will be disregarded.
 const maxAllowedNTPQueryResponseTimeMS = 200
+
+const syncKey = "ntp-sync"
 
 // NTPOptions defines configuration options for a NTP query
 type NTPOptions struct {
@@ -93,6 +96,8 @@ type syncTime struct {
 	query                func(options NTPOptions, hostIndex int) (*ntp.Response, error)
 	cancelFunc           func()
 	outOfBoundsThreshold time.Duration
+
+	sf singleflight.Group
 }
 
 // NewSyncTime creates a syncTime object. The customQueryFunc argument allows the caller to set a different NTP-querying
@@ -127,7 +132,7 @@ func (s *syncTime) StartSyncingTime() {
 
 func (s *syncTime) startSync(ctx context.Context) {
 	for {
-		s.sync()
+		s.triggerSync()
 
 		select {
 		case <-ctx.Done():
@@ -150,9 +155,30 @@ func (s *syncTime) getSleepTime() time.Duration {
 	return s.syncPeriod + time.Duration(offset)
 }
 
-// ForceSync will force sync
+// ForceSync will trigger ntp sync and does not wait for completion
+// it will not trigger if sync already in progress
 func (s *syncTime) ForceSync() {
-	s.sync()
+	ch := s.sf.DoChan(syncKey, func() (any, error) {
+		s.sync()
+		return nil, nil
+	})
+
+	select {
+	case <-ch:
+	default:
+		log.Debug("ForceSync ignored: sync already in progress")
+	}
+}
+
+// triggerSync will trigger sync and waits for completion
+// this is called periodically in the ntp sync loop
+func (s *syncTime) triggerSync() {
+	ch := s.sf.DoChan(syncKey, func() (any, error) {
+		s.sync()
+		return nil, nil
+	})
+
+	<-ch
 }
 
 // sync method does the time synchronization and sets the harmonic mean offset difference between local time
@@ -175,7 +201,7 @@ func (s *syncTime) sync() {
 			}
 
 			if duration.Milliseconds() > maxAllowedNTPQueryResponseTimeMS {
-				log.Trace("sync.query exceeds maximum allowed response time",
+				log.Debug("sync.query exceeds maximum allowed response time",
 					"host", s.ntpOptions.Hosts[hostIndex],
 					"port", s.ntpOptions.Port,
 					"duration", duration,
@@ -183,7 +209,7 @@ func (s *syncTime) sync() {
 				continue
 			}
 
-			log.Trace("sync.query",
+			log.Debug("sync.query",
 				"host", s.ntpOptions.Hosts[hostIndex],
 				"reference time", response.ReferenceTime.Format("Mon Jan 2 15:04:05 MST 2006"),
 				"time", response.Time.Format("Mon Jan 2 15:04:05 MST 2006"),
@@ -205,60 +231,39 @@ func (s *syncTime) sync() {
 		return
 	}
 
-	clockOffsetsWithoutEdges := s.getClockOffsetsWithoutEdges(clockOffsets)
-	clockOffsetHarmonicMean := s.getHarmonicMean(clockOffsetsWithoutEdges)
+	clockOffset, err := s.getMedianOffset(clockOffsets)
+	if err != nil {
+		log.Debug("sync.getMedianOffset", "error", err.Error())
+		return
+	}
 
-	isClockOffsetOutOfBounds := core.AbsDuration(clockOffsetHarmonicMean) > s.outOfBoundsThreshold
+	isClockOffsetOutOfBounds := core.AbsDuration(clockOffset) > s.outOfBoundsThreshold
 
 	if isClockOffsetOutOfBounds {
 		log.Warn("syncTime.sync: clock offset is out of expected bounds",
-			"clock offset harmonic mean", clockOffsetHarmonicMean,
+			"clock offset harmonic mean", clockOffset,
 			"outOfBoundsThreshold", s.outOfBoundsThreshold,
 		)
 	}
 
-	s.setClockOffset(clockOffsetHarmonicMean)
+	s.setClockOffset(clockOffset)
 
 	log.Debug("sync.setClockOffset done",
 		"num clock offsets", len(clockOffsets),
-		"num clock offsets without edges", len(clockOffsetsWithoutEdges),
-		"clock offset harmonic mean", clockOffsetHarmonicMean)
+		"num clock offsets", len(clockOffsets),
+		"clock offset median", clockOffset)
 }
 
-func (s *syncTime) getClockOffsetsWithoutEdges(clockOffsets []time.Duration) []time.Duration {
+func (s *syncTime) getMedianOffset(clockOffsets []time.Duration) (time.Duration, error) {
+	if len(clockOffsets) == 0 {
+		return time.Duration(0), ErrNoClockOffsets
+	}
 	sort.Slice(clockOffsets, func(i, j int) bool {
 		return clockOffsets[i] < clockOffsets[j]
 	})
 
-	cuttingOutPercentPerEdge := cuttingOutPercent / 2
-	startIndex := math.Floor(float64(len(clockOffsets)) * cuttingOutPercentPerEdge)
-	endIndex := math.Ceil(float64(len(clockOffsets)) * (1 - cuttingOutPercentPerEdge))
-
-	return clockOffsets[int(startIndex):int(endIndex)]
-}
-
-func (s *syncTime) getHarmonicMean(clockOffsets []time.Duration) time.Duration {
-	inverseClockOffsetSum := float64(0)
-	for index, clockOffset := range clockOffsets {
-		if clockOffset == 0 {
-			return time.Duration(0)
-		}
-
-		inverseClockOffsetSum += 1 / float64(clockOffset)
-
-		log.Trace("getHarmonicMean",
-			"index", index,
-			"clock offset", clockOffset,
-			"inverse clock offset sum", inverseClockOffsetSum)
-	}
-
-	if inverseClockOffsetSum == 0 {
-		return time.Duration(0)
-	}
-
-	harmonicMean := float64(len(clockOffsets)) / inverseClockOffsetSum
-	//TODO: figure out why do we need to add 0.5 here
-	return time.Duration(harmonicMean + 0.5)
+	middleIndex := len(clockOffsets) / 2
+	return clockOffsets[middleIndex], nil
 }
 
 // ClockOffset method gets the current time offset
