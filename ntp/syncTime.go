@@ -27,9 +27,6 @@ var log = logger.GetOrCreate("ntp")
 // numRequestsFromHost represents the number of requests to be done from each host
 const numRequestsFromHost = 10
 
-// cuttingOutPercent [0, 1) represents the percent of received clock offsets to be removed from the edges (min and max)
-const cuttingOutPercent = 0.3
-
 // minResponsesPercent (0, 1] represents the minimum percent of responses, from all requests done, needed to set a new
 // clock offset
 const minResponsesPercent = 0.25
@@ -181,7 +178,7 @@ func (s *syncTime) triggerSync() {
 	<-ch
 }
 
-// sync method does the time synchronization and sets the harmonic mean offset difference between local time
+// sync method does the time synchronization and sets the median offset difference between local time
 // and servers time which have been used in synchronization
 func (s *syncTime) sync() {
 	clockOffsets := make([]time.Duration, 0)
@@ -222,7 +219,7 @@ func (s *syncTime) sync() {
 	}
 
 	numTotalRequests := len(s.ntpOptions.Hosts) * numRequestsFromHost
-	minClockOffsetsToAllowUpdate := math.Ceil(float64(numTotalRequests) * minResponsesPercent / (1 - cuttingOutPercent))
+	minClockOffsetsToAllowUpdate := math.Ceil(float64(numTotalRequests) * minResponsesPercent)
 	if len(clockOffsets) < int(minClockOffsetsToAllowUpdate) {
 		log.Debug("sync.setClockOffset NOT done",
 			"clock offsets", len(clockOffsets),
@@ -231,60 +228,42 @@ func (s *syncTime) sync() {
 		return
 	}
 
-	clockOffsetsWithoutEdges := s.getClockOffsetsWithoutEdges(clockOffsets)
-	clockOffsetHarmonicMean := s.getHarmonicMean(clockOffsetsWithoutEdges)
+	clockOffset, err := s.getMedianOffset(clockOffsets)
+	if err != nil {
+		log.Debug("sync.getMedianOffset", "error", err.Error())
+		return
+	}
 
-	isClockOffsetOutOfBounds := core.AbsDuration(clockOffsetHarmonicMean) > s.outOfBoundsThreshold
+	isClockOffsetOutOfBounds := core.AbsDuration(clockOffset) > s.outOfBoundsThreshold
 
 	if isClockOffsetOutOfBounds {
 		log.Warn("syncTime.sync: clock offset is out of expected bounds",
-			"clock offset harmonic mean", clockOffsetHarmonicMean,
+			"clock offset median", clockOffset,
 			"outOfBoundsThreshold", s.outOfBoundsThreshold,
 		)
 	}
 
-	s.setClockOffset(clockOffsetHarmonicMean)
+	s.setClockOffset(clockOffset)
 
 	log.Debug("sync.setClockOffset done",
 		"num clock offsets", len(clockOffsets),
-		"num clock offsets without edges", len(clockOffsetsWithoutEdges),
-		"clock offset harmonic mean", clockOffsetHarmonicMean)
+		"clock offset median", clockOffset)
 }
 
-func (s *syncTime) getClockOffsetsWithoutEdges(clockOffsets []time.Duration) []time.Duration {
+func (s *syncTime) getMedianOffset(clockOffsets []time.Duration) (time.Duration, error) {
+	if len(clockOffsets) == 0 {
+		return time.Duration(0), ErrNoClockOffsets
+	}
 	sort.Slice(clockOffsets, func(i, j int) bool {
 		return clockOffsets[i] < clockOffsets[j]
 	})
 
-	cuttingOutPercentPerEdge := cuttingOutPercent / 2
-	startIndex := math.Floor(float64(len(clockOffsets)) * cuttingOutPercentPerEdge)
-	endIndex := math.Ceil(float64(len(clockOffsets)) * (1 - cuttingOutPercentPerEdge))
-
-	return clockOffsets[int(startIndex):int(endIndex)]
-}
-
-func (s *syncTime) getHarmonicMean(clockOffsets []time.Duration) time.Duration {
-	inverseClockOffsetSum := float64(0)
-	for index, clockOffset := range clockOffsets {
-		if clockOffset == 0 {
-			return time.Duration(0)
-		}
-
-		inverseClockOffsetSum += 1 / float64(clockOffset)
-
-		log.Trace("getHarmonicMean",
-			"index", index,
-			"clock offset", clockOffset,
-			"inverse clock offset sum", inverseClockOffsetSum)
+	n := len(clockOffsets)
+	middleIndex := n / 2
+	if n%2 == 0 {
+		return (clockOffsets[middleIndex-1] + clockOffsets[middleIndex]) / 2, nil
 	}
-
-	if inverseClockOffsetSum == 0 {
-		return time.Duration(0)
-	}
-
-	harmonicMean := float64(len(clockOffsets)) / inverseClockOffsetSum
-	//TODO: figure out why do we need to add 0.5 here
-	return time.Duration(harmonicMean + 0.5)
+	return clockOffsets[middleIndex], nil
 }
 
 // ClockOffset method gets the current time offset

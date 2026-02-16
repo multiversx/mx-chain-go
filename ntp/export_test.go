@@ -34,14 +34,9 @@ func (s *syncTime) TriggerSync() {
 	s.triggerSync()
 }
 
-// GetClockOffsetsWithoutEdges -
-func (s *syncTime) GetClockOffsetsWithoutEdges(clockOffsets []time.Duration) []time.Duration {
-	return s.getClockOffsetsWithoutEdges(clockOffsets)
-}
-
-// GetHarmonicMean -
-func (s *syncTime) GetHarmonicMean(clockOffsets []time.Duration) time.Duration {
-	return s.getHarmonicMean(clockOffsets)
+// GetMedianOffset -
+func (s *syncTime) GetMedianOffset(clockOffsets []time.Duration) (time.Duration, error) {
+	return s.getMedianOffset(clockOffsets)
 }
 
 // GetSleepTime -
