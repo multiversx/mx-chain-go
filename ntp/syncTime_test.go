@@ -187,15 +187,17 @@ func TestNtpHostIsChange(t *testing.T) {
 	assert.Equal(t, time.Second, st.ClockOffset())
 }
 
-func TestSyncShouldNotUpdateClockOffset(t *testing.T) {
+func TestSyncShouldUpdateClockOffsetWhenEnoughResponses(t *testing.T) {
 	t.Parallel()
 
-	ntpConfig := config.NTPConfig{Hosts: []string{"host1", "host2", "host3"}, SyncPeriodSeconds: 1, OutOfBoundsThreshold: 200}
+	// queryMock6: host 0 succeeds (ClockOffset = 1s), hosts 1 and 2 fail
+	// 10 successful responses out of 30 total (33%) exceeds minResponsesPercent (25%)
+	ntpConfig := config.NTPConfig{Hosts: []string{"host1", "host2", "host3"}, SyncPeriodSeconds: 1, OutOfBoundsThreshold: 1200}
 	st := ntp.NewSyncTime(ntpConfig, queryMock6)
 	st.SetClockOffset(time.Millisecond)
 	st.Sync()
 
-	assert.Equal(t, time.Millisecond, st.ClockOffset())
+	assert.Equal(t, time.Second, st.ClockOffset())
 }
 
 func TestGetSleepTime(t *testing.T) {
@@ -585,42 +587,171 @@ func TestCallQueryShouldWorkMeasurements(t *testing.T) {
 func TestGetMedianOffset(t *testing.T) {
 	t.Parallel()
 
-	expectedValue := -706902 * time.Nanosecond
-	clockOffsets := []time.Duration{
-		-1855712 * time.Nanosecond, // -1.855712ms
-		-1621517 * time.Nanosecond, // -1.621517ms
-		-1682624 * time.Nanosecond, // -1.682624ms
-		-1732382 * time.Nanosecond, // -1.732382ms
-		-1793740 * time.Nanosecond, // -1.79374ms
-		-1739692 * time.Nanosecond, // -1.739692ms
-		-1791143 * time.Nanosecond, // -1.791143ms
-		-1680870 * time.Nanosecond, // -1.68087ms
-		-1674741 * time.Nanosecond, // -1.674741ms
-		-1678761 * time.Nanosecond, // -1.678761ms
-		431740 * time.Nanosecond,   // 431.74µs
-		384421 * time.Nanosecond,   // 384.421µs
-		496821 * time.Nanosecond,   // 496.821µs
-		289701 * time.Nanosecond,   // 289.701µs
-		505729 * time.Nanosecond,   // 505.729µs
-		551695 * time.Nanosecond,   // 551.695µs
-		264902 * time.Nanosecond,   // 264.902µs
-		336397 * time.Nanosecond,   // 336.397µs
-		426982 * time.Nanosecond,   // 426.982µs
-		349654 * time.Nanosecond,   // 349.654µs
-		-717224 * time.Nanosecond,  // -717.224µs
-		expectedValue,
-		-709033 * time.Nanosecond, // -709.033µs
-		-613281 * time.Nanosecond, // -613.281µs
-		-705814 * time.Nanosecond, // -705.814µs
-		-691355 * time.Nanosecond, // -691.355µs
-		-602491 * time.Nanosecond, // -602.491µs
-		-733157 * time.Nanosecond, // -733.157µs
-		-754736 * time.Nanosecond, // -754.736µs
-		-732048 * time.Nanosecond, // -732.048µs
-	}
-
 	st := ntp.NewSyncTime(config.NTPConfig{SyncPeriodSeconds: 1, OutOfBoundsThreshold: 200}, nil)
-	offset, err := st.GetMedianOffset(clockOffsets)
-	require.Nil(t, err)
-	require.Equal(t, expectedValue, offset)
+
+	t.Run("empty slice should return error", func(t *testing.T) {
+		t.Parallel()
+
+		offset, err := st.GetMedianOffset([]time.Duration{})
+		require.Equal(t, ntp.ErrNoClockOffsets, err)
+		require.Equal(t, time.Duration(0), offset)
+	})
+
+	t.Run("single element", func(t *testing.T) {
+		t.Parallel()
+
+		offset, err := st.GetMedianOffset([]time.Duration{42 * time.Millisecond})
+		require.Nil(t, err)
+		require.Equal(t, 42*time.Millisecond, offset)
+	})
+
+	t.Run("single negative element", func(t *testing.T) {
+		t.Parallel()
+
+		offset, err := st.GetMedianOffset([]time.Duration{-500 * time.Microsecond})
+		require.Nil(t, err)
+		require.Equal(t, -500*time.Microsecond, offset)
+	})
+
+	t.Run("odd count returns true middle element", func(t *testing.T) {
+		t.Parallel()
+
+		// Sorted: 10, 20, 30 \u2192 middle index = 1 \u2192 20
+		clockOffsets := []time.Duration{30 * time.Millisecond, 10 * time.Millisecond, 20 * time.Millisecond}
+		offset, err := st.GetMedianOffset(clockOffsets)
+		require.Nil(t, err)
+		require.Equal(t, 20*time.Millisecond, offset)
+	})
+
+	t.Run("even count returns average of two middle elements", func(t *testing.T) {
+		t.Parallel()
+
+		// Sorted: 10, 20, 30, 40 \u2192 median = (20 + 30) / 2 = 25
+		clockOffsets := []time.Duration{40 * time.Millisecond, 10 * time.Millisecond, 30 * time.Millisecond, 20 * time.Millisecond}
+		offset, err := st.GetMedianOffset(clockOffsets)
+		require.Nil(t, err)
+		require.Equal(t, 25*time.Millisecond, offset)
+	})
+
+	t.Run("all identical values", func(t *testing.T) {
+		t.Parallel()
+
+		val := 100 * time.Microsecond
+		clockOffsets := []time.Duration{val, val, val, val, val}
+		offset, err := st.GetMedianOffset(clockOffsets)
+		require.Nil(t, err)
+		require.Equal(t, val, offset)
+	})
+
+	t.Run("all negative values", func(t *testing.T) {
+		t.Parallel()
+
+		// Sorted: -50, -30, -20, -10, -5 -> middle index = 2 -> -20
+		clockOffsets := []time.Duration{
+			-10 * time.Millisecond,
+			-50 * time.Millisecond,
+			-20 * time.Millisecond,
+			-5 * time.Millisecond,
+			-30 * time.Millisecond,
+		}
+		offset, err := st.GetMedianOffset(clockOffsets)
+		require.Nil(t, err)
+		require.Equal(t, -20*time.Millisecond, offset)
+	})
+
+	t.Run("mixed positive and negative values", func(t *testing.T) {
+		t.Parallel()
+
+		// Sorted: -30, -10, 5, 20, 40 -> middle index = 2 -> 5
+		clockOffsets := []time.Duration{
+			20 * time.Millisecond,
+			-10 * time.Millisecond,
+			40 * time.Millisecond,
+			-30 * time.Millisecond,
+			5 * time.Millisecond,
+		}
+		offset, err := st.GetMedianOffset(clockOffsets)
+		require.Nil(t, err)
+		require.Equal(t, 5*time.Millisecond, offset)
+	})
+
+	t.Run("two elements returns average of both", func(t *testing.T) {
+		t.Parallel()
+
+		// Sorted: -6, 10 -> median = (-6 + 10) / 2 = 2
+		clockOffsets := []time.Duration{10 * time.Millisecond, -6 * time.Millisecond}
+		offset, err := st.GetMedianOffset(clockOffsets)
+		require.Nil(t, err)
+		require.Equal(t, 2*time.Millisecond, offset)
+	})
+
+	t.Run("zero offset among values", func(t *testing.T) {
+		t.Parallel()
+
+		// Sorted: -10, 0, 10 -> middle index = 1 -> 0
+		clockOffsets := []time.Duration{10 * time.Millisecond, 0, -10 * time.Millisecond}
+		offset, err := st.GetMedianOffset(clockOffsets)
+		require.Nil(t, err)
+		require.Equal(t, time.Duration(0), offset)
+	})
+
+	t.Run("realistic mixed positive and negative NTP offsets", func(t *testing.T) {
+		t.Parallel()
+
+		// 30 elements (even count): median = average of sorted[14] and sorted[15]
+		// sorted[14] = -709033ns, sorted[15] = -706902ns -> (-709033 + -706902) / 2 = -707967
+		expectedValue := -707967 * time.Nanosecond
+		clockOffsets := []time.Duration{
+			-1855712 * time.Nanosecond,
+			-1621517 * time.Nanosecond,
+			-1682624 * time.Nanosecond,
+			-1732382 * time.Nanosecond,
+			-1793740 * time.Nanosecond,
+			-1739692 * time.Nanosecond,
+			-1791143 * time.Nanosecond,
+			-1680870 * time.Nanosecond,
+			-1674741 * time.Nanosecond,
+			-1678761 * time.Nanosecond,
+			431740 * time.Nanosecond,
+			384421 * time.Nanosecond,
+			496821 * time.Nanosecond,
+			289701 * time.Nanosecond,
+			505729 * time.Nanosecond,
+			551695 * time.Nanosecond,
+			264902 * time.Nanosecond,
+			336397 * time.Nanosecond,
+			426982 * time.Nanosecond,
+			349654 * time.Nanosecond,
+			-717224 * time.Nanosecond,
+			-706902 * time.Nanosecond,
+			-709033 * time.Nanosecond,
+			-613281 * time.Nanosecond,
+			-705814 * time.Nanosecond,
+			-691355 * time.Nanosecond,
+			-602491 * time.Nanosecond,
+			-733157 * time.Nanosecond,
+			-754736 * time.Nanosecond,
+			-732048 * time.Nanosecond,
+		}
+
+		offset, err := st.GetMedianOffset(clockOffsets)
+		require.Nil(t, err)
+		require.Equal(t, expectedValue, offset)
+	})
+
+	t.Run("outlier does not affect median", func(t *testing.T) {
+		t.Parallel()
+
+		// Sorted: -1, 10, 11, 12, 1000000 -> middle index = 2 -> 11
+		clockOffsets := []time.Duration{
+			10 * time.Millisecond,
+			12 * time.Millisecond,
+			1000000 * time.Millisecond,
+			-1 * time.Millisecond,
+			11 * time.Millisecond,
+		}
+		offset, err := st.GetMedianOffset(clockOffsets)
+		require.Nil(t, err)
+		require.Equal(t, 11*time.Millisecond, offset)
+	})
 }
