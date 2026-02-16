@@ -1637,9 +1637,18 @@ func TestSelectionTracker_MaxUniqueAccounts(t *testing.T) {
 	require.Equal(t, errToManyUniqueAccountsInBlock, err)
 }
 
-func TestSelectionTracker_removeUpToBlockNoLock_orderedRemoval(t *testing.T) {
-	t.Parallel()
+type twoBlockTrackerSetup struct {
+	tracker       *selectionTracker
+	blockNonce1   uint64
+	blockNonce2   uint64
+	blockHashPrev string
+}
 
+// buildTrackerWithTwoSharedSenderBlocks creates a tracker with two consecutive tracked blocks
+// that share a common sender (alice) with contiguous nonce ranges and breadcrumbs.
+// Block1 (nonce=100): alice nonces 5-7, balance=10
+// Block2 (nonce=101): alice nonces 8-10, balance=10
+func buildTrackerWithTwoSharedSenderBlocks(t *testing.T) *twoBlockTrackerSetup {
 	txCache := newCacheToTest(maxNumBytesPerSenderUpperBoundTest, 3)
 	tracker, err := NewSelectionTracker(txCache, 0, maxTrackedBlocks)
 	require.Nil(t, err)
@@ -1691,151 +1700,63 @@ func TestSelectionTracker_removeUpToBlockNoLock_orderedRemoval(t *testing.T) {
 	tracker.globalBreadcrumbsCompiler.updateOnAddedBlock(block1)
 	tracker.globalBreadcrumbsCompiler.updateOnAddedBlock(block2)
 
-	// Verify initial global state
+	// Verify the setup is correct
 	globalBreadcrumbs := tracker.globalBreadcrumbsCompiler.getGlobalBreadcrumbs()
 	require.Equal(t, aliceFirstNonceBlock1, globalBreadcrumbs[alice].firstNonce.Value)
 	require.Equal(t, aliceLastNonceBlock2, globalBreadcrumbs[alice].lastNonce.Value)
 	expectedTotalBalance := new(big.Int).Mul(balancePerBlock, big.NewInt(2))
 	require.Equal(t, expectedTotalBalance, globalBreadcrumbs[alice].consumedBalance)
+	require.Equal(t, 2, len(tracker.blocks))
+	require.Equal(t, uint64(1), tracker.globalBreadcrumbsCompiler.getNumGlobalBreadcrumbs())
+
+	return &twoBlockTrackerSetup{
+		tracker:       tracker,
+		blockNonce1:   blockNonce1,
+		blockNonce2:   blockNonce2,
+		blockHashPrev: blockHashPrev,
+	}
+}
+
+func TestSelectionTracker_removeUpToBlockNoLock_orderedRemoval(t *testing.T) {
+	t.Parallel()
+
+	setup := buildTrackerWithTwoSharedSenderBlocks(t)
 
 	// Remove both blocks at once (nonce <= blockNonce2)
-	searchedBlock := newTrackedBlock(blockNonce2, nil, nil)
-	err = tracker.removeUpToBlockNoLock(searchedBlock)
+	searchedBlock := newTrackedBlock(setup.blockNonce2, nil, nil)
+	err := setup.tracker.removeUpToBlockNoLock(searchedBlock)
 	require.Nil(t, err)
 
-	require.Equal(t, 0, len(tracker.blocks))
-	require.Equal(t, uint64(0), tracker.globalBreadcrumbsCompiler.getNumGlobalBreadcrumbs())
+	require.Equal(t, 0, len(setup.tracker.blocks))
+	require.Equal(t, uint64(0), setup.tracker.globalBreadcrumbsCompiler.getNumGlobalBreadcrumbs())
 }
 
 func TestSelectionTracker_removeBlockEqualOrAboveNoLock_orderedRemoval(t *testing.T) {
 	t.Parallel()
 
-	txCache := newCacheToTest(maxNumBytesPerSenderUpperBoundTest, 3)
-	tracker, err := NewSelectionTracker(txCache, 0, maxTrackedBlocks)
-	require.Nil(t, err)
-
-	aliceFirstNonceBlock1 := uint64(5)
-	aliceLastNonceBlock1 := uint64(7)
-	aliceFirstNonceBlock2 := uint64(8)
-	aliceLastNonceBlock2 := uint64(10)
-	balancePerBlock := big.NewInt(10)
-
-	blockNonce1 := uint64(100)
-	blockNonce2 := uint64(101)
-	blockHash1 := "blockHash100"
-	blockHash2 := "blockHash101"
-	blockHashPrev := "blockHash99"
-	alice := "alice"
-
-	breadcrumbAlice1 := &accountBreadcrumb{
-		firstNonce:      core.OptionalUint64{Value: aliceFirstNonceBlock1, HasValue: true},
-		lastNonce:       core.OptionalUint64{Value: aliceLastNonceBlock1, HasValue: true},
-		consumedBalance: new(big.Int).Set(balancePerBlock),
-	}
-	breadcrumbAlice2 := &accountBreadcrumb{
-		firstNonce:      core.OptionalUint64{Value: aliceFirstNonceBlock2, HasValue: true},
-		lastNonce:       core.OptionalUint64{Value: aliceLastNonceBlock2, HasValue: true},
-		consumedBalance: new(big.Int).Set(balancePerBlock),
-	}
-
-	block1 := &trackedBlock{
-		nonce:    blockNonce1,
-		hash:     []byte(blockHash1),
-		prevHash: []byte(blockHashPrev),
-		breadcrumbsByAddress: map[string]*accountBreadcrumb{
-			alice: breadcrumbAlice1,
-		},
-	}
-	block2 := &trackedBlock{
-		nonce:    blockNonce2,
-		hash:     []byte(blockHash2),
-		prevHash: []byte(blockHash1),
-		breadcrumbsByAddress: map[string]*accountBreadcrumb{
-			alice: breadcrumbAlice2,
-		},
-	}
-
-	tracker.blocks[blockHash1] = block1
-	tracker.blocks[blockHash2] = block2
-
-	tracker.globalBreadcrumbsCompiler.updateOnAddedBlock(block1)
-	tracker.globalBreadcrumbsCompiler.updateOnAddedBlock(block2)
-
-	// Verify initial global state
-	globalBreadcrumbs := tracker.globalBreadcrumbsCompiler.getGlobalBreadcrumbs()
-	require.Equal(t, aliceFirstNonceBlock1, globalBreadcrumbs[alice].firstNonce.Value)
-	require.Equal(t, aliceLastNonceBlock2, globalBreadcrumbs[alice].lastNonce.Value)
+	setup := buildTrackerWithTwoSharedSenderBlocks(t)
 
 	// Remove both blocks (nonce >= blockNonce1), as when replacing with a new block at blockNonce1
 	newBlockHash := "newBlockHash100"
-	newBlock := newTrackedBlock(blockNonce1, []byte(newBlockHash), []byte(blockHashPrev))
-	err = tracker.removeBlockEqualOrAboveNoLock([]byte(newBlockHash), newBlock)
+	newBlock := newTrackedBlock(setup.blockNonce1, []byte(newBlockHash), []byte(setup.blockHashPrev))
+	err := setup.tracker.removeBlockEqualOrAboveNoLock([]byte(newBlockHash), newBlock)
 	require.Nil(t, err)
 
-	require.Equal(t, 0, len(tracker.blocks))
-	require.Equal(t, uint64(0), tracker.globalBreadcrumbsCompiler.getNumGlobalBreadcrumbs())
+	require.Equal(t, 0, len(setup.tracker.blocks))
+	require.Equal(t, uint64(0), setup.tracker.globalBreadcrumbsCompiler.getNumGlobalBreadcrumbs())
 }
 
 func TestSelectionTracker_removeBlocksAboveOrEqualToNonceNoLock_orderedRemoval(t *testing.T) {
 	t.Parallel()
 
-	txCache := newCacheToTest(maxNumBytesPerSenderUpperBoundTest, 3)
-	tracker, err := NewSelectionTracker(txCache, 0, maxTrackedBlocks)
+	setup := buildTrackerWithTwoSharedSenderBlocks(t)
+
+	// Same scenario as removeBlockEqualOrAboveNoLock but triggered from deriveVirtualSelectionSession path
+	err := setup.tracker.removeBlocksAboveOrEqualToNonceNoLock(setup.blockNonce1)
 	require.Nil(t, err)
 
-	// Same scenario as removeBlockEqualOrAboveNoLock but triggered from deriveVirtualSelectionSession.
-	aliceFirstNonceBlock1 := uint64(5)
-	aliceLastNonceBlock1 := uint64(7)
-	aliceFirstNonceBlock2 := uint64(8)
-	aliceLastNonceBlock2 := uint64(10)
-	balancePerBlock := big.NewInt(10)
-
-	blockNonce1 := uint64(100)
-	blockNonce2 := uint64(101)
-	blockHash1 := "blockHash100"
-	blockHash2 := "blockHash101"
-	blockHashPrev := "blockHash99"
-	alice := "alice"
-
-	breadcrumbAlice1 := &accountBreadcrumb{
-		firstNonce:      core.OptionalUint64{Value: aliceFirstNonceBlock1, HasValue: true},
-		lastNonce:       core.OptionalUint64{Value: aliceLastNonceBlock1, HasValue: true},
-		consumedBalance: new(big.Int).Set(balancePerBlock),
-	}
-	breadcrumbAlice2 := &accountBreadcrumb{
-		firstNonce:      core.OptionalUint64{Value: aliceFirstNonceBlock2, HasValue: true},
-		lastNonce:       core.OptionalUint64{Value: aliceLastNonceBlock2, HasValue: true},
-		consumedBalance: new(big.Int).Set(balancePerBlock),
-	}
-
-	block1 := &trackedBlock{
-		nonce:    blockNonce1,
-		hash:     []byte(blockHash1),
-		prevHash: []byte(blockHashPrev),
-		breadcrumbsByAddress: map[string]*accountBreadcrumb{
-			alice: breadcrumbAlice1,
-		},
-	}
-	block2 := &trackedBlock{
-		nonce:    blockNonce2,
-		hash:     []byte(blockHash2),
-		prevHash: []byte(blockHash1),
-		breadcrumbsByAddress: map[string]*accountBreadcrumb{
-			alice: breadcrumbAlice2,
-		},
-	}
-
-	tracker.blocks[blockHash1] = block1
-	tracker.blocks[blockHash2] = block2
-
-	tracker.globalBreadcrumbsCompiler.updateOnAddedBlock(block1)
-	tracker.globalBreadcrumbsCompiler.updateOnAddedBlock(block2)
-
-	err = tracker.removeBlocksAboveOrEqualToNonceNoLock(blockNonce1)
-	require.Nil(t, err)
-
-	require.Equal(t, 0, len(tracker.blocks))
-	require.Equal(t, uint64(0), tracker.globalBreadcrumbsCompiler.getNumGlobalBreadcrumbs())
+	require.Equal(t, 0, len(setup.tracker.blocks))
+	require.Equal(t, uint64(0), setup.tracker.globalBreadcrumbsCompiler.getNumGlobalBreadcrumbs())
 }
 
 func TestSelectionTracker_OnExecutedBlock_multipleBlocksWithSharedSender(t *testing.T) {
