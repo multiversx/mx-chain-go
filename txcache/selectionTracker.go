@@ -292,8 +292,12 @@ func (st *selectionTracker) validateBreadcrumbsOfTrackedBlocks(
 // addNewTrackedBlockNoLock adds a new tracked block into the map of tracked blocks,
 // replaces an existing block which has the same nonce with the one received.
 func (st *selectionTracker) addNewTrackedBlockNoLock(blockToBeAddedHash []byte, blockToBeAdded *trackedBlock) error {
+	if blockToBeAdded == nil {
+		return errNilTrackedBlock
+	}
+
 	// remove all the blocks with nonce equal or above the given nonce
-	err := st.removeBlockEqualOrAboveNoLock(blockToBeAddedHash, blockToBeAdded)
+	err := st.removeBlocksAboveOrEqualToNonceNoLock(blockToBeAdded.nonce)
 	if err != nil {
 		return err
 	}
@@ -303,29 +307,6 @@ func (st *selectionTracker) addNewTrackedBlockNoLock(blockToBeAddedHash []byte, 
 	st.globalBreadcrumbsCompiler.updateOnAddedBlock(blockToBeAdded)
 
 	return nil
-}
-
-// removeBlockEqualOrAboveNoLock removes blocks higher or equal to the nonce of the given block.
-// The removeBlockEqualOrAboveNoLock is used on the OnProposedBlock flow.
-// Blocks are sorted by descending nonce before processing to ensure correct global breadcrumb updates.
-func (st *selectionTracker) removeBlockEqualOrAboveNoLock(blockToBeAddedHash []byte, blockToBeAdded *trackedBlock) error {
-	// Collect matching blocks first
-	var matchingBlocks []blockWithHash
-	for bHash, b := range st.blocks {
-		if b.hasSameNonceOrHigher(blockToBeAdded) {
-			matchingBlocks = append(matchingBlocks, blockWithHash{hash: bHash, block: b})
-		}
-	}
-
-	if len(matchingBlocks) > 0 {
-		log.Trace("selectionTracker.removeBlockEqualOrAboveNoLock: replacing blocks",
-			"num blocks to replace", len(matchingBlocks),
-			"new block nonce", blockToBeAdded.nonce,
-			"new block hash", blockToBeAddedHash,
-		)
-	}
-
-	return st.deleteMatchedBlocksWithSameNonceOrAboveNoLock(matchingBlocks)
 }
 
 // OnExecutedBlock notifies when a block is executed and updates the state of the selectionTracker
@@ -535,6 +516,11 @@ func (st *selectionTracker) removeBlocksAboveOrEqualToNonceNoLock(nonce uint64) 
 			matchingBlocks = append(matchingBlocks, blockWithHash{hash: blockHash, block: tb})
 		}
 	}
+
+	log.Trace("selectionTracker.removeBlocksAboveOrEqualToNonceNoLock",
+		"nonce", nonce,
+		"num blocks to remove", len(matchingBlocks),
+	)
 
 	return st.deleteMatchedBlocksWithSameNonceOrAboveNoLock(matchingBlocks)
 }

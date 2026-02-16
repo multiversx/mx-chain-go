@@ -1553,27 +1553,6 @@ func TestSelectionTracker_addNewTrackedBlockNoLock(t *testing.T) {
 	require.True(t, ok)
 }
 
-func TestSelectionTracker_removeBlockAboveOrEqualToNoLock(t *testing.T) {
-	t.Parallel()
-
-	txCache := newCacheToTest(maxNumBytesPerSenderUpperBoundTest, 6)
-	tracker, err := NewSelectionTracker(txCache, 0, maxTrackedBlocks)
-	require.Nil(t, err)
-
-	txCache.tracker = tracker
-
-	tracker.blocks = createDummyTrackedBlocks()
-
-	require.Equal(t, 3, len(txCache.tracker.blocks))
-	err = tracker.removeBlockEqualOrAboveNoLock([]byte("hash1"), &trackedBlock{
-		nonce: 1,
-		hash:  []byte("hash3"),
-	})
-	require.Nil(t, err)
-
-	require.Equal(t, 0, len(txCache.tracker.blocks))
-}
-
 func TestSelectionTracker_removeBlocksAboveNonce(t *testing.T) {
 	t.Parallel()
 
@@ -1725,21 +1704,6 @@ func TestSelectionTracker_removeUpToBlockNoLock_orderedRemoval(t *testing.T) {
 	// Remove both blocks at once (nonce <= blockNonce2)
 	searchedBlock := newTrackedBlock(setup.blockNonce2, nil, nil)
 	err := setup.tracker.removeUpToBlockNoLock(searchedBlock)
-	require.Nil(t, err)
-
-	require.Equal(t, 0, len(setup.tracker.blocks))
-	require.Equal(t, uint64(0), setup.tracker.globalBreadcrumbsCompiler.getNumGlobalBreadcrumbs())
-}
-
-func TestSelectionTracker_removeBlockEqualOrAboveNoLock_orderedRemoval(t *testing.T) {
-	t.Parallel()
-
-	setup := buildTrackerWithTwoSharedSenderBlocks(t)
-
-	// Remove both blocks (nonce >= blockNonce1), as when replacing with a new block at blockNonce1
-	newBlockHash := "newBlockHash100"
-	newBlock := newTrackedBlock(setup.blockNonce1, []byte(newBlockHash), []byte(setup.blockHashPrev))
-	err := setup.tracker.removeBlockEqualOrAboveNoLock([]byte(newBlockHash), newBlock)
 	require.Nil(t, err)
 
 	require.Equal(t, 0, len(setup.tracker.blocks))
