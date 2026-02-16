@@ -6,9 +6,10 @@ import (
 
 	"github.com/multiversx/mx-chain-core-go/data"
 	"github.com/multiversx/mx-chain-core-go/data/block"
+	"github.com/stretchr/testify/require"
+
 	"github.com/multiversx/mx-chain-go/common"
 	"github.com/multiversx/mx-chain-go/config"
-	"github.com/stretchr/testify/require"
 )
 
 func TestNewHeaderBodyCache(t *testing.T) {
@@ -218,7 +219,7 @@ func TestHeaderBodyCache_ConcurrentAccess(t *testing.T) {
 	}
 }
 
-func TestBlocksQueue_AddOrReplace_Rejection(t *testing.T) {
+func TestBlocksCache_AddOrReplace_Rejection(t *testing.T) {
 	t.Parallel()
 
 	hq := NewHeaderBodyCache(config.HeaderBodyCacheConfig{})

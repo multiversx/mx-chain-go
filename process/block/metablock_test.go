@@ -17,17 +17,13 @@ import (
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 
-	"github.com/multiversx/mx-chain-go/process/aotSelection"
-	"github.com/multiversx/mx-chain-go/testscommon/cache"
-	commonMocks "github.com/multiversx/mx-chain-go/testscommon/common"
-	"github.com/multiversx/mx-chain-go/trie"
-
 	"github.com/multiversx/mx-chain-go/common"
 	"github.com/multiversx/mx-chain-go/common/graceperiod"
 	"github.com/multiversx/mx-chain-go/config"
 	"github.com/multiversx/mx-chain-go/dataRetriever"
 	"github.com/multiversx/mx-chain-go/dataRetriever/blockchain"
 	"github.com/multiversx/mx-chain-go/process"
+	"github.com/multiversx/mx-chain-go/process/aotSelection"
 	"github.com/multiversx/mx-chain-go/process/asyncExecution/executionManager"
 	"github.com/multiversx/mx-chain-go/process/asyncExecution/executionTrack"
 	processBlock "github.com/multiversx/mx-chain-go/process/block"
@@ -44,6 +40,8 @@ import (
 	"github.com/multiversx/mx-chain-go/state/disabled"
 	"github.com/multiversx/mx-chain-go/storage"
 	"github.com/multiversx/mx-chain-go/testscommon"
+	"github.com/multiversx/mx-chain-go/testscommon/cache"
+	commonMocks "github.com/multiversx/mx-chain-go/testscommon/common"
 	dataRetrieverMock "github.com/multiversx/mx-chain-go/testscommon/dataRetriever"
 	"github.com/multiversx/mx-chain-go/testscommon/dblookupext"
 	"github.com/multiversx/mx-chain-go/testscommon/economicsmocks"
@@ -58,6 +56,7 @@ import (
 	stateMock "github.com/multiversx/mx-chain-go/testscommon/state"
 	statusHandlerMock "github.com/multiversx/mx-chain-go/testscommon/statusHandler"
 	storageStubs "github.com/multiversx/mx-chain-go/testscommon/storage"
+	"github.com/multiversx/mx-chain-go/trie"
 )
 
 func createMockComponentHolders() (
@@ -173,7 +172,7 @@ func createMockMetaArguments(
 
 	executionResultsTracker := executionTrack.NewExecutionResultsTracker()
 	execManager, _ := executionManager.NewExecutionManager(executionManager.ArgsExecutionManager{
-		BlocksQueue:             &processMocks.BlocksQueueMock{},
+		BlocksCache:             &processMocks.BlocksCacheMock{},
 		ExecutionResultsTracker: executionResultsTracker,
 		BlockChain:              dataComponents.BlockChain,
 		Headers:                 dataComponents.DataPool.Headers(),
@@ -3399,7 +3398,7 @@ func TestCreateNewHeaderProposal(t *testing.T) {
 
 	rootHash := []byte("root")
 	round := uint64(7)
-	nonce := uint64(8)
+	nonce := uint64(10)
 	epoch := uint32(5)
 
 	coreComponents, dataComponents, _, statusComponents := createMockComponentHolders()
@@ -4863,5 +4862,180 @@ func Test_getCurrentlyAccumulatedFees(t *testing.T) {
 		require.Nil(t, err)
 		require.Equal(t, big.NewInt(5), currentDevFeesInEpoch)
 		require.Equal(t, big.NewInt(5), currentlyAccumulatedFeesInEpoch)
+	})
+}
+
+func TestMetaProcessor_CommitBlockV3FailAfterHeadMutationShouldRestoreChainHead(t *testing.T) {
+	t.Parallel()
+
+	t.Run("should restore nil head after failed V3 commit", func(t *testing.T) {
+		t.Parallel()
+
+		genesisHeaderHash := []byte("genesis_hash")
+		computedHeaderHash := []byte("computed_header_hash")
+
+		var currentHeader data.HeaderHandler
+		var currentHeaderHash []byte
+
+		testBlockchain := &testscommon.ChainHandlerStub{
+			GetGenesisHeaderCalled: func() data.HeaderHandler {
+				return &block.MetaBlock{Nonce: 0}
+			},
+			GetGenesisHeaderHashCalled: func() []byte {
+				return genesisHeaderHash
+			},
+			GetCurrentBlockHeaderCalled: func() data.HeaderHandler {
+				return currentHeader
+			},
+			GetCurrentBlockHeaderHashCalled: func() []byte {
+				return currentHeaderHash
+			},
+			SetCurrentBlockHeaderCalled: func(header data.HeaderHandler) error {
+				currentHeader = header
+				return nil
+			},
+			SetCurrentBlockHeaderHashCalled: func(hash []byte) {
+				currentHeaderHash = hash
+			},
+			SetFinalBlockInfoCalled: func(nonce uint64, headerHash []byte, rootHash []byte) {},
+		}
+
+		v3Header := &block.MetaBlockV3{
+			Nonce:    1,
+			Round:    1,
+			PrevHash: genesisHeaderHash,
+			LastExecutionResult: &block.MetaExecutionResultInfo{
+				ExecutionResult: &block.BaseMetaExecutionResult{
+					BaseExecutionResult: &block.BaseExecutionResult{
+						HeaderHash:  []byte("nonexistent_exec_result_hash"),
+						HeaderNonce: 1,
+						RootHash:    []byte("exec_root_hash"),
+					},
+				},
+			},
+		}
+		body := &block.Body{}
+
+		coreComponents, dataComponents, bootstrapComponents, statusComponents := createMockComponentHolders()
+		coreComponents.Hash = &mock.HasherStub{
+			ComputeCalled: func(s string) []byte {
+				return computedHeaderHash
+			},
+		}
+
+		dataComponents.BlockChain = testBlockchain
+		dataComponents.Storage = initStore()
+
+		arguments := createMockMetaArguments(coreComponents, dataComponents, bootstrapComponents, statusComponents)
+		arguments.ExecutionManager = &processMocks.ExecutionManagerMock{}
+		arguments.ForkDetector = &mock.ForkDetectorMock{}
+		arguments.BlockTracker = mock.NewBlockTrackerMock(mock.NewOneShardCoordinatorMock(), createGenesisBlocks(mock.NewOneShardCoordinatorMock()))
+
+		mp, err := processBlock.NewMetaProcessor(arguments)
+		require.Nil(t, err)
+
+		require.Nil(t, testBlockchain.GetCurrentBlockHeader())
+		require.Nil(t, testBlockchain.GetCurrentBlockHeaderHash())
+
+		err = mp.CommitBlock(v3Header, body)
+		require.NotNil(t, err)
+
+		assert.Nil(t, testBlockchain.GetCurrentBlockHeader(),
+			"currentBlockHeader should be restored to nil after failed V3 commit")
+		assert.Nil(t, testBlockchain.GetCurrentBlockHeaderHash(),
+			"currentBlockHeaderHash should be restored to nil after failed V3 commit")
+	})
+
+	t.Run("should restore non-nil head after failed V3 commit", func(t *testing.T) {
+		t.Parallel()
+
+		prevHeaderHash := []byte("prev_header_hash")
+		computedHeaderHash := []byte("computed_header_hash")
+
+		prevHeader := &block.MetaBlockV3{
+			Nonce: 5,
+			Round: 10,
+			LastExecutionResult: &block.MetaExecutionResultInfo{
+				ExecutionResult: &block.BaseMetaExecutionResult{
+					BaseExecutionResult: &block.BaseExecutionResult{
+						HeaderHash:  []byte("prev_exec_hash"),
+						HeaderNonce: 5,
+						RootHash:    []byte("prev_root_hash"),
+					},
+				},
+			},
+		}
+
+		var currentHeader data.HeaderHandler = prevHeader
+		currentHeaderHash := make([]byte, len(prevHeaderHash))
+		copy(currentHeaderHash, prevHeaderHash)
+
+		testBlockchain := &testscommon.ChainHandlerStub{
+			GetGenesisHeaderCalled: func() data.HeaderHandler {
+				return &block.MetaBlock{Nonce: 0}
+			},
+			GetGenesisHeaderHashCalled: func() []byte {
+				return []byte("genesis_hash")
+			},
+			GetCurrentBlockHeaderCalled: func() data.HeaderHandler {
+				return currentHeader
+			},
+			GetCurrentBlockHeaderHashCalled: func() []byte {
+				return currentHeaderHash
+			},
+			SetCurrentBlockHeaderCalled: func(header data.HeaderHandler) error {
+				currentHeader = header
+				return nil
+			},
+			SetCurrentBlockHeaderHashCalled: func(hash []byte) {
+				currentHeaderHash = hash
+			},
+			SetFinalBlockInfoCalled: func(nonce uint64, headerHash []byte, rootHash []byte) {},
+		}
+
+		v3Header := &block.MetaBlockV3{
+			Nonce:    6,
+			Round:    12,
+			PrevHash: prevHeaderHash,
+			LastExecutionResult: &block.MetaExecutionResultInfo{
+				ExecutionResult: &block.BaseMetaExecutionResult{
+					BaseExecutionResult: &block.BaseExecutionResult{
+						HeaderHash:  []byte("nonexistent_exec_result_hash"),
+						HeaderNonce: 6,
+						RootHash:    []byte("exec_root_hash"),
+					},
+				},
+			},
+		}
+		body := &block.Body{}
+
+		coreComponents, dataComponents, bootstrapComponents, statusComponents := createMockComponentHolders()
+		coreComponents.Hash = &mock.HasherStub{
+			ComputeCalled: func(s string) []byte {
+				return computedHeaderHash
+			},
+		}
+
+		dataComponents.BlockChain = testBlockchain
+		dataComponents.Storage = initStore()
+
+		arguments := createMockMetaArguments(coreComponents, dataComponents, bootstrapComponents, statusComponents)
+		arguments.ExecutionManager = &processMocks.ExecutionManagerMock{}
+		arguments.ForkDetector = &mock.ForkDetectorMock{}
+		arguments.BlockTracker = mock.NewBlockTrackerMock(mock.NewOneShardCoordinatorMock(), createGenesisBlocks(mock.NewOneShardCoordinatorMock()))
+
+		mp, err := processBlock.NewMetaProcessor(arguments)
+		require.Nil(t, err)
+
+		require.Equal(t, prevHeader, testBlockchain.GetCurrentBlockHeader())
+		require.Equal(t, prevHeaderHash, testBlockchain.GetCurrentBlockHeaderHash())
+
+		err = mp.CommitBlock(v3Header, body)
+		require.NotNil(t, err)
+
+		assert.Equal(t, prevHeader, testBlockchain.GetCurrentBlockHeader(),
+			"currentBlockHeader should be restored to previous header after failed V3 commit")
+		assert.Equal(t, prevHeaderHash, testBlockchain.GetCurrentBlockHeaderHash(),
+			"currentBlockHeaderHash should be restored to previous hash after failed V3 commit")
 	})
 }

@@ -5,10 +5,10 @@ import (
 
 	"github.com/multiversx/mx-chain-core-go/core"
 	"github.com/multiversx/mx-chain-core-go/core/check"
-	"github.com/multiversx/mx-chain-go/consensus/spos/bls/roundSync"
 
 	"github.com/multiversx/mx-chain-go/consensus/spos"
 	"github.com/multiversx/mx-chain-go/consensus/spos/bls"
+	"github.com/multiversx/mx-chain-go/consensus/spos/bls/ntpsync"
 	"github.com/multiversx/mx-chain-go/outport"
 )
 
@@ -204,7 +204,7 @@ func (fct *factory) generateBlockSubround() error {
 		return err
 	}
 
-	syncController, err := roundSync.NewRoundSyncController(
+	syncController, err := ntpsync.NewNtpSyncController(
 		subround.EquivalentProofsPool(),
 		subround.ConsensusCoreHandler.SyncTimer(),
 		fct.consensusCore.ShardCoordinator().SelfId(),

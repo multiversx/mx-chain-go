@@ -332,11 +332,14 @@ func (tc *transactionCoordinator) ProcessBlockTransaction(
 	body *block.Body,
 	timeRemaining func() time.Duration,
 ) error {
+	if check.IfNil(header) {
+		return process.ErrNilHeaderHandler
+	}
 	if check.IfNil(body) {
 		return process.ErrNilBlockBody
 	}
 
-	isAsyncExecEnabled := common.IsAsyncExecutionEnabled(tc.enableEpochsHandler, tc.enableRoundsHandler)
+	isAsyncExecEnabled := header.IsHeaderV3()
 	if !isAsyncExecEnabled && tc.isMaxBlockSizeReached(body) {
 		return process.ErrMaxBlockSizeReached
 	}
