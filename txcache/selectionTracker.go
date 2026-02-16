@@ -2,6 +2,7 @@ package txcache
 
 import (
 	"bytes"
+	"sort"
 	"sync"
 
 	"github.com/multiversx/mx-chain-core-go/core/check"
@@ -16,6 +17,11 @@ import (
 const (
 	maxAccountsPerBlock = 10000
 )
+
+type blockWithHash struct {
+	hash  string
+	block *trackedBlock
+}
 
 type selectionTracker struct {
 	mutTracker                sync.RWMutex
@@ -301,45 +307,25 @@ func (st *selectionTracker) addNewTrackedBlockNoLock(blockToBeAddedHash []byte, 
 
 // removeBlockEqualOrAboveNoLock removes blocks higher or equal to the nonce of the given block.
 // The removeBlockEqualOrAboveNoLock is used on the OnProposedBlock flow.
+// Blocks are sorted by descending nonce before processing to ensure correct global breadcrumb updates.
 func (st *selectionTracker) removeBlockEqualOrAboveNoLock(blockToBeAddedHash []byte, blockToBeAdded *trackedBlock) error {
-	// Collect affected senders and their firstNonce for resetting selection offsets
-	sendersWithFirstNonce := make(map[string]uint64)
-
-	// search if in the tracked blocks we already have one with same nonce or greater
+	// Collect matching blocks first
+	var matchingBlocks []blockWithHash
 	for bHash, b := range st.blocks {
 		if b.hasSameNonceOrHigher(blockToBeAdded) {
-			// Collect senders and their first nonce from removed blocks for offset reset
-			for address, breadcrumb := range b.breadcrumbsByAddress {
-				if breadcrumb.firstNonce.HasValue {
-					// Keep the lowest first nonce for each sender across all removed blocks
-					if existingNonce, exists := sendersWithFirstNonce[address]; !exists || breadcrumb.firstNonce.Value < existingNonce {
-						sendersWithFirstNonce[address] = breadcrumb.firstNonce.Value
-					}
-				}
-			}
-
-			// first delete, then update the global breadcrumbs
-			delete(st.blocks, bHash)
-
-			err := st.globalBreadcrumbsCompiler.updateOnRemovedBlockWithSameNonceOrAbove(b)
-			if err != nil {
-				return err
-			}
-
-			log.Trace("selectionTracker.addNewTrackedBlockNoLock block with same nonce was deleted, to be replaced",
-				"nonce", blockToBeAdded.nonce,
-				"hash of replaced block", b.hash,
-				"hash of new block", blockToBeAddedHash,
-			)
+			matchingBlocks = append(matchingBlocks, blockWithHash{hash: bHash, block: b})
 		}
 	}
 
-	// Reset selection offsets for affected senders so their transactions can be re-selected
-	if len(sendersWithFirstNonce) > 0 {
-		st.txCache.ResetSelectionOffsetsToNonce(sendersWithFirstNonce)
+	if len(matchingBlocks) > 0 {
+		log.Trace("selectionTracker.removeBlockEqualOrAboveNoLock: replacing blocks",
+			"num blocks to replace", len(matchingBlocks),
+			"new block nonce", blockToBeAdded.nonce,
+			"new block hash", blockToBeAddedHash,
+		)
 	}
 
-	return nil
+	return st.deleteMatchedBlocksWithSameNonceOrAboveNoLock(matchingBlocks)
 }
 
 // OnExecutedBlock notifies when a block is executed and updates the state of the selectionTracker
@@ -377,19 +363,29 @@ func (st *selectionTracker) OnExecutedBlock(blockHeader data.HeaderHandler, root
 
 // removeUpToBlockNoLock removes all the tracked blocks with nonce equal or lower than the given nonce.
 // The removeUpToBlockNoLock is called on the OnExecutedBlock flow.
+// Blocks are sorted by ascending nonce before processing to ensure correct global breadcrumb updates.
 func (st *selectionTracker) removeUpToBlockNoLock(searchedBlock *trackedBlock) error {
-	removedBlocks := 0
+	// Collect matching blocks first
+	var matchingBlocks []blockWithHash
 	for blockHash, b := range st.blocks {
 		if b.hasSameNonceOrLower(searchedBlock) {
-			// first delete, then update the global breadcrumbs
-			delete(st.blocks, blockHash)
+			matchingBlocks = append(matchingBlocks, blockWithHash{hash: blockHash, block: b})
+		}
+	}
 
-			err := st.globalBreadcrumbsCompiler.updateOnRemovedBlockWithSameNonceOrBelow(b)
-			if err != nil {
-				return err
-			}
+	// Sort by ascending nonce to ensure correct global breadcrumb updates
+	sort.Slice(matchingBlocks, func(i, j int) bool {
+		return matchingBlocks[i].block.nonce < matchingBlocks[j].block.nonce
+	})
 
-			removedBlocks++
+	// Process in sorted order
+	for _, mb := range matchingBlocks {
+		// first delete, then update the global breadcrumbs
+		delete(st.blocks, mb.hash)
+
+		err := st.globalBreadcrumbsCompiler.updateOnRemovedBlockWithSameNonceOrBelow(mb.block)
+		if err != nil {
+			return err
 		}
 	}
 
@@ -397,7 +393,7 @@ func (st *selectionTracker) removeUpToBlockNoLock(searchedBlock *trackedBlock) e
 		"searched block nonce", searchedBlock.nonce,
 		"searched block hash", searchedBlock.hash,
 		"searched block prevHash", searchedBlock.prevHash,
-		"removed blocks", removedBlocks,
+		"removed blocks", len(matchingBlocks),
 	)
 
 	return nil
@@ -530,36 +526,53 @@ func (st *selectionTracker) deriveVirtualSelectionSession(
 
 // removeBlocksAboveOrEqualToNonceNoLock removes blocks with nonce higher or equal than the given nonce.
 // The removeBlocksAboveOrEqualToNonceNoLock is used on the deriveVirtualSelectionSession flow.
+// Blocks are sorted by descending nonce before processing to ensure correct global breadcrumb updates.
 func (st *selectionTracker) removeBlocksAboveOrEqualToNonceNoLock(nonce uint64) error {
-	// Collect affected senders and their firstNonce for resetting selection offsets
-	sendersWithFirstNonce := make(map[string]uint64)
-
+	// Collect matching blocks first
+	var matchingBlocks []blockWithHash
 	for blockHash, tb := range st.blocks {
 		if tb.hasSameNonceOrHigherThanGivenNonce(nonce) {
-			// Collect senders and their first nonce from removed blocks for offset reset
-			for address, breadcrumb := range tb.breadcrumbsByAddress {
-				if breadcrumb.firstNonce.HasValue {
-					// Keep the lowest first nonce for each sender across all removed blocks
-					if existingNonce, exists := sendersWithFirstNonce[address]; !exists || breadcrumb.firstNonce.Value < existingNonce {
-						sendersWithFirstNonce[address] = breadcrumb.firstNonce.Value
-					}
+			matchingBlocks = append(matchingBlocks, blockWithHash{hash: blockHash, block: tb})
+		}
+	}
+
+	return st.deleteMatchedBlocksWithSameNonceOrAboveNoLock(matchingBlocks)
+}
+
+// deleteMatchedBlocksWithSameNonceOrAboveNoLock sorts the matched blocks by descending nonce,
+// deletes them from the tracked blocks map, updates the global breadcrumbs, and resets selection offsets.
+// The descending sort order ensures global breadcrumbs are reduced correctly (highest nonce first).
+func (st *selectionTracker) deleteMatchedBlocksWithSameNonceOrAboveNoLock(matchingBlocks []blockWithHash) error {
+	// Sort by descending nonce to ensure correct global breadcrumb updates
+	sort.Slice(matchingBlocks, func(i, j int) bool {
+		return matchingBlocks[i].block.nonce > matchingBlocks[j].block.nonce
+	})
+
+	sendersWithFirstNonce := make(map[string]uint64)
+
+	for _, mb := range matchingBlocks {
+		// Collect senders and their first nonce from removed blocks for offset reset
+		for address, breadcrumb := range mb.block.breadcrumbsByAddress {
+			if breadcrumb.firstNonce.HasValue {
+				// Keep the lowest first nonce for each sender across all removed blocks
+				if existingNonce, exists := sendersWithFirstNonce[address]; !exists || breadcrumb.firstNonce.Value < existingNonce {
+					sendersWithFirstNonce[address] = breadcrumb.firstNonce.Value
 				}
 			}
-
-			// first delete, then update the global breadcrumbs
-			delete(st.blocks, blockHash)
-
-			err := st.globalBreadcrumbsCompiler.updateOnRemovedBlockWithSameNonceOrAbove(tb)
-			if err != nil {
-				return err
-			}
-
-			log.Trace("selectionTracker.removeBlocksAboveOrEqualToNonceNoLock",
-				"nonce", nonce,
-				"nonce of deleted block", tb.nonce,
-				"hash of deleted block", blockHash,
-			)
 		}
+
+		// first delete, then update the global breadcrumbs
+		delete(st.blocks, mb.hash)
+
+		err := st.globalBreadcrumbsCompiler.updateOnRemovedBlockWithSameNonceOrAbove(mb.block)
+		if err != nil {
+			return err
+		}
+
+		log.Trace("selectionTracker.deleteMatchedBlocksWithSameNonceOrAboveNoLock",
+			"nonce of deleted block", mb.block.nonce,
+			"hash of deleted block", mb.hash,
+		)
 	}
 
 	// Reset selection offsets for affected senders so their transactions can be re-selected
