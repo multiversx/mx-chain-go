@@ -582,7 +582,7 @@ func TestCallQueryShouldWorkMeasurements(t *testing.T) {
 	fmt.Printf("Global average response time is %s\n", avgGlobalTime)
 }
 
-func TestGetClockOffsetsWithoutEdges1(t *testing.T) {
+func TestGetMedianOffset(t *testing.T) {
 	t.Parallel()
 
 	expectedValue := -706902 * time.Nanosecond

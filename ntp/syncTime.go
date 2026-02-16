@@ -250,7 +250,6 @@ func (s *syncTime) sync() {
 
 	log.Debug("sync.setClockOffset done",
 		"num clock offsets", len(clockOffsets),
-		"num clock offsets", len(clockOffsets),
 		"clock offset median", clockOffset)
 }
 
