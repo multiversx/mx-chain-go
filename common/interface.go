@@ -336,6 +336,7 @@ type EnableRoundsHandler interface {
 	IsFlagEnabled(flag EnableRoundFlag) bool
 	IsFlagEnabledInRound(flag EnableRoundFlag, round uint64) bool
 	GetActivationRound(flag EnableRoundFlag) uint64
+	GetAllEnableRounds() map[string]uint64
 
 	IsInterfaceNil() bool
 }
