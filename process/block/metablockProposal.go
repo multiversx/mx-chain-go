@@ -234,6 +234,10 @@ func (mp *metaProcessor) VerifyBlockProposal(
 		return process.ErrWrongTypeAssertion
 	}
 
+	if header.IsEpochChangeProposed() && len(body.MiniBlocks) != 0 {
+		return process.ErrEpochStartProposeBlockHasMiniBlocks
+	}
+
 	err = mp.checkHeaderBodyCorrelationProposal(header.GetMiniBlockHeaderHandlers(), body)
 	if err != nil {
 		return err
