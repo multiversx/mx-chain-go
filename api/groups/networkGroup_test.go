@@ -679,6 +679,43 @@ func TestGetEnableEpochsV2_ShouldWork(t *testing.T) {
 	assert.True(t, keyAndValueFoundInResponse)
 }
 
+func TestGetEnableRounds_ShouldWork(t *testing.T) {
+	t.Parallel()
+
+	expectedRounds := map[string]uint64{
+		"round1": 100,
+		"round2": 200,
+	}
+
+	facade := mock.FacadeStub{
+		StatusMetricsHandler: func() external.StatusMetricsHandler {
+			return &testscommon.StatusMetricsStub{
+				EnableRoundsMetricsCalled: func() map[string]uint64 {
+					return expectedRounds
+				},
+			}
+		},
+	}
+
+	networkGroup, err := groups.NewNetworkGroup(&facade)
+	require.NoError(t, err)
+
+	ws := startWebServer(networkGroup, "network", getNetworkRoutesConfig())
+
+	req, _ := http.NewRequest("GET", "/network/enable-rounds", nil)
+	resp := httptest.NewRecorder()
+	ws.ServeHTTP(resp, req)
+
+	respBytes, _ := io.ReadAll(resp.Body)
+	respStr := string(respBytes)
+	assert.Equal(t, http.StatusOK, resp.Code)
+
+	keyAndValueFoundInResponse := strings.Contains(respStr, "round1") && strings.Contains(respStr, "100") &&
+		strings.Contains(respStr, "round2") && strings.Contains(respStr, "200")
+	assert.True(t, keyAndValueFoundInResponse)
+	assert.True(t, strings.Contains(respStr, "enableRounds"))
+}
+
 func TestGetESDTTotalSupply_InternalError(t *testing.T) {
 	t.Parallel()
 
@@ -1108,6 +1145,7 @@ func getNetworkRoutesConfig() config.ApiRoutesConfig {
 					{Name: "/genesis-balances", Open: true},
 					{Name: "/ratings", Open: true},
 					{Name: "/gas-configs", Open: true},
+					{Name: "/enable-rounds", Open: true},
 				},
 			},
 		},
