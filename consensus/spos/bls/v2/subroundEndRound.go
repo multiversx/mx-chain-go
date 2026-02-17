@@ -143,7 +143,15 @@ func (sr *subroundEndRound) receivedInvalidSignersInfo(_ context.Context, cnsDta
 		return false
 	}
 
+	if !sr.IsNodeInConsensusGroup(string(cnsDta.PubKey)) {
+		return false
+	}
+
 	if len(cnsDta.InvalidSigners) == 0 {
+		return false
+	}
+
+	if len(cnsDta.InvalidSigners) > sr.ConsensusGroupSize() {
 		return false
 	}
 
@@ -814,9 +822,11 @@ func (sr *subroundEndRound) waitForSignalSync() bool {
 
 	go sr.waitSignatures(ctx)
 	timerBetweenStatusChecks := time.NewTimer(timeBetweenSignaturesChecks)
+	defer timerBetweenStatusChecks.Stop()
 
 	remainingSRTime := sr.remainingTime()
 	timeout := time.NewTimer(remainingSRTime)
+	defer timeout.Stop()
 	for {
 		select {
 		case <-timerBetweenStatusChecks.C:
@@ -843,8 +853,11 @@ func (sr *subroundEndRound) waitSignatures(ctx context.Context) {
 	}
 	sr.SetWaitingAllSignaturesTimeOut(true)
 
+	timer := time.NewTimer(remainingTime)
+	defer timer.Stop()
+
 	select {
-	case <-time.After(remainingTime):
+	case <-timer.C:
 	case <-ctx.Done():
 	}
 	sr.ConsensusChannel() <- true
