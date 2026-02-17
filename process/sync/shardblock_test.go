@@ -1307,6 +1307,7 @@ func TestBootstrap_GetNodeStateShouldReturnNotSynchronizedWhenForkIsDetectedAndI
 		&dataRetrieverMock.ProofsPoolMock{},
 		&chainParameters.ChainParametersHandlerStub{},
 		testscommon.GetDefaultProcessConfigsHandler(),
+		0,
 	)
 
 	bs, _ := sync.NewShardBootstrap(args)
@@ -1388,6 +1389,7 @@ func TestBootstrap_GetNodeStateShouldReturnSynchronizedWhenForkIsDetectedAndItRe
 		&dataRetrieverMock.ProofsPoolMock{},
 		&chainParameters.ChainParametersHandlerStub{},
 		testscommon.GetDefaultProcessConfigsHandler(),
+		0,
 	)
 
 	bs, _ := sync.NewShardBootstrap(args)

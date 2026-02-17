@@ -61,6 +61,11 @@ func (provider *initialStatusMetricsProvider) EnableEpochsMetricsV2() map[string
 	return make(map[string]uint32)
 }
 
+// EnableRoundsMetrics returns an empty map since the node is starting
+func (provider *initialStatusMetricsProvider) EnableRoundsMetrics() map[string]uint64 {
+	return make(map[string]uint64)
+}
+
 // NetworkMetrics returns an empty map and the error which specifies that the node is starting
 func (provider *initialStatusMetricsProvider) NetworkMetrics() (map[string]interface{}, error) {
 	return getEmptyReturnValues()
