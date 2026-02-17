@@ -35,7 +35,7 @@ type testStatusMetricsHandler interface {
 }
 
 func createNetworkStatusMetrics() testStatusMetricsHandler {
-	sm, _ := statusHandler.NewStatusMetrics(&enableEpochsHandlerMock.EnableEpochsHandlerStub{})
+	sm, _ := statusHandler.NewStatusMetrics(&enableEpochsHandlerMock.EnableEpochsHandlerStub{}, &testscommon.EnableRoundsHandlerStub{})
 	return sm
 }
 
@@ -654,7 +654,7 @@ func TestGetEnableEpochsV2_ShouldWork(t *testing.T) {
 		GetAllEnableEpochsCalled: func() map[string]uint32 {
 			return allEpochsMap
 		},
-	})
+	}, &testscommon.EnableRoundsHandlerStub{})
 
 	facade := mock.FacadeStub{}
 	facade.StatusMetricsHandler = func() external.StatusMetricsHandler {
