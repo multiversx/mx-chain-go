@@ -915,6 +915,51 @@ func (adb *AccountsDB) Commit() ([]byte, error) {
 	return adb.commit()
 }
 
+// CommitInMemory computes root hashes and clears journal without persisting to disk.
+// This is useful during sync to avoid expensive disk writes on every block.
+// A full Commit() should be called periodically to persist the accumulated changes.
+func (adb *AccountsDB) CommitInMemory() ([]byte, error) {
+	adb.mutOp.Lock()
+	defer func() {
+		adb.mutOp.Unlock()
+		adb.loadCodeMeasurements.resetAndPrint()
+	}()
+
+	return adb.commitInMemory()
+}
+
+func (adb *AccountsDB) commitInMemory() ([]byte, error) {
+	log.Trace("accountsDB.CommitInMemory started")
+	adb.entries = make([]JournalEntry, 0)
+
+	// Compute root hashes for all data tries without persisting
+	// Note: dirty nodes stay in memory until full Commit() is called
+	dataTries := adb.dataTries.GetAll()
+	for i := 0; i < len(dataTries); i++ {
+		_, err := dataTries[i].RootHash()
+		if err != nil {
+			return nil, err
+		}
+	}
+
+	// Compute root hash for main trie without persisting
+	newRoot, err := adb.mainTrie.RootHash()
+	if err != nil {
+		log.Trace("accountsDB.CommitInMemory ended", "error", err.Error())
+		return nil, err
+	}
+
+	adb.lastRootHash = newRoot
+	// Note: We intentionally do NOT clear obsoleteDataTrieHashes here.
+	// They will accumulate and be processed during the next full Commit().
+	// We also skip markForEviction and stateAccessesCollector.CommitCollectedAccesses
+	// as these will be handled during the periodic full commit.
+
+	log.Trace("accountsDB.CommitInMemory ended", "root hash", newRoot)
+
+	return newRoot, nil
+}
+
 func (adb *AccountsDB) commit() ([]byte, error) {
 	log.Trace("accountsDB.Commit started")
 	adb.entries = make([]JournalEntry, 0)

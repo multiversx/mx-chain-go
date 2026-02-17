@@ -112,6 +112,11 @@ func (r *simulationAccountsDB) Commit() ([]byte, error) {
 	return nil, nil
 }
 
+// CommitInMemory won't do anything as write operations are disabled on this component
+func (r *simulationAccountsDB) CommitInMemory() ([]byte, error) {
+	return nil, nil
+}
+
 // JournalLen will call the original accounts' function with the same name
 func (r *simulationAccountsDB) JournalLen() int {
 	return r.originalAccounts.JournalLen()

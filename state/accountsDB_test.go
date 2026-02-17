@@ -3464,3 +3464,263 @@ func testAccountLoadInParallel(
 
 	wg.Wait()
 }
+
+// ------- CommitInMemory
+
+func TestAccountsDB_CommitInMemoryShouldComputeRootHashWithoutPersisting(t *testing.T) {
+	t.Parallel()
+
+	commitCalled := false
+	rootHashCalled := 0
+	expectedRootHash := []byte("expectedRootHash")
+
+	marshaller := &marshallerMock.MarshalizerMock{}
+	serializedAccount, _ := marshaller.Marshal(stateMock.AccountWrapMock{})
+	trieStub := trieMock.TrieStub{
+		CommitCalled: func() error {
+			commitCalled = true
+			return nil
+		},
+		RootCalled: func() ([]byte, error) {
+			rootHashCalled++
+			return expectedRootHash, nil
+		},
+		GetCalled: func(_ []byte) ([]byte, uint32, error) {
+			return serializedAccount, 0, nil
+		},
+		GetStorageManagerCalled: func() common.StorageManager {
+			return &storageManager.StorageManagerStub{}
+		},
+	}
+
+	adb := generateAccountDBFromTrie(&trieStub)
+
+	accnt, _ := adb.LoadAccount(make([]byte, 32))
+	_ = adb.SaveAccount(accnt)
+
+	rootHash, err := adb.CommitInMemory()
+	assert.Nil(t, err)
+	assert.Equal(t, expectedRootHash, rootHash)
+	assert.False(t, commitCalled, "Commit should not be called in CommitInMemory")
+	assert.Equal(t, 1, rootHashCalled)
+}
+
+func TestAccountsDB_CommitInMemoryShouldClearJournal(t *testing.T) {
+	t.Parallel()
+
+	marshaller := &marshallerMock.MarshalizerMock{}
+	serializedAccount, _ := marshaller.Marshal(stateMock.AccountWrapMock{})
+	trieStub := trieMock.TrieStub{
+		RootCalled: func() ([]byte, error) {
+			return []byte("rootHash"), nil
+		},
+		GetCalled: func(_ []byte) ([]byte, uint32, error) {
+			return serializedAccount, 0, nil
+		},
+		UpdateCalled: func(key, value []byte) error {
+			return nil
+		},
+		GetStorageManagerCalled: func() common.StorageManager {
+			return &storageManager.StorageManagerStub{}
+		},
+	}
+
+	adb := generateAccountDBFromTrie(&trieStub)
+
+	accnt, err := adb.LoadAccount(make([]byte, 32))
+	require.NoError(t, err)
+	err = adb.SaveAccount(accnt)
+	require.NoError(t, err)
+
+	// Journal should have entries after SaveAccount
+	assert.True(t, adb.JournalLen() > 0)
+
+	_, err = adb.CommitInMemory()
+	assert.Nil(t, err)
+
+	// Journal should be cleared after CommitInMemory
+	assert.Equal(t, 0, adb.JournalLen())
+}
+
+func TestAccountsDB_CommitInMemoryErrorOnRootHashShouldFail(t *testing.T) {
+	t.Parallel()
+
+	expectedErr := errors.New("root hash error")
+	trieStub := trieMock.TrieStub{
+		RootCalled: func() ([]byte, error) {
+			return nil, expectedErr
+		},
+		GetStorageManagerCalled: func() common.StorageManager {
+			return &storageManager.StorageManagerStub{}
+		},
+	}
+
+	adb := generateAccountDBFromTrie(&trieStub)
+
+	_, err := adb.CommitInMemory()
+	assert.Equal(t, expectedErr, err)
+}
+
+func TestAccountsDB_CommitInMemoryFollowedByCommitShouldPersist(t *testing.T) {
+	t.Parallel()
+
+	commitCalled := false
+	expectedRootHash := []byte("expectedRootHash")
+
+	marshaller := &marshallerMock.MarshalizerMock{}
+	serializedAccount, _ := marshaller.Marshal(stateMock.AccountWrapMock{})
+	trieStub := trieMock.TrieStub{
+		CommitCalled: func() error {
+			commitCalled = true
+			return nil
+		},
+		RootCalled: func() ([]byte, error) {
+			return expectedRootHash, nil
+		},
+		GetCalled: func(_ []byte) ([]byte, uint32, error) {
+			return serializedAccount, 0, nil
+		},
+		UpdateCalled: func(key, value []byte) error {
+			return nil
+		},
+		GetStorageManagerCalled: func() common.StorageManager {
+			return &storageManager.StorageManagerStub{}
+		},
+	}
+
+	adb := generateAccountDBFromTrie(&trieStub)
+
+	accnt, err := adb.LoadAccount(make([]byte, 32))
+	require.NoError(t, err)
+	err = adb.SaveAccount(accnt)
+	require.NoError(t, err)
+
+	// First, do in-memory commit
+	rootHash1, err := adb.CommitInMemory()
+	assert.Nil(t, err)
+	assert.Equal(t, expectedRootHash, rootHash1)
+	assert.False(t, commitCalled)
+
+	// Then do a full commit - this should persist
+	rootHash2, err := adb.Commit()
+	assert.Nil(t, err)
+	assert.Equal(t, expectedRootHash, rootHash2)
+	assert.True(t, commitCalled, "Commit should be called on full Commit()")
+}
+
+func TestAccountsDB_CommitInMemoryShouldNotResetDataTries(t *testing.T) {
+	t.Parallel()
+
+	// This test verifies that CommitInMemory does NOT reset dataTries.
+	// Resetting data tries in CommitInMemory would cause data loss because
+	// when an account is loaded after in-memory commit, the trie cannot be
+	// recreated from the database (since it was never persisted).
+
+	dataTrieRootHash := []byte("dataTrieRootHash")
+	dataTrieRootHashCalled := 0
+	dataTrieResetCalled := false
+
+	marshaller := &marshallerMock.MarshalizerMock{}
+	serializedAccount, _ := marshaller.Marshal(stateMock.AccountWrapMock{})
+
+	mainTrieStub := trieMock.TrieStub{
+		RootCalled: func() ([]byte, error) {
+			return []byte("mainRootHash"), nil
+		},
+		GetCalled: func(_ []byte) ([]byte, uint32, error) {
+			return serializedAccount, 0, nil
+		},
+		UpdateCalled: func(key, value []byte) error {
+			return nil
+		},
+		GetStorageManagerCalled: func() common.StorageManager {
+			return &storageManager.StorageManagerStub{}
+		},
+	}
+
+	dataTrieStub := &trieMock.TrieStub{
+		RootCalled: func() ([]byte, error) {
+			dataTrieRootHashCalled++
+			return dataTrieRootHash, nil
+		},
+	}
+
+	adb := generateAccountDBFromTrie(&mainTrieStub)
+
+	// Add a data trie to simulate an account with storage
+	adb.SetDataTries(state.NewDataTriesHolder())
+	adb.DataTries().Put([]byte("address"), dataTrieStub)
+
+	// Create a custom holder to track if Reset was called
+	originalHolder := adb.DataTries()
+	customHolder := &dataTriesHolderStub{
+		getAllCalled: func() []common.Trie {
+			return originalHolder.GetAll()
+		},
+		putCalled: func(key []byte, tr common.Trie) {
+			originalHolder.Put(key, tr)
+		},
+		getCalled: func(key []byte) common.Trie {
+			return originalHolder.Get(key)
+		},
+		resetCalled: func() {
+			dataTrieResetCalled = true
+		},
+	}
+	adb.SetDataTries(customHolder)
+
+	// Do in-memory commit
+	_, err := adb.CommitInMemory()
+	require.NoError(t, err)
+
+	// Verify dataTries.Reset() was NOT called
+	assert.False(t, dataTrieResetCalled, "dataTries.Reset() should NOT be called in CommitInMemory")
+
+	// Verify RootHash was called on data tries (they are processed but not reset)
+	assert.Equal(t, 1, dataTrieRootHashCalled, "data trie RootHash should be called")
+}
+
+// dataTriesHolderStub is a test stub for tracking calls to the data tries holder
+type dataTriesHolderStub struct {
+	getAllCalled  func() []common.Trie
+	putCalled     func(key []byte, tr common.Trie)
+	replaceCalled func(key []byte, tr common.Trie)
+	getCalled     func(key []byte) common.Trie
+	resetCalled   func()
+}
+
+func (d *dataTriesHolderStub) GetAll() []common.Trie {
+	if d.getAllCalled != nil {
+		return d.getAllCalled()
+	}
+	return nil
+}
+
+func (d *dataTriesHolderStub) Put(key []byte, tr common.Trie) {
+	if d.putCalled != nil {
+		d.putCalled(key, tr)
+	}
+}
+
+func (d *dataTriesHolderStub) Replace(key []byte, tr common.Trie) {
+	if d.replaceCalled != nil {
+		d.replaceCalled(key, tr)
+	}
+}
+
+func (d *dataTriesHolderStub) Get(key []byte) common.Trie {
+	if d.getCalled != nil {
+		return d.getCalled(key)
+	}
+	return nil
+}
+
+func (d *dataTriesHolderStub) Reset() {
+	if d.resetCalled != nil {
+		d.resetCalled()
+	}
+}
+
+func (d *dataTriesHolderStub) IsInterfaceNil() bool {
+	return d == nil
+}

@@ -49,6 +49,15 @@ import (
 
 const (
 	cleanupHeadersDelta = 5
+
+	// defaultSyncCommitInterval defines how many blocks to process before committing to disk during sync.
+	// Setting to 0 disables the optimization (commits every block).
+	// Higher values improve sync speed but increase memory usage and data loss risk on crash.
+	defaultSyncCommitInterval = uint64(10)
+
+	// syncThresholdNonces defines how many nonces behind the network the node must be
+	// to be considered "syncing" and use the commit interval optimization.
+	syncThresholdNonces = uint64(50)
 )
 
 var log = logger.GetOrCreate("process/block")
@@ -146,6 +155,11 @@ type baseProcessor struct {
 	executionManager                   process.ExecutionManager
 	txExecutionOrderHandler            common.TxExecutionOrderHandler
 	aotSelector                        process.AOTTransactionSelector
+
+	// Sync commit optimization fields
+	syncCommitInterval    uint64
+	blocksSinceLastCommit uint64
+	mutSyncCommit         sync.Mutex
 }
 
 type bootStorerDataArgs struct {
@@ -236,6 +250,7 @@ func NewBaseProcessor(arguments ArgBaseProcessor) (*baseProcessor, error) {
 		executionManager:                   arguments.ExecutionManager,
 		txExecutionOrderHandler:            arguments.TxExecutionOrderHandler,
 		aotSelector:                        arguments.AOTSelector,
+		syncCommitInterval:                 defaultSyncCommitInterval,
 	}
 
 	err = base.OnExecutedBlock(genesisHdr, genesisHdr.GetRootHash())
@@ -2117,19 +2132,88 @@ func (bp *baseProcessor) RevertAccountsDBToSnapshot(accountsSnapshot map[state.A
 
 func (bp *baseProcessor) commitState(headerHandler data.HeaderHandler) error {
 	startTime := time.Now()
+	inMemory := false
 	defer func() {
 		elapsedTime := time.Since(startTime)
 		log.Debug("elapsed time to commit accounts state",
 			"time [s]", elapsedTime,
 			"header nonce", headerHandler.GetNonce(),
+			"in memory", inMemory,
 		)
 	}()
 
 	if headerHandler.IsStartOfEpochBlock() {
+		bp.resetSyncCommitCounter()
 		return bp.commitInLastEpoch(headerHandler.GetEpoch())
 	}
 
+	// Check if we should use sync commit optimization
+	if bp.shouldUseSyncCommitOptimization(headerHandler) {
+		inMemory = true
+		return bp.commitInMemory()
+	}
+
 	return bp.commit()
+}
+
+// shouldUseSyncCommitOptimization checks if the node is syncing and should use
+// the in-memory commit optimization to improve sync speed.
+func (bp *baseProcessor) shouldUseSyncCommitOptimization(headerHandler data.HeaderHandler) bool {
+	bp.mutSyncCommit.Lock()
+	defer bp.mutSyncCommit.Unlock()
+
+	// Disabled if syncCommitInterval is 0
+	if bp.syncCommitInterval == 0 {
+		return false
+	}
+
+	// Check if node is syncing (far behind the network)
+	probableHighestNonce := bp.forkDetector.ProbableHighestNonce()
+	currentNonce := headerHandler.GetNonce()
+	noncesBehind := uint64(0)
+	if probableHighestNonce > currentNonce {
+		noncesBehind = probableHighestNonce - currentNonce
+	}
+
+	// Not syncing - commit every block
+	if noncesBehind < syncThresholdNonces {
+		bp.blocksSinceLastCommit = 0
+		return false
+	}
+
+	// Syncing - use commit interval
+	bp.blocksSinceLastCommit++
+
+	// Time for a full commit
+	if bp.blocksSinceLastCommit >= bp.syncCommitInterval {
+		bp.blocksSinceLastCommit = 0
+		log.Debug("sync commit optimization: performing full commit",
+			"nonces_behind", noncesBehind,
+			"interval", bp.syncCommitInterval)
+		return false
+	}
+
+	log.Debug("sync commit optimization: using in-memory commit",
+		"nonces_behind", noncesBehind,
+		"blocks_since_commit", bp.blocksSinceLastCommit)
+	return true
+}
+
+func (bp *baseProcessor) resetSyncCommitCounter() {
+	bp.mutSyncCommit.Lock()
+	bp.blocksSinceLastCommit = 0
+	bp.mutSyncCommit.Unlock()
+}
+
+func (bp *baseProcessor) commitInMemory() error {
+	for key := range bp.accountsDB {
+		_, err := bp.accountsDB[key].CommitInMemory()
+		if err != nil {
+			return err
+		}
+	}
+
+	return nil
 }
 
 func (bp *baseProcessor) commitInLastEpoch(currentEpoch uint32) error {
