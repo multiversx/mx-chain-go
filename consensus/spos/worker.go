@@ -310,7 +310,8 @@ func (wrk *Worker) addFutureHeaderToProcessIfNeeded(header data.HeaderHandler) {
 	}
 
 	isHeaderForNextRound := int64(header.GetRound()) == wrk.roundHandler.Index()+1
-	if !isHeaderForNextRound {
+	isHeaderForCurrentRound := int64(header.GetRound()) == wrk.roundHandler.Index()
+	if !isHeaderForCurrentRound && !isHeaderForNextRound {
 		return
 	}
 
