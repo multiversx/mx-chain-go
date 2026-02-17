@@ -9,22 +9,41 @@ import (
 
 	"github.com/multiversx/mx-chain-go/common"
 	"github.com/multiversx/mx-chain-go/statusHandler"
+	"github.com/multiversx/mx-chain-go/testscommon"
 	"github.com/multiversx/mx-chain-go/testscommon/enableEpochsHandlerMock"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 )
 
 func createStatusMetrics() *statusHandler.StatusMetrics {
-	sm, _ := statusHandler.NewStatusMetrics(&enableEpochsHandlerMock.EnableEpochsHandlerStub{})
+	sm, _ := statusHandler.NewStatusMetrics(&enableEpochsHandlerMock.EnableEpochsHandlerStub{}, &testscommon.EnableRoundsHandlerStub{})
 	return sm
 }
 
 func TestNewStatusMetricsProvider(t *testing.T) {
 	t.Parallel()
 
-	sm := createStatusMetrics()
-	assert.NotNil(t, sm)
-	assert.False(t, sm.IsInterfaceNil())
+	t.Run("nil enable epochs handler should error", func(t *testing.T) {
+		t.Parallel()
+
+		sm, err := statusHandler.NewStatusMetrics(nil, &testscommon.EnableRoundsHandlerStub{})
+		assert.Nil(t, sm)
+		assert.Equal(t, statusHandler.ErrNilEnableEpochsHandler, err)
+	})
+	t.Run("nil enable rounds handler should error", func(t *testing.T) {
+		t.Parallel()
+
+		sm, err := statusHandler.NewStatusMetrics(&enableEpochsHandlerMock.EnableEpochsHandlerStub{}, nil)
+		assert.Nil(t, sm)
+		assert.Equal(t, statusHandler.ErrNilEnableRoundsHandler, err)
+	})
+	t.Run("should work", func(t *testing.T) {
+		t.Parallel()
+
+		sm := createStatusMetrics()
+		assert.NotNil(t, sm)
+		assert.False(t, sm.IsInterfaceNil())
+	})
 }
 
 func TestStatusMetricsProvider_IncrementCallNonExistingKey(t *testing.T) {
