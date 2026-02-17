@@ -8,6 +8,7 @@ import (
 	"github.com/multiversx/mx-chain-core-go/core/check"
 	"github.com/multiversx/mx-chain-core-go/data"
 	"github.com/multiversx/mx-chain-core-go/data/block"
+
 	"github.com/multiversx/mx-chain-go/common"
 	"github.com/multiversx/mx-chain-go/dataRetriever"
 	"github.com/multiversx/mx-chain-go/epochStart"
@@ -19,7 +20,7 @@ import (
 var _ process.ValidatorInfoSyncer = (*peerMiniBlockSyncer)(nil)
 
 // waitTime defines the time in seconds to wait after a request has been done
-const waitTime = 5 * time.Second
+const waitTime = 300 * time.Millisecond
 
 // ArgPeerMiniBlockSyncer holds all dependencies required to create a peerMiniBlockSyncer
 type ArgPeerMiniBlockSyncer struct {
@@ -62,8 +63,8 @@ func NewPeerMiniBlockSyncer(arguments ArgPeerMiniBlockSyncer) (*peerMiniBlockSyn
 		requestHandler:     arguments.RequestHandler,
 	}
 
-	//TODO: change the registerHandler for the miniblockPool to call
-	//directly with hash and value - like func (sp *shardProcessor) receivedMetaBlock
+	// TODO: change the registerHandler for the miniblockPool to call
+	// directly with hash and value - like func (sp *shardProcessor) receivedMetaBlock
 	p.miniBlocksPool.RegisterHandler(p.receivedMiniBlock, core.UniqueIdentifier())
 	p.validatorsInfoPool.RegisterOnAdded(p.receivedValidatorInfo)
 
