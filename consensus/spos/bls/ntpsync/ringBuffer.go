@@ -1,4 +1,4 @@
-package roundSync
+package ntpsync
 
 import (
 	"fmt"
@@ -6,11 +6,11 @@ import (
 )
 
 type entry struct {
-	round uint64
+	nonce uint64
 	hash  string
 }
 
-type roundRingBuffer struct {
+type ringBuffer struct {
 	mut sync.RWMutex
 
 	buf      []entry
@@ -20,20 +20,20 @@ type roundRingBuffer struct {
 	set      map[string]struct{} // deduplication map
 }
 
-func newRoundRingBuffer(cap int) *roundRingBuffer {
-	return &roundRingBuffer{
+func newNonceRingBuffer(cap int) *ringBuffer {
+	return &ringBuffer{
 		buf:      make([]entry, cap),
 		capacity: cap,
 		set:      make(map[string]struct{}),
 	}
 }
 
-// add adds a round if it's not already present. If full, it overwrites the oldest.
-func (r *roundRingBuffer) add(round uint64, hash string) {
+// add adds a nonce if it's not already present. If full, it overwrites the oldest.
+func (r *ringBuffer) add(nonce uint64, hash string) {
 	r.mut.Lock()
 	defer r.mut.Unlock()
 
-	key := createEntryKey(round, hash)
+	key := createEntryKey(nonce, hash)
 	if _, exists := r.set[key]; exists {
 		return
 	}
@@ -41,11 +41,11 @@ func (r *roundRingBuffer) add(round uint64, hash string) {
 	// If overwriting the oldest entry, remove it from set
 	if r.size == r.capacity {
 		oldest := r.buf[r.index]
-		delete(r.set, createEntryKey(oldest.round, oldest.hash))
+		delete(r.set, createEntryKey(oldest.nonce, oldest.hash))
 	}
 
 	r.buf[r.index] = entry{
-		round: round,
+		nonce: nonce,
 		hash:  hash,
 	}
 	r.set[key] = struct{}{}
@@ -57,12 +57,12 @@ func (r *roundRingBuffer) add(round uint64, hash string) {
 	}
 }
 
-func createEntryKey(round uint64, hash string) string {
-	return fmt.Sprintf("%d-%s", round, hash)
+func createEntryKey(nonce uint64, hash string) string {
+	return fmt.Sprintf("%d-%s", nonce, hash)
 }
 
-// last returns the last N rounds in chronological order
-func (r *roundRingBuffer) last(n int) []uint64 {
+// last returns the last N nonces in chronological order
+func (r *ringBuffer) last(n int) []uint64 {
 	r.mut.RLock()
 	defer r.mut.RUnlock()
 
@@ -74,22 +74,22 @@ func (r *roundRingBuffer) last(n int) []uint64 {
 	start := (r.index - n + r.capacity) % r.capacity
 	for i := 0; i < n; i++ {
 		idx := (start + i) % r.capacity
-		out[i] = r.buf[idx].round
+		out[i] = r.buf[idx].nonce
 	}
 
 	return out
 }
 
-func (r *roundRingBuffer) contains(round uint64, hash string) bool {
+func (r *ringBuffer) contains(nonce uint64, hash string) bool {
 	r.mut.RLock()
 	defer r.mut.RUnlock()
 
-	_, exists := r.set[createEntryKey(round, hash)]
+	_, exists := r.set[createEntryKey(nonce, hash)]
 	return exists
 }
 
-// Size returns number of stored rounds
-func (r *roundRingBuffer) len() int {
+// Size returns number of stored nonces
+func (r *ringBuffer) len() int {
 	r.mut.RLock()
 	defer r.mut.RUnlock()
 

@@ -631,11 +631,11 @@ func (pcf *processComponentsFactory) Create() (*processComponents, error) {
 		return nil, fmt.Errorf("%w when assembling components for the sent signatures tracker", err)
 	}
 
-	blocksQueue := headersCache.NewHeaderBodyCache(pcf.config.HeaderBodyCacheConfig)
+	blocksCache := headersCache.NewHeaderBodyCache(pcf.config.HeaderBodyCacheConfig)
 	executionResultsTracker := executionTrack.NewExecutionResultsTracker()
 
 	argExecManager := executionManager.ArgsExecutionManager{
-		BlocksQueue:             blocksQueue,
+		BlocksCache:             blocksCache,
 		ExecutionResultsTracker: executionResultsTracker,
 		BlockChain:              pcf.data.Blockchain(),
 		Headers:                 pcf.data.Datapool().Headers(),
@@ -695,7 +695,7 @@ func (pcf *processComponentsFactory) Create() (*processComponents, error) {
 
 	signalProcessCompletionChan := make(chan uint64, 1)
 	argsHeadersExecutor := asyncExecution.ArgsHeadersExecutor{
-		BlocksCache:                 blocksQueue,
+		BlocksCache:                 blocksCache,
 		ExecutionTracker:            executionResultsTracker,
 		BlockProcessor:              blockProcessorComponents.blockProcessor,
 		BlockChain:                  pcf.data.Blockchain(),

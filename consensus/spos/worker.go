@@ -310,7 +310,8 @@ func (wrk *Worker) addFutureHeaderToProcessIfNeeded(header data.HeaderHandler) {
 	}
 
 	isHeaderForNextRound := int64(header.GetRound()) == wrk.roundHandler.Index()+1
-	if !isHeaderForNextRound {
+	isHeaderForCurrentRound := int64(header.GetRound()) == wrk.roundHandler.Index()
+	if !isHeaderForCurrentRound && !isHeaderForNextRound {
 		return
 	}
 
@@ -873,12 +874,11 @@ func (wrk *Worker) Extend(subroundId int) {
 	}
 
 	isHeaderV3 := header.IsHeaderV3()
-	if isHeaderV3 {
-		return
+	if !isHeaderV3 {
+		wrk.scheduledProcessor.ForceStopScheduledExecutionBlocking()
+		wrk.blockProcessor.RevertCurrentBlock()
 	}
 
-	wrk.scheduledProcessor.ForceStopScheduledExecutionBlocking()
-	wrk.blockProcessor.RevertCurrentBlock()
 	wrk.removeConsensusHeaderFromPool()
 }
 

@@ -585,7 +585,7 @@ func (sr *subroundEndRound) handleInvalidSignersOnAggSigFail(sender string) ([]b
 }
 
 func (sr *subroundEndRound) computeAggSigOnValidNodes() ([]byte, []byte, error) {
-	threshold := sr.Threshold(bls.SrSignature)
+	threshold := sr.getThreshold()
 	numValidSigShares := sr.ComputeSize(bls.SrSignature)
 
 	if check.IfNil(sr.GetHeader()) {
@@ -922,7 +922,7 @@ func (sr *subroundEndRound) receivedSignature(_ context.Context, cnsDta *consens
 	return true
 }
 
-func (sr *subroundEndRound) checkReceivedSignatures() bool {
+func (sr *subroundEndRound) getThreshold() int {
 	isTransitionBlock := common.IsEpochChangeBlockForFlagActivation(sr.GetHeader(), sr.EnableEpochsHandler(), common.AndromedaFlag)
 
 	threshold := sr.Threshold(bls.SrSignature)
@@ -941,6 +941,12 @@ func (sr *subroundEndRound) checkReceivedSignatures() bool {
 			"actual number of signatures received", sr.getNumOfSignaturesCollected(),
 		)
 	}
+
+	return threshold
+}
+
+func (sr *subroundEndRound) checkReceivedSignatures() bool {
+	threshold := sr.getThreshold()
 
 	areSignaturesCollected, numSigs := sr.areSignaturesCollected(threshold)
 	areAllSignaturesCollected := numSigs == sr.ConsensusGroupSize()
