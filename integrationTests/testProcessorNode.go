@@ -2481,6 +2481,7 @@ func (tpn *TestProcessorNode) initBlockProcessor() {
 			tpn.DataPool.Proofs(),
 			tpn.ChainParametersHandler,
 			tpn.ProcessConfigsHandler,
+			tpn.ShardCoordinator.SelfId(),
 		)
 	} else {
 		tpn.ForkDetector, _ = processSync.NewMetaForkDetector(

@@ -14,6 +14,7 @@ import (
 	"github.com/multiversx/mx-chain-core-go/core/check"
 	"github.com/multiversx/mx-chain-core-go/data/block"
 	"github.com/multiversx/mx-chain-core-go/display"
+
 	commonConsensus "github.com/multiversx/mx-chain-go/common/consensus"
 
 	"github.com/multiversx/mx-chain-go/common"
@@ -804,7 +805,7 @@ func (sr *subroundEndRound) waitForSignalSync() bool {
 		return true
 	}
 
-	if sr.checkReceivedSignatures() {
+	if sr.checkReceivedSignaturesOrProof() {
 		return true
 	}
 
@@ -824,7 +825,7 @@ func (sr *subroundEndRound) waitForSignalSync() bool {
 				return true
 			}
 
-			if sr.checkReceivedSignatures() {
+			if sr.checkReceivedSignaturesOrProof() {
 				return true
 			}
 			timerBetweenStatusChecks.Reset(timeBetweenSignaturesChecks)
@@ -936,7 +937,7 @@ func (sr *subroundEndRound) getThreshold() int {
 			threshold = core.GetPBFTFallbackThreshold(sr.ConsensusGroupSize())
 		}
 
-		log.Warn("subroundEndRound.checkReceivedSignatures: fallback validation has been applied",
+		log.Warn("subroundEndRound.checkReceivedSignaturesOrProof: fallback validation has been applied",
 			"minimum number of signatures required", threshold,
 			"actual number of signatures received", sr.getNumOfSignaturesCollected(),
 		)
@@ -945,13 +946,14 @@ func (sr *subroundEndRound) getThreshold() int {
 	return threshold
 }
 
-func (sr *subroundEndRound) checkReceivedSignatures() bool {
+func (sr *subroundEndRound) checkReceivedSignaturesOrProof() bool {
 	threshold := sr.getThreshold()
 
 	areSignaturesCollected, numSigs := sr.areSignaturesCollected(threshold)
 	areAllSignaturesCollected := numSigs == sr.ConsensusGroupSize()
+	isProofReceived := sr.EquivalentProofsPool().HasProof(sr.ShardCoordinator().SelfId(), sr.GetData())
 
-	isSignatureCollectionDone := areAllSignaturesCollected || (areSignaturesCollected && sr.GetWaitingAllSignaturesTimeOut())
+	isSignatureCollectionDone := isProofReceived || areAllSignaturesCollected || (areSignaturesCollected && sr.GetWaitingAllSignaturesTimeOut())
 
 	isSelfJobDone := sr.IsSelfJobDone(bls.SrSignature)
 
@@ -960,6 +962,7 @@ func (sr *subroundEndRound) checkReceivedSignatures() bool {
 		log.Debug("step 2: signatures collection done",
 			"subround", sr.Name(),
 			"signatures received", numSigs,
+			"is proof received", isProofReceived,
 			"total signatures", len(sr.ConsensusGroup()),
 			"threshold", threshold)
 

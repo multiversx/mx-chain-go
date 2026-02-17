@@ -77,7 +77,7 @@ func createCoreComponents() factory.CoreComponentsHolder {
 
 	enableEpochsHandler, _ := enablers.NewEnableEpochsHandler(configEnableEpochs, epochNotifier)
 	gracePeriod, _ := graceperiod.NewEpochChangeGracePeriod([]config.EpochChangeGracePeriodByEpoch{{EnableEpoch: 0, GracePeriodInRounds: 1}})
-	statusMetrics, _ := statusHandler.NewStatusMetrics(enableEpochsHandler)
+	statusMetrics, _ := statusHandler.NewStatusMetrics(enableEpochsHandler, &testscommon.EnableRoundsHandlerStub{})
 	return &integrationMocks.CoreComponentsStub{
 		InternalMarshalizerField:           &marshal.GogoProtoMarshalizer{},
 		HasherField:                        sha256.NewSha256(),

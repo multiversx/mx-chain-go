@@ -134,6 +134,9 @@
         # /network/enable-epochs-v2 will return metrics related to activation epochs in the same format as in toml
         { Name = "/enable-epochs-v2", Open = true },
 
+        # /network/enable-rounds will return metrics related to activation rounds
+        { Name = "/enable-rounds", Open = true },
+
         # /network/esdts will return all the issued esdts on the protocol
         { Name = "/esdts", Open = true },
 
