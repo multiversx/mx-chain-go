@@ -427,6 +427,7 @@ func (tcn *TestConsensusNode) initNode(args ArgsTestConsensusNode) {
 		dataPool.Proofs(),
 		tcn.ChainParametersHandler,
 		tcn.ProcessConfigsHandler,
+		tcn.ShardCoordinator.SelfId(),
 	)
 
 	processComponents := GetDefaultProcessComponents()

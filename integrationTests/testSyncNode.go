@@ -291,6 +291,7 @@ func (tpn *TestProcessorNode) initBlockProcessorWithSync() {
 			tpn.DataPool.Proofs(),
 			tpn.ChainParametersHandler,
 			tpn.ProcessConfigsHandler,
+			tpn.ShardCoordinator.SelfId(),
 		)
 		argumentsBase.ForkDetector = tpn.ForkDetector
 		argumentsBase.BlockChainHook = tpn.BlockchainHook

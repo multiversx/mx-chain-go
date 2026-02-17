@@ -687,6 +687,7 @@ func (tfn *TestFullNode) createForkDetector(
 			tfn.DataPool.Proofs(),
 			tfn.ChainParametersHandler,
 			tfn.ProcessConfigsHandler,
+			tfn.ShardCoordinator.SelfId(),
 		)
 	} else {
 		forkDetector, err = processSync.NewMetaForkDetector(
