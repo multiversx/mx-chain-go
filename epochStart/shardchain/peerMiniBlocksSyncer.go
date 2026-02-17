@@ -19,7 +19,7 @@ import (
 
 var _ process.ValidatorInfoSyncer = (*peerMiniBlockSyncer)(nil)
 
-// waitTime defines the time in seconds to wait after a request has been done
+// waitTime defines the time to wait after a request has been sent
 const waitTime = 300 * time.Millisecond
 
 // ArgPeerMiniBlockSyncer holds all dependencies required to create a peerMiniBlockSyncer
