@@ -51,6 +51,9 @@ func TestNewInitialStatusMetricsProvider(t *testing.T) {
 		testDisabledGetter(t, provider.NetworkMetrics)
 		testDisabledGetter(t, provider.RatingsMetrics)
 
+		enableRoundsMetrics := provider.EnableRoundsMetrics()
+		assert.Equal(t, map[string]uint64{}, enableRoundsMetrics)
+
 		metrics, err := provider.StatusMetricsWithoutP2PPrometheusString()
 		assert.Equal(t, errNodeStarting, err)
 		assert.Equal(t, "", metrics)
