@@ -37,7 +37,7 @@ var _ process.EpochBootstrapper = (*trigger)(nil)
 var _ closing.Closer = (*trigger)(nil)
 
 // sleepTime defines the time in milliseconds between each iteration made in requestMissingMiniBlocks method
-const sleepTime = 1 * time.Second
+const sleepTime = 200 * time.Millisecond
 
 // ArgsShardEpochStartTrigger struct { defines the arguments needed for new start of epoch trigger
 type ArgsShardEpochStartTrigger struct {
