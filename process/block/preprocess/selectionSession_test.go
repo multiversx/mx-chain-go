@@ -130,47 +130,207 @@ func TestSelectionSession_GetRootHash(t *testing.T) {
 func TestSelectionSession_IsIncorrectlyGuarded(t *testing.T) {
 	t.Parallel()
 
-	accounts := &stateMock.AccountsStub{}
-	processor := &testscommon.TxProcessorStub{}
+	t.Run("non-guarded tx from non-guarded account should return false without GetUserAccount", func(t *testing.T) {
+		t.Parallel()
 
-	accounts.GetExistingAccountCalled = func(address []byte) (vmcommon.AccountHandler, error) {
-		if bytes.Equal(address, []byte("bob")) {
-			// Bad account type (programming error).
-			return &stateMock.BaseAccountMock{}, nil
+		getUserAccountCalled := false
+
+		accounts := &stateMock.AccountsStub{
+			GetExistingAccountCalled: func(address []byte) (vmcommon.AccountHandler, error) {
+				return &stateMock.UserAccountStub{
+					Address:         address,
+					IsGuardedCalled: func() bool { return false },
+				}, nil
+			},
 		}
 
-		return &stateMock.UserAccountStub{}, nil
-	}
-
-	processor.VerifyGuardianCalled = func(tx *transaction.Transaction, account state.UserAccountHandler) error {
-		if tx.Nonce == 43 {
-			return process.ErrTransactionNotExecutable
-		}
-		if tx.Nonce == 44 {
-			return fmt.Errorf("arbitrary processing error")
+		processor := &testscommon.TxProcessorStub{
+			VerifyGuardianCalled: func(_ *transaction.Transaction, _ state.UserAccountHandler) error {
+				getUserAccountCalled = true
+				return nil
+			},
 		}
 
-		return nil
-	}
+		session, err := NewSelectionSession(ArgsSelectionSession{
+			AccountsAdapter:       accounts,
+			TransactionsProcessor: processor,
+			TxVersionCheckerHandler: &testscommon.TxVersionCheckerStub{
+				IsGuardedTransactionCalled: func(_ *transaction.Transaction) bool { return false },
+			},
+		})
+		require.NoError(t, err)
 
-	session, err := NewSelectionSession(ArgsSelectionSession{
-		AccountsAdapter:         accounts,
-		TransactionsProcessor:   processor,
-		TxVersionCheckerHandler: &testscommon.TxVersionCheckerStub{},
+		result := session.IsIncorrectlyGuarded(&transaction.Transaction{SndAddr: []byte("alice")})
+		require.False(t, result)
+		require.False(t, getUserAccountCalled, "GetUserAccount/VerifyGuardian should NOT be called for non-guarded tx + non-guarded account")
 	})
-	require.NoError(t, err)
-	require.NotNil(t, session)
 
-	isIncorrectlyGuarded := session.IsIncorrectlyGuarded(&transaction.Transaction{Nonce: 42, SndAddr: []byte("alice")})
-	require.False(t, isIncorrectlyGuarded)
+	t.Run("guarded tx from non-guarded account should return true without VerifyGuardian", func(t *testing.T) {
+		t.Parallel()
 
-	isIncorrectlyGuarded = session.IsIncorrectlyGuarded(&transaction.Transaction{Nonce: 43, SndAddr: []byte("alice")})
-	require.True(t, isIncorrectlyGuarded)
+		verifyGuardianCalled := false
 
-	isIncorrectlyGuarded = session.IsIncorrectlyGuarded(&transaction.Transaction{Nonce: 44, SndAddr: []byte("alice")})
-	require.False(t, isIncorrectlyGuarded)
+		accounts := &stateMock.AccountsStub{
+			GetExistingAccountCalled: func(address []byte) (vmcommon.AccountHandler, error) {
+				return &stateMock.UserAccountStub{
+					Address:         address,
+					IsGuardedCalled: func() bool { return false },
+				}, nil
+			},
+		}
 
-	// Bad account type (programming error).
-	isIncorrectlyGuarded = session.IsIncorrectlyGuarded(&transaction.Transaction{Nonce: 45, SndAddr: []byte("bob")})
-	require.False(t, isIncorrectlyGuarded)
+		processor := &testscommon.TxProcessorStub{
+			VerifyGuardianCalled: func(_ *transaction.Transaction, _ state.UserAccountHandler) error {
+				verifyGuardianCalled = true
+				return nil
+			},
+		}
+
+		session, err := NewSelectionSession(ArgsSelectionSession{
+			AccountsAdapter:       accounts,
+			TransactionsProcessor: processor,
+			TxVersionCheckerHandler: &testscommon.TxVersionCheckerStub{
+				IsGuardedTransactionCalled: func(_ *transaction.Transaction) bool { return true },
+			},
+		})
+		require.NoError(t, err)
+
+		result := session.IsIncorrectlyGuarded(&transaction.Transaction{SndAddr: []byte("alice")})
+		require.True(t, result)
+		require.False(t, verifyGuardianCalled, "VerifyGuardian should NOT be called for guarded tx + non-guarded account")
+	})
+
+	t.Run("non-guarded tx from guarded account should delegate to VerifyGuardian", func(t *testing.T) {
+		t.Parallel()
+
+		verifyGuardianCalled := false
+
+		accounts := &stateMock.AccountsStub{
+			GetExistingAccountCalled: func(address []byte) (vmcommon.AccountHandler, error) {
+				return &stateMock.UserAccountStub{
+					Address:         address,
+					IsGuardedCalled: func() bool { return true },
+				}, nil
+			},
+		}
+
+		processor := &testscommon.TxProcessorStub{
+			VerifyGuardianCalled: func(_ *transaction.Transaction, _ state.UserAccountHandler) error {
+				verifyGuardianCalled = true
+				return process.ErrTransactionNotExecutable
+			},
+		}
+
+		session, err := NewSelectionSession(ArgsSelectionSession{
+			AccountsAdapter:       accounts,
+			TransactionsProcessor: processor,
+			TxVersionCheckerHandler: &testscommon.TxVersionCheckerStub{
+				IsGuardedTransactionCalled: func(_ *transaction.Transaction) bool { return false },
+			},
+		})
+		require.NoError(t, err)
+
+		result := session.IsIncorrectlyGuarded(&transaction.Transaction{SndAddr: []byte("alice")})
+		require.True(t, result)
+		require.True(t, verifyGuardianCalled)
+	})
+
+	t.Run("guarded tx from guarded account should delegate to VerifyGuardian", func(t *testing.T) {
+		t.Parallel()
+
+		accounts := &stateMock.AccountsStub{
+			GetExistingAccountCalled: func(address []byte) (vmcommon.AccountHandler, error) {
+				return &stateMock.UserAccountStub{
+					Address:         address,
+					IsGuardedCalled: func() bool { return true },
+				}, nil
+			},
+		}
+
+		t.Run("guardian matches (no error)", func(t *testing.T) {
+			t.Parallel()
+
+			processor := &testscommon.TxProcessorStub{
+				VerifyGuardianCalled: func(_ *transaction.Transaction, _ state.UserAccountHandler) error {
+					return nil
+				},
+			}
+
+			session, err := NewSelectionSession(ArgsSelectionSession{
+				AccountsAdapter:       accounts,
+				TransactionsProcessor: processor,
+				TxVersionCheckerHandler: &testscommon.TxVersionCheckerStub{
+					IsGuardedTransactionCalled: func(_ *transaction.Transaction) bool { return true },
+				},
+			})
+			require.NoError(t, err)
+
+			result := session.IsIncorrectlyGuarded(&transaction.Transaction{SndAddr: []byte("alice")})
+			require.False(t, result)
+		})
+
+		t.Run("guardian mismatch (ErrTransactionNotExecutable)", func(t *testing.T) {
+			t.Parallel()
+
+			processor := &testscommon.TxProcessorStub{
+				VerifyGuardianCalled: func(_ *transaction.Transaction, _ state.UserAccountHandler) error {
+					return process.ErrTransactionNotExecutable
+				},
+			}
+
+			session, err := NewSelectionSession(ArgsSelectionSession{
+				AccountsAdapter:       accounts,
+				TransactionsProcessor: processor,
+				TxVersionCheckerHandler: &testscommon.TxVersionCheckerStub{
+					IsGuardedTransactionCalled: func(_ *transaction.Transaction) bool { return true },
+				},
+			})
+			require.NoError(t, err)
+
+			result := session.IsIncorrectlyGuarded(&transaction.Transaction{SndAddr: []byte("alice")})
+			require.True(t, result)
+		})
+
+		t.Run("arbitrary processing error", func(t *testing.T) {
+			t.Parallel()
+
+			processor := &testscommon.TxProcessorStub{
+				VerifyGuardianCalled: func(_ *transaction.Transaction, _ state.UserAccountHandler) error {
+					return fmt.Errorf("arbitrary processing error")
+				},
+			}
+
+			session, err := NewSelectionSession(ArgsSelectionSession{
+				AccountsAdapter:       accounts,
+				TransactionsProcessor: processor,
+				TxVersionCheckerHandler: &testscommon.TxVersionCheckerStub{
+					IsGuardedTransactionCalled: func(_ *transaction.Transaction) bool { return true },
+				},
+			})
+			require.NoError(t, err)
+
+			result := session.IsIncorrectlyGuarded(&transaction.Transaction{SndAddr: []byte("alice")})
+			require.False(t, result)
+		})
+	})
+
+	t.Run("account fetch error should return false", func(t *testing.T) {
+		t.Parallel()
+
+		accounts := &stateMock.AccountsStub{
+			GetExistingAccountCalled: func(_ []byte) (vmcommon.AccountHandler, error) {
+				return nil, fmt.Errorf("unexpected trie error")
+			},
+		}
+
+		session, err := NewSelectionSession(ArgsSelectionSession{
+			AccountsAdapter:         accounts,
+			TransactionsProcessor:   &testscommon.TxProcessorStub{},
+			TxVersionCheckerHandler: &testscommon.TxVersionCheckerStub{},
+		})
+		require.NoError(t, err)
+
+		result := session.IsIncorrectlyGuarded(&transaction.Transaction{SndAddr: []byte("alice")})
+		require.False(t, result)
+	})
 }

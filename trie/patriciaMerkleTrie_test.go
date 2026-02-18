@@ -1768,3 +1768,94 @@ func BenchmarkPatriciaMerkleTrie_Update(b *testing.B) {
 		}
 	}
 }
+
+// BenchmarkPatriciaMerkleTree_GetBatch_vs_SequentialGet compares the performance of
+// batch Get (single lock acquisition) vs sequential Get (N lock acquisitions) on a collapsed trie.
+// This directly measures the optimization for the Supernova 10k unique senders scenario.
+func BenchmarkPatriciaMerkleTree_GetBatch_vs_SequentialGet(b *testing.B) {
+	hsh := keccak.NewKeccak()
+
+	for _, batchSize := range []int{100, 1000, 10000, 50000, 100000, 500000, 1000000} {
+		// Setup: create trie with batchSize keys, commit (collapse), then benchmark
+		b.Run(fmt.Sprintf("Sequential_Get_%d_keys_collapsed", batchSize), func(b *testing.B) {
+			tr := emptyTrie()
+			keys := make([][]byte, batchSize)
+			for i := 0; i < batchSize; i++ {
+				keys[i] = hsh.Compute(strconv.Itoa(i))
+				_ = tr.Update(keys[i], keys[i])
+			}
+			_ = tr.Commit()
+
+			b.ResetTimer()
+			for i := 0; i < b.N; i++ {
+				for _, key := range keys {
+					_, _, _ = tr.Get(key)
+				}
+			}
+		})
+
+		b.Run(fmt.Sprintf("Batch_GetBatch_%d_keys_collapsed", batchSize), func(b *testing.B) {
+			tr := emptyTrie()
+			keys := make([][]byte, batchSize)
+			for i := 0; i < batchSize; i++ {
+				keys[i] = hsh.Compute(strconv.Itoa(i))
+				_ = tr.Update(keys[i], keys[i])
+			}
+			_ = tr.Commit()
+
+			batchGetter, ok := tr.(common.TrieBatchGetter)
+			require.True(b, ok)
+
+			b.ResetTimer()
+			for i := 0; i < b.N; i++ {
+				_, _, _ = batchGetter.GetBatch(keys)
+			}
+		})
+
+		// Also benchmark with keys NOT in the trie (non-existent accounts scenario)
+		b.Run(fmt.Sprintf("Sequential_Get_%d_missing_keys_collapsed", batchSize), func(b *testing.B) {
+			tr := emptyTrie()
+			// Populate trie with different keys so the trie has structure
+			for i := 0; i < batchSize; i++ {
+				key := hsh.Compute(strconv.Itoa(i))
+				_ = tr.Update(key, key)
+			}
+			_ = tr.Commit()
+
+			// Create keys that do NOT exist in the trie
+			missingKeys := make([][]byte, batchSize)
+			for i := 0; i < batchSize; i++ {
+				missingKeys[i] = hsh.Compute(fmt.Sprintf("missing_%d", i))
+			}
+
+			b.ResetTimer()
+			for i := 0; i < b.N; i++ {
+				for _, key := range missingKeys {
+					_, _, _ = tr.Get(key)
+				}
+			}
+		})
+
+		b.Run(fmt.Sprintf("Batch_GetBatch_%d_missing_keys_collapsed", batchSize), func(b *testing.B) {
+			tr := emptyTrie()
+			for i := 0; i < batchSize; i++ {
+				key := hsh.Compute(strconv.Itoa(i))
+				_ = tr.Update(key, key)
+			}
+			_ = tr.Commit()
+
+			missingKeys := make([][]byte, batchSize)
+			for i := 0; i < batchSize; i++ {
+				missingKeys[i] = hsh.Compute(fmt.Sprintf("missing_%d", i))
+			}
+
+			batchGetter, ok := tr.(common.TrieBatchGetter)
+			require.True(b, ok)
+
+			b.ResetTimer()
+			for i := 0; i < b.N; i++ {
+				_, _, _ = batchGetter.GetBatch(missingKeys)
+			}
+		})
+	}
+}

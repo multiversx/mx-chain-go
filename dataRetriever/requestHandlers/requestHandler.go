@@ -182,16 +182,22 @@ func (rrh *resolverRequestHandler) requestHashesWithDataSplit(
 		)
 	}
 
+	wg := &sync.WaitGroup{}
+	wg.Add(len(sliceBatches))
 	for _, batch := range sliceBatches {
-		err = requester.RequestDataFromHashArray(batch, epoch)
-		if err != nil {
-			log.Debug("requestByHashes.RequestDataFromHashArray",
-				"error", err.Error(),
-				"epoch", epoch,
-				"batch size", len(batch),
-			)
-		}
+		go func(b [][]byte) {
+			defer wg.Done()
+			errReq := requester.RequestDataFromHashArray(b, epoch)
+			if errReq != nil {
+				log.Debug("requestByHashes.RequestDataFromHashArray",
+					"error", errReq.Error(),
+					"epoch", epoch,
+					"batch size", len(b),
+				)
+			}
+		}(batch)
 	}
+	wg.Wait()
 }
 
 func (rrh *resolverRequestHandler) requestReferenceWithChunkIndex(

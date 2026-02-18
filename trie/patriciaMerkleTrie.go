@@ -112,6 +112,34 @@ func (tr *patriciaMerkleTrie) Get(key []byte) ([]byte, uint32, error) {
 	return val, depth, nil
 }
 
+// GetBatch retrieves multiple keys from the trie in a single lock acquisition.
+// This reduces mutex overhead from O(N) lock/unlock cycles to O(1) for N keys,
+// and benefits from trie node cache warming as collapsed nodes are resolved during earlier lookups.
+func (tr *patriciaMerkleTrie) GetBatch(keys [][]byte) ([][]byte, []uint32, error) {
+	tr.mutOperation.Lock()
+	defer tr.mutOperation.Unlock()
+
+	values := make([][]byte, len(keys))
+	depths := make([]uint32, len(keys))
+
+	if tr.root == nil {
+		return values, depths, nil
+	}
+
+	for i, key := range keys {
+		hexKey := keyBytesToHex(key)
+		val, depth, err := tr.root.tryGet(hexKey, rootDepthLevel, tr.trieStorage)
+		if err != nil {
+			err = fmt.Errorf("trie get error: %w, for key %v", err, hex.EncodeToString(key))
+			return nil, nil, err
+		}
+		values[i] = val
+		depths[i] = depth
+	}
+
+	return values, depths, nil
+}
+
 // Update updates the value at the given key.
 // If the key is not in the trie, it will be added.
 // If the value is empty, the key will be removed from the trie

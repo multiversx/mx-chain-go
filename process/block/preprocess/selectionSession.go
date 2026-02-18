@@ -55,20 +55,46 @@ func (session *selectionSession) GetAccountNonceAndBalance(address []byte) (uint
 
 // IsIncorrectlyGuarded checks if a transaction is incorrectly guarded (not executable).
 // Will be called by mempool during transaction selection.
+//
+// Uses a two-phase approach to avoid upgrading lightAccountInfo to full accounts
+// in the common case (non-guarded tx from non-guarded account). Only when the account
+// is guarded do we need GetUserAccount (for VerifyGuardian's data trie access).
 func (session *selectionSession) IsIncorrectlyGuarded(tx data.TransactionHandler) bool {
-	address := tx.GetSndAddr()
-	account, err := session.accountsProvider.GetUserAccount(address)
-	if err != nil || check.IfNil(account) {
-		// Unexpected failure. In case of any error (or missing account), we assume the transaction is "correctly guarded".
-		return false
-	}
-
-	txTyped, ok := tx.(*transaction.Transaction)
+	txPtr, ok := tx.(*transaction.Transaction)
 	if !ok {
 		return false
 	}
 
-	err = session.transactionsProcessor.VerifyGuardian(txTyped, account)
+	isTransactionGuarded := session.txVersionCheckerHandler.IsGuardedTransaction(txPtr)
+
+	address := tx.GetSndAddr()
+	accountIsGuarded, err := session.accountsProvider.IsAccountGuarded(address)
+	if err != nil {
+		return false
+	}
+
+	// Non-guarded tx from non-guarded account: always OK.
+	if !isTransactionGuarded && !accountIsGuarded {
+		return false
+	}
+
+	// Guarded tx from non-guarded account: incorrectly guarded.
+	// (matches VerifyGuardian: "guarded transaction, but account not guarded")
+	// This also covers missing/new accounts (not yet in trie), which return accountIsGuarded=false.
+	// A non-existent account cannot have a guardian, so filtering here is correct and avoids
+	// wasting execution resources on a transaction that would always fail.
+	if isTransactionGuarded && !accountIsGuarded {
+		return true
+	}
+
+	// Account IS guarded — need full account for VerifyGuardian
+	// (requires data trie access: GetActiveGuardian, HasPendingGuardian, etc.)
+	account, err := session.accountsProvider.GetUserAccount(address)
+	if err != nil || check.IfNil(account) {
+		return false
+	}
+
+	err = session.transactionsProcessor.VerifyGuardian(txPtr, account)
 	return errors.Is(err, process.ErrTransactionNotExecutable)
 }
 
@@ -80,6 +106,13 @@ func (session *selectionSession) IsGuarded(tx data.TransactionHandler) bool {
 	}
 
 	return session.txVersionCheckerHandler.IsGuardedTransaction(txPtr)
+}
+
+// PrefetchAccounts batch-fetches multiple accounts and warms the ephemeral cache.
+// Delegates to the inner AccountsEphemeralProvider, making selectionSession satisfy
+// common.AccountBatchPrefetcher so virtualSessionComputer.prefetchBreadcrumbAddresses works.
+func (session *selectionSession) PrefetchAccounts(addresses [][]byte) {
+	session.accountsProvider.PrefetchAccounts(addresses)
 }
 
 // GetRootHash returns the current root hash

@@ -66,12 +66,16 @@ const DisabledShardIDAsObserver = uint32(0xFFFFFFFF) - 7
 // in order to mark the transaction as valid.
 const MaxTxNonceDeltaAllowed = 100
 
-// MaxBulkTransactionSize specifies the maximum size of one bulk with txs which can be send over the network
+// MaxBulkTransactionSize specifies the maximum size of one bulk with txs which can be send over the network.
+// A typical simple EGLD transfer is ~200-250 bytes serialized, while a smart contract call can reach ~500 bytes.
+// With blocks containing up to 3000+ txs (~1.5MB at ~500 bytes/tx), a 1MB bulk size means at most 2 chunks
+// per response instead of 7 with the previous 256KB limit, significantly reducing round-trips during
+// consensus when validators need to fetch missing transactions from peers.
 // TODO convert this const into a var and read it from config when this code moves to another binary
-const MaxBulkTransactionSize = 1 << 18 // 256KB bulks
+const MaxBulkTransactionSize = 1 << 20 // 1MB bulks
 
 // MaxTxsToRequest specifies the maximum number of txs to request
-const MaxTxsToRequest = 1000
+const MaxTxsToRequest = 10000
 
 // NodesSetupJsonFileName specifies the name of the json file which contains the setup of the nodes
 const NodesSetupJsonFileName = "nodesSetup.json"
@@ -1021,11 +1025,14 @@ const MaxSoftwareVersionLengthInBytes = 10
 
 // ExtraDelayForBroadcastBlockInfo represents the number of seconds to wait since a block has been broadcast and the
 // moment when its components, like mini blocks and transactions, would be broadcast too
-const ExtraDelayForBroadcastBlockInfo = 120 * time.Millisecond
+// TODO: validate in multi-node testnet — reduced from 120ms to 20ms for Supernova; validators with >20ms
+// network latency may experience message ordering issues.
+const ExtraDelayForBroadcastBlockInfo = 20 * time.Millisecond
 
 // ExtraDelayBetweenBroadcastMbsAndTxs represents the number of seconds to wait since miniblocks have been broadcast
 // and the moment when theirs transactions would be broadcast too
-const ExtraDelayBetweenBroadcastMbsAndTxs = 100 * time.Millisecond
+// TODO: validate in multi-node testnet — reduced from 100ms to 10ms for Supernova.
+const ExtraDelayBetweenBroadcastMbsAndTxs = 10 * time.Millisecond
 
 // ExtraDelayForRequestBlockInfo represents the number of seconds to wait since a block has been received and the
 // moment when its components, like mini blocks and transactions, would be requested too if they are still missing

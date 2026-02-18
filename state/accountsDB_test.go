@@ -6,6 +6,7 @@ import (
 	"crypto/rand"
 	"errors"
 	"fmt"
+	"math/big"
 	mathRand "math/rand"
 	"strings"
 	"sync"
@@ -3463,4 +3464,297 @@ func testAccountLoadInParallel(
 	}
 
 	wg.Wait()
+}
+
+// TestAccountsDB_CreateFullAccountFromLight verifies that CreateFullAccountFromLight correctly
+// creates a full account from cached light data without re-reading the main trie.
+func TestAccountsDB_CreateFullAccountFromLight(t *testing.T) {
+	t.Parallel()
+
+	t.Run("creates account with correct nonce, balance, codeMetadata, rootHash", func(t *testing.T) {
+		t.Parallel()
+
+		_, adb := getDefaultTrieAndAccountsDb()
+
+		// Create a real account with data trie entries so rootHash is non-nil
+		addr := generateRandomByteArray(32)
+		acc, err := adb.LoadAccount(addr)
+		require.Nil(t, err)
+
+		userAcc := acc.(state.UserAccountHandler)
+		userAcc.IncreaseNonce(42)
+		err = userAcc.AddToBalance(big.NewInt(9999))
+		require.Nil(t, err)
+		userAcc.SetCodeMetadata([]byte{0x08, 0x00}) // guarded bit
+		err = userAcc.SaveKeyValue([]byte("test_key"), []byte("test_value"))
+		require.Nil(t, err)
+
+		err = adb.SaveAccount(userAcc)
+		require.Nil(t, err)
+		_, err = adb.Commit()
+		require.Nil(t, err)
+
+		// Read back the original to get the rootHash
+		origAcc, err := adb.GetExistingAccount(addr)
+		require.Nil(t, err)
+		origUser := origAcc.(state.UserAccountHandler)
+		origRootHash := origUser.GetRootHash()
+		require.NotEmpty(t, origRootHash)
+
+		// Now create from light data
+		var adapter state.AccountsAdapter = adb
+		upgrader := adapter.(state.AccountFromLightUpgrader)
+
+		fullAcc, err := upgrader.CreateFullAccountFromLight(addr, 42, big.NewInt(9999), []byte{0x08, 0x00}, origRootHash)
+		require.Nil(t, err)
+		require.NotNil(t, fullAcc)
+
+		fullUser, ok := fullAcc.(state.UserAccountHandler)
+		require.True(t, ok)
+		assert.Equal(t, uint64(42), fullUser.GetNonce())
+		assert.Equal(t, 0, big.NewInt(9999).Cmp(fullUser.GetBalance()))
+		assert.Equal(t, []byte{0x08, 0x00}, fullUser.GetCodeMetadata())
+		assert.Equal(t, origRootHash, fullUser.GetRootHash())
+
+		// Verify the data trie was loaded (can read back the key-value)
+		val, _, err := fullUser.RetrieveValue([]byte("test_key"))
+		require.Nil(t, err)
+		assert.Equal(t, []byte("test_value"), val)
+	})
+
+	t.Run("empty rootHash skips data trie loading", func(t *testing.T) {
+		t.Parallel()
+
+		_, adb := getDefaultTrieAndAccountsDb()
+
+		// Create a simple account with no data trie
+		addr := generateRandomByteArray(32)
+		acc, err := adb.LoadAccount(addr)
+		require.Nil(t, err)
+		userAcc := acc.(state.UserAccountHandler)
+		userAcc.IncreaseNonce(7)
+		err = adb.SaveAccount(userAcc)
+		require.Nil(t, err)
+		_, err = adb.Commit()
+		require.Nil(t, err)
+
+		var adapter state.AccountsAdapter = adb
+		upgrader := adapter.(state.AccountFromLightUpgrader)
+
+		// nil rootHash = no data trie
+		fullAcc, err := upgrader.CreateFullAccountFromLight(addr, 7, big.NewInt(0), nil, nil)
+		require.Nil(t, err)
+		require.NotNil(t, fullAcc)
+
+		fullUser, ok := fullAcc.(state.UserAccountHandler)
+		require.True(t, ok)
+		assert.Equal(t, uint64(7), fullUser.GetNonce())
+	})
+
+	t.Run("nil balance is handled", func(t *testing.T) {
+		t.Parallel()
+
+		_, adb := getDefaultTrieAndAccountsDb()
+		addr := generateRandomByteArray(32)
+
+		var adapter state.AccountsAdapter = adb
+		upgrader := adapter.(state.AccountFromLightUpgrader)
+
+		fullAcc, err := upgrader.CreateFullAccountFromLight(addr, 0, nil, nil, nil)
+		require.Nil(t, err)
+		require.NotNil(t, fullAcc)
+	})
+}
+
+// TestAccountsDB_GetLightAccountsBatch_SingleAccount verifies that GetLightAccountsBatch
+// correctly extracts nonce and balance for a single account, matching the standard
+// GetExistingAccount path, and that raw trie data is consistent between Get and GetBatch.
+func TestAccountsDB_GetLightAccountsBatch_SingleAccount(t *testing.T) {
+	_, adb := getDefaultTrieAndAccountsDb()
+
+	addr := generateRandomByteArray(32)
+	acc, err := adb.LoadAccount(addr)
+	require.Nil(t, err)
+
+	userAcc := acc.(state.UserAccountHandler)
+	userAcc.IncreaseNonce(42)
+	err = userAcc.AddToBalance(big.NewInt(1000))
+	require.Nil(t, err)
+
+	err = adb.SaveAccount(userAcc)
+	require.Nil(t, err)
+	_, err = adb.Commit()
+	require.Nil(t, err)
+
+	// Verify standard path returns correct values
+	acc2, err := adb.GetExistingAccount(addr)
+	require.Nil(t, err)
+	userAcc2 := acc2.(state.UserAccountHandler)
+	assert.Equal(t, uint64(42), userAcc2.GetNonce())
+	assert.Equal(t, 0, big.NewInt(1000).Cmp(userAcc2.GetBalance()))
+
+	// Verify light batch path matches
+	var adapter state.AccountsAdapter = adb
+	lightReader := adapter.(state.LightAccountsBatchReader)
+	lightAccounts, err := lightReader.GetLightAccountsBatch([][]byte{addr})
+	require.Nil(t, err)
+	require.Len(t, lightAccounts, 1)
+	require.NotNil(t, lightAccounts[0])
+
+	assert.Equal(t, uint64(42), lightAccounts[0].GetNonce())
+	assert.Equal(t, 0, big.NewInt(1000).Cmp(lightAccounts[0].GetBalance()))
+}
+
+// TestAccountsDB_GetLightAccountsBatch verifies that the lightweight batch reader
+// correctly extracts nonce and balance, matching the values returned by the standard
+// GetExistingAccount path. Tests existing accounts, non-existent addresses, and empty input.
+func TestAccountsDB_GetLightAccountsBatch(t *testing.T) {
+	_, adb := getDefaultTrieAndAccountsDb()
+
+	// Create accounts with varying nonce and balance
+	numAccounts := 50
+	addresses := make([][]byte, numAccounts)
+	expectedNonces := make([]uint64, numAccounts)
+	expectedBalances := make([]*big.Int, numAccounts)
+
+	for i := 0; i < numAccounts; i++ {
+		addr := generateRandomByteArray(32)
+		acc, err := adb.LoadAccount(addr)
+		require.Nil(t, err)
+
+		userAcc := acc.(state.UserAccountHandler)
+		// Set non-trivial nonce and balance
+		nonce := uint64(i*17 + 3)
+		userAcc.IncreaseNonce(nonce)
+		balance := big.NewInt(int64(i*1000 + 42))
+		err = userAcc.AddToBalance(balance)
+		require.Nil(t, err)
+
+		err = adb.SaveAccount(userAcc)
+		require.Nil(t, err)
+
+		addresses[i] = addr
+		expectedNonces[i] = nonce
+		expectedBalances[i] = balance
+	}
+
+	_, err := adb.Commit()
+	require.Nil(t, err)
+
+	// Test: GetLightAccountsBatch returns correct nonce and balance.
+	// We cast through AccountsAdapter (interface) to use the type assertion.
+	var adapter state.AccountsAdapter = adb
+	lightReader, ok := adapter.(state.LightAccountsBatchReader)
+	require.True(t, ok, "AccountsDB should implement LightAccountsBatchReader")
+
+	lightAccounts, err := lightReader.GetLightAccountsBatch(addresses)
+	require.Nil(t, err)
+	require.Len(t, lightAccounts, numAccounts)
+
+	for i, lightAcct := range lightAccounts {
+		require.NotNil(t, lightAcct, "account %d should not be nil", i)
+		assert.Equal(t, expectedNonces[i], lightAcct.GetNonce(), "nonce mismatch for account %d", i)
+		assert.Equal(t, 0, expectedBalances[i].Cmp(lightAcct.GetBalance()), "balance mismatch for account %d: expected %s, got %s", i, expectedBalances[i], lightAcct.GetBalance())
+	}
+
+	// Test: non-existent addresses return nil
+	missingAddresses := make([][]byte, 10)
+	for i := 0; i < 10; i++ {
+		missingAddresses[i] = generateRandomByteArray(32)
+	}
+	missingResults, err := lightReader.GetLightAccountsBatch(missingAddresses)
+	require.Nil(t, err)
+	for i, acct := range missingResults {
+		assert.Nil(t, acct, "missing account %d should be nil", i)
+	}
+
+	// Test: empty input returns nil
+	emptyResults, err := lightReader.GetLightAccountsBatch(nil)
+	require.Nil(t, err)
+	require.Nil(t, emptyResults)
+}
+
+//	└── AccountsDB (real)
+//	      └── Patricia Merkle Trie (real, committed/collapsed)
+//	            └── TrieStorageManager (real, in-memory storer)
+//
+// BenchmarkAccountsDB_BatchPrefetch_vs_Sequential benchmarks the production flow:
+// PrefetchAccounts (light batch) + GetAccountNonceAndBalance (reads from cache).
+// This matches the Supernova proposal phase where only nonce and balance are needed.
+// The trie is committed after account creation, which collapses nodes to storage.
+// This simulates the cold-path scenario (accounts exist in DB but trie nodes are collapsed).
+func BenchmarkAccountsDB_BatchPrefetch_vs_Sequential(b *testing.B) {
+	for _, numAccounts := range []int{100, 1000, 10000, 50000, 100000} {
+		// --- Existing accounts ---
+		b.Run(fmt.Sprintf("Sequential_%d_existing", numAccounts), func(b *testing.B) {
+			_, adb := getDefaultTrieAndAccountsDb()
+			addresses := generateAccounts(b, numAccounts, adb)
+			_, _ = adb.Commit()
+
+			b.ResetTimer()
+			for i := 0; i < b.N; i++ {
+				provider, _ := state.NewAccountsEphemeralProvider(adb)
+				for _, addr := range addresses {
+					_, _, _, _ = provider.GetAccountNonceAndBalance(addr)
+				}
+			}
+		})
+
+		b.Run(fmt.Sprintf("BatchPrefetch_%d_existing", numAccounts), func(b *testing.B) {
+			_, adb := getDefaultTrieAndAccountsDb()
+			addresses := generateAccounts(b, numAccounts, adb)
+			_, _ = adb.Commit()
+
+			b.ResetTimer()
+			for i := 0; i < b.N; i++ {
+				provider, _ := state.NewAccountsEphemeralProvider(adb)
+				provider.PrefetchAccounts(addresses)
+				for _, addr := range addresses {
+					_, _, _, _ = provider.GetAccountNonceAndBalance(addr)
+				}
+			}
+		})
+
+		// --- Non-existent accounts (10k new senders scenario: nonce 0, never in DB) ---
+		b.Run(fmt.Sprintf("Sequential_%d_nonexistent", numAccounts), func(b *testing.B) {
+			_, adb := getDefaultTrieAndAccountsDb()
+			// Populate trie with DIFFERENT accounts so the trie has structure
+			_ = generateAccounts(b, numAccounts, adb)
+			_, _ = adb.Commit()
+
+			// These addresses don't exist in the trie
+			missingAddresses := make([][]byte, numAccounts)
+			for i := 0; i < numAccounts; i++ {
+				missingAddresses[i] = generateRandomByteArray(32)
+			}
+
+			b.ResetTimer()
+			for i := 0; i < b.N; i++ {
+				provider, _ := state.NewAccountsEphemeralProvider(adb)
+				for _, addr := range missingAddresses {
+					_, _, _, _ = provider.GetAccountNonceAndBalance(addr)
+				}
+			}
+		})
+
+		b.Run(fmt.Sprintf("BatchPrefetch_%d_nonexistent", numAccounts), func(b *testing.B) {
+			_, adb := getDefaultTrieAndAccountsDb()
+			_ = generateAccounts(b, numAccounts, adb)
+			_, _ = adb.Commit()
+
+			missingAddresses := make([][]byte, numAccounts)
+			for i := 0; i < numAccounts; i++ {
+				missingAddresses[i] = generateRandomByteArray(32)
+			}
+
+			b.ResetTimer()
+			for i := 0; i < b.N; i++ {
+				provider, _ := state.NewAccountsEphemeralProvider(adb)
+				provider.PrefetchAccounts(missingAddresses)
+				for _, addr := range missingAddresses {
+					_, _, _, _ = provider.GetAccountNonceAndBalance(addr)
+				}
+			}
+		})
+	}
 }
