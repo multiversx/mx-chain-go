@@ -5,6 +5,7 @@ import (
 	"encoding/hex"
 	"fmt"
 	"math/big"
+	"time"
 
 	"github.com/multiversx/mx-chain-core-go/core"
 	"github.com/multiversx/mx-chain-core-go/core/check"
@@ -109,6 +110,8 @@ func NewOutportDataProvider(arg ArgOutportDataProvider) (*outportDataProvider, e
 
 // PrepareOutportSaveBlockData will prepare the provided data in a format that will be accepted by an outport driver
 func (odp *outportDataProvider) PrepareOutportSaveBlockData(arg ArgPrepareOutportSaveBlockData) (*outportcore.OutportBlockWithHeaderAndBody, error) {
+	defer logExecutionTime(time.Now(), "odp.PrepareOutportSaveBlockData")
+
 	if check.IfNil(arg.Header) {
 		return nil, ErrNilHeaderHandler
 	}
@@ -163,7 +166,10 @@ func (odp *outportDataProvider) PrepareOutportSaveBlockData(arg ArgPrepareOutpor
 		return nil, err
 	}
 
+	startTime := time.Now()
 	stateAccessesForBlock, stateAccessesDeprecated := odp.getStateAccesses(arg.Header, arg.HeaderHash, arg.ScheduledRootHash)
+	log.Info("odp.getStateAccesses", "duration in seconds", time.Since(startTime))
+
 	outportBlock := &outportcore.OutportBlockWithHeaderAndBody{
 		OutportBlock: &outportcore.OutportBlock{
 			ShardID:         odp.shardID,
@@ -208,6 +214,10 @@ func (odp *outportDataProvider) PrepareOutportSaveBlockData(arg ArgPrepareOutpor
 	return outportBlock, nil
 }
 
+func logExecutionTime(start time.Time, message string) {
+	log.Info(message, "duration in seconds", time.Since(start).Seconds())
+}
+
 func (odp *outportDataProvider) getStateAccesses(
 	header data.HeaderHandler,
 	headerHash []byte,
@@ -244,6 +254,8 @@ func (odp *outportDataProvider) getStateAccessForRootHash(rootHash []byte) map[s
 }
 
 func (odp *outportDataProvider) prepareExecutionResultsData(args ArgPrepareOutportSaveBlockData) (map[string]*outportcore.ExecutionResultData, error) {
+	defer logExecutionTime(time.Now(), "odp.prepareExecutionResultsData")
+
 	results := make(map[string]*outportcore.ExecutionResultData)
 	if !args.Header.IsHeaderV3() {
 		return results, nil
@@ -251,6 +263,8 @@ func (odp *outportDataProvider) prepareExecutionResultsData(args ArgPrepareOutpo
 
 	isMeta := odp.shardID == core.MetachainShardId
 	for _, executionResult := range args.Header.GetExecutionResultsHandlers() {
+		startTime := time.Now()
+
 		headerHash := executionResult.GetHeaderHash()
 
 		body, err := common.GetCachedBody(odp.dataPool.ExecutedMiniBlocks(), odp.marshaller, executionResult)
@@ -287,10 +301,18 @@ func (odp *outportDataProvider) prepareExecutionResultsData(args ArgPrepareOutpo
 			return nil, fmt.Errorf("addInPoolUnexecutableTransactions: %w", err)
 		}
 
+		log.Info("odp.get all cached transactions", "duration in seconds", time.Since(startTime))
+
+		startTime = time.Now()
+
 		err = odp.transactionsFeeProcessor.PutFeeAndGasUsed(pool, executionResult.GetHeaderEpoch())
 		if err != nil {
 			return nil, fmt.Errorf("transactionsFeeProcessor.PutFeeAndGasUsed %w", err)
 		}
+
+		log.Info("odp.PutFeeAndGasUsed", "duration in seconds", time.Since(startTime))
+
+		startTime = time.Now()
 
 		orderedTxHashes, err := common.GetCachedOrderedTxHashes(odp.dataPool.PostProcessTransactions(), headerHash)
 		if err != nil {
@@ -298,12 +320,18 @@ func (odp *outportDataProvider) prepareExecutionResultsData(args ArgPrepareOutpo
 		}
 		_, _ = odp.setExecutionOrderInTransactionPool(pool, orderedTxHashes)
 
+		log.Info("odp.setExecutionOrderInTransactionPool", "duration in seconds", time.Since(startTime))
+
+		startTime = time.Now()
+
 		alteredAccounts, err := odp.alteredAccountsProvider.ExtractAlteredAccountsFromPool(pool, shared.AlteredAccountsOptions{
 			WithAdditionalOutportData: true,
 		})
 		if err != nil {
 			return nil, fmt.Errorf("alteredAccountsProvider.ExtractAlteredAccountsFromPool %w", err)
 		}
+
+		log.Info("odp.ExtractAlteredAccountsFromPool", "duration in seconds", time.Since(startTime))
 
 		encodedHash := hex.EncodeToString(headerHash)
 		executionResultData := &outportcore.ExecutionResultData{
