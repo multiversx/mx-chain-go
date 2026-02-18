@@ -2,12 +2,12 @@ package resolvers
 
 import (
 	"fmt"
-	"sync"
 
 	"github.com/multiversx/mx-chain-core-go/core"
 	"github.com/multiversx/mx-chain-core-go/core/check"
 	"github.com/multiversx/mx-chain-core-go/data/batch"
 	logger "github.com/multiversx/mx-chain-logger-go"
+	"golang.org/x/sync/errgroup"
 
 	"github.com/multiversx/mx-chain-go/dataRetriever"
 	"github.com/multiversx/mx-chain-go/p2p"
@@ -190,25 +190,24 @@ func (txRes *TxResolver) resolveTxRequestByHashArray(hashesBuff []byte, pid core
 		return errPack
 	}
 
-	wg := &sync.WaitGroup{}
-	wg.Add(len(buffsToSend))
-	var errSendMut sync.Mutex
-	var errSendResult error
-	for _, buff := range buffsToSend {
-		go func(b []byte) {
-			defer wg.Done()
-			errSend := txRes.Send(b, pid, source)
-			if errSend != nil {
-				errSendMut.Lock()
-				errSendResult = errSend
-				errSendMut.Unlock()
-			}
-		}(buff)
-	}
-	wg.Wait()
-
-	if errSendResult != nil {
-		return errSendResult
+	// Send chunks to the requesting peer. With the 1MB chunk size and blocks containing
+	// 3000+ txs, there are typically 1-2 chunks. For a single chunk (common case), we send
+	// directly to avoid goroutine overhead. For multiple chunks, parallel sending eliminates
+	// the sequential round-trip delay between chunks.
+	if len(buffsToSend) == 1 {
+		if errSend := txRes.Send(buffsToSend[0], pid, source); errSend != nil {
+			return errSend
+		}
+	} else {
+		g := new(errgroup.Group)
+		for _, buff := range buffsToSend {
+			g.Go(func() error {
+				return txRes.Send(buff, pid, source)
+			})
+		}
+		if errSend := g.Wait(); errSend != nil {
+			return errSend
+		}
 	}
 
 	if errFetch != nil {
