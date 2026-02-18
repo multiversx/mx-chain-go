@@ -4,6 +4,8 @@ import (
 	"math/big"
 
 	"github.com/multiversx/mx-chain-core-go/core"
+
+	"github.com/multiversx/mx-chain-go/common"
 )
 
 type virtualSessionComputer struct {
@@ -43,6 +45,10 @@ func (computer *virtualSessionComputer) createVirtualSelectionSession(
 func (computer *virtualSessionComputer) handleGlobalAccountBreadcrumbs(
 	globalAccountBreadcrumbs map[string]*globalAccountBreadcrumb,
 ) error {
+	// Batch prefetch all breadcrumb addresses to warm the session cache with a single trie lock acquisition.
+	// This reduces O(N) trie mutex lock/unlock cycles to O(1) for N unique addresses.
+	computer.prefetchBreadcrumbAddresses(globalAccountBreadcrumbs)
+
 	for address, globalBreadcrumb := range globalAccountBreadcrumbs {
 		accountNonce, accountBalance, _, err := computer.session.GetAccountNonceAndBalance([]byte(address))
 		if err != nil {
@@ -68,6 +74,24 @@ func (computer *virtualSessionComputer) handleGlobalAccountBreadcrumbs(
 	}
 
 	return nil
+}
+
+// prefetchBreadcrumbAddresses collects all addresses from the global breadcrumbs and batch-prefetches them
+// into the session's cache, if the session supports batch prefetching.
+func (computer *virtualSessionComputer) prefetchBreadcrumbAddresses(
+	globalAccountBreadcrumbs map[string]*globalAccountBreadcrumb,
+) {
+	prefetcher, ok := computer.session.(common.AccountBatchPrefetcher)
+	if !ok {
+		return
+	}
+
+	addresses := make([][]byte, 0, len(globalAccountBreadcrumbs))
+	for address := range globalAccountBreadcrumbs {
+		addresses = append(addresses, []byte(address))
+	}
+
+	prefetcher.PrefetchAccounts(addresses)
 }
 
 // fromGlobalBreadcrumbToVirtualRecord transforms a global account breadcrumb simply by:

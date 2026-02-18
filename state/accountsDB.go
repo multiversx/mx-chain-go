@@ -6,6 +6,7 @@ import (
 	"context"
 	"encoding/hex"
 	"fmt"
+	"math/big"
 	"runtime/debug"
 	"strings"
 	"sync"
@@ -769,6 +770,207 @@ func (adb *AccountsDB) GetExistingAccount(address []byte) (vmcommon.AccountHandl
 		if err != nil {
 			return nil, err
 		}
+	}
+
+	return acnt, nil
+}
+
+// GetExistingAccountsBatch returns multiple existing accounts from the trie using a single batch read.
+// This reduces trie mutex contention by acquiring the lock once for all lookups instead of once per account.
+// Accounts that don't exist in the trie are returned as nil in the corresponding position.
+// Note: data tries are NOT loaded for batch reads, since this is primarily used for nonce/balance lookups.
+func (adb *AccountsDB) GetExistingAccountsBatch(addresses [][]byte) ([]vmcommon.AccountHandler, error) {
+	if len(addresses) == 0 {
+		return nil, nil
+	}
+
+	mainTrie := adb.getMainTrie()
+
+	batchGetter, ok := mainTrie.(common.TrieBatchGetter)
+	if !ok {
+		// Fallback to sequential reads if trie doesn't support batch
+		result := make([]vmcommon.AccountHandler, len(addresses))
+		for i, addr := range addresses {
+			if len(addr) == 0 {
+				continue
+			}
+			acnt, err := adb.getAccount(addr, mainTrie)
+			if err != nil {
+				return nil, err
+			}
+			result[i] = acnt
+		}
+		return result, nil
+	}
+
+	values, _, err := batchGetter.GetBatch(addresses)
+	if err != nil {
+		return nil, err
+	}
+
+	result := make([]vmcommon.AccountHandler, len(addresses))
+	for i, addr := range addresses {
+		if values[i] == nil {
+			continue
+		}
+
+		acnt, err := adb.accountFactory.CreateAccount(addr)
+		if err != nil {
+			return nil, err
+		}
+
+		err = adb.marshaller.Unmarshal(acnt, values[i])
+		if err != nil {
+			return nil, err
+		}
+
+		result[i] = acnt
+	}
+
+	return result, nil
+}
+
+// GetLightAccountsBatch returns lightweight account representations (nonce + balance only)
+// for multiple addresses from the trie using a single batch read.
+//
+// This is an optimized alternative to GetExistingAccountsBatch for read-only scenarios
+// where only nonce and balance are needed (e.g., the Supernova proposal phase).
+//
+// Performance difference at 10k accounts:
+//   - GetExistingAccountsBatch: ~14.5ms — creates full UserAccount objects with
+//     TrackableDataTrie + DataTrieLeafParser per account (~3 allocs × 10k = 30k extra allocs)
+//   - GetLightAccountsBatch: ~8-9ms — unmarshals only the UserAccountData protobuf into
+//     a lightweight struct, skipping all heavy object creation
+//
+// The returned lightAccountInfo objects implement UserAccountHandler, so they can be stored
+// in the AccountsEphemeralProvider cache transparently. However, they are read-only —
+// any mutating method will panic. This is safe because the proposal phase never modifies accounts.
+//
+// Accounts that don't exist in the trie are returned as nil in the corresponding position.
+func (adb *AccountsDB) GetLightAccountsBatch(addresses [][]byte) ([]UserAccountHandler, error) {
+	if len(addresses) == 0 {
+		return nil, nil
+	}
+
+	mainTrie := adb.getMainTrie()
+
+	batchGetter, ok := mainTrie.(common.TrieBatchGetter)
+	if !ok {
+		// Fallback: sequential reads, still returning lightweight accounts.
+		// This path is taken if the trie implementation doesn't support batch reads.
+		result := make([]UserAccountHandler, len(addresses))
+		for i, addr := range addresses {
+			if len(addr) == 0 {
+				continue
+			}
+
+			val, _, err := mainTrie.Get(addr)
+			if err != nil {
+				return nil, err
+			}
+			if val == nil {
+				continue
+			}
+
+			acnt, err := adb.unmarshalLightAccount(addr, val)
+			if err != nil {
+				return nil, err
+			}
+			result[i] = acnt
+		}
+		return result, nil
+	}
+
+	values, _, err := batchGetter.GetBatch(addresses)
+	if err != nil {
+		return nil, err
+	}
+
+	result := make([]UserAccountHandler, len(addresses))
+	for i, addr := range addresses {
+		if values[i] == nil {
+			continue
+		}
+
+		acnt, err := adb.unmarshalLightAccount(addr, values[i])
+		if err != nil {
+			return nil, err
+		}
+		result[i] = acnt
+	}
+
+	return result, nil
+}
+
+// unmarshalLightAccount decodes raw trie bytes into a read-only UserAccountHandler
+// containing only nonce and balance.
+//
+// If the account factory implements LightAccountUnmarshaller (which accountCreator does),
+// it delegates directly — the factory unmarshals into accounts.UserAccountData (which natively
+// supports both JSON and protobuf) and returns a lightweight account. This avoids the circular
+// import: state cannot import state/accounts, but state/factory can.
+//
+// Fallback: if the factory doesn't support it, we use the full CreateAccount + Unmarshal path.
+// This still works correctly but loses the ~5-6ms allocation savings at 10k accounts.
+func (adb *AccountsDB) unmarshalLightAccount(address []byte, data []byte) (UserAccountHandler, error) {
+	if lau, ok := adb.accountFactory.(LightAccountUnmarshaller); ok {
+		return lau.UnmarshalLightAccount(address, data)
+	}
+
+	// Fallback: full account creation path (for factories that don't support light unmarshal)
+	acnt, err := adb.accountFactory.CreateAccount(address)
+	if err != nil {
+		return nil, err
+	}
+	err = adb.marshaller.Unmarshal(acnt, data)
+	if err != nil {
+		return nil, err
+	}
+	userAcnt, ok := acnt.(UserAccountHandler)
+	if !ok {
+		return nil, fmt.Errorf("unmarshalLightAccount: cannot cast to UserAccountHandler for address %s",
+			hex.EncodeToString(address))
+	}
+	return userAcnt, nil
+}
+
+// CreateFullAccountFromLight creates a full UserAccount from cached light account data
+// (nonce, balance, codeMetadata, rootHash) without re-reading the main trie.
+// The only trie operation performed is loading the data trie via rootHash.
+// This eliminates the redundant main trie read that GetExistingAccount would do.
+func (adb *AccountsDB) CreateFullAccountFromLight(address []byte, nonce uint64, balance *big.Int, codeMetadata []byte, rootHash []byte) (vmcommon.AccountHandler, error) {
+	// 1. Create empty account with TrackableDataTrie + DataTrieLeafParser
+	acnt, err := adb.accountFactory.CreateAccount(address)
+	if err != nil {
+		return nil, err
+	}
+
+	// 2. Set fields from light data — no main trie read needed
+	baseAcc, ok := acnt.(baseAccountHandler)
+	if !ok {
+		return nil, fmt.Errorf("CreateFullAccountFromLight: cannot cast to baseAccountHandler for address %s",
+			hex.EncodeToString(address))
+	}
+
+	baseAcc.IncreaseNonce(nonce)
+	baseAcc.SetCodeMetadata(codeMetadata)
+	baseAcc.SetRootHash(rootHash)
+
+	if balance != nil {
+		userAcc, isUser := acnt.(UserAccountHandler)
+		if isUser {
+			err = userAcc.AddToBalance(balance)
+			if err != nil {
+				return nil, err
+			}
+		}
+	}
+
+	// 3. Load data trie using rootHash (the only actual trie operation)
+	mainTrie := adb.getMainTrie()
+	err = adb.loadDataTrieConcurrentSafe(baseAcc, mainTrie)
+	if err != nil {
+		return nil, err
 	}
 
 	return acnt, nil

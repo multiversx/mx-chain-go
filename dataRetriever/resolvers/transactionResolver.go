@@ -2,6 +2,7 @@ package resolvers
 
 import (
 	"fmt"
+	"sync"
 
 	"github.com/multiversx/mx-chain-core-go/core"
 	"github.com/multiversx/mx-chain-core-go/core/check"
@@ -15,8 +16,11 @@ import (
 
 var _ dataRetriever.Resolver = (*TxResolver)(nil)
 
-// maxBuffToSendBulkTransactions represents max buffer size to send in bytes
-const maxBuffToSendBulkTransactions = 1 << 18 // 256KB
+// maxBuffToSendBulkTransactions represents max buffer size to send in bytes.
+// Sized to accommodate large blocks (3000+ txs at ~500 bytes each = ~1.5MB), so a single response
+// needs at most 2 chunks instead of 7 with the previous 256KB limit. Combined with parallel chunk
+// sending, this reduces the time validators spend fetching missing transactions during consensus.
+const maxBuffToSendBulkTransactions = 1 << 20 // 1MB
 
 // maxBuffToSendBulkMiniblocks represents max buffer size to send in bytes
 const maxBuffToSendBulkMiniblocks = 1 << 18 // 256KB
@@ -186,11 +190,25 @@ func (txRes *TxResolver) resolveTxRequestByHashArray(hashesBuff []byte, pid core
 		return errPack
 	}
 
+	wg := &sync.WaitGroup{}
+	wg.Add(len(buffsToSend))
+	var errSendMut sync.Mutex
+	var errSendResult error
 	for _, buff := range buffsToSend {
-		errSend := txRes.Send(buff, pid, source)
-		if errSend != nil {
-			return errSend
-		}
+		go func(b []byte) {
+			defer wg.Done()
+			errSend := txRes.Send(b, pid, source)
+			if errSend != nil {
+				errSendMut.Lock()
+				errSendResult = errSend
+				errSendMut.Unlock()
+			}
+		}(buff)
+	}
+	wg.Wait()
+
+	if errSendResult != nil {
+		return errSendResult
 	}
 
 	if errFetch != nil {

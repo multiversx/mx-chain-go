@@ -159,18 +159,25 @@ func (cache *TxCache) selectTransactions(
 		"num bytes", cache.NumBytes(),
 	)
 
+	stopWatch.Start("deriveVirtualSession")
 	virtualSession, err := cache.tracker.deriveVirtualSelectionSession(session, nonce, isSimulation)
+	stopWatch.Stop("deriveVirtualSession")
 	if err != nil {
 		log.Error("TxCache.SelectTransactions: could not derive virtual selection session", "err", err)
 		return nil, 0, err
 	}
+
+	stopWatch.Start("doSelectTransactions")
 	transactions, accumulatedGas := cache.doSelectTransactions(virtualSession, options)
+	stopWatch.Stop("doSelectTransactions")
 
 	stopWatch.Stop("selection")
 
 	logSelect.Debug(
 		"TxCache.SelectTransactions: end",
 		"duration", stopWatch.GetMeasurement("selection"),
+		"deriveVirtualSession", stopWatch.GetMeasurement("deriveVirtualSession"),
+		"doSelectTransactions", stopWatch.GetMeasurement("doSelectTransactions"),
 		"num txs selected", len(transactions),
 		"gas", accumulatedGas,
 	)

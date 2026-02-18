@@ -248,6 +248,10 @@ func (st *selectionTracker) validateBreadcrumbsOfTrackedBlocks(
 	chainOfTrackedBlocks []*trackedBlock,
 	accountsProvider common.AccountNonceAndBalanceProvider,
 ) error {
+	// Batch prefetch all unique addresses across all tracked blocks to warm the provider cache.
+	// This reduces O(B*N) trie mutex lock/unlock cycles to O(1) for B blocks with N unique senders.
+	prefetchBreadcrumbAddressesForValidation(chainOfTrackedBlocks, accountsProvider)
+
 	validator := newBreadcrumbValidator()
 
 	for _, tb := range chainOfTrackedBlocks {
@@ -287,6 +291,37 @@ func (st *selectionTracker) validateBreadcrumbsOfTrackedBlocks(
 	}
 
 	return nil
+}
+
+// prefetchBreadcrumbAddressesForValidation collects all unique addresses from tracked blocks
+// and batch-prefetches them into the provider's cache if the provider supports batch prefetching.
+func prefetchBreadcrumbAddressesForValidation(
+	chainOfTrackedBlocks []*trackedBlock,
+	accountsProvider common.AccountNonceAndBalanceProvider,
+) {
+	prefetcher, ok := accountsProvider.(common.AccountBatchPrefetcher)
+	if !ok {
+		return
+	}
+
+	// Collect all unique addresses across all tracked blocks
+	uniqueAddresses := make(map[string]struct{})
+	for _, tb := range chainOfTrackedBlocks {
+		for address := range tb.breadcrumbsByAddress {
+			uniqueAddresses[address] = struct{}{}
+		}
+	}
+
+	if len(uniqueAddresses) == 0 {
+		return
+	}
+
+	addresses := make([][]byte, 0, len(uniqueAddresses))
+	for address := range uniqueAddresses {
+		addresses = append(addresses, []byte(address))
+	}
+
+	prefetcher.PrefetchAccounts(addresses)
 }
 
 // addNewTrackedBlockNoLock adds a new tracked block into the map of tracked blocks,

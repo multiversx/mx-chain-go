@@ -465,6 +465,19 @@ type AccountNonceAndBalanceProvider interface {
 	IsInterfaceNil() bool
 }
 
+// TrieBatchGetter is an optional interface for tries that support batch reads with a single lock acquisition.
+// This reduces mutex overhead from O(N) lock/unlock cycles to O(1) for N keys.
+type TrieBatchGetter interface {
+	GetBatch(keys [][]byte) ([][]byte, []uint32, error)
+}
+
+// AccountBatchPrefetcher is an optional interface for account providers that support batch prefetching.
+// When implemented, callers can warm the provider's cache with multiple addresses in a single call,
+// leveraging batch trie reads to minimize mutex contention.
+type AccountBatchPrefetcher interface {
+	PrefetchAccounts(addresses [][]byte)
+}
+
 // AccountNonceProvider provides the nonce of accounts
 type AccountNonceProvider interface {
 	GetAccountNonce(accountKey []byte) (uint64, bool, error)
