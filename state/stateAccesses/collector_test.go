@@ -997,7 +997,7 @@ func TestStateAccessesCollector_Concurrency(t *testing.T) {
 			case 9:
 				c.SetIndexToLatestStateAccesses(rand.Intn(10))
 			default:
-				assert.Fail(t, "should have not beed called")
+				assert.Fail(t, "should have not been called")
 			}
 
 			wg.Done()
