@@ -5,6 +5,7 @@ import (
 	"fmt"
 
 	"github.com/multiversx/mx-chain-core-go/core"
+
 	"github.com/multiversx/mx-chain-go/common"
 )
 
@@ -29,13 +30,13 @@ func newSnapshotTrieStorageManager(tsm *trieStorageManager, epoch uint32) (*snap
 
 // Get checks all the storers for the given key, and returns it if it is found
 func (stsm *snapshotTrieStorageManager) Get(key []byte) ([]byte, error) {
-	stsm.storageOperationMutex.Lock()
-	defer stsm.storageOperationMutex.Unlock()
-
+	stsm.storageOperationMutex.RLock()
 	if stsm.closed {
+		stsm.storageOperationMutex.RUnlock()
 		log.Debug("snapshotTrieStorageManager get context closing", "key", key)
 		return nil, core.ErrContextClosing
 	}
+	stsm.storageOperationMutex.RUnlock()
 
 	// test point get during snapshot
 
@@ -80,13 +81,13 @@ func (stsm *snapshotTrieStorageManager) putInPreviousStorerIfAbsent(key []byte, 
 
 // Put adds the given value to the main storer
 func (stsm *snapshotTrieStorageManager) Put(key, data []byte) error {
-	stsm.storageOperationMutex.Lock()
-	defer stsm.storageOperationMutex.Unlock()
-
+	stsm.storageOperationMutex.RLock()
 	if stsm.closed {
+		stsm.storageOperationMutex.RUnlock()
 		log.Debug("snapshotTrieStorageManager put context closing", "key", key, "data", data)
 		return core.ErrContextClosing
 	}
+	stsm.storageOperationMutex.RUnlock()
 
 	log.Trace("put hash in snapshot storer", "hash", key, "epoch", stsm.epoch)
 	return stsm.mainSnapshotStorer.PutInEpochWithoutCache(key, data, stsm.epoch)
@@ -94,13 +95,13 @@ func (stsm *snapshotTrieStorageManager) Put(key, data []byte) error {
 
 // GetFromLastEpoch searches only the last epoch storer for the given key
 func (stsm *snapshotTrieStorageManager) GetFromLastEpoch(key []byte) ([]byte, error) {
-	stsm.storageOperationMutex.Lock()
-	defer stsm.storageOperationMutex.Unlock()
-
+	stsm.storageOperationMutex.RLock()
 	if stsm.closed {
+		stsm.storageOperationMutex.RUnlock()
 		log.Debug("snapshotTrieStorageManager getFromLastEpoch context closing", "key", key)
 		return nil, core.ErrContextClosing
 	}
+	stsm.storageOperationMutex.RUnlock()
 
 	return stsm.mainSnapshotStorer.GetFromLastEpoch(key)
 }
