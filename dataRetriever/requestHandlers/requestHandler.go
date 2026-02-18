@@ -182,22 +182,38 @@ func (rrh *resolverRequestHandler) requestHashesWithDataSplit(
 		)
 	}
 
-	wg := &sync.WaitGroup{}
-	wg.Add(len(sliceBatches))
-	for _, batch := range sliceBatches {
-		go func(b [][]byte) {
-			defer wg.Done()
-			errReq := requester.RequestDataFromHashArray(b, epoch)
-			if errReq != nil {
-				log.Debug("requestByHashes.RequestDataFromHashArray",
-					"error", errReq.Error(),
-					"epoch", epoch,
-					"batch size", len(b),
-				)
-			}
-		}(batch)
+	// Request all batches concurrently from peers.
+	// When a validator is missing transactions for a proposed block, it splits the hash list
+	// into batches and requests each batch from connected peers. Parallel requests reduce
+	// the total fetch time from sum(batch latencies) to max(batch latencies).
+	// For a single batch (common case), we skip goroutine overhead entirely.
+	if len(sliceBatches) == 1 {
+		err = requester.RequestDataFromHashArray(sliceBatches[0], epoch)
+		if err != nil {
+			log.Debug("requestByHashes.RequestDataFromHashArray",
+				"error", err.Error(),
+				"epoch", epoch,
+				"batch size", len(sliceBatches[0]),
+			)
+		}
+	} else {
+		wg := &sync.WaitGroup{}
+		wg.Add(len(sliceBatches))
+		for _, batch := range sliceBatches {
+			go func(b [][]byte) {
+				defer wg.Done()
+				errReq := requester.RequestDataFromHashArray(b, epoch)
+				if errReq != nil {
+					log.Debug("requestByHashes.RequestDataFromHashArray",
+						"error", errReq.Error(),
+						"epoch", epoch,
+						"batch size", len(b),
+					)
+				}
+			}(batch)
+		}
+		wg.Wait()
 	}
-	wg.Wait()
 }
 
 func (rrh *resolverRequestHandler) requestReferenceWithChunkIndex(
@@ -433,7 +449,7 @@ func (rrh *resolverRequestHandler) RequestShardHeaderByNonce(shardID uint32, non
 // RequestShardHeaderByNonceForEpoch method asks for shard header from the connected peers by nonce and epoch
 func (rrh *resolverRequestHandler) RequestShardHeaderByNonceForEpoch(shardID uint32, nonce uint64, epoch uint32) {
 	suffix := fmt.Sprintf("%s_%d", uniqueHeadersSuffix, shardID)
-	key := []byte(fmt.Sprintf("%d-%d", shardID, nonce))
+	key := fmt.Appendf(nil, "%d-%d", shardID, nonce)
 	if !rrh.testIfRequestIsNeeded(key, suffix) {
 		return
 	}
@@ -607,7 +623,7 @@ func (rrh *resolverRequestHandler) RequestMetaHeaderByNonce(nonce uint64) {
 
 // RequestMetaHeaderByNonceForEpoch method asks for meta header from the connected peers by nonce and epoch
 func (rrh *resolverRequestHandler) RequestMetaHeaderByNonceForEpoch(nonce uint64, epoch uint32) {
-	key := []byte(fmt.Sprintf("%d-%d", core.MetachainShardId, nonce))
+	key := fmt.Appendf(nil, "%d-%d", core.MetachainShardId, nonce)
 	if !rrh.testIfRequestIsNeeded(key, uniqueMetaHeadersSuffix) {
 		return
 	}
