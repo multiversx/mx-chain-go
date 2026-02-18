@@ -909,7 +909,11 @@ func createBroadcastTopic(shardC sharding.Coordinator, destShId uint32, mbType b
 	return transactionTopic, nil
 }
 
-// ProposedDirectSentTransactionsToBroadcast creates marshaled intra-shard transactions received via direct-send for broadcasting
+// ProposedDirectSentTransactionsToBroadcast creates marshaled intra-shard transactions for broadcasting
+// alongside the block proposal. The leader broadcasts ALL intra-shard transactions in the proposed block,
+// regardless of how they were received (gossip, direct-send, or API). This ensures validators in the
+// consensus group have the transaction data without needing to request it via the slower hash-array
+// request/response cycle. See the discussion in the PR for the full rationale and cross-chain comparison.
 func (tc *transactionCoordinator) ProposedDirectSentTransactionsToBroadcast(proposedBody data.BodyHandler) map[string][][]byte {
 	mrsTxs := make(map[string][][]byte)
 
@@ -921,6 +925,7 @@ func (tc *transactionCoordinator) ProposedDirectSentTransactionsToBroadcast(prop
 
 	// should not be any intermediate transactions at this point and all data needed should be in pools
 	cachedIntermediateTxsMap := make(map[block.Type]map[string]data.TransactionHandler)
+	shouldNotSkipTransaction := func(_ []byte) bool { return false }
 
 	for _, miniBlock := range bodyPtr.MiniBlocks {
 		isIntraShardMb := miniBlock.SenderShardID == miniBlock.ReceiverShardID &&
@@ -929,7 +934,7 @@ func (tc *transactionCoordinator) ProposedDirectSentTransactionsToBroadcast(prop
 			continue
 		}
 
-		tc.appendTransactionsForMiniBlock(miniBlock, cachedIntermediateTxsMap, mrsTxs, tc.shouldSkipTransaction)
+		tc.appendTransactionsForMiniBlock(miniBlock, cachedIntermediateTxsMap, mrsTxs, shouldNotSkipTransaction)
 	}
 
 	return mrsTxs
