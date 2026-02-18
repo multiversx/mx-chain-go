@@ -4,7 +4,9 @@ import (
 	"errors"
 	"fmt"
 	"math/big"
+	"math/rand"
 	"strconv"
+	"sync"
 	"testing"
 
 	"github.com/multiversx/mx-chain-core-go/core"
@@ -959,4 +961,48 @@ func TestStateAccessesCollector_RemoveStateAccessesSForRootHash(t *testing.T) {
 
 	c.RemoveStateAccessesForRootHash(rootHash)
 	assert.Equal(t, 0, len(c.stateAccessesForBlock))
+}
+
+func TestStateAccessesCollector_Concurrency(t *testing.T) {
+	t.Parallel()
+
+	c, _ := NewCollector(disabled.NewDisabledStateAccessesStorer(), WithCollectRead(), WithCollectWrite())
+
+	numOperations := 1000
+
+	wg := sync.WaitGroup{}
+	wg.Add(numOperations)
+
+	for i := 0; i < numOperations; i++ {
+		go func(idx int) {
+			switch idx % 10 {
+			case 0:
+				c.AddStateAccess(getWriteStateAccess())
+			case 1:
+				c.AddStateAccess(getReadStateAccess())
+			case 2:
+				c.AddTxHashToCollectedStateAccesses([]byte("txHash" + fmt.Sprintf("%d", rand.Intn(100))))
+			case 3:
+				c.CommitCollectedAccesses([]byte("rootHash"))
+			case 4:
+				c.GetAccountChanges(&mockState.UserAccountStub{}, &mockState.UserAccountStub{})
+			case 5:
+				c.GetStateAccessesForRootHash([]byte("rootHash"))
+			case 6:
+				c.RemoveStateAccessesForRootHash([]byte("rootHash"))
+			case 7:
+				c.Reset()
+			case 8:
+				_ = c.RevertToIndex(rand.Intn(10))
+			case 9:
+				c.SetIndexToLatestStateAccesses(rand.Intn(10))
+			default:
+				assert.Fail(t, "should have not beed called")
+			}
+
+			wg.Done()
+		}(i)
+	}
+
+	wg.Wait()
 }
