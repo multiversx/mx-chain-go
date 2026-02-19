@@ -312,31 +312,19 @@ func (bn *branchNode) commitSnapshot(
 			continue
 		}
 
-		encChild, foundInEpoch, err := db.GetFromOldEpochsWithoutAddingToCache(bn.EncodedChildren[i], maxEpochToSearchFrom)
-		if err != nil {
-			treatLogError(log, err, bn.EncodedChildren[i])
-
-			if core.IsClosingError(err) {
-				return err
-			}
-
-			log.Error("error during trie snapshot", "err", err.Error(), "hash", bn.EncodedChildren[i], "maxEpochToSearchFrom", maxEpochToSearchFrom)
-			missingNodesChan <- bn.EncodedChildren[i]
-			continue
-		}
-
-		child, err := decodeNode(encChild, bn.marsh, bn.hasher)
-		if err != nil {
-			return err
-		}
-
-		maxEpochToSearchFromForChild := foundInEpoch + 1
-		err = child.commitSnapshot(db, maxEpochToSearchFromForChild, leavesChan, missingNodesChan, ctx, stats, idleProvider, encChild, depthLevel+1)
-		if err != nil {
-			return err
-		}
-
-		err = db.PutInEpochWithoutCache(bn.EncodedChildren[i], encChild)
+		err := commitSnapshot(
+			db,
+			maxEpochToSearchFrom,
+			bn.marsh,
+			bn.hasher,
+			leavesChan,
+			missingNodesChan,
+			ctx,
+			stats,
+			idleProvider,
+			depthLevel,
+			bn.EncodedChildren[i],
+		)
 		if err != nil {
 			return err
 		}

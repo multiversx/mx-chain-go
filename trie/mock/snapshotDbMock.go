@@ -16,8 +16,8 @@ func NewSnapshotDbMock() *SnapshotDbMock {
 	}
 }
 
-// GetFromOldEpochsWithoutAddingToCache gets the value associated to the key from old epochs, or reports an error
-func (s *SnapshotDbMock) GetFromOldEpochsWithoutAddingToCache(key []byte, _ uint32) ([]byte, uint32, error) {
+// GetWithoutAddingToCache gets the value associated to the key from old epochs, or reports an error
+func (s *SnapshotDbMock) GetWithoutAddingToCache(key []byte, _ uint32) ([]byte, uint32, error) {
 	val, err := s.MemDbMock.Get(key)
 	return val, 0, err
 }

@@ -408,7 +408,7 @@ func TestTrieStorageManager_ShouldTakeSnapshot(t *testing.T) {
 
 		assert.True(t, ts.ShouldTakeSnapshot())
 	})
-	t.Run("GetFromOldEpochsWithoutAddingToCacheCalled returns ActiveDBVal should return true", func(t *testing.T) {
+	t.Run("GetWithoutAddingToCacheCalled returns ActiveDBVal should return true", func(t *testing.T) {
 		t.Parallel()
 
 		args := trie.GetDefaultTrieStorageManagerParameters()
@@ -416,7 +416,7 @@ func TestTrieStorageManager_ShouldTakeSnapshot(t *testing.T) {
 			GetFromCurrentEpochCalled: func(key []byte) ([]byte, error) {
 				return nil, expectedErr // isTrieSynced returns false
 			},
-			GetFromOldEpochsWithoutAddingToCacheCalled: func(key []byte, _ uint32) ([]byte, core.OptionalUint32, error) {
+			GetWithoutAddingToCacheCalled: func(key []byte, _ uint32) ([]byte, core.OptionalUint32, error) {
 				return []byte(common.ActiveDBVal), core.OptionalUint32{}, nil
 			},
 			MemDbMock: testscommon.NewMemDbMock(),

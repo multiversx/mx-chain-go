@@ -376,7 +376,7 @@ func newSnapshotNode(
 	epoch uint32,
 	missingNodesCh chan []byte,
 ) (snapshotNode, []byte, error) {
-	encodedNode, _, err := db.GetFromOldEpochsWithoutAddingToCache(rootHash, epoch)
+	encodedNode, _, err := db.GetWithoutAddingToCache(rootHash, epoch)
 	if err != nil {
 		treatLogError(log, err, rootHash)
 

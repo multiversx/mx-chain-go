@@ -89,7 +89,7 @@ type epochStorer interface {
 
 type snapshotPruningStorer interface {
 	common.BaseStorer
-	GetFromOldEpochsWithoutAddingToCache(key []byte, maxEpochToSearchFrom uint32) ([]byte, core.OptionalUint32, error)
+	GetWithoutAddingToCache(key []byte, maxEpochToSearchFrom uint32) ([]byte, core.OptionalUint32, error)
 	GetFromLastEpoch(key []byte) ([]byte, error)
 	PutInEpoch(key []byte, data []byte, epoch uint32) error
 	PutInEpochWithoutCache(key []byte, data []byte, epoch uint32) error
@@ -113,7 +113,7 @@ type IdleNodeProvider interface {
 }
 
 type snapshotDb interface {
-	GetFromOldEpochsWithoutAddingToCache(key []byte, maxEpochToSearchFrom uint32) ([]byte, uint32, error)
+	GetWithoutAddingToCache(key []byte, maxEpochToSearchFrom uint32) ([]byte, uint32, error)
 	GetFromLastEpoch(key []byte) ([]byte, error)
 	PutInEpochWithoutCache(key []byte, data []byte) error
 	GetIdentifier() string
