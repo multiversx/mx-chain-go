@@ -151,10 +151,6 @@ func (sr *subroundEndRound) receivedInvalidSignersInfo(_ context.Context, cnsDta
 		return false
 	}
 
-	if len(cnsDta.InvalidSigners) > sr.ConsensusGroupSize() {
-		return false
-	}
-
 	invalidSignersCache := sr.InvalidSignersCache()
 	if invalidSignersCache.CheckKnownInvalidSigners(cnsDta.BlockHeaderHash, cnsDta.InvalidSigners) {
 		return false
@@ -183,6 +179,10 @@ func (sr *subroundEndRound) verifyInvalidSigners(invalidSigners []byte) ([]strin
 	messages, err := sr.MessageSigningHandler().Deserialize(invalidSigners)
 	if err != nil {
 		return nil, err
+	}
+
+	if len(messages) > sr.ConsensusGroupSize() {
+		return nil, ErrTooManyInvalidSigners
 	}
 
 	pubKeys := make([]string, 0, len(messages))
@@ -224,7 +224,7 @@ func (sr *subroundEndRound) verifyInvalidSigner(msg p2p.MessageP2P) (string, err
 		return string(cnsMsg.PubKey), nil
 	}
 
-	return "", nil
+	return "", ErrValidSignatureFromInvalidSigner
 }
 
 func (sr *subroundEndRound) applyBlacklistOnNode(peer core.PeerID) {
