@@ -78,14 +78,6 @@ func (stsm *snapshotTrieStorageManager) putInPreviousStorerIfAbsent(key []byte, 
 
 // PutInEpochWithoutCache adds the given (key, data) in the current epoch without adding it to cache
 func (stsm *snapshotTrieStorageManager) PutInEpochWithoutCache(key, data []byte) error {
-	stsm.tsm.storageOperationMutex.RLock()
-	if stsm.tsm.closed {
-		stsm.tsm.storageOperationMutex.RUnlock()
-		log.Debug("snapshotTrieStorageManager put context closing", "key", key, "data", data)
-		return core.ErrContextClosing
-	}
-	stsm.tsm.storageOperationMutex.RUnlock()
-
 	log.Trace("put hash in snapshot storer", "hash", key, "epoch", stsm.epoch)
 	return stsm.mainSnapshotStorer.PutInEpochWithoutCache(key, data, stsm.epoch)
 }
