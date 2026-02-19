@@ -116,10 +116,15 @@ func (txs *transactions) createEmptyMiniBlocks(blockType block.Type, reserved []
 }
 
 func (txs *transactions) hasAddressEnoughInitialBalance(tx *transaction.Transaction) bool {
+	feePayer := tx.GetSndAddr()
+	if common.IsAsyncExecutionEnabled(txs.enableEpochsHandler, txs.enableRoundsHandler) {
+		feePayer = common.GetFeePayer(tx)
+	}
+
 	addressHasEnoughBalance := true
-	isAddressSet := txs.balanceComputation.IsAddressSet(tx.GetSndAddr())
+	isAddressSet := txs.balanceComputation.IsAddressSet(feePayer)
 	if isAddressSet {
-		addressHasEnoughBalance = txs.balanceComputation.AddressHasEnoughBalance(tx.GetSndAddr(), txs.getTxMaxTotalCost(tx))
+		addressHasEnoughBalance = txs.balanceComputation.AddressHasEnoughBalance(feePayer, txs.getTxMaxTotalCost(tx))
 	}
 
 	return addressHasEnoughBalance
@@ -593,13 +598,17 @@ func (txs *transactions) applyExecutedTransaction(
 	mbInfo *createAndProcessMiniBlocksInfo,
 ) {
 	mbInfo.senderAddressToSkip = []byte("")
+	balanceAddress := tx.GetSndAddr()
+	if common.IsAsyncExecutionEnabled(txs.enableEpochsHandler, txs.enableRoundsHandler) {
+		balanceAddress = common.GetFeePayer(tx)
+	}
 
-	if txs.balanceComputation.IsAddressSet(tx.GetSndAddr()) {
+	if txs.balanceComputation.IsAddressSet(balanceAddress) {
 		txMaxTotalCost := txs.getTxMaxTotalCost(tx)
-		ok := txs.balanceComputation.SubBalanceFromAddress(tx.GetSndAddr(), txMaxTotalCost)
+		ok := txs.balanceComputation.SubBalanceFromAddress(balanceAddress, txMaxTotalCost)
 		if !ok {
 			log.Error("applyExecutedTransaction.SubBalanceFromAddress",
-				"sender address", tx.GetSndAddr(),
+				"fee payer address", balanceAddress,
 				"tx max total cost", txMaxTotalCost,
 				"err", process.ErrInsufficientFunds)
 		}
