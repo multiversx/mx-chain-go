@@ -125,7 +125,8 @@ func (st *selectionTracker) OnProposedBlock(
 
 	lastNoncePerSender, err := st.validateTrackedBlocksAndCompileBreadcrumbsNoLock(blockBody, tBlock, accountsProvider, latestExecutedHash)
 	if err != nil {
-		log.Debug("selectionTracker.OnProposedBlock: error validating the tracked blocks", "err", err)
+		log.Debug("selectionTracker.OnProposedBlock: error validating the tracked blocks, resetting tracked state", "err", err)
+		st.resetTrackedBlocksNoLock()
 		return err
 	}
 
@@ -428,7 +429,11 @@ func (st *selectionTracker) ResetTrackedBlocks() {
 	st.mutTracker.Lock()
 	defer st.mutTracker.Unlock()
 
-	log.Debug("selectionTracker.ResetTrackedBlocks removing all tracked blocks",
+	st.resetTrackedBlocksNoLock()
+}
+
+func (st *selectionTracker) resetTrackedBlocksNoLock() {
+	log.Debug("selectionTracker.resetTrackedBlocksNoLock removing all tracked blocks",
 		"len(trackedBlocks)", len(st.blocks),
 	)
 
