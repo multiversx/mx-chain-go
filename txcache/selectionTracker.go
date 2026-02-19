@@ -242,16 +242,34 @@ func (st *selectionTracker) validateTrackedBlocksAndCompileBreadcrumbsNoLock(
 }
 
 // validateBreadcrumbsOfTrackedBlocks validates the breadcrumbs of each tracked block.
-// Firstly, it checks for nonce continuity.
-// Then, it checks that each account has enough balance.
+// For predecessor blocks (all except the last), discontinuous breadcrumbs are tolerated:
+// the address is marked as discontinuous and its nonce/balance validation is skipped.
+// For the new block (the last one), if it has breadcrumbs for an address that was marked
+// as discontinuous, validation fails - the new block must not include transactions
+// for accounts with stale/discontinuous history.
 func (st *selectionTracker) validateBreadcrumbsOfTrackedBlocks(
 	chainOfTrackedBlocks []*trackedBlock,
 	accountsProvider common.AccountNonceAndBalanceProvider,
 ) error {
 	validator := newBreadcrumbValidator()
 
-	for _, tb := range chainOfTrackedBlocks {
+	numBlocks := len(chainOfTrackedBlocks)
+
+	for i, tb := range chainOfTrackedBlocks {
+		isNewBlock := i == numBlocks-1
+
 		for address, breadcrumb := range tb.breadcrumbsByAddress {
+			if isNewBlock && validator.isAddressDiscontinuous(address) {
+				// The new block has transactions for an account with discontinuous breadcrumbs
+				// in predecessor blocks. This must be rejected.
+				log.Debug("selectionTracker.validateBreadcrumbsOfTrackedBlocks: new block has breadcrumb for discontinuous address",
+					"err", errDiscontinuousBreadcrumbs,
+					"address", address,
+					"tracked block hash", tb.hash,
+					"tracked block nonce", tb.nonce)
+				return errDiscontinuousBreadcrumbs
+			}
+
 			// NOTE: the initial balance should never change during this validation, because we use an account provider which is not affected by the actual execution.
 			initialNonce, initialBalance, _, err := accountsProvider.GetAccountNonceAndBalance([]byte(address))
 			if err != nil {
@@ -264,12 +282,29 @@ func (st *selectionTracker) validateBreadcrumbsOfTrackedBlocks(
 			}
 
 			if !validator.validateNonceContinuityOfBreadcrumb(address, initialNonce, breadcrumb) {
-				log.Debug("selectionTracker.validateBreadcrumbsOfTrackedBlocks",
-					"err", errDiscontinuousBreadcrumbs,
+				if isNewBlock {
+					// The new block itself has discontinuous breadcrumbs - reject
+					log.Debug("selectionTracker.validateBreadcrumbsOfTrackedBlocks: new block has discontinuous breadcrumbs",
+						"err", errDiscontinuousBreadcrumbs,
+						"address", address,
+						"tracked block hash", tb.hash,
+						"tracked block nonce", tb.nonce)
+					return errDiscontinuousBreadcrumbs
+				}
+
+				// Predecessor block has discontinuous breadcrumbs - tolerate, mark address
+				log.Debug("selectionTracker.validateBreadcrumbsOfTrackedBlocks: tolerating discontinuous breadcrumbs in predecessor block",
 					"address", address,
 					"tracked block hash", tb.hash,
 					"tracked block nonce", tb.nonce)
-				return errDiscontinuousBreadcrumbs
+				validator.markAddressAsDiscontinuous(address)
+				continue
+			}
+
+			// Skip balance validation for addresses already marked as discontinuous.
+			// This is safe because predecessor blocks were already validated at their original proposal time.
+			if validator.isAddressDiscontinuous(address) {
+				continue
 			}
 
 			// use its balance to accumulate and validate (make sure is < than initialBalance from the session)

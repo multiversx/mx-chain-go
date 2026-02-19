@@ -134,8 +134,10 @@ func selectTransactionsFromBunches(
 func detectSkippableSender(virtualSession *virtualSelectionSession, item *transactionsHeapItem, virtualRecord *virtualAccountRecord) bool {
 	nonce, err := virtualRecord.getInitialNonce()
 	if err != nil {
-		// Every virtual record is initialized with the session nonce, to avoid virtual records with no initial nonce.
-		// So this error should never appear.
+		// This error is expected for accounts with discontinuous global breadcrumbs,
+		// which get a blocked virtual record (initialNonce.HasValue=false).
+		// In this case, the sender is correctly skipped to avoid selecting transactions
+		// that would fail OnProposedBlock validation.
 		log.Debug("detectSkippableSender", "err", err)
 		return true
 	}
@@ -168,8 +170,8 @@ func detectSkippableSender(virtualSession *virtualSelectionSession, item *transa
 func detectSkippableTransaction(virtualSession *virtualSelectionSession, item *transactionsHeapItem, virtualRecord *virtualAccountRecord) bool {
 	nonce, err := virtualRecord.getInitialNonce()
 	if err != nil {
-		// Every virtual record is initialized with the session nonce, to avoid virtual records with no initial nonce.
-		// So this error should never appear.
+		// This error is expected for accounts with discontinuous global breadcrumbs,
+		// which get a blocked virtual record (initialNonce.HasValue=false).
 		log.Debug("detectSkippableTransaction", "err", err)
 		return true
 	}
