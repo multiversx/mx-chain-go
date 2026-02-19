@@ -1885,7 +1885,7 @@ func TestSelectionTracker_validateBreadcrumbsToleratesPredecessorDiscontinuity(t
 		t.Parallel()
 
 		// Predecessor block has discontinuous breadcrumbs for alice (firstNonce=52, but sessionNonce=0)
-		// New block has no breadcrumbs for alice \u2014 should be tolerated
+		// New block has no breadcrumbs for alice - should be tolerated
 		breadcrumbAlicePredecessor := newAccountBreadcrumb(core.OptionalUint64{
 			Value:    52,
 			HasValue: true,
@@ -1961,7 +1961,7 @@ func TestSelectionTracker_validateBreadcrumbsToleratesPredecessorDiscontinuity(t
 			HasValue: true,
 		}
 
-		// New block also has breadcrumbs for alice \u2014 should be rejected
+		// New block also has breadcrumbs for alice - should be rejected
 		breadcrumbAliceNewBlock := newAccountBreadcrumb(core.OptionalUint64{
 			Value:    56,
 			HasValue: true,
@@ -2046,7 +2046,7 @@ func TestSelectionTracker_validateBreadcrumbsToleratesPredecessorDiscontinuity(t
 		t.Parallel()
 
 		// Two predecessor blocks with discontinuous breadcrumbs for alice
-		// New block has no breadcrumbs for alice \u2014 should be tolerated
+		// New block has no breadcrumbs for alice - should be tolerated
 		breadcrumbAlice1 := newAccountBreadcrumb(core.OptionalUint64{
 			Value:    52,
 			HasValue: true,
