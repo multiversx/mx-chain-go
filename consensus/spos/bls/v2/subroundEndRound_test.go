@@ -1856,6 +1856,11 @@ func TestVerifyInvalidSigners(t *testing.T) {
 		t.Parallel()
 
 		container := consensusMocks.InitConsensusCore()
+		container.SetSigningHandler(&consensusMocks.SigningHandlerStub{
+			VerifySingleSignatureCalled: func(publicKeyBytes []byte, message []byte, signature []byte) error {
+				return expectedErr
+			},
+		})
 
 		pubKey := []byte("A") // it's in consensus
 
