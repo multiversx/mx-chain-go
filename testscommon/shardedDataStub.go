@@ -6,6 +6,7 @@ import (
 	"github.com/multiversx/mx-chain-core-go/core/counting"
 	"github.com/multiversx/mx-chain-core-go/data"
 	"github.com/multiversx/mx-chain-core-go/data/block"
+
 	"github.com/multiversx/mx-chain-go/common"
 	"github.com/multiversx/mx-chain-go/storage"
 )
@@ -188,6 +189,15 @@ func (sd *ShardedDataStub) OnProposedBlock(
 	if sd.OnProposedBlockCalled != nil {
 		return sd.OnProposedBlockCalled(blockHash, blockBody, blockHeader, accountsProvider, latestExecutedHash)
 	}
+	return nil
+}
+
+// OnBackfilledBlock -
+func (sd *ShardedDataStub) OnBackfilledBlock(
+	_ []byte,
+	_ *block.Body,
+	_ data.HeaderHandler,
+) error {
 	return nil
 }
 

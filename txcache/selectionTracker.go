@@ -75,9 +75,12 @@ func (st *selectionTracker) OnProposedBlock(
 		return errWrongTypeAssertion
 	}
 
-	err := st.verifyArgsOfOnProposedBlock(blockHash, blockBody, blockHeader, accountsProvider)
+	err := st.verifyBlockArgs(blockHash, blockBody, blockHeader)
 	if err != nil {
 		return err
+	}
+	if check.IfNil(accountsProvider) {
+		return errNilAccountNonceAndBalanceProvider
 	}
 
 	accountsRootHash, err := accountsProvider.GetRootHash()
@@ -142,11 +145,66 @@ func (st *selectionTracker) OnProposedBlock(
 	return nil
 }
 
-func (st *selectionTracker) verifyArgsOfOnProposedBlock(
+// OnBackfilledBlock adds a previously consensus-agreed block as tracked without breadcrumb validation.
+// This is used during sync start to backfill blocks between the last execution result and the current
+// committed header. Since these blocks were already validated during consensus, breadcrumb continuity
+// and balance checks are skipped. The block's breadcrumbs are still compiled and tracked.
+func (st *selectionTracker) OnBackfilledBlock(
+	blockHash []byte,
+	bodyHandler data.BodyHandler,
+	blockHeader data.HeaderHandler,
+) error {
+	blockBody, ok := bodyHandler.(*block.Body)
+	if !ok {
+		return errWrongTypeAssertion
+	}
+
+	err := st.verifyBlockArgs(blockHash, blockBody, blockHeader)
+	if err != nil {
+		return err
+	}
+
+	// Preempt any ongoing AOT selection before acquiring the lock
+	st.cancelAOTOngoingSelection()
+
+	st.mutTracker.Lock()
+	defer st.mutTracker.Unlock()
+
+	nonce := blockHeader.GetNonce()
+	prevHash := blockHeader.GetPrevHash()
+
+	tBlock := newTrackedBlock(nonce, blockHash, prevHash)
+
+	log.Debug("selectionTracker.OnBackfilledBlock",
+		"nonce", nonce,
+		"blockHash", blockHash,
+		"prevHash", prevHash,
+	)
+
+	txs, err := getTransactionsInBlock(blockBody, st.txCache, st.selfShardId)
+	if err != nil {
+		return err
+	}
+
+	lastNoncePerSender, err := tBlock.compileBreadcrumbs(txs)
+	if err != nil {
+		return err
+	}
+
+	err = st.addNewTrackedBlockNoLock(blockHash, tBlock)
+	if err != nil {
+		return err
+	}
+
+	st.txCache.SetSelectionOffsetsByLastNonce(lastNoncePerSender)
+
+	return nil
+}
+
+func (st *selectionTracker) verifyBlockArgs(
 	blockHash []byte,
 	blockBody *block.Body,
 	blockHeader data.HeaderHandler,
-	accountsProvider common.AccountNonceAndBalanceProvider,
 ) error {
 	if len(blockHash) == 0 {
 		return errNilBlockHash
@@ -156,9 +214,6 @@ func (st *selectionTracker) verifyArgsOfOnProposedBlock(
 	}
 	if check.IfNil(blockHeader) {
 		return errNilBlockHeader
-	}
-	if check.IfNil(accountsProvider) {
-		return errNilAccountNonceAndBalanceProvider
 	}
 
 	return nil

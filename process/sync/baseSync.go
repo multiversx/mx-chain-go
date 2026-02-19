@@ -1219,13 +1219,13 @@ func (boot *baseBootstrap) prepareForSyncIfNeeded(
 			return err
 		}
 
-		errOnProposedBlock := boot.blockProcessor.OnProposedBlock(
+		errOnBackfilledBlock := boot.blockProcessor.OnBackfilledBlock(
 			info.body,
 			info.header,
 			info.headerHash,
 		)
-		if errOnProposedBlock != nil {
-			return errOnProposedBlock
+		if errOnBackfilledBlock != nil {
+			return errOnBackfilledBlock
 		}
 
 		errAdd := boot.executionManager.AddPairForExecution(cache.HeaderBodyPair{

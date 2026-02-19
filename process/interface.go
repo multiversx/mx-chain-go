@@ -310,6 +310,11 @@ type BlockProcessor interface {
 		proposedHeader data.HeaderHandler,
 		proposedHash []byte,
 	) error
+	OnBackfilledBlock(
+		proposedBody data.BodyHandler,
+		proposedHeader data.HeaderHandler,
+		proposedHash []byte,
+	) error
 	OnExecutedBlock(header data.HeaderHandler, rootHash []byte) error
 	ProposedDirectSentTransactionsToBroadcast(proposedBody data.BodyHandler) map[string][][]byte
 	Close() error
