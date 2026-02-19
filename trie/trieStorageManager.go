@@ -324,7 +324,7 @@ func (tsm *trieStorageManager) takeSnapshot(snapshotEntry *snapshotsQueueEntry, 
 		return
 	}
 
-	newRoot, encodedRoot, err := newSnapshotNode(stsm, msh, hsh, snapshotEntry.rootHash, snapshotEntry.epoch, snapshotEntry.missingNodesChan)
+	newRoot, encodedRoot, foundInEpoch, err := newSnapshotNode(stsm, msh, hsh, snapshotEntry.rootHash, snapshotEntry.epoch, snapshotEntry.missingNodesChan)
 	if err != nil {
 		snapshotEntry.iteratorChannels.ErrChan.WriteInChanNonBlocking(err)
 		treatSnapshotError(err,
@@ -336,7 +336,7 @@ func (tsm *trieStorageManager) takeSnapshot(snapshotEntry *snapshotsQueueEntry, 
 	}
 
 	stats := statistics.NewTrieStatistics()
-	err = newRoot.commitSnapshot(stsm, snapshotEntry.epoch, snapshotEntry.iteratorChannels.LeavesChan, snapshotEntry.missingNodesChan, ctx, stats, tsm.idleProvider, encodedRoot, rootDepthLevel)
+	err = newRoot.commitSnapshot(stsm, foundInEpoch, snapshotEntry.iteratorChannels.LeavesChan, snapshotEntry.missingNodesChan, ctx, stats, tsm.idleProvider, encodedRoot, rootDepthLevel)
 	if err != nil {
 		snapshotEntry.iteratorChannels.ErrChan.WriteInChanNonBlocking(err)
 		treatSnapshotError(err,
@@ -375,32 +375,32 @@ func newSnapshotNode(
 	rootHash []byte,
 	epoch uint32,
 	missingNodesCh chan []byte,
-) (snapshotNode, []byte, error) {
-	encodedNode, _, err := db.GetWithoutAddingToCache(rootHash, epoch)
+) (snapshotNode, []byte, uint32, error) {
+	encodedNode, foundInEpoch, err := db.GetWithoutAddingToCache(rootHash, epoch)
 	if err != nil {
 		treatLogError(log, err, rootHash)
 
 		if core.IsClosingError(err) {
-			return nil, nil, err
+			return nil, nil, 0, err
 		}
 
 		err = core.NewGetNodeFromDBErrWithKey(rootHash, err, db.GetIdentifier())
 		log.Error("error during trie snapshot", "err", err.Error(), "hash", rootHash, "maxEpochToSearchFrom", epoch)
 		missingNodesCh <- rootHash
-		return nil, nil, err
+		return nil, nil, 0, err
 	}
 
 	n, err := decodeNode(encodedNode, msh, hsh)
 	if err != nil {
-		return nil, nil, err
+		return nil, nil, 0, err
 	}
 
 	err = db.PutInEpochWithoutCache(rootHash, encodedNode)
 	if err != nil {
-		return nil, nil, err
+		return nil, nil, 0, err
 	}
 
-	return n, encodedNode, nil
+	return n, encodedNode, foundInEpoch, nil
 }
 
 // IsPruningEnabled returns true if the trie pruning is enabled
