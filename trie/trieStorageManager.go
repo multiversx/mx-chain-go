@@ -13,6 +13,7 @@ import (
 	"github.com/multiversx/mx-chain-core-go/core/throttler"
 	"github.com/multiversx/mx-chain-core-go/hashing"
 	"github.com/multiversx/mx-chain-core-go/marshal"
+
 	"github.com/multiversx/mx-chain-go/common"
 	"github.com/multiversx/mx-chain-go/config"
 	"github.com/multiversx/mx-chain-go/storage"
@@ -159,12 +160,12 @@ func (tsm *trieStorageManager) cleanupChans() {
 // Get checks all the storers for the given key, and returns it if it is found
 func (tsm *trieStorageManager) Get(key []byte) ([]byte, error) {
 	tsm.storageOperationMutex.RLock()
-	defer tsm.storageOperationMutex.RUnlock()
-
 	if tsm.closed {
+		tsm.storageOperationMutex.RUnlock()
 		log.Trace("trieStorageManager get context closing", "key", key)
 		return nil, core.ErrContextClosing
 	}
+	tsm.storageOperationMutex.RUnlock()
 
 	val, err := tsm.mainStorer.Get(key)
 	if core.IsClosingError(err) {
@@ -198,7 +199,6 @@ func (tsm *trieStorageManager) GetFromCurrentEpoch(key []byte) ([]byte, error) {
 		tsm.storageOperationMutex.RUnlock()
 		return nil, fmt.Errorf("invalid storer, type is %s", storerType)
 	}
-
 	tsm.storageOperationMutex.RUnlock()
 
 	return storer.GetFromCurrentEpoch(key)
@@ -206,30 +206,26 @@ func (tsm *trieStorageManager) GetFromCurrentEpoch(key []byte) ([]byte, error) {
 
 // Put adds the given value to the main storer
 func (tsm *trieStorageManager) Put(key []byte, val []byte) error {
-	// the RLock is needed because of the closed flag, not for the mainStorer
 	tsm.storageOperationMutex.RLock()
-	defer tsm.storageOperationMutex.RUnlock()
-	log.Trace("put hash in tsm", "hash", key)
-
 	if tsm.closed {
+		tsm.storageOperationMutex.RUnlock()
 		log.Trace("trieStorageManager put context closing", "key", key, "value", val)
 		return core.ErrContextClosing
 	}
+	tsm.storageOperationMutex.RUnlock()
 
 	return tsm.mainStorer.Put(key, val)
 }
 
 // PutInEpoch adds the given value to the main storer in the specified epoch
 func (tsm *trieStorageManager) PutInEpoch(key []byte, val []byte, epoch uint32) error {
-	// the RLock is needed because of the closed flag, not for the mainStorer
 	tsm.storageOperationMutex.RLock()
-	defer tsm.storageOperationMutex.RUnlock()
-	log.Trace("put hash in tsm in epoch", "hash", key, "epoch", epoch)
-
 	if tsm.closed {
+		tsm.storageOperationMutex.RUnlock()
 		log.Trace("trieStorageManager putInEpoch context closing", "key", key, "value", val, "epoch", epoch)
 		return core.ErrContextClosing
 	}
+	tsm.storageOperationMutex.RUnlock()
 
 	storer, ok := tsm.mainStorer.(snapshotPruningStorer)
 	if !ok {
@@ -241,15 +237,13 @@ func (tsm *trieStorageManager) PutInEpoch(key []byte, val []byte, epoch uint32) 
 
 // PutInEpochWithoutCache adds the given value to the main storer in the specified epoch without saving it to cache
 func (tsm *trieStorageManager) PutInEpochWithoutCache(key []byte, val []byte, epoch uint32) error {
-	// the RLock is needed because of the closed flag, not for the mainStorer
 	tsm.storageOperationMutex.RLock()
-	defer tsm.storageOperationMutex.RUnlock()
-	log.Trace("put hash in tsm in epoch without cache", "hash", key, "epoch", epoch)
-
 	if tsm.closed {
+		tsm.storageOperationMutex.RUnlock()
 		log.Trace("trieStorageManager putInEpochWithoutCache context closing", "key", key, "value", val, "epoch", epoch)
 		return core.ErrContextClosing
 	}
+	tsm.storageOperationMutex.RUnlock()
 
 	storer, ok := tsm.mainStorer.(snapshotPruningStorer)
 	if !ok {
@@ -288,8 +282,12 @@ func (tsm *trieStorageManager) ExitPruningBufferingMode() {
 
 // GetLatestStorageEpoch returns the epoch for the latest opened persister
 func (tsm *trieStorageManager) GetLatestStorageEpoch() (uint32, error) {
-	tsm.storageOperationMutex.Lock()
-	defer tsm.storageOperationMutex.Unlock()
+	tsm.storageOperationMutex.RLock()
+	if tsm.closed {
+		tsm.storageOperationMutex.RUnlock()
+		return 0, core.ErrContextClosing
+	}
+	tsm.storageOperationMutex.RUnlock()
 
 	storer, ok := tsm.mainStorer.(snapshotPruningStorer)
 	if !ok {
@@ -469,8 +467,12 @@ func (tsm *trieStorageManager) IsPruningBlocked() bool {
 
 // Remove removes the given hash form the storage
 func (tsm *trieStorageManager) Remove(hash []byte) error {
-	tsm.storageOperationMutex.Lock()
-	defer tsm.storageOperationMutex.Unlock()
+	tsm.storageOperationMutex.RLock()
+	if tsm.closed {
+		tsm.storageOperationMutex.RUnlock()
+		return core.ErrContextClosing
+	}
+	tsm.storageOperationMutex.RUnlock()
 
 	storer, ok := tsm.mainStorer.(snapshotPruningStorer)
 	if !ok {
@@ -482,8 +484,12 @@ func (tsm *trieStorageManager) Remove(hash []byte) error {
 
 // RemoveFromAllActiveEpochs removes the given hash from all epochs
 func (tsm *trieStorageManager) RemoveFromAllActiveEpochs(hash []byte) error {
-	tsm.storageOperationMutex.Lock()
-	defer tsm.storageOperationMutex.Unlock()
+	tsm.storageOperationMutex.RLock()
+	if tsm.closed {
+		tsm.storageOperationMutex.RUnlock()
+		return core.ErrContextClosing
+	}
+	tsm.storageOperationMutex.RUnlock()
 
 	storer, ok := tsm.mainStorer.(snapshotPruningStorer)
 	if !ok {
