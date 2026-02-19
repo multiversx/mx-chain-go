@@ -687,6 +687,7 @@ func (tfn *TestFullNode) createForkDetector(
 			tfn.DataPool.Proofs(),
 			tfn.ChainParametersHandler,
 			tfn.ProcessConfigsHandler,
+			tfn.ShardCoordinator.SelfId(),
 		)
 	} else {
 		forkDetector, err = processSync.NewMetaForkDetector(
@@ -955,7 +956,7 @@ func (tpn *TestFullNode) initBlockProcessor(
 	tpn.BlocksCache = headersCache.NewHeaderBodyCache(config.HeaderBodyCacheConfig{})
 
 	argsExecutionManager := executionManager.ArgsExecutionManager{
-		BlocksQueue:             tpn.BlocksCache,
+		BlocksCache:             tpn.BlocksCache,
 		ExecutionResultsTracker: executionResultsTracker,
 		BlockChain:              tpn.BlockChain,
 		Headers:                 tpn.DataPool.Headers(),
@@ -1022,15 +1023,19 @@ func (tpn *TestFullNode) initBlockProcessor(
 		BootstrapComponents:  bootstrapComponents,
 		StatusComponents:     statusComponents,
 		StatusCoreComponents: statusCoreComponents,
-		Config:               config.Config{},
-		AccountsDB:           accountsDb,
-		AccountsProposal:     tpn.AccntStateProposal,
-		ForkDetector:         tpn.ForkDetector,
-		NodesCoordinator:     tpn.NodesCoordinator,
-		FeeHandler:           tpn.FeeAccumulator,
-		RequestHandler:       tpn.RequestHandler,
-		BlockChainHook:       tpn.BlockchainHook,
-		HeaderValidator:      tpn.HeaderValidator,
+		Config: config.Config{
+			GeneralSettings: config.GeneralSettingsConfig{
+				MaxProposalNonceGap: 50,
+			},
+		},
+		AccountsDB:       accountsDb,
+		AccountsProposal: tpn.AccntStateProposal,
+		ForkDetector:     tpn.ForkDetector,
+		NodesCoordinator: tpn.NodesCoordinator,
+		FeeHandler:       tpn.FeeAccumulator,
+		RequestHandler:   tpn.RequestHandler,
+		BlockChainHook:   tpn.BlockchainHook,
+		HeaderValidator:  tpn.HeaderValidator,
 		BootStorer: &mock.BoostrapStorerMock{
 			PutCalled: func(round int64, bootData bootstrapStorage.BootstrapData) error {
 				return nil
@@ -1335,7 +1340,7 @@ func (tpn *TestFullNode) initBlockProcessorWithSync(
 	tpn.BlocksCache = headersCache.NewHeaderBodyCache(config.HeaderBodyCacheConfig{})
 
 	argsExecutionManager := executionManager.ArgsExecutionManager{
-		BlocksQueue:             tpn.BlocksCache,
+		BlocksCache:             tpn.BlocksCache,
 		ExecutionResultsTracker: executionResultsTracker,
 		BlockChain:              tpn.BlockChain,
 		Headers:                 tpn.DataPool.Headers(),

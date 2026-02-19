@@ -1048,22 +1048,8 @@ func TestSubroundStartRound_IndexRoundIfNeededDifferentShardIdFail(t *testing.T)
 func TestSubroundStartRound_changeEpoch(t *testing.T) {
 	t.Parallel()
 
-	expectPanic := func() {
-		if recover() == nil {
-			require.Fail(t, "expected panic")
-		}
-	}
-
-	expectNoPanic := func() {
-		if recover() != nil {
-			require.Fail(t, "expected no panic")
-		}
-	}
-
-	t.Run("error returned by nodes coordinator should error", func(t *testing.T) {
+	t.Run("error returned by nodes coordinator should not set eligible list", func(t *testing.T) {
 		t.Parallel()
-
-		defer expectPanic()
 
 		container := consensus.InitConsensusCore()
 		exErr := fmt.Errorf("expected error")
@@ -1089,11 +1075,13 @@ func TestSubroundStartRound_changeEpoch(t *testing.T) {
 		)
 		require.Nil(t, err)
 		startRound.ChangeEpoch(1)
-	})
-	t.Run("success - no panic", func(t *testing.T) {
-		t.Parallel()
 
-		defer expectNoPanic()
+		require.False(t, startRound.IsNodeInEligibleList("aaa"))
+		require.False(t, startRound.IsNodeInEligibleList("bbb"))
+	})
+
+	t.Run("should work", func(t *testing.T) {
+		t.Parallel()
 
 		container := consensus.InitConsensusCore()
 		expectedKeys := map[string]struct{}{
@@ -1123,6 +1111,10 @@ func TestSubroundStartRound_changeEpoch(t *testing.T) {
 		)
 		require.Nil(t, err)
 		startRound.ChangeEpoch(1)
+
+		require.True(t, startRound.IsNodeInEligibleList("aaa"))
+		require.True(t, startRound.IsNodeInEligibleList("bbb"))
+		require.False(t, startRound.IsNodeInEligibleList("ccc"))
 	})
 }
 

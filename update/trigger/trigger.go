@@ -153,6 +153,14 @@ func NewTrigger(arg ArgHardforkTrigger) (*trigger, error) {
 	return t, nil
 }
 
+func (t *trigger) getHardforkGracePeriod() int64 {
+	if t.enableEpochsHandler.IsFlagEnabled(common.SupernovaFlag) {
+		return int64(hardforkGracePeriod.Milliseconds())
+	}
+
+	return int64(hardforkGracePeriod.Seconds())
+}
+
 func (t *trigger) getCurrentUnixTime() int64 {
 	if t.enableEpochsHandler.IsFlagEnabled(common.SupernovaFlag) {
 		return time.Now().UnixMilli()
@@ -385,7 +393,7 @@ func (t *trigger) TriggerReceived(originalPayload []byte, data []byte, pkBytes [
 	}
 
 	currentTimeStamp := t.getTimestampHandler()
-	if timestamp+int64(hardforkGracePeriod.Seconds()) < currentTimeStamp {
+	if timestamp+t.getHardforkGracePeriod() < currentTimeStamp {
 		return true, fmt.Errorf("%w message timestamp out of grace period message", update.ErrIncorrectHardforkMessage)
 	}
 

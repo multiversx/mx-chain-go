@@ -5,8 +5,8 @@ import "errors"
 // ErrNilHeadersExecutor signals that a nil headers executor has been provided
 var ErrNilHeadersExecutor = errors.New("nil headers executor")
 
-// ErrNilBlocksQueue signals that a nil blocks queue has been provided
-var ErrNilBlocksQueue = errors.New("nil blocks queue")
+// ErrNilBlocksCache signals that a nil blocks cache has been provided
+var ErrNilBlocksCache = errors.New("nil blocks cache")
 
 // ErrNilExecutionResultsTracker signals that a nil execution results tracker has been provided
 var ErrNilExecutionResultsTracker = errors.New("nil execution results tracker")
