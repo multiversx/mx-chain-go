@@ -30,14 +30,6 @@ func newSnapshotTrieStorageManager(tsm *trieStorageManager, epoch uint32) (*snap
 
 // GetFromOldEpochsWithoutAddingToCache tries to get the value for the given key from old epochs without adding it to cache
 func (stsm *snapshotTrieStorageManager) GetFromOldEpochsWithoutAddingToCache(key []byte, maxEpochToSearchFrom uint32) ([]byte, uint32, error) {
-	stsm.tsm.storageOperationMutex.RLock()
-	if stsm.tsm.closed {
-		stsm.tsm.storageOperationMutex.RUnlock()
-		log.Debug("snapshotTrieStorageManager get context closing", "key", key)
-		return nil, 0, core.ErrContextClosing
-	}
-	stsm.tsm.storageOperationMutex.RUnlock()
-
 	// test point get during snapshot
 
 	val, epoch, err := stsm.mainSnapshotStorer.GetFromOldEpochsWithoutAddingToCache(key, maxEpochToSearchFrom)
@@ -100,14 +92,6 @@ func (stsm *snapshotTrieStorageManager) PutInEpochWithoutCache(key, data []byte)
 
 // GetFromLastEpoch searches only the last epoch storer for the given key
 func (stsm *snapshotTrieStorageManager) GetFromLastEpoch(key []byte) ([]byte, error) {
-	stsm.tsm.storageOperationMutex.RLock()
-	if stsm.tsm.closed {
-		stsm.storageOperationMutex.RUnlock()
-		log.Debug("snapshotTrieStorageManager getFromLastEpoch context closing", "key", key)
-		return nil, core.ErrContextClosing
-	}
-	stsm.tsm.storageOperationMutex.RUnlock()
-
 	return stsm.mainSnapshotStorer.GetFromLastEpoch(key)
 }
 
