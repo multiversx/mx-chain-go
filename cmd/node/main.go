@@ -161,6 +161,8 @@ func readConfigs(ctx *cli.Context, log logger.Logger) (*config.Configs, error) {
 
 	configurationPaths := &config.ConfigurationPathsHolder{}
 
+	log.Debug("supernova-bon-fix-19")
+
 	configurationPaths.MainConfig = ctx.GlobalString(configurationFile.Name)
 	generalConfig, err := common.LoadMainConfig(configurationPaths.MainConfig)
 	if err != nil {

@@ -600,6 +600,8 @@ func GetFeePayer(tx data.TransactionHandler) []byte {
 		return nil
 	}
 
+	log.Debug("GetFeePayer", "tx", tx)
+
 	relayedTx, ok := tx.(data.RelayedTransactionHandler)
 	if ok && len(relayedTx.GetRelayerAddr()) > 0 {
 		return relayedTx.GetRelayerAddr()
