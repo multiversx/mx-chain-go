@@ -866,6 +866,7 @@ func (sp *shardProcessor) collectExecutionResults(headerHash []byte, header data
 
 	sp.cacheOrderedTxHashes(headerHash)
 	sp.cacheUnexecutableTxHashes(headerHash)
+	sp.cacheHeaderGasData(headerHash)
 
 	return executionResult, nil
 }

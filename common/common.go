@@ -48,6 +48,11 @@ func PrepareOrderedTxHashesKey(headerHash []byte) []byte {
 	return append([]byte("execution"), headerHash...)
 }
 
+// PrepareHeaderGasDataKey will prepare header gas data key for cacher
+func PrepareHeaderGasDataKey(headerHash []byte) []byte {
+	return append([]byte("gas"), headerHash...)
+}
+
 // PrepareUnexecutableTxHashesKey will prepare unexecutable transaction hashes key for cacher
 func PrepareUnexecutableTxHashesKey(headerHash []byte) []byte {
 	return append([]byte("unexecutable"), headerHash...)
