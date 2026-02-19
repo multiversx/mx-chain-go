@@ -36,7 +36,7 @@ type testNodeStatusMetricsHandler interface {
 }
 
 func createNodeStatusMetrics() testNodeStatusMetricsHandler {
-	sm, _ := statusHandler.NewStatusMetrics(&enableEpochsHandlerMock.EnableEpochsHandlerStub{})
+	sm, _ := statusHandler.NewStatusMetrics(&enableEpochsHandlerMock.EnableEpochsHandlerStub{}, &testscommon.EnableRoundsHandlerStub{})
 	return sm
 }
 

@@ -23,6 +23,7 @@ const (
 	economicsPath          = "/economics"
 	enableEpochsPath       = "/enable-epochs"
 	enableEpochsV2Path     = "/enable-epochs-v2"
+	enableRoundsPath       = "/enable-rounds"
 	getESDTsPath           = "/esdts"
 	getFFTsPath            = "/esdt/fungible-tokens"
 	getSFTsPath            = "/esdt/semi-fungible-tokens"
@@ -104,6 +105,11 @@ func NewNetworkGroup(facade networkFacadeHandler) (*networkGroup, error) {
 			Path:    enableEpochsV2Path,
 			Method:  http.MethodGet,
 			Handler: ng.getEnableEpochsV2,
+		},
+		{
+			Path:    enableRoundsPath,
+			Method:  http.MethodGet,
+			Handler: ng.getEnableRounds,
 		},
 		{
 			Path:    getESDTsPath,
@@ -224,6 +230,20 @@ func (ng *networkGroup) getEnableEpochsV2(c *gin.Context) {
 		http.StatusOK,
 		shared.GenericAPIResponse{
 			Data:  gin.H{"enableEpochs": enableEpochsMetrics},
+			Error: "",
+			Code:  shared.ReturnCodeSuccess,
+		},
+	)
+}
+
+// getEnableRounds returns metrics related to the activation rounds of the network
+func (ng *networkGroup) getEnableRounds(c *gin.Context) {
+	enableRoundsMetrics := ng.getFacade().StatusMetrics().EnableRoundsMetrics()
+
+	c.JSON(
+		http.StatusOK,
+		shared.GenericAPIResponse{
+			Data:  gin.H{"enableRounds": enableRoundsMetrics},
 			Error: "",
 			Code:  shared.ReturnCodeSuccess,
 		},

@@ -19,7 +19,6 @@ import (
 	statusHandlerMock "github.com/multiversx/mx-chain-go/testscommon/statusHandler"
 	storageStubs "github.com/multiversx/mx-chain-go/testscommon/storage"
 
-	"github.com/multiversx/mx-chain-go/process/estimator"
 	"github.com/multiversx/mx-chain-go/state"
 	"github.com/multiversx/mx-chain-go/testscommon/marshallerMock"
 	testscommonState "github.com/multiversx/mx-chain-go/testscommon/state"
@@ -53,6 +52,13 @@ func TestMetaProcessor_CreateNewHeaderProposal(t *testing.T) {
 	validMetaHeaderV3 := testscommon.HeaderHandlerStub{
 		IsHeaderV3Called: func() bool {
 			return true
+		},
+		GetLastExecutionResultHandlerCalled: func() data.LastExecutionResultHandler {
+			return &block.MetaExecutionResultInfo{
+				ExecutionResult: &block.BaseMetaExecutionResult{
+					BaseExecutionResult: &block.BaseExecutionResult{},
+				},
+			}
 		},
 	}
 
@@ -476,6 +482,423 @@ func TestMetaProcessor_CreateNewHeaderProposal(t *testing.T) {
 				Economics:            block.Economics{},
 			},
 		})
+
+		header, err := mp.CreateNewHeaderProposal(1, 1)
+		require.Nil(t, err)
+		require.NotNil(t, header)
+	})
+
+	t.Run("higher nonce in last execution result should error", func(t *testing.T) {
+		t.Parallel()
+
+		coreComponents, dataComponents, bootstrapComponents, statusComponents := createMockComponentHolders()
+		dataComponents.BlockChain = &testscommon.ChainHandlerStub{
+			GetCurrentBlockHeaderCalled: func() data.HeaderHandler {
+				return &prevValidMetaBlockV3
+			},
+			GetCurrentBlockHeaderHashCalled: func() []byte {
+				return []byte("hash1")
+			},
+		}
+
+		metaHeader := &testscommon.HeaderHandlerStub{
+			IsHeaderV3Called: func() bool {
+				return true
+			},
+			GetNonceCalled: func() uint64 {
+				return 5
+			},
+			GetLastExecutionResultHandlerCalled: func() data.LastExecutionResultHandler {
+				return &block.MetaExecutionResultInfo{
+					ExecutionResult: &block.BaseMetaExecutionResult{
+						BaseExecutionResult: &block.BaseExecutionResult{
+							HeaderNonce: 105,
+						},
+					},
+				}
+			},
+		}
+
+		bootstrapComponents.VersionedHdrFactory = &testscommon.VersionedHeaderFactoryStub{
+			CreateCalled: func(epoch uint32, _ uint64) data.HeaderHandler {
+				return metaHeader
+			},
+		}
+
+		arguments := createMockMetaArguments(coreComponents, dataComponents, bootstrapComponents, statusComponents)
+		mp, err := blproc.NewMetaProcessor(arguments)
+		require.Nil(t, err)
+
+		header, err := mp.CreateNewHeaderProposal(1, 5)
+		require.Nil(t, header)
+		require.ErrorIs(t, err, process.ErrInvalidLastExecutionResult)
+	})
+
+	t.Run("nonce gap from last exec result exceeds maximum allowed, should error", func(t *testing.T) {
+		t.Parallel()
+
+		coreComponents, dataComponents, bootstrapComponents, statusComponents := createMockComponentHolders()
+		dataComponents.BlockChain = &testscommon.ChainHandlerStub{
+			GetCurrentBlockHeaderCalled: func() data.HeaderHandler {
+				return &testscommon.HeaderHandlerStub{
+					IsHeaderV3Called: func() bool {
+						return true
+					},
+					GetLastExecutionResultHandlerCalled: func() data.LastExecutionResultHandler {
+						return &block.MetaExecutionResultInfo{
+							ExecutionResult: &block.BaseMetaExecutionResult{
+								BaseExecutionResult: &block.BaseExecutionResult{
+									HeaderNonce: 5,
+								},
+							},
+						}
+					},
+				}
+			},
+			GetCurrentBlockHeaderHashCalled: func() []byte {
+				return []byte("hash1")
+			},
+		}
+
+		metaHeader := &block.MetaBlockV3{
+			Nonce: 105,
+		}
+
+		bootstrapComponents.VersionedHdrFactory = &testscommon.VersionedHeaderFactoryStub{
+			CreateCalled: func(epoch uint32, _ uint64) data.HeaderHandler {
+				return metaHeader
+			},
+		}
+
+		arguments := createMockMetaArguments(coreComponents, dataComponents, bootstrapComponents, statusComponents)
+		mp, err := blproc.NewMetaProcessor(arguments)
+		require.Nil(t, err)
+
+		header, err := mp.CreateNewHeaderProposal(1, 105)
+		require.Nil(t, header)
+		require.ErrorIs(t, err, process.ErrNonceGapTooLarge)
+		require.Contains(t, err.Error(), "from last execution")
+		require.Contains(t, err.Error(), "gap of 100")
+	})
+
+	t.Run("nonce gap exceeds maximum allowed, should error", func(t *testing.T) {
+		t.Parallel()
+
+		coreComponents, dataComponents, bootstrapComponents, statusComponents := createMockComponentHolders()
+		dataComponents.BlockChain = &testscommon.ChainHandlerStub{
+			GetCurrentBlockHeaderCalled: func() data.HeaderHandler {
+				return &prevValidMetaBlockV3
+			},
+			GetCurrentBlockHeaderHashCalled: func() []byte {
+				return []byte("hash1")
+			},
+		}
+
+		metaHeader := &block.MetaBlockV3{
+			ShardInfo: []block.ShardData{
+				{
+					ShardID: 0,
+					Nonce:   100,
+				},
+			},
+			ShardInfoProposal: []block.ShardDataProposal{
+				{
+					ShardID:    0,
+					Nonce:      250, // 150 gap
+					HeaderHash: []byte("hash"),
+				},
+			},
+		}
+
+		bootstrapComponents.VersionedHdrFactory = &testscommon.VersionedHeaderFactoryStub{
+			CreateCalled: func(epoch uint32, _ uint64) data.HeaderHandler {
+				return metaHeader
+			},
+		}
+
+		arguments := createMockMetaArguments(coreComponents, dataComponents, bootstrapComponents, statusComponents)
+		mp, err := blproc.NewMetaProcessor(arguments)
+		require.Nil(t, err)
+
+		header, err := mp.CreateNewHeaderProposal(1, 1)
+		require.Nil(t, header)
+		require.ErrorIs(t, err, process.ErrNonceGapTooLarge)
+		require.Contains(t, err.Error(), "shard 0")
+		require.Contains(t, err.Error(), "gap of 150")
+	})
+
+	t.Run("error on GetLastCrossNotarizedHeadersForAllShards should error", func(t *testing.T) {
+		t.Parallel()
+
+		coreComponents, dataComponents, bootstrapComponents, statusComponents := createMockComponentHolders()
+		dataComponents.BlockChain = &testscommon.ChainHandlerStub{
+			GetCurrentBlockHeaderCalled: func() data.HeaderHandler {
+				return &prevValidMetaBlockV3
+			},
+			GetCurrentBlockHeaderHashCalled: func() []byte {
+				return []byte("hash1")
+			},
+		}
+
+		metaHeader := &block.MetaBlockV3{
+			ShardInfo: []block.ShardData{
+				{
+					ShardID: 0,
+					Nonce:   100,
+				},
+			},
+			ShardInfoProposal: []block.ShardDataProposal{
+				{
+					ShardID:    0,
+					Nonce:      101,
+					HeaderHash: []byte("hash"),
+				},
+			},
+		}
+		bootstrapComponents.VersionedHdrFactory = &testscommon.VersionedHeaderFactoryStub{
+			CreateCalled: func(epoch uint32, _ uint64) data.HeaderHandler {
+				return metaHeader
+			},
+		}
+
+		arguments := createMockMetaArguments(coreComponents, dataComponents, bootstrapComponents, statusComponents)
+		arguments.BlockTracker = &integrationTestsMock.BlockTrackerStub{
+			GetLastCrossNotarizedHeadersForAllShardsCalled: func() (map[uint32]data.HeaderHandler, error) {
+				return nil, expectedError
+			},
+		}
+		mp, err := blproc.NewMetaProcessor(arguments)
+		require.Nil(t, err)
+
+		header, err := mp.CreateNewHeaderProposal(1, 1)
+		require.Equal(t, expectedError, err)
+		require.Nil(t, header)
+	})
+
+	t.Run("missing last notarized in block tracker for included shard should error", func(t *testing.T) {
+		t.Parallel()
+
+		coreComponents, dataComponents, bootstrapComponents, statusComponents := createMockComponentHolders()
+		dataComponents.BlockChain = &testscommon.ChainHandlerStub{
+			GetCurrentBlockHeaderCalled: func() data.HeaderHandler {
+				return &prevValidMetaBlockV3
+			},
+			GetCurrentBlockHeaderHashCalled: func() []byte {
+				return []byte("hash1")
+			},
+		}
+
+		metaHeader := &block.MetaBlockV3{
+			ShardInfo: []block.ShardData{
+				{
+					ShardID: 0,
+					Nonce:   100,
+				},
+				{
+					// this shard does not exist in block tracker
+					ShardID:    1,
+					Nonce:      250,
+					HeaderHash: []byte("hash2"),
+				},
+			},
+			ShardInfoProposal: []block.ShardDataProposal{
+				{
+					ShardID:    0,
+					Nonce:      101,
+					HeaderHash: []byte("hash"),
+				},
+			},
+		}
+		bootstrapComponents.VersionedHdrFactory = &testscommon.VersionedHeaderFactoryStub{
+			CreateCalled: func(epoch uint32, _ uint64) data.HeaderHandler {
+				return metaHeader
+			},
+		}
+
+		arguments := createMockMetaArguments(coreComponents, dataComponents, bootstrapComponents, statusComponents)
+		mp, err := blproc.NewMetaProcessor(arguments)
+		require.Nil(t, err)
+
+		header, err := mp.CreateNewHeaderProposal(1, 1)
+		require.Equal(t, process.ErrMissingCrossNotarizedHeader, err)
+		require.Nil(t, header)
+	})
+
+	t.Run("higher last notarized in block tracker should error", func(t *testing.T) {
+		t.Parallel()
+
+		coreComponents, dataComponents, bootstrapComponents, statusComponents := createMockComponentHolders()
+		dataComponents.BlockChain = &testscommon.ChainHandlerStub{
+			GetCurrentBlockHeaderCalled: func() data.HeaderHandler {
+				return &prevValidMetaBlockV3
+			},
+			GetCurrentBlockHeaderHashCalled: func() []byte {
+				return []byte("hash1")
+			},
+		}
+
+		metaHeader := &block.MetaBlockV3{
+			ShardInfo: []block.ShardData{
+				{
+					ShardID: 0,
+					Nonce:   100,
+				},
+			},
+			ShardInfoProposal: []block.ShardDataProposal{
+				{
+					ShardID:    0,
+					Nonce:      101,
+					HeaderHash: []byte("hash"),
+				},
+			},
+		}
+		bootstrapComponents.VersionedHdrFactory = &testscommon.VersionedHeaderFactoryStub{
+			CreateCalled: func(epoch uint32, _ uint64) data.HeaderHandler {
+				return metaHeader
+			},
+		}
+
+		arguments := createMockMetaArguments(coreComponents, dataComponents, bootstrapComponents, statusComponents)
+		crossNotarizedWithHigherNonce := &block.HeaderV3{Nonce: 102}
+		arguments.BlockTracker.AddCrossNotarizedHeader(0, crossNotarizedWithHigherNonce, []byte("hash higher nonce"))
+		mp, err := blproc.NewMetaProcessor(arguments)
+		require.Nil(t, err)
+
+		header, err := mp.CreateNewHeaderProposal(1, 1)
+		require.Equal(t, process.ErrInvalidShardInfo, err)
+		require.Nil(t, header)
+	})
+
+	t.Run("missing last notarized in block tracker for proposed shard should error", func(t *testing.T) {
+		t.Parallel()
+
+		coreComponents, dataComponents, bootstrapComponents, statusComponents := createMockComponentHolders()
+		dataComponents.BlockChain = &testscommon.ChainHandlerStub{
+			GetCurrentBlockHeaderCalled: func() data.HeaderHandler {
+				return &prevValidMetaBlockV3
+			},
+			GetCurrentBlockHeaderHashCalled: func() []byte {
+				return []byte("hash1")
+			},
+		}
+
+		metaHeader := &block.MetaBlockV3{
+			ShardInfo: []block.ShardData{
+				{
+					ShardID: 0,
+					Nonce:   100,
+				},
+			},
+			ShardInfoProposal: []block.ShardDataProposal{
+				{
+					ShardID:    0,
+					Nonce:      101,
+					HeaderHash: []byte("hash"),
+				},
+				{
+					// this shard does not exist in block tracker
+					ShardID:    1,
+					Nonce:      250,
+					HeaderHash: []byte("hash2"),
+				},
+			},
+		}
+		bootstrapComponents.VersionedHdrFactory = &testscommon.VersionedHeaderFactoryStub{
+			CreateCalled: func(epoch uint32, _ uint64) data.HeaderHandler {
+				return metaHeader
+			},
+		}
+
+		arguments := createMockMetaArguments(coreComponents, dataComponents, bootstrapComponents, statusComponents)
+		mp, err := blproc.NewMetaProcessor(arguments)
+		require.Nil(t, err)
+
+		header, err := mp.CreateNewHeaderProposal(1, 1)
+		require.Equal(t, process.ErrMissingCrossNotarizedHeader, err)
+		require.Nil(t, header)
+	})
+
+	t.Run("lower proposed nonce should error", func(t *testing.T) {
+		t.Parallel()
+
+		coreComponents, dataComponents, bootstrapComponents, statusComponents := createMockComponentHolders()
+		dataComponents.BlockChain = &testscommon.ChainHandlerStub{
+			GetCurrentBlockHeaderCalled: func() data.HeaderHandler {
+				return &prevValidMetaBlockV3
+			},
+			GetCurrentBlockHeaderHashCalled: func() []byte {
+				return []byte("hash1")
+			},
+		}
+
+		metaHeader := &block.MetaBlockV3{
+			ShardInfo: []block.ShardData{
+				{
+					ShardID: 0,
+					Nonce:   100,
+				},
+			},
+			ShardInfoProposal: []block.ShardDataProposal{
+				{
+					ShardID:    0,
+					Nonce:      90, // lower
+					HeaderHash: []byte("hash"),
+				},
+			},
+		}
+		bootstrapComponents.VersionedHdrFactory = &testscommon.VersionedHeaderFactoryStub{
+			CreateCalled: func(epoch uint32, _ uint64) data.HeaderHandler {
+				return metaHeader
+			},
+		}
+
+		arguments := createMockMetaArguments(coreComponents, dataComponents, bootstrapComponents, statusComponents)
+		mp, err := blproc.NewMetaProcessor(arguments)
+		require.Nil(t, err)
+
+		header, err := mp.CreateNewHeaderProposal(1, 1)
+		require.True(t, errors.Is(err, process.ErrInvalidProposedNonce))
+		require.Contains(t, err.Error(), "proposed nonce 90")
+		require.Nil(t, header)
+	})
+
+	t.Run("nonce gap within allowed limit, should succeed", func(t *testing.T) {
+		t.Parallel()
+
+		coreComponents, dataComponents, bootstrapComponents, statusComponents := createMockComponentHolders()
+		dataComponents.BlockChain = &testscommon.ChainHandlerStub{
+			GetCurrentBlockHeaderCalled: func() data.HeaderHandler {
+				return &prevValidMetaBlockV3
+			},
+			GetCurrentBlockHeaderHashCalled: func() []byte {
+				return []byte("hash1")
+			},
+		}
+
+		metaHeader := &block.MetaBlockV3{
+			ShardInfo: []block.ShardData{
+				{
+					ShardID: 0,
+					Nonce:   100,
+				},
+			},
+			ShardInfoProposal: []block.ShardDataProposal{
+				{
+					ShardID:    0,
+					Nonce:      101,
+					HeaderHash: []byte("hash"),
+				},
+			},
+		}
+		bootstrapComponents.VersionedHdrFactory = &testscommon.VersionedHeaderFactoryStub{
+			CreateCalled: func(epoch uint32, _ uint64) data.HeaderHandler {
+				return metaHeader
+			},
+		}
+
+		arguments := createMockMetaArguments(coreComponents, dataComponents, bootstrapComponents, statusComponents)
+		mp, err := blproc.NewMetaProcessor(arguments)
+		require.Nil(t, err)
 
 		header, err := mp.CreateNewHeaderProposal(1, 1)
 		require.Nil(t, err)
@@ -922,6 +1345,63 @@ func TestMetaProcessor_VerifyBlockProposal(t *testing.T) {
 		body := &block.Body{}
 		err = mp.VerifyBlockProposal(header, body, haveTime)
 		require.ErrorIs(t, err, expectedErr)
+	})
+	t.Run("error on nonce gap verification", func(t *testing.T) {
+		t.Parallel()
+
+		prevBlockHash := []byte("prev header hash")
+		prevLastMetaExecutionResult := &block.MetaExecutionResultInfo{
+			ExecutionResult: &block.BaseMetaExecutionResult{
+				BaseExecutionResult: &block.BaseExecutionResult{},
+			},
+		}
+		coreComponents, dataComponents, bootstrapComponents, statusComponents := createMockComponentHolders()
+		dataComponents = &mock.DataComponentsMock{
+			Storage:  dataComponents.Storage,
+			DataPool: dataComponents.DataPool,
+			BlockChain: &testscommon.ChainHandlerStub{
+				GetCurrentBlockHeaderHashCalled: func() []byte {
+					return prevBlockHash
+				},
+				GetCurrentBlockHeaderCalled: func() data.HeaderHandler {
+					return &block.MetaBlockV3{
+						LastExecutionResult: prevLastMetaExecutionResult,
+					}
+				},
+			},
+		}
+		arguments := createMockMetaArguments(coreComponents, dataComponents, bootstrapComponents, statusComponents)
+		arguments.MissingDataResolver = &processMocks.MissingDataResolverMock{
+			RequestMissingShardHeadersCalled: func(_ data.MetaHeaderHandler) error {
+				require.Fail(t, "should have not been called")
+				return nil
+			},
+		}
+		mp, err := blproc.NewMetaProcessor(arguments)
+		require.Nil(t, err)
+
+		header := &block.MetaBlockV3{
+			PrevHash:            prevBlockHash,
+			Nonce:               1,
+			Round:               1,
+			LastExecutionResult: prevLastMetaExecutionResult,
+			ShardInfo: []block.ShardData{
+				{
+					ShardID: 0,
+					Nonce:   100,
+				},
+			},
+			ShardInfoProposal: []block.ShardDataProposal{
+				{
+					ShardID:    0,
+					Nonce:      250, // 150 gap
+					HeaderHash: []byte("hash"),
+				},
+			},
+		}
+		body := &block.Body{}
+		err = mp.VerifyBlockProposal(header, body, haveTime)
+		require.ErrorIs(t, err, process.ErrNonceGapTooLarge)
 	})
 	t.Run("error on request missing shard header", func(t *testing.T) {
 		t.Parallel()
@@ -4579,6 +5059,15 @@ func createMetaProcessorMapForCreatingEpochStart() map[string]interface{} {
 			}
 		},
 	}
+	blockTracker := integrationTestsMock.BlockTrackerStub{
+		GetLastCrossNotarizedHeadersForAllShardsCalled: func() (map[uint32]data.HeaderHandler, error) {
+			return map[uint32]data.HeaderHandler{
+				0:                       &block.HeaderV3{},
+				1:                       &block.HeaderV3{},
+				common.MetachainShardId: &block.MetaBlockV3{},
+			}, nil
+		},
+	}
 
 	return map[string]interface{}{
 		"shardCoordinator": &mock.ShardCoordinatorStub{
@@ -4613,10 +5102,12 @@ func createMetaProcessorMapForCreatingEpochStart() map[string]interface{} {
 			},
 		},
 		"executionResultsInclusionEstimator": &processMocks.InclusionEstimatorMock{
-			DecideCalled: func(lastNotarised *estimator.LastExecutionResultForInclusion, pending []data.BaseExecutionResultHandler, currentHdrTsMs uint64) (allowed int) {
+			DecideCalled: func(lastNotarised *common.LastExecutionResultForInclusion, pending []data.BaseExecutionResultHandler, currentHdrTsMs uint64) (allowed int) {
 				return 1 // allow the inclusion of the first execution result
 			},
 		},
-		"appStatusHandler": &statusHandlerMock.AppStatusHandlerStub{},
+		"appStatusHandler":    &statusHandlerMock.AppStatusHandlerStub{},
+		"maxProposalNonceGap": uint64(10),
+		"blockTracker":        &blockTracker,
 	}
 }

@@ -2,6 +2,7 @@ package mock
 
 import (
 	"github.com/multiversx/mx-chain-core-go/core"
+	"github.com/multiversx/mx-chain-go/p2p"
 	"github.com/multiversx/mx-chain-go/process"
 )
 
@@ -18,7 +19,7 @@ func (ips *InterceptorProcessorStub) Validate(data process.InterceptedData, _ co
 }
 
 // Save -
-func (ips *InterceptorProcessorStub) Save(data process.InterceptedData, _ core.PeerID, _ string) (bool, error) {
+func (ips *InterceptorProcessorStub) Save(data process.InterceptedData, _ core.PeerID, _ string, _ p2p.BroadcastMethod) (bool, error) {
 	return ips.SaveCalled(data)
 }
 

@@ -28,6 +28,7 @@ type interceptedEquivalentProofsFactory struct {
 	hasher            hashing.Hasher
 	proofSizeChecker  common.FieldsSizeChecker
 	km                sync.KeyRWMutexHandler
+	validityAttester  process.ValidityAttester
 }
 
 // NewInterceptedEquivalentProofsFactory creates a new instance of interceptedEquivalentProofsFactory
@@ -40,6 +41,7 @@ func NewInterceptedEquivalentProofsFactory(args ArgInterceptedEquivalentProofsFa
 		hasher:            args.CoreComponents.Hasher(),
 		proofSizeChecker:  args.CoreComponents.FieldsSizeChecker(),
 		km:                sync.NewKeyRWMutex(),
+		validityAttester:  args.ValidityAttester,
 	}
 }
 
@@ -54,6 +56,7 @@ func (factory *interceptedEquivalentProofsFactory) Create(buff []byte, _ core.Pe
 		Hasher:            factory.hasher,
 		ProofSizeChecker:  factory.proofSizeChecker,
 		KeyRWMutexHandler: factory.km,
+		ValidityAttester:  factory.validityAttester,
 	}
 	return interceptedBlocks.NewInterceptedEquivalentProof(args)
 }

@@ -348,12 +348,15 @@ func TestChainSimulator_DirectStakingNodes_WithdrawUnstakedInEpoch(t *testing.T)
 			RoundDurationInMillis:          stake.RoundDurationInMillis,
 			SupernovaRoundDurationInMillis: stake.SupernovaRoundDurationInMillis,
 			RoundsPerEpoch:                 stake.RoundsPerEpoch,
-			SupernovaRoundsPerEpoch:        stake.SupernovaRoundsPerEpoch,
-			ApiInterface:                   api.NewNoApiInterface(),
-			MinNodesPerShard:               3,
-			MetaChainMinNodes:              3,
-			NumNodesWaitingListMeta:        3,
-			NumNodesWaitingListShard:       3,
+			SupernovaRoundsPerEpoch: core.OptionalUint64{
+				HasValue: true,
+				Value:    30,
+			},
+			ApiInterface:             api.NewNoApiInterface(),
+			MinNodesPerShard:         3,
+			MetaChainMinNodes:        3,
+			NumNodesWaitingListMeta:  3,
+			NumNodesWaitingListShard: 3,
 			AlterConfigsFunction: func(cfg *config.Configs) {
 				cfg.EpochConfig.EnableEpochs.StakingV4Step1EnableEpoch = 2
 				cfg.EpochConfig.EnableEpochs.StakingV4Step2EnableEpoch = 3
@@ -382,12 +385,15 @@ func TestChainSimulator_DirectStakingNodes_WithdrawUnstakedInEpoch(t *testing.T)
 			RoundDurationInMillis:          stake.RoundDurationInMillis,
 			SupernovaRoundDurationInMillis: stake.SupernovaRoundDurationInMillis,
 			RoundsPerEpoch:                 stake.RoundsPerEpoch,
-			SupernovaRoundsPerEpoch:        stake.SupernovaRoundsPerEpoch,
-			ApiInterface:                   api.NewNoApiInterface(),
-			MinNodesPerShard:               3,
-			MetaChainMinNodes:              3,
-			NumNodesWaitingListMeta:        3,
-			NumNodesWaitingListShard:       3,
+			SupernovaRoundsPerEpoch: core.OptionalUint64{
+				HasValue: true,
+				Value:    30,
+			},
+			ApiInterface:             api.NewNoApiInterface(),
+			MinNodesPerShard:         3,
+			MetaChainMinNodes:        3,
+			NumNodesWaitingListMeta:  3,
+			NumNodesWaitingListShard: 3,
 			AlterConfigsFunction: func(cfg *config.Configs) {
 				cfg.EpochConfig.EnableEpochs.StakingV4Step1EnableEpoch = 2
 				cfg.EpochConfig.EnableEpochs.StakingV4Step2EnableEpoch = 3
@@ -416,12 +422,15 @@ func TestChainSimulator_DirectStakingNodes_WithdrawUnstakedInEpoch(t *testing.T)
 			RoundDurationInMillis:          stake.RoundDurationInMillis,
 			SupernovaRoundDurationInMillis: stake.SupernovaRoundDurationInMillis,
 			RoundsPerEpoch:                 stake.RoundsPerEpoch,
-			SupernovaRoundsPerEpoch:        stake.SupernovaRoundsPerEpoch,
-			ApiInterface:                   api.NewNoApiInterface(),
-			MinNodesPerShard:               3,
-			MetaChainMinNodes:              3,
-			NumNodesWaitingListMeta:        3,
-			NumNodesWaitingListShard:       3,
+			SupernovaRoundsPerEpoch: core.OptionalUint64{
+				HasValue: true,
+				Value:    30,
+			},
+			ApiInterface:             api.NewNoApiInterface(),
+			MinNodesPerShard:         3,
+			MetaChainMinNodes:        3,
+			NumNodesWaitingListMeta:  3,
+			NumNodesWaitingListShard: 3,
 			AlterConfigsFunction: func(cfg *config.Configs) {
 				cfg.EpochConfig.EnableEpochs.StakingV4Step1EnableEpoch = 2
 				cfg.EpochConfig.EnableEpochs.StakingV4Step2EnableEpoch = 3
@@ -508,6 +517,9 @@ func testChainSimulatorDirectStakedWithdrawUnstakedFundsInEpoch(t *testing.T, cs
 	unStakeTx, err = cs.SendTxAndGenerateBlockTilTxIsExecuted(txUnStake, staking.MaxNumOfBlockToGenerateWhenExecutingTx)
 	require.Nil(t, err)
 	require.NotNil(t, unStakeTx)
+
+	err = cs.GenerateBlocks(1)
+	require.Nil(t, err)
 
 	// check bls key is still staked
 	stake.TestBLSKeyStaked(t, metachainNode, blsKeys[0])
