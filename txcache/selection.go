@@ -66,8 +66,10 @@ func selectTransactionsFromBunches(
 	selectionLoopStartTime := time.Now()
 
 	var currentTransaction *WrappedTransaction
+	var processedTxs int
 	// Select transactions (sorted).
 	for transactionsHeap.Len() > 0 {
+		processedTxs++
 		// Always pick the best transaction.
 		item := heap.Pop(transactionsHeap).(*transactionsHeapItem)
 		gasLimit := item.currentTransaction.Tx.GetGasLimit()
@@ -78,7 +80,7 @@ func selectTransactionsFromBunches(
 		if len(selectedTransactions) >= maxNumTxs {
 			break
 		}
-		if len(selectedTransactions)%loopDurationCheckInterval == 0 {
+		if processedTxs%loopDurationCheckInterval == 0 {
 			if !options.HaveTimeForSelection() {
 				logSelect.Debug("TxCache.selectTransactionsFromBunches, selection loop timeout", "duration", time.Since(selectionLoopStartTime))
 				break
