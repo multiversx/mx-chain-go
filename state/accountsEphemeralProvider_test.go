@@ -18,7 +18,7 @@ func TestNewAccountsEphemeralProvider(t *testing.T) {
 	t.Run("nil accounts adapter should error", func(t *testing.T) {
 		t.Parallel()
 
-		provider, err := state.NewAccountsEphemeralProvider(nil)
+		provider, err := state.NewAccountsEphemeralProvider(nil, nil)
 		require.Error(t, err, state.ErrNilAccountsAdapter)
 		require.Nil(t, provider)
 	})
@@ -26,7 +26,7 @@ func TestNewAccountsEphemeralProvider(t *testing.T) {
 	t.Run("should work", func(t *testing.T) {
 		t.Parallel()
 
-		provider, err := state.NewAccountsEphemeralProvider(&stateMock.AccountsStub{})
+		provider, err := state.NewAccountsEphemeralProvider(&stateMock.AccountsStub{}, nil)
 		require.NoError(t, err)
 		require.NotNil(t, provider)
 	})
@@ -41,7 +41,7 @@ func TestAccountsEphemeralProvider_GetRootHash(t *testing.T) {
 		},
 	}
 
-	provider, err := state.NewAccountsEphemeralProvider(accounts)
+	provider, err := state.NewAccountsEphemeralProvider(accounts, nil)
 	require.NoError(t, err)
 	require.NotNil(t, provider)
 
@@ -77,7 +77,7 @@ func TestAccountsEphemeralProvider_GetAccountNonce(t *testing.T) {
 		return nil, errors.New("arbitrary error")
 	}
 
-	provider, err := state.NewAccountsEphemeralProvider(accounts)
+	provider, err := state.NewAccountsEphemeralProvider(accounts, nil)
 	require.NoError(t, err)
 	require.NotNil(t, provider)
 
@@ -132,7 +132,7 @@ func TestAccountsEphemeralProvider_GetAccountNonceAndBalance(t *testing.T) {
 		return nil, errors.New("arbitrary error")
 	}
 
-	provider, err := state.NewAccountsEphemeralProvider(accounts)
+	provider, err := state.NewAccountsEphemeralProvider(accounts, nil)
 	require.NoError(t, err)
 	require.NotNil(t, provider)
 
@@ -191,7 +191,7 @@ func TestAccountsEphemeralProvider_GetUserAccount(t *testing.T) {
 		return nil, errors.New("arbitrary error")
 	}
 
-	provider, err := state.NewAccountsEphemeralProvider(accounts)
+	provider, err := state.NewAccountsEphemeralProvider(accounts, nil)
 	require.NoError(t, err)
 	require.NotNil(t, provider)
 
@@ -233,7 +233,7 @@ func TestAccountsEphemeralProvider_GetUserAccount_cacheIsSharedAmongCalls(t *tes
 		return &stateMock.UserAccountStub{Nonce: 7, Balance: big.NewInt(42)}, nil
 	}
 
-	provider, err := state.NewAccountsEphemeralProvider(accounts)
+	provider, err := state.NewAccountsEphemeralProvider(accounts, nil)
 	require.NoError(t, err)
 	require.NotNil(t, provider)
 

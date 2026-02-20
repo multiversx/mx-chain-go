@@ -40,16 +40,17 @@ const (
 
 // AOTSelectorArgs holds the arguments needed to create an AOT selector
 type AOTSelectorArgs struct {
-	NodesCoordinator     nodesCoordinator.NodesCoordinator
-	ShardCoordinator     sharding.Coordinator
-	KeysHandler          consensus.KeysHandler
-	NodeRedundancy       consensus.NodeRedundancyHandler
-	TxCache              preprocess.TxCache
-	AccountsAdapter      state.AccountsAdapter
-	TransactionProcessor process.TransactionProcessor
-	TxVersionChecker     process.TxVersionCheckerHandler
-	BlockChain           data.ChainHandler
-	EconomicsDataHandler process.EconomicsDataHandler
+	NodesCoordinator         nodesCoordinator.NodesCoordinator
+	ShardCoordinator         sharding.Coordinator
+	KeysHandler              consensus.KeysHandler
+	NodeRedundancy           consensus.NodeRedundancyHandler
+	TxCache                  preprocess.TxCache
+	AccountsAdapter          state.AccountsAdapter
+	TransactionProcessor     process.TransactionProcessor
+	TxVersionChecker         process.TxVersionCheckerHandler
+	MissingTrieNodesNotifier common.MissingTrieNodesNotifier
+	BlockChain               data.ChainHandler
+	EconomicsDataHandler     process.EconomicsDataHandler
 
 	// Configuration
 	SelectionTimeout time.Duration
@@ -58,16 +59,17 @@ type AOTSelectorArgs struct {
 }
 
 type aotSelector struct {
-	nodesCoordinator     nodesCoordinator.NodesCoordinator
-	shardCoordinator     sharding.Coordinator
-	keysHandler          consensus.KeysHandler
-	nodeRedundancy       consensus.NodeRedundancyHandler
-	txCache              preprocess.TxCache
-	accountsAdapter      state.AccountsAdapter
-	transactionProcessor process.TransactionProcessor
-	txVersionChecker     process.TxVersionCheckerHandler
-	blockChain           data.ChainHandler
-	economicsDataHandler process.EconomicsDataHandler
+	nodesCoordinator         nodesCoordinator.NodesCoordinator
+	shardCoordinator         sharding.Coordinator
+	keysHandler              consensus.KeysHandler
+	nodeRedundancy           consensus.NodeRedundancyHandler
+	txCache                  preprocess.TxCache
+	accountsAdapter          state.AccountsAdapter
+	transactionProcessor     process.TransactionProcessor
+	txVersionChecker         process.TxVersionCheckerHandler
+	missingTrieNodesNotifier common.MissingTrieNodesNotifier
+	blockChain               data.ChainHandler
+	economicsDataHandler     process.EconomicsDataHandler
 
 	cache            storage.Cacher
 	selectionTimeout time.Duration
@@ -140,19 +142,20 @@ func NewAOTSelector(args AOTSelectorArgs) (*aotSelector, error) {
 	}
 
 	return &aotSelector{
-		nodesCoordinator:     args.NodesCoordinator,
-		shardCoordinator:     args.ShardCoordinator,
-		keysHandler:          args.KeysHandler,
-		nodeRedundancy:       args.NodeRedundancy,
-		txCache:              args.TxCache,
-		accountsAdapter:      args.AccountsAdapter,
-		transactionProcessor: args.TransactionProcessor,
-		txVersionChecker:     args.TxVersionChecker,
-		blockChain:           args.BlockChain,
-		economicsDataHandler: args.EconomicsDataHandler,
-		cache:                lruCache,
-		selectionTimeout:     selectionTimeout,
-		maxTxsPerBlock:       maxTxsPerBlock,
+		nodesCoordinator:         args.NodesCoordinator,
+		shardCoordinator:         args.ShardCoordinator,
+		keysHandler:              args.KeysHandler,
+		nodeRedundancy:           args.NodeRedundancy,
+		txCache:                  args.TxCache,
+		accountsAdapter:          args.AccountsAdapter,
+		transactionProcessor:     args.TransactionProcessor,
+		txVersionChecker:         args.TxVersionChecker,
+		missingTrieNodesNotifier: args.MissingTrieNodesNotifier,
+		blockChain:               args.BlockChain,
+		economicsDataHandler:     args.EconomicsDataHandler,
+		cache:                    lruCache,
+		selectionTimeout:         selectionTimeout,
+		maxTxsPerBlock:           maxTxsPerBlock,
 	}, nil
 }
 
@@ -390,9 +393,10 @@ func (s *aotSelector) runAOTSelection(targetNonce uint64, randomness []byte) {
 
 	// Create selection session
 	session, err := preprocess.NewSelectionSession(preprocess.ArgsSelectionSession{
-		AccountsAdapter:         s.accountsAdapter,
-		TransactionsProcessor:   s.transactionProcessor,
-		TxVersionCheckerHandler: s.txVersionChecker,
+		AccountsAdapter:          s.accountsAdapter,
+		TransactionsProcessor:    s.transactionProcessor,
+		TxVersionCheckerHandler:  s.txVersionChecker,
+		MissingTrieNodesNotifier: s.missingTrieNodesNotifier,
 	})
 	if err != nil {
 		log.Debug("runAOTSelection: failed to create selection session", "error", err)

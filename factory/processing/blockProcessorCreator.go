@@ -116,6 +116,7 @@ func (pcf *processComponentsFactory) newBlockProcessor(
 			processedMiniBlocksTracker,
 			receiptsRepository,
 			blockCutoffProcessingHandler,
+			missingTrieNodesNotifier,
 			sentSignaturesTracker,
 			executionManager,
 		)
@@ -130,6 +131,7 @@ var log = logger.GetOrCreate("factory")
 // This enables pre-selection of transactions before the next consensus round
 func (pcf *processComponentsFactory) createAOTSelector(
 	transactionProcessor process.TransactionProcessor,
+	missingTrieNodesNotifier common.MissingTrieNodesNotifier,
 ) (process.AOTTransactionSelector, error) {
 	shardCoordinator := pcf.bootstrapComponents.ShardCoordinator()
 
@@ -159,19 +161,20 @@ func (pcf *processComponentsFactory) createAOTSelector(
 	}
 
 	aotSelectorArgs := aotSelection.AOTSelectorArgs{
-		NodesCoordinator:     pcf.nodesCoordinator,
-		ShardCoordinator:     shardCoordinator,
-		KeysHandler:          pcf.crypto.KeysHandler(),
-		NodeRedundancy:       pcf.nodeRedundancyHandler,
-		TxCache:              txCache,
-		AccountsAdapter:      pcf.state.AccountsAdapterProposal(),
-		TransactionProcessor: transactionProcessor,
-		TxVersionChecker:     pcf.coreData.TxVersionChecker(),
-		BlockChain:           pcf.data.Blockchain(),
-		EconomicsDataHandler: pcf.coreData.EconomicsData(),
-		SelectionTimeout:     time.Duration(pcf.config.AOTSelection.SelectionTimeoutMs) * time.Millisecond,
-		CacheSize:            pcf.config.AOTSelection.CacheSize,
-		MaxTxsPerBlock:       pcf.config.TxCacheSelection.SelectionMaxNumTxs,
+		NodesCoordinator:         pcf.nodesCoordinator,
+		ShardCoordinator:         shardCoordinator,
+		KeysHandler:              pcf.crypto.KeysHandler(),
+		NodeRedundancy:           pcf.nodeRedundancyHandler,
+		TxCache:                  txCache,
+		AccountsAdapter:          pcf.state.AccountsAdapterProposal(),
+		TransactionProcessor:     transactionProcessor,
+		TxVersionChecker:         pcf.coreData.TxVersionChecker(),
+		MissingTrieNodesNotifier: missingTrieNodesNotifier,
+		BlockChain:               pcf.data.Blockchain(),
+		EconomicsDataHandler:     pcf.coreData.EconomicsData(),
+		SelectionTimeout:         time.Duration(pcf.config.AOTSelection.SelectionTimeoutMs) * time.Millisecond,
+		CacheSize:                pcf.config.AOTSelection.CacheSize,
+		MaxTxsPerBlock:           pcf.config.TxCacheSelection.SelectionMaxNumTxs,
 	}
 
 	aotSelector, err := aotSelection.NewAOTSelector(aotSelectorArgs)
@@ -461,6 +464,7 @@ func (pcf *processComponentsFactory) newShardBlockProcessor(
 		TxExecutionOrderHandler:      pcf.txExecutionOrderHandler,
 		TxCacheSelectionConfig:       pcf.config.TxCacheSelection,
 		TxVersionChecker:             pcf.coreData.TxVersionChecker(),
+		MissingTrieNodesNotifier:     missingTrieNodesNotifier,
 	}
 	preProcFactory, err := shard.NewPreProcessorsContainerFactory(argsPreProcFactory)
 	if err != nil {
@@ -513,7 +517,7 @@ func (pcf *processComponentsFactory) newShardBlockProcessor(
 		return nil, err
 	}
 
-	aotSelector, err := pcf.createAOTSelector(transactionProcessor)
+	aotSelector, err := pcf.createAOTSelector(transactionProcessor, missingTrieNodesNotifier)
 	if err != nil {
 		return nil, err
 	}
@@ -668,6 +672,7 @@ func (pcf *processComponentsFactory) newShardBlockProcessor(
 		ExecutionManager:                   executionManager,
 		TxExecutionOrderHandler:            pcf.txExecutionOrderHandler,
 		AOTSelector:                        aotSelector,
+		MissingTrieNodesNotifier:           missingTrieNodesNotifier,
 	}
 	arguments := block.ArgShardProcessor{
 		ArgBaseProcessor: argumentsBaseProcessor,
@@ -710,6 +715,7 @@ func (pcf *processComponentsFactory) newMetaBlockProcessor(
 	processedMiniBlocksTracker process.ProcessedMiniBlocksTracker,
 	receiptsRepository mainFactory.ReceiptsRepository,
 	blockProcessingCutoffhandler cutoff.BlockProcessingCutoffHandler,
+	missingTrieNodesNotifier common.MissingTrieNodesNotifier,
 	sentSignaturesTracker process.SentSignaturesTracker,
 	executionManager process.ExecutionManager,
 ) (*blockProcessorAndVmFactories, error) {
@@ -917,6 +923,7 @@ func (pcf *processComponentsFactory) newMetaBlockProcessor(
 		TxExecutionOrderHandler:      pcf.txExecutionOrderHandler,
 		TxCacheSelectionConfig:       pcf.config.TxCacheSelection,
 		TxVersionCheckerHandler:      pcf.coreData.TxVersionChecker(),
+		MissingTrieNodesNotifier:     missingTrieNodesNotifier,
 	}
 
 	preProcFactory, err := metachain.NewPreProcessorsContainerFactory(argsPreprocContainerFactory)
@@ -1250,6 +1257,7 @@ func (pcf *processComponentsFactory) newMetaBlockProcessor(
 		ExecutionManager:                   executionManager,
 		TxExecutionOrderHandler:            pcf.txExecutionOrderHandler,
 		AOTSelector:                        aotSelector,
+		MissingTrieNodesNotifier:           missingTrieNodesNotifier,
 	}
 
 	esdtOwnerAddress, err := pcf.coreData.AddressPubKeyConverter().Decode(pcf.systemSCConfig.ESDTSystemSCConfig.OwnerAddress)

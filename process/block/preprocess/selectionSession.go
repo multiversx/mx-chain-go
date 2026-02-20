@@ -7,6 +7,7 @@ import (
 	"github.com/multiversx/mx-chain-core-go/core/check"
 	"github.com/multiversx/mx-chain-core-go/data"
 	"github.com/multiversx/mx-chain-core-go/data/transaction"
+	"github.com/multiversx/mx-chain-go/common"
 	"github.com/multiversx/mx-chain-go/process"
 	"github.com/multiversx/mx-chain-go/state"
 )
@@ -19,9 +20,10 @@ type selectionSession struct {
 
 // ArgsSelectionSession holds the arguments for creating a new selection session.
 type ArgsSelectionSession struct {
-	AccountsAdapter         state.AccountsAdapter
-	TransactionsProcessor   process.TransactionProcessor
-	TxVersionCheckerHandler process.TxVersionCheckerHandler
+	AccountsAdapter          state.AccountsAdapter
+	TransactionsProcessor    process.TransactionProcessor
+	TxVersionCheckerHandler  process.TxVersionCheckerHandler
+	MissingTrieNodesNotifier common.MissingTrieNodesNotifier
 }
 
 // NewSelectionSession creates a new selection session.
@@ -35,7 +37,7 @@ func NewSelectionSession(args ArgsSelectionSession) (*selectionSession, error) {
 	}
 
 	// Provider is not concurrency-safe, but it's never accessed concurrently.
-	accountsProvider, err := state.NewAccountsEphemeralProvider(args.AccountsAdapter)
+	accountsProvider, err := state.NewAccountsEphemeralProvider(args.AccountsAdapter, args.MissingTrieNodesNotifier)
 	if err != nil {
 		return nil, err
 	}

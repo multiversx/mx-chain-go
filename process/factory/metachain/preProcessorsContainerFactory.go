@@ -48,6 +48,7 @@ type ArgsPreProcessorsContainerFactory struct {
 	TxExecutionOrderHandler      common.TxExecutionOrderHandler
 	TxCacheSelectionConfig       config.TxCacheSelectionConfig
 	TxVersionCheckerHandler      process.TxVersionCheckerHandler
+	MissingTrieNodesNotifier     common.MissingTrieNodesNotifier
 }
 
 type preProcessorsContainerFactory struct {
@@ -77,6 +78,7 @@ type preProcessorsContainerFactory struct {
 	txExecutionOrderHandler      common.TxExecutionOrderHandler
 	txCacheSelectionConfig       config.TxCacheSelectionConfig
 	txVersionChecker             process.TxVersionCheckerHandler
+	missingTrieNodesNotifier     common.MissingTrieNodesNotifier
 }
 
 // NewPreProcessorsContainerFactory is responsible for creating a new preProcessors factory object
@@ -179,6 +181,7 @@ func NewPreProcessorsContainerFactory(args ArgsPreProcessorsContainerFactory) (*
 		txExecutionOrderHandler:      args.TxExecutionOrderHandler,
 		txCacheSelectionConfig:       args.TxCacheSelectionConfig,
 		txVersionChecker:             args.TxVersionCheckerHandler,
+		missingTrieNodesNotifier:     args.MissingTrieNodesNotifier,
 	}, nil
 }
 
@@ -231,6 +234,7 @@ func (ppcm *preProcessorsContainerFactory) createTxPreProcessor() (process.PrePr
 			EpochNotifier:              ppcm.epochNotifier,
 			EnableRoundsHandler:        ppcm.enableRoundsHandler,
 			RoundNotifier:              ppcm.roundNotifier,
+			MissingTrieNodesNotifier:   ppcm.missingTrieNodesNotifier,
 		},
 		TxProcessor:                  ppcm.txProcessor,
 		BlockTracker:                 ppcm.blockTracker,
@@ -265,6 +269,7 @@ func (ppcm *preProcessorsContainerFactory) createSmartContractResultPreProcessor
 			EpochNotifier:              ppcm.epochNotifier,
 			EnableRoundsHandler:        ppcm.enableRoundsHandler,
 			RoundNotifier:              ppcm.roundNotifier,
+			MissingTrieNodesNotifier:   ppcm.missingTrieNodesNotifier,
 		},
 		ScrProcessor: ppcm.scResultProcessor,
 	}

@@ -118,6 +118,7 @@ type BasePreProcessorArgs struct {
 	EpochNotifier              process.EpochNotifier
 	EnableRoundsHandler        common.EnableRoundsHandler
 	RoundNotifier              process.RoundNotifier
+	MissingTrieNodesNotifier   common.MissingTrieNodesNotifier
 }
 
 // basePreProcess is the base struct for all pre-processors
@@ -135,6 +136,7 @@ type basePreProcess struct {
 	txExecutionOrderHandler    common.TxExecutionOrderHandler
 	enableRoundsHandler        common.EnableRoundsHandler
 	feeHandler                 process.FeeHandler
+	missingTrieNodesNotifier   common.MissingTrieNodesNotifier
 }
 
 func checkBasePreProcessArgs(args BasePreProcessorArgs) error {

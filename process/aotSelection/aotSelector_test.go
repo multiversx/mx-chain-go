@@ -22,6 +22,7 @@ import (
 	stateMock "github.com/multiversx/mx-chain-go/testscommon/state"
 	"github.com/multiversx/mx-chain-go/testscommon/txcachestubs"
 	"github.com/multiversx/mx-chain-go/txcache"
+	vmcommon "github.com/multiversx/mx-chain-vm-common-go"
 )
 
 func createDefaultArgs() AOTSelectorArgs {
@@ -567,6 +568,39 @@ func TestAOTSelector_RunAOTSelectionError(t *testing.T) {
 	result, found := sel.GetPreSelectedTransactions(0)
 	require.Nil(t, result)
 	require.False(t, found)
+}
+
+func TestAOTSelector_RunAOTSelectionNotifiesMissingTrieNode(t *testing.T) {
+	t.Parallel()
+
+	notifiedHash := make(chan []byte, 1)
+	args := createDefaultArgs()
+	args.AccountsAdapter = &stateMock.AccountsStub{
+		GetExistingAccountCalled: func(_ []byte) (vmcommon.AccountHandler, error) {
+			return nil, core.NewGetNodeFromDBErrWithKey([]byte("missing-node"), errors.New("db error"), "")
+		},
+	}
+	args.MissingTrieNodesNotifier = &testscommon.MissingTrieNodesNotifierStub{
+		AsyncNotifyMissingTrieNodeCalled: func(hash []byte) {
+			notifiedHash <- hash
+		},
+	}
+	args.TxCache = &txcachestubs.TxCacheStub{
+		SimulateSelectTransactionsCalled: func(session txcache.SelectionSession, _ common.TxSelectionOptions, _ uint64) ([]*txcache.WrappedTransaction, uint64, error) {
+			_, _, _, _ = session.GetAccountNonceAndBalance([]byte("sender"))
+			return nil, 0, nil
+		},
+	}
+	sel, _ := NewAOTSelector(args)
+
+	sel.runAOTSelection(0, []byte("randomness"))
+
+	select {
+	case hash := <-notifiedHash:
+		require.Equal(t, []byte("missing-node"), hash)
+	case <-time.After(time.Second):
+		t.Fatal("expected missing trie node notification")
+	}
 }
 
 func TestAOTSelector_RunAOTSelectionCancelled(t *testing.T) {

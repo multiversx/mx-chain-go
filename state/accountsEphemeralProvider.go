@@ -4,7 +4,10 @@ import (
 	"errors"
 	"math/big"
 
+	"github.com/multiversx/mx-chain-core-go/core"
 	"github.com/multiversx/mx-chain-core-go/core/check"
+
+	"github.com/multiversx/mx-chain-go/common"
 )
 
 // AccountsEphemeralProvider acts as an "ephemeral" provider for accounts.
@@ -13,20 +16,24 @@ import (
 // Create it privately (don't receive it in constructors), use it privately, make sure it's forgotten afterwards. Don't keep lasting references to it.
 // Note: this structure is exported on purpose (less ceremonious code where it's being used, no extra interfaces needed).
 type AccountsEphemeralProvider struct {
-	accounts AccountsAdapter
+	accounts                 AccountsAdapter
+	missingTrieNodesNotifier common.MissingTrieNodesNotifier
 	// Not concurrency-safe, but should never be accessed concurrently.
 	cache map[string]UserAccountHandler
 }
 
 // NewAccountsEphemeralProvider creates a new "ephemeral" provider for accounts.
-func NewAccountsEphemeralProvider(accounts AccountsAdapter) (*AccountsEphemeralProvider, error) {
+// The missingTrieNodesNotifier parameter is optional (can be nil). When provided, it will trigger
+// an async network sync when a trie node is missing from the local DB during account retrieval.
+func NewAccountsEphemeralProvider(accounts AccountsAdapter, missingTrieNodesNotifier common.MissingTrieNodesNotifier) (*AccountsEphemeralProvider, error) {
 	if check.IfNil(accounts) {
 		return nil, ErrNilAccountsAdapter
 	}
 
 	return &AccountsEphemeralProvider{
-		accounts: accounts,
-		cache:    make(map[string]UserAccountHandler),
+		accounts:                 accounts,
+		missingTrieNodesNotifier: missingTrieNodesNotifier,
+		cache:                    make(map[string]UserAccountHandler),
 	}, nil
 }
 
@@ -81,6 +88,7 @@ func (provider *AccountsEphemeralProvider) GetUserAccount(address []byte) (UserA
 	if err != nil && !isAccountNotFoundError {
 		// Unexpected failure (error different from "ErrAccNotFound").
 		// Account won't be cached.
+		provider.syncIfMissingTrieNode(err)
 		return nil, err
 	}
 
@@ -104,6 +112,22 @@ func (provider *AccountsEphemeralProvider) getExistingAccountTypedAsUserAccount(
 	}
 
 	return userAccount, nil
+}
+
+func (provider *AccountsEphemeralProvider) syncIfMissingTrieNode(err error) {
+	if check.IfNil(provider.missingTrieNodesNotifier) {
+		return
+	}
+	if !core.IsGetNodeFromDBError(err) {
+		return
+	}
+
+	getNodeErr := core.UnwrapGetNodeFromDBErr(err)
+	if check.IfNil(getNodeErr) {
+		return
+	}
+
+	provider.missingTrieNodesNotifier.AsyncNotifyMissingTrieNode(getNodeErr.GetKey())
 }
 
 // IsInterfaceNil returns true if there is no value under the interface

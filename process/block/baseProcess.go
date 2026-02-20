@@ -146,6 +146,7 @@ type baseProcessor struct {
 	executionManager                   process.ExecutionManager
 	txExecutionOrderHandler            common.TxExecutionOrderHandler
 	aotSelector                        process.AOTTransactionSelector
+	missingTrieNodesNotifier           common.MissingTrieNodesNotifier
 	maxProposalNonceGap                uint64
 }
 
@@ -242,6 +243,7 @@ func NewBaseProcessor(arguments ArgBaseProcessor) (*baseProcessor, error) {
 		executionManager:                   arguments.ExecutionManager,
 		txExecutionOrderHandler:            arguments.TxExecutionOrderHandler,
 		aotSelector:                        arguments.AOTSelector,
+		missingTrieNodesNotifier:           arguments.MissingTrieNodesNotifier,
 		maxProposalNonceGap:                maxProposalNonceGap,
 	}
 
@@ -2786,7 +2788,7 @@ func (bp *baseProcessor) OnProposedBlock(
 		return err
 	}
 
-	accountsProvider, err := state.NewAccountsEphemeralProvider(bp.accountsProposal)
+	accountsProvider, err := state.NewAccountsEphemeralProvider(bp.accountsProposal, bp.missingTrieNodesNotifier)
 	if err != nil {
 		return err
 	}

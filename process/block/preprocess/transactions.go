@@ -149,6 +149,7 @@ func NewTransactionPreprocessor(
 		processedMiniBlocksTracker: args.ProcessedMiniBlocksTracker,
 		txExecutionOrderHandler:    args.TxExecutionOrderHandler,
 		feeHandler:                 args.EconomicsFee,
+		missingTrieNodesNotifier:   args.MissingTrieNodesNotifier,
 	}
 
 	args.EpochNotifier.RegisterNotifyHandler(bpp)
@@ -214,7 +215,7 @@ func (txs *transactions) RemoveTxsFromPools(body *block.Body, rootHashHolder com
 		return err
 	}
 
-	accountsProvider, err := state.NewAccountsEphemeralProvider(txs.accountsProposal)
+	accountsProvider, err := state.NewAccountsEphemeralProvider(txs.accountsProposal, txs.missingTrieNodesNotifier)
 	if err != nil {
 		return err
 	}
@@ -1485,9 +1486,10 @@ func (txs *transactions) selectTransactionsFromTxPoolForProposal(
 	}
 
 	session, err := NewSelectionSession(ArgsSelectionSession{
-		AccountsAdapter:         txs.accountsProposal,
-		TransactionsProcessor:   txs.txProcessor,
-		TxVersionCheckerHandler: txs.txVersionCheckerHandler,
+		AccountsAdapter:          txs.accountsProposal,
+		TransactionsProcessor:    txs.txProcessor,
+		TxVersionCheckerHandler:  txs.txVersionCheckerHandler,
+		MissingTrieNodesNotifier: txs.missingTrieNodesNotifier,
 	})
 	if err != nil {
 		return nil, err
@@ -1529,9 +1531,10 @@ func (txs *transactions) selectTransactionsFromTxPool(
 	}
 
 	session, err := NewSelectionSession(ArgsSelectionSession{
-		AccountsAdapter:         txs.accountsProposal,
-		TransactionsProcessor:   txs.txProcessor,
-		TxVersionCheckerHandler: txs.txVersionCheckerHandler,
+		AccountsAdapter:          txs.accountsProposal,
+		TransactionsProcessor:    txs.txProcessor,
+		TxVersionCheckerHandler:  txs.txVersionCheckerHandler,
+		MissingTrieNodesNotifier: txs.missingTrieNodesNotifier,
 	})
 	if err != nil {
 		return nil, err
