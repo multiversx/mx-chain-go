@@ -3675,7 +3675,7 @@ func TestCleanCachesForExecutionResult(t *testing.T) {
 			_, found := postProcessRemovedKeys[key]
 			require.True(t, found, fmt.Sprintf("key %s should have been removed from postProcessTxsCache", key))
 		}
-		require.Equal(t, 3, len(postProcessRemovedKeys))
+		require.Equal(t, 4, len(postProcessRemovedKeys))
 
 		// Verify headerHash was removed from executedMbs
 		_, found := executedMbsRemovedKeys[string(headerHash)]
@@ -3724,13 +3724,14 @@ func TestCleanCachesForExecutionResult(t *testing.T) {
 			string(headerHash),
 			string(common.PrepareOrderedTxHashesKey(headerHash)),
 			string(common.PrepareLogEventsKey(headerHash)),
+			string(common.PrepareHeaderGasDataKey(headerHash)),
 		}
 
 		for _, key := range expectedPostProcessKeys {
 			_, found := postProcessRemovedKeys[key]
 			require.True(t, found, fmt.Sprintf("key %s should have been removed from postProcessTxsCache", key))
 		}
-		require.Equal(t, 3, len(postProcessRemovedKeys))
+		require.Equal(t, 4, len(postProcessRemovedKeys))
 
 		// Verify all miniblock headers and headerHash were removed from executedMbs
 		expectedExecutedMbsKeys := []string{
@@ -3788,13 +3789,14 @@ func TestCleanCachesForExecutionResult(t *testing.T) {
 			string(headerHash),
 			string(common.PrepareOrderedTxHashesKey(headerHash)),
 			string(common.PrepareLogEventsKey(headerHash)),
+			string(common.PrepareHeaderGasDataKey(headerHash)),
 		}
 
 		for _, key := range expectedPostProcessKeys {
 			_, found := postProcessRemovedKeys[key]
 			require.True(t, found, fmt.Sprintf("key %s should have been removed from postProcessTxsCache", key))
 		}
-		require.Equal(t, 3, len(postProcessRemovedKeys))
+		require.Equal(t, 4, len(postProcessRemovedKeys))
 
 		// Verify headerHash and miniblock hashes were removed from executedMbs
 		expectedExecutedMbsKeys := []string{

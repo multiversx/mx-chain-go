@@ -3820,6 +3820,18 @@ func (bp *baseProcessor) cacheOrderedTxHashes(headerHash []byte) {
 	bp.dataPool.PostProcessTransactions().Put(executionOrderKey, items, size)
 }
 
+func (bp *baseProcessor) cacheHeaderGasData(headerHash []byte) {
+	headerGasData := &outportcore.HeaderGasConsumption{
+		GasProvided:    bp.gasConsumedProvider.TotalGasProvidedWithScheduled(),
+		GasPenalized:   bp.gasConsumedProvider.TotalGasPenalized(),
+		GasRefunded:    bp.gasConsumedProvider.TotalGasRefunded(),
+		MaxGasPerBlock: bp.economicsData.MaxGasLimitPerBlock(bp.shardCoordinator.SelfId()),
+	}
+
+	key := common.PrepareHeaderGasDataKey(headerHash)
+	bp.dataPool.PostProcessTransactions().Put(key, headerGasData, headerGasData.Size())
+}
+
 func (bp *baseProcessor) cacheUnexecutableTxHashes(headerHash []byte) {
 	unexecutableTxHashes := bp.txCoordinator.GetUnExecutableTransactions()
 

@@ -107,13 +107,13 @@ func (sp *shardProcessor) CreateMiniBlocks(haveTime func() bool) (*block.Body, m
 }
 
 // GetOrderedProcessedMetaBlocksFromHeader -
-func (sp *shardProcessor) GetOrderedProcessedMetaBlocksFromHeader(header data.HeaderHandler) ([]data.HeaderHandler, error) {
+func (sp *shardProcessor) GetOrderedProcessedMetaBlocksFromHeader(header data.HeaderHandler) ([]data.HeaderHandler, []data.HeaderHandler, error) {
 	return sp.getOrderedProcessedMetaBlocksFromHeader(header)
 }
 
 // UpdateCrossShardInfo -
-func (sp *shardProcessor) UpdateCrossShardInfo(processedMetaHdrs []data.HeaderHandler) error {
-	return sp.updateCrossShardInfo(processedMetaHdrs)
+func (sp *shardProcessor) UpdateCrossShardInfo(processedMetaHdrs []data.HeaderHandler, partialProcessedMetaBlocks []data.HeaderHandler) error {
+	return sp.updateCrossShardInfo(processedMetaHdrs, partialProcessedMetaBlocks)
 }
 
 // UpdateStateStorage -
@@ -1151,7 +1151,7 @@ func (mp *metaProcessor) GetCurrentlyAccumulatedFees(metaHdr data.MetaHeaderHand
 func (sp *shardProcessor) GetOrderedProcessedMetaBlocksFromMiniBlockHashesV3(
 	header data.HeaderHandler,
 	miniBlockHashes map[int][]byte,
-) ([]data.HeaderHandler, error) {
+) ([]data.HeaderHandler, []data.HeaderHandler, error) {
 	return sp.getOrderedProcessedMetaBlocksFromMiniBlockHashesV3(header, miniBlockHashes)
 }
 
