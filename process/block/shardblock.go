@@ -1004,12 +1004,12 @@ func (sp *shardProcessor) CommitBlock(
 
 	sp.saveBody(body, header, headerHash)
 
-	err = sp.addProcessedCrossMiniBlocksFromHeader(header)
+	processedMetaHdrs, partialProcessedMetaBlocks, err := sp.getOrderedProcessedMetaBlocksFromHeader(header)
 	if err != nil {
 		return err
 	}
 
-	processedMetaHdrs, partialProcessedMetaBlocks, err := sp.getOrderedProcessedMetaBlocksFromHeader(header)
+	err = sp.addProcessedCrossMiniBlocksFromHeader(header)
 	if err != nil {
 		return err
 	}
