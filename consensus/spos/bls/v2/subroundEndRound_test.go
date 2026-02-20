@@ -1113,7 +1113,25 @@ func TestComputeAddSigOnValidNodes(t *testing.T) {
 		container := consensusMocks.InitConsensusCore()
 		sr := initSubroundEndRoundWithContainer(container, &statusHandler.AppStatusHandlerStub{})
 		sr.SetHeader(&block.Header{})
-		sr.SetThreshold(bls.SrEndRound, 2)
+		sr.SetThreshold(bls.SrSignature, 2)
+
+		_, _, err := sr.ComputeAggSigOnValidNodes()
+		require.True(t, errors.Is(err, spos.ErrInvalidNumSigShares))
+	})
+
+	t.Run("invalid number of valid sig shares, with fallback validation", func(t *testing.T) {
+		t.Parallel()
+
+		container := consensusMocks.InitConsensusCore()
+		container.SetFallbackHeaderValidator(&testscommon.FallBackHeaderValidatorStub{
+			ShouldApplyFallbackValidationCalled: func(headerHandler data.HeaderHandler) bool {
+				return true
+			},
+		})
+
+		sr := initSubroundEndRoundWithContainer(container, &statusHandler.AppStatusHandlerStub{})
+		sr.SetHeader(&block.Header{})
+		sr.SetFallbackThreshold(bls.SrSignature, 2)
 
 		_, _, err := sr.ComputeAggSigOnValidNodes()
 		require.True(t, errors.Is(err, spos.ErrInvalidNumSigShares))
@@ -1254,7 +1272,7 @@ func TestSubroundEndRound_DoEndRoundJobByNode(t *testing.T) {
 		numCalls := 0
 		container.SetEquivalentProofsPool(&dataRetriever.ProofsPoolMock{
 			HasProofCalled: func(shardID uint32, headerHash []byte) bool {
-				if numCalls <= 2 {
+				if numCalls <= 9 {
 					numCalls++
 					return false
 				}

@@ -1,4 +1,4 @@
-package roundSync
+package ntpsync
 
 import (
 	"testing"
@@ -6,10 +6,10 @@ import (
 	"github.com/stretchr/testify/require"
 )
 
-func TestRoundRingBuffer_AddAndLen(t *testing.T) {
+func TestNonceRingBuffer_AddAndLen(t *testing.T) {
 	t.Parallel()
 
-	rb := newRoundRingBuffer(3)
+	rb := newNonceRingBuffer(3)
 
 	rb.add(10, "")
 	rb.add(20, "")
@@ -21,10 +21,10 @@ func TestRoundRingBuffer_AddAndLen(t *testing.T) {
 	require.Equal(t, []uint64{10, 20, 30}, rb.last(5))
 }
 
-func TestRoundRingBuffer_OverwriteOldest(t *testing.T) {
+func TestNonceRingBuffer_OverwriteOldest(t *testing.T) {
 	t.Parallel()
 
-	rb := newRoundRingBuffer(2)
+	rb := newNonceRingBuffer(2)
 
 	rb.add(1, "")
 	rb.add(2, "")
@@ -43,10 +43,10 @@ func TestRoundRingBuffer_OverwriteOldest(t *testing.T) {
 	require.True(t, rb.contains(3, ""))
 }
 
-func TestRoundRingBuffer_Last(t *testing.T) {
+func TestNonceRingBuffer_Last(t *testing.T) {
 	t.Parallel()
 
-	rb := newRoundRingBuffer(5)
+	rb := newNonceRingBuffer(5)
 
 	rb.add(5, "")
 	rb.add(6, "")

@@ -430,6 +430,7 @@ type GeneralSettingsConfig struct {
 	SyncProcessTimeInMillis          uint32
 	SyncProcessTimeSupernovaInMillis uint32
 	SetGuardianEpochsDelay           uint32
+	MaxProposalNonceGap              uint64
 	ChainParametersByEpoch           []ChainParametersByEpochConfig
 	EpochChangeGracePeriodByEpoch    []EpochChangeGracePeriodByEpoch
 	ProcessConfigsByEpoch            []ProcessConfigByEpoch

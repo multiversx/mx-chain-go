@@ -937,6 +937,9 @@ func (sp *shardProcessor) CommitBlock(
 		return err
 	}
 
+	prevBlockHeader := sp.blockChain.GetCurrentBlockHeader()
+	prevBlockHeaderHash := sp.blockChain.GetCurrentBlockHeaderHash()
+
 	if !headerHandler.IsHeaderV3() {
 		sp.processStatusHandler.SetBusy("shardProcessor.CommitBlock")
 		defer func() {
@@ -949,6 +952,8 @@ func (sp *shardProcessor) CommitBlock(
 		defer func() {
 			if err != nil {
 				sp.RevertHeaderV3OnCommit(headerHandler)
+				_ = sp.blockChain.SetCurrentBlockHeader(prevBlockHeader)
+				sp.blockChain.SetCurrentBlockHeaderHash(prevBlockHeaderHash)
 			}
 		}()
 	}
