@@ -1004,12 +1004,12 @@ func (sp *shardProcessor) CommitBlock(
 
 	sp.saveBody(body, header, headerHash)
 
-	processedMetaHdrs, partialProcessedMetaBlocks, err := sp.getOrderedProcessedMetaBlocksFromHeader(header)
+	err = sp.addProcessedCrossMiniBlocksFromHeader(header)
 	if err != nil {
 		return err
 	}
 
-	err = sp.addProcessedCrossMiniBlocksFromHeader(header)
+	processedMetaHdrs, partiallyProcessedMetaBlocks, err := sp.getOrderedProcessedMetaBlocksFromHeader(header)
 	if err != nil {
 		return err
 	}
@@ -1054,7 +1054,7 @@ func (sp *shardProcessor) CommitBlock(
 		log.Debug("checkSentSignaturesBeforeCommitting", "error", errNotCritical.Error())
 	}
 
-	errNotCritical = sp.updateCrossShardInfo(processedMetaHdrs, partialProcessedMetaBlocks)
+	errNotCritical = sp.updateCrossShardInfo(processedMetaHdrs, partiallyProcessedMetaBlocks)
 	if errNotCritical != nil {
 		log.Debug("updateCrossShardInfo", "error", errNotCritical.Error())
 	}
@@ -1771,18 +1771,18 @@ func (sp *shardProcessor) getOrderedProcessedMetaBlocksFromHeader(
 	)
 
 	var processedMetaBlocks []data.HeaderHandler
-	partialProcessedMetaBlocks := make([]data.HeaderHandler, 0)
+	partiallyProcessedMetaBlocks := make([]data.HeaderHandler, 0)
 	var err error
 	if !header.IsHeaderV3() {
 		processedMetaBlocks, err = sp.getOrderedProcessedMetaBlocksFromMiniBlockHashes(miniBlockHeaders, miniBlockHashes)
 	} else {
-		processedMetaBlocks, partialProcessedMetaBlocks, err = sp.getOrderedProcessedMetaBlocksFromMiniBlockHashesV3(header, miniBlockHashes)
+		processedMetaBlocks, partiallyProcessedMetaBlocks, err = sp.getOrderedProcessedMetaBlocksFromMiniBlockHashesV3(header, miniBlockHashes)
 	}
 	if err != nil {
 		return nil, nil, err
 	}
 
-	return processedMetaBlocks, partialProcessedMetaBlocks, nil
+	return processedMetaBlocks, partiallyProcessedMetaBlocks, nil
 }
 
 func (sp *shardProcessor) addProcessedCrossMiniBlocksFromHeader(headerHandler data.HeaderHandler) error {
@@ -1913,7 +1913,7 @@ func (sp *shardProcessor) getOrderedProcessedMetaBlocksFromMiniBlockHashes(
 
 func (sp *shardProcessor) updateCrossShardInfo(
 	processedMetaHdrs []data.HeaderHandler,
-	partialProcessedMetaBlocks []data.HeaderHandler,
+	partiallyProcessedMetaBlocks []data.HeaderHandler,
 ) error {
 	lastCrossNotarizedHeader, _, err := sp.blockTracker.GetLastCrossNotarizedHeader(core.MetachainShardId)
 	if err != nil {
@@ -1933,7 +1933,7 @@ func (sp *shardProcessor) updateCrossShardInfo(
 	// and they are lower (by nonce) than last cross notarized meta header,
 	// that means there might have been a gap in the referenced meta header and these
 	// meta headers have to be saved into storage
-	for _, metaHdr := range partialProcessedMetaBlocks {
+	for _, metaHdr := range partiallyProcessedMetaBlocks {
 		sp.saveCrossShardMetaHeader(metaHdr, lastCrossNotarizedHeader)
 	}
 
