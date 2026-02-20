@@ -1929,10 +1929,10 @@ func (sp *shardProcessor) updateCrossShardInfo(
 		sp.processedMiniBlocksTracker.RemoveMetaBlockHash(headerHash)
 	}
 
-	// if there are meta header that were not included in the fully processed meta blocks
-	// and they are lower (by nonce) than last cross notarized meta header
-	// that means there might have been a gap in the rerefenced meta header and these
-	// meta headers needs to be saved into storage
+	// if there are meta headers that were not included in the fully processed meta blocks
+	// and they are lower (by nonce) than last cross notarized meta header,
+	// that means there might have been a gap in the referenced meta header and these
+	// meta headers have to be saved into storage
 	for _, metaHdr := range partialProcessedMetaBlocks {
 		sp.saveCrossShardMetaHeader(metaHdr, lastCrossNotarizedHeader)
 	}
