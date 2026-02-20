@@ -1004,12 +1004,12 @@ func (sp *shardProcessor) CommitBlock(
 
 	sp.saveBody(body, header, headerHash)
 
-	processedMetaHdrs, err := sp.getOrderedProcessedMetaBlocksFromHeader(header)
+	err = sp.addProcessedCrossMiniBlocksFromHeader(header)
 	if err != nil {
 		return err
 	}
 
-	err = sp.addProcessedCrossMiniBlocksFromHeader(header)
+	processedMetaHdrs, err := sp.getOrderedProcessedMetaBlocksFromHeader(header)
 	if err != nil {
 		return err
 	}
@@ -1920,6 +1920,10 @@ func (sp *shardProcessor) updateCrossShardInfo(processedMetaHdrs []data.HeaderHa
 
 		// remove process finished
 		if hdr.GetNonce() > lastCrossNotarizedHeader.GetNonce() {
+			log.Debug("updateCrossShardInfo: higher nonce",
+				"hdr nonce", hdr.GetNonce(),
+				"lastCrossNotarizedHeader nonce", lastCrossNotarizedHeader.GetNonce(),
+			)
 			continue
 		}
 
