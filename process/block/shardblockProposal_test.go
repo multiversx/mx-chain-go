@@ -15,6 +15,7 @@ import (
 	"github.com/multiversx/mx-chain-core-go/data/transaction"
 	"github.com/multiversx/mx-chain-go/storage"
 	"github.com/multiversx/mx-chain-go/testscommon/cache"
+	"github.com/multiversx/mx-chain-go/testscommon/economicsmocks"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 
@@ -4543,6 +4544,7 @@ func createSubComponentsForCollectExecutionResultsTest() (map[string]interface{}
 		"dataPool":                initDataPool(),
 		"accountsDB":              accounts,
 		"txExecutionOrderHandler": &commonMocks.TxExecutionOrderHandlerStub{},
+		"economicsData":           &economicsmocks.EconomicsHandlerMock{},
 	}
 
 	header, body := createHeaderAndBodyForTestingProcessBlockProposal()
