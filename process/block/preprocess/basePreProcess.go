@@ -415,19 +415,22 @@ func (bpp *basePreProcess) getBalanceForAddress(address []byte) (*big.Int, error
 }
 
 func (bpp *basePreProcess) getTxMaxTotalCost(txHandler data.TransactionHandler) *big.Int {
-	isAsyncExecEnabled := common.IsAsyncExecutionEnabled(bpp.enableEpochsHandler, bpp.enableRoundsHandler)
-	cost := big.NewInt(0)
-	if !isAsyncExecEnabled {
-		cost.Mul(big.NewInt(0).SetUint64(txHandler.GetGasPrice()), big.NewInt(0).SetUint64(txHandler.GetGasLimit()))
-	} else {
-		cost = bpp.feeHandler.ComputeTxFee(txHandler)
-	}
+	cost := bpp.getTxFee(txHandler)
 
 	if txHandler.GetValue() != nil {
 		cost.Add(cost, txHandler.GetValue())
 	}
 
 	return cost
+}
+
+func (bpp *basePreProcess) getTxFee(txHandler data.TransactionHandler) *big.Int {
+	isAsyncExecEnabled := common.IsAsyncExecutionEnabled(bpp.enableEpochsHandler, bpp.enableRoundsHandler)
+	if !isAsyncExecEnabled {
+		return big.NewInt(0).Mul(big.NewInt(0).SetUint64(txHandler.GetGasPrice()), big.NewInt(0).SetUint64(txHandler.GetGasLimit()))
+	}
+
+	return bpp.feeHandler.ComputeTxFee(txHandler)
 }
 
 func (bpp *basePreProcess) getTotalGasConsumed() uint64 {

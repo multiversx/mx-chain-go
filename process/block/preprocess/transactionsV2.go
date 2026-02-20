@@ -3,6 +3,7 @@ package preprocess
 import (
 	"bytes"
 	"errors"
+	"math/big"
 	"time"
 
 	"github.com/multiversx/mx-chain-core-go/core"
@@ -116,18 +117,35 @@ func (txs *transactions) createEmptyMiniBlocks(blockType block.Type, reserved []
 }
 
 func (txs *transactions) hasAddressEnoughInitialBalance(tx *transaction.Transaction) bool {
-	feePayer := tx.GetSndAddr()
+	sender := tx.GetSndAddr()
+	feePayer := sender
 	if common.IsAsyncExecutionEnabled(txs.enableEpochsHandler, txs.enableRoundsHandler) {
 		feePayer = common.GetFeePayer(tx)
 	}
 
-	addressHasEnoughBalance := true
-	isAddressSet := txs.balanceComputation.IsAddressSet(feePayer)
-	if isAddressSet {
-		addressHasEnoughBalance = txs.balanceComputation.AddressHasEnoughBalance(feePayer, txs.getTxMaxTotalCost(tx))
+	if bytes.Equal(feePayer, sender) {
+		if txs.balanceComputation.IsAddressSet(sender) {
+			return txs.balanceComputation.AddressHasEnoughBalance(sender, txs.getTxMaxTotalCost(tx))
+		}
+		return true
 	}
 
-	return addressHasEnoughBalance
+	// fee payer pays only the fee, sender pays only the value
+	if txs.balanceComputation.IsAddressSet(feePayer) {
+		if !txs.balanceComputation.AddressHasEnoughBalance(feePayer, txs.getTxFee(tx)) {
+			return false
+		}
+	}
+
+	if tx.GetValue() != nil && tx.GetValue().Sign() > 0 {
+		if txs.balanceComputation.IsAddressSet(sender) {
+			if !txs.balanceComputation.AddressHasEnoughBalance(sender, tx.GetValue()) {
+				return false
+			}
+		}
+	}
+
+	return true
 }
 
 func (txs *transactions) processTransaction(
@@ -598,21 +616,13 @@ func (txs *transactions) applyExecutedTransaction(
 	mbInfo *createAndProcessMiniBlocksInfo,
 ) {
 	mbInfo.senderAddressToSkip = []byte("")
-	balanceAddress := tx.GetSndAddr()
+	sender := tx.GetSndAddr()
+	feePayer := sender
 	if common.IsAsyncExecutionEnabled(txs.enableEpochsHandler, txs.enableRoundsHandler) {
-		balanceAddress = common.GetFeePayer(tx)
+		feePayer = common.GetFeePayer(tx)
 	}
 
-	if txs.balanceComputation.IsAddressSet(balanceAddress) {
-		txMaxTotalCost := txs.getTxMaxTotalCost(tx)
-		ok := txs.balanceComputation.SubBalanceFromAddress(balanceAddress, txMaxTotalCost)
-		if !ok {
-			log.Error("applyExecutedTransaction.SubBalanceFromAddress",
-				"fee payer address", balanceAddress,
-				"tx max total cost", txMaxTotalCost,
-				"err", process.ErrInsufficientFunds)
-		}
-	}
+	txs.subtractTxCostFromBalances(tx, sender, feePayer)
 
 	if len(miniBlock.TxHashes) == 0 {
 		txs.addNumMiniBlocks(1)
@@ -643,6 +653,34 @@ func (txs *transactions) applyExecutedTransaction(
 	}
 
 	mbInfo.processingInfo.numTxsAdded++
+}
+
+func (txs *transactions) subtractTxCostFromBalances(tx *transaction.Transaction, sender []byte, feePayer []byte) {
+	if bytes.Equal(feePayer, sender) {
+		txs.subtractBalanceIfSet(sender, txs.getTxMaxTotalCost(tx), "sender address")
+		return
+	}
+
+	// fee payer pays only the fee, sender pays only the value
+	txs.subtractBalanceIfSet(feePayer, txs.getTxFee(tx), "fee payer address")
+
+	if tx.GetValue() != nil && tx.GetValue().Sign() > 0 {
+		txs.subtractBalanceIfSet(sender, tx.GetValue(), "sender address")
+	}
+}
+
+func (txs *transactions) subtractBalanceIfSet(address []byte, amount *big.Int, addressLabel string) {
+	if !txs.balanceComputation.IsAddressSet(address) {
+		return
+	}
+
+	ok := txs.balanceComputation.SubBalanceFromAddress(address, amount)
+	if !ok {
+		log.Error("applyExecutedTransaction.SubBalanceFromAddress",
+			addressLabel, address,
+			"amount", amount,
+			"err", process.ErrInsufficientFunds)
+	}
 }
 
 func (txs *transactions) initCreateScheduledMiniBlocks() *createScheduledMiniBlocksInfo {
