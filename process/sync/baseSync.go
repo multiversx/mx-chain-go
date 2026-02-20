@@ -1157,7 +1157,6 @@ func (boot *baseBootstrap) prepareForSyncIfNeeded(
 	type backfillEntry struct {
 		header     data.HeaderHandler
 		headerHash []byte
-		body       data.BodyHandler
 	}
 
 	headersToAdd := make([]backfillEntry, 0, currentHeader.GetNonce()-lastExecResultNonce)
@@ -1165,15 +1164,9 @@ func (boot *baseBootstrap) prepareForSyncIfNeeded(
 	walkerHash := currentHeaderHash
 
 	for walker.GetNonce() > lastExecResultNonce {
-		body, errGetBody := boot.blockBootstrapper.getBlockBody(walker)
-		if errGetBody != nil {
-			return errGetBody
-		}
-
 		headersToAdd = append(headersToAdd, backfillEntry{
 			header:     walker,
 			headerHash: walkerHash,
-			body:       body,
 		})
 
 		if walker.GetNonce() == lastExecResultNonce+1 {
@@ -1214,13 +1207,18 @@ func (boot *baseBootstrap) prepareForSyncIfNeeded(
 			return err
 		}
 
-		err = boot.saveProposedTxsToPool(info.header, info.body)
+		body, errGetBody := boot.blockBootstrapper.getBlockBody(info.header)
+		if errGetBody != nil {
+			return errGetBody
+		}
+
+		err = boot.saveProposedTxsToPool(info.header, body)
 		if err != nil {
 			return err
 		}
 
 		errOnBackfilledBlock := boot.blockProcessor.OnBackfilledBlock(
-			info.body,
+			body,
 			info.header,
 			info.headerHash,
 		)
@@ -1230,7 +1228,7 @@ func (boot *baseBootstrap) prepareForSyncIfNeeded(
 
 		errAdd := boot.executionManager.AddPairForExecution(cache.HeaderBodyPair{
 			Header:     info.header,
-			Body:       info.body,
+			Body:       body,
 			HeaderHash: info.headerHash,
 		})
 		if errAdd != nil {
