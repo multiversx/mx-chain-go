@@ -874,14 +874,14 @@ func (sp *shardProcessor) collectExecutionResults(headerHash []byte, header data
 func (sp *shardProcessor) getOrderedProcessedMetaBlocksFromMiniBlockHashesV3(
 	header data.HeaderHandler,
 	miniBlockHashes map[int][]byte,
-) ([]data.HeaderHandler, error) {
+) ([]data.HeaderHandler, []data.HeaderHandler, error) {
 	shardHeader, ok := header.(data.ShardHeaderHandler)
 	if !ok {
-		return nil, process.ErrWrongTypeAssertion
+		return nil, nil, process.ErrWrongTypeAssertion
 	}
 	metaHeaderHashes, metaHeaders, err := sp.getReferencedMetaHeadersFromPool(shardHeader)
 	if err != nil {
-		return nil, err
+		return nil, nil, err
 	}
 
 	hashSet := make(map[string]struct{}, len(miniBlockHashes))
@@ -889,7 +889,9 @@ func (sp *shardProcessor) getOrderedProcessedMetaBlocksFromMiniBlockHashesV3(
 		hashSet[string(b)] = struct{}{}
 	}
 
+	partialReferencedMetaBlocks := make([]data.HeaderHandler, 0)
 	fullyReferencedMetaBlocks := make([]data.HeaderHandler, 0, len(metaHeaders))
+
 	var remaining int
 	var metaHeaderHash []byte
 	for i, metaHeader := range metaHeaders {
@@ -915,12 +917,15 @@ func (sp *shardProcessor) getOrderedProcessedMetaBlocksFromMiniBlockHashesV3(
 		}
 		if remaining == 0 {
 			fullyReferencedMetaBlocks = append(fullyReferencedMetaBlocks, metaHeader)
+		} else {
+			partialReferencedMetaBlocks = append(partialReferencedMetaBlocks, metaHeader)
 		}
 	}
 
 	process.SortHeadersByNonce(fullyReferencedMetaBlocks)
+	process.SortHeadersByNonce(partialReferencedMetaBlocks)
 
-	return fullyReferencedMetaBlocks, nil
+	return fullyReferencedMetaBlocks, partialReferencedMetaBlocks, nil
 }
 
 func (sp *shardProcessor) saveEpochStartEconomicsIfNeeded(header data.ShardHeaderHandler) {
