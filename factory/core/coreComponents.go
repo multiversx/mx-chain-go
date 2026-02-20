@@ -419,6 +419,7 @@ func (ccf *coreComponentsFactory) Create() (*coreComponents, error) {
 	common.SetProcessConfigsHandler(processConfigs)
 	common.SetCommonConfigsHandler(commonConfigsHandler)
 	common.SetAntifloodConfigsHandler(antifloodConfigsHandler)
+	common.SetConfigPaths(ccf.configPathsHolder.MainConfig, ccf.configPathsHolder.RoundActivation)
 
 	return &coreComponents{
 		hasher:                        hasher,
