@@ -55,7 +55,7 @@ func (mock *RoundHandlerMock) RemainingTime(_ time.Time, _ time.Duration) time.D
 
 // GetTimeStampForRound -
 func (mock *RoundHandlerMock) GetTimeStampForRound(round uint64) uint64 {
-	return 0
+	return round * uint64(mock.TimeDuration().Milliseconds())
 }
 
 // IsInterfaceNil -
