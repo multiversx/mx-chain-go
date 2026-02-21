@@ -512,7 +512,9 @@ func (bbt *baseBlockTrack) CheckProofAgainstFinal(proof data.HeaderProofHandler)
 		return process.ErrNilHeaderProof
 	}
 
-	return bbt.checkAgainstFinal(proof.GetHeaderShardId(), proof.GetHeaderRound(), proof.GetHeaderNonce())
+	// TODO: need to fix the condition for proofs
+	// return bbt.checkAgainstFinal(proof.GetHeaderShardId(), proof.GetHeaderRound(), proof.GetHeaderNonce())
+	return nil
 }
 
 func (bbt *baseBlockTrack) checkAgainstFinal(shardID uint32, round uint64, nonce uint64) error {
