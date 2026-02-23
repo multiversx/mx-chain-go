@@ -3,6 +3,7 @@ package configs
 import (
 	"fmt"
 	"sort"
+	"time"
 
 	"github.com/multiversx/mx-chain-core-go/core/check"
 	"github.com/multiversx/mx-chain-go/common/configs/dto"
@@ -132,6 +133,10 @@ func checkRoundConfigValues(cfg config.ProcessConfigByRound) error {
 	if cfg.MaxConsecutiveRoundsOfRatingDecrease == 0 {
 		return process.ErrZeroMaxConsecutiveRoundsOfRatingDecrease
 	}
+	if cfg.MaxBlockProcessingTimeMs < minBlockProcessingTimeMs {
+		return fmt.Errorf("%w for MaxBlockProcessingTimeMs, received %d, min expected %d",
+			process.ErrInvalidValue, cfg.MaxBlockProcessingTimeMs, minBlockProcessingTimeMs)
+	}
 
 	return nil
 }
@@ -255,6 +260,18 @@ func (pce *processConfigsByEpoch) GetMaxRoundsToKeepUnprocessedTransactions(roun
 			return cfg.MaxRoundsToKeepUnprocessedTransactions
 		},
 		defaultMaxRoundsToKeepUnprocessedTransactions,
+	)
+}
+
+// GetMaxBlockProcessingTime returns max block processing time
+func (pce *processConfigsByEpoch) GetMaxBlockProcessingTime(round uint64) time.Duration {
+	return getConfigValueByRound(
+		pce.orderedConfigByRound,
+		round,
+		func(cfg config.ProcessConfigByRound) time.Duration {
+			return time.Duration(cfg.MaxBlockProcessingTimeMs) * time.Millisecond
+		},
+		defaultMaxBlockProcessingTimeMs,
 	)
 }
 
