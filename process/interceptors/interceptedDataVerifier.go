@@ -110,14 +110,21 @@ func isDirectSend(broadcastMethod p2p.BroadcastMethod) bool {
 	return broadcastMethod == p2p.Direct
 }
 
-func shouldCheckForDuplicates(topic string, broadcastMethod p2p.BroadcastMethod) bool {
+func shouldCheckForDuplicates(
+	topic string,
+	broadcastMethod p2p.BroadcastMethod,
+	cachedValue interface{},
+) bool {
 	if isDirectSend(broadcastMethod) {
 		return false // skip deduplication on direct messages
 	}
 
+	// if the value was not yet marked as verified, do not check for duplicates yet
+	isPending := cachedValue == pendingValidInterceptedData
+
 	topicSplit := strings.Split(topic, "_")
 	isCrossShardTopic := len(topicSplit) == 3 || len(topicSplit) == 1 // cross _0_1 or global topic
-	return isCrossShardTopic
+	return isCrossShardTopic && !isPending
 }
 
 func logInterceptedDataCheckValidityErr(interceptedData process.InterceptedData, err error) {
@@ -139,7 +146,7 @@ func checkCachedData(
 		return process.ErrInvalidInterceptedData
 	}
 
-	if !shouldCheckForDuplicates(topic, broadcastMethod) {
+	if !shouldCheckForDuplicates(topic, broadcastMethod, cachedValue) {
 		return nil
 	}
 

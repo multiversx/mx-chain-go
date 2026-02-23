@@ -251,6 +251,44 @@ func TestInterceptedEquivalentProof_CheckValidity(t *testing.T) {
 		err = iep.CheckValidity()
 		require.Equal(t, expectedErr, err)
 	})
+	t.Run("whitelisted proof should bypass CheckProofAgainstFinal", func(t *testing.T) {
+		t.Parallel()
+
+		args := createMockArgInterceptedEquivalentProof()
+		args.ValidityAttester = &processMock.ValidityAttesterStub{
+			CheckAgainstWhitelistCalled: func(interceptedData process.InterceptedData) bool {
+				return true
+			},
+			CheckProofAgainstFinalCalled: func(proof data.HeaderProofHandler) error {
+				return expectedErr
+			},
+		}
+
+		iep, err := NewInterceptedEquivalentProof(args)
+		require.NoError(t, err)
+
+		err = iep.CheckValidity()
+		require.NoError(t, err)
+	})
+	t.Run("whitelisted proof should still enforce round handler check", func(t *testing.T) {
+		t.Parallel()
+
+		args := createMockArgInterceptedEquivalentProof()
+		args.ValidityAttester = &processMock.ValidityAttesterStub{
+			CheckAgainstWhitelistCalled: func(interceptedData process.InterceptedData) bool {
+				return true
+			},
+			CheckProofAgainstRoundHandlerCalled: func(proof data.HeaderProofHandler) error {
+				return expectedErr
+			},
+		}
+
+		iep, err := NewInterceptedEquivalentProof(args)
+		require.NoError(t, err)
+
+		err = iep.CheckValidity()
+		require.Equal(t, expectedErr, err)
+	})
 	t.Run("already exiting proof should error", func(t *testing.T) {
 		t.Parallel()
 

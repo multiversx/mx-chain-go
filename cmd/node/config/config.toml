@@ -39,7 +39,7 @@
     SetGuardianEpochsDelay = 2 # TODO: for mainnet should be 20, 2 is just for testing
 
     # MaxProposalNonceGap defines the maximum gap allowed between the highest finalized nonce and lowest proposed nonce
-    MaxProposalNonceGap = 50
+    MaxProposalNonceGap = 20
 
     # ChainParametersByEpoch defines chain operation configurable values that can be modified based on epochs
     ChainParametersByEpoch = [
@@ -76,7 +76,8 @@
             MaxConsecutiveRoundsOfRatingDecrease = 600,
             # MaxRoundsOfInactivityAccepted defines the number of rounds missed by a main or higher level backup machine before
             # the current machine will take over and propose/sign blocks. Used in both single-key and multi-key modes.
-            MaxRoundsOfInactivityAccepted = 3
+            MaxRoundsOfInactivityAccepted = 3,
+            MaxBlockProcessingTimeMs = 3000
         },
         {
             EnableRound = 260,
@@ -87,7 +88,8 @@
             MaxRoundsToKeepUnprocessedMiniBlocks = 3000,
             MaxRoundsToKeepUnprocessedTransactions = 3000,
             MaxConsecutiveRoundsOfRatingDecrease = 6000,
-            MaxRoundsOfInactivityAccepted = 30
+            MaxRoundsOfInactivityAccepted = 30,
+            MaxBlockProcessingTimeMs = 3000
         }
     ]
 
