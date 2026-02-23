@@ -64,6 +64,7 @@ func selectTransactionsFromBunches(
 
 	accumulatedGas := uint64(0)
 	selectionLoopStartTime := time.Now()
+	uniqueSenderCount := 0
 
 	var currentTransaction *WrappedTransaction
 	var processedTxs int
@@ -113,6 +114,17 @@ func selectTransactionsFromBunches(
 					"err", err,
 					"txHash", currentTransaction.TxHash)
 			} else {
+				// Track unique senders to match OnProposedBlock's maxAccountsPerBlock limit.
+				isNewSender := item.latestSelectedTransaction == nil
+				if isNewSender {
+					uniqueSenderCount++
+					if uniqueSenderCount > maxAccountsPerBlock {
+						logSelect.Debug("TxCache.selectTransactionsFromBunches, unique sender limit reached",
+							"limit", maxAccountsPerBlock)
+						break
+					}
+				}
+
 				// only if there isn't any error, we select the transaction
 				accumulatedGas += gasLimit
 				item.selectCurrentTransaction()
