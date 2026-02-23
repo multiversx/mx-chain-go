@@ -741,6 +741,7 @@ func (mp *metaProcessor) createExecutionResult(
 
 	mp.cacheOrderedTxHashes(headerHash)
 	mp.cacheUnexecutableTxHashes(headerHash)
+	mp.cacheHeaderGasData(headerHash)
 
 	return executionResult, nil
 }
