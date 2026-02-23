@@ -29,3 +29,5 @@ var errGlobalBreadcrumbDoesNotExist = errors.New("global breadcrumb does not exi
 var errRootHashMismatch = errors.New("root hash mismatch")
 var errWrongTypeAssertion = errors.New("wrong type assertion")
 var errToManyUniqueAccountsInBlock = errors.New("too many unique accounts in block")
+var errSimulateSelectionContextInvalid = errors.New("simulate selection context invalid")
+var errNilTrackedBlock = errors.New("nil tracked block")

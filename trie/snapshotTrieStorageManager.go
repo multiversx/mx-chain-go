@@ -5,6 +5,7 @@ import (
 	"fmt"
 
 	"github.com/multiversx/mx-chain-core-go/core"
+
 	"github.com/multiversx/mx-chain-go/common"
 )
 
@@ -27,11 +28,11 @@ func newSnapshotTrieStorageManager(tsm *trieStorageManager, epoch uint32) (*snap
 	}, nil
 }
 
-// GetFromOldEpochsWithoutAddingToCache tries to get the value for the given key from old epochs without adding it to cache
-func (stsm *snapshotTrieStorageManager) GetFromOldEpochsWithoutAddingToCache(key []byte, maxEpochToSearchFrom uint32) ([]byte, uint32, error) {
+// GetWithoutAddingToCache tries to get the value for the given key from old epochs without adding it to cache
+func (stsm *snapshotTrieStorageManager) GetWithoutAddingToCache(key []byte, maxEpochToSearchFrom uint32) ([]byte, uint32, error) {
 	// test point get during snapshot
 
-	val, epoch, err := stsm.mainSnapshotStorer.GetFromOldEpochsWithoutAddingToCache(key, maxEpochToSearchFrom)
+	val, epoch, err := stsm.mainSnapshotStorer.GetWithoutAddingToCache(key, maxEpochToSearchFrom)
 	if core.IsClosingError(err) {
 		return nil, 0, err
 	}
@@ -40,7 +41,6 @@ func (stsm *snapshotTrieStorageManager) GetFromOldEpochsWithoutAddingToCache(key
 	}
 
 	stsm.putInPreviousStorerIfAbsent(key, val, epoch)
-
 	foundInEpoch := maxEpochToSearchFrom
 	if epoch.HasValue {
 		foundInEpoch = epoch.Value

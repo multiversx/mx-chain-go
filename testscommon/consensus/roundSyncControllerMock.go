@@ -1,18 +1,26 @@
 package consensus
 
-// RoundSyncControllerMock -
-type RoundSyncControllerMock struct {
-	AddOutOfRangeRoundCalled func(round uint64, hash string)
+// NtpSyncControllerMock -
+type NtpSyncControllerMock struct {
+	AddOutOfRangeNonceCalled         func(round uint64, hash string)
+	AddLeaderNonceAsOutOfRangeCalled func(round uint64, hash string)
 }
 
-// AddOutOfRangeRound -
-func (mock *RoundSyncControllerMock) AddOutOfRangeRound(round uint64, hash string) {
-	if mock.AddOutOfRangeRoundCalled != nil {
-		mock.AddOutOfRangeRoundCalled(round, hash)
+// AddOutOfRangeNonce -
+func (mock *NtpSyncControllerMock) AddOutOfRangeNonce(nonce uint64, hash string) {
+	if mock.AddOutOfRangeNonceCalled != nil {
+		mock.AddOutOfRangeNonceCalled(nonce, hash)
+	}
+}
+
+// AddLeaderNonceAsOutOfRange -
+func (mock *NtpSyncControllerMock) AddLeaderNonceAsOutOfRange(nonce uint64, hash string) {
+	if mock.AddLeaderNonceAsOutOfRangeCalled != nil {
+		mock.AddLeaderNonceAsOutOfRangeCalled(nonce, hash)
 	}
 }
 
 // IsInterfaceNil -
-func (mock *RoundSyncControllerMock) IsInterfaceNil() bool {
+func (mock *NtpSyncControllerMock) IsInterfaceNil() bool {
 	return mock == nil
 }

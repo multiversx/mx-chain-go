@@ -30,6 +30,7 @@ import (
 	"github.com/stretchr/testify/require"
 
 	"github.com/multiversx/mx-chain-go/common/holders"
+	"github.com/multiversx/mx-chain-go/process/aotSelection"
 	headersCache "github.com/multiversx/mx-chain-go/process/asyncExecution/cache"
 	"github.com/multiversx/mx-chain-go/process/asyncExecution/executionManager"
 
@@ -169,11 +170,11 @@ func createArgBaseProcessor(
 			coreComponents.Hasher(),
 		)
 
-		blocksQueue := headersCache.NewHeaderBodyCache(config.HeaderBodyCacheConfig{})
+		blocksCache := headersCache.NewHeaderBodyCache(config.HeaderBodyCacheConfig{})
 		executionResultsTracker := executionTrack.NewExecutionResultsTracker()
 		_ = executionResultsTracker.SetLastNotarizedResult(&block.ExecutionResult{})
 		execManager, _ = executionManager.NewExecutionManager(executionManager.ArgsExecutionManager{
-			BlocksQueue:             blocksQueue,
+			BlocksCache:             blocksCache,
 			ExecutionResultsTracker: executionResultsTracker,
 			BlockChain:              dataComponents.BlockChain,
 			Headers:                 dataComponents.DataPool.Headers(),
@@ -184,12 +185,13 @@ func createArgBaseProcessor(
 			ShardCoordinator:        bootstrapComponents.ShardCoordinator(),
 		})
 		execResultsVerifier, _ = blproc.NewExecutionResultsVerifier(dataComponents.BlockChain, execManager)
-		inclusionEstimator = estimator.NewExecutionResultInclusionEstimator(
+		inclusionEstimator, _ = estimator.NewExecutionResultInclusionEstimator(
 			config.ExecutionResultInclusionEstimatorConfig{
 				SafetyMargin:       110,
 				MaxResultsPerBlock: 20,
 			},
 			coreComponents.RoundHandler(),
+			&testscommon.ExecResSizeComputationStub{},
 		)
 
 		missingDataArgs := missingData.ResolverArgs{
@@ -252,6 +254,7 @@ func createArgBaseProcessor(
 		},
 		ExecutionManager:        execManager,
 		TxExecutionOrderHandler: &commonMocks.TxExecutionOrderHandlerStub{},
+		AOTSelector:             aotSelection.NewDisabledAOTSelector(),
 	}
 }
 
@@ -289,6 +292,7 @@ func initDataPool() *dataRetrieverMock.PoolsHolderStub {
 	proofsPool := proofscache.NewProofsPool(3, 100)
 	executedMBs := cache.NewCacherStub()
 	postProcessTxs := cache.NewCacherStub()
+	directSentTxs := cache.NewCacherStub()
 
 	sdp := &dataRetrieverMock.PoolsHolderStub{
 		TransactionsCalled:         func() dataRetriever.ShardedDataCacherNotifier { return transactionsPool },
@@ -312,6 +316,9 @@ func initDataPool() *dataRetrieverMock.PoolsHolderStub {
 		},
 		PostProcessTransactionsCalled: func() storage.Cacher {
 			return postProcessTxs
+		},
+		DirectSentTransactionsCalled: func() storage.Cacher {
+			return directSentTxs
 		},
 	}
 
@@ -526,6 +533,7 @@ func createMockTransactionCoordinatorArguments(
 				return txHashes, nil, nil
 			},
 		},
+		AOTSelector: aotSelection.NewDisabledAOTSelector(),
 	}
 
 	return argsTransactionCoordinator
@@ -608,6 +616,25 @@ func TestCheckProcessorNilParameters(t *testing.T) {
 				return args
 			},
 			expectedErr: process.ErrNilStorage,
+		},
+		{
+			args: func() blproc.ArgBaseProcessor {
+				dataCompCopy := *dataComponents
+				dataCompCopy.DataPool = &dataRetrieverMock.PoolsHolderStub{
+					TransactionsCalled: func() dataRetriever.ShardedDataCacherNotifier {
+						return &testscommon.ShardedDataCacheNotifierMock{}
+					},
+					HeadersCalled: func() dataRetriever.HeadersPool {
+						return &pool.HeadersPoolStub{}
+					},
+					ProofsCalled: func() dataRetriever.ProofsPool {
+						return &dataRetrieverMock.ProofsPoolMock{}
+					},
+				}
+				args := createArgBaseProcessor(coreComponents, &dataCompCopy, bootstrapComponents, statusComponents)
+				return args
+			},
+			expectedErr: process.ErrNilDirectSentCache,
 		},
 		{
 			args: func() blproc.ArgBaseProcessor {
@@ -5548,4 +5575,32 @@ func TestBaseProcessor_excludeRevertedExecutionResultsForHeader(t *testing.T) {
 		)
 		require.Equal(t, pendingExecutionResults, sanitizedPendingExecResults)
 	})
+}
+
+func TestBaseProcessor_ProposedDirectSentTransactionsToBroadcast(t *testing.T) {
+	t.Parallel()
+
+	coreComponents, dataComponents, bootstrapComponents, statusComponents := createComponentHolderMocks()
+	arguments := CreateMockArguments(coreComponents, dataComponents, bootstrapComponents, statusComponents)
+	wasProposedDirectSentTransactionsToBroadcastCalled := false
+	arguments.TxCoordinator = &testscommon.TransactionCoordinatorMock{
+		ProposedDirectSentTransactionsToBroadcastCalled: func(proposedBody data.BodyHandler) map[string][][]byte {
+			wasProposedDirectSentTransactionsToBroadcastCalled = true
+			return nil
+		},
+	}
+	bp, _ := blproc.NewShardProcessor(arguments)
+
+	_ = bp.ProposedDirectSentTransactionsToBroadcast(nil)
+	require.True(t, wasProposedDirectSentTransactionsToBroadcastCalled)
+}
+
+func TestBaseProcessor_Close(t *testing.T) {
+	t.Parallel()
+
+	coreComponents, dataComponents, bootstrapComponents, statusComponents := createComponentHolderMocks()
+	arguments := CreateMockArguments(coreComponents, dataComponents, bootstrapComponents, statusComponents)
+	bp, _ := blproc.NewShardProcessor(arguments)
+
+	require.NoError(t, bp.Close())
 }

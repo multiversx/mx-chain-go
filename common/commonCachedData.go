@@ -6,6 +6,7 @@ import (
 
 	"github.com/multiversx/mx-chain-core-go/data"
 	"github.com/multiversx/mx-chain-core-go/data/block"
+	"github.com/multiversx/mx-chain-core-go/data/outport"
 	"github.com/multiversx/mx-chain-core-go/marshal"
 	logger "github.com/multiversx/mx-chain-logger-go"
 
@@ -125,4 +126,20 @@ func GetCachedBody(cache storage.Cacher, marshaller marshal.Marshalizer, baseExe
 	}
 
 	return &block.Body{MiniBlocks: miniBlocks}, nil
+}
+
+// GetCacheHeaderGasData will return the cached header gas data from the provided cache
+func GetCacheHeaderGasData(cache storage.Cacher, headerHash []byte) (*outport.HeaderGasConsumption, error) {
+	cacheHeaderGasDataI, ok := cache.Get(PrepareHeaderGasDataKey(headerHash))
+	if !ok {
+		log.Warn("header gas data not found in dataPool", "hash", headerHash)
+		return nil, fmt.Errorf("%w for header %s", ErrMissingHeaderGasData, hex.EncodeToString(headerHash))
+	}
+
+	cacheHeaderGasData, ok := cacheHeaderGasDataI.(*outport.HeaderGasConsumption)
+	if !ok {
+		return nil, fmt.Errorf("%w for GetCacheHeaderGasData", ErrWrongTypeAssertion)
+	}
+
+	return cacheHeaderGasData, nil
 }

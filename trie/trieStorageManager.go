@@ -13,6 +13,7 @@ import (
 	"github.com/multiversx/mx-chain-core-go/core/throttler"
 	"github.com/multiversx/mx-chain-core-go/hashing"
 	"github.com/multiversx/mx-chain-core-go/marshal"
+
 	"github.com/multiversx/mx-chain-go/common"
 	"github.com/multiversx/mx-chain-go/config"
 	"github.com/multiversx/mx-chain-go/storage"
@@ -158,14 +159,6 @@ func (tsm *trieStorageManager) cleanupChans() {
 
 // Get checks all the storers for the given key, and returns it if it is found
 func (tsm *trieStorageManager) Get(key []byte) ([]byte, error) {
-	tsm.storageOperationMutex.RLock()
-	defer tsm.storageOperationMutex.RUnlock()
-
-	if tsm.closed {
-		log.Trace("trieStorageManager get context closing", "key", key)
-		return nil, core.ErrContextClosing
-	}
-
 	val, err := tsm.mainStorer.Get(key)
 	if core.IsClosingError(err) {
 		return nil, err
@@ -184,53 +177,22 @@ func (tsm *trieStorageManager) GetStateStatsHandler() common.StateStatisticsHand
 
 // GetFromCurrentEpoch checks only the current storer for the given key, and returns it if it is found
 func (tsm *trieStorageManager) GetFromCurrentEpoch(key []byte) ([]byte, error) {
-	tsm.storageOperationMutex.RLock()
-
-	if tsm.closed {
-		log.Trace("trieStorageManager get context closing", "key", key)
-		tsm.storageOperationMutex.RUnlock()
-		return nil, core.ErrContextClosing
-	}
-
 	storer, ok := tsm.mainStorer.(snapshotPruningStorer)
 	if !ok {
 		storerType := fmt.Sprintf("%T", tsm.mainStorer)
-		tsm.storageOperationMutex.RUnlock()
 		return nil, fmt.Errorf("invalid storer, type is %s", storerType)
 	}
-
-	tsm.storageOperationMutex.RUnlock()
 
 	return storer.GetFromCurrentEpoch(key)
 }
 
 // Put adds the given value to the main storer
 func (tsm *trieStorageManager) Put(key []byte, val []byte) error {
-	// the RLock is needed because of the closed flag, not for the mainStorer
-	tsm.storageOperationMutex.RLock()
-	defer tsm.storageOperationMutex.RUnlock()
-	log.Trace("put hash in tsm", "hash", key)
-
-	if tsm.closed {
-		log.Trace("trieStorageManager put context closing", "key", key, "value", val)
-		return core.ErrContextClosing
-	}
-
 	return tsm.mainStorer.Put(key, val)
 }
 
 // PutInEpoch adds the given value to the main storer in the specified epoch
 func (tsm *trieStorageManager) PutInEpoch(key []byte, val []byte, epoch uint32) error {
-	// the RLock is needed because of the closed flag, not for the mainStorer
-	tsm.storageOperationMutex.RLock()
-	defer tsm.storageOperationMutex.RUnlock()
-	log.Trace("put hash in tsm in epoch", "hash", key, "epoch", epoch)
-
-	if tsm.closed {
-		log.Trace("trieStorageManager putInEpoch context closing", "key", key, "value", val, "epoch", epoch)
-		return core.ErrContextClosing
-	}
-
 	storer, ok := tsm.mainStorer.(snapshotPruningStorer)
 	if !ok {
 		return fmt.Errorf("invalid storer type for PutInEpoch")
@@ -241,16 +203,6 @@ func (tsm *trieStorageManager) PutInEpoch(key []byte, val []byte, epoch uint32) 
 
 // PutInEpochWithoutCache adds the given value to the main storer in the specified epoch without saving it to cache
 func (tsm *trieStorageManager) PutInEpochWithoutCache(key []byte, val []byte, epoch uint32) error {
-	// the RLock is needed because of the closed flag, not for the mainStorer
-	tsm.storageOperationMutex.RLock()
-	defer tsm.storageOperationMutex.RUnlock()
-	log.Trace("put hash in tsm in epoch without cache", "hash", key, "epoch", epoch)
-
-	if tsm.closed {
-		log.Trace("trieStorageManager putInEpochWithoutCache context closing", "key", key, "value", val, "epoch", epoch)
-		return core.ErrContextClosing
-	}
-
 	storer, ok := tsm.mainStorer.(snapshotPruningStorer)
 	if !ok {
 		return fmt.Errorf("invalid storer type for PutInEpoch")
@@ -288,9 +240,6 @@ func (tsm *trieStorageManager) ExitPruningBufferingMode() {
 
 // GetLatestStorageEpoch returns the epoch for the latest opened persister
 func (tsm *trieStorageManager) GetLatestStorageEpoch() (uint32, error) {
-	tsm.storageOperationMutex.Lock()
-	defer tsm.storageOperationMutex.Unlock()
-
 	storer, ok := tsm.mainStorer.(snapshotPruningStorer)
 	if !ok {
 		log.Debug("GetLatestStorageEpoch", "error", fmt.Sprintf("%T", tsm.mainStorer))
@@ -375,7 +324,7 @@ func (tsm *trieStorageManager) takeSnapshot(snapshotEntry *snapshotsQueueEntry, 
 		return
 	}
 
-	newRoot, encodedRoot, err := newSnapshotNode(stsm, msh, hsh, snapshotEntry.rootHash, snapshotEntry.epoch, snapshotEntry.missingNodesChan)
+	newRoot, encodedRoot, foundInEpoch, err := newSnapshotNode(stsm, msh, hsh, snapshotEntry.rootHash, snapshotEntry.epoch, snapshotEntry.missingNodesChan)
 	if err != nil {
 		snapshotEntry.iteratorChannels.ErrChan.WriteInChanNonBlocking(err)
 		treatSnapshotError(err,
@@ -387,7 +336,7 @@ func (tsm *trieStorageManager) takeSnapshot(snapshotEntry *snapshotsQueueEntry, 
 	}
 
 	stats := statistics.NewTrieStatistics()
-	err = newRoot.commitSnapshot(stsm, snapshotEntry.epoch, snapshotEntry.iteratorChannels.LeavesChan, snapshotEntry.missingNodesChan, ctx, stats, tsm.idleProvider, encodedRoot, rootDepthLevel)
+	err = newRoot.commitSnapshot(stsm, foundInEpoch, snapshotEntry.iteratorChannels.LeavesChan, snapshotEntry.missingNodesChan, ctx, stats, tsm.idleProvider, encodedRoot, rootDepthLevel)
 	if err != nil {
 		snapshotEntry.iteratorChannels.ErrChan.WriteInChanNonBlocking(err)
 		treatSnapshotError(err,
@@ -426,32 +375,32 @@ func newSnapshotNode(
 	rootHash []byte,
 	epoch uint32,
 	missingNodesCh chan []byte,
-) (snapshotNode, []byte, error) {
-	encodedNode, _, err := db.GetFromOldEpochsWithoutAddingToCache(rootHash, epoch)
+) (snapshotNode, []byte, uint32, error) {
+	encodedNode, foundInEpoch, err := db.GetWithoutAddingToCache(rootHash, epoch)
 	if err != nil {
 		treatLogError(log, err, rootHash)
 
 		if core.IsClosingError(err) {
-			return nil, nil, err
+			return nil, nil, 0, err
 		}
 
 		err = core.NewGetNodeFromDBErrWithKey(rootHash, err, db.GetIdentifier())
 		log.Error("error during trie snapshot", "err", err.Error(), "hash", rootHash, "maxEpochToSearchFrom", epoch)
 		missingNodesCh <- rootHash
-		return nil, nil, err
+		return nil, nil, 0, err
 	}
 
 	n, err := decodeNode(encodedNode, msh, hsh)
 	if err != nil {
-		return nil, nil, err
+		return nil, nil, 0, err
 	}
 
 	err = db.PutInEpochWithoutCache(rootHash, encodedNode)
 	if err != nil {
-		return nil, nil, err
+		return nil, nil, 0, err
 	}
 
-	return n, encodedNode, nil
+	return n, encodedNode, foundInEpoch, nil
 }
 
 // IsPruningEnabled returns true if the trie pruning is enabled
@@ -469,9 +418,6 @@ func (tsm *trieStorageManager) IsPruningBlocked() bool {
 
 // Remove removes the given hash form the storage
 func (tsm *trieStorageManager) Remove(hash []byte) error {
-	tsm.storageOperationMutex.Lock()
-	defer tsm.storageOperationMutex.Unlock()
-
 	storer, ok := tsm.mainStorer.(snapshotPruningStorer)
 	if !ok {
 		return tsm.mainStorer.Remove(hash)
@@ -482,9 +428,6 @@ func (tsm *trieStorageManager) Remove(hash []byte) error {
 
 // RemoveFromAllActiveEpochs removes the given hash from all epochs
 func (tsm *trieStorageManager) RemoveFromAllActiveEpochs(hash []byte) error {
-	tsm.storageOperationMutex.Lock()
-	defer tsm.storageOperationMutex.Unlock()
-
 	storer, ok := tsm.mainStorer.(snapshotPruningStorer)
 	if !ok {
 		return fmt.Errorf("trie storage manager: main storer does not implement snapshotPruningStorer interface: %T", tsm.mainStorer)

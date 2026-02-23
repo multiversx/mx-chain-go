@@ -183,6 +183,7 @@ func createArgsProcessComponentsHolder() ArgsProcessComponentsHolder {
 			ChainParametersSubscriberField:     &commonmocks.ChainParametersNotifierStub{},
 			ProcessConfigsHandlerField:         testscommon.GetDefaultProcessConfigsHandler(),
 			CommonConfigsHandlerField:          testscommon.GetDefaultCommonConfigsHandler(),
+			AntifloodConfigsHandlerField:       &testscommon.AntifloodConfigsHandlerStub{},
 		},
 		CryptoComponents: &mock.CryptoComponentsStub{
 			BlKeyGen: &cryptoMocks.KeyGenStub{},
@@ -260,7 +261,7 @@ func TestCreateProcessComponents(t *testing.T) {
 
 	t.Run("should work", func(t *testing.T) {
 		comp, err := CreateProcessComponents(createArgsProcessComponentsHolder())
-		require.NoError(t, err)
+		require.Nil(t, err)
 		require.NotNil(t, comp)
 
 		require.Nil(t, comp.Create())

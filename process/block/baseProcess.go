@@ -145,6 +145,8 @@ type baseProcessor struct {
 	gasComputation                     process.GasComputation
 	executionManager                   process.ExecutionManager
 	txExecutionOrderHandler            common.TxExecutionOrderHandler
+	aotSelector                        process.AOTTransactionSelector
+	maxProposalNonceGap                uint64
 }
 
 type bootStorerDataArgs struct {
@@ -173,6 +175,11 @@ func NewBaseProcessor(arguments ArgBaseProcessor) (*baseProcessor, error) {
 	genesisHdr := arguments.DataComponents.Blockchain().GetGenesisHeader()
 	if check.IfNil(genesisHdr) {
 		return nil, fmt.Errorf("%w for genesis header in DataComponents.Blockchain", process.ErrNilHeaderHandler)
+	}
+
+	maxProposalNonceGap := arguments.Config.GeneralSettings.MaxProposalNonceGap
+	if maxProposalNonceGap < defaultMaxProposalNonceGap {
+		maxProposalNonceGap = defaultMaxProposalNonceGap
 	}
 
 	base := &baseProcessor{
@@ -234,6 +241,8 @@ func NewBaseProcessor(arguments ArgBaseProcessor) (*baseProcessor, error) {
 		gasComputation:                     arguments.GasComputation,
 		executionManager:                   arguments.ExecutionManager,
 		txExecutionOrderHandler:            arguments.TxExecutionOrderHandler,
+		aotSelector:                        arguments.AOTSelector,
+		maxProposalNonceGap:                maxProposalNonceGap,
 	}
 
 	err = base.OnExecutedBlock(genesisHdr, genesisHdr.GetRootHash())
@@ -351,6 +360,29 @@ func (bp *baseProcessor) checkScheduledRootHash(headerHandler data.HeaderHandler
 			"current root hash", bp.getRootHash(),
 			"header scheduled root hash", additionalData.GetScheduledRootHash())
 		return process.ErrScheduledRootHashDoesNotMatch
+	}
+
+	return nil
+}
+
+// checkHeaderExecutionResultNonceGap validates the nonce gap between a header's nonce
+// and its last execution result's header nonce
+func (bp *baseProcessor) checkHeaderExecutionResultNonceGap(header data.HeaderHandler) error {
+	headerNonce := header.GetNonce()
+	lastExecutionResultNonce := common.GetLastExecutionResultNonce(header)
+
+	if lastExecutionResultNonce > headerNonce {
+		return process.ErrInvalidLastExecutionResult
+	}
+
+	nonceGap := headerNonce - lastExecutionResultNonce
+	if nonceGap > bp.maxProposalNonceGap {
+		return fmt.Errorf("%w: header nonce %d has nonce gap of %d from last execution result nonce %d, max allowed gap is %d",
+			process.ErrNonceGapTooLarge,
+			headerNonce,
+			nonceGap,
+			lastExecutionResultNonce,
+			bp.maxProposalNonceGap)
 	}
 
 	return nil
@@ -774,6 +806,9 @@ func checkProcessorParameters(arguments ArgBaseProcessor) error {
 	if check.IfNil(arguments.DataComponents.Datapool().Transactions()) {
 		return process.ErrNilTransactionPool
 	}
+	if check.IfNil(arguments.DataComponents.Datapool().DirectSentTransactions()) {
+		return process.ErrNilDirectSentCache
+	}
 	if check.IfNil(arguments.ExecutionResultsInclusionEstimator) {
 		return process.ErrNilExecutionResultsInclusionEstimator
 	}
@@ -794,6 +829,9 @@ func checkProcessorParameters(arguments ArgBaseProcessor) error {
 	}
 	if check.IfNil(arguments.TxExecutionOrderHandler) {
 		return process.ErrNilTxExecutionOrderHandler
+	}
+	if check.IfNil(arguments.AOTSelector) {
+		return process.ErrNilAOTSelector
 	}
 
 	return nil
@@ -1261,6 +1299,8 @@ func (bp *baseProcessor) cleanupUnexecutableTxsFromPool(headerHash []byte) {
 	for _, txHash := range unexecutableTxHashes {
 		bp.dataPool.Transactions().RemoveData(txHash, cacheID)
 	}
+
+	bp.dataPool.PostProcessTransactions().Remove(common.PrepareUnexecutableTxHashesKey(headerHash))
 }
 
 func (bp *baseProcessor) cleanupPoolsForCrossShard(
@@ -2481,7 +2521,12 @@ func (bp *baseProcessor) unmarshalUserAccount(
 	return userAccount, nil
 }
 
-// Close - closes all underlying components
+// ProposedDirectSentTransactionsToBroadcast creates marshaled intra-shard transactions received via direct-send for broadcasting
+func (bp *baseProcessor) ProposedDirectSentTransactionsToBroadcast(proposedBody data.BodyHandler) map[string][][]byte {
+	return bp.txCoordinator.ProposedDirectSentTransactionsToBroadcast(proposedBody)
+}
+
+// Close closes all underlying components
 func (bp *baseProcessor) Close() error {
 	var err1, err2, err3 error
 	if !check.IfNil(bp.vmContainer) {
@@ -3330,6 +3375,7 @@ func (bp *baseProcessor) setCurrentBlockInfo(
 	rootHash []byte,
 ) error {
 	if header.IsHeaderV3() {
+		bp.executionManager.CleanOnConsensusReached(headerHash, header)
 		// last executed info and header will be set on headers executor in async mode
 		return bp.blockChain.SetCurrentBlockHeader(header)
 	}
@@ -3342,7 +3388,7 @@ func (bp *baseProcessor) setCurrentBlockInfo(
 	// set also last executed block info and header
 	// this will be useful at transition to Supernova with headers v3
 	bp.blockChain.SetLastExecutedBlockHeaderAndRootHash(header, headerHash, rootHash)
-	bp.executionManager.CleanOnConsensusReached(headerHash, header.GetNonce())
+	bp.executionManager.CleanOnConsensusReached(headerHash, header)
 
 	// before header v3, create and set execution result in tracker
 	lastExecResHandler, err := common.GetOrCreateLastExecutionResultForPrevHeader(header, headerHash)
@@ -3772,6 +3818,18 @@ func (bp *baseProcessor) cacheOrderedTxHashes(headerHash []byte) {
 
 	size := len(items) * common.HashSize // number of items * length of a transaction hash
 	bp.dataPool.PostProcessTransactions().Put(executionOrderKey, items, size)
+}
+
+func (bp *baseProcessor) cacheHeaderGasData(headerHash []byte) {
+	headerGasData := &outportcore.HeaderGasConsumption{
+		GasProvided:    bp.gasConsumedProvider.TotalGasProvidedWithScheduled(),
+		GasPenalized:   bp.gasConsumedProvider.TotalGasPenalized(),
+		GasRefunded:    bp.gasConsumedProvider.TotalGasRefunded(),
+		MaxGasPerBlock: bp.economicsData.MaxGasLimitPerBlock(bp.shardCoordinator.SelfId()),
+	}
+
+	key := common.PrepareHeaderGasDataKey(headerHash)
+	bp.dataPool.PostProcessTransactions().Put(key, headerGasData, headerGasData.Size())
 }
 
 func (bp *baseProcessor) cacheUnexecutableTxHashes(headerHash []byte) {

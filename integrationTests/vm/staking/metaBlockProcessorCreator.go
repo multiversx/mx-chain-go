@@ -6,6 +6,8 @@ import (
 	"github.com/multiversx/mx-chain-core-go/core"
 	"github.com/multiversx/mx-chain-core-go/data"
 	"github.com/multiversx/mx-chain-core-go/data/block"
+
+	"github.com/multiversx/mx-chain-go/process/aotSelection"
 	"github.com/multiversx/mx-chain-go/process/asyncExecution"
 	"github.com/multiversx/mx-chain-go/process/asyncExecution/cache"
 	"github.com/multiversx/mx-chain-go/process/asyncExecution/executionManager"
@@ -114,10 +116,10 @@ func createMetaBlockProcessor(
 		coreComponents.Hasher(),
 	)
 
-	blocksQueue := cache.NewHeaderBodyCache(config.HeaderBodyCacheConfig{})
+	blocksCache := cache.NewHeaderBodyCache(config.HeaderBodyCacheConfig{})
 	executionResultsTracker := executionTrack.NewExecutionResultsTracker()
 	execManager, _ := executionManager.NewExecutionManager(executionManager.ArgsExecutionManager{
-		BlocksQueue:             blocksQueue,
+		BlocksCache:             blocksCache,
 		ExecutionResultsTracker: executionResultsTracker,
 		BlockChain:              dataComponents.Blockchain(),
 		Headers:                 dataComponents.Datapool().Headers(),
@@ -128,12 +130,13 @@ func createMetaBlockProcessor(
 		ShardCoordinator:        bootstrapComponents.ShardCoordinator(),
 	})
 	execResultsVerifier, _ := blproc.NewExecutionResultsVerifier(dataComponents.Blockchain(), execManager)
-	inclusionEstimator := estimator.NewExecutionResultInclusionEstimator(
+	inclusionEstimator, _ := estimator.NewExecutionResultInclusionEstimator(
 		config.ExecutionResultInclusionEstimatorConfig{
 			SafetyMargin:       110,
 			MaxResultsPerBlock: 20,
 		},
 		coreComponents.RoundHandler(),
+		&testscommon.ExecResSizeComputationStub{},
 	)
 
 	missingDataArgs := missingData.ResolverArgs{
@@ -198,6 +201,7 @@ func createMetaBlockProcessor(
 			GasComputation:                     &testscommon.GasComputationMock{},
 			ExecutionManager:                   execManager,
 			TxExecutionOrderHandler:            &commonMock.TxExecutionOrderHandlerStub{},
+			AOTSelector:                        aotSelection.NewDisabledAOTSelector(),
 		},
 		SCToProtocol:             stakingToPeer,
 		PendingMiniBlocksHandler: &mock.PendingMiniBlocksHandlerStub{},
@@ -217,7 +221,7 @@ func createMetaBlockProcessor(
 	metaProc, _ := blproc.NewMetaProcessor(args)
 
 	argHeadersExecutor := asyncExecution.ArgsHeadersExecutor{
-		BlocksCache:      blocksQueue,
+		BlocksCache:      blocksCache,
 		ExecutionTracker: executionResultsTracker,
 		BlockProcessor:   metaProc,
 		BlockChain:       dataComponents.Blockchain(),

@@ -2803,9 +2803,10 @@ func TestStateSnapshot_MultipleEpochsWithoutCompleteSnapshot(t *testing.T) {
 	numLeaves := 0
 
 	for i := 1; i < numEpochs; i++ {
+		epochIdx := i
 		persister := testscommon.NewMemDbMock()
 		persister.GetCalledNoReturn = func(key []byte) {
-			getCounters[i]++
+			getCounters[epochIdx]++
 		}
 
 		persisterPath := fmt.Sprintf("Epoch_%d/Shard_0/id", i)

@@ -79,7 +79,7 @@ func defaultSubroundBlockFromSubround(sr *spos.Subround) (v2.SubroundBlock, erro
 				return consensusMetrics
 			},
 		},
-		&consensusMocks.RoundSyncControllerMock{},
+		&consensusMocks.NtpSyncControllerMock{},
 	)
 
 	return srBlock, err
@@ -96,7 +96,7 @@ func defaultSubroundBlockWithoutErrorFromSubround(sr *spos.Subround) v2.Subround
 				return consensusMetrics
 			},
 		},
-		&consensusMocks.RoundSyncControllerMock{},
+		&consensusMocks.NtpSyncControllerMock{},
 	)
 
 	return srBlock
@@ -178,7 +178,7 @@ func TestSubroundBlock_NewSubroundBlockNilSubroundShouldFail(t *testing.T) {
 		nil,
 		v2.ProcessingThresholdPercent,
 		&consensusMocks.SposWorkerMock{},
-		&consensusMocks.RoundSyncControllerMock{},
+		&consensusMocks.NtpSyncControllerMock{},
 	)
 	assert.Nil(t, srBlock)
 	assert.Equal(t, spos.ErrNilSubround, err)
@@ -333,7 +333,7 @@ func TestSubroundBlock_NewSubroundBlockNilWorkerShouldFail(t *testing.T) {
 		sr,
 		v2.ProcessingThresholdPercent,
 		nil,
-		&consensusMocks.RoundSyncControllerMock{},
+		&consensusMocks.NtpSyncControllerMock{},
 	)
 	assert.Nil(t, srBlock)
 	assert.Equal(t, spos.ErrNilWorker, err)
@@ -609,7 +609,7 @@ func TestSubroundBlock_DoBlockJob(t *testing.T) {
 					return consensusMetrics
 				},
 			},
-			&consensusMocks.RoundSyncControllerMock{},
+			&consensusMocks.NtpSyncControllerMock{},
 		)
 
 		providedLeaderSignature := []byte("leader signature")
@@ -680,7 +680,8 @@ func TestSubroundBlock_DoBlockJob(t *testing.T) {
 		providedSignature := []byte("provided signature")
 		providedBitmap := []byte("provided bitmap")
 		providedHash := []byte("provided hash")
-		providedHeadr := &block.HeaderV2{
+		providedMarshalledTx := []byte("provided marshalled tx")
+		providedHeader := &block.HeaderV2{
 			Header: &block.Header{
 				Signature:     []byte("signature"),
 				PubKeysBitmap: []byte("bitmap"),
@@ -690,7 +691,7 @@ func TestSubroundBlock_DoBlockJob(t *testing.T) {
 		container := consensusMocks.InitConsensusCore()
 		chainHandler := &testscommon.ChainHandlerStub{
 			GetCurrentBlockHeaderCalled: func() data.HeaderHandler {
-				return providedHeadr
+				return providedHeader
 			},
 			GetCurrentBlockHeaderHashCalled: func() []byte {
 				return providedHash
@@ -711,7 +712,7 @@ func TestSubroundBlock_DoBlockJob(t *testing.T) {
 					return consensusMetrics
 				},
 			},
-			&consensusMocks.RoundSyncControllerMock{},
+			&consensusMocks.NtpSyncControllerMock{},
 		)
 
 		providedLeaderSignature := []byte("leader signature")
@@ -735,23 +736,25 @@ func TestSubroundBlock_DoBlockJob(t *testing.T) {
 			},
 		}
 		container.SetEnableRoundsHandler(enableRoundsHandler)
+		enableEpochsHandler := &enableEpochsHandlerMock.EnableEpochsHandlerStub{
+			IsFlagEnabledCalled: func(flag core.EnableEpochFlag) bool {
+				return flag == common.SupernovaFlag
+			},
+		}
+		container.SetEnableEpochsHandler(enableEpochsHandler)
 
 		leader, err := sr.GetLeader()
 		require.Nil(t, err)
 
 		sr.SetSelfPubKey(leader)
-		bpm := consensusMocks.InitBlockProcessorMock(container.Marshalizer())
-		container.SetBlockProcessor(bpm)
-		bpm.CreateNewHeaderCalled = func(round uint64, nonce uint64) (data.HeaderHandler, error) {
-			return &block.HeaderV2{
-				Header: &block.Header{
-					Round: round,
-					Nonce: nonce,
-				},
-			}, nil
-		}
+
+		wasBroadcastTransactionsCalled := false
 		bm := &consensusMocks.BroadcastMessengerMock{
 			BroadcastConsensusMessageCalled: func(message *consensus.Message) error {
+				return nil
+			},
+			BroadcastTransactionsCalled: func(m map[string][][]byte, bytes []byte) error {
+				wasBroadcastTransactionsCalled = true
 				return nil
 			},
 		}
@@ -791,6 +794,11 @@ func TestSubroundBlock_DoBlockJob(t *testing.T) {
 				require.Fail(t, "should have not been called")
 				return nil, nil, nil
 			},
+			ProposedDirectSentTransactionsToBroadcastCalled: func(proposedBody data.BodyHandler) map[string][][]byte {
+				return map[string][][]byte{
+					"topic": {providedMarshalledTx},
+				}
+			},
 		}
 		container.SetBlockProcessor(blockProcessor)
 
@@ -798,6 +806,7 @@ func TestSubroundBlock_DoBlockJob(t *testing.T) {
 		require.True(t, r)
 		require.True(t, wasCreateNewHeaderProposalCalled)
 		assert.True(t, wasCreateBlockProposalCalled)
+		assert.True(t, wasBroadcastTransactionsCalled)
 	})
 }
 
@@ -827,12 +836,6 @@ func TestSubroundBlock_ReceivedBlock(t *testing.T) {
 		nil,
 	)
 	r := sr.ReceivedBlockBody(cnsMsg)
-	assert.False(t, r) // returns false as start round is not finished yet
-
-	sr.SetStatus(bls.SrStartRound, spos.SsFinished)
-
-	sr.SetBody(&block.Body{})
-	r = sr.ReceivedBlockBody(cnsMsg)
 	assert.False(t, r)
 
 	sr.SetBody(nil)
@@ -1408,12 +1411,7 @@ func TestSubroundBlock_ReceivedBlockHeader(t *testing.T) {
 	// start round is not finished
 	sr.ReceivedBlockHeader(&testscommon.HeaderHandlerStub{})
 	require.Nil(t, sr.GetData())
-
-	// set start round finished on go routine for extra coverage
-	go func() {
-		time.Sleep(2 * time.Millisecond)
-		sr.SetStatus(bls.SrStartRound, spos.SsFinished)
-	}()
+	sr.SetStatus(bls.SrStartRound, spos.SsFinished)
 
 	// old header after supernova
 	container.SetEnableEpochsHandler(&enableEpochsHandlerMock.EnableEpochsHandlerStub{
@@ -1616,7 +1614,7 @@ func TestSubroundBlock_UpdateConsensusMetrics(t *testing.T) {
 				return consensusMetrics
 			},
 		},
-		&consensusMocks.RoundSyncControllerMock{},
+		&consensusMocks.NtpSyncControllerMock{},
 	)
 
 	consensusMetrics.ResetInstanceValues()

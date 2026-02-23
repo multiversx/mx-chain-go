@@ -61,7 +61,8 @@ type CoreComponentsStub struct {
 	FieldsSizeCheckerField             common.FieldsSizeChecker
 	EpochChangeGracePeriodHandlerField common.EpochChangeGracePeriodHandler
 	ProcessConfigsHandlerField         common.ProcessConfigsHandler
-	CommonConfigsHandlerField      common.CommonConfigsHandler
+	CommonConfigsHandlerField          common.CommonConfigsHandler
+	AntifloodConfigsHandlerField       common.AntifloodConfigsHandler
 }
 
 // Create -
@@ -300,6 +301,11 @@ func (ccs *CoreComponentsStub) ProcessConfigsHandler() common.ProcessConfigsHand
 // CommonConfigsHandler -
 func (ccs *CoreComponentsStub) CommonConfigsHandler() common.CommonConfigsHandler {
 	return ccs.CommonConfigsHandlerField
+}
+
+// AntifloodConfigsHandler -
+func (ccs *CoreComponentsStub) AntifloodConfigsHandler() common.AntifloodConfigsHandler {
+	return ccs.AntifloodConfigsHandlerField
 }
 
 // IsInterfaceNil -

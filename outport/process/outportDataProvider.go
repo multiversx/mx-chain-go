@@ -14,6 +14,7 @@ import (
 	"github.com/multiversx/mx-chain-core-go/data/receipt"
 	"github.com/multiversx/mx-chain-core-go/data/rewardTx"
 	"github.com/multiversx/mx-chain-core-go/data/smartContractResult"
+	"github.com/multiversx/mx-chain-core-go/data/stateChange"
 	"github.com/multiversx/mx-chain-core-go/data/transaction"
 	"github.com/multiversx/mx-chain-core-go/hashing"
 	"github.com/multiversx/mx-chain-core-go/marshal"
@@ -152,7 +153,7 @@ func (odp *outportDataProvider) PrepareOutportSaveBlockData(arg ArgPrepareOutpor
 		return nil, err
 	}
 
-	intraMiniBlocks, err := odp.getIntraShardMiniBlocks(arg.Body)
+	intraMiniBlocks, err := odp.getIntraShardMiniBlocks(arg.Body, arg.Header)
 	if err != nil {
 		return nil, err
 	}
@@ -162,18 +163,13 @@ func (odp *outportDataProvider) PrepareOutportSaveBlockData(arg ArgPrepareOutpor
 		return nil, err
 	}
 
-	stateAccessesForBlock := odp.getStateAccessesForBlock(arg.Header, arg.HeaderHash, arg.ScheduledRootHash)
+	stateAccessesForBlock, stateAccessesDeprecated := odp.getStateAccesses(arg.Header, arg.HeaderHash, arg.ScheduledRootHash)
 	outportBlock := &outportcore.OutportBlockWithHeaderAndBody{
 		OutportBlock: &outportcore.OutportBlock{
-			ShardID:         odp.shardID,
-			BlockData:       nil, // this will be filled with specific data for each driver
-			TransactionPool: pool,
-			HeaderGasConsumption: &outportcore.HeaderGasConsumption{
-				GasProvided:    odp.gasConsumedProvider.TotalGasProvidedWithScheduled(),
-				GasRefunded:    odp.gasConsumedProvider.TotalGasRefunded(),
-				GasPenalized:   odp.gasConsumedProvider.TotalGasPenalized(),
-				MaxGasPerBlock: odp.economicsData.MaxGasLimitPerBlock(odp.shardID),
-			},
+			ShardID:                odp.shardID,
+			BlockData:              nil, // this will be filled with specific data for each driver
+			TransactionPool:        pool,
+			StateAccesses:          stateAccessesDeprecated,
 			StateAccessesForBlock:  stateAccessesForBlock,
 			AlteredAccounts:        alteredAccounts,
 			NotarizedHeadersHashes: arg.NotarizedHeadersHashes,
@@ -194,6 +190,15 @@ func (odp *outportDataProvider) PrepareOutportSaveBlockData(arg ArgPrepareOutpor
 		},
 	}
 
+	if !arg.Header.IsHeaderV3() {
+		outportBlock.OutportBlock.HeaderGasConsumption = &outportcore.HeaderGasConsumption{
+			GasProvided:    odp.gasConsumedProvider.TotalGasProvidedWithScheduled(),
+			GasRefunded:    odp.gasConsumedProvider.TotalGasRefunded(),
+			GasPenalized:   odp.gasConsumedProvider.TotalGasPenalized(),
+			MaxGasPerBlock: odp.economicsData.MaxGasLimitPerBlock(odp.shardID),
+		}
+	}
+
 	if odp.enableEpochsHandler.IsFlagEnabledInEpoch(common.AndromedaFlag, arg.Header.GetEpoch()) {
 		headerProof, errG := odp.dataPool.Proofs().GetProof(arg.Header.GetShardID(), arg.HeaderHash)
 		if errG != nil {
@@ -206,11 +211,11 @@ func (odp *outportDataProvider) PrepareOutportSaveBlockData(arg ArgPrepareOutpor
 	return outportBlock, nil
 }
 
-func (odp *outportDataProvider) getStateAccessesForBlock(
+func (odp *outportDataProvider) getStateAccesses(
 	header data.HeaderHandler,
 	headerHash []byte,
 	scheduledRootHash []byte,
-) map[string]*outportcore.StateAccessesForBlock {
+) (map[string]*outportcore.StateAccessesForBlock, map[string]*stateChange.StateAccesses) {
 	stateAccessesForBlock := make(map[string]*outportcore.StateAccessesForBlock)
 	if !header.IsHeaderV3() {
 		rootHash := header.GetRootHash()
@@ -219,25 +224,26 @@ func (odp *outportDataProvider) getStateAccessesForBlock(
 		}
 
 		stateAccesses := odp.getStateAccessForRootHash(rootHash)
-		stateAccessesForBlock[hex.EncodeToString(headerHash)] = stateAccesses
-		return stateAccessesForBlock
+		stateAccessesForBlock[hex.EncodeToString(headerHash)] = &outportcore.StateAccessesForBlock{StateAccesses: stateAccesses}
+		// for backward compatibility, in case some driver is still using StateAccesses instead of StateAccessesForBlock
+		return stateAccessesForBlock, stateAccesses
 	}
 
 	executionResults := header.GetExecutionResultsHandlers()
 	for _, execResult := range executionResults {
 		stateAccesses := odp.getStateAccessForRootHash(execResult.GetRootHash())
-		stateAccessesForBlock[hex.EncodeToString(execResult.GetHeaderHash())] = stateAccesses
+		stateAccessesForBlock[hex.EncodeToString(execResult.GetHeaderHash())] = &outportcore.StateAccessesForBlock{StateAccesses: stateAccesses}
 	}
-	return stateAccessesForBlock
+	return stateAccessesForBlock, nil
 }
 
-func (odp *outportDataProvider) getStateAccessForRootHash(rootHash []byte) *outportcore.StateAccessesForBlock {
+func (odp *outportDataProvider) getStateAccessForRootHash(rootHash []byte) map[string]*stateChange.StateAccesses {
 	stateAccessesMap := odp.stateAccessesCollector.GetStateAccessesForRootHash(rootHash)
 	if len(stateAccessesMap) == 0 {
 		return nil
 	}
 	odp.stateAccessesCollector.RemoveStateAccessesForRootHash(rootHash)
-	return &outportcore.StateAccessesForBlock{StateAccesses: stateAccessesMap}
+	return stateAccessesMap
 }
 
 func (odp *outportDataProvider) prepareExecutionResultsData(args ArgPrepareOutportSaveBlockData) (map[string]*outportcore.ExecutionResultData, error) {
@@ -302,6 +308,11 @@ func (odp *outportDataProvider) prepareExecutionResultsData(args ArgPrepareOutpo
 			return nil, fmt.Errorf("alteredAccountsProvider.ExtractAlteredAccountsFromPool %w", err)
 		}
 
+		headerGasData, err := common.GetCacheHeaderGasData(odp.dataPool.PostProcessTransactions(), headerHash)
+		if err != nil {
+			return nil, err
+		}
+
 		encodedHash := hex.EncodeToString(headerHash)
 		executionResultData := &outportcore.ExecutionResultData{
 			HeaderNonce:          executionResult.GetHeaderNonce(),
@@ -310,6 +321,7 @@ func (odp *outportDataProvider) prepareExecutionResultsData(args ArgPrepareOutpo
 			TransactionPool:      pool,
 			AlteredAccounts:      alteredAccounts,
 			TimestampMs:          odp.roundHandler.GetTimeStampForRound(executionResult.GetHeaderRound()),
+			HeaderGasConsumption: headerGasData,
 		}
 
 		results[encodedHash] = executionResultData
@@ -701,7 +713,13 @@ func (odp *outportDataProvider) IsInterfaceNil() bool {
 	return odp == nil
 }
 
-func (odp *outportDataProvider) getIntraShardMiniBlocks(bodyHandler data.BodyHandler) ([]*block.MiniBlock, error) {
+func (odp *outportDataProvider) getIntraShardMiniBlocks(bodyHandler data.BodyHandler, headerHandler data.HeaderHandler) ([]*block.MiniBlock, error) {
+	if headerHandler.IsHeaderV3() {
+		// skip intra-shard miniblocks.
+		// they are returned later when this block’s execution result is included in a future block.
+		return []*block.MiniBlock{}, nil
+	}
+
 	body, err := outportcore.GetBody(bodyHandler)
 	if err != nil {
 		return nil, err

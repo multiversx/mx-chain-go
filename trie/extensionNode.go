@@ -225,32 +225,19 @@ func (en *extensionNode) commitSnapshot(
 		return core.ErrContextClosing
 	}
 
-	encChild, foundInEpoch, err := db.GetFromOldEpochsWithoutAddingToCache(en.EncodedChild, maxEpochToSearchFrom)
-	log.Trace("hash lookup during snapshot", "hash", en.EncodedChild, "foundInEpoch", foundInEpoch, "maxEpochToSearchFrom", maxEpochToSearchFrom)
-	if err != nil {
-		treatLogError(log, err, en.EncodedChild)
-
-		if core.IsClosingError(err) {
-			return err
-		}
-
-		log.Error("error during trie snapshot", "err", err.Error(), "hash", en.EncodedChild, "maxEpochToSearchFrom", maxEpochToSearchFrom)
-		missingNodesChan <- en.EncodedChild
-		return nil
-	}
-
-	child, err := decodeNode(encChild, en.marsh, en.hasher)
-	if err != nil {
-		return err
-	}
-
-	maxEpochToSearchFromForChild := foundInEpoch + 1
-	err = child.commitSnapshot(db, maxEpochToSearchFromForChild, leavesChan, missingNodesChan, ctx, stats, idleProvider, encChild, depthLevel+1)
-	if err != nil {
-		return err
-	}
-
-	err = db.PutInEpochWithoutCache(en.EncodedChild, encChild)
+	err := commitSnapshot(
+		db,
+		maxEpochToSearchFrom,
+		en.marsh,
+		en.hasher,
+		leavesChan,
+		missingNodesChan,
+		ctx,
+		stats,
+		idleProvider,
+		depthLevel,
+		en.EncodedChild,
+	)
 	if err != nil {
 		return err
 	}

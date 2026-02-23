@@ -170,6 +170,16 @@ func (handler *enableRoundsHandler) GetActivationRound(flag common.EnableRoundFl
 	return fh.activationRound
 }
 
+// GetAllEnableRounds returns a map of all enable round flags with their activation rounds
+func (handler *enableRoundsHandler) GetAllEnableRounds() map[string]uint64 {
+	result := make(map[string]uint64, len(handler.allFlagsDefined))
+	for flag, flagHandler := range handler.allFlagsDefined {
+		result[string(flag)] = flagHandler.activationRound
+	}
+
+	return result
+}
+
 // IsInterfaceNil returns true if there is no value under the interface
 func (handler *enableRoundsHandler) IsInterfaceNil() bool {
 	return handler == nil

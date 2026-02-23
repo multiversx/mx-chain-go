@@ -4,6 +4,7 @@ import (
 	"sync"
 	"time"
 
+	"github.com/multiversx/mx-chain-core-go/core/atomic"
 	"github.com/multiversx/mx-chain-go/common"
 	"github.com/multiversx/mx-chain-go/trie/statistics"
 )
@@ -13,7 +14,7 @@ type snapshotStatistics struct {
 
 	startTime time.Time
 
-	numThrottlerWaits int
+	numThrottlerWaits atomic.Counter
 	wgSnapshot        *sync.WaitGroup
 	wgSync            *sync.WaitGroup
 	mutex             sync.RWMutex
@@ -81,7 +82,7 @@ func (ss *snapshotStatistics) PrintStats(identifier string, rootHash []byte) {
 		"type", identifier,
 		"duration", time.Since(ss.startTime).Truncate(time.Second),
 		"rootHash", rootHash,
-		"numThrottlerWaits", ss.numThrottlerWaits,
+		"numThrottlerWaits", ss.numThrottlerWaits.Get(),
 	)
 	ss.trieStatisticsCollector.Print()
 }
@@ -91,9 +92,9 @@ func (ss *snapshotStatistics) GetSnapshotNumNodes() uint64 {
 	return ss.trieStatisticsCollector.GetNumNodes()
 }
 
-// IncrementThrottlerWaits increments the number of throttler waits. This should not be called in a concurrent context
+// IncrementThrottlerWaits increments the number of throttler waits.
 func (ss *snapshotStatistics) IncrementThrottlerWaits() {
-	ss.numThrottlerWaits++
+	ss.numThrottlerWaits.Increment()
 }
 
 // IsInterfaceNil returns true if there is no value under the interface

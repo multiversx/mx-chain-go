@@ -109,6 +109,11 @@ func (sp *shardProcessor) CreateBlockProposal(
 		return nil, nil, err
 	}
 
+	err = sp.checkHeaderExecutionResultNonceGap(shardHdr)
+	if err != nil {
+		return nil, nil, err
+	}
+
 	// TODO: sanity check use the verify execution results method
 
 	body := &block.Body{MiniBlocks: miniBlocks}
@@ -187,6 +192,11 @@ func (sp *shardProcessor) VerifyBlockProposal(
 	}
 
 	err = sp.checkInclusionEstimationForExecutionResults(header)
+	if err != nil {
+		return err
+	}
+
+	err = sp.checkHeaderExecutionResultNonceGap(header)
 	if err != nil {
 		return err
 	}
@@ -856,6 +866,7 @@ func (sp *shardProcessor) collectExecutionResults(headerHash []byte, header data
 
 	sp.cacheOrderedTxHashes(headerHash)
 	sp.cacheUnexecutableTxHashes(headerHash)
+	sp.cacheHeaderGasData(headerHash)
 
 	return executionResult, nil
 }

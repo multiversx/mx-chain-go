@@ -7,6 +7,7 @@ import (
 
 	"github.com/multiversx/mx-chain-core-go/core"
 	"github.com/multiversx/mx-chain-core-go/data"
+	commonConsensus "github.com/multiversx/mx-chain-go/common/consensus"
 	logger "github.com/multiversx/mx-chain-logger-go"
 
 	"github.com/multiversx/mx-chain-go/consensus"
@@ -270,7 +271,7 @@ func (cns *ConsensusState) CanDoSubroundJob(currentSubroundId int) bool {
 // CanProcessReceivedMessage method returns true if the message received can be processed and false otherwise
 func (cns *ConsensusState) CanProcessReceivedMessage(cnsDta *consensus.Message, currentRoundIndex int64,
 	currentSubroundId int) bool {
-	if cns.IsNodeSelf(string(cnsDta.PubKey)) && ShouldConsiderSelfKeyInConsensus(cns.redundancyHandler) {
+	if cns.IsNodeSelf(string(cnsDta.PubKey)) && commonConsensus.ShouldConsiderSelfKeyInConsensus(cns.redundancyHandler) {
 		return false
 	}
 

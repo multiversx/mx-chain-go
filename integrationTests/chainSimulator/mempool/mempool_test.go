@@ -1745,7 +1745,7 @@ func Test_SimulateSelection_ShouldNotRemoveProposedBlocks(t *testing.T) {
 	require.Equal(t, txpool.CountTx(), uint64(numTxs))
 
 	// do the first selection
-	selectedTransactions, _, err := txpool.SimulateSelectTransactions(selectionSession, options)
+	selectedTransactions, _, err := txpool.SimulateSelectTransactions(selectionSession, options, 0)
 	require.Nil(t, err)
 	require.Equal(t, numTxsPerSender, len(selectedTransactions))
 
@@ -1762,7 +1762,7 @@ func Test_SimulateSelection_ShouldNotRemoveProposedBlocks(t *testing.T) {
 	require.Nil(t, err)
 
 	// do the second selection
-	selectedTransactions, _, err = txpool.SimulateSelectTransactions(selectionSession, options)
+	selectedTransactions, _, err = txpool.SimulateSelectTransactions(selectionSession, options, 0)
 	require.Nil(t, err)
 	require.Equal(t, numTxsPerSender, len(selectedTransactions))
 
@@ -1779,7 +1779,7 @@ func Test_SimulateSelection_ShouldNotRemoveProposedBlocks(t *testing.T) {
 	require.Nil(t, err)
 
 	// because it is only a simulation, we should have only one more non-empty selection.
-	selectedTransactions, _, err = txpool.SimulateSelectTransactions(selectionSession, options)
+	selectedTransactions, _, err = txpool.SimulateSelectTransactions(selectionSession, options, 0)
 	require.Nil(t, err)
 	require.Equal(t, numTxsPerSender, len(selectedTransactions))
 
@@ -1797,7 +1797,7 @@ func Test_SimulateSelection_ShouldNotRemoveProposedBlocks(t *testing.T) {
 
 	// now, do the last selection and expect an empty one
 	// used a lower nonce to highlight that the proposed blocks will not be removed
-	selectedTransactions, _, err = txpool.SimulateSelectTransactions(selectionSession, options)
+	selectedTransactions, _, err = txpool.SimulateSelectTransactions(selectionSession, options, 0)
 	require.Nil(t, err)
 	require.Equal(t, 0, len(selectedTransactions))
 }

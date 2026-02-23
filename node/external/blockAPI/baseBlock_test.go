@@ -1135,3 +1135,28 @@ func TestBaseAPIBlockProcessor_AddMbsAndNumTxsAsyncExecutionBasedOnExecutionResu
 	require.Error(t, err)
 	require.Contains(t, err.Error(), "miniblock not found")
 }
+
+func TestGetNumExecutedTx(t *testing.T) {
+	t.Parallel()
+
+	t.Run("meta execution result should work ok", func(t *testing.T) {
+		t.Parallel()
+
+		metaExecutionResult := &block.MetaExecutionResult{
+			ExecutedTxCount: 100,
+		}
+		require.Equal(t, uint64(100), getNumExecutedTx(metaExecutionResult))
+	})
+	t.Run("execution result should work ok ", func(t *testing.T) {
+		metaExecutionResult := &block.ExecutionResult{
+			ExecutedTxCount: 100,
+		}
+		require.Equal(t, uint64(100), getNumExecutedTx(metaExecutionResult))
+	})
+	t.Run("base execution results should return 0", func(t *testing.T) {
+		t.Parallel()
+
+		baseExecutionResult := &block.BaseExecutionResult{}
+		require.Equal(t, uint64(0), getNumExecutedTx(baseExecutionResult))
+	})
+}
