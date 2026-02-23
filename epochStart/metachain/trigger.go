@@ -277,7 +277,7 @@ func (t *trigger) SetEpochChange(round uint64) {
 	t.mutTrigger.Lock()
 	defer t.mutTrigger.Unlock()
 
-	t.setEpochChange(round, t.epoch+1, false)
+	t.setEpochChange(round, t.epoch+1, true)
 }
 
 func (t *trigger) setEpochChange(round uint64, epoch uint32, isEpochStart bool) {
