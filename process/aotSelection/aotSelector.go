@@ -52,9 +52,10 @@ type AOTSelectorArgs struct {
 	EconomicsDataHandler process.EconomicsDataHandler
 
 	// Configuration
-	SelectionTimeout time.Duration
-	CacheSize        int
-	MaxTxsPerBlock   int
+	SelectionTimeout          time.Duration
+	CacheSize                 int
+	MaxTxsPerBlock            int
+	LoopDurationCheckInterval int
 }
 
 type aotSelector struct {
@@ -69,9 +70,10 @@ type aotSelector struct {
 	blockChain           data.ChainHandler
 	economicsDataHandler process.EconomicsDataHandler
 
-	cache            storage.Cacher
-	selectionTimeout time.Duration
-	maxTxsPerBlock   int
+	cache                     storage.Cacher
+	selectionTimeout          time.Duration
+	maxTxsPerBlock            int
+	loopDurationCheckInterval int
 
 	// Synchronization
 	selectionMut sync.Mutex
@@ -133,6 +135,12 @@ func NewAOTSelector(args AOTSelectorArgs) (*aotSelector, error) {
 		maxTxsPerBlock = defaultMaxTxsPerBlock
 	}
 
+	loopDurationCheckInterval := args.LoopDurationCheckInterval
+	if loopDurationCheckInterval <= 0 {
+		log.Debug("NewAOTSelector: invalid loopDurationCheckInterval, using default", "provided", loopDurationCheckInterval, "default", defaultLoopDurationCheckInterval)
+		loopDurationCheckInterval = defaultLoopDurationCheckInterval
+	}
+
 	// Use existing LRU cache from storage/cache
 	lruCache, err := cache.NewLRUCache(cacheSize)
 	if err != nil {
@@ -140,19 +148,20 @@ func NewAOTSelector(args AOTSelectorArgs) (*aotSelector, error) {
 	}
 
 	return &aotSelector{
-		nodesCoordinator:     args.NodesCoordinator,
-		shardCoordinator:     args.ShardCoordinator,
-		keysHandler:          args.KeysHandler,
-		nodeRedundancy:       args.NodeRedundancy,
-		txCache:              args.TxCache,
-		accountsAdapter:      args.AccountsAdapter,
-		transactionProcessor: args.TransactionProcessor,
-		txVersionChecker:     args.TxVersionChecker,
-		blockChain:           args.BlockChain,
-		economicsDataHandler: args.EconomicsDataHandler,
-		cache:                lruCache,
-		selectionTimeout:     selectionTimeout,
-		maxTxsPerBlock:       maxTxsPerBlock,
+		nodesCoordinator:          args.NodesCoordinator,
+		shardCoordinator:          args.ShardCoordinator,
+		keysHandler:               args.KeysHandler,
+		nodeRedundancy:            args.NodeRedundancy,
+		txCache:                   args.TxCache,
+		accountsAdapter:           args.AccountsAdapter,
+		transactionProcessor:      args.TransactionProcessor,
+		txVersionChecker:          args.TxVersionChecker,
+		blockChain:                args.BlockChain,
+		economicsDataHandler:      args.EconomicsDataHandler,
+		cache:                     lruCache,
+		selectionTimeout:          selectionTimeout,
+		maxTxsPerBlock:            maxTxsPerBlock,
+		loopDurationCheckInterval: loopDurationCheckInterval,
 	}, nil
 }
 
@@ -408,7 +417,7 @@ func (s *aotSelector) runAOTSelection(targetNonce uint64, randomness []byte) {
 	options, err := holders.NewTxSelectionOptions(
 		maxGas,
 		s.maxTxsPerBlock,
-		defaultLoopDurationCheckInterval,
+		s.loopDurationCheckInterval,
 		haveTimeWithCancel(ctx, startTime, selectionBudget),
 	)
 	if err != nil {

@@ -15,7 +15,7 @@ import (
 )
 
 const (
-	maxAccountsPerBlock = 10000
+	maxAccountsPerBlock = 12000
 )
 
 type blockWithHash struct {
