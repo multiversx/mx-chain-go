@@ -150,9 +150,11 @@ func (iep *interceptedEquivalentProof) CheckValidity() error {
 		return err
 	}
 
-	err = iep.validityAttester.CheckProofAgainstFinal(iep.proof)
-	if err != nil {
-		return err
+	if !iep.validityAttester.CheckAgainstWhitelist(iep) {
+		err = iep.validityAttester.CheckProofAgainstFinal(iep.proof)
+		if err != nil {
+			return err
+		}
 	}
 
 	err = iep.validityAttester.CheckProofAgainstRoundHandler(iep.proof)
