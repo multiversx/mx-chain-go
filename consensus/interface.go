@@ -32,6 +32,13 @@ type RoundHandlerConsensusSwitch interface {
 	IsInterfaceNil() bool
 }
 
+// RoundProfiler defines the actions for profiling consensus rounds
+type RoundProfiler interface {
+	OnRoundStart(roundIndex int64, roundTimestamp time.Time)
+	Close() error
+	IsInterfaceNil() bool
+}
+
 // SubroundHandler defines the actions which should be handled by a subround implementation
 type SubroundHandler interface {
 	// DoWork implements of the subround's job

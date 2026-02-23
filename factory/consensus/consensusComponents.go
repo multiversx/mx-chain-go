@@ -2,6 +2,7 @@ package consensus
 
 import (
 	"fmt"
+	"path/filepath"
 	"time"
 
 	"github.com/multiversx/mx-chain-core-go/core"
@@ -18,6 +19,7 @@ import (
 	"github.com/multiversx/mx-chain-go/consensus"
 	"github.com/multiversx/mx-chain-go/consensus/blacklist"
 	"github.com/multiversx/mx-chain-go/consensus/chronology"
+	"github.com/multiversx/mx-chain-go/consensus/profiling"
 	"github.com/multiversx/mx-chain-go/consensus/spos"
 	"github.com/multiversx/mx-chain-go/consensus/spos/bls/proxy"
 	"github.com/multiversx/mx-chain-go/consensus/spos/sposFactory"
@@ -354,12 +356,38 @@ func (ccf *consensusComponentsFactory) createChronology() (consensus.ChronologyH
 		wd = &watchdog.DisabledWatchdog{}
 	}
 
+	var roundProfiler consensus.RoundProfiler
+	if ccf.config.RoundCPUProfiling.Enabled {
+		roundsPerFile := int64(ccf.config.RoundCPUProfiling.RoundsPerFile)
+		if roundsPerFile < 1 {
+			roundsPerFile = 1
+		}
+		folderPath := ccf.config.RoundCPUProfiling.FolderPath
+		if len(folderPath) == 0 {
+			folderPath = "round-cpu-profiles"
+		}
+		folderPath = filepath.Join(ccf.flagsConfig.WorkingDir, folderPath)
+		var err error
+		roundProfiler, err = profiling.NewRoundProfiler(profiling.ArgRoundProfiler{
+			FolderPath:    folderPath,
+			ShardID:       ccf.processComponents.ShardCoordinator().SelfId(),
+			RoundsPerFile: roundsPerFile,
+		})
+		if err != nil {
+			return nil, err
+		}
+		log.Info("per-round CPU profiling enabled", "folder", folderPath, "roundsPerFile", roundsPerFile)
+	} else {
+		roundProfiler = profiling.NewDisabledRoundProfiler()
+	}
+
 	chronologyArg := chronology.ArgChronology{
 		GenesisTime:      ccf.coreComponents.GenesisTime(),
 		RoundHandler:     ccf.processComponents.RoundHandler(),
 		SyncTimer:        ccf.coreComponents.SyncTimer(),
 		Watchdog:         wd,
 		AppStatusHandler: ccf.statusCoreComponents.AppStatusHandler(),
+		RoundProfiler:    roundProfiler,
 	}
 	return chronology.NewChronology(chronologyArg)
 }

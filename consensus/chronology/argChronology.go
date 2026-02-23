@@ -15,4 +15,5 @@ type ArgChronology struct {
 	SyncTimer        ntp.SyncTimer
 	Watchdog         core.WatchdogTimer
 	AppStatusHandler core.AppStatusHandler
+	RoundProfiler    consensus.RoundProfiler
 }

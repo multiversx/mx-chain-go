@@ -853,6 +853,11 @@
         # setting this to 0 disables the automatic revert of the log level
         RevertLogLevelTimeInSeconds = 600 # 10 minutes
 
+[RoundCPUProfiling]
+    Enabled = false
+    RoundsPerFile = 1
+    FolderPath = "round-cpu-profiles"
+
 [Health]
     IntervalVerifyMemoryInSeconds = 30
     IntervalDiagnoseComponentsInSeconds = 30

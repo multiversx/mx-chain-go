@@ -32,8 +32,9 @@ const chronologyAlarmID = "chronology"
 type chronology struct {
 	genesisTime time.Time
 
-	roundHandler consensus.RoundHandler
-	syncTimer    ntp.SyncTimer
+	roundHandler  consensus.RoundHandler
+	syncTimer     ntp.SyncTimer
+	roundProfiler consensus.RoundProfiler
 
 	subroundId int
 
@@ -60,6 +61,7 @@ func NewChronology(arg ArgChronology) (*chronology, error) {
 		syncTimer:        arg.SyncTimer,
 		appStatusHandler: arg.AppStatusHandler,
 		watchdog:         arg.Watchdog,
+		roundProfiler:    arg.RoundProfiler,
 	}
 
 	chr.subroundId = srBeforeStartRound
@@ -83,6 +85,9 @@ func checkNewChronologyParams(arg ArgChronology) error {
 	}
 	if check.IfNil(arg.AppStatusHandler) {
 		return ErrNilAppStatusHandler
+	}
+	if check.IfNil(arg.RoundProfiler) {
+		return ErrNilRoundProfiler
 	}
 
 	return nil
@@ -173,6 +178,8 @@ func (chr *chronology) updateRound() {
 		log.Debug(display.Headline(msg, chr.syncTimer.FormattedCurrentTime(), "#"))
 		logger.SetCorrelationRound(chr.roundHandler.Index())
 
+		chr.roundProfiler.OnRoundStart(chr.roundHandler.Index(), chr.roundHandler.TimeStamp())
+
 		chr.initRound()
 	}
 }
@@ -222,7 +229,7 @@ func (chr *chronology) Close() error {
 
 	chr.watchdog.Stop(chronologyAlarmID)
 
-	return nil
+	return chr.roundProfiler.Close()
 }
 
 // IsInterfaceNil returns true if there is no value under the interface

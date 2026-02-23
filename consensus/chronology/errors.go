@@ -15,3 +15,6 @@ var ErrNilAppStatusHandler = errors.New("nil AppStatusHandler")
 
 // ErrNilWatchdog signals that a nil watchdog has been provided
 var ErrNilWatchdog = errors.New("nil watchdog")
+
+// ErrNilRoundProfiler signals that a nil round profiler has been provided
+var ErrNilRoundProfiler = errors.New("nil round profiler")

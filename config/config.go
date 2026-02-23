@@ -169,14 +169,14 @@ type Config struct {
 	MetaBlockStorage StorageConfig
 	ProofsStorage    StorageConfig
 
-	AccountsTrieStorage      StorageConfig
-	PeerAccountsTrieStorage  StorageConfig
-	EvictionWaitingList      EvictionWaitingListConfig
-	StateTriesConfig         StateTriesConfig
+	AccountsTrieStorage          StorageConfig
+	PeerAccountsTrieStorage      StorageConfig
+	EvictionWaitingList          EvictionWaitingListConfig
+	StateTriesConfig             StateTriesConfig
 	StateAccessesCollectorConfig StateAccessesCollectorConfig
-	TrieStorageManagerConfig TrieStorageManagerConfig
-	TrieLeavesRetrieverConfig TrieLeavesRetrieverConfig
-	BadBlocksCache           CacheConfig
+	TrieStorageManagerConfig     TrieStorageManagerConfig
+	TrieLeavesRetrieverConfig    TrieLeavesRetrieverConfig
+	BadBlocksCache               CacheConfig
 
 	TxBlockBodyDataPool         CacheConfig
 	PeerBlockBodyDataPool       CacheConfig
@@ -223,9 +223,10 @@ type Config struct {
 	VirtualMachine          VirtualMachineServicesConfig
 	BuiltInFunctions        BuiltInFunctionsConfig
 
-	Hardfork HardforkConfig
-	Debug    DebugConfig
-	Health   HealthServiceConfig
+	Hardfork          HardforkConfig
+	Debug             DebugConfig
+	Health            HealthServiceConfig
+	RoundCPUProfiling RoundCPUProfilingConfig
 
 	SoftwareVersionConfig SoftwareVersionConfig
 	GatewayMetricsConfig  GatewayMetricsConfig
@@ -515,6 +516,13 @@ type DebugConfig struct {
 	ShuffleOut          ShuffleOutDebugConfig
 	EpochStart          EpochStartDebugConfig
 	Process             ProcessDebugConfig
+}
+
+// RoundCPUProfilingConfig holds configuration for per-round CPU profiling
+type RoundCPUProfilingConfig struct {
+	Enabled       bool
+	RoundsPerFile int
+	FolderPath    string
 }
 
 // HealthServiceConfig will hold health service (monitoring) configuration

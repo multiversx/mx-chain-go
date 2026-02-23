@@ -11,6 +11,7 @@ import (
 	"github.com/multiversx/mx-chain-go/consensus"
 	"github.com/multiversx/mx-chain-go/consensus/chronology"
 	"github.com/multiversx/mx-chain-go/consensus/mock"
+	"github.com/multiversx/mx-chain-go/consensus/profiling"
 	consensusMocks "github.com/multiversx/mx-chain-go/testscommon/consensus"
 	statusHandlerMock "github.com/multiversx/mx-chain-go/testscommon/statusHandler"
 )
@@ -322,6 +323,7 @@ func getDefaultChronologyArg() chronology.ArgChronology {
 		SyncTimer:        &consensusMocks.SyncTimerMock{},
 		AppStatusHandler: statusHandlerMock.NewAppStatusHandlerMock(),
 		Watchdog:         &mock.WatchdogMock{},
+		RoundProfiler:    profiling.NewDisabledRoundProfiler(),
 	}
 }
 
