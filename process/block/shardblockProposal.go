@@ -23,9 +23,6 @@ type pendingBlocksAfterSelection struct {
 	pendingMiniBlocks map[string]*block.MiniBlock
 }
 
-// TODO: maybe move this to config
-const maxBlockProcessingTime = 3 * time.Second
-
 // CreateNewHeaderProposal creates a new header proposal
 func (sp *shardProcessor) CreateNewHeaderProposal(round uint64, nonce uint64) (data.HeaderHandler, error) {
 	epoch := sp.epochStartTrigger.MetaEpoch()
@@ -331,7 +328,7 @@ func (sp *shardProcessor) ProcessBlockProposal(
 	// although we can have a long time for processing, it being decoupled from consensus,
 	// we still give some reasonable timeout
 	proposalStartTime := time.Now()
-	haveTime := getHaveTimeForProposal(proposalStartTime, maxBlockProcessingTime)
+	haveTime := getHaveTimeForProposal(proposalStartTime, sp.processConfigsHandler.GetMaxBlockProcessingTime(headerHandler.GetRound()))
 
 	err = sp.txCoordinator.IsDataPreparedForProcessing(haveTime)
 	if err != nil {

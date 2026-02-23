@@ -143,6 +143,10 @@ func (sr *subroundEndRound) receivedInvalidSignersInfo(_ context.Context, cnsDta
 		return false
 	}
 
+	if !sr.IsNodeInConsensusGroup(string(cnsDta.PubKey)) {
+		return false
+	}
+
 	if len(cnsDta.InvalidSigners) == 0 {
 		return false
 	}
@@ -175,6 +179,10 @@ func (sr *subroundEndRound) verifyInvalidSigners(invalidSigners []byte) ([]strin
 	messages, err := sr.MessageSigningHandler().Deserialize(invalidSigners)
 	if err != nil {
 		return nil, err
+	}
+
+	if len(messages) > sr.ConsensusGroupSize() {
+		return nil, ErrTooManyInvalidSigners
 	}
 
 	pubKeys := make([]string, 0, len(messages))
@@ -216,7 +224,7 @@ func (sr *subroundEndRound) verifyInvalidSigner(msg p2p.MessageP2P) (string, err
 		return string(cnsMsg.PubKey), nil
 	}
 
-	return "", nil
+	return "", ErrValidSignatureFromInvalidSigner
 }
 
 func (sr *subroundEndRound) applyBlacklistOnNode(peer core.PeerID) {
@@ -835,9 +843,11 @@ func (sr *subroundEndRound) waitForSignalSync() bool {
 
 	go sr.waitSignatures(ctx)
 	timerBetweenStatusChecks := time.NewTimer(timeBetweenSignaturesChecks)
+	defer timerBetweenStatusChecks.Stop()
 
 	remainingSRTime := sr.remainingTime()
 	timeout := time.NewTimer(remainingSRTime)
+	defer timeout.Stop()
 	for {
 		select {
 		case <-timerBetweenStatusChecks.C:
@@ -864,8 +874,11 @@ func (sr *subroundEndRound) waitSignatures(ctx context.Context) {
 	}
 	sr.SetWaitingAllSignaturesTimeOut(true)
 
+	timer := time.NewTimer(remainingTime)
+	defer timer.Stop()
+
 	select {
-	case <-time.After(remainingTime):
+	case <-timer.C:
 	case <-ctx.Done():
 	}
 	select {
