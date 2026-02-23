@@ -1017,7 +1017,7 @@ type BlockTracker interface {
 	AddTrackedHeader(header data.HeaderHandler, hash []byte)
 	CheckBlockAgainstFinal(headerHandler data.HeaderHandler) error
 	CheckBlockAgainstRoundHandler(headerHandler data.HeaderHandler) error
-	CheckBlockAgainstWhitelist(interceptedData InterceptedData) bool
+	CheckAgainstWhitelist(interceptedData InterceptedData) bool
 	CheckProofAgainstFinal(proof data.HeaderProofHandler) error
 	CheckProofAgainstRoundHandler(proof data.HeaderProofHandler) error
 	CleanupHeadersBehindNonce(shardID uint32, selfNotarizedNonce uint64, crossNotarizedNonce uint64)
@@ -1163,7 +1163,7 @@ type EpochStartSystemSCProcessor interface {
 type ValidityAttester interface {
 	CheckBlockAgainstFinal(headerHandler data.HeaderHandler) error
 	CheckBlockAgainstRoundHandler(headerHandler data.HeaderHandler) error
-	CheckBlockAgainstWhitelist(interceptedData InterceptedData) bool
+	CheckAgainstWhitelist(interceptedData InterceptedData) bool
 	CheckProofAgainstFinal(proof data.HeaderProofHandler) error
 	CheckProofAgainstRoundHandler(proof data.HeaderProofHandler) error
 	IsInterfaceNil() bool

@@ -512,9 +512,7 @@ func (bbt *baseBlockTrack) CheckProofAgainstFinal(proof data.HeaderProofHandler)
 		return process.ErrNilHeaderProof
 	}
 
-	// TODO: need to fix the condition for proofs
-	// return bbt.checkAgainstFinal(proof.GetHeaderShardId(), proof.GetHeaderRound(), proof.GetHeaderNonce())
-	return nil
+	return bbt.checkAgainstFinal(proof.GetHeaderShardId(), proof.GetHeaderRound(), proof.GetHeaderNonce())
 }
 
 func (bbt *baseBlockTrack) checkAgainstFinal(shardID uint32, round uint64, nonce uint64) error {
@@ -566,8 +564,8 @@ func (bbt *baseBlockTrack) getFinalHeader(shardID uint32) (data.HeaderHandler, [
 	return bbt.selfNotarizer.GetFirstNotarizedHeader(shardID)
 }
 
-// CheckBlockAgainstWhitelist returns if the provided intercepted data (blocks) is whitelisted or not
-func (bbt *baseBlockTrack) CheckBlockAgainstWhitelist(interceptedData process.InterceptedData) bool {
+// CheckAgainstWhitelist returns if the provided intercepted data is whitelisted or not
+func (bbt *baseBlockTrack) CheckAgainstWhitelist(interceptedData process.InterceptedData) bool {
 	return bbt.whitelistHandler.IsWhiteListed(interceptedData)
 }
 
