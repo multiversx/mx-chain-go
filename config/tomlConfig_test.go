@@ -73,6 +73,7 @@ func TestTomlParser(t *testing.T) {
 					MaxRoundsToKeepUnprocessedTransactions: 7,
 					MaxConsecutiveRoundsOfRatingDecrease:   11,
 					MaxRoundsOfInactivityAccepted:          12,
+					MaxBlockProcessingTimeMs:               13,
 				},
 			},
 		},
@@ -379,7 +380,8 @@ func TestTomlParser(t *testing.T) {
         MaxRoundsToKeepUnprocessedMiniBlocks = 6,
         MaxRoundsToKeepUnprocessedTransactions = 7,
         MaxConsecutiveRoundsOfRatingDecrease = 11,
-        MaxRoundsOfInactivityAccepted = 12
+        MaxRoundsOfInactivityAccepted = 12,
+		MaxBlockProcessingTimeMs = 13
         }
     ]
 
