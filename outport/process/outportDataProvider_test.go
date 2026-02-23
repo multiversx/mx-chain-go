@@ -860,6 +860,52 @@ func TestPrepareExecutionResultsData(t *testing.T) {
 		require.Len(t, results, 0)
 	})
 
+	t.Run("cannot get header gas data should err", func(t *testing.T) {
+		arg := createArgOutportDataProvider()
+		arg.DataPool = dataRetriever.NewPoolsHolderMock()
+		arg.AlteredAccountsProvider = &testscommon.AlteredAccountsProviderStub{
+			ExtractAlteredAccountsFromPoolCalled: func(txPool *outportcore.TransactionPool, options shared.AlteredAccountsOptions) (map[string]*alteredAccount.AlteredAccount, error) {
+				return map[string]*alteredAccount.AlteredAccount{
+					"s": {},
+				}, nil
+			},
+		}
+
+		headerHash := []byte("hash")
+		intraMbs := make([]*block.MiniBlock, 0)
+		intraMbs = append(intraMbs, &block.MiniBlock{})
+		arg.DataPool.ExecutedMiniBlocks().Put(headerHash, intraMbs, 0)
+
+		logsKey := common.PrepareLogEventsKey(headerHash)
+		logsSlice := make([]data.LogDataHandler, 0)
+		arg.DataPool.PostProcessTransactions().Put(logsKey, logsSlice, 0)
+		arg.DataPool.PostProcessTransactions().Put(common.PrepareUnexecutableTxHashesKey(headerHash), make([][]byte, 0), 0)
+
+		cachedTxs := make(map[block.Type]map[string]data.TransactionHandler)
+		cachedTxs[block.TxBlock] = make(map[string]data.TransactionHandler)
+		arg.DataPool.PostProcessTransactions().Put(headerHash, cachedTxs, 1)
+
+		key := common.PrepareOrderedTxHashesKey(headerHash)
+		arg.DataPool.PostProcessTransactions().Put(key, [][]byte{[]byte("a")}, 1)
+
+		outportDataP, _ := NewOutportDataProvider(arg)
+
+		results, err := outportDataP.prepareExecutionResultsData(ArgPrepareOutportSaveBlockData{
+			Header: &block.HeaderV3{
+				ExecutionResults: []*block.ExecutionResult{
+					{
+						BaseExecutionResult: &block.BaseExecutionResult{
+							HeaderHash:  headerHash,
+							HeaderNonce: 10,
+						},
+					},
+				},
+			},
+		})
+		require.True(t, errors.Is(err, common.ErrMissingHeaderGasData))
+		require.Len(t, results, 0)
+	})
+
 	t.Run("should work", func(t *testing.T) {
 		arg := createArgOutportDataProvider()
 		arg.DataPool = dataRetriever.NewPoolsHolderMock()
@@ -884,6 +930,7 @@ func TestPrepareExecutionResultsData(t *testing.T) {
 		cachedTxs := make(map[block.Type]map[string]data.TransactionHandler)
 		cachedTxs[block.TxBlock] = make(map[string]data.TransactionHandler)
 		arg.DataPool.PostProcessTransactions().Put(headerHash, cachedTxs, 1)
+		arg.DataPool.PostProcessTransactions().Put(common.PrepareHeaderGasDataKey(headerHash), &outportcore.HeaderGasConsumption{}, 0)
 
 		key := common.PrepareOrderedTxHashesKey(headerHash)
 		arg.DataPool.PostProcessTransactions().Put(key, [][]byte{[]byte("a")}, 1)
@@ -1020,6 +1067,7 @@ func TestOutportDataProvider_GetRewards(t *testing.T) {
 	key := common.PrepareOrderedTxHashesKey(headerHash)
 	arg.DataPool.PostProcessTransactions().Put(key, [][]byte{[]byte("a")}, 1)
 	arg.DataPool.PostProcessTransactions().Put(common.PrepareUnexecutableTxHashesKey(headerHash), make([][]byte, 0), 0)
+	arg.DataPool.PostProcessTransactions().Put(common.PrepareHeaderGasDataKey(headerHash), &outportcore.HeaderGasConsumption{}, 0)
 
 	outportDataP, _ := NewOutportDataProvider(arg)
 

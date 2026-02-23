@@ -166,15 +166,9 @@ func (odp *outportDataProvider) PrepareOutportSaveBlockData(arg ArgPrepareOutpor
 	stateAccessesForBlock, stateAccessesDeprecated := odp.getStateAccesses(arg.Header, arg.HeaderHash, arg.ScheduledRootHash)
 	outportBlock := &outportcore.OutportBlockWithHeaderAndBody{
 		OutportBlock: &outportcore.OutportBlock{
-			ShardID:         odp.shardID,
-			BlockData:       nil, // this will be filled with specific data for each driver
-			TransactionPool: pool,
-			HeaderGasConsumption: &outportcore.HeaderGasConsumption{
-				GasProvided:    odp.gasConsumedProvider.TotalGasProvidedWithScheduled(),
-				GasRefunded:    odp.gasConsumedProvider.TotalGasRefunded(),
-				GasPenalized:   odp.gasConsumedProvider.TotalGasPenalized(),
-				MaxGasPerBlock: odp.economicsData.MaxGasLimitPerBlock(odp.shardID),
-			},
+			ShardID:                odp.shardID,
+			BlockData:              nil, // this will be filled with specific data for each driver
+			TransactionPool:        pool,
 			StateAccesses:          stateAccessesDeprecated,
 			StateAccessesForBlock:  stateAccessesForBlock,
 			AlteredAccounts:        alteredAccounts,
@@ -194,6 +188,15 @@ func (odp *outportDataProvider) PrepareOutportSaveBlockData(arg ArgPrepareOutpor
 			IntraShardMiniBlocks: intraMiniBlocks,
 			Results:              results,
 		},
+	}
+
+	if !arg.Header.IsHeaderV3() {
+		outportBlock.OutportBlock.HeaderGasConsumption = &outportcore.HeaderGasConsumption{
+			GasProvided:    odp.gasConsumedProvider.TotalGasProvidedWithScheduled(),
+			GasRefunded:    odp.gasConsumedProvider.TotalGasRefunded(),
+			GasPenalized:   odp.gasConsumedProvider.TotalGasPenalized(),
+			MaxGasPerBlock: odp.economicsData.MaxGasLimitPerBlock(odp.shardID),
+		}
 	}
 
 	if odp.enableEpochsHandler.IsFlagEnabledInEpoch(common.AndromedaFlag, arg.Header.GetEpoch()) {
@@ -305,6 +308,11 @@ func (odp *outportDataProvider) prepareExecutionResultsData(args ArgPrepareOutpo
 			return nil, fmt.Errorf("alteredAccountsProvider.ExtractAlteredAccountsFromPool %w", err)
 		}
 
+		headerGasData, err := common.GetCacheHeaderGasData(odp.dataPool.PostProcessTransactions(), headerHash)
+		if err != nil {
+			return nil, err
+		}
+
 		encodedHash := hex.EncodeToString(headerHash)
 		executionResultData := &outportcore.ExecutionResultData{
 			HeaderNonce:          executionResult.GetHeaderNonce(),
@@ -313,6 +321,7 @@ func (odp *outportDataProvider) prepareExecutionResultsData(args ArgPrepareOutpo
 			TransactionPool:      pool,
 			AlteredAccounts:      alteredAccounts,
 			TimestampMs:          odp.roundHandler.GetTimeStampForRound(executionResult.GetHeaderRound()),
+			HeaderGasConsumption: headerGasData,
 		}
 
 		results[encodedHash] = executionResultData
