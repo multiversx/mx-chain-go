@@ -272,7 +272,6 @@ func (sr *subroundEndRound) doEndRoundJobByNode() bool {
 		}
 
 		if proofSent {
-			// TODO: confirm that block data is propagated if proof sent (by each node in parallel)
 			err := sr.prepareBroadcastBlockData()
 			log.LogIfError(err)
 		}
@@ -466,7 +465,8 @@ const maxParallelVerifications = 30
 func (sr *subroundEndRound) verifyNodesOnAggSigFail(ctx context.Context) ([]string, error) {
 	pubKeys := sr.ConsensusGroup()
 	invalidPubKeys := make([]string, 0)
-	var invalidMutex sync.Mutex
+	verifiedValidPubKeys := make(map[string]struct{})
+	var mu sync.Mutex
 
 	if check.IfNil(sr.GetHeader()) {
 		return nil, spos.ErrNilHeader
@@ -510,9 +510,13 @@ func (sr *subroundEndRound) verifyNodesOnAggSigFail(ctx context.Context) ([]stri
 
 					err = sr.verifySignature(work.index, work.pubKey, sigShare)
 					if err != nil {
-						invalidMutex.Lock()
+						mu.Lock()
 						invalidPubKeys = append(invalidPubKeys, work.pubKey)
-						invalidMutex.Unlock()
+						mu.Unlock()
+					} else {
+						mu.Lock()
+						verifiedValidPubKeys[work.pubKey] = struct{}{}
+						mu.Unlock()
 					}
 				}
 			}
@@ -529,7 +533,24 @@ func (sr *subroundEndRound) verifyNodesOnAggSigFail(ctx context.Context) ([]stri
 	close(workChan)
 
 	wg.Wait()
+	sr.clearJobDoneForUnVerifiedSignatures(pubKeys, verifiedValidPubKeys)
+
 	return invalidPubKeys, nil
+}
+
+func (sr *subroundEndRound) clearJobDoneForUnVerifiedSignatures(pubKeys []string, verifiedValidPubKeys map[string]struct{}) {
+	for _, pk := range pubKeys {
+		isJobDone, err := sr.JobDone(pk, bls.SrSignature)
+		if err != nil || !isJobDone {
+			continue
+		}
+
+		if _, wasVerified := verifiedValidPubKeys[pk]; !wasVerified {
+			log.Debug("verifyNodesOnAggSigFail: excluding unverified validator from aggregation",
+				"public key", pk)
+			_ = sr.SetJobDone(pk, bls.SrSignature, false)
+		}
+	}
 }
 
 func (sr *subroundEndRound) getFullMessagesForInvalidSigners(invalidPubKeys []string) ([]byte, error) {

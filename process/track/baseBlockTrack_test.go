@@ -152,6 +152,7 @@ func CreateShardTrackerMockArguments() track.ArgShardTracker {
 				NumFloodingRoundsFastReacting:          30,
 				NumFloodingRoundsOutOfSpecs:            40,
 				MaxConsecutiveRoundsOfRatingDecrease:   600,
+				MaxBlockProcessingTimeMs:               1000,
 			},
 		},
 		&epochNotifier.RoundNotifierStub{},
