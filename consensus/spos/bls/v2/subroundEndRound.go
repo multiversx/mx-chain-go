@@ -868,7 +868,10 @@ func (sr *subroundEndRound) waitSignatures(ctx context.Context) {
 	case <-time.After(remainingTime):
 	case <-ctx.Done():
 	}
-	sr.ConsensusChannel() <- true
+	select {
+	case sr.ConsensusChannel() <- true:
+	default:
+	}
 }
 
 // maximum time to wait for signatures

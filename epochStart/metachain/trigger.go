@@ -308,6 +308,10 @@ func (t *trigger) SetProcessed(header data.HeaderHandler, body data.BodyHandler)
 
 	if header.IsHeaderV3() {
 		t.setEpochChange(header.GetRound(), header.GetEpoch())
+	} else {
+		t.currEpochStartRound = metaBlock.GetRound()
+		t.epoch = metaBlock.GetEpoch()
+		t.isEpochStart = false
 	}
 
 	metaBuff, errNotCritical := t.marshaller.Marshal(metaBlock)
@@ -320,9 +324,6 @@ func (t *trigger) SetProcessed(header data.HeaderHandler, body data.BodyHandler)
 
 	metaHash := t.hasher.Compute(string(metaBuff))
 
-	t.currEpochStartRound = metaBlock.GetRound()
-	t.epoch = metaBlock.GetEpoch()
-	t.isEpochStart = false
 	t.epochStartMeta = metaBlock
 	t.epochStartMetaHash = metaHash
 
