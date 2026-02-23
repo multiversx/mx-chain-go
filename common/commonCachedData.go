@@ -4,11 +4,14 @@ import (
 	"encoding/hex"
 	"fmt"
 
+	"github.com/multiversx/mx-chain-core-go/core/check"
 	"github.com/multiversx/mx-chain-core-go/data"
 	"github.com/multiversx/mx-chain-core-go/data/block"
+	"github.com/multiversx/mx-chain-core-go/data/outport"
 	"github.com/multiversx/mx-chain-core-go/marshal"
 	logger "github.com/multiversx/mx-chain-logger-go"
 
+	"github.com/multiversx/mx-chain-go/errors"
 	"github.com/multiversx/mx-chain-go/storage"
 )
 
@@ -16,6 +19,10 @@ var log = logger.GetOrCreate("common")
 
 // GetCachedIntermediateTxs will return from cache intermediate transactions
 func GetCachedIntermediateTxs(cache storage.Cacher, headerHash []byte) (map[block.Type]map[string]data.TransactionHandler, error) {
+	if check.IfNil(cache) {
+		return nil, errors.ErrNilCacher
+	}
+
 	cachedIntermediateTxs, ok := cache.Get(headerHash)
 	if !ok {
 		log.Warn("intermediateTxs not found in dataPool", "hash", headerHash)
@@ -32,6 +39,10 @@ func GetCachedIntermediateTxs(cache storage.Cacher, headerHash []byte) (map[bloc
 
 // GetCachedLogs will return the cached log events from provided cache
 func GetCachedLogs(cache storage.Cacher, headerHash []byte) ([]data.LogDataHandler, error) {
+	if check.IfNil(cache) {
+		return nil, errors.ErrNilCacher
+	}
+
 	logsKey := PrepareLogEventsKey(headerHash)
 	cachedLogs, ok := cache.Get(logsKey)
 	if !ok {
@@ -48,6 +59,10 @@ func GetCachedLogs(cache storage.Cacher, headerHash []byte) ([]data.LogDataHandl
 
 // GetCachedOrderedTxHashes wil return the cached ordered tx hashes from the provided cache
 func GetCachedOrderedTxHashes(cache storage.Cacher, headerHash []byte) ([][]byte, error) {
+	if check.IfNil(cache) {
+		return nil, errors.ErrNilCacher
+	}
+
 	orderedTxHashesKey := PrepareOrderedTxHashesKey(headerHash)
 	cachedData, ok := cache.Get(orderedTxHashesKey)
 	if !ok {
@@ -65,6 +80,10 @@ func GetCachedOrderedTxHashes(cache storage.Cacher, headerHash []byte) ([][]byte
 
 // GetCachedUnexecutableTxHashes will return the cached unexecutable tx hashes from the provided cache
 func GetCachedUnexecutableTxHashes(cache storage.Cacher, headerHash []byte) ([][]byte, error) {
+	if check.IfNil(cache) {
+		return nil, errors.ErrNilCacher
+	}
+
 	unexecutableTxHashesKey := PrepareUnexecutableTxHashesKey(headerHash)
 	cachedData, ok := cache.Get(unexecutableTxHashesKey)
 	if !ok {
@@ -82,6 +101,10 @@ func GetCachedUnexecutableTxHashes(cache storage.Cacher, headerHash []byte) ([][
 
 // GetCachedMbs will return the cached miniblocks from provided cache
 func GetCachedMbs(cache storage.Cacher, marshaller marshal.Marshalizer, headerHash []byte) ([]*block.MiniBlock, error) {
+	if check.IfNil(cache) {
+		return nil, errors.ErrNilCacher
+	}
+
 	cachedIntraMBs, ok := cache.Get(headerHash)
 	if !ok {
 		log.Warn("intra miniblocks not found in dataPool", "hash", headerHash)
@@ -98,6 +121,10 @@ func GetCachedMbs(cache storage.Cacher, marshaller marshal.Marshalizer, headerHa
 
 // GetCachedBody will return the block body based from provided cache based on the execution result
 func GetCachedBody(cache storage.Cacher, marshaller marshal.Marshalizer, baseExecResult data.BaseExecutionResultHandler) (*block.Body, error) {
+	if check.IfNil(cache) {
+		return nil, errors.ErrNilCacher
+	}
+
 	miniBlockHeaderHandlers, err := GetMiniBlocksHeaderHandlersFromExecResult(baseExecResult)
 	if err != nil {
 		return nil, err
@@ -125,4 +152,24 @@ func GetCachedBody(cache storage.Cacher, marshaller marshal.Marshalizer, baseExe
 	}
 
 	return &block.Body{MiniBlocks: miniBlocks}, nil
+}
+
+// GetCacheHeaderGasData will return the cached header gas data from the provided cache
+func GetCacheHeaderGasData(cache storage.Cacher, headerHash []byte) (*outport.HeaderGasConsumption, error) {
+	if check.IfNil(cache) {
+		return nil, errors.ErrNilCacher
+	}
+
+	cacheHeaderGasDataI, ok := cache.Get(PrepareHeaderGasDataKey(headerHash))
+	if !ok {
+		log.Warn("header gas data not found in dataPool", "hash", headerHash)
+		return nil, fmt.Errorf("%w for header %s", ErrMissingHeaderGasData, hex.EncodeToString(headerHash))
+	}
+
+	cacheHeaderGasData, ok := cacheHeaderGasDataI.(*outport.HeaderGasConsumption)
+	if !ok {
+		return nil, fmt.Errorf("%w for GetCacheHeaderGasData", ErrWrongTypeAssertion)
+	}
+
+	return cacheHeaderGasData, nil
 }

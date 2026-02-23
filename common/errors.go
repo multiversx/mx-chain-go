@@ -73,3 +73,6 @@ var ErrInvalidHeader = errors.New("invalid header")
 
 // ErrMissingUnexecutableTxHash signals that unexecutable tx hashes are missing
 var ErrMissingUnexecutableTxHash = errors.New("missing unexecutable tx hash")
+
+// ErrMissingHeaderGasData signal that header gas data is missing
+var ErrMissingHeaderGasData = errors.New("missing header gas data")
