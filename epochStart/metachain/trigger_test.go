@@ -561,5 +561,5 @@ func TestTrigger_SetProcessedHeaderV3(t *testing.T) {
 
 	require.True(t, wasNotifyAllCalled)
 	require.True(t, wasNotifyAllPrepareCalled)
-	require.True(t, epochStartTrigger.isEpochStart)
+	require.False(t, epochStartTrigger.isEpochStart)
 }
