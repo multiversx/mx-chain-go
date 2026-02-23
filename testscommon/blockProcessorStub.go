@@ -38,6 +38,11 @@ type BlockProcessorStub struct {
 		proposedHeader data.HeaderHandler,
 		proposedHash []byte,
 	) error
+	OnBackfilledBlockCalled func(
+		_ data.BodyHandler,
+		_ data.HeaderHandler,
+		_ []byte,
+	) error
 	OnExecutedBlockCalled                           func(header data.HeaderHandler, rootHash []byte) error
 	RemoveHeaderFromPoolCalled                      func(headerHash []byte)
 	ProposedDirectSentTransactionsToBroadcastCalled func(proposedBody data.BodyHandler) map[string][][]byte
@@ -230,6 +235,18 @@ func (bps *BlockProcessorStub) OnProposedBlock(
 ) error {
 	if bps.OnProposedBlockCalled != nil {
 		return bps.OnProposedBlockCalled(proposedBody, proposedHeader, proposedHash)
+	}
+	return nil
+}
+
+// OnBackfilledBlock -
+func (bps *BlockProcessorStub) OnBackfilledBlock(
+	proposedBody data.BodyHandler,
+	proposedHeader data.HeaderHandler,
+	proposedHash []byte,
+) error {
+	if bps.OnBackfilledBlockCalled != nil {
+		return bps.OnBackfilledBlockCalled(proposedBody, proposedHeader, proposedHash)
 	}
 	return nil
 }

@@ -564,8 +564,8 @@ func (bbt *baseBlockTrack) getFinalHeader(shardID uint32) (data.HeaderHandler, [
 	return bbt.selfNotarizer.GetFirstNotarizedHeader(shardID)
 }
 
-// CheckBlockAgainstWhitelist returns if the provided intercepted data (blocks) is whitelisted or not
-func (bbt *baseBlockTrack) CheckBlockAgainstWhitelist(interceptedData process.InterceptedData) bool {
+// CheckAgainstWhitelist returns if the provided intercepted data is whitelisted or not
+func (bbt *baseBlockTrack) CheckAgainstWhitelist(interceptedData process.InterceptedData) bool {
 	return bbt.whitelistHandler.IsWhiteListed(interceptedData)
 }
 
