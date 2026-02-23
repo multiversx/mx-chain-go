@@ -10,7 +10,7 @@ import (
 type ValidityAttesterStub struct {
 	CheckBlockAgainstRoundHandlerCalled func(headerHandler data.HeaderHandler) error
 	CheckBlockAgainstFinalCalled        func(headerHandler data.HeaderHandler) error
-	CheckBlockAgainstWhitelistCalled    func(interceptedData process.InterceptedData) bool
+	CheckAgainstWhitelistCalled         func(interceptedData process.InterceptedData) bool
 	CheckProofAgainstFinalCalled        func(proof data.HeaderProofHandler) error
 	CheckProofAgainstRoundHandlerCalled func(proof data.HeaderProofHandler) error
 }
@@ -33,10 +33,10 @@ func (vas *ValidityAttesterStub) CheckBlockAgainstFinal(headerHandler data.Heade
 	return nil
 }
 
-// CheckBlockAgainstWhitelist -
-func (vas *ValidityAttesterStub) CheckBlockAgainstWhitelist(interceptedData process.InterceptedData) bool {
-	if vas.CheckBlockAgainstWhitelistCalled != nil {
-		return vas.CheckBlockAgainstWhitelistCalled(interceptedData)
+// CheckAgainstWhitelist -
+func (vas *ValidityAttesterStub) CheckAgainstWhitelist(interceptedData process.InterceptedData) bool {
+	if vas.CheckAgainstWhitelistCalled != nil {
+		return vas.CheckAgainstWhitelistCalled(interceptedData)
 	}
 
 	return false

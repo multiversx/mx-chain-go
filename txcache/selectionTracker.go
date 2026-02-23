@@ -15,7 +15,7 @@ import (
 )
 
 const (
-	maxAccountsPerBlock = 10000
+	maxAccountsPerBlock = 12000
 )
 
 type blockWithHash struct {
@@ -75,9 +75,12 @@ func (st *selectionTracker) OnProposedBlock(
 		return errWrongTypeAssertion
 	}
 
-	err := st.verifyArgsOfOnProposedBlock(blockHash, blockBody, blockHeader, accountsProvider)
+	err := st.verifyBlockArgs(blockHash, blockBody, blockHeader)
 	if err != nil {
 		return err
+	}
+	if check.IfNil(accountsProvider) {
+		return errNilAccountNonceAndBalanceProvider
 	}
 
 	accountsRootHash, err := accountsProvider.GetRootHash()
@@ -142,11 +145,66 @@ func (st *selectionTracker) OnProposedBlock(
 	return nil
 }
 
-func (st *selectionTracker) verifyArgsOfOnProposedBlock(
+// OnBackfilledBlock adds a previously consensus-agreed block as tracked without breadcrumb validation.
+// This is used during sync start to backfill blocks between the last execution result and the current
+// committed header. Since these blocks were already validated during consensus, breadcrumb continuity
+// and balance checks are skipped. The block's breadcrumbs are still compiled and tracked.
+func (st *selectionTracker) OnBackfilledBlock(
+	blockHash []byte,
+	bodyHandler data.BodyHandler,
+	blockHeader data.HeaderHandler,
+) error {
+	blockBody, ok := bodyHandler.(*block.Body)
+	if !ok {
+		return errWrongTypeAssertion
+	}
+
+	err := st.verifyBlockArgs(blockHash, blockBody, blockHeader)
+	if err != nil {
+		return err
+	}
+
+	// Preempt any ongoing AOT selection before acquiring the lock
+	st.cancelAOTOngoingSelection()
+
+	st.mutTracker.Lock()
+	defer st.mutTracker.Unlock()
+
+	nonce := blockHeader.GetNonce()
+	prevHash := blockHeader.GetPrevHash()
+
+	tBlock := newTrackedBlock(nonce, blockHash, prevHash)
+
+	log.Debug("selectionTracker.OnBackfilledBlock",
+		"nonce", nonce,
+		"blockHash", blockHash,
+		"prevHash", prevHash,
+	)
+
+	txs, err := getTransactionsInBlock(blockBody, st.txCache, st.selfShardId)
+	if err != nil {
+		return err
+	}
+
+	lastNoncePerSender, err := tBlock.compileBreadcrumbs(txs)
+	if err != nil {
+		return err
+	}
+
+	err = st.addNewTrackedBlockNoLock(blockHash, tBlock)
+	if err != nil {
+		return err
+	}
+
+	st.txCache.SetSelectionOffsetsByLastNonce(lastNoncePerSender)
+
+	return nil
+}
+
+func (st *selectionTracker) verifyBlockArgs(
 	blockHash []byte,
 	blockBody *block.Body,
 	blockHeader data.HeaderHandler,
-	accountsProvider common.AccountNonceAndBalanceProvider,
 ) error {
 	if len(blockHash) == 0 {
 		return errNilBlockHash
@@ -156,9 +214,6 @@ func (st *selectionTracker) verifyArgsOfOnProposedBlock(
 	}
 	if check.IfNil(blockHeader) {
 		return errNilBlockHeader
-	}
-	if check.IfNil(accountsProvider) {
-		return errNilAccountNonceAndBalanceProvider
 	}
 
 	return nil
@@ -242,16 +297,34 @@ func (st *selectionTracker) validateTrackedBlocksAndCompileBreadcrumbsNoLock(
 }
 
 // validateBreadcrumbsOfTrackedBlocks validates the breadcrumbs of each tracked block.
-// Firstly, it checks for nonce continuity.
-// Then, it checks that each account has enough balance.
+// For predecessor blocks (all except the last), discontinuous breadcrumbs are tolerated:
+// the address is marked as discontinuous and its nonce/balance validation is skipped.
+// For the new block (the last one), if it has breadcrumbs for an address that was marked
+// as discontinuous, validation fails - the new block must not include transactions
+// for accounts with stale/discontinuous history.
 func (st *selectionTracker) validateBreadcrumbsOfTrackedBlocks(
 	chainOfTrackedBlocks []*trackedBlock,
 	accountsProvider common.AccountNonceAndBalanceProvider,
 ) error {
 	validator := newBreadcrumbValidator()
 
-	for _, tb := range chainOfTrackedBlocks {
+	numBlocks := len(chainOfTrackedBlocks)
+
+	for i, tb := range chainOfTrackedBlocks {
+		isNewBlock := i == numBlocks-1
+
 		for address, breadcrumb := range tb.breadcrumbsByAddress {
+			if isNewBlock && validator.isAddressDiscontinuous(address) {
+				// The new block has transactions for an account with discontinuous breadcrumbs
+				// in predecessor blocks. This must be rejected.
+				log.Debug("selectionTracker.validateBreadcrumbsOfTrackedBlocks: new block has breadcrumb for discontinuous address",
+					"err", errDiscontinuousBreadcrumbs,
+					"address", address,
+					"tracked block hash", tb.hash,
+					"tracked block nonce", tb.nonce)
+				return errDiscontinuousBreadcrumbs
+			}
+
 			// NOTE: the initial balance should never change during this validation, because we use an account provider which is not affected by the actual execution.
 			initialNonce, initialBalance, _, err := accountsProvider.GetAccountNonceAndBalance([]byte(address))
 			if err != nil {
@@ -264,12 +337,29 @@ func (st *selectionTracker) validateBreadcrumbsOfTrackedBlocks(
 			}
 
 			if !validator.validateNonceContinuityOfBreadcrumb(address, initialNonce, breadcrumb) {
-				log.Debug("selectionTracker.validateBreadcrumbsOfTrackedBlocks",
-					"err", errDiscontinuousBreadcrumbs,
+				if isNewBlock {
+					// The new block itself has discontinuous breadcrumbs - reject
+					log.Debug("selectionTracker.validateBreadcrumbsOfTrackedBlocks: new block has discontinuous breadcrumbs",
+						"err", errDiscontinuousBreadcrumbs,
+						"address", address,
+						"tracked block hash", tb.hash,
+						"tracked block nonce", tb.nonce)
+					return errDiscontinuousBreadcrumbs
+				}
+
+				// Predecessor block has discontinuous breadcrumbs - tolerate, mark address
+				log.Debug("selectionTracker.validateBreadcrumbsOfTrackedBlocks: tolerating discontinuous breadcrumbs in predecessor block",
 					"address", address,
 					"tracked block hash", tb.hash,
 					"tracked block nonce", tb.nonce)
-				return errDiscontinuousBreadcrumbs
+				validator.markAddressAsDiscontinuous(address)
+				continue
+			}
+
+			// Skip balance validation for addresses already marked as discontinuous.
+			// This is safe because predecessor blocks were already validated at their original proposal time.
+			if validator.isAddressDiscontinuous(address) {
+				continue
 			}
 
 			// use its balance to accumulate and validate (make sure is < than initialBalance from the session)

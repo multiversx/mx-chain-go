@@ -2811,6 +2811,20 @@ func (bp *baseProcessor) OnProposedBlock(
 	return bp.dataPool.Transactions().OnProposedBlock(proposedHash, proposedBodyPtr, proposedHeader, accountsProvider, lastExecResHandler.GetHeaderHash())
 }
 
+// OnBackfilledBlock adds a previously consensus-agreed block as tracked without breadcrumb validation.
+func (bp *baseProcessor) OnBackfilledBlock(
+	proposedBody data.BodyHandler,
+	proposedHeader data.HeaderHandler,
+	proposedHash []byte,
+) error {
+	proposedBodyPtr, ok := proposedBody.(*block.Body)
+	if !ok {
+		return process.ErrWrongTypeAssertion
+	}
+
+	return bp.dataPool.Transactions().OnBackfilledBlock(proposedHash, proposedBodyPtr, proposedHeader)
+}
+
 func (bp *baseProcessor) prepareAccountsForProposal() (data.BaseExecutionResultHandler, error) {
 	prevHeader := bp.blockChain.GetCurrentBlockHeader()
 	prevHeaderHash := bp.blockChain.GetCurrentBlockHeaderHash()

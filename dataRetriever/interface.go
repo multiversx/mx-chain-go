@@ -195,6 +195,11 @@ type ShardedDataCacherNotifier interface {
 		accountsProvider common.AccountNonceAndBalanceProvider,
 		latestExecutedHash []byte,
 	) error
+	OnBackfilledBlock(
+		blockHash []byte,
+		blockBody *block.Body,
+		blockHeader data.HeaderHandler,
+	) error
 	ResetTracker()
 }
 
