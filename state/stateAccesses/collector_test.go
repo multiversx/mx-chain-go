@@ -983,7 +983,7 @@ func TestStateAccessesCollector_Concurrency(t *testing.T) {
 			case 2:
 				c.AddTxHashToCollectedStateAccesses([]byte("txHash" + fmt.Sprintf("%d", rand.Intn(100))))
 			case 3:
-				c.CommitCollectedAccesses([]byte("rootHash"))
+				_ = c.CommitCollectedAccesses([]byte("rootHash"))
 			case 4:
 				c.GetAccountChanges(&mockState.UserAccountStub{}, &mockState.UserAccountStub{})
 			case 5:
@@ -995,7 +995,7 @@ func TestStateAccessesCollector_Concurrency(t *testing.T) {
 			case 8:
 				_ = c.RevertToIndex(rand.Intn(10))
 			case 9:
-				c.SetIndexToLatestStateAccesses(rand.Intn(10))
+				_ = c.SetIndexToLatestStateAccesses(rand.Intn(10))
 			default:
 				assert.Fail(t, "should have not been called")
 			}
