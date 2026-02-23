@@ -50,6 +50,9 @@ import (
 	storageStubs "github.com/multiversx/mx-chain-go/testscommon/storage"
 )
 
+// HashAndHdr -
+type HashAndHdr = hashAndHdr
+
 // UsedShardHeadersInfo -
 type UsedShardHeadersInfo = usedShardHeadersInfo
 
@@ -107,12 +110,12 @@ func (sp *shardProcessor) CreateMiniBlocks(haveTime func() bool) (*block.Body, m
 }
 
 // GetOrderedProcessedMetaBlocksFromHeader -
-func (sp *shardProcessor) GetOrderedProcessedMetaBlocksFromHeader(header data.HeaderHandler) ([]data.HeaderHandler, []data.HeaderHandler, error) {
+func (sp *shardProcessor) GetOrderedProcessedMetaBlocksFromHeader(header data.HeaderHandler) ([]data.HeaderHandler, []*hashAndHdr, error) {
 	return sp.getOrderedProcessedMetaBlocksFromHeader(header)
 }
 
 // UpdateCrossShardInfo -
-func (sp *shardProcessor) UpdateCrossShardInfo(processedMetaHdrs []data.HeaderHandler, partialProcessedMetaBlocks []data.HeaderHandler) error {
+func (sp *shardProcessor) UpdateCrossShardInfo(processedMetaHdrs []data.HeaderHandler, partialProcessedMetaBlocks []*hashAndHdr) error {
 	return sp.updateCrossShardInfo(processedMetaHdrs, partialProcessedMetaBlocks)
 }
 
@@ -1151,7 +1154,7 @@ func (mp *metaProcessor) GetCurrentlyAccumulatedFees(metaHdr data.MetaHeaderHand
 func (sp *shardProcessor) GetOrderedProcessedMetaBlocksFromMiniBlockHashesV3(
 	header data.HeaderHandler,
 	miniBlockHashes map[int][]byte,
-) ([]data.HeaderHandler, []data.HeaderHandler, error) {
+) ([]data.HeaderHandler, []*hashAndHdr, error) {
 	return sp.getOrderedProcessedMetaBlocksFromMiniBlockHashesV3(header, miniBlockHashes)
 }
 

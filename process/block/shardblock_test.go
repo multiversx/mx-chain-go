@@ -3881,7 +3881,7 @@ func TestShardProcessor_RemoveAndSaveLastNotarizedMetaHdrNoDstMB(t *testing.T) {
 	err = sp.SaveLastNotarizedHeader(core.MetachainShardId, processedMetaHdrs)
 	assert.Nil(t, err)
 
-	err = sp.UpdateCrossShardInfo(processedMetaHdrs, make([]data.HeaderHandler, 0))
+	err = sp.UpdateCrossShardInfo(processedMetaHdrs, make([]*blproc.HashAndHdr, 0))
 	assert.Nil(t, err)
 	assert.Equal(t, uint32(0), atomic.LoadUint32(&putCalledNr))
 
@@ -3902,7 +3902,7 @@ func TestShardProcessor_RemoveAndSaveLastNotarizedMetaHdrNoDstMB(t *testing.T) {
 	err = sp.SaveLastNotarizedHeader(core.MetachainShardId, processedMetaHdrs)
 	assert.Nil(t, err)
 
-	err = sp.UpdateCrossShardInfo(processedMetaHdrs, make([]data.HeaderHandler, 0))
+	err = sp.UpdateCrossShardInfo(processedMetaHdrs, make([]*blproc.HashAndHdr, 0))
 	assert.Nil(t, err)
 	assert.Equal(t, uint32(0), atomic.LoadUint32(&putCalledNr))
 
