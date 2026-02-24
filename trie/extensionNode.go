@@ -211,48 +211,38 @@ func (en *extensionNode) commitDirty(level byte, maxTrieLevelInMemory uint, orig
 }
 
 func (en *extensionNode) commitSnapshot(
-	db common.TrieStorageInteractor,
+	db snapshotDb,
+	maxEpochToSearchFrom uint32,
 	leavesChan chan core.KeyValueHolder,
 	missingNodesChan chan []byte,
 	ctx context.Context,
 	stats common.TrieStatisticsHandler,
 	idleProvider IdleNodeProvider,
+	nodeBytes []byte,
 	depthLevel int,
 ) error {
 	if shouldStopIfContextDoneBlockingIfBusy(ctx, idleProvider) {
 		return core.ErrContextClosing
 	}
 
-	err := en.isEmptyOrNil()
-	if err != nil {
-		return fmt.Errorf("commit snapshot error %w", err)
-	}
-
-	err = resolveIfCollapsed(en, 0, db)
-	childIsMissing, err := treatCommitSnapshotError(err, en.EncodedChild, missingNodesChan)
-	if err != nil {
-		return err
-	}
-
-	if !childIsMissing {
-		err = en.child.commitSnapshot(db, leavesChan, missingNodesChan, ctx, stats, idleProvider, depthLevel+1)
-		if err != nil {
-			return err
-		}
-	}
-
-	return en.saveToStorage(db, stats, depthLevel)
-}
-
-func (en *extensionNode) saveToStorage(targetDb common.BaseStorer, stats common.TrieStatisticsHandler, depthLevel int) error {
-	nodeSize, err := encodeNodeAndCommitToDB(en, targetDb)
+	err := commitSnapshot(
+		db,
+		maxEpochToSearchFrom,
+		en.marsh,
+		en.hasher,
+		leavesChan,
+		missingNodesChan,
+		ctx,
+		stats,
+		idleProvider,
+		depthLevel,
+		en.EncodedChild,
+	)
 	if err != nil {
 		return err
 	}
 
-	stats.AddExtensionNode(depthLevel, uint64(nodeSize))
-
-	en.child = nil
+	stats.AddExtensionNode(depthLevel, uint64(len(nodeBytes)))
 	return nil
 }
 

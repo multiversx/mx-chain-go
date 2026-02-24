@@ -291,56 +291,46 @@ func (bn *branchNode) commitDirty(level byte, maxTrieLevelInMemory uint, originD
 	return nil
 }
 
+// TODO refactor long parameter list
 func (bn *branchNode) commitSnapshot(
-	db common.TrieStorageInteractor,
+	db snapshotDb,
+	maxEpochToSearchFrom uint32,
 	leavesChan chan core.KeyValueHolder,
 	missingNodesChan chan []byte,
 	ctx context.Context,
 	stats common.TrieStatisticsHandler,
 	idleProvider IdleNodeProvider,
+	nodeBytes []byte,
 	depthLevel int,
 ) error {
 	if shouldStopIfContextDoneBlockingIfBusy(ctx, idleProvider) {
 		return core.ErrContextClosing
 	}
 
-	err := bn.isEmptyOrNil()
-	if err != nil {
-		return fmt.Errorf("commit snapshot error %w", err)
-	}
-
-	for i := range bn.children {
-		err = resolveIfCollapsed(bn, byte(i), db)
-		childIsMissing, err := treatCommitSnapshotError(err, bn.EncodedChildren[i], missingNodesChan)
-		if err != nil {
-			return err
-		}
-		if childIsMissing {
+	for i := range bn.EncodedChildren {
+		if len(bn.EncodedChildren[i]) == 0 {
 			continue
 		}
 
-		if bn.children[i] == nil {
-			continue
-		}
-
-		err = bn.children[i].commitSnapshot(db, leavesChan, missingNodesChan, ctx, stats, idleProvider, depthLevel+1)
+		err := commitSnapshot(
+			db,
+			maxEpochToSearchFrom,
+			bn.marsh,
+			bn.hasher,
+			leavesChan,
+			missingNodesChan,
+			ctx,
+			stats,
+			idleProvider,
+			depthLevel,
+			bn.EncodedChildren[i],
+		)
 		if err != nil {
 			return err
 		}
 	}
 
-	return bn.saveToStorage(db, stats, depthLevel)
-}
-
-func (bn *branchNode) saveToStorage(targetDb common.BaseStorer, stats common.TrieStatisticsHandler, depthLevel int) error {
-	nodeSize, err := encodeNodeAndCommitToDB(bn, targetDb)
-	if err != nil {
-		return err
-	}
-
-	stats.AddBranchNode(depthLevel, uint64(nodeSize))
-
-	bn.removeChildrenPointers()
+	stats.AddBranchNode(depthLevel, uint64(len(nodeBytes)))
 	return nil
 }
 
