@@ -6,6 +6,7 @@ import (
 
 	"github.com/multiversx/mx-chain-core-go/data"
 	"github.com/multiversx/mx-chain-core-go/data/block"
+	"github.com/multiversx/mx-chain-core-go/data/outport"
 	"github.com/multiversx/mx-chain-core-go/data/receipt"
 	"github.com/multiversx/mx-chain-core-go/data/smartContractResult"
 	"github.com/multiversx/mx-chain-core-go/data/transaction"
@@ -338,4 +339,43 @@ func TestGetCachedUnexecutableTxHashes(t *testing.T) {
 		require.Equal(t, hashes, res)
 	})
 
+}
+
+func TestGetCachedHeaderGasData(t *testing.T) {
+	t.Parallel()
+
+	t.Run("cannot find in cache should error", func(t *testing.T) {
+		t.Parallel()
+
+		cacher := cache.NewCacherMock()
+
+		headerHash := []byte("h")
+
+		_, err := GetCacheHeaderGasData(cacher, headerHash)
+		require.True(t, errors.Is(err, ErrMissingHeaderGasData))
+	})
+
+	t.Run("wrong type in cache should error", func(t *testing.T) {
+		cacher := cache.NewCacherMock()
+
+		headerHash := []byte("h")
+		cacher.Put(PrepareHeaderGasDataKey(headerHash), []byte("a"), 0)
+
+		_, err := GetCacheHeaderGasData(cacher, headerHash)
+		require.True(t, errors.Is(err, ErrWrongTypeAssertion))
+	})
+
+	t.Run("should work", func(t *testing.T) {
+		cacher := cache.NewCacherMock()
+
+		headerHash := []byte("h")
+		headerGasData := &outport.HeaderGasConsumption{
+			GasRefunded: 100,
+		}
+		cacher.Put(PrepareHeaderGasDataKey(headerHash), headerGasData, 0)
+
+		res, err := GetCacheHeaderGasData(cacher, headerHash)
+		require.Nil(t, err)
+		require.Equal(t, headerGasData, res)
+	})
 }

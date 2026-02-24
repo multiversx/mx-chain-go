@@ -71,6 +71,7 @@ func (tpn *TestProcessorNode) initBlockProcessorWithSync() {
 	coreComponents.InternalMarshalizerField = TestMarshalizer
 	coreComponents.HasherField = TestHasher
 	coreComponents.Uint64ByteSliceConverterField = TestUint64Converter
+	coreComponents.RoundHandlerField = tpn.RoundHandler
 	coreComponents.EpochNotifierField = tpn.EpochNotifier
 	coreComponents.RoundNotifierField = tpn.RoundNotifier
 

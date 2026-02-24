@@ -15,6 +15,7 @@ import (
 	"github.com/multiversx/mx-chain-core-go/data/transaction"
 	"github.com/multiversx/mx-chain-go/storage"
 	"github.com/multiversx/mx-chain-go/testscommon/cache"
+	"github.com/multiversx/mx-chain-go/testscommon/economicsmocks"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 
@@ -4144,7 +4145,7 @@ func Test_getOrderedProcessedMetaBlocksFromMiniBlockHashesV3(t *testing.T) {
 		sp, err := blproc.ConstructPartialShardBlockProcessorForTest(map[string]interface{}{})
 		require.Nil(t, err)
 
-		_, err = sp.GetOrderedProcessedMetaBlocksFromMiniBlockHashesV3(
+		_, _, err = sp.GetOrderedProcessedMetaBlocksFromMiniBlockHashesV3(
 			&block.MetaBlockV3{},
 			nil,
 		)
@@ -4171,7 +4172,7 @@ func Test_getOrderedProcessedMetaBlocksFromMiniBlockHashesV3(t *testing.T) {
 		header := &block.HeaderV3{
 			MetaBlockHashes: [][]byte{metaHeaderHash1},
 		}
-		_, err = sp.GetOrderedProcessedMetaBlocksFromMiniBlockHashesV3(
+		_, _, err = sp.GetOrderedProcessedMetaBlocksFromMiniBlockHashesV3(
 			header,
 			make(map[int][]byte),
 		)
@@ -4216,7 +4217,7 @@ func Test_getOrderedProcessedMetaBlocksFromMiniBlockHashesV3(t *testing.T) {
 		require.Nil(t, err)
 
 		header := &block.HeaderV3{MetaBlockHashes: [][]byte{metaHeaderHash1}}
-		fullyReferencedMetaBlocks, err := sp.GetOrderedProcessedMetaBlocksFromMiniBlockHashesV3(
+		fullyReferencedMetaBlocks, _, err := sp.GetOrderedProcessedMetaBlocksFromMiniBlockHashesV3(
 			header,
 			make(map[int][]byte),
 		)
@@ -4282,7 +4283,7 @@ func Test_getOrderedProcessedMetaBlocksFromMiniBlockHashesV3(t *testing.T) {
 		header := &block.HeaderV3{
 			MetaBlockHashes: [][]byte{metaHeaderHash1, metaHeaderHash2},
 		}
-		fullyReferencedMetaBlocks, err := sp.GetOrderedProcessedMetaBlocksFromMiniBlockHashesV3(
+		fullyReferencedMetaBlocks, _, err := sp.GetOrderedProcessedMetaBlocksFromMiniBlockHashesV3(
 			header,
 			map[int][]byte{
 				0: mbHash1,
@@ -4347,7 +4348,7 @@ func Test_getOrderedProcessedMetaBlocksFromMiniBlockHashesV3(t *testing.T) {
 		header := &block.HeaderV3{
 			MetaBlockHashes: [][]byte{metaHeaderHash1, metaHeaderHash2},
 		}
-		fullyReferencedMetaBlocks, err := sp.GetOrderedProcessedMetaBlocksFromMiniBlockHashesV3(
+		fullyReferencedMetaBlocks, _, err := sp.GetOrderedProcessedMetaBlocksFromMiniBlockHashesV3(
 			header,
 			map[int][]byte{
 				0: mbHash1,
@@ -4408,7 +4409,7 @@ func Test_getOrderedProcessedMetaBlocksFromMiniBlockHashesV3(t *testing.T) {
 		header := &block.HeaderV3{
 			MetaBlockHashes: [][]byte{metaHeaderHash1, metaHeaderHash2},
 		}
-		fullyReferencedMetaBlocks, err := sp.GetOrderedProcessedMetaBlocksFromMiniBlockHashesV3(
+		fullyReferencedMetaBlocks, _, err := sp.GetOrderedProcessedMetaBlocksFromMiniBlockHashesV3(
 			header,
 			map[int][]byte{
 				0: mbHash1,
@@ -4543,6 +4544,7 @@ func createSubComponentsForCollectExecutionResultsTest() (map[string]interface{}
 		"dataPool":                initDataPool(),
 		"accountsDB":              accounts,
 		"txExecutionOrderHandler": &commonMocks.TxExecutionOrderHandlerStub{},
+		"economicsData":           &economicsmocks.EconomicsHandlerMock{},
 	}
 
 	header, body := createHeaderAndBodyForTestingProcessBlockProposal()

@@ -202,6 +202,14 @@ func (cache *TxCache) OnProposedBlock(
 	return cache.tracker.OnProposedBlock(blockHash, blockBody, blockHeader, accountsProvider, latestExecutedHash)
 }
 
+// OnBackfilledBlock calls the OnBackfilledBlock method from SelectionTracker
+func (cache *TxCache) OnBackfilledBlock(
+	blockHash []byte,
+	blockBody data.BodyHandler,
+	blockHeader data.HeaderHandler) error {
+	return cache.tracker.OnBackfilledBlock(blockHash, blockBody, blockHeader)
+}
+
 // OnExecutedBlock calls the OnExecutedBlock method from SelectionTracker
 func (cache *TxCache) OnExecutedBlock(blockHeader data.HeaderHandler, rootHash []byte) error {
 	return cache.tracker.OnExecutedBlock(blockHeader, rootHash)

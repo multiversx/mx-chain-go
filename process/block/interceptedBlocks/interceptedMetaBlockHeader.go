@@ -82,7 +82,7 @@ func (imh *InterceptedMetaHeader) CheckValidity() error {
 		return err
 	}
 
-	if !imh.validityAttester.CheckBlockAgainstWhitelist(imh) {
+	if !imh.validityAttester.CheckAgainstWhitelist(imh) {
 		err = imh.validityAttester.CheckBlockAgainstFinal(imh.HeaderHandler())
 		if err != nil {
 			return err

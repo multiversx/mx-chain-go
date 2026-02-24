@@ -99,6 +99,11 @@ func TestNewTestOnlyProcessingNode(t *testing.T) {
 		err = newHeader.SetPrevHash(node.ChainHandler.GetGenesisHeaderHash())
 		assert.Nil(t, err)
 
+		// Set timestamp before processing (pre-supernova: header stores seconds)
+		expectedTimestampMs := node.GetCoreComponents().RoundHandler().GetTimeStampForRound(1)
+		err = newHeader.SetTimeStamp(expectedTimestampMs / 1000)
+		assert.Nil(t, err)
+
 		header, block, err := node.ProcessComponentsHolder.BlockProcessor().CreateBlock(newHeader, func() bool {
 			return true
 		})
@@ -109,9 +114,6 @@ func TestNewTestOnlyProcessingNode(t *testing.T) {
 		err = node.ProcessComponentsHolder.BlockProcessor().ProcessBlock(header, block, func() time.Duration {
 			return 1000
 		})
-		assert.Nil(t, err)
-
-		err = header.SetTimeStamp(uint64(genesisTime.Add(time.Millisecond * 6000).Unix()))
 		assert.Nil(t, err)
 
 		err = node.ProcessComponentsHolder.BlockProcessor().CommitBlock(header, block)
