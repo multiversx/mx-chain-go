@@ -853,6 +853,9 @@ func checkProcessorParameters(arguments ArgBaseProcessor) error {
 	if check.IfNil(arguments.AOTSelector) {
 		return process.ErrNilAOTSelector
 	}
+	if arguments.CoreComponents.ClosingNodeStarted() == nil {
+		return process.ErrNilClosingNodeStartedFlag
+	}
 
 	return nil
 }

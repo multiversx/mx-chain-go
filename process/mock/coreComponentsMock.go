@@ -236,12 +236,6 @@ func (ccm *CoreComponentsMock) AntifloodConfigsHandler() common.AntifloodConfigs
 
 // ClosingNodeStarted -
 func (ccm *CoreComponentsMock) ClosingNodeStarted() *atomic.Bool {
-	ccm.mut.Lock()
-	defer ccm.mut.Unlock()
-
-	if ccm.ClosingNodeStartedField == nil {
-		ccm.ClosingNodeStartedField = &atomic.Bool{}
-	}
 	return ccm.ClosingNodeStartedField
 }
 
