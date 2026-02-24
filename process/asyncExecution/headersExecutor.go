@@ -300,11 +300,13 @@ func (he *headersExecutor) process(pair cache.HeaderBodyPair) error {
 	if check.IfNil(executionResult) {
 		log.Warn("headersExecutor.process - nil execution result received",
 			"nonce", pair.Header.GetNonce())
+		he.blockProcessor.RevertBlockProposalState()
 		return ErrNilExecutionResult
 	}
 
 	ok = he.checkLastExecutionResultContext(pair.Header, pair.HeaderHash)
 	if !ok {
+		he.blockProcessor.RevertBlockProposalState()
 		return nil
 	}
 
@@ -318,9 +320,32 @@ func (he *headersExecutor) process(pair cache.HeaderBodyPair) error {
 			"exec_header_hash", executionResult.GetHeaderHash(),
 			"committed_block_hash", lastCommittedBlockHash,
 		)
+		he.blockProcessor.RevertBlockProposalState()
 		return nil
 	}
 
+	lastExecutionResult := he.blockChain.GetLastExecutionResult()
+	if !check.IfNil(lastExecutionResult) {
+		if !bytes.Equal(lastExecutionResult.GetHeaderHash(), pair.Header.GetPrevHash()) {
+			log.Error("headersExecutor.process - header hash mismatch")
+			he.blockProcessor.RevertBlockProposalState()
+			return nil
+		}
+	}
+
+	// All post-execution checks passed, commit the state now
+	err = he.blockProcessor.CommitBlockProposalState(pair.Header)
+	if err != nil {
+		log.Warn("headersExecutor.process commit block proposal state failed",
+			"nonce", pair.Header.GetNonce(),
+			"err", err,
+		)
+		he.blockProcessor.RevertBlockProposalState()
+		return err
+	}
+
+	// Add to execution tracker only after state is committed, so the tracker never
+	// holds a result whose state was not persisted.
 	added, err := he.executionTracker.AddExecutionResult(executionResult)
 	if err != nil {
 		log.Warn("headersExecutor.process add execution result failed",
@@ -331,19 +356,12 @@ func (he *headersExecutor) process(pair cache.HeaderBodyPair) error {
 	}
 	if !added {
 		// Result was rejected because consensus already committed a different block for this nonce.
-		// Skip blockchain updates as the commit flow already set the correct state.
+		// State was already committed but the corrective flow on the next processing iteration
+		// will recreate the trie from the expected root hash.
 		log.Debug("headersExecutor.process execution result not added, skipping blockchain updates",
 			"nonce", pair.Header.GetNonce(),
 		)
 		return nil
-	}
-
-	lastExecutionResult := he.blockChain.GetLastExecutionResult()
-	if !check.IfNil(lastExecutionResult) {
-		if !bytes.Equal(lastExecutionResult.GetHeaderHash(), pair.Header.GetPrevHash()) {
-			log.Error("headersExecutor.process - header hash mismatch")
-			return nil
-		}
 	}
 
 	he.blockChain.SetFinalBlockInfo(

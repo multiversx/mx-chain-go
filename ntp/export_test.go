@@ -43,3 +43,13 @@ func (s *syncTime) GetMedianOffset(clockOffsets []time.Duration) (time.Duration,
 func (s *syncTime) GetSleepTime() time.Duration {
 	return s.getSleepTime()
 }
+
+// SetLastSyncTime -
+func (s *syncTime) SetLastSyncTime(t time.Time) {
+	s.mut.Lock()
+	s.lastSyncTime = t
+	s.mut.Unlock()
+}
+
+// SyncCooldownDuration -
+var SyncCooldownDuration = syncCooldown

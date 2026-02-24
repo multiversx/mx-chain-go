@@ -434,12 +434,32 @@ func (mp *metaProcessor) ProcessBlockProposal(
 		return nil, err
 	}
 
-	err = mp.commitState(headerHandler)
-	if err != nil {
-		return nil, err
+	return execResult, nil
+}
+
+// CommitBlockProposalState commits the accounts state after processing a block proposal
+// and performs any post-commit operations (e.g. saving epoch start economics metrics).
+func (mp *metaProcessor) CommitBlockProposalState(headerHandler data.HeaderHandler) error {
+	if check.IfNil(headerHandler) {
+		return process.ErrNilBlockHeader
 	}
 
-	return execResult, nil
+	err := mp.commitState(headerHandler)
+	if err != nil {
+		return err
+	}
+
+	metaHeader, ok := headerHandler.(data.MetaHeaderHandler)
+	if ok {
+		mp.saveEpochStartEconomicsMetricsV3IfNeeded(metaHeader)
+	}
+
+	return nil
+}
+
+// RevertBlockProposalState reverts the uncommitted accounts state after a block proposal processing failure
+func (mp *metaProcessor) RevertBlockProposalState() {
+	mp.RevertCurrentBlock()
 }
 
 func (mp *metaProcessor) checkNonceGaps(metaHeader data.MetaHeaderHandler) error {
@@ -591,13 +611,6 @@ func (mp *metaProcessor) processEpochStartProposeBlock(
 	if err != nil {
 		return nil, err
 	}
-
-	err = mp.commitState(metaHeader)
-	if err != nil {
-		return nil, err
-	}
-
-	mp.saveEpochStartEconomicsMetricsV3IfNeeded(metaHeader)
 
 	return execResult, nil
 }
