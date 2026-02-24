@@ -90,6 +90,7 @@ func GetGeneralConfig() config.Config {
 					NumFloodingRoundsFastReacting:          30,
 					NumFloodingRoundsOutOfSpecs:            40,
 					MaxConsecutiveRoundsOfRatingDecrease:   2000,
+					MaxBlockProcessingTimeMs:               1000,
 				},
 			},
 			EpochStartConfigsByEpoch: []config.EpochStartConfigByEpoch{

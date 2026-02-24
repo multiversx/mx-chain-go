@@ -4,9 +4,10 @@ import (
 	"time"
 
 	"github.com/multiversx/mx-chain-core-go/data"
-	"github.com/multiversx/mx-chain-go/common"
 	"github.com/multiversx/mx-chain-storage-go/immunitycache"
 	"github.com/multiversx/mx-chain-storage-go/types"
+
+	"github.com/multiversx/mx-chain-go/common"
 )
 
 var _ types.Cacher = (*CrossTxCache)(nil)
@@ -123,6 +124,11 @@ func (cache *CrossTxCache) GetTransactionsPoolForSender(_ string) []*WrappedTran
 
 // OnProposedBlock does nothing (only to satisfy the interface)
 func (cache *CrossTxCache) OnProposedBlock(_ []byte, _ data.BodyHandler, _ data.HeaderHandler, _ common.AccountNonceAndBalanceProvider, _ []byte) error {
+	return nil
+}
+
+// OnBackfilledBlock does nothing (only to satisfy the interface)
+func (cache *CrossTxCache) OnBackfilledBlock(_ []byte, _ data.BodyHandler, _ data.HeaderHandler) error {
 	return nil
 }
 

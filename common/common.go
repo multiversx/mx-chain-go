@@ -597,3 +597,18 @@ func GetMiniBlockHeadersFromExecResult(header data.HeaderHandler) ([]data.MiniBl
 
 	return mbHeaderHandlers, nil
 }
+
+// GetFeePayer returns the address that pays the fee for this transaction.
+// For relayed v3 transactions, the fee payer is the relayer; otherwise it is the sender.
+func GetFeePayer(tx data.TransactionHandler) []byte {
+	if check.IfNil(tx) {
+		return nil
+	}
+
+	relayedTx, ok := tx.(data.RelayedTransactionHandler)
+	if ok && len(relayedTx.GetRelayerAddr()) > 0 {
+		return relayedTx.GetRelayerAddr()
+	}
+
+	return tx.GetSndAddr()
+}

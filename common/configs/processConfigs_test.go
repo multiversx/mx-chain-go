@@ -3,6 +3,7 @@ package configs_test
 import (
 	"strings"
 	"testing"
+	"time"
 
 	"github.com/multiversx/mx-chain-go/common/configs"
 	"github.com/multiversx/mx-chain-go/config"
@@ -22,6 +23,7 @@ func getConfigsByRound() []config.ProcessConfigByRound {
 			NumFloodingRoundsFastReacting:          3,
 			NumFloodingRoundsOutOfSpecs:            4,
 			MaxConsecutiveRoundsOfRatingDecrease:   600,
+			MaxBlockProcessingTimeMs:               1000,
 		},
 		{
 			EnableRound:                            1,
@@ -32,6 +34,7 @@ func getConfigsByRound() []config.ProcessConfigByRound {
 			NumFloodingRoundsFastReacting:          30,
 			NumFloodingRoundsOutOfSpecs:            40,
 			MaxConsecutiveRoundsOfRatingDecrease:   6000,
+			MaxBlockProcessingTimeMs:               1000,
 		},
 	}
 }
@@ -171,6 +174,7 @@ func TestProcessConfigsByEpoch_Getters(t *testing.T) {
 			NumFloodingRoundsFastReacting:          3,
 			NumFloodingRoundsOutOfSpecs:            4,
 			MaxConsecutiveRoundsOfRatingDecrease:   600,
+			MaxBlockProcessingTimeMs:               1000,
 		},
 		{EnableRound: 1,
 			MaxRoundsWithoutNewBlockReceived:       11,
@@ -182,6 +186,7 @@ func TestProcessConfigsByEpoch_Getters(t *testing.T) {
 			NumFloodingRoundsFastReacting:          30,
 			NumFloodingRoundsOutOfSpecs:            40,
 			MaxConsecutiveRoundsOfRatingDecrease:   6000,
+			MaxBlockProcessingTimeMs:               2000,
 		},
 	}
 
@@ -267,6 +272,18 @@ func TestProcessConfigsByEpoch_Getters(t *testing.T) {
 
 		res = pce.GetMaxRoundsToKeepUnprocessedTransactions(1)
 		require.Equal(t, uint64(500), res)
+	})
+
+	t.Run("get max block processing time", func(t *testing.T) {
+		t.Parallel()
+
+		pce, _ := configs.NewProcessConfigsHandler(conf, confByRound, &epochNotifier.RoundNotifierStub{})
+
+		res := pce.GetMaxBlockProcessingTime(0)
+		require.Equal(t, time.Duration(1000)*time.Millisecond, res)
+
+		res = pce.GetMaxBlockProcessingTime(1)
+		require.Equal(t, time.Duration(2000)*time.Millisecond, res)
 	})
 
 	t.Run("get max rounds to keep unprocessed mini blocks", func(t *testing.T) {

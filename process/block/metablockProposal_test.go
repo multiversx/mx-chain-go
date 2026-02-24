@@ -1619,6 +1619,39 @@ func TestMetaProcessor_VerifyBlockProposal(t *testing.T) {
 		err = mp.VerifyBlockProposal(header, body, haveTime)
 		require.NoError(t, err)
 	})
+	t.Run("epoch change proposed with miniblocks in body, should error", func(t *testing.T) {
+		t.Parallel()
+
+		prevBlockHash := []byte("prev header hash")
+		coreComponents, dataComponents, bootstrapComponents, statusComponents := createMockComponentHolders()
+		dataComponents = &mock.DataComponentsMock{
+			Storage:  dataComponents.Storage,
+			DataPool: dataComponents.DataPool,
+			BlockChain: &testscommon.ChainHandlerStub{
+				GetCurrentBlockHeaderHashCalled: func() []byte {
+					return prevBlockHash
+				},
+				GetCurrentBlockHeaderCalled: func() data.HeaderHandler {
+					return &block.MetaBlockV3{}
+				},
+			},
+		}
+		arguments := createMockMetaArguments(coreComponents, dataComponents, bootstrapComponents, statusComponents)
+		mp, err := blproc.NewMetaProcessor(arguments)
+		require.Nil(t, err)
+
+		header := &block.MetaBlockV3{
+			PrevHash:            prevBlockHash,
+			Nonce:               1,
+			Round:               1,
+			EpochChangeProposed: true,
+		}
+		body := &block.Body{MiniBlocks: []*block.MiniBlock{
+			{SenderShardID: 0},
+		}}
+		err = mp.VerifyBlockProposal(header, body, haveTime)
+		require.ErrorIs(t, err, process.ErrEpochStartProposeBlockHasMiniBlocks)
+	})
 }
 
 func Test_checkShardHeadersValidityAndFinalityProposal(t *testing.T) {
