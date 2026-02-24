@@ -159,19 +159,20 @@ func (pcf *processComponentsFactory) createAOTSelector(
 	}
 
 	aotSelectorArgs := aotSelection.AOTSelectorArgs{
-		NodesCoordinator:     pcf.nodesCoordinator,
-		ShardCoordinator:     shardCoordinator,
-		KeysHandler:          pcf.crypto.KeysHandler(),
-		NodeRedundancy:       pcf.nodeRedundancyHandler,
-		TxCache:              txCache,
-		AccountsAdapter:      pcf.state.AccountsAdapterProposal(),
-		TransactionProcessor: transactionProcessor,
-		TxVersionChecker:     pcf.coreData.TxVersionChecker(),
-		BlockChain:           pcf.data.Blockchain(),
-		EconomicsDataHandler: pcf.coreData.EconomicsData(),
-		SelectionTimeout:     time.Duration(pcf.config.AOTSelection.SelectionTimeoutMs) * time.Millisecond,
-		CacheSize:            pcf.config.AOTSelection.CacheSize,
-		MaxTxsPerBlock:       pcf.config.TxCacheSelection.SelectionMaxNumTxs,
+		NodesCoordinator:          pcf.nodesCoordinator,
+		ShardCoordinator:          shardCoordinator,
+		KeysHandler:               pcf.crypto.KeysHandler(),
+		NodeRedundancy:            pcf.nodeRedundancyHandler,
+		TxCache:                   txCache,
+		AccountsAdapter:           pcf.state.AccountsAdapterProposal(),
+		TransactionProcessor:      transactionProcessor,
+		TxVersionChecker:          pcf.coreData.TxVersionChecker(),
+		BlockChain:                pcf.data.Blockchain(),
+		EconomicsDataHandler:      pcf.coreData.EconomicsData(),
+		SelectionTimeout:          time.Duration(pcf.config.AOTSelection.SelectionTimeoutMs) * time.Millisecond,
+		CacheSize:                 pcf.config.AOTSelection.CacheSize,
+		MaxTxsPerBlock:            pcf.config.TxCacheSelection.SelectionMaxNumTxs,
+		LoopDurationCheckInterval: pcf.config.TxCacheSelection.SelectionLoopDurationCheckInterval,
 	}
 
 	aotSelector, err := aotSelection.NewAOTSelector(aotSelectorArgs)

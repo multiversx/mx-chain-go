@@ -11,6 +11,7 @@ type breadcrumbsValidator struct {
 	sendersInContinuityWithSessionNonce map[string]struct{}
 	accountPreviousBreadcrumb           map[string]*accountBreadcrumb
 	virtualBalancesByAddress            map[string]*virtualAccountBalance
+	discontinuousAddresses              map[string]struct{}
 }
 
 // newBreadcrumbValidator is used when the validation for a proposed block is called (when receiving the OnProposedBlock notification).
@@ -20,6 +21,7 @@ func newBreadcrumbValidator() *breadcrumbsValidator {
 		sendersInContinuityWithSessionNonce: make(map[string]struct{}),
 		accountPreviousBreadcrumb:           make(map[string]*accountBreadcrumb),
 		virtualBalancesByAddress:            make(map[string]*virtualAccountBalance),
+		discontinuousAddresses:              make(map[string]struct{}),
 	}
 }
 
@@ -92,6 +94,18 @@ func (validator *breadcrumbsValidator) validateContinuityWithPreviousBreadcrumb(
 	validator.accountPreviousBreadcrumb[address] = breadcrumb
 
 	return true
+}
+
+// markAddressAsDiscontinuous marks an address as having discontinuous breadcrumbs.
+// This is used during predecessor block validation to tolerate stale breadcrumbs.
+func (validator *breadcrumbsValidator) markAddressAsDiscontinuous(address string) {
+	validator.discontinuousAddresses[address] = struct{}{}
+}
+
+// isAddressDiscontinuous checks if an address has been marked as having discontinuous breadcrumbs.
+func (validator *breadcrumbsValidator) isAddressDiscontinuous(address string) bool {
+	_, ok := validator.discontinuousAddresses[address]
+	return ok
 }
 
 // validateBalance is used for the OnProposedBlock flow, when validating the compiled breadcrumbs.

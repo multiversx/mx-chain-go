@@ -234,6 +234,10 @@ func (mp *metaProcessor) VerifyBlockProposal(
 		return process.ErrWrongTypeAssertion
 	}
 
+	if header.IsEpochChangeProposed() && len(body.MiniBlocks) != 0 {
+		return process.ErrEpochStartProposeBlockHasMiniBlocks
+	}
+
 	err = mp.checkHeaderBodyCorrelationProposal(header.GetMiniBlockHeaderHandlers(), body)
 	if err != nil {
 		return err
@@ -380,7 +384,7 @@ func (mp *metaProcessor) ProcessBlockProposal(
 	// although we can have a long time for processing, it being decoupled from consensus,
 	// we still give some reasonable timeout
 	proposalStartTime := time.Now()
-	haveTime := getHaveTimeForProposal(proposalStartTime, maxBlockProcessingTime)
+	haveTime := getHaveTimeForProposal(proposalStartTime, mp.processConfigsHandler.GetMaxBlockProcessingTime(headerHandler.GetRound()))
 
 	err = mp.txCoordinator.IsDataPreparedForProcessing(haveTime)
 	if err != nil {
@@ -737,6 +741,7 @@ func (mp *metaProcessor) createExecutionResult(
 
 	mp.cacheOrderedTxHashes(headerHash)
 	mp.cacheUnexecutableTxHashes(headerHash)
+	mp.cacheHeaderGasData(headerHash)
 
 	return executionResult, nil
 }

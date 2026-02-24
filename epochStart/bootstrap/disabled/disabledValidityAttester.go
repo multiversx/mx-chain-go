@@ -26,8 +26,8 @@ func (v *validityAttester) CheckBlockAgainstRoundHandler(_ data.HeaderHandler) e
 	return nil
 }
 
-// CheckBlockAgainstWhitelist -
-func (v *validityAttester) CheckBlockAgainstWhitelist(_ process.InterceptedData) bool {
+// CheckAgainstWhitelist -
+func (v *validityAttester) CheckAgainstWhitelist(_ process.InterceptedData) bool {
 	return false
 }
 
