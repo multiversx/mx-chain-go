@@ -2262,7 +2262,7 @@ func (bp *baseProcessor) getPruningHandler(finalHeaderNonce uint64) state.Prunin
 		return state.NewPruningHandler(state.DisableDataRemoval)
 	}
 
-	if bp.closingNodeStarted.Load() == true {
+	if bp.closingNodeStarted.Load() {
 		log.Debug("will skip pruning as closing node already started",
 			"finalHeaderNonce", finalHeaderNonce,
 		)

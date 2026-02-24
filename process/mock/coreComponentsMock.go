@@ -1,6 +1,7 @@
 package mock
 
 import (
+	"sync"
 	"sync/atomic"
 
 	"github.com/multiversx/mx-chain-core-go/core"
@@ -52,6 +53,7 @@ type CoreComponentsMock struct {
 	CommonConfigsHandlerField          common.CommonConfigsHandler
 	SyncTimerField                     ntp.SyncTimer
 	AntifloodConfigsHandlerField       common.AntifloodConfigsHandler
+	mut                                sync.RWMutex
 	ClosingNodeStartedField            *atomic.Bool
 }
 
@@ -234,6 +236,9 @@ func (ccm *CoreComponentsMock) AntifloodConfigsHandler() common.AntifloodConfigs
 
 // ClosingNodeStarted -
 func (ccm *CoreComponentsMock) ClosingNodeStarted() *atomic.Bool {
+	ccm.mut.Lock()
+	defer ccm.mut.Unlock()
+
 	if ccm.ClosingNodeStartedField == nil {
 		ccm.ClosingNodeStartedField = &atomic.Bool{}
 	}

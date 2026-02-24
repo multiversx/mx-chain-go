@@ -94,6 +94,11 @@ func (bp *baseProcessor) GetPruningHandler(finalHeaderNonce uint64) state.Prunin
 	return bp.getPruningHandler(finalHeaderNonce)
 }
 
+// SetClosingNodeStarted -
+func (bp *baseProcessor) SetClosingNodeStarted(val bool) {
+	bp.closingNodeStarted.Store(val)
+}
+
 // SetLastRestartNonce -
 func (bp *baseProcessor) SetLastRestartNonce(lastRestartNonce uint64) {
 	bp.lastRestartNonce = lastRestartNonce

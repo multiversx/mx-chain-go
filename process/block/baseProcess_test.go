@@ -3484,6 +3484,10 @@ func TestBaseProcessor_getPruningHandler(t *testing.T) {
 	bp.SetLastRestartNonce(1)
 	ph = bp.GetPruningHandler(14)
 	assert.True(t, ph.IsPruningEnabled())
+
+	bp.SetClosingNodeStarted(true)
+	ph = bp.GetPruningHandler(14)
+	assert.False(t, ph.IsPruningEnabled())
 }
 
 func TestBaseProcessor_getPruningHandlerSetsDefaulPruningDelay(t *testing.T) {
