@@ -160,12 +160,7 @@ func (s *syncTime) getSleepTime() time.Duration {
 // ForceSync will trigger ntp sync and does not wait for completion
 // it will not trigger if sync already in progress or if the cooldown period has not elapsed
 func (s *syncTime) ForceSync() {
-	s.mut.RLock()
-	elapsed := time.Since(s.lastSyncTime)
-	s.mut.RUnlock()
-
-	if elapsed < syncCooldown {
-		log.Debug("ForceSync ignored: cooldown active", "remaining", syncCooldown-elapsed)
+	if s.isCooldown() {
 		return
 	}
 
@@ -184,12 +179,7 @@ func (s *syncTime) ForceSync() {
 // triggerSync will trigger sync and waits for completion
 // this is called periodically in the ntp sync loop
 func (s *syncTime) triggerSync() {
-	s.mut.RLock()
-	elapsed := time.Since(s.lastSyncTime)
-	s.mut.RUnlock()
-
-	if elapsed < syncCooldown {
-		log.Debug("triggerSync ignored: cooldown active", "remaining", syncCooldown-elapsed)
+	if s.isCooldown() {
 		return
 	}
 
@@ -199,6 +189,19 @@ func (s *syncTime) triggerSync() {
 	})
 
 	<-ch
+}
+
+func (s *syncTime) isCooldown() bool {
+	s.mut.RLock()
+	elapsed := time.Since(s.lastSyncTime)
+	s.mut.RUnlock()
+
+	if elapsed < syncCooldown {
+		log.Debug("sync trigger ignored: cooldown active", "remaining", syncCooldown-elapsed)
+		return true
+	}
+
+	return false
 }
 
 // sync method does the time synchronization and sets the median offset difference between local time
