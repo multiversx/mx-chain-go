@@ -457,7 +457,7 @@ func TestSyncTime_ForceSync(t *testing.T) {
 		require.Equal(t, ntp.NumRequestsFromHost, numCalls)
 	})
 
-	t.Run("TriggerSync should trigger multiple times", func(t *testing.T) {
+	t.Run("TriggerSync should not trigger multiple times", func(t *testing.T) {
 		t.Parallel()
 
 		numCalls := &atomic.Uint32{}
@@ -491,7 +491,8 @@ func TestSyncTime_ForceSync(t *testing.T) {
 		expClockOffset := 1 * time.Millisecond
 		assert.Equal(t, expClockOffset, st.ClockOffset())
 
-		require.Equal(t, ntp.NumRequestsFromHost*4, int(numCalls.Load()))
+		// should not trigger multiple times due to cooldown
+		require.Equal(t, ntp.NumRequestsFromHost, int(numCalls.Load()))
 	})
 
 	t.Run("direct trigger should not trigger if already in progress", func(t *testing.T) {
@@ -525,6 +526,95 @@ func TestSyncTime_ForceSync(t *testing.T) {
 		time.Sleep(time.Duration(ntp.NumRequestsFromHost*10+10) * time.Millisecond)
 
 		require.Equal(t, ntp.NumRequestsFromHost, int(numCalls.Load()))
+	})
+
+	t.Run("ForceSync should skip during cooldown", func(t *testing.T) {
+		t.Parallel()
+
+		numCalls := &atomic.Uint32{}
+
+		st := ntp.NewSyncTime(
+			config.NTPConfig{
+				SyncPeriodSeconds:    3600,
+				Hosts:                []string{"host1"},
+				OutOfBoundsThreshold: 2,
+			},
+			func(options ntp.NTPOptions, hostIndex int) (*beevikNtp.Response, error) {
+				numCalls.Add(1)
+
+				return &beevikNtp.Response{
+					ClockOffset: 1 * time.Millisecond,
+				}, nil
+			},
+		)
+
+		// set lastSyncTime to now, so cooldown is active
+		st.SetLastSyncTime(time.Now())
+
+		st.ForceSync()
+
+		time.Sleep(50 * time.Millisecond)
+
+		require.Equal(t, uint32(0), numCalls.Load())
+	})
+
+	t.Run("ForceSync should work after cooldown expires", func(t *testing.T) {
+		t.Parallel()
+
+		numCalls := &atomic.Uint32{}
+
+		st := ntp.NewSyncTime(
+			config.NTPConfig{
+				SyncPeriodSeconds:    3600,
+				Hosts:                []string{"host1"},
+				OutOfBoundsThreshold: 2,
+			},
+			func(options ntp.NTPOptions, hostIndex int) (*beevikNtp.Response, error) {
+				numCalls.Add(1)
+
+				return &beevikNtp.Response{
+					ClockOffset: 1 * time.Millisecond,
+				}, nil
+			},
+		)
+
+		// set lastSyncTime in the past, so cooldown has expired
+		st.SetLastSyncTime(time.Now().Add(-ntp.SyncCooldownDuration - time.Second))
+
+		st.ForceSync()
+
+		time.Sleep(50 * time.Millisecond)
+
+		require.Equal(t, uint32(ntp.NumRequestsFromHost), numCalls.Load())
+	})
+
+	t.Run("triggerSync should skip during cooldown", func(t *testing.T) {
+		t.Parallel()
+
+		numCalls := &atomic.Uint32{}
+
+		st := ntp.NewSyncTime(
+			config.NTPConfig{
+				SyncPeriodSeconds:    3600,
+				Hosts:                []string{"host1"},
+				OutOfBoundsThreshold: 2,
+			},
+			func(options ntp.NTPOptions, hostIndex int) (*beevikNtp.Response, error) {
+				numCalls.Add(1)
+
+				return &beevikNtp.Response{
+					ClockOffset: 1 * time.Millisecond,
+				}, nil
+			},
+		)
+
+		// set lastSyncTime to now, so cooldown is active
+		st.SetLastSyncTime(time.Now())
+
+		// triggerSync should still work regardless of cooldown
+		st.TriggerSync()
+
+		require.Equal(t, uint32(0), numCalls.Load())
 	})
 }
 

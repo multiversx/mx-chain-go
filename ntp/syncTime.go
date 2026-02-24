@@ -44,6 +44,10 @@ const maxAllowedNTPQueryResponseTimeMS = 200
 
 const syncKey = "ntp-sync"
 
+// syncCooldown represents the minimum time between two consecutive syncs.
+// This prevents excessive NTP queries when ForceSync is called frequently.
+const syncCooldown = 10 * time.Minute
+
 // NTPOptions defines configuration options for a NTP query
 type NTPOptions struct {
 	Hosts        []string
@@ -93,6 +97,7 @@ type syncTime struct {
 	query                func(options NTPOptions, hostIndex int) (*ntp.Response, error)
 	cancelFunc           func()
 	outOfBoundsThreshold time.Duration
+	lastSyncTime         time.Time
 
 	sf singleflight.Group
 }
@@ -153,8 +158,17 @@ func (s *syncTime) getSleepTime() time.Duration {
 }
 
 // ForceSync will trigger ntp sync and does not wait for completion
-// it will not trigger if sync already in progress
+// it will not trigger if sync already in progress or if the cooldown period has not elapsed
 func (s *syncTime) ForceSync() {
+	s.mut.RLock()
+	elapsed := time.Since(s.lastSyncTime)
+	s.mut.RUnlock()
+
+	if elapsed < syncCooldown {
+		log.Debug("ForceSync ignored: cooldown active", "remaining", syncCooldown-elapsed)
+		return
+	}
+
 	ch := s.sf.DoChan(syncKey, func() (any, error) {
 		s.sync()
 		return nil, nil
@@ -170,6 +184,15 @@ func (s *syncTime) ForceSync() {
 // triggerSync will trigger sync and waits for completion
 // this is called periodically in the ntp sync loop
 func (s *syncTime) triggerSync() {
+	s.mut.RLock()
+	elapsed := time.Since(s.lastSyncTime)
+	s.mut.RUnlock()
+
+	if elapsed < syncCooldown {
+		log.Debug("triggerSync ignored: cooldown active", "remaining", syncCooldown-elapsed)
+		return
+	}
+
 	ch := s.sf.DoChan(syncKey, func() (any, error) {
 		s.sync()
 		return nil, nil
@@ -244,6 +267,10 @@ func (s *syncTime) sync() {
 	}
 
 	s.setClockOffset(clockOffset)
+
+	s.mut.Lock()
+	s.lastSyncTime = time.Now()
+	s.mut.Unlock()
 
 	log.Debug("sync.setClockOffset done",
 		"num clock offsets", len(clockOffsets),
