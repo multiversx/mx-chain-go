@@ -3892,8 +3892,10 @@ func TestMetaProcessor_processEpochStartProposeBlock(t *testing.T) {
 		require.Equal(t, expectedErr, err)
 	})
 
-	t.Run("if committing the state fails, the error should be propagated", func(t *testing.T) {
+	t.Run("commit state is not called by processEpochStartProposeBlock", func(t *testing.T) {
 		t.Parallel()
+
+		commitCalled := false
 
 		coreComponents, dataComponents, boostrapComponents, statusComponents := createMockComponentHolders()
 		blockchainMock := &testscommon.ChainHandlerMock{}
@@ -3915,7 +3917,8 @@ func TestMetaProcessor_processEpochStartProposeBlock(t *testing.T) {
 		accountsDb := make(map[state.AccountsDbIdentifier]state.AccountsAdapter)
 		accounts := &testscommonState.AccountsStub{
 			CommitCalled: func() ([]byte, error) {
-				return nil, expectedErr
+				commitCalled = true
+				return []byte("stateRoot"), nil
 			},
 		}
 		accountsDb[state.UserAccountsState] = accounts
@@ -3928,7 +3931,8 @@ func TestMetaProcessor_processEpochStartProposeBlock(t *testing.T) {
 		mp.SetEpochStartData(&blproc.EpochStartDataWrapper{})
 
 		_, err = mp.ProcessEpochStartProposeBlock(&defaultMetaBlockV3, &block.Body{})
-		require.Equal(t, expectedErr, err)
+		require.Nil(t, err)
+		require.False(t, commitCalled)
 	})
 
 	t.Run("if HandleProcessErrorCutoff fails, the error should be propagated", func(t *testing.T) {
@@ -4838,8 +4842,10 @@ func TestMetaProcessor_ProcessBlockProposal(t *testing.T) {
 		require.Equal(t, expectedErr, err)
 	})
 
-	t.Run("if committing the state fails, the error should be propagated", func(t *testing.T) {
+	t.Run("commit state is not called by ProcessBlockProposal", func(t *testing.T) {
 		t.Parallel()
+
+		commitCalled := false
 
 		coreComponents, dataComponents, boostrapComponents, statusComponents := createMockComponentHolders()
 		dataComponents.BlockChain = &testscommon.ChainHandlerStub{
@@ -4856,7 +4862,8 @@ func TestMetaProcessor_ProcessBlockProposal(t *testing.T) {
 		accountsDb := make(map[state.AccountsDbIdentifier]state.AccountsAdapter)
 		accounts := &testscommonState.AccountsStub{
 			CommitCalled: func() ([]byte, error) {
-				return nil, expectedErr
+				commitCalled = true
+				return []byte("stateRoot"), nil
 			},
 			RootHashCalled: func() ([]byte, error) {
 				return nil, nil
@@ -4876,7 +4883,12 @@ func TestMetaProcessor_ProcessBlockProposal(t *testing.T) {
 		newBlock := defaultMetaBlockV3
 		newBlock.Nonce = 1
 		_, err = mp.ProcessBlockProposal(&newBlock, []byte("headerHash"), &block.Body{})
-		require.Equal(t, expectedErr, err)
+		require.Nil(t, err)
+		require.False(t, commitCalled)
+
+		err = mp.CommitBlockProposalState(&newBlock)
+		require.Nil(t, err)
+		require.True(t, commitCalled)
 	})
 
 	t.Run("if HandleProcessErrorCutoff fails, the error should be propagated", func(t *testing.T) {
