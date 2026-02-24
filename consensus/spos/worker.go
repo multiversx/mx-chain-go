@@ -60,6 +60,7 @@ type Worker struct {
 	headerIntegrityVerifier process.HeaderIntegrityVerifier
 	appStatusHandler        core.AppStatusHandler
 	enableEpochsHandler     common.EnableEpochsHandler
+	enableRoundsHandler     common.EnableRoundsHandler
 
 	networkShardingCollector consensus.NetworkShardingCollector
 
@@ -123,6 +124,7 @@ type WorkerArgs struct {
 	PeerBlacklistHandler     consensus.PeerBlacklistHandler
 	EnableEpochsHandler      common.EnableEpochsHandler
 	InvalidSignersCache      InvalidSignersCache
+	EnableRoundsHandler      common.EnableRoundsHandler
 }
 
 // NewWorker creates a new Worker object
@@ -180,6 +182,7 @@ func NewWorker(args *WorkerArgs) (*Worker, error) {
 		peerBlacklistHandler:     args.PeerBlacklistHandler,
 		closer:                   closing.NewSafeChanCloser(),
 		enableEpochsHandler:      args.EnableEpochsHandler,
+		enableRoundsHandler:      args.EnableRoundsHandler,
 		invalidSignersCache:      args.InvalidSignersCache,
 		consensusMetrics:         consensusMetrics,
 	}
@@ -868,18 +871,21 @@ func (wrk *Worker) Extend(subroundId int) {
 
 	log.Debug("current block is reverted")
 
-	header := wrk.consensusState.GetHeader()
-	if check.IfNil(header) {
-		return
-	}
-
-	isHeaderV3 := header.IsHeaderV3()
-	if !isHeaderV3 {
+	if !wrk.isAsyncExecEnabled() {
 		wrk.scheduledProcessor.ForceStopScheduledExecutionBlocking()
 		wrk.blockProcessor.RevertCurrentBlock()
 	}
 
 	wrk.removeConsensusHeaderFromPool()
+}
+
+func (wrk *Worker) isAsyncExecEnabled() bool {
+	header := wrk.consensusState.GetHeader()
+	if !check.IfNil(header) {
+		return header.IsHeaderV3()
+	}
+
+	return wrk.enableRoundsHandler.IsFlagEnabled(common.SupernovaRoundFlag)
 }
 
 func (wrk *Worker) removeConsensusHeaderFromPool() {
