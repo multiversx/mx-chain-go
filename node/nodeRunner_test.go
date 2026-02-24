@@ -3,6 +3,7 @@ package node
 import (
 	"os"
 	"path"
+	"sync/atomic"
 	"syscall"
 	"testing"
 	"time"
@@ -196,6 +197,7 @@ func TestWaitForSignal(t *testing.T) {
 			httpClosableComponent,
 			n,
 			1,
+			&atomic.Bool{},
 		)
 
 		assert.Equal(t, nextOperationShouldStop, nextOperation)
@@ -222,6 +224,7 @@ func TestWaitForSignal(t *testing.T) {
 			httpClosableComponent,
 			n,
 			1,
+			&atomic.Bool{},
 		)
 
 		assert.Equal(t, nextOperationShouldRestart, nextOperation)
@@ -250,6 +253,7 @@ func TestWaitForSignal(t *testing.T) {
 				httpClosableComponent,
 				n,
 				1,
+				&atomic.Bool{},
 			)
 			close(functionFinished)
 		}()
@@ -290,6 +294,7 @@ func TestWaitForSignal(t *testing.T) {
 			httpClosableComponent,
 			n,
 			1,
+			&atomic.Bool{},
 		)
 
 		// these exceptions appear because the delayedComponent prevented the call of the first 2 components
@@ -319,6 +324,7 @@ func TestWaitForSignal(t *testing.T) {
 			httpClosableComponent,
 			n,
 			1,
+			&atomic.Bool{},
 		)
 
 		// these exceptions appear because the delayedComponent prevented the call of the first 2 components

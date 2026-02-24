@@ -8,6 +8,7 @@ import (
 	"math/big"
 	"sort"
 	"sync"
+	"sync/atomic"
 	"time"
 
 	"github.com/multiversx/mx-chain-core-go/core"
@@ -147,6 +148,7 @@ type baseProcessor struct {
 	txExecutionOrderHandler            common.TxExecutionOrderHandler
 	aotSelector                        process.AOTTransactionSelector
 	maxProposalNonceGap                uint64
+	closingNodeStarted                 *atomic.Bool
 }
 
 type bootStorerDataArgs struct {
@@ -243,6 +245,7 @@ func NewBaseProcessor(arguments ArgBaseProcessor) (*baseProcessor, error) {
 		txExecutionOrderHandler:            arguments.TxExecutionOrderHandler,
 		aotSelector:                        arguments.AOTSelector,
 		maxProposalNonceGap:                maxProposalNonceGap,
+		closingNodeStarted:                 arguments.CoreComponents.ClosingNodeStarted(),
 	}
 
 	err = base.OnExecutedBlock(genesisHdr, genesisHdr.GetRootHash())
@@ -2238,6 +2241,13 @@ func (bp *baseProcessor) getPruningHandler(finalHeaderNonce uint64) state.Prunin
 			"finalHeaderNonce", finalHeaderNonce,
 			"last restart nonce", bp.lastRestartNonce,
 			"num blocks for pruning delay", bp.pruningDelay,
+		)
+		return state.NewPruningHandler(state.DisableDataRemoval)
+	}
+
+	if bp.closingNodeStarted.Load() == true {
+		log.Debug("will skip pruning as closing node already started",
+			"finalHeaderNonce", finalHeaderNonce,
 		)
 		return state.NewPruningHandler(state.DisableDataRemoval)
 	}

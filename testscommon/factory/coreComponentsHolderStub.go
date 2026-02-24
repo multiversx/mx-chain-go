@@ -1,6 +1,7 @@
 package factory
 
 import (
+	"sync/atomic"
 	"time"
 
 	"github.com/multiversx/mx-chain-core-go/core"
@@ -64,6 +65,7 @@ type CoreComponentsHolderStub struct {
 	ProcessConfigsHandlerCalled         func() common.ProcessConfigsHandler
 	CommonConfigsHandlerCalled          func() common.CommonConfigsHandler
 	AntifloodConfigsHandlerCalled       func() common.AntifloodConfigsHandler
+	ClosingNodeStartedCalled            func() *atomic.Bool
 }
 
 // NewCoreComponentsHolderStubFromRealComponent -
@@ -457,6 +459,15 @@ func (stub *CoreComponentsHolderStub) AntifloodConfigsHandler() common.Antiflood
 	}
 
 	return nil
+}
+
+// ClosingNodeStarted -
+func (stub *CoreComponentsHolderStub) ClosingNodeStarted() *atomic.Bool {
+	if stub.ClosingNodeStartedCalled != nil {
+		return stub.ClosingNodeStartedCalled()
+	}
+
+	return &atomic.Bool{}
 }
 
 // IsInterfaceNil -

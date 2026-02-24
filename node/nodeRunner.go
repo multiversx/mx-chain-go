@@ -10,6 +10,7 @@ import (
 	"path/filepath"
 	"runtime"
 	"strconv"
+	"sync/atomic"
 	"syscall"
 	"time"
 
@@ -574,6 +575,7 @@ func (nr *nodeRunner) executeOneComponentCreationCycle(
 		webServerHandler,
 		currentNode,
 		goRoutinesNumberStart,
+		managedCoreComponents.ClosingNodeStarted(),
 	)
 
 	return nextOperation == nextOperationShouldStop, nil
@@ -989,6 +991,7 @@ func waitForSignal(
 	httpServer shared.UpgradeableHttpServerHandler,
 	currentNode *Node,
 	goRoutinesNumberStart int,
+	closingNodeStarted *atomic.Bool,
 ) nextOperationForNode {
 	var sig endProcess.ArgEndProcess
 	reshuffled := false
@@ -1011,7 +1014,7 @@ func waitForSignal(
 
 	chanCloseComponents := make(chan struct{})
 	go func() {
-		closeAllComponents(healthService, facade, httpServer, currentNode, chanCloseComponents)
+		closeAllComponents(healthService, facade, httpServer, currentNode, chanCloseComponents, closingNodeStarted)
 	}()
 
 	select {
@@ -1584,7 +1587,10 @@ func closeAllComponents(
 	httpServer shared.UpgradeableHttpServerHandler,
 	node *Node,
 	chanCloseComponents chan struct{},
+	closingNodeStarted *atomic.Bool,
 ) {
+	closingNodeStarted.Store(true)
+
 	log.Debug("closing health service...")
 	err := healthService.Close()
 	log.LogIfError(err)
