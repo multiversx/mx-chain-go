@@ -12,6 +12,8 @@ type BlockProcessorStub struct {
 	SetNumProcessedObjCalled         func(numObj uint64)
 	ProcessBlockCalled               func(header data.HeaderHandler, body data.BodyHandler, haveTime func() time.Duration) error
 	ProcessBlockProposalCalled       func(header data.HeaderHandler, headerHash []byte, body data.BodyHandler) (data.BaseExecutionResultHandler, error)
+	CommitBlockProposalStateCalled   func(headerHandler data.HeaderHandler) error
+	RevertBlockProposalStateCalled   func()
 	ProcessScheduledBlockCalled      func(header data.HeaderHandler, body data.BodyHandler, haveTime func() time.Duration) error
 	CommitBlockCalled                func(header data.HeaderHandler, body data.BodyHandler) error
 	RevertCurrentBlockCalled         func()
@@ -71,6 +73,22 @@ func (bps *BlockProcessorStub) ProcessBlockProposal(header data.HeaderHandler, h
 	}
 
 	return nil, nil
+}
+
+// CommitBlockProposalState -
+func (bps *BlockProcessorStub) CommitBlockProposalState(headerHandler data.HeaderHandler) error {
+	if bps.CommitBlockProposalStateCalled != nil {
+		return bps.CommitBlockProposalStateCalled(headerHandler)
+	}
+
+	return nil
+}
+
+// RevertBlockProposalState -
+func (bps *BlockProcessorStub) RevertBlockProposalState() {
+	if bps.RevertBlockProposalStateCalled != nil {
+		bps.RevertBlockProposalStateCalled()
+	}
 }
 
 // ProcessScheduledBlock mocks processing a scheduled block
