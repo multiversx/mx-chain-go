@@ -611,10 +611,41 @@ func TestSyncTime_ForceSync(t *testing.T) {
 		// set lastSyncTime to now, so cooldown is active
 		st.SetLastSyncTime(time.Now())
 
-		// triggerSync should still work regardless of cooldown
+		// triggerSync should still skip during cooldown
 		st.TriggerSync()
 
 		require.Equal(t, uint32(0), numCalls.Load())
+	})
+
+	t.Run("ForceSync followed by TriggerSync within cooldown should result in a single sync", func(t *testing.T) {
+		t.Parallel()
+
+		numCalls := &atomic.Uint32{}
+
+		st := ntp.NewSyncTime(
+			config.NTPConfig{
+				SyncPeriodSeconds:    3600,
+				Hosts:                []string{"host1"},
+				OutOfBoundsThreshold: 2,
+			},
+
+			func(options ntp.NTPOptions, hostIndex int) (*beevikNtp.Response, error) {
+				numCalls.Add(1)
+				return &beevikNtp.Response{
+					ClockOffset: 1 * time.Millisecond,
+				}, nil
+			},
+		)
+
+		// call ForceSync to perform a sync and start cooldown
+		st.ForceSync()
+		time.Sleep(50 * time.Millisecond)
+
+		st.TriggerSync()
+		time.Sleep(50 * time.Millisecond)
+
+		// only one sync operation should have been performed
+		require.Equal(t, uint32(ntp.NumRequestsFromHost), numCalls.Load())
 	})
 }
 
