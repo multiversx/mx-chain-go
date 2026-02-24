@@ -1,7 +1,6 @@
 package mock
 
 import (
-	"sync"
 	"sync/atomic"
 
 	"github.com/multiversx/mx-chain-core-go/core"
@@ -53,7 +52,6 @@ type CoreComponentsMock struct {
 	CommonConfigsHandlerField          common.CommonConfigsHandler
 	SyncTimerField                     ntp.SyncTimer
 	AntifloodConfigsHandlerField       common.AntifloodConfigsHandler
-	mut                                sync.RWMutex
 	ClosingNodeStartedField            *atomic.Bool
 }
 
