@@ -282,8 +282,7 @@ func (bp *baseProcessor) checkBlockValidity(
 	if check.IfNil(currentBlockHeader) {
 		if headerHandler.GetNonce() == bp.genesisNonce+1 { // first block after genesis
 			if bytes.Equal(headerHandler.GetPrevHash(), bp.blockChain.GetGenesisHeaderHash()) {
-				// TODO: add genesis block verification
-				return nil
+				return bp.checkTimestamp(headerHandler)
 			}
 
 			log.Debug("hash does not match",
@@ -335,6 +334,24 @@ func (bp *baseProcessor) checkBlockValidity(
 	// verification of epoch
 	if headerHandler.GetEpoch() < currentBlockHeader.GetEpoch() {
 		return process.ErrEpochDoesNotMatch
+	}
+
+	return bp.checkTimestamp(headerHandler)
+}
+
+func (bp *baseProcessor) checkTimestamp(headerHandler data.HeaderHandler) error {
+	_, headerTimestampMs, err := common.GetHeaderTimestamps(headerHandler, bp.enableEpochsHandler)
+	if err != nil {
+		return err
+	}
+
+	expectedTimestampMs := bp.roundHandler.GetTimeStampForRound(headerHandler.GetRound())
+	if headerTimestampMs != expectedTimestampMs {
+		log.Debug("timestamp does not match",
+			"expected timestamp ms", expectedTimestampMs,
+			"received timestamp ms", headerTimestampMs)
+
+		return process.ErrInvalidTimestamp
 	}
 
 	return nil

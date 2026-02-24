@@ -493,6 +493,7 @@ type ProcessConfigsHandler interface {
 	GetMaxSyncWithErrorsAllowed(round uint64) uint32
 	GetMaxRoundsToKeepUnprocessedTransactions(round uint64) uint64
 	GetMaxRoundsToKeepUnprocessedMiniBlocks(round uint64) uint64
+	GetMaxBlockProcessingTime(round uint64) time.Duration
 
 	GetValue(variable dto.ConfigVariable) uint64
 

@@ -4,6 +4,7 @@ import (
 	"bytes"
 	"errors"
 	"fmt"
+	"sort"
 	"time"
 
 	"github.com/multiversx/mx-chain-core-go/core"
@@ -22,9 +23,6 @@ type pendingBlocksAfterSelection struct {
 	header            data.HeaderHandler
 	pendingMiniBlocks map[string]*block.MiniBlock
 }
-
-// TODO: maybe move this to config
-const maxBlockProcessingTime = 3 * time.Second
 
 // CreateNewHeaderProposal creates a new header proposal
 func (sp *shardProcessor) CreateNewHeaderProposal(round uint64, nonce uint64) (data.HeaderHandler, error) {
@@ -331,7 +329,7 @@ func (sp *shardProcessor) ProcessBlockProposal(
 	// although we can have a long time for processing, it being decoupled from consensus,
 	// we still give some reasonable timeout
 	proposalStartTime := time.Now()
-	haveTime := getHaveTimeForProposal(proposalStartTime, maxBlockProcessingTime)
+	haveTime := getHaveTimeForProposal(proposalStartTime, sp.processConfigsHandler.GetMaxBlockProcessingTime(headerHandler.GetRound()))
 
 	err = sp.txCoordinator.IsDataPreparedForProcessing(haveTime)
 	if err != nil {
@@ -874,14 +872,14 @@ func (sp *shardProcessor) collectExecutionResults(headerHash []byte, header data
 func (sp *shardProcessor) getOrderedProcessedMetaBlocksFromMiniBlockHashesV3(
 	header data.HeaderHandler,
 	miniBlockHashes map[int][]byte,
-) ([]data.HeaderHandler, error) {
+) ([]data.HeaderHandler, []*hashAndHdr, error) {
 	shardHeader, ok := header.(data.ShardHeaderHandler)
 	if !ok {
-		return nil, process.ErrWrongTypeAssertion
+		return nil, nil, process.ErrWrongTypeAssertion
 	}
 	metaHeaderHashes, metaHeaders, err := sp.getReferencedMetaHeadersFromPool(shardHeader)
 	if err != nil {
-		return nil, err
+		return nil, nil, err
 	}
 
 	hashSet := make(map[string]struct{}, len(miniBlockHashes))
@@ -889,7 +887,9 @@ func (sp *shardProcessor) getOrderedProcessedMetaBlocksFromMiniBlockHashesV3(
 		hashSet[string(b)] = struct{}{}
 	}
 
+	partialReferencedMetaBlocks := make([]*hashAndHdr, 0)
 	fullyReferencedMetaBlocks := make([]data.HeaderHandler, 0, len(metaHeaders))
+
 	var remaining int
 	var metaHeaderHash []byte
 	for i, metaHeader := range metaHeaders {
@@ -915,12 +915,20 @@ func (sp *shardProcessor) getOrderedProcessedMetaBlocksFromMiniBlockHashesV3(
 		}
 		if remaining == 0 {
 			fullyReferencedMetaBlocks = append(fullyReferencedMetaBlocks, metaHeader)
+		} else {
+			partialReferencedMetaBlocks = append(partialReferencedMetaBlocks, &hashAndHdr{
+				hdr:  metaHeader,
+				hash: metaHeaderHash,
+			})
 		}
 	}
 
 	process.SortHeadersByNonce(fullyReferencedMetaBlocks)
+	sort.Slice(partialReferencedMetaBlocks, func(i, j int) bool {
+		return partialReferencedMetaBlocks[i].hdr.GetNonce() < partialReferencedMetaBlocks[j].hdr.GetNonce()
+	})
 
-	return fullyReferencedMetaBlocks, nil
+	return fullyReferencedMetaBlocks, partialReferencedMetaBlocks, nil
 }
 
 func (sp *shardProcessor) saveEpochStartEconomicsIfNeeded(header data.ShardHeaderHandler) {
