@@ -261,7 +261,7 @@ func (sr *subroundEndRound) commitBlock() error {
 }
 
 func (sr *subroundEndRound) doEndRoundJobByNode() bool {
-	if sr.shouldSendProof() {
+	for sr.shouldSendProof() {
 		if !sr.waitForSignalSync() {
 			return false
 		}
@@ -276,13 +276,15 @@ func (sr *subroundEndRound) doEndRoundJobByNode() bool {
 		// if not enough valid signatures were detected, wait a bit more
 		// either more signatures will be received, either proof from another participant
 		if shouldWaitForMoreSignatures {
-			return sr.doEndRoundJobByNode()
+			continue
 		}
 
 		if proofSent {
 			err := sr.prepareBroadcastBlockData()
 			log.LogIfError(err)
 		}
+
+		break
 	}
 
 	return sr.finalizeConfirmedBlock()
