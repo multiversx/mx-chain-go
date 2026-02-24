@@ -437,7 +437,7 @@ func TestTxCache_selectTransactionsFromBunches(t *testing.T) {
 }
 
 func TestBenchmarkTxCache_acquireBunchesOfTransactions(t *testing.T) {
-	config := ConfigSourceMe{
+	cfg := ConfigSourceMe{
 		Name:                        "untitled",
 		NumChunks:                   16,
 		NumBytesThreshold:           1000000000,
@@ -454,7 +454,7 @@ func TestBenchmarkTxCache_acquireBunchesOfTransactions(t *testing.T) {
 	sw := core.NewStopWatch()
 
 	t.Run("numSenders = 10000, numTransactions = 100", func(t *testing.T) {
-		cache, err := NewTxCache(config, host, 0)
+		cache, err := NewTxCache(cfg, host, 0)
 		require.Nil(t, err)
 
 		addManyTransactionsWithUniformDistribution(cache, 10000, 100)
@@ -471,7 +471,7 @@ func TestBenchmarkTxCache_acquireBunchesOfTransactions(t *testing.T) {
 	})
 
 	t.Run("numSenders = 50000, numTransactions = 2", func(t *testing.T) {
-		cache, err := NewTxCache(config, host, 0)
+		cache, err := NewTxCache(cfg, host, 0)
 		require.Nil(t, err)
 
 		addManyTransactionsWithUniformDistribution(cache, 50000, 2)
@@ -488,7 +488,7 @@ func TestBenchmarkTxCache_acquireBunchesOfTransactions(t *testing.T) {
 	})
 
 	t.Run("numSenders = 100000, numTransactions = 1", func(t *testing.T) {
-		cache, err := NewTxCache(config, host, 0)
+		cache, err := NewTxCache(cfg, host, 0)
 		require.Nil(t, err)
 
 		addManyTransactionsWithUniformDistribution(cache, 100000, 1)
@@ -505,7 +505,7 @@ func TestBenchmarkTxCache_acquireBunchesOfTransactions(t *testing.T) {
 	})
 
 	t.Run("numSenders = 300000, numTransactions = 1", func(t *testing.T) {
-		cache, err := NewTxCache(config, host, 0)
+		cache, err := NewTxCache(cfg, host, 0)
 		require.Nil(t, err)
 
 		addManyTransactionsWithUniformDistribution(cache, 300000, 1)
@@ -580,8 +580,10 @@ func TestBenchmarkTxCache_selectTransactionsFromBunches(t *testing.T) {
 		selected, accumulatedGas := selectTransactionsFromBunches(virtualSession, bunches, options)
 		sw.Stop(t.Name())
 
-		require.Equal(t, 200000, len(selected))
-		require.Equal(t, uint64(10_000_000_000), accumulatedGas)
+		// Limited by maxAccountsPerBlock (maxAccountsPerBlock unique senders); exact count depends on heap interleaving
+		require.Greater(t, len(selected), maxAccountsPerBlock)
+		require.LessOrEqual(t, len(selected), 30000)
+		require.Greater(t, accumulatedGas, uint64(maxAccountsPerBlock*50000))
 	})
 
 	t.Run("numSenders = 300000, numTransactions = 1", func(t *testing.T) {
@@ -595,8 +597,9 @@ func TestBenchmarkTxCache_selectTransactionsFromBunches(t *testing.T) {
 		selected, accumulatedGas := selectTransactionsFromBunches(virtualSession, bunches, options)
 		sw.Stop(t.Name())
 
-		require.Equal(t, 200000, len(selected))
-		require.Equal(t, uint64(10_000_000_000), accumulatedGas)
+		// Limited by maxAccountsPerBlock (maxAccountsPerBlock unique senders)
+		require.Equal(t, maxAccountsPerBlock, len(selected))
+		require.Equal(t, uint64(maxAccountsPerBlock*50000), accumulatedGas)
 	})
 
 	for name, measurement := range sw.GetMeasurementsMap() {
@@ -632,7 +635,7 @@ func TestTxCache_selectTransactionsFromBunches_loopBreaks_whenTakesTooLong(t *te
 
 func TestBenchmarkTxCache_doSelectTransactions(t *testing.T) {
 	options := createMockTxSelectionOptions(10_000_000_000, 30_000)
-	config := ConfigSourceMe{
+	cfg := ConfigSourceMe{
 		Name:                        "untitled",
 		NumChunks:                   16,
 		NumBytesThreshold:           1000000000,
@@ -650,7 +653,7 @@ func TestBenchmarkTxCache_doSelectTransactions(t *testing.T) {
 	sw := core.NewStopWatch()
 
 	t.Run("numSenders = 10000, numTransactions = 100, maxNum = 30_000", func(t *testing.T) {
-		cache, err := NewTxCache(config, host, 0)
+		cache, err := NewTxCache(cfg, host, 0)
 		require.Nil(t, err)
 
 		addManyTransactionsWithUniformDistribution(cache, 10000, 100)
@@ -667,7 +670,7 @@ func TestBenchmarkTxCache_doSelectTransactions(t *testing.T) {
 	})
 
 	t.Run("numSenders = 50000, numTransactions = 2, maxNum = 30_000", func(t *testing.T) {
-		cache, err := NewTxCache(config, host, 0)
+		cache, err := NewTxCache(cfg, host, 0)
 		require.Nil(t, err)
 
 		addManyTransactionsWithUniformDistribution(cache, 50000, 2)
@@ -679,12 +682,14 @@ func TestBenchmarkTxCache_doSelectTransactions(t *testing.T) {
 		sw.Stop(t.Name())
 
 		require.NoError(t, err)
-		require.Equal(t, 30_000, len(selected))
-		require.Equal(t, uint64(1_500_000_000), accumulatedGas)
+		// Limited by maxAccountsPerBlock (maxAccountsPerBlock unique senders); exact count depends on heap interleaving
+		require.Greater(t, len(selected), maxAccountsPerBlock)
+		require.LessOrEqual(t, len(selected), 20_000)
+		require.Greater(t, accumulatedGas, uint64(500_000_000))
 	})
 
 	t.Run("numSenders = 100000, numTransactions = 1, maxNum = 30_000", func(t *testing.T) {
-		cache, err := NewTxCache(config, host, 0)
+		cache, err := NewTxCache(cfg, host, 0)
 		require.Nil(t, err)
 
 		addManyTransactionsWithUniformDistribution(cache, 100000, 1)
@@ -696,12 +701,13 @@ func TestBenchmarkTxCache_doSelectTransactions(t *testing.T) {
 		sw.Stop(t.Name())
 
 		require.NoError(t, err)
-		require.Equal(t, 30_000, len(selected))
-		require.Equal(t, uint64(1_500_000_000), accumulatedGas)
+		// Limited by maxAccountsPerBlock (10000 unique senders with 1 tx each)
+		require.Equal(t, maxAccountsPerBlock, len(selected))
+		require.Equal(t, uint64(maxAccountsPerBlock*50000), accumulatedGas)
 	})
 
 	t.Run("numSenders = 300000, numTransactions = 1, maxNum = 30_000", func(t *testing.T) {
-		cache, err := NewTxCache(config, host, 0)
+		cache, err := NewTxCache(cfg, host, 0)
 		require.Nil(t, err)
 
 		addManyTransactionsWithUniformDistribution(cache, 300000, 1)
@@ -713,8 +719,9 @@ func TestBenchmarkTxCache_doSelectTransactions(t *testing.T) {
 		sw.Stop(t.Name())
 
 		require.NoError(t, err)
-		require.Equal(t, 30_000, len(selected))
-		require.Equal(t, uint64(1_500_000_000), accumulatedGas)
+		// Limited by maxAccountsPerBlock (maxAccountsPerBlock unique senders with 1 tx each)
+		require.Equal(t, maxAccountsPerBlock, len(selected))
+		require.Equal(t, uint64(maxAccountsPerBlock*50000), accumulatedGas)
 	})
 
 	for name, measurement := range sw.GetMeasurementsMap() {

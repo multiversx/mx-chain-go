@@ -31,6 +31,7 @@ type StatusMetricsHandler interface {
 	ConfigMetrics() (map[string]interface{}, error)
 	EnableEpochsMetrics() (map[string]interface{}, error)
 	EnableEpochsMetricsV2() map[string]uint32
+	EnableRoundsMetrics() map[string]uint64
 	NetworkMetrics() (map[string]interface{}, error)
 	RatingsMetrics() (map[string]interface{}, error)
 	BootstrapMetrics() (map[string]interface{}, error)

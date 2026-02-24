@@ -1307,6 +1307,7 @@ func TestBootstrap_GetNodeStateShouldReturnNotSynchronizedWhenForkIsDetectedAndI
 		&dataRetrieverMock.ProofsPoolMock{},
 		&chainParameters.ChainParametersHandlerStub{},
 		testscommon.GetDefaultProcessConfigsHandler(),
+		0,
 	)
 
 	bs, _ := sync.NewShardBootstrap(args)
@@ -1388,6 +1389,7 @@ func TestBootstrap_GetNodeStateShouldReturnSynchronizedWhenForkIsDetectedAndItRe
 		&dataRetrieverMock.ProofsPoolMock{},
 		&chainParameters.ChainParametersHandlerStub{},
 		testscommon.GetDefaultProcessConfigsHandler(),
+		0,
 	)
 
 	bs, _ := sync.NewShardBootstrap(args)
@@ -2896,7 +2898,7 @@ func TestShardBootstrap_SyncBlockV3(t *testing.T) {
 
 		args := createSyncBlockV3Args()
 		blockProcessor := &testscommon.BlockProcessorStub{
-			OnProposedBlockCalled: func(proposedBody data.BodyHandler, proposedHeader data.HeaderHandler, proposedHash []byte) error {
+			OnBackfilledBlockCalled: func(proposedBody data.BodyHandler, proposedHeader data.HeaderHandler, proposedHash []byte) error {
 				return errExpected
 			},
 		}
@@ -3157,7 +3159,7 @@ func TestShardBootstrap_SyncBlockV3(t *testing.T) {
 			headerAndHash{header: header5, hash: hash5},
 		)
 		blockProcessor := &testscommon.BlockProcessorStub{
-			OnProposedBlockCalled: func(proposedBody data.BodyHandler, proposedHeader data.HeaderHandler, proposedHash []byte) error {
+			OnBackfilledBlockCalled: func(proposedBody data.BodyHandler, proposedHeader data.HeaderHandler, proposedHash []byte) error {
 				return errExpected
 			},
 		}

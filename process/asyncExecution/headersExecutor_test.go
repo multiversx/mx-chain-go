@@ -191,6 +191,7 @@ func TestHeadersExecutor_ProcessBlock(t *testing.T) {
 				}
 				return &block.BaseExecutionResult{
 					HeaderNonce: 0,
+					HeaderHash:  prevHash,
 				}
 			},
 			GetLastExecutedBlockInfoCalled: func() (uint64, []byte, []byte) {
@@ -217,8 +218,12 @@ func TestHeadersExecutor_ProcessBlock(t *testing.T) {
 			},
 		}
 
+		wasProcessBlockProposalCalled := atomicCore.Flag{}
 		args.BlockProcessor = &processMocks.BlockProcessorStub{
 			ProcessBlockProposalCalled: func(handler data.HeaderHandler, headerHash []byte, body data.BodyHandler) (data.BaseExecutionResultHandler, error) {
+				wasProcessBlockProposalCalled.SetValue(true)
+				time.Sleep(time.Millisecond * 500) // force pause to be called first
+
 				return &block.BaseExecutionResult{
 					HeaderNonce: handler.GetNonce(),
 					HeaderHash:  headerHash,
@@ -229,19 +234,19 @@ func TestHeadersExecutor_ProcessBlock(t *testing.T) {
 		executor, err := NewHeadersExecutor(args)
 		require.NoError(t, err)
 
+		executor.PauseExecution() // coverage, should early exit
+
 		executor.StartExecution()
 
 		// allow some Pop operations
 		time.Sleep(time.Millisecond * 200)
 
-		executor.PauseExecution()
-		time.Sleep(time.Millisecond * 20) // allow current processing to finish
+		require.True(t, wasProcessBlockProposalCalled.IsSet()) // require this here so we know the processing is in progress
+
+		executor.PauseExecution() // blocks until any ongoing processing completes
 		cntWasPopCalledAtPause := atomic.LoadUint32(&cntWasPopCalled)
 
 		executor.PauseExecution() // coverage, already paused
-
-		// wait a bit more
-		time.Sleep(time.Millisecond * 200)
 
 		cntWasPopCalledBeforeResume := atomic.LoadUint32(&cntWasPopCalled)
 		require.Equal(t, cntWasPopCalledAtPause, cntWasPopCalledBeforeResume)

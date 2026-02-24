@@ -71,6 +71,7 @@ func (tpn *TestProcessorNode) initBlockProcessorWithSync() {
 	coreComponents.InternalMarshalizerField = TestMarshalizer
 	coreComponents.HasherField = TestHasher
 	coreComponents.Uint64ByteSliceConverterField = TestUint64Converter
+	coreComponents.RoundHandlerField = tpn.RoundHandler
 	coreComponents.EpochNotifierField = tpn.EpochNotifier
 	coreComponents.RoundNotifierField = tpn.RoundNotifier
 
@@ -291,6 +292,7 @@ func (tpn *TestProcessorNode) initBlockProcessorWithSync() {
 			tpn.DataPool.Proofs(),
 			tpn.ChainParametersHandler,
 			tpn.ProcessConfigsHandler,
+			tpn.ShardCoordinator.SelfId(),
 		)
 		argumentsBase.ForkDetector = tpn.ForkDetector
 		argumentsBase.BlockChainHook = tpn.BlockchainHook

@@ -1102,6 +1102,85 @@ func TestVerifyNodesOnAggSigVerificationFail(t *testing.T) {
 		expectedInvalidCount := (len(consensusGroup) + 1) / 2 // approx half
 		require.GreaterOrEqual(t, len(invalidSigners), expectedInvalidCount-1)
 	})
+
+	t.Run("context cancellation should exclude unverified validators", func(t *testing.T) {
+		t.Parallel()
+
+		container := consensusMocks.InitConsensusCore()
+
+		nodes := make([]string, 50)
+		for i := 0; i < 50; i++ {
+			nodes[i] = fmt.Sprintf("node_%d", i)
+		}
+
+		consensusState := initializers.InitConsensusStateWithArgsVerifySignature(&testscommon.KeysHandlerStub{}, nodes)
+		sr := initSubroundEndRoundWithContainerAndConsensusState(container, &statusHandler.AppStatusHandlerStub{}, consensusState)
+
+		signingHandler := &consensusMocks.SigningHandlerStub{
+			SignatureShareCalled: func(index uint16) ([]byte, error) {
+				return []byte("signature"), nil
+			},
+			VerifySignatureShareCalled: func(index uint16, sig, msg []byte, epoch uint32) error {
+				// Slow verification to ensure context cancels before all are processed
+				time.Sleep(50 * time.Millisecond)
+				return nil
+			},
+		}
+		container.SetSigningHandler(signingHandler)
+
+		sr.SetHeader(&block.Header{})
+		for _, pk := range sr.ConsensusGroup() {
+			_ = sr.SetJobDone(pk, bls.SrSignature, true)
+		}
+
+		// Cancel context almost immediately so most validators won't be verified
+		ctx, cancel := context.WithTimeout(context.Background(), 10*time.Millisecond)
+		defer cancel()
+
+		_, err := sr.VerifyNodesOnAggSigFail(ctx)
+		require.Nil(t, err)
+
+		// After the sweep, all validators that were not individually verified
+		// should have JobDone=false. Count remaining valid ones.
+		numStillValid := 0
+		for _, pk := range sr.ConsensusGroup() {
+			isJobDone, errJob := sr.JobDone(pk, bls.SrSignature)
+			require.Nil(t, errJob)
+			if isJobDone {
+				numStillValid++
+			}
+		}
+
+		require.Less(t, numStillValid, len(sr.ConsensusGroup()))
+	})
+
+	t.Run("signature share retrieval failure should exclude validator", func(t *testing.T) {
+		t.Parallel()
+
+		container := consensusMocks.InitConsensusCore()
+		sr := initSubroundEndRoundWithContainer(container, &statusHandler.AppStatusHandlerStub{})
+
+		signingHandler := &consensusMocks.SigningHandlerStub{
+			SignatureShareCalled: func(index uint16) ([]byte, error) {
+				return nil, expectedErr
+			},
+		}
+		container.SetSigningHandler(signingHandler)
+
+		sr.SetHeader(&block.Header{})
+		leader, err := sr.GetLeader()
+		require.Nil(t, err)
+		_ = sr.SetJobDone(leader, bls.SrSignature, true)
+
+		_, err = sr.VerifyNodesOnAggSigFail(context.TODO())
+		require.Nil(t, err)
+
+		// The leader's signature share couldn't be retrieved, so it was never
+		// positively verified. The sweep should have set JobDone=false.
+		isJobDone, err := sr.JobDone(leader, bls.SrSignature)
+		require.Nil(t, err)
+		require.False(t, isJobDone)
+	})
 }
 
 func TestComputeAddSigOnValidNodes(t *testing.T) {
@@ -1272,7 +1351,7 @@ func TestSubroundEndRound_DoEndRoundJobByNode(t *testing.T) {
 		numCalls := 0
 		container.SetEquivalentProofsPool(&dataRetriever.ProofsPoolMock{
 			HasProofCalled: func(shardID uint32, headerHash []byte) bool {
-				if numCalls <= 2 {
+				if numCalls <= 9 {
 					numCalls++
 					return false
 				}
@@ -1750,7 +1829,7 @@ func TestSubroundEndRound_ReceivedInvalidSignersInfo(t *testing.T) {
 		cnsData := consensus.Message{
 			BlockHeaderHash: []byte("X"),
 			PubKey:          []byte("A"),
-			InvalidSigners:  []byte("invalidSignersData"),
+			InvalidSigners:  []byte("B"),
 		}
 
 		res := sr.ReceivedInvalidSignersInfo(&cnsData)
@@ -1856,6 +1935,11 @@ func TestVerifyInvalidSigners(t *testing.T) {
 		t.Parallel()
 
 		container := consensusMocks.InitConsensusCore()
+		container.SetSigningHandler(&consensusMocks.SigningHandlerStub{
+			VerifySingleSignatureCalled: func(publicKeyBytes []byte, message []byte, signature []byte) error {
+				return expectedErr
+			},
+		})
 
 		pubKey := []byte("A") // it's in consensus
 

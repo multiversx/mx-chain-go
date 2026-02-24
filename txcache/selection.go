@@ -64,10 +64,13 @@ func selectTransactionsFromBunches(
 
 	accumulatedGas := uint64(0)
 	selectionLoopStartTime := time.Now()
+	uniqueSenderCount := 0
 
 	var currentTransaction *WrappedTransaction
+	var processedTxs int
 	// Select transactions (sorted).
 	for transactionsHeap.Len() > 0 {
+		processedTxs++
 		// Always pick the best transaction.
 		item := heap.Pop(transactionsHeap).(*transactionsHeapItem)
 		gasLimit := item.currentTransaction.Tx.GetGasLimit()
@@ -78,7 +81,7 @@ func selectTransactionsFromBunches(
 		if len(selectedTransactions) >= maxNumTxs {
 			break
 		}
-		if len(selectedTransactions)%loopDurationCheckInterval == 0 {
+		if processedTxs%loopDurationCheckInterval == 0 {
 			if !options.HaveTimeForSelection() {
 				logSelect.Debug("TxCache.selectTransactionsFromBunches, selection loop timeout", "duration", time.Since(selectionLoopStartTime))
 				break
@@ -111,6 +114,17 @@ func selectTransactionsFromBunches(
 					"err", err,
 					"txHash", currentTransaction.TxHash)
 			} else {
+				// Track unique senders to match OnProposedBlock's maxAccountsPerBlock limit.
+				isNewSender := item.latestSelectedTransaction == nil
+				if isNewSender {
+					uniqueSenderCount++
+					if uniqueSenderCount > maxAccountsPerBlock {
+						logSelect.Debug("TxCache.selectTransactionsFromBunches, unique sender limit reached",
+							"limit", maxAccountsPerBlock)
+						break
+					}
+				}
+
 				// only if there isn't any error, we select the transaction
 				accumulatedGas += gasLimit
 				item.selectCurrentTransaction()
@@ -134,8 +148,10 @@ func selectTransactionsFromBunches(
 func detectSkippableSender(virtualSession *virtualSelectionSession, item *transactionsHeapItem, virtualRecord *virtualAccountRecord) bool {
 	nonce, err := virtualRecord.getInitialNonce()
 	if err != nil {
-		// Every virtual record is initialized with the session nonce, to avoid virtual records with no initial nonce.
-		// So this error should never appear.
+		// This error is expected for accounts with discontinuous global breadcrumbs,
+		// which get a blocked virtual record (initialNonce.HasValue=false).
+		// In this case, the sender is correctly skipped to avoid selecting transactions
+		// that would fail OnProposedBlock validation.
 		log.Debug("detectSkippableSender", "err", err)
 		return true
 	}
@@ -168,8 +184,8 @@ func detectSkippableSender(virtualSession *virtualSelectionSession, item *transa
 func detectSkippableTransaction(virtualSession *virtualSelectionSession, item *transactionsHeapItem, virtualRecord *virtualAccountRecord) bool {
 	nonce, err := virtualRecord.getInitialNonce()
 	if err != nil {
-		// Every virtual record is initialized with the session nonce, to avoid virtual records with no initial nonce.
-		// So this error should never appear.
+		// This error is expected for accounts with discontinuous global breadcrumbs,
+		// which get a blocked virtual record (initialNonce.HasValue=false).
 		log.Debug("detectSkippableTransaction", "err", err)
 		return true
 	}

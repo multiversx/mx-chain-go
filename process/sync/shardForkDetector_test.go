@@ -36,6 +36,7 @@ func TestNewShardForkDetector_NilRoundHandlerShouldErr(t *testing.T) {
 		&dataRetrieverMock.ProofsPoolMock{},
 		&chainParameters.ChainParametersHandlerStub{},
 		testscommon.GetDefaultProcessConfigsHandler(),
+		0,
 	)
 	assert.True(t, check.IfNil(sfd))
 	assert.Equal(t, process.ErrNilRoundHandler, err)
@@ -55,6 +56,7 @@ func TestNewShardForkDetector_NilBlackListShouldErr(t *testing.T) {
 		&dataRetrieverMock.ProofsPoolMock{},
 		&chainParameters.ChainParametersHandlerStub{},
 		testscommon.GetDefaultProcessConfigsHandler(),
+		0,
 	)
 	assert.True(t, check.IfNil(sfd))
 	assert.Equal(t, process.ErrNilBlackListCacher, err)
@@ -74,6 +76,7 @@ func TestNewShardForkDetector_NilBlockTrackerShouldErr(t *testing.T) {
 		&dataRetrieverMock.ProofsPoolMock{},
 		&chainParameters.ChainParametersHandlerStub{},
 		testscommon.GetDefaultProcessConfigsHandler(),
+		0,
 	)
 	assert.True(t, check.IfNil(sfd))
 	assert.Equal(t, process.ErrNilBlockTracker, err)
@@ -93,6 +96,7 @@ func TestNewShardForkDetector_NilEnableEpochsHandlerShouldErr(t *testing.T) {
 		&dataRetrieverMock.ProofsPoolMock{},
 		&chainParameters.ChainParametersHandlerStub{},
 		testscommon.GetDefaultProcessConfigsHandler(),
+		0,
 	)
 	assert.True(t, check.IfNil(sfd))
 	assert.Equal(t, process.ErrNilEnableEpochsHandler, err)
@@ -112,6 +116,7 @@ func TestNewShardForkDetector_NilEnableRoundsHandlerShouldErr(t *testing.T) {
 		&dataRetrieverMock.ProofsPoolMock{},
 		&chainParameters.ChainParametersHandlerStub{},
 		testscommon.GetDefaultProcessConfigsHandler(),
+		0,
 	)
 	assert.True(t, check.IfNil(sfd))
 	assert.Equal(t, process.ErrNilEnableRoundsHandler, err)
@@ -131,6 +136,7 @@ func TestNewShardForkDetector_NilProofsPoolShouldErr(t *testing.T) {
 		nil,
 		&chainParameters.ChainParametersHandlerStub{},
 		testscommon.GetDefaultProcessConfigsHandler(),
+		0,
 	)
 	assert.True(t, check.IfNil(sfd))
 	assert.Equal(t, process.ErrNilProofsPool, err)
@@ -150,6 +156,7 @@ func TestNewShardForkDetector_OkParamsShouldWork(t *testing.T) {
 		&dataRetrieverMock.ProofsPoolMock{},
 		&chainParameters.ChainParametersHandlerStub{},
 		testscommon.GetDefaultProcessConfigsHandler(),
+		0,
 	)
 	assert.Nil(t, err)
 	assert.False(t, check.IfNil(sfd))
@@ -175,6 +182,7 @@ func TestShardForkDetector_AddHeaderNilHeaderShouldErr(t *testing.T) {
 		&dataRetrieverMock.ProofsPoolMock{},
 		&chainParameters.ChainParametersHandlerStub{},
 		testscommon.GetDefaultProcessConfigsHandler(),
+		0,
 	)
 	err := bfd.AddHeader(nil, make([]byte, 0), process.BHProcessed, nil, nil)
 	assert.Equal(t, sync.ErrNilHeader, err)
@@ -195,6 +203,7 @@ func TestShardForkDetector_AddHeaderNilHashShouldErr(t *testing.T) {
 		&dataRetrieverMock.ProofsPoolMock{},
 		&chainParameters.ChainParametersHandlerStub{},
 		testscommon.GetDefaultProcessConfigsHandler(),
+		0,
 	)
 	err := bfd.AddHeader(&block.Header{}, nil, process.BHProcessed, nil, nil)
 	assert.Equal(t, sync.ErrNilHash, err)
@@ -217,6 +226,7 @@ func TestShardForkDetector_AddHeaderNotPresentShouldWork(t *testing.T) {
 		&dataRetrieverMock.ProofsPoolMock{},
 		&chainParameters.ChainParametersHandlerStub{},
 		testscommon.GetDefaultProcessConfigsHandler(),
+		0,
 	)
 	err := bfd.AddHeader(hdr, hash, process.BHProcessed, nil, nil)
 	assert.Nil(t, err)
@@ -245,6 +255,7 @@ func TestShardForkDetector_AddHeaderPresentShouldAppend(t *testing.T) {
 		&dataRetrieverMock.ProofsPoolMock{},
 		&chainParameters.ChainParametersHandlerStub{},
 		testscommon.GetDefaultProcessConfigsHandler(),
+		0,
 	)
 	_ = bfd.AddHeader(hdr1, hash1, process.BHProcessed, nil, nil)
 	err := bfd.AddHeader(hdr2, hash2, process.BHProcessed, nil, nil)
@@ -273,6 +284,7 @@ func TestShardForkDetector_AddHeaderWithProcessedBlockShouldSetCheckpoint(t *tes
 		&dataRetrieverMock.ProofsPoolMock{},
 		&chainParameters.ChainParametersHandlerStub{},
 		testscommon.GetDefaultProcessConfigsHandler(),
+		0,
 	)
 	_ = bfd.AddHeader(hdr1, hash1, process.BHProcessed, nil, nil)
 	assert.Equal(t, hdr1.Nonce, bfd.LastCheckpointNonce())
@@ -296,6 +308,7 @@ func TestShardForkDetector_AddHeaderPresentShouldNotRewriteState(t *testing.T) {
 		&dataRetrieverMock.ProofsPoolMock{},
 		&chainParameters.ChainParametersHandlerStub{},
 		testscommon.GetDefaultProcessConfigsHandler(),
+		0,
 	)
 	_ = bfd.AddHeader(hdr1, hash, process.BHReceived, nil, nil)
 	err := bfd.AddHeader(hdr2, hash, process.BHProcessed, nil, nil)
@@ -323,6 +336,7 @@ func TestShardForkDetector_AddHeaderHigherNonceThanRoundShouldErr(t *testing.T) 
 		&dataRetrieverMock.ProofsPoolMock{},
 		&chainParameters.ChainParametersHandlerStub{},
 		testscommon.GetDefaultProcessConfigsHandler(),
+		0,
 	)
 	err := bfd.AddHeader(
 		&block.Header{Nonce: 1, Round: 0, PubKeysBitmap: []byte("X")}, []byte("hash1"), process.BHProcessed, nil, nil)
@@ -362,6 +376,7 @@ func TestShardForkDetector_ComputeGenesisTimeFromHeader(t *testing.T) {
 				},
 			},
 			testscommon.GetDefaultProcessConfigsHandler(),
+			0,
 		)
 
 		hdr1 := &block.Header{Nonce: 1, Round: hdrRound, PubKeysBitmap: []byte("X"), TimeStamp: hdrTimeStamp}
@@ -439,6 +454,7 @@ func TestShardForkDetector_ComputeGenesisTimeFromHeader(t *testing.T) {
 				},
 			},
 			testscommon.GetDefaultProcessConfigsHandler(),
+			0,
 		)
 
 		hdr1 := &block.Header{
@@ -484,6 +500,7 @@ func TestShardForkDetector_ComputeGenesisTimeFromHeader(t *testing.T) {
 				},
 			},
 			testscommon.GetDefaultProcessConfigsHandler(),
+			0,
 		)
 
 		hdr1 := &block.Header{Nonce: 1, Round: hdrRound, Epoch: 2, PubKeysBitmap: []byte("X"), TimeStamp: hdrTimeStamp}
@@ -533,6 +550,7 @@ func TestShardForkDetector_ComputeGenesisTimeFromHeader(t *testing.T) {
 				},
 			},
 			testscommon.GetDefaultProcessConfigsHandler(),
+			0,
 		)
 
 		hdr1 := &block.Header{Nonce: 1, Round: hdrRound, PubKeysBitmap: []byte("X"), TimeStamp: hdrTimeStamp}

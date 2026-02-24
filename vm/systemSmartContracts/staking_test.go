@@ -48,8 +48,8 @@ func createMockStakingScArgumentsWithSystemScAddresses(
 			MinStakeValue:                        "1",
 			UnJailValue:                          "1",
 			MinStepValue:                         "1",
-			UnBondPeriod:                         0,
-			UnBondPeriodSupernova:                0,
+			UnBondPeriod:                         1,
+			UnBondPeriodSupernova:                2,
 			NumRoundsWithoutBleed:                0,
 			MaximumPercentageToBleed:             0,
 			BleedPercentagePerRound:              0,
@@ -187,6 +187,30 @@ func TestNewStakingSmartContract_NilMarshallerShouldErr(t *testing.T) {
 
 	assert.Nil(t, stakingSmartContract)
 	assert.Equal(t, vm.ErrNilMarshalizer, err)
+}
+
+func TestNewStakingSmartContract_InvalidUnBondPeriodShouldErr(t *testing.T) {
+	t.Parallel()
+
+	args := createMockStakingScArguments()
+	args.StakingSCConfig.UnBondPeriod = 0
+	stakingSmartContract, err := NewStakingSmartContract(args)
+
+	assert.Nil(t, stakingSmartContract)
+	require.True(t, errors.Is(err, vm.ErrInvalidValue))
+	require.Contains(t, err.Error(), "UnBondPeriod")
+}
+
+func TestNewStakingSmartContract_InvalidUnBondPeriodSupernovaShouldErr(t *testing.T) {
+	t.Parallel()
+
+	args := createMockStakingScArguments()
+	args.StakingSCConfig.UnBondPeriodSupernova = 0
+	stakingSmartContract, err := NewStakingSmartContract(args)
+
+	assert.Nil(t, stakingSmartContract)
+	require.True(t, errors.Is(err, vm.ErrInvalidValue))
+	require.Contains(t, err.Error(), "UnBondPeriodSupernova")
 }
 
 func TestNewStakingSmartContract_InvalidEnableEpochsHandlerShouldErr(t *testing.T) {
@@ -1032,7 +1056,7 @@ func TestStakingSc_ExecuteIsStaked(t *testing.T) {
 	doStake(t, stakingSmartContract, stakingAccessAddress, stakerAddress, stakerPubKey)
 	// check again isStaked should return vmcommon.Ok
 	checkIsStaked(t, stakingSmartContract, callerAddress, stakerPubKey, vmcommon.Ok)
-	//do unStake
+	// do unStake
 	doUnStake(t, stakingSmartContract, stakingAccessAddress, stakerAddress, stakerPubKey, vmcommon.Ok)
 	// check if account is staked should return error code
 	checkIsStaked(t, stakingSmartContract, callerAddress, stakerPubKey, vmcommon.UserError)
@@ -1156,14 +1180,14 @@ func TestStakingSc_StakeWithV1ShouldWork(t *testing.T) {
 	stakerAddress := []byte("stakerAddr")
 	stakerPubKey := []byte("stakerPublicKey")
 
-	//do stake should work
+	// do stake should work
 	doStake(t, stakingSmartContract, stakingAccessAddress, stakerAddress, stakerPubKey)
 
 	blockChainHook.CurrentNonceCalled = func() uint64 {
 		return 11
 	}
 
-	//do unStake with V2 should work
+	// do unStake with V2 should work
 	doUnStake(t, stakingSmartContract, stakingAccessAddress, stakerAddress, stakerPubKey, vmcommon.Ok)
 }
 
@@ -1207,7 +1231,7 @@ func TestStakingSc_StakeJailAndUnJail(t *testing.T) {
 	doJail(t, stakingSmartContract, []byte("addr"), stakerPubKey, vmcommon.UserError)
 	// cannot do jail if no stake should return userError
 	doJail(t, stakingSmartContract, jailAccessAddr, stakerPubKey, vmcommon.UserError)
-	//do stake should work
+	// do stake should work
 	doStake(t, stakingSmartContract, stakingAccessAddress, stakerAddress, stakerPubKey)
 	// jail should work
 	blockChainHook.CurrentRoundCalled = func() uint64 {
@@ -1215,7 +1239,7 @@ func TestStakingSc_StakeJailAndUnJail(t *testing.T) {
 	}
 	doJail(t, stakingSmartContract, jailAccessAddr, stakerPubKey, vmcommon.Ok)
 
-	//do unStake should return error because validator is jail
+	// do unStake should return error because validator is jail
 	doUnStake(t, stakingSmartContract, stakingAccessAddress, stakerAddress, stakerPubKey, vmcommon.UserError)
 
 	// unJail wrong access address should not work
