@@ -42,9 +42,10 @@ func createDefaultArgs() AOTSelectorArgs {
 				return 200 // 2x overestimation
 			},
 		},
-		SelectionTimeout: 100 * time.Millisecond,
-		CacheSize:        5,
-		MaxTxsPerBlock:   30000,
+		SelectionTimeout:          100 * time.Millisecond,
+		CacheSize:                 5,
+		MaxTxsPerBlock:            30000,
+		LoopDurationCheckInterval: 10,
 	}
 }
 
@@ -176,11 +177,13 @@ func TestNewAOTSelector(t *testing.T) {
 		args.SelectionTimeout = 0
 		args.CacheSize = 0
 		args.MaxTxsPerBlock = 0
+		args.LoopDurationCheckInterval = 0
 		sel, err := NewAOTSelector(args)
 		require.NoError(t, err)
 		require.NotNil(t, sel)
 		require.Equal(t, defaultSelectionTimeout, sel.selectionTimeout)
 		require.Equal(t, defaultMaxTxsPerBlock, sel.maxTxsPerBlock)
+		require.Equal(t, defaultLoopDurationCheckInterval, sel.loopDurationCheckInterval)
 	})
 
 	t.Run("should work with all valid args", func(t *testing.T) {
@@ -191,6 +194,7 @@ func TestNewAOTSelector(t *testing.T) {
 		require.NotNil(t, sel)
 		require.Equal(t, 100*time.Millisecond, sel.selectionTimeout)
 		require.Equal(t, 30000, sel.maxTxsPerBlock)
+		require.Equal(t, 10, sel.loopDurationCheckInterval)
 	})
 }
 

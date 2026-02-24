@@ -237,6 +237,15 @@ func (bpm *BlockProcessorMock) OnProposedBlock(
 	return nil
 }
 
+// OnBackfilledBlock -
+func (bpm *BlockProcessorMock) OnBackfilledBlock(
+	_ data.BodyHandler,
+	_ data.HeaderHandler,
+	_ []byte,
+) error {
+	return nil
+}
+
 // OnExecutedBlock -
 func (bpm *BlockProcessorMock) OnExecutedBlock(header data.HeaderHandler, rootHash []byte) error {
 	if bpm.OnExecutedBlockCalled != nil {

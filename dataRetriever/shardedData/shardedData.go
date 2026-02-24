@@ -10,12 +10,13 @@ import (
 	"github.com/multiversx/mx-chain-core-go/data"
 	"github.com/multiversx/mx-chain-core-go/data/block"
 	"github.com/multiversx/mx-chain-core-go/marshal"
+	logger "github.com/multiversx/mx-chain-logger-go"
+
 	"github.com/multiversx/mx-chain-go/common"
 	"github.com/multiversx/mx-chain-go/dataRetriever"
 	"github.com/multiversx/mx-chain-go/storage"
 	"github.com/multiversx/mx-chain-go/storage/cache"
 	"github.com/multiversx/mx-chain-go/storage/storageunit"
-	logger "github.com/multiversx/mx-chain-logger-go"
 )
 
 var log = logger.GetOrCreate("dataretriever/shardeddata")
@@ -346,6 +347,16 @@ func (sd *shardedData) OnProposedBlock(
 	_ []byte,
 ) error {
 	log.Warn("shardedData.OnProposedBlockCalled() should not have been called")
+	return nil
+}
+
+// OnBackfilledBlock does nothing (only to satisfy the interface dataRetriever.ShardedDataCacherNotifier)
+func (sd *shardedData) OnBackfilledBlock(
+	_ []byte,
+	_ *block.Body,
+	_ data.HeaderHandler,
+) error {
+	log.Warn("shardedData.OnBackfilledBlock() should not have been called")
 	return nil
 }
 
