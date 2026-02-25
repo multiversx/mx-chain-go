@@ -198,6 +198,7 @@ func TestWaitForSignal(t *testing.T) {
 			n,
 			1,
 			&atomic.Bool{},
+			time.Millisecond,
 		)
 
 		assert.Equal(t, nextOperationShouldStop, nextOperation)
@@ -225,6 +226,7 @@ func TestWaitForSignal(t *testing.T) {
 			n,
 			1,
 			&atomic.Bool{},
+			time.Millisecond,
 		)
 
 		assert.Equal(t, nextOperationShouldRestart, nextOperation)
@@ -254,6 +256,7 @@ func TestWaitForSignal(t *testing.T) {
 				n,
 				1,
 				&atomic.Bool{},
+				time.Millisecond,
 			)
 			close(functionFinished)
 		}()
@@ -295,6 +298,7 @@ func TestWaitForSignal(t *testing.T) {
 			n,
 			1,
 			&atomic.Bool{},
+			time.Millisecond,
 		)
 
 		// these exceptions appear because the delayedComponent prevented the call of the first 2 components
@@ -325,6 +329,7 @@ func TestWaitForSignal(t *testing.T) {
 			n,
 			1,
 			&atomic.Bool{},
+			time.Millisecond,
 		)
 
 		// these exceptions appear because the delayedComponent prevented the call of the first 2 components
