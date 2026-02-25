@@ -1844,6 +1844,207 @@ func TestShardProcessor_SelectIncomingMiniBlocks(t *testing.T) {
 		// should be called for the first 2 meta blocks, the third one does not add any mini blocks, although it has some for the shard, so it is skipped
 		require.Equal(t, 2, cntAddReferencedMetaBlockCalled)
 	})
+	t.Run("missing data should break and not reference further headers", func(t *testing.T) {
+		t.Parallel()
+
+		coreComponents, dataComponents, bootstrapComponents, statusComponents := createComponentHolderMocks()
+		headers := dataComponents.DataPool.Headers()
+		dataComponents.DataPool = &dataRetriever.PoolsHolderStub{
+			HeadersCalled: func() retriever.HeadersPool {
+				return headers
+			},
+			ProofsCalled: func() retriever.ProofsPool {
+				return &dataRetriever.ProofsPoolMock{
+					HasProofCalled: func(shardID uint32, headerHash []byte) bool {
+						return true
+					},
+				}
+			},
+			PostProcessTransactionsCalled: func() storage.Cacher {
+				return &cache.CacherStub{}
+			},
+			ExecutedMiniBlocksCalled: func() storage.Cacher {
+				return &cache.CacherStub{}
+			},
+			DirectSentTransactionsCalled: func() storage.Cacher {
+				return cache.NewCacherStub()
+			},
+		}
+		arguments := CreateMockArguments(coreComponents, dataComponents, bootstrapComponents, statusComponents)
+		cntAddReferencedHeader := 0
+		arguments.MiniBlocksSelectionSession = &mbSelection.MiniBlockSelectionSessionStub{
+			AddReferencedHeaderCalled: func(metaBlock data.HeaderHandler, metaBlockHash []byte) {
+				cntAddReferencedHeader++
+			},
+		}
+		cntCreateMbs := 0
+		arguments.TxCoordinator = &testscommon.TransactionCoordinatorMock{
+			CreateMbsCrossShardDstMeCalled: func(header data.HeaderHandler, processedMiniBlocksInfo map[string]*processedMb.ProcessedMiniBlockInfo) ([]block.MiniblockAndHash, []block.MiniblockAndHash, uint32, bool, bool, error) {
+				cntCreateMbs++
+				// first header has missing data -> all MBs skipped
+				return nil, nil, 0, false, true, nil
+			},
+		}
+		sp, err := blproc.NewShardProcessor(arguments)
+		require.Nil(t, err)
+
+		orderedMetaBlocks := []data.HeaderHandler{
+			&testscommon.HeaderHandlerStub{
+				GetMiniBlockHeadersWithDstCalled: func(destId uint32) map[string]uint32 {
+					return map[string]uint32{"mb1": 1}
+				},
+				GetNonceCalled: func() uint64 { return 2 },
+			},
+			&testscommon.HeaderHandlerStub{
+				GetMiniBlockHeadersWithDstCalled: func(destId uint32) map[string]uint32 {
+					return map[string]uint32{"mb2": 1}
+				},
+				GetNonceCalled: func() uint64 { return 3 },
+			},
+		}
+		orderedMetaBlocksHashes := [][]byte{[]byte("hash2"), []byte("hash3")}
+		_, err = sp.SelectIncomingMiniBlocks(providedLastCrossNotarizedMetaHdr, orderedMetaBlocks, orderedMetaBlocksHashes, haveTimeTrue)
+		require.NoError(t, err)
+		// first header had missing data -> break, second header never processed
+		require.Equal(t, 1, cntCreateMbs)
+		require.Equal(t, 0, cntAddReferencedHeader)
+	})
+	t.Run("missing data with some MBs added should break and not reference further headers", func(t *testing.T) {
+		t.Parallel()
+
+		coreComponents, dataComponents, bootstrapComponents, statusComponents := createComponentHolderMocks()
+		headers := dataComponents.DataPool.Headers()
+		dataComponents.DataPool = &dataRetriever.PoolsHolderStub{
+			HeadersCalled: func() retriever.HeadersPool {
+				return headers
+			},
+			ProofsCalled: func() retriever.ProofsPool {
+				return &dataRetriever.ProofsPoolMock{
+					HasProofCalled: func(shardID uint32, headerHash []byte) bool {
+						return true
+					},
+				}
+			},
+			PostProcessTransactionsCalled: func() storage.Cacher {
+				return &cache.CacherStub{}
+			},
+			ExecutedMiniBlocksCalled: func() storage.Cacher {
+				return &cache.CacherStub{}
+			},
+			DirectSentTransactionsCalled: func() storage.Cacher {
+				return cache.NewCacherStub()
+			},
+		}
+		arguments := CreateMockArguments(coreComponents, dataComponents, bootstrapComponents, statusComponents)
+		cntAddReferencedHeader := 0
+		arguments.MiniBlocksSelectionSession = &mbSelection.MiniBlockSelectionSessionStub{
+			AddReferencedHeaderCalled: func(metaBlock data.HeaderHandler, metaBlockHash []byte) {
+				cntAddReferencedHeader++
+			},
+		}
+		cntCreateMbs := 0
+		arguments.TxCoordinator = &testscommon.TransactionCoordinatorMock{
+			CreateMbsCrossShardDstMeCalled: func(header data.HeaderHandler, processedMiniBlocksInfo map[string]*processedMb.ProcessedMiniBlockInfo) ([]block.MiniblockAndHash, []block.MiniblockAndHash, uint32, bool, bool, error) {
+				cntCreateMbs++
+				// first header: some MBs added but has missing data
+				return []block.MiniblockAndHash{
+					{Miniblock: &block.MiniBlock{}, Hash: []byte("mb")},
+				}, nil, 1, false, true, nil
+			},
+		}
+		sp, err := blproc.NewShardProcessor(arguments)
+		require.Nil(t, err)
+
+		orderedMetaBlocks := []data.HeaderHandler{
+			&testscommon.HeaderHandlerStub{
+				GetMiniBlockHeadersWithDstCalled: func(destId uint32) map[string]uint32 {
+					return map[string]uint32{"mb1": 1}
+				},
+				GetNonceCalled: func() uint64 { return 2 },
+			},
+			&testscommon.HeaderHandlerStub{
+				GetMiniBlockHeadersWithDstCalled: func(destId uint32) map[string]uint32 {
+					return map[string]uint32{"mb2": 1}
+				},
+				GetNonceCalled: func() uint64 { return 3 },
+			},
+		}
+		orderedMetaBlocksHashes := [][]byte{[]byte("hash2"), []byte("hash3")}
+		_, err = sp.SelectIncomingMiniBlocks(providedLastCrossNotarizedMetaHdr, orderedMetaBlocks, orderedMetaBlocksHashes, haveTimeTrue)
+		require.NoError(t, err)
+		// first header had missing data -> break, second header never processed
+		require.Equal(t, 1, cntCreateMbs)
+		// MBs were added before missing data check, so header was referenced
+		require.Equal(t, 1, cntAddReferencedHeader)
+	})
+	t.Run("missing data with some MBs added should break and not reference further headers", func(t *testing.T) {
+		t.Parallel()
+
+		coreComponents, dataComponents, bootstrapComponents, statusComponents := createComponentHolderMocks()
+		headers := dataComponents.DataPool.Headers()
+		dataComponents.DataPool = &dataRetriever.PoolsHolderStub{
+			HeadersCalled: func() retriever.HeadersPool {
+				return headers
+			},
+			ProofsCalled: func() retriever.ProofsPool {
+				return &dataRetriever.ProofsPoolMock{
+					HasProofCalled: func(shardID uint32, headerHash []byte) bool {
+						return true
+					},
+				}
+			},
+			PostProcessTransactionsCalled: func() storage.Cacher {
+				return &cache.CacherStub{}
+			},
+			ExecutedMiniBlocksCalled: func() storage.Cacher {
+				return &cache.CacherStub{}
+			},
+			DirectSentTransactionsCalled: func() storage.Cacher {
+				return cache.NewCacherStub()
+			},
+		}
+		arguments := CreateMockArguments(coreComponents, dataComponents, bootstrapComponents, statusComponents)
+		cntAddReferencedHeader := 0
+		arguments.MiniBlocksSelectionSession = &mbSelection.MiniBlockSelectionSessionStub{
+			AddReferencedHeaderCalled: func(metaBlock data.HeaderHandler, metaBlockHash []byte) {
+				cntAddReferencedHeader++
+			},
+		}
+		cntCreateMbs := 0
+		arguments.TxCoordinator = &testscommon.TransactionCoordinatorMock{
+			CreateMbsCrossShardDstMeCalled: func(header data.HeaderHandler, processedMiniBlocksInfo map[string]*processedMb.ProcessedMiniBlockInfo) ([]block.MiniblockAndHash, []block.MiniblockAndHash, uint32, bool, bool, error) {
+				cntCreateMbs++
+				// first header: some MBs added but has missing data
+				return []block.MiniblockAndHash{
+					{Miniblock: &block.MiniBlock{}, Hash: []byte("mb")},
+				}, nil, 1, false, true, nil
+			},
+		}
+		sp, err := blproc.NewShardProcessor(arguments)
+		require.Nil(t, err)
+
+		orderedMetaBlocks := []data.HeaderHandler{
+			&testscommon.HeaderHandlerStub{
+				GetMiniBlockHeadersWithDstCalled: func(destId uint32) map[string]uint32 {
+					return map[string]uint32{"mb1": 1}
+				},
+				GetNonceCalled: func() uint64 { return 2 },
+			},
+			&testscommon.HeaderHandlerStub{
+				GetMiniBlockHeadersWithDstCalled: func(destId uint32) map[string]uint32 {
+					return map[string]uint32{"mb2": 1}
+				},
+				GetNonceCalled: func() uint64 { return 3 },
+			},
+		}
+		orderedMetaBlocksHashes := [][]byte{[]byte("hash2"), []byte("hash3")}
+		_, err = sp.SelectIncomingMiniBlocks(providedLastCrossNotarizedMetaHdr, orderedMetaBlocks, orderedMetaBlocksHashes, haveTimeTrue)
+		require.NoError(t, err)
+		// first header had missing data -> break, second header never processed
+		require.Equal(t, 1, cntCreateMbs)
+		// MBs were added before missing data check, so header was referenced
+		require.Equal(t, 1, cntAddReferencedHeader)
+	})
 }
 
 func TestShardProcessor_VerifyBlockProposal(t *testing.T) {
