@@ -56,6 +56,7 @@ var log = logger.GetOrCreate("process/block")
 // CrossShardIncomingMbsCreationResult represents the result of creating cross-shard mini blocks
 type CrossShardIncomingMbsCreationResult struct {
 	HeaderFinished    bool
+	HasMissingData    bool
 	PendingMiniBlocks []block.MiniblockAndHash
 	AddedMiniBlocks   []block.MiniblockAndHash
 }
@@ -3364,7 +3365,7 @@ func (bp *baseProcessor) createMbsCrossShardDstMe(
 	currentBlock data.HeaderHandler,
 	miniBlockProcessingInfo map[string]*processedMb.ProcessedMiniBlockInfo,
 ) (*CrossShardIncomingMbsCreationResult, error) {
-	currMiniBlocksAdded, pendingMiniBlocks, currNumTxsAdded, hdrFinished, errCreate := bp.txCoordinator.CreateMbsCrossShardDstMe(
+	currMiniBlocksAdded, pendingMiniBlocks, currNumTxsAdded, hdrFinished, missingData, errCreate := bp.txCoordinator.CreateMbsCrossShardDstMe(
 		currentBlock,
 		miniBlockProcessingInfo,
 	)
@@ -3378,11 +3379,13 @@ func (bp *baseProcessor) createMbsCrossShardDstMe(
 			"nonce", currentBlock.GetNonce(),
 			"hash", currentBlockHash,
 			"num mbs added", len(currMiniBlocksAdded),
-			"num txs added", currNumTxsAdded)
+			"num txs added", currNumTxsAdded,
+			"has missing data", missingData)
 	}
 
 	return &CrossShardIncomingMbsCreationResult{
 		HeaderFinished:    hdrFinished,
+		HasMissingData:    missingData,
 		PendingMiniBlocks: pendingMiniBlocks,
 		AddedMiniBlocks:   currMiniBlocksAdded,
 	}, nil

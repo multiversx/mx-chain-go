@@ -268,8 +268,8 @@ func TestShardProcessor_CreateBlockProposal(t *testing.T) {
 			},
 		}
 		arguments.TxCoordinator = &testscommon.TransactionCoordinatorMock{
-			CreateMbsCrossShardDstMeCalled: func(header data.HeaderHandler, processedMiniBlocksInfo map[string]*processedMb.ProcessedMiniBlockInfo) ([]block.MiniblockAndHash, []block.MiniblockAndHash, uint32, bool, error) {
-				return nil, nil, 0, false, expectedError
+			CreateMbsCrossShardDstMeCalled: func(header data.HeaderHandler, processedMiniBlocksInfo map[string]*processedMb.ProcessedMiniBlockInfo) ([]block.MiniblockAndHash, []block.MiniblockAndHash, uint32, bool, bool, error) {
+				return nil, nil, 0, false, false, expectedError
 			},
 		}
 		sp, err := blproc.NewShardProcessor(arguments)
@@ -574,7 +574,7 @@ func TestShardProcessor_CreateBlockProposal(t *testing.T) {
 			TxHashes: [][]byte{[]byte("tx_hash3")},
 		}
 		arguments.TxCoordinator = &testscommon.TransactionCoordinatorMock{
-			CreateMbsCrossShardDstMeCalled: func(header data.HeaderHandler, processedMiniBlocksInfo map[string]*processedMb.ProcessedMiniBlockInfo) ([]block.MiniblockAndHash, []block.MiniblockAndHash, uint32, bool, error) {
+			CreateMbsCrossShardDstMeCalled: func(header data.HeaderHandler, processedMiniBlocksInfo map[string]*processedMb.ProcessedMiniBlockInfo) ([]block.MiniblockAndHash, []block.MiniblockAndHash, uint32, bool, bool, error) {
 				switch header.GetNonce() {
 				case 1:
 					return []block.MiniblockAndHash{
@@ -588,9 +588,9 @@ func TestShardProcessor_CreateBlockProposal(t *testing.T) {
 								Miniblock: providedPendingMb,
 								Hash:      []byte("providedPendingMB"),
 							},
-						}, 0, false, nil
+						}, 0, false, false, nil
 				case 2:
-					return nil, nil, 0, true, nil // empty header
+					return nil, nil, 0, true, false, nil // empty header
 				default:
 					return []block.MiniblockAndHash{},
 						[]block.MiniblockAndHash{
@@ -598,7 +598,7 @@ func TestShardProcessor_CreateBlockProposal(t *testing.T) {
 								Miniblock: providedPendingMb2,
 								Hash:      []byte("providedPendingMB2"),
 							},
-						}, 0, false, nil
+						}, 0, false, false, nil
 				}
 			},
 			SelectOutgoingTransactionsCalled: func(nonce uint64, _ func() bool) ([][]byte, []data.MiniBlockHeaderHandler) {
@@ -858,7 +858,7 @@ func TestShardProcessor_CreateBlockProposal(t *testing.T) {
 			TxHashes: [][]byte{[]byte("tx_hash2")},
 		}
 		arguments.TxCoordinator = &testscommon.TransactionCoordinatorMock{
-			CreateMbsCrossShardDstMeCalled: func(header data.HeaderHandler, processedMiniBlocksInfo map[string]*processedMb.ProcessedMiniBlockInfo) ([]block.MiniblockAndHash, []block.MiniblockAndHash, uint32, bool, error) {
+			CreateMbsCrossShardDstMeCalled: func(header data.HeaderHandler, processedMiniBlocksInfo map[string]*processedMb.ProcessedMiniBlockInfo) ([]block.MiniblockAndHash, []block.MiniblockAndHash, uint32, bool, bool, error) {
 				switch header.GetNonce() {
 				case 1:
 					return []block.MiniblockAndHash{
@@ -871,7 +871,7 @@ func TestShardProcessor_CreateBlockProposal(t *testing.T) {
 								Hash:      []byte("providedMB_1_1"),
 							},
 						},
-						[]block.MiniblockAndHash{}, 0, true, nil
+						[]block.MiniblockAndHash{}, 0, true, false, nil
 				case 2:
 					return []block.MiniblockAndHash{
 							{
@@ -884,7 +884,7 @@ func TestShardProcessor_CreateBlockProposal(t *testing.T) {
 								Miniblock: providedPendingMb,
 								Hash:      []byte("providedPendingMB_2_0"),
 							},
-						}, 0, false, nil
+						}, 0, false, false, nil
 				case 3:
 					return []block.MiniblockAndHash{},
 						[]block.MiniblockAndHash{
@@ -896,7 +896,7 @@ func TestShardProcessor_CreateBlockProposal(t *testing.T) {
 								Miniblock: providedPendingMb,
 								Hash:      []byte("providedPendingMB_3_1"),
 							},
-						}, 0, false, nil
+						}, 0, false, false, nil
 				case 5:
 					return []block.MiniblockAndHash{},
 						[]block.MiniblockAndHash{
@@ -908,12 +908,12 @@ func TestShardProcessor_CreateBlockProposal(t *testing.T) {
 								Miniblock: providedPendingMb,
 								Hash:      []byte("providedPendingMB_5_1"),
 							},
-						}, 0, false, nil
+						}, 0, false, false, nil
 				case 4, 6:
-					return nil, nil, 0, true, nil // empty header
+					return nil, nil, 0, true, false, nil // empty header
 				default:
 					require.Fail(t, "should not happen")
-					return nil, nil, 0, true, nil
+					return nil, nil, 0, true, false, nil
 				}
 			},
 			SelectOutgoingTransactionsCalled: func(nonce uint64, _ func() bool) ([][]byte, []data.MiniBlockHeaderHandler) {
@@ -1217,10 +1217,10 @@ func TestShardProcessor_CreateBlockProposal(t *testing.T) {
 
 		providedMb := &block.MiniBlock{TxHashes: [][]byte{[]byte("tx_hash")}}
 		arguments.TxCoordinator = &testscommon.TransactionCoordinatorMock{
-			CreateMbsCrossShardDstMeCalled: func(header data.HeaderHandler, processedMiniBlocksInfo map[string]*processedMb.ProcessedMiniBlockInfo) ([]block.MiniblockAndHash, []block.MiniblockAndHash, uint32, bool, error) {
+			CreateMbsCrossShardDstMeCalled: func(header data.HeaderHandler, processedMiniBlocksInfo map[string]*processedMb.ProcessedMiniBlockInfo) ([]block.MiniblockAndHash, []block.MiniblockAndHash, uint32, bool, bool, error) {
 				return []block.MiniblockAndHash{
 					{Miniblock: providedMb, Hash: []byte("mb_hash_1")},
-				}, nil, 0, true, nil
+				}, nil, 0, true, false, nil
 			},
 			SelectOutgoingTransactionsCalled: func(nonce uint64, _ func() bool) ([][]byte, []data.MiniBlockHeaderHandler) {
 				return [][]byte{}, []data.MiniBlockHeaderHandler{
@@ -1724,13 +1724,13 @@ func TestShardProcessor_SelectIncomingMiniBlocks(t *testing.T) {
 			},
 		}
 		arguments.TxCoordinator = &testscommon.TransactionCoordinatorMock{
-			CreateMbsCrossShardDstMeCalled: func(header data.HeaderHandler, processedMiniBlocksInfo map[string]*processedMb.ProcessedMiniBlockInfo) ([]block.MiniblockAndHash, []block.MiniblockAndHash, uint32, bool, error) {
+			CreateMbsCrossShardDstMeCalled: func(header data.HeaderHandler, processedMiniBlocksInfo map[string]*processedMb.ProcessedMiniBlockInfo) ([]block.MiniblockAndHash, []block.MiniblockAndHash, uint32, bool, bool, error) {
 				return []block.MiniblockAndHash{
 					{
 						Miniblock: &block.MiniBlock{},
 						Hash:      []byte("providedMB"),
 					},
-				}, nil, 0, true, nil
+				}, nil, 0, true, false, nil
 			},
 		}
 		sp, err := blproc.NewShardProcessor(arguments)
@@ -1789,7 +1789,7 @@ func TestShardProcessor_SelectIncomingMiniBlocks(t *testing.T) {
 		}
 		cntCreateMbsCrossShardDstMeCalled := 0
 		arguments.TxCoordinator = &testscommon.TransactionCoordinatorMock{
-			CreateMbsCrossShardDstMeCalled: func(header data.HeaderHandler, processedMiniBlocksInfo map[string]*processedMb.ProcessedMiniBlockInfo) ([]block.MiniblockAndHash, []block.MiniblockAndHash, uint32, bool, error) {
+			CreateMbsCrossShardDstMeCalled: func(header data.HeaderHandler, processedMiniBlocksInfo map[string]*processedMb.ProcessedMiniBlockInfo) ([]block.MiniblockAndHash, []block.MiniblockAndHash, uint32, bool, bool, error) {
 				cntCreateMbsCrossShardDstMeCalled++
 				if cntCreateMbsCrossShardDstMeCalled < 2 {
 					return []block.MiniblockAndHash{
@@ -1797,9 +1797,9 @@ func TestShardProcessor_SelectIncomingMiniBlocks(t *testing.T) {
 							Miniblock: &block.MiniBlock{},
 							Hash:      []byte("providedMB"),
 						},
-					}, nil, 0, true, nil
+					}, nil, 0, true, false, nil
 				}
-				return nil, nil, 0, false, nil // shouldContinue = false -> only for coverage
+				return nil, nil, 0, false, false, nil // shouldContinue = false -> only for coverage
 			},
 		}
 		sp, err := blproc.NewShardProcessor(arguments)
@@ -1843,6 +1843,139 @@ func TestShardProcessor_SelectIncomingMiniBlocks(t *testing.T) {
 		require.NoError(t, err)
 		// should be called for the first 2 meta blocks, the third one does not add any mini blocks, although it has some for the shard, so it is skipped
 		require.Equal(t, 2, cntAddReferencedMetaBlockCalled)
+	})
+	t.Run("missing data should break and not reference further headers", func(t *testing.T) {
+		t.Parallel()
+
+		coreComponents, dataComponents, bootstrapComponents, statusComponents := createComponentHolderMocks()
+		headers := dataComponents.DataPool.Headers()
+		dataComponents.DataPool = &dataRetriever.PoolsHolderStub{
+			HeadersCalled: func() retriever.HeadersPool {
+				return headers
+			},
+			ProofsCalled: func() retriever.ProofsPool {
+				return &dataRetriever.ProofsPoolMock{
+					HasProofCalled: func(shardID uint32, headerHash []byte) bool {
+						return true
+					},
+				}
+			},
+			PostProcessTransactionsCalled: func() storage.Cacher {
+				return &cache.CacherStub{}
+			},
+			ExecutedMiniBlocksCalled: func() storage.Cacher {
+				return &cache.CacherStub{}
+			},
+			DirectSentTransactionsCalled: func() storage.Cacher {
+				return cache.NewCacherStub()
+			},
+		}
+		arguments := CreateMockArguments(coreComponents, dataComponents, bootstrapComponents, statusComponents)
+		cntAddReferencedHeader := 0
+		arguments.MiniBlocksSelectionSession = &mbSelection.MiniBlockSelectionSessionStub{
+			AddReferencedHeaderCalled: func(metaBlock data.HeaderHandler, metaBlockHash []byte) {
+				cntAddReferencedHeader++
+			},
+		}
+		cntCreateMbs := 0
+		arguments.TxCoordinator = &testscommon.TransactionCoordinatorMock{
+			CreateMbsCrossShardDstMeCalled: func(header data.HeaderHandler, processedMiniBlocksInfo map[string]*processedMb.ProcessedMiniBlockInfo) ([]block.MiniblockAndHash, []block.MiniblockAndHash, uint32, bool, bool, error) {
+				cntCreateMbs++
+				// first header has missing data -> all MBs skipped
+				return nil, nil, 0, false, true, nil
+			},
+		}
+		sp, err := blproc.NewShardProcessor(arguments)
+		require.Nil(t, err)
+
+		orderedMetaBlocks := []data.HeaderHandler{
+			&testscommon.HeaderHandlerStub{
+				GetMiniBlockHeadersWithDstCalled: func(destId uint32) map[string]uint32 {
+					return map[string]uint32{"mb1": 1}
+				},
+				GetNonceCalled: func() uint64 { return 2 },
+			},
+			&testscommon.HeaderHandlerStub{
+				GetMiniBlockHeadersWithDstCalled: func(destId uint32) map[string]uint32 {
+					return map[string]uint32{"mb2": 1}
+				},
+				GetNonceCalled: func() uint64 { return 3 },
+			},
+		}
+		orderedMetaBlocksHashes := [][]byte{[]byte("hash2"), []byte("hash3")}
+		_, err = sp.SelectIncomingMiniBlocks(providedLastCrossNotarizedMetaHdr, orderedMetaBlocks, orderedMetaBlocksHashes, haveTimeTrue)
+		require.NoError(t, err)
+		// first header had missing data -> break, second header never processed
+		require.Equal(t, 1, cntCreateMbs)
+		require.Equal(t, 0, cntAddReferencedHeader)
+	})
+	t.Run("missing data with some MBs added should break and not reference further headers", func(t *testing.T) {
+		t.Parallel()
+
+		coreComponents, dataComponents, bootstrapComponents, statusComponents := createComponentHolderMocks()
+		headers := dataComponents.DataPool.Headers()
+		dataComponents.DataPool = &dataRetriever.PoolsHolderStub{
+			HeadersCalled: func() retriever.HeadersPool {
+				return headers
+			},
+			ProofsCalled: func() retriever.ProofsPool {
+				return &dataRetriever.ProofsPoolMock{
+					HasProofCalled: func(shardID uint32, headerHash []byte) bool {
+						return true
+					},
+				}
+			},
+			PostProcessTransactionsCalled: func() storage.Cacher {
+				return &cache.CacherStub{}
+			},
+			ExecutedMiniBlocksCalled: func() storage.Cacher {
+				return &cache.CacherStub{}
+			},
+			DirectSentTransactionsCalled: func() storage.Cacher {
+				return cache.NewCacherStub()
+			},
+		}
+		arguments := CreateMockArguments(coreComponents, dataComponents, bootstrapComponents, statusComponents)
+		cntAddReferencedHeader := 0
+		arguments.MiniBlocksSelectionSession = &mbSelection.MiniBlockSelectionSessionStub{
+			AddReferencedHeaderCalled: func(metaBlock data.HeaderHandler, metaBlockHash []byte) {
+				cntAddReferencedHeader++
+			},
+		}
+		cntCreateMbs := 0
+		arguments.TxCoordinator = &testscommon.TransactionCoordinatorMock{
+			CreateMbsCrossShardDstMeCalled: func(header data.HeaderHandler, processedMiniBlocksInfo map[string]*processedMb.ProcessedMiniBlockInfo) ([]block.MiniblockAndHash, []block.MiniblockAndHash, uint32, bool, bool, error) {
+				cntCreateMbs++
+				// first header: some MBs added but has missing data
+				return []block.MiniblockAndHash{
+					{Miniblock: &block.MiniBlock{}, Hash: []byte("mb")},
+				}, nil, 1, false, true, nil
+			},
+		}
+		sp, err := blproc.NewShardProcessor(arguments)
+		require.Nil(t, err)
+
+		orderedMetaBlocks := []data.HeaderHandler{
+			&testscommon.HeaderHandlerStub{
+				GetMiniBlockHeadersWithDstCalled: func(destId uint32) map[string]uint32 {
+					return map[string]uint32{"mb1": 1}
+				},
+				GetNonceCalled: func() uint64 { return 2 },
+			},
+			&testscommon.HeaderHandlerStub{
+				GetMiniBlockHeadersWithDstCalled: func(destId uint32) map[string]uint32 {
+					return map[string]uint32{"mb2": 1}
+				},
+				GetNonceCalled: func() uint64 { return 3 },
+			},
+		}
+		orderedMetaBlocksHashes := [][]byte{[]byte("hash2"), []byte("hash3")}
+		_, err = sp.SelectIncomingMiniBlocks(providedLastCrossNotarizedMetaHdr, orderedMetaBlocks, orderedMetaBlocksHashes, haveTimeTrue)
+		require.NoError(t, err)
+		// first header had missing data -> break, second header never processed
+		require.Equal(t, 1, cntCreateMbs)
+		// MBs were added before missing data check, so header was referenced
+		require.Equal(t, 1, cntAddReferencedHeader)
 	})
 }
 
@@ -3062,13 +3195,13 @@ func TestShardBlockProposal_CreateAndVerifyProposal_WithTransactions(t *testing.
 	}
 	mbHash, _ := core.CalculateHash(arguments.CoreComponents.InternalMarshalizer(), arguments.CoreComponents.Hasher(), providedMb)
 	arguments.TxCoordinator = &testscommon.TransactionCoordinatorMock{
-		CreateMbsCrossShardDstMeCalled: func(header data.HeaderHandler, processedMiniBlocksInfo map[string]*processedMb.ProcessedMiniBlockInfo) ([]block.MiniblockAndHash, []block.MiniblockAndHash, uint32, bool, error) {
+		CreateMbsCrossShardDstMeCalled: func(header data.HeaderHandler, processedMiniBlocksInfo map[string]*processedMb.ProcessedMiniBlockInfo) ([]block.MiniblockAndHash, []block.MiniblockAndHash, uint32, bool, bool, error) {
 			return []block.MiniblockAndHash{
 				{
 					Miniblock: providedMb,
 					Hash:      mbHash,
 				},
-			}, nil, 0, true, nil
+			}, nil, 0, true, false, nil
 		},
 	}
 
