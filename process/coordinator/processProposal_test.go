@@ -55,13 +55,14 @@ func TestTransactionCoordinator_CreateMbsCrossShardDstMe_NilHeader(t *testing.T)
 	require.Nil(t, err)
 	require.NotNil(t, tc)
 
-	miniBlocks, pendingMiniBlocks, numTxs, allAdded, err := tc.CreateMbsCrossShardDstMe(nil, nil)
+	miniBlocks, pendingMiniBlocks, numTxs, allAdded, hasMissingData, err := tc.CreateMbsCrossShardDstMe(nil, nil)
 
 	require.Equal(t, process.ErrNilHeaderHandler, err)
 	require.Equal(t, 0, len(miniBlocks))
 	require.Equal(t, 0, len(pendingMiniBlocks))
 	require.Equal(t, uint32(0), numTxs)
 	require.False(t, allAdded)
+	require.False(t, hasMissingData)
 }
 
 func TestTransactionCoordinator_CreateMbsCrossShardDstMe_UsesProposalContext(t *testing.T) {
@@ -108,12 +109,13 @@ func TestTransactionCoordinator_CreateMbsCrossShardDstMe_UsesProposalContext(t *
 	cacheId = process.ShardCacherIdentifier(td.mb2Info.Miniblock.SenderShardID, td.mb2Info.Miniblock.ReceiverShardID)
 	ph.Transactions().AddData(td.tx3Hash, &transaction.Transaction{}, 100, cacheId)
 
-	miniBlocks, _, numTxs, allAdded, err := tc.CreateMbsCrossShardDstMe(td.hdr, nil)
+	miniBlocks, _, numTxs, allAdded, hasMissingData, err := tc.CreateMbsCrossShardDstMe(td.hdr, nil)
 
 	require.Nil(t, err)
 	require.Equal(t, expectedMiniBlocks, miniBlocks)
 	require.Equal(t, uint32(3), numTxs)
 	require.True(t, allAdded)
+	require.False(t, hasMissingData)
 
 	// Verify proposal context was used, not execution context
 	require.True(t, proposalBlockDataRequesterCalled)
@@ -144,12 +146,13 @@ func TestTransactionCoordinator_CreateMbsCrossShardDstMe_MaxBlockSizeReached(t *
 		},
 	}
 
-	miniBlocks, _, numTxs, allAdded, err := tc.CreateMbsCrossShardDstMe(td.hdr, nil)
+	miniBlocks, _, numTxs, allAdded, hasMissingData, err := tc.CreateMbsCrossShardDstMe(td.hdr, nil)
 
 	require.Nil(t, err)
 	require.Equal(t, 0, len(miniBlocks))
 	require.Equal(t, uint32(0), numTxs)
 	require.False(t, allAdded) // Not all mini blocks were processed due to size limit
+	require.False(t, hasMissingData)
 }
 
 func TestTransactionCoordinator_CreateMbsCrossShardDstMe_MiniBlockProcessing(t *testing.T) {
@@ -204,7 +207,7 @@ func TestTransactionCoordinator_CreateMbsCrossShardDstMe_MiniBlockProcessing(t *
 		},
 	}
 
-	miniBlocks, _, numTxs, allAdded, err := tc.CreateMbsCrossShardDstMe(td.hdr, nil)
+	miniBlocks, _, numTxs, allAdded, hasMissingData, err := tc.CreateMbsCrossShardDstMe(td.hdr, nil)
 
 	require.Nil(t, err)
 	require.Equal(t, 1, len(miniBlocks))
@@ -212,6 +215,7 @@ func TestTransactionCoordinator_CreateMbsCrossShardDstMe_MiniBlockProcessing(t *
 	require.Equal(t, td.mb1Info.Hash, miniBlocks[0].Hash)
 	require.Equal(t, uint32(2), numTxs) // Two transactions in the mini block
 	require.True(t, allAdded)
+	require.False(t, hasMissingData)
 
 	// Verify proposal preprocessor was used, not execution
 	require.True(t, proposalPreprocessorCalled)
@@ -276,7 +280,7 @@ func TestTransactionCoordinator_CreateMbsCrossShardDstMe_MiniBlockProcessing_Wit
 		},
 	}
 
-	miniBlocks, _, numTxs, allAdded, err := tc.CreateMbsCrossShardDstMe(td.hdr, nil)
+	miniBlocks, _, numTxs, allAdded, _, err := tc.CreateMbsCrossShardDstMe(td.hdr, nil)
 
 	require.Error(t, err)
 	require.Contains(t, err.Error(), "gas computation error")
@@ -346,7 +350,7 @@ func TestTransactionCoordinator_CreateMbsCrossShardDstMe_MiniBlockProcessing_Wit
 		},
 	}
 
-	miniBlocks, pendingMiniBlocks, numTxs, allAdded, err := tc.CreateMbsCrossShardDstMe(td.hdr, nil)
+	miniBlocks, pendingMiniBlocks, numTxs, allAdded, hasMissingData, err := tc.CreateMbsCrossShardDstMe(td.hdr, nil)
 
 	require.Nil(t, err)
 
@@ -360,6 +364,7 @@ func TestTransactionCoordinator_CreateMbsCrossShardDstMe_MiniBlockProcessing_Wit
 
 	require.Equal(t, uint32(2), numTxs)
 	require.False(t, allAdded)
+	require.False(t, hasMissingData)
 
 	// Verify proposal preprocessor was used, not execution
 	require.True(t, proposalPreprocessorCalled)
@@ -408,12 +413,13 @@ func TestTransactionCoordinator_CreateMbsCrossShardDstMe_SkipShardOnMissingMiniB
 		},
 	}
 
-	miniBlocks, _, numTxs, allAdded, err := tc.CreateMbsCrossShardDstMe(td.hdr, nil)
+	miniBlocks, _, numTxs, allAdded, hasMissingData, err := tc.CreateMbsCrossShardDstMe(td.hdr, nil)
 
 	require.Nil(t, err)
 	require.Equal(t, 0, len(miniBlocks))
 	require.Equal(t, uint32(0), numTxs)
 	require.False(t, allAdded) // No mini blocks were processed
+	require.True(t, hasMissingData)
 }
 
 func TestTransactionCoordinator_CreateMbsCrossShardDstMe_SkipShardOnMissingTransactions(t *testing.T) {
@@ -440,13 +446,14 @@ func TestTransactionCoordinator_CreateMbsCrossShardDstMe_SkipShardOnMissingTrans
 	cacheId := process.ShardCacherIdentifier(td.mb2Info.Miniblock.SenderShardID, td.mb2Info.Miniblock.ReceiverShardID)
 	ph.Transactions().AddData(td.tx3Hash, &transaction.Transaction{}, 100, cacheId)
 
-	miniBlocks, _, numTxs, allAdded, err := tc.CreateMbsCrossShardDstMe(td.hdr, nil)
+	miniBlocks, _, numTxs, allAdded, hasMissingData, err := tc.CreateMbsCrossShardDstMe(td.hdr, nil)
 
 	require.Nil(t, err)
 	require.Equal(t, 1, len(miniBlocks))
 	require.Equal(t, td.mb2Info.Miniblock, miniBlocks[0].Miniblock)
 	require.Equal(t, uint32(len(td.mb2Info.Miniblock.TxHashes)), numTxs)
 	require.False(t, allAdded)
+	require.True(t, hasMissingData)
 }
 
 func TestTransactionCoordinator_CreateMbsCrossShardDstMe_ErrorOnUnknownBlockType(t *testing.T) {
@@ -497,7 +504,7 @@ func TestTransactionCoordinator_CreateMbsCrossShardDstMe_ErrorOnUnknownBlockType
 		},
 	}
 
-	miniBlocks, _, numTxs, allAdded, err := tc.CreateMbsCrossShardDstMe(hdr, nil)
+	miniBlocks, _, numTxs, allAdded, _, err := tc.CreateMbsCrossShardDstMe(hdr, nil)
 
 	require.NotNil(t, err)
 	require.Contains(t, err.Error(), "unknown block type")
@@ -729,7 +736,7 @@ func TestTransactionCoordinator_CreateMbsCrossShardDstMe_ProcessedMiniBlocksInfo
 		},
 	}
 
-	miniBlocks, _, numTxs, allAdded, err := tc.CreateMbsCrossShardDstMe(hdr, processedMiniBlocksInfo)
+	miniBlocks, _, numTxs, allAdded, _, err := tc.CreateMbsCrossShardDstMe(hdr, processedMiniBlocksInfo)
 
 	require.Nil(t, err)
 	require.Equal(t, 0, len(miniBlocks)) // Should skip already processed mini block
@@ -777,11 +784,12 @@ func TestTransactionCoordinator_CreateMbsCrossShardDstMe_TypeAssertion(t *testin
 		},
 	}
 
-	miniBlocks, _, numTxs, allAdded, err := tc.CreateMbsCrossShardDstMe(hdr, nil)
+	miniBlocks, _, numTxs, allAdded, hasMissingData, err := tc.CreateMbsCrossShardDstMe(hdr, nil)
 
 	require.Nil(t, err)
 	require.Equal(t, 0, len(miniBlocks)) // Should skip due to type assertion failure
 	require.Equal(t, uint32(0), numTxs)
+	require.True(t, hasMissingData)
 	require.False(t, allAdded) // Not all mini blocks were processed
 }
 
