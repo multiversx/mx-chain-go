@@ -53,13 +53,6 @@ const (
 
 var log = logger.GetOrCreate("process/block")
 
-// CrossShardIncomingMbsCreationResult represents the result of creating cross-shard mini blocks
-type CrossShardIncomingMbsCreationResult struct {
-	HeaderFinished    bool
-	PendingMiniBlocks []block.MiniblockAndHash
-	AddedMiniBlocks   []block.MiniblockAndHash
-}
-
 type hashAndHdr struct {
 	hdr  data.HeaderHandler
 	hash []byte
@@ -3363,8 +3356,8 @@ func (bp *baseProcessor) createMbsCrossShardDstMe(
 	currentBlockHash []byte,
 	currentBlock data.HeaderHandler,
 	miniBlockProcessingInfo map[string]*processedMb.ProcessedMiniBlockInfo,
-) (*CrossShardIncomingMbsCreationResult, error) {
-	currMiniBlocksAdded, pendingMiniBlocks, currNumTxsAdded, hdrFinished, errCreate := bp.txCoordinator.CreateMbsCrossShardDstMe(
+) (*process.CreateMbsCrossShardResult, error) {
+	result, errCreate := bp.txCoordinator.CreateMbsCrossShardDstMe(
 		currentBlock,
 		miniBlockProcessingInfo,
 	)
@@ -3372,20 +3365,16 @@ func (bp *baseProcessor) createMbsCrossShardDstMe(
 		return nil, errCreate
 	}
 
-	if !hdrFinished {
+	if !result.AllMiniBlocksAdded {
 		log.Debug("block cannot be fully processed",
 			"round", currentBlock.GetRound(),
 			"nonce", currentBlock.GetNonce(),
 			"hash", currentBlockHash,
-			"num mbs added", len(currMiniBlocksAdded),
-			"num txs added", currNumTxsAdded)
+			"num mbs added", len(result.AddedMiniBlocks),
+			"num txs added", result.NumTransactions)
 	}
 
-	return &CrossShardIncomingMbsCreationResult{
-		HeaderFinished:    hdrFinished,
-		PendingMiniBlocks: pendingMiniBlocks,
-		AddedMiniBlocks:   currMiniBlocksAdded,
-	}, nil
+	return result, nil
 }
 
 func (bp *baseProcessor) revertGasForCrossShardDstMeMiniBlocks(added, pending []block.MiniblockAndHash) {

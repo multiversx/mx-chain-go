@@ -508,7 +508,7 @@ func (sp *shardProcessor) selectIncomingMiniBlocks(
 	var currentMetaBlockHash []byte
 	var pendingBlocks []*pendingBlocksAfterSelection
 	var errCreated error
-	var createIncomingMbsResult *CrossShardIncomingMbsCreationResult
+	var createIncomingMbsResult *process.CreateMbsCrossShardResult
 	lastMeta := lastCrossNotarizedMetaHdr
 	lastMetaAdded := lastCrossNotarizedMetaHdr
 
@@ -575,6 +575,15 @@ func (sp *shardProcessor) selectIncomingMiniBlocks(
 			return nil, errCreated
 		}
 
+		// Stop if data is missing to avoid nonce gaps in referenced metablock chain.
+		if !createIncomingMbsResult.AllDataAvailable {
+			sp.revertGasForCrossShardDstMeMiniBlocks(
+				createIncomingMbsResult.AddedMiniBlocks,
+				createIncomingMbsResult.PendingMiniBlocks,
+			)
+			break
+		}
+
 		if len(createIncomingMbsResult.AddedMiniBlocks) > 0 {
 			errAdd := sp.miniBlocksSelectionSession.AddMiniBlocksAndHashes(createIncomingMbsResult.AddedMiniBlocks)
 			if errAdd != nil {
@@ -585,7 +594,7 @@ func (sp *shardProcessor) selectIncomingMiniBlocks(
 			lastMetaAdded = currentMetaBlock
 		}
 
-		if createIncomingMbsResult.HeaderFinished {
+		if createIncomingMbsResult.AllMiniBlocksAdded {
 			continue
 		}
 
@@ -600,7 +609,6 @@ func (sp *shardProcessor) selectIncomingMiniBlocks(
 			break
 		}
 
-		// continue saving pending mini blocks until they are done or there is no possible space left in the block
 		lastMeta = currentMetaBlock
 	}
 

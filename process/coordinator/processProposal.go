@@ -15,14 +15,14 @@ import (
 func (tc *transactionCoordinator) CreateMbsCrossShardDstMe(
 	hdr data.HeaderHandler,
 	processedMiniBlocksInfo map[string]*processedMb.ProcessedMiniBlockInfo,
-) (addedMiniBlocksAndHashes []block.MiniblockAndHash, pendingMiniBlocksAndHashes []block.MiniblockAndHash, numTransactions uint32, allMiniBlocksAdded bool, err error) {
+) (*process.CreateMbsCrossShardResult, error) {
 	if check.IfNil(hdr) {
-		return nil, nil, 0, false, process.ErrNilHeaderHandler
+		return nil, process.ErrNilHeaderHandler
 	}
 
 	numMiniBlocksAlreadyProcessed := 0
 	miniBlocksAndHashes := make([]block.MiniblockAndHash, 0)
-	numTransactions = uint32(0)
+	var numTransactions uint32
 	shouldSkipShard := make(map[uint32]bool)
 
 	finalCrossMiniBlockInfos := tc.blockDataRequesterProposal.GetFinalCrossMiniBlockInfoAndRequestMissing(hdr)
@@ -34,6 +34,7 @@ func (tc *transactionCoordinator) CreateMbsCrossShardDstMe(
 			"total gas consumed in self shard", tc.gasComputation.TotalGasConsumedInSelfShard())
 	}()
 
+	allDataAvailable := true
 	txsForMbs := make(map[string][]data.TransactionHandler, 0)
 	mbsSlice := make([]data.MiniBlockHeaderHandler, 0)
 	for _, miniBlockInfo := range finalCrossMiniBlockInfos {
@@ -45,6 +46,7 @@ func (tc *transactionCoordinator) CreateMbsCrossShardDstMe(
 		}
 
 		if shouldSkipShard[miniBlockInfo.SenderShardID] {
+			allDataAvailable = false
 			log.Trace("transactionCoordinator.CreateMbsCrossShardDstMe: should skip shard",
 				"sender shard", miniBlockInfo.SenderShardID,
 				"hash", miniBlockInfo.Hash,
@@ -67,6 +69,7 @@ func (tc *transactionCoordinator) CreateMbsCrossShardDstMe(
 		miniVal, _ := tc.dataPool.MiniBlocks().Peek(miniBlockInfo.Hash)
 		if miniVal == nil {
 			shouldSkipShard[miniBlockInfo.SenderShardID] = true
+			allDataAvailable = false
 			log.Trace("transactionCoordinator.CreateMbsCrossShardDstMe: mini block not found and was skipped",
 				"sender shard", miniBlockInfo.SenderShardID,
 				"hash", miniBlockInfo.Hash,
@@ -78,6 +81,7 @@ func (tc *transactionCoordinator) CreateMbsCrossShardDstMe(
 		miniBlock, ok := miniVal.(*block.MiniBlock)
 		if !ok {
 			shouldSkipShard[miniBlockInfo.SenderShardID] = true
+			allDataAvailable = false
 			log.Error("transactionCoordinator.CreateMbsCrossShardDstMe: mini block assertion type failed",
 				"sender shard", miniBlockInfo.SenderShardID,
 				"hash", miniBlockInfo.Hash,
@@ -88,12 +92,13 @@ func (tc *transactionCoordinator) CreateMbsCrossShardDstMe(
 
 		preproc := tc.preProcProposal.getPreProcessor(miniBlock.Type)
 		if check.IfNil(preproc) {
-			return nil, nil, 0, false, fmt.Errorf("%w unknown block type %d", process.ErrNilPreProcessor, miniBlock.Type)
+			return nil, fmt.Errorf("%w unknown block type %d", process.ErrNilPreProcessor, miniBlock.Type)
 		}
 
 		existingTxsForMb, missingTxs := preproc.GetTransactionsAndRequestMissingForMiniBlock(miniBlock)
 		if missingTxs > 0 {
 			shouldSkipShard[miniBlockInfo.SenderShardID] = true
+			allDataAvailable = false
 			log.Trace("transactionCoordinator.CreateMbsCrossShardDstMe: transactions not found",
 				"sender shard", miniBlockInfo.SenderShardID,
 				"hash", miniBlockInfo.Hash,
@@ -129,11 +134,12 @@ func (tc *transactionCoordinator) CreateMbsCrossShardDstMe(
 
 	lastMBIndex, _, err := tc.gasComputation.AddIncomingMiniBlocks(mbsSlice, txsForMbs)
 	if err != nil {
-		return nil, nil, 0, false, err
+		return nil, err
 	}
 
 	// if not all mini blocks were included, remove them from the miniBlocksAndHashes slice
 	// but add them into pendingMiniBlocksAndHashes
+	var pendingMiniBlocksAndHashes []block.MiniblockAndHash
 	if lastMBIndex < len(mbsSlice)-1 {
 		log.Debug("transactionCoordinator.CreateMbsCrossShardDstMe: could not select all mini blocks, saving them as pending", "lastMBIndex", lastMBIndex)
 
@@ -145,9 +151,13 @@ func (tc *transactionCoordinator) CreateMbsCrossShardDstMe(
 		miniBlocksAndHashes = miniBlocksAndHashes[:lastMBIndex+1]
 	}
 
-	allMiniBlocksAdded = len(miniBlocksAndHashes)+numMiniBlocksAlreadyProcessed == len(finalCrossMiniBlockInfos)
-
-	return miniBlocksAndHashes, pendingMiniBlocksAndHashes, numTransactions, allMiniBlocksAdded, nil
+	return &process.CreateMbsCrossShardResult{
+		AddedMiniBlocks:    miniBlocksAndHashes,
+		PendingMiniBlocks:  pendingMiniBlocksAndHashes,
+		NumTransactions:    numTransactions,
+		AllMiniBlocksAdded: len(miniBlocksAndHashes)+numMiniBlocksAlreadyProcessed == len(finalCrossMiniBlockInfos),
+		AllDataAvailable:   allDataAvailable,
+	}, nil
 }
 
 func (tc *transactionCoordinator) getAOTSelection(nonce uint64) ([][]byte, []data.TransactionHandler) {

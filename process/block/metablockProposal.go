@@ -958,7 +958,7 @@ func (mp *metaProcessor) selectIncomingMiniBlocks(
 		if errCreated != nil {
 			return errCreated
 		}
-		if !createIncomingMbsResult.HeaderFinished {
+		if !createIncomingMbsResult.AllMiniBlocksAdded {
 			mp.revertGasForCrossShardDstMeMiniBlocks(createIncomingMbsResult.AddedMiniBlocks, createIncomingMbsResult.PendingMiniBlocks)
 			log.Debug("shard header cannot be fully added",
 				"round", currHdr.GetRound(),

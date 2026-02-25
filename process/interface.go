@@ -202,8 +202,17 @@ type TransactionCoordinator interface {
 	CreateMbsCrossShardDstMe(
 		header data.HeaderHandler,
 		processedMiniBlocksInfo map[string]*processedMb.ProcessedMiniBlockInfo,
-	) (addedMiniBlocksAndHashes []block.MiniblockAndHash, pendingMiniBlocksAndHashes []block.MiniblockAndHash, numTransactions uint32, allMiniBlocksAdded bool, err error)
+	) (*CreateMbsCrossShardResult, error)
 	ProposedDirectSentTransactionsToBroadcast(proposedBody data.BodyHandler) map[string][][]byte
+}
+
+// CreateMbsCrossShardResult holds the result of selecting cross-shard miniblocks destined for the current shard
+type CreateMbsCrossShardResult struct {
+	AddedMiniBlocks    []block.MiniblockAndHash
+	PendingMiniBlocks  []block.MiniblockAndHash
+	NumTransactions    uint32
+	AllMiniBlocksAdded bool
+	AllDataAvailable   bool
 }
 
 // SmartContractProcessor is the main interface for the smart contract caller engine
