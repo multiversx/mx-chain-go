@@ -13,15 +13,8 @@ import (
 	"github.com/multiversx/mx-chain-core-go/data"
 	"github.com/multiversx/mx-chain-core-go/data/block"
 	"github.com/multiversx/mx-chain-core-go/data/transaction"
-	"github.com/multiversx/mx-chain-go/storage"
-	"github.com/multiversx/mx-chain-go/testscommon/cache"
-	"github.com/multiversx/mx-chain-go/testscommon/economicsmocks"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
-
-	commonMocks "github.com/multiversx/mx-chain-go/testscommon/common"
-
-	"github.com/multiversx/mx-chain-go/process/asyncExecution/executionManager"
 
 	"github.com/multiversx/mx-chain-go/common"
 	"github.com/multiversx/mx-chain-go/common/graceperiod"
@@ -29,14 +22,19 @@ import (
 	retriever "github.com/multiversx/mx-chain-go/dataRetriever"
 	"github.com/multiversx/mx-chain-go/dataRetriever/blockchain"
 	"github.com/multiversx/mx-chain-go/process"
+	"github.com/multiversx/mx-chain-go/process/asyncExecution/executionManager"
 	"github.com/multiversx/mx-chain-go/process/asyncExecution/executionTrack"
 	blproc "github.com/multiversx/mx-chain-go/process/block"
 	"github.com/multiversx/mx-chain-go/process/block/processedMb"
 	"github.com/multiversx/mx-chain-go/process/estimator"
 	"github.com/multiversx/mx-chain-go/process/mock"
 	"github.com/multiversx/mx-chain-go/state"
+	"github.com/multiversx/mx-chain-go/storage"
 	"github.com/multiversx/mx-chain-go/testscommon"
+	"github.com/multiversx/mx-chain-go/testscommon/cache"
+	commonMocks "github.com/multiversx/mx-chain-go/testscommon/common"
 	"github.com/multiversx/mx-chain-go/testscommon/dataRetriever"
+	"github.com/multiversx/mx-chain-go/testscommon/economicsmocks"
 	"github.com/multiversx/mx-chain-go/testscommon/enableEpochsHandlerMock"
 	"github.com/multiversx/mx-chain-go/testscommon/hashingMocks"
 	"github.com/multiversx/mx-chain-go/testscommon/mbSelection"
@@ -3568,7 +3566,7 @@ func TestShardProcessor_ProcessBlockProposal(t *testing.T) {
 		_, err := sp.ProcessBlockProposal(header, headerHash, body)
 		require.Equal(t, expectedErr, err)
 	})
-	t.Run("commit state is called", func(t *testing.T) {
+	t.Run("commit state is not called by ProcessBlockProposal", func(t *testing.T) {
 		t.Parallel()
 
 		commitCalled := false
@@ -3596,6 +3594,10 @@ func TestShardProcessor_ProcessBlockProposal(t *testing.T) {
 		}
 		body := &block.Body{}
 		_, err := sp.ProcessBlockProposal(header, headerHash, body)
+		require.Nil(t, err)
+		require.False(t, commitCalled)
+
+		err = sp.CommitBlockProposalState(header)
 		require.Nil(t, err)
 		require.True(t, commitCalled)
 	})

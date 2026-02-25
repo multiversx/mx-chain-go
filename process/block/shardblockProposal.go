@@ -390,14 +390,32 @@ func (sp *shardProcessor) ProcessBlockProposal(
 		return nil, err
 	}
 
-	err = sp.commitState(headerHandler)
-	if err != nil {
-		return nil, err
+	return executionResult, nil
+}
+
+// CommitBlockProposalState commits the accounts state after processing a block proposal
+// and performs any post-commit operations (e.g. saving epoch start economics metrics).
+func (sp *shardProcessor) CommitBlockProposalState(headerHandler data.HeaderHandler) error {
+	if check.IfNil(headerHandler) {
+		return process.ErrNilBlockHeader
 	}
 
-	sp.saveEpochStartEconomicsIfNeeded(header)
+	err := sp.commitState(headerHandler)
+	if err != nil {
+		return err
+	}
 
-	return executionResult, nil
+	header, ok := headerHandler.(data.ShardHeaderHandler)
+	if ok {
+		sp.saveEpochStartEconomicsIfNeeded(header)
+	}
+
+	return nil
+}
+
+// RevertBlockProposalState reverts the uncommitted accounts state after a block proposal processing failure
+func (sp *shardProcessor) RevertBlockProposalState() {
+	sp.RevertCurrentBlock()
 }
 
 func computeTxTotalTxCount(miniBlockHeaders []data.MiniBlockHeaderHandler) uint32 {

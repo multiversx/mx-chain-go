@@ -191,6 +191,7 @@ type SnapshotStatisticsHandler interface {
 	AddTrieStats(handler TrieStatisticsHandler, trieType TrieType)
 	GetSnapshotDuration() int64
 	GetSnapshotNumNodes() uint64
+	IncrementThrottlerWaits()
 	IsInterfaceNil() bool
 }
 
