@@ -516,8 +516,8 @@ func TestShardForkDetector_ComputeGenesisTimeFromHeader(t *testing.T) {
 		roundHandlerMock := &mock.RoundHandlerMock{}
 
 		genesisTime := int64(900)
-		supernovaGenesisTime := int64(90000)
-		hdrTimeStamp := uint64(100000) // as milliseconds
+		supernovaGenesisTime := int64(910000)
+		hdrTimeStamp := uint64(920000) // as milliseconds
 
 		hdrRound := uint64(20)
 		supernovaActivationRound := uint64(10)

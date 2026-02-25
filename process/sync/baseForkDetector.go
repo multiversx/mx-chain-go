@@ -847,8 +847,17 @@ func (rnd *baseForkDetector) GetSupernovaGenesisTimestamp() int64 {
 	supernovaStartRound := int64(rnd.enableRoundsHandler.GetActivationRound(common.SupernovaRoundFlag))
 	if supernovaStartRound != rnd.superstartRound {
 		genesisTime := common.GetGenesisStartTimeFromUnixTimestamp(rnd.genesisTime, rnd.enableEpochsHandler)
+
+		chainParams, err := rnd.chainParametersHandler.ChainParametersForEpoch(rnd.genesisEpoch)
+		if err != nil {
+			log.Error("baseForkDetector.go: GetSupernovaGenesisTimestamp: failed to get chain parameters",
+				"epoch", rnd.genesisEpoch,
+				"error", err)
+			return rnd.supernovaGenesisTime
+		}
+		genesisRoundDurationNs := int64(chainParams.RoundDuration) * int64(time.Millisecond)
 		rnd.superstartRound = supernovaStartRound
-		rnd.supernovaGenesisTime = genesisTime.Add(time.Duration(supernovaStartRound * rnd.roundHandler.TimeDuration().Nanoseconds())).UnixMilli()
+		rnd.supernovaGenesisTime = genesisTime.Add(time.Duration(supernovaStartRound * genesisRoundDurationNs)).UnixMilli()
 		log.Debug("baseForkDetector.go: GetSupernovaGenesisTimestamp: force set supernovaStartRound",
 			"round", supernovaStartRound,
 			"supernovaGenesisTimeStamp", rnd.supernovaGenesisTime,
