@@ -585,11 +585,6 @@ func (sp *shardProcessor) selectIncomingMiniBlocks(
 			lastMetaAdded = currentMetaBlock
 		}
 
-		// if missing data detected, break without saving pending
-		if createIncomingMbsResult.HasMissingData {
-			break
-		}
-
 		if createIncomingMbsResult.HeaderFinished {
 			continue
 		}
@@ -599,6 +594,11 @@ func (sp *shardProcessor) selectIncomingMiniBlocks(
 			header:            currentMetaBlock,
 			pendingMiniBlocks: miniBlocksSliceToMap(createIncomingMbsResult.PendingMiniBlocks),
 		})
+
+		// if missing data detected, break without saving pending
+		if createIncomingMbsResult.HasMissingData {
+			break
+		}
 
 		canAddMorePendingMiniBlocks := sp.gasComputation.CanAddPendingIncomingMiniBlocks()
 		if !canAddMorePendingMiniBlocks {
