@@ -2496,8 +2496,8 @@ func TestMetaProcessor_selectIncomingMiniBlocks(t *testing.T) {
 		}
 		arguments := createMockMetaArguments(coreComponents, dataComponents, bootstrapComponents, statusComponents)
 		arguments.TxCoordinator = &testscommon.TransactionCoordinatorMock{
-			CreateMbsCrossShardDstMeCalled: func(header data.HeaderHandler, processedMiniBlocksInfo map[string]*processedMb.ProcessedMiniBlockInfo) ([]block.MiniblockAndHash, []block.MiniblockAndHash, uint32, bool, error) {
-				return nil, nil, 0, false, expectedErr
+			CreateMbsCrossShardDstMeCalled: func(header data.HeaderHandler, processedMiniBlocksInfo map[string]*processedMb.ProcessedMiniBlockInfo) ([]block.MiniblockAndHash, []block.MiniblockAndHash, uint32, bool, bool, error) {
+				return nil, nil, 0, false, false, expectedErr
 			},
 		}
 		mp, err := blproc.NewMetaProcessor(arguments)
@@ -2527,8 +2527,8 @@ func TestMetaProcessor_selectIncomingMiniBlocks(t *testing.T) {
 		cntAddRef := 0
 		arguments.MiniBlocksSelectionSession = &mbSelection.MiniBlockSelectionSessionStub{AddReferencedHeaderCalled: func(metaBlock data.HeaderHandler, metaBlockHash []byte) { cntAddRef++ }}
 		arguments.TxCoordinator = &testscommon.TransactionCoordinatorMock{
-			CreateMbsCrossShardDstMeCalled: func(header data.HeaderHandler, processedMiniBlocksInfo map[string]*processedMb.ProcessedMiniBlockInfo) ([]block.MiniblockAndHash, []block.MiniblockAndHash, uint32, bool, error) {
-				return nil, []block.MiniblockAndHash{{}}, 0, false, nil
+			CreateMbsCrossShardDstMeCalled: func(header data.HeaderHandler, processedMiniBlocksInfo map[string]*processedMb.ProcessedMiniBlockInfo) ([]block.MiniblockAndHash, []block.MiniblockAndHash, uint32, bool, bool, error) {
+				return nil, []block.MiniblockAndHash{{}}, 0, false, false, nil
 			},
 		}
 		mp, err := blproc.NewMetaProcessor(arguments)
@@ -2562,8 +2562,8 @@ func TestMetaProcessor_selectIncomingMiniBlocks(t *testing.T) {
 			AddMiniBlocksAndHashesCalled: func(miniBlocksAndHashes []block.MiniblockAndHash) error { cntAddMbs++; return nil },
 		}
 		arguments.TxCoordinator = &testscommon.TransactionCoordinatorMock{
-			CreateMbsCrossShardDstMeCalled: func(header data.HeaderHandler, processedMiniBlocksInfo map[string]*processedMb.ProcessedMiniBlockInfo) ([]block.MiniblockAndHash, []block.MiniblockAndHash, uint32, bool, error) {
-				return []block.MiniblockAndHash{{}}, nil, 3, true, nil
+			CreateMbsCrossShardDstMeCalled: func(header data.HeaderHandler, processedMiniBlocksInfo map[string]*processedMb.ProcessedMiniBlockInfo) ([]block.MiniblockAndHash, []block.MiniblockAndHash, uint32, bool, bool, error) {
+				return []block.MiniblockAndHash{{}}, nil, 3, true, false, nil
 			},
 		}
 		mp, err := blproc.NewMetaProcessor(arguments)

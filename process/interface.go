@@ -202,7 +202,7 @@ type TransactionCoordinator interface {
 	CreateMbsCrossShardDstMe(
 		header data.HeaderHandler,
 		processedMiniBlocksInfo map[string]*processedMb.ProcessedMiniBlockInfo,
-	) (addedMiniBlocksAndHashes []block.MiniblockAndHash, pendingMiniBlocksAndHashes []block.MiniblockAndHash, numTransactions uint32, allMiniBlocksAdded bool, err error)
+	) (addedMiniBlocksAndHashes []block.MiniblockAndHash, pendingMiniBlocksAndHashes []block.MiniblockAndHash, numTransactions uint32, allMiniBlocksAdded bool, hasMissingData bool, err error)
 	ProposedDirectSentTransactionsToBroadcast(proposedBody data.BodyHandler) map[string][][]byte
 }
 
