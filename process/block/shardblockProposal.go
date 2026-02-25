@@ -595,7 +595,7 @@ func (sp *shardProcessor) selectIncomingMiniBlocks(
 			pendingMiniBlocks: miniBlocksSliceToMap(createIncomingMbsResult.PendingMiniBlocks),
 		})
 
-		// if missing data detected, break without saving pending
+		// if missing data detected, break after saving pending as they are part of the same header already referenced
 		if createIncomingMbsResult.HasMissingData {
 			break
 		}
