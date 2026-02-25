@@ -785,9 +785,10 @@ func putInMapTxsFromBody(
 			continue
 		}
 
-		for _, txHash := range mb.TxHashes {
+		for idx, txHash := range mb.TxHashes {
 			txI, found := cache.Get(txHash)
 			if !found {
+				log.Warn("putInMapTxsFromBody cannot find tx", "txHash", txHash, "idx", idx)
 				continue
 			}
 
