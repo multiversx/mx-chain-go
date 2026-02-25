@@ -90,8 +90,8 @@ func (txCoordinator *TxCoordinator) CreateBlockStarted() {
 func (txCoordinator *TxCoordinator) CreateMbsCrossShardDstMe(
 	_ data.HeaderHandler,
 	_ map[string]*processedMb.ProcessedMiniBlockInfo,
-) ([]block.MiniblockAndHash, []block.MiniblockAndHash, uint32, bool, error) {
-	return make([]block.MiniblockAndHash, 0), make([]block.MiniblockAndHash, 0), 0, false, nil
+) ([]block.MiniblockAndHash, []block.MiniblockAndHash, uint32, bool, bool, error) {
+	return make([]block.MiniblockAndHash, 0), make([]block.MiniblockAndHash, 0), 0, false, false, nil
 }
 
 // CreateMbsAndProcessCrossShardTransactionsDstMe does nothing as it is disabled
