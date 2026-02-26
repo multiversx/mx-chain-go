@@ -309,8 +309,7 @@ func (sr *subroundEndRound) waitForProof() bool {
 		return true
 	}
 
-	maxTime := time.Duration(float64(sr.StartTime()) + float64(sr.EndTime()-sr.StartTime()))
-	timeLeft := sr.RoundHandler().RemainingTime(sr.RoundHandler().TimeStamp(), maxTime)
+	timeLeft := sr.RoundHandler().RemainingTime(sr.RoundHandler().TimeStamp(), sr.RoundHandler().TimeDuration())
 	ctx, cancel := context.WithTimeout(context.Background(), timeLeft)
 	defer cancel()
 
