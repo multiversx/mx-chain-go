@@ -570,7 +570,7 @@ func (nr *nodeRunner) executeOneComponentCreationCycle(
 	// closeComponentsDelay is needed because of pruning. To avoid removing data that will be needed when the node restarts,
 	// block pruning and then wait for a duration of one round before closing the components so that the info that is needed
 	// for the restart is persisted to storage.
-	closeComponentsDelay := time.Duration(uint64(time.Millisecond) * managedCoreComponents.ChainParametersHandler().CurrentChainParameters().RoundDuration)
+	closeComponentsDelay := time.Millisecond * time.Duration(managedCoreComponents.ChainParametersHandler().CurrentChainParameters().RoundDuration)
 	nextOperation := waitForSignal(
 		sigs,
 		managedCoreComponents.ChanStopNodeProcess(),
