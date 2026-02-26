@@ -4,6 +4,7 @@ import (
 	"bytes"
 	"fmt"
 	"sync"
+	"sync/atomic"
 	"time"
 
 	"github.com/multiversx/mx-chain-core-go/core"
@@ -120,6 +121,7 @@ type coreComponents struct {
 	processConfigsHandler         common.ProcessConfigsHandler
 	epochStartConfigsHandler      common.CommonConfigsHandler
 	antifloodConfigsHandler       common.AntifloodConfigsHandler
+	closingNodeStarted            *atomic.Bool
 }
 
 // NewCoreComponentsFactory initializes the factory which is responsible to creating core components
@@ -456,6 +458,7 @@ func (ccf *coreComponentsFactory) Create() (*coreComponents, error) {
 		processConfigsHandler:         processConfigs,
 		epochStartConfigsHandler:      commonConfigsHandler,
 		antifloodConfigsHandler:       antifloodConfigsHandler,
+		closingNodeStarted:            &atomic.Bool{},
 	}, nil
 }
 

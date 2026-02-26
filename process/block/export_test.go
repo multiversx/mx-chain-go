@@ -3,6 +3,7 @@ package block
 import (
 	"math/big"
 	"sync"
+	"sync/atomic"
 	"time"
 
 	"github.com/multiversx/mx-chain-core-go/core"
@@ -92,6 +93,11 @@ func (bp *baseProcessor) RemoveHeadersBehindNonceFromPools(
 // GetPruningHandler -
 func (bp *baseProcessor) GetPruningHandler(finalHeaderNonce uint64) state.PruningHandler {
 	return bp.getPruningHandler(finalHeaderNonce)
+}
+
+// SetClosingNodeStarted -
+func (bp *baseProcessor) SetClosingNodeStarted(val bool) {
+	bp.closingNodeStarted.Store(val)
 }
 
 // SetLastRestartNonce -
@@ -188,6 +194,7 @@ func NewShardProcessorEmptyWith3shards(
 		EnableRoundsHandlerField:           &testscommon.EnableRoundsHandlerStub{},
 		EpochChangeGracePeriodHandlerField: gracePeriod,
 		ProcessConfigsHandlerField:         processConfigsHandler,
+		ClosingNodeStartedField:            &atomic.Bool{},
 	}
 	dataComponents := &mock.DataComponentsMock{
 		Storage:    &storageStubs.ChainStorerStub{},

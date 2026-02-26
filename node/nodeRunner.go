@@ -10,6 +10,7 @@ import (
 	"path/filepath"
 	"runtime"
 	"strconv"
+	"sync/atomic"
 	"syscall"
 	"time"
 
@@ -566,6 +567,10 @@ func (nr *nodeRunner) executeOneComponentCreationCycle(
 	sigs := make(chan os.Signal, 1)
 	signal.Notify(sigs, syscall.SIGINT, syscall.SIGTERM)
 
+	// closeComponentsDelay is needed because of pruning. To avoid removing data that will be needed when the node restarts,
+	// block pruning and then wait for a duration of one round before closing the components so that the info that is needed
+	// for the restart is persisted to storage.
+	closeComponentsDelay := time.Millisecond * time.Duration(managedCoreComponents.ChainParametersHandler().CurrentChainParameters().RoundDuration)
 	nextOperation := waitForSignal(
 		sigs,
 		managedCoreComponents.ChanStopNodeProcess(),
@@ -574,6 +579,8 @@ func (nr *nodeRunner) executeOneComponentCreationCycle(
 		webServerHandler,
 		currentNode,
 		goRoutinesNumberStart,
+		managedCoreComponents.ClosingNodeStarted(),
+		closeComponentsDelay,
 	)
 
 	return nextOperation == nextOperationShouldStop, nil
@@ -989,6 +996,8 @@ func waitForSignal(
 	httpServer shared.UpgradeableHttpServerHandler,
 	currentNode *Node,
 	goRoutinesNumberStart int,
+	closingNodeStarted *atomic.Bool,
+	closeComponentsDelay time.Duration,
 ) nextOperationForNode {
 	var sig endProcess.ArgEndProcess
 	reshuffled := false
@@ -1011,13 +1020,13 @@ func waitForSignal(
 
 	chanCloseComponents := make(chan struct{})
 	go func() {
-		closeAllComponents(healthService, facade, httpServer, currentNode, chanCloseComponents)
+		closeAllComponents(healthService, facade, httpServer, currentNode, chanCloseComponents, closingNodeStarted, closeComponentsDelay)
 	}()
 
 	select {
 	case <-chanCloseComponents:
 		log.Debug("Closed all components gracefully")
-	case <-time.After(maxTimeToClose):
+	case <-time.After(maxTimeToClose + closeComponentsDelay):
 		log.Warn("force closing the node",
 			"error", "closeAllComponents did not finish on time",
 			"stack", goroutines.GetGoRoutines())
@@ -1584,7 +1593,13 @@ func closeAllComponents(
 	httpServer shared.UpgradeableHttpServerHandler,
 	node *Node,
 	chanCloseComponents chan struct{},
+	closingNodeStarted *atomic.Bool,
+	closeComponentsDelay time.Duration,
 ) {
+	closingNodeStarted.Store(true)
+	// stop pruning, but wait a bit before closing the components to let the node finish processing the current block
+	time.Sleep(closeComponentsDelay)
+
 	log.Debug("closing health service...")
 	err := healthService.Close()
 	log.LogIfError(err)
