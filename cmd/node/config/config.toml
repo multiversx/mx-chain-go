@@ -81,7 +81,7 @@
             NumHeadersToRequestInAdvance = 10
         },
         {
-            EnableRound = 260,
+            EnableRound = 440,
             MaxRoundsWithoutNewBlockReceived = 100,
             MaxRoundsWithoutCommittedBlock = 100,
             RoundModulusTriggerWhenSyncIsStuck = 200,
@@ -102,7 +102,7 @@
 
     EpochStartConfigsByRound = [
         { EnableRound = 0, MaxRoundsWithoutCommittedStartInEpochBlock = 50 },
-        { EnableRound = 260, MaxRoundsWithoutCommittedStartInEpochBlock = 500 },
+        { EnableRound = 440, MaxRoundsWithoutCommittedStartInEpochBlock = 500 },
     ]
 
     ConsensusConfigsByEpoch = [
@@ -121,7 +121,7 @@
         { StartEpoch = 1, StartRound = 0, Version = "2" },
 
         # TODO The value of StartEpoch parameter for version 3 should be the same with the SupernovaEnableEpoch flag from enableEpoch.toml file and StartRound the same with the SupernovaEnableRound flag from enableRounds.toml
-        { StartEpoch = 2, StartRound = 260, Version = "3" },
+        { StartEpoch = 2, StartRound = 440, Version = "3" },
     ]
 
 [StoragePruning]
@@ -713,7 +713,7 @@
             MaxDeviationTimeInMilliseconds = 25
 
     [[Antiflood.ConfigsByRound]]
-        Round = 260
+        Round = 440
         NumConcurrentResolverJobs = 50 # TODO: analyse for meta on bootstrap there was a constant used with value 10
         NumConcurrentResolvingTrieNodesJobs = 3
 
