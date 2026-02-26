@@ -1401,22 +1401,12 @@ func (pcf *processComponentsFactory) createOutportDataProvider(
 	gasConsumedProvider processOutport.GasConsumedProvider,
 	epochRewards processOutport.EpochRewardsGetter,
 ) (outport.DataProviderOutport, error) {
-	txsStorer, err := pcf.data.StorageService().GetStorer(dataRetriever.TransactionUnit)
-	if err != nil {
-		return nil, err
-	}
-	mbsStorer, err := pcf.data.StorageService().GetStorer(dataRetriever.MiniBlockUnit)
-	if err != nil {
-		return nil, err
-	}
-
 	return factoryOutportProvider.CreateOutportDataProvider(factoryOutportProvider.ArgOutportDataProviderFactory{
 		HasDrivers:             pcf.statusComponents.OutportHandler().HasDrivers(),
 		AddressConverter:       pcf.coreData.AddressPubKeyConverter(),
 		AccountsDB:             pcf.state.AccountsAdapterAPI(),
 		Marshaller:             pcf.coreData.InternalMarshalizer(),
 		EsdtDataStorageHandler: pcf.esdtNftStorage,
-		TransactionsStorer:     txsStorer,
 		ShardCoordinator:       pcf.bootstrapComponents.ShardCoordinator(),
 		TxCoordinator:          txCoordinator,
 		NodesCoordinator:       pcf.nodesCoordinator,
@@ -1424,13 +1414,13 @@ func (pcf *processComponentsFactory) createOutportDataProvider(
 		EconomicsData:          pcf.coreData.EconomicsData(),
 		IsImportDBMode:         pcf.importDBConfig.IsImportDBMode,
 		Hasher:                 pcf.coreData.Hasher(),
-		MbsStorer:              mbsStorer,
 		EnableEpochsHandler:    pcf.coreData.EnableEpochsHandler(),
 		ExecutionOrderGetter:   pcf.txExecutionOrderHandler,
 		DataPool:               pcf.data.Datapool(),
 		StateAccessesCollector: pcf.state.StateAccessesCollector(),
 		RoundHandler:           pcf.coreData.RoundHandler(),
 		RewardsGetter:          epochRewards,
+		StorageService:         pcf.data.StorageService(),
 	})
 }
 
