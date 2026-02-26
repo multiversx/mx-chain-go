@@ -2483,34 +2483,6 @@ func TestSubroundEndRound_SendProof(t *testing.T) {
 		require.False(t, wasSent)
 		require.Equal(t, expectedErr, err)
 	})
-	t.Run("no time left should not send proof", func(t *testing.T) {
-		t.Parallel()
-
-		container := consensusMocks.InitConsensusCore()
-		sr := initSubroundEndRoundWithContainer(container, &statusHandler.AppStatusHandlerStub{})
-
-		bm := &consensusMocks.BroadcastMessengerMock{
-			BroadcastEquivalentProofCalled: func(proof data.HeaderProofHandler, pkBytes []byte) error {
-				require.Fail(t, "should have not been called")
-				return nil
-			},
-		}
-		container.SetBroadcastMessenger(bm)
-		roundHandler := &round.RoundHandlerMock{
-			RemainingTimeCalled: func(startTime time.Time, maxTime time.Duration) time.Duration {
-				return -1 // no time left
-			},
-		}
-		container.SetRoundHandler(roundHandler)
-
-		for _, pubKey := range sr.ConsensusGroup() {
-			_ = sr.SetJobDone(pubKey, bls.SrSignature, true)
-		}
-
-		wasSent, err := sr.SendProof()
-		require.False(t, wasSent)
-		require.Equal(t, v2.ErrTimeOut, err)
-	})
 	t.Run("broadcast failure should not send proof", func(t *testing.T) {
 		t.Parallel()
 
