@@ -24,6 +24,9 @@ func createMockArgInterceptedEquivalentProofsFactory() ArgInterceptedEquivalentP
 				Hash:                   &hashingMocks.HasherMock{},
 				FieldsSizeCheckerField: &testscommon.FieldsSizeCheckerMock{},
 			},
+			CryptoComponents: &processMock.CryptoComponentsMock{
+				ManagedPeers: &testscommon.ManagedPeersHolderStub{},
+			},
 			ShardCoordinator:  &mock.ShardCoordinatorMock{},
 			HeaderSigVerifier: &consensus.HeaderSigVerifierMock{},
 			NodesCoordinator:  &shardingMocks.NodesCoordinatorStub{},

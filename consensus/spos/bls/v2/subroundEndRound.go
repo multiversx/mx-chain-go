@@ -280,8 +280,8 @@ func (sr *subroundEndRound) doEndRoundJobByNode() bool {
 		}
 
 		if proofSent {
-			err := sr.prepareBroadcastBlockData()
-			log.LogIfError(err)
+			errBroadcastBlockData := sr.prepareBroadcastBlockData()
+			log.LogIfError(errBroadcastBlockData)
 		}
 
 		break
@@ -309,7 +309,9 @@ func (sr *subroundEndRound) waitForProof() bool {
 		return true
 	}
 
-	ctx, cancel := context.WithTimeout(context.Background(), sr.RoundHandler().TimeDuration())
+	maxTime := time.Duration(float64(sr.StartTime()) + float64(sr.EndTime()-sr.StartTime()))
+	timeLeft := sr.RoundHandler().RemainingTime(sr.RoundHandler().TimeStamp(), maxTime)
+	ctx, cancel := context.WithTimeout(context.Background(), timeLeft)
 	defer cancel()
 
 	for {
@@ -386,14 +388,6 @@ func (sr *subroundEndRound) sendProof() (bool, error) {
 	if err != nil {
 		log.Debug("sendProof.aggregateSigsAndHandleInvalidSigners", "error", err.Error())
 		return false, err
-	}
-
-	roundHandler := sr.RoundHandler()
-	if roundHandler.RemainingTime(roundHandler.TimeStamp(), roundHandler.TimeDuration()) < 0 {
-		log.Debug("sendProof: time is out -> cancel broadcasting final info and header",
-			"round time stamp", roundHandler.TimeStamp(),
-			"current time", time.Now())
-		return false, ErrTimeOut
 	}
 
 	// broadcast header proof
@@ -673,6 +667,12 @@ func (sr *subroundEndRound) createAndBroadcastProof(
 		HeaderShardId:       sr.GetHeader().GetShardID(),
 		HeaderRound:         sr.GetHeader().GetRound(),
 		IsStartOfEpoch:      sr.GetHeader().IsStartOfEpochBlock(),
+	}
+
+	added := sr.EquivalentProofsPool().AddProof(headerProof)
+	if !added {
+		log.Debug("createAndBroadcastProof failed to add proof from self")
+		return ErrProofAlreadyPropagated
 	}
 
 	err := sr.BroadcastMessenger().BroadcastEquivalentProof(headerProof, []byte(sender))

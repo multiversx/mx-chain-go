@@ -6,6 +6,7 @@ import (
 
 	"github.com/multiversx/mx-chain-core-go/core"
 	"github.com/multiversx/mx-chain-core-go/core/check"
+	"github.com/multiversx/mx-chain-go/common"
 
 	"github.com/multiversx/mx-chain-go/p2p"
 	"github.com/multiversx/mx-chain-go/process"
@@ -21,6 +22,7 @@ type baseDataInterceptor struct {
 	debugHandler            process.InterceptedDebugger
 	preferredPeersHolder    process.PreferredPeersHolderHandler
 	interceptedDataVerifier process.InterceptedDataVerifier
+	managedPeersHolder      common.ManagedPeersHolder
 }
 
 func (bdi *baseDataInterceptor) preProcessMesage(message p2p.MessageP2P, fromConnectedPeer core.PeerID) error {
@@ -59,9 +61,11 @@ func (bdi *baseDataInterceptor) shouldSkipAntifloodChecks(fromConnectedPeer core
 }
 
 func (bdi *baseDataInterceptor) isMessageFromSelfToSelf(fromConnectedPeer core.PeerID, message p2p.MessageP2P) bool {
-	return bytes.Equal(message.Signature(), message.From()) &&
-		bytes.Equal(message.From(), bdi.currentPeerId.Bytes()) &&
+	isPidManagedByCurrentNode := bdi.managedPeersHolder.IsPidManagedByCurrentNode(fromConnectedPeer)
+	isSelfSingleKey := bytes.Equal(message.From(), bdi.currentPeerId.Bytes()) &&
 		fromConnectedPeer == bdi.currentPeerId
+	isPidSelf := isPidManagedByCurrentNode || isSelfSingleKey
+	return bytes.Equal(message.Signature(), message.From()) && isPidSelf
 }
 
 func (bdi *baseDataInterceptor) processInterceptedData(

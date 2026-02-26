@@ -291,6 +291,7 @@ func (micf *metaInterceptorsContainerFactory) createOneShardHeaderInterceptor(to
 			CurrentPeerId:           micf.mainMessenger.ID(),
 			PreferredPeersHolder:    micf.preferredPeersHolder,
 			InterceptedDataVerifier: interceptedDataVerifier,
+			ManagedPeersHolder:      micf.argInterceptorFactory.CryptoComponents.ManagedPeersHolder(),
 		},
 	)
 	if err != nil {
