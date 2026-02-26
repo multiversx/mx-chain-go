@@ -732,6 +732,7 @@ func (thn *TestHeartbeatNode) initMultiDataInterceptor(topic string, dataFactory
 			PreferredPeersHolder:    &p2pmocks.PeersHolderStub{},
 			CurrentPeerId:           thn.MainMessenger.ID(),
 			InterceptedDataVerifier: &processMock.InterceptedDataVerifierMock{},
+			ManagedPeersHolder:      thn.ManagedPeersHolder,
 		},
 	)
 
@@ -756,6 +757,7 @@ func (thn *TestHeartbeatNode) initSingleDataInterceptor(topic string, dataFactor
 			PreferredPeersHolder:    &p2pmocks.PeersHolderStub{},
 			CurrentPeerId:           thn.MainMessenger.ID(),
 			InterceptedDataVerifier: &processMock.InterceptedDataVerifierMock{},
+			ManagedPeersHolder:      thn.ManagedPeersHolder,
 		},
 	)
 
