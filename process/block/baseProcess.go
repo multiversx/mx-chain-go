@@ -3483,7 +3483,7 @@ func (bp *baseProcessor) requestHeadersFromHeaderIfNeeded(
 	}
 
 	fromNonce := lastHeader.GetNonce() + 1
-	toNonce := fromNonce + numHeadersToRequestInAdvance
+	toNonce := fromNonce + bp.processConfigsHandler.GetNumHeadersToRequestInAdvance(lastRound)
 
 	for nonce := fromNonce; nonce <= toNonce; nonce++ {
 		bp.requestHeaderIfNeeded(nonce, shardID)
