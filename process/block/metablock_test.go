@@ -6,6 +6,7 @@ import (
 	"math/big"
 	"reflect"
 	"sync"
+	atomic2 "sync/atomic"
 	"testing"
 	"time"
 
@@ -80,6 +81,7 @@ func createMockComponentHolders() (
 		EnableRoundsHandlerField:           &testscommon.EnableRoundsHandlerStub{},
 		EpochChangeGracePeriodHandlerField: gracePeriod,
 		ProcessConfigsHandlerField:         testscommon.GetDefaultProcessConfigsHandler(),
+		ClosingNodeStartedField:            &atomic2.Bool{},
 	}
 
 	dataComponents := &mock.DataComponentsMock{
