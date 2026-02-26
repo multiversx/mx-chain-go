@@ -12,6 +12,8 @@ import (
 	"github.com/multiversx/mx-chain-go/process"
 )
 
+const interceptedEquivalentProofType = "intercepted equivalent proof"
+
 // ArgSingleDataInterceptor is the argument for the single-data interceptor
 type ArgSingleDataInterceptor struct {
 	Topic                   string
@@ -23,6 +25,7 @@ type ArgSingleDataInterceptor struct {
 	PreferredPeersHolder    process.PreferredPeersHolderHandler
 	CurrentPeerId           core.PeerID
 	InterceptedDataVerifier process.InterceptedDataVerifier
+	ManagedPeersHolder      common.ManagedPeersHolder
 }
 
 // SingleDataInterceptor is used for intercepting packed multi data
@@ -61,6 +64,9 @@ func NewSingleDataInterceptor(arg ArgSingleDataInterceptor) (*SingleDataIntercep
 	if len(arg.CurrentPeerId) == 0 {
 		return nil, process.ErrEmptyPeerID
 	}
+	if check.IfNil(arg.ManagedPeersHolder) {
+		return nil, process.ErrNilManagedPeersHolder
+	}
 
 	singleDataIntercept := &SingleDataInterceptor{
 		baseDataInterceptor: &baseDataInterceptor{
@@ -72,6 +78,7 @@ func NewSingleDataInterceptor(arg ArgSingleDataInterceptor) (*SingleDataIntercep
 			preferredPeersHolder:    arg.PreferredPeersHolder,
 			debugHandler:            handler.NewDisabledInterceptorDebugHandler(),
 			interceptedDataVerifier: arg.InterceptedDataVerifier,
+			managedPeersHolder:      arg.ManagedPeersHolder,
 		},
 		factory:          arg.DataFactory,
 		whiteListRequest: arg.WhiteListRequest,
@@ -101,20 +108,28 @@ func (sdi *SingleDataInterceptor) ProcessReceivedMessage(message p2p.MessageP2P,
 	}
 
 	sdi.receivedDebugInterceptedData(interceptedData)
-	err = sdi.interceptedDataVerifier.Verify(interceptedData, message.Topic(), message.BroadcastMethod())
-	if err != nil {
-		sdi.throttler.EndProcessing()
-		sdi.processDebugInterceptedData(interceptedData, err)
+	messageID := interceptedData.Hash()
+	isInterceptedEquivalentProof := interceptedData.Type() == interceptedEquivalentProofType
+	isMessageFromSelfOriginator := sdi.isMessageFromSelfOriginator(message)
+	shouldSkipInterceptedDataVerification := isMessageFromSelfOriginator && isInterceptedEquivalentProof
+	if !shouldSkipInterceptedDataVerification {
+		err = sdi.interceptedDataVerifier.Verify(interceptedData, message.Topic(), message.BroadcastMethod())
+		if err != nil {
+			sdi.throttler.EndProcessing()
+			sdi.processDebugInterceptedData(interceptedData, err)
 
-		isWrongVersion := errors.Is(err, process.ErrInvalidTransactionVersion) || errors.Is(err, process.ErrInvalidChainID)
-		if isWrongVersion {
-			// this situation is so severe that we need to black list de peers
-			reason := "wrong version of received intercepted data, topic " + sdi.topic + ", error " + err.Error()
-			sdi.antifloodHandler.BlacklistPeer(message.Peer(), reason, common.InvalidMessageBlacklistDuration)
-			sdi.antifloodHandler.BlacklistPeer(fromConnectedPeer, reason, common.InvalidMessageBlacklistDuration)
+			isWrongVersion := errors.Is(err, process.ErrInvalidTransactionVersion) || errors.Is(err, process.ErrInvalidChainID)
+			if isWrongVersion {
+				// this situation is so severe that we need to black list de peers
+				reason := "wrong version of received intercepted data, topic " + sdi.topic + ", error " + err.Error()
+				sdi.antifloodHandler.BlacklistPeer(message.Peer(), reason, common.InvalidMessageBlacklistDuration)
+				sdi.antifloodHandler.BlacklistPeer(fromConnectedPeer, reason, common.InvalidMessageBlacklistDuration)
+			}
+
+			return nil, err
 		}
-
-		return nil, err
+	} else {
+		sdi.interceptedDataVerifier.MarkVerified(interceptedData, message.BroadcastMethod())
 	}
 
 	errOriginator := sdi.antifloodHandler.IsOriginatorEligibleForTopic(message.Peer(), sdi.topic)
@@ -127,7 +142,6 @@ func (sdi *SingleDataInterceptor) ProcessReceivedMessage(message p2p.MessageP2P,
 		return nil, errOriginator
 	}
 
-	messageID := interceptedData.Hash()
 	isForCurrentShard := interceptedData.IsForCurrentShard()
 	shouldProcess := isForCurrentShard || isWhiteListed
 	if !shouldProcess {

@@ -731,6 +731,7 @@ func createMockComponentHolders() (*mock.CoreComponentsMock, *mock.CryptoCompone
 		MultiSigContainer: cryptoMocks.NewMultiSignerContainerMock(multiSigner),
 		BlKeyGen:          &mock.SingleSignKeyGenMock{},
 		TxKeyGen:          &mock.SingleSignKeyGenMock{},
+		ManagedPeers:      &testscommon.ManagedPeersHolderStub{},
 	}
 
 	return coreComponents, cryptoComponents
