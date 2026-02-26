@@ -2,6 +2,7 @@ package interceptors
 
 import (
 	"errors"
+	"strings"
 
 	"github.com/multiversx/mx-chain-core-go/core"
 	"github.com/multiversx/mx-chain-core-go/core/check"
@@ -11,8 +12,6 @@ import (
 	"github.com/multiversx/mx-chain-go/p2p"
 	"github.com/multiversx/mx-chain-go/process"
 )
-
-const interceptedEquivalentProofType = "intercepted equivalent proof"
 
 // ArgSingleDataInterceptor is the argument for the single-data interceptor
 type ArgSingleDataInterceptor struct {
@@ -109,7 +108,7 @@ func (sdi *SingleDataInterceptor) ProcessReceivedMessage(message p2p.MessageP2P,
 
 	sdi.receivedDebugInterceptedData(interceptedData)
 	messageID := interceptedData.Hash()
-	isInterceptedEquivalentProof := interceptedData.Type() == interceptedEquivalentProofType
+	isInterceptedEquivalentProof := strings.Contains(message.Topic(), common.EquivalentProofsTopic)
 	isMessageFromSelfOriginator := sdi.isMessageFromSelfOriginator(message)
 	shouldSkipInterceptedDataVerification := isMessageFromSelfOriginator && isInterceptedEquivalentProof
 	if !shouldSkipInterceptedDataVerification {
