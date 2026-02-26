@@ -4,6 +4,7 @@ import (
 	"context"
 
 	"github.com/multiversx/mx-chain-core-go/core/check"
+
 	"github.com/multiversx/mx-chain-go/common"
 	"github.com/multiversx/mx-chain-go/config"
 	"github.com/multiversx/mx-chain-go/process"
@@ -13,8 +14,6 @@ import (
 	storageFactory "github.com/multiversx/mx-chain-go/storage/factory"
 	"github.com/multiversx/mx-chain-go/storage/storageunit"
 )
-
-const outputReservedPercent = float32(0)
 
 // NewP2POutputAntiFlood will return an instance of an output antiflood component based on the config
 func NewP2POutputAntiFlood(
