@@ -1487,3 +1487,6 @@ var ErrMissingCrossNotarizedHeader = errors.New("missing cross notarized header"
 
 // ErrInvalidShardInfo signals that an invalid shard info has been provided
 var ErrInvalidShardInfo = errors.New("invalid shard info")
+
+// ErrNilClosingNodeStartedFlag signals that the closing node started flag is nil
+var ErrNilClosingNodeStartedFlag = errors.New("closing node started flag is nil")

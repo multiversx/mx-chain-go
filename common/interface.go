@@ -494,6 +494,7 @@ type ProcessConfigsHandler interface {
 	GetMaxRoundsToKeepUnprocessedTransactions(round uint64) uint64
 	GetMaxRoundsToKeepUnprocessedMiniBlocks(round uint64) uint64
 	GetMaxBlockProcessingTime(round uint64) time.Duration
+	GetNumHeadersToRequestInAdvance(round uint64) uint64
 
 	GetValue(variable dto.ConfigVariable) uint64
 
