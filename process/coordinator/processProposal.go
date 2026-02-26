@@ -15,9 +15,9 @@ import (
 func (tc *transactionCoordinator) CreateMbsCrossShardDstMe(
 	hdr data.HeaderHandler,
 	processedMiniBlocksInfo map[string]*processedMb.ProcessedMiniBlockInfo,
-) (addedMiniBlocksAndHashes []block.MiniblockAndHash, pendingMiniBlocksAndHashes []block.MiniblockAndHash, numTransactions uint32, allMiniBlocksAdded bool, err error) {
+) (addedMiniBlocksAndHashes []block.MiniblockAndHash, pendingMiniBlocksAndHashes []block.MiniblockAndHash, numTransactions uint32, allMiniBlocksAdded bool, hasMissingData bool, err error) {
 	if check.IfNil(hdr) {
-		return nil, nil, 0, false, process.ErrNilHeaderHandler
+		return nil, nil, 0, false, false, process.ErrNilHeaderHandler
 	}
 
 	numMiniBlocksAlreadyProcessed := 0
@@ -88,7 +88,7 @@ func (tc *transactionCoordinator) CreateMbsCrossShardDstMe(
 
 		preproc := tc.preProcProposal.getPreProcessor(miniBlock.Type)
 		if check.IfNil(preproc) {
-			return nil, nil, 0, false, fmt.Errorf("%w unknown block type %d", process.ErrNilPreProcessor, miniBlock.Type)
+			return nil, nil, 0, false, false, fmt.Errorf("%w unknown block type %d", process.ErrNilPreProcessor, miniBlock.Type)
 		}
 
 		existingTxsForMb, missingTxs := preproc.GetTransactionsAndRequestMissingForMiniBlock(miniBlock)
@@ -129,7 +129,7 @@ func (tc *transactionCoordinator) CreateMbsCrossShardDstMe(
 
 	lastMBIndex, _, err := tc.gasComputation.AddIncomingMiniBlocks(mbsSlice, txsForMbs)
 	if err != nil {
-		return nil, nil, 0, false, err
+		return nil, nil, 0, false, false, err
 	}
 
 	// if not all mini blocks were included, remove them from the miniBlocksAndHashes slice
@@ -146,8 +146,9 @@ func (tc *transactionCoordinator) CreateMbsCrossShardDstMe(
 	}
 
 	allMiniBlocksAdded = len(miniBlocksAndHashes)+numMiniBlocksAlreadyProcessed == len(finalCrossMiniBlockInfos)
+	hasMissingData = !allMiniBlocksAdded && len(shouldSkipShard) > 0
 
-	return miniBlocksAndHashes, pendingMiniBlocksAndHashes, numTransactions, allMiniBlocksAdded, nil
+	return miniBlocksAndHashes, pendingMiniBlocksAndHashes, numTransactions, allMiniBlocksAdded, hasMissingData, nil
 }
 
 func (tc *transactionCoordinator) getAOTSelection(nonce uint64) ([][]byte, []data.TransactionHandler) {
@@ -185,11 +186,8 @@ func (tc *transactionCoordinator) getAOTSelection(nonce uint64) ([][]byte, []dat
 func (tc *transactionCoordinator) SelectOutgoingTransactions(
 	nonce uint64,
 	haveTimeForSelection func() bool,
-) (selectedTxHashes [][]byte, selectedPendingIncomingMiniBlocks []data.MiniBlockHeaderHandler) {
-	selectedTxHashes = make([][]byte, 0)
-	selectedTxs := make([]data.TransactionHandler, 0)
-
-	selectedTxHashes, selectedTxs = tc.getAOTSelection(nonce)
+) ([][]byte, []data.MiniBlockHeaderHandler) {
+	selectedTxHashes, selectedTxs := tc.getAOTSelection(nonce)
 	// if no tx returned from AOT selection, fallback to regular selection from pre-processors
 	if len(selectedTxs) == 0 {
 		for _, blockType := range tc.preProcProposal.keysTxPreProcs {
