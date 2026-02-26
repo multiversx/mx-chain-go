@@ -56,6 +56,7 @@ var log = logger.GetOrCreate("process/block")
 // CrossShardIncomingMbsCreationResult represents the result of creating cross-shard mini blocks
 type CrossShardIncomingMbsCreationResult struct {
 	HeaderFinished    bool
+	HasMissingData    bool
 	PendingMiniBlocks []block.MiniblockAndHash
 	AddedMiniBlocks   []block.MiniblockAndHash
 }
@@ -282,8 +283,7 @@ func (bp *baseProcessor) checkBlockValidity(
 	if check.IfNil(currentBlockHeader) {
 		if headerHandler.GetNonce() == bp.genesisNonce+1 { // first block after genesis
 			if bytes.Equal(headerHandler.GetPrevHash(), bp.blockChain.GetGenesisHeaderHash()) {
-				// TODO: add genesis block verification
-				return nil
+				return bp.checkTimestamp(headerHandler)
 			}
 
 			log.Debug("hash does not match",
@@ -335,6 +335,24 @@ func (bp *baseProcessor) checkBlockValidity(
 	// verification of epoch
 	if headerHandler.GetEpoch() < currentBlockHeader.GetEpoch() {
 		return process.ErrEpochDoesNotMatch
+	}
+
+	return bp.checkTimestamp(headerHandler)
+}
+
+func (bp *baseProcessor) checkTimestamp(headerHandler data.HeaderHandler) error {
+	_, headerTimestampMs, err := common.GetHeaderTimestamps(headerHandler, bp.enableEpochsHandler)
+	if err != nil {
+		return err
+	}
+
+	expectedTimestampMs := bp.roundHandler.GetTimeStampForRound(headerHandler.GetRound())
+	if headerTimestampMs != expectedTimestampMs {
+		log.Debug("timestamp does not match",
+			"expected timestamp ms", expectedTimestampMs,
+			"received timestamp ms", headerTimestampMs)
+
+		return process.ErrInvalidTimestamp
 	}
 
 	return nil
@@ -2794,6 +2812,20 @@ func (bp *baseProcessor) OnProposedBlock(
 	return bp.dataPool.Transactions().OnProposedBlock(proposedHash, proposedBodyPtr, proposedHeader, accountsProvider, lastExecResHandler.GetHeaderHash())
 }
 
+// OnBackfilledBlock adds a previously consensus-agreed block as tracked without breadcrumb validation.
+func (bp *baseProcessor) OnBackfilledBlock(
+	proposedBody data.BodyHandler,
+	proposedHeader data.HeaderHandler,
+	proposedHash []byte,
+) error {
+	proposedBodyPtr, ok := proposedBody.(*block.Body)
+	if !ok {
+		return process.ErrWrongTypeAssertion
+	}
+
+	return bp.dataPool.Transactions().OnBackfilledBlock(proposedHash, proposedBodyPtr, proposedHeader)
+}
+
 func (bp *baseProcessor) prepareAccountsForProposal() (data.BaseExecutionResultHandler, error) {
 	prevHeader := bp.blockChain.GetCurrentBlockHeader()
 	prevHeaderHash := bp.blockChain.GetCurrentBlockHeaderHash()
@@ -3333,7 +3365,7 @@ func (bp *baseProcessor) createMbsCrossShardDstMe(
 	currentBlock data.HeaderHandler,
 	miniBlockProcessingInfo map[string]*processedMb.ProcessedMiniBlockInfo,
 ) (*CrossShardIncomingMbsCreationResult, error) {
-	currMiniBlocksAdded, pendingMiniBlocks, currNumTxsAdded, hdrFinished, errCreate := bp.txCoordinator.CreateMbsCrossShardDstMe(
+	currMiniBlocksAdded, pendingMiniBlocks, currNumTxsAdded, hdrFinished, missingData, errCreate := bp.txCoordinator.CreateMbsCrossShardDstMe(
 		currentBlock,
 		miniBlockProcessingInfo,
 	)
@@ -3347,11 +3379,13 @@ func (bp *baseProcessor) createMbsCrossShardDstMe(
 			"nonce", currentBlock.GetNonce(),
 			"hash", currentBlockHash,
 			"num mbs added", len(currMiniBlocksAdded),
-			"num txs added", currNumTxsAdded)
+			"num txs added", currNumTxsAdded,
+			"has missing data", missingData)
 	}
 
 	return &CrossShardIncomingMbsCreationResult{
 		HeaderFinished:    hdrFinished,
+		HasMissingData:    missingData,
 		PendingMiniBlocks: pendingMiniBlocks,
 		AddedMiniBlocks:   currMiniBlocksAdded,
 	}, nil

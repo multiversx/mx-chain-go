@@ -13,7 +13,7 @@ type BlockTrackerStub struct {
 	AddSelfNotarizedHeaderCalled                       func(shardID uint32, selfNotarizedHeader data.HeaderHandler, selfNotarizedHeaderHash []byte)
 	CheckBlockAgainstRoundHandlerCalled                func(headerHandler data.HeaderHandler) error
 	CheckBlockAgainstFinalCalled                       func(headerHandler data.HeaderHandler) error
-	CheckBlockAgainstWhitelistCalled                   func(interceptedData process.InterceptedData) bool
+	CheckAgainstWhitelistCalled                        func(interceptedData process.InterceptedData) bool
 	CleanupHeadersBehindNonceCalled                    func(shardID uint32, selfNotarizedNonce uint64, crossNotarizedNonce uint64)
 	ComputeLongestChainCalled                          func(shardID uint32, header data.HeaderHandler) ([]data.HeaderHandler, [][]byte)
 	ComputeLongestMetaChainFromLastNotarizedCalled     func() ([]data.HeaderHandler, [][]byte, error)
@@ -97,10 +97,10 @@ func (bts *BlockTrackerStub) CheckBlockAgainstFinal(headerHandler data.HeaderHan
 	return nil
 }
 
-// CheckBlockAgainstWhitelist -
-func (bts *BlockTrackerStub) CheckBlockAgainstWhitelist(interceptedData process.InterceptedData) bool {
-	if bts.CheckBlockAgainstWhitelistCalled != nil {
-		return bts.CheckBlockAgainstWhitelistCalled(interceptedData)
+// CheckAgainstWhitelist -
+func (bts *BlockTrackerStub) CheckAgainstWhitelist(interceptedData process.InterceptedData) bool {
+	if bts.CheckAgainstWhitelistCalled != nil {
+		return bts.CheckAgainstWhitelistCalled(interceptedData)
 	}
 
 	return false

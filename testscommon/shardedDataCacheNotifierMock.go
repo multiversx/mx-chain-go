@@ -170,6 +170,15 @@ func (mock *ShardedDataCacheNotifierMock) OnProposedBlock(
 	return nil
 }
 
+// OnBackfilledBlock -
+func (mock *ShardedDataCacheNotifierMock) OnBackfilledBlock(
+	_ []byte,
+	_ *block.Body,
+	_ data.HeaderHandler,
+) error {
+	return nil
+}
+
 // ResetTracker -
 func (mock *ShardedDataCacheNotifierMock) ResetTracker() {
 	if mock.ResetTrackerCalled != nil {
