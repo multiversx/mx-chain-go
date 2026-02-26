@@ -1,6 +1,7 @@
 package mock
 
 import (
+	"sync/atomic"
 	"time"
 
 	"github.com/multiversx/mx-chain-core-go/core"
@@ -63,6 +64,7 @@ type CoreComponentsStub struct {
 	ProcessConfigsHandlerField         common.ProcessConfigsHandler
 	CommonConfigsHandlerField          common.CommonConfigsHandler
 	AntifloodConfigsHandlerField       common.AntifloodConfigsHandler
+	ClosingNodeStartedField            *atomic.Bool
 }
 
 // Create -
@@ -306,6 +308,15 @@ func (ccs *CoreComponentsStub) CommonConfigsHandler() common.CommonConfigsHandle
 // AntifloodConfigsHandler -
 func (ccs *CoreComponentsStub) AntifloodConfigsHandler() common.AntifloodConfigsHandler {
 	return ccs.AntifloodConfigsHandlerField
+}
+
+// ClosingNodeStarted -
+func (ccs *CoreComponentsStub) ClosingNodeStarted() *atomic.Bool {
+	if ccs.ClosingNodeStartedField == nil {
+		ccs.ClosingNodeStartedField = &atomic.Bool{}
+	}
+
+	return ccs.ClosingNodeStartedField
 }
 
 // IsInterfaceNil -

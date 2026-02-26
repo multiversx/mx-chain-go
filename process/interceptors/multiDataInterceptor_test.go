@@ -40,6 +40,7 @@ func createMockArgMultiDataInterceptor() interceptors.ArgMultiDataInterceptor {
 		PreferredPeersHolder:    &p2pmocks.PeersHolderStub{},
 		CurrentPeerId:           "pid",
 		InterceptedDataVerifier: &mock.InterceptedDataVerifierMock{},
+		ManagedPeersHolder:      &testscommon.ManagedPeersHolderStub{},
 	}
 }
 
@@ -151,6 +152,17 @@ func TestNewMultiDataInterceptor_EmptyPeerIDShouldErr(t *testing.T) {
 
 	assert.True(t, check.IfNil(mdi))
 	assert.Equal(t, process.ErrEmptyPeerID, err)
+}
+
+func TestNewMultiDataInterceptor_NilManagedPeersHolderShouldErr(t *testing.T) {
+	t.Parallel()
+
+	arg := createMockArgMultiDataInterceptor()
+	arg.ManagedPeersHolder = nil
+	mdi, err := interceptors.NewMultiDataInterceptor(arg)
+
+	assert.True(t, check.IfNil(mdi))
+	assert.Equal(t, process.ErrNilManagedPeersHolder, err)
 }
 
 func TestNewMultiDataInterceptor(t *testing.T) {
