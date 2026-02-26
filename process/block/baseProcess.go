@@ -8,6 +8,7 @@ import (
 	"math/big"
 	"sort"
 	"sync"
+	"sync/atomic"
 	"time"
 
 	"github.com/multiversx/mx-chain-core-go/core"
@@ -148,6 +149,7 @@ type baseProcessor struct {
 	txExecutionOrderHandler            common.TxExecutionOrderHandler
 	aotSelector                        process.AOTTransactionSelector
 	maxProposalNonceGap                uint64
+	closingNodeStarted                 *atomic.Bool
 }
 
 type bootStorerDataArgs struct {
@@ -244,6 +246,7 @@ func NewBaseProcessor(arguments ArgBaseProcessor) (*baseProcessor, error) {
 		txExecutionOrderHandler:            arguments.TxExecutionOrderHandler,
 		aotSelector:                        arguments.AOTSelector,
 		maxProposalNonceGap:                maxProposalNonceGap,
+		closingNodeStarted:                 arguments.CoreComponents.ClosingNodeStarted(),
 	}
 
 	err = base.OnExecutedBlock(genesisHdr, genesisHdr.GetRootHash())
@@ -850,6 +853,9 @@ func checkProcessorParameters(arguments ArgBaseProcessor) error {
 	}
 	if check.IfNil(arguments.AOTSelector) {
 		return process.ErrNilAOTSelector
+	}
+	if arguments.CoreComponents.ClosingNodeStarted() == nil {
+		return process.ErrNilClosingNodeStartedFlag
 	}
 
 	return nil
@@ -2260,6 +2266,13 @@ func (bp *baseProcessor) getPruningHandler(finalHeaderNonce uint64) state.Prunin
 		return state.NewPruningHandler(state.DisableDataRemoval)
 	}
 
+	if bp.closingNodeStarted.Load() {
+		log.Debug("will skip pruning as closing node already started",
+			"finalHeaderNonce", finalHeaderNonce,
+		)
+		return state.NewPruningHandler(state.DisableDataRemoval)
+	}
+
 	return state.NewPruningHandler(state.EnableDataRemoval)
 }
 
@@ -3483,7 +3496,7 @@ func (bp *baseProcessor) requestHeadersFromHeaderIfNeeded(
 	}
 
 	fromNonce := lastHeader.GetNonce() + 1
-	toNonce := fromNonce + numHeadersToRequestInAdvance
+	toNonce := fromNonce + bp.processConfigsHandler.GetNumHeadersToRequestInAdvance(lastRound)
 
 	for nonce := fromNonce; nonce <= toNonce; nonce++ {
 		bp.requestHeaderIfNeeded(nonce, shardID)

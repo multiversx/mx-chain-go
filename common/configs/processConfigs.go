@@ -275,6 +275,18 @@ func (pce *processConfigsByEpoch) GetMaxBlockProcessingTime(round uint64) time.D
 	)
 }
 
+// GetNumHeadersToRequestInAdvance returns the number of headers to request in advance based on round
+func (pce *processConfigsByEpoch) GetNumHeadersToRequestInAdvance(round uint64) uint64 {
+	return getConfigValueByRound(
+		pce.orderedConfigByRound,
+		round,
+		func(cfg config.ProcessConfigByRound) uint64 {
+			return cfg.NumHeadersToRequestInAdvance
+		},
+		defaultNumHeadersToRequestInAdvance,
+	)
+}
+
 // GetValue returns the value of the provided variable for the current round
 func (pce *processConfigsByEpoch) GetValue(variable dto.ConfigVariable) uint64 {
 	return pce.getValueByRound(variable, pce.roundNotifier.CurrentRound())
