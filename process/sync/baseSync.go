@@ -1964,16 +1964,6 @@ func (boot *baseBootstrap) getHeaderFromPool(hash []byte) (data.HeaderHandler, e
 	return process.GetShardHeaderFromPool(hash, boot.headers)
 }
 
-func (boot *baseBootstrap) getHeaderWithNonce(
-	nonce uint64,
-) (data.HeaderHandler, []byte, error) {
-	if boot.shardCoordinator.SelfId() == core.MetachainShardId {
-		return boot.getMetaHeaderWithNonce(nonce)
-	}
-
-	return boot.getShardHeaderWithNonce(nonce)
-}
-
 func (boot *baseBootstrap) getMetaHeaderWithNonce(
 	nonce uint64,
 ) (data.HeaderHandler, []byte, error) {
@@ -1984,23 +1974,6 @@ func (boot *baseBootstrap) getMetaHeaderWithNonce(
 
 	return process.GetMetaHeaderFromStorageWithNonce(
 		nonce,
-		boot.store,
-		boot.uint64Converter,
-		boot.marshalizer,
-	)
-}
-
-func (boot *baseBootstrap) getShardHeaderWithNonce(
-	nonce uint64,
-) (data.HeaderHandler, []byte, error) {
-	header, hash, err := process.GetShardHeaderFromPoolWithNonce(nonce, boot.shardCoordinator.SelfId(), boot.headers)
-	if err == nil {
-		return header, hash, nil
-	}
-
-	return process.GetShardHeaderFromStorageWithNonce(
-		nonce,
-		boot.shardCoordinator.SelfId(),
 		boot.store,
 		boot.uint64Converter,
 		boot.marshalizer,
