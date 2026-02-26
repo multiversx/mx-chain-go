@@ -186,11 +186,8 @@ func (tc *transactionCoordinator) getAOTSelection(nonce uint64) ([][]byte, []dat
 func (tc *transactionCoordinator) SelectOutgoingTransactions(
 	nonce uint64,
 	haveTimeForSelection func() bool,
-) (selectedTxHashes [][]byte, selectedPendingIncomingMiniBlocks []data.MiniBlockHeaderHandler) {
-	selectedTxHashes = make([][]byte, 0)
-	selectedTxs := make([]data.TransactionHandler, 0)
-
-	selectedTxHashes, selectedTxs = tc.getAOTSelection(nonce)
+) ([][]byte, []data.MiniBlockHeaderHandler) {
+	selectedTxHashes, selectedTxs := tc.getAOTSelection(nonce)
 	// if no tx returned from AOT selection, fallback to regular selection from pre-processors
 	if len(selectedTxs) == 0 {
 		for _, blockType := range tc.preProcProposal.keysTxPreProcs {
