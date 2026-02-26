@@ -17,8 +17,6 @@ import (
 	"github.com/multiversx/mx-chain-go/state"
 )
 
-const numHeadersToRequestInAdvance = 10
-
 // usedShardHeadersInfo holds the used shard headers information
 type usedShardHeadersInfo struct {
 	headersPerShard          map[uint32][]ShardHeaderInfo
