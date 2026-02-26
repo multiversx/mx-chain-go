@@ -325,7 +325,6 @@ func (service *SCQueryService) recreateTrie(blockRootHash []byte, blockHeader da
 }
 
 // TODO: extract duplicated code with nodeBlocks.go
-// for header v3 current block is considered the last executed block
 func (service *SCQueryService) extractBlockHeaderAndRootHash(query *process.SCQuery) (data.HeaderHandler, []byte, []byte, error) {
 	if len(query.BlockHash) > 0 {
 		currentHeader, err := service.getBlockHeaderByHash(query.BlockHash)
@@ -390,9 +389,12 @@ func (service *SCQueryService) getRootHashForBlockV3(currentHeader data.HeaderHa
 		return nil, nil, nil, err
 	}
 
-	lastExecutedHeader := service.mainBlockChain.GetLastExecutedBlockHeader()
+	blockHeader, err := service.getBlockHeaderByHash(lastExecutionResult.GetHeaderHash())
+	if err != nil {
+		return nil, nil, nil, err
+	}
 
-	return lastExecutedHeader, lastExecutionResult.GetRootHash(), lastExecutionResult.GetHeaderHash(), nil
+	return blockHeader, lastExecutionResult.GetRootHash(), lastExecutionResult.GetHeaderHash(), nil
 }
 
 func (service *SCQueryService) getBlockHeaderByHash(headerHash []byte) (data.HeaderHandler, error) {
