@@ -3,6 +3,7 @@ package core
 import (
 	"fmt"
 	"sync"
+	"sync/atomic"
 	"time"
 
 	"github.com/multiversx/mx-chain-core-go/core"
@@ -672,7 +673,7 @@ func (mcc *managedCoreComponents) CommonConfigsHandler() common.CommonConfigsHan
 	return mcc.coreComponents.epochStartConfigsHandler
 }
 
-// AntifloodConfigHandler returns the antiflood configs handler component
+// AntifloodConfigsHandler returns the antiflood configs handler component
 func (mcc *managedCoreComponents) AntifloodConfigsHandler() common.AntifloodConfigsHandler {
 	mcc.mutCoreComponents.RLock()
 	defer mcc.mutCoreComponents.RUnlock()
@@ -682,6 +683,18 @@ func (mcc *managedCoreComponents) AntifloodConfigsHandler() common.AntifloodConf
 	}
 
 	return mcc.coreComponents.antifloodConfigsHandler
+}
+
+// ClosingNodeStarted returns the flag that indicates if the node is in the process of closing
+func (mcc *managedCoreComponents) ClosingNodeStarted() *atomic.Bool {
+	mcc.mutCoreComponents.RLock()
+	defer mcc.mutCoreComponents.RUnlock()
+
+	if mcc.coreComponents == nil {
+		return nil
+	}
+
+	return mcc.coreComponents.closingNodeStarted
 }
 
 // IsInterfaceNil returns true if there is no value under the interface
