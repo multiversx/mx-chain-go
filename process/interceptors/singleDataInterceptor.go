@@ -110,8 +110,8 @@ func (sdi *SingleDataInterceptor) ProcessReceivedMessage(message p2p.MessageP2P,
 	sdi.receivedDebugInterceptedData(interceptedData)
 	messageID := interceptedData.Hash()
 	isInterceptedEquivalentProof := interceptedData.Type() == interceptedEquivalentProofType
-	isMessageFromSelfToSelf := sdi.isMessageFromSelfToSelf(fromConnectedPeer, message)
-	shouldSkipInterceptedDataVerification := isMessageFromSelfToSelf && isInterceptedEquivalentProof
+	isMessageFromSelfOriginator := sdi.isMessageFromSelfOriginator(message)
+	shouldSkipInterceptedDataVerification := isMessageFromSelfOriginator && isInterceptedEquivalentProof
 	if !shouldSkipInterceptedDataVerification {
 		err = sdi.interceptedDataVerifier.Verify(interceptedData, message.Topic(), message.BroadcastMethod())
 		if err != nil {

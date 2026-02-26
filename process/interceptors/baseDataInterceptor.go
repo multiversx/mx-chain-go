@@ -61,13 +61,16 @@ func (bdi *baseDataInterceptor) shouldSkipAntifloodChecks(fromConnectedPeer core
 }
 
 func (bdi *baseDataInterceptor) isMessageFromSelfToSelf(fromConnectedPeer core.PeerID, message p2p.MessageP2P) bool {
-	pidFrom := core.PeerID(message.From())
-	isPidManagedByCurrentNode := bdi.managedPeersHolder.IsPidManagedByCurrentNode(fromConnectedPeer) &&
-		bdi.managedPeersHolder.IsPidManagedByCurrentNode(pidFrom)
-	isSelfSingleKey := bytes.Equal(message.From(), bdi.currentPeerId.Bytes()) &&
+	return bytes.Equal(message.Signature(), message.From()) &&
+		bytes.Equal(message.From(), bdi.currentPeerId.Bytes()) &&
 		fromConnectedPeer == bdi.currentPeerId
-	isPidSelf := isPidManagedByCurrentNode || isSelfSingleKey
-	return bytes.Equal(message.Signature(), message.From()) && isPidSelf
+}
+
+func (bdi *baseDataInterceptor) isMessageFromSelfOriginator(message p2p.MessageP2P) bool {
+	pidFrom := core.PeerID(message.From())
+	isPidManagedByCurrentNode := bdi.managedPeersHolder.IsPidManagedByCurrentNode(pidFrom)
+	isSelfSingleKey := bytes.Equal(message.From(), bdi.currentPeerId.Bytes())
+	return isPidManagedByCurrentNode || isSelfSingleKey
 }
 
 func (bdi *baseDataInterceptor) processInterceptedData(
