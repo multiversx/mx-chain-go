@@ -61,7 +61,9 @@ func (bdi *baseDataInterceptor) shouldSkipAntifloodChecks(fromConnectedPeer core
 }
 
 func (bdi *baseDataInterceptor) isMessageFromSelfToSelf(fromConnectedPeer core.PeerID, message p2p.MessageP2P) bool {
-	isPidManagedByCurrentNode := bdi.managedPeersHolder.IsPidManagedByCurrentNode(fromConnectedPeer)
+	pidFrom := core.PeerID(message.From())
+	isPidManagedByCurrentNode := bdi.managedPeersHolder.IsPidManagedByCurrentNode(fromConnectedPeer) &&
+		bdi.managedPeersHolder.IsPidManagedByCurrentNode(pidFrom)
 	isSelfSingleKey := bytes.Equal(message.From(), bdi.currentPeerId.Bytes()) &&
 		fromConnectedPeer == bdi.currentPeerId
 	isPidSelf := isPidManagedByCurrentNode || isSelfSingleKey
