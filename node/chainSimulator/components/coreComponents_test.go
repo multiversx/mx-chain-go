@@ -76,6 +76,7 @@ func createArgsCoreComponentsHolder() ArgsCoreComponentsHolder {
 						NumFloodingRoundsOutOfSpecs:            40,
 						MaxConsecutiveRoundsOfRatingDecrease:   600,
 						MaxBlockProcessingTimeMs:               1000,
+						NumHeadersToRequestInAdvance:           10,
 					},
 				},
 				EpochStartConfigsByEpoch: []config.EpochStartConfigByEpoch{
