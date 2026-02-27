@@ -1964,22 +1964,6 @@ func (boot *baseBootstrap) getHeaderFromPool(hash []byte) (data.HeaderHandler, e
 	return process.GetShardHeaderFromPool(hash, boot.headers)
 }
 
-func (boot *baseBootstrap) getMetaHeaderWithNonce(
-	nonce uint64,
-) (data.HeaderHandler, []byte, error) {
-	header, hash, err := process.GetMetaHeaderFromPoolWithNonce(nonce, boot.headers)
-	if err == nil {
-		return header, hash, nil
-	}
-
-	return process.GetMetaHeaderFromStorageWithNonce(
-		nonce,
-		boot.store,
-		boot.uint64Converter,
-		boot.marshalizer,
-	)
-}
-
 func (boot *baseBootstrap) getHeaderFromPoolWithNonce(
 	nonce uint64,
 ) (data.HeaderHandler, []byte, error) {

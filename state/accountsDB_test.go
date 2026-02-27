@@ -3274,7 +3274,7 @@ func testAccountMethodsConcurrency(
 	addresses [][]byte,
 	rootHash []byte,
 ) {
-	numOperations := 100
+	numOperations := 1000
 	marshaller := &marshallerMock.MarshalizerMock{}
 	wg := sync.WaitGroup{}
 	wg.Add(numOperations)
@@ -3290,7 +3290,7 @@ func testAccountMethodsConcurrency(
 	assert.Nil(t, err)
 	for i := 0; i < numOperations; i++ {
 		go func(idx int) {
-			switch idx % 21 {
+			switch idx % 22 {
 			case 0:
 				_, _ = adb.GetExistingAccount(addresses[idx])
 			case 1:
@@ -3333,6 +3333,8 @@ func testAccountMethodsConcurrency(
 				_ = adb.GetStackDebugFirstEntry()
 			case 20:
 				_ = adb.SetSyncer(&mock.AccountsDBSyncerStub{})
+			case 21:
+				_ = adb.RecreateTrieIfNeeded(holders.NewDefaultRootHashesHolder(rootHash))
 			}
 			wg.Done()
 		}(i)

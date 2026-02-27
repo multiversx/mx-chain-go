@@ -2977,7 +2977,12 @@ func (bp *baseProcessor) saveExecutedData(header data.HeaderHandler) error {
 
 	executionResults := header.GetExecutionResultsHandlers()
 	for _, execResult := range executionResults {
-		err := bp.saveReceiptsForExecutionResult(execResult)
+		err := bp.saveExecutionResult(execResult)
+		if err != nil {
+			return err
+		}
+
+		err = bp.saveReceiptsForExecutionResult(execResult)
 		if err != nil {
 			return err
 		}
@@ -2986,12 +2991,30 @@ func (bp *baseProcessor) saveExecutedData(header data.HeaderHandler) error {
 		if err != nil {
 			return err
 		}
+
 		err = bp.saveIntermediateTxs(execResult.GetHeaderHash())
 		if err != nil {
 			return err
 		}
 	}
+
 	return nil
+}
+
+func (bp *baseProcessor) saveExecutionResult(
+	execResult data.BaseExecutionResultHandler,
+) error {
+	if check.IfNil(execResult) {
+		return process.ErrNilExecutionResultHandler
+	}
+
+	headerHash := execResult.GetHeaderHash()
+	execResBytes, err := bp.marshalizer.Marshal(execResult)
+	if err != nil {
+		return err
+	}
+
+	return bp.store.Put(dataRetriever.ExecutionResultsUnit, headerHash, execResBytes)
 }
 
 func (bp *baseProcessor) cleanPostProcessCache(header data.HeaderHandler) error {

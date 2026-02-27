@@ -1035,7 +1035,10 @@ func (adb *AccountsDB) RecreateTrieIfNeeded(options common.RootHashHolder) error
 	if err != nil {
 		return err
 	}
+
+	adb.mutOp.Lock()
 	adb.lastRootHash = options.GetRootHash()
+	adb.mutOp.Unlock()
 
 	return nil
 }
@@ -1073,6 +1076,9 @@ func (adb *AccountsDB) recreateTrieIfNeeded(options common.RootHashHolder) error
 		log.Trace("accountsDB.RecreateTrieIfNeeded - no need to recreate", "root hash", currentRootHash)
 		return nil
 	}
+
+	adb.mutOp.Lock()
+	defer adb.mutOp.Unlock()
 
 	return adb.recreateTrie(options)
 }

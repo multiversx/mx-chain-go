@@ -325,7 +325,6 @@ func (service *SCQueryService) recreateTrie(blockRootHash []byte, blockHeader da
 }
 
 // TODO: extract duplicated code with nodeBlocks.go
-// for header v3 current block is considered the last executed block
 func (service *SCQueryService) extractBlockHeaderAndRootHash(query *process.SCQuery) (data.HeaderHandler, []byte, []byte, error) {
 	if len(query.BlockHash) > 0 {
 		currentHeader, err := service.getBlockHeaderByHash(query.BlockHash)
@@ -333,7 +332,7 @@ func (service *SCQueryService) extractBlockHeaderAndRootHash(query *process.SCQu
 			return nil, nil, nil, err
 		}
 
-		return service.getRootHashForBlock(currentHeader, query.BlockHash)
+		return service.getHeaderAndRootHashForBlock(currentHeader, query.BlockHash)
 	}
 
 	if query.BlockNonce.HasValue {
@@ -342,7 +341,7 @@ func (service *SCQueryService) extractBlockHeaderAndRootHash(query *process.SCQu
 			return nil, nil, nil, err
 		}
 
-		return service.getRootHashForBlock(currentHeader, currentHeaderHash)
+		return service.getHeaderAndRootHashForBlock(currentHeader, currentHeaderHash)
 	}
 
 	return service.getCurrentBlockHeaderAndRootHash()
@@ -366,9 +365,9 @@ func (service *SCQueryService) getCurrentBlockHeaderAndRootHashV3() (data.Header
 	return lastExecutedHeader, rootHash, headerHash, nil
 }
 
-func (service *SCQueryService) getRootHashForBlock(currentHeader data.HeaderHandler, currentHeaderHash []byte) (data.HeaderHandler, []byte, []byte, error) {
+func (service *SCQueryService) getHeaderAndRootHashForBlock(currentHeader data.HeaderHandler, currentHeaderHash []byte) (data.HeaderHandler, []byte, []byte, error) {
 	if currentHeader.IsHeaderV3() {
-		return service.getRootHashForBlockV3(currentHeader)
+		return service.getHeaderAndRootHashForBlockV3(currentHeader, currentHeaderHash)
 	}
 
 	blockHeader, headerHash, err := service.getBlockHeaderByNonce(currentHeader.GetNonce() + 1)
@@ -384,15 +383,50 @@ func (service *SCQueryService) getRootHashForBlock(currentHeader data.HeaderHand
 	return blockHeader, additionalData.GetScheduledRootHash(), headerHash, nil
 }
 
-func (service *SCQueryService) getRootHashForBlockV3(currentHeader data.HeaderHandler) (data.HeaderHandler, []byte, []byte, error) {
+func (service *SCQueryService) getRootHashByExecutionResult(
+	currentHeaderHash []byte,
+) ([]byte, error) {
+	execResStorer, err := service.storageService.GetStorer(dataRetriever.ExecutionResultsUnit)
+	if err != nil {
+		return nil, err
+	}
+
+	execResBytes, err := execResStorer.Get(currentHeaderHash)
+	if err != nil {
+		return nil, err
+	}
+
+	execRes, err := process.UnmarshalExecutionResult(service.marshaller, execResBytes)
+	if err != nil {
+		return nil, err
+	}
+
+	return execRes.GetRootHash(), nil
+}
+
+func (service *SCQueryService) getHeaderAndRootHashForBlockV3(
+	currentHeader data.HeaderHandler,
+	currentHeaderHash []byte,
+) (data.HeaderHandler, []byte, []byte, error) {
+	// try to get root hash from execution result and return provided header
+	// if block already executed, execution result info should be available
+	rootHash, err := service.getRootHashByExecutionResult(currentHeaderHash)
+	if err == nil {
+		return currentHeader, rootHash, currentHeaderHash, nil
+	}
+
+	// otherwise, provide header and root hash based on last execution result from the provided header
 	lastExecutionResult, err := common.ExtractBaseExecutionResultHandler(currentHeader.GetLastExecutionResultHandler())
 	if err != nil {
 		return nil, nil, nil, err
 	}
 
-	lastExecutedHeader := service.mainBlockChain.GetLastExecutedBlockHeader()
+	blockHeader, err := service.getBlockHeaderByHash(lastExecutionResult.GetHeaderHash())
+	if err != nil {
+		return nil, nil, nil, err
+	}
 
-	return lastExecutedHeader, lastExecutionResult.GetRootHash(), lastExecutionResult.GetHeaderHash(), nil
+	return blockHeader, lastExecutionResult.GetRootHash(), lastExecutionResult.GetHeaderHash(), nil
 }
 
 func (service *SCQueryService) getBlockHeaderByHash(headerHash []byte) (data.HeaderHandler, error) {
