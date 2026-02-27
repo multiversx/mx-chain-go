@@ -17,8 +17,6 @@ import (
 	"github.com/multiversx/mx-chain-go/state"
 )
 
-const numHeadersToRequestInAdvance = 10
-
 // usedShardHeadersInfo holds the used shard headers information
 type usedShardHeadersInfo struct {
 	headersPerShard          map[uint32][]ShardHeaderInfo
@@ -234,6 +232,10 @@ func (mp *metaProcessor) VerifyBlockProposal(
 		return process.ErrWrongTypeAssertion
 	}
 
+	if header.IsEpochChangeProposed() && len(body.MiniBlocks) != 0 {
+		return process.ErrEpochStartProposeBlockHasMiniBlocks
+	}
+
 	err = mp.checkHeaderBodyCorrelationProposal(header.GetMiniBlockHeaderHandlers(), body)
 	if err != nil {
 		return err
@@ -380,7 +382,7 @@ func (mp *metaProcessor) ProcessBlockProposal(
 	// although we can have a long time for processing, it being decoupled from consensus,
 	// we still give some reasonable timeout
 	proposalStartTime := time.Now()
-	haveTime := getHaveTimeForProposal(proposalStartTime, maxBlockProcessingTime)
+	haveTime := getHaveTimeForProposal(proposalStartTime, mp.processConfigsHandler.GetMaxBlockProcessingTime(headerHandler.GetRound()))
 
 	err = mp.txCoordinator.IsDataPreparedForProcessing(haveTime)
 	if err != nil {
@@ -430,12 +432,32 @@ func (mp *metaProcessor) ProcessBlockProposal(
 		return nil, err
 	}
 
-	err = mp.commitState(headerHandler)
-	if err != nil {
-		return nil, err
+	return execResult, nil
+}
+
+// CommitBlockProposalState commits the accounts state after processing a block proposal
+// and performs any post-commit operations (e.g. saving epoch start economics metrics).
+func (mp *metaProcessor) CommitBlockProposalState(headerHandler data.HeaderHandler) error {
+	if check.IfNil(headerHandler) {
+		return process.ErrNilBlockHeader
 	}
 
-	return execResult, nil
+	err := mp.commitState(headerHandler)
+	if err != nil {
+		return err
+	}
+
+	metaHeader, ok := headerHandler.(data.MetaHeaderHandler)
+	if ok {
+		mp.saveEpochStartEconomicsMetricsV3IfNeeded(metaHeader)
+	}
+
+	return nil
+}
+
+// RevertBlockProposalState reverts the uncommitted accounts state after a block proposal processing failure
+func (mp *metaProcessor) RevertBlockProposalState() {
+	mp.RevertCurrentBlock()
 }
 
 func (mp *metaProcessor) checkNonceGaps(metaHeader data.MetaHeaderHandler) error {
@@ -587,13 +609,6 @@ func (mp *metaProcessor) processEpochStartProposeBlock(
 	if err != nil {
 		return nil, err
 	}
-
-	err = mp.commitState(metaHeader)
-	if err != nil {
-		return nil, err
-	}
-
-	mp.saveEpochStartEconomicsMetricsV3IfNeeded(metaHeader)
 
 	return execResult, nil
 }

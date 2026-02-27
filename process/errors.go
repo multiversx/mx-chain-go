@@ -483,6 +483,9 @@ var ErrInvalidCacheRefreshIntervalInSec = errors.New("invalid cacheRefreshInterv
 // ErrEpochDoesNotMatch signals that epoch does not match between headers
 var ErrEpochDoesNotMatch = errors.New("epoch does not match")
 
+// ErrInvalidTimestamp signals that the header timestamp does not match the expected value for the round
+var ErrInvalidTimestamp = errors.New("invalid timestamp")
+
 // ErrStartOfEpochExecutionResultsDoNotExist signals that the start of epoch execution results do not exist
 var ErrStartOfEpochExecutionResultsDoNotExist = errors.New("start of epoch execution results do not exist")
 
@@ -1484,3 +1487,6 @@ var ErrMissingCrossNotarizedHeader = errors.New("missing cross notarized header"
 
 // ErrInvalidShardInfo signals that an invalid shard info has been provided
 var ErrInvalidShardInfo = errors.New("invalid shard info")
+
+// ErrNilClosingNodeStartedFlag signals that the closing node started flag is nil
+var ErrNilClosingNodeStartedFlag = errors.New("closing node started flag is nil")

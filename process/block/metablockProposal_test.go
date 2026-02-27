@@ -1619,6 +1619,39 @@ func TestMetaProcessor_VerifyBlockProposal(t *testing.T) {
 		err = mp.VerifyBlockProposal(header, body, haveTime)
 		require.NoError(t, err)
 	})
+	t.Run("epoch change proposed with miniblocks in body, should error", func(t *testing.T) {
+		t.Parallel()
+
+		prevBlockHash := []byte("prev header hash")
+		coreComponents, dataComponents, bootstrapComponents, statusComponents := createMockComponentHolders()
+		dataComponents = &mock.DataComponentsMock{
+			Storage:  dataComponents.Storage,
+			DataPool: dataComponents.DataPool,
+			BlockChain: &testscommon.ChainHandlerStub{
+				GetCurrentBlockHeaderHashCalled: func() []byte {
+					return prevBlockHash
+				},
+				GetCurrentBlockHeaderCalled: func() data.HeaderHandler {
+					return &block.MetaBlockV3{}
+				},
+			},
+		}
+		arguments := createMockMetaArguments(coreComponents, dataComponents, bootstrapComponents, statusComponents)
+		mp, err := blproc.NewMetaProcessor(arguments)
+		require.Nil(t, err)
+
+		header := &block.MetaBlockV3{
+			PrevHash:            prevBlockHash,
+			Nonce:               1,
+			Round:               1,
+			EpochChangeProposed: true,
+		}
+		body := &block.Body{MiniBlocks: []*block.MiniBlock{
+			{SenderShardID: 0},
+		}}
+		err = mp.VerifyBlockProposal(header, body, haveTime)
+		require.ErrorIs(t, err, process.ErrEpochStartProposeBlockHasMiniBlocks)
+	})
 }
 
 func Test_checkShardHeadersValidityAndFinalityProposal(t *testing.T) {
@@ -2463,8 +2496,8 @@ func TestMetaProcessor_selectIncomingMiniBlocks(t *testing.T) {
 		}
 		arguments := createMockMetaArguments(coreComponents, dataComponents, bootstrapComponents, statusComponents)
 		arguments.TxCoordinator = &testscommon.TransactionCoordinatorMock{
-			CreateMbsCrossShardDstMeCalled: func(header data.HeaderHandler, processedMiniBlocksInfo map[string]*processedMb.ProcessedMiniBlockInfo) ([]block.MiniblockAndHash, []block.MiniblockAndHash, uint32, bool, error) {
-				return nil, nil, 0, false, expectedErr
+			CreateMbsCrossShardDstMeCalled: func(header data.HeaderHandler, processedMiniBlocksInfo map[string]*processedMb.ProcessedMiniBlockInfo) ([]block.MiniblockAndHash, []block.MiniblockAndHash, uint32, bool, bool, error) {
+				return nil, nil, 0, false, false, expectedErr
 			},
 		}
 		mp, err := blproc.NewMetaProcessor(arguments)
@@ -2494,8 +2527,8 @@ func TestMetaProcessor_selectIncomingMiniBlocks(t *testing.T) {
 		cntAddRef := 0
 		arguments.MiniBlocksSelectionSession = &mbSelection.MiniBlockSelectionSessionStub{AddReferencedHeaderCalled: func(metaBlock data.HeaderHandler, metaBlockHash []byte) { cntAddRef++ }}
 		arguments.TxCoordinator = &testscommon.TransactionCoordinatorMock{
-			CreateMbsCrossShardDstMeCalled: func(header data.HeaderHandler, processedMiniBlocksInfo map[string]*processedMb.ProcessedMiniBlockInfo) ([]block.MiniblockAndHash, []block.MiniblockAndHash, uint32, bool, error) {
-				return nil, []block.MiniblockAndHash{{}}, 0, false, nil
+			CreateMbsCrossShardDstMeCalled: func(header data.HeaderHandler, processedMiniBlocksInfo map[string]*processedMb.ProcessedMiniBlockInfo) ([]block.MiniblockAndHash, []block.MiniblockAndHash, uint32, bool, bool, error) {
+				return nil, []block.MiniblockAndHash{{}}, 0, false, false, nil
 			},
 		}
 		mp, err := blproc.NewMetaProcessor(arguments)
@@ -2529,8 +2562,8 @@ func TestMetaProcessor_selectIncomingMiniBlocks(t *testing.T) {
 			AddMiniBlocksAndHashesCalled: func(miniBlocksAndHashes []block.MiniblockAndHash) error { cntAddMbs++; return nil },
 		}
 		arguments.TxCoordinator = &testscommon.TransactionCoordinatorMock{
-			CreateMbsCrossShardDstMeCalled: func(header data.HeaderHandler, processedMiniBlocksInfo map[string]*processedMb.ProcessedMiniBlockInfo) ([]block.MiniblockAndHash, []block.MiniblockAndHash, uint32, bool, error) {
-				return []block.MiniblockAndHash{{}}, nil, 3, true, nil
+			CreateMbsCrossShardDstMeCalled: func(header data.HeaderHandler, processedMiniBlocksInfo map[string]*processedMb.ProcessedMiniBlockInfo) ([]block.MiniblockAndHash, []block.MiniblockAndHash, uint32, bool, bool, error) {
+				return []block.MiniblockAndHash{{}}, nil, 3, true, false, nil
 			},
 		}
 		mp, err := blproc.NewMetaProcessor(arguments)
@@ -3859,8 +3892,10 @@ func TestMetaProcessor_processEpochStartProposeBlock(t *testing.T) {
 		require.Equal(t, expectedErr, err)
 	})
 
-	t.Run("if committing the state fails, the error should be propagated", func(t *testing.T) {
+	t.Run("commit state is not called by processEpochStartProposeBlock", func(t *testing.T) {
 		t.Parallel()
+
+		commitCalled := false
 
 		coreComponents, dataComponents, boostrapComponents, statusComponents := createMockComponentHolders()
 		blockchainMock := &testscommon.ChainHandlerMock{}
@@ -3882,7 +3917,8 @@ func TestMetaProcessor_processEpochStartProposeBlock(t *testing.T) {
 		accountsDb := make(map[state.AccountsDbIdentifier]state.AccountsAdapter)
 		accounts := &testscommonState.AccountsStub{
 			CommitCalled: func() ([]byte, error) {
-				return nil, expectedErr
+				commitCalled = true
+				return []byte("stateRoot"), nil
 			},
 		}
 		accountsDb[state.UserAccountsState] = accounts
@@ -3895,7 +3931,8 @@ func TestMetaProcessor_processEpochStartProposeBlock(t *testing.T) {
 		mp.SetEpochStartData(&blproc.EpochStartDataWrapper{})
 
 		_, err = mp.ProcessEpochStartProposeBlock(&defaultMetaBlockV3, &block.Body{})
-		require.Equal(t, expectedErr, err)
+		require.Nil(t, err)
+		require.False(t, commitCalled)
 	})
 
 	t.Run("if HandleProcessErrorCutoff fails, the error should be propagated", func(t *testing.T) {
@@ -4805,8 +4842,10 @@ func TestMetaProcessor_ProcessBlockProposal(t *testing.T) {
 		require.Equal(t, expectedErr, err)
 	})
 
-	t.Run("if committing the state fails, the error should be propagated", func(t *testing.T) {
+	t.Run("commit state is not called by ProcessBlockProposal", func(t *testing.T) {
 		t.Parallel()
+
+		commitCalled := false
 
 		coreComponents, dataComponents, boostrapComponents, statusComponents := createMockComponentHolders()
 		dataComponents.BlockChain = &testscommon.ChainHandlerStub{
@@ -4823,7 +4862,8 @@ func TestMetaProcessor_ProcessBlockProposal(t *testing.T) {
 		accountsDb := make(map[state.AccountsDbIdentifier]state.AccountsAdapter)
 		accounts := &testscommonState.AccountsStub{
 			CommitCalled: func() ([]byte, error) {
-				return nil, expectedErr
+				commitCalled = true
+				return []byte("stateRoot"), nil
 			},
 			RootHashCalled: func() ([]byte, error) {
 				return nil, nil
@@ -4843,7 +4883,12 @@ func TestMetaProcessor_ProcessBlockProposal(t *testing.T) {
 		newBlock := defaultMetaBlockV3
 		newBlock.Nonce = 1
 		_, err = mp.ProcessBlockProposal(&newBlock, []byte("headerHash"), &block.Body{})
-		require.Equal(t, expectedErr, err)
+		require.Nil(t, err)
+		require.False(t, commitCalled)
+
+		err = mp.CommitBlockProposalState(&newBlock)
+		require.Nil(t, err)
+		require.True(t, commitCalled)
 	})
 
 	t.Run("if HandleProcessErrorCutoff fails, the error should be propagated", func(t *testing.T) {

@@ -124,6 +124,7 @@ func createDefaultWorkerArgs(appStatusHandler core.AppStatusHandler) *spos.Worke
 		NodeRedundancyHandler:    &mock.NodeRedundancyHandlerStub{},
 		PeerBlacklistHandler:     &mock.PeerBlacklistHandlerStub{},
 		EnableEpochsHandler:      &enableEpochsHandlerMock.EnableEpochsHandlerStub{},
+		EnableRoundsHandler:      &testscommon.EnableRoundsHandlerStub{},
 		InvalidSignersCache:      &consensusMocks.InvalidSignersCacheMock{},
 	}
 
