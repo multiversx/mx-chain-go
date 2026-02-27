@@ -33,6 +33,7 @@ type ArgMultiDataInterceptor struct {
 	PreferredPeersHolder    process.PreferredPeersHolderHandler
 	CurrentPeerId           core.PeerID
 	InterceptedDataVerifier process.InterceptedDataVerifier
+	ManagedPeersHolder      common.ManagedPeersHolder
 }
 
 // MultiDataInterceptor is used for intercepting packed multi data
@@ -81,6 +82,9 @@ func NewMultiDataInterceptor(arg ArgMultiDataInterceptor) (*MultiDataInterceptor
 	if len(arg.CurrentPeerId) == 0 {
 		return nil, process.ErrEmptyPeerID
 	}
+	if check.IfNil(arg.ManagedPeersHolder) {
+		return nil, process.ErrNilManagedPeersHolder
+	}
 
 	multiDataIntercept := &MultiDataInterceptor{
 		baseDataInterceptor: &baseDataInterceptor{
@@ -92,6 +96,7 @@ func NewMultiDataInterceptor(arg ArgMultiDataInterceptor) (*MultiDataInterceptor
 			preferredPeersHolder:    arg.PreferredPeersHolder,
 			debugHandler:            handler.NewDisabledInterceptorDebugHandler(),
 			interceptedDataVerifier: arg.InterceptedDataVerifier,
+			managedPeersHolder:      arg.ManagedPeersHolder,
 		},
 		marshalizer:      arg.Marshalizer,
 		hasher:           arg.Hasher,
