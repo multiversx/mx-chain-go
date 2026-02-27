@@ -343,12 +343,11 @@ func (bh *BlockChainHookImpl) GetBlockhash(nonce uint64) ([]byte, error) {
 	if check.IfNil(lastExecHdr) {
 		return nil, process.ErrNilBlockHeader
 	}
-
-	_, lastExecHash, _ := bh.blockChain.GetLastExecutedBlockInfo()
 	if nonce > lastExecHdr.GetNonce() {
 		return nil, process.ErrInvalidNonceRequest
 	}
 	if nonce == lastExecHdr.GetNonce() {
+		_, lastExecHash, _ := bh.blockChain.GetLastExecutedBlockInfo()
 		return lastExecHash, nil
 	}
 	if bh.enableEpochsHandler.IsFlagEnabled(common.DoNotReturnOldBlockInBlockchainHookFlag) {
