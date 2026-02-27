@@ -415,6 +415,8 @@ type ProcessConfigByRound struct {
 
 	MaxConsecutiveRoundsOfRatingDecrease uint64
 	MaxRoundsOfInactivityAccepted        uint64
+	MaxBlockProcessingTimeMs             uint32
+	NumHeadersToRequestInAdvance         uint64
 }
 
 // GeneralSettingsConfig will hold the general settings for a node

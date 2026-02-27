@@ -11,6 +11,7 @@ import (
 	"strconv"
 	"strings"
 	"sync"
+	"sync/atomic"
 	"testing"
 	"time"
 
@@ -431,6 +432,7 @@ func createComponentHolderMocks() (
 		EnableRoundsHandlerField:           &testscommon.EnableRoundsHandlerStub{},
 		EpochChangeGracePeriodHandlerField: gracePeriod,
 		ProcessConfigsHandlerField:         testscommon.GetDefaultProcessConfigsHandler(),
+		ClosingNodeStartedField:            &atomic.Bool{},
 	}
 
 	dataComponents := &mock.DataComponentsMock{
@@ -960,6 +962,15 @@ func TestCheckProcessorNilParameters(t *testing.T) {
 			},
 			expectedErr: nil,
 		},
+		{
+			args: func() blproc.ArgBaseProcessor {
+				coreCompCopy := *coreComponents
+				coreCompCopy.ClosingNodeStartedField = nil
+				args := createArgBaseProcessor(&coreCompCopy, dataComponents, bootstrapComponents, statusComponents)
+				return args
+			},
+			expectedErr: process.ErrNilClosingNodeStartedFlag,
+		},
 	}
 
 	for _, test := range tests {
@@ -1031,6 +1042,166 @@ func TestBlockProcessor_CheckBlockValidity(t *testing.T) {
 	hdr.PrevRandSeed = []byte("")
 	err = bp.CheckBlockValidity(hdr, body)
 	assert.Nil(t, err)
+}
+
+func TestBlockProcessor_CheckBlockValidityTimestamp(t *testing.T) {
+	t.Parallel()
+
+	t.Run("genesis+1 block with valid timestamp should pass", func(t *testing.T) {
+		t.Parallel()
+
+		coreComponents, dataComponents, bootstrapComponents, statusComponents := createComponentHolderMocks()
+		coreComponents.Hash = &hashingMocks.HasherMock{}
+		coreComponents.RoundField = &testscommon.RoundHandlerMock{
+			GetTimeStampForRoundCalled: func(round uint64) uint64 {
+				return round * 6000 // 6s per round in ms
+			},
+		}
+
+		blkc := createTestBlockchain()
+		dataComponents.BlockChain = blkc
+		arguments := CreateMockArguments(coreComponents, dataComponents, bootstrapComponents, statusComponents)
+		bp, _ := blproc.NewShardProcessor(arguments)
+
+		body := &block.Body{}
+		hdr := &block.Header{}
+		hdr.Nonce = 1
+		hdr.Round = 1
+		hdr.TimeStamp = 6 // 6 seconds = 6000ms
+		hdr.PrevHash = []byte("")
+
+		err := bp.CheckBlockValidity(hdr, body)
+		assert.Nil(t, err)
+	})
+
+	t.Run("genesis+1 block with invalid timestamp should fail", func(t *testing.T) {
+		t.Parallel()
+
+		coreComponents, dataComponents, bootstrapComponents, statusComponents := createComponentHolderMocks()
+		coreComponents.Hash = &hashingMocks.HasherMock{}
+		coreComponents.RoundField = &testscommon.RoundHandlerMock{
+			GetTimeStampForRoundCalled: func(round uint64) uint64 {
+				return round * 6000
+			},
+		}
+
+		blkc := createTestBlockchain()
+		dataComponents.BlockChain = blkc
+		arguments := CreateMockArguments(coreComponents, dataComponents, bootstrapComponents, statusComponents)
+		bp, _ := blproc.NewShardProcessor(arguments)
+
+		body := &block.Body{}
+		hdr := &block.Header{}
+		hdr.Nonce = 1
+		hdr.Round = 1
+		hdr.TimeStamp = 999 // wrong timestamp
+		hdr.PrevHash = []byte("")
+
+		err := bp.CheckBlockValidity(hdr, body)
+		assert.Equal(t, process.ErrInvalidTimestamp, err)
+	})
+
+	t.Run("non-genesis block with valid timestamp should pass", func(t *testing.T) {
+		t.Parallel()
+
+		coreComponents, dataComponents, bootstrapComponents, statusComponents := createComponentHolderMocks()
+		coreComponents.Hash = &hashingMocks.HasherMock{}
+		coreComponents.RoundField = &testscommon.RoundHandlerMock{
+			GetTimeStampForRoundCalled: func(round uint64) uint64 {
+				return round * 6000
+			},
+		}
+
+		blkc := createTestBlockchain()
+		prevHash := []byte("X")
+		blkc.GetCurrentBlockHeaderCalled = func() data.HeaderHandler {
+			return &block.Header{Round: 1, Nonce: 1}
+		}
+		blkc.GetCurrentBlockHeaderHashCalled = func() []byte {
+			return prevHash
+		}
+		dataComponents.BlockChain = blkc
+		arguments := CreateMockArguments(coreComponents, dataComponents, bootstrapComponents, statusComponents)
+		bp, _ := blproc.NewShardProcessor(arguments)
+
+		body := &block.Body{}
+		hdr := &block.Header{}
+		hdr.Nonce = 2
+		hdr.Round = 2
+		hdr.TimeStamp = 12 // 12 seconds = 12000ms
+		hdr.PrevHash = prevHash
+		hdr.PrevRandSeed = []byte("")
+
+		err := bp.CheckBlockValidity(hdr, body)
+		assert.Nil(t, err)
+	})
+
+	t.Run("non-genesis block with invalid timestamp should fail", func(t *testing.T) {
+		t.Parallel()
+
+		coreComponents, dataComponents, bootstrapComponents, statusComponents := createComponentHolderMocks()
+		coreComponents.Hash = &hashingMocks.HasherMock{}
+		coreComponents.RoundField = &testscommon.RoundHandlerMock{
+			GetTimeStampForRoundCalled: func(round uint64) uint64 {
+				return round * 6000
+			},
+		}
+
+		blkc := createTestBlockchain()
+		prevHash := []byte("X")
+		blkc.GetCurrentBlockHeaderCalled = func() data.HeaderHandler {
+			return &block.Header{Round: 1, Nonce: 1}
+		}
+		blkc.GetCurrentBlockHeaderHashCalled = func() []byte {
+			return prevHash
+		}
+		dataComponents.BlockChain = blkc
+		arguments := CreateMockArguments(coreComponents, dataComponents, bootstrapComponents, statusComponents)
+		bp, _ := blproc.NewShardProcessor(arguments)
+
+		body := &block.Body{}
+		hdr := &block.Header{}
+		hdr.Nonce = 2
+		hdr.Round = 2
+		hdr.TimeStamp = 999 // wrong timestamp
+		hdr.PrevHash = prevHash
+		hdr.PrevRandSeed = []byte("")
+
+		err := bp.CheckBlockValidity(hdr, body)
+		assert.Equal(t, process.ErrInvalidTimestamp, err)
+	})
+
+	t.Run("other checks still fail before timestamp check", func(t *testing.T) {
+		t.Parallel()
+
+		coreComponents, dataComponents, bootstrapComponents, statusComponents := createComponentHolderMocks()
+		coreComponents.Hash = &hashingMocks.HasherMock{}
+		coreComponents.RoundField = &testscommon.RoundHandlerMock{
+			GetTimeStampForRoundCalled: func(round uint64) uint64 {
+				return round * 6000
+			},
+		}
+
+		blkc := createTestBlockchain()
+		blkc.GetCurrentBlockHeaderCalled = func() data.HeaderHandler {
+			return &block.Header{Round: 1, Nonce: 1}
+		}
+		blkc.GetCurrentBlockHeaderHashCalled = func() []byte {
+			return []byte("X")
+		}
+		dataComponents.BlockChain = blkc
+		arguments := CreateMockArguments(coreComponents, dataComponents, bootstrapComponents, statusComponents)
+		bp, _ := blproc.NewShardProcessor(arguments)
+
+		body := &block.Body{}
+		hdr := &block.Header{}
+		hdr.Nonce = 2
+		hdr.Round = 0 // invalid round
+		hdr.TimeStamp = 999
+
+		err := bp.CheckBlockValidity(hdr, body)
+		assert.Equal(t, process.ErrLowerRoundInBlock, err)
+	})
 }
 
 func TestVerifyStateRoot_ShouldWork(t *testing.T) {
@@ -3324,6 +3495,10 @@ func TestBaseProcessor_getPruningHandler(t *testing.T) {
 	bp.SetLastRestartNonce(1)
 	ph = bp.GetPruningHandler(14)
 	assert.True(t, ph.IsPruningEnabled())
+
+	bp.SetClosingNodeStarted(true)
+	ph = bp.GetPruningHandler(14)
+	assert.False(t, ph.IsPruningEnabled())
 }
 
 func TestBaseProcessor_getPruningHandlerSetsDefaulPruningDelay(t *testing.T) {

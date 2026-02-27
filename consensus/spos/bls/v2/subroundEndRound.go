@@ -143,6 +143,10 @@ func (sr *subroundEndRound) receivedInvalidSignersInfo(_ context.Context, cnsDta
 		return false
 	}
 
+	if !sr.IsNodeInConsensusGroup(string(cnsDta.PubKey)) {
+		return false
+	}
+
 	if len(cnsDta.InvalidSigners) == 0 {
 		return false
 	}
@@ -175,6 +179,10 @@ func (sr *subroundEndRound) verifyInvalidSigners(invalidSigners []byte) ([]strin
 	messages, err := sr.MessageSigningHandler().Deserialize(invalidSigners)
 	if err != nil {
 		return nil, err
+	}
+
+	if len(messages) > sr.ConsensusGroupSize() {
+		return nil, ErrTooManyInvalidSigners
 	}
 
 	pubKeys := make([]string, 0, len(messages))
@@ -216,7 +224,7 @@ func (sr *subroundEndRound) verifyInvalidSigner(msg p2p.MessageP2P) (string, err
 		return string(cnsMsg.PubKey), nil
 	}
 
-	return "", nil
+	return "", ErrValidSignatureFromInvalidSigner
 }
 
 func (sr *subroundEndRound) applyBlacklistOnNode(peer core.PeerID) {
@@ -253,7 +261,7 @@ func (sr *subroundEndRound) commitBlock() error {
 }
 
 func (sr *subroundEndRound) doEndRoundJobByNode() bool {
-	if sr.shouldSendProof() {
+	for sr.shouldSendProof() {
 		if !sr.waitForSignalSync() {
 			return false
 		}
@@ -268,14 +276,15 @@ func (sr *subroundEndRound) doEndRoundJobByNode() bool {
 		// if not enough valid signatures were detected, wait a bit more
 		// either more signatures will be received, either proof from another participant
 		if shouldWaitForMoreSignatures {
-			return sr.doEndRoundJobByNode()
+			continue
 		}
 
 		if proofSent {
-			// TODO: confirm that block data is propagated if proof sent (by each node in parallel)
-			err := sr.prepareBroadcastBlockData()
-			log.LogIfError(err)
+			errBroadcastBlockData := sr.prepareBroadcastBlockData()
+			log.LogIfError(errBroadcastBlockData)
 		}
+
+		break
 	}
 
 	return sr.finalizeConfirmedBlock()
@@ -300,7 +309,8 @@ func (sr *subroundEndRound) waitForProof() bool {
 		return true
 	}
 
-	ctx, cancel := context.WithTimeout(context.Background(), sr.RoundHandler().TimeDuration())
+	timeLeft := sr.RoundHandler().RemainingTime(sr.RoundHandler().TimeStamp(), sr.RoundHandler().TimeDuration())
+	ctx, cancel := context.WithTimeout(context.Background(), timeLeft)
 	defer cancel()
 
 	for {
@@ -377,14 +387,6 @@ func (sr *subroundEndRound) sendProof() (bool, error) {
 	if err != nil {
 		log.Debug("sendProof.aggregateSigsAndHandleInvalidSigners", "error", err.Error())
 		return false, err
-	}
-
-	roundHandler := sr.RoundHandler()
-	if roundHandler.RemainingTime(roundHandler.TimeStamp(), roundHandler.TimeDuration()) < 0 {
-		log.Debug("sendProof: time is out -> cancel broadcasting final info and header",
-			"round time stamp", roundHandler.TimeStamp(),
-			"current time", time.Now())
-		return false, ErrTimeOut
 	}
 
 	// broadcast header proof
@@ -466,7 +468,8 @@ const maxParallelVerifications = 30
 func (sr *subroundEndRound) verifyNodesOnAggSigFail(ctx context.Context) ([]string, error) {
 	pubKeys := sr.ConsensusGroup()
 	invalidPubKeys := make([]string, 0)
-	var invalidMutex sync.Mutex
+	verifiedValidPubKeys := make(map[string]struct{})
+	var mu sync.Mutex
 
 	if check.IfNil(sr.GetHeader()) {
 		return nil, spos.ErrNilHeader
@@ -510,9 +513,13 @@ func (sr *subroundEndRound) verifyNodesOnAggSigFail(ctx context.Context) ([]stri
 
 					err = sr.verifySignature(work.index, work.pubKey, sigShare)
 					if err != nil {
-						invalidMutex.Lock()
+						mu.Lock()
 						invalidPubKeys = append(invalidPubKeys, work.pubKey)
-						invalidMutex.Unlock()
+						mu.Unlock()
+					} else {
+						mu.Lock()
+						verifiedValidPubKeys[work.pubKey] = struct{}{}
+						mu.Unlock()
 					}
 				}
 			}
@@ -529,7 +536,24 @@ func (sr *subroundEndRound) verifyNodesOnAggSigFail(ctx context.Context) ([]stri
 	close(workChan)
 
 	wg.Wait()
+	sr.clearJobDoneForUnVerifiedSignatures(pubKeys, verifiedValidPubKeys)
+
 	return invalidPubKeys, nil
+}
+
+func (sr *subroundEndRound) clearJobDoneForUnVerifiedSignatures(pubKeys []string, verifiedValidPubKeys map[string]struct{}) {
+	for _, pk := range pubKeys {
+		isJobDone, err := sr.JobDone(pk, bls.SrSignature)
+		if err != nil || !isJobDone {
+			continue
+		}
+
+		if _, wasVerified := verifiedValidPubKeys[pk]; !wasVerified {
+			log.Debug("verifyNodesOnAggSigFail: excluding unverified validator from aggregation",
+				"public key", pk)
+			_ = sr.SetJobDone(pk, bls.SrSignature, false)
+		}
+	}
 }
 
 func (sr *subroundEndRound) getFullMessagesForInvalidSigners(invalidPubKeys []string) ([]byte, error) {
@@ -642,6 +666,12 @@ func (sr *subroundEndRound) createAndBroadcastProof(
 		HeaderShardId:       sr.GetHeader().GetShardID(),
 		HeaderRound:         sr.GetHeader().GetRound(),
 		IsStartOfEpoch:      sr.GetHeader().IsStartOfEpochBlock(),
+	}
+
+	added := sr.EquivalentProofsPool().AddProof(headerProof)
+	if !added {
+		log.Debug("createAndBroadcastProof failed to add proof from self")
+		return ErrProofAlreadyPropagated
 	}
 
 	err := sr.BroadcastMessenger().BroadcastEquivalentProof(headerProof, []byte(sender))
@@ -814,9 +844,11 @@ func (sr *subroundEndRound) waitForSignalSync() bool {
 
 	go sr.waitSignatures(ctx)
 	timerBetweenStatusChecks := time.NewTimer(timeBetweenSignaturesChecks)
+	defer timerBetweenStatusChecks.Stop()
 
 	remainingSRTime := sr.remainingTime()
 	timeout := time.NewTimer(remainingSRTime)
+	defer timeout.Stop()
 	for {
 		select {
 		case <-timerBetweenStatusChecks.C:
@@ -843,11 +875,17 @@ func (sr *subroundEndRound) waitSignatures(ctx context.Context) {
 	}
 	sr.SetWaitingAllSignaturesTimeOut(true)
 
+	timer := time.NewTimer(remainingTime)
+	defer timer.Stop()
+
 	select {
-	case <-time.After(remainingTime):
+	case <-timer.C:
 	case <-ctx.Done():
 	}
-	sr.ConsensusChannel() <- true
+	select {
+	case sr.ConsensusChannel() <- true:
+	default:
+	}
 }
 
 // maximum time to wait for signatures

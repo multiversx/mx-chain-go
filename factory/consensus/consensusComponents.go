@@ -222,6 +222,7 @@ func (ccf *consensusComponentsFactory) Create() (*consensusComponents, error) {
 		NodeRedundancyHandler:    ccf.processComponents.NodeRedundancyHandler(),
 		PeerBlacklistHandler:     cc.peerBlacklistHandler,
 		EnableEpochsHandler:      ccf.coreComponents.EnableEpochsHandler(),
+		EnableRoundsHandler:      ccf.coreComponents.EnableRoundsHandler(),
 		InvalidSignersCache:      invalidSignersCache,
 	}
 

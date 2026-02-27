@@ -29,7 +29,7 @@ type BlockTrackerMock struct {
 	CheckProofAgainstFinalCalled                       func(proof data.HeaderProofHandler) error
 	CheckBlockAgainstRoundHandlerCalled                func(headerHandler data.HeaderHandler) error
 	CheckProofAgainstRoundHandlerCalled                func(proof data.HeaderProofHandler) error
-	CheckBlockAgainstWhitelistCalled                   func(interceptedData process.InterceptedData) bool
+	CheckAgainstWhitelistCalled                        func(interceptedData process.InterceptedData) bool
 	CleanupHeadersBehindNonceCalled                    func(shardID uint32, selfNotarizedNonce uint64, crossNotarizedNonce uint64)
 	ComputeLongestChainCalled                          func(shardID uint32, header data.HeaderHandler) ([]data.HeaderHandler, [][]byte)
 	ComputeLongestMetaChainFromLastNotarizedCalled     func() ([]data.HeaderHandler, [][]byte, error)
@@ -204,10 +204,10 @@ func (btm *BlockTrackerMock) CheckProofAgainstRoundHandler(proof data.HeaderProo
 	return nil
 }
 
-// CheckBlockAgainstWhitelist -
-func (btm *BlockTrackerMock) CheckBlockAgainstWhitelist(interceptedData process.InterceptedData) bool {
-	if btm.CheckBlockAgainstWhitelistCalled != nil {
-		return btm.CheckBlockAgainstWhitelistCalled(interceptedData)
+// CheckAgainstWhitelist -
+func (btm *BlockTrackerMock) CheckAgainstWhitelist(interceptedData process.InterceptedData) bool {
+	if btm.CheckAgainstWhitelistCalled != nil {
+		return btm.CheckAgainstWhitelistCalled(interceptedData)
 	}
 
 	return false

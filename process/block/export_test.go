@@ -3,6 +3,7 @@ package block
 import (
 	"math/big"
 	"sync"
+	"sync/atomic"
 	"time"
 
 	"github.com/multiversx/mx-chain-core-go/core"
@@ -50,6 +51,9 @@ import (
 	storageStubs "github.com/multiversx/mx-chain-go/testscommon/storage"
 )
 
+// HashAndHdr -
+type HashAndHdr = hashAndHdr
+
 // UsedShardHeadersInfo -
 type UsedShardHeadersInfo = usedShardHeadersInfo
 
@@ -91,6 +95,11 @@ func (bp *baseProcessor) GetPruningHandler(finalHeaderNonce uint64) state.Prunin
 	return bp.getPruningHandler(finalHeaderNonce)
 }
 
+// SetClosingNodeStarted -
+func (bp *baseProcessor) SetClosingNodeStarted(val bool) {
+	bp.closingNodeStarted.Store(val)
+}
+
 // SetLastRestartNonce -
 func (bp *baseProcessor) SetLastRestartNonce(lastRestartNonce uint64) {
 	bp.lastRestartNonce = lastRestartNonce
@@ -107,13 +116,13 @@ func (sp *shardProcessor) CreateMiniBlocks(haveTime func() bool) (*block.Body, m
 }
 
 // GetOrderedProcessedMetaBlocksFromHeader -
-func (sp *shardProcessor) GetOrderedProcessedMetaBlocksFromHeader(header data.HeaderHandler) ([]data.HeaderHandler, error) {
+func (sp *shardProcessor) GetOrderedProcessedMetaBlocksFromHeader(header data.HeaderHandler) ([]data.HeaderHandler, []*hashAndHdr, error) {
 	return sp.getOrderedProcessedMetaBlocksFromHeader(header)
 }
 
 // UpdateCrossShardInfo -
-func (sp *shardProcessor) UpdateCrossShardInfo(processedMetaHdrs []data.HeaderHandler) error {
-	return sp.updateCrossShardInfo(processedMetaHdrs)
+func (sp *shardProcessor) UpdateCrossShardInfo(processedMetaHdrs []data.HeaderHandler, partialProcessedMetaBlocks []*hashAndHdr) error {
+	return sp.updateCrossShardInfo(processedMetaHdrs, partialProcessedMetaBlocks)
 }
 
 // UpdateStateStorage -
@@ -166,6 +175,7 @@ func NewShardProcessorEmptyWith3shards(
 				NumFloodingRoundsFastReacting:          30,
 				NumFloodingRoundsOutOfSpecs:            40,
 				MaxConsecutiveRoundsOfRatingDecrease:   600,
+				MaxBlockProcessingTimeMs:               1000,
 			},
 		},
 		&epochNotifier.RoundNotifierStub{},
@@ -184,6 +194,7 @@ func NewShardProcessorEmptyWith3shards(
 		EnableRoundsHandlerField:           &testscommon.EnableRoundsHandlerStub{},
 		EpochChangeGracePeriodHandlerField: gracePeriod,
 		ProcessConfigsHandlerField:         processConfigsHandler,
+		ClosingNodeStartedField:            &atomic.Bool{},
 	}
 	dataComponents := &mock.DataComponentsMock{
 		Storage:    &storageStubs.ChainStorerStub{},
@@ -1151,7 +1162,7 @@ func (mp *metaProcessor) GetCurrentlyAccumulatedFees(metaHdr data.MetaHeaderHand
 func (sp *shardProcessor) GetOrderedProcessedMetaBlocksFromMiniBlockHashesV3(
 	header data.HeaderHandler,
 	miniBlockHashes map[int][]byte,
-) ([]data.HeaderHandler, error) {
+) ([]data.HeaderHandler, []*hashAndHdr, error) {
 	return sp.getOrderedProcessedMetaBlocksFromMiniBlockHashesV3(header, miniBlockHashes)
 }
 

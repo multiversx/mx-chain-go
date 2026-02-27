@@ -1157,7 +1157,6 @@ func (boot *baseBootstrap) prepareForSyncIfNeeded(
 	type backfillEntry struct {
 		header     data.HeaderHandler
 		headerHash []byte
-		body       data.BodyHandler
 	}
 
 	headersToAdd := make([]backfillEntry, 0, currentHeader.GetNonce()-lastExecResultNonce)
@@ -1165,15 +1164,9 @@ func (boot *baseBootstrap) prepareForSyncIfNeeded(
 	walkerHash := currentHeaderHash
 
 	for walker.GetNonce() > lastExecResultNonce {
-		body, errGetBody := boot.blockBootstrapper.getBlockBody(walker)
-		if errGetBody != nil {
-			return errGetBody
-		}
-
 		headersToAdd = append(headersToAdd, backfillEntry{
 			header:     walker,
 			headerHash: walkerHash,
-			body:       body,
 		})
 
 		if walker.GetNonce() == lastExecResultNonce+1 {
@@ -1214,23 +1207,28 @@ func (boot *baseBootstrap) prepareForSyncIfNeeded(
 			return err
 		}
 
-		err = boot.saveProposedTxsToPool(info.header, info.body)
+		body, errGetBody := boot.blockBootstrapper.getBlockBody(info.header)
+		if errGetBody != nil {
+			return errGetBody
+		}
+
+		err = boot.saveProposedTxsToPool(info.header, body)
 		if err != nil {
 			return err
 		}
 
-		errOnProposedBlock := boot.blockProcessor.OnProposedBlock(
-			info.body,
+		errOnBackfilledBlock := boot.blockProcessor.OnBackfilledBlock(
+			body,
 			info.header,
 			info.headerHash,
 		)
-		if errOnProposedBlock != nil {
-			return errOnProposedBlock
+		if errOnBackfilledBlock != nil {
+			return errOnBackfilledBlock
 		}
 
 		errAdd := boot.executionManager.AddPairForExecution(cache.HeaderBodyPair{
 			Header:     info.header,
-			Body:       info.body,
+			Body:       body,
 			HeaderHash: info.headerHash,
 		})
 		if errAdd != nil {
@@ -1966,16 +1964,6 @@ func (boot *baseBootstrap) getHeaderFromPool(hash []byte) (data.HeaderHandler, e
 	return process.GetShardHeaderFromPool(hash, boot.headers)
 }
 
-func (boot *baseBootstrap) getHeaderWithNonce(
-	nonce uint64,
-) (data.HeaderHandler, []byte, error) {
-	if boot.shardCoordinator.SelfId() == core.MetachainShardId {
-		return boot.getMetaHeaderWithNonce(nonce)
-	}
-
-	return boot.getShardHeaderWithNonce(nonce)
-}
-
 func (boot *baseBootstrap) getMetaHeaderWithNonce(
 	nonce uint64,
 ) (data.HeaderHandler, []byte, error) {
@@ -1986,23 +1974,6 @@ func (boot *baseBootstrap) getMetaHeaderWithNonce(
 
 	return process.GetMetaHeaderFromStorageWithNonce(
 		nonce,
-		boot.store,
-		boot.uint64Converter,
-		boot.marshalizer,
-	)
-}
-
-func (boot *baseBootstrap) getShardHeaderWithNonce(
-	nonce uint64,
-) (data.HeaderHandler, []byte, error) {
-	header, hash, err := process.GetShardHeaderFromPoolWithNonce(nonce, boot.shardCoordinator.SelfId(), boot.headers)
-	if err == nil {
-		return header, hash, nil
-	}
-
-	return process.GetShardHeaderFromStorageWithNonce(
-		nonce,
-		boot.shardCoordinator.SelfId(),
 		boot.store,
 		boot.uint64Converter,
 		boot.marshalizer,
