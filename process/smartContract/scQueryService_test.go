@@ -1521,11 +1521,11 @@ func TestSCQueryService_ExtractBlockHeaderAndRootHash(t *testing.T) {
 				return header
 			},
 			GetCurrentBlockRootHashCalled: func() []byte {
-				require.Fail(t, "should have not beed called")
+				require.Fail(t, "should have not been called")
 				return nil
 			},
 			GetCurrentBlockHeaderHashCalled: func() []byte {
-				require.Fail(t, "should have not beed called")
+				require.Fail(t, "should have not been called")
 				return nil
 			},
 			GetLastExecutedBlockInfoCalled: func() (uint64, []byte, []byte) {
@@ -1597,11 +1597,11 @@ func TestSCQueryService_ExtractBlockHeaderAndRootHash(t *testing.T) {
 				return header
 			},
 			GetCurrentBlockRootHashCalled: func() []byte {
-				require.Fail(t, "should have not beed called")
+				require.Fail(t, "should have not been called")
 				return nil
 			},
 			GetCurrentBlockHeaderHashCalled: func() []byte {
-				require.Fail(t, "should have not beed called")
+				require.Fail(t, "should have not been called")
 				return nil
 			},
 			GetLastExecutedBlockInfoCalled: func() (uint64, []byte, []byte) {
