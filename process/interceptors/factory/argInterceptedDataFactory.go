@@ -38,6 +38,7 @@ type interceptedDataCryptoComponentsHolder interface {
 	BlockSigner() crypto.SingleSigner
 	GetMultiSigner(epoch uint32) (crypto.MultiSignerV2, error)
 	PublicKey() crypto.PublicKey
+	ManagedPeersHolder() common.ManagedPeersHolder
 	IsInterfaceNil() bool
 }
 
