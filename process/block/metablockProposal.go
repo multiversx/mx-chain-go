@@ -241,8 +241,7 @@ func (mp *metaProcessor) VerifyBlockProposal(
 		return err
 	}
 
-	// TODO: analyse if it should be enforced that execution results on start of epoch block include only start of epoch execution results
-	err = mp.executionResultsVerifier.VerifyHeaderExecutionResults(header)
+	err = mp.waitForExecutionResultsVerification(header, haveTime)
 	if err != nil {
 		return err
 	}
