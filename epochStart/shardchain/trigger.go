@@ -75,11 +75,12 @@ type trigger struct {
 	epochStartShardHeader       data.HeaderHandler
 	epochStartMeta              data.HeaderHandler
 
-	mutTrigger         sync.RWMutex
-	mapHashHdr         map[string]data.HeaderHandler
-	mapNonceHashes     map[uint64][]string
-	mapEpochStartHdrs  map[string]data.HeaderHandler
-	mapFinalizedEpochs map[uint32]string
+	mutTrigger                sync.RWMutex
+	mapHashHdr                map[string]data.HeaderHandler
+	mapNonceHashes            map[uint64][]string
+	mapEpochStartHdrs         map[string]data.HeaderHandler
+	mapFinalizedEpochs        map[uint32]string
+	mapPreparedEpochStartHdrs map[string]struct{}
 
 	headersPool                   dataRetriever.HeadersPool
 	proofsPool                    dataRetriever.ProofsPool
@@ -285,6 +286,7 @@ func NewEpochStartTrigger(args *ArgsShardEpochStartTrigger) (*trigger, error) {
 
 	t.mapMissingMiniBlocks = make(map[string]uint32)
 	t.mapMissingValidatorsInfo = make(map[string]uint32)
+	t.mapPreparedEpochStartHdrs = make(map[string]struct{})
 
 	var ctx context.Context
 	ctx, t.cancelFunc = context.WithCancel(context.Background())
@@ -903,7 +905,10 @@ func (t *trigger) checkIfTriggerCanBeActivated(hash string, metaHdr data.HeaderH
 		}
 	}
 
-	t.epochStartNotifier.NotifyAllPrepare(metaHdr, blockBody)
+	if _, alreadyPrepared := t.mapPreparedEpochStartHdrs[hash]; !alreadyPrepared {
+		t.epochStartNotifier.NotifyAllPrepare(metaHdr, blockBody)
+		t.mapPreparedEpochStartHdrs[hash] = struct{}{}
+	}
 
 	isMetaHdrFinal, finalityAttestingRound := t.isMetaBlockFinal(hash, metaHdr)
 	return isMetaHdrFinal, finalityAttestingRound
@@ -1118,6 +1123,7 @@ func (t *trigger) SetProcessed(header data.HeaderHandler, _ data.BodyHandler) {
 	t.mapNonceHashes = make(map[uint64][]string)
 	t.mapEpochStartHdrs = make(map[string]data.HeaderHandler)
 	t.mapFinalizedEpochs = make(map[uint32]string)
+	t.mapPreparedEpochStartHdrs = make(map[string]struct{})
 
 	t.saveCurrentState(header.GetRound())
 
