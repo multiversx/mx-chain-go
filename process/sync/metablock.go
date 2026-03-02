@@ -168,8 +168,7 @@ func (boot *MetaBootstrap) setLastEpochStartRound() {
 		return
 	}
 
-	epochStartMetaBlock := &block.MetaBlock{}
-	err = boot.marshalizer.Unmarshal(epochStartMetaBlock, epochStartHdr)
+	epochStartMetaBlock, err := process.UnmarshalMetaHeader(boot.marshalizer, epochStartHdr)
 	if err != nil {
 		return
 	}
@@ -235,13 +234,7 @@ func (boot *MetaBootstrap) getPrevHeader(
 		return nil, err
 	}
 
-	prevHeader := &block.MetaBlock{}
-	err = boot.marshalizer.Unmarshal(prevHeader, buffHeader)
-	if err != nil {
-		return nil, err
-	}
-
-	return prevHeader, nil
+	return process.UnmarshalMetaHeader(boot.marshalizer, buffHeader)
 }
 
 func (boot *MetaBootstrap) getCurrHeader() (data.HeaderHandler, error) {

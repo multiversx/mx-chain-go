@@ -581,6 +581,8 @@ func (nr *nodeRunner) executeOneComponentCreationCycle(
 		goRoutinesNumberStart,
 		managedCoreComponents.ClosingNodeStarted(),
 		closeComponentsDelay,
+		managedConsensusComponents,
+		managedProcessComponents.ExecutionManager(),
 	)
 
 	return nextOperation == nextOperationShouldStop, nil
@@ -998,6 +1000,8 @@ func waitForSignal(
 	goRoutinesNumberStart int,
 	closingNodeStarted *atomic.Bool,
 	closeComponentsDelay time.Duration,
+	consensusComponentsCloser io.Closer,
+	executionManagerCloser io.Closer,
 ) nextOperationForNode {
 	var sig endProcess.ArgEndProcess
 	reshuffled := false
@@ -1020,7 +1024,7 @@ func waitForSignal(
 
 	chanCloseComponents := make(chan struct{})
 	go func() {
-		closeAllComponents(healthService, facade, httpServer, currentNode, chanCloseComponents, closingNodeStarted, closeComponentsDelay)
+		closeAllComponents(healthService, facade, httpServer, currentNode, chanCloseComponents, closingNodeStarted, closeComponentsDelay, consensusComponentsCloser, executionManagerCloser)
 	}()
 
 	select {
@@ -1595,10 +1599,18 @@ func closeAllComponents(
 	chanCloseComponents chan struct{},
 	closingNodeStarted *atomic.Bool,
 	closeComponentsDelay time.Duration,
+	consensusComponentsCloser io.Closer,
+	executionManagerCloser io.Closer,
 ) {
 	closingNodeStarted.Store(true)
 	// stop pruning, but wait a bit before closing the components to let the node finish processing the current block
 	time.Sleep(closeComponentsDelay)
+
+	log.Debug("stopping consensus...")
+	log.LogIfError(consensusComponentsCloser.Close())
+
+	log.Debug("stopping async execution...")
+	log.LogIfError(executionManagerCloser.Close())
 
 	log.Debug("closing health service...")
 	err := healthService.Close()

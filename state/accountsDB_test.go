@@ -181,6 +181,7 @@ func getDefaultStateComponents(
 		AddressConverter:       &testscommon.PubkeyConverterMock{},
 		SnapshotsManager:       snapshotsManager,
 		StateAccessesCollector: collector,
+		PruningEnabled:         true,
 	}
 	adb, _ := state.NewAccountsDB(argsAccountsDB)
 
@@ -1657,19 +1658,16 @@ func TestAccountsDB_SnapshotStateCallsRemoveFromAllActiveEpochs(t *testing.T) {
 func TestAccountsDB_IsPruningEnabled(t *testing.T) {
 	t.Parallel()
 
-	trieStub := &trieMock.TrieStub{
-		GetStorageManagerCalled: func() common.StorageManager {
-			return &storageManager.StorageManagerStub{
-				IsPruningEnabledCalled: func() bool {
-					return true
-				},
-			}
-		},
-	}
-	adb := generateAccountDBFromTrie(trieStub)
-	res := adb.IsPruningEnabled()
+	args := createMockAccountsDBArgs()
+	args.PruningEnabled = true
+	adb, err := state.NewAccountsDB(args)
+	assert.Nil(t, err)
+	assert.True(t, adb.IsPruningEnabled())
 
-	assert.Equal(t, true, res)
+	args.PruningEnabled = false
+	adb, err = state.NewAccountsDB(args)
+	assert.Nil(t, err)
+	assert.False(t, adb.IsPruningEnabled())
 }
 
 func TestAccountsDB_RevertToSnapshotOutOfBounds(t *testing.T) {
@@ -2135,6 +2133,7 @@ func TestAccountsDB_MainTrieAutomaticallyMarksCodeUpdatesForEviction(t *testing.
 	spm, _ := storagePruningManager.NewStoragePruningManager(ewl, 5)
 
 	argsAccountsDB := createMockAccountsDBArgs()
+	argsAccountsDB.PruningEnabled = true
 	argsAccountsDB.Trie = tr
 	argsAccountsDB.Hasher = hasher
 	argsAccountsDB.Marshaller = marshaller
@@ -2217,6 +2216,7 @@ func TestAccountsDB_RemoveAccountMarksObsoleteHashesForEviction(t *testing.T) {
 	spm, _ := storagePruningManager.NewStoragePruningManager(ewl, 5)
 
 	argsAccountsDB := createMockAccountsDBArgs()
+	argsAccountsDB.PruningEnabled = true
 	argsAccountsDB.Trie = tr
 	argsAccountsDB.Hasher = hasher
 	argsAccountsDB.Marshaller = marshaller
@@ -3200,6 +3200,7 @@ func TestAccountsDB_RevertTxWhichMigratesDataRemovesMigratedData(t *testing.T) {
 	tr, _ := trie.NewTrie(tsm, marshaller, hasher, enableEpochsHandler, uint(5))
 	spm := &stateMock.StoragePruningManagerStub{}
 	argsAccountsDB := createMockAccountsDBArgs()
+	argsAccountsDB.PruningEnabled = true
 	argsAccountsDB.Trie = tr
 	argsAccountsDB.Hasher = hasher
 	argsAccountsDB.Marshaller = marshaller
