@@ -1188,6 +1188,7 @@ type RoundTimeDurationHandler interface {
 // RoundHandler defines the actions which should be handled by a round implementation
 type RoundHandler interface {
 	Index() int64
+	TimeDuration() time.Duration
 	IsInterfaceNil() bool
 }
 

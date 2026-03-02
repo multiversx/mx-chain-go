@@ -1173,3 +1173,10 @@ func (bp *baseProcessor) ExcludeRevertedExecutionResultsForHeader(
 ) []data.BaseExecutionResultHandler {
 	return bp.excludeRevertedExecutionResultsForHeader(header, pendingExecutionResults)
 }
+
+// SaveExecutionResult -
+func (bp *baseProcessor) SaveExecutionResult(
+	execResult data.BaseExecutionResultHandler,
+) error {
+	return bp.saveExecutionResult(execResult)
+}
