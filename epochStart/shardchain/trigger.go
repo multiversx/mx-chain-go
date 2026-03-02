@@ -341,6 +341,11 @@ func (t *trigger) requestMissingMiniBlocks(ctx context.Context) {
 			t.mutMissingMiniBlocks.RUnlock()
 
 			t.mutTrigger.Lock()
+			if t.isEpochStart {
+				t.mutTrigger.Unlock()
+				continue
+			}
+
 			t.updateTriggerFromMeta()
 			t.mutTrigger.Unlock()
 
