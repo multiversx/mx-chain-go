@@ -58,6 +58,7 @@ func cloneTrigger(t *trigger) *trigger {
 	rt.roundHandler = t.roundHandler
 	rt.enableEpochsHandler = t.enableEpochsHandler
 	rt.epochStartConfigsHandler = t.epochStartConfigsHandler
+	rt.chanMetaBlockReceived = t.chanMetaBlockReceived
 	return rt
 }
 
