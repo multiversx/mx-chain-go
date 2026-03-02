@@ -261,6 +261,7 @@ func (scf *stateComponentsFactory) createAccountsAdapters(triesContainer common.
 		AddressConverter:       scf.core.AddressPubKeyConverter(),
 		SnapshotsManager:       snapshotsManager,
 		StateAccessesCollector: StateAccessesCollector,
+		PruningEnabled:         scf.config.StateTriesConfig.AccountsStatePruningEnabled,
 	}
 	accountsAdapter, err := state.NewAccountsDB(argsProcessingAccountsDB)
 	if err != nil {
@@ -364,6 +365,7 @@ func (scf *stateComponentsFactory) createPeerAdapter(triesContainer common.Tries
 		AddressConverter:       scf.core.AddressPubKeyConverter(),
 		SnapshotsManager:       snapshotManager,
 		StateAccessesCollector: disabled.NewDisabledStateAccessesCollector(),
+		PruningEnabled:         scf.config.StateTriesConfig.PeerStatePruningEnabled,
 	}
 	peerAdapter, err := state.NewPeerAccountsDB(argsProcessingPeerAccountsDB)
 	if err != nil {

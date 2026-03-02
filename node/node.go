@@ -16,7 +16,6 @@ import (
 	"github.com/multiversx/mx-chain-core-go/core/check"
 	"github.com/multiversx/mx-chain-core-go/data"
 	"github.com/multiversx/mx-chain-core-go/data/api"
-	"github.com/multiversx/mx-chain-core-go/data/block"
 	"github.com/multiversx/mx-chain-core-go/data/endProcess"
 	"github.com/multiversx/mx-chain-core-go/data/esdt"
 	"github.com/multiversx/mx-chain-core-go/data/guardians"
@@ -1289,17 +1288,36 @@ func (n *Node) getMetaFirstNonceOfEpoch(epoch uint32) (*common.EpochStartDataAPI
 		return nil, fmt.Errorf("cannot load epoch start block for epoch %d (%w)", epoch, err)
 	}
 
-	var metaBlock block.MetaBlock
-	err = n.coreComponents.InternalMarshalizer().Unmarshal(&metaBlock, result)
+	metaBlock, err := process.UnmarshalMetaHeader(n.coreComponents.InternalMarshalizer(), result)
 	if err != nil {
 		return nil, err
 	}
 
-	return n.prepareEpochStartDataResponse(&metaBlock), nil
+	return n.prepareEpochStartDataResponse(metaBlock), nil
+}
+
+func (n *Node) getLastExecutionRootHashOnHeader(
+	header data.HeaderHandler,
+) []byte {
+	rootHash := header.GetRootHash()
+	if !header.IsHeaderV3() {
+		return rootHash
+	}
+
+	lastExecRes, err := common.ExtractBaseExecutionResultHandler(header.GetLastExecutionResultHandler())
+	if err != nil {
+		// this should not happen, last execution result should be set on header v3
+		log.Error("failed to get last execution result on header", "error", err)
+		return rootHash
+	}
+
+	return lastExecRes.GetRootHash()
 }
 
 func (n *Node) prepareEpochStartDataResponse(header data.HeaderHandler) *common.EpochStartDataAPI {
 	timestampSec, timestampMs, _ := common.GetHeaderTimestamps(header, n.coreComponents.EnableEpochsHandler())
+
+	rootHash := n.getLastExecutionRootHashOnHeader(header)
 
 	response := &common.EpochStartDataAPI{
 		Nonce:         header.GetNonce(),
@@ -1309,7 +1327,7 @@ func (n *Node) prepareEpochStartDataResponse(header data.HeaderHandler) *common.
 		TimestampMs:   int64(timestampMs),
 		Epoch:         header.GetEpoch(),
 		PrevBlockHash: hex.EncodeToString(header.GetPrevHash()),
-		StateRootHash: hex.EncodeToString(header.GetRootHash()),
+		StateRootHash: hex.EncodeToString(rootHash),
 	}
 
 	if header.GetAdditionalData() != nil {
