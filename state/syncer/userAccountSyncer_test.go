@@ -29,7 +29,6 @@ func getDefaultBaseAccSyncerArgs() ArgsNewBaseAccountsSyncer {
 		Cacher:                            cache.NewCacherMock(),
 		UserAccountsSyncStatisticsHandler: &testscommon.SizeSyncStatisticsHandlerStub{},
 		AppStatusHandler:                  &statusHandler.AppStatusHandlerStub{},
-		MaxTrieLevelInMemory:              0,
 		MaxHardCapForMissingNodes:         100,
 		TrieSyncerVersion:                 2,
 		CheckNodesOnDisk:                  false,
@@ -90,7 +89,7 @@ func TestUserAccountsSyncer_MissingDataTrieNodeFound(t *testing.T) {
 		},
 	}
 
-	tr, _ := trie.NewTrie(tsm, args.Marshalizer, args.Hasher, &enableEpochsHandlerMock.EnableEpochsHandlerStub{}, 5)
+	tr, _ := trie.NewTrie(tsm, args.Marshalizer, args.Hasher, &enableEpochsHandlerMock.EnableEpochsHandlerStub{})
 	key := []byte("key")
 	value := []byte("value")
 	_ = tr.Update(key, value)

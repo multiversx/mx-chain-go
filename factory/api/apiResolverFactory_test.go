@@ -304,9 +304,7 @@ func createMockSCQueryElementArgs() api.SCQueryElementArgs {
 			TrieStorageManagerConfig: config.TrieStorageManagerConfig{
 				SnapshotsGoroutineNum: 1,
 			},
-			StateTriesConfig: config.StateTriesConfig{
-				MaxStateTrieLevelInMemory: 5,
-			},
+			StateTriesConfig: config.StateTriesConfig{},
 			VirtualMachine: config.VirtualMachineServicesConfig{
 				Querying: config.QueryVirtualMachineConfig{
 					VirtualMachineConfig: config.VirtualMachineConfig{

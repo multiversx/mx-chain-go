@@ -583,7 +583,6 @@ func createNewAccountsAdapterApi(args scQueryElementArgs, chainHandler data.Chai
 	trieCreatorArgs := trieFactory.TrieCreateArgs{
 		MainStorer:          trieStorer,
 		PruningEnabled:      args.generalConfig.StateTriesConfig.AccountsStatePruningEnabled,
-		MaxTrieLevelInMem:   args.generalConfig.StateTriesConfig.MaxStateTrieLevelInMemory,
 		SnapshotsEnabled:    args.generalConfig.StateTriesConfig.SnapshotsEnabled,
 		IdleProvider:        args.coreComponents.ProcessStatusHandler(),
 		Identifier:          dataRetriever.UserAccountsUnit.String(),

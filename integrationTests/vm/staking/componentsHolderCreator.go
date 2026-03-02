@@ -202,7 +202,6 @@ func createAccountsDB(
 		coreComponents.InternalMarshalizer(),
 		coreComponents.Hasher(),
 		coreComponents.EnableEpochsHandler(),
-		5,
 	)
 
 	argsEvictionWaitingList := evictionWaitingList.MemoryEvictionWaitingListArgs{

@@ -54,7 +54,6 @@ type ArgsExporter struct {
 	ExportTriesStorageConfig         config.StorageConfig
 	ExportStateStorageConfig         config.StorageConfig
 	ExportStateKeysConfig            config.StorageConfig
-	MaxTrieLevelInMemory             uint
 	WhiteListHandler                 process.WhiteListHandler
 	WhiteListerVerifiedTxs           process.WhiteListHandler
 	MainInterceptorsContainer        process.InterceptorsContainer
@@ -88,7 +87,6 @@ type exportHandlerFactory struct {
 	exportTriesStorageConfig         config.StorageConfig
 	exportStateStorageConfig         config.StorageConfig
 	exportStateKeysConfig            config.StorageConfig
-	maxTrieLevelInMemory             uint
 	whiteListHandler                 process.WhiteListHandler
 	whiteListerVerifiedTxs           process.WhiteListHandler
 	mainInterceptorsContainer        process.InterceptorsContainer
@@ -260,7 +258,6 @@ func NewExportHandlerFactory(args ArgsExporter) (*exportHandlerFactory, error) {
 		headerSigVerifier:                args.HeaderSigVerifier,
 		headerIntegrityVerifier:          args.HeaderIntegrityVerifier,
 		validityAttester:                 args.ValidityAttester,
-		maxTrieLevelInMemory:             args.MaxTrieLevelInMemory,
 		roundHandler:                     args.RoundHandler,
 		interceptorDebugConfig:           args.InterceptorDebugConfig,
 		maxHardCapForMissingNodes:        args.MaxHardCapForMissingNodes,
@@ -320,14 +317,13 @@ func (e *exportHandlerFactory) Create() (update.ExportHandler, error) {
 	}
 
 	argsDataTrieFactory := ArgsNewDataTrieFactory{
-		StorageConfig:        e.exportTriesStorageConfig,
-		SyncFolder:           e.exportFolder,
-		Marshalizer:          e.coreComponents.InternalMarshalizer(),
-		Hasher:               e.coreComponents.Hasher(),
-		ShardCoordinator:     e.shardCoordinator,
-		MaxTrieLevelInMemory: e.maxTrieLevelInMemory,
-		EnableEpochsHandler:  e.coreComponents.EnableEpochsHandler(),
-		StateStatsCollector:  e.statusCoreComponents.StateStatsHandler(),
+		StorageConfig:       e.exportTriesStorageConfig,
+		SyncFolder:          e.exportFolder,
+		Marshalizer:         e.coreComponents.InternalMarshalizer(),
+		Hasher:              e.coreComponents.Hasher(),
+		ShardCoordinator:    e.shardCoordinator,
+		EnableEpochsHandler: e.coreComponents.EnableEpochsHandler(),
+		StateStatsCollector: e.statusCoreComponents.StateStatsHandler(),
 	}
 	dataTriesContainerFactory, err := NewDataTrieFactory(argsDataTrieFactory)
 	if err != nil {
@@ -412,7 +408,6 @@ func (e *exportHandlerFactory) Create() (update.ExportHandler, error) {
 		Marshalizer:               e.coreComponents.InternalMarshalizer(),
 		TrieStorageManager:        trieStorageManager,
 		TimoutGettingTrieNode:     common.TimeoutGettingTrieNodesInHardfork,
-		MaxTrieLevelInMemory:      e.maxTrieLevelInMemory,
 		MaxHardCapForMissingNodes: e.maxHardCapForMissingNodes,
 		NumConcurrentTrieSyncers:  e.numConcurrentTrieSyncers,
 		TrieSyncerVersion:         e.trieSyncerVersion,

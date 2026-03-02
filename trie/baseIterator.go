@@ -3,11 +3,13 @@ package trie
 import (
 	"github.com/multiversx/mx-chain-core-go/core/check"
 	"github.com/multiversx/mx-chain-go/common"
+	"github.com/multiversx/mx-chain-go/trie/trieMetricsCollector"
 )
 
 type baseIterator struct {
 	currentNode node
 	nextNodes   []node
+	tmc         MetricsCollector
 	db          common.TrieStorageInteractor
 }
 
@@ -23,7 +25,8 @@ func newBaseIterator(trie common.Trie) (*baseIterator, error) {
 	}
 
 	trieStorage := trie.GetStorageManager()
-	nextNodes, err := pmt.root.getChildren(trieStorage)
+	tmc := trieMetricsCollector.NewDisabledTrieMetricsCollector()
+	nextNodes, err := pmt.root.getChildren(tmc, trieStorage)
 	if err != nil {
 		return nil, err
 	}
@@ -32,6 +35,7 @@ func newBaseIterator(trie common.Trie) (*baseIterator, error) {
 		currentNode: pmt.root,
 		nextNodes:   nextNodes,
 		db:          trieStorage,
+		tmc:         tmc,
 	}, nil
 }
 
@@ -50,7 +54,7 @@ func (it *baseIterator) next() ([]node, error) {
 	}
 
 	it.currentNode = n
-	return it.currentNode.getChildren(it.db)
+	return it.currentNode.getChildren(it.tmc, it.db)
 }
 
 // MarshalizedNode marshalizes the current node, and then returns the serialized node

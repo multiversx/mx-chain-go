@@ -21,8 +21,6 @@ func GetGeneralConfig() config.Config {
 		StateTriesConfig: config.StateTriesConfig{
 			AccountsStatePruningEnabled: true,
 			PeerStatePruningEnabled:     true,
-			MaxStateTrieLevelInMemory:   5,
-			MaxPeerTrieLevelInMemory:    5,
 		},
 		EvictionWaitingList: config.EvictionWaitingListConfig{
 			HashesSize:     100,

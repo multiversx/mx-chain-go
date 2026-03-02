@@ -40,7 +40,7 @@ func GetDefaultTrieParameters() (common.StorageManager, marshal.Marshalizer, has
 // GetNewTrie -
 func GetNewTrie() common.Trie {
 	tsm, marshaller, hasher := GetDefaultTrieParameters()
-	tr, _ := trie.NewTrie(tsm, marshaller, hasher, &enableEpochsHandlerMock.EnableEpochsHandlerStub{}, 5)
+	tr, _ := trie.NewTrie(tsm, marshaller, hasher, &enableEpochsHandlerMock.EnableEpochsHandlerStub{})
 
 	return tr
 }
