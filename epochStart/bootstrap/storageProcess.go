@@ -397,7 +397,11 @@ func (sesb *storageEpochStartBootstrap) syncHeadersFromStorage(meta data.MetaHea
 	}
 
 	if meta.GetEpoch() == sesb.startEpoch+1 {
-		syncedHeaders[string(meta.GetEpochStartHandler().GetEconomicsHandler().GetPrevEpochStartHash())] = &block.MetaBlock{}
+		var metaBlock data.MetaHeaderHandler = &block.MetaBlock{}
+		if meta.IsHeaderV3() {
+			metaBlock = &block.MetaBlockV3{}
+		}
+		syncedHeaders[string(meta.GetEpochStartHandler().GetEconomicsHandler().GetPrevEpochStartHash())] = metaBlock
 	}
 
 	return syncedHeaders, nil

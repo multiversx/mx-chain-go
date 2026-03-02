@@ -968,12 +968,11 @@ func (t *trigger) getHeaderWithHashFromPool(neededHash []byte) data.HeaderHandle
 func (t *trigger) getHeaderWithHashFromStorage(neededHash []byte) data.HeaderHandler {
 	storageData, err := t.metaHdrStorage.Get(neededHash)
 	if err == nil {
-		var neededHdr block.MetaBlock
-		err = t.marshaller.Unmarshal(&neededHdr, storageData)
+		neededHdr, err := process.UnmarshalMetaHeader(t.marshaller, storageData)
 		if err == nil {
-			t.mapHashHdr[string(neededHash)] = &neededHdr
-			t.mapNonceHashes[neededHdr.Nonce] = append(t.mapNonceHashes[neededHdr.Nonce], string(neededHash))
-			return &neededHdr
+			t.mapHashHdr[string(neededHash)] = neededHdr
+			t.mapNonceHashes[neededHdr.GetNonce()] = append(t.mapNonceHashes[neededHdr.GetNonce()], string(neededHash))
+			return neededHdr
 		}
 	}
 
