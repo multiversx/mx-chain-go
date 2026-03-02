@@ -764,11 +764,11 @@ func TestTrigger_ReceivedHeaderChangeEpochWithoutPrevHeader(t *testing.T) {
 
 	epochStartTrigger.receivedMetaBlock(epochStartHeader, epochStartHash)
 
-	require.False(t, epochStartTrigger.isEpochStart)
+	require.False(t, epochStartTrigger.IsEpochStart())
 
 	epochStartTrigger.receivedMetaBlock(epochStartHeader, epochStartHash)
 
-	require.True(t, epochStartTrigger.isEpochStart)
+	require.True(t, epochStartTrigger.IsEpochStart())
 }
 
 func TestTrigger_ClearMissingValidatorsInfoMapShouldWork(t *testing.T) {
