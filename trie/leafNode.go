@@ -168,7 +168,7 @@ func (ln *leafNode) commitSnapshot(
 		return err
 	}
 
-	stats.AddLeafNode(int(tmc.GetMaxDepth()), uint64(nodeSize), version)
+	stats.AddLeafNode(int(tmc.GetCurrentDepth()), uint64(nodeSize), version)
 
 	return nil
 }
@@ -523,7 +523,7 @@ func (ln *leafNode) collectStats(ts common.TrieStatisticsHandler, tmc MetricsCol
 		return err
 	}
 
-	ts.AddLeafNode(int(tmc.GetMaxDepth()), uint64(len(val)), version)
+	ts.AddLeafNode(int(tmc.GetCurrentDepth()), uint64(len(val)), version)
 	return nil
 }
 

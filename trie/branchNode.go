@@ -306,8 +306,10 @@ func (bn *branchNode) commitSnapshot(
 		return fmt.Errorf("commit snapshot error %w", err)
 	}
 
-	depthLevel := tmc.GetMaxDepth()
-	tmc.SetMaxDepth(depthLevel + 1)
+	depthLevel := tmc.GetCurrentDepth()
+	tmc.SetDepth(depthLevel + 1)
+	defer tmc.SetDepth(depthLevel) // Reset depth when returning from this level
+
 	for i := range bn.children {
 		err = resolveIfCollapsed(bn, byte(i), tmc, db)
 		childIsMissing, err := treatCommitSnapshotError(err, bn.EncodedChildren[i], missingNodesChan)
@@ -417,7 +419,7 @@ func (bn *branchNode) tryGet(key []byte, tmc MetricsCollector, db common.TrieSto
 		return nil, nil
 	}
 
-	tmc.SetMaxDepth(tmc.GetMaxDepth() + 1)
+	tmc.SetDepth(tmc.GetCurrentDepth() + 1)
 	return bn.children[childPos].tryGet(key, tmc, db)
 }
 
@@ -895,8 +897,10 @@ func (bn *branchNode) collectStats(ts common.TrieStatisticsHandler, tmc MetricsC
 		return fmt.Errorf("collectStats error %w", err)
 	}
 
-	depthLevel := tmc.GetMaxDepth()
-	tmc.SetMaxDepth(depthLevel + 1)
+	depthLevel := tmc.GetCurrentDepth()
+	tmc.SetDepth(depthLevel + 1)
+	defer tmc.SetDepth(depthLevel) // Reset depth when returning from this level
+
 	for i := range bn.children {
 		err = resolveIfCollapsed(bn, byte(i), tmc, db)
 		if err != nil {

@@ -889,6 +889,7 @@ func TestPatriciaMerkleTrie_GetTrieStats(t *testing.T) {
 	_ = tr.Update([]byte("dog"), []byte("reindeer"))
 	_ = tr.Update([]byte("fog"), []byte("puppy"))
 	_ = tr.Update([]byte("dogglesworth"), []byte("cat"))
+	_ = tr.Update([]byte("abch"), []byte("car"))
 	_ = tr.Commit()
 
 	rootHash, _ := tr.RootHash()
@@ -900,10 +901,10 @@ func TestPatriciaMerkleTrie_GetTrieStats(t *testing.T) {
 	stats, err := ts.GetTrieStats(address, rootHash)
 	assert.Nil(t, err)
 
-	assert.Equal(t, uint64(2), stats.GetNumBranchNodes())
-	assert.Equal(t, uint64(1), stats.GetNumExtensionNodes())
-	assert.Equal(t, uint64(3), stats.GetNumLeafNodes())
-	assert.Equal(t, uint64(6), stats.GetTotalNumNodes())
+	assert.Equal(t, uint64(3), stats.GetNumBranchNodes())
+	assert.Equal(t, uint64(2), stats.GetNumExtensionNodes())
+	assert.Equal(t, uint64(4), stats.GetNumLeafNodes())
+	assert.Equal(t, uint64(9), stats.GetTotalNumNodes())
 	assert.Equal(t, uint32(3), stats.GetMaxTrieDepth())
 }
 

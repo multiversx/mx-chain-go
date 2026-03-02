@@ -15,17 +15,31 @@ func TestNewTrieMetricsCollector(t *testing.T) {
 	assert.Equal(t, 0, collector.sizeLoadedInMem)
 }
 
-func TestTrieMetricsCollector_SetMaxDepth(t *testing.T) {
+func TestTrieMetricsCollector_SetDepth(t *testing.T) {
 	t.Parallel()
 
 	collector := NewTrieMetricsCollector()
-	collector.SetMaxDepth(5)
+	collector.SetDepth(5)
 
 	assert.Equal(t, 5, collector.maxDepth)
-	collector.SetMaxDepth(3)
+	collector.SetDepth(3)
 	assert.Equal(t, 5, collector.maxDepth) // Should not change since 3 < 5
-	collector.SetMaxDepth(7)
+	collector.SetDepth(7)
 	assert.Equal(t, 7, collector.maxDepth) // Should update to 7 since it's greater than 5
+}
+
+func TestTrieMetricsCollector_GetCurrentDepth(t *testing.T) {
+	t.Parallel()
+
+	collector := NewTrieMetricsCollector()
+	assert.Equal(t, uint32(0), collector.GetCurrentDepth())
+
+	collector.SetDepth(8)
+	assert.Equal(t, uint32(8), collector.GetCurrentDepth())
+
+	collector.SetDepth(4)
+	assert.Equal(t, uint32(4), collector.GetCurrentDepth()) // Current depth should update to 4
+	assert.Equal(t, uint32(8), collector.GetMaxDepth())     // Max depth should remain 8
 }
 
 func TestTrieMetricsCollector_GetMaxDepth(t *testing.T) {
@@ -34,10 +48,10 @@ func TestTrieMetricsCollector_GetMaxDepth(t *testing.T) {
 	collector := NewTrieMetricsCollector()
 	assert.Equal(t, uint32(0), collector.GetMaxDepth())
 
-	collector.SetMaxDepth(10)
+	collector.SetDepth(10)
 	assert.Equal(t, uint32(10), collector.GetMaxDepth())
 
-	collector.SetMaxDepth(5)
+	collector.SetDepth(5)
 	assert.Equal(t, uint32(10), collector.GetMaxDepth()) // Should not change since 5 < 10
 }
 
