@@ -234,7 +234,7 @@ func (t *trigger) Trigger(epoch uint32, withEarlyEndOfEpoch bool) error {
 		return fmt.Errorf("%w, minimum epoch accepted is %d", update.ErrInvalidEpoch, minimumEpochForHarfork)
 	}
 
-	shouldTrigger, err := t.computeAndSetTrigger(epoch, nil, withEarlyEndOfEpoch, round) //original payload is nil because this node is the originator
+	shouldTrigger, err := t.computeAndSetTrigger(epoch, nil, withEarlyEndOfEpoch, round) // original payload is nil because this node is the originator
 	if err != nil {
 		return err
 	}
@@ -256,7 +256,7 @@ func (t *trigger) computeHardforkRound(withEarlyEndOfEpoch bool) uint64 {
 
 	currentRound := t.roundHandler.Index()
 	if currentRound < 0 {
-		//do not overflow on uint64 when current round is negative
+		// do not overflow on uint64 when current round is negative
 		return deltaRoundsForForcedEpoch
 	}
 
@@ -397,13 +397,14 @@ func (t *trigger) TriggerReceived(originalPayload []byte, data []byte, pkBytes [
 		return true, fmt.Errorf("%w message timestamp out of grace period message", update.ErrIncorrectHardforkMessage)
 	}
 
-	epoch, err := t.getIntFromArgument(string(arguments[1]))
+	epochUint64, err := strconv.ParseUint(string(arguments[1]), 10, 32)
 	if err != nil {
 		return true, err
 	}
-	if epoch < minimumEpochForHarfork {
+	if epochUint64 < minimumEpochForHarfork {
 		return true, fmt.Errorf("%w, minimum epoch accepted is %d", update.ErrInvalidEpoch, minimumEpochForHarfork)
 	}
+	epoch := uint32(epochUint64)
 
 	earlyEndOfEpochRound := disabledRoundForForceEpochStart
 	withEarlyEndOfEpoch := false
@@ -415,12 +416,12 @@ func (t *trigger) TriggerReceived(originalPayload []byte, data []byte, pkBytes [
 		}
 	}
 
-	currentEpoch := int64(t.epochProvider.MetaEpoch())
+	currentEpoch := t.epochProvider.MetaEpoch()
 	if currentEpoch-epoch > epochGracePeriod {
 		return true, fmt.Errorf("%w epoch out of grace period", update.ErrIncorrectHardforkMessage)
 	}
 
-	shouldTrigger, err := t.computeAndSetTrigger(uint32(epoch), originalPayload, withEarlyEndOfEpoch, earlyEndOfEpochRound)
+	shouldTrigger, err := t.computeAndSetTrigger(epoch, originalPayload, withEarlyEndOfEpoch, earlyEndOfEpochRound)
 	if err != nil {
 		log.Debug("received trigger", "status", err)
 		return true, nil
