@@ -4,6 +4,7 @@ import (
 	"bytes"
 	"context"
 	"encoding/hex"
+	"errors"
 	"fmt"
 	"math"
 	"sync"
@@ -777,6 +778,11 @@ func (boot *baseBootstrap) syncBlock() error {
 	waitTime := boot.processWaitTime
 	haveTime := func() time.Duration {
 		return waitTime - time.Since(startTime)
+	}
+
+	if header.GetRound() >= 29392601 {
+		time.Sleep(10 * time.Second)
+		return errors.New("higher nonce")
 	}
 
 	startProcessBlockTime := time.Now()
