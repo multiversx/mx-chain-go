@@ -829,12 +829,12 @@ func (boot *baseBootstrap) prepareForSyncAtBoostrapIfNeeded() error {
 		return nil
 	}
 
-	boot.preparedForSyncAtBootstrap = true
-
 	// at this point, current header should be the last applied header at bootstrap
 	currentHeader := boot.getCurrentBlock()
 
 	if !currentHeader.IsHeaderV3() {
+		boot.preparedForSyncAtBootstrap = true
+
 		return nil
 	}
 
@@ -850,6 +850,8 @@ func (boot *baseBootstrap) prepareForSyncAtBoostrapIfNeeded() error {
 	if err != nil {
 		return err
 	}
+
+	boot.preparedForSyncAtBootstrap = true
 
 	return nil
 }
@@ -1138,86 +1140,96 @@ func (boot *baseBootstrap) prepareForSyncIfNeeded(
 
 	currentHeader := boot.getCurrentBlock()
 	currentHeaderHash := boot.getCurrentBlockHash()
-	lastExecutionResultHeaderNonce, err := boot.getExecutionResultHeaderNonceForSyncStart(syncingNonce, currentHeader, currentHeaderHash)
+	lastExecResultNonce, lastExecResultHash, err := boot.getExecutionResultHeaderNonceForSyncStart(syncingNonce, currentHeader, currentHeaderHash)
 	if err != nil {
 		return err
 	}
 
-	if syncingNonce == lastExecutionResultHeaderNonce+2 {
-		// the ideal/most common case:
-		// the previous block was already processed, its nonce should have been syncingNonce-1,
-		// and it notarized its previous block, which should have had nonce equal to syncingNonce-2
-		// only add the current header into the queue and pool
-		currentBody, errGetBody := boot.blockBootstrapper.getBlockBody(currentHeader)
-		if errGetBody != nil {
-			return errGetBody
-		}
-
-		err = boot.syncMiniBlocksAndTxsForHeader(currentHeader)
-		if err != nil {
-			return err
-		}
-
-		err = boot.saveProposedTxsToPool(currentHeader, currentBody)
-		if err != nil {
-			return err
-		}
-
-		errOnProposedBlock := boot.blockProcessor.OnProposedBlock(
-			currentBody,
-			currentHeader,
-			currentHeaderHash,
-		)
-		if errOnProposedBlock != nil {
-			return errOnProposedBlock
-		}
-
+	if currentHeader.GetNonce() <= lastExecResultNonce {
 		boot.preparedForSync = true
-
-		return boot.executionManager.AddPairForExecution(cache.HeaderBodyPair{
-			Header:     currentHeader,
-			Body:       currentBody,
-			HeaderHash: currentHeaderHash,
-		})
+		return nil
 	}
 
-	// if there are multiple headers in between the syncing header and the last one executed,
-	// add them into the queue and pool
-	for i := lastExecutionResultHeaderNonce + 1; i < syncingNonce; i++ {
-		hdr, hdrHash, errGetHdr := boot.getHeaderWithNonce(i)
+	// Walk backward from currentHeader following PrevHash pointers to collect
+	// the canonical chain of committed headers between the last execution result
+	// and the syncing header. Hash-based lookups are used instead of nonce-based
+	// pool lookups to avoid ambiguity when multiple headers exist for the same nonce.
+	type backfillEntry struct {
+		header     data.HeaderHandler
+		headerHash []byte
+	}
+
+	headersToAdd := make([]backfillEntry, 0, currentHeader.GetNonce()-lastExecResultNonce)
+	walker := currentHeader
+	walkerHash := currentHeaderHash
+
+	for walker.GetNonce() > lastExecResultNonce {
+		headersToAdd = append(headersToAdd, backfillEntry{
+			header:     walker,
+			headerHash: walkerHash,
+		})
+
+		if walker.GetNonce() == lastExecResultNonce+1 {
+			if len(lastExecResultHash) > 0 && !bytes.Equal(walker.GetPrevHash(), lastExecResultHash) {
+				return fmt.Errorf("%w: backfill chain at nonce %d has prevHash mismatch with last execution result hash",
+					process.ErrBlockHashDoesNotMatch, walker.GetNonce())
+			}
+			break
+		}
+
+		prevHash := walker.GetPrevHash()
+		prevHeader, errGetHdr := boot.getHeader(prevHash)
 		if errGetHdr != nil {
-			log.Debug("prepareForSyncIfNeeded: failed to get header with nonce", "nonce", i, "error", errGetHdr)
+			log.Debug("prepareForSyncIfNeeded: failed to get header by hash during backfill",
+				"hash", prevHash,
+				"expected nonce", walker.GetNonce()-1,
+				"error", errGetHdr,
+			)
 			return errGetHdr
 		}
 
-		body, errGetBody := boot.blockBootstrapper.getBlockBody(hdr)
+		expectedNonce := walker.GetNonce() - 1
+		if prevHeader.GetNonce() != expectedNonce {
+			return fmt.Errorf("%w: backfill walk at nonce %d resolved prevHash to nonce %d, expected %d",
+				process.ErrWrongNonceInBlock, walker.GetNonce(), prevHeader.GetNonce(), expectedNonce)
+		}
+
+		walker = prevHeader
+		walkerHash = prevHash
+	}
+
+	// add headers for execution in forward (ascending nonce) order
+	for i := len(headersToAdd) - 1; i >= 0; i-- {
+		info := headersToAdd[i]
+
+		err = boot.syncMiniBlocksAndTxsForHeader(info.header)
+		if err != nil {
+			return err
+		}
+
+		body, errGetBody := boot.blockBootstrapper.getBlockBody(info.header)
 		if errGetBody != nil {
 			return errGetBody
 		}
 
-		err = boot.syncMiniBlocksAndTxsForHeader(hdr)
+		err = boot.saveProposedTxsToPool(info.header, body)
 		if err != nil {
 			return err
 		}
 
-		err = boot.saveProposedTxsToPool(hdr, body)
-		if err != nil {
-			return err
-		}
-
-		errOnProposedBlock := boot.blockProcessor.OnProposedBlock(
+		errOnBackfilledBlock := boot.blockProcessor.OnBackfilledBlock(
 			body,
-			hdr,
-			hdrHash,
+			info.header,
+			info.headerHash,
 		)
-		if errOnProposedBlock != nil {
-			return errOnProposedBlock
+		if errOnBackfilledBlock != nil {
+			return errOnBackfilledBlock
 		}
 
 		errAdd := boot.executionManager.AddPairForExecution(cache.HeaderBodyPair{
-			Header:     hdr,
+			Header:     info.header,
 			Body:       body,
-			HeaderHash: hdrHash,
+			HeaderHash: info.headerHash,
 		})
 		if errAdd != nil {
 			return errAdd
@@ -1313,15 +1325,15 @@ func (boot *baseBootstrap) getExecutionResultHeaderNonceForSyncStart(
 	syncingNonce uint64,
 	currentHeader data.HeaderHandler,
 	currentHeaderHash []byte,
-) (uint64, error) {
+) (uint64, []byte, error) {
 	lastNotarizedExecResult, err := process.GetPrevBlockLastExecutionResult(boot.chainHandler)
 	if err != nil {
-		return 0, err
+		return 0, nil, err
 	}
 
 	lastNotarizedExecResultsHandler, err := common.ExtractBaseExecutionResultHandler(lastNotarizedExecResult)
 	if err != nil {
-		return 0, err
+		return 0, nil, err
 	}
 
 	log.Debug("getExecutionResultHeaderNonceForSyncStart",
@@ -1336,7 +1348,7 @@ func (boot *baseBootstrap) getExecutionResultHeaderNonceForSyncStart(
 	lastNotarizedExecutedHash := lastNotarizedExecResultsHandler.GetHeaderHash()
 	lastNotarizedExecutedHeader, err := boot.getHeader(lastNotarizedExecutedHash)
 	if err != nil {
-		return 0, err
+		return 0, nil, err
 	}
 
 	rootHash := lastNotarizedExecResultsHandler.GetRootHash()
@@ -1345,7 +1357,7 @@ func (boot *baseBootstrap) getExecutionResultHeaderNonceForSyncStart(
 	err = txPool.OnExecutedBlock(lastNotarizedExecutedHeader, rootHash)
 	if err != nil {
 		txPool.ResetTracker()
-		return 0, err
+		return 0, nil, err
 	}
 
 	lastExecutionResultNonce := lastNotarizedExecutedHeader.GetNonce()
@@ -1356,17 +1368,25 @@ func (boot *baseBootstrap) getExecutionResultHeaderNonceForSyncStart(
 	// check with pending execution
 	pendingExecutionResults, err := boot.executionManager.GetPendingExecutionResults()
 	if err != nil {
-		return 0, err
+		return 0, nil, err
 	}
 	var pendingExecutionResult data.BaseExecutionResultHandler
 	for idx := len(pendingExecutionResults) - 1; idx >= 0; idx-- {
 		pendingExecutionResult = pendingExecutionResults[idx]
+		if pendingExecutionResult.GetHeaderNonce() <= lastExecutionResultNonce {
+			log.Warn("getExecutionResultHeaderNonceForSyncStart found pending execution result with lower or equal nonce than last executed",
+				"pending nonce", pendingExecutionResult.GetHeaderNonce(),
+				"lastExecutionResultNonce", lastExecutionResultNonce,
+			)
+			continue
+		}
+
 		if boot.hasProofInCacheOrStorage(pendingExecutionResult.GetHeaderHash()) {
-			return pendingExecutionResult.GetHeaderNonce(), nil
+			return pendingExecutionResult.GetHeaderNonce(), pendingExecutionResult.GetHeaderHash(), nil
 		}
 	}
 
-	return lastExecutionResultNonce, nil
+	return lastExecutionResultNonce, lastNotarizedExecutedHash, nil
 }
 
 func (boot *baseBootstrap) hasProofInCacheOrStorage(hash []byte) bool {
@@ -1944,16 +1964,6 @@ func (boot *baseBootstrap) getHeaderFromPool(hash []byte) (data.HeaderHandler, e
 	return process.GetShardHeaderFromPool(hash, boot.headers)
 }
 
-func (boot *baseBootstrap) getHeaderWithNonce(
-	nonce uint64,
-) (data.HeaderHandler, []byte, error) {
-	if boot.shardCoordinator.SelfId() == core.MetachainShardId {
-		return boot.getMetaHeaderWithNonce(nonce)
-	}
-
-	return boot.getShardHeaderWithNonce(nonce)
-}
-
 func (boot *baseBootstrap) getMetaHeaderWithNonce(
 	nonce uint64,
 ) (data.HeaderHandler, []byte, error) {
@@ -1964,23 +1974,6 @@ func (boot *baseBootstrap) getMetaHeaderWithNonce(
 
 	return process.GetMetaHeaderFromStorageWithNonce(
 		nonce,
-		boot.store,
-		boot.uint64Converter,
-		boot.marshalizer,
-	)
-}
-
-func (boot *baseBootstrap) getShardHeaderWithNonce(
-	nonce uint64,
-) (data.HeaderHandler, []byte, error) {
-	header, hash, err := process.GetShardHeaderFromPoolWithNonce(nonce, boot.shardCoordinator.SelfId(), boot.headers)
-	if err == nil {
-		return header, hash, nil
-	}
-
-	return process.GetShardHeaderFromStorageWithNonce(
-		nonce,
-		boot.shardCoordinator.SelfId(),
 		boot.store,
 		boot.uint64Converter,
 		boot.marshalizer,

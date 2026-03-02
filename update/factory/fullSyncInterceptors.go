@@ -377,6 +377,7 @@ func (ficf *fullSyncInterceptorsContainerFactory) createOneShardHeaderIntercepto
 			WhiteListRequest:        ficf.whiteListHandler,
 			CurrentPeerId:           ficf.mainMessenger.ID(),
 			InterceptedDataVerifier: interceptedDataVerifier,
+			ManagedPeersHolder:      ficf.argInterceptorFactory.CryptoComponents.ManagedPeersHolder(),
 		},
 	)
 	if err != nil {
@@ -562,8 +563,9 @@ func (ficf *fullSyncInterceptorsContainerFactory) createOneTxInterceptor(topic s
 	}
 
 	argProcessor := &processor.ArgTxInterceptorProcessor{
-		ShardedDataCache: ficf.dataPool.Transactions(),
-		TxValidator:      txValidator,
+		ShardedDataCache:            ficf.dataPool.Transactions(),
+		TxValidator:                 txValidator,
+		DirectSentTransactionsCache: ficf.dataPool.DirectSentTransactions(),
 	}
 	txProcessor, err := processor.NewTxInterceptorProcessor(argProcessor)
 	if err != nil {
@@ -593,6 +595,7 @@ func (ficf *fullSyncInterceptorsContainerFactory) createOneTxInterceptor(topic s
 			CurrentPeerId:           ficf.mainMessenger.ID(),
 			PreferredPeersHolder:    ficf.preferredPeersHolder,
 			InterceptedDataVerifier: interceptedDataVerifier,
+			ManagedPeersHolder:      ficf.argInterceptorFactory.CryptoComponents.ManagedPeersHolder(),
 		},
 	)
 	if err != nil {
@@ -611,8 +614,9 @@ func (ficf *fullSyncInterceptorsContainerFactory) createOneTxInterceptor(topic s
 
 func (ficf *fullSyncInterceptorsContainerFactory) createOneUnsignedTxInterceptor(topic string, isCrossShard bool) (process.Interceptor, error) {
 	argProcessor := &processor.ArgTxInterceptorProcessor{
-		ShardedDataCache: ficf.dataPool.UnsignedTransactions(),
-		TxValidator:      dataValidators.NewDisabledTxValidator(),
+		ShardedDataCache:            ficf.dataPool.UnsignedTransactions(),
+		TxValidator:                 dataValidators.NewDisabledTxValidator(),
+		DirectSentTransactionsCache: ficf.dataPool.DirectSentTransactions(),
 	}
 	txProcessor, err := processor.NewTxInterceptorProcessor(argProcessor)
 	if err != nil {
@@ -642,6 +646,7 @@ func (ficf *fullSyncInterceptorsContainerFactory) createOneUnsignedTxInterceptor
 			CurrentPeerId:           ficf.mainMessenger.ID(),
 			PreferredPeersHolder:    ficf.preferredPeersHolder,
 			InterceptedDataVerifier: interceptedDataVerifier,
+			ManagedPeersHolder:      ficf.argInterceptorFactory.CryptoComponents.ManagedPeersHolder(),
 		},
 	)
 	if err != nil {
@@ -660,8 +665,9 @@ func (ficf *fullSyncInterceptorsContainerFactory) createOneUnsignedTxInterceptor
 
 func (ficf *fullSyncInterceptorsContainerFactory) createOneRewardTxInterceptor(topic string, isCrossShard bool) (process.Interceptor, error) {
 	argProcessor := &processor.ArgTxInterceptorProcessor{
-		ShardedDataCache: ficf.dataPool.RewardTransactions(),
-		TxValidator:      dataValidators.NewDisabledTxValidator(),
+		ShardedDataCache:            ficf.dataPool.RewardTransactions(),
+		TxValidator:                 dataValidators.NewDisabledTxValidator(),
+		DirectSentTransactionsCache: ficf.dataPool.DirectSentTransactions(),
 	}
 	txProcessor, err := processor.NewTxInterceptorProcessor(argProcessor)
 	if err != nil {
@@ -691,6 +697,7 @@ func (ficf *fullSyncInterceptorsContainerFactory) createOneRewardTxInterceptor(t
 			CurrentPeerId:           ficf.mainMessenger.ID(),
 			PreferredPeersHolder:    ficf.preferredPeersHolder,
 			InterceptedDataVerifier: interceptedDataVerifier,
+			ManagedPeersHolder:      ficf.argInterceptorFactory.CryptoComponents.ManagedPeersHolder(),
 		},
 	)
 	if err != nil {
@@ -794,6 +801,7 @@ func (ficf *fullSyncInterceptorsContainerFactory) createOneMiniBlocksInterceptor
 			CurrentPeerId:           ficf.mainMessenger.ID(),
 			PreferredPeersHolder:    ficf.preferredPeersHolder,
 			InterceptedDataVerifier: interceptedDataVerifier,
+			ManagedPeersHolder:      ficf.argInterceptorFactory.CryptoComponents.ManagedPeersHolder(),
 		},
 	)
 	if err != nil {
@@ -845,6 +853,7 @@ func (ficf *fullSyncInterceptorsContainerFactory) generateMetachainHeaderInterce
 			CurrentPeerId:           ficf.mainMessenger.ID(),
 			PreferredPeersHolder:    ficf.preferredPeersHolder,
 			InterceptedDataVerifier: interceptedDataVerifier,
+			ManagedPeersHolder:      ficf.argInterceptorFactory.CryptoComponents.ManagedPeersHolder(),
 		},
 	)
 	if err != nil {
@@ -888,6 +897,7 @@ func (ficf *fullSyncInterceptorsContainerFactory) createOneTrieNodesInterceptor(
 			CurrentPeerId:           ficf.mainMessenger.ID(),
 			PreferredPeersHolder:    ficf.preferredPeersHolder,
 			InterceptedDataVerifier: interceptedDataVerifier,
+			ManagedPeersHolder:      ficf.argInterceptorFactory.CryptoComponents.ManagedPeersHolder(),
 		},
 	)
 	if err != nil {

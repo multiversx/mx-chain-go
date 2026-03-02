@@ -2,6 +2,7 @@ package mock
 
 import (
 	"sync"
+	"sync/atomic"
 	"time"
 
 	"github.com/multiversx/mx-chain-core-go/core"
@@ -64,6 +65,8 @@ type CoreComponentsMock struct {
 	ProcessConfigsHandlerField         common.ProcessConfigsHandler
 	ProcessConfigsHandlerCalled        func() common.ProcessConfigsHandler
 	CommonConfigsHandlerField          common.CommonConfigsHandler
+	AntifloodConfigsHandlerField       common.AntifloodConfigsHandler
+	ClosingNodeStartedField            *atomic.Bool
 }
 
 // InternalMarshalizer -
@@ -290,6 +293,20 @@ func (ccm *CoreComponentsMock) ProcessConfigsHandler() common.ProcessConfigsHand
 // CommonConfigsHandler -
 func (ccm *CoreComponentsMock) CommonConfigsHandler() common.CommonConfigsHandler {
 	return ccm.CommonConfigsHandlerField
+}
+
+// AntifloodConfigsHandler -
+func (ccm *CoreComponentsMock) AntifloodConfigsHandler() common.AntifloodConfigsHandler {
+	return ccm.AntifloodConfigsHandlerField
+}
+
+// ClosingNodeStarted -
+func (ccm *CoreComponentsMock) ClosingNodeStarted() *atomic.Bool {
+	if ccm.ClosingNodeStartedField == nil {
+		ccm.ClosingNodeStartedField = &atomic.Bool{}
+	}
+
+	return ccm.ClosingNodeStartedField
 }
 
 // IsInterfaceNil -

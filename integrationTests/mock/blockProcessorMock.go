@@ -15,6 +15,8 @@ type BlockProcessorMock struct {
 	Marshalizer                      marshal.Marshalizer
 	ProcessBlockCalled               func(header data.HeaderHandler, body data.BodyHandler, haveTime func() time.Duration) error
 	ProcessBlockProposalCalled       func(header data.HeaderHandler, headerHash []byte, body data.BodyHandler) (data.BaseExecutionResultHandler, error)
+	CommitBlockProposalStateCalled   func(headerHandler data.HeaderHandler) error
+	RevertBlockProposalStateCalled   func()
 	ProcessScheduledBlockCalled      func(header data.HeaderHandler, body data.BodyHandler, haveTime func() time.Duration) error
 	CommitBlockCalled                func(header data.HeaderHandler, body data.BodyHandler) error
 	RevertCurrentBlockCalled         func()
@@ -39,7 +41,8 @@ type BlockProcessorMock struct {
 		proposedHeader data.HeaderHandler,
 		proposedHash []byte,
 	) error
-	OnExecutedBlockCalled func(header data.HeaderHandler, rootHash []byte) error
+	OnExecutedBlockCalled                           func(header data.HeaderHandler, rootHash []byte) error
+	ProposedDirectSentTransactionsToBroadcastCalled func(proposedBody data.BodyHandler) map[string][][]byte
 }
 
 // ProcessBlock mocks processing a block
@@ -58,6 +61,22 @@ func (bpm *BlockProcessorMock) ProcessBlockProposal(header data.HeaderHandler, h
 	}
 
 	return nil, nil
+}
+
+// CommitBlockProposalState -
+func (bpm *BlockProcessorMock) CommitBlockProposalState(headerHandler data.HeaderHandler) error {
+	if bpm.CommitBlockProposalStateCalled != nil {
+		return bpm.CommitBlockProposalStateCalled(headerHandler)
+	}
+
+	return nil
+}
+
+// RevertBlockProposalState -
+func (bpm *BlockProcessorMock) RevertBlockProposalState() {
+	if bpm.RevertBlockProposalStateCalled != nil {
+		bpm.RevertBlockProposalStateCalled()
+	}
 }
 
 // ProcessScheduledBlock mocks processing a scheduled block
@@ -236,10 +255,27 @@ func (bpm *BlockProcessorMock) OnProposedBlock(
 	return nil
 }
 
+// OnBackfilledBlock -
+func (bpm *BlockProcessorMock) OnBackfilledBlock(
+	_ data.BodyHandler,
+	_ data.HeaderHandler,
+	_ []byte,
+) error {
+	return nil
+}
+
 // OnExecutedBlock -
 func (bpm *BlockProcessorMock) OnExecutedBlock(header data.HeaderHandler, rootHash []byte) error {
 	if bpm.OnExecutedBlockCalled != nil {
 		return bpm.OnExecutedBlockCalled(header, rootHash)
+	}
+	return nil
+}
+
+// ProposedDirectSentTransactionsToBroadcast -
+func (bpm *BlockProcessorMock) ProposedDirectSentTransactionsToBroadcast(proposedBody data.BodyHandler) map[string][][]byte {
+	if bpm.ProposedDirectSentTransactionsToBroadcastCalled != nil {
+		return bpm.ProposedDirectSentTransactionsToBroadcastCalled(proposedBody)
 	}
 	return nil
 }

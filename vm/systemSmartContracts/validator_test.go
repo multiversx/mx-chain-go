@@ -44,6 +44,7 @@ func createMockArgumentsForValidatorSCWithSystemScAddresses(
 			MinStepValue:                         "10",
 			MinStakeValue:                        "1",
 			UnBondPeriod:                         1,
+			UnBondPeriodSupernova:                2,
 			UnBondPeriodInEpochs:                 1,
 			NumRoundsWithoutBleed:                1,
 			MaximumPercentageToBleed:             1,
@@ -2656,7 +2657,7 @@ func TestValidatorStakingSC_ExecuteUnBondBeforePeriodEnds(t *testing.T) {
 				},
 			},
 			BlsPubKeys:      [][]byte{blsPubKey},
-			TotalStakeValue: big.NewInt(1000), //in v1 this was still set to the unstaked value
+			TotalStakeValue: big.NewInt(1000), // in v1 this was still set to the unstaked value
 			LockedStake:     big.NewInt(0),
 			TotalUnstaked:   big.NewInt(1000),
 		},
@@ -2681,7 +2682,7 @@ func TestValidatorStakingSC_ExecuteUnBondBeforePeriodEnds(t *testing.T) {
 	assert.Equal(t, vmcommon.Ok, retCode)
 	assert.True(t, strings.Contains(eei.returnMessage, "unBond is not possible"))
 	assert.True(t, strings.Contains(eei.returnMessage, "unBond period did not pass"))
-	assert.True(t, len(eei.GetStorage(caller)) != 0) //should have not removed the account data
+	assert.True(t, len(eei.GetStorage(caller)) != 0) // should have not removed the account data
 }
 
 func TestValidatorSC_ExecuteUnBondBeforePeriodEndsForV2(t *testing.T) {
@@ -2741,7 +2742,7 @@ func TestValidatorSC_ExecuteUnBondBeforePeriodEndsForV2(t *testing.T) {
 	assert.Equal(t, vmcommon.Ok, retCode)
 	assert.True(t, strings.Contains(eei.returnMessage, "unBond is not possible"))
 	assert.True(t, strings.Contains(eei.returnMessage, "unBond period did not pass"))
-	assert.True(t, len(eei.GetStorage(caller)) != 0) //should have not removed the account data
+	assert.True(t, len(eei.GetStorage(caller)) != 0) // should have not removed the account data
 }
 
 func TestValidatorStakingSC_ExecuteUnBond(t *testing.T) {
@@ -3018,14 +3019,14 @@ func TestValidatorStakingSC_Claim(t *testing.T) {
 
 	sc, _ := NewValidatorSmartContract(args)
 
-	//do claim should ret error
+	// do claim should ret error
 	doClaim(t, sc, stakerAddress, receiverAddr, vmcommon.UserError)
 
-	//do stake
+	// do stake
 	nodePrice, _ := big.NewInt(0).SetString(args.StakingSCConfig.GenesisNodePrice, 10)
 	stake(t, sc, nodePrice, receiverAddr, stakerAddress, stakerPubKey, nodesToRunBytes)
 
-	//do claim all stake is locked should return Ok
+	// do claim all stake is locked should return Ok
 	doClaim(t, sc, stakerAddress, receiverAddr, vmcommon.Ok)
 
 	// do stake to add more money but not lock the stake
@@ -3353,7 +3354,7 @@ func TestValidatorStakingSC_ChangeRewardAddress(t *testing.T) {
 
 	sc, _ := NewValidatorSmartContract(args)
 
-	//change reward address should error nil arguments
+	// change reward address should error nil arguments
 	changeRewardAddress(t, sc, stakerAddress, nil, vmcommon.UserError)
 	// change reward address should error wrong address
 	eei.returnMessage = ""
@@ -3362,7 +3363,7 @@ func TestValidatorStakingSC_ChangeRewardAddress(t *testing.T) {
 	// change reward address should error because address is not belongs to any validator
 	newRewardAddr := []byte("newAddr11")
 	changeRewardAddress(t, sc, stakerAddress, newRewardAddr, vmcommon.UserError)
-	//do stake
+	// do stake
 	nodePrice, _ := big.NewInt(0).SetString(args.StakingSCConfig.GenesisNodePrice, 10)
 	stake(t, sc, nodePrice, receiverAddr, stakerAddress, stakerPubKey, nodesToRunBytes)
 
@@ -4724,7 +4725,7 @@ func TestValidatorStakingSC_UnStakeUnBondPaused(t *testing.T) {
 
 	sc, _ := NewValidatorSmartContract(args)
 
-	//do stake
+	// do stake
 	nodePrice, _ := big.NewInt(0).SetString(args.StakingSCConfig.GenesisNodePrice, 10)
 	stake(t, sc, nodePrice, receiverAddr, stakerAddress, stakerPubKey, nodesToRunBytes)
 

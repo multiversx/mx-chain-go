@@ -3,6 +3,7 @@ package configs_test
 import (
 	"strings"
 	"testing"
+	"time"
 
 	"github.com/multiversx/mx-chain-go/common/configs"
 	"github.com/multiversx/mx-chain-go/config"
@@ -22,6 +23,7 @@ func getConfigsByRound() []config.ProcessConfigByRound {
 			NumFloodingRoundsFastReacting:          3,
 			NumFloodingRoundsOutOfSpecs:            4,
 			MaxConsecutiveRoundsOfRatingDecrease:   600,
+			MaxBlockProcessingTimeMs:               1000,
 		},
 		{
 			EnableRound:                            1,
@@ -32,6 +34,7 @@ func getConfigsByRound() []config.ProcessConfigByRound {
 			NumFloodingRoundsFastReacting:          30,
 			NumFloodingRoundsOutOfSpecs:            40,
 			MaxConsecutiveRoundsOfRatingDecrease:   6000,
+			MaxBlockProcessingTimeMs:               1000,
 		},
 	}
 }
@@ -109,51 +112,6 @@ func TestNewProcessConfigsByEpoch(t *testing.T) {
 		require.True(t, strings.Contains(err.Error(), "MaxRoundsToKeepUnprocessedMiniBlocks"))
 	})
 
-	t.Run("should return error for invalid num flooding rounds fast reacting value", func(t *testing.T) {
-		t.Parallel()
-
-		confByEpoch := []config.ProcessConfigByEpoch{
-			{EnableEpoch: 0, MaxMetaNoncesBehind: 15},
-		}
-		confByRound := getConfigsByRound()
-		confByRound[0].NumFloodingRoundsFastReacting = 0
-
-		pce, err := configs.NewProcessConfigsHandler(confByEpoch, confByRound, &epochNotifier.RoundNotifierStub{})
-		require.Nil(t, pce)
-		require.ErrorIs(t, err, process.ErrInvalidValue)
-		require.True(t, strings.Contains(err.Error(), "NumFloodingRoundsFastReacting"))
-	})
-
-	t.Run("should return error for invalid num flooding rounds slow reacting value", func(t *testing.T) {
-		t.Parallel()
-
-		confByEpoch := []config.ProcessConfigByEpoch{
-			{EnableEpoch: 0, MaxMetaNoncesBehind: 15},
-		}
-		confByRound := getConfigsByRound()
-		confByRound[0].NumFloodingRoundsSlowReacting = 0
-
-		pce, err := configs.NewProcessConfigsHandler(confByEpoch, confByRound, &epochNotifier.RoundNotifierStub{})
-		require.Nil(t, pce)
-		require.ErrorIs(t, err, process.ErrInvalidValue)
-		require.True(t, strings.Contains(err.Error(), "NumFloodingRoundsSlowReacting"))
-	})
-
-	t.Run("should return error for invalid num flooding rounds out of specs value", func(t *testing.T) {
-		t.Parallel()
-
-		confByEpoch := []config.ProcessConfigByEpoch{
-			{EnableEpoch: 0, MaxMetaNoncesBehind: 15},
-		}
-		confByRound := getConfigsByRound()
-		confByRound[0].NumFloodingRoundsOutOfSpecs = 0
-
-		pce, err := configs.NewProcessConfigsHandler(confByEpoch, confByRound, &epochNotifier.RoundNotifierStub{})
-		require.Nil(t, pce)
-		require.ErrorIs(t, err, process.ErrInvalidValue)
-		require.True(t, strings.Contains(err.Error(), "NumFloodingRoundsOutOfSpecs"))
-	})
-
 	t.Run("should return error for invalid max consecutive rounds of rating decrease value", func(t *testing.T) {
 		t.Parallel()
 
@@ -216,6 +174,7 @@ func TestProcessConfigsByEpoch_Getters(t *testing.T) {
 			NumFloodingRoundsFastReacting:          3,
 			NumFloodingRoundsOutOfSpecs:            4,
 			MaxConsecutiveRoundsOfRatingDecrease:   600,
+			MaxBlockProcessingTimeMs:               1000,
 		},
 		{EnableRound: 1,
 			MaxRoundsWithoutNewBlockReceived:       11,
@@ -227,6 +186,7 @@ func TestProcessConfigsByEpoch_Getters(t *testing.T) {
 			NumFloodingRoundsFastReacting:          30,
 			NumFloodingRoundsOutOfSpecs:            40,
 			MaxConsecutiveRoundsOfRatingDecrease:   6000,
+			MaxBlockProcessingTimeMs:               2000,
 		},
 	}
 
@@ -312,6 +272,18 @@ func TestProcessConfigsByEpoch_Getters(t *testing.T) {
 
 		res = pce.GetMaxRoundsToKeepUnprocessedTransactions(1)
 		require.Equal(t, uint64(500), res)
+	})
+
+	t.Run("get max block processing time", func(t *testing.T) {
+		t.Parallel()
+
+		pce, _ := configs.NewProcessConfigsHandler(conf, confByRound, &epochNotifier.RoundNotifierStub{})
+
+		res := pce.GetMaxBlockProcessingTime(0)
+		require.Equal(t, time.Duration(1000)*time.Millisecond, res)
+
+		res = pce.GetMaxBlockProcessingTime(1)
+		require.Equal(t, time.Duration(2000)*time.Millisecond, res)
 	})
 
 	t.Run("get max rounds to keep unprocessed mini blocks", func(t *testing.T) {

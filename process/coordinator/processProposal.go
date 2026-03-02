@@ -15,9 +15,9 @@ import (
 func (tc *transactionCoordinator) CreateMbsCrossShardDstMe(
 	hdr data.HeaderHandler,
 	processedMiniBlocksInfo map[string]*processedMb.ProcessedMiniBlockInfo,
-) (addedMiniBlocksAndHashes []block.MiniblockAndHash, pendingMiniBlocksAndHashes []block.MiniblockAndHash, numTransactions uint32, allMiniBlocksAdded bool, err error) {
+) (addedMiniBlocksAndHashes []block.MiniblockAndHash, pendingMiniBlocksAndHashes []block.MiniblockAndHash, numTransactions uint32, allMiniBlocksAdded bool, hasMissingData bool, err error) {
 	if check.IfNil(hdr) {
-		return nil, nil, 0, false, process.ErrNilHeaderHandler
+		return nil, nil, 0, false, false, process.ErrNilHeaderHandler
 	}
 
 	numMiniBlocksAlreadyProcessed := 0
@@ -37,7 +37,8 @@ func (tc *transactionCoordinator) CreateMbsCrossShardDstMe(
 	txsForMbs := make(map[string][]data.TransactionHandler, 0)
 	mbsSlice := make([]data.MiniBlockHeaderHandler, 0)
 	for _, miniBlockInfo := range finalCrossMiniBlockInfos {
-		if tc.blockSizeComputation.IsMaxBlockSizeReached(0, 0) {
+		isAsyncExecutionEnabled := hdr.IsHeaderV3()
+		if !isAsyncExecutionEnabled && tc.blockSizeComputation.IsMaxBlockSizeReached(0, 0) {
 			log.Debug("transactionCoordinator.CreateMbsCrossShardDstMe",
 				"stop creating", "max block size has been reached")
 			break
@@ -87,7 +88,7 @@ func (tc *transactionCoordinator) CreateMbsCrossShardDstMe(
 
 		preproc := tc.preProcProposal.getPreProcessor(miniBlock.Type)
 		if check.IfNil(preproc) {
-			return nil, nil, 0, false, fmt.Errorf("%w unknown block type %d", process.ErrNilPreProcessor, miniBlock.Type)
+			return nil, nil, 0, false, false, fmt.Errorf("%w unknown block type %d", process.ErrNilPreProcessor, miniBlock.Type)
 		}
 
 		existingTxsForMb, missingTxs := preproc.GetTransactionsAndRequestMissingForMiniBlock(miniBlock)
@@ -128,7 +129,7 @@ func (tc *transactionCoordinator) CreateMbsCrossShardDstMe(
 
 	lastMBIndex, _, err := tc.gasComputation.AddIncomingMiniBlocks(mbsSlice, txsForMbs)
 	if err != nil {
-		return nil, nil, 0, false, err
+		return nil, nil, 0, false, false, err
 	}
 
 	// if not all mini blocks were included, remove them from the miniBlocksAndHashes slice
@@ -145,32 +146,66 @@ func (tc *transactionCoordinator) CreateMbsCrossShardDstMe(
 	}
 
 	allMiniBlocksAdded = len(miniBlocksAndHashes)+numMiniBlocksAlreadyProcessed == len(finalCrossMiniBlockInfos)
+	hasMissingData = !allMiniBlocksAdded && len(shouldSkipShard) > 0
 
-	return miniBlocksAndHashes, pendingMiniBlocksAndHashes, numTransactions, allMiniBlocksAdded, nil
+	return miniBlocksAndHashes, pendingMiniBlocksAndHashes, numTransactions, allMiniBlocksAdded, hasMissingData, nil
+}
+
+func (tc *transactionCoordinator) getAOTSelection(nonce uint64) ([][]byte, []data.TransactionHandler) {
+	if check.IfNil(tc.aotSelector) {
+		return [][]byte{}, []data.TransactionHandler{}
+	}
+
+	// cancel any ongoing AOT selection
+	tc.aotSelector.CancelOngoingSelection()
+	aotResult, found := tc.aotSelector.GetPreSelectedTransactions(nonce)
+	if !found || aotResult == nil {
+		log.Trace("GetAOTSelection: no AOT pre-selected transactions found for nonce", "nonce", nonce)
+		return [][]byte{}, []data.TransactionHandler{}
+	}
+
+	if len(aotResult.TxHashes) == 0 {
+		return [][]byte{}, []data.TransactionHandler{}
+	}
+
+	// Retrieve transaction handlers from the data pool using cached hashes
+	selectedTxHashes, selectedTxs := tc.getTxHandlersFromHashes(aotResult.TxHashes)
+	if len(selectedTxs) == 0 {
+		log.Warn("AOT selection abandoned, some pre-selected txs unavailable in pool, will re-select", "nonce", nonce, "numHashes", len(aotResult.TxHashes))
+		return [][]byte{}, []data.TransactionHandler{}
+	}
+
+	log.Info("SelectOutgoingTransactions: using AOT pre-selected transactions",
+		"nonce", nonce,
+		"numTxs", len(aotResult.TxHashes))
+
+	return selectedTxHashes, selectedTxs
 }
 
 // SelectOutgoingTransactions returns transactions originating in the shard, for a block proposal
 func (tc *transactionCoordinator) SelectOutgoingTransactions(
 	nonce uint64,
 	haveTimeForSelection func() bool,
-) (selectedTxHashes [][]byte, selectedPendingIncomingMiniBlocks []data.MiniBlockHeaderHandler) {
-	selectedTxHashes = make([][]byte, 0)
-	selectedTxs := make([]data.TransactionHandler, 0)
-	for _, blockType := range tc.preProcProposal.keysTxPreProcs {
-		txPreProc := tc.preProcProposal.getPreProcessor(blockType)
-		if check.IfNil(txPreProc) {
-			log.Warn("transactionCoordinator.SelectOutgoingTransactions: getPreProcessor returned nil for block type", "blockType", blockType)
-			continue
-		}
+) ([][]byte, []data.MiniBlockHeaderHandler) {
+	selectedTxHashes, selectedTxs := tc.getAOTSelection(nonce)
+	// if no tx returned from AOT selection, fallback to regular selection from pre-processors
+	if len(selectedTxs) == 0 {
+		for _, blockType := range tc.preProcProposal.keysTxPreProcs {
+			txPreProc := tc.preProcProposal.getPreProcessor(blockType)
+			if check.IfNil(txPreProc) {
+				log.Warn("transactionCoordinator.SelectOutgoingTransactions: getPreProcessor returned nil for block type", "blockType", blockType)
+				continue
+			}
 
-		gasBandwidth := tc.gasComputation.GetBandwidthForTransactions()
-		txHashes, txs, err := txPreProc.SelectOutgoingTransactions(gasBandwidth, nonce, haveTimeForSelection)
-		if err != nil {
-			log.Warn("transactionCoordinator.SelectOutgoingTransactions: SelectOutgoingTransactions returned error", "error", err)
-			continue
+			gasBandwidth := tc.gasComputation.GetBandwidthForTransactions()
+			txHashes, txs, err := txPreProc.SelectOutgoingTransactions(gasBandwidth, nonce, haveTimeForSelection)
+			if err != nil {
+				log.Warn("transactionCoordinator.SelectOutgoingTransactions: SelectOutgoingTransactions returned error", "error", err)
+				continue
+			}
+			selectedTxHashes = append(selectedTxHashes, txHashes...)
+			selectedTxs = append(selectedTxs, txs...)
 		}
-		selectedTxHashes = append(selectedTxHashes, txHashes...)
-		selectedTxs = append(selectedTxs, txs...)
 	}
 
 	selectedTxHashes, pendingMiniBlocksAdded, err := tc.gasComputation.AddOutgoingTransactions(selectedTxHashes, selectedTxs)
@@ -179,6 +214,32 @@ func (tc *transactionCoordinator) SelectOutgoingTransactions(
 	}
 
 	return selectedTxHashes, pendingMiniBlocksAdded
+}
+
+// getTxHandlersFromHashes retrieves transaction handlers from the data pool using the provided hashes
+func (tc *transactionCoordinator) getTxHandlersFromHashes(txHashes [][]byte) ([][]byte, []data.TransactionHandler) {
+	validHashes := make([][]byte, 0, len(txHashes))
+	txs := make([]data.TransactionHandler, 0, len(txHashes))
+
+	txPool := tc.dataPool.Transactions()
+	for _, txHash := range txHashes {
+		val, ok := txPool.SearchFirstData(txHash)
+		if !ok {
+			log.Trace("getTxHandlersFromHashes: transaction not found in pool", "hash", txHash)
+			return [][]byte{}, []data.TransactionHandler{}
+		}
+
+		tx, isTx := val.(data.TransactionHandler)
+		if !isTx {
+			log.Warn("getTxHandlersFromHashes: value is not a TransactionHandler", "hash", txHash)
+			return [][]byte{}, []data.TransactionHandler{}
+		}
+
+		validHashes = append(validHashes, txHash)
+		txs = append(txs, tx)
+	}
+
+	return validHashes, txs
 }
 
 func (tc *transactionCoordinator) verifyCreatedMiniBlocksSanity(body *block.Body) error {

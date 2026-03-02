@@ -3,6 +3,7 @@ package factory
 import (
 	"context"
 	"math/big"
+	"sync/atomic"
 	"time"
 
 	"github.com/multiversx/mx-chain-core-go/core"
@@ -145,6 +146,8 @@ type CoreComponentsHolder interface {
 	EpochChangeGracePeriodHandler() common.EpochChangeGracePeriodHandler
 	ProcessConfigsHandler() common.ProcessConfigsHandler
 	CommonConfigsHandler() common.CommonConfigsHandler
+	AntifloodConfigsHandler() common.AntifloodConfigsHandler
+	ClosingNodeStarted() *atomic.Bool
 	IsInterfaceNil() bool
 }
 
@@ -325,6 +328,7 @@ type ProcessComponentsHolder interface {
 	SentSignaturesTracker() process.SentSignaturesTracker
 	EpochSystemSCProcessor() process.EpochStartSystemSCProcessor
 	BlockchainHook() process.BlockChainHookWithAccountsAdapter
+	AOTSelector() process.AOTTransactionSelector
 	IsInterfaceNil() bool
 }
 

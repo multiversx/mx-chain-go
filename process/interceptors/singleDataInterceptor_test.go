@@ -30,6 +30,7 @@ func createMockArgSingleDataInterceptor() interceptors.ArgSingleDataInterceptor 
 		PreferredPeersHolder:    &p2pmocks.PeersHolderStub{},
 		CurrentPeerId:           "pid",
 		InterceptedDataVerifier: createMockInterceptedDataVerifier(),
+		ManagedPeersHolder:      &testscommon.ManagedPeersHolderStub{},
 	}
 }
 
@@ -154,6 +155,17 @@ func TestNewSingleDataInterceptor_EmptyPeerIDShouldErr(t *testing.T) {
 
 	assert.Nil(t, sdi)
 	assert.Equal(t, process.ErrEmptyPeerID, err)
+}
+
+func TestNewSingleDataInterceptor_NilManagedPeersHolderShouldErr(t *testing.T) {
+	t.Parallel()
+
+	arg := createMockArgSingleDataInterceptor()
+	arg.ManagedPeersHolder = nil
+	sdi, err := interceptors.NewSingleDataInterceptor(arg)
+
+	assert.Nil(t, sdi)
+	assert.Equal(t, process.ErrNilManagedPeersHolder, err)
 }
 
 func TestNewSingleDataInterceptor_NilInterceptedDataVerifierShouldErr(t *testing.T) {

@@ -10,8 +10,9 @@ import (
 	atomicCore "github.com/multiversx/mx-chain-core-go/core/atomic"
 	"github.com/multiversx/mx-chain-core-go/data"
 	"github.com/multiversx/mx-chain-core-go/data/block"
-	"github.com/multiversx/mx-chain-go/config"
 	"github.com/stretchr/testify/require"
+
+	"github.com/multiversx/mx-chain-go/config"
 
 	"github.com/multiversx/mx-chain-go/process"
 	"github.com/multiversx/mx-chain-go/process/asyncExecution/cache"
@@ -91,8 +92,8 @@ func TestHeadersExecutor_StartAndClose(t *testing.T) {
 	calledProcessBlock := uint32(0)
 	calledAddExecutionResult := uint32(0)
 	args := createMockArgs()
-	blocksQueue := cache.NewHeaderBodyCache(config.HeaderBodyCacheConfig{})
-	args.BlocksCache = blocksQueue
+	blocksCache := cache.NewHeaderBodyCache(config.HeaderBodyCacheConfig{})
+	args.BlocksCache = blocksCache
 	executedNonce := uint64(1)
 	executedHash := prevHash
 	args.BlockChain = &testscommon.ChainHandlerStub{
@@ -137,7 +138,7 @@ func TestHeadersExecutor_StartAndClose(t *testing.T) {
 
 	executor.StartExecution()
 
-	err = blocksQueue.AddOrReplace(cache.HeaderBodyPair{
+	err = blocksCache.AddOrReplace(cache.HeaderBodyPair{
 		Header: &block.Header{
 			Nonce:    2,
 			PrevHash: prevHash,
@@ -190,6 +191,7 @@ func TestHeadersExecutor_ProcessBlock(t *testing.T) {
 				}
 				return &block.BaseExecutionResult{
 					HeaderNonce: 0,
+					HeaderHash:  prevHash,
 				}
 			},
 			GetLastExecutedBlockInfoCalled: func() (uint64, []byte, []byte) {
@@ -202,7 +204,7 @@ func TestHeadersExecutor_ProcessBlock(t *testing.T) {
 				lastExecutedBlockNonce = int(header.GetNonce())
 			},
 		}
-		args.BlocksCache = &processMocks.BlocksQueueMock{
+		args.BlocksCache = &processMocks.BlocksCacheMock{
 			GetByNonceCalled: func(nonce uint64) (cache.HeaderBodyPair, bool) {
 				atomic.AddUint32(&cntWasPopCalled, 1)
 
@@ -216,8 +218,12 @@ func TestHeadersExecutor_ProcessBlock(t *testing.T) {
 			},
 		}
 
+		wasProcessBlockProposalCalled := atomicCore.Flag{}
 		args.BlockProcessor = &processMocks.BlockProcessorStub{
 			ProcessBlockProposalCalled: func(handler data.HeaderHandler, headerHash []byte, body data.BodyHandler) (data.BaseExecutionResultHandler, error) {
+				wasProcessBlockProposalCalled.SetValue(true)
+				time.Sleep(time.Millisecond * 500) // force pause to be called first
+
 				return &block.BaseExecutionResult{
 					HeaderNonce: handler.GetNonce(),
 					HeaderHash:  headerHash,
@@ -228,19 +234,19 @@ func TestHeadersExecutor_ProcessBlock(t *testing.T) {
 		executor, err := NewHeadersExecutor(args)
 		require.NoError(t, err)
 
+		executor.PauseExecution() // coverage, should early exit
+
 		executor.StartExecution()
 
 		// allow some Pop operations
 		time.Sleep(time.Millisecond * 200)
 
-		executor.PauseExecution()
-		time.Sleep(time.Millisecond * 20) // allow current processing to finish
+		require.True(t, wasProcessBlockProposalCalled.IsSet()) // require this here so we know the processing is in progress
+
+		executor.PauseExecution() // blocks until any ongoing processing completes
 		cntWasPopCalledAtPause := atomic.LoadUint32(&cntWasPopCalled)
 
 		executor.PauseExecution() // coverage, already paused
-
-		// wait a bit more
-		time.Sleep(time.Millisecond * 200)
 
 		cntWasPopCalledBeforeResume := atomic.LoadUint32(&cntWasPopCalled)
 		require.Equal(t, cntWasPopCalledAtPause, cntWasPopCalledBeforeResume)
@@ -450,7 +456,7 @@ func TestHeadersExecutor_ProcessBlock(t *testing.T) {
 		require.Equal(t, 1, countAddResult)
 	})
 
-	t.Run("block processing error, pop header for queue with the same nonce", func(t *testing.T) {
+	t.Run("block processing error, different hash should early exit", func(t *testing.T) {
 		t.Parallel()
 
 		args := createMockArgs()
@@ -542,6 +548,12 @@ func TestHeadersExecutor_ProcessBlock(t *testing.T) {
 func TestHeadersExecutor_Process(t *testing.T) {
 	t.Parallel()
 
+	var testPrevHash = []byte("prevHash")
+	var testDifferentHash = []byte("differentHash")
+	var testCommittedHash = []byte("committedHash")
+	var testChangedHash = []byte("changedHash")
+	var testNonce = uint64(1)
+
 	t.Run("should return error on failing to process block", func(t *testing.T) {
 		t.Parallel()
 
@@ -558,7 +570,7 @@ func TestHeadersExecutor_Process(t *testing.T) {
 
 		pair := cache.HeaderBodyPair{
 			Header: &block.Header{
-				Nonce: 1,
+				Nonce: testNonce,
 			},
 			Body: &block.Body{},
 		}
@@ -592,13 +604,386 @@ func TestHeadersExecutor_Process(t *testing.T) {
 
 		pair := cache.HeaderBodyPair{
 			Header: &block.Header{
-				Nonce: 1,
+				Nonce: testNonce,
 			},
 			Body: &block.Body{},
 		}
 
 		err := executor.Process(pair)
 		require.Equal(t, expectedErr, err)
+	})
+
+	t.Run("should call CommitBlockProposalState when all checks pass", func(t *testing.T) {
+		t.Parallel()
+
+		args := createMockArgs()
+
+		commitCalled := false
+		revertCalled := false
+		args.BlockProcessor = &processMocks.BlockProcessorStub{
+			ProcessBlockProposalCalled: func(handler data.HeaderHandler, headerHash []byte, body data.BodyHandler) (data.BaseExecutionResultHandler, error) {
+				return &block.BaseExecutionResult{
+					HeaderHash: headerHash,
+				}, nil
+			},
+			CommitBlockProposalStateCalled: func(headerHandler data.HeaderHandler) error {
+				commitCalled = true
+				return nil
+			},
+			RevertBlockProposalStateCalled: func() {
+				revertCalled = true
+			},
+		}
+		args.ExecutionTracker = &processMocks.ExecutionTrackerStub{
+			AddExecutionResultCalled: func(executionResult data.BaseExecutionResultHandler) (bool, error) {
+				return true, nil
+			},
+		}
+
+		executor, _ := NewHeadersExecutor(args)
+
+		pair := cache.HeaderBodyPair{
+			Header: &block.Header{
+				Nonce: testNonce,
+			},
+			Body: &block.Body{},
+		}
+
+		err := executor.Process(pair)
+		require.Nil(t, err)
+		require.True(t, commitCalled)
+		require.False(t, revertCalled)
+	})
+
+	t.Run("should call RevertBlockProposalState when nil execution result is returned", func(t *testing.T) {
+		t.Parallel()
+
+		args := createMockArgs()
+
+		revertCalled := false
+		commitCalled := false
+		args.BlockProcessor = &processMocks.BlockProcessorStub{
+			ProcessBlockProposalCalled: func(handler data.HeaderHandler, headerHash []byte, body data.BodyHandler) (data.BaseExecutionResultHandler, error) {
+				return nil, nil
+			},
+			CommitBlockProposalStateCalled: func(headerHandler data.HeaderHandler) error {
+				commitCalled = true
+				return nil
+			},
+			RevertBlockProposalStateCalled: func() {
+				revertCalled = true
+			},
+		}
+
+		executor, _ := NewHeadersExecutor(args)
+
+		pair := cache.HeaderBodyPair{
+			Header: &block.Header{
+				Nonce: testNonce,
+			},
+			Body: &block.Body{},
+		}
+
+		err := executor.Process(pair)
+		require.Equal(t, ErrNilExecutionResult, err)
+		require.True(t, revertCalled)
+		require.False(t, commitCalled)
+	})
+
+	t.Run("should call RevertBlockProposalState when context mismatch after processing", func(t *testing.T) {
+		t.Parallel()
+
+		args := createMockArgs()
+
+		revertCalled := false
+		commitCalled := false
+		callCount := 0
+		args.BlockChain = &testscommon.ChainHandlerStub{
+			GetLastExecutionResultCalled: func() data.BaseExecutionResultHandler {
+				callCount++
+				if callCount == 1 {
+					// First call (before processing) - return valid context
+					return &block.BaseExecutionResult{
+						HeaderNonce: 0,
+						HeaderHash:  testPrevHash,
+					}
+				}
+				// Second call (after processing) - return mismatched context to trigger revert
+				return &block.BaseExecutionResult{
+					HeaderNonce: 5,
+					HeaderHash:  testDifferentHash,
+				}
+			},
+		}
+		args.BlockProcessor = &processMocks.BlockProcessorStub{
+			ProcessBlockProposalCalled: func(handler data.HeaderHandler, headerHash []byte, body data.BodyHandler) (data.BaseExecutionResultHandler, error) {
+				return &block.BaseExecutionResult{
+					HeaderHash: headerHash,
+				}, nil
+			},
+			CommitBlockProposalStateCalled: func(headerHandler data.HeaderHandler) error {
+				commitCalled = true
+				return nil
+			},
+			RevertBlockProposalStateCalled: func() {
+				revertCalled = true
+			},
+		}
+
+		executor, _ := NewHeadersExecutor(args)
+
+		pair := cache.HeaderBodyPair{
+			Header: &block.Header{
+				Nonce:    testNonce,
+				PrevHash: testPrevHash,
+			},
+			Body: &block.Body{},
+		}
+
+		err := executor.Process(pair)
+		require.Nil(t, err)
+		require.True(t, revertCalled)
+		require.False(t, commitCalled)
+	})
+
+	t.Run("should call RevertBlockProposalState when committed block hash differs", func(t *testing.T) {
+		t.Parallel()
+
+		args := createMockArgs()
+
+		revertCalled := false
+		commitCalled := false
+		args.BlockChain = &testscommon.ChainHandlerStub{
+			GetLastExecutionResultCalled: func() data.BaseExecutionResultHandler {
+				return &block.BaseExecutionResult{}
+			},
+			GetCurrentBlockHeaderCalled: func() data.HeaderHandler {
+				return &block.Header{
+					Nonce: testNonce,
+				}
+			},
+			GetCurrentBlockHeaderHashCalled: func() []byte {
+				return testCommittedHash
+			},
+		}
+		args.BlockProcessor = &processMocks.BlockProcessorStub{
+			ProcessBlockProposalCalled: func(handler data.HeaderHandler, headerHash []byte, body data.BodyHandler) (data.BaseExecutionResultHandler, error) {
+				return &block.BaseExecutionResult{
+					HeaderNonce: testNonce,
+					HeaderHash:  testDifferentHash,
+				}, nil
+			},
+			CommitBlockProposalStateCalled: func(headerHandler data.HeaderHandler) error {
+				commitCalled = true
+				return nil
+			},
+			RevertBlockProposalStateCalled: func() {
+				revertCalled = true
+			},
+		}
+
+		executor, _ := NewHeadersExecutor(args)
+
+		pair := cache.HeaderBodyPair{
+			Header: &block.Header{
+				Nonce: testNonce,
+			},
+			Body: &block.Body{},
+		}
+
+		err := executor.Process(pair)
+		require.Nil(t, err)
+		require.True(t, revertCalled)
+		require.False(t, commitCalled)
+	})
+
+	t.Run("should call RevertBlockProposalState when last execution result header hash mismatches prevHash", func(t *testing.T) {
+		t.Parallel()
+
+		args := createMockArgs()
+
+		revertCalled := false
+		commitCalled := false
+		getLastExecResultCallCount := 0
+		args.BlockChain = &testscommon.ChainHandlerStub{
+			GetLastExecutionResultCalled: func() data.BaseExecutionResultHandler {
+				getLastExecResultCallCount++
+				if getLastExecResultCallCount <= 2 {
+					// First two calls (checkLastExecutionResultContext before and after processing):
+					// return matching context so those checks pass
+					return &block.BaseExecutionResult{
+						HeaderNonce: 0,
+						HeaderHash:  testPrevHash,
+					}
+				}
+				// Third call (explicit prevHash comparison):
+				// return mismatched header hash to trigger the revert
+				return &block.BaseExecutionResult{
+					HeaderNonce: 0,
+					HeaderHash:  testChangedHash,
+				}
+			},
+		}
+		args.BlockProcessor = &processMocks.BlockProcessorStub{
+			ProcessBlockProposalCalled: func(handler data.HeaderHandler, headerHash []byte, body data.BodyHandler) (data.BaseExecutionResultHandler, error) {
+				return &block.BaseExecutionResult{
+					HeaderHash: headerHash,
+				}, nil
+			},
+			CommitBlockProposalStateCalled: func(headerHandler data.HeaderHandler) error {
+				commitCalled = true
+				return nil
+			},
+			RevertBlockProposalStateCalled: func() {
+				revertCalled = true
+			},
+		}
+
+		executor, _ := NewHeadersExecutor(args)
+
+		pair := cache.HeaderBodyPair{
+			Header: &block.Header{
+				Nonce:    testNonce,
+				PrevHash: testPrevHash,
+			},
+			Body: &block.Body{},
+		}
+
+		err := executor.Process(pair)
+		require.Nil(t, err)
+		require.True(t, revertCalled)
+		require.False(t, commitCalled)
+	})
+
+	t.Run("should call RevertBlockProposalState when CommitBlockProposalState fails", func(t *testing.T) {
+		t.Parallel()
+
+		args := createMockArgs()
+
+		revertCalled := false
+		expectedErr := errors.New("commit failed")
+		args.BlockProcessor = &processMocks.BlockProcessorStub{
+			ProcessBlockProposalCalled: func(handler data.HeaderHandler, headerHash []byte, body data.BodyHandler) (data.BaseExecutionResultHandler, error) {
+				return &block.BaseExecutionResult{
+					HeaderHash: headerHash,
+				}, nil
+			},
+			CommitBlockProposalStateCalled: func(headerHandler data.HeaderHandler) error {
+				return expectedErr
+			},
+			RevertBlockProposalStateCalled: func() {
+				revertCalled = true
+			},
+		}
+
+		executor, _ := NewHeadersExecutor(args)
+
+		pair := cache.HeaderBodyPair{
+			Header: &block.Header{
+				Nonce: testNonce,
+			},
+			Body: &block.Body{},
+		}
+
+		err := executor.Process(pair)
+		require.Equal(t, expectedErr, err)
+		require.True(t, revertCalled)
+	})
+
+	t.Run("should not call RevertBlockProposalState when AddExecutionResult fails after commit", func(t *testing.T) {
+		t.Parallel()
+
+		args := createMockArgs()
+
+		commitCalled := false
+		revertCalled := false
+		expectedErr := errors.New("add result failed")
+		args.BlockProcessor = &processMocks.BlockProcessorStub{
+			ProcessBlockProposalCalled: func(handler data.HeaderHandler, headerHash []byte, body data.BodyHandler) (data.BaseExecutionResultHandler, error) {
+				return &block.BaseExecutionResult{
+					HeaderHash: headerHash,
+				}, nil
+			},
+			CommitBlockProposalStateCalled: func(headerHandler data.HeaderHandler) error {
+				commitCalled = true
+				return nil
+			},
+			RevertBlockProposalStateCalled: func() {
+				revertCalled = true
+			},
+		}
+		args.ExecutionTracker = &processMocks.ExecutionTrackerStub{
+			AddExecutionResultCalled: func(executionResult data.BaseExecutionResultHandler) (bool, error) {
+				return false, expectedErr
+			},
+		}
+
+		executor, _ := NewHeadersExecutor(args)
+
+		pair := cache.HeaderBodyPair{
+			Header: &block.Header{
+				Nonce: testNonce,
+			},
+			Body: &block.Body{},
+		}
+
+		err := executor.Process(pair)
+		require.Equal(t, expectedErr, err)
+		require.True(t, commitCalled)
+		require.False(t, revertCalled)
+	})
+
+	t.Run("should not call RevertBlockProposalState when AddExecutionResult rejects after commit", func(t *testing.T) {
+		t.Parallel()
+
+		args := createMockArgs()
+
+		commitCalled := false
+		revertCalled := false
+		args.BlockProcessor = &processMocks.BlockProcessorStub{
+			ProcessBlockProposalCalled: func(handler data.HeaderHandler, headerHash []byte, body data.BodyHandler) (data.BaseExecutionResultHandler, error) {
+				return &block.BaseExecutionResult{
+					HeaderHash: headerHash,
+				}, nil
+			},
+			CommitBlockProposalStateCalled: func(headerHandler data.HeaderHandler) error {
+				commitCalled = true
+				return nil
+			},
+			RevertBlockProposalStateCalled: func() {
+				revertCalled = true
+			},
+		}
+		args.ExecutionTracker = &processMocks.ExecutionTrackerStub{
+			AddExecutionResultCalled: func(executionResult data.BaseExecutionResultHandler) (bool, error) {
+				return false, nil
+			},
+		}
+
+		setFinalBlockInfoCalled := false
+		args.BlockChain = &testscommon.ChainHandlerStub{
+			GetLastExecutionResultCalled: func() data.BaseExecutionResultHandler {
+				return &block.BaseExecutionResult{}
+			},
+			SetFinalBlockInfoCalled: func(nonce uint64, headerHash, rootHash []byte) {
+				setFinalBlockInfoCalled = true
+			},
+		}
+
+		executor, _ := NewHeadersExecutor(args)
+
+		pair := cache.HeaderBodyPair{
+			Header: &block.Header{
+				Nonce: testNonce,
+			},
+			Body: &block.Body{},
+		}
+
+		err := executor.Process(pair)
+		require.Nil(t, err)
+		require.True(t, commitCalled)
+		require.False(t, revertCalled)
+		require.False(t, setFinalBlockInfoCalled)
 	})
 
 	t.Run("should add execution result info to blockchain handler", func(t *testing.T) {
@@ -641,7 +1026,7 @@ func TestHeadersExecutor_Process(t *testing.T) {
 
 		pair := cache.HeaderBodyPair{
 			Header: &block.Header{
-				Nonce: 1,
+				Nonce: testNonce,
 			},
 			Body: &block.Body{},
 		}

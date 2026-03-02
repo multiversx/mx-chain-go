@@ -10,6 +10,7 @@ type EnableRoundsHandlerStub struct {
 	IsFlagEnabledInRoundCalled func(flag common.EnableRoundFlag, round uint64) bool
 	GetActivationRoundCalled   func(flag common.EnableRoundFlag) uint64
 	GetCurrentRoundCalled      func() uint64
+	GetAllEnableRoundsCalled   func() map[string]uint64
 }
 
 // RoundConfirmed -
@@ -62,6 +63,15 @@ func (e *EnableRoundsHandlerStub) GetCurrentRound() uint64 {
 	}
 
 	return 0
+}
+
+// GetAllEnableRounds -
+func (e *EnableRoundsHandlerStub) GetAllEnableRounds() map[string]uint64 {
+	if e.GetAllEnableRoundsCalled != nil {
+		return e.GetAllEnableRoundsCalled()
+	}
+
+	return make(map[string]uint64)
 }
 
 // IsInterfaceNil -

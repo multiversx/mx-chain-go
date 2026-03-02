@@ -25,7 +25,6 @@ import (
 
 	"github.com/multiversx/mx-chain-go/common"
 	"github.com/multiversx/mx-chain-go/dataRetriever"
-	"github.com/multiversx/mx-chain-go/process/estimator"
 	"github.com/multiversx/mx-chain-go/state"
 )
 
@@ -1189,7 +1188,7 @@ func CreateLastExecutionResultInfoFromExecutionResult(notarizedInRound uint64, l
 // CreateDataForInclusionEstimation creates the metadata needed for inclusion time estimation
 func CreateDataForInclusionEstimation(
 	handler data.LastExecutionResultHandler,
-) (*estimator.LastExecutionResultForInclusion, error) {
+) (*common.LastExecutionResultForInclusion, error) {
 	if check.IfNil(handler) {
 		return nil, ErrNilLastExecutionResultHandler
 	}
@@ -1213,7 +1212,7 @@ func CreateDataForInclusionEstimation(
 		return nil, ErrWrongTypeAssertion
 	}
 
-	return &estimator.LastExecutionResultForInclusion{
+	return &common.LastExecutionResultForInclusion{
 		NotarizedInRound: notarizedInRound,
 		ProposedInRound:  proposedInRound,
 	}, nil
@@ -1385,6 +1384,8 @@ func CleanCachesForExecutionResult(
 	postProcessTxsCache.Remove(common.PrepareOrderedTxHashesKey(headerHash))
 	// remove cached log events
 	postProcessTxsCache.Remove(common.PrepareLogEventsKey(headerHash))
+	// remove header gas data
+	postProcessTxsCache.Remove(common.PrepareHeaderGasDataKey(headerHash))
 
 	// remove headerHash from executed mini blocks
 	executedMbs.Remove(headerHash)

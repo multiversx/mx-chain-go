@@ -14,6 +14,7 @@ import (
 	"github.com/multiversx/mx-chain-go/testscommon/hashingMocks"
 	"github.com/multiversx/mx-chain-go/testscommon/marshallerMock"
 	"github.com/multiversx/mx-chain-go/trie/keyBuilder"
+	"github.com/multiversx/mx-chain-go/trie/mock"
 	"github.com/multiversx/mx-chain-go/trie/statistics"
 	"github.com/stretchr/testify/assert"
 )
@@ -723,12 +724,12 @@ func TestLeafNode_writeNodeOnChannel(t *testing.T) {
 func TestLeafNode_commitContextDone(t *testing.T) {
 	t.Parallel()
 
-	db := testscommon.NewMemDbMock()
+	db := mock.NewSnapshotDbMock()
 	ln := getLn(marshalizer, hasherMock)
 	ctx, cancel := context.WithCancel(context.Background())
 	cancel()
 
-	err := ln.commitSnapshot(db, nil, nil, ctx, statistics.NewTrieStatistics(), &testscommon.ProcessStatusHandlerStub{}, 0)
+	err := ln.commitSnapshot(db, 0, nil, nil, ctx, statistics.NewTrieStatistics(), &testscommon.ProcessStatusHandlerStub{}, []byte{}, 0)
 	assert.Equal(t, core.ErrContextClosing, err)
 }
 

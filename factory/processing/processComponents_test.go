@@ -148,7 +148,8 @@ func createMockProcessComponentsFactoryArgs() processComp.ProcessComponentsFacto
 				MinStakeValue:                        "1",
 				UnJailValue:                          "1",
 				MinStepValue:                         "1",
-				UnBondPeriod:                         0,
+				UnBondPeriod:                         1,
+				UnBondPeriodSupernova:                2,
 				NumRoundsWithoutBleed:                0,
 				MaximumPercentageToBleed:             0,
 				BleedPercentagePerRound:              0,
@@ -232,6 +233,7 @@ func createMockProcessComponentsFactoryArgs() processComp.ProcessComponentsFacto
 			ChainParametersHandlerField:        &chainParameters.ChainParametersHandlerStub{},
 			ProcessConfigsHandlerField:         testscommon.GetDefaultProcessConfigsHandler(),
 			CommonConfigsHandlerField:          testscommon.GetDefaultCommonConfigsHandler(),
+			AntifloodConfigsHandlerField:       &testscommon.AntifloodConfigsHandlerStub{},
 		},
 		Crypto: &testsMocks.CryptoComponentsStub{
 			BlKeyGen: &cryptoMocks.KeyGenStub{},

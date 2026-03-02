@@ -112,7 +112,8 @@ func createArgsProcessComponentsHolder() ArgsProcessComponentsHolder {
 				MinStakeValue:                        "1",
 				UnJailValue:                          "1",
 				MinStepValue:                         "1",
-				UnBondPeriod:                         0,
+				UnBondPeriod:                         1,
+				UnBondPeriodSupernova:                2,
 				NumRoundsWithoutBleed:                0,
 				MaximumPercentageToBleed:             0,
 				BleedPercentagePerRound:              0,
@@ -183,6 +184,7 @@ func createArgsProcessComponentsHolder() ArgsProcessComponentsHolder {
 			ChainParametersSubscriberField:     &commonmocks.ChainParametersNotifierStub{},
 			ProcessConfigsHandlerField:         testscommon.GetDefaultProcessConfigsHandler(),
 			CommonConfigsHandlerField:          testscommon.GetDefaultCommonConfigsHandler(),
+			AntifloodConfigsHandlerField:       &testscommon.AntifloodConfigsHandlerStub{},
 		},
 		CryptoComponents: &mock.CryptoComponentsStub{
 			BlKeyGen: &cryptoMocks.KeyGenStub{},
@@ -260,7 +262,7 @@ func TestCreateProcessComponents(t *testing.T) {
 
 	t.Run("should work", func(t *testing.T) {
 		comp, err := CreateProcessComponents(createArgsProcessComponentsHolder())
-		require.NoError(t, err)
+		require.Nil(t, err)
 		require.NotNil(t, comp)
 
 		require.Nil(t, comp.Create())

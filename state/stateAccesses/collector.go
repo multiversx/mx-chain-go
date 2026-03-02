@@ -22,14 +22,16 @@ const maxNumBlocksInMemory = 20
 type stateAccessesForTxs map[string]*data.StateAccesses
 
 type collector struct {
-	collectRead           bool
-	collectWrite          bool
-	withAccountChanges    bool
-	stateAccesses         []*data.StateAccess
-	stateAccessesForTxs   stateAccessesForTxs
-	stateAccessesForBlock map[string]stateAccessesForTxs
-	storer                state.StateAccessesStorer
-	stateAccessesMut      sync.RWMutex
+	collectRead              bool
+	collectWrite             bool
+	withAccountChanges       bool
+	stateAccesses            []*data.StateAccess
+	stateAccessesForTxs      stateAccessesForTxs
+	stateAccessesForBlock    map[string]stateAccessesForTxs
+	stateAccessesForBlockMut sync.RWMutex
+
+	storer           state.StateAccessesStorer
+	stateAccessesMut sync.RWMutex
 
 	lastCollectedRootHash     []byte
 	lastCommitHasStateChanges bool
@@ -86,27 +88,30 @@ func (c *collector) GetAccountChanges(oldAccount, account vmcommon.AccountHandle
 // Reset resets the state accesses collector
 func (c *collector) Reset() {
 	c.stateAccessesMut.Lock()
-	defer c.stateAccessesMut.Unlock()
 
 	c.stateAccesses = make([]*data.StateAccess, 0)
 	c.stateAccessesForTxs = make(map[string]*data.StateAccesses)
 
 	if c.lastCommitHasStateChanges {
-		delete(c.stateAccessesForBlock, string(c.lastCollectedRootHash))
+		c.removeStateAccessesForRootHash(c.lastCollectedRootHash)
 		log.Trace("removed last collected root hash from stateAccessesForBlock", "rootHash", c.lastCollectedRootHash)
 	}
+	c.stateAccessesMut.Unlock()
+
+	c.stateAccessesForBlockMut.RLock()
 	if len(c.stateAccessesForBlock) > maxNumBlocksInMemory {
 		// TODO remove oldest entries instead of logging a warning
 		log.Warn("max number of blocks in memory exceeded", "numBlocksInMemory", len(c.stateAccessesForBlock))
 	}
 
 	log.Trace("reset state accesses collector", "num state accesses for block", len(c.stateAccessesForBlock))
+	c.stateAccessesForBlockMut.RUnlock()
 }
 
 // GetStateAccessesForRootHash will return the collected state accesses
 func (c *collector) GetStateAccessesForRootHash(rootHash []byte) map[string]*data.StateAccesses {
-	c.stateAccessesMut.RLock()
-	defer c.stateAccessesMut.RUnlock()
+	c.stateAccessesForBlockMut.RLock()
+	defer c.stateAccessesForBlockMut.RUnlock()
 
 	stateAccessesForRootHash, ok := c.stateAccessesForBlock[string(rootHash)]
 	if !ok {
@@ -119,8 +124,12 @@ func (c *collector) GetStateAccessesForRootHash(rootHash []byte) map[string]*dat
 
 // RemoveStateAccessesForRootHash will remove the collected state accesses for the given root hash
 func (c *collector) RemoveStateAccessesForRootHash(rootHash []byte) {
-	c.stateAccessesMut.Lock()
-	defer c.stateAccessesMut.Unlock()
+	c.removeStateAccessesForRootHash(rootHash)
+}
+
+func (c *collector) removeStateAccessesForRootHash(rootHash []byte) {
+	c.stateAccessesForBlockMut.Lock()
+	defer c.stateAccessesForBlockMut.Unlock()
 
 	delete(c.stateAccessesForBlock, string(rootHash))
 	log.Trace("removed stateAccessesForRootHash from stateAccessesForBlock", "rootHash", rootHash)
@@ -224,13 +233,15 @@ func stateAccessToString(stateAccess *data.StateAccess) string {
 // CommitCollectedAccesses will call the Store method of the underlying storer, giving it the collected state accesses.
 func (c *collector) CommitCollectedAccesses(rootHash []byte) error {
 	c.stateAccessesMut.Lock()
-	defer c.stateAccessesMut.Unlock()
 
 	collectedStateAccesses := c.getStateAccessesForTxs()
 	if len(collectedStateAccesses) == 0 {
 		c.lastCollectedRootHash = rootHash
 		c.lastCommitHasStateChanges = false
+		c.stateAccessesMut.Unlock()
+
 		log.Trace("no state accesses collected, skipping commit", "rootHash", rootHash)
+
 		return nil
 	}
 
@@ -239,12 +250,16 @@ func (c *collector) CommitCollectedAccesses(rootHash []byte) error {
 
 	c.lastCollectedRootHash = rootHash
 	c.lastCommitHasStateChanges = true
+	c.stateAccessesMut.Unlock()
+
+	c.stateAccessesForBlockMut.Lock()
 	c.stateAccessesForBlock[string(rootHash)] = collectedStateAccesses
 	log.Trace("state accesses collected", "numStateAccesses", len(collectedStateAccesses), "rootHash", rootHash)
 
 	if len(c.stateAccessesForBlock) > maxNumBlocksInMemory {
 		log.Warn("max number of blocks in memory exceeded", "numBlocksInMemory", len(c.stateAccessesForBlock))
 	}
+	c.stateAccessesForBlockMut.Unlock()
 
 	return c.storer.Store(collectedStateAccesses)
 }

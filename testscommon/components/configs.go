@@ -2,6 +2,7 @@ package components
 
 import (
 	"github.com/multiversx/mx-chain-go/config"
+	"github.com/multiversx/mx-chain-go/testscommon"
 )
 
 // GetGeneralConfig -
@@ -152,6 +153,7 @@ func GetGeneralConfig() config.Config {
 			MinTransactionVersion:    1,
 			GenesisMaxNumberOfShards: 3,
 			SetGuardianEpochsDelay:   20,
+			MaxProposalNonceGap:      10,
 			ChainParametersByEpoch: []config.ChainParametersByEpochConfig{
 				{
 					EnableEpoch:                 0,
@@ -184,6 +186,8 @@ func GetGeneralConfig() config.Config {
 					NumFloodingRoundsOutOfSpecs:            20,
 					NumFloodingRoundsSlowReacting:          20,
 					MaxConsecutiveRoundsOfRatingDecrease:   600,
+					MaxBlockProcessingTimeMs:               1000,
+					NumHeadersToRequestInAdvance:           10,
 				},
 			},
 			EpochStartConfigsByEpoch: []config.EpochStartConfigByEpoch{
@@ -248,6 +252,7 @@ func GetGeneralConfig() config.Config {
 				MaxOpenFiles:      10,
 			},
 		},
+		Antiflood: testscommon.GetDefaultAntifloodConfig(),
 	}
 }
 

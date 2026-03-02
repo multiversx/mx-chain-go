@@ -937,6 +937,9 @@ func (sp *shardProcessor) CommitBlock(
 		return err
 	}
 
+	prevBlockHeader := sp.blockChain.GetCurrentBlockHeader()
+	prevBlockHeaderHash := sp.blockChain.GetCurrentBlockHeaderHash()
+
 	if !headerHandler.IsHeaderV3() {
 		sp.processStatusHandler.SetBusy("shardProcessor.CommitBlock")
 		defer func() {
@@ -949,6 +952,8 @@ func (sp *shardProcessor) CommitBlock(
 		defer func() {
 			if err != nil {
 				sp.RevertHeaderV3OnCommit(headerHandler)
+				_ = sp.blockChain.SetCurrentBlockHeader(prevBlockHeader)
+				sp.blockChain.SetCurrentBlockHeaderHash(prevBlockHeaderHash)
 			}
 		}()
 	}
@@ -999,7 +1004,7 @@ func (sp *shardProcessor) CommitBlock(
 
 	sp.saveBody(body, header, headerHash)
 
-	processedMetaHdrs, err := sp.getOrderedProcessedMetaBlocksFromHeader(header)
+	processedMetaHdrs, partialProcessedMetaBlocks, err := sp.getOrderedProcessedMetaBlocksFromHeader(header)
 	if err != nil {
 		return err
 	}
@@ -1049,7 +1054,7 @@ func (sp *shardProcessor) CommitBlock(
 		log.Debug("checkSentSignaturesBeforeCommitting", "error", errNotCritical.Error())
 	}
 
-	errNotCritical = sp.updateCrossShardInfo(processedMetaHdrs)
+	errNotCritical = sp.updateCrossShardInfo(processedMetaHdrs, partialProcessedMetaBlocks)
 	if errNotCritical != nil {
 		log.Debug("updateCrossShardInfo", "error", errNotCritical.Error())
 	}
@@ -1748,9 +1753,11 @@ func getShardHeadersReferencedByMeta(
 }
 
 // getOrderedProcessedMetaBlocksFromHeader returns all the meta blocks fully processed
-func (sp *shardProcessor) getOrderedProcessedMetaBlocksFromHeader(header data.HeaderHandler) ([]data.HeaderHandler, error) {
+func (sp *shardProcessor) getOrderedProcessedMetaBlocksFromHeader(
+	header data.HeaderHandler,
+) ([]data.HeaderHandler, []*hashAndHdr, error) {
 	if check.IfNil(header) {
-		return nil, process.ErrNilBlockHeader
+		return nil, nil, process.ErrNilBlockHeader
 	}
 
 	miniBlockHeaders := header.GetMiniBlockHeaderHandlers()
@@ -1764,17 +1771,18 @@ func (sp *shardProcessor) getOrderedProcessedMetaBlocksFromHeader(header data.He
 	)
 
 	var processedMetaBlocks []data.HeaderHandler
+	partialProcessedMetaBlocks := make([]*hashAndHdr, 0)
 	var err error
 	if !header.IsHeaderV3() {
 		processedMetaBlocks, err = sp.getOrderedProcessedMetaBlocksFromMiniBlockHashes(miniBlockHeaders, miniBlockHashes)
 	} else {
-		processedMetaBlocks, err = sp.getOrderedProcessedMetaBlocksFromMiniBlockHashesV3(header, miniBlockHashes)
+		processedMetaBlocks, partialProcessedMetaBlocks, err = sp.getOrderedProcessedMetaBlocksFromMiniBlockHashesV3(header, miniBlockHashes)
 	}
 	if err != nil {
-		return nil, err
+		return nil, nil, err
 	}
 
-	return processedMetaBlocks, nil
+	return processedMetaBlocks, partialProcessedMetaBlocks, nil
 }
 
 func (sp *shardProcessor) addProcessedCrossMiniBlocksFromHeader(headerHandler data.HeaderHandler) error {
@@ -1903,7 +1911,10 @@ func (sp *shardProcessor) getOrderedProcessedMetaBlocksFromMiniBlockHashes(
 	return processedMetaHdrs, nil
 }
 
-func (sp *shardProcessor) updateCrossShardInfo(processedMetaHdrs []data.HeaderHandler) error {
+func (sp *shardProcessor) updateCrossShardInfo(
+	processedMetaHdrs []data.HeaderHandler,
+	partialProcessedMetaBlocks []*hashAndHdr,
+) error {
 	lastCrossNotarizedHeader, _, err := sp.blockTracker.GetLastCrossNotarizedHeader(core.MetachainShardId)
 	if err != nil {
 		return err
@@ -1913,26 +1924,66 @@ func (sp *shardProcessor) updateCrossShardInfo(processedMetaHdrs []data.HeaderHa
 	for i := 0; i < len(processedMetaHdrs); i++ {
 		hdr := processedMetaHdrs[i]
 
-		// remove process finished
-		if hdr.GetNonce() > lastCrossNotarizedHeader.GetNonce() {
-			continue
-		}
-
-		// metablock was processed and finalized
-		marshalizedHeader, errMarshal := sp.marshalizer.Marshal(hdr)
-		if errMarshal != nil {
-			log.Debug("updateCrossShardInfo.Marshal", "error", errMarshal.Error())
-			continue
-		}
-
-		headerHash := sp.hasher.Compute(string(marshalizedHeader))
-
-		sp.saveMetaHeader(hdr, headerHash, marshalizedHeader)
+		headerHash := sp.saveCrossShardMetaHeader(hdr, lastCrossNotarizedHeader)
 
 		sp.processedMiniBlocksTracker.RemoveMetaBlockHash(headerHash)
 	}
 
+	// if there are meta headers that were not included in the fully processed meta blocks
+	// and they are lower (by nonce) than last cross notarized meta header,
+	// that means there might have been a gap in the referenced meta header and these
+	// meta headers have to be saved into storage
+	for _, metaHdr := range partialProcessedMetaBlocks {
+		sp.saveCrossShardPartialMetaHeader(metaHdr, lastCrossNotarizedHeader)
+	}
+
 	return nil
+}
+
+func (sp *shardProcessor) saveCrossShardMetaHeader(
+	metaHdr data.HeaderHandler,
+	lastCrossNotarizedHeader data.HeaderHandler,
+) []byte {
+	if metaHdr.GetNonce() > lastCrossNotarizedHeader.GetNonce() {
+		log.Debug("saveCrossShardMetaHeader: higher nonce",
+			"hdr nonce", metaHdr.GetNonce(),
+			"lastCrossNotarizedHeader nonce", lastCrossNotarizedHeader.GetNonce(),
+		)
+		return nil
+	}
+
+	marshalizedHeader, errMarshal := sp.marshalizer.Marshal(metaHdr)
+	if errMarshal != nil {
+		log.Debug("saveCrossShardMetaHeader.Marshal", "error", errMarshal.Error())
+		return nil
+	}
+
+	headerHash := sp.hasher.Compute(string(marshalizedHeader))
+
+	sp.saveMetaHeader(metaHdr, headerHash, marshalizedHeader)
+
+	return headerHash
+}
+
+func (sp *shardProcessor) saveCrossShardPartialMetaHeader(
+	hdrInfo *hashAndHdr,
+	lastCrossNotarizedHeader data.HeaderHandler,
+) {
+	if hdrInfo.hdr.GetNonce() > lastCrossNotarizedHeader.GetNonce() {
+		log.Debug("saveCrossShardMetaHeader: higher nonce",
+			"hdr nonce", hdrInfo.hdr.GetNonce(),
+			"lastCrossNotarizedHeader nonce", lastCrossNotarizedHeader.GetNonce(),
+		)
+		return
+	}
+
+	marshalizedHeader, errMarshal := sp.marshalizer.Marshal(hdrInfo.hdr)
+	if errMarshal != nil {
+		log.Debug("saveCrossShardMetaHeader.Marshal", "error", errMarshal.Error())
+		return
+	}
+
+	sp.saveMetaHeader(hdrInfo.hdr, hdrInfo.hash, marshalizedHeader)
 }
 
 func (sp *shardProcessor) verifyCrossShardMiniBlockDstMe(header data.ShardHeaderHandler) error {

@@ -21,7 +21,7 @@ func TestNewP2PAntiFloodAndBlackList_NilStatusHandlerShouldErr(t *testing.T) {
 
 	ctx := context.Background()
 	cfg := config.Config{}
-	components, err := NewP2PAntiFloodComponents(ctx, cfg, nil, currentPid, &testscommon.ProcessConfigsHandlerStub{})
+	components, err := NewP2PAntiFloodComponents(ctx, cfg, nil, currentPid, &testscommon.AntifloodConfigsHandlerStub{})
 	assert.Nil(t, components)
 	assert.Equal(t, p2p.ErrNilStatusHandler, err)
 }
@@ -36,7 +36,7 @@ func TestNewP2PAntiFloodAndBlackList_ShouldWorkAndReturnDisabledImplementations(
 	}
 	ash := statusHandler.NewAppStatusHandlerMock()
 	ctx := context.Background()
-	components, err := NewP2PAntiFloodComponents(ctx, cfg, ash, currentPid, &testscommon.ProcessConfigsHandlerStub{})
+	components, err := NewP2PAntiFloodComponents(ctx, cfg, ash, currentPid, &testscommon.AntifloodConfigsHandlerStub{})
 	assert.NotNil(t, components)
 	assert.Nil(t, err)
 
@@ -51,26 +51,32 @@ func TestNewP2PAntiFloodAndBlackList_ShouldWorkAndReturnDisabledImplementations(
 func TestNewP2PAntiFloodAndBlackList_ShouldWorkAndReturnOkImplementations(t *testing.T) {
 	t.Parallel()
 
-	cfg := config.Config{
-		Antiflood: config.AntifloodConfig{
-			Enabled: true,
-			Cache: config.CacheConfig{
-				Type:     "LRU",
-				Capacity: 10,
-				Shards:   2,
-			},
-			FastReacting: createFloodPreventerConfig(),
-			SlowReacting: createFloodPreventerConfig(),
-			OutOfSpecs:   createFloodPreventerConfig(),
-			Topic: config.TopicAntifloodConfig{
-				DefaultMaxMessagesPerSec: 10,
-			},
+	cfg := config.Config{}
+
+	antifloodConfigHandler := &testscommon.AntifloodConfigsHandlerStub{
+		IsEnabledCalled: func() bool {
+			return true
+		},
+		GetCurrentConfigCalled: func() config.AntifloodConfigByRound {
+			return config.AntifloodConfigByRound{
+				Cache: config.CacheConfig{
+					Type:     "LRU",
+					Capacity: 10,
+					Shards:   2,
+				},
+				FastReacting: createFloodPreventerConfig(),
+				SlowReacting: createFloodPreventerConfig(),
+				OutOfSpecs:   createFloodPreventerConfig(),
+				Topic: config.TopicAntifloodConfig{
+					DefaultMaxMessagesPerSec: 10,
+				},
+			}
 		},
 	}
 
 	ash := statusHandler.NewAppStatusHandlerMock()
 	ctx := context.Background()
-	components, err := NewP2PAntiFloodComponents(ctx, cfg, ash, currentPid, &testscommon.ProcessConfigsHandlerStub{})
+	components, err := NewP2PAntiFloodComponents(ctx, cfg, ash, currentPid, antifloodConfigHandler)
 	assert.Nil(t, err)
 	assert.NotNil(t, components.AntiFloodHandler)
 	assert.NotNil(t, components.BlacklistHandler)
